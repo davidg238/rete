@@ -1,0 +1,9 @@
+(*
+expect-runtime-fail: String does not understand collect:
+*)
+class StringNotCollectionTest packageUsing: manifest = () (
+public main: platform args: args = (
+    'abc' collect: [:c | c].
+)
+) : (
+)

@@ -1,0 +1,29 @@
+(*
+UDP — confined native capability, datagram socket over a real dual-stack POSIX
+backend. R4. Entry declares the second capability `net:`.
+expect:
+UDP OK
+*)
+class UdpTest usingPlatform: platform net: net = () (
+  public main: platform2 args: args = (
+    (roundTrip: '127.0.0.1') ifFalse: [ ^ self fail: 'v4 loopback' ].
+    (roundTrip: '::1')       ifFalse: [ ^ self fail: 'v6 loopback' ].
+    'UDP OK' println.
+    ^ 0
+  )
+  roundTrip: host = (
+    | rx tx dg got |
+    rx:: net udpBindPort: 54331.
+    rx == nil ifTrue: [ ^ false ].
+    tx:: net udp.
+    tx sendTo: host port: 54331 data: 'ping'.
+    got:: nil.
+    [ got == nil ] whileTrue: [ got:: rx receive ].   (* loopback is ~instant *)
+    dg:: got.
+    rx close. tx close.
+    ^ dg data = 'ping'
+  )
+  fail: msg = ( msg println. ^ 1 )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

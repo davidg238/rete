@@ -1,0 +1,38 @@
+(*
+Serial — confined native capability, byte/line port over a host loopback.
+std-lib step 3c-3b. Entry declares the second capability `serial:`.
+expect:
+SERIAL OK
+*)
+class SerialTest usingPlatform: platform serial: serial = () (
+  public main: platform2 args: args = (
+    | line |
+    (* round-trip: write a line, read it back *)
+    serial write: 'hello'.
+    serial writeByte: 10.                          (* LF *)
+    line:: serial readLine.
+    (line = 'hello') ifFalse: [ ^ self fail: 'readLine round-trip' ].
+    serial atEnd ifFalse: [ ^ self fail: 'atEnd after drain' ].
+
+    (* readByte byte round-trip + nil at empty *)
+    serial writeByte: 65.
+    (serial readByte = 65) ifFalse: [ ^ self fail: 'readByte' ].
+    (serial readByte == nil) ifFalse: [ ^ self fail: 'readByte nil at empty' ].
+
+    (* read: returns a short String of what is available; '' when empty *)
+    serial write: 'ab'.
+    (serial read: 5) = 'ab' ifFalse: [ ^ self fail: 'read: short string' ].
+    (serial read: 5) = '' ifFalse: [ ^ self fail: 'read: empty string' ].
+
+    (* readLine strips CRLF and answers nil at EOF *)
+    serial write: 'x'. serial writeByte: 13. serial writeByte: 10.
+    (serial readLine = 'x') ifFalse: [ ^ self fail: 'readLine CRLF strip' ].
+    (serial readLine == nil) ifFalse: [ ^ self fail: 'readLine nil at EOF' ].
+
+    'SERIAL OK' println.
+    ^ 0
+  )
+  fail: msg = ( msg println. ^ 1 )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

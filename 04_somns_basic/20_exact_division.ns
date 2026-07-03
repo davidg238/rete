@@ -1,0 +1,28 @@
+(*
+expect:
+2
+1.5
+3.5
+true
+true
+true
+0.5
+*)
+class ExactDivisionTest packageUsing: manifest = () (
+  (* Smalltalk `/` is EXACT division: an Integer when it divides evenly,
+     otherwise (no Fraction type here) a Float. `//` stays flooring integer
+     division. mandelbrot relies on `2 * y / size` being fractional. *)
+  public class C = () (
+    public main: platform args: args = (
+      (4 / 2) printString out.        (* 2:   exact -> Integer *)
+      (3 / 2) printString out.        (* 1.5: inexact -> Float *)
+      (7 / 2) printString out.        (* 3.5 *)
+      ((4 / 2) = 2) printString out.  (* true:  exact result is an Integer *)
+      ((3 / 2) = 1.5) printString out.(* true:  inexact result is a Float *)
+      (7 // 2 = 3) printString out.   (* true:  // is still flooring int div *)
+      (2 * 1 / 4) asFloat printString out.  (* 0.5 *)
+    )
+  )
+  public main: platform args: args = ( C new main: platform args: args )
+) : (
+)

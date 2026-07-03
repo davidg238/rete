@@ -1,0 +1,9 @@
+(*
+expect:
+36
+false
+*)
+| sq |
+sq:: [:x | x * x].
+(sq value: 6) println.
+((1 < 2) and: [ 3 < 2 ]) println.

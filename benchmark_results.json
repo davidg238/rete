@@ -1,0 +1,98 @@
+[
+  {
+    "group": "05_somns_benchmarks",
+    "name": "01_queens.ns",
+    "soup_time_s": 0.002549500990426168,
+    "soup_status": "OK",
+    "oevm_time_s": 0.0022500120103359222,
+    "oevm_status": "OK"
+  },
+  {
+    "group": "05_somns_benchmarks",
+    "name": "02_sieve.ns",
+    "soup_time_s": 0.0017611329967621714,
+    "soup_status": "OK",
+    "oevm_time_s": 0.001417787017999217,
+    "oevm_status": "OK"
+  },
+  {
+    "group": "05_somns_benchmarks",
+    "name": "03_towers.ns",
+    "soup_time_s": 0.003783944994211197,
+    "soup_status": "OK",
+    "oevm_time_s": 0.0041963149851653725,
+    "oevm_status": "OK"
+  },
+  {
+    "group": "05_somns_benchmarks",
+    "name": "04_mandelbrot.ns",
+    "soup_time_s": 2.7297964000026695,
+    "soup_status": "OK",
+    "oevm_time_s": 3.889934879000066,
+    "oevm_status": "OK"
+  },
+  {
+    "group": "05_somns_benchmarks",
+    "name": "05_nbody.ns",
+    "soup_time_s": 0.008662188978632912,
+    "soup_status": "OK",
+    "oevm_time_s": 0.014073452010052279,
+    "oevm_status": "OK"
+  },
+  {
+    "group": "05_somns_benchmarks",
+    "name": "06_richards.ns",
+    "soup_time_s": 0.0420693600026425,
+    "soup_status": "OK",
+    "oevm_time_s": 0.05981409997912124,
+    "oevm_status": "OK"
+  },
+  {
+    "group": "05_somns_benchmarks",
+    "name": "07_deltablue.ns",
+    "soup_time_s": 0.0024979280133266,
+    "soup_status": "OK",
+    "oevm_time_s": 0.0016246250015683472,
+    "oevm_status": "OK"
+  },
+  {
+    "group": "06_limit_tests",
+    "name": "01_deep_nesting.ns",
+    "soup_time_s": 0.001418719009961933,
+    "soup_status": "OK",
+    "oevm_time_s": 0.0003691529855132103,
+    "oevm_status": "OK"
+  },
+  {
+    "group": "06_limit_tests",
+    "name": "02_large_class.ns",
+    "soup_time_s": 0.005166589980944991,
+    "soup_status": "OK",
+    "oevm_time_s": 0.0003884570032823831,
+    "oevm_status": "OK"
+  },
+  {
+    "group": "06_limit_tests",
+    "name": "03_many_locals.ns",
+    "soup_time_s": 0.0014571099891327322,
+    "soup_status": "OK",
+    "oevm_time_s": 0.0011099770199507475,
+    "oevm_status": "OK"
+  },
+  {
+    "group": "06_limit_tests",
+    "name": "04_integer_overflow.ns",
+    "soup_time_s": 0.0013308919733390212,
+    "soup_status": "OK",
+    "oevm_time_s": 0.0006155669980216771,
+    "oevm_status": "OK"
+  },
+  {
+    "group": "06_limit_tests",
+    "name": "05_gc_stress.ns",
+    "soup_time_s": 0.012317451008129865,
+    "soup_status": "OK",
+    "oevm_time_s": 0.019669203000376,
+    "oevm_status": "OK"
+  }
+]

@@ -1,0 +1,19 @@
+(*
+A non-literal `to:do:` body block (held in a temp, not a literal block),
+forcing the compiler's fallback path: the block is OP_BLOCK_INVOKE'd as
+`body value: i` (compile_to_do_inline generalized via emit_block_value),
+rather than the recursive PRIM_to_do primitive.
+
+expect:
+10
+*)
+class ToDoNonliteralTest packageUsing: manifest = () (
+public main: platform args: args = (
+    | body sum |
+    sum:: 0.
+    body:: [:i | sum:: sum + i].
+    1 to: 4 do: body.
+    sum printString out.
+)
+) : (
+)

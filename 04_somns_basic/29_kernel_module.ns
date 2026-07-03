@@ -1,0 +1,24 @@
+(*
+expect:
+3
+10
+20
+30
+an Object
+*)
+class KernelModuleTest packageUsing: manifest = () (
+class Widget = () (
+) : ()
+public main: platform args: args = (
+    | a w |
+    a:: Array new: 3.
+    a at: 1 put: 10.
+    a at: 2 put: 20.
+    a at: 3 put: 30.
+    a size println.
+    a do: [ :x | x println ].
+    w:: Widget new.
+    w printString println.
+)
+) : (
+)

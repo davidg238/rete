@@ -1,0 +1,38 @@
+(*
+expect:
+3007
+507003
+true
+*)
+class NestedSendArgsTest packageUsing: manifest = () (
+  public class C = () (
+    private inner: x = ( ^ x * 10 )
+    private combine: a with: b = ( ^ (a * 100) + b )
+    private combine3: a with: b with: c = ( ^ (a * 10000) + (b * 100) + c )
+
+    (* A nested send in a NON-LAST keyword argument must not corrupt the
+       later arguments. Before the fix, evaluating arg0's nested send left
+       the register allocator non-contiguous, so `b` received leftover
+       scratch (an object) instead of its real value. Mirrors towers'
+       `self pushDisk: (self popDiskFrom: x) onPile: y`. *)
+    public testNestedArg0 = (
+      ^ self combine: (self inner: 3) with: 7
+    )
+
+    (* Nested sends in two of three argument positions. *)
+    public testNestedMulti = (
+      ^ self combine3: (self inner: 5) with: (self inner: 7) with: 3
+    )
+
+    (* Nested send as the LAST arg still works (regression guard). *)
+    public testNestedLast = (
+      ^ (self combine: 1 with: (self inner: 2)) = 120
+    )
+  )
+  public main: platform args: args = (
+    C new testNestedArg0 printString out.
+    C new testNestedMulti printString out.
+    C new testNestedLast printString out.
+  )
+) : (
+)

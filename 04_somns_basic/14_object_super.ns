@@ -1,0 +1,26 @@
+(*
+expect:
+7
+8
+*)
+class ObjectSuperTest packageUsing: manifest = () (
+  (* Inheriting from the root `Object` (a builtin, not a user class) must
+     compile: the delegate resolves to the VM root (NULL), the same as a
+     class with no superclass clause. Mirrors richards' `RBObject = Object`. *)
+  class Widget = Object (
+  )(
+    public answer = ( ^ 7 )
+  )
+
+  (* A subclass of an Object-rooted class still works. *)
+  class SubWidget = Widget (
+  )(
+    public other = ( ^ 8 )
+  )
+
+  public main: platform args: args = (
+    Widget new answer printString out.
+    SubWidget new other printString out.
+  )
+) : (
+)

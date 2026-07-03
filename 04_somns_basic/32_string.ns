@@ -1,0 +1,43 @@
+(*
+expect:
+true
+true
+true
+3
+true
+false
+true
+true
+true
+true
+true
+true
+*)
+class StringTest packageUsing: manifest = () (
+public main: platform args: args = (
+    (* two distinct literals of equal content are = (content equality) *)
+    ('abc' = 'abc') println.
+    (* concatenation yields a String equal by content *)
+    (('ab' , 'c') = 'abc') println.
+    (* and concatenation preserves content hash *)
+    (('ab' , 'c') hash = 'abc' hash) println.
+    (* byte-granularity size *)
+    ('abc' size) println.
+    (* indexable: first byte is ASCII 'a' = 97 *)
+    (('abc' at: 1) = 97) println.
+    (* a String is NOT equal to a Symbol of the same name *)
+    ('abc' = #abc) println.
+    (* printString returns a String of the decimal form *)
+    (42 printString = '42') println.
+    (* booleans print as their words, no '#' prefix *)
+    (true printString = 'true') println.
+    (false printString = 'false') println.
+    (* a genuine Symbol prints with a leading '#' *)
+    (#foo printString = '#foo') println.
+    (* nil prints as the word nil *)
+    (nil printString = 'nil') println.
+    (* dialect #10: byte-granularity size — a 2-byte UTF-8 'é' has size 2 *)
+    ('é' size = 2) println.
+)
+) : (
+)

@@ -1,0 +1,21 @@
+(*
+expect:
+5
+*)
+(* A `protected` mutable slot used via an explicit setter SEND (`n: 5`, single
+   colon) and getter send. Protected slots must get synthesised accessors (for
+   self/subclass sends) just like public ones — the VM does not enforce
+   send-visibility. Regression for deltablue's `protected satisfied ::= false.`
+   used as `satisfied: false`. *)
+class ProtectedSlotTest packageUsing: manifest = () (
+  public class Box = (
+  | protected n ::= 0. |
+  )(
+    public bump = ( n: 5. ^ self n )
+  )
+
+  public main: platform args: args = (
+    Box new bump printString out.
+  )
+) : (
+)

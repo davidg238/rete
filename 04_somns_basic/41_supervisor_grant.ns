@@ -1,0 +1,6 @@
+class SupervisorGrant usingPlatform: platform = () (
+  public main: platform2 args: args = (
+    'app-ran' println.
+    ^ 0 )
+) : (
+)

@@ -1,0 +1,39 @@
+(*
+UDP mesh round-trip — datagram out through the REAL Thread mesh to the porta gw
+UDP echo server and back. Proves the R6 thesis: oevm Model B + confined net cap
++ in-kernel 802.15.4/OpenThread stack round-trips a datagram over real silicon.
+
+The gw mesh-local EID + echo port are the live porta values (gw85224-01 leader,
+echo = python3 on *:54331). receive is non-blocking, so we bounded-spin and
+re-send periodically (the first packet may be lost during route discovery).
+Hardware-only: needs the live porta gw mesh + echo server. On the desktop posix
+backend there is no echo, the bounded spin completes and it prints 'no echo', so
+this is skipped in the oevm conformance suite.
+skip-oevm: true
+expect:
+UDP OK
+*)
+class UdpMesh usingPlatform: platform net: net = () (
+  public main: platform2 args: args = (
+    | sock got i next |
+    sock:: net udpBindPort: 54331.
+    sock == nil ifTrue: [ ^ self fail: 'bind' ].
+    got:: nil.
+    i:: 0.
+    next:: 0.
+    [ (got == nil) and: [ i < 8000000 ] ] whileTrue: [
+      (i = next) ifTrue: [
+        sock sendTo: 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' port: 54331 data: 'ping'.
+        next:: i + 400000 ].
+      got:: sock receive.
+      i:: i + 1.
+    ].
+    sock close.
+    got == nil ifTrue: [ ^ self fail: 'no echo' ].
+    (got data = 'ping') ifTrue: [ 'UDP OK' println. ^ 0 ].
+    ^ self fail: 'bad echo'
+  )
+  fail: msg = ( msg println. ^ 1 )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

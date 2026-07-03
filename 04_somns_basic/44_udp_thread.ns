@@ -1,0 +1,27 @@
+(*
+UDP over Thread — sends a datagram to a mesh peer and awaits its echo. R6 S3.
+Hardware-only: needs a real Thread mesh peer + UDP echo @54331. On the desktop
+posix backend the non-blocking receive loop never resolves (no peer) and hangs,
+so this is skipped in the oevm conformance suite.
+skip-oevm: true
+expect:
+THREAD UDP OK
+*)
+class UdpThreadTest usingPlatform: platform net: net = () (
+  public main: platform2 args: args = (
+    | rx tx got |
+    rx:: net udpBindPort: 54331.
+    rx == nil ifTrue: [ ^ self fail: 'bind' ].
+    tx:: net udp.
+    tx sendTo: 'MESH_PEER_ADDR' port: 54331 data: 'ping'.
+    got:: nil.
+    [ got == nil ] whileTrue: [ got:: rx receive ].
+    rx close. tx close.
+    (got data = 'ping') ifFalse: [ ^ self fail: 'echo mismatch' ].
+    'THREAD UDP OK' println.
+    ^ 0
+  )
+  fail: msg = ( msg println. ^ 1 )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

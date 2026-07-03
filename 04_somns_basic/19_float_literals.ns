@@ -1,0 +1,35 @@
+(*
+expect:
+2.5
+true
+true
+false
+true
+4
+6
+2
+1.5
+*)
+class FloatLiteralsTest packageUsing: manifest = () (
+  (* Float LITERALS must carry the real FloatVtable header so the VM
+     recognises them in printString, arithmetic, comparison and equality.
+     Previously the solidified image gave each static Float the address of
+     the FloatVtable *pointer variable* instead of &Vtable_FloatVtable, so a
+     literal float was unrecognised everywhere (`1.0 printString` ->
+     `[Object ...]`, `1 = 1.0` -> false). *)
+  public class C = () (
+    public main: platform args: args = (
+      2.5 printString out.            (* 2.5: literal prints as a float *)
+      (1.0 = 1.0) printString out.    (* true:  literal value equality *)
+      (1 = 1.0) printString out.      (* true:  SMI vs Float by value *)
+      (1.0 = 2.0) printString out.    (* false *)
+      (1.0 < 2.0) printString out.    (* true *)
+      (1.5 + 2.5) printString out.    (* 4 *)
+      (2.0 * 3.0) printString out.    (* 6 *)
+      (3.0 - 1.0) printString out.    (* 2 *)
+      (3.0 / 2.0) printString out.    (* 1.5 *)
+    )
+  )
+  public main: platform args: args = ( C new main: platform args: args )
+) : (
+)

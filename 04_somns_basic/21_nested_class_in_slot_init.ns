@@ -1,0 +1,28 @@
+(*
+expect:
+50
+*)
+(* A slot initializer that references a sibling nested class by name
+   (`private List = Vec.`). The nested-class slots must be populated BEFORE
+   user slot initializers run, otherwise `Vec` reads as nil and `List new`
+   sends to nil. Regression for deltablue's `private List = Vector.` alias. *)
+class NestedSlotInitTest packageUsing: manifest = () (
+class NestedSlotMod usingPlatform: platform = (
+| private List = Vec. |
+)(
+  class Vec new: size = (
+  | private storage ::= Array new: size. |
+  )(
+    public size = ( ^ storage size )
+  ) : (
+    public new = ( ^ self new: 50 )
+  )
+
+  public run = ( ^ List new size )
+)
+public main: platform args: args = (
+    | m = NestedSlotMod usingPlatform: platform. |
+    m run printString out.
+)
+) : (
+)

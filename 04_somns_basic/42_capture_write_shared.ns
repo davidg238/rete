@@ -1,0 +1,16 @@
+(*
+Shared-environment aliasing: writer mutates, reader observes.
+expect:
+99
+*)
+class CaptureWriteSharedTest packageUsing: manifest = () (
+public main: platform args: args = (
+    | x writer reader |
+    x:: 1.
+    writer:: [ x:: 99 ].
+    reader:: [ x println ].
+    writer value.
+    reader value.
+)
+) : (
+)

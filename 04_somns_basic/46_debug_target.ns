@@ -1,0 +1,29 @@
+(*
+expect:
+counting
+1
+2
+3
+4
+5
+15
+*)
+(* Debuggable target for the in-image debugger integration harness. main: calls
+   countTo: (a method with a known local `sum` and a loop) so the debugger's
+   `dbg:methods` registry has a recognizable selector. Gate-off it just prints
+   its normal output, so the suite runs it transparently. *)
+class DebugTargetTest usingPlatform: platform = () (
+  public main: platform2 args: args = (
+    | total |
+    'counting' println.
+    total:: self countTo: 5.
+    total println.
+    ^ 0 )
+
+  countTo: n = (
+    | sum |
+    sum:: 0.
+    1 to: n do: [ :i | i println. sum:: sum + i ].
+    ^ sum )
+) : (
+)

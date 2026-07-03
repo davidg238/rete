@@ -1,0 +1,50 @@
+(*
+expect:
+7
+true
+false
+99
+42
+2
+*)
+class ClassSideMethodsTest packageUsing: manifest = () (
+  (* A class with class-side ("metaclass") methods after the `: ( ... )`.
+     Class-side methods are sent to the class OBJECT, not an instance, and
+     here use the SOMns `^ self new configure` factory shortcut. Before
+     metaclass support, `State withSeven` was silently rewritten to
+     `State new`, dropping the class-side method entirely. *)
+  public class State = (
+    | value flag |
+  )(
+    public value = ( ^ value )
+    public flag  = ( ^ flag )
+    public setValue: v = ( value:: v )
+    public seven = ( value:: 7. flag:: true )
+    public empty = ( value:: 99. flag:: false )
+  ) : (
+    public withSeven = ( ^ self new seven )
+    public empty     = ( ^ self new empty )
+    public tag       = ( ^ 42 )
+  )
+
+  (* Class-side inheritance: Derived's metaclass delegates to State's, so the
+     inherited `tag` dispatches; Derived also has its own class-side method. *)
+  public class Derived = State ()(
+  ) : (
+    public viaSuper = ( ^ self new setValue: 2 )
+  )
+
+  public main: platform args: args = (
+    | s e d |
+    s:: State withSeven.
+    s value printString out.       (* 7 *)
+    s flag printString out.        (* true *)
+    e:: State empty.
+    e flag printString out.        (* false *)
+    e value printString out.       (* 99 *)
+    Derived tag printString out.   (* 42: inherited class-side method *)
+    d:: Derived viaSuper.
+    d value printString out.       (* 2 *)
+  )
+) : (
+)

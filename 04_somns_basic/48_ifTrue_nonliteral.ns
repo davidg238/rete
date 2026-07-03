@@ -1,0 +1,17 @@
+(*
+A non-literal ifTrue: arm (held in a temp, not a literal block), forcing the
+compiler's fallback path (OP_BLOCK_INVOKE, not compile_inlined_block).
+
+expect:
+taken
+*)
+class IfTrueNonliteralTest packageUsing: manifest = () (
+public main: platform args: args = (
+    | flag arm result |
+    flag:: 1 < 2.
+    arm:: ['taken'].
+    result:: flag ifTrue: arm.
+    result printString out.
+)
+) : (
+)

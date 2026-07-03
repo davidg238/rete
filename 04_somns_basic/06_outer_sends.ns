@@ -1,0 +1,157 @@
+(*
+expect:
+3
+2
+6
+666
+skip-berry: true
+*)
+class OuterSendsTest packageUsing: manifest = () (
+  public class TestOuterBindings = ()(
+    public class Sup = ()(
+      protected baz = ( ^ 6 )
+    )
+    public class Inner = Sup ()(
+      public test1 = (| bar | bar:: 1. ^ outer TestOuterBindings bar )
+      public test2 = (| bar | bar:: 1. ^ outer Inner bar  )
+      private bar = ( ^ 2 )
+      public test3 = (| bar | bar:: 4. ^ outer Inner baz )
+    )
+    private bar = ( ^ 3 )
+    private baz = ( ^ 5 )
+  )
+  
+  public class TestOuterSendLegalTargets = ()(
+    public class R a: a b: b c: c = (
+      | public a = a.
+        public b = b.
+        public c = c.
+      |)()
+    public class A = ()(
+      public class C = ()(
+        public foo = ( ^ R a: outer C bar b: outer A bar c: outer TestOuterSendLegalTargets bar )
+        public bar = ( ^ 1 )
+      ) : (
+        public foo = ( ^ R a: outer C bar b: outer A bar c: outer TestOuterSendLegalTargets bar )
+        public bar = ( ^ 2 )
+      )
+      public class D = ()(
+        public foo = (^ R a: outer D bar b: outer A bar c: outer TestOuterSendLegalTargets bar )
+        public bar = ( ^ 3 )
+      ) : (
+        public foo = ( ^ R a: outer D bar b: outer A bar c: outer TestOuterSendLegalTargets bar )
+        public bar = ( ^ 4 )
+      )
+      public foo = ( ^ R a: outer A bar b: outer TestOuterSendLegalTargets bar c: nil )
+      public bar = ( ^ 5 )
+    ) : (
+      public foo = ( ^ R a: outer A bar b: outer TestOuterSendLegalTargets bar c: nil )
+      public bar = ( ^ 6 )
+    )
+    public class B = ()(
+      public class C = ()(
+        public foo = ( ^ R a: outer C bar b: outer B bar c: outer TestOuterSendLegalTargets bar )
+        public bar = ( ^ 7 )
+      ) : (
+        public foo = ( ^ R a: outer C bar b: outer B bar c: outer TestOuterSendLegalTargets bar )
+        public bar = ( ^ 8 )
+      )
+      public class D = ()(
+        public foo = ( ^ R a: outer D bar b: outer B bar c: outer TestOuterSendLegalTargets bar )
+        public bar = ( ^ 9 )
+      ) : (
+        public foo = ( ^ R a: outer D bar b: outer B bar c: outer TestOuterSendLegalTargets bar )
+        public bar = ( ^ 10 )
+      )
+      public foo = ( ^ R a: outer B bar b: outer TestOuterSendLegalTargets bar c: nil )
+      public bar = ( ^ 11 )
+    ) : (
+      public foo = ( ^ R a: outer B bar b: outer TestOuterSendLegalTargets bar c: nil )
+      public bar = ( ^ 12 )
+    )
+    public foo = ( ^ R a: outer TestOuterSendLegalTargets bar b: nil c: nil )
+    public bar = ( ^ 13 )
+  )
+
+  public testOuterBindings1 = (
+    ^ TestOuterBindings new Inner new test1
+  )
+  public testOuterBindings2 = (
+    ^ TestOuterBindings new Inner new test2
+  )
+  public testOuterBindings3 = (
+    ^ TestOuterBindings new Inner new test3
+  )
+
+  public testOuterSendLegalTargets = (
+    | o r |
+    o:: TestOuterSendLegalTargets new.
+    r:: o A new C new foo.
+    r a =  1 ifFalse: [ ^ #error1 ].
+    r b =  5 ifFalse: [ ^ #error2 ].
+    r c = 13 ifFalse: [ ^ #error3 ].
+    
+    r:: o A new C foo.
+    r a =  2 ifFalse: [ ^ #error4 ].
+    r b =  5 ifFalse: [ ^ #error5 ].
+    r c = 13 ifFalse: [ ^ #error6 ].
+    
+    r:: o A new D new foo.
+    r a =  3 ifFalse: [ ^ #error7 ].
+    r b =  5 ifFalse: [ ^ #error8 ].
+    r c = 13 ifFalse: [ ^ #error9 ].
+    
+    r:: o A new D foo.
+    r a =  4 ifFalse: [ ^ #error10 ].
+    r b =  5 ifFalse: [ ^ #error11 ].
+    r c = 13 ifFalse: [ ^ #error12 ].
+    
+    r:: o A new foo.
+    r a =  5 ifFalse: [ ^ #error13 ].
+    r b = 13 ifFalse: [ ^ #error14 ].
+    
+    r:: o A foo.
+    r a =  6 ifFalse: [ ^ #error15 ].
+    r b = 13 ifFalse: [ ^ #error16 ].
+    
+    r:: o B new C new foo.
+    r a =  7 ifFalse: [ ^ #error17 ].
+    r b = 11 ifFalse: [ ^ #error18 ].
+    r c = 13 ifFalse: [ ^ #error19 ].
+
+    r:: o B new C foo.
+    r a =  8 ifFalse: [ ^ #error20 ].
+    r b = 11 ifFalse: [ ^ #error21 ].
+    r c = 13 ifFalse: [ ^ #error22 ].
+    
+    r:: o B new D new foo.
+    r a =  9 ifFalse: [ ^ #error23 ].
+    r b = 11 ifFalse: [ ^ #error24 ].
+    r c = 13 ifFalse: [ ^ #error25 ].
+    
+    r:: o B new D foo.
+    r a = 10 ifFalse: [ ^ #error26 ].
+    r b = 11 ifFalse: [ ^ #error27 ].
+    r c = 13 ifFalse: [ ^ #error28 ].
+    
+    r:: o B new foo.
+    r a = 11 ifFalse: [ ^ #error29 ].
+    r b = 13 ifFalse: [ ^ #error30 ].
+
+    r:: o B foo.
+    r a = 12 ifFalse: [ ^ #error31 ].
+    r b = 13 ifFalse: [ ^ #error32 ].
+
+    r:: o foo.
+    r a = 13 ifFalse: [ ^ #error33 ].
+    
+    ^ 666
+  )
+public main: platform args: args = (
+    testOuterBindings1 printString out.
+    testOuterBindings2 printString out.
+    testOuterBindings3 printString out.
+    testOuterSendLegalTargets printString out.
+)
+) : (
+)

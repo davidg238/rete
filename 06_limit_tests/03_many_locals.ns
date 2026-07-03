@@ -1,0 +1,83 @@
+(*
+expect:
+2080
+skip-berry: true
+*)
+class ManyLocalsLimitTest packageUsing: manifest = () (
+class LocalsClass = ()(
+  public test = (
+    | local1 local2 local3 local4 local5 local6 local7 local8 local9 local10 local11 local12 local13 local14 local15 local16 local17 local18 local19 local20 local21 local22 local23 local24 local25 local26 local27 local28 local29 local30 local31 local32 local33 local34 local35 local36 local37 local38 local39 local40 local41 local42 local43 local44 local45 local46 local47 local48 local49 local50 local51 local52 local53 local54 local55 local56 local57 local58 local59 local60 local61 local62 local63 local64 |
+    local1:: 1.
+  local2:: 2.
+  local3:: 3.
+  local4:: 4.
+  local5:: 5.
+  local6:: 6.
+  local7:: 7.
+  local8:: 8.
+  local9:: 9.
+  local10:: 10.
+  local11:: 11.
+  local12:: 12.
+  local13:: 13.
+  local14:: 14.
+  local15:: 15.
+  local16:: 16.
+  local17:: 17.
+  local18:: 18.
+  local19:: 19.
+  local20:: 20.
+  local21:: 21.
+  local22:: 22.
+  local23:: 23.
+  local24:: 24.
+  local25:: 25.
+  local26:: 26.
+  local27:: 27.
+  local28:: 28.
+  local29:: 29.
+  local30:: 30.
+  local31:: 31.
+  local32:: 32.
+  local33:: 33.
+  local34:: 34.
+  local35:: 35.
+  local36:: 36.
+  local37:: 37.
+  local38:: 38.
+  local39:: 39.
+  local40:: 40.
+  local41:: 41.
+  local42:: 42.
+  local43:: 43.
+  local44:: 44.
+  local45:: 45.
+  local46:: 46.
+  local47:: 47.
+  local48:: 48.
+  local49:: 49.
+  local50:: 50.
+  local51:: 51.
+  local52:: 52.
+  local53:: 53.
+  local54:: 54.
+  local55:: 55.
+  local56:: 56.
+  local57:: 57.
+  local58:: 58.
+  local59:: 59.
+  local60:: 60.
+  local61:: 61.
+  local62:: 62.
+  local63:: 63.
+  local64:: 64.
+    ^ local1 + local2 + local3 + local4 + local5 + local6 + local7 + local8 + local9 + local10 + local11 + local12 + local13 + local14 + local15 + local16 + local17 + local18 + local19 + local20 + local21 + local22 + local23 + local24 + local25 + local26 + local27 + local28 + local29 + local30 + local31 + local32 + local33 + local34 + local35 + local36 + local37 + local38 + local39 + local40 + local41 + local42 + local43 + local44 + local45 + local46 + local47 + local48 + local49 + local50 + local51 + local52 + local53 + local54 + local55 + local56 + local57 + local58 + local59 + local60 + local61 + local62 + local63 + local64
+  )
+)
+public main: platform args: args = (
+  | lc |
+  lc:: LocalsClass new.
+  lc test printString out.
+)
+) : (
+)

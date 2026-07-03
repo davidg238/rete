@@ -1,0 +1,9 @@
+(*
+expect:
+10
+*)
+| n sum |
+n:: 0.
+sum:: 0.
+[ n < 5 ] whileTrue: [ sum:: sum + n. n:: n + 1 ].
+sum println

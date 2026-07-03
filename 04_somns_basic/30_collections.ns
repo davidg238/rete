@@ -1,0 +1,54 @@
+(*
+expect:
+0
+true
+1
+2
+3
+4
+5
+6
+7
+8
+9
+9
+false
+2
+4
+6
+8
+10
+12
+14
+16
+18
+45
+4
+4
+1
+1
+*)
+class CollectionsTest packageUsing: manifest = () (
+public main: platform args: args = (
+    | oc summed evens doubled found counter |
+    oc:: OrderedCollection new.
+    oc size println.
+    oc isEmpty println.
+    1 to: 9 do: [ :i | oc add: i ].
+    oc do: [ :x | x println ].
+    oc size println.
+    oc isEmpty println.
+    doubled:: oc collect: [ :x | x * 2 ].
+    doubled do: [ :x | x println ].
+    summed:: oc inject: 0 into: [ :a :b | a + b ].
+    summed println.
+    evens:: oc select: [ :x | (x // 2 * 2) = x ].
+    evens size println.
+    (evens at: 2) println.
+    counter:: OrderedCollection new.
+    found:: oc detect: [ :x | counter add: x. x = 1 ].
+    found println.
+    counter size println.
+)
+) : (
+)

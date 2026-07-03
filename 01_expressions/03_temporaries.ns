@@ -1,0 +1,8 @@
+(*
+expect:
+100
+*)
+| a b |
+a:: 40.
+b:: 60.
+(a + b) println

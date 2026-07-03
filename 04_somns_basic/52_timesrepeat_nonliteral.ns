@@ -1,0 +1,18 @@
+(*
+`n timesRepeat: aBlock` with a non-literal (temp-held) 0-arg block, forcing the
+compiler's lowered counting loop driving OP_BLOCK_INVOKE (not PRIM_timesRepeat).
+4 timesRepeat: [count := count + 1] -> 4.
+
+expect:
+4
+*)
+class TimesRepeatTest packageUsing: manifest = () (
+public main: platform args: args = (
+    | body count |
+    count:: 0.
+    body:: [count:: count + 1].
+    4 timesRepeat: body.
+    count printString out.
+)
+) : (
+)

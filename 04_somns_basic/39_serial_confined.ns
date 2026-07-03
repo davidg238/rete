@@ -1,0 +1,17 @@
+(*
+Confinement pin: a class declaring only usingPlatform: platform cannot reach serial.
+std-lib step 3c-3b. Empirical result: compile succeeds (serial is an unknown unary send),
+but runtime aborts with DNU — "Message 'serial' not understood by receiver" — because the
+receiver (the entry module instance) has no serial: slot. Compiler exit 0, runner exit 134.
+This mirrors 33_string_not_collection.ns: the failure IS the passing evidence.
+expect-runtime-fail: Message 'serial' not understood by receiver
+*)
+class SerialConfinedTest usingPlatform: platform = () (
+  public main: platform2 args: args = (
+    serial write: 'oops'.
+    'SHOULD NOT REACH' println.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

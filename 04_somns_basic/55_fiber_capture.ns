@@ -1,0 +1,46 @@
+(*
+De-recursify Phase 3 — home_ctx-across-stacks validation.
+
+Fiber A's entry block lexically captures an outer temp (`shared`, a slot of
+this main:args: activation, which lives on the MAIN Stack and stays live for
+the whole run since `concurrency run` is called from within main:args:).
+Fiber A reads `shared` once, yields (suspending on its OWN Stack, a
+different heap Stack object than the main Stack), then reads `shared` again
+after being resumed.
+
+Between A's two reads, fiber B — on a THIRD Stack — runs and MUTATES the
+same captured `shared` slot. This proves more than "a fiber resumes at the
+right pc": it proves the block's `home_ctx` (an absolute, base-relative
+pointer into the spawner's live Stack — see frame_abi.h) resolves to the
+SAME live storage location regardless of which Stack is currently
+executing, and that a mutation made from a completely different Stack (B)
+is visible when a suspended fiber (A) resumes and re-reads through its own
+home_ctx chain. A broken cross-stack home_ctx (stale/misrouted after the
+switch) would read a wrong, stale, or corrupted value for the second read
+instead of the mutated 99.
+
+expect:
+before10
+mutated
+after99
+done
+*)
+class FiberCaptureTest usingPlatform: platform concurrency: concurrency = () (
+  public main: platform2 args: args = (
+    | shared |
+    shared:: 10.
+    concurrency spawn: [
+      ('before' , shared printString) println.
+      concurrency yield.
+      ('after' , shared printString) println ].
+    concurrency spawn: [
+      shared:: 99.
+      'mutated' println.
+      concurrency yield ].
+    concurrency run.
+    'done' println.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

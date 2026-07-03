@@ -1,0 +1,30 @@
+(*
+expect:
+true
+skip-berry: true
+*)
+class GCStressLimitTest packageUsing: manifest = () (
+class GarbageMaker usingPlatform: platform = (
+| private buffer = Array new: 100.
+  private index ::= 1.
+|
+)(
+  public makeGarbage: count = (
+    1 to: count do: [:i |
+      | arr |
+      arr:: Array new: 10.
+      arr at: 1 put: i.
+      buffer at: index put: arr.
+      index:: index + 1.
+      index > 100 ifTrue: [index:: 1].
+    ].
+    ^ true
+  )
+)
+public main: platform args: args = (
+  | maker |
+  maker:: GarbageMaker usingPlatform: platform.
+  (maker makeGarbage: 100000) printString out.
+)
+) : (
+)

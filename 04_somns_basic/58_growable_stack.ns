@@ -1,0 +1,25 @@
+(*
+Growable stack (de-recursify deferred lift, Phase 3).
+
+`sum: n` recurses n frames deep. At the default init capacity (16384 words,
+~17 words/frame -> overflows ~950 frames on the FIXED stack), depth 2000 needs
+~34000 words: it forces the stack to GROW (16384 -> 32768 -> 65536, i.e. TWO
+reallocs) and still compute the correct result on the way back up. Before Phase 3
+this aborted with "Stack Overflow" around depth ~950; growth makes it succeed.
+Relative prev_frame/home_ctx links survive the copy-to-larger with zero fixups.
+sum 1..2000 == 2001000.
+
+expect:
+2001000
+skip-berry: true
+*)
+class GrowableStackTest packageUsing: manifest = () (
+sum: n = (
+    n = 0 ifTrue: [ ^ 0 ].
+    ^ n + (self sum: n - 1)
+)
+public main: platform args: args = (
+    (self sum: 2000) println
+)
+) : (
+)

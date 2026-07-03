@@ -1,0 +1,62 @@
+(*
+expect:
+8
+skip-berry: true
+*)
+class DeepNestingTest packageUsing: manifest = () (
+class Outer1 = (
+| public val1 = 1. |
+)(
+  public class Outer2 = (
+  | public val2 = 2. |
+  )(
+    public class Outer3 = (
+    | public val3 = 3. |
+    )(
+      public class Outer4 = (
+      | public val4 = 4. |
+      )(
+        public class Outer5 = (
+        | public val5 = 5. |
+        )(
+          public class Outer6 = (
+          | public val6 = 6. |
+          )(
+            public class Outer7 = (
+            | public val7 = 7. |
+            )(
+              public class Outer8 = (
+              | public val8 = 8. |
+              )(
+                public sum = (
+                  ^ val8 +
+                    (outer Outer7 val7) +
+                    (outer Outer6 val6) +
+                    (outer Outer5 val5) +
+                    (outer Outer4 val4) +
+                    (outer Outer3 val3) +
+                    (outer Outer2 val2) +
+                    (outer Outer1 val1)
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)
+public main: platform args: args = (
+  | o1 o2 o3 o4 o5 o6 o7 o8 |
+  o1:: Outer1 new.
+  o2:: o1 Outer2 new.
+  o3:: o2 Outer3 new.
+  o4:: o3 Outer4 new.
+  o5:: o4 Outer5 new.
+  o6:: o5 Outer6 new.
+  o7:: o6 Outer7 new.
+  o8:: o7 Outer8 new.
+  (o8 sum - 28) printString out.
+)
+) : (
+)

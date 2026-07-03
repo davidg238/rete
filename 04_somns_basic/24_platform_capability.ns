@@ -1,0 +1,17 @@
+(*
+expect:
+2
+1
+*)
+class PlatformCapabilityTest packageUsing: manifest = () (
+class Holder usingPlatform: platform = () (
+  public show = ( (platform Array new: 1) size println )
+) : ()
+public main: platform args: args = (
+    | h |
+    (platform Array new: 2) size println.
+    h:: Holder usingPlatform: platform.
+    h show.
+)
+) : (
+)

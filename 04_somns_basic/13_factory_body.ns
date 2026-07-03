@@ -1,0 +1,42 @@
+(*
+expect:
+10
+99
+*)
+class FactoryBodyTest packageUsing: manifest = () (
+  public class FactoryBody = () (
+    (* Case 1: a slot section followed by executable statements in the
+       primary-factory body. Mirrors richards' Packet, which runs
+       `1 to: 4 do: [...]` to initialize an array slot. *)
+    class Accumulator new = (
+    | private acc ::= 0. |
+      1 to: 4 do: [:i | acc:: acc + i ].
+    )(
+      public total = ( ^ acc )
+    )
+
+    (* Case 2: a primary-factory body that is a bare self-send with NO slot
+       section, on a subclass. Mirrors deltablue's EditConstraint, whose
+       factory body is just `addConstraint` (an inherited method). *)
+    class Base new = (
+    | private flag ::= 0. |
+    )(
+      install = ( flag:: 99 )
+      public flag = ( ^ flag )
+    )
+
+    class Derived new = Base new (
+      install
+    )( )
+
+    public run = (
+      Accumulator new total printString out.
+      Derived new flag printString out.
+    )
+  )
+
+  public main: platform args: args = (
+    FactoryBody new run.
+  )
+) : (
+)

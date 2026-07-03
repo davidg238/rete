@@ -1,0 +1,7 @@
+(*
+expect:
+2
+*)
+| x |
+x:: 7.
+(x < 5) ifTrue: [ 1 println ] ifFalse: [ 2 println ]

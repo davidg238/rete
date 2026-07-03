@@ -1,0 +1,16 @@
+(*
+Closure survives a GC cycle while its home frame is still live on the
+method stack. The 'n' was set before GC and must be readable after.
+expect:
+42
+*)
+class ClosureEscapeTest packageUsing: manifest = () (
+public main: platform args: args = (
+    | n blk |
+    n:: 42.
+    blk:: [ n println ].
+    (Array new: 3) do: [ :e | e ].
+    blk value.
+)
+) : (
+)

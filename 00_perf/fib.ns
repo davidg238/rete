@@ -1,0 +1,15 @@
+(*
+expect:
+2178309
+*)
+class FibBench packageUsing: manifest = () (
+public class Fib = () (
+	public fib: n = (
+		^ n < 2 ifTrue: [ n ] ifFalse: [ (self fib: n - 1) + (self fib: n - 2) ]
+	)
+)
+public main: platform args: args = (
+	(Fib new fib: 32) printString out.
+)
+) : (
+)
