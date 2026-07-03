@@ -11,7 +11,7 @@ COLOR_YELLOW = "\033[93m"
 COLOR_RESET = "\033[0m"
 
 # The oevm VM (the "bedrock") lives in a sibling repo. Override with $OEVM_DIR.
-OEVM_DIR = Path(os.environ.get("OEVM_DIR") or (Path(__file__).resolve().parent.parent.parent / "oevm"))
+OEVM_DIR = Path(os.environ.get("OEVM_DIR") or (Path(__file__).resolve().parent.parent.parent / "tuvm"))
 
 # OEVM_PATH controls which execution paths are exercised.
 #   (unset / "AB") — run both Path A and Path B (default regression gate)
@@ -163,7 +163,7 @@ def run_fibers_gc_stress_gate() -> bool:
     (scan_c_stack/scan_c_range) cannot see, so a live oop in a fake-stack local can be
     swept (UAF) under GC stress. Pre-existing conservative-GC-vs-ASan config gap, not
     an L1 regression."""
-    src = Path(__file__).parent.parent.parent / "ns-tests" / "04_somns_basic" / "45_fibers.ns"
+    src = Path(__file__).parent.parent.parent / "nsl-tests" / "04_somns_basic" / "45_fibers.ns"
     if not src.exists():
         print(f"{COLOR_RED}fibers-gc-stress: FAIL{COLOR_RESET} (missing {src})")
         return False
@@ -227,7 +227,7 @@ def run_boot_gc_asan_gate() -> bool:
     Build a tiny appliance WITH AddressSanitizer (fake-stack ON) under GC_STRESS and
     require the expected output. Requires the entry instance to be a PRECISE root.
     Skips cleanly (PASS) if the compiler lacks -fsanitize=address support."""
-    src = Path(__file__).parent.parent.parent / "ns-tests" / "04_somns_basic" / "01_method_call.ns"
+    src = Path(__file__).parent.parent.parent / "nsl-tests" / "04_somns_basic" / "01_method_call.ns"
     if not src.exists():
         print(f"{COLOR_RED}boot-gc-asan: FAIL{COLOR_RESET} (missing {src})")
         return False
@@ -286,7 +286,7 @@ def run_stack_overflow_cap_gate() -> bool:
     fibers-gc-stress gate's build shape."""
     import tempfile
     oevm_dir = OEVM_DIR
-    test_ns = Path(__file__).parent.parent.parent / "ns-tests" / "04_somns_basic" / "58_growable_stack.ns"
+    test_ns = Path(__file__).parent.parent.parent / "nsl-tests" / "04_somns_basic" / "58_growable_stack.ns"
     compiler = Path(__file__).parent / "ns_compile_oevm.py"
     target_c = oevm_dir / "src" / "solidified_image.c"   # in-place (serial gate; clobbers shared file)
     comp = subprocess.run([sys.executable, str(compiler), str(test_ns), str(target_c)],
@@ -330,7 +330,7 @@ def run_growable_small_init_gate() -> bool:
     Path-A compile as the cap gate (serial-only)."""
     import tempfile
     oevm_dir = OEVM_DIR
-    test_ns = Path(__file__).parent.parent.parent / "ns-tests" / "04_somns_basic" / "58_growable_stack.ns"
+    test_ns = Path(__file__).parent.parent.parent / "nsl-tests" / "04_somns_basic" / "58_growable_stack.ns"
     compiler = Path(__file__).parent / "ns_compile_oevm.py"
     target_c = oevm_dir / "src" / "solidified_image.c"
     comp = subprocess.run([sys.executable, str(compiler), str(test_ns), str(target_c)],
@@ -370,7 +370,7 @@ def run_integration_gate(label: str, script_name: str) -> bool:
     """Run a tools/<script_name> integration harness as a subprocess gate.
 
     These scripts assume cwd == the ns-oevm ROOT (this tools/ dir's parent), and
-    they clobber ../oevm/src/solidified_image.c during their builds (the caller is
+    they clobber ../tuvm/src/solidified_image.c during their builds (the caller is
     responsible for restoring it afterward). A non-zero exit OR an exception marks
     the gate FAILED without crashing the suite runner; on failure we print enough
     captured output to diagnose."""
@@ -473,7 +473,7 @@ def _dump_stdout(src_path: Path, path_label: str, stdout: str) -> None:
     Called only when OEVM_DUMP_DIR is set; the dump does NOT affect pass/fail."""
     if not OEVM_DUMP_DIR:
         return
-    test_dir = Path(__file__).parent.parent.parent / "ns-tests"
+    test_dir = Path(__file__).parent.parent.parent / "nsl-tests"
     try:
         rel = src_path.relative_to(test_dir)
     except ValueError:
@@ -639,7 +639,7 @@ def run_test_file_oimg(src_path: Path) -> tuple[str, str]:
 
 
 def main():
-    test_dir = Path(__file__).parent.parent.parent / "ns-tests"
+    test_dir = Path(__file__).parent.parent.parent / "nsl-tests"
     if not test_dir.exists():
         print(f"Error: tests directory not found at {test_dir}")
         sys.exit(1)
@@ -724,10 +724,10 @@ def main():
     c_fibers_ok = run_c_unit_test_fibers(OEVM_DIR)
 
     # Integration gates: the supervisor-grant proof and the in-image debugger
-    # harness. Both build the target app and CLOBBER ../oevm/src/solidified_image.c
+    # harness. Both build the target app and CLOBBER ../tuvm/src/solidified_image.c
     # (+ .stmap). test_debugger_integration self-restores via try/finally, but
     # test_supervisor_grant does NOT — so we restore the committed image again
-    # after BOTH run, leaving ../oevm a clean tree.
+    # after BOTH run, leaving ../tuvm a clean tree.
     print()
     grant_ok = run_integration_gate("test_supervisor_grant", "test_supervisor_grant.py")
     dbg_int_ok = run_integration_gate("test_debugger_integration", "test_debugger_integration.py")
