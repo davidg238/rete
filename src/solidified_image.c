@@ -1,0 +1,4912 @@
+static const struct CompiledMethod Method_MethodContextVtable_unwindTo_value__compiled;
+static const struct CompiledMethod Method_UdpTest_main_args__compiled;
+static const struct CompiledMethod Method_UdpTest_roundTrip__compiled;
+static const struct CompiledMethod Method_UdpTest_fail__compiled;
+static const struct CompiledMethod Method_Meta_UdpTest_packageUsing__compiled;
+static const struct CompiledMethod Method_UdpTest_init_platform_net__compiled;
+static const struct CompiledMethod Method_Kernel_serialOn__compiled;
+static const struct CompiledMethod Method_Kernel_netOn__compiled;
+static const struct CompiledMethod Method_Kernel_readLine_compiled;
+static const struct CompiledMethod Method_Kernel_Object_compiled;
+static const struct CompiledMethod Method_Kernel_Array_compiled;
+static const struct CompiledMethod Method_Kernel_Collection_compiled;
+static const struct CompiledMethod Method_Kernel_OrderedCollection_compiled;
+static const struct CompiledMethod Method_Kernel_Set_compiled;
+static const struct CompiledMethod Method_Kernel_Dictionary_compiled;
+static const struct CompiledMethod Method_Kernel_ReadStream_compiled;
+static const struct CompiledMethod Method_Kernel_WriteStream_compiled;
+static const struct CompiledMethod Method_Kernel_HashedCollection_compiled;
+static const struct CompiledMethod Method_Kernel_Serial_compiled;
+static const struct CompiledMethod Method_Kernel_Net_compiled;
+static const struct CompiledMethod Method_Kernel_Socket_compiled;
+static const struct CompiledMethod Method_Kernel_Datagram_compiled;
+static const struct CompiledMethod Method_Kernel_init_platform__compiled;
+static const struct CompiledMethod Method_Kernel_Object_isNil_compiled;
+static const struct CompiledMethod Method_Kernel_Object_notNil_compiled;
+static const struct CompiledMethod Method_Kernel_Object_ifNil__compiled;
+static const struct CompiledMethod Method_Kernel_Object_ifNotNil__compiled;
+static const struct CompiledMethod Method_Kernel_Object__eq_compiled;
+static const struct CompiledMethod Method_Kernel_Object_printString_compiled;
+static const struct CompiledMethod Method_Kernel_Object_asString_compiled;
+static const struct CompiledMethod Method_Kernel_Object_hash_compiled;
+static const struct CompiledMethod Method_Kernel_Object_init_new_compiled;
+static const struct CompiledMethod Method_Kernel_Array_at__compiled;
+static const struct CompiledMethod Method_Kernel_Array_at_put__compiled;
+static const struct CompiledMethod Method_Kernel_Array_size_compiled;
+static const struct CompiledMethod Method_Kernel_Array_do__compiled;
+static const struct CompiledMethod Method_Meta_Kernel_Array_new__compiled;
+static const struct CompiledMethod Method_Kernel_Array_init_new_compiled;
+static const struct CompiledMethod Method_Kernel_Collection_do__compiled;
+static const struct CompiledMethod Method_Kernel_Collection_size_compiled;
+static const struct CompiledMethod Method_Kernel_Collection_isEmpty_compiled;
+static const struct CompiledMethod Method_Kernel_Collection_inject_into__compiled;
+static const struct CompiledMethod Method_Kernel_Collection_collect__compiled;
+static const struct CompiledMethod Method_Kernel_Collection_select__compiled;
+static const struct CompiledMethod Method_Kernel_Collection_reject__compiled;
+static const struct CompiledMethod Method_Kernel_Collection_includes__compiled;
+static const struct CompiledMethod Method_Kernel_Collection_asArray_compiled;
+static const struct CompiledMethod Method_Kernel_Collection_detect_ifNone__compiled;
+static const struct CompiledMethod Method_Kernel_Collection_detect__compiled;
+static const struct CompiledMethod Method_Kernel_Collection_init_new_compiled;
+static const struct CompiledMethod Method_Kernel_OrderedCollection_do__compiled;
+static const struct CompiledMethod Method_Kernel_OrderedCollection_size_compiled;
+static const struct CompiledMethod Method_Kernel_OrderedCollection_isEmpty_compiled;
+static const struct CompiledMethod Method_Kernel_OrderedCollection_add__compiled;
+static const struct CompiledMethod Method_Kernel_OrderedCollection_addLast__compiled;
+static const struct CompiledMethod Method_Kernel_OrderedCollection_at__compiled;
+static const struct CompiledMethod Method_Kernel_OrderedCollection_at_put__compiled;
+static const struct CompiledMethod Method_Kernel_OrderedCollection_first_compiled;
+static const struct CompiledMethod Method_Kernel_OrderedCollection_last_compiled;
+static const struct CompiledMethod Method_Kernel_OrderedCollection_removeLast_compiled;
+static const struct CompiledMethod Method_Kernel_OrderedCollection_removeFirst_compiled;
+static const struct CompiledMethod Method_Kernel_OrderedCollection_ensureCapacity_compiled;
+static const struct CompiledMethod Method_Kernel_OrderedCollection_grow_compiled;
+static const struct CompiledMethod Method_Kernel_OrderedCollection_init_new_compiled;
+static const struct CompiledMethod Method_Kernel_HashedCollection_capacity_compiled;
+static const struct CompiledMethod Method_Kernel_HashedCollection_size_compiled;
+static const struct CompiledMethod Method_Kernel_HashedCollection_isEmpty_compiled;
+static const struct CompiledMethod Method_Kernel_HashedCollection_indexFor__compiled;
+static const struct CompiledMethod Method_Kernel_HashedCollection_slotFor__compiled;
+static const struct CompiledMethod Method_Kernel_HashedCollection_containsKey__compiled;
+static const struct CompiledMethod Method_Kernel_HashedCollection_atCapacity_compiled;
+static const struct CompiledMethod Method_Kernel_HashedCollection_growIfNeeded_compiled;
+static const struct CompiledMethod Method_Kernel_HashedCollection_rehashFrom__compiled;
+static const struct CompiledMethod Method_Kernel_HashedCollection_grow_compiled;
+static const struct CompiledMethod Method_Kernel_HashedCollection_reinsertEntryAt__compiled;
+static const struct CompiledMethod Method_Kernel_HashedCollection_do__compiled;
+static const struct CompiledMethod Method_Kernel_HashedCollection_init_new_compiled;
+static const struct CompiledMethod Method_Kernel_Set_add__compiled;
+static const struct CompiledMethod Method_Kernel_Set_addAll__compiled;
+static const struct CompiledMethod Method_Kernel_Set_remove__compiled;
+static const struct CompiledMethod Method_Kernel_Set_remove_ifAbsent__compiled;
+static const struct CompiledMethod Method_Kernel_Set_includes__compiled;
+static const struct CompiledMethod Method_Kernel_Set_do__compiled;
+static const struct CompiledMethod Method_Kernel_Set_place__compiled;
+static const struct CompiledMethod Method_Kernel_Set_reinsertEntryAt__compiled;
+static const struct CompiledMethod Method_Kernel_Set_grow_compiled;
+static const struct CompiledMethod Method_Kernel_Set_init_new_compiled;
+static const struct CompiledMethod Method_Kernel_Dictionary_at_put__compiled;
+static const struct CompiledMethod Method_Kernel_Dictionary_at_ifAbsent__compiled;
+static const struct CompiledMethod Method_Kernel_Dictionary_at__compiled;
+static const struct CompiledMethod Method_Kernel_Dictionary_at_ifAbsentPut__compiled;
+static const struct CompiledMethod Method_Kernel_Dictionary_includesKey__compiled;
+static const struct CompiledMethod Method_Kernel_Dictionary_removeKey__compiled;
+static const struct CompiledMethod Method_Kernel_Dictionary_removeKey_ifAbsent__compiled;
+static const struct CompiledMethod Method_Kernel_Dictionary_keys_compiled;
+static const struct CompiledMethod Method_Kernel_Dictionary_values_compiled;
+static const struct CompiledMethod Method_Kernel_Dictionary_keysAndValuesDo__compiled;
+static const struct CompiledMethod Method_Kernel_Dictionary_do__compiled;
+static const struct CompiledMethod Method_Kernel_Dictionary_place_value__compiled;
+static const struct CompiledMethod Method_Kernel_Dictionary_reinsertEntryAt__compiled;
+static const struct CompiledMethod Method_Kernel_Dictionary_grow_compiled;
+static const struct CompiledMethod Method_Kernel_Dictionary_init_new_compiled;
+static const struct CompiledMethod Method_Kernel_ReadStream_next_compiled;
+static const struct CompiledMethod Method_Kernel_ReadStream_peek_compiled;
+static const struct CompiledMethod Method_Kernel_ReadStream_atEnd_compiled;
+static const struct CompiledMethod Method_Kernel_ReadStream_skip__compiled;
+static const struct CompiledMethod Method_Kernel_ReadStream_position_compiled;
+static const struct CompiledMethod Method_Kernel_ReadStream_reset_compiled;
+static const struct CompiledMethod Method_Kernel_ReadStream_next__compiled;
+static const struct CompiledMethod Method_Kernel_ReadStream_upTo__compiled;
+static const struct CompiledMethod Method_Kernel_ReadStream_nextLine_compiled;
+static const struct CompiledMethod Method_Kernel_ReadStream_upToEnd_compiled;
+static const struct CompiledMethod Method_Kernel_ReadStream_do__compiled;
+static const struct CompiledMethod Method_Kernel_ReadStream_prefixOf_upTo__compiled;
+static const struct CompiledMethod Method_Kernel_ReadStream_setSource__compiled;
+static const struct CompiledMethod Method_Meta_Kernel_ReadStream_on__compiled;
+static const struct CompiledMethod Method_Kernel_ReadStream_init_new_compiled;
+static const struct CompiledMethod Method_Kernel_WriteStream_nextPut__compiled;
+static const struct CompiledMethod Method_Kernel_WriteStream_nextPutAll__compiled;
+static const struct CompiledMethod Method_Kernel_WriteStream_print__compiled;
+static const struct CompiledMethod Method_Kernel_WriteStream_nextPutLine__compiled;
+static const struct CompiledMethod Method_Kernel_WriteStream_contents_compiled;
+static const struct CompiledMethod Method_Kernel_WriteStream_size_compiled;
+static const struct CompiledMethod Method_Kernel_WriteStream_reset_compiled;
+static const struct CompiledMethod Method_Kernel_WriteStream_init_new_compiled;
+static const struct CompiledMethod Method_Kernel_Serial_setPort__compiled;
+static const struct CompiledMethod Method_Kernel_Serial_writeByte__compiled;
+static const struct CompiledMethod Method_Kernel_Serial_write__compiled;
+static const struct CompiledMethod Method_Kernel_Serial_atEnd_compiled;
+static const struct CompiledMethod Method_Kernel_Serial_readByte_compiled;
+static const struct CompiledMethod Method_Kernel_Serial_read__compiled;
+static const struct CompiledMethod Method_Kernel_Serial_readLine_compiled;
+static const struct CompiledMethod Method_Meta_Kernel_Serial_onPort__compiled;
+static const struct CompiledMethod Method_Kernel_Serial_init_new_compiled;
+static const struct CompiledMethod Method_Kernel_Net_setPort__compiled;
+static const struct CompiledMethod Method_Kernel_Net_udp_compiled;
+static const struct CompiledMethod Method_Kernel_Net_udpBindPort__compiled;
+static const struct CompiledMethod Method_Meta_Kernel_Net_onPort__compiled;
+static const struct CompiledMethod Method_Kernel_Net_init_new_compiled;
+static const struct CompiledMethod Method_Kernel_Socket_setPort_handle__compiled;
+static const struct CompiledMethod Method_Kernel_Socket_sendTo_port_data__compiled;
+static const struct CompiledMethod Method_Kernel_Socket_receive_compiled;
+static const struct CompiledMethod Method_Kernel_Socket_close_compiled;
+static const struct CompiledMethod Method_Meta_Kernel_Socket_onPort_handle__compiled;
+static const struct CompiledMethod Method_Kernel_Socket_init_new_compiled;
+static const struct CompiledMethod Method_Kernel_Datagram_setData_host_port__compiled;
+static const struct CompiledMethod Method_Kernel_Datagram_data_compiled;
+static const struct CompiledMethod Method_Kernel_Datagram_senderHost_compiled;
+static const struct CompiledMethod Method_Kernel_Datagram_senderPort_compiled;
+static const struct CompiledMethod Method_Meta_Kernel_Datagram_data_senderHost_senderPort__compiled;
+static const struct CompiledMethod Method_Kernel_Datagram_init_new_compiled;
+static const struct CompiledMethod Method_Supervisor_run_platform_args_debug__compiled;
+static const struct CompiledMethod Method_Supervisor_ObjectMirror_compiled;
+static const struct CompiledMethod Method_Supervisor_ContextMirror_compiled;
+static const struct CompiledMethod Method_Supervisor_Debugger_compiled;
+static const struct CompiledMethod Method_Supervisor_init_mirror__compiled;
+static const struct CompiledMethod Method_Supervisor_ObjectMirror_vtable_compiled;
+static const struct CompiledMethod Method_Supervisor_ObjectMirror_bindings_compiled;
+static const struct CompiledMethod Method_Supervisor_ObjectMirror_reflectee_compiled;
+static const struct CompiledMethod Method_Supervisor_ObjectMirror_init_m_obj__compiled;
+static const struct CompiledMethod Method_Supervisor_ContextMirror_context_compiled;
+static const struct CompiledMethod Method_Supervisor_ContextMirror_rawSender_compiled;
+static const struct CompiledMethod Method_Supervisor_ContextMirror_sender_compiled;
+static const struct CompiledMethod Method_Supervisor_ContextMirror_pc_compiled;
+static const struct CompiledMethod Method_Supervisor_ContextMirror_offset_compiled;
+static const struct CompiledMethod Method_Supervisor_ContextMirror_registerAt__compiled;
+static const struct CompiledMethod Method_Supervisor_ContextMirror_registerAt_put__compiled;
+static const struct CompiledMethod Method_Supervisor_ContextMirror_numRegisters_compiled;
+static const struct CompiledMethod Method_Supervisor_ContextMirror_init_m_ctx__compiled;
+static const struct CompiledMethod Method_Supervisor_Debugger_registerEntry__compiled;
+static const struct CompiledMethod Method_Supervisor_Debugger_buildRegistry_compiled;
+static const struct CompiledMethod Method_Supervisor_Debugger_listMethods_compiled;
+static const struct CompiledMethod Method_Supervisor_Debugger_methodAt__compiled;
+static const struct CompiledMethod Method_Supervisor_Debugger_parseInt__compiled;
+static const struct CompiledMethod Method_Supervisor_Debugger_ensureBp_compiled;
+static const struct CompiledMethod Method_Supervisor_Debugger_break_at__compiled;
+static const struct CompiledMethod Method_Supervisor_Debugger_clear_at__compiled;
+static const struct CompiledMethod Method_Supervisor_Debugger_doBreak__compiled;
+static const struct CompiledMethod Method_Supervisor_Debugger_doClear__compiled;
+static const struct CompiledMethod Method_Supervisor_Debugger_onBreakContext__compiled;
+static const struct CompiledMethod Method_Supervisor_Debugger_depthOf__compiled;
+static const struct CompiledMethod Method_Supervisor_Debugger_methodIdOfCtx__compiled;
+static const struct CompiledMethod Method_Supervisor_Debugger_doInspect__compiled;
+static const struct CompiledMethod Method_Supervisor_Debugger_initialLoop_compiled;
+static const struct CompiledMethod Method_Supervisor_Debugger_commandLoop_compiled;
+static const struct CompiledMethod Method_Supervisor_Debugger_verbOf__compiled;
+static const struct CompiledMethod Method_Supervisor_Debugger_init_m_io__compiled;
+static const struct CompiledMethod Method_Block_Kernel_Collection_block1_value___compiled;
+static const struct CompiledMethod Method_Block_Kernel_Collection_block2_value__compiled;
+static const struct CompiledMethod Method_Block_Kernel_Collection_block3_value__compiled;
+static const struct CompiledMethod Method_Block_Kernel_Collection_block4_value__compiled;
+static const struct CompiledMethod Method_Block_Kernel_Collection_block5_value__compiled;
+static const struct CompiledMethod Method_Block_Kernel_Collection_block6_value___compiled;
+static const struct CompiledMethod Method_Block_Kernel_Collection_block7_value__compiled;
+static const struct CompiledMethod Method_Block_Kernel_Collection_block8_value__compiled;
+static const struct CompiledMethod Method_Block_Kernel_Collection_block9_value_compiled;
+static const struct CompiledMethod Method_Block_Kernel_Set_block10_value__compiled;
+static const struct CompiledMethod Method_Block_Kernel_Set_block11_value_compiled;
+static const struct CompiledMethod Method_Block_Kernel_Dictionary_block12_value_compiled;
+static const struct CompiledMethod Method_Block_Kernel_Dictionary_block13_value_compiled;
+static const struct CompiledMethod Method_Block_Supervisor_block14_value__compiled;
+extern char *getenv(const char *);
+
+#include "oevm.h"
+
+#include <stddef.h>
+
+/* Forward declare root Vtables */
+extern const struct Vtable Vtable_VtableVtable;
+extern const struct Vtable Vtable_SymbolVtable;
+extern const struct Vtable Vtable_StringVtable;
+extern const struct Vtable Vtable_BytecodeClosureVtable;
+extern const struct Vtable Vtable_PrimitiveClosureVtable;
+extern const struct Vtable Vtable_BoxedBindingVtable;
+extern const struct Vtable Vtable_RunnableFiberVtable;
+extern const struct Vtable Vtable_SuspendedFiberVtable;
+extern const struct Vtable Vtable_DeadFiberVtable;
+extern const struct Vtable Vtable_IntegerVtable;
+extern const struct Vtable Vtable_FloatVtable;
+extern const struct Vtable Vtable_LargeIntegerVtable;
+extern const struct Vtable Vtable_MethodContextVtable;
+extern const struct Vtable Vtable_StackVtable;
+extern const struct Vtable Vtable_ContextVtable;
+extern const struct Vtable Vtable_UdpTest;
+extern const struct Vtable Vtable_Meta_UdpTest;
+extern const struct Vtable Vtable_Kernel;
+extern const struct Vtable Vtable_Kernel_Object;
+extern const struct Vtable Vtable_Kernel_Array;
+extern const struct Vtable Vtable_Meta_Kernel_Array;
+extern const struct Vtable Vtable_Kernel_Collection;
+extern const struct Vtable Vtable_Kernel_OrderedCollection;
+extern const struct Vtable Vtable_Kernel_HashedCollection;
+extern const struct Vtable Vtable_Kernel_Set;
+extern const struct Vtable Vtable_Kernel_Dictionary;
+extern const struct Vtable Vtable_Kernel_ReadStream;
+extern const struct Vtable Vtable_Meta_Kernel_ReadStream;
+extern const struct Vtable Vtable_Kernel_WriteStream;
+extern const struct Vtable Vtable_Kernel_Serial;
+extern const struct Vtable Vtable_Meta_Kernel_Serial;
+extern const struct Vtable Vtable_Kernel_Net;
+extern const struct Vtable Vtable_Meta_Kernel_Net;
+extern const struct Vtable Vtable_Kernel_Socket;
+extern const struct Vtable Vtable_Meta_Kernel_Socket;
+extern const struct Vtable Vtable_Kernel_Datagram;
+extern const struct Vtable Vtable_Meta_Kernel_Datagram;
+extern const struct Vtable Vtable_Supervisor;
+extern const struct Vtable Vtable_Supervisor_ObjectMirror;
+extern const struct Vtable Vtable_Supervisor_ContextMirror;
+extern const struct Vtable Vtable_Supervisor_Debugger;
+extern const struct Vtable Vtable_Block_Kernel_Collection_block1;
+extern const struct Vtable Vtable_Block_Kernel_Collection_block2;
+extern const struct Vtable Vtable_Block_Kernel_Collection_block3;
+extern const struct Vtable Vtable_Block_Kernel_Collection_block4;
+extern const struct Vtable Vtable_Block_Kernel_Collection_block5;
+extern const struct Vtable Vtable_Block_Kernel_Collection_block6;
+extern const struct Vtable Vtable_Block_Kernel_Collection_block7;
+extern const struct Vtable Vtable_Block_Kernel_Collection_block8;
+extern const struct Vtable Vtable_Block_Kernel_Collection_block9;
+extern const struct Vtable Vtable_Block_Kernel_Set_block10;
+extern const struct Vtable Vtable_Block_Kernel_Set_block11;
+extern const struct Vtable Vtable_Block_Kernel_Dictionary_block12;
+extern const struct Vtable Vtable_Block_Kernel_Dictionary_block13;
+extern const struct Vtable Vtable_Block_Supervisor_block14;
+
+/* Global Vtable pointers for custom classes */
+oop UdpTest = NULL;
+oop Meta_UdpTest = NULL;
+oop Kernel = NULL;
+oop Kernel_Object = NULL;
+oop Kernel_Array = NULL;
+oop Meta_Kernel_Array = NULL;
+oop Kernel_Collection = NULL;
+oop Kernel_OrderedCollection = NULL;
+oop Kernel_HashedCollection = NULL;
+oop Kernel_Set = NULL;
+oop Kernel_Dictionary = NULL;
+oop Kernel_ReadStream = NULL;
+oop Meta_Kernel_ReadStream = NULL;
+oop Kernel_WriteStream = NULL;
+oop Kernel_Serial = NULL;
+oop Meta_Kernel_Serial = NULL;
+oop Kernel_Net = NULL;
+oop Meta_Kernel_Net = NULL;
+oop Kernel_Socket = NULL;
+oop Meta_Kernel_Socket = NULL;
+oop Kernel_Datagram = NULL;
+oop Meta_Kernel_Datagram = NULL;
+oop Supervisor = NULL;
+oop Supervisor_ObjectMirror = NULL;
+oop Supervisor_ContextMirror = NULL;
+oop Supervisor_Debugger = NULL;
+oop Block_Kernel_Collection_block1 = NULL;
+oop Block_Kernel_Collection_block2 = NULL;
+oop Block_Kernel_Collection_block3 = NULL;
+oop Block_Kernel_Collection_block4 = NULL;
+oop Block_Kernel_Collection_block5 = NULL;
+oop Block_Kernel_Collection_block6 = NULL;
+oop Block_Kernel_Collection_block7 = NULL;
+oop Block_Kernel_Collection_block8 = NULL;
+oop Block_Kernel_Collection_block9 = NULL;
+oop Block_Kernel_Set_block10 = NULL;
+oop Block_Kernel_Set_block11 = NULL;
+oop Block_Kernel_Dictionary_block12 = NULL;
+oop Block_Kernel_Dictionary_block13 = NULL;
+oop Block_Supervisor_block14 = NULL;
+
+/* Interned Symbols */
+const struct Symbol StaticSymbol_value = { { (oop)&Vtable_SymbolVtable }, "value", 5 };
+const struct Symbol StaticSymbol_unwindTo_value_ = { { (oop)&Vtable_SymbolVtable }, "unwindTo:value:", 15 };
+const struct Symbol StaticSymbol_main_args_ = { { (oop)&Vtable_SymbolVtable }, "main:args:", 10 };
+const struct Symbol StaticSymbol_roundTrip_ = { { (oop)&Vtable_SymbolVtable }, "roundTrip:", 10 };
+const struct Symbol StaticSymbol_fail_ = { { (oop)&Vtable_SymbolVtable }, "fail:", 5 };
+const struct Symbol StaticSymbol_init_platform_net_ = { { (oop)&Vtable_SymbolVtable }, "init_platform:net:", 18 };
+const struct Symbol StaticSymbol_packageUsing_ = { { (oop)&Vtable_SymbolVtable }, "packageUsing:", 13 };
+const struct Symbol StaticSymbol_serialOn_ = { { (oop)&Vtable_SymbolVtable }, "serialOn:", 9 };
+const struct Symbol StaticSymbol_netOn_ = { { (oop)&Vtable_SymbolVtable }, "netOn:", 6 };
+const struct Symbol StaticSymbol_readLine = { { (oop)&Vtable_SymbolVtable }, "readLine", 8 };
+const struct Symbol StaticSymbol_Object = { { (oop)&Vtable_SymbolVtable }, "Object", 6 };
+const struct Symbol StaticSymbol_Array = { { (oop)&Vtable_SymbolVtable }, "Array", 5 };
+const struct Symbol StaticSymbol_Collection = { { (oop)&Vtable_SymbolVtable }, "Collection", 10 };
+const struct Symbol StaticSymbol_OrderedCollection = { { (oop)&Vtable_SymbolVtable }, "OrderedCollection", 17 };
+const struct Symbol StaticSymbol_Set = { { (oop)&Vtable_SymbolVtable }, "Set", 3 };
+const struct Symbol StaticSymbol_Dictionary = { { (oop)&Vtable_SymbolVtable }, "Dictionary", 10 };
+const struct Symbol StaticSymbol_ReadStream = { { (oop)&Vtable_SymbolVtable }, "ReadStream", 10 };
+const struct Symbol StaticSymbol_WriteStream = { { (oop)&Vtable_SymbolVtable }, "WriteStream", 11 };
+const struct Symbol StaticSymbol_HashedCollection = { { (oop)&Vtable_SymbolVtable }, "HashedCollection", 16 };
+const struct Symbol StaticSymbol_Serial = { { (oop)&Vtable_SymbolVtable }, "Serial", 6 };
+const struct Symbol StaticSymbol_Net = { { (oop)&Vtable_SymbolVtable }, "Net", 3 };
+const struct Symbol StaticSymbol_Socket = { { (oop)&Vtable_SymbolVtable }, "Socket", 6 };
+const struct Symbol StaticSymbol_Datagram = { { (oop)&Vtable_SymbolVtable }, "Datagram", 8 };
+const struct Symbol StaticSymbol_init_platform_ = { { (oop)&Vtable_SymbolVtable }, "init_platform:", 14 };
+const struct Symbol StaticSymbol_isNil = { { (oop)&Vtable_SymbolVtable }, "isNil", 5 };
+const struct Symbol StaticSymbol_notNil = { { (oop)&Vtable_SymbolVtable }, "notNil", 6 };
+const struct Symbol StaticSymbol_ifNil_ = { { (oop)&Vtable_SymbolVtable }, "ifNil:", 6 };
+const struct Symbol StaticSymbol_ifNotNil_ = { { (oop)&Vtable_SymbolVtable }, "ifNotNil:", 9 };
+const struct Symbol StaticSymbol__eq = { { (oop)&Vtable_SymbolVtable }, "=", 1 };
+const struct Symbol StaticSymbol_printString = { { (oop)&Vtable_SymbolVtable }, "printString", 11 };
+const struct Symbol StaticSymbol_asString = { { (oop)&Vtable_SymbolVtable }, "asString", 8 };
+const struct Symbol StaticSymbol_hash = { { (oop)&Vtable_SymbolVtable }, "hash", 4 };
+const struct Symbol StaticSymbol_init_new = { { (oop)&Vtable_SymbolVtable }, "init_new", 8 };
+const struct Symbol StaticSymbol_at_ = { { (oop)&Vtable_SymbolVtable }, "at:", 3 };
+const struct Symbol StaticSymbol_at_put_ = { { (oop)&Vtable_SymbolVtable }, "at:put:", 7 };
+const struct Symbol StaticSymbol_size = { { (oop)&Vtable_SymbolVtable }, "size", 4 };
+const struct Symbol StaticSymbol_do_ = { { (oop)&Vtable_SymbolVtable }, "do:", 3 };
+const struct Symbol StaticSymbol_new_ = { { (oop)&Vtable_SymbolVtable }, "new:", 4 };
+const struct Symbol StaticSymbol_isEmpty = { { (oop)&Vtable_SymbolVtable }, "isEmpty", 7 };
+const struct Symbol StaticSymbol_inject_into_ = { { (oop)&Vtable_SymbolVtable }, "inject:into:", 12 };
+const struct Symbol StaticSymbol_collect_ = { { (oop)&Vtable_SymbolVtable }, "collect:", 8 };
+const struct Symbol StaticSymbol_select_ = { { (oop)&Vtable_SymbolVtable }, "select:", 7 };
+const struct Symbol StaticSymbol_reject_ = { { (oop)&Vtable_SymbolVtable }, "reject:", 7 };
+const struct Symbol StaticSymbol_includes_ = { { (oop)&Vtable_SymbolVtable }, "includes:", 9 };
+const struct Symbol StaticSymbol_asArray = { { (oop)&Vtable_SymbolVtable }, "asArray", 7 };
+const struct Symbol StaticSymbol_detect_ifNone_ = { { (oop)&Vtable_SymbolVtable }, "detect:ifNone:", 14 };
+const struct Symbol StaticSymbol_detect_ = { { (oop)&Vtable_SymbolVtable }, "detect:", 7 };
+const struct Symbol StaticSymbol_add_ = { { (oop)&Vtable_SymbolVtable }, "add:", 4 };
+const struct Symbol StaticSymbol_addLast_ = { { (oop)&Vtable_SymbolVtable }, "addLast:", 8 };
+const struct Symbol StaticSymbol_first = { { (oop)&Vtable_SymbolVtable }, "first", 5 };
+const struct Symbol StaticSymbol_last = { { (oop)&Vtable_SymbolVtable }, "last", 4 };
+const struct Symbol StaticSymbol_removeLast = { { (oop)&Vtable_SymbolVtable }, "removeLast", 10 };
+const struct Symbol StaticSymbol_removeFirst = { { (oop)&Vtable_SymbolVtable }, "removeFirst", 11 };
+const struct Symbol StaticSymbol_ensureCapacity = { { (oop)&Vtable_SymbolVtable }, "ensureCapacity", 14 };
+const struct Symbol StaticSymbol_grow = { { (oop)&Vtable_SymbolVtable }, "grow", 4 };
+const struct Symbol StaticSymbol_capacity = { { (oop)&Vtable_SymbolVtable }, "capacity", 8 };
+const struct Symbol StaticSymbol_indexFor_ = { { (oop)&Vtable_SymbolVtable }, "indexFor:", 9 };
+const struct Symbol StaticSymbol_slotFor_ = { { (oop)&Vtable_SymbolVtable }, "slotFor:", 8 };
+const struct Symbol StaticSymbol_containsKey_ = { { (oop)&Vtable_SymbolVtable }, "containsKey:", 12 };
+const struct Symbol StaticSymbol_atCapacity = { { (oop)&Vtable_SymbolVtable }, "atCapacity", 10 };
+const struct Symbol StaticSymbol_growIfNeeded = { { (oop)&Vtable_SymbolVtable }, "growIfNeeded", 12 };
+const struct Symbol StaticSymbol_rehashFrom_ = { { (oop)&Vtable_SymbolVtable }, "rehashFrom:", 11 };
+const struct Symbol StaticSymbol_reinsertEntryAt_ = { { (oop)&Vtable_SymbolVtable }, "reinsertEntryAt:", 16 };
+const struct Symbol StaticSymbol_addAll_ = { { (oop)&Vtable_SymbolVtable }, "addAll:", 7 };
+const struct Symbol StaticSymbol_remove_ = { { (oop)&Vtable_SymbolVtable }, "remove:", 7 };
+const struct Symbol StaticSymbol_remove_ifAbsent_ = { { (oop)&Vtable_SymbolVtable }, "remove:ifAbsent:", 16 };
+const struct Symbol StaticSymbol_place_ = { { (oop)&Vtable_SymbolVtable }, "place:", 6 };
+const struct Symbol StaticSymbol_at_ifAbsent_ = { { (oop)&Vtable_SymbolVtable }, "at:ifAbsent:", 12 };
+const struct Symbol StaticSymbol_at_ifAbsentPut_ = { { (oop)&Vtable_SymbolVtable }, "at:ifAbsentPut:", 15 };
+const struct Symbol StaticSymbol_includesKey_ = { { (oop)&Vtable_SymbolVtable }, "includesKey:", 12 };
+const struct Symbol StaticSymbol_removeKey_ = { { (oop)&Vtable_SymbolVtable }, "removeKey:", 10 };
+const struct Symbol StaticSymbol_removeKey_ifAbsent_ = { { (oop)&Vtable_SymbolVtable }, "removeKey:ifAbsent:", 19 };
+const struct Symbol StaticSymbol_keys = { { (oop)&Vtable_SymbolVtable }, "keys", 4 };
+const struct Symbol StaticSymbol_values = { { (oop)&Vtable_SymbolVtable }, "values", 6 };
+const struct Symbol StaticSymbol_keysAndValuesDo_ = { { (oop)&Vtable_SymbolVtable }, "keysAndValuesDo:", 16 };
+const struct Symbol StaticSymbol_place_value_ = { { (oop)&Vtable_SymbolVtable }, "place:value:", 12 };
+const struct Symbol StaticSymbol_next = { { (oop)&Vtable_SymbolVtable }, "next", 4 };
+const struct Symbol StaticSymbol_peek = { { (oop)&Vtable_SymbolVtable }, "peek", 4 };
+const struct Symbol StaticSymbol_atEnd = { { (oop)&Vtable_SymbolVtable }, "atEnd", 5 };
+const struct Symbol StaticSymbol_skip_ = { { (oop)&Vtable_SymbolVtable }, "skip:", 5 };
+const struct Symbol StaticSymbol_position = { { (oop)&Vtable_SymbolVtable }, "position", 8 };
+const struct Symbol StaticSymbol_reset = { { (oop)&Vtable_SymbolVtable }, "reset", 5 };
+const struct Symbol StaticSymbol_next_ = { { (oop)&Vtable_SymbolVtable }, "next:", 5 };
+const struct Symbol StaticSymbol_upTo_ = { { (oop)&Vtable_SymbolVtable }, "upTo:", 5 };
+const struct Symbol StaticSymbol_nextLine = { { (oop)&Vtable_SymbolVtable }, "nextLine", 8 };
+const struct Symbol StaticSymbol_upToEnd = { { (oop)&Vtable_SymbolVtable }, "upToEnd", 7 };
+const struct Symbol StaticSymbol_prefixOf_upTo_ = { { (oop)&Vtable_SymbolVtable }, "prefixOf:upTo:", 14 };
+const struct Symbol StaticSymbol_setSource_ = { { (oop)&Vtable_SymbolVtable }, "setSource:", 10 };
+const struct Symbol StaticSymbol_on_ = { { (oop)&Vtable_SymbolVtable }, "on:", 3 };
+const struct Symbol StaticSymbol_nextPut_ = { { (oop)&Vtable_SymbolVtable }, "nextPut:", 8 };
+const struct Symbol StaticSymbol_nextPutAll_ = { { (oop)&Vtable_SymbolVtable }, "nextPutAll:", 11 };
+const struct Symbol StaticSymbol_print_ = { { (oop)&Vtable_SymbolVtable }, "print:", 6 };
+const struct Symbol StaticSymbol_nextPutLine_ = { { (oop)&Vtable_SymbolVtable }, "nextPutLine:", 12 };
+const struct Symbol StaticSymbol_contents = { { (oop)&Vtable_SymbolVtable }, "contents", 8 };
+const struct Symbol StaticSymbol_setPort_ = { { (oop)&Vtable_SymbolVtable }, "setPort:", 8 };
+const struct Symbol StaticSymbol_writeByte_ = { { (oop)&Vtable_SymbolVtable }, "writeByte:", 10 };
+const struct Symbol StaticSymbol_write_ = { { (oop)&Vtable_SymbolVtable }, "write:", 6 };
+const struct Symbol StaticSymbol_readByte = { { (oop)&Vtable_SymbolVtable }, "readByte", 8 };
+const struct Symbol StaticSymbol_read_ = { { (oop)&Vtable_SymbolVtable }, "read:", 5 };
+const struct Symbol StaticSymbol_onPort_ = { { (oop)&Vtable_SymbolVtable }, "onPort:", 7 };
+const struct Symbol StaticSymbol_udp = { { (oop)&Vtable_SymbolVtable }, "udp", 3 };
+const struct Symbol StaticSymbol_udpBindPort_ = { { (oop)&Vtable_SymbolVtable }, "udpBindPort:", 12 };
+const struct Symbol StaticSymbol_setPort_handle_ = { { (oop)&Vtable_SymbolVtable }, "setPort:handle:", 15 };
+const struct Symbol StaticSymbol_sendTo_port_data_ = { { (oop)&Vtable_SymbolVtable }, "sendTo:port:data:", 17 };
+const struct Symbol StaticSymbol_receive = { { (oop)&Vtable_SymbolVtable }, "receive", 7 };
+const struct Symbol StaticSymbol_close = { { (oop)&Vtable_SymbolVtable }, "close", 5 };
+const struct Symbol StaticSymbol_onPort_handle_ = { { (oop)&Vtable_SymbolVtable }, "onPort:handle:", 14 };
+const struct Symbol StaticSymbol_setData_host_port_ = { { (oop)&Vtable_SymbolVtable }, "setData:host:port:", 18 };
+const struct Symbol StaticSymbol_data = { { (oop)&Vtable_SymbolVtable }, "data", 4 };
+const struct Symbol StaticSymbol_senderHost = { { (oop)&Vtable_SymbolVtable }, "senderHost", 10 };
+const struct Symbol StaticSymbol_senderPort = { { (oop)&Vtable_SymbolVtable }, "senderPort", 10 };
+const struct Symbol StaticSymbol_data_senderHost_senderPort_ = { { (oop)&Vtable_SymbolVtable }, "data:senderHost:senderPort:", 27 };
+const struct Symbol StaticSymbol_run_platform_args_debug_ = { { (oop)&Vtable_SymbolVtable }, "run:platform:args:debug:", 24 };
+const struct Symbol StaticSymbol_ObjectMirror = { { (oop)&Vtable_SymbolVtable }, "ObjectMirror", 12 };
+const struct Symbol StaticSymbol_ContextMirror = { { (oop)&Vtable_SymbolVtable }, "ContextMirror", 13 };
+const struct Symbol StaticSymbol_Debugger = { { (oop)&Vtable_SymbolVtable }, "Debugger", 8 };
+const struct Symbol StaticSymbol_init_mirror_ = { { (oop)&Vtable_SymbolVtable }, "init_mirror:", 12 };
+const struct Symbol StaticSymbol_vtable = { { (oop)&Vtable_SymbolVtable }, "vtable", 6 };
+const struct Symbol StaticSymbol_bindings = { { (oop)&Vtable_SymbolVtable }, "bindings", 8 };
+const struct Symbol StaticSymbol_reflectee = { { (oop)&Vtable_SymbolVtable }, "reflectee", 9 };
+const struct Symbol StaticSymbol_init_m_obj_ = { { (oop)&Vtable_SymbolVtable }, "init_m:obj:", 11 };
+const struct Symbol StaticSymbol_context = { { (oop)&Vtable_SymbolVtable }, "context", 7 };
+const struct Symbol StaticSymbol_rawSender = { { (oop)&Vtable_SymbolVtable }, "rawSender", 9 };
+const struct Symbol StaticSymbol_sender = { { (oop)&Vtable_SymbolVtable }, "sender", 6 };
+const struct Symbol StaticSymbol_pc = { { (oop)&Vtable_SymbolVtable }, "pc", 2 };
+const struct Symbol StaticSymbol_offset = { { (oop)&Vtable_SymbolVtable }, "offset", 6 };
+const struct Symbol StaticSymbol_registerAt_ = { { (oop)&Vtable_SymbolVtable }, "registerAt:", 11 };
+const struct Symbol StaticSymbol_registerAt_put_ = { { (oop)&Vtable_SymbolVtable }, "registerAt:put:", 15 };
+const struct Symbol StaticSymbol_numRegisters = { { (oop)&Vtable_SymbolVtable }, "numRegisters", 12 };
+const struct Symbol StaticSymbol_init_m_ctx_ = { { (oop)&Vtable_SymbolVtable }, "init_m:ctx:", 11 };
+const struct Symbol StaticSymbol_registerEntry_ = { { (oop)&Vtable_SymbolVtable }, "registerEntry:", 14 };
+const struct Symbol StaticSymbol_buildRegistry = { { (oop)&Vtable_SymbolVtable }, "buildRegistry", 13 };
+const struct Symbol StaticSymbol_listMethods = { { (oop)&Vtable_SymbolVtable }, "listMethods", 11 };
+const struct Symbol StaticSymbol_methodAt_ = { { (oop)&Vtable_SymbolVtable }, "methodAt:", 9 };
+const struct Symbol StaticSymbol_parseInt_ = { { (oop)&Vtable_SymbolVtable }, "parseInt:", 9 };
+const struct Symbol StaticSymbol_ensureBp = { { (oop)&Vtable_SymbolVtable }, "ensureBp", 8 };
+const struct Symbol StaticSymbol_break_at_ = { { (oop)&Vtable_SymbolVtable }, "break:at:", 9 };
+const struct Symbol StaticSymbol_clear_at_ = { { (oop)&Vtable_SymbolVtable }, "clear:at:", 9 };
+const struct Symbol StaticSymbol_doBreak_ = { { (oop)&Vtable_SymbolVtable }, "doBreak:", 8 };
+const struct Symbol StaticSymbol_doClear_ = { { (oop)&Vtable_SymbolVtable }, "doClear:", 8 };
+const struct Symbol StaticSymbol_onBreakContext_ = { { (oop)&Vtable_SymbolVtable }, "onBreakContext:", 15 };
+const struct Symbol StaticSymbol_depthOf_ = { { (oop)&Vtable_SymbolVtable }, "depthOf:", 8 };
+const struct Symbol StaticSymbol_methodIdOfCtx_ = { { (oop)&Vtable_SymbolVtable }, "methodIdOfCtx:", 14 };
+const struct Symbol StaticSymbol_doInspect_ = { { (oop)&Vtable_SymbolVtable }, "doInspect:", 10 };
+const struct Symbol StaticSymbol_initialLoop = { { (oop)&Vtable_SymbolVtable }, "initialLoop", 11 };
+const struct Symbol StaticSymbol_commandLoop = { { (oop)&Vtable_SymbolVtable }, "commandLoop", 11 };
+const struct Symbol StaticSymbol_verbOf_ = { { (oop)&Vtable_SymbolVtable }, "verbOf:", 7 };
+const struct Symbol StaticSymbol_init_m_io_ = { { (oop)&Vtable_SymbolVtable }, "init_m:io:", 10 };
+const struct Symbol StaticSymbol_value__ = { { (oop)&Vtable_SymbolVtable }, "value::", 7 };
+const struct Symbol StaticSymbol_value_ = { { (oop)&Vtable_SymbolVtable }, "value:", 6 };
+const struct Symbol StaticSymbol__eq_eq = { { (oop)&Vtable_SymbolVtable }, "==", 2 };
+const struct Symbol StaticSymbol_executeCleanup = { { (oop)&Vtable_SymbolVtable }, "executeCleanup", 14 };
+const struct Symbol StaticSymbol_resumeWith_ = { { (oop)&Vtable_SymbolVtable }, "resumeWith:", 11 };
+const struct Symbol StaticSymbol_false = { { (oop)&Vtable_SymbolVtable }, "false", 5 };
+const struct Symbol StaticSymbol_println = { { (oop)&Vtable_SymbolVtable }, "println", 7 };
+const struct Symbol StaticSymbol___boundOuter_slotCount_ = { { (oop)&Vtable_SymbolVtable }, "__boundOuter:slotCount:", 23 };
+const struct Symbol StaticSymbol_true = { { (oop)&Vtable_SymbolVtable }, "true", 4 };
+const struct Symbol StaticSymbol_identityHash = { { (oop)&Vtable_SymbolVtable }, "identityHash", 12 };
+const struct Symbol StaticSymbol_basicAt_ = { { (oop)&Vtable_SymbolVtable }, "basicAt:", 8 };
+const struct Symbol StaticSymbol_basicAt_put_ = { { (oop)&Vtable_SymbolVtable }, "basicAt:put:", 12 };
+const struct Symbol StaticSymbol_basicSize = { { (oop)&Vtable_SymbolVtable }, "basicSize", 9 };
+const struct Symbol StaticSymbol__lt_eq = { { (oop)&Vtable_SymbolVtable }, "<=", 2 };
+const struct Symbol StaticSymbol_basicNew_indexable_ = { { (oop)&Vtable_SymbolVtable }, "basicNew:indexable:", 19 };
+const struct Symbol StaticSymbol_error_ = { { (oop)&Vtable_SymbolVtable }, "error:", 6 };
+const struct Symbol StaticSymbol__lt = { { (oop)&Vtable_SymbolVtable }, "<", 1 };
+const struct Symbol StaticSymbol__gt = { { (oop)&Vtable_SymbolVtable }, ">", 1 };
+const struct Symbol StaticSymbol__div_div = { { (oop)&Vtable_SymbolVtable }, "//", 2 };
+const struct Symbol StaticSymbol_not = { { (oop)&Vtable_SymbolVtable }, "not", 3 };
+const struct Symbol StaticSymbol__gt_eq = { { (oop)&Vtable_SymbolVtable }, ">=", 2 };
+const struct Symbol StaticSymbol_value_value_ = { { (oop)&Vtable_SymbolVtable }, "value:value:", 12 };
+const struct Symbol StaticSymbol_string_ = { { (oop)&Vtable_SymbolVtable }, "string:", 7 };
+const struct Symbol StaticSymbol_basicWriteByte_ = { { (oop)&Vtable_SymbolVtable }, "basicWriteByte:", 15 };
+const struct Symbol StaticSymbol_basicAtEnd = { { (oop)&Vtable_SymbolVtable }, "basicAtEnd", 10 };
+const struct Symbol StaticSymbol_basicReadByte = { { (oop)&Vtable_SymbolVtable }, "basicReadByte", 13 };
+const struct Symbol StaticSymbol_basicBind_ = { { (oop)&Vtable_SymbolVtable }, "basicBind:", 10 };
+const struct Symbol StaticSymbol_basicSend_to_port_data_ = { { (oop)&Vtable_SymbolVtable }, "basicSend:to:port:data:", 23 };
+const struct Symbol StaticSymbol_basicReceive_ = { { (oop)&Vtable_SymbolVtable }, "basicReceive:", 13 };
+const struct Symbol StaticSymbol_basicClose_ = { { (oop)&Vtable_SymbolVtable }, "basicClose:", 11 };
+const struct Symbol StaticSymbol_onBreak_ = { { (oop)&Vtable_SymbolVtable }, "onBreak:", 8 };
+const struct Symbol StaticSymbol_vtableOf_ = { { (oop)&Vtable_SymbolVtable }, "vtableOf:", 9 };
+const struct Symbol StaticSymbol_bindingsOf_ = { { (oop)&Vtable_SymbolVtable }, "bindingsOf:", 11 };
+const struct Symbol StaticSymbol_senderOf_ = { { (oop)&Vtable_SymbolVtable }, "senderOf:", 9 };
+const struct Symbol StaticSymbol_pcOf_ = { { (oop)&Vtable_SymbolVtable }, "pcOf:", 5 };
+const struct Symbol StaticSymbol_offsetOf_ = { { (oop)&Vtable_SymbolVtable }, "offsetOf:", 9 };
+const struct Symbol StaticSymbol_reg_at_ = { { (oop)&Vtable_SymbolVtable }, "reg:at:", 7 };
+const struct Symbol StaticSymbol_reg_at_put_ = { { (oop)&Vtable_SymbolVtable }, "reg:at:put:", 11 };
+const struct Symbol StaticSymbol_numRegistersOf_ = { { (oop)&Vtable_SymbolVtable }, "numRegistersOf:", 15 };
+const struct Symbol StaticSymbol_new = { { (oop)&Vtable_SymbolVtable }, "new", 3 };
+const struct Symbol StaticSymbol_selectorsOf_ = { { (oop)&Vtable_SymbolVtable }, "selectorsOf:", 12 };
+const struct Symbol StaticSymbol_methodsOf_ = { { (oop)&Vtable_SymbolVtable }, "methodsOf:", 10 };
+const struct Symbol StaticSymbol_delegateOf_ = { { (oop)&Vtable_SymbolVtable }, "delegateOf:", 11 };
+const struct Symbol StaticSymbol_breakAt_offset_ = { { (oop)&Vtable_SymbolVtable }, "breakAt:offset:", 15 };
+const struct Symbol StaticSymbol_unbreakAt_offset_ = { { (oop)&Vtable_SymbolVtable }, "unbreakAt:offset:", 17 };
+const struct Symbol StaticSymbol_methodOf_ = { { (oop)&Vtable_SymbolVtable }, "methodOf:", 9 };
+const struct Symbol StaticSymbol_into = { { (oop)&Vtable_SymbolVtable }, "into", 4 };
+const struct Symbol StaticSymbol_over = { { (oop)&Vtable_SymbolVtable }, "over", 4 };
+const struct Symbol StaticSymbol_out = { { (oop)&Vtable_SymbolVtable }, "out", 3 };
+const struct Symbol StaticSymbol_requestStep_ = { { (oop)&Vtable_SymbolVtable }, "requestStep:", 12 };
+
+/* String literal constants (std-lib 3c-1) */
+static const struct { struct Object base; size_t length; uint8_t bytes[9]; } StaticString_127_u460_u460_u461_0 = { { (oop)&Vtable_StringVtable }, 9, { 49, 50, 55, 46, 48, 46, 48, 46, 49 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[11]; } StaticString_v4_u32loopback_1 = { { (oop)&Vtable_StringVtable }, 11, { 118, 52, 32, 108, 111, 111, 112, 98, 97, 99, 107 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[3]; } StaticString___1_2 = { { (oop)&Vtable_StringVtable }, 3, { 58, 58, 49 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[11]; } StaticString_v6_u32loopback_3 = { { (oop)&Vtable_StringVtable }, 11, { 118, 54, 32, 108, 111, 111, 112, 98, 97, 99, 107 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[6]; } StaticString_UDP_u32OK_4 = { { (oop)&Vtable_StringVtable }, 6, { 85, 68, 80, 32, 79, 75 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[4]; } StaticString_ping_5 = { { (oop)&Vtable_StringVtable }, 4, { 112, 105, 110, 103 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[9]; } StaticString_an_u32Object_6 = { { (oop)&Vtable_StringVtable }, 9, { 97, 110, 32, 79, 98, 106, 101, 99, 116 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[22]; } StaticString_subclassResponsibility_7 = { { (oop)&Vtable_StringVtable }, 22, { 115, 117, 98, 99, 108, 97, 115, 115, 82, 101, 115, 112, 111, 110, 115, 105, 98, 105, 108, 105, 116, 121 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[19]; } StaticString_index_u32out_u32of_u32bounds_8 = { { (oop)&Vtable_StringVtable }, 19, { 105, 110, 100, 101, 120, 32, 111, 117, 116, 32, 111, 102, 32, 98, 111, 117, 110, 100, 115 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[23]; } StaticString_nil_u32element_u32not_u32allowed_9 = { { (oop)&Vtable_StringVtable }, 23, { 110, 105, 108, 32, 101, 108, 101, 109, 101, 110, 116, 32, 110, 111, 116, 32, 97, 108, 108, 111, 119, 101, 100 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[19]; } StaticString_nil_u32key_u32not_u32allowed_10 = { { (oop)&Vtable_StringVtable }, 19, { 110, 105, 108, 32, 107, 101, 121, 32, 110, 111, 116, 32, 97, 108, 108, 111, 119, 101, 100 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[13]; } StaticString_next_u32past_u32end_11 = { { (oop)&Vtable_StringVtable }, 13, { 110, 101, 120, 116, 32, 112, 97, 115, 116, 32, 101, 110, 100 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[13]; } StaticString_peek_u32past_u32end_12 = { { (oop)&Vtable_StringVtable }, 13, { 112, 101, 101, 107, 32, 112, 97, 115, 116, 32, 101, 110, 100 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[16]; } StaticString_next__u32beyond_u32end_13 = { { (oop)&Vtable_StringVtable }, 16, { 110, 101, 120, 116, 58, 32, 98, 101, 121, 111, 110, 100, 32, 101, 110, 100 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[24]; } StaticString_byte_u32out_u32of_u32range_u320_u46_u46255_14 = { { (oop)&Vtable_StringVtable }, 24, { 98, 121, 116, 101, 32, 111, 117, 116, 32, 111, 102, 32, 114, 97, 110, 103, 101, 32, 48, 46, 46, 50, 53, 53 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[9]; } StaticString_dbg_ready_15 = { { (oop)&Vtable_StringVtable }, 9, { 100, 98, 103, 58, 114, 101, 97, 100, 121 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[1]; } StaticString__u32_16 = { { (oop)&Vtable_StringVtable }, 1, { 32 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[14]; } StaticString_dbg_ok_u32methods_17 = { { (oop)&Vtable_StringVtable }, 14, { 100, 98, 103, 58, 111, 107, 32, 109, 101, 116, 104, 111, 100, 115 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[19]; } StaticString_dbg_error_u32no_submethod_18 = { { (oop)&Vtable_StringVtable }, 19, { 100, 98, 103, 58, 101, 114, 114, 111, 114, 32, 110, 111, 45, 109, 101, 116, 104, 111, 100 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[12]; } StaticString_dbg_ok_u32break_19 = { { (oop)&Vtable_StringVtable }, 12, { 100, 98, 103, 58, 111, 107, 32, 98, 114, 101, 97, 107 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[15]; } StaticString_dbg_error_u32no_subbp_20 = { { (oop)&Vtable_StringVtable }, 15, { 100, 98, 103, 58, 101, 114, 114, 111, 114, 32, 110, 111, 45, 98, 112 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[12]; } StaticString_dbg_ok_u32clear_21 = { { (oop)&Vtable_StringVtable }, 12, { 100, 98, 103, 58, 111, 107, 32, 99, 108, 101, 97, 114 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[15]; } StaticString_dbg_error_u32usage_22 = { { (oop)&Vtable_StringVtable }, 15, { 100, 98, 103, 58, 101, 114, 114, 111, 114, 32, 117, 115, 97, 103, 101 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[17]; } StaticString_dbg_paused_u32break_u32_23 = { { (oop)&Vtable_StringVtable }, 17, { 100, 98, 103, 58, 112, 97, 117, 115, 101, 100, 32, 98, 114, 101, 97, 107, 32 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[16]; } StaticString_dbg_paused_u32step_u32_24 = { { (oop)&Vtable_StringVtable }, 16, { 100, 98, 103, 58, 112, 97, 117, 115, 101, 100, 32, 115, 116, 101, 112, 32 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[18]; } StaticString_dbg_error_u32no_subframe_25 = { { (oop)&Vtable_StringVtable }, 18, { 100, 98, 103, 58, 101, 114, 114, 111, 114, 32, 110, 111, 45, 102, 114, 97, 109, 101 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[14]; } StaticString_dbg_stack_u32off_eq_26 = { { (oop)&Vtable_StringVtable }, 14, { 100, 98, 103, 58, 115, 116, 97, 99, 107, 32, 111, 102, 102, 61 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[2]; } StaticString__u32r_27 = { { (oop)&Vtable_StringVtable }, 2, { 32, 114 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[1]; } StaticString__eq_28 = { { (oop)&Vtable_StringVtable }, 1, { 61 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[11]; } StaticString_dbg_methods_29 = { { (oop)&Vtable_StringVtable }, 11, { 100, 98, 103, 58, 109, 101, 116, 104, 111, 100, 115 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[12]; } StaticString_dbg_continue_30 = { { (oop)&Vtable_StringVtable }, 12, { 100, 98, 103, 58, 99, 111, 110, 116, 105, 110, 117, 101 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[7]; } StaticString_dbg_run_31 = { { (oop)&Vtable_StringVtable }, 7, { 100, 98, 103, 58, 114, 117, 110 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[9]; } StaticString_dbg_break_32 = { { (oop)&Vtable_StringVtable }, 9, { 100, 98, 103, 58, 98, 114, 101, 97, 107 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[9]; } StaticString_dbg_clear_33 = { { (oop)&Vtable_StringVtable }, 9, { 100, 98, 103, 58, 99, 108, 101, 97, 114 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[17]; } StaticString_dbg_error_u32unknown_34 = { { (oop)&Vtable_StringVtable }, 17, { 100, 98, 103, 58, 101, 114, 114, 111, 114, 32, 117, 110, 107, 110, 111, 119, 110 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[8]; } StaticString_dbg_step_35 = { { (oop)&Vtable_StringVtable }, 8, { 100, 98, 103, 58, 115, 116, 101, 112 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[8]; } StaticString_dbg_over_36 = { { (oop)&Vtable_StringVtable }, 8, { 100, 98, 103, 58, 111, 118, 101, 114 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[7]; } StaticString_dbg_out_37 = { { (oop)&Vtable_StringVtable }, 7, { 100, 98, 103, 58, 111, 117, 116 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[11]; } StaticString_dbg_inspect_38 = { { (oop)&Vtable_StringVtable }, 11, { 100, 98, 103, 58, 105, 110, 115, 112, 101, 99, 116 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[9]; } StaticString_not_u32found_39 = { { (oop)&Vtable_StringVtable }, 9, { 110, 111, 116, 32, 102, 111, 117, 110, 100 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[17]; } StaticString_element_u32not_u32found_40 = { { (oop)&Vtable_StringVtable }, 17, { 101, 108, 101, 109, 101, 110, 116, 32, 110, 111, 116, 32, 102, 111, 117, 110, 100 } };
+static const struct { struct Object base; size_t length; uint8_t bytes[13]; } StaticString_key_u32not_u32found_41 = { { (oop)&Vtable_StringVtable }, 13, { 107, 101, 121, 32, 110, 111, 116, 32, 102, 111, 117, 110, 100 } };
+
+/* Compiled Method Bytecodes and Constants */
+static const uint32_t Method_MethodContextVtable_unwindTo_value__insts[] = { 0x00000301, 0x00010401, 0x03000102, 0x0007030B, 0x00000301, 0x03010002, 0x00000301, 0x00020401, 0x03020102, 0x00040300, 0x00000304, 0x00000301, 0x03010002, 0x00000301, 0x00030315, 0x00010401, 0x00020501, 0x03030202, 0x00000304 };
+static const oop Method_MethodContextVtable_unwindTo_value__consts[] = { (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_executeCleanup, (oop)&StaticSymbol_resumeWith_, (oop)&StaticSymbol_unwindTo_value_, TAG_SMI(0) };
+static const struct CompiledMethod Method_MethodContextVtable_unwindTo_value__compiled = {
+    Method_MethodContextVtable_unwindTo_value__insts, 19,
+    6, 2,
+    Method_MethodContextVtable_unwindTo_value__consts, 5,
+    0
+};
+static const struct Closure Method_MethodContextVtable_unwindTo_value__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_MethodContextVtable_unwindTo_value__compiled
+};
+
+static const uint32_t Method_UdpTest_main_args__insts[] = { 0x00000501, 0x00000600, 0x0501010F, 0x00050401, 0x0002040B, 0x00020300, 0x0000050A, 0x00000701, 0x00030800, 0x07040102, 0x00070601, 0x00000604, 0x00000601, 0x00050700, 0x0601010F, 0x00060501, 0x0002050B, 0x00020400, 0x0000050A, 0x00000801, 0x00060900, 0x08040102, 0x00080701, 0x00000704, 0x00070600, 0x06080002, 0x00060501, 0x00090600, 0x00000604 };
+static const oop Method_UdpTest_main_args__consts[] = { (oop)&StaticString_127_u460_u460_u461_0, (oop)&StaticSymbol_roundTrip_, (oop)&StaticSymbol_false, (oop)&StaticString_v4_u32loopback_1, (oop)&StaticSymbol_fail_, (oop)&StaticString___1_2, (oop)&StaticString_v6_u32loopback_3, (oop)&StaticString_UDP_u32OK_4, (oop)&StaticSymbol_println, TAG_SMI(0) };
+static const struct CompiledMethod Method_UdpTest_main_args__compiled = {
+    Method_UdpTest_main_args__insts, 29,
+    10, 2,
+    Method_UdpTest_main_args__consts, 10,
+    0
+};
+static const struct Closure Method_UdpTest_main_args__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_UdpTest_main_args__compiled
+};
+
+static const uint32_t Method_UdpTest_roundTrip__insts[] = { 0x0001070C, 0x00000800, 0x07010102, 0x00070601, 0x00060201, 0x00020901, 0x00020A00, 0x09030102, 0x00090801, 0x0003080B, 0x00040A00, 0x00000A04, 0x0000010A, 0x00040700, 0x0001090C, 0x09050002, 0x00090801, 0x00080301, 0x00030A01, 0x00010B01, 0x00000C00, 0x00060D00, 0x0A070302, 0x000A0901, 0x00020A00, 0x000A0501, 0x00050D01, 0x00020E00, 0x0D030102, 0x000D0B01, 0x00050B0B, 0x00020D01, 0x0D080002, 0x000D0C01, 0x000C0501, 0x00FFF60A, 0x00020A00, 0x00050A01, 0x000A0401, 0x00020B01, 0x0B090002, 0x000B0A01, 0x00030C01, 0x0C090002, 0x000C0B01, 0x00040E01, 0x0E0A0002, 0x000E0D01, 0x00060E00, 0x0D0B0102, 0x000D0C01, 0x00000C04 };
+static const oop Method_UdpTest_roundTrip__consts[] = { TAG_SMI(54331), (oop)&StaticSymbol_udpBindPort_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_udp, (oop)&StaticString_ping_5, (oop)&StaticSymbol_sendTo_port_data_, (oop)&StaticSymbol_receive, (oop)&StaticSymbol_close, (oop)&StaticSymbol_data, (oop)&StaticSymbol__eq };
+static const struct CompiledMethod Method_UdpTest_roundTrip__compiled = {
+    Method_UdpTest_roundTrip__insts, 52,
+    15, 1,
+    Method_UdpTest_roundTrip__consts, 12,
+    0
+};
+static const struct Closure Method_UdpTest_roundTrip__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_UdpTest_roundTrip__compiled
+};
+
+static const uint32_t Method_UdpTest_fail__insts[] = { 0x00010301, 0x03000002, 0x00030201, 0x00010300, 0x00000304 };
+static const oop Method_UdpTest_fail__consts[] = { (oop)&StaticSymbol_println, TAG_SMI(1) };
+static const struct CompiledMethod Method_UdpTest_fail__compiled = {
+    Method_UdpTest_fail__insts, 5,
+    4, 1,
+    Method_UdpTest_fail__consts, 2,
+    0
+};
+static const struct Closure Method_UdpTest_fail__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_UdpTest_fail__compiled
+};
+
+static const uint32_t Method_Meta_UdpTest_packageUsing__insts[] = { 0x00000300, 0x0203020E, 0x02010002, 0x00000204 };
+static const oop Method_Meta_UdpTest_packageUsing__consts[] = { (oop)&Vtable_UdpTest, (oop)&StaticSymbol_init_platform_net_ };
+static const struct CompiledMethod Method_Meta_UdpTest_packageUsing__compiled = {
+    Method_Meta_UdpTest_packageUsing__insts, 4,
+    4, 1,
+    Method_Meta_UdpTest_packageUsing__consts, 2,
+    0
+};
+static const struct Closure Method_Meta_UdpTest_packageUsing__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Meta_UdpTest_packageUsing__compiled
+};
+
+static const uint32_t Method_UdpTest_init_platform_net__insts[] = { 0x0000010D, 0x0001020D, 0x00000004 };
+static const struct CompiledMethod Method_UdpTest_init_platform_net__compiled = {
+    Method_UdpTest_init_platform_net__insts, 3,
+    3, 2,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_UdpTest_init_platform_net__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_UdpTest_init_platform_net__compiled
+};
+
+static const uint32_t Method_Kernel_serialOn__insts[] = { 0x000A030C, 0x00010401, 0x03000102, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_serialOn__consts[] = { (oop)&StaticSymbol_onPort_ };
+static const struct CompiledMethod Method_Kernel_serialOn__compiled = {
+    Method_Kernel_serialOn__insts, 5,
+    5, 1,
+    Method_Kernel_serialOn__consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_serialOn__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_serialOn__compiled
+};
+
+static const uint32_t Method_Kernel_netOn__insts[] = { 0x000B030C, 0x00010401, 0x03000102, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_netOn__consts[] = { (oop)&StaticSymbol_onPort_ };
+static const struct CompiledMethod Method_Kernel_netOn__compiled = {
+    Method_Kernel_netOn__insts, 5,
+    5, 1,
+    Method_Kernel_netOn__consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_netOn__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_netOn__compiled
+};
+
+static const uint32_t Method_Kernel_readLine_insts[] = { 0x0000020C, 0x02000002, 0x00020101, 0x00000104 };
+static const oop Method_Kernel_readLine_consts[] = { (oop)&StaticSymbol_readLine };
+static const struct CompiledMethod Method_Kernel_readLine_compiled = {
+    Method_Kernel_readLine_insts, 4,
+    3, 0,
+    Method_Kernel_readLine_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_readLine_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_readLine_compiled
+};
+
+static const uint32_t Method_Kernel_Object_insts[] = { 0x0001010C, 0x00000104 };
+static const struct CompiledMethod Method_Kernel_Object_compiled = {
+    Method_Kernel_Object_insts, 2,
+    2, 0,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_Object_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Object_compiled
+};
+
+static const uint32_t Method_Kernel_Array_insts[] = { 0x0002010C, 0x00000104 };
+static const struct CompiledMethod Method_Kernel_Array_compiled = {
+    Method_Kernel_Array_insts, 2,
+    2, 0,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_Array_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Array_compiled
+};
+
+static const uint32_t Method_Kernel_Collection_insts[] = { 0x0003010C, 0x00000104 };
+static const struct CompiledMethod Method_Kernel_Collection_compiled = {
+    Method_Kernel_Collection_insts, 2,
+    2, 0,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_Collection_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Collection_compiled
+};
+
+static const uint32_t Method_Kernel_OrderedCollection_insts[] = { 0x0004010C, 0x00000104 };
+static const struct CompiledMethod Method_Kernel_OrderedCollection_compiled = {
+    Method_Kernel_OrderedCollection_insts, 2,
+    2, 0,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_OrderedCollection_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_OrderedCollection_compiled
+};
+
+static const uint32_t Method_Kernel_Set_insts[] = { 0x0006010C, 0x00000104 };
+static const struct CompiledMethod Method_Kernel_Set_compiled = {
+    Method_Kernel_Set_insts, 2,
+    2, 0,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_Set_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Set_compiled
+};
+
+static const uint32_t Method_Kernel_Dictionary_insts[] = { 0x0007010C, 0x00000104 };
+static const struct CompiledMethod Method_Kernel_Dictionary_compiled = {
+    Method_Kernel_Dictionary_insts, 2,
+    2, 0,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_Dictionary_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Dictionary_compiled
+};
+
+static const uint32_t Method_Kernel_ReadStream_insts[] = { 0x0008010C, 0x00000104 };
+static const struct CompiledMethod Method_Kernel_ReadStream_compiled = {
+    Method_Kernel_ReadStream_insts, 2,
+    2, 0,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_ReadStream_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_ReadStream_compiled
+};
+
+static const uint32_t Method_Kernel_WriteStream_insts[] = { 0x0009010C, 0x00000104 };
+static const struct CompiledMethod Method_Kernel_WriteStream_compiled = {
+    Method_Kernel_WriteStream_insts, 2,
+    2, 0,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_WriteStream_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_WriteStream_compiled
+};
+
+static const uint32_t Method_Kernel_HashedCollection_insts[] = { 0x00000100, 0x00000201, 0x00010300, 0x01020202, 0x00000104 };
+static const oop Method_Kernel_HashedCollection_consts[] = { (oop)&Vtable_Kernel_HashedCollection, TAG_SMI(3), (oop)&StaticSymbol___boundOuter_slotCount_ };
+static const struct CompiledMethod Method_Kernel_HashedCollection_compiled = {
+    Method_Kernel_HashedCollection_insts, 5,
+    4, 0,
+    Method_Kernel_HashedCollection_consts, 3,
+    0
+};
+static const struct Closure Method_Kernel_HashedCollection_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_HashedCollection_compiled
+};
+
+static const uint32_t Method_Kernel_Serial_insts[] = { 0x00000100, 0x00000201, 0x00010300, 0x01020202, 0x00000104 };
+static const oop Method_Kernel_Serial_consts[] = { (oop)&Vtable_Kernel_Serial, TAG_SMI(2), (oop)&StaticSymbol___boundOuter_slotCount_ };
+static const struct CompiledMethod Method_Kernel_Serial_compiled = {
+    Method_Kernel_Serial_insts, 5,
+    4, 0,
+    Method_Kernel_Serial_consts, 3,
+    0
+};
+static const struct Closure Method_Kernel_Serial_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Serial_compiled
+};
+
+static const uint32_t Method_Kernel_Net_insts[] = { 0x00000100, 0x00000201, 0x00010300, 0x01020202, 0x00000104 };
+static const oop Method_Kernel_Net_consts[] = { (oop)&Vtable_Kernel_Net, TAG_SMI(2), (oop)&StaticSymbol___boundOuter_slotCount_ };
+static const struct CompiledMethod Method_Kernel_Net_compiled = {
+    Method_Kernel_Net_insts, 5,
+    4, 0,
+    Method_Kernel_Net_consts, 3,
+    0
+};
+static const struct Closure Method_Kernel_Net_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Net_compiled
+};
+
+static const uint32_t Method_Kernel_Socket_insts[] = { 0x00000100, 0x00000201, 0x00010300, 0x01020202, 0x00000104 };
+static const oop Method_Kernel_Socket_consts[] = { (oop)&Vtable_Kernel_Socket, TAG_SMI(3), (oop)&StaticSymbol___boundOuter_slotCount_ };
+static const struct CompiledMethod Method_Kernel_Socket_compiled = {
+    Method_Kernel_Socket_insts, 5,
+    4, 0,
+    Method_Kernel_Socket_consts, 3,
+    0
+};
+static const struct Closure Method_Kernel_Socket_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Socket_compiled
+};
+
+static const uint32_t Method_Kernel_Datagram_insts[] = { 0x00000100, 0x00000201, 0x00010300, 0x01020202, 0x00000104 };
+static const oop Method_Kernel_Datagram_consts[] = { (oop)&Vtable_Kernel_Datagram, TAG_SMI(4), (oop)&StaticSymbol___boundOuter_slotCount_ };
+static const struct CompiledMethod Method_Kernel_Datagram_compiled = {
+    Method_Kernel_Datagram_insts, 5,
+    4, 0,
+    Method_Kernel_Datagram_consts, 3,
+    0
+};
+static const struct Closure Method_Kernel_Datagram_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Datagram_compiled
+};
+
+static const uint32_t Method_Kernel_init_platform__insts[] = { 0x0000010D, 0x00000200, 0x00000301, 0x00010400, 0x02020202, 0x0001020D, 0x00030200, 0x00000301, 0x00010400, 0x02020202, 0x0002020D, 0x00040200, 0x00000301, 0x00010400, 0x02020202, 0x0003020D, 0x00050200, 0x00000301, 0x00060400, 0x02020202, 0x0004020D, 0x00070200, 0x00000301, 0x00060400, 0x02020202, 0x0005020D, 0x00080200, 0x00000301, 0x00060400, 0x02020202, 0x0006020D, 0x00090200, 0x00000301, 0x000A0400, 0x02020202, 0x0007020D, 0x000B0200, 0x00000301, 0x00060400, 0x02020202, 0x0008020D, 0x000C0200, 0x00000301, 0x000D0400, 0x02020202, 0x0009020D, 0x000E0200, 0x00000301, 0x000D0400, 0x02020202, 0x000A020D, 0x000F0200, 0x00000301, 0x000D0400, 0x02020202, 0x000B020D, 0x00100200, 0x00000301, 0x00060400, 0x02020202, 0x000C020D, 0x00110200, 0x00000301, 0x000A0400, 0x02020202, 0x000D020D, 0x00000004 };
+static const oop Method_Kernel_init_platform__consts[] = { (oop)&Vtable_Kernel_Object, TAG_SMI(1), (oop)&StaticSymbol___boundOuter_slotCount_, (oop)&Vtable_Kernel_Array, (oop)&Vtable_Kernel_Collection, (oop)&Vtable_Kernel_OrderedCollection, TAG_SMI(3), (oop)&Vtable_Kernel_HashedCollection, (oop)&Vtable_Kernel_Set, (oop)&Vtable_Kernel_Dictionary, TAG_SMI(4), (oop)&Vtable_Kernel_ReadStream, (oop)&Vtable_Kernel_WriteStream, TAG_SMI(2), (oop)&Vtable_Kernel_Serial, (oop)&Vtable_Kernel_Net, (oop)&Vtable_Kernel_Socket, (oop)&Vtable_Kernel_Datagram };
+static const struct CompiledMethod Method_Kernel_init_platform__compiled = {
+    Method_Kernel_init_platform__insts, 67,
+    5, 1,
+    Method_Kernel_init_platform__consts, 18,
+    0
+};
+static const struct Closure Method_Kernel_init_platform__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_init_platform__compiled
+};
+
+static const uint32_t Method_Kernel_Object_isNil_insts[] = { 0x00000100, 0x00000104 };
+static const oop Method_Kernel_Object_isNil_consts[] = { (oop)&StaticSymbol_false };
+static const struct CompiledMethod Method_Kernel_Object_isNil_compiled = {
+    Method_Kernel_Object_isNil_insts, 2,
+    2, 0,
+    Method_Kernel_Object_isNil_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Object_isNil_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Object_isNil_compiled
+};
+
+static const uint32_t Method_Kernel_Object_notNil_insts[] = { 0x00000100, 0x00000104 };
+static const oop Method_Kernel_Object_notNil_consts[] = { (oop)&StaticSymbol_true };
+static const struct CompiledMethod Method_Kernel_Object_notNil_compiled = {
+    Method_Kernel_Object_notNil_insts, 2,
+    2, 0,
+    Method_Kernel_Object_notNil_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Object_notNil_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Object_notNil_compiled
+};
+
+static const uint32_t Method_Kernel_Object_ifNil__insts[] = { 0x00000201, 0x00000204 };
+static const struct CompiledMethod Method_Kernel_Object_ifNil__compiled = {
+    Method_Kernel_Object_ifNil__insts, 2,
+    3, 1,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_Object_ifNil__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Object_ifNil__compiled
+};
+
+static const uint32_t Method_Kernel_Object_ifNotNil__insts[] = { 0x00010301, 0x00000401, 0x03000102, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_Object_ifNotNil__consts[] = { (oop)&StaticSymbol_value_ };
+static const struct CompiledMethod Method_Kernel_Object_ifNotNil__compiled = {
+    Method_Kernel_Object_ifNotNil__insts, 5,
+    5, 1,
+    Method_Kernel_Object_ifNotNil__consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Object_ifNotNil__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Object_ifNotNil__compiled
+};
+
+static const uint32_t Method_Kernel_Object__eq_insts[] = { 0x00000301, 0x00010401, 0x03000102, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_Object__eq_consts[] = { (oop)&StaticSymbol__eq_eq };
+static const struct CompiledMethod Method_Kernel_Object__eq_compiled = {
+    Method_Kernel_Object__eq_insts, 5,
+    5, 1,
+    Method_Kernel_Object__eq_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Object__eq_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Object__eq_compiled
+};
+
+static const uint32_t Method_Kernel_Object_printString_insts[] = { 0x00000100, 0x00000104 };
+static const oop Method_Kernel_Object_printString_consts[] = { (oop)&StaticString_an_u32Object_6 };
+static const struct CompiledMethod Method_Kernel_Object_printString_compiled = {
+    Method_Kernel_Object_printString_insts, 2,
+    2, 0,
+    Method_Kernel_Object_printString_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Object_printString_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Object_printString_compiled
+};
+
+static const uint32_t Method_Kernel_Object_asString_insts[] = { 0x00000201, 0x02000002, 0x00020101, 0x00000104 };
+static const oop Method_Kernel_Object_asString_consts[] = { (oop)&StaticSymbol_printString };
+static const struct CompiledMethod Method_Kernel_Object_asString_compiled = {
+    Method_Kernel_Object_asString_insts, 4,
+    3, 0,
+    Method_Kernel_Object_asString_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Object_asString_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Object_asString_compiled
+};
+
+static const uint32_t Method_Kernel_Object_hash_insts[] = { 0x00000201, 0x02000002, 0x00020101, 0x00000104 };
+static const oop Method_Kernel_Object_hash_consts[] = { (oop)&StaticSymbol_identityHash };
+static const struct CompiledMethod Method_Kernel_Object_hash_compiled = {
+    Method_Kernel_Object_hash_insts, 4,
+    3, 0,
+    Method_Kernel_Object_hash_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Object_hash_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Object_hash_compiled
+};
+
+static const uint32_t Method_Kernel_Object_init_new_insts[] = { 0x00000004 };
+static const struct CompiledMethod Method_Kernel_Object_init_new_compiled = {
+    Method_Kernel_Object_init_new_insts, 1,
+    1, 0,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_Object_init_new_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Object_init_new_compiled
+};
+
+static const uint32_t Method_Kernel_Array_at__insts[] = { 0x00000301, 0x00010401, 0x03000102, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_Array_at__consts[] = { (oop)&StaticSymbol_basicAt_ };
+static const struct CompiledMethod Method_Kernel_Array_at__compiled = {
+    Method_Kernel_Array_at__insts, 5,
+    5, 1,
+    Method_Kernel_Array_at__consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Array_at__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Array_at__compiled
+};
+
+static const uint32_t Method_Kernel_Array_at_put__insts[] = { 0x00000401, 0x00010501, 0x00020601, 0x04000202, 0x00040301, 0x00020401, 0x00000404 };
+static const oop Method_Kernel_Array_at_put__consts[] = { (oop)&StaticSymbol_basicAt_put_ };
+static const struct CompiledMethod Method_Kernel_Array_at_put__compiled = {
+    Method_Kernel_Array_at_put__insts, 7,
+    7, 2,
+    Method_Kernel_Array_at_put__consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Array_at_put__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Array_at_put__compiled
+};
+
+static const uint32_t Method_Kernel_Array_size_insts[] = { 0x00000201, 0x02000002, 0x00020101, 0x00000104 };
+static const oop Method_Kernel_Array_size_consts[] = { (oop)&StaticSymbol_basicSize };
+static const struct CompiledMethod Method_Kernel_Array_size_compiled = {
+    Method_Kernel_Array_size_insts, 4,
+    3, 0,
+    Method_Kernel_Array_size_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Array_size_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Array_size_compiled
+};
+
+static const uint32_t Method_Kernel_Array_do__insts[] = { 0x00000200, 0x00020301, 0x00000501, 0x05010002, 0x00050401, 0x00030601, 0x00040701, 0x06020102, 0x000A060B, 0x00010701, 0x00000901, 0x00030A01, 0x09030102, 0x00090801, 0x07040102, 0x00070601, 0x00000600, 0x06030306, 0x00FFF20A, 0x00000301, 0x00000304 };
+static const oop Method_Kernel_Array_do__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_basicAt_, (oop)&StaticSymbol_value_ };
+static const struct CompiledMethod Method_Kernel_Array_do__compiled = {
+    Method_Kernel_Array_do__insts, 21,
+    11, 1,
+    Method_Kernel_Array_do__consts, 5,
+    0
+};
+static const struct Closure Method_Kernel_Array_do__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Array_do__compiled
+};
+
+static const uint32_t Method_Meta_Kernel_Array_new__insts[] = { 0x0001040C, 0x0400030C, 0x00000401, 0x00010501, 0x03000202, 0x00030201, 0x00000204 };
+static const oop Method_Meta_Kernel_Array_new__consts[] = { (oop)&StaticSymbol_basicNew_indexable_ };
+static const struct CompiledMethod Method_Meta_Kernel_Array_new__compiled = {
+    Method_Meta_Kernel_Array_new__insts, 7,
+    6, 1,
+    Method_Meta_Kernel_Array_new__consts, 1,
+    0
+};
+static const struct Closure Method_Meta_Kernel_Array_new__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Meta_Kernel_Array_new__compiled
+};
+
+static const uint32_t Method_Kernel_Array_init_new_insts[] = { 0x00000004 };
+static const struct CompiledMethod Method_Kernel_Array_init_new_compiled = {
+    Method_Kernel_Array_init_new_insts, 1,
+    1, 0,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_Array_init_new_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Array_init_new_compiled
+};
+
+static const uint32_t Method_Kernel_Collection_do__insts[] = { 0x00000301, 0x00000400, 0x03010102, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_Collection_do__consts[] = { (oop)&StaticString_subclassResponsibility_7, (oop)&StaticSymbol_error_ };
+static const struct CompiledMethod Method_Kernel_Collection_do__compiled = {
+    Method_Kernel_Collection_do__insts, 5,
+    5, 1,
+    Method_Kernel_Collection_do__consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_Collection_do__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Collection_do__compiled
+};
+
+static const uint32_t Method_Kernel_Collection_size_insts[] = { 0x00000201, 0x00000300, 0x00010414, 0x02020202, 0x00020101, 0x00000104 };
+static const oop Method_Kernel_Collection_size_consts[] = { TAG_SMI(0), (oop)&Method_Block_Kernel_Collection_block1_value___compiled, (oop)&StaticSymbol_inject_into_ };
+static const struct CompiledMethod Method_Kernel_Collection_size_compiled = {
+    Method_Kernel_Collection_size_insts, 6,
+    5, 0,
+    Method_Kernel_Collection_size_consts, 3,
+    0
+};
+static const struct Closure Method_Kernel_Collection_size_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Collection_size_compiled
+};
+
+static const uint32_t Method_Kernel_Collection_isEmpty_insts[] = { 0x00000301, 0x03000002, 0x00030201, 0x00010300, 0x02020102, 0x00020101, 0x00000104 };
+static const oop Method_Kernel_Collection_isEmpty_consts[] = { (oop)&StaticSymbol_size, TAG_SMI(0), (oop)&StaticSymbol__eq };
+static const struct CompiledMethod Method_Kernel_Collection_isEmpty_compiled = {
+    Method_Kernel_Collection_isEmpty_insts, 7,
+    4, 0,
+    Method_Kernel_Collection_isEmpty_consts, 3,
+    0
+};
+static const struct Closure Method_Kernel_Collection_isEmpty_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Collection_isEmpty_compiled
+};
+
+static const uint32_t Method_Kernel_Collection_inject_into__insts[] = { 0x00010401, 0x00040301, 0x00000501, 0x00000614, 0x05010102, 0x00050401, 0x00030501, 0x00000504 };
+static const oop Method_Kernel_Collection_inject_into__consts[] = { (oop)&Method_Block_Kernel_Collection_block2_value__compiled, (oop)&StaticSymbol_do_ };
+static const struct CompiledMethod Method_Kernel_Collection_inject_into__compiled = {
+    Method_Kernel_Collection_inject_into__insts, 8,
+    7, 2,
+    Method_Kernel_Collection_inject_into__consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_Collection_inject_into__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Collection_inject_into__compiled
+};
+
+static const uint32_t Method_Kernel_Collection_collect__insts[] = { 0x00000400, 0x0304030E, 0x00000401, 0x0400050C, 0x0300050D, 0x03010002, 0x00030201, 0x00000401, 0x00020514, 0x04030102, 0x00040301, 0x00020401, 0x00000404 };
+static const oop Method_Kernel_Collection_collect__consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&Method_Block_Kernel_Collection_block3_value__compiled, (oop)&StaticSymbol_do_ };
+static const struct CompiledMethod Method_Kernel_Collection_collect__compiled = {
+    Method_Kernel_Collection_collect__insts, 13,
+    6, 1,
+    Method_Kernel_Collection_collect__consts, 4,
+    0
+};
+static const struct Closure Method_Kernel_Collection_collect__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Collection_collect__compiled
+};
+
+static const uint32_t Method_Kernel_Collection_select__insts[] = { 0x00000400, 0x0304030E, 0x00000401, 0x0400050C, 0x0300050D, 0x03010002, 0x00030201, 0x00000401, 0x00020514, 0x04030102, 0x00040301, 0x00020401, 0x00000404 };
+static const oop Method_Kernel_Collection_select__consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&Method_Block_Kernel_Collection_block4_value__compiled, (oop)&StaticSymbol_do_ };
+static const struct CompiledMethod Method_Kernel_Collection_select__compiled = {
+    Method_Kernel_Collection_select__insts, 13,
+    6, 1,
+    Method_Kernel_Collection_select__consts, 4,
+    0
+};
+static const struct Closure Method_Kernel_Collection_select__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Collection_select__compiled
+};
+
+static const uint32_t Method_Kernel_Collection_reject__insts[] = { 0x00000400, 0x0304030E, 0x00000401, 0x0400050C, 0x0300050D, 0x03010002, 0x00030201, 0x00000401, 0x00020514, 0x04030102, 0x00040301, 0x00020401, 0x00000404 };
+static const oop Method_Kernel_Collection_reject__consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&Method_Block_Kernel_Collection_block5_value__compiled, (oop)&StaticSymbol_do_ };
+static const struct CompiledMethod Method_Kernel_Collection_reject__compiled = {
+    Method_Kernel_Collection_reject__insts, 13,
+    6, 1,
+    Method_Kernel_Collection_reject__consts, 4,
+    0
+};
+static const struct Closure Method_Kernel_Collection_reject__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Collection_reject__compiled
+};
+
+static const uint32_t Method_Kernel_Collection_includes__insts[] = { 0x00000301, 0x00000400, 0x00010514, 0x03020202, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_Collection_includes__consts[] = { (oop)&StaticSymbol_false, (oop)&Method_Block_Kernel_Collection_block6_value___compiled, (oop)&StaticSymbol_inject_into_ };
+static const struct CompiledMethod Method_Kernel_Collection_includes__compiled = {
+    Method_Kernel_Collection_includes__insts, 6,
+    6, 1,
+    Method_Kernel_Collection_includes__consts, 3,
+    0
+};
+static const struct Closure Method_Kernel_Collection_includes__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Collection_includes__compiled
+};
+
+static const uint32_t Method_Kernel_Collection_asArray_insts[] = { 0x0000050C, 0x0500040C, 0x0000060C, 0x0602050C, 0x00000701, 0x07000002, 0x00070601, 0x04010202, 0x00040301, 0x00030101, 0x00020400, 0x00040201, 0x00000501, 0x00030614, 0x05040102, 0x00050401, 0x00010501, 0x00000504 };
+static const oop Method_Kernel_Collection_asArray_consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(1), (oop)&Method_Block_Kernel_Collection_block7_value__compiled, (oop)&StaticSymbol_do_ };
+static const struct CompiledMethod Method_Kernel_Collection_asArray_compiled = {
+    Method_Kernel_Collection_asArray_insts, 18,
+    8, 0,
+    Method_Kernel_Collection_asArray_consts, 5,
+    0
+};
+static const struct Closure Method_Kernel_Collection_asArray_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Collection_asArray_compiled
+};
+
+static const uint32_t Method_Kernel_Collection_detect_ifNone__insts[] = { 0x00000401, 0x00000514, 0x04010102, 0x00040301, 0x00020501, 0x05020002, 0x00050401, 0x00000404 };
+static const oop Method_Kernel_Collection_detect_ifNone__consts[] = { (oop)&Method_Block_Kernel_Collection_block8_value__compiled, (oop)&StaticSymbol_do_, (oop)&StaticSymbol_value };
+static const struct CompiledMethod Method_Kernel_Collection_detect_ifNone__compiled = {
+    Method_Kernel_Collection_detect_ifNone__insts, 8,
+    6, 2,
+    Method_Kernel_Collection_detect_ifNone__consts, 3,
+    0
+};
+static const struct Closure Method_Kernel_Collection_detect_ifNone__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Collection_detect_ifNone__compiled
+};
+
+static const uint32_t Method_Kernel_Collection_detect__insts[] = { 0x00000301, 0x00010401, 0x00000514, 0x03010202, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_Collection_detect__consts[] = { (oop)&Method_Block_Kernel_Collection_block9_value_compiled, (oop)&StaticSymbol_detect_ifNone_ };
+static const struct CompiledMethod Method_Kernel_Collection_detect__compiled = {
+    Method_Kernel_Collection_detect__insts, 6,
+    6, 1,
+    Method_Kernel_Collection_detect__consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_Collection_detect__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Collection_detect__compiled
+};
+
+static const uint32_t Method_Kernel_Collection_init_new_insts[] = { 0x00000004 };
+static const struct CompiledMethod Method_Kernel_Collection_init_new_compiled = {
+    Method_Kernel_Collection_init_new_insts, 1,
+    1, 0,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_Collection_init_new_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Collection_init_new_compiled
+};
+
+static const uint32_t Method_Kernel_OrderedCollection_do__insts[] = { 0x00000200, 0x00020301, 0x0002040C, 0x00030501, 0x00040601, 0x05010102, 0x000A050B, 0x00010601, 0x0001080C, 0x00030901, 0x08020102, 0x00080701, 0x06030102, 0x00060501, 0x00000500, 0x05030306, 0x00FFF20A, 0x00000201, 0x00000204 };
+static const oop Method_Kernel_OrderedCollection_do__consts[] = { TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_value_ };
+static const struct CompiledMethod Method_Kernel_OrderedCollection_do__compiled = {
+    Method_Kernel_OrderedCollection_do__insts, 19,
+    10, 1,
+    Method_Kernel_OrderedCollection_do__consts, 4,
+    0
+};
+static const struct Closure Method_Kernel_OrderedCollection_do__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_OrderedCollection_do__compiled
+};
+
+static const uint32_t Method_Kernel_OrderedCollection_size_insts[] = { 0x0002010C, 0x00000104 };
+static const struct CompiledMethod Method_Kernel_OrderedCollection_size_compiled = {
+    Method_Kernel_OrderedCollection_size_insts, 2,
+    2, 0,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_OrderedCollection_size_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_OrderedCollection_size_compiled
+};
+
+static const uint32_t Method_Kernel_OrderedCollection_isEmpty_insts[] = { 0x0002020C, 0x00000300, 0x02010102, 0x00020101, 0x00000104 };
+static const oop Method_Kernel_OrderedCollection_isEmpty_consts[] = { TAG_SMI(0), (oop)&StaticSymbol__eq };
+static const struct CompiledMethod Method_Kernel_OrderedCollection_isEmpty_compiled = {
+    Method_Kernel_OrderedCollection_isEmpty_insts, 5,
+    4, 0,
+    Method_Kernel_OrderedCollection_isEmpty_consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_OrderedCollection_isEmpty_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_OrderedCollection_isEmpty_compiled
+};
+
+static const uint32_t Method_Kernel_OrderedCollection_add__insts[] = { 0x00000301, 0x03000002, 0x00030201, 0x0002040C, 0x00010500, 0x05040306, 0x0002030D, 0x0001040C, 0x0002050C, 0x00010601, 0x04020202, 0x00040301, 0x00010401, 0x00000404 };
+static const oop Method_Kernel_OrderedCollection_add__consts[] = { (oop)&StaticSymbol_ensureCapacity, TAG_SMI(1), (oop)&StaticSymbol_at_put_ };
+static const struct CompiledMethod Method_Kernel_OrderedCollection_add__compiled = {
+    Method_Kernel_OrderedCollection_add__insts, 14,
+    7, 1,
+    Method_Kernel_OrderedCollection_add__consts, 3,
+    0
+};
+static const struct Closure Method_Kernel_OrderedCollection_add__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_OrderedCollection_add__compiled
+};
+
+static const uint32_t Method_Kernel_OrderedCollection_addLast__insts[] = { 0x00000301, 0x00010401, 0x03000102, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_OrderedCollection_addLast__consts[] = { (oop)&StaticSymbol_add_ };
+static const struct CompiledMethod Method_Kernel_OrderedCollection_addLast__compiled = {
+    Method_Kernel_OrderedCollection_addLast__insts, 5,
+    5, 1,
+    Method_Kernel_OrderedCollection_addLast__consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_OrderedCollection_addLast__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_OrderedCollection_addLast__compiled
+};
+
+static const uint32_t Method_Kernel_OrderedCollection_at__insts[] = { 0x00010501, 0x00000600, 0x05010102, 0x00050401, 0x0002040B, 0x00020300, 0x0000040A, 0x00010601, 0x0002070C, 0x06030102, 0x00060301, 0x0006030B, 0x00000601, 0x00040700, 0x06050102, 0x00060501, 0x00000504, 0x0000010A, 0x00060200, 0x0001040C, 0x00010501, 0x04070102, 0x00040301, 0x00000304 };
+static const oop Method_Kernel_OrderedCollection_at__consts[] = { TAG_SMI(1), (oop)&StaticSymbol__lt, (oop)&StaticSymbol_true, (oop)&StaticSymbol__gt, (oop)&StaticString_index_u32out_u32of_u32bounds_8, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_ };
+static const struct CompiledMethod Method_Kernel_OrderedCollection_at__compiled = {
+    Method_Kernel_OrderedCollection_at__insts, 24,
+    8, 1,
+    Method_Kernel_OrderedCollection_at__consts, 8,
+    0
+};
+static const struct Closure Method_Kernel_OrderedCollection_at__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_OrderedCollection_at__compiled
+};
+
+static const uint32_t Method_Kernel_OrderedCollection_at_put__insts[] = { 0x00010601, 0x00000700, 0x06010102, 0x00060501, 0x0002050B, 0x00020400, 0x0000040A, 0x00010701, 0x0002080C, 0x07030102, 0x00070401, 0x0006040B, 0x00000701, 0x00040800, 0x07050102, 0x00070601, 0x00000604, 0x0000010A, 0x00060300, 0x0001050C, 0x00010601, 0x00020701, 0x05070202, 0x00050401, 0x00000404 };
+static const oop Method_Kernel_OrderedCollection_at_put__consts[] = { TAG_SMI(1), (oop)&StaticSymbol__lt, (oop)&StaticSymbol_true, (oop)&StaticSymbol__gt, (oop)&StaticString_index_u32out_u32of_u32bounds_8, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_put_ };
+static const struct CompiledMethod Method_Kernel_OrderedCollection_at_put__compiled = {
+    Method_Kernel_OrderedCollection_at_put__insts, 25,
+    9, 2,
+    Method_Kernel_OrderedCollection_at_put__consts, 8,
+    0
+};
+static const struct Closure Method_Kernel_OrderedCollection_at_put__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_OrderedCollection_at_put__compiled
+};
+
+static const uint32_t Method_Kernel_OrderedCollection_first_insts[] = { 0x00000201, 0x00000300, 0x02010102, 0x00020101, 0x00000104 };
+static const oop Method_Kernel_OrderedCollection_first_consts[] = { TAG_SMI(1), (oop)&StaticSymbol_at_ };
+static const struct CompiledMethod Method_Kernel_OrderedCollection_first_compiled = {
+    Method_Kernel_OrderedCollection_first_insts, 5,
+    4, 0,
+    Method_Kernel_OrderedCollection_first_consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_OrderedCollection_first_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_OrderedCollection_first_compiled
+};
+
+static const uint32_t Method_Kernel_OrderedCollection_last_insts[] = { 0x00000201, 0x0002030C, 0x02000102, 0x00020101, 0x00000104 };
+static const oop Method_Kernel_OrderedCollection_last_consts[] = { (oop)&StaticSymbol_at_ };
+static const struct CompiledMethod Method_Kernel_OrderedCollection_last_compiled = {
+    Method_Kernel_OrderedCollection_last_insts, 5,
+    4, 0,
+    Method_Kernel_OrderedCollection_last_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_OrderedCollection_last_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_OrderedCollection_last_compiled
+};
+
+static const uint32_t Method_Kernel_OrderedCollection_removeLast_insts[] = { 0x0001030C, 0x0002040C, 0x03000102, 0x00030201, 0x00020101, 0x0002040C, 0x00010500, 0x05040307, 0x0002030D, 0x00010301, 0x00000304 };
+static const oop Method_Kernel_OrderedCollection_removeLast_consts[] = { (oop)&StaticSymbol_at_, TAG_SMI(1) };
+static const struct CompiledMethod Method_Kernel_OrderedCollection_removeLast_compiled = {
+    Method_Kernel_OrderedCollection_removeLast_insts, 11,
+    6, 0,
+    Method_Kernel_OrderedCollection_removeLast_consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_OrderedCollection_removeLast_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_OrderedCollection_removeLast_compiled
+};
+
+static const uint32_t Method_Kernel_OrderedCollection_removeFirst_insts[] = { 0x0001030C, 0x00000400, 0x03010102, 0x00030201, 0x00020101, 0x00020300, 0x00030401, 0x0002050C, 0x00040601, 0x00050701, 0x06030102, 0x000D060B, 0x0001070C, 0x00040901, 0x00000A00, 0x0A090807, 0x00010A0C, 0x00040B01, 0x0A010102, 0x000A0901, 0x07040202, 0x00070601, 0x00000600, 0x06040406, 0x00FFEF0A, 0x0002040C, 0x00000500, 0x05040307, 0x0002030D, 0x00010301, 0x00000304 };
+static const oop Method_Kernel_OrderedCollection_removeFirst_consts[] = { TAG_SMI(1), (oop)&StaticSymbol_at_, TAG_SMI(2), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_put_ };
+static const struct CompiledMethod Method_Kernel_OrderedCollection_removeFirst_compiled = {
+    Method_Kernel_OrderedCollection_removeFirst_insts, 31,
+    12, 0,
+    Method_Kernel_OrderedCollection_removeFirst_consts, 5,
+    0
+};
+static const struct Closure Method_Kernel_OrderedCollection_removeFirst_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_OrderedCollection_removeFirst_compiled
+};
+
+static const uint32_t Method_Kernel_OrderedCollection_ensureCapacity_insts[] = { 0x0002030C, 0x0001050C, 0x05000002, 0x00050401, 0x03010102, 0x00030201, 0x0004020B, 0x00000401, 0x04020002, 0x00040101, 0x0000010A, 0x00030100, 0x00000201, 0x00000204 };
+static const oop Method_Kernel_OrderedCollection_ensureCapacity_consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_grow, (oop)&StaticSymbol_false };
+static const struct CompiledMethod Method_Kernel_OrderedCollection_ensureCapacity_compiled = {
+    Method_Kernel_OrderedCollection_ensureCapacity_insts, 14,
+    6, 0,
+    Method_Kernel_OrderedCollection_ensureCapacity_consts, 4,
+    0
+};
+static const struct Closure Method_Kernel_OrderedCollection_ensureCapacity_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_OrderedCollection_ensureCapacity_compiled
+};
+
+static const uint32_t Method_Kernel_OrderedCollection_grow_insts[] = { 0x0000040C, 0x0400030C, 0x0000050C, 0x0502040C, 0x00000600, 0x0001080C, 0x08010002, 0x00080701, 0x07060508, 0x03020202, 0x00030201, 0x00020101, 0x00030300, 0x00030401, 0x0002050C, 0x00040601, 0x00050701, 0x06040102, 0x000B060B, 0x00010701, 0x00040801, 0x00010A0C, 0x00040B01, 0x0A050102, 0x000A0901, 0x07060202, 0x00070601, 0x00030600, 0x06040406, 0x00FFF10A, 0x00010301, 0x0001030D, 0x00000301, 0x00000304 };
+static const oop Method_Kernel_OrderedCollection_grow_consts[] = { TAG_SMI(2), (oop)&StaticSymbol_size, (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_at_put_ };
+static const struct CompiledMethod Method_Kernel_OrderedCollection_grow_compiled = {
+    Method_Kernel_OrderedCollection_grow_insts, 34,
+    12, 0,
+    Method_Kernel_OrderedCollection_grow_consts, 7,
+    0
+};
+static const struct Closure Method_Kernel_OrderedCollection_grow_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_OrderedCollection_grow_compiled
+};
+
+static const uint32_t Method_Kernel_OrderedCollection_init_new_insts[] = { 0x0000030C, 0x0300020C, 0x0000040C, 0x0402030C, 0x00000400, 0x02010202, 0x00020101, 0x0001010D, 0x00020200, 0x0002020D, 0x00000004 };
+static const oop Method_Kernel_OrderedCollection_init_new_consts[] = { TAG_SMI(8), (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(0) };
+static const struct CompiledMethod Method_Kernel_OrderedCollection_init_new_compiled = {
+    Method_Kernel_OrderedCollection_init_new_insts, 11,
+    5, 0,
+    Method_Kernel_OrderedCollection_init_new_consts, 3,
+    0
+};
+static const struct Closure Method_Kernel_OrderedCollection_init_new_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_OrderedCollection_init_new_compiled
+};
+
+static const uint32_t Method_Kernel_HashedCollection_capacity_insts[] = { 0x0001020C, 0x02000002, 0x00020101, 0x00000104 };
+static const oop Method_Kernel_HashedCollection_capacity_consts[] = { (oop)&StaticSymbol_size };
+static const struct CompiledMethod Method_Kernel_HashedCollection_capacity_compiled = {
+    Method_Kernel_HashedCollection_capacity_insts, 4,
+    3, 0,
+    Method_Kernel_HashedCollection_capacity_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_HashedCollection_capacity_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_HashedCollection_capacity_compiled
+};
+
+static const uint32_t Method_Kernel_HashedCollection_size_insts[] = { 0x0002010C, 0x00000104 };
+static const struct CompiledMethod Method_Kernel_HashedCollection_size_compiled = {
+    Method_Kernel_HashedCollection_size_insts, 2,
+    2, 0,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_HashedCollection_size_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_HashedCollection_size_compiled
+};
+
+static const uint32_t Method_Kernel_HashedCollection_isEmpty_insts[] = { 0x0002020C, 0x00000300, 0x02010102, 0x00020101, 0x00000104 };
+static const oop Method_Kernel_HashedCollection_isEmpty_consts[] = { TAG_SMI(0), (oop)&StaticSymbol__eq };
+static const struct CompiledMethod Method_Kernel_HashedCollection_isEmpty_compiled = {
+    Method_Kernel_HashedCollection_isEmpty_insts, 5,
+    4, 0,
+    Method_Kernel_HashedCollection_isEmpty_consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_HashedCollection_isEmpty_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_HashedCollection_isEmpty_compiled
+};
+
+static const uint32_t Method_Kernel_HashedCollection_indexFor__insts[] = { 0x00010501, 0x05000002, 0x00050401, 0x00040201, 0x00000601, 0x06010002, 0x00060501, 0x00050301, 0x00020801, 0x00020B01, 0x00030C01, 0x0B020102, 0x000B0A01, 0x00030C01, 0x0C0A0908, 0x09080707, 0x00030900, 0x09070606, 0x00000604 };
+static const oop Method_Kernel_HashedCollection_indexFor__consts[] = { (oop)&StaticSymbol_hash, (oop)&StaticSymbol_capacity, (oop)&StaticSymbol__div_div, TAG_SMI(1) };
+static const struct CompiledMethod Method_Kernel_HashedCollection_indexFor__compiled = {
+    Method_Kernel_HashedCollection_indexFor__insts, 19,
+    13, 1,
+    Method_Kernel_HashedCollection_indexFor__consts, 4,
+    0
+};
+static const struct Closure Method_Kernel_HashedCollection_indexFor__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_HashedCollection_indexFor__compiled
+};
+
+static const uint32_t Method_Kernel_HashedCollection_slotFor__insts[] = { 0x00000601, 0x06000002, 0x00060501, 0x00050201, 0x00000701, 0x00010801, 0x07010102, 0x00070601, 0x00060301, 0x0001080C, 0x00030901, 0x08020102, 0x00080701, 0x00070401, 0x00040D01, 0x00030E00, 0x0D040102, 0x000D0C01, 0x0C050002, 0x000C0B01, 0x00070B0B, 0x00040F01, 0x00011001, 0x0F060102, 0x000F0E01, 0x0E050002, 0x000E0901, 0x0000010A, 0x00070900, 0x0013090B, 0x00030C01, 0x00080D00, 0x0D0C0B06, 0x000B0301, 0x00030D01, 0x00020E01, 0x0D090102, 0x000D0C01, 0x00030C0B, 0x00080B00, 0x000B0301, 0x0000010A, 0x00070B00, 0x00010C0C, 0x00030D01, 0x0C020102, 0x000C0A01, 0x000A0401, 0x00FFDD0A, 0x00030800, 0x00030801, 0x00000804 };
+static const oop Method_Kernel_HashedCollection_slotFor__consts[] = { (oop)&StaticSymbol_capacity, (oop)&StaticSymbol_indexFor_, (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_not, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false, TAG_SMI(1), (oop)&StaticSymbol__gt };
+static const struct CompiledMethod Method_Kernel_HashedCollection_slotFor__compiled = {
+    Method_Kernel_HashedCollection_slotFor__insts, 52,
+    17, 1,
+    Method_Kernel_HashedCollection_slotFor__consts, 10,
+    0
+};
+static const struct Closure Method_Kernel_HashedCollection_slotFor__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_HashedCollection_slotFor__compiled
+};
+
+static const uint32_t Method_Kernel_HashedCollection_containsKey__insts[] = { 0x0001050C, 0x00000701, 0x00010801, 0x07000102, 0x00070601, 0x05010102, 0x00050401, 0x00020500, 0x04030102, 0x00040301, 0x03040002, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_HashedCollection_containsKey__consts[] = { (oop)&StaticSymbol_slotFor_, (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_not };
+static const struct CompiledMethod Method_Kernel_HashedCollection_containsKey__compiled = {
+    Method_Kernel_HashedCollection_containsKey__insts, 13,
+    9, 1,
+    Method_Kernel_HashedCollection_containsKey__consts, 5,
+    0
+};
+static const struct Closure Method_Kernel_HashedCollection_containsKey__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_HashedCollection_containsKey__compiled
+};
+
+static const uint32_t Method_Kernel_HashedCollection_atCapacity_insts[] = { 0x0002030C, 0x00000400, 0x04030208, 0x0001050C, 0x05010002, 0x00050401, 0x00020600, 0x06040308, 0x02030102, 0x00020101, 0x00000104 };
+static const oop Method_Kernel_HashedCollection_atCapacity_consts[] = { TAG_SMI(4), (oop)&StaticSymbol_size, TAG_SMI(3), (oop)&StaticSymbol__gt_eq };
+static const struct CompiledMethod Method_Kernel_HashedCollection_atCapacity_compiled = {
+    Method_Kernel_HashedCollection_atCapacity_insts, 11,
+    7, 0,
+    Method_Kernel_HashedCollection_atCapacity_consts, 4,
+    0
+};
+static const struct Closure Method_Kernel_HashedCollection_atCapacity_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_HashedCollection_atCapacity_compiled
+};
+
+static const uint32_t Method_Kernel_HashedCollection_growIfNeeded_insts[] = { 0x00000301, 0x03000002, 0x00030201, 0x0004020B, 0x00000401, 0x04010002, 0x00040101, 0x0000010A, 0x00020100, 0x00000201, 0x00000204 };
+static const oop Method_Kernel_HashedCollection_growIfNeeded_consts[] = { (oop)&StaticSymbol_atCapacity, (oop)&StaticSymbol_grow, (oop)&StaticSymbol_false };
+static const struct CompiledMethod Method_Kernel_HashedCollection_growIfNeeded_compiled = {
+    Method_Kernel_HashedCollection_growIfNeeded_insts, 11,
+    5, 0,
+    Method_Kernel_HashedCollection_growIfNeeded_consts, 3,
+    0
+};
+static const struct Closure Method_Kernel_HashedCollection_growIfNeeded_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_HashedCollection_growIfNeeded_compiled
+};
+
+static const uint32_t Method_Kernel_HashedCollection_rehashFrom__insts[] = { 0x00000501, 0x05000002, 0x00050401, 0x00040201, 0x00010601, 0x00010700, 0x07060506, 0x00050301, 0x00030701, 0x00020801, 0x07020102, 0x00070601, 0x0003060B, 0x00010500, 0x00050301, 0x0000010A, 0x00030500, 0x00010B0C, 0x00030C01, 0x0B040102, 0x000B0A01, 0x00050B00, 0x0A060102, 0x000A0901, 0x09070002, 0x00090701, 0x0012070B, 0x00000A01, 0x00030B01, 0x0A080102, 0x000A0901, 0x00030B01, 0x00010C00, 0x0C0B0A06, 0x000A0301, 0x00030B01, 0x00020C01, 0x0B020102, 0x000B0A01, 0x00030A0B, 0x00010800, 0x00080301, 0x0000010A, 0x00030800, 0x00FFE40A, 0x00050600, 0x00000601, 0x00000604 };
+static const oop Method_Kernel_HashedCollection_rehashFrom__consts[] = { (oop)&StaticSymbol_capacity, TAG_SMI(1), (oop)&StaticSymbol__gt, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_not, (oop)&StaticSymbol_reinsertEntryAt_ };
+static const struct CompiledMethod Method_Kernel_HashedCollection_rehashFrom__compiled = {
+    Method_Kernel_HashedCollection_rehashFrom__insts, 48,
+    13, 1,
+    Method_Kernel_HashedCollection_rehashFrom__consts, 9,
+    0
+};
+static const struct Closure Method_Kernel_HashedCollection_rehashFrom__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_HashedCollection_rehashFrom__compiled
+};
+
+static const uint32_t Method_Kernel_HashedCollection_grow_insts[] = { 0x00000201, 0x00000300, 0x02010102, 0x00020101, 0x00000104 };
+static const oop Method_Kernel_HashedCollection_grow_consts[] = { (oop)&StaticString_subclassResponsibility_7, (oop)&StaticSymbol_error_ };
+static const struct CompiledMethod Method_Kernel_HashedCollection_grow_compiled = {
+    Method_Kernel_HashedCollection_grow_insts, 5,
+    4, 0,
+    Method_Kernel_HashedCollection_grow_consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_HashedCollection_grow_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_HashedCollection_grow_compiled
+};
+
+static const uint32_t Method_Kernel_HashedCollection_reinsertEntryAt__insts[] = { 0x00000301, 0x00000400, 0x03010102, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_HashedCollection_reinsertEntryAt__consts[] = { (oop)&StaticString_subclassResponsibility_7, (oop)&StaticSymbol_error_ };
+static const struct CompiledMethod Method_Kernel_HashedCollection_reinsertEntryAt__compiled = {
+    Method_Kernel_HashedCollection_reinsertEntryAt__insts, 5,
+    5, 1,
+    Method_Kernel_HashedCollection_reinsertEntryAt__consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_HashedCollection_reinsertEntryAt__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_HashedCollection_reinsertEntryAt__compiled
+};
+
+static const uint32_t Method_Kernel_HashedCollection_do__insts[] = { 0x00000301, 0x00000400, 0x03010102, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_HashedCollection_do__consts[] = { (oop)&StaticString_subclassResponsibility_7, (oop)&StaticSymbol_error_ };
+static const struct CompiledMethod Method_Kernel_HashedCollection_do__compiled = {
+    Method_Kernel_HashedCollection_do__insts, 5,
+    5, 1,
+    Method_Kernel_HashedCollection_do__consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_HashedCollection_do__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_HashedCollection_do__compiled
+};
+
+static const uint32_t Method_Kernel_HashedCollection_init_new_insts[] = { 0x00000100, 0x0001010D, 0x00000100, 0x0002010D, 0x00000004 };
+static const oop Method_Kernel_HashedCollection_init_new_consts[] = { NULL };
+static const struct CompiledMethod Method_Kernel_HashedCollection_init_new_compiled = {
+    Method_Kernel_HashedCollection_init_new_insts, 5,
+    2, 0,
+    Method_Kernel_HashedCollection_init_new_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_HashedCollection_init_new_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_HashedCollection_init_new_compiled
+};
+
+static const uint32_t Method_Kernel_Set_add__insts[] = { 0x00010401, 0x00000500, 0x04010102, 0x00040301, 0x0006030B, 0x00000601, 0x00020700, 0x06030102, 0x00060501, 0x00000504, 0x0000010A, 0x00040200, 0x00000401, 0x00010501, 0x04050102, 0x00040301, 0x00000501, 0x05060002, 0x00050401, 0x00010501, 0x00000504 };
+static const oop Method_Kernel_Set_add__consts[] = { NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticString_nil_u32element_u32not_u32allowed_9, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_place_, (oop)&StaticSymbol_growIfNeeded };
+static const struct CompiledMethod Method_Kernel_Set_add__compiled = {
+    Method_Kernel_Set_add__insts, 21,
+    8, 1,
+    Method_Kernel_Set_add__consts, 7,
+    0
+};
+static const struct Closure Method_Kernel_Set_add__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Set_add__compiled
+};
+
+static const uint32_t Method_Kernel_Set_addAll__insts[] = { 0x00010301, 0x00000414, 0x03010102, 0x00030201, 0x00010301, 0x00000304 };
+static const oop Method_Kernel_Set_addAll__consts[] = { (oop)&Method_Block_Kernel_Set_block10_value__compiled, (oop)&StaticSymbol_do_ };
+static const struct CompiledMethod Method_Kernel_Set_addAll__compiled = {
+    Method_Kernel_Set_addAll__insts, 6,
+    5, 1,
+    Method_Kernel_Set_addAll__consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_Set_addAll__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Set_addAll__compiled
+};
+
+static const uint32_t Method_Kernel_Set_remove__insts[] = { 0x00000301, 0x00010401, 0x00000514, 0x03010202, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_Set_remove__consts[] = { (oop)&Method_Block_Kernel_Set_block11_value_compiled, (oop)&StaticSymbol_remove_ifAbsent_ };
+static const struct CompiledMethod Method_Kernel_Set_remove__compiled = {
+    Method_Kernel_Set_remove__insts, 6,
+    6, 1,
+    Method_Kernel_Set_remove__consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_Set_remove__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Set_remove__compiled
+};
+
+static const uint32_t Method_Kernel_Set_remove_ifAbsent__insts[] = { 0x00000501, 0x00010601, 0x05000102, 0x00050401, 0x00040301, 0x0001080C, 0x00030901, 0x08010102, 0x00080701, 0x00020800, 0x07030102, 0x00070601, 0x0005060B, 0x00020A01, 0x0A040002, 0x000A0901, 0x00000904, 0x0000010A, 0x00050500, 0x0001080C, 0x00030901, 0x00020A00, 0x08060202, 0x00080701, 0x0002090C, 0x00070A00, 0x0A090807, 0x0002080D, 0x00000901, 0x00030A01, 0x09080102, 0x00090801, 0x00010901, 0x00000904 };
+static const oop Method_Kernel_Set_remove_ifAbsent__consts[] = { (oop)&StaticSymbol_slotFor_, (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_value, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_put_, TAG_SMI(1), (oop)&StaticSymbol_rehashFrom_ };
+static const struct CompiledMethod Method_Kernel_Set_remove_ifAbsent__compiled = {
+    Method_Kernel_Set_remove_ifAbsent__insts, 34,
+    11, 2,
+    Method_Kernel_Set_remove_ifAbsent__consts, 9,
+    0
+};
+static const struct Closure Method_Kernel_Set_remove_ifAbsent__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Set_remove_ifAbsent__compiled
+};
+
+static const uint32_t Method_Kernel_Set_includes__insts[] = { 0x00000301, 0x00010401, 0x03000102, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_Set_includes__consts[] = { (oop)&StaticSymbol_containsKey_ };
+static const struct CompiledMethod Method_Kernel_Set_includes__compiled = {
+    Method_Kernel_Set_includes__insts, 5,
+    5, 1,
+    Method_Kernel_Set_includes__consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Set_includes__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Set_includes__compiled
+};
+
+static const uint32_t Method_Kernel_Set_do__insts[] = { 0x00000200, 0x00020301, 0x00000501, 0x05010002, 0x00050401, 0x00030601, 0x00040701, 0x06020102, 0x0014060B, 0x00030700, 0x0001090C, 0x00030A01, 0x09040102, 0x00090801, 0x00080701, 0x00070A01, 0x00030B00, 0x0A050102, 0x000A0901, 0x0002090B, 0x00060600, 0x0000040A, 0x00010B01, 0x00070C01, 0x0B070102, 0x000B0601, 0x00000600, 0x06030306, 0x00FFE80A, 0x00000301, 0x00000304 };
+static const oop Method_Kernel_Set_do__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_capacity, (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_value_ };
+static const struct CompiledMethod Method_Kernel_Set_do__compiled = {
+    Method_Kernel_Set_do__insts, 31,
+    13, 1,
+    Method_Kernel_Set_do__consts, 8,
+    0
+};
+static const struct Closure Method_Kernel_Set_do__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Set_do__compiled
+};
+
+static const uint32_t Method_Kernel_Set_place__insts[] = { 0x00000401, 0x00010501, 0x04000102, 0x00040301, 0x00030201, 0x0001070C, 0x00020801, 0x07010102, 0x00070601, 0x00020700, 0x06030102, 0x00060501, 0x000A050B, 0x0001090C, 0x00020A01, 0x00010B01, 0x09040202, 0x00090801, 0x0002090C, 0x00050A00, 0x0A090406, 0x0002040D, 0x0000010A, 0x00060400, 0x00000601, 0x00000604 };
+static const oop Method_Kernel_Set_place__consts[] = { (oop)&StaticSymbol_slotFor_, (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_at_put_, TAG_SMI(1), (oop)&StaticSymbol_false };
+static const struct CompiledMethod Method_Kernel_Set_place__compiled = {
+    Method_Kernel_Set_place__insts, 26,
+    12, 1,
+    Method_Kernel_Set_place__consts, 7,
+    0
+};
+static const struct Closure Method_Kernel_Set_place__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Set_place__compiled
+};
+
+static const uint32_t Method_Kernel_Set_reinsertEntryAt__insts[] = { 0x0001040C, 0x00010501, 0x04000102, 0x00040301, 0x00030201, 0x0001050C, 0x00010601, 0x00010700, 0x05020202, 0x00050401, 0x0002060C, 0x00030700, 0x07060507, 0x0002050D, 0x00000601, 0x00020701, 0x06040102, 0x00060501, 0x00000601, 0x00000604 };
+static const oop Method_Kernel_Set_reinsertEntryAt__consts[] = { (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol_at_put_, TAG_SMI(1), (oop)&StaticSymbol_place_ };
+static const struct CompiledMethod Method_Kernel_Set_reinsertEntryAt__compiled = {
+    Method_Kernel_Set_reinsertEntryAt__insts, 20,
+    8, 1,
+    Method_Kernel_Set_reinsertEntryAt__consts, 5,
+    0
+};
+static const struct Closure Method_Kernel_Set_reinsertEntryAt__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Set_reinsertEntryAt__compiled
+};
+
+static const uint32_t Method_Kernel_Set_grow_insts[] = { 0x0001030C, 0x00030101, 0x0001040C, 0x04000002, 0x00040301, 0x00030201, 0x0000060C, 0x0600050C, 0x0000070C, 0x0702060C, 0x00020801, 0x00010900, 0x09080708, 0x05020202, 0x00050401, 0x0001040D, 0x00030500, 0x0002050D, 0x00040500, 0x00050601, 0x00020701, 0x00060801, 0x00070901, 0x08050102, 0x0014080B, 0x00060900, 0x00010B01, 0x00060C01, 0x0B070102, 0x000B0A01, 0x000A0901, 0x00090C01, 0x00060D00, 0x0C080102, 0x000C0B01, 0x00020B0B, 0x00090800, 0x0000040A, 0x00000D01, 0x00090E01, 0x0D0A0102, 0x000D0801, 0x00040800, 0x08060606, 0x00FFE80A, 0x00000501, 0x00000504 };
+static const oop Method_Kernel_Set_grow_consts[] = { (oop)&StaticSymbol_size, TAG_SMI(2), (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(0), TAG_SMI(1), (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_place_ };
+static const struct CompiledMethod Method_Kernel_Set_grow_compiled = {
+    Method_Kernel_Set_grow_insts, 47,
+    15, 0,
+    Method_Kernel_Set_grow_consts, 11,
+    0
+};
+static const struct Closure Method_Kernel_Set_grow_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Set_grow_compiled
+};
+
+static const uint32_t Method_Kernel_Set_init_new_insts[] = { 0x0000030C, 0x0300020C, 0x0000040C, 0x0402030C, 0x00000400, 0x02010202, 0x00020101, 0x0001010D, 0x00020200, 0x0002020D, 0x00000004 };
+static const oop Method_Kernel_Set_init_new_consts[] = { TAG_SMI(8), (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(0) };
+static const struct CompiledMethod Method_Kernel_Set_init_new_compiled = {
+    Method_Kernel_Set_init_new_insts, 11,
+    5, 0,
+    Method_Kernel_Set_init_new_consts, 3,
+    0
+};
+static const struct Closure Method_Kernel_Set_init_new_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Set_init_new_compiled
+};
+
+static const uint32_t Method_Kernel_Dictionary_at_put__insts[] = { 0x00010501, 0x00000600, 0x05010102, 0x00050401, 0x0006040B, 0x00000701, 0x00020800, 0x07030102, 0x00070601, 0x00000604, 0x0000010A, 0x00040300, 0x00000501, 0x00010601, 0x00020701, 0x05050202, 0x00050401, 0x00000601, 0x06060002, 0x00060501, 0x00020601, 0x00000604 };
+static const oop Method_Kernel_Dictionary_at_put__consts[] = { NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticString_nil_u32key_u32not_u32allowed_10, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_place_value_, (oop)&StaticSymbol_growIfNeeded };
+static const struct CompiledMethod Method_Kernel_Dictionary_at_put__compiled = {
+    Method_Kernel_Dictionary_at_put__insts, 22,
+    9, 2,
+    Method_Kernel_Dictionary_at_put__consts, 7,
+    0
+};
+static const struct Closure Method_Kernel_Dictionary_at_put__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Dictionary_at_put__compiled
+};
+
+static const uint32_t Method_Kernel_Dictionary_at_ifAbsent__insts[] = { 0x00000501, 0x00010601, 0x05000102, 0x00050401, 0x00040301, 0x0001080C, 0x00030901, 0x08010102, 0x00080701, 0x00020800, 0x07030102, 0x00070601, 0x0005060B, 0x00020A01, 0x0A040002, 0x000A0901, 0x00000904, 0x0000010A, 0x00050500, 0x0003080C, 0x00030901, 0x08010102, 0x00080701, 0x00000704 };
+static const oop Method_Kernel_Dictionary_at_ifAbsent__consts[] = { (oop)&StaticSymbol_slotFor_, (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_value, (oop)&StaticSymbol_false };
+static const struct CompiledMethod Method_Kernel_Dictionary_at_ifAbsent__compiled = {
+    Method_Kernel_Dictionary_at_ifAbsent__insts, 24,
+    11, 2,
+    Method_Kernel_Dictionary_at_ifAbsent__consts, 6,
+    0
+};
+static const struct Closure Method_Kernel_Dictionary_at_ifAbsent__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Dictionary_at_ifAbsent__compiled
+};
+
+static const uint32_t Method_Kernel_Dictionary_at__insts[] = { 0x00000301, 0x00010401, 0x00000514, 0x03010202, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_Dictionary_at__consts[] = { (oop)&Method_Block_Kernel_Dictionary_block12_value_compiled, (oop)&StaticSymbol_at_ifAbsent_ };
+static const struct CompiledMethod Method_Kernel_Dictionary_at__compiled = {
+    Method_Kernel_Dictionary_at__insts, 6,
+    6, 1,
+    Method_Kernel_Dictionary_at__consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_Dictionary_at__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Dictionary_at__compiled
+};
+
+static const uint32_t Method_Kernel_Dictionary_at_ifAbsentPut__insts[] = { 0x00000501, 0x00010601, 0x05000102, 0x00050401, 0x00040301, 0x0001090C, 0x00030A01, 0x09010102, 0x00090801, 0x00020900, 0x08030102, 0x00080701, 0x07040002, 0x00070601, 0x0006060B, 0x00030B0C, 0x00030C01, 0x0B010102, 0x000B0A01, 0x00000A04, 0x0000010A, 0x00050500, 0x00000901, 0x00010A01, 0x00020C01, 0x0C060002, 0x000C0B01, 0x09070202, 0x00090801, 0x00000804 };
+static const oop Method_Kernel_Dictionary_at_ifAbsentPut__consts[] = { (oop)&StaticSymbol_slotFor_, (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_not, (oop)&StaticSymbol_false, (oop)&StaticSymbol_value, (oop)&StaticSymbol_at_put_ };
+static const struct CompiledMethod Method_Kernel_Dictionary_at_ifAbsentPut__compiled = {
+    Method_Kernel_Dictionary_at_ifAbsentPut__insts, 30,
+    13, 2,
+    Method_Kernel_Dictionary_at_ifAbsentPut__consts, 8,
+    0
+};
+static const struct Closure Method_Kernel_Dictionary_at_ifAbsentPut__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Dictionary_at_ifAbsentPut__compiled
+};
+
+static const uint32_t Method_Kernel_Dictionary_includesKey__insts[] = { 0x00000301, 0x00010401, 0x03000102, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_Dictionary_includesKey__consts[] = { (oop)&StaticSymbol_containsKey_ };
+static const struct CompiledMethod Method_Kernel_Dictionary_includesKey__compiled = {
+    Method_Kernel_Dictionary_includesKey__insts, 5,
+    5, 1,
+    Method_Kernel_Dictionary_includesKey__consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Dictionary_includesKey__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Dictionary_includesKey__compiled
+};
+
+static const uint32_t Method_Kernel_Dictionary_removeKey__insts[] = { 0x00000301, 0x00010401, 0x00000514, 0x03010202, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_Dictionary_removeKey__consts[] = { (oop)&Method_Block_Kernel_Dictionary_block13_value_compiled, (oop)&StaticSymbol_removeKey_ifAbsent_ };
+static const struct CompiledMethod Method_Kernel_Dictionary_removeKey__compiled = {
+    Method_Kernel_Dictionary_removeKey__insts, 6,
+    6, 1,
+    Method_Kernel_Dictionary_removeKey__consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_Dictionary_removeKey__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Dictionary_removeKey__compiled
+};
+
+static const uint32_t Method_Kernel_Dictionary_removeKey_ifAbsent__insts[] = { 0x00000601, 0x00010701, 0x06000102, 0x00060501, 0x00050301, 0x0001090C, 0x00030A01, 0x09010102, 0x00090801, 0x00020900, 0x08030102, 0x00080701, 0x0005070B, 0x00020B01, 0x0B040002, 0x000B0A01, 0x00000A04, 0x0000010A, 0x00050600, 0x0003090C, 0x00030A01, 0x09010102, 0x00090801, 0x00080401, 0x00010A0C, 0x00030B01, 0x00020C00, 0x0A060202, 0x000A0901, 0x00020B0C, 0x00070C00, 0x0C0B0A07, 0x00020A0D, 0x00000B01, 0x00030C01, 0x0B080102, 0x000B0A01, 0x00040B01, 0x00000B04 };
+static const oop Method_Kernel_Dictionary_removeKey_ifAbsent__consts[] = { (oop)&StaticSymbol_slotFor_, (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_value, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_put_, TAG_SMI(1), (oop)&StaticSymbol_rehashFrom_ };
+static const struct CompiledMethod Method_Kernel_Dictionary_removeKey_ifAbsent__compiled = {
+    Method_Kernel_Dictionary_removeKey_ifAbsent__insts, 39,
+    13, 2,
+    Method_Kernel_Dictionary_removeKey_ifAbsent__consts, 9,
+    0
+};
+static const struct Closure Method_Kernel_Dictionary_removeKey_ifAbsent__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Dictionary_removeKey_ifAbsent__compiled
+};
+
+static const uint32_t Method_Kernel_Dictionary_keys_insts[] = { 0x0000050C, 0x0500040C, 0x0000060C, 0x0602050C, 0x0002060C, 0x04000202, 0x00040301, 0x00030101, 0x00010400, 0x00040201, 0x00020400, 0x00040501, 0x00000701, 0x07030002, 0x00070601, 0x00050801, 0x00060901, 0x08040102, 0x0019080B, 0x00050900, 0x00010B0C, 0x00050C01, 0x0B060102, 0x000B0A01, 0x000A0901, 0x00090C01, 0x00050D00, 0x0C070102, 0x000C0B01, 0x00020B0B, 0x00080800, 0x0000090A, 0x00020E01, 0x00020F00, 0x0F0E0D06, 0x000D0201, 0x00010D01, 0x00020E01, 0x00090F01, 0x0D090202, 0x000D0801, 0x00020800, 0x08050506, 0x00FFE30A, 0x00010501, 0x00000504 };
+static const oop Method_Kernel_Dictionary_keys_consts[] = { (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(0), TAG_SMI(1), (oop)&StaticSymbol_capacity, (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_put_ };
+static const struct CompiledMethod Method_Kernel_Dictionary_keys_compiled = {
+    Method_Kernel_Dictionary_keys_insts, 46,
+    16, 0,
+    Method_Kernel_Dictionary_keys_consts, 10,
+    0
+};
+static const struct Closure Method_Kernel_Dictionary_keys_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Dictionary_keys_compiled
+};
+
+static const uint32_t Method_Kernel_Dictionary_values_insts[] = { 0x0000050C, 0x0500040C, 0x0000060C, 0x0602050C, 0x0002060C, 0x04000202, 0x00040301, 0x00030101, 0x00010400, 0x00040201, 0x00020400, 0x00040501, 0x00000701, 0x07030002, 0x00070601, 0x00050801, 0x00060901, 0x08040102, 0x001C080B, 0x00050900, 0x00010B0C, 0x00050C01, 0x0B060102, 0x000B0A01, 0x000A0901, 0x00090C01, 0x00050D00, 0x0C070102, 0x000C0B01, 0x00020B0B, 0x00080800, 0x00000C0A, 0x00020E01, 0x00020F00, 0x0F0E0D06, 0x000D0201, 0x00010D01, 0x00020E01, 0x0003100C, 0x00051101, 0x10060102, 0x00100F01, 0x0D090202, 0x000D0801, 0x00020800, 0x08050506, 0x00FFE00A, 0x00010501, 0x00000504 };
+static const oop Method_Kernel_Dictionary_values_consts[] = { (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(0), TAG_SMI(1), (oop)&StaticSymbol_capacity, (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_put_ };
+static const struct CompiledMethod Method_Kernel_Dictionary_values_compiled = {
+    Method_Kernel_Dictionary_values_insts, 49,
+    18, 0,
+    Method_Kernel_Dictionary_values_consts, 10,
+    0
+};
+static const struct Closure Method_Kernel_Dictionary_values_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Dictionary_values_compiled
+};
+
+static const uint32_t Method_Kernel_Dictionary_keysAndValuesDo__insts[] = { 0x00000200, 0x00020301, 0x00000501, 0x05010002, 0x00050401, 0x00030601, 0x00040701, 0x06020102, 0x0018060B, 0x00030700, 0x0001090C, 0x00030A01, 0x09040102, 0x00090801, 0x00080701, 0x00070A01, 0x00030B00, 0x0A050102, 0x000A0901, 0x0002090B, 0x00060600, 0x0000080A, 0x00010B01, 0x00070C01, 0x00030E0C, 0x00030F01, 0x0E040102, 0x000E0D01, 0x0B070202, 0x000B0601, 0x00000600, 0x06030306, 0x00FFE40A, 0x00000301, 0x00000304 };
+static const oop Method_Kernel_Dictionary_keysAndValuesDo__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_capacity, (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_value_value_ };
+static const struct CompiledMethod Method_Kernel_Dictionary_keysAndValuesDo__compiled = {
+    Method_Kernel_Dictionary_keysAndValuesDo__insts, 35,
+    16, 1,
+    Method_Kernel_Dictionary_keysAndValuesDo__consts, 8,
+    0
+};
+static const struct Closure Method_Kernel_Dictionary_keysAndValuesDo__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Dictionary_keysAndValuesDo__compiled
+};
+
+static const uint32_t Method_Kernel_Dictionary_do__insts[] = { 0x00000200, 0x00020301, 0x00000501, 0x05010002, 0x00050401, 0x00030601, 0x00040701, 0x06020102, 0x0017060B, 0x00030700, 0x0001090C, 0x00030A01, 0x09040102, 0x00090801, 0x00080701, 0x00070A01, 0x00030B00, 0x0A050102, 0x000A0901, 0x0002090B, 0x00060600, 0x0000070A, 0x00010B01, 0x00030D0C, 0x00030E01, 0x0D040102, 0x000D0C01, 0x0B070102, 0x000B0601, 0x00000600, 0x06030306, 0x00FFE50A, 0x00000301, 0x00000304 };
+static const oop Method_Kernel_Dictionary_do__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_capacity, (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_value_ };
+static const struct CompiledMethod Method_Kernel_Dictionary_do__compiled = {
+    Method_Kernel_Dictionary_do__insts, 34,
+    15, 1,
+    Method_Kernel_Dictionary_do__consts, 8,
+    0
+};
+static const struct Closure Method_Kernel_Dictionary_do__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Dictionary_do__compiled
+};
+
+static const uint32_t Method_Kernel_Dictionary_place_value__insts[] = { 0x00000501, 0x00010601, 0x05000102, 0x00050401, 0x00040301, 0x0001080C, 0x00030901, 0x08010102, 0x00080701, 0x00020800, 0x07030102, 0x00070601, 0x000A060B, 0x00010A0C, 0x00030B01, 0x00010C01, 0x0A040202, 0x000A0901, 0x00020A0C, 0x00050B00, 0x0B0A0506, 0x0002050D, 0x0000010A, 0x00060500, 0x0003080C, 0x00030901, 0x00020A01, 0x08040202, 0x00080701, 0x00000801, 0x00000804 };
+static const oop Method_Kernel_Dictionary_place_value__consts[] = { (oop)&StaticSymbol_slotFor_, (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_at_put_, TAG_SMI(1), (oop)&StaticSymbol_false };
+static const struct CompiledMethod Method_Kernel_Dictionary_place_value__compiled = {
+    Method_Kernel_Dictionary_place_value__insts, 31,
+    13, 2,
+    Method_Kernel_Dictionary_place_value__consts, 7,
+    0
+};
+static const struct Closure Method_Kernel_Dictionary_place_value__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Dictionary_place_value__compiled
+};
+
+static const uint32_t Method_Kernel_Dictionary_reinsertEntryAt__insts[] = { 0x0001050C, 0x00010601, 0x05000102, 0x00050401, 0x00040201, 0x0003060C, 0x00010701, 0x06000102, 0x00060501, 0x00050301, 0x0001070C, 0x00010801, 0x00010900, 0x07020202, 0x00070601, 0x0002080C, 0x00030900, 0x09080707, 0x0002070D, 0x00000801, 0x00020901, 0x00030A01, 0x08040202, 0x00080701, 0x00000801, 0x00000804 };
+static const oop Method_Kernel_Dictionary_reinsertEntryAt__consts[] = { (oop)&StaticSymbol_at_, NULL, (oop)&StaticSymbol_at_put_, TAG_SMI(1), (oop)&StaticSymbol_place_value_ };
+static const struct CompiledMethod Method_Kernel_Dictionary_reinsertEntryAt__compiled = {
+    Method_Kernel_Dictionary_reinsertEntryAt__insts, 26,
+    11, 1,
+    Method_Kernel_Dictionary_reinsertEntryAt__consts, 5,
+    0
+};
+static const struct Closure Method_Kernel_Dictionary_reinsertEntryAt__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Dictionary_reinsertEntryAt__compiled
+};
+
+static const uint32_t Method_Kernel_Dictionary_grow_insts[] = { 0x0001040C, 0x00040101, 0x0003040C, 0x00040201, 0x0001050C, 0x05000002, 0x00050401, 0x00040301, 0x0000070C, 0x0700060C, 0x0000080C, 0x0802070C, 0x00030901, 0x00010A00, 0x0A090808, 0x06020202, 0x00060501, 0x0001050D, 0x0000080C, 0x0800070C, 0x0000090C, 0x0902080C, 0x00030A01, 0x00010B00, 0x0B0A0908, 0x07020202, 0x00070601, 0x0003060D, 0x00030700, 0x0002070D, 0x00040700, 0x00070801, 0x00030901, 0x00080A01, 0x00090B01, 0x0A050102, 0x00180A0B, 0x00060B00, 0x00010D01, 0x00080E01, 0x0D070102, 0x000D0C01, 0x000C0B01, 0x000B0E01, 0x00060F00, 0x0E080102, 0x000E0D01, 0x00020D0B, 0x00090A00, 0x0000080A, 0x00000F01, 0x000B1001, 0x00021201, 0x00081301, 0x12070102, 0x00121101, 0x0F0A0202, 0x000F0A01, 0x00040A00, 0x0A080806, 0x00FFE40A, 0x00000701, 0x00000704 };
+static const oop Method_Kernel_Dictionary_grow_consts[] = { (oop)&StaticSymbol_size, TAG_SMI(2), (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(0), TAG_SMI(1), (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_place_value_ };
+static const struct CompiledMethod Method_Kernel_Dictionary_grow_compiled = {
+    Method_Kernel_Dictionary_grow_insts, 63,
+    20, 0,
+    Method_Kernel_Dictionary_grow_consts, 11,
+    0
+};
+static const struct Closure Method_Kernel_Dictionary_grow_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Dictionary_grow_compiled
+};
+
+static const uint32_t Method_Kernel_Dictionary_init_new_insts[] = { 0x0000030C, 0x0300020C, 0x0000040C, 0x0402030C, 0x00000400, 0x02010202, 0x00020101, 0x0001010D, 0x00020200, 0x0002020D, 0x0000040C, 0x0400030C, 0x0000050C, 0x0502040C, 0x00000500, 0x03010202, 0x00030201, 0x0003020D, 0x00000004 };
+static const oop Method_Kernel_Dictionary_init_new_consts[] = { TAG_SMI(8), (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(0) };
+static const struct CompiledMethod Method_Kernel_Dictionary_init_new_compiled = {
+    Method_Kernel_Dictionary_init_new_insts, 19,
+    6, 0,
+    Method_Kernel_Dictionary_init_new_consts, 3,
+    0
+};
+static const struct Closure Method_Kernel_Dictionary_init_new_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Dictionary_init_new_compiled
+};
+
+static const uint32_t Method_Kernel_ReadStream_next_insts[] = { 0x00000301, 0x03000002, 0x00030201, 0x0006020B, 0x00000501, 0x00010600, 0x05020102, 0x00050401, 0x00000404, 0x0000010A, 0x00030100, 0x0002030C, 0x00040400, 0x04030206, 0x0002020D, 0x0001030C, 0x0002040C, 0x03050102, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_ReadStream_next_consts[] = { (oop)&StaticSymbol_atEnd, (oop)&StaticString_next_u32past_u32end_11, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, TAG_SMI(1), (oop)&StaticSymbol_at_ };
+static const struct CompiledMethod Method_Kernel_ReadStream_next_compiled = {
+    Method_Kernel_ReadStream_next_insts, 20,
+    7, 0,
+    Method_Kernel_ReadStream_next_consts, 6,
+    0
+};
+static const struct Closure Method_Kernel_ReadStream_next_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_ReadStream_next_compiled
+};
+
+static const uint32_t Method_Kernel_ReadStream_peek_insts[] = { 0x00000301, 0x03000002, 0x00030201, 0x0006020B, 0x00000501, 0x00010600, 0x05020102, 0x00050401, 0x00000404, 0x0000010A, 0x00030100, 0x0001030C, 0x0002050C, 0x00040600, 0x06050406, 0x03050102, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_ReadStream_peek_consts[] = { (oop)&StaticSymbol_atEnd, (oop)&StaticString_peek_u32past_u32end_12, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, TAG_SMI(1), (oop)&StaticSymbol_at_ };
+static const struct CompiledMethod Method_Kernel_ReadStream_peek_compiled = {
+    Method_Kernel_ReadStream_peek_insts, 18,
+    7, 0,
+    Method_Kernel_ReadStream_peek_consts, 6,
+    0
+};
+static const struct Closure Method_Kernel_ReadStream_peek_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_ReadStream_peek_compiled
+};
+
+static const uint32_t Method_Kernel_ReadStream_atEnd_insts[] = { 0x0002020C, 0x0001040C, 0x04000002, 0x00040301, 0x02010102, 0x00020101, 0x00000104 };
+static const oop Method_Kernel_ReadStream_atEnd_consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol__gt_eq };
+static const struct CompiledMethod Method_Kernel_ReadStream_atEnd_compiled = {
+    Method_Kernel_ReadStream_atEnd_insts, 7,
+    5, 0,
+    Method_Kernel_ReadStream_atEnd_consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_ReadStream_atEnd_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_ReadStream_atEnd_compiled
+};
+
+static const uint32_t Method_Kernel_ReadStream_skip__insts[] = { 0x0002030C, 0x00010401, 0x04030206, 0x0002020D, 0x00000201, 0x00000204 };
+static const struct CompiledMethod Method_Kernel_ReadStream_skip__compiled = {
+    Method_Kernel_ReadStream_skip__insts, 6,
+    5, 1,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_ReadStream_skip__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_ReadStream_skip__compiled
+};
+
+static const uint32_t Method_Kernel_ReadStream_position_insts[] = { 0x0002010C, 0x00000104 };
+static const struct CompiledMethod Method_Kernel_ReadStream_position_compiled = {
+    Method_Kernel_ReadStream_position_insts, 2,
+    2, 0,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_ReadStream_position_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_ReadStream_position_compiled
+};
+
+static const uint32_t Method_Kernel_ReadStream_reset_insts[] = { 0x00000100, 0x0002010D, 0x00000101, 0x00000104 };
+static const oop Method_Kernel_ReadStream_reset_consts[] = { TAG_SMI(0) };
+static const struct CompiledMethod Method_Kernel_ReadStream_reset_compiled = {
+    Method_Kernel_ReadStream_reset_insts, 4,
+    2, 0,
+    Method_Kernel_ReadStream_reset_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_ReadStream_reset_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_ReadStream_reset_compiled
+};
+
+static const uint32_t Method_Kernel_ReadStream_next__insts[] = { 0x0002060C, 0x00010701, 0x07060506, 0x0001070C, 0x07000002, 0x00070601, 0x05010102, 0x00050401, 0x0006040B, 0x00000701, 0x00020800, 0x07030102, 0x00070601, 0x00000604, 0x0000010A, 0x00040300, 0x0000060C, 0x0600050C, 0x0000070C, 0x0702060C, 0x00010701, 0x05050202, 0x00050401, 0x00040201, 0x00060500, 0x00050601, 0x00010701, 0x00060801, 0x00070901, 0x08070102, 0x000D080B, 0x00020901, 0x00060A01, 0x00010C0C, 0x00020E0C, 0x00060F01, 0x0F0E0D06, 0x0C080102, 0x000C0B01, 0x09090202, 0x00090801, 0x00060800, 0x08060606, 0x00FFEF0A, 0x0002060C, 0x00010701, 0x07060506, 0x0002050D, 0x0000070C, 0x0700060C, 0x00020701, 0x060A0102, 0x00060501, 0x00000504 };
+static const oop Method_Kernel_ReadStream_next__consts[] = { (oop)&StaticSymbol_size, (oop)&StaticSymbol__gt, (oop)&StaticString_next__u32beyond_u32end_13, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_at_put_, (oop)&StaticSymbol_string_ };
+static const struct CompiledMethod Method_Kernel_ReadStream_next__compiled = {
+    Method_Kernel_ReadStream_next__insts, 54,
+    16, 1,
+    Method_Kernel_ReadStream_next__consts, 11,
+    0
+};
+static const struct Closure Method_Kernel_ReadStream_next__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_ReadStream_next__compiled
+};
+
+static const uint32_t Method_Kernel_ReadStream_upTo__insts[] = { 0x00000601, 0x06000002, 0x00060501, 0x0003050B, 0x00010700, 0x00000704, 0x0000010A, 0x00020400, 0x00030600, 0x0306050E, 0x00000601, 0x0600070C, 0x0500070D, 0x05040002, 0x00050201, 0x00000801, 0x08000002, 0x00080601, 0x0001060B, 0x0000180A, 0x00000901, 0x09050002, 0x00090801, 0x00080301, 0x00030B01, 0x00010C01, 0x0B060102, 0x000B0A01, 0x00090A0B, 0x00000E0C, 0x0E000D0C, 0x00020F01, 0x0F070002, 0x000F0E01, 0x0D080102, 0x000D0C01, 0x00000C04, 0x0000010A, 0x00020900, 0x00020A01, 0x00030B01, 0x0A090102, 0x000A0701, 0x00FFE30A, 0x00010500, 0x0000070C, 0x0700060C, 0x00020801, 0x08070002, 0x00080701, 0x06080102, 0x00060501, 0x00000504 };
+static const oop Method_Kernel_ReadStream_upTo__consts[] = { (oop)&StaticSymbol_atEnd, NULL, (oop)&StaticSymbol_false, (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_next, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_asArray, (oop)&StaticSymbol_string_, (oop)&StaticSymbol_add_ };
+static const struct CompiledMethod Method_Kernel_ReadStream_upTo__compiled = {
+    Method_Kernel_ReadStream_upTo__insts, 53,
+    16, 1,
+    Method_Kernel_ReadStream_upTo__consts, 10,
+    0
+};
+static const struct Closure Method_Kernel_ReadStream_upTo__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_ReadStream_upTo__compiled
+};
+
+static const uint32_t Method_Kernel_ReadStream_nextLine_insts[] = { 0x00000501, 0x05000002, 0x00050401, 0x0003040B, 0x00010600, 0x00000604, 0x0000010A, 0x00020300, 0x00000501, 0x00030600, 0x05040102, 0x00050401, 0x00040101, 0x00010601, 0x06050002, 0x00060501, 0x00050201, 0x00020901, 0x00060A00, 0x09070102, 0x00090801, 0x0008080B, 0x00010B01, 0x00020C01, 0x0B080102, 0x000B0A01, 0x00090B00, 0x0A0A0102, 0x000A0701, 0x0000010A, 0x00020700, 0x0009070B, 0x00000A01, 0x00010B01, 0x00020D01, 0x000B0E00, 0x0E0D0C07, 0x0A0C0202, 0x000A0901, 0x00000904, 0x0000010A, 0x00020600, 0x00010701, 0x00000704 };
+static const oop Method_Kernel_ReadStream_nextLine_consts[] = { (oop)&StaticSymbol_atEnd, NULL, (oop)&StaticSymbol_false, TAG_SMI(10), (oop)&StaticSymbol_upTo_, (oop)&StaticSymbol_size, TAG_SMI(0), (oop)&StaticSymbol__gt, (oop)&StaticSymbol_at_, TAG_SMI(13), (oop)&StaticSymbol__eq, TAG_SMI(1), (oop)&StaticSymbol_prefixOf_upTo_ };
+static const struct CompiledMethod Method_Kernel_ReadStream_nextLine_compiled = {
+    Method_Kernel_ReadStream_nextLine_insts, 44,
+    15, 0,
+    Method_Kernel_ReadStream_nextLine_consts, 13,
+    0
+};
+static const struct Closure Method_Kernel_ReadStream_nextLine_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_ReadStream_nextLine_compiled
+};
+
+static const uint32_t Method_Kernel_ReadStream_upToEnd_insts[] = { 0x00000401, 0x04000002, 0x00040301, 0x0003030B, 0x00010500, 0x00000504, 0x0000010A, 0x00020200, 0x00030400, 0x0304030E, 0x00000401, 0x0400050C, 0x0300050D, 0x03040002, 0x00030101, 0x00000601, 0x06000002, 0x00060401, 0x0001040B, 0x0000070A, 0x00010601, 0x00000801, 0x08050002, 0x00080701, 0x06060102, 0x00060501, 0x00FFF40A, 0x00010300, 0x0000050C, 0x0500040C, 0x00010601, 0x06070002, 0x00060501, 0x04080102, 0x00040301, 0x00000304 };
+static const oop Method_Kernel_ReadStream_upToEnd_consts[] = { (oop)&StaticSymbol_atEnd, NULL, (oop)&StaticSymbol_false, (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_next, (oop)&StaticSymbol_add_, (oop)&StaticSymbol_asArray, (oop)&StaticSymbol_string_ };
+static const struct CompiledMethod Method_Kernel_ReadStream_upToEnd_compiled = {
+    Method_Kernel_ReadStream_upToEnd_insts, 36,
+    9, 0,
+    Method_Kernel_ReadStream_upToEnd_consts, 9,
+    0
+};
+static const struct Closure Method_Kernel_ReadStream_upToEnd_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_ReadStream_upToEnd_compiled
+};
+
+static const uint32_t Method_Kernel_ReadStream_do__insts[] = { 0x00000501, 0x05000002, 0x00050301, 0x0001030B, 0x0000070A, 0x00010501, 0x00000701, 0x07010002, 0x00070601, 0x05020102, 0x00050401, 0x00FFF40A, 0x00030200, 0x00000201, 0x00000204 };
+static const oop Method_Kernel_ReadStream_do__consts[] = { (oop)&StaticSymbol_atEnd, (oop)&StaticSymbol_next, (oop)&StaticSymbol_value_, NULL };
+static const struct CompiledMethod Method_Kernel_ReadStream_do__compiled = {
+    Method_Kernel_ReadStream_do__insts, 15,
+    8, 1,
+    Method_Kernel_ReadStream_do__consts, 4,
+    0
+};
+static const struct Closure Method_Kernel_ReadStream_do__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_ReadStream_do__compiled
+};
+
+static const uint32_t Method_Kernel_ReadStream_prefixOf_upTo__insts[] = { 0x0000060C, 0x0600050C, 0x0000070C, 0x0702060C, 0x00020701, 0x05000202, 0x00050401, 0x00040301, 0x00010500, 0x00050601, 0x00020701, 0x00060801, 0x00070901, 0x08020102, 0x000B080B, 0x00030901, 0x00060A01, 0x00010C01, 0x00060D01, 0x0C030102, 0x000C0B01, 0x09040202, 0x00090801, 0x00010800, 0x08060606, 0x00FFF10A, 0x0000070C, 0x0700060C, 0x00030701, 0x06050102, 0x00060501, 0x00000504 };
+static const oop Method_Kernel_ReadStream_prefixOf_upTo__consts[] = { (oop)&StaticSymbol_basicNew_indexable_, TAG_SMI(1), (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_at_put_, (oop)&StaticSymbol_string_ };
+static const struct CompiledMethod Method_Kernel_ReadStream_prefixOf_upTo__compiled = {
+    Method_Kernel_ReadStream_prefixOf_upTo__insts, 32,
+    14, 2,
+    Method_Kernel_ReadStream_prefixOf_upTo__consts, 6,
+    0
+};
+static const struct Closure Method_Kernel_ReadStream_prefixOf_upTo__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_ReadStream_prefixOf_upTo__compiled
+};
+
+static const uint32_t Method_Kernel_ReadStream_setSource__insts[] = { 0x00010201, 0x0001020D, 0x00000200, 0x0002020D, 0x00000201, 0x00000204 };
+static const oop Method_Kernel_ReadStream_setSource__consts[] = { TAG_SMI(0) };
+static const struct CompiledMethod Method_Kernel_ReadStream_setSource__compiled = {
+    Method_Kernel_ReadStream_setSource__insts, 6,
+    3, 1,
+    Method_Kernel_ReadStream_setSource__consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_ReadStream_setSource__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_ReadStream_setSource__compiled
+};
+
+static const uint32_t Method_Meta_Kernel_ReadStream_on__insts[] = { 0x00000400, 0x0304030E, 0x0001040C, 0x0300040D, 0x03010002, 0x00010401, 0x03020102, 0x00030201, 0x00000204 };
+static const oop Method_Meta_Kernel_ReadStream_on__consts[] = { (oop)&Vtable_Kernel_ReadStream, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setSource_ };
+static const struct CompiledMethod Method_Meta_Kernel_ReadStream_on__compiled = {
+    Method_Meta_Kernel_ReadStream_on__insts, 9,
+    5, 1,
+    Method_Meta_Kernel_ReadStream_on__consts, 3,
+    0
+};
+static const struct Closure Method_Meta_Kernel_ReadStream_on__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Meta_Kernel_ReadStream_on__compiled
+};
+
+static const uint32_t Method_Kernel_ReadStream_init_new_insts[] = { 0x00000100, 0x0001010D, 0x00000100, 0x0002010D, 0x00000004 };
+static const oop Method_Kernel_ReadStream_init_new_consts[] = { NULL };
+static const struct CompiledMethod Method_Kernel_ReadStream_init_new_compiled = {
+    Method_Kernel_ReadStream_init_new_insts, 5,
+    2, 0,
+    Method_Kernel_ReadStream_init_new_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_ReadStream_init_new_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_ReadStream_init_new_compiled
+};
+
+static const uint32_t Method_Kernel_WriteStream_nextPut__insts[] = { 0x00010501, 0x00000600, 0x05010102, 0x00050401, 0x0002040B, 0x00020300, 0x0000040A, 0x00010601, 0x00030700, 0x06040102, 0x00060301, 0x0006030B, 0x00000601, 0x00050700, 0x06060102, 0x00060501, 0x00000504, 0x0000010A, 0x00070200, 0x0001040C, 0x00010501, 0x04080102, 0x00040301, 0x00010401, 0x00000404 };
+static const oop Method_Kernel_WriteStream_nextPut__consts[] = { TAG_SMI(0), (oop)&StaticSymbol__lt, (oop)&StaticSymbol_true, TAG_SMI(255), (oop)&StaticSymbol__gt, (oop)&StaticString_byte_u32out_u32of_u32range_u320_u46_u46255_14, (oop)&StaticSymbol_error_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_add_ };
+static const struct CompiledMethod Method_Kernel_WriteStream_nextPut__compiled = {
+    Method_Kernel_WriteStream_nextPut__insts, 25,
+    8, 1,
+    Method_Kernel_WriteStream_nextPut__consts, 9,
+    0
+};
+static const struct Closure Method_Kernel_WriteStream_nextPut__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_WriteStream_nextPut__compiled
+};
+
+static const uint32_t Method_Kernel_WriteStream_nextPutAll__insts[] = { 0x00000200, 0x00020301, 0x00010501, 0x05010002, 0x00050401, 0x00030601, 0x00040701, 0x06020102, 0x000A060B, 0x0001070C, 0x00010901, 0x00030A01, 0x09030102, 0x00090801, 0x07040102, 0x00070601, 0x00000600, 0x06030306, 0x00FFF20A, 0x00010301, 0x00000304 };
+static const oop Method_Kernel_WriteStream_nextPutAll__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_add_ };
+static const struct CompiledMethod Method_Kernel_WriteStream_nextPutAll__compiled = {
+    Method_Kernel_WriteStream_nextPutAll__insts, 21,
+    11, 1,
+    Method_Kernel_WriteStream_nextPutAll__consts, 5,
+    0
+};
+static const struct Closure Method_Kernel_WriteStream_nextPutAll__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_WriteStream_nextPutAll__compiled
+};
+
+static const uint32_t Method_Kernel_WriteStream_print__insts[] = { 0x00000301, 0x00010501, 0x05000002, 0x00050401, 0x03010102, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_WriteStream_print__consts[] = { (oop)&StaticSymbol_printString, (oop)&StaticSymbol_nextPutAll_ };
+static const struct CompiledMethod Method_Kernel_WriteStream_print__compiled = {
+    Method_Kernel_WriteStream_print__insts, 7,
+    6, 1,
+    Method_Kernel_WriteStream_print__consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_WriteStream_print__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_WriteStream_print__compiled
+};
+
+static const uint32_t Method_Kernel_WriteStream_nextPutLine__insts[] = { 0x00000301, 0x00010401, 0x03000102, 0x00030201, 0x00000401, 0x00010500, 0x04020102, 0x00040301, 0x00010401, 0x00000404 };
+static const oop Method_Kernel_WriteStream_nextPutLine__consts[] = { (oop)&StaticSymbol_nextPutAll_, TAG_SMI(10), (oop)&StaticSymbol_nextPut_ };
+static const struct CompiledMethod Method_Kernel_WriteStream_nextPutLine__compiled = {
+    Method_Kernel_WriteStream_nextPutLine__insts, 10,
+    6, 1,
+    Method_Kernel_WriteStream_nextPutLine__consts, 3,
+    0
+};
+static const struct Closure Method_Kernel_WriteStream_nextPutLine__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_WriteStream_nextPutLine__compiled
+};
+
+static const uint32_t Method_Kernel_WriteStream_contents_insts[] = { 0x0000030C, 0x0300020C, 0x0001040C, 0x04000002, 0x00040301, 0x02010102, 0x00020101, 0x00000104 };
+static const oop Method_Kernel_WriteStream_contents_consts[] = { (oop)&StaticSymbol_asArray, (oop)&StaticSymbol_string_ };
+static const struct CompiledMethod Method_Kernel_WriteStream_contents_compiled = {
+    Method_Kernel_WriteStream_contents_insts, 8,
+    5, 0,
+    Method_Kernel_WriteStream_contents_consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_WriteStream_contents_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_WriteStream_contents_compiled
+};
+
+static const uint32_t Method_Kernel_WriteStream_size_insts[] = { 0x0001020C, 0x02000002, 0x00020101, 0x00000104 };
+static const oop Method_Kernel_WriteStream_size_consts[] = { (oop)&StaticSymbol_size };
+static const struct CompiledMethod Method_Kernel_WriteStream_size_compiled = {
+    Method_Kernel_WriteStream_size_insts, 4,
+    3, 0,
+    Method_Kernel_WriteStream_size_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_WriteStream_size_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_WriteStream_size_compiled
+};
+
+static const uint32_t Method_Kernel_WriteStream_reset_insts[] = { 0x00000200, 0x0302010E, 0x00000201, 0x0200030C, 0x0100030D, 0x01010002, 0x0001010D, 0x00000101, 0x00000104 };
+static const oop Method_Kernel_WriteStream_reset_consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new };
+static const struct CompiledMethod Method_Kernel_WriteStream_reset_compiled = {
+    Method_Kernel_WriteStream_reset_insts, 9,
+    4, 0,
+    Method_Kernel_WriteStream_reset_consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_WriteStream_reset_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_WriteStream_reset_compiled
+};
+
+static const uint32_t Method_Kernel_WriteStream_init_new_insts[] = { 0x00000200, 0x0302010E, 0x00000201, 0x0200030C, 0x0100030D, 0x01010002, 0x0001010D, 0x00000004 };
+static const oop Method_Kernel_WriteStream_init_new_consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new };
+static const struct CompiledMethod Method_Kernel_WriteStream_init_new_compiled = {
+    Method_Kernel_WriteStream_init_new_insts, 8,
+    4, 0,
+    Method_Kernel_WriteStream_init_new_consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_WriteStream_init_new_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_WriteStream_init_new_compiled
+};
+
+static const uint32_t Method_Kernel_Serial_setPort__insts[] = { 0x00010201, 0x0001020D, 0x00000201, 0x00000204 };
+static const struct CompiledMethod Method_Kernel_Serial_setPort__compiled = {
+    Method_Kernel_Serial_setPort__insts, 4,
+    3, 1,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_Serial_setPort__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Serial_setPort__compiled
+};
+
+static const uint32_t Method_Kernel_Serial_writeByte__insts[] = { 0x0001030C, 0x00010401, 0x03000102, 0x00030201, 0x00000301, 0x00000304 };
+static const oop Method_Kernel_Serial_writeByte__consts[] = { (oop)&StaticSymbol_basicWriteByte_ };
+static const struct CompiledMethod Method_Kernel_Serial_writeByte__compiled = {
+    Method_Kernel_Serial_writeByte__insts, 6,
+    5, 1,
+    Method_Kernel_Serial_writeByte__consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Serial_writeByte__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Serial_writeByte__compiled
+};
+
+static const uint32_t Method_Kernel_Serial_write__insts[] = { 0x00000200, 0x00020301, 0x00010501, 0x05010002, 0x00050401, 0x00030601, 0x00040701, 0x06020102, 0x000A060B, 0x0001070C, 0x00010901, 0x00030A01, 0x09030102, 0x00090801, 0x07040102, 0x00070601, 0x00000600, 0x06030306, 0x00FFF20A, 0x00000301, 0x00000304 };
+static const oop Method_Kernel_Serial_write__consts[] = { TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_basicWriteByte_ };
+static const struct CompiledMethod Method_Kernel_Serial_write__compiled = {
+    Method_Kernel_Serial_write__insts, 21,
+    11, 1,
+    Method_Kernel_Serial_write__consts, 5,
+    0
+};
+static const struct Closure Method_Kernel_Serial_write__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Serial_write__compiled
+};
+
+static const uint32_t Method_Kernel_Serial_atEnd_insts[] = { 0x0001020C, 0x02000002, 0x00020101, 0x00000104 };
+static const oop Method_Kernel_Serial_atEnd_consts[] = { (oop)&StaticSymbol_basicAtEnd };
+static const struct CompiledMethod Method_Kernel_Serial_atEnd_compiled = {
+    Method_Kernel_Serial_atEnd_insts, 4,
+    3, 0,
+    Method_Kernel_Serial_atEnd_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Serial_atEnd_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Serial_atEnd_compiled
+};
+
+static const uint32_t Method_Kernel_Serial_readByte_insts[] = { 0x0001030C, 0x03000002, 0x00030201, 0x0003020B, 0x00010400, 0x00000404, 0x0000010A, 0x00020100, 0x0001030C, 0x03030002, 0x00030201, 0x00000204 };
+static const oop Method_Kernel_Serial_readByte_consts[] = { (oop)&StaticSymbol_basicAtEnd, NULL, (oop)&StaticSymbol_false, (oop)&StaticSymbol_basicReadByte };
+static const struct CompiledMethod Method_Kernel_Serial_readByte_compiled = {
+    Method_Kernel_Serial_readByte_insts, 12,
+    5, 0,
+    Method_Kernel_Serial_readByte_consts, 4,
+    0
+};
+static const struct Closure Method_Kernel_Serial_readByte_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Serial_readByte_compiled
+};
+
+static const uint32_t Method_Kernel_Serial_read__insts[] = { 0x00000400, 0x0304030E, 0x00000401, 0x0400050C, 0x0300050D, 0x03010002, 0x00030201, 0x00020801, 0x08020002, 0x00080701, 0x00010801, 0x07030102, 0x00070601, 0x0006060B, 0x00010A0C, 0x0A040002, 0x000A0901, 0x09050002, 0x00090401, 0x0000010A, 0x00060400, 0x0007040B, 0x00020601, 0x0001080C, 0x08070002, 0x00080701, 0x06080102, 0x00060501, 0x00FFEA0A, 0x00090300, 0x0000050C, 0x0500040C, 0x00020601, 0x060A0002, 0x00060501, 0x040B0102, 0x00040301, 0x00000304 };
+static const oop Method_Kernel_Serial_read__consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt, (oop)&StaticSymbol_basicAtEnd, (oop)&StaticSymbol_not, (oop)&StaticSymbol_false, (oop)&StaticSymbol_basicReadByte, (oop)&StaticSymbol_add_, NULL, (oop)&StaticSymbol_asArray, (oop)&StaticSymbol_string_ };
+static const struct CompiledMethod Method_Kernel_Serial_read__compiled = {
+    Method_Kernel_Serial_read__insts, 38,
+    11, 1,
+    Method_Kernel_Serial_read__consts, 12,
+    0
+};
+static const struct Closure Method_Kernel_Serial_read__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Serial_read__compiled
+};
+
+static const uint32_t Method_Kernel_Serial_readLine_insts[] = { 0x0001060C, 0x06000002, 0x00060501, 0x0003050B, 0x00010700, 0x00000704, 0x0000010A, 0x00020400, 0x00030600, 0x0306050E, 0x00000601, 0x0600070C, 0x0500070D, 0x05040002, 0x00050101, 0x00020500, 0x00050301, 0x00030901, 0x09050002, 0x00090801, 0x0006080B, 0x00010B0C, 0x0B000002, 0x000B0A01, 0x0A050002, 0x000A0601, 0x0000010A, 0x00020600, 0x0011060B, 0x0001090C, 0x09060002, 0x00090801, 0x00080201, 0x00020A01, 0x00070B00, 0x0A080102, 0x000A0901, 0x0003090B, 0x00090700, 0x00070301, 0x0000040A, 0x00010B01, 0x00020C01, 0x0B0A0102, 0x000B0701, 0x00FFE30A, 0x00010500, 0x00010901, 0x090B0002, 0x00090801, 0x000C0900, 0x080D0102, 0x00080701, 0x000A070B, 0x00010B01, 0x00010D01, 0x0D0B0002, 0x000D0C01, 0x0B0E0102, 0x000B0A01, 0x000F0B00, 0x0A080102, 0x000A0601, 0x0000010A, 0x00020600, 0x0004060B, 0x00010901, 0x09100002, 0x00090501, 0x0000010A, 0x00020500, 0x0000090C, 0x0900080C, 0x00010A01, 0x0A110002, 0x000A0901, 0x08120102, 0x00080701, 0x00000704 };
+static const oop Method_Kernel_Serial_readLine_consts[] = { (oop)&StaticSymbol_basicAtEnd, NULL, (oop)&StaticSymbol_false, (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_not, (oop)&StaticSymbol_basicReadByte, TAG_SMI(10), (oop)&StaticSymbol__eq, (oop)&StaticSymbol_true, (oop)&StaticSymbol_add_, (oop)&StaticSymbol_size, TAG_SMI(0), (oop)&StaticSymbol__gt, (oop)&StaticSymbol_at_, TAG_SMI(13), (oop)&StaticSymbol_removeLast, (oop)&StaticSymbol_asArray, (oop)&StaticSymbol_string_ };
+static const struct CompiledMethod Method_Kernel_Serial_readLine_compiled = {
+    Method_Kernel_Serial_readLine_insts, 79,
+    14, 0,
+    Method_Kernel_Serial_readLine_consts, 19,
+    0
+};
+static const struct Closure Method_Kernel_Serial_readLine_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Serial_readLine_compiled
+};
+
+static const uint32_t Method_Meta_Kernel_Serial_onPort__insts[] = { 0x00000400, 0x0204030E, 0x0001040C, 0x0300040D, 0x03010002, 0x00010401, 0x03020102, 0x00030201, 0x00000204 };
+static const oop Method_Meta_Kernel_Serial_onPort__consts[] = { (oop)&Vtable_Kernel_Serial, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setPort_ };
+static const struct CompiledMethod Method_Meta_Kernel_Serial_onPort__compiled = {
+    Method_Meta_Kernel_Serial_onPort__insts, 9,
+    5, 1,
+    Method_Meta_Kernel_Serial_onPort__consts, 3,
+    0
+};
+static const struct Closure Method_Meta_Kernel_Serial_onPort__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Meta_Kernel_Serial_onPort__compiled
+};
+
+static const uint32_t Method_Kernel_Serial_init_new_insts[] = { 0x00000100, 0x0001010D, 0x00000004 };
+static const oop Method_Kernel_Serial_init_new_consts[] = { NULL };
+static const struct CompiledMethod Method_Kernel_Serial_init_new_compiled = {
+    Method_Kernel_Serial_init_new_insts, 3,
+    2, 0,
+    Method_Kernel_Serial_init_new_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Serial_init_new_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Serial_init_new_compiled
+};
+
+static const uint32_t Method_Kernel_Net_setPort__insts[] = { 0x00010201, 0x0001020D, 0x00000201, 0x00000204 };
+static const struct CompiledMethod Method_Kernel_Net_setPort__compiled = {
+    Method_Kernel_Net_setPort__insts, 4,
+    3, 1,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_Net_setPort__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Net_setPort__compiled
+};
+
+static const uint32_t Method_Kernel_Net_udp_insts[] = { 0x00000201, 0x00000300, 0x02010102, 0x00020101, 0x00000104 };
+static const oop Method_Kernel_Net_udp_consts[] = { TAG_SMI(0), (oop)&StaticSymbol_udpBindPort_ };
+static const struct CompiledMethod Method_Kernel_Net_udp_compiled = {
+    Method_Kernel_Net_udp_insts, 5,
+    4, 0,
+    Method_Kernel_Net_udp_consts, 2,
+    0
+};
+static const struct Closure Method_Kernel_Net_udp_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Net_udp_compiled
+};
+
+static const uint32_t Method_Kernel_Net_udpBindPort__insts[] = { 0x0001040C, 0x00010501, 0x04000102, 0x00040301, 0x00030201, 0x00020601, 0x00010700, 0x06020102, 0x00060501, 0x0003050B, 0x00030700, 0x00000704, 0x0000010A, 0x00040400, 0x0000070C, 0x070C060C, 0x0001070C, 0x00020801, 0x06050202, 0x00060501, 0x00000504 };
+static const oop Method_Kernel_Net_udpBindPort__consts[] = { (oop)&StaticSymbol_basicBind_, TAG_SMI(0), (oop)&StaticSymbol__lt, NULL, (oop)&StaticSymbol_false, (oop)&StaticSymbol_onPort_handle_ };
+static const struct CompiledMethod Method_Kernel_Net_udpBindPort__compiled = {
+    Method_Kernel_Net_udpBindPort__insts, 21,
+    9, 1,
+    Method_Kernel_Net_udpBindPort__consts, 6,
+    0
+};
+static const struct Closure Method_Kernel_Net_udpBindPort__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Net_udpBindPort__compiled
+};
+
+static const uint32_t Method_Meta_Kernel_Net_onPort__insts[] = { 0x00000400, 0x0204030E, 0x0001040C, 0x0300040D, 0x03010002, 0x00010401, 0x03020102, 0x00030201, 0x00000204 };
+static const oop Method_Meta_Kernel_Net_onPort__consts[] = { (oop)&Vtable_Kernel_Net, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setPort_ };
+static const struct CompiledMethod Method_Meta_Kernel_Net_onPort__compiled = {
+    Method_Meta_Kernel_Net_onPort__insts, 9,
+    5, 1,
+    Method_Meta_Kernel_Net_onPort__consts, 3,
+    0
+};
+static const struct Closure Method_Meta_Kernel_Net_onPort__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Meta_Kernel_Net_onPort__compiled
+};
+
+static const uint32_t Method_Kernel_Net_init_new_insts[] = { 0x00000100, 0x0001010D, 0x00000004 };
+static const oop Method_Kernel_Net_init_new_consts[] = { NULL };
+static const struct CompiledMethod Method_Kernel_Net_init_new_compiled = {
+    Method_Kernel_Net_init_new_insts, 3,
+    2, 0,
+    Method_Kernel_Net_init_new_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Net_init_new_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Net_init_new_compiled
+};
+
+static const uint32_t Method_Kernel_Socket_setPort_handle__insts[] = { 0x00010301, 0x0001030D, 0x00020301, 0x0002030D, 0x00000301, 0x00000304 };
+static const struct CompiledMethod Method_Kernel_Socket_setPort_handle__compiled = {
+    Method_Kernel_Socket_setPort_handle__insts, 6,
+    4, 2,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_Socket_setPort_handle__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Socket_setPort_handle__compiled
+};
+
+static const uint32_t Method_Kernel_Socket_sendTo_port_data__insts[] = { 0x0001050C, 0x0002060C, 0x00010701, 0x00020801, 0x00030901, 0x05000402, 0x00050401, 0x00000501, 0x00000504 };
+static const oop Method_Kernel_Socket_sendTo_port_data__consts[] = { (oop)&StaticSymbol_basicSend_to_port_data_ };
+static const struct CompiledMethod Method_Kernel_Socket_sendTo_port_data__compiled = {
+    Method_Kernel_Socket_sendTo_port_data__insts, 9,
+    10, 3,
+    Method_Kernel_Socket_sendTo_port_data__consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Socket_sendTo_port_data__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Socket_sendTo_port_data__compiled
+};
+
+static const uint32_t Method_Kernel_Socket_receive_insts[] = { 0x0001030C, 0x0002040C, 0x03000102, 0x00030201, 0x00020101, 0x00010501, 0x00010600, 0x05020102, 0x00050401, 0x0003040B, 0x00010600, 0x00000604, 0x0000010A, 0x00030300, 0x0000060C, 0x060D050C, 0x00010701, 0x00040800, 0x07050102, 0x00070601, 0x00010801, 0x00060900, 0x08050102, 0x00080701, 0x00010901, 0x00070A00, 0x09050102, 0x00090801, 0x05080302, 0x00050401, 0x00000404 };
+static const oop Method_Kernel_Socket_receive_consts[] = { (oop)&StaticSymbol_basicReceive_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, TAG_SMI(1), (oop)&StaticSymbol_basicAt_, TAG_SMI(2), TAG_SMI(3), (oop)&StaticSymbol_data_senderHost_senderPort_ };
+static const struct CompiledMethod Method_Kernel_Socket_receive_compiled = {
+    Method_Kernel_Socket_receive_insts, 31,
+    11, 0,
+    Method_Kernel_Socket_receive_consts, 9,
+    0
+};
+static const struct Closure Method_Kernel_Socket_receive_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Socket_receive_compiled
+};
+
+static const uint32_t Method_Kernel_Socket_close_insts[] = { 0x0001020C, 0x0002030C, 0x02000102, 0x00020101, 0x00000201, 0x00000204 };
+static const oop Method_Kernel_Socket_close_consts[] = { (oop)&StaticSymbol_basicClose_ };
+static const struct CompiledMethod Method_Kernel_Socket_close_compiled = {
+    Method_Kernel_Socket_close_insts, 6,
+    4, 0,
+    Method_Kernel_Socket_close_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Socket_close_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Socket_close_compiled
+};
+
+static const uint32_t Method_Meta_Kernel_Socket_onPort_handle__insts[] = { 0x00000500, 0x0305040E, 0x0001050C, 0x0400050D, 0x04010002, 0x00010501, 0x00020601, 0x04020202, 0x00040301, 0x00000304 };
+static const oop Method_Meta_Kernel_Socket_onPort_handle__consts[] = { (oop)&Vtable_Kernel_Socket, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setPort_handle_ };
+static const struct CompiledMethod Method_Meta_Kernel_Socket_onPort_handle__compiled = {
+    Method_Meta_Kernel_Socket_onPort_handle__insts, 10,
+    7, 2,
+    Method_Meta_Kernel_Socket_onPort_handle__consts, 3,
+    0
+};
+static const struct Closure Method_Meta_Kernel_Socket_onPort_handle__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Meta_Kernel_Socket_onPort_handle__compiled
+};
+
+static const uint32_t Method_Kernel_Socket_init_new_insts[] = { 0x00000100, 0x0001010D, 0x00000100, 0x0002010D, 0x00000004 };
+static const oop Method_Kernel_Socket_init_new_consts[] = { NULL };
+static const struct CompiledMethod Method_Kernel_Socket_init_new_compiled = {
+    Method_Kernel_Socket_init_new_insts, 5,
+    2, 0,
+    Method_Kernel_Socket_init_new_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Socket_init_new_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Socket_init_new_compiled
+};
+
+static const uint32_t Method_Kernel_Datagram_setData_host_port__insts[] = { 0x00010401, 0x0001040D, 0x00020401, 0x0002040D, 0x00030401, 0x0003040D, 0x00000401, 0x00000404 };
+static const struct CompiledMethod Method_Kernel_Datagram_setData_host_port__compiled = {
+    Method_Kernel_Datagram_setData_host_port__insts, 8,
+    5, 3,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_Datagram_setData_host_port__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Datagram_setData_host_port__compiled
+};
+
+static const uint32_t Method_Kernel_Datagram_data_insts[] = { 0x0001010C, 0x00000104 };
+static const struct CompiledMethod Method_Kernel_Datagram_data_compiled = {
+    Method_Kernel_Datagram_data_insts, 2,
+    2, 0,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_Datagram_data_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Datagram_data_compiled
+};
+
+static const uint32_t Method_Kernel_Datagram_senderHost_insts[] = { 0x0002010C, 0x00000104 };
+static const struct CompiledMethod Method_Kernel_Datagram_senderHost_compiled = {
+    Method_Kernel_Datagram_senderHost_insts, 2,
+    2, 0,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_Datagram_senderHost_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Datagram_senderHost_compiled
+};
+
+static const uint32_t Method_Kernel_Datagram_senderPort_insts[] = { 0x0003010C, 0x00000104 };
+static const struct CompiledMethod Method_Kernel_Datagram_senderPort_compiled = {
+    Method_Kernel_Datagram_senderPort_insts, 2,
+    2, 0,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Kernel_Datagram_senderPort_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Datagram_senderPort_compiled
+};
+
+static const uint32_t Method_Meta_Kernel_Datagram_data_senderHost_senderPort__insts[] = { 0x00000600, 0x0406050E, 0x0001060C, 0x0500060D, 0x05010002, 0x00010601, 0x00020701, 0x00030801, 0x05020302, 0x00050401, 0x00000404 };
+static const oop Method_Meta_Kernel_Datagram_data_senderHost_senderPort__consts[] = { (oop)&Vtable_Kernel_Datagram, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setData_host_port_ };
+static const struct CompiledMethod Method_Meta_Kernel_Datagram_data_senderHost_senderPort__compiled = {
+    Method_Meta_Kernel_Datagram_data_senderHost_senderPort__insts, 11,
+    9, 3,
+    Method_Meta_Kernel_Datagram_data_senderHost_senderPort__consts, 3,
+    0
+};
+static const struct Closure Method_Meta_Kernel_Datagram_data_senderHost_senderPort__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Meta_Kernel_Datagram_data_senderHost_senderPort__compiled
+};
+
+static const uint32_t Method_Kernel_Datagram_init_new_insts[] = { 0x00000100, 0x0001010D, 0x00000100, 0x0002010D, 0x00000100, 0x0003010D, 0x00000004 };
+static const oop Method_Kernel_Datagram_init_new_consts[] = { NULL };
+static const struct CompiledMethod Method_Kernel_Datagram_init_new_compiled = {
+    Method_Kernel_Datagram_init_new_insts, 7,
+    2, 0,
+    Method_Kernel_Datagram_init_new_consts, 1,
+    0
+};
+static const struct Closure Method_Kernel_Datagram_init_new_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Kernel_Datagram_init_new_compiled
+};
+
+static const uint32_t Method_Supervisor_run_platform_args_debug__insts[] = { 0x00040801, 0x00000900, 0x08010102, 0x00080701, 0x0016070B, 0x00020A00, 0x0E0A090E, 0x0900000D, 0x00000A0C, 0x00020B01, 0x09030202, 0x00090501, 0x00050A01, 0x00010B01, 0x0A040102, 0x000A0901, 0x00000B0C, 0x00050C14, 0x0B060102, 0x000B0A01, 0x00070C00, 0x0C080002, 0x000C0B01, 0x00050C01, 0x0C090002, 0x000C0601, 0x0000010A, 0x000A0600, 0x00010801, 0x00020901, 0x00030A01, 0x080B0202, 0x00080701, 0x00000704 };
+static const oop Method_Supervisor_run_platform_args_debug__consts[] = { TAG_SMI(1), (oop)&StaticSymbol__eq, (oop)&Vtable_Supervisor_Debugger, (oop)&StaticSymbol_init_m_io_, (oop)&StaticSymbol_registerEntry_, (oop)&Method_Block_Supervisor_block14_value__compiled, (oop)&StaticSymbol_onBreak_, (oop)&StaticString_dbg_ready_15, (oop)&StaticSymbol_println, (oop)&StaticSymbol_initialLoop, (oop)&StaticSymbol_false, (oop)&StaticSymbol_main_args_ };
+static const struct CompiledMethod Method_Supervisor_run_platform_args_debug__compiled = {
+    Method_Supervisor_run_platform_args_debug__insts, 34,
+    13, 4,
+    Method_Supervisor_run_platform_args_debug__consts, 12,
+    0
+};
+static const struct Closure Method_Supervisor_run_platform_args_debug__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_run_platform_args_debug__compiled
+};
+
+static const uint32_t Method_Supervisor_ObjectMirror_insts[] = { 0x00000100, 0x00000201, 0x00010300, 0x01020202, 0x00000104 };
+static const oop Method_Supervisor_ObjectMirror_consts[] = { (oop)&Vtable_Supervisor_ObjectMirror, TAG_SMI(3), (oop)&StaticSymbol___boundOuter_slotCount_ };
+static const struct CompiledMethod Method_Supervisor_ObjectMirror_compiled = {
+    Method_Supervisor_ObjectMirror_insts, 5,
+    4, 0,
+    Method_Supervisor_ObjectMirror_consts, 3,
+    0
+};
+static const struct Closure Method_Supervisor_ObjectMirror_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_ObjectMirror_compiled
+};
+
+static const uint32_t Method_Supervisor_ContextMirror_insts[] = { 0x00000100, 0x00000201, 0x00010300, 0x01020202, 0x00000104 };
+static const oop Method_Supervisor_ContextMirror_consts[] = { (oop)&Vtable_Supervisor_ContextMirror, TAG_SMI(3), (oop)&StaticSymbol___boundOuter_slotCount_ };
+static const struct CompiledMethod Method_Supervisor_ContextMirror_compiled = {
+    Method_Supervisor_ContextMirror_insts, 5,
+    4, 0,
+    Method_Supervisor_ContextMirror_consts, 3,
+    0
+};
+static const struct Closure Method_Supervisor_ContextMirror_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_ContextMirror_compiled
+};
+
+static const uint32_t Method_Supervisor_Debugger_insts[] = { 0x00000100, 0x00000201, 0x00010300, 0x01020202, 0x00000104 };
+static const oop Method_Supervisor_Debugger_consts[] = { (oop)&Vtable_Supervisor_Debugger, TAG_SMI(14), (oop)&StaticSymbol___boundOuter_slotCount_ };
+static const struct CompiledMethod Method_Supervisor_Debugger_compiled = {
+    Method_Supervisor_Debugger_insts, 5,
+    4, 0,
+    Method_Supervisor_Debugger_consts, 3,
+    0
+};
+static const struct Closure Method_Supervisor_Debugger_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_Debugger_compiled
+};
+
+static const uint32_t Method_Supervisor_init_mirror__insts[] = { 0x0000010D, 0x00000200, 0x00000301, 0x00010400, 0x02020202, 0x0001020D, 0x00030200, 0x00000301, 0x00010400, 0x02020202, 0x0002020D, 0x00040200, 0x00000301, 0x00050400, 0x02020202, 0x0003020D, 0x00000004 };
+static const oop Method_Supervisor_init_mirror__consts[] = { (oop)&Vtable_Supervisor_ObjectMirror, TAG_SMI(3), (oop)&StaticSymbol___boundOuter_slotCount_, (oop)&Vtable_Supervisor_ContextMirror, (oop)&Vtable_Supervisor_Debugger, TAG_SMI(14) };
+static const struct CompiledMethod Method_Supervisor_init_mirror__compiled = {
+    Method_Supervisor_init_mirror__insts, 17,
+    5, 1,
+    Method_Supervisor_init_mirror__consts, 6,
+    0
+};
+static const struct Closure Method_Supervisor_init_mirror__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_init_mirror__compiled
+};
+
+static const uint32_t Method_Supervisor_ObjectMirror_vtable_insts[] = { 0x0001020C, 0x0002030C, 0x02000102, 0x00020101, 0x00000104 };
+static const oop Method_Supervisor_ObjectMirror_vtable_consts[] = { (oop)&StaticSymbol_vtableOf_ };
+static const struct CompiledMethod Method_Supervisor_ObjectMirror_vtable_compiled = {
+    Method_Supervisor_ObjectMirror_vtable_insts, 5,
+    4, 0,
+    Method_Supervisor_ObjectMirror_vtable_consts, 1,
+    0
+};
+static const struct Closure Method_Supervisor_ObjectMirror_vtable_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_ObjectMirror_vtable_compiled
+};
+
+static const uint32_t Method_Supervisor_ObjectMirror_bindings_insts[] = { 0x0001020C, 0x00000401, 0x04000002, 0x00040301, 0x02010102, 0x00020101, 0x00000104 };
+static const oop Method_Supervisor_ObjectMirror_bindings_consts[] = { (oop)&StaticSymbol_vtable, (oop)&StaticSymbol_bindingsOf_ };
+static const struct CompiledMethod Method_Supervisor_ObjectMirror_bindings_compiled = {
+    Method_Supervisor_ObjectMirror_bindings_insts, 7,
+    5, 0,
+    Method_Supervisor_ObjectMirror_bindings_consts, 2,
+    0
+};
+static const struct Closure Method_Supervisor_ObjectMirror_bindings_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_ObjectMirror_bindings_compiled
+};
+
+static const uint32_t Method_Supervisor_ObjectMirror_reflectee_insts[] = { 0x0002010C, 0x00000104 };
+static const struct CompiledMethod Method_Supervisor_ObjectMirror_reflectee_compiled = {
+    Method_Supervisor_ObjectMirror_reflectee_insts, 2,
+    2, 0,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Supervisor_ObjectMirror_reflectee_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_ObjectMirror_reflectee_compiled
+};
+
+static const uint32_t Method_Supervisor_ObjectMirror_init_m_obj__insts[] = { 0x0001010D, 0x0002020D, 0x00000004 };
+static const struct CompiledMethod Method_Supervisor_ObjectMirror_init_m_obj__compiled = {
+    Method_Supervisor_ObjectMirror_init_m_obj__insts, 3,
+    3, 2,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Supervisor_ObjectMirror_init_m_obj__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_ObjectMirror_init_m_obj__compiled
+};
+
+static const uint32_t Method_Supervisor_ContextMirror_context_insts[] = { 0x0002010C, 0x00000104 };
+static const struct CompiledMethod Method_Supervisor_ContextMirror_context_compiled = {
+    Method_Supervisor_ContextMirror_context_insts, 2,
+    2, 0,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Supervisor_ContextMirror_context_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_ContextMirror_context_compiled
+};
+
+static const uint32_t Method_Supervisor_ContextMirror_rawSender_insts[] = { 0x0001020C, 0x0002030C, 0x02000102, 0x00020101, 0x00000104 };
+static const oop Method_Supervisor_ContextMirror_rawSender_consts[] = { (oop)&StaticSymbol_senderOf_ };
+static const struct CompiledMethod Method_Supervisor_ContextMirror_rawSender_compiled = {
+    Method_Supervisor_ContextMirror_rawSender_insts, 5,
+    4, 0,
+    Method_Supervisor_ContextMirror_rawSender_consts, 1,
+    0
+};
+static const struct Closure Method_Supervisor_ContextMirror_rawSender_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_ContextMirror_rawSender_compiled
+};
+
+static const uint32_t Method_Supervisor_ContextMirror_sender_insts[] = { 0x0001030C, 0x0002040C, 0x03000102, 0x00030201, 0x00020101, 0x00010501, 0x00010600, 0x05020102, 0x00050401, 0x0002040B, 0x00010300, 0x0000080A, 0x00030600, 0x0306030E, 0x00000601, 0x0600070C, 0x0300070D, 0x0001040C, 0x00010501, 0x03040202, 0x00000304 };
+static const oop Method_Supervisor_ContextMirror_sender_consts[] = { (oop)&StaticSymbol_senderOf_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&Vtable_Supervisor_ContextMirror, (oop)&StaticSymbol_init_m_ctx_ };
+static const struct CompiledMethod Method_Supervisor_ContextMirror_sender_compiled = {
+    Method_Supervisor_ContextMirror_sender_insts, 21,
+    8, 0,
+    Method_Supervisor_ContextMirror_sender_consts, 5,
+    0
+};
+static const struct Closure Method_Supervisor_ContextMirror_sender_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_ContextMirror_sender_compiled
+};
+
+static const uint32_t Method_Supervisor_ContextMirror_pc_insts[] = { 0x0001020C, 0x0002030C, 0x02000102, 0x00020101, 0x00000104 };
+static const oop Method_Supervisor_ContextMirror_pc_consts[] = { (oop)&StaticSymbol_pcOf_ };
+static const struct CompiledMethod Method_Supervisor_ContextMirror_pc_compiled = {
+    Method_Supervisor_ContextMirror_pc_insts, 5,
+    4, 0,
+    Method_Supervisor_ContextMirror_pc_consts, 1,
+    0
+};
+static const struct Closure Method_Supervisor_ContextMirror_pc_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_ContextMirror_pc_compiled
+};
+
+static const uint32_t Method_Supervisor_ContextMirror_offset_insts[] = { 0x0001020C, 0x0002030C, 0x02000102, 0x00020101, 0x00000104 };
+static const oop Method_Supervisor_ContextMirror_offset_consts[] = { (oop)&StaticSymbol_offsetOf_ };
+static const struct CompiledMethod Method_Supervisor_ContextMirror_offset_compiled = {
+    Method_Supervisor_ContextMirror_offset_insts, 5,
+    4, 0,
+    Method_Supervisor_ContextMirror_offset_consts, 1,
+    0
+};
+static const struct Closure Method_Supervisor_ContextMirror_offset_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_ContextMirror_offset_compiled
+};
+
+static const uint32_t Method_Supervisor_ContextMirror_registerAt__insts[] = { 0x0001030C, 0x0002040C, 0x00010501, 0x03000202, 0x00030201, 0x00000204 };
+static const oop Method_Supervisor_ContextMirror_registerAt__consts[] = { (oop)&StaticSymbol_reg_at_ };
+static const struct CompiledMethod Method_Supervisor_ContextMirror_registerAt__compiled = {
+    Method_Supervisor_ContextMirror_registerAt__insts, 6,
+    6, 1,
+    Method_Supervisor_ContextMirror_registerAt__consts, 1,
+    0
+};
+static const struct Closure Method_Supervisor_ContextMirror_registerAt__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_ContextMirror_registerAt__compiled
+};
+
+static const uint32_t Method_Supervisor_ContextMirror_registerAt_put__insts[] = { 0x0001040C, 0x0002050C, 0x00010601, 0x00020701, 0x04000302, 0x00040301, 0x00000304 };
+static const oop Method_Supervisor_ContextMirror_registerAt_put__consts[] = { (oop)&StaticSymbol_reg_at_put_ };
+static const struct CompiledMethod Method_Supervisor_ContextMirror_registerAt_put__compiled = {
+    Method_Supervisor_ContextMirror_registerAt_put__insts, 7,
+    8, 2,
+    Method_Supervisor_ContextMirror_registerAt_put__consts, 1,
+    0
+};
+static const struct Closure Method_Supervisor_ContextMirror_registerAt_put__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_ContextMirror_registerAt_put__compiled
+};
+
+static const uint32_t Method_Supervisor_ContextMirror_numRegisters_insts[] = { 0x0001020C, 0x0002030C, 0x02000102, 0x00020101, 0x00000104 };
+static const oop Method_Supervisor_ContextMirror_numRegisters_consts[] = { (oop)&StaticSymbol_numRegistersOf_ };
+static const struct CompiledMethod Method_Supervisor_ContextMirror_numRegisters_compiled = {
+    Method_Supervisor_ContextMirror_numRegisters_insts, 5,
+    4, 0,
+    Method_Supervisor_ContextMirror_numRegisters_consts, 1,
+    0
+};
+static const struct Closure Method_Supervisor_ContextMirror_numRegisters_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_ContextMirror_numRegisters_compiled
+};
+
+static const uint32_t Method_Supervisor_ContextMirror_init_m_ctx__insts[] = { 0x0001010D, 0x0002020D, 0x00000004 };
+static const struct CompiledMethod Method_Supervisor_ContextMirror_init_m_ctx__compiled = {
+    Method_Supervisor_ContextMirror_init_m_ctx__insts, 3,
+    3, 2,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Supervisor_ContextMirror_init_m_ctx__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_ContextMirror_init_m_ctx__compiled
+};
+
+static const uint32_t Method_Supervisor_Debugger_registerEntry__insts[] = { 0x00010201, 0x0003020D, 0x00000201, 0x00000204 };
+static const struct CompiledMethod Method_Supervisor_Debugger_registerEntry__compiled = {
+    Method_Supervisor_Debugger_registerEntry__insts, 4,
+    3, 1,
+    NULL, 0,
+    0
+};
+static const struct Closure Method_Supervisor_Debugger_registerEntry__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_Debugger_registerEntry__compiled
+};
+
+static const uint32_t Method_Supervisor_Debugger_buildRegistry_insts[] = { 0x0004040C, 0x00000500, 0x04010102, 0x00040301, 0x0062030B, 0x0002070C, 0x07020002, 0x00070601, 0x06030002, 0x00060501, 0x0004050D, 0x0002090C, 0x09020002, 0x00090801, 0x08030002, 0x00080701, 0x0005070D, 0x00020B0C, 0x0B020002, 0x000B0A01, 0x0A030002, 0x000A0901, 0x0006090D, 0x00020D0C, 0x0D020002, 0x000D0C01, 0x0C030002, 0x000C0B01, 0x00070B0D, 0x00010E0C, 0x00030F0C, 0x0E040102, 0x000E0D01, 0x000D0101, 0x00011001, 0x00001100, 0x10010102, 0x00100E01, 0x00010E0B, 0x00003D0A, 0x00001000, 0x00001100, 0x00001200, 0x0001140C, 0x00011501, 0x14050102, 0x00141301, 0x00131001, 0x0001150C, 0x00011601, 0x15060102, 0x00151401, 0x00141101, 0x00011601, 0x16070002, 0x00161501, 0x00151201, 0x00081600, 0x00161701, 0x00101901, 0x19090002, 0x00191801, 0x00171A01, 0x00181B01, 0x1A0A0102, 0x001D1A0B, 0x00041C0C, 0x00041F0C, 0x1F0B0002, 0x001F1E01, 0x00082000, 0x201E1D06, 0x1C0C0102, 0x001C1B01, 0x00051D0C, 0x00101F01, 0x00172001, 0x1F0D0102, 0x001F1E01, 0x1D0C0102, 0x001D1C01, 0x00061E0C, 0x00112001, 0x00172101, 0x200D0102, 0x00201F01, 0x1E0C0102, 0x001E1D01, 0x00071E0C, 0x00121F01, 0x1E0C0102, 0x001E1A01, 0x00081A00, 0x1A171706, 0x00FFDF0A, 0x0001170C, 0x00011801, 0x170E0102, 0x00170F01, 0x000F0101, 0x00FFBD0A, 0x00000200, 0x0000010A, 0x000F0200, 0x00000301, 0x00000304 };
+static const oop Method_Supervisor_Debugger_buildRegistry_consts[] = { NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_OrderedCollection, (oop)&StaticSymbol_new, (oop)&StaticSymbol_vtableOf_, (oop)&StaticSymbol_selectorsOf_, (oop)&StaticSymbol_methodsOf_, (oop)&StaticSymbol_identityHash, TAG_SMI(1), (oop)&StaticSymbol_basicSize, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_size, (oop)&StaticSymbol_add_, (oop)&StaticSymbol_basicAt_, (oop)&StaticSymbol_delegateOf_, (oop)&StaticSymbol_false };
+static const struct CompiledMethod Method_Supervisor_Debugger_buildRegistry_compiled = {
+    Method_Supervisor_Debugger_buildRegistry_insts, 106,
+    34, 0,
+    Method_Supervisor_Debugger_buildRegistry_consts, 16,
+    0
+};
+static const struct Closure Method_Supervisor_Debugger_buildRegistry_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_Debugger_buildRegistry_compiled
+};
+
+static const uint32_t Method_Supervisor_Debugger_listMethods_insts[] = { 0x00000201, 0x02000002, 0x00020101, 0x00010200, 0x00020301, 0x0004050C, 0x05020002, 0x00050401, 0x00030601, 0x00040701, 0x06030102, 0x002E060B, 0x00040700, 0x00020A0C, 0x0A050002, 0x000A0901, 0x09060002, 0x00090801, 0x00080701, 0x00070B01, 0x00040D0C, 0x00030E01, 0x0D070102, 0x000D0C01, 0x0B080102, 0x000B0A01, 0x00070C01, 0x00090D00, 0x0C0A0102, 0x000C0B01, 0x00070D01, 0x0005100C, 0x00031101, 0x10070102, 0x00100F01, 0x0F0B0002, 0x000F0E01, 0x0D0A0102, 0x000D0C01, 0x00070E01, 0x00090F00, 0x0E0A0102, 0x000E0D01, 0x00070F01, 0x0007110C, 0x00031201, 0x11070102, 0x00111001, 0x0F080102, 0x000F0E01, 0x00071001, 0x100C0002, 0x00100F01, 0x0F0D0002, 0x000F0601, 0x00010600, 0x06030306, 0x00FFCE0A, 0x000E0400, 0x040D0002, 0x00040301, 0x00000401, 0x00000404 };
+static const oop Method_Supervisor_Debugger_listMethods_consts[] = { (oop)&StaticSymbol_buildRegistry, TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, NULL, (oop)&StaticSymbol_WriteStream, (oop)&StaticSymbol_new, (oop)&StaticSymbol_at_, (oop)&StaticSymbol_print_, (oop)&StaticString__u32_16, (oop)&StaticSymbol_nextPutAll_, (oop)&StaticSymbol_printString, (oop)&StaticSymbol_contents, (oop)&StaticSymbol_println, (oop)&StaticString_dbg_ok_u32methods_17 };
+static const struct CompiledMethod Method_Supervisor_Debugger_listMethods_compiled = {
+    Method_Supervisor_Debugger_listMethods_insts, 63,
+    19, 0,
+    Method_Supervisor_Debugger_listMethods_consts, 15,
+    0
+};
+static const struct Closure Method_Supervisor_Debugger_listMethods_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_Debugger_listMethods_compiled
+};
+
+static const uint32_t Method_Supervisor_Debugger_methodAt__insts[] = { 0x00000301, 0x03000002, 0x00030201, 0x00010300, 0x00030401, 0x0004060C, 0x06020002, 0x00060501, 0x00040701, 0x00050801, 0x07030102, 0x0012070B, 0x00040A0C, 0x00040B01, 0x0A040102, 0x000A0901, 0x00010A01, 0x09050102, 0x00090801, 0x0006080B, 0x00060C0C, 0x00040D01, 0x0C040102, 0x000C0B01, 0x00000B04, 0x0000010A, 0x00060700, 0x00010700, 0x07040406, 0x00FFEA0A, 0x00070400, 0x00000404 };
+static const oop Method_Supervisor_Debugger_methodAt__consts[] = { (oop)&StaticSymbol_buildRegistry, TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_false, NULL };
+static const struct CompiledMethod Method_Supervisor_Debugger_methodAt__compiled = {
+    Method_Supervisor_Debugger_methodAt__insts, 32,
+    14, 1,
+    Method_Supervisor_Debugger_methodAt__consts, 8,
+    0
+};
+static const struct Closure Method_Supervisor_Debugger_methodAt__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_Debugger_methodAt__compiled
+};
+
+static const uint32_t Method_Supervisor_Debugger_parseInt__insts[] = { 0x00000500, 0x00050201, 0x00010500, 0x00050301, 0x00030801, 0x00010A01, 0x0A020002, 0x000A0901, 0x08030102, 0x00080601, 0x0020060B, 0x00010901, 0x00030A01, 0x09040102, 0x00090801, 0x00080401, 0x00040C01, 0x00050D00, 0x0C060102, 0x000C0B01, 0x00050B0B, 0x00040D01, 0x00070E00, 0x0D030102, 0x000D0A01, 0x0000010A, 0x00080A00, 0x00090A0B, 0x00020D01, 0x00090E00, 0x0E0D0C08, 0x00040E01, 0x00050F00, 0x0F0E0D07, 0x0D0C0906, 0x00090201, 0x0000010A, 0x00080900, 0x00030A01, 0x00010B00, 0x0B0A0706, 0x00070301, 0x00FFD90A, 0x000A0500, 0x00020501, 0x00000504 };
+static const oop Method_Supervisor_Debugger_parseInt__consts[] = { TAG_SMI(0), TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, TAG_SMI(48), (oop)&StaticSymbol__gt_eq, TAG_SMI(57), (oop)&StaticSymbol_false, TAG_SMI(10), NULL };
+static const struct CompiledMethod Method_Supervisor_Debugger_parseInt__compiled = {
+    Method_Supervisor_Debugger_parseInt__insts, 46,
+    16, 1,
+    Method_Supervisor_Debugger_parseInt__consts, 11,
+    0
+};
+static const struct Closure Method_Supervisor_Debugger_parseInt__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_Debugger_parseInt__compiled
+};
+
+static const uint32_t Method_Supervisor_Debugger_ensureBp_insts[] = { 0x0008030C, 0x00000400, 0x03010102, 0x00030201, 0x0013020B, 0x0002060C, 0x06020002, 0x00060501, 0x05030002, 0x00050401, 0x0008040D, 0x0002080C, 0x08020002, 0x00080701, 0x07030002, 0x00070601, 0x0009060D, 0x0002090C, 0x09020002, 0x00090801, 0x08030002, 0x00080101, 0x000A010D, 0x0000010A, 0x00040100, 0x00000201, 0x00000204 };
+static const oop Method_Supervisor_Debugger_ensureBp_consts[] = { NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_OrderedCollection, (oop)&StaticSymbol_new, (oop)&StaticSymbol_false };
+static const struct CompiledMethod Method_Supervisor_Debugger_ensureBp_compiled = {
+    Method_Supervisor_Debugger_ensureBp_insts, 27,
+    10, 0,
+    Method_Supervisor_Debugger_ensureBp_consts, 5,
+    0
+};
+static const struct Closure Method_Supervisor_Debugger_ensureBp_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_Debugger_ensureBp_compiled
+};
+
+static const uint32_t Method_Supervisor_Debugger_break_at__insts[] = { 0x00000601, 0x06000002, 0x00060501, 0x00000701, 0x00010801, 0x07010102, 0x00070601, 0x00060301, 0x00030901, 0x00020A00, 0x09030102, 0x00090801, 0x0006080B, 0x00040B00, 0x0B050002, 0x000B0A01, 0x00000B01, 0x00000B04, 0x0000010A, 0x00060700, 0x0001090C, 0x00030A01, 0x00020B01, 0x09070202, 0x00090801, 0x00080401, 0x00080A0C, 0x00010B01, 0x0A080102, 0x000A0901, 0x00090B0C, 0x00040C01, 0x0B080102, 0x000B0A01, 0x000A0C0C, 0x00020D01, 0x0C080102, 0x000C0B01, 0x00090D00, 0x0D050002, 0x000D0C01, 0x00000D01, 0x00000D04 };
+static const oop Method_Supervisor_Debugger_break_at__consts[] = { (oop)&StaticSymbol_ensureBp, (oop)&StaticSymbol_methodAt_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticString_dbg_error_u32no_submethod_18, (oop)&StaticSymbol_println, (oop)&StaticSymbol_false, (oop)&StaticSymbol_breakAt_offset_, (oop)&StaticSymbol_add_, (oop)&StaticString_dbg_ok_u32break_19 };
+static const struct CompiledMethod Method_Supervisor_Debugger_break_at__compiled = {
+    Method_Supervisor_Debugger_break_at__insts, 43,
+    14, 2,
+    Method_Supervisor_Debugger_break_at__consts, 10,
+    0
+};
+static const struct Closure Method_Supervisor_Debugger_break_at__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_Debugger_break_at__compiled
+};
+
+static const uint32_t Method_Supervisor_Debugger_clear_at__insts[] = { 0x00000701, 0x07000002, 0x00070601, 0x00010800, 0x00020900, 0x09080707, 0x00070401, 0x00020700, 0x00070301, 0x00040B01, 0x00010C00, 0x0B030102, 0x000B0A01, 0x00070A0B, 0x00030C01, 0x00080E0C, 0x0E040002, 0x000E0D01, 0x0C050102, 0x000C0801, 0x0000010A, 0x00060800, 0x001B080B, 0x00080E0C, 0x00030F01, 0x0E070102, 0x000E0D01, 0x00010E01, 0x0D080102, 0x000D0C01, 0x00080C0B, 0x000A100C, 0x00031101, 0x10070102, 0x00100F01, 0x00021001, 0x0F080102, 0x000F0B01, 0x0000010A, 0x00060B00, 0x00030B0B, 0x00030A01, 0x000A0401, 0x0000010A, 0x00060A00, 0x00030C01, 0x00020D00, 0x0D0C0906, 0x00090301, 0x00FFD70A, 0x00090700, 0x00040901, 0x00010A00, 0x09030102, 0x00090801, 0x0006080B, 0x000A0B00, 0x0B0B0002, 0x000B0A01, 0x00000B01, 0x00000B04, 0x0000010A, 0x00060700, 0x0001090C, 0x00090B0C, 0x00040C01, 0x0B070102, 0x000B0A01, 0x00020B01, 0x090C0202, 0x00090801, 0x00080A0C, 0x0A040002, 0x000A0901, 0x00090501, 0x00040A01, 0x000A0B01, 0x00050D01, 0x00020E00, 0x0E0D0C07, 0x000B0D01, 0x000C0E01, 0x0D050102, 0x00210D0B, 0x00080F0C, 0x000B1001, 0x0008120C, 0x000B1401, 0x00021500, 0x15141306, 0x12070102, 0x00121101, 0x0F0D0202, 0x000F0E01, 0x0009100C, 0x000B1101, 0x0009130C, 0x000B1501, 0x00021600, 0x16151406, 0x13070102, 0x00131201, 0x100D0202, 0x00100F01, 0x000A100C, 0x000B1101, 0x000A130C, 0x000B1501, 0x00021600, 0x16151406, 0x13070102, 0x00131201, 0x100D0202, 0x00100D01, 0x00020D00, 0x0D0B0B06, 0x00FFDB0A, 0x00080B0C, 0x0B0E0002, 0x000B0A01, 0x00090C0C, 0x0C0E0002, 0x000C0B01, 0x000A0D0C, 0x0D0E0002, 0x000D0C01, 0x000F0E00, 0x0E0B0002, 0x000E0D01, 0x00000E01, 0x00000E04 };
+static const oop Method_Supervisor_Debugger_clear_at__consts[] = { (oop)&StaticSymbol_ensureBp, TAG_SMI(0), TAG_SMI(1), (oop)&StaticSymbol__lt, (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq, NULL, (oop)&StaticString_dbg_error_u32no_subbp_20, (oop)&StaticSymbol_println, (oop)&StaticSymbol_unbreakAt_offset_, (oop)&StaticSymbol_at_put_, (oop)&StaticSymbol_removeLast, (oop)&StaticString_dbg_ok_u32clear_21 };
+static const struct CompiledMethod Method_Supervisor_Debugger_clear_at__compiled = {
+    Method_Supervisor_Debugger_clear_at__insts, 131,
+    23, 2,
+    Method_Supervisor_Debugger_clear_at__consts, 16,
+    0
+};
+static const struct Closure Method_Supervisor_Debugger_clear_at__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_Debugger_clear_at__compiled
+};
+
+static const uint32_t Method_Supervisor_Debugger_doBreak__insts[] = { 0x0002080C, 0x08000002, 0x00080701, 0x00010801, 0x07010102, 0x00070601, 0x00060201, 0x00020901, 0x00020A00, 0x09030102, 0x00090801, 0x00080301, 0x00020A01, 0x00020B00, 0x0A030102, 0x000A0901, 0x00090401, 0x00020B01, 0x00020C00, 0x0B030102, 0x000B0A01, 0x000A0501, 0x00040D01, 0x00040E00, 0x0D050102, 0x000D0C01, 0x00060C0B, 0x00060F00, 0x0F070002, 0x000F0E01, 0x00000F01, 0x00000F04, 0x0000010A, 0x00080B00, 0x00050E01, 0x00040F00, 0x0E050102, 0x000E0D01, 0x00060D0B, 0x00061000, 0x10070002, 0x00100F01, 0x00001001, 0x00001004, 0x0000010A, 0x00080C00, 0x00000E01, 0x00001001, 0x00041101, 0x10090102, 0x00100F01, 0x00001101, 0x00051201, 0x11090102, 0x00111001, 0x0E0A0202, 0x000E0D01, 0x00000E01, 0x00000E04 };
+static const oop Method_Supervisor_Debugger_doBreak__consts[] = { (oop)&StaticSymbol_ReadStream, (oop)&StaticSymbol_on_, TAG_SMI(32), (oop)&StaticSymbol_upTo_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticString_dbg_error_u32usage_22, (oop)&StaticSymbol_println, (oop)&StaticSymbol_false, (oop)&StaticSymbol_parseInt_, (oop)&StaticSymbol_break_at_ };
+static const struct CompiledMethod Method_Supervisor_Debugger_doBreak__compiled = {
+    Method_Supervisor_Debugger_doBreak__insts, 59,
+    19, 1,
+    Method_Supervisor_Debugger_doBreak__consts, 11,
+    0
+};
+static const struct Closure Method_Supervisor_Debugger_doBreak__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_Debugger_doBreak__compiled
+};
+
+static const uint32_t Method_Supervisor_Debugger_doClear__insts[] = { 0x0002080C, 0x08000002, 0x00080701, 0x00010801, 0x07010102, 0x00070601, 0x00060201, 0x00020901, 0x00020A00, 0x09030102, 0x00090801, 0x00080301, 0x00020A01, 0x00020B00, 0x0A030102, 0x000A0901, 0x00090401, 0x00020B01, 0x00020C00, 0x0B030102, 0x000B0A01, 0x000A0501, 0x00040D01, 0x00040E00, 0x0D050102, 0x000D0C01, 0x00060C0B, 0x00060F00, 0x0F070002, 0x000F0E01, 0x00000F01, 0x00000F04, 0x0000010A, 0x00080B00, 0x00050E01, 0x00040F00, 0x0E050102, 0x000E0D01, 0x00060D0B, 0x00061000, 0x10070002, 0x00100F01, 0x00001001, 0x00001004, 0x0000010A, 0x00080C00, 0x00000E01, 0x00001001, 0x00041101, 0x10090102, 0x00100F01, 0x00001101, 0x00051201, 0x11090102, 0x00111001, 0x0E0A0202, 0x000E0D01, 0x00000E01, 0x00000E04 };
+static const oop Method_Supervisor_Debugger_doClear__consts[] = { (oop)&StaticSymbol_ReadStream, (oop)&StaticSymbol_on_, TAG_SMI(32), (oop)&StaticSymbol_upTo_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticString_dbg_error_u32usage_22, (oop)&StaticSymbol_println, (oop)&StaticSymbol_false, (oop)&StaticSymbol_parseInt_, (oop)&StaticSymbol_clear_at_ };
+static const struct CompiledMethod Method_Supervisor_Debugger_doClear__compiled = {
+    Method_Supervisor_Debugger_doClear__insts, 59,
+    19, 1,
+    Method_Supervisor_Debugger_doClear__consts, 11,
+    0
+};
+static const struct Closure Method_Supervisor_Debugger_doClear__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_Debugger_doClear__compiled
+};
+
+static const uint32_t Method_Supervisor_Debugger_onBreakContext__insts[] = { 0x00010A01, 0x000D0A0D, 0x00010B0C, 0x00010C01, 0x0B000102, 0x000B0A01, 0x000A0201, 0x000B0D0C, 0x00010E00, 0x0D020102, 0x000D0C01, 0x00590C0B, 0x00010F0C, 0x00011001, 0x0F030102, 0x000F0E01, 0x000E0301, 0x00041000, 0x00051100, 0x11100F07, 0x000F0401, 0x00050F00, 0x000F0501, 0x00041301, 0x00041400, 0x13060102, 0x00131201, 0x0007120B, 0x00051401, 0x0008160C, 0x16070002, 0x00161501, 0x14080102, 0x00141001, 0x0000010A, 0x00091000, 0x001E100B, 0x0009160C, 0x00051701, 0x160A0102, 0x00161501, 0x00031601, 0x15020102, 0x00151401, 0x0008140B, 0x000A180C, 0x00051901, 0x180A0102, 0x00181701, 0x00021801, 0x170B0102, 0x00171301, 0x0000010A, 0x00091300, 0x0006130B, 0x0008160C, 0x00051701, 0x160A0102, 0x00161201, 0x00120401, 0x0000010A, 0x00091200, 0x00051401, 0x00051500, 0x15141106, 0x00110501, 0x00FFD40A, 0x00010F00, 0x0002110C, 0x110C0002, 0x00111001, 0x100D0002, 0x00100F01, 0x000F0601, 0x00061201, 0x000E1300, 0x120F0102, 0x00121101, 0x00061301, 0x00041401, 0x13100102, 0x00131201, 0x00061401, 0x00111500, 0x140F0102, 0x00141301, 0x00061501, 0x00021601, 0x15100102, 0x00151401, 0x00061701, 0x17120002, 0x00171601, 0x16130002, 0x00161501, 0x00001801, 0x18140002, 0x00181701, 0x00001801, 0x00001804, 0x0000010A, 0x00090B00, 0x00000D01, 0x00010E01, 0x0D150102, 0x000D0C01, 0x000C0701, 0x00090D00, 0x000D0901, 0x000B0F0C, 0x00161000, 0x0F0B0102, 0x000F0E01, 0x00030E0B, 0x00170D00, 0x000D0901, 0x0000010A, 0x00090D00, 0x000B100C, 0x00181100, 0x100B0102, 0x00100F01, 0x00060F0B, 0x00071101, 0x000C120C, 0x11080102, 0x00110E01, 0x000E0901, 0x0000010A, 0x00090E00, 0x000B110C, 0x00191200, 0x110B0102, 0x00111001, 0x0008100B, 0x00071201, 0x000C140C, 0x00051500, 0x15141306, 0x12060102, 0x00120F01, 0x000F0901, 0x0000010A, 0x00090F00, 0x00091101, 0x0002110B, 0x00091000, 0x0000060A, 0x0001130C, 0x00051400, 0x131A0102, 0x00131201, 0x00001301, 0x00001304, 0x00001101, 0x00011201, 0x111B0102, 0x00111001, 0x00100801, 0x0002130C, 0x130C0002, 0x00131201, 0x120D0002, 0x00121101, 0x00110601, 0x00061401, 0x001C1500, 0x140F0102, 0x00141301, 0x00061501, 0x00081601, 0x15100102, 0x00151401, 0x00061601, 0x00111700, 0x160F0102, 0x00161501, 0x00061701, 0x00021801, 0x17100102, 0x00171601, 0x00061901, 0x19120002, 0x00191801, 0x18130002, 0x00181701, 0x00001A01, 0x1A140002, 0x001A1901, 0x00001A01, 0x00001A04 };
+static const oop Method_Supervisor_Debugger_onBreakContext__consts[] = { (oop)&StaticSymbol_offsetOf_, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_methodOf_, TAG_SMI(0), TAG_SMI(1), (oop)&StaticSymbol__lt, (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_WriteStream, (oop)&StaticSymbol_new, (oop)&StaticString_dbg_paused_u32break_u32_23, (oop)&StaticSymbol_nextPutAll_, (oop)&StaticSymbol_print_, (oop)&StaticString__u32_16, (oop)&StaticSymbol_contents, (oop)&StaticSymbol_println, (oop)&StaticSymbol_commandLoop, (oop)&StaticSymbol_depthOf_, (oop)&StaticSymbol_into, (oop)&StaticSymbol_true, (oop)&StaticSymbol_over, (oop)&StaticSymbol_out, (oop)&StaticSymbol_requestStep_, (oop)&StaticSymbol_methodIdOfCtx_, (oop)&StaticString_dbg_paused_u32step_u32_24 };
+static const struct CompiledMethod Method_Supervisor_Debugger_onBreakContext__compiled = {
+    Method_Supervisor_Debugger_onBreakContext__insts, 191,
+    27, 1,
+    Method_Supervisor_Debugger_onBreakContext__consts, 29,
+    0
+};
+static const struct Closure Method_Supervisor_Debugger_onBreakContext__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_Debugger_onBreakContext__compiled
+};
+
+static const uint32_t Method_Supervisor_Debugger_depthOf__insts[] = { 0x00000400, 0x00040201, 0x00010401, 0x00040301, 0x00030701, 0x00010800, 0x07020102, 0x00070501, 0x0001050B, 0x00000A0A, 0x00020801, 0x00030900, 0x09080706, 0x00070201, 0x0001070C, 0x00030801, 0x07040102, 0x00070601, 0x00060301, 0x00FFF00A, 0x00010400, 0x00020401, 0x00000404 };
+static const oop Method_Supervisor_Debugger_depthOf__consts[] = { TAG_SMI(0), NULL, (oop)&StaticSymbol__eq_eq, TAG_SMI(1), (oop)&StaticSymbol_senderOf_ };
+static const struct CompiledMethod Method_Supervisor_Debugger_depthOf__compiled = {
+    Method_Supervisor_Debugger_depthOf__insts, 23,
+    10, 1,
+    Method_Supervisor_Debugger_depthOf__consts, 5,
+    0
+};
+static const struct Closure Method_Supervisor_Debugger_depthOf__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_Debugger_depthOf__compiled
+};
+
+static const uint32_t Method_Supervisor_Debugger_methodIdOfCtx__insts[] = { 0x00000501, 0x05000002, 0x00050401, 0x0001060C, 0x00010701, 0x06010102, 0x00060501, 0x00050201, 0x00020600, 0x00060301, 0x00030901, 0x00060B0C, 0x0B030002, 0x000B0A01, 0x09040102, 0x00090701, 0x0017070B, 0x00010C0C, 0x00060E0C, 0x00030F01, 0x0E050102, 0x000E0D01, 0x0C010102, 0x000C0B01, 0x00020C01, 0x0B060102, 0x000B0A01, 0x00060A0B, 0x00040E0C, 0x00030F01, 0x0E050102, 0x000E0D01, 0x00000D04, 0x0000010A, 0x00070900, 0x00030B01, 0x00020C00, 0x0C0B0806, 0x00080301, 0x00FFE20A, 0x00080600, 0x00090700, 0x00020800, 0x08070607, 0x00000604 };
+static const oop Method_Supervisor_Debugger_methodIdOfCtx__consts[] = { (oop)&StaticSymbol_buildRegistry, (oop)&StaticSymbol_methodOf_, TAG_SMI(1), (oop)&StaticSymbol_size, (oop)&StaticSymbol__lt_eq, (oop)&StaticSymbol_at_, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, NULL, TAG_SMI(0) };
+static const struct CompiledMethod Method_Supervisor_Debugger_methodIdOfCtx__compiled = {
+    Method_Supervisor_Debugger_methodIdOfCtx__insts, 45,
+    16, 1,
+    Method_Supervisor_Debugger_methodIdOfCtx__consts, 10,
+    0
+};
+static const struct Closure Method_Supervisor_Debugger_methodIdOfCtx__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_Debugger_methodIdOfCtx__compiled
+};
+
+static const uint32_t Method_Supervisor_Debugger_doInspect__insts[] = { 0x00020E0C, 0x0E000002, 0x000E0D01, 0x00010E01, 0x0D010102, 0x000D0C01, 0x000C0201, 0x00020F01, 0x00021000, 0x0F030102, 0x000F0E01, 0x000E0301, 0x00021001, 0x00021100, 0x10030102, 0x00100F01, 0x000F0401, 0x00041201, 0x00041300, 0x12050102, 0x00121101, 0x0002110B, 0x00061000, 0x0000040A, 0x00001301, 0x00041401, 0x13070102, 0x00131001, 0x00100501, 0x000D110C, 0x00110601, 0x00061100, 0x00110A01, 0x000A1501, 0x00051601, 0x15080102, 0x00151401, 0x0009140B, 0x00061701, 0x00041800, 0x17050102, 0x00171601, 0x0002160B, 0x00091200, 0x0000010A, 0x000A1200, 0x0000010A, 0x00091200, 0x000A120B, 0x0001150C, 0x00061601, 0x150B0102, 0x00151401, 0x00140601, 0x000A1501, 0x000C1600, 0x16151306, 0x00130A01, 0x00FFE60A, 0x00041100, 0x00061301, 0x00041400, 0x13050102, 0x00131201, 0x0006120B, 0x000D1500, 0x150E0002, 0x00151401, 0x00001501, 0x00001504, 0x0000010A, 0x00091100, 0x000F1300, 0x0313120E, 0x00001301, 0x1300140C, 0x1200140D, 0x0001130C, 0x00061401, 0x12100202, 0x00120701, 0x00071301, 0x13110002, 0x00131201, 0x00120801, 0x00071401, 0x14120002, 0x00141301, 0x00130901, 0x0002160C, 0x16130002, 0x00161501, 0x15140002, 0x00151401, 0x00140B01, 0x000B1701, 0x00151800, 0x17160102, 0x00171601, 0x000B1801, 0x00081901, 0x18170102, 0x00181701, 0x00061800, 0x00180A01, 0x000A1B01, 0x00091C01, 0x1B080102, 0x001B1901, 0x001A190B, 0x000B1C01, 0x00181D00, 0x1C160102, 0x001C1B01, 0x000B1D01, 0x000A1E01, 0x1D170102, 0x001D1C01, 0x000B1E01, 0x00191F00, 0x1E160102, 0x001E1D01, 0x000B1F01, 0x00072201, 0x000A2301, 0x221A0102, 0x00222101, 0x211B0002, 0x00212001, 0x1F160102, 0x001F1E01, 0x000A1F01, 0x000C2000, 0x201F1A06, 0x001A0A01, 0x00FFE10A, 0x00041800, 0x000B1A01, 0x1A1C0002, 0x001A1901, 0x190E0002, 0x00191801, 0x00001A01, 0x00001A04 };
+static const oop Method_Supervisor_Debugger_doInspect__consts[] = { (oop)&StaticSymbol_ReadStream, (oop)&StaticSymbol_on_, TAG_SMI(32), (oop)&StaticSymbol_upTo_, NULL, (oop)&StaticSymbol__eq_eq, TAG_SMI(0), (oop)&StaticSymbol_parseInt_, (oop)&StaticSymbol__lt, (oop)&StaticSymbol_false, (oop)&StaticSymbol_true, (oop)&StaticSymbol_senderOf_, TAG_SMI(1), (oop)&StaticString_dbg_error_u32no_subframe_25, (oop)&StaticSymbol_println, (oop)&Vtable_Supervisor_ContextMirror, (oop)&StaticSymbol_init_m_ctx_, (oop)&StaticSymbol_offset, (oop)&StaticSymbol_numRegisters, (oop)&StaticSymbol_WriteStream, (oop)&StaticSymbol_new, (oop)&StaticString_dbg_stack_u32off_eq_26, (oop)&StaticSymbol_nextPutAll_, (oop)&StaticSymbol_print_, (oop)&StaticString__u32r_27, (oop)&StaticString__eq_28, (oop)&StaticSymbol_registerAt_, (oop)&StaticSymbol_printString, (oop)&StaticSymbol_contents };
+static const struct CompiledMethod Method_Supervisor_Debugger_doInspect__compiled = {
+    Method_Supervisor_Debugger_doInspect__insts, 144,
+    36, 1,
+    Method_Supervisor_Debugger_doInspect__consts, 29,
+    0
+};
+static const struct Closure Method_Supervisor_Debugger_doInspect__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_Debugger_doInspect__compiled
+};
+
+static const uint32_t Method_Supervisor_Debugger_initialLoop_insts[] = { 0x00000400, 0x0042040B, 0x0002070C, 0x07010002, 0x00070601, 0x00060101, 0x00010901, 0x00020A00, 0x09030102, 0x00090801, 0x0003080B, 0x00000A01, 0x00000A04, 0x0000010A, 0x00040700, 0x00000901, 0x00010A01, 0x09050102, 0x00090801, 0x00080201, 0x00020A01, 0x00060B00, 0x0A070102, 0x000A0901, 0x0004090B, 0x00000B01, 0x0B080002, 0x000B0501, 0x0000260A, 0x00020D01, 0x00090E00, 0x0D070102, 0x000D0C01, 0x00020C0B, 0x00000B00, 0x0000040A, 0x00020E01, 0x000A0F00, 0x0E070102, 0x000E0B01, 0x00030B0B, 0x00000D01, 0x00000D04, 0x0000170A, 0x00020E01, 0x000B0F00, 0x0E070102, 0x000E0D01, 0x00050D0B, 0x00000F01, 0x00011001, 0x0F0C0102, 0x000F0501, 0x00000D0A, 0x00021001, 0x000D1100, 0x10070102, 0x00100F01, 0x00050F0B, 0x00001101, 0x00011201, 0x110E0102, 0x00110501, 0x0000030A, 0x000F1100, 0x11100002, 0x00110501, 0x00FFBC0A, 0x00020300, 0x00000004 };
+static const oop Method_Supervisor_Debugger_initialLoop_consts[] = { (oop)&StaticSymbol_true, (oop)&StaticSymbol_readLine, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_verbOf_, (oop)&StaticString_dbg_methods_29, (oop)&StaticSymbol__eq, (oop)&StaticSymbol_listMethods, (oop)&StaticString_dbg_continue_30, (oop)&StaticString_dbg_run_31, (oop)&StaticString_dbg_break_32, (oop)&StaticSymbol_doBreak_, (oop)&StaticString_dbg_clear_33, (oop)&StaticSymbol_doClear_, (oop)&StaticString_dbg_error_u32unknown_34, (oop)&StaticSymbol_println };
+static const struct CompiledMethod Method_Supervisor_Debugger_initialLoop_compiled = {
+    Method_Supervisor_Debugger_initialLoop_insts, 70,
+    19, 0,
+    Method_Supervisor_Debugger_initialLoop_consts, 17,
+    0
+};
+static const struct Closure Method_Supervisor_Debugger_initialLoop_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_Debugger_initialLoop_compiled
+};
+
+static const uint32_t Method_Supervisor_Debugger_commandLoop_insts[] = { 0x00000400, 0x0081040B, 0x0002070C, 0x07010002, 0x00070601, 0x00060101, 0x00010901, 0x00020A00, 0x09030102, 0x00090801, 0x0003080B, 0x00000A01, 0x00000A04, 0x0000010A, 0x00040700, 0x00000901, 0x00010A01, 0x09050102, 0x00090801, 0x00080201, 0x00020A01, 0x00060B00, 0x0A070102, 0x000A0901, 0x0009090B, 0x00020B00, 0x000B0B0D, 0x00010C0C, 0x00080D00, 0x0C090102, 0x000C0B01, 0x00000C01, 0x00000C04, 0x0000600A, 0x00020C01, 0x000A0D00, 0x0C070102, 0x000C0B01, 0x00040B0B, 0x00000D01, 0x0D0B0002, 0x000D0501, 0x0000570A, 0x00020E01, 0x000C0F00, 0x0E070102, 0x000E0D01, 0x00050D0B, 0x00000F01, 0x00011001, 0x0F0D0102, 0x000F0501, 0x00004D0A, 0x00021001, 0x000E1100, 0x10070102, 0x00100F01, 0x00050F0B, 0x00001101, 0x00011201, 0x110F0102, 0x00110501, 0x0000430A, 0x00021201, 0x00101300, 0x12070102, 0x00121101, 0x0009110B, 0x00111300, 0x000B130D, 0x0001140C, 0x00121500, 0x14090102, 0x00141301, 0x00001401, 0x00001404, 0x0000350A, 0x00021401, 0x00131500, 0x14070102, 0x00141301, 0x000E130B, 0x00141500, 0x000B150D, 0x00001601, 0x000D170C, 0x16150102, 0x00161501, 0x000C150D, 0x0001170C, 0x00121800, 0x17090102, 0x00171601, 0x00001701, 0x00001704, 0x0000220A, 0x00021601, 0x00161700, 0x16070102, 0x00161501, 0x0010150B, 0x00171700, 0x000B170D, 0x00001901, 0x000D1A0C, 0x19150102, 0x00191801, 0x00121A00, 0x1A181707, 0x000C170D, 0x0001190C, 0x00121A00, 0x19090102, 0x00191801, 0x00001901, 0x00001904, 0x00000D0A, 0x00021801, 0x00181900, 0x18070102, 0x00181701, 0x0005170B, 0x00001901, 0x00011A01, 0x19190102, 0x00190501, 0x0000030A, 0x001A1900, 0x191B0002, 0x00190501, 0x00FF7D0A, 0x00020300, 0x00000004 };
+static const oop Method_Supervisor_Debugger_commandLoop_consts[] = { (oop)&StaticSymbol_true, (oop)&StaticSymbol_readLine, NULL, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_false, (oop)&StaticSymbol_verbOf_, (oop)&StaticString_dbg_continue_30, (oop)&StaticSymbol__eq, TAG_SMI(0), (oop)&StaticSymbol_requestStep_, (oop)&StaticString_dbg_methods_29, (oop)&StaticSymbol_listMethods, (oop)&StaticString_dbg_break_32, (oop)&StaticSymbol_doBreak_, (oop)&StaticString_dbg_clear_33, (oop)&StaticSymbol_doClear_, (oop)&StaticString_dbg_step_35, (oop)&StaticSymbol_into, TAG_SMI(1), (oop)&StaticString_dbg_over_36, (oop)&StaticSymbol_over, (oop)&StaticSymbol_depthOf_, (oop)&StaticString_dbg_out_37, (oop)&StaticSymbol_out, (oop)&StaticString_dbg_inspect_38, (oop)&StaticSymbol_doInspect_, (oop)&StaticString_dbg_error_u32unknown_34, (oop)&StaticSymbol_println };
+static const struct CompiledMethod Method_Supervisor_Debugger_commandLoop_compiled = {
+    Method_Supervisor_Debugger_commandLoop_insts, 133,
+    27, 0,
+    Method_Supervisor_Debugger_commandLoop_consts, 28,
+    0
+};
+static const struct Closure Method_Supervisor_Debugger_commandLoop_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_Debugger_commandLoop_compiled
+};
+
+static const uint32_t Method_Supervisor_Debugger_verbOf__insts[] = { 0x0002060C, 0x06000002, 0x00060501, 0x00010601, 0x05010102, 0x00050401, 0x00040201, 0x00020701, 0x00020800, 0x07030102, 0x00070601, 0x00060301, 0x00030901, 0x00040A00, 0x09050102, 0x00090801, 0x0002080B, 0x00010701, 0x0000010A, 0x00030701, 0x00000704 };
+static const oop Method_Supervisor_Debugger_verbOf__consts[] = { (oop)&StaticSymbol_ReadStream, (oop)&StaticSymbol_on_, TAG_SMI(32), (oop)&StaticSymbol_upTo_, NULL, (oop)&StaticSymbol__eq_eq };
+static const struct CompiledMethod Method_Supervisor_Debugger_verbOf__compiled = {
+    Method_Supervisor_Debugger_verbOf__insts, 21,
+    11, 1,
+    Method_Supervisor_Debugger_verbOf__consts, 6,
+    0
+};
+static const struct Closure Method_Supervisor_Debugger_verbOf__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_Debugger_verbOf__compiled
+};
+
+static const uint32_t Method_Supervisor_Debugger_init_m_io__insts[] = { 0x0001010D, 0x0002020D, 0x00000300, 0x0003030D, 0x00000300, 0x0004030D, 0x00000300, 0x0005030D, 0x00000300, 0x0006030D, 0x00000300, 0x0007030D, 0x00000300, 0x0008030D, 0x00000300, 0x0009030D, 0x00000300, 0x000A030D, 0x00000300, 0x000B030D, 0x00000300, 0x000C030D, 0x00000300, 0x000D030D, 0x00000004 };
+static const oop Method_Supervisor_Debugger_init_m_io__consts[] = { NULL };
+static const struct CompiledMethod Method_Supervisor_Debugger_init_m_io__compiled = {
+    Method_Supervisor_Debugger_init_m_io__insts, 25,
+    4, 2,
+    Method_Supervisor_Debugger_init_m_io__consts, 1,
+    0
+};
+static const struct Closure Method_Supervisor_Debugger_init_m_io__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Supervisor_Debugger_init_m_io__compiled
+};
+
+static const uint32_t Method_Block_Kernel_Collection_block1_value___insts[] = { 0x00010401, 0x00000500, 0x05040306, 0x00000304 };
+static const oop Method_Block_Kernel_Collection_block1_value___consts[] = { TAG_SMI(1) };
+static const struct CompiledMethod Method_Block_Kernel_Collection_block1_value___compiled = {
+    Method_Block_Kernel_Collection_block1_value___insts, 4,
+    6, 2,
+    Method_Block_Kernel_Collection_block1_value___consts, 1,
+    0
+};
+static const struct Closure Method_Block_Kernel_Collection_block1_value___closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Block_Kernel_Collection_block1_value___compiled
+};
+
+static const uint32_t Method_Block_Kernel_Collection_block2_value__insts[] = { 0x02010312, 0x03010412, 0x00010501, 0x03000202, 0x00030201, 0x03010213, 0x00000204 };
+static const oop Method_Block_Kernel_Collection_block2_value__consts[] = { (oop)&StaticSymbol_value_value_ };
+static const struct CompiledMethod Method_Block_Kernel_Collection_block2_value__compiled = {
+    Method_Block_Kernel_Collection_block2_value__insts, 7,
+    6, 1,
+    Method_Block_Kernel_Collection_block2_value__consts, 1,
+    0
+};
+static const struct Closure Method_Block_Kernel_Collection_block2_value__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Block_Kernel_Collection_block2_value__compiled
+};
+
+static const uint32_t Method_Block_Kernel_Collection_block3_value__insts[] = { 0x02010312, 0x01010512, 0x00010601, 0x05000102, 0x00050401, 0x03010102, 0x00030201, 0x00000204 };
+static const oop Method_Block_Kernel_Collection_block3_value__consts[] = { (oop)&StaticSymbol_value_, (oop)&StaticSymbol_add_ };
+static const struct CompiledMethod Method_Block_Kernel_Collection_block3_value__compiled = {
+    Method_Block_Kernel_Collection_block3_value__insts, 8,
+    7, 1,
+    Method_Block_Kernel_Collection_block3_value__consts, 2,
+    0
+};
+static const struct Closure Method_Block_Kernel_Collection_block3_value__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Block_Kernel_Collection_block3_value__compiled
+};
+
+static const uint32_t Method_Block_Kernel_Collection_block4_value__insts[] = { 0x01010412, 0x00010501, 0x04000102, 0x00040301, 0x0005030B, 0x02010512, 0x00010601, 0x05010102, 0x00050201, 0x0000010A, 0x00020200, 0x00000204 };
+static const oop Method_Block_Kernel_Collection_block4_value__consts[] = { (oop)&StaticSymbol_value_, (oop)&StaticSymbol_add_, (oop)&StaticSymbol_false };
+static const struct CompiledMethod Method_Block_Kernel_Collection_block4_value__compiled = {
+    Method_Block_Kernel_Collection_block4_value__insts, 12,
+    7, 1,
+    Method_Block_Kernel_Collection_block4_value__consts, 3,
+    0
+};
+static const struct Closure Method_Block_Kernel_Collection_block4_value__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Block_Kernel_Collection_block4_value__compiled
+};
+
+static const uint32_t Method_Block_Kernel_Collection_block5_value__insts[] = { 0x01010412, 0x00010501, 0x04000102, 0x00040301, 0x0002030B, 0x00010200, 0x0000040A, 0x02010512, 0x00010601, 0x05020102, 0x00050201, 0x00000204 };
+static const oop Method_Block_Kernel_Collection_block5_value__consts[] = { (oop)&StaticSymbol_value_, (oop)&StaticSymbol_false, (oop)&StaticSymbol_add_ };
+static const struct CompiledMethod Method_Block_Kernel_Collection_block5_value__compiled = {
+    Method_Block_Kernel_Collection_block5_value__insts, 12,
+    7, 1,
+    Method_Block_Kernel_Collection_block5_value__consts, 3,
+    0
+};
+static const struct Closure Method_Block_Kernel_Collection_block5_value__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Block_Kernel_Collection_block5_value__compiled
+};
+
+static const uint32_t Method_Block_Kernel_Collection_block6_value___insts[] = { 0x00010401, 0x0002040B, 0x00000300, 0x0000040A, 0x00020501, 0x01010612, 0x05010102, 0x00050301, 0x00000304 };
+static const oop Method_Block_Kernel_Collection_block6_value___consts[] = { (oop)&StaticSymbol_true, (oop)&StaticSymbol__eq };
+static const struct CompiledMethod Method_Block_Kernel_Collection_block6_value___compiled = {
+    Method_Block_Kernel_Collection_block6_value___insts, 9,
+    7, 2,
+    Method_Block_Kernel_Collection_block6_value___consts, 2,
+    0
+};
+static const struct Closure Method_Block_Kernel_Collection_block6_value___closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Block_Kernel_Collection_block6_value___compiled
+};
+
+static const uint32_t Method_Block_Kernel_Collection_block7_value__insts[] = { 0x01010312, 0x02010412, 0x00010501, 0x03000202, 0x00030201, 0x02010412, 0x00010500, 0x05040306, 0x02010313, 0x00000304 };
+static const oop Method_Block_Kernel_Collection_block7_value__consts[] = { (oop)&StaticSymbol_at_put_, TAG_SMI(1) };
+static const struct CompiledMethod Method_Block_Kernel_Collection_block7_value__compiled = {
+    Method_Block_Kernel_Collection_block7_value__insts, 10,
+    6, 1,
+    Method_Block_Kernel_Collection_block7_value__consts, 2,
+    0
+};
+static const struct Closure Method_Block_Kernel_Collection_block7_value__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Block_Kernel_Collection_block7_value__compiled
+};
+
+static const uint32_t Method_Block_Kernel_Collection_block8_value__insts[] = { 0x01010412, 0x00010501, 0x04000102, 0x00040301, 0x0003030B, 0x00010501, 0x00000505, 0x0000010A, 0x00010200, 0x00000204 };
+static const oop Method_Block_Kernel_Collection_block8_value__consts[] = { (oop)&StaticSymbol_value_, (oop)&StaticSymbol_false };
+static const struct CompiledMethod Method_Block_Kernel_Collection_block8_value__compiled = {
+    Method_Block_Kernel_Collection_block8_value__insts, 10,
+    6, 1,
+    Method_Block_Kernel_Collection_block8_value__consts, 2,
+    0
+};
+static const struct Closure Method_Block_Kernel_Collection_block8_value__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Block_Kernel_Collection_block8_value__compiled
+};
+
+static const uint32_t Method_Block_Kernel_Collection_block9_value_insts[] = { 0x00010212, 0x00000300, 0x02010102, 0x00020101, 0x00000104 };
+static const oop Method_Block_Kernel_Collection_block9_value_consts[] = { (oop)&StaticString_not_u32found_39, (oop)&StaticSymbol_error_ };
+static const struct CompiledMethod Method_Block_Kernel_Collection_block9_value_compiled = {
+    Method_Block_Kernel_Collection_block9_value_insts, 5,
+    4, 0,
+    Method_Block_Kernel_Collection_block9_value_consts, 2,
+    0
+};
+static const struct Closure Method_Block_Kernel_Collection_block9_value_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Block_Kernel_Collection_block9_value_compiled
+};
+
+static const uint32_t Method_Block_Kernel_Set_block10_value__insts[] = { 0x00010312, 0x00010401, 0x03000102, 0x00030201, 0x00000204 };
+static const oop Method_Block_Kernel_Set_block10_value__consts[] = { (oop)&StaticSymbol_add_ };
+static const struct CompiledMethod Method_Block_Kernel_Set_block10_value__compiled = {
+    Method_Block_Kernel_Set_block10_value__insts, 5,
+    5, 1,
+    Method_Block_Kernel_Set_block10_value__consts, 1,
+    0
+};
+static const struct Closure Method_Block_Kernel_Set_block10_value__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Block_Kernel_Set_block10_value__compiled
+};
+
+static const uint32_t Method_Block_Kernel_Set_block11_value_insts[] = { 0x00010212, 0x00000300, 0x02010102, 0x00020101, 0x00000104 };
+static const oop Method_Block_Kernel_Set_block11_value_consts[] = { (oop)&StaticString_element_u32not_u32found_40, (oop)&StaticSymbol_error_ };
+static const struct CompiledMethod Method_Block_Kernel_Set_block11_value_compiled = {
+    Method_Block_Kernel_Set_block11_value_insts, 5,
+    4, 0,
+    Method_Block_Kernel_Set_block11_value_consts, 2,
+    0
+};
+static const struct Closure Method_Block_Kernel_Set_block11_value_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Block_Kernel_Set_block11_value_compiled
+};
+
+static const uint32_t Method_Block_Kernel_Dictionary_block12_value_insts[] = { 0x00010212, 0x00000300, 0x02010102, 0x00020101, 0x00000104 };
+static const oop Method_Block_Kernel_Dictionary_block12_value_consts[] = { (oop)&StaticString_key_u32not_u32found_41, (oop)&StaticSymbol_error_ };
+static const struct CompiledMethod Method_Block_Kernel_Dictionary_block12_value_compiled = {
+    Method_Block_Kernel_Dictionary_block12_value_insts, 5,
+    4, 0,
+    Method_Block_Kernel_Dictionary_block12_value_consts, 2,
+    0
+};
+static const struct Closure Method_Block_Kernel_Dictionary_block12_value_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Block_Kernel_Dictionary_block12_value_compiled
+};
+
+static const uint32_t Method_Block_Kernel_Dictionary_block13_value_insts[] = { 0x00010212, 0x00000300, 0x02010102, 0x00020101, 0x00000104 };
+static const oop Method_Block_Kernel_Dictionary_block13_value_consts[] = { (oop)&StaticString_key_u32not_u32found_41, (oop)&StaticSymbol_error_ };
+static const struct CompiledMethod Method_Block_Kernel_Dictionary_block13_value_compiled = {
+    Method_Block_Kernel_Dictionary_block13_value_insts, 5,
+    4, 0,
+    Method_Block_Kernel_Dictionary_block13_value_consts, 2,
+    0
+};
+static const struct Closure Method_Block_Kernel_Dictionary_block13_value_closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Block_Kernel_Dictionary_block13_value_compiled
+};
+
+static const uint32_t Method_Block_Supervisor_block14_value__insts[] = { 0x05010312, 0x00010401, 0x03000102, 0x00030201, 0x00000204 };
+static const oop Method_Block_Supervisor_block14_value__consts[] = { (oop)&StaticSymbol_onBreakContext_ };
+static const struct CompiledMethod Method_Block_Supervisor_block14_value__compiled = {
+    Method_Block_Supervisor_block14_value__insts, 5,
+    5, 1,
+    Method_Block_Supervisor_block14_value__consts, 1,
+    0
+};
+static const struct Closure Method_Block_Supervisor_block14_value__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_Block_Supervisor_block14_value__compiled
+};
+
+/* Vtables and Bindings */
+const struct Vtable Vtable_IntegerVtable = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)NULL,
+    0, 0,
+    0
+};
+
+const struct Vtable Vtable_FloatVtable = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)NULL,
+    0, 0,
+    0
+};
+
+const struct Vtable Vtable_LargeIntegerVtable = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)NULL,
+    0, 0,
+    0
+};
+
+static const struct Binding Vtable_MethodContextVtable_bindings[] = {
+    { (oop)&StaticSymbol_unwindTo_value_, (oop)&Method_MethodContextVtable_unwindTo_value__closure },
+};
+const struct Vtable Vtable_MethodContextVtable = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_MethodContextVtable_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_UdpTest_bindings[] = {
+    { (oop)&StaticSymbol_main_args_, (oop)&Method_UdpTest_main_args__closure },
+    { (oop)&StaticSymbol_roundTrip_, (oop)&Method_UdpTest_roundTrip__closure },
+    { (oop)&StaticSymbol_fail_, (oop)&Method_UdpTest_fail__closure },
+    { (oop)&StaticSymbol_init_platform_net_, (oop)&Method_UdpTest_init_platform_net__closure },
+};
+const struct Vtable Vtable_UdpTest = {
+    { (oop)&Vtable_Meta_UdpTest },
+    (oop)&Vtable_Kernel_Object, (struct Binding *)Vtable_UdpTest_bindings,
+    4, 4,
+    0
+};
+
+static const struct Binding Vtable_Meta_UdpTest_bindings[] = {
+    { (oop)&StaticSymbol_packageUsing_, (oop)&Method_Meta_UdpTest_packageUsing__closure },
+};
+const struct Vtable Vtable_Meta_UdpTest = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Meta_UdpTest_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Kernel_bindings[] = {
+    { (oop)&StaticSymbol_serialOn_, (oop)&Method_Kernel_serialOn__closure },
+    { (oop)&StaticSymbol_netOn_, (oop)&Method_Kernel_netOn__closure },
+    { (oop)&StaticSymbol_readLine, (oop)&Method_Kernel_readLine_closure },
+    { (oop)&StaticSymbol_Object, (oop)&Method_Kernel_Object_closure },
+    { (oop)&StaticSymbol_Array, (oop)&Method_Kernel_Array_closure },
+    { (oop)&StaticSymbol_Collection, (oop)&Method_Kernel_Collection_closure },
+    { (oop)&StaticSymbol_OrderedCollection, (oop)&Method_Kernel_OrderedCollection_closure },
+    { (oop)&StaticSymbol_Set, (oop)&Method_Kernel_Set_closure },
+    { (oop)&StaticSymbol_Dictionary, (oop)&Method_Kernel_Dictionary_closure },
+    { (oop)&StaticSymbol_ReadStream, (oop)&Method_Kernel_ReadStream_closure },
+    { (oop)&StaticSymbol_WriteStream, (oop)&Method_Kernel_WriteStream_closure },
+    { (oop)&StaticSymbol_HashedCollection, (oop)&Method_Kernel_HashedCollection_closure },
+    { (oop)&StaticSymbol_Serial, (oop)&Method_Kernel_Serial_closure },
+    { (oop)&StaticSymbol_Net, (oop)&Method_Kernel_Net_closure },
+    { (oop)&StaticSymbol_Socket, (oop)&Method_Kernel_Socket_closure },
+    { (oop)&StaticSymbol_Datagram, (oop)&Method_Kernel_Datagram_closure },
+    { (oop)&StaticSymbol_init_platform_, (oop)&Method_Kernel_init_platform__closure },
+};
+const struct Vtable Vtable_Kernel = {
+    { (oop)&Vtable_VtableVtable },
+    (oop)&Vtable_Kernel_Object, (struct Binding *)Vtable_Kernel_bindings,
+    17, 17,
+    0
+};
+
+static const struct Binding Vtable_Kernel_Object_bindings[] = {
+    { (oop)&StaticSymbol_isNil, (oop)&Method_Kernel_Object_isNil_closure },
+    { (oop)&StaticSymbol_notNil, (oop)&Method_Kernel_Object_notNil_closure },
+    { (oop)&StaticSymbol_ifNil_, (oop)&Method_Kernel_Object_ifNil__closure },
+    { (oop)&StaticSymbol_ifNotNil_, (oop)&Method_Kernel_Object_ifNotNil__closure },
+    { (oop)&StaticSymbol__eq, (oop)&Method_Kernel_Object__eq_closure },
+    { (oop)&StaticSymbol_printString, (oop)&Method_Kernel_Object_printString_closure },
+    { (oop)&StaticSymbol_asString, (oop)&Method_Kernel_Object_asString_closure },
+    { (oop)&StaticSymbol_hash, (oop)&Method_Kernel_Object_hash_closure },
+    { (oop)&StaticSymbol_init_new, (oop)&Method_Kernel_Object_init_new_closure },
+};
+const struct Vtable Vtable_Kernel_Object = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Kernel_Object_bindings,
+    9, 9,
+    1
+};
+
+static const struct Binding Vtable_Kernel_Array_bindings[] = {
+    { (oop)&StaticSymbol_at_, (oop)&Method_Kernel_Array_at__closure },
+    { (oop)&StaticSymbol_at_put_, (oop)&Method_Kernel_Array_at_put__closure },
+    { (oop)&StaticSymbol_size, (oop)&Method_Kernel_Array_size_closure },
+    { (oop)&StaticSymbol_do_, (oop)&Method_Kernel_Array_do__closure },
+    { (oop)&StaticSymbol_init_new, (oop)&Method_Kernel_Array_init_new_closure },
+};
+const struct Vtable Vtable_Kernel_Array = {
+    { (oop)&Vtable_Meta_Kernel_Array },
+    (oop)&Vtable_Kernel_Object, (struct Binding *)Vtable_Kernel_Array_bindings,
+    5, 5,
+    1
+};
+
+static const struct Binding Vtable_Meta_Kernel_Array_bindings[] = {
+    { (oop)&StaticSymbol_new_, (oop)&Method_Meta_Kernel_Array_new__closure },
+};
+const struct Vtable Vtable_Meta_Kernel_Array = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Meta_Kernel_Array_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Kernel_Collection_bindings[] = {
+    { (oop)&StaticSymbol_do_, (oop)&Method_Kernel_Collection_do__closure },
+    { (oop)&StaticSymbol_size, (oop)&Method_Kernel_Collection_size_closure },
+    { (oop)&StaticSymbol_isEmpty, (oop)&Method_Kernel_Collection_isEmpty_closure },
+    { (oop)&StaticSymbol_inject_into_, (oop)&Method_Kernel_Collection_inject_into__closure },
+    { (oop)&StaticSymbol_collect_, (oop)&Method_Kernel_Collection_collect__closure },
+    { (oop)&StaticSymbol_select_, (oop)&Method_Kernel_Collection_select__closure },
+    { (oop)&StaticSymbol_reject_, (oop)&Method_Kernel_Collection_reject__closure },
+    { (oop)&StaticSymbol_includes_, (oop)&Method_Kernel_Collection_includes__closure },
+    { (oop)&StaticSymbol_asArray, (oop)&Method_Kernel_Collection_asArray_closure },
+    { (oop)&StaticSymbol_detect_ifNone_, (oop)&Method_Kernel_Collection_detect_ifNone__closure },
+    { (oop)&StaticSymbol_detect_, (oop)&Method_Kernel_Collection_detect__closure },
+    { (oop)&StaticSymbol_init_new, (oop)&Method_Kernel_Collection_init_new_closure },
+};
+const struct Vtable Vtable_Kernel_Collection = {
+    { (oop)&Vtable_VtableVtable },
+    (oop)&Vtable_Kernel_Object, (struct Binding *)Vtable_Kernel_Collection_bindings,
+    12, 12,
+    1
+};
+
+static const struct Binding Vtable_Kernel_OrderedCollection_bindings[] = {
+    { (oop)&StaticSymbol_do_, (oop)&Method_Kernel_OrderedCollection_do__closure },
+    { (oop)&StaticSymbol_size, (oop)&Method_Kernel_OrderedCollection_size_closure },
+    { (oop)&StaticSymbol_isEmpty, (oop)&Method_Kernel_OrderedCollection_isEmpty_closure },
+    { (oop)&StaticSymbol_add_, (oop)&Method_Kernel_OrderedCollection_add__closure },
+    { (oop)&StaticSymbol_addLast_, (oop)&Method_Kernel_OrderedCollection_addLast__closure },
+    { (oop)&StaticSymbol_at_, (oop)&Method_Kernel_OrderedCollection_at__closure },
+    { (oop)&StaticSymbol_at_put_, (oop)&Method_Kernel_OrderedCollection_at_put__closure },
+    { (oop)&StaticSymbol_first, (oop)&Method_Kernel_OrderedCollection_first_closure },
+    { (oop)&StaticSymbol_last, (oop)&Method_Kernel_OrderedCollection_last_closure },
+    { (oop)&StaticSymbol_removeLast, (oop)&Method_Kernel_OrderedCollection_removeLast_closure },
+    { (oop)&StaticSymbol_removeFirst, (oop)&Method_Kernel_OrderedCollection_removeFirst_closure },
+    { (oop)&StaticSymbol_ensureCapacity, (oop)&Method_Kernel_OrderedCollection_ensureCapacity_closure },
+    { (oop)&StaticSymbol_grow, (oop)&Method_Kernel_OrderedCollection_grow_closure },
+    { (oop)&StaticSymbol_init_new, (oop)&Method_Kernel_OrderedCollection_init_new_closure },
+};
+const struct Vtable Vtable_Kernel_OrderedCollection = {
+    { (oop)&Vtable_VtableVtable },
+    (oop)&Vtable_Kernel_Collection, (struct Binding *)Vtable_Kernel_OrderedCollection_bindings,
+    14, 14,
+    1
+};
+
+static const struct Binding Vtable_Kernel_HashedCollection_bindings[] = {
+    { (oop)&StaticSymbol_capacity, (oop)&Method_Kernel_HashedCollection_capacity_closure },
+    { (oop)&StaticSymbol_size, (oop)&Method_Kernel_HashedCollection_size_closure },
+    { (oop)&StaticSymbol_isEmpty, (oop)&Method_Kernel_HashedCollection_isEmpty_closure },
+    { (oop)&StaticSymbol_indexFor_, (oop)&Method_Kernel_HashedCollection_indexFor__closure },
+    { (oop)&StaticSymbol_slotFor_, (oop)&Method_Kernel_HashedCollection_slotFor__closure },
+    { (oop)&StaticSymbol_containsKey_, (oop)&Method_Kernel_HashedCollection_containsKey__closure },
+    { (oop)&StaticSymbol_atCapacity, (oop)&Method_Kernel_HashedCollection_atCapacity_closure },
+    { (oop)&StaticSymbol_growIfNeeded, (oop)&Method_Kernel_HashedCollection_growIfNeeded_closure },
+    { (oop)&StaticSymbol_rehashFrom_, (oop)&Method_Kernel_HashedCollection_rehashFrom__closure },
+    { (oop)&StaticSymbol_grow, (oop)&Method_Kernel_HashedCollection_grow_closure },
+    { (oop)&StaticSymbol_reinsertEntryAt_, (oop)&Method_Kernel_HashedCollection_reinsertEntryAt__closure },
+    { (oop)&StaticSymbol_do_, (oop)&Method_Kernel_HashedCollection_do__closure },
+    { (oop)&StaticSymbol_init_new, (oop)&Method_Kernel_HashedCollection_init_new_closure },
+};
+const struct Vtable Vtable_Kernel_HashedCollection = {
+    { (oop)&Vtable_VtableVtable },
+    (oop)&Vtable_Kernel_Collection, (struct Binding *)Vtable_Kernel_HashedCollection_bindings,
+    13, 13,
+    1
+};
+
+static const struct Binding Vtable_Kernel_Set_bindings[] = {
+    { (oop)&StaticSymbol_add_, (oop)&Method_Kernel_Set_add__closure },
+    { (oop)&StaticSymbol_addAll_, (oop)&Method_Kernel_Set_addAll__closure },
+    { (oop)&StaticSymbol_remove_, (oop)&Method_Kernel_Set_remove__closure },
+    { (oop)&StaticSymbol_remove_ifAbsent_, (oop)&Method_Kernel_Set_remove_ifAbsent__closure },
+    { (oop)&StaticSymbol_includes_, (oop)&Method_Kernel_Set_includes__closure },
+    { (oop)&StaticSymbol_do_, (oop)&Method_Kernel_Set_do__closure },
+    { (oop)&StaticSymbol_place_, (oop)&Method_Kernel_Set_place__closure },
+    { (oop)&StaticSymbol_reinsertEntryAt_, (oop)&Method_Kernel_Set_reinsertEntryAt__closure },
+    { (oop)&StaticSymbol_grow, (oop)&Method_Kernel_Set_grow_closure },
+    { (oop)&StaticSymbol_init_new, (oop)&Method_Kernel_Set_init_new_closure },
+};
+const struct Vtable Vtable_Kernel_Set = {
+    { (oop)&Vtable_VtableVtable },
+    (oop)&Vtable_Kernel_HashedCollection, (struct Binding *)Vtable_Kernel_Set_bindings,
+    10, 10,
+    1
+};
+
+static const struct Binding Vtable_Kernel_Dictionary_bindings[] = {
+    { (oop)&StaticSymbol_at_put_, (oop)&Method_Kernel_Dictionary_at_put__closure },
+    { (oop)&StaticSymbol_at_ifAbsent_, (oop)&Method_Kernel_Dictionary_at_ifAbsent__closure },
+    { (oop)&StaticSymbol_at_, (oop)&Method_Kernel_Dictionary_at__closure },
+    { (oop)&StaticSymbol_at_ifAbsentPut_, (oop)&Method_Kernel_Dictionary_at_ifAbsentPut__closure },
+    { (oop)&StaticSymbol_includesKey_, (oop)&Method_Kernel_Dictionary_includesKey__closure },
+    { (oop)&StaticSymbol_removeKey_, (oop)&Method_Kernel_Dictionary_removeKey__closure },
+    { (oop)&StaticSymbol_removeKey_ifAbsent_, (oop)&Method_Kernel_Dictionary_removeKey_ifAbsent__closure },
+    { (oop)&StaticSymbol_keys, (oop)&Method_Kernel_Dictionary_keys_closure },
+    { (oop)&StaticSymbol_values, (oop)&Method_Kernel_Dictionary_values_closure },
+    { (oop)&StaticSymbol_keysAndValuesDo_, (oop)&Method_Kernel_Dictionary_keysAndValuesDo__closure },
+    { (oop)&StaticSymbol_do_, (oop)&Method_Kernel_Dictionary_do__closure },
+    { (oop)&StaticSymbol_place_value_, (oop)&Method_Kernel_Dictionary_place_value__closure },
+    { (oop)&StaticSymbol_reinsertEntryAt_, (oop)&Method_Kernel_Dictionary_reinsertEntryAt__closure },
+    { (oop)&StaticSymbol_grow, (oop)&Method_Kernel_Dictionary_grow_closure },
+    { (oop)&StaticSymbol_init_new, (oop)&Method_Kernel_Dictionary_init_new_closure },
+};
+const struct Vtable Vtable_Kernel_Dictionary = {
+    { (oop)&Vtable_VtableVtable },
+    (oop)&Vtable_Kernel_HashedCollection, (struct Binding *)Vtable_Kernel_Dictionary_bindings,
+    15, 15,
+    1
+};
+
+static const struct Binding Vtable_Kernel_ReadStream_bindings[] = {
+    { (oop)&StaticSymbol_next, (oop)&Method_Kernel_ReadStream_next_closure },
+    { (oop)&StaticSymbol_peek, (oop)&Method_Kernel_ReadStream_peek_closure },
+    { (oop)&StaticSymbol_atEnd, (oop)&Method_Kernel_ReadStream_atEnd_closure },
+    { (oop)&StaticSymbol_skip_, (oop)&Method_Kernel_ReadStream_skip__closure },
+    { (oop)&StaticSymbol_position, (oop)&Method_Kernel_ReadStream_position_closure },
+    { (oop)&StaticSymbol_reset, (oop)&Method_Kernel_ReadStream_reset_closure },
+    { (oop)&StaticSymbol_next_, (oop)&Method_Kernel_ReadStream_next__closure },
+    { (oop)&StaticSymbol_upTo_, (oop)&Method_Kernel_ReadStream_upTo__closure },
+    { (oop)&StaticSymbol_nextLine, (oop)&Method_Kernel_ReadStream_nextLine_closure },
+    { (oop)&StaticSymbol_upToEnd, (oop)&Method_Kernel_ReadStream_upToEnd_closure },
+    { (oop)&StaticSymbol_do_, (oop)&Method_Kernel_ReadStream_do__closure },
+    { (oop)&StaticSymbol_prefixOf_upTo_, (oop)&Method_Kernel_ReadStream_prefixOf_upTo__closure },
+    { (oop)&StaticSymbol_setSource_, (oop)&Method_Kernel_ReadStream_setSource__closure },
+    { (oop)&StaticSymbol_init_new, (oop)&Method_Kernel_ReadStream_init_new_closure },
+};
+const struct Vtable Vtable_Kernel_ReadStream = {
+    { (oop)&Vtable_Meta_Kernel_ReadStream },
+    (oop)&Vtable_Kernel_Object, (struct Binding *)Vtable_Kernel_ReadStream_bindings,
+    14, 14,
+    1
+};
+
+static const struct Binding Vtable_Meta_Kernel_ReadStream_bindings[] = {
+    { (oop)&StaticSymbol_on_, (oop)&Method_Meta_Kernel_ReadStream_on__closure },
+};
+const struct Vtable Vtable_Meta_Kernel_ReadStream = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Meta_Kernel_ReadStream_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Kernel_WriteStream_bindings[] = {
+    { (oop)&StaticSymbol_nextPut_, (oop)&Method_Kernel_WriteStream_nextPut__closure },
+    { (oop)&StaticSymbol_nextPutAll_, (oop)&Method_Kernel_WriteStream_nextPutAll__closure },
+    { (oop)&StaticSymbol_print_, (oop)&Method_Kernel_WriteStream_print__closure },
+    { (oop)&StaticSymbol_nextPutLine_, (oop)&Method_Kernel_WriteStream_nextPutLine__closure },
+    { (oop)&StaticSymbol_contents, (oop)&Method_Kernel_WriteStream_contents_closure },
+    { (oop)&StaticSymbol_size, (oop)&Method_Kernel_WriteStream_size_closure },
+    { (oop)&StaticSymbol_reset, (oop)&Method_Kernel_WriteStream_reset_closure },
+    { (oop)&StaticSymbol_init_new, (oop)&Method_Kernel_WriteStream_init_new_closure },
+};
+const struct Vtable Vtable_Kernel_WriteStream = {
+    { (oop)&Vtable_VtableVtable },
+    (oop)&Vtable_Kernel_Object, (struct Binding *)Vtable_Kernel_WriteStream_bindings,
+    8, 8,
+    1
+};
+
+static const struct Binding Vtable_Kernel_Serial_bindings[] = {
+    { (oop)&StaticSymbol_setPort_, (oop)&Method_Kernel_Serial_setPort__closure },
+    { (oop)&StaticSymbol_writeByte_, (oop)&Method_Kernel_Serial_writeByte__closure },
+    { (oop)&StaticSymbol_write_, (oop)&Method_Kernel_Serial_write__closure },
+    { (oop)&StaticSymbol_atEnd, (oop)&Method_Kernel_Serial_atEnd_closure },
+    { (oop)&StaticSymbol_readByte, (oop)&Method_Kernel_Serial_readByte_closure },
+    { (oop)&StaticSymbol_read_, (oop)&Method_Kernel_Serial_read__closure },
+    { (oop)&StaticSymbol_readLine, (oop)&Method_Kernel_Serial_readLine_closure },
+    { (oop)&StaticSymbol_init_new, (oop)&Method_Kernel_Serial_init_new_closure },
+};
+const struct Vtable Vtable_Kernel_Serial = {
+    { (oop)&Vtable_Meta_Kernel_Serial },
+    (oop)&Vtable_Kernel_Object, (struct Binding *)Vtable_Kernel_Serial_bindings,
+    8, 8,
+    1
+};
+
+static const struct Binding Vtable_Meta_Kernel_Serial_bindings[] = {
+    { (oop)&StaticSymbol_onPort_, (oop)&Method_Meta_Kernel_Serial_onPort__closure },
+};
+const struct Vtable Vtable_Meta_Kernel_Serial = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Meta_Kernel_Serial_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Kernel_Net_bindings[] = {
+    { (oop)&StaticSymbol_setPort_, (oop)&Method_Kernel_Net_setPort__closure },
+    { (oop)&StaticSymbol_udp, (oop)&Method_Kernel_Net_udp_closure },
+    { (oop)&StaticSymbol_udpBindPort_, (oop)&Method_Kernel_Net_udpBindPort__closure },
+    { (oop)&StaticSymbol_init_new, (oop)&Method_Kernel_Net_init_new_closure },
+};
+const struct Vtable Vtable_Kernel_Net = {
+    { (oop)&Vtable_Meta_Kernel_Net },
+    (oop)&Vtable_Kernel_Object, (struct Binding *)Vtable_Kernel_Net_bindings,
+    4, 4,
+    1
+};
+
+static const struct Binding Vtable_Meta_Kernel_Net_bindings[] = {
+    { (oop)&StaticSymbol_onPort_, (oop)&Method_Meta_Kernel_Net_onPort__closure },
+};
+const struct Vtable Vtable_Meta_Kernel_Net = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Meta_Kernel_Net_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Kernel_Socket_bindings[] = {
+    { (oop)&StaticSymbol_setPort_handle_, (oop)&Method_Kernel_Socket_setPort_handle__closure },
+    { (oop)&StaticSymbol_sendTo_port_data_, (oop)&Method_Kernel_Socket_sendTo_port_data__closure },
+    { (oop)&StaticSymbol_receive, (oop)&Method_Kernel_Socket_receive_closure },
+    { (oop)&StaticSymbol_close, (oop)&Method_Kernel_Socket_close_closure },
+    { (oop)&StaticSymbol_init_new, (oop)&Method_Kernel_Socket_init_new_closure },
+};
+const struct Vtable Vtable_Kernel_Socket = {
+    { (oop)&Vtable_Meta_Kernel_Socket },
+    (oop)&Vtable_Kernel_Object, (struct Binding *)Vtable_Kernel_Socket_bindings,
+    5, 5,
+    1
+};
+
+static const struct Binding Vtable_Meta_Kernel_Socket_bindings[] = {
+    { (oop)&StaticSymbol_onPort_handle_, (oop)&Method_Meta_Kernel_Socket_onPort_handle__closure },
+};
+const struct Vtable Vtable_Meta_Kernel_Socket = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Meta_Kernel_Socket_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Kernel_Datagram_bindings[] = {
+    { (oop)&StaticSymbol_setData_host_port_, (oop)&Method_Kernel_Datagram_setData_host_port__closure },
+    { (oop)&StaticSymbol_data, (oop)&Method_Kernel_Datagram_data_closure },
+    { (oop)&StaticSymbol_senderHost, (oop)&Method_Kernel_Datagram_senderHost_closure },
+    { (oop)&StaticSymbol_senderPort, (oop)&Method_Kernel_Datagram_senderPort_closure },
+    { (oop)&StaticSymbol_init_new, (oop)&Method_Kernel_Datagram_init_new_closure },
+};
+const struct Vtable Vtable_Kernel_Datagram = {
+    { (oop)&Vtable_Meta_Kernel_Datagram },
+    (oop)&Vtable_Kernel_Object, (struct Binding *)Vtable_Kernel_Datagram_bindings,
+    5, 5,
+    1
+};
+
+static const struct Binding Vtable_Meta_Kernel_Datagram_bindings[] = {
+    { (oop)&StaticSymbol_data_senderHost_senderPort_, (oop)&Method_Meta_Kernel_Datagram_data_senderHost_senderPort__closure },
+};
+const struct Vtable Vtable_Meta_Kernel_Datagram = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Meta_Kernel_Datagram_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Supervisor_bindings[] = {
+    { (oop)&StaticSymbol_run_platform_args_debug_, (oop)&Method_Supervisor_run_platform_args_debug__closure },
+    { (oop)&StaticSymbol_ObjectMirror, (oop)&Method_Supervisor_ObjectMirror_closure },
+    { (oop)&StaticSymbol_ContextMirror, (oop)&Method_Supervisor_ContextMirror_closure },
+    { (oop)&StaticSymbol_Debugger, (oop)&Method_Supervisor_Debugger_closure },
+    { (oop)&StaticSymbol_init_mirror_, (oop)&Method_Supervisor_init_mirror__closure },
+};
+const struct Vtable Vtable_Supervisor = {
+    { (oop)&Vtable_VtableVtable },
+    (oop)&Vtable_Kernel_Object, (struct Binding *)Vtable_Supervisor_bindings,
+    5, 5,
+    0
+};
+
+static const struct Binding Vtable_Supervisor_ObjectMirror_bindings[] = {
+    { (oop)&StaticSymbol_vtable, (oop)&Method_Supervisor_ObjectMirror_vtable_closure },
+    { (oop)&StaticSymbol_bindings, (oop)&Method_Supervisor_ObjectMirror_bindings_closure },
+    { (oop)&StaticSymbol_reflectee, (oop)&Method_Supervisor_ObjectMirror_reflectee_closure },
+    { (oop)&StaticSymbol_init_m_obj_, (oop)&Method_Supervisor_ObjectMirror_init_m_obj__closure },
+};
+const struct Vtable Vtable_Supervisor_ObjectMirror = {
+    { (oop)&Vtable_VtableVtable },
+    (oop)&Vtable_Kernel_Object, (struct Binding *)Vtable_Supervisor_ObjectMirror_bindings,
+    4, 4,
+    1
+};
+
+static const struct Binding Vtable_Supervisor_ContextMirror_bindings[] = {
+    { (oop)&StaticSymbol_context, (oop)&Method_Supervisor_ContextMirror_context_closure },
+    { (oop)&StaticSymbol_rawSender, (oop)&Method_Supervisor_ContextMirror_rawSender_closure },
+    { (oop)&StaticSymbol_sender, (oop)&Method_Supervisor_ContextMirror_sender_closure },
+    { (oop)&StaticSymbol_pc, (oop)&Method_Supervisor_ContextMirror_pc_closure },
+    { (oop)&StaticSymbol_offset, (oop)&Method_Supervisor_ContextMirror_offset_closure },
+    { (oop)&StaticSymbol_registerAt_, (oop)&Method_Supervisor_ContextMirror_registerAt__closure },
+    { (oop)&StaticSymbol_registerAt_put_, (oop)&Method_Supervisor_ContextMirror_registerAt_put__closure },
+    { (oop)&StaticSymbol_numRegisters, (oop)&Method_Supervisor_ContextMirror_numRegisters_closure },
+    { (oop)&StaticSymbol_init_m_ctx_, (oop)&Method_Supervisor_ContextMirror_init_m_ctx__closure },
+};
+const struct Vtable Vtable_Supervisor_ContextMirror = {
+    { (oop)&Vtable_VtableVtable },
+    (oop)&Vtable_Kernel_Object, (struct Binding *)Vtable_Supervisor_ContextMirror_bindings,
+    9, 9,
+    1
+};
+
+static const struct Binding Vtable_Supervisor_Debugger_bindings[] = {
+    { (oop)&StaticSymbol_registerEntry_, (oop)&Method_Supervisor_Debugger_registerEntry__closure },
+    { (oop)&StaticSymbol_buildRegistry, (oop)&Method_Supervisor_Debugger_buildRegistry_closure },
+    { (oop)&StaticSymbol_listMethods, (oop)&Method_Supervisor_Debugger_listMethods_closure },
+    { (oop)&StaticSymbol_methodAt_, (oop)&Method_Supervisor_Debugger_methodAt__closure },
+    { (oop)&StaticSymbol_parseInt_, (oop)&Method_Supervisor_Debugger_parseInt__closure },
+    { (oop)&StaticSymbol_ensureBp, (oop)&Method_Supervisor_Debugger_ensureBp_closure },
+    { (oop)&StaticSymbol_break_at_, (oop)&Method_Supervisor_Debugger_break_at__closure },
+    { (oop)&StaticSymbol_clear_at_, (oop)&Method_Supervisor_Debugger_clear_at__closure },
+    { (oop)&StaticSymbol_doBreak_, (oop)&Method_Supervisor_Debugger_doBreak__closure },
+    { (oop)&StaticSymbol_doClear_, (oop)&Method_Supervisor_Debugger_doClear__closure },
+    { (oop)&StaticSymbol_onBreakContext_, (oop)&Method_Supervisor_Debugger_onBreakContext__closure },
+    { (oop)&StaticSymbol_depthOf_, (oop)&Method_Supervisor_Debugger_depthOf__closure },
+    { (oop)&StaticSymbol_methodIdOfCtx_, (oop)&Method_Supervisor_Debugger_methodIdOfCtx__closure },
+    { (oop)&StaticSymbol_doInspect_, (oop)&Method_Supervisor_Debugger_doInspect__closure },
+    { (oop)&StaticSymbol_initialLoop, (oop)&Method_Supervisor_Debugger_initialLoop_closure },
+    { (oop)&StaticSymbol_commandLoop, (oop)&Method_Supervisor_Debugger_commandLoop_closure },
+    { (oop)&StaticSymbol_verbOf_, (oop)&Method_Supervisor_Debugger_verbOf__closure },
+    { (oop)&StaticSymbol_init_m_io_, (oop)&Method_Supervisor_Debugger_init_m_io__closure },
+};
+const struct Vtable Vtable_Supervisor_Debugger = {
+    { (oop)&Vtable_VtableVtable },
+    (oop)&Vtable_Kernel_Object, (struct Binding *)Vtable_Supervisor_Debugger_bindings,
+    18, 18,
+    1
+};
+
+static const struct Binding Vtable_Block_Kernel_Collection_block1_bindings[] = {
+    { (oop)&StaticSymbol_value__, (oop)&Method_Block_Kernel_Collection_block1_value___closure },
+};
+const struct Vtable Vtable_Block_Kernel_Collection_block1 = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Block_Kernel_Collection_block1_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Block_Kernel_Collection_block2_bindings[] = {
+    { (oop)&StaticSymbol_value_, (oop)&Method_Block_Kernel_Collection_block2_value__closure },
+};
+const struct Vtable Vtable_Block_Kernel_Collection_block2 = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Block_Kernel_Collection_block2_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Block_Kernel_Collection_block3_bindings[] = {
+    { (oop)&StaticSymbol_value_, (oop)&Method_Block_Kernel_Collection_block3_value__closure },
+};
+const struct Vtable Vtable_Block_Kernel_Collection_block3 = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Block_Kernel_Collection_block3_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Block_Kernel_Collection_block4_bindings[] = {
+    { (oop)&StaticSymbol_value_, (oop)&Method_Block_Kernel_Collection_block4_value__closure },
+};
+const struct Vtable Vtable_Block_Kernel_Collection_block4 = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Block_Kernel_Collection_block4_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Block_Kernel_Collection_block5_bindings[] = {
+    { (oop)&StaticSymbol_value_, (oop)&Method_Block_Kernel_Collection_block5_value__closure },
+};
+const struct Vtable Vtable_Block_Kernel_Collection_block5 = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Block_Kernel_Collection_block5_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Block_Kernel_Collection_block6_bindings[] = {
+    { (oop)&StaticSymbol_value__, (oop)&Method_Block_Kernel_Collection_block6_value___closure },
+};
+const struct Vtable Vtable_Block_Kernel_Collection_block6 = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Block_Kernel_Collection_block6_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Block_Kernel_Collection_block7_bindings[] = {
+    { (oop)&StaticSymbol_value_, (oop)&Method_Block_Kernel_Collection_block7_value__closure },
+};
+const struct Vtable Vtable_Block_Kernel_Collection_block7 = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Block_Kernel_Collection_block7_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Block_Kernel_Collection_block8_bindings[] = {
+    { (oop)&StaticSymbol_value_, (oop)&Method_Block_Kernel_Collection_block8_value__closure },
+};
+const struct Vtable Vtable_Block_Kernel_Collection_block8 = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Block_Kernel_Collection_block8_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Block_Kernel_Collection_block9_bindings[] = {
+    { (oop)&StaticSymbol_value, (oop)&Method_Block_Kernel_Collection_block9_value_closure },
+};
+const struct Vtable Vtable_Block_Kernel_Collection_block9 = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Block_Kernel_Collection_block9_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Block_Kernel_Set_block10_bindings[] = {
+    { (oop)&StaticSymbol_value_, (oop)&Method_Block_Kernel_Set_block10_value__closure },
+};
+const struct Vtable Vtable_Block_Kernel_Set_block10 = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Block_Kernel_Set_block10_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Block_Kernel_Set_block11_bindings[] = {
+    { (oop)&StaticSymbol_value, (oop)&Method_Block_Kernel_Set_block11_value_closure },
+};
+const struct Vtable Vtable_Block_Kernel_Set_block11 = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Block_Kernel_Set_block11_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Block_Kernel_Dictionary_block12_bindings[] = {
+    { (oop)&StaticSymbol_value, (oop)&Method_Block_Kernel_Dictionary_block12_value_closure },
+};
+const struct Vtable Vtable_Block_Kernel_Dictionary_block12 = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Block_Kernel_Dictionary_block12_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Block_Kernel_Dictionary_block13_bindings[] = {
+    { (oop)&StaticSymbol_value, (oop)&Method_Block_Kernel_Dictionary_block13_value_closure },
+};
+const struct Vtable Vtable_Block_Kernel_Dictionary_block13 = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Block_Kernel_Dictionary_block13_bindings,
+    1, 1,
+    0
+};
+
+static const struct Binding Vtable_Block_Supervisor_block14_bindings[] = {
+    { (oop)&StaticSymbol_value_, (oop)&Method_Block_Supervisor_block14_value__closure },
+};
+const struct Vtable Vtable_Block_Supervisor_block14 = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_Block_Supervisor_block14_bindings,
+    1, 1,
+    0
+};
+
+/* Root Vtables Definitions */
+const struct Vtable Vtable_VtableVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+const struct Vtable Vtable_SymbolVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+const struct Vtable Vtable_StringVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+const struct Vtable Vtable_BytecodeClosureVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+const struct Vtable Vtable_PrimitiveClosureVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+const struct Vtable Vtable_BoxedBindingVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+const struct Vtable Vtable_RunnableFiberVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+const struct Vtable Vtable_SuspendedFiberVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+const struct Vtable Vtable_DeadFiberVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+/* Stack (L1 Task 2): private runtime vtable, not a builtins.def registry
+ * entry — internal runtime state no image ever names. DORMANT. */
+const struct Vtable Vtable_StackVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+/* Context (deferred-lift Phase 1, Task 1): private runtime vtable, not a
+ * builtins.def registry entry — internal runtime state no image ever
+ * names. DORMANT: nothing yet emits or consumes a Context. */
+const struct Vtable Vtable_ContextVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+
+void init_solidified_vtables(void) {
+    extern oop Symbol_unwindTo_value;
+    extern oop Symbol_value;
+    Symbol_unwindTo_value = (oop)&StaticSymbol_unwindTo_value_;
+    Symbol_value = (oop)&StaticSymbol_value;
+    VtableVtable = (oop)&Vtable_VtableVtable;
+    SymbolVtable = (oop)&Vtable_SymbolVtable;
+    StringVtable = (oop)&Vtable_StringVtable;
+    BytecodeClosureVtable = (oop)&Vtable_BytecodeClosureVtable;
+    PrimitiveClosureVtable = (oop)&Vtable_PrimitiveClosureVtable;
+    BoxedBindingVtable = (oop)&Vtable_BoxedBindingVtable;
+    RunnableFiberVtable = (oop)&Vtable_RunnableFiberVtable;
+    SuspendedFiberVtable = (oop)&Vtable_SuspendedFiberVtable;
+    DeadFiberVtable = (oop)&Vtable_DeadFiberVtable;
+    IntegerVtable = (oop)&Vtable_IntegerVtable;
+    FloatVtable = (oop)&Vtable_FloatVtable;
+    LargeIntegerVtable = (oop)&Vtable_LargeIntegerVtable;
+    MethodContextVtable = (oop)&Vtable_MethodContextVtable;
+    StackVtable = (oop)&Vtable_StackVtable;
+    ContextVtable = (oop)&Vtable_ContextVtable;
+    UdpTest = (oop)&Vtable_UdpTest;
+    Meta_UdpTest = (oop)&Vtable_Meta_UdpTest;
+    Kernel = (oop)&Vtable_Kernel;
+    Kernel_Object = (oop)&Vtable_Kernel_Object;
+    Kernel_Array = (oop)&Vtable_Kernel_Array;
+    Meta_Kernel_Array = (oop)&Vtable_Meta_Kernel_Array;
+    Kernel_Collection = (oop)&Vtable_Kernel_Collection;
+    Kernel_OrderedCollection = (oop)&Vtable_Kernel_OrderedCollection;
+    Kernel_HashedCollection = (oop)&Vtable_Kernel_HashedCollection;
+    Kernel_Set = (oop)&Vtable_Kernel_Set;
+    Kernel_Dictionary = (oop)&Vtable_Kernel_Dictionary;
+    Kernel_ReadStream = (oop)&Vtable_Kernel_ReadStream;
+    Meta_Kernel_ReadStream = (oop)&Vtable_Meta_Kernel_ReadStream;
+    Kernel_WriteStream = (oop)&Vtable_Kernel_WriteStream;
+    Kernel_Serial = (oop)&Vtable_Kernel_Serial;
+    Meta_Kernel_Serial = (oop)&Vtable_Meta_Kernel_Serial;
+    Kernel_Net = (oop)&Vtable_Kernel_Net;
+    Meta_Kernel_Net = (oop)&Vtable_Meta_Kernel_Net;
+    Kernel_Socket = (oop)&Vtable_Kernel_Socket;
+    Meta_Kernel_Socket = (oop)&Vtable_Meta_Kernel_Socket;
+    Kernel_Datagram = (oop)&Vtable_Kernel_Datagram;
+    Meta_Kernel_Datagram = (oop)&Vtable_Meta_Kernel_Datagram;
+    Supervisor = (oop)&Vtable_Supervisor;
+    Supervisor_ObjectMirror = (oop)&Vtable_Supervisor_ObjectMirror;
+    Supervisor_ContextMirror = (oop)&Vtable_Supervisor_ContextMirror;
+    Supervisor_Debugger = (oop)&Vtable_Supervisor_Debugger;
+    Block_Kernel_Collection_block1 = (oop)&Vtable_Block_Kernel_Collection_block1;
+    Block_Kernel_Collection_block2 = (oop)&Vtable_Block_Kernel_Collection_block2;
+    Block_Kernel_Collection_block3 = (oop)&Vtable_Block_Kernel_Collection_block3;
+    Block_Kernel_Collection_block4 = (oop)&Vtable_Block_Kernel_Collection_block4;
+    Block_Kernel_Collection_block5 = (oop)&Vtable_Block_Kernel_Collection_block5;
+    Block_Kernel_Collection_block6 = (oop)&Vtable_Block_Kernel_Collection_block6;
+    Block_Kernel_Collection_block7 = (oop)&Vtable_Block_Kernel_Collection_block7;
+    Block_Kernel_Collection_block8 = (oop)&Vtable_Block_Kernel_Collection_block8;
+    Block_Kernel_Collection_block9 = (oop)&Vtable_Block_Kernel_Collection_block9;
+    Block_Kernel_Set_block10 = (oop)&Vtable_Block_Kernel_Set_block10;
+    Block_Kernel_Set_block11 = (oop)&Vtable_Block_Kernel_Set_block11;
+    Block_Kernel_Dictionary_block12 = (oop)&Vtable_Block_Kernel_Dictionary_block12;
+    Block_Kernel_Dictionary_block13 = (oop)&Vtable_Block_Kernel_Dictionary_block13;
+    Block_Supervisor_block14 = (oop)&Vtable_Block_Supervisor_block14;
+}
+
+oop run_solidified_entry_point(void) {
+    // Calculate Flash ROM boundaries
+    extern uintptr_t flash_rom_start, flash_rom_end;
+    uintptr_t min_addr = (uintptr_t)-1;
+    uintptr_t max_addr = 0;
+
+    #define UPDATE_LIMITS(ptr, sz) do { \
+        uintptr_t start = (uintptr_t)(ptr); \
+        uintptr_t end = start + (sz); \
+        if (start < min_addr) min_addr = start; \
+        if (end > max_addr) max_addr = end; \
+    } while(0)
+
+    UPDATE_LIMITS(&Vtable_IntegerVtable, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_FloatVtable, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_LargeIntegerVtable, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_MethodContextVtable, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_UdpTest, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Meta_UdpTest, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Kernel, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Kernel_Object, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Kernel_Array, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Meta_Kernel_Array, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Kernel_Collection, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Kernel_OrderedCollection, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Kernel_HashedCollection, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Kernel_Set, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Kernel_Dictionary, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Kernel_ReadStream, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Meta_Kernel_ReadStream, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Kernel_WriteStream, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Kernel_Serial, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Meta_Kernel_Serial, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Kernel_Net, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Meta_Kernel_Net, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Kernel_Socket, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Meta_Kernel_Socket, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Kernel_Datagram, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Meta_Kernel_Datagram, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Supervisor, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Supervisor_ObjectMirror, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Supervisor_ContextMirror, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Supervisor_Debugger, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Block_Kernel_Collection_block1, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Block_Kernel_Collection_block2, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Block_Kernel_Collection_block3, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Block_Kernel_Collection_block4, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Block_Kernel_Collection_block5, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Block_Kernel_Collection_block6, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Block_Kernel_Collection_block7, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Block_Kernel_Collection_block8, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Block_Kernel_Collection_block9, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Block_Kernel_Set_block10, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Block_Kernel_Set_block11, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Block_Kernel_Dictionary_block12, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Block_Kernel_Dictionary_block13, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Block_Supervisor_block14, sizeof(struct Vtable));
+    UPDATE_LIMITS(Method_MethodContextVtable_unwindTo_value__insts, sizeof(Method_MethodContextVtable_unwindTo_value__insts));
+    UPDATE_LIMITS(Method_MethodContextVtable_unwindTo_value__consts, sizeof(Method_MethodContextVtable_unwindTo_value__consts));
+    UPDATE_LIMITS(&Method_MethodContextVtable_unwindTo_value__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_MethodContextVtable_unwindTo_value__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_UdpTest_main_args__insts, sizeof(Method_UdpTest_main_args__insts));
+    UPDATE_LIMITS(Method_UdpTest_main_args__consts, sizeof(Method_UdpTest_main_args__consts));
+    UPDATE_LIMITS(&Method_UdpTest_main_args__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_UdpTest_main_args__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_UdpTest_roundTrip__insts, sizeof(Method_UdpTest_roundTrip__insts));
+    UPDATE_LIMITS(Method_UdpTest_roundTrip__consts, sizeof(Method_UdpTest_roundTrip__consts));
+    UPDATE_LIMITS(&Method_UdpTest_roundTrip__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_UdpTest_roundTrip__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_UdpTest_fail__insts, sizeof(Method_UdpTest_fail__insts));
+    UPDATE_LIMITS(Method_UdpTest_fail__consts, sizeof(Method_UdpTest_fail__consts));
+    UPDATE_LIMITS(&Method_UdpTest_fail__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_UdpTest_fail__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Meta_UdpTest_packageUsing__insts, sizeof(Method_Meta_UdpTest_packageUsing__insts));
+    UPDATE_LIMITS(Method_Meta_UdpTest_packageUsing__consts, sizeof(Method_Meta_UdpTest_packageUsing__consts));
+    UPDATE_LIMITS(&Method_Meta_UdpTest_packageUsing__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Meta_UdpTest_packageUsing__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_UdpTest_init_platform_net__insts, sizeof(Method_UdpTest_init_platform_net__insts));
+    UPDATE_LIMITS(&Method_UdpTest_init_platform_net__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_UdpTest_init_platform_net__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_serialOn__insts, sizeof(Method_Kernel_serialOn__insts));
+    UPDATE_LIMITS(Method_Kernel_serialOn__consts, sizeof(Method_Kernel_serialOn__consts));
+    UPDATE_LIMITS(&Method_Kernel_serialOn__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_serialOn__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_netOn__insts, sizeof(Method_Kernel_netOn__insts));
+    UPDATE_LIMITS(Method_Kernel_netOn__consts, sizeof(Method_Kernel_netOn__consts));
+    UPDATE_LIMITS(&Method_Kernel_netOn__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_netOn__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_readLine_insts, sizeof(Method_Kernel_readLine_insts));
+    UPDATE_LIMITS(Method_Kernel_readLine_consts, sizeof(Method_Kernel_readLine_consts));
+    UPDATE_LIMITS(&Method_Kernel_readLine_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_readLine_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Object_insts, sizeof(Method_Kernel_Object_insts));
+    UPDATE_LIMITS(&Method_Kernel_Object_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Object_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Array_insts, sizeof(Method_Kernel_Array_insts));
+    UPDATE_LIMITS(&Method_Kernel_Array_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Array_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Collection_insts, sizeof(Method_Kernel_Collection_insts));
+    UPDATE_LIMITS(&Method_Kernel_Collection_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Collection_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_insts, sizeof(Method_Kernel_OrderedCollection_insts));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Set_insts, sizeof(Method_Kernel_Set_insts));
+    UPDATE_LIMITS(&Method_Kernel_Set_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Set_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_insts, sizeof(Method_Kernel_Dictionary_insts));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_insts, sizeof(Method_Kernel_ReadStream_insts));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_WriteStream_insts, sizeof(Method_Kernel_WriteStream_insts));
+    UPDATE_LIMITS(&Method_Kernel_WriteStream_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_WriteStream_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_insts, sizeof(Method_Kernel_HashedCollection_insts));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_consts, sizeof(Method_Kernel_HashedCollection_consts));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Serial_insts, sizeof(Method_Kernel_Serial_insts));
+    UPDATE_LIMITS(Method_Kernel_Serial_consts, sizeof(Method_Kernel_Serial_consts));
+    UPDATE_LIMITS(&Method_Kernel_Serial_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Serial_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Net_insts, sizeof(Method_Kernel_Net_insts));
+    UPDATE_LIMITS(Method_Kernel_Net_consts, sizeof(Method_Kernel_Net_consts));
+    UPDATE_LIMITS(&Method_Kernel_Net_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Net_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Socket_insts, sizeof(Method_Kernel_Socket_insts));
+    UPDATE_LIMITS(Method_Kernel_Socket_consts, sizeof(Method_Kernel_Socket_consts));
+    UPDATE_LIMITS(&Method_Kernel_Socket_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Socket_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Datagram_insts, sizeof(Method_Kernel_Datagram_insts));
+    UPDATE_LIMITS(Method_Kernel_Datagram_consts, sizeof(Method_Kernel_Datagram_consts));
+    UPDATE_LIMITS(&Method_Kernel_Datagram_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Datagram_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_init_platform__insts, sizeof(Method_Kernel_init_platform__insts));
+    UPDATE_LIMITS(Method_Kernel_init_platform__consts, sizeof(Method_Kernel_init_platform__consts));
+    UPDATE_LIMITS(&Method_Kernel_init_platform__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_init_platform__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Object_isNil_insts, sizeof(Method_Kernel_Object_isNil_insts));
+    UPDATE_LIMITS(Method_Kernel_Object_isNil_consts, sizeof(Method_Kernel_Object_isNil_consts));
+    UPDATE_LIMITS(&Method_Kernel_Object_isNil_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Object_isNil_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Object_notNil_insts, sizeof(Method_Kernel_Object_notNil_insts));
+    UPDATE_LIMITS(Method_Kernel_Object_notNil_consts, sizeof(Method_Kernel_Object_notNil_consts));
+    UPDATE_LIMITS(&Method_Kernel_Object_notNil_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Object_notNil_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Object_ifNil__insts, sizeof(Method_Kernel_Object_ifNil__insts));
+    UPDATE_LIMITS(&Method_Kernel_Object_ifNil__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Object_ifNil__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Object_ifNotNil__insts, sizeof(Method_Kernel_Object_ifNotNil__insts));
+    UPDATE_LIMITS(Method_Kernel_Object_ifNotNil__consts, sizeof(Method_Kernel_Object_ifNotNil__consts));
+    UPDATE_LIMITS(&Method_Kernel_Object_ifNotNil__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Object_ifNotNil__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Object__eq_insts, sizeof(Method_Kernel_Object__eq_insts));
+    UPDATE_LIMITS(Method_Kernel_Object__eq_consts, sizeof(Method_Kernel_Object__eq_consts));
+    UPDATE_LIMITS(&Method_Kernel_Object__eq_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Object__eq_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Object_printString_insts, sizeof(Method_Kernel_Object_printString_insts));
+    UPDATE_LIMITS(Method_Kernel_Object_printString_consts, sizeof(Method_Kernel_Object_printString_consts));
+    UPDATE_LIMITS(&Method_Kernel_Object_printString_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Object_printString_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Object_asString_insts, sizeof(Method_Kernel_Object_asString_insts));
+    UPDATE_LIMITS(Method_Kernel_Object_asString_consts, sizeof(Method_Kernel_Object_asString_consts));
+    UPDATE_LIMITS(&Method_Kernel_Object_asString_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Object_asString_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Object_hash_insts, sizeof(Method_Kernel_Object_hash_insts));
+    UPDATE_LIMITS(Method_Kernel_Object_hash_consts, sizeof(Method_Kernel_Object_hash_consts));
+    UPDATE_LIMITS(&Method_Kernel_Object_hash_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Object_hash_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Object_init_new_insts, sizeof(Method_Kernel_Object_init_new_insts));
+    UPDATE_LIMITS(&Method_Kernel_Object_init_new_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Object_init_new_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Array_at__insts, sizeof(Method_Kernel_Array_at__insts));
+    UPDATE_LIMITS(Method_Kernel_Array_at__consts, sizeof(Method_Kernel_Array_at__consts));
+    UPDATE_LIMITS(&Method_Kernel_Array_at__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Array_at__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Array_at_put__insts, sizeof(Method_Kernel_Array_at_put__insts));
+    UPDATE_LIMITS(Method_Kernel_Array_at_put__consts, sizeof(Method_Kernel_Array_at_put__consts));
+    UPDATE_LIMITS(&Method_Kernel_Array_at_put__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Array_at_put__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Array_size_insts, sizeof(Method_Kernel_Array_size_insts));
+    UPDATE_LIMITS(Method_Kernel_Array_size_consts, sizeof(Method_Kernel_Array_size_consts));
+    UPDATE_LIMITS(&Method_Kernel_Array_size_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Array_size_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Array_do__insts, sizeof(Method_Kernel_Array_do__insts));
+    UPDATE_LIMITS(Method_Kernel_Array_do__consts, sizeof(Method_Kernel_Array_do__consts));
+    UPDATE_LIMITS(&Method_Kernel_Array_do__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Array_do__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Meta_Kernel_Array_new__insts, sizeof(Method_Meta_Kernel_Array_new__insts));
+    UPDATE_LIMITS(Method_Meta_Kernel_Array_new__consts, sizeof(Method_Meta_Kernel_Array_new__consts));
+    UPDATE_LIMITS(&Method_Meta_Kernel_Array_new__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Meta_Kernel_Array_new__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Array_init_new_insts, sizeof(Method_Kernel_Array_init_new_insts));
+    UPDATE_LIMITS(&Method_Kernel_Array_init_new_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Array_init_new_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Collection_do__insts, sizeof(Method_Kernel_Collection_do__insts));
+    UPDATE_LIMITS(Method_Kernel_Collection_do__consts, sizeof(Method_Kernel_Collection_do__consts));
+    UPDATE_LIMITS(&Method_Kernel_Collection_do__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Collection_do__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Collection_size_insts, sizeof(Method_Kernel_Collection_size_insts));
+    UPDATE_LIMITS(Method_Kernel_Collection_size_consts, sizeof(Method_Kernel_Collection_size_consts));
+    UPDATE_LIMITS(&Method_Kernel_Collection_size_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Collection_size_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Collection_isEmpty_insts, sizeof(Method_Kernel_Collection_isEmpty_insts));
+    UPDATE_LIMITS(Method_Kernel_Collection_isEmpty_consts, sizeof(Method_Kernel_Collection_isEmpty_consts));
+    UPDATE_LIMITS(&Method_Kernel_Collection_isEmpty_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Collection_isEmpty_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Collection_inject_into__insts, sizeof(Method_Kernel_Collection_inject_into__insts));
+    UPDATE_LIMITS(Method_Kernel_Collection_inject_into__consts, sizeof(Method_Kernel_Collection_inject_into__consts));
+    UPDATE_LIMITS(&Method_Kernel_Collection_inject_into__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Collection_inject_into__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Collection_collect__insts, sizeof(Method_Kernel_Collection_collect__insts));
+    UPDATE_LIMITS(Method_Kernel_Collection_collect__consts, sizeof(Method_Kernel_Collection_collect__consts));
+    UPDATE_LIMITS(&Method_Kernel_Collection_collect__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Collection_collect__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Collection_select__insts, sizeof(Method_Kernel_Collection_select__insts));
+    UPDATE_LIMITS(Method_Kernel_Collection_select__consts, sizeof(Method_Kernel_Collection_select__consts));
+    UPDATE_LIMITS(&Method_Kernel_Collection_select__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Collection_select__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Collection_reject__insts, sizeof(Method_Kernel_Collection_reject__insts));
+    UPDATE_LIMITS(Method_Kernel_Collection_reject__consts, sizeof(Method_Kernel_Collection_reject__consts));
+    UPDATE_LIMITS(&Method_Kernel_Collection_reject__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Collection_reject__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Collection_includes__insts, sizeof(Method_Kernel_Collection_includes__insts));
+    UPDATE_LIMITS(Method_Kernel_Collection_includes__consts, sizeof(Method_Kernel_Collection_includes__consts));
+    UPDATE_LIMITS(&Method_Kernel_Collection_includes__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Collection_includes__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Collection_asArray_insts, sizeof(Method_Kernel_Collection_asArray_insts));
+    UPDATE_LIMITS(Method_Kernel_Collection_asArray_consts, sizeof(Method_Kernel_Collection_asArray_consts));
+    UPDATE_LIMITS(&Method_Kernel_Collection_asArray_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Collection_asArray_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Collection_detect_ifNone__insts, sizeof(Method_Kernel_Collection_detect_ifNone__insts));
+    UPDATE_LIMITS(Method_Kernel_Collection_detect_ifNone__consts, sizeof(Method_Kernel_Collection_detect_ifNone__consts));
+    UPDATE_LIMITS(&Method_Kernel_Collection_detect_ifNone__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Collection_detect_ifNone__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Collection_detect__insts, sizeof(Method_Kernel_Collection_detect__insts));
+    UPDATE_LIMITS(Method_Kernel_Collection_detect__consts, sizeof(Method_Kernel_Collection_detect__consts));
+    UPDATE_LIMITS(&Method_Kernel_Collection_detect__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Collection_detect__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Collection_init_new_insts, sizeof(Method_Kernel_Collection_init_new_insts));
+    UPDATE_LIMITS(&Method_Kernel_Collection_init_new_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Collection_init_new_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_do__insts, sizeof(Method_Kernel_OrderedCollection_do__insts));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_do__consts, sizeof(Method_Kernel_OrderedCollection_do__consts));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_do__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_do__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_size_insts, sizeof(Method_Kernel_OrderedCollection_size_insts));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_size_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_size_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_isEmpty_insts, sizeof(Method_Kernel_OrderedCollection_isEmpty_insts));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_isEmpty_consts, sizeof(Method_Kernel_OrderedCollection_isEmpty_consts));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_isEmpty_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_isEmpty_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_add__insts, sizeof(Method_Kernel_OrderedCollection_add__insts));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_add__consts, sizeof(Method_Kernel_OrderedCollection_add__consts));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_add__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_add__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_addLast__insts, sizeof(Method_Kernel_OrderedCollection_addLast__insts));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_addLast__consts, sizeof(Method_Kernel_OrderedCollection_addLast__consts));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_addLast__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_addLast__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_at__insts, sizeof(Method_Kernel_OrderedCollection_at__insts));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_at__consts, sizeof(Method_Kernel_OrderedCollection_at__consts));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_at__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_at__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_at_put__insts, sizeof(Method_Kernel_OrderedCollection_at_put__insts));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_at_put__consts, sizeof(Method_Kernel_OrderedCollection_at_put__consts));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_at_put__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_at_put__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_first_insts, sizeof(Method_Kernel_OrderedCollection_first_insts));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_first_consts, sizeof(Method_Kernel_OrderedCollection_first_consts));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_first_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_first_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_last_insts, sizeof(Method_Kernel_OrderedCollection_last_insts));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_last_consts, sizeof(Method_Kernel_OrderedCollection_last_consts));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_last_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_last_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_removeLast_insts, sizeof(Method_Kernel_OrderedCollection_removeLast_insts));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_removeLast_consts, sizeof(Method_Kernel_OrderedCollection_removeLast_consts));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_removeLast_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_removeLast_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_removeFirst_insts, sizeof(Method_Kernel_OrderedCollection_removeFirst_insts));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_removeFirst_consts, sizeof(Method_Kernel_OrderedCollection_removeFirst_consts));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_removeFirst_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_removeFirst_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_ensureCapacity_insts, sizeof(Method_Kernel_OrderedCollection_ensureCapacity_insts));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_ensureCapacity_consts, sizeof(Method_Kernel_OrderedCollection_ensureCapacity_consts));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_ensureCapacity_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_ensureCapacity_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_grow_insts, sizeof(Method_Kernel_OrderedCollection_grow_insts));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_grow_consts, sizeof(Method_Kernel_OrderedCollection_grow_consts));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_grow_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_grow_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_init_new_insts, sizeof(Method_Kernel_OrderedCollection_init_new_insts));
+    UPDATE_LIMITS(Method_Kernel_OrderedCollection_init_new_consts, sizeof(Method_Kernel_OrderedCollection_init_new_consts));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_init_new_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_OrderedCollection_init_new_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_capacity_insts, sizeof(Method_Kernel_HashedCollection_capacity_insts));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_capacity_consts, sizeof(Method_Kernel_HashedCollection_capacity_consts));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_capacity_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_capacity_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_size_insts, sizeof(Method_Kernel_HashedCollection_size_insts));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_size_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_size_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_isEmpty_insts, sizeof(Method_Kernel_HashedCollection_isEmpty_insts));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_isEmpty_consts, sizeof(Method_Kernel_HashedCollection_isEmpty_consts));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_isEmpty_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_isEmpty_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_indexFor__insts, sizeof(Method_Kernel_HashedCollection_indexFor__insts));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_indexFor__consts, sizeof(Method_Kernel_HashedCollection_indexFor__consts));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_indexFor__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_indexFor__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_slotFor__insts, sizeof(Method_Kernel_HashedCollection_slotFor__insts));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_slotFor__consts, sizeof(Method_Kernel_HashedCollection_slotFor__consts));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_slotFor__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_slotFor__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_containsKey__insts, sizeof(Method_Kernel_HashedCollection_containsKey__insts));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_containsKey__consts, sizeof(Method_Kernel_HashedCollection_containsKey__consts));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_containsKey__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_containsKey__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_atCapacity_insts, sizeof(Method_Kernel_HashedCollection_atCapacity_insts));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_atCapacity_consts, sizeof(Method_Kernel_HashedCollection_atCapacity_consts));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_atCapacity_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_atCapacity_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_growIfNeeded_insts, sizeof(Method_Kernel_HashedCollection_growIfNeeded_insts));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_growIfNeeded_consts, sizeof(Method_Kernel_HashedCollection_growIfNeeded_consts));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_growIfNeeded_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_growIfNeeded_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_rehashFrom__insts, sizeof(Method_Kernel_HashedCollection_rehashFrom__insts));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_rehashFrom__consts, sizeof(Method_Kernel_HashedCollection_rehashFrom__consts));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_rehashFrom__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_rehashFrom__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_grow_insts, sizeof(Method_Kernel_HashedCollection_grow_insts));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_grow_consts, sizeof(Method_Kernel_HashedCollection_grow_consts));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_grow_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_grow_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_reinsertEntryAt__insts, sizeof(Method_Kernel_HashedCollection_reinsertEntryAt__insts));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_reinsertEntryAt__consts, sizeof(Method_Kernel_HashedCollection_reinsertEntryAt__consts));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_reinsertEntryAt__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_reinsertEntryAt__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_do__insts, sizeof(Method_Kernel_HashedCollection_do__insts));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_do__consts, sizeof(Method_Kernel_HashedCollection_do__consts));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_do__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_do__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_init_new_insts, sizeof(Method_Kernel_HashedCollection_init_new_insts));
+    UPDATE_LIMITS(Method_Kernel_HashedCollection_init_new_consts, sizeof(Method_Kernel_HashedCollection_init_new_consts));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_init_new_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_HashedCollection_init_new_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Set_add__insts, sizeof(Method_Kernel_Set_add__insts));
+    UPDATE_LIMITS(Method_Kernel_Set_add__consts, sizeof(Method_Kernel_Set_add__consts));
+    UPDATE_LIMITS(&Method_Kernel_Set_add__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Set_add__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Set_addAll__insts, sizeof(Method_Kernel_Set_addAll__insts));
+    UPDATE_LIMITS(Method_Kernel_Set_addAll__consts, sizeof(Method_Kernel_Set_addAll__consts));
+    UPDATE_LIMITS(&Method_Kernel_Set_addAll__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Set_addAll__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Set_remove__insts, sizeof(Method_Kernel_Set_remove__insts));
+    UPDATE_LIMITS(Method_Kernel_Set_remove__consts, sizeof(Method_Kernel_Set_remove__consts));
+    UPDATE_LIMITS(&Method_Kernel_Set_remove__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Set_remove__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Set_remove_ifAbsent__insts, sizeof(Method_Kernel_Set_remove_ifAbsent__insts));
+    UPDATE_LIMITS(Method_Kernel_Set_remove_ifAbsent__consts, sizeof(Method_Kernel_Set_remove_ifAbsent__consts));
+    UPDATE_LIMITS(&Method_Kernel_Set_remove_ifAbsent__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Set_remove_ifAbsent__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Set_includes__insts, sizeof(Method_Kernel_Set_includes__insts));
+    UPDATE_LIMITS(Method_Kernel_Set_includes__consts, sizeof(Method_Kernel_Set_includes__consts));
+    UPDATE_LIMITS(&Method_Kernel_Set_includes__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Set_includes__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Set_do__insts, sizeof(Method_Kernel_Set_do__insts));
+    UPDATE_LIMITS(Method_Kernel_Set_do__consts, sizeof(Method_Kernel_Set_do__consts));
+    UPDATE_LIMITS(&Method_Kernel_Set_do__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Set_do__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Set_place__insts, sizeof(Method_Kernel_Set_place__insts));
+    UPDATE_LIMITS(Method_Kernel_Set_place__consts, sizeof(Method_Kernel_Set_place__consts));
+    UPDATE_LIMITS(&Method_Kernel_Set_place__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Set_place__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Set_reinsertEntryAt__insts, sizeof(Method_Kernel_Set_reinsertEntryAt__insts));
+    UPDATE_LIMITS(Method_Kernel_Set_reinsertEntryAt__consts, sizeof(Method_Kernel_Set_reinsertEntryAt__consts));
+    UPDATE_LIMITS(&Method_Kernel_Set_reinsertEntryAt__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Set_reinsertEntryAt__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Set_grow_insts, sizeof(Method_Kernel_Set_grow_insts));
+    UPDATE_LIMITS(Method_Kernel_Set_grow_consts, sizeof(Method_Kernel_Set_grow_consts));
+    UPDATE_LIMITS(&Method_Kernel_Set_grow_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Set_grow_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Set_init_new_insts, sizeof(Method_Kernel_Set_init_new_insts));
+    UPDATE_LIMITS(Method_Kernel_Set_init_new_consts, sizeof(Method_Kernel_Set_init_new_consts));
+    UPDATE_LIMITS(&Method_Kernel_Set_init_new_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Set_init_new_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_at_put__insts, sizeof(Method_Kernel_Dictionary_at_put__insts));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_at_put__consts, sizeof(Method_Kernel_Dictionary_at_put__consts));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_at_put__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_at_put__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_at_ifAbsent__insts, sizeof(Method_Kernel_Dictionary_at_ifAbsent__insts));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_at_ifAbsent__consts, sizeof(Method_Kernel_Dictionary_at_ifAbsent__consts));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_at_ifAbsent__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_at_ifAbsent__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_at__insts, sizeof(Method_Kernel_Dictionary_at__insts));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_at__consts, sizeof(Method_Kernel_Dictionary_at__consts));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_at__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_at__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_at_ifAbsentPut__insts, sizeof(Method_Kernel_Dictionary_at_ifAbsentPut__insts));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_at_ifAbsentPut__consts, sizeof(Method_Kernel_Dictionary_at_ifAbsentPut__consts));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_at_ifAbsentPut__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_at_ifAbsentPut__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_includesKey__insts, sizeof(Method_Kernel_Dictionary_includesKey__insts));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_includesKey__consts, sizeof(Method_Kernel_Dictionary_includesKey__consts));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_includesKey__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_includesKey__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_removeKey__insts, sizeof(Method_Kernel_Dictionary_removeKey__insts));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_removeKey__consts, sizeof(Method_Kernel_Dictionary_removeKey__consts));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_removeKey__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_removeKey__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_removeKey_ifAbsent__insts, sizeof(Method_Kernel_Dictionary_removeKey_ifAbsent__insts));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_removeKey_ifAbsent__consts, sizeof(Method_Kernel_Dictionary_removeKey_ifAbsent__consts));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_removeKey_ifAbsent__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_removeKey_ifAbsent__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_keys_insts, sizeof(Method_Kernel_Dictionary_keys_insts));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_keys_consts, sizeof(Method_Kernel_Dictionary_keys_consts));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_keys_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_keys_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_values_insts, sizeof(Method_Kernel_Dictionary_values_insts));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_values_consts, sizeof(Method_Kernel_Dictionary_values_consts));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_values_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_values_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_keysAndValuesDo__insts, sizeof(Method_Kernel_Dictionary_keysAndValuesDo__insts));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_keysAndValuesDo__consts, sizeof(Method_Kernel_Dictionary_keysAndValuesDo__consts));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_keysAndValuesDo__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_keysAndValuesDo__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_do__insts, sizeof(Method_Kernel_Dictionary_do__insts));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_do__consts, sizeof(Method_Kernel_Dictionary_do__consts));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_do__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_do__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_place_value__insts, sizeof(Method_Kernel_Dictionary_place_value__insts));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_place_value__consts, sizeof(Method_Kernel_Dictionary_place_value__consts));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_place_value__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_place_value__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_reinsertEntryAt__insts, sizeof(Method_Kernel_Dictionary_reinsertEntryAt__insts));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_reinsertEntryAt__consts, sizeof(Method_Kernel_Dictionary_reinsertEntryAt__consts));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_reinsertEntryAt__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_reinsertEntryAt__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_grow_insts, sizeof(Method_Kernel_Dictionary_grow_insts));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_grow_consts, sizeof(Method_Kernel_Dictionary_grow_consts));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_grow_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_grow_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_init_new_insts, sizeof(Method_Kernel_Dictionary_init_new_insts));
+    UPDATE_LIMITS(Method_Kernel_Dictionary_init_new_consts, sizeof(Method_Kernel_Dictionary_init_new_consts));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_init_new_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Dictionary_init_new_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_next_insts, sizeof(Method_Kernel_ReadStream_next_insts));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_next_consts, sizeof(Method_Kernel_ReadStream_next_consts));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_next_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_next_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_peek_insts, sizeof(Method_Kernel_ReadStream_peek_insts));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_peek_consts, sizeof(Method_Kernel_ReadStream_peek_consts));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_peek_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_peek_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_atEnd_insts, sizeof(Method_Kernel_ReadStream_atEnd_insts));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_atEnd_consts, sizeof(Method_Kernel_ReadStream_atEnd_consts));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_atEnd_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_atEnd_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_skip__insts, sizeof(Method_Kernel_ReadStream_skip__insts));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_skip__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_skip__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_position_insts, sizeof(Method_Kernel_ReadStream_position_insts));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_position_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_position_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_reset_insts, sizeof(Method_Kernel_ReadStream_reset_insts));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_reset_consts, sizeof(Method_Kernel_ReadStream_reset_consts));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_reset_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_reset_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_next__insts, sizeof(Method_Kernel_ReadStream_next__insts));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_next__consts, sizeof(Method_Kernel_ReadStream_next__consts));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_next__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_next__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_upTo__insts, sizeof(Method_Kernel_ReadStream_upTo__insts));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_upTo__consts, sizeof(Method_Kernel_ReadStream_upTo__consts));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_upTo__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_upTo__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_nextLine_insts, sizeof(Method_Kernel_ReadStream_nextLine_insts));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_nextLine_consts, sizeof(Method_Kernel_ReadStream_nextLine_consts));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_nextLine_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_nextLine_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_upToEnd_insts, sizeof(Method_Kernel_ReadStream_upToEnd_insts));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_upToEnd_consts, sizeof(Method_Kernel_ReadStream_upToEnd_consts));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_upToEnd_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_upToEnd_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_do__insts, sizeof(Method_Kernel_ReadStream_do__insts));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_do__consts, sizeof(Method_Kernel_ReadStream_do__consts));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_do__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_do__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_prefixOf_upTo__insts, sizeof(Method_Kernel_ReadStream_prefixOf_upTo__insts));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_prefixOf_upTo__consts, sizeof(Method_Kernel_ReadStream_prefixOf_upTo__consts));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_prefixOf_upTo__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_prefixOf_upTo__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_setSource__insts, sizeof(Method_Kernel_ReadStream_setSource__insts));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_setSource__consts, sizeof(Method_Kernel_ReadStream_setSource__consts));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_setSource__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_setSource__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Meta_Kernel_ReadStream_on__insts, sizeof(Method_Meta_Kernel_ReadStream_on__insts));
+    UPDATE_LIMITS(Method_Meta_Kernel_ReadStream_on__consts, sizeof(Method_Meta_Kernel_ReadStream_on__consts));
+    UPDATE_LIMITS(&Method_Meta_Kernel_ReadStream_on__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Meta_Kernel_ReadStream_on__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_init_new_insts, sizeof(Method_Kernel_ReadStream_init_new_insts));
+    UPDATE_LIMITS(Method_Kernel_ReadStream_init_new_consts, sizeof(Method_Kernel_ReadStream_init_new_consts));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_init_new_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_ReadStream_init_new_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_WriteStream_nextPut__insts, sizeof(Method_Kernel_WriteStream_nextPut__insts));
+    UPDATE_LIMITS(Method_Kernel_WriteStream_nextPut__consts, sizeof(Method_Kernel_WriteStream_nextPut__consts));
+    UPDATE_LIMITS(&Method_Kernel_WriteStream_nextPut__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_WriteStream_nextPut__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_WriteStream_nextPutAll__insts, sizeof(Method_Kernel_WriteStream_nextPutAll__insts));
+    UPDATE_LIMITS(Method_Kernel_WriteStream_nextPutAll__consts, sizeof(Method_Kernel_WriteStream_nextPutAll__consts));
+    UPDATE_LIMITS(&Method_Kernel_WriteStream_nextPutAll__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_WriteStream_nextPutAll__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_WriteStream_print__insts, sizeof(Method_Kernel_WriteStream_print__insts));
+    UPDATE_LIMITS(Method_Kernel_WriteStream_print__consts, sizeof(Method_Kernel_WriteStream_print__consts));
+    UPDATE_LIMITS(&Method_Kernel_WriteStream_print__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_WriteStream_print__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_WriteStream_nextPutLine__insts, sizeof(Method_Kernel_WriteStream_nextPutLine__insts));
+    UPDATE_LIMITS(Method_Kernel_WriteStream_nextPutLine__consts, sizeof(Method_Kernel_WriteStream_nextPutLine__consts));
+    UPDATE_LIMITS(&Method_Kernel_WriteStream_nextPutLine__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_WriteStream_nextPutLine__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_WriteStream_contents_insts, sizeof(Method_Kernel_WriteStream_contents_insts));
+    UPDATE_LIMITS(Method_Kernel_WriteStream_contents_consts, sizeof(Method_Kernel_WriteStream_contents_consts));
+    UPDATE_LIMITS(&Method_Kernel_WriteStream_contents_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_WriteStream_contents_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_WriteStream_size_insts, sizeof(Method_Kernel_WriteStream_size_insts));
+    UPDATE_LIMITS(Method_Kernel_WriteStream_size_consts, sizeof(Method_Kernel_WriteStream_size_consts));
+    UPDATE_LIMITS(&Method_Kernel_WriteStream_size_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_WriteStream_size_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_WriteStream_reset_insts, sizeof(Method_Kernel_WriteStream_reset_insts));
+    UPDATE_LIMITS(Method_Kernel_WriteStream_reset_consts, sizeof(Method_Kernel_WriteStream_reset_consts));
+    UPDATE_LIMITS(&Method_Kernel_WriteStream_reset_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_WriteStream_reset_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_WriteStream_init_new_insts, sizeof(Method_Kernel_WriteStream_init_new_insts));
+    UPDATE_LIMITS(Method_Kernel_WriteStream_init_new_consts, sizeof(Method_Kernel_WriteStream_init_new_consts));
+    UPDATE_LIMITS(&Method_Kernel_WriteStream_init_new_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_WriteStream_init_new_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Serial_setPort__insts, sizeof(Method_Kernel_Serial_setPort__insts));
+    UPDATE_LIMITS(&Method_Kernel_Serial_setPort__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Serial_setPort__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Serial_writeByte__insts, sizeof(Method_Kernel_Serial_writeByte__insts));
+    UPDATE_LIMITS(Method_Kernel_Serial_writeByte__consts, sizeof(Method_Kernel_Serial_writeByte__consts));
+    UPDATE_LIMITS(&Method_Kernel_Serial_writeByte__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Serial_writeByte__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Serial_write__insts, sizeof(Method_Kernel_Serial_write__insts));
+    UPDATE_LIMITS(Method_Kernel_Serial_write__consts, sizeof(Method_Kernel_Serial_write__consts));
+    UPDATE_LIMITS(&Method_Kernel_Serial_write__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Serial_write__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Serial_atEnd_insts, sizeof(Method_Kernel_Serial_atEnd_insts));
+    UPDATE_LIMITS(Method_Kernel_Serial_atEnd_consts, sizeof(Method_Kernel_Serial_atEnd_consts));
+    UPDATE_LIMITS(&Method_Kernel_Serial_atEnd_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Serial_atEnd_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Serial_readByte_insts, sizeof(Method_Kernel_Serial_readByte_insts));
+    UPDATE_LIMITS(Method_Kernel_Serial_readByte_consts, sizeof(Method_Kernel_Serial_readByte_consts));
+    UPDATE_LIMITS(&Method_Kernel_Serial_readByte_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Serial_readByte_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Serial_read__insts, sizeof(Method_Kernel_Serial_read__insts));
+    UPDATE_LIMITS(Method_Kernel_Serial_read__consts, sizeof(Method_Kernel_Serial_read__consts));
+    UPDATE_LIMITS(&Method_Kernel_Serial_read__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Serial_read__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Serial_readLine_insts, sizeof(Method_Kernel_Serial_readLine_insts));
+    UPDATE_LIMITS(Method_Kernel_Serial_readLine_consts, sizeof(Method_Kernel_Serial_readLine_consts));
+    UPDATE_LIMITS(&Method_Kernel_Serial_readLine_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Serial_readLine_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Meta_Kernel_Serial_onPort__insts, sizeof(Method_Meta_Kernel_Serial_onPort__insts));
+    UPDATE_LIMITS(Method_Meta_Kernel_Serial_onPort__consts, sizeof(Method_Meta_Kernel_Serial_onPort__consts));
+    UPDATE_LIMITS(&Method_Meta_Kernel_Serial_onPort__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Meta_Kernel_Serial_onPort__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Serial_init_new_insts, sizeof(Method_Kernel_Serial_init_new_insts));
+    UPDATE_LIMITS(Method_Kernel_Serial_init_new_consts, sizeof(Method_Kernel_Serial_init_new_consts));
+    UPDATE_LIMITS(&Method_Kernel_Serial_init_new_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Serial_init_new_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Net_setPort__insts, sizeof(Method_Kernel_Net_setPort__insts));
+    UPDATE_LIMITS(&Method_Kernel_Net_setPort__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Net_setPort__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Net_udp_insts, sizeof(Method_Kernel_Net_udp_insts));
+    UPDATE_LIMITS(Method_Kernel_Net_udp_consts, sizeof(Method_Kernel_Net_udp_consts));
+    UPDATE_LIMITS(&Method_Kernel_Net_udp_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Net_udp_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Net_udpBindPort__insts, sizeof(Method_Kernel_Net_udpBindPort__insts));
+    UPDATE_LIMITS(Method_Kernel_Net_udpBindPort__consts, sizeof(Method_Kernel_Net_udpBindPort__consts));
+    UPDATE_LIMITS(&Method_Kernel_Net_udpBindPort__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Net_udpBindPort__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Meta_Kernel_Net_onPort__insts, sizeof(Method_Meta_Kernel_Net_onPort__insts));
+    UPDATE_LIMITS(Method_Meta_Kernel_Net_onPort__consts, sizeof(Method_Meta_Kernel_Net_onPort__consts));
+    UPDATE_LIMITS(&Method_Meta_Kernel_Net_onPort__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Meta_Kernel_Net_onPort__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Net_init_new_insts, sizeof(Method_Kernel_Net_init_new_insts));
+    UPDATE_LIMITS(Method_Kernel_Net_init_new_consts, sizeof(Method_Kernel_Net_init_new_consts));
+    UPDATE_LIMITS(&Method_Kernel_Net_init_new_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Net_init_new_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Socket_setPort_handle__insts, sizeof(Method_Kernel_Socket_setPort_handle__insts));
+    UPDATE_LIMITS(&Method_Kernel_Socket_setPort_handle__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Socket_setPort_handle__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Socket_sendTo_port_data__insts, sizeof(Method_Kernel_Socket_sendTo_port_data__insts));
+    UPDATE_LIMITS(Method_Kernel_Socket_sendTo_port_data__consts, sizeof(Method_Kernel_Socket_sendTo_port_data__consts));
+    UPDATE_LIMITS(&Method_Kernel_Socket_sendTo_port_data__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Socket_sendTo_port_data__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Socket_receive_insts, sizeof(Method_Kernel_Socket_receive_insts));
+    UPDATE_LIMITS(Method_Kernel_Socket_receive_consts, sizeof(Method_Kernel_Socket_receive_consts));
+    UPDATE_LIMITS(&Method_Kernel_Socket_receive_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Socket_receive_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Socket_close_insts, sizeof(Method_Kernel_Socket_close_insts));
+    UPDATE_LIMITS(Method_Kernel_Socket_close_consts, sizeof(Method_Kernel_Socket_close_consts));
+    UPDATE_LIMITS(&Method_Kernel_Socket_close_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Socket_close_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Meta_Kernel_Socket_onPort_handle__insts, sizeof(Method_Meta_Kernel_Socket_onPort_handle__insts));
+    UPDATE_LIMITS(Method_Meta_Kernel_Socket_onPort_handle__consts, sizeof(Method_Meta_Kernel_Socket_onPort_handle__consts));
+    UPDATE_LIMITS(&Method_Meta_Kernel_Socket_onPort_handle__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Meta_Kernel_Socket_onPort_handle__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Socket_init_new_insts, sizeof(Method_Kernel_Socket_init_new_insts));
+    UPDATE_LIMITS(Method_Kernel_Socket_init_new_consts, sizeof(Method_Kernel_Socket_init_new_consts));
+    UPDATE_LIMITS(&Method_Kernel_Socket_init_new_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Socket_init_new_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Datagram_setData_host_port__insts, sizeof(Method_Kernel_Datagram_setData_host_port__insts));
+    UPDATE_LIMITS(&Method_Kernel_Datagram_setData_host_port__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Datagram_setData_host_port__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Datagram_data_insts, sizeof(Method_Kernel_Datagram_data_insts));
+    UPDATE_LIMITS(&Method_Kernel_Datagram_data_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Datagram_data_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Datagram_senderHost_insts, sizeof(Method_Kernel_Datagram_senderHost_insts));
+    UPDATE_LIMITS(&Method_Kernel_Datagram_senderHost_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Datagram_senderHost_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Datagram_senderPort_insts, sizeof(Method_Kernel_Datagram_senderPort_insts));
+    UPDATE_LIMITS(&Method_Kernel_Datagram_senderPort_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Datagram_senderPort_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Meta_Kernel_Datagram_data_senderHost_senderPort__insts, sizeof(Method_Meta_Kernel_Datagram_data_senderHost_senderPort__insts));
+    UPDATE_LIMITS(Method_Meta_Kernel_Datagram_data_senderHost_senderPort__consts, sizeof(Method_Meta_Kernel_Datagram_data_senderHost_senderPort__consts));
+    UPDATE_LIMITS(&Method_Meta_Kernel_Datagram_data_senderHost_senderPort__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Meta_Kernel_Datagram_data_senderHost_senderPort__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Kernel_Datagram_init_new_insts, sizeof(Method_Kernel_Datagram_init_new_insts));
+    UPDATE_LIMITS(Method_Kernel_Datagram_init_new_consts, sizeof(Method_Kernel_Datagram_init_new_consts));
+    UPDATE_LIMITS(&Method_Kernel_Datagram_init_new_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Kernel_Datagram_init_new_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_run_platform_args_debug__insts, sizeof(Method_Supervisor_run_platform_args_debug__insts));
+    UPDATE_LIMITS(Method_Supervisor_run_platform_args_debug__consts, sizeof(Method_Supervisor_run_platform_args_debug__consts));
+    UPDATE_LIMITS(&Method_Supervisor_run_platform_args_debug__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_run_platform_args_debug__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_ObjectMirror_insts, sizeof(Method_Supervisor_ObjectMirror_insts));
+    UPDATE_LIMITS(Method_Supervisor_ObjectMirror_consts, sizeof(Method_Supervisor_ObjectMirror_consts));
+    UPDATE_LIMITS(&Method_Supervisor_ObjectMirror_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_ObjectMirror_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_ContextMirror_insts, sizeof(Method_Supervisor_ContextMirror_insts));
+    UPDATE_LIMITS(Method_Supervisor_ContextMirror_consts, sizeof(Method_Supervisor_ContextMirror_consts));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_insts, sizeof(Method_Supervisor_Debugger_insts));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_consts, sizeof(Method_Supervisor_Debugger_consts));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_init_mirror__insts, sizeof(Method_Supervisor_init_mirror__insts));
+    UPDATE_LIMITS(Method_Supervisor_init_mirror__consts, sizeof(Method_Supervisor_init_mirror__consts));
+    UPDATE_LIMITS(&Method_Supervisor_init_mirror__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_init_mirror__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_ObjectMirror_vtable_insts, sizeof(Method_Supervisor_ObjectMirror_vtable_insts));
+    UPDATE_LIMITS(Method_Supervisor_ObjectMirror_vtable_consts, sizeof(Method_Supervisor_ObjectMirror_vtable_consts));
+    UPDATE_LIMITS(&Method_Supervisor_ObjectMirror_vtable_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_ObjectMirror_vtable_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_ObjectMirror_bindings_insts, sizeof(Method_Supervisor_ObjectMirror_bindings_insts));
+    UPDATE_LIMITS(Method_Supervisor_ObjectMirror_bindings_consts, sizeof(Method_Supervisor_ObjectMirror_bindings_consts));
+    UPDATE_LIMITS(&Method_Supervisor_ObjectMirror_bindings_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_ObjectMirror_bindings_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_ObjectMirror_reflectee_insts, sizeof(Method_Supervisor_ObjectMirror_reflectee_insts));
+    UPDATE_LIMITS(&Method_Supervisor_ObjectMirror_reflectee_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_ObjectMirror_reflectee_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_ObjectMirror_init_m_obj__insts, sizeof(Method_Supervisor_ObjectMirror_init_m_obj__insts));
+    UPDATE_LIMITS(&Method_Supervisor_ObjectMirror_init_m_obj__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_ObjectMirror_init_m_obj__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_ContextMirror_context_insts, sizeof(Method_Supervisor_ContextMirror_context_insts));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_context_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_context_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_ContextMirror_rawSender_insts, sizeof(Method_Supervisor_ContextMirror_rawSender_insts));
+    UPDATE_LIMITS(Method_Supervisor_ContextMirror_rawSender_consts, sizeof(Method_Supervisor_ContextMirror_rawSender_consts));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_rawSender_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_rawSender_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_ContextMirror_sender_insts, sizeof(Method_Supervisor_ContextMirror_sender_insts));
+    UPDATE_LIMITS(Method_Supervisor_ContextMirror_sender_consts, sizeof(Method_Supervisor_ContextMirror_sender_consts));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_sender_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_sender_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_ContextMirror_pc_insts, sizeof(Method_Supervisor_ContextMirror_pc_insts));
+    UPDATE_LIMITS(Method_Supervisor_ContextMirror_pc_consts, sizeof(Method_Supervisor_ContextMirror_pc_consts));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_pc_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_pc_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_ContextMirror_offset_insts, sizeof(Method_Supervisor_ContextMirror_offset_insts));
+    UPDATE_LIMITS(Method_Supervisor_ContextMirror_offset_consts, sizeof(Method_Supervisor_ContextMirror_offset_consts));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_offset_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_offset_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_ContextMirror_registerAt__insts, sizeof(Method_Supervisor_ContextMirror_registerAt__insts));
+    UPDATE_LIMITS(Method_Supervisor_ContextMirror_registerAt__consts, sizeof(Method_Supervisor_ContextMirror_registerAt__consts));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_registerAt__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_registerAt__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_ContextMirror_registerAt_put__insts, sizeof(Method_Supervisor_ContextMirror_registerAt_put__insts));
+    UPDATE_LIMITS(Method_Supervisor_ContextMirror_registerAt_put__consts, sizeof(Method_Supervisor_ContextMirror_registerAt_put__consts));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_registerAt_put__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_registerAt_put__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_ContextMirror_numRegisters_insts, sizeof(Method_Supervisor_ContextMirror_numRegisters_insts));
+    UPDATE_LIMITS(Method_Supervisor_ContextMirror_numRegisters_consts, sizeof(Method_Supervisor_ContextMirror_numRegisters_consts));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_numRegisters_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_numRegisters_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_ContextMirror_init_m_ctx__insts, sizeof(Method_Supervisor_ContextMirror_init_m_ctx__insts));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_init_m_ctx__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_ContextMirror_init_m_ctx__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_registerEntry__insts, sizeof(Method_Supervisor_Debugger_registerEntry__insts));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_registerEntry__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_registerEntry__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_buildRegistry_insts, sizeof(Method_Supervisor_Debugger_buildRegistry_insts));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_buildRegistry_consts, sizeof(Method_Supervisor_Debugger_buildRegistry_consts));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_buildRegistry_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_buildRegistry_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_listMethods_insts, sizeof(Method_Supervisor_Debugger_listMethods_insts));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_listMethods_consts, sizeof(Method_Supervisor_Debugger_listMethods_consts));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_listMethods_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_listMethods_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_methodAt__insts, sizeof(Method_Supervisor_Debugger_methodAt__insts));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_methodAt__consts, sizeof(Method_Supervisor_Debugger_methodAt__consts));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_methodAt__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_methodAt__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_parseInt__insts, sizeof(Method_Supervisor_Debugger_parseInt__insts));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_parseInt__consts, sizeof(Method_Supervisor_Debugger_parseInt__consts));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_parseInt__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_parseInt__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_ensureBp_insts, sizeof(Method_Supervisor_Debugger_ensureBp_insts));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_ensureBp_consts, sizeof(Method_Supervisor_Debugger_ensureBp_consts));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_ensureBp_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_ensureBp_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_break_at__insts, sizeof(Method_Supervisor_Debugger_break_at__insts));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_break_at__consts, sizeof(Method_Supervisor_Debugger_break_at__consts));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_break_at__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_break_at__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_clear_at__insts, sizeof(Method_Supervisor_Debugger_clear_at__insts));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_clear_at__consts, sizeof(Method_Supervisor_Debugger_clear_at__consts));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_clear_at__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_clear_at__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_doBreak__insts, sizeof(Method_Supervisor_Debugger_doBreak__insts));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_doBreak__consts, sizeof(Method_Supervisor_Debugger_doBreak__consts));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_doBreak__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_doBreak__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_doClear__insts, sizeof(Method_Supervisor_Debugger_doClear__insts));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_doClear__consts, sizeof(Method_Supervisor_Debugger_doClear__consts));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_doClear__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_doClear__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_onBreakContext__insts, sizeof(Method_Supervisor_Debugger_onBreakContext__insts));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_onBreakContext__consts, sizeof(Method_Supervisor_Debugger_onBreakContext__consts));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_onBreakContext__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_onBreakContext__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_depthOf__insts, sizeof(Method_Supervisor_Debugger_depthOf__insts));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_depthOf__consts, sizeof(Method_Supervisor_Debugger_depthOf__consts));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_depthOf__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_depthOf__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_methodIdOfCtx__insts, sizeof(Method_Supervisor_Debugger_methodIdOfCtx__insts));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_methodIdOfCtx__consts, sizeof(Method_Supervisor_Debugger_methodIdOfCtx__consts));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_methodIdOfCtx__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_methodIdOfCtx__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_doInspect__insts, sizeof(Method_Supervisor_Debugger_doInspect__insts));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_doInspect__consts, sizeof(Method_Supervisor_Debugger_doInspect__consts));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_doInspect__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_doInspect__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_initialLoop_insts, sizeof(Method_Supervisor_Debugger_initialLoop_insts));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_initialLoop_consts, sizeof(Method_Supervisor_Debugger_initialLoop_consts));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_initialLoop_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_initialLoop_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_commandLoop_insts, sizeof(Method_Supervisor_Debugger_commandLoop_insts));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_commandLoop_consts, sizeof(Method_Supervisor_Debugger_commandLoop_consts));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_commandLoop_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_commandLoop_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_verbOf__insts, sizeof(Method_Supervisor_Debugger_verbOf__insts));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_verbOf__consts, sizeof(Method_Supervisor_Debugger_verbOf__consts));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_verbOf__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_verbOf__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_init_m_io__insts, sizeof(Method_Supervisor_Debugger_init_m_io__insts));
+    UPDATE_LIMITS(Method_Supervisor_Debugger_init_m_io__consts, sizeof(Method_Supervisor_Debugger_init_m_io__consts));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_init_m_io__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Supervisor_Debugger_init_m_io__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Block_Kernel_Collection_block1_value___insts, sizeof(Method_Block_Kernel_Collection_block1_value___insts));
+    UPDATE_LIMITS(Method_Block_Kernel_Collection_block1_value___consts, sizeof(Method_Block_Kernel_Collection_block1_value___consts));
+    UPDATE_LIMITS(&Method_Block_Kernel_Collection_block1_value___compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Block_Kernel_Collection_block1_value___closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Block_Kernel_Collection_block2_value__insts, sizeof(Method_Block_Kernel_Collection_block2_value__insts));
+    UPDATE_LIMITS(Method_Block_Kernel_Collection_block2_value__consts, sizeof(Method_Block_Kernel_Collection_block2_value__consts));
+    UPDATE_LIMITS(&Method_Block_Kernel_Collection_block2_value__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Block_Kernel_Collection_block2_value__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Block_Kernel_Collection_block3_value__insts, sizeof(Method_Block_Kernel_Collection_block3_value__insts));
+    UPDATE_LIMITS(Method_Block_Kernel_Collection_block3_value__consts, sizeof(Method_Block_Kernel_Collection_block3_value__consts));
+    UPDATE_LIMITS(&Method_Block_Kernel_Collection_block3_value__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Block_Kernel_Collection_block3_value__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Block_Kernel_Collection_block4_value__insts, sizeof(Method_Block_Kernel_Collection_block4_value__insts));
+    UPDATE_LIMITS(Method_Block_Kernel_Collection_block4_value__consts, sizeof(Method_Block_Kernel_Collection_block4_value__consts));
+    UPDATE_LIMITS(&Method_Block_Kernel_Collection_block4_value__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Block_Kernel_Collection_block4_value__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Block_Kernel_Collection_block5_value__insts, sizeof(Method_Block_Kernel_Collection_block5_value__insts));
+    UPDATE_LIMITS(Method_Block_Kernel_Collection_block5_value__consts, sizeof(Method_Block_Kernel_Collection_block5_value__consts));
+    UPDATE_LIMITS(&Method_Block_Kernel_Collection_block5_value__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Block_Kernel_Collection_block5_value__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Block_Kernel_Collection_block6_value___insts, sizeof(Method_Block_Kernel_Collection_block6_value___insts));
+    UPDATE_LIMITS(Method_Block_Kernel_Collection_block6_value___consts, sizeof(Method_Block_Kernel_Collection_block6_value___consts));
+    UPDATE_LIMITS(&Method_Block_Kernel_Collection_block6_value___compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Block_Kernel_Collection_block6_value___closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Block_Kernel_Collection_block7_value__insts, sizeof(Method_Block_Kernel_Collection_block7_value__insts));
+    UPDATE_LIMITS(Method_Block_Kernel_Collection_block7_value__consts, sizeof(Method_Block_Kernel_Collection_block7_value__consts));
+    UPDATE_LIMITS(&Method_Block_Kernel_Collection_block7_value__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Block_Kernel_Collection_block7_value__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Block_Kernel_Collection_block8_value__insts, sizeof(Method_Block_Kernel_Collection_block8_value__insts));
+    UPDATE_LIMITS(Method_Block_Kernel_Collection_block8_value__consts, sizeof(Method_Block_Kernel_Collection_block8_value__consts));
+    UPDATE_LIMITS(&Method_Block_Kernel_Collection_block8_value__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Block_Kernel_Collection_block8_value__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Block_Kernel_Collection_block9_value_insts, sizeof(Method_Block_Kernel_Collection_block9_value_insts));
+    UPDATE_LIMITS(Method_Block_Kernel_Collection_block9_value_consts, sizeof(Method_Block_Kernel_Collection_block9_value_consts));
+    UPDATE_LIMITS(&Method_Block_Kernel_Collection_block9_value_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Block_Kernel_Collection_block9_value_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Block_Kernel_Set_block10_value__insts, sizeof(Method_Block_Kernel_Set_block10_value__insts));
+    UPDATE_LIMITS(Method_Block_Kernel_Set_block10_value__consts, sizeof(Method_Block_Kernel_Set_block10_value__consts));
+    UPDATE_LIMITS(&Method_Block_Kernel_Set_block10_value__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Block_Kernel_Set_block10_value__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Block_Kernel_Set_block11_value_insts, sizeof(Method_Block_Kernel_Set_block11_value_insts));
+    UPDATE_LIMITS(Method_Block_Kernel_Set_block11_value_consts, sizeof(Method_Block_Kernel_Set_block11_value_consts));
+    UPDATE_LIMITS(&Method_Block_Kernel_Set_block11_value_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Block_Kernel_Set_block11_value_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Block_Kernel_Dictionary_block12_value_insts, sizeof(Method_Block_Kernel_Dictionary_block12_value_insts));
+    UPDATE_LIMITS(Method_Block_Kernel_Dictionary_block12_value_consts, sizeof(Method_Block_Kernel_Dictionary_block12_value_consts));
+    UPDATE_LIMITS(&Method_Block_Kernel_Dictionary_block12_value_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Block_Kernel_Dictionary_block12_value_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Block_Kernel_Dictionary_block13_value_insts, sizeof(Method_Block_Kernel_Dictionary_block13_value_insts));
+    UPDATE_LIMITS(Method_Block_Kernel_Dictionary_block13_value_consts, sizeof(Method_Block_Kernel_Dictionary_block13_value_consts));
+    UPDATE_LIMITS(&Method_Block_Kernel_Dictionary_block13_value_compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Block_Kernel_Dictionary_block13_value_closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Block_Supervisor_block14_value__insts, sizeof(Method_Block_Supervisor_block14_value__insts));
+    UPDATE_LIMITS(Method_Block_Supervisor_block14_value__consts, sizeof(Method_Block_Supervisor_block14_value__consts));
+    UPDATE_LIMITS(&Method_Block_Supervisor_block14_value__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Block_Supervisor_block14_value__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(&StaticSymbol_value, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_unwindTo_value_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_main_args_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_roundTrip_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_fail_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_init_platform_net_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_packageUsing_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_serialOn_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_netOn_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_readLine, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_Object, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_Array, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_Collection, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_OrderedCollection, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_Set, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_Dictionary, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_ReadStream, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_WriteStream, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_HashedCollection, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_Serial, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_Net, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_Socket, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_Datagram, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_init_platform_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_isNil, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_notNil, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_ifNil_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_ifNotNil_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol__eq, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_printString, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_asString, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_hash, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_init_new, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_at_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_at_put_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_size, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_do_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_new_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_isEmpty, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_inject_into_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_collect_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_select_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_reject_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_includes_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_asArray, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_detect_ifNone_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_detect_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_add_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_addLast_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_first, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_last, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_removeLast, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_removeFirst, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_ensureCapacity, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_grow, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_capacity, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_indexFor_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_slotFor_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_containsKey_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_atCapacity, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_growIfNeeded, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_rehashFrom_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_reinsertEntryAt_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_addAll_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_remove_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_remove_ifAbsent_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_place_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_at_ifAbsent_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_at_ifAbsentPut_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_includesKey_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_removeKey_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_removeKey_ifAbsent_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_keys, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_values, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_keysAndValuesDo_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_place_value_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_next, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_peek, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_atEnd, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_skip_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_position, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_reset, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_next_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_upTo_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_nextLine, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_upToEnd, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_prefixOf_upTo_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_setSource_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_on_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_nextPut_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_nextPutAll_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_print_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_nextPutLine_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_contents, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_setPort_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_writeByte_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_write_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_readByte, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_read_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_onPort_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_udp, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_udpBindPort_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_setPort_handle_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_sendTo_port_data_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_receive, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_close, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_onPort_handle_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_setData_host_port_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_data, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_senderHost, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_senderPort, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_data_senderHost_senderPort_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_run_platform_args_debug_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_ObjectMirror, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_ContextMirror, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_Debugger, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_init_mirror_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_vtable, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_bindings, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_reflectee, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_init_m_obj_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_context, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_rawSender, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_sender, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_pc, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_offset, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_registerAt_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_registerAt_put_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_numRegisters, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_init_m_ctx_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_registerEntry_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_buildRegistry, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_listMethods, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_methodAt_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_parseInt_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_ensureBp, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_break_at_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_clear_at_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_doBreak_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_doClear_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_onBreakContext_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_depthOf_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_methodIdOfCtx_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_doInspect_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_initialLoop, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_commandLoop, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_verbOf_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_init_m_io_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_value__, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_value_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol__eq_eq, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_executeCleanup, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_resumeWith_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_false, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_println, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol___boundOuter_slotCount_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_true, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_identityHash, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_basicAt_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_basicAt_put_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_basicSize, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol__lt_eq, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_basicNew_indexable_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_error_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol__lt, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol__gt, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol__div_div, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_not, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol__gt_eq, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_value_value_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_string_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_basicWriteByte_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_basicAtEnd, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_basicReadByte, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_basicBind_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_basicSend_to_port_data_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_basicReceive_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_basicClose_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_onBreak_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_vtableOf_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_bindingsOf_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_senderOf_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_pcOf_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_offsetOf_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_reg_at_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_reg_at_put_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_numRegistersOf_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_new, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_selectorsOf_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_methodsOf_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_delegateOf_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_breakAt_offset_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_unbreakAt_offset_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_methodOf_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_into, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_over, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_out, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticSymbol_requestStep_, sizeof(struct Symbol));
+    UPDATE_LIMITS(&StaticString_127_u460_u460_u461_0, sizeof(StaticString_127_u460_u460_u461_0));
+    UPDATE_LIMITS(&StaticString_v4_u32loopback_1, sizeof(StaticString_v4_u32loopback_1));
+    UPDATE_LIMITS(&StaticString___1_2, sizeof(StaticString___1_2));
+    UPDATE_LIMITS(&StaticString_v6_u32loopback_3, sizeof(StaticString_v6_u32loopback_3));
+    UPDATE_LIMITS(&StaticString_UDP_u32OK_4, sizeof(StaticString_UDP_u32OK_4));
+    UPDATE_LIMITS(&StaticString_ping_5, sizeof(StaticString_ping_5));
+    UPDATE_LIMITS(&StaticString_an_u32Object_6, sizeof(StaticString_an_u32Object_6));
+    UPDATE_LIMITS(&StaticString_subclassResponsibility_7, sizeof(StaticString_subclassResponsibility_7));
+    UPDATE_LIMITS(&StaticString_index_u32out_u32of_u32bounds_8, sizeof(StaticString_index_u32out_u32of_u32bounds_8));
+    UPDATE_LIMITS(&StaticString_nil_u32element_u32not_u32allowed_9, sizeof(StaticString_nil_u32element_u32not_u32allowed_9));
+    UPDATE_LIMITS(&StaticString_nil_u32key_u32not_u32allowed_10, sizeof(StaticString_nil_u32key_u32not_u32allowed_10));
+    UPDATE_LIMITS(&StaticString_next_u32past_u32end_11, sizeof(StaticString_next_u32past_u32end_11));
+    UPDATE_LIMITS(&StaticString_peek_u32past_u32end_12, sizeof(StaticString_peek_u32past_u32end_12));
+    UPDATE_LIMITS(&StaticString_next__u32beyond_u32end_13, sizeof(StaticString_next__u32beyond_u32end_13));
+    UPDATE_LIMITS(&StaticString_byte_u32out_u32of_u32range_u320_u46_u46255_14, sizeof(StaticString_byte_u32out_u32of_u32range_u320_u46_u46255_14));
+    UPDATE_LIMITS(&StaticString_dbg_ready_15, sizeof(StaticString_dbg_ready_15));
+    UPDATE_LIMITS(&StaticString__u32_16, sizeof(StaticString__u32_16));
+    UPDATE_LIMITS(&StaticString_dbg_ok_u32methods_17, sizeof(StaticString_dbg_ok_u32methods_17));
+    UPDATE_LIMITS(&StaticString_dbg_error_u32no_submethod_18, sizeof(StaticString_dbg_error_u32no_submethod_18));
+    UPDATE_LIMITS(&StaticString_dbg_ok_u32break_19, sizeof(StaticString_dbg_ok_u32break_19));
+    UPDATE_LIMITS(&StaticString_dbg_error_u32no_subbp_20, sizeof(StaticString_dbg_error_u32no_subbp_20));
+    UPDATE_LIMITS(&StaticString_dbg_ok_u32clear_21, sizeof(StaticString_dbg_ok_u32clear_21));
+    UPDATE_LIMITS(&StaticString_dbg_error_u32usage_22, sizeof(StaticString_dbg_error_u32usage_22));
+    UPDATE_LIMITS(&StaticString_dbg_paused_u32break_u32_23, sizeof(StaticString_dbg_paused_u32break_u32_23));
+    UPDATE_LIMITS(&StaticString_dbg_paused_u32step_u32_24, sizeof(StaticString_dbg_paused_u32step_u32_24));
+    UPDATE_LIMITS(&StaticString_dbg_error_u32no_subframe_25, sizeof(StaticString_dbg_error_u32no_subframe_25));
+    UPDATE_LIMITS(&StaticString_dbg_stack_u32off_eq_26, sizeof(StaticString_dbg_stack_u32off_eq_26));
+    UPDATE_LIMITS(&StaticString__u32r_27, sizeof(StaticString__u32r_27));
+    UPDATE_LIMITS(&StaticString__eq_28, sizeof(StaticString__eq_28));
+    UPDATE_LIMITS(&StaticString_dbg_methods_29, sizeof(StaticString_dbg_methods_29));
+    UPDATE_LIMITS(&StaticString_dbg_continue_30, sizeof(StaticString_dbg_continue_30));
+    UPDATE_LIMITS(&StaticString_dbg_run_31, sizeof(StaticString_dbg_run_31));
+    UPDATE_LIMITS(&StaticString_dbg_break_32, sizeof(StaticString_dbg_break_32));
+    UPDATE_LIMITS(&StaticString_dbg_clear_33, sizeof(StaticString_dbg_clear_33));
+    UPDATE_LIMITS(&StaticString_dbg_error_u32unknown_34, sizeof(StaticString_dbg_error_u32unknown_34));
+    UPDATE_LIMITS(&StaticString_dbg_step_35, sizeof(StaticString_dbg_step_35));
+    UPDATE_LIMITS(&StaticString_dbg_over_36, sizeof(StaticString_dbg_over_36));
+    UPDATE_LIMITS(&StaticString_dbg_out_37, sizeof(StaticString_dbg_out_37));
+    UPDATE_LIMITS(&StaticString_dbg_inspect_38, sizeof(StaticString_dbg_inspect_38));
+    UPDATE_LIMITS(&StaticString_not_u32found_39, sizeof(StaticString_not_u32found_39));
+    UPDATE_LIMITS(&StaticString_element_u32not_u32found_40, sizeof(StaticString_element_u32not_u32found_40));
+    UPDATE_LIMITS(&StaticString_key_u32not_u32found_41, sizeof(StaticString_key_u32not_u32found_41));
+
+    flash_rom_start = min_addr;
+    flash_rom_end = max_addr;
+
+    extern oop gc_allocate(oop vtable, size_t size);
+    oop native_platform = platform_object();
+    oop fake_args = TAG_SMI(0);
+    oop kernel_inst = gc_allocate((oop)&Vtable_Kernel, sizeof(struct ObjectInstance) + 14 * sizeof(oop));
+    oop kernel_init_args[1] = { native_platform };
+    send(kernel_inst, (oop)&StaticSymbol_init_platform_, 1, kernel_init_args);
+
+    extern oop udp_object(void);
+    oop net_port = udp_object();
+    oop net_args[1] = { net_port };
+    oop net_inst = send(kernel_inst, (oop)&StaticSymbol_netOn_, 1, net_args);
+    // Instantiate entry class UdpTest
+    oop entry_inst = gc_allocate((oop)&Vtable_UdpTest, sizeof(struct ObjectInstance) + 2 * sizeof(oop));
+    oop init_args[2] = { kernel_inst, net_inst };
+    send(entry_inst, (oop)&StaticSymbol_init_platform_net_, 2, init_args);
+
+    extern oop mirror_object(void);
+    oop supervisor_inst = gc_allocate((oop)&Vtable_Supervisor, sizeof(struct ObjectInstance) + 4 * sizeof(oop));
+    oop sup_init_args[1] = { mirror_object() };
+    send(supervisor_inst, (oop)&StaticSymbol_init_mirror_, 1, sup_init_args);
+    oop dbg_flag = getenv("OEVM_DEBUG") ? TAG_SMI(1) : TAG_SMI(0);
+    oop run_args[4] = { entry_inst, kernel_inst, fake_args, dbg_flag };
+    oop res = send(supervisor_inst, (oop)&StaticSymbol_run_platform_args_debug_, 4, run_args);
+    return res;
+}
+
+void init_reflection_symbols(void) {
+    // Expose reflection symbols to the interpreter
+}

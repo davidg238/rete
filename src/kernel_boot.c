@@ -1,0 +1,205 @@
+/* oevm/src/kernel_boot.c
+ *
+ * Task 11 — Firmware kernel bootstrap for the decoupled XIP image model.
+ *
+ * This file owns the APP-INDEPENDENT kernel objects that, under Model A, were
+ * emitted into every per-program `solidified_image.c`:
+ *   - the root meta-vtables (VtableVtable, SymbolVtable, …, the three Fiber
+ *     vtables) and the IntegerVtable / FloatVtable / MethodContextVtable;
+ *   - the kernel `unwindTo:value:` method (bytecode + constants + closure),
+ *     which MethodContextVtable binds;
+ *   - the kernel-owned symbols the firmware references regardless of app.
+ *
+ * `kernel_boot()` assigns the global vtable/symbol pointer vars (DEFINED in
+ * dispatch.c / vm.c — we only assign them, never redefine) and POPULATES the
+ * `builtin_registry[]` + `oimg_singleton[]` tables (the arrays themselves are
+ * DEFINED, zero-initialized, in oimg_loader.c so Model A still links cleanly).
+ *
+ * Index order matches src/builtins.def (FROZEN, append-only):
+ *   0..2   singletons : nil(NULL) / true / false
+ *   3..14  vtables    : Integer, Float, MethodContext, Fiber, Symbol, Vtable,
+ *                       PrimitiveClosure, BytecodeClosure, BoxedBinding,
+ *                       RunnableFiber, SuspendedFiber, DeadFiber
+ *   15..22 symbols    : == executeCleanup sender resumeWith: unwindTo:value:
+ *                       value accessViolation: debug:
+ */
+#include "oevm.h"
+#include "oimg.h"
+#include <stddef.h>
+
+/* ------------------------------------------------------------------ *
+ * Forward-declared firmware-static kernel storage.
+ * ------------------------------------------------------------------ */
+const struct Vtable Vtable_VtableVtable;
+const struct Vtable Vtable_SymbolVtable;
+const struct Vtable Vtable_StringVtable;
+const struct Vtable Vtable_BytecodeClosureVtable;
+const struct Vtable Vtable_PrimitiveClosureVtable;
+const struct Vtable Vtable_BoxedBindingVtable;
+const struct Vtable Vtable_RunnableFiberVtable;
+const struct Vtable Vtable_SuspendedFiberVtable;
+const struct Vtable Vtable_DeadFiberVtable;
+const struct Vtable Vtable_IntegerVtable;
+const struct Vtable Vtable_FloatVtable;
+const struct Vtable Vtable_LargeIntegerVtable;
+const struct Vtable Vtable_MethodContextVtable;
+const struct Vtable Vtable_StackVtable;
+const struct Vtable Vtable_ContextVtable;
+
+/* ------------------------------------------------------------------ *
+ * Kernel-owned interned symbols (firmware static storage).
+ * Names + lengths mirror StaticSymbol_* from the old solidified image and the
+ * Symbol_* globals the VM hardcodes.
+ * ------------------------------------------------------------------ */
+static const struct Symbol KSym__eq_eq          = { { (oop)&Vtable_SymbolVtable }, "==", 2 };
+static const struct Symbol KSym_executeCleanup  = { { (oop)&Vtable_SymbolVtable }, "executeCleanup", 14 };
+static const struct Symbol KSym_sender          = { { (oop)&Vtable_SymbolVtable }, "sender", 6 };
+static const struct Symbol KSym_resumeWith_     = { { (oop)&Vtable_SymbolVtable }, "resumeWith:", 11 };
+static const struct Symbol KSym_unwindTo_value_ = { { (oop)&Vtable_SymbolVtable }, "unwindTo:value:", 15 };
+static const struct Symbol KSym_value           = { { (oop)&Vtable_SymbolVtable }, "value", 5 };
+static const struct Symbol KSym_accessViolation_= { { (oop)&Vtable_SymbolVtable }, "accessViolation:", 16 };
+static const struct Symbol KSym_debug_          = { { (oop)&Vtable_SymbolVtable }, "debug:", 6 };
+
+/* Singleton true/false symbols (nil is the VM's NULL). */
+static const struct Symbol KSym_true            = { { (oop)&Vtable_SymbolVtable }, "true", 4 };
+static const struct Symbol KSym_false           = { { (oop)&Vtable_SymbolVtable }, "false", 5 };
+
+/* ------------------------------------------------------------------ *
+ * Kernel method: MethodContextVtable >> unwindTo:value:
+ * Lifted verbatim from solidified_image.c (app-independent).
+ * ------------------------------------------------------------------ */
+static const uint32_t Method_unwindTo_value__insts[] = {
+    0x00000301, 0x00010401, 0x03000102, 0x0007030B, 0x00000301, 0x03010002,
+    0x00000301, 0x00020401, 0x03020102, 0x00040300, 0x00000304, 0x00000301,
+    0x03010002, 0x00000301, 0x00030315, 0x00010401, 0x00020501, 0x03030202,
+    0x00000304
+};
+static const oop Method_unwindTo_value__consts[] = {
+    (oop)&KSym__eq_eq, (oop)&KSym_executeCleanup,
+    (oop)&KSym_resumeWith_, (oop)&KSym_unwindTo_value_, TAG_SMI(0)
+};
+static const struct CompiledMethod Method_unwindTo_value__compiled = {
+    Method_unwindTo_value__insts, 19,
+    6, 2,
+    Method_unwindTo_value__consts, 5,
+    0
+};
+static const struct Closure Method_unwindTo_value__closure = {
+    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
+    (void *)&Method_unwindTo_value__compiled
+};
+
+/* ------------------------------------------------------------------ *
+ * Vtable definitions.
+ * ------------------------------------------------------------------ */
+const struct Vtable Vtable_IntegerVtable = {
+    { (oop)&Vtable_VtableVtable }, NULL, (struct Binding *)NULL, 0, 0, 0
+};
+const struct Vtable Vtable_FloatVtable = {
+    { (oop)&Vtable_VtableVtable }, NULL, (struct Binding *)NULL, 0, 0, 0
+};
+const struct Vtable Vtable_LargeIntegerVtable = {
+    { (oop)&Vtable_VtableVtable }, NULL, (struct Binding *)NULL, 0, 0, 0
+};
+
+static const struct Binding Vtable_MethodContextVtable_bindings[] = {
+    { (oop)&KSym_unwindTo_value_, (oop)&Method_unwindTo_value__closure },
+};
+const struct Vtable Vtable_MethodContextVtable = {
+    { (oop)&Vtable_VtableVtable },
+    NULL, (struct Binding *)Vtable_MethodContextVtable_bindings,
+    1, 1,
+    0
+};
+
+/* Root meta-vtables: their own meta is VtableVtable (self for VtableVtable). */
+const struct Vtable Vtable_VtableVtable          = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+const struct Vtable Vtable_SymbolVtable          = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+const struct Vtable Vtable_StringVtable          = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+const struct Vtable Vtable_BytecodeClosureVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+const struct Vtable Vtable_PrimitiveClosureVtable= { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+const struct Vtable Vtable_BoxedBindingVtable    = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+const struct Vtable Vtable_RunnableFiberVtable   = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+const struct Vtable Vtable_SuspendedFiberVtable  = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+const struct Vtable Vtable_DeadFiberVtable       = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+/* Stack (L1 Task 2): private runtime vtable, not a builtins.def registry
+ * entry — internal runtime state no image ever names. DORMANT. */
+const struct Vtable Vtable_StackVtable           = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+/* Context (deferred-lift Phase 1, Task 1): private runtime vtable, not a
+ * builtins.def registry entry — internal runtime state no image ever
+ * names. DORMANT: nothing yet emits or consumes a Context. */
+const struct Vtable Vtable_ContextVtable         = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+
+/* ------------------------------------------------------------------ *
+ * kernel_boot — wire globals + populate registry/singletons.
+ * ------------------------------------------------------------------ */
+void kernel_boot(void) {
+    static int booted = 0;
+    if (booted) return;
+    booted = 1;
+
+    extern oop Symbol_unwindTo_value;
+    extern oop Symbol_value;
+    extern oop Symbol_accessViolation;
+    extern oop Symbol_debug_;
+
+    /* (a) Assign global vtable pointers (as init_solidified_vtables did). */
+    VtableVtable           = (oop)&Vtable_VtableVtable;
+    SymbolVtable           = (oop)&Vtable_SymbolVtable;
+    StringVtable           = (oop)&Vtable_StringVtable;
+    BytecodeClosureVtable  = (oop)&Vtable_BytecodeClosureVtable;
+    PrimitiveClosureVtable = (oop)&Vtable_PrimitiveClosureVtable;
+    BoxedBindingVtable     = (oop)&Vtable_BoxedBindingVtable;
+    RunnableFiberVtable    = (oop)&Vtable_RunnableFiberVtable;
+    SuspendedFiberVtable   = (oop)&Vtable_SuspendedFiberVtable;
+    DeadFiberVtable        = (oop)&Vtable_DeadFiberVtable;
+    StackVtable            = (oop)&Vtable_StackVtable;
+    ContextVtable          = (oop)&Vtable_ContextVtable;
+    IntegerVtable          = (oop)&Vtable_IntegerVtable;
+    FloatVtable            = (oop)&Vtable_FloatVtable;
+    LargeIntegerVtable     = (oop)&Vtable_LargeIntegerVtable;
+    MethodContextVtable    = (oop)&Vtable_MethodContextVtable;
+    /* FiberVtable is legacy/unused in Model A (init_solidified_vtables never
+     * assigned it); leave it NULL to match Model A behavior. */
+
+    /* (a') Assign global kernel symbol vars to the firmware-static symbols. */
+    Symbol_unwindTo_value = (oop)&KSym_unwindTo_value_;
+    Symbol_value          = (oop)&KSym_value;
+    Symbol_accessViolation= (oop)&KSym_accessViolation_;
+    Symbol_debug_         = (oop)&KSym_debug_;
+
+    /* (b) Singletons 0..2: nil(NULL) / true / false. */
+    oimg_singleton[0] = NULL;                 /* nil == NULL in this VM */
+    oimg_singleton[1] = (oop)&KSym_true;
+    oimg_singleton[2] = (oop)&KSym_false;
+
+    /* (c) builtin_registry[] in builtins.def index order. */
+    builtin_registry[0]  = oimg_singleton[0]; /* nil  */
+    builtin_registry[1]  = oimg_singleton[1]; /* true */
+    builtin_registry[2]  = oimg_singleton[2]; /* false */
+
+    builtin_registry[3]  = IntegerVtable;
+    builtin_registry[4]  = FloatVtable;
+    builtin_registry[5]  = MethodContextVtable;
+    builtin_registry[6]  = FiberVtable;       /* NULL (legacy) */
+    builtin_registry[7]  = SymbolVtable;
+    builtin_registry[8]  = VtableVtable;
+    builtin_registry[9]  = PrimitiveClosureVtable;
+    builtin_registry[10] = BytecodeClosureVtable;
+    builtin_registry[11] = BoxedBindingVtable;
+    builtin_registry[12] = RunnableFiberVtable;
+    builtin_registry[13] = SuspendedFiberVtable;
+    builtin_registry[14] = DeadFiberVtable;
+
+    builtin_registry[15] = (oop)&KSym__eq_eq;
+    builtin_registry[16] = (oop)&KSym_executeCleanup;
+    builtin_registry[17] = (oop)&KSym_sender;
+    builtin_registry[18] = (oop)&KSym_resumeWith_;
+    builtin_registry[19] = (oop)&KSym_unwindTo_value_;
+    builtin_registry[20] = (oop)&KSym_value;
+    builtin_registry[21] = (oop)&KSym_accessViolation_;
+    builtin_registry[22] = (oop)&KSym_debug_;
+
+    builtin_registry[23] = LargeIntegerVtable;
+    builtin_registry[24] = StringVtable;
+}

@@ -1,0 +1,45 @@
+/* Model A appliance build: compile only when -DOEVM_APPLIANCE is set.
+ * The default (Model B) build uses oevm_image_main.c instead. */
+#ifdef OEVM_APPLIANCE
+
+#include "oevm.h"
+#include "oimg.h"
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+/* Stub XIP globals — Model A never loads a blob; oimg.h accessors check
+ * is_in_blob() first, which returns 0 when blob_base==NULL, so the XIP
+ * paths are never taken.  Definitions must exist here because oimg_loader.c
+ * is NOT compiled in the appliance build. */
+const uint8_t *oimg_blob_base = NULL;
+const uint8_t *oimg_blob_end  = NULL;
+oop builtin_registry[BUILTIN_COUNT] = {0};
+oop oimg_singleton[3]    = {0};
+
+extern void init_solidified_vtables(void);
+extern void init_reflection_symbols(void);
+extern oop run_solidified_entry_point(void);
+extern void (*gc_additional_roots_hook)(void);
+
+/* Global roots list callback if needed */
+static void oevm_roots_callback(void) {
+    /* Standard GC roots are automatically scanned by the GC (vm_stack, current_frame, current_fiber) */
+}
+
+int main(void) {
+    /* Set roots callback */
+    gc_additional_roots_hook = oevm_roots_callback;
+
+    /* Boot solidified image */
+    init_solidified_vtables();
+    init_reflection_symbols();
+
+    /* Execute the solidified entry point */
+    oop result = run_solidified_entry_point();
+    (void)result;
+
+    return 0;
+}
+
+#endif /* OEVM_APPLIANCE */

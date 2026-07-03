@@ -1,0 +1,1818 @@
+#ifndef __ZEPHYR__
+#define _POSIX_C_SOURCE 200809L
+#endif
+#include "oevm.h"
+#include "frame_abi.h"
+#include "oimg.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+
+/* In-language monotonic millisecond clock. Function-pointer hook so the Zephyr
+   appliance can override it with k_uptime_get(). The POSIX path is compiled out
+   under __ZEPHYR__, so the firmware link needs no POSIX timer symbols (the app
+   reassigns the pointer before first use anyway). */
+static uint64_t default_millis(void) {
+#ifdef __ZEPHYR__
+    return 0;   /* overridden by the app before first use */
+#else
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t)ts.tv_sec * 1000u + (uint64_t)ts.tv_nsec / 1000000u;
+#endif
+}
+uint64_t (*oevm_millis)(void) = default_millis;
+
+extern oop gc_allocate(oop vtable, size_t size);
+
+
+
+/* Global Stack Memory for Sequential Stack Allocation */
+/* De-recursify Phase 3: grow-on-demand stacks. INIT is the initial per-fiber
+   capacity (host default == the legacy fixed size, so host runs never grow and
+   behave/perform exactly as before; -D lower on embedded to start small and grow
+   on demand — the footprint win). CAP is the hard ceiling before controlled
+   termination (StackOverflow is not yet catchable in-image; see the Phase 3
+   design). GROW_NUM/_DEN is the growth factor (default 2x). */
+#ifndef VM_STACK_INIT_WORDS
+#define VM_STACK_INIT_WORDS 16384
+#endif
+#ifndef VM_STACK_CAP_WORDS
+#define VM_STACK_CAP_WORDS 262144   /* 1 MB on 32-bit */
+#endif
+#ifndef VM_STACK_GROW_NUM
+#define VM_STACK_GROW_NUM 2
+#endif
+#ifndef VM_STACK_GROW_DEN
+#define VM_STACK_GROW_DEN 1
+#endif
+oop  g_active_stack = NULL;   /* the running fiber's Stack object (GC root); main bootstraps it lazily */
+oop  g_bootstrap_fiber = NULL; /* fiber 0 (the bootstrap/main fiber). A persistent GC root: all app
+                                  execution descends from it, so a cooperative scheduler running on its
+                                  stack — and every LIVE fiber that scheduler holds (ready-queue, current)
+                                  — stays reachable through it even while a worker fiber is active. See
+                                  the rooting rationale in gc.c gc_collect(). Set once at bootstrap. */
+oop *vm_stack = NULL;         /* == ((struct Stack*)g_active_stack)->data once bootstrapped */
+size_t vm_stack_ptr = 0;      /* live top cursor; ((struct Stack*)g_active_stack)->sp is synced on fiber switch only */
+
+/* Active Frame Register */
+struct MethodContext *current_frame = NULL;
+
+/* Precise GC roots for the boot/first-send window (oevm#21). While
+   run_interpreter lazily bootstraps the main fiber + Stack + boot symbols, the
+   incoming `receiver` and `args` are live but not yet written into a scanned
+   frame — held only in C locals. With no conservative C-stack scan, a GC_STRESS
+   collection during bootstrap would otherwise sweep the boot entry instance and
+   reuse its slot for g_active_stack (corrupting the stack). gc_collect marks
+   these so the in-flight receiver/args are PRECISE roots for exactly that
+   window; both are NULL/0 outside it (no-ops). */
+oop  g_boot_inflight_receiver = NULL;
+oop *g_boot_inflight_args = NULL;
+int  g_boot_inflight_argc = 0;
+
+/* Monotonic generation counter for lifecycle protection */
+uint32_t current_generation_tag = 0;
+
+/* Unwinding global state variables */
+int unwind_target_reached = 0;
+oop unwind_return_value = NULL;
+oop unwind_target_frame = NULL;
+
+/* Symbol singletons */
+oop Symbol_unwindTo_value = NULL;
+oop Symbol_value = NULL;
+
+/* Set to 1 while the debugger hook is executing; lets primitive_fiber_set_single_step
+   route the request through hook_step_request instead of applying it immediately. */
+int in_debugger_hook = 0;
+
+/* The registered break hook (dispatch.c); used by both the OP_BREAK path and the
+   Task 7 C-assisted breakpoint match at the top of the interpreter loop. */
+extern oop debugger_hook;
+
+/* C-assisted breakpoint table (Task 7). A breakpoint is a (method, offset) pair:
+   `method` is the CompiledMethod oop (== closure_entry of the running closure) and
+   `offset` is the instruction index within cm_instructions(method). We do NOT patch
+   OP_BREAK into methods (solidified .rodata methods are read-only and blob methods
+   abort on mutation); instead the interpreter checks the current (method, curoff)
+   at the TOP of its loop while the table is non-empty and fires the registered
+   debugger_hook on a match. Continue is trivial: returning from the hook lets the
+   instruction execute and the breakpoint re-fires next visit -- no restore/re-arm. */
+static struct { oop method; long off; } g_bp[64];
+static int g_bp_count = 0;
+
+static void bp_add(oop method, long off) {
+    int i;
+    for (i = 0; i < g_bp_count; i++) {
+        if (g_bp[i].method == method && g_bp[i].off == off) return; /* idempotent */
+    }
+    if (g_bp_count >= (int)(sizeof(g_bp) / sizeof(g_bp[0]))) {
+        fprintf(stderr, "VM Error: breakpoint table full (max %d)\n",
+                (int)(sizeof(g_bp) / sizeof(g_bp[0])));
+        abort();
+    }
+    g_bp[g_bp_count].method = method;
+    g_bp[g_bp_count].off = off;
+    g_bp_count++;
+}
+
+static void bp_remove(oop method, long off) {
+    int i;
+    for (i = 0; i < g_bp_count; i++) {
+        if (g_bp[i].method == method && g_bp[i].off == off) {
+            g_bp[i] = g_bp[g_bp_count - 1];
+            g_bp_count--;
+            return;
+        }
+    }
+}
+
+static int bp_hit(oop method, long off) {
+    int i;
+    for (i = 0; i < g_bp_count; i++) {
+        if (g_bp[i].method == method && g_bp[i].off == off) return 1;
+    }
+    return 0;
+}
+
+/* Primitive C function signature */
+typedef oop (*PrimitiveFunc)(oop receiver, int argc, oop *args);
+
+/* Forward declarations */
+extern oop lookup(oop receiver_vtable, oop selector);
+extern oop send(oop receiver, oop selector, int argc, oop *args);
+
+/*
+ * Control flow and reflection primitives
+ */
+oop primitive_object_equals(oop receiver, int argc, oop *args) {
+    if (argc < 1) {
+        return (oop)&false_sym_obj;
+    }
+    return (receiver == args[0]) ? (oop)&true_sym_obj : (oop)&false_sym_obj;
+}
+
+/* Kernel unwindTo:value: sends this to every frame walked during a non-local
+   return (see run_interpreter's do_unwind / OP_NLR handling). Pure no-op seam
+   today — a future ensure:/ifCurtailed: implementation hangs its per-frame
+   cleanup dispatch here (oevm#25); do not delete this prim/dispatch/symbol —
+   only the frame's dead per-frame cleanup-closure storage was removed. */
+oop primitive_method_context_execute_cleanup(oop receiver, int argc, oop *args) {
+    (void)receiver; (void)argc; (void)args;
+    return NULL;
+}
+
+oop primitive_method_context_resume(oop receiver, int argc, oop *args) {
+    if (argc < 1) {
+        fprintf(stderr, "VM Error: resumeWith: expects 1 argument\n");
+        abort();
+    }
+    oop rVal = args[0];
+    OEVM_TRACE_PRINT("resumeWith: receiver=%p, rVal=%p\n", (void*)receiver, (void*)rVal);
+    unwind_target_reached = 1;
+    unwind_target_frame = receiver;
+    unwind_return_value = rVal;
+    return NULL;
+}
+
+/* Push a new bytecode-method/block activation onto the active fiber stack and
+   make it current (de-recursify Phase 2, the flip). Mirrors the old
+   run_interpreter prologue exactly: relative prev_frame (dynamic link), ABSOLUTE
+   home_ctx (safe while stacks are fixed — no growth this phase), fresh generation
+   tag, regs[0]=receiver, regs[1..argc]=args, remaining regs NULL. Advances
+   vm_stack_ptr. Does NOT allocate (no GC hazard). The caller reloads
+   ctx/method/pc/pc_end from current_frame and continues the flat loop; OP_RET
+   later pops this frame and delivers its result into the caller's dest register. */
+
+/* De-recursify Phase 3: ensure the active fiber stack can hold `extra_words`
+   above vm_stack_ptr, growing (realloc-copy-to-larger) if needed. Relative
+   prev_frame/home_ctx links survive the copy with ZERO fixups (frame_abi.h) — only
+   the base moves. Returns the base delta in words (new_base - old_base), 0 when no
+   grow happened, so callers can rebase any live C-local raw pointers into the old
+   stack. Repoints vm_stack / g_active_stack / current_frame / the active Fiber's
+   stack_obj. `receiver` is a not-yet-stored C local at the push site — temp-root it
+   across the grow's allocation (the only new GC point; the old stack stays
+   g_active_stack and fully rooted during stack_alloc). At the hard cap, prints a
+   diagnostic and controlled-terminates (policy A, Task 2). */
+extern int gc_temp_roots_count;
+extern void gc_temp_root_push(oop o);
+static ptrdiff_t stack_ensure(size_t extra_words, oop receiver) {
+    struct Stack *old = (struct Stack *)g_active_stack;
+    if (vm_stack_ptr + extra_words <= old->capacity) return 0;   /* fast path: fits */
+
+    size_t need = vm_stack_ptr + extra_words;
+    if (need > (size_t)VM_STACK_CAP_WORDS) {
+        /* Phase 3 hard-cap policy A: controlled diagnostic termination. Catchable
+           in-image StackOverflow (kill just the fiber, node survives) is deferred
+           with the general exception facility — see the Phase 3 design §4. */
+        fprintf(stderr,
+            "VM Error: Stack Overflow — fiber %p exceeded the stack cap "
+            "(needed %zu words, cap %d). Unbounded recursion? StackOverflow is not "
+            "yet catchable in-image.\n",
+            (void *)current_fiber, need, (int)VM_STACK_CAP_WORDS);
+        abort();
+    }
+    size_t newcap = (size_t)old->capacity * VM_STACK_GROW_NUM / VM_STACK_GROW_DEN;
+    if (newcap < need) newcap = need;
+    if (newcap > (size_t)VM_STACK_CAP_WORDS) newcap = (size_t)VM_STACK_CAP_WORDS;
+
+    int saved_roots = gc_temp_roots_count;
+    gc_temp_root_push(receiver);
+    oop new_stack_oop = stack_alloc((uint32_t)newcap);
+    gc_temp_roots_count = saved_roots;
+
+    struct Stack *neu = (struct Stack *)new_stack_oop;
+    memcpy(neu->data, old->data, vm_stack_ptr * sizeof(oop));
+    neu->sp = old->sp;
+    neu->current_off = old->current_off;
+
+    ptrdiff_t delta = neu->data - old->data;
+    if (current_frame != NULL)
+        current_frame = (struct MethodContext *)((oop *)current_frame + delta);
+    g_active_stack = new_stack_oop;
+    vm_stack = neu->data;
+    ((struct Fiber *)current_fiber)->stack_obj = new_stack_oop;
+    return delta;
+}
+
+static struct MethodContext *push_frame(oop closure, oop receiver, int argc, oop *args) {
+    struct Closure *cl = (struct Closure *)closure;
+    struct CompiledMethod *m = (struct CompiledMethod *)closure_entry(cl);
+    size_t frame_words = sizeof(struct MethodContext) / sizeof(oop) + m->num_registers;
+    /* Grow-on-demand (Phase 3). Capture the OLD base+capacity so we can rebase an
+       in-stack `args` pointer after a grow; prev_ctx is re-read from current_frame
+       (which stack_ensure rebased). */
+    oop *old_base = vm_stack;
+    uint32_t old_cap = ((struct Stack *)g_active_stack)->capacity;
+    ptrdiff_t delta = stack_ensure(frame_words, receiver);
+    if (delta != 0 && args != NULL && args >= old_base && args < old_base + old_cap)
+        args = args + delta;
+    struct MethodContext *prev_ctx = current_frame;
+    struct MethodContext *ctx = (struct MethodContext *)&vm_stack[vm_stack_ptr];
+    vm_stack_ptr += frame_words;
+    ctx->vtable = NULL;
+    ctx->prev_frame = frame_link_encode(vm_stack, prev_ctx);   /* L0 relative dynamic link */
+    ctx->saved_pc = NULL;
+    ctx->closure = closure;
+    /* method closure homes to itself (encoded relative, growth-ready); a block
+       closure's inherited home_ctx is already a relative SMI — pass it through. */
+    ctx->home_ctx = cl->home_ctx ? cl->home_ctx
+                                 : home_link_encode_relative(vm_stack, ctx);
+    ctx->gen_tag.tag32 = ++current_generation_tag;
+    ctx->regs[0] = receiver;
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < m->num_registers) ctx->regs[i + 1] = args[i];
+    }
+    for (int i = argc + 1; i < m->num_registers; i++) ctx->regs[i] = NULL;
+    current_frame = ctx;
+    return ctx;
+}
+
+/* Decode a home_ctx discriminator value (frame_abi.h Option B) to the home
+   MethodContext frame it refers to, on the CURRENT fiber's stack.
+     NULL            -> NULL (no lexical home: a method's own closure)
+     relative SMI    -> stack frame at vm_stack[offset] (same fiber)
+     absolute ptr    -> (Task 1 only) returned as-is; Task 2 re-points this to
+                        the reified-Context guard once encode is relativized.
+   Single chokepoint so the Task-2 flip changes decode semantics in ONE place. */
+static inline struct MethodContext *home_ctx_frame(oop home) {
+    if (home == NULL) return NULL;
+    if (IS_SMI(home)) return home_link_decode_frame(vm_stack, home);
+    /* Reified Context: reserved (frame_abi.h Option B) but NOT produced until the
+       growth/escape phase. A non-SMI heap home here is a bug (stray absolute pointer
+       or premature reify). Fail loudly. */
+    fprintf(stderr, "VM Error: reified home_ctx not supported in Phase 2\n");
+    abort();
+}
+
+/*
+ * Primary Bytecode Interpreter Loop (de-recursify Phase 2: flat, non-recursive).
+ *
+ * ONE C activation per fiber. Every bytecode method/block invoke PUSHES a frame
+ * (push_frame) and `continue`s this loop instead of recursing into a nested
+ * run_interpreter; OP_RET pops the frame via the relative dynamic link and
+ * delivers the result into the caller's destination register (decoded from the
+ * caller's suspended send instruction, src2 == bits 24-31 — uniform across
+ * OP_SEND / OP_SEND_IMPLICIT / OP_SEND_SUPER / OP_BLOCK_INVOKE). Primitives still
+ * run as inline C calls. NLR / ensure: / ifCurtailed: unwind in-loop (do_unwind)
+ * driven by the resumeWith: flag, reusing the kernel unwindTo:value: machinery.
+ *
+ * run_interpreter STAYS re-entrant for exactly three cold, single-shot, non-
+ * looping callers (F4): the debugger hook, does_not_understand's bytecode
+ * handler, and run_method_on's nested-class init. Each such call pushes its own
+ * entry frame and bottoms out at it (entry_ctx), returning to its C caller — the
+ * loop never recurses on the hot send path.
+ */
+oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
+    /* oevm#21: any allocation between here and where `receiver`/`args` are written
+       into the (GC-scanned) frame can sweep them, since with no conservative
+       C-stack scan they have no other root. That window exists ONLY on the first
+       send(s), while the main fiber/Stack and the boot symbols are still being
+       lazily created. Pin them as precise roots for exactly that window so the
+       boot entry instance survives a GC_STRESS collection even under ASan
+       fake-stack. */
+    int boot_pinning = (current_fiber == NULL)
+                       || (Symbol_unwindTo_value == NULL) || (Symbol_value == NULL);
+    if (boot_pinning) {
+        g_boot_inflight_receiver = receiver;
+        g_boot_inflight_args = args;
+        g_boot_inflight_argc = argc;
+    }
+    // Lazy-initialize main fiber on the first interpreter run
+    if (current_fiber == NULL) {
+        /* Bootstrap main's first-class Stack (fiber 0) before allocating the Fiber,
+           so a GC during the Fiber alloc finds g_active_stack as a marked root. */
+        g_active_stack = stack_alloc(VM_STACK_INIT_WORDS);
+        vm_stack = ((struct Stack *)g_active_stack)->data;
+        vm_stack_ptr = 0;
+
+        current_fiber = gc_allocate(RunnableFiberVtable ? RunnableFiberVtable : FiberVtable, sizeof(struct Fiber));
+        g_bootstrap_fiber = current_fiber;      /* fiber 0: persistent GC root (see gc.c) */
+        struct Fiber *fib = (struct Fiber *)current_fiber;
+        fib->stack_obj = g_active_stack;        /* main's Stack object (allocated just above) */
+        fib->current_context = NULL;
+        fib->stack_ptr = 0;
+        fib->status = NULL;
+        fib->single_step = 0;
+        fib->hook_step_request = -1;
+    }
+    if (Symbol_unwindTo_value == NULL) {
+        Symbol_unwindTo_value = gc_allocate(SymbolVtable, sizeof(struct Symbol));
+        ((struct Symbol *)Symbol_unwindTo_value)->name = "unwindTo:value:";
+        ((struct Symbol *)Symbol_unwindTo_value)->length = strlen("unwindTo:value:");
+    }
+    if (Symbol_value == NULL) {
+        Symbol_value = gc_allocate(SymbolVtable, sizeof(struct Symbol));
+        ((struct Symbol *)Symbol_value)->name = "value";
+        ((struct Symbol *)Symbol_value)->length = strlen("value");
+    }
+    struct Closure *cl = (struct Closure *)closure;
+    struct CompiledMethod *method = (struct CompiledMethod *)closure_entry(cl);
+
+    // Allocate stack frame sequentially (Fast Path: vtable starts as NULL)
+    size_t frame_words = sizeof(struct MethodContext) / sizeof(oop) + method->num_registers;
+    /* Grow-on-demand (Phase 3): rebase an in-stack `args` after a grow. */
+    {
+        oop *old_base = vm_stack;
+        uint32_t old_cap = ((struct Stack *)g_active_stack)->capacity;
+        ptrdiff_t delta = stack_ensure(frame_words, receiver);
+        if (delta != 0 && args != NULL && args >= old_base && args < old_base + old_cap)
+            args = args + delta;
+    }
+    // Save previous frame pointer to restore on exit
+    struct MethodContext *prev_ctx = current_frame;
+    /* prev_ctx (the caller frame) is restored to current_frame at exit_frame; a
+       NESTED push during this invocation may grow the stack and move it, so hold it
+       as a base-relative link (survives the copy) rather than a raw pointer. */
+    oop entry_prev_link = frame_link_encode(vm_stack, prev_ctx);
+
+    struct MethodContext *ctx = (struct MethodContext *)&vm_stack[vm_stack_ptr];
+    size_t saved_stack_ptr = vm_stack_ptr;
+    vm_stack_ptr += frame_words;
+    // Initialize frame layout
+    ctx->vtable = NULL; 
+    ctx->prev_frame = frame_link_encode(vm_stack, prev_ctx);  /* L0 relative dynamic link */
+    ctx->saved_pc = NULL; // Updated dynamically if calling nested sends
+    ctx->closure = closure;
+    
+    // Lexical Link: nested closure -> inherited relative SMI; method closure -> self,
+    // encoded relative (growth-ready).
+    ctx->home_ctx = cl->home_ctx ? cl->home_ctx
+                                 : home_link_encode_relative(vm_stack, ctx);
+    ctx->gen_tag.tag32 = ++current_generation_tag;
+
+    // Initialize registers (R0 = receiver, R1.. = args)
+    ctx->regs[0] = receiver;
+    for (int i = 0; i < argc; i++) {
+        if (i + 1 < method->num_registers) {
+            ctx->regs[i + 1] = args[i];
+        }
+    }
+    // Initialize local registers to NULL
+    for (int i = argc + 1; i < method->num_registers; i++) {
+        ctx->regs[i] = NULL;
+    }
+
+    // Set current active frame
+    current_frame = ctx;
+    /* The frame THIS invocation pushed. The flat loop bottoms out (returns to the
+       C caller) only when OP_RET / an unwind pops back to entry_ctx — that is the
+       fiber/main entry for the hot path, or the single-shot re-entry frame for the
+       three cold F4 callers. */
+    /* Bottom-out marker held for the whole invocation. A nested push may grow the
+       stack and move frames, so track it as a base-relative OFFSET, not a pointer. */
+    size_t entry_off = (size_t)((oop *)ctx - vm_stack);
+
+    /* Window closed: receiver (regs[0]) and args (regs[1..]) are now in the
+       GC-scanned frame, so scan_vm_stack roots them precisely. Drop the boot
+       pins (no-op when boot_pinning was false). (oevm#21) */
+    if (boot_pinning) {
+        g_boot_inflight_receiver = NULL;
+        g_boot_inflight_args = NULL;
+        g_boot_inflight_argc = 0;
+    }
+
+    const uint32_t *pc = cm_instructions(method);
+    const uint32_t *pc_end = pc + method->instruction_count;
+    oop return_val = NULL;
+    while (pc < pc_end) {
+        /* C-assisted breakpoint match (Task 7). Gated: when no breakpoints are set
+           this is a single predicted-not-taken branch per instruction. On a match
+           fire debugger_hook exactly like the OP_BREAK path, but pause BEFORE pc
+           (saved_pc = pc) so after the hook pc executes normally and the bp re-fires
+           on the next visit -- no instruction mutation, no restore/re-arm. */
+        if (g_bp_count > 0 && debugger_hook != NULL && !in_debugger_hook) {
+            long curoff = (long)(pc - cm_instructions(method));
+            if (bp_hit((oop)method, curoff)) {
+                ctx->saved_pc = pc;              /* pause BEFORE executing pc */
+                ctx->vtable = MethodContextVtable;
+
+                struct Fiber *fib = (struct Fiber *)current_fiber;
+                int was_stepping = fib ? fib->single_step : 0;
+                if (fib) { fib->single_step = 0; fib->hook_step_request = -1; }
+                in_debugger_hook = 1;
+
+                oop dbg_arg = (oop)ctx;
+                struct Closure *dbg_cl = (struct Closure *)debugger_hook;
+                if (obj_vtable((oop)dbg_cl) == PrimitiveClosureVtable) {
+                    oop (*func)(oop, int, oop*) = (oop (*)(oop, int, oop*))closure_entry(dbg_cl);
+                    func(debugger_hook, 1, &dbg_arg);
+                } else {
+                    run_interpreter(debugger_hook, debugger_hook, 1, &dbg_arg);
+                }
+
+                in_debugger_hook = 0;
+                if (fib) {
+                    fib->single_step = (fib->hook_step_request >= 0)
+                                     ? fib->hook_step_request : was_stepping;
+                    fib->hook_step_request = -1;
+                }
+                pc = ctx->saved_pc;              /* unchanged -> fall through, execute pc */
+            }
+        }
+
+        uint32_t inst = *pc;
+        uint8_t op = inst & 0xFF;
+
+        if (op == OP_BREAK) {
+            extern oop debugger_hook;
+            if (debugger_hook != NULL) {
+                ctx->saved_pc = pc + 1;
+                ctx->vtable = MethodContextVtable;
+                
+                struct Fiber *fib = (struct Fiber *)current_fiber;
+                int was_stepping = fib ? fib->single_step : 0;
+                if (fib) { fib->single_step = 0; fib->hook_step_request = -1; }
+                in_debugger_hook = 1;
+
+                oop dbg_arg = (oop)ctx;
+                struct Closure *dbg_cl = (struct Closure *)debugger_hook;
+                if (obj_vtable((oop)dbg_cl) == PrimitiveClosureVtable) {
+                    oop (*func)(oop, int, oop*) = (oop (*)(oop, int, oop*))closure_entry(dbg_cl);
+                    func(debugger_hook, 1, &dbg_arg);
+                } else {
+                    run_interpreter(debugger_hook, debugger_hook, 1, &dbg_arg);
+                }
+
+                in_debugger_hook = 0;
+                if (fib) {
+                    fib->single_step = (fib->hook_step_request >= 0)
+                                     ? fib->hook_step_request : was_stepping;
+                    fib->hook_step_request = -1;
+                }
+                pc = ctx->saved_pc;
+                continue;
+            } else {
+                pc++;
+                continue;
+            }
+        }
+
+        pc++;
+        uint8_t dest = (inst >> 8) & 0xFF;
+        uint8_t src1 = (inst >> 16) & 0xFF;
+        uint8_t src2 = (inst >> 24) & 0xFF;
+
+        switch (op) {
+            case OP_LD_CONST:
+                if (src1 < method->constant_count && dest < method->num_registers) {
+                    ctx->regs[dest] = cm_const_at(method, src1);
+                }
+                break;
+
+            case OP_LD_REG:
+                if (src1 < method->num_registers && dest < method->num_registers) {
+                    ctx->regs[dest] = ctx->regs[src1];
+                }
+                break;
+
+            case OP_LD_SELF:
+                /* self-migration: enclosing self, snapshotted on the running block's
+                   closure — fiber-independent (no home_ctx walk). */
+                ctx->regs[dest] = ((struct Closure *)ctx->closure)->captured_self;
+                break;
+
+            case OP_LD_LEXICAL: {
+                /* Identical to the old `R0 home..home regAt: idx` send chain (§3.1):
+                   start at the running receiver/closure, walk home `depth` times via
+                   the SAME prim, then read register `idx`. */
+                oop cur = ctx->regs[0];
+                for (uint8_t d = 0; d < src1; d++) cur = primitive_closure_home(cur, 0, NULL);
+                oop idx = TAG_SMI(src2);
+                ctx->regs[dest] = primitive_method_context_reg_at(cur, 1, &idx);
+                break;
+            }
+            case OP_ST_LEXICAL: {
+                oop cur = ctx->regs[0];
+                for (uint8_t d = 0; d < src1; d++) cur = primitive_closure_home(cur, 0, NULL);
+                oop putargs[2] = { TAG_SMI(src2), ctx->regs[dest] };
+                primitive_method_context_reg_at_put(cur, 2, putargs);
+                break;
+            }
+            case OP_CLOSURE: {
+                uint16_t mconst = (inst >> 16) & 0xFFFF;
+                oop cl = make_closure(cm_const_at(method, mconst));
+                /* De-recursify deferred lift Phase 1: capture the creating
+                   frame's own Context (fixed register num_arguments+1) as the
+                   new closure's captured_env, so the block reaches its
+                   lexically-enclosing captured locals through the heap Context
+                   chain — fiber-independent and outliving the frame — rather
+                   than the stack home_ctx. NULL when the creating frame has no
+                   Context (capture-free frame: that register is nil-seeded). */
+                ((struct Closure *)cl)->captured_env = ctx->regs[method->num_arguments + 1];
+                ctx->regs[dest] = cl;
+                break;
+            }
+            /* De-recursify deferred-lift Phase 1, Task 2: temp-vector (Context)
+               ops. INERT — the compiler does not emit these yet; they are only
+               exercised by tests/test_ctx_ops.c. Convention: a frame's own
+               Context always lives in the FIXED register `method->num_arguments
+               + 1` (there is no free 4th operand byte in this 32-bit dest/src1/
+               src2 ISA — bits 24-31 are already `src2` for every op, as OP_SEND
+               establishes). The compiler (a later task) is responsible for
+               reserving that register and routing captured-local access through
+               it; the VM here is stateless about *why* that register holds what
+               it holds. */
+            case OP_MK_CONTEXT: {
+                uint8_t num_slots = src1;
+                oop outer = (src2 == 0xFF)
+                    ? ((struct Closure *)ctx->closure)->captured_env   /* block: chain to enclosing */
+                    : NULL;                                             /* method root: no outer */
+                ctx->regs[dest] = context_alloc(num_slots, outer, ctx->gen_tag.tag32);
+                break;
+            }
+            case OP_LD_CTX: {
+                struct Context *cur = (struct Context *)ctx->regs[method->num_arguments + 1];
+                for (uint8_t d = 0; d < src1; d++) cur = (struct Context *)cur->outer;
+                ctx->regs[dest] = cur->slots[src2];
+                break;
+            }
+            case OP_ST_CTX: {
+                struct Context *cur = (struct Context *)ctx->regs[method->num_arguments + 1];
+                for (uint8_t d = 0; d < src1; d++) cur = (struct Context *)cur->outer;
+                cur->slots[src2] = ctx->regs[dest];
+                break;
+            }
+            case OP_LD_SENDER: {
+                ctx->regs[dest] = primitive_method_context_sender(ctx->regs[src1], 0, NULL);
+                break;
+            }
+
+            case OP_SEND: {
+                // Constants[src1] = Selector Symbol
+                // Registers[src2] = Target Receiver
+                // dest = Start index of argument registers
+                // (Argument count is decoded from the instruction stream or method metadata)
+                oop selector = cm_const_at(method, src1);
+                oop target = ctx->regs[src2];
+
+                // Let's deduce argc from instruction dest field
+                int send_argc = dest;
+                oop *send_args = (send_argc > 0) ? &ctx->regs[src2 + 1] : NULL;
+
+                // Save PC return address in context before dispatching. saved_pc
+                // points JUST AFTER this send (pc was already advanced), so
+                // saved_pc-1 IS this instruction — OP_RET decodes src2 from it.
+                ctx->saved_pc = pc;
+
+                OEVM_TRACE_PRINT("SEND START: selector=%s, receiver_reg=%d, value=%p\n", symbol_name((struct Symbol*)selector), src2, (void*)target);
+                oop m_out = NULL, r_out = NULL;
+                int argc_out = 0;
+                oop result = send_resolve(target, selector, send_argc, send_args,
+                                          &m_out, &r_out, &argc_out);
+                if (m_out != NULL) {
+                    /* Bytecode/value-family target: push its frame and run it in
+                       this loop. OP_RET delivers the result back into R(src2). */
+                    push_frame(m_out, r_out, argc_out, send_args);
+                    ctx = current_frame;
+                    method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
+                    pc = cm_instructions(method);
+                    pc_end = pc + method->instruction_count;
+                    continue;
+                }
+                OEVM_TRACE_PRINT("SEND END: selector=%s, receiver_reg=%d, result=%p\n", symbol_name((struct Symbol*)selector), src2, (void*)result);
+
+                // Fiber switch (single C activation, single-stack): primitive_fiber_switch
+                // swapped current_frame to the target fiber. Reload interpreter locals
+                // from it and resume the target's bytecode. This branch ALSO recovers a
+                // Phase-3 stack grow that happened inside the primitive's nested
+                // run_interpreter (the stale outer `ctx` differs from the rebased
+                // current_frame) — do NOT collapse `ctx != current_frame` to a fiber-only
+                // test. The same holds at the OP_SEND_IMPLICIT/OP_SEND_SUPER reload sites.
+                if (ctx != current_frame) {
+                    ctx = current_frame;
+                    method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
+                    if (ctx->saved_pc != NULL) {
+                        pc = ctx->saved_pc;
+                        uint32_t *inst_ptr = (uint32_t *)(ctx->saved_pc - 1);
+                        uint8_t suspended_src2 = (*inst_ptr >> 24) & 0xFF;
+                        ctx->regs[suspended_src2] = result;
+                    } else {
+                        pc = cm_instructions(method);
+                    }
+                    pc_end = cm_instructions(method) + method->instruction_count;
+                    break;
+                }
+
+                // An inline (primitive/DNU/capability) send just completed. If it
+                // set the unwind flag (resumeWith:), drive the in-loop unwinder.
+                if (unwind_target_reached) goto do_unwind;
+
+                // Save send result in R(src2)
+                ctx->regs[src2] = result;
+                break;
+            }
+
+            case OP_BLOCK_INVOKE: {
+                // Layout identical to OP_SEND. Fast-path: a BytecodeClosure is
+                // invoked as a block (still recursive in Phase 1); any other
+                // receiver falls back to a normal send (e.g. Association>>value).
+                oop selector = cm_const_at(method, src1);
+                oop target = ctx->regs[src2];
+                int send_argc = dest;
+                oop *send_args = (send_argc > 0) ? &ctx->regs[src2 + 1] : NULL;
+
+                ctx->saved_pc = pc;
+                if (target != NULL && obj_vtable(target) == BytecodeClosureVtable) {
+                    /* Fast path: invoke the block — push its frame in this loop. */
+                    push_frame(target, target, send_argc, send_args);
+                    ctx = current_frame;
+                    method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
+                    pc = cm_instructions(method);
+                    pc_end = pc + method->instruction_count;
+                    continue;
+                }
+                /* Fallback: an ordinary send (e.g. Association>>value). */
+                oop m_out = NULL, r_out = NULL;
+                int argc_out = 0;
+                oop result = send_resolve(target, selector, send_argc, send_args,
+                                          &m_out, &r_out, &argc_out);
+                if (m_out != NULL) {
+                    push_frame(m_out, r_out, argc_out, send_args);
+                    ctx = current_frame;
+                    method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
+                    pc = cm_instructions(method);
+                    pc_end = pc + method->instruction_count;
+                    continue;
+                }
+
+                // Fiber switch (single C activation, single-stack): primitive_fiber_switch
+                // swapped current_frame to the target fiber. Reload interpreter locals
+                // from it and resume the target's bytecode.
+                if (ctx != current_frame) {
+                    ctx = current_frame;
+                    method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
+                    if (ctx->saved_pc != NULL) {
+                        pc = ctx->saved_pc;
+                        uint32_t *inst_ptr = (uint32_t *)(ctx->saved_pc - 1);
+                        uint8_t suspended_src2 = (*inst_ptr >> 24) & 0xFF;
+                        ctx->regs[suspended_src2] = result;
+                    } else {
+                        pc = cm_instructions(method);
+                    }
+                    pc_end = cm_instructions(method) + method->instruction_count;
+                    break;
+                }
+
+                if (unwind_target_reached) goto do_unwind;
+
+                ctx->regs[src2] = result;
+                break;
+            }
+
+            case OP_RET:
+                return_val = (dest < method->num_registers) ? ctx->regs[dest] : NULL;
+                goto do_ret_deliver;
+
+            case OP_NLR: {
+                // Non-Local Return: Unwind stack to captured home context.
+                // dest = register containing return value
+                struct Closure *cl = (struct Closure *)ctx->closure;
+                oop rVal = (dest < method->num_registers) ? ctx->regs[dest] : NULL;
+                oop target_home = cl->home_ctx;
+
+                if (target_home == NULL) {
+                    fprintf(stderr, "VM Error: Block closure has no home context\n");
+                    abort();
+                }
+
+                /* A `^` returns from the enclosing *method*, not an intermediate
+                   block: chase the lexical-outer (home) links until the frame
+                   whose closure has no home (the method frame). Each hop decodes
+                   through home_ctx_frame so it is correct for the relative
+                   encoding (Task 2) and the absolute one (Task 1). */
+                struct MethodContext *hframe = home_ctx_frame(target_home);
+                while (hframe != NULL) {
+                    struct Closure *hcl = (struct Closure *)hframe->closure;
+                    if (hcl != NULL && hcl->home_ctx != NULL) {
+                        hframe = home_ctx_frame(hcl->home_ctx);
+                    } else {
+                        break;   /* hframe is the method frame */
+                    }
+                }
+
+                if (ctx == hframe) {
+                    // Local return: home is this very frame — return rVal from it.
+                    return_val = rVal;
+                    goto do_ret_deliver;
+                }
+
+                // Genuine non-local return. Promote this frame to a MethodContext
+                // object and push the kernel unwindTo:value: activation, which walks
+                // the dynamic sender chain (sending each frame executeCleanup, a
+                // no-op seam today — oevm#25) up to target_home and calls
+                // resumeWith: there — setting the unwind flag.
+                // The flat loop then drives do_unwind, popping to target_home and
+                // delivering rVal as target_home's return. No C recursion.
+                ctx->vtable = MethodContextVtable;
+                ctx->saved_pc = pc;
+                {
+                    /* NOTE: hframe is an ABSOLUTE frame pointer; if the unwind below
+                       straddles a stack grow it is stranded — guarded at do_unwind,
+                       proper fix deferred to reify-on-escape (oevm#34). */
+                    oop unwind_args[2] = { (oop)hframe, rVal };
+                    oop m_out = NULL, r_out = NULL;
+                    int argc_out = 0;
+                    oop result = send_resolve((oop)ctx, Symbol_unwindTo_value, 2, unwind_args,
+                                              &m_out, &r_out, &argc_out);
+                    if (m_out != NULL) {
+                        push_frame(m_out, r_out, argc_out, unwind_args);
+                        ctx = current_frame;
+                        method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
+                        pc = cm_instructions(method);
+                        pc_end = pc + method->instruction_count;
+                        continue;
+                    }
+                    /* Defensive: unwindTo:value: is always a bytecode kernel method,
+                       so this inline branch is unreachable; honor a set flag anyway. */
+                    if (unwind_target_reached) goto do_unwind;
+                    (void)result;
+                }
+                break;
+            }
+
+            case OP_ADD:
+            case OP_SUB:
+            case OP_MUL:
+            case OP_DIV: {
+                oop op1 = ctx->regs[src1];
+                oop op2 = ctx->regs[src2];
+                if (IS_SMI(op1) && IS_SMI(op2)) {
+                    intptr_t v1 = UNTAG_SMI(op1);
+                    intptr_t v2 = UNTAG_SMI(op2);
+                    if (op == OP_DIV) {
+                        if (v2 == 0) {
+                            fprintf(stderr, "VM Error: Division by zero\n");
+                            abort();
+                        }
+                        // Smalltalk `/` is EXACT division: an Integer when it
+                        // divides evenly, otherwise a rational. With no Fraction
+                        // type we yield a Float for the inexact case (e.g.
+                        // mandelbrot's `2 * y / size`). Flooring integer
+                        // division is the separate `//` primitive.
+                        if (v1 % v2 == 0) {
+                            ctx->regs[dest] = TAG_SMI(v1 / v2);
+                        } else {
+                            struct Float *f_obj = (struct Float *)float_alloc(FloatVtable);
+                            f_obj->value = (double)v1 / (double)v2;
+                            ctx->regs[dest] = (oop)f_obj;
+                        }
+                    } else {
+                        // SMI +/-/*: detect overflow and promote to LargeInteger.
+                        // Even without C-level overflow the result can exceed the
+                        // tagged SMI range, so normalise via int_from_intptr.
+                        intptr_t res = 0;
+                        int of = (op == OP_ADD) ? __builtin_add_overflow(v1, v2, &res)
+                               : (op == OP_SUB) ? __builtin_sub_overflow(v1, v2, &res)
+                               : __builtin_mul_overflow(v1, v2, &res);
+                        if (of) {
+                            ctx->regs[dest] = (op == OP_ADD) ? oevm_int_add(op1, op2)
+                                            : (op == OP_SUB) ? oevm_int_sub(op1, op2)
+                                            : oevm_int_mul(op1, op2);
+                        } else {
+                            oop tagged = TAG_SMI(res);
+                            ctx->regs[dest] = (UNTAG_SMI(tagged) == res)
+                                            ? tagged : int_from_intptr(res);
+                        }
+                    }
+                } else if (oevm_is_integer(op1) && oevm_is_integer(op2)) {
+                    // At least one operand is a LargeInteger; both are integral.
+                    if (op == OP_ADD) ctx->regs[dest] = oevm_int_add(op1, op2);
+                    else if (op == OP_SUB) ctx->regs[dest] = oevm_int_sub(op1, op2);
+                    else if (op == OP_MUL) ctx->regs[dest] = oevm_int_mul(op1, op2);
+                    else {
+                        // Exact `/` on large integers isn't exercised; yield a
+                        // Float of the ratio (lossy) rather than a Fraction.
+                        double d2 = oevm_int_to_double(op2);
+                        if (d2 == 0.0) { fprintf(stderr, "VM Error: Division by zero\n"); abort(); }
+                        struct Float *f_obj = (struct Float *)float_alloc(FloatVtable);
+                        f_obj->value = oevm_int_to_double(op1) / d2;
+                        ctx->regs[dest] = (oop)f_obj;
+                    }
+                } else {
+                    double v1 = IS_SMI(op1) ? (double)UNTAG_SMI(op1)
+                        : (obj_vtable(op1) == LargeIntegerVtable ? oevm_int_to_double(op1) : ((struct Float *)op1)->value);
+                    double v2 = IS_SMI(op2) ? (double)UNTAG_SMI(op2)
+                        : (obj_vtable(op2) == LargeIntegerVtable ? oevm_int_to_double(op2) : ((struct Float *)op2)->value);
+                    double res = 0.0;
+                    if (op == OP_ADD) res = v1 + v2;
+                    else if (op == OP_SUB) res = v1 - v2;
+                    else if (op == OP_MUL) res = v1 * v2;
+                    else if (op == OP_DIV) {
+                        if (v2 == 0.0) {
+                            fprintf(stderr, "VM Error: Division by zero\n");
+                            abort();
+                        }
+                        res = v1 / v2;
+                    }
+                    struct Float *f_obj = (struct Float *)float_alloc(FloatVtable);
+                    f_obj->value = res;
+                    ctx->regs[dest] = (oop)f_obj;
+                }
+                break;
+            }
+
+            case OP_JMP: {
+                int16_t offset = (int16_t)(inst >> 8);
+                pc += offset;
+                break;
+            }
+
+            case OP_JMP_IF_FALSE: {
+                // Phase A runtime no-op: the only emitted OP_JMP_IF_FALSE (unwindTo:value: in the
+                // compiler) is fed by ==, whose primitive returns the true_sym_obj/false_sym_obj
+                // boolean symbols; is_truthy matches them by name. Conformance gate holds.
+                oop cond = ctx->regs[dest];
+                if (!is_truthy(cond)) {
+                    int16_t offset = (int16_t)(inst >> 16);
+                    pc += offset;
+                }
+                break;
+            }
+
+            case OP_LD_SLOT: {
+                oop obj = ctx->regs[src2];
+                if (obj == NULL || IS_SMI(obj)) {
+                    fprintf(stderr, "VM Error: Invalid receiver for LD_SLOT\n");
+                    abort();
+                }
+                struct ObjectInstance *inst_obj = (struct ObjectInstance *)obj;
+                ctx->regs[dest] = instance_slot(inst_obj, src1);
+                break;
+            }
+
+            case OP_ST_SLOT: {
+                oop obj = ctx->regs[src2];
+                if (obj == NULL || IS_SMI(obj)) {
+                    fprintf(stderr, "VM Error: Invalid receiver for ST_SLOT\n");
+                    abort();
+                }
+                struct ObjectInstance *inst_obj = (struct ObjectInstance *)obj;
+                if (is_in_blob(inst_obj)) {
+                    fprintf(stderr, "VM Error: attempt to mutate immutable image object %p\n", (void*)inst_obj);
+                    abort();
+                }
+                oop val = ctx->regs[dest];
+                inst_obj->slots[src1] = val;
+                break;
+            }
+
+            case OP_NEW: {
+                oop vt = ctx->regs[src1];
+                int slot_count = src2;
+                struct ObjectInstance *new_obj = (struct ObjectInstance *)gc_allocate(vt, sizeof(struct ObjectInstance) + slot_count * sizeof(oop));
+                for (int i = 0; i < slot_count; i++) {
+                    new_obj->slots[i] = NULL;
+                }
+                ctx->regs[dest] = (oop)new_obj;
+                break;
+            }
+
+            case OP_SEND_IMPLICIT: {
+                oop selector = cm_const_at(method, src1);
+                oop rcvr = ctx->regs[src2];
+                int send_argc = dest;
+                oop *send_args = (send_argc > 0) ? &ctx->regs[src2 + 1] : NULL;
+
+                ctx->saved_pc = pc;
+
+                oop resolved_rcvr = rcvr;
+                oop target_method = NULL;
+
+                // 1. Lexical Scope Chain lookup: walk the outer chains and check local bindings only
+                oop current = rcvr;
+                while (current != NULL && !IS_SMI(current)) {
+                    struct Vtable *vt = (struct Vtable *)obj_vtable(current);
+                    if (vt != NULL && !IS_SMI((oop)vt)) {
+                        struct Binding *bs = vtable_bindings((oop)vt);
+                        for (size_t i = 0; i < vt->size; i++) {
+                            if (binding_symbol(&bs[i]) == selector) {
+                                target_method = binding_method(&bs[i]);
+                                break;
+                            }
+                        }
+                        if (target_method != NULL) {
+                            resolved_rcvr = current;
+                            break;
+                        }
+                        if (vt->is_nested) {
+                            struct ObjectInstance *inst_obj = (struct ObjectInstance *)current;
+                            current = instance_slot(inst_obj, 0);
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+
+                // 2. Inheritance Chain lookup of self: fallback if not found in lexical chain
+                if (target_method == NULL) {
+                    resolved_rcvr = rcvr;
+                    oop receiver_vtable = IS_SMI(rcvr) ? IntegerVtable : (rcvr ? obj_vtable(rcvr) : NULL);
+                    if (receiver_vtable != NULL) {
+                        target_method = lookup(receiver_vtable, selector);
+                    }
+                }
+
+                oop result = NULL;
+                if (target_method == NULL) {
+                    // Not found in the lexical/inheritance chains: fall back to the
+                    // full send resolution (intercepted primitives / DNU). A bytecode
+                    // target here is rare (implicit lookup is a superset for methods)
+                    // but handled uniformly as a frame push rather than C recursion.
+                    oop m_out = NULL, r_out = NULL;
+                    int argc_out = 0;
+                    result = send_resolve(rcvr, selector, send_argc, send_args,
+                                          &m_out, &r_out, &argc_out);
+                    if (m_out != NULL) {
+                        push_frame(m_out, r_out, argc_out, send_args);
+                        ctx = current_frame;
+                        method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
+                        pc = cm_instructions(method);
+                        pc_end = pc + method->instruction_count;
+                        continue;
+                    }
+                } else {
+                    struct Closure *tcl = (struct Closure *)target_method;
+                    if (obj_vtable((oop)tcl) == PrimitiveClosureVtable) {
+                        oop (*func)(oop, int, oop*) = (oop (*)(oop, int, oop*))closure_entry(tcl);
+                        result = func(resolved_rcvr, send_argc, send_args);
+                    } else {
+                        // Bytecode target: push its frame and run it in this loop.
+                        push_frame(target_method, resolved_rcvr, send_argc, send_args);
+                        ctx = current_frame;
+                        method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
+                        pc = cm_instructions(method);
+                        pc_end = pc + method->instruction_count;
+                        continue;
+                    }
+                }
+
+                // Fiber switch (see OP_SEND).
+                if (ctx != current_frame) {
+                    ctx = current_frame;
+                    method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
+                    if (ctx->saved_pc != NULL) {
+                        pc = ctx->saved_pc;
+                        uint32_t *inst_ptr = (uint32_t *)(ctx->saved_pc - 1);
+                        uint8_t suspended_src2 = (*inst_ptr >> 24) & 0xFF;
+                        ctx->regs[suspended_src2] = result;
+                    } else {
+                        pc = cm_instructions(method);
+                    }
+                    pc_end = cm_instructions(method) + method->instruction_count;
+                    break;
+                }
+
+                if (unwind_target_reached) goto do_unwind;
+
+                ctx->regs[src2] = result;
+                break;
+            }
+
+            case OP_SEND_SUPER: {
+                // Register layout at src2(c): [c]=start vtable, [c+1]=self,
+                // [c+2..]=args. dest(a)=argc, src1(b)=selector const.
+                oop start_vt = ctx->regs[src2];
+                oop self_rcvr = ctx->regs[src2 + 1];
+                oop selector = cm_const_at(method, src1);
+                int send_argc = dest;
+                oop *send_args = (send_argc > 0) ? &ctx->regs[src2 + 2] : NULL;
+
+                ctx->saved_pc = pc;
+                oop m_out = NULL, r_out = NULL;
+                int argc_out = 0;
+                oop result = send_super_resolve(start_vt, self_rcvr, selector, send_argc, send_args,
+                                                &m_out, &r_out, &argc_out);
+                if (m_out != NULL) {
+                    // Bytecode super target: push its frame. Result delivered to
+                    // R(src2) by OP_RET (src2 == c, the same field OP_SEND uses).
+                    push_frame(m_out, r_out, argc_out, send_args);
+                    ctx = current_frame;
+                    method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
+                    pc = cm_instructions(method);
+                    pc_end = pc + method->instruction_count;
+                    continue;
+                }
+
+                // Fiber switch during a super-send. OP_SEND_SUPER carries no
+                // adjacent inline cache, so the result register is this instruction's
+                // src2 directly.
+                if (ctx != current_frame) {
+                    ctx = current_frame;
+                    method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
+                    if (ctx->saved_pc != NULL) {
+                        pc = ctx->saved_pc;
+                        uint32_t *inst_ptr = (uint32_t *)(ctx->saved_pc - 1);
+                        uint8_t suspended_src2 = (*inst_ptr >> 24) & 0xFF;
+                        ctx->regs[suspended_src2] = result;
+                    } else {
+                        pc = cm_instructions(method);
+                    }
+                    pc_end = cm_instructions(method) + method->instruction_count;
+                    break;
+                }
+
+                if (unwind_target_reached) goto do_unwind;
+
+                ctx->regs[src2] = result;
+                break;
+            }
+
+            default:
+                fprintf(stderr, "VM Error: Unknown opcode %d\n", op);
+                abort();
+        }
+
+        /* Normal instruction completion falls through to the step hook. The
+           return/unwind labels below are reached only via goto. */
+        goto step_hook;
+
+    do_ret_deliver:
+        /* Return `return_val` from the current frame `ctx`. Pop it; if it is this
+           invocation's entry frame, bottom out to the C caller; otherwise resume
+           the caller at its saved_pc and deliver the value into the caller's dest
+           register (src2 of the caller's suspended send == bits 24-31). */
+        {
+            struct MethodContext *caller = frame_link_decode(vm_stack, ctx->prev_frame);
+            vm_stack_ptr = (size_t)((oop *)ctx - vm_stack);
+            if ((size_t)((oop *)ctx - vm_stack) == entry_off || caller == NULL) {
+                goto exit_frame;
+            }
+            current_frame = caller;
+            ctx = caller;
+            method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
+            pc = ctx->saved_pc;
+            pc_end = cm_instructions(method) + method->instruction_count;
+            uint8_t rdst = ((uint32_t)*(ctx->saved_pc - 1) >> 24) & 0xFF;
+            ctx->regs[rdst] = return_val;
+        }
+        goto step_hook;
+
+    do_unwind:
+        /* An NLR / ensure: unwind is in progress (unwind_target_reached set by
+           resumeWith:, with unwind_target_frame == the home method frame and
+           unwind_return_value == the ^ value; cleanups already ran during the
+           kernel unwindTo:value: walk). Pop frames from current_frame down until we
+           reach unwind_target_frame, which delivers the value as its OWN return
+           (into its caller's dest register). Intermediate frames are discarded. If
+           the unwind crosses this invocation's entry frame, bottom out to C with
+           the flag still set so an outer flat loop continues the unwind. */
+        /* De-recursify Phase 3: a `^` whose unwindTo:value: sequence straddled a stack
+           grow left unwind_target_frame pointing into the freed old-base stack (it is an
+           absolute frame pointer flowed through the kernel; reifying it to survive grows
+           is the deferred reify-on-escape work — oevm#34). Detect the stale pointer (out
+           of the current stack's bounds) and fail loudly instead of silently unwinding
+           past the intended home. Host defaults never reach this (NLR deeper than the
+           initial capacity); it is a guard for -D small-init embedded builds. */
+        if (unwind_target_frame != NULL && !IS_SMI(unwind_target_frame)) {
+            oop *utf = (oop *)unwind_target_frame;
+            oop *sbase = vm_stack;
+            oop *stop = vm_stack + ((struct Stack *)g_active_stack)->capacity;
+            if (utf < sbase || utf >= stop) {
+                fprintf(stderr, "VM Error: non-local return target stranded by stack "
+                    "growth (reify-on-escape not yet implemented; see oevm#34). Deep `^` "
+                    "across a stack grow is unsupported in Phase 3.\n");
+                abort();
+            }
+        }
+        for (;;) {
+            struct MethodContext *uf = current_frame;
+            struct MethodContext *ucaller = frame_link_decode(vm_stack, uf->prev_frame);
+            int at_boundary = ((size_t)((oop *)uf - vm_stack) == entry_off || ucaller == NULL);
+            vm_stack_ptr = (size_t)((oop *)uf - vm_stack);   /* pop uf */
+            if ((oop)uf == unwind_target_frame) {
+                oop rv = unwind_return_value;
+                unwind_target_reached = 0;
+                unwind_return_value = NULL;
+                unwind_target_frame = NULL;
+                if (at_boundary) {
+                    return_val = rv;
+                    goto exit_frame;
+                }
+                current_frame = ucaller;
+                ctx = ucaller;
+                method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
+                pc = ctx->saved_pc;
+                pc_end = cm_instructions(method) + method->instruction_count;
+                uint8_t rdst = ((uint32_t)*(ctx->saved_pc - 1) >> 24) & 0xFF;
+                ctx->regs[rdst] = rv;
+                goto step_hook;
+            }
+            if (at_boundary) {
+                /* Target lives below this invocation's entry frame: leave the flag
+                   set and return to the C caller, whose enclosing flat loop resumes
+                   the unwind from current_frame (restored by exit_frame). */
+                return_val = NULL;
+                goto exit_frame;
+            }
+            current_frame = ucaller;   /* discard uf, keep unwinding */
+        }
+
+    step_hook: ;
+        struct Fiber *fib = (struct Fiber *)current_fiber;
+        /* Mirror the breakpoint-match hook's re-entrancy guard (!in_debugger_hook):
+         * when dbg:step arms stepping from inside the debugger's command loop,
+         * without this guard this hook fires on the debugger's OWN unwinding
+         * bytecode frames (onBreakContext: epilogue, etc.) — single-stepping the
+         * debugger instead of the app. The guard keeps stepping confined to the app. */
+        if (fib != NULL && fib->single_step && !in_debugger_hook) {
+            extern oop debugger_hook;
+            if (debugger_hook != NULL) {
+                ctx->saved_pc = pc;
+                ctx->vtable = MethodContextVtable;
+
+                int was_stepping = fib->single_step;
+                fib->single_step = 0;
+                fib->hook_step_request = -1;
+                in_debugger_hook = 1;
+
+                oop dbg_arg = (oop)ctx;
+                struct Closure *dbg_cl = (struct Closure *)debugger_hook;
+                if (obj_vtable((oop)dbg_cl) == PrimitiveClosureVtable) {
+                    oop (*func)(oop, int, oop*) = (oop (*)(oop, int, oop*))closure_entry(dbg_cl);
+                    func(debugger_hook, 1, &dbg_arg);
+                } else {
+                    run_interpreter(debugger_hook, debugger_hook, 1, &dbg_arg);
+                }
+
+                in_debugger_hook = 0;
+                fib->single_step = (fib->hook_step_request >= 0)
+                                 ? fib->hook_step_request : was_stepping;
+                fib->hook_step_request = -1;
+                pc = ctx->saved_pc;
+            }
+        }
+    }
+
+exit_frame:
+    /* Restore caller's frame pointer and stack position. Fiber switching is the
+       single-stack mechanism above: primitive_fiber_switch swaps the active
+       Stack/current_frame, and the always-compiled post-send reload blocks pick
+       up the new frame and resume the target fiber's bytecode. */
+    vm_stack_ptr = saved_stack_ptr;
+    current_frame = frame_link_decode(vm_stack, entry_prev_link);
+    return return_val;
+}
+
+/*
+ * Reflection / Introspection Primitives
+ */
+
+oop primitive_object_vtable(oop receiver, int argc, oop *args) {
+    (void)argc; (void)args;
+    if (IS_SMI(receiver)) return IntegerVtable;
+    if (receiver == NULL) return NULL;
+    return obj_vtable(receiver);
+}
+
+oop primitive_object_outer(oop receiver, int argc, oop *args) {
+    (void)argc; (void)args;
+    if (receiver == NULL || IS_SMI(receiver)) return NULL;
+    struct Vtable *vt = (struct Vtable *)obj_vtable(receiver);
+    if (vt != NULL && !IS_SMI((oop)vt) && vt->is_nested) {
+        struct ObjectInstance *inst = (struct ObjectInstance *)receiver;
+        return instance_slot(inst, 0);
+    }
+    return NULL;
+}
+
+oop primitive_vtable_delegate(oop receiver, int argc, oop *args) {
+    (void)argc; (void)args;
+    if (receiver == NULL || IS_SMI(receiver)) {
+        fprintf(stderr, "VM Error: delegate requested on non-object\n");
+        abort();
+    }
+    struct Vtable *vt = (struct Vtable *)receiver;
+    return vtable_delegate((oop)vt);
+}
+
+oop primitive_vtable_bindings(oop receiver, int argc, oop *args) {
+    (void)argc; (void)args;
+    if (receiver == NULL || IS_SMI(receiver)) {
+        fprintf(stderr, "VM Error: bindings requested on non-object\n");
+        abort();
+    }
+    struct Vtable *vt = (struct Vtable *)receiver;
+    struct ObjectInstance *arr = (struct ObjectInstance *)gc_allocate(NULL, sizeof(struct ObjectInstance) + vt->size * sizeof(oop));
+
+    /* arr lives only in a C local until it is returned. With the conservative
+       C-stack scan gone, the per-iteration gc_allocate(BoxedBinding) below can
+       trigger a GC_STRESS collection that would reclaim arr — pin it as a temp
+       root. gc_allocate does not zero memory, so seed every slot to NULL FIRST,
+       before any allocation, so a GC that now traces the rooted arr never reads
+       garbage out of a half-built array. */
+    extern void gc_temp_root_push(oop o);
+    extern void gc_temp_roots_clear(void);
+    for (size_t i = 0; i < vt->size; i++) arr->slots[i] = NULL;
+    gc_temp_root_push((oop)arr);
+
+    struct Binding *bs = vtable_bindings((oop)vt);
+    for (size_t i = 0; i < vt->size; i++) {
+        struct BoxedBinding *bb = (struct BoxedBinding *)gc_allocate(BoxedBindingVtable, sizeof(struct BoxedBinding));
+        bb->symbol = binding_symbol(&bs[i]);
+        bb->method = binding_method(&bs[i]);
+        arr->slots[i] = (oop)bb;
+    }
+    gc_temp_roots_clear();
+    return (oop)arr;
+}
+
+oop primitive_method_context_sender(oop receiver, int argc, oop *args) {
+    (void)argc; (void)args;
+    if (receiver == NULL || IS_SMI(receiver)) return NULL;
+    struct MethodContext *ctx = (struct MethodContext *)receiver;
+    oop prev = (oop)frame_link_decode(vm_stack, ctx->prev_frame);
+    if (prev != NULL && !IS_SMI(prev)) {
+        struct MethodContext *prev_ctx = (struct MethodContext *)prev;
+        if (obj_vtable((oop)prev_ctx) == NULL) {
+            prev_ctx->vtable = MethodContextVtable;
+        }
+    }
+    return prev;
+}
+
+oop primitive_method_context_pc(oop receiver, int argc, oop *args) {
+    (void)argc; (void)args;
+    if (receiver == NULL || IS_SMI(receiver)) return NULL;
+    struct MethodContext *ctx = (struct MethodContext *)receiver;
+    return TAG_SMI((uintptr_t)ctx->saved_pc);
+}
+
+oop primitive_closure_home(oop receiver, int argc, oop *args) {
+    (void)argc; (void)args;
+    if (receiver == NULL || IS_SMI(receiver)) return NULL;
+    /* `home` may be sent to a MethodContext (e.g. from get_self_reg when walking
+     * the lexical chain for an inner block).  A MethodContext's lexical link is
+     * ctx->home_ctx (offset 3), NOT its dynamic link prev_frame (offset 1).
+     * Distinguish by vtable: Closure vtables are non-NULL heap objects;
+     * an unreified MethodContext has vtable==NULL, a reified one has MethodContextVtable.
+     * If the vtable is neither BytecodeClosureVtable nor PrimitiveClosureVtable,
+     * treat the receiver as a MethodContext and return its home_ctx field. */
+    oop home;
+    oop vt = obj_vtable(receiver);
+    if (vt != BytecodeClosureVtable && vt != PrimitiveClosureVtable) {
+        home = ((struct MethodContext *)receiver)->home_ctx;   /* a frame's lexical link */
+    } else {
+        home = ((struct Closure *)receiver)->home_ctx;          /* a closure's lexical link */
+    }
+    return (oop)home_ctx_frame(home);   /* decode relative SMI → frame ptr (growth-ready) */
+}
+
+oop primitive_fiber_create(oop receiver, int argc, oop *args) {
+    (void)receiver;
+    if (argc < 1) {
+        fprintf(stderr, "VM Error: primitive_fiber_create expects 1 argument (closure)\n");
+        abort();
+    }
+    oop closure = args[0];
+    if (IS_SMI(closure) || closure == NULL) {
+        fprintf(stderr, "VM Error: primitive_fiber_create expects a closure\n");
+        abort();
+    }
+    oop new_fib_oop = gc_allocate(SuspendedFiberVtable ? SuspendedFiberVtable : FiberVtable, sizeof(struct Fiber));
+    struct Fiber *new_fib = (struct Fiber *)new_fib_oop;
+
+    /* new_fib_oop lives only in a C local until it is returned and stored by the
+       .ns facade. With the conservative C-stack scan gone, a GC triggered by
+       stack_alloc() below would otherwise reclaim it — pin it as a temp root. */
+    extern void gc_temp_root_push(oop o);
+    extern void gc_temp_roots_clear(void);
+    gc_temp_root_push(new_fib_oop);
+
+    /* gc_allocate does not zero memory. stack_alloc() below can itself trigger a
+       GC_STRESS collection — and once it stores stack_obj, trace_one walks the
+       Fiber's fields — so seed every field trace_one reads for a Fiber to a safe
+       value FIRST, before any call that can allocate, so that GC never reads
+       garbage out of a half-built Fiber (the same hazard the main-bootstrap
+       path's I3 comment documents). */
+    new_fib->stack_obj = NULL;
+    new_fib->status = NULL;
+    new_fib->single_step = 0;
+    new_fib->hook_step_request = -1;
+
+    size_t cap = VM_STACK_INIT_WORDS;
+    new_fib->stack_obj = stack_alloc((uint32_t)cap);   /* GC-managed call stack (capacity stored in the Stack) */
+
+    /* Build the initial activation record on the fiber's Newspeak stack.
+       primitive_fiber_switch updates current_frame to this frame and the flat
+       loop's reload block picks it up (saved_pc == NULL ⇒ start at method entry). */
+    {
+        struct Closure *cl = (struct Closure *)closure;
+        struct CompiledMethod *method = (struct CompiledMethod *)closure_entry(cl);
+        size_t frame_words = sizeof(struct MethodContext) / sizeof(oop) + method->num_registers;
+        struct MethodContext *ctx = (struct MethodContext *)&((struct Stack *)new_fib->stack_obj)->data[0];
+        new_fib->stack_ptr = frame_words;
+        new_fib->current_context = ctx;
+        { struct Stack *zs = (struct Stack *)new_fib->stack_obj; zs->sp = (uint32_t)frame_words; zs->current_off = 0; }
+
+        ctx->vtable = NULL;
+        ctx->prev_frame = NULL;  /* bottom sentinel; relative encoding leaves NULL == no caller */
+        ctx->saved_pc = NULL;
+        ctx->closure = closure;
+        /* fiber_create: this frame lives on new_fib->stack_obj, NOT the active vm_stack.
+           Encode the self-home relative to THIS fiber's base (growth-ready). A block
+           closure's inherited home_ctx stays as-is (a relative SMI into the spawner's
+           stack — decoded only by a cross-fiber ^, not exercised; see design §5). */
+        {
+            oop *fib_base = ((struct Stack *)new_fib->stack_obj)->data;
+            ctx->home_ctx = cl->home_ctx ? cl->home_ctx
+                                         : home_link_encode_relative(fib_base, ctx);
+        }
+        ctx->gen_tag.tag32 = ++current_generation_tag;
+
+        ctx->regs[0] = closure;
+        for (int i = 1; i < method->num_registers; i++) {
+            ctx->regs[i] = NULL;
+        }
+    }
+
+    gc_temp_roots_clear();
+    return new_fib_oop;
+}
+
+oop primitive_fiber_switch(oop receiver, int argc, oop *args) {
+    (void)receiver;
+    if (argc < 2) {
+        fprintf(stderr, "VM Error: primitive_fiber_switch expects 2 arguments (target_fiber, return_val)\n");
+        abort();
+    }
+    oop target_fib_oop = args[0];
+    oop return_val = args[1];
+    if (IS_SMI(target_fib_oop) || target_fib_oop == NULL) {
+        fprintf(stderr, "VM Error: primitive_fiber_switch expects a Fiber receiver/target\n");
+        abort();
+    }
+
+    struct Fiber *target_fib = (struct Fiber *)target_fib_oop;
+    struct Fiber *curr_fib = (struct Fiber *)current_fiber;
+
+    if (curr_fib == target_fib) {
+        return return_val; // Switch to self is a no-op
+    }
+
+    // Save active state of current fiber
+    curr_fib->current_context = current_frame;
+    curr_fib->stack_ptr = vm_stack_ptr;
+    { struct Stack *cs = (struct Stack *)curr_fib->stack_obj;
+      cs->sp = (uint32_t)vm_stack_ptr;
+      cs->current_off = current_frame ? (uint32_t)((oop *)current_frame - cs->data) : 0; }
+
+    // Transition current fiber to Suspended, and target to Runnable (by updating vtable if desired)
+    if (SuspendedFiberVtable != NULL) {
+        curr_fib->base.vtable = SuspendedFiberVtable;
+    }
+    if (RunnableFiberVtable != NULL) {
+        target_fib->base.vtable = RunnableFiberVtable;
+    }
+
+    // Switch active VM registers to target fiber stack
+    current_fiber = target_fib_oop;
+    g_active_stack = target_fib->stack_obj;                         /* active Stack swap (Task 3 invariant) */
+    vm_stack = ((struct Stack *)g_active_stack)->data;
+    vm_stack_ptr = target_fib->stack_ptr;
+    current_frame = target_fib->current_context;
+
+    /* Single-stack switch: the globals were swapped above; the caller's flat-loop
+       reload block re-syncs pc/ctx/method and delivers return_val into the
+       suspended dest register. No per-fiber C stack. */
+    return return_val;
+}
+
+static oop get_top_level_method_closure(oop closure) {
+    /* Reify-on-escape E1: the lexical walk this function used to perform is
+       unreachable through dispatch. Its only caller (find_defining_vtable, from the
+       ACCESS_PRIVATE branch of check_access_allowed) is reached only when
+       receiver == caller_self == current_frame->regs[0]; a private method's receiver
+       is a user instance, and a block frame's regs[0] is the closure (push_frame at
+       OP_BLOCK_INVOKE) — so the closure here is always a METHOD closure
+       (home_ctx == NULL) and the old lexical loop never iterated. Removing it drops
+       the last home_ctx frame-identity walk (shrinks the E3 reify surface) at zero
+       runtime cost. The invariant is pinned: a non-NULL home_ctx here would mean a
+       block reached access control, which the model does not produce — fail loudly
+       (house posture) rather than silently walk a dead path. Note the whole
+       send-visibility access subsystem is vestigial (oevm#36). See design
+       2026-07-03-derecursify-e1-retire-dead-access-walk-design.md §2. */
+    if (((struct Closure *)closure)->home_ctx != NULL) {
+        fprintf(stderr, "VM Error: access-control method lookup on a block closure "
+            "(home_ctx != NULL) — unexpected; see reify-on-escape E1.\n");
+        abort();
+    }
+    return closure;
+}
+
+static oop find_defining_vtable(oop receiver_vtable, oop closure) {
+    oop method_closure = get_top_level_method_closure(closure);
+    oop curr = receiver_vtable;
+    while (curr != NULL && !IS_SMI(curr)) {
+        struct Vtable *vt = (struct Vtable *)curr;
+        struct Binding *bs = vtable_bindings((oop)vt);
+        for (size_t i = 0; i < vt->size; i++) {
+            if (binding_method(&bs[i]) == method_closure) {
+                return curr;
+            }
+        }
+        curr = vtable_delegate((oop)vt);
+    }
+    return NULL;
+}
+
+int check_access_allowed(oop receiver, oop selector, struct CompiledMethod *target_method, oop target_defining_vtable) {
+    (void)selector;
+    if (target_method->access_modifier == ACCESS_PUBLIC) {
+        return 1;
+    }
+    if (current_frame == NULL) {
+        return 1; // Trust trusted C entry point calls
+    }
+    
+    oop caller_self = current_frame->regs[0];
+    
+    if (target_method->access_modifier == ACCESS_PROTECTED) {
+        if (receiver == caller_self) {
+            return 1;
+        }
+        return 0;
+    }
+    
+    if (target_method->access_modifier == ACCESS_PRIVATE) {
+        if (receiver != caller_self) {
+            return 0;
+        }
+        oop caller_defining_vtable = find_defining_vtable(obj_vtable(caller_self), current_frame->closure);
+        if (caller_defining_vtable == target_defining_vtable) {
+            return 1;
+        }
+        return 0;
+    }
+    
+    return 0;
+}
+
+extern oop debugger_hook;
+extern oop Symbol_debug_;
+extern oop SymbolVtable;
+
+oop primitive_register_debugger_hook(oop receiver, int argc, oop *args) {
+    (void)receiver;
+    if (argc < 1) {
+        fprintf(stderr, "VM Error: registerDebuggerHook: expects 1 argument\n");
+        abort();
+    }
+    debugger_hook = args[0];
+    if (Symbol_debug_ == NULL) {
+        oop sym = gc_allocate(SymbolVtable, sizeof(struct Symbol));
+        ((struct Symbol *)sym)->name = "debug:";
+        ((struct Symbol *)sym)->length = 6;
+        Symbol_debug_ = sym;
+    }
+    return receiver;
+}
+
+oop primitive_method_context_reg_at(oop receiver, int argc, oop *args) {
+    if (receiver == NULL || IS_SMI(receiver)) {
+        fprintf(stderr, "VM Error: regAt: requested on non-context\n");
+        abort();
+    }
+    if (argc < 1 || !IS_SMI(args[0])) {
+        fprintf(stderr, "VM Error: regAt: expects index argument\n");
+        abort();
+    }
+    int idx = UNTAG_SMI(args[0]);
+    struct MethodContext *ctx = (struct MethodContext *)receiver;
+    struct Closure *cl = (struct Closure *)ctx->closure;
+    struct CompiledMethod *cm = (struct CompiledMethod *)closure_entry(cl);
+    if (idx < 0 || idx >= cm->num_registers) {
+        fprintf(stderr, "VM Error: regAt: index %d out of bounds (max %d)\n", idx, cm->num_registers);
+        abort();
+    }
+    return ctx->regs[idx];
+}
+
+/* Confined read prim (Task 8) -- reachable ONLY via mirror_dispatch. Returns the
+   number of registers of the method running in the given context, so a debugger
+   can bound a register dump (reg:at: aborts on idx >= num_registers). Same
+   receiver/closure/CompiledMethod walk as reg_at, with no index argument. */
+oop primitive_method_context_num_registers(oop receiver, int argc, oop *args) {
+    (void)argc; (void)args;
+    if (receiver == NULL || IS_SMI(receiver)) {
+        fprintf(stderr, "VM Error: numRegisters requested on non-context\n");
+        abort();
+    }
+    struct MethodContext *ctx = (struct MethodContext *)receiver;
+    struct Closure *cl = (struct Closure *)ctx->closure;
+    struct CompiledMethod *cm = (struct CompiledMethod *)closure_entry(cl);
+    return TAG_SMI(cm->num_registers);
+}
+
+oop primitive_method_context_reg_at_put(oop receiver, int argc, oop *args) {
+    if (receiver == NULL || IS_SMI(receiver)) {
+        fprintf(stderr, "VM Error: regAt:put: requested on non-context\n");
+        abort();
+    }
+    if (argc < 2 || !IS_SMI(args[0])) {
+        fprintf(stderr, "VM Error: regAt:put: expects index and value arguments\n");
+        abort();
+    }
+    int idx = UNTAG_SMI(args[0]);
+    oop val = args[1];
+    struct MethodContext *ctx = (struct MethodContext *)receiver;
+    struct Closure *cl = (struct Closure *)ctx->closure;
+    struct CompiledMethod *cm = (struct CompiledMethod *)closure_entry(cl);
+    if (idx < 0 || idx >= cm->num_registers) {
+        fprintf(stderr, "VM Error: regAt:put: index %d out of bounds (max %d)\n", idx, cm->num_registers);
+        abort();
+    }
+    ctx->regs[idx] = val;
+    return val;
+}
+
+/* Confined requestStep: prim -- reachable ONLY via mirror_dispatch (never through
+   dispatch.c switch). Operates on the CURRENT fiber so the hook never needs the
+   fiber oop. Sets both single_step and hook_step_request so the arm survives the
+   post-hook restore (Task 1's merge formula). */
+oop primitive_request_step(oop receiver, int argc, oop *args) {
+    (void)receiver; (void)argc;
+    struct Fiber *fib = (struct Fiber *)current_fiber;
+    int v = (args[0] != NULL && (!IS_SMI(args[0]) || UNTAG_SMI(args[0]) != 0)) ? 1 : 0;
+    if (fib) { fib->single_step = v; fib->hook_step_request = v; }
+    return NULL;
+}
+
+oop primitive_fiber_set_single_step(oop receiver, int argc, oop *args) {
+    if (receiver == NULL || IS_SMI(receiver)) {
+        fprintf(stderr, "VM Error: singleStep: requested on non-fiber\n");
+        abort();
+    }
+    if (argc < 1) {
+        fprintf(stderr, "VM Error: singleStep: expects 1 argument\n");
+        abort();
+    }
+    struct Fiber *fib = (struct Fiber *)receiver;
+    int step_val = 0;
+    if (IS_SMI(args[0])) {
+        step_val = UNTAG_SMI(args[0]) != 0;
+    } else if (args[0] != NULL) {
+        step_val = 1;
+    }
+    if (in_debugger_hook) {
+        fib->hook_step_request = step_val;   /* applied after the hook returns */
+    }
+    fib->single_step = step_val;
+    return receiver;
+}
+
+oop primitive_vtable_bind(oop receiver, int argc, oop *args) {
+    if (receiver == NULL || IS_SMI(receiver)) {
+        fprintf(stderr, "VM Error: bind:to: requested on non-vtable\n");
+        abort();
+    }
+    if (argc < 2) {
+        fprintf(stderr, "VM Error: bind:to: expects selector and method arguments\n");
+        abort();
+    }
+    oop selector = args[0];
+    oop method = args[1];
+    struct Vtable *vt = (struct Vtable *)receiver;
+
+    if (is_in_blob(vt)) {
+        fprintf(stderr, "VM Error: attempt to mutate immutable image object %p\n", (void*)vt);
+        abort();
+    }
+
+    /* Any binding mutation can stale a cached (vtable,selector)->method entry. */
+    method_cache_flush();
+
+    struct Binding *bs = vtable_bindings((oop)vt);
+    for (size_t i = 0; i < vt->size; i++) {
+        if (binding_symbol(&bs[i]) == selector) {
+            vt->bindings[i].method = method;
+            return receiver;
+        }
+    }
+    
+    if (vt->size >= vt->capacity) {
+        vt->capacity = vt->capacity == 0 ? 8 : vt->capacity * 2;
+        vt->bindings = realloc(vt->bindings, vt->capacity * sizeof(struct Binding));
+    }
+    vt->bindings[vt->size].symbol = selector;
+    vt->bindings[vt->size].method = method;
+    vt->size++;
+    return receiver;
+}
+
+oop primitive_compiled_method_set_instruction_at(oop receiver, int argc, oop *args) {
+    if (receiver == NULL || IS_SMI(receiver)) {
+        fprintf(stderr, "VM Error: instructionAt:put: requested on non-object\n");
+        abort();
+    }
+    if (argc < 2 || !IS_SMI(args[0]) || !IS_SMI(args[1])) {
+        fprintf(stderr, "VM Error: instructionAt:put: expects index and instruction arguments\n");
+        abort();
+    }
+    int idx = UNTAG_SMI(args[0]);
+    uint32_t bytecode = (uint32_t)UNTAG_SMI(args[1]);
+    
+    struct CompiledMethod *cm = NULL;
+    struct Closure *cl = (struct Closure *)receiver;
+    if (obj_vtable((oop)cl) == BytecodeClosureVtable) {
+        cm = (struct CompiledMethod *)closure_entry(cl);
+    } else {
+        cm = (struct CompiledMethod *)receiver;
+    }
+
+    if (idx < 0 || (size_t)idx >= cm->instruction_count) {
+        fprintf(stderr, "VM Error: instructionAt:put: index %d out of bounds (max %zu)\n", idx, cm->instruction_count);
+        abort();
+    }
+
+    /* Guard before the flash_rom copy too: it reassigns cm->instructions, a field of cm itself. */
+    if (is_in_blob(cm)) {
+        fprintf(stderr, "VM Error: attempt to mutate immutable image object %p\n", (void*)cm);
+        abort();
+    }
+
+    extern uintptr_t flash_rom_start;
+    extern uintptr_t flash_rom_end;
+    uintptr_t insts_addr = (uintptr_t)cm_instructions(cm);
+    if (insts_addr >= flash_rom_start && insts_addr < flash_rom_end) {
+        uint32_t *heap_insts = malloc(cm->instruction_count * sizeof(uint32_t));
+        memcpy(heap_insts, cm_instructions(cm), cm->instruction_count * sizeof(uint32_t));
+        cm->instructions = heap_insts;
+    }
+
+    uint32_t *writable_insts = (uint32_t *)cm_instructions(cm);
+    writable_insts[idx] = bytecode;
+    return args[1];
+}
+
+/* --- Confined read-only mirror primitives (Task 2) ---
+   Reachable ONLY via mirror_dispatch; never in dispatch.c switch(pid). */
+
+extern oop indexable_new(intptr_t n);
+
+oop primitive_method_offset(oop receiver, int argc, oop *args) {
+    (void)argc; (void)args;
+    if (receiver == NULL || IS_SMI(receiver)) return TAG_SMI(0);
+    struct MethodContext *ctx = (struct MethodContext *)receiver;
+    if (ctx->saved_pc == NULL) return TAG_SMI(0);
+    struct CompiledMethod *cm = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
+    return TAG_SMI((long)((const uint32_t *)ctx->saved_pc - cm_instructions(cm)));
+}
+
+oop primitive_compiled_method_instruction_at(oop receiver, int argc, oop *args) {
+    (void)argc;
+    if (receiver == NULL || IS_SMI(receiver)) {
+        fprintf(stderr, "VM Error: method:instructionAt: requires a non-null receiver\n");
+        abort();
+    }
+    if (argc < 1 || !IS_SMI(args[0])) {
+        fprintf(stderr, "VM Error: method:instructionAt: requires SMI index argument\n");
+        abort();
+    }
+    struct Closure *cl = (struct Closure *)receiver;
+    struct CompiledMethod *cm = (obj_vtable((oop)cl) == BytecodeClosureVtable)
+        ? (struct CompiledMethod *)closure_entry(cl)
+        : (struct CompiledMethod *)receiver;
+    int idx = (int)UNTAG_SMI(args[0]);
+    if (idx < 0 || (size_t)idx >= cm->instruction_count) {
+        fprintf(stderr, "VM Error: method:instructionAt: index %d out of bounds (max %zu)\n", idx, cm->instruction_count);
+        abort();
+    }
+    return TAG_SMI((long)(uint32_t)cm_instructions(cm)[idx]);
+}
+
+/* The bp table keys on the CompiledMethod oop (== closure_entry of the running
+   closure, == primitive_method_of of a context). The registry hands callers the
+   vtable BINDING method, which is the BytecodeClosure, so normalize that to its
+   CompiledMethod here; a bare CompiledMethod (e.g. the C test) passes through. */
+static oop bp_method_key(oop method) {
+    if (method != NULL && !IS_SMI(method) && obj_vtable(method) == BytecodeClosureVtable) {
+        return (oop)closure_entry((struct Closure *)method);
+    }
+    return method;
+}
+
+/* Confined C-assisted breakpoint prims (Task 7 -- reachable ONLY via mirror_dispatch).
+   `method` is a CompiledMethod or BytecodeClosure oop (normalized to the former);
+   `off` is a SMI instruction index. */
+oop primitive_break_add(oop receiver, int argc, oop *args) {
+    (void)receiver;
+    if (argc < 2 || !IS_SMI(args[1])) {
+        fprintf(stderr, "VM Error: breakAt:offset: requires (method, SMI offset)\n");
+        abort();
+    }
+    {
+        oop key = bp_method_key(args[0]);
+        bp_add(key, (long)UNTAG_SMI(args[1]));
+        return key;   /* normalized CompiledMethod oop -- == methodOf: a context */
+    }
+}
+
+oop primitive_break_remove(oop receiver, int argc, oop *args) {
+    (void)receiver;
+    if (argc < 2 || !IS_SMI(args[1])) {
+        fprintf(stderr, "VM Error: unbreakAt:offset: requires (method, SMI offset)\n");
+        abort();
+    }
+    bp_remove(bp_method_key(args[0]), (long)UNTAG_SMI(args[1]));
+    return args[0];
+}
+
+/* The CompiledMethod oop of a running MethodContext -- the same oop the bp table
+   keys on (== closure_entry of the context's closure). Also normalizes a
+   Bytecode/Primitive Closure receiver directly to its CompiledMethod, so callers
+   can map a registry method (a vtable-binding BytecodeClosure, == methodsOf:) to
+   the same CompiledMethod a context yields -- the reverse-map the step path needs
+   to resolve a methodId. (Bare CompiledMethod / nil pass through.) */
+oop primitive_method_of(oop receiver, int argc, oop *args) {
+    (void)argc; (void)args;
+    if (receiver == NULL || IS_SMI(receiver)) return NULL;
+    /* A vtable-binding closure (== methodsOf:) normalizes directly to its
+       CompiledMethod, so the step path can reverse-map a registry method to the
+       same oop a context yields. Any other receiver keeps the original
+       MethodContext handling (read its closure's CompiledMethod). */
+    oop vt = obj_vtable(receiver);
+    if (vt == BytecodeClosureVtable || vt == PrimitiveClosureVtable) {
+        return (oop)closure_entry((struct Closure *)receiver);
+    }
+    struct MethodContext *ctx = (struct MethodContext *)receiver;
+    return (oop)closure_entry((struct Closure *)ctx->closure);
+}
+
+oop primitive_vtable_selectors(oop receiver, int argc, oop *args) {
+    (void)argc; (void)args;
+    if (receiver == NULL || IS_SMI(receiver)) {
+        fprintf(stderr, "VM Error: selectorsOf: requires a vtable receiver\n");
+        abort();
+    }
+    struct Vtable *vt = (struct Vtable *)receiver;
+    intptr_t n = (intptr_t)vt->size;
+    oop arr = indexable_new(n);
+    struct ObjectInstance *inst = (struct ObjectInstance *)arr;
+    struct Binding *bs = vtable_bindings((oop)vt);
+    for (intptr_t i = 0; i < n; i++) {
+        inst->slots[i + 1] = binding_symbol(&bs[i]);
+    }
+    return arr;
+}
+
+oop primitive_vtable_methods(oop receiver, int argc, oop *args) {
+    (void)argc; (void)args;
+    if (receiver == NULL || IS_SMI(receiver)) {
+        fprintf(stderr, "VM Error: methodsOf: requires a vtable receiver\n");
+        abort();
+    }
+    struct Vtable *vt = (struct Vtable *)receiver;
+    intptr_t n = (intptr_t)vt->size;
+    oop arr = indexable_new(n);
+    struct ObjectInstance *inst = (struct ObjectInstance *)arr;
+    struct Binding *bs = vtable_bindings((oop)vt);
+    for (intptr_t i = 0; i < n; i++) {
+        inst->slots[i + 1] = binding_method(&bs[i]);
+    }
+    return arr;
+}
+
