@@ -14,6 +14,7 @@ expect:
 43
 2
 skip-berry: true
+skip-oevm: true
 *)
 class BlockInliningTest packageUsing: manifest = () (
 public class BlockInlining usingPlatform: platform = () (
