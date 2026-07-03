@@ -46,7 +46,13 @@ class Kernel usingPlatform: platform = () (
     public reject: b = ( | r | r:: OrderedCollection new. self do: [ :e | (b value: e) ifFalse: [ r add: e ] ]. ^ r )
     public includes: o = ( ^ self inject: false into: [ :acc :e | acc or: [ e = o ] ] )
     public asArray = ( | arr i | arr:: platform basicNew: Array indexable: self size. i:: 1. self do: [ :e | arr at: i put: e. i:: i + 1 ]. ^ arr )
-    public detect: b ifNone: n = ( self do: [ :e | (b value: e) ifTrue: [ ^ e ] ]. ^ n value )
+    public detect: b ifNone: n = (
+      | found result |
+      found:: false.
+      self do: [ :e |
+        (found not and: [ b value: e ]) ifTrue: [ found:: true. result:: e ] ].
+      found ifTrue: [ ^ result ].
+      ^ n value )
     public detect: b = ( ^ self detect: b ifNone: [ self error: 'not found' ] )
   ) : (
   )

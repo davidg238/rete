@@ -1,6 +1,5 @@
 import os
 import sys
-from kernel_methods import add_unwind_to_value
 
 class SolidifyCompiler:
     def __init__(self):
@@ -287,7 +286,8 @@ def main():
     compiler.add_vtable("IntegerVtable")
     compiler.add_vtable("FloatVtable")
     compiler.add_vtable("MethodContextVtable")
-    add_unwind_to_value(compiler)
+    # unwindTo:value: (the NLR mechanism) is retired under the no-NLR model
+    # (Milestone A Task 2); this demo generator no longer installs it.
     compiler.add_vtable("FiberVtable")
     
     # We will define a counter class vtable for testing XIP

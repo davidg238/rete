@@ -4,7 +4,13 @@ import json
 import subprocess
 from solidify import SolidifyCompiler
 from stmap import build_stmap
-from kernel_methods import add_unwind_to_value
+
+
+class CompileError(Exception):
+    """Raised for a source-level error the compiler detects at compile time
+    (e.g. '^' inside an escaping closure under the no-NLR model). Caught at
+    the top-level driver (main()) and reported cleanly — never surfaces as a
+    raw Python traceback."""
 
 # Opcode constants
 OP_LD_CONST = 0
@@ -13,7 +19,10 @@ OP_SEND = 2
 # 3 retired: OP_SEND_IC (dead IC path, never emitted; deleted in de-recursify
 # Phase 2 Task 3 — value kept reserved to avoid renumbering serialized .oimg images)
 OP_RET = 4
-OP_NLR = 5
+OP_NLR = 5  # unused (Milestone A, no-NLR model): '^' in an escaping closure
+            # is now a CompileError instead. Value kept reserved to avoid
+            # renumbering opcodes; the VM's dead OP_NLR handler and this
+            # constant are both removed in Task 3/9's renumber.
 OP_ADD = 6
 OP_SUB = 7
 OP_MUL = 8
@@ -350,8 +359,11 @@ class MethodCompiler:
         # block's temps as fresh registers, compile the body so its value lands
         # in target_reg, then pop the scope and reclaim the temp registers.
         # `^` inside the body is compiled by compile_statement against THIS
-        # frame, so it becomes OP_RET (method) or OP_NLR (non-inlined block)
-        # automatically. See oevm/docs/topics.md#block-inlining.
+        # frame: since THIS frame is never a block frame here (inlining always
+        # targets the lexically-enclosing non-inlined frame), it becomes
+        # OP_RET. See oevm/docs/topics.md#block-inlining and the no-NLR model
+        # (spec §2): '^' only becomes a CompileError when THIS frame IS a
+        # block frame, i.e. a genuinely escaping (non-inlined) closure.
         saved_free = self.next_free_reg
         saved_scope = self.current_scope
         self.current_scope = Scope(self, saved_scope)
@@ -377,7 +389,7 @@ class MethodCompiler:
                 self.compile_statement(stmt)
             last = body[-1]
             if last["type"] == "return":
-                self.compile_statement(last)        # emits OP_RET / OP_NLR
+                self.compile_statement(last)        # OP_RET, or CompileError if this is a block frame
             else:
                 self.compile_expr(last, target_reg)  # value falls through
         self.current_scope = saved_scope
@@ -764,12 +776,21 @@ class MethodCompiler:
     def compile_statement(self, stmt):
         self.record_line(stmt)
         if stmt["type"] == "return":
+            if "_block" in self.name:
+                # no-NLR model (spec §2): '^' lexically inside an escaping
+                # closure (a block compiled as its own method — this frame's
+                # name contains "_block") has no runtime mechanism to unwind
+                # to its home method context anymore. '^' inside an INLINED
+                # control-flow block (ifTrue:/whileTrue:/to:do:) never reaches
+                # here as a block frame — compile_inlined_block compiles it
+                # directly into the enclosing (non-block) frame instead.
+                raise CompileError(
+                    "non-local return: '^' inside an escaping closure is not "
+                    "allowed (no-NLR model). Use a collection combinator or a "
+                    "sentinel-and-return.")
             reg = self.alloc_reg()
             self.compile_expr(stmt["value"], reg)
-            if "_block" in self.name:
-                self.emit_ABC(OP_NLR, reg, 0, 0)
-            else:
-                self.emit_ABC(OP_RET, reg, 0, 0)
+            self.emit_ABC(OP_RET, reg, 0, 0)
             self.free_reg()
         else:
             reg = self.alloc_reg()
@@ -1372,9 +1393,7 @@ class OevmCompiler:
         self.solidify.add_vtable("FloatVtable")
         self.solidify.add_vtable("LargeIntegerVtable")
         self.solidify.add_vtable("MethodContextVtable")
-        add_unwind_to_value(self.solidify)
         self.solidify.get_symbol_ref("value")
-        self.solidify.get_symbol_ref("unwindTo:value:")
         self.class_slots = {}
         # qname -> own (pre-inheritance-merge) slot layout, and qname -> resolved
         # superclass qname. Captured by collect_slots; consumed by
@@ -2144,7 +2163,11 @@ def main():
 
     # Compile
     compiler = OevmCompiler(ast)
-    compiler.compile()
+    try:
+        compiler.compile()
+    except CompileError as e:
+        print(f"Compile error: {e}")
+        sys.exit(1)
 
     # Emit the source-map sidecar (.stmap) next to the image, for both the
     # Path A (.c) and Path B (.oimg) backends. Format matches st-berry so the
@@ -2235,9 +2258,7 @@ def main():
         c_code = c_code.replace(
             "void init_solidified_vtables(void) {",
             "void init_solidified_vtables(void) {\n"
-            "    extern oop Symbol_unwindTo_value;\n"
             "    extern oop Symbol_value;\n"
-            "    Symbol_unwindTo_value = (oop)&StaticSymbol_unwindTo_value_;\n"
             "    Symbol_value = (oop)&StaticSymbol_value;"
         )
         
