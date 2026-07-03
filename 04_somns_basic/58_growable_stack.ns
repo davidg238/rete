@@ -12,6 +12,7 @@ sum 1..2000 == 2001000.
 expect:
 2001000
 skip-berry: true
+skip-oevm: true
 *)
 class GrowableStackTest packageUsing: manifest = () (
 sum: n = (

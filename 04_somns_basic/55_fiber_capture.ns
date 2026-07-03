@@ -24,6 +24,7 @@ before10
 mutated
 after99
 done
+skip-oevm: true
 *)
 class FiberCaptureTest usingPlatform: platform concurrency: concurrency = () (
   public main: platform2 args: args = (

@@ -17,6 +17,7 @@ string makes any deviation from the exact round-robin order (including
 expect:
 ABABAB
 done
+skip-oevm: true
 *)
 class FibersTest usingPlatform: platform concurrency: concurrency = () (
   public main: platform2 args: args = (

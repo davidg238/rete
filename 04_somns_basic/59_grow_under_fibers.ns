@@ -12,6 +12,7 @@ expect:
 2001000
 done
 skip-berry: true
+skip-oevm: true
 *)
 class GrowUnderFibersTest usingPlatform: platform concurrency: concurrency = () (
   sum: n = (

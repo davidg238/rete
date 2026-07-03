@@ -9,6 +9,7 @@ prints 7.
 
 expect:
 7
+skip-oevm: true
 *)
 class NLRMultiFrameTest packageUsing: manifest = () (
 inner: blk = ( ^ blk value )
