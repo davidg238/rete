@@ -1,0 +1,8 @@
+(*
+expect:
+1
+*)
+| x |
+x:: 7.
+(x > 0) ifTrue: [ 1 println. ^ nil ].
+2 println.
