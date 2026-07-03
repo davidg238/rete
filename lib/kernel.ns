@@ -1,0 +1,350 @@
+(*
+ns-oevm kernel library (std-lib step 3b). One module — `Kernel usingPlatform:
+platform` — nesting the library classes as siblings. The native C
+platform_object() is injected as `platform`; the APP receives the Kernel
+INSTANCE as its own `platform` and reaches library classes through the
+hand-written accessors at the bottom.
+
+Reachability (spec §3):
+  Kernel -> native primitives : lexically via the injected `platform` param.
+  Kernel -> Kernel            : compile-time lexical (sibling slot read / OP_NEW).
+  App    -> Kernel            : runtime send to an accessor (`platform Array`).
+
+NB: inside this module NEVER write `Array new: n` (it compiles to a fixed-slot
+OP_NEW, not an indexable). Allocate indexables via `platform basicNew: Array
+indexable: n` (Array as an argument is a slot read of the class object).
+*)
+class Kernel usingPlatform: platform = () (
+  class Object = () (
+    public isNil = ( ^ false )
+    public notNil = ( ^ true )
+    public ifNil: aBlock = ( ^ self )
+    public ifNotNil: aBlock = ( ^ aBlock value: self )
+    public = other = ( ^ self == other )
+    public printString = ( ^ 'an Object' )
+    public asString = ( ^ self printString )
+    public hash = ( ^ self identityHash )
+  ) : (
+  )
+
+  class Array = () (
+    public at: i = ( ^ self basicAt: i )
+    public at: i put: v = ( self basicAt: i put: v. ^ v )
+    public size = ( ^ self basicSize )
+    public do: aBlock = ( 1 to: self size do: [ :i | aBlock value: (self basicAt: i) ]. ^ self )
+  ) : (
+    public new: n = ( ^ platform basicNew: self indexable: n )
+  )
+
+  class Collection = () (
+    do: aBlock = ( ^ self error: 'subclassResponsibility' )
+    public size = ( ^ self inject: 0 into: [ :n :e | n + 1 ] )
+    public isEmpty = ( ^ self size = 0 )
+    public inject: a into: b = ( | acc | acc:: a. self do: [ :e | acc:: b value: acc value: e ]. ^ acc )
+    public collect: b = ( | r | r:: OrderedCollection new. self do: [ :e | r add: (b value: e) ]. ^ r )
+    public select: b = ( | r | r:: OrderedCollection new. self do: [ :e | (b value: e) ifTrue: [ r add: e ] ]. ^ r )
+    public reject: b = ( | r | r:: OrderedCollection new. self do: [ :e | (b value: e) ifFalse: [ r add: e ] ]. ^ r )
+    public includes: o = ( ^ self inject: false into: [ :acc :e | acc or: [ e = o ] ] )
+    public asArray = ( | arr i | arr:: platform basicNew: Array indexable: self size. i:: 1. self do: [ :e | arr at: i put: e. i:: i + 1 ]. ^ arr )
+    public detect: b ifNone: n = ( self do: [ :e | (b value: e) ifTrue: [ ^ e ] ]. ^ n value )
+    public detect: b = ( ^ self detect: b ifNone: [ self error: 'not found' ] )
+  ) : (
+  )
+
+  class OrderedCollection = Collection (
+    | contents ::= platform basicNew: Array indexable: 8. count ::= 0. |
+  ) (
+    public do: aBlock = ( 1 to: count do: [ :i | aBlock value: (contents at: i) ]. ^ self )
+    public size = ( ^ count )
+    public isEmpty = ( ^ count = 0 )
+    public add: anObject = ( self ensureCapacity. count:: count + 1. contents at: count put: anObject. ^ anObject )
+    public addLast: anObject = ( ^ self add: anObject )
+    public at: i = ( (i < 1 or: [ i > count ]) ifTrue: [ ^ self error: 'index out of bounds' ]. ^ contents at: i )
+    public at: i put: v = ( (i < 1 or: [ i > count ]) ifTrue: [ ^ self error: 'index out of bounds' ]. ^ contents at: i put: v )
+    public first = ( ^ self at: 1 )
+    public last = ( ^ self at: count )
+    public removeLast = ( | v | v:: contents at: count. count:: count - 1. ^ v )
+    public removeFirst = ( | v | v:: contents at: 1. 2 to: count do: [ :i | contents at: i - 1 put: (contents at: i) ]. count:: count - 1. ^ v )
+    ensureCapacity = ( count = contents size ifTrue: [ self grow ]. ^ self )
+    grow = ( | bigger | bigger:: platform basicNew: Array indexable: 2 * contents size. 1 to: count do: [ :i | bigger at: i put: (contents at: i) ]. contents:: bigger. ^ self )
+  ) : (
+  )
+
+  class HashedCollection = Collection ( | table count | ) (
+    (* Abstract open-addressing hash table over `table` (the keys/elements
+       Array); `count` is the live-entry tally. Concrete subclasses re-declare
+       `table`/`count` WITH initializers to set the initial capacity — the bare
+       `= Super` inheritance form does not run an ancestor's slot initializers,
+       and a per-target bounded variant would pick a different capacity here. *)
+    capacity = ( ^ table size )
+    public size = ( ^ count )
+    public isEmpty = ( ^ count = 0 )
+
+    (* 1-based home bucket for aKey. Floored `//` gives a correct non-negative
+       modulo for any sign of hash; the value protocol supplies `hash`. *)
+    indexFor: aKey = ( | h c | h:: aKey hash. c:: self capacity. ^ (h - (h // c * c)) + 1 )
+
+    (* Linear probe from the home bucket (wrapping) to the slot holding aKey OR
+       the first empty (nil) slot. Load factor < 1 guarantees an empty slot, so
+       this terminates. The `and:` short-circuits, so `=` is only sent to a
+       non-nil key. *)
+    slotFor: aKey = ( | c i k |
+      c:: self capacity. i:: self indexFor: aKey. k:: table at: i.
+      [ ((k == nil) not) and: [ (k = aKey) not ] ] whileTrue: [
+        i:: i + 1. i > c ifTrue: [ i:: 1 ]. k:: table at: i ].
+      ^ i )
+
+    containsKey: aKey = ( ^ ((table at: (self slotFor: aKey)) == nil) not )
+
+    atCapacity = ( ^ count * 4 >= (table size * 3) )           (* load factor 0.75 *)
+    growIfNeeded = ( self atCapacity ifTrue: [ self grow ]. ^ self )
+
+    (* Cluster-rehash deletion (no tombstones): after a slot is vacated, walk the
+       contiguous run that follows and re-place each entry, pulling forward any
+       entry that had probed past the hole. Stops at the first empty slot. *)
+    rehashFrom: start = ( | c j |
+      c:: self capacity. j:: start + 1. j > c ifTrue: [ j:: 1 ].
+      [ ((table at: j) == nil) not ] whileTrue: [
+        self reinsertEntryAt: j.
+        j:: j + 1. j > c ifTrue: [ j:: 1 ] ].
+      ^ self )
+
+    grow = ( ^ self error: 'subclassResponsibility' )
+    reinsertEntryAt: j = ( ^ self error: 'subclassResponsibility' )
+    public do: aBlock = ( ^ self error: 'subclassResponsibility' )
+  ) : (
+  )
+
+  class Set = HashedCollection ( | table ::= platform basicNew: Array indexable: 8. count ::= 0. | ) (
+    public add: anObject = ( (anObject == nil) ifTrue: [ ^ self error: 'nil element not allowed' ]. self place: anObject. self growIfNeeded. ^ anObject )
+    public addAll: aCollection = ( aCollection do: [ :e | self add: e ]. ^ aCollection )
+    public remove: anObject = ( ^ self remove: anObject ifAbsent: [ self error: 'element not found' ] )
+    public remove: anObject ifAbsent: aBlock = ( | i |
+      i:: self slotFor: anObject.
+      (table at: i) == nil ifTrue: [ ^ aBlock value ].
+      table at: i put: nil. count:: count - 1. self rehashFrom: i. ^ anObject )
+    public includes: anObject = ( ^ self containsKey: anObject )
+    public do: aBlock = ( 1 to: self capacity do: [ :i | | e | e:: table at: i. (e == nil) ifFalse: [ aBlock value: e ] ]. ^ self )
+    place: anObject = ( | i | i:: self slotFor: anObject. (table at: i) == nil ifTrue: [ table at: i put: anObject. count:: count + 1 ]. ^ self )
+    reinsertEntryAt: j = ( | e | e:: table at: j. table at: j put: nil. count:: count - 1. self place: e. ^ self )
+    grow = ( | old oldCap | old:: table. oldCap:: table size. table:: platform basicNew: Array indexable: oldCap * 2. count:: 0. 1 to: oldCap do: [ :i | | e | e:: old at: i. (e == nil) ifFalse: [ self place: e ] ]. ^ self )
+  ) : (
+  )
+
+  class Dictionary = HashedCollection ( | table ::= platform basicNew: Array indexable: 8. count ::= 0. vals ::= platform basicNew: Array indexable: 8. | ) (
+    public at: aKey put: aValue = ( (aKey == nil) ifTrue: [ ^ self error: 'nil key not allowed' ]. self place: aKey value: aValue. self growIfNeeded. ^ aValue )
+    public at: aKey ifAbsent: aBlock = ( | i | i:: self slotFor: aKey. (table at: i) == nil ifTrue: [ ^ aBlock value ]. ^ vals at: i )
+    public at: aKey = ( ^ self at: aKey ifAbsent: [ self error: 'key not found' ] )
+    public at: aKey ifAbsentPut: aBlock = ( | i | i:: self slotFor: aKey. ((table at: i) == nil) not ifTrue: [ ^ vals at: i ]. ^ self at: aKey put: aBlock value )
+    public includesKey: aKey = ( ^ self containsKey: aKey )
+    public removeKey: aKey = ( ^ self removeKey: aKey ifAbsent: [ self error: 'key not found' ] )
+    public removeKey: aKey ifAbsent: aBlock = ( | i v |
+      i:: self slotFor: aKey.
+      (table at: i) == nil ifTrue: [ ^ aBlock value ].
+      v:: vals at: i. table at: i put: nil. count:: count - 1. self rehashFrom: i. ^ v )
+    public keys = ( | arr j | arr:: platform basicNew: Array indexable: count. j:: 0. 1 to: self capacity do: [ :i | | k | k:: table at: i. (k == nil) ifFalse: [ j:: j + 1. arr at: j put: k ] ]. ^ arr )
+    public values = ( | arr j | arr:: platform basicNew: Array indexable: count. j:: 0. 1 to: self capacity do: [ :i | | k | k:: table at: i. (k == nil) ifFalse: [ j:: j + 1. arr at: j put: (vals at: i) ] ]. ^ arr )
+    public keysAndValuesDo: aBlock = ( 1 to: self capacity do: [ :i | | k | k:: table at: i. (k == nil) ifFalse: [ aBlock value: k value: (vals at: i) ] ]. ^ self )
+    public do: aBlock = ( 1 to: self capacity do: [ :i | | k | k:: table at: i. (k == nil) ifFalse: [ aBlock value: (vals at: i) ] ]. ^ self )
+    place: aKey value: aValue = ( | i | i:: self slotFor: aKey. (table at: i) == nil ifTrue: [ table at: i put: aKey. count:: count + 1 ]. vals at: i put: aValue. ^ self )
+    reinsertEntryAt: j = ( | k v | k:: table at: j. v:: vals at: j. table at: j put: nil. count:: count - 1. self place: k value: v. ^ self )
+    grow = ( | oldK oldV oldCap | oldK:: table. oldV:: vals. oldCap:: table size. table:: platform basicNew: Array indexable: oldCap * 2. vals:: platform basicNew: Array indexable: oldCap * 2. count:: 0. 1 to: oldCap do: [ :i | | k | k:: oldK at: i. (k == nil) ifFalse: [ self place: k value: (oldV at: i) ] ]. ^ self )
+  ) : (
+  )
+
+  class ReadStream = ( | source position | ) (
+    (* Byte-granular cursor over an immutable String. `next`/`peek` answer a byte
+       SMI; substring reads build Strings via `platform string:`. Open-ended reads
+       answer nil at EOF so a blank line ('') stays distinct from end-of-stream. *)
+    public next = ( self atEnd ifTrue: [ ^ self error: 'next past end' ]. position:: position + 1. ^ source at: position )
+    public peek = ( self atEnd ifTrue: [ ^ self error: 'peek past end' ]. ^ source at: position + 1 )
+    public atEnd = ( ^ position >= source size )
+    public skip: n = ( position:: position + n. ^ self )
+    public position = ( ^ position )
+    public reset = ( position:: 0. ^ self )
+    public next: n = ( | a |
+      (position + n) > source size ifTrue: [ ^ self error: 'next: beyond end' ].
+      a:: platform basicNew: Array indexable: n.
+      1 to: n do: [ :i | a at: i put: (source at: position + i) ].
+      position:: position + n.
+      ^ platform string: a )
+    public upTo: aByte = ( | r b |
+      self atEnd ifTrue: [ ^ nil ].
+      r:: OrderedCollection new.
+      [ self atEnd ] whileFalse: [
+        b:: self next.
+        b = aByte ifTrue: [ ^ platform string: r asArray ].
+        r add: b ].
+      ^ platform string: r asArray )
+    public nextLine = ( | s n |
+      self atEnd ifTrue: [ ^ nil ].
+      s:: self upTo: 10.
+      n:: s size.
+      (n > 0 and: [ (s at: n) = 13 ]) ifTrue: [ ^ self prefixOf: s upTo: n - 1 ].
+      ^ s )
+    public upToEnd = ( | r |
+      self atEnd ifTrue: [ ^ nil ].
+      r:: OrderedCollection new.
+      [ self atEnd ] whileFalse: [ r add: self next ].
+      ^ platform string: r asArray )
+    public do: aBlock = ( [ self atEnd ] whileFalse: [ aBlock value: self next ]. ^ self )
+    prefixOf: s upTo: k = ( | a | a:: platform basicNew: Array indexable: k. 1 to: k do: [ :i | a at: i put: (s at: i) ]. ^ platform string: a )
+    setSource: aString = ( source:: aString. position:: 0. ^ self )
+  ) : (
+    public on: aString = ( ^ self new setSource: aString )
+  )
+
+  class WriteStream = ( | bytes ::= OrderedCollection new. | ) (
+    (* io.Buffer-style String builder: accumulate bytes, emit one String via
+       `platform string:` — the O(n) replacement for O(n^2) `,` chaining. *)
+    public nextPut: aByte = ( (aByte < 0 or: [ aByte > 255 ]) ifTrue: [ ^ self error: 'byte out of range 0..255' ]. bytes add: aByte. ^ aByte )
+    public nextPutAll: aString = ( 1 to: aString size do: [ :i | bytes add: (aString at: i) ]. ^ aString )
+    public print: anObject = ( ^ self nextPutAll: anObject printString )
+    public nextPutLine: aString = ( self nextPutAll: aString. self nextPut: 10. ^ aString )
+    public contents = ( ^ platform string: bytes asArray )
+    public size = ( ^ bytes size )
+    public reset = ( bytes:: OrderedCollection new. ^ self )
+  ) : (
+  )
+
+  class Serial = ( | port | ) (
+    (* Confined native capability: byte/line port over a link-time backend.
+       `port` holds the native serial singleton; raw bytes go through its
+       basicReadByte/basicWriteByte:/basicAtEnd prims. Strings via platform. *)
+    setPort: aPort = ( port:: aPort. ^ self )
+    public writeByte: aByte = ( port basicWriteByte: aByte. ^ self )
+    public write: aString = ( 1 to: aString size do: [ :i | port basicWriteByte: (aString at: i) ]. ^ self )
+    public atEnd = ( ^ port basicAtEnd )
+    public readByte = ( port basicAtEnd ifTrue: [ ^ nil ]. ^ port basicReadByte )
+    public read: n = ( | bytes |
+      bytes:: OrderedCollection new.
+      [ bytes size < n and: [ port basicAtEnd not ] ] whileTrue: [ bytes add: port basicReadByte ].
+      ^ platform string: bytes asArray )
+    public readLine = ( | bytes b done |
+      port basicAtEnd ifTrue: [ ^ nil ].
+      bytes:: OrderedCollection new. done:: false.
+      [ done not and: [ port basicAtEnd not ] ] whileTrue: [
+        b:: port basicReadByte.
+        b = 10 ifTrue: [ done:: true ] ifFalse: [ bytes add: b ] ].
+      (* strip a trailing CR if present (CRLF) *)
+      (bytes size > 0 and: [ (bytes at: bytes size) = 13 ]) ifTrue: [ bytes removeLast ].
+      ^ platform string: bytes asArray )
+  ) : (
+    public onPort: aPort = ( ^ self new setPort: aPort )
+  )
+
+  class Net = ( | port | ) (
+    (* Confined native capability: vends UDP Sockets over a link-time backend. *)
+    setPort: aPort = ( port:: aPort. ^ self )
+    public udp = ( ^ self udpBindPort: 0 )                       (* ephemeral port *)
+    public udpBindPort: aPort = ( | h |
+      h:: port basicBind: aPort.
+      h < 0 ifTrue: [ ^ nil ].
+      ^ Socket onPort: port handle: h )
+  ) : (
+    public onPort: aPort = ( ^ self new setPort: aPort )
+  )
+
+  class Socket = ( | port handle | ) (
+    setPort: aPort handle: h = ( port:: aPort. handle:: h. ^ self )
+    public sendTo: host port: aPort data: aString = (
+      port basicSend: handle to: host port: aPort data: aString. ^ self )
+    public receive = ( | t |
+      t:: port basicReceive: handle.
+      t == nil ifTrue: [ ^ nil ].
+      ^ Datagram data: (t basicAt: 1) senderHost: (t basicAt: 2) senderPort: (t basicAt: 3) )
+    public close = ( port basicClose: handle. ^ self )
+  ) : (
+    public onPort: aPort handle: h = ( ^ self new setPort: aPort handle: h )
+  )
+
+  class Datagram = ( | data senderHost senderPort | ) (
+    setData: d host: h port: p = ( data:: d. senderHost:: h. senderPort:: p. ^ self )
+    public data = ( ^ data )
+    public senderHost = ( ^ senderHost )
+    public senderPort = ( ^ senderPort )
+  ) : (
+    public data: d senderHost: h senderPort: p = ( ^ self new setData: d host: h port: p )
+  )
+
+  class Concurrency = ( | kernel readyQueue current schedulerFiber yieldMark doneMark | ) (
+    (* Pure-.ns cooperative scheduler over the universal fiber prims. `kernel`
+       is the Kernel instance used to reach fiberCreate:/fiberSwitch:value:/
+       currentFiber. yieldMark/doneMark are identity sentinels passed through
+       fiberSwitch so the scheduler can tell a yield from a completion.
+
+       Closure-capture note (and a KNOWN CONSTRAINT). The entry block resolves
+       `self`/`current` via OP_LD_LEXICAL, which walks the home chain starting from
+       spawn:'s activation frame. That frame is stale by the time the fiber first
+       runs (spawn: returns before run calls fiberSwitch). It reads correct values
+       only because the stack WORD at spawn:'s old frame offset still holds a frame
+       whose reg[0] is this same Concurrency instance — which is guaranteed when
+       spawn: and run are invoked at the SAME stack depth from the same caller (run
+       then persists at that slot for the whole fiber lifetime). Same-receiver alone
+       is necessary but NOT sufficient; same-depth is the real invariant. Therefore:
+         * `aBlock` is stored in the Fiber object (heap-stable) and retrieved via
+           `current block` (a heap slot read on the current Fiber), never from the
+           stale spawn: frame.
+         * `primitive_fiber_create` sets regs[0]=closure so OP_LD_LEXICAL can start
+           the home-chain walk.
+       CONSTRAINT (until hardened): call spawn: and run at the same stack depth and
+       do NOT spawn from within a running fiber — either reads a foreign reg[0].
+       45_fibers respects this; nested-spawn / cross-depth is tracked as follow-up. *)
+    setKernel: aKernel = (
+      kernel:: aKernel.
+      readyQueue:: OrderedCollection new.
+      yieldMark:: Object new.
+      doneMark:: Object new.
+      ^ self )
+    public spawn: aBlock = ( | entry f |
+      (* Create the Fiber object first so it holds the block on the heap.
+         The entry block only accesses `current` (Concurrency slot, heap-stable)
+         and `self` (Concurrency, safe from stale frame as noted above). *)
+      f:: Fiber new.
+      f setBlock: aBlock.
+      entry:: [ current block value. self complete ].
+      f setVm: (kernel fiberCreate: entry).
+      readyQueue addLast: f.
+      ^ f )
+    public yield = ( ^ kernel fiberSwitch: schedulerFiber value: yieldMark )
+    complete = ( ^ kernel fiberSwitch: schedulerFiber value: doneMark )
+    public run = ( | f signal |
+      schedulerFiber:: kernel currentFiber.
+      [ readyQueue isEmpty ] whileFalse: [
+        f:: readyQueue removeFirst.
+        current:: f.
+        signal:: kernel fiberSwitch: f vm value: nil.
+        (signal == doneMark)
+          ifTrue: [ f markDead ]
+          ifFalse: [ readyQueue addLast: f ] ].
+      ^ self )
+  ) : (
+    public onKernel: aKernel = ( ^ self new setKernel: aKernel )
+  )
+
+  class Fiber = ( | vm done block | ) (
+    setBlock: b = ( block:: b. done:: false. ^ self )
+    setVm: aVm = ( vm:: aVm. ^ self )
+    public vm = ( ^ vm )
+    public block = ( ^ block )
+    public isDone = ( ^ done )
+    markDead = ( done:: true. ^ self )
+  ) : (
+  )
+
+  serialOn: aPort = ( ^ Serial onPort: aPort )
+  netOn: aPort = ( ^ Net onPort: aPort )
+  concurrency = ( ^ Concurrency onKernel: self )
+
+  public readLine = ( ^ platform readLine )
+
+  public Object            = ( ^ Object )
+  public Array             = ( ^ Array )
+  public Collection        = ( ^ Collection )
+  public OrderedCollection = ( ^ OrderedCollection )
+  public Set               = ( ^ Set )
+  public Dictionary        = ( ^ Dictionary )
+  public ReadStream        = ( ^ ReadStream )
+  public WriteStream       = ( ^ WriteStream )
+) : (
+)
