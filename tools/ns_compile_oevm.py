@@ -2037,26 +2037,6 @@ class OevmCompiler:
         self.register_source_map(f"{vt}>>{selector}", compiler.source_map)
         self.register_method_compiler(f"{vt}>>{selector}", compiler)
 
-def _contains_nlr(node, inside_block):
-    """True if `node` contains a return (`^`) lexically inside a block."""
-    if not isinstance(node, dict):
-        return False
-    t = node.get("type")
-    if t == "return" and inside_block:
-        return True
-    if t == "block":
-        return any(_contains_nlr(s, True) for s in node.get("body", []) or [])
-    # Recurse into sub-expressions, keeping the current block context.
-    for key in ("value", "receiver"):
-        if node.get(key) and _contains_nlr(node[key], inside_block):
-            return True
-    for key in ("args", "body"):
-        for c in node.get(key, []) or []:
-            if _contains_nlr(c, inside_block):
-                return True
-    return False
-
-
 def main():
     if len(sys.argv) < 2:
         print("Usage: python ns_compile_oevm.py <src.ns> [output.c]")
@@ -2099,16 +2079,12 @@ def main():
                 break
                 
     if is_script:
-        # A top-level script has no Newspeak home method, so a non-local return
-        # (`^`) lexically inside a block has no enclosing method context to
-        # return from. Reject it at compile time (matches SOMns/PrimordialSoup).
-        for stmt in ast["body"]:
-            if _contains_nlr(stmt, inside_block=False):
-                print("Compile error: non-local return from a top-level script block "
-                      "is not allowed (no enclosing method context)")
-                sys.exit(1)
-
-        # Wrap the script statements in a synthetic module `ScriptApp`
+        # Wrap the script statements in a synthetic module `ScriptApp`. Once
+        # wrapped, a top-level script's statements live in an ordinary method
+        # body (`main:args:`), so '^' is handled exactly like in any other
+        # method: OP_RET when lexically inside an INLINED control-flow block,
+        # or a CompileError at the compile_statement emit site when lexically
+        # inside an ESCAPING closure (no-NLR model, spec §2).
         script_body = ast["body"]
         script_temps = ast.get("temps", [])
         ast = {

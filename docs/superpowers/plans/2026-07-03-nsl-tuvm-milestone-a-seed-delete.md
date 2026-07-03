@@ -761,15 +761,14 @@ cd /home/david/workspace/tuvm && \
 ```
 Expected: builds and prints the test's expected output (e.g. `42`). A garbled result means the two numberings disagree — diff Steps 2–4.
 
-- [ ] **Step 6: Full suite, both paths, plus C tests and parity**
+- [ ] **Step 6: Full suite, both paths, plus C tests**
 
 ```bash
-cd /home/david/workspace/nsl-tuvm && python3 tools/check_kernel_parity.py && echo PARITY_OK
 /home/david/workspace/tuvm/tools/run_c_tests.sh; echo "c-exit=$?"
 cd /home/david/workspace/nsl-tests && OEVM_DIR=/home/david/workspace/tuvm OEVM_PATH=AB \
   python3 /home/david/workspace/nsl-tuvm/tools/run_tests_oevm.py 2>&1 | tail -30
 ```
-Expected: `PARITY_OK`; C tests PASS; conformance GREEN on **both** Path A and Path B. Also run `tools/check_no_ambient_reflection.sh` and `tests/test_portability_32.sh` if present (the latter may skip with exit 77 if `gcc-multilib` is absent — that's acceptable).
+Expected: C tests PASS; conformance GREEN on **both** Path A and Path B. (`tools/check_kernel_parity.py` was deleted in the Task 2 review-fix pass — it had been reduced to an always-succeeding no-op with nothing left to check; the conformance suite plus `check_no_reflective_emit`/grep proofs remain the gate.) Also run `tools/check_no_ambient_reflection.sh` and `tests/test_portability_32.sh` if present (the latter may skip with exit 77 if `gcc-multilib` is absent — that's acceptable).
 
 - [ ] **Step 7: Commit (both repos, one logical change)**
 
