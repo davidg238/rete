@@ -1,11 +1,13 @@
-/* Unit test for the W1 GC trigger + conservative C-stack rooting (src/gc.c).
+/* Unit test for the W1 GC trigger + precise rooting (src/gc.c).
    Build:
      gcc -std=c99 -Isrc -DOEVM_HEAP_SIZE=65536 tests/test_gc_trigger.c \
          src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c \
          -lm -o /tmp/tgct && /tmp/tgct
-   Verifies: (1) an oop held only in a C local survives gc_collect via the
-   conservative C-stack scan; (2) the exhaustion path collects + retries rather
-   than aborting, and reclaims a bounded rolling root set within a small cap. */
+   Verifies: (1) an oop registered as a precise root (gc_additional_roots_hook /
+   mark_object — the conservative C-stack scan this originally exercised was
+   deleted in de-recursify Phase 3, fiber_derecursify_core_design.md 6d) survives
+   gc_collect; (2) the exhaustion path collects + retries rather than aborting,
+   and reclaims a bounded rolling root set within a small cap. */
 #include "../src/oevm.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,7 +17,6 @@ extern oop  gc_allocate(oop vtable, size_t size);
 extern void gc_collect(void);
 extern void heap_init(void);
 extern int  gc_is_live(oop);
-extern void gc_set_stack_base(void *p);
 extern void (*gc_additional_roots_hook)(void);
 extern void mark_object(oop);
 
@@ -23,14 +24,23 @@ extern void mark_object(oop);
    GC (payload is traced word-by-word; NULL/SMI words are ignored by mark). */
 static struct Vtable PlainVtable;
 
-/* Held only in a C local across the collection. Marked noinline so the local
-   genuinely lives in this frame (not folded into main). Used after the collect
-   so the compiler must preserve it across the opaque gc_collect() call. */
+/* Registered as a precise root (gc_additional_roots_hook / mark_object) across
+   the collection — the conservative C-stack scan this used to rely on is
+   deleted (de-recursify Phase 3, fiber_derecursify_core_design.md 6d); a bare
+   C local is no longer sufficient to root an oop through gc_collect(). */
+static oop g_precise_root_obj;
+static void root_precise_obj(void) { mark_object(g_precise_root_obj); }
+
 __attribute__((noinline))
-static int local_only_survives(void) {
+static int precise_root_survives(void) {
     oop obj = gc_allocate((oop)&PlainVtable, sizeof(struct ObjectInstance));
-    gc_collect();                 /* obj is rooted ONLY by this C local */
-    return gc_is_live(obj);       /* use obj after the collect */
+    g_precise_root_obj = obj;
+    gc_additional_roots_hook = root_precise_obj;
+    gc_collect();                 /* obj is rooted ONLY by the precise-root hook */
+    gc_additional_roots_hook = NULL;
+    int live = gc_is_live(obj);
+    g_precise_root_obj = NULL;
+    return live;
 }
 
 /* Rolling root set: only these survive each collection. */
@@ -56,7 +66,6 @@ static void exhaustion_reclaims(void) {
 
 /* --- debugger_hook global root test --- */
 extern oop debugger_hook;
-extern void *vm_c_stack_base;  /* declared in gc.c; we clear it to disable stack scan */
 
 /* Allocate an object and stash it ONLY in the debugger_hook global; no C
    local survives back to the caller, so the global is the sole root. */
@@ -66,21 +75,18 @@ static void stash_debugger_hook(void) {
 }
 
 /* Test that debugger_hook is covered by the precise root list in gc_collect.
-   We deliberately disable the conservative C-stack scan (vm_c_stack_base=NULL)
-   so that ONLY precise roots protect the object.  Before the fix, gc_collect
-   does not mark debugger_hook, so the object is swept and gc_is_live returns 0.
-   After the fix, gc_collect marks it and gc_is_live returns 1. */
+   The conservative C-stack scan this test used to explicitly disable is gone
+   (de-recursify Phase 3) — precise roots are ALL there is now. Before the fix,
+   gc_collect does not mark debugger_hook, so the object is swept and
+   gc_is_live returns 0. After the fix, gc_collect marks it and gc_is_live
+   returns 1. */
 __attribute__((noinline))
 static int debugger_hook_global_survives(void) {
-    void *saved_stack_base = vm_c_stack_base;
-    /* Disable conservative scan: only precise roots protect oops. */
-    vm_c_stack_base = NULL;
     stash_debugger_hook();
     /* At this point debugger_hook is the ONLY reference to the object. */
     gc_collect();
     int live = gc_is_live(debugger_hook);
     debugger_hook = NULL;          /* cleanup: don't leak into later tests */
-    vm_c_stack_base = saved_stack_base;  /* restore for subsequent tests */
     return live;
 }
 
@@ -95,35 +101,28 @@ static void stash_accessviolation(void) {
 }
 
 /* Test that Symbol_accessViolation is covered by the precise root list in
-   gc_collect.  We deliberately disable the conservative C-stack scan
-   (vm_c_stack_base=NULL) so that ONLY precise roots protect the object.
-   Before the fix, gc_collect does not mark Symbol_accessViolation, so the
-   object is swept and gc_is_live returns 0.  After the fix, gc_collect marks
-   it and gc_is_live returns 1. */
+   gc_collect. Conservative C-stack scan is gone (de-recursify Phase 3) —
+   precise roots are ALL there is now. Before the fix, gc_collect does not mark
+   Symbol_accessViolation, so the object is swept and gc_is_live returns 0.
+   After the fix, gc_collect marks it and gc_is_live returns 1. */
 __attribute__((noinline))
 static int accessviolation_global_survives(void) {
-    void *saved_stack_base = vm_c_stack_base;
-    /* Disable conservative scan: only precise roots protect oops. */
-    vm_c_stack_base = NULL;
     stash_accessviolation();
     /* At this point Symbol_accessViolation is the ONLY reference to the object. */
     gc_collect();
     int live = gc_is_live(Symbol_accessViolation);
     Symbol_accessViolation = NULL;  /* cleanup: don't leak into later tests */
-    vm_c_stack_base = saved_stack_base;  /* restore for subsequent tests */
     return live;
 }
 
 int main(void) {
-    int base_anchor;
-    gc_set_stack_base(&base_anchor);
     heap_init();
     PlainVtable.base.vtable = NULL;   /* VtableVtable is NULL pre-boot; fine */
     PlainVtable.size = 0;
     PlainVtable.delegate = NULL;
 
-    assert(local_only_survives() == 1);
-    printf("test_gc_trigger: conservative-scan survival OK\n");
+    assert(precise_root_survives() == 1);
+    printf("test_gc_trigger: precise-root survival OK\n");
 
     exhaustion_reclaims();
     printf("test_gc_trigger: exhaustion collect+retry reclaims OK\n");

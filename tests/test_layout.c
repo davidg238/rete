@@ -28,11 +28,11 @@ int main(void) {
     printf("Offset 5 (gen_tag): Expected %zu, Got %zu\n", 5 * oop_size, offsetof(struct MethodContext, gen_tag));
     assert(offsetof(struct MethodContext, gen_tag) == 5 * oop_size);
 
-    printf("Offset 6 (cleanup_cl): Expected %zu, Got %zu\n", 6 * oop_size, offsetof(struct MethodContext, cleanup_cl));
-    assert(offsetof(struct MethodContext, cleanup_cl) == 6 * oop_size);
-
-    printf("Offset 7 (regs): Expected %zu, Got %zu\n", 7 * oop_size, offsetof(struct MethodContext, regs));
-    assert(offsetof(struct MethodContext, regs) == 7 * oop_size);
+    /* cleanup_cl (formerly offset 6) was deleted in the de-recursify refactor
+       (fiber_derecursify_core_design.md 6b), before this fork; regs shifted
+       down to fill its slot. */
+    printf("Offset 6 (regs): Expected %zu, Got %zu\n", 6 * oop_size, offsetof(struct MethodContext, regs));
+    assert(offsetof(struct MethodContext, regs) == 6 * oop_size);
 
     // Layout compatibility checks
     printf("Verifying layout compatibility between Object and MethodContext...\n");
@@ -45,10 +45,9 @@ int main(void) {
     assert(offsetof(struct Object, vtable) == offsetof(struct Closure, base.vtable));
     assert(sizeof(((struct Object*)0)->vtable) == sizeof(((struct Closure*)0)->base.vtable));
 
-    // Verify InlineCache size
-    printf("Checking InlineCache size...\n");
-    printf("InlineCache size: %zu bytes\n", sizeof(struct InlineCache));
-    assert(sizeof(struct InlineCache) == 2 * oop_size);
+    // struct InlineCache was deleted in the de-recursify refactor
+    // (send_ic()/struct InlineCache removed in Phase 2, fiber_derecursify_core_design.md);
+    // its size assert is gone with it.
 
     // Parametric check: all oop-typed fields sit at index * oop_size.
     // This verifies that the ABI is self-consistent at both 32-bit and 64-bit.

@@ -21,7 +21,6 @@ extern void heap_init(void);
 extern int  gc_is_live(oop);
 extern void mark_object(oop);
 extern void (*gc_additional_roots_hook)(void);
-extern void *vm_c_stack_base;
 
 /* Plain instance vtable: the GC traces the payload word-by-word; the vtable
    word points at this static (not a heap object) so mark() skips it, and each
@@ -50,7 +49,9 @@ static void *collect_on_small_stack(void *arg) {
 
 static void test_deep_chain_no_recursion(void) {
     heap_init();
-    vm_c_stack_base = NULL;              /* precise roots only; deterministic */
+    /* Conservative C-stack scan (vm_c_stack_base) deleted in de-recursify Phase 3
+       (fiber_derecursify_core_design.md 6d); precise roots only via
+       gc_additional_roots_hook below — deterministic either way. */
     chain_head = NULL;
     for (size_t i = 0; i < DEPTH; i++) {
         oop n = gc_allocate((oop)&PlainVtable, sizeof(struct Object) + sizeof(oop));
@@ -87,7 +88,6 @@ static void root_reach(void) { mark_object(reach_nodes[0]); }  /* head reaches a
 
 static void test_overflow_recovery(void) {
     heap_init();
-    vm_c_stack_base = NULL;
     /* Build a REACH-long reachable chain: reach_nodes[i].slots[0] = reach_nodes[i+1]. */
     for (size_t i = 0; i < REACH; i++) {
         reach_nodes[i] = gc_allocate((oop)&PlainVtable, sizeof(struct Object) + sizeof(oop));

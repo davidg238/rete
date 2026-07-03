@@ -13,8 +13,6 @@ extern oop    float_alloc(oop vtable);
 extern oop    gc_allocate(oop vtable, size_t size);
 extern void   gc_collect(void);
 extern void   heap_init(void);
-extern void   gc_set_stack_base(void *p);
-extern void  *vm_c_stack_base;
 extern void   mark_object(oop);
 extern void (*gc_additional_roots_hook)(void);
 
@@ -38,12 +36,10 @@ static void keep_holder(void) { mark_object(holder_root); }
 
 /* (2f) Transitive float survival: a Float stored in a heap object's field is
    reached by trace_object -> mark -> float_mark and survives gc_collect even
-   when no C local references it directly.  The conservative stack scan is
-   disabled (vm_c_stack_base=NULL) so ONLY the transitive path keeps it alive. */
+   when no C local references it directly. The conservative C-stack scan is
+   deleted (de-recursify Phase 3, fiber_derecursify_core_design.md 6d) — precise
+   GC only, so ONLY the transitive path below keeps the float alive. */
 static void test_float_via_heap_field(void) {
-    void *saved = vm_c_stack_base;
-    vm_c_stack_base = NULL;         /* disable conservative C-stack scan */
-
     /* Allocate holder with one extra oop slot beyond the struct Object header. */
     size_t holder_size = sizeof(struct ObjectInstance) + sizeof(oop);
     oop holder = gc_allocate((oop)&PlainVtable, holder_size);
@@ -86,30 +82,25 @@ static void test_float_via_heap_field(void) {
 
     gc_additional_roots_hook = NULL;
     holder_root = NULL;
-    vm_c_stack_base = saved;
     printf("test_float_gc: float via heap field (transitive mark) OK\n");
 }
 
-/* (2a) A Float referenced only by a C local survives a collection
-   (conservative C-stack pinning reaches the arena). */
-__attribute__((noinline))
-static int float_local_survives(void) {
-    oop f = float_alloc(VT);
-    ((struct Float *)f)->value = 3.5;
-    gc_collect();                 /* f rooted ONLY by this C local */
-    return float_is_live(f) && ((struct Float *)f)->value == 3.5;
-}
+/* (2a) "A Float referenced only by a C local survives a collection (conservative
+   C-stack pinning reaches the arena)" was deleted along with the conservative
+   C-stack scan itself (de-recursify Phase 3, fiber_derecursify_core_design.md
+   6d) — precise GC does not root bare C locals, so this premise no longer
+   holds and there is nothing to revive it into (test_float_via_heap_field and
+   test_mixed_liveness below already cover precise-root survival). Retired. */
 
 /* (2b) Dead Floats are reclaimed and reused; the slab count does not grow on a
-   second wave that fits within the reclaimed cells. Conservative scan disabled
-   so dropped cells are not pinned by stale stack slots. */
+   second wave that fits within the reclaimed cells. Nothing roots the wave
+   (conservative C-stack scan is gone; no explicit root is registered either),
+   so it is unreachable and reclaimed deterministically. */
 __attribute__((noinline))
 static void alloc_wave(size_t n) {       /* locals die when this returns */
     for (size_t i = 0; i < n; i++) { oop f = float_alloc(VT); ((struct Float *)f)->value = (double)i; }
 }
 static void test_reclaim_reuse(void) {
-    void *saved = vm_c_stack_base;
-    vm_c_stack_base = NULL;              /* precise roots only: nothing roots the wave */
     size_t want = 3 * FLOAT_ARENA_SLAB_CELLS_T;   /* force ~3 slabs */
     alloc_wave(want);
     size_t slabs_after_wave = float_arena_slab_count();
@@ -119,7 +110,6 @@ static void test_reclaim_reuse(void) {
     alloc_wave(want / 2);                /* fits in reclaimed cells */
     assert(float_arena_slab_count() == slabs_before_reuse);  /* reused, no growth */
     (void)slabs_after_wave;
-    vm_c_stack_base = saved;
     printf("test_float_gc: reclaim + reuse OK\n");
 }
 
@@ -128,8 +118,6 @@ static void test_reclaim_reuse(void) {
 static oop kept[KEEP];
 static void keep_roots(void) { for (int i = 0; i < KEEP; i++) mark_object(kept[i]); }
 static void test_mixed_liveness(void) {
-    void *saved = vm_c_stack_base;
-    vm_c_stack_base = NULL;
     gc_additional_roots_hook = keep_roots;
     for (int i = 0; i < KEEP; i++) { kept[i] = float_alloc(VT); ((struct Float *)kept[i])->value = 100.0 + i; }
     oop dead = float_alloc(VT);          /* unreferenced */
@@ -141,7 +129,6 @@ static void test_mixed_liveness(void) {
     }
     assert(float_is_live(dead) == 0);    /* reclaimed */
     gc_additional_roots_hook = NULL;
-    vm_c_stack_base = saved;
     printf("test_float_gc: mixed liveness OK\n");
 }
 
@@ -171,8 +158,7 @@ static void test_hooks_basic(void) {
  * returning. This test FAILS without that one-liner and PASSES with it.
  */
 static void test_pristine_markbit_cleared(void) {
-    void *saved = vm_c_stack_base;
-    vm_c_stack_base = NULL;    /* disable conservative scan; only explicit mark_object in play */
+    /* Conservative scan is gone; only explicit mark_object() below is in play. */
 
     /* Drain the free-list: prior tests may have left reclaimed cells there.
        float_alloc draws from the free-list before the bump cursor, so we must
@@ -207,7 +193,6 @@ static void test_pristine_markbit_cleared(void) {
 
     assert(float_is_live(B) == 0 && "pristine cell must be reclaimed after drop+collect");
 
-    vm_c_stack_base = saved;
     printf("test_float_gc: pristine markbit cleared on bump OK\n");
 }
 
@@ -225,20 +210,17 @@ static void churn_round(size_t n) {       /* all allocations die at return */
     (void)sink;
 }
 static void test_bounded_churn(void) {
-    void *saved = vm_c_stack_base;
-    vm_c_stack_base = NULL;              /* precise roots only */
     /* Warm up to steady state, then measure that slabs stop growing. */
     for (int r = 0; r < 3; r++) { churn_round(50000); gc_collect(); }
     size_t slabs_steady = float_arena_slab_count();
     for (int r = 0; r < 10; r++) { churn_round(50000); gc_collect(); }
     assert(float_arena_slab_count() == slabs_steady);  /* bounded: no growth */
-    vm_c_stack_base = saved;
     printf("test_float_gc: bounded churn OK (steady at %zu slabs)\n", slabs_steady);
 }
 
 /* W2a.1: the float arena self-triggers a collection at its soft cap and stays
    bounded WITHOUT any explicit gc_collect call. Without the trigger, the slab
-   count grows without limit. Conservative scan disabled so the dropped floats
+   count grows without limit. Conservative scan is gone, so the dropped floats
    are deterministically unreachable (precise roots don't cover them). */
 __attribute__((noinline))
 static void churn_floats_no_collect(size_t n) {   /* locals die at return */
@@ -251,21 +233,16 @@ static void churn_floats_no_collect(size_t n) {   /* locals die at return */
     (void)sink;
 }
 static void test_arena_self_triggers_bound(void) {
-    void *saved = vm_c_stack_base;
-    vm_c_stack_base = NULL;                 /* dropped floats unreachable, deterministic */
     size_t budget = float_arena_slab_budget();
     /* Allocate FAR more than budget*4096 cells, all dropped. With the trigger the
        arena collects-and-reuses at the cap; without it, it grows ~linearly. */
     churn_floats_no_collect((budget + 8) * FLOAT_ARENA_SLAB_CELLS_T * 4);
     assert(float_arena_slab_count() <= budget + 2);
-    vm_c_stack_base = saved;
     printf("test_float_gc: arena self-triggers + bounded OK (%zu/%zu slabs)\n",
            float_arena_slab_count(), budget);
 }
 
 int main(void) {
-    int base_anchor;
-    gc_set_stack_base(&base_anchor);
     heap_init();
 
     PlainVtable.base.vtable = NULL;
@@ -274,8 +251,6 @@ int main(void) {
 
     test_hooks_basic();
 
-    assert(float_local_survives() == 1);
-    printf("test_float_gc: conservative float survival OK\n");
     test_reclaim_reuse();
     test_mixed_liveness();
     test_pristine_markbit_cleared();

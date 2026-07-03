@@ -42,7 +42,7 @@ int main(void) {
 
     /* Version constant present. */
     extern const uint32_t BUILTIN_REGISTRY_VERSION;
-    assert(BUILTIN_REGISTRY_VERSION == 2);
+    assert(BUILTIN_REGISTRY_VERSION == 4);
 
     printf("kernel_boot PASS\n");
     return 0;

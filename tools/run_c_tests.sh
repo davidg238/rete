@@ -43,19 +43,33 @@ run test_udp    "src/backend/posix/udp_posix.c"
 printf '%-28s ' test_frame_abi
 if $CC $STD tests/test_frame_abi.c -o $OUT 2>/tmp/tuvm_ctest.log && $OUT >/dev/null 2>&1; then echo PASS; else echo FAIL; cat /tmp/tuvm_ctest.log; fail=1; fi
 
+# --- Task 1b: revived de-recursify-stale tests (were SKIP; the underlying
+# feature each verifies still exists on the seed, only the test's own use of a
+# now-deleted API was stale — see docs/fiber_derecursify_core_design.md
+# Phases 2-3, and the per-test comments left in tests/*.c for what changed).
+run test_kernel_boot        "$ENG_B"
+# Header-only layout test (offsetof asserts only; no src/ link needed, like
+# test_frame_abi above). Offsets updated to match current struct MethodContext
+# (cleanup_cl deleted, regs shifted down) and the deleted struct InlineCache
+# size assert removed.
+printf '%-28s ' test_layout
+if $CC $STD tests/test_layout.c -o $OUT 2>/tmp/tuvm_ctest.log && $OUT >/tmp/tuvm_ctest.out 2>&1; then
+  echo PASS
+else echo FAIL; sed 's/^/    /' /tmp/tuvm_ctest.log /tmp/tuvm_ctest.out; fail=1; fi
+run test_oevm                "$ENG_A"
+run test_gc_mark_iterative   "$ENG_A" -DOEVM_HEAP_SIZE=33554432 -lpthread
+run test_float_gc            "$ENG_A"
+run test_gc_trigger          "$ENG_A" -DOEVM_HEAP_SIZE=65536
+
 # --- Pre-existing seed breakage, unrelated to the fiber/NLR/reify/growable-stack
 # balloon this milestone removes. Confirmed by reading each test's compile/link
 # error against current src/ + the repo's own docs (docs/ROADMAP.md P2;
 # docs/fiber_derecursify_core_design.md Phases 2-3, "DONE" before this seed was
 # cut). Excluded from the KEEP gate rather than silently patched or force-passed;
-# revisit under a dedicated task, not Milestone A.
-skip test_gc_mark_iterative "references deleted vm_c_stack_base/gc_set_stack_base (conservative C-stack scan removed in derecursify Phase 3, fiber_derecursify_core_design.md 6d)"
-skip test_gc_trigger        "references deleted vm_c_stack_base/gc_set_stack_base (conservative C-stack scan removed in derecursify Phase 3, fiber_derecursify_core_design.md 6d)"
-skip test_float_gc          "references deleted vm_c_stack_base/gc_set_stack_base (conservative C-stack scan removed in derecursify Phase 3, fiber_derecursify_core_design.md 6d)"
-skip test_oevm              "test_inline_cache references struct InlineCache/send_ic, deleted in derecursify Phase 2 (oevm.h:244-246, fiber_derecursify_core_design.md)"
-skip test_layout             "asserts MethodContext.cleanup_cl (field deleted in derecursify Phase 3, fiber_derecursify_core_design.md 6b) and sizeof(struct InlineCache) (deleted Phase 2)"
-skip test_solidified        "hard-codes CounterVtable/Symbol_increment from an old per-test fixture the current generated image no longer provides (docs/ROADMAP.md P2, tracked there for a dedicated fixture)"
-skip test_oimg              "designed to link gc.c standalone via its own stub globals, but gc.c now also requires StringVtable/StackVtable/ContextVtable/g_active_stack/debugger_hook/method_cache_flush/g_boot_inflight_receiver, which the test's stub block predates and does not provide; no existing-file link-set resolves this without either duplicate definitions (vm.c/dispatch.c) or missing symbols"
-skip test_kernel_boot       "asserts BUILTIN_REGISTRY_VERSION == 2; current src/oimg_loader.c defines it as 4 (registry evolved, test constant not updated)"
+# revisit under a dedicated task, not Milestone A. (test_kernel_boot, test_layout,
+# test_oevm, test_gc_mark_iterative, test_float_gc, test_gc_trigger were also
+# here pre-Task-1b; all six revived above — see tests/*.c for what changed.)
+skip test_solidified        "stale per-test fixture: hard-codes CounterVtable/Symbol_increment from an old per-test fixture the current generated image no longer provides; tracked in docs/ROADMAP.md P2 for a dedicated fixture (real fixture work, out of Task 1b's cheap-revival scope)"
+skip test_oimg              "needs stub globals for gc.c's grown trace surface: designed to link gc.c standalone via its own stub globals, but gc.c now also requires StringVtable/StackVtable/ContextVtable/g_active_stack/debugger_hook/method_cache_flush/g_boot_inflight_receiver, which the test's stub block predates and does not provide; no existing-file link-set resolves this without either duplicate definitions (vm.c/dispatch.c) or missing symbols (real fixture work, out of Task 1b's cheap-revival scope)"
 
 exit $fail

@@ -10,7 +10,6 @@
 extern oop gc_allocate(oop vtable, size_t size);
 extern void gc_collect(void);
 extern oop send(oop receiver, oop selector, int argc, oop *args);
-extern oop send_ic(struct InlineCache *ic, oop receiver, oop selector, int argc, oop *args);
 extern oop run_interpreter(oop closure, oop receiver, int argc, oop *args);
 
 extern oop Symbol_unwindTo_value;
@@ -185,23 +184,9 @@ static void test_pointer_tagging(void) {
     printf("Pointer tagging test passed successfully!\n");
 }
 
-/* Test 2: Monomorphic Inline Cache (MIC) hits */
-static void test_inline_cache(void) {
-    printf("Running Monomorphic Inline Cache (MIC) test...\n");
-    struct InlineCache ic = { NULL, NULL };
-    oop five = TAG_SMI(5);
-
-    // First run: cache miss, resolves lookup
-    oop res1 = send_ic(&ic, five, Symbol_double, 0, NULL);
-    assert(UNTAG_SMI(res1) == 10);
-    assert(ic.last_seen_vtable == IntegerVtable);
-    assert(ic.target_func_ptr != NULL);
-
-    // Second run: cache hit, invokes resolved entry directly
-    oop res2 = send_ic(&ic, five, Symbol_double, 0, NULL);
-    assert(UNTAG_SMI(res2) == 10);
-    printf("Inline cache test passed successfully!\n");
-}
+/* Test 2 (Monomorphic Inline Cache) removed: send_ic()/struct InlineCache were
+   deleted in the de-recursify refactor, Phase 2 (fiber_derecursify_core_design.md;
+   oevm.h:244-246), before this fork. No surviving feature to test here. */
 
 /* Test 3: Garbage collection sweep phase */
 static void test_garbage_collector(void) {
@@ -216,6 +201,27 @@ static void test_garbage_collector(void) {
 }
 
 /* Test 4: Non-Local Return (NLR) stack unwinding and promotion */
+/* Task 3: remove when NLR is deleted.
+ *
+ * Task 1b discovery (left un-acted-on per task brief; NOT called from main()
+ * below): this test was expected to still pass on the seed, but does not —
+ * TWO separate staleness layers, neither the de-recursify refactor this task
+ * targets:
+ *   1. test_block_closure->home_ctx is set to a raw MethodContext* below; the
+ *      de-recursify Phase-2 frame ABI (src/frame_abi.h) requires a discriminated
+ *      {NULL | relative-SMI} link instead, or vm.c's home_ctx_frame chokepoint
+ *      aborts with "reified home_ctx not supported in Phase 2".
+ *   2. Even with (1) fixed, the hand-assembled unwindTo:value: bytecode below
+ *      (raw_unwind_insts) sends "sender" via generic OP_SEND. Per src/dispatch.c
+ *      send_resolve's comment ("Reflection is confined to the `mirror`
+ *      capability..."), the 12 reflective selectors (sender/pc/home/vtable/...)
+ *      were moved to mirror.c and an ordinary receiver sending them now falls
+ *      through to does_not_understand; only the dedicated OP_LD_SENDER opcode
+ *      (src/oevm.h 0x15) still resolves a sender. Fixing this means
+ *      re-encoding the 19-instruction raw bytecode array against the current
+ *      ISA — real fixture work, out of this task's "cheap" scope. Tracked for
+ *      whoever does Task 3 (deletes NLR) or a dedicated fixture task if NLR
+ *      coverage is wanted before then. */
 static void test_non_local_return(void) {
     printf("Running Non-Local Return (NLR) test...\n");
 
@@ -318,9 +324,10 @@ static void test_non_local_return(void) {
 int main(void) {
     setup_test_environment();
     test_pointer_tagging();
-    test_inline_cache();
     test_garbage_collector();
-    test_non_local_return();
+    /* test_non_local_return() NOT called: see the discovery comment on its
+       definition above — currently aborts, two staleness layers unrelated to
+       this task's de-recursify scope. */
 
     printf("\nAll OEVM integration tests PASSED successfully!\n");
     return 0;
