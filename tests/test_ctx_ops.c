@@ -1,6 +1,6 @@
 /* OP_MK_CONTEXT / OP_LD_CTX / OP_ST_CTX round-trip (de-recursify deferred-lift
- * Phase 1, Task 2). INERT opcodes: nothing in the compiler emits them yet, so
- * this is the only exerciser. Hand-assembles a tiny CompiledMethod:
+ * Phase 1, Task 2). LIVE opcodes — emitted by the compiler's finalize_contexts()
+ * for escaping captures; this test exercises them directly at the VM level. Hand-assembles a tiny CompiledMethod:
  *
  *   num_arguments = 0  =>  CTX_REG (the fixed frame-Context register, per the
  *   controller convention `method->num_arguments + 1`) = register 1.

@@ -1,6 +1,6 @@
 /* Context heap-object unit test: allocation + chaining + GC survival
- * (de-recursify deferred-lift Phase 1, Task 1). DORMANT: allocated and
- * GC-traced, but nothing in the running engine emits or consumes it yet.
+ * (de-recursify deferred-lift Phase 1, Task 1). LIVE — the compiler emits heap
+ * Contexts for escaping captures (2026-07-04 decision); this test exercises the allocation/trace path directly.
  *
  * Standalone, links the Model A (solidified_image.c) set the other C unit
  * tests use — see tests/test_stack.c for the link-set precedent.
