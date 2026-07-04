@@ -10,8 +10,11 @@ extern oop VtableVtable;
 extern oop SymbolVtable;
 extern oop BytecodeClosureVtable;
 extern oop PrimitiveClosureVtable;
-extern oop FiberVtable;
-extern oop current_fiber;
+/* Milestone A Task 6: the Fiber wrapper and current_fiber were removed; the running
+   execution context is now g_active_stack. The debugger single-step reflectee is
+   vestigial (primitive_fiber_set_single_step ignores it), so any non-NULL heap
+   oop works as the `fiber:singleStep:` reflectee — g_active_stack is the natural one. */
+extern oop g_active_stack;
 
 extern void (*gc_additional_roots_hook)(void);
 extern void mark_object(oop ptr);
@@ -84,7 +87,7 @@ static oop arm_step_hook_c(oop receiver, int argc, oop *args) {
     uint32_t last = cm->instructions[(pc_ptr - cm->instructions) - 1];
     if ((last & 0xFF) == OP_BREAK && !arm_once) {
         arm_once = 1;                       /* on the breakpoint, request stepping */
-        oop sa[] = { current_fiber, TAG_SMI(1) };
+        oop sa[] = { g_active_stack, TAG_SMI(1) };
         send(mirror_object(), create_symbol("fiber:singleStep:"), 2, sa);
     } else if (arm_once) {
         armed_step_count++;                 /* these fire only if the arm survived */
@@ -321,14 +324,14 @@ int main(void) {
 
     // Turn on single-stepping on the current fiber
     // (Ensure interpreter initialized the fiber first)
-    assert(current_fiber != NULL);
-    oop step_args[] = { current_fiber, TAG_SMI(1) };
+    assert(g_active_stack != NULL);
+    oop step_args[] = { g_active_stack, TAG_SMI(1) };
     send(mirror_object(), Symbol_singleStep, 2, step_args);
 
     oop res2 = send(test_instance, Symbol_run, 0, NULL);
     
     // Disable single-stepping
-    oop no_step_args[] = { current_fiber, TAG_SMI(0) };
+    oop no_step_args[] = { g_active_stack, TAG_SMI(0) };
     send(mirror_object(), Symbol_singleStep, 2, no_step_args);
 
     printf("Result of single stepped run: %ld (expected 10)\n", (long)UNTAG_SMI(res2));
@@ -426,14 +429,14 @@ int main(void) {
     send(mirror_object(), Symbol_bindTo, 3, arm_bind_args);
 
     // Ensure single-stepping is OFF before we run
-    oop off_args[] = { current_fiber, TAG_SMI(0) };
+    oop off_args[] = { g_active_stack, TAG_SMI(0) };
     send(mirror_object(), Symbol_singleStep, 2, off_args);
 
     oop res6 = send(test_instance, Symbol_run, 0, NULL);
     (void)res6;
 
     // Disable single-stepping after run (hook may have left it on)
-    oop off2_args[] = { current_fiber, TAG_SMI(0) };
+    oop off2_args[] = { g_active_stack, TAG_SMI(0) };
     send(mirror_object(), Symbol_singleStep, 2, off2_args);
 
     // Re-register original hook
@@ -588,13 +591,13 @@ int main(void) {
         send(mirror_object(), Symbol_bindTo, 3, rs_bind);
 
         /* Ensure stepping is OFF before we start */
-        oop rs_off[] = { current_fiber, TAG_SMI(0) };
+        oop rs_off[] = { g_active_stack, TAG_SMI(0) };
         send(mirror_object(), Symbol_singleStep, 2, rs_off);
 
         send(test_instance, Symbol_run, 0, NULL);
 
         /* Disable stepping after run */
-        oop rs_off2[] = { current_fiber, TAG_SMI(0) };
+        oop rs_off2[] = { g_active_stack, TAG_SMI(0) };
         send(mirror_object(), Symbol_singleStep, 2, rs_off2);
 
         /* Restore original hook */
@@ -689,7 +692,7 @@ int main(void) {
         send(mirror_object(), Symbol_bindTo, 3, bp_bind);
 
         /* Ensure stepping is OFF */
-        oop bp_off[] = { current_fiber, TAG_SMI(0) };
+        oop bp_off[] = { g_active_stack, TAG_SMI(0) };
         send(mirror_object(), Symbol_singleStep, 2, bp_off);
 
         /* Set the breakpoint via the confined mirror prim (method oop + SMI off). */
@@ -763,7 +766,7 @@ int main(void) {
         oop nr_bind[] = { TestVtable, Symbol_run, cl_nr };
         send(mirror_object(), Symbol_bindTo, 3, nr_bind);
 
-        oop nr_off[] = { current_fiber, TAG_SMI(0) };
+        oop nr_off[] = { g_active_stack, TAG_SMI(0) };
         send(mirror_object(), Symbol_singleStep, 2, nr_off);
 
         send(test_instance, Symbol_run, 0, NULL);

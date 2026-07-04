@@ -34,8 +34,8 @@ const struct Vtable Vtable_StringVtable;
 const struct Vtable Vtable_BytecodeClosureVtable;
 const struct Vtable Vtable_PrimitiveClosureVtable;
 const struct Vtable Vtable_BoxedBindingVtable;
-/* Vtable_RunnableFiberVtable is DEFINED in VM-CORE (dispatch.c) and shared by both
-   models (Task 5); Suspended/Dead fiber vtables were removed with the scheduler. */
+/* All fiber vtables are gone: RunnableFiberVtable (the last one) was retired with
+   the struct Fiber wrapper in Task 6; Suspended/Dead went with the scheduler (Task 5). */
 const struct Vtable Vtable_IntegerVtable;
 const struct Vtable Vtable_FloatVtable;
 const struct Vtable Vtable_LargeIntegerVtable;
@@ -90,7 +90,8 @@ const struct Vtable Vtable_StringVtable          = { { (oop)&Vtable_VtableVtable
 const struct Vtable Vtable_BytecodeClosureVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
 const struct Vtable Vtable_PrimitiveClosureVtable= { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
 const struct Vtable Vtable_BoxedBindingVtable    = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
-/* Vtable_RunnableFiberVtable definition moved to VM-CORE (dispatch.c), Task 5. */
+/* No fiber vtable is defined here or in VM-CORE anymore — the last one
+   (RunnableFiberVtable) was retired with the Fiber wrapper in Task 6. */
 /* Stack (L1 Task 2): private runtime vtable, not a builtins.def registry
  * entry — internal runtime state no image ever names. DORMANT. */
 const struct Vtable Vtable_StackVtable           = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
@@ -118,7 +119,7 @@ void kernel_boot(void) {
     BytecodeClosureVtable  = (oop)&Vtable_BytecodeClosureVtable;
     PrimitiveClosureVtable = (oop)&Vtable_PrimitiveClosureVtable;
     BoxedBindingVtable     = (oop)&Vtable_BoxedBindingVtable;
-    /* RunnableFiberVtable is statically initialized in VM-CORE (dispatch.c), Task 5. */
+    /* No fiber vtable to assign: RunnableFiberVtable was retired in Task 6 (registry slot 12 RESERVED). */
     StackVtable            = (oop)&Vtable_StackVtable;
     ContextVtable          = (oop)&Vtable_ContextVtable;
     IntegerVtable          = (oop)&Vtable_IntegerVtable;
@@ -152,7 +153,7 @@ void kernel_boot(void) {
     builtin_registry[9]  = PrimitiveClosureVtable;
     builtin_registry[10] = BytecodeClosureVtable;
     builtin_registry[11] = BoxedBindingVtable;
-    builtin_registry[12] = RunnableFiberVtable;  /* sole retained exec-context vtable (Task 5) */
+    builtin_registry[12] = NULL;                 /* RunnableFiberVtable RESERVED (retired Task 6; Task 9 compacts) */
     builtin_registry[13] = NULL;                 /* SuspendedFiberVtable RESERVED (retired Task 5; Task 9 compacts) */
     builtin_registry[14] = NULL;                 /* DeadFiberVtable RESERVED (retired Task 5; Task 9 compacts) */
 

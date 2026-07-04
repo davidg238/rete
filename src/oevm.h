@@ -193,18 +193,11 @@ double oevm_int_to_double(oop x);
  */
 oop float_alloc(oop vtable);
 
-/*
- * Fiber cooperative execution context
- */
-struct Fiber {
-    struct Object base;
-    oop stack_obj;   /* the fiber's Stack heap object; ((struct Stack*)stack_obj)->data is the call-stack payload, ->capacity its size */
-    struct MethodContext *current_context;
-    size_t stack_ptr;
-    oop status; // Runnable, Suspended, or Dead
-    int single_step;
-    int hook_step_request;   /* -1 = none; 0/1 = hook-requested post-hook stepping */
-};
+/* struct Fiber (the cooperative execution-context wrapper) was removed in
+   Milestone A Task 6. The running execution state is now exactly g_active_stack
+   (a Stack heap object, a GC root) + vm_stack/vm_stack_ptr + current_frame; the
+   debugger single-step fields moved to the g_single_step/g_hook_step_request
+   file-scope globals in vm.c. */
 
 /*
  * Stack: a first-class heap object holding a contiguous region of
@@ -319,9 +312,7 @@ extern oop VtableVtable; // Meta-vtable for Vtables
 extern oop PrimitiveClosureVtable;
 extern oop BytecodeClosureVtable;
 extern oop BoxedBindingVtable;
-extern oop RunnableFiberVtable;   /* sole retained execution-context vtable (Task 5) */
 
-extern oop current_fiber;
 extern const struct Symbol true_sym_obj;   /* canonical #true  (defined in dispatch.c) — == result */
 extern const struct Symbol false_sym_obj;  /* canonical #false (defined in dispatch.c) — == result */
 
@@ -339,7 +330,7 @@ oop primitive_object_outer(oop receiver, int argc, oop *args);
 
 oop primitive_register_debugger_hook(oop receiver, int argc, oop *args);
 /* Confined requestStep: prim (Task 3 — reachable ONLY via mirror_dispatch).
-   Sets current fiber's single_step + hook_step_request from inside a break hook. */
+   Sets the global g_single_step + g_hook_step_request from inside a break hook. */
 oop primitive_request_step(oop receiver, int argc, oop *args);
 /* Confined read-only mirror prims (Task 2 — reachable ONLY via mirror_dispatch). */
 oop primitive_method_offset(oop receiver, int argc, oop *args);

@@ -24,7 +24,7 @@ extern void (*gc_additional_roots_hook)(void);
 
 /* Global roots list callback if needed */
 static void oevm_roots_callback(void) {
-    /* Standard GC roots are automatically scanned by the GC (vm_stack, current_frame, current_fiber) */
+    /* Standard GC roots are automatically scanned by the GC (vm_stack, current_frame, g_active_stack) */
 }
 
 int main(void) {

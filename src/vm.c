@@ -47,17 +47,21 @@ extern oop gc_allocate(oop vtable, size_t size);
 #ifndef VM_STACK_GROW_DEN
 #define VM_STACK_GROW_DEN 1
 #endif
-oop  g_active_stack = NULL;   /* the running fiber's Stack object (GC root); main bootstraps it lazily */
-oop  g_bootstrap_fiber = NULL; /* fiber 0 (the bootstrap/main fiber). A persistent GC root: all app
-                                  execution descends from it, so a cooperative scheduler running on its
-                                  stack — and every LIVE fiber that scheduler holds (ready-queue, current)
-                                  — stays reachable through it even while a worker fiber is active. See
-                                  the rooting rationale in gc.c gc_collect(). Set once at bootstrap. */
+oop  g_active_stack = NULL;   /* the running execution context's Stack object (GC root); main bootstraps it lazily.
+                                 With the Fiber wrapper removed (Milestone A Task 6), this + vm_stack/vm_stack_ptr
+                                 + current_frame IS the entire running state — there is no Fiber object. */
 oop *vm_stack = NULL;         /* == ((struct Stack*)g_active_stack)->data once bootstrapped */
-size_t vm_stack_ptr = 0;      /* live top cursor; ((struct Stack*)g_active_stack)->sp is synced on fiber switch only */
+size_t vm_stack_ptr = 0;      /* live top cursor (the flat loop's authoritative stack top) */
 
 /* Active Frame Register */
 struct MethodContext *current_frame = NULL;
+
+/* Debugger single-step state (Milestone A Task 6: rehomed off the deleted struct
+   Fiber to file-scope globals — this is debugger state, not scheduling state).
+   g_single_step: 1 while stepping. g_hook_step_request: -1 = none, else the
+   post-hook step arm that survives the break-hook save/restore. */
+int g_single_step = 0;
+int g_hook_step_request = -1;
 
 /* Precise GC roots for the boot/first-send window (oevm#21). While
    run_interpreter lazily bootstraps the main fiber + Stack + boot symbols, the
@@ -178,10 +182,10 @@ static ptrdiff_t stack_ensure(size_t extra_words, oop receiver) {
            in-image StackOverflow (kill just the fiber, node survives) is deferred
            with the general exception facility — see the Phase 3 design §4. */
         fprintf(stderr,
-            "VM Error: Stack Overflow — fiber %p exceeded the stack cap "
+            "VM Error: Stack Overflow — exec context %p exceeded the stack cap "
             "(needed %zu words, cap %d). Unbounded recursion? StackOverflow is not "
             "yet catchable in-image.\n",
-            (void *)current_fiber, need, (int)VM_STACK_CAP_WORDS);
+            (void *)g_active_stack, need, (int)VM_STACK_CAP_WORDS);
         abort();
     }
     size_t newcap = (size_t)old->capacity * VM_STACK_GROW_NUM / VM_STACK_GROW_DEN;
@@ -203,7 +207,6 @@ static ptrdiff_t stack_ensure(size_t extra_words, oop receiver) {
         current_frame = (struct MethodContext *)((oop *)current_frame + delta);
     g_active_stack = new_stack_oop;
     vm_stack = neu->data;
-    ((struct Fiber *)current_fiber)->stack_obj = new_stack_oop;
     return delta;
 }
 
@@ -282,30 +285,21 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
        lazily created. Pin them as precise roots for exactly that window so the
        boot entry instance survives a GC_STRESS collection even under ASan
        fake-stack. */
-    int boot_pinning = (current_fiber == NULL)
+    int boot_pinning = (g_active_stack == NULL)
                        || (Symbol_value == NULL);
     if (boot_pinning) {
         g_boot_inflight_receiver = receiver;
         g_boot_inflight_args = args;
         g_boot_inflight_argc = argc;
     }
-    // Lazy-initialize main fiber on the first interpreter run
-    if (current_fiber == NULL) {
-        /* Bootstrap main's first-class Stack (fiber 0) before allocating the Fiber,
-           so a GC during the Fiber alloc finds g_active_stack as a marked root. */
+    /* Lazy exec-context bootstrap on the first interpreter run (was "fiber 0"):
+       a single Stack object + cursor. No Fiber wrapper — the flat loop runs
+       directly on g_active_stack (a GC root; see gc.c). */
+    if (g_active_stack == NULL) {
         g_active_stack = stack_alloc(VM_STACK_INIT_WORDS);
         vm_stack = ((struct Stack *)g_active_stack)->data;
         vm_stack_ptr = 0;
-
-        current_fiber = gc_allocate(RunnableFiberVtable, sizeof(struct Fiber));
-        g_bootstrap_fiber = current_fiber;      /* fiber 0: persistent GC root (see gc.c) */
-        struct Fiber *fib = (struct Fiber *)current_fiber;
-        fib->stack_obj = g_active_stack;        /* main's Stack object (allocated just above) */
-        fib->current_context = NULL;
-        fib->stack_ptr = 0;
-        fib->status = NULL;
-        fib->single_step = 0;
-        fib->hook_step_request = -1;
+        current_frame = NULL;
     }
     if (Symbol_value == NULL) {
         Symbol_value = gc_allocate(SymbolVtable, sizeof(struct Symbol));
@@ -393,9 +387,8 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 ctx->saved_pc = pc;              /* pause BEFORE executing pc */
                 ctx->vtable = MethodContextVtable;
 
-                struct Fiber *fib = (struct Fiber *)current_fiber;
-                int was_stepping = fib ? fib->single_step : 0;
-                if (fib) { fib->single_step = 0; fib->hook_step_request = -1; }
+                int was_stepping = g_single_step;
+                g_single_step = 0; g_hook_step_request = -1;
                 in_debugger_hook = 1;
 
                 oop dbg_arg = (oop)ctx;
@@ -408,11 +401,9 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 }
 
                 in_debugger_hook = 0;
-                if (fib) {
-                    fib->single_step = (fib->hook_step_request >= 0)
-                                     ? fib->hook_step_request : was_stepping;
-                    fib->hook_step_request = -1;
-                }
+                g_single_step = (g_hook_step_request >= 0)
+                              ? g_hook_step_request : was_stepping;
+                g_hook_step_request = -1;
                 pc = ctx->saved_pc;              /* unchanged -> fall through, execute pc */
             }
         }
@@ -425,10 +416,9 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
             if (debugger_hook != NULL) {
                 ctx->saved_pc = pc + 1;
                 ctx->vtable = MethodContextVtable;
-                
-                struct Fiber *fib = (struct Fiber *)current_fiber;
-                int was_stepping = fib ? fib->single_step : 0;
-                if (fib) { fib->single_step = 0; fib->hook_step_request = -1; }
+
+                int was_stepping = g_single_step;
+                g_single_step = 0; g_hook_step_request = -1;
                 in_debugger_hook = 1;
 
                 oop dbg_arg = (oop)ctx;
@@ -441,11 +431,9 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 }
 
                 in_debugger_hook = 0;
-                if (fib) {
-                    fib->single_step = (fib->hook_step_request >= 0)
-                                     ? fib->hook_step_request : was_stepping;
-                    fib->hook_step_request = -1;
-                }
+                g_single_step = (g_hook_step_request >= 0)
+                              ? g_hook_step_request : was_stepping;
+                g_hook_step_request = -1;
                 pc = ctx->saved_pc;
                 continue;
             } else {
@@ -578,13 +566,15 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 }
                 OEVM_TRACE_PRINT("SEND END: selector=%s, receiver_reg=%d, result=%p\n", symbol_name((struct Symbol*)selector), src2, (void*)result);
 
-                // Fiber switch (single C activation, single-stack): primitive_fiber_switch
-                // swapped current_frame to the target fiber. Reload interpreter locals
-                // from it and resume the target's bytecode. This branch ALSO recovers a
-                // Phase-3 stack grow that happened inside the primitive's nested
-                // run_interpreter (the stale outer `ctx` differs from the rebased
-                // current_frame) — do NOT collapse `ctx != current_frame` to a fiber-only
-                // test. The same holds at the OP_SEND_IMPLICIT/OP_SEND_SUPER reload sites.
+                // Grow-recovery reload (Milestone A Task 6: the fiber-switch half is
+                // gone — no scheduler swaps current_frame anymore). This branch now
+                // ONLY recovers a Phase-3 stack grow that happened inside the
+                // primitive's nested run_interpreter: the grow rebased current_frame,
+                // so the stale outer `ctx` differs and we reload interpreter locals
+                // from the rebased frame. PENDING REMOVAL in the growable-stack task
+                // (Task 7): once the stack is fixed-capacity nothing rebases, `ctx`
+                // always equals current_frame, and this whole branch is dead.
+                // The same holds at the OP_BLOCK_INVOKE/OP_SEND_IMPLICIT/OP_SEND_SUPER reload sites.
                 if (ctx != current_frame) {
                     ctx = current_frame;
                     method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
@@ -638,9 +628,9 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     continue;
                 }
 
-                // Fiber switch (single C activation, single-stack): primitive_fiber_switch
-                // swapped current_frame to the target fiber. Reload interpreter locals
-                // from it and resume the target's bytecode.
+                // Grow-recovery reload (see OP_SEND; fiber-switch half removed in
+                // Task 6). Recovers a Phase-3 stack grow inside a nested prim; PENDING
+                // REMOVAL in the growable-stack task (Task 7).
                 if (ctx != current_frame) {
                     ctx = current_frame;
                     method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
@@ -890,7 +880,8 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     }
                 }
 
-                // Fiber switch (see OP_SEND).
+                // Grow-recovery reload (see OP_SEND; fiber-switch half removed in
+                // Task 6). PENDING REMOVAL in the growable-stack task (Task 7).
                 if (ctx != current_frame) {
                     ctx = current_frame;
                     method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
@@ -935,9 +926,10 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     continue;
                 }
 
-                // Fiber switch during a super-send. OP_SEND_SUPER carries no
-                // adjacent inline cache, so the result register is this instruction's
-                // src2 directly.
+                // Grow-recovery reload during a super-send (fiber-switch half removed
+                // in Task 6). OP_SEND_SUPER carries no adjacent inline cache, so the
+                // result register is this instruction's src2 directly. PENDING REMOVAL
+                // in the growable-stack task (Task 7).
                 if (ctx != current_frame) {
                     ctx = current_frame;
                     method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
@@ -988,21 +980,20 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
         goto step_hook;
 
     step_hook: ;
-        struct Fiber *fib = (struct Fiber *)current_fiber;
         /* Mirror the breakpoint-match hook's re-entrancy guard (!in_debugger_hook):
          * when dbg:step arms stepping from inside the debugger's command loop,
          * without this guard this hook fires on the debugger's OWN unwinding
          * bytecode frames (onBreakContext: epilogue, etc.) — single-stepping the
          * debugger instead of the app. The guard keeps stepping confined to the app. */
-        if (fib != NULL && fib->single_step && !in_debugger_hook) {
+        if (g_single_step && !in_debugger_hook) {
             extern oop debugger_hook;
             if (debugger_hook != NULL) {
                 ctx->saved_pc = pc;
                 ctx->vtable = MethodContextVtable;
 
-                int was_stepping = fib->single_step;
-                fib->single_step = 0;
-                fib->hook_step_request = -1;
+                int was_stepping = g_single_step;
+                g_single_step = 0;
+                g_hook_step_request = -1;
                 in_debugger_hook = 1;
 
                 oop dbg_arg = (oop)ctx;
@@ -1015,19 +1006,19 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 }
 
                 in_debugger_hook = 0;
-                fib->single_step = (fib->hook_step_request >= 0)
-                                 ? fib->hook_step_request : was_stepping;
-                fib->hook_step_request = -1;
+                g_single_step = (g_hook_step_request >= 0)
+                              ? g_hook_step_request : was_stepping;
+                g_hook_step_request = -1;
                 pc = ctx->saved_pc;
             }
         }
     }
 
 exit_frame:
-    /* Restore caller's frame pointer and stack position. Fiber switching is the
-       single-stack mechanism above: primitive_fiber_switch swaps the active
-       Stack/current_frame, and the always-compiled post-send reload blocks pick
-       up the new frame and resume the target fiber's bytecode. */
+    /* Restore caller's frame pointer and stack position. (The reload blocks on the
+       post-send path now serve only grow-recovery — the fiber-switch mechanism that
+       used to swap the active Stack/current_frame was removed with the scheduler,
+       Milestone A Tasks 5–6.) */
     vm_stack_ptr = saved_stack_ptr;
     current_frame = frame_link_decode(vm_stack, entry_prev_link);
     return return_val;
@@ -1138,9 +1129,9 @@ oop primitive_closure_home(oop receiver, int argc, oop *args) {
 }
 
 /* primitive_fiber_create / primitive_fiber_switch deleted (Milestone A Task 5):
-   the fiber scheduler prims are gone. current_fiber (fiber 0) remains the sole
-   execution context on RunnableFiberVtable; Task 6 removes the struct Fiber
-   wrapper entirely. */
+   the fiber scheduler prims are gone. Task 6 removed the Fiber wrapper struct
+   entirely — the running execution context is now exactly g_active_stack (a Stack
+   heap object) + vm_stack/vm_stack_ptr + current_frame. */
 
 static oop get_top_level_method_closure(oop closure) {
     /* Reify-on-escape E1: the lexical walk this function used to perform is
@@ -1291,27 +1282,27 @@ oop primitive_method_context_reg_at_put(oop receiver, int argc, oop *args) {
 }
 
 /* Confined requestStep: prim -- reachable ONLY via mirror_dispatch (never through
-   dispatch.c switch). Operates on the CURRENT fiber so the hook never needs the
-   fiber oop. Sets both single_step and hook_step_request so the arm survives the
-   post-hook restore (Task 1's merge formula). */
+   dispatch.c switch). Operates on the single global execution context (the Fiber
+   wrapper is gone, Task 6) so the hook never needs a fiber oop. Sets both
+   g_single_step and g_hook_step_request so the arm survives the post-hook restore
+   (Task 1's merge formula). */
 oop primitive_request_step(oop receiver, int argc, oop *args) {
     (void)receiver; (void)argc;
-    struct Fiber *fib = (struct Fiber *)current_fiber;
     int v = (args[0] != NULL && (!IS_SMI(args[0]) || UNTAG_SMI(args[0]) != 0)) ? 1 : 0;
-    if (fib) { fib->single_step = v; fib->hook_step_request = v; }
+    g_single_step = v;
+    g_hook_step_request = v;
     return NULL;
 }
 
+/* singleStep: (mirror alias `fiber:singleStep:`). Task 6: with the Fiber wrapper
+   gone the reflectee is vestigial — single-step is a global on the one execution
+   context. `receiver` is accepted for the mirror's arg shape but not dereferenced. */
 oop primitive_fiber_set_single_step(oop receiver, int argc, oop *args) {
-    if (receiver == NULL || IS_SMI(receiver)) {
-        fprintf(stderr, "VM Error: singleStep: requested on non-fiber\n");
-        abort();
-    }
+    (void)receiver;
     if (argc < 1) {
         fprintf(stderr, "VM Error: singleStep: expects 1 argument\n");
         abort();
     }
-    struct Fiber *fib = (struct Fiber *)receiver;
     int step_val = 0;
     if (IS_SMI(args[0])) {
         step_val = UNTAG_SMI(args[0]) != 0;
@@ -1319,9 +1310,9 @@ oop primitive_fiber_set_single_step(oop receiver, int argc, oop *args) {
         step_val = 1;
     }
     if (in_debugger_hook) {
-        fib->hook_step_request = step_val;   /* applied after the hook returns */
+        g_hook_step_request = step_val;   /* applied after the hook returns */
     }
-    fib->single_step = step_val;
+    g_single_step = step_val;
     return receiver;
 }
 

@@ -79,8 +79,9 @@ oop mirror_dispatch(oop selector, int argc, oop *args) {
     if (strcmp(sel, "method:instructionAt:put:") == 0) return primitive_compiled_method_set_instruction_at(args[0], argc - 1, args + 1);
     /* onBreak: -- no reflectee; the closure IS args[0] (prim does (void)receiver). */
     if (strcmp(sel, "onBreak:") == 0)    return primitive_register_debugger_hook(NULL, argc, args);
-    /* requestStep: -- no reflectee; bool IS args[0]. Operates on current_fiber so
-       the hook never needs the fiber oop. */
+    /* requestStep: -- no reflectee; bool IS args[0]. Operates on the single global
+       execution context (the Fiber wrapper is gone, Task 6) so the hook never needs
+       a fiber oop. */
     if (strcmp(sel, "requestStep:") == 0) return primitive_request_step(NULL, argc, args);
     /* Unknown selector on the mirror capability: DNU. */
     fprintf(stderr, "VM Error: Mirror doesNotUnderstand #%s\n", sel);

@@ -92,7 +92,6 @@ static int gc_in_progress = 0;
 extern oop *vm_stack;
 extern size_t vm_stack_ptr;
 extern struct MethodContext *current_frame;
-extern oop current_fiber;
 
 /* Check if an oop resides in the read-only Flash/ROM range */
 int is_read_only(oop ptr) {
@@ -461,7 +460,6 @@ static void trace_one(oop ptr) {
     extern oop VtableVtable;
     extern oop FloatVtable;
     extern oop StringVtable;
-    extern oop RunnableFiberVtable;
     extern oop StackVtable;
     extern oop ContextVtable;
     extern oop g_active_stack;
@@ -479,24 +477,14 @@ static void trace_one(oop ptr) {
         mark(ptr->vtable);          /* leaf: inline bytes are NOT oops — do not scan */
     } else if (FloatVtable != NULL && ptr->vtable == FloatVtable) {
         mark(ptr->vtable);
-    } else if (RunnableFiberVtable != NULL && ptr->vtable == RunnableFiberVtable) {
-        /* The sole retained execution context (fiber 0). Task 5 collapsed the four
-           fiber lifecycle vtables to just RunnableFiberVtable. */
-        mark(ptr->vtable);
-        struct Fiber *fib = (struct Fiber *)ptr;
-        mark(fib->status);
-
-        /* The fiber's call stack is a first-class Stack object; its precise frame/
-           register walk is the Stack tracer (suspended fibers) or scan_vm_stack
-           (the active one, which the Stack tracer skips). */
-        mark(fib->stack_obj);
     } else if (StackVtable != NULL && ptr->vtable == StackVtable) {
         /* Stack (L1 Task 2/3): a first-class heap object holding a region of
            MethodContext frames. The ACTIVE stack (g_active_stack) is skipped
            here — its sp/current_off are stale (only synced on fiber switch;
            main never switches), and its live frames are already covered by
            scan_vm_stack(), which walks via current_frame/vm_stack_ptr (the
-           live cursor). This mirrors the existing active-Fiber skip above.
+           live cursor). (Task 6 removed the Fiber wrapper; g_active_stack IS
+           now the sole execution context, rooted directly in gc_collect.)
            For suspended (non-active) Stacks this precise walk is exercised
            starting in Task 4; today the active main Stack is the only Stack
            in existence, so the walk body below is still dormant. prev_frame
@@ -681,13 +669,14 @@ void gc_collect(void) {
     mark(BytecodeClosureVtable);
     mark(Symbol_value);
 
-    // Mark the retained execution-context vtable and current_fiber root
-    extern oop RunnableFiberVtable;
+    // Mark the execution-context root. Task 6 removed the Fiber wrapper: the running
+    // context is now exactly g_active_stack (this Stack heap object) — its live
+    // frames/registers are traced precisely by scan_vm_stack() below (via
+    // current_frame/vm_stack_ptr), and marking the Stack object itself here keeps
+    // it from being swept.
     extern oop StackVtable;
     extern oop ContextVtable;
     extern oop g_active_stack;
-    extern oop g_bootstrap_fiber;
-    mark(RunnableFiberVtable);
     mark(StackVtable);
     mark(ContextVtable);
     mark(g_active_stack);
@@ -708,11 +697,7 @@ void gc_collect(void) {
     extern oop Symbol_accessViolation;
     mark(Symbol_accessViolation);
 
-    if (current_fiber != NULL) {
-        mark(current_fiber);
-    }
-
-    /* oevm#21: the in-flight boot receiver/args, live across the lazy main-fiber
+    /* oevm#21: the in-flight boot receiver/args, live across the lazy exec-context
        bootstrap before they are written into a GC-scanned frame. With no
        conservative C-stack scan these C locals have no other root; mark them here
        so a GC_STRESS collection during bootstrap cannot sweep the boot entry
@@ -736,11 +721,6 @@ void gc_collect(void) {
     if (gc_additional_roots_hook != NULL) {
         gc_additional_roots_hook();
     }
-
-    /* Root the sole retained execution context (fiber 0). With the fiber scheduler
-       removed (Task 5), current_fiber and g_bootstrap_fiber are the same instance;
-       marking it reaches its Stack and every live frame/register on it. */
-    mark(g_bootstrap_fiber);
 
     /* GH#4: all roots are now enqueued — trace the live graph iteratively
        (with overflow recovery) instead of via the old recursive mark. */

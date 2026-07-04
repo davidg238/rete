@@ -17,7 +17,7 @@ BUILTIN(8,  VTABLE,    "VtableVtable")
 BUILTIN(9,  VTABLE,    "PrimitiveClosureVtable")
 BUILTIN(10, VTABLE,    "BytecodeClosureVtable")
 BUILTIN(11, VTABLE,    "BoxedBindingVtable")
-BUILTIN(12, VTABLE,    "RunnableFiberVtable")   /* sole retained execution-context vtable (Task 5) */
+BUILTIN(12, VTABLE,    "RunnableFiberVtable")   /* RESERVED: last fiber vtable retired with the struct Fiber wrapper (Task 6); registry slot NULL, Task 9 compacts */
 BUILTIN(13, VTABLE,    "SuspendedFiberVtable")  /* RESERVED: retired (Task 5); registry slot NULL, Task 9 compacts */
 BUILTIN(14, VTABLE,    "DeadFiberVtable")       /* RESERVED: retired (Task 5); registry slot NULL, Task 9 compacts */
 /* Kernel-owned symbols (index 15+). These are exactly the selectors the

@@ -10,15 +10,11 @@
 #include <string.h>
 #include <stdint.h>
 
-/* Retained execution-context vtable (Milestone A Task 5): the sole vtable for
-   current_fiber (fiber 0). DEFINED here in VM-CORE (dispatch.c is linked by BOTH
-   Model A — whose regenerated solidified_image.c no longer emits any fiber vtable —
-   and Model B's kernel_boot.c, which no longer defines it either). Statically
-   initialized so current_fiber always has a valid vtable with no boot-time assign.
-   The legacy FiberVtable and the Suspended/Dead lifecycle vtables were removed with
-   the fiber scheduler; Task 6 removes the struct Fiber wrapper this vtable tags. */
+/* RunnableFiberVtable (the last fiber vtable) was retired in Milestone A Task 6
+   together with the struct Fiber wrapper it tagged — the flat loop now runs
+   directly on g_active_stack (a plain Stack), so no fiber vtable exists. Its
+   builtins.def slot 12 stays RESERVED (registry NULL) until Task 9 compacts. */
 extern const struct Vtable Vtable_VtableVtable;
-const struct Vtable Vtable_RunnableFiberVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
 
 /* Define global static Vtables */
 oop IntegerVtable = NULL;
@@ -33,8 +29,6 @@ oop VtableVtable = NULL;
 oop PrimitiveClosureVtable = NULL;
 oop BytecodeClosureVtable = NULL;
 oop BoxedBindingVtable = NULL;
-oop RunnableFiberVtable = (oop)&Vtable_RunnableFiberVtable;
-oop current_fiber = NULL;
 oop Symbol_accessViolation = NULL;
 oop debugger_hook = NULL;
 oop Symbol_debug_ = NULL;
