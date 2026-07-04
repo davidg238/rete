@@ -6,8 +6,6 @@
  * emitted into every per-program `solidified_image.c`:
  *   - the root meta-vtables (VtableVtable, SymbolVtable, …, the three Fiber
  *     vtables) and the IntegerVtable / FloatVtable / MethodContextVtable;
- *   - the kernel `unwindTo:value:` method (bytecode + constants + closure),
- *     which MethodContextVtable binds;
  *   - the kernel-owned symbols the firmware references regardless of app.
  *
  * `kernel_boot()` assigns the global vtable/symbol pointer vars (DEFINED in
@@ -65,31 +63,6 @@ static const struct Symbol KSym_true            = { { (oop)&Vtable_SymbolVtable 
 static const struct Symbol KSym_false           = { { (oop)&Vtable_SymbolVtable }, "false", 5 };
 
 /* ------------------------------------------------------------------ *
- * Kernel method: MethodContextVtable >> unwindTo:value:
- * Lifted verbatim from solidified_image.c (app-independent).
- * ------------------------------------------------------------------ */
-static const uint32_t Method_unwindTo_value__insts[] = {
-    0x00000301, 0x00010401, 0x03000102, 0x0007030B, 0x00000301, 0x03010002,
-    0x00000301, 0x00020401, 0x03020102, 0x00040300, 0x00000304, 0x00000301,
-    0x03010002, 0x00000301, 0x00030315, 0x00010401, 0x00020501, 0x03030202,
-    0x00000304
-};
-static const oop Method_unwindTo_value__consts[] = {
-    (oop)&KSym__eq_eq, (oop)&KSym_executeCleanup,
-    (oop)&KSym_resumeWith_, (oop)&KSym_unwindTo_value_, TAG_SMI(0)
-};
-static const struct CompiledMethod Method_unwindTo_value__compiled = {
-    Method_unwindTo_value__insts, 19,
-    6, 2,
-    Method_unwindTo_value__consts, 5,
-    0
-};
-static const struct Closure Method_unwindTo_value__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_unwindTo_value__compiled
-};
-
-/* ------------------------------------------------------------------ *
  * Vtable definitions.
  * ------------------------------------------------------------------ */
 const struct Vtable Vtable_IntegerVtable = {
@@ -102,13 +75,12 @@ const struct Vtable Vtable_LargeIntegerVtable = {
     { (oop)&Vtable_VtableVtable }, NULL, (struct Binding *)NULL, 0, 0, 0
 };
 
-static const struct Binding Vtable_MethodContextVtable_bindings[] = {
-    { (oop)&KSym_unwindTo_value_, (oop)&Method_unwindTo_value__closure },
-};
+/* MethodContextVtable has no kernel-bound methods (its sole binding,
+   unwindTo:value:, was removed with the NLR machinery in Milestone A). */
 const struct Vtable Vtable_MethodContextVtable = {
     { (oop)&Vtable_VtableVtable },
-    NULL, (struct Binding *)Vtable_MethodContextVtable_bindings,
-    1, 1,
+    NULL, (struct Binding *)NULL,
+    0, 0,
     0
 };
 
@@ -138,7 +110,6 @@ void kernel_boot(void) {
     if (booted) return;
     booted = 1;
 
-    extern oop Symbol_unwindTo_value;
     extern oop Symbol_value;
     extern oop Symbol_accessViolation;
     extern oop Symbol_debug_;
@@ -163,7 +134,6 @@ void kernel_boot(void) {
      * assigned it); leave it NULL to match Model A behavior. */
 
     /* (a') Assign global kernel symbol vars to the firmware-static symbols. */
-    Symbol_unwindTo_value = (oop)&KSym_unwindTo_value_;
     Symbol_value          = (oop)&KSym_value;
     Symbol_accessViolation= (oop)&KSym_accessViolation_;
     Symbol_debug_         = (oop)&KSym_debug_;

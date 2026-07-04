@@ -35,10 +35,11 @@ int main(void) {
     assert(builtin_registry[15] != NULL);   /* == */
     assert(strcmp(symbol_name((struct Symbol *)builtin_registry[15]), "==") == 0);
 
-    /* Global kernel symbol vars are wired to the registered symbols. */
-    extern oop Symbol_value, Symbol_unwindTo_value;
+    /* Global kernel symbol vars are wired to the registered symbols.
+       (Symbol_unwindTo_value global retired with the NLR machinery in Milestone
+       A Task 3; builtin_registry[19] keeps the reserved symbol, asserted above.) */
+    extern oop Symbol_value;
     assert(Symbol_value == builtin_registry[20]);
-    assert(Symbol_unwindTo_value == builtin_registry[19]);
 
     /* Version constant present. */
     extern const uint32_t BUILTIN_REGISTRY_VERSION;

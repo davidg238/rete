@@ -246,7 +246,7 @@ enum Opcode {
        Task 3). Value kept reserved to avoid renumbering serialized .oimg images. */
     OP_SEND_IC_RETIRED,
     OP_RET,
-    OP_NLR,
+    OP_NLR_RETIRED,   /* reserved; compacted in Milestone A renumber */
     OP_ADD,
     OP_SUB,
     OP_MUL,
@@ -338,8 +338,6 @@ oop primitive_method_context_sender(oop receiver, int argc, oop *args);
 oop primitive_method_context_pc(oop receiver, int argc, oop *args);
 oop primitive_closure_home(oop receiver, int argc, oop *args);
 oop primitive_object_equals(oop receiver, int argc, oop *args);
-oop primitive_method_context_execute_cleanup(oop receiver, int argc, oop *args);
-oop primitive_method_context_resume(oop receiver, int argc, oop *args);
 oop primitive_object_outer(oop receiver, int argc, oop *args);
 
 oop primitive_register_debugger_hook(oop receiver, int argc, oop *args);

@@ -562,7 +562,12 @@ enum {
     PRIM_NONE = 0,
     PRIM_Array, PRIM_new, PRIM_at, PRIM_at_put, PRIM_size, PRIM_selector,
     PRIM_vtable, PRIM_delegate, PRIM_bindings, PRIM_sender, PRIM_pc, PRIM_home,
-    PRIM_eqeq, PRIM_executeCleanup, PRIM_resumeWith, PRIM_fiberCreate, PRIM_outer,
+    PRIM_eqeq,
+    /* NLR retired (Milestone A Task 3): handlers deleted, but the two slots stay
+       reserved so every later id keeps its value — prim_ids.h mirrors these by
+       absolute number for platform.c. Compacted in the Task 9 renumber. */
+    PRIM_executeCleanup_RETIRED, PRIM_resumeWith_RETIRED,
+    PRIM_fiberCreate, PRIM_outer,
     PRIM_fiberSwitch, PRIM_currentFiber, PRIM_registerDebuggerHook, PRIM_regAt, PRIM_regAt_put,
     PRIM_singleStep, PRIM_bind, PRIM_instructionAt_put, PRIM_createClosure,
     PRIM_to_do, PRIM_to_by_do, PRIM_amp, PRIM_pipe, PRIM_isNil, PRIM_notNil,
@@ -586,7 +591,8 @@ enum {
 /* Must stay parallel to the enum above (index i -> id i+1). */
 static const char *const PRIM_NAMES[] = {
     "Array", "new:", "at:", "at:put:", "size", "selector", "vtable", "delegate",
-    "bindings", "sender", "pc", "home", "==", "executeCleanup", "resumeWith:",
+    "bindings", "sender", "pc", "home", "==",
+    "executeCleanup", "resumeWith:",  /* retired slots (Task 3); no handler, kept for id stability */
     "fiberCreate:", "outer", "fiberSwitch:value:", "currentFiber", "registerDebuggerHook:",
     "regAt:", "regAt:put:", "singleStep:", "bind:to:", "instructionAt:put:",
     "createClosure:", "to:do:", "to:by:do:", "&", "|", "isNil", "notNil",
@@ -761,14 +767,6 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
             switch (pid) {
             case PRIM_eqeq: {
                 return primitive_object_equals(receiver, argc, args);
-            }
-            break;
-            case PRIM_executeCleanup: {
-                return primitive_method_context_execute_cleanup(receiver, argc, args);
-            }
-            break;
-            case PRIM_resumeWith: {
-                return primitive_method_context_resume(receiver, argc, args);
             }
             break;
             case PRIM_fiberCreate: {

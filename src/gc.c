@@ -674,7 +674,6 @@ void gc_collect(void) {
     extern oop VtableVtable;
     extern oop PrimitiveClosureVtable;
     extern oop BytecodeClosureVtable;
-    extern oop Symbol_unwindTo_value;
     extern oop Symbol_value;
 
     mark(IntegerVtable);
@@ -686,7 +685,6 @@ void gc_collect(void) {
     mark(VtableVtable);
     mark(PrimitiveClosureVtable);
     mark(BytecodeClosureVtable);
-    mark(Symbol_unwindTo_value);
     mark(Symbol_value);
 
     // Mark additional Fiber Vtables and current_fiber root
@@ -719,12 +717,6 @@ void gc_collect(void) {
     // swept on the next collection → use-after-free.
     extern oop Symbol_accessViolation;
     mark(Symbol_accessViolation);
-
-    /* Defensive: holds a live result oop mid-NLR unwind. Currently safe only by a
-       no-alloc-during-unwind invariant; mark it so a future alloc on that path
-       cannot collect the in-flight return value. NULL (no-op) outside an unwind. */
-    extern oop unwind_return_value;
-    mark(unwind_return_value);
 
     if (current_fiber != NULL) {
         mark(current_fiber);

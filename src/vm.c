@@ -74,13 +74,7 @@ int  g_boot_inflight_argc = 0;
 /* Monotonic generation counter for lifecycle protection */
 uint32_t current_generation_tag = 0;
 
-/* Unwinding global state variables */
-int unwind_target_reached = 0;
-oop unwind_return_value = NULL;
-oop unwind_target_frame = NULL;
-
 /* Symbol singletons */
-oop Symbol_unwindTo_value = NULL;
 oop Symbol_value = NULL;
 
 /* Set to 1 while the debugger hook is executing; lets primitive_fiber_set_single_step
@@ -151,29 +145,6 @@ oop primitive_object_equals(oop receiver, int argc, oop *args) {
         return (oop)&false_sym_obj;
     }
     return (receiver == args[0]) ? (oop)&true_sym_obj : (oop)&false_sym_obj;
-}
-
-/* Kernel unwindTo:value: sends this to every frame walked during a non-local
-   return (see run_interpreter's do_unwind / OP_NLR handling). Pure no-op seam
-   today — a future ensure:/ifCurtailed: implementation hangs its per-frame
-   cleanup dispatch here (oevm#25); do not delete this prim/dispatch/symbol —
-   only the frame's dead per-frame cleanup-closure storage was removed. */
-oop primitive_method_context_execute_cleanup(oop receiver, int argc, oop *args) {
-    (void)receiver; (void)argc; (void)args;
-    return NULL;
-}
-
-oop primitive_method_context_resume(oop receiver, int argc, oop *args) {
-    if (argc < 1) {
-        fprintf(stderr, "VM Error: resumeWith: expects 1 argument\n");
-        abort();
-    }
-    oop rVal = args[0];
-    OEVM_TRACE_PRINT("resumeWith: receiver=%p, rVal=%p\n", (void*)receiver, (void*)rVal);
-    unwind_target_reached = 1;
-    unwind_target_frame = receiver;
-    unwind_return_value = rVal;
-    return NULL;
 }
 
 /* Push a new bytecode-method/block activation onto the active fiber stack and
@@ -295,8 +266,7 @@ static inline struct MethodContext *home_ctx_frame(oop home) {
  * delivers the result into the caller's destination register (decoded from the
  * caller's suspended send instruction, src2 == bits 24-31 — uniform across
  * OP_SEND / OP_SEND_IMPLICIT / OP_SEND_SUPER / OP_BLOCK_INVOKE). Primitives still
- * run as inline C calls. NLR / ensure: / ifCurtailed: unwind in-loop (do_unwind)
- * driven by the resumeWith: flag, reusing the kernel unwindTo:value: machinery.
+ * run as inline C calls.
  *
  * run_interpreter STAYS re-entrant for exactly three cold, single-shot, non-
  * looping callers (F4): the debugger hook, does_not_understand's bytecode
@@ -313,7 +283,7 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
        boot entry instance survives a GC_STRESS collection even under ASan
        fake-stack. */
     int boot_pinning = (current_fiber == NULL)
-                       || (Symbol_unwindTo_value == NULL) || (Symbol_value == NULL);
+                       || (Symbol_value == NULL);
     if (boot_pinning) {
         g_boot_inflight_receiver = receiver;
         g_boot_inflight_args = args;
@@ -336,11 +306,6 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
         fib->status = NULL;
         fib->single_step = 0;
         fib->hook_step_request = -1;
-    }
-    if (Symbol_unwindTo_value == NULL) {
-        Symbol_unwindTo_value = gc_allocate(SymbolVtable, sizeof(struct Symbol));
-        ((struct Symbol *)Symbol_unwindTo_value)->name = "unwindTo:value:";
-        ((struct Symbol *)Symbol_unwindTo_value)->length = strlen("unwindTo:value:");
     }
     if (Symbol_value == NULL) {
         Symbol_value = gc_allocate(SymbolVtable, sizeof(struct Symbol));
@@ -397,7 +362,7 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
     // Set current active frame
     current_frame = ctx;
     /* The frame THIS invocation pushed. The flat loop bottoms out (returns to the
-       C caller) only when OP_RET / an unwind pops back to entry_ctx — that is the
+       C caller) only when OP_RET pops back to entry_ctx — that is the
        fiber/main entry for the hot path, or the single-shot re-entry frame for the
        three cold F4 callers. */
     /* Bottom-out marker held for the whole invocation. A nested push may grow the
@@ -635,10 +600,6 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     break;
                 }
 
-                // An inline (primitive/DNU/capability) send just completed. If it
-                // set the unwind flag (resumeWith:), drive the in-loop unwinder.
-                if (unwind_target_reached) goto do_unwind;
-
                 // Save send result in R(src2)
                 ctx->regs[src2] = result;
                 break;
@@ -695,8 +656,6 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     break;
                 }
 
-                if (unwind_target_reached) goto do_unwind;
-
                 ctx->regs[src2] = result;
                 break;
             }
@@ -705,72 +664,13 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 return_val = (dest < method->num_registers) ? ctx->regs[dest] : NULL;
                 goto do_ret_deliver;
 
-            case OP_NLR: {
-                // Non-Local Return: Unwind stack to captured home context.
-                // dest = register containing return value
-                struct Closure *cl = (struct Closure *)ctx->closure;
-                oop rVal = (dest < method->num_registers) ? ctx->regs[dest] : NULL;
-                oop target_home = cl->home_ctx;
-
-                if (target_home == NULL) {
-                    fprintf(stderr, "VM Error: Block closure has no home context\n");
-                    abort();
-                }
-
-                /* A `^` returns from the enclosing *method*, not an intermediate
-                   block: chase the lexical-outer (home) links until the frame
-                   whose closure has no home (the method frame). Each hop decodes
-                   through home_ctx_frame so it is correct for the relative
-                   encoding (Task 2) and the absolute one (Task 1). */
-                struct MethodContext *hframe = home_ctx_frame(target_home);
-                while (hframe != NULL) {
-                    struct Closure *hcl = (struct Closure *)hframe->closure;
-                    if (hcl != NULL && hcl->home_ctx != NULL) {
-                        hframe = home_ctx_frame(hcl->home_ctx);
-                    } else {
-                        break;   /* hframe is the method frame */
-                    }
-                }
-
-                if (ctx == hframe) {
-                    // Local return: home is this very frame — return rVal from it.
-                    return_val = rVal;
-                    goto do_ret_deliver;
-                }
-
-                // Genuine non-local return. Promote this frame to a MethodContext
-                // object and push the kernel unwindTo:value: activation, which walks
-                // the dynamic sender chain (sending each frame executeCleanup, a
-                // no-op seam today — oevm#25) up to target_home and calls
-                // resumeWith: there — setting the unwind flag.
-                // The flat loop then drives do_unwind, popping to target_home and
-                // delivering rVal as target_home's return. No C recursion.
-                ctx->vtable = MethodContextVtable;
-                ctx->saved_pc = pc;
-                {
-                    /* NOTE: hframe is an ABSOLUTE frame pointer; if the unwind below
-                       straddles a stack grow it is stranded — guarded at do_unwind,
-                       proper fix deferred to reify-on-escape (oevm#34). */
-                    oop unwind_args[2] = { (oop)hframe, rVal };
-                    oop m_out = NULL, r_out = NULL;
-                    int argc_out = 0;
-                    oop result = send_resolve((oop)ctx, Symbol_unwindTo_value, 2, unwind_args,
-                                              &m_out, &r_out, &argc_out);
-                    if (m_out != NULL) {
-                        push_frame(m_out, r_out, argc_out, unwind_args);
-                        ctx = current_frame;
-                        method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
-                        pc = cm_instructions(method);
-                        pc_end = pc + method->instruction_count;
-                        continue;
-                    }
-                    /* Defensive: unwindTo:value: is always a bytecode kernel method,
-                       so this inline branch is unreachable; honor a set flag anyway. */
-                    if (unwind_target_reached) goto do_unwind;
-                    (void)result;
-                }
-                break;
-            }
+            case OP_NLR_RETIRED:
+                /* NLR was removed in Milestone A (the compiler never emits this
+                   opcode; ^ in an escaping closure is a compile error). The enum
+                   slot is reserved pending the Task 9 renumber; reaching it means a
+                   stale image — fail loudly rather than silently. */
+                fprintf(stderr, "OP_NLR_RETIRED executed (should be unreachable)\n");
+                abort();
 
             case OP_ADD:
             case OP_SUB:
@@ -1006,8 +906,6 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     break;
                 }
 
-                if (unwind_target_reached) goto do_unwind;
-
                 ctx->regs[src2] = result;
                 break;
             }
@@ -1055,8 +953,6 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     break;
                 }
 
-                if (unwind_target_reached) goto do_unwind;
-
                 ctx->regs[src2] = result;
                 break;
             }
@@ -1067,7 +963,7 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
         }
 
         /* Normal instruction completion falls through to the step hook. The
-           return/unwind labels below are reached only via goto. */
+           return-delivery label below is reached only via goto. */
         goto step_hook;
 
     do_ret_deliver:
@@ -1090,66 +986,6 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
             ctx->regs[rdst] = return_val;
         }
         goto step_hook;
-
-    do_unwind:
-        /* An NLR / ensure: unwind is in progress (unwind_target_reached set by
-           resumeWith:, with unwind_target_frame == the home method frame and
-           unwind_return_value == the ^ value; cleanups already ran during the
-           kernel unwindTo:value: walk). Pop frames from current_frame down until we
-           reach unwind_target_frame, which delivers the value as its OWN return
-           (into its caller's dest register). Intermediate frames are discarded. If
-           the unwind crosses this invocation's entry frame, bottom out to C with
-           the flag still set so an outer flat loop continues the unwind. */
-        /* De-recursify Phase 3: a `^` whose unwindTo:value: sequence straddled a stack
-           grow left unwind_target_frame pointing into the freed old-base stack (it is an
-           absolute frame pointer flowed through the kernel; reifying it to survive grows
-           is the deferred reify-on-escape work — oevm#34). Detect the stale pointer (out
-           of the current stack's bounds) and fail loudly instead of silently unwinding
-           past the intended home. Host defaults never reach this (NLR deeper than the
-           initial capacity); it is a guard for -D small-init embedded builds. */
-        if (unwind_target_frame != NULL && !IS_SMI(unwind_target_frame)) {
-            oop *utf = (oop *)unwind_target_frame;
-            oop *sbase = vm_stack;
-            oop *stop = vm_stack + ((struct Stack *)g_active_stack)->capacity;
-            if (utf < sbase || utf >= stop) {
-                fprintf(stderr, "VM Error: non-local return target stranded by stack "
-                    "growth (reify-on-escape not yet implemented; see oevm#34). Deep `^` "
-                    "across a stack grow is unsupported in Phase 3.\n");
-                abort();
-            }
-        }
-        for (;;) {
-            struct MethodContext *uf = current_frame;
-            struct MethodContext *ucaller = frame_link_decode(vm_stack, uf->prev_frame);
-            int at_boundary = ((size_t)((oop *)uf - vm_stack) == entry_off || ucaller == NULL);
-            vm_stack_ptr = (size_t)((oop *)uf - vm_stack);   /* pop uf */
-            if ((oop)uf == unwind_target_frame) {
-                oop rv = unwind_return_value;
-                unwind_target_reached = 0;
-                unwind_return_value = NULL;
-                unwind_target_frame = NULL;
-                if (at_boundary) {
-                    return_val = rv;
-                    goto exit_frame;
-                }
-                current_frame = ucaller;
-                ctx = ucaller;
-                method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
-                pc = ctx->saved_pc;
-                pc_end = cm_instructions(method) + method->instruction_count;
-                uint8_t rdst = ((uint32_t)*(ctx->saved_pc - 1) >> 24) & 0xFF;
-                ctx->regs[rdst] = rv;
-                goto step_hook;
-            }
-            if (at_boundary) {
-                /* Target lives below this invocation's entry frame: leave the flag
-                   set and return to the C caller, whose enclosing flat loop resumes
-                   the unwind from current_frame (restored by exit_frame). */
-                return_val = NULL;
-                goto exit_frame;
-            }
-            current_frame = ucaller;   /* discard uf, keep unwinding */
-        }
 
     step_hook: ;
         struct Fiber *fib = (struct Fiber *)current_fiber;
