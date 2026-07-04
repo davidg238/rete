@@ -1,0 +1,18 @@
+(*
+expect-compile-fail: non-local return
+*)
+(* T-A.1c — companion to 01: `^` nested two deep inside an escaping block (an
+   inlined ifTrue: arm nested inside the escaping block, line 11) is still
+   rejected — inlining the ifTrue: does not change the enclosing block's
+   escaping status. *)
+class NlrEscapeNested packageUsing: manifest = () (
+  public run = (
+    | blk |
+    blk:: [ :x | true ifTrue: [ ^ x ] ].
+    ^ blk value: 21
+  )
+  public main: platform args: args = (
+    self run printString out.
+  )
+) : (
+)

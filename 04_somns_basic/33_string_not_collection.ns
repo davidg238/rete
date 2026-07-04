@@ -1,5 +1,5 @@
 (*
-expect-runtime-fail: String does not understand collect:
+expect-runtime-fail: 'collect:' not understood by receiver
 *)
 class StringNotCollectionTest packageUsing: manifest = () (
 public main: platform args: args = (

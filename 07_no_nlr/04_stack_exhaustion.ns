@@ -1,0 +1,27 @@
+(*
+expect:
+begin
+expect-runtime-fail: stack
+*)
+(* T-A.4 — the fixed-cap language stack FAILS SAFE: a runaway recursion produces a
+   clean language-level error (crash text containing 'stack' — matches
+   src/vm.c's stack_overflow_abort, which fprintfs to stderr and abort()s, never
+   a C-level fault), NEVER silent corruption. 'begin' must appear first (proves
+   we got into the run before dying); the harness now checks BOTH that 'begin'
+   was printed and that the diagnostic contains the header substring (Task 10b
+   harness extension to expect-runtime-fail:, see run_tests_oevm.py). This is
+   the test that justifies keeping the flat O(1)-C-stack loop. Also run under
+   the ASAN config (see tuvm's sanitizer build docs, t0-gates/sanitizers.md in
+   the review kit): a bounds bug at the stack cap is exactly what this test +
+   ASAN exists to catch. *)
+class StackExhaustion packageUsing: manifest = () (
+  public deep: n = (
+    n = 0 ifTrue: [ ^ 0 ].
+    ^ 1 + (self deep: n + 1)      (* grows forever; cap must stop it cleanly *)
+  )
+  public main: platform args: args = (
+    'begin' out.
+    (self deep: 1) printString out.   (* unreached *)
+  )
+) : (
+)

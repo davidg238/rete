@@ -1,0 +1,18 @@
+(*
+expect-compile-fail: non-local return
+*)
+(* T-A.1b — companion to 01: a block PASSED DIRECTLY to a user-defined selector
+   (never stored in a var) still escapes (apply: is not inlined), so `^` inside it
+   (line 12) is rejected at compile time exactly like the stored-closure case. *)
+class NlrEscapePassed packageUsing: manifest = () (
+  public apply: aBlock = (
+    ^ aBlock value: 10
+  )
+  public run = (
+    ^ self apply: [ :x | ^ x ]
+  )
+  public main: platform args: args = (
+    self run printString out.
+  )
+) : (
+)
