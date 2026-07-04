@@ -72,8 +72,9 @@ uint32_t current_generation_tag = 0;
 /* Symbol singletons */
 oop Symbol_value = NULL;
 
-/* Set to 1 while the debugger hook is executing; lets primitive_fiber_set_single_step
-   route the request through hook_step_request instead of applying it immediately. */
+/* Set to 1 while the debugger hook is executing; routes single-step requests
+   (debugger single-step state) through hook_step_request instead of applying
+   them immediately. */
 int in_debugger_hook = 0;
 
 /* The registered break hook (dispatch.c); used by both the OP_BREAK path and the
@@ -145,7 +146,7 @@ oop primitive_object_equals(oop receiver, int argc, oop *args) {
 /* Push a new bytecode-method/block activation onto the active fiber stack and
    make it current (de-recursify Phase 2, the flip). Mirrors the old
    run_interpreter prologue exactly: relative prev_frame (dynamic link), ABSOLUTE
-   home_ctx (safe while stacks are fixed — no growth this phase), fresh generation
+   home_ctx (capacity is permanently fixed — Milestone A), fresh generation
    tag, regs[0]=receiver, regs[1..argc]=args, remaining regs NULL. Advances
    vm_stack_ptr. Does NOT allocate (no GC hazard). The caller reloads
    ctx/method/pc/pc_end from current_frame and continues the flat loop; OP_RET
@@ -176,8 +177,8 @@ static struct MethodContext *push_frame(oop closure, oop receiver, int argc, oop
     ctx->prev_frame = frame_link_encode(vm_stack, prev_ctx);   /* L0 relative dynamic link */
     ctx->saved_pc = NULL;
     ctx->closure = closure;
-    /* method closure homes to itself (encoded relative, growth-ready); a block
-       closure's inherited home_ctx is already a relative SMI — pass it through. */
+    /* method closure homes to itself (encoded relative); a block closure's
+       inherited home_ctx is already a relative SMI — pass it through. */
     ctx->home_ctx = cl->home_ctx ? cl->home_ctx
                                  : home_link_encode_relative(vm_stack, ctx);
     ctx->gen_tag.tag32 = ++current_generation_tag;
@@ -878,9 +879,10 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
 
 exit_frame:
     /* Restore caller's frame pointer and stack position. The fixed stack never moves
-       (Task 7) and the scheduler/fiber-switch mechanism is gone (Tasks 5–6), so a
-       nested run_interpreter always returns with current_frame back at this value —
-       the post-send reload blocks were dead and have been removed. */
+       (Task 7) and there is no scheduler to switch between execution contexts
+       anymore (Tasks 5–6), so a nested run_interpreter always returns with
+       current_frame back at this value — the post-send reload blocks were dead
+       and have been removed. */
     vm_stack_ptr = saved_stack_ptr;
     current_frame = frame_link_decode(vm_stack, entry_prev_link);
     return return_val;
@@ -990,10 +992,10 @@ oop primitive_closure_home(oop receiver, int argc, oop *args) {
     return (oop)home_ctx_frame(home);   /* decode relative SMI → frame ptr (growth-ready) */
 }
 
-/* primitive_fiber_create / primitive_fiber_switch deleted (Milestone A Task 5):
-   the fiber scheduler prims are gone. Task 6 removed the Fiber wrapper struct
-   entirely — the running execution context is now exactly g_active_stack (a Stack
-   heap object) + vm_stack/vm_stack_ptr + current_frame. */
+/* The fiber scheduler primitives are gone (Milestone A Task 5); Task 6 removed
+   the Fiber wrapper struct entirely — the running execution context is now
+   exactly g_active_stack (a Stack heap object) + vm_stack/vm_stack_ptr +
+   current_frame. */
 
 static oop get_top_level_method_closure(oop closure) {
     /* The lexical walk this function used to perform is unreachable through

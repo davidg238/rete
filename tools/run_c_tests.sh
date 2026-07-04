@@ -61,6 +61,15 @@ run test_gc_mark_iterative   "$ENG_A" -DOEVM_HEAP_SIZE=33554432 -lpthread
 run test_float_gc            "$ENG_A"
 run test_gc_trigger          "$ENG_A" -DOEVM_HEAP_SIZE=65536
 
+# --- Task 10a: revived KEEP-subsystem tests for the vestigial access control
+# subsystem (oevm#36). Were dead (in no runner, hardcoded pre-renumber opcode
+# bytes); revival was mechanical — hardcoded instruction words recomposed from
+# the current enum Opcode names (OP_RET was pre-renumber 4, is now 3;
+# OP_SEND_IMPLICIT was pre-renumber 0x0F, is now 0x0D) — same pattern Task 9b
+# applied in tests/test_debugger.c. No other structural drift found.
+run test_access              "$ENG_A"
+run test_enclosures          "$ENG_A"
+
 # --- Pre-existing seed breakage, unrelated to the fiber/NLR/reify/growable-stack
 # balloon this milestone removes. Confirmed by reading each test's compile/link
 # error against current src/ + the repo's own docs (docs/ROADMAP.md P2;

@@ -48,8 +48,8 @@ oop largeint_alloc(int sign, uint64_t mag) {
 
 /* ---- Stack: first-class heap object (de-recursify rewrite, L1 Task 2) ----
    DORMANT: allocated and GC-traced, but not yet wired into the running
-   engine. Mirrors the Fiber stack allocation shape (vm.c primitive_fiber_create)
-   but as a single GC-managed heap object instead of a malloc'd C array. */
+   engine. Mirrors the pre-Milestone-A per-fiber stack allocation shape, but as
+   a single GC-managed heap object instead of a malloc'd C array. */
 oop stack_alloc(uint32_t capacity) {
     extern oop gc_allocate(oop vtable, size_t size);
     size_t bytes = sizeof(struct Stack) + (size_t)capacity * sizeof(oop);

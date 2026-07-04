@@ -20,7 +20,6 @@ oop RunnableFiberVtable     = NULL;
 oop SuspendedFiberVtable    = NULL;
 oop DeadFiberVtable         = NULL;
 oop current_fiber           = NULL;
-oop Symbol_unwindTo_value   = NULL;
 oop Symbol_value            = NULL;
 oop *vm_stack               = NULL;
 size_t vm_stack_ptr         = 0;

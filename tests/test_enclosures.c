@@ -93,7 +93,7 @@ static void setup_enclosure_environment(void) {
     cm_outer_method->constant_count = 1;
     uint32_t *insts_outer = malloc(2 * sizeof(uint32_t));
     insts_outer[0] = 0x00000300; // OP_LD_CONST dest=3, src1=0 (SMI 42)
-    insts_outer[1] = 0x00000304; // OP_RET R3
+    insts_outer[1] = (0x00000300u | OP_RET); // OP_RET R3
     cm_outer_method->instructions = insts_outer;
     oop *consts_outer = malloc(1 * sizeof(oop));
     consts_outer[0] = TAG_SMI(42);
@@ -113,7 +113,7 @@ static void setup_enclosure_environment(void) {
     cm_outer_shadowed->constant_count = 1;
     uint32_t *insts_outer_shadowed = malloc(2 * sizeof(uint32_t));
     insts_outer_shadowed[0] = 0x00000300; // OP_LD_CONST dest=3, src1=0 (SMI 200)
-    insts_outer_shadowed[1] = 0x00000304; // OP_RET R3
+    insts_outer_shadowed[1] = (0x00000300u | OP_RET); // OP_RET R3
     cm_outer_shadowed->instructions = insts_outer_shadowed;
     oop *consts_outer_shadowed = malloc(1 * sizeof(oop));
     consts_outer_shadowed[0] = TAG_SMI(200);
@@ -133,7 +133,7 @@ static void setup_enclosure_environment(void) {
     cm_super_shadowed->constant_count = 1;
     uint32_t *insts_super_shadowed = malloc(2 * sizeof(uint32_t));
     insts_super_shadowed[0] = 0x00000300; // OP_LD_CONST dest=3, src1=0 (SMI 100)
-    insts_super_shadowed[1] = 0x00000304; // OP_RET R3
+    insts_super_shadowed[1] = (0x00000300u | OP_RET); // OP_RET R3
     cm_super_shadowed->instructions = insts_super_shadowed;
     oop *consts_super_shadowed = malloc(1 * sizeof(oop));
     consts_super_shadowed[0] = TAG_SMI(100);
@@ -153,8 +153,8 @@ static void setup_enclosure_environment(void) {
     cm_run_inner->constant_count = 1;
     uint32_t *insts_run_inner = malloc(3 * sizeof(uint32_t));
     insts_run_inner[0] = 0x00000301; // OP_LD_REG dest=3, src1=0 (R3 = self)
-    insts_run_inner[1] = 0x0300000F; // OP_SEND_IMPLICIT dest=0, src1=0 ("outerMethod"), src2=3
-    insts_run_inner[2] = 0x00000304; // OP_RET R3
+    insts_run_inner[1] = (0x03000000u | OP_SEND_IMPLICIT); // OP_SEND_IMPLICIT dest=0, src1=0 ("outerMethod"), src2=3
+    insts_run_inner[2] = (0x00000300u | OP_RET); // OP_RET R3
     cm_run_inner->instructions = insts_run_inner;
     oop *consts_run_inner = malloc(1 * sizeof(oop));
     consts_run_inner[0] = Symbol_outerMethod;
@@ -174,8 +174,8 @@ static void setup_enclosure_environment(void) {
     cm_run_shadowed_imp->constant_count = 1;
     uint32_t *insts_shadowed_imp = malloc(3 * sizeof(uint32_t));
     insts_shadowed_imp[0] = 0x00000301; // OP_LD_REG dest=3, src1=0 (R3 = self)
-    insts_shadowed_imp[1] = 0x0300000F; // OP_SEND_IMPLICIT dest=0, src1=0 ("shadowedMethod"), src2=3
-    insts_shadowed_imp[2] = 0x00000304; // OP_RET R3
+    insts_shadowed_imp[1] = (0x03000000u | OP_SEND_IMPLICIT); // OP_SEND_IMPLICIT dest=0, src1=0 ("shadowedMethod"), src2=3
+    insts_shadowed_imp[2] = (0x00000300u | OP_RET); // OP_RET R3
     cm_run_shadowed_imp->instructions = insts_shadowed_imp;
     oop *consts_shadowed_imp = malloc(1 * sizeof(oop));
     consts_shadowed_imp[0] = Symbol_shadowedMethod;
@@ -196,7 +196,7 @@ static void setup_enclosure_environment(void) {
     uint32_t *insts_shadowed_exp = malloc(3 * sizeof(uint32_t));
     insts_shadowed_exp[0] = 0x00000301; // OP_LD_REG dest=3, src1=0 (R3 = self)
     insts_shadowed_exp[1] = 0x03000002; // OP_SEND dest=0, src1=0 ("shadowedMethod"), src2=3
-    insts_shadowed_exp[2] = 0x00000304; // OP_RET R3
+    insts_shadowed_exp[2] = (0x00000300u | OP_RET); // OP_RET R3
     cm_run_shadowed_exp->instructions = insts_shadowed_exp;
     oop *consts_shadowed_exp = malloc(1 * sizeof(oop));
     consts_shadowed_exp[0] = Symbol_shadowedMethod;

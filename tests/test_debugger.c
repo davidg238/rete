@@ -322,8 +322,8 @@ int main(void) {
     oop step_bind_args[] = { TestVtable, Symbol_run, cl_step };
     send(mirror_object(), Symbol_bindTo, 3, step_bind_args);
 
-    // Turn on single-stepping on the current fiber
-    // (Ensure interpreter initialized the fiber first)
+    // Turn on single-stepping on g_active_stack
+    // (Ensure the interpreter initialized the active stack first)
     assert(g_active_stack != NULL);
     oop step_args[] = { g_active_stack, TAG_SMI(1) };
     send(mirror_object(), Symbol_singleStep, 2, step_args);

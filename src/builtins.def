@@ -1,6 +1,7 @@
 /* builtins.def — single source of truth for firmware-owned objects an image
- * may reference. Order is FROZEN; append only. Bump BUILTIN_REGISTRY_VERSION
- * (defined in oimg_loader.c) whenever this list changes.
+ * may reference. Order is frozen per BUILTIN_REGISTRY_VERSION (defined in
+ * oimg_loader.c); compactions (like Task 9a's below) bump it rather than
+ * requiring strict append-only growth.
  *
  * BUILTIN(idx, kind, name)
  *   kind: SINGLETON | VTABLE | SYMBOL

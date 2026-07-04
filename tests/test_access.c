@@ -97,7 +97,7 @@ static void setup_access_environment(void) {
     cm_prot->access_modifier = ACCESS_PROTECTED;
     uint32_t *insts_prot = malloc(2 * sizeof(uint32_t));
     insts_prot[0] = 0x00000300; // OP_LD_CONST dest=3, src1=0 (42)
-    insts_prot[1] = 0x00000304; // OP_RET R3
+    insts_prot[1] = (0x00000300u | OP_RET); // OP_RET R3
     cm_prot->instructions = insts_prot;
     oop *consts_prot = malloc(1 * sizeof(oop));
     consts_prot[0] = TAG_SMI(42);
@@ -118,7 +118,7 @@ static void setup_access_environment(void) {
     cm_priv->access_modifier = ACCESS_PRIVATE;
     uint32_t *insts_priv = malloc(2 * sizeof(uint32_t));
     insts_priv[0] = 0x00000300; // OP_LD_CONST dest=3, src1=0 (77)
-    insts_priv[1] = 0x00000304; // OP_RET R3
+    insts_priv[1] = (0x00000300u | OP_RET); // OP_RET R3
     cm_priv->instructions = insts_priv;
     oop *consts_priv = malloc(1 * sizeof(oop));
     consts_priv[0] = TAG_SMI(77);
@@ -140,7 +140,7 @@ static void setup_access_environment(void) {
     uint32_t *insts_run_prot = malloc(3 * sizeof(uint32_t));
     insts_run_prot[0] = 0x00000301; // OP_LD_REG dest=3, src1=0 (R3 = self)
     insts_run_prot[1] = 0x03000002; // OP_SEND dest=0, src1=0 ("protectedMethod"), src2=3
-    insts_run_prot[2] = 0x00000304; // OP_RET R3
+    insts_run_prot[2] = (0x00000300u | OP_RET); // OP_RET R3
     cm_run_prot->instructions = insts_run_prot;
     oop *consts_run_prot = malloc(1 * sizeof(oop));
     consts_run_prot[0] = Symbol_protectedMethod;
@@ -162,7 +162,7 @@ static void setup_access_environment(void) {
     uint32_t *insts_run_priv = malloc(3 * sizeof(uint32_t));
     insts_run_priv[0] = 0x00000301; // OP_LD_REG dest=3, src1=0 (R3 = self)
     insts_run_priv[1] = 0x03000002; // OP_SEND dest=0, src1=0 ("privateMethod"), src2=3
-    insts_run_priv[2] = 0x00000304; // OP_RET R3
+    insts_run_priv[2] = (0x00000300u | OP_RET); // OP_RET R3
     cm_run_priv->instructions = insts_run_priv;
     oop *consts_run_priv = malloc(1 * sizeof(oop));
     consts_run_priv[0] = Symbol_privateMethod;
@@ -183,7 +183,7 @@ static void setup_access_environment(void) {
     cm_viol->access_modifier = ACCESS_PUBLIC;
     uint32_t *insts_viol = malloc(2 * sizeof(uint32_t));
     insts_viol[0] = 0x00000300; // OP_LD_CONST dest=3, src1=0 (999)
-    insts_viol[1] = 0x00000304; // OP_RET R3
+    insts_viol[1] = (0x00000300u | OP_RET); // OP_RET R3
     cm_viol->instructions = insts_viol;
     oop *consts_viol = malloc(1 * sizeof(oop));
     consts_viol[0] = TAG_SMI(999);
@@ -205,7 +205,7 @@ static void setup_access_environment(void) {
     uint32_t *insts_sub_run_priv = malloc(3 * sizeof(uint32_t));
     insts_sub_run_priv[0] = 0x00000301; // OP_LD_REG dest=3, src1=0 (R3 = self)
     insts_sub_run_priv[1] = 0x03000002; // OP_SEND dest=0, src1=0 ("privateMethod"), src2=3
-    insts_sub_run_priv[2] = 0x00000304; // OP_RET R3
+    insts_sub_run_priv[2] = (0x00000300u | OP_RET); // OP_RET R3
     cm_sub_run_priv->instructions = insts_sub_run_priv;
     oop *consts_sub_run_priv = malloc(1 * sizeof(oop));
     consts_sub_run_priv[0] = Symbol_privateMethod;
@@ -227,7 +227,7 @@ static void setup_access_environment(void) {
     uint32_t *insts_help_run = malloc(3 * sizeof(uint32_t));
     insts_help_run[0] = 0x00010301; // OP_LD_REG dest=3, src1=1 (R3 = R1)
     insts_help_run[1] = 0x03000002; // OP_SEND dest=0, src1=0 ("protectedMethod"), src2=3
-    insts_help_run[2] = 0x00000304; // OP_RET R3
+    insts_help_run[2] = (0x00000300u | OP_RET); // OP_RET R3
     cm_help_run->instructions = insts_help_run;
     oop *consts_help_run = malloc(1 * sizeof(oop));
     consts_help_run[0] = Symbol_protectedMethod;

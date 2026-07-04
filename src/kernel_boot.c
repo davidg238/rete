@@ -4,8 +4,8 @@
  *
  * This file owns the APP-INDEPENDENT kernel objects that, under Model A, were
  * emitted into every per-program `solidified_image.c`:
- *   - the root meta-vtables (VtableVtable, SymbolVtable, …, the three Fiber
- *     vtables) and the IntegerVtable / FloatVtable / MethodContextVtable;
+ *   - the root meta-vtables (VtableVtable, SymbolVtable, …) and the
+ *     IntegerVtable / FloatVtable / MethodContextVtable;
  *   - the kernel-owned symbols the firmware references regardless of app.
  *
  * `kernel_boot()` assigns the global vtable/symbol pointer vars (DEFINED in

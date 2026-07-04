@@ -50,9 +50,9 @@ static inline struct MethodContext *frame_link_decode(oop *stack_base, oop link)
  *            TAG_SMI(offset)  => on-stack home on the CURRENT fiber (relative)
  * These two cases are exhaustive: a non-NULL, non-SMI home_ctx cannot arise
  * by construction and indicates a corrupt frame link, not a third case.
- * The IS_SMI test is the TOTAL discriminator (NULL is neither). This replaces
- * the legacy "SMI home_ctx == stop the walk" convention at vm.c:507 / :1156,
- * which L1 reworks to "SMI == follow it". */
+ * The IS_SMI test is the TOTAL discriminator (NULL is neither). This replaced
+ * the legacy "SMI home_ctx == stop the walk" convention at vm.c:507 / :1156;
+ * the live mechanism here is the relative-SMI convention, "SMI == follow it". */
 static inline int home_link_is_none(oop home)     { return home == NULL; }
 static inline int home_link_is_relative(oop home) { return home != NULL &&  IS_SMI(home); }
 
