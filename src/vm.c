@@ -194,16 +194,14 @@ static struct MethodContext *push_frame(oop closure, oop receiver, int argc, oop
    MethodContext frame it refers to, on the CURRENT fiber's stack.
      NULL            -> NULL (no lexical home: a method's own closure)
      relative SMI    -> stack frame at vm_stack[offset] (same fiber)
-     absolute ptr    -> (Task 1 only) returned as-is; Task 2 re-points this to
-                        the reified-Context guard once encode is relativized.
-   Single chokepoint so the Task-2 flip changes decode semantics in ONE place. */
+   These two cases are TOTAL: any other value is a corrupt frame link.
+   Single chokepoint for home_ctx decode. */
 static inline struct MethodContext *home_ctx_frame(oop home) {
     if (home == NULL) return NULL;
     if (IS_SMI(home)) return home_link_decode_frame(vm_stack, home);
-    /* Reified Context: reserved (frame_abi.h Option B) but NOT produced until the
-       growth/escape phase. A non-SMI heap home here is a bug (stray absolute pointer
-       or premature reify). Fail loudly. */
-    fprintf(stderr, "VM Error: reified home_ctx not supported in Phase 2\n");
+    /* A non-NULL, non-SMI home_ctx cannot arise by construction (frame_abi.h's
+       discriminator is total over {NULL, relative-SMI}). Fail loudly. */
+    fprintf(stderr, "VM Error: home_ctx is neither NULL nor a relative SMI (corrupt frame link)\n");
     abort();
 }
 
@@ -1006,22 +1004,22 @@ oop primitive_closure_home(oop receiver, int argc, oop *args) {
    heap object) + vm_stack/vm_stack_ptr + current_frame. */
 
 static oop get_top_level_method_closure(oop closure) {
-    /* Reify-on-escape E1: the lexical walk this function used to perform is
-       unreachable through dispatch. Its only caller (find_defining_vtable, from the
-       ACCESS_PRIVATE branch of check_access_allowed) is reached only when
-       receiver == caller_self == current_frame->regs[0]; a private method's receiver
-       is a user instance, and a block frame's regs[0] is the closure (push_frame at
+    /* The lexical walk this function used to perform is unreachable through
+       dispatch. Its only caller (find_defining_vtable, from the ACCESS_PRIVATE
+       branch of check_access_allowed) is reached only when receiver ==
+       caller_self == current_frame->regs[0]; a private method's receiver is a
+       user instance, and a block frame's regs[0] is the closure (push_frame at
        OP_BLOCK_INVOKE) — so the closure here is always a METHOD closure
-       (home_ctx == NULL) and the old lexical loop never iterated. Removing it drops
-       the last home_ctx frame-identity walk (shrinks the E3 reify surface) at zero
-       runtime cost. The invariant is pinned: a non-NULL home_ctx here would mean a
-       block reached access control, which the model does not produce — fail loudly
-       (house posture) rather than silently walk a dead path. Note the whole
-       send-visibility access subsystem is vestigial (oevm#36). See design
-       2026-07-03-derecursify-e1-retire-dead-access-walk-design.md §2. */
+       (home_ctx == NULL) and the old lexical loop never iterated. Removing it
+       drops the last home_ctx frame-identity walk from this path at zero
+       runtime cost. The invariant is pinned: a non-NULL home_ctx here would
+       mean a block reached access control, which the model does not produce —
+       fail loudly (house posture) rather than silently walk a dead path. Note
+       the whole send-visibility access subsystem is vestigial (oevm#36). See
+       design 2026-07-03-derecursify-e1-retire-dead-access-walk-design.md §2. */
     if (((struct Closure *)closure)->home_ctx != NULL) {
         fprintf(stderr, "VM Error: access-control method lookup on a block closure "
-            "(home_ctx != NULL) — unexpected; see reify-on-escape E1.\n");
+            "(home_ctx != NULL) — unexpected for a top-level method closure.\n");
         abort();
     }
     return closure;

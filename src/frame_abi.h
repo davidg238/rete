@@ -3,17 +3,18 @@
  *
  * Centralises, in one place, the relative<->address conversion for:
  *   - the DYNAMIC link  (prev_frame): base-relative, always same-stack;
- *   - the LEXICAL link  (home_ctx):   discriminated (Option B / §6.1) —
- *        relative SMI (on-stack, current fiber) | reified `Context` heap oop.
+ *   - the LEXICAL link  (home_ctx):   discriminated, TOTAL 2-WAY (Option B
+ *        / §6.1) — NULL (no lexical home) | relative SMI (on-stack, current
+ *        fiber).
  *
  * Contract: docs/fiber_l0_frame_abi.md.  STATUS: L0 contract, LIVE. The dynamic
  * link (prev_frame) has been relative since L1; the lexical link (home_ctx) is
  * relative as of de-recursify Phase 2 (self-migration + flip): every home_ctx
  * encode site uses home_link_encode_relative and every read routes through
  * vm.c's home_ctx_frame chokepoint. Growable stacks (Phase 3) rely only on the
- * relative encoding (links survive a realloc-copy untouched) and do NOT produce
- * a reified home. The reified-`Context` discriminator branch remains RESERVED
- * (not produced) — the deferred reify-on-escape phase builds it (oevm#34).
+ * relative encoding (links survive a realloc-copy untouched). A non-NULL,
+ * non-SMI home_ctx is impossible by construction — it can only mean a
+ * corrupt frame link (see vm.c's home_ctx_frame chokepoint).
  * Header-only (static inline) so the L0 unit test links nothing.
  *
  * Validated standalone (the L0 acceptance proof, §7e):
@@ -44,18 +45,16 @@ static inline struct MethodContext *frame_link_decode(oop *stack_base, oop link)
     return (struct MethodContext *)(stack_base + UNTAG_SMI(link));
 }
 
-/* ---- Lexical link (home_ctx): discriminated (Option B, §6.1) -------------
+/* ---- Lexical link (home_ctx): discriminated, TOTAL 2-way (Option B, §6.1) -
  * Encoding:  NULL             => no lexical home (a method's own closure)
  *            TAG_SMI(offset)  => on-stack home on the CURRENT fiber (relative)
- *            heap oop         => a reified `struct Context` (escaped; cross-
- *                               fiber- and pop-safe). Built by reify-on-escape
- *                               in L1/L5.
+ * These two cases are exhaustive: a non-NULL, non-SMI home_ctx cannot arise
+ * by construction and indicates a corrupt frame link, not a third case.
  * The IS_SMI test is the TOTAL discriminator (NULL is neither). This replaces
  * the legacy "SMI home_ctx == stop the walk" convention at vm.c:507 / :1156,
  * which L1 reworks to "SMI == follow it". */
 static inline int home_link_is_none(oop home)     { return home == NULL; }
 static inline int home_link_is_relative(oop home) { return home != NULL &&  IS_SMI(home); }
-static inline int home_link_is_reified(oop home)  { return home != NULL && !IS_SMI(home); }
 
 static inline oop home_link_encode_relative(const oop *stack_base,
                                             const struct MethodContext *frame) {
@@ -66,16 +65,18 @@ static inline struct MethodContext *home_link_decode_frame(oop *stack_base, oop 
     return (struct MethodContext *)(stack_base + UNTAG_SMI(home));
 }
 
-/* ---- Reified lexical context (the reify-on-escape target) ----------------
- * RESERVED at L0 so the home_ctx discriminator is TOTAL (a heap home is a
- * Context, nothing else). L1 builds the boxing, the ContextVtable, and GC
- * tracing. A Context boxes the live outer variables of an escaped frame so
- * they outlive its stack slot — the substrate of full upward (Toit-class)
- * closures (§6b). Layout mirrors an Object payload (vtable first) so the GC
- * treats it as an ordinary heap object. */
+/* ---- Heap lexical context (deferred-lift closure capture) ----------------
+ * The heap lexical context for escape-safe closure capture: built eagerly at
+ * closure-creation time (deferred-lift), rather than boxed lazily off of a
+ * stack frame when it escapes. L1 builds the boxing, the ContextVtable, and
+ * GC tracing. A Context boxes the live outer variables of an escaping frame
+ * so they outlive its stack slot — the substrate of full upward (Toit-class)
+ * closures (§6b).
+ * Layout mirrors an Object payload (vtable first) so the GC treats it as an
+ * ordinary heap object. */
 struct Context {
     struct Object base;        /* vtable = ContextVtable (L1); GC-traced as heap obj */
-    uint32_t home_generation;  /* gen of the boxed frame (^/NLR validity across reify) */
+    uint32_t home_generation;  /* stale-home-frame generation tag for the boxed frame */
     uint32_t num_slots;        /* number of boxed outer variables */
     oop      outer;            /* enclosing lexical link: Context | TAG_SMI | NULL */
     oop      slots[];          /* the boxed outer variables */

@@ -4,7 +4,7 @@
  * Asserts the FROZEN link encoding (src/frame_abi.h) against the REAL
  * struct MethodContext: the dynamic link is a base-relative offset that survives
  * a stack move with zero fixups, and the home_ctx discriminator (Option B) is
- * total (relative / reified / none all distinct).
+ * total 2-way (relative / none, mutually exclusive and exhaustive).
  *
  * Standalone, header-only:
  *   cc -std=c99 -Isrc tests/test_frame_abi.c -o /tmp/test_frame_abi && /tmp/test_frame_abi
@@ -66,20 +66,15 @@ int main(void) {
     printf("  relative link survives stack move          OK  (caller %p -> %p)\n",
            (void *)caller, (void *)moved_caller);
 
-    /* --- Lexical link discriminator (Option B): relative / reified / none --- */
+    /* --- Lexical link discriminator (Option B): total 2-way, relative / none --- */
     oop h_rel = home_link_encode_relative(base, caller);
     assert(home_link_is_relative(h_rel));
-    assert(!home_link_is_reified(h_rel) && !home_link_is_none(h_rel));
+    assert(!home_link_is_none(h_rel));              /* relative is relative-and-not-none */
     assert(home_link_decode_frame(base, h_rel) == caller);
 
-    struct Context ctxobj; memset(&ctxobj, 0, sizeof ctxobj);
-    oop h_reified = (oop)&ctxobj;                  /* aligned addr => not SMI-tagged */
-    assert(home_link_is_reified(h_reified));
-    assert(!home_link_is_relative(h_reified) && !home_link_is_none(h_reified));
-
     assert(home_link_is_none(NULL));
-    assert(!home_link_is_relative(NULL) && !home_link_is_reified(NULL));
-    printf("  home_ctx discriminator (rel/reified/none)  OK\n");
+    assert(!home_link_is_relative(NULL));           /* NULL is none-and-not-relative */
+    printf("  home_ctx discriminator (relative/none, total 2-way)  OK\n");
 
     test_home_link_survives_base_move();
 
