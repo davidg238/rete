@@ -2189,7 +2189,9 @@ def main():
         # The loader will send #serialOn: to kernel_inst to mint the Serial wrapper.
         _serial_on_sel_name = "serialOn:" if "serial" in _params else None
         _net_on_sel_name = "netOn:" if "net" in _params else None
-        _concurrency_on_sel_name = "concurrency" if "concurrency" in _params else None
+        # `concurrency:` capability retired with Concurrency/Fiber (Milestone A Task 4):
+        # the compiler no longer injects it. oimg_serialize.py's concurrency_on_sel_ref
+        # header slot stays defaulted-off (reserved, never emitted) until the Task 9 compact.
         # in-image debugger step 1: Supervisor descriptor (format_version 5). The
         # init selector is derived from Supervisor's param variable names, matching
         # the synthesized initializer (e.g. init_mirror: from param `mirror`).
@@ -2204,7 +2206,6 @@ def main():
             kernel_nslots=_kernel_nslots,
             serial_on_sel_name=_serial_on_sel_name,
             net_on_sel_name=_net_on_sel_name,
-            concurrency_on_sel_name=_concurrency_on_sel_name,
             supervisor_vtable_name="Supervisor",
             supervisor_init_sel_name=_sinit_selector,
             supervisor_run_sel_name="run:platform:args:debug:",
@@ -2334,11 +2335,10 @@ def main():
             c_code += f"    oop net_inst = send(kernel_inst, (oop)&{net_on_sym}, 1, net_args);\n"
             c_code += "    gc_temp_root_push(net_inst);\n"
             cap_expr["net"] = "net_inst"
-        if "concurrency" in params:
-            conc_sym = compiler.solidify.symbols["concurrency"]
-            c_code += f"    oop conc_inst = send(kernel_inst, (oop)&{conc_sym}, 0, NULL);\n"
-            c_code += "    gc_temp_root_push(conc_inst);\n"
-            cap_expr["concurrency"] = "conc_inst"
+        # `concurrency:` capability injection retired with Concurrency/Fiber (Task 4):
+        # Kernel>>concurrency no longer exists, so no capability is minted. An entry
+        # declaring `concurrency:` (all such tests are skip-oevm) falls through to the
+        # fake_args default below, as with any unrecognized capability param.
         # Build init_args in the entry's declared param order.
         argv = ", ".join(cap_expr.get(p, "fake_args") for p in params) or "kernel_inst"
         init_sel = "".join(f"{p}:" for p in params) or "new"
