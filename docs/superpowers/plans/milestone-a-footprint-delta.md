@@ -27,12 +27,18 @@ noise tolerance). Method is validated — the numbers below are safe to bank.
 | | text | data+bss (RAM) |
 |---|---:|---:|
 | baseline (seed, fa301d3) | 39148 | 17253508 |
-| after (HEAD, 943d9b5) | 35227 | 17252832 |
+| after (measured at 943d9b5) | 35227 | 17252832 |
 | delta | -3921 | -676 |
 | delta % | -10.02% | -0.0039% |
 
 (dec/hex totals and per-object breakdown: see `tuvm/tools/footprint-baseline.txt`
 re-run — reproduced above — and `tuvm/tools/footprint-after.txt`.)
+
+Note: `943d9b5` was tuvm's branch HEAD at measurement time; the branch has
+since moved (oracle cleanup + CV-1..CV-6 cross-validation docs), but engine
+sources (`src/*.c`, `src/*.h`) are unchanged between `943d9b5` and the current
+HEAD, so this figure still reflects the current engine — it is labeled by the
+commit actually measured rather than by "HEAD".
 
 **Expectation check (spec §7):** the engine SHRANK on both axes. No STOP
 triggered.

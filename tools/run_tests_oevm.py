@@ -314,6 +314,20 @@ def _check_runtime_fail(metadata: dict, err_msg: str, stdout: str) -> tuple[bool
     return True, f"Expected runtime failure: {err_msg.strip()}"
 
 
+def _check_compile_fail(metadata: dict, err_msg: str) -> tuple[bool, str]:
+    """Validate an `expect-compile-fail:` test (final-review smallest-extension,
+    mirrors _check_runtime_fail): the compiler's stderr+stdout must CONTAIN the
+    header's substring. Previously the harness treated ANY nonzero compile exit
+    as a PASS regardless of the header's substring, so a test could declare the
+    wrong diagnostic (or the compiler could fail for an unrelated reason) and
+    still pass. Returns (ok, detail)."""
+    expected_substr = metadata["expect_compile_fail"]
+    if expected_substr not in err_msg:
+        return False, (f"Compilation failed as expected, but diagnostic did not contain "
+                        f"'{expected_substr}':\n{err_msg}")
+    return True, f"Expected compilation failure: {err_msg.strip()}"
+
+
 def _dump_stdout(src_path: Path, path_label: str, stdout: str) -> None:
     """Write raw program stdout to $OEVM_DUMP_DIR/<relpath>.<path_label>.out.
     Called only when OEVM_DUMP_DIR is set; the dump does NOT affect pass/fail."""
@@ -352,8 +366,11 @@ def run_test_file(src_path: Path) -> tuple[str, str]:
     if proc_compile.returncode != 0:
         err_msg = proc_compile.stderr or proc_compile.stdout
         if metadata.get("expect_compile_fail"):
+            ok, detail = _check_compile_fail(metadata, err_msg)
+            if not ok:
+                return "FAIL", detail
             _dump_stdout(src_path, "A", "")
-            return "PASS", "Expected compilation failure."
+            return "PASS", detail
         return "FAIL", f"Compilation failed:\n{err_msg}"
 
     if metadata.get("expect_compile_fail"):
@@ -449,7 +466,10 @@ def run_test_file_oimg(src_path: Path) -> tuple[str, str]:
     if proc_compile.returncode != 0:
         err_msg = proc_compile.stderr or proc_compile.stdout
         if metadata.get("expect_compile_fail"):
-            return "PASS", "Expected compilation failure."
+            ok, detail = _check_compile_fail(metadata, err_msg)
+            if not ok:
+                return "FAIL", detail
+            return "PASS", detail
         return "FAIL", f"Compilation failed:\n{err_msg}"
 
     if metadata.get("expect_compile_fail"):
