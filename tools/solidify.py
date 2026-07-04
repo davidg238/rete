@@ -110,9 +110,6 @@ class SolidifyCompiler:
         c_code.append("extern const struct Vtable Vtable_BytecodeClosureVtable;")
         c_code.append("extern const struct Vtable Vtable_PrimitiveClosureVtable;")
         c_code.append("extern const struct Vtable Vtable_BoxedBindingVtable;")
-        c_code.append("extern const struct Vtable Vtable_RunnableFiberVtable;")
-        c_code.append("extern const struct Vtable Vtable_SuspendedFiberVtable;")
-        c_code.append("extern const struct Vtable Vtable_DeadFiberVtable;")
         c_code.append("extern const struct Vtable Vtable_StackVtable;")
         c_code.append("extern const struct Vtable Vtable_ContextVtable;")
         for vt_name in self.vtables:
@@ -121,7 +118,7 @@ class SolidifyCompiler:
 
         # Global definitions for custom vtables
         c_code.append("/* Global Vtable pointers for custom classes */")
-        system_vtables = {"IntegerVtable", "FloatVtable", "LargeIntegerVtable", "MethodContextVtable", "FiberVtable", "SymbolVtable", "VtableVtable", "PrimitiveClosureVtable", "BytecodeClosureVtable", "BoxedBindingVtable", "RunnableFiberVtable", "SuspendedFiberVtable", "DeadFiberVtable", "StackVtable", "ContextVtable"}
+        system_vtables = {"IntegerVtable", "FloatVtable", "LargeIntegerVtable", "MethodContextVtable", "SymbolVtable", "VtableVtable", "PrimitiveClosureVtable", "BytecodeClosureVtable", "BoxedBindingVtable", "StackVtable", "ContextVtable"}
         for vt_name in self.vtables:
             if vt_name not in system_vtables:
                 c_code.append(f"oop {vt_name} = NULL;")
@@ -253,9 +250,6 @@ class SolidifyCompiler:
         c_code.append("const struct Vtable Vtable_BytecodeClosureVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };")
         c_code.append("const struct Vtable Vtable_PrimitiveClosureVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };")
         c_code.append("const struct Vtable Vtable_BoxedBindingVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };")
-        c_code.append("const struct Vtable Vtable_RunnableFiberVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };")
-        c_code.append("const struct Vtable Vtable_SuspendedFiberVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };")
-        c_code.append("const struct Vtable Vtable_DeadFiberVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };")
         c_code.append("const struct Vtable Vtable_StackVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };")
         c_code.append("const struct Vtable Vtable_ContextVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };")
 
@@ -267,9 +261,6 @@ class SolidifyCompiler:
         c_code.append("    BytecodeClosureVtable = (oop)&Vtable_BytecodeClosureVtable;")
         c_code.append("    PrimitiveClosureVtable = (oop)&Vtable_PrimitiveClosureVtable;")
         c_code.append("    BoxedBindingVtable = (oop)&Vtable_BoxedBindingVtable;")
-        c_code.append("    RunnableFiberVtable = (oop)&Vtable_RunnableFiberVtable;")
-        c_code.append("    SuspendedFiberVtable = (oop)&Vtable_SuspendedFiberVtable;")
-        c_code.append("    DeadFiberVtable = (oop)&Vtable_DeadFiberVtable;")
         c_code.append("    StackVtable = (oop)&Vtable_StackVtable;")
         c_code.append("    ContextVtable = (oop)&Vtable_ContextVtable;")
         for vt_name in self.vtables:
@@ -288,8 +279,10 @@ def main():
     compiler.add_vtable("MethodContextVtable")
     # unwindTo:value: (the NLR mechanism) is retired under the no-NLR model
     # (Milestone A Task 2); this demo generator no longer installs it.
-    compiler.add_vtable("FiberVtable")
-    
+    # Fiber vtables are retired under Milestone A Task 4; this demo generator
+    # no longer registers them (the VM still defines the fiber prims/vtables
+    # themselves until Task 5, but the compiler no longer emits them).
+
     # We will define a counter class vtable for testing XIP
     compiler.add_vtable("CounterVtable")
     

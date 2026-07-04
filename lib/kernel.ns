@@ -273,74 +273,8 @@ class Kernel usingPlatform: platform = () (
     public data: d senderHost: h senderPort: p = ( ^ self new setData: d host: h port: p )
   )
 
-  class Concurrency = ( | kernel readyQueue current schedulerFiber yieldMark doneMark | ) (
-    (* Pure-.ns cooperative scheduler over the universal fiber prims. `kernel`
-       is the Kernel instance used to reach fiberCreate:/fiberSwitch:value:/
-       currentFiber. yieldMark/doneMark are identity sentinels passed through
-       fiberSwitch so the scheduler can tell a yield from a completion.
-
-       Closure-capture note (and a KNOWN CONSTRAINT). The entry block resolves
-       `self`/`current` via OP_LD_LEXICAL, which walks the home chain starting from
-       spawn:'s activation frame. That frame is stale by the time the fiber first
-       runs (spawn: returns before run calls fiberSwitch). It reads correct values
-       only because the stack WORD at spawn:'s old frame offset still holds a frame
-       whose reg[0] is this same Concurrency instance — which is guaranteed when
-       spawn: and run are invoked at the SAME stack depth from the same caller (run
-       then persists at that slot for the whole fiber lifetime). Same-receiver alone
-       is necessary but NOT sufficient; same-depth is the real invariant. Therefore:
-         * `aBlock` is stored in the Fiber object (heap-stable) and retrieved via
-           `current block` (a heap slot read on the current Fiber), never from the
-           stale spawn: frame.
-         * `primitive_fiber_create` sets regs[0]=closure so OP_LD_LEXICAL can start
-           the home-chain walk.
-       CONSTRAINT (until hardened): call spawn: and run at the same stack depth and
-       do NOT spawn from within a running fiber — either reads a foreign reg[0].
-       45_fibers respects this; nested-spawn / cross-depth is tracked as follow-up. *)
-    setKernel: aKernel = (
-      kernel:: aKernel.
-      readyQueue:: OrderedCollection new.
-      yieldMark:: Object new.
-      doneMark:: Object new.
-      ^ self )
-    public spawn: aBlock = ( | entry f |
-      (* Create the Fiber object first so it holds the block on the heap.
-         The entry block only accesses `current` (Concurrency slot, heap-stable)
-         and `self` (Concurrency, safe from stale frame as noted above). *)
-      f:: Fiber new.
-      f setBlock: aBlock.
-      entry:: [ current block value. self complete ].
-      f setVm: (kernel fiberCreate: entry).
-      readyQueue addLast: f.
-      ^ f )
-    public yield = ( ^ kernel fiberSwitch: schedulerFiber value: yieldMark )
-    complete = ( ^ kernel fiberSwitch: schedulerFiber value: doneMark )
-    public run = ( | f signal |
-      schedulerFiber:: kernel currentFiber.
-      [ readyQueue isEmpty ] whileFalse: [
-        f:: readyQueue removeFirst.
-        current:: f.
-        signal:: kernel fiberSwitch: f vm value: nil.
-        (signal == doneMark)
-          ifTrue: [ f markDead ]
-          ifFalse: [ readyQueue addLast: f ] ].
-      ^ self )
-  ) : (
-    public onKernel: aKernel = ( ^ self new setKernel: aKernel )
-  )
-
-  class Fiber = ( | vm done block | ) (
-    setBlock: b = ( block:: b. done:: false. ^ self )
-    setVm: aVm = ( vm:: aVm. ^ self )
-    public vm = ( ^ vm )
-    public block = ( ^ block )
-    public isDone = ( ^ done )
-    markDead = ( done:: true. ^ self )
-  ) : (
-  )
-
   serialOn: aPort = ( ^ Serial onPort: aPort )
   netOn: aPort = ( ^ Net onPort: aPort )
-  concurrency = ( ^ Concurrency onKernel: self )
 
   public readLine = ( ^ platform readLine )
 

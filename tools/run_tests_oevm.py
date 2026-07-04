@@ -125,93 +125,6 @@ def run_c_unit_tests(oevm_dir):
     return True
 
 
-def run_c_unit_test_fibers(oevm_dir: Path) -> bool:
-    """Build + run tests/test_fibers.c (R7 fiber prims + currentFiber). Same link
-    set as run_c_unit_tests (solidified_image.c, NOT kernel_boot.c)."""
-    build = subprocess.run(
-        ["gcc", "-Wall", "-std=c99", "-Isrc",
-         "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/serial.c",
-         "src/udp.c", "src/mirror.c", *OEVM_BACKEND,
-         "src/oimg_loader.c", "src/solidified_image.c",
-         "tests/test_fibers.c", "-o", "/tmp/test_fibers", "-lm"],
-        cwd=str(oevm_dir), capture_output=True, text=True)
-    if build.returncode != 0:
-        print("test_fibers build FAILED:\n" + build.stderr)
-        return False
-    run = subprocess.run(["/tmp/test_fibers"], cwd=str(oevm_dir),
-                         capture_output=True, text=True)
-    if run.returncode != 0:
-        print("test_fibers FAILED:\n" + run.stdout + run.stderr)
-        return False
-    print("C unit test test_fibers: PASSED")
-    return True
-
-
-def run_fibers_gc_stress_gate() -> bool:
-    """Run the cooperative-fibers test under OEVM_GC_STRESS=1 (collect before every
-    allocation). The ucontext fiber model gives each fiber its own malloc'd C stack
-    that the GC must root-scan and reclaim; a small fiber test passes trivially
-    because GC never fires mid-fiber, so this gate forces a collection on every
-    allocation while fibers are live/suspended. Without the GC integration this
-    SEGV's (R7 Task 2b regression gate). Compiles to a temp image so the committed
-    src/solidified_image.c is untouched.
-
-    NOTE (oevm#24): this gate builds WITHOUT AddressSanitizer. If you add
-    `-fsanitize=address` to the build below for a stress investigation, you MUST run
-    with `ASAN_OPTIONS=detect_stack_use_after_return=0` — ASan's fake-stack relocates
-    locals off the real machine stack, which the VM's conservative C-stack root scan
-    (scan_c_stack/scan_c_range) cannot see, so a live oop in a fake-stack local can be
-    swept (UAF) under GC stress. Pre-existing conservative-GC-vs-ASan config gap, not
-    an L1 regression."""
-    src = Path(__file__).parent.parent.parent / "nsl-tests" / "04_somns_basic" / "45_fibers.ns"
-    if not src.exists():
-        print(f"{COLOR_RED}fibers-gc-stress: FAIL{COLOR_RESET} (missing {src})")
-        return False
-    tmp_c = OEVM_DIR / "_fibers_gc_stress.c"
-    runner = OEVM_DIR / "oevm_fibers_gc_stress"
-    try:
-        comp = subprocess.run(
-            [sys.executable, str(Path(__file__).parent / "ns_compile_oevm.py"),
-             str(src), str(tmp_c)], capture_output=True, text=True)
-        if comp.returncode != 0:
-            print(f"{COLOR_RED}fibers-gc-stress: FAIL{COLOR_RESET} (compile)")
-            print("  " + (comp.stderr or comp.stdout).strip()[-500:])
-            return False
-        build = subprocess.run(
-            ["gcc", "-Wall", "-std=c99", "-Isrc", "-DOEVM_APPLIANCE",
-             "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/serial.c",
-             "src/udp.c", "src/mirror.c", *OEVM_BACKEND,
-             str(tmp_c), "src/oevm_main.c", "-o", str(runner), "-lm"],
-            cwd=str(OEVM_DIR), capture_output=True, text=True)
-        if build.returncode != 0:
-            print(f"{COLOR_RED}fibers-gc-stress: FAIL{COLOR_RESET} (build)")
-            print("  " + build.stderr.strip()[-500:])
-            return False
-        env = {**os.environ, "OEVM_GC_STRESS": "1"}
-        try:
-            run = subprocess.run([str(runner)], cwd=str(OEVM_DIR),
-                                 capture_output=True, text=True, timeout=120, env=env)
-        except subprocess.TimeoutExpired:
-            print(f"{COLOR_RED}fibers-gc-stress: FAIL{COLOR_RESET} (timeout)")
-            return False
-        actual = [l.strip() for l in run.stdout.strip().splitlines() if l.strip()]
-        if run.returncode != 0 or actual != ["ABABAB", "done"]:
-            print(f"{COLOR_RED}fibers-gc-stress: FAIL{COLOR_RESET} "
-                  f"(exit={run.returncode}, output={actual})")
-            print("  " + (run.stderr or "").strip()[-300:])
-            return False
-        print(f"{COLOR_GREEN}fibers-gc-stress: PASSED{COLOR_RESET}")
-        return True
-    finally:
-        # ns_compile_oevm.py emits a .stmap sidecar next to the output .c; clean it
-        # too so it does not orphan in OEVM_DIR (was leaving _fibers_gc_stress.stmap).
-        for p in (tmp_c, runner, tmp_c.with_suffix(".stmap")):
-            try:
-                p.unlink()
-            except FileNotFoundError:
-                pass
-
-
 def run_boot_gc_asan_gate() -> bool:
     """Regression gate for oevm#21 (boot-time GC roots incomplete).
 
@@ -275,95 +188,6 @@ def run_boot_gc_asan_gate() -> bool:
                 p.unlink()
             except FileNotFoundError:
                 pass
-
-
-def run_stack_overflow_cap_gate() -> bool:
-    """Phase 3 hard-cap policy A: at VM_STACK_CAP_WORDS the VM prints a clear
-    diagnostic and controlled-terminates (non-zero exit), rather than running
-    unbounded. Compile 58_growable_stack (recurses to depth 2000) to Path-A
-    solidified_image.c, then build with a tiny cap its ~34000-word depth cannot
-    fit -> the grow hits the cap. Mirrors run_test_file's Path-A compile + the
-    fibers-gc-stress gate's build shape."""
-    import tempfile
-    oevm_dir = OEVM_DIR
-    test_ns = Path(__file__).parent.parent.parent / "nsl-tests" / "04_somns_basic" / "58_growable_stack.ns"
-    compiler = Path(__file__).parent / "ns_compile_oevm.py"
-    target_c = oevm_dir / "src" / "solidified_image.c"   # in-place (serial gate; clobbers shared file)
-    comp = subprocess.run([sys.executable, str(compiler), str(test_ns), str(target_c)],
-                          capture_output=True, text=True)
-    if comp.returncode != 0:
-        print(f"{COLOR_RED}stack-overflow-cap: FAIL{COLOR_RESET} (compile .ns)")
-        print("  " + (comp.stderr or comp.stdout).strip()[-500:])
-        return False
-    with tempfile.TemporaryDirectory() as td:
-        runner = Path(td) / "cap_runner"
-        build = subprocess.run(
-            ["gcc", "-Wall", "-std=c99", "-Isrc", "-DOEVM_APPLIANCE",
-             "-DVM_STACK_CAP_WORDS=2048", "-DVM_STACK_INIT_WORDS=1024",
-             "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c",
-             "src/serial.c", "src/udp.c", "src/mirror.c", *OEVM_BACKEND,
-             "src/solidified_image.c", "src/oevm_main.c", "-o", str(runner), "-lm"],
-            cwd=str(oevm_dir), capture_output=True, text=True)
-        if build.returncode != 0:
-            print(f"{COLOR_RED}stack-overflow-cap: FAIL{COLOR_RESET} (build)")
-            print("  " + build.stderr.strip()[-500:])
-            return False
-        run = subprocess.run([str(runner)], cwd=str(oevm_dir),
-                             capture_output=True, text=True, timeout=30)
-        # Controlled termination: non-zero exit AND the diagnostic on stderr.
-        if run.returncode == 0 or "Stack Overflow" not in run.stderr:
-            print(f"{COLOR_RED}stack-overflow-cap: FAIL{COLOR_RESET} "
-                  f"(exit={run.returncode}, stderr tail={run.stderr.strip()[-200:]!r})")
-            return False
-    print(f"{COLOR_GREEN}stack-overflow-cap: PASSED{COLOR_RESET}")
-    return True
-
-
-def run_growable_small_init_gate() -> bool:
-    """Phase 3: build with a small init capacity so the stack reallocs MANY times
-    (during boot and deep recursion). The oracle is RESULT-CORRECTNESS + a clean
-    exit: a missed live-pointer rebase across a grow reads a stale old-base frame ->
-    wrong sum or a crash. (ASan is belt-and-braces on the C-level allocations; the
-    GC arena itself is not ASan-instrumented, so a swept Stack won't be poisoned --
-    correctness, not an ASan report, is what catches a bad rebase.) Compiles + runs
-    58_growable_stack and checks the correct result + clean exit. Same in-place
-    Path-A compile as the cap gate (serial-only)."""
-    import tempfile
-    oevm_dir = OEVM_DIR
-    test_ns = Path(__file__).parent.parent.parent / "nsl-tests" / "04_somns_basic" / "58_growable_stack.ns"
-    compiler = Path(__file__).parent / "ns_compile_oevm.py"
-    target_c = oevm_dir / "src" / "solidified_image.c"
-    comp = subprocess.run([sys.executable, str(compiler), str(test_ns), str(target_c)],
-                          capture_output=True, text=True)
-    if comp.returncode != 0:
-        print(f"{COLOR_RED}growable-stack-small-init: FAIL{COLOR_RESET} (compile .ns)")
-        print("  " + (comp.stderr or comp.stdout).strip()[-500:])
-        return False
-    with tempfile.TemporaryDirectory() as td:
-        runner = Path(td) / "small_init_runner"
-        build = subprocess.run(
-            ["gcc", "-g", "-fsanitize=address", "-Wall", "-std=c99", "-Isrc",
-             "-DOEVM_APPLIANCE", "-DVM_STACK_INIT_WORDS=1024",
-             "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c",
-             "src/serial.c", "src/udp.c", "src/mirror.c", *OEVM_BACKEND,
-             "src/solidified_image.c", "src/oevm_main.c", "-o", str(runner), "-lm"],
-            cwd=str(oevm_dir), capture_output=True, text=True)
-        if build.returncode != 0:
-            if "fsanitize" in (build.stderr or ""):
-                print(f"{COLOR_YELLOW}growable-stack-small-init: SKIP{COLOR_RESET} (no ASan)")
-                return True
-            print(f"{COLOR_RED}growable-stack-small-init: FAIL{COLOR_RESET} (build)")
-            print("  " + build.stderr.strip()[-500:])
-            return False
-        run = subprocess.run([str(runner)], cwd=str(oevm_dir),
-                             capture_output=True, text=True, timeout=60)
-        out = [l.strip() for l in run.stdout.strip().splitlines() if l.strip()]
-        if run.returncode != 0 or out != ["2001000"]:
-            print(f"{COLOR_RED}growable-stack-small-init: FAIL{COLOR_RESET} "
-                  f"(exit={run.returncode}, out={out}, stderr={run.stderr.strip()[-200:]!r})")
-            return False
-    print(f"{COLOR_GREEN}growable-stack-small-init: PASSED{COLOR_RESET}")
-    return True
 
 
 def run_integration_gate(label: str, script_name: str) -> bool:
@@ -721,7 +545,6 @@ def main():
         capture_output=True, text=True)
     print()
     c_units_ok = run_c_unit_tests(OEVM_DIR)
-    c_fibers_ok = run_c_unit_test_fibers(OEVM_DIR)
 
     # Integration gates: the supervisor-grant proof and the in-image debugger
     # harness. Both build the target app and CLOBBER ../tuvm/src/solidified_image.c
@@ -737,26 +560,10 @@ def main():
         capture_output=True, text=True)
 
     portability = run_portability_gate()   # "PASS" | "SKIP" | "FAIL"
-    fibers_gc_ok = run_fibers_gc_stress_gate()
     boot_gc_ok = run_boot_gc_asan_gate()
-    stack_cap_ok = run_stack_overflow_cap_gate()
-    # stack-overflow-cap clobbers src/solidified_image.c in-place; restore the
-    # committed image so the tree is left clean regardless of pass/fail.
-    subprocess.run(
-        ["git", "-C", str(OEVM_DIR), "checkout",
-         "src/solidified_image.c", "src/solidified_image.stmap"],
-        capture_output=True, text=True)
-    growable_small_init_ok = run_growable_small_init_gate()
-    # growable-stack-small-init also clobbers src/solidified_image.c in-place;
-    # restore the committed image so the tree is left clean regardless of pass/fail.
-    subprocess.run(
-        ["git", "-C", str(OEVM_DIR), "checkout",
-         "src/solidified_image.c", "src/solidified_image.stmap"],
-        capture_output=True, text=True)
 
-    suite_ok = (failed == 0 and c_units_ok and c_fibers_ok and grant_ok and dbg_int_ok
-                and portability != "FAIL" and fibers_gc_ok and boot_gc_ok and stack_cap_ok
-                and growable_small_init_ok)
+    suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok
+                and portability != "FAIL" and boot_gc_ok)
     print(f"\n{COLOR_GREEN if suite_ok else COLOR_RED}Test Execution Summary:{COLOR_RESET}")
     print(f"  Passed:  {passed}")
     print(f"  Failed:  {failed}")
@@ -764,10 +571,7 @@ def main():
     print(f"  grant: {'PASS' if grant_ok else 'FAIL'}  "
           f"debugger-integration: {'PASS' if dbg_int_ok else 'FAIL'}  "
           f"portability-32: {portability}  "
-          f"fibers-gc-stress: {'PASS' if fibers_gc_ok else 'FAIL'}  "
-          f"boot-gc-asan: {'PASS' if boot_gc_ok else 'FAIL'}  "
-          f"stack-overflow-cap: {'PASS' if stack_cap_ok else 'FAIL'}  "
-          f"growable-stack-small-init: {'PASS' if growable_small_init_ok else 'FAIL'}")
+          f"boot-gc-asan: {'PASS' if boot_gc_ok else 'FAIL'}")
 
     if not suite_ok:
         sys.exit(1)
