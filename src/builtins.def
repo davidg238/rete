@@ -4,6 +4,11 @@
  *
  * BUILTIN(idx, kind, name)
  *   kind: SINGLETON | VTABLE | SYMBOL
+ *
+ * Task 9a (Milestone A): the reserved fiber vtable rows (legacy FiberVtable,
+ * Runnable/Suspended/DeadFiberVtable) and the NLR-only symbol rows
+ * (executeCleanup, resumeWith:, unwindTo:value:) were removed and the list
+ * compacted dense. Registry version bumped 4->5.
  */
 BUILTIN(0,  SINGLETON, "nil")
 BUILTIN(1,  SINGLETON, "true")
@@ -11,31 +16,24 @@ BUILTIN(2,  SINGLETON, "false")
 BUILTIN(3,  VTABLE,    "IntegerVtable")
 BUILTIN(4,  VTABLE,    "FloatVtable")
 BUILTIN(5,  VTABLE,    "MethodContextVtable")
-BUILTIN(6,  VTABLE,    "FiberVtable")           /* RESERVED: legacy fiber vtable retired (Task 5); registry slot NULL, Task 9 compacts */
-BUILTIN(7,  VTABLE,    "SymbolVtable")
-BUILTIN(8,  VTABLE,    "VtableVtable")
-BUILTIN(9,  VTABLE,    "PrimitiveClosureVtable")
-BUILTIN(10, VTABLE,    "BytecodeClosureVtable")
-BUILTIN(11, VTABLE,    "BoxedBindingVtable")
-BUILTIN(12, VTABLE,    "RunnableFiberVtable")   /* RESERVED: last fiber vtable retired with the struct Fiber wrapper (Task 6); registry slot NULL, Task 9 compacts */
-BUILTIN(13, VTABLE,    "SuspendedFiberVtable")  /* RESERVED: retired (Task 5); registry slot NULL, Task 9 compacts */
-BUILTIN(14, VTABLE,    "DeadFiberVtable")       /* RESERVED: retired (Task 5); registry slot NULL, Task 9 compacts */
-/* Kernel-owned symbols (index 15+). These are exactly the selectors the
+BUILTIN(6,  VTABLE,    "SymbolVtable")
+BUILTIN(7,  VTABLE,    "VtableVtable")
+BUILTIN(8,  VTABLE,    "PrimitiveClosureVtable")
+BUILTIN(9,  VTABLE,    "BytecodeClosureVtable")
+BUILTIN(10, VTABLE,    "BoxedBindingVtable")
+/* Kernel-owned symbols (index 11+). These are exactly the selectors the
  * firmware kernel itself references regardless of the loaded app:
- *  - 15..19: constants of the kernel unwindTo:value: method
- *  - 20: value          (Symbol_value, hardcoded in vm.c)
- *  - 21: accessViolation: (Symbol_accessViolation, dispatch.c)
- *  - 22: debug:         (Symbol_debug_, vm.c debugger hook)
- * unwindTo:value: appears in both the method consts and Symbol_unwindTo_value. */
-BUILTIN(15, SYMBOL,    "==")
-BUILTIN(16, SYMBOL,    "executeCleanup")
-BUILTIN(17, SYMBOL,    "sender")
-BUILTIN(18, SYMBOL,    "resumeWith:")
-BUILTIN(19, SYMBOL,    "unwindTo:value:")
-BUILTIN(20, SYMBOL,    "value")
-BUILTIN(21, SYMBOL,    "accessViolation:")
-BUILTIN(22, SYMBOL,    "debug:")
-/* Boxed LargeInteger vtable (index 23+). Appended after the kernel symbols;
+ *  - 11: ==             (Symbol comparison)
+ *  - 12: sender         (OP_LD_SENDER)
+ *  - 13: value          (Symbol_value, hardcoded in vm.c)
+ *  - 14: accessViolation: (Symbol_accessViolation, dispatch.c)
+ *  - 15: debug:         (Symbol_debug_, vm.c debugger hook) */
+BUILTIN(11, SYMBOL,    "==")
+BUILTIN(12, SYMBOL,    "sender")
+BUILTIN(13, SYMBOL,    "value")
+BUILTIN(14, SYMBOL,    "accessViolation:")
+BUILTIN(15, SYMBOL,    "debug:")
+/* Boxed LargeInteger vtable (index 16+). Appended after the kernel symbols;
  * referenced by overflowing integer literals an app may carry. */
-BUILTIN(23, VTABLE,    "LargeIntegerVtable")
-BUILTIN(24, VTABLE,    "StringVtable")
+BUILTIN(16, VTABLE,    "LargeIntegerVtable")
+BUILTIN(17, VTABLE,    "StringVtable")

@@ -564,16 +564,12 @@ enum {
     PRIM_Array, PRIM_new, PRIM_at, PRIM_at_put, PRIM_size, PRIM_selector,
     PRIM_vtable, PRIM_delegate, PRIM_bindings, PRIM_sender, PRIM_pc, PRIM_home,
     PRIM_eqeq,
-    /* NLR retired (Milestone A Task 3): handlers deleted, but the two slots stay
-       reserved so every later id keeps its value — prim_ids.h mirrors these by
-       absolute number for platform.c. Compacted in the Task 9 renumber. */
-    PRIM_executeCleanup_RETIRED, PRIM_resumeWith_RETIRED,
-    /* Fibers retired (Milestone A Task 5): dispatch cases + interpreter functions
-       deleted, but the three slots stay RESERVED so every later id keeps its value —
-       prim_ids.h mirrors these by absolute number for platform.c (deleting them would
-       shift platform prims 61-71). Compacted in the Task 9 renumber. */
-    PRIM_fiberCreate_RETIRED, PRIM_outer,
-    PRIM_fiberSwitch_RETIRED, PRIM_currentFiber_RETIRED, PRIM_registerDebuggerHook, PRIM_regAt, PRIM_regAt_put,
+    /* NLR retired (Task 3) + fibers retired (Task 5/6): the retired prim enum
+       slots (executeCleanup/resumeWith:/fiberCreate:/fiberSwitch:value:/
+       currentFiber) were removed in Task 9a; the enum is now dense and
+       prim_ids.h mirrors the platform prims by their new absolute number. */
+    PRIM_outer,
+    PRIM_registerDebuggerHook, PRIM_regAt, PRIM_regAt_put,
     PRIM_singleStep, PRIM_bind, PRIM_instructionAt_put, PRIM_createClosure,
     PRIM_to_do, PRIM_to_by_do, PRIM_amp, PRIM_pipe, PRIM_isNil, PRIM_notNil,
     PRIM_error, PRIM_lt, PRIM_gt, PRIM_le, PRIM_ge, PRIM_eq, PRIM_ifTrueIfFalse,
@@ -597,8 +593,7 @@ enum {
 static const char *const PRIM_NAMES[] = {
     "Array", "new:", "at:", "at:put:", "size", "selector", "vtable", "delegate",
     "bindings", "sender", "pc", "home", "==",
-    "executeCleanup", "resumeWith:",  /* retired slots (Task 3); no handler, kept for id stability */
-    "fiberCreate:", "outer", "fiberSwitch:value:", "currentFiber", /* fiber names retired (Task 5); no handler, kept for id stability */
+    "outer", /* executeCleanup/resumeWith:/fiberCreate:/fiberSwitch:value:/currentFiber removed (Task 9a) */
     "registerDebuggerHook:",
     "regAt:", "regAt:put:", "singleStep:", "bind:to:", "instructionAt:put:",
     "createClosure:", "to:do:", "to:by:do:", "&", "|", "isNil", "notNil",

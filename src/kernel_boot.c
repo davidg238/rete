@@ -13,13 +13,12 @@
  * `builtin_registry[]` + `oimg_singleton[]` tables (the arrays themselves are
  * DEFINED, zero-initialized, in oimg_loader.c so Model A still links cleanly).
  *
- * Index order matches src/builtins.def (FROZEN, append-only):
+ * Index order matches src/builtins.def (compacted in Task 9a):
  *   0..2   singletons : nil(NULL) / true / false
- *   3..14  vtables    : Integer, Float, MethodContext, Fiber, Symbol, Vtable,
- *                       PrimitiveClosure, BytecodeClosure, BoxedBinding,
- *                       RunnableFiber, SuspendedFiber, DeadFiber
- *   15..22 symbols    : == executeCleanup sender resumeWith: unwindTo:value:
- *                       value accessViolation: debug:
+ *   3..10  vtables    : Integer, Float, MethodContext, Symbol, Vtable,
+ *                       PrimitiveClosure, BytecodeClosure, BoxedBinding
+ *   11..15 symbols    : == sender value accessViolation: debug:
+ *   16..17 vtables    : LargeInteger, String
  */
 #include "oevm.h"
 #include "oimg.h"
@@ -49,10 +48,9 @@ const struct Vtable Vtable_ContextVtable;
  * Symbol_* globals the VM hardcodes.
  * ------------------------------------------------------------------ */
 static const struct Symbol KSym__eq_eq          = { { (oop)&Vtable_SymbolVtable }, "==", 2 };
-static const struct Symbol KSym_executeCleanup  = { { (oop)&Vtable_SymbolVtable }, "executeCleanup", 14 };
 static const struct Symbol KSym_sender          = { { (oop)&Vtable_SymbolVtable }, "sender", 6 };
-static const struct Symbol KSym_resumeWith_     = { { (oop)&Vtable_SymbolVtable }, "resumeWith:", 11 };
-static const struct Symbol KSym_unwindTo_value_ = { { (oop)&Vtable_SymbolVtable }, "unwindTo:value:", 15 };
+/* KSym_executeCleanup / KSym_resumeWith_ / KSym_unwindTo_value_ removed (Task 9a):
+ * NLR-only symbols retired in Task 3; their registry rows are gone. */
 static const struct Symbol KSym_value           = { { (oop)&Vtable_SymbolVtable }, "value", 5 };
 static const struct Symbol KSym_accessViolation_= { { (oop)&Vtable_SymbolVtable }, "accessViolation:", 16 };
 static const struct Symbol KSym_debug_          = { { (oop)&Vtable_SymbolVtable }, "debug:", 6 };
@@ -147,25 +145,20 @@ void kernel_boot(void) {
     builtin_registry[3]  = IntegerVtable;
     builtin_registry[4]  = FloatVtable;
     builtin_registry[5]  = MethodContextVtable;
-    builtin_registry[6]  = NULL;              /* FiberVtable RESERVED (retired Task 5; Task 9 compacts) */
-    builtin_registry[7]  = SymbolVtable;
-    builtin_registry[8]  = VtableVtable;
-    builtin_registry[9]  = PrimitiveClosureVtable;
-    builtin_registry[10] = BytecodeClosureVtable;
-    builtin_registry[11] = BoxedBindingVtable;
-    builtin_registry[12] = NULL;                 /* RunnableFiberVtable RESERVED (retired Task 6; Task 9 compacts) */
-    builtin_registry[13] = NULL;                 /* SuspendedFiberVtable RESERVED (retired Task 5; Task 9 compacts) */
-    builtin_registry[14] = NULL;                 /* DeadFiberVtable RESERVED (retired Task 5; Task 9 compacts) */
+    builtin_registry[6]  = SymbolVtable;
+    builtin_registry[7]  = VtableVtable;
+    builtin_registry[8]  = PrimitiveClosureVtable;
+    builtin_registry[9]  = BytecodeClosureVtable;
+    builtin_registry[10] = BoxedBindingVtable;
+    /* Fiber vtable rows (legacy Fiber/Runnable/Suspended/Dead) removed in Task 9a. */
 
-    builtin_registry[15] = (oop)&KSym__eq_eq;
-    builtin_registry[16] = (oop)&KSym_executeCleanup;
-    builtin_registry[17] = (oop)&KSym_sender;
-    builtin_registry[18] = (oop)&KSym_resumeWith_;
-    builtin_registry[19] = (oop)&KSym_unwindTo_value_;
-    builtin_registry[20] = (oop)&KSym_value;
-    builtin_registry[21] = (oop)&KSym_accessViolation_;
-    builtin_registry[22] = (oop)&KSym_debug_;
+    builtin_registry[11] = (oop)&KSym__eq_eq;
+    builtin_registry[12] = (oop)&KSym_sender;
+    /* executeCleanup / resumeWith: / unwindTo:value: rows removed in Task 9a. */
+    builtin_registry[13] = (oop)&KSym_value;
+    builtin_registry[14] = (oop)&KSym_accessViolation_;
+    builtin_registry[15] = (oop)&KSym_debug_;
 
-    builtin_registry[23] = LargeIntegerVtable;
-    builtin_registry[24] = StringVtable;
+    builtin_registry[16] = LargeIntegerVtable;
+    builtin_registry[17] = StringVtable;
 }

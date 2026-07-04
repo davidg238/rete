@@ -239,7 +239,7 @@ enum Opcode {
        Task 3). Value kept reserved to avoid renumbering serialized .oimg images. */
     OP_SEND_IC_RETIRED,
     OP_RET,
-    OP_NLR_RETIRED,   /* reserved; compacted in Milestone A renumber */
+    OP_NLR_RETIRED,   /* reserved; opcode compaction deferred to Task 9b (post Task 8, Context ops still live) */
     OP_ADD,
     OP_SUB,
     OP_MUL,
