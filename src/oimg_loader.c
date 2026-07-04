@@ -29,9 +29,17 @@ const uint32_t BUILTIN_REGISTRY_VERSION = 5;
  * W-wide, W-aligned. The ref-word block begins at OFF_ROOT, which is the
  * fixed prefix (20 bytes) rounded up to W.
  *
+ * format_version 8 (Milestone A Task 9b compaction): ONE fixed layout — the
+ * kernel/serial/supervisor/net groups are always present (0 when the entry
+ * takes no such capability) and the header ends at the net word (A+12W,
+ * padded). The retired v7 tail word (concurrency capability ref at A+13W;
+ * fibers removed in Milestone A Task 5) is gone. v3-v7 headers are neither
+ * written by the serializer nor accepted here (images are regenerated
+ * per-test; no compat needed).
+ *
  *   off       width  field
  *   0         4      magic "OIMG"
- *   4         2      format_version (u16)
+ *   4         2      format_version (u16, = 8)
  *   6         2      flags (u16)
  *   8         4      registry_version (u32)
  *   12        4      blob_size (u32, = total file size)
@@ -43,34 +51,27 @@ const uint32_t BUILTIN_REGISTRY_VERSION = 5;
  *   A+3W      2      init_argc (u16)
  *   A+3W+2    2      entry_nslots (u16)
  *   (header padded to 8)
- *   A+4W      W      kernel_vtable_ref   (format_version 3: Kernel module vtable)
- *   A+5W      W      kernel_init_sel_ref (format_version 3: Kernel init selector sym)
- *   A+6W      2      kernel_nslots (u16) (format_version 3: Kernel instance slots)
+ *   A+4W      W      kernel_vtable_ref   (Kernel module vtable)
+ *   A+5W      W      kernel_init_sel_ref (Kernel init selector sym)
+ *   A+6W      2      kernel_nslots (u16) (Kernel instance slots)
  *   (header padded to 8 again)
- *   A+7W      W      serial_on_sel_ref   (format_version 4: ref to Kernel>>serialOn:,
+ *   A+7W      W      serial_on_sel_ref   (ref to Kernel>>serialOn:,
  *                                         0 when entry takes no serial capability)
  *   (header padded to 8 again)
- *   A+8W      W      supervisor_vtable_ref   (format_version 5)
- *   A+9W      W      supervisor_init_sel_ref (format_version 5: init_usingMirror:)
- *   A+10W     W      supervisor_run_sel_ref  (format_version 5: run:platform:args:debug:)
- *   A+11W     2      supervisor_nslots (u16) (format_version 5)
+ *   A+8W      W      supervisor_vtable_ref
+ *   A+9W      W      supervisor_init_sel_ref (init_usingMirror:)
+ *   A+10W     W      supervisor_run_sel_ref  (run:platform:args:debug:)
+ *   A+11W     2      supervisor_nslots (u16)
  *   (header padded to 8 again)
- *   A+12W     W      net_on_sel_ref   (format_version 6: ref to Kernel>>netOn:,
- *                                      0 when entry takes no net capability; always
- *                                      emitted when concurrency present so offsets stay fixed)
- *   (header padded to 8 again)
- *   A+13W     W      concurrency_on_sel_ref (format_version 7) — RETIRED (Milestone A
- *                                      Task 5): fibers removed; word ignored if present,
- *                                      offsets compacted in Task 9.
+ *   A+12W     W      net_on_sel_ref   (ref to Kernel>>netOn:,
+ *                                      0 when entry takes no net capability)
  *   (header padded to 8 again)
  * For W==8: A=24, init@32, main@40, init_argc@48, entry_nslots@50,
  *           kernel_vtable_ref@56, kernel_init_sel_ref@64, kernel_nslots@72,
  *           header padded to 80, serial_on_sel_ref@80, header padded to 88,
  *           supervisor_vtable_ref@88, supervisor_init_sel_ref@96,
  *           supervisor_run_sel_ref@104, supervisor_nslots@112, header padded to 120,
- *           net_on_sel_ref@120, header padded to 128,
- *           concurrency_on_sel_ref@128, header padded to 136.
- *           (format_version 1: descriptor absent, 56 bytes.)
+ *           net_on_sel_ref@120, header padded to 128.
  * ------------------------------------------------------------------- */
 #define OIMG_PREFIX_FIXED 20u
 #define ALIGN_UP(n, a) (((n) + (a) - 1u) & ~((a) - 1u))
@@ -80,24 +81,21 @@ static uintptr_t img_init_sel_ref      = 0;
 static uintptr_t img_main_sel_ref      = 0;
 static uint16_t  img_init_argc         = 0;
 static uint16_t  img_entry_nslots      = 0;
-/* std-lib step 3b: Kernel module descriptor ref-words (format_version 3+).
+/* std-lib step 3b: Kernel module descriptor ref-words.
    At a+4W (vtable), a+5W (init selector); kernel_nslots (u16) at a+6W. */
 static uintptr_t img_kernel_vtable_ref   = 0;
 static uintptr_t img_kernel_init_sel_ref = 0;
 static uint16_t  img_kernel_nslots       = 0;
 /* std-lib step 3c-3b: ref to Kernel>>serialOn: for minting the serial
-   capability (format_version 4+). 0 when the entry takes no serial. */
+   capability. 0 when the entry takes no serial. */
 static uintptr_t img_serial_on_sel_ref   = 0;
-/* in-image debugger step 1: Supervisor descriptor (format_version 5+). */
+/* in-image debugger step 1: Supervisor descriptor. */
 static uintptr_t img_supervisor_vtable_ref   = 0;
 static uintptr_t img_supervisor_init_sel_ref = 0;
 static uintptr_t img_supervisor_run_sel_ref  = 0;
 static uint16_t  img_supervisor_nslots       = 0;
-/* R4: UDP capability (format_version 6+). 0 when the entry takes no net. */
+/* R4: UDP capability. 0 when the entry takes no net. */
 static uintptr_t img_net_on_sel_ref          = 0;
-/* R7 concurrency capability field (format_version 7) removed in Milestone A Task 5:
- * fibers are gone, so the field is no longer read; v7 images still load (the
- * concurrency word at A+13W is simply ignored). Header offsets compact in Task 9. */
 
 static uintptr_t read_word(const uint8_t *p) {
     uintptr_t w = 0;
@@ -122,8 +120,8 @@ int oimg_load_blob(const uint8_t *base, size_t size) {
     uint16_t format_version   = read_u16(base + 4);
     uint32_t registry_version = read_u32(base + 8);
     uint32_t blob_size        = read_u32(base + 12);
-    if (format_version < 3) {
-        fprintf(stderr, "oimg_load_blob: unsupported format_version %u (expected >= 3)\n", format_version);
+    if (format_version != 8) {
+        fprintf(stderr, "oimg_load_blob: unsupported format_version %u (expected 8)\n", format_version);
         return 1;
     }
     if (registry_version != BUILTIN_REGISTRY_VERSION) {
@@ -143,17 +141,17 @@ int oimg_load_blob(const uint8_t *base, size_t size) {
     img_main_sel_ref      = read_word(base + a + 2 * W);
     img_init_argc         = read_u16(base + a + 3 * W);
     img_entry_nslots      = read_u16(base + a + 3 * W + 2);
-    img_kernel_vtable_ref   = (format_version >= 3) ? read_word(base + a + 4 * W) : 0;
-    img_kernel_init_sel_ref = (format_version >= 3) ? read_word(base + a + 5 * W) : 0;
-    img_kernel_nslots       = (format_version >= 3) ? read_u16 (base + a + 6 * W) : 0;
-    img_serial_on_sel_ref   = (format_version >= 4) ? read_word(base + a + 7 * W) : 0;
-    img_supervisor_vtable_ref   = (format_version >= 5) ? read_word(base + a + 8 * W) : 0;
-    img_supervisor_init_sel_ref = (format_version >= 5) ? read_word(base + a + 9 * W) : 0;
-    img_supervisor_run_sel_ref  = (format_version >= 5) ? read_word(base + a + 10 * W) : 0;
-    img_supervisor_nslots       = (format_version >= 5) ? read_u16 (base + a + 11 * W) : 0;
-    img_net_on_sel_ref = (format_version >= 6) ? read_word(base + a + 12 * W) : 0;
-    /* format_version 7 concurrency_on_sel_ref (A+13W) intentionally not read — fibers
-       removed in Milestone A Task 5; the field is ignored if present. */
+    /* v8 fixed layout: every descriptor group is always present (0 when the
+       entry takes no such capability), so read them unconditionally. */
+    img_kernel_vtable_ref   = read_word(base + a + 4 * W);
+    img_kernel_init_sel_ref = read_word(base + a + 5 * W);
+    img_kernel_nslots       = read_u16 (base + a + 6 * W);
+    img_serial_on_sel_ref   = read_word(base + a + 7 * W);
+    img_supervisor_vtable_ref   = read_word(base + a + 8 * W);
+    img_supervisor_init_sel_ref = read_word(base + a + 9 * W);
+    img_supervisor_run_sel_ref  = read_word(base + a + 10 * W);
+    img_supervisor_nslots       = read_u16 (base + a + 11 * W);
+    img_net_on_sel_ref          = read_word(base + a + 12 * W);
 
     oimg_blob_base = base;
     oimg_blob_end  = base + blob_size;
@@ -231,10 +229,10 @@ oop oimg_bootstrap(oop entry_vtable) {
     oop init_args[3] = { kernel_inst, second_cap, TAG_SMI(0) };
     send(inst, oimg_resolve(img_init_sel_ref), (int)img_init_argc, init_args);
 
-    /* in-image debugger step 1: when the image carries a Supervisor descriptor
-       (format_version 5+), mint the Supervisor, grant it the native mirror, and
-       route the app launch through it (gated by OEVM_DEBUG). Pre-v5 images have
-       all img_supervisor_* refs == 0 (oimg_resolve(0) -> NULL), so fall back to
+    /* in-image debugger step 1: when the image carries a Supervisor descriptor,
+       mint the Supervisor, grant it the native mirror, and route the app launch
+       through it (gated by OEVM_DEBUG). Supervisor-less images have all
+       img_supervisor_* refs == 0 (oimg_resolve(0) -> NULL), so fall back to
        the original direct main:args: launch — mirroring the kernel/serial guards. */
     if (img_supervisor_vtable_ref != 0) {
         extern oop mirror_object(void);
