@@ -270,7 +270,7 @@ int main(void) {
     uint32_t *insts_brk = malloc(3 * sizeof(uint32_t));
     insts_brk[0] = 0x00000300; // OP_LD_CONST dest=3, src1=0
     insts_brk[1] = (uint32_t)OP_BREAK;
-    insts_brk[2] = 0x00000304; // OP_RET R3
+    insts_brk[2] = (0x00000300u | OP_RET); // OP_RET R3
     cm_brk->instructions = insts_brk;
     oop *consts_brk = malloc(1 * sizeof(oop));
     consts_brk[0] = TAG_SMI(10);
@@ -305,8 +305,8 @@ int main(void) {
     cm_step->access_modifier = ACCESS_PUBLIC;
     uint32_t *insts_step = malloc(3 * sizeof(uint32_t));
     insts_step[0] = 0x00000300; // OP_LD_CONST dest=3, src1=0
-    insts_step[1] = 0x03030306; // OP_ADD dest=3, src1=3, src2=3
-    insts_step[2] = 0x00000304; // OP_RET R3
+    insts_step[1] = (0x03030300u | OP_ADD); // OP_ADD dest=3, src1=3, src2=3
+    insts_step[2] = (0x00000300u | OP_RET); // OP_RET R3
     cm_step->instructions = insts_step;
     oop *consts_step = malloc(1 * sizeof(oop));
     consts_step[0] = TAG_SMI(5);
@@ -364,7 +364,7 @@ int main(void) {
     // Modify instruction 0 of cl_step: change const to consts_step[0] (which is Smi 5), but wait!
     // Let's modify instruction 1 (OP_ADD dest=3, src1=3, src2=3) to another OP_LD_CONST dest=3, src1=0 (Smi 5),
     // so it returns 5 instead of 10!
-    // Inst 1 original: 0x03030306
+    // Inst 1 original: OP_ADD dest=3, src1=3, src2=3 (0x03030300 | OP_ADD)
     // Inst 1 replacement: 0x00000300 (OP_LD_CONST dest=3, src1=0)
     oop mut_args[] = { cl_step, TAG_SMI(1), TAG_SMI(0x00000300) };
     send(mirror_object(), Symbol_instructionAtPut, 3, mut_args);
@@ -414,7 +414,7 @@ int main(void) {
     insts_arm[0] = (uint32_t)OP_BREAK;          /* fires hook; hook arms stepping    */
     insts_arm[1] = 0x00000300;                   /* OP_LD_CONST dest=3, src1=0        */
     insts_arm[2] = 0x00000300;                   /* OP_LD_CONST dest=3, src1=0        */
-    insts_arm[3] = 0x00000304;                   /* OP_RET R3                         */
+    insts_arm[3] = (0x00000300u | OP_RET);       /* OP_RET R3                         */
     cm_arm->instructions = insts_arm;
     oop *consts_arm = malloc(1 * sizeof(oop));
     consts_arm[0] = TAG_SMI(42);
@@ -479,7 +479,7 @@ int main(void) {
         cm_off->access_modifier = ACCESS_PUBLIC;
         uint32_t *insts_off = malloc(2 * sizeof(uint32_t));
         insts_off[0] = (uint32_t)OP_BREAK;    /* fires hook */
-        insts_off[1] = 0x00000004;             /* OP_RET R0  */
+        insts_off[1] = (uint32_t)OP_RET;       /* OP_RET R0  */
         cm_off->instructions = insts_off;
 
         oop cl_off = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
@@ -576,7 +576,7 @@ int main(void) {
         insts_rs[0] = (uint32_t)OP_BREAK;   /* fires hook; hook arms stepping via requestStep: */
         insts_rs[1] = 0x00000300;            /* OP_LD_CONST dest=3, src1=0                      */
         insts_rs[2] = 0x00000300;            /* OP_LD_CONST dest=3, src1=0                      */
-        insts_rs[3] = 0x00000304;            /* OP_RET R3                                       */
+        insts_rs[3] = (0x00000300u | OP_RET); /* OP_RET R3                                      */
         cm_rs->instructions = insts_rs;
         oop *consts_rs = malloc(1 * sizeof(oop));
         consts_rs[0] = TAG_SMI(7);
@@ -662,8 +662,8 @@ int main(void) {
         cm_bp->access_modifier = ACCESS_PUBLIC;
         uint32_t *insts_bp = malloc(3 * sizeof(uint32_t));
         insts_bp[0] = 0x00000300;            /* OP_LD_CONST dest=3, src1=0 */
-        insts_bp[1] = 0x03030306;            /* OP_ADD dest=3, src1=3, src2=3 */
-        insts_bp[2] = 0x00000304;            /* OP_RET R3 */
+        insts_bp[1] = (0x03030300u | OP_ADD); /* OP_ADD dest=3, src1=3, src2=3 */
+        insts_bp[2] = (0x00000300u | OP_RET); /* OP_RET R3 */
         cm_bp->instructions = insts_bp;
         oop *consts_bp = malloc(1 * sizeof(oop));
         consts_bp[0] = TAG_SMI(8);
@@ -744,7 +744,7 @@ int main(void) {
         uint32_t *insts_nr = malloc(3 * sizeof(uint32_t));
         insts_nr[0] = 0x00000300;            /* OP_LD_CONST dest=3, src1=0 */
         insts_nr[1] = (uint32_t)OP_BREAK;     /* fires hook */
-        insts_nr[2] = 0x00000304;            /* OP_RET R3 */
+        insts_nr[2] = (0x00000300u | OP_RET); /* OP_RET R3 */
         cm_nr->instructions = insts_nr;
         oop *consts_nr = malloc(1 * sizeof(oop));
         consts_nr[0] = TAG_SMI(13);

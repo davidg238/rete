@@ -234,12 +234,7 @@ enum Opcode {
     OP_LD_CONST = 0,
     OP_LD_REG,
     OP_SEND,
-    /* 0x03 retired: OP_SEND_IC (dead IC path — never emitted by the compiler;
-       handler + send_ic() + struct InlineCache deleted in de-recursify Phase 2
-       Task 3). Value kept reserved to avoid renumbering serialized .oimg images. */
-    OP_SEND_IC_RETIRED,
     OP_RET,
-    OP_NLR_RETIRED,   /* reserved; opcode compaction deferred to Task 9b (post Task 8, Context ops still live) */
     OP_ADD,
     OP_SUB,
     OP_MUL,
@@ -250,28 +245,28 @@ enum Opcode {
     OP_ST_SLOT,
     OP_NEW,
     OP_SEND_IMPLICIT,
-    OP_BREAK = 0x10,
+    OP_BREAK = 0x0E,
     // Super-send. Register layout at `c`: [c]=start vtable (the defining class's
     // delegate, a VTABLE: constant), [c+1]=self (receiver), [c+2..]=args; `a`=argc,
     // `b`=selector const. Result is written back to register [c].
-    OP_SEND_SUPER = 0x11,
-    OP_LD_LEXICAL = 0x12,   /* dest, src1=depth, src2=idx : lexical read  */
-    OP_ST_LEXICAL = 0x13,   /* dest=value, src1=depth, src2=idx : lexical write */
-    OP_CLOSURE    = 0x14,   /* dest, bx=method-const-idx : create BytecodeClosure */
-    OP_LD_SENDER  = 0x15,   /* dest, src1=ctx-reg : load prev_frame (sender) of the context in R(src1) */
-    OP_BLOCK_INVOKE = 0x16, /* a=argc, b=selector-const, c=receiver reg (== OP_SEND layout).
+    OP_SEND_SUPER = 0x0F,
+    OP_LD_LEXICAL = 0x10,   /* dest, src1=depth, src2=idx : lexical read  */
+    OP_ST_LEXICAL = 0x11,   /* dest=value, src1=depth, src2=idx : lexical write */
+    OP_CLOSURE    = 0x12,   /* dest, bx=method-const-idx : create BytecodeClosure */
+    OP_LD_SENDER  = 0x13,   /* dest, src1=ctx-reg : load prev_frame (sender) of the context in R(src1) */
+    OP_BLOCK_INVOKE = 0x14, /* a=argc, b=selector-const, c=receiver reg (== OP_SEND layout).
                                Fast-path: invoke a BytecodeClosure as a block; else fall back to send(). */
     /* De-recursify deferred-lift Phase 1, Task 2: temp-vector (Context) ops.
        INERT — not yet emitted by the compiler. Convention: a frame's own
        Context lives in the FIXED register `method->num_arguments + 1` (no
        spare 4th operand byte exists in the 32-bit dest/src1/src2 ISA; see
        the handlers in vm.c for the walk). */
-    OP_MK_CONTEXT = 0x17,   /* dest, num_slots(src1), outer-sentinel(src2) : alloc frame Context.
+    OP_MK_CONTEXT = 0x15,   /* dest, num_slots(src1), outer-sentinel(src2) : alloc frame Context.
                                src2==0xFF => outer = running closure's captured_env (block);
                                else       => outer = NULL (method root). */
-    OP_LD_CTX     = 0x18,   /* dest, depth(src1), idx(src2) : read from regs[num_arguments+1], walk `depth` outers, read slots[idx] */
-    OP_ST_CTX     = 0x19,   /* srcval(dest), depth(src1), idx(src2) : same walk, write slots[idx] = regs[dest] */
-    OP_LD_SELF    = 0x1A,   /* dest = reg; load closure->captured_self (self-migration, P2) */
+    OP_LD_CTX     = 0x16,   /* dest, depth(src1), idx(src2) : read from regs[num_arguments+1], walk `depth` outers, read slots[idx] */
+    OP_ST_CTX     = 0x17,   /* srcval(dest), depth(src1), idx(src2) : same walk, write slots[idx] = regs[dest] */
+    OP_LD_SELF    = 0x18,   /* dest = reg; load closure->captured_self (self-migration, P2) */
 };
 
 enum AccessModifier {

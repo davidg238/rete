@@ -558,14 +558,6 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 return_val = (dest < method->num_registers) ? ctx->regs[dest] : NULL;
                 goto do_ret_deliver;
 
-            case OP_NLR_RETIRED:
-                /* NLR was removed in Milestone A (the compiler never emits this
-                   opcode; ^ in an escaping closure is a compile error). The enum
-                   slot is reserved pending the Task 9 renumber; reaching it means a
-                   stale image — fail loudly rather than silently. */
-                fprintf(stderr, "OP_NLR_RETIRED executed (should be unreachable)\n");
-                abort();
-
             case OP_ADD:
             case OP_SUB:
             case OP_MUL:

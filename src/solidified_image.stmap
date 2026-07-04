@@ -1,92 +1,22 @@
 {
-  "source": "42_udp.ns",
+  "source": "01_method_call.ns",
   "functions": {
-    "UdpTest>>main:args:": [
+    "MethodCallTest>>main:args:": [
+      [
+        0,
+        14
+      ]
+    ],
+    "MethodCallTest_MethodCall>>test": [
       [
         0,
         9
-      ],
+      ]
+    ],
+    "MethodCallTest_MethodCall>>test2": [
       [
-        7,
-        9
-      ],
-      [
-        12,
-        10
-      ],
-      [
-        19,
-        10
-      ],
-      [
-        24,
+        0,
         11
-      ],
-      [
-        27,
-        12
-      ]
-    ],
-    "UdpTest>>roundTrip:": [
-      [
-        0,
-        16
-      ],
-      [
-        5,
-        17
-      ],
-      [
-        10,
-        17
-      ],
-      [
-        14,
-        18
-      ],
-      [
-        18,
-        19
-      ],
-      [
-        24,
-        20
-      ],
-      [
-        26,
-        21
-      ],
-      [
-        37,
-        22
-      ],
-      [
-        39,
-        23
-      ],
-      [
-        42,
-        23
-      ],
-      [
-        45,
-        24
-      ]
-    ],
-    "UdpTest>>fail:": [
-      [
-        0,
-        26
-      ],
-      [
-        3,
-        26
-      ]
-    ],
-    "Meta_UdpTest>>packageUsing:": [
-      [
-        0,
-        28
       ]
     ],
     "Kernel>>serialOn:": [
