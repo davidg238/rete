@@ -1,5 +1,13 @@
 # L7 — Integer semantics across 32/64-bit platforms (VM design)
 
+> **SUPERSEDED 2026-07-04 → `nsl-tuvm/docs/superpowers/specs/2026-07-04-L7-integer-semantics-decision.md`.**
+> This file is the pre-code *recommendation* (signed-64 + trap-at-2^63 + 8-byte `Int64`
+> box). Milestone A shipped a different, wider model — a ±(2^64−1) sign+magnitude
+> LargeInteger — which better serves the register-math domain (it holds `u32 × u32`,
+> which strict signed-64 would trap). The ratified decision reconciles L7's real
+> invariants (platform-independent width, trap-not-wrap, fixed width) to what shipped.
+> Kept here only for provenance; do not treat this file as the contract.
+
 **Status:** recommended 2026-07-03; must be **decided before Milestone B** (the message
 algebra's `int` is this integer). This is VM work, not library code.
 

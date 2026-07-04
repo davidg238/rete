@@ -949,16 +949,30 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                 if (IS_SMI(receiver) && IS_SMI(args[0])) {
                     return (receiver == args[0]) ? true_symbol : false_symbol;
                 }
-                // Numeric value equality only when BOTH sides are numbers
+                // Exact value equality for integers (SMI and/or LargeInteger),
+                // via sign+magnitude (prim_compare) — never through double.
+                // Without this, two distinct LargeInteger boxes of equal value
+                // fell through to identity below and compared UNEQUAL, which
+                // breaks Dictionary keys the moment a value crosses the SMI
+                // boundary (and `<`/`>` already compare large ints by value, so
+                // `=` disagreeing with them was an internal inconsistency).
+                if (oevm_is_integer(receiver) && oevm_is_integer(args[0])) {
+                    return (prim_compare(receiver, args[0]) == 0) ? true_symbol : false_symbol;
+                }
+                // Mixed number equality only when BOTH sides are numbers
                 // (so 1 = 1.0 holds). Previously a non-numeric operand fell
                 // through to 0.0, making every pair of heap objects — and
                 // `nil = anyObject` — compare equal. For non-numeric operands
-                // fall back to identity, the default Object>>= semantics.
-                int r_num = IS_SMI(receiver) || (receiver != NULL && obj_vtable(receiver) == FloatVtable);
-                int a_num = IS_SMI(args[0]) || (args[0] != NULL && obj_vtable(args[0]) == FloatVtable);
+                // fall back to identity, the default Object>>= semantics. A
+                // LargeInteger vs Float comparison goes through double, matching
+                // prim_compare's own mixed-operand fallback.
+                int r_num = oevm_is_integer(receiver) || (receiver != NULL && obj_vtable(receiver) == FloatVtable);
+                int a_num = oevm_is_integer(args[0]) || (args[0] != NULL && obj_vtable(args[0]) == FloatVtable);
                 if (r_num && a_num) {
-                    double v1 = IS_SMI(receiver) ? UNTAG_SMI(receiver) : ((struct Float *)receiver)->value;
-                    double v2 = IS_SMI(args[0]) ? UNTAG_SMI(args[0]) : ((struct Float *)args[0])->value;
+                    double v1 = IS_SMI(receiver) ? (double)UNTAG_SMI(receiver)
+                              : (obj_vtable(receiver) == FloatVtable ? ((struct Float *)receiver)->value : oevm_int_to_double(receiver));
+                    double v2 = IS_SMI(args[0]) ? (double)UNTAG_SMI(args[0])
+                              : (obj_vtable(args[0]) == FloatVtable ? ((struct Float *)args[0])->value : oevm_int_to_double(args[0]));
                     return (v1 == v2) ? true_symbol : false_symbol;
                 }
                 return (receiver == args[0]) ? true_symbol : false_symbol;
