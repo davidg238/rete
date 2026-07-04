@@ -12,7 +12,7 @@ extern oop BytecodeClosureVtable;
 extern oop PrimitiveClosureVtable;
 /* Milestone A Task 6: the Fiber wrapper and current_fiber were removed; the running
    execution context is now g_active_stack. The debugger single-step reflectee is
-   vestigial (primitive_fiber_set_single_step ignores it), so any non-NULL heap
+   vestigial (primitive_debugger_set_single_step ignores it), so any non-NULL heap
    oop works as the `fiber:singleStep:` reflectee — g_active_stack is the natural one. */
 extern oop g_active_stack;
 

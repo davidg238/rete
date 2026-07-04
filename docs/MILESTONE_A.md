@@ -143,7 +143,7 @@ narrative: see
 | | text | data+bss (RAM, host proxy) |
 |---|---:|---:|
 | baseline (seed, re-measured at `fa301d3`) | 39148 | 17253508 |
-| after (HEAD, `943d9b5`) | 35227 | 17252832 |
+| after (measured at `943d9b5`) | 35227 | 17252832 |
 | delta | -3921 bytes | -676 bytes |
 | delta % | -10.02% | -0.0039% (-0.33% excluding gc.o's host-only bss arena) |
 
@@ -152,6 +152,12 @@ The seed re-measurement reproduced the banked Task-1 figure of 39148 exactly
 shrank on both axes, as spec §7 requires — the largest single contributors were
 the fiber deletion (Tasks 5-6) and the NLR unwind removal (Tasks 2-3); see the
 linked note for the full (diffstat-based, labeled-as-estimate) attribution.
+
+Note: `943d9b5` was branch HEAD at measurement time but the branch has since
+moved (oracle cleanup + CV-1..CV-6 docs); engine sources (`src/*.c`, `src/*.h`)
+are unchanged between `943d9b5` and the current HEAD, so the figures above
+still hold — they are simply labeled by the commit actually measured rather
+than by "HEAD".
 
 ## 9. Cross-validation against the pre-fiber design (CV-1..CV-6)
 

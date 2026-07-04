@@ -509,10 +509,11 @@ static void trace_one(oop ptr) {
         }
     } else if (ContextVtable != NULL && ptr->vtable == ContextVtable) {
         /* Context (deferred-lift Phase 1, Task 1): a heap temp-vector of
-           captured locals. DORMANT — nothing yet allocates one outside this
-           unit test, but the tracer must be precise from day one (same
-           reasoning as the Stack branch above): the flexible slots[] array
-           is NOT covered by the generic trace_object word-count fallback. */
+           captured locals. LIVE (decision 2026-07-04) — allocated by the
+           compiler-emitted OP_MK_CONTEXT for escaping captures, so this
+           tracer must be precise (same reasoning as the Stack branch above):
+           the flexible slots[] array is NOT covered by the generic
+           trace_object word-count fallback. */
         struct Context *c = (struct Context *)ptr;
         mark(c->base.vtable);
         mark(c->outer);

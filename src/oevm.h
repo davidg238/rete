@@ -202,8 +202,9 @@ oop float_alloc(oop vtable);
 /*
  * Stack: a first-class heap object holding a contiguous region of
  * MethodContext frames (the de-recursify rewrite's language stack as heap
- * data — see docs/fiber_l0_frame_abi.md). DORMANT as of L1 Task 2: allocated
- * and GC-traced, but not yet wired into the running engine (Task 3+).
+ * data — see docs/fiber_l0_frame_abi.md). LIVE (Task 6): the Stack IS the
+ * execution context — g_active_stack is a GC-root Stack heap object backing
+ * the running engine's vm_stack/current_frame.
  */
 struct Stack {
     struct Object base;      /* vtable = StackVtable; GC-managed heap object */
@@ -257,10 +258,11 @@ enum Opcode {
     OP_BLOCK_INVOKE = 0x14, /* a=argc, b=selector-const, c=receiver reg (== OP_SEND layout).
                                Fast-path: invoke a BytecodeClosure as a block; else fall back to send(). */
     /* De-recursify deferred-lift Phase 1, Task 2: temp-vector (Context) ops.
-       INERT — not yet emitted by the compiler. Convention: a frame's own
-       Context lives in the FIXED register `method->num_arguments + 1` (no
-       spare 4th operand byte exists in the 32-bit dest/src1/src2 ISA; see
-       the handlers in vm.c for the walk). */
+       LIVE (decision 2026-07-04): emitted by the compiler's finalize_contexts()
+       post-pass for escaping captures. Convention: a frame's own Context
+       lives in the FIXED register `method->num_arguments + 1` (no spare 4th
+       operand byte exists in the 32-bit dest/src1/src2 ISA; see the handlers
+       in vm.c for the walk). */
     OP_MK_CONTEXT = 0x15,   /* dest, num_slots(src1), outer-sentinel(src2) : alloc frame Context.
                                src2==0xFF => outer = running closure's captured_env (block);
                                else       => outer = NULL (method root). */
@@ -350,7 +352,7 @@ oop primitive_method_context_reg_at(oop receiver, int argc, oop *args);
 oop primitive_method_context_reg_at_put(oop receiver, int argc, oop *args);
 /* confined read prim (Task 8): register count of a context's method, to bound a dump */
 oop primitive_method_context_num_registers(oop receiver, int argc, oop *args);
-oop primitive_fiber_set_single_step(oop receiver, int argc, oop *args);
+oop primitive_debugger_set_single_step(oop receiver, int argc, oop *args);
 oop primitive_vtable_bind(oop receiver, int argc, oop *args);
 oop primitive_compiled_method_set_instruction_at(oop receiver, int argc, oop *args);
 

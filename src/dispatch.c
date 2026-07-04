@@ -47,9 +47,10 @@ oop largeint_alloc(int sign, uint64_t mag) {
 }
 
 /* ---- Stack: first-class heap object (de-recursify rewrite, L1 Task 2) ----
-   DORMANT: allocated and GC-traced, but not yet wired into the running
-   engine. Mirrors the pre-Milestone-A per-fiber stack allocation shape, but as
-   a single GC-managed heap object instead of a malloc'd C array. */
+   LIVE (Task 6): the Stack IS the execution context — g_active_stack backs
+   the running engine. Mirrors the pre-Milestone-A per-fiber stack allocation
+   shape, but as a single GC-managed heap object instead of a malloc'd C
+   array. */
 oop stack_alloc(uint32_t capacity) {
     extern oop gc_allocate(oop vtable, size_t size);
     size_t bytes = sizeof(struct Stack) + (size_t)capacity * sizeof(oop);
@@ -62,10 +63,11 @@ oop stack_alloc(uint32_t capacity) {
 }
 
 /* ---- Context: heap temp-vector for captured (closed-over) locals --------
-   (de-recursify deferred-lift Phase 1, Task 1). DORMANT: allocated and
-   GC-traced, but nothing yet emits or consumes it. `outer` may be a heap
-   oop we must keep live across the allocation (a GC during gc_allocate
-   would otherwise sweep it before it's linked into the new Context). */
+   (de-recursify deferred-lift Phase 1, Task 1). LIVE (decision 2026-07-04):
+   allocated and consumed by the compiler-emitted OP_MK_CONTEXT/LD_CTX/ST_CTX
+   ops for escaping captures. `outer` may be a heap oop we must keep live
+   across the allocation (a GC during gc_allocate would otherwise sweep it
+   before it's linked into the new Context). */
 oop context_alloc(uint32_t num_slots, oop outer, uint32_t home_generation) {
     extern oop gc_allocate(oop vtable, size_t size);
     extern void gc_temp_root_push(oop o);
@@ -649,7 +651,7 @@ oop make_closure(oop method) {
         current_frame ? home_link_encode_relative(vm_stack, current_frame) : NULL;
     ((struct Closure *)cl)->home_generation = current_frame ? current_frame->gen_tag.tag32 : 0;
     ((struct Closure *)cl)->entry_point = (void *)method;
-    ((struct Closure *)cl)->captured_env = NULL;  /* set by OP_CLOSURE path once compiler emits contexts (Task 4) */
+    ((struct Closure *)cl)->captured_env = NULL;  /* set by the OP_CLOSURE path when the creating method has a heap Context */
     /* De-recursify Phase 2 (self-migration, Approach B): snapshot the home method's
        receiver. A block's self IS its home method's receiver (shared across a method
        and all its nested blocks), so compute it O(1): a method creating-frame's

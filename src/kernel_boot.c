@@ -91,11 +91,13 @@ const struct Vtable Vtable_BoxedBindingVtable    = { { (oop)&Vtable_VtableVtable
 /* No fiber vtable is defined here or in VM-CORE anymore — the last one
    (RunnableFiberVtable) was retired with the Fiber wrapper in Task 6. */
 /* Stack (L1 Task 2): private runtime vtable, not a builtins.def registry
- * entry — internal runtime state no image ever names. DORMANT. */
+ * entry — internal runtime state no image ever names. LIVE (Task 6): the
+ * Stack IS the running engine's execution context. */
 const struct Vtable Vtable_StackVtable           = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
 /* Context (deferred-lift Phase 1, Task 1): private runtime vtable, not a
  * builtins.def registry entry — internal runtime state no image ever
- * names. DORMANT: nothing yet emits or consumes a Context. */
+ * names. LIVE (decision 2026-07-04): the compiler emits OP_MK_CONTEXT/
+ * LD_CTX/ST_CTX for escaping captures. */
 const struct Vtable Vtable_ContextVtable         = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
 
 /* ------------------------------------------------------------------ *

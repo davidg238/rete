@@ -74,7 +74,7 @@ oop mirror_dispatch(oop selector, int argc, oop *args) {
     if (strcmp(sel, "unbreakAt:offset:") == 0) return primitive_break_remove(NULL, argc, args);
     if (strcmp(sel, "methodOf:") == 0)         return primitive_method_of(args[0], argc - 1, args + 1);
     /* mutations */
-    if (strcmp(sel, "fiber:singleStep:") == 0)         return primitive_fiber_set_single_step(args[0], argc - 1, args + 1);
+    if (strcmp(sel, "fiber:singleStep:") == 0)         return primitive_debugger_set_single_step(args[0], argc - 1, args + 1);
     if (strcmp(sel, "vtable:bind:to:") == 0)           return primitive_vtable_bind(args[0], argc - 1, args + 1);
     if (strcmp(sel, "method:instructionAt:put:") == 0) return primitive_compiled_method_set_instruction_at(args[0], argc - 1, args + 1);
     /* onBreak: -- no reflectee; the closure IS args[0] (prim does (void)receiver). */

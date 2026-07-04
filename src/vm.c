@@ -440,15 +440,16 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 break;
             }
             /* De-recursify deferred-lift Phase 1, Task 2: temp-vector (Context)
-               ops. INERT — the compiler does not emit these yet; they are only
-               exercised by tests/test_ctx_ops.c. Convention: a frame's own
-               Context always lives in the FIXED register `method->num_arguments
+               ops. LIVE (decision 2026-07-04): the compiler's finalize_contexts()
+               post-pass emits these for escaping captures, producing the
+               fiber-independent heap-Context closure story; tests/test_ctx_ops.c
+               also hand-assembles them as a unit exerciser. Convention: a frame's
+               own Context always lives in the FIXED register `method->num_arguments
                + 1` (there is no free 4th operand byte in this 32-bit dest/src1/
                src2 ISA — bits 24-31 are already `src2` for every op, as OP_SEND
-               establishes). The compiler (a later task) is responsible for
-               reserving that register and routing captured-local access through
-               it; the VM here is stateless about *why* that register holds what
-               it holds. */
+               establishes). The compiler reserves that register and routes
+               captured-local access through it; the VM here is stateless about
+               *why* that register holds what it holds. */
             case OP_MK_CONTEXT: {
                 uint8_t num_slots = src1;
                 oop outer = (src2 == 0xFF)
@@ -1161,7 +1162,7 @@ oop primitive_request_step(oop receiver, int argc, oop *args) {
 /* singleStep: (mirror alias `fiber:singleStep:`). Task 6: with the Fiber wrapper
    gone the reflectee is vestigial — single-step is a global on the one execution
    context. `receiver` is accepted for the mirror's arg shape but not dereferenced. */
-oop primitive_fiber_set_single_step(oop receiver, int argc, oop *args) {
+oop primitive_debugger_set_single_step(oop receiver, int argc, oop *args) {
     (void)receiver;
     if (argc < 1) {
         fprintf(stderr, "VM Error: singleStep: expects 1 argument\n");
