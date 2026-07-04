@@ -152,3 +152,32 @@ The seed re-measurement reproduced the banked Task-1 figure of 39148 exactly
 shrank on both axes, as spec §7 requires — the largest single contributors were
 the fiber deletion (Tasks 5-6) and the NLR unwind removal (Tasks 2-3); see the
 linked note for the full (diffstat-based, labeled-as-estimate) attribution.
+
+## 9. Cross-validation against the pre-fiber design (CV-1..CV-6)
+
+Controller-run 2026-07-04, after Task 10 (plan §"Cross-validation"). Reference:
+the pre-fiber *design record* (`docs/dev_process/phase{1,2,3}_walkthrough.md`),
+since no pre-fiber commit exists (§7).
+
+- **CV-1 struct inventory — PASS.** All Phase-1 structs present in the stripped
+  `oevm.h` (`Object`, `Symbol`, `Binding`, `Vtable`, `MethodContext`, `Closure`);
+  `struct Fiber` gone. Notes: `InlineCache` is absent because the de-recursify
+  work retired it **pre-seed** (oevm `d6d94c4`) — not a Milestone-A deletion; the
+  global method cache is its successor (`test_method_cache` green).
+  `struct Context` (`frame_abi.h:77`) is intentionally retained (§2).
+  `test_layout` green is the machine check.
+- **CV-2 dispatch/send — PASS.** `send()`, method lookup, global method cache,
+  `does_not_understand` intact; only fiber-switch/NLR-unwind branches removed.
+  `test_method_cache` + `test_oevm` green in the 18/2 runner.
+- **CV-3 mirrors/reflection — PASS.** The Phase-3 reflective surface and the
+  reified stack walk are intact; the seed→stripped delta in `mirror.c` is one
+  truthful comment reword (requestStep: now names the single global execution
+  context). `test_debugger` green post-prune.
+- **CV-4 lifecycle guard — RESOLVED: KEPT.** See §3.
+- **CV-5 VM delta review — PASS.** Every seed→stripped file delta maps to an
+  intended Milestone-A change (strip Tasks 2–8n, registry 9a, renumber+v8 9b,
+  regenerated image, comment sweep 10a); no collateral edits to KEEP subsystems.
+- **CV-6 compiler fiber-delta — PASS.** The Task-4 stdlib strip is the exact
+  mirror image of the fiber facade addition in frozen `ns-oevm@88fdf6e`
+  (+63 lines, `class Concurrency` + `class Fiber` + factory); zero
+  fiber/concurrency residue remains in `lib/kernel.ns`.
