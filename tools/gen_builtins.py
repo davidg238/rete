@@ -2,9 +2,11 @@ import re
 import sys
 from pathlib import Path
 
-DEF = Path(__file__).resolve().parent.parent.parent / "oevm" / "src" / "builtins.def"
+# Task 9a: repointed from the FROZEN oevm seed to the ACTIVE tuvm builtins.def.
+# The compiler's registry must follow the live VM as the registry compacts.
+DEF = Path(__file__).resolve().parent.parent.parent / "tuvm" / "src" / "builtins.def"
 OUT = Path(__file__).resolve().parent / "builtins_registry.py"
-VERSION = 4  # keep in lockstep with BUILTIN_REGISTRY_VERSION in oimg_loader.c
+VERSION = 5  # keep in lockstep with BUILTIN_REGISTRY_VERSION in oimg_loader.c
 
 
 def parse():
