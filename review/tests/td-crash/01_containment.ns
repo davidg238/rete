@@ -1,0 +1,39 @@
+(*
+expect:
+good 10
+bad 0
+crashes 10
+done
+*)
+(* T-D.1 — containment baseline: two handlers; one crashes on EVERY firing. Across 10
+   rounds the healthy handler counts all 10, the node never exits, and the supervisor
+   observed one crash record per firing on the reserved channel (%sys/crash carries
+   Record tag:#crash — see tests/README.md ASSUMED API). The crashing handler's own
+   counter stays 0 because its crash precedes the increment — proving the unwind
+   really abandons the handler body. *)
+class Containment packageUsing: manifest = () (
+  | goodHits ::= 0. badHits ::= 0. |
+  public main: platform args: args = (
+    | space good bad sys crashes |
+    space:: platform space.
+    good:: space channel: 'good'.
+    bad::  space channel: 'bad'.
+    sys::  space channel: '%sys'.
+
+    good whenever: '' do: [ :m | goodHits:: goodHits + 1 ].
+    bad  whenever: '' do: [ :m | self error: 'boom'. badHits:: badHits + 1 ].
+
+    1 to: 10 do: [ :i |
+      good out: '' value: i.
+      bad  out: '' value: i ].
+    space drain.
+
+    ('good ' , goodHits printString) out.     (* 10 — unaffected *)
+    ('bad '  , badHits printString) out.      (* 0  — body abandoned at the error *)
+    crashes:: 0.
+    [ (sys take: 'crash') == nil ] whileFalse: [ crashes:: crashes + 1 ].
+    ('crashes ' , crashes printString) out.   (* 10 — one record per contained crash *)
+    'done' out.
+  )
+) : (
+)

@@ -1,0 +1,24 @@
+(*
+expect:
+nil
+nil
+done
+*)
+(* T-C.4 — no ambient authority: a job holding ONLY a rooted capability cannot
+   observe traffic outside its prefix. The 'job' here is a handler granted 'jobroot';
+   a value posted at 'secret/data' must be invisible to it — its own take: of any
+   path it can express resolves inside jobroot/… only. (Enumeration APIs must not
+   exist on Channel; verify by protocol review when landing — a test cannot prove a
+   selector's absence, only CLAIMS.md can record the check.) *)
+class NoAmbient packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space jobCap |
+    space:: platform space.
+    (space channel: 'secret') out: 'data' value: 99.
+    jobCap:: space channel: 'jobroot'.
+    (jobCap take: 'secret/data') printString out.   (* nil — that's jobroot/secret/data: empty *)
+    (jobCap take: 'data') printString out.          (* nil — jobroot/data: empty *)
+    'done' out.
+  )
+) : (
+)

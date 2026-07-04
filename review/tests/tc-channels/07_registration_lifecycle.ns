@@ -1,0 +1,34 @@
+(*
+expect:
+before 0
+after 1
+late 0
+done
+*)
+(* T-C.7 — registration lifecycle + transient signals: a posting with NO registered
+   reaction is a defined no-op (the signal is DROPPED, not queued — 'late 0' proves
+   the pre-registration post never arrives); a reaction registered later sees only
+   subsequent postings. Pins the transient-signal semantics of the degenerate space
+   (spec §6): persistence, when it comes, is a NEW feature, not a changed default. *)
+class RegistrationLifecycle packageUsing: manifest = () (
+  | hits ::= 0. lateHits ::= 0. |
+  public main: platform args: args = (
+    | space cap |
+    space:: platform space.
+    cap:: space channel: 'sig'.
+
+    cap out: '' value: #dropped.            (* no reaction yet: dropped *)
+    space drain.
+    ('before ' , hits printString) out.     (* 0 *)
+
+    cap whenever: '' do: [ :m | hits:: hits + 1 ].
+    cap out: '' value: #seen.
+    space drain.
+    ('after ' , hits printString) out.      (* 1 — only the post-registration signal *)
+
+    cap whenever: '' do: [ :m | lateHits:: lateHits + 1 ].
+    ('late ' , lateHits printString) out.   (* 0 — registering replays nothing *)
+    'done' out.
+  )
+) : (
+)

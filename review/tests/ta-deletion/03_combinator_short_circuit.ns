@@ -1,0 +1,34 @@
+(*
+expect:
+6
+6
+none
+10
+55
+*)
+(* T-A.3 — combinators are the no-NLR early-exit story; pin their SHORT-CIRCUIT
+   semantics with a side-effect counter: after detect:ifNone: hits, the block must not
+   be evaluated again (kernel's found-flag detect stops SENDING the block, though it
+   walks on — the observable contract is evaluation count = match position).
+   Also: ifNone: fires on miss (lazily), and inject:into: visits everything.
+   When combinators.ns lands, clone this file for anySatisfy:/allSatisfy:/count:. *)
+class CombinatorShortCircuit packageUsing: manifest = () (
+  public main: platform args: args = (
+    | col count hit |
+    col:: OrderedCollection new.
+    1 to: 10 do: [ :i | col add: i ].
+
+    count:: 0.
+    hit:: col detect: [ :e | count:: count + 1. e > 5 ] ifNone: [ 0 - 1 ].
+    hit printString out.                      (* 6  — first element > 5 *)
+    count printString out.                    (* 6  — block evaluated exactly 6 times *)
+
+    count:: 0.
+    hit:: col detect: [ :e | count:: count + 1. e > 99 ] ifNone: [ 'none' ].
+    hit out.                                  (* none — ifNone: arm ran *)
+    count printString out.                    (* 10 — full scan on miss *)
+
+    (col inject: 0 into: [ :a :e | a + e ]) printString out.   (* 55 *)
+  )
+) : (
+)

@@ -1,0 +1,21 @@
+(*
+expect:
+3
+expect-crash: at:put:
+*)
+(* T-B.2 (reflective path) — `perform:` must not bypass immutability. Because mutators
+   are ABSENT (not guarded), the reflective send finds no method: same DNU as 02.
+   If the seed kernel lacks perform:withArguments:, land this when mirrors/perform
+   arrive and note it in CLAIMS.md until then. *)
+class ReflectiveMutation packageUsing: manifest = () (
+  public main: platform args: args = (
+    | l argsArr |
+    l:: List with: 1 with: 2 with: 3.
+    l size printString out.
+    argsArr:: Array new: 2.
+    argsArr at: 1 put: 1. argsArr at: 2 put: 99.
+    l perform: #at:put: withArguments: argsArr.    (* no method to find *)
+    'unreached' out.
+  )
+) : (
+)

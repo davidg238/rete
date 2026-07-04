@@ -1,0 +1,93 @@
+(*
+L8 — String: immutable, valid UTF-8 by construction, minimal on purpose.
+
+A string is for humans and logs; binary protocol work lives in bytes.ns. NO case tables,
+normalization, collation, or grapheme segmentation on-device — flash-budget poison; text
+PROCESSING happens porta-side.
+
+REQUIRED PRIMITIVES (C work order):
+  utf8IsValid: aBytes            -> bool (decode-time gate; also used by CBOR decode)
+  (existing) string concat, =, size-in-bytes, byteAt: — assumed from the kernel seed
+
+DESTINATIONS: methods below -> kernel.ns class String. Errors per errors.md:
+'invalid utf-8', 'index out of bounds'.
+
+Pinned semantics:
+  - `size`   = BYTES (documented loudly; O(1), honest on a small device).
+  - `=`, `<` = byte-wise (valid UTF-8 makes byte order == code-point order for `<`
+               on the code-point level; no locale collation, ever).
+  - copyFrom:to: is byte-indexed and CRASHES if a cut splits a multi-byte code point —
+    never silently produces invalid UTF-8 (the invariant is "every String is valid").
+*)
+class StringsStaging usingPlatform: platform = () (
+
+  class StringAdditions = () (
+
+    (* --- byte <-> string boundary (the only places validity is checked) --- *)
+    public asBytes = ( ^ platform freezeBytes: self )     (* free-ish: same payload, Bytes view *)
+
+    (* DESTINATION Bytes (bytes.ns): decode with explicit failure continuation. *)
+    public bytesAsStringIfInvalid: failBlock = (
+      (platform utf8IsValid: self) ifFalse: [ ^ failBlock value ].
+      ^ platform stringFromBytes: self
+    )
+    public bytesAsString = ( ^ self bytesAsStringIfInvalid: [ self error: 'invalid utf-8' ] )
+
+    (* --- code-point iteration (the one Unicode-aware operation shipped) --- *)
+    public codePointsDo: aBlock = (
+      | i n b cp len |
+      i:: 1. n:: self size.
+      [ i <= n ] whileTrue: [
+        b:: self byteAt: i.
+        b < 16r80
+          ifTrue: [ cp:: b. len:: 1 ]
+          ifFalse: [
+            b < 16rE0
+              ifTrue: [ cp:: b bitAnd: 16r1F. len:: 2 ]
+              ifFalse: [
+                b < 16rF0
+                  ifTrue: [ cp:: b bitAnd: 16r0F. len:: 3 ]
+                  ifFalse: [ cp:: b bitAnd: 16r07. len:: 4 ] ] ].
+        2 to: len do: [ :k | cp:: (cp << 6) bitOr: ((self byteAt: i + k - 1) bitAnd: 16r3F) ].
+        aBlock value: cp.
+        i:: i + len ].
+      ^ self
+    )
+    public codePointCount = ( | c | c:: 0. self codePointsDo: [ :cp | c:: c + 1 ]. ^ c )
+
+    (* --- byte-indexed copy that cannot create an invalid String --- *)
+    isContinuation: byte = ( ^ (byte bitAnd: 16rC0) = 16r80 )
+    public copyFrom: start to: stop = (
+      (start < 1 or: [ stop > self size ]) ifTrue: [ self error: 'index out of bounds' ].
+      (start <= stop) ifTrue: [
+        (self isContinuation: (self byteAt: start)) ifTrue: [ self error: 'invalid utf-8' ].
+        stop < self size ifTrue: [
+          (self isContinuation: (self byteAt: stop + 1)) ifTrue: [ self error: 'invalid utf-8' ] ] ].
+      ^ platform stringCopy: self from: start to: stop
+    )
+
+    public startsWith: prefix = (
+      prefix size > self size ifTrue: [ ^ false ].
+      ^ (platform stringCopy: self from: 1 to: prefix size) = prefix
+    )
+
+    (* --- formatting for logs: '%1 twice is %2' format: (List with: 3 with: 6) --- *)
+    public format: args = (
+      | out i n b argIdx |
+      out:: ''. i:: 1. n:: self size.
+      [ i <= n ] whileTrue: [
+        b:: self byteAt: i.
+        (b = 37 and: [ i < n ]) ifTrue: [            (* '%' *)
+          argIdx:: (self byteAt: i + 1) - 48.        (* '1'..'9' *)
+          (argIdx >= 1 and: [ argIdx <= args size ])
+            ifTrue: [ out:: out , (args at: argIdx) asString. i:: i + 2 ]
+            ifFalse: [ out:: out , (platform stringCopy: self from: i to: i). i:: i + 1 ] ]
+        ifFalse: [
+          out:: out , (platform stringCopy: self from: i to: i). i:: i + 1 ] ].
+      ^ out
+    )
+  ) : ( )
+
+  (* NOTE: format: above is O(n) copies — fine for logs, the only intended use. If a
+     WriteStream lands in the stdlib port, rewrite over it; API unchanged. *)
+) : ( )

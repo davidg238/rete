@@ -1,0 +1,24 @@
+(*
+expect-compile-error: non-local return
+*)
+(* T-A.1 — `^` inside an ESCAPING closure (stored/passed to a non-inlined selector) is
+   a compile error, and the diagnostic is API: it must name the rule (substring above;
+   align the exact wording with what Task 2 emits, then freeze it) and carry the right
+   source line. The `^ x * 2` below is the violation; nothing here may compile.
+
+   Companion cases (same expectation; split into files 01b/01c when landing so each
+   diagnostic line number is asserted separately):
+     01b: block PASSED to a user-defined selector:  self apply: [ :x | ^ x ]
+     01c: nested two deep inside an escaping block: [ :x | true ifTrue: [ ^ x ] ]
+*)
+class NlrEscapeCompileError packageUsing: manifest = () (
+  public run = (
+    | blk |
+    blk:: [ :x | ^ x * 2 ].      (* stored closure: ^ must be rejected AT COMPILE TIME *)
+    ^ blk value: 21
+  )
+  public main: platform args: args = (
+    self run printString out.
+  )
+) : (
+)

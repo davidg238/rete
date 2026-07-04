@@ -1,0 +1,86 @@
+(*
+L3 — timers as channel events. No new semantics: a timer is an event source that posts
+into the space, exactly like the Milestone-D host seam. Covers most "wait then act"
+without any suspension; with fsm.ns it covers protocol timeouts.
+
+REQUIRED C SEAM (work order — mirrors the Milestone-D event-source seam):
+  platform timerAfter: ms token: tok      -> one-shot; on expiry the seam posts the
+                                             pending (channel, message) registered under tok
+  platform timerEvery: ms token: tok      -> repeating
+  platform timerCancel: tok               -> best-effort cancel; already-fired is a no-op
+  platform monotonicMillis                -> ms since boot (64-bit int; see integers.md)
+
+Design constraints honored:
+  - The C side carries DATA (token, ms), not policy: which channel, what message, and
+    cancellation bookkeeping live here in nsl. C fires "token N expired" into a single
+    reserved internal channel; this module owns the fan-out. So the seam stays one
+    dumb registry + one posting path.
+  - Timer delivery is an ordinary reactor dispatch: run-to-completion ordering (T-C.6)
+    applies to timer events identically. No ISR-context nsl execution, ever.
+  - A Timer token is a small capability: holding it = the right to cancel.
+
+Wiring at boot (supervisor setup):
+  timers:: Timers usingSpace: space seam: platform.
+  space whenever: '%sys/timer' do: [:e | timers dispatch: e].   (* reserved channel *)
+
+Usage:
+  t:: timers after: 50 post: (Record tag: #timeout fields: Map empty) on: sensorChan.
+  timers cancel: t.
+  timers every: 1000 post: #tick on: tickChan.
+*)
+class TimersStaging usingPlatform: platform = () (
+
+  class Timers = (
+    | space seam nextToken ::= 1. pending ::= Dictionary new. |
+    (* pending: token -> Pending(channel, message, repeating) *)
+  ) (
+    class Pending = ( | chan msg repeating | ) (
+      public chan = ( ^ chan )  public msg = ( ^ msg )  public repeating = ( ^ repeating )
+      setChan: c msg: m repeating: r = ( chan:: c. msg:: m. repeating:: r. ^ self )
+    ) : ( public chan: c msg: m repeating: r = ( ^ self new setChan: c msg: m repeating: r ) )
+
+    public after: ms post: aMessage on: aChannel = (
+      | tok |
+      tok:: self allocateToken.
+      pending at: tok put: (Pending chan: aChannel msg: aMessage repeating: false).
+      seam timerAfter: ms token: tok.
+      ^ tok
+    )
+
+    public every: ms post: aMessage on: aChannel = (
+      | tok |
+      tok:: self allocateToken.
+      pending at: tok put: (Pending chan: aChannel msg: aMessage repeating: true).
+      seam timerEvery: ms token: tok.
+      ^ tok
+    )
+
+    public cancel: tok = (
+      | p |
+      p:: pending at: tok ifAbsent: [ nil ].       (* cancelling twice is a no-op *)
+      p == nil ifFalse: [
+        pending removeKey: tok.
+        seam timerCancel: tok ].
+      ^ self
+    )
+
+    public now = ( ^ seam monotonicMillis )
+
+    (* Called by the supervisor's reserved-channel reaction. Event = the token (int).
+       Late fire after cancel -> not in `pending` -> dropped silently BY DESIGN
+       (transient-signal semantics; the race is inherent, the resolution is pinned). *)
+    public dispatch: tokenEvent = (
+      | p |
+      p:: pending at: tokenEvent ifAbsent: [ nil ].
+      p == nil ifFalse: [
+        p repeating ifFalse: [ pending removeKey: tokenEvent ].
+        p chan out: '' value: p msg ].    (* '' = post at the capability's own root *)
+      ^ self
+    )
+
+    allocateToken = ( | t | t:: nextToken. nextToken:: nextToken + 1. ^ t )
+    setSpace: s seam: c = ( space:: s. seam:: c. ^ self )
+  ) : (
+    public usingSpace: s seam: c = ( ^ self new setSpace: s seam: c )
+  )
+) : ( )

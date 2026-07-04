@@ -1,0 +1,114 @@
+(*
+L4 — Protocol: the state-machine idiom (THE fiber replacement; addendum A3 mechanism #1).
+
+One object per device protocol; events in, actions out; current state explicit,
+inspectable, and — the deep-sleep payoff — trivially persistable. Ship WITH the first
+driver examples, not after.
+
+Depends on: kernel Dictionary + OrderedCollection only. Channel/timer integration is by
+convention (handlers receive the event message; timeouts arrive as ordinary events from
+timers.ns), so this file needs NO new VM surface and lands right after Milestone A.
+
+Usage (target shape — this drives the D-milestone example and the demo script):
+
+  machine:: Protocol named: #tmp117.
+  machine state: #idle       on: #start do: [:m :e | (* kick I2C conversion *) ] then: #converting.
+  machine state: #converting on: #tick  do: [:m :e | (* read result, out: it *) ] then: #idle.
+  machine state: #converting on: #timeout do: [:m :e | (* give up *) ] then: #idle.
+  machine onUnhandled: [:m :e | (* log; default is ignore *) ].
+  whenever: sensorChan do: [:e | machine handle: e].
+
+Event shape convention: an event is any algebra value; its selector key is
+  - a Symbol event: the symbol itself
+  - a Record: its tag
+so drivers can post rich payloads and the machine dispatches on the tag.
+
+Errors per errors.md; unknown TARGET state at definition time crashes immediately
+(configuration bugs die at setup, not in the field).
+*)
+class FsmStaging usingPlatform: platform = () (
+
+  class Protocol = (
+    | name          ::= #protocol.
+      current       ::= #initial.
+      states        ::= Dictionary new.     (* state -> (eventKey -> Transition) *)
+      unhandled     ::= nil.                (* block or nil; nil = silently ignore *)
+      entryActions  ::= Dictionary new.     (* state -> block, optional *)
+      trace         ::= false. |
+  ) (
+    class Transition = ( | action target | ) (
+      public action = ( ^ action )
+      public target = ( ^ target )
+      setAction: a target: t = ( action:: a. target:: t. ^ self )
+    ) : ( public action: a target: t = ( ^ self new setAction: a target: t ) )
+
+    (* ---- definition ---- *)
+    public state: s on: eventKey do: action then: target = (
+      | table |
+      table:: states at: s ifAbsent: [ | t | t:: Dictionary new. states at: s put: t. t ].
+      table at: eventKey put: (Transition action: action target: target).
+      ^ self
+    )
+    public state: s onEntry: aBlock = ( entryActions at: s put: aBlock. ^ self )
+    public onUnhandled: aBlock = ( unhandled:: aBlock. ^ self )
+    public startIn: s = ( current:: s. self runEntry: s with: nil. ^ self )
+    public trace: aBool = ( trace:: aBool. ^ self )
+
+    (* ---- introspection / persistence (the deep-sleep hooks) ---- *)
+    public currentState = ( ^ current )
+    public name = ( ^ name )
+    (* Persistable snapshot is just the state symbol; a protocol carries no other
+       implicit state BY DESIGN — anything else the handler needs lives in the job's
+       own slots or in channel messages, both of which are already explicit. *)
+    public snapshot = ( ^ current )
+    public restore: s = ( current:: s. ^ self )
+
+    (* ---- dispatch (run-to-completion; called from a whenever: handler) ---- *)
+    public handle: event = (
+      | key table hit t |
+      key:: self keyFor: event.
+      table:: states at: current ifAbsent: [ nil ].
+      hit:: false.
+      table == nil ifFalse: [
+        t:: table at: key ifAbsent: [ nil ].
+        t == nil ifFalse: [
+          hit:: true.
+          trace ifTrue: [ (name asString , ': ' , current asString , ' -' , key asString , '-> ' , t target asString) out ].
+          t action value: self value: event.
+          current:: t target.
+          self runEntry: current with: event ] ].
+      hit ifFalse: [
+        unhandled == nil ifFalse: [ unhandled value: self value: event ] ].
+      ^ hit
+    )
+
+    keyFor: event = (
+      (* Symbol -> itself; Record -> tag; anything else -> the catch-all key.
+         isSymbol/isRecord are the type predicates from messages.md. *)
+      event isSymbol ifTrue: [ ^ event ].
+      event isRecord ifTrue: [ ^ event tag ].
+      ^ #event
+    )
+
+    (* Setup-time check: every transition target has a state table or an entry action.
+       Configuration bugs die at setup, not in the field. Call at end of definition:
+       `machine validate.` *)
+    public validate = (
+      states do: [ :table |
+        table do: [ :t |
+          ((states containsKey: t target) or: [ entryActions containsKey: t target ])
+            ifFalse: [ self error: 'unknown state' ] ] ].
+      ^ self
+    )
+    runEntry: s with: event = (
+      | a |
+      a:: entryActions at: s ifAbsent: [ nil ].
+      a == nil ifFalse: [ a value: self value: event ].
+      ^ self
+    )
+    setName: n = ( name:: n. ^ self )
+  ) : (
+    public named: n = ( ^ self new setName: n )
+  )
+
+) : ( )

@@ -1,0 +1,195 @@
+(*
+demo-node.ns — the target user program, written BEFORE the runtime exists
+(readme-driven development). This file is the north star: when it loads, runs, and
+reads well, the language is sufficient. Every ergonomic problem it surfaces now costs
+a design conversation instead of a VM rewrite.
+
+THE NODE: an nRF52840 + TMP117 temperature sensor on I2C, publishing readings over
+Thread to porta, deep-sleeping between samples, surviving its own crashes.
+One source, two deployment modes: always-on vs deep-sleep is SUPERVISOR POLICY
+(how it answers #sleepFor requests), not a different program — the point of the
+run-to-completion model.
+
+USES (everything in review/lib/): fsm.ns Protocol · bytes.ns ByteArray/Bytes ·
+timers.ns · messages.md Record/Map/List · combinators (inject:into:, last:) ·
+errors.md convention (expected-miss -> ifAbsent:; everything else crashes).
+
+ASSUMED SEAM CAPABILITIES (the Zephyr-step C work order, kept deliberately dumb —
+data, not policy):
+  i2c   — granted I2C bus capability:
+            write: aBytes to: addr      blocking C transaction (sub-ms; spec allows
+                                        blocking I/O in C). Crashes 'i2c nak' if the
+                                        device NACKs — let-it-crash is the error path.
+            read: n from: addr -> Bytes same, for a read transaction.
+  power — a granted channel to the supervisor: the job REQUESTS sleep by posting
+          (Record tag: #sleepFor fields: {#ms -> n}); the supervisor (policy!) decides
+          whether that means Zephyr deep sleep, a timer, or nothing (always-on mode).
+  Plus the Milestone-C/D surface: channels (out:value:/whenever:do:/take:), timers.
+
+WIRING (supervisor side, at deploy): supervisor constructs the job with its grants —
+  job:: TempNode i2c: i2cCap bus: 16r48 chan: (space channel: 'node7')
+                 timers: timers power: powerCap.
+  job start.
+porta bridges 'node7/reading' onto the LAN (resource?id= addressing, CBOR wire).
+*)
+class DemoNode packageUsing: manifest = () (
+
+  (* =====================================================================
+     TempNode — the whole application. A Zephyr-reuse driver facade + its
+     protocol machine + publishing, in ~80 lines of nsl. This is the product:
+     the TMP117 "driver" is 3 register transactions; Zephyr's I2C driver
+     underneath does the real work.
+     ===================================================================== *)
+  class TempNode = (
+    | i2c addr chan timers power
+      machine
+      seq      ::= 0.
+      history  ::= OrderedCollection new.    (* last readings, milli-degC *)
+      timeout  ::= nil. |                    (* pending watchdog-timer token *)
+  ) (
+
+    (* ---- TMP117 register access: bytes.ns doing register work ---- *)
+    CONFIG = ( ^ 16r01 )   TEMP = ( ^ 16r00 )
+    ONE_SHOT = ( ^ 16r0C00 )                 (* MOD[1:0] = 11: single conversion *)
+
+    startConversion = (
+      | buf |
+      buf:: ByteArray new: 3.
+      buf u8At: 1 put: self CONFIG.
+      buf u16BeAt: 2 put: self ONE_SHOT.
+      i2c write: buf freeze to: addr.        (* NACK -> crash 'i2c nak' -> supervisor *)
+    )
+
+    readMilliC = (
+      | ptr raw |
+      ptr:: ByteArray new: 1.
+      ptr u8At: 1 put: self TEMP.
+      i2c write: ptr freeze to: addr.
+      raw:: (i2c read: 2 from: addr) s16BeAt: 1.
+      ^ raw * 15625 // 2000                  (* LSB = 7.8125 m°C; 64-bit int math,
+                                                identical on host and target (L7) *)
+    )
+
+    (* ---- the protocol machine: the fiber replacement, in the open ---- *)
+    buildMachine = (
+      machine:: Protocol named: #tmp117.
+
+      machine state: #idle on: #sample do: [ :m :e |
+        startConversion.
+        timeout:: timers after: 50 post: #timeout on: chan    (* datasheet: ~15ms *)
+      ] then: #converting.
+
+      machine state: #converting on: #done do: [ :m :e |
+        timers cancel: timeout.
+        publish: readMilliC.
+        power out: '' value: (Record tag: #sleepFor fields:
+          (Map fromPairs: (List with: (List with: #ms with: 60000))))
+      ] then: #idle.
+
+      (* Sensor silent past the deadline: NOT an expected miss — the device is
+         broken or wedged, so this is Tier-2: crash, contain, restart (errors.md).
+         No retry loops in the job; retry cadence is the supervisor's restart
+         policy. This line is let-it-crash made visible. *)
+      machine state: #converting on: #timeout do: [ :m :e |
+        self error: 'tmp117 timeout'
+      ] then: #idle.
+
+      machine onUnhandled: [ :m :e |
+        chan out: 'log' value: ('drop %1 in %2' format:
+          (List with: e printString with: m currentState printString)) ].
+      machine validate.
+    )
+
+    (* ---- publishing: immutable record out; history via combinators ---- *)
+    publish: milliC = (
+      | avg |
+      seq:: seq + 1.
+      history add: milliC.
+      history size > 8 ifTrue: [ history removeFirst ].
+      avg:: (history inject: 0 into: [ :a :t | a + t ]) // history size.
+      chan out: 'reading' value: (Record tag: #reading fields:
+        (Map fromPairs: (List
+          with: (List with: #seq    with: seq)
+          with: (List with: #milliC with: milliC)
+          with: (List with: #avg8   with: avg)))).
+    )
+
+    (* ---- lifecycle ---- *)
+    public start = (
+      buildMachine.
+      machine startIn: #idle.
+
+      (* everything is an event on our granted root: timer posts (#sample/#timeout),
+         the seam's data-ready pulse (#done, wired below), remote pokes via porta *)
+      chan whenever: '' do: [ :e | machine handle: e ].
+
+      (* conversion complete: TMP117 ALERT pin -> Zephyr GPIO ISR -> C seam posts
+         #done here. DRDY polling would also work (timer + read status), but the
+         pin shows the ISR->channel path. No callback registered in C beyond
+         "post #done on this channel" — data, not policy. *)
+      i2c onAlertPost: #done to: chan.
+
+      timers every: 60000 post: #sample on: chan.   (* cadence; survives in the
+                                                       timer registry, not a stack *)
+      chan out: '' value: #sample.                  (* first reading immediately *)
+    )
+
+    (* Wake-from-deep-sleep: the supervisor re-runs start (reactor state rehydrates
+       from explicit objects; there is NO suspended stack to restore — the deep-sleep
+       payoff, spec-argument made concrete). If the supervisor persisted a snapshot,
+       it hands it back here; #idle is always a safe default because every state's
+       work is re-startable. *)
+    public resume: snapshot = (
+      self start.
+      machine restore: (snapshot == nil ifTrue: [ #idle ] ifFalse: [ snapshot ]).
+    )
+
+    setI2c: b addr: a chan: c timers: t power: p = (
+      i2c:: b. addr:: a. chan:: c. timers:: t. power:: p. ^ self
+    )
+  ) : (
+    public i2c: b bus: a chan: c timers: t power: p = (
+      ^ self new setI2c: b addr: a chan: c timers: t power: p
+    )
+  )
+
+  (* =====================================================================
+     Host-mode entry: the SAME class runs on the desktop against a mock seam
+     (develop-on-host workflow; the differential story end-to-end). The mock
+     honors the same seam contract; only main: differs between host and node.
+     ===================================================================== *)
+  public main: platform args: args = (
+    | space node |
+    space:: platform space.
+    node:: TempNode
+      i2c:    (platform mockI2cWithTemp: 23500)      (* answers 23.5 °C *)
+      bus:    16r48
+      chan:   (space channel: 'node7')
+      timers: (Timers usingSpace: space seam: platform)
+      power:  (space channel: '%power').
+    node start.
+    space drain.
+    ((space channel: 'node7/reading') take: '') printString out.
+  )
+) : (
+)
+
+(* ============================ WHAT THIS FILE PROVED ============================
+   Walking through writing it, the design held, with these findings for the specs:
+
+   1. The FSM idiom carries the whole driver comfortably — three states, no fiber
+      missed. The one place suspension was tempting (conversion wait) fell to a
+      timer + #done event in two lines.  [validates addendum A3]
+   2. NEEDED and added to the seam work order: an ISR->channel pulse primitive
+      (`onAlertPost:to:` here, generalizing to GPIO edge -> post). Every real driver
+      will want it; it belongs beside timers in the Zephyr-step seam spec.
+   3. u16BeAt:/s16BeAt: and 64-bit int math earn their keep in the first ten lines
+      of register code.  [validates L2, L7]
+   4. The crash-as-error-path (tmp117 timeout) reads clean, but ONLY because the
+      restart policy re-enters via resume: — the supervisor/job restart CONTRACT
+      (who calls what after a crash) is the next thing to spec before Milestone D
+      hardens it ad hoc.
+   5. Capabilities arrive as constructor arguments (object refs at setup), NOT
+      inside messages — consistent with the algebra (capabilities are not values).
+      Worth one explicit line in the Milestone-C spec.
+   ============================================================================== *)

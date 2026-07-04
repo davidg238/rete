@@ -1,0 +1,23 @@
+(*
+expect:
+begin
+expect-crash: stack
+*)
+(* T-A.4 — the fixed-cap language stack FAILS SAFE: a runaway recursion produces a
+   clean language-level error (crash text containing 'stack' — align the substring
+   with the actual Milestone-A error string, then freeze it), NEVER a C-level fault.
+   'begin' must appear first (proves we got into the run before dying). MUST also be
+   run under the ASAN config (t0-gates/sanitizers.md): a bounds bug at the stack cap
+   is exactly what this test + ASAN exists to catch. This is the test that justifies
+   keeping the flat O(1)-C-stack loop. *)
+class StackExhaustion packageUsing: manifest = () (
+  public deep: n = (
+    n = 0 ifTrue: [ ^ 0 ].
+    ^ 1 + (self deep: n + 1)      (* grows forever; cap must stop it cleanly *)
+  )
+  public main: platform args: args = (
+    'begin' out.
+    (self deep: 1) printString out.   (* unreached *)
+  )
+) : (
+)

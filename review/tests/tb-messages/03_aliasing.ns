@@ -1,0 +1,27 @@
+(*
+expect:
+true
+true
+true
+42
+42
+*)
+(* T-B.3 — shared-by-reference, unchanged: two references to one message are
+   IDENTICAL (==, zero-copy pinned), substructure reached twice is identical, and
+   structural = holds between independently built equal trees (while == does not).
+   With mutators nonexistent (02), identity + absent-write-path = aliasing safety. *)
+class Aliasing packageUsing: manifest = () (
+  public main: platform args: args = (
+    | inner a b c |
+    inner:: List with: 42.
+    a:: List with: inner with: inner.
+    b:: a.                                        (* second reference, no copy *)
+    (a == b) printString out.                     (* true — same object *)
+    ((a at: 1) == (a at: 2)) printString out.     (* true — shared substructure *)
+    c:: List with: (List with: 42) with: (List with: 42).
+    (a = c) printString out.                      (* true — structural equality *)
+    ((a at: 1) at: 1) printString out.            (* 42 *)
+    ((b at: 2) at: 1) printString out.            (* 42 — via the alias *)
+  )
+) : (
+)

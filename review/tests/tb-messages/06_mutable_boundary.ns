@@ -1,0 +1,20 @@
+(*
+expect:
+ok
+expect-crash: not a value
+*)
+(* T-B.6 — a mutable object is unrepresentable as a message, INCLUDING nested deep
+   inside an otherwise-valid tree: validation is per-element at every level of
+   construction, not a top-level type check. Variants when landing: user object
+   (06b), ByteArray i.e. unfrozen bytes (06c), Dictionary (06d). *)
+class MutableBoundary packageUsing: manifest = () (
+  public main: platform args: args = (
+    | oc |
+    'ok' out.
+    oc:: OrderedCollection new.
+    oc add: 7.
+    List with: 1 with: (List with: 2 with: (List with: 3 with: oc)).
+    'unreached' out.
+  )
+) : (
+)

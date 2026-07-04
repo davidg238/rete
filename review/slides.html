@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nsl-tuvm — script Zephyr, don't replace it</title>
+<style>
+  :root {
+    --page:        #f9f9f7;
+    --surface:     #fcfcfb;
+    --ink:         #0b0b0b;
+    --ink-2:       #52514e;
+    --muted:       #898781;
+    --grid:        #e1e0d9;
+    --baseline:    #c3c2b7;
+    --ring:        rgba(11,11,11,0.10);
+    --accent:      #2a78d6;
+    --s1: #2a78d6;  /* zephyr kernel */
+    --s2: #1baf7a;  /* openthread */
+    --s3: #eda100;  /* tuvm engine */
+    --s4: #008300;  /* nsl heap */
+    --s5: #4a3aa7;  /* headroom */
+    --bad: #d03b3b;
+    --good-ink: #006300;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page:        #0d0d0d;
+      --surface:     #1a1a19;
+      --ink:         #ffffff;
+      --ink-2:       #c3c2b7;
+      --muted:       #898781;
+      --grid:        #2c2c2a;
+      --baseline:    #383835;
+      --ring:        rgba(255,255,255,0.10);
+      --accent:      #3987e5;
+      --s1: #3987e5; --s2: #199e70; --s3: #c98500; --s4: #008300; --s5: #9085e9;
+      --bad: #e66767;
+      --good-ink: #0ca30c;
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page); color: var(--ink);
+    overflow: hidden;
+  }
+  .deck { height: 100vh; display: flex; flex-direction: column; }
+  .slide {
+    display: none; flex: 1; min-height: 0;
+    padding: 5vh 8vw 4vh;
+    flex-direction: column; justify-content: center;
+    max-width: 1100px; margin: 0 auto; width: 100%;
+  }
+  .slide.active { display: flex; }
+  .kicker {
+    font-size: 0.85rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin-bottom: 0.9rem;
+  }
+  h1 { font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.08; letter-spacing: -0.02em; }
+  h2 { font-size: clamp(1.5rem, 3.4vw, 2.2rem); line-height: 1.15; letter-spacing: -0.015em; margin-bottom: 1.4rem; }
+  .sub { font-size: clamp(1rem, 1.9vw, 1.25rem); color: var(--ink-2); margin-top: 1.1rem; max-width: 42em; line-height: 1.5; }
+  p, li { font-size: clamp(0.95rem, 1.7vw, 1.12rem); line-height: 1.55; color: var(--ink-2); }
+  strong { color: var(--ink); }
+  ul.points { list-style: none; }
+  ul.points li { padding-left: 1.4em; position: relative; margin-bottom: 0.85em; max-width: 46em; }
+  ul.points li::before { content: "▪"; position: absolute; left: 0.1em; color: var(--accent); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; align-items: start; }
+  .footer {
+    flex: none; display: flex; align-items: center; justify-content: space-between;
+    padding: 0.6rem 1.4rem; color: var(--muted); font-size: 0.8rem;
+    border-top: 1px solid var(--grid);
+  }
+  .footer .nav button {
+    background: none; border: 1px solid var(--grid); color: var(--ink-2);
+    border-radius: 6px; padding: 0.25rem 0.7rem; font-size: 0.85rem; cursor: pointer; margin-left: 0.4rem;
+  }
+  .footer .nav button:hover { border-color: var(--accent); color: var(--accent); }
+
+  table.cmp { border-collapse: collapse; width: 100%; font-size: clamp(0.82rem, 1.5vw, 1rem); }
+  table.cmp th, table.cmp td { padding: 0.55em 0.8em; text-align: left; border-bottom: 1px solid var(--grid); color: var(--ink-2); }
+  table.cmp th { color: var(--muted); font-weight: 600; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.06em; }
+  table.cmp td.us { color: var(--ink); font-weight: 600; background: color-mix(in srgb, var(--accent) 7%, transparent); }
+  table.cmp td.no  { color: var(--bad); }
+  table.cmp td.yes { color: var(--good-ink); font-weight: 600; }
+
+  .arch { font-size: clamp(0.8rem, 1.6vw, 1rem); display: flex; flex-direction: column; gap: 8px; max-width: 46em; }
+  .arch .layer { border: 1px solid var(--ring); border-radius: 10px; padding: 0.9em 1.2em; background: var(--surface); }
+  .arch .layer .t { font-weight: 650; color: var(--ink); margin-bottom: 0.15em; }
+  .arch .layer .d { color: var(--ink-2); font-size: 0.92em; }
+  .arch .layer.nsl { border-left: 4px solid var(--s1); }
+  .arch .layer.seam { border-left: 4px solid var(--s3); }
+  .arch .layer.zephyr { border-left: 4px solid var(--s2); }
+  .arch .flow { text-align: center; color: var(--muted); font-size: 0.85em; padding: 0.05em 0; }
+
+  .grave { border-collapse: collapse; width: 100%; font-size: clamp(0.82rem, 1.5vw, 0.98rem); }
+  .grave td { padding: 0.5em 0.8em; border-bottom: 1px solid var(--grid); color: var(--ink-2); vertical-align: top; }
+  .grave td:first-child { white-space: nowrap; font-weight: 650; color: var(--ink); }
+  .grave td:last-child { color: var(--ink); }
+
+  /* ---- budget chart ---- */
+  .viz-root { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; padding: 1.6rem 1.8rem 1.2rem; }
+  .viz-title { font-size: 1rem; font-weight: 650; color: var(--ink); }
+  .viz-sub { font-size: 0.83rem; color: var(--muted); margin: 0.15rem 0 1.3rem; }
+  .bar-wrap { position: relative; }
+  .bar { display: flex; height: 40px; gap: 2px; }
+  .bar .seg { position: relative; cursor: default; }
+  .bar .seg:first-child { border-radius: 4px 0 0 4px; }
+  .bar .seg:last-child  { border-radius: 0 4px 4px 0; }
+  .axis { position: relative; height: 1.4rem; margin-top: 6px; border-top: 1px solid var(--baseline); }
+  .axis .tick { position: absolute; top: 2px; transform: translateX(-50%); font-size: 0.72rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1.6rem; margin-top: 1.1rem; }
+  .legend .item { display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.86rem; }
+  .legend .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; align-self: center; }
+  .legend .nm { color: var(--ink-2); }
+  .legend .kb { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
+  .legend .pc { color: var(--muted); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+  #tip {
+    position: fixed; pointer-events: none; display: none; z-index: 10;
+    background: var(--ink); color: var(--page); border-radius: 8px;
+    padding: 0.45rem 0.7rem; font-size: 0.8rem; line-height: 1.35;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  }
+  #tip .tv { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .chart-note { margin-top: 1.2rem; font-size: 0.85rem; color: var(--muted); max-width: 46em; }
+
+  .cutcard { border: 1px solid var(--ring); border-left: 4px solid var(--bad); border-radius: 10px; padding: 1rem 1.2rem; background: var(--surface); margin-bottom: 1rem; }
+  .cutcard .t { font-weight: 650; color: var(--ink); margin-bottom: 0.3rem; }
+  .cutcard .d { font-size: 0.95em; }
+  .cutcard.keep { border-left-color: var(--good-ink); }
+
+  .big { font-size: clamp(1.2rem, 2.6vw, 1.7rem); line-height: 1.35; color: var(--ink); max-width: 34em; font-weight: 500; }
+  .big em { color: var(--accent); font-style: normal; }
+  code { font-family: ui-monospace, "Cascadia Code", Menlo, monospace; font-size: 0.92em; background: color-mix(in srgb, var(--ink) 7%, transparent); padding: 0.08em 0.35em; border-radius: 4px; }
+  .ms { display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1.1rem; max-width: 48em; }
+  .ms .m { font-weight: 700; color: var(--accent); white-space: nowrap; }
+  .ms .w { color: var(--ink-2); }
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- 1 · title -->
+  <section class="slide active">
+    <div class="kicker">nsl-tuvm · 2026-07</div>
+    <h1>Script Zephyr.<br>Don't replace it.</h1>
+    <p class="sub">A ~24&nbsp;KB capability-secure OO scripting layer for 256&nbsp;KB-class devices —
+    nRF52840 + OpenThread — with supervised jobs, immutable messages, and remote
+    provisioning over the LAN.</p>
+  </section>
+
+  <!-- 2 · the gap -->
+  <section class="slide">
+    <div class="kicker">The gap</div>
+    <h2>Toit got the model right — and can't reach the hardware that matters</h2>
+    <div class="cols">
+      <div>
+        <p style="margin-bottom:0.8em"><strong>What Toit proved:</strong></p>
+        <ul class="points">
+          <li>An ergonomic OO language <strong>on the device</strong></li>
+          <li>Supervised, crash-isolated jobs</li>
+          <li>Immutable messages between them</li>
+          <li>Push code over the network (<code>jag</code>) — no reflash cycle</li>
+        </ul>
+      </div>
+      <div>
+        <p style="margin-bottom:0.8em"><strong>Two bets that exclude a hardware class:</strong></p>
+        <ul class="points">
+          <li>Needs <strong>ESP32-scale RAM</strong> — does not fit the 256&nbsp;KB nRF52840 class, where Thread radios, coin cells, and years-long deployments live</li>
+          <li><strong>“Write your drivers in Toit”</strong> — Zephyr's catalog of maintained drivers is unreachable; every sensor starts from scratch</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · the wedge -->
+  <section class="slide">
+    <div class="kicker">The wedge</div>
+    <h2>Each side has what the other lacks</h2>
+    <div class="cols">
+      <div>
+        <p style="margin-bottom:0.8em"><strong>Zephyr has:</strong> hundreds of maintained drivers behind uniform APIs, devicetree, OpenThread, power management, every Cortex-M part.</p>
+        <p><strong>Zephyr lacks:</strong> a safe, ergonomic, remotely-serviceable programming model. C application code needs a flash cycle per change.</p>
+      </div>
+      <div>
+        <p class="big">Put a tiny OO layer <em>on top of</em> Zephyr.<br><br>
+        <em>Reuse</em> a Zephyr display driver — don't write one.<br><br>
+        The language is the <em>coordinator</em>; C is the <em>datapath</em>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · graveyard -->
+  <section class="slide">
+    <div class="kicker">Lessons paid for</div>
+    <h2>Fifth attempt — the graveyard is the rationale</h2>
+    <table class="grave">
+      <tr><td>toit-zephyr</td><td>tree-sitter for Toit; incomplete, no static typing</td><td>wrong place to start</td></tr>
+      <tr><td>st-berry</td><td>Smalltalk on the Berry VM</td><td><strong>proved:</strong> giving up non-local return is livable — combinators cover early exit</td></tr>
+      <tr><td>ns-berry</td><td>Newspeak on Berry</td><td><strong>proved:</strong> the capability model is right — but full Newspeak requires NLR</td></tr>
+      <tr><td>ns-oevm / oevm</td><td>custom VM, Piumarta object model</td><td><strong>proved:</strong> fibers + NLR + reified contexts + growable stacks = a cascade of interacting complexity</td></tr>
+      <tr><td><span style="color:var(--accent)">nsl-tuvm</span></td><td>same VM, minus the balloon</td><td><strong>cut the ambition to fit the substrate</strong> — keep capabilities &amp; messages, delete NLR &amp; fibers</td></tr>
+    </table>
+  </section>
+
+  <!-- 5 · the model -->
+  <section class="slide">
+    <div class="kicker">The model</div>
+    <h2>Policy in nsl · data in C · drivers in Zephyr</h2>
+    <div class="arch">
+      <div class="layer nsl">
+        <div class="t">nsl — all policy</div>
+        <div class="d">supervisor · reactor · user jobs · capability granting &amp; restart policy</div>
+      </div>
+      <div class="flow">job ─ out: → <strong>channel</strong> (capability = rooted path prefix) ─ whenever: → job · run-to-completion handlers</div>
+      <div class="layer seam">
+        <div class="t">C seam — carries data, not control</div>
+        <div class="d">VM (~24 KB) · precise GC · message codec · driver glue · blocking I/O</div>
+      </div>
+      <div class="layer zephyr">
+        <div class="t">Zephyr</div>
+        <div class="d">OpenThread · I2C / SPI / GPIO · displays · sensors · power management · devicetree</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · the cuts -->
+  <section class="slide">
+    <div class="kicker">The enabling cuts</div>
+    <h2>Two deletions buy the whole simplification</h2>
+    <div class="cols">
+      <div>
+        <div class="cutcard">
+          <div class="t">✕ Non-local return</div>
+          <div class="d"><code>^</code> in an escaping closure is a <strong>compile error</strong>. Collection combinators (<code>detect:ifNone:</code>, <code>anySatisfy:</code>, <code>inject:into:</code>) are the sanctioned early exit — most “break” is really a search.</div>
+        </div>
+        <div class="cutcard">
+          <div class="t">✕ Fibers</div>
+          <div class="d">Jobs are <strong>run-to-completion event handlers</strong>, not threads. Multi-step protocols become explicit state machines — a stdlib idiom, not a VM feature.</div>
+        </div>
+      </div>
+      <div>
+        <div class="cutcard keep">
+          <div class="t">✓ What the deletions buy</div>
+          <div class="d">The reify-on-escape / unwind / cross-fiber / growable-stack cascade is <strong>deleted, not deferred</strong>. One heap-side language stack in one known state — which makes the crash boundary, watchdog safe-points, and precise GC rooting simple enough to trust at 24&nbsp;KB.</div>
+        </div>
+        <div class="cutcard keep">
+          <div class="t">✓ It matches the host OS</div>
+          <div class="d">Zephyr workqueues, ISR bottom halves, and OpenThread callbacks are all run-to-completion. The scripting layer composes with Zephyr's grain instead of scheduling against it.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · deep sleep -->
+  <section class="slide">
+    <div class="kicker">The strongest argument</div>
+    <h2>No fibers is the deep-sleep-correct model</h2>
+    <p class="big" style="margin-bottom:1.4rem">A suspended fiber's stack <em>cannot survive power-down</em>.<br>
+    Reactor state in explicit objects and channels <em>rehydrates naturally</em> — wake-from-sleep is just another event.</p>
+    <ul class="points">
+      <li>Always-on and deep-sleep nodes run the <strong>same programming model</strong></li>
+      <li>State that must persist across sleep is exactly the state the design already makes explicit</li>
+      <li>Battery-class Thread nodes are the target — this is a requirement, not a nicety</li>
+    </ul>
+  </section>
+
+  <!-- 8 · messages -->
+  <section class="slide">
+    <div class="kicker">Messages</div>
+    <h2>Immutable values, shared by reference — zero copy</h2>
+    <ul class="points">
+      <li>Closed algebra (Toit's proven design): <code>null · bool · int · float · string · bytes · symbol · list · map · record</code> — recursively closed, depth-bounded, acyclic <strong>by construction</strong></li>
+      <li>A mutable object is <em>unrepresentable</em> as a message — that structural fact is what makes crash isolation safe</li>
+      <li>On the single shared heap, inter-job messages pass <strong>by reference: zero copy</strong> — beating Toit's per-message copy</li>
+      <li>Only the boundary serializes (network / flash / drivers) — CBOR-compatible wire encoding, so CoAP tooling debugs porta traffic for free</li>
+    </ul>
+  </section>
+
+  <!-- 9 · capabilities + crash -->
+  <section class="slide">
+    <div class="kicker">Confinement &amp; robustness</div>
+    <h2>Channels are capabilities · handlers may crash</h2>
+    <div class="cols">
+      <div>
+        <p style="margin-bottom:0.8em"><strong>Capability = a channel namespace rooted at a path prefix.</strong></p>
+        <ul class="points">
+          <li>Attenuate by extending the prefix: <code>sensors/</code> → <code>sensors/temp/</code></li>
+          <li>A job can only speak where it has been <strong>granted</strong> — no ambient authority</li>
+          <li>Drivers surface as granted capabilities, not globals</li>
+        </ul>
+      </div>
+      <div>
+        <p style="margin-bottom:0.8em"><strong>Let it crash — supervision in nsl, not C.</strong></p>
+        <ul class="points">
+          <li>A faulting handler unwinds to the reactor; the node keeps running</li>
+          <li>Supervisor logs, restarts, quarantines on repeated failure</li>
+          <li>Soft watchdog (safe-point budget) + hard Zephyr WDT as the backstop</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · RAM budget chart -->
+  <section class="slide">
+    <div class="kicker">The constraint</div>
+    <h2>256 KB is the design target — RAM, not flash, decides</h2>
+    <div class="viz-root" data-palette="#2a78d6,#1baf7a,#eda100,#008300,#4a3aa7">
+      <div class="viz-title">nRF52840 RAM budget — 256 KB total</div>
+      <div class="viz-sub">Illustrative working budget; banked and ratchet-tested from Milestone A (addendum A2)</div>
+      <div class="bar-wrap">
+        <div class="bar" id="budgetbar"></div>
+        <div class="axis" id="budgetaxis"></div>
+      </div>
+      <div class="legend" id="budgetlegend"></div>
+    </div>
+    <p class="chart-note">Toit's runtime alone exceeds what remains after Zephyr + OpenThread.
+    The tuvm engine budget (~24 KB) leaves ~96 KB of language heap for the image, tuple space,
+    and messages — with headroom banked, and any RAM regression a test failure.</p>
+  </section>
+
+  <!-- 11 · comparison -->
+  <section class="slide">
+    <div class="kicker">Where this sits</div>
+    <h2>Operability is the differentiator</h2>
+    <table class="cmp">
+      <tr><th></th><th>Toit</th><th>MicroPython / Zephyr</th><th>AtomVM</th><th>nsl-tuvm</th></tr>
+      <tr><td>Fits 256 KB + OpenThread</td><td class="no">no</td><td>barely; weak Thread</td><td>partial</td><td class="us">design target</td></tr>
+      <tr><td>Reuses host-OS drivers</td><td class="no">no — in-language</td><td>partially</td><td>partially</td><td class="us">the product</td></tr>
+      <tr><td>Capability confinement</td><td class="no">no</td><td class="no">no</td><td class="no">no</td><td class="us">yes</td></tr>
+      <tr><td>Supervision / let-it-crash</td><td class="yes">yes</td><td class="no">no</td><td class="yes">yes (BEAM)</td><td class="us">yes</td></tr>
+      <tr><td>Remote provision / debug</td><td class="yes">yes (jag)</td><td>REPL only</td><td class="no">no</td><td class="us">yes (porta)</td></tr>
+      <tr><td>Static types, raw speed</td><td class="yes">yes</td><td class="no">no</td><td class="no">no</td><td>conceded</td></tr>
+    </table>
+    <p class="chart-note">The bet: for Thread-class fleet devices, confinement + supervision +
+    remote serviceability + Zephyr's driver catalog decide whether a scripting layer survives
+    production — not types or benchmarks.</p>
+  </section>
+
+  <!-- 12 · roadmap -->
+  <section class="slide">
+    <div class="kicker">Roadmap</div>
+    <h2>First step: prove the model on the host, balloon gone</h2>
+    <div class="ms">
+      <div class="m">A · Seed + delete</div><div class="w">fork tuvm / nsl-tuvm / nsl-tests; delete fibers, NLR, reify, growable stacks; pared conformance green; bank the footprint delta <em>(in progress)</em></div>
+      <div class="m">B · Message algebra</div><div class="w">immutable list / map / record; mutation &amp; cycles unrepresentable; depth-bounded</div>
+      <div class="m">C · Channels + reactor</div><div class="w">rooted-prefix capabilities, three verbs (<code>out: · whenever: · take:</code>), segment-aligned confinement proven</div>
+      <div class="m">D · Supervisor</div><div class="w">let-it-crash boundary; end-to-end <code>event → reaction → supervisor</code>; a crashing handler contained</div>
+    </div>
+    <p class="chart-note" style="margin-top:1.6rem">Deliberately fenced for later: Zephyr bring-up &amp; real drivers ·
+    porta wire (CBOR) · full exceptions · watchdogs &amp; restart policy · tuple-space generalizations ·
+    deep-sleep power modes.</p>
+  </section>
+
+  <div class="footer">
+    <span>nsl-tuvm — first-step design review · 2026-07-03</span>
+    <span class="nav">
+      <span id="counter" style="margin-right:0.6rem"></span>
+      <button id="prev" aria-label="previous slide">←</button>
+      <button id="next" aria-label="next slide">→</button>
+    </span>
+  </div>
+</div>
+<div id="tip"></div>
+
+<script>
+  // ---- slideshow ----
+  const slides = [...document.querySelectorAll('.slide')];
+  let cur = Math.max(0, Math.min(slides.length - 1, (parseInt(location.hash.slice(1), 10) || 1) - 1));
+  function show(i) {
+    cur = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach((s, j) => s.classList.toggle('active', j === cur));
+    document.getElementById('counter').textContent = (cur + 1) + ' / ' + slides.length;
+    history.replaceState(null, '', '#' + (cur + 1));
+  }
+  document.getElementById('prev').onclick = () => show(cur - 1);
+  document.getElementById('next').onclick = () => show(cur + 1);
+  addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); show(cur + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(cur - 1); }
+    if (e.key === 'Home') show(0);
+    if (e.key === 'End') show(slides.length - 1);
+  });
+  show(cur);
+
+  // ---- RAM budget chart ----
+  const TOTAL = 256;
+  const SEGS = [
+    { name: 'Zephyr kernel + drivers',            kb: 40, v: '--s1' },
+    { name: 'OpenThread + net buffers',           kb: 45, v: '--s2' },
+    { name: 'tuvm engine (statics + stacks)',     kb: 24, v: '--s3' },
+    { name: 'nsl heap (image · space · messages)',kb: 96, v: '--s4' },
+    { name: 'headroom',                           kb: 51, v: '--s5' },
+  ];
+  const bar = document.getElementById('budgetbar');
+  const tip = document.getElementById('tip');
+  SEGS.forEach(s => {
+    const d = document.createElement('div');
+    d.className = 'seg';
+    d.style.flex = String(s.kb);
+    d.style.background = `var(${s.v})`;
+    d.addEventListener('mousemove', e => {
+      tip.style.display = 'block';
+      tip.innerHTML = `${s.name}<br><span class="tv">${s.kb} KB</span> · ${(100 * s.kb / TOTAL).toFixed(0)}%`;
+      const r = tip.getBoundingClientRect();
+      tip.style.left = Math.min(e.clientX + 14, innerWidth - r.width - 8) + 'px';
+      tip.style.top = (e.clientY - r.height - 12) + 'px';
+    });
+    d.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+    bar.appendChild(d);
+  });
+  const axis = document.getElementById('budgetaxis');
+  [0, 64, 128, 192, 256].forEach(kb => {
+    const t = document.createElement('span');
+    t.className = 'tick';
+    t.style.left = (100 * kb / TOTAL) + '%';
+    if (kb === 0) t.style.transform = 'translateX(0)';
+    if (kb === TOTAL) t.style.transform = 'translateX(-100%)';
+    t.textContent = kb === TOTAL ? '256 KB' : kb;
+    axis.appendChild(t);
+  });
+  const leg = document.getElementById('budgetlegend');
+  SEGS.forEach(s => {
+    const i = document.createElement('span');
+    i.className = 'item';
+    i.innerHTML = `<span class="sw" style="background:var(${s.v})"></span>` +
+      `<span class="nm">${s.name}</span> <span class="kb">${s.kb} KB</span> <span class="pc">${(100 * s.kb / TOTAL).toFixed(0)}%</span>`;
+    leg.appendChild(i);
+  });
+</script>
+</body>
+</html>

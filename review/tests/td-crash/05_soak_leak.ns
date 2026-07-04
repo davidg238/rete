@@ -1,0 +1,48 @@
+(*
+expect:
+events 100000
+crashes 10000
+plateau true
+done
+*)
+(* T-D.5 — SLOW (milestone gates only, not per-commit): the standing leak detector for
+   the shared-heap tradeoff. Restart cannot evict a leaky job's accumulation, so creep
+   must be caught in test, not the field. 100k events, every 10th handler firing
+   crashes mid-allocation; heap usage sampled each 10k events AFTER a forced GC; the
+   last four samples must be non-increasing within 5% of sample 6 (warm-up excluded) —
+   'plateau true'.
+   REQUIRED HARNESS PRIMS: platform heapUsed (bytes after GC), platform gcNow. *)
+class SoakLeak packageUsing: manifest = () (
+  | fired ::= 0. |
+  public main: platform args: args = (
+    | space c sys samples events crashes base ok |
+    space:: platform space.
+    c:: space channel: 'soak'.
+    sys:: space channel: '%sys'.
+    samples:: OrderedCollection new.
+    c whenever: '' do: [ :m |
+      fired:: fired + 1.
+      List with: fired with: (List with: 'work' with: fired).   (* churn *)
+      (fired - (fired // 10 * 10)) = 0 ifTrue: [ self error: 'periodic' ] ].
+
+    events:: 100000.
+    1 to: events do: [ :i |
+      c out: '' value: i.
+      space drain.
+      (i - (i // 10000 * 10000)) = 0 ifTrue: [
+        platform gcNow.
+        samples add: platform heapUsed ] ].
+
+    ('events ' , events printString) out.
+    crashes:: 0. [ (sys take: 'crash') == nil ] whileFalse: [ crashes:: crashes + 1 ].
+    ('crashes ' , crashes printString) out.        (* 10000 *)
+
+    base:: samples at: 6.                          (* post-warm-up reference *)
+    ok:: true.
+    7 to: samples size do: [ :k |
+      ((samples at: k) > (base + (base // 20))) ifTrue: [ ok:: false ] ].
+    ('plateau ' , ok printString) out.             (* true — no creep past +5% *)
+    'done' out.
+  )
+) : (
+)

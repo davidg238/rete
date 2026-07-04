@@ -1,0 +1,30 @@
+(*
+expect:
+h-start 1
+h-end 1
+h-start 2
+h-end 2
+h-start 3
+h-end 3
+done
+*)
+(* T-C.6 — THE reactor semantic promise, pinned: a handler that posts to its own
+   channel does NOT re-enter itself recursively; the new posting queues and dispatches
+   only after the current firing completes, FIFO. If dispatch were re-entrant the
+   output would interleave (h-start 2 before h-end 1). Programs will be written
+   against this ordering — it must never change silently. *)
+class RunToCompletion packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space cap |
+    space:: platform space.
+    cap:: space channel: 'loop'.
+    cap whenever: '' do: [ :n |
+      ('h-start ' , n printString) out.
+      n < 3 ifTrue: [ cap out: '' value: n + 1 ].   (* self-post mid-handler *)
+      ('h-end ' , n printString) out ].
+    cap out: '' value: 1.
+    space drain.                       (* test-mode reactor: FIFO to quiescence *)
+    'done' out.
+  )
+) : (
+)

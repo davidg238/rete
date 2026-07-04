@@ -1,0 +1,47 @@
+(*
+expect:
+deep-crash 1
+cap-crash 1
+alive 1
+done
+*)
+(* T-D.3 — unwind is clean from ANY stack shape: (a) a handler that crashes inside
+   deeply nested block invocations (100 frames of real sends), and (b) a handler that
+   runs the language stack up to (near) its cap before dying — both contained, and the
+   reactor still dispatches afterwards ('alive'). Case (b) doubles as the interaction
+   test between the fixed-cap stack error (T-A.4) and the crash boundary: stack
+   exhaustion inside a handler must become a contained crash, not a node death. *)
+class CrashAtDepth packageUsing: manifest = () (
+  | alive ::= 0. |
+  public sink: n = (
+    n = 0 ifTrue: [ self error: 'at-depth' ].
+    ^ self sink: n - 1
+  )
+  public bottomless: n = ( ^ 1 + (self bottomless: n + 1) )   (* hits the stack cap *)
+
+  public main: platform args: args = (
+    | space deep cap live sys n |
+    space:: platform space.
+    deep:: space channel: 'deep'.
+    cap::  space channel: 'cap'.
+    live:: space channel: 'live'.
+    sys::  space channel: '%sys'.
+
+    deep whenever: '' do: [ :m | self sink: 100 ].
+    cap  whenever: '' do: [ :m | self bottomless: 1 ].
+    live whenever: '' do: [ :m | alive:: alive + 1 ].
+
+    deep out: '' value: #go.  space drain.
+    n:: 0. [ (sys take: 'crash') == nil ] whileFalse: [ n:: n + 1 ].
+    ('deep-crash ' , n printString) out.     (* 1 *)
+
+    cap out: '' value: #go.   space drain.
+    n:: 0. [ (sys take: 'crash') == nil ] whileFalse: [ n:: n + 1 ].
+    ('cap-crash ' , n printString) out.      (* 1 — exhaustion contained too *)
+
+    live out: '' value: #go.  space drain.
+    ('alive ' , alive printString) out.      (* 1 — reactor healthy after both *)
+    'done' out.
+  )
+) : (
+)

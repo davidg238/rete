@@ -1,0 +1,47 @@
+(*
+expect:
+crashed 1
+survivors 500
+sum 125250
+done
+*)
+(* T-D.2 — THE test that proves the setjmp boundary and the GC agree: the handler
+   crashes MID-ALLOCATION (deep in building nested messages), then the recovery path
+   is stress-tested — allocate 500 more trees, force enough garbage to trigger
+   collections, and verify structural integrity of everything reachable. A stale
+   current_frame / in-flight allocation / un-reset stack-top shows up here as a GC
+   crash or corrupted values. MUST run under the ASAN config (t0-gates/sanitizers.md);
+   likeliest hiding place for a first-step VM bug. *)
+class CrashMidAllocation packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space c sys survivors sum crashed |
+    space:: platform space.
+    c:: space channel: 'work'.
+    sys:: space channel: '%sys'.
+
+    c whenever: '' do: [ :m |
+      | v |
+      v:: 0.
+      1 to: 20 do: [ :i |                    (* allocate hard, then die mid-flight *)
+        v:: List with: v with: (List with: i with: 'padpadpad').
+        i = 15 ifTrue: [ self error: 'mid-alloc' ] ] ].
+    c out: '' value: #go.
+    space drain.
+
+    crashed:: 0.
+    [ (sys take: 'crash') == nil ] whileFalse: [ crashed:: crashed + 1 ].
+    ('crashed ' , crashed printString) out.        (* 1 *)
+
+    (* post-recovery stress: 500 trees + garbage churn, then read them all back *)
+    survivors:: OrderedCollection new.
+    1 to: 500 do: [ :i |
+      survivors add: (List with: i with: (List with: i * 2)).
+      List with: 'garbage' with: (List with: i).   (* dropped: GC pressure *) ].
+    sum:: 0.
+    survivors do: [ :t | sum:: sum + (t at: 1) ].
+    ('survivors ' , survivors size printString) out.   (* 500 *)
+    ('sum ' , sum printString) out.                     (* 125250 = 1+2+…+500 *)
+    'done' out.
+  )
+) : (
+)

@@ -1,0 +1,28 @@
+(*
+expect:
+crashes 5
+policy TBD
+done
+*)
+(* T-D.4 — restart-policy STUB, pinned: whatever Milestone D's stub does on repeated
+   crashes of one handler (log-and-continue? quarantine counter? re-grant?), this test
+   asserts it EXACTLY, so the behavior can't drift silently before the real OTP-style
+   policy lands (spec §8). The 'policy TBD' line is a placeholder: replace with the
+   stub's observable output (e.g. 'quarantined bad' or a %sys/restart record count)
+   the day D lands, and update the expect block in the same commit. *)
+class RestartPolicy packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space bad sys n |
+    space:: platform space.
+    bad:: space channel: 'bad'.
+    sys:: space channel: '%sys'.
+    bad whenever: '' do: [ :m | self error: 'flappy' ].
+    1 to: 5 do: [ :i | bad out: '' value: i ].
+    space drain.
+    n:: 0. [ (sys take: 'crash') == nil ] whileFalse: [ n:: n + 1 ].
+    ('crashes ' , n printString) out.    (* 5 *)
+    'policy TBD' out.                    (* <- replace with the stub's real observable *)
+    'done' out.
+  )
+) : (
+)

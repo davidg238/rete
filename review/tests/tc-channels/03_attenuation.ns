@@ -1,0 +1,26 @@
+(*
+expect:
+5
+nil
+expect-crash: invalid channel path
+*)
+(* T-C.3 — attenuation is MONOTONIC by construction: `channel:` only EXTENDS a root
+   (verify no widening constructor exists when landing — protocol review, recorded in
+   CLAIMS.md), and relative addressing means a leaf can only form paths under itself.
+   Tested here: (a) the leaf a/b/c posts at its root and the value is observably AT
+   a/b/c (checked via an independent full-path capability); (b) nothing appeared at
+   the parent a/b (nil); (c) the only spellable escape — '..' — dies at path
+   validation, which is the mechanism that makes monotonicity total. *)
+class Attenuation packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space leaf |
+    space:: platform space.
+    leaf:: ((space channel: 'a') channel: 'b') channel: 'c'.   (* rooted a/b/c *)
+    leaf out: '' value: 5.
+    ((space channel: 'a/b/c') take: '') printString out.       (* 5 — landed exactly there *)
+    ((space channel: 'a/b') take: '') printString out.         (* nil — not at the parent *)
+    leaf out: '../other' value: 6.                             (* rejected at validation *)
+    'unreached' out.
+  )
+) : (
+)

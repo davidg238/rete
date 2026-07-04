@@ -1,0 +1,23 @@
+(*
+expect:
+nil
+7
+nil
+done
+*)
+(* T-C.5 — take: is remove-if-present-NOW: nil on empty (never blocks — this test
+   returning at all proves non-blocking), exactly-once on present (second take nil).
+   Transient signals: no persistence is tested in 07. *)
+class TakeSemantics packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space cap |
+    space:: platform space.
+    cap:: space channel: 'x'.
+    (cap take: '') printString out.     (* nil — empty *)
+    cap out: '' value: 7.
+    (cap take: '') printString out.     (* 7 — exactly once *)
+    (cap take: '') printString out.     (* nil — gone *)
+    'done' out.
+  )
+) : (
+)

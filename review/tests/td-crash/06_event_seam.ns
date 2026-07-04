@@ -1,0 +1,39 @@
+(*
+expect:
+tick 1
+tick 2
+tick 3
+observed 3
+done
+*)
+(* T-D.6 — the §4D end-to-end loop, scripted deterministically:
+     host event source → C seam → out: → job reaction → out: → supervisor observes.
+   ASSUMED SEAM (align with whatever D's host source is — timer tick or stdin line):
+     platform hostTicks: n into: cap   — posts n tick events (1..n) at cap's root,
+   the test-mode stand-in for the real timer/stdin source. The job handler transforms
+   each tick into a result record on 'results'; the 'supervisor' (this test) drains
+   and counts them. This file is also the seed of the porta/nodus demo script — keep
+   the shape when fleshing out the real node program. *)
+class EventSeam packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space ticks results observed r |
+    space:: platform space.
+    ticks::   space channel: 'ticks'.
+    results:: space channel: 'results'.
+
+    ticks whenever: '' do: [ :n |
+      ('tick ' , n printString) out.
+      results out: '' value: (Record tag: #result fields:
+        (Map fromPairs: (List with: (List with: #n with: n)))) ].
+
+    platform hostTicks: 3 into: ticks.      (* the C seam injects the events *)
+    space drain.
+
+    observed:: 0.
+    [ r:: results take: ''. r == nil ] whileFalse: [
+      r isRecord ifTrue: [ observed:: observed + 1 ] ].
+    ('observed ' , observed printString) out.   (* 3 — full loop closed *)
+    'done' out.
+  )
+) : (
+)

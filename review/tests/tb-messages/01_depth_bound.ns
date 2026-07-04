@@ -1,0 +1,29 @@
+(*
+expect:
+32
+expect-crash: message depth exceeded
+*)
+(* T-B.1 — depth-bound edges: a tree at EXACTLY the bound (assumed 32; sync with the
+   Milestone-B constant) constructs and reports its depth; one level deeper is a clean
+   construction-time crash. List-nesting path here; clone for map-nesting (01b) when
+   landing. *)
+class DepthBound packageUsing: manifest = () (
+  public nest: n = (
+    | v |
+    v:: 0.
+    1 to: n do: [ :i | v:: List with: v ].
+    ^ v
+  )
+  public depthOf: v = (
+    | d cur |
+    d:: 0. cur:: v.
+    [ cur isList ] whileTrue: [ d:: d + 1. cur:: cur at: 1 ].
+    ^ d
+  )
+  public main: platform args: args = (
+    (self depthOf: (self nest: 32)) printString out.   (* at the bound: fine *)
+    self nest: 33.                                     (* one past: must crash *)
+    'unreached' out.
+  )
+) : (
+)

@@ -1,0 +1,37 @@
+(*
+expect:
+b 1
+bc 0
+b2 1
+done
+*)
+(* T-C.1 / addendum A1 — prefix/channel matching is PATH-SEGMENT aligned, tested where
+   it can actually go wrong: DISPATCH. With relative paths + grant-time validation, a
+   confined capability cannot even EXPRESS an outside path (02 covers the '..' family),
+   so the collision surface is the space's internal matching: a post at 'a/b' must fire
+   ONLY the 'a/b' reaction — never 'a/bc', of which 'a/b' is a raw string prefix.
+   Mirror case: a post at 'a/bc' must not fire 'a/b' (b2 stays 1). Landing adds
+   01b: 'sensor' vs 'sensors/temp'. THIS FAMILY IS A SECURITY BOUNDARY: a matching
+   bug here is a capability escape, not an ordinary defect. *)
+class SegmentConfinement packageUsing: manifest = () (
+  | bHits ::= 0. bcHits ::= 0. |
+  public main: platform args: args = (
+    | space b bc |
+    space:: platform space.
+    b::  space channel: 'a/b'.
+    bc:: space channel: 'a/bc'.
+    b  whenever: '' do: [ :m | bHits::  bHits  + 1 ].
+    bc whenever: '' do: [ :m | bcHits:: bcHits + 1 ].
+
+    b out: '' value: 1.                    (* exact channel a/b *)
+    space drain.
+    ('b '  , bHits printString) out.       (* b 1  — its own reaction fired *)
+    ('bc ' , bcHits printString) out.      (* bc 0 — string-prefix neighbor did NOT *)
+
+    bc out: '' value: 2.                   (* and the mirror direction *)
+    space drain.
+    ('b2 ' , bHits printString) out.       (* b2 1 — unchanged *)
+    'done' out.
+  )
+) : (
+)

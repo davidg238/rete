@@ -1,0 +1,137 @@
+# Why nsl-tuvm
+
+*A capability-secure OO scripting layer for Zephyr-class devices — the one-page story.
+Written 2026-07-03; companion to the first-step design spec and the slide deck in this
+directory.*
+
+---
+
+## The itch
+
+Toit got the model right: an ergonomic OO language on the device, supervised jobs,
+crash-isolation, immutable messages between them, and a deployment story (`jag`) where
+you push code to a live node over the network instead of reflashing firmware. Working in
+Toit is what embedded development should feel like.
+
+But Toit makes two bets that exclude a hardware class that matters:
+
+1. **It needs ESP32-scale RAM.** Toit's runtime does not fit the 256 KB nRF52840 class —
+   the class where Thread/802.15.4 radios, coin-cell budgets, and years-long deployments
+   live.
+2. **"Write your device drivers in Toit."** The language is the whole world; the enormous
+   existing driver ecosystems (Zephyr's in particular) are not reachable. Every sensor,
+   display, and radio needs a from-scratch in-language driver.
+
+Meanwhile Zephyr already has what Toit lacks: hundreds of maintained drivers behind
+uniform APIs, devicetree-based hardware description, OpenThread integration, power
+management, and support for essentially every Cortex-M part. What Zephyr lacks is what
+Toit has: an ergonomic, safe, remotely-serviceable programming model. C application code
+on Zephyr is tedious, unsafe, and needs a flash cycle for every change.
+
+**The wedge: put a tiny OO scripting layer *on top of* Zephyr. Reuse a Zephyr display
+driver — don't write one.** The language is the coordinator; C is the datapath.
+
+## What was learned the hard way
+
+This project is the fifth attempt, and the graveyard is the design rationale:
+
+- **toit-zephyr** (tree-sitter for Toit): incomplete, no static typing — the language
+  surface was the wrong place to start.
+- **st-berry** (Smalltalk on the Berry VM): proved keyword-message syntax over a small
+  register VM works, and proved that **giving up non-local return (NLR) is livable** —
+  collection combinators cover real early-exit uses, and `^` in an escaping closure can
+  simply be a compile error.
+- **ns-berry** (Newspeak on Berry): Newspeak's capability/module model is exactly right
+  for confining driver access — but full Newspeak requires NLR. Abandoned.
+- **ns-oevm / oevm** (custom VM on Piumarta's object model): a clean message-dispatch
+  micro-kernel VM, fine single-threaded. Then two days of fibers + NLR + reify-on-escape
+  + growable stacks produced a cascade of interacting complexity that ballooned the VM
+  far past its intent. That balloon was not incidental — it is what *full*
+  Smalltalk/Newspeak semantics cost on a tiny cooperative VM.
+
+The lesson: **cut the ambition to fit the substrate, instead of stretching the substrate
+to fit the ambition.** nsl-tuvm keeps Newspeak's capability model, keyword messages, and
+message-based everything — and deletes the two features whose implementation cost
+dominated everything else: non-local return and fibers.
+
+## The model
+
+```
+┌────────────────────────────────────────────────────────────┐
+│  nsl (policy):  supervisor · reactor · jobs · capabilities │
+│                                                            │
+│   job ──out:──▶ channel ──whenever:──▶ job    (run-to-     │
+│                (capability = rooted     completion         │
+│                 path prefix)            handlers)          │
+├────────────────────────────────────────────────────────────┤
+│  C seam (data, not control): VM · GC · codec · drivers    │
+├────────────────────────────────────────────────────────────┤
+│  Zephyr: OpenThread · I2C/SPI/GPIO · display · sensors ·  │
+│          power management · devicetree                     │
+└────────────────────────────────────────────────────────────┘
+```
+
+- **A ~24 KB-class run-to-completion VM.** No fibers, no NLR, no growable stacks. One
+  heap-side language stack, O(1) C-stack use (Zephyr threads have 2–8 KB C stacks), a
+  precise GC, and an in-image debugger.
+- **Jobs are event handlers, not threads.** A job registers standing reactions
+  (`whenever:do:`) on channels; each firing runs to completion. This matches Zephyr's own
+  idiom (workqueues, run-to-completion callbacks) and OTP's (`gen_server` handles one
+  message at a time).
+- **Channels are capabilities.** A channel is a URL-style path; a capability is a channel
+  namespace rooted at a prefix, attenuated by extending the prefix. A job can only speak
+  where it has been granted. Drivers surface as granted capabilities, not ambient
+  globals.
+- **Messages are immutable values** over a closed algebra (null, bool, int, float,
+  string, bytes, symbol, list, map, record) — Toit's proven design. On the single shared
+  heap they pass **by reference, zero copy** (beating Toit's per-message copy); only the
+  network/flash/driver boundary serializes.
+- **Let it crash.** A faulting handler unwinds to the reactor; the supervisor logs,
+  applies restart policy, and the rest of the node keeps running. Supervision policy
+  lives in nsl, not C.
+- **porta/nodus deployment.** Nodes are provisioned, updated, debugged, and profiled over
+  the LAN through the porta gateway — the `jag` experience, on Thread-class hardware.
+
+## Why no fibers is a feature, not a concession
+
+The obvious objection: without fibers, "start conversion, wait 10 ms, read result" can't
+be straight-line code — it becomes a state machine or chained handlers. Three reasons
+this is the right trade for *this* hardware class:
+
+1. **It is Zephyr's grain.** ISR bottom halves, workqueue items, and OpenThread callbacks
+   are all run-to-completion. The scripting layer composes with the host OS instead of
+   building a second scheduler on top of it.
+2. **It is the deep-sleep-correct model.** A suspended fiber's stack cannot survive
+   power-down without heroic checkpointing. A reactor whose inter-event state lives in
+   explicit objects and channels rehydrates naturally: wake-from-sleep is just another
+   event. Always-on and deep-sleep nodes run the *same* programming model.
+3. **It is what makes robustness cheap.** Run-to-completion dispatch means one language
+   stack in one known state — which is exactly what makes the crash boundary, the
+   watchdog safe-points, and precise GC rooting simple enough to trust at 24 KB.
+
+The ergonomic gap is closed in the library and compiler (a state-machine idiom now, CPS
+sugar if ever justified) — never by putting suspension back in the VM.
+
+## Where this sits
+
+| | Toit | MicroPython/Zephyr | AtomVM | **nsl-tuvm** |
+|---|---|---|---|---|
+| Fits 256 KB + OpenThread | no | barely, weak Thread story | partial | **yes (design target)** |
+| Reuses host-OS drivers | no (drivers in-language) | partially | partially | **yes (the product)** |
+| Capability confinement | no | no | no | **yes** |
+| Supervision / let-it-crash | yes | no | yes (BEAM) | **yes** |
+| Remote provision/debug | yes (jag) | REPL only | no | **yes (porta)** |
+| Static types, raw speed | **yes** | no | no | no — conceded |
+
+Toit wins types and performance; that is conceded up front. The bet is that for
+Thread-class fleet devices, **operability** — confinement, supervision, remote
+serviceability, and access to Zephyr's driver catalog — is what actually decides whether
+a scripting layer survives production.
+
+## Status
+
+First step (host-only, in progress): seed the `tuvm`/`nsl-tuvm`/`nsl-tests` repos, delete
+the fiber/NLR/reify balloon, prove the immutable message algebra, prefix-capability
+channels, and the supervised reactor end-to-end on the desktop, and bank the footprint
+delta. Zephyr bring-up, real drivers, the wire codec, and porta integration follow — see
+§8 of the first-step spec for the fence.

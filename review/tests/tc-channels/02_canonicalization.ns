@@ -1,0 +1,20 @@
+(*
+expect:
+ok
+expect-crash: invalid channel path
+*)
+(* T-C.2 / addendum A1 — grants are canonicalized-or-rejected, never silently
+   normalized: empty segments ('a//b') must be refused AT GRANT TIME. Landing expands
+   to one file per malformed shape: './a' (02b), 'a/../b' (02c), trailing '/' (02d),
+   leading '/' (02e), empty string where a segment is required (02f). Each is one
+   crash-test because rejection is a crash (no on:do: yet). *)
+class Canonicalization packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space |
+    space:: platform space.
+    'ok' out.
+    space channel: 'a//b'.        (* empty segment: reject, don't normalize *)
+    'unreached' out.
+  )
+) : (
+)

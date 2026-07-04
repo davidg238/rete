@@ -1,0 +1,122 @@
+(*
+L2 — binary data: ByteArray (mutable workbench) + Bytes (immutable algebra value).
+
+The make-or-break library for driver scripting: register masks and packet fields.
+Pattern: build in a ByteArray, `freeze` to Bytes to put in a message. Freeze copies
+(ownership-transfer/neutering is the deferred §8 optimization — API stays the same).
+
+REQUIRED PRIMITIVES (C work order — the only VM surface this file needs):
+  platform basicNewBytes: n              -> mutable byte-indexable, zero-filled
+  byteAt: i / byteAt: i put: v           -> 1-based raw byte access (0..255), bounds-checked in nsl
+  byteSize                               -> length
+  platform freezeBytes: aByteArray       -> immutable Bytes copy (algebra `bytes`)
+  (Integer bitAnd:/bitOr:/bitXor:/<</>>  -> assumed present; add if kernel lacks them)
+
+DESTINATIONS: both classes are kernel.ns siblings. Accessor naming: LE is the default
+(`u16At:`), BE is spelled out (`u16BeAt:`) — nRF/Thread world is little-endian at rest,
+network order at the seam.
+
+Errors per errors.md: 'index out of bounds', 'byte out of range', 'immutable'.
+*)
+class BytesStaging usingPlatform: platform = () (
+
+  (* Shared read protocol — Bytes gets exactly this; ByteArray adds the writes. *)
+  class BytesReadProtocol = () (
+    public size = ( ^ self byteSize )
+
+    public u8At: i = (
+      (i < 1 or: [ i > self byteSize ]) ifTrue: [ self error: 'index out of bounds' ].
+      ^ self byteAt: i
+    )
+    public s8At: i = (
+      | v | v:: self u8At: i.
+      v > 127 ifTrue: [ ^ v - 256 ]. ^ v
+    )
+
+    public u16At: i = ( ^ (self u8At: i) + ((self u8At: i + 1) << 8) )
+    public u16BeAt: i = ( ^ ((self u8At: i) << 8) + (self u8At: i + 1) )
+    public s16At: i = ( | v | v:: self u16At: i. v > 32767 ifTrue: [ ^ v - 65536 ]. ^ v )
+    public s16BeAt: i = ( | v | v:: self u16BeAt: i. v > 32767 ifTrue: [ ^ v - 65536 ]. ^ v )
+
+    (* u32 exceeds a 30-bit target SMI — this is exactly why integers are 64-bit
+       semantics everywhere (lib/integers.md). *)
+    public u32At: i = ( ^ (self u16At: i) + ((self u16At: i + 2) << 16) )
+    public u32BeAt: i = ( ^ ((self u16BeAt: i) << 16) + (self u16BeAt: i + 2) )
+    public s32At: i = ( | v | v:: self u32At: i. v > 16r7FFFFFFF ifTrue: [ ^ v - 16r100000000 ]. ^ v )
+
+    public copyFrom: start to: stop = (
+      | r |
+      (start < 1 or: [ stop > self byteSize ]) ifTrue: [ self error: 'index out of bounds' ].
+      r:: ByteArray new: (stop - start + 1 max: 0).
+      start to: stop do: [ :i | r u8At: i - start + 1 put: (self byteAt: i) ].
+      ^ r
+    )
+
+    public do: aBlock = ( 1 to: self byteSize do: [ :i | aBlock value: (self byteAt: i) ]. ^ self )
+
+    public printString = (
+      | s |
+      s:: '#['.
+      self do: [ :b | s:: s , b printString , ' ' ].
+      ^ s , ']'
+    )
+  ) : ( )
+
+  (* Mutable workbench. NOT an algebra value — putting one in a message crashes. *)
+  class ByteArray = BytesReadProtocol ( ) (
+    public u8At: i put: v = (
+      (i < 1 or: [ i > self byteSize ]) ifTrue: [ self error: 'index out of bounds' ].
+      (v < 0 or: [ v > 255 ]) ifTrue: [ self error: 'byte out of range' ].
+      self byteAt: i put: v. ^ v
+    )
+    public s8At: i put: v = (
+      (v < -128 or: [ v > 127 ]) ifTrue: [ self error: 'byte out of range' ].
+      v < 0 ifTrue: [ ^ self u8At: i put: v + 256 ]. ^ self u8At: i put: v
+    )
+    public u16At: i put: v = (
+      self u8At: i     put: (v bitAnd: 16rFF).
+      self u8At: i + 1 put: ((v >> 8) bitAnd: 16rFF). ^ v
+    )
+    public u16BeAt: i put: v = (
+      self u8At: i     put: ((v >> 8) bitAnd: 16rFF).
+      self u8At: i + 1 put: (v bitAnd: 16rFF). ^ v
+    )
+    public u32At: i put: v = (
+      self u16At: i     put: (v bitAnd: 16rFFFF).
+      self u16At: i + 2 put: ((v >> 16) bitAnd: 16rFFFF). ^ v
+    )
+    public u32BeAt: i put: v = (
+      self u16BeAt: i     put: ((v >> 16) bitAnd: 16rFFFF).
+      self u16BeAt: i + 2 put: (v bitAnd: 16rFFFF). ^ v
+    )
+    public replaceFrom: start to: stop with: other startingAt: os = (
+      start to: stop do: [ :i | self u8At: i put: (other u8At: os + i - start) ]. ^ self
+    )
+    (* -> immutable algebra Bytes (copy; later a neuter, same API). *)
+    public freeze = ( ^ platform freezeBytes: self )
+  ) : (
+    public new: n = ( ^ platform basicNewBytes: n )
+    public fromList: aList = (
+      | r | r:: self new: aList size.
+      aList withIndexDo: [ :b :i | r u8At: i put: b ]. ^ r
+    )
+  )
+
+  (* Immutable algebra `bytes`. Read protocol only — write selectors DO NOT EXIST here
+     (immutability by construction, not by runtime check; see messages.md). *)
+  class Bytes = BytesReadProtocol ( ) (
+    public freeze = ( ^ self )               (* already a value *)
+    public asByteArray = ( ^ self copyFrom: 1 to: self byteSize )  (* thaw = explicit copy *)
+  ) : ( )
+
+  (* ---- DESTINATION: Integer (bit-field helpers; pure, land with this file) ----
+     public bitAt: i            = ( ^ (self >> (i - 1)) bitAnd: 1 )                     1-based
+     public bits: lo to: hi     = ( ^ (self >> (lo - 1)) bitAnd: (1 << (hi - lo + 1)) - 1 )
+     public bits: lo to: hi put: v = (
+       | mask |
+       mask:: ((1 << (hi - lo + 1)) - 1) << (lo - 1).
+       ^ (self bitAnd: mask bitInvert) bitOr: ((v << (lo - 1)) bitAnd: mask) )
+     `bits:to:put:` returns the NEW integer (integers are values); register write idiom:
+       reg u32At: 1 put: ((reg u32At: 1) bits: 5 to: 7 put: 2r101).
+  *)
+) : ( )
