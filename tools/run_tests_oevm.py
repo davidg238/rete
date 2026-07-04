@@ -128,7 +128,8 @@ def run_c_unit_tests(oevm_dir):
 def run_boot_gc_asan_gate() -> bool:
     """Regression gate for oevm#21 (boot-time GC roots incomplete).
 
-    During run_interpreter's lazy main-fiber bootstrap, the boot ENTRY INSTANCE
+    During run_interpreter's lazy exec-context bootstrap (a Stack object +
+    current_frame, no Fiber wrapper — Milestone A Task 6), the boot ENTRY INSTANCE
     (the `self` passed to the first send, e.g. Kernel>>init_platform:) is live but
     held only in a C local — rooted solely by the conservative C-stack scan. ASan's
     fake-stack (detect_stack_use_after_return=1, the ASan DEFAULT) relocates that

@@ -31,6 +31,10 @@ OP_LD_SLOT = 10
 OP_ST_SLOT = 11
 OP_NEW = 12
 OP_SEND_IMPLICIT = 13
+# 0x0E is intentionally not assigned here: it is OP_BREAK, a C-only live opcode
+# (oevm/src/oevm.h) patched into a method's instruction stream by the debugger
+# for breakpoints — never emitted by this compiler, so this compiler's opcode
+# table has no OP_BREAK constant at all.
 OP_SEND_SUPER = 0x0F
 OP_LD_LEXICAL = 0x10
 OP_ST_LEXICAL = 0x11
