@@ -24,8 +24,8 @@ import os, re, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 NSROOT = os.path.dirname(HERE)
-OEVM = os.path.join(NSROOT, "..", "oevm")
-APP = os.path.join(NSROOT, "..", "ns-tests", "04_somns_basic", "46_debug_target.ns")
+OEVM = os.path.join(NSROOT, "..", "tuvm")
+APP = os.path.join(NSROOT, "..", "nsl-tests", "04_somns_basic", "46_debug_target.ns")
 BINARY_A = "/tmp/oevm_debugger"
 BINARY_B = "/tmp/oevm_img"
 OIMG_B = "/tmp/46_debug_target.oimg"

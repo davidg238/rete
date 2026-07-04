@@ -13,40 +13,38 @@ class CompileError(Exception):
     raw Python traceback."""
 
 # Opcode constants
+# 2 retired: the dead IC-send path (never emitted; deleted in de-recursify
+# Phase 2 Task 3) and the no-NLR-model non-local-return op ('^' in an escaping
+# closure is a CompileError instead) — both fully compacted out in Task 9b's
+# renumber (no reserved slots, no dead constants).
 OP_LD_CONST = 0
 OP_LD_REG = 1
 OP_SEND = 2
-# 3 retired: OP_SEND_IC (dead IC path, never emitted; deleted in de-recursify
-# Phase 2 Task 3 — value kept reserved to avoid renumbering serialized .oimg images)
-OP_RET = 4
-OP_NLR = 5  # unused (Milestone A, no-NLR model): '^' in an escaping closure
-            # is now a CompileError instead. Value kept reserved to avoid
-            # renumbering opcodes; the VM's dead OP_NLR handler and this
-            # constant are both removed in Task 3/9's renumber.
-OP_ADD = 6
-OP_SUB = 7
-OP_MUL = 8
-OP_DIV = 9
-OP_JMP = 10
-OP_JMP_IF_FALSE = 11
-OP_LD_SLOT = 12
-OP_ST_SLOT = 13
-OP_NEW = 14
-OP_SEND_IMPLICIT = 15
-OP_SEND_SUPER = 0x11
-OP_LD_LEXICAL = 0x12
-OP_ST_LEXICAL = 0x13
-OP_CLOSURE    = 0x14
-OP_LD_SENDER  = 0x15
-OP_BLOCK_INVOKE = 0x16
+OP_RET = 3
+OP_ADD = 4
+OP_SUB = 5
+OP_MUL = 6
+OP_DIV = 7
+OP_JMP = 8
+OP_JMP_IF_FALSE = 9
+OP_LD_SLOT = 10
+OP_ST_SLOT = 11
+OP_NEW = 12
+OP_SEND_IMPLICIT = 13
+OP_SEND_SUPER = 0x0F
+OP_LD_LEXICAL = 0x10
+OP_ST_LEXICAL = 0x11
+OP_CLOSURE    = 0x12
+OP_LD_SENDER  = 0x13
+OP_BLOCK_INVOKE = 0x14
 # De-recursify deferred lift, Phase 1 (temp-vectors). Mirrors oevm/src/oevm.h.
 # A frame's own Context lives in the fixed register `num_arguments + 1` (there
 # is no free 4th operand byte in the 32-bit ISA), so LD/ST_CTX take no ctxreg
 # operand — the VM reads it from that fixed register.
-OP_MK_CONTEXT = 0x17   # dest=ctx_reg, src1=num_slots, src2=outer (0xFF => closure.captured_env; else NULL)
-OP_LD_CTX     = 0x18   # dest, src1=depth (Context->outer hops), src2=slot_idx
-OP_ST_CTX     = 0x19   # dest=value_reg, src1=depth, src2=slot_idx
-OP_LD_SELF    = 0x1A   # dest=reg; load running block closure's captured_self (self-migration)
+OP_MK_CONTEXT = 0x15   # dest=ctx_reg, src1=num_slots, src2=outer (0xFF => closure.captured_env; else NULL)
+OP_LD_CTX     = 0x16   # dest, src1=depth (Context->outer hops), src2=slot_idx
+OP_ST_CTX     = 0x17   # dest=value_reg, src1=depth, src2=slot_idx
+OP_LD_SELF    = 0x18   # dest=reg; load running block closure's captured_self (self-migration)
 
 
 def pack_abc(opcode, a, b, c):
