@@ -293,6 +293,27 @@ def parse_test_metadata(file_path: Path):
 
     return metadata
 
+def _check_runtime_fail(metadata: dict, err_msg: str, stdout: str) -> tuple[bool, str]:
+    """Validate an `expect-runtime-fail:` test (Task 10b smallest-extension): the
+    diagnostic (stderr, or stdout if stderr is empty) must CONTAIN the header's
+    substring, and any preceding `expect:` lines must match the stdout emitted
+    before the crash. Previously the harness treated ANY nonzero exit as a PASS
+    regardless of the header's substring or preceding output — verified against
+    07_no_nlr/04_stack_exhaustion.ns, which needs both checks to be a meaningful
+    proof of controlled (vs. C-level) termination. Returns (ok, detail)."""
+    expected_substr = metadata["expect_runtime_fail"]
+    if expected_substr not in err_msg:
+        return False, (f"Runtime failed as expected, but diagnostic did not contain "
+                        f"'{expected_substr}':\n{err_msg}")
+    expected_lines = [line.strip() for line in metadata.get("expect", []) if line.strip()]
+    if expected_lines:
+        actual_lines = [line.strip() for line in stdout.strip().splitlines() if line.strip()]
+        if actual_lines != expected_lines:
+            return False, (f"Runtime failed with the expected diagnostic, but preceding "
+                            f"output mismatched.\nExpected: {expected_lines}\nActual:   {actual_lines}")
+    return True, f"Expected runtime failure: {err_msg.strip()}"
+
+
 def _dump_stdout(src_path: Path, path_label: str, stdout: str) -> None:
     """Write raw program stdout to $OEVM_DUMP_DIR/<relpath>.<path_label>.out.
     Called only when OEVM_DUMP_DIR is set; the dump does NOT affect pass/fail."""
@@ -369,8 +390,11 @@ def run_test_file(src_path: Path) -> tuple[str, str]:
     if proc_run.returncode != 0:
         err_msg = proc_run.stderr or proc_run.stdout
         if metadata.get("expect_runtime_fail"):
+            ok, detail = _check_runtime_fail(metadata, err_msg, proc_run.stdout)
+            if not ok:
+                return "FAIL", detail
             _dump_stdout(src_path, "A", proc_run.stdout)
-            return "PASS", f"Expected runtime failure: {err_msg.strip()}"
+            return "PASS", detail
         return "FAIL", f"Runtime crashed:\n{err_msg}"
 
     if metadata.get("expect_runtime_fail"):
@@ -443,8 +467,11 @@ def run_test_file_oimg(src_path: Path) -> tuple[str, str]:
     if proc_run.returncode != 0:
         err_msg = proc_run.stderr or proc_run.stdout
         if metadata.get("expect_runtime_fail"):
+            ok, detail = _check_runtime_fail(metadata, err_msg, proc_run.stdout)
+            if not ok:
+                return "FAIL", detail
             _dump_stdout(src_path, "B", proc_run.stdout)
-            return "PASS", f"Expected runtime failure: {err_msg.strip()}"
+            return "PASS", detail
         return "FAIL", f"Runtime crashed:\n{err_msg}"
 
     if metadata.get("expect_runtime_fail"):
