@@ -65,17 +65,23 @@ class OimgWriter:
                      serial_on_sel_ref=0,
                      supervisor_vtable_ref=0, supervisor_init_sel_ref=0,
                      supervisor_run_sel_ref=0, supervisor_nslots=0,
-                     net_on_sel_ref=0,
-                     concurrency_on_sel_ref=0):
+                     net_on_sel_ref=0):
         # ---- .oimg header byte layout (CONTRACT — mirror in oevm/src/oimg_loader.c) ----
         # All multi-byte scalars little-endian. W = oop_size (8 on 64-bit, 4 on 32-bit).
         # Ref-words (root/init/main/kernel_vtable/kernel_init_sel) are W-wide, W-aligned.
         #
+        # format_version 8 (Milestone A Task 9b compaction): ONE fixed layout.
+        # When the Kernel descriptor is present the serial/supervisor/net groups
+        # are ALWAYS emitted (0 when the entry takes no such capability), so a v8
+        # header always ends at the net word (A+12W, padded). The v7 tail word
+        # (the retired concurrency capability ref at A+13W) is gone — fibers were
+        # removed in Milestone A; v3-v7 headers are no longer written or loaded.
+        #
         #   off  width  field
         #   0    4      magic "OIMG"
-        #   4    2      format_version (u16, 3 when Kernel descriptor present; 4 with
-        #                serial; 5 with Supervisor descriptor; 6 with net/UDP;
-        #                7 with concurrency)
+        #   4    2      format_version (u16: 8 when Kernel descriptor present;
+        #                1 for a kernel-less minimal blob — header ends at the
+        #                entry descriptor; serializer unit tests only)
         #   6    2      flags (u16, =0)
         #   8    4      registry_version (u32)
         #   12   4      blob_size (u32, = total file size)
@@ -87,49 +93,33 @@ class OimgWriter:
         #   A+3W 2      init_argc (u16)
         #   A+3W+2 2    entry_nslots (u16)
         #   --- pad whole header to 8 (ALIGN) so object region stays 8-aligned ---
-        #   A+4W W      kernel_vtable_ref   (format_version 3: Kernel module vtable)
-        #   A+5W W      kernel_init_sel_ref (format_version 3: Kernel init selector sym)
-        #   A+6W 2      kernel_nslots (u16) (format_version 3: Kernel instance slots)
+        #   A+4W W      kernel_vtable_ref   (Kernel module vtable)
+        #   A+5W W      kernel_init_sel_ref (Kernel init selector sym)
+        #   A+6W 2      kernel_nslots (u16) (Kernel instance slots)
         #   --- pad whole header to ALIGN again ---
-        #   A+7W W      serial_on_sel_ref   (format_version 4: ref to Kernel>>serialOn:,
-        #                                    0 when entry takes no serial capability;
-        #                                    ALWAYS emitted (0 if no serial) when the
-        #                                    Supervisor descriptor is present, so the
-        #                                    supervisor block stays at A+8W)
+        #   A+7W W      serial_on_sel_ref   (ref to Kernel>>serialOn:; 0 when the
+        #                                    entry takes no serial capability)
         #   --- pad whole header to ALIGN again ---
-        #   A+8W  W     supervisor_vtable_ref   (format_version 5: Supervisor vtable)
-        #   A+9W  W     supervisor_init_sel_ref (format_version 5: init_mirror: selector sym)
-        #   A+10W W     supervisor_run_sel_ref  (format_version 5: run:platform:args:debug:)
-        #   A+11W 2     supervisor_nslots (u16) (format_version 5: Supervisor instance slots)
+        #   A+8W  W     supervisor_vtable_ref   (Supervisor vtable)
+        #   A+9W  W     supervisor_init_sel_ref (init_mirror: selector sym)
+        #   A+10W W     supervisor_run_sel_ref  (run:platform:args:debug:)
+        #   A+11W 2     supervisor_nslots (u16) (Supervisor instance slots)
         #   --- pad whole header to ALIGN again ---
-        #   A+12W W     net_on_sel_ref      (format_version 6: ref to Kernel>>netOn:,
-        #                                    0 when entry takes no net capability; ALWAYS
-        #                                    emitted at tail so it lands at a fixed offset)
-        #   --- pad whole header to ALIGN again ---
-        #   A+13W W     concurrency_on_sel_ref (format_version 7: ref to Kernel>>concurrency,
-        #                                    0 when entry takes no concurrency capability;
-        #                                    net slot always emitted when concurrency present)
+        #   A+12W W     net_on_sel_ref      (ref to Kernel>>netOn:; 0 when the
+        #                                    entry takes no net capability)
         #   --- pad whole header to ALIGN again ---
         # For W==8: root_ref@24 init_sel_ref@32 main_sel_ref@40 init_argc@48
         #           entry_nslots@50, kernel_vtable_ref@56, kernel_init_sel_ref@64,
         #           kernel_nslots@72, header padded to 80, serial_on_sel_ref@80,
         #           header padded to 88, supervisor_vtable_ref@88, supervisor_init_sel_ref@96,
         #           supervisor_run_sel_ref@104, supervisor_nslots@112, header padded to 120,
-        #           net_on_sel_ref@120, header padded to 128,
-        #           concurrency_on_sel_ref@128, header padded to 136.
+        #           net_on_sel_ref@120, header padded to 128.
         # (format_version 1: Kernel descriptor absent, header 56 bytes.)
-        if concurrency_on_sel_ref:
-            version = 7
-        elif net_on_sel_ref:
-            version = 6
-        elif supervisor_vtable_ref:
-            version = 5
-        elif serial_on_sel_ref:
-            version = 4
-        elif kernel_vtable_ref:
-            version = 3
-        else:
-            version = self.version
+        if not kernel_vtable_ref and (serial_on_sel_ref or supervisor_vtable_ref
+                                      or net_on_sel_ref):
+            raise ValueError("v8 header: serial/supervisor/net descriptors "
+                             "require the Kernel descriptor")
+        version = 8 if kernel_vtable_ref else self.version
         h = self.MAGIC
         h += self.u16(version) + self.u16(0)               # flags = 0
         h += self.u32(self.registry_version)
@@ -154,42 +144,29 @@ class OimgWriter:
         # pad to W before optional Kernel descriptor
         if len(h) % W:
             h += b"\x00" * (W - (len(h) % W))
-        # std-lib step 3b: Kernel module descriptor (format_version 3+):
-        # kernel_vtable_ref @a+4W, kernel_init_sel_ref @a+5W, kernel_nslots (u16) @a+6W.
+        # v8: the Kernel descriptor gates the WHOLE descriptor block. When it is
+        # present, every group below is emitted (0-filled when unused) so the
+        # header has exactly one shape per oop width:
+        #   kernel_vtable_ref @a+4W, kernel_init_sel_ref @a+5W, kernel_nslots (u16) @a+6W,
+        #   serial_on_sel_ref @a+7W,
+        #   supervisor_vtable_ref @a+8W, init_sel @a+9W, run_sel @a+10W, nslots (u16) @a+11W,
+        #   net_on_sel_ref @a+12W (tail).
         if kernel_vtable_ref:
             h += self.word(kernel_vtable_ref)
             h += self.word(kernel_init_sel_ref)
             h += self.u16(kernel_nslots)
             if len(h) % W:
                 h += b"\x00" * (W - (len(h) % W))
-        # std-lib step 3c-3b: serial capability ref (format_version 4): serial_on_sel_ref
-        # @a+7W (0 when the entry takes no serial). When the Supervisor descriptor (v5)
-        # is present the serial slot is always emitted (possibly 0) so the Supervisor
-        # fields land at a fixed offset (a+8W) regardless of whether the entry uses serial.
-        if serial_on_sel_ref or supervisor_vtable_ref or net_on_sel_ref or concurrency_on_sel_ref:
             h += self.word(serial_on_sel_ref)
             if len(h) % W:
                 h += b"\x00" * (W - (len(h) % W))
-        # in-image debugger step 1: Supervisor descriptor (format_version 5):
-        # supervisor_vtable_ref @a+8W, init_sel @a+9W, run_sel @a+10W, nslots (u16) @a+11W.
-        # When only net or concurrency is present (no Supervisor), emit zero-words so
-        # net_on_sel_ref lands at the fixed offset a+12W.
-        if supervisor_vtable_ref or net_on_sel_ref or concurrency_on_sel_ref:
             h += self.word(supervisor_vtable_ref)
             h += self.word(supervisor_init_sel_ref)
             h += self.word(supervisor_run_sel_ref)
             h += self.u16(supervisor_nslots)
             if len(h) % W:
                 h += b"\x00" * (W - (len(h) % W))
-        # R4: UDP capability ref (format_version 6): net_on_sel_ref @a+12W.
-        # Always emitted when concurrency present so concurrency_on_sel_ref lands at a+13W.
-        if net_on_sel_ref or concurrency_on_sel_ref:
             h += self.word(net_on_sel_ref)
-            if len(h) % W:
-                h += b"\x00" * (W - (len(h) % W))
-        # R7: concurrency capability ref (format_version 7): concurrency_on_sel_ref @a+13W, tail.
-        if concurrency_on_sel_ref:
-            h += self.word(concurrency_on_sel_ref)
             if len(h) % W:
                 h += b"\x00" * (W - (len(h) % W))
         return h
@@ -338,7 +315,7 @@ class OimgSerializer:
                  kernel_nslots=0, serial_on_sel_name=None,
                  supervisor_vtable_name=None, supervisor_init_sel_name=None,
                  supervisor_run_sel_name=None, supervisor_nslots=0,
-                 net_on_sel_name=None, concurrency_on_sel_name=None):
+                 net_on_sel_name=None):
         # 1. Collect objects per kind and the trailing arrays they own.
         objs = {k: [] for k in KIND_ORDER}      # kind -> [key]
         floats = {}                              # repr -> value
@@ -404,22 +381,11 @@ class OimgSerializer:
 
         # 2. Assign file-relative offsets: header, then object records by kind,
         #    then trailing arrays. Offset 0 reserved (NULL sentinel).
-        # Use a sentinel (1) for kernel_vtable_ref / serial_on_sel_ref /
-        # supervisor_vtable_ref to get the correct header size (format_version 3,
-        # 4, or 5, all larger headers).
+        # Use a sentinel (1) for kernel_vtable_ref to get the correct header
+        # size: in v8 the Kernel descriptor gates the whole fixed descriptor
+        # block (serial/supervisor/net slots are always emitted with it).
         _header_sentinel = 1 if kernel_vtable_name else 0
-        # serial slot is always present when supervisor, net, or concurrency is present
-        # (a+7W must be reserved so supervisor, net, and concurrency blocks land at
-        # fixed offsets a+8W, a+12W, and a+13W).
-        _serial_sentinel = 1 if (serial_on_sel_name or supervisor_vtable_name or net_on_sel_name or concurrency_on_sel_name) else 0
-        _supervisor_sentinel = 1 if (supervisor_vtable_name or net_on_sel_name or concurrency_on_sel_name) else 0
-        _net_sentinel = 1 if (net_on_sel_name or concurrency_on_sel_name) else 0
-        _concurrency_sentinel = 1 if concurrency_on_sel_name else 0
-        header_len = len(self.w.header_bytes(0, 0, 0, kernel_vtable_ref=_header_sentinel,
-                                             serial_on_sel_ref=_serial_sentinel,
-                                             supervisor_vtable_ref=_supervisor_sentinel,
-                                             net_on_sel_ref=_net_sentinel,
-                                             concurrency_on_sel_ref=_concurrency_sentinel))
+        header_len = len(self.w.header_bytes(0, 0, 0, kernel_vtable_ref=_header_sentinel))
         self.offset = {}
         cursor = _align(header_len)
 
@@ -548,11 +514,9 @@ class OimgSerializer:
         kernel_init_sel_ref = self._symbol_ref(kernel_init_sel_name) if kernel_init_sel_name else 0
         # std-lib step 3c-3b: serial capability selector ref (format_version 4).
         serial_on_sel_ref = self._symbol_ref(serial_on_sel_name) if serial_on_sel_name else 0
-        # R4: UDP/net capability selector ref (format_version 6).
+        # R4: UDP/net capability selector ref.
         net_on_sel_ref = self._symbol_ref(net_on_sel_name) if net_on_sel_name else 0
-        # R7: concurrency capability selector ref (format_version 7).
-        concurrency_on_sel_ref = self._symbol_ref(concurrency_on_sel_name) if concurrency_on_sel_name else 0
-        # in-image debugger step 1: Supervisor descriptor (format_version 5).
+        # in-image debugger step 1: Supervisor descriptor.
         supervisor_vtable_ref = self._vtable_ref(supervisor_vtable_name) if supervisor_vtable_name else 0
         supervisor_init_sel_ref = self._symbol_ref(supervisor_init_sel_name) if supervisor_init_sel_name else 0
         supervisor_run_sel_ref = self._symbol_ref(supervisor_run_sel_name) if supervisor_run_sel_name else 0
@@ -569,8 +533,7 @@ class OimgSerializer:
                                      supervisor_init_sel_ref=supervisor_init_sel_ref,
                                      supervisor_run_sel_ref=supervisor_run_sel_ref,
                                      supervisor_nslots=supervisor_nslots,
-                                     net_on_sel_ref=net_on_sel_ref,
-                                     concurrency_on_sel_ref=concurrency_on_sel_ref)
+                                     net_on_sel_ref=net_on_sel_ref)
         assert len(header) == header_len, \
             f"header size mismatch: precomputed {header_len}, emitted {len(header)}"
         buf[0:len(header)] = header

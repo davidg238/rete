@@ -2187,10 +2187,9 @@ def main():
         # The loader will send #serialOn: to kernel_inst to mint the Serial wrapper.
         _serial_on_sel_name = "serialOn:" if "serial" in _params else None
         _net_on_sel_name = "netOn:" if "net" in _params else None
-        # `concurrency:` capability retired with Concurrency/Fiber (Milestone A Task 4):
-        # the compiler no longer injects it. oimg_serialize.py's concurrency_on_sel_ref
-        # header slot stays defaulted-off (reserved, never emitted) until the Task 9 compact.
-        # in-image debugger step 1: Supervisor descriptor (format_version 5). The
+        # `concurrency:` capability retired with Concurrency/Fiber (Milestone A Task 4);
+        # its oimg header word was compacted away in the Task 9b format-v8 header.
+        # in-image debugger step 1: Supervisor descriptor. The
         # init selector is derived from Supervisor's param variable names, matching
         # the synthesized initializer (e.g. init_mirror: from param `mirror`).
         _sparams = compiler.all_classes["Supervisor"].get("params", [])
