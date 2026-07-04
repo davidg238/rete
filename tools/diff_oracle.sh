@@ -22,10 +22,22 @@
 #   tuvm:   nsl-tuvm/tools/run_tests_oevm.py         against ~/workspace/tuvm
 # Both runners build inside their own OEVM_DIR (src/solidified_image.c + .stmap are
 # tracked files that get overwritten per test — this is normal harness behavior, see
-# each repo's own test cycle). This script restores those two tracked files in the
-# FROZEN tree afterward so `git -C ~/workspace/oevm status` stays clean; all other
-# build artifacts (oevm_runner, /tmp/oevm_img, /tmp/*.oimg, /tmp/oevm_layout.json)
-# are gitignored or already outside the tree.
+# each repo's own test cycle).
+#
+# FROZEN-TREE HYGIENE CONTRACT (Task 10b review): ZERO build byproducts may remain in
+# the frozen trees when this script exits — not merely a clean `git status` (the
+# frozen harness builds `oevm_runner` INSIDE its OEVM_DIR; it is gitignored, so git
+# status alone is insufficient evidence). cleanup() therefore:
+#   1. deletes oevm_runner from the frozen VM tree;
+#   2. deletes python __pycache__ dirs under the frozen tools tree (bytecode caches
+#      the frozen runner's imports may regenerate);
+#   3. sweeps BOTH frozen trees (VM + tools repo) for any untracked file newer than
+#      a start-timestamp marker and deletes it — catches anything 1-2 missed;
+#   4. restores the tracked-but-overwritten scratch files
+#      (src/solidified_image.{c,stmap}) via git checkout, LAST — the sweep skips
+#      tracked files, so their fresh mtimes are never mistaken for byproducts.
+# Everything else already lands in /tmp (/tmp/oevm_img, /tmp/*.oimg,
+# /tmp/oevm_layout.json, /tmp/test_debugger, /tmp/test_fibers, ...).
 #
 # Run SOLO + FOREGROUND (harness not concurrency-safe; never run two suite runs at
 # the same time — this script itself runs the two sides sequentially, never in
@@ -50,10 +62,42 @@ OUT=${OUT:-$(mktemp -d)}
 [ -f "$FROZEN_TOOLS_DIR/run_tests_oevm.py" ] || { echo "frozen runner not found: $FROZEN_TOOLS_DIR/run_tests_oevm.py" >&2; exit 2; }
 [ -f "$TUVM_TOOLS_DIR/run_tests_oevm.py" ] || { echo "tuvm runner not found: $TUVM_TOOLS_DIR/run_tests_oevm.py" >&2; exit 2; }
 
-# Restore the frozen tree's tracked-but-harness-overwritten build artifacts no matter
-# how this script exits (the harness rewrites these two files on every Path-A compile
-# — see FROZEN_VM_DIR/src/solidified_image.{c,stmap} in git history).
+# The frozen tools repo root (the sweep covers the whole repo, not just tools/).
+FROZEN_TOOLS_REPO=$(cd "$FROZEN_TOOLS_DIR/.." && pwd)
+
+# Start-timestamp marker: any file in a frozen tree newer than this that git does
+# not track is a byproduct of THIS run and gets deleted by cleanup()'s sweep.
+START_MARKER="$OUT/.oracle_start_marker"
+mkdir -p "$OUT"
+touch "$START_MARKER"
+
+# Remove every build byproduct this run causes in the frozen trees, and restore the
+# tracked-but-harness-overwritten scratch files — no matter how the script exits.
+# See the "FROZEN-TREE HYGIENE CONTRACT" header comment for the rationale.
 cleanup() {
+  # (1) the Path-A runner binary the frozen harness builds inside its OEVM_DIR
+  rm -f "$FROZEN_VM_DIR/oevm_runner"
+  # (2) python bytecode caches under the frozen tools tree
+  find "$FROZEN_TOOLS_DIR" -type d -name '__pycache__' -prune -exec rm -rf {} + 2>/dev/null || true
+  # (3) sweep both frozen trees for untracked files newer than the start marker
+  if [ -f "$START_MARKER" ]; then
+    for tree in "$FROZEN_VM_DIR" "$FROZEN_TOOLS_REPO"; do
+      find "$tree" -path "$tree/.git" -prune -o -type f -newer "$START_MARKER" -print 2>/dev/null |
+      while IFS= read -r f; do
+        rel=${f#"$tree"/}
+        if ! git -C "$tree" ls-files --error-unmatch -- "$rel" >/dev/null 2>&1; then
+          echo "oracle-cleanup: removing frozen-tree byproduct: $f" >&2
+          rm -f "$f"
+        fi
+      done
+      # drop any now-empty untracked dirs the run created (e.g. a fresh __pycache__)
+      find "$tree" -path "$tree/.git" -prune -o -type d -newer "$START_MARKER" -empty -print 2>/dev/null |
+      while IFS= read -r d; do
+        rmdir "$d" 2>/dev/null || true
+      done
+    done
+  fi
+  # (4) restore tracked scratch files (last; the sweep never touches tracked files)
   git -C "$FROZEN_VM_DIR" checkout -- src/solidified_image.c src/solidified_image.stmap 2>/dev/null || true
 }
 trap cleanup EXIT
