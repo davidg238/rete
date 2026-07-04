@@ -29,23 +29,14 @@ extern oop gc_allocate(oop vtable, size_t size);
 
 
 /* Global Stack Memory for Sequential Stack Allocation */
-/* De-recursify Phase 3: grow-on-demand stacks. INIT is the initial per-fiber
-   capacity (host default == the legacy fixed size, so host runs never grow and
-   behave/perform exactly as before; -D lower on embedded to start small and grow
-   on demand — the footprint win). CAP is the hard ceiling before controlled
-   termination (StackOverflow is not yet catchable in-image; see the Phase 3
-   design). GROW_NUM/_DEN is the growth factor (default 2x). */
+/* Milestone A Task 7: the exec-context stack is FIXED-capacity. INIT_WORDS is the
+   hard ceiling — the stack is allocated once at this size and never grows or moves,
+   so raw frame pointers stay valid for the life of the run. Pushing past it aborts
+   loudly (stack_overflow_abort). The growable-stack machinery (grow-on-demand,
+   realloc-copy, in-frame rebase, the CAP/GROW factor macros) was removed with the
+   no-NLR runtime. -D lower on embedded to shrink the fixed footprint. */
 #ifndef VM_STACK_INIT_WORDS
 #define VM_STACK_INIT_WORDS 16384
-#endif
-#ifndef VM_STACK_CAP_WORDS
-#define VM_STACK_CAP_WORDS 262144   /* 1 MB on 32-bit */
-#endif
-#ifndef VM_STACK_GROW_NUM
-#define VM_STACK_GROW_NUM 2
-#endif
-#ifndef VM_STACK_GROW_DEN
-#define VM_STACK_GROW_DEN 1
 #endif
 oop  g_active_stack = NULL;   /* the running execution context's Stack object (GC root); main bootstraps it lazily.
                                  With the Fiber wrapper removed (Milestone A Task 6), this + vm_stack/vm_stack_ptr
@@ -160,68 +151,24 @@ oop primitive_object_equals(oop receiver, int argc, oop *args) {
    ctx/method/pc/pc_end from current_frame and continues the flat loop; OP_RET
    later pops this frame and delivers its result into the caller's dest register. */
 
-/* De-recursify Phase 3: ensure the active fiber stack can hold `extra_words`
-   above vm_stack_ptr, growing (realloc-copy-to-larger) if needed. Relative
-   prev_frame/home_ctx links survive the copy with ZERO fixups (frame_abi.h) — only
-   the base moves. Returns the base delta in words (new_base - old_base), 0 when no
-   grow happened, so callers can rebase any live C-local raw pointers into the old
-   stack. Repoints vm_stack / g_active_stack / current_frame / the active Fiber's
-   stack_obj. `receiver` is a not-yet-stored C local at the push site — temp-root it
-   across the grow's allocation (the only new GC point; the old stack stays
-   g_active_stack and fully rooted during stack_alloc). At the hard cap, prints a
-   diagnostic and controlled-terminates (policy A, Task 2). */
-extern int gc_temp_roots_count;
-extern void gc_temp_root_push(oop o);
-static ptrdiff_t stack_ensure(size_t extra_words, oop receiver) {
-    struct Stack *old = (struct Stack *)g_active_stack;
-    if (vm_stack_ptr + extra_words <= old->capacity) return 0;   /* fast path: fits */
-
-    size_t need = vm_stack_ptr + extra_words;
-    if (need > (size_t)VM_STACK_CAP_WORDS) {
-        /* Phase 3 hard-cap policy A: controlled diagnostic termination. Catchable
-           in-image StackOverflow (kill just the fiber, node survives) is deferred
-           with the general exception facility — see the Phase 3 design §4. */
-        fprintf(stderr,
-            "VM Error: Stack Overflow — exec context %p exceeded the stack cap "
-            "(needed %zu words, cap %d). Unbounded recursion? StackOverflow is not "
-            "yet catchable in-image.\n",
-            (void *)g_active_stack, need, (int)VM_STACK_CAP_WORDS);
-        abort();
-    }
-    size_t newcap = (size_t)old->capacity * VM_STACK_GROW_NUM / VM_STACK_GROW_DEN;
-    if (newcap < need) newcap = need;
-    if (newcap > (size_t)VM_STACK_CAP_WORDS) newcap = (size_t)VM_STACK_CAP_WORDS;
-
-    int saved_roots = gc_temp_roots_count;
-    gc_temp_root_push(receiver);
-    oop new_stack_oop = stack_alloc((uint32_t)newcap);
-    gc_temp_roots_count = saved_roots;
-
-    struct Stack *neu = (struct Stack *)new_stack_oop;
-    memcpy(neu->data, old->data, vm_stack_ptr * sizeof(oop));
-    neu->sp = old->sp;
-    neu->current_off = old->current_off;
-
-    ptrdiff_t delta = neu->data - old->data;
-    if (current_frame != NULL)
-        current_frame = (struct MethodContext *)((oop *)current_frame + delta);
-    g_active_stack = new_stack_oop;
-    vm_stack = neu->data;
-    return delta;
+/* Milestone A Task 7: the stack is fixed-capacity (VM_STACK_INIT_WORDS) and never
+   grows or moves. A push that would exceed the cap aborts loudly — StackOverflow is
+   not catchable in-image in the no-NLR runtime. */
+static void stack_overflow_abort(size_t need, size_t cap) {
+    fprintf(stderr, "Stack Overflow: need %zu words, cap %zu (fixed stack, "
+                    "no grow in the no-NLR runtime)\n", need, cap);
+    abort();
 }
 
 static struct MethodContext *push_frame(oop closure, oop receiver, int argc, oop *args) {
     struct Closure *cl = (struct Closure *)closure;
     struct CompiledMethod *m = (struct CompiledMethod *)closure_entry(cl);
     size_t frame_words = sizeof(struct MethodContext) / sizeof(oop) + m->num_registers;
-    /* Grow-on-demand (Phase 3). Capture the OLD base+capacity so we can rebase an
-       in-stack `args` pointer after a grow; prev_ctx is re-read from current_frame
-       (which stack_ensure rebased). */
-    oop *old_base = vm_stack;
-    uint32_t old_cap = ((struct Stack *)g_active_stack)->capacity;
-    ptrdiff_t delta = stack_ensure(frame_words, receiver);
-    if (delta != 0 && args != NULL && args >= old_base && args < old_base + old_cap)
-        args = args + delta;
+    /* Fixed-capacity stack (Task 7): bounds-check the push against the hard cap.
+       The stack never moves, so `args`/current_frame/vm_stack stay valid — no rebase. */
+    if (vm_stack_ptr + frame_words > ((struct Stack *)g_active_stack)->capacity)
+        stack_overflow_abort(vm_stack_ptr + frame_words,
+                             ((struct Stack *)g_active_stack)->capacity);
     struct MethodContext *prev_ctx = current_frame;
     struct MethodContext *ctx = (struct MethodContext *)&vm_stack[vm_stack_ptr];
     vm_stack_ptr += frame_words;
@@ -311,19 +258,15 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
 
     // Allocate stack frame sequentially (Fast Path: vtable starts as NULL)
     size_t frame_words = sizeof(struct MethodContext) / sizeof(oop) + method->num_registers;
-    /* Grow-on-demand (Phase 3): rebase an in-stack `args` after a grow. */
-    {
-        oop *old_base = vm_stack;
-        uint32_t old_cap = ((struct Stack *)g_active_stack)->capacity;
-        ptrdiff_t delta = stack_ensure(frame_words, receiver);
-        if (delta != 0 && args != NULL && args >= old_base && args < old_base + old_cap)
-            args = args + delta;
-    }
+    /* Fixed-capacity stack (Task 7): bounds-check the push against the hard cap.
+       The stack never moves, so `args` stays valid — no rebase. */
+    if (vm_stack_ptr + frame_words > ((struct Stack *)g_active_stack)->capacity)
+        stack_overflow_abort(vm_stack_ptr + frame_words,
+                             ((struct Stack *)g_active_stack)->capacity);
     // Save previous frame pointer to restore on exit
     struct MethodContext *prev_ctx = current_frame;
-    /* prev_ctx (the caller frame) is restored to current_frame at exit_frame; a
-       NESTED push during this invocation may grow the stack and move it, so hold it
-       as a base-relative link (survives the copy) rather than a raw pointer. */
+    /* prev_ctx (the caller frame) is restored to current_frame at exit_frame; held
+       as a base-relative link so nested pushes/pops leave it valid. */
     oop entry_prev_link = frame_link_encode(vm_stack, prev_ctx);
 
     struct MethodContext *ctx = (struct MethodContext *)&vm_stack[vm_stack_ptr];
@@ -566,30 +509,10 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 }
                 OEVM_TRACE_PRINT("SEND END: selector=%s, receiver_reg=%d, result=%p\n", symbol_name((struct Symbol*)selector), src2, (void*)result);
 
-                // Grow-recovery reload (Milestone A Task 6: the fiber-switch half is
-                // gone — no scheduler swaps current_frame anymore). This branch now
-                // ONLY recovers a Phase-3 stack grow that happened inside the
-                // primitive's nested run_interpreter: the grow rebased current_frame,
-                // so the stale outer `ctx` differs and we reload interpreter locals
-                // from the rebased frame. PENDING REMOVAL in the growable-stack task
-                // (Task 7): once the stack is fixed-capacity nothing rebases, `ctx`
-                // always equals current_frame, and this whole branch is dead.
-                // The same holds at the OP_BLOCK_INVOKE/OP_SEND_IMPLICIT/OP_SEND_SUPER reload sites.
-                if (ctx != current_frame) {
-                    ctx = current_frame;
-                    method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
-                    if (ctx->saved_pc != NULL) {
-                        pc = ctx->saved_pc;
-                        uint32_t *inst_ptr = (uint32_t *)(ctx->saved_pc - 1);
-                        uint8_t suspended_src2 = (*inst_ptr >> 24) & 0xFF;
-                        ctx->regs[suspended_src2] = result;
-                    } else {
-                        pc = cm_instructions(method);
-                    }
-                    pc_end = cm_instructions(method) + method->instruction_count;
-                    break;
-                }
-
+                /* Fixed stack (Task 7): a primitive (incl. a nested run_interpreter,
+                   which restores current_frame at exit_frame) never moves frames, so
+                   ctx == current_frame here — the former grow-recovery reload is dead
+                   and removed. Same at OP_BLOCK_INVOKE/OP_SEND_IMPLICIT/OP_SEND_SUPER. */
                 // Save send result in R(src2)
                 ctx->regs[src2] = result;
                 break;
@@ -628,24 +551,7 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     continue;
                 }
 
-                // Grow-recovery reload (see OP_SEND; fiber-switch half removed in
-                // Task 6). Recovers a Phase-3 stack grow inside a nested prim; PENDING
-                // REMOVAL in the growable-stack task (Task 7).
-                if (ctx != current_frame) {
-                    ctx = current_frame;
-                    method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
-                    if (ctx->saved_pc != NULL) {
-                        pc = ctx->saved_pc;
-                        uint32_t *inst_ptr = (uint32_t *)(ctx->saved_pc - 1);
-                        uint8_t suspended_src2 = (*inst_ptr >> 24) & 0xFF;
-                        ctx->regs[suspended_src2] = result;
-                    } else {
-                        pc = cm_instructions(method);
-                    }
-                    pc_end = cm_instructions(method) + method->instruction_count;
-                    break;
-                }
-
+                /* Fixed stack (Task 7): ctx == current_frame; reload removed. */
                 ctx->regs[src2] = result;
                 break;
             }
@@ -880,23 +786,7 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     }
                 }
 
-                // Grow-recovery reload (see OP_SEND; fiber-switch half removed in
-                // Task 6). PENDING REMOVAL in the growable-stack task (Task 7).
-                if (ctx != current_frame) {
-                    ctx = current_frame;
-                    method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
-                    if (ctx->saved_pc != NULL) {
-                        pc = ctx->saved_pc;
-                        uint32_t *inst_ptr = (uint32_t *)(ctx->saved_pc - 1);
-                        uint8_t suspended_src2 = (*inst_ptr >> 24) & 0xFF;
-                        ctx->regs[suspended_src2] = result;
-                    } else {
-                        pc = cm_instructions(method);
-                    }
-                    pc_end = cm_instructions(method) + method->instruction_count;
-                    break;
-                }
-
+                /* Fixed stack (Task 7): ctx == current_frame; reload removed. */
                 ctx->regs[src2] = result;
                 break;
             }
@@ -926,25 +816,7 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     continue;
                 }
 
-                // Grow-recovery reload during a super-send (fiber-switch half removed
-                // in Task 6). OP_SEND_SUPER carries no adjacent inline cache, so the
-                // result register is this instruction's src2 directly. PENDING REMOVAL
-                // in the growable-stack task (Task 7).
-                if (ctx != current_frame) {
-                    ctx = current_frame;
-                    method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
-                    if (ctx->saved_pc != NULL) {
-                        pc = ctx->saved_pc;
-                        uint32_t *inst_ptr = (uint32_t *)(ctx->saved_pc - 1);
-                        uint8_t suspended_src2 = (*inst_ptr >> 24) & 0xFF;
-                        ctx->regs[suspended_src2] = result;
-                    } else {
-                        pc = cm_instructions(method);
-                    }
-                    pc_end = cm_instructions(method) + method->instruction_count;
-                    break;
-                }
-
+                /* Fixed stack (Task 7): ctx == current_frame; reload removed. */
                 ctx->regs[src2] = result;
                 break;
             }
@@ -1015,10 +887,10 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
     }
 
 exit_frame:
-    /* Restore caller's frame pointer and stack position. (The reload blocks on the
-       post-send path now serve only grow-recovery — the fiber-switch mechanism that
-       used to swap the active Stack/current_frame was removed with the scheduler,
-       Milestone A Tasks 5–6.) */
+    /* Restore caller's frame pointer and stack position. The fixed stack never moves
+       (Task 7) and the scheduler/fiber-switch mechanism is gone (Tasks 5–6), so a
+       nested run_interpreter always returns with current_frame back at this value —
+       the post-send reload blocks were dead and have been removed. */
     vm_stack_ptr = saved_stack_ptr;
     current_frame = frame_link_decode(vm_stack, entry_prev_link);
     return return_val;
