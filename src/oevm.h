@@ -313,16 +313,13 @@ struct BoxedBinding {
 extern oop IntegerVtable;
 extern oop FloatVtable;
 extern oop MethodContextVtable;
-extern oop FiberVtable;
 extern oop SymbolVtable;
 extern oop StringVtable;
 extern oop VtableVtable; // Meta-vtable for Vtables
 extern oop PrimitiveClosureVtable;
 extern oop BytecodeClosureVtable;
 extern oop BoxedBindingVtable;
-extern oop RunnableFiberVtable;
-extern oop SuspendedFiberVtable;
-extern oop DeadFiberVtable;
+extern oop RunnableFiberVtable;   /* sole retained execution-context vtable (Task 5) */
 
 extern oop current_fiber;
 extern const struct Symbol true_sym_obj;   /* canonical #true  (defined in dispatch.c) — == result */
@@ -399,11 +396,7 @@ struct MethodCacheStats method_cache_stats(void);
 int check_access_allowed(oop receiver, oop selector, struct CompiledMethod *target_method, oop target_defining_vtable);
 int is_truthy(oop obj);
 
-/*
- * Fiber Primitives
- */
-oop primitive_fiber_create(oop receiver, int argc, oop *args);
-oop primitive_fiber_switch(oop receiver, int argc, oop *args);
+/* Fiber prims (fiberCreate:/fiberSwitch:value:) removed in Milestone A Task 5. */
 
 /*
  * Firmware kernel bootstrap (Task 11). Constructs the app-independent kernel

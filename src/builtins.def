@@ -11,15 +11,15 @@ BUILTIN(2,  SINGLETON, "false")
 BUILTIN(3,  VTABLE,    "IntegerVtable")
 BUILTIN(4,  VTABLE,    "FloatVtable")
 BUILTIN(5,  VTABLE,    "MethodContextVtable")
-BUILTIN(6,  VTABLE,    "FiberVtable")
+BUILTIN(6,  VTABLE,    "FiberVtable")           /* RESERVED: legacy fiber vtable retired (Task 5); registry slot NULL, Task 9 compacts */
 BUILTIN(7,  VTABLE,    "SymbolVtable")
 BUILTIN(8,  VTABLE,    "VtableVtable")
 BUILTIN(9,  VTABLE,    "PrimitiveClosureVtable")
 BUILTIN(10, VTABLE,    "BytecodeClosureVtable")
 BUILTIN(11, VTABLE,    "BoxedBindingVtable")
-BUILTIN(12, VTABLE,    "RunnableFiberVtable")
-BUILTIN(13, VTABLE,    "SuspendedFiberVtable")
-BUILTIN(14, VTABLE,    "DeadFiberVtable")
+BUILTIN(12, VTABLE,    "RunnableFiberVtable")   /* sole retained execution-context vtable (Task 5) */
+BUILTIN(13, VTABLE,    "SuspendedFiberVtable")  /* RESERVED: retired (Task 5); registry slot NULL, Task 9 compacts */
+BUILTIN(14, VTABLE,    "DeadFiberVtable")       /* RESERVED: retired (Task 5); registry slot NULL, Task 9 compacts */
 /* Kernel-owned symbols (index 15+). These are exactly the selectors the
  * firmware kernel itself references regardless of the loaded app:
  *  - 15..19: constants of the kernel unwindTo:value: method

@@ -10,12 +10,21 @@
 #include <string.h>
 #include <stdint.h>
 
+/* Retained execution-context vtable (Milestone A Task 5): the sole vtable for
+   current_fiber (fiber 0). DEFINED here in VM-CORE (dispatch.c is linked by BOTH
+   Model A — whose regenerated solidified_image.c no longer emits any fiber vtable —
+   and Model B's kernel_boot.c, which no longer defines it either). Statically
+   initialized so current_fiber always has a valid vtable with no boot-time assign.
+   The legacy FiberVtable and the Suspended/Dead lifecycle vtables were removed with
+   the fiber scheduler; Task 6 removes the struct Fiber wrapper this vtable tags. */
+extern const struct Vtable Vtable_VtableVtable;
+const struct Vtable Vtable_RunnableFiberVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+
 /* Define global static Vtables */
 oop IntegerVtable = NULL;
 oop FloatVtable = NULL;
 oop LargeIntegerVtable = NULL;
 oop MethodContextVtable = NULL;
-oop FiberVtable = NULL;
 oop StackVtable = NULL;
 oop ContextVtable = NULL;
 oop SymbolVtable = NULL;
@@ -24,9 +33,7 @@ oop VtableVtable = NULL;
 oop PrimitiveClosureVtable = NULL;
 oop BytecodeClosureVtable = NULL;
 oop BoxedBindingVtable = NULL;
-oop RunnableFiberVtable = NULL;
-oop SuspendedFiberVtable = NULL;
-oop DeadFiberVtable = NULL;
+oop RunnableFiberVtable = (oop)&Vtable_RunnableFiberVtable;
 oop current_fiber = NULL;
 oop Symbol_accessViolation = NULL;
 oop debugger_hook = NULL;
@@ -567,8 +574,12 @@ enum {
        reserved so every later id keeps its value — prim_ids.h mirrors these by
        absolute number for platform.c. Compacted in the Task 9 renumber. */
     PRIM_executeCleanup_RETIRED, PRIM_resumeWith_RETIRED,
-    PRIM_fiberCreate, PRIM_outer,
-    PRIM_fiberSwitch, PRIM_currentFiber, PRIM_registerDebuggerHook, PRIM_regAt, PRIM_regAt_put,
+    /* Fibers retired (Milestone A Task 5): dispatch cases + interpreter functions
+       deleted, but the three slots stay RESERVED so every later id keeps its value —
+       prim_ids.h mirrors these by absolute number for platform.c (deleting them would
+       shift platform prims 61-71). Compacted in the Task 9 renumber. */
+    PRIM_fiberCreate_RETIRED, PRIM_outer,
+    PRIM_fiberSwitch_RETIRED, PRIM_currentFiber_RETIRED, PRIM_registerDebuggerHook, PRIM_regAt, PRIM_regAt_put,
     PRIM_singleStep, PRIM_bind, PRIM_instructionAt_put, PRIM_createClosure,
     PRIM_to_do, PRIM_to_by_do, PRIM_amp, PRIM_pipe, PRIM_isNil, PRIM_notNil,
     PRIM_error, PRIM_lt, PRIM_gt, PRIM_le, PRIM_ge, PRIM_eq, PRIM_ifTrueIfFalse,
@@ -593,7 +604,8 @@ static const char *const PRIM_NAMES[] = {
     "Array", "new:", "at:", "at:put:", "size", "selector", "vtable", "delegate",
     "bindings", "sender", "pc", "home", "==",
     "executeCleanup", "resumeWith:",  /* retired slots (Task 3); no handler, kept for id stability */
-    "fiberCreate:", "outer", "fiberSwitch:value:", "currentFiber", "registerDebuggerHook:",
+    "fiberCreate:", "outer", "fiberSwitch:value:", "currentFiber", /* fiber names retired (Task 5); no handler, kept for id stability */
+    "registerDebuggerHook:",
     "regAt:", "regAt:put:", "singleStep:", "bind:to:", "instructionAt:put:",
     "createClosure:", "to:do:", "to:by:do:", "&", "|", "isNil", "notNil",
     "error:", "<", ">", "<=", ">=", "=", "ifTrue:ifFalse:", "ifTrue:",
@@ -769,20 +781,10 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                 return primitive_object_equals(receiver, argc, args);
             }
             break;
-            case PRIM_fiberCreate: {
-                return primitive_fiber_create(receiver, argc, args);
-            }
-            break;
+            /* PRIM_fiberCreate / PRIM_fiberSwitch / PRIM_currentFiber cases deleted
+               (Milestone A Task 5); enum slots reserved above. */
             case PRIM_outer: {
                 return primitive_object_outer(receiver, argc, args);
-            }
-            break;
-            case PRIM_fiberSwitch: {
-                return primitive_fiber_switch(receiver, argc, args);
-            }
-            break;
-            case PRIM_currentFiber: {
-                return current_fiber;
             }
             break;
             case PRIM_createClosure: {

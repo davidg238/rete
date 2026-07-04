@@ -461,10 +461,7 @@ static void trace_one(oop ptr) {
     extern oop VtableVtable;
     extern oop FloatVtable;
     extern oop StringVtable;
-    extern oop FiberVtable;
     extern oop RunnableFiberVtable;
-    extern oop SuspendedFiberVtable;
-    extern oop DeadFiberVtable;
     extern oop StackVtable;
     extern oop ContextVtable;
     extern oop g_active_stack;
@@ -482,10 +479,9 @@ static void trace_one(oop ptr) {
         mark(ptr->vtable);          /* leaf: inline bytes are NOT oops — do not scan */
     } else if (FloatVtable != NULL && ptr->vtable == FloatVtable) {
         mark(ptr->vtable);
-    } else if ((FiberVtable != NULL && ptr->vtable == FiberVtable) ||
-               (RunnableFiberVtable != NULL && ptr->vtable == RunnableFiberVtable) ||
-               (SuspendedFiberVtable != NULL && ptr->vtable == SuspendedFiberVtable) ||
-               (DeadFiberVtable != NULL && ptr->vtable == DeadFiberVtable)) {
+    } else if (RunnableFiberVtable != NULL && ptr->vtable == RunnableFiberVtable) {
+        /* The sole retained execution context (fiber 0). Task 5 collapsed the four
+           fiber lifecycle vtables to just RunnableFiberVtable. */
         mark(ptr->vtable);
         struct Fiber *fib = (struct Fiber *)ptr;
         mark(fib->status);
@@ -668,7 +664,6 @@ void gc_collect(void) {
     extern oop IntegerVtable;
     extern oop FloatVtable;
     extern oop MethodContextVtable;
-    extern oop FiberVtable;
     extern oop SymbolVtable;
     extern oop StringVtable;
     extern oop VtableVtable;
@@ -679,7 +674,6 @@ void gc_collect(void) {
     mark(IntegerVtable);
     mark(FloatVtable);
     mark(MethodContextVtable);
-    mark(FiberVtable);
     mark(SymbolVtable);
     mark(StringVtable);
     mark(VtableVtable);
@@ -687,17 +681,13 @@ void gc_collect(void) {
     mark(BytecodeClosureVtable);
     mark(Symbol_value);
 
-    // Mark additional Fiber Vtables and current_fiber root
+    // Mark the retained execution-context vtable and current_fiber root
     extern oop RunnableFiberVtable;
-    extern oop SuspendedFiberVtable;
-    extern oop DeadFiberVtable;
     extern oop StackVtable;
     extern oop ContextVtable;
     extern oop g_active_stack;
     extern oop g_bootstrap_fiber;
     mark(RunnableFiberVtable);
-    mark(SuspendedFiberVtable);
-    mark(DeadFiberVtable);
     mark(StackVtable);
     mark(ContextVtable);
     mark(g_active_stack);
@@ -747,25 +737,9 @@ void gc_collect(void) {
         gc_additional_roots_hook();
     }
 
-    /* De-recursify deferred lift Phase 1: root the bootstrap fiber (fiber 0).
-       Only the ACTIVE fiber (current_fiber) is otherwise a direct root; a
-       SUSPENDED fiber — a cooperative scheduler that switched into a worker, or
-       a worker parked in the scheduler's ready-queue — is reachable only through
-       app objects (the scheduler's slots), and that reachability is TRANSIENT:
-       it holds only while those objects sit in a live register, not at an
-       arbitrary allocation/GC point. Before this lift the fiber blocks kept
-       their captures on the home stack and happened to allocate only at
-       register-safe moments; moving captures into heap Contexts adds allocation
-       (hence GC) points where the scheduler is momentarily unreachable, so the
-       scheduler fiber (and its Stack, holding its own live frames + the
-       ready-queue reference) would be swept and its memory reused — a
-       use-after-free. All app execution descends from fiber 0, and a scheduler
-       runs on its stack, so marking fiber 0 reaches that stack → the scheduler's
-       heap-held ready-queue/current slots → every LIVE fiber, transitively.
-       This is leak-free: a COMPLETED fiber the scheduler has dropped from its
-       structures is no longer reachable from fiber 0 and is collected normally
-       (unlike a blanket "root every fiber", which would pin dead fibers and
-       their Stacks forever). */
+    /* Root the sole retained execution context (fiber 0). With the fiber scheduler
+       removed (Task 5), current_fiber and g_bootstrap_fiber are the same instance;
+       marking it reaches its Stack and every live frame/register on it. */
     mark(g_bootstrap_fiber);
 
     /* GH#4: all roots are now enqueued — trace the live graph iteratively

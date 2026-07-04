@@ -59,8 +59,9 @@ const uint32_t BUILTIN_REGISTRY_VERSION = 4;
  *                                      0 when entry takes no net capability; always
  *                                      emitted when concurrency present so offsets stay fixed)
  *   (header padded to 8 again)
- *   A+13W     W      concurrency_on_sel_ref (format_version 7: ref to Kernel>>concurrency,
- *                                      0 when entry takes no concurrency capability)
+ *   A+13W     W      concurrency_on_sel_ref (format_version 7) — RETIRED (Milestone A
+ *                                      Task 5): fibers removed; word ignored if present,
+ *                                      offsets compacted in Task 9.
  *   (header padded to 8 again)
  * For W==8: A=24, init@32, main@40, init_argc@48, entry_nslots@50,
  *           kernel_vtable_ref@56, kernel_init_sel_ref@64, kernel_nslots@72,
@@ -94,8 +95,9 @@ static uintptr_t img_supervisor_run_sel_ref  = 0;
 static uint16_t  img_supervisor_nslots       = 0;
 /* R4: UDP capability (format_version 6+). 0 when the entry takes no net. */
 static uintptr_t img_net_on_sel_ref          = 0;
-/* R7: cooperative fibers capability (format_version 7+). 0 when entry takes no concurrency. */
-static uintptr_t img_concurrency_on_sel_ref  = 0;
+/* R7 concurrency capability field (format_version 7) removed in Milestone A Task 5:
+ * fibers are gone, so the field is no longer read; v7 images still load (the
+ * concurrency word at A+13W is simply ignored). Header offsets compact in Task 9. */
 
 static uintptr_t read_word(const uint8_t *p) {
     uintptr_t w = 0;
@@ -150,7 +152,8 @@ int oimg_load_blob(const uint8_t *base, size_t size) {
     img_supervisor_run_sel_ref  = (format_version >= 5) ? read_word(base + a + 10 * W) : 0;
     img_supervisor_nslots       = (format_version >= 5) ? read_u16 (base + a + 11 * W) : 0;
     img_net_on_sel_ref = (format_version >= 6) ? read_word(base + a + 12 * W) : 0;
-    img_concurrency_on_sel_ref = (format_version >= 7) ? read_word(base + a + 13 * W) : 0;
+    /* format_version 7 concurrency_on_sel_ref (A+13W) intentionally not read — fibers
+       removed in Milestone A Task 5; the field is ignored if present. */
 
     oimg_blob_base = base;
     oimg_blob_end  = base + blob_size;
@@ -208,12 +211,10 @@ oop oimg_bootstrap(oop entry_vtable) {
                            sizeof(struct ObjectInstance) + img_entry_nslots * sizeof(oop));
     gc_temp_root_push(inst);
 
-    /* Mint the 2nd-capability wrapper when the entry declares `serial:`, `net:`,
-       or `concurrency:`. At most one of the *_on_sel_ref values is non-zero per
-       entry (serial XOR net XOR concurrency); all are 0 for entries with no cap
-       parameter. An entry declaring TWO caps (e.g. net: AND concurrency:) is not
-       supported on the .oimg path — only one second cap is minted; tracked in
-       ns-oevm#2. */
+    /* Mint the 2nd-capability wrapper when the entry declares `serial:` or `net:`.
+       At most one of the *_on_sel_ref values is non-zero per entry (serial XOR net);
+       both are 0 for entries with no cap parameter. The `concurrency:` capability was
+       removed with fibers (Milestone A Task 5). */
     oop second_cap = NULL;
     if (img_init_argc >= 2 && img_serial_on_sel_ref != 0) {
         extern oop serial_object(void);
@@ -225,10 +226,6 @@ oop oimg_bootstrap(oop entry_vtable) {
         extern oop udp_object(void);
         oop net_args[1] = { udp_object() };
         second_cap = send(kernel_inst, oimg_resolve(img_net_on_sel_ref), 1, net_args);
-    } else if (img_init_argc >= 2 && img_concurrency_on_sel_ref != 0) {
-        /* R7: concurrency capability — no native object; send the no-arg
-           #concurrency accessor to the kernel to get a Newspeak Concurrency. */
-        second_cap = send(kernel_inst, oimg_resolve(img_concurrency_on_sel_ref), 0, NULL);
     }
     gc_temp_root_push(second_cap);   /* live until the entry init send below (oevm#21) */
     oop init_args[3] = { kernel_inst, second_cap, TAG_SMI(0) };

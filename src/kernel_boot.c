@@ -34,9 +34,8 @@ const struct Vtable Vtable_StringVtable;
 const struct Vtable Vtable_BytecodeClosureVtable;
 const struct Vtable Vtable_PrimitiveClosureVtable;
 const struct Vtable Vtable_BoxedBindingVtable;
-const struct Vtable Vtable_RunnableFiberVtable;
-const struct Vtable Vtable_SuspendedFiberVtable;
-const struct Vtable Vtable_DeadFiberVtable;
+/* Vtable_RunnableFiberVtable is DEFINED in VM-CORE (dispatch.c) and shared by both
+   models (Task 5); Suspended/Dead fiber vtables were removed with the scheduler. */
 const struct Vtable Vtable_IntegerVtable;
 const struct Vtable Vtable_FloatVtable;
 const struct Vtable Vtable_LargeIntegerVtable;
@@ -91,9 +90,7 @@ const struct Vtable Vtable_StringVtable          = { { (oop)&Vtable_VtableVtable
 const struct Vtable Vtable_BytecodeClosureVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
 const struct Vtable Vtable_PrimitiveClosureVtable= { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
 const struct Vtable Vtable_BoxedBindingVtable    = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
-const struct Vtable Vtable_RunnableFiberVtable   = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
-const struct Vtable Vtable_SuspendedFiberVtable  = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
-const struct Vtable Vtable_DeadFiberVtable       = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+/* Vtable_RunnableFiberVtable definition moved to VM-CORE (dispatch.c), Task 5. */
 /* Stack (L1 Task 2): private runtime vtable, not a builtins.def registry
  * entry — internal runtime state no image ever names. DORMANT. */
 const struct Vtable Vtable_StackVtable           = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
@@ -121,17 +118,15 @@ void kernel_boot(void) {
     BytecodeClosureVtable  = (oop)&Vtable_BytecodeClosureVtable;
     PrimitiveClosureVtable = (oop)&Vtable_PrimitiveClosureVtable;
     BoxedBindingVtable     = (oop)&Vtable_BoxedBindingVtable;
-    RunnableFiberVtable    = (oop)&Vtable_RunnableFiberVtable;
-    SuspendedFiberVtable   = (oop)&Vtable_SuspendedFiberVtable;
-    DeadFiberVtable        = (oop)&Vtable_DeadFiberVtable;
+    /* RunnableFiberVtable is statically initialized in VM-CORE (dispatch.c), Task 5. */
     StackVtable            = (oop)&Vtable_StackVtable;
     ContextVtable          = (oop)&Vtable_ContextVtable;
     IntegerVtable          = (oop)&Vtable_IntegerVtable;
     FloatVtable            = (oop)&Vtable_FloatVtable;
     LargeIntegerVtable     = (oop)&Vtable_LargeIntegerVtable;
     MethodContextVtable    = (oop)&Vtable_MethodContextVtable;
-    /* FiberVtable is legacy/unused in Model A (init_solidified_vtables never
-     * assigned it); leave it NULL to match Model A behavior. */
+    /* Legacy FiberVtable and the Suspended/Dead lifecycle vtables were removed with
+     * the fiber scheduler (Task 5). */
 
     /* (a') Assign global kernel symbol vars to the firmware-static symbols. */
     Symbol_value          = (oop)&KSym_value;
@@ -151,15 +146,15 @@ void kernel_boot(void) {
     builtin_registry[3]  = IntegerVtable;
     builtin_registry[4]  = FloatVtable;
     builtin_registry[5]  = MethodContextVtable;
-    builtin_registry[6]  = FiberVtable;       /* NULL (legacy) */
+    builtin_registry[6]  = NULL;              /* FiberVtable RESERVED (retired Task 5; Task 9 compacts) */
     builtin_registry[7]  = SymbolVtable;
     builtin_registry[8]  = VtableVtable;
     builtin_registry[9]  = PrimitiveClosureVtable;
     builtin_registry[10] = BytecodeClosureVtable;
     builtin_registry[11] = BoxedBindingVtable;
-    builtin_registry[12] = RunnableFiberVtable;
-    builtin_registry[13] = SuspendedFiberVtable;
-    builtin_registry[14] = DeadFiberVtable;
+    builtin_registry[12] = RunnableFiberVtable;  /* sole retained exec-context vtable (Task 5) */
+    builtin_registry[13] = NULL;                 /* SuspendedFiberVtable RESERVED (retired Task 5; Task 9 compacts) */
+    builtin_registry[14] = NULL;                 /* DeadFiberVtable RESERVED (retired Task 5; Task 9 compacts) */
 
     builtin_registry[15] = (oop)&KSym__eq_eq;
     builtin_registry[16] = (oop)&KSym_executeCleanup;

@@ -92,73 +92,67 @@
     "Kernel>>serialOn:": [
       [
         0,
-        341
+        276
       ]
     ],
     "Kernel>>netOn:": [
       [
         0,
-        342
-      ]
-    ],
-    "Kernel>>concurrency": [
-      [
-        0,
-        343
+        277
       ]
     ],
     "Kernel>>readLine": [
       [
         0,
-        345
+        279
       ]
     ],
     "Kernel>>Object": [
       [
         0,
-        347
+        281
       ]
     ],
     "Kernel>>Array": [
       [
         0,
-        348
+        282
       ]
     ],
     "Kernel>>Collection": [
       [
         0,
-        349
+        283
       ]
     ],
     "Kernel>>OrderedCollection": [
       [
         0,
-        350
+        284
       ]
     ],
     "Kernel>>Set": [
       [
         0,
-        351
+        285
       ]
     ],
     "Kernel>>Dictionary": [
       [
         0,
-        352
+        286
       ]
     ],
     "Kernel>>ReadStream": [
       [
         0,
-        353
+        287
       ]
     ],
     "Kernel>>WriteStream": [
       [
         0,
-        354
+        288
       ]
     ],
     "Kernel_Object>>isNil": [
@@ -1619,150 +1613,6 @@
         273
       ]
     ],
-    "Kernel_Concurrency>>setKernel:": [
-      [
-        0,
-        300
-      ],
-      [
-        2,
-        301
-      ],
-      [
-        9,
-        302
-      ],
-      [
-        16,
-        303
-      ],
-      [
-        23,
-        304
-      ]
-    ],
-    "Kernel_Concurrency>>spawn:": [
-      [
-        0,
-        309
-      ],
-      [
-        7,
-        310
-      ],
-      [
-        11,
-        311
-      ],
-      [
-        13,
-        312
-      ],
-      [
-        20,
-        313
-      ],
-      [
-        24,
-        314
-      ]
-    ],
-    "Kernel_Concurrency>>yield": [
-      [
-        0,
-        315
-      ]
-    ],
-    "Kernel_Concurrency>>complete": [
-      [
-        0,
-        316
-      ]
-    ],
-    "Kernel_Concurrency>>run": [
-      [
-        0,
-        318
-      ],
-      [
-        4,
-        319
-      ],
-      [
-        9,
-        320
-      ],
-      [
-        13,
-        321
-      ],
-      [
-        15,
-        322
-      ],
-      [
-        38,
-        326
-      ]
-    ],
-    "Meta_Kernel_Concurrency>>onKernel:": [
-      [
-        0,
-        328
-      ]
-    ],
-    "Kernel_Fiber>>setBlock:": [
-      [
-        0,
-        332
-      ],
-      [
-        2,
-        332
-      ],
-      [
-        4,
-        332
-      ]
-    ],
-    "Kernel_Fiber>>setVm:": [
-      [
-        0,
-        333
-      ],
-      [
-        2,
-        333
-      ]
-    ],
-    "Kernel_Fiber>>vm": [
-      [
-        0,
-        334
-      ]
-    ],
-    "Kernel_Fiber>>block": [
-      [
-        0,
-        335
-      ]
-    ],
-    "Kernel_Fiber>>isDone": [
-      [
-        0,
-        336
-      ]
-    ],
-    "Kernel_Fiber>>markDead": [
-      [
-        0,
-        337
-      ],
-      [
-        2,
-        337
-      ]
-    ],
     "Supervisor>>run:platform:args:debug:": [
       [
         1,
@@ -2667,12 +2517,6 @@
       [
         12,
         53
-      ]
-    ],
-    "Kernel_Concurrency_block14>>value": [
-      [
-        1,
-        311
       ]
     ]
   }

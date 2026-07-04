@@ -297,7 +297,7 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
         vm_stack = ((struct Stack *)g_active_stack)->data;
         vm_stack_ptr = 0;
 
-        current_fiber = gc_allocate(RunnableFiberVtable ? RunnableFiberVtable : FiberVtable, sizeof(struct Fiber));
+        current_fiber = gc_allocate(RunnableFiberVtable, sizeof(struct Fiber));
         g_bootstrap_fiber = current_fiber;      /* fiber 0: persistent GC root (see gc.c) */
         struct Fiber *fib = (struct Fiber *)current_fiber;
         fib->stack_obj = g_active_stack;        /* main's Stack object (allocated just above) */
@@ -1137,125 +1137,10 @@ oop primitive_closure_home(oop receiver, int argc, oop *args) {
     return (oop)home_ctx_frame(home);   /* decode relative SMI → frame ptr (growth-ready) */
 }
 
-oop primitive_fiber_create(oop receiver, int argc, oop *args) {
-    (void)receiver;
-    if (argc < 1) {
-        fprintf(stderr, "VM Error: primitive_fiber_create expects 1 argument (closure)\n");
-        abort();
-    }
-    oop closure = args[0];
-    if (IS_SMI(closure) || closure == NULL) {
-        fprintf(stderr, "VM Error: primitive_fiber_create expects a closure\n");
-        abort();
-    }
-    oop new_fib_oop = gc_allocate(SuspendedFiberVtable ? SuspendedFiberVtable : FiberVtable, sizeof(struct Fiber));
-    struct Fiber *new_fib = (struct Fiber *)new_fib_oop;
-
-    /* new_fib_oop lives only in a C local until it is returned and stored by the
-       .ns facade. With the conservative C-stack scan gone, a GC triggered by
-       stack_alloc() below would otherwise reclaim it — pin it as a temp root. */
-    extern void gc_temp_root_push(oop o);
-    extern void gc_temp_roots_clear(void);
-    gc_temp_root_push(new_fib_oop);
-
-    /* gc_allocate does not zero memory. stack_alloc() below can itself trigger a
-       GC_STRESS collection — and once it stores stack_obj, trace_one walks the
-       Fiber's fields — so seed every field trace_one reads for a Fiber to a safe
-       value FIRST, before any call that can allocate, so that GC never reads
-       garbage out of a half-built Fiber (the same hazard the main-bootstrap
-       path's I3 comment documents). */
-    new_fib->stack_obj = NULL;
-    new_fib->status = NULL;
-    new_fib->single_step = 0;
-    new_fib->hook_step_request = -1;
-
-    size_t cap = VM_STACK_INIT_WORDS;
-    new_fib->stack_obj = stack_alloc((uint32_t)cap);   /* GC-managed call stack (capacity stored in the Stack) */
-
-    /* Build the initial activation record on the fiber's Newspeak stack.
-       primitive_fiber_switch updates current_frame to this frame and the flat
-       loop's reload block picks it up (saved_pc == NULL ⇒ start at method entry). */
-    {
-        struct Closure *cl = (struct Closure *)closure;
-        struct CompiledMethod *method = (struct CompiledMethod *)closure_entry(cl);
-        size_t frame_words = sizeof(struct MethodContext) / sizeof(oop) + method->num_registers;
-        struct MethodContext *ctx = (struct MethodContext *)&((struct Stack *)new_fib->stack_obj)->data[0];
-        new_fib->stack_ptr = frame_words;
-        new_fib->current_context = ctx;
-        { struct Stack *zs = (struct Stack *)new_fib->stack_obj; zs->sp = (uint32_t)frame_words; zs->current_off = 0; }
-
-        ctx->vtable = NULL;
-        ctx->prev_frame = NULL;  /* bottom sentinel; relative encoding leaves NULL == no caller */
-        ctx->saved_pc = NULL;
-        ctx->closure = closure;
-        /* fiber_create: this frame lives on new_fib->stack_obj, NOT the active vm_stack.
-           Encode the self-home relative to THIS fiber's base (growth-ready). A block
-           closure's inherited home_ctx stays as-is (a relative SMI into the spawner's
-           stack — decoded only by a cross-fiber ^, not exercised; see design §5). */
-        {
-            oop *fib_base = ((struct Stack *)new_fib->stack_obj)->data;
-            ctx->home_ctx = cl->home_ctx ? cl->home_ctx
-                                         : home_link_encode_relative(fib_base, ctx);
-        }
-        ctx->gen_tag.tag32 = ++current_generation_tag;
-
-        ctx->regs[0] = closure;
-        for (int i = 1; i < method->num_registers; i++) {
-            ctx->regs[i] = NULL;
-        }
-    }
-
-    gc_temp_roots_clear();
-    return new_fib_oop;
-}
-
-oop primitive_fiber_switch(oop receiver, int argc, oop *args) {
-    (void)receiver;
-    if (argc < 2) {
-        fprintf(stderr, "VM Error: primitive_fiber_switch expects 2 arguments (target_fiber, return_val)\n");
-        abort();
-    }
-    oop target_fib_oop = args[0];
-    oop return_val = args[1];
-    if (IS_SMI(target_fib_oop) || target_fib_oop == NULL) {
-        fprintf(stderr, "VM Error: primitive_fiber_switch expects a Fiber receiver/target\n");
-        abort();
-    }
-
-    struct Fiber *target_fib = (struct Fiber *)target_fib_oop;
-    struct Fiber *curr_fib = (struct Fiber *)current_fiber;
-
-    if (curr_fib == target_fib) {
-        return return_val; // Switch to self is a no-op
-    }
-
-    // Save active state of current fiber
-    curr_fib->current_context = current_frame;
-    curr_fib->stack_ptr = vm_stack_ptr;
-    { struct Stack *cs = (struct Stack *)curr_fib->stack_obj;
-      cs->sp = (uint32_t)vm_stack_ptr;
-      cs->current_off = current_frame ? (uint32_t)((oop *)current_frame - cs->data) : 0; }
-
-    // Transition current fiber to Suspended, and target to Runnable (by updating vtable if desired)
-    if (SuspendedFiberVtable != NULL) {
-        curr_fib->base.vtable = SuspendedFiberVtable;
-    }
-    if (RunnableFiberVtable != NULL) {
-        target_fib->base.vtable = RunnableFiberVtable;
-    }
-
-    // Switch active VM registers to target fiber stack
-    current_fiber = target_fib_oop;
-    g_active_stack = target_fib->stack_obj;                         /* active Stack swap (Task 3 invariant) */
-    vm_stack = ((struct Stack *)g_active_stack)->data;
-    vm_stack_ptr = target_fib->stack_ptr;
-    current_frame = target_fib->current_context;
-
-    /* Single-stack switch: the globals were swapped above; the caller's flat-loop
-       reload block re-syncs pc/ctx/method and delivers return_val into the
-       suspended dest register. No per-fiber C stack. */
-    return return_val;
-}
+/* primitive_fiber_create / primitive_fiber_switch deleted (Milestone A Task 5):
+   the fiber scheduler prims are gone. current_fiber (fiber 0) remains the sole
+   execution context on RunnableFiberVtable; Task 6 removes the struct Fiber
+   wrapper entirely. */
 
 static oop get_top_level_method_closure(oop closure) {
     /* Reify-on-escape E1: the lexical walk this function used to perform is

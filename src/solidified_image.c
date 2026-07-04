@@ -5,7 +5,6 @@ static const struct CompiledMethod Method_Meta_UdpTest_packageUsing__compiled;
 static const struct CompiledMethod Method_UdpTest_init_platform_net__compiled;
 static const struct CompiledMethod Method_Kernel_serialOn__compiled;
 static const struct CompiledMethod Method_Kernel_netOn__compiled;
-static const struct CompiledMethod Method_Kernel_concurrency_compiled;
 static const struct CompiledMethod Method_Kernel_readLine_compiled;
 static const struct CompiledMethod Method_Kernel_Object_compiled;
 static const struct CompiledMethod Method_Kernel_Array_compiled;
@@ -20,8 +19,6 @@ static const struct CompiledMethod Method_Kernel_Serial_compiled;
 static const struct CompiledMethod Method_Kernel_Net_compiled;
 static const struct CompiledMethod Method_Kernel_Socket_compiled;
 static const struct CompiledMethod Method_Kernel_Datagram_compiled;
-static const struct CompiledMethod Method_Kernel_Concurrency_compiled;
-static const struct CompiledMethod Method_Kernel_Fiber_compiled;
 static const struct CompiledMethod Method_Kernel_init_platform__compiled;
 static const struct CompiledMethod Method_Kernel_Object_isNil_compiled;
 static const struct CompiledMethod Method_Kernel_Object_notNil_compiled;
@@ -151,20 +148,6 @@ static const struct CompiledMethod Method_Kernel_Datagram_senderHost_compiled;
 static const struct CompiledMethod Method_Kernel_Datagram_senderPort_compiled;
 static const struct CompiledMethod Method_Meta_Kernel_Datagram_data_senderHost_senderPort__compiled;
 static const struct CompiledMethod Method_Kernel_Datagram_init_new_compiled;
-static const struct CompiledMethod Method_Kernel_Concurrency_setKernel__compiled;
-static const struct CompiledMethod Method_Kernel_Concurrency_spawn__compiled;
-static const struct CompiledMethod Method_Kernel_Concurrency_yield_compiled;
-static const struct CompiledMethod Method_Kernel_Concurrency_complete_compiled;
-static const struct CompiledMethod Method_Kernel_Concurrency_run_compiled;
-static const struct CompiledMethod Method_Meta_Kernel_Concurrency_onKernel__compiled;
-static const struct CompiledMethod Method_Kernel_Concurrency_init_new_compiled;
-static const struct CompiledMethod Method_Kernel_Fiber_setBlock__compiled;
-static const struct CompiledMethod Method_Kernel_Fiber_setVm__compiled;
-static const struct CompiledMethod Method_Kernel_Fiber_vm_compiled;
-static const struct CompiledMethod Method_Kernel_Fiber_block_compiled;
-static const struct CompiledMethod Method_Kernel_Fiber_isDone_compiled;
-static const struct CompiledMethod Method_Kernel_Fiber_markDead_compiled;
-static const struct CompiledMethod Method_Kernel_Fiber_init_new_compiled;
 static const struct CompiledMethod Method_Supervisor_run_platform_args_debug__compiled;
 static const struct CompiledMethod Method_Supervisor_ObjectMirror_compiled;
 static const struct CompiledMethod Method_Supervisor_ContextMirror_compiled;
@@ -214,8 +197,7 @@ static const struct CompiledMethod Method_Block_Kernel_Set_block10_value__compil
 static const struct CompiledMethod Method_Block_Kernel_Set_block11_value_compiled;
 static const struct CompiledMethod Method_Block_Kernel_Dictionary_block12_value_compiled;
 static const struct CompiledMethod Method_Block_Kernel_Dictionary_block13_value_compiled;
-static const struct CompiledMethod Method_Block_Kernel_Concurrency_block14_value_compiled;
-static const struct CompiledMethod Method_Block_Supervisor_block15_value__compiled;
+static const struct CompiledMethod Method_Block_Supervisor_block14_value__compiled;
 extern char *getenv(const char *);
 
 #include "oevm.h"
@@ -229,9 +211,6 @@ extern const struct Vtable Vtable_StringVtable;
 extern const struct Vtable Vtable_BytecodeClosureVtable;
 extern const struct Vtable Vtable_PrimitiveClosureVtable;
 extern const struct Vtable Vtable_BoxedBindingVtable;
-extern const struct Vtable Vtable_RunnableFiberVtable;
-extern const struct Vtable Vtable_SuspendedFiberVtable;
-extern const struct Vtable Vtable_DeadFiberVtable;
 extern const struct Vtable Vtable_StackVtable;
 extern const struct Vtable Vtable_ContextVtable;
 extern const struct Vtable Vtable_IntegerVtable;
@@ -260,9 +239,6 @@ extern const struct Vtable Vtable_Kernel_Socket;
 extern const struct Vtable Vtable_Meta_Kernel_Socket;
 extern const struct Vtable Vtable_Kernel_Datagram;
 extern const struct Vtable Vtable_Meta_Kernel_Datagram;
-extern const struct Vtable Vtable_Kernel_Concurrency;
-extern const struct Vtable Vtable_Meta_Kernel_Concurrency;
-extern const struct Vtable Vtable_Kernel_Fiber;
 extern const struct Vtable Vtable_Supervisor;
 extern const struct Vtable Vtable_Supervisor_ObjectMirror;
 extern const struct Vtable Vtable_Supervisor_ContextMirror;
@@ -280,8 +256,7 @@ extern const struct Vtable Vtable_Block_Kernel_Set_block10;
 extern const struct Vtable Vtable_Block_Kernel_Set_block11;
 extern const struct Vtable Vtable_Block_Kernel_Dictionary_block12;
 extern const struct Vtable Vtable_Block_Kernel_Dictionary_block13;
-extern const struct Vtable Vtable_Block_Kernel_Concurrency_block14;
-extern const struct Vtable Vtable_Block_Supervisor_block15;
+extern const struct Vtable Vtable_Block_Supervisor_block14;
 
 /* Global Vtable pointers for custom classes */
 oop UdpTest = NULL;
@@ -306,9 +281,6 @@ oop Kernel_Socket = NULL;
 oop Meta_Kernel_Socket = NULL;
 oop Kernel_Datagram = NULL;
 oop Meta_Kernel_Datagram = NULL;
-oop Kernel_Concurrency = NULL;
-oop Meta_Kernel_Concurrency = NULL;
-oop Kernel_Fiber = NULL;
 oop Supervisor = NULL;
 oop Supervisor_ObjectMirror = NULL;
 oop Supervisor_ContextMirror = NULL;
@@ -326,8 +298,7 @@ oop Block_Kernel_Set_block10 = NULL;
 oop Block_Kernel_Set_block11 = NULL;
 oop Block_Kernel_Dictionary_block12 = NULL;
 oop Block_Kernel_Dictionary_block13 = NULL;
-oop Block_Kernel_Concurrency_block14 = NULL;
-oop Block_Supervisor_block15 = NULL;
+oop Block_Supervisor_block14 = NULL;
 
 /* Interned Symbols */
 const struct Symbol StaticSymbol_value = { { (oop)&Vtable_SymbolVtable }, "value", 5 };
@@ -338,7 +309,6 @@ const struct Symbol StaticSymbol_init_platform_net_ = { { (oop)&Vtable_SymbolVta
 const struct Symbol StaticSymbol_packageUsing_ = { { (oop)&Vtable_SymbolVtable }, "packageUsing:", 13 };
 const struct Symbol StaticSymbol_serialOn_ = { { (oop)&Vtable_SymbolVtable }, "serialOn:", 9 };
 const struct Symbol StaticSymbol_netOn_ = { { (oop)&Vtable_SymbolVtable }, "netOn:", 6 };
-const struct Symbol StaticSymbol_concurrency = { { (oop)&Vtable_SymbolVtable }, "concurrency", 11 };
 const struct Symbol StaticSymbol_readLine = { { (oop)&Vtable_SymbolVtable }, "readLine", 8 };
 const struct Symbol StaticSymbol_Object = { { (oop)&Vtable_SymbolVtable }, "Object", 6 };
 const struct Symbol StaticSymbol_Array = { { (oop)&Vtable_SymbolVtable }, "Array", 5 };
@@ -353,8 +323,6 @@ const struct Symbol StaticSymbol_Serial = { { (oop)&Vtable_SymbolVtable }, "Seri
 const struct Symbol StaticSymbol_Net = { { (oop)&Vtable_SymbolVtable }, "Net", 3 };
 const struct Symbol StaticSymbol_Socket = { { (oop)&Vtable_SymbolVtable }, "Socket", 6 };
 const struct Symbol StaticSymbol_Datagram = { { (oop)&Vtable_SymbolVtable }, "Datagram", 8 };
-const struct Symbol StaticSymbol_Concurrency = { { (oop)&Vtable_SymbolVtable }, "Concurrency", 11 };
-const struct Symbol StaticSymbol_Fiber = { { (oop)&Vtable_SymbolVtable }, "Fiber", 5 };
 const struct Symbol StaticSymbol_init_platform_ = { { (oop)&Vtable_SymbolVtable }, "init_platform:", 14 };
 const struct Symbol StaticSymbol_isNil = { { (oop)&Vtable_SymbolVtable }, "isNil", 5 };
 const struct Symbol StaticSymbol_notNil = { { (oop)&Vtable_SymbolVtable }, "notNil", 6 };
@@ -444,18 +412,6 @@ const struct Symbol StaticSymbol_data = { { (oop)&Vtable_SymbolVtable }, "data",
 const struct Symbol StaticSymbol_senderHost = { { (oop)&Vtable_SymbolVtable }, "senderHost", 10 };
 const struct Symbol StaticSymbol_senderPort = { { (oop)&Vtable_SymbolVtable }, "senderPort", 10 };
 const struct Symbol StaticSymbol_data_senderHost_senderPort_ = { { (oop)&Vtable_SymbolVtable }, "data:senderHost:senderPort:", 27 };
-const struct Symbol StaticSymbol_setKernel_ = { { (oop)&Vtable_SymbolVtable }, "setKernel:", 10 };
-const struct Symbol StaticSymbol_spawn_ = { { (oop)&Vtable_SymbolVtable }, "spawn:", 6 };
-const struct Symbol StaticSymbol_yield = { { (oop)&Vtable_SymbolVtable }, "yield", 5 };
-const struct Symbol StaticSymbol_complete = { { (oop)&Vtable_SymbolVtable }, "complete", 8 };
-const struct Symbol StaticSymbol_run = { { (oop)&Vtable_SymbolVtable }, "run", 3 };
-const struct Symbol StaticSymbol_onKernel_ = { { (oop)&Vtable_SymbolVtable }, "onKernel:", 9 };
-const struct Symbol StaticSymbol_setBlock_ = { { (oop)&Vtable_SymbolVtable }, "setBlock:", 9 };
-const struct Symbol StaticSymbol_setVm_ = { { (oop)&Vtable_SymbolVtable }, "setVm:", 6 };
-const struct Symbol StaticSymbol_vm = { { (oop)&Vtable_SymbolVtable }, "vm", 2 };
-const struct Symbol StaticSymbol_block = { { (oop)&Vtable_SymbolVtable }, "block", 5 };
-const struct Symbol StaticSymbol_isDone = { { (oop)&Vtable_SymbolVtable }, "isDone", 6 };
-const struct Symbol StaticSymbol_markDead = { { (oop)&Vtable_SymbolVtable }, "markDead", 8 };
 const struct Symbol StaticSymbol_run_platform_args_debug_ = { { (oop)&Vtable_SymbolVtable }, "run:platform:args:debug:", 24 };
 const struct Symbol StaticSymbol_ObjectMirror = { { (oop)&Vtable_SymbolVtable }, "ObjectMirror", 12 };
 const struct Symbol StaticSymbol_ContextMirror = { { (oop)&Vtable_SymbolVtable }, "ContextMirror", 13 };
@@ -520,9 +476,6 @@ const struct Symbol StaticSymbol_basicBind_ = { { (oop)&Vtable_SymbolVtable }, "
 const struct Symbol StaticSymbol_basicSend_to_port_data_ = { { (oop)&Vtable_SymbolVtable }, "basicSend:to:port:data:", 23 };
 const struct Symbol StaticSymbol_basicReceive_ = { { (oop)&Vtable_SymbolVtable }, "basicReceive:", 13 };
 const struct Symbol StaticSymbol_basicClose_ = { { (oop)&Vtable_SymbolVtable }, "basicClose:", 11 };
-const struct Symbol StaticSymbol_fiberCreate_ = { { (oop)&Vtable_SymbolVtable }, "fiberCreate:", 12 };
-const struct Symbol StaticSymbol_fiberSwitch_value_ = { { (oop)&Vtable_SymbolVtable }, "fiberSwitch:value:", 18 };
-const struct Symbol StaticSymbol_currentFiber = { { (oop)&Vtable_SymbolVtable }, "currentFiber", 12 };
 const struct Symbol StaticSymbol_onBreak_ = { { (oop)&Vtable_SymbolVtable }, "onBreak:", 8 };
 const struct Symbol StaticSymbol_vtableOf_ = { { (oop)&Vtable_SymbolVtable }, "vtableOf:", 9 };
 const struct Symbol StaticSymbol_bindingsOf_ = { { (oop)&Vtable_SymbolVtable }, "bindingsOf:", 11 };
@@ -677,19 +630,6 @@ static const struct CompiledMethod Method_Kernel_netOn__compiled = {
 static const struct Closure Method_Kernel_netOn__closure = {
     { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
     (void *)&Method_Kernel_netOn__compiled
-};
-
-static const uint32_t Method_Kernel_concurrency_insts[] = { 0x000E030C, 0x00000401, 0x03000102, 0x00030201, 0x00000204 };
-static const oop Method_Kernel_concurrency_consts[] = { (oop)&StaticSymbol_onKernel_ };
-static const struct CompiledMethod Method_Kernel_concurrency_compiled = {
-    Method_Kernel_concurrency_insts, 5,
-    5, 0,
-    Method_Kernel_concurrency_consts, 1,
-    0
-};
-static const struct Closure Method_Kernel_concurrency_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_Kernel_concurrency_compiled
 };
 
 static const uint32_t Method_Kernel_readLine_insts[] = { 0x0000030C, 0x03000002, 0x00030201, 0x00000204 };
@@ -866,38 +806,12 @@ static const struct Closure Method_Kernel_Datagram_closure = {
     (void *)&Method_Kernel_Datagram_compiled
 };
 
-static const uint32_t Method_Kernel_Concurrency_insts[] = { 0x00000200, 0x00000301, 0x00010400, 0x02020202, 0x00000204 };
-static const oop Method_Kernel_Concurrency_consts[] = { (oop)&Vtable_Kernel_Concurrency, TAG_SMI(7), (oop)&StaticSymbol___boundOuter_slotCount_ };
-static const struct CompiledMethod Method_Kernel_Concurrency_compiled = {
-    Method_Kernel_Concurrency_insts, 5,
-    5, 0,
-    Method_Kernel_Concurrency_consts, 3,
-    0
-};
-static const struct Closure Method_Kernel_Concurrency_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_Kernel_Concurrency_compiled
-};
-
-static const uint32_t Method_Kernel_Fiber_insts[] = { 0x00000200, 0x00000301, 0x00010400, 0x02020202, 0x00000204 };
-static const oop Method_Kernel_Fiber_consts[] = { (oop)&Vtable_Kernel_Fiber, TAG_SMI(4), (oop)&StaticSymbol___boundOuter_slotCount_ };
-static const struct CompiledMethod Method_Kernel_Fiber_compiled = {
-    Method_Kernel_Fiber_insts, 5,
-    5, 0,
-    Method_Kernel_Fiber_consts, 3,
-    0
-};
-static const struct Closure Method_Kernel_Fiber_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_Kernel_Fiber_compiled
-};
-
-static const uint32_t Method_Kernel_init_platform__insts[] = { 0x0000010D, 0x00000300, 0x00000401, 0x00010500, 0x03020202, 0x0001030D, 0x00030300, 0x00000401, 0x00010500, 0x03020202, 0x0002030D, 0x00040300, 0x00000401, 0x00010500, 0x03020202, 0x0003030D, 0x00050300, 0x00000401, 0x00060500, 0x03020202, 0x0004030D, 0x00070300, 0x00000401, 0x00060500, 0x03020202, 0x0005030D, 0x00080300, 0x00000401, 0x00060500, 0x03020202, 0x0006030D, 0x00090300, 0x00000401, 0x000A0500, 0x03020202, 0x0007030D, 0x000B0300, 0x00000401, 0x00060500, 0x03020202, 0x0008030D, 0x000C0300, 0x00000401, 0x000D0500, 0x03020202, 0x0009030D, 0x000E0300, 0x00000401, 0x000D0500, 0x03020202, 0x000A030D, 0x000F0300, 0x00000401, 0x000D0500, 0x03020202, 0x000B030D, 0x00100300, 0x00000401, 0x00060500, 0x03020202, 0x000C030D, 0x00110300, 0x00000401, 0x000A0500, 0x03020202, 0x000D030D, 0x00120300, 0x00000401, 0x00130500, 0x03020202, 0x000E030D, 0x00140300, 0x00000401, 0x000A0500, 0x03020202, 0x000F030D, 0x00000004 };
-static const oop Method_Kernel_init_platform__consts[] = { (oop)&Vtable_Kernel_Object, TAG_SMI(1), (oop)&StaticSymbol___boundOuter_slotCount_, (oop)&Vtable_Kernel_Array, (oop)&Vtable_Kernel_Collection, (oop)&Vtable_Kernel_OrderedCollection, TAG_SMI(3), (oop)&Vtable_Kernel_HashedCollection, (oop)&Vtable_Kernel_Set, (oop)&Vtable_Kernel_Dictionary, TAG_SMI(4), (oop)&Vtable_Kernel_ReadStream, (oop)&Vtable_Kernel_WriteStream, TAG_SMI(2), (oop)&Vtable_Kernel_Serial, (oop)&Vtable_Kernel_Net, (oop)&Vtable_Kernel_Socket, (oop)&Vtable_Kernel_Datagram, (oop)&Vtable_Kernel_Concurrency, TAG_SMI(7), (oop)&Vtable_Kernel_Fiber };
+static const uint32_t Method_Kernel_init_platform__insts[] = { 0x0000010D, 0x00000300, 0x00000401, 0x00010500, 0x03020202, 0x0001030D, 0x00030300, 0x00000401, 0x00010500, 0x03020202, 0x0002030D, 0x00040300, 0x00000401, 0x00010500, 0x03020202, 0x0003030D, 0x00050300, 0x00000401, 0x00060500, 0x03020202, 0x0004030D, 0x00070300, 0x00000401, 0x00060500, 0x03020202, 0x0005030D, 0x00080300, 0x00000401, 0x00060500, 0x03020202, 0x0006030D, 0x00090300, 0x00000401, 0x000A0500, 0x03020202, 0x0007030D, 0x000B0300, 0x00000401, 0x00060500, 0x03020202, 0x0008030D, 0x000C0300, 0x00000401, 0x000D0500, 0x03020202, 0x0009030D, 0x000E0300, 0x00000401, 0x000D0500, 0x03020202, 0x000A030D, 0x000F0300, 0x00000401, 0x000D0500, 0x03020202, 0x000B030D, 0x00100300, 0x00000401, 0x00060500, 0x03020202, 0x000C030D, 0x00110300, 0x00000401, 0x000A0500, 0x03020202, 0x000D030D, 0x00000004 };
+static const oop Method_Kernel_init_platform__consts[] = { (oop)&Vtable_Kernel_Object, TAG_SMI(1), (oop)&StaticSymbol___boundOuter_slotCount_, (oop)&Vtable_Kernel_Array, (oop)&Vtable_Kernel_Collection, (oop)&Vtable_Kernel_OrderedCollection, TAG_SMI(3), (oop)&Vtable_Kernel_HashedCollection, (oop)&Vtable_Kernel_Set, (oop)&Vtable_Kernel_Dictionary, TAG_SMI(4), (oop)&Vtable_Kernel_ReadStream, (oop)&Vtable_Kernel_WriteStream, TAG_SMI(2), (oop)&Vtable_Kernel_Serial, (oop)&Vtable_Kernel_Net, (oop)&Vtable_Kernel_Socket, (oop)&Vtable_Kernel_Datagram };
 static const struct CompiledMethod Method_Kernel_init_platform__compiled = {
-    Method_Kernel_init_platform__insts, 77,
+    Method_Kernel_init_platform__insts, 67,
     6, 1,
-    Method_Kernel_init_platform__consts, 21,
+    Method_Kernel_init_platform__consts, 18,
     0
 };
 static const struct Closure Method_Kernel_init_platform__closure = {
@@ -2554,186 +2468,8 @@ static const struct Closure Method_Kernel_Datagram_init_new_closure = {
     (void *)&Method_Kernel_Datagram_init_new_compiled
 };
 
-static const uint32_t Method_Kernel_Concurrency_setKernel__insts[] = { 0x00010301, 0x0001030D, 0x00000400, 0x0304030E, 0x00000401, 0x0400050C, 0x0300050D, 0x03010002, 0x0002030D, 0x00020400, 0x0104030E, 0x00000401, 0x0400050C, 0x0300050D, 0x03010002, 0x0005030D, 0x00020400, 0x0104030E, 0x00000401, 0x0400050C, 0x0300050D, 0x03010002, 0x0006030D, 0x00000301, 0x00000304 };
-static const oop Method_Kernel_Concurrency_setKernel__consts[] = { (oop)&Vtable_Kernel_OrderedCollection, (oop)&StaticSymbol_init_new, (oop)&Vtable_Kernel_Object };
-static const struct CompiledMethod Method_Kernel_Concurrency_setKernel__compiled = {
-    Method_Kernel_Concurrency_setKernel__insts, 25,
-    6, 1,
-    Method_Kernel_Concurrency_setKernel__consts, 3,
-    0
-};
-static const struct Closure Method_Kernel_Concurrency_setKernel__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_Kernel_Concurrency_setKernel__compiled
-};
-
-static const uint32_t Method_Kernel_Concurrency_spawn__insts[] = { 0x00000600, 0x0406050E, 0x00000601, 0x0600070C, 0x0500070D, 0x05010002, 0x00050401, 0x00040601, 0x00010701, 0x06020102, 0x00060501, 0x00030614, 0x00060301, 0x00040701, 0x0001090C, 0x00030A01, 0x09040102, 0x00090801, 0x07050102, 0x00070601, 0x0002080C, 0x00040901, 0x08060102, 0x00080701, 0x00040801, 0x00000804 };
-static const oop Method_Kernel_Concurrency_spawn__consts[] = { (oop)&Vtable_Kernel_Fiber, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setBlock_, (oop)&Method_Block_Kernel_Concurrency_block14_value_compiled, (oop)&StaticSymbol_fiberCreate_, (oop)&StaticSymbol_setVm_, (oop)&StaticSymbol_addLast_ };
-static const struct CompiledMethod Method_Kernel_Concurrency_spawn__compiled = {
-    Method_Kernel_Concurrency_spawn__insts, 26,
-    11, 1,
-    Method_Kernel_Concurrency_spawn__consts, 7,
-    0
-};
-static const struct Closure Method_Kernel_Concurrency_spawn__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_Kernel_Concurrency_spawn__compiled
-};
-
-static const uint32_t Method_Kernel_Concurrency_yield_insts[] = { 0x0001030C, 0x0004040C, 0x0005050C, 0x03000202, 0x00030201, 0x00000204 };
-static const oop Method_Kernel_Concurrency_yield_consts[] = { (oop)&StaticSymbol_fiberSwitch_value_ };
-static const struct CompiledMethod Method_Kernel_Concurrency_yield_compiled = {
-    Method_Kernel_Concurrency_yield_insts, 6,
-    6, 0,
-    Method_Kernel_Concurrency_yield_consts, 1,
-    0
-};
-static const struct Closure Method_Kernel_Concurrency_yield_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_Kernel_Concurrency_yield_compiled
-};
-
-static const uint32_t Method_Kernel_Concurrency_complete_insts[] = { 0x0001030C, 0x0004040C, 0x0006050C, 0x03000202, 0x00030201, 0x00000204 };
-static const oop Method_Kernel_Concurrency_complete_consts[] = { (oop)&StaticSymbol_fiberSwitch_value_ };
-static const struct CompiledMethod Method_Kernel_Concurrency_complete_compiled = {
-    Method_Kernel_Concurrency_complete_insts, 6,
-    6, 0,
-    Method_Kernel_Concurrency_complete_consts, 1,
-    0
-};
-static const struct Closure Method_Kernel_Concurrency_complete_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_Kernel_Concurrency_complete_compiled
-};
-
-static const uint32_t Method_Kernel_Concurrency_run_insts[] = { 0x0001050C, 0x05000002, 0x00050401, 0x0004040D, 0x0002080C, 0x08010002, 0x00080601, 0x0001060B, 0x00001C0A, 0x0002090C, 0x09020002, 0x00090801, 0x00080201, 0x00020901, 0x0003090D, 0x00010A0C, 0x00020C01, 0x0C030002, 0x000C0B01, 0x00040C00, 0x0A050202, 0x000A0901, 0x00090301, 0x00030B01, 0x00060C0C, 0x0B060102, 0x000B0A01, 0x00040A0B, 0x00020C01, 0x0C070002, 0x000C0701, 0x0000040A, 0x00020C0C, 0x00020D01, 0x0C080102, 0x000C0701, 0x00FFDF0A, 0x00040500, 0x00000501, 0x00000504 };
-static const oop Method_Kernel_Concurrency_run_consts[] = { (oop)&StaticSymbol_currentFiber, (oop)&StaticSymbol_isEmpty, (oop)&StaticSymbol_removeFirst, (oop)&StaticSymbol_vm, NULL, (oop)&StaticSymbol_fiberSwitch_value_, (oop)&StaticSymbol__eq_eq, (oop)&StaticSymbol_markDead, (oop)&StaticSymbol_addLast_ };
-static const struct CompiledMethod Method_Kernel_Concurrency_run_compiled = {
-    Method_Kernel_Concurrency_run_insts, 40,
-    14, 0,
-    Method_Kernel_Concurrency_run_consts, 9,
-    0
-};
-static const struct Closure Method_Kernel_Concurrency_run_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_Kernel_Concurrency_run_compiled
-};
-
-static const uint32_t Method_Meta_Kernel_Concurrency_onKernel__insts[] = { 0x00000500, 0x0705040E, 0x0001050C, 0x0400050D, 0x04010002, 0x00010501, 0x04020102, 0x00040301, 0x00000304 };
-static const oop Method_Meta_Kernel_Concurrency_onKernel__consts[] = { (oop)&Vtable_Kernel_Concurrency, (oop)&StaticSymbol_init_new, (oop)&StaticSymbol_setKernel_ };
-static const struct CompiledMethod Method_Meta_Kernel_Concurrency_onKernel__compiled = {
-    Method_Meta_Kernel_Concurrency_onKernel__insts, 9,
-    6, 1,
-    Method_Meta_Kernel_Concurrency_onKernel__consts, 3,
-    0
-};
-static const struct Closure Method_Meta_Kernel_Concurrency_onKernel__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_Meta_Kernel_Concurrency_onKernel__compiled
-};
-
-static const uint32_t Method_Kernel_Concurrency_init_new_insts[] = { 0x00000200, 0x0001020D, 0x00000200, 0x0002020D, 0x00000200, 0x0003020D, 0x00000200, 0x0004020D, 0x00000200, 0x0005020D, 0x00000200, 0x0006020D, 0x00000004 };
-static const oop Method_Kernel_Concurrency_init_new_consts[] = { NULL };
-static const struct CompiledMethod Method_Kernel_Concurrency_init_new_compiled = {
-    Method_Kernel_Concurrency_init_new_insts, 13,
-    3, 0,
-    Method_Kernel_Concurrency_init_new_consts, 1,
-    0
-};
-static const struct Closure Method_Kernel_Concurrency_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_Kernel_Concurrency_init_new_compiled
-};
-
-static const uint32_t Method_Kernel_Fiber_setBlock__insts[] = { 0x00010301, 0x0003030D, 0x00000300, 0x0002030D, 0x00000301, 0x00000304 };
-static const oop Method_Kernel_Fiber_setBlock__consts[] = { (oop)&StaticSymbol_false };
-static const struct CompiledMethod Method_Kernel_Fiber_setBlock__compiled = {
-    Method_Kernel_Fiber_setBlock__insts, 6,
-    4, 1,
-    Method_Kernel_Fiber_setBlock__consts, 1,
-    0
-};
-static const struct Closure Method_Kernel_Fiber_setBlock__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_Kernel_Fiber_setBlock__compiled
-};
-
-static const uint32_t Method_Kernel_Fiber_setVm__insts[] = { 0x00010301, 0x0001030D, 0x00000301, 0x00000304 };
-static const struct CompiledMethod Method_Kernel_Fiber_setVm__compiled = {
-    Method_Kernel_Fiber_setVm__insts, 4,
-    4, 1,
-    NULL, 0,
-    0
-};
-static const struct Closure Method_Kernel_Fiber_setVm__closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_Kernel_Fiber_setVm__compiled
-};
-
-static const uint32_t Method_Kernel_Fiber_vm_insts[] = { 0x0001020C, 0x00000204 };
-static const struct CompiledMethod Method_Kernel_Fiber_vm_compiled = {
-    Method_Kernel_Fiber_vm_insts, 2,
-    3, 0,
-    NULL, 0,
-    0
-};
-static const struct Closure Method_Kernel_Fiber_vm_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_Kernel_Fiber_vm_compiled
-};
-
-static const uint32_t Method_Kernel_Fiber_block_insts[] = { 0x0003020C, 0x00000204 };
-static const struct CompiledMethod Method_Kernel_Fiber_block_compiled = {
-    Method_Kernel_Fiber_block_insts, 2,
-    3, 0,
-    NULL, 0,
-    0
-};
-static const struct Closure Method_Kernel_Fiber_block_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_Kernel_Fiber_block_compiled
-};
-
-static const uint32_t Method_Kernel_Fiber_isDone_insts[] = { 0x0002020C, 0x00000204 };
-static const struct CompiledMethod Method_Kernel_Fiber_isDone_compiled = {
-    Method_Kernel_Fiber_isDone_insts, 2,
-    3, 0,
-    NULL, 0,
-    0
-};
-static const struct Closure Method_Kernel_Fiber_isDone_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_Kernel_Fiber_isDone_compiled
-};
-
-static const uint32_t Method_Kernel_Fiber_markDead_insts[] = { 0x00000200, 0x0002020D, 0x00000201, 0x00000204 };
-static const oop Method_Kernel_Fiber_markDead_consts[] = { (oop)&StaticSymbol_true };
-static const struct CompiledMethod Method_Kernel_Fiber_markDead_compiled = {
-    Method_Kernel_Fiber_markDead_insts, 4,
-    3, 0,
-    Method_Kernel_Fiber_markDead_consts, 1,
-    0
-};
-static const struct Closure Method_Kernel_Fiber_markDead_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_Kernel_Fiber_markDead_compiled
-};
-
-static const uint32_t Method_Kernel_Fiber_init_new_insts[] = { 0x00000200, 0x0001020D, 0x00000200, 0x0002020D, 0x00000200, 0x0003020D, 0x00000004 };
-static const oop Method_Kernel_Fiber_init_new_consts[] = { NULL };
-static const struct CompiledMethod Method_Kernel_Fiber_init_new_compiled = {
-    Method_Kernel_Fiber_init_new_insts, 7,
-    3, 0,
-    Method_Kernel_Fiber_init_new_consts, 1,
-    0
-};
-static const struct Closure Method_Kernel_Fiber_init_new_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_Kernel_Fiber_init_new_compiled
-};
-
 static const uint32_t Method_Supervisor_run_platform_args_debug__insts[] = { 0x00010517, 0x00040901, 0x00000A00, 0x09010102, 0x00090801, 0x0016080B, 0x00020B00, 0x0E0B0A0E, 0x0A00000D, 0x00000B0C, 0x00020C01, 0x0A030202, 0x00000A19, 0x00000B18, 0x00010C01, 0x0B040102, 0x000B0A01, 0x00000C0C, 0x00050D14, 0x0C060102, 0x000C0B01, 0x00070D00, 0x0D080002, 0x000D0C01, 0x00000D18, 0x0D090002, 0x000D0701, 0x0000010A, 0x000A0700, 0x00010901, 0x00020A01, 0x00030B01, 0x090B0202, 0x00090801, 0x00000804 };
-static const oop Method_Supervisor_run_platform_args_debug__consts[] = { TAG_SMI(1), (oop)&StaticSymbol__eq, (oop)&Vtable_Supervisor_Debugger, (oop)&StaticSymbol_init_m_io_, (oop)&StaticSymbol_registerEntry_, (oop)&Method_Block_Supervisor_block15_value__compiled, (oop)&StaticSymbol_onBreak_, (oop)&StaticString_dbg_ready_15, (oop)&StaticSymbol_println, (oop)&StaticSymbol_initialLoop, (oop)&StaticSymbol_false, (oop)&StaticSymbol_main_args_ };
+static const oop Method_Supervisor_run_platform_args_debug__consts[] = { TAG_SMI(1), (oop)&StaticSymbol__eq, (oop)&Vtable_Supervisor_Debugger, (oop)&StaticSymbol_init_m_io_, (oop)&StaticSymbol_registerEntry_, (oop)&Method_Block_Supervisor_block14_value__compiled, (oop)&StaticSymbol_onBreak_, (oop)&StaticString_dbg_ready_15, (oop)&StaticSymbol_println, (oop)&StaticSymbol_initialLoop, (oop)&StaticSymbol_false, (oop)&StaticSymbol_main_args_ };
 static const struct CompiledMethod Method_Supervisor_run_platform_args_debug__compiled = {
     Method_Supervisor_run_platform_args_debug__insts, 35,
     14, 4,
@@ -3364,30 +3100,17 @@ static const struct Closure Method_Block_Kernel_Dictionary_block13_value_closure
     (void *)&Method_Block_Kernel_Dictionary_block13_value_compiled
 };
 
-static const uint32_t Method_Block_Kernel_Concurrency_block14_value_insts[] = { 0xFF000117, 0x0000051A, 0x0503040C, 0x04000002, 0x00040301, 0x03010016, 0x00030201, 0x0000051A, 0x05020002, 0x00050401, 0x00000404 };
-static const oop Method_Block_Kernel_Concurrency_block14_value_consts[] = { (oop)&StaticSymbol_block, (oop)&StaticSymbol_value, (oop)&StaticSymbol_complete };
-static const struct CompiledMethod Method_Block_Kernel_Concurrency_block14_value_compiled = {
-    Method_Block_Kernel_Concurrency_block14_value_insts, 11,
-    6, 0,
-    Method_Block_Kernel_Concurrency_block14_value_consts, 3,
-    0
-};
-static const struct Closure Method_Block_Kernel_Concurrency_block14_value_closure = {
-    { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_Block_Kernel_Concurrency_block14_value_compiled
-};
-
-static const uint32_t Method_Block_Supervisor_block15_value__insts[] = { 0xFF000217, 0x00010418, 0x00010501, 0x04000102, 0x00040301, 0x00000304 };
-static const oop Method_Block_Supervisor_block15_value__consts[] = { (oop)&StaticSymbol_onBreakContext_ };
-static const struct CompiledMethod Method_Block_Supervisor_block15_value__compiled = {
-    Method_Block_Supervisor_block15_value__insts, 6,
+static const uint32_t Method_Block_Supervisor_block14_value__insts[] = { 0xFF000217, 0x00010418, 0x00010501, 0x04000102, 0x00040301, 0x00000304 };
+static const oop Method_Block_Supervisor_block14_value__consts[] = { (oop)&StaticSymbol_onBreakContext_ };
+static const struct CompiledMethod Method_Block_Supervisor_block14_value__compiled = {
+    Method_Block_Supervisor_block14_value__insts, 6,
     6, 1,
-    Method_Block_Supervisor_block15_value__consts, 1,
+    Method_Block_Supervisor_block14_value__consts, 1,
     0
 };
-static const struct Closure Method_Block_Supervisor_block15_value__closure = {
+static const struct Closure Method_Block_Supervisor_block14_value__closure = {
     { (oop)&Vtable_BytecodeClosureVtable }, NULL, 0,
-    (void *)&Method_Block_Supervisor_block15_value__compiled
+    (void *)&Method_Block_Supervisor_block14_value__compiled
 };
 
 /* Vtables and Bindings */
@@ -3445,7 +3168,6 @@ const struct Vtable Vtable_Meta_UdpTest = {
 static const struct Binding Vtable_Kernel_bindings[] = {
     { (oop)&StaticSymbol_serialOn_, (oop)&Method_Kernel_serialOn__closure },
     { (oop)&StaticSymbol_netOn_, (oop)&Method_Kernel_netOn__closure },
-    { (oop)&StaticSymbol_concurrency, (oop)&Method_Kernel_concurrency_closure },
     { (oop)&StaticSymbol_readLine, (oop)&Method_Kernel_readLine_closure },
     { (oop)&StaticSymbol_Object, (oop)&Method_Kernel_Object_closure },
     { (oop)&StaticSymbol_Array, (oop)&Method_Kernel_Array_closure },
@@ -3460,14 +3182,12 @@ static const struct Binding Vtable_Kernel_bindings[] = {
     { (oop)&StaticSymbol_Net, (oop)&Method_Kernel_Net_closure },
     { (oop)&StaticSymbol_Socket, (oop)&Method_Kernel_Socket_closure },
     { (oop)&StaticSymbol_Datagram, (oop)&Method_Kernel_Datagram_closure },
-    { (oop)&StaticSymbol_Concurrency, (oop)&Method_Kernel_Concurrency_closure },
-    { (oop)&StaticSymbol_Fiber, (oop)&Method_Kernel_Fiber_closure },
     { (oop)&StaticSymbol_init_platform_, (oop)&Method_Kernel_init_platform__closure },
 };
 const struct Vtable Vtable_Kernel = {
     { (oop)&Vtable_VtableVtable },
     (oop)&Vtable_Kernel_Object, (struct Binding *)Vtable_Kernel_bindings,
-    20, 20,
+    17, 17,
     0
 };
 
@@ -3770,47 +3490,6 @@ const struct Vtable Vtable_Meta_Kernel_Datagram = {
     0
 };
 
-static const struct Binding Vtable_Kernel_Concurrency_bindings[] = {
-    { (oop)&StaticSymbol_setKernel_, (oop)&Method_Kernel_Concurrency_setKernel__closure },
-    { (oop)&StaticSymbol_spawn_, (oop)&Method_Kernel_Concurrency_spawn__closure },
-    { (oop)&StaticSymbol_yield, (oop)&Method_Kernel_Concurrency_yield_closure },
-    { (oop)&StaticSymbol_complete, (oop)&Method_Kernel_Concurrency_complete_closure },
-    { (oop)&StaticSymbol_run, (oop)&Method_Kernel_Concurrency_run_closure },
-    { (oop)&StaticSymbol_init_new, (oop)&Method_Kernel_Concurrency_init_new_closure },
-};
-const struct Vtable Vtable_Kernel_Concurrency = {
-    { (oop)&Vtable_Meta_Kernel_Concurrency },
-    (oop)&Vtable_Kernel_Object, (struct Binding *)Vtable_Kernel_Concurrency_bindings,
-    6, 6,
-    1
-};
-
-static const struct Binding Vtable_Meta_Kernel_Concurrency_bindings[] = {
-    { (oop)&StaticSymbol_onKernel_, (oop)&Method_Meta_Kernel_Concurrency_onKernel__closure },
-};
-const struct Vtable Vtable_Meta_Kernel_Concurrency = {
-    { (oop)&Vtable_VtableVtable },
-    NULL, (struct Binding *)Vtable_Meta_Kernel_Concurrency_bindings,
-    1, 1,
-    0
-};
-
-static const struct Binding Vtable_Kernel_Fiber_bindings[] = {
-    { (oop)&StaticSymbol_setBlock_, (oop)&Method_Kernel_Fiber_setBlock__closure },
-    { (oop)&StaticSymbol_setVm_, (oop)&Method_Kernel_Fiber_setVm__closure },
-    { (oop)&StaticSymbol_vm, (oop)&Method_Kernel_Fiber_vm_closure },
-    { (oop)&StaticSymbol_block, (oop)&Method_Kernel_Fiber_block_closure },
-    { (oop)&StaticSymbol_isDone, (oop)&Method_Kernel_Fiber_isDone_closure },
-    { (oop)&StaticSymbol_markDead, (oop)&Method_Kernel_Fiber_markDead_closure },
-    { (oop)&StaticSymbol_init_new, (oop)&Method_Kernel_Fiber_init_new_closure },
-};
-const struct Vtable Vtable_Kernel_Fiber = {
-    { (oop)&Vtable_VtableVtable },
-    (oop)&Vtable_Kernel_Object, (struct Binding *)Vtable_Kernel_Fiber_bindings,
-    7, 7,
-    1
-};
-
 static const struct Binding Vtable_Supervisor_bindings[] = {
     { (oop)&StaticSymbol_run_platform_args_debug_, (oop)&Method_Supervisor_run_platform_args_debug__closure },
     { (oop)&StaticSymbol_ObjectMirror, (oop)&Method_Supervisor_ObjectMirror_closure },
@@ -4013,22 +3692,12 @@ const struct Vtable Vtable_Block_Kernel_Dictionary_block13 = {
     0
 };
 
-static const struct Binding Vtable_Block_Kernel_Concurrency_block14_bindings[] = {
-    { (oop)&StaticSymbol_value, (oop)&Method_Block_Kernel_Concurrency_block14_value_closure },
+static const struct Binding Vtable_Block_Supervisor_block14_bindings[] = {
+    { (oop)&StaticSymbol_value_, (oop)&Method_Block_Supervisor_block14_value__closure },
 };
-const struct Vtable Vtable_Block_Kernel_Concurrency_block14 = {
+const struct Vtable Vtable_Block_Supervisor_block14 = {
     { (oop)&Vtable_VtableVtable },
-    NULL, (struct Binding *)Vtable_Block_Kernel_Concurrency_block14_bindings,
-    1, 1,
-    0
-};
-
-static const struct Binding Vtable_Block_Supervisor_block15_bindings[] = {
-    { (oop)&StaticSymbol_value_, (oop)&Method_Block_Supervisor_block15_value__closure },
-};
-const struct Vtable Vtable_Block_Supervisor_block15 = {
-    { (oop)&Vtable_VtableVtable },
-    NULL, (struct Binding *)Vtable_Block_Supervisor_block15_bindings,
+    NULL, (struct Binding *)Vtable_Block_Supervisor_block14_bindings,
     1, 1,
     0
 };
@@ -4040,9 +3709,6 @@ const struct Vtable Vtable_StringVtable = { { (oop)&Vtable_VtableVtable }, NULL,
 const struct Vtable Vtable_BytecodeClosureVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
 const struct Vtable Vtable_PrimitiveClosureVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
 const struct Vtable Vtable_BoxedBindingVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
-const struct Vtable Vtable_RunnableFiberVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
-const struct Vtable Vtable_SuspendedFiberVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
-const struct Vtable Vtable_DeadFiberVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
 const struct Vtable Vtable_StackVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
 const struct Vtable Vtable_ContextVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
 
@@ -4055,9 +3721,6 @@ void init_solidified_vtables(void) {
     BytecodeClosureVtable = (oop)&Vtable_BytecodeClosureVtable;
     PrimitiveClosureVtable = (oop)&Vtable_PrimitiveClosureVtable;
     BoxedBindingVtable = (oop)&Vtable_BoxedBindingVtable;
-    RunnableFiberVtable = (oop)&Vtable_RunnableFiberVtable;
-    SuspendedFiberVtable = (oop)&Vtable_SuspendedFiberVtable;
-    DeadFiberVtable = (oop)&Vtable_DeadFiberVtable;
     StackVtable = (oop)&Vtable_StackVtable;
     ContextVtable = (oop)&Vtable_ContextVtable;
     IntegerVtable = (oop)&Vtable_IntegerVtable;
@@ -4086,9 +3749,6 @@ void init_solidified_vtables(void) {
     Meta_Kernel_Socket = (oop)&Vtable_Meta_Kernel_Socket;
     Kernel_Datagram = (oop)&Vtable_Kernel_Datagram;
     Meta_Kernel_Datagram = (oop)&Vtable_Meta_Kernel_Datagram;
-    Kernel_Concurrency = (oop)&Vtable_Kernel_Concurrency;
-    Meta_Kernel_Concurrency = (oop)&Vtable_Meta_Kernel_Concurrency;
-    Kernel_Fiber = (oop)&Vtable_Kernel_Fiber;
     Supervisor = (oop)&Vtable_Supervisor;
     Supervisor_ObjectMirror = (oop)&Vtable_Supervisor_ObjectMirror;
     Supervisor_ContextMirror = (oop)&Vtable_Supervisor_ContextMirror;
@@ -4106,8 +3766,7 @@ void init_solidified_vtables(void) {
     Block_Kernel_Set_block11 = (oop)&Vtable_Block_Kernel_Set_block11;
     Block_Kernel_Dictionary_block12 = (oop)&Vtable_Block_Kernel_Dictionary_block12;
     Block_Kernel_Dictionary_block13 = (oop)&Vtable_Block_Kernel_Dictionary_block13;
-    Block_Kernel_Concurrency_block14 = (oop)&Vtable_Block_Kernel_Concurrency_block14;
-    Block_Supervisor_block15 = (oop)&Vtable_Block_Supervisor_block15;
+    Block_Supervisor_block14 = (oop)&Vtable_Block_Supervisor_block14;
 }
 
 oop run_solidified_entry_point(void) {
@@ -4149,9 +3808,6 @@ oop run_solidified_entry_point(void) {
     UPDATE_LIMITS(&Vtable_Meta_Kernel_Socket, sizeof(struct Vtable));
     UPDATE_LIMITS(&Vtable_Kernel_Datagram, sizeof(struct Vtable));
     UPDATE_LIMITS(&Vtable_Meta_Kernel_Datagram, sizeof(struct Vtable));
-    UPDATE_LIMITS(&Vtable_Kernel_Concurrency, sizeof(struct Vtable));
-    UPDATE_LIMITS(&Vtable_Meta_Kernel_Concurrency, sizeof(struct Vtable));
-    UPDATE_LIMITS(&Vtable_Kernel_Fiber, sizeof(struct Vtable));
     UPDATE_LIMITS(&Vtable_Supervisor, sizeof(struct Vtable));
     UPDATE_LIMITS(&Vtable_Supervisor_ObjectMirror, sizeof(struct Vtable));
     UPDATE_LIMITS(&Vtable_Supervisor_ContextMirror, sizeof(struct Vtable));
@@ -4169,8 +3825,7 @@ oop run_solidified_entry_point(void) {
     UPDATE_LIMITS(&Vtable_Block_Kernel_Set_block11, sizeof(struct Vtable));
     UPDATE_LIMITS(&Vtable_Block_Kernel_Dictionary_block12, sizeof(struct Vtable));
     UPDATE_LIMITS(&Vtable_Block_Kernel_Dictionary_block13, sizeof(struct Vtable));
-    UPDATE_LIMITS(&Vtable_Block_Kernel_Concurrency_block14, sizeof(struct Vtable));
-    UPDATE_LIMITS(&Vtable_Block_Supervisor_block15, sizeof(struct Vtable));
+    UPDATE_LIMITS(&Vtable_Block_Supervisor_block14, sizeof(struct Vtable));
     UPDATE_LIMITS(Method_UdpTest_main_args__insts, sizeof(Method_UdpTest_main_args__insts));
     UPDATE_LIMITS(Method_UdpTest_main_args__consts, sizeof(Method_UdpTest_main_args__consts));
     UPDATE_LIMITS(&Method_UdpTest_main_args__compiled, sizeof(struct CompiledMethod));
@@ -4198,10 +3853,6 @@ oop run_solidified_entry_point(void) {
     UPDATE_LIMITS(Method_Kernel_netOn__consts, sizeof(Method_Kernel_netOn__consts));
     UPDATE_LIMITS(&Method_Kernel_netOn__compiled, sizeof(struct CompiledMethod));
     UPDATE_LIMITS(&Method_Kernel_netOn__closure, sizeof(struct Closure));
-    UPDATE_LIMITS(Method_Kernel_concurrency_insts, sizeof(Method_Kernel_concurrency_insts));
-    UPDATE_LIMITS(Method_Kernel_concurrency_consts, sizeof(Method_Kernel_concurrency_consts));
-    UPDATE_LIMITS(&Method_Kernel_concurrency_compiled, sizeof(struct CompiledMethod));
-    UPDATE_LIMITS(&Method_Kernel_concurrency_closure, sizeof(struct Closure));
     UPDATE_LIMITS(Method_Kernel_readLine_insts, sizeof(Method_Kernel_readLine_insts));
     UPDATE_LIMITS(Method_Kernel_readLine_consts, sizeof(Method_Kernel_readLine_consts));
     UPDATE_LIMITS(&Method_Kernel_readLine_compiled, sizeof(struct CompiledMethod));
@@ -4250,14 +3901,6 @@ oop run_solidified_entry_point(void) {
     UPDATE_LIMITS(Method_Kernel_Datagram_consts, sizeof(Method_Kernel_Datagram_consts));
     UPDATE_LIMITS(&Method_Kernel_Datagram_compiled, sizeof(struct CompiledMethod));
     UPDATE_LIMITS(&Method_Kernel_Datagram_closure, sizeof(struct Closure));
-    UPDATE_LIMITS(Method_Kernel_Concurrency_insts, sizeof(Method_Kernel_Concurrency_insts));
-    UPDATE_LIMITS(Method_Kernel_Concurrency_consts, sizeof(Method_Kernel_Concurrency_consts));
-    UPDATE_LIMITS(&Method_Kernel_Concurrency_compiled, sizeof(struct CompiledMethod));
-    UPDATE_LIMITS(&Method_Kernel_Concurrency_closure, sizeof(struct Closure));
-    UPDATE_LIMITS(Method_Kernel_Fiber_insts, sizeof(Method_Kernel_Fiber_insts));
-    UPDATE_LIMITS(Method_Kernel_Fiber_consts, sizeof(Method_Kernel_Fiber_consts));
-    UPDATE_LIMITS(&Method_Kernel_Fiber_compiled, sizeof(struct CompiledMethod));
-    UPDATE_LIMITS(&Method_Kernel_Fiber_closure, sizeof(struct Closure));
     UPDATE_LIMITS(Method_Kernel_init_platform__insts, sizeof(Method_Kernel_init_platform__insts));
     UPDATE_LIMITS(Method_Kernel_init_platform__consts, sizeof(Method_Kernel_init_platform__consts));
     UPDATE_LIMITS(&Method_Kernel_init_platform__compiled, sizeof(struct CompiledMethod));
@@ -4759,58 +4402,6 @@ oop run_solidified_entry_point(void) {
     UPDATE_LIMITS(Method_Kernel_Datagram_init_new_consts, sizeof(Method_Kernel_Datagram_init_new_consts));
     UPDATE_LIMITS(&Method_Kernel_Datagram_init_new_compiled, sizeof(struct CompiledMethod));
     UPDATE_LIMITS(&Method_Kernel_Datagram_init_new_closure, sizeof(struct Closure));
-    UPDATE_LIMITS(Method_Kernel_Concurrency_setKernel__insts, sizeof(Method_Kernel_Concurrency_setKernel__insts));
-    UPDATE_LIMITS(Method_Kernel_Concurrency_setKernel__consts, sizeof(Method_Kernel_Concurrency_setKernel__consts));
-    UPDATE_LIMITS(&Method_Kernel_Concurrency_setKernel__compiled, sizeof(struct CompiledMethod));
-    UPDATE_LIMITS(&Method_Kernel_Concurrency_setKernel__closure, sizeof(struct Closure));
-    UPDATE_LIMITS(Method_Kernel_Concurrency_spawn__insts, sizeof(Method_Kernel_Concurrency_spawn__insts));
-    UPDATE_LIMITS(Method_Kernel_Concurrency_spawn__consts, sizeof(Method_Kernel_Concurrency_spawn__consts));
-    UPDATE_LIMITS(&Method_Kernel_Concurrency_spawn__compiled, sizeof(struct CompiledMethod));
-    UPDATE_LIMITS(&Method_Kernel_Concurrency_spawn__closure, sizeof(struct Closure));
-    UPDATE_LIMITS(Method_Kernel_Concurrency_yield_insts, sizeof(Method_Kernel_Concurrency_yield_insts));
-    UPDATE_LIMITS(Method_Kernel_Concurrency_yield_consts, sizeof(Method_Kernel_Concurrency_yield_consts));
-    UPDATE_LIMITS(&Method_Kernel_Concurrency_yield_compiled, sizeof(struct CompiledMethod));
-    UPDATE_LIMITS(&Method_Kernel_Concurrency_yield_closure, sizeof(struct Closure));
-    UPDATE_LIMITS(Method_Kernel_Concurrency_complete_insts, sizeof(Method_Kernel_Concurrency_complete_insts));
-    UPDATE_LIMITS(Method_Kernel_Concurrency_complete_consts, sizeof(Method_Kernel_Concurrency_complete_consts));
-    UPDATE_LIMITS(&Method_Kernel_Concurrency_complete_compiled, sizeof(struct CompiledMethod));
-    UPDATE_LIMITS(&Method_Kernel_Concurrency_complete_closure, sizeof(struct Closure));
-    UPDATE_LIMITS(Method_Kernel_Concurrency_run_insts, sizeof(Method_Kernel_Concurrency_run_insts));
-    UPDATE_LIMITS(Method_Kernel_Concurrency_run_consts, sizeof(Method_Kernel_Concurrency_run_consts));
-    UPDATE_LIMITS(&Method_Kernel_Concurrency_run_compiled, sizeof(struct CompiledMethod));
-    UPDATE_LIMITS(&Method_Kernel_Concurrency_run_closure, sizeof(struct Closure));
-    UPDATE_LIMITS(Method_Meta_Kernel_Concurrency_onKernel__insts, sizeof(Method_Meta_Kernel_Concurrency_onKernel__insts));
-    UPDATE_LIMITS(Method_Meta_Kernel_Concurrency_onKernel__consts, sizeof(Method_Meta_Kernel_Concurrency_onKernel__consts));
-    UPDATE_LIMITS(&Method_Meta_Kernel_Concurrency_onKernel__compiled, sizeof(struct CompiledMethod));
-    UPDATE_LIMITS(&Method_Meta_Kernel_Concurrency_onKernel__closure, sizeof(struct Closure));
-    UPDATE_LIMITS(Method_Kernel_Concurrency_init_new_insts, sizeof(Method_Kernel_Concurrency_init_new_insts));
-    UPDATE_LIMITS(Method_Kernel_Concurrency_init_new_consts, sizeof(Method_Kernel_Concurrency_init_new_consts));
-    UPDATE_LIMITS(&Method_Kernel_Concurrency_init_new_compiled, sizeof(struct CompiledMethod));
-    UPDATE_LIMITS(&Method_Kernel_Concurrency_init_new_closure, sizeof(struct Closure));
-    UPDATE_LIMITS(Method_Kernel_Fiber_setBlock__insts, sizeof(Method_Kernel_Fiber_setBlock__insts));
-    UPDATE_LIMITS(Method_Kernel_Fiber_setBlock__consts, sizeof(Method_Kernel_Fiber_setBlock__consts));
-    UPDATE_LIMITS(&Method_Kernel_Fiber_setBlock__compiled, sizeof(struct CompiledMethod));
-    UPDATE_LIMITS(&Method_Kernel_Fiber_setBlock__closure, sizeof(struct Closure));
-    UPDATE_LIMITS(Method_Kernel_Fiber_setVm__insts, sizeof(Method_Kernel_Fiber_setVm__insts));
-    UPDATE_LIMITS(&Method_Kernel_Fiber_setVm__compiled, sizeof(struct CompiledMethod));
-    UPDATE_LIMITS(&Method_Kernel_Fiber_setVm__closure, sizeof(struct Closure));
-    UPDATE_LIMITS(Method_Kernel_Fiber_vm_insts, sizeof(Method_Kernel_Fiber_vm_insts));
-    UPDATE_LIMITS(&Method_Kernel_Fiber_vm_compiled, sizeof(struct CompiledMethod));
-    UPDATE_LIMITS(&Method_Kernel_Fiber_vm_closure, sizeof(struct Closure));
-    UPDATE_LIMITS(Method_Kernel_Fiber_block_insts, sizeof(Method_Kernel_Fiber_block_insts));
-    UPDATE_LIMITS(&Method_Kernel_Fiber_block_compiled, sizeof(struct CompiledMethod));
-    UPDATE_LIMITS(&Method_Kernel_Fiber_block_closure, sizeof(struct Closure));
-    UPDATE_LIMITS(Method_Kernel_Fiber_isDone_insts, sizeof(Method_Kernel_Fiber_isDone_insts));
-    UPDATE_LIMITS(&Method_Kernel_Fiber_isDone_compiled, sizeof(struct CompiledMethod));
-    UPDATE_LIMITS(&Method_Kernel_Fiber_isDone_closure, sizeof(struct Closure));
-    UPDATE_LIMITS(Method_Kernel_Fiber_markDead_insts, sizeof(Method_Kernel_Fiber_markDead_insts));
-    UPDATE_LIMITS(Method_Kernel_Fiber_markDead_consts, sizeof(Method_Kernel_Fiber_markDead_consts));
-    UPDATE_LIMITS(&Method_Kernel_Fiber_markDead_compiled, sizeof(struct CompiledMethod));
-    UPDATE_LIMITS(&Method_Kernel_Fiber_markDead_closure, sizeof(struct Closure));
-    UPDATE_LIMITS(Method_Kernel_Fiber_init_new_insts, sizeof(Method_Kernel_Fiber_init_new_insts));
-    UPDATE_LIMITS(Method_Kernel_Fiber_init_new_consts, sizeof(Method_Kernel_Fiber_init_new_consts));
-    UPDATE_LIMITS(&Method_Kernel_Fiber_init_new_compiled, sizeof(struct CompiledMethod));
-    UPDATE_LIMITS(&Method_Kernel_Fiber_init_new_closure, sizeof(struct Closure));
     UPDATE_LIMITS(Method_Supervisor_run_platform_args_debug__insts, sizeof(Method_Supervisor_run_platform_args_debug__insts));
     UPDATE_LIMITS(Method_Supervisor_run_platform_args_debug__consts, sizeof(Method_Supervisor_run_platform_args_debug__consts));
     UPDATE_LIMITS(&Method_Supervisor_run_platform_args_debug__compiled, sizeof(struct CompiledMethod));
@@ -5002,14 +4593,10 @@ oop run_solidified_entry_point(void) {
     UPDATE_LIMITS(Method_Block_Kernel_Dictionary_block13_value_consts, sizeof(Method_Block_Kernel_Dictionary_block13_value_consts));
     UPDATE_LIMITS(&Method_Block_Kernel_Dictionary_block13_value_compiled, sizeof(struct CompiledMethod));
     UPDATE_LIMITS(&Method_Block_Kernel_Dictionary_block13_value_closure, sizeof(struct Closure));
-    UPDATE_LIMITS(Method_Block_Kernel_Concurrency_block14_value_insts, sizeof(Method_Block_Kernel_Concurrency_block14_value_insts));
-    UPDATE_LIMITS(Method_Block_Kernel_Concurrency_block14_value_consts, sizeof(Method_Block_Kernel_Concurrency_block14_value_consts));
-    UPDATE_LIMITS(&Method_Block_Kernel_Concurrency_block14_value_compiled, sizeof(struct CompiledMethod));
-    UPDATE_LIMITS(&Method_Block_Kernel_Concurrency_block14_value_closure, sizeof(struct Closure));
-    UPDATE_LIMITS(Method_Block_Supervisor_block15_value__insts, sizeof(Method_Block_Supervisor_block15_value__insts));
-    UPDATE_LIMITS(Method_Block_Supervisor_block15_value__consts, sizeof(Method_Block_Supervisor_block15_value__consts));
-    UPDATE_LIMITS(&Method_Block_Supervisor_block15_value__compiled, sizeof(struct CompiledMethod));
-    UPDATE_LIMITS(&Method_Block_Supervisor_block15_value__closure, sizeof(struct Closure));
+    UPDATE_LIMITS(Method_Block_Supervisor_block14_value__insts, sizeof(Method_Block_Supervisor_block14_value__insts));
+    UPDATE_LIMITS(Method_Block_Supervisor_block14_value__consts, sizeof(Method_Block_Supervisor_block14_value__consts));
+    UPDATE_LIMITS(&Method_Block_Supervisor_block14_value__compiled, sizeof(struct CompiledMethod));
+    UPDATE_LIMITS(&Method_Block_Supervisor_block14_value__closure, sizeof(struct Closure));
     UPDATE_LIMITS(&StaticSymbol_value, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_main_args_, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_roundTrip_, sizeof(struct Symbol));
@@ -5018,7 +4605,6 @@ oop run_solidified_entry_point(void) {
     UPDATE_LIMITS(&StaticSymbol_packageUsing_, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_serialOn_, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_netOn_, sizeof(struct Symbol));
-    UPDATE_LIMITS(&StaticSymbol_concurrency, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_readLine, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_Object, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_Array, sizeof(struct Symbol));
@@ -5033,8 +4619,6 @@ oop run_solidified_entry_point(void) {
     UPDATE_LIMITS(&StaticSymbol_Net, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_Socket, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_Datagram, sizeof(struct Symbol));
-    UPDATE_LIMITS(&StaticSymbol_Concurrency, sizeof(struct Symbol));
-    UPDATE_LIMITS(&StaticSymbol_Fiber, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_init_platform_, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_isNil, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_notNil, sizeof(struct Symbol));
@@ -5124,18 +4708,6 @@ oop run_solidified_entry_point(void) {
     UPDATE_LIMITS(&StaticSymbol_senderHost, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_senderPort, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_data_senderHost_senderPort_, sizeof(struct Symbol));
-    UPDATE_LIMITS(&StaticSymbol_setKernel_, sizeof(struct Symbol));
-    UPDATE_LIMITS(&StaticSymbol_spawn_, sizeof(struct Symbol));
-    UPDATE_LIMITS(&StaticSymbol_yield, sizeof(struct Symbol));
-    UPDATE_LIMITS(&StaticSymbol_complete, sizeof(struct Symbol));
-    UPDATE_LIMITS(&StaticSymbol_run, sizeof(struct Symbol));
-    UPDATE_LIMITS(&StaticSymbol_onKernel_, sizeof(struct Symbol));
-    UPDATE_LIMITS(&StaticSymbol_setBlock_, sizeof(struct Symbol));
-    UPDATE_LIMITS(&StaticSymbol_setVm_, sizeof(struct Symbol));
-    UPDATE_LIMITS(&StaticSymbol_vm, sizeof(struct Symbol));
-    UPDATE_LIMITS(&StaticSymbol_block, sizeof(struct Symbol));
-    UPDATE_LIMITS(&StaticSymbol_isDone, sizeof(struct Symbol));
-    UPDATE_LIMITS(&StaticSymbol_markDead, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_run_platform_args_debug_, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_ObjectMirror, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_ContextMirror, sizeof(struct Symbol));
@@ -5200,9 +4772,6 @@ oop run_solidified_entry_point(void) {
     UPDATE_LIMITS(&StaticSymbol_basicSend_to_port_data_, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_basicReceive_, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_basicClose_, sizeof(struct Symbol));
-    UPDATE_LIMITS(&StaticSymbol_fiberCreate_, sizeof(struct Symbol));
-    UPDATE_LIMITS(&StaticSymbol_fiberSwitch_value_, sizeof(struct Symbol));
-    UPDATE_LIMITS(&StaticSymbol_currentFiber, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_onBreak_, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_vtableOf_, sizeof(struct Symbol));
     UPDATE_LIMITS(&StaticSymbol_bindingsOf_, sizeof(struct Symbol));
@@ -5275,7 +4844,7 @@ oop run_solidified_entry_point(void) {
     oop native_platform = platform_object();
     gc_temp_root_push(native_platform);
     oop fake_args = TAG_SMI(0);
-    oop kernel_inst = gc_allocate((oop)&Vtable_Kernel, sizeof(struct ObjectInstance) + 16 * sizeof(oop));
+    oop kernel_inst = gc_allocate((oop)&Vtable_Kernel, sizeof(struct ObjectInstance) + 14 * sizeof(oop));
     gc_temp_root_push(kernel_inst);
     oop kernel_init_args[1] = { native_platform };
     send(kernel_inst, (oop)&StaticSymbol_init_platform_, 1, kernel_init_args);
