@@ -1,0 +1,51 @@
+(*
+expect:
+true
+A
+true
+2
+B
+3
+C
+A
+*)
+(* L7 integer semantics: LargeInteger values as Dictionary keys.
+   Exercises the =/hash contract for the boxed integer representation, and in
+   particular the case where two LargeIntegers collide in the hash table yet must
+   stay distinct by value equality. See
+   nsl-tuvm/docs/superpowers/specs/2026-07-04-L7-integer-semantics-decision.md.
+
+   All keys here are genuine LargeIntegers (magnitude > the 64-bit-host SMI range),
+   reached two ways: big1 by u32 x u32 arithmetic (18446744065119617025 =
+   4294967295 * 4294967295 — exactly the register-math value the design must hold),
+   big2 by the equal literal. They must be =, hash equal, and land in one slot.
+   big3 is a distinct LargeInteger. negBig1 has the same magnitude as big1, so it
+   shares a hash bucket (the LargeInteger hash ignores sign) yet must be a distinct
+   key. LargeInteger literals and LargeInteger arithmetic round-trip identically on
+   the solidified (Path A) and .oimg (Path B) backends, so this test pins both. *)
+class LargeIntDictKeyTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | d big1 big2 big3 negBig1 |
+  big1:: 4294967295 * 4294967295.        (* u32max^2 = 18446744065119617025, a LargeInteger *)
+  big2:: 18446744065119617025.           (* same value, reached as a literal *)
+  big3:: 18446744065119617026.           (* a distinct LargeInteger (big1 + 1) *)
+  negBig1:: 0 - big1.                    (* -18446744065119617025: same magnitude, hash-collides *)
+
+  (big1 = big2) println.                 (* true  — equal across construction paths *)
+
+  d:: platform Dictionary new.
+  d at: big1 put: 'A'.
+  (d at: big2) println.                  (* A     — lookup by equal LargeInteger hits *)
+  (d includesKey: big2) println.         (* true  *)
+
+  d at: big3 put: 'B'.
+  d size println.                        (* 2     — big3 is a separate key *)
+  (d at: big3) println.                  (* B     *)
+
+  d at: negBig1 put: 'C'.
+  d size println.                        (* 3     — hash-collides with big1, still distinct *)
+  (d at: negBig1) println.               (* C     *)
+  (d at: big1) println.                  (* A     — big1 unshadowed by its sign-twin *)
+)
+) : (
+)
