@@ -277,6 +277,7 @@ class Kernel usingPlatform: platform = () (
   netOn: aPort = ( ^ Net onPort: aPort )
 
   public readLine = ( ^ platform readLine )
+  public valueRank: v = ( ^ platform valueRank: v )
 
   public Object            = ( ^ Object )
   public Array             = ( ^ Array )
