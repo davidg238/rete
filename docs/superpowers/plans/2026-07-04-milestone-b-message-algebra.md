@@ -425,13 +425,22 @@ public main: platform args: args = (
   m size printString out.
   (m at: #k ifAbsent: [ 0 ]) printString out.
   (m at: #zzz ifAbsent: [ 0 ]) printString out.
-  m2:: M fromPairs: (platform List with: (#j -> 7) with: (#k -> 42)).
+  m2:: M fromPairs: oc.                  (* oc built below — see note *)
   (m = m2) printString out.              (* sugar == fromPairs, order-independent *)
   (m hash = m2 hash) printString out.
 )
 ) : (
 )
 ```
+
+  NOTE (corrected 2026-07-05, Task 8): `fromPairs:`'s input must NOT be an
+  algebra `List` — a bare `Association` is `not a value`, so `platform List
+  with: (#j -> 7) ...` crashes in List's element validation before `fromPairs:`
+  runs (pinned by `01_association.ns`). Build the pair collection with an
+  unvalidated `OrderedCollection` instead:
+  `oc:: platform OrderedCollection new. oc add: (#j -> 7). oc add: (#k -> 42).`
+  The `fromPairs:` Association branch is therefore only reachable via an
+  unvalidated collection, never an algebra List — this is by design.
 
   `05b_map_canonical_order.ns`: construct the same 3-symbol-key map in two insertion orders; `keysDo:` prints identical sequences (byte-lexicographic symbol order) — 6 expect lines.
   `05c_map_typed_keys.ns`: `(M with: 1 -> 'a') at: 1.0 ifAbsent: [ 'miss' ]` → `miss`; both keys coexist: `M with: 1 -> 'a' with: 1.0 -> 'b'` has size 2.
