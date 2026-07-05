@@ -1,0 +1,14 @@
+(*
+expect:
+miss
+2
+*)
+class MapTypedKeys packageUsing: manifest = () (
+public main: platform args: args = (
+  | M |
+  M:: platform Map.
+  ((M with: 1 -> 'a') at: 1.0 ifAbsent: [ 'miss' ]) out.
+  (M with: 1 -> 'a' with: 1.0 -> 'b') size printString out.
+)
+) : (
+)

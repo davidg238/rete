@@ -1,0 +1,20 @@
+(*
+expect:
+#a
+#b
+#c
+#a
+#b
+#c
+*)
+class MapCanonicalOrder packageUsing: manifest = () (
+public main: platform args: args = (
+  | M m1 m2 |
+  M:: platform Map.
+  m1:: M with: #c -> 3 with: #a -> 1 with: #b -> 2.
+  m2:: M with: #b -> 2 with: #c -> 3 with: #a -> 1.
+  m1 keysDo: [ :k | k printString out ].
+  m2 keysDo: [ :k | k printString out ].
+)
+) : (
+)

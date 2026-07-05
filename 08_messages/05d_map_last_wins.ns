@@ -1,0 +1,25 @@
+(*
+expect:
+1
+99
+2
+99
+*)
+(* Milestone B Task 8 — last-wins on duplicate construction keys (pinned
+   semantic: CBOR decoders construct by overwrite). Covers both an ADJACENT
+   duplicate and a NON-ADJACENT (interleaved) duplicate, since last-wins is
+   implemented via stable-sort + keep-last-of-run and the interleaving case
+   is the one that would break a naive dedup. *)
+class MapLastWins packageUsing: manifest = () (
+public main: platform args: args = (
+  | M m m2 |
+  M:: platform Map.
+  m:: M with: #k -> 1 with: #k -> 99.
+  m size printString out.                        (* 1 — duplicate key collapses to one entry *)
+  (m at: #k ifAbsent: [ 0 ]) printString out.    (* 99 — the LATER value wins *)
+  m2:: M with: #k -> 5 with: #j -> 1 with: #k -> 99.
+  m2 size printString out.                        (* 2 — #j and #k *)
+  (m2 at: #k ifAbsent: [ 0 ]) printString out.   (* 99 — last wins across a non-adjacent dup *)
+)
+) : (
+)

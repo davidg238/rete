@@ -1,0 +1,17 @@
+(*
+expect:
+32
+expect-runtime-fail: message depth exceeded
+*)
+class MapDepthGuard packageUsing: manifest = () (
+public main: platform args: args = (
+  | M v |
+  M:: platform Map.
+  v:: 0.
+  1 to: 32 do: [ :i | v:: M with: #k -> v ].
+  (v valueDepth) printString out.
+  v:: M with: #k -> v.
+  'unreached' out.
+)
+) : (
+)
