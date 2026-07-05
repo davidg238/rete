@@ -985,8 +985,24 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
             }
             break;
             case PRIM_error: {
-                struct Symbol *msg = (struct Symbol *)args[0];
-                fprintf(stderr, "Error: %s\n", (msg && SymbolVtable && obj_vtable((oop)msg) == SymbolVtable) ? symbol_name(msg) : "?");
+                /* Milestone B Task 6: `self error:` is the universal crash idiom
+                   (NEWSPEAK_DIALECT.md #7) and every kernel.ns call site passes a
+                   String literal (Newspeak Symbol literals cannot contain spaces),
+                   but this branch only ever recognized a Symbol message — a String
+                   fell through to the "?" placeholder, silently dropping the
+                   diagnostic text. Mirror the existing String/Symbol dual-print
+                   already used a few cases below at PRIM_out. */
+                oop msg = args[0];
+                if (msg && SymbolVtable && obj_vtable(msg) == SymbolVtable) {
+                    fprintf(stderr, "Error: %s\n", symbol_name((struct Symbol *)msg));
+                } else if (msg && StringVtable && obj_vtable(msg) == StringVtable) {
+                    struct String *s = (struct String *)msg;
+                    fprintf(stderr, "Error: ");
+                    fwrite(s->bytes, 1, s->length, stderr);
+                    fprintf(stderr, "\n");
+                } else {
+                    fprintf(stderr, "Error: ?\n");
+                }
                 abort();
             }
             break;
