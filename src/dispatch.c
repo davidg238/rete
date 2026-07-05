@@ -945,8 +945,9 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
             case PRIM_isNil: {
                 if (receiver == NULL) return true_symbol;
                 if (IS_SMI(receiver)) return false_symbol;
-                if (obj_vtable(receiver) == FloatVtable ||
+                if ((StringVtable != NULL && obj_vtable(receiver) == StringVtable) ||
                     obj_vtable(receiver) == SymbolVtable ||
+                    obj_vtable(receiver) == FloatVtable ||
                     obj_vtable(receiver) == LargeIntegerVtable) return false_symbol;
                 // std-lib step 3a: real heap object — fall through to Object.ns isNil
                 break;
@@ -955,8 +956,9 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
             case PRIM_notNil: {
                 if (receiver == NULL) return false_symbol;
                 if (IS_SMI(receiver)) return true_symbol;
-                if (obj_vtable(receiver) == FloatVtable ||
+                if ((StringVtable != NULL && obj_vtable(receiver) == StringVtable) ||
                     obj_vtable(receiver) == SymbolVtable ||
+                    obj_vtable(receiver) == FloatVtable ||
                     obj_vtable(receiver) == LargeIntegerVtable) return true_symbol;
                 // std-lib step 3a: real heap object — fall through to Object.ns notNil
                 break;
