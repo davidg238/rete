@@ -175,6 +175,49 @@ class Kernel usingPlatform: platform = () (
     public key: aKey value: aValue = ( ^ self new setKey: aKey value: aValue )
   )
 
+  (* Immutable algebra list (Milestone B Task 6). Backing `items` is a plain
+     Array, copied at construction and never returned/aliased; `depth` is
+     computed once at construction (checkDepth-validated) and cached, so
+     `valueDepth` is O(1) rather than a deep walk. Every constructor path
+     (the four `with:` arities and `fromCollection:`) funnels through the
+     private `setItems:`, which validates each element (checkValue:, via the
+     `outer` link to the module-level helpers below) and folds the max child
+     depth in the same O(children) pass. *)
+  class List = ( | items depth | ) (
+    public size = ( ^ items size )
+    public at: i = ( (i < 1 or: [ i > items size ]) ifTrue: [ ^ self error: 'index out of bounds' ]. ^ items at: i )
+    public at: i ifAbsent: aBlock = ( (i < 1 or: [ i > items size ]) ifTrue: [ ^ aBlock value ]. ^ items at: i )
+    public do: aBlock = ( items do: aBlock. ^ self )
+    public inject: a into: b = ( | acc | acc:: a. items do: [ :e | acc:: b value: acc value: e ]. ^ acc )
+    public anySatisfy: aBlock = ( | found | found:: false. items do: [ :e | (found not and: [ aBlock value: e ]) ifTrue: [ found:: true ] ]. ^ found )
+    public isList = ( ^ true )
+    public isValue = ( ^ true )
+    public valueRank = ( ^ 7 )
+    public valueDepth = ( ^ depth )
+    setItems: anArray = (
+      | d |
+      d:: 0.
+      1 to: anArray size do: [ :i | | e cd |
+        e:: anArray at: i.
+        outer checkValue: e.
+        cd:: outer depthOf: e.
+        cd > d ifTrue: [ d:: cd ] ].
+      items:: anArray.
+      depth:: outer checkDepth: (1 + d).
+      ^ self )
+  ) : (
+    public with: a = ( | arr | arr:: platform basicNew: Array indexable: 1. arr at: 1 put: a. ^ self new setItems: arr )
+    public with: a with: b = ( | arr | arr:: platform basicNew: Array indexable: 2. arr at: 1 put: a. arr at: 2 put: b. ^ self new setItems: arr )
+    public with: a with: b with: c = ( | arr | arr:: platform basicNew: Array indexable: 3. arr at: 1 put: a. arr at: 2 put: b. arr at: 3 put: c. ^ self new setItems: arr )
+    public with: a with: b with: c with: d = ( | arr | arr:: platform basicNew: Array indexable: 4. arr at: 1 put: a. arr at: 2 put: b. arr at: 3 put: c. arr at: 4 put: d. ^ self new setItems: arr )
+    public fromCollection: aCollection = ( | n arr i |
+      n:: aCollection size.
+      arr:: platform basicNew: Array indexable: n.
+      i:: 0.
+      aCollection do: [ :e | i:: i + 1. arr at: i put: e ].
+      ^ self new setItems: arr )
+  )
+
   class ReadStream = ( | source position | ) (
     (* Byte-granular cursor over an immutable String. `next`/`peek` answer a byte
        SMI; substring reads build Strings via `platform string:`. Open-ended reads
@@ -293,6 +336,20 @@ class Kernel usingPlatform: platform = () (
   serialOn: aPort = ( ^ Serial onPort: aPort )
   netOn: aPort = ( ^ Net onPort: aPort )
 
+  (* Module-level validation/depth helpers (Milestone B Task 6) — NOT public:
+     reachable only by sibling classes nested directly in this module, via
+     their own `outer` link (slot 0), never by application code (an app
+     module's own `outer` never points at this Kernel instance). `rankOf:`
+     mirrors the native `platform valueRank:` prim but falls back to asking
+     the object itself when the prim answers -1 ("other heap" — Task 4),
+     which is how a heap value type (e.g. List) opts in via its own
+     `valueRank` override. *)
+  rankOf: v = ( | r | r:: platform valueRank: v. r = -1 ifTrue: [ ^ v valueRank ]. ^ r )
+  isValueObject: v = ( ^ (rankOf: v) >= 0 )
+  depthOf: v = ( (rankOf: v) >= 7 ifTrue: [ ^ v valueDepth ]. ^ 0 )
+  checkValue: v = ( (isValueObject: v) ifFalse: [ self error: 'not a value' ]. ^ v )
+  checkDepth: d = ( d > 32 ifTrue: [ self error: 'message depth exceeded' ]. ^ d )
+
   public readLine = ( ^ platform readLine )
   public valueRank: v = ( ^ platform valueRank: v )
 
@@ -303,6 +360,7 @@ class Kernel usingPlatform: platform = () (
   public Set               = ( ^ Set )
   public Dictionary        = ( ^ Dictionary )
   public Association       = ( ^ Association )
+  public List              = ( ^ List )
   public ReadStream        = ( ^ ReadStream )
   public WriteStream       = ( ^ WriteStream )
 ) : (
