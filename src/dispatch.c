@@ -118,6 +118,28 @@ static oop sm_to_int(int sign, uint64_t mag) {
     return largeint_alloc(sign, mag);
 }
 
+/* Canonical integer representation (nsl-tuvm#4): demote a boxed LargeInteger
+   to a tagged SMI when the value fits the tagged range. Never allocates and
+   returns non-integers untouched, so it is safe on any constant (including
+   blob-resident .oimg objects: sign/mag are direct scalar fields, and the
+   vtable is read via the blob-aware obj_vtable). Constant pools may carry a
+   boxed integer the runtime would represent as an SMI (the .oimg ref-word
+   immediate is narrower than the tagged range); loading it unboxed keeps the
+   one-value-one-representation invariant that `=`/`hash` (Dictionary keys)
+   rely on. */
+oop oevm_int_demote(oop v) {
+    if (v == NULL || IS_SMI(v)) return v;
+    if (obj_vtable(v) != LargeIntegerVtable) return v;
+    struct LargeInteger *li = (struct LargeInteger *)v;
+    /* same bounds as sm_to_int: SMI payload is (word-1) bits incl. sign */
+    const unsigned PB = (unsigned)(sizeof(intptr_t) * 8 - 1);
+    uint64_t max_pos = ((uint64_t)1 << (PB - 1)) - 1;
+    uint64_t max_neg = ((uint64_t)1 << (PB - 1));
+    if (li->sign > 0 && li->mag <= max_pos) return TAG_SMI((intptr_t)li->mag);
+    if (li->sign < 0 && li->mag <= max_neg) return TAG_SMI(-(intptr_t)li->mag);
+    return v;
+}
+
 /* Normalise a raw intptr_t result (may exceed the SMI range -> LargeInteger). */
 oop int_from_intptr(intptr_t v) {
     if (v < 0) return sm_to_int(-1, -(uint64_t)v);
