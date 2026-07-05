@@ -9,6 +9,7 @@
 extern oop gc_allocate(oop vtable, size_t size);
 extern oop StringVtable, SymbolVtable, VtableVtable;
 extern oop RawBytesVtable;   /* Milestone B Task 3: RawBytes leaf storage */
+extern oop LargeIntegerVtable, FloatVtable;   /* Milestone B Task 4: valueRank: */
 extern const struct Symbol true_sym_obj, false_sym_obj;   /* match oevm.h forms */
 #define true_symbol  ((oop)&true_sym_obj)
 #define false_symbol ((oop)&false_sym_obj)
@@ -192,6 +193,31 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         ((struct String *)copy)->length = src->length;
         if (src->length) memcpy(((struct String *)copy)->bytes, src->bytes, src->length);
         { *out = copy; return 1; }
+    }
+    case PRIM_pf_valueRank: {
+        /* `platform valueRank: v` — the C-side type oracle for the value
+           algebra (Milestone B Task 4). SMI result: nil=0; Boolean=1;
+           SMI/LargeInteger=2; Float=3 (NaN=-1); String=4; Symbol=6;
+           RawBytes=-2 (internal, never a value); any other heap object=-1
+           ("ask the object" — Bytes/List/Map/Record answer their own rank in
+           nsl, Task 5). Boolean is tested by singleton identity BEFORE the
+           generic SymbolVtable check so rank 1 wins over rank 6, matching
+           dispatch.c's predicate fast-paths. */
+        oop v = args[0];
+        if (v == NULL) { *out = TAG_SMI(0); return 1; }                       /* nil */
+        if (v == true_symbol || v == false_symbol) { *out = TAG_SMI(1); return 1; } /* Boolean */
+        if (IS_SMI(v)) { *out = TAG_SMI(2); return 1; }                       /* SmallInteger */
+        if (LargeIntegerVtable != NULL && obj_vtable(v) == LargeIntegerVtable) { *out = TAG_SMI(2); return 1; }
+        if (FloatVtable != NULL && obj_vtable(v) == FloatVtable) {
+            double d = ((struct Float *)v)->value;
+            *out = (d != d) ? TAG_SMI(-1) : TAG_SMI(3);                      /* NaN -> -1 */
+            return 1;
+        }
+        if (StringVtable != NULL && obj_vtable(v) == StringVtable) { *out = TAG_SMI(4); return 1; }
+        if (SymbolVtable != NULL && obj_vtable(v) == SymbolVtable) { *out = TAG_SMI(6); return 1; } /* genuine Symbol */
+        if (RawBytesVtable != NULL && obj_vtable(v) == RawBytesVtable) { *out = TAG_SMI(-2); return 1; }
+        *out = TAG_SMI(-1);   /* any other heap object: ask it in nsl */
+        return 1;
     }
     default:
         return 0;

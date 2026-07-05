@@ -16,7 +16,14 @@
    existing slot, PRIM_pf_readLine) — no pre-existing id shifts; new ids are
    70/71. (at:/at:put:/size on a RawBytes receiver reuse the existing generic
    PRIM_at/PRIM_at_put/PRIM_size ids, gated by receiver vtable in dispatch.c;
-   they need no prim_ids.h mirror since platform.c never sees them.) */
+   they need no prim_ids.h mirror since platform.c never sees them.)
+   Milestone B Task 4: 1 new platform prim, PRIM_pf_valueRank, appended after
+   PRIM_pf_freezeBytes — no pre-existing id shifts; new id is 72. The six
+   predicate selectors (isValue/isSymbol/isList/isMap/isRecord/isBytes) get
+   enum slots in dispatch.c's PRIM enum too (positions 1:1 with PRIM_NAMES)
+   but are serviced entirely by a dispatch.c fast-path switch keyed on builtin
+   vtables/SMI/nil/Boolean-singleton identity — platform.c never sees them, so
+   they need no mirror here. */
 #define PRIM_ix_array            59
 #define PRIM_ix_basicAt          60
 #define PRIM_ix_basicAt_put      61
@@ -30,4 +37,5 @@
 #define PRIM_pf_readLine         69
 #define PRIM_pf_basicNewBytes    70
 #define PRIM_pf_freezeBytes      71
+#define PRIM_pf_valueRank        72
 #endif /* OEVM_PRIM_IDS_H */

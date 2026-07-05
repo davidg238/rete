@@ -620,6 +620,14 @@ enum {
        pre-existing PRIM id shifts (prim_ids.h mirrors these two by number). */
     PRIM_pf_basicNewBytes,
     PRIM_pf_freezeBytes,
+    /* --- Milestone B Task 4: value-algebra type oracle. PRIM_pf_valueRank is
+       platform-dispatched (mirrored in prim_ids.h as 72). The six predicates
+       are serviced entirely by the builtin-receiver fast-path switch below
+       (modeled on PRIM_at/PRIM_isNil) — platform.c never sees them, so they
+       need no prim_ids.h mirror. Appended last: no pre-existing PRIM id
+       shifts. --- */
+    PRIM_pf_valueRank,
+    PRIM_isValue, PRIM_isSymbol, PRIM_isList, PRIM_isMap, PRIM_isRecord, PRIM_isBytes,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -643,6 +651,8 @@ static const char *const PRIM_NAMES[] = {
     "readLine",
     "basicNewBytes:",
     "freezeBytes:",
+    "valueRank:",
+    "isValue", "isSymbol", "isList", "isMap", "isRecord", "isBytes",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
@@ -1234,6 +1244,63 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                     s->bytes[idx - 1] = (uint8_t)val;
                     return args[1];
                 }
+            }
+            break;
+            /* --- Milestone B Task 4: predicate fast-paths for BUILTIN
+               receivers only (nil, Boolean singletons, SMI/LargeInteger,
+               Float, String, Symbol, RawBytes). Modeled on PRIM_at/PRIM_isNil
+               above: identity/vtable-gated, so any heap instance falls
+               through this whole group unmatched (no return, no break out of
+               the outer switch dodge) straight to normal vtable lookup —
+               its nsl Kernel.Object defaults land in Task 5. Boolean is
+               tested by singleton identity BEFORE the generic SymbolVtable
+               check so rank-1 Boolean wins over rank-6 Symbol. --- */
+            case PRIM_isValue: {
+                if (receiver == NULL) return true_symbol;                    /* nil */
+                if (IS_SMI(receiver)) return true_symbol;                    /* SmallInteger */
+                if (receiver == true_symbol || receiver == false_symbol) return true_symbol; /* Boolean */
+                if (LargeIntegerVtable != NULL && obj_vtable(receiver) == LargeIntegerVtable) return true_symbol;
+                if (FloatVtable != NULL && obj_vtable(receiver) == FloatVtable) {
+                    double d = ((struct Float *)receiver)->value;
+                    return (d == d) ? true_symbol : false_symbol;           /* NaN -> not a value */
+                }
+                if (StringVtable != NULL && obj_vtable(receiver) == StringVtable) return true_symbol;
+                if (SymbolVtable != NULL && obj_vtable(receiver) == SymbolVtable) return true_symbol; /* genuine Symbol (true/false already handled above) */
+                if (RawBytesVtable != NULL && obj_vtable(receiver) == RawBytesVtable) return false_symbol; /* internal, never a value */
+                break;   /* heap object: fall through to nsl Object default (Task 5) */
+            }
+            break;
+            case PRIM_isSymbol: {
+                if (receiver == NULL) return false_symbol;
+                if (IS_SMI(receiver)) return false_symbol;
+                if (receiver == true_symbol || receiver == false_symbol) return false_symbol; /* Boolean, not Symbol: rank 1 wins over rank 6 */
+                if (LargeIntegerVtable != NULL && obj_vtable(receiver) == LargeIntegerVtable) return false_symbol;
+                if (FloatVtable != NULL && obj_vtable(receiver) == FloatVtable) return false_symbol;
+                if (StringVtable != NULL && obj_vtable(receiver) == StringVtable) return false_symbol;
+                if (SymbolVtable != NULL && obj_vtable(receiver) == SymbolVtable) return true_symbol;  /* genuine Symbol */
+                if (RawBytesVtable != NULL && obj_vtable(receiver) == RawBytesVtable) return false_symbol;
+                break;
+            }
+            break;
+            case PRIM_isList:
+            case PRIM_isMap:
+            case PRIM_isRecord:
+            case PRIM_isBytes: {
+                /* No builtin receiver is ever a List/Map/Record/(kernel)Bytes
+                   (those are heap kernel classes that answer their own is*
+                   predicate in nsl, Task 5). For any builtin receiver here
+                   (nil/Boolean/Integer/Float/String/Symbol/RawBytes) the
+                   answer is unconditionally false; heap instances still fall
+                   through untouched below. */
+                if (receiver == NULL) return false_symbol;
+                if (IS_SMI(receiver)) return false_symbol;
+                if (receiver == true_symbol || receiver == false_symbol) return false_symbol;
+                if (LargeIntegerVtable != NULL && obj_vtable(receiver) == LargeIntegerVtable) return false_symbol;
+                if (FloatVtable != NULL && obj_vtable(receiver) == FloatVtable) return false_symbol;
+                if (StringVtable != NULL && obj_vtable(receiver) == StringVtable) return false_symbol;
+                if (SymbolVtable != NULL && obj_vtable(receiver) == SymbolVtable) return false_symbol;
+                if (RawBytesVtable != NULL && obj_vtable(receiver) == RawBytesVtable) return false_symbol;
+                break;   /* heap object: fall through to nsl Object default (Task 5) */
             }
             break;
             default: break;
