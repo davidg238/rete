@@ -219,11 +219,29 @@ class OimgSerializer:
         self.w = OimgWriter(self.oop, version=1, registry_version=registry_version)
 
     # ---- reference encoding -------------------------------------------------
+    def _smi_fits(self, v):
+        """True iff `v` fits the SMI ref-word's signed immediate at this oop
+        width. RefWord.smi packs (v << 2) | TAG_SMI into an oop*8-bit word: TWO
+        bits are spent on the tag, so only oop*8-2 bits remain for the payload,
+        which itself is a signed field — i.e. the true capacity is oop*8-3
+        magnitude bits: [-(2^(oop*8-3)), 2^(oop*8-3) - 1]. This is the single
+        source of truth for that boundary; _smi()'s guard, the largeint
+        object-collection pass, and _const_ref's routing all call this so they
+        can never drift apart (nsl-tuvm#4).
+        """
+        lo = -(1 << (self.oop * 8 - 3))
+        hi = (1 << (self.oop * 8 - 3))
+        return lo <= v < hi
+
     def _smi(self, v):
-        lo = -(1 << (self.oop * 8 - 2))
-        hi = (1 << (self.oop * 8 - 2))
-        if not (lo <= v < hi):
-            raise ValueError(f"SMI literal {v} does not fit signed {self.oop*8-2}-bit immediate")
+        # nsl-tuvm#4: a previous guard of oop*8-2 bits was one bit too lenient
+        # (it ignored that the payload is signed on top of the 2 tag bits), so
+        # gap-band values silently overflowed into the sign bit at load time
+        # (e.g. 2**61 loaded back as -2**61). Callers MUST route anything that
+        # doesn't fit here to a LargeInteger record instead (see _const_ref) —
+        # this guard only ever raises, it never itself widens/corrects.
+        if not self._smi_fits(v):
+            raise ValueError(f"SMI literal {v} does not fit signed {self.oop*8-3}-bit immediate")
         return RefWord.smi(v)
 
     def _aref(self, key):
@@ -274,7 +292,15 @@ class OimgSerializer:
             return self._aref(f"str:{c[1]}")
         if isinstance(c, str):
             if c.startswith("SMI:"):
-                return self._smi(int(c.split(":", 1)[1]))
+                v = int(c.split(":", 1)[1])
+                # nsl-tuvm#4: the compiler's own SMI/LargeInteger split (in
+                # ns_compile_oevm.py) is one bit too lenient too, so a "SMI:"
+                # constant here can still land in the gap band. Route those to
+                # a LargeInteger record instead of letting _smi() raise (or,
+                # pre-fix, silently corrupt).
+                if not self._smi_fits(v):
+                    return self._aref(f"largeint:{v}")
+                return self._smi(v)
             # VTABLE:/METHOD: placeholders are resolved like Path A's patched
             # get_symbol_ref: a class vtable / a CompiledMethod, NOT a symbol.
             if c.startswith("VTABLE:"):
@@ -287,6 +313,10 @@ class OimgSerializer:
         if isinstance(c, bool):
             return RefWord.singleton(1 if c else 2)
         if isinstance(c, int):
+            # nsl-tuvm#4: same gap-band routing as the "SMI:" string branch
+            # above, for constants that are raw (unwrapped) Python ints.
+            if not self._smi_fits(c):
+                return self._aref(f"largeint:{c}")
             return self._smi(c)
         if isinstance(c, float):
             return self._aref(f"float:{c!r}")
@@ -374,6 +404,19 @@ class OimgSerializer:
                 elif isinstance(c, str) and c.startswith("LARGEINT:"):
                     iv = int(c.split(":", 1)[1])
                     largeints.setdefault(iv, iv)
+                elif isinstance(c, str) and c.startswith("SMI:"):
+                    # nsl-tuvm#4: a "SMI:" constant that doesn't fit the SMI
+                    # ref-word (the compiler's own SMI/LargeInteger split is one
+                    # bit too lenient too) still needs a LargeInteger record —
+                    # keyed into the same largeint:{v} namespace as LARGEINT:
+                    # constants so an equal value dedups to one record.
+                    iv = int(c.split(":", 1)[1])
+                    if not self._smi_fits(iv):
+                        largeints.setdefault(iv, iv)
+                elif isinstance(c, int) and not isinstance(c, bool):
+                    # Raw (unwrapped) Python-int constant, same gap-band rule.
+                    if not self._smi_fits(c):
+                        largeints.setdefault(c, c)
         for r in floats:
             objs["FLOAT"].append(f"float:{r}")
         for iv in largeints:

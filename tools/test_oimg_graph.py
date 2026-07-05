@@ -21,6 +21,10 @@ LAYOUT = json.loads('''{"oop_size":8,"structs":{
    "entry_point":{"offset":24,"is_ref":false,"is_ptr":true}}},
  "Float":{"size":16,"fields":{"base.vtable":{"offset":0,"is_ref":true,"is_ptr":false},
    "value":{"offset":8,"is_ref":false,"is_ptr":false}}},
+ "LargeInteger":{"size":24,"fields":{"base.vtable":{"offset":0,"is_ref":true,"is_ptr":false},
+   "sign":{"offset":8,"is_ref":false,"is_ptr":false},"mag":{"offset":16,"is_ref":false,"is_ptr":false}}},
+ "String":{"size":16,"fields":{"base.vtable":{"offset":0,"is_ref":true,"is_ptr":false},
+   "length":{"offset":8,"is_ref":false,"is_ptr":false},"bytes":{"offset":16,"is_ref":false,"is_ptr":false}}},
  "ObjectInstance":{"size":8,"fields":{"base.vtable":{"offset":0,"is_ref":true,"is_ptr":false}}},
  "BoxedBinding":{"size":24,"fields":{"base.vtable":{"offset":0,"is_ref":true,"is_ptr":false},
    "symbol":{"offset":8,"is_ref":true,"is_ptr":false},"method":{"offset":16,"is_ref":true,"is_ptr":false}}}
@@ -167,3 +171,93 @@ def test_const_ref_branches():
     assert (actual[1] & 0b11) == 0b00, "METHOD: should be app-object tag"
     assert (actual[2] & 0b11) == 0b10, "SMI: should be smi tag"
     assert (actual[3] & 0b11) == 0b00, "plain symbol should be app-object tag"
+
+
+# ---------------------------------------------------------------------------
+# SMI capacity gap band (nsl-tuvm#4): a "SMI:<v>" constant whose value fits the
+# oop-width word but NOT the 2-tag-bit SMI immediate must be routed to a
+# LargeInteger record (app-offset ref), not truncated into a corrupt SMI
+# ref-word — and must dedup with an equal LARGEINT: constant.
+# ---------------------------------------------------------------------------
+
+GAP_VALUE = 1 << (8 * 8 - 3)  # 2**61: fits the 64-bit oop word, overflows the SMI tag
+
+
+class GraphWithGapBandSmi:
+    """A method whose constants pool has BOTH a "SMI:<gap>" constant (as the
+    compiler currently mislabels wide-but-not-quite-LargeInteger literals,
+    ns_compile_oevm.py's own 62-bit boundary is one bit too lenient too) and an
+    equal "LARGEINT:<gap>" constant. Both must resolve to the SAME LargeInteger
+    record.
+    """
+    symbols = {}
+    vtables = {"GapVtable": {"delegate": None,
+                             "bindings": [("run", "Method_GapVtable_run")],
+                             "meta": None, "is_nested": 0}}
+    methods = [
+        {"id": "Method_GapVtable_run", "num_registers": 2, "num_arguments": 0,
+         "constants": [f"SMI:{GAP_VALUE}", f"LARGEINT:{GAP_VALUE}"],
+         "instructions": [0x0000010C],
+         "access_modifier": 0},
+    ]
+
+
+def test_gap_band_smi_constant_routes_to_largeint_and_dedups():
+    from oimg_serialize import RefWord
+
+    ser = OimgSerializer(LAYOUT, REGISTRY)
+    blob = ser.generate(GraphWithGapBandSmi, "GapVtable")
+
+    largeint_key = f"largeint:{GAP_VALUE}"
+    assert largeint_key in ser.offset, "gap-band SMI: constant did not create a LargeInteger record"
+    expected_ref = RefWord.app_offset(ser.offset[largeint_key])
+
+    consts_off = ser.offset["consts:Method_GapVtable_run"]
+    oop = LAYOUT["oop_size"]
+    actual = [struct.unpack_from("<Q", blob, consts_off + i * oop)[0] for i in range(2)]
+
+    # Both the "SMI:" and the "LARGEINT:" constant for the same value dedup to
+    # one record, and neither serializes with the SMI tag.
+    assert actual[0] == expected_ref, f"SMI:{GAP_VALUE} should resolve to the LargeInteger record"
+    assert actual[1] == expected_ref, f"LARGEINT:{GAP_VALUE} should resolve to the same LargeInteger record"
+    assert (actual[0] & 0b11) == 0b00, "gap-band SMI: must NOT serialize with the SMI tag"
+
+    # The record's own payload is the correct sign/magnitude.
+    li_base = ser.offset[largeint_key]
+    sign = struct.unpack_from("<q", blob, li_base + 8)[0]
+    mag = struct.unpack_from("<Q", blob, li_base + 16)[0]
+    assert sign == 1
+    assert mag == GAP_VALUE
+
+
+class GraphWithGapBandRawInt:
+    """A raw (non-string) Python-int constant in the gap band must ALSO route
+    to a LargeInteger record via the isinstance(c, int) branch of _const_ref —
+    not just the "SMI:" string branch.
+    """
+    symbols = {}
+    vtables = {"GapVtable2": {"delegate": None,
+                              "bindings": [("run", "Method_GapVtable2_run")],
+                              "meta": None, "is_nested": 0}}
+    methods = [
+        {"id": "Method_GapVtable2_run", "num_registers": 2, "num_arguments": 0,
+         "constants": [GAP_VALUE],
+         "instructions": [0x0000010C],
+         "access_modifier": 0},
+    ]
+
+
+def test_gap_band_raw_int_constant_routes_to_largeint():
+    from oimg_serialize import RefWord
+
+    ser = OimgSerializer(LAYOUT, REGISTRY)
+    blob = ser.generate(GraphWithGapBandRawInt, "GapVtable2")
+
+    largeint_key = f"largeint:{GAP_VALUE}"
+    assert largeint_key in ser.offset
+    expected_ref = RefWord.app_offset(ser.offset[largeint_key])
+
+    consts_off = ser.offset["consts:Method_GapVtable2_run"]
+    actual = struct.unpack_from("<Q", blob, consts_off)[0]
+    assert actual == expected_ref
+    assert (actual & 0b11) == 0b00

@@ -1,5 +1,5 @@
 import pytest
-from oimg_serialize import RefWord, OimgWriter
+from oimg_serialize import RefWord, OimgWriter, OimgSerializer
 
 
 def test_refword_roundtrip():
@@ -84,3 +84,34 @@ def test_descriptor_block_is_dense_word_strided(W):
     assert rd(a + 8 * W) == RefWord.app_offset(0x1c0)        # supervisor_vtable @ a+8W
     assert rd(a + 9 * W) == RefWord.app_offset(0x200)        # supervisor_init @ a+9W
     assert rd(a + 10 * W) == RefWord.app_offset(0x240)       # supervisor_run @ a+10W
+
+
+# ---------------------------------------------------------------------------
+# _smi() capacity boundary (nsl-tuvm#4): the ref-word packs (v << 2) | TAG_SMI
+# into an oop*8-bit word, so only oop*8-2 bits remain for the signed payload;
+# TWO bits are consumed by the tag, so the true SMI capacity is oop*8-3
+# magnitude bits: [-(2^(oop*8-3)), 2^(oop*8-3) - 1]. A guard of oop*8-2 (one
+# bit too lenient) lets gap-band values silently overflow into the sign bit.
+# ---------------------------------------------------------------------------
+
+def _minimal_serializer(oop=8):
+    # _smi()/_smi_fits() only need oop_size; structs/registry are irrelevant here.
+    return OimgSerializer({"oop_size": oop, "structs": {}}, {}, registry_version=1)
+
+
+def test_smi_accepts_true_capacity_boundary_values():
+    ser = _minimal_serializer()
+    hi = (1 << (ser.oop * 8 - 3)) - 1     # 2**61 - 1: largest representable SMI
+    lo = -(1 << (ser.oop * 8 - 3))        # -2**61: smallest representable SMI
+    assert RefWord.decode(ser._smi(hi)) == (0b10, hi)
+    assert RefWord.decode(ser._smi(lo)) == (0b10, lo)
+
+
+def test_smi_rejects_gap_band_values():
+    ser = _minimal_serializer()
+    over_hi = 1 << (ser.oop * 8 - 3)           # 2**61: one past the true max
+    under_lo = -(1 << (ser.oop * 8 - 3)) - 1   # -2**61 - 1: one past the true min
+    with pytest.raises(ValueError):
+        ser._smi(over_hi)
+    with pytest.raises(ValueError):
+        ser._smi(under_lo)
