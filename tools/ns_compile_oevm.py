@@ -1016,6 +1016,33 @@ class MethodCompiler:
             selector = expr["selector"]
             args = expr["args"]
 
+            # `->` is reserved compile-time sugar (Milestone B Task 5), not an
+            # Object method: NO builtin receiver delegates to kernel Object
+            # (Task 2 finding — every builtin vtable hardcodes delegate=NULL),
+            # so `a -> b` can never be an ordinary send if it is to work for
+            # SMI/Symbol/String/etc. receivers. Rewrite the AST node in place
+            # to a keyword send `Association key: <receiver> value: <arg>` and
+            # recurse — receiver-agnostic, since it never dispatches `->` on
+            # anything. `Association` is a bare capitalised varRef, so it goes
+            # through the ordinary library-global lookup (resolve_name step 4:
+            # `platform Association`, the same reachability path already used
+            # for Array/OrderedCollection/Dictionary/etc. from arbitrary user
+            # code) — no new VM machinery needed. Evaluation order is
+            # preserved: the synthetic receiver (`Association`, no user-visible
+            # side effects) resolves first, then the original left operand,
+            # then the original right operand, each exactly once, matching the
+            # normal send/keyword-args compilation below.
+            if selector == "->" and len(args) == 1:
+                rewritten = {
+                    "type": "send",
+                    "receiver": {"type": "varRef", "name": "Association", "span": expr.get("span")},
+                    "selector": "key:value:",
+                    "args": [receiver, args[0]],
+                    "span": expr.get("span"),
+                }
+                self.compile_expr(rewritten, target_reg)
+                return
+
             # Outer-send target: `outer C` (a unary send whose receiver is the
             # bare identifier `outer` and whose selector C is a nested class in
             # lexical scope) yields the lexically-enclosing INSTANCE of class C.

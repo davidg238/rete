@@ -24,6 +24,14 @@ class Kernel usingPlatform: platform = () (
     public printString = ( ^ 'an Object' )
     public asString = ( ^ self printString )
     public hash = ( ^ self identityHash )
+    public isValue = ( ^ false )
+    public isSymbol = ( ^ false )
+    public isList = ( ^ false )
+    public isMap = ( ^ false )
+    public isRecord = ( ^ false )
+    public isBytes = ( ^ false )
+    public valueRank = ( ^ -1 )
+    public valueDepth = ( ^ 0 )
   ) : (
   )
 
@@ -158,6 +166,15 @@ class Kernel usingPlatform: platform = () (
   ) : (
   )
 
+  class Association = ( | key value | ) (
+    setKey: aKey value: aValue = ( key:: aKey. value:: aValue. ^ self )
+    public key = ( ^ key )
+    public value = ( ^ value )
+    public printString = ( ^ key printString , ' -> ' , value printString )
+  ) : (
+    public key: aKey value: aValue = ( ^ self new setKey: aKey value: aValue )
+  )
+
   class ReadStream = ( | source position | ) (
     (* Byte-granular cursor over an immutable String. `next`/`peek` answer a byte
        SMI; substring reads build Strings via `platform string:`. Open-ended reads
@@ -285,6 +302,7 @@ class Kernel usingPlatform: platform = () (
   public OrderedCollection = ( ^ OrderedCollection )
   public Set               = ( ^ Set )
   public Dictionary        = ( ^ Dictionary )
+  public Association       = ( ^ Association )
   public ReadStream        = ( ^ ReadStream )
   public WriteStream       = ( ^ WriteStream )
 ) : (
