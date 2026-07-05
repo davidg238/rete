@@ -10,7 +10,13 @@
    shifting the platform prim IDs down by 5 (61->56 .. 71->66).
    Milestone B Task 1: 3 new Integer bitop prim enum slots (PRIM_bitAnd,
    PRIM_bitOr, PRIM_shr) were inserted before this group, shifting the
-   platform prim IDs up by 3 (56->59 .. 66->69). */
+   platform prim IDs up by 3 (56->59 .. 66->69).
+   Milestone B Task 3: 2 new RawBytes platform prims (PRIM_pf_basicNewBytes,
+   PRIM_pf_freezeBytes) were appended AFTER this entire group (after the last
+   existing slot, PRIM_pf_readLine) — no pre-existing id shifts; new ids are
+   70/71. (at:/at:put:/size on a RawBytes receiver reuse the existing generic
+   PRIM_at/PRIM_at_put/PRIM_size ids, gated by receiver vtable in dispatch.c;
+   they need no prim_ids.h mirror since platform.c never sees them.) */
 #define PRIM_ix_array            59
 #define PRIM_ix_basicAt          60
 #define PRIM_ix_basicAt_put      61
@@ -22,4 +28,6 @@
 #define PRIM_pf_basicNewIndexable 67
 #define PRIM_pf_string           68
 #define PRIM_pf_readLine         69
+#define PRIM_pf_basicNewBytes    70
+#define PRIM_pf_freezeBytes      71
 #endif /* OEVM_PRIM_IDS_H */

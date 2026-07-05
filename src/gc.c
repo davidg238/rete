@@ -487,6 +487,7 @@ static void trace_one(oop ptr) {
     extern oop VtableVtable;
     extern oop FloatVtable;
     extern oop StringVtable;
+    extern oop RawBytesVtable;
     extern oop StackVtable;
     extern oop ContextVtable;
     extern oop g_active_stack;
@@ -502,6 +503,13 @@ static void trace_one(oop ptr) {
         }
     } else if (StringVtable != NULL && ptr->vtable == StringVtable) {
         mark(ptr->vtable);          /* leaf: inline bytes are NOT oops — do not scan */
+    } else if (RawBytesVtable != NULL && ptr->vtable == RawBytesVtable) {
+        /* RawBytes (Milestone B Task 3): reuses struct String's C layout —
+           same leaf reasoning as StringVtable above: the inline bytes are
+           NOT oops and must not be scanned by the generic word-count
+           fallback (trace_object), which would otherwise misinterpret raw
+           byte content as pointers. */
+        mark(ptr->vtable);
     } else if (FloatVtable != NULL && ptr->vtable == FloatVtable) {
         mark(ptr->vtable);
     } else if (StackVtable != NULL && ptr->vtable == StackVtable) {
@@ -682,6 +690,7 @@ void gc_collect(void) {
     extern oop MethodContextVtable;
     extern oop SymbolVtable;
     extern oop StringVtable;
+    extern oop RawBytesVtable;
     extern oop VtableVtable;
     extern oop PrimitiveClosureVtable;
     extern oop BytecodeClosureVtable;
@@ -692,6 +701,7 @@ void gc_collect(void) {
     mark(MethodContextVtable);
     mark(SymbolVtable);
     mark(StringVtable);
+    mark(RawBytesVtable);
     mark(VtableVtable);
     mark(PrimitiveClosureVtable);
     mark(BytecodeClosureVtable);

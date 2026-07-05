@@ -38,3 +38,8 @@ BUILTIN(15, SYMBOL,    "debug:")
  * referenced by overflowing integer literals an app may carry. */
 BUILTIN(16, VTABLE,    "LargeIntegerVtable")
 BUILTIN(17, VTABLE,    "StringVtable")
+/* RawBytes leaf vtable (Milestone B Task 3): pointer-free byte storage
+ * builtin backing Task 10's ByteArray/Bytes kernel classes. Reuses the
+ * String C layout (length + inline bytes) but is a DISTINCT vtable, so
+ * String does not gain at:put: — only a RawBytesVtable receiver does. */
+BUILTIN(18, VTABLE,    "RawBytesVtable")

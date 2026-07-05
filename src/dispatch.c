@@ -25,6 +25,7 @@ oop StackVtable = NULL;
 oop ContextVtable = NULL;
 oop SymbolVtable = NULL;
 oop StringVtable = NULL;
+oop RawBytesVtable = NULL;
 oop VtableVtable = NULL;
 oop PrimitiveClosureVtable = NULL;
 oop BytecodeClosureVtable = NULL;
@@ -612,6 +613,13 @@ enum {
     PRIM_pf_string,
     /* --- debugger Plan 2 task 4: stdin readline for debug transport --- */
     PRIM_pf_readLine,
+    /* --- Milestone B Task 3: RawBytes leaf storage allocation/freeze.
+       at:/at:put:/size on a RawBytes receiver reuse the existing generic
+       PRIM_at/PRIM_at_put/PRIM_size ids (gated by receiver vtable below) —
+       no new enum slots needed for those three. Appended last so no
+       pre-existing PRIM id shifts (prim_ids.h mirrors these two by number). */
+    PRIM_pf_basicNewBytes,
+    PRIM_pf_freezeBytes,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -633,6 +641,8 @@ static const char *const PRIM_NAMES[] = {
     "basicNew:indexable:",
     "string:",
     "readLine",
+    "basicNewBytes:",
+    "freezeBytes:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
@@ -1182,6 +1192,10 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                 if (receiver != NULL && !IS_SMI(receiver) && StringVtable != NULL &&
                     obj_vtable(receiver) == StringVtable)
                     return TAG_SMI((intptr_t)((struct String *)receiver)->length);
+                /* RawBytes (Milestone B Task 3): same struct String C layout. */
+                if (receiver != NULL && !IS_SMI(receiver) && RawBytesVtable != NULL &&
+                    obj_vtable(receiver) == RawBytesVtable)
+                    return TAG_SMI((intptr_t)((struct String *)receiver)->length);
             }
             break;
             case PRIM_at: {
@@ -1191,6 +1205,34 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                     intptr_t idx = IS_SMI(args[0]) ? UNTAG_SMI(args[0]) : 0;
                     if (idx < 1 || idx > (intptr_t)s->length) { fprintf(stderr, "VM Error: String at: %ld out of bounds (size %zu)\n", (long)idx, s->length); abort(); }
                     return TAG_SMI((intptr_t)s->bytes[idx - 1]);   /* 1-based; returns 0..255 */
+                }
+                /* RawBytes (Milestone B Task 3): frozen crash string is the
+                   exact `index out of bounds` (spec section 7 error-strings
+                   table) — no embellishment, unlike String's message above. */
+                if (receiver != NULL && !IS_SMI(receiver) && RawBytesVtable != NULL &&
+                    obj_vtable(receiver) == RawBytesVtable) {
+                    struct String *s = (struct String *)receiver;   /* reused C layout */
+                    intptr_t idx = IS_SMI(args[0]) ? UNTAG_SMI(args[0]) : 0;
+                    if (idx < 1 || idx > (intptr_t)s->length) { fprintf(stderr, "index out of bounds\n"); abort(); }
+                    return TAG_SMI((intptr_t)s->bytes[idx - 1]);   /* 1-based; returns 0..255 */
+                }
+            }
+            break;
+            case PRIM_at_put: {
+                /* RawBytes ONLY (Milestone B Task 3) — a String receiver must
+                   NOT gain at:put:; falling through this case unmatched (no
+                   return) hits `break` below and continues to normal vtable
+                   dispatch, i.e. does_not_understand for String, exactly as
+                   before this case existed. */
+                if (receiver != NULL && !IS_SMI(receiver) && RawBytesVtable != NULL &&
+                    obj_vtable(receiver) == RawBytesVtable) {
+                    struct String *s = (struct String *)receiver;
+                    intptr_t idx = IS_SMI(args[0]) ? UNTAG_SMI(args[0]) : 0;
+                    if (idx < 1 || idx > (intptr_t)s->length) { fprintf(stderr, "index out of bounds\n"); abort(); }
+                    intptr_t val = IS_SMI(args[1]) ? UNTAG_SMI(args[1]) : -1;
+                    if (val < 0 || val > 255) { fprintf(stderr, "byte out of range\n"); abort(); }
+                    s->bytes[idx - 1] = (uint8_t)val;
+                    return args[1];
                 }
             }
             break;

@@ -306,6 +306,10 @@ extern oop FloatVtable;
 extern oop MethodContextVtable;
 extern oop SymbolVtable;
 extern oop StringVtable;
+/* RawBytes (Milestone B Task 3): reuses struct String's C layout (length +
+ * inline bytes) but is a distinct builtin vtable — String must NOT gain
+ * at:put:, only a RawBytesVtable receiver does (dispatch.c gates on this). */
+extern oop RawBytesVtable;
 extern oop VtableVtable; // Meta-vtable for Vtables
 extern oop PrimitiveClosureVtable;
 extern oop BytecodeClosureVtable;

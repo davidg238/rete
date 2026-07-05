@@ -8,6 +8,7 @@
 
 extern oop gc_allocate(oop vtable, size_t size);
 extern oop StringVtable, SymbolVtable, VtableVtable;
+extern oop RawBytesVtable;   /* Milestone B Task 3: RawBytes leaf storage */
 extern const struct Symbol true_sym_obj, false_sym_obj;   /* match oevm.h forms */
 #define true_symbol  ((oop)&true_sym_obj)
 #define false_symbol ((oop)&false_sym_obj)
@@ -160,6 +161,37 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         ((struct String *)s)->length = (size_t)n;
         if (n) memcpy(((struct String *)s)->bytes, buf, (size_t)n);
         { *out = s; return 1; }
+    }
+    case PRIM_pf_basicNewBytes: {
+        /* `platform basicNewBytes: n` — capability-pure raw byte storage
+           allocation (Milestone B Task 3). Same allocation idiom as
+           PRIM_pf_string (RawBytesVtable + struct String layout: length +
+           inline bytes), but zero-filled rather than copied from an Array,
+           and tagged with the DISTINCT RawBytesVtable so String never gains
+           at:put: (dispatch.c gates that case on RawBytesVtable only). */
+        intptr_t n = IS_SMI(args[0]) ? UNTAG_SMI(args[0]) : 0;
+        if (n < 0) n = 0;
+        oop s = gc_allocate(RawBytesVtable, sizeof(struct String) + (size_t)n);
+        ((struct String *)s)->length = (size_t)n;
+        if (n) memset(((struct String *)s)->bytes, 0, (size_t)n);
+        { *out = s; return 1; }
+    }
+    case PRIM_pf_freezeBytes: {
+        /* `platform freezeBytes: raw` — freeze-is-copy (message-algebra spec
+           section 6): returns a FRESH RawBytes object with identical bytes;
+           the original remains independently mutable (a later at:put: on
+           either side must not be observed by the other). */
+        oop raw = args[0];
+        if (raw == NULL || IS_SMI(raw) || RawBytesVtable == NULL ||
+            obj_vtable(raw) != RawBytesVtable) {
+            fprintf(stderr, "VM Error: platform freezeBytes: expects a RawBytes receiver\n");
+            abort();
+        }
+        struct String *src = (struct String *)raw;
+        oop copy = gc_allocate(RawBytesVtable, sizeof(struct String) + src->length);
+        ((struct String *)copy)->length = src->length;
+        if (src->length) memcpy(((struct String *)copy)->bytes, src->bytes, src->length);
+        { *out = copy; return 1; }
     }
     default:
         return 0;

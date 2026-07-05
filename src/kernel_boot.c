@@ -18,7 +18,7 @@
  *   3..10  vtables    : Integer, Float, MethodContext, Symbol, Vtable,
  *                       PrimitiveClosure, BytecodeClosure, BoxedBinding
  *   11..15 symbols    : == sender value accessViolation: debug:
- *   16..17 vtables    : LargeInteger, String
+ *   16..18 vtables    : LargeInteger, String, RawBytes (Milestone B Task 3)
  */
 #include "oevm.h"
 #include "oimg.h"
@@ -30,6 +30,7 @@
 const struct Vtable Vtable_VtableVtable;
 const struct Vtable Vtable_SymbolVtable;
 const struct Vtable Vtable_StringVtable;
+const struct Vtable Vtable_RawBytesVtable;
 const struct Vtable Vtable_BytecodeClosureVtable;
 const struct Vtable Vtable_PrimitiveClosureVtable;
 const struct Vtable Vtable_BoxedBindingVtable;
@@ -85,6 +86,10 @@ const struct Vtable Vtable_MethodContextVtable = {
 const struct Vtable Vtable_VtableVtable          = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
 const struct Vtable Vtable_SymbolVtable          = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
 const struct Vtable Vtable_StringVtable          = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
+/* RawBytes (Milestone B Task 3): distinct builtin vtable, same shape as
+ * String's — no delegate/bindings, so a RawBytes receiver falls straight to
+ * does_not_understand for anything dispatch.c doesn't intercept in C. */
+const struct Vtable Vtable_RawBytesVtable        = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
 const struct Vtable Vtable_BytecodeClosureVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
 const struct Vtable Vtable_PrimitiveClosureVtable= { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
 const struct Vtable Vtable_BoxedBindingVtable    = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };
@@ -116,6 +121,7 @@ void kernel_boot(void) {
     VtableVtable           = (oop)&Vtable_VtableVtable;
     SymbolVtable           = (oop)&Vtable_SymbolVtable;
     StringVtable           = (oop)&Vtable_StringVtable;
+    RawBytesVtable         = (oop)&Vtable_RawBytesVtable;
     BytecodeClosureVtable  = (oop)&Vtable_BytecodeClosureVtable;
     PrimitiveClosureVtable = (oop)&Vtable_PrimitiveClosureVtable;
     BoxedBindingVtable     = (oop)&Vtable_BoxedBindingVtable;
@@ -163,4 +169,5 @@ void kernel_boot(void) {
 
     builtin_registry[16] = LargeIntegerVtable;
     builtin_registry[17] = StringVtable;
+    builtin_registry[18] = RawBytesVtable;
 }

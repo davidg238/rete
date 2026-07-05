@@ -38,6 +38,9 @@ run test_method_cache "$ENG_A" -DOEVM_CACHE_STATS
 # Model-B link set — kernel_boot.c present, solidified_image.c absent — so it
 # runs here, not with the Model-A group)
 for t in test_int_compare test_millis test_platform; do run $t "$ENG_B"; done
+# Milestone B Task 3: RawBytes leaf storage (basicNewBytes:/at:/at:put:/size/
+# freezeBytes:) — Model-B link set, same reasoning as test_platform above.
+run test_raw_bytes "$ENG_B"
 # Backend-only smoke tests (link only the posix seam file, per each test's own
 # header comment — NOT serial.c/udp.c, which need the full VM)
 run test_serial "src/backend/posix/serial_posix.c"
