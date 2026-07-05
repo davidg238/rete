@@ -1,0 +1,23 @@
+(*
+expect:
+#reading
+42
+0
+true
+false
+*)
+class RecordBasics packageUsing: manifest = () (
+public main: platform args: args = (
+  | R r r2 r3 |
+  R:: platform Record.
+  r:: R tag: #reading with: #seq -> 42.
+  r tag printString out.
+  (r at: #seq ifAbsent: [ 0 ]) printString out.
+  (r at: #zz ifAbsent: [ 0 ]) printString out.
+  r2:: R tag: #reading fields: (platform Map with: #seq -> 42).
+  (r = r2) printString out.
+  r3:: R tag: #other with: #seq -> 42.
+  (r = r3) printString out.               (* tag differs *)
+)
+) : (
+)

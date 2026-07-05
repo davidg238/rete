@@ -1,0 +1,12 @@
+(*
+expect-runtime-fail: not a value
+*)
+class RecordGuardFields packageUsing: manifest = () (
+public main: platform args: args = (
+  | R |
+  R:: platform Record.
+  R tag: #x fields: 'notamap'.
+  'unreached' out.
+)
+) : (
+)
