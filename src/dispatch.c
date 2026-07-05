@@ -600,6 +600,7 @@ enum {
     PRIM_ifTrue, PRIM_ifFalse, PRIM_and, PRIM_or, PRIM_not, PRIM_println,
     PRIM_printString, PRIM_asString, PRIM_out, PRIM_do,
     PRIM_intDiv, PRIM_bitXor, PRIM_shl, PRIM_asFloat, PRIM_sqrt,
+    PRIM_bitAnd, PRIM_bitOr, PRIM_shr,
     PRIM_boundOuter, PRIM_comma, PRIM_timesRepeat, PRIM_millis,
     PRIM_hash, PRIM_identityHash,
     /* --- std-lib step 1: real indexable + platform capability --- */
@@ -624,6 +625,7 @@ static const char *const PRIM_NAMES[] = {
     "error:", "<", ">", "<=", ">=", "=", "ifTrue:ifFalse:", "ifTrue:",
     "ifFalse:", "and:", "or:", "not", "println", "printString", "asString",
     "out", "do:", "//", "bitXor:", "<<", "asFloat", "sqrt",
+    "bitAnd:", "bitOr:", ">>",
     "__boundOuter:slotCount:", ",", "timesRepeat:", "millis",
     "hash", "identityHash",
     "array:", "basicAt:", "basicAt:put:", "basicSize",
@@ -850,6 +852,27 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
             case PRIM_shl: {
                 if (IS_SMI(receiver) && IS_SMI(args[0])) {
                     return TAG_SMI(UNTAG_SMI(receiver) << UNTAG_SMI(args[0]));
+                }
+                return TAG_SMI(0);
+            }
+            break;
+            case PRIM_bitAnd: {
+                if (IS_SMI(receiver) && IS_SMI(args[0])) {
+                    return TAG_SMI(UNTAG_SMI(receiver) & UNTAG_SMI(args[0]));
+                }
+                return TAG_SMI(0);
+            }
+            break;
+            case PRIM_bitOr: {
+                if (IS_SMI(receiver) && IS_SMI(args[0])) {
+                    return TAG_SMI(UNTAG_SMI(receiver) | UNTAG_SMI(args[0]));
+                }
+                return TAG_SMI(0);
+            }
+            break;
+            case PRIM_shr: {
+                if (IS_SMI(receiver) && IS_SMI(args[0])) {
+                    return TAG_SMI(UNTAG_SMI(receiver) >> UNTAG_SMI(args[0]));
                 }
                 return TAG_SMI(0);
             }
