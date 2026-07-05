@@ -427,7 +427,16 @@ class Kernel usingPlatform: platform = () (
      rank; a container seeds the fold with its rank and mixes in each
      child's valueHashOf: in canonical (construction) order. 30-bit mask
      keeps every intermediate SMI-safe (mirrors the Integer bitops fold
-     idiom from Task 1). *)
+     idiom from Task 1) — this is why the LEAF fallback below masks too
+     (Milestone B Task 8 fix, discovered via TDD: a bare Symbol's native
+     `hash` is a large, unbounded value — NOT a small SMI like Integer's
+     self-hash — so folding it into a container's `h * 16777619` step
+     unmasked overflows LargeInteger's 64-bit magnitude limit before the
+     container's own bitAnd ever runs; Task 7's own test never combined a
+     Symbol into a container hash, so this went uncaught until a Map with
+     Symbol keys exercised it here). Masking the leaf is a no-op for every
+     already-passing case (Integer/List leaf hashes here are already well
+     under 2^30) and only changes behavior for previously-broken cases. *)
   valueHashOf: v = (
     | r h |
     r:: rankOf: v.
@@ -437,7 +446,7 @@ class Kernel usingPlatform: platform = () (
       ^ h ].
     (* Extension point (Milestone B Tasks 8/9/10): add rank 5 (Bytes), rank 8
        (Map), rank 9 (Record) container arms above this fallback. *)
-    ^ (v hash) bitXor: r
+    ^ ((v hash) bitXor: r) bitAnd: 1073741823
   )
 
   public readLine = ( ^ platform readLine )
