@@ -232,6 +232,134 @@ class Kernel usingPlatform: platform = () (
       ^ self new setItems: arr )
   )
 
+  (* Immutable algebra map (Milestone B Task 8): a sorted association array —
+     two parallel private Arrays (`keys`/`vals`), NEVER Association storage
+     (Associations from the `#k -> v` sugar are unwrapped at construction and
+     never retained). Entries are kept sorted by `valueCompare:with:` on the
+     keys, so iteration order is canonical/deterministic regardless of
+     construction order (`keysDo:`/`do:`/`keysAndValuesDo:` all walk the same
+     sorted order — this is what makes `05b_map_canonical_order.ns` pass).
+     Duplicate keys in construction: LAST WINS (a later `with:`/`fromPairs:`
+     argument overwrites an earlier one with the same key) — pinned because
+     future CBOR decoders construct by overwrite. Both keys AND values are
+     validated via `outer checkValue:`; `depth` is folded over ALL keys and
+     ALL values (mirrors List's `setItems:`) and cached at construction. *)
+  class Map = ( | keys vals depth | ) (
+    public size = ( ^ keys size )
+    public at: aKey ifAbsent: aBlock = ( | lo hi mid c |
+      lo:: 1. hi:: keys size.
+      [ lo <= hi ] whileTrue: [
+        mid:: (lo + hi) // 2.
+        c:: outer valueCompare: aKey with: (keys at: mid).
+        c = 0 ifTrue: [ ^ vals at: mid ].
+        c < 0 ifTrue: [ hi:: mid - 1 ] ifFalse: [ lo:: mid + 1 ] ].
+      ^ aBlock value )
+    public keysDo: aBlock = ( keys do: aBlock. ^ self )
+    public do: aBlock = ( vals do: aBlock. ^ self )
+    public keysAndValuesDo: aBlock = ( 1 to: keys size do: [ :i | aBlock value: (keys at: i) value: (vals at: i) ]. ^ self )
+    (* Minimal indexed read accessors (Milestone B Task 8 design decision —
+       see report for surface-creep review): the module-level `mapCompare:with:`
+       helper below needs to walk TWO DIFFERENT Maps' entries in lockstep by
+       index, which `keysAndValuesDo:` cannot give it (it only iterates one
+       receiver at a time). These return individual elements, never the
+       backing Array itself — "do not expose the raw backing arrays" still
+       holds. *)
+    public keyAt: i = ( ^ keys at: i )
+    public valueAt: i = ( ^ vals at: i )
+    public isMap = ( ^ true )
+    public isValue = ( ^ true )
+    public valueRank = ( ^ 8 )
+    public valueDepth = ( ^ depth )
+    (* Typed structural equality/hash — same guard idiom as List (Task 7):
+       never send an ad-hoc predicate to `other`, only the native rank oracle
+       via `isValueObject:` (a foreign non-value receiver, or a value of a
+       different rank, safely answers false without risking a DNU crash). *)
+    public = other = (
+      (outer isValueObject: other) ifFalse: [ ^ false ].
+      ^ outer value: self equals: other
+    )
+    public hash = ( ^ outer valueHashOf: self )
+    (* Construction: validate every key/value, insertion-sort the parallel
+       arrays by `valueCompare:with:` on keys (stable — the shift condition is
+       strict `> 0`, so equal keys are never swapped past one another and
+       their original relative order survives the sort), then compact
+       consecutive equal-key runs keeping the LAST entry of each run
+       (last-wins falls out of stability: among duplicates the one built
+       later in the caller's argument list stays later after a stable sort,
+       so keeping the run's last element is exactly last-wins), then
+       fold/check depth over the final (deduplicated) entries. Messages are
+       small, so plain insertion sort — "no need for anything cleverer"
+       (plan's own words) — and a linear compaction pass. *)
+    setPairs: karr values: varr = ( | n j outCount i d k v nextI kk vv cd |
+      n:: karr size.
+      1 to: n do: [ :ii | outer checkValue: (karr at: ii). outer checkValue: (varr at: ii) ].
+      2 to: n do: [ :ii |
+        kk:: karr at: ii. vv:: varr at: ii.
+        j:: ii - 1.
+        [ j >= 1 and: [ (outer valueCompare: (karr at: j) with: kk) > 0 ] ] whileTrue: [
+          karr at: j + 1 put: (karr at: j).
+          varr at: j + 1 put: (varr at: j).
+          j:: j - 1 ].
+        karr at: j + 1 put: kk.
+        varr at: j + 1 put: vv ].
+      outCount:: 0. i:: 1.
+      [ i <= n ] whileTrue: [
+        k:: karr at: i. v:: varr at: i. nextI:: i + 1.
+        [ nextI <= n and: [ (outer valueCompare: (karr at: nextI) with: k) = 0 ] ] whileTrue: [
+          v:: varr at: nextI. nextI:: nextI + 1 ].
+        outCount:: outCount + 1.
+        karr at: outCount put: k.
+        varr at: outCount put: v.
+        i:: nextI ].
+      keys:: platform basicNew: Array indexable: outCount.
+      vals:: platform basicNew: Array indexable: outCount.
+      1 to: outCount do: [ :ii | keys at: ii put: (karr at: ii). vals at: ii put: (varr at: ii) ].
+      d:: 0.
+      1 to: outCount do: [ :ii |
+        cd:: outer depthOf: (keys at: ii). cd > d ifTrue: [ d:: cd ].
+        cd:: outer depthOf: (vals at: ii). cd > d ifTrue: [ d:: cd ] ].
+      depth:: outer checkDepth: (1 + d).
+      ^ self )
+  ) : (
+    public with: a = ( | k v |
+      k:: platform basicNew: Array indexable: 1. v:: platform basicNew: Array indexable: 1.
+      k at: 1 put: a key. v at: 1 put: a value.
+      ^ self new setPairs: k values: v )
+    public with: a with: b = ( | k v |
+      k:: platform basicNew: Array indexable: 2. v:: platform basicNew: Array indexable: 2.
+      k at: 1 put: a key. v at: 1 put: a value.
+      k at: 2 put: b key. v at: 2 put: b value.
+      ^ self new setPairs: k values: v )
+    public with: a with: b with: c = ( | k v |
+      k:: platform basicNew: Array indexable: 3. v:: platform basicNew: Array indexable: 3.
+      k at: 1 put: a key. v at: 1 put: a value.
+      k at: 2 put: b key. v at: 2 put: b value.
+      k at: 3 put: c key. v at: 3 put: c value.
+      ^ self new setPairs: k values: v )
+    public with: a with: b with: c with: d = ( | k v |
+      k:: platform basicNew: Array indexable: 4. v:: platform basicNew: Array indexable: 4.
+      k at: 1 put: a key. v at: 1 put: a value.
+      k at: 2 put: b key. v at: 2 put: b value.
+      k at: 3 put: c key. v at: 3 put: c value.
+      k at: 4 put: d key. v at: 4 put: d value.
+      ^ self new setPairs: k values: v )
+    (* Each element of `aList` is EITHER a 2-element algebra List (element 1 =
+       key, element 2 = value) OR an Association (from `#k -> v`) — accept
+       both. `isList` is a safe probe here (unlike an ad-hoc predicate on a
+       foreign receiver): both accepted shapes are Kernel-nested classes that
+       properly inherit Object's `isList` default, so this can never DNU. *)
+    public fromPairs: aList = ( | n k v |
+      n:: aList size.
+      k:: platform basicNew: Array indexable: n.
+      v:: platform basicNew: Array indexable: n.
+      1 to: n do: [ :i | | e |
+        e:: aList at: i.
+        e isList
+          ifTrue: [ k at: i put: (e at: 1). v at: i put: (e at: 2) ]
+          ifFalse: [ k at: i put: e key. v at: i put: e value ] ].
+      ^ self new setPairs: k values: v )
+  )
+
   class ReadStream = ( | source position | ) (
     (* Byte-granular cursor over an immutable String. `next`/`peek` answer a byte
        SMI; substring reads build Strings via `platform string:`. Open-ended reads
@@ -391,8 +519,9 @@ class Kernel usingPlatform: platform = () (
     ra = 4 ifTrue: [ ^ byteCompare: a with: b ].                 (* String *)
     ra = 6 ifTrue: [ ^ byteCompare: a printString with: b printString ]. (* Symbol *)
     ra = 7 ifTrue: [ ^ listCompare: a with: b ].                 (* List *)
-    (* Extension point (Milestone B Tasks 8/9/10): add rank 5 (Bytes), rank 8
-       (Map), rank 9 (Record) arms above this fallback. *)
+    ra = 8 ifTrue: [ ^ mapCompare: a with: b ].                  (* Map *)
+    (* Extension point (Milestone B Tasks 9/10): add rank 5 (Bytes), rank 9
+       (Record) arms above this fallback. *)
     ^ self error: 'not a value'
   )
 
@@ -421,6 +550,24 @@ class Kernel usingPlatform: platform = () (
     n < m ifTrue: [ ^ -1 ]. n > m ifTrue: [ ^ 1 ]. ^ 0
   )
 
+  (* Entry-wise total order over two Maps' SORTED entries: shared-index
+     entries decide first, pairwise key-then-value (recursively, via
+     valueCompare:with:), an exact-prefix tie falls to shorter-map-is-less.
+     Same shape as listCompare:with: above, but each step is two compares
+     (key, then value only if the keys tied) instead of one. Walks both Maps
+     by index via the `keyAt:`/`valueAt:` accessors (see Map's own comment on
+     why keysAndValuesDo: alone can't do lockstep two-receiver iteration). *)
+  mapCompare: a with: b = (
+    | n m lim c |
+    n:: a size. m:: b size. lim:: n < m ifTrue: [ n ] ifFalse: [ m ].
+    1 to: lim do: [ :i |
+      c:: valueCompare: (a keyAt: i) with: (b keyAt: i).
+      c = 0 ifFalse: [ ^ c ].
+      c:: valueCompare: (a valueAt: i) with: (b valueAt: i).
+      c = 0 ifFalse: [ ^ c ] ].
+    n < m ifTrue: [ ^ -1 ]. n > m ifTrue: [ ^ 1 ]. ^ 0
+  )
+
   value: a equals: b = ( ^ (valueCompare: a with: b) = 0 )
 
   (* FNV-style structural hash: a leaf folds its existing `hash` with its
@@ -444,8 +591,14 @@ class Kernel usingPlatform: platform = () (
       h:: r.
       v do: [ :e | h:: ((h bitXor: (valueHashOf: e)) * 16777619) bitAnd: 1073741823 ].
       ^ h ].
-    (* Extension point (Milestone B Tasks 8/9/10): add rank 5 (Bytes), rank 8
-       (Map), rank 9 (Record) container arms above this fallback. *)
+    r = 8 ifTrue: [                                              (* Map *)
+      h:: r.
+      v keysAndValuesDo: [ :k :val |
+        h:: ((h bitXor: (valueHashOf: k)) * 16777619) bitAnd: 1073741823.
+        h:: ((h bitXor: (valueHashOf: val)) * 16777619) bitAnd: 1073741823 ].
+      ^ h ].
+    (* Extension point (Milestone B Tasks 9/10): add rank 5 (Bytes), rank 9
+       (Record) container arms above this fallback. *)
     ^ ((v hash) bitXor: r) bitAnd: 1073741823
   )
 
@@ -460,6 +613,7 @@ class Kernel usingPlatform: platform = () (
   public Dictionary        = ( ^ Dictionary )
   public Association       = ( ^ Association )
   public List              = ( ^ List )
+  public Map               = ( ^ Map )
   public ReadStream        = ( ^ ReadStream )
   public WriteStream       = ( ^ WriteStream )
 ) : (
