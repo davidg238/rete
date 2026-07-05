@@ -1,0 +1,22 @@
+(*
+expect:
+2
+6
+4
+true
+true
+false
+false
+*)
+class ValueRank packageUsing: manifest = () (
+public main: platform args: args = (
+  (platform valueRank: 5) printString out.
+  (platform valueRank: #k) printString out.
+  (platform valueRank: 'k') printString out.
+  (#k isSymbol) printString out.
+  (5 isValue) printString out.
+  (5 isSymbol) printString out.
+  ('k' isList) printString out.
+)
+) : (
+)
