@@ -261,3 +261,28 @@ cannot be mutated — plus the pins above.
 - nsl-tuvm#1 (CompileError line numbers) before B *implementation* starts writing
   many failing-compile tests.
 - The CBOR codec milestone consumes §5's invariants and `cbor.md` as written.
+
+## Addendum 2026-07-05 — VM dispatch decisions forced by implementation (David-approved)
+
+Two pre-existing VM gaps surfaced during Tasks 6-7 that the spec's nsl-first architecture
+silently depended on. Both fixed in tuvm, own revertible commits, David-approved:
+
+1. **`PRIM_eq` heap fall-through (tuvm c452fd5).** dispatch.c's `=` handler ended in an
+   unconditional C identity compare — no heap class's `=` could EVER dispatch (not even
+   `Object>>=`; proven empirically before fixing). Decision: builtin receivers (nil/SMI/
+   String/Float/Symbol/LargeInteger/RawBytes) keep their C semantics unchanged (String
+   content-eq, exact integer, mixed-numeric, identity for the rest — Symbols are interned
+   and cannot reach nsl); genuine heap objects now `break` to vtable dispatch, where
+   `Object>>= ( ^ self == other )` preserves identity for classes without a custom `=`.
+   §5's typed structural `=` on List/Map/Record is IMPLEMENTABLE because of this. Rejected:
+   hardcoding container equality per-type in C (contradicts nsl-first; re-done per type).
+   Reviewer-proven non-regressing: the break-set equals PRIM_isNil's long-working heap set;
+   `==`/PRIM_eqeq stays pure C identity (no regress). NOTE: `Object>>=` is now LIVE code.
+2. **`PRIM_error` String messages (tuvm 0af499d).** `self error:` printed `Error: ?` for
+   String args (only Symbols rendered), and the grammar admits no multi-word Symbol
+   literals — this spec's frozen multi-word crash strings (`not a value`, `message depth
+   exceeded`) were unsatisfiable. Fix mirrors PRIM_out's String/Symbol dual-print.
+
+Related ratifications recorded elsewhere: `->` as compile-time rewrite (this spec's
+Association section, amended 2026-07-04); the `outer <keyword>:` non-public-helper reach
+idiom (kernel.ns:340-346 comment; ADR line due in Task 12 close-out).
