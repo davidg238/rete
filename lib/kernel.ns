@@ -194,6 +194,20 @@ class Kernel usingPlatform: platform = () (
     public isValue = ( ^ true )
     public valueRank = ( ^ 7 )
     public valueDepth = ( ^ depth )
+    (* Typed structural equality (Milestone B Task 7). Guard via
+       `isValueObject:` (the native `platform valueRank:` oracle), NOT via
+       sending `isList`/similar to `other` — a builtin non-value receiver
+       (e.g. an Integer) doesn't delegate to Kernel Object, so probing it
+       with an ad hoc selector can DNU-crash; `isValueObject:` inspects the
+       vtable instead and never sends anything to `other`. A non-value
+       foreign receiver (Dictionary, raw heap object, ...) answers false; a
+       value of a different rank (e.g. Integer) also safely answers false via
+       the rank-first compare in `valueCompare:with:`. *)
+    public = other = (
+      (outer isValueObject: other) ifFalse: [ ^ false ].
+      ^ outer value: self equals: other
+    )
+    public hash = ( ^ outer valueHashOf: self )
     setItems: anArray = (
       | d |
       d:: 0.
@@ -349,6 +363,82 @@ class Kernel usingPlatform: platform = () (
   depthOf: v = ( (rankOf: v) >= 7 ifTrue: [ ^ v valueDepth ]. ^ 0 )
   checkValue: v = ( (isValueObject: v) ifFalse: [ self error: 'not a value' ]. ^ v )
   checkDepth: d = ( d > 32 ifTrue: [ self error: 'message depth exceeded' ]. ^ d )
+
+  (* Value order, typed equality, structural hash (Milestone B Task 7) — same
+     non-public family as the helpers above, reached the same way (List's
+     `outer` send; Map/Record join later the same way). Rank arms cover ONLY
+     the ranks that exist today — 0 nil, 1 Boolean, 2 Integer, 3 Float,
+     4 String, 6 Symbol, 7 List. Rank compare always runs FIRST, so values of
+     different ranks are never equal (Integer 1 is not Float 1.0 in this
+     algebra) even though both ranks individually order via `<`. Boolean
+     order is a fixed, arbitrary choice: false < true. Symbol has no
+     `at:`/`size` fast path in dispatch.c (only String's PRIM_at/PRIM_size do
+     — confirmed by reading src/dispatch.c; a bare Symbol falls through to
+     does_not_understand on `at:`), so genuine Symbols (Booleans are already
+     peeled off as rank 1 before this arm) are compared byte-wise via their
+     `printString` (which renders as '#' + name for a real Symbol), reusing
+     the String byte-compare helper below. *)
+  valueCompare: a with: b = (
+    | ra rb |
+    ra:: rankOf: a. rb:: rankOf: b.
+    ra = rb ifFalse: [ ^ ra < rb ifTrue: [ -1 ] ifFalse: [ 1 ] ].
+    ra = 0 ifTrue: [ ^ 0 ].                                     (* nil = nil *)
+    ra = 1 ifTrue: [                                            (* Boolean: false < true *)
+      a == b ifTrue: [ ^ 0 ].
+      ^ a ifTrue: [ 1 ] ifFalse: [ -1 ] ].
+    (ra = 2 or: [ ra = 3 ]) ifTrue: [                            (* Integer / Float *)
+      a < b ifTrue: [ ^ -1 ]. b < a ifTrue: [ ^ 1 ]. ^ 0 ].
+    ra = 4 ifTrue: [ ^ byteCompare: a with: b ].                 (* String *)
+    ra = 6 ifTrue: [ ^ byteCompare: a printString with: b printString ]. (* Symbol *)
+    ra = 7 ifTrue: [ ^ listCompare: a with: b ].                 (* List *)
+    (* Extension point (Milestone B Tasks 8/9/10): add rank 5 (Bytes), rank 8
+       (Map), rank 9 (Record) arms above this fallback. *)
+    ^ self error: 'not a value'
+  )
+
+  (* Byte-wise total order over two Strings: shared-prefix bytes decide first;
+     an exact-prefix tie falls to shorter-is-less. Shared by the String (rank
+     4) and Symbol (rank 6, via printString) arms above. *)
+  byteCompare: s with: t = (
+    | n m lim |
+    n:: s size. m:: t size. lim:: n < m ifTrue: [ n ] ifFalse: [ m ].
+    1 to: lim do: [ :i | | sb tb |
+      sb:: s at: i. tb:: t at: i.
+      sb < tb ifTrue: [ ^ -1 ].
+      tb < sb ifTrue: [ ^ 1 ] ].
+    n < m ifTrue: [ ^ -1 ]. n > m ifTrue: [ ^ 1 ]. ^ 0
+  )
+
+  (* Element-wise total order over two Lists: shared-index elements decide
+     first (recursively, via valueCompare:with:), an exact-prefix tie falls
+     to shorter-is-less. *)
+  listCompare: a with: b = (
+    | n m lim |
+    n:: a size. m:: b size. lim:: n < m ifTrue: [ n ] ifFalse: [ m ].
+    1 to: lim do: [ :i | | c |
+      c:: valueCompare: (a at: i) with: (b at: i).
+      c = 0 ifFalse: [ ^ c ] ].
+    n < m ifTrue: [ ^ -1 ]. n > m ifTrue: [ ^ 1 ]. ^ 0
+  )
+
+  value: a equals: b = ( ^ (valueCompare: a with: b) = 0 )
+
+  (* FNV-style structural hash: a leaf folds its existing `hash` with its
+     rank; a container seeds the fold with its rank and mixes in each
+     child's valueHashOf: in canonical (construction) order. 30-bit mask
+     keeps every intermediate SMI-safe (mirrors the Integer bitops fold
+     idiom from Task 1). *)
+  valueHashOf: v = (
+    | r h |
+    r:: rankOf: v.
+    r = 7 ifTrue: [                                              (* List *)
+      h:: r.
+      v do: [ :e | h:: ((h bitXor: (valueHashOf: e)) * 16777619) bitAnd: 1073741823 ].
+      ^ h ].
+    (* Extension point (Milestone B Tasks 8/9/10): add rank 5 (Bytes), rank 8
+       (Map), rank 9 (Record) container arms above this fallback. *)
+    ^ (v hash) bitXor: r
+  )
 
   public readLine = ( ^ platform readLine )
   public valueRank: v = ( ^ platform valueRank: v )
