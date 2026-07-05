@@ -360,6 +360,51 @@ class Kernel usingPlatform: platform = () (
       ^ self new setPairs: k values: v )
   )
 
+  (* Immutable algebra record (Milestone B Task 9): a Symbol `tag` plus a Map
+     of `fields` — the tagged-variant counterpart to Map's plain associative
+     shape. Same immutable, depth-cached-at-construction, `outer`-link-to-
+     module-helpers shape as List/Map. Construction validates `tag` (must be
+     a genuine Symbol — checked via `isSymbol`, which only a builtin Symbol
+     answers true for; every other receiver, including a heap value, falls to
+     Object's `isSymbol = (^false)`) and `fields` (must be a heap Map — checked
+     via `isMap`, the nsl override only Map has), else crashes `not a value`
+     (the same frozen string `checkValue:` uses, via `self error:`). `depth`
+     is `fields`' own depth plus one (tag is a Symbol, depth 0, so it never
+     drives the fold) — computed once at construction and cached, same as
+     List/Map's `valueDepth`. *)
+  class Record = ( | tag fields depth | ) (
+    public tag = ( ^ tag )
+    public fields = ( ^ fields )
+    public at: aKey ifAbsent: aBlock = ( ^ fields at: aKey ifAbsent: aBlock )
+    public isRecord = ( ^ true )
+    public isValue = ( ^ true )
+    public valueRank = ( ^ 9 )
+    public valueDepth = ( ^ depth )
+    (* Typed structural equality/hash — same guard idiom as List/Map (Tasks
+       7/8): never send an ad-hoc predicate to `other`, only the native rank
+       oracle via `isValueObject:` (a foreign non-value receiver, or a value
+       of a different rank, safely answers false without risking a DNU
+       crash). *)
+    public = other = (
+      (outer isValueObject: other) ifFalse: [ ^ false ].
+      ^ outer value: self equals: other
+    )
+    public hash = ( ^ outer valueHashOf: self )
+    setTag: aTag fields: aMap = (
+      aTag isSymbol ifFalse: [ ^ self error: 'not a value' ].
+      aMap isMap ifFalse: [ ^ self error: 'not a value' ].
+      tag:: aTag.
+      fields:: aMap.
+      depth:: outer checkDepth: (1 + aMap valueDepth).
+      ^ self )
+  ) : (
+    public tag: aTag fields: aMap = ( ^ self new setTag: aTag fields: aMap )
+    public tag: aTag with: a = ( ^ self tag: aTag fields: (Map with: a) )
+    public tag: aTag with: a with: b = ( ^ self tag: aTag fields: (Map with: a with: b) )
+    public tag: aTag with: a with: b with: c = ( ^ self tag: aTag fields: (Map with: a with: b with: c) )
+    public tag: aTag with: a with: b with: c with: d = ( ^ self tag: aTag fields: (Map with: a with: b with: c with: d) )
+  )
+
   class ReadStream = ( | source position | ) (
     (* Byte-granular cursor over an immutable String. `next`/`peek` answer a byte
        SMI; substring reads build Strings via `platform string:`. Open-ended reads
@@ -520,8 +565,9 @@ class Kernel usingPlatform: platform = () (
     ra = 6 ifTrue: [ ^ byteCompare: a printString with: b printString ]. (* Symbol *)
     ra = 7 ifTrue: [ ^ listCompare: a with: b ].                 (* List *)
     ra = 8 ifTrue: [ ^ mapCompare: a with: b ].                  (* Map *)
-    (* Extension point (Milestone B Tasks 9/10): add rank 5 (Bytes), rank 9
-       (Record) arms above this fallback. *)
+    ra = 9 ifTrue: [ ^ recordCompare: a with: b ].                (* Record *)
+    (* Extension point (Milestone B Task 10): add rank 5 (Bytes) arm above
+       this fallback. *)
     ^ self error: 'not a value'
   )
 
@@ -568,6 +614,20 @@ class Kernel usingPlatform: platform = () (
     n < m ifTrue: [ ^ -1 ]. n > m ifTrue: [ ^ 1 ]. ^ 0
   )
 
+  (* Tag-then-fields total order over two Records: tag decides first (both
+     Symbols, compared via the rank-6 arm above), fields decide the tie
+     (both Maps, routes through mapCompare:with:). Uses only the public
+     tag/fields accessors — no new public surface needed (unlike Map's
+     keyAt:/valueAt:, which exist purely so this family can walk two
+     receivers in lockstep; Record has exactly one field of each kind, so a
+     plain accessor read suffices). *)
+  recordCompare: a with: b = (
+    | c |
+    c:: valueCompare: a tag with: b tag.
+    c = 0 ifFalse: [ ^ c ].
+    ^ valueCompare: a fields with: b fields
+  )
+
   value: a equals: b = ( ^ (valueCompare: a with: b) = 0 )
 
   (* FNV-style structural hash: a leaf folds its existing `hash` with its
@@ -597,8 +657,13 @@ class Kernel usingPlatform: platform = () (
         h:: ((h bitXor: (valueHashOf: k)) * 16777619) bitAnd: 1073741823.
         h:: ((h bitXor: (valueHashOf: val)) * 16777619) bitAnd: 1073741823 ].
       ^ h ].
-    (* Extension point (Milestone B Tasks 9/10): add rank 5 (Bytes), rank 9
-       (Record) container arms above this fallback. *)
+    r = 9 ifTrue: [                                              (* Record *)
+      h:: r.
+      h:: ((h bitXor: (valueHashOf: v tag)) * 16777619) bitAnd: 1073741823.
+      h:: ((h bitXor: (valueHashOf: v fields)) * 16777619) bitAnd: 1073741823.
+      ^ h ].
+    (* Extension point (Milestone B Task 10): add rank 5 (Bytes) container arm
+       above this fallback. *)
     ^ ((v hash) bitXor: r) bitAnd: 1073741823
   )
 
@@ -614,6 +679,7 @@ class Kernel usingPlatform: platform = () (
   public Association       = ( ^ Association )
   public List              = ( ^ List )
   public Map               = ( ^ Map )
+  public Record            = ( ^ Record )
   public ReadStream        = ( ^ ReadStream )
   public WriteStream       = ( ^ WriteStream )
 ) : (
