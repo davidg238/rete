@@ -47,6 +47,30 @@ uintptr_t flash_rom_end = 0;
 #define FREE_BIN_COUNT 64
 static struct HeapHeader *free_bins[FREE_BIN_COUNT];
 
+/* ---- Heap telemetry (G3/M2, nsl-tuvm#3) --------------------------------
+   Fragmentation early-warning counters for the fixed embedded arena. Kept as
+   plain static counters (not gated behind a -D flag): the whole point is that
+   firmware can call oevm_heap_stats() at any time to see how close the arena
+   is to a fragmentation OOM. live_bytes/high_water/gc_cycles are maintained
+   incrementally (a couple of integer ops on the hot alloc path, a running sum
+   during the already-mandatory sweep walk); largest_free_block is computed on
+   demand inside oevm_heap_stats() itself, since stats are read rarely and
+   walking the free bins is not something the hot alloc path should ever pay
+   for. See heap_init() for the counter reset and gc_collect()'s sweep phase
+   for the live_bytes recompute. */
+static size_t heap_live_bytes = 0;   /* header+payload bytes live as of the last completed sweep, plus allocations since */
+static size_t heap_high_water = 0;   /* max live_bytes ever observed (monotonic since boot) */
+static size_t heap_gc_cycles  = 0;   /* completed collections since boot */
+
+/* Called from gc_allocate's two success paths (fresh bump, free-bin reuse)
+   with `need` = sizeof(struct HeapHeader) + rounded payload — the exact bytes
+   that just became live. Two integer ops: the hot-path budget this brief
+   requires. */
+static void heap_stats_on_alloc(size_t need) {
+    heap_live_bytes += need;
+    if (heap_live_bytes > heap_high_water) heap_high_water = heap_live_bytes;
+}
+
 static size_t bin_index(size_t rounded) {
     size_t k = rounded / OEVM_GRANULE;
     return (k < (FREE_BIN_COUNT - 1)) ? k : (FREE_BIN_COUNT - 1);
@@ -60,6 +84,9 @@ void heap_init(void) {
     heap_end  = heap_base + OEVM_HEAP_SIZE;
     memset(heap_bitmap, 0, sizeof heap_bitmap);
     for (size_t i = 0; i < FREE_BIN_COUNT; i++) free_bins[i] = NULL;
+    heap_live_bytes = 0;
+    heap_high_water = 0;
+    heap_gc_cycles  = 0;
     /* Model A/B parity guard: the arena must not overlap the read-only image
        ranges, or mark()'s is_read_only/is_in_blob fences would mis-classify it.
        Ranges may be unset (0/NULL) at first init; only check when set.
@@ -214,7 +241,7 @@ oop gc_allocate(oop vtable, size_t size) {
     size_t need = sizeof(struct HeapHeader) + rounded;
 
     oop obj = arena_try_alloc(vtable, rounded, need);
-    if (obj != NULL) return obj;
+    if (obj != NULL) { heap_stats_on_alloc(need); return obj; }
 
     /* Exhausted: collect once and retry, unless already collecting. */
     if (!gc_in_progress) {
@@ -222,7 +249,7 @@ oop gc_allocate(oop vtable, size_t size) {
         gc_collect();
         gc_in_progress = 0;
         obj = arena_try_alloc(vtable, rounded, need);
-        if (obj != NULL) return obj;
+        if (obj != NULL) { heap_stats_on_alloc(need); return obj; }
     }
 
     /* Still no room after a full collection: terminal OOM policy. */
@@ -734,12 +761,18 @@ void gc_collect(void) {
     // re-walked on every collection, so without this reset they would be pushed
     // onto a bin a second time, self-cycling the list and aliasing reused addresses.
     for (size_t i = 0; i < FREE_BIN_COUNT; i++) free_bins[i] = NULL;
+    /* Telemetry: recompute live_bytes from this sweep's marked survivors
+       rather than subtracting per freed object — least invasive against the
+       existing walk, and exact by construction. high_water is untouched here:
+       a sweep only removes garbage, so live_bytes can only fall or hold,
+       never rise past a previously recorded peak. */
+    size_t swept_live = 0;
     {
         uint8_t *cur = heap_base;
         while (cur < heap_top) {
             struct HeapHeader *h = (struct HeapHeader *)cur;
             uint8_t *next = cur + sizeof(struct HeapHeader) + h->size;
-            if (h->marked) { cur = next; continue; }
+            if (h->marked) { swept_live += sizeof(struct HeapHeader) + h->size; cur = next; continue; }
             /* Dead: clear its live bit, then extend the run over every following
                consecutive dead block. */
             bm_clear(bm_granule((oop)(h + 1)));
@@ -766,7 +799,35 @@ void gc_collect(void) {
             cur = run_end;
         }
     }
+    heap_live_bytes = swept_live;
+    heap_gc_cycles++;
 
     /* W2a: reclaim dead Float cells (separate malloc-backed arena). */
     float_sweep();
+}
+
+/* Heap telemetry accessor (G3/M2, nsl-tuvm#3). largest_free_block is computed
+   here, on demand, rather than maintained per-allocation: stats are read
+   rarely, so the walk cost belongs here, not on the hot alloc path. Walks
+   every free bin fully (including the catch-all last bin, which holds mixed
+   sizes) rather than assuming per-bin uniformity, so the result is correct
+   regardless of how split remainders landed in the bins. */
+struct OevmHeapStats oevm_heap_stats(void) {
+    struct OevmHeapStats s;
+    s.heap_size = OEVM_HEAP_SIZE;
+    s.live_bytes = heap_live_bytes;
+    s.high_water = heap_high_water;
+    s.gc_cycles = heap_gc_cycles;
+
+    size_t largest = 0;
+    for (size_t i = 0; i < FREE_BIN_COUNT; i++) {
+        for (struct HeapHeader *h = free_bins[i]; h != NULL; h = h->next) {
+            if (h->size > largest) largest = h->size;
+        }
+    }
+    size_t bump_remaining = (size_t)(heap_end - heap_top);
+    if (bump_remaining > largest) largest = bump_remaining;
+    s.largest_free_block = largest;
+
+    return s;
 }

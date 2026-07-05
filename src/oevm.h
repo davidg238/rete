@@ -385,6 +385,23 @@ struct MethodCacheStats method_cache_stats(void);
 int check_access_allowed(oop receiver, oop selector, struct CompiledMethod *target_method, oop target_defining_vtable);
 int is_truthy(oop obj);
 
+/* Heap telemetry (G3/M2, nsl-tuvm#3): fragmentation early-warning for the
+   non-moving mark-sweep GC on a small embedded arena. largest_free_block is
+   the number that matters most — it is the actual worst-case allocation the
+   arena can still satisfy without triggering the terminal OOM handler, which
+   a raw "bytes free" total can overstate when free space is fragmented across
+   many small blocks. Computed on demand (oevm_heap_stats is called rarely);
+   the other fields are maintained incrementally so the hot alloc/sweep paths
+   pay only a couple of integer ops. */
+struct OevmHeapStats {
+    size_t heap_size;           /* total arena bytes (OEVM_HEAP_SIZE) */
+    size_t live_bytes;          /* bytes in live payloads+headers as of the last completed sweep, plus allocations since */
+    size_t high_water;          /* max of live_bytes ever observed (monotonic since boot) */
+    size_t largest_free_block;  /* max free extent available right now: max(largest free-bin block payload, heap_end - heap_top) */
+    size_t gc_cycles;           /* completed collections since boot */
+};
+struct OevmHeapStats oevm_heap_stats(void);
+
 /* Fiber prims (fiberCreate:/fiberSwitch:value:) removed in Milestone A Task 5. */
 
 /*
