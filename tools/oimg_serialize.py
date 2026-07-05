@@ -115,6 +115,19 @@ class OimgWriter:
         #           supervisor_run_sel_ref@104, supervisor_nslots@112, header padded to 120,
         #           net_on_sel_ref@120, header padded to 128.
         # (format_version 1: Kernel descriptor absent, header 56 bytes.)
+        #
+        # RESERVED — G4 line-table provision (nsl-tuvm#3 rider, decided 2026-07-04;
+        # see docs/superpowers/specs/2026-07-04-G3-gc-strategy-decision.md). A future
+        # format bump may append a `line_table_ref` ref-word at the header tail
+        # (after net_on_sel_ref, same pad-to-ALIGN discipline) and/or a "LINETABLE"
+        # kind at the END of KIND_ORDER. Both are structurally additive: the loader
+        # reaches blob content only via ref-words resolved from the root graph, so
+        # records no header/method ref points at are ignored bytes. Do NOT insert
+        # new header fields before the tail or reorder KIND_ORDER — offsets and
+        # cluster grouping are position-dependent. Compiler-side emission of line
+        # tables (CompileError line numbers) is nsl-tuvm#1; this note only keeps
+        # the format door open, per G4: "retrofitting line tables into an image
+        # format is painful — decide the format early".
         if not kernel_vtable_ref and (serial_on_sel_ref or supervisor_vtable_ref
                                       or net_on_sel_ref):
             raise ValueError("v8 header: serial/supervisor/net descriptors "
