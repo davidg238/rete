@@ -18,5 +18,6 @@ REGISTRY = {
     'accessViolation:': 14,
     'debug:': 15,
     'LargeIntegerVtable': 16,
-    'StringVtable': 17
+    'StringVtable': 17,
+    'RawBytesVtable': 18
 }
