@@ -1,0 +1,21 @@
+(*
+expect:
+3
+two
+1
+2
+true
+*)
+class ListBasics packageUsing: manifest = () (
+public main: platform args: args = (
+  | l L |
+  L:: platform List.
+  l:: L with: 1 with: 'two' with: #three.
+  l size printString out.
+  (l at: 2) out.
+  (l inject: 0 into: [ :a :e | (platform valueRank: e) = 2 ifTrue: [ a + e ] ifFalse: [ a ] ]) printString out.
+  ((L with: (L with: 9)) valueDepth) printString out.
+  (l isList) printString out.
+)
+) : (
+)
