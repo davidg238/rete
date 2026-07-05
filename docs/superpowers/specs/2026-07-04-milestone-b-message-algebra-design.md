@@ -74,9 +74,30 @@ b := aByteArray freeze.
 
 ### Association sugar (decided: adopt)
 
-A minimal `Association` kernel class (`key`/`value`) plus `->` on Object. Verified:
+A minimal `Association` kernel class (`key`/`value`) plus `->` sugar. Verified:
 `->` parses in the nsl grammar today (`grammar/ns.ohm:104-105`, binaryChar+) — this is
-the standard Smalltalk/Newspeak pair idiom, zero grammar or compiler work.
+the standard Smalltalk/Newspeak pair idiom, zero grammar work.
+
+**AMENDED 2026-07-04 (David, after MB Task 2's premise correction): `a -> b` is a
+compile-time rewrite to `Association key: a value: b` at the emit site — NOT a method
+on Object.** Task 2 established that no builtin vtable delegates to kernel Object
+(all hardcode `delegate = NULL`; structural under the decoupled-XIP model — firmware
+cannot point into app-compiled vtables; the mechanism for builtin receivers is a
+per-type C switch in dispatch.c's PRIM cases, per solidify.py's own comment). An
+`Object>>->` method would therefore be unreachable from Integer/Float/Symbol/String/
+LargeInteger receivers — `3 -> 7` would DNU. The rewrite is receiver-agnostic (covers
+builtins and heap instances uniformly), matches this section's own framing of `->` as
+constructor sugar that is not a value, and follows the Milestone A precedent of the
+`detect:ifNone:` rewrite off NLR. `Object>>->` is NOT defined (the rewrite covers all
+send sites syntactically; a dispatched fallback would be dead code).
+Rejected alternatives (recorded so this isn't re-litigated):
+- *Generic dispatch fallback* (builtin receiver + lookup miss → kernel-Object vtable
+  lookup): uniform dispatch for every future Object method, but new machinery on the
+  hot send path, bought for one selector's benefit — Task 4 already answers the
+  predicates/rank for builtins in C.
+- *Per-selector C fast-path for `->`*: C cannot construct an instance of the
+  app-compiled Association class under XIP decoupling — the same reason the delegate
+  pointers are NULL.
 
 **Association is constructor-side sugar only, NOT an algebra value.** Pair-taking
 constructors copy key/value out and the Association dies (exact-size bin churn, G3/M3

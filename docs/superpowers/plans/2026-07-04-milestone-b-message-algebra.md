@@ -28,7 +28,7 @@
 - `tuvm/src/platform.c` + `src/builtins.def` — `basicNewBytes:`/`freezeBytes:`/`valueRank:` prims; RawBytesVtable builtin (Tasks 3, 4)
 - `nsl-tuvm/tools/builtins_registry.py` — mirror of builtins.def (Task 3)
 - `nsl-tuvm/lib/kernel.ns` — Association, module-level value helpers, List, Map, Record, ByteArray, Bytes, accessors (Tasks 5–10)
-- delegate-wiring fix location found by Task 2's investigation (compiler emission or kernel boot)
+- delegate-wiring fix location found by Task 2's investigation — RESOLVED: no delegate exists anywhere (all builtin vtables hardcode NULL); the fix landed as a String entry in dispatch.c's isNil/notNil per-type switch, and `->` moved to a compile-time rewrite (see Task 5 amendment)
 - `nsl-tests/08_messages/` — the whole T-B corpus (Tasks 1–11)
 
 ---
@@ -189,15 +189,24 @@ public main: platform args: args = (
 
 ### Task 5: Association, `->`, and Object algebra defaults
 
+> **AMENDED 2026-07-04 (David's decision after Task 2's premise correction — spec §Association
+> sugar has the full decision record):** there is NO builtin→kernel-Object delegation (Task 2
+> proved all builtin vtables hardcode `delegate = NULL`; `5 ifNil: [0]` DNUs). `->` is therefore
+> a COMPILE-TIME REWRITE (`a -> b` → `Association key: a value: b` at the emit site, precedent:
+> Milestone A's `detect:ifNone:` rewrite), NOT an Object method. Object algebra defaults still
+> land in kernel.ns but serve HEAP-INSTANCE receivers only; builtin receivers get predicates/rank
+> from Task 4's C fast-paths.
+
 **Files:**
 - Modify: `nsl-tuvm/lib/kernel.ns` — Object class (~line 18) + new sibling class + module accessors (~line 280)
+- Modify: `nsl-tuvm/tools/ns_compile_oevm.py` — the `->` rewrite at the emit site (find the `detect:ifNone:` rewrite from Milestone A Task 2 as the pattern; both codegen paths). Investigate how compiled code references kernel module classes (how do existing sends reach kernel globals?) — if no clean reference path to Association exists from an arbitrary send site, STOP and escalate rather than inventing one.
 - Test: `nsl-tests/08_messages/01_association.ns`
 
 **Interfaces:**
 - Produces (consumed by Tasks 6–10):
   - `Association` kernel class: `key`, `value` accessors; class-side `key:value:`.
-  - `-> v` on Object → Association.
-  - Object defaults: `isValue = ( ^ false )`, `isSymbol/isList/isMap/isRecord/isBytes = ( ^ false )`, `valueRank = ( ^ -1 )`, `valueDepth = ( ^ 0 )`.
+  - `a -> b` rewritten at compile time to `Association key: a value: b` (receiver-agnostic — works for builtin AND heap receivers; no `Object>>->` is defined).
+  - Object defaults (heap instances): `isValue = ( ^ false )`, `isSymbol/isList/isMap/isRecord/isBytes = ( ^ false )`, `valueRank = ( ^ -1 )`, `valueDepth = ( ^ 0 )`.
   - Module accessor `public Association = ( ^ Association )`.
 
 - [ ] **Step 1: Failing test** `01_association.ns`:
@@ -216,7 +225,7 @@ public main: platform args: args = (
   a:: #k -> 42.
   a key printString out.
   a value printString out.
-  b:: 3 -> 7.                (* Integer receiver — delegation-backed *)
+  b:: 3 -> 7.                (* Integer receiver — compile-time rewrite, no dispatch *)
   b value printString out.
   (a isValue) printString out.   (* Association is NOT a value *)
 )
@@ -225,10 +234,9 @@ public main: platform args: args = (
 ```
 
 - [ ] **Step 2: Verify fail** both paths (`->` DNU).
-- [ ] **Step 3: Implement** in kernel.ns. Object additions:
+- [ ] **Step 3: Implement.** In ns_compile_oevm.py: the `->` emit-site rewrite (per the amendment above). In kernel.ns, Object additions (NO `->` method — the rewrite replaces it):
 
 ```
-    public -> v = ( ^ Association key: self value: v )
     public isValue = ( ^ false )
     public isSymbol = ( ^ false )
     public isList = ( ^ false )
@@ -251,7 +259,7 @@ New sibling class (place after Dictionary):
   )
 ```
 
-(If the codebase's initialization idiom differs — check how Dictionary/Set instances initialize slots, `::=` defaults vs setter methods — follow that idiom exactly; the corpus's `04_initializers.ns` shows the pattern. Symbol receivers for `->` work via the delegation verified in Task 2's context; note `printString` on Symbol/String operands must already exist — it does, the corpus uses it.)
+(If the codebase's initialization idiom differs — check how Dictionary/Set instances initialize slots, `::=` defaults vs setter methods — follow that idiom exactly; the corpus's `04_initializers.ns` shows the pattern. Symbol/Integer receivers for `->` work because the rewrite never dispatches `->` at all; note `printString` on Symbol/String operands must already exist — it does, the corpus uses it.)
 
 - [ ] **Step 4: Verify** both paths.
 - [ ] **Step 5: Commit** (nsl-tuvm + nsl-tests): `feat(kernel): Association + -> sugar + Object algebra defaults (Milestone B)`.
