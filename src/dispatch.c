@@ -1058,7 +1058,27 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                               : (obj_vtable(args[0]) == FloatVtable ? ((struct Float *)args[0])->value : oevm_int_to_double(args[0]));
                     return (v1 == v2) ? true_symbol : false_symbol;
                 }
-                return (receiver == args[0]) ? true_symbol : false_symbol;
+                /* Milestone B Task 7 (David-approved 2026-07-05): BUILTIN
+                   receivers keep C identity semantics here — nil and SMI
+                   (SMI/SMI and all-numeric pairs already returned above;
+                   an SMI vs non-number lands here), Float/LargeInteger vs a
+                   non-number, Symbol (interned, and a builtin receiver cannot
+                   reach nsl methods — no delegation — so falling through
+                   would DNU), and RawBytes (internal, never a value). String
+                   receivers always returned in the content-equality branch
+                   above. A REAL heap object instead breaks to normal vtable
+                   dispatch so a heap class's `=` override (kernel List, later
+                   Map/Record) actually runs; Object>>= (`^ self == other`,
+                   kernel.ns) preserves the identity default for heap classes
+                   without a custom `=`. Modeled on PRIM_isNil/PRIM_hash's
+                   heap fall-through in this same switch. */
+                if (receiver == NULL || IS_SMI(receiver) ||
+                    (FloatVtable != NULL && obj_vtable(receiver) == FloatVtable) ||
+                    (LargeIntegerVtable != NULL && obj_vtable(receiver) == LargeIntegerVtable) ||
+                    (SymbolVtable != NULL && obj_vtable(receiver) == SymbolVtable) ||
+                    (RawBytesVtable != NULL && obj_vtable(receiver) == RawBytesVtable))
+                    return (receiver == args[0]) ? true_symbol : false_symbol;
+                break;   /* heap object: fall through to vtable `=` (overridable) */
             }
             break;
             // PRIM_ifTrueIfFalse / PRIM_ifTrue / PRIM_ifFalse deleted (Phase 1
