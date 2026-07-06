@@ -1,0 +1,12 @@
+(*
+expect-runtime-fail: not a value
+*)
+class BytesGuardUnfrozen packageUsing: manifest = () (
+public main: platform args: args = (
+  | BA |
+  BA:: platform ByteArray.
+  platform List with: (BA new: 2).
+  'unreached' out.
+)
+) : (
+)
