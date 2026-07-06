@@ -4,6 +4,23 @@ expect:
 200
 0
 *)
+(* ============================================================================
+   SYNC WARNING (Milestone B landed, 2026-07-06) — DO NOT USE THIS FILE AS THE
+   REFERENCE GENERATOR. This staged draft has a REAL bug: `randomBelow: n`
+   below calls `self nextRandom` TWICE per evaluation (once for the receiver
+   of `//`, once for the argument of the trailing `//n*n` term) — the LCG seed
+   mutates between those two sends, so the result is NOT `r \\ n` of a single
+   draw. It can escape `[0, n)`, and in `genValue:` an out-of-range `k` falls
+   through every `k = ...` guard to the final (recursive Map) branch
+   UNCONDITIONALLY — i.e. runaway recursion / stack overflow, not the intended
+   depth-bounded generator.
+   The LANDED, FIXED version is `nsl-tests/08_messages/14_generative.ns`
+   (single draw into a temp before use; LCG constants byte-identical to this
+   draft; verified 200/200/0 both paths). Treat that file as the reference
+   generator. This staged file is kept only for its original design
+   commentary and is intentionally NOT rewritten here — fixing the algorithm
+   is a real code change, out of scope for this mechanical sync pass.
+   ============================================================================ *)
 (* T-B.5 — generative check: a seeded in-image LCG builds 200 random message trees
    (depth ≤ 4, mixed int/string/symbol/list/map); each tree is built TWICE from the
    same sub-seed and must be structurally = with equal hash. Deterministic (fixed

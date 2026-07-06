@@ -18,6 +18,14 @@ Pinned semantics:
                on the code-point level; no locale collation, ever).
   - copyFrom:to: is byte-indexed and CRASHES if a cut splits a multi-byte code point —
     never silently produces invalid UTF-8 (the invariant is "every String is valid").
+
+SYNC NOTE (Milestone B landed 2026-07-06): nothing in this file's own String
+primitives was touched by Milestone B (message algebra didn't reach String).
+The one cross-reference to update: the `asBytes` / `bytesAsString...` pair
+below says "DESTINATION Bytes (bytes.ns)" — that target moved. `Bytes` is now
+the landed `nsl-tuvm/lib/kernel.ns` class (rank 5, reachable only via
+`ByteArray >> freeze`); the staged `bytes.ns` in this directory is fully
+superseded (see its own header sync note). This file's bodies are untouched.
 *)
 class StringsStaging usingPlatform: platform = () (
 
@@ -26,7 +34,9 @@ class StringsStaging usingPlatform: platform = () (
     (* --- byte <-> string boundary (the only places validity is checked) --- *)
     public asBytes = ( ^ platform freezeBytes: self )     (* free-ish: same payload, Bytes view *)
 
-    (* DESTINATION Bytes (bytes.ns): decode with explicit failure continuation. *)
+    (* DESTINATION Bytes (landed kernel.ns Bytes, not this dir's superseded
+       bytes.ns — see this file's header sync note): decode with explicit
+       failure continuation. *)
     public bytesAsStringIfInvalid: failBlock = (
       (platform utf8IsValid: self) ifFalse: [ ^ failBlock value ].
       ^ platform stringFromBytes: self

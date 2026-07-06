@@ -22,7 +22,7 @@ data, not policy):
                                         device NACKs — let-it-crash is the error path.
             read: n from: addr -> Bytes same, for a read transaction.
   power — a granted channel to the supervisor: the job REQUESTS sleep by posting
-          (Record tag: #sleepFor fields: {#ms -> n}); the supervisor (policy!) decides
+          (Record tag: #sleepFor with: #ms -> n); the supervisor (policy!) decides
           whether that means Zephyr deep sleep, a timer, or nothing (always-on mode).
   Plus the Milestone-C/D surface: channels (out:value:/whenever:do:/take:), timers.
 
@@ -82,8 +82,7 @@ class DemoNode packageUsing: manifest = () (
       machine state: #converting on: #done do: [ :m :e |
         timers cancel: timeout.
         publish: readMilliC.
-        power out: '' value: (Record tag: #sleepFor fields:
-          (Map fromPairs: (List with: (List with: #ms with: 60000))))
+        power out: '' value: (Record tag: #sleepFor with: #ms -> 60000)
       ] then: #idle.
 
       (* Sensor silent past the deadline: NOT an expected miss — the device is
@@ -107,11 +106,8 @@ class DemoNode packageUsing: manifest = () (
       history add: milliC.
       history size > 8 ifTrue: [ history removeFirst ].
       avg:: (history inject: 0 into: [ :a :t | a + t ]) // history size.
-      chan out: 'reading' value: (Record tag: #reading fields:
-        (Map fromPairs: (List
-          with: (List with: #seq    with: seq)
-          with: (List with: #milliC with: milliC)
-          with: (List with: #avg8   with: avg)))).
+      chan out: 'reading' value: (Record tag: #reading
+        with: #seq -> seq with: #milliC -> milliC with: #avg8 -> avg).
     )
 
     (* ---- lifecycle ---- *)

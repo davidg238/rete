@@ -24,9 +24,16 @@ Wiring at boot (supervisor setup):
   space whenever: '%sys/timer' do: [:e | timers dispatch: e].   (* reserved channel *)
 
 Usage:
-  t:: timers after: 50 post: (Record tag: #timeout fields: Map empty) on: sensorChan.
+  t:: timers after: 50 post: (Record tag: #timeout fields: (Map fromPairs: (OrderedCollection new))) on: sensorChan.
   timers cancel: t.
   timers every: 1000 post: #tick on: tickChan.
+
+SYNC NOTE (Milestone B landed 2026-07-06): the Usage line above used to say
+`Map empty`, but the landed kernel.ns Map has no zero-arg/`empty` class-side
+constructor (`with:` sugar needs >=1 pair). Spelling "no fields" instead as
+`fromPairs:` over an empty collection is the verified equivalent — see
+`nsl-tests/08_messages/05_map.ns`'s own note on `fromPairs:`'s input being a
+plain (unvalidated) `size`/`at:` container, e.g. OrderedCollection.
 *)
 class TimersStaging usingPlatform: platform = () (
 

@@ -17,6 +17,24 @@ DESTINATIONS: both classes are kernel.ns siblings. Accessor naming: LE is the de
 network order at the seam.
 
 Errors per errors.md: 'index out of bounds', 'byte out of range', 'immutable'.
+
+SYNC NOTE (Milestone B landed 2026-07-06): this whole file is superseded by the
+landed `nsl-tuvm/lib/kernel.ns` ByteArray/Bytes (class `BytesReadProtocol` ~line
+411, `ByteArray` ~line 421, `Bytes` ~line 434). The landed surface is a strict
+SUBSET of what's staged below: class-side `new:` / `fromList:`; instance
+`u8At:`, `u8At:put:`, `u16At:` / `u16At:put:` (LE default), `u16BeAt:` /
+`u16BeAt:put:` (BE), `byteSize`, `freeze`. NOT landed (yet): `s8At:`/`s16At:`/
+`s16BeAt:`/`u32At:`/`u32BeAt:`/`s32At:`, `copyFrom:to:`, `do:`, `printString`.
+Bounds/range checks are NOT nsl-side (as coded below) — the landed design
+moved them to the C layer, which raises the same frozen strings
+('index out of bounds' / 'byte out of range') this file anticipated; the
+nsl-side guard code here was superseded by that C-owns-it decision (see the
+kernel.ns Task 10 design note). `Bytes` is reachable ONLY via
+`ByteArray >> freeze` — there is deliberately no public Bytes module accessor
+(no `platform Bytes`). The prose above (LE-default naming rationale, the
+register-write bit-field helpers) stays useful design context; the code
+bodies below are NOT the current API — see kernel.ns and
+`nsl-tests/08_messages/07_bytes.ns` for the real one.
 *)
 class BytesStaging usingPlatform: platform = () (
 
