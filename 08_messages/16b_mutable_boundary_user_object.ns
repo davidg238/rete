@@ -1,0 +1,34 @@
+(*
+expect:
+ok
+expect-runtime-fail: not a value
+*)
+(* T-B.6 variant — a plain heap object of a class DEFINED IN THIS TEST MODULE
+   (no isValue override) nested deep inside an otherwise-valid List tree is
+   `not a value` at construction, same per-element-at-every-depth validation
+   as 16/16c/16d.
+
+   CAUTION verified before landing (per the brief): this assumes a user heap
+   class inherits Kernel Object's `valueRank = -1` via NORMAL vtable
+   delegation. Confirmed in ns_compile_oevm.py's compile_class: any rootless
+   (no explicit superclass) class delegates its vtable to Vtable_Kernel_Object,
+   so `Thing new valueRank` dispatches all the way up to Object's `^ -1` like
+   any other user class. The Task-2 "no delegation" finding is unrelated — it
+   was about BUILTIN vtables (String, Integer, ...) hardcoding a NULL
+   delegate, not about classes the app/test module itself defines. So this
+   lands as a plain (rankOf: -> platform valueRank: answers -1 for "other
+   heap" -> falls back to `v valueRank` -> Object's -1) `not a value` crash,
+   no DNU. *)
+class MutableBoundaryUserObject packageUsing: manifest = () (
+class Thing = () (
+) : (
+)
+public main: platform args: args = (
+  | L |
+  L:: platform List.
+  'ok' out.
+  L with: 1 with: (L with: 2 with: (L with: 3 with: Thing new)).
+  'unreached' out.
+)
+) : (
+)

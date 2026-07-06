@@ -1,0 +1,33 @@
+(*
+expect:
+32
+expect-runtime-fail: message depth exceeded
+*)
+(* T-B.1 — depth-bound edges: a tree at EXACTLY the bound (32) constructs and
+   reports its depth via an INDEPENDENT at:-walk `depthOf:` (not the kernel's
+   own cached `valueDepth`, which 03b_list_depth_guard.ns / 03c_map_depth_guard.ns
+   (Tasks 6/8) already exercise from both List- and Map-nesting sides); one
+   level deeper is a clean construction-time crash. OVERLAPS 03b/03c on the
+   edge itself — landed anyway for T-B.1 traceability to the staged suite; the
+   at:-walk read-back is the distinct angle. *)
+class DepthBound packageUsing: manifest = () (
+public nest: n platform: platform = (
+  | L v |
+  L:: platform List.
+  v:: 0.
+  1 to: n do: [ :i | v:: L with: v ].
+  ^ v
+)
+public depthOf: v = (
+  | d cur |
+  d:: 0. cur:: v.
+  [ cur isList ] whileTrue: [ d:: d + 1. cur:: cur at: 1 ].
+  ^ d
+)
+public main: platform args: args = (
+  (self depthOf: (self nest: 32 platform: platform)) printString out.   (* at the bound: fine *)
+  self nest: 33 platform: platform.                                     (* one past: must crash *)
+  'unreached' out.
+)
+) : (
+)

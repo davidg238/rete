@@ -1,0 +1,20 @@
+(*
+expect:
+ok
+expect-runtime-fail: not a value
+*)
+(* T-B.6 variant — a Dictionary (mutable, not in the algebra) nested DEEP
+   inside a List tree is `not a value` at construction, same per-element-at-
+   every-depth validation as 16/16b/16c. *)
+class MutableBoundaryDictionary packageUsing: manifest = () (
+public main: platform args: args = (
+  | L d |
+  L:: platform List.
+  d:: platform Dictionary new.
+  d at: #k put: 1.
+  'ok' out.
+  L with: 1 with: (L with: 2 with: (L with: 3 with: d)).
+  'unreached' out.
+)
+) : (
+)

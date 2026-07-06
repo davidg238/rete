@@ -1,0 +1,20 @@
+(*
+expect:
+ok
+expect-runtime-fail: not a value
+*)
+(* T-B.6 variant — an UNFROZEN ByteArray (mutable workbench, no isValue
+   override) nested DEEP inside a List tree (not top-level — that's 07b's
+   job) is `not a value` at construction, proving per-element validation
+   recurses to every depth, not just the outermost element. *)
+class MutableBoundaryByteArray packageUsing: manifest = () (
+public main: platform args: args = (
+  | L BA |
+  L:: platform List.
+  BA:: platform ByteArray.
+  'ok' out.
+  L with: 1 with: (L with: 2 with: (L with: 3 with: (BA new: 2))).
+  'unreached' out.
+)
+) : (
+)

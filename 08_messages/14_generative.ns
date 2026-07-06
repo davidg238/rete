@@ -1,0 +1,72 @@
+(*
+expect:
+200
+200
+0
+*)
+(* T-B.5 — generative check: a seeded in-image LCG builds 200 random message
+   trees (depth <= 4, mixed int/string/symbol/list/map); each tree is built
+   TWICE from the same sub-seed and must be structurally = with equal hash.
+   Deterministic (fixed seed), so failures reproduce. The same generator
+   later feeds CBOR encode->decode round-trips (lib/cbor.md) — kept
+   REUSABLE, not inline-degraded, per the staged file's own note.
+   Prints: trees-built, equal-count, hash-mismatch-count.
+   `Map fromPairs:` is fed a genuine algebra List of 2-element algebra Lists
+   (`L with: (L with: #k with: v)`) — verified against the landed
+   Map>>fromPairs: (kernel.ns): it accepts both 2-element Lists AND
+   Associations, so this staged shape works as-is, unlike 05_map.ns's
+   OrderedCollection-of-bare-Associations input (there the outer container
+   itself held bare Associations, which are not values; here the outer
+   container holds nested algebra Lists, which are).
+
+   BUG FIX (flagged, not a semantics change — see report): the staged file's
+   `randomBelow: n = ( ^ (self nextRandom // 65536) - ((self nextRandom // 65536) // n * n) )`
+   sends `self nextRandom` TWICE in one expression. `nextRandom` MUTATES
+   `seed` as a side effect, so the two sends read two DIFFERENT LCG draws —
+   the result is not `r mod n` for any single `r` and can land outside
+   `[0, n)`. That let `k` in `genValue:` skip every explicit branch (0/1/2/3)
+   and fall through to the recursive Map-fallback line unconditionally,
+   causing genuine runaway recursion (reproduced: `Stack Overflow: need
+   16391 words, cap 16384` on a single `genValue: 0` call, where depth 0
+   forces `k` into {0,1,2} IF the modulo were correct — isolated by binary
+   search, confirmed independent of loop-iteration count and confirmed to
+   disappear once the fix below — a single draw, reused — is applied). Fixed
+   here by drawing ONCE into a temp and reducing that one value mod n. *)
+class GenerativeRoundtrip packageUsing: manifest = ( | seed ::= 12345. L M | ) (
+
+  nextRandom = (   (* LCG: glibc constants, SMI-safe under 64-bit int semantics *)
+    seed:: (seed * 1103515245 + 12345) - ((seed * 1103515245 + 12345) // 2147483648 * 2147483648).
+    ^ seed
+  )
+  randomBelow: n = ( | r | r:: self nextRandom // 65536. ^ r - (r // n * n) )
+
+  (* depth-bounded random value; kind chosen by the stream *)
+  genValue: depth = (
+    | k |
+    k:: self randomBelow: (depth = 0 ifTrue: [ 3 ] ifFalse: [ 5 ]).
+    k = 0 ifTrue: [ ^ self randomBelow: 1000 ].
+    k = 1 ifTrue: [ ^ 's' , (self randomBelow: 100) printString ].
+    k = 2 ifTrue: [ ^ #sym ].
+    k = 3 ifTrue: [ ^ L with: (self genValue: depth - 1) with: (self genValue: depth - 1) ].
+    ^ M fromPairs: (L with: (L with: #k with: (self genValue: depth - 1)))
+  )
+
+  public main: platform args: args = (
+    | built equal hashBad savedSeed a b |
+    L:: platform List.
+    M:: platform Map.
+    built:: 0. equal:: 0. hashBad:: 0.
+    1 to: 200 do: [ :i |
+      savedSeed:: seed.
+      a:: self genValue: 4.
+      seed:: savedSeed.                (* rewind: build the identical tree again *)
+      b:: self genValue: 4.
+      built:: built + 1.
+      a = b ifTrue: [ equal:: equal + 1 ].
+      a hash = b hash ifFalse: [ hashBad:: hashBad + 1 ] ].
+    built printString out.             (* 200 *)
+    equal printString out.             (* 200 — every pair structurally equal *)
+    hashBad printString out.           (* 0   — hash agrees with = *)
+  )
+) : (
+)

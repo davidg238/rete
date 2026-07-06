@@ -1,0 +1,18 @@
+(*
+expect:
+#reading
+expect-runtime-fail: at:put:
+*)
+(* T-B.2 mutation matrix, row `Record at:put:` — Record has at:ifAbsent: but
+   no at:put:. See 01_list_at_put.ns header. *)
+class RecordAtPut packageUsing: manifest = () (
+public main: platform args: args = (
+  | R r |
+  R:: platform Record.
+  r:: R tag: #reading with: #seq -> 42.
+  r tag printString out.
+  r at: #seq put: 99.
+  'unreached' out.
+)
+) : (
+)

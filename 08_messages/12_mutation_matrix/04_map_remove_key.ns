@@ -1,0 +1,19 @@
+(*
+expect:
+2
+expect-runtime-fail: removeKey:
+*)
+(* T-B.2 mutation matrix, row `Map removeKey:` — Dictionary's removeKey: is a
+   different class; the algebra Map has no such method. See
+   01_list_at_put.ns header. *)
+class MapRemoveKey packageUsing: manifest = () (
+public main: platform args: args = (
+  | M m |
+  M:: platform Map.
+  m:: M with: #k -> 1 with: #j -> 2.
+  m size printString out.
+  m removeKey: #k.
+  'unreached' out.
+)
+) : (
+)
