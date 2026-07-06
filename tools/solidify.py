@@ -107,6 +107,7 @@ class SolidifyCompiler:
         c_code.append("extern const struct Vtable Vtable_VtableVtable;")
         c_code.append("extern const struct Vtable Vtable_SymbolVtable;")
         c_code.append("extern const struct Vtable Vtable_StringVtable;")
+        c_code.append("extern const struct Vtable Vtable_RawBytesVtable;")
         c_code.append("extern const struct Vtable Vtable_BytecodeClosureVtable;")
         c_code.append("extern const struct Vtable Vtable_PrimitiveClosureVtable;")
         c_code.append("extern const struct Vtable Vtable_BoxedBindingVtable;")
@@ -247,6 +248,14 @@ class SolidifyCompiler:
         # so StaticString_ constants' (oop)&Vtable_StringVtable headers link, and so
         # `StringVtable` is non-NULL (its prims gate on obj_vtable == StringVtable).
         c_code.append("const struct Vtable Vtable_StringVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };")
+        # Milestone B Task 10 fix: RawBytes (Milestone B Task 3) shares String's
+        # fixed C struct layout and its at:/at:put:/size prims gate on
+        # obj_vtable == RawBytesVtable — same reason StringVtable is hand-rooted
+        # above. Without this, Path A binaries (which link this generated file
+        # instead of kernel_boot.c) leave RawBytesVtable NULL, so
+        # `platform basicNewBytes:` allocates objects with a nil vtable and every
+        # byte access DNUs instead of reaching the C bounds/range checks.
+        c_code.append("const struct Vtable Vtable_RawBytesVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };")
         c_code.append("const struct Vtable Vtable_BytecodeClosureVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };")
         c_code.append("const struct Vtable Vtable_PrimitiveClosureVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };")
         c_code.append("const struct Vtable Vtable_BoxedBindingVtable = { { (oop)&Vtable_VtableVtable }, NULL, NULL, 0, 0, 0 };")
@@ -258,6 +267,7 @@ class SolidifyCompiler:
         c_code.append("    VtableVtable = (oop)&Vtable_VtableVtable;")
         c_code.append("    SymbolVtable = (oop)&Vtable_SymbolVtable;")
         c_code.append("    StringVtable = (oop)&Vtable_StringVtable;")
+        c_code.append("    RawBytesVtable = (oop)&Vtable_RawBytesVtable;")
         c_code.append("    BytecodeClosureVtable = (oop)&Vtable_BytecodeClosureVtable;")
         c_code.append("    PrimitiveClosureVtable = (oop)&Vtable_PrimitiveClosureVtable;")
         c_code.append("    BoxedBindingVtable = (oop)&Vtable_BoxedBindingVtable;")
