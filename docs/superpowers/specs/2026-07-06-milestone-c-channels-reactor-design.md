@@ -1,6 +1,6 @@
 # Milestone C — capability-scoped channels + reactor (design)
 
-**Status:** DRAFT 2026-07-06, awaiting David's ratification (esp. §5 D-C3/D-C4, §7 strings, §9 Q1).
+**Status:** DRAFT 2026-07-06, awaiting David's ratification (esp. §5 D-C1..D-C5, §7 strings, §9 Q2). §9 Q1 DECIDED (respell — 2026-07-06).
 **Parents:** `2026-07-03-nsl-tuvm-first-step-design.md` (§Coordination, §Milestone C, §6),
 `tuvm/review/2026-07-03-first-step-design-addendum.md` A1,
 `tuvm/review/test-suites-spec.md` T-C, `tuvm/review/demo-node.ns` (the target program +
@@ -35,7 +35,9 @@ the C substrate must not foreclose the ISR→channel pulse).
 - **Space**: one per node, owned by the supervisor (D). `platform space` answers it in
   host mode (demo-node spelling).
 - **Channel path**: URL-style, `/`-separated segments (`node7/reading`). Paths are data
-  (Strings) — a path is NOT authority.
+  (Strings) — a path is NOT authority. Segments are plain names; no character carries
+  reserved meaning (§9 Q1 decision — supervisor namespacing is prefix discipline, e.g.
+  `sup/<job>/power`, not grammar).
 - **Capability**: an object rooting a prefix into the space — the ONLY way to touch
   channels. `space channel: 'node7'` derives a capability at that root (space itself is
   the root capability, supervisor-held). All verbs take paths RELATIVE to the
@@ -164,10 +166,19 @@ Suite runs solo/foreground as always.
 
 ## 9. Open questions for David (blocking the plan, not the design direction)
 
-- **Q1 `'%power'` (demo-node `main:`).** The `%`-prefixed root smells like a reserved
-  supervisor namespace (job-visible channels the supervisor listens on). Is `%` a
-  convention to pin (canonicalization must then permit it in segment heads), or a
-  placeholder to respell? A1's canonical grammar needs the answer.
+- ~~Q1 `'%power'`~~ **DECIDED (David, 2026-07-06): respelled.** `%` was a placeholder,
+  not a mechanism. Supervisor request channels are PER-JOB, under a supervisor-owned
+  plain-named root: `sup/<job>/power` (demo-node updated). Requester identity = which
+  channel the request arrived on (unforgeable), never a message field. The supervisor
+  "owns" `sup/` by prefix discipline alone — it holds root and never grants `sup/**`
+  to jobs beyond the specific request channels. A1's canonical grammar stays minimal:
+  segments are plain names; NO character carries reserved meaning. Feeds Milestone D:
+  request channels are already per-job when restart policy needs to know who's asking,
+  and the power grant is independently attenuable/omittable per deployment mode.
+  Rejected: enforced `%` namespace (a second, string-based security mechanism
+  duplicating what prefix confinement already guarantees — the thinking A1 warns
+  against); one global shared request channel (identity-by-content is spoofable by
+  any holder of the channel).
 - **Q2 No unregister verb** in this milestone: a standing reaction lives until the space
   (or, at D, the job's restart teardown) drops it. OK, or does C need `cancel` now?
   (demo-node cancels TIMERS, never channel reactions — evidence for deferring.)
