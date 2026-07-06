@@ -319,3 +319,30 @@ All pure-nsl (no VM/C change). Tasks 8-9 committed + merged to master + pushed 2
    (builtins answer in C, heap via Object defaults). Symbol `printString` renders WITH the
    leading `#` (`#reading`); the plan draft's bare `reading` was corrected in `06_record.ns`
    and Record was NOT altered — a no-`#` human render is deferred to tuvm#7 (`displayString`).
+
+## Addendum 2026-07-06 — Task 12 close-out: the `outer` slot-0 helper-isolation invariant (ADR)
+
+Pinned here (per the Task-6 roll-up minor) so a compiler change can't silently break it and
+so it isn't re-litigated. **Decision (David-ratified 2026-07-05, first use Task 6, inherited
+unchanged by Map/Record/Bytes in Tasks 8–10):** kernel value classes reach the module-level
+NON-public helper families — `rankOf:`/`isValueObject:`/`depthOf:`/`checkValue:`/`checkDepth:`
+(Task 6) and `valueCompare:with:`/`valueHashOf:`/the per-rank compare arms (Tasks 7–10) —
+exclusively via `outer <keyword>:` sends: the sibling class's lexical `outer` link (instance
+slot 0), which for classes nested directly in the Kernel module resolves to the Kernel module
+instance. **Isolation guarantee:** an application module's own `outer` never points at the
+Kernel instance, so these helpers are structurally unreachable from app code — no `private`
+enforcement machinery exists or is needed. **Invariant on `ns_compile_oevm.py`:** `outer`
+is an OBJECT slot, not activation-Context machinery — `collect_slots` appends `"outer"` as
+slot 0 of every non-root nested class (~L1494) and `resolve_name`'s slot path reads it via
+`OP_LD_SLOT` (~L867–895, incl. the literal `outer = slot 0` walk); `OP_MK_CONTEXT`/`OP_LD_CTX`
+serve captured lexical variables on a different axis and are not involved. Any change to the
+slot-0 placement, the `resolve_name` slot path, or `OP_LD_SLOT` semantics that makes sibling
+`outer` sends unresolvable breaks the kernel loudly (List/Map/Record constructors funnel
+through `outer checkValue:`, and every value class's `=`/`hash` — Bytes included — goes
+through `outer`; the conformance suite fails wholesale),
+but a change that made kernel helpers REACHABLE from app modules would be silent — nothing
+tests app-side unreachability today. This ADR plus the kernel.ns module-helpers comment
+(above `rankOf:`) are the pin; a dedicated negative test is a welcome future addition.
+Rejected: `private` visibility enforcement in the compiler (machinery Milestone B doesn't
+need — lexical structure already provides the boundary); public helper surface on the
+Kernel module (would hand app code the raw validators and freeze their spellings as API).
