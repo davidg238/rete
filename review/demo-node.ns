@@ -24,11 +24,17 @@ data, not policy):
   power — a granted channel to the supervisor: the job REQUESTS sleep by posting
           (Record tag: #sleepFor with: #ms -> n); the supervisor (policy!) decides
           whether that means Zephyr deep sleep, a timer, or nothing (always-on mode).
+          PER-JOB request channel under the supervisor-owned 'sup/' root
+          ('sup/node7/power' — David 2026-07-06, Milestone C spec Q1): requester
+          identity = which channel the request arrived on (unforgeable), never a
+          message field. 'sup/' is plain prefix discipline — the supervisor holds
+          root and simply never grants sup/** beyond these request channels; no
+          reserved characters, no special grammar.
   Plus the Milestone-C/D surface: channels (out:value:/whenever:do:/take:), timers.
 
 WIRING (supervisor side, at deploy): supervisor constructs the job with its grants —
   job:: TempNode i2c: i2cCap bus: 16r48 chan: (space channel: 'node7')
-                 timers: timers power: powerCap.
+                 timers: timers power: (space channel: 'sup/node7/power').
   job start.
 porta bridges 'node7/reading' onto the LAN (resource?id= addressing, CBOR wire).
 *)
@@ -162,7 +168,7 @@ class DemoNode packageUsing: manifest = () (
       bus:    16r48
       chan:   (space channel: 'node7')
       timers: (Timers usingSpace: space seam: platform)
-      power:  (space channel: '%power').
+      power:  (space channel: 'sup/node7/power').
     node start.
     space drain.
     ((space channel: 'node7/reading') take: '') printString out.
