@@ -116,8 +116,19 @@ event before the reactor would drop it for lack of reactions.
   for a reactor over transient signals).
 - **D-C4 Duplicate registration is two reactions.** The same block (or the same job)
   registering twice on one channel fires twice, in registration order — the degenerate
-  case of D-C3; the space does not identity-dedupe. Rejected: dedupe (requires an
-  identity notion for closures the language deliberately doesn't surface).
+  case of D-C3; the space does not identity-dedupe. PRECISION (David's probe,
+  2026-07-06): nsl DOES have universal identity — `==` is raw pointer identity on any
+  receiver, blocks included (`primitive_object_equals`, vm.c ~:139). Dedupe is rejected
+  not because identity is unobservable but because it is USELESS here: every evaluation
+  of a block literal constructs a fresh closure (`OP_CLOSURE` per evaluation site,
+  ns_compile_oevm.py ~:1383), so calling `whenever:do:` twice — even with textually
+  identical blocks — registers two distinct oops that `==` distinguishes;
+  identity-dedupe would be dead code except for the pathological
+  same-variable-registered-twice case. Rejected: `==`-dedupe (dead code, above);
+  code-identity dedupe (no such notion exists; blocks are not values, valueRank -1).
+  Double registration is an ordinary job bug with loud, deterministic symptoms (handler
+  fires twice) — hygiene, not mechanism (see the ownership note in §6 for the one
+  structural case: restart).
 - **D-C5 Registration visibility boundary is the EVENT, not the queue.** A reaction
   registered during a firing sees events ENQUEUED after its registration — including
   events already in the queue behind the current one? No: pinned the simpler way —
@@ -140,10 +151,17 @@ take operations, (4) the reaction-list storage per channel. nsl owns everything 
 decision in it: the verbs' validation (value-check, A1 path canonicalization + prefix
 check), the reactor loop (dequeue → snapshot → fire), registration, and later (D) the
 supervisor. Sizing/tuning (queue depth, OOM behavior on enqueue) is a work-order detail
-for the implementing task, with one requirement pinned now: **enqueue must be callable
-from the C side without entering nsl** — that is the ISR→channel pulse seam
-(demo-node finding 2, phase-2 work order `onAlertPost:to:`); Milestone C proves it by
-having the host seam (or a test prim) post an event from C.
+for the implementing task, with two requirements pinned now:
+1. **Enqueue must be callable from the C side without entering nsl** — that is the
+   ISR→channel pulse seam (demo-node finding 2, phase-2 work order `onAlertPost:to:`);
+   Milestone C proves it by having the host seam (or a test prim) post an event from C.
+2. **Each registration records its owner** — the capability (hence, at D, the job)
+   that made it. Motivation (surfaced by the D-C4 discussion): demo-node's restart path
+   is `resume:` → `start` → `whenever:` again; if a crashed job's registrations
+   survived, re-entry would double-register. The D restart contract therefore needs
+   "drop all reactions owned by job J" as a supervisor teardown primitive — structural,
+   not job hygiene. One tag field per registration bought now; the sweep verb itself
+   is D's (C exposes no unregister surface to jobs, per Q2).
 
 ## 7. Error strings (frozen on ratification — errors.md discipline)
 
