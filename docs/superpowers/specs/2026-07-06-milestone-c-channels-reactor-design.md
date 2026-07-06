@@ -225,7 +225,7 @@ Plan-time note (2026-07-06): with paths built ONLY by relative join over canonic
 segments (no `..`, no leading `/`), prefix escape is unrepresentable by construction —
 `outside capability prefix` therefore has NO thrower in Milestone C. The spelling stays
 FROZEN-RESERVED for the first API that accepts absolute paths against a capability
-(likely D's grant surface). PROPOSED additions (controller, pending David — static-
+(likely D's grant surface). FROZEN additions (David-approved 2026-07-06 — static-
 capacity exhaustion, Tier-2 from C, embedded-arena style): `channel registry full`,
 `channel queue full`, `channel reactions full`.
 
