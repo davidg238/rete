@@ -15,7 +15,7 @@ SRC=../ns-tests/04_somns_basic/01_method_call.ns
 python3 "$NS/tools/ns_compile_oevm.py" "$SRC" /tmp/app.oimg --format=oimg --layout=/tmp/layout.json
 
 # 3. build the standalone image VM
-gcc -Wall -std=c99 -Isrc src/vm.c src/gc.c src/dispatch.c src/platform.c "src/backend/$TARGET/platform_$TARGET.c" src/serial.c "src/backend/$TARGET/serial_$TARGET.c" src/udp.c "src/backend/$TARGET/udp_$TARGET.c" src/mirror.c src/oimg_loader.c \
+gcc -Wall -std=c99 -Isrc src/vm.c src/gc.c src/dispatch.c src/platform.c src/space.c "src/backend/$TARGET/platform_$TARGET.c" src/serial.c "src/backend/$TARGET/serial_$TARGET.c" src/udp.c "src/backend/$TARGET/udp_$TARGET.c" src/mirror.c src/oimg_loader.c \
     src/kernel_boot.c oevm_image_main.c -o /tmp/oevm_img -lm
 
 # 4. run and assert

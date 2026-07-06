@@ -38,4 +38,19 @@
 #define PRIM_pf_basicNewBytes    70
 #define PRIM_pf_freezeBytes      71
 #define PRIM_pf_valueRank        72
+/* Milestone C Task 1: channel-space C substrate prims (src/space.c). The
+   task brief specified ids 73-76 for these, computed from this file's last
+   MIRRORED id above (72, PRIM_pf_valueRank) without accounting for the 6
+   value-algebra predicate enum slots (isValue/isSymbol/isList/isMap/
+   isRecord/isBytes) that Milestone B Task 4 already appended at ids 73-78 in
+   dispatch.c's PRIM enum — unmirrored here because platform.c never sees
+   them (serviced entirely by dispatch.c's own fast-path switch; see that
+   task's comment there). True append-only numbering — the binding
+   constraint is that no EXISTING id may shift — is therefore 79-82, not
+   73-76; flagged as a concern in the Task 1 report
+   (.superpowers/sdd/mc-task-1-report.md). */
+#define PRIM_pf_spacePost        79
+#define PRIM_pf_spaceRegister    80
+#define PRIM_pf_spaceTake        81
+#define PRIM_pf_spaceDequeue     82
 #endif /* OEVM_PRIM_IDS_H */

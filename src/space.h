@@ -1,0 +1,82 @@
+#ifndef OEVM_SPACE_H
+#define OEVM_SPACE_H
+/* Milestone C Task 1: the degenerate (exact-channel) TupleSpace C substrate —
+   design doc docs/superpowers/specs/2026-07-06-milestone-c-channels-reactor-design.md
+   section 6 ("the C seam carries data, not control"). This module owns:
+     (1) the exact-match channel registry (path string -> small int id),
+     (2) one node-wide FIFO event queue (D-C1),
+     (3) enqueue/dequeue/take operations over that queue,
+     (4) the owner-tagged reaction list storage per channel (section 6 point 2 —
+         the tag is bought now for D's future "drop all reactions owned by job
+         J" restart sweep; this task exposes no unregister/sweep verb).
+   Every decision (value validation, capability prefix confinement, the
+   reactor loop, registration policy) stays in nsl; this file is the storage +
+   the ISR-callable post seam (space_post, spec section 6 point 1) only.
+
+   Exact-channel dispatch (P1): a path is looked up/interned as an opaque
+   whole string — no segment/prefix matching happens here. Capability prefix
+   confinement (A1) is checked by nsl before it ever resolves to a full path
+   string that reaches this module.
+
+   Static capacities (overridable via -D, embedded-arena style): a fixed
+   channel table, path buffer, ring-buffer queue depth, and per-channel
+   reaction slots. Exhaustion of any of the three is a Tier-2 crash with a
+   FROZEN string (David-approved 2026-07-06, design doc section 7):
+     "channel registry full", "channel queue full", "channel reactions full".
+*/
+#include "oevm.h"
+#include <stddef.h>
+
+#ifndef OEVM_SPACE_MAX_CHANNELS
+#define OEVM_SPACE_MAX_CHANNELS 32
+#endif
+#ifndef OEVM_SPACE_MAX_PATH
+#define OEVM_SPACE_MAX_PATH 64
+#endif
+#ifndef OEVM_SPACE_QUEUE_DEPTH
+#define OEVM_SPACE_QUEUE_DEPTH 64
+#endif
+#ifndef OEVM_SPACE_MAX_REACTIONS
+#define OEVM_SPACE_MAX_REACTIONS 8
+#endif
+
+/* Find-or-create the channel registered for the exact path [path, path+len).
+   Returns the same small int id for the same path every time (registry id);
+   a different path (including a prefix/suffix collision like "sensor" vs
+   "sensors") always gets a distinct id. Aborts `channel registry full` on
+   the (OEVM_SPACE_MAX_CHANNELS+1)th distinct path. */
+int space_intern(const char *path, size_t len);
+
+/* The ISR-pulse seam (design doc section 6 point 1): enqueue (channel, value)
+   at the FIFO tail, callable from C without entering nsl. Interns the path if
+   it is new (a post to a channel with no reactions yet is a legal transient
+   signal, P4 — dropped only at dispatch time, not here). Aborts
+   `channel queue full` when the ring is at capacity. */
+void space_post(const char *path, size_t len, oop value);
+
+/* Remove-if-present-now (design doc section 3, D-C2): the oldest
+   queued-but-undispatched value on exactly this channel, removed from the
+   queue. Answers NULL (nil) if the channel has never been posted to, or has
+   no undispatched event, without creating a registry entry as a side effect. */
+oop space_take(const char *path, size_t len);
+
+/* Append a standing reaction (design doc section 6 point 2: owner-tagged for
+   D's future restart sweep). Interns the path if new. Aborts
+   `channel reactions full` on the (OEVM_SPACE_MAX_REACTIONS+1)th registration
+   on one channel. Multiple registrations on one channel are fan-out (D-C3);
+   duplicate (block, owner) pairs are two reactions, not deduped (D-C4). */
+void space_register(const char *path, size_t len, oop block, oop owner);
+
+/* Dequeue the oldest queued event, node-wide FIFO order (D-C1). Answers NULL
+   if the queue is empty; else a fresh 2-slot heap Array {value,
+   blocksSnapshotArray}, where blocksSnapshotArray is a fresh Array of the
+   channel's reaction blocks snapshotted AT THIS MOMENT (D-C5), in
+   registration order (D-C3). */
+oop space_dequeue(void);
+
+/* GC root trace: marks every queued (still-live) event's value oop, and every
+   registered reaction's block + owner oop, across every channel. Called from
+   gc.c's root scan beside the other builtin-vtable roots. */
+void space_gc_trace(void);
+
+#endif /* OEVM_SPACE_H */

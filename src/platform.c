@@ -2,6 +2,7 @@
 #include "platform_backend.h"
 #include "prim_ids.h"
 #include "oimg.h"
+#include "space.h"   /* Milestone C Task 1: channel-space C substrate */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -218,6 +219,58 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         if (RawBytesVtable != NULL && obj_vtable(v) == RawBytesVtable) { *out = TAG_SMI(-2); return 1; }
         *out = TAG_SMI(-1);   /* any other heap object: ask it in nsl */
         return 1;
+    }
+    /* --- Milestone C Task 1: channel-space C substrate (src/space.c). Path
+       arguments arrive as `struct String*`, StringVtable-gated the same way
+       PRIM_pf_freezeBytes gates its RawBytes receiver above; nsl owns the
+       verbs' own validation (value-check, A1 prefix confinement) before it
+       ever reaches here (design doc section 6). --- */
+    case PRIM_pf_spacePost: {
+        /* `platform spacePost: path value: v` — the C-callable enqueue seam
+           (design doc section 6.1's ISR-pulse proof). Answers args[1]
+           unchanged (mirrors `out:` answering something useful to chain on;
+           the capability-answering contract in the verb surface is nsl's). */
+        oop path = args[0];
+        if (path == NULL || IS_SMI(path) || StringVtable == NULL ||
+            obj_vtable(path) != StringVtable) {
+            fprintf(stderr, "VM Error: platform spacePost:value: expects a String path\n");
+            abort();
+        }
+        struct String *p = (struct String *)path;
+        space_post((const char *)p->bytes, p->length, args[1]);
+        { *out = args[1]; return 1; }
+    }
+    case PRIM_pf_spaceRegister: {
+        /* `platform spaceRegister: path block: aBlock owner: cap` — append a
+           standing reaction, owner-tagged (design doc section 6 point 2).
+           Answers the platform capability (no other natural receiver-ish
+           answer exists here; mirrors PRIM_pf_print's convention). */
+        oop path = args[0];
+        if (path == NULL || IS_SMI(path) || StringVtable == NULL ||
+            obj_vtable(path) != StringVtable) {
+            fprintf(stderr, "VM Error: platform spaceRegister:block:owner: expects a String path\n");
+            abort();
+        }
+        struct String *p = (struct String *)path;
+        space_register((const char *)p->bytes, p->length, args[1], args[2]);
+        { *out = platform_object(); return 1; }
+    }
+    case PRIM_pf_spaceTake: {
+        /* `platform spaceTake: path` — remove-if-present-now; answers the
+           value or nil (NULL). */
+        oop path = args[0];
+        if (path == NULL || IS_SMI(path) || StringVtable == NULL ||
+            obj_vtable(path) != StringVtable) {
+            fprintf(stderr, "VM Error: platform spaceTake: expects a String path\n");
+            abort();
+        }
+        struct String *p = (struct String *)path;
+        { *out = space_take((const char *)p->bytes, p->length); return 1; }
+    }
+    case PRIM_pf_spaceDequeue: {
+        /* `platform spaceDequeue` — no args; answers the {value,
+           blocksSnapshot} Array or nil (NULL) if the queue is empty. */
+        { *out = space_dequeue(); return 1; }
     }
     default:
         return 0;

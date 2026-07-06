@@ -628,6 +628,16 @@ enum {
        shifts. --- */
     PRIM_pf_valueRank,
     PRIM_isValue, PRIM_isSymbol, PRIM_isList, PRIM_isMap, PRIM_isRecord, PRIM_isBytes,
+    /* --- Milestone C Task 1: channel-space C substrate (src/space.c). The
+       task brief specified ids 73-76 for these, arrived at from prim_ids.h's
+       last MIRRORED id (72, PRIM_pf_valueRank) without accounting for the 6
+       value-algebra predicate enum slots directly above (isValue..isBytes,
+       Milestone B Task 4), which already occupy ids 73-78 despite having no
+       prim_ids.h mirror (platform.c never sees them — see that task's
+       comment). True append-only numbering — no existing id may shift, the
+       binding constraint — is 79-82; flagged in the Task 1 report. Appended
+       last, so no pre-existing PRIM id shifts. --- */
+    PRIM_pf_spacePost, PRIM_pf_spaceRegister, PRIM_pf_spaceTake, PRIM_pf_spaceDequeue,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -653,6 +663,7 @@ static const char *const PRIM_NAMES[] = {
     "freezeBytes:",
     "valueRank:",
     "isValue", "isSymbol", "isList", "isMap", "isRecord", "isBytes",
+    "spacePost:value:", "spaceRegister:block:owner:", "spaceTake:", "spaceDequeue",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 

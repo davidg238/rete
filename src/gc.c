@@ -707,6 +707,13 @@ void gc_collect(void) {
     mark(BytecodeClosureVtable);
     mark(Symbol_value);
 
+    // Milestone C Task 1: the channel-space C substrate (src/space.c) holds
+    // queued event values + registered reaction blocks/owners in its own
+    // static tables, outside every other root set scanned here (not on the
+    // VM stack, not a global vtable/singleton) — trace them explicitly.
+    extern void space_gc_trace(void);
+    space_gc_trace();
+
     // Mark the execution-context root. Task 6 removed the Fiber wrapper: the running
     // context is now exactly g_active_stack (this Stack heap object) — its live
     // frames/registers are traced precisely by scan_vm_stack() below (via

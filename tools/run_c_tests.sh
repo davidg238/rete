@@ -12,7 +12,7 @@
 set -u
 cd "$(dirname "$0")/.." || exit 2
 CC=${CC:-gcc}; STD="-std=c99 -Isrc"; OUT=/tmp/tuvm_ctest; fail=0
-ENG_COMMON="src/platform.c src/serial.c src/udp.c src/mirror.c \
+ENG_COMMON="src/platform.c src/serial.c src/udp.c src/mirror.c src/space.c \
   src/backend/posix/platform_posix.c src/backend/posix/serial_posix.c src/backend/posix/udp_posix.c"
 ENG_A="src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c $ENG_COMMON src/solidified_image.c"
 ENG_B="src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c $ENG_COMMON src/kernel_boot.c"
@@ -41,6 +41,11 @@ for t in test_int_compare test_millis test_platform; do run $t "$ENG_B"; done
 # Milestone B Task 3: RawBytes leaf storage (basicNewBytes:/at:/at:put:/size/
 # freezeBytes:) — Model-B link set, same reasoning as test_platform above.
 run test_raw_bytes "$ENG_B"
+# Milestone C Task 1: channel-space C substrate (space.c) — Model-B link set
+# (space.c itself now rides ENG_COMMON, folded into both ENG_A/ENG_B above).
+# Small capacity overrides make the boundary-fill/overflow properties fast
+# and deterministic (same idiom as test_coalesce/test_heap_stats above).
+run test_space "$ENG_B" -DOEVM_SPACE_MAX_CHANNELS=8 -DOEVM_SPACE_QUEUE_DEPTH=4
 # Backend-only smoke tests (link only the posix seam file, per each test's own
 # header comment — NOT serial.c/udp.c, which need the full VM)
 run test_serial "src/backend/posix/serial_posix.c"

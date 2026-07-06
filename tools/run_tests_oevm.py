@@ -99,7 +99,7 @@ def run_test_file(src_path: Path) -> tuple[str, str]:
         
     cmd_build = [
         "gcc", "-Wall", "-Wextra", "-std=c99",
-        "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/solidified_image.c", "src/oevm_main.c",
+        "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/solidified_image.c", "src/oevm_main.c",
         "-o", "oevm_runner"
     ]
     proc_build = subprocess.run(cmd_build, cwd=str(oevm_dir), capture_output=True, text=True)
