@@ -79,7 +79,7 @@ def _build_pathb_once():
         proc = subprocess.run(
             [
                 "gcc", "-Wall", "-std=c99", "-Isrc",
-                "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/serial.c",
+                "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/serial.c",
         "src/udp.c", "src/mirror.c",
                 *OEVM_BACKEND,
                 "src/oimg_loader.c", "src/kernel_boot.c",
@@ -108,7 +108,7 @@ def run_c_unit_tests(oevm_dir):
     """
     build = subprocess.run(
         ["gcc", "-Wall", "-std=c99", "-Isrc",
-         "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/serial.c",
+         "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/serial.c",
          "src/udp.c", "src/mirror.c", *OEVM_BACKEND,
          "src/oimg_loader.c", "src/solidified_image.c",
          "tests/test_debugger.c", "-o", "/tmp/test_debugger", "-lm"],
@@ -157,7 +157,7 @@ def run_boot_gc_asan_gate() -> bool:
             return False
         build = subprocess.run(
             ["gcc", "-g", "-fsanitize=address", "-Wall", "-std=c99", "-Isrc", "-DOEVM_APPLIANCE",
-             "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/serial.c",
+             "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/serial.c",
              "src/udp.c", "src/mirror.c", *OEVM_BACKEND,
              str(tmp_c), "src/oevm_main.c", "-o", str(runner), "-lm"],
             cwd=str(OEVM_DIR), capture_output=True, text=True)
@@ -387,7 +387,7 @@ def run_test_file(src_path: Path) -> tuple[str, str]:
     cmd_build = [
         "gcc", "-Wall", "-Wextra", "-std=c99", "-Isrc",
         "-DOEVM_APPLIANCE",
-        "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/serial.c",
+        "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/serial.c",
         "src/udp.c", "src/mirror.c",
         *OEVM_BACKEND,
         "src/solidified_image.c", "src/oevm_main.c",
