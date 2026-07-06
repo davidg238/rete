@@ -153,6 +153,17 @@ cannot starve the others:
   between firings; timers and ISR pulses inject events. Concurrency is the schedule's
   property, not the stack's (addendum A3; demo-node finding 1 — the one tempting
   suspension point fell to a timer + `#done` event).
+- **The programming model IS the FSM (+ handlers), not the loop.** The traditional
+  `while true: work; sleep period` does not fit and is not meant to: `sleep` means a
+  suspended stack, and this VM has none (A3 — Milestone A deleted it). The loop
+  re-expresses mechanically: loop BODY → event handler; `sleep period` → a timer
+  registration (`timers every: period post: #sample on: chan`) — the cadence lives in
+  the timer registry, not a blocked stack; loop-carried LOCALS → explicit object state
+  (ivars / Protocol state). demo-node is exactly this transform of
+  `while true: {sample; publish; sleep 60s}`. Trivially periodic jobs need only a
+  one-handler degenerate FSM; anything with a protocol (multi-step, timeouts, retries)
+  uses Protocol states. The payoff is the deep-sleep story: no suspended stack to
+  persist across power-down — `resume:` rebuilds from explicit state.
 - **The soft watchdog bounds the FIRING, and jobs cannot tickle it.** Per the first-step
   design (§Robustness): a bytecode/safe-point BUDGET reusing the debugger safe-point
   hook — the counter resets ONLY when a firing returns to the reactor. There is
@@ -209,6 +220,14 @@ for the implementing task, with two requirements pinned now:
 | relative path escapes the capability prefix (A1) | 2 | `outside capability prefix` |
 | `take:` on empty channel | contract | answers nil (pinned, errors.md) |
 | posting to reaction-less channel | contract | no-op (dropped, C.7) |
+
+Plan-time note (2026-07-06): with paths built ONLY by relative join over canonicalized
+segments (no `..`, no leading `/`), prefix escape is unrepresentable by construction —
+`outside capability prefix` therefore has NO thrower in Milestone C. The spelling stays
+FROZEN-RESERVED for the first API that accepts absolute paths against a capability
+(likely D's grant surface). PROPOSED additions (controller, pending David — static-
+capacity exhaustion, Tier-2 from C, embedded-arena style): `channel registry full`,
+`channel queue full`, `channel reactions full`.
 
 ## 8. Tests (T-C contract + this design's additions)
 
