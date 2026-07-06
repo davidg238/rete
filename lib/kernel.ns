@@ -405,6 +405,54 @@ class Kernel usingPlatform: platform = () (
     public tag: aTag with: a with: b with: c with: d = ( ^ self tag: aTag fields: (Map with: a with: b with: c with: d) )
   )
 
+  (* Shared multi-byte read protocol (Milestone B Task 10) — composes on the
+     concrete class's u8At:/byteSize. LE is the default (u16At:), BE spelled
+     out (u16BeAt:) — per the staged bytes.ns naming decision. *)
+  class BytesReadProtocol = () (
+    public u16At: i   = ( ^ (self u8At: i) + ((self u8At: i + 1) << 8) )
+    public u16BeAt: i = ( ^ ((self u8At: i) << 8) + (self u8At: i + 1) )
+  ) : ( )
+
+  (* Mutable workbench — NOT a value (no isValue override -> Object false).
+     Storage = private raw slot holding the Task-3 RawBytes C object; ALL
+     bounds/range crashes come from the C layer (frozen strings), so the
+     accessors here are thin forwarders — no nsl-side bounds/range checks
+     (superseded staged-design decision; see Task 10 brief). *)
+  class ByteArray = BytesReadProtocol ( | raw | ) (
+    public byteSize = ( ^ raw size )
+    public u8At: i = ( ^ raw at: i )
+    public u8At: i put: v = ( raw at: i put: v. ^ v )
+    public u16At: i put: v = ( self u8At: i put: (v bitAnd: 255). self u8At: i + 1 put: ((v >> 8) bitAnd: 255). ^ v )
+    public u16BeAt: i put: v = ( self u8At: i put: ((v >> 8) bitAnd: 255). self u8At: i + 1 put: (v bitAnd: 255). ^ v )
+    public freeze = ( ^ Bytes overRaw: (platform freezeBytes: raw) )
+    setRaw: r = ( raw:: r. ^ self )
+  ) : (
+    public new: n = ( ^ self new setRaw: (platform basicNewBytes: n) )
+    public fromList: aList = ( | r | r:: self new: aList size. 1 to: aList size do: [ :i | r u8At: i put: (aList at: i) ]. ^ r )
+  )
+
+  (* Immutable algebra value, rank 5 (Milestone B Task 10). Read protocol
+     only — write selectors DO NOT EXIST here (immutability by construction;
+     a write attempt is a DNU, no frozen string — design §7). Reached only
+     via ByteArray>>freeze; no module accessor exposes this class to app
+     code (keeping the class-side constructor unreachable keeps app code
+     from minting a Bytes without going through a real freeze copy). *)
+  class Bytes = BytesReadProtocol ( | raw | ) (
+    public byteSize = ( ^ raw size )
+    public u8At: i = ( ^ raw at: i )
+    public freeze = ( ^ self )
+    public asByteArray = ( | r | r:: ByteArray new: self byteSize. 1 to: self byteSize do: [ :i | r u8At: i put: (self u8At: i) ]. ^ r )
+    public isBytes = ( ^ true )
+    public isValue = ( ^ true )
+    public valueRank = ( ^ 5 )
+    public valueDepth = ( ^ 0 )
+    public = other = ( (outer isValueObject: other) ifFalse: [ ^ false ]. ^ outer value: self equals: other )
+    public hash = ( ^ outer valueHashOf: self )
+    setRaw: r = ( raw:: r. ^ self )
+  ) : (
+    public overRaw: r = ( ^ self new setRaw: r )
+  )
+
   class ReadStream = ( | source position | ) (
     (* Byte-granular cursor over an immutable String. `next`/`peek` answer a byte
        SMI; substring reads build Strings via `platform string:`. Open-ended reads
@@ -562,12 +610,11 @@ class Kernel usingPlatform: platform = () (
     (ra = 2 or: [ ra = 3 ]) ifTrue: [                            (* Integer / Float *)
       a < b ifTrue: [ ^ -1 ]. b < a ifTrue: [ ^ 1 ]. ^ 0 ].
     ra = 4 ifTrue: [ ^ byteCompare: a with: b ].                 (* String *)
+    ra = 5 ifTrue: [ ^ bytesCompare: a with: b ].                (* Bytes *)
     ra = 6 ifTrue: [ ^ byteCompare: a printString with: b printString ]. (* Symbol *)
     ra = 7 ifTrue: [ ^ listCompare: a with: b ].                 (* List *)
     ra = 8 ifTrue: [ ^ mapCompare: a with: b ].                  (* Map *)
     ra = 9 ifTrue: [ ^ recordCompare: a with: b ].                (* Record *)
-    (* Extension point (Milestone B Task 10): add rank 5 (Bytes) arm above
-       this fallback. *)
     ^ self error: 'not a value'
   )
 
@@ -579,6 +626,21 @@ class Kernel usingPlatform: platform = () (
     n:: s size. m:: t size. lim:: n < m ifTrue: [ n ] ifFalse: [ m ].
     1 to: lim do: [ :i | | sb tb |
       sb:: s at: i. tb:: t at: i.
+      sb < tb ifTrue: [ ^ -1 ].
+      tb < sb ifTrue: [ ^ 1 ] ].
+    n < m ifTrue: [ ^ -1 ]. n > m ifTrue: [ ^ 1 ]. ^ 0
+  )
+
+  (* Byte-wise total order over two Bytes values: shared-prefix bytes decide
+     first (via u8At:/byteSize, a RawBytes-wrapping kernel object — NOT a
+     String — so byteCompare:with: itself cannot be reused, it sends
+     at:/size), an exact-prefix tie falls to shorter-is-less. Same shape as
+     byteCompare:with: above. *)
+  bytesCompare: a with: b = (
+    | n m lim |
+    n:: a byteSize. m:: b byteSize. lim:: n < m ifTrue: [ n ] ifFalse: [ m ].
+    1 to: lim do: [ :i | | sb tb |
+      sb:: a u8At: i. tb:: b u8At: i.
       sb < tb ifTrue: [ ^ -1 ].
       tb < sb ifTrue: [ ^ 1 ] ].
     n < m ifTrue: [ ^ -1 ]. n > m ifTrue: [ ^ 1 ]. ^ 0
@@ -662,8 +724,13 @@ class Kernel usingPlatform: platform = () (
       h:: ((h bitXor: (valueHashOf: v tag)) * 16777619) bitAnd: 1073741823.
       h:: ((h bitXor: (valueHashOf: v fields)) * 16777619) bitAnd: 1073741823.
       ^ h ].
-    (* Extension point (Milestone B Task 10): add rank 5 (Bytes) container arm
-       above this fallback. *)
+    r = 5 ifTrue: [                                              (* Bytes — folded
+      explicitly, container-style, ABOVE the leaf fallback: a Bytes value's own
+      `hash` method calls back into `outer valueHashOf: self`, so if rank 5 ever
+      reached the fallback below it would recurse forever. *)
+      h:: r.
+      1 to: v byteSize do: [ :i | h:: ((h bitXor: (v u8At: i)) * 16777619) bitAnd: 1073741823 ].
+      ^ h ].
     ^ ((v hash) bitXor: r) bitAnd: 1073741823
   )
 
@@ -680,6 +747,7 @@ class Kernel usingPlatform: platform = () (
   public List              = ( ^ List )
   public Map               = ( ^ Map )
   public Record            = ( ^ Record )
+  public ByteArray         = ( ^ ByteArray )
   public ReadStream        = ( ^ ReadStream )
   public WriteStream       = ( ^ WriteStream )
 ) : (
