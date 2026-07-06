@@ -1,15 +1,15 @@
    text	   data	    bss	    dec	    hex	filename
   10339	     12	   1120	  11471	   2ccf	vm.o
-  12142	    584	 196896	 209622	  332d6	dispatch.o
-   4027	     24	17048416	17052467	1043333	gc.o
-    628	    976	      4	   1608	    648	kernel_boot.o
-   1653	      0	    144	   1797	    705	platform.o
+  13552	    680	 196896	 211128	  338b8	dispatch.o
+   4056	     24	17048416	17052496	1043350	gc.o
+    656	   1040	      4	   1700	    6a4	kernel_boot.o
+   2217	      0	    144	   2361	    939	platform.o
     538	      0	     88	    626	    272	serial.o
     971	      0	     88	   1059	    423	udp.o
    1759	      0	     88	   1847	    737	mirror.o
-   1929	      0	    296	   2225	    8b1	oimg_loader.o
+   1929	      0	    304	   2233	    8b9	oimg_loader.o
     245	      0	      0	    245	     f5	platform_posix.o
     336	      0	   4128	   4464	   1170	serial_posix.o
    1135	      0	      0	   1135	    46f	udp_posix.o
-  35702	   1596	17251268	17288566	107cd76	(TOTALS)
-data+bss (host proxy for MCU static RAM): 17252864
+  37733	   1756	17251276	17290765	107d60d	(TOTALS)
+data+bss (host proxy for MCU static RAM): 17253032
