@@ -1,6 +1,6 @@
 # Milestone C — capability-scoped channels + reactor (design)
 
-**Status:** DRAFT 2026-07-06, awaiting David's ratification (esp. §5 D-C1..D-C5, §7 strings, §9 Q2). §9 Q1 DECIDED (respell — 2026-07-06).
+**Status:** RATIFIED by David 2026-07-06 ("approve all"): D-C1..D-C5, §7 frozen strings, §6 owner-tagged registrations, Q2 (no unregister verb in C). Q1 decided earlier same day (respell). §5b recorded post-ratification (fairness probe — model consequences, no new surface).
 **Parents:** `2026-07-03-nsl-tuvm-first-step-design.md` (§Coordination, §Milestone C, §6),
 `tuvm/review/2026-07-03-first-step-design-addendum.md` A1,
 `tuvm/review/test-suites-spec.md` T-C, `tuvm/review/demo-node.ns` (the target program +
@@ -143,6 +143,43 @@ event before the reactor would drop it for lack of reactions.
   to channel X while X's own fan-out is mid-flight joins from the NEXT event (the
   fan-out snapshot). Rationale: one rule ("snapshot at dequeue"), no per-event state.
 
+## 5b. Liveness & fairness (David's 2026-07-06 probe, recorded)
+
+How a single-stack run-to-completion node appears dynamic, and why a CPU-consuming job
+cannot starve the others:
+
+- **The illusion of concurrency is event-granularity interleaving.** Handlers are short
+  (ms-scale); the FIFO queue interleaves every job's events; FSMs (fsm.ns) hold state
+  between firings; timers and ISR pulses inject events. Concurrency is the schedule's
+  property, not the stack's (addendum A3; demo-node finding 1 — the one tempting
+  suspension point fell to a timer + `#done` event).
+- **The soft watchdog bounds the FIRING, and jobs cannot tickle it.** Per the first-step
+  design (§Robustness): a bytecode/safe-point BUDGET reusing the debugger safe-point
+  hook — the counter resets ONLY when a firing returns to the reactor. There is
+  deliberately NO job-facing pet/keepalive surface, so the hardware-WD failure mode
+  ("task pets the dog while spinning") cannot be expressed: the only way to reset the
+  budget is to return, and returning is precisely what hands the CPU to the next event.
+  Budget trip = Tier-2 crash → unwind to reactor → supervisor policy (D). The hard
+  Zephyr WDT stays beneath as the last resort (reliability-gaps: soft trip → hard WDT
+  reboot is the terminal path).
+- **Long computations must chunk, and FIFO makes chunking fair.** The idiom for real
+  CPU work: do a bounded slice, post a continuation event to your own channel, return.
+  D-C1/P3 puts the self-post at the queue TAIL, so every event already pending — every
+  other job's — dispatches before the next slice. Worst-case added latency for any
+  other job = one slice, bounded by the WD budget; total event latency ≈ queue depth ×
+  max-firing-bound. Schedulable, embedded-style arithmetic.
+- **Flooding is bounded too, but by depth not blocking.** A job posting many events per
+  firing inflates queue depth (latency), never blocks others (FIFO has no priorities to
+  invert). If a real workload ever needs it: per-channel token-bucket rate-limiting at
+  `out:` (reliability-gaps already prescribes this shape for remote logging) — additive,
+  not first-step.
+- **Rejected** (recorded so it isn't re-litigated): preemption/priorities/per-job CPU
+  budgets (scheduler machinery with no first-step workload; revisit only with real
+  multi-job evidence); job-facing WD keepalive (defeats the boundary — liveness must be
+  proven by RETURNING, not asserted); uncrunchable long computation in nsl (if it ever
+  matters, the answer is a C-side worker seam posting its result — data, not policy —
+  never VM suspension, per A3).
+
 ## 6. The C seam (substrate, not policy)
 
 Per first-step design §"Channel/space core in C": the C primitive owns (1) the channel
@@ -197,11 +234,11 @@ Suite runs solo/foreground as always.
   duplicating what prefix confinement already guarantees — the thinking A1 warns
   against); one global shared request channel (identity-by-content is spoofable by
   any holder of the channel).
-- **Q2 No unregister verb** in this milestone: a standing reaction lives until the space
-  (or, at D, the job's restart teardown) drops it. OK, or does C need `cancel` now?
-  (demo-node cancels TIMERS, never channel reactions — evidence for deferring.)
-- **Q3** D-C3/D-C4/D-C5 ratification (the §5 decisions carry the design's only new
-  semantic surface).
+- ~~Q2~~ **DECIDED (David, 2026-07-06): no unregister verb in C.** A standing reaction
+  lives until the space (or, at D, the supervisor's owner-tag restart sweep — §6) drops
+  it. demo-node cancels TIMERS, never channel reactions.
+- ~~Q3~~ **RATIFIED (David, 2026-07-06): D-C1..D-C5 as worded** (incl. the D-C4
+  precision pass), §7 strings frozen, §6 owner-tag provision accepted.
 
 ## 10. Why this stays the degenerate case (§6 guard)
 
