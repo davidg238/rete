@@ -47,10 +47,15 @@
 
 | id | prim_ids.h name | PRIM_NAMES selector | platform_dispatch behavior |
 |---|---|---|---|
-| 73 | `PRIM_pf_spacePost` | `spacePost:value:` | args[0]=String path, args[1]=value → `space_post`; answers args[1] |
-| 74 | `PRIM_pf_spaceRegister` | `spaceRegister:block:owner:` | → `space_register`; answers platform |
-| 75 | `PRIM_pf_spaceTake` | `spaceTake:` | → `space_take`; answers value or nil (NULL) |
-| 76 | `PRIM_pf_spaceDequeue` | `spaceDequeue` | → `space_dequeue`; answers Array or nil |
+| 79 | `PRIM_pf_spacePost` | `spacePost:value:` | args[0]=String path, args[1]=value → `space_post`; answers args[1] |
+| 80 | `PRIM_pf_spaceRegister` | `spaceRegister:block:owner:` | → `space_register`; answers platform |
+| 81 | `PRIM_pf_spaceTake` | `spaceTake:` | → `space_take`; answers value or nil (NULL) |
+| 82 | `PRIM_pf_spaceDequeue` | `spaceDequeue` | → `space_dequeue`; answers Array or nil |
+
+(PLAN CORRECTION at Task-1 landing: this table originally said 73–76 — a controller
+arithmetic error. dispatch.c's PRIM enum positions 73–78 were already held by the MB
+Task-4 predicate prims, which prim_ids.h deliberately does not mirror. True append =
+79–82, as landed. nsl reaches prims by selector, never numeric id — no downstream change.)
 
 Path Strings arrive as `struct String*` (StringVtable-gated in the platform cases, mirroring how `basicNewBytes:` gates its args); crash strings print via `fprintf(stderr, "...\n"); abort();` exactly like the MB `index out of bounds` precedent (dispatch.c ~1262).
 
