@@ -286,3 +286,36 @@ silently depended on. Both fixed in tuvm, own revertible commits, David-approved
 Related ratifications recorded elsewhere: `->` as compile-time rewrite (this spec's
 Association section, amended 2026-07-04); the `outer <keyword>:` non-public-helper reach
 idiom (kernel.ns:340-346 comment; ADR line due in Task 12 close-out).
+
+## Addendum 2026-07-05 — Task 8 (Map) & Task 9 (Record) decisions (David-approved)
+
+All pure-nsl (no VM/C change). Tasks 8-9 committed + merged to master + pushed 2026-07-05.
+
+1. **`valueHashOf:` leaf-mask completion (nsl-tuvm 7bb3fc5, own revertible commit).** §5's hash
+   fold stated "30-bit mask keeps every intermediate SMI-safe" but the *leaf* fallback
+   (`(v hash) bitXor: r`) was unmasked — a bare Symbol's native hash (~6.4e12) overflowed
+   LargeInteger's 2^64 magnitude when folded into a container's `* 16777619` before the
+   container's own `bitAnd` ran. Latent since Task 7 (its test never folded a Symbol into a
+   container); surfaced by Map with Symbol keys. Fix masks the leaf too, completing the stated
+   invariant. Behavior-preserving (uniform mask; equal→equal holds); proven non-regressing at
+   98/0/12 in isolation before the Map commit. Touches ratified Task-7 code → David-ratified.
+2. **Map `keyAt:`/`valueAt:` (Task 8).** Minimal indexed read accessors, added so the
+   module-level `mapCompare:with:` can walk two Map instances in lockstep by index
+   (`keysAndValuesDo:` iterates only one receiver). Read-only, never expose the backing Array.
+   David-accepted as sanctioned surface (List>>at: precedent). Record (Task 9) needs no
+   analogue — it has exactly one tag + one fields, so `recordCompare:with:` uses the plain
+   `tag`/`fields` accessors and adds NO new surface.
+3. **Map last-wins via stable-sort + compaction (Task 8).** Duplicate construction keys keep
+   the LAST entry (CBOR-decoder overwrite semantics). Implemented as: stable insertion-sort
+   (strict `> 0` shift never reorders equal keys) then keep-last-of-run compaction. Covered by
+   `05d_map_last_wins.ns` (adjacent + non-adjacent duplicates).
+4. **`fromPairs:` contract consequence (Task 8).** A bare Association is `not a value`, so an
+   algebra List can never legally hold Associations as elements. Therefore `Map>>fromPairs:`'s
+   Association branch is reachable ONLY via an unvalidated collection (e.g. OrderedCollection),
+   never an algebra List. The plan's draft `05_map.ns` (which fed `fromPairs:` a `platform List
+   with: (#j -> 7) ...`) was unrunnable and was corrected (plan doc 94cb9d8).
+5. **Record validation + Symbol rendering (Task 9).** `tag isSymbol` / `fields isMap` gate
+   construction (else `not a value`) — both predicates are safe to send to any receiver
+   (builtins answer in C, heap via Object defaults). Symbol `printString` renders WITH the
+   leading `#` (`#reading`); the plan draft's bare `reading` was corrected in `06_record.ns`
+   and Record was NOT altered — a no-`#` human render is deferred to tuvm#7 (`displayString`).
