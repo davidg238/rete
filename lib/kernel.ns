@@ -638,7 +638,10 @@ class Kernel usingPlatform: platform = () (
        `basicAt:`/`basicSize` and never escapes this method. Fan-out invokes
        every snapshot block with the carried value; a reaction that posts
        merely enqueues — the outer whileTrue picks the new event up on a
-       LATER iteration, never recursively (run-to-completion, D-C). *)
+       LATER iteration, never recursively (run-to-completion, D-C).
+       `drain` is not re-entrant — a reaction that itself called `drain`
+       would violate run-to-completion; reactions post (enqueue) and
+       return. *)
     public drain = (
       | ev v bs i |
       [ ev:: platform spaceDequeue. (ev == nil) not ] whileTrue: [
