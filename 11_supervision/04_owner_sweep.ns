@@ -1,0 +1,34 @@
+(*
+expect:
+before 3
+after 0
+other 2
+done
+*)
+(* T-D owner sweep — three reactions registered through capability `job` on its own
+   channels, plus one through a different capability `other`. Dropping reactions owned
+   by `job` removes exactly the three (they no longer fire on drain); `other`'s
+   reaction is untouched. Sweep matches by == against the exact capability object. *)
+class OwnerSweep packageUsing: manifest = ( | jobHits ::= 0. otherHits ::= 0. | ) (
+  public main: platform args: args = (
+    | space job other |
+    space:: platform space.
+    job::   space channel: 'job'.
+    other:: space channel: 'other'.
+    job whenever: 'a' do: [ :m | jobHits:: jobHits + 1 ].
+    job whenever: 'b' do: [ :m | jobHits:: jobHits + 1 ].
+    job whenever: 'a' do: [ :m | jobHits:: jobHits + 1 ].
+    other whenever: '' do: [ :m | otherHits:: otherHits + 1 ].
+    job out: 'a' value: 1. job out: 'b' value: 1. other out: '' value: 1.
+    space drain.
+    ('before ' , jobHits printString) out.            (* 3 *)
+    jobHits:: 0.
+    platform spaceDropReactionsOwnedBy: job.
+    job out: 'a' value: 2. job out: 'b' value: 2. other out: '' value: 2.
+    space drain.
+    ('after ' , jobHits printString) out.             (* 0 — swept *)
+    ('other ' , otherHits printString) out.           (* 2 — fires once per drain *)
+    'done' out.
+  )
+) : (
+)
