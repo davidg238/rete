@@ -15,9 +15,11 @@ result: 42
    the machine's own wiring (idle->converting->idle, twice). The #tick
    action posts a value on a channel (`chan out: '' value: 42`); a
    `whenever:`-registered observer only sees it once `space drain` runs
-   (registered AFTER the posts that happen during `handle:`, so it can only
-   fire via the drain fan-out, never inline) — proving the FSM-action ->
-   reactor seam (Task 2/3 channel surface), not an ordinary in-process call. *)
+   (registered BEFORE the posts that happen during `handle:`, yet its print
+   still appears only after all four state prints — posting merely enqueues;
+   the observer can only fire via the drain fan-out, never inline) — proving
+   the FSM-action -> reactor seam (Task 2/3 channel surface), not an
+   ordinary in-process call. *)
 class ProtocolBasic packageUsing: manifest = () (
 public main: platform args: args = (
   | space chan machine |
