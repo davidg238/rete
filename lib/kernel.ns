@@ -650,6 +650,123 @@ class Kernel usingPlatform: platform = () (
   ) : (
   )
 
+  (* A single `state:on:do:then:` wire — landed from staged `tuvm/review/lib/
+     fsm.ns` (Milestone C Task 5). Kernel-module sibling of Protocol (staged
+     nested it as `Protocol class Transition`; flattened to a top-level
+     sibling here, matching this module's exclusively-flat class shape — no
+     other kernel.ns class nests a class, and the public surface — `action`,
+     `target`, class-side `action:target:` — is unchanged by the move). *)
+  class Transition = ( | action target | ) (
+    public action = ( ^ action )
+    public target = ( ^ target )
+    setAction: a target: t = ( action:: a. target:: t. ^ self )
+  ) : (
+    public action: a target: t = ( ^ self new setAction: a target: t )
+  )
+
+  (* L4 — Protocol: the state-machine idiom (Milestone C Task 5; THE fiber
+     replacement, addendum A3 mechanism #1). One object per device protocol;
+     events in, actions out; current state explicit, inspectable, and
+     trivially persistable via `snapshot`/`restore:`. Landed from the staged
+     `tuvm/review/lib/fsm.ns` (PLAN-DRAFT CAUTION — see task report for the
+     staged-vs-landed divergence). Depends on Dictionary (per-machine mutable
+     transition/entry tables: `states` maps state -> Dictionary of
+     eventKey -> Transition, `entryActions` maps state -> block — Map is the
+     wrong tool here, it is an immutable value type, not a mutable table) and,
+     by convention only, the channel surface (a transition/entry action may
+     `out:value:`; this class itself sends no channel prim — it adds no new
+     VM surface, exactly as the staged header promises). *)
+  class Protocol = ( | name ::= #protocol. current ::= #initial.
+      states ::= Dictionary new.       (* state -> (eventKey -> Transition) *)
+      unhandled ::= nil.               (* block or nil; nil = silently ignore *)
+      entryActions ::= Dictionary new. (* state -> block, optional *)
+      trace ::= false. | ) (
+
+    (* ---- definition ---- *)
+    (* Staged fsm.ns:48 built the missing-table branch with a block that
+       declared its OWN temp (`[ | t | t:: Dictionary new. states at: s put:
+       t. t ]`) — a genuine (non-inlined) escaping block carrying a local
+       slot. Landed differently: `table` (already a method temp) is reused
+       inside the ifAbsent: block instead of a fresh block-local, and the
+       Dictionary-new-and-store step is hoisted to a plain ifTrue: after the
+       lookup returns nil. Same net effect (create-once, get-or-create), no
+       surface change — flagged as an internal-adaptation, not a logic bug:
+       traced against the VM (`OP_LD_SLOT`/`Invalid receiver`) with an
+       isolated probe and confirmed it is a real compiler/VM limitation on
+       escaping blocks that declare their own temp slots, not staged-logic
+       breakage; avoided rather than chased further, since the plan's
+       PLAN-DRAFT CAUTION rule authorizes internal-logic fixes with an
+       unchanged public surface. *)
+    public state: s on: eventKey do: action then: target = (
+      | table |
+      table:: states at: s ifAbsent: [ nil ].
+      table == nil ifTrue: [ table:: Dictionary new. states at: s put: table ].
+      table at: eventKey put: (Transition action: action target: target).
+      ^ self
+    )
+    public state: s onEntry: aBlock = ( entryActions at: s put: aBlock. ^ self )
+    public onUnhandled: aBlock = ( unhandled:: aBlock. ^ self )
+    public startIn: s = ( current:: s. self runEntry: s with: nil. ^ self )
+    public trace: aBool = ( trace:: aBool. ^ self )
+
+    (* ---- introspection / persistence (the deep-sleep hooks) ---- *)
+    public currentState = ( ^ current )
+    public name = ( ^ name )
+    (* Persistable snapshot is just the state symbol; a protocol carries no
+       other implicit state BY DESIGN — anything else the handler needs
+       lives in the job's own slots or in channel messages, both of which are
+       already explicit. *)
+    public snapshot = ( ^ current )
+    public restore: s = ( current:: s. ^ self )
+
+    (* ---- dispatch (run-to-completion; called from a whenever: handler) ---- *)
+    public handle: event = (
+      | key table hit t |
+      key:: self keyFor: event.
+      table:: states at: current ifAbsent: [ nil ].
+      hit:: false.
+      table == nil ifFalse: [
+        t:: table at: key ifAbsent: [ nil ].
+        t == nil ifFalse: [
+          hit:: true.
+          trace ifTrue: [ (name asString , ': ' , current asString , ' -' , key asString , '-> ' , t target asString) out ].
+          t action value: self value: event.
+          current:: t target.
+          self runEntry: current with: event ] ].
+      hit ifFalse: [
+        unhandled == nil ifFalse: [ unhandled value: self value: event ] ].
+      ^ hit
+    )
+
+    keyFor: event = (
+      (* Symbol -> itself; Record -> tag; anything else -> the catch-all key.
+         isSymbol/isRecord are the type predicates from messages.md. *)
+      event isSymbol ifTrue: [ ^ event ].
+      event isRecord ifTrue: [ ^ event tag ].
+      ^ #event
+    )
+
+    (* Setup-time check: every transition target has a state table or an
+       entry action. Configuration bugs die at setup, not in the field. Call
+       at end of definition: `machine validate.` *)
+    public validate = (
+      states do: [ :table |
+        table do: [ :t |
+          ((states containsKey: t target) or: [ entryActions containsKey: t target ])
+            ifFalse: [ self error: 'unknown state' ] ] ].
+      ^ self
+    )
+    runEntry: s with: event = (
+      | a |
+      a:: entryActions at: s ifAbsent: [ nil ].
+      a == nil ifFalse: [ a value: self value: event ].
+      ^ self
+    )
+    setName: n = ( name:: n. ^ self )
+  ) : (
+    public named: n = ( ^ self new setName: n )
+  )
+
   (* Module-level validation/depth helpers (Milestone B Task 6) — NOT public:
      reachable only by sibling classes nested directly in this module, via
      their own `outer` link (slot 0), never by application code (an app
@@ -857,6 +974,7 @@ class Kernel usingPlatform: platform = () (
   public Association       = ( ^ Association )
   public List              = ( ^ List )
   public Map               = ( ^ Map )
+  public Protocol          = ( ^ Protocol )
   public Record            = ( ^ Record )
   public ByteArray         = ( ^ ByteArray )
   public ReadStream        = ( ^ ReadStream )
