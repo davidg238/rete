@@ -938,6 +938,94 @@ class Kernel usingPlatform: platform = () (
     public named: n = ( ^ self new setName: n )
   )
 
+  (* A pending timer registration — landed from staged `tuvm/review/lib/
+     timers.ns` (Milestone D Task 6). Kernel-module sibling of Transition
+     above (staged nested it as `Timers class Pending`; flattened to a
+     top-level sibling here, matching this module's exclusively-flat class
+     shape — no other kernel.ns class nests a class, and the public surface
+     — `chan`, `msg`, `repeating`, class-side `chan:msg:repeating:` — is
+     unchanged by the move). *)
+  class Pending = ( | chan msg repeating | ) (
+    public chan = ( ^ chan )
+    public msg = ( ^ msg )
+    public repeating = ( ^ repeating )
+    setChan: c msg: m repeating: r = ( chan:: c. msg:: m. repeating:: r. ^ self )
+  ) : (
+    public chan: c msg: m repeating: r = ( ^ self new setChan: c msg: m repeating: r )
+  )
+
+  (* L3 — timers as channel events (Milestone D Task 6; design doc's
+     event-source seam). Landed from the staged `tuvm/review/lib/timers.ns`,
+     Kernel-module sibling of Space/Supervisor/Protocol above — same flat
+     shape (see Pending's comment just above for why `class Pending` was
+     flattened out of it). No new VM semantics: a timer is an ordinary event
+     source that posts into the space via the C seam (`platform
+     timerAfter:token:`/`timerEvery:token:`/`timerCancel:`/`monotonicMillis`
+     — the five forwarders near `readLine` above, wired to Task 6's
+     `host_timer_*`/`host_monotonic_millis` C prims). The C side carries DATA
+     ONLY (a token, a millisecond count) — which channel, what message, and
+     cancellation bookkeeping all live here in nsl, so C stays one dumb
+     registry + one posting path (design constraint, staged header). Wiring
+     at boot: `timers:: Timers usingSpace: space seam: platform. space
+     whenever: 'sys/timer' do: [:e | timers dispatch: e].` — `'sys/timer'`
+     (no `%` prefix: Milestone C retired `%` as a mechanism, so the reserved
+     channel is a plain path like any other) lives in the caller (test/
+     supervisor setup), not in this class, exactly as the staged header
+     already noted. Every fire is an ordinary reactor dispatch — run-to-
+     completion ordering (T-C.6) applies to timer events identically; no
+     ISR-context nsl execution ever happens (host_advance's C posts are the
+     only ISR-adjacent code and they only ever call space_post). A timer
+     token is a small capability: holding it is the right to cancel it. *)
+  class Timers = ( | space seam nextToken ::= 1. pending ::= Dictionary new. | ) (
+    (* pending: token -> Pending(chan, msg, repeating) *)
+
+    public after: ms post: aMessage on: aChannel = (
+      | tok |
+      tok:: self allocateToken.
+      pending at: tok put: (Pending chan: aChannel msg: aMessage repeating: false).
+      seam timerAfter: ms token: tok.
+      ^ tok
+    )
+
+    public every: ms post: aMessage on: aChannel = (
+      | tok |
+      tok:: self allocateToken.
+      pending at: tok put: (Pending chan: aChannel msg: aMessage repeating: true).
+      seam timerEvery: ms token: tok.
+      ^ tok
+    )
+
+    public cancel: tok = (
+      | p |
+      p:: pending at: tok ifAbsent: [ nil ].       (* cancelling twice is a no-op *)
+      p == nil ifFalse: [
+        pending removeKey: tok.
+        seam timerCancel: tok ].
+      ^ self
+    )
+
+    public now = ( ^ seam monotonicMillis )
+
+    (* Called by the boot-time reserved-channel reaction (see the wiring
+       comment above). Event = the fired token (a SmallInteger). Late fire
+       after cancel -> not in `pending` -> dropped silently BY DESIGN
+       (transient-signal semantics; the race is inherent, the resolution is
+       pinned here). *)
+    public dispatch: tokenEvent = (
+      | p |
+      p:: pending at: tokenEvent ifAbsent: [ nil ].
+      p == nil ifFalse: [
+        p repeating ifFalse: [ pending removeKey: tokenEvent ].
+        p chan out: '' value: p msg ].    (* '' = post at the capability's own root *)
+      ^ self
+    )
+
+    allocateToken = ( | t | t:: nextToken. nextToken:: nextToken + 1. ^ t )
+    setSpace: s seam: c = ( space:: s. seam:: c. ^ self )
+  ) : (
+    public usingSpace: s seam: c = ( ^ self new setSpace: s seam: c )
+  )
+
   (* Module-level validation/depth helpers (Milestone B Task 6) — NOT public:
      reachable only by sibling classes nested directly in this module, via
      their own `outer` link (slot 0), never by application code (an app
@@ -1141,6 +1229,16 @@ class Kernel usingPlatform: platform = () (
      across every channel, before the job restarts. Thin forwarder to the C
      prim, same shape as protectedFire:/valueRank: above. *)
   public spaceDropReactionsOwnedBy: cap = ( ^ platform spaceDropReactionsOwnedBy: cap )
+  (* Milestone D Task 6: the host virtual-clock timer seam. Thin forwarders,
+     same shape as spaceDropReactionsOwnedBy: above — the `Timers` class
+     (below) is the only intended caller (it holds `platform` as its
+     `seam`), but these are ordinary public Kernel-instance selectors like
+     every other forwarder in this family. *)
+  public timerAfter: ms token: tok = ( ^ platform timerAfter: ms token: tok )
+  public timerEvery: ms token: tok = ( ^ platform timerEvery: ms token: tok )
+  public timerCancel: tok = ( ^ platform timerCancel: tok )
+  public monotonicMillis = ( ^ platform monotonicMillis )
+  public advanceMillis: ms = ( ^ platform advanceMillis: ms )
 
   public Object            = ( ^ Object )
   public Array             = ( ^ Array )
@@ -1168,5 +1266,13 @@ class Kernel usingPlatform: platform = () (
      callers keep the one answered by `platform supervisor` rather than
      re-fetching it. *)
   public supervisor        = ( ^ Supervisor new setSpace: self space )
+  (* Milestone D Task 6: a fresh Timers instance wired to a fresh root Space
+     and this Kernel instance as seam, same "always fresh, same underlying
+     substrate" shape as `space`/`supervisor` above. Callers that need a
+     SINGLE shared registry (the common case — see the two 11_supervision
+     timer tests) construct their own `Timers usingSpace:seam:` once instead
+     of re-fetching this accessor, exactly as `05_restart_quarantine.ns`
+     keeps the one `Supervisor` it got from `platform supervisor`. *)
+  public timers            = ( ^ Timers usingSpace: self space seam: self )
 ) : (
 )
