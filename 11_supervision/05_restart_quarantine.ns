@@ -1,0 +1,46 @@
+(*
+expect:
+starts 2
+quarantined true
+survivor 6
+done
+*)
+(* T-D.4 restart + quarantine stub — a job that crashes on every #tick. The supervisor
+   restarts it after each crash (re-running its start thunk, which re-registers the
+   reaction) until K=3 consecutive crashes, then quarantines it (no further restart).
+   `starts` counts how many times the job's start thunk ran AFTER the first (i.e.
+   restarts). With quarantineLimit=3 the 3rd crash quarantines INSTEAD OF restarting
+   (K consecutive crashes triggers quarantine, so only K-1=2 restarts ever happen) —
+   deterministic, confirmed by running the test: FIFO dispatch interleaves the 6
+   `tick`/`survivor` posts (queued before `drain` starts) ahead of the 6 crash
+   records they generate (each crash record is itself posted to the back of the same
+   queue), so all 6 ticks crash against the ORIGINALLY-primed reaction before the
+   supervisor processes crash #1 — then crash 1 restarts (starts=1), crash 2 restarts
+   (starts=2), crash 3 hits the limit and quarantines (no restart), crashes 4-6 are
+   no-ops (already quarantined). A second, healthy job keeps running throughout
+   (survivor), proving the supervisor isolates policy per job. *)
+class RestartQuarantine packageUsing: manifest = ( | starts ::= 0. survivorHits ::= 0. | ) (
+  public main: platform args: args = (
+    | space sup crasher survivor |
+    space:: platform space.
+    sup:: platform supervisor.
+    crasher::  space channel: 'crasher'.
+    survivor:: space channel: 'survivor'.
+    (* the crasher's (re)start: register a reaction that crashes on any event *)
+    sup register: crasher
+        restart: [ starts:: starts + 1.
+                   crasher whenever: 'tick' do: [ :m | self error: 'always' ] ]
+        progress: (space channel: 'crasher/never').   (* never posted -> never resets *)
+    survivor whenever: '' do: [ :m | survivorHits:: survivorHits + 1 ].
+    sup start.
+    (* prime the crasher's first registration, then drive events *)
+    crasher whenever: 'tick' do: [ :m | self error: 'always' ].
+    1 to: 6 do: [ :i | crasher out: 'tick' value: i. survivor out: '' value: i ].
+    space drain.
+    ('starts ' , starts printString) out.                     (* 2 restarts, 3rd crash quarantines *)
+    ('quarantined ' , (sup isQuarantined: 'crasher') printString) out.
+    ('survivor ' , survivorHits printString) out.             (* 6 — unaffected *)
+    'done' out.
+  )
+) : (
+)
