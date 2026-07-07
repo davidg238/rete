@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <setjmp.h>
 
 /* In-language monotonic millisecond clock. Function-pointer hook so the Zephyr
    appliance can override it with k_uptime_get(). The POSIX path is compiled out
@@ -46,6 +47,63 @@ size_t vm_stack_ptr = 0;      /* live top cursor (the flat loop's authoritative 
 
 /* Active Frame Register */
 struct MethodContext *current_frame = NULL;
+
+/* Milestone D crash boundary: one active protection frame (the reactor's).
+   Built as "unwind to a marked frame" — in D exactly one marker exists, but the
+   code path is the general one so phase-2 on:do: generalizes it (exceptions.md C4). */
+static jmp_buf *g_protect_top = NULL;   /* NULL = no protection active */
+oop g_raised_condition = NULL;          /* rooted by gc_collect; see gc.c */
+
+extern int gc_temp_roots_count;         /* gc.c:645 — save/restore across a fire */
+
+/* The raise primitive. `self error:` calls this. Terminate-only: never returns to
+   the raise point when protected. Unprotected -> preserve today's print+abort. */
+void vm_raise(oop condition) {
+    if (g_protect_top != NULL) {
+        g_raised_condition = condition;
+        longjmp(*g_protect_top, 1);
+    }
+    /* no protection frame: behave exactly as PRIM_error did before Milestone D */
+    if (condition && StringVtable && obj_vtable(condition) == StringVtable) {
+        struct String *s = (struct String *)condition;
+        fprintf(stderr, "Error: ");
+        fwrite(s->bytes, 1, s->length, stderr);
+        fprintf(stderr, "\n");
+    } else if (condition && SymbolVtable && obj_vtable(condition) == SymbolVtable) {
+        fprintf(stderr, "Error: %s\n", symbol_name((struct Symbol *)condition));
+    } else {
+        fprintf(stderr, "Error: ?\n");
+    }
+    abort();
+}
+
+/* Run one block to completion under a fresh protection frame. Clean -> nil;
+   caught fault -> the raised condition. Unwind = restore the three scalars that
+   define live execution state (mirrors exit_frame, vm.c:887-888) + the temp-root
+   count. The half-built object graph of the crashed block becomes unreachable and
+   is swept normally (non-moving GC; nothing to fix up). */
+extern oop run_interpreter(oop closure, oop receiver, int argc, oop *args); /* defined below in this file */
+oop vm_protected_fire(oop block, oop value) {
+    jmp_buf env;
+    jmp_buf *saved_top          = g_protect_top;
+    size_t saved_sp             = vm_stack_ptr;
+    struct MethodContext *saved_frame = current_frame;
+    int saved_temp_roots        = gc_temp_roots_count;
+    oop result;
+    g_protect_top = &env;
+    if (setjmp(env) == 0) {
+        (void)run_interpreter(block, block, 1, &value);
+        result = NULL;                     /* block result discarded; clean == nil */
+    } else {
+        vm_stack_ptr        = saved_sp;
+        current_frame       = saved_frame;
+        gc_temp_roots_count = saved_temp_roots;
+        result              = g_raised_condition;
+        g_raised_condition  = NULL;
+    }
+    g_protect_top = saved_top;
+    return result;
+}
 
 /* Debugger single-step state (Milestone A Task 6: rehomed off the deleted struct
    Fiber to file-scope globals — this is debugger state, not scheduling state).

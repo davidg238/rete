@@ -272,6 +272,12 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            blocksSnapshot} Array or nil (NULL) if the queue is empty. */
         { *out = space_dequeue(); return 1; }
     }
+    case PRIM_pf_protectedFire: {
+        /* `platform protectedFire: aBlock value: v` — Milestone D crash
+           boundary. args[0] = block, args[1] = value. */
+        *out = vm_protected_fire(args[0], args[1]);
+        return 1;
+    }
     default:
         return 0;
     }

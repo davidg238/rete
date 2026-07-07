@@ -53,4 +53,12 @@
 #define PRIM_pf_spaceRegister    80
 #define PRIM_pf_spaceTake        81
 #define PRIM_pf_spaceDequeue     82
+/* Milestone D Task 1: the setjmp crash-boundary primitive, appended after the
+   entire space-C-substrate group — no pre-existing id shifts. 83 was arrived
+   at by COUNTING PRIM_NAMES (82 entries before this one), not by 82+1
+   arithmetic, per the lesson flagged in Milestone C Task 1's report above
+   (6 unmirrored value-algebra predicate slots hide in the enum between ids
+   72 and 79; they don't affect this count since this entry is appended after
+   PRIM_pf_spaceDequeue, whose mirrored id (82) already accounts for them). */
+#define PRIM_pf_protectedFire    83
 #endif /* OEVM_PRIM_IDS_H */

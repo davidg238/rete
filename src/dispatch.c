@@ -638,6 +638,10 @@ enum {
        binding constraint — is 79-82; flagged in the Task 1 report. Appended
        last, so no pre-existing PRIM id shifts. --- */
     PRIM_pf_spacePost, PRIM_pf_spaceRegister, PRIM_pf_spaceTake, PRIM_pf_spaceDequeue,
+    /* --- Milestone D Task 1: the setjmp crash-boundary primitive. Appended
+       last, so no pre-existing PRIM id shifts; counted (not computed) to be
+       id 83 — see prim_ids.h. --- */
+    PRIM_pf_protectedFire,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -664,6 +668,7 @@ static const char *const PRIM_NAMES[] = {
     "valueRank:",
     "isValue", "isSymbol", "isList", "isMap", "isRecord", "isBytes",
     "spacePost:value:", "spaceRegister:block:owner:", "spaceTake:", "spaceDequeue",
+    "protectedFire:value:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
@@ -996,25 +1001,13 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
             }
             break;
             case PRIM_error: {
-                /* Milestone B Task 6: `self error:` is the universal crash idiom
-                   (NEWSPEAK_DIALECT.md #7) and every kernel.ns call site passes a
-                   String literal (Newspeak Symbol literals cannot contain spaces),
-                   but this branch only ever recognized a Symbol message — a String
-                   fell through to the "?" placeholder, silently dropping the
-                   diagnostic text. Mirror the existing String/Symbol dual-print
-                   already used a few cases below at PRIM_out. */
-                oop msg = args[0];
-                if (msg && SymbolVtable && obj_vtable(msg) == SymbolVtable) {
-                    fprintf(stderr, "Error: %s\n", symbol_name((struct Symbol *)msg));
-                } else if (msg && StringVtable && obj_vtable(msg) == StringVtable) {
-                    struct String *s = (struct String *)msg;
-                    fprintf(stderr, "Error: ");
-                    fwrite(s->bytes, 1, s->length, stderr);
-                    fprintf(stderr, "\n");
-                } else {
-                    fprintf(stderr, "Error: ?\n");
-                }
-                abort();
+                /* Milestone D: `self error:` is now the raise primitive — it hands
+                   off to vm_raise, which longjmps to an active protectedFire frame
+                   if one exists, or else prints "Error: <text>" and abort()s exactly
+                   as this branch did before (Milestone B Task 6's String/Symbol
+                   dual-print is preserved verbatim inside vm_raise). */
+                vm_raise(args[0]);
+                return NULL;         /* unreachable, but keeps the switch well-formed */
             }
             break;
             case PRIM_lt:

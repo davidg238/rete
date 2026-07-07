@@ -742,6 +742,13 @@ void gc_collect(void) {
     extern oop Symbol_accessViolation;
     mark(Symbol_accessViolation);
 
+    // Milestone D: the in-flight raised condition (self error:'s argument),
+    // live between vm_raise's longjmp and vm_protected_fire's handler reading
+    // it — held only in this global, not on the VM stack. mark() is a no-op
+    // on NULL, so this is safe whether or not a fire is in progress.
+    extern oop g_raised_condition;
+    mark(g_raised_condition);
+
     /* oevm#21: the in-flight boot receiver/args, live across the lazy exec-context
        bootstrap before they are written into a GC-scanned frame. With no
        conservative C-stack scan these C locals have no other root; mark them here

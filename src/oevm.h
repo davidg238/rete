@@ -366,6 +366,13 @@ oop primitive_compiled_method_set_instruction_at(oop receiver, int argc, oop *ar
    k_uptime_get() before boot. Exposed to Newspeak as the unary `millis`. */
 extern uint64_t (*oevm_millis)(void);
 
+/* Milestone D crash boundary (src/vm.c): the raise primitive + the setjmp
+   protection-frame runner + the in-flight raised condition (a GC root; see
+   gc.c's root scan). */
+oop vm_protected_fire(oop block, oop value);
+void vm_raise(oop condition);
+extern oop g_raised_condition;
+
 int boundclass_is(oop o);
 oop make_closure(oop method);
 oop send(oop receiver, oop selector, int argc, oop *args);
