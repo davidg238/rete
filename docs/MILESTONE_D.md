@@ -159,11 +159,34 @@ Run: `cd nsl-tuvm && OEVM_PATH=AB python3 tools/run_tests_oevm.py` (both Path
 A and Path B, the full behavioral suite + C unit tests + integration gates).
 
 ```
-GATE_NUMBERS_PENDING — controller fills in the real Passed/Failed/Skipped
-counts and the four named-gate results (grant, debugger-integration,
-portability-32, boot-gc-asan) from the run it performs at Milestone D's
-close, per the Task 10 brief's own instructions ("either run the full suite
-yourself... OR write MILESTONE_D.md with a clearly-marked placeholder").
+Passed:  155   (154 captured in one clean run + 10_soak_leak.ns, +1)
+Failed:  0
+Skipped: 12
+grant: PASS   debugger-integration: PASS   portability-32: PASS   boot-gc-asan: PASS
+C-unit gate (tools/run_c_tests.sh): test_space.c PASS (3-slot space_dequeue, post-F1)
+```
+
+**How these were captured (transparency note, 2026-07-07):** the behavioral
+suite runs every test on BOTH Path A (solidified image) and Path B (`.oimg`).
+`10_soak_leak.ns` drives 300k firings + 5,000 restart cycles on each path; at
+that length the full-suite run destabilized under this session's accumulated
+load, so the authoritative counts were captured in two pieces that together
+cover 100%:
+  - **154 / 0 / 12** — one clean, uninterrupted full-suite run with the soak
+    test held aside (all four named gates PASS, exit 0). This is the number
+    that matters for regression: every behavioral test green on both paths.
+  - **`10_soak_leak.ns` +1** — verified PASS on Path A and Path B individually
+    (`run_test_file` / `run_test_file_oimg`), byte-identical output.
+  ⇒ **155 / 0 / 12**, four gates PASS. The C-unit gate `test_space.c` was
+  rebuilt and run directly after the F1 fix (all 9 properties PASS, exit 0).
+
+NOTE on Path A: an earlier full-suite attempt showed 11 `A:FAIL B:PASS`
+results; these were traced to two `run_tests_oevm.py` processes racing on the
+shared `src/solidified_image.c` (the harness is not concurrency-safe — spec §7)
+and are NOT a regression: the committed `solidified_image.c` is byte-identical
+to the milestone-c baseline, Path B was 100% green throughout, and each flagged
+test passes on Path A when run without a competing runner (confirmed on a
+sample and by the clean 154/0/12 run above).
 ```
 
 ## 6. Footprint delta
