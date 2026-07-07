@@ -53,7 +53,6 @@ struct SpaceReaction {
 struct SpaceChannel {
     char path[OEVM_SPACE_MAX_PATH];
     size_t len;
-    int used;
     struct SpaceReaction reactions[OEVM_SPACE_MAX_REACTIONS];
     int n_reactions;
 };
@@ -104,7 +103,6 @@ int space_intern(const char *path, size_t len) {
     struct SpaceChannel *c = &channels[id];
     memcpy(c->path, path, len);
     c->len = len;
-    c->used = 1;
     c->n_reactions = 0;
     return id;
 }
@@ -126,6 +124,10 @@ void space_post(const char *path, size_t len, oop value) {
     }
     size_t tail = (q_head + q_count) % OEVM_SPACE_QUEUE_DEPTH;
     queue[tail].chan = chan;
+    /* nil (NULL) is a legal rank-0 value payload here — but it is
+       indistinguishable from "nothing queued" at the take:/dequeue read
+       side (both answer NULL); callers cannot tell a stored nil apart from
+       an empty channel. */
     queue[tail].value = value;
     queue[tail].live = 1;
     q_count++;

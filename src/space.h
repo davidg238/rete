@@ -61,7 +61,12 @@ void space_post(const char *path, size_t len, oop value);
 /* Remove-if-present-now (design doc section 3, D-C2): the oldest
    queued-but-undispatched value on exactly this channel, removed from the
    queue. Answers NULL (nil) if the channel has never been posted to, or has
-   no undispatched event, without creating a registry entry as a side effect. */
+   no undispatched event, without creating a registry entry as a side effect.
+   Deliberate asymmetry: an over-length path (len >= OEVM_SPACE_MAX_PATH) also
+   answers NULL here rather than aborting — it can never have been interned,
+   so absent-is-nil is the correct answer for a query verb — whereas the same
+   over-length path reaching space_intern via space_post/space_register
+   (out:/whenever:) aborts `channel path too long`. */
 oop space_take(const char *path, size_t len);
 
 /* Append a standing reaction (design doc section 6 point 2: owner-tagged for
