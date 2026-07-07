@@ -966,6 +966,7 @@ class Kernel usingPlatform: platform = () (
   )
 
   public readLine = ( ^ platform readLine )
+  public protectedFire: aBlock value: v = ( ^ platform protectedFire: aBlock value: v )
   public valueRank: v = ( ^ platform valueRank: v )
 
   public Object            = ( ^ Object )
