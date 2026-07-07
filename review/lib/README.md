@@ -26,7 +26,7 @@ in here is loaded by any harness yet.
 | `messages.md` + `messages.ns` | spec §2 / Milestone B | VM: immutable list/map/record | with Milestone B |
 | `bytes.ns` | L2 | VM: byte-indexable prims | after B (Bytes is algebra `bytes`) |
 | `strings.ns` | L8 | VM: UTF-8 validation prim | with the stdlib String port |
-| `fsm.ns` | L4 | Dictionary + channels API | Milestone C (channels) |
+| `fsm.ns` | L4 | Dictionary + channels API | **LANDED** — `nsl-tuvm/lib/kernel.ns` `class Protocol` / `class Transition` (~L659-768), Milestone C Task 5. One adaptation: the staged missing-table branch's escaping block declaring its own temp slot (`fsm.ns:48`) was replaced by reusing the method temp `table` (a real compiler/VM limitation on escaping blocks with fresh temp slots, isolated-probe confirmed, not a logic bug) — public surface unchanged (`state:on:do:then:`, `state:onEntry:`, `onUnhandled:`, `startIn:`, `trace:`, `currentState`, `snapshot`/`restore:`, `handle:`). |
 | `timers.ns` | L3 | C seam: timer event source | Milestone D (host seam exists) |
 | `cbor.md` | L6 | C seam codec | porta wire step (design frozen now) |
 | `exceptions.md` | spec §8 | nothing — constraints only | read before Milestone D; full design at §8 time |

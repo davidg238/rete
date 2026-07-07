@@ -71,7 +71,10 @@ assuming them (`tb-messages/02b`) is deferred until mirrors/perform land.
   nested deep — distinct from `07b`'s top-level case),
   `16d_mutable_boundary_dictionary.ns` (Dictionary rejected).
 
-**Channels (Milestone C):** `platform space` → a fresh TupleSpace (test entry point).
+**Channels (Milestone C — landed 2026-07-06 in `nsl-tuvm/lib/kernel.ns` `class
+Channel`/`class Space`, ~L574-651, atop the C substrate `tuvm/src/space.c`,
+Milestone C Task 1; sync below reflects the landed reality):**
+`platform space` → a fresh TupleSpace (test entry point).
 - `space channel: 'a/b'` → root capability (grant; canonicalization errors here).
 - `cap channel: 'c'` → attenuated child capability (root extended by one+ segments).
 - Verbs, paths **relative to the capability root**, `''` = the root channel itself:
@@ -80,6 +83,45 @@ assuming them (`tb-messages/02b`) is deferred until mirrors/perform land.
 - Deterministic test scheduling: `space drain` dispatches queued firings FIFO, each to
   completion, until quiescent. (The supervisor's idle-wait loop is the production
   driver; `drain` is its test-mode equivalent.)
+- Path-validation crash string is landed as **`bad channel path`** (`kernel.ns`
+  `checkPath:`, ~L798-813) — corrects this section's earlier `invalid channel
+  path` placeholder, which was never the implemented spelling.
+- The four C-level exhaustion strings (`channel registry full`, `channel queue
+  full`, `channel reactions full`, `channel path too long`, all in
+  `tuvm/src/space.c`) are ALL David-ratified (2026-07-06, the 4th via tuvm
+  `1d7abf6`) — landed, not pending ratification.
+
+**tc-channels landed reality (2026-07-06 sync) — all seven staged files map to
+landed `nsl-tests/09_channels/` counterparts; landed also adds three files with
+no staged precedent (08/09/10 below):**
+- `01_segment_confinement.ns` → landed `02_confinement.ns` (same segment-aligned
+  collision proof: `sensor`/`sensors`, `a/b`/`a/bc`). Numbering shifted because
+  landed inserted the canonicalization family as `01`/`01b-01e` ahead of it.
+- `02_canonicalization.ns` → landed as the whole `01`-family: `01_canonicalization.ns`
+  (new positive test — canonical join is the same channel regardless of
+  attenuation path, not staged) + `01b_leading_slash.ns` (leading `/`) +
+  `01c_empty_segment.ns` (`a//b`, the staged file's own crash shape) +
+  `01d_dot_segment.ns` (`a/./b`) + `01e_dotdot_segment.ns` (`a/../b`). Staged's
+  own comment anticipated a 5th shape, trailing `/` (its planned `02d`) — NOT
+  LANDED-BECAUSE no `nsl-tests/09_channels/*.ns` file exercises a trailing-slash
+  path (grep-confirmed); left unmapped rather than guessed.
+- `03_attenuation.ns` → landed `03_attenuation.ns` (same number/name; the
+  staged file's `..`-escape clause moved into the canonicalization family
+  above, `01e`).
+- `04_no_ambient.ns` → landed `04_no_ambient.ns` (same number/name) +
+  `04b_no_ambient_no_parent.ns` (new: the staged comment's "verify by protocol
+  review when landing" note on the no-widening-selector claim is now a real
+  DNU crash test).
+- `05_take_semantics.ns` → landed `05_take_semantics.ns` (same number/name,
+  extended with D-C4: a taken event never fires a reaction).
+- `06_run_to_completion.ns` → landed `06_run_to_completion.ns` (same
+  number/name, same run-to-completion + FIFO pin).
+- `07_registration_lifecycle.ns` → landed `07_registration_lifecycle.ns` (same
+  number/name, extended with a second reaction registered mid-stream).
+- Landed-only additions, no staged file: `08_fanout_order.ns` (fan-out order +
+  no-dedupe, D-C3/D-C4), `09_snapshot_at_dequeue.ns` (snapshot-at-dequeue,
+  D-C5), `10_take_vs_dispatch.ns` (take: consumes before the next dispatch,
+  D-C2).
 
 **Supervision (Milestone D):** a contained handler crash posts
 `Record tag: #crash fields: {#error -> <text>, #channel -> <path>}` on the reserved
@@ -88,7 +130,9 @@ supervisor channel `%sys/crash` (root-only capability). Tests observe crashes wi
 pins it once known.
 
 **Error strings** are API, from `../lib/errors.md` (`outside capability root`,
-`immutable`, `not a value`, `message depth exceeded`, `invalid channel path`, …).
+`immutable`, `not a value`, `message depth exceeded`, `bad channel path` [landed
+spelling — `../lib/errors.md` still says `invalid channel path`, which was never
+implemented; see the Channels section's correction above], …).
 
 ## CLAIMS.md
 
