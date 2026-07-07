@@ -571,6 +571,66 @@ class Kernel usingPlatform: platform = () (
   serialOn: aPort = ( ^ Serial onPort: aPort )
   netOn: aPort = ( ^ Net onPort: aPort )
 
+  (* Capability-scoped channel (Milestone C Task 2, addendum A1) — a
+     rooted-prefix capability into the C tuple-space singleton (Task 1's
+     space.c substrate, reached only by selector via `platform`; there is no
+     nsl-side storage here beyond the root string). `root` is set once at
+     construction, always a `checkPath:`-validated canonical relative path
+     ('' is the legal root-of-everything path). Every verb resolves its
+     ARGUMENT path against `root` via the shared `resolve:` helper below
+     before ever reaching a `platform space...` prim, so a capability can
+     only ever name a channel at-or-under its own root: segment-aligned per
+     A1 (a capability rooted at `sensor` does NOT address `sensors/temp` —
+     `resolve:` always joins with an explicit `/` separator, so the two can
+     never collapse to the same string) and never silently normalized
+     (`checkPath:` rejects, it does not fix up). There is no accessor for
+     `root` itself and no widening operation — the only ways to obtain a
+     capability are `channel:` (monotonic attenuation: the child's resolved
+     root is always the parent's root plus a validated suffix) or the
+     module's own `space` accessor (the sole capability with an empty root).
+     Any other message a capability doesn't define (e.g. a hypothetical
+     `parent`) is a plain DNU — there is no reflective escape hatch. This
+     task lands the class shape, `setRoot:`, `resolve:`, `channel:`, and the
+     three verbs as thin forwarders to the Task-1 prims (`out:value:`,
+     `take:`, `whenever:do:` — each validates/resolves, then makes exactly
+     one `platform` send); Task 3 lands `Space>>drain`, the reactor loop that
+     actually fires `whenever:`-registered blocks. *)
+  class Channel = ( | root | ) (
+    setRoot: r = ( root:: r. ^ self )
+    (* Validate `rel` (crash `bad channel path` on any A1 violation), then
+       join it under `root`: `''` answers `root` itself (the capability's own
+       channel — demo-node's `chan out: '' value: ...` idiom); an empty
+       `root` (the space's own root capability) answers `rel` unprefixed;
+       otherwise the two joined with an explicit `/` (never a bare
+       concatenation — that is what keeps `sensor`/`sensors` and `a/b`/`a/bc`
+       from ever colliding). *)
+    resolve: rel = (
+      outer checkPath: rel.
+      rel = '' ifTrue: [ ^ root ].
+      root = '' ifTrue: [ ^ rel ].
+      ^ root , '/' , rel )
+    public channel: rel = ( ^ Channel new setRoot: (self resolve: rel) )
+    public out: rel value: v = (
+      outer checkValue: v.
+      platform spacePost: (self resolve: rel) value: v.
+      ^ self )
+    public take: rel = ( ^ platform spaceTake: (self resolve: rel) )
+    public whenever: rel do: aBlock = (
+      platform spaceRegister: (self resolve: rel) block: aBlock owner: self.
+      ^ self )
+  ) : (
+  )
+
+  (* The root capability's class (Milestone C Task 2) — identical shape to
+     Channel (attenuating a Space via `channel:` answers a plain Channel,
+     never another Space: only the module's `space` accessor ever mints a
+     Space, so a derived capability can only ever be narrower). `drain`
+     (Task 3) is the host reactor loop and is unique to the root — an
+     attenuated Channel never drains, it only addresses. *)
+  class Space = Channel ( ) (
+  ) : (
+  )
+
   (* Module-level validation/depth helpers (Milestone B Task 6) — NOT public:
      reachable only by sibling classes nested directly in this module, via
      their own `outer` link (slot 0), never by application code (an app
@@ -584,6 +644,38 @@ class Kernel usingPlatform: platform = () (
   depthOf: v = ( (rankOf: v) >= 7 ifTrue: [ ^ v valueDepth ]. ^ 0 )
   checkValue: v = ( (isValueObject: v) ifFalse: [ self error: 'not a value' ]. ^ v )
   checkDepth: d = ( d > 32 ifTrue: [ self error: 'message depth exceeded' ]. ^ d )
+
+  (* Channel-path canonicalization (Milestone C Task 2, addendum A1) — same
+     non-public family as the helpers above, reached the same way (Channel's
+     `outer` send). Byte-walks `p` (`/` = 47, `.` = 46) rejecting: a leading
+     or trailing `/`, an empty segment (`//`), and any segment made ENTIRELY
+     of `.` bytes (`dots = segLen`) — which covers both `.` and `..` and also
+     `...`+ ; stricter than A1 strictly demands (A1 only names `.`/`..`), but
+     deliberate: a dot-only segment has no legitimate use, so the wider
+     rejection closes the whole family in one rule rather than special-casing
+     two lengths. Segment bytes are otherwise unrestricted except `/` — no
+     other character carries reserved meaning (design §9 Q1). `''` is the
+     legal root-of-everything path (checked first, before the leading/
+     trailing-slash test would otherwise need to guard against `p at: 1` on
+     an empty String). Answers `p` unchanged when canonical; crashes
+     `bad channel path` (never silently normalizes) otherwise. *)
+  checkPath: p = (
+    | n i segLen dots |
+    n:: p size.
+    n = 0 ifTrue: [ ^ p ].                                   (* '' = the root, legal *)
+    ((p at: 1) = 47 or: [ (p at: n) = 47 ]) ifTrue: [ self error: 'bad channel path' ].
+    i:: 1. segLen:: 0. dots:: 0.
+    [ i <= n ] whileTrue: [
+      (p at: i) = 47
+        ifTrue: [
+          (segLen = 0 or: [ dots = segLen ]) ifTrue: [ self error: 'bad channel path' ].
+          segLen:: 0. dots:: 0 ]
+        ifFalse: [
+          segLen:: segLen + 1.
+          (p at: i) = 46 ifTrue: [ dots:: dots + 1 ] ].
+      i:: i + 1 ].
+    (segLen = 0 or: [ dots = segLen ]) ifTrue: [ self error: 'bad channel path' ].
+    ^ p )
 
   (* Value order, typed equality, structural hash (Milestone B Task 7) — same
      non-public family as the helpers above, reached the same way (List's
@@ -750,5 +842,11 @@ class Kernel usingPlatform: platform = () (
   public ByteArray         = ( ^ ByteArray )
   public ReadStream        = ( ^ ReadStream )
   public WriteStream       = ( ^ WriteStream )
+  (* Stateless facade (Milestone C Task 2): the tuple-space substrate is the
+     C singleton (Task 1's space.c), so every call answers a FRESH Space
+     object rooted at '' — not a cached instance — yet all of them address
+     the same underlying space, exactly like two `platform List` sends
+     answering the same class object above. *)
+  public space             = ( ^ Space new setRoot: '' )
 ) : (
 )
