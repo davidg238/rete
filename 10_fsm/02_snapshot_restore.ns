@@ -1,0 +1,35 @@
+(*
+expect:
+at #converting
+snap #converting
+moved #idle
+restored #converting
+done
+*)
+(* #9.1 — direct Protocol snapshot/restore behavioral round-trip. 10_fsm/01 only drove
+   the transition cycle; deep-sleep persistence (resume:) depends on snapshot/restore,
+   so pin them directly: drive the machine off its initial state, snapshot the state
+   symbol, drive it further, restore the snapshot, and confirm currentState is the
+   snapshotted state. `currentState`/`snapshot` both answer a Symbol (kernel.ns:884,890)
+   and `,` is String-String only (dispatch.c PRIM_comma; a Symbol arg falls through to
+   DNU) so every concatenation below goes through `printString`, matching 10_fsm/01's
+   own idiom. *)
+class SnapshotRestore packageUsing: manifest = () (
+public main: platform args: args = (
+  | machine snap |
+  machine:: platform Protocol named: #tmp117.
+  machine state: #idle on: #start do: [ :m :e | nil ] then: #converting.
+  machine state: #converting on: #done do: [ :m :e | nil ] then: #idle.
+  machine startIn: #idle.
+  machine handle: #start.
+  ('at ' , machine currentState printString) out.       (* at #converting *)
+  snap:: machine snapshot.
+  ('snap ' , snap printString) out.                      (* snap #converting *)
+  machine handle: #done.
+  ('moved ' , machine currentState printString) out.     (* moved #idle *)
+  machine restore: snap.
+  ('restored ' , machine currentState printString) out.  (* restored #converting *)
+  'done' out.
+)
+) : (
+)
