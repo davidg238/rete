@@ -66,4 +66,13 @@
    entries total after the append), not by 83+1 arithmetic, per the standing
    lesson above. */
 #define PRIM_pf_spaceDropReactionsOwnedBy 84
+/* Milestone D Task 6: the host virtual-clock timer seam, appended after
+   spaceDropReactionsOwnedBy — no pre-existing id shifts. 85-89 were arrived
+   at by COUNTING PRIM_NAMES (89 entries total after the append), not by
+   84+1 arithmetic, per the standing lesson above. */
+#define PRIM_pf_timerAfter        85
+#define PRIM_pf_timerEvery        86
+#define PRIM_pf_timerCancel       87
+#define PRIM_pf_monotonicMillis   88
+#define PRIM_pf_advanceMillis     89
 #endif /* OEVM_PRIM_IDS_H */

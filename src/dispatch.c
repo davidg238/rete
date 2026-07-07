@@ -646,6 +646,11 @@ enum {
        pre-existing PRIM id shifts; counted (not computed) to be id 84 — see
        prim_ids.h. --- */
     PRIM_pf_spaceDropReactionsOwnedBy,
+    /* --- Milestone D Task 6: host virtual-clock timer seam. Appended last,
+       so no pre-existing PRIM id shifts; counted (not computed) to be ids
+       85-89 — see prim_ids.h. --- */
+    PRIM_pf_timerAfter, PRIM_pf_timerEvery, PRIM_pf_timerCancel,
+    PRIM_pf_monotonicMillis, PRIM_pf_advanceMillis,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -674,6 +679,8 @@ static const char *const PRIM_NAMES[] = {
     "spacePost:value:", "spaceRegister:block:owner:", "spaceTake:", "spaceDequeue",
     "protectedFire:value:",
     "spaceDropReactionsOwnedBy:",
+    "timerAfter:token:", "timerEvery:token:", "timerCancel:",
+    "monotonicMillis", "advanceMillis:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 

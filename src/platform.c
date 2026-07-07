@@ -6,6 +6,81 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+
+/* ---- Milestone D Task 6: host virtual-clock timer facility -------------
+   A deterministic event source: the host test rig never reads wall time.
+   `host_advance` is the ONLY thing that moves the clock, driven exclusively
+   by the nsl-level `platform advanceMillis:` prim (below), so timer firing
+   order is fully reproducible across runs and across Path A/B. Each live
+   HostTimer is a (token, due_ms, interval_ms, repeating, live) slot in a
+   small fixed table (HOST_MAX_TIMERS is a host-rig cap, not a VM limit — an
+   on-target backend would back this with a real timer facility instead).
+   `host_timer_add` reuses a dead slot before growing the table, so
+   after:/every: churn (register, fire/cancel, register again) doesn't leak
+   slots. The C side carries DATA ONLY (token, ms) — which channel, what
+   message, and cancel bookkeeping all live in nsl's `Timers` class (lib/
+   kernel.ns); `host_advance` posts just `TAG_SMI(token)` onto the single
+   reserved `sys/timer` channel via `space_post`, exactly like the design
+   doc's event-source seam (mirrors the space prims' existing TAG_SMI/
+   space_post usage just below in this file). */
+#define HOST_MAX_TIMERS 32
+struct HostTimer { int token; uint64_t due_ms; uint64_t interval_ms; int repeating; int live; };
+static struct HostTimer host_timers[HOST_MAX_TIMERS];
+static int host_n_timers = 0;
+static uint64_t host_clock_ms = 0;
+
+static void host_timer_add(int token, uint64_t ms, int repeating) {
+    int i;
+    for (i = 0; i < host_n_timers; i++) {
+        if (!host_timers[i].live) {
+            host_timers[i].token = token;
+            host_timers[i].due_ms = host_clock_ms + ms;
+            host_timers[i].interval_ms = ms;
+            host_timers[i].repeating = repeating;
+            host_timers[i].live = 1;
+            return;
+        }
+    }
+    if (host_n_timers < HOST_MAX_TIMERS) {
+        host_timers[host_n_timers].token = token;
+        host_timers[host_n_timers].due_ms = host_clock_ms + ms;
+        host_timers[host_n_timers].interval_ms = ms;
+        host_timers[host_n_timers].repeating = repeating;
+        host_timers[host_n_timers].live = 1;
+        host_n_timers++;
+    }
+    /* else: silently drop — host test rig; on-target uses a real timer facility */
+}
+static void host_timer_after(int token, uint64_t ms) { host_timer_add(token, ms, 0); }
+static void host_timer_every(int token, uint64_t ms) { host_timer_add(token, ms, 1); }
+static void host_timer_cancel(int token) {
+    int i;
+    for (i = 0; i < host_n_timers; i++)
+        if (host_timers[i].live && host_timers[i].token == token) host_timers[i].live = 0;
+}
+static uint64_t host_monotonic_millis(void) { return host_clock_ms; }
+/* Advance the virtual clock by `ms`; post each now-due timer's token onto
+   sys/timer (9 = strlen("sys/timer"), mirroring the String-path prims'
+   length-carrying convention elsewhere in this file). A repeater whose
+   interval is smaller than the advance can fire more than once per call
+   (the inner while loop keeps posting and rescheduling until it is no
+   longer due); a one-shot fires at most once and then deactivates. Answers
+   the total number of fires, for observability. */
+static int host_advance(uint64_t ms) {
+    int i, fired = 0;
+    host_clock_ms += ms;
+    for (i = 0; i < host_n_timers; i++) {
+        struct HostTimer *t = &host_timers[i];
+        while (t->live && t->due_ms <= host_clock_ms) {
+            oop tok = TAG_SMI(t->token);
+            space_post("sys/timer", 9, tok);
+            fired++;
+            if (t->repeating) t->due_ms += t->interval_ms; else { t->live = 0; break; }
+        }
+    }
+    return fired;
+}
 
 extern oop gc_allocate(oop vtable, size_t size);
 extern oop StringVtable, SymbolVtable, VtableVtable;
@@ -287,6 +362,31 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = platform_object();
         return 1;
     }
+    /* --- Milestone D Task 6: host virtual-clock timer seam. args order
+       mirrors the keyword selector left-to-right (spaceRegister:block:owner:
+       convention above): `timerAfter: ms token: tok` -> args[0]=ms,
+       args[1]=tok. answers the platform capability where there is no more
+       natural answer (same convention as spaceRegister/spaceDropReactions-
+       OwnedBy above); monotonicMillis/advanceMillis: answer their own SMI
+       result instead. */
+    case PRIM_pf_timerAfter:
+        host_timer_after(UNTAG_SMI(args[1]), (uint64_t)UNTAG_SMI(args[0]));
+        *out = platform_object();
+        return 1;
+    case PRIM_pf_timerEvery:
+        host_timer_every(UNTAG_SMI(args[1]), (uint64_t)UNTAG_SMI(args[0]));
+        *out = platform_object();
+        return 1;
+    case PRIM_pf_timerCancel:
+        host_timer_cancel(UNTAG_SMI(args[0]));
+        *out = platform_object();
+        return 1;
+    case PRIM_pf_monotonicMillis:
+        *out = TAG_SMI((long)host_monotonic_millis());
+        return 1;
+    case PRIM_pf_advanceMillis:
+        *out = TAG_SMI(host_advance((uint64_t)UNTAG_SMI(args[0])));
+        return 1;
     default:
         return 0;
     }
