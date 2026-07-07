@@ -51,7 +51,10 @@
         registry overflow (the (N+1)th distinct path once property 1 already
         filled the table to OEVM_SPACE_MAX_CHANNELS) aborts
         `channel registry full`; queue overflow (posting once the ring is
-        already at OEVM_SPACE_QUEUE_DEPTH) aborts `channel queue full`.
+        already at OEVM_SPACE_QUEUE_DEPTH) aborts `channel queue full`;
+        an OEVM_SPACE_MAX_PATH-byte path aborts `channel path too long`
+        (David-ratified dedicated frozen string, post-Task-1; checked
+        before registry occupancy, so it wins even on a full table).
      9. dequeue-under-GC-stress (review fix wave): dequeue a HEAP value with
         a heap reaction registered, under OEVM_GC_STRESS — a full collection
         before EVERY allocation, i.e. inside space_dequeue between (and
@@ -154,6 +157,18 @@ static void trigger_registry_overflow(void) {
 
 static void trigger_queue_overflow(void) {
     space_post("a", 1, TAG_SMI(999));
+}
+
+static void trigger_path_too_long(void) {
+    /* A path of exactly OEVM_SPACE_MAX_PATH bytes (default 64; the runner's
+       -D overrides don't touch MAX_PATH) — one past the longest storable
+       length (MAX_PATH-1). Must abort `channel path too long`, NOT
+       `channel registry full`, even though the registry is ALSO full when
+       this runs (the length check is deliberately first in space_intern). */
+    char p[OEVM_SPACE_MAX_PATH];
+    memset(p, 'x', sizeof p);
+    p[4] = '/'; p[9] = '/';   /* shaped like a real segmented path */
+    space_intern(p, sizeof p);
 }
 
 int main(void) {
@@ -339,7 +354,8 @@ int main(void) {
         printf("test_space: property 7 (GC: queued value + registered block/owner survive a collection) OK\n");
     }
 
-    /* --- Property 8: overflow aborts (registry full, queue full) --- */
+    /* --- Property 8: overflow aborts (registry full, queue full, path too
+       long) --- */
     {
         /* Registry: property 1 already filled the table to exactly
            OEVM_SPACE_MAX_CHANNELS; one more distinct, never-before-seen path
@@ -356,7 +372,15 @@ int main(void) {
         g_trigger = trigger_queue_overflow;
         expect_abort("queue overflow -> \"channel queue full\"", "channel queue full");
 
-        printf("test_space: property 8 (overflow aborts: registry full, queue full) OK\n");
+        /* Path too long (David-ratified dedicated frozen string, spec
+           section 7 updated post-Task-1): an OEVM_SPACE_MAX_PATH-byte path
+           must abort `channel path too long` — and specifically NOT
+           `channel registry full`, despite the registry also being full
+           here (length is checked first). */
+        g_trigger = trigger_path_too_long;
+        expect_abort("path too long -> \"channel path too long\"", "channel path too long");
+
+        printf("test_space: property 8 (overflow aborts: registry full, queue full, path too long) OK\n");
     }
 
     /* --- Property 9 (review fix wave): dequeue a HEAP value under

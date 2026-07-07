@@ -20,9 +20,11 @@
 
    Static capacities (overridable via -D, embedded-arena style): a fixed
    channel table, path buffer, ring-buffer queue depth, and per-channel
-   reaction slots. Exhaustion of any of the three is a Tier-2 crash with a
-   FROZEN string (David-approved 2026-07-06, design doc section 7):
-     "channel registry full", "channel queue full", "channel reactions full".
+   reaction slots. Exhaustion of any of them is a Tier-2 crash with a FROZEN
+   string (David-approved 2026-07-06, design doc section 7; the path-buffer
+   one ratified post-Task-1 review, spec updated in nsl-tuvm 70aa2a4):
+     "channel registry full", "channel queue full", "channel reactions full",
+     "channel path too long".
 */
 #include "oevm.h"
 #include <stddef.h>
@@ -43,8 +45,10 @@
 /* Find-or-create the channel registered for the exact path [path, path+len).
    Returns the same small int id for the same path every time (registry id);
    a different path (including a prefix/suffix collision like "sensor" vs
-   "sensors") always gets a distinct id. Aborts `channel registry full` on
-   the (OEVM_SPACE_MAX_CHANNELS+1)th distinct path. */
+   "sensors") always gets a distinct id. Aborts `channel path too long` when
+   len >= OEVM_SPACE_MAX_PATH (checked first — a too-long path is invalid
+   regardless of table occupancy); aborts `channel registry full` on the
+   (OEVM_SPACE_MAX_CHANNELS+1)th distinct path. */
 int space_intern(const char *path, size_t len);
 
 /* The ISR-pulse seam (design doc section 6 point 1): enqueue (channel, value)

@@ -86,14 +86,17 @@ static int find_channel(const char *path, size_t len) {
 int space_intern(const char *path, size_t len) {
     int existing = find_channel(path, len);
     if (existing >= 0) return existing;
-    if (n_channels >= OEVM_SPACE_MAX_CHANNELS) {
-        fprintf(stderr, "channel registry full\n");
+    if (len >= OEVM_SPACE_MAX_PATH) {
+        /* Static path buffer cannot hold len bytes. Dedicated frozen string
+           (David-ratified post-Task-1 review; spec section 7 updated,
+           nsl-tuvm 70aa2a4). Checked BEFORE registry occupancy: a too-long
+           path is invalid regardless of whether a table slot is free, and
+           the diagnosis must not shift to `channel registry full` just
+           because the table happens to be full at the time. */
+        fprintf(stderr, "channel path too long\n");
         abort();
     }
-    if (len >= OEVM_SPACE_MAX_PATH) {
-        /* Static path buffer has no room for len bytes + safety; the design
-           doc pins no distinct string-for-this yet, so treat it as the same
-           static-capacity exhaustion family. */
+    if (n_channels >= OEVM_SPACE_MAX_CHANNELS) {
         fprintf(stderr, "channel registry full\n");
         abort();
     }
