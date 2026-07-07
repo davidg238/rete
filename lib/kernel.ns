@@ -628,6 +628,25 @@ class Kernel usingPlatform: platform = () (
      (Task 3) is the host reactor loop and is unique to the root — an
      attenuated Channel never drains, it only addresses. *)
   class Space = Channel ( ) (
+    (* The host reactor (Milestone C Task 3): dispatch queued events until the
+       queue is empty (supervisor idle-wait is Milestone D). Each `platform
+       spaceDequeue` answers nil (queue empty) or a raw 2-slot indexable
+       {value, reactionBlocksSnapshot} — snapshot taken at dequeue (D-C5), in
+       registration order (D-C3). The raw indexable is a bare `indexable_new`
+       backing store (class-less vtable — probe-proven, Task-3 controller
+       correction), so it is consumed ONLY via the shape-gated
+       `basicAt:`/`basicSize` and never escapes this method. Fan-out invokes
+       every snapshot block with the carried value; a reaction that posts
+       merely enqueues — the outer whileTrue picks the new event up on a
+       LATER iteration, never recursively (run-to-completion, D-C). *)
+    public drain = (
+      | ev v bs i |
+      [ ev:: platform spaceDequeue. (ev == nil) not ] whileTrue: [
+        v::  ev basicAt: 1.
+        bs:: ev basicAt: 2.
+        i:: 1.
+        [ i <= bs basicSize ] whileTrue: [ (bs basicAt: i) value: v. i:: i + 1 ] ].
+      ^ self )
   ) : (
   )
 
