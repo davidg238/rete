@@ -33,9 +33,9 @@
 
 /* platform.c's indexable allocator (struct ObjectInstance: slots[0] = TAG_SMI
    length, slots[1..n] = elements, 1-based) — used both for the snapshot Array
-   of a channel's reaction blocks and the outer {value, snapshot} pair
-   space_dequeue answers. Declared extern here rather than a shared header,
-   mirroring src/udp.c's precedent (indexable_new is non-static in
+   of a channel's reaction blocks and the outer {value, snapshot, channelPath}
+   triple space_dequeue answers. Declared extern here rather than a shared
+   header, mirroring src/udp.c's precedent (indexable_new is non-static in
    platform.c). */
 extern oop indexable_new(intptr_t n);
 
@@ -44,6 +44,23 @@ extern oop indexable_new(intptr_t n);
    calls into this module, via space_gc_trace, so the direction is reversed —
    but the mark primitive is the same one). */
 extern void mark_object(oop ptr);
+
+/* Milestone D Task 2: build the channel-path String for the crash record
+   (Space>>drain needs it to post `Record tag: #crash ... with: #channel ->
+   chPath` and to run the sys/-loop guard). Same local-ctor idiom as
+   udp_make_string (src/udp.c) / the file-static make_string in dispatch.c —
+   gc_allocate(StringVtable, ...) directly, since dispatch.c's make_string is
+   file-static and not reachable here. */
+extern oop gc_allocate(oop vtable, size_t size);
+extern oop StringVtable;
+
+static oop space_make_string(const char *bytes, size_t len) {
+    oop s = gc_allocate(StringVtable, sizeof(struct String) + len);
+    struct String *str = (struct String *)s;
+    str->length = len;
+    if (len > 0) memcpy(str->bytes, bytes, len);
+    return s;
+}
 
 struct SpaceReaction {
     oop block;
@@ -169,22 +186,23 @@ oop space_dequeue(void) {
     oop value = queue[idx].value;
     struct SpaceChannel *c = &channels[chan];
 
-    /* GC-hazard discipline (Milestone C Task 1 review fix): this collector
-       is PRECISE — a heap oop held only in a C local has NO root, and both
-       indexable_new calls below can collect (gc_allocate collects on
+    /* GC-hazard discipline (Milestone C Task 1 review fix; widened Milestone D
+       Task 2 for the new channel-path String): this collector is PRECISE — a
+       heap oop held only in a C local has NO root, and every indexable_new/
+       space_make_string call below can collect (gc_allocate collects on
        exhaustion, and before EVERY allocation under OEVM_GC_STRESS — the
-       condition the boot-gc-asan gate runs under). Two measures, both
-       load-bearing:
-         (1) the queue slot is NOT cleared until after both allocations and
-             slot-fills complete — the still-live slot keeps `value` rooted
+       condition the boot-gc-asan gate runs under). Measures, all load-bearing:
+         (1) the queue slot is NOT cleared until after every allocation and
+             slot-fill completes — the still-live slot keeps `value` rooted
              via space_gc_trace across any collection in between;
-         (2) `snapshot` is pinned as a gc temp root across the second
-             allocation, using the save/restore idiom (dispatch.c
-             context_alloc, its Task-2 review carry-forward): a caller up
-             the prim-dispatch path may already hold temp roots, so restore
-             the count rather than clearing the whole set. (The reaction
-             blocks copied into the snapshot need no extra pinning — the
-             channel table itself keeps them rooted via space_gc_trace.) */
+         (2) `snapshot`, then `path_string`, are each pushed as a gc temp root
+             as soon as they exist and stay pinned across every subsequent
+             allocation up to and including `result`, using the save/restore
+             idiom (dispatch.c context_alloc, its Task-2 review carry-forward):
+             a caller up the prim-dispatch path may already hold temp roots,
+             so restore the count rather than clearing the whole set. (The
+             reaction blocks copied into the snapshot need no extra pinning —
+             the channel table itself keeps them rooted via space_gc_trace.) */
     extern void gc_temp_root_push(oop o);
     extern int gc_temp_roots_count;
     int saved = gc_temp_roots_count;
@@ -199,14 +217,22 @@ oop space_dequeue(void) {
     for (int i = 0; i < c->n_reactions; i++) {
         si->slots[i + 1] = c->reactions[i].block;
     }
-
     gc_temp_root_push(snapshot);
-    oop result = indexable_new(2);
+
+    /* Milestone D Task 2: the channel's path, as an nsl String, for
+       Space>>drain's crash record (`Record ... with: #channel -> chPath`) and
+       its sys/-loop guard. Built from the same `path`/`len` the registry
+       already holds per channel (space.c:53-ish, struct SpaceChannel). */
+    oop path_string = space_make_string(c->path, c->len);
+    gc_temp_root_push(path_string);
+
+    oop result = indexable_new(3);
     gc_temp_roots_count = saved;
 
     struct ObjectInstance *ri = (struct ObjectInstance *)result;
     ri->slots[1] = value;
     ri->slots[2] = snapshot;
+    ri->slots[3] = path_string;   /* channel path for crash records */
 
     /* Only now — with value and snapshot both reachable from `result` —
        remove the event from the queue. */
