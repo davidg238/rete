@@ -32,6 +32,13 @@ static uint64_t host_clock_ms = 0;
 
 static void host_timer_add(int token, uint64_t ms, int repeating) {
     int i;
+    /* A repeating timer with a 0ms interval would never let due_ms advance
+       past host_clock_ms in host_advance's fire loop below, hanging the
+       process on the very next advanceMillis: call. Floor the interval to
+       1ms for repeaters only — a one-shot (`repeating` false) with ms==0
+       is harmless: it fires once on the next advance and deactivates, no
+       loop involved, so its ms is left untouched. */
+    if (repeating && ms == 0) ms = 1;
     for (i = 0; i < host_n_timers; i++) {
         if (!host_timers[i].live) {
             host_timers[i].token = token;
