@@ -711,6 +711,116 @@ class Kernel usingPlatform: platform = () (
   ) : (
   )
 
+  (* One supervised job's restart-policy bookkeeping (Milestone D Task 5) —
+     Kernel-module sibling of Space, same flat shape as Transition/Protocol
+     below. `rootCap` is the job's own root capability (the object `whenever:`
+     registrations are OWNED by, per Task 2's `owner: self`), so
+     `platform spaceDropReactionsOwnedBy: rootCap` sweeps exactly this job's
+     reactions and no other job's. `rootPath` is cached at registration
+     (`rootCap rootPath`, Task 2) so `addresses:` can attribute a crash
+     record's `#channel` string to this job without re-deriving anything.
+     `addresses:` answers whether `chPath` is this job's own root or a
+     channel nested under it (`root` or `root/...`) — hand-rolled byte
+     compare (NOT `startsWith:`: no such selector exists in this dialect,
+     grep-confirmed against kernel.ns/dispatch.c PRIM_NAMES, same finding
+     `postCrash:channel:` already documents above), same at:/size idiom as
+     `isSysPath:`. The `^` returns below are all inside `whileTrue:`, which
+     `dispatch.c` inlines at compile time (no real closure/call frame is
+     created), so they are ordinary method returns — NOT the deleted-NLR
+     pattern; a `^` inside a block actually passed to a real method (`do:`,
+     `detect:ifNone:`, `whenever:do:`) would be unsafe and is avoided
+     throughout this class and Supervisor below. *)
+  class SupervisedJob = ( | rootCap rootPath restartThunk crashes ::= 0. quarantined ::= false. | ) (
+    public rootCap = ( ^ rootCap )
+    public rootPath = ( ^ rootPath )
+    public restartThunk = ( ^ restartThunk )
+    public crashes = ( ^ crashes )
+    public quarantined = ( ^ quarantined )
+    public bumpCrashes = ( crashes:: crashes + 1. ^ crashes )
+    public noteProgress = ( crashes:: 0. ^ self )
+    public markQuarantined = ( quarantined:: true. ^ self )
+    public addresses: chPath = (
+      | rlen clen i |
+      (chPath = rootPath) ifTrue: [ ^ true ].
+      rlen:: rootPath size.
+      clen:: chPath size.
+      (clen > rlen) ifFalse: [ ^ false ].
+      i:: 1.
+      [ i <= rlen ] whileTrue: [
+        (chPath at: i) = (rootPath at: i) ifFalse: [ ^ false ].
+        i:: i + 1 ].
+      ^ (chPath at: rlen + 1) = 47 )
+    setRootCap: c restart: t = (
+      rootCap:: c. rootPath:: c rootPath. restartThunk:: t. ^ self )
+  ) : (
+    public rootCap: c restart: t = ( ^ self new setRootCap: c restart: t )
+  )
+
+  (* The Supervisor (Milestone D Task 5, spec §5) — observes crash records on
+     `sys/crash` (posted by the protected reactor, Task 2), attributes each
+     crash to the owning `SupervisedJob` via `jobAddressing:`, sweeps that
+     job's reactions (`platform spaceDropReactionsOwnedBy:` — Task 4's raw
+     native prim, called directly since the Supervisor lives INSIDE this
+     module, same idiom as Channel's own `dropMyReactions` above; the
+     Kernel-level `spaceDropReactionsOwnedBy:` forwarder near `space` is for
+     app-level callers only), and either restarts (re-runs the job's own
+     start thunk, which re-registers its reaction under the SAME rootCap
+     object, so the next sweep still finds it) or quarantines (stops
+     restarting; logs a `#quarantine` record to `sys/log` for observability)
+     once `quarantineLimit` consecutive crashes accumulate. A `progress:`
+     capability lets a job report it is running cleanly (an ordinary
+     `whenever: '' do:` reaction — no special mechanism, just a channel
+     event), resetting its crash count so transient trouble doesn't
+     accumulate toward quarantine across unrelated healthy periods. *)
+  class Supervisor = ( | space jobs quarantineLimit ::= 3. | ) (
+    setSpace: s = ( space:: s. jobs:: OrderedCollection new. ^ self )
+
+    public register: rootCap restart: aThunk progress: progressCap = (
+      | j |
+      j:: SupervisedJob rootCap: rootCap restart: aThunk.
+      jobs add: j.
+      progressCap whenever: '' do: [ :e | j noteProgress ].
+      ^ j )
+
+    public start = (
+      (space channel: 'sys') whenever: 'crash' do: [ :rec | self handleCrash: rec ].
+      ^ self )
+
+    public isQuarantined: aRootPath = (
+      | j |
+      j:: jobs detect: [ :x | x rootPath = aRootPath ] ifNone: [ nil ].
+      ^ (j == nil) ifTrue: [ false ] ifFalse: [ j quarantined ] )
+
+    handleCrash: rec = (
+      | chPath j |
+      chPath:: rec at: #channel ifAbsent: [ nil ].
+      j:: self jobAddressing: chPath.
+      j == nil ifTrue: [ ^ self ].                  (* crash on an unowned channel: already logged *)
+      j quarantined ifTrue: [ ^ self ].
+      j bumpCrashes.
+      (j crashes >= quarantineLimit)
+        ifTrue: [ self quarantine: j ]
+        ifFalse: [ self restart: j ].
+      ^ self )
+
+    restart: j = (
+      platform spaceDropReactionsOwnedBy: j rootCap.
+      j restartThunk value.
+      ^ self )
+
+    quarantine: j = (
+      platform spaceDropReactionsOwnedBy: j rootCap.
+      j markQuarantined.
+      (space channel: 'sys') out: 'log'
+          value: (Record tag: #quarantine with: #channel -> j rootPath).
+      ^ self )
+
+    jobAddressing: chPath = (
+      chPath == nil ifTrue: [ ^ nil ].
+      ^ jobs detect: [ :x | x addresses: chPath ] ifNone: [ nil ] )
+  ) : (
+  )
+
   (* A single `state:on:do:then:` wire — landed from staged `tuvm/review/lib/
      fsm.ns` (Milestone C Task 5). Kernel-module sibling of Protocol (staged
      nested it as `Protocol class Transition`; flattened to a top-level
@@ -1052,5 +1162,11 @@ class Kernel usingPlatform: platform = () (
      the same underlying space, exactly like two `platform List` sends
      answering the same class object above. *)
   public space             = ( ^ Space new setRoot: '' )
+  (* Milestone D Task 5: a fresh Supervisor holding the root Space, same
+     "always fresh, same underlying substrate" shape as `space` above — the
+     jobs OrderedCollection lives on this particular Supervisor instance, so
+     callers keep the one answered by `platform supervisor` rather than
+     re-fetching it. *)
+  public supervisor        = ( ^ Supervisor new setSpace: self space )
 ) : (
 )
