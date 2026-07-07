@@ -21,7 +21,9 @@ Design constraints honored:
 
 Wiring at boot (supervisor setup):
   timers:: Timers usingSpace: space seam: platform.
-  space whenever: '%sys/timer' do: [:e | timers dispatch: e].   (* reserved channel *)
+  space whenever: 'sys/timer' do: [:e | timers dispatch: e].   (* reserved channel —
+    landed spelling is plain 'sys/timer', no '%' sigil; see kernel.ns and the
+    Milestone D sync note in ../tests/README.md *)
 
 Usage:
   t:: timers after: 50 post: (Record tag: #timeout fields: (Map fromPairs: (OrderedCollection new))) on: sensorChan.

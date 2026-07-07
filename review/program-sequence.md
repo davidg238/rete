@@ -42,22 +42,31 @@ with the balloon gone.
 
 - **A — Seed + delete. DONE 2026-07-04.** Merged to master all 3 repos; 88/0/12 both paths;
   text −10.02% banked; deletion machine-proven (07_no_nlr + diff oracle). `tuvm/docs/MILESTONE_A.md`.
-- **B — Immutable message algebra. IN FLIGHT.** Spec+plan 2026-07-04 (12 tasks; Tasks 1–4 done,
-  reviewed, gates green as of this draft). Standing decisions absorbed: L7 signed-64-bit integers,
+- **B — Immutable message algebra. DONE.** Merged to master all 3 repos (12 tasks landed,
+  reviewed, gates green). Standing decisions absorbed: L7 signed-64-bit integers,
   `->` as compile-time rewrite (no builtin→kernel-Object delegation exists — Task 2 finding).
-- **C — Capability-scoped channels + reactor.** Not specced yet. MUST absorb the demo-node
-  feed-forwards: **capabilities-as-constructor-args** (not messages) needs a spec line; the
-  degenerate (exact-match) tuple space only.
-- **D — Supervisor + let-it-crash + host job.** Not specced yet. MUST-DO BEFORE SPEC: the
-  **supervisor/job restart contract** (demo-node finding); crash boundary = "unwind to marked
-  frame" per `review/lib/exceptions.md` constraint 4, compatible with the future on:do: model.
+  Close-out synced into `CLAIMS.md`/`review/tests/README.md`.
+- **C — Capability-scoped channels + reactor. DONE 2026-07-06.** Merged to master all 3 repos
+  (`nsl-tuvm f4ef42c` / `tuvm 6930afc` / `nsl-tests 7e94bfa`). Landed the demo-node
+  feed-forwards: capabilities-as-constructor-args, the degenerate (exact-match) tuple space,
+  FIFO run-to-completion `Space>>drain`. Close-out synced into `CLAIMS.md`/`review/tests/README.md`.
+- **D — Supervisor + let-it-crash + host job. DONE 2026-07-07.** All 10 tasks landed on
+  `milestone-d` (crash boundary `vm_protected_fire` unwinding to the one marked reactor
+  frame, per `review/lib/exceptions.md` constraint 4; `Supervisor`/`SupervisedJob`
+  restart+quarantine; owner-tag identity sweep; host virtual-clock timers; the soak/leak
+  test D.5; the demo-node-shaped integration test D.7; carry-forwards nsl-tuvm#5 and
+  #9.1/#9.2/#9.3 all closed). `tuvm/docs/MILESTONE_D.md`.
+
+**Phase 1 (host proof) is now COMPLETE — Milestones A through D all landed and green.**
+Phase 2 (below) is entered next.
 
 Library landing order rides these milestones — `review/lib/README.md` table is authoritative
 (combinators ✓ post-A; messages = B; bytes after B; fsm = C; timers = D).
 
 ## Phase 2 — make it real: exceptions + Zephyr (the "second step")
 
-Order chosen so each rung de-risks the next; entry criterion for the phase = Milestone D green.
+Order chosen so each rung de-risks the next; entry criterion for the phase = Milestone D
+green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
 
 1. **Full `on:do:`/`ensure:`** (first-step §8 deferral). Owner: `review/lib/exceptions.md`
    (the 5 pinned constraints; deferring was safe *because* of them). Must compose with D's
@@ -97,8 +106,9 @@ event sources, power/deep-sleep. No owner docs yet — write them when a workloa
   G4 protected through B (v8 audit clean); the rest are watch-items assigned above where scheduled.
 - **Metrics** `review/metrics-spec.md`: every phase banks its footprint/latency lines; the RAM
   line becomes target-config (mcu) at phase 2 rung 2 (tuvm#5).
-- **Test suites** `review/test-suites-spec.md` + `review/tests/CLAIMS.md`: T-A landed (07_no_nlr);
-  T-B lands with Milestone B Task 11; suites C–D with their milestones.
+- **Test suites** `review/test-suites-spec.md` + `review/tests/CLAIMS.md`: T-A, T-B, T-C, T-D
+  all landed with their milestones (`nsl-tests/07_no_nlr`, `08_messages`, `09_channels`,
+  `11_supervision` + `10_fsm/02`); `CLAIMS.md` is current as of Milestone D's close.
 - **Target user program**: `review/demo-node.ns` — readme-driven; every phase should shrink the
   gap between it and what actually runs.
 

@@ -41,7 +41,7 @@ currently undefined.
 - **Overflow policy, per event source:** when events arrive faster than handlers run,
   something must give — pin it: *coalesce* (counter/latest-value semantics — right for
   sensor ticks, GPIO edges), *drop-oldest*, or *drop-and-count*. Never unbounded queue
-  (that is the OOM path), never silent drop (a `%sys/overrun` counter record makes it
+  (that is the OOM path), never silent drop (a `sys/overrun` counter record makes it
   observable). Transient-signal semantics (T-C.7) already point at coalescing as the
   default.
 - **Backpressure telemetry:** queue high-water marks are a first-class metric (G4).
@@ -60,10 +60,18 @@ fleet-wide symptom by then.
   but big long-lived buffers (OTA staging, radio buffers) must live OUTSIDE the VM heap
   in C arenas, by rule.
 - **Heap telemetry from day one:** live bytes, largest free block, allocation
-  high-water — exported as `%sys/heap` records. T-D.5's plateau test catches leaks;
+  high-water — exported as `sys/heap` records. T-D.5's plateau test catches leaks;
   only the largest-free-block trend catches fragmentation.
 - **Decide:** moving-vs-not before Milestone B lands lots of allocation paths; the
   "big buffers live in C" rule can be adopted immediately.
+- **Status at Milestone D close (2026-07-07):** the C-side counters exist
+  (`oevm_heap_stats()`, `tuvm/src/gc.c`/`oevm.h`, live_bytes/high_water/
+  largest_free_block, landed pre-D for G3/M2) but are still NOT exported as a
+  `sys/heap` record or any nsl-visible prim — `tuvm/src/prim_ids.h`'s
+  append-only list (59-89) has nothing heap-related. `nsl-tests/11_supervision/
+  10_soak_leak.ns` (T-D.5, landed) therefore asserts the weaker
+  completion+responsiveness invariant, not a strict plateau — this gap is
+  still open and is exactly what closing it would unblock.
 
 ## G4 — Field forensics: what do you hold after a node dies at 3am?
 
@@ -77,7 +85,7 @@ Let-it-crash is only a virtue if crashes are *observable after the fact*.
   keyed by image hash) — decide the format early; retrofitting line tables into an
   image format is painful. This also fixes T-A.1's diagnostics story.
 - **Metrics channel:** heap (G3), queue high-water (G2), restart counts, radio RSSI /
-  parent, battery voltage — periodic `%sys/metrics` record; porta persists. This IS
+  parent, battery voltage — periodic `sys/metrics` record; porta persists. This IS
   the "profile" in provision/debug/profile — currently the least-specified of the
   three.
 - **Rate-limit remote logging** at the source (token bucket per channel) — a
@@ -115,7 +123,7 @@ push is remote code execution *by design* — is unspecced.
 
 Node id, Thread credentials, porta pairing, sensor calibration, FSM snapshots that must
 survive power loss: Zephyr NVS/settings is the store. Needs: a versioned schema (CBOR
-map with a version field — reuse L6), remote config update via a `%sys/config` channel
+map with a version field — reuse L6), remote config update via a `sys/config` channel
 with the same rollback thinking as G1 (a bad config must not brick), and flash-wear
 awareness (batch writes; snapshots on sleep-entry, not per-event).
 **Decide:** at Zephyr bring-up; the CBOR-schema choice can be pinned with L6 now.

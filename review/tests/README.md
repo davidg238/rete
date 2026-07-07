@@ -14,7 +14,7 @@ Test files follow the corpus conventions: `(* expect: … *)` header, module cla
 | `ta-deletion/` | Milestone A | `nsl-tests/07_no_nlr/` |
 | `tb-messages/` | Milestone B | `nsl-tests/08_messages/` |
 | `tc-channels/` | Milestone C | `nsl-tests/09_channels/` |
-| `td-crash/` | Milestone D | `nsl-tests/10_supervision/` |
+| `td-crash/` | Milestone D | `nsl-tests/11_supervision/` (landed numbering shifted by one — `10_supervision/` was never used; see the sync note above) |
 
 ## Harness extensions required (small, listed once)
 
@@ -123,11 +123,18 @@ no staged precedent (08/09/10 below):**
   D-C5), `10_take_vs_dispatch.ns` (take: consumes before the next dispatch,
   D-C2).
 
-**Supervision (Milestone D):** a contained handler crash posts
-`Record tag: #crash fields: {#error -> <text>, #channel -> <path>}` on the reserved
-supervisor channel `%sys/crash` (root-only capability). Tests observe crashes with
-`sys take: 'crash'`. Restart-policy stub behavior is whatever D lands — `td-crash/04`
-pins it once known.
+**Supervision (Milestone D — landed 2026-07-07 in `nsl-tuvm/lib/kernel.ns`; sync below
+reflects the landed reality):** a contained handler crash posts
+`Record tag: #crash with: #text -> <text> with: #channel -> <path>` (landed field is
+`#text`, not the staged `#error`; `#channel` is unchanged) on the reserved channel
+`sys/crash` (landed spelling — plain `sys/`, not the staged `%sys/`; there is no `%`
+sigil anywhere in the landed reserved-channel spelling, `sys/timer` included). Tests
+observe crashes with a `sys whenever: 'crash' do: [...]` reaction, NOT `take:` — `drain`
+dispatches (and would drop) the transient crash records, same reasoning as the
+run-to-completion reactor itself (see `nsl-tests/11_supervision/01_containment.ns`'s own
+header note). Restart-policy stub behavior landed as log + restart + quarantine-after-3
+(`Supervisor`/`SupervisedJob`, Milestone D Task 5), pinned by
+`nsl-tests/11_supervision/05_restart_quarantine.ns` (staged `td-crash/04` superseded).
 
 **Error strings** are API, from `../lib/errors.md` (`outside capability root`,
 `immutable`, `not a value`, `message depth exceeded`, `bad channel path` [landed

@@ -32,10 +32,10 @@ channel" phrase is exactly this: unwinding is a stack walk, not a value-return p
 
 1. **Errors are first-class values from day one.** `self error: 'text'` should produce
    (conceptually) an error value — at minimum the text, ideally a frame-chain snapshot —
-   and the Milestone-D crash record on `%sys/crash` should carry *it*, not a bare
-   string. Then when `on:do:` lands, handlers catch the same thing supervisors already
-   observe; the errors.md string table becomes the match vocabulary. One representation,
-   decided once.
+   and the Milestone-D crash record on `sys/crash` (landed spelling — plain `sys/`,
+   no `%` sigil) should carry *it*, not a bare string. Then when `on:do:` lands,
+   handlers catch the same thing supervisors already observe; the errors.md string
+   table becomes the match vocabulary. One representation, decided once.
 2. **Terminate-only semantics — no resumable exceptions.** Smalltalk's `resume:`
    (handler returns a value to the raise point) is continuation-shaped machinery — a
    second balloon. Toit and Erlang live without it; so does every driver script.

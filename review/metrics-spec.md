@@ -15,7 +15,7 @@ rate) so porta can flag a node weeks before it dies.
 - **Three slot types:** `counter` (monotonic since boot), `gauge` (sampled at report
   time), `hiwater` (max since last report, reset on report).
 - **Reporting rides existing wakes** (the G9 rule — no unrequested periodic work): a
-  `%sys/metrics` record piggybacks on every porta checkin; an always-on node reports
+  `sys/metrics` record piggybacks on every porta checkin; an always-on node reports
   every N minutes. One CBOR map, short symbol keys, ints only, add-only schema
   (G7/G8); target < 200 bytes.
 - **Node reports raw; porta computes trends.** Slopes, rates, and alert thresholds are
