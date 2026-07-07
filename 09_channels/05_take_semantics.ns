@@ -1,0 +1,30 @@
+(*
+expect:
+true
+5
+true
+7
+done
+*)
+(* T-C C.5 take semantics — `take:` on a never-posted channel answers nil (the
+   single sanctioned nil return), a posted value is taken exactly once (second
+   take answers nil again), and a TAKEN event never fires a reaction (D-C4):
+   a reaction is registered on `y` BEFORE the post, the event is then taken,
+   and the drain that follows fires nothing — 'fired' must not appear before
+   'done'. *)
+class TakeSemantics packageUsing: manifest = () (
+public main: platform args: args = (
+  | space |
+  space:: platform space.
+  ((space take: 'x') == nil) printString out.
+  space out: 'x' value: 5.
+  (space take: 'x') printString out.
+  ((space take: 'x') == nil) printString out.
+  space whenever: 'y' do: [ :v | 'fired' out ].
+  space out: 'y' value: 7.
+  (space take: 'y') printString out.
+  space drain.
+  'done' out.
+)
+) : (
+)

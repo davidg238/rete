@@ -1,0 +1,34 @@
+(*
+expect:
+handled-first
+handled-first
+handled-second
+handled-second
+*)
+(* T-C C.6 run-to-completion + FIFO (D-C1, D-C2) — a single reaction on `a`
+   that, when the carried value is 'first', posts 'second' back to `a` and
+   THEN prints handled-first (for 'second' it just prints handled-second).
+   'first' is posted TWICE before the one drain. The pinned print order
+   proves both semantics at once:
+     - run-to-completion: the self-post ENQUEUES, it does not recurse into
+       dispatch — recursion would print handled-second BEFORE the pending
+       handled-first (inverted/nested order);
+     - FIFO: both 'first' events (queued ahead) are handled before either
+       enqueued 'second' — LIFO would interleave (hf, hs, hf, hs). *)
+class RunToCompletion packageUsing: manifest = () (
+public main: platform args: args = (
+  | space a |
+  space:: platform space.
+  a:: space channel: 'a'.
+  a whenever: '' do: [ :v |
+    (v = 'first')
+      ifTrue: [
+        a out: '' value: 'second'.
+        'handled-first' out ]
+      ifFalse: [ 'handled-second' out ] ].
+  a out: '' value: 'first'.
+  a out: '' value: 'first'.
+  space drain.
+)
+) : (
+)
