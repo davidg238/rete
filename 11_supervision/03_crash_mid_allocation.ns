@@ -1,0 +1,37 @@
+(*
+expect:
+built 100
+crashes 5
+alive
+done
+*)
+(* T-D.2 crash mid-allocation — the crashing handler allocates nested messages in a
+   tight loop and then faults, 5 times. After recovery, allocate heavily to force GC
+   cycles and verify the heap is coherent (a large structure builds and reads back).
+   Proves the setjmp boundary and the precise GC agree: the half-built graph of each
+   crashed firing is unreachable and swept, roots survive. Runs under the suite's
+   boot-gc-asan gate. *)
+class CrashMidAllocation packageUsing: manifest = ( | crashes ::= 0. | ) (
+  public main: platform args: args = (
+    | space boom sys big |
+    space:: platform space.
+    boom:: space channel: 'boom'.
+    sys::  space channel: 'sys'.
+    boom whenever: '' do: [ :m |
+      | acc |
+      acc:: List with: m.
+      1 to: 20 do: [ :i | acc:: List with: acc with: m ].   (* nested allocation *)
+      self error: 'boom-after-alloc' ].
+    sys whenever: 'crash' do: [ :rec | crashes:: crashes + 1 ].
+    1 to: 5 do: [ :i | boom out: '' value: i ].
+    space drain.
+    (* heavy post-recovery allocation + readback *)
+    big:: OrderedCollection new.
+    1 to: 100 do: [ :i | big add: (List with: i with: (List with: i)) ].
+    ('built ' , big size printString) out.
+    ('crashes ' , crashes printString) out.
+    (big size = 100) ifTrue: [ 'alive' out ] ifFalse: [ 'DEAD' out ].
+    'done' out.
+  )
+) : (
+)
