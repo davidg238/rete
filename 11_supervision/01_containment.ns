@@ -1,0 +1,32 @@
+(*
+expect:
+good 10
+bad 0
+crashes 10
+done
+*)
+(* T-D.1 containment baseline — two handlers on two channels; `bad` crashes on EVERY
+   firing. Across 10 rounds `good` counts all 10 (unaffected), `bad`'s own counter
+   stays 0 (its body is abandoned at the error, proving the unwind), and a counting
+   observer on sys/crash sees one crash record per contained crash. The node never
+   exits. Observation is a reaction on sys/crash (not take:) because drain dispatches
+   — and would drop — the transient crash records otherwise. *)
+class Containment packageUsing: manifest = ( | goodHits ::= 0. badHits ::= 0. crashes ::= 0. | ) (
+  public main: platform args: args = (
+    | space good bad sys |
+    space:: platform space.
+    good:: space channel: 'good'.
+    bad::  space channel: 'bad'.
+    sys::  space channel: 'sys'.
+    good whenever: '' do: [ :m | goodHits:: goodHits + 1 ].
+    bad  whenever: '' do: [ :m | self error: 'boom'. badHits:: badHits + 1 ].
+    sys  whenever: 'crash' do: [ :rec | crashes:: crashes + 1 ].
+    1 to: 10 do: [ :i | good out: '' value: i. bad out: '' value: i ].
+    space drain.
+    ('good ' , goodHits printString) out.
+    ('bad ' , badHits printString) out.
+    ('crashes ' , crashes printString) out.
+    'done' out.
+  )
+) : (
+)
