@@ -1,0 +1,22 @@
+(*
+expect-runtime-fail: unknown state
+*)
+(* T-C L4 Protocol — `validate` contract (Milestone C Task 5, staged fsm.ns
+   lines 93-102): a machine wired with a `then:` target (#converting) that
+   itself has NO transition table (never given its own `state: #converting
+   on:...`) and NO entry action (`state: #converting onEntry:` never
+   registered) — the staged body's setup-time check fires
+   `self error: 'unknown state'` for exactly this case ("configuration bugs
+   die at setup, not in the field", staged fsm.ns:94). The staged text is
+   unambiguous here (crash, not a warning print), so this freezes the
+   crash string verbatim, byte-exact, per the controller addendum. *)
+class ProtocolValidateDanglingTarget packageUsing: manifest = () (
+public main: platform args: args = (
+  | machine |
+  machine:: platform Protocol named: #tmp117.
+  machine state: #idle on: #start do: [ :m :e | nil ] then: #converting.
+  machine validate.
+  'unreached' out.
+)
+) : (
+)
