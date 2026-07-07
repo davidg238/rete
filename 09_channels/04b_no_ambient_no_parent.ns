@@ -1,0 +1,17 @@
+(*
+expect-runtime-fail: parent
+*)
+(* T-C C.4 no ambient authority — a capability exposes no widening selector:
+   sending it a hypothetical `parent` is simply not understood (a plain DNU),
+   never a defined-but-blocked operation. There is no reflective escape
+   hatch back toward the root. *)
+class NoAmbientAuthorityNoParent packageUsing: manifest = () (
+public main: platform args: args = (
+  | space cap |
+  space:: platform space.
+  cap:: space channel: 'node7'.
+  cap parent.
+  'unreached' out.
+)
+) : (
+)

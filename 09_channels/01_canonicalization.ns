@@ -1,0 +1,22 @@
+(*
+expect:
+42
+*)
+(* T-C canonicalization (Milestone C Task 2) — `resolve:` must join segments
+   canonically regardless of HOW a capability was attenuated: posting via a
+   two-step attenuation ((space channel: 'a') channel: 'b/c', whose resolved
+   root is 'a/b/c') and taking via an INDEPENDENTLY-derived one-step
+   capability at the same canonical path (space channel: 'a/b/c') must see
+   the same underlying channel — proving the join is canonical, not just
+   that each capability's own string happens to work. *)
+class Canonicalization packageUsing: manifest = () (
+public main: platform args: args = (
+  | space capA capB |
+  space:: platform space.
+  capA:: (space channel: 'a') channel: 'b/c'.
+  capB:: space channel: 'a/b/c'.
+  capA out: '' value: 42.
+  (capB take: '') printString out.
+)
+) : (
+)

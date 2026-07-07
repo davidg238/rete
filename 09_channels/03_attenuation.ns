@@ -1,0 +1,26 @@
+(*
+expect:
+5
+true
+true
+*)
+(* T-C C.3 attenuation monotonicity — a chain `a` -> `a/b` -> `a/b/c` of
+   successive `channel:` derivations (each narrower than its parent, A1).
+   The leaf's posts are visible only at its own exact path: a sibling
+   attenuation of the SAME parent (`a/b` -> `a/b/other`) and a sibling of the
+   ROOT (`a` -> `a/x`) both see nothing — attenuation only narrows, it never
+   leaks sideways. *)
+class Attenuation packageUsing: manifest = () (
+public main: platform args: args = (
+  | space capA capAB capABC |
+  space:: platform space.
+  capA:: space channel: 'a'.
+  capAB:: capA channel: 'b'.
+  capABC:: capAB channel: 'c'.
+  capABC out: '' value: 5.
+  (capABC take: '') printString out.
+  (((capAB channel: 'other') take: '') == nil) printString out.
+  (((capA channel: 'x') take: '') == nil) printString out.
+)
+) : (
+)

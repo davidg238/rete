@@ -1,0 +1,25 @@
+(*
+expect:
+true
+7
+*)
+(* T-C C.4 no ambient authority — a job is handed ONLY a capability rooted at
+   'node7' (never `space` itself, its object reference is the job's entire
+   authority — the demo-node "capabilities are constructor arguments"
+   discipline). Every channel the job can name is built by attenuating that
+   one capability, so every path it can construct starts with 'node7/'. Its
+   post is invisible outside that prefix (checked here from OUTSIDE the job,
+   using the supervisor's own `space` capability against an unrelated
+   `sup/anything` channel) but IS visible at its own attenuated path
+   (node7/x). *)
+class NoAmbientAuthority packageUsing: manifest = () (
+public main: platform args: args = (
+  | space job |
+  space:: platform space.
+  job:: [ :cap | (cap channel: 'x') out: '' value: 7 ].
+  job value: (space channel: 'node7').
+  (((space channel: 'sup/anything') take: '') == nil) printString out.
+  ((space channel: 'node7/x') take: '') printString out.
+)
+) : (
+)
