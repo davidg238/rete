@@ -1,0 +1,33 @@
+(*
+expect:
+r1-e
+r2-e
+r1-e
+r3-e
+*)
+(* T-C C.8 fan-out order (D-C3/D-C4) — four registrations on channel `a`:
+   r1 (prints 'r1-<value>'), r2 (prints 'r2-<value>'), then r1's SAME block
+   again (the pathological dup — the identical local is passed to a second
+   `whenever:do:` send, not a fresh block), then a distinct r3 (prints
+   'r3-<value>'). One event is posted and drained. Fan-out visits the
+   reaction list in registration order (D-C3) and there is no dedupe (D-C4),
+   so the pinned stream is r1, r2, r1, r3. The trailing r3 asymmetry is
+   deliberate: the bare dup sequence [r1, r2, r1] is a palindrome under
+   reversal, so reverse-order (LIFO) fan-out would print an identical stream
+   — appending r3 breaks the palindrome (reverse order would yield
+   r3, r1, r2, r1), so this file pins ORDER, not just no-dedupe. *)
+class FanoutOrder packageUsing: manifest = () (
+public main: platform args: args = (
+  | space a r1 |
+  space:: platform space.
+  a:: space channel: 'a'.
+  r1:: [ :v | ('r1-' , v) out ].
+  a whenever: '' do: r1.
+  a whenever: '' do: [ :v | ('r2-' , v) out ].
+  a whenever: '' do: r1.
+  a whenever: '' do: [ :v | ('r3-' , v) out ].
+  a out: '' value: 'e'.
+  space drain.
+)
+) : (
+)

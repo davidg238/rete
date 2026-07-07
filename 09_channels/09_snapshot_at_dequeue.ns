@@ -1,0 +1,33 @@
+(*
+expect:
+r1
+r1
+r2
+*)
+(* T-C C.9 snapshot-at-dequeue (D-C5) — a single reaction r1 on `a` prints
+   'r1' and, guarded by a once-flag, registers a second reaction r2
+   (prints 'r2') on the SAME channel the first time it fires. Two events are
+   posted before the one drain. The snapshot for an event's fan-out is taken
+   at THAT event's dequeue, not at post time or drain-start: event 1's
+   snapshot is taken before r1 has run, so it contains only r1 — r2 gets
+   registered mid-firing and does NOT see event 1. Event 2's snapshot is
+   taken after r1's registration of r2, so it contains both, in registration
+   order. *)
+class SnapshotAtDequeue packageUsing: manifest = () (
+public main: platform args: args = (
+  | space a registered r1 |
+  space:: platform space.
+  a:: space channel: 'a'.
+  registered:: false.
+  r1:: [ :v |
+    'r1' out.
+    registered ifFalse: [
+      registered:: true.
+      a whenever: '' do: [ :w | 'r2' out ] ] ].
+  a whenever: '' do: r1.
+  a out: '' value: 'e1'.
+  a out: '' value: 'e2'.
+  space drain.
+)
+) : (
+)
