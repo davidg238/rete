@@ -85,10 +85,11 @@ void space_register(const char *path, size_t len, oop block, oop owner);
 void space_drop_reactions_owned_by(oop owner);
 
 /* Dequeue the oldest queued event, node-wide FIFO order (D-C1). Answers NULL
-   if the queue is empty; else a fresh 2-slot heap Array {value,
-   blocksSnapshotArray}, where blocksSnapshotArray is a fresh Array of the
-   channel's reaction blocks snapshotted AT THIS MOMENT (D-C5), in
-   registration order (D-C3). */
+   if the queue is empty; else a fresh 3-slot heap Array {value,
+   blocksSnapshotArray, channelPath} (Milestone D widened this from 2 slots for
+   crash records), where blocksSnapshotArray is a fresh Array of the channel's
+   reaction blocks snapshotted AT THIS MOMENT (D-C5), in registration order
+   (D-C3), and channelPath is the dequeued channel's path String. */
 oop space_dequeue(void);
 
 /* GC root trace: marks every queued (still-live) event's value oop, and every

@@ -253,12 +253,16 @@ int main(void) {
         oop dq1 = space_dequeue();
         assert(dq1 != NULL && !IS_SMI(dq1));
         struct ObjectInstance *dq1i = (struct ObjectInstance *)dq1;
-        assert(UNTAG_SMI(instance_slot(dq1i, 0)) == 2 && "outer Array must be 2 slots");
+        assert(UNTAG_SMI(instance_slot(dq1i, 0)) == 3 && "outer Array must be 3 slots (value, snapshot, channelPath)");
         assert(instance_slot(dq1i, 1) == e1 && "slot 1 is the posted value");
         oop snap1 = instance_slot(dq1i, 2);
         struct ObjectInstance *snap1i = (struct ObjectInstance *)snap1;
         assert(UNTAG_SMI(instance_slot(snap1i, 0)) == 1 && "one standing reaction");
         assert(instance_slot(snap1i, 1) == r1_block);
+        oop chpath1 = instance_slot(dq1i, 3);   /* Milestone D: slot 3 is the channel path String */
+        assert(chpath1 != NULL && !IS_SMI(chpath1) && "slot 3 is the channel path String");
+        assert(((struct String *)chpath1)->length == 1 && ((struct String *)chpath1)->bytes[0] == 'a'
+               && "channel path String is 'a'");
 
         oop dq_empty = space_dequeue();
         assert(dq_empty == NULL && "dequeue on an empty queue must answer nil");
@@ -402,7 +406,9 @@ int main(void) {
         oop dq = space_dequeue();       /* collects (at least) twice inside */
         assert(dq != NULL && !IS_SMI(dq));
         struct ObjectInstance *dqi = (struct ObjectInstance *)dq;
-        assert(UNTAG_SMI(instance_slot(dqi, 0)) == 2);
+        assert(UNTAG_SMI(instance_slot(dqi, 0)) == 3);   /* Milestone D: {value, snapshot, channelPath} */
+        oop chpathG = instance_slot(dqi, 3);
+        assert(chpathG != NULL && !IS_SMI(chpathG) && "slot 3 is the channel path String");
 
         oop got = instance_slot(dqi, 1);
         assert(got == v9 && "dequeued value oop must be the posted one (not swept/reused)");

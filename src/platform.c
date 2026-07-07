@@ -351,7 +351,8 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
     }
     case PRIM_pf_spaceDequeue: {
         /* `platform spaceDequeue` — no args; answers the {value,
-           blocksSnapshot} Array or nil (NULL) if the queue is empty. */
+           blocksSnapshot, channelPath} 3-slot Array (Milestone D) or nil
+           (NULL) if the queue is empty. */
         { *out = space_dequeue(); return 1; }
     }
     case PRIM_pf_protectedFire: {

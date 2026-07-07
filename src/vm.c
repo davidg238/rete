@@ -275,11 +275,14 @@ static inline struct MethodContext *home_ctx_frame(oop home) {
  * OP_SEND / OP_SEND_IMPLICIT / OP_SEND_SUPER / OP_BLOCK_INVOKE). Primitives still
  * run as inline C calls.
  *
- * run_interpreter STAYS re-entrant for exactly three cold, single-shot, non-
- * looping callers (F4): the debugger hook, does_not_understand's bytecode
- * handler, and run_method_on's nested-class init. Each such call pushes its own
- * entry frame and bottoms out at it (entry_ctx), returning to its C caller — the
- * loop never recurses on the hot send path.
+ * run_interpreter STAYS re-entrant for these cold, single-shot, non-looping
+ * callers (F4): the debugger hook, does_not_understand's bytecode handler,
+ * run_method_on's nested-class init, and (Milestone D) vm_protected_fire, which
+ * runs one reaction firing under a setjmp crash boundary — once per reactor
+ * firing, so per-firing rather than strictly one-shot, but still non-looping and
+ * bounded (the block runs to completion, then returns or unwinds). Each such call
+ * pushes its own entry frame and bottoms out at it (entry_ctx), returning to its
+ * C caller — the loop never recurses on the hot send path.
  */
 oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
     /* oevm#21: any allocation between here and where `receiver`/`args` are written
@@ -357,8 +360,9 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
     current_frame = ctx;
     /* The frame THIS invocation pushed. The flat loop bottoms out (returns to the
        C caller) only when OP_RET pops back to entry_ctx — that is the
-       fiber/main entry for the hot path, or the single-shot re-entry frame for the
-       three cold F4 callers. */
+       fiber/main entry for the hot path, or the re-entry frame for the cold F4
+       callers (see run_interpreter's header — incl. Milestone D's
+       vm_protected_fire). */
     /* Bottom-out marker held for the whole invocation. A nested push may grow the
        stack and move frames, so track it as a base-relative OFFSET, not a pointer. */
     size_t entry_off = (size_t)((oop *)ctx - vm_stack);
