@@ -1,0 +1,104 @@
+(*
+expect:
+h1 100000
+h2 100000
+h3 100000
+crash cycles 5000
+restarts 5000
+quarantined false
+final 1
+done
+*)
+(* T-D.5 soak + leak plateau — the standing leak detector for the shared-heap
+   tradeoff (a leaky job cannot be evicted by restart; creep must be caught in
+   test, not in the field). Drives 100,000 iterations through three healthy
+   handlers (300,000 firings total) with a periodic deliberate crash/restart
+   cycle every 20th iteration (5,000 full crash->contain->restart cycles,
+   never quarantining — see below), then proves the node is still alive and
+   responsive with one final healthy event on a fresh channel. Slow by
+   design; kept in the suite (no per-file slow-skip in the runner) at a count
+   that is meaningful but does not dominate the gate — see MILESTONE_D.md.
+
+   HEAP GAUGE: grep-confirmed there is no nsl-visible heap/free-bytes
+   accessor. `oevm_heap_stats()` exists in C (tuvm/src/oevm.h:399-414,
+   gc.c:839) and reports live_bytes/high_water/largest_free_block, but it is
+   never wired to a prim — `tuvm/src/prim_ids.h`'s append-only id list runs
+   59-89 (Milestone D Task 6's timer prims are the last additions) with
+   nothing heap-related, and `kernel.ns` has no `platform`-level forwarder
+   for it (grep of both files: no hit). So this test asserts the WEAKER
+   invariant the Task 10 brief allows in that case: the run completes (no
+   OOM abort, no "channel reactions full"/"channel queue full" exhaustion
+   despite 5,000 restart cycles reusing the same rootCap's reaction slot)
+   and the node is still responsive to a final healthy event. When a gauge
+   is wired (extend oevm_heap_stats() to a platform prim), extend this test
+   to sample it every ~10k events and assert bounded variance instead of
+   this completion proxy.
+
+   Why quarantine never triggers (so the crash/restart cycle is CONTINUOUS
+   for the whole run, not just the first 3 crashes): each crash iteration
+   posts, in order, `crasher` (crash) then `crasher/progress` (progress)
+   before draining. FIFO dispatch within that one `drain` call fires
+   `crasher` first — it crashes, and the crash record is appended to the
+   BACK of the queue (behind the already-queued progress event) — then
+   `progress` dequeues next and resets the job's crash counter to 0 via
+   `noteProgress`, and only then does the crash record itself dequeue and
+   `bumpCrashes` (0 -> 1, `restart`, since 1 < quarantineLimit 3). Every
+   cycle repeats this 0->1->reset dance, so `crashes` never reaches 3 and
+   `isQuarantined:` stays false for all 5,000 cycles — a real, repeated
+   exercise of the restart path (sweep + re-register), not a one-shot. *)
+class SoakLeak packageUsing: manifest = ( | h1Hits ::= 0. h2Hits ::= 0. h3Hits ::= 0.
+                                            crashCycles ::= 0. restarts ::= 0. finalHits ::= 0.
+                                            cycleCounter ::= 0. | ) (
+  public main: platform args: args = (
+    | space sup h1 h2 h3 crasher progress final n |
+    space:: platform space.
+    sup::   platform supervisor.
+    h1:: space channel: 'h1'.
+    h2:: space channel: 'h2'.
+    h3:: space channel: 'h3'.
+    crasher::  space channel: 'crasher'.
+    progress:: space channel: 'crasher/progress'.
+    final::    space channel: 'final'.
+
+    h1 whenever: '' do: [ :m | h1Hits:: h1Hits + 1 ].
+    h2 whenever: '' do: [ :m | h2Hits:: h2Hits + 1 ].
+    h3 whenever: '' do: [ :m | h3Hits:: h3Hits + 1 ].
+
+    sup register: crasher
+        restart: [ restarts:: restarts + 1.
+                   crasher whenever: '' do: [ :m | self error: 'periodic soak crash' ] ]
+        progress: progress.
+    sup start.
+    (* prime the crasher's first registration, same idiom as 05_restart_quarantine.ns *)
+    crasher whenever: '' do: [ :m | self error: 'periodic soak crash' ].
+
+    n:: 100000.
+    1 to: n do: [ :i |
+      h1 out: '' value: i.
+      h2 out: '' value: i.
+      h3 out: '' value: i.
+      cycleCounter:: cycleCounter + 1.
+      (cycleCounter = 20) ifTrue: [
+        cycleCounter:: 0.
+        crashCycles:: crashCycles + 1.
+        crasher  out: '' value: i.
+        progress out: '' value: i ].
+      space drain ].
+
+    (* Node still alive and responsive: a fresh channel, registered only now,
+       fires exactly once. *)
+    final whenever: '' do: [ :m | finalHits:: finalHits + 1 ].
+    final out: '' value: #ping.
+    space drain.
+
+    ('h1 ' , h1Hits printString) out.
+    ('h2 ' , h2Hits printString) out.
+    ('h3 ' , h3Hits printString) out.
+    ('crash cycles ' , crashCycles printString) out.
+    ('restarts ' , restarts printString) out.
+    ('quarantined ' , (sup isQuarantined: 'crasher') printString) out.
+    ('final ' , finalHits printString) out.
+    'done' out.
+  )
+) : (
+)
