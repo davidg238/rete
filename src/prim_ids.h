@@ -61,4 +61,9 @@
    72 and 79; they don't affect this count since this entry is appended after
    PRIM_pf_spaceDequeue, whose mirrored id (82) already accounts for them). */
 #define PRIM_pf_protectedFire    83
+/* Milestone D Task 4: the restart-sweep verb, appended after protectedFire —
+   no pre-existing id shifts. 84 was arrived at by COUNTING PRIM_NAMES (84
+   entries total after the append), not by 83+1 arithmetic, per the standing
+   lesson above. */
+#define PRIM_pf_spaceDropReactionsOwnedBy 84
 #endif /* OEVM_PRIM_IDS_H */

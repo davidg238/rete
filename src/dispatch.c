@@ -642,6 +642,10 @@ enum {
        last, so no pre-existing PRIM id shifts; counted (not computed) to be
        id 83 — see prim_ids.h. --- */
     PRIM_pf_protectedFire,
+    /* --- Milestone D Task 4: the restart-sweep verb. Appended last, so no
+       pre-existing PRIM id shifts; counted (not computed) to be id 84 — see
+       prim_ids.h. --- */
+    PRIM_pf_spaceDropReactionsOwnedBy,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -669,6 +673,7 @@ static const char *const PRIM_NAMES[] = {
     "isValue", "isSymbol", "isList", "isMap", "isRecord", "isBytes",
     "spacePost:value:", "spaceRegister:block:owner:", "spaceTake:", "spaceDequeue",
     "protectedFire:value:",
+    "spaceDropReactionsOwnedBy:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 

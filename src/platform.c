@@ -278,6 +278,15 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = vm_protected_fire(args[0], args[1]);
         return 1;
     }
+    case PRIM_pf_spaceDropReactionsOwnedBy: {
+        /* `platform spaceDropReactionsOwnedBy: cap` — Milestone D restart
+           sweep. Removes every reaction owned by `cap` across every
+           channel, compacting in place. Answers the platform capability
+           (mirrors PRIM_pf_spaceRegister's/PRIM_pf_print's convention). */
+        space_drop_reactions_owned_by(args[0]);
+        *out = platform_object();
+        return 1;
+    }
     default:
         return 0;
     }

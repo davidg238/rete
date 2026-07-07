@@ -178,6 +178,27 @@ void space_register(const char *path, size_t len, oop block, oop owner) {
     c->n_reactions++;
 }
 
+/* Owner sweep (Milestone D Task 4): compact every channel's reactions[] in
+   place, dropping every reaction whose owner is == the given capability.
+   Read-index rd scans every reaction; write-index w only advances past
+   survivors, so shifting reactions[rd] down to reactions[w] preserves
+   registration order among what remains (D-C3). No GC hazard: this only
+   moves existing SpaceReaction structs within the static channels[] array —
+   no allocation happens here. */
+void space_drop_reactions_owned_by(oop owner) {
+    for (int c = 0; c < n_channels; c++) {
+        struct SpaceChannel *ch = &channels[c];
+        int w = 0;
+        for (int rd = 0; rd < ch->n_reactions; rd++) {
+            if (ch->reactions[rd].owner != owner) {
+                if (w != rd) ch->reactions[w] = ch->reactions[rd];
+                w++;
+            }
+        }
+        ch->n_reactions = w;
+    }
+}
+
 oop space_dequeue(void) {
     if (q_count == 0) return NULL;
     /* Ring invariant: queue[q_head] is live whenever q_count > 0. */

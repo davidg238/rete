@@ -76,6 +76,14 @@ oop space_take(const char *path, size_t len);
    duplicate (block, owner) pairs are two reactions, not deduped (D-C4). */
 void space_register(const char *path, size_t len, oop block, oop owner);
 
+/* Owner sweep (Milestone D Task 4 — the restart teardown verb): for every
+   channel, remove every reaction whose stored owner oop is == to `owner`
+   (raw pointer identity, matching the exact capability object), compacting
+   each channel's reactions[] in place and decrementing n_reactions.
+   Registration order is preserved among the survivors (D-C3). Used by the
+   Supervisor (Task 5) to drop a crashed job's registrations before restart. */
+void space_drop_reactions_owned_by(oop owner);
+
 /* Dequeue the oldest queued event, node-wide FIFO order (D-C1). Answers NULL
    if the queue is empty; else a fresh 2-slot heap Array {value,
    blocksSnapshotArray}, where blocksSnapshotArray is a fresh Array of the
