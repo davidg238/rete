@@ -55,5 +55,5 @@ Tests assert on these exact strings (they are API), so choose once, here:
 | mutable object placed in a message | `not a value` |
 | mutating an algebra value | `immutable` |
 | channel path outside capability root | `outside capability root` |
-| malformed channel path at grant | `invalid channel path` |
+| malformed channel path at grant | `bad channel path` |
 | integer overflow past 2^63−1 | `integer overflow` |
