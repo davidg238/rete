@@ -597,6 +597,12 @@ class Kernel usingPlatform: platform = () (
      actually fires `whenever:`-registered blocks. *)
   class Channel = ( | root | ) (
     setRoot: r = ( root:: r. ^ self )
+    (* Module-internal accessor (Milestone D Task 2) — answers the capability's
+       own root String, so `Space>>drain` can post it as `#channel` on a crash
+       record and `postCrash:channel:` can run the sys/-loop guard on it. No
+       reflective escape hatch: only code inside this module (`outer`/sibling
+       sends) can reach it, same confinement as every other Channel verb. *)
+    rootPath = ( ^ root )
     (* Validate `rel` (crash `bad channel path` on any A1 violation), then
        join it under `root`: `''` answers `root` itself (the capability's own
        channel — demo-node's `chan out: '' value: ...` idiom); an empty
@@ -628,28 +634,72 @@ class Kernel usingPlatform: platform = () (
      (Task 3) is the host reactor loop and is unique to the root — an
      attenuated Channel never drains, it only addresses. *)
   class Space = Channel ( ) (
-    (* The host reactor (Milestone C Task 3): dispatch queued events until the
-       queue is empty (supervisor idle-wait is Milestone D). Each `platform
-       spaceDequeue` answers nil (queue empty) or a raw 2-slot indexable
-       {value, reactionBlocksSnapshot} — snapshot taken at dequeue (D-C5), in
-       registration order (D-C3). The raw indexable is a bare `indexable_new`
-       backing store (class-less vtable — probe-proven, Task-3 controller
-       correction), so it is consumed ONLY via the shape-gated
-       `basicAt:`/`basicSize` and never escapes this method. Fan-out invokes
-       every snapshot block with the carried value; a reaction that posts
-       merely enqueues — the outer whileTrue picks the new event up on a
-       LATER iteration, never recursively (run-to-completion, D-C).
-       `drain` is not re-entrant — a reaction that itself called `drain`
-       would violate run-to-completion; reactions post (enqueue) and
-       return. *)
+    (* The host reactor (Milestone C Task 3; PROTECTED — Milestone D Task 2):
+       dispatch queued events until the queue is empty (supervisor idle-wait
+       is a later Milestone D task). Each `platform spaceDequeue` answers nil
+       (queue empty) or a raw 3-slot indexable {value, reactionBlocksSnapshot,
+       channelPath} — snapshot taken at dequeue (D-C5), in registration order
+       (D-C3); `channelPath` is the firing event's channel, added by Task 2 so
+       a caught crash can be attributed to it. The raw indexable is a bare
+       `indexable_new` backing store (class-less vtable — probe-proven,
+       Task-3 controller correction), so it is consumed ONLY via the
+       shape-gated `basicAt:`/`basicSize` and never escapes this method.
+       Fan-out invokes every snapshot block with the carried value THROUGH
+       `platform protectedFire:value:` (Task 1's setjmp crash boundary): a
+       clean firing answers the canonical nil and drain moves on; a firing
+       that `self error:`s is caught, unwound, and abandoned mid-body (the
+       crashing reaction's own remaining statements never run — the process
+       survives) and `protectedFire:` answers the raised condition (a
+       non-nil String), which `postCrash:channel:` turns into a first-class
+       crash record. A reaction that posts merely enqueues — the outer
+       whileTrue picks the new event up on a LATER iteration, never
+       recursively (run-to-completion, D-C). `drain` is not re-entrant — a
+       reaction that itself called `drain` would violate run-to-completion;
+       reactions post (enqueue) and return. *)
     public drain = (
-      | ev v bs i |
+      | ev v bs ch i cond |
       [ ev:: platform spaceDequeue. (ev == nil) not ] whileTrue: [
         v::  ev basicAt: 1.
         bs:: ev basicAt: 2.
+        ch:: ev basicAt: 3.
         i:: 1.
-        [ i <= bs basicSize ] whileTrue: [ (bs basicAt: i) value: v. i:: i + 1 ] ].
+        [ i <= bs basicSize ] whileTrue: [
+          cond:: platform protectedFire: (bs basicAt: i) value: v.
+          cond == nil ifFalse: [ self postCrash: cond channel: ch ].
+          i:: i + 1 ] ].
       ^ self )
+
+    (* A contained crash posts a first-class crash record on sys/crash —
+       EXCEPT a crash raised while firing a sys/-rooted reaction (a
+       supervisor/observer bug): re-posting would amplify into a loop (the
+       new crash record would itself land on sys/crash, re-firing the very
+       reaction that just crashed), so it is reported via `out` (this
+       dialect has no dedicated stderr selector — grep-confirmed: kernel.ns
+       and tuvm/src/dispatch.c's PRIM_NAMES have no `outError`/`startsWith:`
+       primitive) and dropped instead. `self out: 'sys/crash' value: ...`
+       uses the existing `Channel>>out:value:` — `drain` runs on the root
+       `Space`, whose root is `''`, so `resolve: 'sys/crash'` answers
+       `'sys/crash'` unprefixed. *)
+    postCrash: text channel: chPath = (
+      (self isSysPath: chPath)
+        ifTrue: [ ('supervisor-crash ' , chPath , ' ' , text) out ]
+        ifFalse: [
+          self out: 'sys/crash'
+               value: (Record tag: #crash with: #text -> text with: #channel -> chPath) ].
+      ^ self )
+
+    (* `chPath = 'sys'` or `chPath` starts with `'sys/'`. No generic
+       `startsWith:` exists in this dialect (grep-confirmed), so this is
+       spelled directly over `size`/`at:` byte comparison — same idiom
+       `checkPath:` (~:801) already uses for its own segment scan. ASCII:
+       $s=115, $y=121, /=47. *)
+    isSysPath: p = (
+      (p = 'sys') ifTrue: [ ^ true ].
+      ^ p size > 4
+        and: [ (p at: 1) = 115
+        and: [ (p at: 2) = 121
+        and: [ (p at: 3) = 115
+        and: [ (p at: 4) = 47 ] ] ] ] )
   ) : (
   )
 
