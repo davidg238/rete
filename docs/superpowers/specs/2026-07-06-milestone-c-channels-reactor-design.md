@@ -227,7 +227,9 @@ segments (no `..`, no leading `/`), prefix escape is unrepresentable by construc
 FROZEN-RESERVED for the first API that accepts absolute paths against a capability
 (likely D's grant surface). FROZEN additions (David-approved 2026-07-06 — static-
 capacity exhaustion, Tier-2 from C, embedded-arena style): `channel registry full`,
-`channel queue full`, `channel reactions full`.
+`channel queue full`, `channel reactions full`; and (David-approved 2026-07-06, post
+Task-1 review — a path exceeding the static OEVM_SPACE_MAX_PATH buffer, previously
+reusing the registry string) `channel path too long`.
 
 ## 8. Tests (T-C contract + this design's additions)
 
