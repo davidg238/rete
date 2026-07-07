@@ -624,6 +624,14 @@ class Kernel usingPlatform: platform = () (
     public whenever: rel do: aBlock = (
       platform spaceRegister: (self resolve: rel) block: aBlock owner: self.
       ^ self )
+    (* Module-internal (Milestone D Task 4): drop every reaction owned by THIS
+       capability, across every channel. The Supervisor (Task 5) calls the
+       platform prim directly with a job's rootCap instead — this helper exists
+       for any module-internal caller that already holds the capability object
+       rather than passing it around separately. *)
+    dropMyReactions = (
+      platform spaceDropReactionsOwnedBy: self.
+      ^ self )
   ) : (
   )
 
@@ -1018,6 +1026,11 @@ class Kernel usingPlatform: platform = () (
   public readLine = ( ^ platform readLine )
   public protectedFire: aBlock value: v = ( ^ platform protectedFire: aBlock value: v )
   public valueRank: v = ( ^ platform valueRank: v )
+  (* The restart-sweep verb (Milestone D Task 4): the Supervisor (Task 5) calls
+     this directly with a crashed job's rootCap to drop every reaction it owns,
+     across every channel, before the job restarts. Thin forwarder to the C
+     prim, same shape as protectedFire:/valueRank: above. *)
+  public spaceDropReactionsOwnedBy: cap = ( ^ platform spaceDropReactionsOwnedBy: cap )
 
   public Object            = ( ^ Object )
   public Array             = ( ^ Array )
