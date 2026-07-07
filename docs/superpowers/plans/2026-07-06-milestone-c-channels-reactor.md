@@ -142,19 +142,29 @@ checkPath: p = (
 - Test: `nsl-tests/09_channels/05_take_semantics.ns`, `06_run_to_completion.ns`, `07_registration_lifecycle.ns`
 
 **Interfaces:**
-- Consumes: Task 1 `spaceDequeue` (nil | Array{value, blocks}); Task 2 verbs; Array `at:`/`size` (as used by List internals, kernel.ns ~189).
+- Consumes: Task 1 `spaceDequeue` (nil | Array{value, blocks}); Task 2 verbs; raw-indexable `basicAt:`/`basicSize` (see correction below).
 - Produces: `Space>>public drain` — dispatch until queue empty (the host reactor; supervisor idle-wait is Milestone D).
 
 ```
 public drain = (
   | ev v bs i |
   [ ev:: platform spaceDequeue. (ev == nil) not ] whileTrue: [
-    v::  ev at: 1.
-    bs:: ev at: 2.
+    v::  ev basicAt: 1.
+    bs:: ev basicAt: 2.
     i:: 1.
-    [ i <= bs size ] whileTrue: [ (bs at: i) value: v. i:: i + 1 ] ].
+    [ i <= bs basicSize ] whileTrue: [ (bs basicAt: i) value: v. i:: i + 1 ] ].
   ^ self )
 ```
+
+(PLAN CORRECTION at Task-3 landing: this body originally used `at:`/`size` per the
+List-internals precedent — the flagged known-unknown resolved against it. Probe-proven:
+`space_dequeue`'s result is built by bare `indexable_new` (udp `basicReceive:` precedent),
+carries the class-less `IndexableVtable`, so `at:`/`size` DNU; only the shape-gated
+`basicAt:`/`basicSize` reach it. `basicAt:`/`basicSize` are kernel.ns's own underlying
+vocabulary (`Array>>at: = ( ^ self basicAt: i )`) and the raw array never escapes drain —
+selector spelling only, zero semantic change. Alternative rejected: re-plumbing
+`space_dequeue` through the vtable-stamped `basicNewIndexable` path would rewrite
+ratified Task-1 C on a task that authorizes no C change.)
 
 - [ ] **Step 1: Failing tests.** `05_take_semantics.ns` (C.5): take on never-posted channel → print nil handling via `ifAbsent:`-style guard? NO — `take:` answers nil by contract: print `(space take: 'x') == nil` → `true`; post then take → value once; second take → nil again. `06_run_to_completion.ns` (C.6): reaction on `a` that, when the carried value is `#first`, posts `#second` to `a` and THEN prints `handled-first`; a second... (single reaction, self-post): expected print order `handled-first` then `handled-second` — recursion would invert or nest; also post `#first` twice before draining → FIFO order of prints pins queue order. `07_registration_lifecycle.ns` (C.7): post on `a` with NO reaction, drain (nothing happens — provable because a reaction registered AFTER that drain, followed by a fresh post + drain, fires exactly once: the dropped signal did not queue for the new registrant); reaction registered during a firing fires for a subsequently-posted event.
 - [ ] **Step 2: Verify fail** (drain undefined). **Step 3: Implement** drain verbatim above. **Step 4: Full suite both paths** → previous total +3, 4 gates, C 21/2.
