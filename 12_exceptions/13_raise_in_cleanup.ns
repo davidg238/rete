@@ -1,0 +1,17 @@
+(*
+expect:
+protected ran
+caught #cleanupfault
+*)
+(* Task-4 review F3 follow-up — the untested composition path: a fault raised INSIDE an `ensure:`
+   cleanup block must cascade to an ENCLOSING handler. `vm_ensure` restores `g_protect_top` before
+   running the cleanup precisely so a raise there is caught by the outer on:do:. Proves the cleanup
+   fault propagates rather than aborting. *)
+class RaiseInCleanup packageUsing: manifest = () (
+  public main: platform args: args = (
+    [ [ 'protected ran' out ] ensure: [ self error: 'boom' tag: #cleanupfault ] ]
+      on: [ :e | e tag = #cleanupfault ]
+      do: [ :e | ('caught ' , e tag printString) out ].
+  )
+) : (
+)

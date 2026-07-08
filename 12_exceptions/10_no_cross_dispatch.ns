@@ -1,0 +1,30 @@
+(*
+expect:
+a body
+crash #boom
+done
+*)
+(* C5 no-cross-dispatch: one reaction's crash can NOT be caught by a DIFFERENT reaction's on:do:.
+   Reaction `a` wraps its body in an `on: [:e| e tag = #boom] do: […]` handler that WOULD match a
+   #boom — but `a` never raises. Reaction `b` raises #boom with no local handler. Reactions are
+   dispatched independently (each on the protected reactor), so `b`'s fault can NOT be caught by
+   `a`'s still-registered handler — it unwinds to `sys/crash`. `a`'s handler never fires. *)
+class NoCrossDispatch packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space a b |
+    space:: platform space.
+    a:: space channel: 'a'.
+    b:: space channel: 'b'.
+    space whenever: 'sys/crash' do: [ :rec | ('crash ' , rec tag printString) out ].
+    a whenever: '' do: [ :m |
+      [ 'a body' out ]
+        on: [ :e | e tag = #boom ]
+        do: [ :e | 'A CROSS-CAUGHT' out ] ].
+    b whenever: '' do: [ :m | self error: 'b crash' tag: #boom ].
+    a out: '' value: 1.
+    b out: '' value: 1.
+    space drain.
+    'done' out.
+  )
+) : (
+)

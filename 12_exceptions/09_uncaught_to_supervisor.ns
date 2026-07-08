@@ -1,0 +1,30 @@
+(*
+expect:
+crash #sensorFault
+text bad read
+done
+*)
+(* Composition (Milestone E Tasks 1-4 x Milestone D): an uncaught error inside a reaction still
+   reaches the SAME `sys/crash` record even when a NON-matching `on:do:` is present. The reaction
+   raises #sensorFault under an `on: [:e| e tag = #timeout]` handler that does NOT match, so the
+   fault is not caught locally — it unwinds through the protected reactor to `sys/crash`, exactly as
+   an unguarded raise would (12_exceptions/01). Proves a mismatched handler does not divert the fault
+   away from the supervisor path. *)
+class UncaughtToSupervisor packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space job |
+    space:: platform space.
+    job:: space channel: 'job'.
+    space whenever: 'sys/crash' do: [ :rec |
+      ('crash ' , rec tag printString) out.
+      ('text ' , (rec at: #text ifAbsent: [ 'NONE' ])) out ].
+    job whenever: '' do: [ :m |
+      [ self error: 'bad read' tag: #sensorFault ]
+        on: [ :e | e tag = #timeout ]
+        do: [ :e | 'WRONGLY CAUGHT' out ] ].
+    job out: '' value: #go.
+    space drain.
+    'done' out.
+  )
+) : (
+)

@@ -1,0 +1,51 @@
+(*
+expect:
+bus acquired
+reading 235
+bus released
+bus acquired
+bus released
+degraded to 235
+bus acquired
+reading 240
+bus released
+node alive
+*)
+(* A REDUCED demo-node-shaped Tier-2 recovery cycle (modeled on tuvm/review td-crash/04, NOT a
+   copy; 12_exceptions style — a plain driver object, no supervisor). The driver acquires the bus,
+   samples the sensor, and RELEASES the bus via `ensure:` on every path. A silent sensor raises
+   #timeout inside the protected body; `ensure:` still releases the bus during the unwind, and the
+   driver's own `on: [:e| e tag = #timeout]` handler degrades to the last-good reading and keeps
+   running. The node survives: the next healthy sample reads normally. This is Tier-2 local
+   recovery (errors.md) — a driver absorbing a transient fault without ever reaching the supervisor. *)
+class TdCrashRecover packageUsing: manifest = () (
+
+  class Driver = ( | lastGood ::= 0. | ) (
+    acquireBus = ( 'bus acquired' out. )
+    releaseBus = ( 'bus released' out. )
+
+    (* reading == nil models a silent sensor -> #timeout. The on:do: degrades to last-good;
+       the ensure: releases the bus whether the body returns normally or unwinds. *)
+    sample: reading = (
+      ^ [ [ acquireBus.
+            reading == nil ifTrue: [ self error: 'sensor silent' tag: #timeout ].
+            lastGood:: reading.
+            ('reading ' , reading printString) out.
+            reading ]
+          ensure: [ releaseBus ] ]
+        on: [ :e | e tag = #timeout ]
+        do: [ :e | ('degraded to ' , lastGood printString) out. lastGood ]
+    )
+  ) : (
+  )
+
+  public main: platform args: args = (
+    | drv |
+    drv:: Driver new.
+    drv sample: 235.    (* healthy   -> reading 235 *)
+    drv sample: nil.    (* silent    -> ensure releases, degrade to 235 *)
+    drv sample: 240.    (* healthy   -> node still running *)
+    'node alive' out.
+  )
+) : (
+)

@@ -1,0 +1,13 @@
+(*
+expect-compile-fail: non-local return
+*)
+(* A `^` inside an on:do: HANDLER body — an escaping closure — must be the same
+   non-local-return CompileError as 07_no_nlr, since handler blocks are real closures
+   (spec: ^ forbidden in handler/predicate/cleanup blocks). This pins that guarantee. *)
+class CaretInHandlerRejected packageUsing: manifest = () (
+  public run = (
+    ^ [ self error: 'x' tag: #e ] on: [ :e | true ] do: [ :e | ^ 99 ].
+  )
+  public main: platform args: args = ( self run printString out. )
+) : (
+)
