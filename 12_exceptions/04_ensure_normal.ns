@@ -1,0 +1,14 @@
+(*
+expect:
+work
+cleanup
+result 7
+*)
+class EnsureNormal packageUsing: manifest = () (
+  public main: platform args: args = (
+    | r |
+    r:: [ 'work' out. 7 ] ensure: [ 'cleanup' out ].
+    ('result ' , r printString) out.
+  )
+) : (
+)
