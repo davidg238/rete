@@ -714,6 +714,11 @@ void gc_collect(void) {
     extern void space_gc_trace(void);
     space_gc_trace();
 
+    /* M6 C-boundary handle table (src/handles.c): live entries are GC roots held
+       only in that static table, outside every other root set — trace them. */
+    extern void handle_gc_trace(void);
+    handle_gc_trace();
+
     // Mark the execution-context root. Task 6 removed the Fiber wrapper: the running
     // context is now exactly g_active_stack (this Stack heap object) — its live
     // frames/registers are traced precisely by scan_vm_stack() below (via
