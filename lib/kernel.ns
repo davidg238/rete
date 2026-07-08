@@ -1272,6 +1272,12 @@ class Kernel usingPlatform: platform = () (
      instance, so they send it this accessor — kernel scope, where `Record`
      resolves — to build the in-flight crash Record before raising it. *)
   public crashRecordTag: aTag text: aText = ( ^ Record tag: aTag with: #text -> aText )
+  (* Milestone E F1: the default-tag factory for a bare `self error:` (no explicit
+     tag). The `#error` literal here compiles into the image's INTERNED symbol
+     table, so any `#error` elsewhere (e.g. an app handler predicate
+     `[ :e | e tag = #error ]`) interns to the SAME oop and identity-`=` matches.
+     The v1 PRIM_error minted a FRESH non-interned Symbol, which never matched. *)
+  public crashRecordText: aText = ( ^ Record tag: #error with: #text -> aText )
   public ByteArray         = ( ^ ByteArray )
   public ReadStream        = ( ^ ReadStream )
   public WriteStream       = ( ^ WriteStream )
