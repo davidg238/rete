@@ -1,0 +1,15 @@
+(*
+expect:
+inner logged #io
+outer got #io
+*)
+class Reraise packageUsing: manifest = () (
+  public main: platform args: args = (
+    [ [ self error: 'disk' tag: #io ]
+        on: [ :e | e tag = #io ]
+        do: [ :e | ('inner logged ' , e tag printString) out. e raise ] ]
+      on: [ :e | e tag = #io ]
+      do: [ :e | ('outer got ' , e tag printString) out ].
+  )
+) : (
+)
