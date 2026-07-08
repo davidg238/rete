@@ -87,4 +87,13 @@
    standing lesson above. Serviced entirely in dispatch.c's prim switch (builds
    the crash Record via the captured kernel instance, then vm_raise). */
 #define PRIM_errorTag             91
+/* Zephyr rung-2 sub-project 1 Task 3: host GPIO prims + pumpEvents, appended
+   after the entire Milestone E group (on:do:/ensure: have no mirrors here,
+   being serviced entirely inside dispatch.c's own prim switch) — no
+   pre-existing id shifts. 94-96 were arrived at by COUNTING PRIM_NAMES (93
+   entries before this append), not by 91+1 arithmetic, per the standing
+   lesson above. */
+#define PRIM_pf_gpioPin      94
+#define PRIM_pf_gpioFire     95
+#define PRIM_pf_pumpEvents   96
 #endif /* OEVM_PRIM_IDS_H */

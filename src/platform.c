@@ -3,6 +3,8 @@
 #include "prim_ids.h"
 #include "oimg.h"
 #include "space.h"   /* Milestone C Task 1: channel-space C substrate */
+#include "pulse_backend.h"
+#include "handles.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -87,6 +89,42 @@ static int host_advance(uint64_t ms) {
         }
     }
     return fired;
+}
+
+/* Host GPIO mock: registration stores (pin, chan_id, handle_idx); the host-only
+   gpioFire: prim simulates an edge by posting to the pulse mailbox — the exact
+   (chan_id, handle_idx) an on-target GPIO ISR would post. Fixed table, -D override. */
+#ifndef HOST_MAX_GPIO
+#define HOST_MAX_GPIO 16
+#endif
+struct HostGpio { int pin; int chan_id; int handle_idx; int live; };
+static struct HostGpio host_gpio[HOST_MAX_GPIO];
+static int host_n_gpio = 0;
+
+static void host_gpio_register(int pin, int chan_id, int handle_idx) {
+    int i;
+    for (i = 0; i < host_n_gpio; i++) {
+        if (host_gpio[i].live && host_gpio[i].pin == pin) {   /* re-register same pin: replace */
+            host_gpio[i].chan_id = chan_id; host_gpio[i].handle_idx = handle_idx; return;
+        }
+    }
+    for (i = 0; i < host_n_gpio; i++) {
+        if (!host_gpio[i].live) {
+            host_gpio[i].pin = pin; host_gpio[i].chan_id = chan_id;
+            host_gpio[i].handle_idx = handle_idx; host_gpio[i].live = 1; return;
+        }
+    }
+    if (host_n_gpio < HOST_MAX_GPIO) {
+        host_gpio[host_n_gpio].pin = pin; host_gpio[host_n_gpio].chan_id = chan_id;
+        host_gpio[host_n_gpio].handle_idx = handle_idx; host_gpio[host_n_gpio].live = 1;
+        host_n_gpio++;
+    } else { fprintf(stderr, "host gpio table full\n"); abort(); }
+}
+static void host_gpio_fire(int pin) {
+    int i;
+    for (i = 0; i < host_n_gpio; i++)
+        if (host_gpio[i].live && host_gpio[i].pin == pin)
+            pulse_post_isr(host_gpio[i].chan_id, host_gpio[i].handle_idx);
 }
 
 extern oop gc_allocate(oop vtable, size_t size);
@@ -394,6 +432,34 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         return 1;
     case PRIM_pf_advanceMillis:
         *out = TAG_SMI(host_advance((uint64_t)UNTAG_SMI(args[0])));
+        return 1;
+    /* --- Zephyr rung-2 sub-project 1 Task 3: host GPIO prims + pumpEvents.
+       gpioPin:edge:post:on: registers a host GPIO slot; args mirror the
+       keyword order left-to-right: args[0]=pin, args[1]=edge, args[2]=msg,
+       args[3]=chanPath (String). gpioFire: is host-only — it simulates an
+       edge by posting straight to the pulse mailbox via the same
+       (chan_id, handle_idx) an on-target GPIO ISR would post. pumpEvents
+       drains the mailbox into the channel space, answering the fire count. */
+    case PRIM_pf_gpioPin: {
+        oop path = args[3];
+        if (path == NULL || IS_SMI(path) || StringVtable == NULL ||
+            obj_vtable(path) != StringVtable) {
+            fprintf(stderr, "VM Error: platform gpioPin:edge:post:on: expects a String channel\n");
+            abort();
+        }
+        struct String *p = (struct String *)path;
+        int chan_id = space_intern((const char *)p->bytes, p->length);
+        int hidx = handle_new(args[2]);                 /* pin the message oop via M6 */
+        host_gpio_register((int)UNTAG_SMI(args[0]), chan_id, hidx);
+        *out = platform_object();
+        return 1;
+    }
+    case PRIM_pf_gpioFire:
+        host_gpio_fire((int)UNTAG_SMI(args[0]));
+        *out = platform_object();
+        return 1;
+    case PRIM_pf_pumpEvents:
+        *out = TAG_SMI(pulse_pump());
         return 1;
     default:
         return 0;

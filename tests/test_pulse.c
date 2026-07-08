@@ -8,6 +8,7 @@
 #include "../src/space.h"
 #include "../src/handles.h"
 #include "../src/pulse_backend.h"
+#include "../src/prim_ids.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,6 +22,22 @@ extern void kernel_boot(void);
 
 /* space.c internals we assert against */
 extern oop space_take(const char *path, size_t len);  /* removes+returns oldest live value, or NULL */
+
+/* Task 3: drive the real prim path (gpioPin:edge:post:on: / gpioFire: /
+   pumpEvents) via platform_dispatch, the same route the nsl host gate uses. */
+extern int platform_dispatch(int pid, int argc, oop *args, oop *out);
+extern oop StringVtable;
+extern oop gc_allocate(oop vtable, size_t size);
+
+/* Build a heap String with the given bytes (mirrors test_space.c's make_string
+   helper / platform.c's PRIM_pf_string allocation idiom: StringVtable +
+   struct String's length-then-inline-bytes layout). */
+static oop make_string(const char *s, size_t n) {
+    oop str = gc_allocate(StringVtable, sizeof(struct String) + n);
+    ((struct String *)str)->length = n;
+    if (n) memcpy(((struct String *)str)->bytes, s, n);
+    return str;
+}
 
 static void (*g_trigger)(void);
 static void do_call_child(void) { g_trigger(); _exit(42); }
@@ -64,6 +81,33 @@ int main(void) {
     /* overflow aborts with the frozen string */
     g_trigger = trigger_mailbox_overflow;
     expect_abort("mailbox_overflow", "pulse mailbox full");
+
+    /* drive the real prim path: gpioPin registers, gpioFire simulates the edge,
+       pumpEvents drains — the same route the nsl host gate uses. */
+    {
+        oop out = NULL;
+        oop chan = make_string("sensor/alert", 12);
+        oop reg_args[4];
+        reg_args[0] = TAG_SMI(3);            /* pin */
+        reg_args[1] = TAG_SMI(1);            /* edge (#rising, as SMI) */
+        reg_args[2] = TAG_SMI(99);           /* msg */
+        reg_args[3] = chan;                  /* chanPath */
+        assert(platform_dispatch(PRIM_pf_gpioPin, 4, reg_args, &out) == 1
+               && "gpioPin:edge:post:on: dispatched");
+
+        oop fire_args[1]; fire_args[0] = TAG_SMI(3);
+        assert(platform_dispatch(PRIM_pf_gpioFire, 1, fire_args, &out) == 1
+               && "gpioFire: dispatched");
+
+        oop pump_args[1] = { NULL };
+        assert(platform_dispatch(PRIM_pf_pumpEvents, 0, pump_args, &out) == 1
+               && "pumpEvents dispatched");
+        assert(out == TAG_SMI(1) && "pumpEvents delivered exactly one event");
+
+        assert(space_take("sensor/alert", 12) == TAG_SMI(99)
+               && "gpioFire:+pumpEvents landed the registered msg on the channel");
+        printf("test_pulse: gpio_prim_roundtrip PASS\n");
+    }
 
     printf("test_pulse: OK\n");
     return 0;

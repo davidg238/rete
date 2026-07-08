@@ -672,6 +672,11 @@ enum {
        it has NO prim_ids.h mirror. Appended last, so no pre-existing PRIM id
        shifts; counted (not computed) to be id 93 — the 93rd PRIM_NAMES entry. --- */
     PRIM_ensure,
+    /* Zephyr rung-2 sub-project 1: the ISR->channel pulse seam. Appended last —
+       no pre-existing id shifts. Ids are the 1-based position in PRIM_NAMES. */
+    PRIM_pf_gpioPin,
+    PRIM_pf_gpioFire,
+    PRIM_pf_pumpEvents,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -706,6 +711,9 @@ static const char *const PRIM_NAMES[] = {
     "error:tag:",
     "on:do:",
     "ensure:",
+    "gpioPin:edge:post:on:",
+    "gpioFire:",
+    "pumpEvents",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
