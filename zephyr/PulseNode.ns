@@ -1,0 +1,37 @@
+(*
+PulseNode.ns — the Task 7 native_sim bring-up gate node. Deterministic
+single-edge-then-loop: register a channel reaction, register + fire ONE
+simulated GPIO edge (host/sim-only `gpio fire:`), then run the C-owned pump
+loop. On native_sim the zephyr pulse backend's `pulse_pump`
+(../src/backend/zephyr/pulse_zephyr.c) blocks (K_FOREVER) once the one-edge
+mailbox is drained — the process prints the observation and then idles. That
+is expected; the gate is checked under `timeout`, not by process exit.
+
+Baked into a boot image with:
+  python3 tools/ns_compile_oevm.py zephyr/PulseNode.ns src/solidified_image.c
+(run from the nsl-tuvm repo — see zephyr/README.md for the exact commands).
+
+Deviations from the plan's draft node (both required to actually compile/run
+against this VM+compiler, not stylistic):
+  - `[ ... ] repeat` is not a supported selector in this dialect (no `repeat`
+    unary send exists anywhere in tools/ns_compile_oevm.py's compiler or in
+    src/dispatch.c's PRIM_NAMES — only whileTrue:/whileFalse:/timesRepeat:/
+    to:do:/to:by:do: are). Rewritten as the equivalent `[ true ] whileTrue:`.
+  - the posted message is the String 'done', not the Symbol #done: a genuine
+    Symbol's `printString` prints with a leading '#' (src/dispatch.c's
+    PRIM_printString), which would print `observed #done` — NOT matching the
+    required `observed done` substring. A String prints as itself.
+*)
+class PulseNode packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space alert gpio |
+    space:: platform space.
+    alert:: space channel: 'sensor/alert'.
+    alert whenever: '' do: [ :e | ('observed ' , e printString) out ].
+    gpio:: platform gpio.
+    gpio pin: 13 edge: #rising post: 'done' on: alert.
+    gpio fire: 13.                                    (* sim: one edge *)
+    [ true ] whileTrue: [ platform pumpEvents. space drain ]
+  )
+) : (
+)

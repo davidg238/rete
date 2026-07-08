@@ -31,3 +31,4 @@ oevm_bench
 oevm_img
 _*.stmap
 src/_*.stmap
+zephyr/build/
