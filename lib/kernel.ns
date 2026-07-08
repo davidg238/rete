@@ -1041,6 +1041,20 @@ class Kernel usingPlatform: platform = () (
     public usingSpace: s seam: c = ( ^ self new setSpace: s seam: c )
   )
 
+  (* Zephyr rung-2 sub-project 1: the ISR→channel pulse capability. Registration
+     hands the seam a (pin, edge, message, channel-path); C pins the message via the
+     M6 handle table and stores the ISR slot. On target a GPIO edge ISR posts the
+     pulse; on host, `fire:` simulates the edge. No nsl-side state — data, not policy. *)
+  class GpioPulse = ( | space seam | ) (
+    public pin: n edge: e post: aMessage on: aChannel = (
+      seam gpioPin: n edge: e post: aMessage on: aChannel rootPath.
+      ^ self )
+    public fire: n = ( seam gpioFire: n. ^ self )   (* host/test only *)
+    setSpace: s seam: c = ( space:: s. seam:: c. ^ self )
+  ) : (
+    public usingSpace: s seam: c = ( ^ self new setSpace: s seam: c )
+  )
+
   (* Module-level validation/depth helpers (Milestone B Task 6) — NOT public:
      reachable only by sibling classes nested directly in this module, via
      their own `outer` link (slot 0), never by application code (an app
@@ -1254,6 +1268,14 @@ class Kernel usingPlatform: platform = () (
   public timerCancel: tok = ( ^ platform timerCancel: tok )
   public monotonicMillis = ( ^ platform monotonicMillis )
   public advanceMillis: ms = ( ^ platform advanceMillis: ms )
+  (* Zephyr rung-2 sub-project 1: the ISR→channel pulse seam. Thin forwarders,
+     same shape as the timer forwarders above — the `GpioPulse` class (above)
+     is the only intended caller (it holds `platform` as its `seam`), but
+     these are ordinary public Kernel-instance selectors like every other
+     forwarder in this family. *)
+  public gpioPin: n edge: e post: m on: path = ( ^ platform gpioPin: n edge: e post: m on: path )
+  public gpioFire: n = ( ^ platform gpioFire: n )
+  public pumpEvents = ( ^ platform pumpEvents )
 
   public Object            = ( ^ Object )
   public Array             = ( ^ Array )
@@ -1301,5 +1323,12 @@ class Kernel usingPlatform: platform = () (
      of re-fetching this accessor, exactly as `05_restart_quarantine.ns`
      keeps the one `Supervisor` it got from `platform supervisor`. *)
   public timers            = ( ^ Timers usingSpace: self space seam: self )
+  (* Zephyr rung-2 sub-project 1: a fresh GpioPulse instance wired to a fresh
+     root Space and this Kernel instance as seam, same "always fresh, same
+     underlying substrate" shape as `timers` above. Callers register pulses
+     directly via this accessor — C owns the per-pin registration slot, so
+     unlike `timers` there is no shared nsl-side registry callers need to
+     keep a single instance of. *)
+  public gpio              = ( ^ GpioPulse usingSpace: self space seam: self )
 ) : (
 )
