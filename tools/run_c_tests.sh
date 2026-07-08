@@ -13,7 +13,8 @@ set -u
 cd "$(dirname "$0")/.." || exit 2
 CC=${CC:-gcc}; STD="-std=c99 -Isrc"; OUT=/tmp/tuvm_ctest; fail=0
 ENG_COMMON="src/platform.c src/serial.c src/udp.c src/mirror.c src/space.c src/handles.c \
-  src/backend/posix/platform_posix.c src/backend/posix/serial_posix.c src/backend/posix/udp_posix.c"
+  src/backend/posix/platform_posix.c src/backend/posix/serial_posix.c src/backend/posix/udp_posix.c \
+  src/backend/posix/pulse_posix.c"
 ENG_A="src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c $ENG_COMMON src/solidified_image.c"
 ENG_B="src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c $ENG_COMMON src/kernel_boot.c"
 run() { # $1=name  $2=link-set  $3...=extra srcs/flags
@@ -51,6 +52,11 @@ run test_space "$ENG_B" -DOEVM_SPACE_MAX_CHANNELS=8 -DOEVM_SPACE_QUEUE_DEPTH=4
 # override makes the overflow property fast/deterministic (same idiom as
 # test_space above).
 run test_handles "$ENG_B" -DOEVM_HANDLE_TABLE_MAX=4
+# ISR->channel pulse seam (src/pulse_backend.h + src/backend/posix/pulse_posix.c):
+# posix in-process ring backing pulse_post_isr/pulse_pump, exercised end-to-end
+# through the M6 handle table and the space queue. Tiny mailbox depth override,
+# same idiom as test_space/test_handles above.
+run test_pulse "$ENG_B" -DOEVM_PULSE_MAILBOX_DEPTH=4
 # Backend-only smoke tests (link only the posix seam file, per each test's own
 # header comment — NOT serial.c/udp.c, which need the full VM)
 run test_serial "src/backend/posix/serial_posix.c"

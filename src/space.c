@@ -133,14 +133,13 @@ static void compact_head(void) {
     }
 }
 
-void space_post(const char *path, size_t len, oop value) {
-    int chan = space_intern(path, len);
+void space_post_id(int chan_id, oop value) {
     if (q_count >= OEVM_SPACE_QUEUE_DEPTH) {
         fprintf(stderr, "channel queue full\n");
         abort();
     }
     size_t tail = (q_head + q_count) % OEVM_SPACE_QUEUE_DEPTH;
-    queue[tail].chan = chan;
+    queue[tail].chan = chan_id;
     /* nil (NULL) is a legal rank-0 value payload here — but it is
        indistinguishable from "nothing queued" at the take:/dequeue read
        side (both answer NULL); callers cannot tell a stored nil apart from
@@ -148,6 +147,10 @@ void space_post(const char *path, size_t len, oop value) {
     queue[tail].value = value;
     queue[tail].live = 1;
     q_count++;
+}
+
+void space_post(const char *path, size_t len, oop value) {
+    space_post_id(space_intern(path, len), value);
 }
 
 oop space_take(const char *path, size_t len) {

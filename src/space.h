@@ -58,6 +58,10 @@ int space_intern(const char *path, size_t len);
    `channel queue full` when the ring is at capacity. */
 void space_post(const char *path, size_t len, oop value);
 
+/* Like space_post but the channel is already interned to an id (the ISR-pulse
+   mailbox stores ids, not path strings). Aborts "channel queue full" when full. */
+void space_post_id(int chan_id, oop value);
+
 /* Remove-if-present-now (design doc section 3, D-C2): the oldest
    queued-but-undispatched value on exactly this channel, removed from the
    queue. Answers NULL (nil) if the channel has never been posted to, or has
