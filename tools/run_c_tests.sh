@@ -11,7 +11,16 @@
 # this script's ENG_A/ENG_B mirror).
 set -u
 cd "$(dirname "$0")/.." || exit 2
-CC=${CC:-gcc}; STD="-std=c99 -Isrc"; OUT=/tmp/tuvm_ctest; fail=0
+CC=${CC:-gcc}
+# OEVM_BUILD=asan|ubsan: sanitizer coverage for the ISR-adjacent C (mailbox ring,
+# handle table). Injected via CC (the only build knob run() interpolates). Host-only.
+case "${OEVM_BUILD:-}" in
+  asan)  CC="$CC -fsanitize=address -fno-omit-frame-pointer -g" ;;
+  ubsan) CC="$CC -fsanitize=undefined -fno-sanitize-recover=undefined -g" ;;
+  "" )   ;;
+  * ) echo "unknown OEVM_BUILD='$OEVM_BUILD' (want asan|ubsan)"; exit 2 ;;
+esac
+STD="-std=c99 -Isrc"; OUT=/tmp/tuvm_ctest; fail=0
 ENG_COMMON="src/platform.c src/serial.c src/udp.c src/mirror.c src/space.c src/handles.c \
   src/backend/posix/platform_posix.c src/backend/posix/serial_posix.c src/backend/posix/udp_posix.c \
   src/backend/posix/pulse_posix.c"
