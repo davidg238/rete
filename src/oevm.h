@@ -370,6 +370,10 @@ extern uint64_t (*oevm_millis)(void);
    protection-frame runner + the in-flight raised condition (a GC root; see
    gc.c's root scan). */
 oop vm_protected_fire(oop block, oop value);
+/* Milestone E Task 2: predicate-filtered catch (src/vm.c). Runs protBlock protected;
+   on a caught fault evaluates predBlock against the condition, then runs handlerBlock
+   (match) or re-raises to the next outer frame (no match). */
+oop vm_on_do(oop protBlock, oop predBlock, oop handlerBlock);
 void vm_raise(oop condition);
 extern oop g_raised_condition;
 extern oop g_kernel_instance;   /* Milestone E Task 1: Kernel module instance, captured at main:args: entry */

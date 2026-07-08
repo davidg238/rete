@@ -659,6 +659,13 @@ enum {
        so no pre-existing PRIM id shifts; counted (not computed) to be id 91 —
        see prim_ids.h. --- */
     PRIM_errorTag,
+    /* --- Milestone E Task 2: `[prot] on: [:e|pred] do: [:e|body]` predicate-filtered
+       catch. Serviced entirely inside this prim switch (calls vm_on_do directly),
+       exactly like the six value-algebra predicate prims (isValue..isBytes) — it is
+       NOT a platform prim, so it has NO prim_ids.h mirror. Appended last, so no
+       pre-existing PRIM id shifts; counted (not computed) to be id 92 — it is the
+       92nd PRIM_NAMES entry. --- */
+    PRIM_onDo,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -691,6 +698,7 @@ static const char *const PRIM_NAMES[] = {
     "monotonicMillis", "advanceMillis:",
     "raise",
     "error:tag:",
+    "on:do:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
@@ -1123,6 +1131,15 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                    (unprotected) prints + aborts. Never returns when protected. */
                 vm_raise(receiver);
                 return NULL;         /* unreachable when protected */
+            }
+            break;
+            case PRIM_onDo: {
+                /* Milestone E Task 2: `[prot] on: [:e|pred] do: [:e|body]`.
+                   receiver = the protected block, args[0] = predicate block,
+                   args[1] = handler block. vm_on_do runs prot protected; on a
+                   caught fault it evaluates pred against the condition and either
+                   runs handler (match) or re-raises to the next outer frame. */
+                return vm_on_do(receiver, args[0], args[1]);
             }
             break;
             case PRIM_lt:

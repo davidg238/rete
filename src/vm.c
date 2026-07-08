@@ -166,6 +166,65 @@ oop vm_protected_fire(oop block, oop value) {
     return result;
 }
 
+/* Milestone E Task 2: predicate-filtered catch. `[prot] on: [:e|pred] do: [:e|body]`.
+   A vm_protected_fire variant: run protBlock under a fresh protection frame; on a
+   caught fault evaluate predBlock against the condition and either run handlerBlock
+   (match) or re-raise to the next outer frame (no match). Terminate-only: the
+   handler runs AFTER the unwind; there is no resume/retry.
+
+   Clean completion -> the protected block's value. Matched catch -> the handler's
+   value. Non-match -> vm_raise(cond) after restoring g_protect_top, which longjmps
+   to the next outer protection frame (cascade) and never returns here.
+
+   GC (precise, non-moving, exhaustion-triggered): on the caught path `cond`,
+   `predBlock` and `handlerBlock` are all live across the run_interpreter(pred) and
+   run_interpreter(handler) RE-ENTRIES (each can allocate and collect), and with no
+   C-stack scan they have no other root during those calls — so all three are pushed
+   as temp roots via the gc_temp_roots_count SAVE/RESTORE idiom (build_and_raise /
+   context_alloc precedent) before the first re-entry and popped after the last.
+   (The protBlock and its arg on the clean path are rooted for the duration by being
+   stored into the GC-scanned frame run_interpreter builds, exactly as in
+   vm_protected_fire.) */
+oop vm_on_do(oop protBlock, oop predBlock, oop handlerBlock) {
+    extern void gc_temp_root_push(oop o);
+    jmp_buf env;
+    jmp_buf *saved_top          = g_protect_top;
+    size_t saved_sp             = vm_stack_ptr;
+    struct MethodContext *saved_frame = current_frame;
+    int saved_temp_roots        = gc_temp_roots_count;
+    oop arg = NULL;                        /* protected block is zero-arg; ignored */
+    g_protect_top = &env;
+    if (setjmp(env) == 0) {
+        oop result = run_interpreter(protBlock, protBlock, 1, &arg);
+        g_protect_top = saved_top;
+        return result;                     /* clean: the protected block's value */
+    }
+    /* Caught a fault: unwind to this frame (mirror vm_protected_fire). */
+    vm_stack_ptr        = saved_sp;
+    current_frame       = saved_frame;
+    gc_temp_roots_count = saved_temp_roots;
+    /* Restore the OUTER protection level BEFORE evaluating pred/handler or
+       re-raising, so a fault inside them (or a non-match re-raise) cascades to the
+       next outer handler frame-by-frame. */
+    g_protect_top       = saved_top;
+    oop cond            = g_raised_condition;
+    g_raised_condition  = NULL;
+    /* Root cond, predBlock, handlerBlock across the two re-entries. */
+    int roots_here = gc_temp_roots_count;
+    gc_temp_root_push(cond);
+    gc_temp_root_push(predBlock);
+    gc_temp_root_push(handlerBlock);
+    oop verdict = run_interpreter(predBlock, predBlock, 1, &cond);
+    if (is_truthy(verdict)) {
+        oop hres = run_interpreter(handlerBlock, handlerBlock, 1, &cond);
+        gc_temp_roots_count = roots_here;
+        return hres;                       /* matched: the handler's value */
+    }
+    gc_temp_roots_count = roots_here;
+    vm_raise(cond);                        /* no match: cascade; never returns */
+    return NULL;                           /* unreachable */
+}
+
 /* Debugger single-step state (Milestone A Task 6: rehomed off the deleted struct
    Fiber to file-scope globals — this is debugger state, not scheduling state).
    g_single_step: 1 while stepping. g_hook_step_request: -1 = none, else the
