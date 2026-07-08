@@ -827,6 +827,56 @@ static oop build_and_raise(oop tag, oop text) {
     return NULL;
 }
 
+/* Milestone E F1: build + raise a crash Record for a bare `self error: text` — the
+   default tag is the image-INTERNED `#error`, supplied by the kernel helper
+   `crashRecordText:` (which answers `Record tag: #error with: #text -> aText`). The
+   v1 PRIM_error minted a FRESH non-interned Symbol as the tag, so the spec §3/§6
+   idiom `[ :e | e tag = #error ]` (Symbol `=` is pointer-identity) never matched and
+   the error silently propagated past the handler. Routing through the kernel literal
+   interns the tag to the same oop an app `#error` literal resolves to. Same rooting
+   discipline and fallbacks as build_and_raise: `text` is temp-rooted across the
+   interned-selector alloc-free vtable walk and the re-entrant send; the returned
+   Record needs no root (no allocation between the send and vm_raise stashing it in
+   the g_raised_condition GC root). Fallbacks (pre-capture / helper missing — neither
+   should occur) raise the bare text, preserving a sane terminate. */
+static oop build_and_raise_default(oop text) {
+    extern void gc_temp_root_push(oop o);
+    extern int gc_temp_roots_count;
+    if (g_kernel_instance == NULL) {
+        vm_raise(text);   /* pre-entry: impossible in practice, but keep terminate */
+        return NULL;
+    }
+    oop sel = NULL;
+    {
+        oop curr = obj_vtable(g_kernel_instance);
+        while (curr != NULL && !IS_SMI(curr)) {
+            struct Vtable *vt = (struct Vtable *)curr;
+            struct Binding *bs = vtable_bindings((oop)vt);
+            for (size_t i = 0; i < vt->size; i++) {
+                struct Symbol *s = (struct Symbol *)binding_symbol(&bs[i]);
+                if (s != NULL && obj_vtable((oop)s) == SymbolVtable &&
+                    strcmp(symbol_name(s), "crashRecordText:") == 0) {
+                    sel = (oop)s;
+                    break;
+                }
+            }
+            if (sel != NULL) break;
+            curr = vtable_delegate((oop)vt);
+        }
+    }
+    if (sel == NULL) {
+        vm_raise(text);   /* kernel helper missing: keep terminate */
+        return NULL;
+    }
+    int saved_roots = gc_temp_roots_count;
+    gc_temp_root_push(text);
+    oop args1[1] = { text };   /* crashRecordText: aText */
+    oop rec = send(g_kernel_instance, sel, 1, args1);
+    gc_temp_roots_count = saved_roots;
+    vm_raise(rec);   /* longjmps when protected; never returns */
+    return NULL;
+}
+
 /* Resolve a send WITHOUT invoking a bytecode target (de-recursify Phase 2, Task 4).
    This is the former body of send(): it runs every inline case (intercepted
    primitives, native capabilities, BoundClass construction, doesNotUnderstand:,
@@ -1105,23 +1155,15 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
             }
             break;
             case PRIM_error: {
-                /* Milestone E Task 1 (v2): `self error: text` raises a crash Record
-                   with the default tag #error. The Record is built in C via the
-                   captured Kernel instance (build_and_raise) — an app receiver cannot
-                   reach the `Record` class lexically (the v1 BLOCKED finding), so we
-                   do NOT go through a kernel Object method. The fresh #error tag is
-                   temp-rooted before the build. */
-                extern oop gc_allocate(oop vtable, size_t size);
-                extern void gc_temp_root_push(oop o);
-                extern int gc_temp_roots_count;
-                int saved_roots = gc_temp_roots_count;
-                gc_temp_root_push(args[0]);          /* text, live across the alloc */
-                oop errSym = gc_allocate(SymbolVtable, sizeof(struct Symbol));
-                ((struct Symbol *)errSym)->name = "error";
-                ((struct Symbol *)errSym)->length = 5;
-                oop r = build_and_raise(errSym, args[0]);   /* normally longjmps */
-                gc_temp_roots_count = saved_roots;
-                return r;            /* unreachable when protected */
+                /* Milestone E Task 1 (v2) / F1: `self error: text` raises a crash
+                   Record whose default tag is the image-INTERNED `#error`, supplied
+                   by the kernel helper `crashRecordText:` (build_and_raise_default).
+                   The Record is built in C via the captured Kernel instance — an app
+                   receiver cannot reach the `Record` class lexically (the v1 BLOCKED
+                   finding). Using the kernel `#error` literal interns the tag to the
+                   same oop an app `[ :e | e tag = #error ]` predicate resolves to, so
+                   identity-`=` matches (F1: the v1 fresh-Symbol mint never did). */
+                return build_and_raise_default(args[0]);   /* normally longjmps */
             }
             break;
             case PRIM_errorTag: {
