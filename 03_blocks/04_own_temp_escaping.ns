@@ -1,0 +1,26 @@
+(*
+expect:
+sz 0
+same
+*)
+(* Regression: an escaping (non-inlined) block passed to at:ifAbsent: that declares its OWN
+   temp `t`, captures the enclosing arg `s` and the ivar `states`, and allocates inside the
+   block. This is the exact Milestone-C staged fsm.ns:48 shape that once crashed the VM
+   (OP_LD_SLOT / Invalid receiver); fixed incidentally in B/C/D work. Milestone E's prim-send
+   handler/cleanup bodies are real closures with own temps, so this path must stay sound. *)
+class OwnTempEscaping packageUsing: manifest = ( | states plat | ) (
+  seedFor: s = (
+    | table |
+    table:: states at: s ifAbsent: [ | t | t:: plat Dictionary new. states at: s put: t. t ].
+    ^ table
+  )
+  public main: platform args: args = (
+    | r |
+    plat:: platform.
+    states:: platform Dictionary new.
+    r:: self seedFor: #a.
+    ('sz ' , r size printString) out.
+    (self seedFor: #a) == r ifTrue: [ 'same' out ] ifFalse: [ 'DIFFERENT' out ].
+  )
+) : (
+)
