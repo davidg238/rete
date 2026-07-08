@@ -6,15 +6,16 @@ survived
 *)
 (* T-D core — the protected-fire primitive: a clean firing answers nil (the block's
    own result is discarded), a firing that `self error:`s is CAUGHT and answers the
-   error text, and the process survives to run the next line. This is the setjmp
-   boundary in isolation, before the reactor wraps it. *)
+   error Record (Milestone E: the raised value is now a crash Record #tag/#text, not a
+   bare String — read #text for the message), and the process survives to run the next
+   line. This is the setjmp boundary in isolation, before the reactor wraps it. *)
 class ProtectedFire packageUsing: manifest = () (
 public main: platform args: args = (
   | r1 r2 |
   r1:: platform protectedFire: [ 42 ] value: nil.
   (r1 == nil) ifTrue: [ 'clean-nil' out ] ifFalse: [ 'clean-WRONG' out ].
   r2:: platform protectedFire: [ :v | self error: 'boom' ] value: nil.
-  ('caught-' , r2) out.
+  ('caught-' , (r2 at: #text ifAbsent: [ '?' ])) out.
   'survived' out.
 )
 ) : (
