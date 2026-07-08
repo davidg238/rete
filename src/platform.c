@@ -105,6 +105,7 @@ static void host_gpio_register(int pin, int chan_id, int handle_idx) {
     int i;
     for (i = 0; i < host_n_gpio; i++) {
         if (host_gpio[i].live && host_gpio[i].pin == pin) {   /* re-register same pin: replace */
+            handle_free(host_gpio[i].handle_idx);   /* release the outgoing M6 pin — no slot leak */
             host_gpio[i].chan_id = chan_id; host_gpio[i].handle_idx = handle_idx; return;
         }
     }

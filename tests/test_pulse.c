@@ -109,6 +109,42 @@ int main(void) {
         printf("test_pulse: gpio_prim_roundtrip PASS\n");
     }
 
+    /* Regression: re-registering the SAME pin must not leak an M6 handle-table
+       slot per call (Important review finding). host_gpio_register's "replace"
+       branch used to overwrite handle_idx without freeing the outgoing one, so
+       every re-registration of one physical pin permanently pinned another
+       handle slot; with OEVM_HANDLE_TABLE_MAX==32 (src/handles.h default),
+       re-registering pin 13 more than 32 times used to abort "handle table
+       full". Looping 40 times here (> capacity) proves the leak is gone: if
+       host_gpio_register still leaked, this loop would abort before reaching
+       the assertions below. */
+    {
+        oop out = NULL;
+        oop chan = make_string("sensor/leak", 11);
+        oop reg_args[4];
+        reg_args[1] = TAG_SMI(1);            /* edge (#rising, as SMI) */
+        reg_args[3] = chan;                  /* chanPath */
+        for (int i = 0; i < 40; i++) {
+            reg_args[0] = TAG_SMI(13);        /* same physical pin every time */
+            reg_args[2] = TAG_SMI(i);         /* fresh message oop each time */
+            assert(platform_dispatch(PRIM_pf_gpioPin, 4, reg_args, &out) == 1
+                   && "gpioPin: re-register did not leak a handle slot");
+        }
+
+        oop fire_args[1]; fire_args[0] = TAG_SMI(13);
+        assert(platform_dispatch(PRIM_pf_gpioFire, 1, fire_args, &out) == 1
+               && "gpioFire: dispatched after 40 re-registrations");
+
+        oop pump_args[1] = { NULL };
+        assert(platform_dispatch(PRIM_pf_pumpEvents, 0, pump_args, &out) == 1
+               && "pumpEvents dispatched");
+        assert(out == TAG_SMI(1) && "pumpEvents delivered exactly one event");
+
+        assert(space_take("sensor/leak", 11) == TAG_SMI(39)
+               && "last re-registered value (39) round-trips, not a stale one");
+        printf("test_pulse: gpio_reregister_no_handle_leak PASS\n");
+    }
+
     printf("test_pulse: OK\n");
     return 0;
 }
