@@ -1,0 +1,17 @@
+(*
+expect:
+inner skipped
+outer caught bad read
+*)
+(* A #sensorFault raised under an on:[e tag = #timeout]do: is NOT caught there; it keeps
+   unwinding to an outer handler that matches. Proves selective propagation. *)
+class SelectiveProp packageUsing: manifest = () (
+  public main: platform args: args = (
+    [ [ self error: 'bad read' tag: #sensorFault ]
+        on: [ :e | e tag = #timeout ]
+        do: [ :e | 'inner CAUGHT' out ] ]
+      on: [ :e | e tag = #sensorFault ]
+      do: [ :e | 'inner skipped' out. ('outer caught ' , (e at: #text ifAbsent: [ '?' ])) out ].
+  )
+) : (
+)

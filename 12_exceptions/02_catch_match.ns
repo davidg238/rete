@@ -1,0 +1,18 @@
+(*
+expect:
+before
+handled #timeout
+after
+*)
+(* A matching predicate catches; the handler runs; the protected block's tail after the raise
+   does NOT run (unwind proof); execution continues after the on:do:. *)
+class CatchMatch packageUsing: manifest = () (
+  public main: platform args: args = (
+    'before' out.
+    [ self error: 'tmp117 timeout' tag: #timeout. 'UNREACHED' out ]
+      on: [ :e | e tag = #timeout ]
+      do: [ :e | ('handled ' , e tag printString) out ].
+    'after' out.
+  )
+) : (
+)
