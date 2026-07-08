@@ -16,6 +16,13 @@ indexable: n` (Array as an argument is a slot read of the class object).
 *)
 class Kernel usingPlatform: platform = () (
   class Object = () (
+    (* Milestone E Task 1: the in-flight error value is a crash Record (#tag/#text),
+       not a bare String. `self error: text` and `text error: tag` are BOTH C prims
+       (PRIM_error id 9, PRIM_errorTag id 91): they build the Record in C via the
+       captured Kernel instance's `crashRecordTag:text:` accessor, then `raise` it
+       (terminate-only prim, id 90, longjmps to the active protection frame). No
+       kernel Object method is involved — an app receiver cannot reach the `Record`
+       class lexically, so building it here would be unreachable. *)
     public isNil = ( ^ false )
     public notNil = ( ^ true )
     public ifNil: aBlock = ( ^ self )
@@ -688,12 +695,20 @@ class Kernel usingPlatform: platform = () (
        uses the existing `Channel>>out:value:` — `drain` runs on the root
        `Space`, whose root is `''`, so `resolve: 'sys/crash'` answers
        `'sys/crash'` unprefixed. *)
-    postCrash: text channel: chPath = (
+    (* Milestone E Task 1: `caught` is the raised crash Record (protectedFire's
+       return is now the in-flight Record, not a bare String). Per controller
+       decision (a) the sys/crash record carries the RAISE tag (`caught tag`),
+       NOT the retired constant `#crash` — the supervisor is channel-matched
+       (`handleCrash:` reads `#channel`, never the tag). #text is read back the
+       same way it was stored (`at: #text ifAbsent:`). *)
+    postCrash: caught channel: chPath = (
       (self isSysPath: chPath)
-        ifTrue: [ ('supervisor-crash ' , chPath , ' ' , text) out ]
+        ifTrue: [ ('supervisor-crash ' , chPath , ' ' , (caught at: #text ifAbsent: [ '' ])) out ]
         ifFalse: [
           self out: 'sys/crash'
-               value: (Record tag: #crash with: #text -> text with: #channel -> chPath) ].
+               value: (Record tag: (caught tag)
+                              with: #text -> (caught at: #text ifAbsent: [ '' ])
+                              with: #channel -> chPath) ].
       ^ self )
 
     (* `chPath = 'sys'` or `chPath` starts with `'sys/'`. No generic
@@ -1251,6 +1266,12 @@ class Kernel usingPlatform: platform = () (
   public Map               = ( ^ Map )
   public Protocol          = ( ^ Protocol )
   public Record            = ( ^ Record )
+  (* Milestone E Task 1: crash-Record factory reachable from ANY context. The
+     error:/error:tag: raise prims cannot reach the sibling `Record` class from an
+     app receiver (v1 BLOCKED finding), but they DO hold the captured Kernel
+     instance, so they send it this accessor — kernel scope, where `Record`
+     resolves — to build the in-flight crash Record before raising it. *)
+  public crashRecordTag: aTag text: aText = ( ^ Record tag: aTag with: #text -> aText )
   public ByteArray         = ( ^ ByteArray )
   public ReadStream        = ( ^ ReadStream )
   public WriteStream       = ( ^ WriteStream )
