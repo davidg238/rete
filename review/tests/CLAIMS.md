@@ -25,3 +25,8 @@ are relative to this directory.)
 | — | `channel path too long` end-to-end kernel→C test (T-D.9, carry-forward nsl-tuvm#9.3) | `nsl-tests/09_channels/11_path_too_long.ns` | DONE |
 | — | Combinator early-exit semantics (no-NLR story) | `nsl-tests/07_no_nlr/03_combinator_short_circuit.ns` | DONE |
 | — | Deleted-test functionality re-expressed (T-A.5) | audit column in the pared-subset manifest | pending A |
+| — | Tagged error value + Record-valued raise (T-E, `error:tag:`/`raise`) | `nsl-tests/12_exceptions/01_error_tag_uncaught.ns` (+ `14_error_default_tag.ns`, bare `self error:` catchable via interned `= #error`); enforced by `tuvm/src/dispatch.c` `PRIM_raise`(90)/`PRIM_errorTag`(91)/`build_and_raise(_default)` + `nsl-tuvm/lib/kernel.ns` `crashRecordTag:text:`/`crashRecordText:` (Milestone E Task 1 + F1) | DONE |
+| — | Predicate-filtered catch `on:do:` (T-E, phase-2 rung 1) | `nsl-tests/12_exceptions/02_catch_match.ns`, `03_selective_propagation.ns`; enforced by `tuvm/src/vm.c` `vm_on_do` (prim id 92, Milestone E Task 2) | DONE |
+| — | Always-run cleanup `ensure:` + policy-flag reservation (T-E) | `nsl-tests/12_exceptions/04_ensure_normal.ns`/`05_ensure_unwind.ns`/`06_ensure_order.ns` (+ `13_raise_in_cleanup.ns`, cleanup-fault cascade); enforced by `tuvm/src/vm.c` `vm_ensure` (prim id 93, Milestone E Task 3) | DONE |
+| — | Re-raise + nested composition (T-E) | `nsl-tests/12_exceptions/07_reraise.ns`, `08_nested_in_handler.ns` | DONE |
+| — | Uncaught→supervisor, C5 no-cross-dispatch, td-crash/04 recovery, `^`-in-handler rejected (T-E) | `nsl-tests/12_exceptions/09_uncaught_to_supervisor.ns`, `10_no_cross_dispatch.ns`, `11_td_crash_recover.ns`, `12_caret_in_handler_rejected.ns` (expect-compile-fail `non-local return`) | DONE |

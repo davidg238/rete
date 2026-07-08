@@ -71,6 +71,10 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
 1. **Full `on:do:`/`ensure:`** (first-step §8 deferral). Owner: `review/lib/exceptions.md`
    (the 5 pinned constraints; deferring was safe *because* of them). Must compose with D's
    setjmp crash boundary. Retires the td-crash/04 'policy TBD' placeholder.
+   **DONE 2026-07-07 (Milestone E).** `vm_on_do`/`vm_ensure` built beside D's `vm_protected_fire`
+   (prims 90-93: `raise`/`error:tag:`/`on:do:`/`ensure:`); Record-valued raise; `^`-in-handler
+   rejected; C5 no-cross-dispatch pinned; `nsl-tests/12_exceptions/01..14`. Whole-milestone gate
+   green both paths; whole-branch review Ready (F1 interned-`#error` fix landed). `tuvm/docs/MILESTONE_E.md`.
 2. **Zephyr bring-up** of the backend seam (`backend/<target>/`). Precursors that can land
    during phase 1: FOOTPRINT_CONFIG=mcu true-target RAM line (tuvm#5 — ideally before B Task 12
    banks RAM numbers); OEVM_BUILD=asan|ubsan harness knob. First work order: the **ISR→channel

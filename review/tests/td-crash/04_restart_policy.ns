@@ -1,3 +1,13 @@
+(* SUPERSEDED / RETIRED 2026-07-07 (Milestone E close) — the 'policy TBD' placeholder is
+   RESOLVED. The restart policy landed in Milestone D (log + restart + quarantine-after-3,
+   `Supervisor`/`SupervisedJob`) and is proven by `nsl-tests/11_supervision/05_restart_quarantine.ns`;
+   the driver-shaped Tier-2 recovery cycle this stub sketched is realized by
+   `nsl-tests/12_exceptions/11_td_crash_recover.ns` (Milestone E). This staged stub is kept as
+   historical record ONLY — it is written against the pre-D staged `%sys` channel + `take:`
+   observation API, which the landed reality replaced with the plain `sys/crash` channel observed
+   via `whenever:` (drain dispatches and drops transient crash records, so `take:` sees 0). Run
+   against the landed build it now reports `crashes 0` — expected, not a regression. It is NOT in
+   the CI suite (`nsl-tests/`). Do not resurrect without rewriting to the landed API. *)
 (*
 expect:
 crashes 5

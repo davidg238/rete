@@ -136,6 +136,21 @@ header note). Restart-policy stub behavior landed as log + restart + quarantine-
 (`Supervisor`/`SupervisedJob`, Milestone D Task 5), pinned by
 `nsl-tests/11_supervision/05_restart_quarantine.ns` (staged `td-crash/04` superseded).
 
+**Exceptions (Milestone E — landed 2026-07-07 in `tuvm/src/vm.c`/`dispatch.c` +
+`nsl-tuvm/lib/kernel.ns`; phase-2 rung 1):** full `on:do:`/`ensure:` built beside D's
+`vm_protected_fire` boundary (not reworking it). Four verbs — `self error:`/`error:tag:`,
+`e raise`, `[prot] on:[:e|pred] do:[:e|body]`, `[prot] ensure:[cleanup]` — as ordinary
+prim-sends (ids 90-93, append-only). The in-flight value is the crash `Record` (`#tag`/`#text`);
+handlers read `e tag` / `e at: #text ifAbsent: […]`. Terminate-only (no resume/retry); handler
+runs after unwind; `^` in a handler/predicate/cleanup is a compile error (`non-local return`,
+`07_no_nlr`); a crash never crosses a dispatch boundary (C5). **Supersedes the D `#crash` tag:**
+`sys/crash` now carries the **raise tag** (decision (a); `#crash` retired — the supervisor matches
+jobs by `#channel`, never the tag). A bare `self error:` uses the image-**interned** `#error`
+default tag, so `[:e| e tag = #error]` matches (F1 fix). Landed suite:
+`nsl-tests/12_exceptions/01..14`; the driver-shaped Tier-2 recovery `11_td_crash_recover.ns`
+realizes `td-crash/04`'s once-`policy TBD` cycle (that staged stub was already superseded by
+`11_supervision/05_restart_quarantine.ns` at D's close). See `tuvm/docs/MILESTONE_E.md`.
+
 **Error strings** are API, from `../lib/errors.md` (`outside capability root`,
 `immutable`, `not a value`, `message depth exceeded`, `bad channel path` [landed
 spelling — `../lib/errors.md` still says `invalid channel path`, which was never

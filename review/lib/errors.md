@@ -57,3 +57,30 @@ Tests assert on these exact strings (they are API), so choose once, here:
 | channel path outside capability root | `outside capability root` |
 | malformed channel path at grant | `bad channel path` |
 | integer overflow past 2^63−1 | `integer overflow` |
+
+## Exceptions — the boundary above the convention (landed Milestone E, 2026-07-07)
+
+Full `on:do:`/`ensure:` now sit **above** the two-tier convention exactly as the section above
+anticipated — they do NOT replace `ifAbsent:`-style contracts. The four verbs:
+
+| Verb | Shape | Semantics |
+|---|---|---|
+| `self error: 'text'` | Tier-2 crash | raises a crash `Record { #tag -> #error, #text -> 'text' }`. The default `#error` tag is the image-**interned** literal, so it is catchable by `[ :e | e tag = #error ]` (identity match). |
+| `text error: aTag` (`error:tag:`) | tagged crash | raises `Record { #tag -> aTag, #text -> text }`. |
+| `e raise` | re-raise | re-raises the receiver condition unchanged (same tag/text) to the next enclosing handler. |
+| `[ prot ] on: [ :e | pred ] do: [ :e | body ]` | predicate-filtered catch | runs `prot`; on a raised condition, if `pred value: e` is truthy runs `body` (its value is the result), else re-raises (cascades frame-by-frame). |
+| `[ prot ] ensure: [ cleanup ]` | always-run cleanup | runs `cleanup` on BOTH clean completion and a fault; on a fault, re-raises **after** cleanup. |
+
+Rules:
+- Handlers/predicates/cleanups are real (escaping) closures — `^` inside them is a **compile error**
+  (no-NLR, `07_no_nlr`); capture the `on:do:` result and `^` it from the method body instead.
+- Terminate-only: no `resume:`, no `retry`. The handler runs **after** the stack unwinds.
+- A crash never crosses a dispatch boundary (C5): a reaction's raise reaches at most its own reactor
+  frame → `sys/crash` → the supervisor. One reaction's `on:do:` can never catch another's crash.
+- The in-flight error value is the crash `Record` (`#tag`, `#text`); `#channel` is attached only at
+  the reactor boundary (`postCrash:channel:`). Handlers read `e tag` / `e at: #text ifAbsent: [ … ]`
+  (there is no `Object>>text`).
+- `sys/crash` carries the **raise tag** (Milestone E decision (a); the Milestone D `#crash` tag
+  retired — the supervisor matches jobs by `#channel`, never the tag, so this is safe).
+
+Proven by `nsl-tests/12_exceptions/01..14`. See `tuvm/docs/MILESTONE_E.md`.
