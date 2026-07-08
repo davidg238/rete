@@ -374,6 +374,8 @@ oop vm_protected_fire(oop block, oop value);
    on a caught fault evaluates predBlock against the condition, then runs handlerBlock
    (match) or re-raises to the next outer frame (no match). */
 oop vm_on_do(oop protBlock, oop predBlock, oop handlerBlock);
+/* Milestone E Task 3: `[prot] ensure: [cleanup]` — always-run cleanup. */
+oop vm_ensure(oop protBlock, oop cleanupBlock);
 void vm_raise(oop condition);
 extern oop g_raised_condition;
 extern oop g_kernel_instance;   /* Milestone E Task 1: Kernel module instance, captured at main:args: entry */

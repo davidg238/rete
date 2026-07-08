@@ -225,6 +225,71 @@ oop vm_on_do(oop protBlock, oop predBlock, oop handlerBlock) {
     return NULL;                           /* unreachable */
 }
 
+/* Milestone E Task 3: always-run cleanup. `[prot] ensure: [cleanup]`.
+   A vm_on_do sibling: run protBlock under a fresh protection frame, then run
+   cleanupBlock on BOTH exits — clean completion (return the protected value)
+   AND a caught fault (re-raise the condition AFTER cleanup). Terminate-only:
+   cleanup runs after the unwind; there is no resume/retry.
+
+   Innermost-first ordering falls out of natural C-stack nesting: an inner
+   vm_ensure's setjmp catches, runs its cleanup and re-raises BEFORE the outer
+   frame's setjmp sees the fault — so `inner` prints before `outer` (test 06).
+
+   Policy reservation: E ships only the `always` policy. The `{block, policy}`
+   marker is reserved for a later `ifCurtailed:` (curtailed-only) — a one-line
+   guard on the CLEAN path here — and is NOT branched on now.
+
+   GC (precise, non-moving, exhaustion-triggered): on the CLEAN path `result` is
+   a live oop held across the cleanup run_interpreter RE-ENTRY (cleanup can
+   allocate -> collect) with no other root (no C-stack scan), so `result` (and
+   `cleanupBlock`) are pushed as temp roots before the re-entry and popped after.
+   On the CAUGHT path `cond` and `cleanupBlock` are likewise rooted across the
+   cleanup re-entry before the re-raise. The gc_temp_roots_count SAVE/RESTORE
+   idiom balances every exit. */
+oop vm_ensure(oop protBlock, oop cleanupBlock) {
+    extern void gc_temp_root_push(oop o);
+    jmp_buf env;
+    jmp_buf *saved_top          = g_protect_top;
+    size_t saved_sp             = vm_stack_ptr;
+    struct MethodContext *saved_frame = current_frame;
+    int saved_temp_roots        = gc_temp_roots_count;
+    oop arg = NULL;                        /* prot + cleanup are zero-arg; ignored */
+    g_protect_top = &env;
+    if (setjmp(env) == 0) {
+        oop result = run_interpreter(protBlock, protBlock, 1, &arg);
+        /* Restore the OUTER protection level BEFORE running cleanup, so a fault
+           inside cleanup cascades to the next outer frame (matching the caught
+           path) rather than re-entering this now-spent setjmp. */
+        g_protect_top = saved_top;
+        /* result + cleanupBlock are live across the cleanup re-entry (it can
+           allocate -> GC); root them (no conservative C-stack scan). */
+        int roots_here = gc_temp_roots_count;
+        gc_temp_root_push(result);
+        gc_temp_root_push(cleanupBlock);
+        (void)run_interpreter(cleanupBlock, cleanupBlock, 1, &arg);
+        gc_temp_roots_count = roots_here;
+        return result;                     /* clean: the protected block's value */
+    }
+    /* Caught a fault: unwind to this frame (mirror vm_on_do). */
+    vm_stack_ptr        = saved_sp;
+    current_frame       = saved_frame;
+    gc_temp_roots_count = saved_temp_roots;
+    /* Restore the OUTER protection level BEFORE running cleanup / re-raising, so a
+       fault inside cleanup (or the re-raise itself) cascades to the next outer
+       frame rather than the spent local setjmp. */
+    g_protect_top       = saved_top;
+    oop cond            = g_raised_condition;
+    g_raised_condition  = NULL;
+    /* Root cond + cleanupBlock across the cleanup re-entry. */
+    int roots_here = gc_temp_roots_count;
+    gc_temp_root_push(cond);
+    gc_temp_root_push(cleanupBlock);
+    (void)run_interpreter(cleanupBlock, cleanupBlock, 1, &arg);
+    gc_temp_roots_count = roots_here;
+    vm_raise(cond);                        /* re-raise AFTER cleanup; never returns */
+    return NULL;                           /* unreachable */
+}
+
 /* Debugger single-step state (Milestone A Task 6: rehomed off the deleted struct
    Fiber to file-scope globals — this is debugger state, not scheduling state).
    g_single_step: 1 while stepping. g_hook_step_request: -1 = none, else the

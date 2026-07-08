@@ -666,6 +666,12 @@ enum {
        pre-existing PRIM id shifts; counted (not computed) to be id 92 — it is the
        92nd PRIM_NAMES entry. --- */
     PRIM_onDo,
+    /* --- Milestone E Task 3: `[prot] ensure: [cleanup]` always-run cleanup.
+       Serviced entirely inside this prim switch (calls vm_ensure directly), like
+       on:do: and the six value-algebra predicate prims — NOT a platform prim, so
+       it has NO prim_ids.h mirror. Appended last, so no pre-existing PRIM id
+       shifts; counted (not computed) to be id 93 — the 93rd PRIM_NAMES entry. --- */
+    PRIM_ensure,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -699,6 +705,7 @@ static const char *const PRIM_NAMES[] = {
     "raise",
     "error:tag:",
     "on:do:",
+    "ensure:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
@@ -1140,6 +1147,15 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                    caught fault it evaluates pred against the condition and either
                    runs handler (match) or re-raises to the next outer frame. */
                 return vm_on_do(receiver, args[0], args[1]);
+            }
+            break;
+            case PRIM_ensure: {
+                /* Milestone E Task 3: `[prot] ensure: [cleanup]`.
+                   receiver = the protected block, args[0] = cleanup block.
+                   vm_ensure runs prot protected; on clean completion it runs
+                   cleanup and returns the protected value; on a caught fault it
+                   runs cleanup and re-raises to the next outer frame. */
+                return vm_ensure(receiver, args[0]);
             }
             break;
             case PRIM_lt:
