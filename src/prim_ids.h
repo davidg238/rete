@@ -75,4 +75,16 @@
 #define PRIM_pf_timerCancel       87
 #define PRIM_pf_monotonicMillis   88
 #define PRIM_pf_advanceMillis     89
+/* Milestone E Task 1: the terminate-only raise verb (`aRecord raise`), appended
+   after the entire timer group — no pre-existing id shifts. 90 was arrived at by
+   COUNTING PRIM_NAMES (89 entries before this one), not by 89+1 arithmetic, per
+   the standing lesson above. Serviced entirely in dispatch.c's prim switch
+   (vm_raise); platform.c never sees it, but it is mirrored here for symmetry. */
+#define PRIM_raise                90
+/* Milestone E Task 1: the tagged-raise verb (`[text] error: [tag]`), appended
+   after PRIM_raise — no pre-existing id shifts. 91 was arrived at by COUNTING
+   PRIM_NAMES (90 entries before this one), not by 90+1 arithmetic, per the
+   standing lesson above. Serviced entirely in dispatch.c's prim switch (builds
+   the crash Record via the captured kernel instance, then vm_raise). */
+#define PRIM_errorTag             91
 #endif /* OEVM_PRIM_IDS_H */

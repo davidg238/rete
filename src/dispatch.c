@@ -651,6 +651,14 @@ enum {
        85-89 — see prim_ids.h. --- */
     PRIM_pf_timerAfter, PRIM_pf_timerEvery, PRIM_pf_timerCancel,
     PRIM_pf_monotonicMillis, PRIM_pf_advanceMillis,
+    /* --- Milestone E Task 1: the terminate-only raise verb (`aRecord raise`).
+       Appended last, so no pre-existing PRIM id shifts; counted (not computed)
+       to be id 90 — see prim_ids.h. --- */
+    PRIM_raise,
+    /* --- Milestone E Task 1: `[text] error: [tag]` tagged-raise. Appended last,
+       so no pre-existing PRIM id shifts; counted (not computed) to be id 91 —
+       see prim_ids.h. --- */
+    PRIM_errorTag,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -681,6 +689,8 @@ static const char *const PRIM_NAMES[] = {
     "spaceDropReactionsOwnedBy:",
     "timerAfter:token:", "timerEvery:token:", "timerCancel:",
     "monotonicMillis", "advanceMillis:",
+    "raise",
+    "error:tag:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
@@ -749,6 +759,59 @@ static oop make_string(const char *bytes, size_t len) {
     return s;
 }
 
+/* Milestone E Task 1 (v2): build the in-flight crash Record via the captured
+   Kernel module instance (g_kernel_instance, stashed in send_resolve at the first
+   main:args: send) and raise it. The Kernel instance is the ONLY object that
+   reaches the `Record` class from any context — an app receiver cannot (the v1
+   BLOCKED finding) — so we send it the public accessor `crashRecordTag:text:`,
+   which answers `Record tag: aTag with: #text -> aText`. Then vm_raise longjmps to
+   the active protection frame (or, unprotected, prints + aborts). `tag` and `text`
+   are temp-rooted across the interned-selector alloc-free walk and the re-entrant
+   send (GC bug class); the returned Record needs no root — no allocation happens
+   between the send returning and vm_raise stashing it in g_raised_condition (a GC
+   root). The interned crashRecordTag:text: selector is found by walking the kernel
+   instance's vtable (string-compare, does_not_understand idiom) so the send matches
+   the binding by identity. Fallbacks (pre-capture / helper missing — neither should
+   occur) raise the bare text, preserving a sane terminate. */
+static oop build_and_raise(oop tag, oop text) {
+    extern void gc_temp_root_push(oop o);
+    extern int gc_temp_roots_count;
+    if (g_kernel_instance == NULL) {
+        vm_raise(text);   /* pre-entry: impossible in practice, but keep terminate */
+        return NULL;
+    }
+    oop sel = NULL;
+    {
+        oop curr = obj_vtable(g_kernel_instance);
+        while (curr != NULL && !IS_SMI(curr)) {
+            struct Vtable *vt = (struct Vtable *)curr;
+            struct Binding *bs = vtable_bindings((oop)vt);
+            for (size_t i = 0; i < vt->size; i++) {
+                struct Symbol *s = (struct Symbol *)binding_symbol(&bs[i]);
+                if (s != NULL && obj_vtable((oop)s) == SymbolVtable &&
+                    strcmp(symbol_name(s), "crashRecordTag:text:") == 0) {
+                    sel = (oop)s;
+                    break;
+                }
+            }
+            if (sel != NULL) break;
+            curr = vtable_delegate((oop)vt);
+        }
+    }
+    if (sel == NULL) {
+        vm_raise(text);   /* kernel helper missing: keep terminate */
+        return NULL;
+    }
+    int saved_roots = gc_temp_roots_count;
+    gc_temp_root_push(tag);
+    gc_temp_root_push(text);
+    oop args2[2] = { tag, text };   /* crashRecordTag: aTag text: aText */
+    oop rec = send(g_kernel_instance, sel, 2, args2);
+    gc_temp_roots_count = saved_roots;
+    vm_raise(rec);   /* longjmps when protected; never returns */
+    return NULL;
+}
+
 /* Resolve a send WITHOUT invoking a bytecode target (de-recursify Phase 2, Task 4).
    This is the former body of send(): it runs every inline case (intercepted
    primitives, native capabilities, BoundClass construction, doesNotUnderstand:,
@@ -762,6 +825,20 @@ static oop make_string(const char *bytes, size_t len) {
 oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                  oop *out_method, oop *out_recv, int *out_argc) {
     *out_method = NULL;
+    /* Milestone E Task 1: capture the Kernel module instance once, at the first
+       `main:args:` send. Both boot paths (oimg_loader.c and the solidified
+       run_solidified_entry_point) launch the app as `entry main: kernel_inst
+       args: 0`, so arg 0 IS the Kernel instance — the only object that reaches
+       the `Record` class from any context. The error:/error:tag: raise prims
+       need it to build the crash Record (an app receiver cannot reach Record
+       lexically — the v1 BLOCKED finding). The `== NULL` guard makes this a
+       one-shot; it runs before any app code, so g_kernel_instance is always set
+       before any error can fire. */
+    if (g_kernel_instance == NULL && selector != NULL && !IS_SMI(selector) &&
+        SymbolVtable != NULL && obj_vtable(selector) == SymbolVtable && argc >= 1 &&
+        strcmp(symbol_name((struct Symbol *)selector), "main:args:") == 0) {
+        g_kernel_instance = args[0];
+    }
     // BoundClass receiver: ANY send constructs the nested instance (see
     // BoundClassVtable). Must precede primitive interception so a construction
     // selector that happens to collide with a primitive name (e.g. `size`) still
@@ -1013,13 +1090,39 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
             }
             break;
             case PRIM_error: {
-                /* Milestone D: `self error:` is now the raise primitive — it hands
-                   off to vm_raise, which longjmps to an active protectedFire frame
-                   if one exists, or else prints "Error: <text>" and abort()s exactly
-                   as this branch did before (Milestone B Task 6's String/Symbol
-                   dual-print is preserved verbatim inside vm_raise). */
-                vm_raise(args[0]);
-                return NULL;         /* unreachable, but keeps the switch well-formed */
+                /* Milestone E Task 1 (v2): `self error: text` raises a crash Record
+                   with the default tag #error. The Record is built in C via the
+                   captured Kernel instance (build_and_raise) — an app receiver cannot
+                   reach the `Record` class lexically (the v1 BLOCKED finding), so we
+                   do NOT go through a kernel Object method. The fresh #error tag is
+                   temp-rooted before the build. */
+                extern oop gc_allocate(oop vtable, size_t size);
+                extern void gc_temp_root_push(oop o);
+                extern int gc_temp_roots_count;
+                int saved_roots = gc_temp_roots_count;
+                gc_temp_root_push(args[0]);          /* text, live across the alloc */
+                oop errSym = gc_allocate(SymbolVtable, sizeof(struct Symbol));
+                ((struct Symbol *)errSym)->name = "error";
+                ((struct Symbol *)errSym)->length = 5;
+                oop r = build_and_raise(errSym, args[0]);   /* normally longjmps */
+                gc_temp_roots_count = saved_roots;
+                return r;            /* unreachable when protected */
+            }
+            break;
+            case PRIM_errorTag: {
+                /* Milestone E Task 1 (v2): `text error: tag` — the tagged-raise verb.
+                   receiver/args[0] = text, args[1] = tag. Builds the crash Record via
+                   the captured Kernel instance and raises it. */
+                return build_and_raise(args[1], args[0]);   /* normally longjmps */
+            }
+            break;
+            case PRIM_raise: {
+                /* Milestone E Task 1: terminate-only re-raise of the receiver oop
+                   (typically a crash Record). vm_raise longjmps to the active
+                   protection frame with the receiver as the in-flight condition, or
+                   (unprotected) prints + aborts. Never returns when protected. */
+                vm_raise(receiver);
+                return NULL;         /* unreachable when protected */
             }
             break;
             case PRIM_lt:

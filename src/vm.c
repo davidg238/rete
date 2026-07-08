@@ -53,8 +53,60 @@ struct MethodContext *current_frame = NULL;
    code path is the general one so phase-2 on:do: generalizes it (exceptions.md C4). */
 static jmp_buf *g_protect_top = NULL;   /* NULL = no protection active */
 oop g_raised_condition = NULL;          /* rooted by gc_collect; see gc.c */
+/* Milestone E Task 1: the Kernel module instance (Kernel usingPlatform: platform),
+   captured by dispatch.c's send_resolve at the first `main:args:` send — the only
+   object that reaches the `Record` class from any context. The error:/error:tag:
+   raise prims send it `crashRecordTag:text:` to build the in-flight crash Record.
+   Rooted in gc_collect (see gc.c); NULL until app entry (both boot paths pass the
+   kernel instance as main:args: arg 0, before any app code can raise). */
+oop g_kernel_instance = NULL;
 
 extern int gc_temp_roots_count;         /* gc.c:645 — save/restore across a fire */
+
+/* Milestone E Task 1 diagnostic helper: if `condition` is a crash Record (built
+   by Object>>error:tag: as `Record tag: aTag with: #text -> aText`), pull its
+   #text String for the unprotected abort message. Guarded: we only ever run this
+   on the die-anyway abort path, and we go through the receiver's OWN
+   `at:ifAbsent:` method (found by walking its vtable, string-compare — the
+   does_not_understand idiom) rather than poking raw slots, so a heap object that
+   is not Record-shaped simply doesn't resolve the selector and we answer NULL.
+   The ifAbsent block is nil: every Record we raise always carries #text, so the
+   present-key path returns the value and never sends `value` to that nil. */
+static oop vm_condition_text(oop condition) {
+    if (condition == NULL || IS_SMI(condition)) return NULL;
+    if (SymbolVtable == NULL) return NULL;
+    oop atIfAbsentSel = NULL;
+    oop curr = obj_vtable(condition);
+    while (curr != NULL && !IS_SMI(curr)) {
+        struct Vtable *vt = (struct Vtable *)curr;
+        struct Binding *bs = vtable_bindings((oop)vt);
+        for (size_t i = 0; i < vt->size; i++) {
+            struct Symbol *s = (struct Symbol *)binding_symbol(&bs[i]);
+            if (s != NULL && obj_vtable((oop)s) == SymbolVtable &&
+                strcmp(symbol_name(s), "at:ifAbsent:") == 0) {
+                atIfAbsentSel = (oop)s;
+                break;
+            }
+        }
+        if (atIfAbsentSel != NULL) break;
+        curr = vtable_delegate((oop)vt);
+    }
+    if (atIfAbsentSel == NULL) return NULL;
+    /* Fresh interned #text tag to probe the fields Map (rooted across the send). */
+    extern void gc_temp_root_push(oop o);
+    extern int gc_temp_roots_count;
+    int saved_roots = gc_temp_roots_count;
+    gc_temp_root_push(condition);
+    oop textSym = gc_allocate(SymbolVtable, sizeof(struct Symbol));
+    ((struct Symbol *)textSym)->name = "text";
+    ((struct Symbol *)textSym)->length = 4;
+    gc_temp_root_push(textSym);
+    oop probe_args[2] = { textSym, NULL };   /* ifAbsent nil: key is always present */
+    oop v = send(condition, atIfAbsentSel, 2, probe_args);
+    gc_temp_roots_count = saved_roots;
+    if (v != NULL && StringVtable && obj_vtable(v) == StringVtable) return v;
+    return NULL;
+}
 
 /* The raise primitive. `self error:` calls this. Terminate-only: never returns to
    the raise point when protected. Unprotected -> preserve today's print+abort. */
@@ -63,7 +115,8 @@ void vm_raise(oop condition) {
         g_raised_condition = condition;
         longjmp(*g_protect_top, 1);
     }
-    /* no protection frame: behave exactly as PRIM_error did before Milestone D */
+    /* no protection frame: behave exactly as PRIM_error did before Milestone D,
+       with Milestone E Task 1's extension for a Record condition (print #text). */
     if (condition && StringVtable && obj_vtable(condition) == StringVtable) {
         struct String *s = (struct String *)condition;
         fprintf(stderr, "Error: ");
@@ -72,7 +125,15 @@ void vm_raise(oop condition) {
     } else if (condition && SymbolVtable && obj_vtable(condition) == SymbolVtable) {
         fprintf(stderr, "Error: %s\n", symbol_name((struct Symbol *)condition));
     } else {
-        fprintf(stderr, "Error: ?\n");
+        oop text = vm_condition_text(condition);   /* Record #text, else NULL */
+        if (text != NULL) {
+            struct String *s = (struct String *)text;
+            fprintf(stderr, "Error: ");
+            fwrite(s->bytes, 1, s->length, stderr);
+            fprintf(stderr, "\n");
+        } else {
+            fprintf(stderr, "Error: ?\n");
+        }
     }
     abort();
 }

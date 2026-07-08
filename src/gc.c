@@ -749,6 +749,13 @@ void gc_collect(void) {
     extern oop g_raised_condition;
     mark(g_raised_condition);
 
+    // Milestone E Task 1: the captured Kernel module instance (dispatch.c stashes
+    // it at main:args: entry). The error:/error:tag: prims send it
+    // crashRecordTag:text: to build the in-flight Record, so it must outlive any
+    // GC between app entry and a raise. mark() is a no-op on NULL (pre-capture).
+    extern oop g_kernel_instance;
+    mark(g_kernel_instance);
+
     /* oevm#21: the in-flight boot receiver/args, live across the lazy exec-context
        bootstrap before they are written into a GC-scanned frame. With no
        conservative C-stack scan these C locals have no other root; mark them here
