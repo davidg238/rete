@@ -18,7 +18,8 @@ APP = os.path.join(NSROOT, "..", "nsl-tests", "04_somns_basic", "41_supervisor_g
 OEVM_TARGET = os.environ.get("OEVM_TARGET", "posix")
 OEVM_BACKEND = [f"src/backend/{OEVM_TARGET}/platform_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/serial_{OEVM_TARGET}.c",
-                f"src/backend/{OEVM_TARGET}/udp_{OEVM_TARGET}.c"]
+                f"src/backend/{OEVM_TARGET}/udp_{OEVM_TARGET}.c",
+                f"src/backend/{OEVM_TARGET}/pulse_{OEVM_TARGET}.c"]
 OEVM_EXTRA_CFLAGS = os.environ.get("OEVM_EXTRA_CFLAGS", "").split()
 
 # ---------------------------------------------------------------------------
@@ -31,7 +32,8 @@ def build_a():
                     os.path.join(OEVM, "src", "solidified_image.c")],
                    cwd=NSROOT, check=True)
     subprocess.run(["gcc", "-Wall", "-Wextra", "-std=c99", "-Isrc", "-DOEVM_APPLIANCE",
-                    "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/serial.c",
+                    "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c",
+                    "src/serial.c",
                     "src/udp.c", "src/mirror.c", *OEVM_BACKEND,
                     "src/solidified_image.c", "src/oevm_main.c",
                     "-o", "/tmp/oevm_grant", *OEVM_EXTRA_CFLAGS, "-lm"], cwd=OEVM, check=True)
@@ -68,7 +70,8 @@ def build_b():
     # Step 3: build the image VM binary (matches _build_pathb_once lines ~78-91).
     subprocess.run(
         ["gcc", "-Wall", "-std=c99", "-Isrc",
-         "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/serial.c",
+         "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c",
+         "src/serial.c",
          "src/udp.c", "src/mirror.c",
          *OEVM_BACKEND,
          "src/oimg_loader.c", "src/kernel_boot.c",
