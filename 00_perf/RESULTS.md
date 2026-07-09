@@ -204,3 +204,77 @@ absolute sizes differ on Cortex-M but the ratio is indicative.
 (iteration-scaled + RSS). Model B VM built once with
 `gcc -O2 -std=c99 vm.c gc.c dispatch.c oimg_loader.c kernel_boot.c
 oevm_image_main.c -o /tmp/oevm_img -lm` after `dump_layout > /tmp/oevm_layout.json`.
+
+---
+
+## 2026-07-08 — Perfstex baseline: **tuvm** VM (post-Zephyr-pulse-primitive)
+
+First perfstex baseline for the current **tuvm** VM generation (the fork that
+carries the Zephyr rung-2 pulse primitive + M6 handle table — all additive, off
+the perfstex hot paths, so this is a clean VM baseline, not a measure of those
+changes). `perfstex.ns` is the classic Smalltalk SpeedTester port, self-timed via
+the `millis` primitive. Comparison columns: the prior **ns-oevm** VM's M3 device
+run and the published **Berry** numbers (`st-zephyr/.../RESULTS.md`, 2026-04-11),
+all on the **same nRF52840 @ 64 MHz Cortex-M4**, identical iteration counts.
+
+### On-device — nRF52840-DK (Model A, single run, console over J-Link VCOM)
+
+| Sub-test       | Iterations | Berry (ms) | ns-oevm (ms) | **tuvm (ms)** | tuvm ÷ Berry |
+|----------------|-----------:|-----------:|-------------:|--------------:|-------------:|
+| integerMath    |      1,000 |        118 |           95 |        **87** |    **0.74×** |
+| floatMath      |      1,000 |        141 |          284 |     **OOM***  |          —   |
+| arrayWrite     |     10,000 |      3,611 |        4,751 |     **5,128** |        1.42× |
+| arrayIterate   |      1,000 |      2,764 |        3,407 |     **3,920** |        1.42× |
+| stringCompare  |     10,000 |        460 |        1,609 |     **1,215** |        2.64× |
+| hanoi(18)      |    262,143 |     15,837 |       14,719 |    **15,154** |    **0.96×** |
+
+Footprint (96 KB arena build): FLASH 25.8%, RAM 86.3% (226.2 KB / 256 KB).
+
+**Reading it.** tuvm is **competitive-to-faster on integer dispatch + SmallInt
+arithmetic** — integerMath 0.74× Berry (and faster than ns-oevm's 95 ms), hanoi(18)
+0.96× (deep method-send recursion, essentially at parity). stringCompare improved
+markedly over ns-oevm (1,215 vs 1,609 ms) but is still 2.6× Berry — the clearest
+non-float optimization target. Array ops are ~1.4× Berry (slightly behind
+ns-oevm). Net: on non-float work tuvm is within ~1.4× of Berry and ahead of it on
+the two dispatch-bound tests.
+
+**\*floatMath OOMs on device (`VM Float Arena Error: Out of Memory`).** The boxed-
+Float arena grows **unbounded** — raising the slab budget (4→6) and the newlib pool
+(48→64 KB) changed nothing, so it is a **reclaim** gap, not a sizing one: dead
+floats (floatMath reassigns its accumulator every iteration) are not collected, so
+its ~20k allocations exceed any arena that fits in 256 KB. This is the on-device
+face of the documented boxed-float limitation (the "no GC penalty / floats never
+collected" caveat above, GH #3). It runs fine on the **host** only because the
+16 MB default arena never triggers collection. ns-oevm's M3 recorded floatMath 284
+ms, so bounded-memory float execution is achievable — **follow-up: make the float
+arena reclaim under the slab-budget cap** so float-heavy programs run on the DK.
+(To get the other five numbers, floatMath was moved last in a scratch
+`perfstex_dk.ns` so its abort didn't truncate the run.)
+
+### On-host — x86-64 desktop (Model A, `gcc -O2`, best-of-10)
+
+| Sub-test | integerMath | floatMath | arrayWrite | arrayIterate | stringCompare | hanoi18 |
+|----------|------------:|----------:|-----------:|-------------:|--------------:|--------:|
+| tuvm host (ms) | 0–1 | 0–1 | 6 | 5 | 1–2 | 20 |
+
+Sanity/regression check only: at the **device-calibrated** iteration counts, a
+~GHz desktop collapses the quick tests to 0–1 ms (below ms resolution), so the host
+run is not a meaningful per-test baseline — it just confirms the VM runs perfstex
+correctly and, notably, floatMath completes on host (big default arena, no
+collection). The device column above is the Berry-comparable baseline.
+
+### Reproduce
+
+- **Host:** compile `perfstex.ns` → `tuvm/src/solidified_image.c` with
+  `nsl-tuvm/tools/ns_compile_oevm.py`, build the Model A appliance
+  (`gcc -O2 -DOEVM_APPLIANCE -std=c99 -Isrc <engine .c set> src/oevm_main.c -o
+  oevm_bench -lm`), run `./oevm_bench` (self-timed stdout). Restore
+  `solidified_image.c` after (`git checkout --`).
+- **Device (nRF52840-DK):** reuse the Task-8 DK build (`tuvm/zephyr`,
+  `-DCONF_FILE=prj_dk.conf`) — `main.c` already wires `oevm_millis = k_uptime_get`.
+  Bake `perfstex.ns`, `west build -b nrf52840dk/nrf52840`, `west flash
+  --skip-rebuild --runner jlink`, capture `/dev/ttyACM0` @ 115200. Env for the
+  float-heavy build: `OEVM_HEAP_SIZE=98304 METHOD_CACHE_SIZE=512 PRIM_CACHE_SIZE=512
+  OEVM_FLOAT_ARENA_SLAB_CELLS=512 OEVM_FLOAT_ARENA_SLAB_BUDGET=6` +
+  `CONFIG_HEAP_MEM_POOL_SIZE=65536` (the `zephyr/CMakeLists.txt` env→`-D`
+  passthrough forwards the float-arena knobs).
