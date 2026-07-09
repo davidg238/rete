@@ -1010,6 +1010,17 @@ git commit -m "feat(zephyr): native_sim bring-up gate — VM boot + pulse observ
 
 ### Task 8: nRF52840 acceptance bar (real GPIO ISR)
 
+> **✅ DONE 2026-07-08 — passed on the nRF52840-DK.** Physical BUTTON1 press →
+> `observed done` on the DK's uart0/VCOM console. The steps below were drafted
+> for the *dongle*; the bench hardware is the *DK*, so the actual recipe differs
+> (board `nrf52840dk/nrf52840`; button **P0.11** via a `pulsegpio` alias on the
+> existing `button0`, not a hand-rolled P1.06 node; `west flash --runner jlink`
+> over the on-board J-Link, not nrfutil DFU; console on uart0/VCOM; a separate
+> `prj_dk.conf` + `PulseNodeDK.ns` that drops the sim `gpio fire:`; and a RAM
+> retune for the 256 KB part — 128 KB arena, method/prim caches 4096→512). The
+> `gpio_target_fire(int)` platform.c entry landed as designed. Authoritative
+> recipe: `tuvm/zephyr/README.md` → "Task 8 — nRF52840-DK acceptance bar".
+
 **Files:**
 - Modify: `/home/david/workspace/tuvm/zephyr/src/main.c` (real GPIO edge callback for the dongle)
 - Create: `/home/david/workspace/tuvm/zephyr/boards/nrf52840dongle_nrf52840.overlay` (button/ALERT pin)
