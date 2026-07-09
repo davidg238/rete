@@ -50,3 +50,14 @@ endif()
 if(DEFINED ENV{PRIM_CACHE_SIZE})
   target_compile_definitions(app PRIVATE PRIM_CACHE_SIZE=$ENV{PRIM_CACHE_SIZE})
 endif()
+
+# The boxed-Float arena (gc.c) mallocs slabs of OEVM_FLOAT_ARENA_SLAB_CELLS floats
+# (default 4096 ≈ 64 KB/slab — sized for a host's big libc heap). On the DK the
+# newlib k_malloc pool is a few tens of KB, so a float-heavy program (e.g.
+# perfstex's floatMath) must shrink the slab and bound the slab count via env.
+if(DEFINED ENV{OEVM_FLOAT_ARENA_SLAB_CELLS})
+  target_compile_definitions(app PRIVATE OEVM_FLOAT_ARENA_SLAB_CELLS=$ENV{OEVM_FLOAT_ARENA_SLAB_CELLS})
+endif()
+if(DEFINED ENV{OEVM_FLOAT_ARENA_SLAB_BUDGET})
+  target_compile_definitions(app PRIVATE OEVM_FLOAT_ARENA_SLAB_BUDGET=$ENV{OEVM_FLOAT_ARENA_SLAB_BUDGET})
+endif()
