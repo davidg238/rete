@@ -37,3 +37,16 @@ target_include_directories(app PRIVATE ${TUVM_SRC}/src)
 if(DEFINED ENV{OEVM_HEAP_SIZE})
   target_compile_definitions(app PRIVATE OEVM_HEAP_SIZE=$ENV{OEVM_HEAP_SIZE})
 endif()
+
+# The VM's method/prim inline caches (dispatch.c) default to 4096 entries each
+# — 64 KB + 32 KB of static SRAM, host-generous. On the 256 KB nRF52840 that
+# dwarfs the arena, so Task 8's DK build shrinks them via env (same env-not-`-D`
+# reason as OEVM_HEAP_SIZE above: NCS sysbuild swallows bare `-D` app defines).
+# They are pure caches — a smaller table only trades a few more collisions, never
+# correctness.
+if(DEFINED ENV{METHOD_CACHE_SIZE})
+  target_compile_definitions(app PRIVATE METHOD_CACHE_SIZE=$ENV{METHOD_CACHE_SIZE})
+endif()
+if(DEFINED ENV{PRIM_CACHE_SIZE})
+  target_compile_definitions(app PRIVATE PRIM_CACHE_SIZE=$ENV{PRIM_CACHE_SIZE})
+endif()

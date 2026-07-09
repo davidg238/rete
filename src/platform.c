@@ -128,6 +128,14 @@ static void host_gpio_fire(int pin) {
             pulse_post_isr(host_gpio[i].chan_id, host_gpio[i].handle_idx);
 }
 
+/* Target GPIO-ISR entry (Zephyr rung-2 Task 8): a real on-target GPIO edge
+   callback (zephyr/src/main.c) calls this to post the pulse for `pin`, taking
+   the exact same slot-lookup -> pulse_post_isr path the host-only gpioFire:
+   prim simulates. ISR-safe: pulse_post_isr is non-allocating and non-blocking.
+   Non-static so the Zephyr entry point can call it; unused on host/native_sim
+   builds (host_gpio_fire serves the sim there), harmless when never called. */
+void gpio_target_fire(int pin) { host_gpio_fire(pin); }
+
 extern oop gc_allocate(oop vtable, size_t size);
 extern oop StringVtable, SymbolVtable, VtableVtable;
 extern oop RawBytesVtable;   /* Milestone B Task 3: RawBytes leaf storage */

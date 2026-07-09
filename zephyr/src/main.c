@@ -25,6 +25,49 @@
 #include "oevm.h"
 #include "oimg.h"
 
+/* Task 8 (nRF52840-DK acceptance bar): bind the on-board BUTTON1 (P0.11) as the
+   PHYSICAL edge source for the pulse seam, via the `pulsegpio` DT alias added in
+   boards/nrf52840dk_nrf52840.overlay. Guarded on the alias's existence: for the
+   native_sim gate (Task 7) no overlay is applied, so the alias is absent and this
+   whole block — and the wire_pulse_gpio() call in main() — compiles out, leaving
+   that build byte-for-byte identical (its edge still comes from the node's
+   sim-only `gpio fire:`). On the DK, each button press runs pulse_isr in IRQ
+   context, which posts the pulse for the SAME logical pin the baked node
+   (PulseNodeDK.ns) registered. */
+#if DT_NODE_EXISTS(DT_ALIAS(pulsegpio))
+#include <zephyr/drivers/gpio.h>
+
+/* Logical pin the DK node registers via `gpio pin: 13 ...` (PulseNodeDK.ns).
+   The PHYSICAL pin (P0.11) is decoupled from it — the ISR maps one to the
+   other, mirroring how a driver maps a board pin to an app-level channel. */
+#define PULSE_LOGICAL_PIN 13
+
+extern void gpio_target_fire(int pin);   /* src/platform.c — ISR-safe */
+
+static const struct gpio_dt_spec pulse_in =
+    GPIO_DT_SPEC_GET(DT_ALIAS(pulsegpio), gpios);
+static struct gpio_callback pulse_cb;
+
+static void pulse_isr(const struct device *port, struct gpio_callback *cb,
+                      uint32_t pins) {
+    ARG_UNUSED(port); ARG_UNUSED(cb); ARG_UNUSED(pins);
+    gpio_target_fire(PULSE_LOGICAL_PIN);   /* -> pulse_post_isr (non-blocking) */
+}
+
+static void wire_pulse_gpio(void) {
+    if (!gpio_is_ready_dt(&pulse_in)) {
+        printk("pulsegpio device not ready\n");
+        return;
+    }
+    gpio_pin_configure_dt(&pulse_in, GPIO_INPUT);
+    gpio_pin_interrupt_configure_dt(&pulse_in, GPIO_INT_EDGE_TO_ACTIVE);
+    gpio_init_callback(&pulse_cb, pulse_isr, BIT(pulse_in.pin));
+    gpio_add_callback(pulse_in.port, &pulse_cb);
+}
+#else
+static inline void wire_pulse_gpio(void) { }   /* native_sim: no physical button */
+#endif
+
 /* XIP stubs — Model A never loads an .oimg blob; oimg.h's is_in_blob() checks
    oimg_blob_base first and returns 0 while it is NULL, so the XIP accessor
    paths are never taken. These definitions must live here (mirroring
@@ -59,6 +102,8 @@ int main(void) {
 
     init_solidified_vtables();
     init_reflection_symbols();
+
+    wire_pulse_gpio();   /* Task 8 (DK): arm BUTTON1 as the pulse edge; no-op on native_sim */
 
     oop result = run_solidified_entry_point();  /* runs PulseNode>>main:args: —
         registers the reaction, fires the simulated edge, then blocks forever

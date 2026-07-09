@@ -1,0 +1,34 @@
+(*
+PulseNodeDK.ns — the Task 8 nRF52840-DK acceptance-bar node. Identical to the
+Task 7 native_sim gate (PulseNode.ns) EXCEPT it does NOT call `gpio fire: 13`:
+on the DK the one edge comes from a PHYSICAL button press (BUTTON1 / P0.11),
+routed by the Zephyr GPIO ISR in ../src/main.c -> gpio_target_fire(13) -> the
+same (chan_id, handle_idx) this node registered via `gpio pin: 13 ...`. Baking
+the sim `gpio fire:` in here would post a pulse at boot and print `observed
+done` with NO button press, defeating the whole point of the hardware bar — so
+it is removed. The C-owned pump loop then blocks (pulse_pump: K_FOREVER) until
+the button is pressed.
+
+Baked into the DK boot image with (run from the nsl-tuvm repo):
+  python3 tools/ns_compile_oevm.py \
+    /home/david/workspace/tuvm/zephyr/PulseNodeDK.ns \
+    /home/david/workspace/tuvm/src/solidified_image.c
+
+Same two dialect deviations as PulseNode.ns, for the same reasons:
+  - `[ ... ] repeat` is unsupported; use `[ true ] whileTrue:`.
+  - post the String 'done' (not Symbol #done) so `printString` yields
+    `observed done`, not `observed #done`.
+*)
+class PulseNodeDK packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space alert gpio |
+    space:: platform space.
+    alert:: space channel: 'sensor/alert'.
+    alert whenever: '' do: [ :e | ('observed ' , e printString) out ].
+    gpio:: platform gpio.
+    gpio pin: 13 edge: #rising post: 'done' on: alert.
+    (* no `gpio fire:` — a physical BUTTON1 edge drives the one pulse *)
+    [ true ] whileTrue: [ platform pumpEvents. space drain ]
+  )
+) : (
+)
