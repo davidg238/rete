@@ -221,14 +221,23 @@ all on the **same nRF52840 @ 64 MHz Cortex-M4**, identical iteration counts.
 
 | Sub-test       | Iterations | Berry (ms) | ns-oevm (ms) | **tuvm (ms)** | tuvm ÷ Berry |
 |----------------|-----------:|-----------:|-------------:|--------------:|-------------:|
-| integerMath    |      1,000 |        118 |           95 |        **87** |    **0.74×** |
-| floatMath      |      1,000 |        141 |          284 |     **OOM***  |          —   |
-| arrayWrite     |     10,000 |      3,611 |        4,751 |     **5,128** |        1.42× |
-| arrayIterate   |      1,000 |      2,764 |        3,407 |     **3,920** |        1.42× |
-| stringCompare  |     10,000 |        460 |        1,609 |     **1,215** |        2.64× |
-| hanoi(18)      |    262,143 |     15,837 |       14,719 |    **15,154** |    **0.96×** |
+| integerMath    |      1,000 |        118 |           95 |        **85** |    **0.72×** |
+| floatMath      |      1,000 |        141 |          284 |       **215** |    **1.52×** |
+| arrayWrite     |     10,000 |      3,611 |        4,751 |     **4,974** |        1.38× |
+| arrayIterate   |      1,000 |      2,764 |        3,407 |     **3,676** |        1.33× |
+| stringCompare  |     10,000 |        460 |        1,609 |     **1,190** |        2.59× |
+| hanoi(18)      |    262,143 |     15,837 |       14,719 |    **14,786** |    **0.93×** |
 
-Footprint (96 KB arena build): FLASH 25.8%, RAM 86.3% (226.2 KB / 256 KB).
+Refreshed **2026-07-09** after the tuvm#15 fix (float-arena reclaim-on-pressure):
+all six now measured in a **single complete run** (floatMath no longer aborts, so
+the scratch reorder is gone). The five non-float numbers moved within run-to-run
+jitter of the 2026-07-08 partials (e.g. hanoi 14,786 vs 15,154; arrayWrite 4,974
+vs 5,128) — the fix touches only the float `malloc`-failure path, off every other
+test's hot path.
+
+Footprint (96 KB arena build): FLASH 25.8%, static RAM 67.5% (177 KB / 256 KB, west
+link-time report). The boxed-float arena draws its slabs from the remaining ~79 KB
+of SRAM (newlib `malloc`) at runtime, self-bounding under the tuvm#15 fix.
 
 **Reading it.** tuvm is **competitive-to-faster on integer dispatch + SmallInt
 arithmetic** — integerMath 0.74× Berry (and faster than ns-oevm's 95 ms), hanoi(18)
@@ -238,18 +247,22 @@ non-float optimization target. Array ops are ~1.4× Berry (slightly behind
 ns-oevm). Net: on non-float work tuvm is within ~1.4× of Berry and ahead of it on
 the two dispatch-bound tests.
 
-**\*floatMath OOMs on device (`VM Float Arena Error: Out of Memory`).** The boxed-
-Float arena grows **unbounded** — raising the slab budget (4→6) and the newlib pool
-(48→64 KB) changed nothing, so it is a **reclaim** gap, not a sizing one: dead
-floats (floatMath reassigns its accumulator every iteration) are not collected, so
-its ~20k allocations exceed any arena that fits in 256 KB. This is the on-device
-face of the documented boxed-float limitation (the "no GC penalty / floats never
-collected" caveat above, GH #3). It runs fine on the **host** only because the
-16 MB default arena never triggers collection. ns-oevm's M3 recorded floatMath 284
-ms, so bounded-memory float execution is achievable — **follow-up: make the float
-arena reclaim under the slab-budget cap** so float-heavy programs run on the DK.
-(To get the other five numbers, floatMath was moved last in a scratch
-`perfstex_dk.ns` so its abort didn't truncate the run.)
+**\*floatMath — RESOLVED (tuvm#15), 2026-07-09.** It previously OOM'd on the DK
+(`VM Float Arena Error: Out of Memory`). Root cause: the boxed-Float arena only ran
+a reclaiming collection once it reached the slab **budget**
+(`OEVM_FLOAT_ARENA_SLAB_BUDGET`), but the DK's newlib heap can't hold that many
+slabs, so `malloc` failed mid-ramp and the VM aborted **before the (correct)
+reclaim ever ran** — even though floatMath keeps only ~2 floats live out of the
+~20k it allocates. The earlier diagnosis was right that this is a **reclaim** gap,
+not a sizing one; the gap was specifically in the *trigger* — reclaim was gated
+behind an arbitrary slab budget rather than real memory pressure. **Fix**
+(`tuvm/src/gc.c`, `float_alloc`): on a `malloc` failure, run one `gc_collect()` and
+serve from the refilled free-list before aborting, so the arena self-bounds to
+whatever the pool actually allows. floatMath now completes at **215 ms — faster
+than ns-oevm's 284 ms** — in a fixed arena on the DK, and runs in program order
+(the scratch `perfstex_dk.ns` reorder is retired). Regression-tested by
+`tuvm/tests/test_float_oom.c`, a `--wrap=malloc` pool cap that reproduces the
+pre-fix abort and confirms the post-fix reclaim.
 
 ### On-host — x86-64 desktop (Model A, `gcc -O2`, best-of-10)
 
@@ -278,3 +291,62 @@ collection). The device column above is the Berry-comparable baseline.
   OEVM_FLOAT_ARENA_SLAB_CELLS=512 OEVM_FLOAT_ARENA_SLAB_BUDGET=6` +
   `CONFIG_HEAP_MEM_POOL_SIZE=65536` (the `zephyr/CMakeLists.txt` env→`-D`
   passthrough forwards the float-arena knobs).
+
+## 2026-07-09 — RAM ↔ speed knob matrix (nsl-tuvm only, nRF52840-DK)
+
+The baseline table above is the **speed-optimized / little-spare-RAM** config. This
+matrix answers the opposite question: *how much RAM can we free, and what does it
+cost the benchmark?* Same board, same `perfstex.ns`, single run each. **Channel
+spaces + Zephyr `k_heap` are held fixed** (a real capability node needs them), so
+the levers are the VM arena, the two dispatch caches, the VM execution stack, and
+the GC mark-stack. All five configs run **full perfstex to `done`** (floatMath
+included — needs the tuvm#15 fix). Free RAM = 256 KB − static (west link-time).
+
+| Config | arena | method$ | prim$ | stack | mark$ | Static RAM | Free RAM | Δfree |
+|--------|------:|--------:|------:|------:|------:|-----------:|---------:|------:|
+| **A** baseline (speed)   | 96 K | 512 | 512 | 16384 | 1024 | 177.0 K (67.5%) |  83 K |   —   |
+| **B** caches→128         | 96 K | 128 | 128 | 16384 | 1024 | 167.8 K (64.0%) |  92 K | +9 K  |
+| **C** 4k-stack           | 56 K | 512 | 512 |  4096 | 1024 | 134.8 K (51.4%) | 124 K | +41 K |
+| **D** recommended        | 48 K | 256 | 256 |  4096 |  512 | 118.2 K (45.1%) | 141 K | +58 K |
+| **E** aggressive         | 32 K | 128 | 128 |  2048 |  256 |  97.2 K (37.1%) | 161 K | +78 K |
+
+Speed (ms, lower better):
+
+| Config | integer | float | arrayWrite | arrayIterate | stringCompare | hanoi18 |
+|--------|--------:|------:|-----------:|-------------:|--------------:|--------:|
+| A baseline   | 85 | 215 | 4973 | 3675 | 1190 | 14781 |
+| B caches→128 | 85 | 211 | 4973 | 3646 | 1188 | 14780 |
+| C 4k-stack   | 85 | 215 | 4972 | 3470 | 1191 | 14775 |
+| D recommended| 85 | 212 | 4967 | 3656 | 1189 | 14768 |
+| E aggressive | 84 | 211 | 4995 | 3964 | 1189 | 14751 |
+
+**Reading it.**
+
+- **~78 KB is reclaimable at zero benchmark cost.** Every config posts the same
+  times — including hanoi18 (262,143 sends) on a 128-entry method cache. The 16 KB
+  ask is trivial; you can nearly triple it.
+- **The VM stack is the elephant, and shrinking it is *truly* free.** It is a fixed
+  heap `Stack` object allocated inside the arena — the single largest boot
+  allocation: `VM_STACK_INIT_WORDS` × oop = **64 KB on the 32-bit DK** at the 16384
+  default. perfstex's measured peak is **442 words** (1.8 KB), so 16384→4096 frees
+  ~41 KB (A→C) with *no* speed effect — it is only an overflow bound, not a working
+  size. 4096 words = 9× perfstex's peak, safe headroom for real recursion.
+- **Two "artificial" levers** — where perfstex *under-represents* real cost:
+  - *Dispatch caches* (512→128 saves ~9 KB): perfstex reuses ~10 selectors, so even
+    128 entries never thrash. A real app with hundreds of call sites would miss more
+    and dispatch slower. **256** is a safe middle.
+  - *Arena* (96→32 K saves ~48 K): perfstex barely allocates on the main heap, so a
+    small arena rarely triggers GC. An allocation-heavy script collects far more
+    often in 32 K. **48 K** is a sane middle.
+- arrayIterate's 3470–3964 spread is GC-timing jitter (non-monotonic with arena
+  size), not a real signal; every other column is flat to within run-to-run noise.
+
+**Recommendation (config D, now the DK default).** `OEVM_HEAP_SIZE=49152`,
+`METHOD_CACHE_SIZE=256`, `PRIM_CACHE_SIZE=256`, `VM_STACK_INIT_WORDS=4096`,
+`OEVM_MARK_STACK_SIZE=512` → **45% RAM, 141 KB free (+58 KB vs baseline)**, zero
+perfstex impact, and sane real-world margins on every artificial knob. If you want
+only the 16 KB with nothing debatable, the **4k-stack alone** (C) delivers ~41 KB
+on the safest lever. `VM_STACK_INIT_WORDS` and `OEVM_MARK_STACK_SIZE` are now
+forwarded by the `zephyr/CMakeLists.txt` env→`-D` passthrough alongside the
+arena/cache/float knobs. Validated on perfstex; a channel/allocation-heavy node
+should re-check the 256-cache / 48 K-arena choices against its own workload.
