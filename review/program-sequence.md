@@ -81,9 +81,24 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
    pulse primitive** (demo-node finding — the Zephyr seam's shape). On-device memory work rides
    the G3 decision (`2026-07-04-G3-gc-strategy-decision.md`: non-moving mark-sweep + M1–M6
    mitigations); soft watchdog via the debugger safe-point hook (kept in A for this reason).
-3. **Wire seam: CBOR + Int64.** Owners: `review/lib/cbor.md` (CBOR over custom wire format,
-   tags 27/39) and `review/lib/integers.md` (L7: boxed Int64 on 32-bit — decided, built with B).
-   G4 says the `.oimg` line-table provision must not be foreclosed meanwhile (it wasn't — v8 audit).
+3. **Wire seam: CBOR + Int64. DONE 2026-07-10.** Owners: `review/lib/cbor.md` (CBOR over custom
+   wire format, tags 27/39) and `review/lib/integers.md` (L7: boxed Int64 on 32-bit — decided,
+   built with B). G4 says the `.oimg` line-table provision must not be foreclosed meanwhile (it
+   wasn't — v8 audit).
+
+   Rung-close: landed as an nsl `Cbor` class (encode/decode tree-walk) in kernel.ns, backed by
+   7 C leaf prims (ids 97-103, append-only after `pumpEvents`=96) that do the byte-level,
+   non-recursive work — architecture (B), per the frozen wire-seam spec. Encoding is
+   deterministic per RFC 8949 §4.2: shortest-form ints/floats, definite lengths only, map keys
+   sorted bytewise over the encoded key bytes; decode is total and closed via Milestone-E
+   `on:do:`/`ifInvalid:` — every byte sequence yields exactly one message or exactly one of
+   `not a value` / `message depth exceeded` / `invalid utf-8` / `integer out of range`. The
+   integer contract is the ratified L7 range **±(2^64−1)** (both SMI and LargeInteger, shortest
+   form); only `−2^64` and the CBOR bignum tags (2/3) overflow it, both routing to
+   `integer out of range`. Both-path (Path A solidified / Path B `.oimg`) verified A==B; tests
+   in `nsl-tests/14_cbor/` (01_roundtrip, 02_golden_hex, 03_map_order, 04_reject, 05_int_band,
+   06_float_roundtrip). Co-landed a `.oimg` large-SMI capacity fix (Task 1) needed to represent
+   the widened integer range.
 
 ## Phase 3 — rejoin the node ladder (keeper, fleet, capabilities)
 

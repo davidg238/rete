@@ -56,7 +56,11 @@ Tests assert on these exact strings (they are API), so choose once, here:
 | mutating an algebra value | `immutable` |
 | channel path outside capability root | `outside capability root` |
 | malformed channel path at grant | `bad channel path` |
-| integer overflow past 2^63−1 | `integer overflow` |
+| integer arithmetic exceeds ratified L7 range ±(2^64−1) | `integer overflow` |
+| CBOR decode: `−2^64` or bignum tag (2/3) — outside the ±(2^64−1) range | `integer out of range` |
+| CBOR decode: indefinite length, unknown tag (≠27/39), undefined (`0xf7`), duplicate map key, NaN float, truncated/malformed input | `not a value` |
+| CBOR decode: message tree deeper than bound (32) | `message depth exceeded` |
+| CBOR decode: malformed UTF-8 in a text item | `invalid utf-8` |
 
 ## Exceptions — the boundary above the convention (landed Milestone E, 2026-07-07)
 
