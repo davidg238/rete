@@ -25,6 +25,7 @@ extern void heap_init(void);
 extern int  platform_dispatch(int pid, int argc, oop *args, oop *out);
 extern oop  largeint_alloc(int sign, uint64_t mag);
 extern oop  RawBytesVtable;
+extern oop  gc_allocate(oop vtable, size_t size);
 
 /* golden pairs from python: cbor2.dumps(v).hex() */
 static void test_cbor_encode_int(void) {
@@ -55,6 +56,8 @@ static void test_cbor_encode_int(void) {
 static void test_cbor_encode_float(void) {
     struct { const char *hex; double v; } cases[] = {
         {"f90000", 0.0}, {"f93c00", 1.0}, {"f93e00", 1.5},   /* f16-exact */
+        {"f98000", -0.0},                                    /* f16 negative zero */
+        {"f90001", ldexp(1.0,-24)},                          /* f16 smallest subnormal 2^-24 */
         {"fa47c35000", 100000.0},                            /* f32-exact, not f16 */
         {"fb3ff199999999999a", 1.1},                         /* f64-only */
         {"f97c00", INFINITY}, {"f9fc00", -INFINITY},
@@ -70,11 +73,101 @@ static void test_cbor_encode_float(void) {
     printf("test_cbor_encode_float OK\n");
 }
 
+/* Rung 3 Task 4: the four CBOR decode leaves (prims 99-102). Reads result-array
+   slots directly (slots[i]) rather than via instance_slot() — the leaves build a
+   fresh heap indexable (never in-blob), so the two are equivalent here. */
+static oop mkbytes(const uint8_t *p, size_t n) {
+    oop b = gc_allocate(RawBytesVtable, sizeof(struct String) + n);
+    ((struct String*)b)->length = n;
+    if (n) memcpy(((struct String*)b)->bytes, p, n);
+    return b;
+}
+static long smi(oop x){ return (long)UNTAG_SMI(x); }
+static oop slot(oop o, size_t i){ return ((struct ObjectInstance*)o)->slots[i]; }
+
+static void test_cbor_decode_leaves(void) {
+    /* head: 0x1a 00 01 00 00  => major 0, arg 65536, next 5 */
+    uint8_t h[]={0x1a,0,1,0,0}; oop hb=mkbytes(h,5);
+    oop a[2]={hb,TAG_SMI(0)}, out=NULL;
+    assert(platform_dispatch(PRIM_pf_cborReadHead,2,a,&out) && out!=TAG_SMI(-1));
+    assert(smi(slot(out,1))==0);                           /* major */
+    assert(oevm_int_to_double(slot(out,2))==65536.0);      /* arg */
+    assert(smi(slot(out,3))==5);                           /* next */
+
+    /* head truncated: 0x1a with only 2 more bytes => TAG_SMI(-1) */
+    uint8_t ht[]={0x1a,0,1}; oop htb=mkbytes(ht,3);
+    oop at[2]={htb,TAG_SMI(0)}, outt=NULL;
+    assert(platform_dispatch(PRIM_pf_cborReadHead,2,at,&outt) && outt==TAG_SMI(-1));
+
+    /* head index past end => TAG_SMI(-1) */
+    oop apast[2]={hb,TAG_SMI(5)}, outp=NULL;
+    assert(platform_dispatch(PRIM_pf_cborReadHead,2,apast,&outp) && outp==TAG_SMI(-1));
+
+    /* intFromMajor: major 0, arg 5 => +5 */
+    oop a0[2]={TAG_SMI(0), TAG_SMI(5)}, o0=NULL;
+    assert(platform_dispatch(PRIM_pf_cborIntFromMajor,2,a0,&o0) && o0);
+    assert(oevm_int_to_double(o0)==5.0);
+
+    /* intFromMajor: major 1, arg 0 => -1 */
+    oop a1[2]={TAG_SMI(1), TAG_SMI(0)}, o1=NULL;
+    assert(platform_dispatch(PRIM_pf_cborIntFromMajor,2,a1,&o1) && o1);
+    assert(oevm_int_to_double(o1)==-1.0);
+
+    /* intFromMajor: major 1 arg (2^64-1) => -2^64 => out of range (sentinel) */
+    oop big = largeint_alloc(+1, 18446744073709551615ULL);
+    oop a2[2]={TAG_SMI(1), big}, o2=NULL;
+    int r = platform_dispatch(PRIM_pf_cborIntFromMajor,2,a2,&o2);
+    assert(r && o2==CBOR_OOR_SENTINEL);   /* leaf signals OOR; nsl maps to fail */
+
+    /* readFloat: 0xfa 47 c3 50 00 => 100000.0, next 5 */
+    uint8_t fb[]={0xfa,0x47,0xc3,0x50,0x00}; oop fbb=mkbytes(fb,5);
+    oop af[2]={fbb,TAG_SMI(0)}, of=NULL;
+    assert(platform_dispatch(PRIM_pf_cborReadFloat,2,af,&of) && of!=TAG_SMI(-1));
+    assert(((struct Float*)slot(of,1))->value==100000.0);
+    assert(smi(slot(of,2))==5);
+
+    /* readFloat: f16 0xf9 3c 00 => 1.0, next 3 */
+    uint8_t f16[]={0xf9,0x3c,0x00}; oop f16b=mkbytes(f16,3);
+    oop af16[2]={f16b,TAG_SMI(0)}, of16=NULL;
+    assert(platform_dispatch(PRIM_pf_cborReadFloat,2,af16,&of16) && of16!=TAG_SMI(-1));
+    assert(((struct Float*)slot(of16,1))->value==1.0);
+    assert(smi(slot(of16,2))==3);
+
+    /* readFloat truncated => TAG_SMI(-1) */
+    uint8_t ftr[]={0xfb,0,0}; oop ftrb=mkbytes(ftr,3);
+    oop aftr[2]={ftrb,TAG_SMI(0)}, oftr=NULL;
+    assert(platform_dispatch(PRIM_pf_cborReadFloat,2,aftr,&oftr) && oftr==TAG_SMI(-1));
+
+    /* utf8Valid: good "é" (c3 a9), bad (c3 28) */
+    uint8_t good[]={0xc3,0xa9}; uint8_t bad[]={0xc3,0x28};
+    oop g=mkbytes(good,2),bd=mkbytes(bad,2),og=NULL,ob=NULL;
+    platform_dispatch(PRIM_pf_utf8Valid,1,&g,&og); platform_dispatch(PRIM_pf_utf8Valid,1,&bd,&ob);
+    assert(og==(oop)&true_sym_obj && ob==(oop)&false_sym_obj);
+
+    /* utf8Valid: overlong 2-byte (c0 80) rejected; surrogate (ed a0 80) rejected;
+       > U+10FFFF (f4 90 80 80) rejected; valid 4-byte (f0 9f 98 80 = U+1F600) ok */
+    uint8_t ov[]={0xc0,0x80}; uint8_t su[]={0xed,0xa0,0x80};
+    uint8_t hi[]={0xf4,0x90,0x80,0x80}; uint8_t em[]={0xf0,0x9f,0x98,0x80};
+    oop ovb=mkbytes(ov,2),sub=mkbytes(su,3),hib=mkbytes(hi,4),emb=mkbytes(em,4);
+    oop oov=NULL,osu=NULL,ohi=NULL,oem=NULL;
+    platform_dispatch(PRIM_pf_utf8Valid,1,&ovb,&oov);
+    platform_dispatch(PRIM_pf_utf8Valid,1,&sub,&osu);
+    platform_dispatch(PRIM_pf_utf8Valid,1,&hib,&ohi);
+    platform_dispatch(PRIM_pf_utf8Valid,1,&emb,&oem);
+    assert(oov==(oop)&false_sym_obj);
+    assert(osu==(oop)&false_sym_obj);
+    assert(ohi==(oop)&false_sym_obj);
+    assert(oem==(oop)&true_sym_obj);
+
+    printf("test_cbor_decode_leaves OK\n");
+}
+
 int main(void) {
     heap_init();
     kernel_boot();
     test_cbor_encode_int();
     test_cbor_encode_float();
+    test_cbor_decode_leaves();
     printf("test_cbor: OK\n");
     return 0;
 }

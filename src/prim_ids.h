@@ -109,4 +109,21 @@
    (used by the Task 5 encode walk). Encodes a Float as CBOR major 7, the
    shortest of f16/f32/f64 that round-trips the double exactly. */
 #define PRIM_pf_cborEncodeFloat 98
+/* Rung 3 Task 4: the four CBOR DECODE leaves, appended after cborEncodeFloat: —
+   no pre-existing id shifts. 99-102 were arrived at by COUNTING PRIM_NAMES (98
+   entries before this append), not by 98+1 arithmetic, per the standing lesson
+   above. All four are serviced in platform.c's platform_dispatch switch (used
+   by the Task 6 decode walk). */
+#define PRIM_pf_cborReadHead     99
+#define PRIM_pf_cborIntFromMajor 100
+#define PRIM_pf_cborReadFloat    101
+#define PRIM_pf_utf8Valid        102
+/* Rung 3 Task 4: the out-of-range sentinel returned by cborIntFromMajor:arg:
+   for the one unrepresentable CBOR integer (major 1, arg 2^64-1 => value -2^64,
+   just past the ratified +/-(2^64-1) range). In this VM nil IS the C NULL
+   pointer, and the primitive-success path returns *out verbatim, so a leaf that
+   sets `*out = CBOR_OOR_SENTINEL; return 1;` yields nil to the caller. A validly
+   decoded integer is never NULL, so nil is an unambiguous OOR signal. The Task 6
+   nsl decode walk checks `r == nil` (i.e. r == CBOR_OOR_SENTINEL) and fails. */
+#define CBOR_OOR_SENTINEL NULL
 #endif /* OEVM_PRIM_IDS_H */

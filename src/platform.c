@@ -598,6 +598,92 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         ((struct String*)b)->length=n; memcpy(((struct String*)b)->bytes,buf,n);
         *out=b; return 1;
     }
+    case PRIM_pf_cborReadHead: {
+        /* Rung 3 Task 4: parse the head of a CBOR item at args[1] in the byte
+           buffer args[0]. args: (aBytes, indexSMI). Returns Array{major,arg,next}
+           (a fresh 3-elt indexable) or TAG_SMI(-1) if the head or its argument
+           runs past the buffer, or the additional-info is 28-31 (reserved /
+           indefinite -> rejected). GC-safety: len + all consumed bytes are read
+           into locals (arg/major/j) BEFORE any allocating call, so the raw
+           `struct String*` is never dereferenced across indexable_new/
+           largeint_alloc. */
+        struct String *b = (struct String*)args[0];
+        size_t len = b->length;
+        size_t i = (size_t)UNTAG_SMI(args[1]);
+        if (i >= len) { *out = TAG_SMI(-1); return 1; }
+        unsigned ib = b->bytes[i]; unsigned major = ib >> 5, ai = ib & 0x1f;
+        size_t j = i + 1; uint64_t arg;
+        if (ai < 24) arg = ai;
+        else if (ai == 24) { if (j+1 > len) { *out=TAG_SMI(-1); return 1; } arg = b->bytes[j]; j += 1; }
+        else if (ai == 25) { if (j+2 > len) { *out=TAG_SMI(-1); return 1; } arg = ((uint64_t)b->bytes[j]<<8)|b->bytes[j+1]; j += 2; }
+        else if (ai == 26) { if (j+4 > len) { *out=TAG_SMI(-1); return 1; } arg = 0; for (int k=0;k<4;k++) arg = (arg<<8)|b->bytes[j+k]; j += 4; }
+        else if (ai == 27) { if (j+8 > len) { *out=TAG_SMI(-1); return 1; } arg = 0; for (int k=0;k<8;k++) arg = (arg<<8)|b->bytes[j+k]; j += 8; }
+        else { *out = TAG_SMI(-1); return 1; }   /* ai 28-31: reserved/indefinite */
+        /* From here on b may be stale (allocations below can move the heap). */
+        oop argv = (arg <= (uint64_t)(INTPTR_MAX>>1)) ? TAG_SMI((intptr_t)arg)
+                                                      : oevm_int_demote(largeint_alloc(+1, arg));
+        oop r = indexable_new(3);
+        ((struct ObjectInstance*)r)->slots[1] = TAG_SMI((intptr_t)major);
+        ((struct ObjectInstance*)r)->slots[2] = argv;
+        ((struct ObjectInstance*)r)->slots[3] = TAG_SMI((intptr_t)j);
+        *out = r; return 1;
+    }
+    case PRIM_pf_cborIntFromMajor: {
+        /* Rung 3 Task 4: rebuild a CBOR integer from its major (0 or 1) and its
+           already-decoded unsigned argument. args: (majorSMI, argInteger).
+           Returns the Integer, or CBOR_OOR_SENTINEL for the single out-of-range
+           value -2^64 (major 1, arg 2^64-1). readHead built argInteger with a
+           +sign, so a LargeInteger arg's magnitude is the raw unsigned value.
+           GC-safety: the incoming magnitude is copied into a local uint64 before
+           the single allocating call. */
+        intptr_t major = UNTAG_SMI(args[0]); oop av = args[1];
+        uint64_t arg = IS_SMI(av) ? (uint64_t)UNTAG_SMI(av)
+                                  : ((struct LargeInteger*)av)->mag;
+        if (major == 0) { *out = (arg ? oevm_int_demote(largeint_alloc(+1, arg)) : TAG_SMI(0)); return 1; }
+        /* major 1: value = -1-arg; arg==2^64-1 => -2^64, just out of range */
+        if (arg == 18446744073709551615ULL) { *out = CBOR_OOR_SENTINEL; return 1; }
+        *out = oevm_int_demote(largeint_alloc(-1, arg + 1ULL)); return 1;
+    }
+    case PRIM_pf_cborReadFloat: {
+        /* Rung 3 Task 4: read an f16/f32/f64 at a 0xf9/0xfa/0xfb head byte.
+           args: (aBytes, indexSMI). Returns Array{Float,next} or TAG_SMI(-1) if
+           the value runs past the buffer / the head byte is not a float head.
+           Reuses the file-local half_to_double (Task 3). GC-safety: the decoded
+           double d + next-index j are in locals before float_alloc/indexable_new;
+           b is not dereferenced after those allocating calls. */
+        struct String *b = (struct String*)args[0];
+        size_t len = b->length, i = (size_t)UNTAG_SMI(args[1]);
+        if (i >= len) { *out = TAG_SMI(-1); return 1; }
+        unsigned t = b->bytes[i]; size_t j = i + 1; double d;
+        if (t == 0xf9) { if (j+2 > len) { *out=TAG_SMI(-1); return 1; } uint16_t h=(uint16_t)((b->bytes[j]<<8)|b->bytes[j+1]); d=half_to_double(h); j += 2; }
+        else if (t == 0xfa) { if (j+4 > len) { *out=TAG_SMI(-1); return 1; } uint32_t u=0; for (int k=0;k<4;k++) u=(u<<8)|b->bytes[j+k]; float f; memcpy(&f,&u,4); d=f; j += 4; }
+        else if (t == 0xfb) { if (j+8 > len) { *out=TAG_SMI(-1); return 1; } uint64_t u=0; for (int k=0;k<8;k++) u=(u<<8)|b->bytes[j+k]; memcpy(&d,&u,8); j += 8; }
+        else { *out = TAG_SMI(-1); return 1; }
+        /* b may be stale past this point. */
+        oop f = float_alloc(FloatVtable); ((struct Float*)f)->value = d;
+        oop r = indexable_new(2);
+        ((struct ObjectInstance*)r)->slots[1] = f;
+        ((struct ObjectInstance*)r)->slots[2] = TAG_SMI((intptr_t)j);
+        *out = r; return 1;
+    }
+    case PRIM_pf_utf8Valid: {
+        /* Rung 3 Task 4: full UTF-8 well-formedness check on args[0]. Rejects
+           overlong encodings, UTF-16 surrogates (U+D800..U+DFFF), code points
+           > U+10FFFF, and truncated multi-byte sequences. Returns the #true /
+           #false symbol. No allocation, so no GC-safety concern (b/p are used
+           only within this case). */
+        struct String *b = (struct String*)args[0];
+        const uint8_t *p = b->bytes; size_t n = b->length, i = 0;
+        while (i < n) { unsigned c = p[i];
+            if (c < 0x80) i++;
+            else if ((c>>5) == 0x6) { if (i+1>=n || (p[i+1]&0xc0)!=0x80 || c<0xc2) { *out=false_symbol; return 1; } i += 2; }
+            else if ((c>>4) == 0xe) { if (i+2>=n || (p[i+1]&0xc0)!=0x80 || (p[i+2]&0xc0)!=0x80) { *out=false_symbol; return 1; }
+                if (c==0xe0 && p[i+1]<0xa0) { *out=false_symbol; return 1; } if (c==0xed && p[i+1]>0x9f) { *out=false_symbol; return 1; } i += 3; }
+            else if ((c>>3) == 0x1e) { if (i+3>=n || (p[i+1]&0xc0)!=0x80 || (p[i+2]&0xc0)!=0x80 || (p[i+3]&0xc0)!=0x80) { *out=false_symbol; return 1; }
+                if (c==0xf0 && p[i+1]<0x90) { *out=false_symbol; return 1; } if (c>0xf4 || (c==0xf4 && p[i+1]>0x8f)) { *out=false_symbol; return 1; } i += 4; }
+            else { *out=false_symbol; return 1; } }
+        *out = true_symbol; return 1;
+    }
     case PRIM_pf_pumpEvents:
         *out = TAG_SMI(pulse_pump());
         return 1;

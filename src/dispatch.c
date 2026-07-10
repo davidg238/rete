@@ -688,6 +688,15 @@ enum {
        the 98th PRIM_NAMES entry. Platform-dispatched (mirrored in prim_ids.h
        as 98). */
     PRIM_pf_cborEncodeFloat,
+    /* Rung 3 Task 4: the four CBOR DECODE leaves — cborReadHead:at: (99),
+       cborIntFromMajor:arg: (100), cborReadFloat:at: (101), utf8Valid: (102).
+       Appended last, in this order — no pre-existing id shifts. Counted (not
+       computed) to be the 99th-102nd PRIM_NAMES entries. Platform-dispatched
+       (mirrored in prim_ids.h as 99-102). Used by the Task 6 decode walk. */
+    PRIM_pf_cborReadHead,
+    PRIM_pf_cborIntFromMajor,
+    PRIM_pf_cborReadFloat,
+    PRIM_pf_utf8Valid,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -727,6 +736,10 @@ static const char *const PRIM_NAMES[] = {
     "pumpEvents",
     "cborEncodeInt:",
     "cborEncodeFloat:",
+    "cborReadHead:at:",
+    "cborIntFromMajor:arg:",
+    "cborReadFloat:at:",
+    "utf8Valid:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
