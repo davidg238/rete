@@ -350,3 +350,9 @@ on the safest lever. `VM_STACK_INIT_WORDS` and `OEVM_MARK_STACK_SIZE` are now
 forwarded by the `zephyr/CMakeLists.txt` env→`-D` passthrough alongside the
 arena/cache/float knobs. Validated on perfstex; a channel/allocation-heavy node
 should re-check the 256-cache / 48 K-arena choices against its own workload.
+
+> **On-target static footprint + live heap telemetry (rung-4):** see
+> `tuvm/zephyr/FOOTPRINT_DK.md` — real config-D `ram_report`/`rom_report`
+> (ROM 27.64 % / RAM 45.05 %, corroborating the 45.1 % config-D line above) plus a
+> live `heapStats` soak captured off the DK: `live 40092 / hw 49152 / free 9048 /
+> gc 5 / size 49152` (the new prim 104 `heapStats` under a 3000-iteration allocation soak).
