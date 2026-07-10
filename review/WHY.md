@@ -112,6 +112,35 @@ this is the right trade for *this* hardware class:
 The ergonomic gap is closed in the library and compiler (a state-machine idiom now, CPS
 sugar if ever justified) — never by putting suspension back in the VM.
 
+## The RAM payoff — XIP + run-to-completion, measured
+
+No-fibers and execute-in-place imaging are what make the footprint small, and on real
+silicon the free space is large:
+
+- **The image executes from flash (XIP).** Classes, methods, bytecode, and literals live
+  in the `.oimg`/solidified blob and run in place (`is_in_blob` → const, never marked,
+  never copied); RAM holds only the *mutable* object graph plus VM working state. A
+  deliberate flash-for-RAM trade — cheap on a 1 MB/256 KB part (ROM ~26 %) — and the
+  reason a bytecode VM can leave most of RAM free.
+- **Run-to-completion means one language stack, reused.** With no fibers there is exactly
+  one heap-side `Stack` (`g_active_stack`): each handler runs to completion, unwinds
+  fully, and the next event reuses it. The stack is therefore a *single* fixed allocation
+  sized for the deepest single handler — the largest single arena object (16 KB at 4096
+  words on the DK) but paid **once**. A fiber model would multiply it by the live task
+  count; that is the RAM line "no fibers" deletes, not merely a stack that happens to be
+  big.
+- **A fixed, non-growable stack is safe because of let-it-crash.** Overflow is a clean
+  abort that unwinds to the reactor's crash boundary; the supervisor quarantines that
+  handler and the node runs on — a contained fault, not a smashed C stack. So the stack
+  can be sized tight without risking the node.
+
+Measured on the nRF52840-DK (2026-07-09, `nsl-tests/00_perf/RESULTS.md`): the recommended
+config runs full perfstex at **45 % RAM (55 % free)**, an aggressive profile at **37 %
+(63 % free)** — for a scripting VM with drivers and OpenThread linked. The free region is
+genuine headroom (larger object graphs, more channels, wire/DMA buffers), tunable via
+`OEVM_HEAP_SIZE`; today the fixed object arena and the newlib float heap split it, so an
+object-heavy node should spend some of the free RAM on a bigger arena.
+
 ## Where this sits
 
 | | Toit | MicroPython/Zephyr | AtomVM | **nsl-tuvm** |
