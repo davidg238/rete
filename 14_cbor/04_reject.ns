@@ -1,0 +1,42 @@
+(*
+expect:
+not a value
+not a value
+message depth exceeded
+not a value
+not a value
+integer out of range
+invalid utf-8
+integer out of range
+*)
+(* Rung 3 Task 6: Cbor decode rejection corpus. decode:ifInvalid: is TOTAL — each
+   malformed input routes exactly one error text to the block, which we return
+   (`[ :e | e ]`) and println. The expected texts are OUR closed-algebra contract
+   (errors.md vocabulary), NOT cbor2's — cbor2 would accept several of these.
+   Cases (hex -> expected):
+     9fff               indefinite-length array (major 4, ai 31)   -> not a value
+     d84000             unknown tag 64 wrapping int 0              -> not a value
+     81*33              33-deep nested arrays (exceeds bound 32)   -> message depth exceeded
+     a200010002         map {0:1, 0:2} — duplicate key 0          -> not a value
+     1a0001             major-0 head claims 4 length bytes, has 2 -> not a value  (truncated)
+     3bffffffffffffffff major 1 arg 2^64-1 => value -2^64         -> integer out of range
+     62c328             text(2) bytes c3 28 — invalid UTF-8       -> invalid utf-8
+     c240               CBOR bignum tag 2                         -> integer out of range
+   Fixtures built via `platform ByteArray fromHex:` (the reachable byte-builder;
+   `Bytes` itself is deliberately unexposed) which freezes to an immutable Bytes.
+   Both-path A==B gate. *)
+class CborRejectTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | C BA |
+  C:: platform Cbor. BA:: platform ByteArray.
+  (C decode: (BA fromHex: '9fff')               ifInvalid: [ :e | e ]) println.
+  (C decode: (BA fromHex: 'd84000')             ifInvalid: [ :e | e ]) println.
+  (C decode: (BA fromHex: '818181818181818181818181818181818181818181818181818181818181818181') ifInvalid: [ :e | e ]) println.
+  (C decode: (BA fromHex: 'a200010002')         ifInvalid: [ :e | e ]) println.
+  (C decode: (BA fromHex: '1a0001')             ifInvalid: [ :e | e ]) println.
+  (C decode: (BA fromHex: '3bffffffffffffffff') ifInvalid: [ :e | e ]) println.
+  (C decode: (BA fromHex: '62c328')             ifInvalid: [ :e | e ]) println.
+  (C decode: (BA fromHex: 'c240')               ifInvalid: [ :e | e ]) println.
+)
+) : (
+)

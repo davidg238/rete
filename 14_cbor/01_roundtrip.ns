@@ -1,0 +1,26 @@
+(*
+expect:
+true
+*)
+(* Rung 3 Task 6: Cbor decode round-trip. Build a Record whose fields Map carries
+   a >host-SMI integer (4294967296 = 2^32, exercises the LargeInteger path), a
+   String, a Bool, and a nested List, encode it to CBOR bytes, then decode back
+   and assert structural `=` to the original. Proves the decode walk inverts the
+   Task-5 encode walk across the algebra (Integer/String/Bool/Symbol/List/Map/
+   Record + CBOR tags 27/39). The ifInvalid: block is on the happy path (never
+   called) but is caret-free anyway. Both-path A==B gate. *)
+class CborRoundtripTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | R M L C orig enc back |
+  R:: platform Record. M:: platform Map. L:: platform List. C:: platform Cbor.
+  orig:: R tag: #reading fields: (M fromPairs: (L
+    with: (L with: #id   with: 4294967296)
+    with: (L with: #name with: 'sensor')
+    with: (L with: #ok   with: true)
+    with: (L with: #xs   with: (L with: 1 with: 2 with: 3)))).
+  enc:: C encode: orig.
+  back:: C decode: enc ifInvalid: [ :e | e ].
+  (orig = back) printString println.
+)
+) : (
+)
