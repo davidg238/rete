@@ -436,6 +436,29 @@ class Kernel usingPlatform: platform = () (
   ) : (
     public new: n = ( ^ self new setRaw: (platform basicNewBytes: n) )
     public fromList: aList = ( | r | r:: self new: aList size. 1 to: aList size do: [ :i | r u8At: i put: (aList at: i) ]. ^ r )
+    (* Inverse of Bytes>>printHex (Rung 3 Task 5, hardened Task 6): parse an
+       even-length lower/upper-case hex String to an IMMUTABLE Bytes via this
+       mutable workbench + `freeze` copy. Lives here (not on the unexposed Bytes
+       class) because `platform ByteArray` is the reachable byte-builder accessor
+       — the Task-6 decode reject fixtures are its first consumers. HARDENED:
+       rejects odd-length input and any non-hex character (a silent nibble-drop
+       would corrupt a reject fixture). *)
+    public fromHex: aString = ( | len n ba |
+      len:: aString size.
+      ((len // 2) * 2) = len ifFalse: [ ^ self error: 'odd-length hex' ].
+      n:: len // 2.
+      ba:: self new: n.
+      1 to: n do: [ :i |
+        ba u8At: i put: ((self hexDigit: (aString at: (i * 2) - 1)) * 16
+                        + (self hexDigit: (aString at: i * 2))) ].
+      ^ ba freeze )
+    (* Single-hex-digit decode: '0'..'9' = 48..57, 'A'..'F' = 65..70,
+       'a'..'f' = 97..102 — anything else crashes rather than mis-decoding. *)
+    hexDigit: ch = (
+      (ch >= 48 and: [ ch <= 57 ])  ifTrue: [ ^ ch - 48 ].
+      (ch >= 65 and: [ ch <= 70 ])  ifTrue: [ ^ ch - 55 ].
+      (ch >= 97 and: [ ch <= 102 ]) ifTrue: [ ^ ch - 87 ].
+      ^ self error: 'invalid hex digit' )
   )
 
   (* Immutable algebra value, rank 5 (Milestone B Task 10). Read protocol
@@ -473,20 +496,6 @@ class Kernel usingPlatform: platform = () (
     setRaw: r = ( raw:: r. ^ self )
   ) : (
     public overRaw: r = ( ^ self new setRaw: r )
-    (* Inverse of printHex (Rung 3 Task 5, used by Task 6 decode tests): parse an
-       even-length lower/upper-case hex String to an immutable Bytes via the
-       ByteArray workbench + freeze copy. Digit decode is inlined (no `outer`):
-       '0'..'9' = 48..57, 'A'..'F' = 65..70, 'a'..'f' = 97..102. *)
-    public fromHex: aString = ( | n ba hi lo ch |
-      n:: aString size // 2.
-      ba:: ByteArray new: n.
-      1 to: n do: [ :i |
-        ch:: aString at: (i * 2) - 1.
-        hi:: ch < 58 ifTrue: [ ch - 48 ] ifFalse: [ ch < 71 ifTrue: [ ch - 55 ] ifFalse: [ ch - 87 ] ].
-        ch:: aString at: i * 2.
-        lo:: ch < 58 ifTrue: [ ch - 48 ] ifFalse: [ ch < 71 ifTrue: [ ch - 55 ] ifFalse: [ ch - 87 ] ].
-        ba u8At: i put: (hi * 16 + lo) ].
-      ^ ba freeze )
   )
 
   (* Rung 3 Task 5: the CBOR value codec — encode half. A module sibling of
@@ -648,6 +657,197 @@ class Kernel usingPlatform: platform = () (
         ab < bb ifTrue: [ ^ -1 ].
         bb < ab ifTrue: [ ^ 1 ] ].
       n < m ifTrue: [ ^ -1 ]. n > m ifTrue: [ ^ 1 ]. ^ 0 )
+
+    (* ==== Rung 3 Task 6: the CBOR value codec — DECODE half ====
+       `decode: aBytes ifInvalid: aBlock` is TOTAL: any byte sequence yields
+       either one valid algebra message OR exactly one error routed to aBlock
+       with its text (errors.md vocabulary), never a partial parse / pass-through.
+       The recursive descent (`parse:at:depth:`) lives here in nsl and drops to
+       the C decode leaves (cborReadHead:/cborIntFromMajor:/cborReadFloat:/
+       utf8Valid:, and asSymbol: for tag 39) for the byte work that must be
+       byte-identical across host and target. Totality is via the Milestone-E
+       exception mechanism: any violation raises `self error: msg tag: #cborInvalid`
+       (helper `failDecode:`) and the outer `[...] on: [pred] do: [handler]` routes
+       the caught text to aBlock. NO `^` (non-local return) appears inside the
+       protected / predicate / handler blocks (rejected by this VM — see
+       12_caret_in_handler_rejected); the handler evaluates `aBlock value: text`
+       and returns normally, and the outer `^` is on the whole on:do: expression.
+
+       INDEX BASE: the C decode leaves are 0-BASED (cborReadHead:at:0 reads the
+       first byte and returns the next index 0-based), so this walk threads a
+       0-based index `i` and the raw byte at 0-based i is `b at: i + 1` (nsl
+       String at: is 1-based). The input `aBytes` (a Bytes/String algebra value)
+       is copied ONCE into a raw String `b` (`platform string:`) so the leaves
+       see the {length,bytes[]} layout they require (a Bytes kernel object wraps
+       its raw store in an ivar and is NOT layout-compatible with struct String).
+       After a full parse the walk asserts ALL bytes were consumed (nextIndex =
+       byteSize), else `not a value`. Depth is threaded and bounded at 32 (the
+       walk trips FIRST — strictly before any container constructor's own
+       checkDepth: — so a constructor never raises the UNTAGGED depth error that
+       on:do: would not catch; decoded elements are all valid algebra values so
+       checkValue: likewise never fires untagged). *)
+    public decode: aBytes ifInvalid: aBlock = ( | b n |
+      n:: aBytes byteSize.
+      b:: self rawBytesOf: aBytes size: n.
+      ^ [ | r |
+          r:: self parse: b at: 0 depth: 1.
+          (r at: 2) = n ifFalse: [ self failDecode: 'not a value' ].
+          r at: 1 ]
+        on: [ :e | e tag = #cborInvalid ]
+        do: [ :e | aBlock value: (e at: #text ifAbsent: [ 'not a value' ]) ] )
+
+    (* Copy the input's bytes into a fresh raw String so the C leaves see a
+       {length, inline bytes} layout (a Bytes wrapper is not layout-compatible). *)
+    rawBytesOf: aBytes size: n = ( | arr |
+      arr:: platform basicNew: Array indexable: n.
+      1 to: n do: [ :i | arr at: i put: (aBytes u8At: i) ].
+      ^ platform string: arr )
+
+    failDecode: s = ( ^ self error: s tag: #cborInvalid )
+
+    (* Every parse result is this UNIFORM Array-classed 2-elt {value, nextIdx}
+       (built via basicNew:indexable:, so it answers `at:`) — NOT `Array with:`
+       (no such selector here) and NOT a raw C-leaf indexable (those answer only
+       `basicAt:`). The C-leaf head/float arrays ARE read with `basicAt:` (they
+       carry a class-less vtable, like spaceDequeue's events). Sentinel tests use
+       identity `==` against -1: the success value is a class-less indexable that
+       does not understand `=`. *)
+    result: v next: idx = ( | a |
+      a:: platform basicNew: Array indexable: 2.
+      a at: 1 put: v. a at: 2 put: idx. ^ a )
+
+    (* Parse ONE value at 0-based index i; answers {value, nextIdx} (nextIdx
+       0-based) or raises #cborInvalid. The simple values (nil/bool/float/undefined
+       = major 7 bytes) are peeked directly since cborReadHead: only serves majors
+       0..6; everything else goes through the head leaf. *)
+    parse: b at: i depth: d = ( | first h major arg nxt |
+      d > 32 ifTrue: [ ^ self failDecode: 'message depth exceeded' ].
+      i >= (b size) ifTrue: [ ^ self failDecode: 'not a value' ].     (* truncated *)
+      first:: b at: i + 1.
+      first = 246 ifTrue: [ ^ self result: nil   next: i + 1 ].       (* 0xf6 nil *)
+      first = 245 ifTrue: [ ^ self result: true  next: i + 1 ].       (* 0xf5 true *)
+      first = 244 ifTrue: [ ^ self result: false next: i + 1 ].       (* 0xf4 false *)
+      first = 247 ifTrue: [ ^ self failDecode: 'not a value' ].       (* 0xf7 undefined *)
+      (first = 249 or: [ first = 250 or: [ first = 251 ] ]) ifTrue: [ (* f16/f32/f64 *)
+        ^ self floatFrom: b at: i ].
+      h:: platform cborReadHead: b at: i.
+      h == -1 ifTrue: [ ^ self failDecode: 'not a value' ].           (* truncated / indefinite / reserved *)
+      major:: h basicAt: 1. arg:: h basicAt: 2. nxt:: h basicAt: 3.
+      major = 0 ifTrue: [ ^ self result: (self intFrom: 0 arg: arg) next: nxt ].
+      major = 1 ifTrue: [ ^ self result: (self intFrom: 1 arg: arg) next: nxt ].
+      major = 2 ifTrue: [ ^ self bytesFrom: b at: nxt len: arg ].
+      major = 3 ifTrue: [ ^ self stringFrom: b at: nxt len: arg ].
+      major = 4 ifTrue: [ ^ self listFrom: b at: nxt count: arg depth: d ].
+      major = 5 ifTrue: [ ^ self mapFrom: b at: nxt count: arg depth: d ].
+      major = 6 ifTrue: [ ^ self tagFrom: b at: nxt tag: arg depth: d ].
+      ^ self failDecode: 'not a value' )                              (* major 7 non-simple *)
+
+    intFrom: m arg: arg = ( | r |
+      r:: platform cborIntFromMajor: m arg: arg.
+      r == nil ifTrue: [ ^ self failDecode: 'integer out of range' ].  (* -2^64 *)
+      ^ r )
+
+    floatFrom: b at: i = ( | fr |
+      fr:: platform cborReadFloat: b at: i.
+      fr == -1 ifTrue: [ ^ self failDecode: 'not a value' ].
+      ^ self result: (fr basicAt: 1) next: (fr basicAt: 2) )
+
+    (* major 2: definite-length byte string -> algebra Bytes (ByteArray>>freeze).
+       A length running past the buffer (incl. an 8-byte LargeInteger length) is
+       caught by the bounds test BEFORE any allocation. *)
+    bytesFrom: b at: i len: n = ( | ba end |
+      end:: i + n.
+      end > (b size) ifTrue: [ ^ self failDecode: 'not a value' ].
+      ba:: ByteArray new: n.
+      1 to: n do: [ :k | ba u8At: k put: (b at: i + k) ].
+      ^ self result: ba freeze next: end )
+
+    (* major 3: definite-length text -> re-validated UTF-8 String. *)
+    stringFrom: b at: i len: n = ( | arr end s |
+      end:: i + n.
+      end > (b size) ifTrue: [ ^ self failDecode: 'not a value' ].
+      arr:: platform basicNew: Array indexable: n.
+      1 to: n do: [ :k | arr at: k put: (b at: i + k) ].
+      s:: platform string: arr.
+      (platform utf8Valid: s) ifFalse: [ ^ self failDecode: 'invalid utf-8' ].
+      ^ self result: s next: end )
+
+    (* major 4: definite-length array -> List. A hostile over-large count cannot
+       loop unbounded: each element parse advances into the finite buffer and the
+       first read past the end fails 'not a value'. *)
+    listFrom: b at: i count: n depth: d = ( | items idx pr |
+      items:: OrderedCollection new.
+      idx:: i.
+      1 to: n do: [ :k |
+        pr:: self parse: b at: idx depth: d + 1.
+        items add: (pr at: 1).
+        idx:: pr at: 2 ].
+      ^ self result: (List fromCollection: items) next: idx )
+
+    (* major 5: definite-length map -> Map. Duplicate keys are stricter than the
+       Map constructor's last-wins: each freshly-decoded key is checked (algebra
+       `=`) against those already collected and rejected 'not a value' BEFORE
+       construction (design §5). *)
+    mapFrom: b at: i count: n depth: d = ( | keys vals idx kp vp k v pairs |
+      keys:: OrderedCollection new.
+      vals:: OrderedCollection new.
+      idx:: i.
+      1 to: n do: [ :c |
+        kp:: self parse: b at: idx depth: d + 1.
+        k:: kp at: 1. idx:: kp at: 2.
+        self checkNoDupKey: k in: keys.
+        vp:: self parse: b at: idx depth: d + 1.
+        v:: vp at: 1. idx:: vp at: 2.
+        keys add: k. vals add: v ].
+      pairs:: OrderedCollection new.
+      1 to: keys size do: [ :c | pairs add: (List with: (keys at: c) with: (vals at: c)) ].
+      ^ self result: (Map fromPairs: pairs) next: idx )
+
+    (* No `^` inside a non-inlined (`do:`) block — use a found flag over an
+       inlined `to:do:`, mirroring `anySatisfy:`. *)
+    checkNoDupKey: k in: keys = ( | dup |
+      dup:: false.
+      1 to: keys size do: [ :c | (dup not and: [ (keys at: c) = k ]) ifTrue: [ dup:: true ] ].
+      dup ifTrue: [ ^ self failDecode: 'not a value' ].
+      ^ self )
+
+    (* major 6: tags. 39 = identifier -> Symbol; 27 = language object -> Record;
+       2/3 = bignum -> the distinct 'integer out of range'; anything else closed
+       out as 'not a value'. `tag` may be a LargeInteger for huge tag numbers —
+       the `=` probes below safely answer false. *)
+    tagFrom: b at: i tag: tag depth: d = (
+      tag = 39 ifTrue: [ ^ self symbolTagFrom: b at: i depth: d ].
+      tag = 27 ifTrue: [ ^ self recordTagFrom: b at: i depth: d ].
+      (tag = 2 or: [ tag = 3 ]) ifTrue: [ ^ self failDecode: 'integer out of range' ].
+      ^ self failDecode: 'not a value' )
+
+    (* tag 39 wraps a major-3 text; the text must be a String (rank 4) -> a
+       genuine Symbol via the C leaf. A symbol is a leaf, so the inner text is
+       parsed at the SAME depth (no increment), matching the encode side (which
+       emits tag 39 + text without recursing through the depth-counted walk). *)
+    symbolTagFrom: b at: i depth: d = ( | inner s |
+      inner:: self parse: b at: i depth: d.
+      s:: inner at: 1.
+      (outer rankOf: s) = 4 ifFalse: [ ^ self failDecode: 'not a value' ].
+      ^ self result: (platform asSymbol: s) next: (inner at: 2) )
+
+    (* tag 27 wraps a 2-element array [tagSymbol, fieldsMap]. Validate the head is
+       exactly array(2), then that element 1 is a Symbol (rank 6) and element 2 a
+       Map (rank 8) BEFORE `Record tag:fields:` (whose own isSymbol/isMap failures
+       raise the UNTAGGED 'not a value' that on:do: would not catch). *)
+    recordTagFrom: b at: i depth: d = ( | ah idx tp fp tg fl |
+      ah:: platform cborReadHead: b at: i.
+      ah == -1 ifTrue: [ ^ self failDecode: 'not a value' ].
+      (ah basicAt: 1) = 4 ifFalse: [ ^ self failDecode: 'not a value' ].
+      (ah basicAt: 2) = 2 ifFalse: [ ^ self failDecode: 'not a value' ].
+      idx:: ah basicAt: 3.
+      tp:: self parse: b at: idx depth: d + 1.
+      tg:: tp at: 1. idx:: tp at: 2.
+      (outer rankOf: tg) = 6 ifFalse: [ ^ self failDecode: 'not a value' ].
+      fp:: self parse: b at: idx depth: d + 1.
+      fl:: fp at: 1. idx:: fp at: 2.
+      (outer rankOf: fl) = 8 ifFalse: [ ^ self failDecode: 'not a value' ].
+      ^ self result: (Record tag: tg fields: fl) next: idx )
   ) : (
   )
 
