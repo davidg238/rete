@@ -61,3 +61,16 @@ endif()
 if(DEFINED ENV{OEVM_FLOAT_ARENA_SLAB_BUDGET})
   target_compile_definitions(app PRIVATE OEVM_FLOAT_ARENA_SLAB_BUDGET=$ENV{OEVM_FLOAT_ARENA_SLAB_BUDGET})
 endif()
+
+# The VM execution stack (vm.c) is a fixed heap Stack object of VM_STACK_INIT_WORDS
+# oops, allocated at boot INSIDE the OEVM_HEAP_SIZE arena — the single largest boot
+# allocation (default 16384 words = 64 KB on the 32-bit DK). Shrinking it lowers the
+# arena floor, so OEVM_HEAP_SIZE can drop too. OEVM_MARK_STACK_SIZE (gc.c) is the GC
+# mark worklist. Both are embedded RAM knobs; passed via env for the same NCS-sysbuild
+# reason as the arena/cache defines above.
+if(DEFINED ENV{VM_STACK_INIT_WORDS})
+  target_compile_definitions(app PRIVATE VM_STACK_INIT_WORDS=$ENV{VM_STACK_INIT_WORDS})
+endif()
+if(DEFINED ENV{OEVM_MARK_STACK_SIZE})
+  target_compile_definitions(app PRIVATE OEVM_MARK_STACK_SIZE=$ENV{OEVM_MARK_STACK_SIZE})
+endif()

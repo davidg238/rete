@@ -138,21 +138,39 @@ hardware on the bench is the *DK* — this Task 8 targets it instead:
 
 The engine's host defaults do not fit the DK's 256 KB SRAM. Passed via env at
 build time (the `CMakeLists.txt` env→`-D` passthrough, since NCS sysbuild
-swallows bare `-D` app defines):
+swallows bare `-D` app defines).
 
-- `OEVM_HEAP_SIZE=131072` — 128 KB VM arena. 64 KB was too small: the VM OOM'd
-  at boot constructing the baked kernel classes (`used ... of 65552`).
-- `METHOD_CACHE_SIZE=512` / `PRIM_CACHE_SIZE=512` — the dispatch inline caches
-  default to 4096 entries (64 KB + 32 KB); shrunk to 8 KB + 4 KB. Pure caches —
-  a smaller table only trades a few more collisions, never correctness.
+**Recommended DK config ("D", RAM-optimized — 2026-07-09).** Derived from the
+`nsl-tuvm` RAM↔speed knob matrix (`nsl-tests/00_perf/RESULTS.md`, 2026-07-09):
 
-Result: **ROM 25.3 %, RAM 80.4 %** of the nRF52840.
+- `VM_STACK_INIT_WORDS=4096` — the VM execution stack is a fixed heap `Stack` object
+  allocated INSIDE the arena, and at the 16384 default it is **64 KB on the 32-bit
+  DK** — the single largest boot allocation (this is what made 64 KB arenas OOM at
+  boot). perfstex's measured peak is 442 words, so 4096 (9× headroom) is safe for
+  real recursion and frees ~48 KB of arena at zero speed cost.
+- `OEVM_HEAP_SIZE=49152` — 48 KB VM arena. Feasible only *because* the stack shrank
+  (the old 128 KB was almost all stack). Sane middle for allocation churn; drop to
+  32 KB only for allocation-light nodes.
+- `METHOD_CACHE_SIZE=256` / `PRIM_CACHE_SIZE=256` — dispatch caches (default 4096 =
+  64 KB + 32 KB), shrunk to 4 KB + 2 KB. Pure caches — smaller only trades a few
+  more collisions, never correctness. 512 if a node has diverse dispatch.
+- `OEVM_MARK_STACK_SIZE=512` — GC mark worklist (default 1024); overflow only forces
+  a rescan (slower GC, never incorrect).
+
+Result: **ROM 25.8 %, RAM 45.1 %** of the nRF52840 (was 80.4 % / 67.5 % pre-matrix),
+full perfstex including floatMath, no measurable slowdown. `VM_STACK_INIT_WORDS` and
+`OEVM_MARK_STACK_SIZE` are now forwarded by the CMakeLists env→`-D` passthrough
+alongside the arena/cache/float knobs. Validated on perfstex; the pulse gate below
+boots comfortably at these settings (its arena floor is far under 48 KB with the 4k
+stack).
 
 ## Build + flash + run
 
 ```bash
 source /home/david/workspace/ns-zephyr/tools/env.sh
-export OEVM_HEAP_SIZE=131072 METHOD_CACHE_SIZE=512 PRIM_CACHE_SIZE=512
+# Recommended DK config "D" (see RAM tuning above + nsl-tests/00_perf/RESULTS.md):
+export OEVM_HEAP_SIZE=49152 METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256
+export VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512
 
 # 1. bake the DK node into the solidified image (run from the nsl-tuvm repo)
 cd /home/david/workspace/nsl-tuvm
