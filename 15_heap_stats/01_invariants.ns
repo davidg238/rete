@@ -1,0 +1,24 @@
+(*
+expect:
+true
+true
+true
+true
+*)
+(* Rung 4 Task 3: heapStats runtime-telemetry invariants. Absolute field values
+   vary run-to-run, so this asserts only the structural invariants that hold on
+   every run and on BOTH paths (A solidified image, B .oimg): the arena is
+   non-empty, high_water never trails live_bytes, the largest free extent never
+   exceeds the arena, and gc_cycles is a non-negative count. Exercises prim 104
+   -> the HeapStats class end-to-end. Both-path A==B gate. *)
+class HeapStatsInvariantsTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | s |
+  s:: platform heapStats.
+  (s heapSize > 0) printString println.
+  (s highWater >= s liveBytes) printString println.
+  (s largestFreeBlock <= s heapSize) printString println.
+  (s gcCycles >= 0) printString println.
+)
+) : (
+)
