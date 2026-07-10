@@ -861,6 +861,29 @@ class Kernel usingPlatform: platform = () (
   ) : (
   )
 
+  class HeapStats = ( | heapSize liveBytes highWater largestFreeBlock gcCycles | ) (
+    (* A read-only snapshot of GC heap telemetry (src/gc.c oevm_heap_stats),
+       surfaced by the native `platform heapStats` leaf (prim 104) as a 5-element
+       Array in field order. Construct via the class-side `fromList:`. *)
+    public heapSize         = ( ^ heapSize )
+    public liveBytes        = ( ^ liveBytes )
+    public highWater        = ( ^ highWater )
+    public largestFreeBlock = ( ^ largestFreeBlock )
+    public gcCycles         = ( ^ gcCycles )
+    setFromList: a = (
+      (* `platform heapStats` answers a raw IndexableVtable Array (like udp
+         basicReceive / cborReadHead), so read slots with basicAt:, not the
+         Array-class at: — the prim receiver does not carry the Array vtable. *)
+      heapSize:: a basicAt: 1. liveBytes:: a basicAt: 2. highWater:: a basicAt: 3.
+      largestFreeBlock:: a basicAt: 4. gcCycles:: a basicAt: 5. ^ self )
+    public printString = (
+      ^ 'live ', liveBytes printString, ' / hw ', highWater printString,
+        ' / free ', largestFreeBlock printString, ' / gc ', gcCycles printString,
+        ' / size ', heapSize printString )
+  ) : (
+    public fromList: a = ( ^ self new setFromList: a )
+  )
+
   class ReadStream = ( | source position | ) (
     (* Byte-granular cursor over an immutable String. `next`/`peek` answer a byte
        SMI; substring reads build Strings via `platform string:`. Open-ended reads
@@ -1696,6 +1719,8 @@ class Kernel usingPlatform: platform = () (
      compiler's class-construction fallback — sending an instance-side selector
      to a class object silently NEWs the class and drops the message. *)
   public Cbor              = ( ^ Cbor new )
+  public HeapStats         = ( ^ HeapStats )
+  public heapStats         = ( ^ HeapStats fromList: (platform heapStats) )
   (* Milestone E Task 1: crash-Record factory reachable from ANY context. The
      error:/error:tag: raise prims cannot reach the sibling `Record` class from an
      app receiver (v1 BLOCKED finding), but they DO hold the captured Kernel
