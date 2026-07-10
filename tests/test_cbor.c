@@ -186,12 +186,32 @@ static void test_cbor_decode_leaves(void) {
     printf("test_cbor_decode_leaves OK\n");
 }
 
+/* Rung 3 Task 6: `asSymbol:` (prim 103) — String -> genuine (non-interned)
+   Symbol. Build a String receiver, dispatch, assert the result is a Symbol whose
+   name bytes match. Runs green under OEVM_GC_STRESS=1: the String input is
+   consumed (its bytes copied into the Symbol's malloc'd name) before the single
+   gc_allocate, so no unrooted heap oop is held across a collection. */
+static void test_cbor_as_symbol(void) {
+    extern oop StringVtable, SymbolVtable;
+    extern oop gc_allocate(oop vtable, size_t size);
+    const char *txt = "reading"; size_t n = strlen(txt);
+    oop s = gc_allocate(StringVtable, sizeof(struct String) + n);
+    ((struct String*)s)->length = n; memcpy(((struct String*)s)->bytes, txt, n);
+    oop out = NULL;
+    int ok = platform_dispatch(PRIM_pf_asSymbol, 1, &s, &out);
+    assert(ok && out && obj_vtable(out) == SymbolVtable);
+    struct Symbol *sym = (struct Symbol*)out;
+    assert(sym->length == n && memcmp(sym->name, txt, n) == 0);
+    printf("test_cbor_as_symbol OK\n");
+}
+
 int main(void) {
     heap_init();
     kernel_boot();
     test_cbor_encode_int();
     test_cbor_encode_float();
     test_cbor_decode_leaves();
+    test_cbor_as_symbol();
     printf("test_cbor: OK\n");
     return 0;
 }

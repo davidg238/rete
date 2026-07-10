@@ -697,6 +697,11 @@ enum {
     PRIM_pf_cborIntFromMajor,
     PRIM_pf_cborReadFloat,
     PRIM_pf_utf8Valid,
+    /* Rung 3 Task 6: String->Symbol leaf. Rebuilds a genuine (non-interned)
+       Symbol from a String's bytes for CBOR tag-39 decode. Appended last — no
+       pre-existing id shifts. Counted (not computed) to be id 103 — the 103rd
+       PRIM_NAMES entry. Platform-dispatched (mirrored in prim_ids.h as 103). */
+    PRIM_pf_asSymbol,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -740,6 +745,7 @@ static const char *const PRIM_NAMES[] = {
     "cborIntFromMajor:arg:",
     "cborReadFloat:at:",
     "utf8Valid:",
+    "asSymbol:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 

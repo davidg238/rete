@@ -700,6 +700,27 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
             else { *out=false_symbol; return 1; } }
         *out = true_symbol; return 1;
     }
+    case PRIM_pf_asSymbol: {
+        /* Rung 3 Task 6: `platform asSymbol: aString` — build a genuine
+           (non-interned) Symbol from a String's bytes, for CBOR tag-39 decode
+           (and transitively Record tags, which require `isSymbol`). Mirrors the
+           dispatch.c asString/asSymbol Symbol-build idiom (separate malloc'd
+           `name`, never freed — a known-minor matching that existing pattern).
+           Symbol equality is VALUE-based (printString byteCompare), so this
+           non-interned Symbol `=` the image-literal #foo, giving round-trip.
+           GC-safety: the String receiver's length + bytes are copied into the
+           malloc'd `nm` BEFORE the single gc_allocate(Symbol), so args[0] is
+           never dereferenced across (or after) the allocation. */
+        struct String *s = (struct String *)args[0];
+        size_t len = s->length;
+        char *nm = malloc(len + 1);
+        if (len) memcpy(nm, s->bytes, len);
+        nm[len] = 0;
+        oop sym = gc_allocate(SymbolVtable, sizeof(struct Symbol));
+        ((struct Symbol *)sym)->name = nm;
+        ((struct Symbol *)sym)->length = len;
+        *out = sym; return 1;
+    }
     case PRIM_pf_pumpEvents:
         *out = TAG_SMI(pulse_pump());
         return 1;

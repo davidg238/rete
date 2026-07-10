@@ -118,6 +118,12 @@
 #define PRIM_pf_cborIntFromMajor 100
 #define PRIM_pf_cborReadFloat    101
 #define PRIM_pf_utf8Valid        102
+/* Rung 3 Task 6: String->Symbol leaf (`asSymbol:`), appended after utf8Valid: —
+   no pre-existing id shifts. 103 was arrived at by COUNTING PRIM_NAMES (102
+   entries before this append), not by 102+1 arithmetic, per the standing lesson
+   above. Platform-dispatched (mirrored here as 103). Used by the Task 6 decode
+   walk to rebuild Symbols for CBOR tag 39 (and, transitively, Record tags). */
+#define PRIM_pf_asSymbol         103
 /* Rung 3 Task 4: the out-of-range sentinel returned by cborIntFromMajor:arg:
    for the one unrepresentable CBOR integer (major 1, arg 2^64-1 => value -2^64,
    just past the ratified +/-(2^64-1) range). In this VM nil IS the C NULL
