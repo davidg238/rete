@@ -721,6 +721,26 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         ((struct Symbol *)sym)->length = len;
         *out = sym; return 1;
     }
+    case PRIM_pf_heapStats: {
+        /* Rung 4 Task 1: `platform heapStats` — snapshot GC heap telemetry
+           (src/gc.c oevm_heap_stats) into a 5-slot Array of SMIs, in field order
+           [heapSize, liveBytes, highWater, largestFreeBlock, gcCycles]. The nsl
+           HeapStats class names them. Every field is < arena size (<= 48 KB on
+           the 32-bit DK; the host default 16 MB arena still fits a 32-bit SMI),
+           so each is SMI-representable on host and target alike. GC-safety: the
+           whole struct is copied into the C local `st` BEFORE the single
+           allocating call (indexable_new); the five stores are SMIs (immediates,
+           no allocation), so no heap oop is ever held across an allocation and no
+           gc_temp_root pin is required. args are ignored (0-arg selector). */
+        struct OevmHeapStats st = oevm_heap_stats();
+        oop r = indexable_new(5);
+        ((struct ObjectInstance *)r)->slots[1] = TAG_SMI((intptr_t)st.heap_size);
+        ((struct ObjectInstance *)r)->slots[2] = TAG_SMI((intptr_t)st.live_bytes);
+        ((struct ObjectInstance *)r)->slots[3] = TAG_SMI((intptr_t)st.high_water);
+        ((struct ObjectInstance *)r)->slots[4] = TAG_SMI((intptr_t)st.largest_free_block);
+        ((struct ObjectInstance *)r)->slots[5] = TAG_SMI((intptr_t)st.gc_cycles);
+        *out = r; return 1;
+    }
     case PRIM_pf_pumpEvents:
         *out = TAG_SMI(pulse_pump());
         return 1;

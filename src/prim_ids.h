@@ -124,6 +124,14 @@
    above. Platform-dispatched (mirrored here as 103). Used by the Task 6 decode
    walk to rebuild Symbols for CBOR tag 39 (and, transitively, Record tags). */
 #define PRIM_pf_asSymbol         103
+/* Rung 4 (on-target measurement) Task 1: heap-telemetry leaf (`heapStats`),
+   appended after asSymbol: — no pre-existing id shifts. 104 was arrived at by
+   COUNTING PRIM_NAMES (103 entries before this append), not by 103+1 arithmetic,
+   per the standing lesson above. Platform-dispatched (mirrored here as 104).
+   Returns a 5-slot Array [heapSize, liveBytes, highWater, largestFreeBlock,
+   gcCycles] snapshotting src/gc.c oevm_heap_stats(); the nsl HeapStats class
+   names the fields. */
+#define PRIM_pf_heapStats 104
 /* Rung 3 Task 4: the out-of-range sentinel returned by cborIntFromMajor:arg:
    for the one unrepresentable CBOR integer (major 1, arg 2^64-1 => value -2^64,
    just past the ratified +/-(2^64-1) range). In this VM nil IS the C NULL

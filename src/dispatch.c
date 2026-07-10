@@ -702,6 +702,11 @@ enum {
        pre-existing id shifts. Counted (not computed) to be id 103 — the 103rd
        PRIM_NAMES entry. Platform-dispatched (mirrored in prim_ids.h as 103). */
     PRIM_pf_asSymbol,
+    /* Rung 4 (on-target measurement) Task 1: heap-telemetry leaf. Snapshots
+       oevm_heap_stats() into a 5-slot Array of SMIs. Appended last — no
+       pre-existing id shifts. Counted (not computed) to be id 104 — the 104th
+       PRIM_NAMES entry. Platform-dispatched (mirrored in prim_ids.h as 104). */
+    PRIM_pf_heapStats,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -746,6 +751,7 @@ static const char *const PRIM_NAMES[] = {
     "cborReadFloat:at:",
     "utf8Valid:",
     "asSymbol:",
+    "heapStats",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
