@@ -96,4 +96,10 @@
 #define PRIM_pf_gpioPin      94
 #define PRIM_pf_gpioFire     95
 #define PRIM_pf_pumpEvents   96
+/* Rung 3 Task 2: CBOR integer leaf (`cborEncodeInt:`), appended after the entire
+   Zephyr rung-2 GPIO/pumpEvents group — no pre-existing id shifts. 97 was arrived
+   at by COUNTING PRIM_NAMES (96 entries before this append), not by 96+1
+   arithmetic, per the standing lesson above. Serviced in platform.c's
+   platform_dispatch switch (used by the Task 5 encode walk). */
+#define PRIM_pf_cborEncodeInt 97
 #endif /* OEVM_PRIM_IDS_H */

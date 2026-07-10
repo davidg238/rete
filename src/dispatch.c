@@ -677,6 +677,11 @@ enum {
     PRIM_pf_gpioPin,
     PRIM_pf_gpioFire,
     PRIM_pf_pumpEvents,
+    /* Rung 3 Task 2: CBOR integer leaf. Encodes an Integer (SMI or
+       LargeInteger) as CBOR major 0/1, shortest form. Appended last — no
+       pre-existing id shifts. Counted (not computed) to be id 97 — the 97th
+       PRIM_NAMES entry. Platform-dispatched (mirrored in prim_ids.h as 97). */
+    PRIM_pf_cborEncodeInt,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -714,6 +719,7 @@ static const char *const PRIM_NAMES[] = {
     "gpioPin:edge:post:on:",
     "gpioFire:",
     "pumpEvents",
+    "cborEncodeInt:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 

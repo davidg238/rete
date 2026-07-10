@@ -66,6 +66,9 @@ run test_handles "$ENG_B" -DOEVM_HANDLE_TABLE_MAX=4
 # through the M6 handle table and the space queue. Tiny mailbox depth override,
 # same idiom as test_space/test_handles above.
 run test_pulse "$ENG_B" -DOEVM_PULSE_MAILBOX_DEPTH=4
+# Rung 3 Task 2: CBOR integer leaf primitive `cborEncodeInt:` (prim 97) — Model-B
+# link set (prim/gc/alloc test), same reasoning as test_platform/test_raw_bytes.
+run test_cbor "$ENG_B"
 # Backend-only smoke tests (link only the posix seam file, per each test's own
 # header comment — NOT serial.c/udp.c, which need the full VM)
 run test_serial "src/backend/posix/serial_posix.c"

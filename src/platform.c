@@ -467,6 +467,36 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         host_gpio_fire((int)UNTAG_SMI(args[0]));
         *out = platform_object();
         return 1;
+    case PRIM_pf_cborEncodeInt: {
+        /* Encode an Integer (SMI or LargeInteger) as CBOR major 0 (>=0) or major 1
+           (<0), shortest form. Range is the ratified +/-(2^64-1): major 0 arg = mag,
+           major 1 arg = mag-1 (value = -1-arg). Both args fit uint64. */
+        oop x = args[0];
+        int major; uint64_t arg;
+        if (IS_SMI(x)) {
+            intptr_t v = UNTAG_SMI(x);
+            if (v >= 0) { major = 0; arg = (uint64_t)v; }
+            else        { major = 1; arg = (uint64_t)(-(v + 1)); }   /* -1-arg = v */
+        } else if (LargeIntegerVtable && obj_vtable(x) == LargeIntegerVtable) {
+            struct LargeInteger *li = (struct LargeInteger *)x;
+            if (li->sign >= 0) { major = 0; arg = li->mag; }
+            else               { major = 1; arg = li->mag - 1ULL; }  /* mag>=1 */
+        } else {
+            fprintf(stderr, "VM Error: cborEncodeInt: non-integer receiver\n"); abort();
+        }
+        uint8_t buf[9]; size_t n;
+        unsigned mt = (unsigned)major << 5;
+        if (arg < 24)              { buf[0]=(uint8_t)(mt|arg); n=1; }
+        else if (arg < 0x100ULL)   { buf[0]=(uint8_t)(mt|24); buf[1]=(uint8_t)arg; n=2; }
+        else if (arg < 0x10000ULL) { buf[0]=(uint8_t)(mt|25); buf[1]=(uint8_t)(arg>>8); buf[2]=(uint8_t)arg; n=3; }
+        else if (arg < 0x100000000ULL) { buf[0]=(uint8_t)(mt|26);
+            for(int s=3;s>=0;s--) buf[4-s]=(uint8_t)(arg>>(8*s)); n=5; }
+        else { buf[0]=(uint8_t)(mt|27);
+            for(int s=7;s>=0;s--) buf[8-s]=(uint8_t)(arg>>(8*s)); n=9; }
+        oop b = gc_allocate(RawBytesVtable, sizeof(struct String) + n);
+        ((struct String*)b)->length = n; memcpy(((struct String*)b)->bytes, buf, n);
+        *out = b; return 1;
+    }
     case PRIM_pf_pumpEvents:
         *out = TAG_SMI(pulse_pump());
         return 1;
