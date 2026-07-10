@@ -140,5 +140,63 @@ handful of `kernel.ns` lines (image/ROM only, no RAM/bss).
   under-load `HeapStats` readout, both captured from the plugged-in DK.
 - Footprint deltas banked; docs (`FOOTPRINT_DK.md`, `RESULTS.md` cross-link, program-sequence if
   applicable) reconciled to as-built.
-</content>
-</invoke>
+
+## 8. As-built notes (2026-07-10)
+
+Implemented subagent-driven on branch `rung4-on-target-measurement` across all three repos.
+Final tuvm HEAD: **`961236f`**. nsl-tuvm carries the `HeapStats` class (`00c3062`), the
+footprint gate (`16b16bf`), and this docs reconcile as its branch tip; nsl-tests carries the
+both-path test (`035d218`) and the RESULTS.md cross-link as its tip.
+
+**Gate (controller-owned, definitive):** full both-path suite **179 passed / 0 failed / 12
+skipped**; `15_heap_stats/01_invariants` PASS on A and B; **5 named gates all PASS** — grant,
+debugger-integration, portability-32, boot-gc-asan, and the **new `footprint` gate** (ran for
+real with the ARM SDK on PATH — cross-compiled and PASSED, not SKIP). C unit suite green
+(`test_heap_stats` PASS; `test_solidified`/`test_oimg` remain pre-existing unrelated SKIPs).
+
+**Prim 104 `heapStats`** (tuvm `fa8d63f`): append-only, counted (not computed) as the 104th
+`PRIM_NAMES` entry; all three sites (enum / `PRIM_NAMES` / `prim_ids.h`) agree. GC-safe: struct
+read into a C local before the single `indexable_new(5)`, SMI-only stores after — no temp-root
+pin. Returns `[heapSize, liveBytes, highWater, largestFreeBlock, gcCycles]` in `slots[1..5]`.
+
+**`HeapStats` class** (nsl-tuvm `00c3062`, `lib/kernel.ns:864-884`; accessors `:1722-1723`).
+- **Deviation from the plan's literal code (sound, precedented):** `setFromList:` reads with
+  `basicAt:`, not `at:`. Prim 104 returns a raw `IndexableVtable` object (not the nsl `Array`
+  wrapper), on which `at:` DNUs; every other prim-returned indexable in `kernel.ns` (e.g.
+  `cborReadHead`) is read with `basicAt:`. Field-order verified against the C `slots[1..5]`.
+
+**Footprint gate** (tuvm `71d4ac4` + harness nsl-tuvm `16b16bf`).
+- **Deviation / correction to the spec's §4.1:** the plan's `footprint.sh` mcu block omitted
+  the config-D target-size defines, so the first cut banked a **16.6 MB** `data+bss` — the host
+  arena, i.e. the exact host-proxy figure tuvm#5/A2 exists to eliminate. Corrected by passing
+  `-DOEVM_HEAP_SIZE=49152 -DMETHOD_CACHE_SIZE=256 -DPRIM_CACHE_SIZE=256` on the cross-compile.
+  Banked baseline is now **text 29182 / data_bss 69036** (true 48 KB DK arena + 256-entry
+  caches) — a genuine target-config RAM line. Added a corrupt-baseline guard (missing line →
+  loud `exit 1`, not silent PASS). Gate contract: exit 0 PASS / 77 SKIP (no toolchain) / 1 FAIL.
+
+**Both-path test:** `nsl-tests/15_heap_stats/01_invariants.ns` (`035d218`) — invariants
+`heapSize>0`, `highWater>=liveBytes`, `largestFreeBlock<=heapSize`, `gcCycles>=0`, deterministic
+across A/B.
+
+**C coverage:** no new C test was added — the pre-existing `tests/test_heap_stats.c` already
+covers `oevm_heap_stats()` end-to-end; the prim's Array mapping is verified by the both-path
+test (the project idiom for VM-dependent prims). This supersedes §5.2's "light `test_heap_stats.c`
+under `OEVM_GC_STRESS=1`" (that C function is not exercised through a GC-stress harness here).
+
+**DK capture** (tuvm `1c14384` static + `961236f` live, `zephyr/MeasureNodeDK.ns` +
+`zephyr/FOOTPRINT_DK.md`): config-D static image **ROM 289868 B / 27.64 %**, **RAM 118090 B /
+45.05 %** of the nRF52840 (corroborates the 45.1 % config-D line in `nsl-tests/00_perf/RESULTS.md`).
+Live under-load line off the flashed DK: `heapStats live 40092 / hw 49152 / free 9048 / gc 5 /
+size 49152` — invariants `hw<=size`, `free<=size`, `gc(5)>=1` all hold. Build note: `ram_report`/
+`rom_report` are `ninja` targets in the nested sysbuild `build/zephyr/` domain, and the NCS
+toolchain python needed `PYTHONPATH` at `~/ncs/.venv` site-packages — environment gaps, not code
+(candidate `env.sh`/README follow-up).
+
+**Plan note (affects future rungs):** `tools/run_tests_oevm.py` accepts **no** path filter — it
+always runs the full suite (>10 min). Per-task both-path verification was done by driving the
+harness's own `run_test_file`/`run_test_file_oimg` on the single file.
+
+**Footprint banked:** the MCU target-config ratchet baseline (text 29182 / data_bss 69036 B) is
+the banked engine footprint under the true DK config. The prim adds one `PRIM_NAMES` entry + a
+small leaf body; the `HeapStats` class adds ~21 `kernel.ns` lines — image/ROM only, no new RAM/bss
+globals (heap telemetry uses the existing `oevm_heap_stats()` counters).
