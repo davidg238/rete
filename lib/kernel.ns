@@ -455,9 +455,200 @@ class Kernel usingPlatform: platform = () (
     public valueDepth = ( ^ 0 )
     public = other = ( (outer isValueObject: other) ifFalse: [ ^ false ]. ^ outer value: self equals: other )
     public hash = ( ^ outer valueHashOf: self )
+    (* Wire-type textual form (Rung 3 Task 5): lowercase hex, no separators, two
+       digits per byte. Built as a byte Array of ASCII hex then interned to a
+       String in one `platform string:` — the natural rendering for a Bytes on
+       the CBOR wire seam and for golden-hex fixtures. *)
+    public printHex = ( | n arr j b hi lo |
+      n:: self byteSize.
+      arr:: platform basicNew: Array indexable: n * 2.
+      j:: 0.
+      1 to: n do: [ :i |
+        b:: self u8At: i.
+        hi:: (b >> 4) bitAnd: 15.
+        lo:: b bitAnd: 15.
+        j:: j + 1. arr at: j put: (hi < 10 ifTrue: [ 48 + hi ] ifFalse: [ 87 + hi ]).
+        j:: j + 1. arr at: j put: (lo < 10 ifTrue: [ 48 + lo ] ifFalse: [ 87 + lo ]) ].
+      ^ platform string: arr )
     setRaw: r = ( raw:: r. ^ self )
   ) : (
     public overRaw: r = ( ^ self new setRaw: r )
+    (* Inverse of printHex (Rung 3 Task 5, used by Task 6 decode tests): parse an
+       even-length lower/upper-case hex String to an immutable Bytes via the
+       ByteArray workbench + freeze copy. Digit decode is inlined (no `outer`):
+       '0'..'9' = 48..57, 'A'..'F' = 65..70, 'a'..'f' = 97..102. *)
+    public fromHex: aString = ( | n ba hi lo ch |
+      n:: aString size // 2.
+      ba:: ByteArray new: n.
+      1 to: n do: [ :i |
+        ch:: aString at: (i * 2) - 1.
+        hi:: ch < 58 ifTrue: [ ch - 48 ] ifFalse: [ ch < 71 ifTrue: [ ch - 55 ] ifFalse: [ ch - 87 ] ].
+        ch:: aString at: i * 2.
+        lo:: ch < 58 ifTrue: [ ch - 48 ] ifFalse: [ ch < 71 ifTrue: [ ch - 55 ] ifFalse: [ ch - 87 ] ].
+        ba u8At: i put: (hi * 16 + lo) ].
+      ^ ba freeze )
+  )
+
+  (* Rung 3 Task 5: the CBOR value codec — encode half. A module sibling of
+     List/Map/Record; the recursive descent lives here in nsl and drops to the
+     C leaf byte-primitives (`platform cborEncodeInt:`/`cborEncodeFloat:`) only
+     for the int/float bytes that must be byte-identical across host and target
+     (LargeInteger magnitude + IEEE shortest-form are unreachable from nsl,
+     design §2.3). Everything else — container heads, symbol/string/bytes
+     payloads, the deterministic RFC 8949 §4.2 bytewise map-key order, the
+     depth bound (32) — is natural nsl here. `encode:` walks bottom-up into an
+     OrderedCollection byte accumulator (byte SMIs), frozen to an immutable
+     `Bytes` at the very end via ByteArray>>freeze; intermediate work stays in
+     OrderedCollections. Value classification is `outer rankOf:` (the native
+     `platform valueRank:` oracle with the heap-class `valueRank` fallback), so
+     builtins and heap values dispatch uniformly. Determinism: the C leaves emit
+     shortest-form ints/floats; container/tag/string heads are emitted
+     shortest-form here (definite lengths only); map keys are re-sorted at emit
+     time bytewise over their ENCODED key bytes (NOT the Map's stored
+     valueCompare order — the two diverge when keys differ in encoded length).
+     No float<->int coercion (the ranks dispatch to distinct leaves). A receiver
+     `rankOf:` cannot classify fails `not a value`; over-deep nesting fails
+     `message depth exceeded`. *)
+  class Cbor = () (
+    public encode: v = ( | acc |
+      acc:: OrderedCollection new.
+      self encode: v into: acc depth: 1.
+      ^ (ByteArray fromList: acc) freeze )
+
+    encode: v into: acc depth: d = ( | rank |
+      d > 32 ifTrue: [ ^ self error: 'message depth exceeded' ].
+      v == nil   ifTrue: [ acc add: 246. ^ self ].    (* 0xf6 *)
+      v == true  ifTrue: [ acc add: 245. ^ self ].    (* 0xf5 *)
+      v == false ifTrue: [ acc add: 244. ^ self ].    (* 0xf4 *)
+      rank:: outer rankOf: v.
+      rank = 2 ifTrue: [ ^ self appendFrag: (platform cborEncodeInt: v) into: acc ].   (* Integer -> major 0/1 (C leaf) *)
+      rank = 3 ifTrue: [ ^ self appendFrag: (platform cborEncodeFloat: v) into: acc ]. (* Float -> major 7 (C leaf) *)
+      rank = 4 ifTrue: [ ^ self encodeString: v into: acc ].                           (* String -> major 3 *)
+      rank = 5 ifTrue: [ ^ self encodeBytes: v into: acc ].                            (* Bytes -> major 2 *)
+      rank = 6 ifTrue: [ ^ self encodeSymbol: v into: acc ].                           (* Symbol -> tag 39 + text *)
+      rank = 7 ifTrue: [ ^ self encodeList: v into: acc depth: d ].                    (* List -> major 4 *)
+      rank = 8 ifTrue: [ ^ self encodeMap: v into: acc depth: d ].                     (* Map -> major 5, bytewise keys *)
+      rank = 9 ifTrue: [ ^ self encodeRecord: v into: acc depth: d ].                  (* Record -> tag 27 + [tag, fields] *)
+      ^ self error: 'not a value' )
+
+    (* CBOR head for (major m, argument n) shortest-form, definite length. Reused
+       for container/string/bytes lengths AND for tag numbers (major 6, arg =
+       tag) — tags share the head varint encoding. n is a small SMI here. *)
+    emitHead: m len: n into: acc = ( | mt |
+      mt:: m * 32.
+      n < 24 ifTrue: [ acc add: mt + n. ^ self ].
+      n < 256 ifTrue: [ acc add: mt + 24. acc add: n. ^ self ].
+      n < 65536 ifTrue: [ acc add: mt + 25.
+        acc add: ((n >> 8) bitAnd: 255). acc add: (n bitAnd: 255). ^ self ].
+      n < 4294967296 ifTrue: [ acc add: mt + 26.
+        acc add: ((n >> 24) bitAnd: 255). acc add: ((n >> 16) bitAnd: 255).
+        acc add: ((n >> 8) bitAnd: 255). acc add: (n bitAnd: 255). ^ self ].
+      acc add: mt + 27.
+      acc add: ((n >> 56) bitAnd: 255). acc add: ((n >> 48) bitAnd: 255).
+      acc add: ((n >> 40) bitAnd: 255). acc add: ((n >> 32) bitAnd: 255).
+      acc add: ((n >> 24) bitAnd: 255). acc add: ((n >> 16) bitAnd: 255).
+      acc add: ((n >> 8) bitAnd: 255). acc add: (n bitAnd: 255).
+      ^ self )
+
+    (* Append a C-leaf RawBytes fragment (int/float bytes) byte-by-byte; RawBytes
+       answers `size`/`at:` (byte SMIs), NOT basicSize/basicAt:. *)
+    appendFrag: frag into: acc = ( 1 to: frag size do: [ :i | acc add: (frag at: i) ]. ^ self )
+
+    encodeString: v into: acc = ( | n |
+      n:: v size.                       (* String size = byte count; at: = byte SMI *)
+      self emitHead: 3 len: n into: acc.
+      1 to: n do: [ :i | acc add: (v at: i) ].
+      ^ self )
+
+    encodeBytes: v into: acc = ( | n |
+      n:: v byteSize.
+      self emitHead: 2 len: n into: acc.
+      1 to: n do: [ :i | acc add: (v u8At: i) ].
+      ^ self )
+
+    (* Symbol -> tag 39 (identifier) wrapping its UTF-8 text as major-3. A Symbol
+       has no at:/size fast path (dispatch.c), so its text is taken from
+       printString ('#' + name) with the leading '#' dropped. *)
+    encodeSymbol: v into: acc = ( | ps n |
+      self emitHead: 6 len: 39 into: acc.    (* tag 39 = 0xd827 *)
+      ps:: v printString.
+      n:: ps size - 1.
+      self emitHead: 3 len: n into: acc.
+      1 to: n do: [ :i | acc add: (ps at: i + 1) ].
+      ^ self )
+
+    encodeList: v into: acc depth: d = (
+      self emitHead: 4 len: v size into: acc.
+      v do: [ :e | self encode: e into: acc depth: d + 1 ].
+      ^ self )
+
+    (* Map -> major 5, keys in RFC 8949 §4.2 bytewise order over ENCODED key
+       bytes. The Map iterates in valueCompare order, which is NOT bytewise (they
+       diverge when keys differ in encoded length), so re-sort at emit time:
+       encode each (key,value) into its own byte OrderedCollection, insertion-sort
+       the pairs bytewise by encoded key, then emit the count head + concatenated
+       pairs. *)
+    encodeMap: v into: acc depth: d = ( | keyEncs valEncs n |
+      keyEncs:: OrderedCollection new.
+      valEncs:: OrderedCollection new.
+      v keysAndValuesDo: [ :k :val |
+        self encodeEntry: k value: val keys: keyEncs vals: valEncs depth: d ].
+      n:: keyEncs size.
+      self sortPairsBytewise: keyEncs vals: valEncs.
+      self emitHead: 5 len: n into: acc.
+      1 to: n do: [ :i |
+        self appendColl: (keyEncs at: i) into: acc.
+        self appendColl: (valEncs at: i) into: acc ].
+      ^ self )
+
+    (* One map entry -> its own encoded key/value byte OrderedCollections,
+       appended in lockstep to keyEncs/valEncs (the per-entry block-locals live
+       in this method frame, keeping the keysAndValuesDo: block a single send). *)
+    encodeEntry: k value: val keys: keyEncs vals: valEncs depth: d = ( | kb vb |
+      kb:: OrderedCollection new.
+      vb:: OrderedCollection new.
+      self encode: k   into: kb depth: d + 1.
+      self encode: val into: vb depth: d + 1.
+      keyEncs add: kb.
+      valEncs add: vb.
+      ^ self )
+
+    (* Record -> tag 27 (language object) wrapping a 2-element array [tag, fields]
+       where tag is the Symbol (itself tag 39) and fields is the Map. *)
+    encodeRecord: v into: acc depth: d = (
+      self emitHead: 6 len: 27 into: acc.    (* tag 27 = 0xd81b *)
+      self emitHead: 4 len: 2 into: acc.     (* array(2) = 0x82 *)
+      self encode: v tag    into: acc depth: d + 1.
+      self encode: v fields into: acc depth: d + 1.
+      ^ self )
+
+    appendColl: src into: acc = ( src do: [ :b | acc add: b ]. ^ self )
+
+    (* Stable insertion sort of (keyEncs, valEncs) pairs in lockstep, keyed on the
+       encoded key bytes via compareBytes:with: — the RFC 8949 bytewise rule. *)
+    sortPairsBytewise: keyEncs vals: valEncs = ( | n j kk vv |
+      n:: keyEncs size.
+      2 to: n do: [ :ii |
+        kk:: keyEncs at: ii. vv:: valEncs at: ii.
+        j:: ii - 1.
+        [ j >= 1 and: [ (self compareBytes: (keyEncs at: j) with: kk) > 0 ] ] whileTrue: [
+          keyEncs at: j + 1 put: (keyEncs at: j).
+          valEncs at: j + 1 put: (valEncs at: j).
+          j:: j - 1 ].
+        keyEncs at: j + 1 put: kk.
+        valEncs at: j + 1 put: vv ].
+      ^ self )
+
+    (* Bytewise total order over two byte OrderedCollections: shared-prefix bytes
+       decide first, an exact-prefix tie falls to shorter-is-less. *)
+    compareBytes: a with: b = ( | n m lim ab bb |
+      n:: a size. m:: b size. lim:: n < m ifTrue: [ n ] ifFalse: [ m ].
+      1 to: lim do: [ :i |
+        ab:: a at: i. bb:: b at: i.
+        ab < bb ifTrue: [ ^ -1 ].
+        bb < ab ifTrue: [ ^ 1 ] ].
+      n < m ifTrue: [ ^ -1 ]. n > m ifTrue: [ ^ 1 ]. ^ 0 )
+  ) : (
   )
 
   class ReadStream = ( | source position | ) (
@@ -1288,6 +1479,13 @@ class Kernel usingPlatform: platform = () (
   public Map               = ( ^ Map )
   public Protocol          = ( ^ Protocol )
   public Record            = ( ^ Record )
+  (* Rung 3 Task 5: the CBOR codec is a stateless utility, but its public entry
+     (`encode:`) is an INSTANCE method, so the accessor answers a fresh instance
+     (same "always fresh, same underlying substrate" shape as `space`/`timers`).
+     Returning the class object instead would route `Cbor encode:` through the
+     compiler's class-construction fallback — sending an instance-side selector
+     to a class object silently NEWs the class and drops the message. *)
+  public Cbor              = ( ^ Cbor new )
   (* Milestone E Task 1: crash-Record factory reachable from ANY context. The
      error:/error:tag: raise prims cannot reach the sibling `Record` class from an
      app receiver (v1 BLOCKED finding), but they DO hold the captured Kernel
