@@ -1,0 +1,16 @@
+(*
+expect:
+2305843009213693952
+4611686018427387904
+*)
+(* A literal in [2^61, 2^62): must print identically on Path A (solidified) and
+   Path B (.oimg). Pre-fix, Path B corrupts the sign (findings 2026-07-04). *)
+class LargeIntSmiBandTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | x |
+  x:: 2305843009213693952.                 (* 2^61 *)
+  (x printString) println.
+  ((x + x) printString) println.           (* 2^62 *)
+)
+) : (
+)
