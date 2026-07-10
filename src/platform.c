@@ -619,13 +619,22 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         else if (ai == 26) { if (j+4 > len) { *out=TAG_SMI(-1); return 1; } arg = 0; for (int k=0;k<4;k++) arg = (arg<<8)|b->bytes[j+k]; j += 4; }
         else if (ai == 27) { if (j+8 > len) { *out=TAG_SMI(-1); return 1; } arg = 0; for (int k=0;k<8;k++) arg = (arg<<8)|b->bytes[j+k]; j += 8; }
         else { *out = TAG_SMI(-1); return 1; }   /* ai 28-31: reserved/indefinite */
-        /* From here on b may be stale (allocations below can move the heap). */
+        /* From here on b (args[0]) may be stale — no further deref. The GC is
+           non-moving mark-sweep and does NOT scan the C stack, so a heap oop held
+           live across a LATER allocation must be pinned as a temp root first
+           (mirrors src/udp.c). `argv` is a heap LargeInteger on the large-arg
+           branch (arg > INTPTR_MAX>>1) and is held live across indexable_new(3);
+           pin it before that allocation. TAG_SMI pushes are harmless. */
+        extern void gc_temp_root_push(oop o);
+        extern void gc_temp_roots_clear(void);
         oop argv = (arg <= (uint64_t)(INTPTR_MAX>>1)) ? TAG_SMI((intptr_t)arg)
                                                       : oevm_int_demote(largeint_alloc(+1, arg));
+        gc_temp_root_push(argv);
         oop r = indexable_new(3);
         ((struct ObjectInstance*)r)->slots[1] = TAG_SMI((intptr_t)major);
         ((struct ObjectInstance*)r)->slots[2] = argv;
         ((struct ObjectInstance*)r)->slots[3] = TAG_SMI((intptr_t)j);
+        gc_temp_roots_clear();
         *out = r; return 1;
     }
     case PRIM_pf_cborIntFromMajor: {
@@ -659,11 +668,18 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         else if (t == 0xfa) { if (j+4 > len) { *out=TAG_SMI(-1); return 1; } uint32_t u=0; for (int k=0;k<4;k++) u=(u<<8)|b->bytes[j+k]; float f; memcpy(&f,&u,4); d=f; j += 4; }
         else if (t == 0xfb) { if (j+8 > len) { *out=TAG_SMI(-1); return 1; } uint64_t u=0; for (int k=0;k<8;k++) u=(u<<8)|b->bytes[j+k]; memcpy(&d,&u,8); j += 8; }
         else { *out = TAG_SMI(-1); return 1; }
-        /* b may be stale past this point. */
+        /* b (args[0]) may be stale past this point — no further deref. `f` is a
+           heap Float held live across indexable_new(2); the non-stack-scanning
+           mark-sweep GC would sweep it, so pin it as a temp root first (mirrors
+           src/udp.c). This fires on EVERY call, not just an edge case. */
+        extern void gc_temp_root_push(oop o);
+        extern void gc_temp_roots_clear(void);
         oop f = float_alloc(FloatVtable); ((struct Float*)f)->value = d;
+        gc_temp_root_push(f);
         oop r = indexable_new(2);
         ((struct ObjectInstance*)r)->slots[1] = f;
         ((struct ObjectInstance*)r)->slots[2] = TAG_SMI((intptr_t)j);
+        gc_temp_roots_clear();
         *out = r; return 1;
     }
     case PRIM_pf_utf8Valid: {

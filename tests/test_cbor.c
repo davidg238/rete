@@ -85,8 +85,30 @@ static oop mkbytes(const uint8_t *p, size_t n) {
 static long smi(oop x){ return (long)UNTAG_SMI(x); }
 static oop slot(oop o, size_t i){ return ((struct ObjectInstance*)o)->slots[i]; }
 
+/* utf8Valid convenience: build the byte buffer, dispatch, return the resulting
+   symbol. Input and result are handled within one call so the caller never holds
+   an unrooted heap byte-buffer across a later allocation (this test runs green
+   under OEVM_GC_STRESS=1, which collects before every allocation). */
+static oop utf8_of(const uint8_t *p, size_t n) {
+    oop b = mkbytes(p, n), o = NULL;
+    platform_dispatch(PRIM_pf_utf8Valid, 1, &b, &o);
+    return o;
+}
+
 static void test_cbor_decode_leaves(void) {
-    /* head: 0x1a 00 01 00 00  => major 0, arg 65536, next 5 */
+    /* NOTE ON GC-STRESS DISCIPLINE: every heap byte-buffer input is consumed
+       (dispatched, and its result-array slots read) BEFORE the next mkbytes /
+       allocation, so no unrooted heap input is held across a collection. The
+       leaves themselves pin their intermediate result oops (readFloat's Float,
+       readHead's large argv) as GC temp roots, so decode is safe under
+       OEVM_GC_STRESS=1. */
+    oop TRUE_ = (oop)&true_sym_obj, FALSE_ = (oop)&false_sym_obj;
+
+    /* head: 0x1a 00 01 00 00  => major 0, arg 65536, next 5. A single dispatch is
+       GC-stress-safe: the leaf copies the head bytes into locals before its own
+       internal indexable_new. (Each input gets a fresh buffer, never reused across
+       a second dispatch, since it would be swept during the first dispatch's
+       internal allocation under OEVM_GC_STRESS=1.) */
     uint8_t h[]={0x1a,0,1,0,0}; oop hb=mkbytes(h,5);
     oop a[2]={hb,TAG_SMI(0)}, out=NULL;
     assert(platform_dispatch(PRIM_pf_cborReadHead,2,a,&out) && out!=TAG_SMI(-1));
@@ -94,14 +116,26 @@ static void test_cbor_decode_leaves(void) {
     assert(oevm_int_to_double(slot(out,2))==65536.0);      /* arg */
     assert(smi(slot(out,3))==5);                           /* next */
 
+    /* head index past end => TAG_SMI(-1) (own fresh buffer) */
+    uint8_t hp[]={0x1a,0,1,0,0}; oop hpb=mkbytes(hp,5);
+    oop apast[2]={hpb,TAG_SMI(5)}, outp=NULL;
+    assert(platform_dispatch(PRIM_pf_cborReadHead,2,apast,&outp) && outp==TAG_SMI(-1));
+
+    /* head large-arg: 0x1b 80 00 00 00 00 00 00 00 => major 0, ai 27, arg 2^63,
+       next 9. On a 64-bit host 2^63 > INTPTR_MAX>>1, so argv is a heap
+       LargeInteger held live across indexable_new(3) — exercises the temp-root
+       pin (Task-4 GC BUG 2; without the pin this fails under OEVM_GC_STRESS=1). */
+    uint8_t hl[]={0x1b,0x80,0,0,0,0,0,0,0}; oop hlb=mkbytes(hl,9);
+    oop al[2]={hlb,TAG_SMI(0)}, outl=NULL;
+    assert(platform_dispatch(PRIM_pf_cborReadHead,2,al,&outl) && outl!=TAG_SMI(-1));
+    assert(smi(slot(outl,1))==0);                          /* major */
+    assert(oevm_int_to_double(slot(outl,2))==9223372036854775808.0);  /* arg 2^63 */
+    assert(smi(slot(outl,3))==9);                          /* next */
+
     /* head truncated: 0x1a with only 2 more bytes => TAG_SMI(-1) */
     uint8_t ht[]={0x1a,0,1}; oop htb=mkbytes(ht,3);
     oop at[2]={htb,TAG_SMI(0)}, outt=NULL;
     assert(platform_dispatch(PRIM_pf_cborReadHead,2,at,&outt) && outt==TAG_SMI(-1));
-
-    /* head index past end => TAG_SMI(-1) */
-    oop apast[2]={hb,TAG_SMI(5)}, outp=NULL;
-    assert(platform_dispatch(PRIM_pf_cborReadHead,2,apast,&outp) && outp==TAG_SMI(-1));
 
     /* intFromMajor: major 0, arg 5 => +5 */
     oop a0[2]={TAG_SMI(0), TAG_SMI(5)}, o0=NULL;
@@ -119,7 +153,8 @@ static void test_cbor_decode_leaves(void) {
     int r = platform_dispatch(PRIM_pf_cborIntFromMajor,2,a2,&o2);
     assert(r && o2==CBOR_OOR_SENTINEL);   /* leaf signals OOR; nsl maps to fail */
 
-    /* readFloat: 0xfa 47 c3 50 00 => 100000.0, next 5 */
+    /* readFloat: 0xfa 47 c3 50 00 => 100000.0, next 5. The Float leaf pins its
+       result Float across indexable_new(2) (Task-4 GC BUG 1, unconditional). */
     uint8_t fb[]={0xfa,0x47,0xc3,0x50,0x00}; oop fbb=mkbytes(fb,5);
     oop af[2]={fbb,TAG_SMI(0)}, of=NULL;
     assert(platform_dispatch(PRIM_pf_cborReadFloat,2,af,&of) && of!=TAG_SMI(-1));
@@ -138,26 +173,15 @@ static void test_cbor_decode_leaves(void) {
     oop aftr[2]={ftrb,TAG_SMI(0)}, oftr=NULL;
     assert(platform_dispatch(PRIM_pf_cborReadFloat,2,aftr,&oftr) && oftr==TAG_SMI(-1));
 
-    /* utf8Valid: good "é" (c3 a9), bad (c3 28) */
-    uint8_t good[]={0xc3,0xa9}; uint8_t bad[]={0xc3,0x28};
-    oop g=mkbytes(good,2),bd=mkbytes(bad,2),og=NULL,ob=NULL;
-    platform_dispatch(PRIM_pf_utf8Valid,1,&g,&og); platform_dispatch(PRIM_pf_utf8Valid,1,&bd,&ob);
-    assert(og==(oop)&true_sym_obj && ob==(oop)&false_sym_obj);
-
-    /* utf8Valid: overlong 2-byte (c0 80) rejected; surrogate (ed a0 80) rejected;
-       > U+10FFFF (f4 90 80 80) rejected; valid 4-byte (f0 9f 98 80 = U+1F600) ok */
-    uint8_t ov[]={0xc0,0x80}; uint8_t su[]={0xed,0xa0,0x80};
-    uint8_t hi[]={0xf4,0x90,0x80,0x80}; uint8_t em[]={0xf0,0x9f,0x98,0x80};
-    oop ovb=mkbytes(ov,2),sub=mkbytes(su,3),hib=mkbytes(hi,4),emb=mkbytes(em,4);
-    oop oov=NULL,osu=NULL,ohi=NULL,oem=NULL;
-    platform_dispatch(PRIM_pf_utf8Valid,1,&ovb,&oov);
-    platform_dispatch(PRIM_pf_utf8Valid,1,&sub,&osu);
-    platform_dispatch(PRIM_pf_utf8Valid,1,&hib,&ohi);
-    platform_dispatch(PRIM_pf_utf8Valid,1,&emb,&oem);
-    assert(oov==(oop)&false_sym_obj);
-    assert(osu==(oop)&false_sym_obj);
-    assert(ohi==(oop)&false_sym_obj);
-    assert(oem==(oop)&true_sym_obj);
+    /* utf8Valid: good "é" (c3 a9) valid; bad (c3 28) invalid; overlong 2-byte
+       (c0 80), surrogate (ed a0 80), > U+10FFFF (f4 90 80 80) all rejected;
+       valid 4-byte emoji (f0 9f 98 80 = U+1F600) accepted. */
+    { uint8_t good[]={0xc3,0xa9};        assert(utf8_of(good,2)==TRUE_); }
+    { uint8_t bad[] ={0xc3,0x28};        assert(utf8_of(bad,2) ==FALSE_); }
+    { uint8_t ov[]  ={0xc0,0x80};        assert(utf8_of(ov,2)  ==FALSE_); }
+    { uint8_t su[]  ={0xed,0xa0,0x80};   assert(utf8_of(su,3)  ==FALSE_); }
+    { uint8_t hi[]  ={0xf4,0x90,0x80,0x80}; assert(utf8_of(hi,4)==FALSE_); }
+    { uint8_t em[]  ={0xf0,0x9f,0x98,0x80}; assert(utf8_of(em,4)==TRUE_); }
 
     printf("test_cbor_decode_leaves OK\n");
 }
