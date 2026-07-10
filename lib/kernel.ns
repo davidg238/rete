@@ -747,10 +747,20 @@ class Kernel usingPlatform: platform = () (
       r == nil ifTrue: [ ^ self failDecode: 'integer out of range' ].  (* -2^64 *)
       ^ r )
 
-    floatFrom: b at: i = ( | fr |
+    (* A decoded NaN is a spec §5 totality hole: it is a genuine Float object but
+       NOT a valid algebra value (`platform valueRank:` answers -1 for NaN,
+       kernel.ns rankOf: would then DNU-send `valueRank` to a builtin, and even
+       `checkValue:` would raise the UNTAGGED #error the handler can't catch).
+       Reject it HERE, guarded by the C oracle directly (NOT rankOf:/checkValue:,
+       which re-trigger the same DNU): valueRank: = 3 for a real Float (incl.
+       +/-Infinity, which are legal and round-trip), -1 for NaN. Mirrors the
+       encode side, which also maps NaN -> 'not a value'. *)
+    floatFrom: b at: i = ( | fr fl |
       fr:: platform cborReadFloat: b at: i.
       fr == -1 ifTrue: [ ^ self failDecode: 'not a value' ].
-      ^ self result: (fr basicAt: 1) next: (fr basicAt: 2) )
+      fl:: fr basicAt: 1.
+      (platform valueRank: fl) = 3 ifFalse: [ ^ self failDecode: 'not a value' ].
+      ^ self result: fl next: (fr basicAt: 2) )
 
     (* major 2: definite-length byte string -> algebra Bytes (ByteArray>>freeze).
        A length running past the buffer (incl. an 8-byte LargeInteger length) is
