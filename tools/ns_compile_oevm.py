@@ -106,6 +106,10 @@ class MethodCompiler:
         self.temps = temps
         self.parent = parent_compiler
         self.outer = outer_compiler
+        # Mirror the target oop width down from the OevmCompiler (self.parent
+        # is always the OevmCompiler instance, for both top-level methods and
+        # nested block compilers — see the MethodCompiler( ) call sites).
+        self.oop_bytes = parent_compiler.oop_bytes
         # When compiling a class-side (metaclass) method, this is the qname of
         # the class whose class object is `self`. Lets `self new` inside the
         # body instantiate that class. None for ordinary instance methods.
@@ -807,10 +811,16 @@ class MethodCompiler:
             if kind == "int":
                 ival = int(val)
                 # Integer literals that overflow the tagged SmallInteger range
-                # become boxed LargeInteger constants. The host VM is 64-bit, so
-                # the SMI payload is 62-bit signed (the serializer caps at the
-                # same width); wider literals must be LargeIntegers.
-                if -(1 << 62) <= ival <= (1 << 62) - 1:
+                # become boxed LargeInteger constants. RefWord.smi(v) packs
+                # (v << 2) | TAG_SMI into an oop*8-bit word: 2 tag bits on top
+                # of a signed payload, so the true capacity is magnitude
+                # < 2^(oop_bytes*8-3) — the SAME bound oimg_serialize.py's
+                # _smi_fits() enforces. The old bound (2^(oop_bytes*8-2), i.e.
+                # a fixed 1<<62 on a 64-bit host) was one bit too lenient and
+                # let gap-band literals get labeled "SMI:" here even though
+                # they don't fit the ref-word (nsl-tuvm#4).
+                smi_limit = 1 << (self.oop_bytes * 8 - 3)
+                if -smi_limit <= ival < smi_limit:
                     cidx = self.add_constant(f"SMI:{ival}")
                 else:
                     cidx = self.add_constant(f"LARGEINT:{ival}")
@@ -1387,8 +1397,15 @@ class MethodCompiler:
 
 
 class OevmCompiler:
-    def __init__(self, ast):
+    def __init__(self, ast, oop_bytes=8):
         self.ast = ast
+        # Target oop (ref-word) width in bytes: the same source of truth
+        # oimg_serialize.py's OimgSerializer reads (`self.oop = layout["oop_size"]`).
+        # Path A (--format=c, no --layout) runs as native C on the host, so it
+        # defaults to the host's own width (8). Path B (--format=oimg) passes
+        # layout["oop_size"] in from main() (nsl-tuvm#4: compile_expr's
+        # SMI/LARGEINT split must agree with the ref-word's true capacity).
+        self.oop_bytes = oop_bytes
         self.solidify = SolidifyCompiler()
         # Per-method source maps, keyed "Vtable>>selector". Collected during
         # compile(); serialized to a .stmap sidecar by main().
@@ -2166,8 +2183,22 @@ def main():
     supervisor_ast = json.loads(sproc.stdout)
     ast["body"].extend(supervisor_ast["body"])
 
+    # Determine the target oop width BEFORE compiling: Path A (--format=c, no
+    # --layout) runs as native C on the host, so it stays at the host's own
+    # width (8); Path B (--format=oimg) supplies layout.json, whose oop_size
+    # is the same source of truth oimg_serialize.py's OimgSerializer reads
+    # (self.oop = layout["oop_size"]). Loading it here lets compile_expr's
+    # SMI/LARGEINT split (nsl-tuvm#4) use the real target width instead of a
+    # hardcoded host-64-bit assumption.
+    layout = None
+    oop_bytes = 8
+    if layout_path:
+        import json as _json
+        layout = _json.load(open(layout_path))
+        oop_bytes = layout["oop_size"]
+
     # Compile
-    compiler = OevmCompiler(ast)
+    compiler = OevmCompiler(ast, oop_bytes=oop_bytes)
     try:
         compiler.compile()
     except CompileError as e:
@@ -2185,13 +2216,13 @@ def main():
     # instead of emitting fused C (Model A). The entry class is the first
     # declared class, matching the C path's run_solidified_entry_point.
     if fmt == "oimg":
-        import json as _json
         from oimg_serialize import OimgSerializer
         from builtins_registry import REGISTRY, VERSION
         if not layout_path:
             print("--format=oimg requires --layout=<layout.json>")
             sys.exit(1)
-        layout = _json.load(open(layout_path))
+        # layout already loaded above (before compiling) to size compile_expr's
+        # SMI/LARGEINT split correctly.
         entry_class = next(iter(compiler.all_classes.keys()))
 
         class _Graph:
