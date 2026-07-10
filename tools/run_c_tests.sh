@@ -90,6 +90,11 @@ else echo FAIL; sed 's/^/    /' /tmp/tuvm_ctest.log /tmp/tuvm_ctest.out; fail=1;
 run test_oevm                "$ENG_A"
 run test_gc_mark_iterative   "$ENG_A" -DOEVM_HEAP_SIZE=33554432 -lpthread
 run test_float_gc            "$ENG_A"
+# tuvm#15: float-arena OOM under a small embedded malloc pool. --wrap=malloc caps
+# float-slab allocations below the slab BUDGET (so the budget trigger never fires),
+# proving float_alloc reclaims-on-malloc-failure instead of aborting. Small cells so
+# the capped slabs are cheap; budget deliberately > the pool cap the test enforces.
+run test_float_oom           "$ENG_A" -DOEVM_FLOAT_ARENA_SLAB_CELLS=512 -DOEVM_FLOAT_ARENA_SLAB_BUDGET=8 -Wl,--wrap=malloc
 run test_gc_trigger          "$ENG_A" -DOEVM_HEAP_SIZE=65536
 
 # --- Task 10a: revived KEEP-subsystem tests for the vestigial access control

@@ -325,6 +325,28 @@ oop float_alloc(oop vtable) {
             }
             struct FloatSlab *slab = malloc(sizeof(struct FloatSlab));
             if (!slab) {
+                /* tuvm#15: the pool is exhausted before we reached the slab budget
+                   (small embedded newlib heap — the DK's 64 KB pool can't hold
+                   OEVM_FLOAT_ARENA_SLAB_BUDGET slabs). The budget trigger above
+                   therefore never fired, yet the existing slabs are full of dead
+                   cells (float-heavy loops keep a tiny live set). Don't abort with
+                   reclaimable garbage in hand: run one collection and, if it freed
+                   any cells, draw from the refilled free-list instead of growing.
+                   This makes reclaim driven by real memory pressure, not the budget,
+                   so the arena self-bounds to whatever the pool actually allows. */
+                if (!gc_in_progress) {
+                    gc_in_progress = 1;
+                    gc_collect();                 /* float_sweep refills float_freelist */
+                    gc_in_progress = 0;
+                    if (float_freelist != NULL) {
+                        struct Float *r = float_freelist;
+                        float_freelist = *(struct Float **)&r->value;
+                        r->base.vtable = vtable;
+                        return (oop)r;
+                    }
+                }
+                /* collection freed nothing (live set genuinely exceeds the pool) —
+                   terminal OOM. */
                 fprintf(stderr, "VM Float Arena Error: Out of Memory\n");
                 abort();
             }
