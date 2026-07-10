@@ -1,0 +1,35 @@
+(*
+NetNode — native_sim UDP round-trip gate. Model A (baked into
+src/solidified_image.c). Declares the `net:` capability, binds a receiver on a
+fixed port, sends a datagram to loopback, polls the non-blocking receive until
+it arrives, and prints the sentinel. Mirrors nsl-tests 42_udp.ns's roundTrip:
+logic — the point here is to exercise src/backend/zephyr/udp_zephyr.c's
+zsock_* send/recv over Zephyr's native_sim NSOS loopback (the host build proves
+the same node against udp_posix.c). main: returns after printing; zephyr/src/
+main.c then idles (K_FOREVER) — the gate is checked by console output under
+`timeout`, not by process exit.
+expect:
+UDP OK
+*)
+class NetNode usingPlatform: platform net: net = () (
+  public main: platform2 args: args = (
+    (roundTrip: '127.0.0.1') ifFalse: [ ^ self fail: 'v4 loopback' ].
+    (roundTrip: '::1')       ifFalse: [ ^ self fail: 'v6 loopback' ].
+    'UDP OK' println.
+    ^ 0
+  )
+  roundTrip: host = (
+    | rx tx got |
+    rx:: net udpBindPort: 54332.
+    rx == nil ifTrue: [ ^ false ].
+    tx:: net udp.
+    tx sendTo: host port: 54332 data: 'ping'.
+    got:: nil.
+    [ got == nil ] whileTrue: [ got:: rx receive ].   (* loopback is ~instant *)
+    rx close. tx close.
+    ^ got data = 'ping'
+  )
+  fail: msg = ( msg println. ^ 1 )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)
