@@ -8,6 +8,8 @@ not a value
 integer out of range
 invalid utf-8
 integer out of range
+not a value
+not a value
 *)
 (* Rung 3 Task 6: Cbor decode rejection corpus. decode:ifInvalid: is TOTAL — each
    malformed input routes exactly one error text to the block, which we return
@@ -22,6 +24,8 @@ integer out of range
      3bffffffffffffffff major 1 arg 2^64-1 => value -2^64         -> integer out of range
      62c328             text(2) bytes c3 28 — invalid UTF-8       -> invalid utf-8
      c240               CBOR bignum tag 2                         -> integer out of range
+     f97e00             top-level half-NaN                        -> not a value
+     81f97e00           [NaN] — NaN nested in a List              -> not a value
    Fixtures built via `platform ByteArray fromHex:` (the reachable byte-builder;
    `Bytes` itself is deliberately unexposed) which freezes to an immutable Bytes.
    Both-path A==B gate. *)
@@ -37,6 +41,8 @@ public main: platform args: args = (
   (C decode: (BA fromHex: '3bffffffffffffffff') ifInvalid: [ :e | e ]) println.
   (C decode: (BA fromHex: '62c328')             ifInvalid: [ :e | e ]) println.
   (C decode: (BA fromHex: 'c240')               ifInvalid: [ :e | e ]) println.
+  (C decode: (BA fromHex: 'f97e00')             ifInvalid: [ :e | e ]) println.
+  (C decode: (BA fromHex: '81f97e00')           ifInvalid: [ :e | e ]) println.
 )
 ) : (
 )

@@ -1,0 +1,28 @@
+(*
+expect:
+true
+*)
+(* Rung 3 Task 6 (review fix): POSITIVE float coverage for the decode walk — the
+   decode suite otherwise had zero float coverage, which is how the NaN totality
+   hole slipped through. Round-trips a Record whose fields Map carries floats:
+   1.5 (f16-exact), 0.5, and +Infinity (built by repeated-squaring overflow — the
+   parser has no scientific-notation / Inf literal, and 1.0/0.0 traps), plus a
+   nested List of floats. Proves the guarded `floatFrom:` ACCEPTS real Floats and
+   +/-Infinity (valueRank: 3) after the NaN reject (valueRank: -1) was added.
+   Both-path A==B gate. *)
+class CborFloatRoundtripTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | R M L C inf orig enc back |
+  R:: platform Record. M:: platform Map. L:: platform List. C:: platform Cbor.
+  inf:: 100000000.0.
+  1 to: 6 do: [ :k | inf:: inf * inf ].            (* overflow to +Infinity *)
+  orig:: R tag: #f fields: (M fromPairs: (L
+    with: (L with: #half with: 1.5)
+    with: (L with: #inf  with: inf)
+    with: (L with: #xs   with: (L with: 0.5 with: 1.5)))).
+  enc:: C encode: orig.
+  back:: C decode: enc ifInvalid: [ :e | e ].
+  (orig = back) printString println.
+)
+) : (
+)
