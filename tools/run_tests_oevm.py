@@ -247,6 +247,34 @@ def run_portability_gate() -> str:
     return "PASS"
 
 
+def run_footprint_gate() -> str:
+    """Gate the MCU cross-compile footprint ratchet (tuvm/tools/footprint.sh).
+
+    Cross-compiles the engine core with arm-zephyr-eabi and ratchets text +
+    data+bss against tools/footprint-mcu-baseline.txt: a size regression is a
+    gate failure like a text regression (design addendum A2 / tuvm#5). Returns
+    "PASS", "SKIP" (exit 77 — no cross toolchain on PATH), or "FAIL"."""
+    script = OEVM_DIR / "tools" / "footprint.sh"
+    try:
+        proc = subprocess.run(
+            ["bash", str(script)],
+            cwd=str(OEVM_DIR), capture_output=True, text=True, timeout=300,
+            env={**os.environ, "FOOTPRINT_CONFIG": "mcu"})
+    except Exception as e:
+        print(f"{COLOR_RED}footprint: FAIL{COLOR_RESET} (runner error: {e})")
+        return "FAIL"
+    if proc.returncode == 77:
+        print(f"footprint: SKIP (no arm-zephyr-eabi toolchain)")
+        return "SKIP"
+    if proc.returncode != 0:
+        print(f"{COLOR_RED}footprint: FAIL{COLOR_RESET}")
+        out = (proc.stdout or "") + (proc.stderr or "")
+        print("  " + "\n  ".join(out.strip().splitlines()[-30:]))
+        return "FAIL"
+    print(f"{COLOR_GREEN}footprint: PASSED{COLOR_RESET}")
+    return "PASS"
+
+
 def parse_test_metadata(file_path: Path):
     content = file_path.read_text(encoding="utf-8")
 
@@ -614,9 +642,11 @@ def main():
 
     portability = run_portability_gate()   # "PASS" | "SKIP" | "FAIL"
     boot_gc_ok = run_boot_gc_asan_gate()
+    footprint = run_footprint_gate()   # "PASS" | "SKIP" | "FAIL"
 
     suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok
-                and portability != "FAIL" and boot_gc_ok)
+                and portability != "FAIL" and boot_gc_ok
+                and footprint != "FAIL")
     print(f"\n{COLOR_GREEN if suite_ok else COLOR_RED}Test Execution Summary:{COLOR_RESET}")
     print(f"  Passed:  {passed}")
     print(f"  Failed:  {failed}")
@@ -624,7 +654,8 @@ def main():
     print(f"  grant: {'PASS' if grant_ok else 'FAIL'}  "
           f"debugger-integration: {'PASS' if dbg_int_ok else 'FAIL'}  "
           f"portability-32: {portability}  "
-          f"boot-gc-asan: {'PASS' if boot_gc_ok else 'FAIL'}")
+          f"boot-gc-asan: {'PASS' if boot_gc_ok else 'FAIL'}  "
+          f"footprint: {footprint}")
 
     if not suite_ok:
         sys.exit(1)
