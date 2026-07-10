@@ -35,11 +35,11 @@ heapStats live 40092 / hw 49152 / free 9048 / gc 5 / size 49152
 ```
 
 Invariant check on hardware: `hw (49152) <= size (49152)` ✓, `free (9048) <=
-size (49152)` ✓, `gc (5) >= 1` ✓ — the DK's 49152-word config-D arena forced
+size (49152)` ✓, `gc (5) >= 1` ✓ — the DK's 49152-byte config-D arena forced
 5 collections during the 3000-iteration soak, as expected for this arena size.
 
 For context, a **host** run of the same baked image (large default host
-arena, not the 49152-word config-D arena) had earlier sanity-checked the
+arena, not the 49152-byte config-D arena) had earlier sanity-checked the
 line's shape and confirmed `main:args:` compiles and executes cleanly:
 
 ```
