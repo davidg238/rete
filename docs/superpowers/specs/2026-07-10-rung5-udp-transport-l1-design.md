@@ -1,7 +1,8 @@
-# Rung 5 — UDP transport (Layer 1: net capability) — native_sim proof + Bytes payload — design
+# Rung 5 — UDP transport (Layer 1: net capability) — native_sim proof — design
 
 **Status:** design frozen 2026-07-10; **reconciled to as-built same day** after verifying the
-host net capability already ships and passes. Brainstormed with David 2026-07-10.
+host net capability already ships and passes; **Bytes payload deferred to Layer 2** (David,
+2026-07-10). Brainstormed with David 2026-07-10.
 **Phase:** program-sequence Phase 2/3 seam — the transport the CBOR wire seam (rung 3) and
 the reactive channel model (Milestone C) were built to feed. **This is Layer 1 of a
 three-layer arc** (below); it is the smallest, de-risking bite.
@@ -18,19 +19,21 @@ comment). Verified by running the both-path single-file recipe:
   (SDD ledger progress.md:219). `src/udp.c` is in the conformance build list (line 85) and
   the mcu footprint gate's source list.
 
-**Therefore the host half of Layer 1 needs no build work — only a payload refactor.** What
-is genuinely unbuilt/unproven, and what this rung delivers:
+**Therefore the host half of Layer 1 is already done — this rung is almost entirely the
+native_sim proof.** What is genuinely unbuilt/unproven, and what this rung delivers:
 
 1. **native_sim functional round-trip** — the Zephyr `udp_zephyr.c` backend *links* on
    native_sim (the rung-2 pulse gate enables NSOS networking so it must) but has **never
-   functionally round-tripped a datagram**. This is the rung's core deliverable.
-2. **Payload String → immutable Bytes** — the socket path currently carries String payloads
-   (`42_udp.ns` compares `dg data = 'ping'`). Layer 2 will carry CBOR (not valid UTF-8), so
-   the payload must be raw Bytes. This is now a deliberate refactor of working, tested code
-   plus a wrap/unwrap bridge between the nsl `Bytes` value class and the raw-bytes leaf
-   (§4.1). (David, 2026-07-10: "bytes".)
-3. **Close** — build-list audit (a class of omission that has bitten this project),
-   footprint re-bank, `net` vocabulary/docs, program-sequence update.
+   functionally round-tripped a datagram**. This is the rung's core (and nearly its only)
+   deliverable — no C or facade change, so no risk to the 179/0/12 host suite or five gates.
+2. **Close** — `net` vocabulary/docs (dialect note), program-sequence update, footprint
+   confirmation (no C changed → expected unchanged).
+
+**Deferred (David, 2026-07-10):** the **String → Bytes payload** refactor. The host capability
+already works with String; switching to Bytes is now a refactor of tested code that would
+force the immutable `Bytes` value to expose its raw leaf to the send prim (an immutability
+seam). Layer 2's CBOR bridge needs raw bytes anyway and can keep that leaf internal, so Bytes
+is introduced there, where it belongs — not in this rung. Keeps Layer 1 lean.
 
 ## 1. North star and the three-layer arc
 
@@ -62,15 +65,13 @@ Host-proof-first matches the A–E pattern.
 - **native_sim functional round-trip** of the `net` capability (Path A / Model A only — the
   Zephyr build excludes `oimg_loader.c`), over Zephyr NSOS loopback: proves `udp_zephyr.c`
   send/recv actually work, not just link.
-- **Payload String → immutable Bytes** across `udp.c` (receive data slot), the
-  `Socket`/`Datagram` facade, and the affected tests, with the `Bytes`↔raw-leaf bridge (§4.1).
-- Keep the host both-path round-trip + confinement green through the refactor.
-- Build-list audit for `src/udp.c` + the udp backend; footprint re-bank; `net` dialect/docs
-  note; program-sequence update.
+- Confirm the host suite + five named gates stay green (no code change → expected trivially).
+- `net` dialect/docs note; program-sequence update; footprint confirmation.
 
 **Out of scope (deferred, reversible)** — *keep Layer 1 lean* (David, 2026-07-10):
+- **String → Bytes payload** → **Layer 2** (the CBOR bridge; see §0 and §4.1).
 - The channel↔UDP bridge, `pumpEvents` inbound hook, `whenever:do:` eventing → **Layer 2**.
-- CBOR at the wire → **Layer 2** (Layer 1 carries opaque Bytes; no `Cbor` dependency).
+- CBOR at the wire → **Layer 2**.
 - Real OpenThread / DK silicon → **Layer 3**.
 - Blocking/timeout receive, multicast, TCP, DNS → later, if a workload forces it.
 - Moving net tests into a dedicated `16_net/` dir (cosmetic — they work where they are).
@@ -120,27 +121,18 @@ So the native_sim proof is Path A; a net-granting node is baked via `ns_compile_
 
 ## 4. Design decisions
 
-### 4.1 Payload = immutable Bytes, via a `Bytes`↔raw-leaf bridge
-A datagram is opaque bytes and Layer 2 carries CBOR (not UTF-8), so a String payload is
-semantically wrong. The refactor:
-
-- **C (`udp.c`):** `basicReceive:` builds the **data** slot (slot 1) with a new
-  `udp_make_bytes(...)` that allocates `RawBytesVtable` instead of `StringVtable` (identical
-  struct — a one-vtable change; keep `udp_make_string` for the **host** slot 2, which stays a
-  textual address). `basicSend:to:port:data:` reads `args[3]` as `struct String *` today; a
-  RawBytes leaf has the same layout, so **the send C path is unchanged** — it just needs the
-  facade to hand it a raw leaf (below).
-- **Facade (`kernel.ns`):** `Socket>>receive` wraps the raw data leaf into an immutable nsl
-  `Bytes` value: `Datagram data: (Bytes overRaw: (t basicAt: 1)) senderHost: (t basicAt: 2) …`
-  so `Datagram>>data` answers a first-class `Bytes` (has `=`, `printHex`).
-  `Socket>>sendTo:port:data: aBytes` must hand the prim the **raw leaf**, not the `Bytes`
-  wrapper — pass `aBytes asRawLeaf` (add a read accessor on `Bytes`/`ByteArray` that returns
-  its `raw` ivar; name TBD-in-plan, e.g. `rawLeaf`). The param renames `aString`→`aBytes`.
-- **Tests:** `42_udp.ns` builds its payload as `Bytes` (e.g. `ByteArray fromHex: '70696e67'`
-  = 'ping', or `fromList:`) and asserts `dg data = payload` (value `=` on `Bytes`).
-
-This keeps Layer 1 free of any `Cbor` dependency while making the seam carry exactly what
-Layer 2 needs.
+### 4.1 Payload type = String for now; Bytes deferred to Layer 2
+The socket path carries **String** payloads today (`42_udp.ns`: `dg data = 'ping'`) and works
+on both paths. A datagram is semantically opaque bytes, and Layer 2 will carry CBOR (not valid
+UTF-8), so the payload *will* become immutable `Bytes` — but **that change lands in Layer 2**,
+not here (David, 2026-07-10). Rationale for deferring: the host capability is already tested
+with String, and moving to Bytes would force the immutable `Bytes` value to expose its
+underlying raw-bytes leaf so the send prim can read it (`basicSend:` casts `args[3]` to
+`struct String *`; a `Bytes` *wrapper* is an ObjectInstance, not a same-layout leaf) — an
+immutability seam. Layer 2's CBOR bridge already deals in raw bytes (`Cbor>>encode:` returns an
+immutable `Bytes` over a `RawBytes` leaf) and can keep that leaf internal to the bridge,
+introducing Bytes exactly where it is needed. So Layer 1 stays String; no `udp.c`/facade change
+this rung.
 
 ### 4.2 Opaque, poll-based, standalone — keep Layer 1 lean
 No CBOR, no reactor integration, no `pumpEvents` inbound hook (David: "keep lean").
@@ -157,37 +149,28 @@ At most one 2nd-cap wrapper per entry. The net node grants only `net`, so not a 
 
 | Target | Image path | Backend | Status after this rung |
 |---|---|---|---|
-| host (POSIX) | A + B | `udp_posix.c` | already green; **kept green** through the Bytes refactor (42_udp updated) |
+| host (POSIX) | A + B | `udp_posix.c` | already green; **untouched** (no code change) |
 | native_sim (Zephyr) | A only | `udp_zephyr.c` | **new: functional round-trip over NSOS loopback** |
 
-The host suite must stay both-path green (179→179; the Bytes refactor changes assertions, not
-counts) and the five named gates (grant, debugger-integration, portability-32, boot-gc-asan,
-mcu-footprint) must hold.
+The host suite stays both-path green (179/0/12, unchanged — no source edit) and the five named
+gates (grant, debugger-integration, portability-32, boot-gc-asan, mcu-footprint) hold.
 
-## 6. Task sketch (~5, subagent-driven; controller owns every full-suite run)
+## 6. Task sketch (~2, subagent-driven; controller owns every full-suite run)
 
-1. **Payload → Bytes (C + facade + host tests).** `udp.c` `udp_make_bytes` for the data slot
-   + GC-root re-verify; `Bytes`/`ByteArray` `rawLeaf` accessor; `Socket`/`Datagram` facade to
-   Bytes; update `42_udp.ns` to build/compare `Bytes`; `test_udp.c` (backend-only C) still
-   green. Both-path single-file green.
-2. **Host regression + build-list audit.** Full both-path suite green (179/0/12); grep every
-   `platform.c`-bearing build list (`footprint.sh`, `bench.sh`, `tests/test_load_run.sh`,
-   `tests/test_oimg_blob.sh`, `-m32` `tests/test_portability_32.sh`, grant/debugger gate
-   runners) to confirm `src/udp.c` + the udp backend are present and compile with the Bytes
-   change; five named gates PASS.
-3. **native_sim net node.** Write `tuvm/zephyr/NetNode.ns` (a Model-A node declaring `net:`
-   that binds a socket, sends to loopback, polls receive, prints an `OK` sentinel); bake it
-   into `solidified_image.c` via `ns_compile_oevm.py`; add it beside the pulse node (its own
-   `CONF_FILE`/main variant as needed).
-4. **native_sim functional round-trip.** `west build -b native_sim -p always tuvm/zephyr`;
-   run under `timeout`; assert the `OK` line (datagram actually round-tripped over NSOS).
-   Restore the clobbered `solidified_image.c`/`.stmap` before any commit. If NSOS offloaded
-   loopback misbehaves, fall back to a two-socket same-process exchange on an ephemeral port
-   (still a genuine backend round-trip) — §7.
-5. **Close.** Footprint re-bank (expected ≈0 engine delta — `udp.c` already in the set, Bytes
-   is near-identical code; re-bank if it moves, no silent ratchet); NEWSPEAK_DIALECT `net`
-   note + a short `net` vocabulary paragraph; reconcile CLAIMS/tests README; program-sequence
-   Phase-2/3 net line → "Layer 1 done (host + native_sim); Layers 2/3 named."
+1. **native_sim functional round-trip.** Write `tuvm/zephyr/NetNode.ns` (a Model-A node
+   declaring `net:` that binds a socket, sends to loopback, polls receive, prints an `OK`
+   sentinel — mirroring `42_udp.ns`'s `roundTrip:` logic, self-contained in the tuvm repo like
+   `PulseNode.ns`). First confirm it passes on **host** Path A (isolates node logic from the
+   Zephyr backend). Then bake it into `solidified_image.c` via `ns_compile_oevm.py`,
+   `west build -b native_sim -p always tuvm/zephyr`, run under `timeout`, assert the `OK` line
+   (datagram actually round-tripped over NSOS — the `udp_zephyr.c` functional gate). Restore
+   the clobbered `solidified_image.c`/`.stmap` before any commit. If NSOS offloaded loopback
+   misbehaves, fall back to a two-socket same-process exchange on an ephemeral port (still a
+   genuine backend round-trip) — §7.
+2. **Close.** Confirm the host both-path suite (179/0/12) + five named gates unchanged (no
+   source edit); footprint gate PASS (no C change → expected identical, no re-bank needed);
+   NEWSPEAK_DIALECT `net` note; reconcile the tests README net line; program-sequence
+   Phase-2/3 net line → "Layer 1 done (host both-path + native_sim); Layers 2/3 named."
 
 ## 7. Risks / watch-items
 
@@ -195,17 +178,13 @@ mcu-footprint) must hold.
   `::1`/`127.0.0.1` loopback *should* behave like posix. If offloaded-socket loopback is
   restricted, fall back to the two-socket same-process exchange. Task 4 is the empirical gate.
 - **`zsock_*` symbol drift** against the installed NCS/Zephyr SDK — the backend's own caveat.
-  Task 4 flushes it out; fix symbols in the backend `.c` only (the `udp_backend.h` contract is
-  fixed).
-- **Bytes bridge correctness.** Confirm `Bytes overRaw:` and the new `rawLeaf` accessor
-  against kernel.ns before wiring; ensure `basicSend:` still receives a same-layout leaf
-  (a `Bytes` *wrapper* would break the C `struct String *` cast — the facade must unwrap).
-- **Build-list omission (Task 2).** Historically several tuvm build scripts omitted
-  `serial/udp/mirror`; a host-only single-file run won't catch a gate that fails to link the
-  Bytes change. Audit explicitly.
-- **Footprint.** If the mcu ratchet moves (e.g. the net node pulls extra kernel methods into
-  the solidified image, or the Bytes path adds C), re-bank with `FOOTPRINT_UPDATE_BASELINE=1`
-  and record the delta.
+  Task 1 flushes it out; fix symbols in the backend `.c` only (the `udp_backend.h` contract is
+  fixed). This is the one place the outcome can't be predicted without running the build.
+- **native_sim node output plumbing.** Confirm the baked node's `println` reaches the
+  native_sim console (stdout) so the `OK` sentinel is observable under `timeout`, matching how
+  the pulse gate observes `observed done`.
+- **Footprint.** No engine C changes this rung, so the mcu ratchet is expected identical; if
+  it somehow moves, investigate before re-banking (no silent ratchet).
 
 ## 8. Follow-on rungs (named, not designed here)
 
