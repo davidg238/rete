@@ -1,0 +1,19 @@
+(*
+MeasureNodeDK.ns — rung-4 on-target measurement node. Runs a bounded allocation
+soak (build+drop short Lists to move live_bytes/high_water and trigger a few GC
+cycles), then prints the heapStats snapshot over the DK console (uart0/VCOM) via
+`… out`, exactly as PulseNodeDK.ns emits its line. Baked into the DK boot image
+with (run from the nsl-tuvm repo):
+  python3 tools/ns_compile_oevm.py \
+    /home/david/workspace/tuvm/zephyr/MeasureNodeDK.ns \
+    /home/david/workspace/tuvm/src/solidified_image.c
+*)
+class MeasureNodeDK packageUsing: manifest = () (
+  public main: platform args: args = (
+    | L acc |
+    L:: platform List.
+    1 to: 3000 do: [ :i | acc:: L with: i with: (i + 1) with: (i + 2) ].
+    ('heapStats ' , (platform heapStats) printString) out.
+  )
+) : (
+)
