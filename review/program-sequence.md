@@ -100,6 +100,29 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
    06_float_roundtrip). Co-landed a `.oimg` large-SMI capacity fix (Task 1) needed to represent
    the widened integer range.
 
+   (Infrastructure rung between 3 and 4, not its own conceptual step: **on-target measurement.
+   DONE 2026-07-10** — prim 104 `heapStats` + `HeapStats` class, the MCU footprint ratchet as a
+   5th named gate, DK capture. `tuvm/docs`/SDD ledger.)
+4. **Transport: UDP/OpenThread — a three-layer arc.** The transport that the wire seam (item 3)
+   and the reactive channel model (Milestone C) were built to feed. Design/plan:
+   `nsl-tuvm/docs/superpowers/specs|plans/2026-07-10-rung5-udp-transport-l1.*`. Sequenced
+   host-proof-first, each layer de-risking the next:
+   - **Layer 1 — the confined `net` UDP capability. DONE 2026-07-10 (rung 5).** The host POSIX
+     capability (`Net`/`Socket`/`Datagram` over `udp.c` + `udp_posix.c`, both-path boot grant,
+     receiver-identity dispatch) was already complete and green (`nsl-tests` `42_udp`/`43_udp_confined`,
+     suite 179/0/12). Rung 5 proved the **Zephyr `udp_zephyr.c` backend functionally on
+     `native_sim`** (previously link-only): a `net`-granting Model-A node (`tuvm/zephyr/NetNode.ns`)
+     round-trips a datagram over Zephyr NSOS loopback (`UDP OK`). No VM/facade/compiler change;
+     footprint unchanged. Payload stays `String` this layer.
+   - **Layer 2 — the reactive channel↔UDP bridge (next rung).** Inbound datagram → (during
+     `pumpEvents`) CBOR-decode → post to a channel → `Space>>drain` fires; outbound channel post →
+     CBOR-encode → `udp_send`. Introduces the immutable-`Bytes` payload (deferred here) and the
+     `pumpEvents` eventing. Makes the node network-transparent (the demo-node north star: node posts
+     `node7/reading`; porta bridges it to the LAN, CBOR wire).
+   - **Layer 3 — real OpenThread on the nRF52840-DK (later rung).** Brings the native_sim-validated
+     `udp_zephyr.c` up on silicon over an OpenThread mesh; retires the skipped
+     `nsl-tests` `43_udp_mesh`/`44_udp_thread`.
+
 ## Phase 3 — rejoin the node ladder (keeper, fleet, capabilities)
 
 Entry: phase 2 rungs 1–2 green on hardware. These re-validate proven pre-pivot assets against
@@ -107,9 +130,11 @@ the no-fiber reactive VM rather than building from scratch:
 
 1. **ns-posix keeper + porta rejoin** (R1/R2 assets; keeper core was VM-neutral by design).
 2. **Remote debug over porta** (R3 design; debugger survived Milestone A untouched).
-3. **Capability breadth**: GPIO (R4 blueprint) → i2c → **OpenThread/UDP** (r6 design re-validated;
-   UDP prims exist in tuvm today, fiber-free entry points need review). Capabilities are granted
-   as **constructor args** per the Milestone-C rule.
+3. **Capability breadth**: GPIO (R4 blueprint) → i2c → **OpenThread/UDP**. The UDP/net capability
+   is no longer pending re-validation — it landed as Phase-2 item 4 (Layer 1 done: host both-path +
+   native_sim; fiber-free entry points reviewed, GC temp-rooting confirmed). What remains here is
+   Layer 3 (real OpenThread on the DK) plus GPIO/i2c. Capabilities are granted as **constructor
+   args** per the Milestone-C rule.
 
 ## Phase 4 — generalize (only when real workloads justify)
 

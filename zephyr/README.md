@@ -196,3 +196,40 @@ a line `observed done` after the boot banner.
 > times out). Recover by power-cycling the DK (unplug/replug the on-board-debug
 > USB). Once healthy it enumerates as `1366:1025 SEGGER J-Link` and `west flash
 > --runner jlink` programs it without re-triggering the replace.
+
+# Rung 5 — native_sim UDP round-trip gate (NetNode.ns)
+
+Proves the Zephyr UDP backend (`../src/backend/zephyr/udp_zephyr.c`) functionally
+round-trips a datagram on `native_sim` — previously it only *linked* (the pulse
+gate's `prj.conf` already turns on NSOS networking because `dispatch.c`'s `send()`
+fast path unconditionally probes `udp_object()`). The baked node `NetNode.ns`
+declares the `net:` capability, binds a receiver, sends to loopback (v4 + v6),
+polls the non-blocking `receive`, checks the payload, and prints `UDP OK`.
+
+Model A; reuses this directory's `main.c` / `CMakeLists.txt` / `prj.conf`
+UNCHANGED — the pulse-GPIO block compiles out on native_sim, and `main()` already
+handles a `main:` that returns. String payloads this layer (immutable `Bytes` and
+the reactive channel↔UDP bridge are Layer 2). Real OpenThread on the DK is Layer 3.
+
+## Build + run
+
+```bash
+source /home/david/workspace/ns-zephyr/tools/env.sh
+# bake NetNode.ns into the solidified image (from the nsl-tuvm repo)
+cd /home/david/workspace/nsl-tuvm
+python3 tools/ns_compile_oevm.py \
+  /home/david/workspace/tuvm/zephyr/NetNode.ns \
+  /home/david/workspace/tuvm/src/solidified_image.c
+cd /home/david/workspace/tuvm/zephyr
+west build -b native_sim -p always .
+# NOTE: the current NCS/native_sim runner nests the executable one level deeper
+# than the older pulse recipe above — it is build/zephyr/zephyr/zephyr.exe.
+timeout 8 ./build/zephyr/zephyr/zephyr.exe   # expect a line: UDP OK
+# restore the generated image before committing anything in tuvm
+cd /home/david/workspace/tuvm
+git checkout -- src/solidified_image.c src/solidified_image.stmap
+```
+
+Expected: build completes, the run prints `UDP OK` before `timeout` kills it —
+i.e. `udp_zephyr.c`'s `zsock_socket`/`zsock_bind`/`zsock_sendto`/`zsock_recvfrom`
+actually moved a datagram over Zephyr's NSOS loopback.
