@@ -27,16 +27,53 @@ cd "$(dirname "$0")/.." || exit 2
 # the real target build supplies.
 if [ "${FOOTPRINT_CONFIG:-host}" = "mcu" ]; then
   XCC=${XCC:-arm-zephyr-eabi-gcc}
+  # SKIP (exit 77) when the cross toolchain is absent, so the named gate reports
+  # SKIP rather than FAIL on hosts without the NCS SDK sourced.
+  command -v "$XCC" >/dev/null 2>&1 || {
+    echo "footprint(mcu): SKIP — $XCC not on PATH (source ns-zephyr/tools/env.sh)" >&2
+    exit 77; }
   MCPU="-mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16"
-  $XCC -Os -std=c99 -Isrc $MCPU -D__ZEPHYR__=1 -DOEVM_NO_FILE_IO -c \
+  # Config-D target sizes (DK values from zephyr/README.md; the real Zephyr app build
+  # passes the same via ns-zephyr/app/CMakeLists.txt). Without these the arena/caches
+  # keep their 16 MB / 4096-entry HOST defaults, reproducing the tuvm#5/A2 host-proxy
+  # RAM defect this gate exists to eliminate. data+bss must reflect the TARGET config.
+  TGT_SIZES="-DOEVM_HEAP_SIZE=49152 -DMETHOD_CACHE_SIZE=256 -DPRIM_CACHE_SIZE=256"
+  $XCC -Os -std=c99 -Isrc $MCPU -D__ZEPHYR__=1 -DOEVM_NO_FILE_IO $TGT_SIZES -c \
     src/vm.c src/gc.c src/dispatch.c src/kernel_boot.c src/platform.c \
     src/serial.c src/udp.c src/mirror.c src/oimg_loader.c src/space.c src/handles.c || {
-      echo "mcu build failed — is the NCS SDK on PATH? (source ns-zephyr/tools/env.sh)" >&2
-      exit 2; }
-  arm-zephyr-eabi-size -t vm.o gc.o dispatch.o kernel_boot.o platform.o serial.o \
-        udp.o mirror.o oimg_loader.o space.o handles.o
+      echo "footprint(mcu): cross-compile failed" >&2; rm -f *.o; exit 1; }
+  # TOTAL line from arm-zephyr-eabi-size -t: "  text  data  bss  dec  hex  filename".
+  read -r CUR_TEXT CUR_DATA CUR_BSS _ < <(arm-zephyr-eabi-size -t \
+    vm.o gc.o dispatch.o kernel_boot.o platform.o serial.o udp.o \
+    mirror.o oimg_loader.o space.o handles.o | awk 'END { print $1, $2, $3 }')
   rm -f *.o
-  exit 0
+  CUR_DATA_BSS=$(( CUR_DATA + CUR_BSS ))
+  echo "footprint(mcu): text=$CUR_TEXT data+bss=$CUR_DATA_BSS"
+
+  BASELINE="tools/footprint-mcu-baseline.txt"
+  if [ "${FOOTPRINT_UPDATE_BASELINE:-0}" = "1" ]; then
+    printf 'text %s\ndata_bss %s\n' "$CUR_TEXT" "$CUR_DATA_BSS" > "$BASELINE"
+    echo "footprint(mcu): baseline updated -> text=$CUR_TEXT data+bss=$CUR_DATA_BSS"
+    exit 0
+  fi
+  if [ ! -f "$BASELINE" ]; then
+    echo "footprint(mcu): FAIL — no baseline; run FOOTPRINT_UPDATE_BASELINE=1 first" >&2
+    exit 1; fi
+  BASE_TEXT=$(awk '/^text /{print $2}' "$BASELINE")
+  BASE_DATA_BSS=$(awk '/^data_bss /{print $2}' "$BASELINE")
+  # Corrupt/incomplete baseline: a missing text or data_bss line yields an empty
+  # string, which would make the integer -gt tests error (skipped under set -e as an
+  # `if` condition) and fall through to a false PASS. Fail loudly instead.
+  if [ -z "$BASE_TEXT" ] || [ -z "$BASE_DATA_BSS" ]; then
+    echo "footprint(mcu): FAIL — corrupt baseline $BASELINE (missing text/data_bss line); run FOOTPRINT_UPDATE_BASELINE=1 to rebase" >&2
+    exit 1; fi
+  RC=0
+  if [ "$CUR_TEXT" -gt "$BASE_TEXT" ]; then
+    echo "footprint(mcu): FAIL text $CUR_TEXT > baseline $BASE_TEXT" >&2; RC=1; fi
+  if [ "$CUR_DATA_BSS" -gt "$BASE_DATA_BSS" ]; then
+    echo "footprint(mcu): FAIL data+bss $CUR_DATA_BSS > baseline $BASE_DATA_BSS" >&2; RC=1; fi
+  [ "$RC" -eq 0 ] && echo "footprint(mcu): PASS (text<=$BASE_TEXT data+bss<=$BASE_DATA_BSS)"
+  exit "$RC"
 fi
 
 CC=${CC:-gcc}; TMP=$(mktemp -d)
