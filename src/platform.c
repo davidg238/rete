@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <math.h>
 
 /* ---- Milestone D Task 6: host virtual-clock timer facility -------------
    A deterministic event source: the host test rig never reads wall time.
@@ -201,6 +202,89 @@ oop platform_object(void) {
         platform_initialized = 1;
     }
     return (oop)&PlatformObj;
+}
+
+/* --- Rung 3 Task 3: IEEE-754 binary16 (half) helpers for cborEncodeFloat: ---
+   File-local. Used only to test whether a double round-trips through an f16, so
+   the encoder can pick the shortest of f16/f32/f64. NaN never reaches these
+   (isValue rejects NaN before the prim is dispatched). */
+
+/* Exact binary16 bit pattern -> double. Handles signed zero, subnormals,
+   normals, and infinity (mant!=0 in the all-ones exponent yields NaN, which
+   never occurs here). Bias 15, 10-bit mantissa. */
+static double half_to_double(uint16_t h) {
+    int sign = (h >> 15) & 1;
+    int exp  = (h >> 10) & 0x1f;
+    int mant = h & 0x3ff;
+    double val;
+    if (exp == 0) {
+        val = ldexp((double)mant, -24);              /* subnormal (mant==0 -> 0.0) */
+    } else if (exp == 0x1f) {
+        val = (mant == 0) ? INFINITY : NAN;
+    } else {
+        val = ldexp((double)(mant + 1024), exp - 25); /* normal: (1.mant)*2^(exp-15) */
+    }
+    return sign ? -val : val;
+}
+
+/* double -> binary16 with round-to-nearest-even. The caller accepts the result
+   only when half_to_double() round-trips the double bit-exactly, so for values
+   that are NOT representable in binary16 any produced pattern is fine (it gets
+   rejected by the exactness gate); representable values must map to their exact
+   half. Handles sign, zero, infinity, subnormal/normal ranges and overflow.
+   Always writes *out and returns 1. */
+static int double_to_half(double d, uint16_t *out) {
+    uint64_t u; memcpy(&u, &d, 8);
+    uint16_t sign = (uint16_t)((u >> 48) & 0x8000);
+    int exp = (int)((u >> 52) & 0x7ff);
+    uint64_t mant = u & 0xfffffffffffffULL;      /* 52-bit fraction */
+
+    if (exp == 0x7ff) {                          /* inf / NaN (NaN never reaches here) */
+        *out = (uint16_t)(sign | 0x7c00 | (mant ? 0x200 : 0));
+        return 1;
+    }
+    if (exp == 0 && mant == 0) { *out = sign; return 1; }   /* +/-0 */
+
+    /* Build the 53-bit significand and unbiased leading-bit exponent e so that
+       |d| = signif * 2^(e - 52), with bit 52 of signif being the leading 1. */
+    int e;
+    uint64_t signif;
+    if (exp == 0) {                              /* subnormal double: no implicit bit */
+        e = 1 - 1023;
+        signif = mant;
+        while (!(signif & (1ULL << 52))) { signif <<= 1; e--; }
+    } else {
+        e = exp - 1023;
+        signif = mant | (1ULL << 52);
+    }
+
+    if (e > 15)  { *out = (uint16_t)(sign | 0x7c00); return 1; }  /* overflow -> inf */
+    if (e < -24) { *out = sign; return 1; }                       /* underflow -> 0 */
+
+    /* Drop `shift` low bits of the significand to land on the half grid,
+       rounding to nearest-even. Normal half: E=e+15, keep 11 significant bits.
+       Subnormal half: E field = 0, shift extra so the leading 1 falls into the
+       10-bit mantissa. */
+    int shift, E;
+    if (e >= -14) { shift = 42;              E = e + 15; }  /* 52 - 10 */
+    else          { shift = 42 + (-14 - e);  E = 0; }
+    uint64_t keep = signif >> shift;
+    uint64_t rem  = signif & ((1ULL << shift) - 1);
+    uint64_t halfbit = 1ULL << (shift - 1);
+    if (rem > halfbit || (rem == halfbit && (keep & 1))) keep++;
+
+    uint16_t hbits;
+    if (e >= -14) {                                            /* normal half */
+        if (keep & (1ULL << 11)) { E++; keep >>= 1; }          /* rounding carried */
+        if (E >= 31) { *out = (uint16_t)(sign | 0x7c00); return 1; }  /* -> inf */
+        hbits = (uint16_t)(((unsigned)E << 10) | (uint16_t)(keep & 0x3ff));
+    } else {
+        /* subnormal: keep in [0, 2^10]; keep==2^10 becomes the smallest normal
+           (E=1, mant=0), whose bit pattern is exactly 0x400. */
+        hbits = (uint16_t)keep;
+    }
+    *out = (uint16_t)(sign | hbits);
+    return 1;
 }
 
 int platform_dispatch(int pid, int argc, oop *args, oop *out) {
@@ -496,6 +580,23 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         oop b = gc_allocate(RawBytesVtable, sizeof(struct String) + n);
         ((struct String*)b)->length = n; memcpy(((struct String*)b)->bytes, buf, n);
         *out = b; return 1;
+    }
+    case PRIM_pf_cborEncodeFloat: {
+        /* Encode a Float as CBOR major type 7, the SHORTEST of f16/f32/f64 that
+           round-trips the double exactly. GC-safety: read ->value into a local
+           BEFORE gc_allocate; no heap oop is touched after the allocation. */
+        double d = ((struct Float*)args[0])->value;
+        uint8_t buf[9]; size_t n;
+        float f = (float)d;
+        uint16_t h; int half_ok = double_to_half(d, &h) && half_to_double(h) == d;
+        if (half_ok) { buf[0]=0xf9; buf[1]=(uint8_t)(h>>8); buf[2]=(uint8_t)h; n=3; }
+        else if ((double)f == d) { buf[0]=0xfa; uint32_t uu; memcpy(&uu,&f,4);
+            for(int s=3;s>=0;s--) buf[4-s]=(uint8_t)(uu>>(8*s)); n=5; }
+        else { buf[0]=0xfb; uint64_t uu; memcpy(&uu,&d,8);
+            for(int s=7;s>=0;s--) buf[8-s]=(uint8_t)(uu>>(8*s)); n=9; }
+        oop b = gc_allocate(RawBytesVtable, sizeof(struct String)+n);
+        ((struct String*)b)->length=n; memcpy(((struct String*)b)->bytes,buf,n);
+        *out=b; return 1;
     }
     case PRIM_pf_pumpEvents:
         *out = TAG_SMI(pulse_pump());

@@ -102,4 +102,11 @@
    arithmetic, per the standing lesson above. Serviced in platform.c's
    platform_dispatch switch (used by the Task 5 encode walk). */
 #define PRIM_pf_cborEncodeInt 97
+/* Rung 3 Task 3: CBOR float leaf (`cborEncodeFloat:`), appended after
+   cborEncodeInt: — no pre-existing id shifts. 98 was arrived at by COUNTING
+   PRIM_NAMES (97 entries before this append), not by 97+1 arithmetic, per the
+   standing lesson above. Serviced in platform.c's platform_dispatch switch
+   (used by the Task 5 encode walk). Encodes a Float as CBOR major 7, the
+   shortest of f16/f32/f64 that round-trips the double exactly. */
+#define PRIM_pf_cborEncodeFloat 98
 #endif /* OEVM_PRIM_IDS_H */

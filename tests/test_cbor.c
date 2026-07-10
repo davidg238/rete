@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <math.h>
 
 extern void kernel_boot(void);
 extern void heap_init(void);
@@ -49,10 +50,31 @@ static void test_cbor_encode_int(void) {
     printf("test_cbor_encode_int OK\n");
 }
 
+/* golden pairs from python: cbor2.dumps(float(x)).hex() — shortest of f16/f32/f64
+   that round-trips the double exactly (CBOR major type 7). */
+static void test_cbor_encode_float(void) {
+    struct { const char *hex; double v; } cases[] = {
+        {"f90000", 0.0}, {"f93c00", 1.0}, {"f93e00", 1.5},   /* f16-exact */
+        {"fa47c35000", 100000.0},                            /* f32-exact, not f16 */
+        {"fb3ff199999999999a", 1.1},                         /* f64-only */
+        {"f97c00", INFINITY}, {"f9fc00", -INFINITY},
+    };
+    for (size_t i=0;i<sizeof cases/sizeof cases[0];i++) {
+        oop f = float_alloc(FloatVtable); ((struct Float*)f)->value = cases[i].v;
+        oop out=NULL; int ok = platform_dispatch(PRIM_pf_cborEncodeFloat,1,&f,&out);
+        assert(ok && obj_vtable(out)==RawBytesVtable);
+        struct String *b=(struct String*)out; char got[40]={0};
+        for(size_t k=0;k<b->length;k++) sprintf(got+2*k,"%02x",b->bytes[k]);
+        assert(strcmp(got,cases[i].hex)==0 && "float encode mismatch");
+    }
+    printf("test_cbor_encode_float OK\n");
+}
+
 int main(void) {
     heap_init();
     kernel_boot();
     test_cbor_encode_int();
+    test_cbor_encode_float();
     printf("test_cbor: OK\n");
     return 0;
 }

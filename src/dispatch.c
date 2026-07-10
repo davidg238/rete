@@ -682,6 +682,12 @@ enum {
        pre-existing id shifts. Counted (not computed) to be id 97 — the 97th
        PRIM_NAMES entry. Platform-dispatched (mirrored in prim_ids.h as 97). */
     PRIM_pf_cborEncodeInt,
+    /* Rung 3 Task 3: CBOR float leaf. Encodes a Float as CBOR major 7, the
+       shortest of f16/f32/f64 that round-trips the double exactly. Appended
+       last — no pre-existing id shifts. Counted (not computed) to be id 98 —
+       the 98th PRIM_NAMES entry. Platform-dispatched (mirrored in prim_ids.h
+       as 98). */
+    PRIM_pf_cborEncodeFloat,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -720,6 +726,7 @@ static const char *const PRIM_NAMES[] = {
     "gpioFire:",
     "pumpEvents",
     "cborEncodeInt:",
+    "cborEncodeFloat:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
