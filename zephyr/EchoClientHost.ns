@@ -1,0 +1,35 @@
+(*
+EchoClientHost — Rung 7 pre-flight. A single NetBridge client against the LIVE
+udp-echo6 server on gw85224-01 over Tailscale IPv6 (NO radio). Proves the whole
+Layer-2 client round-trip: a Record is CBOR-encoded, sent over real UDP/IPv6 to
+the gw echo (:7777), reflected byte-verbatim, received, decoded value-equal, and
+a whenever: reaction observes it. Depends on the live gw + Tailscale, so it is
+NOT a conformance-suite member — run it manually (Task 1 harness copy).
+expect:
+ECHO OK
+*)
+class EchoClientHost usingPlatform: platform net: net = () (
+  gwAddr = ( ^ 'fd7a:115c:a1e0::bf01:d921' )   (* gw85224-01 Tailscale IPv6 *)
+  echoPort = ( ^ 7777 )
+  public main: platform2 args: args = (
+    | space sock bridge got rec |
+    space:: platform space.
+    sock:: net udpBindPort: 54350.
+    sock == nil ifTrue: [ ^ self fail: 'bind' ].
+    bridge:: platform NetBridge
+      socket: sock out: (space channel: 'echo/out') peer: gwAddr port: echoPort in: (space channel: 'echo/in').
+    bridge start.
+    got:: nil.
+    (space channel: 'echo/in') whenever: '' do: [ :v | got:: v ].
+    rec:: platform Record tag: #reading with: #seq -> 1 with: #milliC -> 235.
+    (space channel: 'echo/out') out: '' value: rec. space drain.
+    (* busy-poll until the reflection arrives; a lost datagram => the outer
+       `timeout`/harness kills the run (a genuine FAIL), never a silent pass *)
+    [ got == nil ] whileTrue: [ bridge pumpInbound. space drain ].
+    (got = rec) ifTrue: [ 'ECHO OK' println ] ifFalse: [ ^ self fail: 'echo mismatch' ].
+    ^ 0
+  )
+  fail: msg = ( msg println. ^ 1 )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)
