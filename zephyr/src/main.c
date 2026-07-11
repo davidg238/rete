@@ -25,6 +25,43 @@
 #include "oevm.h"
 #include "oimg.h"
 
+#ifdef CONFIG_NET_L2_OPENTHREAD
+#include <zephyr/net/net_if.h>
+#include <zephyr/net/openthread.h>   /* openthread_get_default_context, struct openthread_context */
+#include <openthread.h>              /* Zephyr OT module: init/run/get_default_instance/mutex */
+#include <openthread/thread.h>       /* otThreadGetDeviceRole, OT_DEVICE_ROLE_* */
+
+/* Rung-7 (Layer 3): bring the OpenThread mesh up for the Zephyr SOCKET layer.
+   With CONFIG_OPENTHREAD_MANUAL_START=y the boot SYS_INIT runs openthread_init()
+   but NOT openthread_run(); and with NET_CONFIG off nothing calls net_if_up() on
+   the OT iface. Root cause found this rung: openthread_run() enables IPv6+Thread
+   (the node attaches, so ot-ctl ping + child table work) but NEVER admin-ups the
+   Zephyr net_if — so zsock_sendto returns ENETDOWN (errno 115) even though OT is
+   attached. openthread_run() + net_if_up() together fix it. Mirrors ns-zephyr's
+   app-owned bring-up (app/src/main_b.c), adapted to the NCS v3.2.4 API. */
+static void thread_bringup(void) {
+    (void)openthread_init();                        /* idempotent: L2 inited at boot */
+    int rr = openthread_run();                      /* enable IPv6 + Thread -> attach */
+    struct openthread_context *ctx = openthread_get_default_context();
+    struct net_if *iface = ctx ? ctx->iface : net_if_get_default();
+    int ur = iface ? net_if_up(iface) : -1;         /* THE fix: admin-up the OT net_if */
+    printk("thread: run=%d net_if_up=%d, joining...\n", rr, ur);
+
+    otInstance *inst = openthread_get_default_instance();
+    for (int i = 0; i < 300 && inst; i++) {         /* wait up to ~30s for attach */
+        openthread_mutex_lock();
+        otDeviceRole role = otThreadGetDeviceRole(inst);
+        openthread_mutex_unlock();
+        if (role == OT_DEVICE_ROLE_CHILD || role == OT_DEVICE_ROLE_ROUTER) {
+            printk("thread: attached role=%d\n", role);
+            return;
+        }
+        k_msleep(100);
+    }
+    printk("thread: attach timed out, continuing\n");
+}
+#endif /* CONFIG_NET_L2_OPENTHREAD */
+
 /* Task 8 (nRF52840-DK acceptance bar): bind the on-board BUTTON1 (P0.11) as the
    PHYSICAL edge source for the pulse seam, via the `pulsegpio` DT alias added in
    boards/nrf52840dk_nrf52840.overlay. Guarded on the alias's existence: for the
@@ -97,6 +134,16 @@ int main(void) {
        mid-run could hide output that already happened in-language. */
     setvbuf(stdout, NULL, _IONBF, 0);
 
+    /* USB-CDC-console boards (the nRF52840 dongle): give the SoC USB-CDC time to
+       enumerate before OT bring-up + console output — else early prints are lost
+       and OT on the boot path starves USB enumeration (see docs/ZEPHYR_LESSONS.md
+       §1, the "Issue A" mitigation). Gated on the chosen console being a
+       cdc-acm-uart, so the DK (uart0/VCOM console) and native_sim compile this
+       out — their builds are unchanged. */
+#if DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart)
+    k_sleep(K_SECONDS(3));
+#endif
+
     gc_additional_roots_hook = oevm_roots_callback;
     oevm_millis = zephyr_millis;
 
@@ -104,6 +151,10 @@ int main(void) {
     init_reflection_symbols();
 
     wire_pulse_gpio();   /* Task 8 (DK): arm BUTTON1 as the pulse edge; no-op on native_sim */
+
+#ifdef CONFIG_NET_L2_OPENTHREAD
+    thread_bringup();    /* Rung-7: enable OT + admin-up the net_if before the VM binds sockets */
+#endif
 
     oop result = run_solidified_entry_point();  /* runs PulseNode>>main:args: —
         registers the reaction, fires the simulated edge, then blocks forever
