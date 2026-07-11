@@ -11,7 +11,7 @@ python3 ../ns-oevm/tools/ns_compile_oevm.py "$PROG" "$OIMG" \
 
 BACKEND="src/backend/posix"
 COMMON="src/vm.c src/gc.c src/dispatch.c src/platform.c src/space.c src/handles.c src/serial.c src/udp.c \
-src/mirror.c $BACKEND/platform_posix.c $BACKEND/serial_posix.c $BACKEND/udp_posix.c $BACKEND/pulse_posix.c \
+src/mirror.c $BACKEND/platform_posix.c $BACKEND/serial_posix.c $BACKEND/udp_posix.c $BACKEND/pulse_posix.c $BACKEND/timer_posix.c \
 src/oimg_loader.c src/kernel_boot.c"
 
 # Canonical mmap path.

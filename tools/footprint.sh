@@ -81,7 +81,7 @@ $CC -Os -std=c99 -Isrc -c \
   src/vm.c src/dispatch.c src/gc.c src/kernel_boot.c src/platform.c \
   src/serial.c src/udp.c src/mirror.c src/oimg_loader.c src/space.c \
   src/backend/posix/platform_posix.c src/backend/posix/serial_posix.c \
-  src/backend/posix/udp_posix.c
+  src/backend/posix/udp_posix.c src/backend/posix/timer_posix.c
 size -t vm.o dispatch.o gc.o kernel_boot.o platform.o serial.o udp.o \
         mirror.o oimg_loader.o space.o platform_posix.o serial_posix.o udp_posix.o
 # RAM regression is a gate failure like a text regression (design addendum A2).
