@@ -74,9 +74,10 @@ minimal oracle (the house pattern — keep a behavioral oracle for each new subs
 
 Deployed as an always-available systemd unit `udp-echo6.service` on `gw85224-01`
 (`WantedBy=multi-user.target`, `Restart=always`, `DynamicUser=yes` + light hardening), installed to
-`/usr/local/bin/udp_echo6.py` (script + unit staged 2026-07-11; enabled via David's `sudo` — the gw
-has no passwordless sudo). Stood up **before** the node work (David's sequencing) so the peer is
-live and stable across gateway reboots for this and every future net rung. Non-porta by design: this
+`/usr/local/bin/udp_echo6.py`. **Live + verified 2026-07-11** (`active (running)`, `enabled`; a
+loopback datagram reflected byte-exact, journald logged `echo 6B`). Stood up **before** the node work
+(David's sequencing) so the peer is live and stable across gateway reboots for this and every future
+net rung. Non-porta by design: this
 rung proves *CBOR-over-Thread round-trips*, decoupled from *porta protocol works*.
 
 ## 3. The node
@@ -138,7 +139,7 @@ its future-gate placeholders.
 ## 6. Incremental staging (David: "get some nodes echo'ing first")
 
 1. **Echo server up** as systemd on `gw85224-01`; verify it reflects (loopback datagram + journald).
-   *(In progress — stood up first per David's sequencing.)*
+   **DONE 2026-07-11** — `udp-echo6.service` active + enabled; loopback datagram reflected byte-exact.
 2. **Node joins the mesh** — `prj_dk_thread.conf` + dataset overlay; the node **builds, RAM-fits,
    boots, and appears in the OTBR `child table`.** No app round-trip yet. This is the big de-risk
    (dataset, OT config, RAM fit, RF link). Gate: `ot-ctl child table` shows the node's RLOC16.
