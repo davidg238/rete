@@ -12,7 +12,7 @@ BRIDGE OK
 *)
 class NetBridgeNode usingPlatform: platform net: net = () (
   public main: platform2 args: args = (
-    | space sockA sockB portA portB bridgeA bridgeB gotB rec |
+    | space sockA sockB portA portB bridgeA bridgeB gotB gotA rec |
     space:: platform space.
     portA:: 54343. portB:: 54344.
     sockA:: net udpBindPort: portA.
@@ -29,6 +29,12 @@ class NetBridgeNode usingPlatform: platform net: net = () (
     (space channel: 'a/out') out: '' value: rec. space drain.
     [ gotB == nil ] whileTrue: [ bridgeB pumpInbound. space drain ].
     (gotB = rec) ifFalse: [ ^ self fail: 'a->b mismatch' ].
+    (* B -> A: symmetric leg, so the gate is genuinely bidirectional *)
+    gotA:: nil.
+    (space channel: 'a/in') whenever: '' do: [ :v | gotA:: v ].
+    (space channel: 'b/out') out: '' value: rec. space drain.
+    [ gotA == nil ] whileTrue: [ bridgeA pumpInbound. space drain ].
+    (gotA = rec) ifFalse: [ ^ self fail: 'b->a mismatch' ].
     'BRIDGE OK' println.
     ^ 0
   )
