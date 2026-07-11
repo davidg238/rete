@@ -495,9 +495,13 @@ class Kernel usingPlatform: platform = () (
       ^ platform string: arr )
     setRaw: r = ( raw:: r. ^ self )
     (* Module-internal (Rung 6 Layer 2): answer the underlying RawBytes leaf for
-       the send prim to read. Non-public — same confinement as Channel>>rootPath;
-       only the sibling Socket reaches it. Handing the leaf to basicSend: is a
-       READ (memcpy out to the socket), so it does not breach immutability. *)
+       the send prim to read. Non-public by convention only, like every other
+       non-public kernel setter — this VM's access modifiers are not enforced
+       (oevm#36); nothing stops a caller outside the module from reaching this.
+       The leaf itself is mutation-capable (RawBytes understands at:put:), so
+       this is not an immutability boundary; it works only because the single
+       caller, Socket>>sendTo:, is relied upon to treat it as read-only (memcpy
+       out to the socket). *)
     rawLeaf = ( ^ raw )
   ) : (
     public overRaw: r = ( ^ self new setRaw: r )

@@ -101,10 +101,11 @@ text-shaped door open on a byte channel):
   copies via `platform string:`). No decode-side change.
 - **Outbound** — `Cbor>>encode:` already returns immutable `Bytes`. `Socket>>sendTo:data:` gets a
   `Bytes` and passes its raw leaf to `basicSend:` via a **module-internal `Bytes>>rawLeaf`**
-  accessor (non-public — same confinement as `Channel>>rootPath`; only the sibling `Socket`
-  reaches it). `basicSend:` reads a `RawBytes` leaf. This is a **read**, not a mutation, so it
-  does not breach `Bytes` immutability — it is the "keep the leaf internal to the bridge" the L1
-  spec (§4.1) asked for.
+  accessor. "Module-internal" is convention only, like every other non-public kernel setter — this
+  VM's access modifiers are vestigial (oevm#36), not enforced. The leaf itself is mutation-capable
+  (`RawBytes` understands `at:put:`), so this is not an enforced immutability boundary; it works
+  because the single caller, `Socket>>sendTo:`, is relied upon to only read it (memcpy out to the
+  socket) — it is the "keep the leaf internal to the bridge" the L1 spec (§4.1) asked for.
 
 **Rejected alternative:** `basicSend:` taking the `Bytes` *wrapper* (an `ObjectInstance`) and C
 reaching its ivar slot for `raw` — C depending on an nsl object's ivar layout is fragile.
