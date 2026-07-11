@@ -16,8 +16,10 @@
 #   04_somns_basic/55_fiber_capture.ns     — content differs; fibers deleted in tuvm
 #   04_somns_basic/58_growable_stack.ns    — content differs; growable stack deleted
 #   04_somns_basic/59_grow_under_fibers.ns — content differs; fibers+growable deleted
-#   04_somns_basic/44_udp_thread.ns        — skip-oevm: true on tuvm (no dump to diff)
-#   04_somns_basic/43_udp_mesh.ns          — skip-oevm: true on tuvm (no dump to diff)
+#   (04_somns_basic/43_udp_mesh.ns + 44_udp_thread.ns were RETIRED 2026-07-11 — both were
+#    permanently-skipped hardware-only placeholders, superseded by the rung-7 bench gate
+#    tuvm/zephyr/ThreadEchoNodeDK.ns, which round-trips a CBOR Record over a real
+#    OpenThread mesh on the nRF52840-DK -> BRIDGE OK. Suite skips 12 -> 10.)
 #   03_blocks/03_nlr_compile_fail.ns       — `^` in an escaping block: compiles (and
 #                                            runs) fine on frozen (real NLR), compile-
 #                                            fails by design on tuvm (no-NLR model);
