@@ -22,11 +22,11 @@ class ThreadEchoNodeDK usingPlatform: platform net: net = () (
       socket: sock out: (space channel: 'echo/out') peer: gwAddr port: echoPort in: (space channel: 'echo/in').
     bridge start.
     got:: nil. sent:: false.
-    (space channel: 'echo/in') whenever: '' do: [ :v | got:: v ].
+    (space channel: 'echo/in') whenever: '' do: [ :v | 'GOT REPLY' println. got:: v ].
     rec:: platform Record tag: #reading with: #seq -> 1 with: #milliC -> 235.
     (* BUTTON1 (P0.11, `pulsegpio` alias) edge -> post the Record + mark sent *)
     trigger:: space channel: 'sensor/alert'.
-    trigger whenever: '' do: [ :e | (space channel: 'echo/out') out: '' value: rec. sent:: true ].
+    trigger whenever: '' do: [ :e | 'PRESSED - sending' println. (space channel: 'echo/out') out: '' value: rec. sent:: true ].
     gpio:: platform gpio.
     gpio pin: 13 edge: #rising post: 'go' on: trigger.
     'THREAD NODE READY — press BUTTON1 after attach' println.
