@@ -1,6 +1,7 @@
 (*
 UDP — confined native capability, datagram socket over a real dual-stack POSIX
-backend. R4. Entry declares the second capability `net:`.
+backend. R4. Entry declares the second capability `net:`. Payload is an immutable
+Bytes (Rung 6 Layer 2 seam: a datagram is opaque bytes, not text).
 expect:
 UDP OK
 *)
@@ -11,17 +12,23 @@ class UdpTest usingPlatform: platform net: net = () (
     'UDP OK' println.
     ^ 0
   )
+  ping = (
+    | b |
+    b:: (platform ByteArray) new: 4.
+    b u8At: 1 put: 112. b u8At: 2 put: 105. b u8At: 3 put: 110. b u8At: 4 put: 103.
+    ^ b freeze
+  )
   roundTrip: host = (
     | rx tx dg got |
     rx:: net udpBindPort: 54331.
     rx == nil ifTrue: [ ^ false ].
     tx:: net udp.
-    tx sendTo: host port: 54331 data: 'ping'.
+    tx sendTo: host port: 54331 data: ping.
     got:: nil.
     [ got == nil ] whileTrue: [ got:: rx receive ].   (* loopback is ~instant *)
     dg:: got.
     rx close. tx close.
-    ^ dg data = 'ping'
+    ^ dg data = ping
   )
   fail: msg = ( msg println. ^ 1 )
 ) : (
