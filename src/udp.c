@@ -33,6 +33,18 @@ static oop udp_make_string(const uint8_t *bytes, size_t len) {
     return s;
 }
 
+extern oop RawBytesVtable;   /* Milestone B RawBytes leaf; set by kernel_boot.c (host) / solidified_image.c (Model A) */
+
+/* Datagram payloads are opaque bytes, not text (Rung 6 Layer 2). Same {length,
+   inline bytes} layout as udp_make_string, distinct vtable so the leaf never
+   gains String methods and reads back as an immutable Bytes in nsl. */
+static oop udp_make_bytes(const uint8_t *bytes, size_t len) {
+    oop s = gc_allocate(RawBytesVtable, sizeof(struct String) + len);
+    ((struct String *)s)->length = len;
+    if (len > 0) memcpy(((struct String *)s)->bytes, bytes, len);
+    return s;
+}
+
 oop udp_object(void) {
     if (!udp_initialized) {
         udp_open();
@@ -53,7 +65,7 @@ oop udp_dispatch(oop selector, int argc, oop *args) {
         int port = IS_SMI(args[0]) ? (int)UNTAG_SMI(args[0]) : 0;
         return TAG_SMI(udp_socket_bind(port));
     }
-    if (strcmp(sel, "basicSend:to:port:data:") == 0) { /* fd, hostStr, portSMI, dataStr */
+    if (strcmp(sel, "basicSend:to:port:data:") == 0) { /* fd, hostStr, portSMI, dataBytesLeaf */
         int fd = (int)UNTAG_SMI(args[0]);
         struct String *host = (struct String *)args[1];
         int port = (int)UNTAG_SMI(args[2]);
@@ -76,7 +88,7 @@ oop udp_dispatch(oop selector, int argc, oop *args) {
            each must be pinned as a temp root before those allocations run. */
         extern void gc_temp_root_push(oop o);
         extern void gc_temp_roots_clear(void);
-        oop dataS = udp_make_string(buf, (size_t)n);
+        oop dataS = udp_make_bytes(buf, (size_t)n);
         gc_temp_root_push(dataS);
         oop hostS = udp_make_string((const uint8_t *)host, strlen(host));
         gc_temp_root_push(hostS);
