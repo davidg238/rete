@@ -105,25 +105,27 @@ class EchoClientHost usingPlatform: platform net: net = () (
 
 The conformance harness threads the `net` grant when the entry declares `net:` and does the host build+run+expect-compare. Copy the node in transiently (it depends on the live gw, so it must NOT stay in the suite):
 
+**IMPORTANT — the harness has NO single-test filter.** `run_tests_oevm.py` (`main()`) globs and runs ALL `**/*.ns` regardless of any positional arg, so `run_tests_oevm.py 46_echo_client_live` silently runs the entire 193-test suite (both paths) — a `timeout` then kills it long before it reaches the file, which *looks* like a hang. For a single live-network node, build the Path-A runner directly (this is exactly `run_test_file()`'s recipe, minus the suite loop). `ns_compile_oevm.py` threads the `net` grant straight from the `.ns` class header (`... net: net`), so it compiles `tuvm/zephyr/EchoClientHost.ns` in place — **no `nsl-tests` copy is needed.**
+
 ```bash
-cp /home/david/workspace/tuvm/zephyr/EchoClientHost.ns \
-   /home/david/workspace/nsl-tests/04_somns_basic/46_echo_client_live.ns
 cd /home/david/workspace/nsl-tuvm
-OEVM_PATH=AB python3 tools/run_tests_oevm.py 46_echo_client_live 2>&1 | tee /tmp/rung7_preflight.log
+python3 tools/ns_compile_oevm.py \
+  /home/david/workspace/tuvm/zephyr/EchoClientHost.ns \
+  /home/david/workspace/tuvm/src/solidified_image.c
+cd /home/david/workspace/tuvm
+gcc -Wall -std=c99 -Isrc -DOEVM_APPLIANCE \
+  src/vm.c src/gc.c src/dispatch.c src/platform.c src/space.c src/handles.c \
+  src/serial.c src/udp.c src/mirror.c \
+  src/backend/posix/platform_posix.c src/backend/posix/serial_posix.c \
+  src/backend/posix/udp_posix.c src/backend/posix/pulse_posix.c \
+  src/solidified_image.c src/oevm_main.c -o /tmp/echo_runner -lm
+timeout 10 /tmp/echo_runner ; echo "exit: $?"
+git checkout -- src/solidified_image.c src/solidified_image.stmap   # restore the clobbered image
 ```
 
-Expected: PASS on Path A and Path B — `ECHO OK`. On the gw, `journalctl -u udp-echo6.service -n 2 -o cat` shows a fresh `echo NB <-> [fd7a:115c:a1e0::8733:894a%0]:54350` line (the reflection this run triggered). If it FAILS with a hang→timeout, the datagram did not round-trip: confirm `udp-echo6.service` is active and `ssh david@gw85224-01 'ss -uln | grep 7777'` shows the listener; confirm `python3 -c "import socket; s=socket.socket(10,2); s.settimeout(3); s.sendto(b'x',('fd7a:115c:a1e0::bf01:d921',7777)); print(s.recvfrom(64))"` still round-trips from this host.
+Expected: `ECHO OK` and `exit: 0` within a second (Tailscale RTT is ~ms; the node busy-polls receive until the reflection arrives). On the gw, `ssh david@gw85224-01 'journalctl -u udp-echo6.service -n 3 -o cat'` shows a fresh `echo 32B <-> [fd7a:115c:a1e0::8733:894a%0]:54350` line — the 32-byte CBOR `Record` reflected back to the node's bound port 54350. If it instead spins to the 10 s cap: confirm `udp-echo6.service` is active and `python3 -c "import socket; s=socket.socket(10,2); s.setsockopt(41,27,0); s.bind(('::',54350)); s.settimeout(3); s.sendto(b'x',('fd7a:115c:a1e0::bf01:d921',7777)); print(s.recvfrom(64))"` still round-trips a *bound-socket* datagram from this host.
 
-- [ ] **Step 3: Remove the transient harness copy (it must never be committed to the suite)**
-
-```bash
-rm /home/david/workspace/nsl-tests/04_somns_basic/46_echo_client_live.ns
-git -C /home/david/workspace/nsl-tests status --short   # expect: clean (nothing to commit)
-```
-
-Expected: `nsl-tests` is clean — the pre-flight copy is gone, nothing staged.
-
-- [ ] **Step 4: Commit the reusable host client (tuvm only)**
+- [ ] **Step 3: Commit the reusable host client (tuvm only)**
 
 ```bash
 cd /home/david/workspace/tuvm
@@ -132,8 +134,9 @@ git commit -m "feat(rung7): host NetBridge echo client vs live gw (pre-flight)
 
 A single NetBridge client that round-trips a CBOR Record against the live
 udp-echo6 server on gw85224-01 over Tailscale IPv6 (ECHO OK) — proves the
-Layer-2 client stack against the real echo peer with no radio. Not a suite
-member (depends on the live gw); run via a transient conformance-harness copy.
+Layer-2 client stack against the real echo peer with no radio. Verified on
+host Path A (direct oevm_runner build). Not a suite member (depends on the
+live gw + Tailscale).
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
