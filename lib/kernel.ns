@@ -1004,6 +1004,49 @@ class Kernel usingPlatform: platform = () (
     public data: d senderHost: h senderPort: p = ( ^ self new setData: d host: h port: p )
   )
 
+  (* Rung 6 Layer 2 — the reactive channel<->UDP bridge. Holds a bound Socket, an
+     `out` Channel it subscribes to (posts there are CBOR-encoded and sent to the
+     peer), and an `in` Channel it posts decoded inbound Records onto. Reuses the
+     L1 Socket send/receive prims and the Cbor codec; no new C. Outbound is a
+     normal drain-time reaction; inbound is an explicit pumpInbound step (the
+     reactor's pump-then-drain idiom — pumpInbound stages, drain fires). Peer is a
+     raw host String + port SMI. A malformed inbound datagram is DROPPED (untrusted
+     network input, errors.md expected condition) — it must never crash the node. *)
+  class NetBridge = ( | socket out peerHost peerPort in | ) (
+    setSocket: s out: o peerHost: ph peerPort: pp in: i = (
+      socket:: s. out:: o. peerHost:: ph. peerPort:: pp. in:: i. ^ self )
+    (* VM workaround: the block passed to `whenever:do:` is a genuine reified
+       BlockClosure (stored by the reactor, unlike an inlined control-flow block
+       such as `whileFalse:`'s argument below); a DIRECT cross-class call
+       (`Cbor new encode: v`) written inline in such a block's body does not
+       correctly resolve the callee's outer/platform context on this VM (LD_SLOT
+       aborts on a non-object receiver) — reproduced with a minimal repro
+       (`OrderedCollection new` alone, called from inside a `whenever:do:` block,
+       crashes identically; the same call one line above/below the block, or
+       reached via a `self`-send FROM the block, does not). Routing through a
+       `self`-send from inside the block gives the encode call a normal method
+       activation, which resolves correctly. *)
+    encodeFor: v = ( ^ Cbor new encode: v )
+    public start = (
+      out whenever: '' do: [ :v | socket sendTo: peerHost port: peerPort data: (self encodeFor: v) ].
+      ^ self )
+    (* Receive-until-empty; decode each datagram; drop on decode failure (bad `set`
+       true), post the decoded value onto `in` otherwise (a legitimately-nil value
+       still posts — only a decode FAILURE drops). *)
+    public pumpInbound = (
+      | dg bad v |
+      dg:: socket receive.
+      [ dg == nil ] whileFalse: [
+        bad:: false.
+        v:: Cbor new decode: dg data ifInvalid: [ :msg | bad:: true. nil ].
+        bad ifFalse: [ in out: '' value: v ].
+        dg:: socket receive ].
+      ^ self )
+  ) : (
+    public socket: s out: o peer: ph port: pp in: i = (
+      ^ self new setSocket: s out: o peerHost: ph peerPort: pp in: i )
+  )
+
   serialOn: aPort = ( ^ Serial onPort: aPort )
   netOn: aPort = ( ^ Net onPort: aPort )
 
@@ -1739,6 +1782,7 @@ class Kernel usingPlatform: platform = () (
      The v1 PRIM_error minted a FRESH non-interned Symbol, which never matched. *)
   public crashRecordText: aText = ( ^ Record tag: #error with: #text -> aText )
   public ByteArray         = ( ^ ByteArray )
+  public NetBridge         = ( ^ NetBridge )
   public ReadStream        = ( ^ ReadStream )
   public WriteStream       = ( ^ WriteStream )
   (* Stateless facade (Milestone C Task 2): the tuple-space substrate is the
