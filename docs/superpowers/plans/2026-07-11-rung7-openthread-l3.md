@@ -567,3 +567,28 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 **Placeholder scan:** no TBD/TODO. Every code/config step shows full content. The one deliberate placeholder is the *dataset* in the committed `prj_dk_thread.conf` (OpenThread defaults) — that is a security requirement (real key gitignored), not a plan gap, and is called out in Task 2 Steps 2–3. The dialect-doc target (Task 5 Step 5) is grep-resolved with a "do not invent a doc" guard. Hardware Tasks 3–4 are steps of observation, not code — exact commands + gate criteria + troubleshooting are given.
 
 **Type consistency:** `NetBridge socket:out:peer:port:in:` + `start` + `pumpInbound` match the frozen Rung-6 API and the `NetBridgeNode.ns` call sites. `gpio pin:edge:post:on:` + `platform pumpEvents` + `space channel: 'sensor/alert'` match `PulseNodeDK.ns` exactly. `platform Record tag:with:with:` matches `NetBridgeNode.ns`. `EchoClientHost.ns` (Task 1, Tailscale addr, no pulse) and `ThreadEchoNodeDK.ns` (Task 2, OMR addr, BUTTON1) differ only in target address + trigger, as intended. ✓
+
+---
+
+## Post-implementation addendum (2026-07-11) — shipped, with two invalidated premises
+
+`BRIDGE OK` bench-verified on the DK. Two plan premises broke during Task 4 (the plan's
+"stop and escalate" rule fired); both fixes stayed within the allowed surface (node `.ns`,
+board conf, `src/main.c` node glue) — no VM/bridge/CBOR/facade change:
+
+1. **gwAddr = OMR was wrong.** The MTD child never SLAAC-configures an OMR address (only its
+   mesh-local EID registers, per `ot-ctl childip`), so it has no route/source for the OMR
+   prefix and `zsock_sendto` to the OMR silently fails. **Fixed:** `gwAddr` → the gw **ML-EID**
+   `fdc5:9109:9afe:97ea:9541:d963:f8d9:8567` (same mesh-local /64 the node lives in).
+
+2. **DK OT auto-start does NOT make sockets work.** The real blocker was `ENETDOWN` (errno 115):
+   NCS v3.2.4 `openthread_run()` enables OT (attach + `ot-ctl ping` work — OT-internal ICMP) but
+   never `net_if_up()`s the Zephyr socket iface; with `NET_CONFIG_SETTINGS=n` nothing else does.
+   **Fixed:** `CONFIG_OPENTHREAD_MANUAL_START=y` + `src/main.c thread_bringup()` =
+   `openthread_run()` **+ `net_if_up()`** + attach-wait (mirrors ns-zephyr `main_b.c`, v3.2.4 API).
+   The §7 OT-thread-starvation risk was a non-issue (net RX preempts the non-blocking poll).
+
+Also this session (beyond this plan): the **nRF52840 dongle** port (functional/headless — Issue A),
+and two durable docs `tuvm/zephyr/docs/{ZEPHYR_LESSONS,BOARD_PORTS}.md`. See the SDD ledger
+(`.superpowers/sdd/progress.md`, RUNG 7 section) for the full arc. Task 5 (close: footprint re-bank,
+README, retire skipped mesh tests) remains, plus the FTD topology-reporter next-rung candidate.
