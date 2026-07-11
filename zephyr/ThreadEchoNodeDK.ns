@@ -1,0 +1,49 @@
+(*
+ThreadEchoNodeDK — Rung 7 Layer-3 gate. Model-A DK node (baked into
+src/solidified_image.c). Declares net:, binds a socket, wires one NetBridge to
+the gw OMR echo (:7777) over the OpenThread mesh. Reuses the Task-8 pulse-GPIO
+seam: a PHYSICAL BUTTON1 press (after the MTD attaches) posts the Record, whose
+outbound reaction CBOR-encodes + sends it over 802.15.4; the gw echo reflects it;
+pumpInbound receives + decodes value-equal; the whenever: reaction prints
+BRIDGE OK on uart0/VCOM (/dev/ttyACM0). Dialect note (as PulseNodeDK): use
+`[ ... ] whileTrue:`, not `repeat`.
+expect (on the DK console, after boot + attach + a BUTTON1 press):
+BRIDGE OK
+*)
+class ThreadEchoNodeDK usingPlatform: platform net: net = () (
+  gwAddr = ( ^ 'fd77:9957:d9f3:1:2935:a821:1d56:c329' )   (* gw OMR (mesh-routable) *)
+  echoPort = ( ^ 7777 )
+  public main: platform2 args: args = (
+    | space sock bridge gpio trigger got rec sent |
+    space:: platform space.
+    sock:: net udpBindPort: 54360.
+    sock == nil ifTrue: [ ^ self fail: 'bind' ].
+    bridge:: platform NetBridge
+      socket: sock out: (space channel: 'echo/out') peer: gwAddr port: echoPort in: (space channel: 'echo/in').
+    bridge start.
+    got:: nil. sent:: false.
+    (space channel: 'echo/in') whenever: '' do: [ :v | got:: v ].
+    rec:: platform Record tag: #reading with: #seq -> 1 with: #milliC -> 235.
+    (* BUTTON1 (P0.11, `pulsegpio` alias) edge -> post the Record + mark sent *)
+    trigger:: space channel: 'sensor/alert'.
+    trigger whenever: '' do: [ :e | (space channel: 'echo/out') out: '' value: rec. sent:: true ].
+    gpio:: platform gpio.
+    gpio pin: 13 edge: #rising post: 'go' on: trigger.
+    'THREAD NODE READY — press BUTTON1 after attach' println.
+    (* Single loop: BEFORE the press, `pumpEvents` BLOCKS on the pulse msgq
+       (pulse_pump K_FOREVER) — this YIELDS the CPU so the OpenThread thread can
+       attach the MTD. The press fires the trigger (posts the Record, sets sent);
+       AFTER that we stop calling pumpEvents (it would re-block and never pump the
+       reply) and busy-poll `pumpInbound` for the echo — relying on the OT/net
+       thread preempting this poll to deliver the RX. drain fires the outbound send
+       (first post-sent drain) then the inbound reaction that sets got. *)
+    [ got == nil ] whileTrue: [
+      sent ifFalse: [ platform pumpEvents ].
+      bridge pumpInbound. space drain ].
+    (got = rec) ifTrue: [ 'BRIDGE OK' println ] ifFalse: [ ^ self fail: 'echo mismatch' ].
+    ^ 0
+  )
+  fail: msg = ( msg println. ^ 1 )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

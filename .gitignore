@@ -32,3 +32,5 @@ oevm_img
 _*.stmap
 src/_*.stmap
 zephyr/build/
+
+zephyr/prj_dk_thread_local.conf
