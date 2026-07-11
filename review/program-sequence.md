@@ -105,7 +105,8 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
    5th named gate, DK capture. `tuvm/docs`/SDD ledger.)
 4. **Transport: UDP/OpenThread — a three-layer arc.** The transport that the wire seam (item 3)
    and the reactive channel model (Milestone C) were built to feed. Design/plan:
-   `nsl-tuvm/docs/superpowers/specs|plans/2026-07-10-rung5-udp-transport-l1.*`. Sequenced
+   `nsl-tuvm/docs/superpowers/specs|plans/2026-07-10-rung5-udp-transport-l1.*` (Layer 1) and
+   `.../2026-07-10-rung6-udp-bridge-l2.*` (Layer 2). Sequenced
    host-proof-first, each layer de-risking the next:
    - **Layer 1 — the confined `net` UDP capability. DONE 2026-07-10 (rung 5).** The host POSIX
      capability (`Net`/`Socket`/`Datagram` over `udp.c` + `udp_posix.c`, both-path boot grant,
@@ -114,11 +115,21 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
      `native_sim`** (previously link-only): a `net`-granting Model-A node (`tuvm/zephyr/NetNode.ns`)
      round-trips a datagram over Zephyr NSOS loopback (`UDP OK`). No VM/facade/compiler change;
      footprint unchanged. Payload stays `String` this layer.
-   - **Layer 2 — the reactive channel↔UDP bridge (next rung).** Inbound datagram → (during
-     `pumpEvents`) CBOR-decode → post to a channel → `Space>>drain` fires; outbound channel post →
-     CBOR-encode → `udp_send`. Introduces the immutable-`Bytes` payload (deferred here) and the
-     `pumpEvents` eventing. Makes the node network-transparent (the demo-node north star: node posts
-     `node7/reading`; porta bridges it to the LAN, CBOR wire).
+   - **Layer 2 — the reactive channel↔UDP bridge. DONE 2026-07-10 (rung 6).** A pure-`.ns`
+     `NetBridge` (in `kernel.ns`) over the L1 `Socket` send/receive prims + the `Cbor` codec —
+     no new C. Outbound: an `out whenever:'' do:` drain-time reaction CBOR-encodes each post and
+     `sendTo:`s the peer. Inbound: an explicit `pumpInbound` (receive-until-nil → CBOR-decode →
+     post onto `in`), following the reactor's pump-then-`drain` idiom; a malformed datagram is
+     **dropped, never crashes the node** (untrusted-input boundary). Lands the immutable-`Bytes`
+     payload deferred from L1 (a module-internal `Bytes>>rawLeaf` send seam; `Datagram>>data` is
+     now a `Bytes`). Proven **bidirectionally on host AND native_sim** (`nsl-tests` `45_udp_bridge`
+     A↔B + garbage-drop; `tuvm/zephyr/NetBridgeNode.ns` → `BRIDGE OK` over NSOS loopback). Makes
+     the node network-transparent (demo-node north star: node posts `node7/reading`; porta bridges
+     it to the LAN, CBOR wire). Ingress stays an explicit `pumpInbound` call (rule-of-three — a
+     unified `pumpEvents` registry waits for a second data source; serial-rx paper-sketch in the
+     design §7 flags stream-framing as its own future concern). VM finding: a reified `whenever:do:`
+     block cannot inline a cross-class call needing outer/`platform` resolution — routed through a
+     `self`-send helper (established house style; candidate tuvm issue).
    - **Layer 3 — real OpenThread on the nRF52840-DK (later rung).** Brings the native_sim-validated
      `udp_zephyr.c` up on silicon over an OpenThread mesh; retires the skipped
      `nsl-tests` `43_udp_mesh`/`44_udp_thread`.

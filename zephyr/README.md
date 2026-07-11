@@ -208,8 +208,8 @@ polls the non-blocking `receive`, checks the payload, and prints `UDP OK`.
 
 Model A; reuses this directory's `main.c` / `CMakeLists.txt` / `prj.conf`
 UNCHANGED — the pulse-GPIO block compiles out on native_sim, and `main()` already
-handles a `main:` that returns. String payloads this layer (immutable `Bytes` and
-the reactive channel↔UDP bridge are Layer 2). Real OpenThread on the DK is Layer 3.
+handles a `main:` that returns. (Payload migrated to an immutable `Bytes` in Layer 2
+— see the Rung 6 gate below.) Real OpenThread on the DK is Layer 3.
 
 ## Build + run
 
@@ -233,3 +233,32 @@ git checkout -- src/solidified_image.c src/solidified_image.stmap
 Expected: build completes, the run prints `UDP OK` before `timeout` kills it —
 i.e. `udp_zephyr.c`'s `zsock_socket`/`zsock_bind`/`zsock_sendto`/`zsock_recvfrom`
 actually moved a datagram over Zephyr's NSOS loopback.
+
+# Rung 6 — native_sim NetBridge round-trip gate (NetBridgeNode.ns)
+
+Proves the Layer-2 reactive channel↔UDP bridge (`NetBridge` in
+`nsl-tuvm/lib/kernel.ns`) functionally round-trips a CBOR `Record` on `native_sim`.
+The baked node `NetBridgeNode.ns` wires two `NetBridge`s A↔B in one `Space`, posts a
+`Record` to A's `out` channel, and observes it CBOR-decoded on B's `in` channel,
+printing `BRIDGE OK`. This exercises the whole Layer-2 stack on the target-shaped
+backend: `Cbor encode`/`decode` (the leaves link on native_sim), the immutable-`Bytes`
+payload, `Socket` send/receive over `udp_zephyr.c`, and `Space>>drain`. Model A;
+reuses this directory's `main.c` / `CMakeLists.txt` / `prj.conf` UNCHANGED (no
+`CONFIG_NET_LOOPBACK` needed — NSOS loopback delivered as-is).
+
+## Build + run
+
+```bash
+source /home/david/workspace/ns-zephyr/tools/env.sh
+# bake NetBridgeNode.ns into the solidified image (from the nsl-tuvm repo)
+cd /home/david/workspace/nsl-tuvm
+python3 tools/ns_compile_oevm.py \
+  /home/david/workspace/tuvm/zephyr/NetBridgeNode.ns \
+  /home/david/workspace/tuvm/src/solidified_image.c
+cd /home/david/workspace/tuvm/zephyr
+west build -b native_sim -p always .
+timeout 8 ./build/zephyr/zephyr/zephyr.exe   # expect a line: BRIDGE OK
+# restore the generated image before committing anything in tuvm
+cd /home/david/workspace/tuvm
+git checkout -- src/solidified_image.c src/solidified_image.stmap
+```
