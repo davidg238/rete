@@ -178,24 +178,32 @@ class ThreadEchoNodeDK usingPlatform: platform net: net = () (
   gwAddr = ( ^ 'fd77:9957:d9f3:1:2935:a821:1d56:c329' )   (* gw OMR (mesh-routable) *)
   echoPort = ( ^ 7777 )
   public main: platform2 args: args = (
-    | space sock bridge gpio trigger got rec |
+    | space sock bridge gpio trigger got rec sent |
     space:: platform space.
     sock:: net udpBindPort: 54360.
     sock == nil ifTrue: [ ^ self fail: 'bind' ].
     bridge:: platform NetBridge
       socket: sock out: (space channel: 'echo/out') peer: gwAddr port: echoPort in: (space channel: 'echo/in').
     bridge start.
-    got:: nil.
+    got:: nil. sent:: false.
     (space channel: 'echo/in') whenever: '' do: [ :v | got:: v ].
     rec:: platform Record tag: #reading with: #seq -> 1 with: #milliC -> 235.
-    (* BUTTON1 (P0.11, `pulsegpio` alias) edge -> post the Record to echo/out *)
+    (* BUTTON1 (P0.11, `pulsegpio` alias) edge -> post the Record + mark sent *)
     trigger:: space channel: 'sensor/alert'.
-    trigger whenever: '' do: [ :e | (space channel: 'echo/out') out: '' value: rec ].
+    trigger whenever: '' do: [ :e | (space channel: 'echo/out') out: '' value: rec. sent:: true ].
     gpio:: platform gpio.
     gpio pin: 13 edge: #rising post: 'go' on: trigger.
     'THREAD NODE READY — press BUTTON1 after attach' println.
-    (* pump pulses + inbound each turn; exit once the echo round-trips back *)
-    [ got == nil ] whileTrue: [ platform pumpEvents. bridge pumpInbound. space drain ].
+    (* Single loop: BEFORE the press, `pumpEvents` BLOCKS on the pulse msgq
+       (pulse_pump K_FOREVER) — this YIELDS the CPU so the OpenThread thread can
+       attach the MTD. The press fires the trigger (posts the Record, sets sent);
+       AFTER that we stop calling pumpEvents (it would re-block and never pump the
+       reply) and busy-poll `pumpInbound` for the echo — relying on the OT/net
+       thread preempting this poll to deliver the RX. drain fires the outbound send
+       (first post-sent drain) then the inbound reaction that sets got. *)
+    [ got == nil ] whileTrue: [
+      sent ifFalse: [ platform pumpEvents ].
+      bridge pumpInbound. space drain ].
     (got = rec) ifTrue: [ 'BRIDGE OK' println ] ifFalse: [ ^ self fail: 'echo mismatch' ].
     ^ 0
   )
@@ -422,7 +430,9 @@ Expected sequence:
 - [ ] **Step 2: Interpret / troubleshoot**
 
 - **`BRIDGE OK` printed** → the rung's proof is met: a full Layer-2 NetBridge round-trip (`Record → CBOR → 802.15.4 → echo → 802.15.4 → decode → whenever:`) over real OpenThread. Proceed to Task 5.
-- **gw shows the echo line but the DK never prints `BRIDGE OK`** → the outbound leg works; the reflection was lost or not received. MTD downstream latency — the node polls its parent; confirm it is rx-on-when-idle (default for a non-sleepy MTD) and press again. If reproducible, the reflected datagram is being dropped inbound (buffer counts) — bump `CONFIG_NET_BUF_RX_COUNT`/`CONFIG_NET_PKT_RX_COUNT` and re-flash.
+- **gw shows the echo line but the DK never prints `BRIDGE OK`** → the outbound leg works; the reflection was lost or not received. Two candidate causes:
+  1. **OT-thread CPU starvation (the known design risk).** After the press, the node busy-polls `pumpInbound` with no yield (`pumpEvents` is deliberately skipped once `sent` — it would re-block). If the VM main thread does not let the OpenThread/net thread run, the RX frame is never delivered to the socket and the poll spins forever. The node relies on the OT/net thread *preempting* the poll. If it hangs here, the fix is to give the poll a yield point: expose a `k_yield`/`k_sleep(K_MSEC(1))` seam callable from the loop (a small `platform yield` prim, mirroring the `pumpEvents` seam), or raise the net/OT thread priority above the main thread. This is the first thing to suspect on a post-press hang.
+  2. **MTD downstream latency / buffers.** The node polls its parent; confirm rx-on-when-idle (default for a non-sleepy MTD) and press again. If the reflected datagram is dropped inbound, bump `CONFIG_NET_BUF_RX_COUNT`/`CONFIG_NET_PKT_RX_COUNT` and re-flash.
 - **gw shows nothing on press** → the outbound datagram did not traverse the mesh: re-confirm attach (`child table`), the OMR target address, and RF proximity. Dongle fallback if the link is marginal.
 
 - [ ] **Step 3: Capture the pass evidence (bench)**
