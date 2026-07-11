@@ -130,9 +130,33 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
      design §7 flags stream-framing as its own future concern). VM finding: a reified `whenever:do:`
      block cannot inline a cross-class call needing outer/`platform` resolution — routed through a
      `self`-send helper (established house style; candidate tuvm issue).
-   - **Layer 3 — real OpenThread on the nRF52840-DK (later rung).** Brings the native_sim-validated
-     `udp_zephyr.c` up on silicon over an OpenThread mesh; retires the skipped
-     `nsl-tests` `43_udp_mesh`/`44_udp_thread`.
+   - **Layer 3 — real OpenThread on the nRF52840-DK. DONE 2026-07-11 (rung 7).** Brings the
+     native_sim-validated `udp_zephyr.c` up on silicon over an OpenThread mesh. The Rung-6
+     `NetBridge` is **unchanged** — no VM/bridge/CBOR/facade edit — so this rung is radio/mesh
+     bring-up only. A Model-A MTD child (`tuvm/zephyr/ThreadEchoNodeDK.ns`) auto-joins the porta
+     OTBR mesh with a baked (gitignored) dataset; a BUTTON1 press posts a `Record` whose outbound
+     reaction CBOR-encodes and sends it over 802.15.4 to the gateway's `udp-echo6` (:7777), which
+     reflects it verbatim; the node receives, decodes value-equal, and prints **`BRIDGE OK`**
+     (bench-verified — live silicon + live gateway + radio, not a `west build` CI gate). The
+     three-layer UDP arc is complete. Retires the skipped `nsl-tests` `43_udp_mesh`/`44_udp_thread`
+     (both superseded by this real bench gate; suite skips 12 → 10).
+     Two plan premises broke and were fixed within the allowed surface (node `.ns`, board conf,
+     `src/main.c` node glue): (a) the MTD child never SLAAC-configures an **OMR** address, so it has
+     no route/source for the OMR prefix and `zsock_sendto` to the gateway's OMR silently failed —
+     the target is the gateway's **ML-EID** (the mesh-local /64 the node itself lives in); (b) NCS
+     v3.2.4's `openthread_run()` enables OT (attach + `ot-ctl ping` work — OT-internal ICMP) but
+     never `net_if_up()`s the Zephyr socket iface, and with `NET_CONFIG_SETTINGS=n` nothing else
+     does, so **`zsock_sendto` returned `ENETDOWN` (errno 115) even while attached** — fixed by
+     `CONFIG_OPENTHREAD_MANUAL_START=y` + a `thread_bringup()` in `src/main.c` that calls
+     `openthread_run()` **plus `net_if_up()`** and waits for attach. The design's OT-thread-starvation
+     risk proved a non-issue (net RX preempts the non-blocking poll).
+     Also ported to the **nRF52840 dongle**: it attaches to the mesh as an MTD child but is
+     **headless** — the SoC USB-CDC console does not survive the radio coming up (Issue A; picolibc
+     did not beat it). Its cadence + headless proof are rung 8
+     (`nsl-tuvm/docs/superpowers/specs/2026-07-11-rung8-ontarget-timer-design.md`): a real Zephyr
+     `k_timer` backend for the nsl `Timers` seam drives a 15 s autonomous send, and a **self-gating
+     train** (the next send is conditional on the previous reflection decoding value-equal) makes the
+     gateway's outbound-only echo log witness round-trip closure with no console.
 
 ## Phase 3 — rejoin the node ladder (keeper, fleet, capabilities)
 

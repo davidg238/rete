@@ -48,3 +48,31 @@ heapStats live 493472 / hw 493472 / free 16283744 / gc 0 / size 16777216
 
 (`gc 0` there was expected on the host's generous default arena; on the DK's
 much smaller config-D heap the soak indeed forced `gc >= 1`, confirmed above.)
+
+---
+
+# Rung 7 — the OpenThread MTD image (`ThreadEchoNodeDK.ns`), 2026-07-11
+
+The Layer-3 Thread node, same **config D** as above, built with
+`-DCONF_FILE=prj_dk_thread.conf -DEXTRA_CONF_FILE=prj_dk_thread_local.conf`
+(recipe: `zephyr/README.md` "Rung 7"). Commit: tuvm `341a5dd`.
+
+| Region | Rung-4 loopback | **Rung-7 OpenThread MTD** | Delta |
+| ------ | --------------- | ------------------------- | ----- |
+| FLASH  | 289 868 B (27.64 %) | **436 300 B (41.94 %)** | **+146 432 B** |
+| RAM    | 118 090 B (45.05 %) | **186 880 B (71.29 %)** | **+68 790 B** |
+
+The delta is **OpenThread L2 + mbedTLS**, not the VM: the engine core is byte-identical
+across the two builds (the `mcu-footprint` ratchet gate still reads text=29198 /
+data+bss=69036, unmoved by this rung — it measures the engine, and rung 7 changed only
+`zephyr/src/main.c`, the board Kconfig, and the node `.ns`).
+
+**Headroom.** RAM at 71.29 % of the 256 KB part leaves ~75 KB free with the 48 KB VM
+arena in place, so the MTD node fits comfortably; the arena remains the largest single
+knob if a future rung needs to claw RAM back (`OEVM_HEAP_SIZE`: 49152 → 40960 → 32768).
+**FTD would not fit** — this is the measured basis for the standing "MTD only, never
+FTD" rule.
+
+The nRF52840 **dongle** builds the same image against `prj_dongle_thread.conf`
+(FLASH 42.55 % / RAM 74.83 % — the small increase is the USB-CDC stack): same SoC, same
+256 KB, so the fit conclusion carries. See `docs/BOARD_PORTS.md`.

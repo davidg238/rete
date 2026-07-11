@@ -262,3 +262,67 @@ timeout 8 ./build/zephyr/zephyr/zephyr.exe   # expect a line: BRIDGE OK
 cd /home/david/workspace/tuvm
 git checkout -- src/solidified_image.c src/solidified_image.stmap
 ```
+
+---
+
+# Rung 7 — real OpenThread round-trip gate (ThreadEchoNodeDK.ns)
+
+Proves the Layer-2 `NetBridge` round-trips a CBOR `Record` over a **real 802.15.4 /
+OpenThread mesh**. The DK is an **MTD child** of the porta OTBR (`gw85224-01`); a
+BUTTON1 press posts a `Record` whose outbound reaction CBOR-encodes and sends it over
+the radio to the gateway's `udp-echo6` server (:7777), which reflects it byte-verbatim;
+the node receives it, CBOR-decodes it value-equal, and its `whenever:` reaction prints
+`BRIDGE OK` on uart0/VCOM.
+
+No VM / bridge / CBOR / facade source changed this rung — it is radio + mesh bring-up
+only. Model A (baked image); **MTD, never FTD**. This is a **bench-verified manual gate**
+(live silicon + live gateway + radio), not a `west build` CI gate.
+
+## Build + flash + run
+
+```bash
+source /home/david/workspace/ns-zephyr/tools/env.sh
+export OEVM_HEAP_SIZE=49152 METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256
+export VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512
+
+# bake the Thread node into the solidified image (from the nsl-tuvm repo)
+cd /home/david/workspace/nsl-tuvm
+python3 tools/ns_compile_oevm.py \
+  /home/david/workspace/tuvm/zephyr/ThreadEchoNodeDK.ns \
+  /home/david/workspace/tuvm/src/solidified_image.c
+
+cd /home/david/workspace/tuvm/zephyr
+west build -b nrf52840dk/nrf52840 -p always . -- \
+  -DCONF_FILE=prj_dk_thread.conf -DEXTRA_CONF_FILE=prj_dk_thread_local.conf
+west flash --skip-rebuild --runner jlink
+
+# restore the generated image BEFORE committing anything in tuvm
+cd /home/david/workspace/tuvm
+git checkout -- src/solidified_image.c src/solidified_image.stmap
+
+# console /dev/ttyACM0 @115200: wait for `thread: attached role=2` (and confirm the
+# child row with `ssh david@gw85224-01 'docker exec otbr ot-ctl child table'`),
+# then press BUTTON1  ->  expect:  BRIDGE OK
+```
+
+The **gitignored** `prj_dk_thread_local.conf` (copied from
+`ns-zephyr/app/prj_thread_local.conf`) supplies the real dataset — the Thread network
+key is a secret and never enters a committed file. Without that overlay the node still
+builds, but will not join the mesh.
+
+## Two things this rung learned the hard way
+
+1. **Target the gateway's ML-EID, not its OMR.** An MTD child never SLAAC-configures an
+   OMR address, so it has no route (and no source address) for the OMR prefix, and
+   `zsock_sendto` to the gateway's OMR fails silently. Send to the gateway's **ML-EID** —
+   the same mesh-local /64 the node itself lives in.
+
+2. **OT attached ≠ sockets work.** NCS v3.2.4's `openthread_run()` enables OT (the node
+   attaches, and `ot-ctl ping` works — that is OT-internal ICMP) but never `net_if_up()`s
+   the Zephyr socket iface; with `CONFIG_NET_CONFIG_SETTINGS=n` nothing else does either.
+   The symptom is `zsock_sendto` returning **`ENETDOWN` (errno 115) while the node is
+   attached and pingable**. The fix is `CONFIG_OPENTHREAD_MANUAL_START=y` plus
+   `thread_bringup()` in `src/main.c` = `openthread_run()` **+ `net_if_up()`** + attach-wait.
+
+See `docs/ZEPHYR_LESSONS.md` for the full list, and `docs/BOARD_PORTS.md` for how the
+same image runs on other boards (the nRF52840 dongle is ported but **headless** — Issue A).
