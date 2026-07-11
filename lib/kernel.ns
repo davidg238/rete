@@ -494,6 +494,11 @@ class Kernel usingPlatform: platform = () (
         j:: j + 1. arr at: j put: (lo < 10 ifTrue: [ 48 + lo ] ifFalse: [ 87 + lo ]) ].
       ^ platform string: arr )
     setRaw: r = ( raw:: r. ^ self )
+    (* Module-internal (Rung 6 Layer 2): answer the underlying RawBytes leaf for
+       the send prim to read. Non-public — same confinement as Channel>>rootPath;
+       only the sibling Socket reaches it. Handing the leaf to basicSend: is a
+       READ (memcpy out to the socket), so it does not breach immutability. *)
+    rawLeaf = ( ^ raw )
   ) : (
     public overRaw: r = ( ^ self new setRaw: r )
   )
@@ -979,12 +984,12 @@ class Kernel usingPlatform: platform = () (
 
   class Socket = ( | port handle | ) (
     setPort: aPort handle: h = ( port:: aPort. handle:: h. ^ self )
-    public sendTo: host port: aPort data: aString = (
-      port basicSend: handle to: host port: aPort data: aString. ^ self )
+    public sendTo: host port: aPort data: aBytes = (
+      port basicSend: handle to: host port: aPort data: aBytes rawLeaf. ^ self )
     public receive = ( | t |
       t:: port basicReceive: handle.
       t == nil ifTrue: [ ^ nil ].
-      ^ Datagram data: (t basicAt: 1) senderHost: (t basicAt: 2) senderPort: (t basicAt: 3) )
+      ^ Datagram data: (Bytes overRaw: (t basicAt: 1)) senderHost: (t basicAt: 2) senderPort: (t basicAt: 3) )
     public close = ( port basicClose: handle. ^ self )
   ) : (
     public onPort: aPort handle: h = ( ^ self new setPort: aPort handle: h )
