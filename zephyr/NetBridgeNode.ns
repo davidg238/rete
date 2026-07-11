@@ -1,0 +1,38 @@
+(*
+NetBridgeNode — native_sim bidirectional NetBridge round-trip gate. Model A
+(baked into src/solidified_image.c). Declares net:, binds two loopback
+receivers, wires two NetBridges A<->B in one Space, round-trips a CBOR Record
+each direction over Zephyr native_sim NSOS loopback, and prints BRIDGE OK.
+Mirrors nsl-tests 45_udp_bridge.ns; proves the Layer-2 bridge (Socket + Cbor +
+Space drain) functionally on the target-shaped backend. main: returns after
+printing; zephyr/src/main.c then idles (K_FOREVER) — the gate is console output
+under `timeout`, not process exit.
+expect:
+BRIDGE OK
+*)
+class NetBridgeNode usingPlatform: platform net: net = () (
+  public main: platform2 args: args = (
+    | space sockA sockB portA portB bridgeA bridgeB gotB rec |
+    space:: platform space.
+    portA:: 54343. portB:: 54344.
+    sockA:: net udpBindPort: portA.
+    sockB:: net udpBindPort: portB.
+    (sockA == nil or: [ sockB == nil ]) ifTrue: [ ^ self fail: 'bind' ].
+    bridgeA:: platform NetBridge
+      socket: sockA out: (space channel: 'a/out') peer: '127.0.0.1' port: portB in: (space channel: 'a/in').
+    bridgeB:: platform NetBridge
+      socket: sockB out: (space channel: 'b/out') peer: '127.0.0.1' port: portA in: (space channel: 'b/in').
+    bridgeA start. bridgeB start.
+    gotB:: nil.
+    (space channel: 'b/in') whenever: '' do: [ :v | gotB:: v ].
+    rec:: platform Record tag: #reading with: #seq -> 1 with: #milliC -> 235.
+    (space channel: 'a/out') out: '' value: rec. space drain.
+    [ gotB == nil ] whileTrue: [ bridgeB pumpInbound. space drain ].
+    (gotB = rec) ifFalse: [ ^ self fail: 'a->b mismatch' ].
+    'BRIDGE OK' println.
+    ^ 0
+  )
+  fail: msg = ( msg println. ^ 1 )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

@@ -18,16 +18,22 @@ class NetNode usingPlatform: platform net: net = () (
     'UDP OK' println.
     ^ 0
   )
+  ping = (
+    | b |
+    b:: (platform ByteArray) new: 4.
+    b u8At: 1 put: 112. b u8At: 2 put: 105. b u8At: 3 put: 110. b u8At: 4 put: 103.
+    ^ b freeze
+  )
   roundTrip: host = (
     | rx tx got |
     rx:: net udpBindPort: 54332.
     rx == nil ifTrue: [ ^ false ].
     tx:: net udp.
-    tx sendTo: host port: 54332 data: 'ping'.
+    tx sendTo: host port: 54332 data: ping.
     got:: nil.
     [ got == nil ] whileTrue: [ got:: rx receive ].   (* loopback is ~instant *)
     rx close. tx close.
-    ^ got data = 'ping'
+    ^ got data = ping
   )
   fail: msg = ( msg println. ^ 1 )
 ) : (
