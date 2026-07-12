@@ -1,0 +1,35 @@
+(*
+TimerNode — Rung 8 gate 1. Proves the REAL on-target timer backend
+(src/backend/zephyr/timer_zephyr.c) with NO radio and NO hardware, on native_sim:
+
+  k_timer ISR -> pulse_post_isr -> k_msgq -> pumpEvents -> sys/timer channel
+              -> Timers dispatch -> the node's reaction
+
+A 200ms repeating timer must fire 3 times, then the node prints TIMER OK. Note that
+`platform pumpEvents` BLOCKS (K_FOREVER) on the pulse mailbox between ticks, so this
+node also demonstrates that the VM IDLES the CPU while waiting on a timer rather than
+spinning — the property that lets the Thread node sleep 15s and still yield to the
+OpenThread thread.
+
+Node shape is PulseNode's (`packageUsing: manifest`, platform arriving as the `main:`
+argument) — this node grants no capability, so it needs no `net:` header.
+Dialect: `[ ... ] whileTrue:`, never `repeat`. `platform timers` answers a FRESH Timers
+each call (it owns the nsl-side pending registry), so hold ONE instance.
+expect:
+TIMER OK
+*)
+class TimerNode packageUsing: manifest = ( | ticks ::= 0. | ) (
+  public main: platform args: args = (
+    | space timers ping |
+    space:: platform space.
+    timers:: platform timers.     (* hold ONE instance — it owns the pending registry *)
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    ping:: space channel: 'tick'.
+    ping whenever: '' do: [ :m | ticks:: ticks + 1 ].
+    timers every: 200 post: #t on: ping.
+    [ ticks < 3 ] whileTrue: [ platform pumpEvents. space drain ].
+    'TIMER OK' println.
+    ^ 0
+  )
+) : (
+)
