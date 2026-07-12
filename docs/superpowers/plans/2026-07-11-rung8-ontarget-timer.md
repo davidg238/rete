@@ -759,3 +759,34 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 **Type consistency:** `timer_backend_{after,every,cancel,millis,advance}` have identical signatures in `timer_backend.h` (Task 1 Step 1), `timer_posix.c` (Step 2), the `platform.c` call sites (Step 3), and `timer_zephyr.c` (Task 2 Step 1). The nsl surface is unchanged and frozen: `timers every: ms post: msg on: chan` + `space whenever: 'sys/timer' do: [:e | timers dispatch: e]` match `11_supervision/06_timers.ns` exactly; `platform NetBridge socket:out:peer:port:in:` + `start` + `pumpInbound` and `platform Record tag:with:with:` match the rung-6/7 call sites. `TimerNode.ns` and `ThreadTimerNode.ns` both hold ONE `platform timers` instance (it answers a fresh one per call). ✓
 
 **Known gap, deliberate:** `reap_oneshots` reclaims a fired one-shot's handle only at the *next* registration. A program that registers many one-shots and never registers again holds those handles until exit. `OEVM_MAX_TARGET_TIMERS` (8) bounds the leak, `k_oops` makes exhaustion loud, and this rung's nodes use `every:` exclusively. Documented rather than solved (YAGNI); revisit if a node leans on `after:` on target.
+
+---
+
+## Post-close addendum (2026-07-11, resumed session) — Issue A re-diagnosed from the desk
+
+Rung 8's Gate 3 (dongle) never ran: the dongle never enumerates. The close recorded two
+config fixes as "Issue A solved"; a resumed session re-verified both against the built
+artifacts and the story changed:
+
+1. **RETRACTED: `CONFIG_OPENTHREAD_SYS_INIT=n` was a silent no-op.** The symbol is
+   `depends on !NET_L2_OPENTHREAD` and our builds use the L2, so Kconfig discarded the
+   line — it appears in **no built `.config`**, and st-zephyr's *working* dongle config
+   carries the same dead line. Bisect-2 (premised on it) is void and was never flashed.
+   Meta-lesson: a Kconfig line is not a fix until it shows in the built `.config`.
+2. **NEW (bug 3, the leading suspect): dynamic partition-manager placed `settings_storage`
+   at 0xfe000–0x100000 — the dongle Open Bootloader's MBR-params + settings pages.**
+   OpenThread selects SETTINGS→NVS, so every OT-enabled image (the failing bisect image
+   included, and *only* OT-enabled images) mounted NVS on the bootloader's pages at boot —
+   exactly co-extensive with "OT presence kills USB". Found by diffing our `.config`+PM
+   output against st-zephyr's known-working `test-dongle-06-jast-ftd` (total delta: 49
+   lines + the PM layout). Fix shipped: `tuvm/zephyr/pm_static_dongle.yml`
+   (settings 0xd8000, `open_bootloader_gap` 0xdc000+), pass
+   `-DPM_STATIC_YML_FILE=pm_static_dongle.yml` on dongle builds only.
+3. **Suspect #2 (pre-built fallback): float ABI.** The only structural residue of the
+   49-line delta: we build hard-float (⇒ `MPSL_LIB_FLOAT_ABI_DIR="hard-float"`), the
+   working image soft-float. `tuvm/zephyr/prj_dongle_softfloat.conf` flips it;
+   `build-dongle-softfloat/` is pre-built.
+
+Both DFU zips are pre-generated (`build-dongle*/dfu-*.zip`); flashing still needs hands.
+`ZEPHYR_LESSONS.md` §1/§2/§4/§6 and `review/ISSUE-dongle-usb-openthread.md` carry the
+corrections.
