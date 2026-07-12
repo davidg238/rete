@@ -1,0 +1,88 @@
+(*
+SoakNode — multi-hour soak variant of ThreadTimerNode (2026-07-12, David's ask).
+Same 15s k_timer cadence and NetBridge round-trip to the gateway echo, but NOT
+self-gating: a lost datagram must not stop the train. ThreadTimerNode is a GATE
+(one loss wedges it forever, loudly); this node is a PINGER — it sends every
+tick regardless, counts hits and misses, and the gateway's udp-echo6 log gives
+the outbound record (a missing 15s slot = a lost outbound or a dead node).
+
+Differences from ThreadTimerNode, all deliberate:
+- binds :54361 (not :54360) so soak traffic is distinguishable from gate traffic
+  in the gw log; multiple soak nodes share the port and are told apart by their
+  chip-stable ML-EIDs (see nsl-zephyr-multi-target: ext-MAC AND ML-EID persist).
+- #seq increments every send, so the CBOR payload grows 32->33B at seq 24 and
+  ->34B at seq 256 — the size in the gw log doubles as a coarse uptime odometer.
+- a reflection only counts if it value-equals the MOST RECENT record; a late
+  echo of an older seq is ignored (the miss was already counted). Conservative.
+- console prints one line per tick (SOAK OK n/m or SOAK MISS n/m) — visible when
+  USB-attached, irrelevant on a wallwart; the wire is the real evidence.
+
+Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
+reaction block is a one-line self-send (nsl-tuvm#10 LD_SLOT gotcha).
+expect (console, every ~15s once attached):
+SOAK OK 1/1
+*)
+class SoakNode usingPlatform: platform net: net = (
+  | space bridge cur sent ::= 0. ok ::= 0. awaiting ::= false. |
+) (
+  (* gateway ML-EID, not its OMR — an MTD child has no OMR source address (rung-7) *)
+  gwAddr     = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )
+  echoPort   = ( ^ 7777 )
+  sendPeriod = ( ^ 15000 )   (* ms between sends *)
+  waitBudget = ( ^ 3000 )    (* ms to wait for the reflection before scoring a miss *)
+
+  public main: platform2 args: args = (
+    | sock timers tickChan |
+    space:: platform space.
+    sock:: net udpBindPort: 54361.
+    sock == nil ifTrue: [ ^ self fail: 'bind' ].
+    bridge:: platform NetBridge
+      socket: sock out: (space channel: 'echo/out') peer: gwAddr port: echoPort
+      in: (space channel: 'echo/in').
+    bridge start.
+    (space channel: 'echo/in') whenever: '' do: [ :v | self reflected: v ].
+    timers:: platform timers.     (* hold ONE instance — it owns the pending registry *)
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    tickChan:: space channel: 'sensor/tick'.
+    tickChan whenever: '' do: [ :m | self fire ].
+    timers every: sendPeriod post: #go on: tickChan.
+    'SOAK NODE READY' println.
+    [ true ] whileTrue: [
+      platform pumpEvents.     (* blocks (K_FOREVER) until the k_timer ISR posts *)
+      space drain.             (* timer reaction -> self fire -> ALWAYS sends *)
+      self awaitReflection ].
+    ^ 0
+  )
+
+  (* Send unconditionally — the whole point of the soak variant. *)
+  fire = (
+    sent:: sent + 1.
+    cur:: platform Record tag: #reading with: #seq -> sent with: #milliC -> 235.
+    awaiting:: true.
+    (space channel: 'echo/out') out: '' value: cur.
+    ^ self
+  )
+
+  reflected: v = (
+    (awaiting and: [ v = cur ]) ifTrue: [
+      ok:: ok + 1. awaiting:: false.
+      ('SOAK OK ', ok printString, '/', sent printString) println ].
+    ^ self
+  )
+
+  (* Bounded wait, then score a miss and MOVE ON — never wedge. *)
+  awaitReflection = (
+    | deadline |
+    deadline:: platform monotonicMillis + waitBudget.
+    [ awaiting and: [ platform monotonicMillis < deadline ] ] whileTrue: [
+      bridge pumpInbound. space drain ].
+    awaiting ifTrue: [
+      awaiting:: false.
+      ('SOAK MISS ', ok printString, '/', sent printString) println ].
+    ^ self
+  )
+
+  fail: msg = ( msg println. ^ 1 )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)
