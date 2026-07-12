@@ -82,19 +82,34 @@ The one root cause we re-derived on NCS v3.2.4:
   Rung 7 set `USB_DEVICE_STACK_NEXT=y` + `USBD_CDC_ACM_CLASS=y` and did *neither*, so
   the console could never have enumerated — under radio or not, at any time.
 
-  **Bug 2 — OpenThread's `SYS_INIT` runs at boot and kills USB enumeration.**
-  **`CONFIG_OPENTHREAD_MANUAL_START=y` is NOT sufficient** — it only defers
-  `openthread_run()`. OT's `SYS_INIT` still initializes the 802.15.4 radio *before*
-  `main()`. The fix is **`CONFIG_OPENTHREAD_SYS_INIT=n`**, which defers OT init
-  entirely to the app (`main.c thread_bringup()` already calls `openthread_init()`,
-  so it is correct with SYS_INIT off). Recovered from st-zephyr's working
-  `tests/dongle/test-dongle-06-jast-ftd/prj.conf` — **this is the real "jast
-  technique"**, which our notes had misremembered as "picolibc".
+  **~~Bug 2 — `CONFIG_OPENTHREAD_SYS_INIT=n`~~ RETRACTED (2026-07-11, same day):
+  the line was a SILENT NO-OP.** The symbol is `depends on !NET_L2_OPENTHREAD`
+  (`zephyr/modules/openthread/Kconfig`) and every build here uses the L2, so
+  Kconfig **discarded the assignment** — it appears in no built `.config`
+  (dongle or DK; only a warning buried in the west output). The "OT's SYS_INIT
+  starts the radio before main()" story above was never actually tested, and it
+  cannot be the "jast technique" either: **st-zephyr's working dongle prj.conf
+  carries the exact same dead line.** Under `NET_L2_OPENTHREAD`, OT init is
+  driven by the L2/net_if path regardless; `MANUAL_START` is the only deferral
+  knob that applies. Meta-lesson: **a Kconfig line you add is not a fix until
+  you see it in the built `.config`** — assignment to a dependency-unavailable
+  symbol is silent.
 
-  Boot order only now becomes what the 3 s settle always assumed:
-  `USB init → main() → 3 s settle (USB ENUMERATES) → thread_bringup() → OT starts`.
-  **Corollary: before this fix, the 3 s settle was dead code** — OT had already
-  initialized before `main()` ever ran.
+  **Bug 3 — the partition manager placed `settings_storage` ON the Open
+  Bootloader's flash pages.** With no static PM file, NCS lays the dongle out as
+  if the app owns the full 1 MB and drops `settings_storage` "before: end" →
+  **0xfe000–0x100000 = the bootloader's MBR-params (0xfe000) and settings
+  (0xff000) pages**. OpenThread `select`s SETTINGS→NVS, so every OT-enabled
+  image mounted NVS on the bootloader's own pages at boot — the failing bisect
+  image included, and only OT-enabled images do it (matches the bisect
+  perfectly). st-zephyr hit the same landmine (its `pm_static.yml` pins settings
+  at 0x6c000 with an explicit `oob_gap` over the bootloader). Fix:
+  **`pm_static_dongle.yml`** (settings at 0xd8000, 0xdc000+ reserved), passed
+  via `-DPM_STATIC_YML_FILE=pm_static_dongle.yml` — dongle builds ONLY (the DK
+  has no MBR/bootloader and keeps dynamic PM). Whether this is the USB killer is
+  pending a flash; it is a real defect regardless. Remaining suspect #2 = float
+  ABI (we're hard-float, the working image is soft-float ⇒ different prebuilt
+  MPSL blob); `prj_dongle_softfloat.conf` is the ready-made experiment.
 
   **picolibc is EXONERATED** (disproven directly): the DK runs the full VM + node on
   **picolibc** and round-trips `BRIDGE OK` every 15 s. The libc was never involved;
@@ -183,11 +198,16 @@ The one root cause we re-derived on NCS v3.2.4:
   PSA storage for OT's mandatory 802.15.4 link crypto). Takeaway: **keep NVS +
   Settings on** (needed for PSA), just (a) partial-erase and (b) never touch the
   boot path with OT/settings/flash until USB settles.
-- **Settings partition placement (dongle):** must live **outside the DFU
-  bootloader erase region** so it survives reflash. The two repos cite *different*
-  addresses (jast re-creates `storage_partition` at `0x6c000`; ns says the default
-  `0xdc000` is already outside) — **verify the actual protected region for your
-  bootloader before trusting either.**
+- **Settings partition placement (dongle): NEVER trust dynamic PM.** Measured
+  2026-07-11: with no static file, NCS partition manager placed our
+  `settings_storage` at **0xfe000–0x100000 — the Open Bootloader's MBR-params and
+  bootloader-settings pages** (`build-dongle/partitions.yml` is the evidence; the
+  board DTS's `storage_partition@dc000` is ignored by PM). Every OT-enabled image
+  therefore mounted NVS on the bootloader's pages at boot (§1 Bug 3). Fix =
+  **`pm_static_dongle.yml`**: settings at 0xd8000–0xdc000, `open_bootloader_gap`
+  reserving 0xdc000–0x100000. (jast pins settings at `0x6c000`, which would cap
+  the app at ~428 KB — our VM image is ~442 KB, hence the higher address.)
+  **After any dongle build, verify `partitions.yml` before flashing.**
 
 ---
 
@@ -222,8 +242,10 @@ The one root cause we re-derived on NCS v3.2.4:
   VM + Thread node on picolibc and round-trips `BRIDGE OK` every 15 s.
 - **⚠️ CORRECTION: picolibc has NOTHING to do with "Issue A".** This section previously
   called it "the prime suspect for the dongle Issue A delta". That was wrong, and it
-  cost two rungs. The dongle console failure was two config bugs
-  (`CDC_ACM_SERIAL_INITIALIZE_AT_BOOT` + `OPENTHREAD_SYS_INIT=n` — see §1); the libc is
+  cost two rungs. The dongle console failure traces to config/layout bugs
+  (`CDC_ACM_SERIAL_INITIALIZE_AT_BOOT` + the settings-partition-on-bootloader
+  placement — see §1 Bugs 1/3; the once-blamed `OPENTHREAD_SYS_INIT=n` is retracted
+  there); the libc is
   not load-bearing either way. Choose a libc on its merits (flash size), and prefer the
   **same libc on same-SoC boards** so a working board stays a valid control for a
   broken one.
@@ -315,7 +337,7 @@ The one root cause we re-derived on NCS v3.2.4:
 | USBD_CDC_ACM_WORKQUEUE | y | y | n/a (uart0 console) |
 | SOC_FLASH_NRF_PARTIAL_ERASE(_MS) | y / 2 | y / 2 | y / 2 |
 | OPENTHREAD_MANUAL_START | y | y | **y** (+ `thread_bringup()`) |
-| **OPENTHREAD_SYS_INIT** | **n** | (default y) | **n on the dongle** — *THE USB-vs-radio line (§1)* |
+| **OPENTHREAD_SYS_INIT** | ~~n~~ (dead line) | (default y) | *unavailable under `NET_L2_OPENTHREAD` — assignments silently discarded (§1 retraction, §2)* |
 | **CDC_ACM_SERIAL_INITIALIZE_AT_BOOT** | (old stack) | — | **y on the dongle** — *else USB never starts (§1)* |
 | OPENTHREAD_MTD / FTD | y / n | y / n | y / n |
 | OPENTHREAD_THREAD_STACK_SIZE | 6240 | 6240 | 6240 |

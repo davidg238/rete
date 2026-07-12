@@ -1,0 +1,37 @@
+# Static partition layout for the nRF52840 DONGLE (pass via
+#   west build ... -- -DPM_STATIC_YML_FILE=pm_static_dongle.yml
+# — dongle builds ONLY; the DK has no MBR/bootloader and must keep dynamic PM).
+#
+# WHY THIS FILE EXISTS: without it, the NCS partition manager assumes the full
+# 1 MB of flash is the app's and places settings_storage "before: end" — i.e.
+# at 0xfe000–0x100000. On the dongle those are the Nordic Open Bootloader's
+# MBR-params page (0xfe000) and bootloader-settings page (0xff000). OpenThread
+# selects SETTINGS→NVS, so every OT-enabled image mounted NVS ON TOP OF THE
+# BOOTLOADER'S PAGES at boot (see review/ISSUE-dongle-usb-openthread.md).
+# st-zephyr hit the same landmine and solved it the same way
+# (tests/dongle/test-dongle-06-jast-ftd/pm_static.yml — its "oob_gap").
+#
+# Layout: app gets 0x1000–0xd8000 (~860 KB; the rung-8 image is ~442 KB).
+# settings_storage sits at 0xd8000–0xdc000, below the board DTS
+# storage_partition (0xdc000–0xe0000) and the Open Bootloader (0xe0000+),
+# both inside open_bootloader_gap so nothing PM places can ever touch them.
+nrf5_mbr:
+  address: 0x0
+  end_address: 0x1000
+  region: flash_primary
+  size: 0x1000
+settings_storage:
+  address: 0xd8000
+  end_address: 0xdc000
+  region: flash_primary
+  size: 0x4000
+open_bootloader_gap:
+  address: 0xdc000
+  end_address: 0x100000
+  region: flash_primary
+  size: 0x24000
+sram_primary:
+  address: 0x20000000
+  end_address: 0x20040000
+  region: sram_primary
+  size: 0x40000

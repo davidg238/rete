@@ -36,6 +36,9 @@ zephyr/build/
 # switching boards no longer forces a ~10-minute pristine rebuild.
 zephyr/build-dk/
 zephyr/build-dongle/
+# Soft-float dongle variant (Issue-A suspect #2 experiment; see
+# review/ISSUE-dongle-usb-openthread.md).
+zephyr/build-dongle-softfloat/
 
 zephyr/prj_dk_thread_local.conf
 zephyr/prj_dongle_thread_local.conf
