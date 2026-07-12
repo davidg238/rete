@@ -350,3 +350,25 @@ The one root cause we re-derived on NCS v3.2.4:
 
 The two bolded OpenThread/USB rows are what the jast column was *actually* teaching us.
 The `libc` row is the one we wrongly copied for two rungs (see §1, §6).
+
+## 10. Node identity + fleet forensics (2026-07-12, the dongle endgame)
+
+- **ext-MAC AND ML-EID are chip-stable on this platform.** Both survived reflashes and
+  even the settings-partition move (0xfe000 → 0xd8000) on the dongle — observed, not
+  theorized. So a source ML-EID in the gateway's `udp-echo6` log is a reliable
+  per-board fingerprint; RLOC16s remain parent-assigned and unstable (rung-7 lesson).
+- **The OTBR container log is the mesh flight recorder.** `docker logs --tail N otbr`
+  (NOT `--since`, which matches nothing against this container's stamps) pairs every
+  child's ML-EID with its ext-MAC-derived link-local in the MLE `Child ID Request` /
+  `Child Update` lines — enough to attribute hours-old traffic to a physical board.
+- **A silent boot OOM looks exactly like "attached but dead".** The VM's OOM message
+  went to stderr, which is not wired to the Zephyr console; OpenThread (own thread)
+  kept the node attached. Fixed twice over: config-D is baked into CMakeLists for all
+  52840 builds, and `default_oom()` now prints via `platform_console_write` (see §5,
+  BOARD_PORTS.md "Build", and review/ISSUE-dongle-usb-openthread.md for the full
+  post-mortem).
+- **Gate vs pinger loads:** `ThreadTimerNode` (:54360) halts forever on one lost
+  round-trip — a GATE, loud by design, ends a soak in minutes at kitchen RF range.
+  `SoakNode` (:54361) sends regardless and counts misses — the endurance load.
+  Fleet status page: `http://gw85224-01:8085` (`soak-web` systemd unit on the gw,
+  read-only tail of the udp-echo6 journal).
