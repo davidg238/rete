@@ -1,0 +1,95 @@
+(*
+ThreadTimerNode — Rung 8. The Rung-7 NetBridge round-trip, on a 15s AUTONOMOUS cadence
+(a real k_timer) instead of a BUTTON1 press. ONE source, BOTH boards: the nRF52840-DK
+(console -> BRIDGE OK on uart0/VCOM) and the nRF52840 dongle (HEADLESS — Issue A: the
+USB-CDC console does not survive the radio coming up; verified from the gateway instead).
+
+THE SELF-GATING TRAIN — the headless proof.
+The gateway's udp-echo6 log witnesses only the OUTBOUND leg (it logs each datagram it
+RECEIVES). So the next send is made CONDITIONAL on the previous reflection having decoded
+value-equal: `awaiting` is cleared ONLY by a good reflection, and `fire` sends ONLY when
+it is clear. A steady 15s train of echo lines on the gateway therefore proves the FULL
+round-trip is closing every cycle (N lines = N-1 proven round-trips); a broken inbound leg
+leaves `awaiting` stuck true, so the node never sends again and the train STOPS DEAD after
+one line. `awaiting` is load-bearing, not decorative: without it a timed-out wait would
+just send again on the next tick and fake a healthy train while the inbound leg was broken.
+
+DELIBERATE: a single lost datagram wedges this node forever. That is a GATE property —
+failure must be loud, never a silent pass — and NOT how a production sensor node would
+behave. This node is a gate.
+
+Dialect: `[ ... ] whileTrue:`, never `repeat`. State lives in instance slots (not main:
+locals) so every reaction block is a one-line self-send — the house style that dodges the
+reified-block LD_SLOT gotcha (nsl-tuvm#10). `platform timers` answers a FRESH Timers each
+call, so hold ONE instance.
+expect (DK console, every ~15s once attached):
+BRIDGE OK
+*)
+class ThreadTimerNode usingPlatform: platform net: net = (
+  | space bridge rec awaiting ::= false. |
+) (
+  (* The gateway's ML-EID — NOT its OMR. An MTD child never SLAAC-configures an OMR
+     address, so it has no route or source address for the OMR prefix and zsock_sendto
+     there fails silently (rung-7 lesson). This is the mesh-local /64 the node lives in. *)
+  gwAddr     = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )
+  echoPort   = ( ^ 7777 )
+  sendPeriod = ( ^ 15000 )   (* ms between sends *)
+  waitBudget = ( ^ 3000 )    (* ms to wait for the reflection — a REAL clock, rung 8 *)
+
+  public main: platform2 args: args = (
+    | sock timers tickChan |
+    space:: platform space.
+    sock:: net udpBindPort: 54360.
+    sock == nil ifTrue: [ ^ self fail: 'bind' ].
+    bridge:: platform NetBridge
+      socket: sock out: (space channel: 'echo/out') peer: gwAddr port: echoPort
+      in: (space channel: 'echo/in').
+    bridge start.
+    rec:: platform Record tag: #reading with: #seq -> 1 with: #milliC -> 235.
+    (space channel: 'echo/in') whenever: '' do: [ :v | self reflected: v ].
+    timers:: platform timers.     (* hold ONE instance — it owns the pending registry *)
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    tickChan:: space channel: 'sensor/tick'.
+    tickChan whenever: '' do: [ :m | self fire ].
+    timers every: sendPeriod post: #go on: tickChan.
+    'THREAD TIMER NODE READY' println.
+    [ true ] whileTrue: [
+      platform pumpEvents.     (* BLOCKS (K_FOREVER) until the k_timer ISR posts: the node
+                                  idles the CPU for 15s and yields to the OpenThread thread *)
+      space drain.             (* the timer reaction -> self fire -> send iff armed *)
+      self awaitReflection ].
+    ^ 0
+  )
+
+  (* Send IFF the previous round-trip closed. See the self-gating note above. *)
+  fire = (
+    awaiting ifTrue: [ ^ self ].   (* still waiting -> stay silent, so the train stops *)
+    awaiting:: true.
+    (space channel: 'echo/out') out: '' value: rec.
+    ^ self
+  )
+
+  (* The ONLY thing that can re-arm the sender. *)
+  reflected: v = (
+    (v = rec) ifTrue: [ awaiting:: false. 'BRIDGE OK' println ].
+    ^ self
+  )
+
+  (* The reflection MUST be consumed in the SAME iteration as the send. If we went straight
+     back to the blocking pumpEvents, the reflection would land during the 15s sleep and sit
+     unread in the socket buffer; the next tick's reaction would then run BEFORE we drained
+     it, still see awaiting = true, and skip the send — the node would fire every 30s instead
+     of 15. Bounded with the now-REAL monotonicMillis (the first thing the rung-8 seam buys).
+     The poll is non-blocking and net RX preempts it (proven in rung 7). *)
+  awaitReflection = (
+    | deadline |
+    deadline:: platform monotonicMillis + waitBudget.
+    [ awaiting and: [ platform monotonicMillis < deadline ] ] whileTrue: [
+      bridge pumpInbound. space drain ].
+    ^ self
+  )
+
+  fail: msg = ( msg println. ^ 1 )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)
