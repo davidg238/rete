@@ -66,16 +66,50 @@ The one root cause we re-derived on NCS v3.2.4:
   - **Dongle (PCA10059):** no debugger; console on the **SoC's own USB-CDC**,
     flashed via DFU. USBD-next CDC enumerates as VID **`2fe3`** (app) — DFU
     bootloader is `1915:521f`, a provisioned Nordic OT device is `1915:cafe`.
-- **⚠️ Issue A — UNSOLVED:** the dongle's USB-CDC console **won't enumerate while
-  the radio runs.** Proven dongle-specific (same firmware works on the DK under
-  radio). Suspected cause: bus-powered through the single port that also carries
-  CDC data → sensitive to radio TX current / HFCLK contention. **Leading
-  firmware-config suspect for jast(works)/ns(fails): picolibc (jast) vs newlib
-  (ns)** — build the dongle with **picolibc** (§6). Mitigation for any board that
-  consoles over the SoC USB peripheral: budget a separate debug UART or SWD/RTT.
-  Experiment overlays on the DK: `ns-zephyr/app/console_on_cdc.overlay` (route
-  console onto SoC USB-CDC like the dongle) and `usb_cdc_console.overlay` (CDC
-  secondary, console stays on uart0).
+- **✅ "Issue A" — SOLVED 2026-07-11. It was TWO ordinary config bugs in our tree,
+  and BOTH previously-recorded explanations were WRONG.** It was never a hardware
+  quirk, never radio TX current / HFCLK contention, and never the libc. Proven by
+  bisect against **stock Zephyr**, not by argument:
+
+  | image | USB console |
+  |---|---|
+  | stock `hello_world` + `-S cdc-acm-console` | ✅ enumerates (`2fe3:0004`) |
+  | `hello_world` + snippet + **our OpenThread block only** | ❌ dead |
+
+  **Bug 1 — nothing ever started USB.** `CONFIG_USB_DEVICE_STACK_NEXT` is Zephyr's
+  *new* USB stack: the device is NOT brought up automatically. You must either set
+  **`CONFIG_CDC_ACM_SERIAL_INITIALIZE_AT_BOOT=y`** or call `usbd_enable()` yourself.
+  Rung 7 set `USB_DEVICE_STACK_NEXT=y` + `USBD_CDC_ACM_CLASS=y` and did *neither*, so
+  the console could never have enumerated — under radio or not, at any time.
+
+  **Bug 2 — OpenThread's `SYS_INIT` runs at boot and kills USB enumeration.**
+  **`CONFIG_OPENTHREAD_MANUAL_START=y` is NOT sufficient** — it only defers
+  `openthread_run()`. OT's `SYS_INIT` still initializes the 802.15.4 radio *before*
+  `main()`. The fix is **`CONFIG_OPENTHREAD_SYS_INIT=n`**, which defers OT init
+  entirely to the app (`main.c thread_bringup()` already calls `openthread_init()`,
+  so it is correct with SYS_INIT off). Recovered from st-zephyr's working
+  `tests/dongle/test-dongle-06-jast-ftd/prj.conf` — **this is the real "jast
+  technique"**, which our notes had misremembered as "picolibc".
+
+  Boot order only now becomes what the 3 s settle always assumed:
+  `USB init → main() → 3 s settle (USB ENUMERATES) → thread_bringup() → OT starts`.
+  **Corollary: before this fix, the 3 s settle was dead code** — OT had already
+  initialized before `main()` ever ran.
+
+  **picolibc is EXONERATED** (disproven directly): the DK runs the full VM + node on
+  **picolibc** and round-trips `BRIDGE OK` every 15 s. The libc was never involved;
+  it was adopted in rung 7 as a guess against a misdiagnosed bug. Same-SoC boards
+  should share a libc unless there is a concrete reason.
+
+- **A console you cannot read must never be able to BLOCK the node.** With
+  `UART_LINE_CTRL=y` the first CDC write blocks until a host asserts DTR. On an
+  unattended board that blocks *forever* — and because OT runs in its own thread, the
+  node still ATTACHES to the mesh while the VM is frozen on its first `println`,
+  before it binds a socket. **That looks identical to a healthy node from the
+  outside**, which is how a dead dongle passed for "working but headless" for two
+  rungs. `platform_zephyr.c` now discards console writes when the board has no
+  `CONFIG_STDOUT_CONSOLE`. A headless node's evidence belongs **on the wire**
+  (the self-gating train — see `zephyr/README.md` "Rung 8"), not on a console.
 
 ---
 
@@ -182,11 +216,17 @@ The one root cause we re-derived on NCS v3.2.4:
 
 ## 6. libc / FP
 
-- **picolibc is preferred (and jast's default).** newlib→picolibc saves **~12 KB
-  flash** at ~0 RAM cost, zero functional cost (OEVM has no newlib-isms: only
-  `malloc/realloc/free`, `setjmp`, `snprintf`, `printf %g`, `mem*/str*`). It is
-  also the **prime suspect for the dongle Issue A delta** — so **the dongle build
-  should use picolibc.**
+- **picolibc is fine, and saves ~12 KB flash** at ~0 RAM cost and zero functional cost
+  (the VM has no newlib-isms: only `malloc/realloc/free`, `setjmp`, `snprintf`,
+  `printf %g`, `mem*/str*`). **Verified on hardware 2026-07-11:** the DK runs the full
+  VM + Thread node on picolibc and round-trips `BRIDGE OK` every 15 s.
+- **⚠️ CORRECTION: picolibc has NOTHING to do with "Issue A".** This section previously
+  called it "the prime suspect for the dongle Issue A delta". That was wrong, and it
+  cost two rungs. The dongle console failure was two config bugs
+  (`CDC_ACM_SERIAL_INITIALIZE_AT_BOOT` + `OPENTHREAD_SYS_INIT=n` — see §1); the libc is
+  not load-bearing either way. Choose a libc on its merits (flash size), and prefer the
+  **same libc on same-SoC boards** so a working board stays a valid control for a
+  broken one.
 - **The swap:** newlib = `NEWLIB_LIBC=y` + `NEWLIB_LIBC_FLOAT_PRINTF=y` +
   `CBPRINTF_FP_SUPPORT=y`; picolibc = `PICOLIBC=y` + `PICOLIBC_IO_FLOAT=y` +
   `CBPRINTF_FP_SUPPORT=y` (drop the two newlib lines). **FP printf is required**
@@ -275,11 +315,16 @@ The one root cause we re-derived on NCS v3.2.4:
 | USBD_CDC_ACM_WORKQUEUE | y | y | n/a (uart0 console) |
 | SOC_FLASH_NRF_PARTIAL_ERASE(_MS) | y / 2 | y / 2 | y / 2 |
 | OPENTHREAD_MANUAL_START | y | y | **y** (+ `thread_bringup()`) |
+| **OPENTHREAD_SYS_INIT** | **n** | (default y) | **n on the dongle** — *THE USB-vs-radio line (§1)* |
+| **CDC_ACM_SERIAL_INITIALIZE_AT_BOOT** | (old stack) | — | **y on the dongle** — *else USB never starts (§1)* |
 | OPENTHREAD_MTD / FTD | y / n | y / n | y / n |
 | OPENTHREAD_THREAD_STACK_SIZE | 6240 | 6240 | 6240 |
 | HEAP_MEM_POOL_SIZE | 32768 | 32768 | 32768 |
 | NET_CONFIG_SETTINGS | (absent) | n | n |
-| libc | **picolibc** | newlib | newlib (DK OK; **dongle → picolibc**) |
+| libc | picolibc | newlib | **either — NOT load-bearing** (DK proven on *both*) |
 | dataset | full TLV blob | full TLV blob | Kconfig-only (attached) |
 | net_if_up() | (L2 implicit) | (L2 implicit) | **explicit** (v3.2.4 needs it) |
-| RESET_ON_FATAL_ERROR | n | (default) | (default) |
+| RESET_ON_FATAL_ERROR | n | (default) | **n** (a fault must leave evidence, not reboot) |
+
+The two bolded OpenThread/USB rows are what the jast column was *actually* teaching us.
+The `libc` row is the one we wrongly copied for two rungs (see §1, §6).

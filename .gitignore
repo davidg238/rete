@@ -32,6 +32,10 @@ oevm_img
 _*.stmap
 src/_*.stmap
 zephyr/build/
+# Per-board build dirs (rung 8): each board keeps its own warm CMake/ninja cache, so
+# switching boards no longer forces a ~10-minute pristine rebuild.
+zephyr/build-dk/
+zephyr/build-dongle/
 
 zephyr/prj_dk_thread_local.conf
 zephyr/prj_dongle_thread_local.conf
