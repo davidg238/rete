@@ -69,10 +69,28 @@ future USB board inherits it automatically:
 - **nRF52840-DK** — ✅ **DONE** (rung-7 `BRIDGE OK`). The reference target. Console
   uart0/VCOM (immune to Issue A), trigger BUTTON1 P0.11, J-Link flash. Use the DK
   for all Thread/debug work.
-- **nRF52840 Dongle** — ⏳ **NEXT, and the hard case.** Same SoC/256 KB RAM, so the
-  footprint fits. But it consoles over the SoC USB-CDC and inherits the **unsolved
-  Issue A** (USB-CDC dies under radio — see [`ZEPHYR_LESSONS.md`](./ZEPHYR_LESSONS.md) §1).
-  Port checklist:
+- **nRF52840 Dongle** — ✅ **PORTED + ATTACHED, and HEADLESS.** Same SoC/256 KB RAM, so the
+  footprint fits; DFU-flashed, joins the porta mesh as an MTD child. But it consoles over
+  the SoC USB-CDC and inherits the **unsolved Issue A** (USB-CDC dies under radio — see
+  [`ZEPHYR_LESSONS.md`](./ZEPHYR_LESSONS.md) §1; picolibc did not beat it).
+
+  **Issue A is now routed around, not blocking.** Rung 8 removed the two things that made a
+  console necessary:
+  - **The trigger.** A real `k_timer` backend for the `Timers` seam
+    (`src/backend/zephyr/timer_zephyr.c`) drives a **15 s autonomous cadence**, so the node
+    needs no BUTTON1 press — which was never practical on a stick in a USB port anyway.
+  - **The proof.** `ThreadTimerNode.ns` is **self-gating**: it sends again only after the
+    previous reflection decoded value-equal, so the gateway's *outbound-only* echo log
+    witnesses full round-trip closure (**N lines = N−1 proven round-trips**), and a broken
+    inbound leg stops the train dead. Calibrated on the DK, where console and train were
+    shown to tick in lockstep. See `zephyr/README.md` "Rung 8".
+
+  **Remaining (needs hands):** DFU-flash `ThreadTimerNode` and confirm the train. DFU mode =
+  hold RESET while inserting (enumerates `1915:521f`), then
+  `west flash --skip-rebuild --runner nrfutil`. Verify from the gateway: a child row in
+  `ot-ctl child table`, and ≥4 `udp-echo6` lines ~15 s apart.
+
+  Port checklist (done):
   1. `prj_dongle_thread.conf` = common OT block **+ picolibc** (`PICOLIBC=y` /
      `PICOLIBC_IO_FLOAT=y`; drop the newlib lines) **+** USB-CDC recipe
      (`USBD_CDC_ACM_WORKQUEUE=y`, `UART_LINE_CTRL=y`, CDC-ACM console) **+**

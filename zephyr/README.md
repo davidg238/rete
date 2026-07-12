@@ -326,3 +326,66 @@ builds, but will not join the mesh.
 
 See `docs/ZEPHYR_LESSONS.md` for the full list, and `docs/BOARD_PORTS.md` for how the
 same image runs on other boards (the nRF52840 dongle is ported but **headless** — Issue A).
+
+---
+
+# Rung 8 — autonomous timer round-trip (TimerNode.ns / ThreadTimerNode.ns)
+
+Gives the nsl `Timers` seam a **real on-target backend** (`src/backend/zephyr/timer_zephyr.c`,
+a Zephyr `k_timer`) and uses it to run the rung-7 round-trip on a **15 s autonomous
+cadence** — **no button press**. That is what lets the node run on the nRF52840 **dongle**,
+which is headless (Issue A).
+
+The `k_timer` expiry ISR posts through the **existing** pulse mailbox
+(`pulse_post_isr` → `k_msgq` → `pulse_pump` → `space_post_id`) onto the reserved
+`sys/timer` channel — the identical path the host virtual clock posts on, and the one
+`pulse_backend.h` already sanctioned ("A GPIO/timer ISR calls `pulse_post_isr`"). Since the
+tick lands in the pulse mailbox, `platform pumpEvents` (which blocks `K_FOREVER` there)
+**idles the CPU** between ticks and yields to the OpenThread thread.
+
+## Gate 1 — native_sim: the timer backend, with zero hardware
+
+    source /home/david/workspace/ns-zephyr/tools/env.sh
+    cd /home/david/workspace/nsl-tuvm
+    python3 tools/ns_compile_oevm.py \
+      /home/david/workspace/tuvm/zephyr/TimerNode.ns \
+      /home/david/workspace/tuvm/src/solidified_image.c
+    cd /home/david/workspace/tuvm/zephyr
+    west build -b native_sim -p always .
+    timeout 10 ./build/zephyr/zephyr/zephyr.exe    # expect: TIMER OK  (3 ticks @200ms)
+    cd /home/david/workspace/tuvm && git checkout -- src/solidified_image.c src/solidified_image.stmap
+
+## Gate 2 — the DK: BRIDGE OK every 15 s, in lockstep with the gateway
+
+Same build/flash recipe as Rung 7, but bake `ThreadTimerNode.ns` instead. **No button
+press** — just watch. Capture both ends at once:
+
+    timeout 80 cat /dev/ttyACM0 &
+    ssh david@gw85224-01 'timeout 80 journalctl -u udp-echo6.service -f -o short-iso'
+
+Verified 2026-07-11: five `BRIDGE OK` prints at 15 s intervals, each matching a gateway
+`echo 32B <-> [fdc5:...]:54360` line **to the second**.
+
+## The self-gating train — how a HEADLESS board proves its inbound leg
+
+The gateway's echo log only witnesses the **outbound** leg (it logs datagrams it
+*receives*). So `ThreadTimerNode` makes the next send **conditional on the previous
+reflection having decoded value-equal**: the `awaiting` flag is cleared *only* by a good
+reflection, and the timer reaction sends *only* when it is clear.
+
+Therefore a steady 15 s train of gateway echo lines proves the **full round-trip** is
+closing every cycle — **N lines = N−1 proven round-trips**. A broken inbound leg (lost
+datagram, decode mismatch, an `ENETDOWN`-class regression) leaves `awaiting` stuck true:
+the node never sends again and the train **stops dead after one line**. A broken inbound
+leg cannot fake a train.
+
+`awaiting` is load-bearing, not decorative: without it, a timed-out wait would simply send
+again on the next tick and produce a healthy-looking train while the inbound leg was
+broken — the exact false pass this design exists to prevent.
+
+**Deliberate:** a single lost datagram wedges the node forever. For a *gate* node that is a
+feature (failure must be loud, never a silent pass). It is not how a production sensor node
+would behave.
+
+The DK run above is what **calibrates** this gate: the console and the train were shown to
+tick together, so on the dongle — where there is no console — the train alone is trusted.

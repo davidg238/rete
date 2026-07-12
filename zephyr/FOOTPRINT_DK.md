@@ -76,3 +76,31 @@ FTD" rule.
 The nRF52840 **dongle** builds the same image against `prj_dongle_thread.conf`
 (FLASH 42.55 % / RAM 74.83 % — the small increase is the USB-CDC stack): same SoC, same
 256 KB, so the fit conclusion carries. See `docs/BOARD_PORTS.md`.
+
+---
+
+# Rung 8 — the autonomous timer node (`ThreadTimerNode.ns`), 2026-07-11
+
+Same **config D**, same `prj_dk_thread.conf` as rung 7; the only change is a real
+`k_timer` backend plus the timer node. Commit: tuvm `dc05f49`.
+
+| Region | Rung-7 (BUTTON1 node) | **Rung-8 (timer node)** | Delta |
+| ------ | --------------------- | ----------------------- | ----- |
+| FLASH  | 436 300 B (41.94 %) | **437 776 B (42.08 %)** | **+1 476 B** |
+| RAM    | 186 880 B (71.29 %) | **186 496 B (71.14 %)** | **−384 B** |
+
+The real on-target timer costs about **1.5 KB of flash** and no RAM — `k_timer` slots are
+a small static table (`OEVM_MAX_TARGET_TIMERS` = 8) and the tick reuses the pulse mailbox
+that already existed, so no new queue or thread is introduced.
+
+## The engine-core figure moved DOWN — and it is NOT a win
+
+The `mcu-footprint` ratchet re-banked from **text 29198 / data+bss 69036** to
+**text 28852 / data+bss 67996**. Do **not** read that as 1.4 KB of free headroom:
+
+`tools/footprint.sh` deliberately **excludes every `src/backend/*` TU** (the backend seam is
+measured on-target instead). Rung 8 moved the virtual clock out of `src/platform.c`
+(measured) into `src/backend/posix/timer_posix.c` (excluded), so the **measurement** shrank
+while the image did not — on target, `timer_zephyr.c` takes its place. The gate passed only
+because a ratchet fails on growth, not on shrinkage. The baseline was re-banked tight so the
+next real regression is still caught.

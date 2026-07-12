@@ -157,6 +157,23 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
      `k_timer` backend for the nsl `Timers` seam drives a 15 s autonomous send, and a **self-gating
      train** (the next send is conditional on the previous reflection decoding value-equal) makes the
      gateway's outbound-only echo log witness round-trip closure with no console.
+   - **Rung 8 — the on-target timer seam + the autonomous node. DONE 2026-07-11** (dongle DFU
+     flash pending — needs hands). The `Timers` seam (prims 85–88), until now a **virtual clock**
+     advanced only by `advanceMillis:`, gained a real backend: `src/timer_backend.h` +
+     `backend/posix/timer_posix.c` (the virtual clock, lifted VERBATIM — the host floor is the
+     gate, and stayed at 180/0/10 + 5 gates) + `backend/zephyr/timer_zephyr.c` (a `k_timer` whose
+     expiry ISR posts through the **existing** pulse mailbox onto `sys/timer` — the path
+     `pulse_backend.h` already sanctioned: "A GPIO/timer ISR calls `pulse_post_isr`"). No VM,
+     `Timers`-class, `NetBridge`, or CBOR change. `monotonicMillis` is now real on target;
+     `pumpEvents` idles the CPU between ticks and yields to OpenThread.
+     Gates: **`TIMER OK`** on native_sim (the backend proven with zero hardware), then
+     **`BRIDGE OK` every 15 s on the DK** — five prints in **exact lockstep, to the second**, with
+     five gateway echo lines, and **no button pressed**. That lockstep *calibrates* the
+     **self-gating train**, the headless proof: the node re-sends only after the previous
+     reflection decodes value-equal, so the gateway's outbound-only log witnesses full round-trip
+     closure (N lines = N−1 proven round-trips) and a broken inbound leg stops the train dead.
+     Issue A (dongle USB-CDC dies under radio) is thereby **routed around rather than solved** —
+     the dongle needs neither a button nor a console. Footprint: +1.5 KB flash, no RAM.
 
 ## Phase 3 — rejoin the node ladder (keeper, fleet, capabilities)
 
