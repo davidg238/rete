@@ -24,7 +24,8 @@ OEVM_TARGET = os.environ.get("OEVM_TARGET", "posix")
 OEVM_BACKEND = [f"src/backend/{OEVM_TARGET}/platform_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/serial_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/udp_{OEVM_TARGET}.c",
-                f"src/backend/{OEVM_TARGET}/pulse_{OEVM_TARGET}.c"]
+                f"src/backend/{OEVM_TARGET}/pulse_{OEVM_TARGET}.c",
+                f"src/backend/{OEVM_TARGET}/timer_{OEVM_TARGET}.c"]
 
 # OEVM_DUMP_DIR: differential harness knob. When set, every test's raw program stdout
 # (the bytes the .ns program printed — what gets compared against expectations) is

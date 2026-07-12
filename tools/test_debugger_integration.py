@@ -48,7 +48,7 @@ def build_a():
                     "src/serial.c",
                     "src/udp.c", "src/mirror.c", "src/backend/posix/platform_posix.c",
                     "src/backend/posix/serial_posix.c", "src/backend/posix/udp_posix.c",
-                    "src/backend/posix/pulse_posix.c",
+                    "src/backend/posix/pulse_posix.c", "src/backend/posix/timer_posix.c",
                     "src/solidified_image.c", "src/oevm_main.c",
                     "-o", BINARY_A, "-lm"], cwd=OEVM, check=True)
 

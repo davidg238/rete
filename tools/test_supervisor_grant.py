@@ -19,7 +19,8 @@ OEVM_TARGET = os.environ.get("OEVM_TARGET", "posix")
 OEVM_BACKEND = [f"src/backend/{OEVM_TARGET}/platform_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/serial_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/udp_{OEVM_TARGET}.c",
-                f"src/backend/{OEVM_TARGET}/pulse_{OEVM_TARGET}.c"]
+                f"src/backend/{OEVM_TARGET}/pulse_{OEVM_TARGET}.c",
+                f"src/backend/{OEVM_TARGET}/timer_{OEVM_TARGET}.c"]
 OEVM_EXTRA_CFLAGS = os.environ.get("OEVM_EXTRA_CFLAGS", "").split()
 
 # ---------------------------------------------------------------------------
