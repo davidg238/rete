@@ -40,11 +40,25 @@ zephyr/
                                   #   [USB-CDC-gated 3s settle], thread_bringup(), run VM
 ```
 
-Build:
+Build — the config-D RAM knobs are LOAD-BEARING on every 256 KB nRF52840 target, not
+DK-only tuning: without `VM_STACK_INIT_WORDS=4096` the VM boots by allocating its default
+16384-word (64 KB) execution stack inside the 49152-byte arena — a guaranteed OOM whose
+handler prints to stderr (NOT wired to the Zephyr console) and abort()s, i.e. the board
+dies silently while OpenThread keeps it attached to the mesh. That exact omission is what
+kept the dongle dead through rungs 7–8 (fixed 2026-07-12). The dongle additionally needs
+`PM_STATIC_YML_FILE` or the partition manager mounts settings NVS on the Open Bootloader's
+flash pages, which kills USB enumeration:
 ```
-west build -b nrf52840dk/nrf52840     . -- -DCONF_FILE=prj_dk_thread.conf     -DEXTRA_CONF_FILE=prj_dk_thread_local.conf      # DK
-west build -b nrf52840dongle/nrf52840 . -- -DCONF_FILE=prj_dongle_thread.conf -DEXTRA_CONF_FILE=prj_dongle_thread_local.conf  # dongle
+export OEVM_HEAP_SIZE=49152 METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256
+export VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512
+
+west build -b nrf52840dk/nrf52840     --build-dir build-dk     . -- -DCONF_FILE=prj_dk_thread.conf     -DEXTRA_CONF_FILE=prj_dk_thread_local.conf      # DK
+west build -b nrf52840dongle/nrf52840 --build-dir build-dongle . -- -DCONF_FILE=prj_dongle_thread.conf -DEXTRA_CONF_FILE=prj_dongle_thread_local.conf \
+  -DPM_STATIC_YML_FILE=pm_static_dongle.yml                                                                                                            # dongle
 ```
+For a silently-dead board, stack `prj_dongle_diag.conf` as an extra conf
+(`-DEXTRA_CONF_FILE="prj_dongle_thread_local.conf;prj_dongle_diag.conf"`) — minimal-mode
+logging makes ARM fault dumps print via printk instead of dying invisibly.
 
 To keep the common OT block DRY, factor it into `prj_thread_common.conf` and list
 it in each board's `CONF_FILE` (`-DCONF_FILE="prj_thread_common.conf;prj_dk_thread.conf"`).

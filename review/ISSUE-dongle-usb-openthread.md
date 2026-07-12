@@ -106,3 +106,35 @@ Refs: `zephyr/pm_static_dongle.yml`, `zephyr/prj_dongle_thread.conf`,
 `zephyr/docs/ZEPHYR_LESSONS.md` §1/§6, `src/backend/zephyr/platform_zephyr.c`,
 `src/main.c` `thread_bringup()`,
 `st-zephyr/tests/dongle/test-dongle-06-jast-ftd/{prj.conf,pm_static.yml}`.
+
+---
+
+## RESOLVED 2026-07-12 — the dongle transmits; `BRIDGE OK` train live at 15 s
+
+Two independent bugs, both confirmed on hardware the same morning:
+
+1. **Bug 3 confirmed:** flashing the `pm_static_dongle.yml` image immediately restored
+   USB-CDC enumeration (`2fe3:0004`) with OpenThread present. The dynamic partition
+   manager mounting settings-NVS on the Open Bootloader's pages was the whole USB story.
+   The float-ABI suspect (#2) was never needed.
+
+2. **Bug 4 (the "never transmits" half):** the dongle build was invoked WITHOUT the
+   config-D RAM knobs the DK build carries. `VM_STACK_INIT_WORDS` therefore defaulted to
+   16384 words = 64 KB — allocated as the VM's first act inside the 49152-byte arena.
+   Guaranteed boot OOM; `default_oom()` prints to **stderr, which is not wired to the
+   Zephyr console**, then `abort()`s. The board died silently at `run_solidified_entry_point()`
+   while OpenThread (its own thread) kept it attached — the exact "attach ≠ liveness"
+   signature again. Localized with one instrumented flash: `vm: entry` (printk) printed,
+   the node's first `println` never did; the working DK build's `compile_commands.json`
+   showed `-DVM_STACK_INIT_WORDS=4096 -DOEVM_MARK_STACK_SIZE=512` and the dongle's showed
+   neither.
+
+Fix: build the dongle with the full config-D env (now documented as load-bearing, with
+the pm_static flag, in `zephyr/docs/BOARD_PORTS.md`). Verified end-to-end: console
+`udp: sendto(32)=32` / `BRIDGE OK` alternating, gateway `udp-echo6` train at exactly 15 s
+from `:54360` — the self-gating train closing round-trips on the previously-dead board.
+
+Hygiene follow-ups this exposed: (a) stderr should be wired to the console (or the OOM
+handler should use the console path) so a boot OOM is never silent; (b) a diagnostic
+overlay `zephyr/prj_dongle_diag.conf` (LOG minimal + ASSERT) is now committed for the
+next silently-dead board.
