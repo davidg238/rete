@@ -153,7 +153,7 @@
   <!-- 2 · the gap -->
   <section class="slide">
     <div class="kicker">The gap</div>
-    <h2>Toit got the model right — and can't reach the hardware that matters</h2>
+    <h2>Toit got the model right — but struggles with Zephyr</h2>
     <div class="cols">
       <div>
         <p style="margin-bottom:0.8em"><strong>What Toit proved:</strong></p>
@@ -162,13 +162,14 @@
           <li>Supervised, crash-isolated jobs</li>
           <li>Immutable messages between them</li>
           <li>Push code over the network (<code>jag</code>) — no reflash cycle</li>
+          <li>Performance and type safety are achievable on-device</li>
         </ul>
       </div>
       <div>
-        <p style="margin-bottom:0.8em"><strong>Two bets that exclude a hardware class:</strong></p>
+        <p style="margin-bottom:0.8em"><strong>Two bets that leave our target class open:</strong></p>
         <ul class="points">
-          <li>Needs <strong>ESP32-scale RAM</strong> — does not fit the 256&nbsp;KB nRF52840 class, where Thread radios, coin cells, and years-long deployments live</li>
-          <li><strong>“Write your drivers in Toit”</strong> — Zephyr's catalog of maintained drivers is unreachable; every sensor starts from scratch</li>
+          <li>Sized for <strong>ESP32-scale RAM</strong> — a tight fit for the 256&nbsp;KB nRF52840 class, where Thread radios, coin cells, and years-long deployments live</li>
+          <li>Does not leverage <strong>Zephyr's catalog of maintained drivers</strong> — every sensor starts from scratch, in-language</li>
         </ul>
       </div>
     </div>
@@ -202,6 +203,106 @@
       <tr><td>ns-oevm / oevm</td><td>custom VM, Piumarta object model</td><td><strong>proved:</strong> fibers + NLR + reified contexts + growable stacks = a cascade of interacting complexity</td></tr>
       <tr><td><span style="color:var(--accent)">nsl-tuvm</span></td><td>same VM, minus the balloon</td><td><strong>cut the ambition to fit the substrate</strong> — keep capabilities &amp; messages, delete NLR &amp; fibers</td></tr>
     </table>
+  </section>
+
+  <!-- 4½ · language lineage -->
+  <section class="slide">
+    <div class="kicker">The language lineage</div>
+    <h2>Toit → Smalltalk → Newspeak → nsl — each hop, priced</h2>
+    <table class="grave">
+      <tr><td>Toit</td><td>the operational model to beat: jobs, messages, push-code</td>
+          <td>its static types + runtime are sized for ESP32-class parts — and a typed language done well is a <strong>compiler-team-sized project</strong>. This is a one-engineer effort with a 256&nbsp;KB part: both budgets say <strong>spend on operability, not typing</strong> — abandoned knowingly, not dismissed</td></tr>
+      <tr><td>Smalltalk</td><td>the smallest ergonomic dynamic core: keyword messages, everything-an-object</td>
+          <td><strong>ambient authority</strong> — any object reaches any global; no way to confine a driver; reflection everywhere by default</td></tr>
+      <tr><td>Newspeak</td><td>takes late binding to its conclusion: <strong>every name is a message send</strong> — class names, even the superclass, resolve through the enclosing module. No globals falls out; so do first-class modules (hence pushable code), capabilities as constructor arguments, and <strong>mirrors</strong> — reflection as an object you grant, not an API every object carries</td>
+          <td>full semantics (NLR, activation reification) ballooned a tiny VM — proven the hard way (ns-oevm)</td></tr>
+      <tr><td><span style="color:var(--accent)">nsl</span></td><td colspan="2">
+        <div class="cols" style="gap:1.8rem; padding:0.3em 0">
+          <div>
+            <p style="font-weight:700; color:var(--bad); margin-bottom:0.5em; text-transform:uppercase; font-size:0.85em; letter-spacing:0.06em">Gave up</p>
+            <ul class="points">
+              <li>static types <span style="color:var(--muted)">(Toit's bet)</span></li>
+              <li>non-local return <span style="color:var(--muted)">(true Smalltalk &amp; Newspeak semantics — the expensive cut)</span></li>
+              <li>fibers <span style="color:var(--muted)">(the Smalltalk substrate tradition; Newspeak itself points at actors)</span></li>
+            </ul>
+            <p style="font-size:0.88em; color:var(--muted)"><em>— heavy machinery; never the message model</em></p>
+          </div>
+          <div>
+            <p style="font-weight:700; color:var(--good-ink); margin-bottom:0.5em; text-transform:uppercase; font-size:0.85em; letter-spacing:0.06em">Kept</p>
+            <ul class="points">
+              <li><strong>late binding all the way down</strong> — every name a send; in this VM, dispatch is literally the only mechanism (see OEOM, next)</li>
+              <li>Newspeak's <strong>capability discipline</strong></li>
+              <li>keyword messages · immutable message values</li>
+              <li><strong>mirrors</strong> — Newspeak's own replacement for Smalltalk's ambient reflection, inherited not invented; <em>why the debugger exists</em>: remote debug is a capability porta is granted, not a backdoor</li>
+            </ul>
+          </div>
+        </div>
+      </td></tr>
+    </table>
+  </section>
+
+  <!-- 4a · oeom: the kernel that survived -->
+  <section class="slide">
+    <div class="kicker">The substrate · Piumarta &amp; Warth, VPRI 2008</div>
+    <h2>OEOM — the kernel that survived the graveyard</h2>
+    <div class="cols">
+      <div>
+        <p style="margin-bottom:0.8em"><strong>A complete object system from three structures and one operation:</strong></p>
+        <ul class="points">
+          <li><strong>object</strong> — word 0 names a vtable</li>
+          <li><strong>vtable</strong> — itself an object: selector→method bindings + a <code>delegate</code> for lookup fallback</li>
+          <li><strong>send</strong> — look up through the delegate chain, then apply</li>
+        </ul>
+        <p style="margin-top:0.9em">Classes, inheritance, metaclasses — all built <em>inside</em> the system from those parts. Smalltalk's metaclass tower, boiled to its minimum.</p>
+      </div>
+      <div>
+        <div class="arch">
+          <div class="layer nsl"><div class="t">anInstance</div><div class="d">[ vtable → ] [ slot ] [ slot ] — one word of model overhead</div></div>
+          <div class="flow">↓ word 0</div>
+          <div class="layer seam"><div class="t">its class's Vtable</div><div class="d">bindings · delegate → parent … (const, in flash)</div></div>
+          <div class="flow">↓ word 0 … the tower stops at a fixed point</div>
+          <div class="layer zephyr"><div class="t">VtableVtable</div><div class="d"><code>vtable = &amp;itself</code> — kernel_boot.c:86</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4b · oeom: one choke point -->
+  <section class="slide">
+    <div class="kicker">Why it matters here</div>
+    <h2>Everything is a send — so there is one choke point</h2>
+    <p class="big" style="margin-bottom:1.3rem">Every feature that must apply to <em>all</em> behavior was implemented <em>once</em>, at lookup — not per type, not per call site.</p>
+    <ul class="points">
+      <li><strong>Encapsulation</strong> — the access check runs on every send (the method cache never caches a verdict)</li>
+      <li><strong>Let-it-crash</strong> — DNU and faults funnel into one crash-record path the supervisor consumes</li>
+      <li><strong>Capability confinement</strong> — one enforcement surface; the reason confinement is cheap at 24&nbsp;KB</li>
+      <li><strong>Debugger &amp; mirrors</strong> — reflection is just more sends, granted as a capability</li>
+    </ul>
+    <p class="chart-note">The alternative at this scale (Berry's shape: tagged unions + C <code>switch</code>) re-implements each of these per type, per path. When confinement is the product, the uniformity is load-bearing.</p>
+  </section>
+
+  <!-- 4c · oeom: frozen, and nearly free -->
+  <section class="slide">
+    <div class="kicker">The deliberate theft</div>
+    <h2>We kept the minimalism, froze the openness</h2>
+    <div class="cols">
+      <div>
+        <p style="margin-bottom:0.8em"><strong>What it costs on a 256 KB part:</strong></p>
+        <ul class="points">
+          <li>Per object: <strong>one RAM word</strong> — which the precise GC needed anyway (it doubles as the layout descriptor)</li>
+          <li>Per class: one <code>const</code> vtable in flash — XIP, never marked, never copied, <strong>zero RAM</strong>; ~200 in the image, a thousand instances share each</li>
+          <li>~14 builtin vtables ≈ one per physical layout the GC must distinguish — already the floor</li>
+        </ul>
+      </div>
+      <div>
+        <p style="margin-bottom:0.8em"><strong>Piumarta's "open" — mutate the model at runtime — is the part we deleted:</strong></p>
+        <ul class="points">
+          <li>Vtables solidified to const XIP structures; dispatch semantics pinned</li>
+          <li>On a node that runs unattended for years, <em>"the object model cannot change under you"</em> is a feature</li>
+          <li>The design's real strength: it stayed powerful after its headline feature was removed — shrank to a few flash structs + one C function, still carries the metaclass tower, capabilities, and the debugger</li>
+        </ul>
+      </div>
+    </div>
   </section>
 
   <!-- 5 · the model -->
@@ -273,7 +374,7 @@
     <ul class="points">
       <li>Closed algebra (Toit's proven design): <code>null · bool · int · float · string · bytes · symbol · list · map · record</code> — recursively closed, depth-bounded, acyclic <strong>by construction</strong></li>
       <li>A mutable object is <em>unrepresentable</em> as a message — that structural fact is what makes crash isolation safe</li>
-      <li>On the single shared heap, inter-job messages pass <strong>by reference: zero copy</strong> — beating Toit's per-message copy</li>
+      <li>On the single shared heap, inter-job messages pass <strong>by reference: zero copy</strong> — a simplification the shared heap makes safe (per-process heaps, as in Toit, must copy)</li>
       <li>Only the boundary serializes (network / flash / drivers) — CBOR-compatible wire encoding, so CoAP tooling debugs porta traffic for free</li>
     </ul>
   </section>
@@ -302,6 +403,43 @@
     </div>
   </section>
 
+  <!-- 9½ · the model, named -->
+  <section class="slide">
+    <div class="kicker">The model, named</div>
+    <h2>Actors at the grain, tuple space at the joints</h2>
+    <div class="cols">
+      <div>
+        <p style="margin-bottom:0.8em"><strong>A job is an actor in everything but addressing:</strong></p>
+        <ul class="points">
+          <li>private state · one message at a time, to completion</li>
+          <li>contained crashes · supervisor restart policy</li>
+          <li><code>gen_server</code> minus the PID</li>
+        </ul>
+        <p style="margin-bottom:0.6em; margin-top:1.1em"><strong>Multi-step behavior = an explicit FSM</strong> (<code>lib/fsm.ns</code>):</p>
+        <ul class="points">
+          <li>the actor's behavior function; state in ordinary objects</li>
+          <li>the same explicitness that makes deep sleep rehydrate — wake is just another event</li>
+        </ul>
+      </div>
+      <div>
+        <p style="margin-bottom:0.8em"><strong>The rendezvous is Linda's, verbs and all:</strong></p>
+        <ul class="points">
+          <li><code>out:</code> — publish into the space</li>
+          <li><code>take:</code> — destructive read</li>
+          <li><code>whenever:</code> — standing reaction</li>
+        </ul>
+        <p style="margin-bottom:0.6em; margin-top:1.1em"><strong>Why paths beat PIDs on a fleet:</strong></p>
+        <ul class="points">
+          <li><strong>restart transparency</strong> — the path outlives crash, restart, even a code push; producers never notice (Erlang grew registries for this)</li>
+          <li><strong>attenuation by prefix</strong> — the address <em>is</em> the security model</li>
+          <li><strong>the substrate agrees</strong> — Zephyr's own IPC idiom (zbus) is channel pub-sub</li>
+        </ul>
+      </div>
+    </div>
+    <p class="chart-note">Within a job: Newspeak — synchronous sends among objects. Between jobs: immutable
+    values through the space. Two semantics, each at the boundary where it belongs — the same line BEAM draws.</p>
+  </section>
+
   <!-- 10 · RAM budget chart -->
   <section class="slide">
     <div class="kicker">The constraint</div>
@@ -315,9 +453,10 @@
       </div>
       <div class="legend" id="budgetlegend"></div>
     </div>
-    <p class="chart-note">Toit's runtime alone exceeds what remains after Zephyr + OpenThread.
-    The tuvm engine budget (~24 KB) leaves ~96 KB of language heap for the image, tuple space,
-    and messages — with headroom banked, and any RAM regression a test failure.</p>
+    <p class="chart-note">Runtimes designed for larger parts don't fit what remains after Zephyr +
+    OpenThread — this class needs a deliberately small engine. The tuvm budget (~24 KB) leaves
+    ~96 KB of language heap for the image, tuple space, and messages — with headroom banked,
+    and any RAM regression a test failure.</p>
   </section>
 
   <!-- 11 · comparison -->
@@ -326,35 +465,53 @@
     <h2>Operability is the differentiator</h2>
     <table class="cmp">
       <tr><th></th><th>Toit</th><th>MicroPython / Zephyr</th><th>AtomVM</th><th>nsl-tuvm</th></tr>
-      <tr><td>Fits 256 KB + OpenThread</td><td class="no">no</td><td>barely; weak Thread</td><td>partial</td><td class="us">design target</td></tr>
-      <tr><td>Reuses host-OS drivers</td><td class="no">no — in-language</td><td>partially</td><td>partially</td><td class="us">the product</td></tr>
+      <tr><td>Fits 256 KB + OpenThread</td><td class="no">no</td><td>barely; weak Thread</td><td>partial</td><td class="us">yes</td></tr>
+      <tr><td>Reuses host-OS drivers</td><td class="no">no — in-language</td><td>partially</td><td>partially</td><td class="us">yes</td></tr>
       <tr><td>Capability confinement</td><td class="no">no</td><td class="no">no</td><td class="no">no</td><td class="us">yes</td></tr>
       <tr><td>Supervision / let-it-crash</td><td class="yes">yes</td><td class="no">no</td><td class="yes">yes (BEAM)</td><td class="us">yes</td></tr>
       <tr><td>Remote provision / debug</td><td class="yes">yes (jag)</td><td>REPL only</td><td class="no">no</td><td class="us">yes (porta)</td></tr>
-      <tr><td>Static types, raw speed</td><td class="yes">yes</td><td class="no">no</td><td class="no">no</td><td>conceded</td></tr>
+      <tr><td>Static types, raw speed</td><td class="yes">yes</td><td class="no">no</td><td class="no">no</td><td class="us no">no</td></tr>
     </table>
     <p class="chart-note">The bet: for Thread-class fleet devices, confinement + supervision +
     remote serviceability + Zephyr's driver catalog decide whether a scripting layer survives
     production — not types or benchmarks.</p>
   </section>
 
-  <!-- 12 · roadmap -->
+  <!-- 12 · status + road ahead -->
   <section class="slide">
-    <div class="kicker">Roadmap</div>
-    <h2>First step: prove the model on the host, balloon gone</h2>
+    <div class="kicker">Status · 2026-07</div>
+    <h2>Phase 1 done: the model is proven on the host</h2>
     <div class="ms">
-      <div class="m">A · Seed + delete</div><div class="w">fork tuvm / nsl-tuvm / nsl-tests; delete fibers, NLR, reify, growable stacks; pared conformance green; bank the footprint delta <em>(in progress)</em></div>
-      <div class="m">B · Message algebra</div><div class="w">immutable list / map / record; mutation &amp; cycles unrepresentable; depth-bounded</div>
-      <div class="m">C · Channels + reactor</div><div class="w">rooted-prefix capabilities, three verbs (<code>out: · whenever: · take:</code>), segment-aligned confinement proven</div>
-      <div class="m">D · Supervisor</div><div class="w">let-it-crash boundary; end-to-end <code>event → reaction → supervisor</code>; a crashing handler contained</div>
+      <div class="m">✓ A · Seed + delete</div><div class="w">fibers, NLR, reify, growable stacks deleted — footprint delta banked, ratchet-tested</div>
+      <div class="m">✓ B · Message algebra</div><div class="w">immutable list / map / record; mutation &amp; cycles unrepresentable by construction</div>
+      <div class="m">✓ C · Channels + reactor</div><div class="w">rooted-prefix capabilities; <code>out: · whenever: · take:</code>; segment-aligned confinement proven</div>
+      <div class="m">✓ D · Supervisor</div><div class="w">let-it-crash boundary, timers, restart + quarantine — <strong>155 conformance tests green</strong>, both execution paths</div>
+      <div class="m">▶ E · Exceptions</div><div class="w"><code>on:do:</code> / <code>ensure:</code> as ordinary sends over the crash boundary <em>(in flight)</em></div>
     </div>
-    <p class="chart-note" style="margin-top:1.6rem">Deliberately fenced for later: Zephyr bring-up &amp; real drivers ·
-    porta wire (CBOR) · full exceptions · watchdogs &amp; restart policy · tuple-space generalizations ·
-    deep-sleep power modes.</p>
+    <p class="chart-note" style="margin-top:1.4rem"><strong>And it fits:</strong> measured on the nRF52840-DK
+    (2026-07-09), the full perf suite runs at <strong>45% RAM — 55% free</strong> — with drivers and OpenThread linked.
+    Road ahead: Zephyr seam (ISR→channel pulse, real timers, on-device GC) · first driver bindings ·
+    CBOR wire + porta provisioning.</p>
+  </section>
+
+  <!-- 13 · references -->
+  <section class="slide">
+    <div class="kicker">References</div>
+    <h2>Standing on</h2>
+    <ul class="points" style="max-width:52em">
+      <li><strong>OEOM</strong> — Ian Piumarta &amp; Alessandro Warth, <em>Open, Extensible Object Models</em> (VPRI TR-2006-003-a / S3 2008) · <a href="https://www.piumarta.com/software/cola/objmodel2.pdf" style="color:var(--accent)">piumarta.com/software/cola/objmodel2.pdf</a></li>
+      <li><strong>Newspeak</strong> — Gilad Bracha: modules, capabilities, message-based everything · <a href="https://newspeaklanguage.org" style="color:var(--accent)">newspeaklanguage.org</a> · mirrors: Bracha &amp; Ungar, <em>Mirrors: Design Principles for Meta-level Facilities</em> (OOPSLA 2004) · <a href="https://bracha.org/mirrors.pdf" style="color:var(--accent)">bracha.org/mirrors.pdf</a></li>
+      <li><strong>Linda / tuple spaces</strong> — David Gelernter, <em>Generative Communication in Linda</em> (ACM TOPLAS 1985) — the ancestor of the space and its verbs: <code>out: · take: · whenever:</code> · <a href="https://dl.acm.org/doi/10.1145/2363.2433" style="color:var(--accent)">dl.acm.org/doi/10.1145/2363.2433</a></li>
+      <li><strong>Distribution honesty</strong> — Waldo, Wyant, Wollrath &amp; Kendall, <em>A Note on Distributed Computing</em> (Sun Labs TR-94-29) — why remote must not masquerade as local; our answer: remoteness lives in the grant · <a href="https://scholar.harvard.edu/files/waldo/files/waldo-94.pdf" style="color:var(--accent)">waldo-94.pdf</a></li>
+      <li><strong>Berry</strong> — the small register VM that hosted attempts two and three · <a href="https://berry-lang.github.io" style="color:var(--accent)">berry-lang.github.io</a></li>
+      <li><strong>AtomVM</strong> — BEAM semantics on microcontrollers; the supervision comparable · <a href="https://www.atomvm.net" style="color:var(--accent)">atomvm.net</a></li>
+      <li><strong>Zephyr</strong> — the substrate: drivers, devicetree, OpenThread, power · <a href="https://www.zephyrproject.org" style="color:var(--accent)">zephyrproject.org</a></li>
+      <li><strong>Toit</strong> — the operational model this project chases at a smaller scale · <a href="https://toitlang.org" style="color:var(--accent)">toitlang.org</a></li>
+    </ul>
   </section>
 
   <div class="footer">
-    <span>nsl-tuvm — first-step design review · 2026-07-03</span>
+    <span>nsl-tuvm — design review · 2026-07-03, updated 2026-07-11</span>
     <span class="nav">
       <span id="counter" style="margin-right:0.6rem"></span>
       <button id="prev" aria-label="previous slide">←</button>

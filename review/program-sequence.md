@@ -208,6 +208,29 @@ event sources, power/deep-sleep. No owner docs yet — write them when a workloa
 - **Target user program**: `review/demo-node.ns` — readme-driven; every phase should shrink the
   gap between it and what actually runs.
 
+## Addendum 2026-07-11 — direction decisions binding on phases 2–3
+
+Decided in the 2026-07-11 architecture review (David's calls); owner docs written the same day:
+
+- **Driver exposure & example ladder** (`review/zephyr-driver-exposure.md`): devices surface as
+  granted channel prefixes (`dev/<n>/sample·event·ctl`); three tiers (uniform-API-family binding
+  → C-side driver job → custom prims). Ladder for phase-2 rung 2+: **BME280 → AMG8833 Grid-EYE
+  (native Zephyr driver, same Tier-1 binding) → character-grid UI on a 128×128 TFT. LVGL is
+  dropped, not deferred.**
+- **Porta wire** (`porta/docs/PROTOCOL-NSL.md`, porta#23): porta protocol v1 is frozen for Toit
+  nodes; **nsl nodes speak a space-sync protocol** (goal/obs retained trees + event channels,
+  cursor sync; `take:` never crosses the wire; payload bulk + auth off-space). This refines
+  phase 3 item 1 (keeper/porta rejoin) and the CBOR wire rung: pin per-prefix record schemas
+  (`PROTOCOL-NSL-RECORDS.md`) before first implementation; first proving ground is the G10
+  host fleet-sim (also the tuvm#25 vertical slice).
+- **Distribution law** (`WHY.md` §"Paths extend across the network"): location transparency must
+  not become failure transparency (Waldo TR-94-29) — remoteness lives in the grant, with
+  per-prefix delivery contracts enforced at the bridge job (G2 overflow, G5 auth, G8 skew:
+  one door).
+- **Issue discipline**: P0–P3 labels + pinned tracker tuvm#26 define the release gates
+  (unattended node = P0 clear; production fleet = P0+P1 clear). Flight target ≈ 2 months
+  (2026-09); `review/slides.html` is the target artifact and tracks milestone truth.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),

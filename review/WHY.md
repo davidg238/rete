@@ -92,6 +92,75 @@ dominated everything else: non-local return and fibers.
 - **porta/nodus deployment.** Nodes are provisioned, updated, debugged, and profiled over
   the LAN through the porta gateway — the `jag` experience, on Thread-class hardware.
 
+## The model, named: actors at the grain, Linda at the joints
+
+A reviewer who knows the literature will recognize the reactor as a hybrid, and it is
+deliberate: **jobs are actors in everything but addressing; channels are their tuple
+space.**
+
+A job carries the essential actor contract — private state, one message processed at a
+time to completion, contained crashes, supervisor restart policy. It is `gen_server`
+minus the PID. What is swapped out is only the rendezvous: actors mail an *address*;
+jobs meet at a *channel path*. That is Gelernter's generative communication, and the
+verbs are Linda's almost verbatim — `out:` (publish into the space), `take:`
+(destructive read), `whenever:` (standing reaction; the extension later tuple-space
+systems added as notify/events).
+
+The swap buys exactly what a fleet device needs:
+
+- **Restart transparency.** An actor address dies with its actor — Erlang grew
+  registries (registered names, gproc, pg) to paper over PID brittleness. A channel
+  path survives the job's crash, restart, quarantine, even a code push that replaces
+  the job entirely; producers never learn anything happened. For let-it-crash plus
+  remote deployment, decoupling identity from lifetime is the requirement, not a
+  concession.
+- **Attenuable capability.** An actor address is a capability, but attenuating one
+  means building proxy actors. A path prefix attenuates by extension —
+  `sensors/` → `sensors/temp/` — cheap enough to *be* the security model.
+- **The substrate agrees.** Zephyr's own recommended IPC, zbus, is a channel-based
+  pub-sub bus. The architecture converged on the host OS's idiom one level above
+  where "compose with Zephyr's grain" was originally aimed. (The same convergence
+  shows up across the field: JavaSpaces, ROS topics, MQTT — wherever producers and
+  consumers must outlive each other independently.)
+
+The layering is clean: **within** a job it is Newspeak all the way down — synchronous
+message sends among objects (Bracha's world). **Between** jobs, where isolation must
+hold, it is immutable values through the space (Gelernter's world). Two communication
+semantics, each at exactly the boundary where it belongs — the same line BEAM draws
+between in-process calls and inter-process messages.
+
+The remaining actor piece is behavior *across* events — without fibers, a multi-step
+protocol cannot be straight-line code — and that is the FSM library's role
+(`lib/fsm.ns`): an explicit state machine is the actor's behavior function, its state
+held in ordinary objects. Which is the same property that makes deep sleep work:
+explicit state rehydrates; wake is just another event.
+
+Honest ledger: BEAM isolates by construction (per-process heaps and mailboxes); tuvm
+isolates by policy (immutable messages, prefix grants, supervision, per-source
+overflow policy). The guarantee is weaker and the RAM cost is 256 KB-affordable — and
+the reliability-gaps work (G2 overflow vocabulary, per-job heap attribution) is
+precisely what closes the operational distance.
+
+**Paths extend across the network.** Nothing in the model says the space behind a
+prefix is local — and that is deliberate, not accidental. Remote reach needs zero VM
+changes: a bridge job holds the radio capability, registers `whenever: node42/**`,
+serializes outbound, and `out:`s inbound frames into the local space. The remote
+space is proxied by an ordinary reaction (the porta gateway *is* this pattern), and
+the capability story composes untouched: a grant of `node42/env/` is permission to
+speak to that machine, attenuable by prefix like anything else.
+
+The one law to hold when the wire work starts: **location transparency must not
+become failure transparency** (Waldo, Wyant, Wollrath & Kendall, *A Note on
+Distributed Computing*, Sun Labs TR-94-29 — the canonical argument for why systems
+that make remote look identical to local break down over latency, partial failure,
+and concurrency). The resolution is that **remoteness lives in the grant, not the
+syntax**: producers keep the uniform verbs and never care where a prefix leads, but
+a remote prefix is granted *with a delivery contract* — best-effort `out:`,
+subscription-semantics `whenever:`, and no `take:` across the network (a distributed
+destructive read is a consensus problem; this is where JavaSpaces grew transactions).
+The bridge job is the single ingress where G2's overflow policy, G5's auth, and G8's
+version skew are enforced — one door, same rules as any other event source.
+
 ## Why no fibers is a feature, not a concession
 
 The obvious objection: without fibers, "start conversion, wait 10 ms, read result" can't
