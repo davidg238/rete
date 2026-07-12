@@ -75,3 +75,30 @@ endif()
 if(DEFINED ENV{OEVM_MARK_STACK_SIZE})
   target_compile_definitions(app PRIVATE OEVM_MARK_STACK_SIZE=$ENV{OEVM_MARK_STACK_SIZE})
 endif()
+
+# Config-D DEFAULTS for every nRF52840 target — LOAD-BEARING, not tuning. The env
+# vars above still override, but when the env is silent a 52840 build must NOT fall
+# back to the host defaults: without VM_STACK_INIT_WORDS=4096 the VM boots by
+# allocating its default 16384-word (64 KB) execution stack inside the 48 KB arena —
+# a guaranteed boot OOM. That is precisely how the dongle shipped dead through
+# rungs 7-8: built from a shell without the exports, it aborted at boot while
+# OpenThread kept it "attached" (see zephyr/docs/BOARD_PORTS.md and
+# review/ISSUE-dongle-usb-openthread.md). native_sim/host builds are untouched
+# (CONFIG_SOC_NRF52840 is false there, and their 16 MB default arena is fine).
+if(CONFIG_SOC_NRF52840)
+  if(NOT DEFINED ENV{OEVM_HEAP_SIZE})
+    target_compile_definitions(app PRIVATE OEVM_HEAP_SIZE=49152)
+  endif()
+  if(NOT DEFINED ENV{METHOD_CACHE_SIZE})
+    target_compile_definitions(app PRIVATE METHOD_CACHE_SIZE=256)
+  endif()
+  if(NOT DEFINED ENV{PRIM_CACHE_SIZE})
+    target_compile_definitions(app PRIVATE PRIM_CACHE_SIZE=256)
+  endif()
+  if(NOT DEFINED ENV{VM_STACK_INIT_WORDS})
+    target_compile_definitions(app PRIVATE VM_STACK_INIT_WORDS=4096)
+  endif()
+  if(NOT DEFINED ENV{OEVM_MARK_STACK_SIZE})
+    target_compile_definitions(app PRIVATE OEVM_MARK_STACK_SIZE=512)
+  endif()
+endif()

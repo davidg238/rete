@@ -168,9 +168,14 @@ stack).
 
 ```bash
 source /home/david/workspace/ns-zephyr/tools/env.sh
-# Recommended DK config "D" (see RAM tuning above + nsl-tests/00_perf/RESULTS.md):
-export OEVM_HEAP_SIZE=49152 METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256
-export VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512
+# Config "D" is BAKED as the default for every nRF52840 build (CMakeLists.txt,
+# 2026-07-12) — no exports needed. It is load-bearing, not tuning: a 52840 build
+# without VM_STACK_INIT_WORDS=4096 allocates a 64 KB VM stack inside the 48 KB
+# arena and dies in a SILENT boot OOM (this shipped a dead dongle through rungs
+# 7-8; see docs/BOARD_PORTS.md). Export any knob only to EXPERIMENT — env still
+# overrides the baked defaults:
+#   export OEVM_HEAP_SIZE=49152 METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256
+#   export VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512
 
 # 1. bake the DK node into the solidified image (run from the nsl-tuvm repo)
 cd /home/david/workspace/nsl-tuvm

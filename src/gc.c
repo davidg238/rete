@@ -1,5 +1,6 @@
 #include "oevm.h"
 #include "frame_abi.h"
+#include "platform_backend.h"   /* platform_console_write: the OOM message must reach the console on every backend */
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -102,10 +103,25 @@ void heap_init(void) {
 }
 
 /* Overridable out-of-memory handler. Default aborts; only reached by
-   gc_allocate after a full collection still cannot satisfy the request. */
+   gc_allocate after a full collection still cannot satisfy the request.
+   The message goes through platform_console_write — the seam every backend
+   implements (and the one a wire logger would hook) — because stderr is NOT
+   wired to the console on Zephyr: a boot OOM printed there dies invisibly
+   while OpenThread keeps the node attached, which is exactly how the dongle
+   passed as "attached but silent" through rungs 7-8. Host builds keep the
+   stderr copy so shell redirections/expectations are unchanged. */
 static oop default_oom(size_t size) {
-    fprintf(stderr, "VM GC Error: Out of Memory (requested %zu, used %td of %u)\n",
-            size, (ptrdiff_t)(heap_top - heap_base), (unsigned)OEVM_HEAP_SIZE);
+    char msg[112];
+    int n = snprintf(msg, sizeof msg,
+                     "VM GC Error: Out of Memory (requested %zu, used %td of %u)\n",
+                     size, (ptrdiff_t)(heap_top - heap_base), (unsigned)OEVM_HEAP_SIZE);
+    if (n > 0) {
+        platform_console_write(msg, (size_t)n);
+        platform_console_flush();
+    }
+#ifndef __ZEPHYR__
+    fputs(msg, stderr);
+#endif
     abort();
     return NULL; /* unreached */
 }
