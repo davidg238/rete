@@ -1,0 +1,83 @@
+(*
+expect:
+a1b2c3
+10-20-30
+2
+0
+10 40 90
+20 30
+30 20 10
+10
+30
+10 20 30 1 2 3
+10 20
+20 30
+*)
+(* L1 — the sequence/transform combinators. Ordered walks, 1-based, NLR-free
+   (no `^` inside any block).
+
+   `,` is the notable one: it is a VM prim that answers String-String ONLY and
+   otherwise breaks out to normal vtable lookup (see the fall-through comment in
+   dispatch.c), so a Collection-side `,` is reachable and does not collide with
+   String concat. Both appear in this file. *)
+class CombinatorsSequence packageUsing: manifest = () (
+  (* Render a collection as space-separated text — do:separatedBy: under test. *)
+  join: col = (
+    | s |
+    s:: ''.
+    col do: [ :e | s:: s , e printString ] separatedBy: [ s:: s , ' ' ].
+    ^ s )
+
+  public main: platform args: args = (
+    | col letters other s |
+    col:: OrderedCollection new.
+    col add: 10.
+    col add: 20.
+    col add: 30.
+
+    other:: OrderedCollection new.
+    other add: 1.
+    other add: 2.
+    other add: 3.
+
+    letters:: OrderedCollection new.
+    letters add: 'a'.
+    letters add: 'b'.
+    letters add: 'c'.
+
+    (* withIndexDo: — 1-based index alongside the element *)
+    s:: ''.
+    letters withIndexDo: [ :e :i | s:: s , e , i printString ].
+    s out.                                                (* a1b2c3 *)
+
+    (* do:separatedBy: — the separator runs BETWEEN elements, never trailing *)
+    s:: ''.
+    col do: [ :e | s:: s , e printString ] separatedBy: [ s:: s , '-' ].
+    s out.                                                (* 10-20-30 *)
+
+    (* indexOf: / indexOf:ifAbsent: *)
+    (col indexOf: 20) printString out.                    (* 2 *)
+    (col indexOf: 99 ifAbsent: [ 0 ]) printString out.    (* 0 *)
+
+    (* with:collect: — pairwise; sizes must agree *)
+    (self join: (col with: other collect: [ :a :b | a * b ])) out.   (* 10 40 90 *)
+
+    (* copyFrom:to: — inclusive, 1-based *)
+    (self join: (col copyFrom: 2 to: 3)) out.             (* 20 30 *)
+
+    (* reversed *)
+    (self join: col reversed) out.                        (* 30 20 10 *)
+
+    (* detectMin: / detectMax: over a block value *)
+    (col detectMin: [ :e | e ]) printString out.          (* 10 *)
+    (col detectMax: [ :e | e ]) printString out.          (* 30 *)
+
+    (* , — collection concatenation (NOT the String prim) *)
+    (self join: (col , other)) out.                       (* 10 20 30 1 2 3 *)
+
+    (* first: / last: *)
+    (self join: (col first: 2)) out.                      (* 10 20 *)
+    (self join: (col last: 2)) out.                       (* 20 30 *)
+  )
+) : (
+)

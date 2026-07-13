@@ -1,0 +1,58 @@
+(*
+expect:
+true
+6
+false
+10
+false
+6
+true
+10
+5
+10
+true
+*)
+(* T-A.3 (L1) — the spec's hard rule: EVERY early-terminating combinator gets a pinned
+   short-circuit test. This is the clone 03_combinator_short_circuit.ns asked for.
+
+   Contract, identical to kernel's detect:ifNone: — the found-flag walks the whole
+   collection but stops SENDING the block once the answer is known, so the observable
+   contract is EVALUATION COUNT, not iteration count. anySatisfy: stops at the first
+   hit; allSatisfy: stops at the first miss; count: has no early exit and sees all.
+   NLR-free by construction: no `^` inside any block. *)
+class CombinatorShortCircuitAnyAll packageUsing: manifest = () (
+  public main: platform args: args = (
+    | col n |
+    col:: OrderedCollection new.
+    1 to: 10 do: [ :i | col add: i ].
+
+    (* anySatisfy: — hit at position 6, block not evaluated again *)
+    n:: 0.
+    (col anySatisfy: [ :e | n:: n + 1. e > 5 ]) printString out.   (* true *)
+    n printString out.                                             (* 6 *)
+
+    (* anySatisfy: — miss, full scan *)
+    n:: 0.
+    (col anySatisfy: [ :e | n:: n + 1. e > 99 ]) printString out.  (* false *)
+    n printString out.                                             (* 10 *)
+
+    (* allSatisfy: — first failure at position 6, block not evaluated again *)
+    n:: 0.
+    (col allSatisfy: [ :e | n:: n + 1. e < 6 ]) printString out.   (* false *)
+    n printString out.                                             (* 6 *)
+
+    (* allSatisfy: — all pass, full scan *)
+    n:: 0.
+    (col allSatisfy: [ :e | n:: n + 1. e > 0 ]) printString out.   (* true *)
+    n printString out.                                             (* 10 *)
+
+    (* count: — no early exit; counts matches, evaluates every element *)
+    n:: 0.
+    (col count: [ :e | n:: n + 1. e > 5 ]) printString out.        (* 5 *)
+    n printString out.                                             (* 10 *)
+
+    (* noneSatisfy: — the negation of anySatisfy: *)
+    (col noneSatisfy: [ :e | e > 99 ]) printString out.            (* true *)
+  )
+) : (
+)
