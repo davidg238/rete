@@ -69,6 +69,60 @@ class Kernel usingPlatform: platform = () (
       found ifTrue: [ ^ result ].
       ^ n value )
     public detect: b = ( ^ self detect: b ifNone: [ self error: 'not found' ] )
+
+    (* ---- L1 combinators (landed from staged review/lib/combinators.ns) --------
+       With NLR gone these ARE the early-exit story, so they all use the found-flag
+       pattern: iteration is not cut short, but the block is not SENT again once the
+       answer is known. The observable contract is therefore EVALUATION COUNT, not
+       iteration count — identical to detect:ifNone: above, and pinned by
+       nsl-tests/07_no_nlr/05. No `^` inside any block (dialect: NLR is gone).
+       Everything here bottoms out in `do:`, so it works for every Collection —
+       including Interval. *)
+    public anySatisfy: aBlock = (
+      | found |
+      found:: false.
+      self do: [ :e | found ifFalse: [ found:: aBlock value: e ] ].
+      ^ found )
+    public allSatisfy: aBlock = (
+      | ok |
+      ok:: true.
+      self do: [ :e | ok ifTrue: [ ok:: aBlock value: e ] ].
+      ^ ok )
+    public noneSatisfy: aBlock = ( ^ (self anySatisfy: aBlock) not )
+    public count: aBlock = (
+      ^ self inject: 0 into: [ :n :e | (aBlock value: e) ifTrue: [ n + 1 ] ifFalse: [ n ] ] )
+    public do: aBlock separatedBy: sepBlock = (
+      | first |
+      first:: true.
+      self do: [ :e |
+        first ifTrue: [ first:: false ] ifFalse: [ sepBlock value ].
+        aBlock value: e ].
+      ^ self )
+    public withIndexDo: aBlock = (
+      | i |
+      i:: 0.
+      self do: [ :e | i:: i + 1. aBlock value: e value: i ].
+      ^ self )
+    public indexOf: anObject ifAbsent: absentBlock = (
+      | idx |
+      idx:: 0.
+      self withIndexDo: [ :e :i | (idx = 0 and: [ e = anObject ]) ifTrue: [ idx:: i ] ].
+      idx = 0 ifTrue: [ ^ absentBlock value ].
+      ^ idx )
+    public indexOf: anObject = ( ^ self indexOf: anObject ifAbsent: [ self error: 'not found' ] )
+    (* Element with the maximal aBlock value; ifNone: on empty. *)
+    public detectMax: aBlock ifNone: noneBlock = (
+      | found best bestVal v |
+      found:: false.
+      self do: [ :e |
+        v:: aBlock value: e.
+        (found not or: [ v > bestVal ]) ifTrue: [ found:: true. best:: e. bestVal:: v ] ].
+      found ifTrue: [ ^ best ].
+      ^ noneBlock value )
+    public detectMin: aBlock ifNone: noneBlock = (
+      ^ self detectMax: [ :e | 0 - (aBlock value: e) ] ifNone: noneBlock )
+    public detectMax: aBlock = ( ^ self detectMax: aBlock ifNone: [ self error: 'not found' ] )
+    public detectMin: aBlock = ( ^ self detectMin: aBlock ifNone: [ self error: 'not found' ] )
   ) : (
   )
 
@@ -88,7 +142,80 @@ class Kernel usingPlatform: platform = () (
     public removeFirst = ( | v | v:: contents at: 1. 2 to: count do: [ :i | contents at: i - 1 put: (contents at: i) ]. count:: count - 1. ^ v )
     ensureCapacity = ( count = contents size ifTrue: [ self grow ]. ^ self )
     grow = ( | bigger | bigger:: platform basicNew: Array indexable: 2 * contents size. 1 to: count do: [ :i | bigger at: i put: (contents at: i) ]. contents:: bigger. ^ self )
+
+    (* ---- L1 sequence combinators (staged review/lib/combinators.ns) ----------
+       These need indexed access (`at:`/`size`), so they live here rather than on
+       Collection — a Set has no order to copy, reverse or concatenate. Interval
+       is indexed too but defines its own `at:`; it inherits the do:-based
+       combinators from Collection, which is all it needs.
+       1-based and inclusive, per Smalltalk convention. Bounds errors crash (L5). *)
+    public with: other collect: aBlock = (
+      | r |
+      self size = other size ifFalse: [ ^ self error: 'size mismatch' ].
+      r:: OrderedCollection new.
+      self withIndexDo: [ :e :i | r add: (aBlock value: e value: (other at: i)) ].
+      ^ r )
+    public copyFrom: start to: stop = (
+      | r |
+      (start < 1 or: [ stop > self size ]) ifTrue: [ ^ self error: 'index out of bounds' ].
+      r:: OrderedCollection new.
+      start to: stop do: [ :i | r add: (self at: i) ].
+      ^ r )
+    public reversed = (
+      | r n |
+      r:: OrderedCollection new.
+      n:: self size.
+      1 to: n do: [ :i | r add: (self at: n - i + 1) ].
+      ^ r )
+    public first: n = ( ^ self copyFrom: 1 to: n )
+    public last: n = ( ^ self copyFrom: self size - n + 1 to: self size )
+    (* Concatenation. `,` is a VM prim that answers String-String only; every other
+       receiver falls through to normal vtable lookup (dispatch.c), so this method
+       is reachable and does not collide with String concat. *)
+    public , other = (
+      | r |
+      r:: OrderedCollection new.
+      self do: [ :e | r add: e ].
+      other do: [ :e | r add: e ].
+      ^ r )
   ) : (
+  )
+
+  (* L1 — an integer range as a FIRST-CLASS collection, so numeric ranges get the
+     whole Collection protocol (select:, anySatisfy:, count:, inject:into:, …).
+     The compiler still lowers the `to:do:` / `to:by:do:` LOOP forms straight to
+     bytecode; Interval is for range-as-VALUE uses and does not change that.
+
+     The spec's `1 to: n` sugar is NOT provided: integers are VM builtins with no
+     nsl-reachable vtable (`1 to: 5` compiles to a real send and dies with
+     `Message 'to:' not understood`), so a range is constructed explicitly via the
+     class-side. See tuvm#30 — giving integers a protocol is a VM/dialect decision,
+     not a library one.
+
+     Only do:/size/at: are primitive to it; everything else is inherited. *)
+  class Interval = Collection ( | start stop step | ) (
+    public do: aBlock = (
+      | i |
+      step > 0
+        ifTrue: [ i:: start. [ i <= stop ] whileTrue: [ aBlock value: i. i:: i + step ] ]
+        ifFalse: [ i:: start. [ i >= stop ] whileTrue: [ aBlock value: i. i:: i + step ] ].
+      ^ self )
+    public size = (
+      step > 0
+        ifTrue: [ stop < start ifTrue: [ ^ 0 ]. ^ (stop - start) // step + 1 ].
+      start < stop ifTrue: [ ^ 0 ].
+      ^ (start - stop) // (0 - step) + 1 )
+    public at: i = (
+      (i < 1 or: [ i > self size ]) ifTrue: [ ^ self error: 'index out of bounds' ].
+      ^ start + ((i - 1) * step) )
+    public first = ( ^ self at: 1 )
+    public last = ( ^ self at: self size )
+    setStart: a stop: b step: s = (
+      s = 0 ifTrue: [ ^ self error: 'zero step' ].
+      start:: a. stop:: b. step:: s. ^ self )
+  ) : (
+    public from: a to: b = ( ^ self new setStart: a stop: b step: 1 )
+    public from: a to: b by: s = ( ^ self new setStart: a stop: b step: s )
   )
 
   class HashedCollection = Collection ( | table count | ) (
@@ -1757,6 +1884,7 @@ class Kernel usingPlatform: platform = () (
   public Array             = ( ^ Array )
   public Collection        = ( ^ Collection )
   public OrderedCollection = ( ^ OrderedCollection )
+  public Interval          = ( ^ Interval )
   public Set               = ( ^ Set )
   public Dictionary        = ( ^ Dictionary )
   public Association       = ( ^ Association )
