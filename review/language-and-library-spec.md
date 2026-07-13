@@ -5,6 +5,24 @@ Nothing here is first-step scope except where marked; this is the post-Milestone
 roadmap for making the language *sufficient for its user* — someone scripting Zephyr
 drivers and coordination logic, not writing a VM.
 
+**Build status (audited 2026-07-12) — this doc is a proposal; where it disagrees with
+the code, the code has usually been ratified since. Check before re-litigating.**
+
+| | | |
+|---|---|---|
+| L1 combinators | **SHIPPED** | landed 2026-07-12 — full set + `Interval`. One gap: the `1 to: n` sugar is not landable (integers are VM builtins with no reachable vtable), so ranges are built with `Interval from:to:[by:]` — tuvm#30 |
+| L2 binary data | **PARTIAL** | 8/16-bit only; no u32/signed accessors, no `bitField:`; staged in `review/lib/bytes.ns` |
+| L3 timers | **SHIPPED** | `Timers` in `kernel.ns`; real `k_timer` backend (rung 8) |
+| L4 FSM | **SHIPPED** | `Protocol` in `kernel.ns`; `timeout:` sugar deliberately omitted — compose from `Timers` |
+| L5 error convention | **SHIPPED** | plus `on:do:`/`ensure:` (Milestone E), which slot *above* it as L5.3 anticipated |
+| L6 CBOR | **SHIPPED** | rung 3 — but built in nsl over 7 C leaf prims, the *inverse* of this doc's "codec in C" |
+| L7 integers | **SHIPPED** | range **ratified wider** than proposed below — see L7 |
+| L8 strings | **PARTIAL** | no `class String`; UTF-8 validity **not** enforced at construction; staged in `review/lib/strings.ns` |
+
+Note `review/lib/` is a **staging** directory — `combinators.ns`, `bytes.ns` and
+`strings.ns` are written but **not loaded by any harness**; only `fsm.ns` and `timers.ns`
+have been landed into `nsl-tuvm/lib/kernel.ns`.
+
 **Sufficiency verdict.** For the coordinator role (jobs, channels, supervision, driver
 facades), the language as specced is sufficient. The risks are (a) stdlib gaps that push
 users back to C, and (b) three under-specified corners — integer width, string/bytes,
@@ -113,7 +131,7 @@ Payoffs: OpenThread's application layer (CoAP) is CBOR-native; off-the-shelf dec
 custom codec. Encoder+decoder in C at the seam (spec §2 already places the codec in C),
 ~1–2 KB code.
 
-## L7 — Integers on 32- vs 64-bit platforms (decide before Milestone B)
+## L7 — Integers on 32- vs 64-bit platforms — **RATIFIED & SHIPPED** (Milestone B; range widened at rung 3, 2026-07-10)
 
 The platforms diverge: host (x86-64) SMIs carry ~62/63 bits; nRF52840 (Cortex-M4, 32-bit
 words) SMIs carry ~31. Driver code routinely needs unsigned 32-bit values (register
@@ -121,24 +139,35 @@ reads, `u32At:`), which do **not** fit a 31-bit SMI. Leaving this implicit means
 that pass on host silently break on target — destroying the develop-on-host workflow and
 the differential-oracle testing strategy.
 
-**Recommendation: define language integers as signed 64-bit semantics on every
-platform.**
+**Decision (as built): integer semantics are platform-independent, with a boxed
+fallback.**
 - 64-bit host: SMI covers the full range in practice; no boxing.
-- 32-bit target: SMI fast path (±2^30) + a boxed heap `Int64` fallback, allocated only
-  when a value exceeds SMI range. u32 register values and ms-since-boot timestamps fit
+- 32-bit target: SMI fast path (±2^30) + a boxed heap `LargeInteger` fallback, allocated
+  only when a value exceeds SMI range. The SMI band is derived from `sizeof(intptr_t)`
+  (`tuvm/src/dispatch.c`), so the *same* program boxes at ±2^30 on target and ±2^62 on
+  host and computes the same answer. u32 register values and ms-since-boot timestamps fit
   without ceremony; the box is rare in real driver code (most values are small).
-- Overflow at ±2^63 traps (crash), never wraps silently. Wrapping, when wanted
-  (checksums, counters), is explicit: `+w`, `bitAnd: 16rFFFFFFFF`, or a `Word32` view —
-  library surface, decided later.
-- The message algebra's `int` = this 64-bit integer, everywhere; CBOR major 0/1 carries
-  it exactly.
+- **The ratified range is ±(2^64−1)** — sign + `uint64_t` magnitude (`struct LargeInteger`,
+  `tuvm/src/oevm.h`), *not* signed-64. Overflow **traps (crash) at magnitude 2^64**, never
+  wraps silently; only `−2^64` and the CBOR bignum tags (2/3) exceed it, both routing to
+  `integer out of range`. Pinned by `nsl-tests/06_limit_tests/04_integer_overflow.ns` and
+  by the rung-3 wire contract (`program-sequence.md` phase 2 item 3).
+  *(This supersedes the original proposal of signed-64 semantics trapping at ±2^63. The
+  wider band was ratified when CBOR landed: RFC 8949 major 0/1 carries the full unsigned
+  64-bit range, and rejecting `2^63 … 2^64−1` at the wire would have made a conformant
+  peer's encoding undecodable.)*
+- Comparison is exact via sign+magnitude — deliberately **never** round-tripped through
+  `double`, because the nRF52840 is soft-float (`dispatch.c`).
+- Wrapping, when wanted (checksums, counters), stays explicit: `+w`, `bitAnd: 16rFFFFFFFF`,
+  or a `Word32` view — library surface, still undecided (see L2).
+- The message algebra's `int` = this integer, everywhere; CBOR major 0/1 carries it exactly.
 
 Rejected alternative (documented so it isn't re-proposed): "int = platform SMI width."
 Cheaper (no boxed type) but makes integer semantics platform-dependent — unacceptable
 against the host-as-oracle test strategy, and 31 bits genuinely cannot hold a u32.
 
-Cost: one boxed integer type on 32-bit targets (~small: box, GC case, arithmetic
-fallback). Pay it; it is the price of "test on host, trust on target".
+Cost, as paid: one boxed integer type on 32-bit targets (box, GC case, arithmetic
+fallback). It is the price of "test on host, trust on target".
 
 ## L8 — Strings: minimal, UTF-8, firmly separated from bytes
 
