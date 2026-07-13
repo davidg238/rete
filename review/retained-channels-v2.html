@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  Names, and what answers to them — deck v2. Supersedes retained-channels.html (v1).
+  Standalone: open directly in a browser. Arrow keys / scroll.
+
+  v2 reframes on David's read (2026-07-12): a channel is a NAME, not a pointer, so the
+  question is what the name resolves to and who can answer it. Drops the MQTT word
+  "retained" (a broker delivery trick) for cell/stream. Concedes v1's overstated
+  "different verb sets" argument — mixed namespaces are normal (EISDIR). Brings in the
+  prior art: Plan 9 (the namespace IS the interface; don't add a kind, add a server),
+  Linda (it always had `rd`, the non-destructive read we never built), etcd/ZooKeeper
+  (revision / watch-from / tombstone / compaction — what we are actually building),
+  LOCUS + Waldo (transparency you pay for later). Adds the bridge diagram, and
+  enumerates the three implementation options A/B/C with code before comparing them.
+-->
+<title>Names, and what answers to them — v2</title>
+
+<style>
+  :root {
+    --ink:#16181d; --ink-soft:#4a4f5c; --ink-faint:#878d9c;
+    --ground:#f4f5f2; --panel:#ffffff; --rule:#d6d9d2; --rule-soft:#e6e8e3;
+    --cell:#a86a12; --stream:#10707d; --door:#a3246b;
+    --cell-w:#a86a1218; --stream-w:#10707d18; --door-w:#a3246b18;
+    --mono: ui-monospace,"SF Mono","Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;
+    --sans: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink:#e8eaef; --ink-soft:#a4abbb; --ink-faint:#6b7385;
+      --ground:#14161b; --panel:#1b1e25; --rule:#333846; --rule-soft:#262a34;
+      --cell:#f0a83c; --stream:#3fc9da; --door:#f070ad;
+      --cell-w:#f0a83c1c; --stream-w:#3fc9da1c; --door-w:#f070ad1c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink:#e8eaef; --ink-soft:#a4abbb; --ink-faint:#6b7385;
+    --ground:#14161b; --panel:#1b1e25; --rule:#333846; --rule-soft:#262a34;
+    --cell:#f0a83c; --stream:#3fc9da; --door:#f070ad;
+    --cell-w:#f0a83c1c; --stream-w:#3fc9da1c; --door-w:#f070ad1c;
+  }
+  :root[data-theme="light"] {
+    --ink:#16181d; --ink-soft:#4a4f5c; --ink-faint:#878d9c;
+    --ground:#f4f5f2; --panel:#ffffff; --rule:#d6d9d2; --rule-soft:#e6e8e3;
+    --cell:#a86a12; --stream:#10707d; --door:#a3246b;
+    --cell-w:#a86a1218; --stream-w:#10707d18; --door-w:#a3246b18;
+  }
+
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--ground); color:var(--ink); font-family:var(--sans);
+         line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .deck { max-width:62rem; margin:0 auto; padding:0 1.5rem 6rem; }
+  .slide { min-height:100svh; display:flex; flex-direction:column; justify-content:center;
+           gap:1.1rem; padding:5rem 0 3rem; border-bottom:1px solid var(--rule-soft); }
+  .slide:last-child { border-bottom:0; }
+
+  .eyebrow { font-family:var(--mono); font-size:.72rem; letter-spacing:.16em;
+             text-transform:uppercase; color:var(--ink-faint); display:flex;
+             align-items:center; gap:.7rem; }
+  .eyebrow::after { content:""; flex:1; height:1px; background:var(--rule); }
+
+  h1 { font-size:clamp(2rem,5vw,3.3rem); line-height:1.06; letter-spacing:-.025em;
+       font-weight:660; margin:0; text-wrap:balance; }
+  h2 { font-size:clamp(1.45rem,3.2vw,2.1rem); line-height:1.15; letter-spacing:-.02em;
+       font-weight:640; margin:0; text-wrap:balance; }
+  p { margin:0; max-width:62ch; color:var(--ink-soft); font-size:1.02rem; }
+  p.lead { color:var(--ink); font-size:1.14rem; max-width:58ch; }
+  strong { color:var(--ink); font-weight:640; }
+  em { font-style:normal; color:var(--ink); border-bottom:1.5px solid var(--rule); }
+
+  code,.mono { font-family:var(--mono); font-size:.93em; }
+  p code, li code, td code, th code { background:var(--rule-soft); padding:.08em .34em;
+        border-radius:3px; color:var(--ink); }
+
+  .c1 { color:var(--cell); }
+  .s1 { color:var(--stream); }
+  .d1 { color:var(--door); }
+
+  pre { font-family:var(--mono); font-size:.85rem; line-height:1.6; background:var(--panel);
+        border:1px solid var(--rule); border-left:3px solid var(--rule); border-radius:4px;
+        padding:1rem 1.15rem; margin:0; overflow-x:auto; color:var(--ink); }
+  pre.pc { border-left-color:var(--cell); }
+  pre.ps { border-left-color:var(--stream); }
+  pre.pd { border-left-color:var(--door); }
+  pre .cm { color:var(--ink-faint); }
+
+  .cols { display:grid; gap:1.2rem; grid-template-columns:1fr 1fr; }
+  .cols3 { display:grid; gap:1rem; grid-template-columns:repeat(3,1fr); }
+  @media (max-width:820px){ .cols,.cols3 { grid-template-columns:1fr; } }
+
+  .card { background:var(--panel); border:1px solid var(--rule); border-radius:5px;
+          padding:1rem 1.15rem; display:flex; flex-direction:column; gap:.45rem; }
+  .card h3 { margin:0; font-family:var(--mono); font-size:.76rem; letter-spacing:.12em;
+             text-transform:uppercase; font-weight:600; color:var(--ink-faint); }
+  .card p { font-size:.94rem; }
+  .card.kc { border-top:2px solid var(--cell); }   .card.kc h3 { color:var(--cell); }
+  .card.ks { border-top:2px solid var(--stream); } .card.ks h3 { color:var(--stream); }
+  .card.kd { border-top:2px solid var(--door); }   .card.kd h3 { color:var(--door); }
+
+  table { border-collapse:collapse; width:100%; font-size:.92rem; }
+  th,td { text-align:left; padding:.55rem .75rem; border-bottom:1px solid var(--rule-soft);
+          vertical-align:top; }
+  th { font-family:var(--mono); font-size:.71rem; letter-spacing:.1em; text-transform:uppercase;
+       color:var(--ink-faint); border-bottom:1px solid var(--rule); }
+  td { color:var(--ink-soft); }
+  td:first-child { color:var(--ink); }
+  .tw { overflow-x:auto; }
+
+  ul { margin:0; padding-left:1.1rem; color:var(--ink-soft); max-width:62ch; }
+  li { margin:.28rem 0; }
+  li::marker { color:var(--ink-faint); }
+
+  .callout { border-left:3px solid var(--door); background:var(--door-w);
+             padding:.8rem 1.05rem; border-radius:0 4px 4px 0; max-width:64ch; }
+  .callout p { color:var(--ink); }
+  .callout.warm { border-left-color:var(--cell); background:var(--cell-w); }
+
+  .fig { background:var(--panel); border:1px solid var(--rule); border-radius:5px;
+         padding:1.1rem; overflow-x:auto; }
+  .fig svg { display:block; width:100%; height:auto; min-width:34rem; }
+  .fig text { font-family:var(--mono); font-size:11px; fill:var(--ink-soft); }
+  .fig .tb { fill:var(--ink); font-size:12px; font-weight:600; }
+  .fig .tf { fill:var(--ink-faint); font-size:10px; }
+  .fig .box { fill:var(--panel); stroke:var(--rule); stroke-width:1; }
+  .fig .boxd { fill:var(--door-w); stroke:var(--door); stroke-width:2; }
+  .fig .boxs { fill:var(--ground); stroke:var(--rule); stroke-width:1; stroke-dasharray:4 3; }
+  .fig .w  { stroke:var(--rule); stroke-width:1.5; fill:none; }
+  .fig .wc { stroke:var(--cell); stroke-width:2; fill:none; }
+  .fig .ws { stroke:var(--stream); stroke-width:2; fill:none; }
+  .fig .wd { stroke:var(--door); stroke-width:2; fill:none; stroke-dasharray:5 3; }
+
+  .hint { font-family:var(--mono); font-size:.72rem; letter-spacing:.08em;
+          color:var(--ink-faint); text-transform:uppercase; }
+  .badge { display:inline-block; font-family:var(--mono); font-size:.68rem; letter-spacing:.1em;
+           text-transform:uppercase; padding:.16em .5em; border-radius:3px; border:1px solid var(--rule);
+           color:var(--ink-faint); }
+  .badge.ok  { color:var(--cell);   border-color:var(--cell);   background:var(--cell-w); }
+  .badge.no  { color:var(--stream); border-color:var(--stream); background:var(--stream-w); }
+
+  .rail { position:fixed; right:max(1rem,calc(50vw - 33rem)); top:50%;
+          transform:translateY(-50%); display:flex; flex-direction:column; gap:.5rem; z-index:10; }
+  @media (max-width:900px){ .rail{display:none;} }
+  .rail a { width:7px; height:7px; border-radius:50%; background:var(--rule);
+            transition:background .2s, transform .2s; }
+  .rail a:hover { background:var(--ink-faint); transform:scale(1.35); }
+  .rail a.on { background:var(--door); transform:scale(1.35); }
+  .rail a:focus-visible { outline:2px solid var(--door); outline-offset:3px; }
+  .counter { position:fixed; left:max(1rem,calc(50vw - 33rem)); bottom:1.4rem;
+             font-family:var(--mono); font-size:.72rem; letter-spacing:.1em;
+             color:var(--ink-faint); font-variant-numeric:tabular-nums; z-index:10; }
+  @media (max-width:900px){ .counter{display:none;} }
+
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important;
+    scroll-behavior:auto!important;} }
+  html { scroll-behavior:smooth; }
+</style>
+</head>
+<body>
+
+
+<nav class="rail" aria-label="slides"></nav>
+<div class="counter" id="counter">01</div>
+
+<div class="deck">
+
+<!-- 1 -->
+<section class="slide">
+  <div class="eyebrow">tuvm · phase 3 · deck v2 · supersedes v1</div>
+  <h1>Names, and what<br>answers to them</h1>
+  <p class="lead">v1 asked “retained or event?”. That was the wrong frame, borrowed from the wrong system. <strong>A channel is a name.</strong> The only question that matters is what the name resolves to — and who is able to answer it.</p>
+  <p class="hint">↓ scroll · ← → keys · v1 is still at review/retained-channels.html</p>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <div class="eyebrow">your reframing</div>
+  <h2>Channels are names, not pointers</h2>
+  <p>You're right, and the code is unambiguous. <code>resolve:</code> builds a <em>string path</em>; a capability is a <em>rooted prefix</em>; attenuation is string extension. There is no object identity anywhere in the space.</p>
+  <pre><span class="cm">(* kernel.ns — a capability is a name, and narrowing it is a string operation *)</span>
+resolve: rel = (
+  outer checkPath: rel.
+  ^ root , '/' , rel )                      <span class="cm">(* a path. not a handle. *)</span>
+
+public channel: rel = ( ^ Channel new setRoot: (self resolve: rel) )</pre>
+  <p><code>out: 'mode' value: v</code> does not reference a thing. It <strong>names</strong> one. Which makes this a URL / filesystem problem, and means we can go read what people who solved naming problems already learned.</p>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <div class="eyebrow">the question, precisely</div>
+  <h2>Is the named thing a <span class="c1">value</span>, or a <span class="s1">drainable queue</span>?</h2>
+  <div class="cols">
+    <div class="card kc">
+      <h3>a cell — it <em>has</em> a value</h3>
+      <p><code>goal/mode</code> · <code>obs/health</code> · <code>goal/apps/&lt;name&gt;</code></p>
+      <p>Reading does not consume. Writing overwrites. Deleting is a distinct act. Asking twice gives the same answer.</p>
+    </div>
+    <div class="card ks">
+      <h3>a stream — it <em>delivers</em> occurrences</h3>
+      <p><code>tel/print</code> · <code>sys/panic</code> · <code>goal/do/reboot</code></p>
+      <p>Reading consumes. Writing appends. Each element is delivered once. Asking twice gives you the next thing, or nothing.</p>
+    </div>
+  </div>
+  <p>The space today implements <strong>only the second</strong>. <code>space_post</code> / <code>space_take</code> / <code>spaceRegister</code> — every name in the namespace is a queue.</p>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <div class="eyebrow">vocabulary</div>
+  <h2>“Retained” is a kludge. Drop it.</h2>
+  <p>The word is borrowed from MQTT, where a <em>retained message</em> is a broker-side delivery trick: the broker keeps the last message on a topic so late subscribers receive one. It names a <strong>delivery side-effect</strong>.</p>
+  <p>We do not want a delivery side-effect. We want to say <strong>this name has a value</strong>. That is a statement about <em>what the thing is</em>, not about how messages get handed out. Borrowing MQTT's word imports the suggestion that “retained” is a flag you could sprinkle onto an existing channel — and that is exactly the misreading to avoid.</p>
+  <div class="callout warm">
+    <p><strong>Proposed vocabulary, used throughout this deck:</strong> a name resolves to a <span class="c1"><strong>cell</strong></span> (it has a value) or a <span class="s1"><strong>stream</strong></span> (it delivers occurrences). Everyone who has solved this before uses the first word or a synonym: a <em>file</em>, a <em>znode</em>, a <em>key</em>, a <em>resource</em>. Nobody calls it “retained”.</p>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <div class="eyebrow">your objection — and you are right</div>
+  <h2>Mixed namespaces are normal. I overstated this.</h2>
+  <p>v1 argued: the two kinds don't share a verb set, therefore this is a deep problem. <strong>That was wrong, and your DNU objection is why.</strong></p>
+  <p>A root capability with two children — one cell, one stream — is perfectly coherent. You reach either by name. Send the wrong message and you get an error. <em>Why would you?</em> You wouldn't. And systems do this everywhere without anyone calling it a flaw:</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>system</th><th>one namespace, several kinds</th><th>wrong verb →</th></tr></thead>
+      <tbody>
+        <tr><td>Unix</td><td>regular file · directory · FIFO · device · socket</td><td><code>read()</code> a directory → <code>EISDIR</code></td></tr>
+        <tr><td>Plan 9</td><td>every one of the above, plus synthetic servers</td><td>an error string on the fid</td></tr>
+        <tr><td>ZooKeeper</td><td>persistent znode · ephemeral · sequential</td><td><code>KeeperException</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>So the difficulty is not the verbs.</strong> Scratch that argument entirely. The real question is one layer down.</p>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <div class="eyebrow">the actual problem</div>
+  <h2>Who is able to <em>answer</em> the name?</h2>
+  <p>A capability is nothing but a rooted name, and it resolves through <code>space.c</code>. So a name that the space cannot answer is <strong>invisible to the capability system</strong> — there is no way to hand a job authority over something the namespace does not contain.</p>
+  <p>Put cells in a private <code>Map</code> inside the bridge job, and <code>goal/mode</code> is no longer a name in the space at all. It is a key in somebody's dictionary. It <em>looks</em> like a sibling of <code>tel/print</code> in every document we've written — same path syntax, same tree — but they now live in <strong>two different naming systems</strong>, and only one of them is reachable by a capability.</p>
+  <div class="callout">
+    <p><strong>The question is not “C or nsl”. It is: can the namespace name a value — or do values live outside the namespace, where grants cannot see them?</strong></p>
+  </div>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <div class="eyebrow">prior art · naming</div>
+  <h2>Plan 9: the namespace <em>is</em> the interface</h2>
+  <p>Bell Labs, ~1992. Pike, Thompson, Presotto, Winterbottom, Ritchie. The claim is usually flattened to “everything is a file”, but the load-bearing version is sharper: <strong>every resource is a file <em>server</em>, exposing a namespace, spoken to with one small protocol.</strong></p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Plan 9</th><th>what it is</th><th>our equivalent</th></tr></thead>
+      <tbody>
+        <tr><td><code>walk</code></td><td>resolve a name, one element at a time</td><td><code>resolve:</code></td></tr>
+        <tr><td><code>fid</code></td><td>the handle you get back — authority over that name</td><td><strong>the <code>Channel</code> capability</strong></td></tr>
+        <tr><td><code>bind</code> / <code>mount</code></td><td>reshape <em>your own</em> namespace; per-process, not global</td><td><code>channel:</code> (attenuation)</td></tr>
+        <tr><td>file server</td><td>whatever answers a name — kernel, device, process, remote box</td><td><strong>we have no such concept</strong></td></tr>
+        <tr><td>9P</td><td>the protocol: <code>version auth attach walk open read write clunk remove stat</code></td><td><code>out:</code> <code>take:</code> <code>whenever:</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Note the shape of that last column. We have their <em>naming</em>, and we have their <em>capability</em> — and we're missing the piece that made it all compose.</p>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <div class="eyebrow">prior art · the lesson</div>
+  <h2>Don't add a <em>kind</em>. Add a <em>server</em>.</h2>
+  <p>Plan 9 faced precisely our question — a namespace full of things that behave differently — and did <strong>not</strong> answer it by enumerating kinds in the kernel. It answered it by keeping the verbs uniform and letting <strong>whoever serves the name supply the semantics</strong>.</p>
+  <p>The proof is <code>/net</code>. In Plan 9 you open a TCP connection by <em>writing to a file</em>:</p>
+  <pre class="pd">cat /net/tcp/clone          <span class="cm">→ "3"   a new connection directory</span>
+echo connect 10.0.0.1!80 &gt; /net/tcp/3/ctl
+<span class="cm">... now read and write /net/tcp/3/data</span></pre>
+  <p>No <code>socket()</code>. No new syscall. No new <em>kind</em> in the namespace. The network stack is a <strong>server</strong> that answers those names, and every existing tool — <code>cat</code>, shell redirection, the permission model — works on it unchanged, for free.</p>
+  <div class="callout">
+    <p>Applied to us: a <span class="c1">cell</span> need not be a new species of channel baked into <code>space.c</code>. It could be <strong>a prefix served by something</strong>. That is a genuinely different third option, and it is the one the literature points at.</p>
+  </div>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <div class="eyebrow">prior art · our own ancestor</div>
+  <h2>Linda already had the read we dropped</h2>
+  <p>The tuple space this model descends from (Gelernter, Yale, ~1985) shipped <strong>four</strong> operations, not three:</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Linda</th><th>meaning</th><th>we have it?</th></tr></thead>
+      <tbody>
+        <tr><td><code>out</code></td><td>put a tuple into the space</td><td><span class="badge ok">yes</span> <code>out:value:</code></td></tr>
+        <tr><td><code>in</code></td><td>take a tuple — <strong>destructive</strong></td><td><span class="badge ok">yes</span> <code>take:</code></td></tr>
+        <tr><td><code>rd</code></td><td>read a tuple — <strong>NON-destructive</strong></td><td><span class="badge no">no</span> — never built</td></tr>
+        <tr><td><code>eval</code></td><td>spawn a process to compute a tuple</td><td>— (jobs cover this)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>The non-destructive read was in the model from the beginning, and we shipped without it.</strong> That is a decent chunk of what we've been calling “retained”: not a new channel kind at all, but the missing half of the read verb.</p>
+  <p>It isn't the <em>whole</em> story — <code>rd</code> reads from a bag of tuples that still accumulates, whereas a cell <em>overwrites</em>. But it does mean the gap is smaller and better-precedented than “invent a second channel kind” makes it sound.</p>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <div class="eyebrow">where the art stops working</div>
+  <h2>We cannot mount porta. The node sleeps.</h2>
+  <p>Plan 9's answer to <em>remote</em> is beautiful and, for us, unusable. You <code>import</code> a remote tree into your namespace and read it like a file — but that means <strong>every read is a round trip to a server that must be up right now</strong>.</p>
+  <div class="cols3">
+    <div class="card">
+      <h3>duty cycle</h3>
+      <p>The node wakes every ~15 s. A synchronous <code>walk</code> + <code>read</code> to the gateway on every access is not a thing it can do.</p>
+    </div>
+    <div class="card">
+      <h3>the radio</h3>
+      <p>2–5% datagram loss, measured, on our own mesh. A read that <em>can block or fail</em> is now on the path of every config lookup.</p>
+    </div>
+    <div class="card">
+      <h3>partition</h3>
+      <p>A node out of range must keep running on the last thing it was told. A mount gives it <em>nothing</em>.</p>
+    </div>
+  </div>
+  <p><strong>Disconnected operation is a requirement, not a preference.</strong> And that single fact is what forces everything else: if you cannot fetch on demand, you must <strong>replicate</strong> — and the moment you replicate, you need to know what changed and what was deleted.</p>
+  <p class="hint">this is where seq, cursors and tombstones come from — they are not decoration</p>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <div class="eyebrow">prior art · replication</div>
+  <h2>So we are not building 9P. We are building etcd.</h2>
+  <p>Once “replicate a named tree, tell me what changed since I last looked” is the problem, it is a <strong>solved</strong> problem, and it has a vocabulary. Our design has been reinventing it under other names.</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>etcd / ZooKeeper</th><th>what it does</th><th>ours (same thing)</th></tr></thead>
+      <tbody>
+        <tr><td><code>revision</code> / <code>zxid</code></td><td>monotonic version stamped on every write</td><td>per-path <code>seq</code></td></tr>
+        <tr><td><code>watch from revision N</code></td><td>replay everything I missed, then stream</td><td><strong><code>changedSince: cursor</code></strong></td></tr>
+        <tr><td>tombstone</td><td>a delete is an <em>event</em>, not an absence</td><td>tombstone</td></tr>
+        <tr><td>compaction</td><td>when may I forget old tombstones?</td><td>our open question #6 — <em>unanswered</em></td></tr>
+        <tr><td>lease</td><td>state that expires if its owner goes quiet</td><td>— (we may want this)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Two things follow. First, <strong>steal the vocabulary</strong> — it's better than ours and it's what any future reader will already know. Second, <strong>steal the pitfalls</strong>: compaction-vs-cursor is a famous way to hurt yourself (a client whose cursor falls behind the compaction point can never catch up and must resync from scratch). We have that exact bug latent, and it is currently written down as a shrug.</p>
+</section>
+
+<!-- 12 -->
+<section class="slide">
+  <div class="eyebrow">prior art · the cautionary tale</div>
+  <h2>LOCUS: transparency you pay for later</h2>
+  <p>UCLA, early 1980s (Popek &amp; Walker). A distributed Unix that went <em>all the way</em>: a replicated filesystem, and processes that could <code>fork</code> onto another machine — the whole network as one machine image. It worked, it was genuinely impressive, and almost nothing since has copied it.</p>
+  <p>The reason is the law we already wrote into the protocol:</p>
+  <div class="callout">
+    <p><strong>Location transparency must not become failure transparency.</strong><br>
+    <span class="mono" style="font-size:.84rem; color:var(--ink-faint)">Waldo, Wyant, Wollrath &amp; Kendall — <em>A Note on Distributed Computing</em> (1994). The four irreducible differences: <strong>latency</strong>, <strong>memory access</strong>, <strong>partial failure</strong>, <strong>concurrency</strong>.</span></p>
+  </div>
+  <p>Hide the network well enough and callers stop writing code that copes with it — so the failure doesn't go away, it just <em>surfaces somewhere with no handler</em>. Plan 9 got away with far more transparency than LOCUS partly because its interface was <strong>file I/O, which everyone already knows can fail</strong>. A `read()` returning an error is unremarkable. A remote `fork()` failing is a catastrophe with nowhere to go.</p>
+  <p><strong>That is the standard our design has to meet</strong>, and it is why <code>take:</code> never crosses the wire: a destructive remote read is a consensus problem wearing a local read's clothes.</p>
+</section>
+
+<!-- 13 -->
+<section class="slide">
+  <div class="eyebrow">the piece you asked about</div>
+  <h2>What the bridge actually is</h2>
+  <div class="fig">
+    <svg viewBox="0 0 760 330" role="img" aria-label="Local jobs hold narrow channel capabilities into the node's space. The bridge job is the only holder of the radio capability; it replicates goal into the space and pushes obs, tel and sys out to porta over the mesh. Porta serves the operator.">
+      <text class="tf" x="10" y="14">THE NODE</text>
+      <rect class="boxs" x="4" y="22" width="470" height="290" rx="6"/>
+
+      <rect class="box" x="20" y="46" width="118" height="40" rx="4"/>
+      <text class="tb" x="32" y="64">sensor job</text>
+      <text class="tf" x="32" y="78">writes obs/health</text>
+
+      <rect class="box" x="20" y="100" width="118" height="40" rx="4"/>
+      <text class="tb" x="32" y="118">supervisor</text>
+      <text class="tf" x="32" y="132">reads goal/apps/**</text>
+
+      <rect class="box" x="20" y="154" width="118" height="40" rx="4"/>
+      <text class="tb" x="32" y="172">control job</text>
+      <text class="tf" x="32" y="186">reads goal/mode</text>
+
+      <rect class="box" x="20" y="208" width="118" height="40" rx="4"/>
+      <text class="tb" x="32" y="226">driver</text>
+      <text class="tf" x="32" y="240">dev/env0/**</text>
+
+      <text class="tf" x="20" y="272">each holds ONE rooted</text>
+      <text class="tf" x="20" y="286">capability. none knows</text>
+      <text class="tf" x="20" y="300">a network exists.</text>
+
+      <rect class="box" x="182" y="46" width="150" height="202" rx="4"/>
+      <text class="tb" x="196" y="68">the space</text>
+      <text class="tf" x="196" y="84">one namespace</text>
+      <text x="196" y="108" fill="var(--cell)">goal/**    cell</text>
+      <text x="196" y="126" fill="var(--cell)">obs/**     cell</text>
+      <text x="196" y="144" fill="var(--stream)">tel/**     stream</text>
+      <text x="196" y="162" fill="var(--stream)">sys/**     stream</text>
+      <text x="196" y="180" fill="var(--stream)">dbg/*      stream</text>
+      <text x="196" y="198" fill="var(--ink-faint)">dev/**     driver</text>
+
+      <path class="w" d="M138,66 L182,96"/>
+      <path class="w" d="M138,120 L182,112"/>
+      <path class="w" d="M138,174 L182,132"/>
+      <path class="w" d="M138,228 L182,196"/>
+
+      <rect class="boxd" x="356" y="86" width="104" height="112" rx="4"/>
+      <text class="tb" x="368" y="108" fill="var(--door)">bridge</text>
+      <text class="tf" x="368" y="124" fill="var(--door)">an ordinary</text>
+      <text class="tf" x="368" y="137" fill="var(--door)">job. it just</text>
+      <text class="tf" x="368" y="150" fill="var(--door)">holds more:</text>
+      <text class="tf" x="368" y="168" fill="var(--door)">+ radio cap</text>
+      <text class="tf" x="368" y="181" fill="var(--door)">+ the grants</text>
+
+      <path class="wc" d="M356,120 L332,110"/>
+      <path class="ws" d="M332,155 L356,168"/>
+      <text class="tf" x="300" y="228">THE ONE DOOR</text>
+
+      <path class="wd" d="M460,142 L560,142"/>
+      <text class="tf" x="474" y="134">mesh · 2–5% loss</text>
+      <text class="tf" x="474" y="160">pull goal ▸ push obs/tel/sys</text>
+
+      <text class="tf" x="566" y="14">REMOTE</text>
+      <rect class="boxs" x="560" y="22" width="196" height="290" rx="6"/>
+
+      <rect class="box" x="578" y="100" width="160" height="82" rx="4"/>
+      <text class="tb" x="590" y="122">porta</text>
+      <text class="tf" x="590" y="138">mirror of the node's</text>
+      <text class="tf" x="590" y="152">tree, per node id</text>
+      <text class="tf" x="590" y="170">goal/ ▸  ◂ obs/ tel/ sys/</text>
+
+      <rect class="box" x="578" y="212" width="160" height="46" rx="4"/>
+      <text class="tb" x="590" y="234">operator</text>
+      <text class="tf" x="590" y="248">porta mode &lt;node&gt; …</text>
+
+      <path class="w" d="M658,182 L658,212"/>
+    </svg>
+  </div>
+  <p>The bridge is <strong>not</strong> privileged code, and it is <strong>not</strong> a protocol handler. It is an ordinary supervised job that happens to have been handed the radio capability plus grants over the sync prefixes. If it crashes, the supervisor restarts it and porta sees a late check-in — nothing worse.</p>
+</section>
+
+<!-- 14 -->
+<section class="slide">
+  <div class="eyebrow">why a bridge at all</div>
+  <h2>Four jobs, one object</h2>
+  <div class="cols">
+    <div class="card kd">
+      <h3>1 · it holds the radio</h3>
+      <p>So that no other job has to. A sensor job publishes to <code>obs/health</code> and is <em>done</em>. It never learns that anything left the building.</p>
+    </div>
+    <div class="card kd">
+      <h3>2 · it is the replication engine</h3>
+      <p>Pull <code>goal/**</code> since cursor, apply locally. Push changed <code>obs/**</code> + queued events. Persist the cursor. That loop <em>is</em> the protocol.</p>
+    </div>
+    <div class="card kd">
+      <h3>3 · it is the one door</h3>
+      <p>Auth, size caps, overflow policy, version skew — enforced in exactly one place, because there <em>is</em> exactly one place. Not by discipline; by construction.</p>
+    </div>
+    <div class="card kd">
+      <h3>4 · it is fault-isolated</h3>
+      <p>An ordinary job means an ordinary crash. Let-it-crash applies to the network stack like anything else. The node keeps running on its last known goal.</p>
+    </div>
+  </div>
+  <p>And note what this buys against LOCUS: <strong>the node is the initiator</strong>. Porta is passive. That is deep-sleep-correct, NAT-friendly, and it means a partition looks like “a check-in that hasn't happened yet”, which is a state every part of the system already understands.</p>
+</section>
+
+<!-- 15 -->
+<section class="slide">
+  <div class="eyebrow">now the fork — sharpened</div>
+  <h2>Can a cell be built in nsl? Yes — and that's the trap</h2>
+  <p>The bridge can absolutely hold a <code>Map</code> of path → value. <strong>Where it breaks is the second reader.</strong> The space has <code>post</code> and <code>take</code>; it has <strong>no request/reply</strong>. So a job cannot <em>ask</em> another job for a value and get an answer — there is no call. Which leaves three ways to let the supervisor read <code>goal/apps/**</code>:</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>route</th><th>what it really costs</th></tr></thead>
+      <tbody>
+        <tr><td>hand the supervisor a <strong>reference to the bridge</strong></td><td>the supervisor now knows the bridge exists. <strong>The grant stops being the whole story</strong> — authority arrives by object reference, not by name. This is the thing the capability model exists to prevent.</td></tr>
+        <tr><td>every job keeps <strong>its own copy</strong>, rebuilt by replaying <code>whenever:</code></td><td>works — until a job restarts and has <em>missed the events</em>. So it must ask for a refresh; so you add a refresh channel; so you add re-publish rules, and racing, and “who has seen what”… <strong>you are hand-rolling cache coherence, per consumer.</strong></td></tr>
+        <tr><td>put the cell <strong>in the namespace</strong></td><td>every job reads it through the capability it <em>already holds</em>. Nothing new is learned by anyone. Cost: C.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout">
+    <p>Row two <strong>is the disease this protocol was written to cure.</strong> Special rules that multiply per feature — that is the exact indictment of porta v1 in §1. Rebuilding it inside the node, one consumer at a time, would be a bleak way to lose the argument.</p>
+  </div>
+</section>
+
+<!-- 16 — enumerate them properly -->
+<section class="slide">
+  <div class="eyebrow">the three options, stated</div>
+  <h2>A, B and C — what each one <em>is</em></h2>
+
+  <div class="card kc">
+    <h3>A · the cell becomes a second kind in the space</h3>
+    <p><code>space.c</code> gains a value slot, a per-path <code>seq</code> and a tombstone flag. A name is created as a cell or a stream, and answers the verbs that make sense for it. Jobs reach cells through <strong>the capability they already hold</strong> — nothing new is granted, nothing new is learned.</p>
+    <pre class="pc">goal peek:  'mode'              <span class="cm">→ Mode { … }   non-destructive</span>
+goal put:   'mode' value: m     <span class="cm">overwrites, bumps seq</span>
+goal clear: 'apps/blink'        <span class="cm">→ tombstone</span>
+goal whenever: 'mode' do: [ … ] <span class="cm">fires ON CHANGE, not per element</span>
+
+<span class="cm">new prims: spacePeek / spacePut / spaceClear / spaceChangedSince</span></pre>
+  </div>
+
+  <div class="card kd">
+    <h3>B · the space learns to route a prefix to a server</h3>
+    <p><code>space.c</code> gains <strong>one</strong> thing — a dispatch hook: <em>this prefix is answered by that object</em>. No cell logic in C at all; a cell becomes an ordinary nsl class that serves <code>goal/**</code>. Drivers could serve <code>dev/**</code>. This is Plan 9's move.</p>
+    <pre class="pd">space serve: 'goal' with: Cells new     <span class="cm">Cells is ordinary nsl</span>
+space serve: 'dev/env0' with: bme280
+
+<span class="cm">a job still just writes:  goal peek: 'mode'</span>
+<span class="cm">— the space routes the name to whoever serves it</span>
+
+<span class="cm">new prim: spaceServe:with:   (+ re-entrancy, GC rooting, reactor)</span></pre>
+  </div>
+
+  <div class="card ks">
+    <h3>C · nsl only — no VM change (what §3.1 literally promises)</h3>
+    <p>The bridge holds a private <code>Map</code> of path → value/seq/tombstone. <strong>Nothing else in the system can see it.</strong> Any other reader must go through one of the two bad routes on the previous slide.</p>
+    <pre class="ps"><span class="cm">inside the bridge job, and nowhere else:</span>
+cells:: Map new.
+cells at: 'goal/mode' put: (Cell value: m seq: n).
+
+<span class="cm">the supervisor cannot say `goal peek: 'mode'` — that name</span>
+<span class="cm">does not exist in the space. it is a key in someone's dictionary.</span></pre>
+  </div>
+</section>
+
+<!-- 17 -->
+<section class="slide">
+  <div class="eyebrow">the three options, compared</div>
+  <h2>What C would actually have to gain</h2>
+  <div class="tw">
+    <table>
+      <thead><tr><th></th><th>A · cell as a second kind</th><th>B · served prefixes (the Plan 9 move)</th><th>C · nsl only</th></tr></thead>
+      <tbody>
+        <tr><td>C change</td><td>a value slot + <code>seq</code> + tombstone on the channel; <code>peek</code> / <code>put</code> / <code>clear</code> / <code>changedSince:</code></td><td>a dispatch hook: this prefix is answered by <em>that object</em>. Cells then written in nsl</td><td>none</td></tr>
+        <tr><td>size</td><td>small, bounded, boring</td><td>smaller in the space — but re-entrancy (space → nsl → space), GC rooting, and the reactor all get subtler</td><td>zero</td></tr>
+        <tr><td>who benefits</td><td>cells</td><td>cells, drivers, future remote-backed prefixes — <em>anything</em> that wants to answer a name</td><td>the bridge only</td></tr>
+        <tr><td>second customer?</td><td>—</td><td>drivers are <strong>already specced as served prefixes</strong> (<code>zephyr-driver-exposure.md:12</code>) — though they work fine as plain jobs on streams, so this is a <em>want</em>, not a <em>need</em></td><td>—</td></tr>
+        <tr><td>risk</td><td>a new kind in the kernel forever; interacts with #21 (nil vs empty vs tombstoned)</td><td>the most powerful idea here and the easiest to over-build. YAGNI is a real objection</td><td><strong>reintroduces v1's multiplying special cases inside the node</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 18 -->
+<section class="slide">
+  <div class="eyebrow">my read — the call is yours</div>
+  <h2>Where I land, and what I'd want to know first</h2>
+  <p><strong>A, and not C.</strong> Option C is cheap exactly until the second reader shows up, and the design has already promised there will be one (the supervisor, reacting to <code>goal/apps/**</code> “as it reacts to any channel”). Paying in hand-rolled cache coherence to avoid ~200 lines of C would be trading the good argument for the cheap one.</p>
+  <p><strong>B is the better idea and probably not yet.</strong> It is what Plan 9 would do, it is genuinely more powerful, and it has a real second customer waiting. But drivers do <em>not</em> require it — a driver works fine as a job reacting on streams — so today it has one true customer, and “a general mechanism with one customer” is how kernels get fat. I'd rather build A, and revisit B when the second customer is real. If B ever lands, A's cell becomes its first server and nothing is wasted.</p>
+  <div class="callout warm">
+    <p><strong>Two things I'd settle before writing any C:</strong><br>
+    1 · <strong>#21 is now load-bearing.</strong> A cell must distinguish <em>holds nil</em> / <em>holds nothing</em> / <em>tombstoned</em>. Today the seam cannot even tell the first two apart at <code>take:</code>. Fix that <em>with</em> the cell, not before it.<br>
+    2 · <strong>Steal etcd's vocabulary and its scars</strong> — <code>revision</code>, <code>watch-from</code>, <code>compaction</code>. Specifically: decide what happens when a node's cursor falls behind the point where porta forgot its tombstones. Right now the answer is a shrug, and it is a real way to strand a node forever.</p>
+  </div>
+  <p class="hint">v1: review/retained-channels.html · this: review/retained-channels-v2.html · tuvm#32</p>
+</section>
+
+</div>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var rail = document.querySelector('.rail');
+  var counter = document.getElementById('counter');
+  slides.forEach(function (s, i) {
+    if (!s.id) s.id = 's' + (i + 1);
+    var a = document.createElement('a');
+    a.href = '#' + s.id;
+    a.setAttribute('aria-label', 'Slide ' + (i + 1));
+    rail.appendChild(a);
+  });
+  var dots = Array.prototype.slice.call(rail.children);
+  var current = 0;
+  var obs = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (!en.isIntersecting) return;
+      var i = slides.indexOf(en.target);
+      if (i < 0) return;
+      current = i;
+      dots.forEach(function (d, j) { d.classList.toggle('on', j === i); });
+      counter.textContent = String(i + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
+    });
+  }, { threshold: 0.5 });
+  slides.forEach(function (s) { obs.observe(s); });
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var next = null;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') next = current + 1;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') next = current - 1;
+    if (next === null || next < 0 || next >= slides.length) return;
+    e.preventDefault();
+    slides[next].scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+})();
+</script>
+
+</body>
+</html>

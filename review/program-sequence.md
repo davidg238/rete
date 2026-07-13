@@ -231,6 +231,72 @@ Decided in the 2026-07-11 architecture review (David's calls); owner docs writte
   (unattended node = P0 clear; production fleet = P0+P1 clear). Flight target ≈ 2 months
   (2026-09); `review/slides.html` is the target artifact and tracks milestone truth.
 
+## Addendum 2026-07-12 — phase 2 closes; phase 3 is blocked on one decision
+
+- **Phase 2 is essentially COMPLETE.** Items 1–4 are all done (exceptions/Milestone E;
+  Zephyr bring-up; CBOR+Int64 rung 3 + on-target measurement rung 4; the three-layer
+  UDP/OpenThread arc rungs 5–7 + the on-target timer rung 8). The dongle closed 2026-07-12.
+  **What remains in phase 2 is the driver ladder** from the 2026-07-11 addendum —
+  BME280 → AMG8833 Grid-EYE → character-grid TFT (`review/zephyr-driver-exposure.md`).
+  That ladder is also the forcing function for L2 (tuvm#28): BME280's calibration registers
+  are exactly the mixed-width u16/s16/u32 reads the binary-data library does not yet have.
+
+- **L1 landed** (nsl-tuvm `661883f`, nsl-tests `1600c47`): the full combinator set +
+  `Interval`. Suite floor moves **180 → 183/0/10**, five gates green. Costs zero MCU text.
+  One deviation, now tuvm#30: **the spec's `1 to: n` sugar is not landable in nsl.** Integers
+  are VM builtins with no nsl-reachable vtable (`IntegerVtable` is static C; `1 to: 5` compiles
+  to a real send and dies DNU), so ranges are built as `Interval from:to:[by:]`. The general fix
+  — giving builtins a protocol — is the *same* mechanism that would let L2's `bitField:` land as
+  methods rather than prims, so **#30 and #28 should be decided together**.
+
+- **`review/language-and-library-spec.md` is a PROPOSAL, not truth.** It now carries a
+  build-status table; trust that and the code over its prose. Two items had already been
+  ratified *differently* and the doc had not caught up (this cost real time to rediscover):
+  L6's codec shipped **in nsl over C leaf prims**, the inverse of the doc's "codec in C"; and
+  L7's ratified range is **±(2^64−1)**, not the signed-64/trap-at-2^63 the doc proposed.
+
+- **PHASE 3 IS BLOCKED on tuvm#32.** `PROTOCOL-NSL.md` is built on **retained** channels, and
+  the node does not have them — the space is a pure event queue (`space.c`: post/take/register;
+  no latest-value slot, no per-path seq, no tombstone, no changed-since-cursor). The doc
+  contradicts itself on where they live: §2 makes retained a channel *kind* "declared per path
+  prefix" (→ the space, i.e. C), while §3.1 promises the bridge needs "**No VM changes**" (→ the
+  bridge's private Map, i.e. nsl). **The deciding question is not cost but *who besides the
+  bridge needs a retained path*** — §3.2 (the supervisor reacting to `goal/apps/**` "exactly as
+  it reacts to any channel") and §3.3 ("the protocol IS the space, filtered by grant") are only
+  true if the space owns it. Nothing downstream — bridge job, porta store, fleet-sim — is safe
+  to build first. Decision material: `review/retained-channels-v2.html` (the current deck; v1
+  kept alongside for contrast) and `porta/docs/PROTOCOL-NSL-RECORDS.md`.
+
+  **Reframed 2026-07-12 (David's read):** a channel is a **name**, not a pointer, so the real
+  question is what the name resolves to and *who can answer it*. Consequences: (a) **"retained"
+  is MQTT jargon** for a broker delivery trick and should be dropped — a name resolves to a
+  **cell** (has a value) or a **stream** (delivers occurrences); (b) an earlier argument of mine
+  — that the two kinds need different verb sets and this makes the problem deep — is
+  **RETRACTED**: mixed namespaces are normal (`read()` a directory → `EISDIR`), and sending the
+  wrong verb is simply an error; (c) **the actual crux is that the space has no request/reply.**
+  A job cannot *ask* another job for a value, so a cell held in the bridge's private `Map` is
+  unreachable by any second reader except via a direct object reference (authority by reference,
+  not by name — what capabilities exist to prevent) or hand-rolled per-consumer cache coherence
+  (which reintroduces precisely the multiplying special cases this protocol exists to kill).
+
+  Prior art now folded in: **Plan 9** (the namespace *is* the interface; `fid` ≈ our `Channel`;
+  *don't add a kind, add a server*), **Linda** (it always had `rd`, the non-destructive read we
+  never built), **etcd/ZooKeeper** (we are building *their* thing — `revision`/watch-from/
+  tombstone/compaction — not 9P, because a sleeping lossy node cannot mount), **LOCUS/Waldo**
+  (transparency you pay for later). Three options enumerated on tuvm#32: **A** cell as a second
+  kind in `space.c`; **B** served prefixes (Plan 9's move); **C** nsl only. A and B are
+  *indistinguishable from the job's side*. Current recommendation: **A now, B when it has a
+  second customer, not C.** New hazard found and filed: **porta#24** — a node whose cursor falls
+  behind porta's tombstone retention is **silently stranded** (etcd's compaction-vs-watch bug).
+
+- **The records precondition is met.** `porta/docs/PROTOCOL-NSL-RECORDS.md` (porta `921e8a4`)
+  pins the per-prefix schemas the 2026-07-11 addendum required *before* implementation, and adds
+  the **size law**: the binding constraint on message size is the **radio, not the heap** —
+  6LoWPAN fragments above ~102 B and a datagram survives only if every fragment does, so at the
+  bench fleet's measured worst-node loss (4.6%) a 1 KB batch arrives only ~54% of the time.
+  Caps: 256 B/value, 512 B/batch, enforced at the bridge; anything larger is a content-addressed
+  `BlobRef` fetched out of band.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
