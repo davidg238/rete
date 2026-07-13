@@ -1,0 +1,16 @@
+# Soak dashboard for the tuvm Thread fleet — serves http://gw85224-01:8085 from
+# a read-only tail of the udp-echo6 journal (the echo oracle is untouched).
+# Script: /home/david/soak_web.py. Installed 2026-07-12.
+[Unit]
+Description=Thread soak dashboard (udp-echo6 journal tail on :8085)
+After=network-online.target udp-echo6.service
+Wants=network-online.target
+
+[Service]
+User=david
+ExecStart=/usr/bin/python3 /home/david/soak_web.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
