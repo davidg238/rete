@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  Retained channels, and where remoteness lives — a tutorial deck.
+  Standalone: open directly in a browser. Arrow keys / scroll to navigate.
+
+  Companion to porta/docs/PROTOCOL-NSL.md and PROTOCOL-NSL-RECORDS.md.
+  Written 2026-07-12 to frame the one open decision in phase 3:
+  does the SPACE own retained channels, or does the bridge job?
+-->
+<title>Retained channels, and where remoteness lives</title>
+
+<style>
+  :root {
+    --ink:        #16181d;
+    --ink-soft:   #4a4f5c;
+    --ink-faint:  #878d9c;
+    --ground:     #f4f5f2;
+    --panel:      #ffffff;
+    --rule:       #d6d9d2;
+    --rule-soft:  #e6e8e3;
+
+    /* the three semantic hues ARE the argument */
+    --retained:   #a86a12;   /* a held level  */
+    --event:      #10707d;   /* a passing edge */
+    --grant:      #a3246b;   /* the door      */
+    --retained-w: #a86a1220;
+    --event-w:    #10707d20;
+    --grant-w:    #a3246b20;
+
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink:       #e8eaef;
+      --ink-soft:  #a4abbb;
+      --ink-faint: #6b7385;
+      --ground:    #14161b;
+      --panel:     #1b1e25;
+      --rule:      #333846;
+      --rule-soft: #262a34;
+      --retained:  #f0a83c;
+      --event:     #3fc9da;
+      --grant:     #f070ad;
+      --retained-w:#f0a83c1f;
+      --event-w:   #3fc9da1f;
+      --grant-w:   #f070ad1f;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink:       #e8eaef;
+    --ink-soft:  #a4abbb;
+    --ink-faint: #6b7385;
+    --ground:    #14161b;
+    --panel:     #1b1e25;
+    --rule:      #333846;
+    --rule-soft: #262a34;
+    --retained:  #f0a83c;
+    --event:     #3fc9da;
+    --grant:     #f070ad;
+    --retained-w:#f0a83c1f;
+    --event-w:   #3fc9da1f;
+    --grant-w:   #f070ad1f;
+  }
+  :root[data-theme="light"] {
+    --ink:       #16181d;
+    --ink-soft:  #4a4f5c;
+    --ink-faint: #878d9c;
+    --ground:    #f4f5f2;
+    --panel:     #ffffff;
+    --rule:      #d6d9d2;
+    --rule-soft: #e6e8e3;
+    --retained:  #a86a12;
+    --event:     #10707d;
+    --grant:     #a3246b;
+    --retained-w:#a86a1220;
+    --event-w:   #10707d20;
+    --grant-w:   #a3246b20;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .deck { max-width: 62rem; margin: 0 auto; padding: 0 1.5rem 6rem; }
+
+  .slide {
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1.15rem;
+    padding: 5rem 0 3rem;
+    border-bottom: 1px solid var(--rule-soft);
+    scroll-margin-top: 0;
+  }
+  .slide:last-child { border-bottom: 0; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+  }
+  .eyebrow::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    line-height: 1.06;
+    letter-spacing: -.025em;
+    font-weight: 660;
+    margin: 0;
+    text-wrap: balance;
+  }
+  h2 {
+    font-size: clamp(1.5rem, 3.2vw, 2.15rem);
+    line-height: 1.15;
+    letter-spacing: -.02em;
+    font-weight: 640;
+    margin: 0;
+    text-wrap: balance;
+  }
+  p { margin: 0; max-width: 62ch; color: var(--ink-soft); font-size: 1.02rem; }
+  p.lead { color: var(--ink); font-size: 1.15rem; max-width: 58ch; }
+  strong { color: var(--ink); font-weight: 640; }
+  em { font-style: normal; color: var(--ink); border-bottom: 1.5px solid var(--rule); }
+
+  code, .mono { font-family: var(--mono); font-size: .93em; }
+  p code, li code, td code {
+    background: var(--rule-soft);
+    padding: .08em .34em;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+
+  .r  { color: var(--retained); }
+  .e  { color: var(--event); }
+  .g  { color: var(--grant); }
+
+  pre {
+    font-family: var(--mono);
+    font-size: .86rem;
+    line-height: 1.6;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--rule);
+    border-radius: 4px;
+    padding: 1rem 1.15rem;
+    margin: 0;
+    overflow-x: auto;
+    color: var(--ink);
+  }
+  pre.rt { border-left-color: var(--retained); }
+  pre.ev { border-left-color: var(--event); }
+  pre.gr { border-left-color: var(--grant); }
+  pre .c { color: var(--ink-faint); }
+
+  .cols { display: grid; gap: 1.25rem; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 1.1rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+  }
+  .card h3 {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: .78rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .card.rt { border-top: 2px solid var(--retained); }
+  .card.rt h3 { color: var(--retained); }
+  .card.ev { border-top: 2px solid var(--event); }
+  .card.ev h3 { color: var(--event); }
+  .card.gr { border-top: 2px solid var(--grant); }
+  .card.gr h3 { color: var(--grant); }
+  .card p { font-size: .95rem; }
+
+  table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+  th, td { text-align: left; padding: .6rem .8rem; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  th {
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    border-bottom: 1px solid var(--rule);
+  }
+  td { color: var(--ink-soft); }
+  td:first-child { color: var(--ink); }
+  .tw { overflow-x: auto; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  ul { margin: 0; padding-left: 1.1rem; color: var(--ink-soft); max-width: 62ch; }
+  li { margin: .3rem 0; }
+  li::marker { color: var(--ink-faint); }
+
+  .callout {
+    border-left: 3px solid var(--grant);
+    background: var(--grant-w);
+    padding: .85rem 1.1rem;
+    border-radius: 0 4px 4px 0;
+    max-width: 62ch;
+  }
+  .callout p { color: var(--ink); }
+
+  /* ---- the signal diagram: the visual thesis ---- */
+  .scope {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 1.35rem 1.25rem 1.1rem;
+    overflow-x: auto;
+  }
+  .trace { display: flex; align-items: center; gap: 1rem; margin: .1rem 0 1.15rem; }
+  .trace:last-child { margin-bottom: 0; }
+  .trace-label {
+    font-family: var(--mono);
+    font-size: .74rem;
+    letter-spacing: .06em;
+    width: 8.5rem;
+    flex: 0 0 8.5rem;
+    text-align: right;
+    color: var(--ink-faint);
+  }
+  .trace svg { flex: 1; min-width: 22rem; height: 54px; display: block; }
+
+  .btn {
+    font-family: var(--mono);
+    font-size: .8rem;
+    letter-spacing: .04em;
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: .5rem .9rem;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .btn:hover { border-color: var(--grant); }
+  .btn:focus-visible { outline: 2px solid var(--grant); outline-offset: 2px; }
+  .btn[aria-pressed="true"] { background: var(--grant-w); border-color: var(--grant); color: var(--ink); }
+
+  .verdict {
+    font-family: var(--mono);
+    font-size: .84rem;
+    padding: .55rem .85rem;
+    border-radius: 4px;
+    border: 1px dashed var(--rule);
+    color: var(--ink-soft);
+    min-height: 2.6rem;
+    display: flex;
+    align-items: center;
+  }
+  .verdict.hit  { border-color: var(--retained); color: var(--retained); border-style: solid; background: var(--retained-w); }
+  .verdict.miss { border-color: var(--event);    color: var(--event);    border-style: solid; background: var(--event-w); }
+
+  /* ---- grant diagram ---- */
+  .grantfig { width: 100%; height: auto; display: block; }
+  .grantfig text { font-family: var(--mono); font-size: 11px; fill: var(--ink-soft); }
+  .grantfig .t-strong { fill: var(--ink); font-size: 12px; }
+  .grantfig .t-faint { fill: var(--ink-faint); font-size: 10px; }
+  .grantfig .box { fill: var(--panel); stroke: var(--rule); }
+  .grantfig .door { stroke: var(--grant); stroke-width: 2; fill: var(--grant-w); }
+  .grantfig .wire { stroke: var(--rule); stroke-width: 1.5; fill: none; }
+  .grantfig .wire-r { stroke: var(--retained); stroke-width: 2; fill: none; }
+  .grantfig .wire-e { stroke: var(--event); stroke-width: 2; fill: none; }
+
+  /* nav rail */
+  .rail {
+    position: fixed;
+    right: max(1rem, calc(50vw - 33rem));
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    z-index: 10;
+  }
+  @media (max-width: 900px) { .rail { display: none; } }
+  .rail a {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--rule);
+    transition: background .2s, transform .2s;
+  }
+  .rail a:hover { background: var(--ink-faint); transform: scale(1.35); }
+  .rail a.on { background: var(--grant); transform: scale(1.35); }
+  .rail a:focus-visible { outline: 2px solid var(--grant); outline-offset: 3px; }
+
+  .counter {
+    position: fixed;
+    left: max(1rem, calc(50vw - 33rem));
+    bottom: 1.4rem;
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .1em;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+    z-index: 10;
+  }
+  @media (max-width: 900px) { .counter { display: none; } }
+
+  .hint {
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .08em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+  html { scroll-behavior: smooth; }
+</style>
+</head>
+<body>
+
+
+<nav class="rail" aria-label="slides"></nav>
+<div class="counter" id="counter">01</div>
+
+<div class="deck">
+
+  <!-- 1 -->
+  <section class="slide" id="s1">
+    <div class="eyebrow">tuvm · phase 3 · pre-design</div>
+    <h1>Retained channels,<br>and where remoteness lives</h1>
+    <p class="lead">The porta protocol rests on a kind of channel the node does not have. This is what that kind <em>is</em>, why the protocol needs it, and the one decision it forces: what belongs in&nbsp;C, and what belongs in&nbsp;nsl.</p>
+    <p class="hint">↓ scroll · or use ← → keys</p>
+  </section>
+
+  <!-- 2 -->
+  <section class="slide" id="s2">
+    <div class="eyebrow">what exists today</div>
+    <h2>The space is three verbs</h2>
+    <p>A job never touches the space directly. It holds a <strong>Channel capability</strong> — an object rooted at a path prefix — and everything it can do is these three sends.</p>
+    <pre class="c"><span class="c">(* nsl-tuvm/lib/kernel.ns — the whole surface *)</span>
+public out: rel value: v  = ( platform spacePost:   (self resolve: rel) value: v )
+public take: rel          = ( platform spaceTake:   (self resolve: rel) )
+public whenever: rel do: b = ( platform spaceRegister: (self resolve: rel) block: b owner: self )</pre>
+    <p>Underneath, in C, they are exactly what they look like: <code>space_post()</code> appends to a queue, <code>space_take()</code> pops from it, <code>spaceRegister</code> parks a reaction on a path. <strong>A channel today is a queue.</strong> That single fact is the whole problem.</p>
+  </section>
+
+  <!-- 3 -->
+  <section class="slide" id="s3">
+    <div class="eyebrow">the observation</div>
+    <h2>Two things we call “state” do not behave alike</h2>
+    <div class="cols">
+      <div class="card ev">
+        <h3>“the node rebooted”</h3>
+        <p>Happened once, at a moment. Reading it consumes it. Replaying it later would be a <em>lie</em> — and worse, acting on it twice would reboot the node twice.</p>
+      </div>
+      <div class="card rt">
+        <h3>“the node’s mode is deep-sleep”</h3>
+        <p>Is not an occurrence. It is simply <em>true</em>, and stays true until changed. A job that asks tomorrow deserves the same answer. Reading it must not destroy it.</p>
+      </div>
+    </div>
+    <p>A queue models the first perfectly and the second not at all. Every awkward rule in porta v1 — “last write wins”, “absent never clobbers”, “the command is the whole policy, not a patch”, the entire self-heal loop — is v1 <strong>hand-building the second behaviour on top of the first</strong>, one special case at a time.</p>
+  </section>
+
+  <!-- 4 -->
+  <section class="slide" id="s4">
+    <div class="eyebrow">channel kind 01</div>
+    <h2><span class="e">Event</span> — a queue of occurrences</h2>
+    <div class="scope">
+      <div class="trace">
+        <div class="trace-label">publisher</div>
+        <svg viewBox="0 0 520 54" preserveAspectRatio="none" aria-hidden="true">
+          <line x1="0" y1="27" x2="520" y2="27" stroke="var(--rule-soft)" stroke-width="1"/>
+          <g fill="var(--event)">
+            <rect x="60"  y="17" width="20" height="20" rx="2"/>
+            <rect x="190" y="17" width="20" height="20" rx="2"/>
+            <rect x="330" y="17" width="20" height="20" rx="2"/>
+          </g>
+        </svg>
+      </div>
+      <div class="trace">
+        <div class="trace-label">channel state</div>
+        <svg viewBox="0 0 520 54" preserveAspectRatio="none" aria-hidden="true">
+          <line x1="0" y1="27" x2="520" y2="27" stroke="var(--rule-soft)" stroke-width="1"/>
+          <path class="wire-e" d="M0,40 L60,40 L60,14 L110,14 L110,40 L190,40 L190,14 L240,14 L240,40 L330,40 L330,14 L380,14 L380,40 L520,40"/>
+          <text x="122" y="12" class="t-faint" fill="var(--ink-faint)" font-size="10">taken</text>
+        </svg>
+      </div>
+      <div class="trace">
+        <div class="trace-label">late reader</div>
+        <svg viewBox="0 0 520 54" preserveAspectRatio="none" aria-hidden="true">
+          <line x1="0" y1="27" x2="520" y2="27" stroke="var(--rule-soft)" stroke-width="1"/>
+          <line x1="450" y1="10" x2="450" y2="44" stroke="var(--ink-faint)" stroke-width="1" stroke-dasharray="3 3"/>
+          <text x="458" y="31" font-size="11" fill="var(--ink-faint)">arrives → sees nothing</text>
+        </svg>
+      </div>
+    </div>
+    <p>The value exists only in flight. <code>take:</code> consumes it; a reader who arrives after the fact gets <strong>nothing</strong>, and that is <em>correct</em> — it genuinely missed the event. Exactly-once is the contract, and the cursor is what enforces it across a reboot.</p>
+    <p class="hint">tel/print · tel/log · sys/panic · sys/reset · goal/do/reboot · dbg/req · dbg/resp</p>
+  </section>
+
+  <!-- 5 -->
+  <section class="slide" id="s5">
+    <div class="eyebrow">channel kind 02</div>
+    <h2><span class="r">Retained</span> — a latched value</h2>
+    <div class="scope">
+      <div class="trace">
+        <div class="trace-label">publisher</div>
+        <svg viewBox="0 0 520 54" preserveAspectRatio="none" aria-hidden="true">
+          <line x1="0" y1="27" x2="520" y2="27" stroke="var(--rule-soft)" stroke-width="1"/>
+          <g fill="var(--retained)">
+            <rect x="60"  y="17" width="20" height="20" rx="2"/>
+            <rect x="250" y="17" width="20" height="20" rx="2"/>
+          </g>
+        </svg>
+      </div>
+      <div class="trace">
+        <div class="trace-label">channel state</div>
+        <svg viewBox="0 0 520 54" preserveAspectRatio="none" aria-hidden="true">
+          <line x1="0" y1="27" x2="520" y2="27" stroke="var(--rule-soft)" stroke-width="1"/>
+          <path class="wire-r" d="M0,40 L60,40 L60,14 L250,14 L250,18 L520,18"/>
+          <text x="150" y="9" font-size="10" fill="var(--ink-faint)">held · seq 1</text>
+          <text x="350" y="34" font-size="10" fill="var(--ink-faint)">held · seq 2</text>
+        </svg>
+      </div>
+      <div class="trace">
+        <div class="trace-label">late reader</div>
+        <svg viewBox="0 0 520 54" preserveAspectRatio="none" aria-hidden="true">
+          <line x1="0" y1="27" x2="520" y2="27" stroke="var(--rule-soft)" stroke-width="1"/>
+          <line x1="450" y1="10" x2="450" y2="44" stroke="var(--ink-faint)" stroke-width="1" stroke-dasharray="3 3"/>
+          <text x="458" y="31" font-size="11" fill="var(--retained)">gets seq 2</text>
+        </svg>
+      </div>
+    </div>
+    <p>The path <strong>holds</strong> its latest value. Publishing overwrites; reading does not consume. A reader who arrives late — a job that just started, a gateway resyncing, <em>a node that just rebooted</em> — still gets the current truth. Deleting leaves a <strong>tombstone</strong>, because “no longer set” is itself a fact that has to sync.</p>
+    <p class="hint">goal/mode · goal/apps/** · goal/config/** · obs/health · obs/apps/**</p>
+  </section>
+
+  <!-- 6 -->
+  <section class="slide" id="s6">
+    <div class="eyebrow">the difference, made concrete</div>
+    <h2>Ask both channels the same question, late</h2>
+    <p>A supervisor restarts a crashed job. The job asks the space what its config is. What it gets back depends entirely on the channel kind — and this is the whole reason retained has to exist.</p>
+    <div class="cols">
+      <div class="card ev">
+        <h3>if goal/mode were an event</h3>
+        <pre class="ev"><span class="c">(* published 40 minutes ago *)</span>
+chan take: 'mode'
+<span class="c">→ nil</span></pre>
+        <p>The value was consumed by whoever read it first. The restarted job has <strong>no way to learn its own configuration</strong> short of asking porta over the radio — on every crash.</p>
+      </div>
+      <div class="card rt">
+        <h3>goal/mode as retained</h3>
+        <pre class="rt"><span class="c">(* published 40 minutes ago *)</span>
+chan peek: 'mode'
+<span class="c">→ Mode { mode: #deepSleep, … }</span></pre>
+        <p>Still there. The job recovers locally, at memory speed, with <strong>no network involved</strong>. Cold boot and 40th restart take the identical path.</p>
+      </div>
+    </div>
+    <div style="display:flex; gap:.75rem; align-items:center; flex-wrap:wrap;">
+      <button class="btn" id="simBtn" aria-pressed="false">▷ restart the job and read again</button>
+      <div class="verdict" id="verdict">— waiting —</div>
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section class="slide" id="s7">
+    <div class="eyebrow">why it earns its keep</div>
+    <h2>Retained paths make porta’s special cases dissolve</h2>
+    <div class="tw">
+      <table>
+        <thead><tr><th>porta v1 rule (bespoke, prose-enforced)</th><th>what it is once paths are retained</th></tr></thead>
+        <tbody>
+          <tr><td>“commands are declarative and absolute, last write wins”</td><td>…the definition of a retained path</td></tr>
+          <tr><td><code>set-mode</code> must be accepted whole or rejected whole</td><td>…one record at one path. <strong>Atomic by construction</strong> — nothing to enforce</td></tr>
+          <tr><td><code>set-forward</code> “is the whole policy, not a patch”</td><td>…a retained value simply <em>is</em> the whole value</td></tr>
+          <tr><td>config echo “only on cold boot and on change; absent never clobbers”</td><td>…publish-on-change. There is no cache to clobber</td></tr>
+          <tr><td>gateway self-heal: diff desired vs reported, re-enqueue the divergent</td><td>…a tree diff of <code>goal/</code> against <code>obs/</code>. The <em>mechanism</em> disappears</td></tr>
+          <tr><td><code>reboot</code>’s exception paragraph (imperative, exactly-once, terminal)</td><td>…an <span class="e">event</span> channel. The exception was the other kind, all along</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>v1's unit of extension is the <strong>verb</strong>, and verbs multiply: each new piece of node state touches the codec, the report shape, the echo rules, self-heal, and every node kind. A space's unit of extension is the <strong>path</strong>, and paths just add.</p>
+  </section>
+
+  <!-- 8 -->
+  <section class="slide" id="s8">
+    <div class="eyebrow">local → remote</div>
+    <h2>The same verbs, across a wire</h2>
+    <p>Porta mirrors the node's space. Sync is a <strong>cursor</strong>: “give me everything with <code>seq &gt;</code> what I last saw.” That one mechanism carries both channel kinds, and it is why a retained path needs a per-path sequence number, not just a value.</p>
+    <pre class="gr">porta                                   node
+  node/&lt;id&gt;/<span class="r">goal/**</span>   ─── pull ──▶   <span class="r">goal/**</span>   <span class="c">retained in</span>
+  node/&lt;id&gt;/<span class="r">obs/**</span>    ◀── push ───   <span class="r">obs/**</span>    <span class="c">retained out</span>
+  node/&lt;id&gt;/<span class="e">tel/**</span>    ◀── push ───   <span class="e">tel/**</span>    <span class="c">events out</span>
+  node/&lt;id&gt;/<span class="e">dbg/req</span>   ─── pull ──▶   <span class="e">dbg/req</span>   <span class="c">events in</span></pre>
+    <p><strong>Cold boot is not a special case.</strong> The cursor resets to 0, porta replays the whole retained tree, and the node converges. v1 needed boot-echo drift-healing rules to get here; retained paths get it by construction.</p>
+  </section>
+
+  <!-- 9 -->
+  <section class="slide" id="s9">
+    <div class="eyebrow">the one law</div>
+    <h2><code>take:</code> never crosses the wire</h2>
+    <div class="callout">
+      <p><strong>Location transparency must not become failure transparency.</strong><br><span class="mono" style="font-size:.85rem; color:var(--ink-faint)">Waldo, Wyant, Wollrath &amp; Kendall — <em>A Note on Distributed Computing</em>, Sun Labs TR-94-29</span></p>
+    </div>
+    <p>A destructive read across a network is a <strong>consensus problem</strong> — it is exactly where JavaSpaces was forced to grow transactions. So the wire does not offer one. Neither side destructively reads the other's space; each publishes into its own, and the other syncs.</p>
+    <div class="cols">
+      <div class="card rt">
+        <h3>what crosses</h3>
+        <p><code>out:</code> — best-effort, batched, eventually delivered.<br><code>whenever:</code> — a subscription: changes since a cursor.</p>
+      </div>
+      <div class="card ev">
+        <h3>what does not</h3>
+        <p><code>take:</code> — never. Not restricted, not discouraged. <strong>Absent.</strong> There is no wire form of it to misuse.</p>
+      </div>
+    </div>
+    <p>The wire makes remote <em>nameable</em>, not invisible. Every delivery contract stays explicit, and none of them lie.</p>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide" id="s10">
+    <div class="eyebrow">the mechanism you already built</div>
+    <h2>A capability is a rooted path</h2>
+    <p>This is the part that makes the rest work, and it is <strong>already shipped</strong>. A <code>Channel</code> is an object holding a root prefix. Every verb resolves through it, so a job cannot name a path outside its root — not by policy, but because <em>it has no way to express one</em>.</p>
+    <pre class="gr"><span class="c">(* kernel.ns — attenuation: a capability can only narrow, never widen *)</span>
+resolve: rel = (
+  outer checkPath: rel.               <span class="c">(* crash on any escape attempt *)</span>
+  rel = '' ifTrue: [ ^ root ].
+  root = '' ifTrue: [ ^ rel ].
+  ^ root , '/' , rel )                <span class="c">(* explicit '/' — 'a/b' can never collide with 'a/bc' *)</span>
+
+public channel: rel = ( ^ Channel new setRoot: (self resolve: rel) )</pre>
+    <p>Hand a job <code>chan channel: 'goal'</code> and it holds authority over <code>goal/**</code> and nothing else — forever, transitively, with no ambient authority to fall back on. Capabilities are <strong>constructor arguments</strong> (the Milestone-C rule), so a job's reach is fixed at the moment it is born.</p>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide" id="s11">
+    <div class="eyebrow">the thesis</div>
+    <h2>Remoteness lives in the grant</h2>
+    <div class="scope">
+      <svg class="grantfig" viewBox="0 0 720 250" role="img" aria-label="Jobs hold narrow channel capabilities into the node's space. Only the bridge job holds both the radio capability and grants over the sync prefixes; it is the single door to porta.">
+        <rect class="box" x="8" y="20" width="150" height="46" rx="4"/>
+        <text class="t-strong" x="20" y="41">sensor job</text>
+        <text x="20" y="57">obs/health</text>
+
+        <rect class="box" x="8" y="88" width="150" height="46" rx="4"/>
+        <text class="t-strong" x="20" y="109">supervisor</text>
+        <text x="20" y="125">goal/apps/**</text>
+
+        <rect class="box" x="8" y="156" width="150" height="46" rx="4"/>
+        <text class="t-strong" x="20" y="177">control job</text>
+        <text x="20" y="193">goal/mode</text>
+
+        <rect class="box" x="250" y="20" width="170" height="182" rx="4"/>
+        <text class="t-strong" x="266" y="44">the node’s space</text>
+        <text x="266" y="70" fill="var(--retained)">goal/**   retained</text>
+        <text x="266" y="90" fill="var(--retained)">obs/**    retained</text>
+        <text x="266" y="110" fill="var(--event)">tel/**    event</text>
+        <text x="266" y="130" fill="var(--event)">sys/**    event</text>
+        <text x="266" y="150" fill="var(--event)">dbg/*     event</text>
+        <text class="t-faint" x="266" y="182">one space. no “protocol handler”.</text>
+
+        <path class="wire" d="M158,43 L250,80"/>
+        <path class="wire" d="M158,111 L250,100"/>
+        <path class="wire" d="M158,179 L250,120"/>
+
+        <rect class="door" x="500" y="70" width="130" height="82" rx="4"/>
+        <text class="t-strong" x="514" y="94" fill="var(--grant)">bridge job</text>
+        <text x="514" y="112" fill="var(--grant)">+ radio cap</text>
+        <text x="514" y="130" fill="var(--grant)">+ goal/ dbg/req</text>
+        <text x="514" y="146" fill="var(--grant)">+ obs/ tel/ sys/</text>
+
+        <path class="wire-r" d="M420,95 L500,95"/>
+        <path class="wire-e" d="M420,130 L500,130"/>
+
+        <path class="wire" d="M630,111 L700,111" stroke-dasharray="4 3"/>
+        <text class="t-faint" x="648" y="103">porta</text>
+
+        <text class="t-faint" x="250" y="228">jobs never learn that goal/** came from a gateway — they see a channel, like any other</text>
+      </svg>
+    </div>
+    <p>The bridge is an <strong>ordinary supervised job</strong>. It is special only in what it was handed: the radio capability, plus write access to the inbound prefixes and read access to the outbound ones. It is <strong>the single door</strong> — so overflow policy, auth, and version skew are enforced in exactly one place, and nowhere else has to know porta exists.</p>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide" id="s12">
+    <div class="eyebrow">the tension</div>
+    <h2>The design contradicts itself, and it matters</h2>
+    <div class="cols">
+      <div class="card rt">
+        <h3>PROTOCOL-NSL §2</h3>
+        <p>“Two channel kinds, <strong>declared per path prefix</strong> … retained — the path holds a latest value; sync transfers values changed since a cursor; a delete is a tombstone.”</p>
+        <p class="hint" style="margin-top:.35rem">→ retained is a property of <em>the space</em></p>
+      </div>
+      <div class="card ev">
+        <h3>PROTOCOL-NSL §3.1</h3>
+        <p>“An ordinary supervised nsl job, granted … <strong>No VM changes</strong>; crash of the bridge is a contained fault.”</p>
+        <p class="hint" style="margin-top:.35rem">→ retained is somebody's <em>private bookkeeping</em></p>
+      </div>
+    </div>
+    <p>Both cannot hold. The space in C today has <strong>no</strong> latest-value slot, <strong>no</strong> per-path sequence, <strong>no</strong> tombstone and <strong>no</strong> “changed since cursor” query. Something has to provide those four things, and which thing decides who else can use them.</p>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide" id="s13">
+    <div class="eyebrow">the fork</div>
+    <h2>Four things must exist. Where?</h2>
+    <div class="tw">
+      <table>
+        <thead><tr><th>needed</th><th>in nsl — a library over the event space</th><th>in C — a real second channel kind</th></tr></thead>
+        <tbody>
+          <tr><td>latest value per path</td><td>a <code>Map</code> in the bridge job</td><td>a slot on the channel</td></tr>
+          <tr><td>per-path <code>seq</code></td><td>an int in that Map</td><td>a counter on the channel</td></tr>
+          <tr><td>tombstone</td><td>a sentinel in that Map</td><td>a flag on the channel</td></tr>
+          <tr><td><code>changedSince: cursor</code></td><td>a scan of that Map</td><td>a new prim</td></tr>
+          <tr><td><strong>cost</strong></td><td>zero new C. Reversible. Heap-visible, counts against the 48&nbsp;KB arena</td><td>new prims, new GC roots, footprint — and it reopens the VM after 8 rungs of not touching it</td></tr>
+          <tr><td><strong>who can use it</strong></td><td><strong>only the bridge.</strong> Any other job must go through the bridge's private API</td><td><strong>every job</strong>, through the capability it already holds</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The last row is not a detail. It is the whole decision.</p>
+  </section>
+
+  <!-- 14 -->
+  <section class="slide" id="s14">
+    <div class="eyebrow">the question that decides it</div>
+    <h2>Who, other than the bridge, needs a retained path?</h2>
+    <p>If the answer is <em>nobody</em> — if retained state is purely the bridge's sync bookkeeping — then an nsl library is sufficient, cheap, and reversible, and §3.1's “no VM changes” is honest.</p>
+    <p>But the design says otherwise, twice:</p>
+    <ul>
+      <li>§3.2: “the supervisor reacts to <code>goal/apps/**</code> <strong>exactly as it reacts to any channel</strong>.”</li>
+      <li>§3.3: “<strong>the protocol is the space, filtered by grant</strong> — there is no separate protocol handler.”</li>
+    </ul>
+    <p>Both of those claims are <em>only true</em> if retained is real space semantics. Put it in the bridge's private Map, and the supervisor must ask the bridge — which means jobs now know the bridge exists, the bridge becomes a second kind of authority alongside the space, and “the protocol is the space” quietly becomes false.</p>
+    <div class="callout">
+      <p>Either retained is a <strong>channel kind</strong> and the space owns it — or the bridge owns it and the elegance of §1 is the first casualty. That is the trade, stated honestly. It is a design call, not a cost call.</p>
+    </div>
+  </section>
+
+  <!-- 15 -->
+  <section class="slide" id="s15">
+    <div class="eyebrow">necessary vs. better</div>
+    <h2>What is forced, and what is taste</h2>
+    <div class="cols">
+      <div class="card gr">
+        <h3>genuinely forced into C</h3>
+        <p>Nothing yet — <em>if</em> only the bridge reads retained paths. An nsl Map can hold a value, an int, and a tombstone. There is no VM capability being asked for here that nsl lacks.</p>
+      </div>
+      <div class="card rt">
+        <h3>forced into C the moment…</h3>
+        <p>…a second job needs a retained path. Then the space must own it, because the space is the only thing every job already has a capability into.</p>
+      </div>
+    </div>
+    <p>So the honest framing is not “C is faster” or “nsl is cheaper”. It is: <strong>an nsl library is a bet that the bridge is the only consumer, forever.</strong> A C channel kind is the bet that it is not — paid up front, in prims and footprint.</p>
+    <p>There is a third path worth naming: build it in nsl <em>first</em>, host-only, on the G10 fleet-sim. It is throwaway-cheap, it will tell us what the Map actually costs against a 48&nbsp;KB arena, and the moment a second consumer appears, we will have learned exactly what the C version must expose. <strong>The prototype is the argument.</strong></p>
+  </section>
+
+  <!-- 16 -->
+  <section class="slide" id="s16">
+    <div class="eyebrow">where this leaves us</div>
+    <h2>Decided, and open</h2>
+    <div class="cols">
+      <div class="card rt">
+        <h3>settled</h3>
+        <p>The <span class="r">retained</span>/<span class="e">event</span> split, and which paths are which. The cursor as the one sync mechanism. Tombstones. <code>take:</code> never crossing the wire. Remoteness enforced at the grant, in one door. The record schemas and the size law that keeps bulk data off the channels entirely.</p>
+      </div>
+      <div class="card gr">
+        <h3>open — and yours</h3>
+        <p><strong>Does the space own retained, or does the bridge?</strong> Everything downstream — the bridge job, porta's store, the fleet-sim — is straightforward once this is answered. Nothing downstream is safe to build before it.</p>
+      </div>
+    </div>
+    <p class="hint">next: PROTOCOL-NSL-RECORDS.md (drafted) · then the retained-channel spec</p>
+  </section>
+
+</div>
+
+<script>
+  (function () {
+    var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+    var rail = document.querySelector('.rail');
+    var counter = document.getElementById('counter');
+
+    slides.forEach(function (s, i) {
+      var a = document.createElement('a');
+      a.href = '#' + s.id;
+      a.setAttribute('aria-label', 'Slide ' + (i + 1));
+      rail.appendChild(a);
+    });
+    var dots = Array.prototype.slice.call(rail.children);
+
+    var current = 0;
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        var i = slides.indexOf(en.target);
+        if (i < 0) return;
+        current = i;
+        dots.forEach(function (d, j) { d.classList.toggle('on', j === i); });
+        counter.textContent = String(i + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
+      });
+    }, { threshold: 0.5 });
+    slides.forEach(function (s) { obs.observe(s); });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      var next = null;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') next = current + 1;
+      if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp'   || e.key === 'PageUp')   next = current - 1;
+      if (next === null) return;
+      if (next < 0 || next >= slides.length) return;
+      e.preventDefault();
+      slides[next].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // slide 6 — the late-read demo
+    var btn = document.getElementById('simBtn');
+    var verdict = document.getElementById('verdict');
+    var state = 0;
+    var steps = [
+      { cls: '',     txt: '— waiting —' },
+      { cls: 'miss', txt: 'event    → take: \'mode\'  →  nil     job cannot recover locally' },
+      { cls: 'hit',  txt: 'retained → peek: \'mode\'  →  Mode{…}  job recovers, no radio' }
+    ];
+    btn.addEventListener('click', function () {
+      state = state >= 2 ? 1 : state + 1;
+      verdict.className = 'verdict ' + steps[state].cls;
+      verdict.textContent = steps[state].txt;
+      btn.setAttribute('aria-pressed', String(state > 0));
+      btn.textContent = state === 1 ? '▷ now as a retained path' : (state === 2 ? '↺ run again' : '▷ restart the job and read again');
+    });
+  })();
+</script>
+
+</body>
+</html>
