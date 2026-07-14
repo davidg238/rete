@@ -1,0 +1,45 @@
+(*
+expect:
+quiet 1
+flood 63
+last 63
+overruns 7
+total 7
+done
+*)
+(* tuvm#20 — THE GATE: the ring never kills the node. Before this fix,
+   space_post_id hard-abort()ed the whole VM on the 65th undrained post
+   ("channel queue full") — a burst of events bypassed the crash boundary and
+   supervisor entirely, inverting let-it-crash into node death. G2 pins the
+   policy instead: a full ring DROPS the newest stream post and COUNTS it
+   (never unbounded, never silent).
+
+   Trace (OEVM_SPACE_QUEUE_DEPTH = 64): one event to `quiet` first (slot 1 of
+   64), then 70 posts to `flood` — 63 fit (slots 2..64), 7 overflow and are
+   dropped+counted. Reaching drain AT ALL is the headline assertion (the old
+   code dies at post #65). After drain: quiet's handler fired (a flooding
+   channel does not starve an already-queued neighbor), flood's handler saw
+   exactly the FIRST 63 events in FIFO order (drop-newest keeps history up to
+   the overload point — David's call, 2026-07-14: the crash that STARTED a
+   storm must not be the record lost), and the counter surfaces the 7 drops
+   per channel and in the node total. *)
+class StreamFlood packageUsing: manifest = ( | quietHits ::= 0. floodHits ::= 0. last ::= 0. | ) (
+  public main: platform args: args = (
+    | space flood quiet |
+    space:: platform space.
+    flood:: space channel: 'flood'.
+    quiet:: space channel: 'quiet'.
+    quiet whenever: '' do: [ :m | quietHits:: quietHits + 1 ].
+    flood whenever: '' do: [ :m | floodHits:: floodHits + 1. last:: m ].
+    quiet out: '' value: 1.
+    1 to: 70 do: [ :i | flood out: '' value: i ].
+    space drain.
+    ('quiet ' , quietHits printString) out.
+    ('flood ' , floodHits printString) out.
+    ('last ' , last printString) out.
+    ('overruns ' , (platform spaceOverruns: 'flood') printString) out.
+    ('total ' , (platform spaceOverruns: '') printString) out.
+    'done' out.
+  )
+) : (
+)

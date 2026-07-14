@@ -1,0 +1,44 @@
+(*
+expect:
+a 3
+b 2
+quiet 0
+total 5
+after drain a 3
+recovered 1
+done
+*)
+(* tuvm#20 — the overrun counters are per channel, cumulative, and sum into the
+   node total (`spaceOverruns: ''`). A channel that never overflowed reads 0. The
+   counters are the PULL side of G2's "never silent" (readable from nsl, the
+   heapStats precedent); the PUSH side — the periodic sys/metrics record carrying
+   heap + overruns + queue high-water to porta — is tuvm#24.
+
+   Trace (depth 64): fill the ring with 64 posts to `a`, then 3 more to `a`
+   (dropped, a=3) and 2 to `b` (the ring is still full — b's drops are counted
+   against B, the poster, not against the channel that filled the ring). Drain
+   empties the ring; counters PERSIST (cumulative, not reset by drain). A
+   post-drain post to `b` is delivered — the ring recovered; overflow was a
+   contained episode, not a latched state. *)
+class OverrunCounter packageUsing: manifest = ( | bHits ::= 0. | ) (
+  public main: platform args: args = (
+    | space a b |
+    space:: platform space.
+    a:: space channel: 'a'.
+    b:: space channel: 'b'.
+    b whenever: '' do: [ :m | bHits:: bHits + 1 ].
+    1 to: 64 do: [ :i | a out: '' value: i ].
+    1 to: 3 do: [ :i | a out: '' value: i ].
+    1 to: 2 do: [ :i | b out: '' value: i ].
+    ('a ' , (platform spaceOverruns: 'a') printString) out.
+    ('b ' , (platform spaceOverruns: 'b') printString) out.
+    ('quiet ' , (platform spaceOverruns: 'never/posted') printString) out.
+    ('total ' , (platform spaceOverruns: '') printString) out.
+    space drain.
+    ('after drain a ' , (platform spaceOverruns: 'a') printString) out.
+    b out: '' value: 99. space drain.
+    ('recovered ' , bHits printString) out.
+    'done' out.
+  )
+) : (
+)
