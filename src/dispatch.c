@@ -707,6 +707,16 @@ enum {
        pre-existing id shifts. Counted (not computed) to be id 104 — the 104th
        PRIM_NAMES entry. Platform-dispatched (mirrored in prim_ids.h as 104). */
     PRIM_pf_heapStats,
+    /* Rung 9 (cells — tuvm#32 option A) Task 2: the cell seam. A channel is a
+       STREAM (post/take) or a CELL (put/peek); the kind is fixed by the first
+       write. These three are storage leaves — the kind RULE is enforced in nsl
+       (Channel>>put:value: / peek:ifAbsent: raise a catchable condition), the
+       same division as checkPath:. Appended last — no pre-existing id shifts.
+       Counted (not computed) to be 105/106/107 — the 105th/106th/107th
+       PRIM_NAMES entries. Platform-dispatched (mirrored in prim_ids.h). */
+    PRIM_pf_spaceKind,
+    PRIM_pf_spacePeek,
+    PRIM_pf_spacePut,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -752,6 +762,7 @@ static const char *const PRIM_NAMES[] = {
     "utf8Valid:",
     "asSymbol:",
     "heapStats",
+    "spaceKind:", "spacePeek:", "spacePut:value:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 

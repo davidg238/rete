@@ -132,6 +132,21 @@
    gcCycles] snapshotting src/gc.c oevm_heap_stats(); the nsl HeapStats class
    names the fields. */
 #define PRIM_pf_heapStats 104
+/* Rung 9 (cells — tuvm#32 option A) Task 2: the cell seam, appended after
+   heapStats — no pre-existing id shifts. 105/106/107 were arrived at by COUNTING
+   PRIM_NAMES (104 entries before this append), not by 104+1 arithmetic, per the
+   standing lesson above.
+     spaceKind:      -> SMI 0 unset / 1 stream / 2 cell. Does NOT intern: asking
+                        about a name must not create it (space_take's rule).
+     spacePeek:      -> the cell's value, non-destructively. nil if not a cell.
+     spacePut:value: -> writes the value slot, THEN space_post_id's it so
+                        `whenever:` reactions fire through the existing reactor.
+   `kind == CELL` is itself the has-a-value flag (only put sets it, and put always
+   stores), so "wrote nil" and "never written" are distinguishable — which is why
+   Channel>>peek:ifAbsent: is correct without waiting on tuvm#21. */
+#define PRIM_pf_spaceKind 105
+#define PRIM_pf_spacePeek 106
+#define PRIM_pf_spacePut  107
 /* Rung 3 Task 4: the out-of-range sentinel returned by cborIntFromMajor:arg:
    for the one unrepresentable CBOR integer (major 1, arg 2^64-1 => value -2^64,
    just past the ratified +/-(2^64-1) range). In this VM nil IS the C NULL

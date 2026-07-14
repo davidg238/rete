@@ -503,25 +503,27 @@ resume = (
 
 <!-- 13 -->
 <section class="slide">
-  <div class="eyebrow">the verb you asked about</div>
-  <h2><code>clear:</code> — and why <code>nil</code> won't do</h2>
-  <p><code>goal clear: 'apps/blink'</code> empties the pigeonhole <em>and leaves a note saying it was emptied deliberately</em>. The operator un-deployed blink. The supervisor must read that as <strong>stop blink</strong> — not as <em>no news about blink</em>.</p>
+  <div class="eyebrow">retraction · david, 2026-07-13</div>
+  <h2>There is no <code>clear:</code>. Stop is a value, not an absence.</h2>
+  <p class="lead">“In industrial control there is no clear. There is a start button and a separate stop button — <strong>and stop always wins, even if both are pressed.</strong>”</p>
+  <p>An earlier draft of this slide argued for a <code>clear:</code> verb and a tombstone, on the grounds that <em>the operator un-deployed blink</em> and <em>nobody ever mentioned blink</em> must be distinguishable. They must — but <strong>deletion is the wrong way to say it.</strong></p>
   <div class="cols3">
     <div class="card kc">
-      <h3>has a value</h3>
-      <p><code>peek:</code> answers it. <code>goal/apps/blink</code> = <code>{crc:…, runlevel:…}</code> → the supervisor keeps it running.</p>
+      <h3>running</h3>
+      <p><code>auto = true</code> · <code>runlevel: #running</code>. An explicit value.</p>
+    </div>
+    <div class="card kc">
+      <h3>stopped</h3>
+      <p><code>auto = false</code> · <code>runlevel: #stopped</code>. <strong>Also an explicit value</strong> — not a hole where a value used to be.</p>
     </div>
     <div class="card">
-      <h3>never had one</h3>
-      <p><code>peek:ifAbsent:</code> takes the else-branch. Nothing was ever said about blink. <strong>Do nothing.</strong></p>
-    </div>
-    <div class="card kb">
-      <h3>had one, withdrawn</h3>
-      <p>A <strong>tombstone</strong>. Blink was deployed and is now un-deployed. <strong>Stop it.</strong> And this must survive the trip to porta and the next resync.</p>
+      <h3>never mentioned</h3>
+      <p><code>peek:ifAbsent:</code> takes the else-branch → <strong>the fail-safe default</strong>, which is what you wanted anyway.</p>
     </div>
   </div>
-  <div class="callout bad">
-    <p><strong>This promotes tuvm#21 from a curiosity to a blocker.</strong> The seam cannot presently distinguish <em>holds nil</em> from <em>holds nothing</em> at <code>take:</code> — and a cell needs three states, not two. Fix #21 <em>with</em> the cell, not before it.</p>
+  <div class="callout warm">
+    <p>So a cell is <strong><code>value</code>, and nothing else</strong>. <strong>No tombstone. No <code>clear:</code>. Three prims, not four.</strong> And <strong>tuvm#21 comes off the critical path</strong> — a cell needs two states, not three, and the <em>kind</em> (never written / is a cell) answers it without touching <code>take:</code>'s nil-vs-empty bug at all.</p>
+    <p style="margin-top:.5rem">If a record must ever be <em>removed</em> — not stopped, removed — that is an operator <strong>action</strong>: a letter on a <code>do/</code> stream. Not a property of the pigeonhole.</p>
   </div>
 </section>
 
@@ -589,9 +591,10 @@ resume = (
   <div class="eyebrow">the path — and the one test that settles it</div>
   <h2>Rung 9, and its gate</h2>
   <ol style="margin:0; padding-left:1.3rem; color:var(--ink-soft); max-width:62ch;">
-    <li><strong>Settle tuvm#21</strong> — three states, not two. Small, and now load-bearing.</li>
-    <li><strong>Cells in <code>space.c</code></strong> — value slot, <code>seq</code>, dead flag. The <em>verb declares the kind</em>: <code>put:value:</code> makes a cell, <code>out:value:</code> makes a stream, wrong verb on an existing name is an error (<code>EISDIR</code>, and nobody has ever called that a design flaw).</li>
-    <li><strong>Four prims</strong>: <code>spacePeek</code> · <code>spacePut</code> · <code>spaceClear</code> · <code>spaceChangedSince</code>, and four thin <code>Channel</code> forwarders.</li>
+    <li><strong>A value slot in <code>space.c</code></strong> — that is the whole of it. The <em>verb declares the kind</em>: <code>put:value:</code> makes a cell, <code>out:value:</code> makes a stream, and the wrong verb on an existing name is an error (<code>EISDIR</code>, and nobody has ever called that a design flaw).</li>
+    <li><strong>Three prims</strong> — <code>spaceKind:</code> · <code>spacePeek:</code> · <code>spacePut:value:</code> — and two thin <code>Channel</code> methods: <code>put:value:</code> and <code>peek:ifAbsent:</code>.</li>
+    <li><strong><code>put</code> posts onto the existing ring</strong>, so a <code>whenever:</code> on a cell fires through the <em>unchanged</em> reactor. No second delivery mechanism. The only difference from a post is that the cell <strong>also kept a copy</strong>.</li>
+    <li><strong>The cell's value is a GC root.</strong> It is reachable from nothing else in the heap — that is what a cell <em>is</em>. Its own test, because the failure mode would be an occasional wrong setpoint on a running plant.</li>
     <li><strong>The gate — host only, no radio, no bridge, no porta:</strong></li>
   </ol>
   <div class="callout warm">

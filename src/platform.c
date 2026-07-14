@@ -405,6 +405,49 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         struct String *p = (struct String *)path;
         { *out = space_take((const char *)p->bytes, p->length); return 1; }
     }
+    case PRIM_pf_spaceKind: {
+        /* Rung 9 — `platform spaceKind: path` -> SMI 0 unset / 1 stream / 2 cell.
+           Does NOT intern the path (asking about a name must not create it — the
+           rule space_take already obeys). This is the predicate Channel>>peek:
+           ifAbsent: and put:value: guard on, so it is on a control loop's hot
+           path: no allocation, an SMI. */
+        oop path = args[0];
+        if (path == NULL || IS_SMI(path) || StringVtable == NULL ||
+            obj_vtable(path) != StringVtable) {
+            fprintf(stderr, "VM Error: platform spaceKind: expects a String path\n");
+            abort();
+        }
+        struct String *p = (struct String *)path;
+        { *out = TAG_SMI(space_kind((const char *)p->bytes, p->length)); return 1; }
+    }
+    case PRIM_pf_spacePeek: {
+        /* Rung 9 — `platform spacePeek: path` — the cell's value, NON-destructively
+           (unlike spaceTake:, which removes). nil if the path is not a cell; the
+           caller has already asked spaceKind:, so nil here means the cell holds
+           nil, not that it is absent. */
+        oop path = args[0];
+        if (path == NULL || IS_SMI(path) || StringVtable == NULL ||
+            obj_vtable(path) != StringVtable) {
+            fprintf(stderr, "VM Error: platform spacePeek: expects a String path\n");
+            abort();
+        }
+        struct String *p = (struct String *)path;
+        { *out = space_peek((const char *)p->bytes, p->length); return 1; }
+    }
+    case PRIM_pf_spacePut: {
+        /* Rung 9 — `platform spacePut: path value: v` — write the cell's slot, then
+           fan out through the EXISTING ring so `whenever:` reactions fire (space.c).
+           Answers args[1] unchanged, exactly as spacePost:value: does. */
+        oop path = args[0];
+        if (path == NULL || IS_SMI(path) || StringVtable == NULL ||
+            obj_vtable(path) != StringVtable) {
+            fprintf(stderr, "VM Error: platform spacePut:value: expects a String path\n");
+            abort();
+        }
+        struct String *p = (struct String *)path;
+        space_put((const char *)p->bytes, p->length, args[1]);
+        { *out = args[1]; return 1; }
+    }
     case PRIM_pf_spaceDequeue: {
         /* `platform spaceDequeue` — no args; answers the {value,
            blocksSnapshot, channelPath} 3-slot Array (Milestone D) or nil

@@ -178,8 +178,36 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
 ## Phase 3 — rejoin the node ladder (keeper, fleet, capabilities)
 
 Entry: phase 2 rungs 1–2 green on hardware. These re-validate proven pre-pivot assets against
-the no-fiber reactive VM rather than building from scratch:
+the no-fiber reactive VM rather than building from scratch.
 
+**Gate on the whole phase, now cleared: tuvm#32 — DECIDED 2026-07-13, option A.** Porta's
+protocol needs a name that *has a value*; the node's space only had queues. The decision
+went to David and came back reframed as a **mailroom**: everything on the wire is a *letter*
+(the bridge reads the **address**, never the contents; the addressee's job opens it), and the
+thing that differs is the **pigeonhole** — a **stream** you empty by reading, a **cell** that
+holds the latest letter. What forced a cell is that a supervised job's crash is *doctrine*
+here, and three verified `space.c` facts (every name is a queue · an event with no reaction
+registered is **drained and dropped**, `space.c:262` · there is **no request/reply**) together
+make a restarted job's setpoint **unrecoverable** without one. Two arguments of mine were
+retracted on the way (the etcd/consensus framing; a bogus "notices vs letters" distinction),
+and David's industrial-control point — *"there is no clear; there is a start button and a
+separate stop button, and stop always wins"* — **deleted the tombstone**: a stopped loop is
+`auto = false`, not an absent `auto`, so a cell is **`value`, full stop**. Decks:
+`review/cells-and-streams-v3.html` (supersedes v1/v2); code: `review/cells-sketch.ns` (the same
+PID scenario under option A and under option C — the diff is the argument).
+
+0. **Rung 9 — cells.** `nsl-tuvm/docs/superpowers/specs|plans/2026-07-13-rung9-cells.*`. A value
+   slot on `SpaceChannel`, three prims (`spaceKind:` / `spacePeek:` / `spacePut:value:`), two
+   `Channel` methods (`put:value:`, `peek:ifAbsent:`). `put` posts onto the **existing** ring, so
+   a `whenever:` on a cell fires through the unchanged reactor — the only difference from a post
+   is that the cell **also kept a copy**. The verb declares the kind; the wrong verb on an existing
+   name raises (`EISDIR`, and nobody calls that a design flaw), enforced in **nsl**, because
+   `space.c` is storage and not policy. Gate — host only, no radio, no bridge, no porta:
+   **write a setpoint · crash the job · let the supervisor restart it · peek the correct setpoint
+   back.** Passes under A; cannot be written under C. `seq`/`changedSince:` are deferred to the
+   bridge rung that needs them, and **option B (served prefixes, Plan 9's move) stays unbuilt and
+   unblocked** — the radio is just another `dev/` driver, and if B ever lands, A's cell becomes its
+   first server with no job-code change.
 1. **ns-posix keeper + porta rejoin** (R1/R2 assets; keeper core was VM-neutral by design).
 2. **Remote debug over porta** (R3 design; debugger survived Milestone A untouched).
 3. **Capability breadth**: GPIO (R4 blueprint) → i2c → **OpenThread/UDP**. The UDP/net capability

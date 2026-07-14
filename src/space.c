@@ -72,6 +72,14 @@ struct SpaceChannel {
     size_t len;
     struct SpaceReaction reactions[OEVM_SPACE_MAX_REACTIONS];
     int n_reactions;
+    /* Rung 9 (tuvm#32 option A). `kind` is set by the first WRITE — post makes a
+       stream, put makes a cell — and `value` is the cell's slot. `kind == CELL`
+       is itself the has-a-value flag: only space_put sets it, and space_put always
+       stores a value. So a cell written `nil` (value == NULL, kind == CELL) is
+       distinguishable from a name nobody ever wrote (kind == UNSET) — which is
+       what lets Channel>>peek:ifAbsent: be correct without waiting on tuvm#21. */
+    oop value;
+    uint8_t kind;
 };
 
 struct SpaceEvent {
@@ -121,6 +129,9 @@ int space_intern(const char *path, size_t len) {
     memcpy(c->path, path, len);
     c->len = len;
     c->n_reactions = 0;
+    c->value = NULL;
+    c->kind = SPACE_KIND_UNSET;   /* interning is not a write: `whenever:` on a
+                                     name nobody has written leaves it UNSET */
     return id;
 }
 
@@ -137,6 +148,12 @@ void space_post_id(int chan_id, oop value) {
     if (q_count >= OEVM_SPACE_QUEUE_DEPTH) {
         fprintf(stderr, "channel queue full\n");
         abort();
+    }
+    /* Rung 9: the first write fixes the kind. UNSET -> STREAM here; a CELL is
+       left alone, because space_put sets CELL and then calls THIS function to
+       fan the write out to `whenever:` reactions through the one reactor. */
+    if (channels[chan_id].kind == SPACE_KIND_UNSET) {
+        channels[chan_id].kind = SPACE_KIND_STREAM;
     }
     size_t tail = (q_head + q_count) % OEVM_SPACE_QUEUE_DEPTH;
     queue[tail].chan = chan_id;
@@ -167,6 +184,48 @@ oop space_take(const char *path, size_t len) {
         }
     }
     return NULL;
+}
+
+/* ---- Rung 9: cells (tuvm#32 option A) ------------------------------------
+   A cell is a pigeonhole that HOLDS the latest letter; a stream is one you
+   empty by reading. The three entry points below are storage only — the kind
+   RULE ("wrong verb on an existing name is an error") is enforced in nsl by
+   Channel>>put:value: / peek:ifAbsent:, which raise a catchable condition. That
+   is the same division of labour as checkPath:, whose capability confinement is
+   likewise enforced in nsl and not here (file header, and space.h). */
+
+int space_kind(const char *path, size_t len) {
+    int chan = find_channel(path, len);
+    if (chan < 0) return SPACE_KIND_UNSET;   /* never interned == nobody ever wrote it */
+    return (int)channels[chan].kind;
+}
+
+void space_put(const char *path, size_t len, oop value) {
+    int chan = space_intern(path, len);
+    struct SpaceChannel *c = &channels[chan];
+    if (c->kind == SPACE_KIND_STREAM) {
+        /* Unreachable from safe nsl: Channel>>put:value: checks space_kind and
+           raises first. Reaching this means the guard was bypassed — a VM bug,
+           which is exactly what this file's Tier-2 frozen-string aborts are for
+           (cf. "channel registry full"). It is a net, not the error path. */
+        fprintf(stderr, "channel kind mismatch\n");
+        abort();
+    }
+    c->kind = SPACE_KIND_CELL;
+    c->value = value;
+    /* Then fan out through the EXISTING ring and reactor, so a `whenever:` on a
+       cell fires on write with no second delivery mechanism and no change to
+       Space>>drain. If nobody is registered, the event is drained and dropped
+       (space_dequeue) — and the value stays in the slot. That case is not a
+       leak; it is the entire reason a cell exists. */
+    space_post_id(chan, value);
+}
+
+oop space_peek(const char *path, size_t len) {
+    int chan = find_channel(path, len);
+    if (chan < 0) return NULL;
+    if (channels[chan].kind != SPACE_KIND_CELL) return NULL;
+    return channels[chan].value;
 }
 
 void space_register(const char *path, size_t len, oop block, oop owner) {
@@ -277,5 +336,11 @@ void space_gc_trace(void) {
             mark_object(c->reactions[r].block);
             mark_object(c->reactions[r].owner);
         }
+        /* Rung 9: a cell's value is a GC root. It is reachable from NOTHING else
+           in the heap — that is the whole point of a cell: it outlives the job
+           that wrote it, and outlives the queued event that announced it (which
+           space_dequeue kills on delivery). Miss this line and a running plant
+           gets a collected setpoint. Guarded by nsl-tests/15_cells/05_gc_root. */
+        if (c->kind == SPACE_KIND_CELL && c->value) mark_object(c->value);
     }
 }

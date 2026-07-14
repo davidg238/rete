@@ -96,9 +96,45 @@ void space_drop_reactions_owned_by(oop owner);
    (D-C3), and channelPath is the dequeued channel's path String. */
 oop space_dequeue(void);
 
-/* GC root trace: marks every queued (still-live) event's value oop, and every
-   registered reaction's block + owner oop, across every channel. Called from
-   gc.c's root scan beside the other builtin-vtable roots. */
+/* ---- Rung 9 (tuvm#32, option A): cells — a name that HAS a value ----------
+   A channel is a STREAM (post/take: reading empties it) or a CELL (put/peek:
+   it holds the latest value and reading does not remove it). The kind is set
+   by the first WRITE and is fixed thereafter; `whenever:` works on both and
+   sets no kind. Design: nsl-tuvm/docs/superpowers/specs/2026-07-13-rung9-cells-design.md
+
+   Policy lives in nsl, exactly as this file's header says: `Channel>>put:value:`
+   and `peek:ifAbsent:` check `space_kind` and raise a catchable nsl condition on
+   a mismatch (the same division as checkPath:, whose capability confinement is
+   also enforced in nsl). The abort below is an invariant net, not the error path. */
+#define SPACE_KIND_UNSET  0
+#define SPACE_KIND_STREAM 1
+#define SPACE_KIND_CELL   2
+
+/* The channel's kind, without creating a registry entry (asking about a name
+   must not intern it — same rule space_take obeys). An over-length path can
+   never have been interned, so it answers UNSET rather than aborting. */
+int space_kind(const char *path, size_t len);
+
+/* Write the cell: store `value` in the channel's value slot (interning the path
+   if new), THEN space_post_id it, so `whenever:` reactions fire through the
+   existing ring and reactor, unchanged. There is no second delivery mechanism —
+   the only difference from a post is that the cell ALSO KEPT A COPY.
+   Aborts `channel kind mismatch` if the path is already a stream: unreachable
+   from safe nsl (the Channel guard raises first), so reaching it is a VM bug. */
+void space_put(const char *path, size_t len, oop value);
+
+/* The cell's value; NULL if the path is not a cell. Non-destructive, and it does
+   not intern. NOTE: a cell that was written `nil` answers NULL here too — which
+   is NOT the tuvm#21 ambiguity, because `space_kind` already told the caller the
+   difference between "wrote nil" (CELL) and "never written" (UNSET). That is why
+   Channel>>peek:ifAbsent: guards on the kind and not on the value. */
+oop space_peek(const char *path, size_t len);
+
+/* GC root trace: marks every queued (still-live) event's value oop, every
+   registered reaction's block + owner oop, and EVERY CELL'S VALUE, across every
+   channel. Called from gc.c's root scan beside the other builtin-vtable roots.
+   The cell values are the rung-9 addition and they are reachable from nothing
+   else in the heap — miss them and a live setpoint is collected. */
 void space_gc_trace(void);
 
 #endif /* OEVM_SPACE_H */
