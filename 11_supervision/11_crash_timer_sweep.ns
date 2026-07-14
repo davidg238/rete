@@ -1,0 +1,64 @@
+(*
+expect:
+starts 6
+ticks 1
+pending 1
+quarantined true
+pending after quarantine 0
+done
+*)
+(* tuvm#23 — THE GATE: a crash-looping job's timers must not accumulate. The
+   supervisor's restart sweep drops the job's REACTIONS but, before this fix, not its
+   TIMERS: each restart re-ran the start thunk, registering a fresh `every:` while the
+   crashed instance's repeater lived on (its token held only by the dead instance —
+   nobody left to cancel it). On target every leaked registration pins an M6 handle
+   slot (timer_zephyr.c), so a crash-looping job killed the node in <=32 restarts
+   ("handle table full"); on host the same leak is GHOST FIRES — every leaked repeater
+   re-posts on each clock advance. This test observes the host symptom: after 5
+   crash+restart loops (progress posts between crashes keep the job clear of the
+   K=3 quarantine limit), ONE advanceMillis: 10 must yield exactly 1 tick (the live
+   instance's timer, not 6) and `pendingCount` must be 1 (not 6). Quarantine must
+   sweep to zero: 3 consecutive crashes (2 more restarts -> starts 8, then quarantine
+   instead of a 3rd) cancel everything -> pendingCount 0.
+   Wiring: `sup timers: timers` hands the supervisor the timer registry to sweep,
+   exactly parallel to the reaction sweep (spaceDropReactionsOwnedBy:) it already does. *)
+class CrashTimerSweep packageUsing: manifest = ( | starts ::= 0. ticks ::= 0. | ) (
+  public main: platform args: args = (
+    | space sup timers looper alive |
+    space:: platform space.
+    sup:: platform supervisor.
+    timers:: Timers usingSpace: space seam: platform.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    sup timers: timers.
+    looper:: space channel: 'looper'.
+    alive::  space channel: 'looper/alive'.
+    sup register: looper
+        restart: [ starts:: starts + 1.
+                   looper whenever: 'poke' do: [ :m | self error: 'always' ].
+                   looper whenever: '' do: [ :m | ticks:: ticks + 1 ].
+                   timers every: 10 post: #tick on: looper ]
+        progress: alive.
+    sup start.
+    (* prime the first registration, exactly as the restart thunk would *)
+    starts:: starts + 1.
+    looper whenever: 'poke' do: [ :m | self error: 'always' ].
+    looper whenever: '' do: [ :m | ticks:: ticks + 1 ].
+    timers every: 10 post: #tick on: looper.
+    (* 5 crash+restart loops; a progress post after each crash resets the
+       consecutive-crash count so the job never reaches the quarantine limit *)
+    1 to: 5 do: [ :i |
+      looper out: 'poke' value: i. space drain.       (* crash -> sweep -> restart *)
+      alive out: '' value: i.      space drain ].     (* progress -> crash count 0 *)
+    ('starts ' , starts printString) out.             (* 1 + 5 restarts = 6 *)
+    (* one advance fires each LIVE repeater exactly once: leaked repeaters = ghost ticks *)
+    platform advanceMillis: 10. space drain.
+    ('ticks ' , ticks printString) out.               (* 1, not 6 *)
+    ('pending ' , timers pendingCount printString) out.
+    (* now let it quarantine: 3 consecutive crashes, no progress in between *)
+    1 to: 3 do: [ :i | looper out: 'poke' value: i. space drain ].
+    ('quarantined ' , (sup isQuarantined: 'looper') printString) out.
+    ('pending after quarantine ' , timers pendingCount printString) out.
+    'done' out.
+  )
+) : (
+)
