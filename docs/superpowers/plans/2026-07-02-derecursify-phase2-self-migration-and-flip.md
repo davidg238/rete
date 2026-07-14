@@ -8,7 +8,7 @@
 
 **Tech Stack:** C99 (`oevm` VM: `src/vm.c`, `src/dispatch.c`, `src/oevm.h`, `src/gc.c`, `src/frame_abi.h`), the Newspeak→bytecode compiler (`ns-oevm/tools/ns_compile_oevm.py`), the dual-path harness (`ns-oevm/tools/run_tests_oevm.py`).
 
-**Design:** `oevm/docs/superpowers/specs/2026-07-02-derecursify-phase2-self-migration-design.md`.
+**Design:** `oevm/docs/design/2026-07-02-derecursify-phase2-self-migration-design.md`.
 
 ## Global Constraints
 
@@ -360,8 +360,8 @@ Claude-Session: https://claude.ai/code/session_013RNThyg4MgNJD33fbSSv4h"
 
 **Files:**
 - Modify: `oevm/src/frame_abi.h` (status comment: `home_ctx` now relative)
-- Modify: `oevm/docs/superpowers/specs/2026-07-02-derecursify-phase2-self-migration-design.md` (mark DONE)
-- Modify: `oevm/docs/superpowers/specs/2026-07-01-derecursify-deferred-lift-growable-stacks-upward-closures-design.md` (Phase 2 → DONE via redesign)
+- Modify: `oevm/docs/design/2026-07-02-derecursify-phase2-self-migration-design.md` (mark DONE)
+- Modify: `oevm/docs/design/2026-07-01-derecursify-deferred-lift-growable-stacks-upward-closures-design.md` (Phase 2 → DONE via redesign)
 - Update: the deferred-lift memory file + MEMORY.md index (controller does this outside the plan).
 
 - [ ] **Step 1: Update `frame_abi.h` status** — the header note that "the live engine still uses an absolute prev_frame today" / L1 switching: update the LEXICAL-link line to state `home_ctx` is now relative as of Phase 2 self-migration+flip; the reified-`Context` branch remains reserved for the growth/escape phase.
@@ -373,7 +373,7 @@ Claude-Session: https://claude.ai/code/session_013RNThyg4MgNJD33fbSSv4h"
 - [ ] **Step 4: Commit**
 
 ```bash
-git -C /home/david/workspace/oevm add src/frame_abi.h docs/superpowers/specs/2026-07-02-derecursify-phase2-self-migration-design.md docs/superpowers/specs/2026-07-01-derecursify-deferred-lift-growable-stacks-upward-closures-design.md
+git -C /home/david/workspace/oevm add src/frame_abi.h docs/design/2026-07-02-derecursify-phase2-self-migration-design.md docs/design/2026-07-01-derecursify-deferred-lift-growable-stacks-upward-closures-design.md
 git -C /home/david/workspace/oevm commit -m "docs(derecursify): Phase 2 self-migration + flip DONE + ABI status
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>

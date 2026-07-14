@@ -8,7 +8,7 @@
 
 **Tech Stack:** nsl (`nsl-tuvm/lib/kernel.ns`), C99 (`tuvm/src/dispatch.c`, `platform.c`, `builtins.def`), conformance harness (`nsl-tuvm/tools/run_tests_oevm.py`), corpus (`nsl-tests/08_messages/`).
 
-**Spec:** `docs/superpowers/specs/2026-07-04-milestone-b-message-algebra-design.md` — normative for all semantics. Staged references: `tuvm/review/lib/messages.md`, `tuvm/review/lib/bytes.ns`, `tuvm/review/tests/tb-messages/`.
+**Spec:** `docs/design/2026-07-04-milestone-b-message-algebra-design.md` — normative for all semantics. Staged references: `tuvm/review/lib/messages.md`, `tuvm/review/lib/bytes.ns`, `tuvm/review/tests/tb-messages/`.
 
 ## Global Constraints
 

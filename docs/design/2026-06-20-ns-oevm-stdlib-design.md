@@ -9,7 +9,7 @@ GC feasibility verified. Ready for writing-plans (step 1).
 `oevm.h`). All `oevm/...` paths below are relative to that sibling.
 **Depends on:** conformance suite green (47/47 on both image paths); source-map
 emission done (`.stmap`, merged).
-**Supersedes/extends:** `docs/superpowers/specs/2026-06-19-next-phase-stdlib-and-debug.md`
+**Supersedes/extends:** `docs/design/2026-06-19-next-phase-stdlib-and-debug.md`
 (item 1).
 
 ---
@@ -397,5 +397,5 @@ SOMns-style `basicNew:`/`basicAt:`).
 - `grammar/ns.ohm:5,18–25` — `ClassDef`/`CtorSig` (capability header parses).
 - `SOMns/core-lib/Kernel.ns`, `Collections.ns`, `Streams.ns` — reuse source.
 - `st-berry/samples/lib/std.st` — native-module (`_Gpio`/`_Thread`) port source.
-- `st-oevm/docs/superpowers/specs/2026-06-15-st-oevm-design.md` §3/§7/§8/§11 — the
+- `st-oevm/docs/design/2026-06-15-st-oevm-design.md` §3/§7/§8/§11 — the
   template (injected-platform seam, debug-first obligations).

@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python compiler (`ns-oevm/tools/ns_compile_oevm.py`); conformance harness (`ns-oevm/tools/run_tests_oevm.py`); the C VM already supports `OP_JMP`/`OP_JMP_IF_FALSE` and `PRIM_and`/`PRIM_or`.
 
-**Design refs:** spec `ns-oevm/docs/superpowers/specs/2026-06-16-block-inlining-design.md` (§"Inlining transformation": "`cond and: [B]` → short-circuit … `or:` symmetric"); `oevm/docs/topics.md#block-inlining`.
+**Design refs:** spec `ns-oevm/docs/design/2026-06-16-block-inlining-design.md` (§"Inlining transformation": "`cond and: [B]` → short-circuit … `or:` symmetric"); `oevm/docs/topics.md#block-inlining`.
 
 ## Global Constraints
 

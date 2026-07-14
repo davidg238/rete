@@ -16,7 +16,7 @@ spec. `zcbor`/`cbor2` are external test oracles only, never linked.
 Newspeak/nsl (`nsl-tuvm/lib/kernel.ns`), Python fixture authoring (`cbor2`), the
 `run_tests_oevm.py` both-path differential harness.
 
-**Spec:** `nsl-tuvm/docs/superpowers/specs/2026-07-09-rung3-cbor-int64-wire-seam-design.md`
+**Spec:** `nsl-tuvm/docs/design/2026-07-09-rung3-cbor-int64-wire-seam-design.md`
 
 ## Global Constraints
 

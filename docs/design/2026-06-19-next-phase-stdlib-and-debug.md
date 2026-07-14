@@ -28,7 +28,7 @@ what exists and recommends a sequencing.
 
 ## The guiding design: st-oevm is the template
 
-`st-oevm/docs/superpowers/specs/2026-06-15-st-oevm-design.md` is explicit that
+`st-oevm/docs/design/2026-06-15-st-oevm-design.md` is explicit that
 st-oevm is "the **template** the future `ns-oevm` will be cut from." Its
 north-star is **"clean, capability-safe, embedded, debug-first"**, with the
 centrepiece workflow *edit a method, drop the stack frame, resume — over the
@@ -78,7 +78,7 @@ an M3-level concern). Resolving it is the first real design decision here.
 
 ### The proven architecture (st-zephyr)
 
-`st-zephyr/docs/superpowers/specs/2026-04-10-remote-debug-design.md` is the
+`st-zephyr/docs/design/2026-04-10-remote-debug-design.md` is the
 "modern, LLM-agent-first debugger" — the design literally states the debugger is
 **LLM-agent-first**: the agent drives investigation using code, history, and
 live device state; the human collaborates at the intent level; the VM is
@@ -179,8 +179,8 @@ items above and argues for a minimal primitive/library line.
 
 ## References
 
-- `st-oevm/docs/superpowers/specs/2026-06-15-st-oevm-design.md` — the template.
-- `st-zephyr/docs/superpowers/specs/2026-04-10-remote-debug-design.md` — agent-first debugger.
+- `st-oevm/docs/design/2026-06-15-st-oevm-design.md` — the template.
+- `st-zephyr/docs/design/2026-04-10-remote-debug-design.md` — agent-first debugger.
 - `st-zephyr/docs/superpowers/plans/2026-06-09-remote-debug-dap.md` — DAP layer.
 - `oevm/docs/ROADMAP.md` — VM debug/hot-swap substrate (Phase 8, debugger primitives).
 - `docs/superpowers/plans/block-inlining-status.md` — the now-complete prior track.

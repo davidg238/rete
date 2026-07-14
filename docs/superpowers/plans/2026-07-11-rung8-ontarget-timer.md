@@ -8,7 +8,7 @@
 
 **Tech Stack:** C99 engine (`tuvm`), Newspeak dialect (`nsl-tuvm/lib/kernel.ns`, frozen), Zephyr/NCS v3.2.4 `k_timer` + OpenThread MTD, tuvm Model-A solidifier (`ns_compile_oevm.py`), west + J-Link (DK) / nRF Util DFU (dongle), the live `udp-echo6` echo on `gw85224-01`.
 
-**Spec:** `docs/superpowers/specs/2026-07-11-rung8-ontarget-timer-design.md`
+**Spec:** `docs/design/2026-07-11-rung8-ontarget-timer-design.md`
 
 ## Global Constraints
 

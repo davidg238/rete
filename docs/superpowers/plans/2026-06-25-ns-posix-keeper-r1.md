@@ -8,7 +8,7 @@
 
 **Tech Stack:** C11 (keeper + seams, `cc`/`gcc`, `make`); Python 3 + `curl` (deploy tool); the oevm Model B build (`oevm_img`); `porta` (Go gateway, `porta serve`); `ns_compile_oevm.py` + `dump_layout` (host-ABI `.oimg`).
 
-**Design spec:** `ns-oevm/docs/superpowers/specs/2026-06-25-ns-posix-keeper-r1-design.md`
+**Design spec:** `ns-oevm/docs/design/2026-06-25-ns-posix-keeper-r1-design.md`
 
 ## Global Constraints
 

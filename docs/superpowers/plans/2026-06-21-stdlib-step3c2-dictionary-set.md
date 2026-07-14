@@ -16,7 +16,7 @@ changes.
 (`tools/ns_compile_oevm.py`), the OEVM C VM (sibling repo `../oevm`), conformance
 tests (`../ns-tests`).
 
-**Spec:** `docs/superpowers/specs/2026-06-21-ns-oevm-stdlib-step3c2-dictionary-set.md`
+**Spec:** `docs/design/2026-06-21-ns-oevm-stdlib-step3c2-dictionary-set.md`
 
 ## Global Constraints
 

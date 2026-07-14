@@ -605,7 +605,7 @@ If `NEWSPEAK_DIALECT.md` owns the `net`/`serial` capability vocabulary, add a on
 
 - [ ] **Step 7: Confirm the spec's §7 serial-rx paper-sketch is captured**
 
-Verify `docs/superpowers/specs/2026-07-10-rung6-udp-bridge-l2-design.md` §7 is present and complete (it is — no action beyond confirmation). This is the rule-of-three paper-validation artifact; no code.
+Verify `docs/design/2026-07-10-rung6-udp-bridge-l2-design.md` §7 is present and complete (it is — no action beyond confirmation). This is the rule-of-three paper-validation artifact; no code.
 
 - [ ] **Step 8: Commit the close (tuvm + nsl-tuvm as touched)**
 

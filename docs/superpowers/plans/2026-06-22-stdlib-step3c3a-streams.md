@@ -17,7 +17,7 @@ format / builtin-registry change.
 **Tech Stack:** C99 VM (`../oevm`), Python compiler (`ns-oevm/tools`), Newspeak
 `.ns` (`lib/kernel.ns`), conformance `.ns` (`../ns-tests`).
 
-**Spec:** `docs/superpowers/specs/2026-06-22-ns-oevm-stdlib-step3c3-streams-design.md`.
+**Spec:** `docs/design/2026-06-22-ns-oevm-stdlib-step3c3-streams-design.md`.
 
 **Controller pre-verification (already done — anchors below are empirically
 confirmed):** a throwaway probe with the exact `platform string:` C prim + minimal

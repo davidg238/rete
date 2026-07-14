@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python compiler (`ns-oevm/tools/ns_compile_oevm.py`); conformance harness (`ns-oevm/tools/run_tests_oevm.py`); C VM already supports `OP_JMP`/`OP_JMP_IF_FALSE` (Phase A); perf via `oevm/bench.sh`.
 
-**Design refs:** spec `ns-oevm/docs/superpowers/specs/2026-06-16-block-inlining-design.md` (§"Inlining transformation"); `oevm/docs/topics.md#block-inlining`, `#scope-vs-frame`, `#reflective-frame-access`.
+**Design refs:** spec `ns-oevm/docs/design/2026-06-16-block-inlining-design.md` (§"Inlining transformation"); `oevm/docs/topics.md#block-inlining`, `#scope-vs-frame`, `#reflective-frame-access`.
 
 ## Global Constraints
 

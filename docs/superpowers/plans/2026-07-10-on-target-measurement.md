@@ -577,7 +577,7 @@ git commit -m "$(printf 'feat(zephyr): DK on-target measurement node + banked fo
 
 **Files:**
 - Modify: `/home/david/workspace/nsl-tests/00_perf/RESULTS.md` (cross-link `FOOTPRINT_DK.md`)
-- Modify: `/home/david/workspace/nsl-tuvm/docs/superpowers/specs/2026-07-10-on-target-measurement-design.md` (mark as-built if any deviations)
+- Modify: `/home/david/workspace/nsl-tuvm/docs/design/2026-07-10-on-target-measurement-design.md` (mark as-built if any deviations)
 
 **Interfaces:**
 - Consumes: everything from Tasks 1-5.
@@ -609,7 +609,7 @@ In `/home/david/workspace/nsl-tests/00_perf/RESULTS.md`, add a one-line pointer 
 
 - [ ] **Step 4: Reconcile the design doc to as-built**
 
-Open `/home/david/workspace/nsl-tuvm/docs/superpowers/specs/2026-07-10-on-target-measurement-design.md`; if the implementation deviated (e.g. the both-path test lives at `15_heap_stats/01_invariants.ns`, no new C test since `test_heap_stats.c` already covered `oevm_heap_stats()`), add a short "As-built notes" section recording the final paths, the prim id (104), and the suite count (179/0/12 + 5 gates). If there were no deviations beyond these, record exactly that.
+Open `/home/david/workspace/nsl-tuvm/docs/design/2026-07-10-on-target-measurement-design.md`; if the implementation deviated (e.g. the both-path test lives at `15_heap_stats/01_invariants.ns`, no new C test since `test_heap_stats.c` already covered `oevm_heap_stats()`), add a short "As-built notes" section recording the final paths, the prim id (104), and the suite count (179/0/12 + 5 gates). If there were no deviations beyond these, record exactly that.
 
 - [ ] **Step 5: Bank the footprint delta**
 
@@ -627,7 +627,7 @@ git add 00_perf/RESULTS.md
 git commit -m "$(printf 'docs(perf): cross-link DK on-target footprint + heap telemetry (rung-4)\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_015XawRA2Fw1zgPFQWCyXXmg')"
 
 cd /home/david/workspace/nsl-tuvm
-git add docs/superpowers/specs/2026-07-10-on-target-measurement-design.md
+git add docs/design/2026-07-10-on-target-measurement-design.md
 git commit -m "$(printf 'docs(rung4): reconcile on-target measurement design to as-built\n\nPrim 104, 15_heap_stats both-path test, 179/0/12 + 5 named gates, footprint\ndeltas banked. Rung-4 Task 6.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_015XawRA2Fw1zgPFQWCyXXmg')"
 ```
 

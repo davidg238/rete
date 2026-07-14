@@ -180,8 +180,8 @@ They collapse into one general mechanism: boot constructs the `Kernel` instance 
 - **Carried-forward step-1 minors** (still deferred): `fflush(stdout)` in platform `print:`/`printNewline:`; `indexable_new` prototype in `oevm.h`.
 
 ## References
-- Predecessor: `docs/superpowers/specs/2026-06-20-ns-oevm-stdlib-step3a-kernel-object-array.md`
-- Parent: `docs/superpowers/specs/2026-06-20-ns-oevm-stdlib-design.md` (§3.1 variant selection, §4 primitive line, §5 class scope)
+- Predecessor: `docs/design/2026-06-20-ns-oevm-stdlib-step3a-kernel-object-array.md`
+- Parent: `docs/design/2026-06-20-ns-oevm-stdlib-design.md` (§3.1 variant selection, §4 primitive line, §5 class scope)
 - Compiler: `tools/ns_compile_oevm.py` (`resolve_name` :346, `resolve_class_ref` :1191, nested-class read :501 / construct :827, universal-root rule :1349)
 - VM (sibling `../oevm`): `src/dispatch.c`, `src/oevm_main.c` (Path A boot), `src/oevm_image_main.c` + `src/oimg_loader.c` (Path B boot)
 - SOMns reuse: `SOMns/core-lib/Kernel.ns`, `Collections.ns` (protocol, not research surface)

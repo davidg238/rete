@@ -4,7 +4,7 @@
 
 **Goal:** Land the degenerate (exact-channel) tuple space: C substrate (registry + FIFO queue + reaction storage), the rooted-prefix Channel capability, the three verbs, the drain reactor, and the fsm.ns Protocol — proving T-C C.1–C.10.
 
-**Architecture:** C owns storage and queueing (`src/space.c`, new engine file in every link set); nsl owns every decision (path canonicalization, capability resolution, value validation, the drain loop) as Kernel-module sibling classes reaching non-public helpers via the `outer` slot-0 idiom. Spec: `docs/superpowers/specs/2026-07-06-milestone-c-channels-reactor-design.md` (RATIFIED 2026-07-06).
+**Architecture:** C owns storage and queueing (`src/space.c`, new engine file in every link set); nsl owns every decision (path canonicalization, capability resolution, value validation, the drain loop) as Kernel-module sibling classes reaching non-public helpers via the `outer` slot-0 idiom. Spec: `docs/design/2026-07-06-milestone-c-channels-reactor-design.md` (RATIFIED 2026-07-06).
 
 **Tech Stack:** C99 (tuvm engine), nsl (kernel), Python harness (unchanged).
 

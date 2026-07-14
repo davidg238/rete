@@ -244,7 +244,7 @@ target build is unaffected.
    coalescing, no relocation), not a new assumption. Cited: G3 decision doc.
 
 **Resolved during design** (no longer open): the G3 GC decision doc exists at
-`nsl-tuvm/docs/superpowers/specs/2026-07-04-G3-gc-strategy-decision.md`; the collector is
+`nsl-tuvm/docs/design/2026-07-04-G3-gc-strategy-decision.md`; the collector is
 confirmed non-moving; M6 governs the C-held-reference design.
 
 ---
@@ -253,7 +253,7 @@ confirmed non-moving; M6 governs the C-held-reference design.
 
 - Rung owner / sequence: `tuvm/review/program-sequence.md` (Phase 2 rung 2).
 - Pulse-primitive need (readme-driven finding #2): `tuvm/review/demo-node.ns`.
-- GC strategy + M6 handle table + M1–M6: `nsl-tuvm/docs/superpowers/specs/2026-07-04-G3-gc-strategy-decision.md`.
+- GC strategy + M6 handle table + M1–M6: `nsl-tuvm/docs/design/2026-07-04-G3-gc-strategy-decision.md`.
 - ISR-callable seam substrate: `tuvm/src/space.h` (`space_post`, `space_intern`), `tuvm/src/space.c`.
 - Host event-source precedent: `tuvm/src/platform.c` (Milestone D host timer → `space_post` on `sys/timer`).
 - Backend seam pattern: `tuvm/src/platform_backend.h`, `tuvm/src/serial_backend.h`, `tuvm/src/backend/{posix,zephyr}/`.

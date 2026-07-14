@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python compiler (`ns-oevm/tools/ns_compile_oevm.py`), C VM (`oevm/src/{vm.c,dispatch.c,oevm.h}`), conformance harness (`ns-oevm/tools/run_tests_oevm.py`).
 
-**Design refs:** `oevm/docs/topics.md#scope-vs-frame`, `#why-standalone-scope-class`, `#no-op-first-rollout`, `#jmp-if-false-truthiness`; spec `ns-oevm/docs/superpowers/specs/2026-06-16-block-inlining-design.md`.
+**Design refs:** `oevm/docs/topics.md#scope-vs-frame`, `#why-standalone-scope-class`, `#no-op-first-rollout`, `#jmp-if-false-truthiness`; spec `ns-oevm/docs/design/2026-06-16-block-inlining-design.md`.
 
 ---
 

@@ -15,7 +15,7 @@
 - **THREE sibling repos:** `ns-oevm` (compiler/lib/docs/tests-runner), `../oevm` (C VM), `../ns-tests` (conformance `.ns` files). Commit per-repo.
 - **Locate edit sites by MATCHING QUOTED CODE, not line numbers** (line numbers drift). Each step quotes an anchor.
 - **Commit trailers required.** End every commit message with: `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`. **Do NOT push** (David pushes on explicit say-so).
-- **Spec:** `docs/superpowers/specs/2026-06-21-ns-oevm-stdlib-step3c1-string-booleans.md`. **Issue:** [#1](https://github.com/davidg238/ns-oevm/issues/1) (deferred rune protocol).
+- **Spec:** `docs/design/2026-06-21-ns-oevm-stdlib-step3c1-string-booleans.md`. **Issue:** [#1](https://github.com/davidg238/ns-oevm/issues/1) (deferred rune protocol).
 - **Build the VM** before running the suite: the runner rebuilds, but to compile-check use the VM's normal build (e.g. `cd ../oevm && make` or the project's build script).
 - **String byte-granularity is permanent** (dialect #10): `size`/`at:` deal in bytes; `at:` returns a SMI `0..255`, never nil. No rune protocol in 3c-1.
 

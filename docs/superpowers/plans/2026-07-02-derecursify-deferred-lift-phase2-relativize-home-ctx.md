@@ -29,7 +29,7 @@
 - `oevm/src/gc.c` — VERIFY-ONLY (+ comment). `mark(frame->home_ctx)` at two sites already no-ops on SMIs; confirm and document.
 - `oevm/src/frame_abi.h` — MODIFY (Task 3, comment/status only). Update the "still uses an absolute prev_frame / home_ctx" status note.
 - `oevm/tests/test_frame_abi.c` — MODIFY (Task 1). Add the base-move relativity proof for `home_link_encode_relative`/`home_link_decode_frame`.
-- `oevm/docs/superpowers/specs/2026-07-01-derecursify-deferred-lift-growable-stacks-upward-closures-design.md` — MODIFY (Task 3). Mark Phase 2 DONE.
+- `oevm/docs/design/2026-07-01-derecursify-deferred-lift-growable-stacks-upward-closures-design.md` — MODIFY (Task 3). Mark Phase 2 DONE.
 - `ns-oevm/.superpowers/sdd/progress.md` — REPLACE (Task 0). Fresh Phase 2 ledger.
 
 ---
@@ -386,7 +386,7 @@ Pure documentation + status. No code behavior change; folded here because it spa
 
 **Files:**
 - Modify: `oevm/src/frame_abi.h` (status comment)
-- Modify: `oevm/docs/superpowers/specs/2026-07-01-derecursify-deferred-lift-growable-stacks-upward-closures-design.md` (Phase 2 → DONE)
+- Modify: `oevm/docs/design/2026-07-01-derecursify-deferred-lift-growable-stacks-upward-closures-design.md` (Phase 2 → DONE)
 - Modify: `ns-oevm/.superpowers/sdd/progress.md` (close-out)
 
 - [ ] **Step 1: Update the `frame_abi.h` status note**
@@ -404,7 +404,7 @@ Fill `ns-oevm/.superpowers/sdd/progress.md` with per-task outcomes, final gate n
 - [ ] **Step 4: Commit**
 
 ```bash
-git -C /home/david/workspace/oevm add src/frame_abi.h docs/superpowers/specs/2026-07-01-derecursify-deferred-lift-growable-stacks-upward-closures-design.md
+git -C /home/david/workspace/oevm add src/frame_abi.h docs/design/2026-07-01-derecursify-deferred-lift-growable-stacks-upward-closures-design.md
 git -C /home/david/workspace/oevm commit -m "docs(derecursify): Phase 2 relativize-home_ctx DONE + ABI status"
 git -C /home/david/workspace/ns-oevm add .superpowers/sdd/progress.md
 git -C /home/david/workspace/ns-oevm commit -m "docs(derecursify): Phase 2 SDD close-out ledger"

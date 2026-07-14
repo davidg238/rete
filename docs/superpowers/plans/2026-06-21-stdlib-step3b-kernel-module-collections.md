@@ -24,7 +24,7 @@
 ## File Structure
 
 - `docs/NEWSPEAK_DIALECT.md` (create) — standing reference enumerating ns-oevm's deviations from full Newspeak + whys (Task 1).
-- `docs/superpowers/specs/2026-06-20-ns-oevm-stdlib-step3b-kernel-module-collections.md` (modify) — amend §4/§8 to record Option C (Task 1).
+- `docs/design/2026-06-20-ns-oevm-stdlib-step3b-kernel-module-collections.md` (modify) — amend §4/§8 to record Option C (Task 1).
 - `lib/kernel.ns` (rewrite) — the `Kernel` module: nests `Object`, `Array` (Tasks 3), `Collection`, `OrderedCollection` (Task 5) + accessors.
 - `tools/ns_compile_oevm.py` (modify):
   - slot READ outer-walk (`:485-500`) and slot ASSIGN outer-walk (`:550-563`) — class-side first-hop reads slot 1 (Task 2).
@@ -49,7 +49,7 @@
 
 **Files:**
 - Create: `docs/NEWSPEAK_DIALECT.md`
-- Modify: `docs/superpowers/specs/2026-06-20-ns-oevm-stdlib-step3b-kernel-module-collections.md` (§4 line 98, §8 line 168)
+- Modify: `docs/design/2026-06-20-ns-oevm-stdlib-step3b-kernel-module-collections.md` (§4 line 98, §8 line 168)
 
 **Interfaces:**
 - Consumes: nothing (documentation only).
@@ -87,7 +87,7 @@ Create the file with exactly this content:
 
 - [ ] **Step 2: Amend spec §4 (line 98) to record Option C**
 
-In `docs/superpowers/specs/2026-06-20-ns-oevm-stdlib-step3b-kernel-module-collections.md`, replace the line:
+In `docs/design/2026-06-20-ns-oevm-stdlib-step3b-kernel-module-collections.md`, replace the line:
 
 ```
 `Array` becomes a `Collection` subclass (`class Array = Collection ...` via the universal-root chain), inheriting `collect:`/`select:`/`inject:`/`includes:`/`asArray` on top of its indexable `do:`.
@@ -117,7 +117,7 @@ with:
 
 ```bash
 git -C /home/david/workspace/ns-oevm checkout -b feat/stdlib-step3b
-git -C /home/david/workspace/ns-oevm add docs/NEWSPEAK_DIALECT.md docs/superpowers/specs/2026-06-20-ns-oevm-stdlib-step3b-kernel-module-collections.md
+git -C /home/david/workspace/ns-oevm add docs/NEWSPEAK_DIALECT.md docs/design/2026-06-20-ns-oevm-stdlib-step3b-kernel-module-collections.md
 git -C /home/david/workspace/ns-oevm commit -m "docs(stdlib): Newspeak dialect reference (NEWSPEAK_DIALECT.md); step-3b Option C (Array not a Collection)"
 ```
 
@@ -1162,7 +1162,7 @@ git -C /home/david/workspace/ns-tests commit -m "test(stdlib): Collection/Ordere
 
 ## Self-Review
 
-**Spec coverage (against `docs/superpowers/specs/2026-06-20-ns-oevm-stdlib-step3b-kernel-module-collections.md`, as amended in Task 1):**
+**Spec coverage (against `docs/design/2026-06-20-ns-oevm-stdlib-step3b-kernel-module-collections.md`, as amended in Task 1):**
 - §2 static-bound-classes decision → recorded in `docs/NEWSPEAK_DIALECT.md` (#1, #2) (Task 1).
 - §3 module stack + two-stage boot (both paths) + three reachability paths → Task 3 (Path A boot-gen, kernel.ns), Task 4 (Path B loader). Kernel→primitives via injected `platform`; Kernel→Kernel via compile-time sibling refs; App→Kernel via accessors.
 - §4 Kernel module structure + capability-pure `basicNew: <class> indexable: n` + hand-written accessors → Task 3 (kernel.ns + prim). **Array-as-Collection deliberately dropped (Option C)** → Task 1 amends §4; deviation #3.

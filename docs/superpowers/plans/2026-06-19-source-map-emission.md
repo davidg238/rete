@@ -440,7 +440,7 @@ git commit -m "feat(stmap): write .stmap sidecar next to the image for both back
 
 **Files:**
 - Modify: `docs/compiler.md` (add a short "Source maps (.stmap)" section)
-- Modify: `docs/superpowers/specs/2026-06-19-next-phase-stdlib-and-debug.md` (mark the source-map step done)
+- Modify: `docs/design/2026-06-19-next-phase-stdlib-and-debug.md` (mark the source-map step done)
 
 **Interfaces:** none.
 
@@ -450,13 +450,13 @@ Add a section describing: the sidecar path (`<image-base>.stmap`), the JSON cont
 
 - [ ] **Step 2: Update the roadmap doc**
 
-In `docs/superpowers/specs/2026-06-19-next-phase-stdlib-and-debug.md`, under Item 2's concrete work list, mark step 1 (thread spans) and step 2 (emit `.stmap`) as done, leaving step 3 (wire oevm's `debugger_hook` to the MCP surface) as the next piece.
+In `docs/design/2026-06-19-next-phase-stdlib-and-debug.md`, under Item 2's concrete work list, mark step 1 (thread spans) and step 2 (emit `.stmap`) as done, leaving step 3 (wire oevm's `debugger_hook` to the MCP surface) as the next piece.
 
 - [ ] **Step 3: Commit**
 
 ```bash
 cd /home/david/workspace/ns-oevm
-git add docs/compiler.md docs/superpowers/specs/2026-06-19-next-phase-stdlib-and-debug.md
+git add docs/compiler.md docs/design/2026-06-19-next-phase-stdlib-and-debug.md
 git commit -m "docs(stmap): document source-map emission; mark roadmap step done"
 ```
 

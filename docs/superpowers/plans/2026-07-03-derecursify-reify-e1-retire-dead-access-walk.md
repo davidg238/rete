@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- **Design of record:** `oevm/docs/superpowers/specs/2026-07-03-derecursify-e1-retire-dead-access-walk-design.md`.
+- **Design of record:** `oevm/docs/design/2026-07-03-derecursify-e1-retire-dead-access-walk-design.md`.
 - **Repos:** VM code in `/home/david/workspace/oevm`; `.ns` tests in `/home/david/workspace/ns-tests`; runner + gates in `/home/david/workspace/ns-oevm/tools/run_tests_oevm.py`. Commit each repo separately.
 - **Branch:** `derecursify-reify-e1-home-method` already exists in `/home/david/workspace/oevm` (holds the design commits). Work on it.
 - **Do NOT push** (David's push-only-when-asked rule).
@@ -142,7 +142,7 @@ field, no GC/.oimg/dialect change; behaviour-identical on all reachable paths.
 Validated: structural grep gate (walk gone) + test_access.c green (6/6, the sole
 exerciser of the access branch) + full suite 86/0/6 both paths + Zephyr syntax.
 
-Design: docs/superpowers/specs/2026-07-03-derecursify-e1-retire-dead-access-walk-design.md
+Design: docs/design/2026-07-03-derecursify-e1-retire-dead-access-walk-design.md
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01HDjWqD3GNzriGx9E6iiEc6"

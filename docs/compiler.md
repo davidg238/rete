@@ -178,5 +178,5 @@ the compiler via `compile_statement` and registered per qualified name
 - `../oevm/docs/topics.md` — durable design rationale (scope vs frame, calling
   convention, dispatch caching, no-op-first rollout, …).
 - `../oevm/docs/optimizations.md` — chronological perf + conformance log.
-- `docs/superpowers/specs/` and `docs/superpowers/plans/` — feature specs/plans
+- `docs/design/` and `docs/superpowers/plans/` — feature specs/plans
   (block inlining).

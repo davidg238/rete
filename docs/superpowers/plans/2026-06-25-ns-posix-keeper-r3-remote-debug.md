@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- **Spec:** `ns-oevm/docs/superpowers/specs/2026-06-25-ns-posix-keeper-r3-remote-debug-design.md`. Every task implements part of it.
+- **Spec:** `ns-oevm/docs/design/2026-06-25-ns-posix-keeper-r3-remote-debug-design.md`. Every task implements part of it.
 - **porta wire protocol is authoritative** — `porta/docs/PROTOCOL.md`. New surface (the `debug` verb, the `debug?id=` channel) MUST be documented there (Task 8).
 - **R3 is independent of the deferred R2** — use the dedicated `debug?id=` channel; do NOT route debug over `data?id=`.
 - **Debug transport is always compiled in** (the keeper always wires `host_debug_vm`); it must cost nothing when no session is active (`if (k->d)` + `debug_active` guards).

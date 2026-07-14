@@ -8,7 +8,7 @@
 
 **Tech Stack:** C99 (tuvm engine), Newspeak/Smalltalk "nsl" (kernel library + tests), Zephyr RTOS via Nordic NCS (`~/ncs` west workspace, SDK `2ac5840438`), boards `native_sim` and `nrf52840dongle/nrf52840`.
 
-**Spec:** `nsl-tuvm/docs/superpowers/specs/2026-07-08-zephyr-pulse-primitive-design.md`
+**Spec:** `nsl-tuvm/docs/design/2026-07-08-zephyr-pulse-primitive-design.md`
 
 ## Global Constraints
 

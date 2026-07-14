@@ -5,7 +5,7 @@ Landed in the specs tree 2026-07-04 once Milestone A merged (it was parked in
 `tuvm/review/` during the Milestone-A run because an agent sweeping untracked files there
 deleted an earlier copy; that copy is now a `SUPERSEDED` tombstone). Each amendment states
 which section of the main spec
-(`nsl-tuvm/docs/superpowers/specs/2026-07-03-nsl-tuvm-first-step-design.md`) it extends.
+(`nsl-tuvm/docs/design/2026-07-03-nsl-tuvm-first-step-design.md`) it extends.
 Nothing here changed Milestone A scope; A1 and A2 land in Milestones C and A/§7
 respectively, A3 is a non-goal clarification.
 

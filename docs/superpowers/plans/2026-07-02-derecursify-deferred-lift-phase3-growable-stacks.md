@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- **Design of record:** `oevm/docs/superpowers/specs/2026-07-02-derecursify-phase3-growable-stacks-design.md` (scope **A**, DECIDED). Read it before starting.
+- **Design of record:** `oevm/docs/design/2026-07-02-derecursify-phase3-growable-stacks-design.md` (scope **A**, DECIDED). Read it before starting.
 - **Behaviour-equivalent below the cap.** Same observable output on every existing test, BOTH paths. Growth is invisible to the language; the cap diagnostic is a new observable but not a language-semantics change → **no dialect row expected** (confirm in Task 4).
 - **Both image paths.** All changes are in `vm.c` runtime (compiled by both Path A and Path B); **no `.oimg` format change** — `Stack`/growth are runtime-only. No `builtins.def` change, no new vtable, no `solidify.py` change. Task 4 verifies the serializer/loader are untouched.
 - **Repos:** VM code in `/home/david/workspace/oevm`; tests in `/home/david/workspace/ns-tests`; runner + gates in `/home/david/workspace/ns-oevm/tools/run_tests_oevm.py`. Commit each repo separately. **Do not push** (David's push-only-when-asked rule).
@@ -600,7 +600,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ### Task 4: Docs, dialect check, ledger + memory
 
 **Files:**
-- Modify: `oevm/docs/superpowers/specs/2026-07-02-derecursify-phase3-growable-stacks-design.md` (mark DONE)
+- Modify: `oevm/docs/design/2026-07-02-derecursify-phase3-growable-stacks-design.md` (mark DONE)
 - Modify: `oevm/src/frame_abi.h` (comment: growth now live) — **only** if a comment is now stale; no code change
 - Check: `oevm/docs/NEWSPEAK_DIALECT.md` (dialect row?) + `.oimg` format unchanged
 - Modify: `ns-oevm/.superpowers/sdd/progress.md` (ledger)

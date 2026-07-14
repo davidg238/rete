@@ -7,7 +7,7 @@ This is the *how do I write a program* document. It does not replace:
 
 - **[`NEWSPEAK_DIALECT.md`](./NEWSPEAK_DIALECT.md)** — the syntax/dialect reference (what the language *is*).
 - **`tuvm/review/language-and-library-spec.md`** and the milestone design specs under
-  `docs/superpowers/specs/` — the authoritative, frozen decisions.
+  `docs/design/` — the authoritative, frozen decisions.
 - **`tuvm/review/WHY.md`** — the pitch and rationale.
 
 Where those documents own a fact, this guide **links** to them rather than restating it, so
@@ -577,7 +577,7 @@ to unwind**.
 ## 9. Not here yet
 
 > _Outline — the phase-2 roadmap. Authoritative sources: `tuvm/review/reliability-gaps.md`
-> (G1–G11), `tuvm/review/lib/exceptions.md`, the milestone specs under `docs/superpowers/specs/`,
+> (G1–G11), `tuvm/review/lib/exceptions.md`, the milestone specs under `docs/design/`,
 > and the open GitHub issues on `davidg238/{tuvm,nsl-tuvm}`._
 
 Phase 1 proves the model on the host. Phase 2 targets real hardware. Known gaps, to be written

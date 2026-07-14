@@ -7,7 +7,7 @@ Implementation to follow via the writing-plans skill.
 
 **Owners this rung reconciles:** `tuvm/review/lib/cbor.md` (L6 — CBOR codec, design frozen
 2026-07-03, implementation deferred to here) and the ratified integer contract
-`nsl-tuvm/docs/superpowers/specs/2026-07-04-L7-integer-semantics-decision.md`.
+`nsl-tuvm/docs/design/2026-07-04-L7-integer-semantics-decision.md`.
 
 **Base (branch off master):** nsl-tuvm branch `rung3-cbor-int64` (this spec, `c31a816`);
 tuvm + nsl-tests branch at implementation start. (Confirm actual master tips at branch-cut.)

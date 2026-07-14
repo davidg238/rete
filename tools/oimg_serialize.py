@@ -117,7 +117,7 @@ class OimgWriter:
         # (format_version 1: Kernel descriptor absent, header 56 bytes.)
         #
         # RESERVED — G4 line-table provision (nsl-tuvm#3 rider, decided 2026-07-04;
-        # see docs/superpowers/specs/2026-07-04-G3-gc-strategy-decision.md). A future
+        # see docs/design/2026-07-04-G3-gc-strategy-decision.md). A future
         # format bump may append a `line_table_ref` ref-word at the header tail
         # (after net_on_sel_ref, same pad-to-ALIGN discipline) and/or a "LINETABLE"
         # kind at the END of KIND_ORDER. Both are structurally additive: the loader

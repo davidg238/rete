@@ -9,7 +9,7 @@ paths are relative to this repo's cwd.
 **Depends on:** std-lib steps 1 (real indexable repr + `platform_object()`) and 2
 (boot seams hand real platform; compiler routes capitalised globals through the
 threaded `platform`) — both merged to master across all three repos.
-**Parent spec:** `docs/superpowers/specs/2026-06-20-ns-oevm-stdlib-design.md` (§8 step 3).
+**Parent spec:** `docs/design/2026-06-20-ns-oevm-stdlib-design.md` (§8 step 3).
 
 ---
 

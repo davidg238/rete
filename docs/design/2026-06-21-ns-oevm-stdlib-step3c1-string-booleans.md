@@ -175,8 +175,8 @@ The suite (**54 pass / 0 fail / 3 skip, both paths**) is the safety net — ever
 - **Carried-forward step-1 minors** (still deferred): `fflush(stdout)` in platform `print:`/`printNewline:`; `indexable_new` prototype in `oevm.h`.
 
 ## References
-- Predecessor: `docs/superpowers/specs/2026-06-20-ns-oevm-stdlib-step3b-kernel-module-collections.md`
-- Parent: `docs/superpowers/specs/2026-06-20-ns-oevm-stdlib-design.md` (§9 Symbol-vs-String question)
+- Predecessor: `docs/design/2026-06-20-ns-oevm-stdlib-step3b-kernel-module-collections.md`
+- Parent: `docs/design/2026-06-20-ns-oevm-stdlib-design.md` (§9 Symbol-vs-String question)
 - Dialect: `docs/NEWSPEAK_DIALECT.md` (#3 bare indexable, #5 booleans, #7 universal prims, new #10)
 - Issue: https://github.com/davidg238/ns-oevm/issues/1 (deferred rune protocol)
 - Compiler: `tools/ns_compile_oevm.py` (literal kind split :453; `StaticSymbol_` emission ~:1001–1017)

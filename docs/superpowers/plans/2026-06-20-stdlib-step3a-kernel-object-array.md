@@ -477,7 +477,7 @@ git -C ../oevm commit -m "chore(stdlib): regenerate default solidified image wit
 
 ## Self-Review
 
-**Spec coverage (against `docs/superpowers/specs/2026-06-20-ns-oevm-stdlib-step3a-kernel-object-array.md`):**
+**Spec coverage (against `docs/design/2026-06-20-ns-oevm-stdlib-step3a-kernel-object-array.md`):**
 - §2 kernel build (concatenate, top-level siblings, reached via platform) → Task 1 Steps 3-4.
 - §3 platform binding + mock retirement (gate then delete) → Task 2 Step 4 (gate) + Task 3 (delete); indexable storage prims kept (Task 2 Step 4 broadens, never removes them).
 - §4 Object-as-root + prim gating (universal heap root; intrinsics primitive; `==`/`error:` universal) → Task 1 Step 5 (delegate rule) + Step 6 (heap fall-through, intrinsics untouched, `error:` not gated).

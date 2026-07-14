@@ -354,7 +354,7 @@ git commit -m "feat(stdlib): route capitalised library globals through threaded 
 
 ## Self-Review
 
-**Spec coverage (against `docs/superpowers/specs/2026-06-20-ns-oevm-stdlib-design.md` §3 / §8 step 2):**
+**Spec coverage (against `docs/design/2026-06-20-ns-oevm-stdlib-design.md` §3 / §8 step 2):**
 - "Thread `platform` through module construction" → Task 1 (real `platform_object()` into both entry seams; programs thread it via their `usingPlatform:`/`main:` params, stored to slots by the existing `compile_initializer`).
 - "Resolve capitalised names via the injected namespace instead of `OP_SEND_IMPLICIT` string-match" → Task 2 (`platform_global` resolver + emit; `dynArray` unified).
 - "real name resolution against the injected namespace, not a VM string-match" → satisfied at the *compiler* layer: the capitalised name is now sent to a threaded value. The VM-level `PRIM_Array` string interception remains as the bridge (chosen "bridge via platform"); its removal is spec §8 step 6, explicitly out of scope here.

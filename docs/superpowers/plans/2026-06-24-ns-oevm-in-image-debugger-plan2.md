@@ -19,7 +19,7 @@
 
 ## Deviation from spec (read before starting)
 
-The spec (`docs/superpowers/specs/2026-06-23-ns-oevm-in-image-debugger-design.md`) said the debugger would "reuse only existing mirror prims." Grounding in the code showed that is **not sufficient** for a real interactive debugger. This plan adds a small, deliberately confined C surface, all reachable only through `mirror_object()`:
+The spec (`docs/design/2026-06-23-ns-oevm-in-image-debugger-design.md`) said the debugger would "reuse only existing mirror prims." Grounding in the code showed that is **not sufficient** for a real interactive debugger. This plan adds a small, deliberately confined C surface, all reachable only through `mirror_object()`:
 
 1. **Hook-controllable stepping (vm.c mechanism).** The hook save/restore at `vm.c:175-187` and `:716-728` does `fib->single_step = was_stepping` *after* the hook, which **clobbers** any stepping the hook armed. Interactive `dbg:step`/`dbg:over`/`dbg:out`/continue-past-breakpoint all arm stepping *from inside the hook*. Fix: a `hook_step_request` channel that survives the restore (Task 1).
 2. **Five new confined mirror selectors** (Tasks 2–3): `offsetOf:` (ctx→SMI bytecode offset), `method:instructionAt:` (read a bytecode word, to save before patching `OP_BREAK`), `selectorsOf:`/`methodsOf:` (a vtable's bindings as iterable kernel `Array`s — `bindingsOf:` returns a non-iterable raw `BoxedBinding` array), and `requestStep:` (set the *current* fiber's hook step request — avoids exposing the fiber oop).
