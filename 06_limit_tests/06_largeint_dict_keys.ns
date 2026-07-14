@@ -13,7 +13,7 @@ A
    Exercises the =/hash contract for the boxed integer representation, and in
    particular the case where two LargeIntegers collide in the hash table yet must
    stay distinct by value equality. See
-   nsl-tuvm/docs/superpowers/specs/2026-07-04-L7-integer-semantics-decision.md.
+   nsl-tuvm/docs/design/2026-07-04-L7-integer-semantics-decision.md.
 
    All keys here are genuine LargeIntegers (magnitude > the 64-bit-host SMI range),
    reached two ways: big1 by u32 x u32 arithmetic (18446744065119617025 =
