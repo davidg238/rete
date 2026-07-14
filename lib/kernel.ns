@@ -1226,11 +1226,68 @@ class Kernel usingPlatform: platform = () (
       root = '' ifTrue: [ ^ rel ].
       ^ root , '/' , rel )
     public channel: rel = ( ^ Channel new setRoot: (self resolve: rel) )
+    (* ---- rung 9 (tuvm#32, option A): streams and cells --------------------
+       A name is a STREAM (a pigeonhole you EMPTY: `out:value:` appends, `take:`
+       removes) or a CELL (a pigeonhole that HOLDS the latest letter: `put:value:`
+       overwrites, `peek:ifAbsent:` reads without removing). The kind is fixed by
+       the FIRST WRITE, and the wrong verb on an existing name is an error — the
+       same bargain as `read()` on a directory answering EISDIR. `whenever:do:`
+       is the one verb that works on both and sets no kind.
+
+       The RULE is enforced here, in nsl, not in `space.c` — which is storage, not
+       policy (its own file header says so), exactly as capability confinement is
+       enforced by `checkPath:` here and not there. `self error:` raises an ordinary
+       Milestone-E condition, so a job can catch a kind mismatch with `on:do:` and,
+       uncaught, it reaches the supervisor as any other crash does.
+
+       Why a cell exists at all: `space_dequeue` kills an event on delivery whether
+       or not anyone was registered for it, so a job that was DOWN when a letter
+       arrived is replayed nothing when it restarts — and there is no request/reply
+       with which to ask for a re-send. A cell survives the job that reads it. That
+       is what lets a restarted PID read its setpoint back with no network, no
+       bridge, and nobody to ask (nsl-tests/15_cells/02_survives_crash). *)
+    KIND_STREAM = ( ^ 1 )
+    KIND_CELL   = ( ^ 2 )                (* 0 = unset: nobody has ever written it *)
+
     public out: rel value: v = (
+      | p |
       outer checkValue: v.
-      platform spacePost: (self resolve: rel) value: v.
+      p:: self resolve: rel.
+      (platform spaceKind: p) = self KIND_CELL ifTrue: [ self error: 'not a stream' ].
+      platform spacePost: p value: v.
       ^ self )
-    public take: rel = ( ^ platform spaceTake: (self resolve: rel) )
+    public take: rel = (
+      | p |
+      p:: self resolve: rel.
+      (platform spaceKind: p) = self KIND_CELL ifTrue: [ self error: 'not a stream' ].
+      ^ platform spaceTake: p )
+
+    (* Write the cell. Creates it if new; overwrites if not. Fires `whenever:`
+       reactions on every WRITE (not only on a CHANGE of value: we do not compare
+       the new value to the old — deep record equality on a control loop's hot path,
+       to skip a reaction that is idempotent anyway. De-duplicating identical writes
+       is the writer's business). *)
+    public put: rel value: v = (
+      | p |
+      outer checkValue: v.
+      p:: self resolve: rel.
+      (platform spaceKind: p) = self KIND_STREAM ifTrue: [ self error: 'not a cell' ].
+      platform spacePut: p value: v.
+      ^ self )
+
+    (* Read the cell, non-destructively. `aBlock` on a name NOBODY HAS EVER WRITTEN
+       — the kernel's expected-miss convention (review/lib/errors.md), and the reason
+       this is correct without waiting on tuvm#21: the kind, not the value, says
+       whether the pigeonhole is empty, so a cell holding `nil` answers `nil` and
+       does NOT take the ifAbsent: branch. Two prim calls, no allocation: a PID reads
+       its setpoint every tick. *)
+    public peek: rel ifAbsent: aBlock = (
+      | p k |
+      p:: self resolve: rel.
+      k:: platform spaceKind: p.
+      k = self KIND_STREAM ifTrue: [ self error: 'not a cell' ].
+      k = 0 ifTrue: [ ^ aBlock value ].
+      ^ platform spacePeek: p )
     public whenever: rel do: aBlock = (
       platform spaceRegister: (self resolve: rel) block: aBlock owner: self.
       ^ self )
