@@ -1,0 +1,40 @@
+(*
+expect:
+peek 43
+peek again 43
+overwritten 22
+absent -> fail safe 0
+holds nil true
+done
+*)
+(* Rung 9 (tuvm#32 option A) — the cell, at rest. A cell is a pigeonhole that HOLDS the
+   latest letter: `put:value:` overwrites it, `peek:ifAbsent:` reads it WITHOUT removing
+   it (asking twice gives the same answer — a stream's `take:` would have emptied it).
+   `ifAbsent:` fires only on a name NOBODY HAS EVER WRITTEN, which is why a cell that was
+   written `nil` answers `nil` and does NOT take the else-branch: the KIND, not the value,
+   says whether the pigeonhole is empty. That is what makes this correct without waiting
+   on tuvm#21. *)
+class PutPeek packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space pid |
+    space:: platform space.
+    pid:: space channel: 'pid2'.
+
+    pid put: 'sp' value: 43.
+    ('peek ' , (pid peek: 'sp' ifAbsent: [ 0 ]) printString) out.
+    ('peek again ' , (pid peek: 'sp' ifAbsent: [ 0 ]) printString) out.   (* NOT consumed *)
+
+    pid put: 'sp' value: 22.
+    ('overwritten ' , (pid peek: 'sp' ifAbsent: [ 0 ]) printString) out.
+
+    (* never written: the fail-safe default, per the industrial-control rule that
+       absence means "nobody has ever said anything about this name" *)
+    ('absent -> fail safe ' , (pid peek: 'auto' ifAbsent: [ 0 ]) printString) out.
+
+    (* wrote nil: present, and nil — distinct from absent *)
+    pid put: 'out' value: nil.
+    ('holds nil ' , ((pid peek: 'out' ifAbsent: [ #ABSENT ]) == nil) printString) out.
+    'done' out.
+  )
+) : (
+)

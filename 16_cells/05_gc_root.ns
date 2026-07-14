@@ -1,0 +1,89 @@
+(*
+expect:
+gc actually ran true
+survived true
+quality #good
+done
+*)
+(* Rung 9 — a cell's value is a GC ROOT, and this test is the only thing standing between
+   us and a plant running on a collected setpoint.
+
+   The value in a cell is reachable from NOTHING else in the heap. That is the whole point
+   of a cell — it outlives the job that wrote it, and it outlives the queued event that
+   announced it (`space_dequeue` kills the event on delivery). So `space_gc_trace` has to
+   mark `channels[i].value` explicitly; miss that line and the cell holds a dangling oop
+   that a later collection reuses, which would surface as an occasional WRONG SETPOINT —
+   the worst possible failure mode, and one no other test in the suite would catch.
+
+   So: put a heap value (a Record, not an SMI — an SMI is immediate and would prove
+   nothing), drop every other reference to it, allocate hard enough to force collections,
+   then peek. The value must come back structurally intact.
+
+   SELF-GATING (and it needed to be — see below). A GC-root test that never triggers a
+   collection passes no matter what the collector does, which is a decoration, not a gate.
+   Two things were needed to make this one bite, both found by DELETING the mark line in
+   space_gc_trace and watching the test still pass:
+
+     1. `drain` first. `put` also posts the value onto the ring, and queued event values
+        have ALWAYS been marked — so an undrained event kept the record alive by itself.
+     2. Assert a collection really happened (`gcCycles` rises, via prim 104 heapStats).
+        Otherwise a host arena roomy enough to swallow the allocation loop means nothing
+        is ever collected, and "survived" is vacuously true. *)
+class GcRoot packageUsing: manifest = () (
+
+  (* The write happens HERE, in a method whose frame is POPPED before the collection.
+     That is not a stylistic choice — it is the third thing needed to make this a real
+     gate. `scan_vm_stack` (tuvm/src/gc.c) marks EVERY REGISTER of every live frame up
+     to `vm_stack_ptr`, and registers are not cleared after a send. So the register that
+     held this record while it was being passed to `put:value:` would keep it alive for
+     the whole of `main:args:` — the value would survive with the mark line deleted, and
+     the test would prove nothing. Written in a helper, the frame goes away with it. *)
+  writeCellInto: space using: platform = (
+    | R M L pv |
+    R:: platform Record. M:: platform Map. L:: platform List.
+    (* the AI driver's reading: the quality rides INSIDE the value record, atomic —
+       one letter, and it cannot be torn (David, 2026-07-13) *)
+    pv:: R tag: #pv fields: (M fromPairs: (L
+      with: (L with: #value   with: 54)
+      with: (L with: #quality with: #good))).
+    (space channel: 'pid2') put: 'pv' value: pv.
+    ^ self )                                  (* NOT ^ pv — that would re-root it *)
+
+  public main: platform args: args = (
+    | space R M L back before |
+    space:: platform space.
+    R:: platform Record. M:: platform Map. L:: platform List.
+    before:: platform heapStats gcCycles.
+
+    self writeCellInto: space using: platform.
+
+    (* DRAIN — the second thing needed. `put` also posts the value onto the ring, and
+       space_gc_trace has ALWAYS marked queued event values, so an undrained event keeps
+       the record alive by itself. Draining kills the event (space_dequeue) and leaves
+       the cell's slot as the ONE remaining root. *)
+    space drain.
+
+    (* Allocate hard — force real collections. Then allocate a second wave of records of
+       the SAME SHAPE. This collector is non-moving mark-sweep: an unmarked object is not
+       erased, its block just goes on the free list — so peeking straight after a sweep can
+       still find the old bytes intact and report success for a value that is logically
+       dead. The same-shape wave makes the free block get CLAIMED, so a cell that was not
+       marked comes back as somebody else's record. Without this, the test passed even with
+       the mark line deleted. *)
+    1 to: 200000 do: [ :i | L with: i with: (i printString) ].
+    1 to: 20000  do: [ :i | R tag: #pv fields: (M fromPairs: (L
+      with: (L with: #value   with: i)
+      with: (L with: #quality with: #stale))) ].
+
+    (* the instrument proves it ran: if this is false the rest of the test is vacuous *)
+    ('gc actually ran ' , ((platform heapStats gcCycles) > before) printString) out.
+
+    back:: (space channel: 'pid2') peek: 'pv' ifAbsent: [ nil ].
+    ('survived ' , (back = (R tag: #pv fields: (M fromPairs: (L
+        with: (L with: #value   with: 54)
+        with: (L with: #quality with: #good))))) printString) out.
+    ('quality ' , (back at: #quality ifAbsent: [ #MISSING ]) printString) out.
+    'done' out.
+  )
+) : (
+)

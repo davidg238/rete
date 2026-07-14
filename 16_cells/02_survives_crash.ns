@@ -1,0 +1,85 @@
+(*
+expect:
+boot sp 43
+restarts 1
+after crash sp 43
+done
+*)
+(* Rung 9 — THE GATE. The whole of tuvm#32, executable, in one file.
+
+   A control loop reads its setpoint from a cell. It crashes. The supervisor rebuilds
+   it — a FRESH Loop object, so its private state died with the old one, exactly as a
+   restarted job's does. The new instance reads the correct setpoint back.
+
+   Note what is NOT in this file: no radio, no bridge, no porta, no network of any kind.
+   That is the point. The three facts that make this test impossible without a cell:
+
+     1. every name in the space was a queue — no slot held a value;
+     2. `space_dequeue` kills an event on delivery whether or not anyone was registered
+        for it, so a job that was DOWN when a letter arrived is replayed NOTHING;
+     3. there is no request/reply — the restarted job cannot ASK anyone to re-send.
+
+   Under option C (the cell in the bridge's private Map) this test cannot be written at
+   all: the job has nothing to peek and nobody to ask. See tuvm/review/cells-sketch.ns.
+
+   VM gotcha (nsl-tuvm#10, recurred in rungs 3 and 6): the `restart:` block is a genuine
+   REIFIED BlockClosure (the supervisor stores it), and a direct cross-class call written
+   inline in such a block (`Loop new …`) does not resolve its outer/platform context —
+   `Invalid receiver for LD_SLOT`. Routed through a `self`-send (`self respawn:`), which
+   gives the call a normal method activation. House style. *)
+class SurvivesCrash packageUsing: manifest = ( | live ::= nil. starts ::= 0. | ) (
+
+  (* The control loop. On start — and start IS restart; it does not know which — it
+     walks to the pigeonhole and reads what is in it. `ifAbsent:` is the fail-safe
+     default, not an error path: it means nobody has ever told this node its setpoint. *)
+  class Loop = ( | goal sp | ) (
+    setGoal: g = ( goal:: g. ^ self )
+    public sp = ( ^ sp )
+    public start = (
+      sp:: goal peek: 'sp' ifAbsent: [ 0 ].
+      goal whenever: 'tick' do: [ :m | self onTick: m ].
+      ^ self )
+    onTick: m = (
+      m = #bad ifTrue: [ ^ self error: 'bad tick' ].
+      ^ self )
+  ) : (
+  )
+
+  (* the rebuild, as a self-send: see the VM gotcha above *)
+  respawn: cap = (
+    starts:: starts + 1.
+    live:: (Loop new setGoal: cap) start.
+    ^ self )
+
+  public main: platform args: args = (
+    | space sup pid |
+    space:: platform space.
+    sup::   platform supervisor.
+    pid::   space channel: 'pid2'.
+
+    (* the operator sets the setpoint. one letter, into a cell. *)
+    pid put: 'sp' value: 43.
+
+    (* the job: a NEW instance on every (re)start — the office burns down and the
+       assistant is new. Same rooted capability, so the supervisor's reaction sweep
+       finds it (owner == the `pid` Channel object). *)
+    sup register: pid
+        restart: [ self respawn: pid ]
+        progress: (space channel: 'pid2/never').
+    sup start.
+
+    self respawn: pid.                        (* first boot; starts := 1 *)
+    starts:: 0.                               (* count RESTARTS only, not the boot *)
+    ('boot sp ' , live sp printString) out.
+
+    pid out: 'tick' value: #bad.              (* 'tick' is a STREAM under the same
+                                                 capability — a mixed namespace, and
+                                                 unremarkable *)
+    space drain.
+
+    ('restarts ' , starts printString) out.
+    ('after crash sp ' , live sp printString) out.       (* 43 — read back from the cell *)
+    'done' out.
+  )
+) : (
+)
