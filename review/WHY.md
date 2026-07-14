@@ -226,6 +226,19 @@ Thread-class fleet devices, **operability** — confinement, supervision, remote
 serviceability, and access to Zephyr's driver catalog — is what actually decides whether
 a scripting layer survives production.
 
+## The operator is increasingly an agent
+
+The operability bet has a second act: the operator running the
+observe→hypothesize→change→verify loop on a fleet is increasingly an **agent**, and
+this platform is unusually well shaped for that — deterministic host tests under the
+virtual clock, structured crash records instead of stack-trace prose, capability
+grants as a *structural* (not prompt-based) agent sandbox, second-speed `.oimg`
+redeploy, and a never-silent instrumentation rule (every failure mode gets a counter
+or a record, because an agent only sees what's surfaced). The full argument — including
+what it demands of us (signing and canary/rollback before any autonomous push,
+letter-log replay, remote eval) and the falsifiable criteria it must meet — is the
+sibling **`WHY-AGENTS.md`**.
+
 ## Status
 
 First step (host-only, in progress): seed the `tuvm`/`nsl-tuvm`/`nsl-tests` repos, delete

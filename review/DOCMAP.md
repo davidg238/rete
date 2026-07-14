@@ -17,6 +17,8 @@ For content search across the program:
   program; read it before claiming direction.
 - `tests/CLAIMS.md` — what is proven, by exactly which test.
 - `WHY.md` / `WHY-OEOM.md` — rationale; includes the distribution law (Waldo).
+- `WHY-AGENTS.md` — the agent-first argument: the operability loop as design test,
+  never-silent as design law, what gates autonomous agents, falsifiable criteria.
 - `reliability-gaps.md` — G1–G11 cross-cutting ledger.
 - `metrics-spec.md` / `test-suites-spec.md` — footprint/latency lines; suite structure.
 - `language-and-library-spec.md` — **a PROPOSAL, not ratified truth.**
