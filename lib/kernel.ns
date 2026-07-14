@@ -1981,6 +1981,11 @@ class Kernel usingPlatform: platform = () (
      across every channel, before the job restarts. Thin forwarder to the C
      prim, same shape as protectedFire:/valueRank: above. *)
   public spaceDropReactionsOwnedBy: cap = ( ^ platform spaceDropReactionsOwnedBy: cap )
+  (* tuvm#20: posts shed by the full event ring — per exact channel, or the
+     node total for ''. Cumulative, never reset. The pull side of G2's "never
+     silent" (the periodic sys/metrics push side is tuvm#24). Thin forwarder,
+     same shape as spaceDropReactionsOwnedBy: above. *)
+  public spaceOverruns: p = ( ^ platform spaceOverruns: p )
   (* Milestone D Task 6: the host virtual-clock timer seam. Thin forwarders,
      same shape as spaceDropReactionsOwnedBy: above — the `Timers` class
      (below) is the only intended caller (it holds `platform` as its
