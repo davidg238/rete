@@ -1447,8 +1447,14 @@ class Kernel usingPlatform: platform = () (
      `whenever: '' do:` reaction — no special mechanism, just a channel
      event), resetting its crash count so transient trouble doesn't
      accumulate toward quarantine across unrelated healthy periods. *)
-  class Supervisor = ( | space jobs quarantineLimit ::= 3. | ) (
+  class Supervisor = ( | space jobs quarantineLimit ::= 3. timers | ) (
     setSpace: s = ( space:: s. jobs:: OrderedCollection new. ^ self )
+
+    (* tuvm#23: hand the supervisor the Timers registry so its crash sweep can
+       cancel a job's timers alongside its reactions (see sweepJob: below).
+       Optional — nil (never wired) preserves the pre-#23 reaction-only sweep,
+       so a rig with no timers changes nothing. *)
+    public timers: t = ( timers:: t. ^ self )
 
     public register: rootCap restart: aThunk progress: progressCap = (
       | j |
@@ -1478,13 +1484,26 @@ class Kernel usingPlatform: platform = () (
         ifFalse: [ self restart: j ].
       ^ self )
 
-    restart: j = (
+    (* tuvm#23 — the FULL sweep of a crashed job's registrations, applied
+       before restart and at quarantine alike: reactions (Task 4's owner-object
+       sweep, as before) AND timers (address-attributed; Timers>>
+       cancelAddressedBy:). Timers must go too or a crash-looping job leaks a
+       live repeater per restart — on target each one pins an M6 handle slot,
+       so let-it-crash inverted into node death in <=32 restarts. Sweep BEFORE
+       the restart thunk runs, so the fresh instance's registrations are not
+       caught by their own job's sweep. *)
+    sweepJob: j = (
       platform spaceDropReactionsOwnedBy: j rootCap.
+      timers == nil ifFalse: [ timers cancelAddressedBy: j rootPath ].
+      ^ self )
+
+    restart: j = (
+      self sweepJob: j.
       j restartThunk value.
       ^ self )
 
     quarantine: j = (
-      platform spaceDropReactionsOwnedBy: j rootCap.
+      self sweepJob: j.
       j markQuarantined.
       (space channel: 'sys') out: 'log'
           value: (Record tag: #quarantine with: #channel -> j rootPath).
@@ -1678,6 +1697,50 @@ class Kernel usingPlatform: platform = () (
         seam timerCancel: tok ].
       ^ self
     )
+
+    public pendingCount = ( ^ pending size )
+
+    (* tuvm#23 — the supervisor's timer sweep. Cancel every pending timer whose
+       TARGET channel is rootPath or nested under it, through the ordinary
+       `cancel:` path — which unregisters at the seam, and on target that is
+       what stops the k_timer AND frees its M6 handle pin (timer_zephyr.c).
+       Without this sweep a crash-looping job's restarts each register a fresh
+       `every:` while the dead instance's repeater lives on (its token was held
+       only by the dead instance), pinning one handle slot per restart until
+       "handle table full" kills the node. Ownership is derived from the
+       letter's ADDRESS (`p chan rootPath`), not stored per registration: under
+       the capability discipline a job's timers post into its own subtree, so
+       the address IS the owner — the same attribution rule the supervisor
+       already applies to crash records (SupervisedJob>>addresses:). Snapshot
+       `keys` first: cancel: mutates `pending`, and the walk must not iterate
+       a table being edited. *)
+    public cancelAddressedBy: rootPath = (
+      | ks |
+      ks:: pending keys.
+      1 to: ks size do: [ :i | | tok p |
+        tok:: ks at: i.
+        p:: pending at: tok ifAbsent: [ nil ].
+        p == nil ifFalse: [
+          (self is: p chan rootPath under: rootPath) ifTrue: [ self cancel: tok ] ] ].
+      ^ self
+    )
+
+    (* chPath equals rootPath, or is nested under it (rootPath then '/', byte
+       47). The same hand-rolled byte compare as SupervisedJob>>addresses: (no
+       startsWith: exists in this dialect — that method documents the grep);
+       every `^` below sits inside whileTrue:, which dispatch.c inlines, so
+       they are ordinary method returns, not the deleted-NLR pattern. *)
+    is: chPath under: rootPath = (
+      | rlen clen i |
+      (chPath = rootPath) ifTrue: [ ^ true ].
+      rlen:: rootPath size.
+      clen:: chPath size.
+      (clen > rlen) ifFalse: [ ^ false ].
+      i:: 1.
+      [ i <= rlen ] whileTrue: [
+        (chPath at: i) = (rootPath at: i) ifFalse: [ ^ false ].
+        i:: i + 1 ].
+      ^ (chPath at: rlen + 1) = 47 )
 
     public now = ( ^ seam monotonicMillis )
 
