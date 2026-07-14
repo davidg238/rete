@@ -147,6 +147,16 @@
 #define PRIM_pf_spaceKind 105
 #define PRIM_pf_spacePeek 106
 #define PRIM_pf_spacePut  107
+/* tuvm#20 (G2 overflow policy), appended after spacePut: — no pre-existing id
+   shifts; 108 arrived at by COUNTING PRIM_NAMES (107 entries before this
+   append), not by 107+1 arithmetic, per the standing lesson above.
+     spaceOverruns: -> SMI count of posts shed by the full event ring on that
+                       exact channel; '' (empty path) -> the node total. Does
+                       NOT intern (space_take's rule: asking about a name must
+                       not create it). Cumulative, never reset — the pull side
+                       of G2's "never silent"; the sys/metrics push side is
+                       tuvm#24. */
+#define PRIM_pf_spaceOverruns 108
 /* Rung 3 Task 4: the out-of-range sentinel returned by cborIntFromMajor:arg:
    for the one unrepresentable CBOR integer (major 1, arg 2^64-1 => value -2^64,
    just past the ratified +/-(2^64-1) range). In this VM nil IS the C NULL

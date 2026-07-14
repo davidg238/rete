@@ -54,13 +54,25 @@ int space_intern(const char *path, size_t len);
 /* The ISR-pulse seam (design doc section 6 point 1): enqueue (channel, value)
    at the FIFO tail, callable from C without entering nsl. Interns the path if
    it is new (a post to a channel with no reactions yet is a legal transient
-   signal, P4 — dropped only at dispatch time, not here). Aborts
-   `channel queue full` when the ring is at capacity. */
+   signal, P4 — dropped only at dispatch time, not here). A full ring NEVER
+   aborts (tuvm#20, G2): the post is shed per the channel's kind — a CELL's
+   poke coalesces into its own newest queued event (the value slot was already
+   written by space_put), a STREAM's post is dropped newest-first — and every
+   shed post is counted (space_overruns below). abort() in this module now
+   means only structural invariants (registry full, path too long, reactions
+   full, kind mismatch), never a load response. */
 void space_post(const char *path, size_t len, oop value);
 
 /* Like space_post but the channel is already interned to an id (the ISR-pulse
-   mailbox stores ids, not path strings). Aborts "channel queue full" when full. */
+   mailbox stores ids, not path strings). Same tuvm#20 overflow contract. */
 void space_post_id(int chan_id, oop value);
+
+/* tuvm#20: posts shed by the full ring — cumulative per exact channel (never
+   reset; a drain empties the ring, it does not rewrite history), or the
+   node-wide total for len == 0. Never interns; a never-interned path reads 0,
+   which is also the true count. Pull side of G2's "never silent" (prim 108
+   `spaceOverruns:`); the periodic sys/metrics push side is tuvm#24. */
+uint32_t space_overruns(const char *path, size_t len);
 
 /* Remove-if-present-now (design doc section 3, D-C2): the oldest
    queued-but-undispatched value on exactly this channel, removed from the

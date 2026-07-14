@@ -717,6 +717,8 @@ enum {
     PRIM_pf_spaceKind,
     PRIM_pf_spacePeek,
     PRIM_pf_spacePut,
+    /* tuvm#20: overflow-shed post counter — the 108th entry (counted). */
+    PRIM_pf_spaceOverruns,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -763,6 +765,7 @@ static const char *const PRIM_NAMES[] = {
     "asSymbol:",
     "heapStats",
     "spaceKind:", "spacePeek:", "spacePut:value:",
+    "spaceOverruns:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 

@@ -80,6 +80,9 @@ struct SpaceChannel {
        what lets Channel>>peek:ifAbsent: be correct without waiting on tuvm#21. */
     oop value;
     uint8_t kind;
+    /* tuvm#20 (G2): posts to this channel shed by a full ring — cumulative,
+       never reset (a drain empties the ring; it does not rewrite history). */
+    uint32_t overruns;
 };
 
 struct SpaceEvent {
@@ -94,6 +97,24 @@ static int n_channels = 0;
 static struct SpaceEvent queue[OEVM_SPACE_QUEUE_DEPTH];
 static size_t q_head = 0;    /* oldest occupied ring slot (live, whenever count > 0) */
 static size_t q_count = 0;   /* occupied ring slots (see file-header note on staleness) */
+
+/* tuvm#20 (G2): posts shed by a full ring, node-wide — the sum of every
+   channel's `overruns`, kept incrementally so the empty-path read in
+   space_overruns is O(1). */
+static uint32_t total_overruns = 0;
+
+/* Count one shed post — and say so ONCE per channel: the first overrun prints
+   a single line so a console human sees the onset without being flooded;
+   thereafter the counters are the record (G2 "never silent", pull side via
+   space_overruns / prim 108; the push side — the periodic sys/metrics
+   record — is tuvm#24). */
+static void note_overrun(struct SpaceChannel *c) {
+    c->overruns++;
+    total_overruns++;
+    if (c->overruns == 1) {
+        fprintf(stderr, "channel overrun: %.*s\n", (int)c->len, c->path);
+    }
+}
 
 /* Find an existing channel for the exact path; -1 if none has ever been
    interned. Never creates an entry (space_take must not grow the registry
@@ -132,6 +153,7 @@ int space_intern(const char *path, size_t len) {
     c->value = NULL;
     c->kind = SPACE_KIND_UNSET;   /* interning is not a write: `whenever:` on a
                                      name nobody has written leaves it UNSET */
+    c->overruns = 0;
     return id;
 }
 
@@ -145,15 +167,50 @@ static void compact_head(void) {
 }
 
 void space_post_id(int chan_id, oop value) {
-    if (q_count >= OEVM_SPACE_QUEUE_DEPTH) {
-        fprintf(stderr, "channel queue full\n");
-        abort();
-    }
+    struct SpaceChannel *c = &channels[chan_id];
     /* Rung 9: the first write fixes the kind. UNSET -> STREAM here; a CELL is
        left alone, because space_put sets CELL and then calls THIS function to
-       fan the write out to `whenever:` reactions through the one reactor. */
-    if (channels[chan_id].kind == SPACE_KIND_UNSET) {
-        channels[chan_id].kind = SPACE_KIND_STREAM;
+       fan the write out to `whenever:` reactions through the one reactor.
+       Fixed BEFORE the full-ring check: a write the ring is about to shed
+       still happened — declaring the kind is not contingent on delivery. */
+    if (c->kind == SPACE_KIND_UNSET) {
+        c->kind = SPACE_KIND_STREAM;
+    }
+    if (q_count >= OEVM_SPACE_QUEUE_DEPTH) {
+        /* tuvm#20 — the G2 overflow policy, replacing the abort() that made a
+           burst of events a whole-node kill (bypassing the crash boundary and
+           supervisor entirely). The ring never kills the node; the policy
+           derives from the kind, so it needs no per-source registration API:
+             CELL   — the queued events are doorbell pokes and the value is
+                      already in the slot (space_put wrote it before calling
+                      here), so COALESCE: overwrite this cell's newest queued
+                      poke with the new value. Under overload N puts degrade
+                      to one firing with the latest value — G2's latest-value
+                      case; 16_cells/04's fires-on-WRITE guarantee yields only
+                      here, and the yield is counted.
+             STREAM — events are distinct letters; merging them corrupts
+                      meaning (imagine merged crash records). DROP NEWEST and
+                      count: already-queued events keep causal order, a reader
+                      sees history up to the overload point. (Drop-oldest
+                      rejected — David, 2026-07-14: the crash that STARTED
+                      the storm must not be the record lost.)
+           Either way note_overrun makes it observable. abort() in this file
+           now means only structural invariants, never a load response. */
+        if (c->kind == SPACE_KIND_CELL) {
+            for (size_t k = q_count; k > 0; k--) {
+                size_t idx = (q_head + k - 1) % OEVM_SPACE_QUEUE_DEPTH;
+                if (queue[idx].live && queue[idx].chan == chan_id) {
+                    queue[idx].value = value;   /* coalesce: latest wins */
+                    note_overrun(c);
+                    return;
+                }
+            }
+            /* No poke of this cell in the ring to coalesce into: shed the
+               incoming one. The value is still in the slot — peek: answers
+               it — so the cell's contract survives even total starvation. */
+        }
+        note_overrun(c);
+        return;
     }
     size_t tail = (q_head + q_count) % OEVM_SPACE_QUEUE_DEPTH;
     queue[tail].chan = chan_id;
@@ -226,6 +283,16 @@ oop space_peek(const char *path, size_t len) {
     if (chan < 0) return NULL;
     if (channels[chan].kind != SPACE_KIND_CELL) return NULL;
     return channels[chan].value;
+}
+
+/* tuvm#20: shed-post count for one exact channel; len == 0 answers the node
+   total. Does NOT intern (space_take's rule: asking about a name must not
+   create it) — a never-interned path reads 0, which is also the true count. */
+uint32_t space_overruns(const char *path, size_t len) {
+    if (len == 0) return total_overruns;
+    int chan = find_channel(path, len);
+    if (chan < 0) return 0;
+    return channels[chan].overruns;
 }
 
 void space_register(const char *path, size_t len, oop block, oop owner) {

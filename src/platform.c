@@ -448,6 +448,23 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         space_put((const char *)p->bytes, p->length, args[1]);
         { *out = args[1]; return 1; }
     }
+    case PRIM_pf_spaceOverruns: {
+        /* tuvm#20 — `platform spaceOverruns: path` -> SMI count of posts shed
+           by the full event ring on that exact channel; '' -> the node total.
+           Does NOT intern (space_take's rule); a never-interned path answers
+           0, which is also the true count. Pull-side observability of the G2
+           overflow policy (heapStats precedent); the push side — the periodic
+           sys/metrics record — is tuvm#24. */
+        oop path = args[0];
+        if (path == NULL || IS_SMI(path) || StringVtable == NULL ||
+            obj_vtable(path) != StringVtable) {
+            fprintf(stderr, "VM Error: platform spaceOverruns: expects a String path\n");
+            abort();
+        }
+        struct String *p = (struct String *)path;
+        *out = TAG_SMI((intptr_t)space_overruns((const char *)p->bytes, p->length));
+        return 1;
+    }
     case PRIM_pf_spaceDequeue: {
         /* `platform spaceDequeue` — no args; answers the {value,
            blocksSnapshot, channelPath} 3-slot Array (Milestone D) or nil

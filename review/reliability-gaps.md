@@ -31,8 +31,22 @@ not brick them.
 
 ## G2 — The seam under pressure: ISR safety and event overflow
 
-The C→nsl event path is the reactor's front door, and its failure mode under load is
-currently undefined.
+**Overflow half RESOLVED 2026-07-14 (tuvm#20, David's calls on the three forks):** the
+event-ring `abort()` is gone; a full ring sheds per the channel's **kind** (rung 9's
+declaration doubles as the per-source policy, zero new API) — a CELL's poke
+**coalesces** into its own newest queued event (the latest-value case; `peek:` always
+answers the newest value), a STREAM's post **drops newest + counts** (already-queued
+events keep causal order — the crash that started the storm must not be the record
+lost). Never silent: per-channel + node-total counters (`spaceOverruns:`, prim 108;
+first overrun per channel prints one line). `abort()` in space.c now means only
+structural invariants. Design:
+`nsl-tuvm/docs/design/2026-07-14-tuvm20-overflow-policy-design.md`; gate
+`nsl-tests/17_overflow/`. Still open here: the ISR-half rules below at each new
+event source, the pulse-mailbox overflow (its own seam), and the sys/metrics push +
+queue high-water (tuvm#24).
+
+The C→nsl event path is the reactor's front door, and its failure mode under load
+was previously undefined.
 
 - **ISR rules:** an interrupt context may never allocate on the VM heap or touch the
   space. The seam primitive is a **fixed-size ring of small tokens** (channel id +

@@ -46,15 +46,16 @@
         space_gc_trace() actually roots space's own tables, since nothing
         else in this test roots them (mirrors test_raw_bytes.c property 8's
         GC-survival scaffolding).
-     8. overflow aborts (fork+SIGABRT, test_raw_bytes's exact pattern,
+     8. structural aborts (fork+SIGABRT, test_raw_bytes's exact pattern,
         generalized to call a C function pointer instead of send()):
         registry overflow (the (N+1)th distinct path once property 1 already
         filled the table to OEVM_SPACE_MAX_CHANNELS) aborts
-        `channel registry full`; queue overflow (posting once the ring is
-        already at OEVM_SPACE_QUEUE_DEPTH) aborts `channel queue full`;
-        an OEVM_SPACE_MAX_PATH-byte path aborts `channel path too long`
-        (David-ratified dedicated frozen string, post-Task-1; checked
-        before registry occupancy, so it wins even on a full table).
+        `channel registry full`; an OEVM_SPACE_MAX_PATH-byte path aborts
+        `channel path too long` (David-ratified dedicated frozen string,
+        post-Task-1; checked before registry occupancy, so it wins even on a
+        full table). Queue overflow no longer aborts (tuvm#20, G2): a full
+        ring sheds per the channel's kind — stream drop-newest / cell
+        coalesce-into-own-poke — counted by space_overruns, asserted inline.
      9. dequeue-under-GC-stress (review fix wave): dequeue a HEAP value with
         a heap reaction registered, under OEVM_GC_STRESS — a full collection
         before EVERY allocation, i.e. inside space_dequeue between (and
@@ -155,9 +156,8 @@ static void trigger_registry_overflow(void) {
     space_intern(p, strlen(p));
 }
 
-static void trigger_queue_overflow(void) {
-    space_post("a", 1, TAG_SMI(999));
-}
+/* trigger_queue_overflow deleted (tuvm#20): a full ring no longer aborts —
+   the shed-and-count policy is asserted inline in property 8 instead. */
 
 static void trigger_path_too_long(void) {
     /* A path of exactly OEVM_SPACE_MAX_PATH bytes (default 64; the runner's
@@ -358,8 +358,11 @@ int main(void) {
         printf("test_space: property 7 (GC: queued value + registered block/owner survive a collection) OK\n");
     }
 
-    /* --- Property 8: overflow aborts (registry full, queue full, path too
-       long) --- */
+    /* --- Property 8: the two structural aborts that REMAIN (registry full,
+       path too long) + the tuvm#20 overflow policy that replaced the third.
+       A full ring never aborts (G2): a STREAM's post is shed newest-first, a
+       CELL's put coalesces into its own queued poke — both counted
+       (space_overruns), never silent. --- */
     {
         /* Registry: property 1 already filled the table to exactly
            OEVM_SPACE_MAX_CHANNELS; one more distinct, never-before-seen path
@@ -367,14 +370,43 @@ int main(void) {
         g_trigger = trigger_registry_overflow;
         expect_abort("registry overflow -> \"channel registry full\"", "channel registry full");
 
-        /* Queue: fill the ring to its configured depth (boundary — must NOT
-           abort, mirrors property 1's boundary-fill discipline), then one
-           more post must abort. */
-        for (int i = 0; i < OEVM_SPACE_QUEUE_DEPTH; i++) {
+        /* Make "sensor" (interned by property 1, never written) a CELL while
+           the ring has room: the put fixes the kind AND queues its one poke
+           (slot 1 of the ring). Then fill the rest with stream posts on "a"
+           (boundary — must not abort, mirrors property 1's fill discipline). */
+        space_put("sensor", 6, TAG_SMI(41));
+        for (int i = 1; i < OEVM_SPACE_QUEUE_DEPTH; i++) {
             space_post("a", 1, TAG_SMI(500 + i));
         }
-        g_trigger = trigger_queue_overflow;
-        expect_abort("queue overflow -> \"channel queue full\"", "channel queue full");
+        assert(space_overruns("a", 1) == 0 && space_overruns("", 0) == 0);
+
+        /* STREAM at full ring: drop newest + count (tuvm#20 headline — the
+           old code abort()ed the whole VM exactly here). */
+        space_post("a", 1, TAG_SMI(999));
+        assert(space_overruns("a", 1) == 1 && "stream shed must be counted");
+        assert(space_overruns("", 0) == 1 && "node total tracks the shed");
+
+        /* CELL at full ring: coalesce into its own queued poke + count; ring
+           occupancy unchanged, slot holds the latest value. */
+        space_put("sensor", 6, TAG_SMI(42));
+        assert(space_overruns("sensor", 6) == 1 && "cell coalesce is counted");
+        assert(space_overruns("", 0) == 2);
+        assert(space_peek("sensor", 6) == TAG_SMI(42) && "value slot has the latest");
+
+        /* History intact: the cell's one poke carries the COALESCED value;
+           the stream kept exactly its pre-overload events in FIFO order; the
+           shed 999 never appears. */
+        assert(space_take("sensor", 6) == TAG_SMI(42) && "queued poke coalesced to latest");
+        for (int i = 1; i < OEVM_SPACE_QUEUE_DEPTH; i++) {
+            assert(space_take("a", 1) == TAG_SMI(500 + i) &&
+                   "FIFO history intact up to the overload point");
+        }
+        assert(space_take("a", 1) == NULL && "the shed 999 must not appear");
+
+        /* Asking a never-interned path reads 0 WITHOUT interning it
+           (space_take's rule) — with the registry full, interning here
+           would abort, so passing is also the proof. */
+        assert(space_overruns("nope", 4) == 0);
 
         /* Path too long (David-ratified dedicated frozen string, spec
            section 7 updated post-Task-1): an OEVM_SPACE_MAX_PATH-byte path
@@ -384,7 +416,7 @@ int main(void) {
         g_trigger = trigger_path_too_long;
         expect_abort("path too long -> \"channel path too long\"", "channel path too long");
 
-        printf("test_space: property 8 (overflow aborts: registry full, queue full, path too long) OK\n");
+        printf("test_space: property 8 (tuvm#20 overflow policy: stream drop+count, cell coalesce; structural aborts remain) OK\n");
     }
 
     /* --- Property 9 (review fix wave): dequeue a HEAP value under
