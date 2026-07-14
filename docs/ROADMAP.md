@@ -31,7 +31,7 @@ workstream** because it also cuts GC pressure — see GP0 below.
 
 ## GP0 — GC & embedded memory (THE Zephyr gate) — GH #3
 
-**Scope:** `docs/superpowers/specs/2026-06-18-gc-embedded-memory-design.md`.
+**Scope:** `docs/design/2026-06-18-gc-embedded-memory-design.md`.
 A complete mark-sweep already exists (`src/gc.c:238`) but is **never triggered**
 at runtime, the float arena is **unreclaimable**, and the allocator is
 `malloc`-backed with O(n²) mark — none embedded-grade. Sequencing:
@@ -98,7 +98,7 @@ running; a small steady-state regression under collection is expected and accept
 > float problem is primarily a *memory* problem. Detail retained below.
 
 Staged **arena now, unboxing after** (design:
-`docs/superpowers/specs/2026-06-17-unboxed-floats-design.md`).
+`docs/design/2026-06-17-unboxed-floats-design.md`).
 
 **Phase 1 — float bump arena (Opt #5): DONE & shipped** (master `c2cbaea`). Every
 float result was boxed via a full `malloc` per op; `float_alloc` (`src/gc.c`) now
@@ -232,6 +232,6 @@ first. → `docs/deployment-model.md`.
 | Perf work + deferred levers | `docs/optimizations.md`; rationale in `docs/topics.md` |
 | Conformance gaps | `../ns-tests/benchmark_comparison.md`, `../ns-tests/00_perf/RESULTS.md` |
 | Open bugs / structural items | GitHub issues #1, #2 (`gh issue list`) |
-| Image format (Model B) | `docs/superpowers/specs/2026-06-17-clustered-image-xip-design.md` |
+| Image format (Model B) | `docs/design/2026-06-17-clustered-image-xip-design.md` |
 | Deployment / nodus | `docs/deployment-model.md` |
 | Historical phased build plan | `docs/implementation_plan.md` (not a live backlog) |

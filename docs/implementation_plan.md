@@ -10,7 +10,7 @@
 > - **Phase 5 (Bytecode NLR & Stack Reification):** done — `OP_NLR` (`vm.c:317`)
 >   reifies the context and sends `#unwindTo:value:` (`vm.c:347`).
 > - **Phase 6 (Nested Classes & Lexical Enclosures):** done — runtime BoundClass
->   model (conformance 47/0/1); spec `superpowers/specs/2026-06-18-nested-class-access-design.md`.
+>   model (conformance 47/0/1); spec `design/2026-06-18-nested-class-access-design.md`.
 > - **Phase 7 (Access Modifiers):** partial — protected/private slot accessors
 >   synthesised, but send-visibility is **not enforced** (no sender-frame check).
 > - **Phase 8 (Mirror Debugger):** partial — low-level debugger primitives

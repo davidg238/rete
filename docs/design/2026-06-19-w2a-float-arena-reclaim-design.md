@@ -3,7 +3,7 @@
 **Date:** 2026-06-19
 **Workstream:** GP0 (GC / embedded memory, Zephyr gate) — step W2a
 **Depends on:** W1 (GC trigger + conservative rooting, merged `d252e9d`), W4 (fixed-arena allocator)
-**Parent spec:** `docs/superpowers/specs/2026-06-18-gc-embedded-memory-design.md`
+**Parent spec:** `docs/design/2026-06-18-gc-embedded-memory-design.md`
 **Tracks:** GH #3 (closed by W1; float half addressed here)
 
 ## Problem

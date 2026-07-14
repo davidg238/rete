@@ -210,7 +210,7 @@ Resolved inheritances:
 clean under `OEVM_GC_STRESS=1`+ASan) — safe because stacks are fixed-size, no growth.
 
 **Deferred (NOT this lift):** growth + heap-closure/temp-vector rework. → picked up by
-the **deferred lift** (`docs/superpowers/specs/2026-07-01-derecursify-deferred-lift-*.md`):
+the **deferred lift** (`docs/design/2026-07-01-derecursify-deferred-lift-*.md`):
 Phase 1 (heap temp-vectors / upward closures) **DONE 2026-07-02**; Phase 2 (relativize
 `home_ctx`) then Phase 3 (growable stacks + catchable `StackOverflow`) remain.
 

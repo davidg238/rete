@@ -1,6 +1,6 @@
 /* Milestone C Task 1: exact-channel registry + FIFO event queue + owner-tagged
    reaction storage + C-callable post. See src/space.h for the module contract
-   and docs/superpowers/specs/2026-07-06-milestone-c-channels-reactor-design.md
+   and docs/design/2026-07-06-milestone-c-channels-reactor-design.md
    section 6 for the design this implements.
 
    Storage shape (three static tables, no dynamic allocation — embedded-arena

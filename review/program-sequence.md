@@ -2,7 +2,7 @@
 
 **Status:** drafted 2026-07-04 (mid-Milestone-B). This is the ONE document that sequences
 the whole program. It is an *index with ordering*: every line points at the document that
-owns the detail — decisions live in `nsl-tuvm/docs/superpowers/specs/`, execution state in
+owns the detail — decisions live in `nsl-tuvm/docs/design/`, execution state in
 the SDD ledger, open items in GitHub issues on `davidg238/{tuvm,nsl-tuvm}`. Update this file
 at milestone boundaries, not per task.
 
@@ -36,7 +36,7 @@ reference = oevm `cee55d4` / ns-oevm `a327d60` (`review/2026-07-04-pre-fiber-bas
 
 ## Phase 1 — the first step: prove the model on the host (Milestones A–D)
 
-Owner doc: `nsl-tuvm/docs/superpowers/specs/2026-07-03-nsl-tuvm-first-step-design.md` §4
+Owner doc: `nsl-tuvm/docs/design/2026-07-03-nsl-tuvm-first-step-design.md` §4
 (+ `review/2026-07-03-first-step-design-addendum.md` A1–A3). Bar: end-to-end on the desktop
 with the balloon gone.
 
@@ -105,7 +105,7 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
    5th named gate, DK capture. `tuvm/docs`/SDD ledger.)
 4. **Transport: UDP/OpenThread — a three-layer arc.** The transport that the wire seam (item 3)
    and the reactive channel model (Milestone C) were built to feed. Design/plan:
-   `nsl-tuvm/docs/superpowers/specs|plans/2026-07-10-rung5-udp-transport-l1.*` (Layer 1) and
+   `nsl-tuvm/docs/design|superpowers/plans/2026-07-10-rung5-udp-transport-l1.*` (Layer 1) and
    `.../2026-07-10-rung6-udp-bridge-l2.*` (Layer 2). Sequenced
    host-proof-first, each layer de-risking the next:
    - **Layer 1 — the confined `net` UDP capability. DONE 2026-07-10 (rung 5).** The host POSIX
@@ -153,7 +153,7 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
      Also ported to the **nRF52840 dongle**: it attaches to the mesh as an MTD child but is
      **headless** — the SoC USB-CDC console does not survive the radio coming up (Issue A; picolibc
      did not beat it). Its cadence + headless proof are rung 8
-     (`nsl-tuvm/docs/superpowers/specs/2026-07-11-rung8-ontarget-timer-design.md`): a real Zephyr
+     (`nsl-tuvm/docs/design/2026-07-11-rung8-ontarget-timer-design.md`): a real Zephyr
      `k_timer` backend for the nsl `Timers` seam drives a 15 s autonomous send, and a **self-gating
      train** (the next send is conditional on the previous reflection decoding value-equal) makes the
      gateway's outbound-only echo log witness round-trip closure with no console.
@@ -196,7 +196,7 @@ separate stop button, and stop always wins"* — **deleted the tombstone**: a st
 `review/cells-and-streams-v3.html` (supersedes v1/v2); code: `review/cells-sketch.ns` (the same
 PID scenario under option A and under option C — the diff is the argument).
 
-0. **Rung 9 — cells.** `nsl-tuvm/docs/superpowers/specs|plans/2026-07-13-rung9-cells.*`. A value
+0. **Rung 9 — cells.** `nsl-tuvm/docs/design|superpowers/plans/2026-07-13-rung9-cells.*`. A value
    slot on `SpaceChannel`, three prims (`spaceKind:` / `spacePeek:` / `spacePut:value:`), two
    `Channel` methods (`put:value:`, `peek:ifAbsent:`). `put` posts onto the **existing** ring, so
    a `whenever:` on a cell fires through the unchanged reactor — the only difference from a post

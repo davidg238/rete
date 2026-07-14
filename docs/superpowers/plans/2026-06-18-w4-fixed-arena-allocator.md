@@ -14,7 +14,7 @@
 - **Width-clean for `-m32`.** `sizeof(oop)` is 4 on `-m32`, 8 on host. All granule/bitmap math must use `sizeof(oop)` and `size_t`/`uintptr_t`, never hardcoded 8.
 - **No behavior change.** `tests/test_oimg.c`, `tests/test_fibers.c`, `tests/test_mirrors.c` must stay green; conformance stays **47/0/1** on `OEVM_PATH=AB`; `-m32` (`tests/test_portability_32.sh`) green.
 - **Scope fences:** do NOT touch `float_alloc`/`FloatSlab` (`src/gc.c:81-104`); do NOT change `gc_collect`'s root set (`scan_vm_stack`, global vtable roots, fiber roots, `gc_additional_roots_hook`); do NOT add a GC *trigger* (that is W1).
-- **Spec:** `docs/superpowers/specs/2026-06-18-w4-fixed-arena-allocator-design.md`.
+- **Spec:** `docs/design/2026-06-18-w4-fixed-arena-allocator-design.md`.
 - **Build/run a single C unit test** (from `oevm/`):
   `gcc -std=c99 -Isrc tests/<t>.c src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c src/solidified_image.c -lm -o /tmp/<t> && /tmp/<t>`
 - **Run conformance** (from `/home/david/workspace`): `python3 ns-oevm/tools/run_tests_oevm.py` (defaults to `OEVM_PATH=AB`). Expected tail: `47 pass / 0 fail / 1 skip` per path.

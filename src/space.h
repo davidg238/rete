@@ -1,7 +1,7 @@
 #ifndef OEVM_SPACE_H
 #define OEVM_SPACE_H
 /* Milestone C Task 1: the degenerate (exact-channel) TupleSpace C substrate —
-   design doc docs/superpowers/specs/2026-07-06-milestone-c-channels-reactor-design.md
+   design doc docs/design/2026-07-06-milestone-c-channels-reactor-design.md
    section 6 ("the C seam carries data, not control"). This module owns:
      (1) the exact-match channel registry (path string -> small int id),
      (2) one node-wide FIFO event queue (D-C1),
@@ -100,7 +100,7 @@ oop space_dequeue(void);
    A channel is a STREAM (post/take: reading empties it) or a CELL (put/peek:
    it holds the latest value and reading does not remove it). The kind is set
    by the first WRITE and is fixed thereafter; `whenever:` works on both and
-   sets no kind. Design: nsl-tuvm/docs/superpowers/specs/2026-07-13-rung9-cells-design.md
+   sets no kind. Design: nsl-tuvm/docs/design/2026-07-13-rung9-cells-design.md
 
    Policy lives in nsl, exactly as this file's header says: `Channel>>put:value:`
    and `peek:ifAbsent:` check `space_kind` and raise a catchable nsl condition on

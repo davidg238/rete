@@ -5,7 +5,7 @@ Durable rationale behind the OEVM/ns-oevm performance and compiler work — the
 anchor (e.g. `topics.md#scope-vs-frame`) instead of repeating the reasoning.
 
 Cross-references: `docs/optimizations.md` (perf log),
-`ns-oevm/docs/superpowers/specs/` (feature specs), GitHub `oevm#1`.
+`ns-oevm/docs/design/` (feature specs), GitHub `oevm#1`.
 
 ---
 

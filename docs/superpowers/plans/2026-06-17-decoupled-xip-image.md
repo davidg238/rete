@@ -6,7 +6,7 @@
 
 **Architecture:** The VM firmware owns the *kernel* objects (Integer/Float/MethodContext/Fiber vtables, their methods, core symbols) and constructs them at boot into a `builtin_registry[]`. A host serializer walks the existing `solidify.py` object graph and emits an `.oimg` blob containing only the *app* graph in the target's native struct layout, where every reference is a tagged word (app byte-offset / builtin index / immediate SMI / singleton). The VM maps the blob read-only, resolves references at the field-read boundary, and runs — no decode/relocate step.
 
-**Tech Stack:** C99 VM (`src/vm.c`, `src/dispatch.c`, `src/gc.c`); Python build tooling (`ns-oevm/tools/solidify.py`, `ns_compile_oevm.py`, `run_tests_oevm.py`); `gcc`; design spec at `docs/superpowers/specs/2026-06-17-clustered-image-xip-design.md`.
+**Tech Stack:** C99 VM (`src/vm.c`, `src/dispatch.c`, `src/gc.c`); Python build tooling (`ns-oevm/tools/solidify.py`, `ns_compile_oevm.py`, `run_tests_oevm.py`); `gcc`; design spec at `docs/design/2026-06-17-clustered-image-xip-design.md`.
 
 ## Global Constraints
 

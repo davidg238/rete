@@ -1,15 +1,15 @@
 # nsl-tuvm first-step design — addendum 1 (review amendments)
 
-> **MOVED 2026-07-04 → `nsl-tuvm/docs/superpowers/specs/2026-07-03-first-step-design-addendum.md`.**
+> **MOVED 2026-07-04 → `nsl-tuvm/docs/design/2026-07-03-first-step-design-addendum.md`.**
 > Now that Milestone A has landed this addendum lives in the specs tree; this copy is a
 > provenance tombstone.
 
 **Status:** three amendments accepted by David 2026-07-03 following external design review.
-Parked in `tuvm/review/` (NOT under `nsl-tuvm/docs/superpowers/specs/`) because an agent is
+Parked in `tuvm/review/` (NOT under `nsl-tuvm/docs/design/`) because an agent is
 actively executing Milestone A and sweeps untracked files there — a first copy of this
 addendum was lost that way. Move into the specs tree when Milestone A lands.
 Each amendment states which section of the main spec
-(`nsl-tuvm/docs/superpowers/specs/2026-07-03-nsl-tuvm-first-step-design.md`) it extends.
+(`nsl-tuvm/docs/design/2026-07-03-nsl-tuvm-first-step-design.md`) it extends.
 Nothing here changes Milestone A scope; A1 and A2 land in Milestones C and A/§7
 respectively, A3 is a non-goal clarification.
 

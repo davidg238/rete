@@ -101,7 +101,7 @@ is **block inlining** — control-flow blocks stop being frames, eliminating the
 `home`/`regAt:` sends entirely. See
 [block-inlining](topics.md#block-inlining) /
 [scope-vs-frame](topics.md#scope-vs-frame) and the design spec at
-`ns-oevm/docs/superpowers/specs/2026-06-16-block-inlining-design.md`. This is
+`ns-oevm/docs/design/2026-06-16-block-inlining-design.md`. This is
 compiler work (ns-oevm) plus one VM truthiness fix
 ([jmp-if-false-truthiness](topics.md#jmp-if-false-truthiness)). Measurements will
 be appended here as phases land.
@@ -371,7 +371,7 @@ promotion).
 ## Opt #4 — global method lookup cache (2026-06-17)
 
 **Commits:** oevm `f7cc37d..b3fd369` (branch `feat/global-method-cache`, merged to
-master `b3fd369`, pushed). Design/plan: `docs/superpowers/specs|plans/2026-06-17-global-method-cache.*`.
+master `b3fd369`, pushed). Design/plan: `docs/design|superpowers/plans/2026-06-17-global-method-cache.*`.
 
 A RAM-resident, direct-mapped (4096-entry) cache keyed by `(receiver_vtable,
 selector) → (method, defining_vt)` in `src/dispatch.c`. `send()` resolves via
@@ -446,7 +446,7 @@ table-sizing issue.
 
 ## Opt #5 — float bump arena (2026-06-17)
 
-P0 Phase 1 (`docs/superpowers/specs/2026-06-17-unboxed-floats-design.md`). Every
+P0 Phase 1 (`docs/design/2026-06-17-unboxed-floats-design.md`). Every
 float result was boxed via `gc_allocate` — a full `malloc` + heap-list insert per
 op (`src/gc.c:49`). The four float allocation sites (`OP_ADD/SUB/MUL/DIV` and the
 inexact `OP_DIV` in `src/vm.c`; `PRIM_asFloat`/`PRIM_sqrt` in `src/dispatch.c`)
@@ -509,7 +509,7 @@ the largest levers are unbuilt** (a working inline cache, unboxed floats) and
 
 | # | Weakness | Evidence | Status | Zephyr priority |
 |---|---|---|---|---|
-| W1 | **GC never triggered → unbounded heap** | `gc_collect` complete but called only by unit tests; no threshold in `gc_allocate`. mandelbrot peak RSS 4.5 GB vs Soup 6 MB. GH #3. | **DONE** — GC trigger wired (exhaustion collect-and-retry in `gc_allocate`); conservative C-stack rooting (setjmp spill + `[lo..hi)` scan at `void*` stride, host-only); `debugger_hook`/`Symbol_debug_`/`Symbol_accessViolation` + defensive `unwind_return_value` precise global roots; method-cache flush on collect. `05_gc_stress.ns` runs to completion under a **64 KB** managed-arena cap on Path A+B (smallest passing cap for gc_stress; full conformance 47/0/1 passes at 128 KB). GH #3 gate closed. **Iterative-mark follow-up (GH #4): DONE** — `mark`/`trace_object` converted to an explicit `OEVM_MARK_STACK_SIZE` worklist (default 1024) with overflow→heap-rescan recovery in `src/gc.c`; mark-phase C-stack use is O(1) in graph depth (Zephyr-safe). Deep 500k-node chain survives on a 256 KB thread stack; overflow-recovery unit test passes at `-DOEVM_MARK_STACK_SIZE=4`; conformance 47/0/1 A+B+m32. GH #4 closed. Commits: `w1-gc-trigger` branch (trigger); `w-gh4-iterative-mark` branch (iterative mark). | **P0** (spec: `superpowers/specs/2026-06-18-gc-embedded-memory-design.md`) |
+| W1 | **GC never triggered → unbounded heap** | `gc_collect` complete but called only by unit tests; no threshold in `gc_allocate`. mandelbrot peak RSS 4.5 GB vs Soup 6 MB. GH #3. | **DONE** — GC trigger wired (exhaustion collect-and-retry in `gc_allocate`); conservative C-stack rooting (setjmp spill + `[lo..hi)` scan at `void*` stride, host-only); `debugger_hook`/`Symbol_debug_`/`Symbol_accessViolation` + defensive `unwind_return_value` precise global roots; method-cache flush on collect. `05_gc_stress.ns` runs to completion under a **64 KB** managed-arena cap on Path A+B (smallest passing cap for gc_stress; full conformance 47/0/1 passes at 128 KB). GH #3 gate closed. **Iterative-mark follow-up (GH #4): DONE** — `mark`/`trace_object` converted to an explicit `OEVM_MARK_STACK_SIZE` worklist (default 1024) with overflow→heap-rescan recovery in `src/gc.c`; mark-phase C-stack use is O(1) in graph depth (Zephyr-safe). Deep 500k-node chain survives on a 256 KB thread stack; overflow-recovery unit test passes at `-DOEVM_MARK_STACK_SIZE=4`; conformance 47/0/1 A+B+m32. GH #4 closed. Commits: `w1-gc-trigger` branch (trigger); `w-gh4-iterative-mark` branch (iterative mark). | **P0** (spec: `design/2026-06-18-gc-embedded-memory-design.md`) |
 | W4 | **Allocator not embedded-grade** | `gc_allocate` = `malloc`/object + linked list; mark is O(n²) (`is_valid_heap_object` walks the list per pointer marked); conservative word-granular tracing. | **DONE** — fixed static arena + size-binned free-list + O(1) bitmap membership; 46 non-stress tests pass under `-DOEVM_HEAP_SIZE=262144` (256 KB), 46/1/1, hard-cap OOM path fires cleanly. NB: 256 KB = *cumulative no-GC churn* (W4 has no trigger) = an **upper bound**, NOT the steady-state ceiling — true figure awaits W1. The 1 fail is `gc_stress` (fills any fixed heap without a trigger; = W1's acceptance test). | **P0** (W1 trigger is the next step in the same workstream) |
 | W2 | **Boxed floats** | a `struct Float` per `OP_ADD/…`/`asFloat`/`sqrt`; dominant memory **and** speed sink. Arena (Opt #5) cut only the `malloc` cost. | **W2a DONE** — arena reclaim: per-slab mark bitmaps + cell free-list, swept from `gc_collect`; bounded slab count under sustained churn (13 slabs at 50k-float churn, 4096 cells/slab). **W2a.1 DONE** — `float_alloc` collect-at-cap trigger: at a `-D`-tunable soft slab budget (`OEVM_FLOAT_ARENA_SLAB_BUDGET`, default 16) the arena runs `gc_collect` and reuses a reclaimed cell before growing (mirrors `gc_allocate`). Float-dominated workloads now self-bound: **mandelbrot @750 RSS 2.35 GB → 3 MB** under a 256 KB main-heap cap, output still correct (`true`); conformance 47/0/1 on A+B+m32. GH #5 / GH #3 (float side) closed. **W2b open** — float unboxing (Opt #6, deferred: measured speed ceiling sub-second; revisit only if profiling justifies it). | **P1** (W2b: de-risks W1 further; fewer allocations → less GC pressure) |
 | W3 | **Inline caching half-realized** | OEOM/MIC design (`OP_SEND_IC`, `struct InlineCache` in `vm.c`) never emitted by the compiler — in-stream cache slots conflict with Model B's read-only XIP blob. Global method cache (Opt #4) is the RAM-side workaround, modest 7–20%. | partial (global cache only) | **P2** (pure perf; ~2× already in budget) |

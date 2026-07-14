@@ -2,7 +2,7 @@
    Milestone C Task 1). This is the storage substrate the nsl reactor
    (Milestone C Tasks 2-3) will drive via 4 platform prims
    (spacePost:value:/spaceRegister:block:owner:/spaceTake:/spaceDequeue); see
-   docs/superpowers/specs/2026-07-06-milestone-c-channels-reactor-design.md
+   docs/design/2026-07-06-milestone-c-channels-reactor-design.md
    section 6. Every property below calls space_intern/space_post/space_take/
    space_register/space_dequeue DIRECTLY (never via send()/a primitive
    dispatch) — proving the C-callable seam is real, not an artifact of going
