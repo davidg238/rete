@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  Letters and pigeonholes — deck v3. Supersedes retained-channels-v2.html (and v1).
+
+  v3 rebuilds the argument inside David's mailroom (2026-07-13) and retracts two things
+  from v2: (a) the etcd/distributed-systems framing — these are loosely coupled nodes,
+  mostly asleep, nothing blocks on a request/response; (b) my "notice vs letter"
+  distinction — WRONG: everything on the wire is a letter, and the mailboy never opens
+  one. The difference is not in the mail, it is in the PIGEONHOLE: a stream is emptied
+  by reading, a cell holds the latest letter. Adds four interaction diagrams, the
+  verified space.c facts, the expanded channel table, and the option-A/option-C code
+  diff from review/cells-sketch.ns.
+
+  Standalone: open directly in a browser. Arrow keys / scroll.
+-->
+<title>Letters and pigeonholes — v3</title>
+
+<style>
+  :root {
+    --ink:#16181d; --ink-soft:#4a4f5c; --ink-faint:#878d9c;
+    --ground:#f4f5f2; --panel:#ffffff; --rule:#d6d9d2; --rule-soft:#e6e8e3;
+    --cell:#a86a12; --stream:#10707d; --door:#a3246b; --bad:#b3341c;
+    --cell-w:#a86a1218; --stream-w:#10707d18; --door-w:#a3246b18; --bad-w:#b3341c14;
+    --mono: ui-monospace,"SF Mono","Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;
+    --sans: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink:#e8eaef; --ink-soft:#a4abbb; --ink-faint:#6b7385;
+      --ground:#14161b; --panel:#1b1e25; --rule:#333846; --rule-soft:#262a34;
+      --cell:#f0a83c; --stream:#3fc9da; --door:#f070ad; --bad:#ff7a5c;
+      --cell-w:#f0a83c1c; --stream-w:#3fc9da1c; --door-w:#f070ad1c; --bad-w:#ff7a5c1a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink:#e8eaef; --ink-soft:#a4abbb; --ink-faint:#6b7385;
+    --ground:#14161b; --panel:#1b1e25; --rule:#333846; --rule-soft:#262a34;
+    --cell:#f0a83c; --stream:#3fc9da; --door:#f070ad; --bad:#ff7a5c;
+    --cell-w:#f0a83c1c; --stream-w:#3fc9da1c; --door-w:#f070ad1c; --bad-w:#ff7a5c1a;
+  }
+  :root[data-theme="light"] {
+    --ink:#16181d; --ink-soft:#4a4f5c; --ink-faint:#878d9c;
+    --ground:#f4f5f2; --panel:#ffffff; --rule:#d6d9d2; --rule-soft:#e6e8e3;
+    --cell:#a86a12; --stream:#10707d; --door:#a3246b; --bad:#b3341c;
+    --cell-w:#a86a1218; --stream-w:#10707d18; --door-w:#a3246b18; --bad-w:#b3341c14;
+  }
+
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--ground); color:var(--ink); font-family:var(--sans);
+         line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .deck { max-width:62rem; margin:0 auto; padding:0 1.5rem 6rem; }
+  .slide { min-height:100svh; display:flex; flex-direction:column; justify-content:center;
+           gap:1.1rem; padding:5rem 0 3rem; border-bottom:1px solid var(--rule-soft); }
+  .slide:last-child { border-bottom:0; }
+
+  .eyebrow { font-family:var(--mono); font-size:.72rem; letter-spacing:.16em;
+             text-transform:uppercase; color:var(--ink-faint); display:flex;
+             align-items:center; gap:.7rem; }
+  .eyebrow::after { content:""; flex:1; height:1px; background:var(--rule); }
+
+  h1 { font-size:clamp(2rem,5vw,3.3rem); line-height:1.06; letter-spacing:-.025em;
+       font-weight:660; margin:0; text-wrap:balance; }
+  h2 { font-size:clamp(1.45rem,3.2vw,2.1rem); line-height:1.15; letter-spacing:-.02em;
+       font-weight:640; margin:0; text-wrap:balance; }
+  p { margin:0; max-width:62ch; color:var(--ink-soft); font-size:1.02rem; }
+  p.lead { color:var(--ink); font-size:1.14rem; max-width:58ch; }
+  strong { color:var(--ink); font-weight:640; }
+  em { font-style:normal; color:var(--ink); border-bottom:1.5px solid var(--rule); }
+
+  code,.mono { font-family:var(--mono); font-size:.93em; }
+  p code, li code, td code, th code { background:var(--rule-soft); padding:.08em .34em;
+        border-radius:3px; color:var(--ink); }
+
+  .c1 { color:var(--cell); }
+  .s1 { color:var(--stream); }
+  .d1 { color:var(--door); }
+  .b1 { color:var(--bad); }
+
+  pre { font-family:var(--mono); font-size:.85rem; line-height:1.6; background:var(--panel);
+        border:1px solid var(--rule); border-left:3px solid var(--rule); border-radius:4px;
+        padding:1rem 1.15rem; margin:0; overflow-x:auto; color:var(--ink); }
+  pre.pc { border-left-color:var(--cell); }
+  pre.ps { border-left-color:var(--stream); }
+  pre.pd { border-left-color:var(--door); }
+  pre.pb { border-left-color:var(--bad); }
+  pre .cm { color:var(--ink-faint); }
+  pre .hi { color:var(--cell); font-weight:600; }
+  pre .hb { color:var(--bad); font-weight:600; }
+
+  .cols { display:grid; gap:1.2rem; grid-template-columns:1fr 1fr; align-items:start; }
+  .cols3 { display:grid; gap:1rem; grid-template-columns:repeat(3,1fr); }
+  @media (max-width:820px){ .cols,.cols3 { grid-template-columns:1fr; } }
+
+  .card { background:var(--panel); border:1px solid var(--rule); border-radius:5px;
+          padding:1rem 1.15rem; display:flex; flex-direction:column; gap:.45rem; }
+  .card h3 { margin:0; font-family:var(--mono); font-size:.76rem; letter-spacing:.12em;
+             text-transform:uppercase; font-weight:600; color:var(--ink-faint); }
+  .card p { font-size:.94rem; }
+  .card.kc { border-top:2px solid var(--cell); }   .card.kc h3 { color:var(--cell); }
+  .card.ks { border-top:2px solid var(--stream); } .card.ks h3 { color:var(--stream); }
+  .card.kd { border-top:2px solid var(--door); }   .card.kd h3 { color:var(--door); }
+  .card.kb { border-top:2px solid var(--bad); }    .card.kb h3 { color:var(--bad); }
+
+  table { border-collapse:collapse; width:100%; font-size:.92rem; }
+  th,td { text-align:left; padding:.55rem .75rem; border-bottom:1px solid var(--rule-soft);
+          vertical-align:top; }
+  th { font-family:var(--mono); font-size:.71rem; letter-spacing:.1em; text-transform:uppercase;
+       color:var(--ink-faint); border-bottom:1px solid var(--rule); }
+  td { color:var(--ink-soft); }
+  td:first-child { color:var(--ink); }
+  .tw { overflow-x:auto; }
+
+  ul { margin:0; padding-left:1.1rem; color:var(--ink-soft); max-width:62ch; }
+  li { margin:.28rem 0; }
+  li::marker { color:var(--ink-faint); }
+
+  .callout { border-left:3px solid var(--door); background:var(--door-w);
+             padding:.8rem 1.05rem; border-radius:0 4px 4px 0; max-width:64ch; }
+  .callout p { color:var(--ink); }
+  .callout.warm { border-left-color:var(--cell); background:var(--cell-w); }
+  .callout.bad  { border-left-color:var(--bad);  background:var(--bad-w); }
+
+  .fig { background:var(--panel); border:1px solid var(--rule); border-radius:5px;
+         padding:1.1rem; overflow-x:auto; }
+  .fig svg { display:block; width:100%; height:auto; min-width:34rem; }
+  .fig text { font-family:var(--mono); font-size:11px; fill:var(--ink-soft); }
+  .fig .tb { fill:var(--ink); font-size:12px; font-weight:600; }
+  .fig .tf { fill:var(--ink-faint); font-size:10px; }
+  .fig .box { fill:var(--panel); stroke:var(--rule); stroke-width:1; }
+  .fig .boxd { fill:var(--door-w); stroke:var(--door); stroke-width:2; }
+  .fig .boxc { fill:var(--cell-w); stroke:var(--cell); stroke-width:1.5; }
+  .fig .boxs { fill:var(--ground); stroke:var(--rule); stroke-width:1; stroke-dasharray:4 3; }
+  .fig .life { stroke:var(--rule); stroke-width:1; stroke-dasharray:3 4; }
+  .fig .w  { stroke:var(--ink-faint); stroke-width:1.4; fill:none; }
+  .fig .wc { stroke:var(--cell); stroke-width:2; fill:none; }
+  .fig .ws { stroke:var(--stream); stroke-width:2; fill:none; }
+  .fig .wd { stroke:var(--door); stroke-width:2; fill:none; stroke-dasharray:5 3; }
+  .fig .wb { stroke:var(--bad); stroke-width:2; fill:none; }
+  .fig .hazard { fill:var(--bad-w); stroke:var(--bad); stroke-width:1; stroke-dasharray:3 3; }
+  .fig .xm { stroke:var(--bad); stroke-width:2.4; }
+
+  .hint { font-family:var(--mono); font-size:.72rem; letter-spacing:.08em;
+          color:var(--ink-faint); text-transform:uppercase; }
+  .badge { display:inline-block; font-family:var(--mono); font-size:.68rem; letter-spacing:.1em;
+           text-transform:uppercase; padding:.16em .5em; border-radius:3px; border:1px solid var(--rule);
+           color:var(--ink-faint); }
+  .badge.cellb { color:var(--cell);   border-color:var(--cell);   background:var(--cell-w); }
+  .badge.strb  { color:var(--stream); border-color:var(--stream); background:var(--stream-w); }
+  .badge.badb  { color:var(--bad);    border-color:var(--bad);    background:var(--bad-w); }
+
+  .rail { position:fixed; right:max(1rem,calc(50vw - 33rem)); top:50%;
+          transform:translateY(-50%); display:flex; flex-direction:column; gap:.5rem; z-index:10; }
+  @media (max-width:900px){ .rail{display:none;} }
+  .rail a { width:7px; height:7px; border-radius:50%; background:var(--rule);
+            transition:background .2s, transform .2s; }
+  .rail a:hover { background:var(--ink-faint); transform:scale(1.35); }
+  .rail a.on { background:var(--door); transform:scale(1.35); }
+  .rail a:focus-visible { outline:2px solid var(--door); outline-offset:3px; }
+  .counter { position:fixed; left:max(1rem,calc(50vw - 33rem)); bottom:1.4rem;
+             font-family:var(--mono); font-size:.72rem; letter-spacing:.1em;
+             color:var(--ink-faint); font-variant-numeric:tabular-nums; z-index:10; }
+  @media (max-width:900px){ .counter{display:none;} }
+
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important;
+    scroll-behavior:auto!important;} }
+  html { scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
+
+  /* Phone: a deck read on a 390px screen is a document, not slides. */
+  @media (max-width:720px) {
+    .deck { padding:0 1.15rem calc(3rem + env(safe-area-inset-bottom)); }
+    .slide { min-height:auto; justify-content:flex-start; gap:.95rem; padding:2.6rem 0 2.8rem; }
+    .slide:first-child { padding-top:2rem; }
+    p { font-size:1rem; }
+    p.lead { font-size:1.08rem; }
+    pre { font-size:.76rem; padding:.85rem .9rem; }
+    .card { padding:.9rem 1rem; }
+    .tw table { min-width:33rem; }
+    .tw::before, .fig::before {
+      content:"scroll \2192"; display:block; font-family:var(--mono);
+      font-size:.64rem; letter-spacing:.14em; text-transform:uppercase;
+      color:var(--ink-faint); margin-bottom:.45rem;
+    }
+    .fig { padding:.9rem; }
+    th, td { padding:.5rem .6rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="rail" aria-label="slides"></nav>
+<div class="counter" id="counter">01</div>
+
+<div class="deck">
+
+<!-- 1 -->
+<section class="slide">
+  <div class="eyebrow">tuvm#32 · deck v3 · supersedes v1 and v2</div>
+  <h1>Letters and<br>pigeonholes</h1>
+  <p class="lead">The mailboy carries envelopes and reads only the address. The assistant opens the letter. Both of those are yours, and both are right — and once they're right, <strong>the question left is very small.</strong></p>
+  <p class="hint">↓ scroll · ← → keys · code: review/cells-sketch.ns</p>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <div class="eyebrow">first, two things I got wrong</div>
+  <h2>Retractions</h2>
+  <div class="cols">
+    <div class="card kb">
+      <h3>v2 · “we are building etcd”</h3>
+      <p><strong>Overweight, withdrawn.</strong> That vocabulary was built for machines that are all awake and all talking. These are loosely coupled nodes, asleep most of the time, and <em>nothing blocks on a request/response</em>. Revision-consensus reasoning imported a difficulty that isn't here.</p>
+    </div>
+    <div class="card kb">
+      <h3>v3 draft · “notices vs letters”</h3>
+      <p><strong>Also wrong.</strong> There are no notices. <strong>Everything on the wire is a letter</strong> — a datagram saying <em>setpoint is now 22</em>. I had put the distinction in the mail. It doesn't live there.</p>
+    </div>
+  </div>
+  <p>What survives from v2 is one sentence, and it is the load-bearing one: <strong>the space has <code>post</code> and <code>take</code>, and no <em>call</em>. A job cannot ask another job for a value.</strong> Everything below follows from that plus the mailroom.</p>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <div class="eyebrow">what this node actually is</div>
+  <h2>Not a cluster. A building full of people who are mostly asleep.</h2>
+  <div class="cols3">
+    <div class="card ks">
+      <h3>the temperature node</h3>
+      <p>Wakes every 15 min, reports, sleeps. <strong>Fire and forget.</strong> Never asks anyone anything.</p>
+    </div>
+    <div class="card ks">
+      <h3>the window sensor</h3>
+      <p>A GPIO edge wakes it; it queues a change-of-status and goes back to sleep. <strong>Fire and forget.</strong></p>
+    </div>
+    <div class="card kc">
+      <h3>the PID controller</h3>
+      <p>Always on, driving a plant. Every 10 s it wakes the radio and <strong>checks its inbox</strong> for a setpoint or mode change.</p>
+    </div>
+  </div>
+  <p>Two of these three need <strong>nothing at all</strong> from this decision. They post and forget; the mailboy carries it. <strong>The PID is the entire argument</strong> — and, as we'll see, only because it crashes.</p>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <div class="eyebrow">the mailroom, precisely</div>
+  <h2>The mailboy never opens the letter</h2>
+  <p>He reads what is written <em>on the envelope</em> — the <strong>address</strong> (<code>goal/sp</code>) and the <strong>sequence number</strong>. He does not, and need not, know a setpoint from a mode from an app manifest. That is the whole reason he can be given the widest reach in the building and still be harmless.</p>
+  <pre class="pd"><span class="cm">the mailboy, in full:</span>
+deliver: letter = (
+  | path |
+  path:: letter at: #path.               <span class="cm">the address on the envelope</span>
+  (letter at: #dead ifAbsent: [ false ])
+    ifTrue:  [ goal clear: path ]
+    ifFalse: [ goal put: path value: (letter at: #value) ] )
+                                         <span class="cm">↑ #value is never looked INSIDE</span></pre>
+  <p><strong>The assistant opens it.</strong> The PID job takes the record, reads <code>22</code> out of it, and adjusts. That is application code, and it is the only code in the node that knows what a setpoint <em>means</em>.</p>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <div class="eyebrow">so where IS the difference?</div>
+  <h2>In the pigeonhole. Not in the mail.</h2>
+  <div class="cols">
+    <div class="card ks">
+      <h3>a stream — a pigeonhole you empty</h3>
+      <p>Letters queue up. Taking one <strong>removes</strong> it. Each is delivered once. If nobody is in the office, it is <strong>dropped</strong> (next slide).</p>
+      <p><code>tel/print</code> · <code>sys/panic</code> · <code>goal/do/reboot</code> · <code>dbg/req</code></p>
+    </div>
+    <div class="card kc">
+      <h3>a cell — a pigeonhole that holds the latest</h3>
+      <p>Holds the <strong>most recent letter only</strong>. Reading does not remove it. A new letter <strong>replaces</strong> the old. You may look in it any time — including for the first time, ten minutes after it arrived.</p>
+      <p><code>goal/sp</code> · <code>goal/mode</code> · <code>goal/apps/&lt;n&gt;</code> · <code>obs/health</code></p>
+    </div>
+  </div>
+  <p><strong>Every pigeonhole in the space today is the first kind.</strong> That is the entire gap — not a new concept, not a second naming system: <em>a second behaviour for a slot in the rack we already have.</em></p>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <div class="eyebrow">verified in src/space.c, not assumed</div>
+  <h2>Three facts that decide this</h2>
+  <div class="tw">
+    <table>
+      <thead><tr><th>fact</th><th>where</th><th>consequence</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>every name is a queue</strong></td>
+          <td><code>space_post</code> / <code>space_take</code> / <code>space_register</code></td>
+          <td>no slot holds a value. Nothing to look in.</td>
+        </tr>
+        <tr>
+          <td><strong>an event with nobody listening is DROPPED, not held</strong></td>
+          <td><code>space_dequeue</code> snapshots the reaction list <em>at drain time</em>, then <code>queue[idx].live = 0</code> unconditionally (<code>space.c:262</code>)</td>
+          <td><strong>a job that was down when the letter arrived gets nothing when it comes back.</strong> The stream does not wait for you.</td>
+        </tr>
+        <tr>
+          <td><strong>there is no request/reply</strong></td>
+          <td>there is <code>post</code> and <code>take</code>; there is no <em>call</em></td>
+          <td>a restarted job <strong>cannot ask</strong> the mailboy, or anyone, to re-send.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout bad">
+    <p>Those three together: <strong>after a crash, the PID's setpoint is unrecoverable from anything that exists today.</strong> Not slow to recover — <em>unrecoverable</em>, without going back to porta over a radio that may be unreachable.</p>
+  </div>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <div class="eyebrow">you asked: what are the channels for</div>
+  <h2>The building's mail routes</h2>
+  <div class="tw">
+    <table>
+      <thead><tr><th>channel</th><th>direction</th><th>pigeonhole</th><th>written by</th><th>what it is</th></tr></thead>
+      <tbody>
+        <tr><td><code>goal/**</code></td><td>porta → node</td><td><span class="badge cellb">cell</span></td><td>porta only</td><td><strong>what you should be doing.</strong> Setpoint, mode, which apps run, per-app config.</td></tr>
+        <tr><td><code>goal/do/*</code></td><td>porta → node</td><td><span class="badge strb">stream</span></td><td>porta only</td><td><strong>do this once.</strong> <code>reboot</code>. An action, not a state — exactly-once by cursor.</td></tr>
+        <tr><td><code>obs/**</code></td><td>node → porta</td><td><span class="badge cellb">cell</span></td><td>the apps</td><td><strong>what is actually so.</strong> Reported mode, runlevels, <code>obs/health</code>, the PID's process variable.</td></tr>
+        <tr><td><code>tel/**</code></td><td>node → porta</td><td><span class="badge strb">stream</span></td><td>any app</td><td><strong>talk.</strong> <code>print</code>, <code>log</code>, metric samples. Losing one is survivable.</td></tr>
+        <tr><td><code>sys/**</code></td><td>node → porta</td><td><span class="badge strb">stream</span></td><td>VM / apps</td><td><strong>something happened to me.</strong> <code>sys/panic</code> (must-deliver), fault reset, crash records.</td></tr>
+        <tr><td><code>dbg/req</code> ↓ <code>dbg/resp</code> ↑</td><td>both</td><td><span class="badge strb">stream</span></td><td>debugger relay</td><td>a debug session. Porta is a dumb relay; the session lives in the node.</td></tr>
+        <tr><td><code>dev/**</code></td><td><strong>never leaves the node</strong></td><td>driver's own</td><td>the driver</td><td><code>dev/env0/sample</code>, <code>dev/radio/…</code>. <strong>Not part of the porta conversation at all.</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Two notes. <strong>The radio is just another <code>dev/</code> driver</strong> — you were right, and it costs this decision nothing. And <strong><code>prof/</code> does not exist</strong>: profiling is <em>requested</em> at <code>goal/profile/&lt;app&gt;</code> and its <em>output has no channel</em>. That's a genuine hole in the protocol, unrelated to this decision but worth writing down.</p>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <div class="eyebrow">interaction · 1 of 4 · normal delivery</div>
+  <h2>A setpoint arrives</h2>
+  <div class="fig">
+    <svg viewBox="0 0 760 300" role="img" aria-label="Sequence diagram: porta sends a letter over the radio to the bridge; the bridge reads only the address and puts the value into the goal/sp cell in the space; the space fires the PID job's on-change reaction; the cell continues to hold 22.">
+      <rect class="box"  x="14"  y="14" width="120" height="34" rx="4"/><text class="tb" x="30"  y="35">porta</text>
+      <rect class="boxd" x="196" y="14" width="120" height="34" rx="4"/><text class="tb" x="222" y="35" fill="var(--door)">bridge</text>
+      <rect class="boxc" x="378" y="14" width="150" height="34" rx="4"/><text class="tb" x="404" y="35" fill="var(--cell)">the space</text>
+      <rect class="box"  x="590" y="14" width="120" height="34" rx="4"/><text class="tb" x="614" y="35">PID job</text>
+
+      <line class="life" x1="74"  y1="48" x2="74"  y2="288"/>
+      <line class="life" x1="256" y1="48" x2="256" y2="288"/>
+      <line class="life" x1="453" y1="48" x2="453" y2="288"/>
+      <line class="life" x1="650" y1="48" x2="650" y2="288"/>
+
+      <path class="wd" d="M74,84 L250,84"/><path class="wd" d="M243,79 L252,84 L243,89"/>
+      <text x="82" y="76">letter · path=goal/sp · seq=17 · value=22</text>
+      <text class="tf" x="82" y="98">over the radio. an envelope.</text>
+
+      <path class="wc" d="M256,138 L447,138"/><path class="wc" d="M440,133 L449,138 L440,143"/>
+      <text x="264" y="130">goal put: 'sp' value: 22</text>
+      <text class="tf" x="264" y="152">he read the ADDRESS. he did not open it.</text>
+
+      <rect class="boxc" x="392" y="170" width="122" height="30" rx="3"/>
+      <text class="tb" x="404" y="190" fill="var(--cell)">goal/sp = 22</text>
+      <text class="tf" x="392" y="215">the pigeonhole now HOLDS it.</text>
+      <text class="tf" x="392" y="228">reading will not empty it.</text>
+
+      <path class="wc" d="M453,258 L644,258"/><path class="wc" d="M637,253 L646,258 L637,263"/>
+      <text x="461" y="250">whenever: 'sp' fires — ON CHANGE</text>
+      <text class="tf" x="461" y="272">the assistant opens it: sp := 22</text>
+    </svg>
+  </div>
+  <p>Nothing surprising, and nothing in <code>PidJobA</code> mentions a radio, a bridge, or porta. It holds a <code>goal</code> capability and that is all it knows about the world.</p>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <div class="eyebrow">the only reason a cell exists</div>
+  <h2>The office burns down</h2>
+  <p>The PID crashes. That is not an exception here — it is <strong>doctrine</strong>. Let-it-crash, the supervisor rebuilds it, Milestone D exists to make this routine.</p>
+  <p>So: the assistant is new, and the desk is empty. His predecessor's note saying <code>22</code> burned with the office. And:</p>
+  <ul>
+    <li>he <strong>cannot phone the mailroom</strong> — there is no request/reply;</li>
+    <li>the <strong>letter is gone</strong> — it was drained and dropped while he was dead;</li>
+    <li>and <strong>porta may be unreachable</strong>, out of range, or asleep — and even if it isn't, <em>a network round trip must never be on the read path.</em></li>
+  </ul>
+  <div class="callout warm">
+    <p><strong>So the question is exactly this and nothing more: is there a pigeonhole he can walk over and look in?</strong></p>
+  </div>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <div class="eyebrow">interaction · 2 of 4 · the fire, with a cell</div>
+  <h2>Option A: he looks in the pigeonhole</h2>
+  <div class="fig">
+    <svg viewBox="0 0 760 290" role="img" aria-label="Sequence diagram, option A: the PID job crashes; the supervisor re-runs its start thunk; the restarted job peeks the goal/sp cell and gets 22 back. No radio, no bridge, no porta involved.">
+      <rect class="boxs" x="14"  y="14" width="120" height="34" rx="4"/><text class="tb" x="30"  y="35" fill="var(--ink-faint)">porta</text>
+      <text class="tf" x="20" y="62">unreachable — fine</text>
+      <rect class="boxc" x="196" y="14" width="150" height="34" rx="4"/><text class="tb" x="222" y="35" fill="var(--cell)">the space</text>
+      <rect class="box"  x="408" y="14" width="130" height="34" rx="4"/><text class="tb" x="428" y="35">supervisor</text>
+      <rect class="box"  x="600" y="14" width="120" height="34" rx="4"/><text class="tb" x="622" y="35">PID job</text>
+
+      <line class="life" x1="271" y1="48" x2="271" y2="278"/>
+      <line class="life" x1="473" y1="48" x2="473" y2="278"/>
+      <line class="life" x1="660" y1="48" x2="660" y2="278"/>
+
+      <rect class="boxc" x="210" y="62" width="122" height="30" rx="3"/>
+      <text class="tb" x="222" y="82" fill="var(--cell)">goal/sp = 22</text>
+      <text class="tf" x="210" y="106">still here. it outlives</text>
+      <text class="tf" x="210" y="119">every job in the node.</text>
+
+      <line class="xm" x1="648" y1="76" x2="672" y2="100"/>
+      <line class="xm" x1="672" y1="76" x2="648" y2="100"/>
+      <text class="b1" x="560" y="122" style="font-size:11px">crash — routine</text>
+
+      <path class="wb" d="M660,140 L479,140"/><path class="wb" d="M486,135 L477,140 L486,145"/>
+      <text x="500" y="132">sys/crash</text>
+
+      <path class="w" d="M473,182 L654,182"/><path class="w" d="M647,177 L656,182 L647,187"/>
+      <text x="490" y="174">restart thunk → pid start</text>
+
+      <path class="wc" d="M660,232 L277,232"/><path class="wc" d="M284,227 L275,232 L284,237"/>
+      <text x="300" y="224">goal peek: 'sp' ifAbsent: [ safeSetpoint ]</text>
+      <path class="wc" d="M271,262 L654,262"/><path class="wc" d="M647,257 L656,262 L647,267"/>
+      <text x="300" y="254">→ 22</text>
+      <text class="tf" x="300" y="280">no radio. no bridge. no porta. one line of code.</text>
+    </svg>
+  </div>
+  <pre class="pc"><span class="cm">PidJobA — start IS restart; nothing here knows which one it is</span>
+resume = (
+  <span class="hi">sp::   goal peek: 'sp'   ifAbsent: [ self safeSetpoint ].</span>
+  <span class="hi">mode:: goal peek: 'mode' ifAbsent: [ #hold ].</span>
+  tel out: 'log' value: (Record tag: #log with: #text -&gt; 'pid resumed') )</pre>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <div class="eyebrow">interaction · 3 of 4 · the same fire, without a cell</div>
+  <h2>Option C: the mailboy runs a lost-property office</h2>
+  <div class="fig">
+    <svg viewBox="0 0 760 330" role="img" aria-label="Sequence diagram, option C: the letter posted while the job was down is drained and dropped; the restarted job registers a reaction and receives nothing; it must announce itself on a hello channel and beg the bridge to re-send; meanwhile it drives the plant with a fallback setpoint during an unbounded hazard window; the re-post is broadcast to every other subscriber too.">
+      <rect class="boxd" x="14"  y="14" width="140" height="34" rx="4"/><text class="tb" x="34"  y="35" fill="var(--door)">bridge</text>
+      <text class="tf" x="20" y="62">holds the ONLY copy,</text>
+      <text class="tf" x="20" y="75">in a private Map</text>
+      <rect class="boxs" x="212" y="14" width="150" height="34" rx="4"/><text class="tb" x="234" y="35">the space</text>
+      <text class="tf" x="212" y="62">streams only</text>
+      <rect class="box"  x="420" y="14" width="130" height="34" rx="4"/><text class="tb" x="440" y="35">supervisor</text>
+      <rect class="box"  x="606" y="14" width="130" height="34" rx="4"/><text class="tb" x="628" y="35">PID job</text>
+
+      <line class="life" x1="84"  y1="48" x2="84"  y2="318"/>
+      <line class="life" x1="287" y1="48" x2="287" y2="318"/>
+      <line class="life" x1="485" y1="48" x2="485" y2="318"/>
+      <line class="life" x1="671" y1="48" x2="671" y2="318"/>
+
+      <line class="xm" x1="659" y1="60" x2="683" y2="84"/>
+      <line class="xm" x1="683" y1="60" x2="659" y2="84"/>
+
+      <path class="ws" d="M84,110 L281,110"/><path class="ws" d="M274,105 L283,110 L274,115"/>
+      <text x="92" y="102">goal out: 'sp' value: 22</text>
+      <line class="xm" x1="300" y1="100" x2="316" y2="116"/>
+      <line class="xm" x1="316" y1="100" x2="300" y2="116"/>
+      <text class="b1" x="324" y="112" style="font-size:11px">nobody home → DRAINED AND DROPPED</text>
+
+      <path class="w" d="M485,150 L665,150"/><path class="w" d="M658,145 L667,150 L658,155"/>
+      <text x="500" y="142">restart</text>
+
+      <path class="w" d="M671,180 L293,180"/><path class="w" d="M300,175 L291,180 L300,185"/>
+      <text x="330" y="172">whenever: 'sp' do: […]  → receives NOTHING</text>
+
+      <rect class="hazard" x="600" y="196" width="150" height="52" rx="3"/>
+      <text class="b1" x="610" y="214" style="font-size:11px">HAZARD WINDOW</text>
+      <text class="tf" x="610" y="228">driving the plant on a</text>
+      <text class="tf" x="610" y="240">fallback setpoint, unbounded</text>
+
+      <path class="wb" d="M671,268 L90,268"/><path class="wb" d="M97,263 L88,268 L97,273"/>
+      <text x="180" y="260">sup/hello — “I am up, please re-send goal/sp”</text>
+      <text class="tf" x="180" y="282">a request/reply, hand-rolled, one way</text>
+
+      <path class="ws" d="M84,306 L281,306"/><path class="ws" d="M274,301 L283,306 L274,311"/>
+      <text x="92" y="300">re-post 22 …</text>
+      <text class="b1" x="300" y="300" style="font-size:11px">…to EVERY subscriber. duplicates for the uninvolved.</text>
+    </svg>
+  </div>
+</section>
+
+<!-- 12 -->
+<section class="slide">
+  <div class="eyebrow">the diff, in code · review/cells-sketch.ns</div>
+  <h2>Seven lines that are not “just more nsl”</h2>
+  <p>Same scenario, both written out. Each line in the C column is <strong>forced</strong> by one of the three <code>space.c</code> facts, not chosen:</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>what C forces</th><th>what it actually is</th></tr></thead>
+      <tbody>
+        <tr><td>the job begs for a re-send on start</td><td>a <strong>request/reply, hand-rolled</strong>, in a model that deliberately has none</td></tr>
+        <tr><td>it drives the plant with a fallback setpoint until answered</td><td>a <strong>real control hazard</strong>, of unbounded duration — the bridge may itself be restarting</td></tr>
+        <tr><td>the bridge listens for job announcements</td><td>the mailboy now <strong>keeps a directory of who works here</strong>, and what each of them wanted</td></tr>
+        <tr><td>the satchel holds the only copy of desired state</td><td>the <strong>one job whose routine crash wipes node state</strong> — in a node built on let-it-crash</td></tr>
+        <tr><td>a withdrawal is a magic value on a stream</td><td><strong>tombstone-by-convention</strong>: every consumer must recognise a sentinel, and nothing checks that they do</td></tr>
+        <tr><td>re-post is a broadcast</td><td><strong>duplicate delivery</strong> to subscribers who never asked</td></tr>
+        <tr><td><code>changedSince:</code> becomes a hand-written scan</td><td>the <strong>seq bookkeeping leaves the one place</strong> that could do it uniformly</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout">
+    <p>Every one of those is <strong>the mailboy being asked to stop being a mailboy</strong> — to remember, to keep a staff directory, to re-deliver on request. In option A he reads the address, drops the letter in the pigeonhole, and leaves. <strong>The PID survives its own crash because the rack is not in his bag.</strong></p>
+  </div>
+</section>
+
+<!-- 13 -->
+<section class="slide">
+  <div class="eyebrow">the verb you asked about</div>
+  <h2><code>clear:</code> — and why <code>nil</code> won't do</h2>
+  <p><code>goal clear: 'apps/blink'</code> empties the pigeonhole <em>and leaves a note saying it was emptied deliberately</em>. The operator un-deployed blink. The supervisor must read that as <strong>stop blink</strong> — not as <em>no news about blink</em>.</p>
+  <div class="cols3">
+    <div class="card kc">
+      <h3>has a value</h3>
+      <p><code>peek:</code> answers it. <code>goal/apps/blink</code> = <code>{crc:…, runlevel:…}</code> → the supervisor keeps it running.</p>
+    </div>
+    <div class="card">
+      <h3>never had one</h3>
+      <p><code>peek:ifAbsent:</code> takes the else-branch. Nothing was ever said about blink. <strong>Do nothing.</strong></p>
+    </div>
+    <div class="card kb">
+      <h3>had one, withdrawn</h3>
+      <p>A <strong>tombstone</strong>. Blink was deployed and is now un-deployed. <strong>Stop it.</strong> And this must survive the trip to porta and the next resync.</p>
+    </div>
+  </div>
+  <div class="callout bad">
+    <p><strong>This promotes tuvm#21 from a curiosity to a blocker.</strong> The seam cannot presently distinguish <em>holds nil</em> from <em>holds nothing</em> at <code>take:</code> — and a cell needs three states, not two. Fix #21 <em>with</em> the cell, not before it.</p>
+  </div>
+</section>
+
+<!-- 14 -->
+<section class="slide">
+  <div class="eyebrow">interaction · 4 of 4 · the way out</div>
+  <h2>Check-in: he collects the outgoing post</h2>
+  <div class="fig">
+    <svg viewBox="0 0 760 260" role="img" aria-label="Sequence diagram: the PID writes its process variable into the obs/pv cell and prints to the tel stream; on the next check-in the bridge asks the space what changed since the cursor, drains the tel and sys streams, and sends one batch to porta.">
+      <rect class="box"  x="14"  y="14" width="120" height="34" rx="4"/><text class="tb" x="34"  y="35">PID job</text>
+      <rect class="boxc" x="212" y="14" width="150" height="34" rx="4"/><text class="tb" x="238" y="35" fill="var(--cell)">the space</text>
+      <rect class="boxd" x="440" y="14" width="120" height="34" rx="4"/><text class="tb" x="466" y="35" fill="var(--door)">bridge</text>
+      <rect class="box"  x="630" y="14" width="110" height="34" rx="4"/><text class="tb" x="654" y="35">porta</text>
+
+      <line class="life" x1="74"  y1="48" x2="74"  y2="248"/>
+      <line class="life" x1="287" y1="48" x2="287" y2="248"/>
+      <line class="life" x1="500" y1="48" x2="500" y2="248"/>
+      <line class="life" x1="685" y1="48" x2="685" y2="248"/>
+
+      <path class="wc" d="M74,84 L281,84"/><path class="wc" d="M274,79 L283,84 L274,89"/>
+      <text x="82" y="76">obs put: 'pv' value: 21.4</text>
+      <text class="tf" x="82" y="98">a cell: porta wants the LATEST, not all of them</text>
+
+      <path class="ws" d="M74,128 L281,128"/><path class="ws" d="M274,123 L283,128 L274,133"/>
+      <text x="82" y="120">tel out: 'log' value: …</text>
+      <text class="tf" x="82" y="142">a stream: each line, once</text>
+
+      <path class="w" d="M500,182 L293,182"/><path class="w" d="M300,177 L291,182 L300,187"/>
+      <text x="310" y="174">obs changedSince: cursor  ·  tel drain  ·  sys drain</text>
+      <text class="tf" x="310" y="196">every 10 s, when the radio is up</text>
+
+      <path class="wd" d="M500,232 L679,232"/><path class="wd" d="M672,227 L681,232 L672,237"/>
+      <text x="508" y="224">one batch. envelopes.</text>
+    </svg>
+  </div>
+  <p>The 15-minute temperature report and the report-on-change are now <strong>the same mechanism</strong>: the app updates its pigeonhole whenever it likes, and the mailboy carries whatever moved since porta last acked. Cadence is <em>his</em> business, not the app's.</p>
+</section>
+
+<!-- 15 -->
+<section class="slide">
+  <div class="eyebrow">the decision, as small as it goes</div>
+  <h2>Whose wall is the rack on?</h2>
+  <div class="cols3">
+    <div class="card kc">
+      <h3>A · the company's wall</h3>
+      <p>The rack is in <code>space.c</code>: a value slot, a <code>seq</code>, a tombstone flag. Four prims. Cells outlive every job, including the mailboy.</p>
+      <p><span class="badge cellb">recommended</span></p>
+    </div>
+    <div class="card kd">
+      <h3>B · a rack somebody else answers for</h3>
+      <p>The space learns <em>this prefix is answered by that object</em> — Plan 9's move. Cells become ordinary nsl. Drivers could serve <code>dev/**</code> too.</p>
+      <p><span class="badge">later, and A becomes its first server</span></p>
+    </div>
+    <div class="card kb">
+      <h3>C · inside the mailboy's bag</h3>
+      <p>An nsl <code>Map</code> in the bridge. No VM change — and the seven forced lines, plus the one crash that wipes the node's desired state.</p>
+      <p><span class="badge badb">not this</span></p>
+    </div>
+  </div>
+  <p><strong>A and B are indistinguishable to every job.</strong> <code>goal peek: 'sp'</code> either way; same capability, same grant. They differ only in <em>who implements the answer</em> — and B can be added later without touching a line of job code, because A's cell simply becomes B's first server.</p>
+</section>
+
+<!-- 16 -->
+<section class="slide">
+  <div class="eyebrow">the path — and the one test that settles it</div>
+  <h2>Rung 9, and its gate</h2>
+  <ol style="margin:0; padding-left:1.3rem; color:var(--ink-soft); max-width:62ch;">
+    <li><strong>Settle tuvm#21</strong> — three states, not two. Small, and now load-bearing.</li>
+    <li><strong>Cells in <code>space.c</code></strong> — value slot, <code>seq</code>, dead flag. The <em>verb declares the kind</em>: <code>put:value:</code> makes a cell, <code>out:value:</code> makes a stream, wrong verb on an existing name is an error (<code>EISDIR</code>, and nobody has ever called that a design flaw).</li>
+    <li><strong>Four prims</strong>: <code>spacePeek</code> · <code>spacePut</code> · <code>spaceClear</code> · <code>spaceChangedSince</code>, and four thin <code>Channel</code> forwarders.</li>
+    <li><strong>The gate — host only, no radio, no bridge, no porta:</strong></li>
+  </ol>
+  <div class="callout warm">
+    <p><strong>Write a setpoint · crash the job · let the supervisor restart it · the job reads the correct setpoint back.</strong><br>
+    That test passes under A. <em>It cannot be written under C</em> — which is the argument, executable, in about forty lines.</p>
+  </div>
+  <p>And <strong>B stays unbuilt and unblocked.</strong> The radio is a driver; <code>dev/**</code> can become served prefixes the day drivers want it; nothing here forecloses it.</p>
+  <p class="hint">code: review/cells-sketch.ns · v2: review/retained-channels-v2.html · tuvm#32</p>
+</section>
+
+</div>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var rail = document.querySelector('.rail');
+  var counter = document.getElementById('counter');
+  slides.forEach(function (s, i) {
+    if (!s.id) s.id = 's' + (i + 1);
+    var a = document.createElement('a');
+    a.href = '#' + s.id;
+    a.setAttribute('aria-label', 'Slide ' + (i + 1));
+    rail.appendChild(a);
+  });
+  var dots = Array.prototype.slice.call(rail.children);
+  var current = 0;
+  var obs = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (!en.isIntersecting) return;
+      var i = slides.indexOf(en.target);
+      if (i < 0) return;
+      current = i;
+      dots.forEach(function (d, j) { d.classList.toggle('on', j === i); });
+      counter.textContent = String(i + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
+    });
+  }, { threshold: 0.5 });
+  slides.forEach(function (s) { obs.observe(s); });
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var next = null;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') next = current + 1;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') next = current - 1;
+    if (next === null || next < 0 || next >= slides.length) return;
+    e.preventDefault();
+    slides[next].scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+})();
+</script>
+
+</body>
+</html>

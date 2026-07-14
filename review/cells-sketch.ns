@@ -1,0 +1,266 @@
+(*
+cells-sketch.ns — the PID node, written BEFORE the infrastructure exists.
+
+Readme-driven, exactly as `demo-node.ns` was: none of this compiles today. `peek:`,
+`peek:ifAbsent:`, `put:value:`, `clear:` and `changedSince:` DO NOT EXIST on Channel.
+The point of the file is to see what the code looks like, and to let the diff between
+option A and option C be the argument instead of a slide.
+
+THE SCENARIO (David's third app, 2026-07-13). A PID controller. Always on, controlling
+a process. Every 10 s it wakes its radio and checks its inbox for a setpoint/mode
+change. It is fire-and-forget in both directions: nothing blocks on a request. And —
+this is the part that decides the design — IT CRASHES, routinely, and the supervisor
+restarts it, because that is the doctrine of this node (Milestone D).
+
+  operator ──▶ porta ──▶ (radio) ──▶ bridge ──▶ ??? ──▶ PID job
+                                                 ▲
+                                    the whole question is what sits here
+
+WHAT THE SPACE DOES TODAY (verified in src/space.c, 2026-07-13 — not assumed):
+  · every name is a QUEUE. post appends; take removes; whenever: registers a reaction.
+  · `space_dequeue` snapshots the channel's reaction list AT DRAIN TIME and then marks
+    the event dead unconditionally (space.c ~262: `queue[idx].live = 0`). So an event
+    posted while a job was down is DRAINED AND DROPPED. A restarted job that
+    re-registers `whenever:` is NOT replayed anything. The stream does not wait.
+  · there is no request/reply. A job cannot ASK another job for a value.
+
+Those three facts together are why a restarted PID cannot recover its setpoint from
+anything that exists now.
+
+  A — the pigeonhole is in the space   (space.c gains a value slot + seq + tombstone)
+  C — the pigeonhole is in the bridge  (an nsl Map inside the mailboy; no VM change)
+
+Both are written out below, same scenario, same app, so the cost is visible rather
+than argued.
+*)
+class CellsSketch packageUsing: manifest = () (
+
+(* ======================================================================
+   OPTION A — the pigeonhole is in the space.
+
+   New Channel verbs (4 prims behind them: spacePeek / spacePut / spaceClear /
+   spaceChangedSince). `put:value:` makes a name a cell; `out:value:` makes it a
+   stream; using the wrong verb on an existing name is an error, exactly as read()
+   on a directory is EISDIR. The expected-miss convention is the kernel's existing
+   one (errors.md): `peek:ifAbsent:`, never a nil sentinel — which is also how the
+   nsl surface sidesteps tuvm#21 while C still has to represent three states inside.
+   ====================================================================== *)
+
+  class PidJobA = ( | goal obs tel timers plant
+                      sp   ::= nil.
+                      mode ::= nil. | ) (
+
+    (* start is ALSO restart: the supervisor re-runs this same thunk after a crash.
+       Nothing here knows whether it is the first boot or the fifth restart — and
+       nothing here mentions the network, the bridge, or porta. *)
+    public start = (
+      goal whenever: 'sp'   do: [ :v | self adopt: v ].    (* fires ON CHANGE *)
+      goal whenever: 'mode' do: [ :v | self adoptMode: v ].
+      self resume.
+      ^ self )
+
+    (* THE LINE THE WHOLE ARGUMENT IS ABOUT.
+       The office burned down; the PA is new; the desk is empty. He walks to the
+       pigeonhole and reads what is in it. No network. No bridge. No asking anyone. *)
+    resume = (
+      sp::   goal peek: 'sp'   ifAbsent: [ self safeSetpoint ].
+      mode:: goal peek: 'mode' ifAbsent: [ #hold ].
+      tel out: 'log' value: (Record tag: #log with: #text -> 'pid resumed'). )
+
+    adopt: v     = ( sp:: v.   ^ self )
+    adoptMode: v = ( mode:: v. ^ self )
+    safeSetpoint = ( ^ 0 )                     (* fail safe, not fail arbitrary *)
+
+    (* the control loop — unremarkable, and that is the point *)
+    public tick = (
+      | pv u |
+      mode = #hold ifTrue: [ ^ self ].
+      pv:: plant read.
+      u::  self compute: pv toward: sp.
+      plant drive: u.
+      obs put: 'pv' value: pv.                 (* a cell: porta wants the LATEST, not all of them *)
+      ^ self )
+
+    compute: pv toward: target = ( ^ target - pv )     (* stand-in *)
+  ) : (
+    public goal: g obs: o tel: t timers: ti plant: p = (
+      ^ self new setGoal: g obs: o tel: t timers: ti plant: p )
+  )
+
+  (* The mailboy, option A. He carries envelopes and reads only the address.
+     `letter` is one decoded record off the radio: #path, #seq, #value, #dead.
+     He never looks at #value — he cannot, and does not need to, tell a setpoint
+     from a mode from an app manifest. *)
+  class BridgeA = ( | radio goal obs tel sys cursor ::= 0. | ) (
+
+    public start = (
+      radio whenever: '' do: [ :dgram | self deliverAll: dgram ].
+      ^ self )
+
+    deliverAll: dgram = (
+      (dgram at: #letters) do: [ :letter | self deliver: letter ].
+      cursor:: dgram at: #seq. )
+
+    deliver: letter = (
+      | path |
+      path:: letter at: #path.
+      (letter at: #dead ifAbsent: [ false ])
+        ifTrue:  [ goal clear: path ]                        (* un-deployed: a tombstone *)
+        ifFalse: [ goal put: path value: (letter at: #value) ]. )
+
+    (* Outbound: whatever changed since porta last acked, plus the queued letters.
+       Again: he does not interpret. He asks the rack what moved. *)
+    public checkIn = (
+      | batch |
+      batch:: obs changedSince: cursor.
+      radio send: (Record tag: #push with: #obs -> batch
+                                   with: #tel -> (tel drain)
+                                   with: #sys -> (sys drain)).
+      ^ self )
+  ) : (
+    public radio: r goal: g obs: o tel: t sys: s = (
+      ^ self new setRadio: r goal: g obs: o tel: t sys: s )
+  )
+
+  (* Wiring, option A. Note what the supervisor hands the PID: a goal capability and
+     an obs capability. Not a reference to the bridge. The PID cannot name the bridge,
+     and has no idea a radio exists. *)
+  wireA: space with: sup = (
+    | bridge pid |
+    bridge:: BridgeA radio: (self radioCap)
+                     goal:  (space channel: 'goal')
+                     obs:   (space channel: 'obs')
+                     tel:   (space channel: 'tel')
+                     sys:   (space channel: 'sys').
+    pid:: PidJobA goal:   (space channel: 'goal')
+                  obs:    (space channel: 'obs')
+                  tel:    (space channel: 'tel')
+                  timers: timers
+                  plant:  (self plantCap).
+    sup register: (space channel: 'pid') restart: [ pid start ] progress: (space channel: 'pid/ok').
+    bridge start.
+    pid start. )
+
+
+(* ======================================================================
+   OPTION C — the pigeonhole is in the mailboy's satchel.
+
+   No VM change. The bridge holds path -> {value, seq, dead} in an nsl Map. Below is
+   what the SAME scenario costs. Every added line is forced by one of the three facts
+   at the top of this file, not by taste.
+   ====================================================================== *)
+
+  class PidJobC = ( | goal obs tel timers plant hello
+                      sp   ::= nil.
+                      mode ::= nil. | ) (
+
+    public start = (
+      goal whenever: 'sp'   do: [ :v | self adopt: v ].
+      goal whenever: 'mode' do: [ :v | self adoptMode: v ].
+
+      (* FORCED #1. There is nothing to peek. The letter that carried the setpoint was
+         drained and dropped while this job was dead (space.c: the reaction snapshot is
+         taken at drain time). So the job must ANNOUNCE ITSELF and beg for a re-send —
+         a hand-rolled half of the request/reply the space does not have. *)
+      hello out: '' value: (Record tag: #hello with: #want -> 'goal/sp'
+                                               with: #and  -> 'goal/mode').
+
+      (* FORCED #2. And it must run with NO setpoint until the mailboy gets around to
+         answering. The window is unbounded: the bridge may itself be restarting. The
+         PID is a control loop — it is driving a plant during this window. *)
+      sp:: self safeSetpoint.
+      mode:: #hold.
+      ^ self )
+
+    adopt: v     = ( sp:: v.   ^ self )
+    adoptMode: v = ( mode:: v. ^ self )
+    safeSetpoint = ( ^ 0 )
+
+    public tick = ( (* identical to A *) ^ self )
+  ) : ( )
+
+  class BridgeC = ( | radio goal obs tel sys hello
+                      cells ::= nil.        (* path -> Record{value, seq, dead} *)
+                      cursor ::= 0. | ) (
+
+    public start = (
+      cells:: Map new.
+      radio whenever: '' do: [ :dgram | self deliverAll: dgram ].
+
+      (* FORCED #3. The mailboy now runs a lost-property office: he must listen for
+         jobs announcing themselves and re-send. He is no longer stateless w.r.t. the
+         node's jobs; he knows who exists and what they wanted. *)
+      hello whenever: '' do: [ :req | self redeliver: req ].
+      ^ self )
+
+    deliver: letter = (
+      | path |
+      path:: letter at: #path.
+      (* FORCED #4. He now keeps a private copy of everything he ever delivered.
+         The satchel IS the node's desired state — and he is a supervised job, so his
+         own routine crash empties it. Nothing else in the node has a copy. *)
+      cells at: path put: letter.
+      (letter at: #dead ifAbsent: [ false ])
+        ifTrue:  [ goal out: path value: (Record tag: #withdrawn) ]   (* invent a sentinel: *)
+        ifFalse: [ goal out: path value: (letter at: #value) ]. )
+        (* ^ FORCED #5. There is no `clear:` on a stream, so "the operator un-deployed
+             blink" has to be encoded as a magic value posted on the channel, and every
+             consumer must know to recognise it. That sentinel is a protocol, spread
+             across every job, with no compiler to check it. *)
+
+    redeliver: req = (
+      (* FORCED #6. Re-post the last letter for each prefix the requester named. It goes
+         onto the SHARED channel, so every OTHER subscriber gets a duplicate too. Fine
+         if applying a setpoint is idempotent; a real bug the first time someone puts a
+         non-idempotent reaction on a goal path, and nothing prevents that. *)
+      (req at: #want)  ifNotNil: [ :p | self repost: p ].
+      (req at: #and)   ifNotNil: [ :p | self repost: p ]. )
+
+    repost: path = (
+      | held |
+      held:: cells at: path ifAbsent: [ ^ self ].
+      goal out: path value: (held at: #value). )
+
+    public checkIn = (
+      (* FORCED #7. `changedSince:` was a rack query. Now it is a scan of the satchel,
+         written by hand, and the seq bookkeeping that the space would have done per
+         path is the bridge's job. *)
+      | batch |
+      batch:: OrderedCollection new.
+      cells keysAndValuesDo: [ :k :v |
+        (v at: #seq) > cursor ifTrue: [ batch add: v ] ].
+      radio send: (Record tag: #push with: #obs -> batch freeze). )
+  ) : ( )
+
+
+(* ======================================================================
+   WHAT THE DIFF SAYS
+
+   The C column is not "some more nsl". Look at what each forced line actually is:
+
+   #1 · the job begs for a re-send        -> a request/reply, hand-rolled, one-way
+   #2 · it drives the plant with no sp    -> a REAL control hazard, unbounded window
+   #3 · the bridge runs a lost-property   -> the mailboy now knows who works here
+        office keyed by job
+   #4 · the satchel holds the only copy   -> the one job whose ROUTINE crash (this is a
+        of the node's desired state          let-it-crash node!) wipes node state
+   #5 · a withdrawal is a magic value     -> tombstone-by-convention, unchecked, in every
+        on a stream                          consumer
+   #6 · re-post is a broadcast            -> duplicate delivery to uninvolved subscribers
+   #7 · changedSince: becomes a hand       -> the seq/cursor bookkeeping moves out of the
+        scan with hand-kept seq              one place that could do it uniformly
+
+   Every one of those is the mailboy being asked to do something a mailboy does not do:
+   remember, interpret, keep a directory of staff, and re-deliver on request. In option A
+   he reads the address, drops the letter in the pigeonhole, and leaves — and the reason
+   the PID survives its own crash is that THE RACK IS NOT IN HIS BAG.
+
+   And note the one thing that does NOT appear in the A column: any mention of the
+   network, the bridge, or porta, anywhere in PidJobA. That is the property the whole
+   capability model is for.
+
+   THE GATE THIS FILE PROPOSES (host only, no radio, no bridge):
+     write a setpoint · crash the job · let the supervisor restart it · the job reads
+     the correct setpoint back. That test passes under A and cannot be written under C.
+   ====================================================================== *)
+)
