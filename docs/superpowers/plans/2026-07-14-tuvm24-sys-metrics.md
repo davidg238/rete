@@ -527,7 +527,7 @@ git commit -m "test(tuvm#24): T-D.5 strict heap-high-water plateau — the leak 
 In §4.4's table, add:
 
 ```markdown
-| `sys/metrics` | **C (cell)** | `Metrics { heapSize: int, liveBytes: int, heapHighWater: int, largestFreeBlock: int, gcCycles: int, handlesLive: int, handlesHighWater: int, queueHighWater: int, overruns: int }` — tuvm#24; ~70 B encoded, within §2.2 |
+| `sys/metrics` | **C (cell)** | `Metrics { heapSize: int, liveBytes: int, heapHighWater: int, largestFreeBlock: int, gcCycles: int, handlesLive: int, handlesHighWater: int, queueHighWater: int, overruns: int }` — tuvm#24; ~150–190 B encoded (symbol keys dominate), within §2.2 |
 ```
 
 After the table's existing delivery-class paragraph, add:

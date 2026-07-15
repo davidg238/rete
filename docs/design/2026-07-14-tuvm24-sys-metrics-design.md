@@ -63,8 +63,9 @@ change; a couple of integer ops per event.
     handlesLive. handlesHighWater. queueHighWater. overruns }
   ```
 
-  Nine integer fields, ~70 B in CBOR — well under the 256 B/value radio cap
-  (`PROTOCOL-NSL-RECORDS.md` size law). `HeapStats` and prim 104 are untouched. Float-slab
+  Nine integer fields, ~150–190 B in CBOR (the symbol field names dominate; corrected
+  2026-07-14 from an earlier ~70 B estimate that ignored key text) — under the 256 B/value
+  radio cap (`PROTOCOL-NSL-RECORDS.md` size law). `HeapStats` and prim 104 are untouched. Float-slab
   count is **deferred** (natural extension, same record, later — YAGNI now).
 
 ## 3 — The `sys/metrics` cell + publisher policy
