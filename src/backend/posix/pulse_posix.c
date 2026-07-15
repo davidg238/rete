@@ -30,8 +30,10 @@ int pulse_pump(void) {
         struct PulseItem it = mailbox[mb_head];
         mb_head = (mb_head + 1) % OEVM_PULSE_MAILBOX_DEPTH;
         mb_count--;
-        space_post_id(it.chan_id, handle_get(it.handle_idx));
-        drained++;
+        /* tuvm#13: NULL means the pinned slot was freed and reused between post and
+           pump (a stale generation) — drop it rather than post the new occupant. */
+        oop o = handle_get(it.handle_idx);
+        if (o) { space_post_id(it.chan_id, o); drained++; }
     }
     return drained;
 }

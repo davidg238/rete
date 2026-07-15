@@ -24,12 +24,14 @@ int pulse_pump(void) {
     struct PulseItem it;
     int drained = 0;
     /* block for the first event (idle safe point), then drain all currently queued */
+    /* tuvm#13: NULL means the pinned slot was freed and reused between post and pump
+       (a stale generation) — drop it rather than post the new occupant. */
     if (k_msgq_get(&pulse_q, &it, K_FOREVER) == 0) {
-        space_post_id(it.chan_id, handle_get(it.handle_idx));
-        drained++;
+        oop o = handle_get(it.handle_idx);
+        if (o) { space_post_id(it.chan_id, o); drained++; }
         while (k_msgq_get(&pulse_q, &it, K_NO_WAIT) == 0) {
-            space_post_id(it.chan_id, handle_get(it.handle_idx));
-            drained++;
+            o = handle_get(it.handle_idx);
+            if (o) { space_post_id(it.chan_id, o); drained++; }
         }
     }
     return drained;

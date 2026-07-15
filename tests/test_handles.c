@@ -94,6 +94,22 @@ int main(void) {
         printf("test_handles: counters PASS\n");
     }
 
+    /* tuvm#13: ABA — a handle captured before its slot is freed and REUSED must
+       not resolve to the new occupant. In the buggy raw-index scheme the reused
+       slot hands back the same index, so a stale handle silently reads the new
+       value; a generation tag makes the stale handle read NULL instead. */
+    {
+        oop A = make_str();
+        int hA = handle_new(A);       /* pins A in some slot */
+        handle_free(hA);              /* frees that slot */
+        oop B = make_str();
+        int hB = handle_new(B);       /* reuses the just-freed slot for B */
+        assert(handle_get(hB) == B && "the live reused handle resolves to the new object");
+        assert(handle_get(hA) == NULL && "the stale pre-reuse handle must NOT resolve to B");
+        handle_free(hB);
+        printf("test_handles: aba PASS\n");
+    }
+
     /* overflow aborts with the frozen string */
     g_trigger = trigger_overflow;
     expect_abort("overflow", "handle table full");
