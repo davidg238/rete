@@ -33,7 +33,7 @@ class KindMismatch packageUsing: manifest = ( | hits ::= 0. | ) (
       on: [ :e | true ]
       do: [ :e | ('out: on a cell -> ' , (e at: #text ifAbsent: [ '?' ])) out ].
 
-    [ c take: 'sp' ]
+    [ c take: 'sp' ifEmpty: [ nil ] ]
       on: [ :e | true ]
       do: [ :e | ('take: on a cell -> ' , (e at: #text ifAbsent: [ '?' ])) out ].
 
