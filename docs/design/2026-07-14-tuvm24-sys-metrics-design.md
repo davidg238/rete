@@ -81,15 +81,24 @@ change; a couple of integer ops per event.
 
 ## 4 — Strict T-D.5 + tests + gates
 
+> **CORRECTED 2026-07-14 (execution finding, ruled by David).** The original gauge —
+> "highWater plateaus unless there's a leak" — is **false on the host**: GC in this VM fires
+> only on arena exhaustion (or `OEVM_GC_STRESS`, which the behavioral suite does not set), and
+> the soak workload allocates ~9 MB against the 16 MB host arena, so **no collection ever
+> runs** and `liveBytes`/`highWater` just track cumulative allocation (measured: highWater
+> climbed a deterministic 9,121,280 bytes across the 90k post-warm-up iterations in a healthy
+> run — three identical runs). Ruling: **force a collection at each sample point by spinning
+> droppable allocations until `gcCycles` increments, then sample `liveBytes`** (= true live at
+> the sweep boundary, plus a few spin-tail allocations the tolerance absorbs). No VM change. A
+> separate issue is filed for a future diagnostic `gcCollect` prim (also relevant to #19's
+> idle-time work); the spin is the no-new-surface bridge until then.
+
 - **`nsl-tests/11_supervision/10_soak_leak.ns`**: keep the completion+responsiveness invariant;
-  add the strict plateau — sample `platform heapStats` after a warm-up window and at the end,
-  assert **heap `highWater` has plateaued** (end ≤ warm-up value + a named tolerance).
-  `highWater` is the right gauge: `liveBytes` carries floating-garbage noise (live-at-last-sweep
-  plus allocations since), while any real leak forces the monotonic high-water to keep climbing
-  across the ~90k post-warm-up iterations. The tolerance is a named constant tuned once against
-  measured host noise, with the tuning rule stated in-file (must sit well below the smallest
-  leak the test should catch). Output stays deterministic — print `plateau true`, never raw
-  byte counts.
+  add the strict plateau — at warm-up (i=10,000) and at the end, force a sweep (allocation
+  spin until `gcCycles` bumps) and sample `liveBytes`; assert end ≤ warm-up + a named
+  tolerance. The tolerance is a named constant tuned once against measured host noise, with
+  the tuning rule stated in-file (must sit well below the smallest leak the test should
+  catch). Output stays deterministic — print `plateau true`, never raw byte counts.
 - **New test** `nsl-tests/15_heap_stats/02_sys_metrics.ns`: build the record, `put:`/`peek:` it
   through the `sys/metrics` cell, assert all nine fields present and sane, cross-check
   `overruns` against prim 108's `spaceOverruns: ''`.

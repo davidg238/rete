@@ -429,6 +429,16 @@ git commit -m "test(tuvm#24): sys/metrics end-to-end — record schema + cell pu
 
 ### Task 4: Strict T-D.5 plateau (nsl-tests)
 
+> **AMENDED mid-execution (2026-07-14, David's ruling — see the design doc's §4 correction).**
+> The highWater gauge below is superseded: GC never fires on the host arena for this workload,
+> so highWater = cumulative allocation (measured 9,121,280 B deterministic climb in a healthy
+> run). The strict plateau instead samples **`liveBytes` after forcing a sweep at each sample
+> point** — spin droppable allocations until `platform heapStats gcCycles` increments, then
+> read `platform heapStats liveBytes`; warm-up sample at i=10,000, end sample after the final
+> drain; assert end − warm-up ≤ the named tolerance (same tuning rule and falsification step
+> as written below, with `hw`/`highWater` read as `liveBytes`-at-sweep). A future `gcCollect`
+> prim is filed as tuvm#35; the spin is the no-VM-change bridge.
+
 **Files:**
 - Modify: `~/workspace/nsl-tests/11_supervision/10_soak_leak.ns`
 
