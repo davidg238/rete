@@ -103,6 +103,12 @@ static size_t q_count = 0;   /* occupied ring slots (see file-header note on sta
    space_overruns is O(1). */
 static uint32_t total_overruns = 0;
 
+/* tuvm#24: monotonic max of q_count ever observed. NOTE this counts ring SLOTS
+   — q_count includes lazily-dead not-yet-compacted slots (see the file-header
+   staleness note) — so it measures ring-slot PRESSURE (slots unavailable to a
+   burst, the number G2 depth-sizing needs), not logical queue depth. */
+static uint32_t q_high_water = 0;
+
 /* Count one shed post — and say so ONCE per channel: the first overrun prints
    a single line so a console human sees the onset without being flooded;
    thereafter the counters are the record (G2 "never silent", pull side via
@@ -221,6 +227,7 @@ void space_post_id(int chan_id, oop value) {
     queue[tail].value = value;
     queue[tail].live = 1;
     q_count++;
+    if (q_count > q_high_water) q_high_water = (uint32_t)q_count;
 }
 
 void space_post(const char *path, size_t len, oop value) {
@@ -411,3 +418,5 @@ void space_gc_trace(void) {
         if (c->kind == SPACE_KIND_CELL && c->value) mark_object(c->value);
     }
 }
+
+uint32_t space_queue_high_water(void) { return q_high_water; }

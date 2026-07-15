@@ -74,6 +74,11 @@ void space_post_id(int chan_id, oop value);
    `spaceOverruns:`); the periodic sys/metrics push side is tuvm#24. */
 uint32_t space_overruns(const char *path, size_t len);
 
+/* tuvm#24: monotonic max ring occupancy (q_count) ever observed — ring-slot
+   pressure for G2 sizing, not logical depth (q_count counts lazily-dead
+   not-yet-compacted slots too). Read by the sysStats prim. */
+uint32_t space_queue_high_water(void);
+
 /* Remove-if-present-now (design doc section 3, D-C2): the oldest
    queued-but-undispatched value on exactly this channel, removed from the
    queue. Answers NULL (nil) if the channel has never been posted to, or has

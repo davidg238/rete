@@ -205,8 +205,9 @@ int main(void) {
         (void)space_intern("a/b", 3);
         (void)space_intern("a", 1);
         (void)space_intern("gc/chan", 7);
+        (void)space_intern("hw/probe", 8);  /* tuvm#24: queue high-water test */
 
-        int used = 7;   /* p/same, p/other, sensor, sensors, a/b, a, gc/chan */
+        int used = 8;   /* p/same, p/other, sensor, sensors, a/b, a, gc/chan, hw/probe */
         assert(OEVM_SPACE_MAX_CHANNELS >= used &&
                "test assumes room for the fixed real channels the suite needs");
         char fillbuf[32];
@@ -461,6 +462,21 @@ int main(void) {
                && "reaction block bytes must be intact");
 
         printf("test_space: property 9 (dequeue heap value under OEVM_GC_STRESS, rooting discipline) OK\n");
+    }
+
+    /* tuvm#24: queue high-water is monotonic and covers any simultaneous
+       occupancy. Relative assertions — earlier properties already used the ring. */
+    {
+        uint32_t hw0 = space_queue_high_water();
+        space_post("hw/probe", 8, TAG_SMI(1));
+        space_post("hw/probe", 8, TAG_SMI(2));
+        space_post("hw/probe", 8, TAG_SMI(3));
+        uint32_t hw1 = space_queue_high_water();
+        assert(hw1 >= hw0 && "high water never decreases");
+        assert(hw1 >= 3 && "three simultaneously-queued events must register");
+        while (space_take("hw/probe", 8) != NULL) { }
+        assert(space_queue_high_water() == hw1 && "draining does not lower high water");
+        printf("test_space: queue high-water PASS\n");
     }
 
     printf("test_space: OK\n");
