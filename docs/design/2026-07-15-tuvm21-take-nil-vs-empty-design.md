@@ -46,9 +46,11 @@ mechanism as-is. Rationale (decision record):
   *transient occupancy* question. Forcing both through one mechanism would rework shipped,
   test-pinned cell code to make two genuinely different questions look identical — false
   alignment.
-- **The nsl API shape aligns with the cell anyway:** `take:ifEmpty:` reads just like
+- **The nsl API shape aligns with the cell exactly:** `take:ifEmpty:` reads just like
   `peek:ifAbsent:` — a block for the absent case, the value (even `nil`) otherwise — even
-  though the C seam underneath differs by necessity.
+  though the C seam underneath differs by necessity. The cell side offers **no bare
+  `peek:`** (a reader must confront absence); to keep that symmetry, streams offer **no
+  bare `take:`** either — see "No lossy bare `take:`" below.
 
 ### Rejected alternatives
 
@@ -125,8 +127,9 @@ does not.)
 
 ### nsl — `lib/kernel.ns` (`class Channel`)
 
+The one-arg `take: rel` is **removed**. The only stream read is:
+
 ```
-public take: rel = ( ^ self take: rel ifEmpty: [ nil ] )
 public take: rel ifEmpty: emptyBlock = (
   | p r |
   p:: self resolve: rel.
@@ -138,9 +141,25 @@ public take: rel ifEmpty: emptyBlock = (
 
 - The prim's wrapper Array is a class-less indexable (like `spaceDequeue`'s events), read
   with **`basicAt: 1`**, not `at:`.
-- Bare `take:` stays lossy-nil (`ifEmpty: [ nil ]`) — every existing `09_channels` call
-  site keeps its meaning (`(space take: 'x') == nil` when empty), so nothing breaks.
 - The `KIND_CELL` guard is preserved (taking from a cell is a catchable error, unchanged).
+
+#### No lossy bare `take:`
+
+There is deliberately no one-arg `take:` — a reader must confront the empty case, exactly
+as the cell side has only `peek:ifAbsent:` and no bare `peek:`. A caller that genuinely
+wants "nil on empty" writes it explicitly: `chan take: rel ifEmpty: [ nil ]`. This keeps
+the ambiguity #21 exists to kill from ever being re-buried behind a terse default.
+
+**Call-site migration (blast radius).** Every existing `X take: R` is rewritten to
+`X take: R ifEmpty: [ … ]`. Known sites, all in `nsl-tests`:
+`09_channels/01_canonicalization.ns`, `02_confinement.ns`, `03_attenuation.ns`,
+`04_no_ambient.ns`, `05_take_semantics.ns`, `10_take_vs_dispatch.ns` (plus a grep sweep of
+`lib/`, `review/`, and any demo node for stragglers before implementation). Each rewrite
+must **preserve the property that test proves** — a confinement/attenuation test that read
+back a granted value keeps reading it; one that expected nil-on-empty makes the empty case
+explicit (`ifEmpty: [ nil ]` or a distinct marker, whichever keeps the `(* expect: *)`
+block honest). These are behavioral gates; the migration is mechanical but each expected
+output is re-derived, not assumed.
 
 ## Testing (TDD)
 
@@ -150,8 +169,8 @@ public take: rel ifEmpty: emptyBlock = (
 - `take:ifEmpty:` on a never-posted channel → **runs the block** (empty).
 - A subsequent `take:ifEmpty:` after the queue drains → runs the block again (empty is
   transient, re-observable).
-- Bare `take:` still answers `nil` for both a posted-nil and an empty channel (documents
-  the retained lossy convenience).
+- Distinct markers prove the branch taken: post nil → the value branch yields the nil (not
+  the empty marker); never-posted → the empty marker. The two must not collide.
 
 ### C seam — `tests/test_space.c` (new property)
 
@@ -176,14 +195,16 @@ public take: rel ifEmpty: emptyBlock = (
   enforced by `space_take`'s `found` out-param + the `spaceTake:` prim's Array-or-NULL wrap
   + `Channel>>take:ifEmpty:`.
 - Update the `space_take` contract in `space.h`; delete the `space_post_id` apologia.
-- Consider the P0→P2/P3 re-grade David floated in the issue thread (this is a latent
-  correctness fix, no longer gating a rung) — decide at close.
+- **No P0 re-grade** (David, 2026-07-15): the issue is fixed now, so it closes as done
+  regardless of label — the re-grade would be cosmetic churn on the #26 tracker for an
+  issue about to close. Close-as-fixed.
 
 ## Files touched
 
 - `tuvm/src/space.c`, `tuvm/src/space.h` — `space_take` signature + doc; delete apologia.
 - `tuvm/src/platform.c` — `spaceTake:` prim wraps Array-or-NULL.
 - `tuvm/tests/test_space.c` — found-bit property + call-site signature updates.
-- `nsl-tuvm/lib/kernel.ns` — `take:ifEmpty:`, bare `take:` redefined.
-- `nsl-tests/09_channels/12_take_nil_vs_empty.ns` — new gate.
+- `nsl-tuvm/lib/kernel.ns` — add `take:ifEmpty:`, remove one-arg `take:`.
+- `nsl-tests/09_channels/*` — migrate existing `take:` call sites to `take:ifEmpty:`
+  (`01`, `02`, `03`, `04`, `05`, `10`) + new gate `12_take_nil_vs_empty.ns`.
 - `tuvm/review/tests/CLAIMS.md` — promotion row.
