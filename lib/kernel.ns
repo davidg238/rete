@@ -1256,11 +1256,14 @@ class Kernel usingPlatform: platform = () (
       (platform spaceKind: p) = self KIND_CELL ifTrue: [ self error: 'not a stream' ].
       platform spacePost: p value: v.
       ^ self )
-    public take: rel = (
-      | p |
+    public take: rel = ( ^ self take: rel ifEmpty: [ nil ] )
+    public take: rel ifEmpty: emptyBlock = (
+      | p r |
       p:: self resolve: rel.
       (platform spaceKind: p) = self KIND_CELL ifTrue: [ self error: 'not a stream' ].
-      ^ platform spaceTake: p )
+      r:: platform spaceTake: p.
+      r == nil ifTrue: [ ^ emptyBlock value ].
+      ^ r basicAt: 1 )
 
     (* Write the cell. Creates it if new; overwrites if not. Fires `whenever:`
        reactions on every WRITE (not only on a CHANGE of value: we do not compare
