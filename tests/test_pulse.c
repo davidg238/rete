@@ -21,7 +21,7 @@ extern void heap_init(void);
 extern void kernel_boot(void);
 
 /* space.c internals we assert against */
-extern oop space_take(const char *path, size_t len);  /* removes+returns oldest live value, or NULL */
+extern oop space_take(const char *path, size_t len, int *found);  /* removes+returns oldest live value, or NULL; *found=1 iff pulled (tuvm#21) */
 
 /* Task 3: drive the real prim path (gpioPin:edge:post:on: / gpioFire: /
    pumpEvents) via platform_dispatch, the same route the nsl host gate uses. */
@@ -74,9 +74,9 @@ int main(void) {
     pulse_post_isr(c, h1);
     pulse_post_isr(c, h2);
     assert(pulse_pump() == 2 && "two posted -> two pumped");
-    assert(space_take("sys/gpio", 8) == TAG_SMI(11) && "FIFO: first value first");
-    assert(space_take("sys/gpio", 8) == TAG_SMI(22) && "FIFO: second value second");
-    assert(space_take("sys/gpio", 8) == NULL && "queue drained");
+    assert(space_take("sys/gpio", 8, NULL) == TAG_SMI(11) && "FIFO: first value first");
+    assert(space_take("sys/gpio", 8, NULL) == TAG_SMI(22) && "FIFO: second value second");
+    assert(space_take("sys/gpio", 8, NULL) == NULL && "queue drained");
 
     /* overflow aborts with the frozen string */
     g_trigger = trigger_mailbox_overflow;
@@ -104,7 +104,7 @@ int main(void) {
                && "pumpEvents dispatched");
         assert(out == TAG_SMI(1) && "pumpEvents delivered exactly one event");
 
-        assert(space_take("sensor/alert", 12) == TAG_SMI(99)
+        assert(space_take("sensor/alert", 12, NULL) == TAG_SMI(99)
                && "gpioFire:+pumpEvents landed the registered msg on the channel");
         printf("test_pulse: gpio_prim_roundtrip PASS\n");
     }
@@ -140,7 +140,7 @@ int main(void) {
                && "pumpEvents dispatched");
         assert(out == TAG_SMI(1) && "pumpEvents delivered exactly one event");
 
-        assert(space_take("sensor/leak", 11) == TAG_SMI(39)
+        assert(space_take("sensor/leak", 11, NULL) == TAG_SMI(39)
                && "last re-registered value (39) round-trips, not a stale one");
         printf("test_pulse: gpio_reregister_no_handle_leak PASS\n");
     }

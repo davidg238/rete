@@ -223,11 +223,11 @@ int main(void) {
         oop v1 = TAG_SMI(401), v2 = TAG_SMI(402);
         space_post("a/b", 3, v1);
         space_post("a/b", 3, v2);
-        oop t1 = space_take("a/b", 3);
+        oop t1 = space_take("a/b", 3, NULL);
         assert(t1 == v1 && "take must return the OLDEST queued value first");
-        oop t2 = space_take("a/b", 3);
+        oop t2 = space_take("a/b", 3, NULL);
         assert(t2 == v2 && "take must return the second value next");
-        oop t3 = space_take("a/b", 3);
+        oop t3 = space_take("a/b", 3, NULL);
         assert(t3 == NULL && "take on a drained channel must answer nil");
         printf("test_space: property 2 (post/take FIFO order) OK\n");
     }
@@ -236,9 +236,9 @@ int main(void) {
     {
         oop v3 = TAG_SMI(403);
         space_post("a/b", 3, v3);
-        oop miss = space_take("a/bc", 4);
+        oop miss = space_take("a/bc", 4, NULL);
         assert(miss == NULL && "\"a/bc\" must never match \"a/b\"'s queued event");
-        oop hit = space_take("a/b", 3);
+        oop hit = space_take("a/b", 3, NULL);
         assert(hit == v3 && "the exact-match channel must still have its value");
         printf("test_space: property 3 (take exact-match: \"a/b\" != \"a/bc\") OK\n");
     }
@@ -354,7 +354,7 @@ int main(void) {
         assert(memcmp(((struct String *)heap_val)->bytes, val_s, strlen(val_s)) == 0
                && "value bytes must be intact post-GC");
 
-        oop taken = space_take("gc/chan", 7);
+        oop taken = space_take("gc/chan", 7, NULL);
         assert(taken == heap_val && "take after GC must still return the same (live) oop");
         printf("test_space: property 7 (GC: queued value + registered block/owner survive a collection) OK\n");
     }
@@ -397,12 +397,12 @@ int main(void) {
         /* History intact: the cell's one poke carries the COALESCED value;
            the stream kept exactly its pre-overload events in FIFO order; the
            shed 999 never appears. */
-        assert(space_take("sensor", 6) == TAG_SMI(42) && "queued poke coalesced to latest");
+        assert(space_take("sensor", 6, NULL) == TAG_SMI(42) && "queued poke coalesced to latest");
         for (int i = 1; i < OEVM_SPACE_QUEUE_DEPTH; i++) {
-            assert(space_take("a", 1) == TAG_SMI(500 + i) &&
+            assert(space_take("a", 1, NULL) == TAG_SMI(500 + i) &&
                    "FIFO history intact up to the overload point");
         }
-        assert(space_take("a", 1) == NULL && "the shed 999 must not appear");
+        assert(space_take("a", 1, NULL) == NULL && "the shed 999 must not appear");
 
         /* Asking a never-interned path reads 0 WITHOUT interning it
            (space_take's rule) — with the registry full, interning here
@@ -430,7 +430,7 @@ int main(void) {
     {
         /* Drain the SMI events property 8 left filling the ring (posted on
            "a"); space_take never allocates, so this is stress-safe. */
-        while (space_take("a", 1) != NULL) {}
+        while (space_take("a", 1, NULL) != NULL) {}
 
         const char *v9_s = "heap-value-dequeued-under-stress";
         oop v9 = make_string(v9_s, strlen(v9_s));
@@ -474,9 +474,36 @@ int main(void) {
         uint32_t hw1 = space_queue_high_water();
         assert(hw1 >= hw0 && "high water never decreases");
         assert(hw1 >= 3 && "three simultaneously-queued events must register");
-        while (space_take("hw/probe", 8) != NULL) { }
+        while (space_take("hw/probe", 8, NULL) != NULL) { }
         assert(space_queue_high_water() == hw1 && "draining does not lower high water");
         printf("test_space: queue high-water PASS\n");
+    }
+
+    /* --- Property 10 (tuvm#21): a posted nil is DISTINGUISHABLE from an empty
+       channel. The bare value is NULL in both cases; space_take's `found`
+       out-param is the only signal. Reuses the already-interned, freshly-drained
+       "hw/probe" channel — no new registry entry under MAX_CHANNELS=8. --- */
+    {
+        int found = -1;
+        while (space_take("hw/probe", 8, NULL) != NULL) { }   /* ensure empty */
+
+        found = -1;
+        oop e = space_take("hw/probe", 8, &found);
+        assert(e == NULL && found == 0 && "empty channel: NULL value AND found==0");
+
+        found = -1;
+        space_post("hw/probe", 8, NULL);                       /* post a nil */
+        oop v = space_take("hw/probe", 8, &found);
+        assert(v == NULL && found == 1 && "posted nil: NULL value but found==1");
+
+        found = -1;
+        assert(space_take("hw/probe", 8, &found) == NULL && found == 0
+               && "after taking the nil the channel is empty again: found==0");
+
+        space_post("hw/probe", 8, TAG_SMI(7));
+        assert(space_take("hw/probe", 8, NULL) == TAG_SMI(7)
+               && "a NULL found arg still returns the value");
+        printf("test_space: property 10 (tuvm#21 posted-nil vs empty distinguishable) OK\n");
     }
 
     printf("test_space: OK\n");

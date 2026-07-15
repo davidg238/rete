@@ -220,10 +220,9 @@ void space_post_id(int chan_id, oop value) {
     }
     size_t tail = (q_head + q_count) % OEVM_SPACE_QUEUE_DEPTH;
     queue[tail].chan = chan_id;
-    /* nil (NULL) is a legal rank-0 value payload here — but it is
-       indistinguishable from "nothing queued" at the take:/dequeue read
-       side (both answer NULL); callers cannot tell a stored nil apart from
-       an empty channel. */
+    /* nil (NULL) is a legal rank-0 value payload; the pull side distinguishes a
+       stored nil from an empty channel via space_take's `found` out-param
+       (tuvm#21), so it is stored here without ceremony. */
     queue[tail].value = value;
     queue[tail].live = 1;
     q_count++;
@@ -234,9 +233,9 @@ void space_post(const char *path, size_t len, oop value) {
     space_post_id(space_intern(path, len), value);
 }
 
-oop space_take(const char *path, size_t len) {
+oop space_take(const char *path, size_t len, int *found) {
     int chan = find_channel(path, len);
-    if (chan < 0) return NULL;
+    if (chan < 0) { if (found) *found = 0; return NULL; }
     for (size_t k = 0; k < q_count; k++) {
         size_t idx = (q_head + k) % OEVM_SPACE_QUEUE_DEPTH;
         if (queue[idx].live && queue[idx].chan == chan) {
@@ -244,9 +243,11 @@ oop space_take(const char *path, size_t len) {
             queue[idx].live = 0;
             queue[idx].value = NULL;   /* drop the reference promptly for GC */
             if (idx == q_head) compact_head();
+            if (found) *found = 1;
             return value;
         }
     }
+    if (found) *found = 0;
     return NULL;
 }
 

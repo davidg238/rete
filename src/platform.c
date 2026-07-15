@@ -403,7 +403,7 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
             abort();
         }
         struct String *p = (struct String *)path;
-        { *out = space_take((const char *)p->bytes, p->length); return 1; }
+        { *out = space_take((const char *)p->bytes, p->length, NULL); return 1; }
     }
     case PRIM_pf_spaceKind: {
         /* Rung 9 — `platform spaceKind: path` -> SMI 0 unset / 1 stream / 2 cell.
