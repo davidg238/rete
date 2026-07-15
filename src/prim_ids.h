@@ -157,6 +157,15 @@
                        of G2's "never silent"; the sys/metrics push side is
                        tuvm#24. */
 #define PRIM_pf_spaceOverruns 108
+/* tuvm#24: sys-telemetry leaf (`sysStats`), appended after spaceOverruns: — no
+   pre-existing id shifts. 109 arrived at by COUNTING PRIM_NAMES (108 entries
+   before this append), not by 108+1 arithmetic, per the standing lesson above.
+     sysStats -> 4-slot Array of SMIs [handlesLive, handlesHighWater,
+                 queueHighWater, totalOverruns] (heapStats' shape, prim 104).
+                 The push-side sys/metrics record is composed in nsl
+                 (kernel metrics) and published by the APP onto a cell — the
+                 kernel never writes the space (capability rule). */
+#define PRIM_pf_sysStats 109
 /* Rung 3 Task 4: the out-of-range sentinel returned by cborIntFromMajor:arg:
    for the one unrepresentable CBOR integer (major 1, arg 2^64-1 => value -2^64,
    just past the ratified +/-(2^64-1) range). In this VM nil IS the C NULL

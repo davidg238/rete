@@ -727,6 +727,27 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         ((struct ObjectInstance *)r)->slots[5] = TAG_SMI((intptr_t)st.gc_cycles);
         *out = r; return 1;
     }
+    case PRIM_pf_sysStats: {
+        /* tuvm#24: `platform sysStats` — snapshot handle/ring/overrun telemetry
+           into a 4-slot Array of SMIs, in field order [handlesLive,
+           handlesHighWater, queueHighWater, totalOverruns]. Same GC-safety
+           shape as heapStats above: all four scalars are copied into C locals
+           BEFORE the single allocating call (indexable_new); the stores are
+           SMIs (immediates, no allocation), so no heap oop is held across an
+           allocation and no gc_temp_root pin is required. Every value is far
+           below SMI range on host and target alike (table/ring/counter
+           magnitudes). args ignored (0-arg selector). */
+        unsigned hl = handle_live_count();
+        unsigned hh = handle_high_water();
+        uint32_t qh = space_queue_high_water();
+        uint32_t ov = space_overruns("", 0);
+        oop r = indexable_new(4);
+        ((struct ObjectInstance *)r)->slots[1] = TAG_SMI((intptr_t)hl);
+        ((struct ObjectInstance *)r)->slots[2] = TAG_SMI((intptr_t)hh);
+        ((struct ObjectInstance *)r)->slots[3] = TAG_SMI((intptr_t)qh);
+        ((struct ObjectInstance *)r)->slots[4] = TAG_SMI((intptr_t)ov);
+        *out = r; return 1;
+    }
     case PRIM_pf_pumpEvents:
         *out = TAG_SMI(pulse_pump());
         return 1;
