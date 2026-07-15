@@ -1,0 +1,44 @@
+(*
+expect:
+true
+true
+true
+true
+true
+true
+true
+true
+done
+*)
+(* tuvm#24: the sys/metrics story end-to-end — prim 109 (sysStats) + kernel
+   metrics (the 9-field flat Record, schema pinned in
+   porta/docs/PROTOCOL-NSL-RECORDS.md) + the sys/metrics CELL (rung 9): a
+   reader peeks current state by NAME, non-destructively, without draining a
+   stream another consumer counts on (WHY-AGENTS rider). Absolute values vary
+   run-to-run, so this asserts structural invariants only (01_invariants
+   precedent). Publishing is the app's act — this test IS the publisher (G9:
+   no unrequested periodic work; no periodic publisher exists). Both-path
+   A==B gate. *)
+class SysMetricsTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | m cell got |
+  m:: platform metrics.
+  (m tag = #Metrics) printString println.
+  ((m at: #heapSize ifAbsent: [ -1 ]) > 0) printString println.
+  ((m at: #heapHighWater ifAbsent: [ -1 ]) >= (m at: #liveBytes ifAbsent: [ 0 ])) printString println.
+  ((m at: #handlesHighWater ifAbsent: [ -1 ]) >= (m at: #handlesLive ifAbsent: [ 0 ])) printString println.
+  ((m at: #overruns ifAbsent: [ -1 ]) = (platform spaceOverruns: '')) printString println.
+
+  cell:: platform space channel: 'sys/metrics'.
+  cell put: '' value: m.
+  got:: cell peek: '' ifAbsent: [ nil ].
+  (got = m) printString println.
+  ((got at: #queueHighWater ifAbsent: [ -1 ]) >= 0) printString println.
+
+  (* the put above enqueued a reaction event, so a FRESH snapshot must show
+     the ring has been occupied at least once *)
+  ((platform metrics at: #queueHighWater ifAbsent: [ -1 ]) >= 1) printString println.
+  'done' println.
+)
+) : (
+)
