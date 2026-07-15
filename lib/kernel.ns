@@ -1986,6 +1986,7 @@ class Kernel usingPlatform: platform = () (
      silent" (the periodic sys/metrics push side is tuvm#24). Thin forwarder,
      same shape as spaceDropReactionsOwnedBy: above. *)
   public spaceOverruns: p = ( ^ platform spaceOverruns: p )
+  public sysStats = ( ^ platform sysStats )
   (* Milestone D Task 6: the host virtual-clock timer seam. Thin forwarders,
      same shape as spaceDropReactionsOwnedBy: above — the `Timers` class
      (below) is the only intended caller (it holds `platform` as its
@@ -2026,6 +2027,28 @@ class Kernel usingPlatform: platform = () (
   public Cbor              = ( ^ Cbor new )
   public HeapStats         = ( ^ HeapStats )
   public heapStats         = ( ^ HeapStats fromList: (platform heapStats) )
+  (* tuvm#24: the sys/metrics snapshot — prim 104 (heapStats) + prim 109
+     (sysStats) composed into ONE flat immutable Record, the sys/metrics
+     cell's wire schema (pinned in porta/docs/PROTOCOL-NSL-RECORDS.md §4.4).
+     The kernel only BUILDS the record; publishing it onto a cell is the
+     app's act, on a user-requested cadence (G9), with the channel arriving
+     as a capability — the kernel never conjures space access (Milestone-C
+     constructor-args rule). Raw prim arrays are read with basicAt:, the
+     HeapStats precedent. *)
+  public metrics = ( | h s pairs |
+    h:: platform heapStats.
+    s:: platform sysStats.
+    pairs:: OrderedCollection new.
+    pairs add: #heapSize -> (h basicAt: 1).
+    pairs add: #liveBytes -> (h basicAt: 2).
+    pairs add: #heapHighWater -> (h basicAt: 3).
+    pairs add: #largestFreeBlock -> (h basicAt: 4).
+    pairs add: #gcCycles -> (h basicAt: 5).
+    pairs add: #handlesLive -> (s basicAt: 1).
+    pairs add: #handlesHighWater -> (s basicAt: 2).
+    pairs add: #queueHighWater -> (s basicAt: 3).
+    pairs add: #overruns -> (s basicAt: 4).
+    ^ Record tag: #Metrics fields: (Map fromPairs: pairs) )
   (* Milestone E Task 1: crash-Record factory reachable from ANY context. The
      error:/error:tag: raise prims cannot reach the sibling `Record` class from an
      app receiver (v1 BLOCKED finding), but they DO hold the captured Kernel
