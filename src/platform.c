@@ -394,8 +394,12 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         { *out = platform_object(); return 1; }
     }
     case PRIM_pf_spaceTake: {
-        /* `platform spaceTake: path` — remove-if-present-now; answers the
-           value or nil (NULL). */
+        /* `platform spaceTake: path` — remove-if-present-now. Answers a 1-slot
+           Array{value} when an event was pulled (the value MAY be nil), or nil
+           when the channel is empty — the Array-or-NULL disambiguation nsl's
+           take:ifEmpty: unwraps (tuvm#21), the same shape spaceDequeue uses.
+           The wrap allocates HERE (thread context), keeping space_take itself
+           non-allocating. */
         oop path = args[0];
         if (path == NULL || IS_SMI(path) || StringVtable == NULL ||
             obj_vtable(path) != StringVtable) {
@@ -403,7 +407,13 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
             abort();
         }
         struct String *p = (struct String *)path;
-        { *out = space_take((const char *)p->bytes, p->length, NULL); return 1; }
+        int found = 0;
+        oop v = space_take((const char *)p->bytes, p->length, &found);
+        if (!found) { *out = NULL; return 1; }              /* empty stream -> nil */
+        oop wrap = indexable_new(1);                         /* Array{value} */
+        ((struct ObjectInstance *)wrap)->slots[1] = v;       /* v rooted: no alloc between read and store */
+        *out = wrap;
+        return 1;
     }
     case PRIM_pf_spaceKind: {
         /* Rung 9 — `platform spaceKind: path` -> SMI 0 unset / 1 stream / 2 cell.
