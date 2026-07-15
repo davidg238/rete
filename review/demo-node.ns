@@ -171,7 +171,7 @@ class DemoNode packageUsing: manifest = () (
       power:  (space channel: 'sup/node7/power').
     node start.
     space drain.
-    ((space channel: 'node7/reading') take: '') printString out.
+    ((space channel: 'node7/reading') take: '' ifEmpty: [ nil ]) printString out.
   )
 ) : (
 )
