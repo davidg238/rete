@@ -1256,7 +1256,6 @@ class Kernel usingPlatform: platform = () (
       (platform spaceKind: p) = self KIND_CELL ifTrue: [ self error: 'not a stream' ].
       platform spacePost: p value: v.
       ^ self )
-    public take: rel = ( ^ self take: rel ifEmpty: [ nil ] )
     public take: rel ifEmpty: emptyBlock = (
       | p r |
       p:: self resolve: rel.
