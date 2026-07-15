@@ -17,7 +17,7 @@ public main: platform args: args = (
   a whenever: '' do: [ :v | ('r-' , v) out ].
   a out: '' value: 'e1'.
   a out: '' value: 'e2'.
-  (a take: '') out.
+  (a take: '' ifEmpty: [ nil ]) out.
   space drain.
 )
 ) : (

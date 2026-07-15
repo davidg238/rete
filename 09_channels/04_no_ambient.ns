@@ -18,8 +18,8 @@ public main: platform args: args = (
   space:: platform space.
   job:: [ :cap | (cap channel: 'x') out: '' value: 7 ].
   job value: (space channel: 'node7').
-  (((space channel: 'sup/anything') take: '') == nil) printString out.
-  ((space channel: 'node7/x') take: '') printString out.
+  (((space channel: 'sup/anything') take: '' ifEmpty: [ nil ]) == nil) printString out.
+  ((space channel: 'node7/x') take: '' ifEmpty: [ nil ]) printString out.
 )
 ) : (
 )

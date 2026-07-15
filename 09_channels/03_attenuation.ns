@@ -18,9 +18,9 @@ public main: platform args: args = (
   capAB:: capA channel: 'b'.
   capABC:: capAB channel: 'c'.
   capABC out: '' value: 5.
-  (capABC take: '') printString out.
-  (((capAB channel: 'other') take: '') == nil) printString out.
-  (((capA channel: 'x') take: '') == nil) printString out.
+  (capABC take: '' ifEmpty: [ nil ]) printString out.
+  (((capAB channel: 'other') take: '' ifEmpty: [ nil ]) == nil) printString out.
+  (((capA channel: 'x') take: '' ifEmpty: [ nil ]) == nil) printString out.
 )
 ) : (
 )

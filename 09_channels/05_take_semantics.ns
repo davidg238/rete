@@ -16,13 +16,13 @@ class TakeSemantics packageUsing: manifest = () (
 public main: platform args: args = (
   | space |
   space:: platform space.
-  ((space take: 'x') == nil) printString out.
+  ((space take: 'x' ifEmpty: [ nil ]) == nil) printString out.
   space out: 'x' value: 5.
-  (space take: 'x') printString out.
-  ((space take: 'x') == nil) printString out.
+  (space take: 'x' ifEmpty: [ nil ]) printString out.
+  ((space take: 'x' ifEmpty: [ nil ]) == nil) printString out.
   space whenever: 'y' do: [ :v | 'fired' out ].
   space out: 'y' value: 7.
-  (space take: 'y') printString out.
+  (space take: 'y' ifEmpty: [ nil ]) printString out.
   space drain.
   'done' out.
 )

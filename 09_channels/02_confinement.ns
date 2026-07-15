@@ -17,11 +17,11 @@ public main: platform args: args = (
   | space |
   space:: platform space.
   (space channel: 'sensor') out: '' value: 99.
-  (((space channel: 'sensors') take: '') == nil) printString out.
-  ((space channel: 'sensor') take: '') printString out.
+  (((space channel: 'sensors') take: '' ifEmpty: [ nil ]) == nil) printString out.
+  ((space channel: 'sensor') take: '' ifEmpty: [ nil ]) printString out.
   (space channel: 'a/b') out: '' value: 77.
-  (((space channel: 'a/bc') take: '') == nil) printString out.
-  ((space channel: 'a/b') take: '') printString out.
+  (((space channel: 'a/bc') take: '' ifEmpty: [ nil ]) == nil) printString out.
+  ((space channel: 'a/b') take: '' ifEmpty: [ nil ]) printString out.
 )
 ) : (
 )

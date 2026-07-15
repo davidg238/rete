@@ -16,7 +16,7 @@ public main: platform args: args = (
   capA:: (space channel: 'a') channel: 'b/c'.
   capB:: space channel: 'a/b/c'.
   capA out: '' value: 42.
-  (capB take: '') printString out.
+  (capB take: '' ifEmpty: [ nil ]) printString out.
 )
 ) : (
 )
