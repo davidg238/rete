@@ -1,2 +1,2 @@
-text 29732
-data_bss 68384
+text 29922
+data_bss 68396

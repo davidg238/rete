@@ -42,8 +42,18 @@ first overrun per channel prints one line). `abort()` in space.c now means only
 structural invariants. Design:
 `nsl-tuvm/docs/design/2026-07-14-tuvm20-overflow-policy-design.md`; gate
 `nsl-tests/17_overflow/`. Still open here: the ISR-half rules below at each new
-event source, the pulse-mailbox overflow (its own seam), and the sys/metrics push +
-queue high-water (tuvm#24).
+event source, and the pulse-mailbox overflow (its own seam).
+
+**Queue high-water + push side CLOSED 2026-07-14 (tuvm#24):** ring-occupancy
+high-water (`q_high_water` in `tuvm/src/space.c`, monotonic max of `q_count`
+bumped at post time — note it counts ring SLOTS including lazily-dead
+not-yet-compacted ones, so it measures ring-slot **pressure**, not logical
+queue depth) is pulled via prim 109 `sysStats` and pushed as the
+`queueHighWater` field of the `sys/metrics` record (G4's "queue high-water
+marks are a first-class metric" is now landed, not just named). Overruns
+(this section, above) were already counted by #20; both numbers now travel
+together in the one record. Design:
+`nsl-tuvm/docs/design/2026-07-14-tuvm24-sys-metrics-design.md`.
 
 The C→nsl event path is the reactor's front door, and its failure mode under load
 was previously undefined.
@@ -86,6 +96,37 @@ fleet-wide symptom by then.
   10_soak_leak.ns` (T-D.5, landed) therefore asserts the weaker
   completion+responsiveness invariant, not a strict plateau — this gap is
   still open and is exactly what closing it would unblock.
+- **CLOSED 2026-07-14 (tuvm#24):** the gauge is now exported end-to-end — prim
+  104 (`heapStats`) + the new prim 109 (`sysStats`: handle live/high-water,
+  queue high-water, overrun total) compose in `kernel metrics` into a 9-field
+  flat `Record tag: #Metrics`, published on a `sys/metrics` **cell** (rung 9
+  `put:`/`peek:`) so any grantee reads current state by name without draining
+  a stream another consumer counts on. Schema pinned
+  `porta/docs/PROTOCOL-NSL-RECORDS.md` §4.4. `nsl-tests/11_supervision/
+  10_soak_leak.ns` (T-D.5) now asserts a STRICT live-bytes plateau, not the
+  completion proxy — the gap above is closed. Design:
+  `nsl-tuvm/docs/design/2026-07-14-tuvm24-sys-metrics-design.md`.
+  **Gauge-correction story (execution finding, keep — the next person who
+  reaches for `highWater` will hit this too):** the originally planned gauge
+  — "highWater plateaus unless there's a leak" — is FALSE on this VM: GC
+  fires only on arena exhaustion (no on-demand collect prim yet; tuvm#35
+  filed), so a healthy soak against the 16 MB host arena never collects and
+  `highWater` is just a monotonic max over cumulative allocation (measured: a
+  deterministic +9,121,280 B climb across 90k iterations, three identical
+  healthy runs — pure noise, no leak). Corrected gauge: force a sweep at each
+  sample point (spin allocation until `gcCycles` increments —
+  `sweptLiveBytes:` in the test) and sample `liveBytes` at that sweep
+  boundary. Tuning gave delta 1240/1240/1240 B across three runs → tolerance
+  8192 B (~176x below the smallest leak the test must catch); an
+  injected-leak run falsified correctly (`plateau false` at delta 217,888 B).
+  **Bonus fragmentation datum, filed against tuvm#19 (idle-time slide
+  compaction, gated on exactly this kind of soak evidence):** the same soak
+  workload independently showed a doubling `OrderedCollection`
+  fragmentation-OOMs the non-compacting arena well before `liveBytes`
+  exhausts — a large contiguous block becomes unavailable mid-run even though
+  the sum of free bytes would suffice. A second, distinct data point (beyond
+  years-long uptime) that a non-moving GC dies of fragmentation before it
+  dies of volume.
 
 ## G4 — Field forensics: what do you hold after a node dies at 3am?
 
