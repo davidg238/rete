@@ -196,7 +196,14 @@ separate stop button, and stop always wins"* — **deleted the tombstone**: a st
 `review/cells-and-streams-v3.html` (supersedes v1/v2); code: `review/cells-sketch.ns` (the same
 PID scenario under option A and under option C — the diff is the argument).
 
-0. **Rung 9 — cells.** `nsl-tuvm/docs/design|superpowers/plans/2026-07-13-rung9-cells.*`. A value
+0. **Rung 9 — cells. DONE 2026-07-13** (tuvm 0cadc2c · nsl-tuvm aa21b71 · nsl-tests
+   8c9536c; suite 189/0/10 both paths; tuvm#32 closed with the ruling; footprint
+   re-banked +605 B text / +256 B BSS with the reason).
+   *(Post-close, 2026-07-14: a P0 sweep rode the seam while it was hot — tuvm#23
+   crash-timer-sweep and tuvm#20 G2 overflow policy both landed, gated, and closed;
+   suite floor now 193/0/10; ISR-side residue filed as tuvm#34. The kind field this
+   rung added is what let #20's overflow policy need zero new API.)*
+   `nsl-tuvm/docs/design|superpowers/plans/2026-07-13-rung9-cells.*`. A value
    slot on `SpaceChannel`, three prims (`spaceKind:` / `spacePeek:` / `spacePut:value:`), two
    `Channel` methods (`put:value:`, `peek:ifAbsent:`). `put` posts onto the **existing** ring, so
    a `whenever:` on a cell fires through the unchanged reactor — the only difference from a post
