@@ -23,4 +23,9 @@ oop  handle_get(int idx);
 void handle_free(int idx);
 /* Mark every live slot as a GC root (called from gc_collect's root scan). */
 void handle_gc_trace(void);
+/* tuvm#24 telemetry: currently-live pins, and the monotonic max ever observed.
+   Maintained incrementally in handle_new/handle_free (no scan). Read by the
+   sysStats prim (platform.c) for the sys/metrics record. */
+unsigned handle_live_count(void);
+unsigned handle_high_water(void);
 #endif /* OEVM_HANDLES_H */

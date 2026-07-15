@@ -73,6 +73,27 @@ int main(void) {
     assert(handle_get(h2) == again && "reused slot resolves");
     handle_free(h2);
 
+    /* tuvm#24: live/high-water counters track pin + release exactly. Relative
+       assertions only — earlier properties may hold pins of their own. */
+    {
+        unsigned live0 = handle_live_count();
+        unsigned hw0   = handle_high_water();
+        int a = handle_new(make_str());
+        int b = handle_new(make_str());
+        assert(handle_live_count() == live0 + 2 && "two pins raise live by 2");
+        assert(handle_high_water() >= hw0 && "high water never decreases");
+        assert(handle_high_water() >= live0 + 2 && "high water covers the new peak");
+        unsigned hw1 = handle_high_water();
+        handle_free(a);
+        assert(handle_live_count() == live0 + 1 && "free lowers live");
+        handle_free(a);  /* double-free must not skew the gauge */
+        assert(handle_live_count() == live0 + 1 && "double-free is idempotent on live count");
+        assert(handle_high_water() == hw1 && "high water is monotonic, unaffected by free");
+        handle_free(b);
+        assert(handle_live_count() == live0 && "back to baseline");
+        printf("test_handles: counters PASS\n");
+    }
+
     /* overflow aborts with the frozen string */
     g_trigger = trigger_overflow;
     expect_abort("overflow", "handle table full");
