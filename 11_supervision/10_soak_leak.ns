@@ -7,6 +7,7 @@ crash cycles 5000
 restarts 5000
 quarantined false
 final 1
+plateau true
 done
 *)
 (* T-D.5 soak + leak plateau — the standing leak detector for the shared-heap
@@ -19,20 +20,18 @@ done
    design; kept in the suite (no per-file slow-skip in the runner) at a count
    that is meaningful but does not dominate the gate — see MILESTONE_D.md.
 
-   HEAP GAUGE: grep-confirmed there is no nsl-visible heap/free-bytes
-   accessor. `oevm_heap_stats()` exists in C (tuvm/src/oevm.h:399-414,
-   gc.c:839) and reports live_bytes/high_water/largest_free_block, but it is
-   never wired to a prim — `tuvm/src/prim_ids.h`'s append-only id list runs
-   59-89 (Milestone D Task 6's timer prims are the last additions) with
-   nothing heap-related, and `kernel.ns` has no `platform`-level forwarder
-   for it (grep of both files: no hit). So this test asserts the WEAKER
-   invariant the Task 10 brief allows in that case: the run completes (no
-   OOM abort, no "channel reactions full"/"channel queue full" exhaustion
-   despite 5,000 restart cycles reusing the same rootCap's reaction slot)
-   and the node is still responsive to a final healthy event. When a gauge
-   is wired (extend oevm_heap_stats() to a platform prim), extend this test
-   to sample it every ~10k events and assert bounded variance instead of
-   this completion proxy.
+   HEAP GAUGE (tuvm#24): `platform heapStats` (prim 104) reports
+   liveBytes / highWater / gcCycles. highWater was REJECTED as the plateau
+   gauge: GC in this VM fires only on arena exhaustion (no on-demand collect
+   prim yet — filed as tuvm#35), so a healthy soak that never exhausts the
+   arena never collects, and highWater is then a monotonic max over
+   CUMULATIVE allocation (measured ~9.1 MB over this test's 90k-iteration
+   window — pure noise, dwarfing any leak-sized signal). Raw liveBytes is no
+   better between sweeps: it carries floating-garbage noise (live-at-last-
+   sweep + every allocation since). The gauge that works: FORCE a sweep at
+   each sample point — spin allocating droppable garbage until gcCycles
+   ticks (see sweptLiveBytes:) — then read liveBytes at that sweep boundary,
+   where it means true live data plus only the spin's own tail allocations.
 
    Why quarantine never triggers (so the crash/restart cycle is CONTINUOUS
    for the whole run, not just the first 3 crashes): each crash iteration
@@ -48,9 +47,24 @@ done
    exercise of the restart path (sweep + re-register), not a one-shot. *)
 class SoakLeak packageUsing: manifest = ( | h1Hits ::= 0. h2Hits ::= 0. h3Hits ::= 0.
                                             crashCycles ::= 0. restarts ::= 0. finalHits ::= 0.
-                                            cycleCounter ::= 0. | ) (
+                                            cycleCounter ::= 0. liveWarm ::= 0. | ) (
+  (* Force a sweep, then read liveBytes. GC fires only on arena exhaustion
+     (tuvm#35 tracks an on-demand collect prim), so spin allocating droppable
+     garbage until the cycle counter ticks; the reading is then live data at
+     a sweep boundary plus a few spin-tail allocations, which the plateau
+     tolerance absorbs. Allocation is batched 64 per gcCycles poll so the
+     heapStats free-bin walk is not paid per allocation. The spin cannot
+     OOM: exhaustion IS the collection trigger, and the sweep frees the
+     spin's own garbage. *)
+  sweptLiveBytes: platform = (
+    | before |
+    before:: platform heapStats gcCycles.
+    [ platform heapStats gcCycles = before ] whileTrue: [
+      1 to: 64 do: [ :k | k printString , 'g' ] ].
+    ^ platform heapStats liveBytes
+  )
   public main: platform args: args = (
-    | space sup h1 h2 h3 crasher progress final n |
+    | space sup h1 h2 h3 crasher progress final n liveEnd |
     space:: platform space.
     sup::   platform supervisor.
     h1:: space channel: 'h1'.
@@ -83,6 +97,7 @@ class SoakLeak packageUsing: manifest = ( | h1Hits ::= 0. h2Hits ::= 0. h3Hits :
         crashCycles:: crashCycles + 1.
         crasher  out: '' value: i.
         progress out: '' value: i ].
+      (i = 10000) ifTrue: [ liveWarm:: self sweptLiveBytes: platform ].
       space drain ].
 
     (* Node still alive and responsive: a fresh channel, registered only now,
@@ -98,6 +113,26 @@ class SoakLeak packageUsing: manifest = ( | h1Hits ::= 0. h2Hits ::= 0. h3Hits :
     ('restarts ' , restarts printString) out.
     ('quarantined ' , (sup isQuarantined: 'crasher') printString) out.
     ('final ' , finalHits printString) out.
+
+    (* T-D.5 STRICT PLATEAU (tuvm#24 — the assertion this test was designed
+       around, enabled now that prim 104 exists): swept liveBytes is sampled
+       at iteration 10,000 (past warm-up: caches, supervisor state, ring
+       growth all settled) and again here, after 90,000 further iterations
+       and ~4,500 further crash/restart cycles. Each sample is taken at a
+       FORCED sweep boundary (see sweptLiveBytes: and the HEAP GAUGE note
+       above for why highWater cannot serve), so floating garbage is out of
+       the reading and any real leak — retained, so it survives the sweep —
+       forces the delta upward. The delta may legitimately be negative (end
+       live below warm-up live); <= handles that.
+       TOLERANCE: 8192 bytes = max(4 x observed delta, 4096) rounded up to a
+       power of two. Observed on host (2026-07-14, tuning per tuvm#24 Task 4):
+       three runs, live delta 1240 / 1240 / 1240 bytes — this VM is
+       deterministic, so cross-run noise is zero and the 1240 is the spin's
+       own sweep-tail residue. 8192 is ~176x below the smallest leak this
+       test must catch (16 B/iteration x 90k = 1.44 MB). Verdict only, never
+       raw bytes (host/target/run vary). *)
+    liveEnd:: self sweptLiveBytes: platform.
+    ('plateau ' , ((liveEnd - liveWarm) <= 8192) printString) out.
     'done' out.
   )
 ) : (
