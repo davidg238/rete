@@ -14,7 +14,13 @@ void platform_console_write(const char *bytes, size_t n) {
     if (n) fwrite(bytes, 1, n, stdout);
 }
 void platform_console_flush(void) {
-    fflush(stdout);
+    /* Deliberately empty. main() sets stdout to _IONBF, so there is never
+       anything buffered to flush. Calling fflush() here is not merely
+       redundant on ESP32 — it is fatal: esp32.rom.newlib-funcs.ld assigns
+       `fflush` as a STRONG symbol (not PROVIDE) to ROM newlib, overriding
+       picolibc's by design. ROM fflush calls ROM __getreent, which reads an
+       ESP-IDF/FreeRTOS TCB reent pointer that does not exist under Zephyr,
+       and faults on a NULL load (EXCCAUSE 28). */
 }
 
 #else

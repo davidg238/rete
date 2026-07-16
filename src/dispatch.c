@@ -2,6 +2,7 @@
 #include "frame_abi.h"
 #include "oimg.h"
 #include "platform.h"
+#include "platform_backend.h"
 #include "serial.h"
 #include "udp.h"
 #include "mirror.h"
@@ -1376,7 +1377,7 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                     // by Object.ns (via printString) — fall through to vtable method lookup.
                     break;
                 }
-                fflush(stdout);
+                platform_console_flush();
                 return receiver;
             }
             break;
@@ -1461,7 +1462,7 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                 } else {
                     printf("[Object %p]\n", (void *)receiver);
                 }
-                fflush(stdout);
+                platform_console_flush();
                 return receiver;
             }
             break;
