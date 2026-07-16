@@ -81,6 +81,37 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
    pulse primitive** (demo-node finding — the Zephyr seam's shape). On-device memory work rides
    the G3 decision (`2026-07-04-G3-gc-strategy-decision.md`: non-moving mark-sweep + M1–M6
    mitigations); soft watchdog via the debugger safe-point hook (kept in A for this reason).
+
+   In-rung finding 2026-07-16 — **the ESP32 ROM silently outranks the libc Kconfig.** The VM
+   boots and runs on a real ESP32-WROOM-32 (`esp32_devkitc/esp32/procpu`, `tuvm/zephyr/prj_esp32.conf`),
+   prints `TIMER OK`, then faulted EXCCAUSE 28 (load prohibited, VADDR 0). Root cause is NOT
+   the `^0` return path and NOT the uncancelled `every: 200` k_timer — both hypotheses were
+   wrong, and both cost a session. It is the **print itself**: `tuvm/src/dispatch.c`'s `out`
+   prim called `fflush(stdout)` → ROM `fflush` 0x40059394 → ROM `__getreent` 0x4000be8c →
+   NULL load. `esp32.rom.newlib-funcs.ld` assigns all 62 of its newlib symbols by **plain
+   assignment, not PROVIDE** — i.e. STRONG symbols, deliberately, per that file's own header
+   ("so that ROM functions are always used instead of the ones provided by libc.a"). **The
+   consequence generalizes past this bug: on ESP32 the libc choice is not authoritative.**
+   Picolibc-vs-newlib is decided per-symbol by a vendor linker script, which is why the
+   newlib→picolibc switch changed nothing and why the host ASan repro stayed green (glibc's
+   fflush is fine) — a class of bug the host harness structurally cannot see. Most of the 62
+   are pure and harmless (`memcpy`/`strlen`/`abs`); the biting ones are anything touching
+   `_reent` — `fflush`, `fclose`, `fputwc`, `ungetc`, `wcrtomb` — since ROM `__getreent`
+   wants an ESP-IDF/FreeRTOS TCB that Zephyr never creates. **Diagnostic:** `nm zephyr.elf`
+   — `A` (absolute) = ROM-bound, `T` at 0x400f____ = picolibc; reach for it first when a
+   Zephyr/ESP32 libc call faults implausibly.
+
+   The rule this rung takes from it: **core must not reach around `backend/<target>/`.**
+   `dispatch.c` calling `fflush(stdout)` directly at two sites *was* the defect — the seam
+   (`tuvm/src/platform_backend.h`, `platform_console_flush`) already existed and was bypassed,
+   which is exactly how a host-only assumption reached the SoC. Fixed in
+   `tuvm/src/backend/zephyr/platform_zephyr.c` (flush is a no-op: `main()` sets stdout
+   `_IONBF`, so nothing is ever buffered) + `dispatch.c` now calling the seam; 25/25 C tests
+   pass, host ASan+UBSan clean. **Not yet reflashed — the device-side confirmation is the
+   open item, and until it is green this is not a CLAIMS row.** Loose thread: `setjmp`/
+   `longjmp` are ROM-bound too and `tuvm/src/vm.c` builds the raise/ensure crash boundary on
+   them; the non-fatal `<err> os: ** SYSCALL` dumps are ROM `setjmp` (0x40056268) spilling
+   register windows — noisy, execution continues, soundness on Xtensa unverified.
 3. **Wire seam: CBOR + Int64. DONE 2026-07-10.** Owners: `review/lib/cbor.md` (CBOR over custom
    wire format, tags 27/39) and `review/lib/integers.md` (L7: boxed Int64 on 32-bit — decided,
    built with B). G4 says the `.oimg` line-table provision must not be foreclosed meanwhile (it

@@ -52,14 +52,14 @@ For content search across the program:
 
 <!-- BEGIN GENERATED INVENTORY — do not edit below; rerun tools/docmap.sh -->
 
-_Regenerated 2026-07-14 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
+_Regenerated 2026-07-16 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
 
 ### ~/workspace/tuvm/review
 
 - `~/workspace/tuvm/review/2026-07-03-first-step-design-addendum.md` — nsl-tuvm first-step design — addendum 1 (review amendments) _(record, 2026-07-14)_
 - `~/workspace/tuvm/review/2026-07-04-context-decision.md` — Task 8 design question: keep the deferred-lift heap Context? _(record, 2026-07-04)_
 - `~/workspace/tuvm/review/2026-07-04-pre-fiber-baseline.md` — Pre-fiber baseline commits in oevm / ns-oevm _(record, 2026-07-04)_
-- `~/workspace/tuvm/review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-07-14)_
+- `~/workspace/tuvm/review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-07-15)_
 - `~/workspace/tuvm/review/ISSUE-dongle-usb-openthread.md` — DRAFT ISSUE (post to davidg238/tuvm — created from a session without gh permission) _(record, 2026-07-12)_
 - `~/workspace/tuvm/review/WHY-AGENTS.md` — Why agents — nodus + porta as an agent-first platform _(record, 2026-07-14)_
 - `~/workspace/tuvm/review/WHY-OEOM.md` — Why OEOM — the kernel that survived the graveyard _(record, 2026-07-12)_
@@ -73,13 +73,13 @@ _Regenerated 2026-07-14 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `~/workspace/tuvm/review/lib/integers.md` — L7 — Integer semantics across 32/64-bit platforms (VM design) _(record, 2026-07-14)_
 - `~/workspace/tuvm/review/lib/messages.md` — Milestone B — nsl-facing message algebra API (proposed surface) _(record, 2026-07-03)_
 - `~/workspace/tuvm/review/metrics-spec.md` — Node health metrics — the long-term profile (G4/G9 companion) _(record, 2026-07-07)_
-- `~/workspace/tuvm/review/program-sequence.md` — nsl-tuvm — program sequence (the overarching order of work) _(record, 2026-07-14)_
+- `~/workspace/tuvm/review/program-sequence.md` — nsl-tuvm — program sequence (the overarching order of work) _(record, 2026-07-16)_
 - `~/workspace/tuvm/review/reliability-gaps.md` — Reliability gaps — the questions not yet asked (2026-07-03) _(record, 2026-07-14)_
 - `~/workspace/tuvm/review/retained-channels-v2.html` — Names, and what answers to them — v2 _(record, 2026-07-13)_
 - `~/workspace/tuvm/review/retained-channels.html` — Retained channels, and where remoteness lives _(record, 2026-07-12)_
 - `~/workspace/tuvm/review/slides.html` — nsl-tuvm — script Zephyr, don't replace it _(record, 2026-07-12)_
 - `~/workspace/tuvm/review/test-suites-spec.md` — nsl-tests — verification suites for the first step (proposed) _(record, 2026-07-03)_
-- `~/workspace/tuvm/review/tests/CLAIMS.md` — CLAIMS — first-step spec §7 success criteria → proving tests _(record, 2026-07-14)_
+- `~/workspace/tuvm/review/tests/CLAIMS.md` — CLAIMS — first-step spec §7 success criteria → proving tests _(record, 2026-07-15)_
 - `~/workspace/tuvm/review/tests/README.md` — review/tests — staged verification suites (T0, T-A…T-D) _(record, 2026-07-07)_
 - `~/workspace/tuvm/review/tests/t0-gates/sanitizers.md` — T0.1 — sanitizer gate (the highest-value single item in the whole test plan) _(record, 2026-07-03)_
 - `~/workspace/tuvm/review/zephyr-driver-exposure.md` — Exposing Zephyr drivers to nsl — a sketch _(record, 2026-07-12)_
@@ -173,6 +173,8 @@ _Regenerated 2026-07-14 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `~/workspace/nsl-tuvm/docs/design/2026-07-13-rung9-cells-design.md` — Rung 9 — Cells: a name that has a value _(design, 2026-07-14)_
 - `~/workspace/nsl-tuvm/docs/design/2026-07-14-tuvm20-overflow-policy-design.md` — tuvm#20 — G2 overflow policy: the ring never kills the node (design) _(design, 2026-07-14)_
 - `~/workspace/nsl-tuvm/docs/design/2026-07-14-tuvm23-crash-timer-sweep-design.md` — tuvm#23 — the crash sweep must cancel timers, not just reactions (design) _(design, 2026-07-14)_
+- `~/workspace/nsl-tuvm/docs/design/2026-07-14-tuvm24-sys-metrics-design.md` — tuvm#24 — the sys/metrics story: heap + handles + queue telemetry as a cell _(design, 2026-07-14)_
+- `~/workspace/nsl-tuvm/docs/design/2026-07-15-tuvm21-take-nil-vs-empty-design.md` — tuvm#21 — a posted `nil` must be distinguishable from an empty stream at `take:` _(design, 2026-07-15)_
 - `~/workspace/nsl-tuvm/docs/programming_with_nsl.md` — Programming with nsl _(record, 2026-07-14)_
 - `~/workspace/nsl-tuvm/docs/superpowers/findings/2026-07-04-oimg-large-smi-constant-corruption.md` — FINDING (2026-07-04): oimg backend corrupts large SMI integer constants _(note, 2026-07-04)_
 - `~/workspace/nsl-tuvm/docs/superpowers/plans/2026-06-16-block-inlining-phase-a.md` — Block Inlining — Phase A (Foundation) Implementation Plan _(plan, 2026-07-14)_
@@ -220,6 +222,8 @@ _Regenerated 2026-07-14 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `~/workspace/nsl-tuvm/docs/superpowers/plans/2026-07-11-rung7-openthread-l3.md` — Rung 7 — Layer 3: NetBridge over real OpenThread (MTD child) — Implementation Plan _(plan, 2026-07-11)_
 - `~/workspace/nsl-tuvm/docs/superpowers/plans/2026-07-11-rung8-ontarget-timer.md` — Rung 8 — On-target timer seam + self-gating Thread node — Implementation Plan _(plan, 2026-07-14)_
 - `~/workspace/nsl-tuvm/docs/superpowers/plans/2026-07-13-rung9-cells.md` — Rung 9 — Cells: a name that has a value — Implementation Plan _(plan, 2026-07-14)_
+- `~/workspace/nsl-tuvm/docs/superpowers/plans/2026-07-14-tuvm24-sys-metrics.md` — tuvm#24 sys/metrics Implementation Plan _(plan, 2026-07-14)_
+- `~/workspace/nsl-tuvm/docs/superpowers/plans/2026-07-15-tuvm21-take-nil-vs-empty.md` — tuvm#21 — Distinguish posted `nil` from empty stream at `take:` — Implementation Plan _(plan, 2026-07-15)_
 - `~/workspace/nsl-tuvm/docs/superpowers/plans/block-inlining-status.md` — Block Inlining — Track Status _(plan, 2026-07-03)_
 - `~/workspace/nsl-tuvm/docs/superpowers/plans/milestone-a-footprint-delta.md` — Milestone A footprint delta (Task 10c) _(plan, 2026-07-04)_
 - `~/workspace/nsl-tuvm/docs/superpowers/plans/pared-conformance-subset.md` — Pared conformance subset (Milestone A) _(plan, 2026-07-03)_
@@ -230,8 +234,9 @@ _Regenerated 2026-07-14 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `~/workspace/porta/docs/CLI.md` — porta CLI reference _(record, 2026-06-08)_
 - `~/workspace/porta/docs/DEVSDK.md` — porta dev-SDK (`devsdk/`) — the northbound contract _(record, 2026-06-07)_
 - `~/workspace/porta/docs/GETTING-STARTED.md` — Getting started with porta _(record, 2026-06-26)_
-- `~/workspace/porta/docs/PROTOCOL-NSL-RECORDS.md` — Porta ↔ nsl — the record schemas _(record, 2026-07-13)_
-- `~/workspace/porta/docs/PROTOCOL-NSL.md` — Porta ↔ nsl node protocol — the space-sync model _(record, 2026-07-14)_
+- `~/workspace/porta/docs/PROTOCOL-NSL-RECORDS.md` — Porta ↔ nsl — the record schemas _(record, 2026-07-14)_
+- `~/workspace/porta/docs/PROTOCOL-NSL-draft-2026-07-11.md` — Porta ↔ nsl node protocol — the space-sync model (genesis draft) _(record, 2026-07-15)_
+- `~/workspace/porta/docs/PROTOCOL-NSL.md` — Porta ↔ nsl node protocol — the space-sync model _(record, 2026-07-15)_
 - `~/workspace/porta/docs/PROTOCOL.md` — Porta wire protocol _(record, 2026-07-12)_
 - `~/workspace/porta/docs/demo/porta-show-and-tell-script.md` — porta — show-and-tell narration script _(record, 2026-06-07)_
 - `~/workspace/porta/docs/demo/show-and-tell-template.md` — Show-and-tell walkthrough template _(record, 2026-06-07)_
