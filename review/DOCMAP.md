@@ -59,7 +59,7 @@ _Regenerated 2026-07-16 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `~/workspace/tuvm/review/2026-07-03-first-step-design-addendum.md` — nsl-tuvm first-step design — addendum 1 (review amendments) _(record, 2026-07-14)_
 - `~/workspace/tuvm/review/2026-07-04-context-decision.md` — Task 8 design question: keep the deferred-lift heap Context? _(record, 2026-07-04)_
 - `~/workspace/tuvm/review/2026-07-04-pre-fiber-baseline.md` — Pre-fiber baseline commits in oevm / ns-oevm _(record, 2026-07-04)_
-- `~/workspace/tuvm/review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-07-15)_
+- `~/workspace/tuvm/review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-07-16)_
 - `~/workspace/tuvm/review/ISSUE-dongle-usb-openthread.md` — DRAFT ISSUE (post to davidg238/tuvm — created from a session without gh permission) _(record, 2026-07-12)_
 - `~/workspace/tuvm/review/WHY-AGENTS.md` — Why agents — nodus + porta as an agent-first platform _(record, 2026-07-14)_
 - `~/workspace/tuvm/review/WHY-OEOM.md` — Why OEOM — the kernel that survived the graveyard _(record, 2026-07-12)_
@@ -107,6 +107,7 @@ _Regenerated 2026-07-16 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `~/workspace/tuvm/docs/design/2026-07-02-derecursify-phase2-self-migration-design.md` — De-recursify Phase 2 (redesigned) — `self`-migration + relativize `home_ctx` (design) _(design, 2026-07-14)_
 - `~/workspace/tuvm/docs/design/2026-07-02-derecursify-phase3-growable-stacks-design.md` — De-recursify deferred lift — Phase 3: growable stacks + overflow policy (design) _(design, 2026-07-14)_
 - `~/workspace/tuvm/docs/design/2026-07-03-derecursify-e1-retire-dead-access-walk-design.md` — De-recursify reify-on-escape — E1: retire the dead `home_ctx` walk in `get_top_level_method_closure` (design) _(design, 2026-07-14)_
+- `~/workspace/tuvm/docs/design/2026-07-16-zephyr-model-ab-build-knob-design.md` — Zephyr Model A/B build knob + staged .oimg bring-up (design) _(design, 2026-07-16)_
 - `~/workspace/tuvm/docs/dev_process/phase1_walkthrough.md` — Walkthrough - Core C Structures for OEVM _(record, 2026-07-03)_
 - `~/workspace/tuvm/docs/dev_process/phase2_walkthrough.md` — Walkthrough - Phase 2: Instruction Set Expansion & XIP Solidification _(record, 2026-07-03)_
 - `~/workspace/tuvm/docs/dev_process/phase3_walkthrough.md` — Walkthrough - Phase 3: Introspection & Newspeak Mirrors _(record, 2026-07-03)_
@@ -130,6 +131,7 @@ _Regenerated 2026-07-16 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `~/workspace/tuvm/docs/superpowers/plans/2026-06-19-gh4-iterative-mark.md` — GH#4 — Iterative Mark Implementation Plan _(plan, 2026-07-03)_
 - `~/workspace/tuvm/docs/superpowers/plans/2026-06-19-w2a-float-arena-reclaim.md` — W2a — Float-Arena Reclaim Implementation Plan _(plan, 2026-07-03)_
 - `~/workspace/tuvm/docs/superpowers/plans/2026-06-19-w2a1-float-arena-trigger.md` — W2a.1 — Float-Arena GC Trigger Implementation Plan _(plan, 2026-07-03)_
+- `~/workspace/tuvm/docs/superpowers/plans/2026-07-16-zephyr-model-ab-build-knob.md` — Zephyr Model A/B Build Knob Implementation Plan _(plan, 2026-07-16)_
 - `~/workspace/tuvm/docs/topics.md` — Design topics _(record, 2026-07-14)_
 
 ### ~/workspace/nsl-tuvm/docs

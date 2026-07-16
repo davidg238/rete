@@ -107,11 +107,47 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
    which is exactly how a host-only assumption reached the SoC. Fixed in
    `tuvm/src/backend/zephyr/platform_zephyr.c` (flush is a no-op: `main()` sets stdout
    `_IONBF`, so nothing is ever buffered) + `dispatch.c` now calling the seam; 25/25 C tests
-   pass, host ASan+UBSan clean. **Not yet reflashed — the device-side confirmation is the
-   open item, and until it is green this is not a CLAIMS row.** Loose thread: `setjmp`/
-   `longjmp` are ROM-bound too and `tuvm/src/vm.c` builds the raise/ensure crash boundary on
-   them; the non-fatal `<err> os: ** SYSCALL` dumps are ROM `setjmp` (0x40056268) spilling
-   register windows — noisy, execution continues, soundness on Xtensa unverified.
+   pass, host ASan+UBSan clean.
+
+   **DEVICE-CONFIRMED 2026-07-16 — and it unmasked a second, stacked bug.** Reflashed: the
+   fflush fault is gone, but the node then died at **4.29s** with `pulse mailbox full` →
+   `k_oops()`. Cause: `tuvm/zephyr/TimerNode.ns` started an `every: 200` repeater and
+   **returned from `main:`** — so it stopped draining while the k_timer kept firing into the
+   16-deep pulse mailbox. Arithmetic pins it: `OEVM_PULSE_MAILBOX_DEPTH` = 16; 0.891s → 4.290s
+   = 3.399s = **17.0 fires**; 16 fill it, the 17th aborts. The long-standing "uncancelled
+   k_timer" hypothesis was right about *this* crash and wrong about the fflush one — it was
+   masked, because the node used to die at 0.891s before the mailbox could fill. **Two bugs
+   were stacked on one symptom, and only the device could show the second.** Fixed
+   (`883cdc5`): the node holds the token from `every:` and `cancel:`s it before `^0` — the
+   API exists for exactly this ("a timer token is a small capability: holding it is the right
+   to cancel it"), and it is the same shape as tuvm#23's supervisor sweep, where a dead
+   instance's repeater outlives it. **Node bug, not platform**: every production node blocks
+   forever draining, so only a *returning* node can leak a live repeater.
+
+   The measured device timeline, all three states on real hardware:
+
+   | state | result |
+   |---|---|
+   | before any fix | TIMER OK 0.891s → EXCCAUSE 28 → **dead 0.891s** |
+   | after fix #1 (fflush) | TIMER OK 0.891s → pulse mailbox full → k_oops → **dead 4.290s** |
+   | after fix #2 (cancel) | TIMER OK 0.891s → nothing → **ALIVE at 20s**, log ends 0.891s |
+
+   **Rung-2 gate 1 (TimerNode, the real on-target timer backend) is now GREEN on ESP32** —
+   no fault, no oops, no coredump. Green log: `tuvm/zephyr/esp32-debug-artifacts/`.
+
+   **Residue this leaves on the ladder — the pulse mailbox still kills the node.** tuvm#20
+   (`1857c26`) replaced the *event ring's* `abort()` with the G2 overflow policy — "the ring
+   never kills the node" — but `pulse_post_isr` (`tuvm/src/backend/zephyr/pulse_zephyr.c:19`)
+   still `k_oops()`es on a full mailbox, by design (`tuvm/src/pulse_backend.h:17`). #20 fixed
+   the ring and left the ISR-side mailbox behind. That is a **G2 consistency gap**, not a
+   TimerNode issue, and it outlives this node — a real ISR burst would kill a production node
+   the same way. Deliberately NOT fixed with #2 (that would have papered over a genuine node
+   bug). Decide whether G2's "never kills the node" extends to the ISR seam.
+
+   Loose thread: `setjmp`/`longjmp` are ROM-bound too and `tuvm/src/vm.c` builds the
+   raise/ensure crash boundary on them; the non-fatal `<err> os: ** SYSCALL` dumps (still
+   present in the green log, expected) are ROM `setjmp` (0x40056268) spilling register
+   windows — noisy, execution continues, soundness on Xtensa unverified.
 3. **Wire seam: CBOR + Int64. DONE 2026-07-10.** Owners: `review/lib/cbor.md` (CBOR over custom
    wire format, tags 27/39) and `review/lib/integers.md` (L7: boxed Int64 on 32-bit — decided,
    built with B). G4 says the `.oimg` line-table provision must not be foreclosed meanwhile (it
