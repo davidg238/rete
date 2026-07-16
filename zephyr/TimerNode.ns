@@ -5,7 +5,11 @@ TimerNode — Rung 8 gate 1. Proves the REAL on-target timer backend
   k_timer ISR -> pulse_post_isr -> k_msgq -> pumpEvents -> sys/timer channel
               -> Timers dispatch -> the node's reaction
 
-A 200ms repeating timer must fire 3 times, then the node prints TIMER OK. Note that
+A 200ms repeating timer must fire 3 times, then the node CANCELS it and prints TIMER OK.
+The cancel is load-bearing, not tidiness: this node returns from main:, so it stops
+draining — and an uncancelled repeater then fills the 16-deep pulse mailbox and k_oops()es
+the node ~3.4s later (17 fires at 200ms). Every other node blocks forever draining, so
+this is the only node shape that can leak a live repeater. Note that
 `platform pumpEvents` BLOCKS (K_FOREVER) on the pulse mailbox between ticks, so this
 node also demonstrates that the VM IDLES the CPU while waiting on a timer rather than
 spinning — the property that lets the Thread node sleep 15s and still yield to the
@@ -20,14 +24,19 @@ TIMER OK
 *)
 class TimerNode packageUsing: manifest = ( | ticks ::= 0. | ) (
   public main: platform args: args = (
-    | space timers ping |
+    | space timers ping tok |
     space:: platform space.
     timers:: platform timers.     (* hold ONE instance — it owns the pending registry *)
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
     ping:: space channel: 'tick'.
     ping whenever: '' do: [ :m | ticks:: ticks + 1 ].
-    timers every: 200 post: #t on: ping.
+    tok:: timers every: 200 post: #t on: ping.
     [ ticks < 3 ] whileTrue: [ platform pumpEvents. space drain ].
+    timers cancel: tok.   (* MUST cancel before ^: this node RETURNS, so it stops
+       draining, but an uncancelled repeater keeps firing into the 16-deep pulse
+       mailbox — 17 fires later pulse_post_isr k_oops()es the node. Every other node
+       blocks forever draining, so this node is the only one that can leak a live
+       repeater. The token IS the right to cancel; holding it is the whole point. *)
     'TIMER OK' println.
     ^ 0
   )

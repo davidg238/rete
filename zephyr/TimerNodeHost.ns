@@ -1,0 +1,34 @@
+(*
+TimerNodeHost — host-only mirror of zephyr/TimerNode.ns for verifying the tuvm#2
+cancel fix without a 50-min ESP32 rebuild. The posix timer seam is driven by
+simulated time (advanceMillis:), so the loop must advance it; on target the real
+k_timer fires on its own. Everything else — the every:/cancel: pairing under test —
+is identical.
+expect:
+TIMER OK
+CANCEL OK
+*)
+class TimerNodeHost packageUsing: manifest = ( | ticks ::= 0. | ) (
+  public main: platform args: args = (
+    | space timers ping tok before |
+    space:: platform space.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    ping:: space channel: 'tick'.
+    ping whenever: '' do: [ :m | ticks:: ticks + 1 ].
+    tok:: timers every: 200 post: #t on: ping.
+    [ ticks < 3 ] whileTrue: [ platform advanceMillis: 200. platform pumpEvents. space drain ].
+    'TIMER OK' println.
+
+    (* THE GATE: cancel, then advance 5 more intervals. A live repeater would tick
+       5 more times (and on target would k_oops the node at mailbox depth 16). *)
+    timers cancel: tok.
+    before:: ticks.
+    platform advanceMillis: 1000. platform pumpEvents. space drain.
+    ((ticks = before) and: [ timers pendingCount = 0 ])
+      ifTrue:  [ 'CANCEL OK' println ]
+      ifFalse: [ 'CANCEL FAILED' println ].
+    ^ 0
+  )
+) : (
+)
