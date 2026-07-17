@@ -404,7 +404,7 @@ static void stack_overflow_abort(size_t need, size_t cap) {
     abort();
 }
 
-static struct MethodContext *push_frame(oop closure, oop receiver, int argc, oop *args) {
+static OEVM_HOT struct MethodContext *push_frame(oop closure, oop receiver, int argc, oop *args) {
     struct Closure *cl = (struct Closure *)closure;
     struct CompiledMethod *m = (struct CompiledMethod *)closure_entry(cl);
     size_t frame_words = sizeof(struct MethodContext) / sizeof(oop) + m->num_registers;
@@ -469,7 +469,7 @@ static inline struct MethodContext *home_ctx_frame(oop home) {
  * pushes its own entry frame and bottoms out at it (entry_ctx), returning to its
  * C caller — the loop never recurses on the hot send path.
  */
-oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
+OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
     /* oevm#21: any allocation between here and where `receiver`/`args` are written
        into the (GC-scanned) frame can sweep them, since with no conservative
        C-stack scan they have no other root. That window exists ONLY on the first

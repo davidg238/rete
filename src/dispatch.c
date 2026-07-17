@@ -280,7 +280,7 @@ const struct Symbol false_sym_obj = { { (oop)&Vtable_SymbolVtable }, "false", 5 
 #define true_symbol ((oop)&true_sym_obj)
 #define false_symbol ((oop)&false_sym_obj)
 
-int is_truthy(oop obj) {
+OEVM_HOT int is_truthy(oop obj) {
     if (IS_SMI(obj)) {
         return UNTAG_SMI(obj) != 0;
     }
@@ -951,7 +951,7 @@ static oop build_and_raise_default(oop text) {
    argc) and return NULL, so the caller can push a frame (flat loop) or re-enter
    run_interpreter (the send() wrapper). The returned oop is meaningful only when
    out method is NULL. */
-oop send_resolve(oop receiver, oop selector, int argc, oop *args,
+OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                  oop *out_method, oop *out_recv, int *out_argc) {
     *out_method = NULL;
     /* Milestone E Task 1: capture the Kernel module instance once, at the first

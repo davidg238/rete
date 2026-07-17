@@ -16,6 +16,22 @@
 #define OEVM_TRACE_PRINT(...) ((void)0)
 #endif
 
+/*
+ * Hot-path code placement. On XIP targets (ESP32: code executes from SPI flash
+ * through a small cache) the interpreter's hottest functions can be routed into
+ * internal instruction RAM by defining OEVM_HOT_SECTION_IRAM at build time —
+ * the Zephyr build forwards it from the OEVM_IRAM_HOT env knob, alongside
+ * -mtext-section-literals so Xtensa literal pools travel with the code
+ * (an L32R in IRAM cannot reach a literal left behind in flash). `.iram.text`
+ * is a section the ESP32 linker script already collects into IRAM. Hosted and
+ * non-XIP builds leave the knob undefined and OEVM_HOT is a no-op.
+ */
+#ifdef OEVM_HOT_SECTION_IRAM
+#define OEVM_HOT __attribute__((section(".iram.text")))
+#else
+#define OEVM_HOT
+#endif
+
 /* 
  * oop: Object Oriented Pointer.
  * Under Piumarta's Open Extensible Object Model (COLA/Id style),
