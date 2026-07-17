@@ -129,13 +129,19 @@ class Kernel usingPlatform: platform = () (
   class OrderedCollection = Collection (
     | contents ::= platform basicNew: Array indexable: 8. count ::= 0. |
   ) (
-    public do: aBlock = ( 1 to: count do: [ :i | aBlock value: (contents at: i) ]. ^ self )
+    (* Hot paths index `contents` (always a kernel Array) via basicAt: directly,
+       skipping the Array>>at: frame — the perf/op-cmp-at trial widened the
+       basicAt: emitter discipline from "Array methods on self" to "kernel
+       collection internals on their Array-typed slots" (see dispatch.c's
+       PRIM_ix_basicAt note). Bounds stay guarded: do: is count-bounded,
+       at:/at:put: check before touching contents. *)
+    public do: aBlock = ( 1 to: count do: [ :i | aBlock value: (contents basicAt: i) ]. ^ self )
     public size = ( ^ count )
     public isEmpty = ( ^ count = 0 )
-    public add: anObject = ( self ensureCapacity. count:: count + 1. contents at: count put: anObject. ^ anObject )
+    public add: anObject = ( self ensureCapacity. count:: count + 1. contents basicAt: count put: anObject. ^ anObject )
     public addLast: anObject = ( ^ self add: anObject )
-    public at: i = ( (i < 1 or: [ i > count ]) ifTrue: [ ^ self error: 'index out of bounds' ]. ^ contents at: i )
-    public at: i put: v = ( (i < 1 or: [ i > count ]) ifTrue: [ ^ self error: 'index out of bounds' ]. ^ contents at: i put: v )
+    public at: i = ( (i < 1 or: [ i > count ]) ifTrue: [ ^ self error: 'index out of bounds' ]. ^ contents basicAt: i )
+    public at: i put: v = ( (i < 1 or: [ i > count ]) ifTrue: [ ^ self error: 'index out of bounds' ]. ^ contents basicAt: i put: v )
     public first = ( ^ self at: 1 )
     public last = ( ^ self at: count )
     public removeLast = ( | v | v:: contents at: count. count:: count - 1. ^ v )

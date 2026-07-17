@@ -10,7 +10,9 @@ NSROOT = os.path.dirname(HERE)
 # "clobber ../tuvm/src/solidified_image.c" restore logic). Building Path B
 # against the frozen oevm (registry v4) rejects the v5 images the compiler now
 # emits after the registry compaction; tuvm is v5 and matches.
-OEVM = os.path.join(NSROOT, "..", "tuvm")
+# Honor OEVM_DIR (as run_tests_oevm.py does): branch worktrees must gate
+# against their own VM, or lowering changes run new bytecode on an old VM.
+OEVM = os.environ.get("OEVM_DIR") or os.path.join(NSROOT, "..", "tuvm")
 APP = os.path.join(NSROOT, "..", "nsl-tests", "04_somns_basic", "41_supervisor_grant.ns")
 
 # Honor the same backend/cflags seam as run_tests_oevm.py so this gate builds
