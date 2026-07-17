@@ -16,6 +16,7 @@ not here. This file is measurements + the evidence behind them.
 | E1 | `zephyr/TimerNode.ns` (**Model A**, solidified) | 64 KB | `TIMER OK`, then alive | PASS (2026-07-16) | not captured † |
 | E2 | `zephyr/TimerNode.ns` (**Model B**, `.oimg`) | 64 KB | `TIMER OK`, then alive | PASS (2026-07-16) | 135024 B / 192 KB (68.68%) |
 | E3 | `nsl-tests/00_perf/perfstex.ns` (6 sub-tests, **Model B**) | 64 KB | six timings + `done` | PASS (2026-07-16) | 135024 B / 192 KB (68.68%) |
+| E4 | `nsl-tests/00_perf/performance.ns` (STIC, 9 tests, **Model B**) | **96 KB** | nine timings + `done` | PASS (2026-07-16) | 168816 B / 192 KB (85.86%) |
 
 † E1's green run predates the Model A/B knob and its build was never re-run under
 plain `prj_esp32.conf` — the only surviving Model A elf carries the `coredump.conf`
@@ -123,6 +124,101 @@ it as a VM difference. For a Berry comparison on this part, Berry must run on th
 M3's nRF52840 build was 216,584 B / 256 KB (**82.6%**) for comparison. The blob is
 **112,832 B** of `.oimg` in DROM — XIP'd from flash, never copied to SRAM. That is the
 point of Model B: **the program costs flash, not RAM.**
+
+## E4 — STIC on ESP32 (Model B): the first cross-VM column
+
+The STIC benchmark (Smalltalk Industry Council, late '90s), ported to nsl as
+`nsl-tests/00_perf/performance.ns` (`0e0715a`). Design + lineage:
+`tuvm/docs/design/2026-07-16-performance-nsl-stic-column-design.md`. Log:
+`esp32-debug-artifacts/tuvm-esp32-STIC-96k-run1.log`. Ran clean in **14.9 min** — no
+fault, no arena abort, no oops.
+
+Reference columns are the published table in `~/workspaceToit/stic/README.md`
+(<https://ekorau.com/some-numbers/>): Toit v2.0.0-alpha.180, uLisp v4.7, CircuitPython
+9.2.7. **Seconds; smaller is better.**
+
+| Test | Toit | uLisp | CircuitPython | **tuvm/nsl** | rank |
+| --- | ---: | ---: | ---: | ---: | :--: |
+| alloc | 16.0 | 21.6 | **11.4** | 24.1 | 4th |
+| array write | **19.4** | 98.1 | 63.3 | 138.9 | 4th |
+| dictionary write | 5.7 | 1.4 | **0.9** | 43.3 | 4th |
+| float math | 41.1 | 124.3 | **20.9** | 35.1 | 2nd |
+| integer math | **9.4** | 122.5 | 14.4 | 15.3 | 3rd |
+| collection iterate | **12.7** | 42.5 | 29.2 | 532.6 | 4th |
+| collection write | 9.5 | **6.7** | 15.4 | 97.0 | 4th |
+| string compare | **1.5** | 12.5 | 2.9 | 5.2 | 3rd |
+| hanoi @ 8 | **0.0000** | 0.01 | 0.01 | 0.004 | 2nd |
+
+### Read it honestly
+
+**tuvm is last on 5 of 9 and wins nothing.** That is the result. Do not quote "beats
+Toit on float math" without the rest of the row: it does (35.1 vs 41.1) — and
+CircuitPython does it in 20.9.
+
+The *shape*, however, is consistent and diagnostic rather than diffuse:
+
+- **Competitive on raw compute** — float 2nd, integer 3rd (level with CircuitPython),
+  hanoi 2nd. Notable because tuvm **boxes every float** (`struct Float`, 16 B on Xtensa)
+  and `integerMath` overflows into boxed `LargeInteger`, so it is allocating throughout
+  and still keeping pace.
+- **Badly behind wherever collections or blocks appear** — collectionIterate 41.9×,
+  collectionWrite 10.2×, dictionaryWrite 7.6×, arrayWrite 7.2× (all vs Toit).
+
+### The one number that matters: 26.6 µs per block activation
+
+`collectionIterate` does 20M block evaluations in 532.6 s = **26.6 µs each**. Against
+`integerMath`'s 3M four-op chains in 15.3 s = **5.1 µs per chain**: *a single block
+activation costs ~5× a complete four-operation arithmetic chain.*
+
+`kernel.ns:132` shows why it cannot be optimised away at the call site:
+
+```smalltalk
+public do: aBlock = ( 1 to: count do: [ :i | aBlock value: (contents at: i) ]. ^ self )
+```
+
+The outer `to:do:` is compiler-inlined; `aBlock value:` **cannot** be — `aBlock` is a
+parameter holding a real block object. oevm's literal-block inlining (which took fib from
+~30× to ~2.4×, `nsl-tests/00_perf/RESULTS.md`) only fires on blocks literal at the send
+site, so it never reaches this one. **This is a VM finding.** Every `do:`/`collect:`/
+`select:` in `kernel.ns:54-61` pays it.
+
+`dictionaryWrite` and `collectionWrite` are a different, cheaper problem — **library
+growth policy**, not the VM: `Dictionary` (`kernel.ns:282`) starts at an 8-slot table and
+grow-rehashes on every 10-key iteration, and `OrderedCollection add:` (`kernel.ns:135`)
+calls `ensureCapacity` per element, recopying as a fresh collection reaches 10.
+
+### What these numbers are NOT
+
+- **A single run against published means-of-three.** `performance.toit`'s `main` runs the
+  suite 3× with a fresh `SpeedTester` and reports the mean; every reference column is a
+  mean of 3. This is one run (David: *"run the test once for starters ... lets see what
+  we have"*). **Not comparable; orientation only. Not publishable.**
+- **Same-RTOS.** tuvm is on Zephyr; the other three are on ESP-IDF/FreeRTOS. This
+  confound cannot be removed by re-running and must always be disclosed.
+- **Confirmed same-silicon.** See the ledger's † note and §10 of the design: the README
+  says WROOM-32E (rev v3.0); the attached board is D0WDQ6 **rev v1.0**. Plan is to rerun
+  Toit *and* nsl on a definitely-identical board.
+- **Heap-matched.** tuvm ran a 96 KB arena; the other three have their own GC policies.
+
+### Port fidelity — the gate passed
+
+Predictions from E3, checked before quoting anything (design §7). A **too-fast** result
+was the danger signal (the literal-array trap):
+
+| test | predicted | actual | error |
+|---|---:|---:|---:|
+| arrayWrite | ~143 s | 138.9 s | 3% |
+| floatMath | ~37 s | 35.1 s | 5% |
+| integerMath | ~18 s | 15.3 s | 15% |
+| stringCompare | ~7.5 s | 5.2 s | 30% |
+| collectionIterate | ~410 s | 532.6 s | 30% |
+
+Nothing came in suspiciously fast; the two highest-count rows landed within 5%. The port
+and the iteration counts are sound.
+
+`floatMath` also proves the arena at the tightest config yet: a 96 KB heap leaves only
+~23 KB of libc heap, and ~3M boxed floats cycled through 512-cell slabs via W2a reclaim
+without aborting — the first real workout that path has had on target.
 
 ---
 

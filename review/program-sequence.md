@@ -212,6 +212,33 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
    = 5 / size) via `fprintf(stderr)`, which nothing on Zephyr unbuffers — `main()` now sets
    `stderr` `_IONBF` so a bad blob cannot fail silently.
 
+   **And then the first cross-VM column — E4, STIC on ESP32 (2026-07-16).** With the loop
+   at 44 s, the STIC benchmark was ported to nsl (`nsl-tests/00_perf/performance.ns`,
+   `0e0715a`; design `tuvm/docs/design/2026-07-16-performance-nsl-stic-column-design.md`)
+   and run against the published Toit / uLisp / CircuitPython numbers for this class of
+   chip. Nine tests, 14.9 min, clean. Full table + caveats: `tuvm/zephyr/docs/results.md`
+   **E4**.
+
+   **tuvm is last on 5 of 9 and wins nothing** — that is the honest headline, and the
+   ladder should carry it rather than the flattering subset. The shape is diagnostic
+   though: **competitive on raw compute** (float math 0.85× Toit, integer math 1.63×,
+   both while *boxing* every result) and **badly behind on collections/blocks**
+   (collectionIterate **41.9×**, collectionWrite 10.2×, dictionaryWrite 7.6×).
+
+   The number worth carrying: `collectionIterate` = **26.6 µs per block activation**,
+   ~5× the cost of a complete four-op arithmetic chain (5.1 µs). `kernel.ns:132`'s
+   `do: aBlock = (... aBlock value: ...)` cannot use oevm's literal-block inlining —
+   `aBlock` is a *parameter*, so the inlining that took fib 30× → 2.4× never fires. That
+   taxes every `do:`/`collect:`/`select:`, i.e. all idiomatic nsl collection code.
+   **Filed as tuvm#37, queued as first work next session.** `Dictionary`/
+   `OrderedCollection` growth policy is a separate, cheaper library-side suspect.
+
+   **E4 is NOT publishable and NOT a controlled comparison**: a single run against
+   reference columns that are means-of-three, tuvm on Zephyr vs their ESP-IDF, and a
+   board revision not yet matched (README says WROOM-32E → rev v3.0; the attached board
+   is D0WDQ6 **rev v1.0**). Plan is to rerun Toit *and* nsl on a definitely-identical
+   board. Orientation only — but the gap it names is concrete.
+
    **No `CLAIMS.md` row for this.** `review/tests/CLAIMS.md`'s rule is that a criterion
    without a green *named test* is unproven, and the Model B gate is a manual device run
    (`zephyr/run.sh --model B ... --flash --capture`), not an automated test. The evidence is
