@@ -1,4 +1,4 @@
-grammar/node_modules/
+grammar/node_modules
 __pycache__/
 *.pyc
 .pytest_cache/
