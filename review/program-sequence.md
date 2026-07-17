@@ -224,7 +224,9 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
    44 s, the classic SpeedTester (`nsl-tests/00_perf/perfstex.ns` — already a node,
    `main: platform args:`, so it boots unmodified) was baked, flashed and run on real
    silicon in about a minute. All six sub-tests plus `done`. Full write-up +
-   reproduction: `tuvm/zephyr/PERFSTEX_ESP32.md`.
+   reproduction: **`tuvm/zephyr/docs/results.md`** — the ESP32 on-device ledger (E1
+   TimerNode/Model A, E2 TimerNode/Model B, E3 perfstex), deliberately shaped like
+   `ns-zephyr/docs/results.md` so the two ports read side by side.
 
    | sub-test | OEVM/nRF52840 (M3) | **OEVM/ESP32** | speedup |
    |---|---:|---:|---:|
