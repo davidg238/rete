@@ -107,6 +107,7 @@ _Regenerated 2026-07-16 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `~/workspace/tuvm/docs/design/2026-07-02-derecursify-phase2-self-migration-design.md` — De-recursify Phase 2 (redesigned) — `self`-migration + relativize `home_ctx` (design) _(design, 2026-07-14)_
 - `~/workspace/tuvm/docs/design/2026-07-02-derecursify-phase3-growable-stacks-design.md` — De-recursify deferred lift — Phase 3: growable stacks + overflow policy (design) _(design, 2026-07-14)_
 - `~/workspace/tuvm/docs/design/2026-07-03-derecursify-e1-retire-dead-access-walk-design.md` — De-recursify reify-on-escape — E1: retire the dead `home_ctx` walk in `get_top_level_method_closure` (design) _(design, 2026-07-14)_
+- `~/workspace/tuvm/docs/design/2026-07-16-performance-nsl-stic-column-design.md` — performance.nsl — an nsl column for the STIC ESP32 benchmark _(design, 2026-07-16)_
 - `~/workspace/tuvm/docs/design/2026-07-16-zephyr-model-ab-build-knob-design.md` — Zephyr Model A/B build knob + staged .oimg bring-up (design) _(design, 2026-07-16)_
 - `~/workspace/tuvm/docs/dev_process/phase1_walkthrough.md` — Walkthrough - Core C Structures for OEVM _(record, 2026-07-03)_
 - `~/workspace/tuvm/docs/dev_process/phase2_walkthrough.md` — Walkthrough - Phase 2: Instruction Set Expansion & XIP Solidification _(record, 2026-07-03)_
