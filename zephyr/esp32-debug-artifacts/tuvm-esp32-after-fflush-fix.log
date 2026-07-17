@@ -1,0 +1,142 @@
+ets Jun  8 2016 00:22:57
+
+rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3ffb0000,len:9900
+ho 0 tail 12 room 4
+load:0x40080000,len:43392
+entry 0x40086440
+I (35) soc_init: ESP Simple boot
+I (35) soc_init: compile time Jul 16 2026 10:16:11
+W (36) soc_init: Unicore bootloader
+I (36) soc_init: chip revision: v1.0
+E (39) soc_init: You are using ESP32 chip revision (1) that is unsupported. While it may work, it could cause unexpected behavior or issues.
+E (51) soc_init: Proceeding with this ESP32 chip revision is not recommended unless you fully understand the potential risk and limitations.
+I (64) flash_init: SPI Speed      : 40MHz
+I (67) flash_init: SPI Mode       : DIO
+I (71) flash_init: SPI Flash Size : 4MB
+I (75) boot: DRAM: lma 0x00001020 vma 0x3ffb0000 len 0x26ac   (9900)
+I (81) boot: IRAM: lma 0x000036d4 vma 0x40080000 len 0xa980   (43392)
+I (87) boot: IRAM: lma 0x0000e068 vma 0x00000000 len 0x1f90   (8080)
+I (93) boot: IMAP: lma 0x00010000 vma 0x400d0000 len 0x25ee8  (155368)
+I (99) boot: IRAM: lma 0x00035ef0 vma 0x00000000 len 0xa108   (41224)
+I (105) boot: DMAP: lma 0x00040000 vma 0x3f400000 len 0x1b520  (111904)
+I (112) boot: Image with 6 segments
+I (115) boot: IROM segment: paddr=00010000h, vaddr=400d0000h, size=25EE8h (155368) map
+I (122) boot: DROM segment: paddr=00040000h, vaddr=3f400000h, size=1B520h (111904) map
+I (141) boot: libc heap size 55 kB.
+I (142) spi_flash: detected chip: gd
+I (142) spi_flash: flash io: dio
+*** Booting Zephyr OS build v4.2.0 ***
+[00:00:00.491,000] <err> os:  ** SYSCALL PS 0x60920 PC 0x4005626f
+[00:00:00.491,000] <err> os:  **  A0 0x800d4b3f  SP 0x3ffd0cd0  A2 0  A3 0x7
+[00:00:00.491,000] <err> os:  **  A4 0x3ffd0ce0  A5 0  A6 0x72  A7 0x656d6974
+[00:00:00.491,000] <err> os:  **  A8 0  A9 0 A10 0 A11 0x3ffc9870
+[00:00:00.491,000] <err> os:  ** A12 0x1 A13 0 A14 0x3ffc9874 A15 0x1
+[00:00:00.491,000] <err> os:  ** LBEG 0x400012e5 LEND 0x40001309 LCOUNT 0x800d669d
+[00:00:00.491,000] <err> os:  ** SAR 0x19
+[00:00:00.491,000] <err> os:  **  THREADPTR 0xce88db21
+[00:00:00.492,000] <err> os:  ** SYSCALL PS 0x60920 PC 0x4005626f
+[00:00:00.492,000] <err> os:  **  A0 0x800d4b3f  SP 0x3ffd0cd0  A2 0  A3 0x7
+[00:00:00.492,000] <err> os:  **  A4 0x3ffd0ce0  A5 0  A6 0x6b636974  A7 0
+[00:00:00.492,000] <err> os:  **  A8 0  A9 0 A10 0 A11 0x3ffc9870
+[00:00:00.492,000] <err> os:  ** A12 0x1 A13 0 A14 0x3ffc9874 A15 0x1
+[00:00:00.492,000] <err> os:  ** LBEG 0x400012e5 LEND 0x40001309 LCOUNT 0x800d6288
+[00:00:00.492,000] <err> os:  ** SAR 0x1d
+[00:00:00.492,000] <err> os:  **  THREADPTR 0x3f40358c
+[00:00:00.691,000] <err> os:  ** SYSCALL PS 0x60920 PC 0x4005626f
+[00:00:00.691,000] <err> os:  **  A0 0x800d4b3f  SP 0x3ffd0cd0  A2 0  A3 0x7
+[00:00:00.691,000] <err> os:  **  A4 0x3ffd0ce0  A5 0  A6 0x72  A7 0x656d6974
+[00:00:00.691,000] <err> os:  **  A8 0  A9 0 A10 0 A11 0x3ffc9870
+[00:00:00.691,000] <err> os:  ** A12 0x1 A13 0 A14 0x3ffc9874 A15 0x1
+[00:00:00.691,000] <err> os:  ** LBEG 0x400012e5 LEND 0x40001309 LCOUNT 0x800d6288
+[00:00:00.691,000] <err> os:  ** SAR 0x20
+[00:00:00.691,000] <err> os:  **  THREADPTR 0x3f403558
+[00:00:00.691,000] <err> os:  ** SYSCALL PS 0x60920 PC 0x4005626f
+[00:00:00.691,000] <err> os:  **  A0 0x800d4b3f  SP 0x3ffd0cd0  A2 0  A3 0x7
+[00:00:00.691,000] <err> os:  **  A4 0x3ffd0ce0  A5 0  A6 0x6b636974  A7 0
+[00:00:00.691,000] <err> os:  **  A8 0  A9 0 A10 0 A11 0x3ffc9870
+[00:00:00.691,000] <err> os:  ** A12 0x1 A13 0 A14 0x3ffc9874 A15 0x1
+[00:00:00.691,000] <err> os:  ** LBEG 0x400012e5 LEND 0x40001309 LCOUNT 0x800d6288
+[00:00:00.691,000] <err> os:  ** SAR 0x1c
+[00:00:00.691,000] <err> os:  **  THREADPTR 0x3f40358c
+TIMER OK
+[00:00:00.891,000] <err> os:  ** SYSCALL PS 0x60920 PC 0x4005626f
+[00:00:00.891,000] <err> os:  **  A0 0x800d4b3f  SP 0x3ffd0cd0  A2 0  A3 0x7
+[00:00:00.891,000] <err> os:  **  A4 0x3ffd0ce0  A5 0  A6 0x72  A7 0x656d6974
+[00:00:00.891,000] <err> os:  **  A8 0  A9 0 A10 0 A11 0x3ffc9870
+[00:00:00.891,000] <err> os:  ** A12 0x1 A13 0 A14 0x3ffc9874 A15 0x1
+[00:00:00.891,000] <err> os:  ** LBEG 0x400012e5 LEND 0x40001309 LCOUNT 0x800d6288
+[00:00:00.891,000] <err> os:  ** SAR 0x1f
+[00:00:00.891,000] <err> os:  **  THREADPTR 0x3f403558
+[00:00:00.891,000] <err> os:  ** SYSCALL PS 0x60920 PC 0x4005626f
+[00:00:00.891,000] <err> os:  **  A0 0x800d4b3f  SP 0x3ffd0cd0  A2 0  A3 0x7
+[00:00:00.891,000] <err> os:  **  A4 0x3ffd0ce0  A5 0  A6 0x6b636974  A7 0
+[00:00:00.891,000] <err> os:  **  A8 0  A9 0 A10 0 A11 0x3ffc9870
+[00:00:00.891,000] <err> os:  ** A12 0x1 A13 0 A14 0x3ffc9874 A15 0x1
+[00:00:00.891,000] <err> os:  ** LBEG 0x400012e5 LEND 0x40001309 LCOUNT 0x800d6288
+[00:00:00.891,000] <err> os:  ** SAR 0x1b
+[00:00:00.891,000] <err> os:  **  THREADPTR 0x3f40358c
+pulse mailbox full
+[00:00:04.290,000] <err> os:  **  A0 0x800e3689  SP 0x3ffcecf0  A2 0x3  A3 0x3ffb24dc
+[00:00:04.290,000] <err> os:  **  A4 0  A5 0  A6 0x3ffb24d4  A7 0x60721
+[00:00:04.290,000] <err> os:  **  A8 0x80085325  A9 0x3ffcec60 A10 0x3f41acbd A11 0x3ffcece0
+[00:00:04.290,000] <err> os:  ** A12 0x3ffcecc0 A13 0x4 A14 0 A15 0
+[00:00:04.290,000] <err> os:  ** LBEG 0 LEND 0 LCOUNT 0
+[00:00:04.290,000] <err> os:  ** SAR 0x4
+[00:00:04.290,000] <err> os:  **  THREADPTR 0x3ffcecc0
+
+
+Backtrace:0x4008201c:0x3ffcecf0 0x400e3686:0x3ffced00 0x400e3799:0x3ffced30 0x40084b52:0x3ffced50 0x4008490d:0x3ffced70 0x400883f9:0x3ffceda0 0x40082759:0x3ffcedc0 0x40082123:0x3ffcedf0  |<-CORRUPTED
+
+[00:00:04.290,000] <err> os: >>> ZEPHYR FATAL ERROR 3: Kernel oops on CPU 0
+[00:00:04.290,000] <err> os: Current thread: 0x3ffc70a8 (unknown)
+[00:00:04.290,000] <err> coredump: #CD:BEGIN#
+[00:00:04.290,000] <err> coredump: #CD:5a4502000500050003000000
+[00:00:04.290,000] <err> coredump: #CD:4101006800
+[00:00:04.290,000] <err> coredump: #CD:020200011f200840050000000000000004000000200706000000000089360e80
+[00:00:04.290,000] <err> coredump: #CD:f0ecfc3f03000000dc24fb3f0000000000000000d424fb3f2107060025530880
+[00:00:04.290,000] <err> coredump: #CD:60ecfc3fbdac413fe0ecfc3f2553088060ecfc3fbdac413fe0ecfc3f00000000
+[00:00:04.290,000] <err> coredump: #CD:0000000000000000
+[00:00:04.290,000] <err> coredump: #CD:4d0100a870fc3f1071fc3f
+[00:00:04.290,000] <err> coredump: #CD:00000000000000000000000001000f0000000000000000000000000000000000
+[00:00:04.290,000] <err> coredump: #CD:000000000000000000000000000000000000000000000000e070fc3fe070fc3f
+[00:00:04.290,000] <err> coredump: #CD:0000000000000000f0edfc3f00040000000000000000000020f1fc3ff023fb3f
+[00:00:04.290,000] <err> coredump: #CD:ffffffff00000000
+[00:00:04.290,000] <err> coredump: #CD:4d0100f0edfc3ff0f1fc3f
+[00:00:04.290,000] <err> coredump: #CD:a87113abbd0d45b4fe3d00dc1300b65006fe057d0e87231e4d85d5dc4a14745b
+[00:00:04.290,000] <err> coredump: #CD:30d321ebfb2ec7b15e047987e6d320ac82d38fa5a7fdd410ab4ce69f29a5aea6
+[00:00:04.290,000] <err> coredump: #CD:1914f77637e7c3af6b27b0f1d11dd6658af4bab8abd9e6647c6787bedc8f58fa
+[00:00:04.290,000] <err> coredump: #CD:c4666c5775b6ab3cf2905e3a2cd1ae92ffa83fb371e7d2a866c2ac67efb3fcd5
+[00:00:04.290,000] <err> coredump: #CD:fdba0ef849c42ef1b0db6b5345bcee8bd5aa8684523da10a56a1e4eec6f26603
+[00:00:04.290,000] <err> coredump: #CD:9d30a0874409f0261e48ae5d09ac57c04870aacc7fd42a625e5bcfd976609cd9
+[00:00:04.290,000] <err> coredump: #CD:4a6b632b7be507d369c9ebf2ea3ed49f07d0d72c8bafad0ac814a00d5bedbbaf
+[00:00:04.290,000] <err> coredump: #CD:2959c7280ba392d9608bf0adeb7d214595108fdfbe7df039bd662d008ec7b298
+[00:00:04.290,000] <err> coredump: #CD:394f5390cd73bff1da09f5a053aa7785fec2d1c02f7d71f2a6b6cb8db946b257
+[00:00:04.290,000] <err> coredump: #CD:63551bda052b353956cee5ed53d6d71166b994ef6f1fe98a143df14aede2c061
+[00:00:04.290,000] <err> coredump: #CD:56598dc64a7f89331173d094b3b392450a810dea138ef2ad798165776a8e06be
+[00:00:04.290,000] <err> coredump: #CD:334dbdc00bc0e9481a7b94c7af1d61b6a6b0c8543fe3b30881870acb76683fa9
+[00:00:04.290,000] <err> coredump: #CD:3b56a3212a2e66b0b7ff82b60d7e6c2f8b2518de53a6e3ccb52424bb3bf81056
+[00:00:04.290,000] <err> coredump: #CD:2af1016aca4e8a2ba47836ab028d7adcd7d8efb75cd9eefc193236b6ed5d1648
+[00:00:04.290,000] <err> coredump: #CD:e07e905c4961f9fb74a6d2ba0a6312dac1971f353fb7ab5c2b0f1446cb651545
+[00:00:04.290,000] <err> coredump: #CD:5e8255df600ca4d7fc045bada7f17992eaa9df16cbb36c1f80eb33f28f980d6e
+[00:00:04.290,000] <err> coredump: #CD:73dd9974a7d35e570fbac2effb4738544ee4f80e7b8f0531150cd1485dc898c5
+[00:00:04.290,000] <err> coredump: #CD:04553038e34fff3af85873654247de120138fff8399cf2810ec41438f8be1c8a
+[00:00:04.290,000] <err> coredump: #CD:20b8e8c6ff0791f4ef9035151c246438b8c869a2cb69a4e87ab6806199d25564
+[00:00:04.290,000] <err> coredump: #CD:09a898af2d9f119962935eb38f73ccb48e6577eddafa497c30993cbaa69b735c
+[00:00:04.290,000] <err> coredump: #CD:7580f92e93f77cef4531d6da8fcd7a714aa10d353cd76ea857c3748a3ab32a99
+[00:00:04.290,000] <err> coredump: #CD:08960b102127567998a1cc8f8b679d154e2a95f0e979bcc19ae269a2dbce177c
+[00:00:04.290,000] <err> coredump: #CD:836a4f44ffeef258d078eb7eae27f3a60e89cac6792d6e2f384e1a78ef8a37c0
+[00:00:04.290,000] <err> coredump: #CD:8823aa2c6393c05ada04fa7555e0ade3486de9045bde6e3f584495cdd3affa9d
+[00:00:04.290,000] <err> coredump: #CD:a84ebbfe840ef14398d5dcc33b4f4a2709b573a45e3e25711e603330df92545d
+[00:00:04.290,000] <err> coredump: #CD:ec56de5d297f05b1335080a384f533d554f1fc3f009af803e7030000f1197605
+[00:00:04.290,000] <err> coredump: #CD:a19d6b01fe1e088080f1fc3f200000000100000000000000a870fc3f01000000
+[00:00:04.290,000] <err> coredump: #CD:0100000007174c56000000000400000000000000000000000000000000000000
+[00:00:04.290,000] <err> coredump: #CD:20090600011f0840c9310880282608400000000020000000512b2a5e03af083e
+[00:00:04.290,000] <err> coredump: #CD:c2450e80c0f1fc3fa4bffc3f00000000000000000000000000000000c0310840
+[00:00:04.290,000] <err> coredump: #CD:00000000e0f1fc3fc0310840a4bffc3f00000000a870fc3f0100000001000000
+[00:00:04.290,000] <err> coredump: #CD:0000000000f2fc3f000000000000000000000000000000000000000000000000
+[00:00:04.290,000] <err> coredump: #CD:END#
+[00:00:04.290,000] <err> os: Halting system
