@@ -49,6 +49,19 @@ OP_MK_CONTEXT = 0x15   # dest=ctx_reg, src1=num_slots, src2=outer (0xFF => closu
 OP_LD_CTX     = 0x16   # dest, src1=depth (Context->outer hops), src2=slot_idx
 OP_ST_CTX     = 0x17   # dest=value_reg, src1=depth, src2=slot_idx
 OP_LD_SELF    = 0x18   # dest=reg; load running block closure's captured_self (self-migration)
+# perf/op-cmp-at: send-layout fast-path opcodes (src/oevm.h). Identical operand
+# layout to OP_SEND; a fast-path miss in the VM falls INTO the OP_SEND handler,
+# so lowering any explicit-receiver send of these selectors is semantics-free.
+OP_LT     = 0x19
+OP_LE     = 0x1A
+OP_GT     = 0x1B
+OP_GE     = 0x1C
+OP_AT     = 0x1D       # basicAt:
+OP_AT_PUT = 0x1E       # basicAt:put:
+FASTPATH_SEND_OPS = {"<": OP_LT, "<=": OP_LE, ">": OP_GT, ">=": OP_GE,
+                     "basicAt:": OP_AT, "basicAt:put:": OP_AT_PUT}
+def send_op_for(selector):
+    return FASTPATH_SEND_OPS.get(selector, OP_SEND)
 
 
 def pack_abc(opcode, a, b, c):
@@ -516,7 +529,7 @@ class MethodCompiler:
         self.emit_ABC(OP_LD_REG, rc, i_reg, 0)
         ec = self.alloc_reg()                            # contiguous arg = rc + 1
         self.emit_ABC(OP_LD_REG, ec, end_reg, 0)
-        self.emit_ABC(OP_SEND, 1, self.add_constant(cmp_sel), rc)
+        self.emit_ABC(send_op_for(cmp_sel), 1, self.add_constant(cmp_sel), rc)
         self.emit_jump(OP_JMP_IF_FALSE, rc, l_end)
         self.free_reg()  # ec
         self.free_reg()  # rc
@@ -567,7 +580,7 @@ class MethodCompiler:
             self.emit_ABC(OP_LD_REG, rc, i_reg, 0)
             ec = self.alloc_reg()                         # contiguous arg = rc + 1
             self.emit_ABC(OP_LD_REG, ec, end_reg, 0)
-            self.emit_ABC(OP_SEND, 1, self.add_constant(cmp_sel), rc)
+            self.emit_ABC(send_op_for(cmp_sel), 1, self.add_constant(cmp_sel), rc)
             self.emit_jump(OP_JMP_IF_FALSE, rc, l_loop_end)
             self.free_reg()  # ec
             self.free_reg()  # rc
@@ -598,7 +611,7 @@ class MethodCompiler:
         self.emit_ABC(OP_LD_REG, sc, step_reg, 0)
         sec = self.alloc_reg()                            # contiguous arg = sc + 1
         self.emit_ABx(OP_LD_CONST, sec, self.add_constant("SMI:0"))
-        self.emit_ABC(OP_SEND, 1, self.add_constant("<"), sc)
+        self.emit_ABC(send_op_for("<"), 1, self.add_constant("<"), sc)
         self.emit_jump(OP_JMP_IF_FALSE, sc, l_pos)
         self.free_reg()  # sec
         self.free_reg()  # sc
@@ -632,7 +645,7 @@ class MethodCompiler:
         self.emit_ABC(OP_LD_REG, rc, i_reg, 0)
         ec = self.alloc_reg()                          # contiguous arg = rc + 1
         self.emit_ABC(OP_LD_REG, ec, n_reg, 0)
-        self.emit_ABC(OP_SEND, 1, self.add_constant("<"), rc)
+        self.emit_ABC(send_op_for("<"), 1, self.add_constant("<"), rc)
         self.emit_jump(OP_JMP_IF_FALSE, rc, l_end)
         self.free_reg()  # ec
         self.free_reg()  # rc
@@ -1016,7 +1029,10 @@ class MethodCompiler:
                 self.emit_ABx(OP_LD_CONST, idx_reg, idx_cidx)
                 elem_reg = self.alloc_reg()
                 self.compile_expr(elem, elem_reg)
-                self.emit_ABC(OP_SEND, 2, atput_idx, rcvr_reg)
+                # Receiver is the fresh `Array new:` above, so OP_AT_PUT's fast
+                # path always applies; the selector const keeps the fallback a
+                # correct plain `at:put:` send regardless.
+                self.emit_ABC(OP_AT_PUT, 2, atput_idx, rcvr_reg)
                 self.free_reg(); self.free_reg(); self.free_reg()
             self.emit_ABC(OP_LD_REG, target_reg, arr_reg, 0)
             self.free_reg()  # arr_reg
@@ -1352,7 +1368,7 @@ class MethodCompiler:
                 self.next_free_reg = areg + 1
 
             cidx = self.add_constant(selector)
-            send_op = OP_BLOCK_INVOKE if self._is_block_value_selector(selector) else OP_SEND
+            send_op = OP_BLOCK_INVOKE if self._is_block_value_selector(selector) else send_op_for(selector)
             self.emit_ABC(send_op, len(args), cidx, rcvr_reg)
             self.emit_ABC(OP_LD_REG, target_reg, rcvr_reg, 0)
             self.next_free_reg = old_free
