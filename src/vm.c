@@ -426,10 +426,11 @@ static struct MethodContext *push_frame(oop closure, oop receiver, int argc, oop
                                  : home_link_encode_relative(vm_stack, ctx);
     ctx->gen_tag.tag32 = ++current_generation_tag;
     ctx->regs[0] = receiver;
-    for (int i = 0; i < argc; i++) {
-        if (i + 1 < m->num_registers) ctx->regs[i + 1] = args[i];
-    }
-    for (int i = argc + 1; i < m->num_registers; i++) ctx->regs[i] = NULL;
+    /* Clamp once instead of bounds-checking every arg; excess args (a caller
+       bug the old per-arg check tolerated silently) are still dropped. */
+    int ncopy = (argc < m->num_registers - 1) ? argc : m->num_registers - 1;
+    for (int i = 0; i < ncopy; i++) ctx->regs[i + 1] = args[i];
+    for (int i = ncopy + 1; i < m->num_registers; i++) ctx->regs[i] = NULL;
     current_frame = ctx;
     return ctx;
 }
@@ -829,14 +830,15 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 // Layout identical to OP_SEND. Fast-path: a BytecodeClosure is
                 // invoked as a block (still recursive in Phase 1); any other
                 // receiver falls back to a normal send (e.g. Association>>value).
-                oop selector = cm_const_at(method, src1);
                 oop target = ctx->regs[src2];
                 int send_argc = dest;
                 oop *send_args = (send_argc > 0) ? &ctx->regs[src2 + 1] : NULL;
 
                 ctx->saved_pc = pc;
                 if (target != NULL && obj_vtable(target) == BytecodeClosureVtable) {
-                    /* Fast path: invoke the block — push its frame in this loop. */
+                    /* Fast path: invoke the block — push its frame in this loop.
+                       The selector const is only needed by the fallback send, so
+                       it is not loaded here. */
                     push_frame(target, target, send_argc, send_args);
                     ctx = current_frame;
                     method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
@@ -845,6 +847,7 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     continue;
                 }
                 /* Fallback: an ordinary send (e.g. Association>>value). */
+                oop selector = cm_const_at(method, src1);
                 oop m_out = NULL, r_out = NULL;
                 int argc_out = 0;
                 oop result = send_resolve(target, selector, send_argc, send_args,
