@@ -35,14 +35,17 @@ well off on array write — i.e. the column is interesting, not embarrassing:
 | integer math | 9.4 s | ~18 s |
 | float math | 41.1 s | **~37 s** |
 | array write | 19.4 s | ~143 s |
-| string compare | 1.5 s | ~37.6 s |
+| string compare | 1.5 s | ~7.5 s |
 
 These are extrapolations, not results. The point of the work is to replace them.
-`stringCompare` is the one to watch: Toit's `s1 == s2` on two identical literals is
-likely an interned-pointer compare (1.5 s / 1M ≈ 1.5 µs), and tuvm has its own literal
-dedup + `String=` identity fast path (`oevm#17`, `cee55d4`) — yet E3 extrapolates to
-~25× slower. Either the fast path is not firing on this shape, or the two VMs are not
-measuring the same thing. Worth understanding before the column is quoted.
+
+*(Correction, same day: an earlier revision of this table predicted ~37.6 s for
+stringCompare and called it a ~25× anomaly worth investigating. That was an arithmetic
+error — perfstex's stringCompare does **5 compares per iteration** × 10K = **50,000**
+compares in 376 ms (7.52 µs each), not 10,000. The correct prediction is ~7.5 s, about
+5× Toit. Toit interns strings so its 1.5 s is a pointer compare; tuvm pools identical
+literals too (`oevm#17`, `cee55d4`). A 5× gap on a real compare is unremarkable — there
+is no anomaly to chase.)*
 
 ## 2. Lineage — three files, and which one is authoritative for what
 
@@ -135,7 +138,16 @@ The published table is in **seconds**, so ms are converted at report time. At th
 iteration counts every test runs for seconds, so the 1 ms tick is immaterial — unlike
 perfstex, where `integerMath: 30` carried ~3% quantisation.
 
-**THREE RUNS, MEANED — non-negotiable for comparability.** `performance.toit`'s `main`
+**FIRST PASS RUNS ONCE.** David, 2026-07-16: *"run the test once for starters (not 3
+times/avg) ... lets see what we have."* A single run is ~7–9 min instead of ~21–27, which
+is the right trade for a first look — the numbers are for orientation, not for the table.
+**A single run is explicitly NOT comparable to the published columns** (see below); the
+mean-of-three is required before any number is quoted next to Toit/uLisp/CircuitPython.
+The reporting code emits each run's values as it completes, so going from one run to
+three is a loop bound, not a rewrite.
+
+**THREE RUNS, MEANED — non-negotiable for comparability (before publication).**
+`performance.toit`'s `main`
 does not report a single run. It runs the whole suite **three times, each with a fresh
 `SpeedTester`**, and reports the arithmetic mean:
 
@@ -195,12 +207,16 @@ Model B, `prj_esp32.conf`, `esp32_devkitc/esp32/procpu`, board as attached
 Four tests overlap perfstex E3 at known counts, so the port can be checked **before any
 number is quoted**:
 
+Counting care required: perfstex's per-test totals are `iterations × unrolled ops`, not
+the loop bound. Its `stringCompare` bound is 10,000 but each iteration does **5**
+compares → 50,000. Getting this wrong is what produced the retracted ~25× "anomaly" in §1.
+
 | test | E3 (perfstex) | expected scale | predicted |
 |---|---|---|---|
-| integerMath | 30 ms @ 5K evals | ×600 | ~18 s |
-| floatMath | 62 ms @ 5K evals | ×600 | ~37 s |
-| arrayWrite | 1431 ms @ 100K writes | ×100 | ~143 s |
-| stringCompare | 376 ms @ 10K compares | ×100 (1M) | ~37.6 s |
+| integerMath | 30 ms @ 5K chains (1K × 5) | ×600 (3M) | ~18 s |
+| floatMath | 62 ms @ 5K chains (1K × 5) | ×600 (3M) | ~37 s |
+| arrayWrite | 1431 ms @ 100K writes (10K × 10) | ×100 (10M) | ~143 s |
+| stringCompare | 376 ms @ 50K compares (10K × 5) | ×20 (1M) | ~7.5 s |
 
 If a test misses its prediction by more than ~2×, **the port is wrong or the counts are
 wrong** — investigate before reporting. A too-fast result is the dangerous one: it means
