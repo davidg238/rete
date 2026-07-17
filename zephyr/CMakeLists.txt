@@ -122,24 +122,28 @@ if(DEFINED ENV{OEVM_MARK_STACK_SIZE})
   target_compile_definitions(app PRIVATE OEVM_MARK_STACK_SIZE=$ENV{OEVM_MARK_STACK_SIZE})
 endif()
 
-# Hot-path IRAM placement (perf/iram-interp trial). Routes the interpreter's
-# hottest functions (oevm.h OEVM_HOT) into internal IRAM instead of flash XIP.
+# Hot-path IRAM placement. Routes the interpreter's hottest functions
+# (oevm.h OEVM_HOT) into internal IRAM instead of flash XIP; ends the
+# combinator-row cache roulette (ledger E8: ocDo −36%, ~8 KB IRAM).
 # Xtensa-only: -mtext-section-literals keeps literal pools in the relocated
-# section (an L32R in IRAM cannot reach flash). Env knob for the same
-# NCS-sysbuild reason as the defines above.
-if(DEFINED ENV{OEVM_IRAM_HOT})
-  if(NOT CONFIG_XTENSA)
-    message(FATAL_ERROR "OEVM_IRAM_HOT is an ESP32/Xtensa knob; unset it for this target")
-  endif()
+# section (an L32R in IRAM cannot reach flash). DEFAULT ON for Xtensa
+# (accepted 2026-07-17); export OEVM_IRAM_HOT=0 to opt out. Env, not -D,
+# for the same NCS-sysbuild reason as the defines above.
+if(CONFIG_XTENSA AND NOT "$ENV{OEVM_IRAM_HOT}" STREQUAL "0")
   target_compile_definitions(app PRIVATE OEVM_HOT_SECTION_IRAM=1)
   target_compile_options(app PRIVATE -mtext-section-literals)
+elseif(NOT CONFIG_XTENSA AND "$ENV{OEVM_IRAM_HOT}" STREQUAL "1")
+  message(FATAL_ERROR "OEVM_IRAM_HOT is an ESP32/Xtensa knob; unset it for this target")
 endif()
 
-# Production-build knob: compile out the three per-bytecode debugger checks
-# (oevm.h OEVM_NO_DEBUG_HOOKS). A build so configured cannot host the on-target
-# debugger — a disclosed semantic knob, never a silent default. Env for the
-# same NCS-sysbuild reason as the defines above.
-if(DEFINED ENV{OEVM_NO_DEBUG_HOOKS})
+# Production default (accepted 2026-07-17): the three per-bytecode debugger
+# checks (oevm.h OEVM_NO_DEBUG_HOOKS) are compiled OUT of Zephyr builds —
+# no on-target debugger transport exists, and the checks cost 10-16% per
+# bytecode (ledger E8). Export OEVM_DEBUG_HOOKS=1 to build a hooks-enabled
+# image (required for any future on-target debugging work). Hosted builds
+# and the test suites are unaffected — they never define the macro, and the
+# debugger-integration gate exercises the hooks there.
+if(NOT "$ENV{OEVM_DEBUG_HOOKS}" STREQUAL "1")
   target_compile_definitions(app PRIVATE OEVM_NO_DEBUG_HOOKS=1)
 endif()
 

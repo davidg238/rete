@@ -42,6 +42,8 @@
  * debugger injects OP_BREAK and it cannot attach with the hooks gone, so no
  * production image contains one. Hosted builds and the test suites leave
  * this undefined; the debugger-integration gate exercises the hooks.
+ * Zephyr builds define it BY DEFAULT (zephyr/CMakeLists.txt, accepted
+ * 2026-07-17) — export OEVM_DEBUG_HOOKS=1 there for a hooks-enabled image.
  */
 
 /* 
