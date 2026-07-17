@@ -32,6 +32,18 @@
 #define OEVM_HOT
 #endif
 
+/*
+ * On-target debugger hooks. The dispatch loop carries three per-bytecode
+ * checks: the C-assisted breakpoint gate, the OP_BREAK dispatch, and the
+ * single-step hook (vm.c, all marked with this guard). Define
+ * OEVM_NO_DEBUG_HOOKS for production MCU builds to compile all three out —
+ * a build so configured cannot host the debugger. An OP_BREAK bytecode then
+ * falls to the unknown-opcode abort (loud): acceptable because only the
+ * debugger injects OP_BREAK and it cannot attach with the hooks gone, so no
+ * production image contains one. Hosted builds and the test suites leave
+ * this undefined; the debugger-integration gate exercises the hooks.
+ */
+
 /* 
  * oop: Object Oriented Pointer.
  * Under Piumarta's Open Extensible Object Model (COLA/Id style),

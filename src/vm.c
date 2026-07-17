@@ -570,6 +570,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
            fire debugger_hook exactly like the OP_BREAK path, but pause BEFORE pc
            (saved_pc = pc) so after the hook pc executes normally and the bp re-fires
            on the next visit -- no instruction mutation, no restore/re-arm. */
+#ifndef OEVM_NO_DEBUG_HOOKS
         if (g_bp_count > 0 && debugger_hook != NULL && !in_debugger_hook) {
             long curoff = (long)(pc - cm_instructions(method));
             if (bp_hit((oop)method, curoff)) {
@@ -596,10 +597,12 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 pc = ctx->saved_pc;              /* unchanged -> fall through, execute pc */
             }
         }
+#endif /* !OEVM_NO_DEBUG_HOOKS */
 
         uint32_t inst = *pc;
         uint8_t op = inst & 0xFF;
 
+#ifndef OEVM_NO_DEBUG_HOOKS
         if (op == OP_BREAK) {
             extern oop debugger_hook;
             if (debugger_hook != NULL) {
@@ -630,6 +633,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 continue;
             }
         }
+#endif /* !OEVM_NO_DEBUG_HOOKS */
 
         pc++;
         uint8_t dest = (inst >> 8) & 0xFF;
@@ -1096,6 +1100,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
          * without this guard this hook fires on the debugger's OWN unwinding
          * bytecode frames (onBreakContext: epilogue, etc.) — single-stepping the
          * debugger instead of the app. The guard keeps stepping confined to the app. */
+#ifndef OEVM_NO_DEBUG_HOOKS
         if (g_single_step && !in_debugger_hook) {
             extern oop debugger_hook;
             if (debugger_hook != NULL) {
@@ -1123,6 +1128,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 pc = ctx->saved_pc;
             }
         }
+#endif /* !OEVM_NO_DEBUG_HOOKS */
     }
 
 exit_frame:
