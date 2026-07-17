@@ -220,10 +220,59 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
    `.oimg` path makes that affordable for the first time (44 s, no 4.9 GB `cc1`), so it is
    now worth considering rather than dismissing.
 
+   **The knob paid for itself the same day: `perfstex` now runs on ESP32.** With the loop at
+   44 s, the classic SpeedTester (`nsl-tests/00_perf/perfstex.ns` — already a node,
+   `main: platform args:`, so it boots unmodified) was baked, flashed and run on real
+   silicon in about a minute. All six sub-tests plus `done`. Full write-up +
+   reproduction: `tuvm/zephyr/PERFSTEX_ESP32.md`.
+
+   | sub-test | OEVM/nRF52840 (M3) | **OEVM/ESP32** | speedup |
+   |---|---:|---:|---:|
+   | integerMath | 95 | **30** | 3.17× |
+   | floatMath | 284 | **62** | **4.58×** |
+   | arrayWrite | 4,751 | **1,431** | 3.32× |
+   | arrayIterate | 3,407 | **1,026** | 3.32× |
+   | stringCompare | 1,163 † | **376** | 3.09× |
+   | hanoi(18) | 14,719 | **4,248** | 3.46× |
+
+   † post-`oevm#17` nRF figure, not M3's pre-fix 1,609 — tuvm carries that fix.
+
+   Same VM, same iteration counts, different silicon, so this measures **the chip**: clock
+   ratio is 240 MHz ÷ 64 MHz = **3.75×**, and five of six land at 3.09–3.46× — just under
+   it, as XIP-out-of-flash should. **`floatMath`'s 4.58× is above the clock ratio and is
+   not explained**; don't quote it until someone separates soft-float codegen from the
+   arena-config confound (both parts emulate `double` — the LX6 and M4F FPUs are
+   single-precision only, so it is *not* "the ESP32 has an FPU"). Berry is deliberately
+   absent: M3's Berry column is nRF silicon, and putting it beside an ESP32 column would
+   report a chip difference as a VM difference. Single run, no repeats, 1 ms `millis`
+   quantisation — `hanoi18`/`arrayWrite` are the trustworthy rows.
+
+   This also validates stage 0 the hard way: `integerMath` overflows into `LargeInteger`
+   and `floatMath` boxes `Float` — **the exact two structs the `-m32` proxy got wrong** —
+   and both produce sane timings on the banked layout.
+
+   **`perfstex` also caught a real defect, and it was a known one.** `floatMath` aborted on
+   its first boxed float (`VM Float Arena Error: Out of Memory`). Cause is arithmetic, not
+   shortage: `gc.c`'s slab is 4096 cells, `struct Float` is 16 B on Xtensa, so one
+   `FloatSlab` is ~64.5 KB against a ~60 KB libc heap — the first `malloc` cannot succeed.
+   **`ns-zephyr` found and fixed this identical bug on nRF52840 in June** (`results.md` M3:
+   *"slabs larger than free RAM, so floatMath aborted on the first box"*;
+   `ZEPHYR_NODE_GUIDE.md` §3 pins the fix at `OEVM_FLOAT_ARENA_SLAB_CELLS=512` /
+   `_SLAB_BUDGET=4`). `zephyr/CMakeLists.txt` already forwarded both knobs — only
+   `run.sh`'s export list was short. **So "the five load-bearing knobs", repeated by this
+   rung and every plan, was never true — it was true only for nodes that never box a
+   float, and TimerNode never does. It is seven** (`run.sh` fixed accordingly). The wider
+   lesson: `ns-zephyr/docs/{results.md,ZEPHYR_NODE_GUIDE.md}` is prior art this port keeps
+   rediscovering the hard way — check it before debugging an embedded limit.
+
    **Open item — stage 2, which is what answers G1:** flash partition + blob-only reflash +
    independent `.oimg` OTA. Today Model B still relinks and reflashes the whole image; the
    44 s makes that cheap enough to defer, but G1 wants the blob to move on its own. Its own
    rung.
+
+   **Open papercut:** `run.sh` resolves `--node` relative to `zephyr/` only, so it cannot
+   drive nodes that live outside the tree — `perfstex.ns` (in `nsl-tests/00_perf/`) has to
+   be built by hand. Every in-tree node is fine; the perf suite is not in-tree.
 3. **Wire seam: CBOR + Int64. DONE 2026-07-10.** Owners: `review/lib/cbor.md` (CBOR over custom
    wire format, tags 27/39) and `review/lib/integers.md` (L7: boxed Int64 on 32-bit — decided,
    built with B). G4 says the `.oimg` line-table provision must not be foreclosed meanwhile (it
