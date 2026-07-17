@@ -1,9 +1,11 @@
 # Fast-path opcodes: OP_LT/LE/GT/GE + OP_AT/OP_AT_PUT — decision record
 
-**Status:** implemented and device-proven on trial branches (tuvm `perf/op-cmp-at`
-b9f893f, combined `perf/activation-plus-ops` 8e70ba5; paired `nsl-tuvm
-perf/op-cmp-at`), 2026-07-17. **Not merged** — awaiting David's review. Results:
-`~/workspace/tuvm/zephyr/docs/results.md` E6. Working journal:
+**Status:** ACCEPTED and merged 2026-07-17 (David's direction) — tuvm
+`perf/activation-plus-ops` merged to `feat/zephyr-model-ab` (b715c6c), paired
+`nsl-tuvm perf/op-cmp-at` merged to master (fd97080); `perf/iram-interp`
+merged alongside (6dbcc27) with production defaults flipped (7d953b4: Zephyr
+debug hooks OFF, Xtensa IRAM hot-set ON). Results:
+`~/workspace/tuvm/zephyr/docs/results.md` E6/E8. Working journal:
 `../superpowers/plans/2026-07-16-perf-trials-pushframe-opat.md`. Tracker: tuvm#37.
 
 ## Decision 1 — new opcodes reuse OP_SEND's layout and FALL INTO its handler

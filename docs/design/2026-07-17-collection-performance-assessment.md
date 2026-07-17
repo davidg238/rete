@@ -131,6 +131,8 @@ per-call-site inline caches (an invalidation story, excluded by mandate).
 - Fast-path ISA decisions: `2026-07-17-fastpath-opcodes-design.md`.
 - Benchmark discipline (within-binary deltas, host-absolute distrust, the
   literal-array and counting traps): auto-memory + results.md caveats.
-- Trial branches for review: tuvm `perf/activation-trim`, `perf/op-cmp-at`,
-  `perf/activation-plus-ops`, `perf/iram-interp` (90ae47e + 333f4f3);
-  nsl-tuvm `perf/op-cmp-at`. Nothing merged.
+- Trial branches: ACCEPTED and merged 2026-07-17 — tuvm
+  `perf/activation-plus-ops` + `perf/iram-interp` into `feat/zephyr-model-ab`
+  (b715c6c, 6dbcc27; production defaults 7d953b4), nsl-tuvm `perf/op-cmp-at`
+  into master (fd97080). Zephyr builds now default debug hooks OFF and (Xtensa)
+  IRAM hot-set ON.
