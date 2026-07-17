@@ -16,6 +16,34 @@
 #define OEVM_TRACE_PRINT(...) ((void)0)
 #endif
 
+/*
+ * Hot-path code placement. On XIP targets (ESP32: code executes from SPI flash
+ * through a small cache) the interpreter's hottest functions can be routed into
+ * internal instruction RAM by defining OEVM_HOT_SECTION_IRAM at build time —
+ * the Zephyr build forwards it from the OEVM_IRAM_HOT env knob, alongside
+ * -mtext-section-literals so Xtensa literal pools travel with the code
+ * (an L32R in IRAM cannot reach a literal left behind in flash). `.iram.text`
+ * is a section the ESP32 linker script already collects into IRAM. Hosted and
+ * non-XIP builds leave the knob undefined and OEVM_HOT is a no-op.
+ */
+#ifdef OEVM_HOT_SECTION_IRAM
+#define OEVM_HOT __attribute__((section(".iram.text")))
+#else
+#define OEVM_HOT
+#endif
+
+/*
+ * On-target debugger hooks. The dispatch loop carries three per-bytecode
+ * checks: the C-assisted breakpoint gate, the OP_BREAK dispatch, and the
+ * single-step hook (vm.c, all marked with this guard). Define
+ * OEVM_NO_DEBUG_HOOKS for production MCU builds to compile all three out —
+ * a build so configured cannot host the debugger. An OP_BREAK bytecode then
+ * falls to the unknown-opcode abort (loud): acceptable because only the
+ * debugger injects OP_BREAK and it cannot attach with the hooks gone, so no
+ * production image contains one. Hosted builds and the test suites leave
+ * this undefined; the debugger-integration gate exercises the hooks.
+ */
+
 /* 
  * oop: Object Oriented Pointer.
  * Under Piumarta's Open Extensible Object Model (COLA/Id style),

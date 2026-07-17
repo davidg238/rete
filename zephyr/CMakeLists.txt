@@ -122,6 +122,27 @@ if(DEFINED ENV{OEVM_MARK_STACK_SIZE})
   target_compile_definitions(app PRIVATE OEVM_MARK_STACK_SIZE=$ENV{OEVM_MARK_STACK_SIZE})
 endif()
 
+# Hot-path IRAM placement (perf/iram-interp trial). Routes the interpreter's
+# hottest functions (oevm.h OEVM_HOT) into internal IRAM instead of flash XIP.
+# Xtensa-only: -mtext-section-literals keeps literal pools in the relocated
+# section (an L32R in IRAM cannot reach flash). Env knob for the same
+# NCS-sysbuild reason as the defines above.
+if(DEFINED ENV{OEVM_IRAM_HOT})
+  if(NOT CONFIG_XTENSA)
+    message(FATAL_ERROR "OEVM_IRAM_HOT is an ESP32/Xtensa knob; unset it for this target")
+  endif()
+  target_compile_definitions(app PRIVATE OEVM_HOT_SECTION_IRAM=1)
+  target_compile_options(app PRIVATE -mtext-section-literals)
+endif()
+
+# Production-build knob: compile out the three per-bytecode debugger checks
+# (oevm.h OEVM_NO_DEBUG_HOOKS). A build so configured cannot host the on-target
+# debugger — a disclosed semantic knob, never a silent default. Env for the
+# same NCS-sysbuild reason as the defines above.
+if(DEFINED ENV{OEVM_NO_DEBUG_HOOKS})
+  target_compile_definitions(app PRIVATE OEVM_NO_DEBUG_HOOKS=1)
+endif()
+
 # Config-D DEFAULTS for every nRF52840 target — LOAD-BEARING, not tuning. The env
 # vars above still override, but when the env is silent a 52840 build must NOT fall
 # back to the host defaults: without VM_STACK_INIT_WORDS=4096 the VM boots by
