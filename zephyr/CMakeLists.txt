@@ -7,11 +7,17 @@ project(tuvm_pulse)
 # tools/ns_compile_oevm.py from zephyr/PulseNode.ns, exactly the recipe
 # tools/run_tests_oevm.py uses for the host Path-A test runner (oevm_runner),
 # minus src/oevm_main.c (this directory's src/main.c is the Zephyr entry
-# point instead) and minus src/oimg_loader.c + src/kernel_boot.c — both of
-# those define their own `Vtable_*`/kernel-symbol statics that CLASH with the
-# ones solidified_image.c bakes for THIS specific program (see
-# tools/run_tests_oevm.py's run_c_unit_tests() docstring for the identical
-# constraint on the host build). src/serial.c and src/udp.c are linked even
+# point instead). Only src/kernel_boot.c is mutually exclusive with
+# solidified_image.c: it defines 13 `Vtable_*` symbols (Vtable_SymbolVtable,
+# Vtable_IntegerVtable, ...) that solidified_image.c also bakes for THIS program
+# — verified, the overlap is exactly those 13. src/oimg_loader.c does NOT clash
+# and is linked under BOTH models: it shares no symbol with solidified_image.c,
+# and the host has always linked the two together — tools/run_c_tests.sh:28
+# (ENG_A = oimg_loader.c + solidified_image.c) vs :29 (ENG_B = oimg_loader.c +
+# kernel_boot.c). The TUVM_MODEL knob below is that same ENG_A/ENG_B split.
+# (An earlier revision of this comment blamed oimg_loader.c too, and cited a
+# run_c_unit_tests() in tools/run_tests_oevm.py that does not exist — the real
+# link sets are in run_c_tests.sh.) src/serial.c and src/udp.c are linked even
 # though this gate's node grants no serial/net capability: src/dispatch.c's
 # send() fast path unconditionally calls serial_object()/udp_object() to test
 # receiver identity, so both — and the zephyr backend files that back them —
@@ -22,7 +28,6 @@ target_sources(app PRIVATE
   ${TUVM_SRC}/src/vm.c ${TUVM_SRC}/src/gc.c ${TUVM_SRC}/src/dispatch.c
   ${TUVM_SRC}/src/platform.c ${TUVM_SRC}/src/space.c ${TUVM_SRC}/src/handles.c
   ${TUVM_SRC}/src/serial.c ${TUVM_SRC}/src/udp.c ${TUVM_SRC}/src/mirror.c
-  ${TUVM_SRC}/src/solidified_image.c
   ${TUVM_SRC}/src/backend/zephyr/platform_zephyr.c
   ${TUVM_SRC}/src/backend/zephyr/serial_zephyr.c
   ${TUVM_SRC}/src/backend/zephyr/udp_zephyr.c
@@ -30,6 +35,47 @@ target_sources(app PRIVATE
   ${TUVM_SRC}/src/backend/zephyr/timer_zephyr.c
 )
 target_include_directories(app PRIVATE ${TUVM_SRC}/src)
+
+# ---- Model A/B knob -------------------------------------------------------
+# A (default): the per-program baked image, src/solidified_image.c.
+# B: a generic VM + a .oimg blob .incbin'd into flash .rodata.
+# The link sets are MUTUALLY EXCLUSIVE: solidified_image.c XOR kernel_boot.c —
+# see the 13-symbol Vtable_* overlap explained at the top of this file. This is
+# the ENG_A/ENG_B split tools/run_c_tests.sh has always used on the host.
+#
+# Model A links no oimg_loader.c: zephyr/src/main.c stubs the four globals it
+# would own (oimg_blob_base/_end, builtin_registry, oimg_singleton), and
+# oimg.h's is_in_blob() returns 0 while oimg_blob_base is NULL, so the XIP
+# accessor paths are never taken.
+set(TUVM_MODEL "A" CACHE STRING "tuvm image model: A (solidified) or B (.oimg blob)")
+set_property(CACHE TUVM_MODEL PROPERTY STRINGS A B)
+
+if(TUVM_MODEL STREQUAL "A")
+  target_sources(app PRIVATE ${TUVM_SRC}/src/solidified_image.c)
+elseif(TUVM_MODEL STREQUAL "B")
+  if(NOT DEFINED TUVM_BLOB)
+    message(FATAL_ERROR "TUVM_MODEL=B requires -DTUVM_BLOB=<path to .oimg>")
+  endif()
+  if(NOT EXISTS "${TUVM_BLOB}")
+    message(FATAL_ERROR "TUVM_BLOB does not exist: ${TUVM_BLOB}")
+  endif()
+  target_sources(app PRIVATE
+    ${TUVM_SRC}/src/oimg_loader.c
+    ${TUVM_SRC}/src/kernel_boot.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/blob.S)
+  # OEVM_NO_FILE_IO compiles out oimg_loader.c's oimg_load() mmap/open path,
+  # which has no meaning on this target.
+  target_compile_definitions(app PRIVATE TUVM_MODEL_B OEVM_NO_FILE_IO)
+  # blob.S is preprocessed (.S, capital) so TUVM_BLOB_FILE expands.
+  set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/blob.S APPEND PROPERTY
+    COMPILE_DEFINITIONS "TUVM_BLOB_FILE=\"${TUVM_BLOB}\"")
+  # Rebuild when the blob changes.
+  set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/blob.S APPEND PROPERTY
+    OBJECT_DEPENDS "${TUVM_BLOB}")
+else()
+  message(FATAL_ERROR "TUVM_MODEL must be A or B, got: ${TUVM_MODEL}")
+endif()
+message(STATUS "tuvm: TUVM_MODEL=${TUVM_MODEL}")
 
 # Tunables via ENV, not `-D`: NCS sysbuild swallows a bare
 # `west build -- -DOEVM_HEAP_SIZE=...` (it lands in the sysbuild cache, never

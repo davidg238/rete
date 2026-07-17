@@ -105,11 +105,14 @@ static void wire_pulse_gpio(void) {
 static inline void wire_pulse_gpio(void) { }   /* native_sim: no physical button */
 #endif
 
+#ifndef TUVM_MODEL_B
 /* XIP stubs — Model A never loads an .oimg blob; oimg.h's is_in_blob() checks
    oimg_blob_base first and returns 0 while it is NULL, so the XIP accessor
    paths are never taken. These definitions must live here (mirroring
    src/oevm_main.c) because src/oimg_loader.c is deliberately NOT linked into
-   this build — see zephyr/CMakeLists.txt's comment for why. */
+   this build — see zephyr/CMakeLists.txt's comment for why.
+   Under Model B these MUST NOT be compiled: src/oimg_loader.c is linked and
+   defines all four itself (oimg_loader.c:15-19). */
 const uint8_t *oimg_blob_base = NULL;
 const uint8_t *oimg_blob_end  = NULL;
 oop builtin_registry[BUILTIN_COUNT] = {0};
@@ -118,6 +121,16 @@ oop oimg_singleton[3] = {0};
 extern void init_solidified_vtables(void);
 extern void init_reflection_symbols(void);
 extern oop  run_solidified_entry_point(void);
+#else
+/* Model B: the program is a .oimg blob in flash .rodata, not baked C.
+   kernel_boot() comes from oevm.h and oimg_load_blob() from oimg.h, but
+   oimg_root()/oimg_bootstrap() are declared in NO header (defined in
+   src/oimg_loader.c, used by src/oevm_image_main.c), so they are externed here. */
+extern const uint8_t tuvm_blob_start[], tuvm_blob_end[];   /* zephyr/blob.S */
+extern oop  oimg_root(void);
+extern oop  oimg_bootstrap(oop entry_vtable);
+#endif
+
 extern void (*gc_additional_roots_hook)(void);
 extern uint64_t (*oevm_millis)(void);
 
@@ -133,6 +146,15 @@ int main(void) {
        host's own stdout. Without this, libc line-buffers and a crash
        mid-run could hide output that already happened in-language. */
     setvbuf(stdout, NULL, _IONBF, 0);
+    /* stderr too: oimg_load_blob() reports EVERY validation failure (bad magic,
+       format_version, registry_version, blob_size) via fprintf(stderr), and
+       under Model B those messages are the only thing distinguishing a stale
+       blob from a bad layout. CONFIG_STDOUT_CONSOLE wires stdout; nothing
+       unbuffers stderr, so without this a failing blob can die silently.
+       setvbuf is safe here — it is not on the ESP32 ROM's forced-newlib list
+       (unlike fflush; see prj_esp32.conf), and the stdout call above already
+       proves it out on this silicon. */
+    setvbuf(stderr, NULL, _IONBF, 0);
 
     /* USB-CDC-console boards (the nRF52840 dongle): give the SoC USB-CDC time to
        enumerate before OT bring-up + console output — else early prints are lost
@@ -147,8 +169,19 @@ int main(void) {
     gc_additional_roots_hook = oevm_roots_callback;
     oevm_millis = zephyr_millis;
 
+#ifdef TUVM_MODEL_B
+    kernel_boot();   /* ONCE, before load/bootstrap — the order src/oevm_image_main.c uses */
+    if (oimg_load_blob(tuvm_blob_start,
+                       (size_t)(tuvm_blob_end - tuvm_blob_start)) != 0) {
+        /* Loud: never boot a bad blob silently. The specific check that failed
+           was just printed to stderr by the loader. */
+        printk("tuvm: oimg_load_blob failed\n");
+        return 0;
+    }
+#else
     init_solidified_vtables();
     init_reflection_symbols();
+#endif
 
     wire_pulse_gpio();   /* Task 8 (DK): arm BUTTON1 as the pulse edge; no-op on native_sim */
 
@@ -156,10 +189,14 @@ int main(void) {
     thread_bringup();    /* Rung-7: enable OT + admin-up the net_if before the VM binds sockets */
 #endif
 
+#ifdef TUVM_MODEL_B
+    oop result = oimg_bootstrap(oimg_root());
+#else
     oop result = run_solidified_entry_point();  /* runs PulseNode>>main:args: —
         registers the reaction, fires the simulated edge, then blocks forever
         in [ true ] whileTrue: [ platform pumpEvents. space drain ] once the
         mailbox is drained (see pulse_zephyr.c's pulse_pump: K_FOREVER). */
+#endif
     (void)result;
 
     /* Not normally reached (see above) — kept so a future node whose main:
