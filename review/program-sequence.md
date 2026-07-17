@@ -148,6 +148,82 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
    raise/ensure crash boundary on them; the non-fatal `<err> os: ** SYSCALL` dumps (still
    present in the green log, expected) are ROM `setjmp` (0x40056268) spilling register
    windows — noisy, execution continues, soundness on Xtensa unverified.
+
+   **In-rung 2026-07-16 — the Zephyr Model A/B build knob. Model B is GREEN on ESP32.**
+   The rung stays OPEN: stage 2 is unbuilt (see the open item at the end). Design
+   `tuvm/docs/design/2026-07-16-zephyr-model-ab-build-knob-design.md`, plan
+   `tuvm/docs/superpowers/plans/2026-07-16-zephyr-model-ab-build-knob.md`.
+
+   `zephyr/run.sh --model A|B` now owns the loop (bake → build → flash → capture) and
+   `TUVM_MODEL` selects the link set: **A** = `src/solidified_image.c` (today's build,
+   byte-for-byte); **B** = `oimg_loader.c` + `kernel_boot.c` + a `.oimg` `.incbin`'d into
+   flash `.rodata` via `zephyr/blob.S`, with no `solidified_image.c` at all.
+
+   | | measured |
+   |---|---|
+   | Model B, whole pristine loop (bake+build+flash+15s capture) | **44.0 s** |
+   | Model B, pristine build alone | **11.6 s** |
+   | `.incbin` of a 946 KB blob (real Xtensa `as`) | **0.007 s** |
+   | Model A, build | **~50 min — and did not finish; OOM** |
+
+   **The ~50 min was never really `as` — it is `cc1`, and it is a memory bug, not just a
+   slow one.** The design blamed `as` on 941.7 MB / 71M lines of generated Xtensa asm. On
+   the device-run attempt, **`cc1` (the C compiler, before `as` ever runs) reached 4.86 GB
+   RSS and was OOM-killed by the kernel**, taking the terminal's cgroup with it
+   (`oom-kill: task=cc1`; `anon-rss:4865120kB`; 15 GB box, ~9 GB held by the desktop, 4 GB
+   swap full). So Model A's build cannot be scheduled around — it can take the developer's
+   machine down. This reprices the "just re-run Model A to check" move that the ladder and
+   plans have been assuming is merely slow.
+
+   **A == B on program output; B is CLEANER.** Both print `TIMER OK` and sit alive.
+   But Model A also emits 48 lines of the non-fatal ROM-`setjmp` `<err> os: ** SYSCALL`
+   spill dumps (PC 0x4005626f) described in the loose thread just above — and **Model B
+   emits zero of them**. B never enters the ROM `setjmp` path. That is new information
+   about that loose thread: the noise is Model-A-specific, not intrinsic to the VM on
+   Xtensa. Not investigated here; do not assume it benign.
+
+   **Corrections to the record, both from reading the source rather than the comments:**
+   - `zephyr/CMakeLists.txt`'s clash comment blamed `oimg_loader.c` *and* `kernel_boot.c`.
+     Only **`kernel_boot.c`** clashes, and precisely **13 `Vtable_*` symbols** do.
+     `oimg_loader.c` shares **no** symbol with `solidified_image.c` and links under both
+     models.
+   - That comment (and the plan, which inherited it) cited *"`run_c_unit_tests()` in
+     `tools/run_tests_oevm.py`"*. **No such function exists.** The real evidence is
+     `tools/run_c_tests.sh:28-29`, which has run this exact split on the host all along:
+     `ENG_A` = `oimg_loader.c` + `solidified_image.c`, `ENG_B` = `oimg_loader.c` +
+     `kernel_boot.c`. The knob is that ENG_A/ENG_B split ported to Zephyr — not a new idea.
+   - `oimg_load_blob()` already existed for exactly this (no-POSIX byte-array loader, S0/R6);
+     Model B needed no new loader, only `OEVM_NO_FILE_IO` to drop its `mmap` sibling.
+
+   **Stage 0 (`zephyr/layout-esp32.json`, banked) — the `-m32` proxy really was unsafe, for a
+   broader reason than the design gave.** The design rejected the host proxy because i386
+   aligns `double` to 4 and Xtensa to 8, with `CONFIG_FPU=y` keeping floats live. The
+   on-target diff confirms rejection but widens it: `struct Float` moved (12→16, `value`
+   4→8, the predicted `double` case) **and so did `struct LargeInteger` (20→24, `sign` 4→8,
+   `mag` 12→16) — which contains no float at all.** Xtensa 8-aligns *every* 64-bit scalar,
+   `int64_t`/`uint64_t` included, so disabling FP would **not** have rescued the proxy. A
+   wrong layout yields a blob that loads and then misbehaves — worse than one that fails
+   loudly. Regenerate only when a struct or the toolchain changes.
+
+   Practical notes banked in the tooling: the ESP32 console here emits **~520 B/s** (~20×
+   below the 115200 line rate), so short capture windows silently truncate — the plan's 8 s
+   cut the layout dump off mid-token. And `oimg_load_blob()` reports every validation failure
+   (magic / `format_version` 8 / `registry_version` vs firmware `BUILTIN_REGISTRY_VERSION`
+   = 5 / size) via `fprintf(stderr)`, which nothing on Zephyr unbuffers — `main()` now sets
+   `stderr` `_IONBF` so a bad blob cannot fail silently.
+
+   **No `CLAIMS.md` row for this.** `review/tests/CLAIMS.md`'s rule is that a criterion
+   without a green *named test* is unproven, and the Model B gate is a manual device run
+   (`zephyr/run.sh --model B ... --flash --capture`), not an automated test. The evidence is
+   the banked green log (`tuvm/zephyr/esp32-debug-artifacts/tuvm-esp32-GREEN-modelB-oimg.log`)
+   and this entry. Automating an on-target A/B equivalence gate would earn a row — the
+   `.oimg` path makes that affordable for the first time (44 s, no 4.9 GB `cc1`), so it is
+   now worth considering rather than dismissing.
+
+   **Open item — stage 2, which is what answers G1:** flash partition + blob-only reflash +
+   independent `.oimg` OTA. Today Model B still relinks and reflashes the whole image; the
+   44 s makes that cheap enough to defer, but G1 wants the blob to move on its own. Its own
+   rung.
 3. **Wire seam: CBOR + Int64. DONE 2026-07-10.** Owners: `review/lib/cbor.md` (CBOR over custom
    wire format, tags 27/39) and `review/lib/integers.md` (L7: boxed Int64 on 32-bit — decided,
    built with B). G4 says the `.oimg` line-table provision must not be foreclosed meanwhile (it

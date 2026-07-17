@@ -82,7 +82,7 @@ _Regenerated 2026-07-16 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `~/workspace/tuvm/review/tests/CLAIMS.md` — CLAIMS — first-step spec §7 success criteria → proving tests _(record, 2026-07-15)_
 - `~/workspace/tuvm/review/tests/README.md` — review/tests — staged verification suites (T0, T-A…T-D) _(record, 2026-07-07)_
 - `~/workspace/tuvm/review/tests/t0-gates/sanitizers.md` — T0.1 — sanitizer gate (the highest-value single item in the whole test plan) _(record, 2026-07-03)_
-- `~/workspace/tuvm/review/zephyr-driver-exposure.md` — Exposing Zephyr drivers to nsl — a sketch _(record, 2026-07-12)_
+- `~/workspace/tuvm/review/zephyr-driver-exposure.md` — Exposing Zephyr drivers to nsl — a sketch _(record, 2026-07-16)_
 
 ### ~/workspace/tuvm/docs
 
