@@ -1,0 +1,41 @@
+Leaving...
+Hard resetting via RTS pin...
+ets Jun  8 2016 00:22:57
+
+rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3ffb0000,len:7916
+ho 0 tail 12 room 4
+load:0x40080000,len:38016
+entry 0x40084f3c
+I (33) soc_init: ESP Simple boot
+I (33) soc_init: compile time Jul 17 2026 10:23:08
+W (33) soc_init: Unicore bootloader
+I (33) soc_init: chip revision: v1.0
+E (36) soc_init: You are using ESP32 chip revision (1) that is unsupported. While it may work, it could cause unexpected behavior or issues.
+E (49) soc_init: Proceeding with this ESP32 chip revision is not recommended unless you fully understand the potential risk and limitations.
+I (61) flash_init: SPI Speed      : 40MHz
+I (65) flash_init: SPI Mode       : DIO
+I (68) flash_init: SPI Flash Size : 4MB
+I (72) boot: DRAM: lma 0x00001020 vma 0x3ffb0000 len 0x1eec   (7916)
+I (78) boot: IRAM: lma 0x00002f14 vma 0x40080000 len 0x9480   (38016)
+I (84) boot: IRAM: lma 0x0000c3a8 vma 0x00000000 len 0x3c50   (15440)
+I (90) boot: IMAP: lma 0x00010000 vma 0x400d0000 len 0x17f1c  (98076)
+I (97) boot: IRAM: lma 0x00027f24 vma 0x00000000 len 0x80d4   (32980)
+I (103) boot: DMAP: lma 0x00030000 vma 0x3f400000 len 0x22f2c  (143148)
+I (109) boot: Image with 6 segments
+I (112) boot: IROM segment: paddr=00010000h, vaddr=400d0000h, size=17F1Ch ( 98076) map
+I (120) boot: DROM segment: paddr=00030000h, vaddr=3f400000h, size=22F2Ch (143148) map
+I (139) boot: libc heap size 10 kB.
+I (139) spi_flash: detected chip: gd
+I (139) spi_flash: flash io: dio
+*** Booting Zephyr OS build v4.2.0 ***
+deltablue: 2959
+VM GC Error: Out of Memory (requested 808, used 114668 of 114688)
+abort()
+
+
+Backtrace:0x40081e68:0x3ffdbe00 0x400d809f:0x3ffdbe10 0x400d2549:0x3ffdbe30 0x400d2b83:0x3ffdbec0 0x400d4b25:0x3ffdbef0 0x400d39e2:0x3ffdc130 0x400d1660:0x3ffdc200 0x400d2e6b:0x3ffdc280 0x400d37d5:0x3ffdc2a0 0x400d1660:0x3ffdc370 0x400d36bd:0x3ffdc3f0 0x400d6822:0x3ffdc430 0x400d0b23:0x3ffdc480 0x400826fe:0x3ffdc4a0 0x400d6e1f:0x3ffdc4d0 
+
