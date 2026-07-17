@@ -356,3 +356,13 @@ should re-check the 256-cache / 48 K-arena choices against its own workload.
 > (ROM 27.64 % / RAM 45.05 %, corroborating the 45.1 % config-D line above) plus a
 > live `heapStats` soak captured off the DK: `live 40092 / hw 49152 / free 9048 /
 > gc 5 / size 49152` (the new prim 104 `heapStats` under a 3000-iteration allocation soak).
+
+## Addendum 2026-07-17 — deltablue EXEC_ERR is stale
+
+The two "deltablue EXEC_ERR" notes above no longer hold: `05_somns_benchmarks/
+07_deltablue.ns` runs clean and verified on current oevm (baseline AND the
+perf/op-cmp-at branch), host and ESP32. Timed nodes now exist for both
+program-shaped benchmarks — `00_perf/richards.ns` and `00_perf/deltablue.ns`
+(n=50; n=100 overruns a 96 KB device heap and even n=50 needs 112 KB for 3
+runs on device — see tuvm `zephyr/docs/results.md` E9 for the fragmentation
+loose thread). Cross-VM Toit/CircuitPython versions: `~/workspaceToit/stic/`.

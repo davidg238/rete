@@ -1,0 +1,98 @@
+(*
+Blockcost — microbenchmark isolating the cost of one block ACTIVATION
+(OP_BLOCK_INVOKE + push_frame/OP_RET) versus the compiler's literal-block
+inlining, plus the neighbouring costs that ride along in real collection code:
+a monomorphic method send, captured-variable (heap Context) access, closure
+creation, and the end-to-end OrderedCollection do: tax.
+
+Every timed loop visits 10M elements (ITER = 10M inline iterations, or
+1M outer x 10-element collection), so per-test deltas divide by the same N:
+  ns/activation = (blockValue - baseLoop) * 1e6 / 10e6.
+Bodies are kept capture-free except where capture IS the measurand, so the
+variants differ by exactly one mechanism at a time:
+  baseLoop     inlined `1 to: N do: [:i | i + 1]`      loop + add only
+  blockValue   same body through `aBlock value: i`      + 1 block activation
+  methodSend   same body through `self bump: i`         + 1 monomorphic send
+  blockCapture block body writes a captured temp        + Context alloc/LD/ST
+  closureMake  fresh `[ 42 ]` closure per iteration     OP_CLOSURE + GC churn
+  ocDo         1M x (10-elem OrderedCollection do:)     the real combinator tax
+  ocAt         1M x manual `1 to: 10 do: [oc at: j]`    the hand-loop alternative
+Self-timed via the `millis` primitive; prints "name: <elapsed-ms>" per test.
+No expect: block — timings vary (perf bucket, like fib.ns / perfstex.ns).
+Sums use `s + 1`, not `s + i`, so 32-bit SMI targets (ESP32) don't overflow.
+*)
+class BlockCostBench packageUsing: manifest = () (
+public class BlockCost usingPlatform: platform = () (
+	repeat: n with: aBlock = (
+		1 to: n do: [ :i | aBlock value: i ].
+	)
+	bump: i = ( ^ i + 1 )
+	public baseLoop = (
+		| t0 t1 |
+		t0:: 0 millis.
+		1 to: 10000000 do: [ :i | i + 1 ].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+	public blockValue = (
+		| t0 t1 |
+		t0:: 0 millis.
+		self repeat: 10000000 with: [ :i | i + 1 ].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+	public methodSend = (
+		| t0 t1 |
+		t0:: 0 millis.
+		1 to: 10000000 do: [ :i | self bump: i ].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+	public blockCapture = (
+		| s t0 t1 |
+		s:: 0.
+		t0:: 0 millis.
+		self repeat: 10000000 with: [ :i | s:: s + 1 ].
+		t1:: 0 millis.
+		s = 10000000 ifFalse: [ 'blockCapture: BAD SUM' out ].
+		^ t1 - t0
+	)
+	public closureMake = (
+		| b t0 t1 |
+		t0:: 0 millis.
+		1 to: 10000000 do: [ :i | b:: [ 42 ] ].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+	public ocDo: oc = (
+		| t0 t1 |
+		t0:: 0 millis.
+		1 to: 1000000 do: [ :i | oc do: [ :e | e ] ].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+	public ocAt: oc = (
+		| t0 t1 |
+		t0:: 0 millis.
+		1 to: 1000000 do: [ :i |
+			1 to: 10 do: [ :j | oc at: j ] ].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+)
+public main: platform args: args = (
+	| p oc |
+	p:: BlockCost usingPlatform: platform.
+	oc:: platform OrderedCollection new.
+	1 to: 10 do: [ :i | oc add: i ].
+	('baseLoop: '     , p baseLoop printString) out.
+	('blockValue: '   , p blockValue printString) out.
+	('methodSend: '   , p methodSend printString) out.
+	('blockCapture: ' , p blockCapture printString) out.
+	('closureMake: '  , p closureMake printString) out.
+	('ocDo: '         , (p ocDo: oc) printString) out.
+	('ocAt: '         , (p ocAt: oc) printString) out.
+	('done') out.
+)
+) : (
+)
