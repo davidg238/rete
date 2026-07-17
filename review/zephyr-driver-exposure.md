@@ -91,7 +91,9 @@ Three examples, one per tier, each earning the next:
    averages as records, frames on request) shows coordinator-vs-datapath judgment,
    and the driver's threshold trigger maps straight onto `dev/thermal0/event` via
    the G2 pulse seam. Presence/occupancy on a coin cell is also simply a good demo.
-   *(Pin the driver against the NCS version at bring-up — it's in v3.2.4 here.)*
+   *(Pin the driver against the NCS version at bring-up — sdk-nrf **v3.2.4** here,
+   which bundles Zephyr **4.2.99**; the amg88xx driver is byte-identical to upstream
+   Zephyr v4.2.0, so the ESP32 workspace (`~/zephyr-esp32`) gets the same driver.)*
 
 3. **Character-grid display on a 128×128 TFT (Tier 2)** — the flagship, deliberately
    last: it's the one example that needs a C-side driver *job* (owning SPI + glyph
