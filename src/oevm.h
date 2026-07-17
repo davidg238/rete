@@ -270,6 +270,18 @@ enum Opcode {
     OP_LD_CTX     = 0x16,   /* dest, depth(src1), idx(src2) : read from regs[num_arguments+1], walk `depth` outers, read slots[idx] */
     OP_ST_CTX     = 0x17,   /* srcval(dest), depth(src1), idx(src2) : same walk, write slots[idx] = regs[dest] */
     OP_LD_SELF    = 0x18,   /* dest = reg; load closure->captured_self (self-migration, P2) */
+    /* perf/op-cmp-at: fast-path opcodes. ALL SIX use OP_SEND's exact layout
+       (a=argc, b=selector-const, c=receiver base reg; result -> R(c)); a
+       fast-path miss falls INTO the OP_SEND handler, so fallback semantics are
+       the send's, verbatim. The compiler lowers explicit-receiver sends of
+       < <= > >= (SMI x SMI inline) and basicAt: / basicAt:put: (indexable
+       shape gate, same as PRIM_ix_basicAt) to these. */
+    OP_LT     = 0x19,
+    OP_LE     = 0x1A,
+    OP_GT     = 0x1B,
+    OP_GE     = 0x1C,
+    OP_AT     = 0x1D,       /* basicAt:      — 1-based indexable read  */
+    OP_AT_PUT = 0x1E,       /* basicAt:put:  — 1-based indexable write */
 };
 
 enum AccessModifier {

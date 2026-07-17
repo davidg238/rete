@@ -426,10 +426,11 @@ static struct MethodContext *push_frame(oop closure, oop receiver, int argc, oop
                                  : home_link_encode_relative(vm_stack, ctx);
     ctx->gen_tag.tag32 = ++current_generation_tag;
     ctx->regs[0] = receiver;
-    for (int i = 0; i < argc; i++) {
-        if (i + 1 < m->num_registers) ctx->regs[i + 1] = args[i];
-    }
-    for (int i = argc + 1; i < m->num_registers; i++) ctx->regs[i] = NULL;
+    /* Clamp once instead of bounds-checking every arg; excess args (a caller
+       bug the old per-arg check tolerated silently) are still dropped. */
+    int ncopy = (argc < m->num_registers - 1) ? argc : m->num_registers - 1;
+    for (int i = 0; i < ncopy; i++) ctx->regs[i + 1] = args[i];
+    for (int i = ncopy + 1; i < m->num_registers; i++) ctx->regs[i] = NULL;
     current_frame = ctx;
     return ctx;
 }
@@ -722,7 +723,67 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 break;
             }
 
-            case OP_SEND: {
+            /* perf/op-cmp-at fast-path opcodes. OP_SEND layout throughout; a
+               fast-path miss jumps to do_send below, so the miss path IS the
+               send — no second copy of any semantics. */
+            case OP_LT:
+            case OP_LE:
+            case OP_GT:
+            case OP_GE: {
+                oop a = ctx->regs[src2];
+                oop b = ctx->regs[src2 + 1];
+                if (IS_SMI(a) && IS_SMI(b)) {
+                    intptr_t v1 = UNTAG_SMI(a);
+                    intptr_t v2 = UNTAG_SMI(b);
+                    int t = (op == OP_LT) ? (v1 < v2)
+                          : (op == OP_LE) ? (v1 <= v2)
+                          : (op == OP_GT) ? (v1 > v2)
+                          :                 (v1 >= v2);
+                    ctx->regs[src2] = t ? (oop)&true_sym_obj : (oop)&false_sym_obj;
+                    break;
+                }
+                goto do_send;   /* Float/LargeInteger/other: prim path, unchanged */
+            }
+            case OP_AT: {
+                oop r = ctx->regs[src2];
+                oop i = ctx->regs[src2 + 1];
+                /* Shape gate == PRIM_ix_basicAt's: non-SMI instance whose slot0
+                   is an SMI length. Emitter discipline (kernel-internal
+                   basicAt: on known Arrays) is what makes the gate sound —
+                   identical to the prim it replaces. */
+                if (r != NULL && !IS_SMI(r) && IS_SMI(i) &&
+                    IS_SMI(instance_slot((struct ObjectInstance *)r, 0))) {
+                    struct ObjectInstance *ix = (struct ObjectInstance *)r;
+                    intptr_t n = UNTAG_SMI(instance_slot(ix, 0));
+                    intptr_t idx = UNTAG_SMI(i);
+                    if (idx >= 1 && idx <= n) {
+                        ctx->regs[src2] = instance_slot(ix, (size_t)idx);
+                        break;
+                    }
+                    /* out of bounds: fall to the send -> prim -> its exact
+                       error message and abort */
+                }
+                goto do_send;
+            }
+            case OP_AT_PUT: {
+                oop r = ctx->regs[src2];
+                oop i = ctx->regs[src2 + 1];
+                if (r != NULL && !IS_SMI(r) && IS_SMI(i) &&
+                    IS_SMI(instance_slot((struct ObjectInstance *)r, 0))) {
+                    struct ObjectInstance *ix = (struct ObjectInstance *)r;
+                    intptr_t n = UNTAG_SMI(instance_slot(ix, 0));
+                    intptr_t idx = UNTAG_SMI(i);
+                    if (idx >= 1 && idx <= n) {
+                        ix->slots[idx] = ctx->regs[src2 + 2];
+                        ctx->regs[src2] = ctx->regs[src2 + 2];  /* result = stored value */
+                        break;
+                    }
+                }
+                goto do_send;
+            }
+
+            case OP_SEND:
+            do_send: {
                 // Constants[src1] = Selector Symbol
                 // Registers[src2] = Target Receiver
                 // dest = Start index of argument registers
@@ -769,14 +830,15 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 // Layout identical to OP_SEND. Fast-path: a BytecodeClosure is
                 // invoked as a block (still recursive in Phase 1); any other
                 // receiver falls back to a normal send (e.g. Association>>value).
-                oop selector = cm_const_at(method, src1);
                 oop target = ctx->regs[src2];
                 int send_argc = dest;
                 oop *send_args = (send_argc > 0) ? &ctx->regs[src2 + 1] : NULL;
 
                 ctx->saved_pc = pc;
                 if (target != NULL && obj_vtable(target) == BytecodeClosureVtable) {
-                    /* Fast path: invoke the block — push its frame in this loop. */
+                    /* Fast path: invoke the block — push its frame in this loop.
+                       The selector const is only needed by the fallback send, so
+                       it is not loaded here. */
                     push_frame(target, target, send_argc, send_args);
                     ctx = current_frame;
                     method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
@@ -785,6 +847,7 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                     continue;
                 }
                 /* Fallback: an ordinary send (e.g. Association>>value). */
+                oop selector = cm_const_at(method, src1);
                 oop m_out = NULL, r_out = NULL;
                 int argc_out = 0;
                 oop result = send_resolve(target, selector, send_argc, send_args,

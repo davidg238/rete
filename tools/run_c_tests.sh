@@ -109,6 +109,8 @@ run test_gc_trigger          "$ENG_A" -DOEVM_HEAP_SIZE=65536
 # applied in tests/test_debugger.c. No other structural drift found.
 run test_access              "$ENG_A"
 run test_enclosures          "$ENG_A"
+# perf/op-cmp-at: hand-assembled fast-path opcodes (OP_LT..OP_GE, OP_AT/OP_AT_PUT)
+run test_op_fast             "$ENG_A"
 
 # --- Pre-existing seed breakage, unrelated to the fiber/NLR/reify/growable-stack
 # balloon this milestone removes. Confirmed by reading each test's compile/link

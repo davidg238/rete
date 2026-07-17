@@ -281,6 +281,12 @@ const struct Symbol false_sym_obj = { { (oop)&Vtable_SymbolVtable }, "false", 5 
 #define false_symbol ((oop)&false_sym_obj)
 
 int is_truthy(oop obj) {
+    /* The comparison/equality prims return exactly these two statics, so every
+       hot conditional (loop bounds, ifTrue:) resolves on an identity compare.
+       The strcmp below remains for blob/image-side `true` symbol literals,
+       which are distinct objects with the same name. */
+    if (obj == true_symbol) return 1;
+    if (obj == false_symbol) return 0;
     if (IS_SMI(obj)) {
         return UNTAG_SMI(obj) != 0;
     }
@@ -976,16 +982,22 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
         obj_vtable(receiver) == (oop)&BoundClassVtable) {
         return boundclass_construct(receiver, selector, argc, args);
     }
-    /* Native capability: serial. Own selector matching; adds nothing to
-       PRIM_NAMES. Receiver-identity gate (std-lib 3c-3b). */
-    if (receiver == serial_object()) return serial_dispatch(selector, argc, args);
-    /* Native capability: net/UDP. Receiver-identity gate; own selector matching
-       in udp.c, adds nothing to PRIM_NAMES. Compiled-but-inert until Task 2. */
-    if (receiver == udp_object()) return udp_dispatch(selector, argc, args);
-    /* Confined reflection: the mirror capability (mirror step). Receiver-identity
-       gate; own selector matching in mirror.c, adds nothing to PRIM_NAMES. A
-       confined app never names the mirror, so it never reaches mirror_dispatch. */
-    if (receiver == mirror_object()) return mirror_dispatch(selector, argc, args);
+    /* Native capabilities: serial / net-UDP / mirror. Receiver-identity gates;
+       each does its own selector matching, adding nothing to PRIM_NAMES
+       (std-lib 3c-3b, Task 2, mirror step). The three singletons live at fixed
+       static addresses, so resolve them once and gate on cached pointers —
+       the *_object() accessors are cross-TU calls that sat on every send. */
+    {
+        static oop cap_serial, cap_udp, cap_mirror;
+        if (cap_serial == NULL) {
+            cap_serial = serial_object();
+            cap_udp = udp_object();
+            cap_mirror = mirror_object();
+        }
+        if (receiver == cap_serial) return serial_dispatch(selector, argc, args);
+        if (receiver == cap_udp) return udp_dispatch(selector, argc, args);
+        if (receiver == cap_mirror) return mirror_dispatch(selector, argc, args);
+    }
     // Intercept reflection & Array primitives
     if (selector != NULL && !IS_SMI(selector)) {
         struct Symbol *sym = (struct Symbol *)selector;
@@ -997,9 +1009,13 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
             //     conformance mock is untouched. Fires only for the real
             //     IndexableVtable receiver. ---
             // std-lib step 3b: indexables are vtable-agnostic now (no kernel_array_vtable
-            // global). basicAt:/basicAt:put:/basicSize are only emitted by kernel Array
-            // methods on self, and every indexable has slot0 = TAG_SMI(length). Gate on
-            // the pid + that shape.
+            // global). basicAt:/basicAt:put:/basicSize are only emitted by kernel code
+            // on receivers it knows are Arrays — Array methods on self, and (perf/
+            // op-cmp-at) collection internals on their Array-typed slots (e.g.
+            // OrderedCollection's `contents`). Every indexable has slot0 =
+            // TAG_SMI(length). Gate on the pid + that shape. The compiler lowers
+            // basicAt:/basicAt:put: sends to OP_AT/OP_AT_PUT (vm.c), which use this
+            // same shape gate and fall back into OP_SEND (reaching here) on a miss.
             if (receiver != NULL && !IS_SMI(receiver) &&
                 (pid == PRIM_ix_basicAt || pid == PRIM_ix_basicAt_put || pid == PRIM_ix_basicSize) &&
                 IS_SMI(instance_slot((struct ObjectInstance *)receiver, 0))) {
