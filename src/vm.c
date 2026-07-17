@@ -722,7 +722,67 @@ oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 break;
             }
 
-            case OP_SEND: {
+            /* perf/op-cmp-at fast-path opcodes. OP_SEND layout throughout; a
+               fast-path miss jumps to do_send below, so the miss path IS the
+               send — no second copy of any semantics. */
+            case OP_LT:
+            case OP_LE:
+            case OP_GT:
+            case OP_GE: {
+                oop a = ctx->regs[src2];
+                oop b = ctx->regs[src2 + 1];
+                if (IS_SMI(a) && IS_SMI(b)) {
+                    intptr_t v1 = UNTAG_SMI(a);
+                    intptr_t v2 = UNTAG_SMI(b);
+                    int t = (op == OP_LT) ? (v1 < v2)
+                          : (op == OP_LE) ? (v1 <= v2)
+                          : (op == OP_GT) ? (v1 > v2)
+                          :                 (v1 >= v2);
+                    ctx->regs[src2] = t ? (oop)&true_sym_obj : (oop)&false_sym_obj;
+                    break;
+                }
+                goto do_send;   /* Float/LargeInteger/other: prim path, unchanged */
+            }
+            case OP_AT: {
+                oop r = ctx->regs[src2];
+                oop i = ctx->regs[src2 + 1];
+                /* Shape gate == PRIM_ix_basicAt's: non-SMI instance whose slot0
+                   is an SMI length. Emitter discipline (kernel-internal
+                   basicAt: on known Arrays) is what makes the gate sound —
+                   identical to the prim it replaces. */
+                if (r != NULL && !IS_SMI(r) && IS_SMI(i) &&
+                    IS_SMI(instance_slot((struct ObjectInstance *)r, 0))) {
+                    struct ObjectInstance *ix = (struct ObjectInstance *)r;
+                    intptr_t n = UNTAG_SMI(instance_slot(ix, 0));
+                    intptr_t idx = UNTAG_SMI(i);
+                    if (idx >= 1 && idx <= n) {
+                        ctx->regs[src2] = instance_slot(ix, (size_t)idx);
+                        break;
+                    }
+                    /* out of bounds: fall to the send -> prim -> its exact
+                       error message and abort */
+                }
+                goto do_send;
+            }
+            case OP_AT_PUT: {
+                oop r = ctx->regs[src2];
+                oop i = ctx->regs[src2 + 1];
+                if (r != NULL && !IS_SMI(r) && IS_SMI(i) &&
+                    IS_SMI(instance_slot((struct ObjectInstance *)r, 0))) {
+                    struct ObjectInstance *ix = (struct ObjectInstance *)r;
+                    intptr_t n = UNTAG_SMI(instance_slot(ix, 0));
+                    intptr_t idx = UNTAG_SMI(i);
+                    if (idx >= 1 && idx <= n) {
+                        ix->slots[idx] = ctx->regs[src2 + 2];
+                        ctx->regs[src2] = ctx->regs[src2 + 2];  /* result = stored value */
+                        break;
+                    }
+                }
+                goto do_send;
+            }
+
+            case OP_SEND:
+            do_send: {
                 // Constants[src1] = Selector Symbol
                 // Registers[src2] = Target Receiver
                 // dest = Start index of argument registers

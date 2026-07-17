@@ -997,9 +997,13 @@ oop send_resolve(oop receiver, oop selector, int argc, oop *args,
             //     conformance mock is untouched. Fires only for the real
             //     IndexableVtable receiver. ---
             // std-lib step 3b: indexables are vtable-agnostic now (no kernel_array_vtable
-            // global). basicAt:/basicAt:put:/basicSize are only emitted by kernel Array
-            // methods on self, and every indexable has slot0 = TAG_SMI(length). Gate on
-            // the pid + that shape.
+            // global). basicAt:/basicAt:put:/basicSize are only emitted by kernel code
+            // on receivers it knows are Arrays — Array methods on self, and (perf/
+            // op-cmp-at) collection internals on their Array-typed slots (e.g.
+            // OrderedCollection's `contents`). Every indexable has slot0 =
+            // TAG_SMI(length). Gate on the pid + that shape. The compiler lowers
+            // basicAt:/basicAt:put: sends to OP_AT/OP_AT_PUT (vm.c), which use this
+            // same shape gate and fall back into OP_SEND (reaching here) on a miss.
             if (receiver != NULL && !IS_SMI(receiver) &&
                 (pid == PRIM_ix_basicAt || pid == PRIM_ix_basicAt_put || pid == PRIM_ix_basicSize) &&
                 IS_SMI(instance_slot((struct ObjectInstance *)receiver, 0))) {
