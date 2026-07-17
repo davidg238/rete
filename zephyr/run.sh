@@ -43,16 +43,25 @@ restore_image() {
 trap restore_image EXIT
 
 echo "[bake]  $NODE  (model $MODEL)"
+BLOB_ARG=()
 if [ "$MODEL" = A ]; then
+  # Bakes the program into src/solidified_image.c. Beware: cc1 on the result
+  # needs ~4.9 GB RSS and ~50 min, and HAS OOM-killed the desktop (2026-07-16).
+  # Model B exists to delete this step.
   python3 "$NSL" "$ZDIR/$NODE" "$ROOT/src/solidified_image.c"
 else
-  echo "[bake]  model B not wired yet (Task 4)" >&2; exit 3
+  LAYOUT="$ZDIR/layout-esp32.json"
+  [ -f "$LAYOUT" ] || { echo "missing $LAYOUT — run the layoutdump app (stage 0)" >&2; exit 2; }
+  OIMG="$ZDIR/${NODE%.ns}.oimg"
+  python3 "$NSL" "$ZDIR/$NODE" "$OIMG" --format=oimg --layout="$LAYOUT"
+  echo "[blob]  $(stat -c %s "$OIMG") bytes -> .incbin"
+  BLOB_ARG=(-DTUVM_BLOB="$OIMG")
 fi
 
 PRISTINE_ARG=(); [ "$PRISTINE" = 1 ] && PRISTINE_ARG=(-p always)
 echo "[build] -b $BOARD -d $BUILD_DIR ${PRISTINE_ARG[*]:-(incremental)}"
 ( cd "$ZDIR" && west build -b "$BOARD" "${PRISTINE_ARG[@]}" -d "$BUILD_DIR" . \
-    -- -DCONF_FILE=prj_esp32.conf -DTUVM_MODEL="$MODEL" )
+    -- -DCONF_FILE=prj_esp32.conf -DTUVM_MODEL="$MODEL" "${BLOB_ARG[@]}" )
 
 if [ "$DO_FLASH" = 1 ]; then
   echo "[flash] esptool 0x1000"
