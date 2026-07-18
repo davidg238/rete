@@ -32,11 +32,15 @@ class HttpNode packageUsing: manifest = () (
       | id path status body |
       id::   r basicAt: 1.
       path:: r basicAt: 3.
-      (path = '/hello')
+      (path = '/')
+        ifTrue:  [ status:: 200. body:: self index ]
+        ifFalse: [ (path = '/hello')
         ifTrue:  [ status:: 200. body:: 'hello' ]
         ifFalse: [ (path = '/thermal')
           ifTrue:  [ status:: 200. body:: self renderFrame: (thermal peek: '' ifAbsent: [ nil ]) ]
-          ifFalse: [ status:: 404. body:: 'not found' ] ].
+          ifFalse: [ (path = '/stats')
+          ifTrue:  [ status:: 200. body:: self statsPageOn: platform ]
+          ifFalse: [ status:: 404. body:: 'not found' ] ] ] ].
       reply out: '' value: (platform Record tag: #response
                               with: #id -> id with: #status -> status with: #body -> body) ].
     reply whenever: '' do: [ :resp |
@@ -47,6 +51,46 @@ class HttpNode packageUsing: manifest = () (
     platform pumpEvents.
     space drain.
     'finished' out.
+  )
+
+  index = (
+    ^ '<html><head><title>tuvm http node</title></head>',
+      '<body style=''font-family:system-ui,sans-serif;max-width:34rem;margin:3rem auto;padding:0 1rem;line-height:1.5''>',
+      '<h1>tuvm &mdash; channel-native http node</h1>',
+      '<p>Request/reply served over the VM channel space. C owns the socket + HTTP framing; routing, the reduce, and the render are authored in nsl.</p>',
+      '<ul>',
+      '<li><a href=''/thermal''>/thermal</a> &mdash; 8&times;8 thermal heat-grid (SVG, rendered on the VM)</li>',
+      '<li><a href=''/stats''>/stats</a> &mdash; live VM heap / GC / channel metrics</li>',
+      '<li><a href=''/hello''>/hello</a> &mdash; plain text</li>',
+      '</ul></body></html>'
+  )
+
+  statsPageOn: platform = (
+    | m |
+    m:: platform metrics.
+    ^ '<html><head><title>tuvm vm stats</title></head>',
+      '<body style=''font-family:system-ui,sans-serif;max-width:34rem;margin:3rem auto;padding:0 1rem;line-height:1.5''>',
+      '<h1>tuvm &mdash; vm stats</h1>',
+      '<p>A live snapshot from <code>platform metrics</code> (the #Metrics Record), read on request &mdash; no periodic publisher (G9).</p>',
+      '<table style=''border-collapse:collapse;width:100%''>',
+      '<thead><tr><th style=''text-align:left;border-bottom:2px solid #ccc;padding:.4rem''>metric</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>value</th></tr></thead><tbody>',
+      (self statRow: 'heap size (bytes)'        value: (m at: #heapSize         ifAbsent: [ -1 ])),
+      (self statRow: 'live bytes'               value: (m at: #liveBytes        ifAbsent: [ -1 ])),
+      (self statRow: 'heap high-water'          value: (m at: #heapHighWater    ifAbsent: [ -1 ])),
+      (self statRow: 'largest free block'       value: (m at: #largestFreeBlock ifAbsent: [ -1 ])),
+      (self statRow: 'gc cycles'                value: (m at: #gcCycles         ifAbsent: [ -1 ])),
+      (self statRow: 'handles live'             value: (m at: #handlesLive      ifAbsent: [ -1 ])),
+      (self statRow: 'handles high-water'       value: (m at: #handlesHighWater ifAbsent: [ -1 ])),
+      (self statRow: 'channel queue high-water' value: (m at: #queueHighWater   ifAbsent: [ -1 ])),
+      (self statRow: 'channel overruns'         value: (m at: #overruns         ifAbsent: [ -1 ])),
+      '</tbody></table><p><a href=''/''>&larr; home</a></p></body></html>'
+  )
+
+  statRow: label value: v = (
+    ^ '<tr><td style=''padding:.35rem;border-bottom:1px solid #eee''>' , label ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>' ,
+      v printString , '</td></tr>'
   )
 
   renderFrame: f = (
