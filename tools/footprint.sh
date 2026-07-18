@@ -40,11 +40,11 @@ if [ "${FOOTPRINT_CONFIG:-host}" = "mcu" ]; then
   TGT_SIZES="-DOEVM_HEAP_SIZE=49152 -DMETHOD_CACHE_SIZE=256 -DPRIM_CACHE_SIZE=256"
   $XCC -Os -std=c99 -Isrc $MCPU -D__ZEPHYR__=1 -DOEVM_NO_FILE_IO $TGT_SIZES -c \
     src/vm.c src/gc.c src/dispatch.c src/kernel_boot.c src/platform.c \
-    src/serial.c src/udp.c src/mirror.c src/oimg_loader.c src/space.c src/handles.c || {
+    src/serial.c src/udp.c src/http.c src/mirror.c src/oimg_loader.c src/space.c src/handles.c || {
       echo "footprint(mcu): cross-compile failed" >&2; rm -f *.o; exit 1; }
   # TOTAL line from arm-zephyr-eabi-size -t: "  text  data  bss  dec  hex  filename".
   read -r CUR_TEXT CUR_DATA CUR_BSS _ < <(arm-zephyr-eabi-size -t \
-    vm.o gc.o dispatch.o kernel_boot.o platform.o serial.o udp.o \
+    vm.o gc.o dispatch.o kernel_boot.o platform.o serial.o udp.o http.o \
     mirror.o oimg_loader.o space.o handles.o | awk 'END { print $1, $2, $3 }')
   rm -f *.o
   CUR_DATA_BSS=$(( CUR_DATA + CUR_BSS ))
@@ -79,17 +79,17 @@ fi
 CC=${CC:-gcc}; TMP=$(mktemp -d)
 $CC -Os -std=c99 -Isrc -c \
   src/vm.c src/dispatch.c src/gc.c src/kernel_boot.c src/platform.c \
-  src/serial.c src/udp.c src/mirror.c src/oimg_loader.c src/space.c \
+  src/serial.c src/udp.c src/http.c src/mirror.c src/oimg_loader.c src/space.c \
   src/backend/posix/platform_posix.c src/backend/posix/serial_posix.c \
-  src/backend/posix/udp_posix.c src/backend/posix/timer_posix.c
-size -t vm.o dispatch.o gc.o kernel_boot.o platform.o serial.o udp.o \
-        mirror.o oimg_loader.o space.o platform_posix.o serial_posix.o udp_posix.o
+  src/backend/posix/udp_posix.c src/backend/posix/http_posix.c src/backend/posix/timer_posix.c
+size -t vm.o dispatch.o gc.o kernel_boot.o platform.o serial.o udp.o http.o \
+        mirror.o oimg_loader.o space.o platform_posix.o serial_posix.o udp_posix.o http_posix.o
 # RAM regression is a gate failure like a text regression (design addendum A2).
 # data+bss total from the same `size` output; these are host-proxy builds, so this
 # is the host proxy for the MCU static-RAM figure (same caveat as the text total
 # above — gc.o's host arena dwarfs the real MCU heap and is not representative).
-RAM=$(size -t vm.o dispatch.o gc.o kernel_boot.o platform.o serial.o udp.o \
-        mirror.o oimg_loader.o space.o platform_posix.o serial_posix.o udp_posix.o \
+RAM=$(size -t vm.o dispatch.o gc.o kernel_boot.o platform.o serial.o udp.o http.o \
+        mirror.o oimg_loader.o space.o platform_posix.o serial_posix.o udp_posix.o http_posix.o \
       | awk 'END { print $2 + $3 }')
 echo "data+bss (host proxy for MCU static RAM): $RAM"
 rm -f *.o; rmdir "$TMP" 2>/dev/null || true

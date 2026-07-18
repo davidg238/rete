@@ -166,6 +166,19 @@
                  (kernel metrics) and published by the APP onto a cell — the
                  kernel never writes the space (capability rule). */
 #define PRIM_pf_sysStats 109
+/* webserver-channel-device spike, Task 3: the http driver's platform prims,
+   appended after sysStats — no pre-existing id shifts. 110-112 were arrived at
+   by COUNTING PRIM_NAMES (109 entries before this append), not by 109+1
+   arithmetic, per the standing lesson above.
+     httpListen: port                     -> stub, answers self (real in Task 6).
+     httpRespondId: id status: n body: s  -> frames + emits the reply via the
+                                              http_backend seam (http_respond).
+     httpInject: method path: p           -> test-seam request injection
+                                              (http_accept_request with fd=-1,
+                                              framed reply goes to stdout). */
+#define PRIM_pf_httpListen  110
+#define PRIM_pf_httpRespond 111
+#define PRIM_pf_httpInject  112
 /* Rung 3 Task 4: the out-of-range sentinel returned by cborIntFromMajor:arg:
    for the one unrepresentable CBOR integer (major 1, arg 2^64-1 => value -2^64,
    just past the ratified +/-(2^64-1) range). In this VM nil IS the C NULL

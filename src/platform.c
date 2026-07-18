@@ -6,6 +6,8 @@
 #include "pulse_backend.h"
 #include "timer_backend.h"   /* rung 8: the timer seam (virtual clock on host, k_timer on target) */
 #include "handles.h"
+#include "http.h"
+#include "http_backend.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -758,9 +760,43 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         ((struct ObjectInstance *)r)->slots[4] = TAG_SMI((intptr_t)ov);
         *out = r; return 1;
     }
-    case PRIM_pf_pumpEvents:
-        *out = TAG_SMI(pulse_pump());
+    case PRIM_pf_pumpEvents: {
+        int n = pulse_pump();
+        http_pump();                            /* drain http request ring at the safe point */
+        *out = TAG_SMI(n);
         return 1;
+    }
+    case PRIM_pf_httpListen: {                 /* platform httpListen: port -> self (real in Task 6) */
+        *out = platform_object();
+        return 1;
+    }
+    case PRIM_pf_httpRespond: {                /* httpRespondId: id status: n body: s */
+        int id = IS_SMI(args[0]) ? (int)UNTAG_SMI(args[0]) : 0;
+        int st = IS_SMI(args[1]) ? (int)UNTAG_SMI(args[1]) : 500;
+        oop body = args[2];
+        if (body == NULL || IS_SMI(body) || StringVtable == NULL ||
+            obj_vtable(body) != StringVtable) {
+            fprintf(stderr, "VM Error: platform httpRespondId:status:body: expects a String body\n");
+            abort();
+        }
+        struct String *b = (struct String *)body;
+        http_respond(id, st, (const char *)b->bytes, (int)b->length);
+        *out = platform_object();
+        return 1;
+    }
+    case PRIM_pf_httpInject: {                 /* httpInject: method path: p  (test-seam, fd=-1) */
+        oop m = args[0], p = args[1];
+        if (m == NULL || IS_SMI(m) || obj_vtable(m) != StringVtable ||
+            p == NULL || IS_SMI(p) || obj_vtable(p) != StringVtable) {
+            fprintf(stderr, "VM Error: platform httpInject:path: expects String args\n");
+            abort();
+        }
+        struct String *ms = (struct String *)m, *ps = (struct String *)p;
+        http_accept_request(-1, (const char *)ms->bytes, (int)ms->length,
+                                (const char *)ps->bytes, (int)ps->length);
+        *out = platform_object();
+        return 1;
+    }
     default:
         return 0;
     }

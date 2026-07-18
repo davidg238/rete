@@ -1,0 +1,39 @@
+(*
+HttpNode.nsl — webserver-channel-device spike, Task 3: the durable node twin of
+nsl-tests/14_http/01_hello_roundtrip.nsl (same duplication convention as
+PulseNode.nsl / the 13_pulse conformance test). Request half mirrors the pulse
+seam: the http backend's request ring is drained at the pumpEvents safe point
+(http_pump, src/http.c) and posted as an Array [id,method,path] to
+'dev/http/request'. Reply half is the NetBridge egress idiom: a `whenever:`
+reaction on 'dev/http/reply' forwards the Record to
+`platform httpRespondId:status:body:`, which lands in the pure-C http_respond
+seam (src/backend/posix/http_posix.c). For now this mirrors the test (a single
+injected GET /hello, then drain) — a live accept-loop over `httpListen:` lands
+in Task 6.
+*)
+class HttpNode packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space req reply |
+    space:: platform space.
+    req::   space channel: 'dev/http/request'.
+    reply:: space channel: 'dev/http/reply'.
+    req whenever: '' do: [ :r |
+      | id path status body |
+      id::   r basicAt: 1.
+      path:: r basicAt: 3.
+      (path = '/hello')
+        ifTrue:  [ status:: 200. body:: 'hello' ]
+        ifFalse: [ status:: 404. body:: 'not found' ].
+      reply out: '' value: (platform Record tag: #response
+                              with: #id -> id with: #status -> status with: #body -> body) ].
+    reply whenever: '' do: [ :resp |
+      platform httpRespondId: (resp at: #id ifAbsent: [ 0 ])
+               status:        (resp at: #status ifAbsent: [ 500 ])
+               body:          (resp at: #body ifAbsent: [ '' ]) ].
+    platform httpInject: 'GET' path: '/hello'.
+    platform pumpEvents.
+    space drain.
+    'finished' out.
+  )
+) : (
+)

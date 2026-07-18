@@ -21,8 +21,9 @@ case "${OEVM_BUILD:-}" in
   * ) echo "unknown OEVM_BUILD='$OEVM_BUILD' (want asan|ubsan)"; exit 2 ;;
 esac
 STD="-std=c99 -Isrc"; OUT=/tmp/tuvm_ctest; fail=0
-ENG_COMMON="src/platform.c src/serial.c src/udp.c src/mirror.c src/space.c src/handles.c \
+ENG_COMMON="src/platform.c src/serial.c src/udp.c src/http.c src/mirror.c src/space.c src/handles.c \
   src/backend/posix/platform_posix.c src/backend/posix/serial_posix.c src/backend/posix/udp_posix.c \
+  src/backend/posix/http_posix.c \
   src/backend/posix/pulse_posix.c \
   src/backend/posix/timer_posix.c"
 ENG_A="src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c $ENG_COMMON src/solidified_image.c"

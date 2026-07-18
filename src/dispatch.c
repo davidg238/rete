@@ -728,6 +728,13 @@ enum {
     PRIM_pf_spaceOverruns,
     /* tuvm#24: sys-telemetry leaf — the 109th entry (counted). */
     PRIM_pf_sysStats,
+    /* webserver-channel-device spike, Task 3: the http driver's platform prims —
+       appended after sysStats, no pre-existing id shifts. Counted (not computed)
+       to be the 110th/111th/112th PRIM_NAMES entries. Platform-dispatched
+       (mirrored in prim_ids.h as 110-112). */
+    PRIM_pf_httpListen,
+    PRIM_pf_httpRespond,
+    PRIM_pf_httpInject,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -776,6 +783,7 @@ static const char *const PRIM_NAMES[] = {
     "spaceKind:", "spacePeek:", "spacePut:value:",
     "spaceOverruns:",
     "sysStats",
+    "httpListen:", "httpRespondId:status:body:", "httpInject:path:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
