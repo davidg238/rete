@@ -998,6 +998,17 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
         if (receiver == cap_udp) return udp_dispatch(selector, argc, args);
         if (receiver == cap_mirror) return mirror_dispatch(selector, argc, args);
     }
+#ifdef OEVM_HANOI_NATIVE
+    /* Experiment: acquisition + lazy wiring of the native Hanoi method. Sent to the
+       HanoiAB instance (self); returns the native receiver. strcmp-gated so it needs
+       no PRIM_NAMES id (mirrors the crashRecordTag: interception below). */
+    if (selector != NULL && !IS_SMI(selector) && SymbolVtable != NULL &&
+        obj_vtable(selector) == SymbolVtable &&
+        strcmp(symbol_name((struct Symbol *)selector), "installNativeHanoi") == 0) {
+        extern oop hanoi_native_acquire(oop);
+        return hanoi_native_acquire(receiver);
+    }
+#endif
     // Intercept reflection & Array primitives
     if (selector != NULL && !IS_SMI(selector)) {
         struct Symbol *sym = (struct Symbol *)selector;
