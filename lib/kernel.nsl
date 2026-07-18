@@ -378,7 +378,7 @@ class Kernel usingPlatform: platform = () (
      never retained). Entries are kept sorted by `valueCompare:with:` on the
      keys, so iteration order is canonical/deterministic regardless of
      construction order (`keysDo:`/`do:`/`keysAndValuesDo:` all walk the same
-     sorted order — this is what makes `05b_map_canonical_order.ns` pass).
+     sorted order — this is what makes `05b_map_canonical_order.nsl` pass).
      Duplicate keys in construction: LAST WINS (a later `with:`/`fromPairs:`
      argument overwrites an earlier one with the same key) — pinned because
      future CBOR decoders construct by overwrite. Both keys AND values are
@@ -891,7 +891,7 @@ class Kernel usingPlatform: platform = () (
 
     (* A decoded NaN is a spec §5 totality hole: it is a genuine Float object but
        NOT a valid algebra value (`platform valueRank:` answers -1 for NaN,
-       kernel.ns rankOf: would then DNU-send `valueRank` to a builtin, and even
+       kernel.nsl rankOf: would then DNU-send `valueRank` to a builtin, and even
        `checkValue:` would raise the UNTAGGED #error the handler can't catch).
        Reject it HERE, guarded by the C oracle directly (NOT rankOf:/checkValue:,
        which re-trigger the same DNU): valueRank: = 3 for a real Float (incl.
@@ -1357,7 +1357,7 @@ class Kernel usingPlatform: platform = () (
        supervisor/observer bug): re-posting would amplify into a loop (the
        new crash record would itself land on sys/crash, re-firing the very
        reaction that just crashed), so it is reported via `out` (this
-       dialect has no dedicated stderr selector — grep-confirmed: kernel.ns
+       dialect has no dedicated stderr selector — grep-confirmed: kernel.nsl
        and tuvm/src/dispatch.c's PRIM_NAMES have no `outError`/`startsWith:`
        primitive) and dropped instead. `self out: 'sys/crash' value: ...`
        uses the existing `Channel>>out:value:` — `drain` runs on the root
@@ -1405,7 +1405,7 @@ class Kernel usingPlatform: platform = () (
      `addresses:` answers whether `chPath` is this job's own root or a
      channel nested under it (`root` or `root/...`) — hand-rolled byte
      compare (NOT `startsWith:`: no such selector exists in this dialect,
-     grep-confirmed against kernel.ns/dispatch.c PRIM_NAMES, same finding
+     grep-confirmed against kernel.nsl/dispatch.c PRIM_NAMES, same finding
      `postCrash:channel:` already documents above), same at:/size idiom as
      `isSysPath:`. The `^` returns below are all inside `whileTrue:`, which
      `dispatch.c` inlines at compile time (no real closure/call frame is
@@ -1527,7 +1527,7 @@ class Kernel usingPlatform: platform = () (
      fsm.ns` (Milestone C Task 5). Kernel-module sibling of Protocol (staged
      nested it as `Protocol class Transition`; flattened to a top-level
      sibling here, matching this module's exclusively-flat class shape — no
-     other kernel.ns class nests a class, and the public surface — `action`,
+     other kernel.nsl class nests a class, and the public surface — `action`,
      `target`, class-side `action:target:` — is unchanged by the move). *)
   class Transition = ( | action target | ) (
     public action = ( ^ action )
@@ -1644,7 +1644,7 @@ class Kernel usingPlatform: platform = () (
      timers.ns` (Milestone D Task 6). Kernel-module sibling of Transition
      above (staged nested it as `Timers class Pending`; flattened to a
      top-level sibling here, matching this module's exclusively-flat class
-     shape — no other kernel.ns class nests a class, and the public surface
+     shape — no other kernel.nsl class nests a class, and the public surface
      — `chan`, `msg`, `repeating`, class-side `chan:msg:repeating:` — is
      unchanged by the move). *)
   class Pending = ( | chan msg repeating | ) (
@@ -2090,7 +2090,7 @@ class Kernel usingPlatform: platform = () (
      substrate" shape as `space`/`supervisor` above. Callers that need a
      SINGLE shared registry (the common case — see the two 11_supervision
      timer tests) construct their own `Timers usingSpace:seam:` once instead
-     of re-fetching this accessor, exactly as `05_restart_quarantine.ns`
+     of re-fetching this accessor, exactly as `05_restart_quarantine.nsl`
      keeps the one `Supervisor` it got from `platform supervisor`. *)
   public timers            = ( ^ Timers usingSpace: self space seam: self )
   (* Zephyr rung-2 sub-project 1: a fresh GpioPulse instance wired to a fresh

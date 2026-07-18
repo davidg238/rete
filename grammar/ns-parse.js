@@ -304,7 +304,7 @@ module.exports = { parse, grammar, AST_VERSION };
 if (require.main === module) {
   const file = process.argv[2];
   if (!file) {
-    process.stderr.write('usage: node ns-parse.js <file.ns>\n');
+    process.stderr.write('usage: node ns-parse.js <file.nsl>\n');
     process.exit(2);
   }
   try {

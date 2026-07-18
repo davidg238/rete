@@ -3,7 +3,7 @@
 Emits the same JSON contract st-berry produces (st_serializer.serialize_source_map),
 so the jast-gw debug viewer consumes ns-oevm and st-berry maps identically:
 
-    { "source": "<basename.ns>",
+    { "source": "<basename.nsl>",
       "functions": { "<Vtable>>selector>": [[offset, line], ...] } }
 """
 import json

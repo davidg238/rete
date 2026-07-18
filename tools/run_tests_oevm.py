@@ -16,7 +16,7 @@ OEVM_DIR = Path(os.environ.get("OEVM_DIR") or (Path(__file__).resolve().parent.p
 # OEVM_PATH controls which execution paths are exercised.
 #   (unset / "B")  — run Path B only (.oimg / image-VM workflow) — DEFAULT.
 #                    Path B builds the image VM once, then per test only
-#                    compiles .ns -> .oimg and runs it. Path A instead did a
+#                    compiles .nsl -> .oimg and runs it. Path A instead did a
 #                    full-VM gcc rebuild (incl. the ~13k-line solidified_image.c)
 #                    per test — ~3.4s each over ~209 tests, ~12 min of the run.
 #                    B is the routine gate; use "A"/"AB" to validate the
@@ -34,7 +34,7 @@ OEVM_BACKEND = [f"src/backend/{OEVM_TARGET}/platform_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/timer_{OEVM_TARGET}.c"]
 
 # OEVM_DUMP_DIR: differential harness knob. When set, every test's raw program stdout
-# (the bytes the .ns program printed — what gets compared against expectations) is
+# (the bytes the .nsl program printed — what gets compared against expectations) is
 # written to $OEVM_DUMP_DIR/<relpath>.<PATH>.out (one file per test per path A/B).
 # Pure observation — does NOT change pass/fail logic or lowering. Cheap when unset.
 OEVM_DUMP_DIR = os.environ.get("OEVM_DUMP_DIR")
@@ -338,7 +338,7 @@ def _check_runtime_fail(metadata: dict, err_msg: str, stdout: str) -> tuple[bool
     substring, and any preceding `expect:` lines must match the stdout emitted
     before the crash. Previously the harness treated ANY nonzero exit as a PASS
     regardless of the header's substring or preceding output — verified against
-    07_no_nlr/04_stack_exhaustion.ns, which needs both checks to be a meaningful
+    07_no_nlr/04_stack_exhaustion.nsl, which needs both checks to be a meaningful
     proof of controlled (vs. C-level) termination. Returns (ok, detail)."""
     expected_substr = metadata["expect_runtime_fail"]
     if expected_substr not in err_msg:
@@ -393,7 +393,7 @@ def run_test_file(src_path: Path) -> tuple[str, str]:
     if not (metadata.get("expect") or metadata.get("expect_compile_fail") or metadata.get("expect_runtime_fail")):
         return "SKIP", "No expectations defined."
 
-    # 1. Compile .ns to src/solidified_image.c
+    # 1. Compile .nsl to src/solidified_image.c
     compiler_script = Path(__file__).parent / "ns_compile_oevm.py"
     target_c = OEVM_DIR / "src" / "solidified_image.c"
 
@@ -491,7 +491,7 @@ def run_test_file_oimg(src_path: Path) -> tuple[str, str]:
     safe_parent = re.sub(r"[^A-Za-z0-9_.-]", "_", src_path.parent.name)
     oimg_path = f"/tmp/{safe_parent}__{safe_stem}.oimg"
 
-    # 1. Compile .ns to .oimg
+    # 1. Compile .nsl to .oimg
     compiler_script = Path(__file__).parent / "ns_compile_oevm.py"
     proc_compile = subprocess.run(
         [

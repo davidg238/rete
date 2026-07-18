@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """In-image debugger integration harness (Path A + Path B).
 
-Drives 46_debug_target.ns end-to-end with OEVM_DEBUG=1 and asserts the full
+Drives 46_debug_target.nsl end-to-end with OEVM_DEBUG=1 and asserts the full
 debug flow — `dbg:methods`, `dbg:break`, `dbg:continue`, `dbg:inspect`,
 `dbg:step`, `dbg:over`, `dbg:out`, final app output — on BOTH execution paths:
 

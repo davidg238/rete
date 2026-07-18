@@ -33,8 +33,8 @@ test('comment is ignored', () => {
   assert.strictEqual(ast.body[0].value, 7);
 });
 
-test('CLI prints JSON AST for a .ns file', () => {
-  const f = path.join(os.tmpdir(), `ns_cli_${process.pid}.ns`);
+test('CLI prints JSON AST for a .nsl file', () => {
+  const f = path.join(os.tmpdir(), `ns_cli_${process.pid}.nsl`);
   fs.writeFileSync(f, '(3 + 4) println');
   try {
     const out = execFileSync('node', [path.join(__dirname, '..', 'ns-parse.js'), f], { encoding: 'utf8' });
@@ -47,7 +47,7 @@ test('CLI prints JSON AST for a .ns file', () => {
 });
 
 test('CLI reports a parse error as JSON on stderr with non-zero exit', () => {
-  const f = path.join(os.tmpdir(), `ns_bad_${process.pid}.ns`);
+  const f = path.join(os.tmpdir(), `ns_bad_${process.pid}.nsl`);
   fs.writeFileSync(f, '3 +');
   try {
     let threw = false;
@@ -65,7 +65,7 @@ test('CLI reports a parse error as JSON on stderr with non-zero exit', () => {
 });
 
 test('CLI reports a missing file as stage io, not parse', () => {
-  const missing = path.join(os.tmpdir(), `ns_nope_${process.pid}_does_not_exist.ns`);
+  const missing = path.join(os.tmpdir(), `ns_nope_${process.pid}_does_not_exist.nsl`);
   let threw = false;
   try {
     execFileSync('node', [path.join(__dirname, '..', 'ns-parse.js'), missing], { encoding: 'utf8', stdio: 'pipe' });

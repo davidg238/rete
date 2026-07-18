@@ -941,7 +941,7 @@ class MethodCompiler:
                 # the ordinary varRef path (local/lexical/slot), so it is reached
                 # through the lexically-threaded slot, not a VM global. send()
                 # intercepts the capitalised selector (PRIM_Array etc.) and
-                # returns the class object (mock today; real .ns class in step 3).
+                # returns the class object (mock today; real .nsl class in step 3).
                 plat_reg = self.alloc_reg()
                 self.compile_expr({"type": "varRef", "name": "platform"}, plat_reg)
                 sel_idx = self.add_constant(name)
@@ -1781,10 +1781,10 @@ class OevmCompiler:
         is_nested = 1 if "." in qname else 0
         super_name = node.get("super")
         delegate = None
-        # std-lib step 3a: `Object` is now a REAL kernel class (lib/kernel.ns).
+        # std-lib step 3a: `Object` is now a REAL kernel class (lib/kernel.nsl).
         #   - the class named `Object` is the root: delegate NULL.
         #   - every other rootless or `= Object` heap class delegates to Vtable_Object
-        #     (the universal root), so all heap objects get Object.ns protocol.
+        #     (the universal root), so all heap objects get Object.nsl protocol.
         #   - a named non-Object super resolves as before.
         if qname.rsplit(".", 1)[-1] == "Object":
             delegate = None
@@ -1793,7 +1793,7 @@ class OevmCompiler:
             delegate = self.vt_id(sup[0]) if sup else super_name
         elif super_name == "Object" or (super_name is None and not node.get("superExpr")):
             # std-lib step 3b: `Object` now lives inside the Kernel module
-            # (lib/kernel.ns), so its vtable is Vtable_Kernel_Object. The simple-name
+            # (lib/kernel.nsl), so its vtable is Vtable_Kernel_Object. The simple-name
             # check above still identifies the root (delegate NULL); every other
             # rootless / `= Object` heap class delegates to the nested root.
             delegate = "Kernel_Object"

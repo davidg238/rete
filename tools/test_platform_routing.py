@@ -9,7 +9,7 @@ sys.path.insert(0, str(TOOLS))
 
 
 def _parse(src_text, tmp_path):
-    f = tmp_path / "frag.ns"
+    f = tmp_path / "frag.nsl"
     f.write_text(src_text)
     r = subprocess.run(["node", str(GRAMMAR), str(f)],
                        capture_output=True, text=True)
