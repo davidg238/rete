@@ -21,7 +21,7 @@ Toolchain baseline (both, and tuvm rung-7): **NCS v3.2.4, Zephyr v4.2.99, Zephyr
 
 ## 0. tuvm rung-7 delta (what we hit, 2026-07-11)
 
-The nRF52840-**DK** node (`ThreadEchoNodeDK.ns` + `prj_dk_thread.conf` + `src/main.c`
+The nRF52840-**DK** node (`ThreadEchoNodeDK.nsl` + `prj_dk_thread.conf` + `src/main.c`
 `thread_bringup()`) rounds-trips a CBOR Record over real OpenThread → `BRIDGE OK`.
 The one root cause we re-derived on NCS v3.2.4:
 

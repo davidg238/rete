@@ -13,15 +13,15 @@ not here. This file is measurements + the evidence behind them.
 
 | Milestone | Program | Heap cap | Expected | Result | RAM (build report) |
 |-----------|---------|---------:|----------|--------|--------------------|
-| E1 | `zephyr/TimerNode.ns` (**Model A**, solidified) | 64 KB | `TIMER OK`, then alive | PASS (2026-07-16) | not captured † |
-| E2 | `zephyr/TimerNode.ns` (**Model B**, `.oimg`) | 64 KB | `TIMER OK`, then alive | PASS (2026-07-16) | 135024 B / 192 KB (68.68%) |
-| E3 | `nsl-tests/00_perf/perfstex.ns` (6 sub-tests, **Model B**) | 64 KB | six timings + `done` | PASS (2026-07-16) | 135024 B / 192 KB (68.68%) |
-| E4 | `nsl-tests/00_perf/performance.ns` (STIC, 9 tests, **Model B**) | **96 KB** | nine timings + `done` | PASS (2026-07-16) | 168816 B / 192 KB (85.86%) |
-| E5 | `nsl-tests/00_perf/blockcost.ns` (7 sub-tests, **Model B**) | 96 KB | seven timings + `done` | PASS (2026-07-16) | 168816 B / 192 KB (85.86%) |
+| E1 | `zephyr/TimerNode.nsl` (**Model A**, solidified) | 64 KB | `TIMER OK`, then alive | PASS (2026-07-16) | not captured † |
+| E2 | `zephyr/TimerNode.nsl` (**Model B**, `.oimg`) | 64 KB | `TIMER OK`, then alive | PASS (2026-07-16) | 135024 B / 192 KB (68.68%) |
+| E3 | `nsl-tests/00_perf/perfstex.nsl` (6 sub-tests, **Model B**) | 64 KB | six timings + `done` | PASS (2026-07-16) | 135024 B / 192 KB (68.68%) |
+| E4 | `nsl-tests/00_perf/performance.nsl` (STIC, 9 tests, **Model B**) | **96 KB** | nine timings + `done` | PASS (2026-07-16) | 168816 B / 192 KB (85.86%) |
+| E5 | `nsl-tests/00_perf/blockcost.nsl` (7 sub-tests, **Model B**) | 96 KB | seven timings + `done` | PASS (2026-07-16) | 168816 B / 192 KB (85.86%) |
 | E6 | blockcost + STIC on branch `perf/activation-plus-ops` (**Model B**) | 96 KB | same, faster | PASS (2026-07-17) | 168816 B / 192 KB (85.86%) |
-| E7 | `nsl-tests/00_perf/richards.ns` (3 runs, **Model B**, baseline AND branch) | 96 KB | 3 timings + `verified: true` | PASS (2026-07-17) | 168816 B / 192 KB (85.86%) |
+| E7 | `nsl-tests/00_perf/richards.nsl` (3 runs, **Model B**, baseline AND branch) | 96 KB | 3 timings + `verified: true` | PASS (2026-07-17) | 168816 B / 192 KB (85.86%) |
 | E8 | richards + blockcost on `perf/iram-interp` knobs (IRAM / NODBG / both) | 96 KB | same, production config | PASS (2026-07-17) | 168816 B dram; IRAM 16.6→20.1% |
-| E9 | `nsl-tests/00_perf/deltablue.ns` (n=50, 3 runs, **Model B**) | **112 KB** | 3 timings + `verified: true` | PASS (2026-07-17) | 185712 B / 192 KB (94.46%) |
+| E9 | `nsl-tests/00_perf/deltablue.nsl` (n=50, 3 runs, **Model B**) | **112 KB** | 3 timings + `verified: true` | PASS (2026-07-17) | 185712 B / 192 KB (94.46%) |
 
 † E1's green run predates the Model A/B knob and its build was never re-run under
 plain `prj_esp32.conf` — the only surviving Model A elf carries the `coredump.conf`
@@ -64,7 +64,7 @@ XIP'd in place, never copied to RAM), 4-aligned per `blob.S`'s `.balign 4`.
 | `.incbin` of the blob (real Xtensa `as`) | — | **0.007 s** |
 
 Log: `esp32-debug-artifacts/tuvm-esp32-GREEN-modelB-oimg.log`.
-Recipe: `zephyr/run.sh --model B --node TimerNode.ns --flash --capture 20`.
+Recipe: `zephyr/run.sh --model B --node TimerNode.nsl --flash --capture 20`.
 
 **A and B are not byte-identical on the console — B is cleaner.** Both print `TIMER OK`
 and sit alive, but Model A also emits 48 lines of the non-fatal ROM-`setjmp`
@@ -76,7 +76,7 @@ not intrinsic to the VM on this part. Not investigated; do not assume benign.
 ## E3 — Perfstex on ESP32 (Model B): first on-target benchmark
 
 The classic Smalltalk SpeedTester, ported to OEVM/Newspeak
-(`nsl-tests/00_perf/perfstex.ns` — already a node, `public main: platform args:`, so it
+(`nsl-tests/00_perf/perfstex.nsl` — already a node, `public main: platform args:`, so it
 boots unmodified). Six sub-tests + `done`:
 
 ```
@@ -133,7 +133,7 @@ point of Model B: **the program costs flash, not RAM.**
 ## E4 — STIC on ESP32 (Model B): the first cross-VM column
 
 The STIC benchmark (Smalltalk Industry Council, late '90s), ported to nsl as
-`nsl-tests/00_perf/performance.ns` (`0e0715a`). Design + lineage:
+`nsl-tests/00_perf/performance.nsl` (`0e0715a`). Design + lineage:
 `tuvm/docs/design/2026-07-16-performance-nsl-stic-column-design.md`. Log:
 `esp32-debug-artifacts/tuvm-esp32-STIC-96k-run1.log`. Ran clean in **14.9 min** — no
 fault, no arena abort, no oops.
@@ -175,7 +175,7 @@ The *shape*, however, is consistent and diagnostic rather than diffuse:
 `integerMath`'s 3M four-op chains in 15.3 s = **5.1 µs per chain**: *a single block
 activation costs ~5× a complete four-operation arithmetic chain.*
 
-`kernel.ns:132` shows why it cannot be optimised away at the call site:
+`kernel.nsl:132` shows why it cannot be optimised away at the call site:
 
 ```smalltalk
 public do: aBlock = ( 1 to: count do: [ :i | aBlock value: (contents at: i) ]. ^ self )
@@ -185,11 +185,11 @@ The outer `to:do:` is compiler-inlined; `aBlock value:` **cannot** be — `aBloc
 parameter holding a real block object. oevm's literal-block inlining (which took fib from
 ~30× to ~2.4×, `nsl-tests/00_perf/RESULTS.md`) only fires on blocks literal at the send
 site, so it never reaches this one. **This is a VM finding.** Every `do:`/`collect:`/
-`select:` in `kernel.ns:54-61` pays it.
+`select:` in `kernel.nsl:54-61` pays it.
 
 `dictionaryWrite` and `collectionWrite` are a different, cheaper problem — **library
-growth policy**, not the VM: `Dictionary` (`kernel.ns:282`) starts at an 8-slot table and
-grow-rehashes on every 10-key iteration, and `OrderedCollection add:` (`kernel.ns:135`)
+growth policy**, not the VM: `Dictionary` (`kernel.nsl:282`) starts at an 8-slot table and
+grow-rehashes on every 10-key iteration, and `OrderedCollection add:` (`kernel.nsl:135`)
 calls `ensureCapacity` per element, recopying as a fresh collection reaches 10.
 
 ### What these numbers are NOT
@@ -228,7 +228,7 @@ without aborting — the first real workout that path has had on target.
 ## E5 — blockcost on ESP32 (Model B): decomposing E4's block-activation tax
 
 E4 left one number demanding explanation: 26.6 µs per `collectionIterate` element
-visit, 41.9× Toit. `nsl-tests/00_perf/blockcost.ns` decomposes it: seven self-timed
+visit, 41.9× Toit. `nsl-tests/00_perf/blockcost.nsl` decomposes it: seven self-timed
 loops, each visiting **10M elements**, differing by exactly one mechanism. The emitted
 bytecode was verified per variant before running: `baseLoop`'s body is pure inlined
 adds/jumps, `blockValue` adds exactly one `OP_BLOCK_INVOKE` per iteration, `methodSend`
@@ -291,8 +291,8 @@ parameter — the whole reason this benchmark exists), so the remaining big swin
 customized `do:`-family, e.g. compiling collection combinators against the block's
 `CompiledMethod` at first call (polymorphic inline caching / specialization).
 
-Benchmark source: `~/workspace/nsl-tests/00_perf/blockcost.ns`. Reproduce: E3 recipe
-(§5) with `blockcost.ns`, 96 KB heap knobs as E4; budget a ~17 min capture.
+Benchmark source: `~/workspace/nsl-tests/00_perf/blockcost.nsl`. Reproduce: E3 recipe
+(§5) with `blockcost.nsl`, 96 KB heap knobs as E4; budget a ~17 min capture.
 
 ## E6 — the E5 findings acted on: two trial branches, measured on target
 
@@ -377,8 +377,8 @@ mechanics — what does a *non-synthetic* workload show? Richards (the classic
 OS-task-scheduler simulation: polymorphic sends, linked task/packet structures,
 branchy control flow, no single hot loop) is the canonical answer, and the nsl
 port already existed and passes in the suite on both VMs
-(`nsl-tests/05_somns_benchmarks/06_richards.ns`, SOMns lineage).
-`nsl-tests/00_perf/richards.ns` (uncommitted, alongside blockcost.ns) wraps that
+(`nsl-tests/05_somns_benchmarks/06_richards.nsl`, SOMns lineage).
+`nsl-tests/00_perf/richards.nsl` (uncommitted, alongside blockcost.nsl) wraps that
 body **verbatim** in a self-timed node: 3 runs, each a fresh
 `RichardsBenchmarks new start` verified against the canonical counts
 (queuePacketCount 23246, holdCount 9297).
@@ -447,7 +447,7 @@ env-knob-gated commits, both default-off, no semantic change when off:
 
 **Gates** (branch, both knobs off = default): C units 25/0 (+2 pre-existing
 skips); nsl suite **195/0/14** — the +2 skips vs baseline are exactly the new
-expectation-less perf nodes richards.ns/deltablue.ns; grant /
+expectation-less perf nodes richards.nsl/deltablue.nsl; grant /
 debugger-integration / portability-32 / boot-gc-asan all PASS
 (debugger-integration passing proves the hooks still work when the knob is off).
 
@@ -510,9 +510,9 @@ config, below). Assessment + deferred list:
 ## E9 — DeltaBlue on ESP32, and the cross-VM program-shaped family
 
 The RESULTS.md "deltablue EXEC_ERR on oevm" note is **stale** — the somns port
-(`nsl-tests/05_somns_benchmarks/07_deltablue.ns`) runs clean on both the
+(`nsl-tests/05_somns_benchmarks/07_deltablue.nsl`) runs clean on both the
 baseline and `perf/activation-plus-ops` VMs today. `nsl-tests/00_perf/
-deltablue.ns` wraps it in the richards.ns-style timed node: 3 runs of
+deltablue.nsl` wraps it in the richards.nsl-style timed node: 3 runs of
 `chainTest: 50` + `projectionTest: 50` (SOM shape; self-verifying — any wrong
 plan raises).
 
@@ -600,10 +600,10 @@ asm are at best incomplete.
 E2 (and any in-tree node):
 
 ```sh
-zephyr/run.sh --model B --node TimerNode.ns --flash --capture 20
+zephyr/run.sh --model B --node TimerNode.nsl --flash --capture 20
 ```
 
-E3 — **`run.sh` cannot drive this yet**: `perfstex.ns` lives in `nsl-tests/00_perf/` and
+E3 — **`run.sh` cannot drive this yet**: `perfstex.nsl` lives in `nsl-tests/00_perf/` and
 `run.sh` resolves `--node` relative to `zephyr/` only (a papercut worth closing; every
 other node is in-tree). Until then:
 
@@ -616,7 +616,7 @@ export OEVM_HEAP_SIZE=65536 METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256 \
        OEVM_FLOAT_ARENA_SLAB_CELLS=512 OEVM_FLOAT_ARENA_SLAB_BUDGET=4
 
 python3 ~/workspace/nsl-tuvm/tools/ns_compile_oevm.py \
-  ~/workspace/nsl-tests/00_perf/perfstex.ns /tmp/perfstex.oimg \
+  ~/workspace/nsl-tests/00_perf/perfstex.nsl /tmp/perfstex.oimg \
   --format=oimg --layout=zephyr/layout-esp32.json
 
 cd zephyr && west build -b esp32_devkitc/esp32/procpu -d build-esp32-perf . -- \

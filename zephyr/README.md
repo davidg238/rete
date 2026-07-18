@@ -29,12 +29,12 @@ repo for the identical constraint on the host build).
   Model-A appliance driver) exactly, swapping only the console and the
   in-language millis clock (`k_uptime_get()`, via the `oevm_millis` hook
   `src/vm.c` already reserves for "the Zephyr appliance").
-- `PulseNode.ns` — the gate node (source of truth for `src/solidified_image.c`
+- `PulseNode.nsl` — the gate node (source of truth for `src/solidified_image.c`
   — see "Regenerating the image" below).
 
 ## The gate node
 
-`PulseNode.ns`'s `main:` registers a `whenever: '' do:` reaction on channel
+`PulseNode.nsl`'s `main:` registers a `whenever: '' do:` reaction on channel
 `sensor/alert`, registers pin 13 to post the String `'done'` on that channel,
 fires ONE simulated edge (`gpio fire: 13` — host/sim-only, the on-target
 GPIO ISR replaces this in Task 8), then runs the C-owned pump loop:
@@ -42,7 +42,7 @@ GPIO ISR replaces this in Task 8), then runs the C-owned pump loop:
 
 Two deliberate deviations from the plan's draft node (both required to
 actually compile/run against this VM + compiler, not stylistic — see the
-comment header in `PulseNode.ns` for detail):
+comment header in `PulseNode.nsl` for detail):
 - `[ ... ] repeat` is not a supported selector in this dialect (grep-confirmed
   against `tools/ns_compile_oevm.py`'s compiler and `src/dispatch.c`'s
   `PRIM_NAMES` — only `whileTrue:`/`whileFalse:`/`timesRepeat:`/`to:do:`/
@@ -62,15 +62,15 @@ exit.
 
 `src/solidified_image.c` (and its `.stmap` sidecar) are **generated
 artifacts**, committed to `tuvm` only as whatever some OTHER test last left
-there — they are NOT the Task 7 gate's own source of truth (`PulseNode.ns`
+there — they are NOT the Task 7 gate's own source of truth (`PulseNode.nsl`
 is). Building this gate CLOBBERS them as a transient build step. Regenerate
-from `PulseNode.ns` before every `west build`:
+from `PulseNode.nsl` before every `west build`:
 
 ```bash
 source /home/david/workspace/ns-zephyr/tools/env.sh
 cd /home/david/workspace/nsl-tuvm
 python3 tools/ns_compile_oevm.py \
-  /home/david/workspace/tuvm/zephyr/PulseNode.ns \
+  /home/david/workspace/tuvm/zephyr/PulseNode.nsl \
   /home/david/workspace/tuvm/src/solidified_image.c
 ```
 
@@ -128,7 +128,7 @@ hardware on the bench is the *DK* — this Task 8 targets it instead:
   in-kernel loopback UDP stack (the proven nRF52840 recipe from
   `ns-zephyr/app/prj_dongle_loopback.conf`) — networking is present only so
   `udp_zephyr.c`'s `zsock_*` references link, exactly as on native_sim.
-- `PulseNodeDK.ns` — the gate node MINUS the sim-only `gpio fire: 13` line, so
+- `PulseNodeDK.nsl` — the gate node MINUS the sim-only `gpio fire: 13` line, so
   the one pulse comes from a physical press. Baked into `src/solidified_image.c`.
 - `src/main.c` — `wire_pulse_gpio()` binds the button IRQ (guarded on the alias).
 - `../src/platform.c` — `gpio_target_fire(int)`, the non-static ISR entry that
@@ -180,7 +180,7 @@ source /home/david/workspace/ns-zephyr/tools/env.sh
 # 1. bake the DK node into the solidified image (run from the nsl-tuvm repo)
 cd /home/david/workspace/nsl-tuvm
 python3 tools/ns_compile_oevm.py \
-  /home/david/workspace/tuvm/zephyr/PulseNodeDK.ns \
+  /home/david/workspace/tuvm/zephyr/PulseNodeDK.nsl \
   /home/david/workspace/tuvm/src/solidified_image.c
 
 # 2. build + flash (skip-rebuild so the flash can't rebuild with a restored image)
@@ -202,12 +202,12 @@ a line `observed done` after the boot banner.
 > USB). Once healthy it enumerates as `1366:1025 SEGGER J-Link` and `west flash
 > --runner jlink` programs it without re-triggering the replace.
 
-# Rung 5 — native_sim UDP round-trip gate (NetNode.ns)
+# Rung 5 — native_sim UDP round-trip gate (NetNode.nsl)
 
 Proves the Zephyr UDP backend (`../src/backend/zephyr/udp_zephyr.c`) functionally
 round-trips a datagram on `native_sim` — previously it only *linked* (the pulse
 gate's `prj.conf` already turns on NSOS networking because `dispatch.c`'s `send()`
-fast path unconditionally probes `udp_object()`). The baked node `NetNode.ns`
+fast path unconditionally probes `udp_object()`). The baked node `NetNode.nsl`
 declares the `net:` capability, binds a receiver, sends to loopback (v4 + v6),
 polls the non-blocking `receive`, checks the payload, and prints `UDP OK`.
 
@@ -220,10 +220,10 @@ handles a `main:` that returns. (Payload migrated to an immutable `Bytes` in Lay
 
 ```bash
 source /home/david/workspace/ns-zephyr/tools/env.sh
-# bake NetNode.ns into the solidified image (from the nsl-tuvm repo)
+# bake NetNode.nsl into the solidified image (from the nsl-tuvm repo)
 cd /home/david/workspace/nsl-tuvm
 python3 tools/ns_compile_oevm.py \
-  /home/david/workspace/tuvm/zephyr/NetNode.ns \
+  /home/david/workspace/tuvm/zephyr/NetNode.nsl \
   /home/david/workspace/tuvm/src/solidified_image.c
 cd /home/david/workspace/tuvm/zephyr
 west build -b native_sim -p always .
@@ -239,11 +239,11 @@ Expected: build completes, the run prints `UDP OK` before `timeout` kills it —
 i.e. `udp_zephyr.c`'s `zsock_socket`/`zsock_bind`/`zsock_sendto`/`zsock_recvfrom`
 actually moved a datagram over Zephyr's NSOS loopback.
 
-# Rung 6 — native_sim NetBridge round-trip gate (NetBridgeNode.ns)
+# Rung 6 — native_sim NetBridge round-trip gate (NetBridgeNode.nsl)
 
 Proves the Layer-2 reactive channel↔UDP bridge (`NetBridge` in
-`nsl-tuvm/lib/kernel.ns`) functionally round-trips a CBOR `Record` on `native_sim`.
-The baked node `NetBridgeNode.ns` wires two `NetBridge`s A↔B in one `Space`, posts a
+`nsl-tuvm/lib/kernel.nsl`) functionally round-trips a CBOR `Record` on `native_sim`.
+The baked node `NetBridgeNode.nsl` wires two `NetBridge`s A↔B in one `Space`, posts a
 `Record` to A's `out` channel, and observes it CBOR-decoded on B's `in` channel,
 printing `BRIDGE OK`. This exercises the whole Layer-2 stack on the target-shaped
 backend: `Cbor encode`/`decode` (the leaves link on native_sim), the immutable-`Bytes`
@@ -255,10 +255,10 @@ reuses this directory's `main.c` / `CMakeLists.txt` / `prj.conf` UNCHANGED (no
 
 ```bash
 source /home/david/workspace/ns-zephyr/tools/env.sh
-# bake NetBridgeNode.ns into the solidified image (from the nsl-tuvm repo)
+# bake NetBridgeNode.nsl into the solidified image (from the nsl-tuvm repo)
 cd /home/david/workspace/nsl-tuvm
 python3 tools/ns_compile_oevm.py \
-  /home/david/workspace/tuvm/zephyr/NetBridgeNode.ns \
+  /home/david/workspace/tuvm/zephyr/NetBridgeNode.nsl \
   /home/david/workspace/tuvm/src/solidified_image.c
 cd /home/david/workspace/tuvm/zephyr
 west build -b native_sim -p always .
@@ -270,7 +270,7 @@ git checkout -- src/solidified_image.c src/solidified_image.stmap
 
 ---
 
-# Rung 7 — real OpenThread round-trip gate (ThreadEchoNodeDK.ns)
+# Rung 7 — real OpenThread round-trip gate (ThreadEchoNodeDK.nsl)
 
 Proves the Layer-2 `NetBridge` round-trips a CBOR `Record` over a **real 802.15.4 /
 OpenThread mesh**. The DK is an **MTD child** of the porta OTBR (`gw85224-01`); a
@@ -293,7 +293,7 @@ export VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512
 # bake the Thread node into the solidified image (from the nsl-tuvm repo)
 cd /home/david/workspace/nsl-tuvm
 python3 tools/ns_compile_oevm.py \
-  /home/david/workspace/tuvm/zephyr/ThreadEchoNodeDK.ns \
+  /home/david/workspace/tuvm/zephyr/ThreadEchoNodeDK.nsl \
   /home/david/workspace/tuvm/src/solidified_image.c
 
 cd /home/david/workspace/tuvm/zephyr
@@ -334,7 +334,7 @@ same image runs on other boards (the nRF52840 dongle is ported but **headless** 
 
 ---
 
-# Rung 8 — autonomous timer round-trip (TimerNode.ns / ThreadTimerNode.ns)
+# Rung 8 — autonomous timer round-trip (TimerNode.nsl / ThreadTimerNode.nsl)
 
 Gives the nsl `Timers` seam a **real on-target backend** (`src/backend/zephyr/timer_zephyr.c`,
 a Zephyr `k_timer`) and uses it to run the rung-7 round-trip on a **15 s autonomous
@@ -353,7 +353,7 @@ tick lands in the pulse mailbox, `platform pumpEvents` (which blocks `K_FOREVER`
     source /home/david/workspace/ns-zephyr/tools/env.sh
     cd /home/david/workspace/nsl-tuvm
     python3 tools/ns_compile_oevm.py \
-      /home/david/workspace/tuvm/zephyr/TimerNode.ns \
+      /home/david/workspace/tuvm/zephyr/TimerNode.nsl \
       /home/david/workspace/tuvm/src/solidified_image.c
     cd /home/david/workspace/tuvm/zephyr
     west build -b native_sim -p always .
@@ -362,7 +362,7 @@ tick lands in the pulse mailbox, `platform pumpEvents` (which blocks `K_FOREVER`
 
 ## Gate 2 — the DK: BRIDGE OK every 15 s, in lockstep with the gateway
 
-Same build/flash recipe as Rung 7, but bake `ThreadTimerNode.ns` instead. **No button
+Same build/flash recipe as Rung 7, but bake `ThreadTimerNode.nsl` instead. **No button
 press** — just watch. Capture both ends at once:
 
     timeout 80 cat /dev/ttyACM0 &

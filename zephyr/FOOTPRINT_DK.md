@@ -3,10 +3,10 @@
 Captured on the DK (`nrf52840dk/nrf52840`) with the recommended **config D**
 (`OEVM_HEAP_SIZE=49152 METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256
 VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512`), image baked from
-`zephyr/MeasureNodeDK.ns`. Recipe: `zephyr/README.md` "Build + flash + run".
+`zephyr/MeasureNodeDK.nsl`. Recipe: `zephyr/README.md` "Build + flash + run".
 
 Commit: tuvm `71d4ac4` (base; this measurement's image was baked from
-`MeasureNodeDK.ns` on top of this commit)  ·  date 2026-07-10
+`MeasureNodeDK.nsl` on top of this commit)  ·  date 2026-07-10
 
 ## Static image (`west build -t ram_report` / `-t rom_report`)
 
@@ -25,7 +25,7 @@ than the linker's top-level region table.)
 
 Captured directly off the flashed nRF52840-DK over `/dev/ttyACM0` at 115200
 baud, immediately after `west flash --skip-rebuild --runner jlink` reset the
-board and `MeasureNodeDK.ns` auto-ran at boot (no button press / host
+board and `MeasureNodeDK.nsl` auto-ran at boot (no button press / host
 interaction needed):
 
 ```
@@ -51,7 +51,7 @@ much smaller config-D heap the soak indeed forced `gc >= 1`, confirmed above.)
 
 ---
 
-# Rung 7 — the OpenThread MTD image (`ThreadEchoNodeDK.ns`), 2026-07-11
+# Rung 7 — the OpenThread MTD image (`ThreadEchoNodeDK.nsl`), 2026-07-11
 
 The Layer-3 Thread node, same **config D** as above, built with
 `-DCONF_FILE=prj_dk_thread.conf -DEXTRA_CONF_FILE=prj_dk_thread_local.conf`
@@ -65,7 +65,7 @@ The Layer-3 Thread node, same **config D** as above, built with
 The delta is **OpenThread L2 + mbedTLS**, not the VM: the engine core is byte-identical
 across the two builds (the `mcu-footprint` ratchet gate still reads text=29198 /
 data+bss=69036, unmoved by this rung — it measures the engine, and rung 7 changed only
-`zephyr/src/main.c`, the board Kconfig, and the node `.ns`).
+`zephyr/src/main.c`, the board Kconfig, and the node `.nsl`).
 
 **Headroom.** RAM at 71.29 % of the 256 KB part leaves ~75 KB free with the 48 KB VM
 arena in place, so the MTD node fits comfortably; the arena remains the largest single
@@ -79,7 +79,7 @@ The nRF52840 **dongle** builds the same image against `prj_dongle_thread.conf`
 
 ---
 
-# Rung 8 — the autonomous timer node (`ThreadTimerNode.ns`), 2026-07-11
+# Rung 8 — the autonomous timer node (`ThreadTimerNode.nsl`), 2026-07-11
 
 Same **config D**, same `prj_dk_thread.conf` as rung 7; the only change is a real
 `k_timer` backend plus the timer node. Commit: tuvm `dc05f49`.

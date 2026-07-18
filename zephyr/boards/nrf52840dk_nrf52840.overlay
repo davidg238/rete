@@ -4,7 +4,7 @@
  * the board DTS) as the physical edge source for the pulse seam. The Zephyr
  * GPIO callback in ../src/main.c binds to DT_ALIAS(pulsegpio) and, on each
  * press, calls gpio_target_fire(13) — the SAME logical pin the baked node
- * (PulseNodeDK.ns) registered via `gpio pin: 13 ...`. This overlay is applied
+ * (PulseNodeDK.nsl) registered via `gpio pin: 13 ...`. This overlay is applied
  * automatically for the nrf52840dk/nrf52840 board target; it is absent for the
  * native_sim gate (Task 7), so the alias — and the ISR guarded on it — compile
  * out there, leaving the Task-7 build byte-for-byte unchanged.

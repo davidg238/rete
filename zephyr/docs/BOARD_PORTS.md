@@ -95,7 +95,7 @@ future USB board inherits it automatically:
   - **The trigger.** A real `k_timer` backend for the `Timers` seam
     (`src/backend/zephyr/timer_zephyr.c`) drives a **15 s autonomous cadence**, so the node
     needs no BUTTON1 press — which was never practical on a stick in a USB port anyway.
-  - **The proof.** `ThreadTimerNode.ns` is **self-gating**: it sends again only after the
+  - **The proof.** `ThreadTimerNode.nsl` is **self-gating**: it sends again only after the
     previous reflection decoded value-equal, so the gateway's *outbound-only* echo log
     witnesses full round-trip closure (**N lines = N−1 proven round-trips**), and a broken
     inbound leg stops the train dead. Calibrated on the DK, where console and train were
