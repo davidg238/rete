@@ -1,0 +1,79 @@
+(*
+HttpServerNode.nsl — the live posix twin of HttpNode.nsl. Instead of a single
+injected request, it binds a real TCP listener (platform httpListen: 8080 ->
+http_listen, which starts the accept thread) and then runs the standard reactor
+loop forever: each pumpEvents drains the http request ring at the safe point
+(http_pump) and posts [id,method,path] Arrays; the app reaction routes+renders;
+the egress reaction forwards the reply Record to httpRespondId:, which writes the
+framed response back to the request's socket fd and closes it. Driven by
+tests/http_roundtrip_host.sh (curl round-trip). Routes match HttpNode.nsl.
+*)
+class HttpServerNode packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space req reply thermal frame oc i |
+    space::   platform space.
+    req::     space channel: 'dev/http/request'.
+    reply::   space channel: 'dev/http/reply'.
+    thermal:: space channel: 'dev/thermal0/sample'.
+    oc:: platform OrderedCollection new.
+    i:: 1. [ i <= 64 ] whileTrue: [
+      oc add: (i = 30 ifTrue: [ 3120 ] ifFalse: [ 2200 ]). i:: i + 1 ].
+    frame:: platform List fromCollection: oc.
+    thermal put: '' value: frame.
+    req whenever: '' do: [ :r |
+      | id path status body |
+      id::   r basicAt: 1.
+      path:: r basicAt: 3.
+      (path = '/hello')
+        ifTrue:  [ status:: 200. body:: 'hello' ]
+        ifFalse: [ (path = '/thermal')
+          ifTrue:  [ status:: 200. body:: self renderFrame: (thermal peek: '' ifAbsent: [ nil ]) ]
+          ifFalse: [ status:: 404. body:: 'not found' ] ].
+      reply out: '' value: (platform Record tag: #response
+                              with: #id -> id with: #status -> status with: #body -> body) ].
+    reply whenever: '' do: [ :resp |
+      platform httpRespondId: (resp at: #id ifAbsent: [ 0 ])
+               status:        (resp at: #status ifAbsent: [ 500 ])
+               body:          (resp at: #body ifAbsent: [ '' ]) ].
+    platform httpListen: 18080.
+    [ true ] whileTrue: [ platform pumpEvents. space drain ].
+  )
+
+  renderFrame: f = (
+    | row col svg t k |
+    (f == nil) ifTrue: [ ^ '<html><body>no frame</body></html>' ].
+    svg:: '<html><body><svg viewBox=''0 0 8 8'' width=''320'' height=''320'' shape-rendering=''crispEdges''>'.
+    row:: 0. [ row <= 7 ] whileTrue: [
+      col:: 0. [ col <= 7 ] whileTrue: [
+        t:: f at: (row * 8 + col + 1).
+        k:: ((t - 1500) * 255) // 2000.
+        (k < 0)   ifTrue: [ k:: 0 ].
+        (k > 255) ifTrue: [ k:: 255 ].
+        svg:: svg , '<rect x=''' , col printString , ''' y=''' , row printString ,
+              ''' width=''1'' height=''1'' fill=''rgb(' , k printString , ',0,' ,
+              (255 - k) printString , ')''/>'.
+        col:: col + 1 ]. row:: row + 1 ].
+    ^ svg , '</svg><p>' , (self caption: f) , '</p></body></html>'
+  )
+
+  caption: f = (
+    | row col t maxV minV hotR hotC |
+    maxV:: f at: 1. minV:: f at: 1. hotR:: 0. hotC:: 0.
+    row:: 0. [ row <= 7 ] whileTrue: [
+      col:: 0. [ col <= 7 ] whileTrue: [
+        t:: f at: (row * 8 + col + 1).
+        (t > maxV) ifTrue: [ maxV:: t. hotR:: row. hotC:: col ].
+        (t < minV) ifTrue: [ minV:: t ].
+        col:: col + 1 ]. row:: row + 1 ].
+    ^ 'max ' , (self centi: maxV) , 'C min ' , (self centi: minV) ,
+      'C hot (' , hotR printString , ',' , hotC printString , ')'
+  )
+
+  centi: v = (
+    | whole tenth |
+    whole:: v // 100.
+    tenth:: (v - (whole * 100)) // 10.
+    ^ whole printString , '.' , tenth printString
+  )
+) : (
+)

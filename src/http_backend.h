@@ -29,4 +29,8 @@ void http_respond(int id, int status, const char *body, int body_len);
 int  http_inflight_count(void);
 void http_backend_reset(void);
 
+/* Task 6: bind a TCP listener on port and start the accept thread. Returns 0 on
+   success, -1 on any socket setup failure. Loopback only (127.0.0.1). */
+int  http_listen(int port);
+
 #endif /* OEVM_HTTP_BACKEND_H */

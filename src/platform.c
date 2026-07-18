@@ -766,7 +766,9 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = TAG_SMI(n);
         return 1;
     }
-    case PRIM_pf_httpListen: {                 /* platform httpListen: port -> self (real in Task 6) */
+    case PRIM_pf_httpListen: {                 /* platform httpListen: port -> self (binds + accept thread) */
+        int port = IS_SMI(args[0]) ? (int)UNTAG_SMI(args[0]) : 0;
+        http_listen(port);
         *out = platform_object();
         return 1;
     }
