@@ -206,7 +206,7 @@ def main():
     test_files = [f for f in test_files if "scratch" not in f.name]
     
     if not test_files:
-        print(f"{COLOR_YELLOW}No Newspeak (.ns) test files found in {NS_TESTS_DIR}{COLOR_RESET}")
+        print(f"{COLOR_YELLOW}No nsl (.nsl) test files found in {NS_TESTS_DIR}{COLOR_RESET}")
         return 0
         
     print(f"Discovered {len(test_files)} tests in {NS_TESTS_DIR} for Primordial Soup VM\n")
