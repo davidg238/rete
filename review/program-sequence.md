@@ -553,6 +553,29 @@ Decided in the 2026-07-11 architecture review (David's calls); owner docs writte
   Caps: 256 B/value, 512 B/batch, enforced at the bridge; anything larger is a content-addressed
   `BlobRef` fetched out of band.
 
+## Addendum 2026-07-17 — OEOM native-substitution spike (Hanoi AOT ceiling)
+
+A throwaway probe (behind `OEVM_HANOI_NATIVE`, off by default) proved OEOM's
+native-substitution mechanism end-to-end: a hot user selector
+(`hanoiMove:from:to:temp:`) serviced by a C `PrimitiveClosure` stored as a vtable
+`Binding`, dispatched transparently through the existing fork (`tuvm src/dispatch.c:1673`)
+with no change to callers or the interpreter. Wiring cost: one new `src/hanoi_native.c`
++ one `strcmp` gate; `.oimg` format untouched; symbol identity solved by scanning the
+bench class's own vtable for the canonical interned selector (no intern API, no
+solidifier change).
+
+**ESP32 (WROOM-32E, Model B, IRAM-pinned, means-of-3):** n=20 bytecode 12,316 ms vs
+native 103 ms — **~119×** (n=16 ~116×). Native ~100 ns/move, linear/GC-free (zero
+alloc); `moves == 2ⁿ−1` confirms the PrimitiveClosure path fired, not a DNU. This is the
+*fully-inlined* AOT ceiling (recursion collapsed to raw C), ~10× past Toit's compiled
+engine on this workload — so a real bytecode→native compiler preserving send/GC
+semantics lands between the interpreter and this bound. Hanoi is all-heat-in-one-method;
+spread-heat workloads (DeltaBlue) dilute it — this is a ceiling, not a whole-program
+number. Go-signal for the "collect months of usage → push a bespoke-AOT patch for a
+proven hot method" path filed under Phase 4 (generalize). Why + full method:
+`tuvm/docs/design/2026-07-17-oeom-native-substitution-hanoi-spike-design.md`; numbers:
+`tuvm/docs/superpowers/plans/2026-07-17-hanoi-ab-results.md`.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
