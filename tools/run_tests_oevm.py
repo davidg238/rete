@@ -97,6 +97,7 @@ def _build_pathb_once():
                 "-o", "/tmp/oevm_img",
                 *OEVM_EXTRA_CFLAGS,
                 "-lm",
+                "-lpthread",   # http accept thread (src/backend/*/http_*.c)
             ],
             cwd=oevm_dir, capture_output=True, text=True
         )
@@ -435,6 +436,7 @@ def run_test_file(src_path: Path) -> tuple[str, str]:
         "-o", "oevm_runner",
         *OEVM_EXTRA_CFLAGS,
         "-lm",  # VM float primitives (sqrt) need libm
+        "-lpthread",  # http accept thread (src/backend/*/http_*.c)
     ]
     proc_build = subprocess.run(cmd_build, cwd=str(oevm_dir), capture_output=True, text=True)
     if proc_build.returncode != 0:
