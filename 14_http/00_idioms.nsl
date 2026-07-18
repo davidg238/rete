@@ -1,0 +1,18 @@
+(*
+expect:
+eq true
+ne false
+tag #response
+status 200
+*)
+class Idioms packageUsing: manifest = () (
+  public main: platform args: args = (
+    | r |
+    ('eq ' , ('/hello' = '/hello') printString) out.
+    ('ne ' , ('/hello' = '/nope') printString) out.
+    r:: platform Record tag: #response with: #status -> 200 with: #body -> 'x'.
+    ('tag ' , r tag printString) out.
+    ('status ' , (r at: #status ifAbsent: [ 0 ]) printString) out.
+  )
+) : (
+)
