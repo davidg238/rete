@@ -1,0 +1,54 @@
+(*
+HanoiAB — A/B bench: bytecode hanoiMove: vs native (PrimitiveClosure-in-vtable)
+hanoiMove:, same binary, same n, means-of-3. Emits per-run ms for each path plus
+the native move count (must equal 2^n-1, which also proves the native send reached
+prim_hanoi rather than DNU). Experiment behind OEVM_HANOI_NATIVE; see
+docs/design/2026-07-17-oeom-native-substitution-hanoi-spike-design.md.
+Depths 16 and 20 (bytecode ~0.75s / ~12s; native sub-ms to low-ms).
+*)
+class HanoiAB packageUsing: manifest = () (
+  public main: platform args: args = (
+    | hn |
+    hn:: self installNativeHanoi.
+    self runAB: 16 native: hn.
+    self runAB: 20 native: hn.
+    ('done') out.
+    ^ 0
+  )
+  runAB: n native: hn = (
+    | moves |
+    self time3Bc: n.
+    self time3Native: n on: hn.
+    moves:: hn hanoiMove: n from: 1 to: 2 temp: 3.
+    ('hanoi-moves ' , n printString , ': ' , moves printString) out.
+    ^ n
+  )
+  time3Bc: n = (
+    | t0 t1 |
+    1 to: 3 do: [:i |
+      t0:: 0 millis.
+      self hanoiMove: n from: 1 to: 2 temp: 3.
+      t1:: 0 millis.
+      ('hanoi-bc ' , n printString , ': ' , (t1 - t0) printString) out.
+    ].
+    ^ n
+  )
+  time3Native: n on: hn = (
+    | t0 t1 |
+    1 to: 3 do: [:i |
+      t0:: 0 millis.
+      hn hanoiMove: n from: 1 to: 2 temp: 3.
+      t1:: 0 millis.
+      ('hanoi-native ' , n printString , ': ' , (t1 - t0) printString) out.
+    ].
+    ^ n
+  )
+  hanoiMove: n from: src to: dst temp: tmp = (
+    n > 1 ifTrue: [
+      self hanoiMove: n - 1 from: src to: tmp temp: dst.
+      self hanoiMove: n - 1 from: tmp to: dst temp: src.
+    ].
+    ^ n
+  )
+) : (
+)
