@@ -576,6 +576,58 @@ proven hot method" path filed under Phase 4 (generalize). Why + full method:
 `tuvm/docs/design/2026-07-17-oeom-native-substitution-hanoi-spike-design.md`; numbers:
 `tuvm/docs/superpowers/plans/2026-07-17-hanoi-ab-results.md`.
 
+## Addendum 2026-07-17 — the next arc: demo → connect/observe → harden → optimize
+
+Sequence decided with David 2026-07-17 for the batch that carries the phase-2 tail into
+phase 3. Four arcs, ordered so each makes the previous one *more* than it was. This does
+**not** renumber the phases — it orders the near-term work across the phase-2/3 boundary.
+
+**Phase 3 is UNBLOCKED — this supersedes the 2026-07-12 "PHASE 3 IS BLOCKED on tuvm#32"
+line above.** That block was cleared the next day: tuvm#32 DECIDED option A (2026-07-13)
+and rung 9 (cells) landed the same day (see the phase-3 entries). Porta rejoin + remote
+debug are ready to enter.
+
+1. **Arc 1 — a demonstrable node (the driver ladder).** The remaining phase-2 tail.
+   Promote `review/zephyr-driver-exposure.md` from sketch to a rung-2 design/spec:
+   BME280 (Tier 1) → AMG8833 Grid-EYE (Tier 1, same binding) → character-grid TFT
+   (Tier 2), **plus an FTD-repeater example**. Forcing functions ride here: the L2
+   binary-data library (tuvm#28 — BME280's mixed-width calibration registers) and the
+   builtins-protocol decision (tuvm#30 — decided together with #28). First spec of the
+   arc; being written this session.
+
+2. **Arc 2 — connect + observe (porta + debug + profiling).** Phase 3 items 1–2
+   (ns-posix keeper + porta rejoin; remote debug over porta, R3 design) **plus a new
+   profiling rung**. Profiling moves *here*, not dead-last: a real, complete workload
+   (Arc 1's node, connected via Arc 2) is what you want to profile, and profiling is the
+   **forcing function for Arc 4** — you cannot pick a method to AOT-substitute without it.
+   Splits cleanly: the profiling *hook/tooling* lands here; *acting* on it is Arc 4.
+
+3. **Arc 3 — P0 hardening (toward the unattended-node flight gate).** tuvm#34 (the
+   `pulse_post_isr` full-mailbox `k_oops()` — the G2 "never kills the node" rule not yet
+   extended to the ISR seam); Model-B stage 2 (flash partition + blob-only OTA reflash —
+   answers G1); an automated on-target A/B equivalence gate (now affordable at 44 s, earns
+   a `CLAIMS.md` row). P0-clear = unattended node (issue discipline, 2026-07-11 addendum).
+
+4. **Arc 4 — optimize (act on the profile).** The perf/AOT story: native substitution of
+   the hot method the Arc-2 profiler names — the Phase-4 payoff the 2026-07-17 OEOM spike
+   proved a ceiling for — plus tuvm#37 (collection/block perf; `do:`/`collect:`/`select:`
+   cannot inline a *parameter* block). Deliberately last: optimize a whole, real workload,
+   not a toy.
+
+Owner docs as each arc opens: Arc 1 → new driver-ladder design under `docs/design/`
+(this session); Arcs 2–4 → their rung designs when they start. Update this ladder at each
+arc boundary, per the file's own rule.
+
+**Arc-1 precursor — DONE 2026-07-18: `.ns` → `.nsl` source-extension migration.** Hard cut
+across the live repos (nsl-tests 209 files, tuvm/zephyr 13 nodes, nsl-tuvm `kernel`/`supervisor`);
+all discovery globs + hardcoded paths repointed; discriminating comment sweep + active-zephyr-docs
+sweep. Deliberately kept `.ns`: the frozen oracles (`ns-tests`/`oevm`/`ns-oevm`), the primordialsoup
+Newspeak std lib, `review/`, `docs/spikes/` archives, historical docs (dated design records,
+`MILESTONE_*`/`ROADMAP`/`fiber_*`), and generated `.stmap` fixtures (refresh on rebake). Suite floor
+unchanged — 195/0/14 both paths + named gates — so no `CLAIMS.md` row moves. Landed on branch
+`chore/ns-to-nsl` in all four repos. Design: `docs/design/2026-07-17-ns-to-nsl-extension-migration-design.md`;
+plan: `docs/superpowers/plans/2026-07-17-ns-to-nsl-extension-migration.md`. Driver-ladder spec (Arc 1) is next.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
