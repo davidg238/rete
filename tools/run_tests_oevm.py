@@ -14,10 +14,16 @@ COLOR_RESET = "\033[0m"
 OEVM_DIR = Path(os.environ.get("OEVM_DIR") or (Path(__file__).resolve().parent.parent.parent / "tuvm"))
 
 # OEVM_PATH controls which execution paths are exercised.
-#   (unset / "AB") — run both Path A and Path B (default regression gate)
+#   (unset / "B")  — run Path B only (.oimg / image-VM workflow) — DEFAULT.
+#                    Path B builds the image VM once, then per test only
+#                    compiles .ns -> .oimg and runs it. Path A instead did a
+#                    full-VM gcc rebuild (incl. the ~13k-line solidified_image.c)
+#                    per test — ~3.4s each over ~209 tests, ~12 min of the run.
+#                    B is the routine gate; use "A"/"AB" to validate the
+#                    solidified_image.c path that actually ships on ESP32.
 #   "A"            — run Path A only (solidified_image.c workflow)
-#   "B"            — run Path B only (.oimg / image-VM workflow)
-OEVM_PATH = os.environ.get("OEVM_PATH", "AB").upper()
+#   "AB"           — run both Path A and Path B (full pre-device/release gate)
+OEVM_PATH = os.environ.get("OEVM_PATH", "B").upper()
 OEVM_EXTRA_CFLAGS = os.environ.get("OEVM_EXTRA_CFLAGS", "").split()
 # Per-target backend: the *_backend.h seam impls live in src/backend/$OEVM_TARGET/.
 OEVM_TARGET = os.environ.get("OEVM_TARGET", "posix")
