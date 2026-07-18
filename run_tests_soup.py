@@ -200,8 +200,8 @@ def main():
         print(f"{COLOR_RED}Error: Primordial Soup compiler snapshot not found at {SOUP_COMPILER_SNAPSHOT}.{COLOR_RESET}")
         return 1
 
-    # Gather all .ns files, grouped by directories
-    test_files = sorted(list(NS_TESTS_DIR.glob("**/*.ns")))
+    # Gather all .nsl files, grouped by directories
+    test_files = sorted(list(NS_TESTS_DIR.glob("**/*.nsl")))
     # Exclude temporary scratch files
     test_files = [f for f in test_files if "scratch" not in f.name]
     

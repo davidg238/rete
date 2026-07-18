@@ -177,7 +177,7 @@ def main():
     for d in test_dirs:
         dir_path = NS_TESTS_DIR / d
         if dir_path.exists():
-            test_files.extend(sorted(list(dir_path.glob("*.ns"))))
+            test_files.extend(sorted(list(dir_path.glob("*.nsl"))))
 
     # Exclude temporary scratch files
     test_files = [f for f in test_files if "scratch" not in f.name]

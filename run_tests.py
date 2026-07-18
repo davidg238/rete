@@ -192,12 +192,12 @@ def main():
     import tempfile
     
     # Gather all .ns files, grouped by directories
-    test_files = sorted(list(NS_TESTS_DIR.glob("**/*.ns")))
+    test_files = sorted(list(NS_TESTS_DIR.glob("**/*.nsl")))
     # Exclude temporary scratch files
     test_files = [f for f in test_files if "scratch" not in f.name]
-    
+
     if not test_files:
-        print(f"{COLOR_YELLOW}No Newspeak (.ns) test files found in {NS_TESTS_DIR}{COLOR_RESET}")
+        print(f"{COLOR_YELLOW}No nsl (.nsl) test files found in {NS_TESTS_DIR}{COLOR_RESET}")
         return 0
         
     print(f"Discovered {len(test_files)} tests in {NS_TESTS_DIR}\n")
