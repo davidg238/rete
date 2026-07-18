@@ -593,7 +593,19 @@ debug are ready to enter.
    (Tier 2), **plus an FTD-repeater example**. Forcing functions ride here: the L2
    binary-data library (tuvm#28 — BME280's mixed-width calibration registers) and the
    builtins-protocol decision (tuvm#30 — decided together with #28). First spec of the
-   arc; being written this session.
+   arc (the `.ns`→`.nsl` precursor closed 2026-07-18; the spec is the next work item).
+
+   **FTD-repeater example — scope (David 2026-07-18).** A deliberately simple but genuinely
+   useful node that runs on *every* repeater (FTD/router). Thread keeps **no global topology**
+   — to save routing-table RAM, each FTD knows only its **immediate children, active routers,
+   and per-link quality**. So the example: each router samples its local neighbor/router table
+   (children · active routers · link quality/RSSI) and publishes that fragment to the OTBR,
+   which forwards it to a **network-topology DB**; the **network monitor** assembles the
+   per-router fragments into a whole-mesh **map showing device status + link quality**. Fits
+   the driver-exposure model as a granted channel prefix (e.g. `dev/thread/topology` sample
+   channel): data plane = OpenThread neighbor/router/diagnostics tables behind a Thread-diag
+   binding; publish plane = the existing CBOR-over-UDP `NetBridge` → OTBR (rungs 6–8). Fleet
+   observability with no central topology state — the map is reassembled at the monitor.
 
 2. **Arc 2 — connect + observe (porta + debug + profiling).** Phase 3 items 1–2
    (ns-posix keeper + porta rejoin; remote debug over porta, R3 design) **plus a new
