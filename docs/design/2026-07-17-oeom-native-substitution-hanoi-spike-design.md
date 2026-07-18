@@ -137,10 +137,19 @@ reclaim = the go-signal; a small one would kill the idea cheaply.
 
 ## Run plan
 
-**ESP32-only** (Model B / `.oimg`, WROOM-32E), the board the 11.43 µs/move and 12×
-numbers come from. Build with `OEVM_HANOI_NATIVE` on and `OEVM_IRAM_HOT` on (so both
-hot paths are IRAM-pinned). Flash, capture serial, compute means-of-3, assert the
-native move-count equals `2^n − 1`.
+Two phases — host first to de-risk, device for the headline:
+
+1. **Host sanity (first).** Build with `OEVM_HANOI_NATIVE` on. Easier to debug a crash
+   (gdb/asan, fast rebuild) than an ESP32 reset loop. Goals here are *correctness and
+   dispatch fidelity only*: native move-count `== 2^n − 1`, native `hanoiMove:` returns
+   `n`, and the timed call provably reaches `prim_hanoi` via the `PrimitiveClosureVtable`
+   fork (not the `PRIM_NAMES` intercept, not a DNU fall-through). `OEVM_HOT` is a no-op
+   on host (no IRAM/XIP), which is fine — host timings are not the deliverable, so the
+   symbol-identity wiring (§2 step 1) and the dispatch path are what we're validating.
+2. **ESP32 headline (after host is clean).** Model B / `.oimg`, WROOM-32E — the board the
+   11.43 µs/move and 12× numbers come from. Build with `OEVM_HANOI_NATIVE` on and
+   `OEVM_IRAM_HOT` on (both hot paths IRAM-pinned). Flash, capture serial, compute
+   means-of-3, re-assert the `2^n − 1` check, report the `hanoi-bc / hanoi-native` ratio.
 
 ## Success criteria
 
