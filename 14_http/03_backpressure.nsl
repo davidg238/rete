@@ -1,0 +1,61 @@
+(*
+expect:
+HTTP/1.0 503 Service Unavailable
+Content-Type: text/html
+Content-Length: 0
+Connection: close
+HTTP/1.0 200 OK
+Content-Type: text/html
+Content-Length: 5
+Connection: close
+hello
+HTTP/1.0 200 OK
+Content-Type: text/html
+Content-Length: 5
+Connection: close
+hello
+HTTP/1.0 200 OK
+Content-Type: text/html
+Content-Length: 5
+Connection: close
+hello
+HTTP/1.0 200 OK
+Content-Type: text/html
+Content-Length: 5
+Connection: close
+hello
+finished
+*)
+(* Task 5 — G2 back-pressure through the nsl seam. The C shed itself is proven by
+   test_http's test_backpressure_shed; this asserts it is OBSERVABLE end-to-end.
+   Register the app + egress reactions, then inject OEVM_HTTP_INFLIGHT + 1 = 5
+   requests back-to-back WITHOUT pumping between them: the bounded in-flight table
+   fills at 4, so the 5th is shed with a 503 emitted straight to stdout (no id, no
+   reply channel) at inject time. Only then pump+drain, flushing the 4 admitted —
+   each served 200 with body 'hello'. The 503 lands first (synchronous with the
+   5th inject); the four 200s follow after the drain. *)
+class HttpBackpressure packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space req reply i |
+    space::  platform space.
+    req::    space channel: 'dev/http/request'.
+    reply::  space channel: 'dev/http/reply'.
+    req whenever: '' do: [ :r |
+      | id path status body |
+      id::   r basicAt: 1.
+      path:: r basicAt: 3.
+      (path = '/hello')
+        ifTrue:  [ status:: 200. body:: 'hello' ]
+        ifFalse: [ status:: 404. body:: 'not found' ].
+      reply out: '' value: (platform Record tag: #response
+                              with: #id -> id with: #status -> status with: #body -> body) ].
+    reply whenever: '' do: [ :resp |
+      platform httpRespondId: (resp at: #id ifAbsent: [ 0 ])
+               status:        (resp at: #status ifAbsent: [ 500 ])
+               body:          (resp at: #body ifAbsent: [ '' ]) ].
+    i:: 1. [ i <= 5 ] whileTrue: [ platform httpInject: 'GET' path: '/hello'. i:: i + 1 ].
+    platform pumpEvents. space drain.
+    'finished' out.
+  )
+) : (
+)
