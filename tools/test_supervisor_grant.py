@@ -13,7 +13,7 @@ NSROOT = os.path.dirname(HERE)
 # Honor OEVM_DIR (as run_tests_oevm.py does): branch worktrees must gate
 # against their own VM, or lowering changes run new bytecode on an old VM.
 OEVM = os.environ.get("OEVM_DIR") or os.path.join(NSROOT, "..", "tuvm")
-APP = os.path.join(NSROOT, "..", "nsl-tests", "04_somns_basic", "41_supervisor_grant.ns")
+APP = os.path.join(NSROOT, "..", "nsl-tests", "04_somns_basic", "41_supervisor_grant.nsl")
 
 # Honor the same backend/cflags seam as run_tests_oevm.py so this gate builds
 # identically to the conformance suite (default = posix, no extra cflags).

@@ -151,7 +151,7 @@ def run_boot_gc_asan_gate() -> bool:
     Build a tiny appliance WITH AddressSanitizer (fake-stack ON) under GC_STRESS and
     require the expected output. Requires the entry instance to be a PRECISE root.
     Skips cleanly (PASS) if the compiler lacks -fsanitize=address support."""
-    src = Path(__file__).parent.parent.parent / "nsl-tests" / "04_somns_basic" / "01_method_call.ns"
+    src = Path(__file__).parent.parent.parent / "nsl-tests" / "04_somns_basic" / "01_method_call.nsl"
     if not src.exists():
         print(f"{COLOR_RED}boot-gc-asan: FAIL{COLOR_RESET} (missing {src})")
         return False
@@ -557,7 +557,7 @@ def main():
         sys.exit(1)
 
     # Scan and sort test files
-    test_files = sorted(list(test_dir.glob("**/*.ns")))
+    test_files = sorted(list(test_dir.glob("**/*.nsl")))
 
     passed = 0
     failed = 0
