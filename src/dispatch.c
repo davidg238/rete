@@ -1230,7 +1230,7 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                     obj_vtable(receiver) == SymbolVtable ||
                     obj_vtable(receiver) == FloatVtable ||
                     obj_vtable(receiver) == LargeIntegerVtable) return false_symbol;
-                // std-lib step 3a: real heap object — fall through to Object.ns isNil
+                // std-lib step 3a: real heap object — fall through to Object.nsl isNil
                 break;
             }
             break;
@@ -1241,7 +1241,7 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                     obj_vtable(receiver) == SymbolVtable ||
                     obj_vtable(receiver) == FloatVtable ||
                     obj_vtable(receiver) == LargeIntegerVtable) return true_symbol;
-                // std-lib step 3a: real heap object — fall through to Object.ns notNil
+                // std-lib step 3a: real heap object — fall through to Object.nsl notNil
                 break;
             }
             break;
@@ -1354,7 +1354,7 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                    above. A REAL heap object instead breaks to normal vtable
                    dispatch so a heap class's `=` override (kernel List, later
                    Map/Record) actually runs; Object>>= (`^ self == other`,
-                   kernel.ns) preserves the identity default for heap classes
+                   kernel.nsl) preserves the identity default for heap classes
                    without a custom `=`. Modeled on PRIM_isNil/PRIM_hash's
                    heap fall-through in this same switch. */
                 if (receiver == NULL || IS_SMI(receiver) ||
@@ -1401,7 +1401,7 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                     printf("nil\n");
                 } else {
                     // std-lib step 3a: a real heap object's println is served
-                    // by Object.ns (via printString) — fall through to vtable method lookup.
+                    // by Object.nsl (via printString) — fall through to vtable method lookup.
                     break;
                 }
                 platform_console_flush();
@@ -1438,7 +1438,7 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                     snprintf(buf, sizeof(buf), "nil");
                 } else {
                     // std-lib step 3a: a real heap object's printString is served
-                    // by Object.ns — fall through to vtable method lookup.
+                    // by Object.nsl — fall through to vtable method lookup.
                     break;
                 }
                 return make_string(buf, strlen(buf));
@@ -1462,7 +1462,7 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                     snprintf(buf, sizeof(buf), "nil");
                 } else {
                     // std-lib step 3a: a real heap object's asString is served
-                    // by Object.ns — fall through to vtable method lookup.
+                    // by Object.nsl — fall through to vtable method lookup.
                     break;
                 }
                 extern oop gc_allocate(oop vtable, size_t size);

@@ -35,7 +35,7 @@ void platform_console_flush(void) {
    is how a dead dongle passed for "working but headless" across two rungs.
 
    A headless node's evidence belongs on the wire, not on a console it does not have
-   (see zephyr/ThreadTimerNode.ns — the self-gating train). So when the board has no
+   (see zephyr/ThreadTimerNode.nsl — the self-gating train). So when the board has no
    stdout console, discard the bytes and return immediately. */
 void platform_console_write(const char *bytes, size_t n) { (void)bytes; (void)n; }
 void platform_console_flush(void) { }

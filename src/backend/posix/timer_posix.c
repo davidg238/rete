@@ -14,7 +14,7 @@
    slot before growing the table, so after:/every: churn (register, fire/cancel, register
    again) doesn't leak slots. The C side carries DATA ONLY (a token, a millisecond count)
    — which channel, what message, and cancel bookkeeping all live in nsl's `Timers` class
-   (lib/kernel.ns); this file posts just TAG_SMI(token) onto the single reserved
+   (lib/kernel.nsl); this file posts just TAG_SMI(token) onto the single reserved
    `sys/timer` channel via space_post. */
 #define HOST_MAX_TIMERS 32
 struct HostTimer { int token; uint64_t due_ms; uint64_t interval_ms; int repeating; int live; };

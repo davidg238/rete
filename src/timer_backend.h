@@ -14,7 +14,7 @@
                                    GPIO/timer ISR calls pulse_post_isr".
 
    The C side carries DATA ONLY (a token, a millisecond count). Which channel, what
-   message, and all cancel bookkeeping live in nsl's `Timers` class (lib/kernel.ns), so
+   message, and all cancel bookkeeping live in nsl's `Timers` class (lib/kernel.nsl), so
    C stays one dumb registry plus one posting path. See the rung-8 design spec §2. */
 #include <stdint.h>
 

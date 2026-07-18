@@ -74,7 +74,7 @@ extern const struct Symbol true_sym_obj, false_sym_obj;   /* match oevm.h forms 
    Layout mirrors struct ObjectInstance: slots[0] holds the element count as a
    tagged SMI (so the GC word-scan early-rejects it via IS_SMI), slots[1..n]
    hold elements (1-based). This is the capability-pure backing store that the
-   kernel Array class (lib/kernel.ns) wraps via basicAt:/basicSize. */
+   kernel Array class (lib/kernel.nsl) wraps via basicAt:/basicSize. */
 static struct Vtable IndexableVtable;
 
 /* One-time init of the indexable vtable. Lazy (works on both boot paths). */

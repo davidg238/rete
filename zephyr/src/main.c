@@ -3,7 +3,7 @@
    .oimg blob at all — see tools/ns_compile_oevm.py), then runs the image's
    own `main:`, which registers a channel reaction, fires one simulated GPIO
    edge, and loops draining the pulse mailbox via
-   `platform pumpEvents. space drain` (see ../PulseNode.ns). On native_sim
+   `platform pumpEvents. space drain` (see ../PulseNode.nsl). On native_sim
    the zephyr pulse backend's pulse_pump (src/backend/zephyr/pulse_zephyr.c)
    BLOCKS (K_FOREVER) once the one-edge mailbox is drained, so
    run_solidified_entry_point() never returns for this gate node — that is
@@ -70,11 +70,11 @@ static void thread_bringup(void) {
    that build byte-for-byte identical (its edge still comes from the node's
    sim-only `gpio fire:`). On the DK, each button press runs pulse_isr in IRQ
    context, which posts the pulse for the SAME logical pin the baked node
-   (PulseNodeDK.ns) registered. */
+   (PulseNodeDK.nsl) registered. */
 #if DT_NODE_EXISTS(DT_ALIAS(pulsegpio))
 #include <zephyr/drivers/gpio.h>
 
-/* Logical pin the DK node registers via `gpio pin: 13 ...` (PulseNodeDK.ns).
+/* Logical pin the DK node registers via `gpio pin: 13 ...` (PulseNodeDK.nsl).
    The PHYSICAL pin (P0.11) is decoupled from it — the ISR maps one to the
    other, mirroring how a driver maps a board pin to an app-level channel. */
 #define PULSE_LOGICAL_PIN 13
