@@ -2101,7 +2101,7 @@ class OevmCompiler:
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python ns_compile_oevm.py <src.ns> [output.c]")
+        print("Usage: python ns_compile_oevm.py <src.nsl> [output.c]")
         sys.exit(1)
         
     # Parse optional flags (--format=c|oimg, --layout=<layout.json>) out of argv.
@@ -2177,7 +2177,7 @@ def main():
     # resolves them in app scope — app code still reaches them via `platform`
     # (step-2 routing). Reached only through platform → source-compatible with the
     # future "kernel as outer module" form.
-    kernel_path = os.path.join(os.path.dirname(__file__), "..", "lib", "kernel.ns")
+    kernel_path = os.path.join(os.path.dirname(__file__), "..", "lib", "kernel.nsl")
     kproc = subprocess.run(["node", parse_script, kernel_path],
                            capture_output=True, text=True)
     if kproc.returncode != 0:
@@ -2189,7 +2189,7 @@ def main():
 
     # in-image debugger step 1: compile the Supervisor module in as a top-level
     # sibling of Kernel (same load-after-app rationale: never resolved in app scope).
-    supervisor_path = os.path.join(os.path.dirname(__file__), "..", "lib", "supervisor.ns")
+    supervisor_path = os.path.join(os.path.dirname(__file__), "..", "lib", "supervisor.nsl")
     sproc = subprocess.run(["node", parse_script, supervisor_path],
                            capture_output=True, text=True)
     if sproc.returncode != 0:
