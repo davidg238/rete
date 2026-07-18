@@ -47,14 +47,18 @@ target_include_directories(app PRIVATE ${TUVM_SRC}/src)
 # would own (oimg_blob_base/_end, builtin_registry, oimg_singleton), and
 # oimg.h's is_in_blob() returns 0 while oimg_blob_base is NULL, so the XIP
 # accessor paths are never taken.
-set(TUVM_MODEL "A" CACHE STRING "tuvm image model: A (solidified) or B (.oimg blob)")
+set(TUVM_MODEL "B" CACHE STRING "tuvm image model: A (solidified) or B (.oimg blob)")
 set_property(CACHE TUVM_MODEL PROPERTY STRINGS A B)
 
 if(TUVM_MODEL STREQUAL "A")
   target_sources(app PRIVATE ${TUVM_SRC}/src/solidified_image.c)
 elseif(TUVM_MODEL STREQUAL "B")
   if(NOT DEFINED TUVM_BLOB)
-    message(FATAL_ERROR "TUVM_MODEL=B requires -DTUVM_BLOB=<path to .oimg>")
+    # Model B is the device default; a bare `west build` (no run.sh, no
+    # -DTUVM_BLOB) falls back to the committed TimerNode image so it just works.
+    # run.sh bakes a fresh <node>.oimg and passes -DTUVM_BLOB, overriding this.
+    set(TUVM_BLOB ${CMAKE_CURRENT_SOURCE_DIR}/TimerNode.oimg)
+    message(STATUS "tuvm: TUVM_BLOB defaulted to ${TUVM_BLOB}")
   endif()
   if(NOT EXISTS "${TUVM_BLOB}")
     message(FATAL_ERROR "TUVM_BLOB does not exist: ${TUVM_BLOB}")

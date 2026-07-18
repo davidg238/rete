@@ -4,7 +4,7 @@
 # compiler path, the build dir, and restoring the tracked solidified_image.c.
 set -euo pipefail
 
-MODEL=A NODE=TimerNode.ns DO_FLASH=0 CAPTURE=0 PRISTINE=0 BUILD_DIR=""
+MODEL=B NODE=TimerNode.ns DO_FLASH=0 CAPTURE=0 PRISTINE=0 BUILD_DIR=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --model)     MODEL="$2"; shift 2 ;;
@@ -24,6 +24,11 @@ NSL="$HOME/workspace/nsl-tuvm/tools/ns_compile_oevm.py" # NOT ~/workspace/ns-oev
 : "${BUILD_DIR:=build-esp32-$MODEL}"
 BOARD="esp32_devkitc/esp32/procpu"
 ESPTOOL="$HOME/.espressif/python_env/idf5.4_py3.12_env/bin/esptool.py"
+# Pin the flash port. esptool with no --port auto-detects the FIRST ESP32 it
+# finds — which clobbered the /dev/ttyUSB1 jag/Toit board on 2026-07-16. The
+# tuvm devkit is /dev/ttyUSB0 (prj_esp32.conf console). Override with
+# ESPTOOL_PORT=... when the enumeration differs.
+ESPTOOL_PORT="${ESPTOOL_PORT:-/dev/ttyUSB0}"
 
 [ -f "$ZDIR/$NODE" ] || { echo "no such node: $ZDIR/$NODE" >&2; exit 2; }
 [ -f "$NSL" ]        || { echo "compiler not found: $NSL" >&2; exit 2; }
@@ -76,8 +81,9 @@ echo "[build] -b $BOARD -d $BUILD_DIR ${PRISTINE_ARG[*]:-(incremental)}"
 if [ "$DO_FLASH" = 1 ]; then
   echo "[flash] esptool 0x1000"
   # NOT `west flash` — that would rebuild.
-  "$ESPTOOL" --chip esp32 --baud 921600 write_flash --flash_mode dio \
-    --flash_freq 40m --flash_size 4MB 0x1000 "$ZDIR/$BUILD_DIR/zephyr/zephyr.bin"
+  "$ESPTOOL" --chip esp32 --port "$ESPTOOL_PORT" --baud 921600 write_flash \
+    --flash_mode dio --flash_freq 40m --flash_size 4MB 0x1000 \
+    "$ZDIR/$BUILD_DIR/zephyr/zephyr.bin"
 fi
 
 if [ "${CAPTURE:-0}" != 0 ]; then
