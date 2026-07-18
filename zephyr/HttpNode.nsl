@@ -1,29 +1,42 @@
 (*
-HttpNode.nsl — webserver-channel-device spike, Task 3: the durable node twin of
-nsl-tests/14_http/01_hello_roundtrip.nsl (same duplication convention as
-PulseNode.nsl / the 13_pulse conformance test). Request half mirrors the pulse
-seam: the http backend's request ring is drained at the pumpEvents safe point
-(http_pump, src/http.c) and posted as an Array [id,method,path] to
-'dev/http/request'. Reply half is the NetBridge egress idiom: a `whenever:`
-reaction on 'dev/http/reply' forwards the Record to
-`platform httpRespondId:status:body:`, which lands in the pure-C http_respond
-seam (src/backend/posix/http_posix.c). For now this mirrors the test (a single
-injected GET /hello, then drain) — a live accept-loop over `httpListen:` lands
-in Task 6.
+HttpNode.nsl — webserver-channel-device spike, the durable node twin of the
+nsl-tests/14_http conformance tests (same duplication convention as
+PulseNode.nsl / the 13_pulse test). Request half mirrors the pulse seam: the
+http backend's request ring is drained at the pumpEvents safe point (http_pump,
+src/http.c) and posted as an Array [id,method,path] to 'dev/http/request'.
+Reply half is the NetBridge egress idiom: a `whenever:` reaction on
+'dev/http/reply' forwards the Record to `platform httpRespondId:status:body:`,
+which lands in the pure-C http_respond seam (src/backend/posix/http_posix.c).
+
+Routes: GET /hello -> 'hello'; GET /thermal -> an 8x8 heat-grid SVG rendered
+from the 'dev/thermal0/sample' cell (on-node reduce for max/min/hot-pixel +
+SVG fold); anything else -> 404. For now the drive is a single injected GET
+(mirrors the test); a live accept-loop over `httpListen:` lands in Task 6.
 *)
 class HttpNode packageUsing: manifest = () (
   public main: platform args: args = (
-    | space req reply |
-    space:: platform space.
-    req::   space channel: 'dev/http/request'.
-    reply:: space channel: 'dev/http/reply'.
+    | space req reply thermal frame oc i |
+    space::   platform space.
+    req::     space channel: 'dev/http/request'.
+    reply::   space channel: 'dev/http/reply'.
+    thermal:: space channel: 'dev/thermal0/sample'.
+    (* Build the frame as an algebra value (List of 64 SMIs) — a mutable Array
+       would trip the channel's `not a value` boundary. Hot pixel at index 30
+       (row 3 col 5 = 3*8+5+1) = 31.2C; the rest 22.0C. *)
+    oc:: platform OrderedCollection new.
+    i:: 1. [ i <= 64 ] whileTrue: [
+      oc add: (i = 30 ifTrue: [ 3120 ] ifFalse: [ 2200 ]). i:: i + 1 ].
+    frame:: platform List fromCollection: oc.
+    thermal put: '' value: frame.
     req whenever: '' do: [ :r |
       | id path status body |
       id::   r basicAt: 1.
       path:: r basicAt: 3.
       (path = '/hello')
         ifTrue:  [ status:: 200. body:: 'hello' ]
-        ifFalse: [ status:: 404. body:: 'not found' ].
+        ifFalse: [ (path = '/thermal')
+          ifTrue:  [ status:: 200. body:: self renderFrame: (thermal peek: '' ifAbsent: [ nil ]) ]
+          ifFalse: [ status:: 404. body:: 'not found' ] ].
       reply out: '' value: (platform Record tag: #response
                               with: #id -> id with: #status -> status with: #body -> body) ].
     reply whenever: '' do: [ :resp |
@@ -34,6 +47,43 @@ class HttpNode packageUsing: manifest = () (
     platform pumpEvents.
     space drain.
     'finished' out.
+  )
+
+  renderFrame: f = (
+    | row col svg t k |
+    (f == nil) ifTrue: [ ^ '<html><body>no frame</body></html>' ].
+    svg:: '<html><body><svg viewBox=''0 0 8 8'' width=''320'' height=''320'' shape-rendering=''crispEdges''>'.
+    row:: 0. [ row <= 7 ] whileTrue: [
+      col:: 0. [ col <= 7 ] whileTrue: [
+        t:: f at: (row * 8 + col + 1).
+        k:: ((t - 1500) * 255) // 2000.
+        (k < 0)   ifTrue: [ k:: 0 ].
+        (k > 255) ifTrue: [ k:: 255 ].
+        svg:: svg , '<rect x=''' , col printString , ''' y=''' , row printString ,
+              ''' width=''1'' height=''1'' fill=''rgb(' , k printString , ',0,' ,
+              (255 - k) printString , ')''/>'.
+        col:: col + 1 ]. row:: row + 1 ].
+    ^ svg , '</svg><p>' , (self caption: f) , '</p></body></html>'
+  )
+
+  caption: f = (
+    | row col t maxV minV hotR hotC |
+    maxV:: f at: 1. minV:: f at: 1. hotR:: 0. hotC:: 0.
+    row:: 0. [ row <= 7 ] whileTrue: [
+      col:: 0. [ col <= 7 ] whileTrue: [
+        t:: f at: (row * 8 + col + 1).
+        (t > maxV) ifTrue: [ maxV:: t. hotR:: row. hotC:: col ].
+        (t < minV) ifTrue: [ minV:: t ].
+        col:: col + 1 ]. row:: row + 1 ].
+    ^ 'max ' , (self centi: maxV) , 'C min ' , (self centi: minV) ,
+      'C hot (' , hotR printString , ',' , hotC printString , ')'
+  )
+
+  centi: v = (
+    | whole tenth |
+    whole:: v // 100.
+    tenth:: (v - (whole * 100)) // 10.
+    ^ whole printString , '.' , tenth printString
   )
 ) : (
 )
