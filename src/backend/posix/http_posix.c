@@ -44,6 +44,7 @@ static int ring_head = 0, ring_count = 0;
 static int next_id = 1;
 
 static void copy_bounded(char *dst, int cap, const char *src, int len) {
+    if (cap <= 0) return;
     int n = len < cap - 1 ? len : cap - 1;
     if (n > 0) memcpy(dst, src, (size_t)n);
     dst[n] = '\0';
@@ -74,7 +75,14 @@ int http_accept_request(int fd, const char *method, int ml,
                         const char *path, int pl) {
     int slot = -1;
     for (int i = 0; i < OEVM_HTTP_INFLIGHT; i++) if (!inflight[i].live) { slot = i; break; }
-    if (slot < 0) { emit(fd, 503, "", 0); return -1; }          /* G2 shed */
+    /* Gate on ring capacity too, not just a free in-flight slot: http_respond
+       frees an in-flight slot without touching the ring, so a respond() that
+       happens without a preceding take() for that id would otherwise leave
+       the ring slot occupied while the in-flight table reports free — a
+       later accept would then overwrite a still-live ring[tail] and push
+       ring_count past OEVM_HTTP_INFLIGHT (silent overwrite + duplicate
+       delivery on the next take's wrap). */
+    if (slot < 0 || ring_count >= OEVM_HTTP_INFLIGHT) { emit(fd, 503, "", 0); return -1; } /* G2 shed */
     int id = next_id++;
     inflight[slot].live = 1; inflight[slot].id = id; inflight[slot].fd = fd;
     int tail = (ring_head + ring_count) % OEVM_HTTP_INFLIGHT;
