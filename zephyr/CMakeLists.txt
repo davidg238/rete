@@ -66,6 +66,7 @@ elseif(TUVM_MODEL STREQUAL "B")
   target_sources(app PRIVATE
     ${TUVM_SRC}/src/oimg_loader.c
     ${TUVM_SRC}/src/kernel_boot.c
+    ${TUVM_SRC}/src/hanoi_native.c
     ${CMAKE_CURRENT_SOURCE_DIR}/blob.S)
   # OEVM_NO_FILE_IO compiles out oimg_loader.c's oimg_load() mmap/open path,
   # which has no meaning on this target.
@@ -138,6 +139,14 @@ if(CONFIG_XTENSA AND NOT "$ENV{OEVM_IRAM_HOT}" STREQUAL "0")
   target_compile_options(app PRIVATE -mtext-section-literals)
 elseif(NOT CONFIG_XTENSA AND "$ENV{OEVM_IRAM_HOT}" STREQUAL "1")
   message(FATAL_ERROR "OEVM_IRAM_HOT is an ESP32/Xtensa knob; unset it for this target")
+endif()
+
+# Experiment (2026-07-17): OEOM native-substitution Hanoi spike. OFF by default.
+# export OEVM_HANOI_NATIVE=1 to build the native hanoiMove: PrimitiveClosure path
+# (src/hanoi_native.c + the strcmp gate in dispatch.c). See
+# docs/design/2026-07-17-oeom-native-substitution-hanoi-spike-design.md.
+if("$ENV{OEVM_HANOI_NATIVE}" STREQUAL "1")
+  target_compile_definitions(app PRIVATE OEVM_HANOI_NATIVE=1)
 endif()
 
 # Production default (accepted 2026-07-17): the three per-bytecode debugger
