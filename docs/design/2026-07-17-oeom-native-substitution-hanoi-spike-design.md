@@ -85,40 +85,56 @@ static struct Object  hanoi_native_singleton;   /* the receiver `hn`;
                                                   vtable=&Vtable_HanoiNative */
 ```
 
-`hanoi_native_boot()` — called from `kernel_boot()` under `#ifdef OEVM_HANOI_NATIVE`:
+**Boot ordering constraint (confirmed).** `oevm_image_main.c:21` runs `kernel_boot()`
+*before* `oimg_load()`, so the image's symbols/vtables do not exist at `kernel_boot`
+time — the native binding **cannot** be wired there. It is wired lazily, on first
+acquisition, when the image is fully loaded.
 
-1. Obtain the **canonical selector oop** the send site will present. Lookup compares by
-   pointer identity (`dispatch.c:310` `binding_symbol(...) == selector`), and runtime
-   interning does **not** reliably pointer-match `.oimg` blob symbols (`dispatch.c:508`
-   documents exactly this hazard — string lookup is used there for that reason). So the
-   binding must reuse the *image's* symbol oop, not a freshly-interned one. Resolution:
-   at boot, string-scan `HanoiAB`'s already-solidified vtable for the binding whose
-   symbol name is `"hanoiMove:from:to:temp:"` and reuse *that* symbol oop — the same one
-   the compiled `hn hanoiMove:` send emits from its constant pool. (This makes
-   `hanoi_native_boot()` order-dependent: it must run after the image's vtables are
-   loaded. Verify the `kernel_boot` call site satisfies that, or defer the symbol wiring
-   to first acquisition in `hanoiNativeReceiver`.)
+**Wiring, done lazily inside the acquisition primitive (§3).** Lookup compares selectors
+by pointer identity (`dispatch.c:310` `binding_symbol(...) == selector`), and runtime
+interning does **not** reliably pointer-match `.oimg` blob symbols (`dispatch.c:508`
+documents this hazard). So the native binding must hold the *image's* canonical symbol
+oop, not a fresh one. Resolution that needs no intern API and no symbol-literal support:
+the acquisition primitive is sent to `self` (the `HanoiAB` instance), so its `receiver`
+carries `HanoiAB`'s class vtable. Walk that vtable + its delegate chain (exactly as
+`lookup()` does) and `strcmp(symbol_name(binding.symbol), "hanoiMove:from:to:temp:")`;
+the matching binding's `symbol` **is** the canonical interned oop the compiled
+`hn hanoiMove:` send will present. Capture it, fill `hanoi_bindings[0]`, and mark wiring
+done (idempotent — subsequent calls skip straight to returning the singleton).
+
+GC safety of the mutable-at-wire statics: they live in `.data` (writable, so the lazy
+fill is legal), which is neither blob, rodata, float-arena, nor a valid heap object — so
+`mark()` skips them at the `is_valid_heap_object` guard (`gc.c:503`) before ever touching
+them. The singleton, its vtable, and the `PrimitiveClosure` are therefore immortal and
+trace-free.
 2. Fill `hanoi_bindings[0] = { that symbol, &prim_hanoi_closure }`.
 3. Point `prim_hanoi_closure.entry_point = prim_hanoi`, vtable = `PrimitiveClosureVtable`.
 4. Point `Vtable_HanoiNative` at the bindings; point `hanoi_native_singleton` at it.
 
 ### 3. Handing the receiver to nsl
 
-One acquisition primitive `hanoiNativeReceiver` added to `dispatch.c`'s `PRIM_NAMES`,
-sent to SMI `0` like `millis`, returning `&hanoi_native_singleton`. This is a
-**one-shot** acquisition. The measured hot loop dispatches through the vtable
-`PrimitiveClosure` fork (`vm.c:1080`), **not** the intercept path — so the thing being
-timed is genuinely "native code stored in a vtable binding", which is the claim.
+One acquisition primitive `installNativeHanoi` added to `dispatch.c`'s `PRIM_NAMES`,
+**sent to `self`** (the `HanoiAB` instance — so its `receiver` carries `HanoiAB`'s class
+vtable for the symbol scan in §2). It lazily wires the binding on first call, then
+returns `&hanoi_native_singleton`. This is a **one-shot** acquisition run once before the
+timing loop. The measured hot calls dispatch through the vtable `PrimitiveClosure` fork
+(`vm.c:1080`), **not** the intercept path — so the thing being timed is genuinely "native
+code stored in a vtable binding", which is the claim. (Confirm at run time via a
+trace/assert that the timed call reaches `prim_hanoi`, not a DNU fall-through.)
 
 ### 4. The benchmark — `zephyr/HanoiAB.ns` (new; `HanoiNode.ns` untouched)
 
 Same binary, same `n`, means-of-3:
 
 ```smalltalk
-hn := 0 hanoiNativeReceiver.
+hn := self installNativeHanoi.   "wires the binding once, returns the native receiver"
 "bytecode:" self hanoiMove: n from: 1 to: 2 temp: 3.   "timed ×3 via millis"
 "native:  " hn   hanoiMove: n from: 1 to: 2 temp: 3.   "timed ×3 via millis"
 ```
+
+`HanoiAB` defines its own bytecode `hanoiMove:from:to:temp:` (verbatim from
+`HanoiNode.ns:31`) so `self hanoiMove:` is the interpreted path, and its class vtable is
+what `installNativeHanoi` scans for the canonical selector.
 
 Emits `hanoi-bc <n>: <ms>`, `hanoi-native <n>: <ms>`, and the native move-count for the
 `2^n − 1` check. Depths **16 and 20** (bytecode ≈ 0.75 s / ≈ 12 s; native expected
