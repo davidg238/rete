@@ -631,6 +631,13 @@ unchanged — 195/0/14 both paths + named gates — so no `CLAIMS.md` row moves.
 `chore/ns-to-nsl` in all four repos. Design: `docs/design/2026-07-17-ns-to-nsl-extension-migration-design.md`;
 plan: `docs/superpowers/plans/2026-07-17-ns-to-nsl-extension-migration.md`. Driver-ladder spec (Arc 1) is next.
 
+**Coordination-model spike #1 — DONE 2026-07-18: webserver channel-device (request/reply over channels).**
+Verdict **clean** — request/reply decomposed into pulse ingress + NetBridge egress + an opaque correlation
+id, no channel reification, no VM-core change; G2 shed proven under real concurrent curl load. Idiom sharp-edges
+surfaced (`\\` modulo is not a selector; channel payloads must be algebra **values**, not mutable Arrays) plus an
+egress-datapath lesson (stream large bodies, don't stage them in a bounded C buffer). Findings of record:
+`~/workspace/tuvm/review/model-capability-findings.md`; design/plan dated `2026-07-18-webserver-channel-device-*`.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
