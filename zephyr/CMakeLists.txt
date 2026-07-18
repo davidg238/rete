@@ -4,7 +4,7 @@ project(tuvm_pulse)
 
 # Task 7 (native_sim bring-up gate): the Model A ("solidified image") boot
 # path — vm.c/gc.c/dispatch.c + a per-program src/solidified_image.c baked by
-# tools/ns_compile_oevm.py from zephyr/PulseNode.ns, exactly the recipe
+# tools/ns_compile_oevm.py from zephyr/PulseNode.nsl, exactly the recipe
 # tools/run_tests_oevm.py uses for the host Path-A test runner (oevm_runner),
 # minus src/oevm_main.c (this directory's src/main.c is the Zephyr entry
 # point instead). Only src/kernel_boot.c is mutually exclusive with

@@ -13,8 +13,8 @@ echo "[1/4] host-ABI layout descriptor"
 gcc -std=c99 -Isrc tools/dump_layout.c -o /tmp/dl
 /tmp/dl > /tmp/layout.json
 
-echo "[2/4] compile HanoiAB.ns -> .oimg"
-python3 "$NSL" zephyr/HanoiAB.ns /tmp/hanoi_ab.oimg --format=oimg --layout=/tmp/layout.json
+echo "[2/4] compile HanoiAB.nsl -> .oimg"
+python3 "$NSL" zephyr/HanoiAB.nsl /tmp/hanoi_ab.oimg --format=oimg --layout=/tmp/layout.json
 
 echo "[3/4] build image VM with -DOEVM_HANOI_NATIVE"
 gcc -Wall -std=c99 -DOEVM_HANOI_NATIVE -Isrc \

@@ -4,7 +4,7 @@
 # compiler path, the build dir, and restoring the tracked solidified_image.c.
 set -euo pipefail
 
-MODEL=B NODE=TimerNode.ns DO_FLASH=0 CAPTURE=0 PRISTINE=0 BUILD_DIR=""
+MODEL=B NODE=TimerNode.nsl DO_FLASH=0 CAPTURE=0 PRISTINE=0 BUILD_DIR=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --model)     MODEL="$2"; shift 2 ;;
@@ -67,7 +67,7 @@ if [ "$MODEL" = A ]; then
 else
   LAYOUT="$ZDIR/layout-esp32.json"
   [ -f "$LAYOUT" ] || { echo "missing $LAYOUT — run the layoutdump app (stage 0)" >&2; exit 2; }
-  OIMG="$ZDIR/${NODE%.ns}.oimg"
+  OIMG="$ZDIR/${NODE%.nsl}.oimg"
   python3 "$NSL" "$ZDIR/$NODE" "$OIMG" --format=oimg --layout="$LAYOUT"
   echo "[blob]  $(stat -c %s "$OIMG") bytes -> .incbin"
   BLOB_ARG=(-DTUVM_BLOB="$OIMG")
