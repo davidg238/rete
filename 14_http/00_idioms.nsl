@@ -4,15 +4,21 @@ eq true
 ne false
 tag #response
 status 200
+cell 2140
+div 31
 *)
 class Idioms packageUsing: manifest = () (
   public main: platform args: args = (
-    | r |
+    | r frame |
     ('eq ' , ('/hello' = '/hello') printString) out.
     ('ne ' , ('/hello' = '/nope') printString) out.
     r:: platform Record tag: #response with: #status -> 200 with: #body -> 'x'.
     ('tag ' , r tag printString) out.
     ('status ' , (r at: #status ifAbsent: [ 0 ]) printString) out.
+    frame:: Array new: 4.
+    frame at: 1 put: 2140.
+    ('cell ' , (frame at: 1) printString) out.
+    ('div ' , (3120 // 100) printString) out.
   )
 ) : (
 )
