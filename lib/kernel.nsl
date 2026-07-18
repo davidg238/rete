@@ -2013,6 +2013,14 @@ class Kernel usingPlatform: platform = () (
   public gpioPin: n edge: e post: m on: path = ( ^ platform gpioPin: n edge: e post: m on: path )
   public gpioFire: n = ( ^ platform gpioFire: n )
   public pumpEvents = ( ^ platform pumpEvents )
+  (* webserver-channel-device spike, Task 3: the http driver's platform prims.
+     Same thin-forwarder shape as the gpio/timer families above — the C-side
+     work (framing, ring, in-flight table) lives entirely in src/http.c +
+     src/backend/<target>/http_<target>.c; this Kernel instance is just the
+     capability the user's nsl code actually holds as `platform`. *)
+  public httpListen: port = ( ^ platform httpListen: port )
+  public httpRespondId: id status: st body: b = ( ^ platform httpRespondId: id status: st body: b )
+  public httpInject: m path: p = ( ^ platform httpInject: m path: p )
 
   public Object            = ( ^ Object )
   public Array             = ( ^ Array )

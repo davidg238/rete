@@ -31,7 +31,8 @@ OEVM_BACKEND = [f"src/backend/{OEVM_TARGET}/platform_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/serial_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/udp_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/pulse_{OEVM_TARGET}.c",
-                f"src/backend/{OEVM_TARGET}/timer_{OEVM_TARGET}.c"]
+                f"src/backend/{OEVM_TARGET}/timer_{OEVM_TARGET}.c",
+                f"src/backend/{OEVM_TARGET}/http_{OEVM_TARGET}.c"]
 
 # OEVM_DUMP_DIR: differential harness knob. When set, every test's raw program stdout
 # (the bytes the .nsl program printed — what gets compared against expectations) is
@@ -89,7 +90,7 @@ def _build_pathb_once():
                 "gcc", "-Wall", "-std=c99", "-Isrc",
                 "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c",
                 "src/serial.c",
-        "src/udp.c", "src/mirror.c",
+        "src/udp.c", "src/http.c", "src/mirror.c",
                 *OEVM_BACKEND,
                 "src/oimg_loader.c", "src/kernel_boot.c",
                 "oevm_image_main.c",
@@ -119,7 +120,7 @@ def run_c_unit_tests(oevm_dir):
         ["gcc", "-Wall", "-std=c99", "-Isrc",
          "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c",
          "src/serial.c",
-         "src/udp.c", "src/mirror.c", *OEVM_BACKEND,
+         "src/udp.c", "src/http.c", "src/mirror.c", *OEVM_BACKEND,
          "src/oimg_loader.c", "src/solidified_image.c",
          "tests/test_debugger.c", "-o", "/tmp/test_debugger", "-lm"],
         cwd=str(oevm_dir), capture_output=True, text=True)
@@ -169,7 +170,7 @@ def run_boot_gc_asan_gate() -> bool:
             ["gcc", "-g", "-fsanitize=address", "-Wall", "-std=c99", "-Isrc", "-DOEVM_APPLIANCE",
              "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c",
              "src/serial.c",
-             "src/udp.c", "src/mirror.c", *OEVM_BACKEND,
+             "src/udp.c", "src/http.c", "src/mirror.c", *OEVM_BACKEND,
              str(tmp_c), "src/oevm_main.c", "-o", str(runner), "-lm"],
             cwd=str(OEVM_DIR), capture_output=True, text=True)
         if build.returncode != 0:
@@ -428,7 +429,7 @@ def run_test_file(src_path: Path) -> tuple[str, str]:
         "-DOEVM_APPLIANCE",
         "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c",
         "src/serial.c",
-        "src/udp.c", "src/mirror.c",
+        "src/udp.c", "src/http.c", "src/mirror.c",
         *OEVM_BACKEND,
         "src/solidified_image.c", "src/oevm_main.c",
         "-o", "oevm_runner",

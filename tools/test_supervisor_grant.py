@@ -22,7 +22,8 @@ OEVM_BACKEND = [f"src/backend/{OEVM_TARGET}/platform_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/serial_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/udp_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/pulse_{OEVM_TARGET}.c",
-                f"src/backend/{OEVM_TARGET}/timer_{OEVM_TARGET}.c"]
+                f"src/backend/{OEVM_TARGET}/timer_{OEVM_TARGET}.c",
+                f"src/backend/{OEVM_TARGET}/http_{OEVM_TARGET}.c"]
 OEVM_EXTRA_CFLAGS = os.environ.get("OEVM_EXTRA_CFLAGS", "").split()
 
 # ---------------------------------------------------------------------------
@@ -37,7 +38,7 @@ def build_a():
     subprocess.run(["gcc", "-Wall", "-Wextra", "-std=c99", "-Isrc", "-DOEVM_APPLIANCE",
                     "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c",
                     "src/serial.c",
-                    "src/udp.c", "src/mirror.c", *OEVM_BACKEND,
+                    "src/udp.c", "src/http.c", "src/mirror.c", *OEVM_BACKEND,
                     "src/solidified_image.c", "src/oevm_main.c",
                     "-o", "/tmp/oevm_grant", *OEVM_EXTRA_CFLAGS, "-lm"], cwd=OEVM, check=True)
 
@@ -75,7 +76,7 @@ def build_b():
         ["gcc", "-Wall", "-std=c99", "-Isrc",
          "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c",
          "src/serial.c",
-         "src/udp.c", "src/mirror.c",
+         "src/udp.c", "src/http.c", "src/mirror.c",
          *OEVM_BACKEND,
          "src/oimg_loader.c", "src/kernel_boot.c",
          "oevm_image_main.c",
