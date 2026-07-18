@@ -17,4 +17,16 @@
 int  http_frame_response(int status, const char *body, int body_len,
                          char *out, int out_cap);
 
+/* Admit a request. fd == -1 means "injected" (framed reply goes to stdout);
+   fd >= 0 is a real socket. Returns a fresh id, or -1 when the in-flight table
+   is full (a 503 has already been emitted — G2 shed). */
+int  http_accept_request(int fd, const char *method, int ml,
+                         const char *path, int pl);
+/* Pop the oldest pending request into caller buffers. 1 if taken, 0 if empty. */
+int  http_take_request(int *id, char *method, int mcap, char *path, int pcap);
+/* Frame + emit the reply for id (to its fd, or stdout if fd == -1), free the slot. */
+void http_respond(int id, int status, const char *body, int body_len);
+int  http_inflight_count(void);
+void http_backend_reset(void);
+
 #endif /* OEVM_HTTP_BACKEND_H */
