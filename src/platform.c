@@ -805,6 +805,32 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = platform_object();
         return 1;
     }
+    case PRIM_pf_httpBegin: {                  /* httpBeginId: id status: st */
+        int id = IS_SMI(args[0]) ? (int)UNTAG_SMI(args[0]) : 0;
+        int st = IS_SMI(args[1]) ? (int)UNTAG_SMI(args[1]) : 500;
+        http_begin(id, st);
+        *out = platform_object();
+        return 1;
+    }
+    case PRIM_pf_httpChunk: {                   /* httpChunkId: id data: s */
+        int id = IS_SMI(args[0]) ? (int)UNTAG_SMI(args[0]) : 0;
+        oop data = args[1];
+        if (data == NULL || IS_SMI(data) || StringVtable == NULL ||
+            obj_vtable(data) != StringVtable) {
+            fprintf(stderr, "VM Error: platform httpChunkId:data: expects a String\n");
+            abort();
+        }
+        struct String *s = (struct String *)data;
+        http_chunk(id, (const char *)s->bytes, (int)s->length);
+        *out = platform_object();
+        return 1;
+    }
+    case PRIM_pf_httpEnd: {                      /* httpEndId: id */
+        int id = IS_SMI(args[0]) ? (int)UNTAG_SMI(args[0]) : 0;
+        http_end(id);
+        *out = platform_object();
+        return 1;
+    }
     default:
         return 0;
     }

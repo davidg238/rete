@@ -49,9 +49,20 @@ test "$code" = "200"
 grep -q "rgb(" /tmp/http_body || { echo "FAIL: /thermal body has no rgb()"; exit 1; }
 echo "  /thermal body contains rgb() — heat-grid rendered"
 
+curl -s -D /tmp/http_hdrs -o /tmp/http_body "http://127.0.0.1:$PORT/thermal" >/dev/null
+grep -qi '^HTTP/1.1 200' /tmp/http_hdrs || { echo "FAIL: /thermal not HTTP/1.1 200"; exit 1; }
+grep -qi '^Transfer-Encoding: chunked' /tmp/http_hdrs || { echo "FAIL: /thermal not chunked"; exit 1; }
+grep -q "rgb(" /tmp/http_body || { echo "FAIL: /thermal body has no rgb()"; exit 1; }
+echo "  /thermal is HTTP/1.1 chunked and renders the heat-grid"
+
 nope=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/nope")
 echo "  GET /nope -> $nope"
 test "$nope" = "404"
+
+curl -s -D /tmp/http_hdrs2 -o /tmp/http_body2 "http://127.0.0.1:$PORT/stats" >/dev/null
+grep -qi '^Transfer-Encoding: chunked' /tmp/http_hdrs2 || { echo "FAIL: /stats not chunked"; exit 1; }
+grep -q "heap high-water" /tmp/http_body2 || { echo "FAIL: /stats missing metrics"; exit 1; }
+echo "  /stats chunked + metrics present"
 
 echo "  concurrent burst (8-way, informational):"
 for _ in $(seq 1 8); do curl -s -o /dev/null -w '%{http_code}\n' "http://127.0.0.1:$PORT/thermal" & done | sort | uniq -c | sed 's/^/    /'

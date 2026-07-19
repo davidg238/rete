@@ -34,6 +34,20 @@ int  http_parse_reqline(const char *buf, char *method, int mcap,
 /* Frame just the HTTP/1.0 header block. Returns bytes written or -1 on overflow. */
 int  http_frame_headers(int status, int body_len, char *out, int out_cap);
 
+/* HTTP/1.1 chunked framing (for streamed bodies). */
+int  http_frame_chunked_headers(int status, char *out, int out_cap);
+int  http_frame_chunk_header(int len, char *out, int out_cap);
+
+/* Streamed reply lifecycle, keyed by request id (mirrors http_respond). */
+void http_begin(int id, int status);
+void http_chunk(int id, const char *data, int len);
+void http_end(int id);
+
+/* Raw transport hooks (per target). http_write writes all len bytes (non-closing);
+   returns 0 on success, -1 on peer error. http_close closes the fd. */
+int  http_write(int fd, const char *buf, int len);
+void http_close(int fd);
+
 /* Admit a request. fd == -1 means "injected" (framed reply goes to stdout);
    fd >= 0 is a real socket. Returns a fresh id, or -1 when the in-flight table
    is full (a 503 has already been emitted — G2 shed). */

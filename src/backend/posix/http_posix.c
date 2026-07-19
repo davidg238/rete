@@ -16,17 +16,32 @@
 
 static int listen_fd = -1;
 
-void http_emit(int fd, const char *hdr, int hlen, const char *body, int body_len) {
-    if (fd == -1) {                          /* injected/test sink */
-        fwrite(hdr, 1, (size_t)hlen, stdout);
-        if (body_len > 0) fwrite(body, 1, (size_t)body_len, stdout);
-        fputc('\n', stdout);
-        fflush(stdout);
-        return;
+/* Write all len bytes, non-closing. fd == -1 is the injected/test sink ->
+   stdout (matches the old http_emit's injected-sink behavior). Returns 0 on
+   success, -1 on peer error (never on the injected sink). */
+int http_write(int fd, const char *buf, int len) {
+    if (fd == -1) {                          /* injected/test sink -> stdout */
+        fwrite(buf, 1, (size_t)len, stdout);
+        return 0;
     }
-    (void)write(fd, hdr, (size_t)hlen);
-    if (body_len > 0) (void)write(fd, body, (size_t)body_len);
+    int off = 0;
+    while (off < len) {
+        ssize_t w = write(fd, buf + off, (size_t)(len - off));
+        if (w <= 0) { if (errno == EINTR) continue; return -1; }
+        off += (int)w;
+    }
+    return 0;
+}
+
+void http_close(int fd) {
+    if (fd == -1) { fputc('\n', stdout); fflush(stdout); return; }
     close(fd);
+}
+
+void http_emit(int fd, const char *hdr, int hlen, const char *body, int body_len) {
+    http_write(fd, hdr, hlen);
+    if (body_len > 0) http_write(fd, body, body_len);
+    http_close(fd);
 }
 
 int http_listen(int port) {

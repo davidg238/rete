@@ -149,6 +149,51 @@ static void test_respond_before_take_stays_bounded(void) {
     assert(http_accept_request(-1, "GET", 3, "/z", 2) >= 0);
 }
 
+static void test_frame_chunk_header(void) {
+    char buf[16];
+    int n = http_frame_chunk_header(5, buf, sizeof buf);
+    assert(n == 3);
+    assert(strcmp(buf, "5\r\n") == 0);
+    n = http_frame_chunk_header(255, buf, sizeof buf);   /* hex */
+    assert(strcmp(buf, "ff\r\n") == 0);
+}
+
+static void test_frame_chunked_headers(void) {
+    char buf[256];
+    int n = http_frame_chunked_headers(200, buf, sizeof buf);
+    assert(n > 0);
+    assert(strstr(buf, "HTTP/1.1 200 OK\r\n") == buf);
+    assert(strstr(buf, "Transfer-Encoding: chunked\r\n") != NULL);
+    assert(strstr(buf, "Content-Length:") == NULL);   /* chunked => no length */
+}
+
+static void test_stream_lifecycle(void) {
+    http_backend_reset();
+    int id = http_accept_request(-1, "GET", 3, "/thermal", 8);
+    assert(id >= 0);
+    /* drain the ring so only the in-flight slot remains (mirrors real flow) */
+    int tid; char m[8]; char p[64];
+    http_take_request(&tid, m, sizeof m, p, sizeof p);
+
+    freopen("/tmp/tuvm_stream.out", "w", stdout);
+    http_begin(id, 200);
+    http_chunk(id, "AB", 2);
+    http_chunk(id, "CDE", 3);
+    http_end(id);
+    fflush(stdout);
+    if (!freopen("/dev/tty", "w", stdout)) {}        /* best-effort restore; ok if it fails in CI */
+
+    FILE *f = fopen("/tmp/tuvm_stream.out", "r");
+    char got[256] = {0};
+    fread(got, 1, sizeof got - 1, f); fclose(f);
+    assert(strstr(got, "HTTP/1.1 200 OK\r\n") == got);
+    assert(strstr(got, "Transfer-Encoding: chunked\r\n") != NULL);
+    assert(strstr(got, "\r\n2\r\nAB\r\n") != NULL);       /* chunk 1: size 2 */
+    assert(strstr(got, "3\r\nCDE\r\n") != NULL);          /* chunk 2: size 3 */
+    assert(strstr(got, "0\r\n\r\n") != NULL);             /* terminator */
+    assert(http_inflight_count() == 0);                   /* http_end freed the slot */
+}
+
 int main(void) {
     test_frame_200();
     test_frame_404();
@@ -158,6 +203,9 @@ int main(void) {
     test_backpressure_shed();
     test_ring_wraparound_fifo();
     test_respond_before_take_stays_bounded();
+    test_frame_chunk_header();
+    test_frame_chunked_headers();
+    test_stream_lifecycle();
     printf("test_http OK\n");
     return 0;
 }

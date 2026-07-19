@@ -199,12 +199,43 @@ parallel connections to one page, so the demo is unaffected.
 budgets simultaneously: VM-heap high-water ~52.8 KB of a 53.2 KB arena (~0.5 KB
 spare), and ~1 KB of 192 KB DRAM free at link — because WiFi's ~40 KB ESP driver
 heap + the TCP net-buf pool + a 52 KB VM arena barely coexist on a WROOM-32 (no
-PSRAM). Most of the VM-heap peak is **transient render garbage** (the SVG/stats
-pages built as one big String via `,` concatenation → 300+ GC cycles): streaming
-the render would reclaim ~15 KB of peak. Real scaling headroom = stream renders,
-or move to a PSRAM part (WROVER / ESP32-S3). Corollary: `prj_esp32.conf` is now
-WiFi-laden for **all** esp32 nodes — a non-WiFi esp32 node (e.g. TimerNode, #36's
-perfstex) needs its own config; folding WiFi into the shared file is a follow-up.
+PSRAM). The VM-heap peak is **transient render garbage** (the SVG/stats pages
+built as one big String via `,` concatenation → 300+ GC cycles). Real scaling
+headroom = a PSRAM part (WROVER / ESP32-S3), or eliminate the render's transient
+churn (see the streaming-render measurement below). Corollary: `prj_esp32.conf`
+is now WiFi-laden for **all** esp32 nodes — a non-WiFi esp32 node (e.g. TimerNode,
+#36's perfstex) needs its own config; folding WiFi into the shared file is a follow-up.
+
+**Streaming render — measured on device 2026-07-19 (`feat/streaming-render`,
+supersedes the "streaming would reclaim ~15 KB" hypothesis above).** The render
+was rewritten to stream HTTP/1.1 **chunked** fragments from nsl (three id-keyed
+prims `httpBeginId:`/`httpChunkId:`/`httpEndId:`, contract-(a) inline-stream —
+body-as-block through a channel was proven impossible: `Record` is value-only and
+rejects a Block field). Measured @192.168.0.241 via `/stats` `heap high-water`
+(monotonic max-occupancy; arena 53248 B):
+
+| after | live bytes | heap high-water | gc cycles |
+|---|---|---|---|
+| boot (1× /stats) | 20920 | 20920 | 0 |
+| 1× /thermal | 31664 | 52980 | 5 |
+| 10× | 47008 | 53168 | 25 |
+| 20× | 23584 | 53168 | 41 |
+| 30× | 30628 | 53168 | 56 |
+
+**The "~15 KB reclaim" hypothesis is DISPROVEN.** High-water still pegs to the
+~53 KB ceiling after a *single* render. Root cause: the GC is **collect-when-full**,
+so peak occupancy hits the ceiling whenever one render's transient churn exceeds
+the free headroom — independent of streaming. What streaming *did* deliver, and
+these are real: **GC churn cut ~100×** (300+ cycles/render → ~1.5–3), **page size
+decoupled from RAM** (the whole page never materializes — one ~500 B row is the
+largest live fragment), served bytes **byte-identical** and **chunked**, and **no
+leak** (live returns to the ~21 KB resident base after GC — see the 20× row).
+The remaining ~26 KB/render transient is the per-rect `printString`s (64×4) + the
+per-row `,` concat; **eliminating those (stream each rect via a primitive
+integer-write, no printString/concat) is the path to actually lowering peak toward
+the ~21 KB resident set** — deferred as a follow-up. The base resident set being
+only ~21 KB means there IS room for more *resident* state; the edge is the
+render *transient*, which streaming reduced in count but not in peak.
 
 **Bottom line (on-device):** the coordination model ported to silicon with **zero
 model/language change** — every fix was in the C transport/platform layer or the

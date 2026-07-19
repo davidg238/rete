@@ -59,6 +59,29 @@ int http_frame_headers(int status, int body_len, char *out, int out_cap) {
     return n;
 }
 
+/* HTTP/1.1 chunked variant: no Content-Length (body length isn't known up
+   front for a streamed reply); the framing itself communicates it in
+   per-chunk size prefixes instead. */
+int http_frame_chunked_headers(int status, char *out, int out_cap) {
+    int n = snprintf(out, (size_t)out_cap,
+        "HTTP/1.1 %d %s\r\n"
+        "Content-Type: text/html\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "Connection: close\r\n"
+        "\r\n",
+        status, reason_phrase(status));
+    if (n < 0 || n >= out_cap) return -1;
+    return n;
+}
+
+/* One chunk's size-line prefix: hex length + CRLF (RFC 7230 4.1). Caller
+   writes the chunk header, chunk_len bytes of data, then a trailing CRLF. */
+int http_frame_chunk_header(int len, char *out, int out_cap) {
+    int n = snprintf(out, (size_t)out_cap, "%x\r\n", len);
+    if (n < 0 || n >= out_cap) return -1;
+    return n;
+}
+
 int http_frame_response(int status, const char *body, int body_len,
                         char *out, int out_cap) {
     int n = http_frame_headers(status, body_len, out, out_cap);
@@ -144,4 +167,41 @@ void http_respond(int id, int status, const char *body, int body_len) {
             break;
         }
     }
+}
+
+/* Streamed reply lifecycle (Transfer-Encoding: chunked), keyed by request id
+   like http_respond. The in-flight slot stays live across begin/chunk/end
+   (no separate "streaming" flag needed) and is freed by http_end, mirroring
+   how http_respond frees it in one shot. */
+static int fd_for_id(int id) {
+    for (int i = 0; i < OEVM_HTTP_INFLIGHT; i++)
+        if (inflight[i].live && inflight[i].id == id) return inflight[i].fd;
+    return -1;
+}
+
+void http_begin(int id, int status) {
+    int fd = fd_for_id(id);            /* -1 == injected sink OR unknown id */
+    char hdr[128];
+    int hn = http_frame_chunked_headers(status, hdr, sizeof hdr);
+    if (hn < 0) return;
+    http_write(fd, hdr, hn);
+}
+
+void http_chunk(int id, const char *data, int len) {
+    if (len <= 0) return;                             /* never emit a 0-size data chunk */
+    int fd = fd_for_id(id);
+    char szline[16];
+    int sn = http_frame_chunk_header(len, szline, sizeof szline);
+    if (sn < 0) return;
+    http_write(fd, szline, sn);
+    http_write(fd, data, len);
+    http_write(fd, "\r\n", 2);
+}
+
+void http_end(int id) {
+    int fd = fd_for_id(id);
+    http_write(fd, "0\r\n\r\n", 5);                   /* terminating chunk */
+    http_close(fd);
+    for (int i = 0; i < OEVM_HTTP_INFLIGHT; i++)
+        if (inflight[i].live && inflight[i].id == id) { inflight[i].live = 0; break; }
 }

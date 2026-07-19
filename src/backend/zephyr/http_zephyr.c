@@ -46,11 +46,23 @@ static int send_all(int fd, const char *p, int n) {
     return 0;
 }
 
+/* Write all len bytes, non-closing, via send_all's cooperative-yield
+   backpressure loop. fd == -1 never occurs on device (no injected sink) ->
+   no-op success, matching the old http_emit's fd==-1 short-circuit. */
+int http_write(int fd, const char *buf, int len) {
+    if (fd == -1) return 0;                  /* no injected sink on device */
+    return send_all(fd, buf, len);
+}
+
+void http_close(int fd) {
+    if (fd != -1) zsock_close(fd);
+}
+
 void http_emit(int fd, const char *hdr, int hlen, const char *body, int body_len) {
-    if (fd == -1) return;                    /* no injected sink on device */
-    if (send_all(fd, hdr, hlen) == 0 && body_len > 0)
-        (void)send_all(fd, body, body_len);
-    zsock_close(fd);
+    if (fd == -1) return;
+    if (http_write(fd, hdr, hlen) == 0 && body_len > 0)
+        (void)http_write(fd, body, body_len);
+    http_close(fd);
 }
 
 int http_listen(int port) {
