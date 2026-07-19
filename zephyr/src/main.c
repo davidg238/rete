@@ -74,6 +74,13 @@ static void thread_bringup(void) {
    thread_bringup()'s poll-until-ready style. Loud on the console so the operator
    can read the assigned IP and point a browser at it. */
 static void wifi_bringup(void) {
+    /* prj_esp32.conf now sets CONFIG_WIFI for the whole board, so this runs for
+       EVERY esp32 node. A node with no credentials (empty CONFIG_TUVM_WIFI_SSID —
+       i.e. no prj_esp32_wifi.local.conf overlay: TimerNode, perfstex #36) is not a
+       WiFi node; skip, or it would burn ~30 s spinning for a DHCP lease that never
+       comes. Only the HTTP node ships a non-empty SSID via the git-ignored overlay. */
+    if (CONFIG_TUVM_WIFI_SSID[0] == '\0') { printk("wifi: no SSID configured, skipping\n"); return; }
+
     struct net_if *iface = net_if_get_first_wifi();
     if (!iface) { printk("wifi: no wifi iface\n"); return; }
 
@@ -95,13 +102,15 @@ static void wifi_bringup(void) {
 
     char ipbuf[NET_IPV4_ADDR_LEN];
     for (int i = 0; i < 300; i++) {           /* up to ~30 s for associate + lease */
-        struct net_if_addr *ua = &iface->config.ip.ipv4->unicast[0].ipv4;
-        if (iface->config.ip.ipv4 &&
-            ua->addr_state == NET_ADDR_PREFERRED &&
-            ua->address.in_addr.s_addr != 0) {
-            net_addr_ntop(AF_INET, &ua->address.in_addr, ipbuf, sizeof ipbuf);
-            printk("wifi: up, ip=%s -> http://%s:18080/thermal\n", ipbuf, ipbuf);
-            return;
+        struct net_if_ipv4 *v4 = iface->config.ip.ipv4;   /* null-check BEFORE forming a ptr into it */
+        if (v4) {
+            struct net_if_addr *ua = &v4->unicast[0].ipv4;
+            if (ua->addr_state == NET_ADDR_PREFERRED &&
+                ua->address.in_addr.s_addr != 0) {
+                net_addr_ntop(AF_INET, &ua->address.in_addr, ipbuf, sizeof ipbuf);
+                printk("wifi: up, ip=%s -> http://%s:18080/thermal\n", ipbuf, ipbuf);
+                return;
+            }
         }
         k_msleep(100);
     }

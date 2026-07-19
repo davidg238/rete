@@ -45,5 +45,17 @@ for sym in setjmp longjmp ungetc; do
 done
 
 if [ "$patched" = 0 ]; then
-  echo "patch-esp32-rom-ld: already patched (setjmp/longjmp/ungetc not ROM-assigned) — no-op"
+  # Nothing matched. Distinguish "already patched" from "SDK format drifted and our
+  # regex silently missed it" — otherwise a future SDK writing e.g.
+  # `PROVIDE(setjmp = 0x...)` would leave the ROM setjmp fault active while this
+  # script cheerfully reports success. Require our commented marker to be present.
+  for sym in setjmp longjmp ungetc; do
+    if ! grep -qE "^/\* ${sym} = 0x[0-9a-fA-F]+;" "$LD"; then
+      echo "patch-esp32-rom-ld: ERROR — ${sym} is neither ROM-assigned nor patched by us." >&2
+      echo "  The SDK ld format likely changed; update the regex in this script." >&2
+      echo "  File: $LD" >&2
+      exit 2
+    fi
+  done
+  echo "patch-esp32-rom-ld: already patched (setjmp/longjmp/ungetc use picolibc) — no-op"
 fi

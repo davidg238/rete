@@ -184,6 +184,17 @@ form of the recorded scheduling design point; adding SPI etc. inherits it.
    posix findings' "stream the body" lesson, made mandatory by real TCP flow
    control.)
 
+**Known host↔device divergence — the G2 503 shed does not fire on device.** On the
+host the (N+1)th concurrent request gets a deterministic 503 (`tests/http_roundtrip_host.sh`
+burst). On device `CONFIG_NET_MAX_CONTEXTS=5` = 1 listen + 4 in-flight, so once 4 are
+in flight there is **no 6th context** for `http_poll` to `zsock_accept` a 5th connection
+*and* frame the ring's 503 onto it — the 5th SYN is dropped/refused by the TCP stack (the
+"occasional 000" under burst) instead of a graceful 503. True 503-on-device would need
+`NET_MAX_CONTEXTS=6` (+1 for the shed-in-progress socket), which the DRAM ceiling below
+does not allow today. The *ring-level* G2 shed logic is unchanged and still proven on host;
+what device RAM removes is a spare socket to deliver it on. A browser never opens 5+
+parallel connections to one page, so the demo is unaffected.
+
 **RAM is the real ceiling (not the model).** The node runs at the edge of **both**
 budgets simultaneously: VM-heap high-water ~52.8 KB of a 53.2 KB arena (~0.5 KB
 spare), and ~1 KB of 192 KB DRAM free at link — because WiFi's ~40 KB ESP driver
