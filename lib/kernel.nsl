@@ -1296,6 +1296,13 @@ class Kernel usingPlatform: platform = () (
       k = self KIND_STREAM ifTrue: [ self error: 'not a cell' ].
       k = 0 ifTrue: [ ^ aBlock value ].
       ^ platform spacePeek: p )
+    (* Nil-defaulting cell reads — the common case where absence and a held `nil`
+       are treated alike (a never-written cell reads as `nil`, no ifAbsent: needed).
+       `peek` reads THIS channel's own root cell; `peek: rel` reads a named sub-cell.
+       Use `peek:ifAbsent:` above when the never-written-vs-holds-nil distinction
+       matters. Distinct selectors — arity is part of the name, no collision. *)
+    public peek = ( ^ self peek: '' ifAbsent: [ nil ] )
+    public peek: rel = ( ^ self peek: rel ifAbsent: [ nil ] )
     public whenever: rel do: aBlock = (
       platform spaceRegister: (self resolve: rel) block: aBlock owner: self.
       ^ self )
