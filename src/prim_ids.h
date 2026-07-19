@@ -179,6 +179,14 @@
 #define PRIM_pf_httpListen  110
 #define PRIM_pf_httpRespond 111
 #define PRIM_pf_httpInject  112
+/* streaming-render (2026-07-18): chunked egress prims — appended after
+   httpInject, no pre-existing id shifts.
+     httpBeginId: id status: st  -> opens a chunked response (http_begin).
+     httpChunkId: id data: s     -> writes one chunk (http_chunk).
+     httpEndId: id               -> closes the chunked response (http_end). */
+#define PRIM_pf_httpBegin  113
+#define PRIM_pf_httpChunk  114
+#define PRIM_pf_httpEnd    115
 /* Rung 3 Task 4: the out-of-range sentinel returned by cborIntFromMajor:arg:
    for the one unrepresentable CBOR integer (major 1, arg 2^64-1 => value -2^64,
    just past the ratified +/-(2^64-1) range). In this VM nil IS the C NULL

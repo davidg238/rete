@@ -735,6 +735,11 @@ enum {
     PRIM_pf_httpListen,
     PRIM_pf_httpRespond,
     PRIM_pf_httpInject,
+    /* streaming-render (2026-07-18): chunked egress prims — appended after
+       httpInject, no pre-existing id shifts. 113/114/115, mirrored in prim_ids.h. */
+    PRIM_pf_httpBegin,
+    PRIM_pf_httpChunk,
+    PRIM_pf_httpEnd,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -784,6 +789,7 @@ static const char *const PRIM_NAMES[] = {
     "spaceOverruns:",
     "sysStats",
     "httpListen:", "httpRespondId:status:body:", "httpInject:path:",
+    "httpBeginId:status:", "httpChunkId:data:", "httpEndId:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
