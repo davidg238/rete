@@ -141,3 +141,62 @@ friction is entirely in language-idiom ergonomics (no `\\`; build **values** not
 mutable Arrays for the seam) and one egress-datapath capacity lesson (stream the
 body). ESP32/WiFi bring-up (`src/backend/zephyr/http_zephyr.c`) is the deferred
 last mile.
+
+---
+
+## Spike #1 — On-device last mile (#46): ESP32/WiFi
+
+The posix-proven node ran **unchanged** on a real ESP32 WROOM-32 over WiFi
+(DHCPv4). Confirmed live at `http://<dhcp-ip>:18080/`: `/thermal` → 200 with the
+full 4049-byte 64-cell SVG heat-grid (caption `max 31.2C min 22.0C hot (3,5)`),
+`/` `/stats` `/hello` → 200, `/nope` → 404 (`/stats` viewed in a browser).
+
+**Seam portability — CONFIRMED.** posix → device was a **backend-only** change:
+the three transport hooks `http_listen`/`http_poll`/`http_emit` (Zephyr `zsock_*`)
+plus Kconfig and a WiFi-associate boot hook. **Zero nsl change** — the frozen
+`HttpServerNode.nsl` (routing, reduce, render) ran byte-identical. This is the
+"C owns the datapath, nsl owns coordination; poll↔thread is invisible above the
+channel" claim, proven on silicon.
+
+**Cross-source scheduling — the single-source assumption bit, exactly as flagged.**
+`pumpEvents` drains sources in fixed order, bounded per source. On device that met
+the reason the design recorded a *round-robin-is-a-future-knob* note: zephyr's
+`pulse_pump()` **blocks `K_FOREVER`** (a pure pulse/timer node sleeps until its
+ISR). With a second source (an HTTP listener with no ISR), the reactor slept
+forever after one tick and `http_poll` never ran again. Fix: `pulse_pump_nb()`
+(non-blocking drain) selected by `http_is_listening()` — the **multiplexed pump
+must not block on any one source** once >1 source is live. This is the concrete
+form of the recorded scheduling design point; adding SPI etc. inherits it.
+
+**Four device-only faults the host gate could not reach** (all in `794ac9b`):
+1. the `K_FOREVER` single-source block above;
+2. **ROM-newlib forced symbols fault under Zephyr/picolibc** — the ESP32 ROM
+   linker strong-assigns `setjmp`/`longjmp`/`ungetc` (same family as the known
+   `fflush` fault). ROM `setjmp` faults in `vm_protected_fire()` on **every**
+   reaction fire; ROM `ungetc` faults `sscanf`/`vfscanf`. Fixes: hand-rolled
+   `http_parse_reqline()` (no stdio), and `tools/patch-esp32-rom-ld.sh` to link
+   picolibc's setjmp/longjmp (zero-SDK-touch alternative: #48). **Lesson: any VM
+   feature reaching a ROM-forced libc function is a latent device fault — audit
+   against `esp32.rom.newlib-funcs.ld`.**
+3. **egress capacity, on-device edition** — a multi-KB body is RST'd
+   (`ENOTCONN`) mid-send when the TX net-buf pool is small; `http_emit` must
+   chunk + retry transient buffer errors, and the pool must be provisioned. (The
+   posix findings' "stream the body" lesson, made mandatory by real TCP flow
+   control.)
+
+**RAM is the real ceiling (not the model).** The node runs at the edge of **both**
+budgets simultaneously: VM-heap high-water ~52.8 KB of a 53.2 KB arena (~0.5 KB
+spare), and ~1 KB of 192 KB DRAM free at link — because WiFi's ~40 KB ESP driver
+heap + the TCP net-buf pool + a 52 KB VM arena barely coexist on a WROOM-32 (no
+PSRAM). Most of the VM-heap peak is **transient render garbage** (the SVG/stats
+pages built as one big String via `,` concatenation → 300+ GC cycles): streaming
+the render would reclaim ~15 KB of peak. Real scaling headroom = stream renders,
+or move to a PSRAM part (WROVER / ESP32-S3). Corollary: `prj_esp32.conf` is now
+WiFi-laden for **all** esp32 nodes — a non-WiFi esp32 node (e.g. TimerNode, #36's
+perfstex) needs its own config; folding WiFi into the shared file is a follow-up.
+
+**Bottom line (on-device):** the coordination model ported to silicon with **zero
+model/language change** — every fix was in the C transport/platform layer or the
+toolchain. The spike's model verdict stands, and the on-device work converts the
+"round-robin is a future knob" and "stream the body" design notes from theory into
+shipped, load-bearing code.

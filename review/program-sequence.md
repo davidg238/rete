@@ -638,6 +638,15 @@ surfaced (`\\` modulo is not a selector; channel payloads must be algebra **valu
 egress-datapath lesson (stream large bodies, don't stage them in a bounded C buffer). Findings of record:
 `~/workspace/tuvm/review/model-capability-findings.md`; design/plan dated `2026-07-18-webserver-channel-device-*`.
 
+**On-device last mile (#46) — DONE 2026-07-18: HttpServerNode serves `/thermal` (8×8 SVG heat-grid) live over
+WiFi from an ESP32 WROOM-32.** posix → device was **backend-only, zero nsl change** (seam portability proven on
+silicon). The `pumpEvents` single-source assumption bit exactly as flagged — zephyr `pulse_pump()`'s `K_FOREVER`
+sleep starved a second source; fix = `pulse_pump_nb()` gated on `http_is_listening()` (the recorded round-robin
+design point, now load-bearing code). Also fixed: ROM-newlib forced `setjmp`/`ungetc` faults (patch script +
+hand-rolled parse; zero-SDK-touch tracked in #48) and on-device egress capacity (chunked send + net-buf pool).
+RAM is the ceiling (VM heap + WiFi + net-bufs barely coexist on a no-PSRAM WROOM-32). Findings: the `#46` section
+in `~/workspace/tuvm/review/model-capability-findings.md`; design/plan dated `2026-07-18-esp32-wifi-http-last-mile-*`.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
