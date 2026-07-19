@@ -793,6 +793,14 @@ static const char *const PRIM_NAMES[] = {
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
+/* Compile-time parity guard for the load-bearing prim triple: PRIM_NAMES must
+   stay parallel to the enum (index i -> id i+1, since PRIM_NONE=0 is unnamed),
+   so the count of names must equal the last enum id (PRIM_pf_httpEnd). A miscount
+   here silently misroutes every platform prim after the insertion point — this
+   catches it at build time instead. C99-safe (no _Static_assert under -std=c99):
+   a false condition makes a negative-sized array, which is a hard compile error. */
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_httpEnd) ? 1 : -1];
+
 /* Pointer-keyed cache mapping each interned selector symbol to its primitive id
    (PRIM_NONE if it is not an intercepted primitive). Selectors are interned, so
    each unique name is one stable pointer; we strcmp-classify it once and
