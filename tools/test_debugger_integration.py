@@ -49,7 +49,7 @@ def build_a():
     subprocess.run(["gcc", "-Wall", "-Wextra", "-std=c99", "-Isrc", "-DOEVM_APPLIANCE",
                     "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c",
                     "src/serial.c",
-                    "src/udp.c", "src/http.c", "src/mirror.c", "src/backend/posix/platform_posix.c",
+                    "src/udp.c", "src/http.c", "src/http_core.c", "src/mirror.c", "src/backend/posix/platform_posix.c",
                     "src/backend/posix/serial_posix.c", "src/backend/posix/udp_posix.c",
                     "src/backend/posix/http_posix.c",
                     "src/backend/posix/pulse_posix.c", "src/backend/posix/timer_posix.c",
