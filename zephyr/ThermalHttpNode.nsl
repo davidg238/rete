@@ -120,6 +120,49 @@ class ThermalHttpNode packageUsing: manifest = () (
     public onSpace: sp seam: s timers: t = ( ^ self new onSpace: sp seam: s timers: t )
   )
 
+  (* ---- generic transport: a path->block route table over the chunked prims ----
+     Knows nothing about sensors or presentation. C owns the socket and chunk
+     framing; routing is nsl. `id` is an opaque correlation token that the C side
+     resolves back to the response socket — nsl never touches a file descriptor. *)
+  class HttpServer = ( | space seam paths blocks | ) (
+    onSpace: sp seam: s = (
+      space:: sp. seam:: s.
+      paths::  s OrderedCollection new.
+      blocks:: s OrderedCollection new.
+      ^ self )
+
+    public route: p do: aBlock = ( paths add: p. blocks add: aBlock. ^ self )
+
+    public listen: port = (
+      | req |
+      req:: space channel: 'dev/http/request'.
+      req whenever: '' do: [ :r | self handle: r ].
+      seam httpListen: port.
+      ^ self )
+
+    (* Run-to-completion: one request is framed begin->body->end before the next,
+       so responses for different ids never interleave. *)
+    handle: r = (
+      | id path i n found |
+      id:: r basicAt: 1.  path:: r basicAt: 3.
+      i:: 1. n:: paths size. found:: nil.
+      [ (i <= n) and: [ found == nil ] ] whileTrue: [
+        ((paths at: i) = path) ifTrue: [ found:: blocks at: i ].
+        i:: i + 1 ].
+      (found == nil)
+        ifTrue: [
+          seam httpBeginId: id status: 404.
+          seam httpChunkId: id data: 'not found'.
+          seam httpEndId: id ]
+        ifFalse: [
+          seam httpBeginId: id status: 200.
+          found value: id value: seam.
+          seam httpEndId: id ].
+      ^ self )
+  ) : (
+    public onSpace: sp seam: s = ( ^ self new onSpace: sp seam: s )
+  )
+
   public main: platform args: args = (
     | tview |
     tview:: ThermalView new.

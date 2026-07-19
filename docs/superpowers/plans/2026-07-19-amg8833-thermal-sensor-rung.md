@@ -371,10 +371,22 @@ class ThermalHttpNode packageUsing: manifest = () (
 
 - [ ] **Step 2: Verify it compiles**
 
+**Do NOT verify by running run-one.py on the file directly** — it reports SKIP
+*before* compiling (`run_tests_oevm.py:395`/`:483`), so a syntax error looks
+identical to success. Build a scratchpad copy carrying an expect block that
+exercises the new class, and run that instead:
+
 ```bash
-python3 ~/workspace/nsl-tuvm/tools/run-one.py ~/workspace/tuvm/zephyr/ThermalHttpNode.nsl
+sed -e '1i (*\nexpect:\nok\n*)' \
+    -e "s|^    tview:: ThermalView new.|    tview:: ThermalView new.\n    (tview centi: 2200) out.\n    'ok' out.|" \
+    ~/workspace/tuvm/zephyr/ThermalHttpNode.nsl > /tmp/ThermalHttpNode.nsl
+python3 ~/workspace/nsl-tuvm/tools/run-one.py /tmp/ThermalHttpNode.nsl
 ```
-Expected: it runs and exits cleanly (no expectations block yet, so the runner reports SKIP for expectations but must not crash). A parse or resolve error here means the nesting is wrong — fix before continuing.
+Expected: output `['22.0', 'ok']` on both paths — proving the module parses and
+resolves and that a nested-class method dispatches. (With the expect block above
+listing only `ok` the runner reports FAIL on the mismatch; that is fine, the
+actual output is the evidence. Add `22.0` to the block for a clean PASS.) A parse
+or resolve error means the nesting is wrong — fix before continuing.
 
 - [ ] **Step 3: Commit**
 
@@ -533,7 +545,7 @@ git commit -m "test(sensor): ThermalNode publishes frames on the virtual clock"
 **Interfaces:**
 - Produces: nested `class HttpServer`, class-side `onSpace: sp seam: s`; instance `public route: path do: aBlock` and `public listen: port`. Route blocks are invoked `value: id value: platform`.
 
-- [ ] **Step 1: Add the `HttpServer` class**
+- [x] **Step 1: Add the `HttpServer` class**
 
 In `tuvm/zephyr/ThermalHttpNode.nsl`, add after `ThermalNode`:
 
@@ -582,14 +594,46 @@ In `tuvm/zephyr/ThermalHttpNode.nsl`, add after `ThermalNode`:
   )
 ```
 
-- [ ] **Step 2: Verify it compiles**
+- [x] **Step 2: Verify it compiles**
+
+**Do NOT verify by running run-one.py on the file directly.** `run_test_file` /
+`run_test_file_oimg` return `"SKIP", "No expectations defined."` at
+`run_tests_oevm.py:395` / `:483` — *before* they compile anything. A file with a
+syntax error reports the same clean SKIP, so a bare run proves nothing.
+
+Instead build a temp copy in the scratchpad that carries an expect block and
+actually exercises the new class, then run that:
 
 ```bash
-python3 ~/workspace/nsl-tuvm/tools/run-one.py ~/workspace/tuvm/zephyr/ThermalHttpNode.nsl
+python3 - <<'EOF'
+p='/home/david/workspace/tuvm/zephyr/ThermalHttpNode.nsl'
+s=open(p).read()
+s = "(*\nexpect:\nroutes 2\nok\n*)\n" + s
+s = s.replace("""  public main: platform args: args = (
+    | tview |
+    tview:: ThermalView new.
+    ^ 0 )""",
+"""  public main: platform args: args = (
+    | tview http space |
+    space:: platform space.
+    tview:: ThermalView new.
+    http:: HttpServer onSpace: space seam: platform.
+    http route: '/a' do: [ :id :plat | plat ].
+    http route: '/b' do: [ :id :plat | plat ].
+    ('routes ' , (http routeCount) printString) out.
+    'ok' out.
+    ^ 0 )""")
+s = s.replace("    public route: p do: aBlock = ( paths add: p. blocks add: aBlock. ^ self )",
+"    public route: p do: aBlock = ( paths add: p. blocks add: aBlock. ^ self )\n    public routeCount = ( ^ paths size )")
+open('/tmp/ThermalHttpNode.nsl','w').write(s)
+EOF
+python3 ~/workspace/nsl-tuvm/tools/run-one.py /tmp/ThermalHttpNode.nsl
 ```
-Expected: compiles and runs without crashing.
+Expected: **Path A: PASS / Path B: PASS** — proving the module parses, resolves,
+and that `HttpServer` constructs and accumulates routes. Discard the temp copy;
+`routeCount` is a probe, not part of the class.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd ~/workspace/tuvm && git add zephyr/ThermalHttpNode.nsl
@@ -620,6 +664,13 @@ In `tuvm/zephyr/ThermalHttpNode.nsl`, replace the placeholder `main:` with:
     | space timers thermal tview http |
     space::   platform space.
     timers::  platform Timers usingSpace: space seam: platform.
+    (* REQUIRED — the seam posts every timer fire on the reserved 'sys/timer' path
+       carrying only a token; Timers>>dispatch: fans it out onto the target
+       channel, and that wiring lives in the CALLER by design (kernel.nsl Timers
+       header). Omit it and fires reach 'sys/timer' and stop: the sample cell
+       stays nil forever and /thermal renders 'no frame' with no error anywhere.
+       This is what broke Task 3's test. *)
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
     thermal:: ThermalNode onSpace: space seam: platform timers: timers.
     thermal start.
     tview::   ThermalView new.
