@@ -769,6 +769,9 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            A pure pulse/timer node (no listener) keeps the blocking pump and sleeps
            efficiently until its ISR fires. On posix both are non-blocking. (#46) */
         int n = http_is_listening() ? pulse_pump_nb() : pulse_pump();
+        timer_backend_poll();                   /* wall-clock host mode: fire due timers here.
+                                                   No-op under the default virtual clock and on
+                                                   target, whose expiry ISR posts via pulse. */
         http_pump();                            /* drain http request ring at the safe point */
         *out = TAG_SMI(n);
         return 1;

@@ -650,7 +650,7 @@ git commit -m "feat(node): HttpServer generic path->block route table"
 **Interfaces:**
 - Consumes: `ThermalNode onSpace:seam:timers:`, `HttpServer onSpace:seam:`, `ThermalView new`, `Channel>>peek` (Tasks 1–4 + the precursor).
 
-- [ ] **Step 1: Replace the stub `main:` with the composition root**
+- [x] **Step 1: Replace the stub `main:` with the composition root**
 
 In `tuvm/zephyr/ThermalHttpNode.nsl`, replace the placeholder `main:` with:
 
@@ -687,7 +687,7 @@ In `tuvm/zephyr/ThermalHttpNode.nsl`, replace the placeholder `main:` with:
   )
 ```
 
-- [ ] **Step 2: Add the `/stats` and `/` helpers**
+- [x] **Step 2: Add the `/stats` and `/` helpers**
 
 Copy `statsPageOn:toId:`, `statRow:value:toId:on:`, and `indexToId:on:` verbatim from `tuvm/zephyr/HttpServerNode.nsl:40-84` into `ThermalHttpNode`'s instance side, renaming the two entry points to match the routes:
 
@@ -696,7 +696,7 @@ Copy `statsPageOn:toId:`, `statRow:value:toId:on:`, and `indexToId:on:` verbatim
   showStatsTo: id on: platform = ( ^ self statsPageOn: platform toId: id )
 ```
 
-- [ ] **Step 3: Repoint the host round-trip gate**
+- [x] **Step 3: Repoint the host round-trip gate**
 
 In `tuvm/tests/http_roundtrip_host.sh`, change the baked node from `HttpServerNode.nsl` to `ThermalHttpNode.nsl`:
 
@@ -705,21 +705,21 @@ cd ~/workspace/tuvm && grep -n 'HttpServerNode' tests/http_roundtrip_host.sh
 ```
 Replace each occurrence with `ThermalHttpNode`.
 
-- [ ] **Step 4: Run the host round-trip gate**
+- [x] **Step 4: Run the host round-trip gate**
 
 ```bash
 cd ~/workspace/tuvm && bash tests/http_roundtrip_host.sh
 ```
 Expected: **PASS**, and the `/thermal` body byte-identical to before this rung (the posix synthetic frame reproduces the old hard-coded values: uniform 2200, index 30 = 3120).
 
-- [ ] **Step 5: Run the full suite**
+- [x] **Step 5: Run the full suite**
 
 ```bash
 cd ~/workspace/nsl-tuvm && python3 tools/run_tests_oevm.py 2>&1 | tail -8
 ```
 Expected: **202 passed, 0 failed, 14 skipped**, all named gates green.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd ~/workspace/tuvm && git add zephyr/ThermalHttpNode.nsl tests/http_roundtrip_host.sh

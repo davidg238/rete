@@ -90,3 +90,8 @@ uint64_t timer_backend_millis(void) { return (uint64_t)k_uptime_get(); }
 /* No virtual clock on target — the clock is real and advances on its own. The
    `advanceMillis:` prim therefore does nothing here and answers 0 fires. */
 int timer_backend_advance(uint64_t ms) { (void)ms; return 0; }
+
+/* No-op on target: the clock is real and the k_timer expiry ISR already posts through
+   the pulse mailbox, which pulse_pump drains onto sys/timer. Exists only so pumpEvents
+   can call it unconditionally across both backends. */
+int timer_backend_poll(void) { return 0; }
