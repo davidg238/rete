@@ -621,6 +621,27 @@ Owner docs as each arc opens: Arc 1 → new driver-ladder design under `docs/des
 (this session); Arcs 2–4 → their rung designs when they start. Update this ladder at each
 arc boundary, per the file's own rule.
 
+**FILED 2026-07-19 — the manifest / module-injection rung (no arc yet; Arc 1 is its
+forcing function).** Reusable service modules (an `HttpServer`, a per-device driver facade)
+have **no capability-pure home in separate files today**, and that will bind harder with
+every driver-ladder rung. Spike result (`docs/design/2026-07-19-amg8833-thermal-sensor-rung-design.md`
+§4a): `ns_compile_oevm.py` bakes ONE app file plus `lib/kernel.nsl` + `lib/supervisor.nsl`
+appended as top-level siblings; appending a **third** library file compiles it in but leaves
+it **unreachable** — a node calling `HelloService usingPlatform: platform` died on both paths
+with `Message 'HelloService' not understood by receiver <platform>`. Cause: `resolve_name`
+routes an unbound capitalised name to `platform Name`, and `Kernel` reaches its own classes
+only by **nesting them with an explicit accessor each** (`public NetBridge = ( ^ NetBridge )`).
+This is deliberate — the compiler comments pin the routing as "never a VM global
+(capability-pure)" — so direct naming of sibling modules would reintroduce **ambient
+globals**. The correct fix is **injection**: build out the `packageUsing: manifest`
+parameter, which **every node already declares and no node body uses** (vestigial today), so
+boot hands the app a manifest exposing its library modules (`manifest HttpServer`). Sized as
+a genuine feature (boot-path + toolchain + manifest construction), NOT a micro-change — the
+"~10 lines" first estimate was wrong. Until it lands, a module's own classes **nest** in its
+boot module (Newspeak idiom: `DemoNode`/`TempNode`), and promotion costs nothing later
+because composition is already by injection — only where a class lives and how it is obtained
+changes, never the `main:` wiring.
+
 **Arc-1 precursor — DONE 2026-07-18: `.ns` → `.nsl` source-extension migration.** Hard cut
 across the live repos (nsl-tests 209 files, tuvm/zephyr 13 nodes, nsl-tuvm `kernel`/`supervisor`);
 all discovery globs + hardcoded paths repointed; discriminating comment sweep + active-zephyr-docs

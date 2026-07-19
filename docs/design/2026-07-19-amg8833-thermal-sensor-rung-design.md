@@ -72,10 +72,10 @@ ESP32 devicetree overlay; and (phase 2) the threshold `event`.
 |---|---|---|
 | **`sensorFrame` prim** | `src/sensor_backend.h` + `src/backend/{posix,zephyr}/sensor_*.c` | Fetch 64 pixels via the sensor API, reduce each to a centi-°C SMI, return a fresh 64-element `List` — or `nil` if the device is not ready. Datapath in C. |
 | **`sensorArmEvent:` prim** (phase 2) | same seam | Register the driver's threshold trigger; its handler `pulse_post_isr`s onto the given channel. |
-| **`ThermalNode`** | `zephyr/ThermalNode.nsl` (new, own `main:` for standalone boot) | The sensor service. Owns `dev/thermal0/{sample,ctl,event}`; arms the cadence timer; publishes frames. Knows nothing about HTTP. Modeled on demo-node `TempNode`, but Tier-1-simpler (no register code). |
-| **`HttpServer`** | `zephyr/HttpServer.nsl` (extracted from `HttpServerNode.nsl`) | Generic transport: a `path → block` route table, `listen:`, request dispatch over the existing chunked prims. Knows nothing about sensors or presentation. |
-| **`ThermalView`** | `zephyr/ThermalView.nsl` (new, stateless) | Presenter: `renderFrame: f toId: id on: platform` walks the 64-int frame into per-row SVG `<rect>` chunks; plus `caption:`/`centi:`. Lifted from today's `HttpServerNode.nsl`. The seam the TFT rung reuses (a second view of the same frame). |
-| **composition root** | `zephyr/ThermalHttpNode.nsl` (new, the baked boot node) | Installs the three units, wires each route (peek+view for `/thermal`; `self`-send helpers for `/stats`,`/`), runs the one reactor loop. Holds only the `/stats`+`/` presentation helpers (they name classes / read `platform metrics`). |
+| **`ThermalNode`** | nested class in `zephyr/ThermalHttpNode.nsl` (see §4a) | The sensor service. Owns `dev/thermal0/{sample,ctl,event}`; arms the cadence timer; publishes frames. Knows nothing about HTTP. Modeled on demo-node `TempNode`, but Tier-1-simpler (no register code). |
+| **`HttpServer`** | nested class in `zephyr/ThermalHttpNode.nsl` (lifted from `HttpServerNode.nsl`) | Generic transport: a `path → block` route table, `listen:`, request dispatch over the existing chunked prims. Knows nothing about sensors or presentation. |
+| **`ThermalView`** | nested class in `zephyr/ThermalHttpNode.nsl` (stateless) | Presenter: `renderFrame: f toId: id on: platform` walks the 64-int frame into per-row SVG `<rect>` chunks; plus `caption:`/`centi:`. Lifted from today's `HttpServerNode.nsl`. The seam the TFT rung reuses (a second view of the same frame). |
+| **composition root** | `zephyr/ThermalHttpNode.nsl` (new, the baked boot node — the module declaration) | Top-level class nesting the three above. `main:` installs them, wires each route (peek+view for `/thermal`; `self`-send helpers for `/stats`,`/`), runs the one reactor loop. Holds the `/stats`+`/` presentation helpers. |
 | **`dev/thermal0/sample`** | channel (cell) | Latest frame out. *Consumer unchanged.* |
 | **`dev/thermal0/ctl`** | channel (cell) | Config in: `{rate: N}` fps, `{on: false}` to stop sampling. |
 | **`dev/thermal0/event`** | channel (stream, phase 2) | Threshold alerts via the driver trigger → pulse seam. |
@@ -122,9 +122,39 @@ public main: platform args: args = (
   `centi:`. Lifted verbatim from today's `HttpServerNode.nsl` render methods. The `/stats` and
   `/` presentation stays on the composition root as `self`-send helpers (they name classes /
   read `platform metrics`).
-- **`ThermalNode` keeps its own `main:`** for standalone headless boot — the nRF52840
-  fleet-node story (sensor publishing over Thread, no HTTP) and isolated host testing. One
-  source, two deployments (demo-node principle).
+## 4a. Module layout — why the three classes are NESTED (spike finding, 2026-07-19)
+
+The three services are **nested classes inside the one boot module**, not separate `.nsl`
+files. This corrects an earlier assumption in this spec and is grounded in a spike:
+
+- **The bake is single-app-file.** `ns_compile_oevm.py` compiles ONE app file, then appends
+  `lib/kernel.nsl` and `lib/supervisor.nsl` as top-level siblings (`ast["body"].extend(...)`).
+  There is no multi-app-file composition.
+- **Appending a library file makes it compiled-in but UNREACHABLE.** Spike: a throwaway
+  `lib/spike_hello.nsl` (top-level `HelloService`) was injected as a third sibling; a node
+  calling `HelloService usingPlatform: platform` died on **both** paths with
+  `Message 'HelloService' not understood by receiver <platform>`. The compiler's
+  `resolve_name` routes an unbound capitalised name to `platform Name` (step 4), and
+  `Kernel` reaches its own classes only because they are **nested inside it** with an
+  explicit accessor each (`public NetBridge = ( ^ NetBridge )`). A sibling has no accessor.
+- **That routing is deliberate, not a gap.** The compiler comments pin it: route through
+  "the handed `platform` capability … **never a VM global (capability-pure)**", and Kernel
+  classes are siblings precisely "so `resolve_class_ref` never resolves them in app scope".
+  Making separate-file modules directly nameable would reintroduce **ambient globals** —
+  what the capability model exists to prevent.
+- **Nesting is the Newspeak idiom** for a module's own classes (`DemoNode`/`TempNode`,
+  `DeltaBlueNS`/its helpers). Cross-module reuse is by *injection*, not naming.
+- **Promotion path (costs nothing later).** Because composition is already by injection,
+  extracting a nested class into an injected module later changes only where it lives and
+  how it is obtained (`ThermalNode` → `manifest ThermalNode`); the `main:` wiring is
+  unchanged. Filed as its own rung — see §11.
+
+## 4b. Standalone boot
+
+`ThermalNode` is reusable as-is for a sensor-only node (the nRF52840 fleet-node story:
+publish over Thread, no HTTP) by nesting it in a different boot module with a different
+`main:`. One class, two deployments (demo-node principle) — but note that today that means
+the class is *copied or promoted*, not shared, until the manifest rung lands.
 
 ## 5. Data flow & freshness
 
@@ -228,6 +258,14 @@ sensor-API prim + posix synthetic twin; the `ThermalNode`/`HttpServer` service s
 composition root; the ESP32 overlay.
 
 **Out (own rungs / deferred):**
+- **Manifest-based module injection** — the capability-pure way to get reusable service
+  modules in separate files on disk (`manifest HttpServer`), instead of nesting or
+  kernel-bloat. The `packageUsing: manifest` parameter every node already declares is
+  **currently vestigial** (no node body references it), which is exactly the hook this
+  would build out: boot constructs a manifest exposing the app's library modules. Sized by
+  the §4a spike as a genuine feature (boot-path + toolchain + manifest construction), not a
+  micro-change. The driver ladder (BME280 → AMG8833 → TFT → …) is the pressure that
+  justifies it. **Filed as its own rung.**
 - TFT character-grid display (Tier 2) — the **next** rung, its own spec.
 - Auto-enumeration catalog machinery (`dev/<node>/` per devicetree sensor) — generalize when
   a second sensor lands.
