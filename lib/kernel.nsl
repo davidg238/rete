@@ -2021,6 +2021,9 @@ class Kernel usingPlatform: platform = () (
   public httpListen: port = ( ^ platform httpListen: port )
   public httpRespondId: id status: st body: b = ( ^ platform httpRespondId: id status: st body: b )
   public httpInject: m path: p = ( ^ platform httpInject: m path: p )
+  public httpBeginId: id status: st = ( ^ platform httpBeginId: id status: st )
+  public httpChunkId: id data: s    = ( ^ platform httpChunkId: id data: s )
+  public httpEndId: id              = ( ^ platform httpEndId: id )
 
   public Object            = ( ^ Object )
   public Array             = ( ^ Array )
