@@ -219,9 +219,23 @@ not on this spike's critical path.
 
 ## Impact / measurement
 
-- **Expected:** render peak drops from ~52.8 KB toward the node's non-render
-  live set (target ≥ ~15 KB arena headroom); GC cycles per render 300+ → ~0
-  transient-string allocations.
+> **MEASURED OUTCOME (2026-07-19, on device) — the "Expected" below was PARTLY
+> WRONG.** The peak-reclaim prediction is DISPROVEN: heap high-water still pegs to
+> the ~53 KB ceiling after a single render, because the GC is collect-when-full
+> (peak occupancy hits the ceiling whenever a render's transient churn exceeds free
+> headroom, independent of streaming). What *did* materialize: GC churn cut ~100×
+> (300+ → ~1.5–3 cycles/render), page size decoupled from RAM (no whole-page
+> materialization; ~500 B row is the largest fragment), chunked + byte-identical
+> output, no leak. The remaining ~26 KB/render transient is the per-rect
+> `printString`s + per-row concat; killing those (primitive int-writes) is the
+> real path to lowering peak — deferred. Full trajectory table + root cause in
+> `review/model-capability-findings.md` (the doc of record). Also note: contract
+> (b) body-as-block was abandoned for (a) inline-stream (§4) — `Record` rejects a
+> Block field.
+
+- **Expected (original hypothesis — see MEASURED OUTCOME above):** render peak drops
+  from ~52.8 KB toward the node's non-render live set (target ≥ ~15 KB arena
+  headroom); GC cycles per render 300+ → ~0 transient-string allocations.
 - **Verify on-device** via the existing `/stats` page (`heap high-water`,
   `gc cycles`): serve `/thermal` repeatedly, read high-water before/after. No new
   instrumentation needed — the metrics already exist (`HttpServerNode.nsl`
