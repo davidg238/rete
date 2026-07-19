@@ -51,3 +51,4 @@ zephyr/*.stmap
 
 zephyr/prj_dk_thread_local.conf
 zephyr/prj_dongle_thread_local.conf
+zephyr/prj_esp32_wifi.local.conf
