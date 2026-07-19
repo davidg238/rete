@@ -2031,6 +2031,15 @@ class Kernel usingPlatform: platform = () (
   public httpBeginId: id status: st = ( ^ platform httpBeginId: id status: st )
   public httpChunkId: id data: s    = ( ^ platform httpChunkId: id data: s )
   public httpEndId: id              = ( ^ platform httpEndId: id )
+  (* AMG8833 thermal rung Task 1: the Tier-1 sensor seam. Same thin-forwarder
+     shape as the http family above — the C-side work lives entirely in
+     src/sensor_backend.h + src/backend/<target>/sensor_<target>.c; this Kernel
+     instance is just the capability the user's nsl code actually holds as
+     `platform`. sensorFrame answers a raw 64-slot Array of centi-degC SMIs (or
+     nil when the device is not ready) — read with basicAt:, the heapStats
+     precedent, not Array's at:. *)
+  public sensorFrame = ( ^ platform sensorFrame )
+  public sensorArmEventPost: msg on: path threshold: centi = ( ^ platform sensorArmEventPost: msg on: path threshold: centi )
 
   public Object            = ( ^ Object )
   public Array             = ( ^ Array )
