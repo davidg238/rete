@@ -100,6 +100,14 @@ one is a **C/model-boundary capacity** lesson. None blocked the pattern.
    — no response-sized C buffer, so node-generated bodies may be arbitrarily
    large. Aligns better with G3 (less C buffering) than the original design's
    `HTTP_RESP_MAX`.
+4. **A helper method does not see `main:args:`'s parameters.** `platform` is a
+   *parameter* of `main:args:`, not an instance slot — inside a separate method a
+   bare `platform` is an implicit-receiver send `self platform`, which DNUs and
+   aborts the VM. Reaction blocks close over `main`'s `platform` lexically (so
+   inline reactions are fine), but any method they call must take it explicitly
+   (`statsPageOn: platform`). Surfaced adding the `/stats` route
+   (`platform metrics`); `renderFrame:`/`caption:` never tripped it because they
+   touch only their argument and arithmetic.
 
 ### (e) Rough cost
 
