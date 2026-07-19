@@ -57,7 +57,7 @@
 **Interfaces:**
 - Produces: `int sensor_frame_read(int32_t *out)` fills `out[0..63]` centi-°C, returns 0 on success / non-zero if not ready. `int sensor_arm_event(int chan_id, int handle_idx, int32_t threshold_centi)`. Prim `platform sensorFrame` → 64-slot Array of SMIs, or `nil`. Prim `platform sensorArmEventPost: msg on: pathString threshold: centi` → self. Constant `OEVM_THERMAL_PIXELS` = 64.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `nsl-tests/18_sensor/01_frame.nsl`:
 
@@ -89,14 +89,14 @@ class SensorFrame packageUsing: manifest = () (
 )
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 ```bash
 python3 ~/workspace/nsl-tuvm/tools/run-one.py ~/workspace/nsl-tests/18_sensor/01_frame.nsl
 ```
 Expected: **FAIL** on both paths with `Message 'sensorFrame' not understood` (the prim does not exist yet).
 
-- [ ] **Step 3: Create the seam header**
+- [x] **Step 3: Create the seam header**
 
 Create `tuvm/src/sensor_backend.h`:
 
@@ -130,7 +130,7 @@ int sensor_arm_event(int chan_id, int handle_idx, int32_t threshold_centi);
 #endif /* OEVM_SENSOR_BACKEND_H */
 ```
 
-- [ ] **Step 4: Create the posix backend**
+- [x] **Step 4: Create the posix backend**
 
 Create `tuvm/src/backend/posix/sensor_posix.c`:
 
@@ -156,7 +156,7 @@ int sensor_arm_event(int chan_id, int handle_idx, int32_t threshold_centi)
 }
 ```
 
-- [ ] **Step 5: Register the prim ids in `dispatch.c`**
+- [x] **Step 5: Register the prim ids in `dispatch.c`**
 
 In `tuvm/src/dispatch.c`, in the prim enum immediately after `PRIM_pf_httpEnd,`, add:
 
@@ -183,7 +183,7 @@ Update the parity guard (it must name the LAST enum member):
 typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_sensorArmEvent) ? 1 : -1];
 ```
 
-- [ ] **Step 6: Mirror the ids in `prim_ids.h`**
+- [x] **Step 6: Mirror the ids in `prim_ids.h`**
 
 At the end of `tuvm/src/prim_ids.h`, add:
 
@@ -201,7 +201,7 @@ At the end of `tuvm/src/prim_ids.h`, add:
 #define PRIM_pf_sensorArmEvent  117
 ```
 
-- [ ] **Step 7: Implement the prim in `platform.c`**
+- [x] **Step 7: Implement the prim in `platform.c`**
 
 Add `#include "sensor_backend.h"` with the other seam includes at the top of `tuvm/src/platform.c`. Then add these two cases immediately before the `default:` of the platform prim switch:
 
@@ -244,7 +244,7 @@ Add `#include "sensor_backend.h"` with the other seam includes at the top of `tu
     }
 ```
 
-- [ ] **Step 8: Add the backend to the host build**
+- [x] **Step 8: Add the backend to the host build**
 
 Find every host build source list that already names `pulse_posix.c` and add `sensor_posix.c` beside it:
 
@@ -260,21 +260,21 @@ In `tools/run_c_tests.sh`, extend the shared SRCS block (the one listing `platfo
 
 Add the same path to any other list the grep reports.
 
-- [ ] **Step 9: Run the test to verify it passes**
+- [x] **Step 9: Run the test to verify it passes**
 
 ```bash
 python3 ~/workspace/nsl-tuvm/tools/run-one.py ~/workspace/nsl-tests/18_sensor/01_frame.nsl
 ```
 Expected: **Path A: PASS / Path B: PASS**.
 
-- [ ] **Step 10: Run the full suite**
+- [x] **Step 10: Run the full suite**
 
 ```bash
 cd ~/workspace/nsl-tuvm && python3 tools/run_tests_oevm.py 2>&1 | tail -8
 ```
 Expected: **201 passed, 0 failed, 14 skipped** (floor 200 + this new test), all named gates green.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 cd ~/workspace/tuvm && git add src/sensor_backend.h src/backend/posix/sensor_posix.c \

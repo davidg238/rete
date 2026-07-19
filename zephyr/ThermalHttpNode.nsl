@@ -1,0 +1,67 @@
+(*
+ThermalHttpNode — the boot module for the AMG8833 thermal demo. One module
+declaration nesting three decoupled classes (Newspeak idiom; the bake is
+single-app-file, see the rung design 4a):
+  ThermalNode  — samples the Grid-EYE on a ctl cadence, publishes frames
+  HttpServer   — generic path->block route table over the chunked HTTP prims
+  ThermalView  — renders a 64-px frame as an SVG heat-grid
+They never reference each other; producer and consumer meet only at the channel
+name 'dev/thermal0/sample'. main: is the composition root.
+*)
+class ThermalHttpNode packageUsing: manifest = () (
+
+  (* ---- presentation: a 64-px centi-degC frame as an SVG heat-grid ----
+     The frame comes from `platform sensorFrame`, a RAW indexable Array, so slots
+     are read with basicAt: (like HeapStats / udp basicReceive) — the Array-class
+     at: would DNU because the prim receiver does not carry the Array vtable. *)
+  class ThermalView = () (
+    public renderFrame: f toId: id on: platform = (
+      | row col line t k |
+      (f == nil) ifTrue: [
+        platform httpChunkId: id data: '<html><body>no frame</body></html>'. ^ self ].
+      platform httpChunkId: id data:
+        '<html><body><svg viewBox=''0 0 8 8'' width=''320'' height=''320'' shape-rendering=''crispEdges''>'.
+      row:: 0. [ row <= 7 ] whileTrue: [
+        line:: ''.
+        col:: 0. [ col <= 7 ] whileTrue: [
+          t:: f basicAt: (row * 8 + col + 1).
+          k:: ((t - 1500) * 255) // 2000.
+          (k < 0)   ifTrue: [ k:: 0 ].
+          (k > 255) ifTrue: [ k:: 255 ].
+          line:: line , '<rect x=''' , col printString , ''' y=''' , row printString ,
+                ''' width=''1'' height=''1'' fill=''rgb(' , k printString , ',0,' ,
+                (255 - k) printString , ')''/>'.
+          col:: col + 1 ].
+        platform httpChunkId: id data: line.
+        row:: row + 1 ].
+      platform httpChunkId: id data: '</svg><p>'.
+      platform httpChunkId: id data: (self caption: f).
+      platform httpChunkId: id data: '</p></body></html>'.
+      ^ self )
+
+    caption: f = (
+      | row col t maxV minV hotR hotC |
+      maxV:: f basicAt: 1. minV:: f basicAt: 1. hotR:: 0. hotC:: 0.
+      row:: 0. [ row <= 7 ] whileTrue: [
+        col:: 0. [ col <= 7 ] whileTrue: [
+          t:: f basicAt: (row * 8 + col + 1).
+          (t > maxV) ifTrue: [ maxV:: t. hotR:: row. hotC:: col ].
+          (t < minV) ifTrue: [ minV:: t ].
+          col:: col + 1 ]. row:: row + 1 ].
+      ^ 'max ' , (self centi: maxV) , 'C min ' , (self centi: minV) ,
+        'C hot (' , hotR printString , ',' , hotC printString , ')' )
+
+    centi: v = (
+      | whole tenth |
+      whole:: v // 100.
+      tenth:: (v - (whole * 100)) // 10.
+      ^ whole printString , '.' , tenth printString )
+  ) : (
+  )
+
+  public main: platform args: args = (
+    | tview |
+    tview:: ThermalView new.
+    ^ 0 )
+) : (
+)
