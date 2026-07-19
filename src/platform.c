@@ -761,12 +761,13 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = r; return 1;
     }
     case PRIM_pf_pumpEvents: {
+        http_poll();                            /* accept/read pending sockets -> request ring */
         int n = pulse_pump();
         http_pump();                            /* drain http request ring at the safe point */
         *out = TAG_SMI(n);
         return 1;
     }
-    case PRIM_pf_httpListen: {                 /* platform httpListen: port -> self (binds + accept thread) */
+    case PRIM_pf_httpListen: {                 /* platform httpListen: port -> self (binds; http_poll accepts) */
         int port = IS_SMI(args[0]) ? (int)UNTAG_SMI(args[0]) : 0;
         http_listen(port);
         *out = platform_object();

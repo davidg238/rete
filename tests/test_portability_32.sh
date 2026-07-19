@@ -16,7 +16,7 @@ gcc -m32 -std=c99 -Isrc tools/dump_layout.c -o /tmp/dl32 && /tmp/dl32 > /tmp/lay
 python3 -c "import json;d=json.load(open('/tmp/layout32.json'));assert d['oop_size']==4,d['oop_size']"
 SRC=../nsl-tests/04_somns_basic/01_method_call.nsl   # same minimal test as Task 10
 python3 $NS/tools/ns_compile_oevm.py "$SRC" /tmp/app32.oimg --format=oimg --layout=/tmp/layout32.json
-gcc -m32 -Wall -std=c99 -Isrc src/vm.c src/gc.c src/dispatch.c src/platform.c src/space.c src/handles.c "src/backend/$TARGET/platform_$TARGET.c" src/serial.c "src/backend/$TARGET/serial_$TARGET.c" src/udp.c "src/backend/$TARGET/udp_$TARGET.c" src/http.c "src/backend/$TARGET/http_$TARGET.c" "src/backend/$TARGET/pulse_$TARGET.c" "src/backend/$TARGET/timer_$TARGET.c" src/mirror.c src/oimg_loader.c src/kernel_boot.c oevm_image_main.c -o /tmp/oevm_img32 -lm
+gcc -m32 -Wall -std=c99 -Isrc src/vm.c src/gc.c src/dispatch.c src/platform.c src/space.c src/handles.c "src/backend/$TARGET/platform_$TARGET.c" src/serial.c "src/backend/$TARGET/serial_$TARGET.c" src/udp.c "src/backend/$TARGET/udp_$TARGET.c" src/http.c src/http_core.c "src/backend/$TARGET/http_$TARGET.c" "src/backend/$TARGET/pulse_$TARGET.c" "src/backend/$TARGET/timer_$TARGET.c" src/mirror.c src/oimg_loader.c src/kernel_boot.c oevm_image_main.c -o /tmp/oevm_img32 -lm
 OUTPUT=$(/tmp/oevm_img32 /tmp/app32.oimg)
 echo "$OUTPUT"
 [ "$OUTPUT" = "42" ] || { echo "FAIL: expected 42, got $OUTPUT"; exit 1; }

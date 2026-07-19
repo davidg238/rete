@@ -21,7 +21,7 @@ case "${OEVM_BUILD:-}" in
   * ) echo "unknown OEVM_BUILD='$OEVM_BUILD' (want asan|ubsan)"; exit 2 ;;
 esac
 STD="-std=c99 -Isrc"; OUT=/tmp/tuvm_ctest; fail=0
-ENG_COMMON="src/platform.c src/serial.c src/udp.c src/http.c src/mirror.c src/space.c src/handles.c \
+ENG_COMMON="src/platform.c src/serial.c src/udp.c src/http.c src/http_core.c src/mirror.c src/space.c src/handles.c \
   src/backend/posix/platform_posix.c src/backend/posix/serial_posix.c src/backend/posix/udp_posix.c \
   src/backend/posix/http_posix.c \
   src/backend/posix/pulse_posix.c \
@@ -75,7 +75,7 @@ run test_cbor "$ENG_B"
 # header comment — NOT serial.c/udp.c, which need the full VM)
 run test_serial "src/backend/posix/serial_posix.c"
 run test_udp    "src/backend/posix/udp_posix.c"
-run test_http   "src/backend/posix/http_posix.c" -lpthread
+run test_http   "src/http_core.c src/backend/posix/http_posix.c"
 # Header-only frame ABI test
 printf '%-28s ' test_frame_abi
 if $CC $STD tests/test_frame_abi.c -o $OUT 2>/tmp/tuvm_ctest.log && $OUT >/dev/null 2>&1; then echo PASS; else echo FAIL; cat /tmp/tuvm_ctest.log; fail=1; fi

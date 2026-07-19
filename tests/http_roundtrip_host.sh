@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Task 6 host integration: the webserver-channel-device spike over REAL posix
-# sockets. Bakes HttpServerNode.oimg, builds the image VM (with the http accept
-# thread, -lpthread), runs it listening on 8080, and drives it with curl:
+# sockets. Bakes HttpServerNode.oimg, builds the image VM (http_poll runs inside
+# pumpEvents on the single reactor thread — no accept thread), runs it listening
+# on 8080, and drives it with curl:
 #   GET /thermal -> 200 with an SVG heat-grid (body contains rgb()),
 #   GET /nope    -> 404,
 #   an 8-way concurrent burst (informational: with a 4-deep in-flight table some
@@ -21,15 +22,15 @@ gcc -std=c99 -Isrc tools/dump_layout.c -o /tmp/dl
 echo "[2/5] compile HttpServerNode.nsl -> .oimg"
 python3 "$NSL" zephyr/HttpServerNode.nsl /tmp/http_server.oimg --format=oimg --layout=/tmp/layout.json
 
-echo "[3/5] build image VM (+http accept thread, -lpthread)"
+echo "[3/5] build image VM (http_poll, no accept thread)"
 gcc -Wall -std=c99 -Isrc \
     src/vm.c src/gc.c src/dispatch.c src/platform.c src/space.c src/handles.c \
     "src/backend/$TARGET/platform_$TARGET.c" src/serial.c \
     "src/backend/$TARGET/serial_$TARGET.c" src/udp.c "src/backend/$TARGET/udp_$TARGET.c" \
-    src/http.c "src/backend/$TARGET/http_$TARGET.c" \
+    src/http.c src/http_core.c "src/backend/$TARGET/http_$TARGET.c" \
     "src/backend/$TARGET/pulse_$TARGET.c" "src/backend/$TARGET/timer_$TARGET.c" \
     src/mirror.c \
-    src/oimg_loader.c src/kernel_boot.c oevm_image_main.c -o /tmp/oevm_http -lm -lpthread
+    src/oimg_loader.c src/kernel_boot.c oevm_image_main.c -o /tmp/oevm_http -lm
 
 echo "[4/5] launch server on :$PORT"
 /tmp/oevm_http /tmp/http_server.oimg &

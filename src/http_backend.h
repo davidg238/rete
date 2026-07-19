@@ -16,6 +16,8 @@
    overflow. Reason phrase derived from status. */
 int  http_frame_response(int status, const char *body, int body_len,
                          char *out, int out_cap);
+/* Frame just the HTTP/1.0 header block. Returns bytes written or -1 on overflow. */
+int  http_frame_headers(int status, int body_len, char *out, int out_cap);
 
 /* Admit a request. fd == -1 means "injected" (framed reply goes to stdout);
    fd >= 0 is a real socket. Returns a fresh id, or -1 when the in-flight table
@@ -29,8 +31,19 @@ void http_respond(int id, int status, const char *body, int body_len);
 int  http_inflight_count(void);
 void http_backend_reset(void);
 
-/* Task 6: bind a TCP listener on port and start the accept thread. Returns 0 on
-   success, -1 on any socket setup failure. Loopback only (127.0.0.1). */
+/* Bind a TCP listener on port (non-blocking) so http_poll can accept on it.
+   Returns 0 on success, -1 on any socket setup failure. */
 int  http_listen(int port);
+
+/* Per-target transport hooks (implemented in src/backend/<target>/http_<target>.c).
+   After the poll unification there is no accept thread: http_poll runs on the VM
+   reactor thread inside pumpEvents. */
+/* Accept+read at most one pending connection (non-blocking) and admit it via
+   http_accept_request. No-op when nothing is pending. */
+void http_poll(void);
+/* Write a framed response (header block hdr[0..hlen) then body[0..body_len)) to
+   the transport for fd. fd == -1 is the host "injected" sink (stdout on posix,
+   discarded on device). */
+void http_emit(int fd, const char *hdr, int hlen, const char *body, int body_len);
 
 #endif /* OEVM_HTTP_BACKEND_H */
