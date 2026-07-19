@@ -397,7 +397,7 @@ git commit -m "feat(node): ThermalHttpNode boot module with nested ThermalView"
 
 **Critical:** the tick channel MUST be separate from the sample channel. `Timers>>every:post:on:` **posts** at the capability's own root (stream semantics); posting at the root of a cell raises `not a cell`/`not a stream`. Hence `dev/thermal0/tick`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `nsl-tests/18_sensor/02_thermal_node.nsl`:
 
@@ -447,14 +447,14 @@ class ThermalNodeTest packageUsing: manifest = () (
 )
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 ```bash
 python3 ~/workspace/nsl-tuvm/tools/run-one.py ~/workspace/nsl-tests/18_sensor/02_thermal_node.nsl
 ```
 Expected: **FAIL** on both paths — `ThermalNode` is not defined in this module yet (a `Message 'ThermalNode' not understood by receiver <platform>` DNU, since an unbound capitalised name routes to a `platform` send). That is feature-missing, the correct red.
 
-- [ ] **Step 3: Add the `ThermalNode` class — to BOTH files**
+- [x] **Step 3: Add the `ThermalNode` class — to BOTH files**
 
 Add this nested class to `tuvm/zephyr/ThermalHttpNode.nsl` immediately after `ThermalView` (the source of truth), **and paste the identical class** into `nsl-tests/18_sensor/02_thermal_node.nsl` immediately after its opening `class ThermalNodeTest … = () (` line. The duplication is forced by the single-app-file bake and is called out in both files' comments.
 
@@ -506,14 +506,14 @@ Add this nested class to `tuvm/zephyr/ThermalHttpNode.nsl` immediately after `Th
   )
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 ```bash
 python3 ~/workspace/nsl-tuvm/tools/run-one.py ~/workspace/nsl-tests/18_sensor/02_thermal_node.nsl
 ```
 Expected: **Path A: PASS / Path B: PASS**. If `at:ifAbsent:` DNUs on the ctl record, check the kernel `Record` accessor name and adjust `reconfigure:` to match it.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/workspace/tuvm && git add zephyr/ThermalHttpNode.nsl
