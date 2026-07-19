@@ -1,11 +1,13 @@
 (*
-HttpServerNode.nsl — the live posix twin of HttpNode.nsl. Instead of a single
-injected request, it binds a real TCP listener (platform httpListen: 8080 ->
-http_listen, which starts the accept thread) and then runs the standard reactor
-loop forever: each pumpEvents drains the http request ring at the safe point
-(http_pump) and posts [id,method,path] Arrays; the app reaction routes+renders;
-the egress reaction forwards the reply Record to httpRespondId:, which writes the
-framed response back to the request's socket fd and closes it. Driven by
+HttpServerNode.nsl — the live posix twin of HttpNode.nsl. It binds a real TCP
+listener (platform httpListen: 18080 -> http_listen, which starts the accept
+thread) and runs the standard reactor loop forever: each pumpEvents drains the
+http request ring at the safe point (http_pump) and posts [id,method,path]
+Arrays; the req whenever: reaction routes the request, decides a status and
+render block, then calls platform httpBeginId:status: (writes chunked headers),
+runs the render block which emits body fragments via platform httpChunkId:data:
+(one chunk per row), then platform httpEndId: (terminates chunk and closes
+socket). C owns socket and chunk framing; routing and render are nsl. Driven by
 tests/http_roundtrip_host.sh (curl round-trip). Routes match HttpNode.nsl.
 *)
 class HttpServerNode packageUsing: manifest = () (

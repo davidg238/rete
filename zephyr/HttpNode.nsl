@@ -1,17 +1,19 @@
 (*
-HttpNode.nsl — webserver-channel-device spike, the durable node twin of the
+HttpNode.nsl — webserver-channel-device node, the durable twin of
 nsl-tests/14_http conformance tests (same duplication convention as
 PulseNode.nsl / the 13_pulse test). Request half mirrors the pulse seam: the
 http backend's request ring is drained at the pumpEvents safe point (http_pump,
 src/http.c) and posted as an Array [id,method,path] to 'dev/http/request'.
-Reply half is the NetBridge egress idiom: a `whenever:` reaction on
-'dev/http/reply' forwards the Record to `platform httpRespondId:status:body:`,
-which lands in the pure-C http_respond seam (src/backend/posix/http_posix.c).
+Response is HTTP/1.1 chunked transfer-encoding: the req whenever: reaction
+routes the request, decides a status and render block, calls platform
+httpBeginId:status: (writes chunked headers), runs the render block which emits
+body fragments via platform httpChunkId:data:, then platform httpEndId:
+(terminates chunk). Injected-request twin; chunks route to stdout test sink
+(fd == -1). C owns socket and chunk framing; routing and render are nsl.
 
 Routes: GET /hello -> 'hello'; GET /thermal -> an 8x8 heat-grid SVG rendered
 from the 'dev/thermal0/sample' cell (on-node reduce for max/min/hot-pixel +
-SVG fold); anything else -> 404. For now the drive is a single injected GET
-(mirrors the test); a live accept-loop over `httpListen:` lands in Task 6.
+SVG fold); anything else -> 404.
 *)
 class HttpNode packageUsing: manifest = () (
   public main: platform args: args = (
