@@ -8,6 +8,7 @@
 #include "handles.h"
 #include "http.h"
 #include "http_backend.h"
+#include "sensor_backend.h"  /* AMG8833 thermal rung: the Tier-1 sensor seam */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -828,6 +829,42 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
     case PRIM_pf_httpEnd: {                      /* httpEndId: id */
         int id = IS_SMI(args[0]) ? (int)UNTAG_SMI(args[0]) : 0;
         http_end(id);
+        *out = platform_object();
+        return 1;
+    }
+    case PRIM_pf_sensorFrame: {
+        /* `platform sensorFrame` — one 8x8 thermal frame as a 64-slot Array of
+           centi-degC SMIs, or nil when the device is not ready. GC-safety: the
+           backend fills a C buffer BEFORE the single allocating call
+           (indexable_new); the 64 stores are SMIs (immediates, no allocation), so
+           no heap oop is ever held across an allocation and no gc_temp_root pin is
+           required — the same shape as heapStats/sysStats above. args are ignored
+           (0-arg selector). */
+        int32_t px[OEVM_THERMAL_PIXELS];
+        if (sensor_frame_read(px) != 0) { *out = NULL; return 1; }   /* not ready -> nil */
+        oop r = indexable_new(OEVM_THERMAL_PIXELS);
+        for (int i = 0; i < OEVM_THERMAL_PIXELS; i++)
+            ((struct ObjectInstance *)r)->slots[i + 1] = TAG_SMI((intptr_t)px[i]);
+        *out = r;
+        return 1;
+    }
+    case PRIM_pf_sensorArmEvent: {
+        /* sensorArmEventPost: msg on: 'path' threshold: centi — mirrors
+           gpioPin:edge:post:on: exactly: the channel arrives as a String PATH
+           (interned to a chan_id here, in thread context) and the message oop is
+           pinned via an M6 handle, because an ISR must never touch the VM. The
+           trigger handler then only calls pulse_post_isr(chan_id, handle_idx). */
+        oop path = args[1];
+        if (path == NULL || IS_SMI(path) || StringVtable == NULL ||
+            obj_vtable(path) != StringVtable) {
+            fprintf(stderr, "VM Error: platform sensorArmEventPost:on:threshold: expects a String channel\n");
+            abort();
+        }
+        struct String *p = (struct String *)path;
+        int chan_id = space_intern((const char *)p->bytes, p->length);
+        int hidx = handle_new(args[0]);                 /* pin the message oop via M6 */
+        int32_t thr = IS_SMI(args[2]) ? (int32_t)UNTAG_SMI(args[2]) : 0;
+        sensor_arm_event(chan_id, hidx, thr);
         *out = platform_object();
         return 1;
     }
