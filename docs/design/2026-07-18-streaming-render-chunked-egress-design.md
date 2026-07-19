@@ -126,15 +126,23 @@ render therefore runs to completion; `send_all`'s cooperative yield-retry covers
 backpressure without needing to suspend the render. Adequate at demo scale
 (browsers do not parallel-connect to one page — findings note).
 
-### §3 — nsl render contract: body-as-block through the reply channel
+### §3 — nsl render contract: body-as-block through the reply channel (SUPERSEDED 2026-07-18 — see §4)
+
+**Decision reversed by the Task 1 feasibility spike (§4): contract (b) below is
+NOT viable — `Record`'s `checkValue:` field-validation rejects (and, per a
+latent VM bug, crashes on) a Block field before a channel is ever involved.
+Fallback (a) inline-stream, described at the end of this section, is now the
+chosen contract for Task 4.** The (b) design is kept below as rejected-option
+history, per this repo's convention of preserving rationale for alternatives
+considered.
 
 Today the router reaction builds a `{id,status,body}` Record → `reply` channel →
 a separate `whenever:` reaction forwards it to `httpRespondId:status:body:`
 (`HttpServerNode.nsl:36-41`). Streaming cannot stage a String on a channel — the
 render must run **at emit time with `id` in hand**.
 
-Chosen contract **(b) body-as-block**: the reply Record carries a *renderer
-block* instead of a body String. The egress `whenever:` reaction:
+~~Chosen~~ **Rejected contract (b) body-as-block**: the reply Record carries a
+*renderer block* instead of a body String. The egress `whenever:` reaction:
 
 ```
 reply whenever: '' do: [ :resp |
@@ -166,8 +174,14 @@ channel" idiom is preserved — the "body" generalizes from *String* to
 *something that writes to a sink*, a reusable streamed-egress pattern.
 
 **(a) inline-stream** (router calls begin/chunk/end directly, bypassing the reply
-channel for streamed routes) was considered and rejected: simpler but
-special-cases streamed routes and breaks the uniform egress seam.
+channel for streamed routes) was considered and originally rejected as simpler
+but special-casing streamed routes and breaking the uniform egress seam. **The
+Task 1 spike (§4) overturned that call**: (b) is not viable, so (a) is now the
+chosen contract — the router reaction calls `platform httpBeginId:status:` /
+`httpChunkId:data:` / `httpEndId:` directly while it still holds `id`, instead
+of staging a block on the `reply` channel. This does special-case streamed
+routes (`/thermal`) relative to the small fixed-body routes, which is the
+accepted cost of the fallback; Task 4 implements this shape.
 
 ### §4 — Feasibility gate (first implementation step)
 
@@ -181,6 +195,27 @@ rest is built:
   block's closure roots alive across the safe point.
 - If blocks-through-channels does **not** hold, fall back to **(a) inline
   stream** (router streams directly) — same primitives, no channel-carried block.
+
+**Observed result (2026-07-18, Task 1 spike, posix host):** FAILED — crash, not
+a clean rejection. `platform Record tag: #response with: #body -> [ :n | n * 2 ]`
+segfaults (SIGSEGV) at *construction* time, before any channel `out:`/`whenever:`
+is involved (isolated with a control probe that stores the block in a `Record`
+with no channel at all, and a second control confirming plain `Record` fields
+and direct block invocation both work fine in isolation). Root cause: `Record`/
+`Map` are immutable "algebra value" types whose constructors validate every
+field via `checkValue:` → `isValueObject:` → `rankOf:` (`kernel.nsl:1797-1800`);
+a `Block` is not a value type, `platform valueRank:` answers -1 for it
+(`platform.c:338-361`, "any other heap object: ask it"), and the nsl fallback
+sends `valueRank` to the Block itself — which does not resolve cleanly and
+corrupts VM state, ultimately crashing inside the generic arithmetic bytecode
+handler's Float-cast fallback (`vm.c:937`) rather than raising the intended
+`self error: 'not a value'`. **Decision: contract (b) is NOT viable — fallback
+(a) inline-stream selected for Task 4 (§3 updated above).** This is an
+architectural constraint (Records are value-only by design), not merely a
+channel-delivery question, so no amount of channel-plumbing rework would save
+contract (b) as specified; the latent crash-instead-of-clean-error in the
+not-a-value path is a separate, smaller VM bug worth a follow-up ticket but is
+not on this spike's critical path.
 
 ## Impact / measurement
 
