@@ -31,9 +31,9 @@ timer→pulse→reactor path (rung 8), the pulse/G2 ISR seam.
 ### What is new
 
 A thin Tier-1 sensor-frame prim over the uniform `sensor` API; a self-contained
-`ThermalNode` sensor service; a generic route-accepting `HttpServer` service; a thin
-composition-root node; a `dev/thermal0/ctl` channel; an ESP32 devicetree overlay; and
-(phase 2) the threshold `event`.
+`ThermalNode` sensor service; a generic route-accepting `HttpServer` service; a stateless
+`ThermalView` presenter; a thin composition-root node; a `dev/thermal0/ctl` channel; an
+ESP32 devicetree overlay; and (phase 2) the threshold `event`.
 
 ## 2. Decisions locked in brainstorming
 
@@ -54,9 +54,10 @@ composition-root node; a `dev/thermal0/ctl` channel; an ESP32 devicetree overlay
    rung-8 timer→pulse→reactor path end to end. G9-honest: the cadence exists only because a
    `ctl` record asked for it; CPU idles in WFI between ticks.
 5. **Phase 2 (threshold event) stays in this spec** — cheap, both halves already exist.
-6. **Composition: two decoupled services wired by a thin composition root** (David's
-   Option 2+). `ThermalNode` and `HttpServer` never reference each other; they meet only at
-   the channel name `dev/thermal0/sample`. See §4.
+6. **Composition: three decoupled units wired by a thin composition root** (David's
+   Option 2+, refined). `ThermalNode` (produce), `HttpServer` (transport), `ThermalView`
+   (present) never reference each other; producer and consumer meet only at the channel name
+   `dev/thermal0/sample`. See §4.
 
 ## 3. Components
 
@@ -65,42 +66,56 @@ composition-root node; a `dev/thermal0/ctl` channel; an ESP32 devicetree overlay
 | **`sensorFrame` prim** | `src/sensor_backend.h` + `src/backend/{posix,zephyr}/sensor_*.c` | Fetch 64 pixels via the sensor API, reduce each to a centi-°C SMI, return a fresh 64-element `List` — or `nil` if the device is not ready. Datapath in C. |
 | **`sensorArmEvent:` prim** (phase 2) | same seam | Register the driver's threshold trigger; its handler `pulse_post_isr`s onto the given channel. |
 | **`ThermalNode`** | `zephyr/ThermalNode.nsl` (new, own `main:` for standalone boot) | The sensor service. Owns `dev/thermal0/{sample,ctl,event}`; arms the cadence timer; publishes frames. Knows nothing about HTTP. Modeled on demo-node `TempNode`, but Tier-1-simpler (no register code). |
-| **`HttpServer`** | `zephyr/HttpServer.nsl` (extracted from `HttpServerNode.nsl`) | Generic service: a `path → block` route table, `listen:`, request dispatch over the existing chunked prims. Knows nothing about sensors. |
-| **composition root** | `zephyr/ThermalHttpNode.nsl` (new, the baked boot node) | Installs both services, wires the `/thermal` route to a peek, runs the one reactor loop. |
+| **`HttpServer`** | `zephyr/HttpServer.nsl` (extracted from `HttpServerNode.nsl`) | Generic transport: a `path → block` route table, `listen:`, request dispatch over the existing chunked prims. Knows nothing about sensors or presentation. |
+| **`ThermalView`** | `zephyr/ThermalView.nsl` (new, stateless) | Presenter: `renderFrame: f toId: id on: platform` walks the 64-int frame into per-row SVG `<rect>` chunks; plus `caption:`/`centi:`. Lifted from today's `HttpServerNode.nsl`. The seam the TFT rung reuses (a second view of the same frame). |
+| **composition root** | `zephyr/ThermalHttpNode.nsl` (new, the baked boot node) | Installs the three units, wires each route (peek+view for `/thermal`; `self`-send helpers for `/stats`,`/`), runs the one reactor loop. Holds only the `/stats`+`/` presentation helpers (they name classes / read `platform metrics`). |
 | **`dev/thermal0/sample`** | channel (cell) | Latest frame out. *Consumer unchanged.* |
 | **`dev/thermal0/ctl`** | channel (cell) | Config in: `{rate: N}` fps, `{on: false}` to stop sampling. |
 | **`dev/thermal0/event`** | channel (stream, phase 2) | Threshold alerts via the driver trigger → pulse seam. |
 
 ## 4. Composition & decoupling
 
-The baked boot node is a thin composition root; only one `main:` runs per image:
+Three decoupled units — **produce** (`ThermalNode`), **transport** (`HttpServer`),
+**present** (`ThermalView`) — wired by a thin composition root. Only one `main:` runs per image:
 
 ```
-main: platform args:
-  space   := platform space.
-  thermal := ThermalNode onSpace: space seam: platform.   thermal start.
-  http    := HttpServer  onSpace: space seam: platform.
+public main: platform args: args = (
+  | space thermal tview http |
+  space::   platform space.
+  thermal:: ThermalNode onSpace: space seam: platform.   thermal start.   "publishes dev/thermal0/sample @2fps"
+  tview::   ThermalView new.
+  http::    HttpServer  onSpace: space seam: platform.
   http route: '/thermal' do: [ :id :plat |
-      self renderFrame: (space channel: 'dev/thermal0/sample') peek toId: id on: plat ].
-  http route: '/stats'  do: [ :id :plat | self statsPageOn: plat toId: id ].
-  http route: '/'       do: [ :id :plat | self indexToId: id on: plat ].
+      tview renderFrame: ((space channel: 'dev/thermal0/sample') peek: '' ifAbsent: [ nil ])
+            toId: id on: plat ].
+  http route: '/stats' do: [ :id :plat | self showStatsTo: id on: plat ].
+  http route: '/'      do: [ :id :plat | self showIndexTo: id on: plat ].
   http listen: 18080.
   [ true ] whileTrue: [ platform pumpEvents. space drain ].
+)
 ```
 
-- **The two services never reference each other.** `HttpServer` holds opaque render blocks;
-  `ThermalNode` publishes to a channel. The only coupling — the channel name
-  `dev/thermal0/sample` — lives in the composition root, which is where coupling belongs.
-  Both become reusable: any node installs `HttpServer` and adds routes; any node installs
-  `ThermalNode`.
-- **Route blocks take `(id, platform)` and delegate to `self`-methods.** A reified block
-  cannot reliably capture `platform`/cross-class sends (known VM constraint; the existing
-  `HttpServerNode` already uses exactly this `self`-send-with-platform idiom). The route-table
-  refactor stays inside that proven idiom. Here `self` is the **composition-root** node, so
-  the page-render methods (`renderFrame:`/`caption:`/`statsPageOn:`/`indexToId:`/`statRow:`/
-  `centi:`) move from today's `HttpServerNode.nsl` onto `ThermalHttpNode.nsl` — they are the
-  node's *presentation*, distinct from the generic `HttpServer` transport and the `ThermalNode`
-  sensor. `HttpServer` carries only the route table, `listen:`, and dispatch.
+- **No service references another.** `HttpServer` holds opaque route blocks; `ThermalNode`
+  publishes to a channel; `ThermalView` is a stateless presenter. The only coupling — the
+  channel name `dev/thermal0/sample` — lives in the composition root, where coupling belongs.
+  All three become reusable, and `ThermalView` is the seam the **next rung** reuses: the TFT
+  character-grid is just a second view of the same frame (`ThermalGridView renderFrame:…`).
+- **The reified-block rule (precise).** A `whenever:`/route block is a genuine reified
+  `BlockClosure` stored by the reactor and fired later. Inside it, **naming a module-level
+  class directly** (`ThermalView`, `Cbor new`, `OrderedCollection new`) aborts — the class
+  reference doesn't resolve its outer/module context (`LD_SLOT` on a non-object receiver;
+  `kernel.nsl:1155` NetBridge note). What is **fine**: sending to captured objects/temps/ivars
+  (`tview renderFrame:…`, `space channel:…`, `thermal peek:…` — the last is today's shipping
+  `HttpServerNode` block). So the pattern is: **construct the view once in `main:`
+  (`tview:: ThermalView new`, class resolved in method-body context), capture it, and the block
+  just sends to the captured instance.** No `self`-forwarder needed for `/thermal`. Routes that
+  *must* name a class in their body (e.g. `/stats` building the metrics table) use a `self`-send
+  helper instead (`self showStatsTo:on:`), where class names resolve normally.
+- **`ThermalView` (stateless presenter).** `renderFrame: f toId: id on: platform` — walks the
+  64-int frame into per-row SVG `<rect>` chunks via `platform httpChunkId:`; plus `caption:`/
+  `centi:`. Lifted verbatim from today's `HttpServerNode.nsl` render methods. The `/stats` and
+  `/` presentation stays on the composition root as `self`-send helpers (they name classes /
+  read `platform metrics`).
 - **`ThermalNode` keeps its own `main:`** for standalone headless boot — the nRF52840
   fleet-node story (sensor publishing over Thread, no HTTP) and isolated host testing. One
   source, two deployments (demo-node principle).
