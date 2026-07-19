@@ -58,6 +58,13 @@ ESP32 devicetree overlay; and (phase 2) the threshold `event`.
    Option 2+, refined). `ThermalNode` (produce), `HttpServer` (transport), `ThermalView`
    (present) never reference each other; producer and consumer meet only at the channel name
    `dev/thermal0/sample`. See §4.
+7. **Precursor (separate micro-change, landed first): nil-defaulting cell reads.** Add
+   `Channel>>peek` (unary — this channel's own cell) and `Channel>>peek: rel` (a sub-cell),
+   each `= ( ^ self peek: rel ifAbsent: [ nil ] )`, leaving `peek:ifAbsent:` untouched for the
+   never-written-vs-nil case. Distinct selectors (arity is part of the name — no overload
+   conflict). Lands as its own kernel commit + both-paths gate *before* this rung, so cell
+   reads here use the clean bare `peek`. `take`/`out` have the same latent asymmetry — noted,
+   not widened now.
 
 ## 3. Components
 
@@ -86,8 +93,7 @@ public main: platform args: args = (
   tview::   ThermalView new.
   http::    HttpServer  onSpace: space seam: platform.
   http route: '/thermal' do: [ :id :plat |
-      tview renderFrame: ((space channel: 'dev/thermal0/sample') peek: '' ifAbsent: [ nil ])
-            toId: id on: plat ].
+      tview renderFrame: ((space channel: 'dev/thermal0/sample') peek) toId: id on: plat ].
   http route: '/stats' do: [ :id :plat | self showStatsTo: id on: plat ].
   http route: '/'      do: [ :id :plat | self showIndexTo: id on: plat ].
   http listen: 18080.
