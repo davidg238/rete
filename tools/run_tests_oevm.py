@@ -32,7 +32,8 @@ OEVM_BACKEND = [f"src/backend/{OEVM_TARGET}/platform_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/udp_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/pulse_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/timer_{OEVM_TARGET}.c",
-                f"src/backend/{OEVM_TARGET}/http_{OEVM_TARGET}.c"]
+                f"src/backend/{OEVM_TARGET}/http_{OEVM_TARGET}.c",
+                f"src/backend/{OEVM_TARGET}/sensor_{OEVM_TARGET}.c"]
 
 # OEVM_DUMP_DIR: differential harness knob. When set, every test's raw program stdout
 # (the bytes the .nsl program printed — what gets compared against expectations) is

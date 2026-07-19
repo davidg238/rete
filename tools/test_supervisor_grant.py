@@ -23,7 +23,8 @@ OEVM_BACKEND = [f"src/backend/{OEVM_TARGET}/platform_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/udp_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/pulse_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/timer_{OEVM_TARGET}.c",
-                f"src/backend/{OEVM_TARGET}/http_{OEVM_TARGET}.c"]
+                f"src/backend/{OEVM_TARGET}/http_{OEVM_TARGET}.c",
+                f"src/backend/{OEVM_TARGET}/sensor_{OEVM_TARGET}.c"]
 OEVM_EXTRA_CFLAGS = os.environ.get("OEVM_EXTRA_CFLAGS", "").split()
 
 # ---------------------------------------------------------------------------
