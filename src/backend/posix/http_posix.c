@@ -14,9 +14,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define HTTP_METHOD_MAX 8
-#define HTTP_PATH_MAX   64
-
 static int listen_fd = -1;
 
 void http_emit(int fd, const char *hdr, int hlen, const char *body, int body_len) {

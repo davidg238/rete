@@ -1,0 +1,12 @@
+# tuvm app Kconfig — WiFi credentials for the ESP32 HTTP node (#46).
+# Values are supplied by the git-ignored overlay prj_esp32_wifi.local.conf;
+# the defaults below keep non-WiFi boards (DK/dongle) building.
+config TUVM_WIFI_SSID
+	string "WiFi SSID for the HTTP node"
+	default ""
+
+config TUVM_WIFI_PSK
+	string "WiFi WPA2 PSK for the HTTP node"
+	default ""
+
+source "Kconfig.zephyr"

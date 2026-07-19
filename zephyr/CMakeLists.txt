@@ -33,6 +33,9 @@ target_sources(app PRIVATE
   ${TUVM_SRC}/src/backend/zephyr/udp_zephyr.c
   ${TUVM_SRC}/src/backend/zephyr/pulse_zephyr.c
   ${TUVM_SRC}/src/backend/zephyr/timer_zephyr.c
+  ${TUVM_SRC}/src/http.c
+  ${TUVM_SRC}/src/http_core.c
+  ${TUVM_SRC}/src/backend/zephyr/http_zephyr.c
 )
 target_include_directories(app PRIVATE ${TUVM_SRC}/src)
 

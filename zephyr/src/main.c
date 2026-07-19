@@ -62,6 +62,53 @@ static void thread_bringup(void) {
 }
 #endif /* CONFIG_NET_L2_OPENTHREAD */
 
+#ifdef CONFIG_WIFI
+#include <zephyr/net/net_if.h>
+#include <zephyr/net/wifi_mgmt.h>
+#include <zephyr/net/net_mgmt.h>
+#include <zephyr/net/dhcpv4.h>
+#include <string.h>
+
+/* Associate to WPA2 WiFi (2.4 GHz) from the CONFIG_TUVM_WIFI_* symbols, start
+   DHCPv4, and wait for an IPv4 lease before the VM binds the listener. Mirrors
+   thread_bringup()'s poll-until-ready style. Loud on the console so the operator
+   can read the assigned IP and point a browser at it. */
+static void wifi_bringup(void) {
+    struct net_if *iface = net_if_get_first_wifi();
+    if (!iface) { printk("wifi: no wifi iface\n"); return; }
+
+    struct wifi_connect_req_params p;
+    memset(&p, 0, sizeof p);
+    p.ssid        = (const uint8_t *)CONFIG_TUVM_WIFI_SSID;
+    p.ssid_length = strlen(CONFIG_TUVM_WIFI_SSID);
+    p.psk         = (const uint8_t *)CONFIG_TUVM_WIFI_PSK;
+    p.psk_length  = strlen(CONFIG_TUVM_WIFI_PSK);
+    p.security    = WIFI_SECURITY_TYPE_PSK;
+    p.channel     = WIFI_CHANNEL_ANY;
+    p.band        = WIFI_FREQ_BAND_2_4_GHZ;
+    p.mfp         = WIFI_MFP_OPTIONAL;
+
+    int cr = net_mgmt(NET_REQUEST_WIFI_CONNECT, iface, &p, sizeof p);
+    printk("wifi: connect(ssid_len=%u) req=%d\n", (unsigned)p.ssid_length, cr);
+
+    net_dhcpv4_start(iface);
+
+    char ipbuf[NET_IPV4_ADDR_LEN];
+    for (int i = 0; i < 300; i++) {           /* up to ~30 s for associate + lease */
+        struct net_if_addr *ua = &iface->config.ip.ipv4->unicast[0].ipv4;
+        if (iface->config.ip.ipv4 &&
+            ua->addr_state == NET_ADDR_PREFERRED &&
+            ua->address.in_addr.s_addr != 0) {
+            net_addr_ntop(AF_INET, &ua->address.in_addr, ipbuf, sizeof ipbuf);
+            printk("wifi: up, ip=%s -> http://%s:18080/thermal\n", ipbuf, ipbuf);
+            return;
+        }
+        k_msleep(100);
+    }
+    printk("wifi: no IPv4 lease after 30s, continuing\n");
+}
+#endif /* CONFIG_WIFI */
+
 /* Task 8 (nRF52840-DK acceptance bar): bind the on-board BUTTON1 (P0.11) as the
    PHYSICAL edge source for the pulse seam, via the `pulsegpio` DT alias added in
    boards/nrf52840dk_nrf52840.overlay. Guarded on the alias's existence: for the
@@ -187,6 +234,9 @@ int main(void) {
 
 #ifdef CONFIG_NET_L2_OPENTHREAD
     thread_bringup();    /* Rung-7: enable OT + admin-up the net_if before the VM binds sockets */
+#endif
+#ifdef CONFIG_WIFI
+    wifi_bringup();      /* #46: associate to WiFi + DHCPv4 before the VM binds the http listener */
 #endif
 
 #ifdef TUVM_MODEL_B

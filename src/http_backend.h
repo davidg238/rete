@@ -12,6 +12,16 @@
 #define OEVM_HTTP_INFLIGHT 4
 #endif
 
+/* Method/path scratch-buffer caps, shared by http_core.c's ring and every
+   backend's request-line scan (posix/zephyr) so the three copies can never
+   drift out of sync (found in Task 1 review). */
+#ifndef HTTP_METHOD_MAX
+#define HTTP_METHOD_MAX 8
+#endif
+#ifndef HTTP_PATH_MAX
+#define HTTP_PATH_MAX   64
+#endif
+
 /* Frame a complete HTTP/1.0 response into out. Returns bytes written, or -1 on
    overflow. Reason phrase derived from status. */
 int  http_frame_response(int status, const char *body, int body_len,

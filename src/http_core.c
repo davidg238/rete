@@ -41,9 +41,6 @@ int http_frame_response(int status, const char *body, int body_len,
     return n + body_len;
 }
 
-#define HTTP_METHOD_MAX 8
-#define HTTP_PATH_MAX   64
-
 struct InflightSlot { int live; int id; int fd; };
 struct RingItem { int id; char method[HTTP_METHOD_MAX]; char path[HTTP_PATH_MAX]; };
 

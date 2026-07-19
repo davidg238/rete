@@ -74,9 +74,19 @@ else
 fi
 
 PRISTINE_ARG=(); [ "$PRISTINE" = 1 ] && PRISTINE_ARG=(-p always)
+# WiFi credentials overlay (#46): git-ignored, generated once with the real
+# SSID/PSK (never tracked). Appended only when present so a checkout without
+# it (or a future non-WiFi board) builds unaffected.
+WIFI_CONF="$ZDIR/prj_esp32_wifi.local.conf"
+EXTRA_CONF_ARG=()
+if [ -f "$WIFI_CONF" ]; then
+  EXTRA_CONF_ARG=(-DEXTRA_CONF_FILE=prj_esp32_wifi.local.conf)
+  echo "[wifi]  overlay found -> $WIFI_CONF"
+fi
 echo "[build] -b $BOARD -d $BUILD_DIR ${PRISTINE_ARG[*]:-(incremental)}"
 ( cd "$ZDIR" && west build -b "$BOARD" "${PRISTINE_ARG[@]}" -d "$BUILD_DIR" . \
-    -- -DCONF_FILE=prj_esp32.conf -DTUVM_MODEL="$MODEL" "${BLOB_ARG[@]}" )
+    -- -DCONF_FILE=prj_esp32.conf -DTUVM_MODEL="$MODEL" "${BLOB_ARG[@]}" \
+       "${EXTRA_CONF_ARG[@]}" )
 
 if [ "$DO_FLASH" = 1 ]; then
   echo "[flash] esptool 0x1000"
