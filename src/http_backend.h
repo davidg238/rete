@@ -26,6 +26,11 @@
    overflow. Reason phrase derived from status. */
 int  http_frame_response(int status, const char *body, int body_len,
                          char *out, int out_cap);
+
+/* Parse "METHOD SP PATH ..." into bounded NUL-terminated buffers. 1 if both
+   found, else 0. Hand-rolled (no sscanf): picolibc vfscanf faults on ESP32. */
+int  http_parse_reqline(const char *buf, char *method, int mcap,
+                        char *path, int pcap);
 /* Frame just the HTTP/1.0 header block. Returns bytes written or -1 on overflow. */
 int  http_frame_headers(int status, int body_len, char *out, int out_cap);
 
@@ -44,6 +49,11 @@ void http_backend_reset(void);
 /* Bind a TCP listener on port (non-blocking) so http_poll can accept on it.
    Returns 0 on success, -1 on any socket setup failure. */
 int  http_listen(int port);
+
+/* 1 once http_listen has bound a listener, else 0. pumpEvents uses this to decide
+   whether it must poll http every tick (and therefore must NOT block in the pulse
+   pump) — see pulse_pump_nb(). 0 for injected-only/test use and non-http nodes. */
+int  http_is_listening(void);
 
 /* Per-target transport hooks (implemented in src/backend/<target>/http_<target>.c).
    After the poll unification there is no accept thread: http_poll runs on the VM

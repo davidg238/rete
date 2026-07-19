@@ -49,6 +49,8 @@ int http_listen(int port) {
     return 0;
 }
 
+int http_is_listening(void) { return listen_fd >= 0; }
+
 /* Accept+read at most one pending connection each tick. Non-blocking accept;
    a short SO_RCVTIMEO bounds the read so a connected-but-silent client can never
    wedge the single-threaded reactor. */
@@ -63,6 +65,6 @@ void http_poll(void) {
     if (n <= 0) { close(fd); return; }
     buf[n] = '\0';
     char method[HTTP_METHOD_MAX] = {0}, path[HTTP_PATH_MAX] = {0};
-    if (sscanf(buf, "%7s %63s", method, path) != 2) { close(fd); return; }
+    if (!http_parse_reqline(buf, method, HTTP_METHOD_MAX, path, HTTP_PATH_MAX)) { close(fd); return; }
     http_accept_request(fd, method, (int)strlen(method), path, (int)strlen(path));
 }

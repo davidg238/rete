@@ -762,7 +762,12 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
     }
     case PRIM_pf_pumpEvents: {
         http_poll();                            /* accept/read pending sockets -> request ring */
-        int n = pulse_pump();
+        /* With an HTTP listener active, pulse must be drained NON-BLOCKING: the
+           reactor has to loop back to http_poll every tick, so it cannot sleep in
+           pulse_pump's K_FOREVER (zephyr) waiting for a pulse event that never comes.
+           A pure pulse/timer node (no listener) keeps the blocking pump and sleeps
+           efficiently until its ISR fires. On posix both are non-blocking. (#46) */
+        int n = http_is_listening() ? pulse_pump_nb() : pulse_pump();
         http_pump();                            /* drain http request ring at the safe point */
         *out = TAG_SMI(n);
         return 1;

@@ -37,3 +37,6 @@ int pulse_pump(void) {
     }
     return drained;
 }
+
+/* Posix pulse_pump is already non-blocking, so the nb variant is identical. */
+int pulse_pump_nb(void) { return pulse_pump(); }

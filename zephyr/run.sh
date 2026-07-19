@@ -34,7 +34,16 @@ ESPTOOL_PORT="${ESPTOOL_PORT:-/dev/ttyUSB0}"
 [ -f "$NSL" ]        || { echo "compiler not found: $NSL" >&2; exit 2; }
 
 # The seven load-bearing knobs. -p always discards the cache, so always export.
-export OEVM_HEAP_SIZE=65536 METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256 \
+# OEVM_HEAP_SIZE default 53248 (52 KB): prj_esp32.conf now unconditionally pulls in
+# WiFi (#46) whose ESP driver heap (~40 KB) + the TCP net-buf pool leave no room for
+# the old 64 KB VM arena on this 192 KB DRAM part — at 65536 the image overflows
+# DRAM at link. 53248 is the most the DRAM allows AND about the most the HttpServerNode
+# needs (live-heap high-water ~52.8 KB observed via /stats — the node runs at the edge
+# of both DRAM and VM heap; see review/model-capability-findings.md). A caller can
+# override (e.g. a heavier compute node on a future non-WiFi esp32 config):
+#   OEVM_HEAP_SIZE=65536 bash run.sh --node SomeNode.nsl
+: "${OEVM_HEAP_SIZE:=53248}"
+export OEVM_HEAP_SIZE METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256 \
        VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512
 # The float-arena pair is NOT optional, despite every prior doc listing only five.
 # gc.c's boxed-Float slab defaults to 4096 cells; struct Float is 16 B on Xtensa
@@ -83,6 +92,11 @@ if [ -f "$WIFI_CONF" ]; then
   EXTRA_CONF_ARG=(-DEXTRA_CONF_FILE=prj_esp32_wifi.local.conf)
   echo "[wifi]  overlay found -> $WIFI_CONF"
 fi
+# ROM setjmp/longjmp/ungetc fault under Zephyr+picolibc (same forced-ROM-newlib
+# family as fflush); patch the vendored SDK ld to use picolibc's. Idempotent; a
+# west re-fetch reverts the SDK, so re-apply every build. Zero-SDK-touch: tuvm #48.
+"$ROOT/tools/patch-esp32-rom-ld.sh"
+
 echo "[build] -b $BOARD -d $BUILD_DIR ${PRISTINE_ARG[*]:-(incremental)}"
 ( cd "$ZDIR" && west build -b "$BOARD" "${PRISTINE_ARG[@]}" -d "$BUILD_DIR" . \
     -- -DCONF_FILE=prj_esp32.conf -DTUVM_MODEL="$MODEL" "${BLOB_ARG[@]}" \

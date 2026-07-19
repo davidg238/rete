@@ -16,18 +16,40 @@
       (it never includes posix/fcntl.h) — <zephyr/posix/fcntl.h> is included here
       explicitly for zsock_fcntl(). */
 #include "http_backend.h"
+#include <zephyr/kernel.h>       /* k_yield / k_msleep, printk */
 #include <zephyr/net/socket.h>
 #include <zephyr/net/net_ip.h>
 #include <zephyr/posix/fcntl.h>  /* F_SETFL, O_NONBLOCK (not pulled in by net/socket.h) */
 #include <string.h>
-#include <stdio.h>               /* sscanf */
+#include <errno.h>               /* EAGAIN (partial-send retry) */
 
 static int listen_fd = -1;
 
+/* Send every byte in bounded chunks. Tight TX net-buf pools can't absorb a 4 KB
+   body at once, so zsock_send returns partial counts or a transient buffer error
+   (EAGAIN/EWOULDBLOCK/ENOMEM) until segments are ACKed and buffers recycle — retry
+   those with a short yield (which also gives the net TX path CPU). Returns 0 when
+   all n bytes are queued, -1 only on a real peer error. */
+#define HTTP_SEND_CHUNK 512
+static int send_all(int fd, const char *p, int n) {
+    int off = 0, spins = 0;
+    while (off < n) {
+        int want = n - off; if (want > HTTP_SEND_CHUNK) want = HTTP_SEND_CHUNK;
+        int w = (int)zsock_send(fd, p + off, (size_t)want, 0);
+        if (w > 0) { off += w; spins = 0; continue; }
+        if (w < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOMEM)) {
+            if (++spins > 2000) return -1;    /* wedged ~2 s — give up on this peer */
+            k_msleep(1); continue;            /* buffers busy — let TX drain */
+        }
+        return -1;                            /* peer gone (ENOTCONN/RST) */
+    }
+    return 0;
+}
+
 void http_emit(int fd, const char *hdr, int hlen, const char *body, int body_len) {
     if (fd == -1) return;                    /* no injected sink on device */
-    (void)zsock_send(fd, hdr, (size_t)hlen, 0);
-    if (body_len > 0) (void)zsock_send(fd, body, (size_t)body_len, 0);
+    if (send_all(fd, hdr, hlen) == 0 && body_len > 0)
+        (void)send_all(fd, body, body_len);
     zsock_close(fd);
 }
 
@@ -51,10 +73,20 @@ int http_listen(int port) {
     return 0;
 }
 
+int http_is_listening(void) { return listen_fd >= 0; }
+
 void http_poll(void) {
     if (listen_fd < 0) return;
     int fd = zsock_accept(listen_fd, NULL, NULL);
-    if (fd < 0) return;                      /* EWOULDBLOCK -> nothing pending */
+    if (fd < 0) {
+        /* Nothing pending. The nsl reactor loop `[ true ] whileTrue: [ pumpEvents.
+           space drain ]` busy-spins with no sleep; on Zephyr that starves the
+           cooperative WiFi/TCP driver threads, so responses never flush and new
+           connections never get accepted. Yield the CPU here (idle path only) so
+           the net stack runs — a device-transport concern, invisible to nsl. */
+        k_msleep(1);
+        return;
+    }
     /* bound the read so a silent client can't wedge the reactor */
     struct zsock_timeval tv = { .tv_sec = 0, .tv_usec = 200000 };
     zsock_setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
@@ -63,6 +95,6 @@ void http_poll(void) {
     if (n <= 0) { zsock_close(fd); return; }
     buf[n] = '\0';
     char method[HTTP_METHOD_MAX] = {0}, path[HTTP_PATH_MAX] = {0};
-    if (sscanf(buf, "%7s %63s", method, path) != 2) { zsock_close(fd); return; }
+    if (!http_parse_reqline(buf, method, HTTP_METHOD_MAX, path, HTTP_PATH_MAX)) { zsock_close(fd); return; }
     http_accept_request(fd, method, (int)strlen(method), path, (int)strlen(path));
 }

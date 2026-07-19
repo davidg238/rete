@@ -22,4 +22,13 @@ void pulse_post_isr(int chan_id, int handle_idx);
    drains all) and for each calls space_post_id(chan_id, handle_get(handle_idx)).
    Returns the number of items delivered. */
 int pulse_pump(void);
+
+/* Non-blocking variant: drains every currently-queued item and returns
+   immediately (0 when empty) — never blocks for a first item. The blocking
+   pulse_pump() assumes pulse is the ONLY event source (a pure pulse/timer node
+   can sleep until its ISR fires). When a second source must be polled in the same
+   run-to-completion loop (e.g. an HTTP listener — #46), the pump must not block on
+   pulse, or the other source is never serviced; pumpEvents uses this variant then.
+   On posix (already non-blocking) it is identical to pulse_pump(). */
+int pulse_pump_nb(void);
 #endif /* OEVM_PULSE_BACKEND_H */

@@ -8,6 +8,33 @@
 #include <stdio.h>
 #include <string.h>
 
+/* Parse "METHOD SP PATH ..." from a request line into bounded, NUL-terminated
+   buffers (method truncated to mcap-1, path to pcap-1 — same bound as the old
+   "%7s %63s"). Returns 1 iff both a non-empty method and path were found, else 0.
+   Hand-rolled ON PURPOSE: picolibc's sscanf/vfscanf faults on the ESP32 (a
+   ROM/stack gotcha in the same family as the ROM fflush fault — see
+   zephyr/prj_esp32.conf), and vfscanf's large stack frame is unsafe this deep in
+   the interpreter's C call chain. This uses negligible stack and no stdio. */
+int http_parse_reqline(const char *buf, char *method, int mcap,
+                       char *path, int pcap) {
+    const char *p = buf;
+    int i = 0, j = 0;
+    while (*p == ' ' || *p == '\t') p++;
+    while (*p && *p != ' ' && *p != '\t' && *p != '\r' && *p != '\n') {
+        if (i < mcap - 1) method[i++] = *p;
+        p++;
+    }
+    method[i] = '\0';
+    if (i == 0) return 0;
+    while (*p == ' ' || *p == '\t') p++;
+    while (*p && *p != ' ' && *p != '\t' && *p != '\r' && *p != '\n') {
+        if (j < pcap - 1) path[j++] = *p;
+        p++;
+    }
+    path[j] = '\0';
+    return j > 0 ? 1 : 0;
+}
+
 static const char *reason_phrase(int status) {
     switch (status) {
         case 404: return "Not Found";
