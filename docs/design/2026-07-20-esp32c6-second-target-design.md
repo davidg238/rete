@@ -296,3 +296,23 @@ Ordered by real dependency. Steps 1–3 are hardware-free.
 - Four-cell heap table recorded, with the radio/no-radio distinction stated wherever the
   headline number is quoted.
 - Thread/IPv6 builds and its heap cost is measured.
+
+---
+
+## Addendum — decisions after the rung merged (2026-07-20)
+
+**The C6 is now the primary ESP32 target** (David, 2026-07-20), on the strength of
+the measured 262144-vs-53248 (4.9×) with-radio comparison. Consequential follow-ups,
+tracked on #57, **not yet done**: flip `run.sh`'s default board to `esp32c6`; choose a
+real C6 `OEVM_HEAP_SIZE` default (not the 319488 ceiling — 100% region, 8 B spare — and
+not necessarily 262144; needs a real workload's live-set); reframe the benchmark/STIC
+tables now that primary ≠ WROOM-32. The WROOM-32 stays a supported secondary.
+
+**Next rung — end-to-end Thread — will use a separate `esp32c6_main`, not a shared
+`main.c` compat layer** (design decision, brainstormed but not yet specced; tracked on
+#59). Rationale: `main.c`'s `thread_bringup()` is NCS-flavored, and the NCS↔upstream-4.2
+OpenThread APIs diverge enough (`openthread_start`/`openthread_api_mutex_*` are
+`__deprecated` upstream; `openthread_init`/`openthread_run`/`openthread_get_default_instance`
+largely absent) that a `#if` straddling both would be more fragile than two honest mains.
+Reuse is deferred, looked for later. This supersedes design section B's earlier lean
+toward a version-conditional bringup inside the shared `main.c`.
