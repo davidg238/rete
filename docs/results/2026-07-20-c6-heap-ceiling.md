@@ -13,7 +13,7 @@ without a board attached. Grain: 4096 B (finer is noise).
 |------|----------|--------------------------------------------|-------------------------------|
 | (a)  | WROOM-32 | WiFi (default `prj_esp32.conf`)             | **53248**                     |
 | (b)  | WROOM-32 | no radio (WiFi block disabled, net stack kept) | **106496**                 |
-| (c)  | ESP32-C6 | no radio (`prj_esp32c6.conf`)               | **BLOCKED** — see below       |
+| (c)  | ESP32-C6 | no radio (`prj_esp32c6.conf`)               | **319488**                    |
 | (d)  | ESP32-C6 | OpenThread/IPv6 (`prj_esp32c6_thread.conf`) | pending Task 6                |
 
 ### Cell (a): WROOM-32 + WiFi — 53248
@@ -50,50 +50,59 @@ Gain over cell (a): 106496 − 53248 = 53248 B — coincidentally exactly double
 a designed relationship; the arena floor and the driver-heap/net-buf savings just land
 there on this part).
 
-### Cell (c): ESP32-C6, no radio — BLOCKED, not a build-time-only measurement yet
+### Cell (c): ESP32-C6, no radio — 319488
 
-**This cell could not be measured.** `tools/heap-ceiling.sh` invokes `zephyr/run.sh`
-with `--model B` (unconditionally, matching the brief's Step 1 script). Model B loads
-`zephyr/layout-esp32c6.json` to bake the `.oimg` blob
-(`run.sh`'s `LAYOUT="$LAYOUT_JSON"` / `[ -f "$LAYOUT" ] || { ... exit 2; }` check), and
-that file **does not exist yet**. The first probe failed immediately:
+The blocker recorded in the earlier draft of this section is closed: `zephyr/
+layout-esp32c6.json` was generated from a real on-device `layoutdump` capture and
+committed at `9076ba9`, so `zephyr/run.sh --board esp32c6 --model B` now bakes the
+`.oimg` blob without hitting the missing-layout guard. Measured with the fixed
+`tools/heap-ceiling.sh` (see "Harness notes" below):
 
 ```
-[bake]  TimerNode.nsl  (model B)
-missing /home/david/workspace/tuvm/zephyr/layout-esp32c6.json — run the layoutdump app (stage 0) for esp32c6
+bash tools/heap-ceiling.sh --board esp32c6
 ```
 
-Per the implementation plan
-(`~/workspace/tuvm/docs/superpowers/plans/2026-07-20-esp32c6-second-target.md`),
-`zephyr/layout-esp32c6.json` is explicitly **"generated at Task 4, not authored"** —
-Task 4's Step 1 heading is literally "**This is the first step requiring hardware**": it
-flashes the `layoutdump` app (already built at Task 2 into
-`zephyr/layoutdump/build-c6/`) onto a real C6, reads struct-layout JSON back over the
-UART-bridge console, and banks it. Task 3 (this task) comes *before* Task 4 in the
-plan's sequence.
+First failing diagnostic, probe 323584 (next grain step above the ceiling):
 
-This directly conflicts with this task's brief, which states "**No hardware is
-involved**" and lists cell (c) as one of "three cells are yours" to measure build-only.
-That framing is correct for cells (a) and (b) — Model B for the WROOM-32 has always had
-a `layout-esp32.json` — but does not hold for a *fresh* board whose ABI layout has never
-been captured. The gap was not visible until the bisect actually ran, because nothing
-about the C6 Kconfig or `run.sh`'s `--board esp32c6` plumbing hints at it beforehand.
+```
+/home/david/zephyr-sdk-0.17.4/riscv64-zephyr-elf/bin/../lib/gcc/riscv64-zephyr-elf/12.2.0/../../../../riscv64-zephyr-elf/bin/ld.bfd: zephyr/zephyr_pre0.elf section `.dram0.bss' will not fit in region `sram0_0_seg'
+/home/david/zephyr-sdk-0.17.4/riscv64-zephyr-elf/bin/../lib/gcc/riscv64-zephyr-elf/12.2.0/../../../../riscv64-zephyr-elf/bin/ld.bfd: region `sram0_0_seg' overflowed by 4216 bytes
+```
 
-Two options exist to close this cell without deviating further: (1) accept the
-dependency and measure cell (c) as part of/after Task 4 once the real
-`layout-esp32c6.json` lands, or (2) use `--model A` instead of B, which needs no layout
-JSON. Option (2) was **not attempted**: this codebase's own standing guidance is to
-avoid Model A entirely for iterative work — `run.sh`'s own comment about Model A
-(`cc1 on the result needs ~4.9 GB RSS and ~50 min, and HAS OOM-killed the desktop`) and
-this project's broader "Model B is the device default" convention rule it out as a
-bisect substitute, and a heap-ceiling bisect run against Model A would be that
-iterative use, many times over, on the very board whose stability under memory pressure
-is what's being tested.
+**Sanity check:** 319488 is large enough on a 512 KB-SRAM part to be worth distrusting
+on sight (binding constraint 6), so it was checked rather than published on faith.
 
-**Recommendation:** measure cell (c) as an add-on immediately after Task 4 produces
-`zephyr/layout-esp32c6.json`, using this same `tools/heap-ceiling.sh` unmodified
-(`bash tools/heap-ceiling.sh --board esp32c6`). No script change is needed once the
-layout file exists.
+- *Both ends were actually probed, not inferred.* The bisect's own log shows LO=319488
+  as the last probe that **succeeded** and HI=323584 (LO+GRAIN, the very next 4 KB step)
+  as the last probe that **failed** with a genuine region-overflow diagnostic — exactly
+  the "reported ceiling links, next grain step doesn't" check the brief asks for, and it
+  falls out of the bisect's normal convergence rather than needing a rerun.
+- *The `--hi` fix caught the search range itself.* The new up-front HI=524288 probe
+  failed (`overflowed by 211192 bytes`) before the bisect started narrowing, confirming
+  524288 was genuinely out of reach and the result wasn't an artifact of a too-narrow
+  default range silently reporting `HI`.
+- *Cross-checked against the linker's own region size.* `zephyr_pre0.map`'s Memory
+  Configuration table gives `sram0_0_seg` a fixed length of `0x6ad08` = 437512 bytes —
+  i.e. of the C6's 512 KB (524288 B) unified HP SRAM, ~86.8 KB is reserved ahead of
+  `user_sram_org` for the 2nd-stage-bootloader / IRAM-loader segment (see
+  `soc/espressif/esp32c6/default.ld`'s `user_sram_end` comment), leaving 437512 B as the
+  actual linkable region. 319488 / 437512 ≈ 73% of that region goes to the VM heap
+  array; the rest (~118 KB) is kernel, net stack, stacks and other bss/data — the same
+  shape as cell (b)'s split, just against a larger region. The overflow arithmetic at
+  both the HI probe and the 323584 probe is self-consistent with that 437512 B region
+  size to within a small (~100 B) alignment residual, not off by an order of magnitude.
+  Nothing here suggests a misclassified non-capacity failure or a search that ran past
+  a real boundary.
+- 319488 is exactly 6× cell (a)'s 53248 and 3× cell (b)'s 106496. Flagged, not
+  suppressed: cell (b)'s note above already records a coincidental exact-2× relationship
+  to cell (a) on this same codebase, so a further round multiple is consistent with how
+  this SoC's linker sections happen to fall at 4 KB grain rather than a sign of a bug —
+  but it is exactly the kind of "too clean" number the brief warns to distrust, so it is
+  called out explicitly here rather than passed over.
+
+This is a **link** ceiling only (binding constraint 5) — it says nothing about whether
+319488 boots on real C6 hardware; that confirmation is a separate, later on-device step
+and is not claimed here.
 
 ### Cell (d): ESP32-C6 + OpenThread — pending Task 6
 
@@ -117,11 +126,14 @@ attempted, per the brief's decision 3.
 > These are **link** ceilings. A value that links is not necessarily a value that boots;
 > boot confirmation for the C6 lands at Task 5.
 
-The same caveat applies here in the other direction: cells (a) and (b) are both fully
-measured and *are* a clean no-radio-vs-WiFi comparison, but neither can yet be compared
-to the C6 at all, since no C6 cell has been measured. The headline "does the C6's
-unified SRAM remove the ceiling" question is **not yet answered** by this task — it
-awaits cell (c), which awaits Task 4.
+Cells (a), (b) and (c) are now all measured, and the clean no-radio-vs-no-radio
+comparison the framing calls for is (b) vs (c): WROOM-32 no-radio 106496 vs. C6 no-radio
+319488 — the C6's unified SRAM links roughly **3×** more VM heap than the WROOM-32 in
+the matched (no-radio) configuration. That is a **link**-ceiling comparison only (per
+the framing's last bullet); it does not by itself say the C6 boots at 319488, and it
+does not speak to the with-radio (WiFi vs. OpenThread) comparison, which still awaits
+cell (d) at Task 6. The with-radio pair remains the "not like-for-like" column the
+framing already warns about — reported separately, never quoted against cell (a) alone.
 
 ## Harness notes
 
@@ -130,8 +142,25 @@ awaits cell (c), which awaits Task 4.
 (decision 1: `--pristine` on every probe is load-bearing because `OEVM_HEAP_SIZE`
 reaches the compiler via `target_compile_definitions` at CMake *configure* time, and
 `--build-dir` is passed explicitly rather than via an exported `BUILD_DIR`, which
-`run.sh`'s defaults line would silently clobber). No bug fix was needed in the script
-itself.
+`run.sh`'s defaults line would silently clobber).
+
+A later code review, ahead of measuring cell (c), found and fixed four bugs in the
+bisect logic itself (none in the `--pristine`/`--build-dir` plumbing above, which was
+correct as noted): (1) `try()` deleted the failure log on the same path that pointed
+`LAST_FAIL_MSG` at it, so the one diagnostic you need when something goes wrong was
+gone — this had already bitten the C6 layout-JSON failure recorded in an earlier draft
+of this file, which had to be recovered by re-running `run.sh` by hand; (2) any
+non-capacity build failure (toolchain crash, OOM, missing prerequisite) at an interior
+probe was indistinguishable from a genuine region overflow and would silently narrow
+the bisect to a too-low ceiling — probes now classify their failure and abort the whole
+run loudly if it isn't a recognized overflow/`will not fit` diagnostic; (3) `HI` was
+trusted as known-bad but never probed, so a caller's `--hi` that actually links would
+have been reported as "the" ceiling — `HI` is now probed up front and the run aborts if
+it links; (4) the `MID` bisect step is only provably correct for GRAIN-aligned `--lo`/
+`--hi`, so un-aligned bounds are now rejected outright rather than silently rounded (a
+decision-critical tool should not quietly substitute a value the caller didn't ask
+for). Cell (a) was re-run against the fixed script and still landed on exactly 53248
+with the same first-failing diagnostic shape — the regression check the brief asks for.
 
 Step 3's `sed`, as written in the brief, **was buggy** and was not transcribed:
 `sed -i 's/^CONFIG_NET/# CONFIG_NET/; s/^CONFIG_WIFI/# CONFIG_WIFI/'` comments out every
