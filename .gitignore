@@ -52,3 +52,9 @@ zephyr/*.stmap
 zephyr/prj_dk_thread_local.conf
 zephyr/prj_dongle_thread_local.conf
 zephyr/prj_esp32_wifi.local.conf
+zephyr/build-c6-probe/
+zephyr/build-c6-netprobe/
+zephyr/build-c6-thread/
+zephyr/build-esp32c6-*/
+zephyr/build-heapprobe-*/
+zephyr/layoutdump/build-c6/

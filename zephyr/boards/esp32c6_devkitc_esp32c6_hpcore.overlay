@@ -1,0 +1,15 @@
+/* Enable the C6's built-in 802.15.4 radio for OpenThread.
+ *
+ * esp32c6_common.dtsi:85 declares:
+ *     ieee802154: ieee802154 { compatible = "espressif,esp32-ieee802154";
+ *                              status = "disabled"; };
+ * CONFIG_IEEE802154_ESP32 depends on DT_HAS_ESPRESSIF_ESP32_IEEE802154_ENABLED,
+ * so the driver does not build until this node is enabled.
+ *
+ * Filename is derived from the board qualifiers (esp32c6_devkitc/esp32c6/hpcore
+ * -> esp32c6_devkitc_esp32c6_hpcore.overlay). CMake CACHES overlay discovery, so
+ * a newly-added overlay needs -p always on the first build after adding it.
+ */
+&ieee802154 {
+	status = "okay";
+};

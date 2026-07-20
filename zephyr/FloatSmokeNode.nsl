@@ -1,0 +1,52 @@
+(*
+FloatSmokeNode — exercises the boxed-Float path on a target with NO FPU.
+
+The C6 ISA is rv32imac_zicsr: no 'f', no 'd' extension, so every float
+operation here is a soft-float libcall. This node exists because TimerNode
+(the bench gate) boxes no floats at all, leaving both soft-float AND the
+float-arena knobs (OEVM_FLOAT_ARENA_SLAB_CELLS / _SLAB_BUDGET) completely
+unexercised on this target.
+
+The arena knobs are carried over from Xtensa on the PREDICTION that struct
+Float stays 16 B under the RISC-V ilp32 ABI. Task 4 confirmed the size, but
+size is not the same as the arena behaving correctly under churn.
+
+TERM COUNT IS LOAD-BEARING — do not lower it. gc.c float_alloc()'s reclaim
+path (gc_collect() + float_sweep() refilling float_freelist) fires only when
+float_slab_count >= OEVM_FLOAT_ARENA_SLAB_BUDGET (4), i.e. after
+4 * OEVM_FLOAT_ARENA_SLAB_CELLS = 2048 cells. Each iteration boxes THREE
+Floats (i asFloat, the division result, the addition result — dispatch.c
+PRIM_asFloat and vm.c's Float branches of OP_DIV/OP_ADD all call float_alloc
+unconditionally), so 1001 iterations box ~3003 cells ≈ 5.9 slabs and cross
+that threshold comfortably. An earlier 200-iteration version boxed ~600 cells,
+crossed the slab boundary only once (1->2) and NEVER reached the budget — it
+exercised slab growth but not reclaim, which is the mechanism the
+"VM Float Arena Error: Out of Memory" risk actually lives in.
+
+Grants no capability, so no `net:` header. No radio, no timer, no hardware.
+
+Sum is Sum_{i=1..1001} i/3 = (1001*1002/2)/3 = 501501/3 = 167167.0 exactly.
+1001 is chosen so N(N+1)/2 is divisible by 3 AND the term-by-term IEEE-754
+accumulation lands bit-exact on that integer (verified in double precision,
+not assumed — an inexact sum would make the expect: line format-dependent).
+printString drops the trailing ".0", hence "float-smoke sum=167167" below. Confirmed against a host
+run (nsl-tuvm/tools/run-one.py) rather than assumed: the brief's original
+draft of this header listed only the final "float-smoke ok" line, which
+under-specified the expect: block against run-one.py's exact-match semantics
+(compare TimerNodeHost.nsl's two-line TIMER OK / CANCEL OK block) — every
+println line the node emits must appear here, in order.
+expect:
+float-smoke sum=167167
+float-smoke ok
+*)
+class FloatSmokeNode packageUsing: manifest = (
+| sum ::= 0.0 asFloat. |
+) (
+  public main: platform args: args = (
+    1 to: 1001 do: [ :i | sum:: sum + (i asFloat / 3.0) ].
+    ('float-smoke sum=', sum printString) println.
+    'float-smoke ok' println.
+    ^ 0
+  )
+) : (
+)

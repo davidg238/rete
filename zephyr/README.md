@@ -394,3 +394,80 @@ would behave.
 
 The DK run above is what **calibrates** this gate: the console and the train were shown to
 tick together, so on the dongle — where there is no console — the train alone is trusted.
+
+---
+
+# ESP32 dev loop — `run.sh --board {esp32,esp32c6}`
+
+`run.sh` owns the whole bake→build→(flash)→(capture) loop for both ESP32 targets.
+`--board` selects a profile that owns every board-coupled wrong-by-default together (the
+board target, Kconfig, build dir, layout JSON, the esptool triple, the serial port, and
+whether the Xtensa ROM-linker patch applies) so adding a board only means adding one
+profile block, not touching the rest of the script.
+
+```bash
+cd ~/workspace/tuvm
+bash zephyr/run.sh --board esp32c6 --model B --node TimerNode.nsl --pristine --flash
+```
+
+`--board esp32` (default) targets the WROOM-32 (`esp32_devkitc/esp32/procpu`, Xtensa,
+flash offset `0x1000`, ROM-newlib patch applied). `--board esp32c6` targets the C6
+(`esp32c6_devkitc/esp32c6/hpcore`, RISC-V `rv32imac_zicsr` — no FPU, soft-float only —
+flash offset `0x0`; `0x1000` boot-loops the C6 silently, no error). `--pristine` is
+required on the first build after adding or changing an overlay — CMake caches overlay
+discovery, so a stale cache silently keeps the old (or no) overlay rather than erroring.
+
+## Which port does what (C6 only — the WROOM-32 has a single USB port)
+
+The C6 DevKitC-1 exposes two USB ports, and the useful split is the non-obvious one:
+
+- **Native USB (Espressif JTAG/serial, `303a:1001`) — flashing.** This port
+  **re-enumerates when the target resets**, which breaks any continuous reader across a
+  reset. `run.sh` defaults `ESPTOOL_PORT` to the first `/dev/serial/by-id/*Espressif*`
+  device.
+- **UART bridge (Silicon Labs CP210x) — console.** The bridge chip never reboots, so this
+  port **stays enumerated across target resets** and carries an always-on log — open it
+  with a serial reader *before* the first flash and leave it running through every
+  subsequent flash.
+
+Both scripts pin ports by `/dev/serial/by-id/*` glob rather than `ttyUSB0`/`ttyACM0`
+(allocation-order names that have previously collided with an unrelated board on the same
+bench — see #57); `ESPTOOL_PORT` always overrides the default.
+
+## Where the layout JSON comes from
+
+Model B (`.oimg`) bakes struct offsets ahead of time, so it needs an ABI-accurate
+`layout-$BOARD.json` for whichever target it's building — `zephyr/layout-esp32.json`
+(Xtensa) and `zephyr/layout-esp32c6.json` (RV32 ilp32) are checked in, generated, not
+hand-written. Each comes from flashing the `zephyr/layoutdump/` app (which computes every
+struct size/offset via `sizeof`/`offsetof` against the real `struct` definitions in
+`src/oevm.h`, compiled for that target) onto real hardware and capturing its console
+output. A new architecture needs its own layoutdump run before Model B works on it at all
+— `run.sh` fails loudly (`missing .../layout-$BOARD.json — run the layoutdump app`) rather
+than silently reusing another target's file. For the two targets measured so far the
+captured layouts are byte-identical (verified independently of the capture itself — see
+the ladder's C6 entry) — a coincidence of this particular struct set having no field type
+whose natural alignment diverges between the two 32-bit ABIs, not a reason to assume a
+future target's layout will match without generating it.
+
+## C6 `OEVM_HEAP_SIZE` — no recommended default yet
+
+`run.sh`'s `esp32c6` profile ships `OEVM_HEAP_SIZE=53248` — the WROOM-32's own value,
+carried over as an explicitly provisional placeholder, not a measured or recommended C6
+number.
+
+`tools/heap-ceiling.sh` has measured the C6's max-*linkable* `OEVM_HEAP_SIZE` (see
+`review/program-sequence.md` and `docs/results/2026-07-20-c6-heap-ceiling.md`):
+
+- **319488** — no radio (net stack only).
+- **262144** — with the OpenThread/IPv6 radio layer (`prj_esp32c6_thread.conf`).
+
+**Neither ceiling is a recommended default.** A ceiling is the largest value that still
+*links*; it says nothing about what a given workload actually needs, and both numbers cut
+it close: 319488 links `sram0_0_seg` at 100.00% occupancy with 8 bytes spare. The VM's GC
+is collect-when-full (`src/gc.c`), so the heap's high-water mark pegs to whatever arena
+size you give it regardless of a workload's real live set — running at the ceiling leaves
+no slack for anything else in `sram0_0_seg` (kernel, net stack, stacks, other bss/data) to
+grow even slightly. Choosing a real default requires measuring a workload's actual live
+heap, the same way `prj_esp32.conf`'s 53248 was justified by the WROOM-32's HttpServerNode
+`/stats` high-water figure — not by taking the link ceiling itself.
