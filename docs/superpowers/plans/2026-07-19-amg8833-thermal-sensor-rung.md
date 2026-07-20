@@ -879,7 +879,7 @@ CONFIG_AMG88XX=y
 CONFIG_AMG88XX_TRIGGER_NONE=y
 ```
 
-- [ ] **Step 5: Build for the device (compile gate, no hardware needed)**
+- [x] **Step 5: Build for the device (compile gate, no hardware needed)**
 
 ```bash
 cd ~/workspace/tuvm/zephyr && ./run.sh --model B --node ThermalHttpNode.nsl
@@ -904,21 +904,21 @@ git commit -m "feat(sensor): Zephyr amg88xx backend + ESP32 overlay"
 
 **Hardware:** ESP32 WROOM-32 + AMG8833 on I2C (SDA/SCL per the board dts, INT to the overlay's GPIO, 3V3 + GND). WiFi credentials via the git-ignored `prj_esp32_wifi.local.conf` overlay.
 
-- [ ] **Step 1: Flash and capture**
+- [x] **Step 1: Flash and capture**
 
 ```bash
 cd ~/workspace/tuvm/zephyr && ./run.sh --model B --node ThermalHttpNode.nsl --flash --capture 20
 ```
 Expected: boots, joins WiFi, prints its IP, no fault/oops/coredump.
 
-- [ ] **Step 2: Verify the live grid**
+- [x] **Step 2: Verify the live grid**
 
 ```bash
 curl -s http://<esp32-ip>/thermal | head -c 400
 ```
 Expected: an SVG heat-grid whose `caption` max/min/hot values are **realistic room temperatures** (roughly 18–30 °C), not the synthetic 22.00/31.20 pair. Re-run while waving a hand across the sensor — the hot cell coordinates must move.
 
-- [ ] **Step 3: Bank the footprint line**
+- [x] **Step 3: Bank the footprint line**
 
 ```bash
 curl -s http://<esp32-ip>/stats
@@ -929,7 +929,7 @@ Record `heap high-water`, `live bytes`, and `gc cycles` — compare against the 
 
 `sensorFrame` answers nil → `/thermal` renders "no frame". Diagnose in this order: (a) `i2cdetect`-style scan or a boot log line for the amg88xx device; (b) confirm the I2C address (0x69 vs 0x68 / AD_SELECT); (c) `nm build-*/zephyr/zephyr.elf | grep -i amg` to confirm the driver linked; (d) check `int-gpios` names a real, free pin. Do **not** paper over it by faking the frame.
 
-- [ ] **Step 5: Bank the result**
+- [x] **Step 5: Bank the result**
 
 Append an **E-series entry** to `tuvm/zephyr/docs/results.md` in the shape of the existing E1–E4 rows: node, model, what was proven, the `/stats` numbers, and the green log path. Note explicitly that this is a **manual bench gate**, so it earns no `CLAIMS.md` row (matching the Model-B and #46 precedent).
 
