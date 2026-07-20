@@ -139,8 +139,15 @@ esac
 - [ ] **Step 3: Make the knob exports profile-aware**
 
 `OEVM_HEAP_SIZE` is now set by the profile, so delete the standalone
-`: "${OEVM_HEAP_SIZE:=53248}"` line and leave the export. `OEVM_IRAM_HOT` must not
-leak to the C6:
+`: "${OEVM_HEAP_SIZE:=53248}"` line and leave the export.
+
+**Move the existing multi-line comment explaining why 53248 is the WROOM-32 value into the
+`esp32` profile block, verbatim.** It records the DRAM/WiFi-heap/net-buf reasoning and the
+`/stats` high-water observation — that provenance is the most valuable text in the file and
+must not be lost in the refactor. The plan's profile block shows a one-line placeholder
+comment; replace that placeholder with the real comment from the current `run.sh`.
+
+`OEVM_IRAM_HOT` must not leak to the C6:
 
 ```bash
 export OEVM_HEAP_SIZE METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256 \
@@ -435,8 +442,19 @@ LAST_FAIL_MSG=""
 try() {   # $1 = candidate heap size; 0 = links, 1 = does not
   local size="$1" log
   log="$(mktemp)"
-  if OEVM_HEAP_SIZE="$size" BUILD_DIR="build-heapprobe-$BOARD_ID" \
+  # --build-dir, NOT an exported BUILD_DIR: run.sh's defaults line sets
+  # BUILD_DIR="" unconditionally before its arg loop, so an exported value is
+  # silently clobbered.
+  #
+  # --pristine on EVERY probe is load-bearing. OEVM_HEAP_SIZE reaches the
+  # compiler through target_compile_definitions(... $ENV{OEVM_HEAP_SIZE}),
+  # evaluated at CMake CONFIGURE time. An incremental build reuses the cached
+  # definition, so probes 2..N would all silently measure probe 1's heap size
+  # and the bisect would return a plausible-looking wrong number. Slow but
+  # correct: ~7 full rebuilds for a 16 KB..512 KB range at 4 KB grain.
+  if OEVM_HEAP_SIZE="$size" \
        bash "$ROOT/zephyr/run.sh" --board "$BOARD_ID" --model B --node "$NODE" \
+       --pristine --build-dir "build-heapprobe-$BOARD_ID" \
        >"$log" 2>&1; then
     rm -f "$log"; return 0
   fi
