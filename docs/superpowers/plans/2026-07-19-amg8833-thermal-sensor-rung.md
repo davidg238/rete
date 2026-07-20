@@ -295,7 +295,7 @@ git commit -m "test(sensor): sensorFrame answers a 64-px centi-degC frame"
 **Interfaces:**
 - Produces: nested `class ThermalView` with `public renderFrame: f toId: id on: platform`, `caption: f`, `centi: v`. Consumes a **raw indexable** 64-px frame — reads with `basicAt:`, **not** `at:` (the prim receiver carries no Array vtable).
 
-- [ ] **Step 1: Create the boot module with `ThermalView` nested**
+- [x] **Step 1: Create the boot module with `ThermalView` nested**
 
 Create `tuvm/zephyr/ThermalHttpNode.nsl`:
 
@@ -369,7 +369,7 @@ class ThermalHttpNode packageUsing: manifest = () (
 )
 ```
 
-- [ ] **Step 2: Verify it compiles**
+- [x] **Step 2: Verify it compiles**
 
 **Do NOT verify by running run-one.py on the file directly** — it reports SKIP
 *before* compiling (`run_tests_oevm.py:395`/`:483`), so a syntax error looks
@@ -388,7 +388,7 @@ listing only `ok` the runner reports FAIL on the mismatch; that is fine, the
 actual output is the evidence. Add `22.0` to the block for a clean PASS.) A parse
 or resolve error means the nesting is wrong — fix before continuing.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd ~/workspace/tuvm && git add zephyr/ThermalHttpNode.nsl
@@ -888,7 +888,7 @@ Expected: a clean build. This is a **compile/link gate only** — it proves the 
 
 > `run.sh` resolves `--node` relative to `zephyr/` only (a known papercut); `ThermalHttpNode.nsl` lives there, so this works.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd ~/workspace/tuvm && git add src/backend/zephyr/sensor_zephyr.c zephyr/CMakeLists.txt \
@@ -925,7 +925,7 @@ curl -s http://<esp32-ip>/stats
 ```
 Record `heap high-water`, `live bytes`, and `gc cycles` — compare against the pre-rung `/stats` numbers to confirm the sensor path did not eat the WROOM-32's remaining headroom.
 
-- [ ] **Step 4: If the sensor is not detected**
+- [ ] **Step 4: If the sensor is not detected** — N/A, sensor probed and read correctly on first bring-up
 
 `sensorFrame` answers nil → `/thermal` renders "no frame". Diagnose in this order: (a) `i2cdetect`-style scan or a boot log line for the amg88xx device; (b) confirm the I2C address (0x69 vs 0x68 / AD_SELECT); (c) `nm build-*/zephyr/zephyr.elf | grep -i amg` to confirm the driver linked; (d) check `int-gpios` names a real, free pin. Do **not** paper over it by faking the frame.
 
@@ -933,7 +933,7 @@ Record `heap high-water`, `live bytes`, and `gc cycles` — compare against the 
 
 Append an **E-series entry** to `tuvm/zephyr/docs/results.md` in the shape of the existing E1–E4 rows: node, model, what was proven, the `/stats` numbers, and the green log path. Note explicitly that this is a **manual bench gate**, so it earns no `CLAIMS.md` row (matching the Model-B and #46 precedent).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd ~/workspace/tuvm && git add zephyr/docs/results.md
@@ -1040,11 +1040,11 @@ git commit -m "feat(sensor): phase-2 AMG8833 threshold event via the pulse seam"
 
 Per the project's promotion rule, a rung is not closed until its knowledge reaches a mainline document of record.
 
-- [ ] **Step 1: Promote to `review/zephyr-driver-exposure.md`**
+- [x] **Step 1: Promote to `review/zephyr-driver-exposure.md`**
 
 Rewrite its status from *sketch* to *built for Tier 1*, recording: the Tier-1 seam now exists (`sensor_backend.h` + one prim); **BME280 was dropped and AMG8833 became the first device**; the finding that **going through the sensor API means the driver does the register work, so tuvm#28 was never forced**; and the three-way service split (produce / transport / present) as the node-composition pattern.
 
-- [ ] **Step 2: Update the ladder**
+- [x] **Step 2: Update the ladder**
 
 In `review/program-sequence.md`, mark the Arc-1 driver-ladder rung as landed for AMG8833, link this plan and the design doc, and note that the **demo-node gap shrank** (`TempNode` realized on real hardware, Tier-1 variant). Leave the filed manifest rung in place.
 
@@ -1052,7 +1052,7 @@ In `review/program-sequence.md`, mark the Arc-1 driver-ladder rung as landed for
 
 The device gates are manual bench runs, so no new named test claim is earned. The two new host tests (`18_sensor/01`, `02`) raise the suite floor to **202/0/14** — state the new floor wherever the old one is quoted.
 
-- [ ] **Step 4: Final full gate**
+- [x] **Step 4: Final full gate**
 
 ```bash
 cd ~/workspace/nsl-tuvm && python3 tools/run_tests_oevm.py 2>&1 | tail -8

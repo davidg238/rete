@@ -667,6 +667,67 @@ design point, now load-bearing code). Also fixed: ROM-newlib forced `setjmp`/`un
 hand-rolled parse; zero-SDK-touch tracked in #48) and on-device egress capacity (chunked send + net-buf pool).
 RAM is the ceiling (VM heap + WiFi + net-bufs barely coexist on a no-PSRAM WROOM-32). Findings: the `#46` section
 in `~/workspace/tuvm/review/model-capability-findings.md`; design/plan dated `2026-07-18-esp32-wifi-http-last-mile-*`.
+(Superseded 2026-07-20 by the AMG8833 rung below: `HttpServerNode`/`HttpNode` are retired and
+`/thermal` is now served by `ThermalHttpNode` from a **real** sensor. The entry above stands as the
+record of what was true on 2026-07-18 — the frame it served was hard-coded.)
+
+**AMG8833 Grid-EYE thermal rung (Arc 1) — phase 1 landed 2026-07-20, NOT closed: unstable under
+sustained HTTP load (#54/#55).** `/thermal` now serves a real Panasonic AMG8833 read through Zephyr's
+uniform `sensor` API — proven on silicon (`max 30.0C min 25.2C hot (7,2)`, 12 distinct fill colours
+vs the synthetic frame's 2; three successive fetches moved 29.5/30.0/29.7 °C with a stable hot cell,
+so the cadence genuinely re-samples). Architecture as designed: a Tier-1 C seam (`src/sensor_backend.h`,
+posix-synthetic + zephyr-real backends) behind one prim `sensorFrame` (116) answering 64 centi-°C SMIs;
+`zephyr/ThermalHttpNode.nsl` nests `ThermalNode` (ctl-cadence sampler) / `HttpServer` (generic
+path→block route table) / `ThermalView` (frame→SVG), which never reference each other — producer and
+consumer meet only at `dev/thermal0/sample`. `HttpServerNode.nsl` retired; `HttpNode.nsl` kept (it is
+the `httpInject:` twin of the `14_http` suite, not a superseded listener — the retirement plan had
+conflated them). Suite floor **202/0/14** (was 200), no `CLAIMS.md` row moves — and deliberately so:
+a capability claim would be premature while #54 stands.
+
+**The durable lessons (this is the promotion; the dated design/plan docs keep the narrative):**
+1. **The host timer backend is a VIRTUAL clock and nothing else moves it.** `advanceMillis:` is the
+   only driver, so any host binary running a real reactor loop has permanently frozen timers — silently:
+   no error, just a cadence that never ticks. New opt-in `OEVM_TIMER_WALLCLOCK=1` (an **eighth** env
+   knob) plus seam call `timer_backend_poll()` drained from `pumpEvents`. Default stays virtual so
+   suite determinism is untouched. #51.
+2. **There are TWO independent millisecond clocks.** `0 millis` → `oevm_millis` is REAL (and is what
+   the `00_perf` benchmarks time with — the published ESP32 tables are unaffected by anything in the
+   virtual-clock path); `platform monotonicMillis` → `timer_backend_millis` is the VIRTUAL one. On
+   target they converge, which is what makes the split easy to miss. `ThreadTimerNode`/`SoakNode` spin
+   on a `monotonicMillis` deadline and would hang forever if run on host. #52.
+3. **A raw indexable prim result cannot cross a channel.** `put:value:` runs the value algebra;
+   `platform valueRank:` answers −1 for a vtable-less prim result and the fallback `valueRank` send
+   DNUs. Copy to a `List` (rank 8) at the publish boundary — `basicAt:` reads the prim, `at:` reads
+   everything downstream of the cell.
+4. **The `sys/timer` → `Timers>>dispatch:` fan-out lives in the CALLER**, by design (kernel.nsl Timers
+   header). Omit it and timer fires reach `sys/timer` and stop.
+5. **A devicetree overlay filename is derived from the board qualifiers** (`esp32_devkitc/esp32/procpu`
+   → `boards/esp32_devkitc_esp32_procpu.overlay`), and **CMake caches overlay discovery** — a newly
+   added overlay needs `--pristine`. Both failure modes are silent: green build, no node, backend
+   compiles its `DT_NODE_EXISTS` `#else` branch, nil frames, exit 0.
+6. **DRAM is the ceiling at 99.58%** (195792 of 196608 B — ~816 B spare). Pre-existing; the sensor cost
+   ~200 B. Anything device-resident now competes with it. #53.
+7. **A periodic timer + a blocking HTTP render overflows the 16-slot ISR pulse mailbox, and a full
+   mailbox is a hard `k_oops()`.** Node dies after ~25 s of light load. Idle for 70 s is fine, so load
+   is required to trigger it. This is pre-existing infrastructure fragility, not a sensor defect:
+   `ThermalHttpNode` is the **first node to run a periodic timer and an HTTP listener at once**
+   (`HttpServerNode` published one static frame and armed no timer). #54; fix scoped in #55, which must
+   land before Task 9 (the phase-2 threshold trigger adds another ISR producer to the same mailbox).
+
+**The meta-lesson: every bug this rung presented as SUCCESS.** Four separate silent failures (missing
+`sys/timer` wiring, the frozen virtual clock, the wrong overlay filename, the incremental build ignoring
+a new overlay) produced green builds, passing gates and exit 0 while doing nothing. Every one was caught
+by running the thing and inspecting real output, never by reading code. Two verification steps in the
+plan were themselves worthless for the same reason — `run-one.py` reports SKIP *before* it compiles
+(`run_tests_oevm.py:395`/`:483`), so a syntax error and a clean pass are indistinguishable. Plans should
+assert on observable behaviour, not on "it built". This is the argument behind #56 (agent-watchable
+on-device test/debug/profiling): diagnosing #54 took ~a dozen hand-built hardware round-trips, the panic
+backtrace was unsymbolized and CORRUPTED, and **the mailbox overflow was never observed — it was inferred
+from source**, so #54 is a well-supported hypothesis rather than a measurement.
+
+Design: `docs/design/2026-07-19-amg8833-thermal-sensor-rung-design.md`; plan:
+`docs/superpowers/plans/2026-07-19-amg8833-thermal-sensor-rung.md` (Tasks 1–8 ticked; Task 9 gated on
+#55, Task 10 is this entry). Open: #51, #52, #53, #54, #55, #56.
 
 ## Known stale docs (do not treat as current)
 
