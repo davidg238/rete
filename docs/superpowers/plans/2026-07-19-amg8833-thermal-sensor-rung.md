@@ -733,7 +733,7 @@ git commit -m "feat(node): compose ThermalNode+HttpServer+ThermalView; repoint h
 **Files:**
 - Delete: `tuvm/zephyr/HttpServerNode.nsl`, `tuvm/zephyr/HttpNode.nsl`
 
-- [ ] **Step 1: Confirm nothing else references them**
+- [x] **Step 1: Confirm nothing else references them**
 
 ```bash
 cd ~/workspace/tuvm && grep -rn 'HttpServerNode\|HttpNode' --include='*.sh' --include='*.py' \
@@ -741,7 +741,7 @@ cd ~/workspace/tuvm && grep -rn 'HttpServerNode\|HttpNode' --include='*.sh' --in
 ```
 Expected: no live build/test references remain (docs/design records may still mention them — that is history, leave it).
 
-- [ ] **Step 2: Delete and re-gate**
+- [x] **Step 2: Delete and re-gate**
 
 ```bash
 cd ~/workspace/tuvm && git rm zephyr/HttpServerNode.nsl zephyr/HttpNode.nsl
@@ -750,7 +750,7 @@ cd ~/workspace/nsl-tuvm && python3 tools/run_tests_oevm.py 2>&1 | tail -8
 ```
 Expected: round-trip PASS; suite **202 passed, 0 failed**.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd ~/workspace/tuvm && git commit -m "chore(node): retire HttpServerNode/HttpNode (superseded by ThermalHttpNode)"
