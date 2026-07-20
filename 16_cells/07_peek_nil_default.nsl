@@ -1,0 +1,39 @@
+(*
+expect:
+bare peek 43
+bare peek absent true
+keyword peek 22
+keyword peek absent true
+done
+*)
+(* Rung 9 ergonomics — nil-defaulting cell reads. `peek` (unary) reads THIS channel's
+   own root cell; `peek: rel` reads a named sub-cell; both answer `nil` on a name NOBODY
+   HAS EVER WRITTEN, i.e. they are `self peek: rel ifAbsent: [ nil ]`. The explicit
+   `peek:ifAbsent:` stays for the never-written-vs-holds-nil distinction (01_put_peek).
+   Distinct selectors (arity is part of the name — `peek`, `peek:`, `peek:ifAbsent:` do
+   not collide). *)
+class PeekNilDefault packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space cell prefix |
+    space:: platform space.
+
+    (* bare peek: a channel rooted directly at a cell answers its value *)
+    cell:: space channel: 'sp1'.
+    cell put: '' value: 43.
+    ('bare peek ' , cell peek printString) out.
+
+    (* bare peek on a never-written root -> nil *)
+    ('bare peek absent ' , ((space channel: 'nope') peek == nil) printString) out.
+
+    (* keyword peek: a channel rooted at a prefix answers a named sub-cell *)
+    prefix:: space channel: 'pid3'.
+    prefix put: 'sp' value: 22.
+    ('keyword peek ' , (prefix peek: 'sp') printString) out.
+
+    (* keyword peek on a never-written sub-cell -> nil *)
+    ('keyword peek absent ' , ((prefix peek: 'auto') == nil) printString) out.
+
+    'done' out.
+  )
+) : (
+)

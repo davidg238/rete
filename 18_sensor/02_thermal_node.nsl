@@ -1,0 +1,105 @@
+(*
+expect:
+before nil true
+after px30 3120
+rate change ok
+done
+*)
+(* AMG8833 rung Task 3 — the ctl-cadence sampler, on the host virtual clock.
+   Before any tick the sample cell has never been written, so bare `peek` answers
+   nil. Advancing the virtual clock past the 500ms cadence fires the timer onto
+   the tick STREAM, whose reaction reads `platform sensorFrame` and puts the frame
+   on the sample CELL. The tick stream and the sample cell are DIFFERENT names:
+   Timers posts at the capability root, and posting at a cell's root would raise. *)
+(* The nested `ThermalNode` this test drives is added in Step 3 — deliberately NOT
+   written yet, so this test goes red for the right reason (class missing).
+   DUPLICATION, deliberate and temporary: a test is its own module and CANNOT name
+   another app module's nested class (the bake is single-app-file — see the rung
+   design 4a), so Step 3 pastes the class into BOTH this file and
+   ThermalHttpNode.nsl, which stays the source of truth. The manifest rung (filed
+   in the ladder) removes the copy; keep them in sync by hand until then. *)
+class ThermalNodeTest packageUsing: manifest = () (
+
+  (* ---- the sensor service: samples the Grid-EYE, publishes frames ----
+     Knows nothing about HTTP. Capabilities arrive as constructor args (the
+     Milestone-C rule). The cadence exists only because a ctl record asked for it
+     (G9): no unrequested periodic work, and the CPU idles between ticks. *)
+  class ThermalNode = ( | space seam timers sample ctl event tick timer rate | ) (
+    onSpace: sp seam: s timers: t = (
+      space::  sp.  seam:: s.  timers:: t.  rate:: 2.
+      sample:: sp channel: 'dev/thermal0/sample'.    (* CELL:   latest frame out *)
+      ctl::    sp channel: 'dev/thermal0/ctl'.       (* CELL:   {rate: N} in     *)
+      event::  sp channel: 'dev/thermal0/event'.     (* STREAM: phase-2 alerts   *)
+      tick::   sp channel: 'dev/thermal0/tick'.      (* STREAM: timer pulses     *)
+      ^ self )
+
+    public start = (
+      (* Both reactions are self-sends: a reified block must not name a class. *)
+      tick whenever: '' do: [ :t | self sampleOnce ].
+      ctl  whenever: '' do: [ :c | self reconfigure: c ].
+      self arm.
+      ^ self )
+
+    (* Hold the token and cancel before re-arming — a live repeater that outlives
+       its owner is what killed the ESP32 TimerNode (rung 2). *)
+    arm = ( timer:: timers every: (1000 // rate) post: #tick on: tick. ^ self )
+    disarm = ( timer == nil ifFalse: [ timers cancel: timer. timer:: nil ]. ^ self )
+
+    (* A failed fetch answers nil: skip the put and KEEP the last good frame.
+       Never publish a partial or absent frame onto the cell.
+
+       The raw indexable from `sensorFrame` CANNOT travel on a channel: put:value:
+       runs the value algebra (checkValue: -> rankOf:), `platform valueRank:`
+       answers -1 for a raw indexable, and the fallback `valueRank` send DNUs
+       because the prim receiver carries no vtable. So copy it into a List (rank 8)
+       at the publish boundary — what the predecessor HttpServerNode.nsl did. *)
+    sampleOnce = (
+      | f oc i |
+      f:: seam sensorFrame.
+      (f == nil) ifTrue: [ ^ self ].
+      oc:: seam OrderedCollection new.
+      i:: 1. [ i <= 64 ] whileTrue: [
+        oc add: (f basicAt: i). i:: i + 1 ].
+      sample put: '' value: (seam List fromCollection: oc).
+      ^ self )
+
+    (* Untrusted-input boundary: a bad rate leaves the current cadence standing. *)
+    reconfigure: c = (
+      | r on |
+      on:: c at: #on ifAbsent: [ true ].
+      r::  c at: #rate ifAbsent: [ rate ].
+      on = false ifTrue: [ ^ self disarm ].
+      ((r isNil not) and: [ r > 0 ]) ifTrue: [
+        rate:: r. self disarm. self arm ].
+      ^ self )
+  ) : (
+    public onSpace: sp seam: s timers: t = ( ^ self new onSpace: sp seam: s timers: t )
+  )
+
+  public main: platform args: args = (
+    | space timers node sample |
+    space::  platform space.
+    timers:: platform Timers usingSpace: space seam: platform.
+    (* The seam posts every fire on the reserved 'sys/timer' path carrying only a
+       token; Timers>>dispatch: is what fans it out onto the target channel. That
+       wiring lives in the CALLER by design (kernel.nsl Timers header) — without
+       this line a timer fires into 'sys/timer' and nothing ever reaches the tick
+       stream, so the sample cell stays nil forever. *)
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    sample:: space channel: 'dev/thermal0/sample'.
+
+    node:: ThermalNode onSpace: space seam: platform timers: timers.
+    node start.
+    ('before nil ' , (sample peek == nil) printString) out.
+
+    platform advanceMillis: 501.
+    space drain.
+    ('after px30 ' , ((sample peek) at: 30) printString) out.
+
+    (space channel: 'dev/thermal0/ctl') put: '' value: (platform Record tag: #ctl with: #rate -> 10).
+    space drain.
+    'rate change ok' out.
+    'done' out.
+  )
+) : (
+)
