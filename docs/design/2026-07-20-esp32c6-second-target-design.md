@@ -3,6 +3,9 @@
 **Date:** 2026-07-20
 **Status:** approved (design), unimplemented
 **Branch:** `feat/esp32c6-target`, cut from `master` after `feat/amg8833-thermal` merges
+**Tracking issue:** **#57** (evaluate C6 as the dev-loop target). Motivated by **#53**
+(dram0 at 99.58%, 816 B spare) and unlocks the debug leg of **#56** (agent-watchable
+on-device observability).
 **Successor rung:** Waveshare 2.13" e-Paper (SSD1680) display seam — deliberately *not* in this design.
 
 ---
@@ -61,21 +64,40 @@ The float-arena knobs are *predicted* to carry over unchanged — the RISC-V ilp
 verify, not a fact.** `TimerNode` boxes no floats, so the bench gate will not exercise it;
 a deliberate float smoke test is required (see Task 5).
 
-### 2. Console is on the wrong port for the connected cable
+### 2. Two ports, used the right way round — console on UART, flash on native USB
 
-The C6-DevKitC-1 exposes two USB ports. As of bring-up only the **native USB-Serial-JTAG**
-is enumerating: `303a:1001`, `/dev/ttyACM0`. The CP2102 UART bridge (`/dev/ttyUSB*`) is
-absent — that cable is charge-only or unplugged.
+Both C6 ports enumerate: **`/dev/ttyUSB0`** (CP210x bridge, `10c4:ea60`) and
+**`/dev/ttyACM0`** (native USB-Serial-JTAG, `303a:1001`). Both can flash.
 
-But `esp32c6_devkitc_hpcore.dts:20` routes `zephyr,console = &uart0`, i.e. the physical
-UART pins feeding the *absent* bridge. Booting as-is prints to a port nobody reads and is
-indistinguishable from a hung VM.
+The useful split is the non-obvious one, per **#57**:
 
-**Decision:** the C6 overlay enables the `usb_serial` node
-(`esp32c6_common.dtsi:335`, `espressif,esp32-usb-serial`, ships `status = "disabled"`) and
-reassigns `zephyr,console`. Kconfig: `CONFIG_SERIAL_ESP32_USB=y`
-(`drivers/serial/Kconfig.esp32:15`). Console port default for the profile is
-`/dev/ttyACM0`.
+- The **native USB port re-enumerates when the target resets** — the host device node
+  disappears and comes back, breaking any continuous reader across every reset.
+- The **UART bridge stays enumerated across target resets**, because the bridge chip never
+  reboots.
+
+**Decision:** **console on the UART bridge** (an always-on log that survives reset —
+this is what makes an agent-watchable serial log possible, the debug leg of #56);
+**flashing and JTAG on the native USB port.**
+
+This means the board's default routing is already correct —
+`esp32c6_devkitc_hpcore.dts:20` gives `zephyr,console = &uart0` — and **no console overlay
+is needed.** The `usb_serial` node (`esp32c6_common.dtsi:335`,
+`espressif,esp32-usb-serial`, ships `status = "disabled"`) and
+`CONFIG_SERIAL_ESP32_USB` (`drivers/serial/Kconfig.esp32:15`) stay unused for console;
+they are noted here only so a future reader knows the native-USB console path exists and
+was rejected deliberately, not overlooked.
+
+### 2b. Port pinning — a re-armed footgun
+
+`run.sh` hard-pins `ESPTOOL_PORT=/dev/ttyUSB0` for the WROOM-32, after auto-detect
+clobbered the jag board on 2026-07-16. **The C6's CP210x now claims `/dev/ttyUSB0` too.**
+With both boards attached, enumeration order decides which one gets flashed — the same bug,
+re-armed.
+
+**Decision:** board profiles pin by stable path under `/dev/serial/by-id/` rather than by
+`ttyUSB0`/`ttyACM0`, which are allocation-order names. Overridable by `ESPTOOL_PORT` as
+today.
 
 ### 3. `patch-esp32-rom-ld.sh` is Xtensa-specific and must be board-gated
 
@@ -154,6 +176,12 @@ only step that can break working code, so it goes first and proves itself immedi
 
 **Explicitly out of scope:** the AMG8833. It stays on the WROOM-32; the C6 bench is
 e-paper-only. The C6 overlay carries no `amg88xx` node.
+
+**Note on the thermal rung's Task 9** (phase-2 threshold trigger): #53 records that
+switching off `CONFIG_AMG88XX_TRIGGER_NONE` adds a driver thread with its own stack, and
+**that may not fit in 816 B of spare DRAM.** Task 9 is therefore not a blocker for merging
+the thermal branch, and is a natural candidate to land *on the C6* once this rung proves
+the headroom.
 
 ---
 
