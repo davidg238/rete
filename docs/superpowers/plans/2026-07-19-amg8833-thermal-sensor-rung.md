@@ -767,7 +767,7 @@ cd ~/workspace/tuvm && git commit -m "chore(node): retire HttpServerNode/HttpNod
 **Interfaces:**
 - Produces: the same `sensor_frame_read`/`sensor_arm_event` contract as `sensor_posix.c`, against the devicetree `amg88xx` node.
 
-- [ ] **Step 1: Write the Zephyr backend**
+- [x] **Step 1: Write the Zephyr backend**
 
 Create `tuvm/src/backend/zephyr/sensor_zephyr.c`:
 
@@ -818,7 +818,7 @@ int sensor_arm_event(int chan_id, int handle_idx, int32_t threshold_centi)
 }
 ```
 
-- [ ] **Step 2: Add it to the Zephyr build**
+- [x] **Step 2: Add it to the Zephyr build**
 
 In `tuvm/zephyr/CMakeLists.txt`, in the source list that already names `timer_zephyr.c`/`http_zephyr.c`, add:
 
@@ -826,9 +826,18 @@ In `tuvm/zephyr/CMakeLists.txt`, in the source list that already names `timer_ze
   ${TUVM_SRC}/src/backend/zephyr/sensor_zephyr.c
 ```
 
-- [ ] **Step 3: Write the devicetree overlay**
+- [x] **Step 3: Write the devicetree overlay**
 
-Create `tuvm/zephyr/boards/esp32_devkitc.overlay`:
+Create `tuvm/zephyr/boards/esp32_devkitc_esp32_procpu.overlay`.
+
+**The filename is load-bearing and the name originally given here was wrong.**
+Zephyr auto-applies `boards/<board>_<qualifiers>.overlay`, joining the board
+target's qualifiers with underscores (`cmake/modules/extensions.cmake:1709-1712`).
+For `esp32_devkitc/esp32/procpu` that is `esp32_devkitc_esp32_procpu.overlay`.
+A plain `esp32_devkitc.overlay` is not a name the build ever looks for — it would
+be silently ignored, leaving no `amg88xx` node, compiling the backend's
+`#else` branch, and returning nil frames with no error anywhere. Confirm the
+build log prints `Found devicetree overlay: .../boards/esp32_devkitc_esp32_procpu.overlay`.
 
 ```dts
 /* AMG8833 Grid-EYE on the WROOM-32's i2c0. `int-gpios` is REQUIRED by the
@@ -848,15 +857,24 @@ Create `tuvm/zephyr/boards/esp32_devkitc.overlay`:
 };
 ```
 
-> Confirm the SDA/SCL pins and the free GPIO against the board devicetree before wiring hardware:
-> `grep -A6 'i2c0' ~/zephyr-esp32/zephyr/boards/espressif/esp32_devkitc/esp32_devkitc_procpu.dts`
+> **Pins confirmed** against `~/zephyr-esp32/zephyr/boards/espressif/esp32_devkitc/esp32_devkitc_procpu.dts:83-90`:
+> `sda-gpios = <&gpio0 21 ...>`, `scl-gpios = <&gpio0 22 ...>`, and `i2c0` is already
+> `status = "okay"` with `clock-frequency` set there — so the overlay only needs to add the
+> sensor node, not restate the bus. GPIO4 verified free (no `gpio0 4` claim in the board dts).
+>
+> Wiring: VIN -> 3V3, GND -> GND, SDA -> GPIO21, SCL -> GPIO22, INT -> GPIO4.
+> The binding (`dts/bindings/sensor/panasonic,amg88xx.yaml:11-18`) marks `int-gpios`
+> `required: true` even for the no-trigger build, and documents the pin as open-drain
+> active-low needing a pull-up — hence `(GPIO_ACTIVE_LOW | GPIO_PULL_UP)`.
 
-- [ ] **Step 4: Enable the driver**
+- [x] **Step 4: Enable the driver**
 
 In `tuvm/zephyr/prj_esp32.conf`, add:
 
 ```
-# AMG8833 Grid-EYE thermal array (selects I2C). Phase 1 = no trigger.
+# AMG8833 Grid-EYE thermal array (AMG88XX selects I2C). Phase 1 is poll-only: the
+# cadence lives in nsl (ThermalNode's timer), so no driver trigger thread is needed.
+CONFIG_SENSOR=y
 CONFIG_AMG88XX=y
 CONFIG_AMG88XX_TRIGGER_NONE=y
 ```

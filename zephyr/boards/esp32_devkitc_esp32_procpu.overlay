@@ -1,0 +1,41 @@
+/* AMG8833 Grid-EYE on the WROOM-32's i2c0.
+ *
+ * FILENAME IS LOAD-BEARING. Zephyr auto-applies boards/<board>_<qualifiers>.overlay,
+ * where the qualifiers of the board target `esp32_devkitc/esp32/procpu` are joined
+ * with underscores (cmake/modules/extensions.cmake:1709-1712) — hence
+ * `esp32_devkitc_esp32_procpu.overlay`. A plain `esp32_devkitc.overlay` is NOT a name
+ * the build looks for: it would be silently ignored, the amg88xx node would never
+ * exist, DT_NODE_EXISTS would compile the backend's #else branch, and every frame
+ * would read nil with no error anywhere. If the sensor never appears, check first
+ * that the build log says "Found devicetree overlay: .../boards/<this file>".
+ *
+ * Pins verified against the board devicetree
+ * (~/zephyr-esp32/zephyr/boards/espressif/esp32_devkitc/esp32_devkitc_procpu.dts:83-90):
+ *   SDA -> GPIO21, SCL -> GPIO22, and i2c0 is already status = "okay" with
+ *   clock-frequency set there, so this overlay only adds the sensor node.
+ *
+ * Wiring: VIN -> 3V3, GND -> GND, SDA -> GPIO21, SCL -> GPIO22, INT -> GPIO4.
+ *
+ * `int-gpios` is REQUIRED by the panasonic,amg88xx binding even in the no-trigger
+ * phase-1 build (CONFIG_AMG88XX_TRIGGER_NONE=y), so the INT pin must be physically
+ * wired or the driver will not initialize. It is open-drain active-low, so it needs a
+ * pull-up; most breakouts have one on INT, and GPIO_PULL_UP is set here so the build
+ * does not depend on that. GPIO4 was checked free — nothing in the board devicetree
+ * claims it.
+ *
+ * Default I2C address is 0x69; it is 0x68 when AD_SELECT is tied low. If the device
+ * does not probe, scan the bus before suspecting the driver — a strapped-low board
+ * needs both the node name and `reg` changed to 0x68.
+ */
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+&i2c0 {
+	status = "okay";
+
+	amg88xx: amg88xx@69 {
+		compatible = "panasonic,amg88xx";
+		reg = <0x69>;
+		int-gpios = <&gpio0 4 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+		status = "okay";
+	};
+};
