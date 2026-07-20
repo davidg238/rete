@@ -827,24 +827,54 @@ on the CP210x path, not the Espressif one.
 `TimerNode` boxes no floats, so soft-float and the float-arena knobs are otherwise
 unexercised. This node exists specifically to exercise them.
 
-Create `zephyr/FloatSmokeNode.nsl`:
+Create `zephyr/FloatSmokeNode.nsl`. **Model its shape on `zephyr/TimerNode.nsl`** —
+`packageUsing: manifest`, platform arriving as the `main:` argument, an `expect:` block in
+the header comment, `println` for output, and `^ 0` to return. Float idioms are taken from
+`nsl-tests/05_somns_benchmarks/05_nbody.nsl` (`0.0 asFloat`, `1 to: N do:`):
 
 ```
-class FloatSmokeNode usingPlatform: platform = (
-| private ctl = platform ctl. |
-)(
-  public main: args = (
-    | sum |
-    sum:: 0.0.
-    1 to: 200 do: [:i | sum:: sum + (i asFloat / 3.0)].
-    ('float-smoke sum=', sum printString) out.
-    ('float-smoke ok') out.
+(*
+FloatSmokeNode — exercises the boxed-Float path on a target with NO FPU.
+
+The C6 ISA is rv32imac_zicsr: no 'f', no 'd' extension, so every float
+operation here is a soft-float libcall. This node exists because TimerNode
+(the bench gate) boxes no floats at all, leaving both soft-float AND the
+float-arena knobs (OEVM_FLOAT_ARENA_SLAB_CELLS / _SLAB_BUDGET) completely
+unexercised on this target.
+
+The arena knobs are carried over from Xtensa on the PREDICTION that struct
+Float stays 16 B under the RISC-V ilp32 ABI. Task 4 confirmed the size, but
+size is not the same as the arena behaving correctly under churn — hence a
+loop that boxes several hundred intermediates rather than a single add.
+
+Grants no capability, so no `net:` header. No radio, no timer, no hardware.
+expect:
+float-smoke ok
+*)
+class FloatSmokeNode packageUsing: manifest = (
+| sum ::= 0.0 asFloat. |
+) (
+  public main: platform args: args = (
+    1 to: 200 do: [ :i | sum:: sum + (i asFloat / 3.0) ].
+    ('float-smoke sum=', sum printString) println.
+    'float-smoke ok' println.
+    ^ 0
   )
+) : (
 )
 ```
 
-Adjust the platform/`out` idiom to match `zephyr/TimerNode.nsl`'s conventions — read that
-file first and mirror it rather than assuming this skeleton compiles as written.
+**Verify it on the host before flashing it.** The device loop is slow and a syntax error
+should not cost a flash cycle:
+
+```bash
+python3 ~/workspace/nsl-tuvm/tools/run-one.py ~/workspace/tuvm/zephyr/FloatSmokeNode.nsl
+```
+
+Expected: `float-smoke sum=` with a plausible value (~6700) and `float-smoke ok`. If the
+dialect differs from what is written above, **fix it against `TimerNode.nsl` and the
+nbody benchmark rather than guessing** — this snippet is derived from those sources, not
+copied from a compiled node.
 
 - [ ] **Step 4: Run the float smoke test on the C6**
 
