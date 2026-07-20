@@ -19,6 +19,9 @@
 - **`OEVM_IRAM_HOT` must NOT be exported for `esp32c6`.** `zephyr/CMakeLists.txt:141-145` gates it on `CONFIG_XTENSA` and raises `FATAL_ERROR` if forced on a non-Xtensa target.
 - **`CONFIG_FPU` must NOT be set for `esp32c6`.** The ISA is `rv32imac_zicsr` (`esp32c6_common.dtsi:37`) — no `f`, no `d`. Soft-float is accepted.
 - **`CONFIG_ESP32_USE_UNSUPPORTED_REVISION` is ESP32-silicon-specific.** It must not appear in any C6 Kconfig file.
+- **Every config must carry a net stack.** `src/udp.c` and the Zephyr UDP/HTTP backends are in `target_sources` unconditionally, because `dispatch.c`'s `send()` fast path probes `udp_object()` on every send. Without `CONFIG_NET_SOCKETS` the app does not link. Discovered at Task 2; "no radio" therefore means net stack without a radio driver, never without sockets.
+- **WiFi is out of scope on the C6** (decision, 2026-07-20). The board yaml declares `netif:openthread` and does not declare `wifi`. Thread/IPv6 is the C6's radio path.
+- **The C6's linkable SRAM region is `sram0_0_seg` at 437512 B (~427 KB)**, not the DTS node's 512 KB — `soc/espressif/esp32c6/memory.h` and `default.ld:65` subtract icache and bootloader reservations.
 - **C6 flash offset is `0x0`, not `0x1000`.** Flashing a C6 image at `0x1000` produces a silent boot loop, not an error.
 - **Console on the UART bridge; flash on native USB.** Per #57: the native port re-enumerates on target reset and breaks continuous readers; the bridge chip never reboots. The board's default `zephyr,console = &uart0` is therefore already correct — **no console overlay.**
 - **Pin ports by `/dev/serial/by-id/`,** never `ttyUSB0`/`ttyACM0`. The C6's CP210x now claims `/dev/ttyUSB0`, the exact node `run.sh` hard-pins for the WROOM-32.
@@ -30,8 +33,9 @@
 ## File Structure
 
 **Create:**
-- `zephyr/prj_esp32c6.conf` — C6 boot-&-run Kconfig, no networking, no sensor, no FPU.
-- `zephyr/prj_esp32c6_wifi.conf` — the Task 6 stretch layer.
+- `zephyr/prj_esp32c6.conf` — C6 boot-&-run Kconfig: net stack (no radio), no sensor, no FPU.
+- `zephyr/prj_esp32c6_thread.conf` — the Task 6 OpenThread/IPv6 radio layer.
+- `zephyr/boards/esp32c6_devkitc_esp32c6_hpcore.overlay` — enables the `ieee802154` node.
 - `zephyr/layoutdump/prj_c6.conf` — layoutdump's C6 Kconfig (the existing `prj.conf` carries the ESP32-only revision opt-in).
 - `tools/heap-ceiling.sh` — build-only bisect of max linkable `OEVM_HEAP_SIZE`.
 - `zephyr/layout-esp32c6.json` — **generated at Task 4, not authored.**
@@ -393,6 +397,123 @@ Refs #57"
 
 ---
 
+## Task 2b: Give `prj_esp32c6.conf` a net stack (unblocks Task 3)
+
+**Files:**
+- Modify: `zephyr/prj_esp32c6.conf`
+
+**Why this task exists.** Task 2 committed `prj_esp32c6.conf` exactly as the plan specified
+— with no networking — and then discovered the main app cannot link that way.
+`zephyr/CMakeLists.txt` adds `src/udp.c`, `src/http.c`, `src/http_core.c` and their Zephyr
+backends to `target_sources(app PRIVATE ...)` **unconditionally**, outside any board or
+model branch, because `dispatch.c`'s `send()` fast path probes `udp_object()` on every
+send. Without `CONFIG_NET_SOCKETS` the link fails on `zsock_*` undefined references. Every
+Task 3 probe would have hit this before ever exercising a heap size.
+
+**Interfaces:**
+- Consumes: Task 2's `zephyr/prj_esp32c6.conf`.
+- Produces: a C6 config the main app actually links against — the precondition for Task 3.
+
+- [ ] **Step 1: Reproduce the link failure**
+
+```bash
+cd ~/workspace/tuvm/zephyr
+source ~/zephyr-esp32/.venv/bin/activate
+west build -b esp32c6_devkitc/esp32c6/hpcore -p always -d build-c6-netprobe . \
+  -- -DCONF_FILE=prj_esp32c6.conf -DTUVM_MODEL=B 2>&1 | grep -E "undefined reference|error:" | head
+```
+
+Expected: `undefined reference to 'zsock_socket'` (and siblings). Confirm before changing
+anything — if the link now succeeds, stop and report, because the premise has changed.
+
+- [ ] **Step 2: Add the minimal net stack, no radio**
+
+Append to `zephyr/prj_esp32c6.conf`:
+
+```
+# Net stack WITHOUT a radio driver.
+#
+# NOT optional, despite this target having no network peer to talk to:
+# zephyr/CMakeLists.txt adds src/udp.c, src/http.c, src/http_core.c and their
+# zephyr backends to target_sources UNCONDITIONALLY, because dispatch.c's send()
+# fast path probes `receiver == udp_object()` on every send. Without
+# CONFIG_NET_SOCKETS the app fails to link on zsock_* undefined references.
+# The same reasoning is recorded in prj_esp32.conf's networking comment.
+#
+# IPv6 rather than IPv4: the C6's radio path is Thread (prj_esp32c6_thread.conf),
+# and Thread is IPv6-only. Keeping the base config IPv6 means the Thread layer
+# adds a radio and nothing else.
+CONFIG_NETWORKING=y
+CONFIG_NET_IPV6=y
+CONFIG_NET_UDP=y
+CONFIG_NET_SOCKETS=y
+CONFIG_NET_CONFIG_SETTINGS=n
+
+# Small pools: this config has no radio, so nothing but the loopback path uses
+# them. The Thread layer raises them.
+CONFIG_NET_MAX_CONTEXTS=6
+CONFIG_NET_PKT_RX_COUNT=8
+CONFIG_NET_PKT_TX_COUNT=8
+CONFIG_NET_BUF_RX_COUNT=16
+CONFIG_NET_BUF_TX_COUNT=16
+```
+
+- [ ] **Step 3: Verify it links**
+
+```bash
+cd ~/workspace/tuvm/zephyr
+west build -b esp32c6_devkitc/esp32c6/hpcore -p always -d build-c6-netprobe . \
+  -- -DCONF_FILE=prj_esp32c6.conf -DTUVM_MODEL=B 2>&1 | tail -25
+```
+
+Expected: either a completed link with a memory report, **or** a failure that is clearly a
+*region overflow* (the default un-exported heap arena is large). A region overflow is an
+acceptable pass here — it proves the `zsock_*` references resolved. Any remaining undefined
+reference is a real failure.
+
+Record the memory report verbatim if one is produced.
+
+- [ ] **Step 4: Add the missing `.gitignore` entries**
+
+Task 2 left untracked build dirs; Task 3 will add more.
+
+```bash
+cd ~/workspace/tuvm
+cat >> .gitignore <<'EOF'
+zephyr/build-c6-probe/
+zephyr/build-c6-netprobe/
+zephyr/build-esp32c6-*/
+zephyr/build-heapprobe-*/
+zephyr/layoutdump/build-c6/
+EOF
+git status --porcelain zephyr/ | head
+```
+
+Expected: no untracked build directories listed.
+
+- [ ] **Step 5: Commit**
+
+```bash
+cd ~/workspace/tuvm
+git add zephyr/prj_esp32c6.conf .gitignore
+git commit -m "fix(zephyr): C6 conf needs a net stack to link at all
+
+The design said prj_esp32c6.conf carries no networking. That is not
+possible: zephyr/CMakeLists.txt adds src/udp.c and the zephyr UDP/HTTP
+backends to target_sources unconditionally, because dispatch.c's send()
+fast path probes udp_object() on every send. Without CONFIG_NET_SOCKETS
+the link fails on zsock_* undefined references, and every Task 3 heap
+probe would have hit it before measuring anything.
+
+Adds the net stack with NO radio driver, IPv6 so the Thread layer adds
+only a radio. Also gitignores the C6 build dirs.
+
+Refs #57"
+```
+
+
+---
+
 ## Task 3: The heap-ceiling bisect — the headline deliverable
 
 **Files:**
@@ -511,15 +632,15 @@ bash tools/heap-ceiling.sh --board esp32 2>&1 | tail -3   # with CONF_FILE=prj_e
 
 Record the number. Then `rm zephyr/prj_esp32_nowifi.conf` and restore the profile.
 
-- [ ] **Step 4: Measure the remaining three cells**
+- [ ] **Step 4: Measure the remaining cells**
 
 ```bash
-bash tools/heap-ceiling.sh --board esp32   2>&1 | tail -3   # WiFi (default prj_esp32.conf)
-bash tools/heap-ceiling.sh --board esp32c6 2>&1 | tail -3   # no WiFi (default prj_esp32c6.conf)
+bash tools/heap-ceiling.sh --board esp32   2>&1 | tail -3   # WROOM-32 + WiFi (default prj_esp32.conf)
+bash tools/heap-ceiling.sh --board esp32c6 2>&1 | tail -3   # C6, net stack, no radio
 ```
 
-The C6-with-WiFi cell is deferred to Task 6, since `prj_esp32c6_wifi.conf` does not exist
-yet. Record it as "pending Task 6" rather than leaving the cell blank.
+The C6-with-Thread cell is deferred to Task 6, since `prj_esp32c6_thread.conf` does not
+exist yet. Record it as "pending Task 6" rather than leaving the cell blank.
 
 - [ ] **Step 5: Write up the table**
 
@@ -527,11 +648,17 @@ Create `docs/results/2026-07-20-c6-heap-ceiling.md` with the four cells, each ac
 by the first failing linker diagnostic. Include this framing verbatim, because the number
 is easy to quote misleadingly:
 
-> The WROOM-32's documented 53248 is a **WiFi-loaded** figure. Quoting it against a
-> no-WiFi C6 number overstates the C6's gain by roughly the WiFi driver heap (~40 KB)
-> plus the net-buf pools. The no-WiFi pair is the clean memory-map comparison; the WiFi
-> pair answers "can the C6 run the demo with room to spare". Both are reported; neither
-> is quoted alone.
+> The WROOM-32's documented 53248 is a **radio-loaded** figure. Quoting it against a
+> no-radio C6 number overstates the C6's gain by roughly the WiFi driver heap (~40 KB)
+> plus the net-buf pools. The no-radio pair is the clean memory-map comparison.
+>
+> The with-radio cells are **not like-for-like**: the WROOM-32 carries WiFi, the C6
+> carries OpenThread, and their footprints differ. That column compares each board
+> against its own usable radio, not against each other. Both are reported; neither is
+> quoted alone.
+>
+> "No radio" never means "no sockets" — `src/udp.c` is compiled unconditionally, so every
+> config carries a net stack (see Task 2b).
 >
 > These are **link** ceilings. A value that links is not necessarily a value that boots;
 > boot confirmation for the C6 lands at Task 5.
@@ -770,109 +897,152 @@ Refs #57"
 
 ---
 
-## Task 6: Stretch — WiFi on the C6
+## Task 6: Thread / IPv6 on the C6
 
 **Files:**
-- Create: `zephyr/prj_esp32c6_wifi.conf`
+- Create: `zephyr/prj_esp32c6_thread.conf`, `zephyr/boards/esp32c6_devkitc_esp32c6_hpcore.overlay`
 
 **Interfaces:**
-- Consumes: Task 5's working C6 VM.
-- Produces: either a working WiFi C6 build, or a documented failure. **Both close the task.**
+- Consumes: Task 5's working C6 VM; Task 2b's net stack.
+- Produces: the fourth table cell (C6 with radio) and a Thread-capable C6 image.
 
-**This task is allowed to fail.** `esp32c6_devkitc_hpcore.yaml` does not declare `wifi` in
-its `supported:` list, though `drivers/wifi/esp32/Kconfig.esp32:347` lists
-`SOC_SERIES_ESP32C6` and the HAL ships the full C6 blob set. Failure here does not sink
-the rung.
+**Why Thread and not WiFi.** `esp32c6_devkitc_hpcore.yaml` declares `netif:openthread` in
+its `supported:` list and does **not** declare `wifi`. Thread is the board's supported
+radio path, it is IPv6-only (which Task 2b's base config already matches), and there is an
+in-repo precedent to copy from. WiFi is out of scope on the C6 by decision (2026-07-20).
 
-- [ ] **Step 1: Write `zephyr/prj_esp32c6_wifi.conf`**
+**Unproven going in:** OpenThread on RISC-V in this tree. The driver
+(`drivers/ieee802154/ieee802154_esp32.c`), the Kconfig (`CONFIG_IEEE802154_ESP32`) and the
+DTS node all exist — none of that is a green link.
 
-Mirror `prj_esp32.conf`'s networking block. Start from its values, since they were tuned
-against real failures (a 4 pkt / 8 buf TX pool caused mid-body RSTs on a ~4 KB response):
+- [ ] **Step 1: Write the devicetree overlay**
+
+`esp32c6_common.dtsi:85` ships the radio node disabled. Create
+`zephyr/boards/esp32c6_devkitc_esp32c6_hpcore.overlay`:
 
 ```
-# C6 WiFi layer, applied on top of prj_esp32c6.conf via EXTRA_CONF_FILE.
-#
-# STRETCH: esp32c6_devkitc_hpcore.yaml does not list 'wifi' in supported:.
-# That list drives twister filtering rather than capability, and both the HAL
-# blobs (libnet80211.a, libpp.a, libphy.a, libcoexist.a) and
-# drivers/wifi/esp32/Kconfig.esp32:347 (which lists SOC_SERIES_ESP32C6) suggest
-# it should work — but it is unproven here. See #57.
-#
-# Net-buf counts copied from prj_esp32.conf, where they were tuned against real
-# failures: at 4 pkt / 8 buf the TCP stack RST mid-body on a ~4 KB response.
-CONFIG_NETWORKING=y
-CONFIG_NET_IPV4=y
-CONFIG_NET_TCP=y
-CONFIG_NET_UDP=y
-CONFIG_NET_SOCKETS=y
-CONFIG_NET_DHCPV4=y
+/* Enable the C6's built-in 802.15.4 radio for OpenThread.
+ *
+ * esp32c6_common.dtsi:85 declares:
+ *     ieee802154: ieee802154 { compatible = "espressif,esp32-ieee802154";
+ *                              status = "disabled"; };
+ * CONFIG_IEEE802154_ESP32 depends on DT_HAS_ESPRESSIF_ESP32_IEEE802154_ENABLED,
+ * so the driver does not build until this node is enabled.
+ *
+ * Filename is derived from the board qualifiers (esp32c6_devkitc/esp32c6/hpcore
+ * -> esp32c6_devkitc_esp32c6_hpcore.overlay). CMake CACHES overlay discovery, so
+ * a newly-added overlay needs -p always on the first build after adding it.
+ */
+&ieee802154 {
+	status = "okay";
+};
+```
 
-CONFIG_WIFI=y
-CONFIG_WIFI_ESP32=y
-CONFIG_NET_L2_WIFI_MGMT=y
-CONFIG_NET_MGMT=y
-CONFIG_NET_MGMT_EVENT=y
-CONFIG_NET_L2_ETHERNET=y
+- [ ] **Step 2: Write `zephyr/prj_esp32c6_thread.conf`**
 
-CONFIG_NET_MAX_CONTEXTS=5
+Copy only the networking block of the in-repo precedent `zephyr/prj_dk_thread.conf`. **Do
+not copy the whole file** — it also sets `CONFIG_NEWLIB_LIBC` and `CONFIG_FPU=y`, both
+wrong for the C6 (we use picolibc, and the C6 has no FPU).
+
+```
+# OpenThread / IPv6 radio layer for the C6, applied on top of prj_esp32c6.conf
+# via EXTRA_CONF_FILE.
+#
+# Thread rather than WiFi: esp32c6_devkitc_hpcore.yaml declares netif:openthread
+# in its supported: list and does NOT declare wifi. Thread is also IPv6-only,
+# which prj_esp32c6.conf already matches, so this layer adds a radio and nothing
+# else.
+#
+# Values are the networking block of zephyr/prj_dk_thread.conf (proven on the
+# nRF52840 DK). That file's CONFIG_NEWLIB_LIBC and CONFIG_FPU=y are deliberately
+# NOT copied: the C6 uses picolibc and has no FPU (rv32imac_zicsr).
+#
+# Requires boards/esp32c6_devkitc_esp32c6_hpcore.overlay to enable the
+# ieee802154 node — the driver does not build otherwise.
+CONFIG_IEEE802154=y
+CONFIG_IEEE802154_ESP32=y
+CONFIG_NET_L2_OPENTHREAD=y
+CONFIG_OPENTHREAD_MTD=y
+CONFIG_OPENTHREAD_FTD=n
+CONFIG_OPENTHREAD_MANUAL_START=y
+CONFIG_OPENTHREAD_THREAD_STACK_SIZE=6240
+
+# Raised from prj_esp32c6.conf's radio-less values now that a real radio exists.
+CONFIG_NET_MAX_CONTEXTS=6
 CONFIG_NET_PKT_RX_COUNT=8
-CONFIG_NET_PKT_TX_COUNT=16
+CONFIG_NET_PKT_TX_COUNT=8
 CONFIG_NET_BUF_RX_COUNT=16
-CONFIG_NET_BUF_TX_COUNT=32
-CONFIG_NET_BUF_DATA_SIZE=256
-CONFIG_NET_TCP_MAX_SEND_WINDOW_SIZE=4096
-CONFIG_NET_CONFIG_SETTINGS=n
+CONFIG_NET_BUF_TX_COUNT=16
+
+# Thread stores its network credentials in settings; NVS backs them.
+CONFIG_FLASH=y
+CONFIG_FLASH_MAP=y
+CONFIG_NVS=y
+CONFIG_SETTINGS=y
+CONFIG_SETTINGS_NVS=y
 ```
 
-- [ ] **Step 2: Extend the `esp32c6` profile to accept the WiFi layer**
+- [ ] **Step 3: Build with Thread**
 
-In `zephyr/run.sh`, generalise the WiFi-overlay block added at Task 1 Step 4:
-
-```bash
-WIFI_CONF="$ZDIR/prj_${BOARD_ID}_wifi.local.conf"
-EXTRA_CONF_ARG=()
-if [ -f "$WIFI_CONF" ]; then
-  EXTRA_CONF_ARG=(-DEXTRA_CONF_FILE="$(basename "$WIFI_CONF")")
-  echo "[wifi]  overlay found -> $WIFI_CONF"
-fi
-```
-
-Credentials live in a git-ignored `prj_esp32c6_wifi.local.conf`, exactly as the ESP32 does.
-
-- [ ] **Step 3: Build with WiFi**
+`-p always` is required — the overlay is newly added and CMake caches overlay discovery.
 
 ```bash
 cd ~/workspace/tuvm/zephyr
-west build -b esp32c6_devkitc/esp32c6/hpcore -p always -d build-c6-wifi . \
-  -- -DCONF_FILE=prj_esp32c6.conf -DEXTRA_CONF_FILE=prj_esp32c6_wifi.conf -DTUVM_MODEL=B 2>&1 | tail -20
+source ~/zephyr-esp32/.venv/bin/activate
+west build -b esp32c6_devkitc/esp32c6/hpcore -p always -d build-c6-thread . \
+  -- -DCONF_FILE=prj_esp32c6.conf -DEXTRA_CONF_FILE=prj_esp32c6_thread.conf \
+     -DTUVM_MODEL=B 2>&1 | tail -25
 ```
 
-Expected: either a completed build, or a clear failure. **If it fails, capture the exact
-error and stop** — do not attempt to port WiFi support. Record the outcome and move to
-Task 7.
+Expected: a completed build with a memory report, or a region overflow (acceptable — the
+heap arena default is large; Step 4 measures the real ceiling).
 
-- [ ] **Step 4: Measure the fourth table cell**
+**If it fails on undefined OpenThread symbols or a missing RISC-V OpenThread port**,
+capture the exact error and report it. Do not attempt to port OpenThread.
 
-Only if Step 3 succeeded:
+- [ ] **Step 4: Verify the radio driver actually built in**
+
+A silently-absent driver would make the Thread cell measure the wrong thing.
 
 ```bash
 cd ~/workspace/tuvm
-bash tools/heap-ceiling.sh --board esp32c6 2>&1 | tail -3   # with the WiFi conf active
+grep -E "^CONFIG_(IEEE802154_ESP32|NET_L2_OPENTHREAD|OPENTHREAD_MTD)=" \
+  zephyr/build-c6-thread/zephyr/.config
 ```
 
-This fills the C6-with-WiFi cell left pending at Task 3. **This is the cell that is
-directly comparable to the WROOM-32's 53248** — the headline number.
+Expected: all three present and `=y`. If `CONFIG_IEEE802154_ESP32` is absent, the overlay
+did not take effect — rebuild with `-p always`.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Measure the fourth table cell**
 
 ```bash
 cd ~/workspace/tuvm
-git add zephyr/prj_esp32c6_wifi.conf zephyr/run.sh docs/results/2026-07-20-c6-heap-ceiling.md
-git commit -m "feat(zephyr): C6 WiFi layer (stretch) + fourth table cell
+bash tools/heap-ceiling.sh --board esp32c6 --conf-extra prj_esp32c6_thread.conf 2>&1 | tail -3
+```
 
-<Replace this line with the actual outcome: either 'WiFi builds and the
-C6-with-WiFi heap ceiling is N (vs the WROOM-32's 53248)' or 'WiFi does
-not build on the C6: <exact error>. Recorded as a documented failure.'>
+If `tools/heap-ceiling.sh` has no `--conf-extra` flag, add one that forwards
+`-DEXTRA_CONF_FILE=` through `run.sh`, mirroring how the board profile forwards
+`-DCONF_FILE=`. Record the number.
+
+**This is the C6's with-radio cell.** It is not directly comparable to the WROOM-32's 53248
+— WiFi and OpenThread have different footprints — so the results doc must say so where it
+reports both.
+
+- [ ] **Step 6: Commit**
+
+```bash
+cd ~/workspace/tuvm
+git add zephyr/prj_esp32c6_thread.conf zephyr/boards/esp32c6_devkitc_esp32c6_hpcore.overlay \
+        tools/heap-ceiling.sh docs/results/2026-07-20-c6-heap-ceiling.md
+git commit -m "feat(zephyr): OpenThread/IPv6 on the C6 + fourth table cell
+
+Thread rather than WiFi: the board yaml declares netif:openthread and
+does not declare wifi. Overlay enables the ieee802154 node, which
+esp32c6_common.dtsi:85 ships disabled and which CONFIG_IEEE802154_ESP32
+depends on.
+
+Kconfig copies only the networking block of prj_dk_thread.conf — that
+file's CONFIG_NEWLIB_LIBC and CONFIG_FPU=y are wrong for the C6.
 
 Refs #57"
 ```
