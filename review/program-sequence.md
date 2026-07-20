@@ -729,6 +729,79 @@ Design: `docs/design/2026-07-19-amg8833-thermal-sensor-rung-design.md`; plan:
 `docs/superpowers/plans/2026-07-19-amg8833-thermal-sensor-rung.md` (Tasks 1–8 ticked; Task 9 gated on
 #55, Task 10 is this entry). Open: #51, #52, #53, #54, #55, #56.
 
+**ESP32-C6 second Zephyr target (Arc 1 spike) — measured 2026-07-20, NOT a primary-target
+decision.** Evaluated per #57 (David has 3 boards on hand) as a candidate fix for #53's
+DRAM ceiling. All four `max-linkable OEVM_HEAP_SIZE` cells are now measured and reviewed:
+
+| board    | radio            | ceiling  |
+|----------|------------------|----------|
+| WROOM-32 | WiFi             | 53248 (52 KB) |
+| WROOM-32 | none             | 106496 (104 KB) |
+| C6       | none             | 319488 (312 KB) — links at 100.00% region, 8 B spare |
+| C6       | OpenThread/IPv6  | 262144 (256 KB) |
+
+**The honest headline is 262144 vs 53248 = 4.9× more VM heap on a board with a working
+radio.** OpenThread costs 57344 B vs WiFi's 53248 B, so the two radios are near-equally
+expensive — the C6's entire advantage is its unified memory map, not a cheaper radio. Do
+**not** headline 319488: it links with 8 bytes spare (the exact condition #53 already
+calls a hard ceiling, just on a bigger part), was measured under a near-idle node, and
+the GC is collect-when-full so heap high-water always pegs to the arena ceiling regardless
+of live-set size. The wall moved; it should not be leaned on.
+
+**The durable lessons (this is the promotion; the dated design/results docs keep the
+narrative):**
+1. **Board target `esp32c6_devkitc/esp32c6/hpcore`.** Overlay filename derives from the
+   board qualifiers (`boards/esp32c6_devkitc_esp32c6_hpcore.overlay`) — **a wrong name is
+   silently ignored, not an error**, and CMake caches overlay discovery, so a newly-added
+   overlay needs `-p always`/`--pristine` on the first build after adding it (same failure
+   shape as the AMG8833 rung's lesson 5 above, now confirmed on a second board).
+2. **No FPU** (`rv32imac_zicsr`) — tuvm runs soft-float on the C6. The Xtensa float-arena
+   knobs (`OEVM_FLOAT_ARENA_SLAB_CELLS=512`, `OEVM_FLOAT_ARENA_SLAB_BUDGET=4`) transfer
+   unchanged and were not re-tuned; `struct Float` is 16 B on both targets (see 5).
+3. **Flash offset `0x0`, not `0x1000`.** At `0x1000` the C6 boot-loops silently — no
+   error, no console output.
+4. **Console on the UART bridge, flashing on native USB** — the non-obvious assignment.
+   The native port re-enumerates on target reset (breaks a continuous reader); the bridge
+   chip never reboots, so it carries the always-on log. This is what makes an
+   agent-watchable serial log possible (the #56 debug leg).
+5. **`layout-*.json` must be generated per target because you cannot know it matches
+   until you look — not because it necessarily differs.** The measured RV32 ilp32 layout
+   turned out byte-identical to Xtensa (every struct size and field offset), verified
+   three independent ways (chip probe, compiler flags, and the `oevm.h` field types). A
+   target with genuinely different alignment rules would differ; this one did not — Model
+   B's bake path still treats each target's JSON as authoritative rather than assuming
+   reuse.
+6. **`OEVM_HEAP_SIZE=H` really costs `H + H/32`.** `src/gc.c:33-34` declares
+   `heap_bitmap[OEVM_HEAP_SIZE/sizeof(oop)/8+1]` — the GC alloc bitmap — as a *separate
+   static array outside the arena*, exactly `H/32` on any 32-bit target (board-independent).
+   This yields a first-principles ceiling check: `used(H) − H − H/32` is constant per
+   config (108032 for C6 no-radio, 166160 for C6+Thread), which independently predicted
+   both measured ceilings to the byte.
+7. **The VM cannot link without `CONFIG_NET_SOCKETS` on any target.** `src/udp.c` and the
+   Zephyr UDP/HTTP backends are in `target_sources` unconditionally because
+   `dispatch.c`'s `send()` fast path probes `udp_object()` on every send. "No radio" never
+   means "no sockets" (echoes the AMG8833/Framing note above, now load-bearing on a
+   second board's Kconfig too).
+8. **No forced-ROM-newlib fault on the C6.** The WROOM-32's `tools/patch-esp32-rom-ld.sh`
+   problem (ROM binding `fflush`/`setjmp` as strong symbols reaching for a nonexistent
+   FreeRTOS TCB) does not reproduce; the patch is correctly gated to the `esp32` profile
+   only (`ROM_PATCH=0` in `run.sh`'s `esp32c6` profile).
+9. **OpenThread builds for RISC-V in Zephyr 4.2 with no porting work.** The board yaml
+   declares `netif:openthread` and does not declare `wifi` — WiFi is out of scope on this
+   board by hardware/BSP decision, not a tuvm gap.
+
+**Not decided by this entry.** Whether the C6 becomes the primary dev-loop target (#57),
+whether #53 should stay open given the C6 path (recommended: yes — the WROOM-32 remains a
+supported target and its ceiling is still real for anyone on Xtensa), and whether Task 9's
+trigger thread should be scheduled on the C6 (#58 — clearly affordable there given the
+headroom) are all David's calls. Posted as data/recommendations on the three issues, not
+closed.
+
+Design: `docs/design/2026-07-20-esp32c6-second-target-design.md`; plan:
+`docs/superpowers/plans/2026-07-20-esp32c6-second-target.md`; measurement detail:
+`docs/results/2026-07-20-c6-heap-ceiling.md`. Suite floor unchanged (this rung touched no
+nsl source) — no `CLAIMS.md` row moves. Open: #53, #57, #58.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
