@@ -10,15 +10,22 @@
 # reports the LINK ceiling; boot confirmation is a separate, on-device step.
 #
 # Usage: tools/heap-ceiling.sh --board esp32|esp32c6 [--node X.nsl] [--lo N] [--hi N]
+#                               [--conf-extra FILE.conf]
+#
+# --conf-extra forwards straight through to run.sh's own --conf-extra (Task 6),
+# which turns it into -DEXTRA_CONF_FILE=FILE.conf. Used to bisect a radio-layered
+# config (e.g. the C6's prj_esp32c6_thread.conf OpenThread layer) on top of the
+# board's base CONF_FILE, without needing a separate script.
 set -euo pipefail
 
-BOARD_ID=esp32 NODE=TimerNode.nsl LO=16384 HI=524288
+BOARD_ID=esp32 NODE=TimerNode.nsl LO=16384 HI=524288 CONF_EXTRA=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --board) BOARD_ID="$2"; shift 2 ;;
-    --node)  NODE="$2";     shift 2 ;;
-    --lo)    LO="$2";       shift 2 ;;
-    --hi)    HI="$2";       shift 2 ;;
+    --board)      BOARD_ID="$2";  shift 2 ;;
+    --node)       NODE="$2";      shift 2 ;;
+    --lo)         LO="$2";        shift 2 ;;
+    --hi)         HI="$2";        shift 2 ;;
+    --conf-extra) CONF_EXTRA="$2"; shift 2 ;;
     *) echo "unknown arg: $1" >&2; exit 2 ;;
   esac
 done
@@ -58,6 +65,15 @@ fi
 RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/heap-ceiling.XXXXXX")"
 echo "[bisect] probe logs: $RUN_DIR" >&2
 
+# build-dir tag: a --conf-extra run gets its own build-dir suffix so it never
+# shares (and can never be confused with, in logs or on disk) the no-radio
+# bisect's "build-heapprobe-$BOARD_ID" directory for the same board. --pristine
+# (-p always, below) would force a clean reconfigure either way, so reuse would
+# not have been silently wrong — but a distinct name is one less thing to reason
+# about when comparing two cells for the same board side by side.
+CONF_TAG=""
+[ -n "$CONF_EXTRA" ] && CONF_TAG="-$(basename "$CONF_EXTRA" .conf)"
+
 try() {   # $1 = candidate heap size; 0 = links, 1 = does not (see FAIL_KIND)
   local size="$1" log
   log="$RUN_DIR/probe-$size.log"
@@ -71,9 +87,17 @@ try() {   # $1 = candidate heap size; 0 = links, 1 = does not (see FAIL_KIND)
   # definition, so probes 2..N would all silently measure probe 1's heap size
   # and the bisect would return a plausible-looking wrong number. Slow but
   # correct: ~7 full rebuilds for a 16 KB..512 KB range at 4 KB grain.
+  #
+  # --pristine also satisfies the newly-added-overlay trap (Task 6 decision 1):
+  # CMake caches devicetree overlay discovery, so a --conf-extra run's overlay
+  # would be silently dropped on an incremental build. -p always on every probe
+  # means that can never happen here, by construction.
+  local CONF_EXTRA_ARG=()
+  [ -n "$CONF_EXTRA" ] && CONF_EXTRA_ARG=(--conf-extra "$CONF_EXTRA")
   if OEVM_HEAP_SIZE="$size" \
        bash "$ROOT/zephyr/run.sh" --board "$BOARD_ID" --model B --node "$NODE" \
-       --pristine --build-dir "build-heapprobe-$BOARD_ID" \
+       --pristine --build-dir "build-heapprobe-$BOARD_ID$CONF_TAG" \
+       "${CONF_EXTRA_ARG[@]}" \
        >"$log" 2>&1; then
     rm -f "$log"; return 0
   fi
@@ -114,7 +138,7 @@ probe() {
   return 1
 }
 
-echo "[bisect] board=$BOARD_ID node=$NODE range=[$LO,$HI] grain=$GRAIN"
+echo "[bisect] board=$BOARD_ID node=$NODE range=[$LO,$HI] grain=$GRAIN conf-extra=${CONF_EXTRA:-none}"
 
 probe "$LO" || { echo "FLOOR $LO does not even link — widen downward" >&2; exit 1; }
 
@@ -137,5 +161,5 @@ while [ $((HI - LO)) -gt $GRAIN ]; do
 done
 
 echo
-echo "RESULT board=$BOARD_ID node=$NODE max-linkable-OEVM_HEAP_SIZE=$LO"
+echo "RESULT board=$BOARD_ID node=$NODE conf-extra=${CONF_EXTRA:-none} max-linkable-OEVM_HEAP_SIZE=$LO"
 echo "first-failing-diagnostic: $LAST_FAIL_MSG"

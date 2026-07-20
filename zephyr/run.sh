@@ -4,16 +4,17 @@
 # compiler path, the build dir, and restoring the tracked solidified_image.c.
 set -euo pipefail
 
-MODEL=B NODE=TimerNode.nsl DO_FLASH=0 CAPTURE=0 PRISTINE=0 BUILD_DIR="" BOARD_ID=esp32
+MODEL=B NODE=TimerNode.nsl DO_FLASH=0 CAPTURE=0 PRISTINE=0 BUILD_DIR="" BOARD_ID=esp32 CONF_EXTRA=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --model)     MODEL="$2"; shift 2 ;;
-    --node)      NODE="$2"; shift 2 ;;
-    --flash)     DO_FLASH=1; shift ;;
-    --capture)   CAPTURE="$2"; shift 2 ;;
-    --pristine)  PRISTINE=1; shift ;;
-    --build-dir) BUILD_DIR="$2"; shift 2 ;;
-    --board)     BOARD_ID="$2"; shift 2 ;;
+    --model)      MODEL="$2"; shift 2 ;;
+    --node)       NODE="$2"; shift 2 ;;
+    --flash)      DO_FLASH=1; shift ;;
+    --capture)    CAPTURE="$2"; shift 2 ;;
+    --pristine)   PRISTINE=1; shift ;;
+    --build-dir)  BUILD_DIR="$2"; shift 2 ;;
+    --board)      BOARD_ID="$2"; shift 2 ;;
+    --conf-extra) CONF_EXTRA="$2"; shift 2 ;;
     *) echo "unknown arg: $1" >&2; exit 2 ;;
   esac
 done
@@ -132,10 +133,24 @@ PRISTINE_ARG=(); [ "$PRISTINE" = 1 ] && PRISTINE_ARG=(-p always)
 # it (or a future non-WiFi board) builds unaffected. The overlay is ESP32-specific
 # today; scope it so a C6 build ignores it.
 WIFI_CONF="$ZDIR/prj_esp32_wifi.local.conf"
-EXTRA_CONF_ARG=()
+EXTRA_CONF_FILES=()
 if [ "$BOARD_ID" = esp32 ] && [ -f "$WIFI_CONF" ]; then
-  EXTRA_CONF_ARG=(-DEXTRA_CONF_FILE=prj_esp32_wifi.local.conf)
+  EXTRA_CONF_FILES+=(prj_esp32_wifi.local.conf)
   echo "[wifi]  overlay found -> $WIFI_CONF"
+fi
+# --conf-extra (Task 6): a generic caller-supplied EXTRA_CONF_FILE, e.g. the
+# C6's prj_esp32c6_thread.conf radio layer. Forwarded the same way as the WiFi
+# overlay above, and stacked with it (semicolon-joined) if both are present —
+# Zephyr's EXTRA_CONF_FILE accepts a list. Not board-scoped: any board may pass it.
+if [ -n "$CONF_EXTRA" ]; then
+  EXTRA_CONF_FILES+=("$CONF_EXTRA")
+  echo "[extra] conf overlay -> $CONF_EXTRA"
+fi
+EXTRA_CONF_ARG=()
+if [ ${#EXTRA_CONF_FILES[@]} -gt 0 ]; then
+  IFS=';'
+  EXTRA_CONF_ARG=(-DEXTRA_CONF_FILE="${EXTRA_CONF_FILES[*]}")
+  unset IFS
 fi
 # ROM setjmp/longjmp/ungetc fault under Zephyr+picolibc (same forced-ROM-newlib
 # family as fflush); patch the vendored SDK ld to use picolibc's. Idempotent; a

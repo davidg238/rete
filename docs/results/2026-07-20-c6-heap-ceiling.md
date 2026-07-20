@@ -25,7 +25,7 @@ than folded into the table as if it were the same claim).
 | (a)  | WROOM-32 | WiFi (default `prj_esp32.conf`)             | **53248**                     | not boot-tested this task (indirect production evidence only — see note above) |
 | (b)  | WROOM-32 | no radio (WiFi block disabled, net stack kept) | **106496**                 | not boot-tested this task |
 | (c)  | ESP32-C6 | no radio (`prj_esp32c6.conf`)               | **319488**                    | **yes — confirmed on hardware, Task 5. Boot ceiling = link ceiling (319488); no bisect-down was needed.** |
-| (d)  | ESP32-C6 | OpenThread/IPv6 (`prj_esp32c6_thread.conf`) | pending Task 6                | pending Task 6 |
+| (d)  | ESP32-C6 | OpenThread/IPv6 (`prj_esp32c6_thread.conf`) | **262144**                    | not boot-tested this task (link ceiling only; decision 7 does not require it — see below) |
 
 ### Cell (a): WROOM-32 + WiFi — 53248
 
@@ -185,10 +185,195 @@ esptool to check against), not a data-corruption signal — every boot proceeded
 immediately afterward. Recorded for completeness since Task 5's own decision 2 asked
 console output to be reported verbatim and this line appears on literally every boot.
 
-### Cell (d): ESP32-C6 + OpenThread — pending Task 6
+### Cell (d): ESP32-C6 + OpenThread — 262144
 
-`prj_esp32c6_thread.conf` does not exist yet (by design — Task 6's deliverable). Not
-attempted, per the brief's decision 3.
+**Why Thread, not WiFi.** `esp32c6_devkitc_hpcore.yaml` declares `netif:openthread` in its
+`supported:` list and does **not** declare `wifi` — confirmed directly by reading the file
+(`~/zephyr-esp32/zephyr/boards/espressif/esp32c6_devkitc/esp32c6_devkitc_hpcore.yaml`).
+WiFi is out of scope on this board by decision. Thread is also IPv6-only, matching
+`prj_esp32c6.conf`'s existing IPv6-only net stack, so the Thread layer adds a radio and
+nothing else.
+
+**Files added.**
+
+`zephyr/boards/esp32c6_devkitc_esp32c6_hpcore.overlay` enables the radio node
+`esp32c6_common.dtsi:85` ships disabled (confirmed at that exact line —
+`ieee802154: ieee802154 { compatible = "espressif,esp32-ieee802154"; status = "disabled"; }`):
+
+```
+&ieee802154 {
+	status = "okay";
+};
+```
+
+The filename is the board-qualifier join (`esp32c6_devkitc/esp32c6/hpcore` →
+`esp32c6_devkitc_esp32c6_hpcore.overlay`) — the brief's decision 1 is correct that CMake
+caches overlay discovery, so every build in this cell used `-p always`/`--pristine`.
+
+`zephyr/prj_esp32c6_thread.conf` copies only the networking block of
+`zephyr/prj_dk_thread.conf` (the nRF52840-DK precedent), verbatim per the brief, and
+deliberately omits that file's `CONFIG_NEWLIB_LIBC` and `CONFIG_FPU=y` (wrong here: the C6
+uses picolibc and is `rv32imac_zicsr` — no FPU):
+
+```
+CONFIG_IEEE802154=y
+CONFIG_IEEE802154_ESP32=y
+CONFIG_NET_L2_OPENTHREAD=y
+CONFIG_OPENTHREAD_MTD=y
+CONFIG_OPENTHREAD_FTD=n
+CONFIG_OPENTHREAD_MANUAL_START=y
+CONFIG_OPENTHREAD_THREAD_STACK_SIZE=6240
+CONFIG_NET_MAX_CONTEXTS=6
+CONFIG_NET_PKT_RX_COUNT=8
+CONFIG_NET_PKT_TX_COUNT=8
+CONFIG_NET_BUF_RX_COUNT=16
+CONFIG_NET_BUF_TX_COUNT=16
+CONFIG_FLASH=y
+CONFIG_FLASH_MAP=y
+CONFIG_NVS=y
+CONFIG_SETTINGS=y
+CONFIG_SETTINGS_NVS=y
+```
+
+**A bug in the brief's own Step 3, found and worked around.** The brief's literal Step 3
+command invokes `west build` directly:
+
+```
+west build -b esp32c6_devkitc/esp32c6/hpcore -p always -d build-c6-thread . \
+  -- -DCONF_FILE=prj_esp32c6.conf -DEXTRA_CONF_FILE=prj_esp32c6_thread.conf \
+     -DTUVM_MODEL=B
+```
+
+Run exactly as written, this **completed a link** — but overflowed `sram0_0_seg` by
+**17,124,360 bytes**, not a plausible few-KB capacity result. Inspecting
+`zephyr_pre0.map` showed the overflow was a single symbol:
+`app/libapp.a(gc.c.obj)` contributed a **16,777,216-byte (16 MiB)** `.dram0.bss` entry —
+`oevm_heap_store`, sized by `OEVM_HEAP_SIZE`. `src/gc.c:18-19` defines a *host* fallback
+(`#ifndef OEVM_HEAP_SIZE #define OEVM_HEAP_SIZE (16u * 1024u * 1024u)`), and
+`zephyr/CMakeLists.txt:93-95` only forwards `OEVM_HEAP_SIZE` into the build **from the
+shell environment**, never as a bare `-D` (documented reason: NCS sysbuild swallows a
+bare `-D`). The brief's raw `west build` invocation never exports the env var, so the
+compile silently fell back to the 16 MiB host default. `zephyr/CMakeLists.txt:167-192`
+has a Kconfig-gated safety net that forces sane defaults when the env is silent, but it
+is scoped to `CONFIG_SOC_NRF52840` only — there is no equivalent for the C6, so this trap
+is real and specific to this board. This is **not** an OpenThread/RISC-V build failure;
+it is a missing-env-export bug in the brief's literal command, and it would have
+misreported "OpenThread doesn't build on RISC-V" if taken at face value. Worked around by
+using `zephyr/run.sh` (which exports the seven load-bearing knobs unconditionally) instead
+of a bare `west build`, via the new `--conf-extra` flag described below. Re-run correctly:
+
+```
+bash zephyr/run.sh --board esp32c6 --model B --node TimerNode.nsl \
+  --pristine --build-dir build-c6-thread --conf-extra prj_esp32c6_thread.conf
+```
+
+completed cleanly at the profile's provisional default `OEVM_HEAP_SIZE=53248`:
+
+```
+Memory region         Used Size  Region Size  %age Used
+     sram0_0_seg:      221072 B     437512 B     50.53%
+```
+
+— i.e. **OpenThread built for RISC-V in this tree without incident**; the brief's
+"unproven going in" line was the right caution, but the actual outcome is a clean build.
+
+**Driver-presence verification (Step 4), on the exact build that produced the measured
+ceiling** — not a separate throwaway build:
+
+```
+$ grep -E "^CONFIG_(IEEE802154_ESP32|NET_L2_OPENTHREAD|OPENTHREAD_MTD)=" \
+    zephyr/build-heapprobe-esp32c6-prj_esp32c6_thread/zephyr/.config
+CONFIG_OPENTHREAD_MTD=y
+CONFIG_IEEE802154_ESP32=y
+CONFIG_NET_L2_OPENTHREAD=y
+```
+
+All three present and `=y` — the overlay took effect and the driver is genuinely built
+in, not silently absent.
+
+**Harness change: `--conf-extra` added to both `zephyr/run.sh` and
+`tools/heap-ceiling.sh`.** Neither script had a way to layer an `EXTRA_CONF_FILE` for an
+arbitrary board before this task (`run.sh` only auto-detected the ESP32 WiFi
+credentials overlay). `run.sh --conf-extra FILE.conf` now forwards
+`-DEXTRA_CONF_FILE=FILE.conf` to `west build`, stacking (semicolon-joined) with the
+existing WiFi-overlay auto-detection if both happen to apply. `heap-ceiling.sh
+--conf-extra FILE.conf` forwards straight through to `run.sh`'s new flag on every probe,
+and gives a `--conf-extra` bisect its own `build-heapprobe-$BOARD_ID-<conf-basename>`
+build directory so it can never be confused with (or collide with) the no-radio bisect's
+directory for the same board. `--pristine` (already unconditional on every probe) also
+happens to satisfy decision 1's "-p always on the first build after adding the overlay"
+requirement by construction — every probe is pristine, so there is no "first build"
+distinction to get wrong.
+
+**Measurement:**
+
+```
+bash tools/heap-ceiling.sh --board esp32c6 --conf-extra prj_esp32c6_thread.conf
+```
+
+Full bisect log:
+
+```
+[bisect] board=esp32c6 node=TimerNode.nsl range=[16384,524288] grain=4096 conf-extra=prj_esp32c6_thread.conf
+  probe HI=524288 (must NOT link)
+    fail @ 524288 (capacity): ... region `sram0_0_seg' overflowed by 269320 bytes
+  probe 270336
+    fail @ 270336 (capacity): ... region `sram0_0_seg' overflowed by 7432 bytes
+  probe 143360
+  probe 204800
+  probe 237568
+  probe 253952
+  probe 262144
+  probe 266240
+    fail @ 266240 (capacity): ... region `sram0_0_seg' overflowed by 3208 bytes
+
+RESULT board=esp32c6 node=TimerNode.nsl conf-extra=prj_esp32c6_thread.conf max-linkable-OEVM_HEAP_SIZE=262144
+```
+
+First failing diagnostic, probe 266240 (next grain step above the ceiling):
+
+```
+/home/david/zephyr-sdk-0.17.4/riscv64-zephyr-elf/bin/../lib/gcc/riscv64-zephyr-elf/12.2.0/../../../../riscv64-zephyr-elf/bin/ld.bfd: zephyr/zephyr_pre0.elf section `.dram0.bss' will not fit in region `sram0_0_seg'
+/home/david/zephyr-sdk-0.17.4/riscv64-zephyr-elf/bin/../lib/gcc/riscv64-zephyr-elf/12.2.0/../../../../riscv64-zephyr-elf/bin/ld.bfd: region `sram0_0_seg' overflowed by 3208 bytes
+```
+
+Both ends were actually probed, not inferred: LO=262144 is the last probe that
+**succeeded**, HI=266240 (LO+GRAIN) is the last probe that **failed** with a genuine
+region-overflow diagnostic. The up-front HI=524288 probe also failed
+(`overflowed by 269320 bytes`) before the bisect started narrowing, confirming the search
+range was wide enough and 524288 was never trusted on faith.
+
+**Comparison to cell (c) — the drop decision 4 predicted.** 319488 − 262144 = **57344
+bytes (56 KB)** less linkable VM heap than the no-radio C6 config. This is the expected,
+correct result, not a failure: cell (c)'s 319488 already links at `sram0_0_seg` 100.00%
+used with 8 B spare (Task 5's boot-confirmation figure), so there was no slack for
+OpenThread's ~6.2 KB dedicated thread stack, NVS/settings/flash-map machinery, and
+OpenThread's own core library static state (`libopenthread-mtd.a`,
+`crypto_platform.cpp.obj`, etc. all appear in the `.dram0.bss` map) to be absorbed
+anywhere except by shrinking the arena. **Minor brief inaccuracy:** `prj_esp32c6_thread.conf`'s
+own header comment (copied verbatim from the brief) describes the `NET_MAX_CONTEXTS` /
+`NET_PKT_RX/TX_COUNT` / `NET_BUF_RX/TX_COUNT` block as "raised from prj_esp32c6.conf's
+radio-less values now that a real radio exists" — checked directly against
+`prj_esp32c6.conf`, and the five values (6/8/8/16/16) are byte-for-byte identical between
+the two files, not raised. Harmless (the brief's own Step 2 code block gives the correct
+literal values, which is what was transcribed), but the comment's claim doesn't match its
+own numbers. 262144 is also a
+suspiciously round number (256 KiB exactly) for a bisect-to-the-grain result — flagged in
+keeping with this document's existing practice of calling out "too clean" numbers rather
+than passing them over; nothing found suggests it is a search-convergence artifact rather
+than a genuine boundary (the up-front HI probe and the immediate-next-grain HI=266240
+probe both failed with real, distinct overflow diagnostics on either side of it).
+
+**Not like-for-like with the WROOM-32's WiFi cell (a).** Per the brief and this
+document's Framing section: 53248 (WiFi) and 262144 (Thread) are not directly
+comparable — different boards, different radios, different footprints. Both are now
+measured; neither should be quoted against the other as if they were.
+
+**Boot not attempted, by design (decision 7).** This cell is a **link** ceiling like
+(a)-(c). Booting Thread is explicitly not required for this task, and joining a Thread
+network was explicitly out of scope (no border router on this bench). No flash attempt
+was made for this cell; "boots?" is recorded as `not boot-tested this task`, consistent
+with how (a) and (b) are recorded, not inferred from the link result.
 
 ## Framing (verbatim, per the brief)
 
@@ -207,17 +392,22 @@ attempted, per the brief's decision 3.
 > These are **link** ceilings. A value that links is not necessarily a value that boots;
 > boot confirmation for the C6 lands at Task 5.
 
-Cells (a), (b) and (c) are now all measured, and the clean no-radio-vs-no-radio
-comparison the framing calls for is (b) vs (c): WROOM-32 no-radio 106496 vs. C6 no-radio
-319488 — the C6's unified SRAM links roughly **3×** more VM heap than the WROOM-32 in
-the matched (no-radio) configuration. That was, as of Task 3, a **link**-ceiling
-comparison only (per the framing's last bullet) that did not by itself say the C6 boots
-at 319488; Task 5's "Boot confirmation" subsection above closes exactly that gap for
-cell (c) — 319488 is now a confirmed **boot** ceiling on real C6 hardware, not just a
-link ceiling. It still does not speak to the with-radio (WiFi vs. OpenThread) comparison,
-which still awaits cell (d) at Task 6. The with-radio pair remains the "not like-for-like"
-column the framing already warns about — reported separately, never quoted against cell
-(a) alone.
+All four cells are now measured. The clean no-radio-vs-no-radio comparison the framing
+calls for is (b) vs (c): WROOM-32 no-radio 106496 vs. C6 no-radio 319488 — the C6's
+unified SRAM links roughly **3×** more VM heap than the WROOM-32 in the matched
+(no-radio) configuration. That was, as of Task 3, a **link**-ceiling comparison only (per
+the framing's last bullet) that did not by itself say the C6 boots at 319488; Task 5's
+"Boot confirmation" subsection above closes exactly that gap for cell (c) — 319488 is now
+a confirmed **boot** ceiling on real C6 hardware, not just a link ceiling.
+
+The with-radio pair — (a) WiFi 53248 vs. (d) OpenThread 262144 — is now also measured,
+completing the table, but per the framing it is **not like-for-like** and is reported
+here for exactly that reason, not to be quoted as "the C6 beats the WROOM-32 5×
+with-radio." The two radios have different footprints on different boards; the pair
+answers "how much does each board's own supported radio cost it," not "which radio is
+cheaper." Cell (d) is a **link** ceiling only — per decision 7, booting Thread was not
+required for this task and was not attempted (no border router on this bench to join
+anyway), so unlike cell (c) there is no boot confirmation for cell (d) in this document.
 
 ## Harness notes
 
