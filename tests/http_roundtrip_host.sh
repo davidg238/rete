@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Task 6 host integration: the webserver-channel-device spike over REAL posix
-# sockets. Bakes HttpServerNode.oimg, builds the image VM (http_poll runs inside
+# sockets. Bakes ThermalHttpNode.oimg, builds the image VM (http_poll runs inside
 # pumpEvents on the single reactor thread — no accept thread), runs it listening
 # on 8080, and drives it with curl:
 #   GET /thermal -> 200 with an SVG heat-grid (body contains rgb()),
@@ -19,8 +19,8 @@ echo "[1/5] host-ABI layout descriptor"
 gcc -std=c99 -Isrc tools/dump_layout.c -o /tmp/dl
 /tmp/dl > /tmp/layout.json
 
-echo "[2/5] compile HttpServerNode.nsl -> .oimg"
-python3 "$NSL" zephyr/HttpServerNode.nsl /tmp/http_server.oimg --format=oimg --layout=/tmp/layout.json
+echo "[2/5] compile ThermalHttpNode.nsl -> .oimg"
+python3 "$NSL" zephyr/ThermalHttpNode.nsl /tmp/http_server.oimg --format=oimg --layout=/tmp/layout.json
 
 echo "[3/5] build image VM (http_poll, no accept thread)"
 gcc -Wall -std=c99 -Isrc \
@@ -29,16 +29,28 @@ gcc -Wall -std=c99 -Isrc \
     "src/backend/$TARGET/serial_$TARGET.c" src/udp.c "src/backend/$TARGET/udp_$TARGET.c" \
     src/http.c src/http_core.c "src/backend/$TARGET/http_$TARGET.c" \
     "src/backend/$TARGET/pulse_$TARGET.c" "src/backend/$TARGET/timer_$TARGET.c" \
+    "src/backend/$TARGET/sensor_$TARGET.c" \
     src/mirror.c \
     src/oimg_loader.c src/kernel_boot.c oevm_image_main.c -o /tmp/oevm_http -lm
 
 echo "[4/5] launch server on :$PORT"
-/tmp/oevm_http /tmp/http_server.oimg &
+# Real server loop: nothing here calls advanceMillis:, so the host timer backend must run
+# off the real clock or ThermalNode's sampling cadence never ticks and /thermal renders
+# 'no frame'. The suite never sets this — its determinism rests on the virtual clock.
+OEVM_TIMER_WALLCLOCK=1 /tmp/oevm_http /tmp/http_server.oimg &
 SRV=$!
 trap 'kill $SRV 2>/dev/null || true' EXIT
 # wait for the listener to come up
 for _ in $(seq 1 50); do
   if curl -s -o /dev/null "http://127.0.0.1:$PORT/hello" 2>/dev/null; then break; fi
+  sleep 0.1
+done
+# ...then wait for the FIRST SAMPLE. /hello answers the instant the listener binds, but
+# ThermalNode publishes on a 500ms cadence, so a /thermal request racing the first tick
+# legitimately renders 'no frame'. Poll for a rendered grid instead of sleeping a fixed
+# amount — no arbitrary constant, and it fails loudly if the cadence is genuinely dead.
+for _ in $(seq 1 100); do
+  if curl -s "http://127.0.0.1:$PORT/thermal" 2>/dev/null | grep -q "rgb("; then break; fi
   sleep 0.1
 done
 

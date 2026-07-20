@@ -57,7 +57,7 @@
 **Interfaces:**
 - Produces: `int sensor_frame_read(int32_t *out)` fills `out[0..63]` centi-°C, returns 0 on success / non-zero if not ready. `int sensor_arm_event(int chan_id, int handle_idx, int32_t threshold_centi)`. Prim `platform sensorFrame` → 64-slot Array of SMIs, or `nil`. Prim `platform sensorArmEventPost: msg on: pathString threshold: centi` → self. Constant `OEVM_THERMAL_PIXELS` = 64.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `nsl-tests/18_sensor/01_frame.nsl`:
 
@@ -89,14 +89,14 @@ class SensorFrame packageUsing: manifest = () (
 )
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 ```bash
 python3 ~/workspace/nsl-tuvm/tools/run-one.py ~/workspace/nsl-tests/18_sensor/01_frame.nsl
 ```
 Expected: **FAIL** on both paths with `Message 'sensorFrame' not understood` (the prim does not exist yet).
 
-- [ ] **Step 3: Create the seam header**
+- [x] **Step 3: Create the seam header**
 
 Create `tuvm/src/sensor_backend.h`:
 
@@ -130,7 +130,7 @@ int sensor_arm_event(int chan_id, int handle_idx, int32_t threshold_centi);
 #endif /* OEVM_SENSOR_BACKEND_H */
 ```
 
-- [ ] **Step 4: Create the posix backend**
+- [x] **Step 4: Create the posix backend**
 
 Create `tuvm/src/backend/posix/sensor_posix.c`:
 
@@ -156,7 +156,7 @@ int sensor_arm_event(int chan_id, int handle_idx, int32_t threshold_centi)
 }
 ```
 
-- [ ] **Step 5: Register the prim ids in `dispatch.c`**
+- [x] **Step 5: Register the prim ids in `dispatch.c`**
 
 In `tuvm/src/dispatch.c`, in the prim enum immediately after `PRIM_pf_httpEnd,`, add:
 
@@ -183,7 +183,7 @@ Update the parity guard (it must name the LAST enum member):
 typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_sensorArmEvent) ? 1 : -1];
 ```
 
-- [ ] **Step 6: Mirror the ids in `prim_ids.h`**
+- [x] **Step 6: Mirror the ids in `prim_ids.h`**
 
 At the end of `tuvm/src/prim_ids.h`, add:
 
@@ -201,7 +201,7 @@ At the end of `tuvm/src/prim_ids.h`, add:
 #define PRIM_pf_sensorArmEvent  117
 ```
 
-- [ ] **Step 7: Implement the prim in `platform.c`**
+- [x] **Step 7: Implement the prim in `platform.c`**
 
 Add `#include "sensor_backend.h"` with the other seam includes at the top of `tuvm/src/platform.c`. Then add these two cases immediately before the `default:` of the platform prim switch:
 
@@ -244,7 +244,7 @@ Add `#include "sensor_backend.h"` with the other seam includes at the top of `tu
     }
 ```
 
-- [ ] **Step 8: Add the backend to the host build**
+- [x] **Step 8: Add the backend to the host build**
 
 Find every host build source list that already names `pulse_posix.c` and add `sensor_posix.c` beside it:
 
@@ -260,21 +260,21 @@ In `tools/run_c_tests.sh`, extend the shared SRCS block (the one listing `platfo
 
 Add the same path to any other list the grep reports.
 
-- [ ] **Step 9: Run the test to verify it passes**
+- [x] **Step 9: Run the test to verify it passes**
 
 ```bash
 python3 ~/workspace/nsl-tuvm/tools/run-one.py ~/workspace/nsl-tests/18_sensor/01_frame.nsl
 ```
 Expected: **Path A: PASS / Path B: PASS**.
 
-- [ ] **Step 10: Run the full suite**
+- [x] **Step 10: Run the full suite**
 
 ```bash
 cd ~/workspace/nsl-tuvm && python3 tools/run_tests_oevm.py 2>&1 | tail -8
 ```
 Expected: **201 passed, 0 failed, 14 skipped** (floor 200 + this new test), all named gates green.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 cd ~/workspace/tuvm && git add src/sensor_backend.h src/backend/posix/sensor_posix.c \
@@ -295,7 +295,7 @@ git commit -m "test(sensor): sensorFrame answers a 64-px centi-degC frame"
 **Interfaces:**
 - Produces: nested `class ThermalView` with `public renderFrame: f toId: id on: platform`, `caption: f`, `centi: v`. Consumes a **raw indexable** 64-px frame — reads with `basicAt:`, **not** `at:` (the prim receiver carries no Array vtable).
 
-- [ ] **Step 1: Create the boot module with `ThermalView` nested**
+- [x] **Step 1: Create the boot module with `ThermalView` nested**
 
 Create `tuvm/zephyr/ThermalHttpNode.nsl`:
 
@@ -369,14 +369,26 @@ class ThermalHttpNode packageUsing: manifest = () (
 )
 ```
 
-- [ ] **Step 2: Verify it compiles**
+- [x] **Step 2: Verify it compiles**
+
+**Do NOT verify by running run-one.py on the file directly** — it reports SKIP
+*before* compiling (`run_tests_oevm.py:395`/`:483`), so a syntax error looks
+identical to success. Build a scratchpad copy carrying an expect block that
+exercises the new class, and run that instead:
 
 ```bash
-python3 ~/workspace/nsl-tuvm/tools/run-one.py ~/workspace/tuvm/zephyr/ThermalHttpNode.nsl
+sed -e '1i (*\nexpect:\nok\n*)' \
+    -e "s|^    tview:: ThermalView new.|    tview:: ThermalView new.\n    (tview centi: 2200) out.\n    'ok' out.|" \
+    ~/workspace/tuvm/zephyr/ThermalHttpNode.nsl > /tmp/ThermalHttpNode.nsl
+python3 ~/workspace/nsl-tuvm/tools/run-one.py /tmp/ThermalHttpNode.nsl
 ```
-Expected: it runs and exits cleanly (no expectations block yet, so the runner reports SKIP for expectations but must not crash). A parse or resolve error here means the nesting is wrong — fix before continuing.
+Expected: output `['22.0', 'ok']` on both paths — proving the module parses and
+resolves and that a nested-class method dispatches. (With the expect block above
+listing only `ok` the runner reports FAIL on the mismatch; that is fine, the
+actual output is the evidence. Add `22.0` to the block for a clean PASS.) A parse
+or resolve error means the nesting is wrong — fix before continuing.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd ~/workspace/tuvm && git add zephyr/ThermalHttpNode.nsl
@@ -397,7 +409,7 @@ git commit -m "feat(node): ThermalHttpNode boot module with nested ThermalView"
 
 **Critical:** the tick channel MUST be separate from the sample channel. `Timers>>every:post:on:` **posts** at the capability's own root (stream semantics); posting at the root of a cell raises `not a cell`/`not a stream`. Hence `dev/thermal0/tick`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `nsl-tests/18_sensor/02_thermal_node.nsl`:
 
@@ -447,14 +459,14 @@ class ThermalNodeTest packageUsing: manifest = () (
 )
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 ```bash
 python3 ~/workspace/nsl-tuvm/tools/run-one.py ~/workspace/nsl-tests/18_sensor/02_thermal_node.nsl
 ```
 Expected: **FAIL** on both paths — `ThermalNode` is not defined in this module yet (a `Message 'ThermalNode' not understood by receiver <platform>` DNU, since an unbound capitalised name routes to a `platform` send). That is feature-missing, the correct red.
 
-- [ ] **Step 3: Add the `ThermalNode` class — to BOTH files**
+- [x] **Step 3: Add the `ThermalNode` class — to BOTH files**
 
 Add this nested class to `tuvm/zephyr/ThermalHttpNode.nsl` immediately after `ThermalView` (the source of truth), **and paste the identical class** into `nsl-tests/18_sensor/02_thermal_node.nsl` immediately after its opening `class ThermalNodeTest … = () (` line. The duplication is forced by the single-app-file bake and is called out in both files' comments.
 
@@ -506,14 +518,14 @@ Add this nested class to `tuvm/zephyr/ThermalHttpNode.nsl` immediately after `Th
   )
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 ```bash
 python3 ~/workspace/nsl-tuvm/tools/run-one.py ~/workspace/nsl-tests/18_sensor/02_thermal_node.nsl
 ```
 Expected: **Path A: PASS / Path B: PASS**. If `at:ifAbsent:` DNUs on the ctl record, check the kernel `Record` accessor name and adjust `reconfigure:` to match it.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd ~/workspace/tuvm && git add zephyr/ThermalHttpNode.nsl
@@ -533,7 +545,7 @@ git commit -m "test(sensor): ThermalNode publishes frames on the virtual clock"
 **Interfaces:**
 - Produces: nested `class HttpServer`, class-side `onSpace: sp seam: s`; instance `public route: path do: aBlock` and `public listen: port`. Route blocks are invoked `value: id value: platform`.
 
-- [ ] **Step 1: Add the `HttpServer` class**
+- [x] **Step 1: Add the `HttpServer` class**
 
 In `tuvm/zephyr/ThermalHttpNode.nsl`, add after `ThermalNode`:
 
@@ -582,14 +594,46 @@ In `tuvm/zephyr/ThermalHttpNode.nsl`, add after `ThermalNode`:
   )
 ```
 
-- [ ] **Step 2: Verify it compiles**
+- [x] **Step 2: Verify it compiles**
+
+**Do NOT verify by running run-one.py on the file directly.** `run_test_file` /
+`run_test_file_oimg` return `"SKIP", "No expectations defined."` at
+`run_tests_oevm.py:395` / `:483` — *before* they compile anything. A file with a
+syntax error reports the same clean SKIP, so a bare run proves nothing.
+
+Instead build a temp copy in the scratchpad that carries an expect block and
+actually exercises the new class, then run that:
 
 ```bash
-python3 ~/workspace/nsl-tuvm/tools/run-one.py ~/workspace/tuvm/zephyr/ThermalHttpNode.nsl
+python3 - <<'EOF'
+p='/home/david/workspace/tuvm/zephyr/ThermalHttpNode.nsl'
+s=open(p).read()
+s = "(*\nexpect:\nroutes 2\nok\n*)\n" + s
+s = s.replace("""  public main: platform args: args = (
+    | tview |
+    tview:: ThermalView new.
+    ^ 0 )""",
+"""  public main: platform args: args = (
+    | tview http space |
+    space:: platform space.
+    tview:: ThermalView new.
+    http:: HttpServer onSpace: space seam: platform.
+    http route: '/a' do: [ :id :plat | plat ].
+    http route: '/b' do: [ :id :plat | plat ].
+    ('routes ' , (http routeCount) printString) out.
+    'ok' out.
+    ^ 0 )""")
+s = s.replace("    public route: p do: aBlock = ( paths add: p. blocks add: aBlock. ^ self )",
+"    public route: p do: aBlock = ( paths add: p. blocks add: aBlock. ^ self )\n    public routeCount = ( ^ paths size )")
+open('/tmp/ThermalHttpNode.nsl','w').write(s)
+EOF
+python3 ~/workspace/nsl-tuvm/tools/run-one.py /tmp/ThermalHttpNode.nsl
 ```
-Expected: compiles and runs without crashing.
+Expected: **Path A: PASS / Path B: PASS** — proving the module parses, resolves,
+and that `HttpServer` constructs and accumulates routes. Discard the temp copy;
+`routeCount` is a probe, not part of the class.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd ~/workspace/tuvm && git add zephyr/ThermalHttpNode.nsl
@@ -606,7 +650,7 @@ git commit -m "feat(node): HttpServer generic path->block route table"
 **Interfaces:**
 - Consumes: `ThermalNode onSpace:seam:timers:`, `HttpServer onSpace:seam:`, `ThermalView new`, `Channel>>peek` (Tasks 1–4 + the precursor).
 
-- [ ] **Step 1: Replace the stub `main:` with the composition root**
+- [x] **Step 1: Replace the stub `main:` with the composition root**
 
 In `tuvm/zephyr/ThermalHttpNode.nsl`, replace the placeholder `main:` with:
 
@@ -620,6 +664,13 @@ In `tuvm/zephyr/ThermalHttpNode.nsl`, replace the placeholder `main:` with:
     | space timers thermal tview http |
     space::   platform space.
     timers::  platform Timers usingSpace: space seam: platform.
+    (* REQUIRED — the seam posts every timer fire on the reserved 'sys/timer' path
+       carrying only a token; Timers>>dispatch: fans it out onto the target
+       channel, and that wiring lives in the CALLER by design (kernel.nsl Timers
+       header). Omit it and fires reach 'sys/timer' and stop: the sample cell
+       stays nil forever and /thermal renders 'no frame' with no error anywhere.
+       This is what broke Task 3's test. *)
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
     thermal:: ThermalNode onSpace: space seam: platform timers: timers.
     thermal start.
     tview::   ThermalView new.
@@ -636,7 +687,7 @@ In `tuvm/zephyr/ThermalHttpNode.nsl`, replace the placeholder `main:` with:
   )
 ```
 
-- [ ] **Step 2: Add the `/stats` and `/` helpers**
+- [x] **Step 2: Add the `/stats` and `/` helpers**
 
 Copy `statsPageOn:toId:`, `statRow:value:toId:on:`, and `indexToId:on:` verbatim from `tuvm/zephyr/HttpServerNode.nsl:40-84` into `ThermalHttpNode`'s instance side, renaming the two entry points to match the routes:
 
@@ -645,7 +696,7 @@ Copy `statsPageOn:toId:`, `statRow:value:toId:on:`, and `indexToId:on:` verbatim
   showStatsTo: id on: platform = ( ^ self statsPageOn: platform toId: id )
 ```
 
-- [ ] **Step 3: Repoint the host round-trip gate**
+- [x] **Step 3: Repoint the host round-trip gate**
 
 In `tuvm/tests/http_roundtrip_host.sh`, change the baked node from `HttpServerNode.nsl` to `ThermalHttpNode.nsl`:
 
@@ -654,21 +705,21 @@ cd ~/workspace/tuvm && grep -n 'HttpServerNode' tests/http_roundtrip_host.sh
 ```
 Replace each occurrence with `ThermalHttpNode`.
 
-- [ ] **Step 4: Run the host round-trip gate**
+- [x] **Step 4: Run the host round-trip gate**
 
 ```bash
 cd ~/workspace/tuvm && bash tests/http_roundtrip_host.sh
 ```
 Expected: **PASS**, and the `/thermal` body byte-identical to before this rung (the posix synthetic frame reproduces the old hard-coded values: uniform 2200, index 30 = 3120).
 
-- [ ] **Step 5: Run the full suite**
+- [x] **Step 5: Run the full suite**
 
 ```bash
 cd ~/workspace/nsl-tuvm && python3 tools/run_tests_oevm.py 2>&1 | tail -8
 ```
 Expected: **202 passed, 0 failed, 14 skipped**, all named gates green.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd ~/workspace/tuvm && git add zephyr/ThermalHttpNode.nsl tests/http_roundtrip_host.sh
@@ -682,7 +733,7 @@ git commit -m "feat(node): compose ThermalNode+HttpServer+ThermalView; repoint h
 **Files:**
 - Delete: `tuvm/zephyr/HttpServerNode.nsl`, `tuvm/zephyr/HttpNode.nsl`
 
-- [ ] **Step 1: Confirm nothing else references them**
+- [x] **Step 1: Confirm nothing else references them**
 
 ```bash
 cd ~/workspace/tuvm && grep -rn 'HttpServerNode\|HttpNode' --include='*.sh' --include='*.py' \
@@ -690,7 +741,7 @@ cd ~/workspace/tuvm && grep -rn 'HttpServerNode\|HttpNode' --include='*.sh' --in
 ```
 Expected: no live build/test references remain (docs/design records may still mention them — that is history, leave it).
 
-- [ ] **Step 2: Delete and re-gate**
+- [x] **Step 2: Delete and re-gate**
 
 ```bash
 cd ~/workspace/tuvm && git rm zephyr/HttpServerNode.nsl zephyr/HttpNode.nsl
@@ -699,7 +750,7 @@ cd ~/workspace/nsl-tuvm && python3 tools/run_tests_oevm.py 2>&1 | tail -8
 ```
 Expected: round-trip PASS; suite **202 passed, 0 failed**.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 cd ~/workspace/tuvm && git commit -m "chore(node): retire HttpServerNode/HttpNode (superseded by ThermalHttpNode)"
@@ -716,7 +767,7 @@ cd ~/workspace/tuvm && git commit -m "chore(node): retire HttpServerNode/HttpNod
 **Interfaces:**
 - Produces: the same `sensor_frame_read`/`sensor_arm_event` contract as `sensor_posix.c`, against the devicetree `amg88xx` node.
 
-- [ ] **Step 1: Write the Zephyr backend**
+- [x] **Step 1: Write the Zephyr backend**
 
 Create `tuvm/src/backend/zephyr/sensor_zephyr.c`:
 
@@ -767,7 +818,7 @@ int sensor_arm_event(int chan_id, int handle_idx, int32_t threshold_centi)
 }
 ```
 
-- [ ] **Step 2: Add it to the Zephyr build**
+- [x] **Step 2: Add it to the Zephyr build**
 
 In `tuvm/zephyr/CMakeLists.txt`, in the source list that already names `timer_zephyr.c`/`http_zephyr.c`, add:
 
@@ -775,9 +826,18 @@ In `tuvm/zephyr/CMakeLists.txt`, in the source list that already names `timer_ze
   ${TUVM_SRC}/src/backend/zephyr/sensor_zephyr.c
 ```
 
-- [ ] **Step 3: Write the devicetree overlay**
+- [x] **Step 3: Write the devicetree overlay**
 
-Create `tuvm/zephyr/boards/esp32_devkitc.overlay`:
+Create `tuvm/zephyr/boards/esp32_devkitc_esp32_procpu.overlay`.
+
+**The filename is load-bearing and the name originally given here was wrong.**
+Zephyr auto-applies `boards/<board>_<qualifiers>.overlay`, joining the board
+target's qualifiers with underscores (`cmake/modules/extensions.cmake:1709-1712`).
+For `esp32_devkitc/esp32/procpu` that is `esp32_devkitc_esp32_procpu.overlay`.
+A plain `esp32_devkitc.overlay` is not a name the build ever looks for — it would
+be silently ignored, leaving no `amg88xx` node, compiling the backend's
+`#else` branch, and returning nil frames with no error anywhere. Confirm the
+build log prints `Found devicetree overlay: .../boards/esp32_devkitc_esp32_procpu.overlay`.
 
 ```dts
 /* AMG8833 Grid-EYE on the WROOM-32's i2c0. `int-gpios` is REQUIRED by the
@@ -797,20 +857,29 @@ Create `tuvm/zephyr/boards/esp32_devkitc.overlay`:
 };
 ```
 
-> Confirm the SDA/SCL pins and the free GPIO against the board devicetree before wiring hardware:
-> `grep -A6 'i2c0' ~/zephyr-esp32/zephyr/boards/espressif/esp32_devkitc/esp32_devkitc_procpu.dts`
+> **Pins confirmed** against `~/zephyr-esp32/zephyr/boards/espressif/esp32_devkitc/esp32_devkitc_procpu.dts:83-90`:
+> `sda-gpios = <&gpio0 21 ...>`, `scl-gpios = <&gpio0 22 ...>`, and `i2c0` is already
+> `status = "okay"` with `clock-frequency` set there — so the overlay only needs to add the
+> sensor node, not restate the bus. GPIO4 verified free (no `gpio0 4` claim in the board dts).
+>
+> Wiring: VIN -> 3V3, GND -> GND, SDA -> GPIO21, SCL -> GPIO22, INT -> GPIO4.
+> The binding (`dts/bindings/sensor/panasonic,amg88xx.yaml:11-18`) marks `int-gpios`
+> `required: true` even for the no-trigger build, and documents the pin as open-drain
+> active-low needing a pull-up — hence `(GPIO_ACTIVE_LOW | GPIO_PULL_UP)`.
 
-- [ ] **Step 4: Enable the driver**
+- [x] **Step 4: Enable the driver**
 
 In `tuvm/zephyr/prj_esp32.conf`, add:
 
 ```
-# AMG8833 Grid-EYE thermal array (selects I2C). Phase 1 = no trigger.
+# AMG8833 Grid-EYE thermal array (AMG88XX selects I2C). Phase 1 is poll-only: the
+# cadence lives in nsl (ThermalNode's timer), so no driver trigger thread is needed.
+CONFIG_SENSOR=y
 CONFIG_AMG88XX=y
 CONFIG_AMG88XX_TRIGGER_NONE=y
 ```
 
-- [ ] **Step 5: Build for the device (compile gate, no hardware needed)**
+- [x] **Step 5: Build for the device (compile gate, no hardware needed)**
 
 ```bash
 cd ~/workspace/tuvm/zephyr && ./run.sh --model B --node ThermalHttpNode.nsl
@@ -819,7 +888,7 @@ Expected: a clean build. This is a **compile/link gate only** — it proves the 
 
 > `run.sh` resolves `--node` relative to `zephyr/` only (a known papercut); `ThermalHttpNode.nsl` lives there, so this works.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd ~/workspace/tuvm && git add src/backend/zephyr/sensor_zephyr.c zephyr/CMakeLists.txt \
@@ -835,36 +904,36 @@ git commit -m "feat(sensor): Zephyr amg88xx backend + ESP32 overlay"
 
 **Hardware:** ESP32 WROOM-32 + AMG8833 on I2C (SDA/SCL per the board dts, INT to the overlay's GPIO, 3V3 + GND). WiFi credentials via the git-ignored `prj_esp32_wifi.local.conf` overlay.
 
-- [ ] **Step 1: Flash and capture**
+- [x] **Step 1: Flash and capture**
 
 ```bash
 cd ~/workspace/tuvm/zephyr && ./run.sh --model B --node ThermalHttpNode.nsl --flash --capture 20
 ```
 Expected: boots, joins WiFi, prints its IP, no fault/oops/coredump.
 
-- [ ] **Step 2: Verify the live grid**
+- [x] **Step 2: Verify the live grid**
 
 ```bash
 curl -s http://<esp32-ip>/thermal | head -c 400
 ```
 Expected: an SVG heat-grid whose `caption` max/min/hot values are **realistic room temperatures** (roughly 18–30 °C), not the synthetic 22.00/31.20 pair. Re-run while waving a hand across the sensor — the hot cell coordinates must move.
 
-- [ ] **Step 3: Bank the footprint line**
+- [x] **Step 3: Bank the footprint line**
 
 ```bash
 curl -s http://<esp32-ip>/stats
 ```
 Record `heap high-water`, `live bytes`, and `gc cycles` — compare against the pre-rung `/stats` numbers to confirm the sensor path did not eat the WROOM-32's remaining headroom.
 
-- [ ] **Step 4: If the sensor is not detected**
+- [ ] **Step 4: If the sensor is not detected** — N/A, sensor probed and read correctly on first bring-up
 
 `sensorFrame` answers nil → `/thermal` renders "no frame". Diagnose in this order: (a) `i2cdetect`-style scan or a boot log line for the amg88xx device; (b) confirm the I2C address (0x69 vs 0x68 / AD_SELECT); (c) `nm build-*/zephyr/zephyr.elf | grep -i amg` to confirm the driver linked; (d) check `int-gpios` names a real, free pin. Do **not** paper over it by faking the frame.
 
-- [ ] **Step 5: Bank the result**
+- [x] **Step 5: Bank the result**
 
 Append an **E-series entry** to `tuvm/zephyr/docs/results.md` in the shape of the existing E1–E4 rows: node, model, what was proven, the `/stats` numbers, and the green log path. Note explicitly that this is a **manual bench gate**, so it earns no `CLAIMS.md` row (matching the Model-B and #46 precedent).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 cd ~/workspace/tuvm && git add zephyr/docs/results.md
@@ -971,11 +1040,11 @@ git commit -m "feat(sensor): phase-2 AMG8833 threshold event via the pulse seam"
 
 Per the project's promotion rule, a rung is not closed until its knowledge reaches a mainline document of record.
 
-- [ ] **Step 1: Promote to `review/zephyr-driver-exposure.md`**
+- [x] **Step 1: Promote to `review/zephyr-driver-exposure.md`**
 
 Rewrite its status from *sketch* to *built for Tier 1*, recording: the Tier-1 seam now exists (`sensor_backend.h` + one prim); **BME280 was dropped and AMG8833 became the first device**; the finding that **going through the sensor API means the driver does the register work, so tuvm#28 was never forced**; and the three-way service split (produce / transport / present) as the node-composition pattern.
 
-- [ ] **Step 2: Update the ladder**
+- [x] **Step 2: Update the ladder**
 
 In `review/program-sequence.md`, mark the Arc-1 driver-ladder rung as landed for AMG8833, link this plan and the design doc, and note that the **demo-node gap shrank** (`TempNode` realized on real hardware, Tier-1 variant). Leave the filed manifest rung in place.
 
@@ -983,7 +1052,7 @@ In `review/program-sequence.md`, mark the Arc-1 driver-ladder rung as landed for
 
 The device gates are manual bench runs, so no new named test claim is earned. The two new host tests (`18_sensor/01`, `02`) raise the suite floor to **202/0/14** — state the new floor wherever the old one is quoted.
 
-- [ ] **Step 4: Final full gate**
+- [x] **Step 4: Final full gate**
 
 ```bash
 cd ~/workspace/nsl-tuvm && python3 tools/run_tests_oevm.py 2>&1 | tail -8

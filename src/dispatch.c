@@ -740,6 +740,14 @@ enum {
     PRIM_pf_httpBegin,
     PRIM_pf_httpChunk,
     PRIM_pf_httpEnd,
+    /* AMG8833 thermal rung (2026-07-19): the Tier-1 sensor seam. sensorFrame
+       answers a 64-element Array of centi-degC SMIs (or nil when the device is
+       not ready); sensorArmEventPost:on:threshold: arms the driver's threshold trigger
+       onto a channel via the pulse seam. Appended after httpEnd — no
+       pre-existing id shifts. Counted (not computed) to be the 116th/117th
+       PRIM_NAMES entries. Platform-dispatched (mirrored in prim_ids.h). */
+    PRIM_pf_sensorFrame,
+    PRIM_pf_sensorArmEvent,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -790,16 +798,17 @@ static const char *const PRIM_NAMES[] = {
     "sysStats",
     "httpListen:", "httpRespondId:status:body:", "httpInject:path:",
     "httpBeginId:status:", "httpChunkId:data:", "httpEndId:",
+    "sensorFrame", "sensorArmEventPost:on:threshold:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
 /* Compile-time parity guard for the load-bearing prim triple: PRIM_NAMES must
    stay parallel to the enum (index i -> id i+1, since PRIM_NONE=0 is unnamed),
-   so the count of names must equal the last enum id (PRIM_pf_httpEnd). A miscount
+   so the count of names must equal the last enum id (PRIM_pf_sensorArmEvent). A miscount
    here silently misroutes every platform prim after the insertion point — this
    catches it at build time instead. C99-safe (no _Static_assert under -std=c99):
    a false condition makes a negative-sized array, which is a hard compile error. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_httpEnd) ? 1 : -1];
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_sensorArmEvent) ? 1 : -1];
 
 /* Pointer-keyed cache mapping each interned selector symbol to its primitive id
    (PRIM_NONE if it is not an intercepted primitive). Selectors are interned, so

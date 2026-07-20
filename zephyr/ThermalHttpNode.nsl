@@ -1,0 +1,245 @@
+(*
+ThermalHttpNode — the boot module for the AMG8833 thermal demo. One module
+declaration nesting three decoupled classes (Newspeak idiom; the bake is
+single-app-file, see the rung design 4a):
+  ThermalNode  — samples the Grid-EYE on a ctl cadence, publishes frames
+  HttpServer   — generic path->block route table over the chunked HTTP prims
+  ThermalView  — renders a 64-px frame as an SVG heat-grid
+They never reference each other; producer and consumer meet only at the channel
+name 'dev/thermal0/sample'. main: is the composition root.
+*)
+class ThermalHttpNode packageUsing: manifest = () (
+
+  (* ---- presentation: a 64-px centi-degC frame as an SVG heat-grid ----
+     The frame arrives off the 'dev/thermal0/sample' CELL, so it is a List (rank
+     8), not the raw indexable the prim answers — a raw indexable cannot cross a
+     channel at all (put:value: runs the value algebra and the vtable-less prim
+     result DNUs on valueRank). Hence at:, not basicAt:. ThermalNode does the
+     raw->List copy at the publish boundary; only IT reads with basicAt:. *)
+  class ThermalView = () (
+    public renderFrame: f toId: id on: platform = (
+      | row col line t k |
+      (f == nil) ifTrue: [
+        platform httpChunkId: id data: '<html><body>no frame</body></html>'. ^ self ].
+      platform httpChunkId: id data:
+        '<html><body><svg viewBox=''0 0 8 8'' width=''320'' height=''320'' shape-rendering=''crispEdges''>'.
+      row:: 0. [ row <= 7 ] whileTrue: [
+        line:: ''.
+        col:: 0. [ col <= 7 ] whileTrue: [
+          t:: f at: (row * 8 + col + 1).
+          k:: ((t - 1500) * 255) // 2000.
+          (k < 0)   ifTrue: [ k:: 0 ].
+          (k > 255) ifTrue: [ k:: 255 ].
+          line:: line , '<rect x=''' , col printString , ''' y=''' , row printString ,
+                ''' width=''1'' height=''1'' fill=''rgb(' , k printString , ',0,' ,
+                (255 - k) printString , ')''/>'.
+          col:: col + 1 ].
+        platform httpChunkId: id data: line.
+        row:: row + 1 ].
+      platform httpChunkId: id data: '</svg><p>'.
+      platform httpChunkId: id data: (self caption: f).
+      platform httpChunkId: id data: '</p></body></html>'.
+      ^ self )
+
+    caption: f = (
+      | row col t maxV minV hotR hotC |
+      maxV:: f at: 1. minV:: f at: 1. hotR:: 0. hotC:: 0.
+      row:: 0. [ row <= 7 ] whileTrue: [
+        col:: 0. [ col <= 7 ] whileTrue: [
+          t:: f at: (row * 8 + col + 1).
+          (t > maxV) ifTrue: [ maxV:: t. hotR:: row. hotC:: col ].
+          (t < minV) ifTrue: [ minV:: t ].
+          col:: col + 1 ]. row:: row + 1 ].
+      ^ 'max ' , (self centi: maxV) , 'C min ' , (self centi: minV) ,
+        'C hot (' , hotR printString , ',' , hotC printString , ')' )
+
+    centi: v = (
+      | whole tenth |
+      whole:: v // 100.
+      tenth:: (v - (whole * 100)) // 10.
+      ^ whole printString , '.' , tenth printString )
+  ) : (
+  )
+
+  (* ---- the sensor service: samples the Grid-EYE, publishes frames ----
+     Knows nothing about HTTP. Capabilities arrive as constructor args (the
+     Milestone-C rule). The cadence exists only because a ctl record asked for it
+     (G9): no unrequested periodic work, and the CPU idles between ticks. *)
+  class ThermalNode = ( | space seam timers sample ctl event tick timer rate | ) (
+    onSpace: sp seam: s timers: t = (
+      space::  sp.  seam:: s.  timers:: t.  rate:: 2.
+      sample:: sp channel: 'dev/thermal0/sample'.    (* CELL:   latest frame out *)
+      ctl::    sp channel: 'dev/thermal0/ctl'.       (* CELL:   {rate: N} in     *)
+      event::  sp channel: 'dev/thermal0/event'.     (* STREAM: phase-2 alerts   *)
+      tick::   sp channel: 'dev/thermal0/tick'.      (* STREAM: timer pulses     *)
+      ^ self )
+
+    public start = (
+      (* Both reactions are self-sends: a reified block must not name a class. *)
+      tick whenever: '' do: [ :t | self sampleOnce ].
+      ctl  whenever: '' do: [ :c | self reconfigure: c ].
+      self arm.
+      ^ self )
+
+    (* Hold the token and cancel before re-arming — a live repeater that outlives
+       its owner is what killed the ESP32 TimerNode (rung 2). *)
+    arm = ( timer:: timers every: (1000 // rate) post: #tick on: tick. ^ self )
+    disarm = ( timer == nil ifFalse: [ timers cancel: timer. timer:: nil ]. ^ self )
+
+    (* A failed fetch answers nil: skip the put and KEEP the last good frame.
+       Never publish a partial or absent frame onto the cell.
+
+       The raw indexable from `sensorFrame` CANNOT travel on a channel: put:value:
+       runs the value algebra (checkValue: -> rankOf:), `platform valueRank:`
+       answers -1 for a raw indexable, and the fallback `valueRank` send DNUs
+       because the prim receiver carries no vtable. So copy it into a List (rank 8,
+       which opts into the algebra via its own valueRank) at the publish boundary
+       — exactly what the predecessor HttpServerNode.nsl did. basicAt: reads the
+       raw prim result here; everything downstream of the cell reads a List with
+       at:. *)
+    sampleOnce = (
+      | f oc i |
+      f:: seam sensorFrame.
+      (f == nil) ifTrue: [ ^ self ].
+      oc:: seam OrderedCollection new.
+      i:: 1. [ i <= 64 ] whileTrue: [
+        oc add: (f basicAt: i). i:: i + 1 ].
+      sample put: '' value: (seam List fromCollection: oc).
+      ^ self )
+
+    (* Untrusted-input boundary: a bad rate leaves the current cadence standing. *)
+    reconfigure: c = (
+      | r on |
+      on:: c at: #on ifAbsent: [ true ].
+      r::  c at: #rate ifAbsent: [ rate ].
+      on = false ifTrue: [ ^ self disarm ].
+      ((r isNil not) and: [ r > 0 ]) ifTrue: [
+        rate:: r. self disarm. self arm ].
+      ^ self )
+  ) : (
+    public onSpace: sp seam: s timers: t = ( ^ self new onSpace: sp seam: s timers: t )
+  )
+
+  (* ---- generic transport: a path->block route table over the chunked prims ----
+     Knows nothing about sensors or presentation. C owns the socket and chunk
+     framing; routing is nsl. `id` is an opaque correlation token that the C side
+     resolves back to the response socket — nsl never touches a file descriptor. *)
+  class HttpServer = ( | space seam paths blocks | ) (
+    onSpace: sp seam: s = (
+      space:: sp. seam:: s.
+      paths::  s OrderedCollection new.
+      blocks:: s OrderedCollection new.
+      ^ self )
+
+    public route: p do: aBlock = ( paths add: p. blocks add: aBlock. ^ self )
+
+    public listen: port = (
+      | req |
+      req:: space channel: 'dev/http/request'.
+      req whenever: '' do: [ :r | self handle: r ].
+      seam httpListen: port.
+      ^ self )
+
+    (* Run-to-completion: one request is framed begin->body->end before the next,
+       so responses for different ids never interleave. *)
+    handle: r = (
+      | id path i n found |
+      id:: r basicAt: 1.  path:: r basicAt: 3.
+      i:: 1. n:: paths size. found:: nil.
+      [ (i <= n) and: [ found == nil ] ] whileTrue: [
+        ((paths at: i) = path) ifTrue: [ found:: blocks at: i ].
+        i:: i + 1 ].
+      (found == nil)
+        ifTrue: [
+          seam httpBeginId: id status: 404.
+          seam httpChunkId: id data: 'not found'.
+          seam httpEndId: id ]
+        ifFalse: [
+          seam httpBeginId: id status: 200.
+          found value: id value: seam.
+          seam httpEndId: id ].
+      ^ self )
+  ) : (
+    public onSpace: sp seam: s = ( ^ self new onSpace: sp seam: s )
+  )
+
+  (* ---- composition root: install the services, wire the routes, run the loop ----
+     The /thermal route block sends to the CAPTURED `tview` instance; the class name
+     is resolved here in method-body context, never inside the block (a reified block
+     that names a class aborts on outer-scope resolution). /stats and / name classes
+     and read platform metrics, so they route through self-send helpers. *)
+  public main: platform args: args = (
+    | space timers thermal tview http |
+    space::   platform space.
+    timers::  platform Timers usingSpace: space seam: platform.
+    (* REQUIRED — the seam posts every timer fire on the reserved 'sys/timer' path
+       carrying only a token; Timers>>dispatch: fans it out onto the target
+       channel, and that wiring lives in the CALLER by design (kernel.nsl Timers
+       header). Omit it and fires reach 'sys/timer' and stop: the sample cell stays
+       nil forever and /thermal renders 'no frame' with no error anywhere. *)
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    thermal:: ThermalNode onSpace: space seam: platform timers: timers.
+    thermal start.
+    tview::   ThermalView new.
+    http::    HttpServer onSpace: space seam: platform.
+
+    http route: '/thermal' do: [ :id :plat |
+        tview renderFrame: ((space channel: 'dev/thermal0/sample') peek) toId: id on: plat ].
+    http route: '/hello' do: [ :id :plat | plat httpChunkId: id data: 'hello' ].
+    http route: '/stats' do: [ :id :plat | self showStatsTo: id on: plat ].
+    http route: '/'      do: [ :id :plat | self showIndexTo: id on: plat ].
+
+    http listen: 18080.
+    [ true ] whileTrue: [ platform pumpEvents. space drain ].
+  )
+
+  showIndexTo: id on: platform = ( ^ self indexToId: id on: platform )
+  showStatsTo: id on: platform = ( ^ self statsPageOn: platform toId: id )
+
+  indexToId: id on: platform = (
+    platform httpChunkId: id data:
+      '<html><head><title>tuvm http node</title></head>',
+      '<body style=''font-family:system-ui,sans-serif;max-width:34rem;margin:3rem auto;padding:0 1rem;line-height:1.5''>',
+      '<h1>tuvm &mdash; channel-native http node</h1>',
+      '<p>Request/reply served over the VM channel space. C owns the socket + HTTP framing; routing, the reduce, and the render are authored in nsl.</p>',
+      '<ul>',
+      '<li><a href=''/thermal''>/thermal</a> &mdash; 8&times;8 thermal heat-grid (SVG, rendered on the VM)</li>',
+      '<li><a href=''/stats''>/stats</a> &mdash; live VM heap / GC / channel metrics</li>',
+      '<li><a href=''/hello''>/hello</a> &mdash; plain text</li>',
+      '</ul></body></html>'.
+    ^ self
+  )
+
+  statsPageOn: platform toId: id = (
+    | m |
+    m:: platform metrics.
+    platform httpChunkId: id data:
+      '<html><head><title>tuvm vm stats</title></head>',
+      '<body style=''font-family:system-ui,sans-serif;max-width:34rem;margin:3rem auto;padding:0 1rem;line-height:1.5''>',
+      '<h1>tuvm &mdash; vm stats</h1>',
+      '<p>A live snapshot from <code>platform metrics</code> (the #Metrics Record), read on request &mdash; no periodic publisher (G9).</p>',
+      '<table style=''border-collapse:collapse;width:100%''>',
+      '<thead><tr><th style=''text-align:left;border-bottom:2px solid #ccc;padding:.4rem''>metric</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>value</th></tr></thead><tbody>'.
+    self statRow: 'heap size (bytes)'        value: (m at: #heapSize         ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'live bytes'               value: (m at: #liveBytes        ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'heap high-water'          value: (m at: #heapHighWater    ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'largest free block'       value: (m at: #largestFreeBlock ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'gc cycles'                value: (m at: #gcCycles         ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'handles live'             value: (m at: #handlesLive      ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'handles high-water'       value: (m at: #handlesHighWater ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'channel queue high-water' value: (m at: #queueHighWater   ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'channel overruns'         value: (m at: #overruns         ifAbsent: [ -1 ]) toId: id on: platform.
+    platform httpChunkId: id data: '</tbody></table><p><a href=''/''>&larr; home</a></p></body></html>'.
+    ^ self
+  )
+
+  statRow: label value: v toId: id on: platform = (
+    platform httpChunkId: id data:
+      '<tr><td style=''padding:.35rem;border-bottom:1px solid #eee''>' , label ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>' ,
+      v printString , '</td></tr>'.
+    ^ self
+  )
+) : (
+)

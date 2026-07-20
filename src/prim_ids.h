@@ -187,6 +187,17 @@
 #define PRIM_pf_httpBegin  113
 #define PRIM_pf_httpChunk  114
 #define PRIM_pf_httpEnd    115
+/* AMG8833 thermal rung (2026-07-19): the sensor seam.
+     sensorFrame                                 -> 64-slot Array of centi-degC
+                                                    SMIs, or nil if not ready.
+     sensorArmEventPost: msg on: path threshold: -> arm the driver threshold
+                                                    trigger; a crossing posts msg
+                                                    on the interned channel path
+                                                    via pulse_post_isr. Same
+                                                    String-path + handle_new shape
+                                                    as gpioPin:edge:post:on:. */
+#define PRIM_pf_sensorFrame     116
+#define PRIM_pf_sensorArmEvent  117
 /* Rung 3 Task 4: the out-of-range sentinel returned by cborIntFromMajor:arg:
    for the one unrepresentable CBOR integer (major 1, arg 2^64-1 => value -2^64,
    just past the ratified +/-(2^64-1) range). In this VM nil IS the C NULL

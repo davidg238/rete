@@ -280,3 +280,55 @@ Per CLAUDE.md's promotion rule, on close: fold the durable knowledge into
 sensor-API-means-no-tuvm#28 finding and the service-composition pattern) and add the E-series
 device entry to `zephyr/docs/results.md`. Note in the ladder that the demo-node gap shrank
 (TempNode realized on real hardware, Tier-1 variant).
+
+---
+
+## Addendum — 2026-07-20: decisions corrected by implementation (Tasks 1–8, 10)
+
+Phase 1 landed on branch `feat/amg8833-thermal` (`69e4adf`..`c8ab4e5`) and is live on
+silicon. Five design/plan decisions above were **invalidated or refined by contact with the
+code**; recording them here so this doc stays a truthful decision record. The full durable
+lessons are promoted to `~/workspace/tuvm/review/program-sequence.md` (the mainline document
+of record, per CLAUDE.md).
+
+**1. `ThermalView` reads the frame with `at:`, not `basicAt:` — the "raw indexable" premise
+was wrong at the channel boundary.** The design assumed the 64-slot Array from
+`platform sensorFrame` travels as-is to the presenter. It cannot: `Channel>>put:value:` runs
+the value algebra (`checkValue:` → `rankOf:`), `platform valueRank:` answers −1 for a
+vtable-less prim result, and the fallback `valueRank` send DNUs. **`ThermalNode.sampleOnce`
+now copies the raw frame into a `List` (rank 8) at the publish boundary** — the same thing the
+predecessor `HttpServerNode.nsl` did. `basicAt:` is correct only at the prim boundary (where
+Task 1's test still uses it); everything downstream of the cell uses `at:`. Cost: an
+OrderedCollection + List allocation per sample at the ctl cadence.
+
+**2. `HttpNode.nsl` is NOT superseded and was restored.** The retirement task treated it as a
+twin of `HttpServerNode.nsl`. It is not — it is the **injected-request** twin of the
+`14_http` conformance suite (`platform httpInject:path:`, no listener), and
+`ThermalHttpNode.nsl` has no inject path at all. `HttpServerNode.nsl` remains correctly
+retired. Restored byte-identical in `d863fff`.
+
+**3. New decision: the host timer backend gained an opt-in wall-clock mode.** Not
+contemplated in this design. The posix backend is a pure virtual clock, so a node running a
+real reactor loop has permanently frozen timers — the composition root's cadence never ticked
+and `/thermal` rendered `no frame`. Resolution: `OEVM_TIMER_WALLCLOCK=1` plus a new seam call
+`timer_backend_poll()` drained from `pumpEvents`. **Opt-in, not a replacement** — the suite's
+timer determinism (`11_supervision/06_timers`, `08_timer_zero_interval`,
+`11_crash_timer_sweep`) rests on the virtual default. See #52 for the related two-clock
+footgun.
+
+**4. The devicetree overlay filename is board-qualifier-derived.** The plan specified
+`boards/esp32_devkitc.overlay`; Zephyr joins the board target's qualifiers with underscores
+(`cmake/modules/extensions.cmake:1709-1712`), so it must be
+`boards/esp32_devkitc_esp32_procpu.overlay`. Additionally **CMake caches overlay discovery** —
+a newly added overlay requires `--pristine`. Both failure modes are silent: green build, no
+node, backend compiles its `DT_NODE_EXISTS` `#else` branch, nil frames, exit 0.
+
+**5. Phase 1 is NOT closed, and the close-out promotion above is only partly executed.** The
+node dies after ~25 s of sustained HTTP load: a periodic timer plus a blocking render
+overflows the 16-slot ISR pulse mailbox, and a full mailbox is a hard `k_oops()` (#54, fix
+scoped in #55). Consequently **no `CLAIMS.md` row was moved** — a capability claim would be
+premature. The ladder entry landed (`c8ab4e5`); `review/zephyr-driver-exposure.md` and
+`zephyr/docs/results.md` are still outstanding, and Task 9 (phase-2 threshold event) is gated
+on #55, since a trigger adds another ISR producer to the same mailbox.
+
+Open: #52, #53, #54, #55, #56, #57.

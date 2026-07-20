@@ -25,7 +25,8 @@ ENG_COMMON="src/platform.c src/serial.c src/udp.c src/http.c src/http_core.c src
   src/backend/posix/platform_posix.c src/backend/posix/serial_posix.c src/backend/posix/udp_posix.c \
   src/backend/posix/http_posix.c \
   src/backend/posix/pulse_posix.c \
-  src/backend/posix/timer_posix.c"
+  src/backend/posix/timer_posix.c \
+  src/backend/posix/sensor_posix.c"
 ENG_A="src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c $ENG_COMMON src/solidified_image.c"
 ENG_B="src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c $ENG_COMMON src/kernel_boot.c"
 run() { # $1=name  $2=link-set  $3...=extra srcs/flags
