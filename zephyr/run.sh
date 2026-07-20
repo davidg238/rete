@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # zephyr/run.sh — the ESP32 dev loop: bake -> build -> flash -> capture.
-# Owns every step that has a wrong-by-default: cwd, the five env exports, the
-# compiler path, the build dir, and restoring the tracked solidified_image.c.
+# Owns every step that has a wrong-by-default: cwd, the seven env exports
+# (see below — five looked sufficient for a long time and were not), the
+# per-board profile (target, Kconfig, build dir, layout JSON, esptool triple,
+# flash port), the compiler path, the build dir, and restoring the tracked
+# solidified_image.c.
 set -euo pipefail
 
 MODEL=B NODE=TimerNode.nsl DO_FLASH=0 CAPTURE=0 PRISTINE=0 BUILD_DIR="" BOARD_ID=esp32 CONF_EXTRA=""
@@ -35,7 +38,38 @@ ESPTOOL="$HOME/.espressif/python_env/idf5.4_py3.12_env/bin/esptool.py"
 # Ports are pinned by /dev/serial/by-id/ rather than ttyUSB0/ttyACM0: those are
 # allocation-order names, and the C6's CP210x now claims /dev/ttyUSB0 — the very
 # node this script pinned for the WROOM-32 after esptool auto-detect clobbered the
-# jag board on 2026-07-16. Same bug, re-armed. ESPTOOL_PORT still overrides.
+# jag board on 2026-07-16.
+#
+# By-id globbing is NOT itself a fix, because it is not unique: the bench also
+# has a second, identical WROOM-32E (the "jag"/Toit board) with the same
+# CP210x bridge, and the C6 devkit has its own CP210x too. `ls ... | head -1`
+# over a glob with more than one match picks arbitrarily (by serial-hash sort
+# order) — exactly the failure that clobbered the jag board on 2026-07-16, just
+# one glob level up. pick_port() below closes that: zero matches falls back to
+# the profile's hardcoded default, exactly one match is used, and more than
+# one match ABORTS with every match named rather than guessing. An explicit
+# ESPTOOL_PORT always wins and skips detection (and the ambiguity check)
+# entirely.
+pick_port() {
+  local pattern="$1" fallback="$2" matches n
+  if [ -n "${ESPTOOL_PORT:-}" ]; then
+    return 0   # explicit override always wins; no detection, no check
+  fi
+  matches="$(ls $pattern 2>/dev/null || true)"
+  n=0; [ -n "$matches" ] && n=$(printf '%s\n' "$matches" | wc -l)
+  if [ "$n" -gt 1 ]; then
+    echo "ERROR: more than one device matches '$pattern':" >&2
+    printf '%s\n' "$matches" | sed 's/^/  /' >&2
+    echo "Refusing to guess which one to flash — head -1 would pick arbitrarily" >&2
+    echo "and could overwrite the wrong board (see the 2026-07-16 incident above)." >&2
+    echo "Set ESPTOOL_PORT explicitly to the intended device and retry." >&2
+    exit 2
+  elif [ "$n" -eq 1 ]; then
+    ESPTOOL_PORT="$matches"
+  else
+    ESPTOOL_PORT="$fallback"
+  fi
+}
 case "$BOARD_ID" in
   esp32)
     BOARD="esp32_devkitc/esp32/procpu"
@@ -55,8 +89,7 @@ case "$BOARD_ID" in
     #   OEVM_HEAP_SIZE=65536 bash run.sh --node SomeNode.nsl
     : "${OEVM_HEAP_SIZE:=53248}"
     : "${BUILD_DIR:=build-esp32-$MODEL}"
-    : "${ESPTOOL_PORT:=$(ls /dev/serial/by-id/*CP210*  2>/dev/null | head -1)}"
-    : "${ESPTOOL_PORT:=/dev/ttyUSB0}"
+    pick_port '/dev/serial/by-id/*CP210*' /dev/ttyUSB0
     ;;
   esp32c6)
     BOARD="esp32c6_devkitc/esp32c6/hpcore"
@@ -75,8 +108,7 @@ case "$BOARD_ID" in
     : "${BUILD_DIR:=build-esp32c6-$MODEL}"
     # Flash on the NATIVE USB port (303a:1001). Console lives on the UART bridge,
     # which stays enumerated across target resets — see #57.
-    : "${ESPTOOL_PORT:=$(ls /dev/serial/by-id/*Espressif* 2>/dev/null | head -1)}"
-    : "${ESPTOOL_PORT:=/dev/ttyACM0}"
+    pick_port '/dev/serial/by-id/*Espressif*' /dev/ttyACM0
     ;;
 esac
 

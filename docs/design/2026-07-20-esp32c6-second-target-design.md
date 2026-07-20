@@ -264,8 +264,11 @@ Ordered by real dependency. Steps 1–3 are hardware-free.
 5. **Model B bake of `TimerNode.nsl`** against the C6 layout; flash; gate on the timer-tick
    log. **Plus a deliberate float smoke test** — `TimerNode` boxes no floats, so soft-float
    and the float-arena knobs are otherwise unexercised.
-6. **Stretch: WiFi.** `prj_esp32c6_wifi.conf`, re-bisect with WiFi loaded, attempt
-   `ThermalHttpNode` minus the sensor. **Allowed to fail without sinking the rung.**
+6. **OpenThread/IPv6 radio.** `prj_esp32c6_thread.conf` layered on top of
+   `prj_esp32c6.conf`, re-bisect with the radio loaded. WiFi is out of scope
+   on this board (decision, 2026-07-20 — see line 199 above): the board yaml
+   declares `netif:openthread`, not `wifi`. **Allowed to fail without sinking
+   the rung.**
 7. **Close-out.** Promote durable knowledge to `review/program-sequence.md` per the
    CLAUDE.md promotion rule; name the absorbing mainline doc.
 

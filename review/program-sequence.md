@@ -774,9 +774,19 @@ narrative):**
 6. **`OEVM_HEAP_SIZE=H` really costs `H + H/32`.** `src/gc.c:33-34` declares
    `heap_bitmap[OEVM_HEAP_SIZE/sizeof(oop)/8+1]` — the GC alloc bitmap — as a *separate
    static array outside the arena*, exactly `H/32` on any 32-bit target (board-independent).
-   This yields a first-principles ceiling check: `used(H) − H − H/32` is constant per
-   config (108032 for C6 no-radio, 166160 for C6+Thread), which independently predicted
-   both measured ceilings to the byte.
+   This yields a ceiling cross-check: `used(H) − H − H/32` is constant per config
+   (108032 for C6 no-radio, 166160 for C6+Thread), and each constant reproduces its own
+   cell's measured ceiling exactly.
+
+   **Be precise about what that does and does not prove.** Neither constant was a forward
+   prediction of an unmeasured value — both were fit from their own cell's failing probes
+   after that bisect had converged. What transfers is the *model form* (`H + H/32 + const`),
+   established on cell (c) and then applied unchanged to cell (d), where it again yielded a
+   constant stable to the byte across three probes. So this is cross-validation of the model
+   and strong evidence the bisect measured capacity and only capacity — not an independent
+   derivation of either ceiling. An earlier revision of this entry called the C6+Thread
+   figure "a genuine forward prediction"; that overstated it. See
+   `docs/results/2026-07-20-c6-heap-ceiling.md`'s cell (c) section for the derivation.
 7. **The VM cannot link without `CONFIG_NET_SOCKETS` on any target.** `src/udp.c` and the
    Zephyr UDP/HTTP backends are in `target_sources` unconditionally because
    `dispatch.c`'s `send()` fast path probes `udp_object()` on every send. "No radio" never
@@ -789,6 +799,30 @@ narrative):**
 9. **OpenThread builds for RISC-V in Zephyr 4.2 with no porting work.** The board yaml
    declares `netif:openthread` and does not declare `wifi` — WiFi is out of scope on this
    board by hardware/BSP decision, not a tuvm gap.
+10. **The table is reproducible with `tools/heap-ceiling.sh`.** `bash tools/heap-ceiling.sh
+    --board esp32|esp32c6 [--conf-extra prj_esp32c6_thread.conf]` bisects the max-linkable
+    `OEVM_HEAP_SIZE` to a 4096 B grain against the linker's own region-overflow diagnostic
+    — link-only, no hardware needed. The C6's linkable region is `sram0_0_seg` = 437512 B,
+    not the DTS node's 512 KB.
+11. **`--pristine` is load-bearing for the heap bake itself, not just overlay caching.**
+    `OEVM_HEAP_SIZE` reaches the compiler via `target_compile_definitions(...
+    $ENV{OEVM_HEAP_SIZE})` at CMake *configure* time, so an incremental build reuses the
+    cached define and every probe after the first would silently re-measure the first
+    probe's heap size — a plausible-looking wrong ceiling. `heap-ceiling.sh` forces
+    `-p always` on every probe for exactly this reason; same mechanism as lesson 1's
+    overlay-caching trap, one layer lower.
+12. **A bare `west build` never exports `OEVM_HEAP_SIZE`.** Only `run.sh` sets the seven
+    env exports; skip it and build the app directly with `west build`, and `gc.c`'s 16 MiB
+    host default applies, overflowing the link by ~17 MB — which reads as "it doesn't fit"
+    rather than "you forgot the exports." `zephyr/CMakeLists.txt:176-190` has a Kconfig
+    safety net for exactly this, but it is gated on `CONFIG_SOC_NRF52840` — no C6 (or
+    WROOM-32) equivalent exists, so this trap is live on both ESP32 targets.
+13. **`run.sh --conf-extra FILE.conf`**, undocumented anywhere in mainline before this
+    entry, forwards `-DEXTRA_CONF_FILE=FILE.conf` to `west build` (stacking with the
+    WiFi-overlay auto-detection if both apply); `heap-ceiling.sh --conf-extra` forwards
+    straight through. This is how cell (d)'s config (`prj_esp32c6_thread.conf` layered on
+    `prj_esp32c6.conf`) gets built and bisected at all — without it a ladder-only reader
+    cannot reproduce the Thread cell.
 
 **Not decided by this entry.** Whether the C6 becomes the primary dev-loop target (#57),
 whether #53 should stay open given the C6 path (recommended: yes — the WROOM-32 remains a

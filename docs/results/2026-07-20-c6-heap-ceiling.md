@@ -50,6 +50,13 @@ notes" below. `CONFIG_NETWORKING`, `CONFIG_NET_SOCKETS`, `CONFIG_NET_UDP`,
 were left untouched — the config still carries a full net stack, just no WiFi driver
 or its ~40 KB ESP-WIFI system-heap reservation.
 
+That scratch copy was never committed and its build dir has since been
+overwritten, leaving this cell — the denominator of the (b) vs (c) no-radio
+comparison the "Framing" section below calls the clean, honest one —
+without a reproducible artifact. `zephyr/prj_esp32_nowifi.conf` now exists
+in-tree as exactly that derivation (same six lines commented out, nothing
+else touched); it is not a shipping configuration.
+
 First failing diagnostic, probe 110592:
 
 ```
@@ -94,12 +101,13 @@ on sight (binding constraint 6), so it was checked rather than published on fait
   default range silently reporting `HI`.
 - *Cross-checked against the linker's own region size.* `zephyr_pre0.map`'s Memory
   Configuration table gives `sram0_0_seg` a fixed length of `0x6ad08` = 437512 bytes —
-  i.e. of the C6's 512 KB (524288 B) unified HP SRAM, ~86.8 KB is reserved ahead of
-  `user_sram_org` for the 2nd-stage-bootloader / IRAM-loader segment (see
-  `soc/espressif/esp32c6/default.ld`'s `user_sram_end` comment), leaving 437512 B as the
-  actual linkable region. 319488 / 437512 ≈ 73% of that region goes to the VM heap
-  array; the rest (~118 KB) is kernel, net stack, stacks and other bss/data — the same
-  shape as cell (b)'s split, just against a larger region.
+  i.e. of the C6's 512 KB (524288 B) unified HP SRAM, 524288 − 437512 = 86776 B
+  (~84.74 KB) is reserved ahead of `user_sram_org` for the 2nd-stage-bootloader /
+  IRAM-loader segment (see `soc/espressif/esp32c6/default.ld`'s `user_sram_end`
+  comment), leaving 437512 B as the actual linkable region. 319488 / 437512 ≈ 73% of
+  that region goes to the VM heap array; the rest, 437512 − 319488 = 118024 B
+  (~115.3 KB), is kernel, net stack, stacks and other bss/data — the same shape as
+  cell (b)'s split, just against a larger region.
 
   **Corrected — the earlier "~100 B alignment residual" claim was wrong, and the truth
   is a stronger check.** Recomputing `region_size + overflow − H` from this document's

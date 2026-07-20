@@ -449,3 +449,25 @@ captured layouts are byte-identical (verified independently of the capture itsel
 the ladder's C6 entry) — a coincidence of this particular struct set having no field type
 whose natural alignment diverges between the two 32-bit ABIs, not a reason to assume a
 future target's layout will match without generating it.
+
+## C6 `OEVM_HEAP_SIZE` — no recommended default yet
+
+`run.sh`'s `esp32c6` profile ships `OEVM_HEAP_SIZE=53248` — the WROOM-32's own value,
+carried over as an explicitly provisional placeholder, not a measured or recommended C6
+number.
+
+`tools/heap-ceiling.sh` has measured the C6's max-*linkable* `OEVM_HEAP_SIZE` (see
+`review/program-sequence.md` and `docs/results/2026-07-20-c6-heap-ceiling.md`):
+
+- **319488** — no radio (net stack only).
+- **262144** — with the OpenThread/IPv6 radio layer (`prj_esp32c6_thread.conf`).
+
+**Neither ceiling is a recommended default.** A ceiling is the largest value that still
+*links*; it says nothing about what a given workload actually needs, and both numbers cut
+it close: 319488 links `sram0_0_seg` at 100.00% occupancy with 8 bytes spare. The VM's GC
+is collect-when-full (`src/gc.c`), so the heap's high-water mark pegs to whatever arena
+size you give it regardless of a workload's real live set — running at the ceiling leaves
+no slack for anything else in `sram0_0_seg` (kernel, net stack, stacks, other bss/data) to
+grow even slightly. Choosing a real default requires measuring a workload's actual live
+heap, the same way `prj_esp32.conf`'s 53248 was justified by the WROOM-32's HttpServerNode
+`/stats` high-water figure — not by taking the link ceiling itself.

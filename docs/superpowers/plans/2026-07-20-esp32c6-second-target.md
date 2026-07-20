@@ -332,8 +332,12 @@ ESP32-only. A separate file keeps both boards buildable.
 # CONFIG_ESP32_USE_UNSUPPORTED_REVISION=y for the bench WROOM-32's rev-1.0
 # silicon — an ESP32-only symbol.
 #
-# RV32 field offsets and alignment differ from Xtensa, so layout-esp32.json
-# CANNOT be reused. This app is why Task 4 is the first C6 flash rather than
+# Cannot ASSUME RV32 field offsets and alignment match Xtensa's — the only way
+# to know is to generate a layout per target and look. (In the event this
+# turned out byte-identical to Xtensa: no struct here has a field whose
+# natural alignment diverges between Xtensa and RV32 ilp32 — see 2a5dc90. That
+# outcome could only be established by generating and comparing, not assumed
+# going in.) This app is why Task 4 is the first C6 flash rather than
 # TimerNode.
 CONFIG_SERIAL=y
 CONFIG_UART_CONSOLE=y
@@ -349,7 +353,10 @@ west build -b esp32c6_devkitc/esp32c6/hpcore -p always -d build-c6 . -- -DCONF_F
 ```
 
 Expected: the build completes and prints a memory report. Note the reported `sramhp`
-total — it should show roughly 512 KB, not the WROOM-32's 192 KB `dram0_0_seg`.
+total — it should show the linker's actual `sram0_0_seg` region, 437512 B (~427 KB),
+not the DTS node's 512 KB (that figure is before the icache/bootloader reservations
+ahead of `user_sram_org` are subtracted). Either way it dwarfs the WROOM-32's 192 KB
+`dram0_0_seg`.
 
 - [ ] **Step 4: Verify the main app's C6 Kconfig links too**
 
@@ -755,20 +762,25 @@ PY
 
 Expected: valid JSON written, `oop_size 4`.
 
-- [ ] **Step 5: Confirm the RV32 layout actually differs from Xtensa**
+- [ ] **Step 5: Cross-check the RV32 layout against Xtensa**
 
-If these are identical, either the wrong binary was flashed or the capture came from the
-wrong board — investigate before trusting it.
+Do not assume either outcome going in. If they differ, don't assume it's real ABI
+divergence either — first rule out a bad capture (wrong binary flashed, or the capture
+came from the wrong board) before trusting a struct-size delta.
 
 ```bash
 cd ~/workspace/tuvm
 diff <(python3 -c "import json;d=json.load(open('zephyr/layout-esp32.json'));print('\n'.join(f'{k} {v[\"size\"]}' for k,v in sorted(d['structs'].items())))") \
      <(python3 -c "import json;d=json.load(open('zephyr/layout-esp32c6.json'));print('\n'.join(f'{k} {v[\"size\"]}' for k,v in sorted(d['structs'].items())))") \
-  && echo "WARNING: layouts identical — verify the right board was flashed"
+  && echo "OK: layouts byte-identical (expected on this hardware — no struct here has a field whose natural alignment diverges between Xtensa and RV32 ilp32)" \
+  || echo "WARNING: layouts differ — before trusting the delta, rule out a bad capture (wrong binary/board), then record which structs diverged and why."
 ```
 
 Record whether any struct sizes differ, and which. `struct Float` is the one to watch:
-the design predicts it stays 16 B under the RISC-V ilp32 ABI.
+the design predicts it stays 16 B under the RISC-V ilp32 ABI. (In the event: every
+struct size and field offset came back byte-identical to Xtensa — see 2a5dc90. That is
+the correct outcome here, not a fault; it does not generalize to every future target,
+which is why this step generates and checks rather than assumes.)
 
 - [ ] **Step 6: Commit**
 
@@ -780,9 +792,11 @@ git commit -m "feat(zephyr): bank layout-esp32c6.json from on-device layoutdump
 Captured from the C6 over the UART-bridge console after flashing
 layoutdump at offset 0x0 via the native USB port.
 
-RV32 field offsets and alignment differ from Xtensa, so layout-esp32.json
-cannot be reused — this is why layoutdump is the first C6 flash rather
-than TimerNode.
+RV32 field offsets and alignment cannot be assumed to match Xtensa's — only
+generating and comparing can tell, so layout-esp32.json cannot be reused
+sight-unseen. This is why layoutdump is the first C6 flash rather than
+TimerNode. (In the event: the captured layout came back byte-identical to
+Xtensa's — see 2a5dc90 — but that had to be checked, not assumed.)
 
 Refs #57"
 ```

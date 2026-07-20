@@ -101,7 +101,15 @@ try() {   # $1 = candidate heap size; 0 = links, 1 = does not (see FAIL_KIND)
        >"$log" 2>&1; then
     rm -f "$log"; return 0
   fi
-  LAST_FAIL_MSG="$(grep -E "overflowed|region .* overflow|will not fit" "$log" | head -2 || true)"
+  # Anchored to the linker's actual region-overflow message ("region `NAME'
+  # overflowed by N bytes"), not just the bare word "overflow" or "will not
+  # fit" anywhere in the log. The old, looser alternation could match
+  # unrelated log noise (anything merely containing "overflowed" or "will
+  # not fit") and misclassify a non-capacity build error as a capacity
+  # result — the false-positive direction that narrows the bisect and
+  # produces a confident wrong ceiling, exactly what this tool exists to
+  # prevent. See probe()'s FAIL_KIND handling below.
+  LAST_FAIL_MSG="$(grep -E "region .* overflowed by [0-9]+ bytes" "$log" | head -2 || true)"
   if [ -n "$LAST_FAIL_MSG" ]; then
     FAIL_KIND="capacity"
     echo "    fail @ $size (capacity): $LAST_FAIL_MSG" >&2
@@ -162,4 +170,11 @@ done
 
 echo
 echo "RESULT board=$BOARD_ID node=$NODE conf-extra=${CONF_EXTRA:-none} max-linkable-OEVM_HEAP_SIZE=$LO"
-echo "first-failing-diagnostic: $LAST_FAIL_MSG"
+# LAST_FAIL_MSG is never cleared on a subsequent success — it is whatever the
+# MOST RECENT failing probe produced, not necessarily the probe at LO+GRAIN.
+# In practice HI only ever moves together with a fresh LAST_FAIL_MSG (every
+# failing try() sets both in the same call, and successes touch neither), so
+# by construction this is the diagnostic from the probe that set the final
+# HI — i.e. LO+GRAIN. Labeled for what the variable actually tracks rather
+# than implying a stronger ("the very first failure seen") guarantee.
+echo "most-recent-failing-diagnostic (ceiling+grain, $((LO + GRAIN))): $LAST_FAIL_MSG"
