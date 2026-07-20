@@ -9,12 +9,23 @@ without a board attached. Grain: 4096 B (finer is noise).
 
 ## Results
 
-| Cell | Board    | Radio config                              | max-linkable `OEVM_HEAP_SIZE` |
-|------|----------|--------------------------------------------|-------------------------------|
-| (a)  | WROOM-32 | WiFi (default `prj_esp32.conf`)             | **53248**                     |
-| (b)  | WROOM-32 | no radio (WiFi block disabled, net stack kept) | **106496**                 |
-| (c)  | ESP32-C6 | no radio (`prj_esp32c6.conf`)               | **319488**                    |
-| (d)  | ESP32-C6 | OpenThread/IPv6 (`prj_esp32c6_thread.conf`) | pending Task 6                |
+Task 5 adds the **boots** column below. It records an actual on-target boot, not an
+inference from the link result — "links" and "boots" are different claims (a value that
+links is not necessarily one that boots; see the framing section). Only cell (c) was
+boot-tested in Task 5, which is scoped to the C6 (see "For context" in the task-5 brief);
+cells (a)/(b)/(d) are left as `not boot-tested this task` rather than inferred, even
+where indirect production evidence exists (e.g. cell (a)'s 53248 is the value
+HttpServerNode/ThermalHttpNode already run at live on the WROOM-32 in production — see
+`zephyr/run.sh`'s comment on the `esp32` profile default — but that is a different node,
+board config and measurement methodology than this bisect, so it is noted here rather
+than folded into the table as if it were the same claim).
+
+| Cell | Board    | Radio config                              | max-linkable `OEVM_HEAP_SIZE` | boots? |
+|------|----------|--------------------------------------------|-------------------------------|--------|
+| (a)  | WROOM-32 | WiFi (default `prj_esp32.conf`)             | **53248**                     | not boot-tested this task (indirect production evidence only — see note above) |
+| (b)  | WROOM-32 | no radio (WiFi block disabled, net stack kept) | **106496**                 | not boot-tested this task |
+| (c)  | ESP32-C6 | no radio (`prj_esp32c6.conf`)               | **319488**                    | **yes — confirmed on hardware, Task 5. Boot ceiling = link ceiling (319488); no bisect-down was needed.** |
+| (d)  | ESP32-C6 | OpenThread/IPv6 (`prj_esp32c6_thread.conf`) | pending Task 6                | pending Task 6 |
 
 ### Cell (a): WROOM-32 + WiFi — 53248
 
@@ -100,9 +111,43 @@ on sight (binding constraint 6), so it was checked rather than published on fait
   but it is exactly the kind of "too clean" number the brief warns to distrust, so it is
   called out explicitly here rather than passed over.
 
-This is a **link** ceiling only (binding constraint 5) — it says nothing about whether
-319488 boots on real C6 hardware; that confirmation is a separate, later on-device step
-and is not claimed here.
+This was, as of Task 3, a **link** ceiling only (binding constraint 5) — it said nothing
+about whether 319488 boots on real C6 hardware; that confirmation was left to a separate,
+later on-device step and was not claimed at the time. Task 5 (below) closes that gap.
+
+#### Boot confirmation (Task 5)
+
+`OEVM_HEAP_SIZE=319488 bash zephyr/run.sh --board esp32c6 --model B --node TimerNode.nsl
+--pristine --flash` was flashed to the bench C6
+(`/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_40:4C:CA:45:47:A4-if00`) and
+observed over the UART-bridge console
+(`/dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_ac2dce6f529ced118f43fd6be259fb3e-if00-port0`).
+
+Build report at this heap size: `sram0_0_seg: 437504 B / 437512 B — 100.00% used` (8 B
+spare) — the ceiling links right at the edge of the region, as expected of a
+bisect-to-the-grain result.
+
+Console output (verbatim, ROM banner and boot log elided to the load-bearing lines):
+
+```
+*** Booting Zephyr OS build v4.2.0 ***
+TIMER OK
+```
+
+`TIMER OK` only prints after three 200 ms timer fires and an explicit cancel (see
+`TimerNode.nsl`'s header comment), so this is a real multi-tick run, not an
+immediate-crash false positive. **The boot ceiling equals the link ceiling: 319488
+boots.** No downward bisection was required — decision 4's fallback path (bisect
+down, report both numbers) was not needed on this hardware.
+
+One incidental observation, present on every C6 flash in this task (Steps 1, 4 and 5
+alike) and not a new finding: `esptool`'s "Image has only RAM segments visible. ROM
+segments are hidden and SHA256 digest is not appended" note is followed at boot by a ROM
+`SHA-256 comparison failed` / `Attempting to boot anyway` pair. This is a benign artifact
+of the RAM-load image format Zephyr's `esp32c6` build produces here (no SHA appended for
+esptool to check against), not a data-corruption signal — every boot proceeded normally
+immediately afterward. Recorded for completeness since Task 5's own decision 2 asked
+console output to be reported verbatim and this line appears on literally every boot.
 
 ### Cell (d): ESP32-C6 + OpenThread — pending Task 6
 
@@ -129,11 +174,14 @@ attempted, per the brief's decision 3.
 Cells (a), (b) and (c) are now all measured, and the clean no-radio-vs-no-radio
 comparison the framing calls for is (b) vs (c): WROOM-32 no-radio 106496 vs. C6 no-radio
 319488 — the C6's unified SRAM links roughly **3×** more VM heap than the WROOM-32 in
-the matched (no-radio) configuration. That is a **link**-ceiling comparison only (per
-the framing's last bullet); it does not by itself say the C6 boots at 319488, and it
-does not speak to the with-radio (WiFi vs. OpenThread) comparison, which still awaits
-cell (d) at Task 6. The with-radio pair remains the "not like-for-like" column the
-framing already warns about — reported separately, never quoted against cell (a) alone.
+the matched (no-radio) configuration. That was, as of Task 3, a **link**-ceiling
+comparison only (per the framing's last bullet) that did not by itself say the C6 boots
+at 319488; Task 5's "Boot confirmation" subsection above closes exactly that gap for
+cell (c) — 319488 is now a confirmed **boot** ceiling on real C6 hardware, not just a
+link ceiling. It still does not speak to the with-radio (WiFi vs. OpenThread) comparison,
+which still awaits cell (d) at Task 6. The with-radio pair remains the "not like-for-like"
+column the framing already warns about — reported separately, never quoted against cell
+(a) alone.
 
 ## Harness notes
 

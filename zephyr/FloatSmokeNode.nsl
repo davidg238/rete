@@ -1,0 +1,39 @@
+(*
+FloatSmokeNode — exercises the boxed-Float path on a target with NO FPU.
+
+The C6 ISA is rv32imac_zicsr: no 'f', no 'd' extension, so every float
+operation here is a soft-float libcall. This node exists because TimerNode
+(the bench gate) boxes no floats at all, leaving both soft-float AND the
+float-arena knobs (OEVM_FLOAT_ARENA_SLAB_CELLS / _SLAB_BUDGET) completely
+unexercised on this target.
+
+The arena knobs are carried over from Xtensa on the PREDICTION that struct
+Float stays 16 B under the RISC-V ilp32 ABI. Task 4 confirmed the size, but
+size is not the same as the arena behaving correctly under churn — hence a
+loop that boxes several hundred intermediates rather than a single add.
+
+Grants no capability, so no `net:` header. No radio, no timer, no hardware.
+
+Sum is Sum_{i=1..200} i/3 = (200*201/2)/3 = 20100/3 = 6700.0 exactly (integral
+result, no rounding residue at this term count) — printString drops the
+trailing ".0", hence "float-smoke sum=6700" below. Confirmed against a host
+run (nsl-tuvm/tools/run-one.py) rather than assumed: the brief's original
+draft of this header listed only the final "float-smoke ok" line, which
+under-specified the expect: block against run-one.py's exact-match semantics
+(compare TimerNodeHost.nsl's two-line TIMER OK / CANCEL OK block) — every
+println line the node emits must appear here, in order.
+expect:
+float-smoke sum=6700
+float-smoke ok
+*)
+class FloatSmokeNode packageUsing: manifest = (
+| sum ::= 0.0 asFloat. |
+) (
+  public main: platform args: args = (
+    1 to: 200 do: [ :i | sum:: sum + (i asFloat / 3.0) ].
+    ('float-smoke sum=', sum printString) println.
+    'float-smoke ok' println.
+    ^ 0
+  )
+) : (
+)
