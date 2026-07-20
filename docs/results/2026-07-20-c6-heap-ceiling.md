@@ -99,11 +99,26 @@ on sight (binding constraint 6), so it was checked rather than published on fait
   `soc/espressif/esp32c6/default.ld`'s `user_sram_end` comment), leaving 437512 B as the
   actual linkable region. 319488 / 437512 ≈ 73% of that region goes to the VM heap
   array; the rest (~118 KB) is kernel, net stack, stacks and other bss/data — the same
-  shape as cell (b)'s split, just against a larger region. The overflow arithmetic at
-  both the HI probe and the 323584 probe is self-consistent with that 437512 B region
-  size to within a small (~100 B) alignment residual, not off by an order of magnitude.
-  Nothing here suggests a misclassified non-capacity failure or a search that ran past
-  a real boundary.
+  shape as cell (b)'s split, just against a larger region.
+
+  **Corrected — the earlier "~100 B alignment residual" claim was wrong, and the truth
+  is a stronger check.** Recomputing `region_size + overflow − H` from this document's
+  own cited figures gives 124416 for H=524288 and 118144 for H=323584 — a **6272 B**
+  gap, not ~100 B. The gap is not alignment noise: it is the **GC allocation bitmap**.
+  `src/gc.c:33-34` declares
+
+      static uint8_t heap_bitmap[OEVM_HEAP_SIZE / sizeof(oop) / 8u + 1u];
+
+  as a **separate static array outside the arena**, one bit per 4-byte granule.
+  `sizeof(oop)` is 4 on both 32-bit targets, so it is exactly `H/32`. Asking for
+  `OEVM_HEAP_SIZE=H` therefore costs **`H + H/32` (1.03125×)** of static RAM — at
+  H=319488 an extra 9984 B that naive accounting misses.
+
+  With the bitmap included, `used(H) − H − H/32` is constant at **exactly 108032 bytes**
+  across all four failing probes (524288, 397312, 331776, 323584). Constant to the byte
+  across a 200 KB span is far better evidence that the bisect measured capacity — and
+  only capacity — than the approximate residual originally claimed. Nothing here suggests
+  a misclassified non-capacity failure or a search that ran past a real boundary.
 - 319488 is exactly 6× cell (a)'s 53248 and 3× cell (b)'s 106496. Flagged, not
   suppressed: cell (b)'s note above already records a coincidental exact-2× relationship
   to cell (a) on this same codebase, so a further round multiple is consistent with how
@@ -139,6 +154,27 @@ TIMER OK
 immediate-crash false positive. **The boot ceiling equals the link ceiling: 319488
 boots.** No downward bisection was required — decision 4's fallback path (bisect
 down, report both numbers) was not needed on this hardware.
+
+> ### 319488 is a ceiling, not a recommended default
+>
+> **Do not quote this as "the C6 gives you 312 KB of heap."** Three reasons, all
+> visible in the numbers above:
+>
+> 1. **8 bytes of slack.** At 319488 the region is 100.00% full. That is precisely the
+>    condition #53 describes on the WROOM-32 (99.58%, ~816 B spare) and calls a hard
+>    ceiling with no headroom for any new static allocation. Shipping at the measured
+>    maximum reproduces the problem this rung set out to escape, on a bigger part.
+> 2. **It was measured under `TimerNode`**, which allocates almost nothing. A real
+>    workload's live set is additional to the arena, not carved out of it.
+> 3. **The GC is collect-when-full**, so heap high-water pegs to the arena ceiling
+>    regardless of transient size. A 312 KB arena means rarer but proportionally longer
+>    collections, and a high-water figure that always reads ~100% — losing the signal
+>    that made the WROOM-32's ~52.8 KB observation useful.
+>
+> The honest reading of this table is that **the wall moved**, not that the wall should
+> be leaned on. Picking a sensible C6 default is a separate decision informed by a real
+> workload's live set; the ceiling only establishes how much room there is to choose
+> within.
 
 One incidental observation, present on every C6 flash in this task (Steps 1, 4 and 5
 alike) and not a new finding: `esptool`'s "Image has only RAM segments visible. ROM
