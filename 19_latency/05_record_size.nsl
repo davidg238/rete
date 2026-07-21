@@ -1,0 +1,85 @@
+(*
+expect:
+n 310
+sumUsLo 7820873
+LatencySpan 140
+Metrics 195
+done
+*)
+(* tuvm#61 design 4.4, and the measurement it flags as OWED. PROTOCOL-NSL-RECORDS
+   4.4 records #Metrics at "~185-230 B" and says plainly that this is an ESTIMATE
+   nobody has encoded and measured. #61 builds a sibling record on the same encoder,
+   so measuring both here discharges that debt for the cost of one test.
+
+   Values are the ones MEASURED on the WROOM-32 on 2026-07-21, not round numbers.
+   CBOR is shortest-form: a field holding 7820873 costs five bytes where one holding
+   52746 costs three. A size measured against placeholder values would be a
+   different number from the one the fleet actually sends, which is exactly the
+   trap an estimate falls into.
+
+   This is a regression guard as much as a measurement. The encoded size is what
+   porta pays for on every uplink, and 4.4's argument for short field names is that
+   names dominate; if a rename or a field addition moves these numbers, it should
+   fail here rather than surface as bandwidth. Both-path A==B gate.
+
+   Note: `platform Cbor` answers an INSTANCE (kernel.nsl 2204) where `platform
+   Spans` answers the CLASS — an asymmetry worth knowing before copying either
+   line. *)
+class RecordSizeTest packageUsing: manifest = () (
+
+  (* The measured jobThermal distribution, reproduced exactly: n=310, min=24408,
+     max=28338, sum=7820873 us, every sample in the 10-100 ms decade.
+       1 x 24408 (the min) + 1 x 28338 (the max) + 307 x 25221 + 1 x 25280
+     sums to 7820873 and stays inside [min, max] throughout, so this builds the
+     record the device would actually have sent. Fed through recordSlot:us: so it
+     is assembled by the real Spans>>recordAt: path, not hand-written. *)
+  fill: spans slot: slot = (
+    | i |
+    spans recordSlot: slot us: 24408.
+    spans recordSlot: slot us: 28338.
+    i:: 1. [ i <= 307 ] whileTrue: [
+      spans recordSlot: slot us: 25221. i:: i + 1 ].
+    spans recordSlot: slot us: 25280.
+    ^ self )
+
+  (* #Metrics as kernel.nsl builds it, populated with the eleven values read off
+     the device rather than the host's own — a 16 MB host heap encodes wider than
+     the board's 53248. Field names and order are copied from Kernel>>metrics; if
+     that drifts, this test is measuring a fiction. *)
+  deviceMetrics: platform = (
+    | pairs |
+    pairs:: OrderedCollection new.
+    pairs add: #heapSize -> 53248.
+    pairs add: #liveBytes -> 36196.
+    pairs add: #heapHighWater -> 53228.
+    pairs add: #largestFreeBlock -> 18608.
+    pairs add: #gcCycles -> 1523.
+    pairs add: #handlesLive -> 1.
+    pairs add: #handlesHighWater -> 1.
+    pairs add: #queueHighWater -> 2.
+    pairs add: #overruns -> 0.
+    pairs add: #pulseDrops -> 0.
+    pairs add: #pulseCoalesced -> 0.
+    ^ platform Record tag: #Metrics fields: (platform Map fromPairs: pairs) )
+
+public main: platform args: args = (
+  | spans slot cbor s |
+  cbor::  platform Cbor.
+  spans:: platform Spans new.
+  slot::  spans register: #jobThermal.
+  self fill: spans slot: slot.
+
+  (* Prove the accumulator really holds the device's numbers before trusting a
+     size measured from it — a fill that miscounted, or a sum that silently landed
+     in sumUsHi, would give a plausible-looking but wrong byte count. *)
+  s:: spans statsAt: slot.
+  ('n ' , (s basicAt: 1) printString) println.
+  ('sumUsLo ' , (s basicAt: 4) printString) println.
+
+  ('LatencySpan ' , (cbor encode: (spans recordAt: slot)) byteSize printString) println.
+  ('Metrics ' , (cbor encode: (self deviceMetrics: platform)) byteSize printString) println.
+
+  'done' println.
+)
+) : (
+)
