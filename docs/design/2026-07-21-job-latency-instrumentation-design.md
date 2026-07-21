@@ -439,3 +439,49 @@ Per the promotion rule, this issue is not closed until:
 
 Steps 1–2 are independently mergeable and leave the tree green with no behaviour change,
 which is the natural review checkpoint.
+
+---
+
+## Addendum — implementation findings, 2026-07-21 (Tasks 1–7)
+
+Recorded here rather than only in the tracker, because each of these corrects or confirms
+something the design above asserted.
+
+**§2.1's 384 B was right; the plan's 388 B was wrong.** The implementation adds a 4-byte
+open-ness bitmask (a per-slot `uint8_t` flag would have rounded the struct from 48 B to
+56 B under the `u64`'s alignment). The plan therefore predicted 388 B and flagged it for
+reconciliation. Measured on the WROOM-32 with both builds `--pristine`, the delta is
+**384 B exactly** — the mask landed in existing padding. No correction needed; the figure
+above stands.
+
+| build | dram0 | spare |
+|---|---|---|
+| `master` 63fcf64 | 195,936 B (99.66%) | 672 B |
+| with spans | 196,320 B (99.85%) | 288 B |
+
+**§6's baseline citation was stale.** #53 records 195,792 B at commit 54f055e; `master`
+today is 195,936 B. The +144 B drifted in independently. Cite a commit alongside any dram0
+figure, or re-measure.
+
+**§5's `tickQueue` (plan Task 12) is dropped from this rung.** David's call, on the 288 B
+remaining: spending the last of the DRAM on the one span that touches the ISR mailbox —
+the seam #34/#55 just stabilised, and which #62 notes has no automated Zephyr coverage —
+is a bad trade. The published table is complete without it.
+
+**The nsl grammar has no `#( … )` literal array.** §4's decade names are a comparison chain
+instead, which also allocates nothing per call. Same family as the literal-array trap
+already known from the STIC benchmark work.
+
+**§8's host validation understated the reach of the change.** `src/span.c` had to be wired
+into **seven** enumerated source lists across two repos; patching the main runner's four
+left `grant`, `debugger-integration` and `portability-32` failing to link while the suite
+still printed `0 failed`. Filed as #63. The upside: `portability-32` is a `-m32` build, so
+§2.2's 31-bit SMI reasoning — the whole reason `sum` is split lo/hi at 1e9 — is now
+verified on an actual 32-bit target rather than argued.
+
+**§2.1's posix backend needs `_POSIX_C_SOURCE 200809L`** for `clock_gettime` under
+`-std=c99`, matching `timer_posix.c:5`. And `tests/test_span.c` supplies its own
+`timer_backend_millis` stub rather than linking `timer_posix.c`, which drags in `space_post`
+and from there the entire VM. That turned out better than a link fix: because the test
+controls the virtual clock, the ms→µs scaling the whole nsl suite's determinism rests on is
+asserted exactly.
