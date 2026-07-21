@@ -876,8 +876,9 @@ first tuvm data path over 802.15.4 on non-Nordic silicon.
      retransmitted it. Measured effect: the 5-datagram gate failed **~40-60% of boots**;
      0/20 after propagating `-EBUSY` (CCA_BUSY/COEXIST → `OT_ERROR_CHANNEL_ACCESS_FAILURE`)
      and `-ENOMSG` (NO_ACK/INVALID_ACK → `OT_ERROR_NO_ACK`) per `ieee802154_radio.h`. The
-     same patch clears `ack_frame` on failure — otherwise `handle_ack()` releases the
-     previous TX's already-released frame. **Worth upstreaming.**
+     same patch also stops `handle_ack()` releasing the previous TX's already-released
+     frame. **Upstreamed as zephyr#114163** — see finding 6 for the form that fix
+     finally took, which is NOT the one first written here.
 
 3. **Method, twice over.** (a) *"Config is provably correct on-device yet it still doesn't
    work" does NOT imply hardware.* A whole session was spent concluding the C6 radio was
@@ -901,13 +902,34 @@ first tuvm data path over 802.15.4 on non-Nordic silicon.
    `EXTRA_CONF_FILE` in order and LATER WINS — placed earlier, the tracked placeholders
    silently beat the real dataset and the node joins a fake network.
 
+6. **Upstream review moved the stale-pointer fix, and the reviewer was right (2026-07-21).**
+   zephyr#114163 was approved by a maintainer within a day; Espressif's `sylvioalves` then
+   asked for the `ack_frame`/`ack_frame_info` clearing to sit at the **top of `esp32_tx()`**
+   rather than inside `esp_ieee802154_transmit_failed()`, and for `handle_ack()` to clear
+   `ack_frame_info` alongside `ack_frame`. Both were accepted: clearing per-transmission
+   also covers the **TX-timeout** path, which returns `-EIO` without ever reaching
+   `handle_ack()` and so left the previous transmission's pointers live — a case the
+   failure-callback placement could not reach — and it takes two stores out of an IRAM ISR
+   callback. Local branch is now `cbc06d38482`; the gate is **20/20 on the revised patch**
+   with all 100 expected datagrams in the gateway journal
+   (`tuvm-esp32c6-threadping-GREEN-20of20-ackframe-review.log`). *Method note: the two
+   trees have diverged — `~/esp/zephyr-upstream-patch` is rebased on Zephyr **main**, which
+   already carries an RX-msgq refactor of this driver, while `~/zephyr-esp32/zephyr` is
+   v4.2.0 + fixes. The patches are no longer textually interchangeable and must be applied
+   to each by hand.*
+   Prior evidence for the **pre-review** form, kept because it is the only long-duration
+   run: `SoakNode.nsl` overnight, **2390/2399 round-trips over ~10 h, 9 misses, one boot,
+   no reset or coredump** (`tuvm-esp32c6-SOAK-overnight-0720-2304.log`) — the run that was
+   meant to surface a double-release and did not.
+
 Design: `docs/design/2026-07-20-esp32c6-thread-ping-rung-design.md` (its §1 board-split
 claim is amended by finding 1, and its flagged "OpenThread-on-C6 unproven" hazard was real —
 just in the driver, not the silicon); plan:
 `docs/superpowers/plans/2026-07-20-esp32c6-thread-ping.md`. No `CLAIMS.md` row moves — those
-track spec §7 criteria and this is a device gate. Open: upstreaming `03c903fa836`; whether
-to bump the workspace to Zephyr 4.3.1 wholesale (mbedtls Kconfig renames + OT deprecated-
-callback removals sit in that range, so it needs its own compat pass).
+track spec §7 criteria and this is a device gate. Open: zephyr#114163 is in review, not
+merged — until it lands the C6 still depends on the local branch; whether to bump the
+workspace to Zephyr 4.3.1 wholesale (mbedtls Kconfig renames + OT deprecated-callback
+removals sit in that range, so it needs its own compat pass).
 
 ## Known stale docs (do not treat as current)
 
