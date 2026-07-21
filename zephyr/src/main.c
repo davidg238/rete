@@ -206,7 +206,7 @@ int main(void) {
     wire_pulse_gpio();   /* Task 8 (DK): arm BUTTON1 as the pulse edge; no-op on native_sim */
 
 #ifdef CONFIG_NET_L2_OPENTHREAD
-    tuvm_thread_bringup();   /* board-selected seam (backend/{ncs,zephyr}) */
+    tuvm_thread_bringup();   /* shared OT bring-up seam (src/thread_bringup.c) */
 #endif
 #ifdef CONFIG_WIFI
     wifi_bringup();      /* #46: associate to WiFi + DHCPv4 before the VM binds the http listener */
