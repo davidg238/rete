@@ -6,7 +6,8 @@
 #include <string.h>
 
 struct SpanSlot {
-    uint32_t start;      /* span_now() at span_begin; meaningful only while open */
+    uint32_t start;      /* span_stamp() at span_begin; open slots only. NOT
+                            microseconds — an opaque backend unit (span_backend.h). */
     uint32_t n;
     uint32_t min, max;   /* microseconds */
     uint64_t sum;        /* microseconds */
@@ -19,7 +20,7 @@ static struct SpanSlot spans[OEVM_SPAN_SLOTS];
    struct to 56 B under the u64's 8-byte alignment, costing an extra 64 B of DRAM
    on a board with 816 B spare (tuvm#53). One shared u32 costs 4 B and caps slots
    at 32, far above OEVM_SPAN_SLOTS. It also lets start==0 be a legal stamp rather
-   than an in-band "not open" sentinel — which matters, because span_now() really
+   than an in-band "not open" sentinel — which matters, because span_stamp() really
    does return 0 once per wrap. */
 static uint32_t span_open_mask;
 
@@ -38,7 +39,7 @@ static int bucket_of(uint32_t us) {
 
 void span_begin(int slot) {
     if (!slot_ok(slot)) return;
-    spans[slot].start = span_now();
+    spans[slot].start = span_stamp();
     span_open_mask |= (uint32_t)1 << slot;
 }
 
@@ -49,9 +50,11 @@ void span_end(int slot) {
        because it would move the percentiles by a duration nobody measured. */
     if ((span_open_mask & ((uint32_t)1 << slot)) == 0) return;
     span_open_mask &= ~((uint32_t)1 << slot);
-    /* Unsigned 32-bit difference: correct across a counter wrap so long as the
-       span is shorter than the wrap period (17.9 s on the WROOM-32). */
-    span_record(slot, span_now() - spans[slot].start);
+    /* The BACKEND does the subtraction: it stamps in its own unit (cycles on
+       Zephyr) and knows how to difference and convert wrap-correctly. Doing it
+       here in microseconds is the defect the 2026-07-21 WROOM-32 run found — see
+       span_backend.h. */
+    span_record(slot, span_elapsed_us(spans[slot].start));
 }
 
 void span_record(int slot, uint32_t us) {

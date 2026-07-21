@@ -128,16 +128,30 @@ int main(void) {
     assert(st[SPAN_STAT_N] == 1      && "re-begin overwrites the abandoned start");
     assert(st[SPAN_STAT_MAX] == 2000 && "measured from the SECOND begin, not the first");
 
-    /* (10) span_now tracks the virtual clock exactly under the default
+    /* (10) span_stamp tracks the virtual clock exactly under the default
        (non-wall-clock) mode. This is the property the whole nsl suite's
        determinism rests on: advanceMillis: must move the span clock by a known
        amount, or every bucket assertion over there becomes a race. */
     stub_ms = 0;
-    assert(span_now() == 0 && "virtual clock at zero");
+    assert(span_stamp() == 0 && "virtual clock at zero");
     stub_ms = 7;
-    assert(span_now() == 7000 && "virtual milliseconds scale to microseconds");
+    assert(span_stamp() == 7000 && "virtual milliseconds scale to microseconds");
     stub_ms = 12;
-    assert(span_now() - 7000 == 5000 && "a 5 ms advance is a 5000 us delta");
+    assert(span_elapsed_us(7000) == 5000 && "a 5 ms advance is a 5000 us delta");
+
+    /* (11) The elapsed helper is wrap-correct in the backend's OWN unit. On the
+       host that unit is the microsecond and the counter wraps at 2^32, so a stamp
+       taken 1000 us before the wrap and read 200 us after it must answer 1200 —
+       not 4294966096. This is the property the Zephyr backend violated by
+       converting cycles to microseconds BEFORE subtracting (span_backend.h). */
+    stub_ms = 0;
+    {
+        /* stub_ms is 0, so span_stamp() reads 0 — i.e. the counter has just
+           wrapped. A stamp taken 1000 us earlier is 2^32-1000. */
+        uint32_t before_wrap = (uint32_t)0 - 1000u;
+        assert(span_elapsed_us(before_wrap) == 1000u
+               && "a stamp from before the wrap yields a small positive delta");
+    }
 
     printf("test_span: OK\n");
     return 0;

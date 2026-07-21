@@ -32,7 +32,7 @@ static int wallclock_mode(void) {
     return cached;
 }
 
-uint32_t span_now(void) {
+uint32_t span_stamp(void) {
     if (!wallclock_mode()) {
         /* Virtual clock: deterministic, advances only via advanceMillis:. */
         return (uint32_t)(timer_backend_millis() * 1000ULL);
@@ -45,4 +45,13 @@ uint32_t span_now(void) {
         return (uint32_t)((uint64_t)ts.tv_sec * 1000000ULL +
                           (uint64_t)ts.tv_nsec / 1000ULL);
     }
+}
+
+/* The host's backend unit IS the microsecond, so the difference needs no
+   conversion — and because the counter genuinely wraps at 2^32 microseconds
+   (71.6 minutes), the plain u32 subtraction is correct across that wrap. This is
+   the case the seam's original single-function design assumed everywhere; the
+   Zephyr backend is where it did not hold. */
+uint32_t span_elapsed_us(uint32_t start) {
+    return span_stamp() - start;
 }

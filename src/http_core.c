@@ -96,12 +96,14 @@ int http_frame_response(int status, const char *body, int body_len,
 struct InflightSlot { int live; int id; int fd; };
 struct RingItem {
     int id; char method[HTTP_METHOD_MAX]; char path[HTTP_PATH_MAX];
-    /* #61: span_now() at accept, closed at take. The stamp lives on the RING item
+    /* #61: span_stamp() at accept, closed at take. An OPAQUE backend unit, not
+       microseconds — only span_elapsed_us() may interpret it (span_backend.h).
+       The stamp lives on the RING item
        rather than on a shared slot start because several requests can be queued at
        once and one shared start would have them overwrite each other. It rides the
        ring rather than the in-flight table because the interval being measured is
        exactly the ring's — enqueue to dequeue; the in-flight slot outlives it. */
-    uint32_t accepted_us;
+    uint32_t accepted_at;
 };
 
 static struct InflightSlot inflight[OEVM_HTTP_INFLIGHT];
@@ -154,7 +156,7 @@ int http_accept_request(int fd, const char *method, int ml,
     ring[tail].id = id;
     copy_bounded(ring[tail].method, HTTP_METHOD_MAX, method, ml);
     copy_bounded(ring[tail].path, HTTP_PATH_MAX, path, pl);
-    ring[tail].accepted_us = span_now();      /* #61: opens the httpQueue span */
+    ring[tail].accepted_at = span_stamp();    /* #61: opens the httpQueue span */
     ring_count++;
     return id;
 }
@@ -170,7 +172,7 @@ int http_take_request(int *id, char *method, int mcap, char *path, int pcap) {
        counter wrap so long as the wait is shorter than the wrap period. The shed
        path above never reaches here, so a 503 contributes no sample — it is a
        failure, counted in nsl, not a fast job. */
-    span_record(SPAN_SLOT_HTTP_QUEUE, span_now() - it->accepted_us);
+    span_record(SPAN_SLOT_HTTP_QUEUE, span_elapsed_us(it->accepted_at));
     ring_head = (ring_head + 1) % OEVM_HTTP_INFLIGHT;
     ring_count--;
     return 1;
@@ -216,11 +218,11 @@ void http_chunk(int id, const char *data, int len) {
            http_begin/http_end are deliberately outside: their framing is fixed-size
            and per-response, so folding them in would smear a constant across a
            per-chunk distribution. */
-        uint32_t t0 = span_now();
+        uint32_t t0 = span_stamp();
         http_write(fd, szline, sn);
         http_write(fd, data, len);
         http_write(fd, "\r\n", 2);
-        span_record(SPAN_SLOT_EGRESS, span_now() - t0);
+        span_record(SPAN_SLOT_EGRESS, span_elapsed_us(t0));
     }
 }
 
