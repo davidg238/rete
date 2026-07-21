@@ -1026,6 +1026,62 @@ class Kernel usingPlatform: platform = () (
     public fromList: a = ( ^ self new setFromList: a )
   )
 
+  class Spans = ( | names fails | ) (
+    (* tuvm#61: named access to the C span slots (prims 118-121). The C side is
+       NAMELESS — slots are integers 0..N-1 — exactly as the timer seam carries
+       only a token and keeps the channel and the message in nsl. This class owns
+       the name<->slot table and the per-slot failure counts, so no name string
+       ever lands in the device's DRAM.
+
+       register: is called ONCE per name at setup and answers the slot index; the
+       caller HOLDS that index and passes it to begin:/end:. Nothing on a measured
+       path may do a name lookup, because a lookup is a send and an allocation and
+       this code runs inside the very thing it is measuring.
+
+       State is lazily initialised rather than in a class-side `new` override —
+       `ThermalView new` is the precedent (a plain `new`, instance variables
+       starting nil), and it avoids depending on `super new` resolving in
+       class-side context, which this kernel does nowhere else. *)
+    ensureTables = (
+      names isNil ifTrue: [
+        names:: OrderedCollection new.
+        fails:: OrderedCollection new ].
+      ^ self )
+
+    public register: aName = (
+      | i n |
+      self ensureTables.
+      (* Idempotent: registering the same name twice answers the SAME slot, so a
+         re-entered setup path cannot silently consume the slot budget. *)
+      i:: 1. n:: names size.
+      [ i <= n ] whileTrue: [
+        ((names at: i) = aName) ifTrue: [ ^ i - 1 ].
+        i:: i + 1 ].
+      names add: aName.
+      fails add: 0.
+      ^ names size - 1 )
+
+    public slotCount = ( self ensureTables. ^ names size )
+    public nameAt: slot = ( ^ names at: slot + 1 )
+
+    public begin: slot = ( platform spanBegin: slot. ^ self )
+    public end:   slot = ( platform spanEnd: slot. ^ self )
+    public recordSlot: slot us: n = ( platform spanRecord: slot us: n. ^ self )
+    (* Answers the raw IndexableVtable Array the prim builds — read with basicAt:,
+       the heapStats precedent (the prim receiver carries no Array vtable).
+       Field order mirrors src/span.h's SPAN_STAT_*, 1-based here:
+         1 n, 2 minUs, 3 maxUs, 4 sumUsLo, 5 sumUsHi, 6..11 buckets b0..b5 *)
+    public statsAt: slot = ( ^ platform spanStats: slot )
+
+    (* A failed job produces NO span sample, so without this a failure would
+       silently improve the percentiles. Counted in nsl because a failure is an
+       app-level concept the C seam cannot detect. *)
+    public noteFailure: slot = (
+      fails at: slot + 1 put: (fails at: slot + 1) + 1. ^ self )
+    public failuresAt: slot = ( ^ fails at: slot + 1 )
+  ) : (
+  )
+
   class ReadStream = ( | source position | ) (
     (* Byte-granular cursor over an immutable String. `next`/`peek` answer a byte
        SMI; substring reads build Strings via `platform string:`. Open-ended reads
@@ -2061,6 +2117,11 @@ class Kernel usingPlatform: platform = () (
      to a class object silently NEWs the class and drops the message. *)
   public Cbor              = ( ^ Cbor new )
   public HeapStats         = ( ^ HeapStats )
+  (* tuvm#61: the span-slot capability. Answers the CLASS, not an instance — the
+     `Cbor new` comment above explains why the two are spelled differently: sending
+     an instance-side selector to a class object silently NEWs the class and drops
+     the message. Callers do `platform Spans new` and hold the instance. *)
+  public Spans             = ( ^ Spans )
   public heapStats         = ( ^ HeapStats fromList: (platform heapStats) )
   (* tuvm#24: the sys/metrics snapshot — prim 104 (heapStats) + prim 109
      (sysStats) composed into ONE flat immutable Record, the sys/metrics

@@ -32,6 +32,11 @@ OEVM_BACKEND = [f"src/backend/{OEVM_TARGET}/platform_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/udp_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/pulse_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/timer_{OEVM_TARGET}.c",
+                # tuvm#61: the job-latency microsecond clock seam. Under the DEFAULT
+                # virtual clock it scales timer_backend_millis() to microseconds, so
+                # advanceMillis: moves the span clock by an exact amount and every
+                # bucket assertion in 19_latency stays deterministic.
+                f"src/backend/{OEVM_TARGET}/span_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/http_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/sensor_{OEVM_TARGET}.c"]
 
@@ -89,7 +94,7 @@ def _build_pathb_once():
         proc = subprocess.run(
             [
                 "gcc", "-Wall", "-std=c99", "-Isrc",
-                "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c",
+                "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c", "src/span.c",
                 "src/serial.c",
         "src/udp.c", "src/http.c", "src/http_core.c", "src/mirror.c",
                 *OEVM_BACKEND,
@@ -119,7 +124,7 @@ def run_c_unit_tests(oevm_dir):
     """
     build = subprocess.run(
         ["gcc", "-Wall", "-std=c99", "-Isrc",
-         "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c",
+         "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c", "src/span.c",
          "src/serial.c",
          "src/udp.c", "src/http.c", "src/http_core.c", "src/mirror.c", *OEVM_BACKEND,
          "src/oimg_loader.c", "src/solidified_image.c",
@@ -169,7 +174,7 @@ def run_boot_gc_asan_gate() -> bool:
             return False
         build = subprocess.run(
             ["gcc", "-g", "-fsanitize=address", "-Wall", "-std=c99", "-Isrc", "-DOEVM_APPLIANCE",
-             "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c",
+             "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c", "src/span.c",
              "src/serial.c",
              "src/udp.c", "src/http.c", "src/http_core.c", "src/mirror.c", *OEVM_BACKEND,
              str(tmp_c), "src/oevm_main.c", "-o", str(runner), "-lm"],
@@ -428,7 +433,7 @@ def run_test_file(src_path: Path) -> tuple[str, str]:
     cmd_build = [
         "gcc", "-Wall", "-Wextra", "-std=c99", "-Isrc",
         "-DOEVM_APPLIANCE",
-        "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c",
+        "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c", "src/span.c",
         "src/serial.c",
         "src/udp.c", "src/http.c", "src/http_core.c", "src/mirror.c",
         *OEVM_BACKEND,
