@@ -43,7 +43,11 @@ target_include_directories(app PRIVATE ${TUVM_SRC}/src)
 # Board-selected OpenThread bring-up TU. Gated on OPENTHREAD so the WROOM
 # (WiFi, upstream 4.2) compiles NEITHER impl — the NCS symbols are absent there.
 if (CONFIG_NET_L2_OPENTHREAD)
-  target_sources(app PRIVATE src/backend/ncs/thread_bringup_ncs.c)
+  if (CONFIG_SOC_SERIES_ESP32C6)          # upstream-4.2 context API
+    target_sources(app PRIVATE src/backend/zephyr/thread_bringup_c6.c)
+  else()                                   # nRF / NCS
+    target_sources(app PRIVATE src/backend/ncs/thread_bringup_ncs.c)
+  endif()
 endif()
 
 # ---- Model A/B knob -------------------------------------------------------
