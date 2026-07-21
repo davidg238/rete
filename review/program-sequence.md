@@ -836,6 +836,79 @@ Design: `docs/design/2026-07-20-esp32c6-second-target-design.md`; plan:
 `docs/results/2026-07-20-c6-heap-ceiling.md`. Suite floor unchanged (this rung touched no
 nsl source) — no `CLAIMS.md` row moves. Open: #53, #57, #58.
 
+**ESP32-C6 end-to-end Thread ping — rung CLOSED 2026-07-20 (#59, relates #57).** The C6
+joins the live porta mesh and round-trips application data: `ThreadPingNode.nsl` sends five
+CBOR `#reading` Records (`#seq` 1..5) to the gateway's ML-EID echo (`udp_echo6.py` on
+`:7777`, systemd unit `udp-echo6`) and prints `UDP OK` **only** after every one is reflected
+and decodes value-equal. Two witnesses: that console line, and the gateway's journal showing
+five datagrams from `:54360`. **Deterministic: 20/20 boots across two soaks.** This is the
+first tuvm data path over 802.15.4 on non-Nordic silicon.
+
+1. **ONE shared `zephyr/src/thread_bringup.c`, not a board split.** The design's premise —
+   "the C6 can't compile the nRF bring-up" — was FALSE, from an incomplete header probe.
+   Both NCS and upstream 4.2 expose the SAME no-arg OT API (`openthread_init`/`_run`/
+   `_mutex_lock`/`_get_default_instance`), declared in the OT **module** header
+   `<openthread.h>` (Zephyr 4.2 moved OT to `modules/openthread/`), **not** in
+   `<zephyr/net/openthread.h>` — which is where the design-time probe looked. The seam
+   (`thread_bringup.h`) is kept as cheap insurance, but there is one implementation.
+   `net_if_up()` after `openthread_run()` remains load-bearing: OT attaches without it, but
+   `zsock_sendto` returns ENETDOWN (115) forever.
+
+2. **Zephyr 4.2.0's ESP32 802.15.4 driver cannot run Thread — this is the rung's most
+   expensive finding, and it is an ENVIRONMENT fact invisible from this repo.** Stock
+   v4.2.0 gets you a node that never attaches, and then a node that attaches but drops
+   datagrams. Four fixes are required, and `~/zephyr-esp32/zephyr` carries them on branch
+   **`tuvm-c6-radio-fix`** (v4.2.0 + 4 commits). **On a plain v4.2.0 checkout the C6 rung
+   does not reproduce.**
+   - `d66a39f7b5b` (upstream 4.3.x) — `stop()` called `esp_ieee802154_disable()`, a full
+     radio teardown, where OpenThread only expects *sleep*. Symptom: role stuck DETACHED
+     forever with a provably correct dataset. Its commit message names it: nodes "not
+     forming a network".
+   - `a9eb90a20e9` + a 3-line extract from `18dbda57d81` — the missing
+     `select ESP_MAC_ADDR_UNIVERSE_IEEE802154`. **The select alone is INERT on 4.2.0**: it
+     targets a symbol `soc/espressif/Kconfig` doesn't declare there (only hal_espressif's
+     IDF-side Kconfig does, which Zephyr never sources), so it fails SILENTLY. Any Kconfig
+     cherry-pick must be proven by grepping the generated `.config`.
+   - **`03c903fa836` (ours, no upstream fix exists — the bug is live in v4.3.1 too):**
+     `esp_ieee802154_transmit_failed()` received the TX error and **discarded** it, giving
+     the semaphore unconditionally, so `esp32_tx()` returned 0 for a frame that lost channel
+     access or was never acknowledged. OpenThread was told the frame went out and never
+     retransmitted it. Measured effect: the 5-datagram gate failed **~40-60% of boots**;
+     0/20 after propagating `-EBUSY` (CCA_BUSY/COEXIST → `OT_ERROR_CHANNEL_ACCESS_FAILURE`)
+     and `-ENOMSG` (NO_ACK/INVALID_ACK → `OT_ERROR_NO_ACK`) per `ieee802154_radio.h`. The
+     same patch clears `ack_frame` on failure — otherwise `handle_ack()` releases the
+     previous TX's already-released frame. **Worth upstreaming.**
+
+3. **Method, twice over.** (a) *"Config is provably correct on-device yet it still doesn't
+   work" does NOT imply hardware.* A whole session was spent concluding the C6 radio was
+   dead — power ruled out, dataset proven byte-correct on-device — when the answer was a
+   one-command `git log v4.2.0..v4.3.1 -- <driver>`. Diff the driver against the newest
+   upstream release before blaming silicon. (b) *Instrument the component boundary you do
+   not own.* The flake was only diagnosable because the gateway journals every datagram:
+   PASS runs showed five, FAIL runs showed zero, which killed "bad reply path", "CBOR
+   mismatch" and "timeout too short" in one measurement. Three fixes aimed at the node
+   failed before that evidence existed; none were needed after.
+
+4. **Gate design pinned.** The node bounds each wait with a real `monotonicMillis` budget
+   (the `ThreadTimerNode`/`SoakNode` idiom), never an iteration count — a spin bound races
+   the mesh RTT with no time basis. It distinguishes `echo timeout` from `echo mismatch`;
+   the previous single `no echo seq` message read as a mismatch when it was a timeout and
+   misdirected the investigation. The gate stays intolerant of loss *by design*: with the
+   driver correct, loss is now a real regression signal, not mesh weather.
+
+5. **Dataset overlay ordering.** `prj_esp32c6_thread.local.conf` (gitignored, real porta
+   credentials) is auto-layered by `run.sh` **after** `--conf-extra`, because Zephyr merges
+   `EXTRA_CONF_FILE` in order and LATER WINS — placed earlier, the tracked placeholders
+   silently beat the real dataset and the node joins a fake network.
+
+Design: `docs/design/2026-07-20-esp32c6-thread-ping-rung-design.md` (its §1 board-split
+claim is amended by finding 1, and its flagged "OpenThread-on-C6 unproven" hazard was real —
+just in the driver, not the silicon); plan:
+`docs/superpowers/plans/2026-07-20-esp32c6-thread-ping.md`. No `CLAIMS.md` row moves — those
+track spec §7 criteria and this is a device gate. Open: upstreaming `03c903fa836`; whether
+to bump the workspace to Zephyr 4.3.1 wholesale (mbedtls Kconfig renames + OT deprecated-
+callback removals sit in that range, so it needs its own compat pass).
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
