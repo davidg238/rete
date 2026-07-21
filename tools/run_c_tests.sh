@@ -77,6 +77,12 @@ run test_cbor "$ENG_B"
 run test_serial "src/backend/posix/serial_posix.c"
 run test_udp    "src/backend/posix/udp_posix.c"
 run test_http   "src/http_core.c src/backend/posix/http_posix.c"
+# tuvm#61: job-latency span slots (src/span.c + the posix microsecond clock seam).
+# Backend-only link like test_http/test_serial/test_udp above — span.c has no VM
+# dependencies at all, which is the point: any context may bump a slot. The test
+# supplies its own timer_backend_millis stub rather than linking timer_posix.c,
+# which would drag in space_post and from there the whole VM; see the test header.
+run test_span   "src/span.c src/backend/posix/span_posix.c"
 # Header-only frame ABI test
 printf '%-28s ' test_frame_abi
 if $CC $STD tests/test_frame_abi.c -o $OUT 2>/tmp/tuvm_ctest.log && $OUT >/dev/null 2>&1; then echo PASS; else echo FAIL; cat /tmp/tuvm_ctest.log; fail=1; fi
