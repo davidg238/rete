@@ -485,3 +485,38 @@ verified on an actual 32-bit target rather than argued.
 and from there the entire VM. That turned out better than a link fix: because the test
 controls the virtual clock, the ms→µs scaling the whole nsl suite's determinism rests on is
 asserted exactly.
+
+---
+
+## Addendum — implementation findings, 2026-07-21 (Task 8)
+
+**Seven source lists was an undercount; it is nine.** Task 8 found two more that carry
+`http_core.c` and `platform.c` but not `span.c` — `tests/http_roundtrip_host.sh` and
+`tests/hanoi_ab_host.sh`. Both had been failing to link since **Task 2**, not Task 8: the
+span prims put `span_begin`/`span_end`/`span_record`/`span_stats` into `platform.c`, and
+neither script was patched. Neither is invoked by `run_tests_oevm.py`, so the suite's `0
+failed` never saw them. This sharpens #63's real lesson: the count is not the point, the
+absence of a single list is — a new engine `.c` file has no one place to be declared.
+
+Fixed in the same rung. `hanoi_ab_host.sh` also turned out to be missing
+`sensor_posix.c` from an *earlier* rung entirely, and had been red for longer; committed
+separately (`a77db43`) so it is not buried in #61's history.
+
+**§5's egress bracket covers all three writes of a chunk**, not the payload write alone —
+size line, payload, trailing CRLF are one chunk's transport cost, and a caller tuning page
+size acts on the total. `http_begin`/`http_end` stay outside: their framing is fixed-size
+and per-*response*, so folding it in would smear a constant across a per-chunk
+distribution.
+
+**§5's httpQueue stamp rides `struct RingItem`, not the in-flight table.** The plan named
+the in-flight array. `http_take_request` dequeues from the *ring*; the in-flight slot is
+allocated at accept and freed at respond, so it outlives the interval being measured and a
+stamp there would have measured the wrong thing. Per-request either way — several requests
+can be queued at once, and one shared slot start would have them overwrite each other.
+
+**Two stale build scripts, left alone deliberately.** `tools/footprint.sh` omits
+`src/span.c`; it compiles with `-c` only, so nothing breaks, but the gated `mcu` branch now
+under-reports the engine by span.c's text and its 384 B of bss. Adding it needs a
+`FOOTPRINT_UPDATE_BASELINE=1` rebase, which is a deliberate act, not a side effect of this
+rung. And `bench.sh` still `cd`s to `~/workspace/oevm` and takes `.ns` files — it builds a
+different repo entirely and is unaffected by #61, but it is stale enough to mislead.
