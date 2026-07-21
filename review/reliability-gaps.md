@@ -42,7 +42,42 @@ first overrun per channel prints one line). `abort()` in space.c now means only
 structural invariants. Design:
 `nsl-tuvm/docs/design/2026-07-14-tuvm20-overflow-policy-design.md`; gate
 `nsl-tests/17_overflow/`. Still open here: the ISR-half rules below at each new
-event source, and the pulse-mailbox overflow (its own seam).
+event source.
+
+**ISR half RESOLVED 2026-07-21 (tuvm#34/#55, surfaced by #54).** The seam in FRONT of
+the ring kept the node-kill this section retired one layer later: `pulse_post_isr`
+answered a full mailbox with `k_oops`/`abort` from ISR context. It now **sheds and
+counts**, and **coalesces per source** — a source with a post already pending absorbs
+the new one. Two findings worth carrying:
+
+1. **The kind vocabulary does not transfer to this seam, and does not need to.** The
+   ring carries VALUES, so coalesce-vs-drop is a real semantic choice there. The pulse
+   mailbox carries a `(chan_id, handle_idx)` **doorbell token** with no payload, so two
+   posts from one source are byte-identical and "coalesce into newest" and "drop newest"
+   are the same operation. The seam's rule is therefore simply *never kill, drop and
+   count*; coalescing is an optimisation that keeps slots free for OTHER sources, not a
+   per-kind policy.
+2. **Coalescing, not shedding, is the load-bearing half.** Once one post per source is
+   the maximum, a full mailbox requires more than `OEVM_PULSE_MAILBOX_DEPTH` **distinct
+   live sources** — load cannot produce one. Shedding survives as a genuine-anomaly
+   backstop. Measured: 100 Hz fault injection drove `pulseCoalesced` to 13563 with
+   `pulseDrops` **0** through a 16-slot mailbox.
+
+Placed at the seam, not in `timer_zephyr.c` as #55 first proposed: the host timer
+backend posts straight through `space_post` and never touches the mailbox, so a timer-side
+fix would have been target-only code with no host test. At the seam it is host-tested and
+covers timer and GPIO together.
+
+Never silent, per this section's law: `pulseDrops`/`pulseCoalesced` ride `sysStats`
+(prim 109, 4→6 slots) into the `sys/metrics` record (9→11 fields) and the node's
+`/stats` page. A shed nobody can see would be strictly worse than the crash it replaced.
+
+**Caveat carried forward:** the two backends share the policy but not the mechanism —
+posix scans its array mailbox (the queue IS the pending set) while zephyr cannot inspect
+a `k_msgq` and keeps a shadow ring under `irq_lock`. A missed `shadow_pop()` would wedge
+one source's delivery silently and permanently. Untested; tracked as **tuvm#62**.
+GPIO **signal conditioning** (debounce for doorbells, a counting API for pulse trains) is
+deliberately NOT here — it belongs at the pin, before this seam: **tuvm#60**.
 
 **Queue high-water + push side CLOSED 2026-07-14 (tuvm#24):** ring-occupancy
 high-water (`q_high_water` in `tuvm/src/space.c`, monotonic max of `q_count`
