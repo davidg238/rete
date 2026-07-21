@@ -1121,6 +1121,34 @@ class Kernel usingPlatform: platform = () (
 
     public p50At: slot = ( ^ self decadeAt: slot percentile: 50 )
     public p95At: slot = ( ^ self decadeAt: slot percentile: 95 )
+
+    (* One record PER SLOT, published onto sys/latency. Deliberately NOT an
+       extension of #Metrics: porta docs/PROTOCOL-NSL-RECORDS.md 4.4 forbids a
+       12th field there and names tuvm#61 as the reason, because bucket counts are
+       many fields at once. The consequence worth preserving is that adding a JOB
+       adds a RECORD, not a field — so this schema never grows.
+
+       Field names are deliberately SHORT: 4.4 observes that symbol field names
+       dominate the encoded size, which is how #Metrics reached ~185-230 B on
+       eleven fields with names like largestFreeBlock. *)
+    public recordAt: slot = (
+      | s pairs |
+      s:: self statsAt: slot.
+      pairs:: OrderedCollection new.
+      pairs add: #span    -> (self nameAt: slot).
+      pairs add: #n       -> (s basicAt: 1).
+      pairs add: #fails   -> (self failuresAt: slot).
+      pairs add: #minUs   -> (s basicAt: 2).
+      pairs add: #maxUs   -> (s basicAt: 3).
+      pairs add: #sumUsLo -> (s basicAt: 4).
+      pairs add: #sumUsHi -> (s basicAt: 5).
+      pairs add: #b0      -> (s basicAt: 6).
+      pairs add: #b1      -> (s basicAt: 7).
+      pairs add: #b2      -> (s basicAt: 8).
+      pairs add: #b3      -> (s basicAt: 9).
+      pairs add: #b4      -> (s basicAt: 10).
+      pairs add: #b5      -> (s basicAt: 11).
+      ^ Record tag: #LatencySpan fields: (Map fromPairs: pairs) )
   ) : (
   )
 
