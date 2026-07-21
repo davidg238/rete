@@ -41,9 +41,16 @@ void span_reset_all(void);                  /* zero every slot — tests only */
 
    They exist because these two intervals are stamped inside the core functions that
    own the work, so a node cannot ship an uninstrumented HTTP path by forgetting a
-   bracket — which means C must know the index without asking nsl. Pinned at the TOP
-   of the range so nsl's sequential register: allocation, which hands out 0 upward,
-   never collides. */
-#define SPAN_SLOT_HTTP_QUEUE (OEVM_SPAN_SLOTS - 2)   /* accept -> take           */
-#define SPAN_SLOT_EGRESS     (OEVM_SPAN_SLOTS - 1)   /* the writes in http_chunk */
+   bracket — which means C must know the index without asking nsl.
+
+   Pinned at the BOTTOM of the range, not the top. The top looks tidier — it keeps
+   nsl's sequential allocation out of the way — but it makes the two indices depend
+   on OEVM_SPAN_SLOTS, which is a BUILD KNOB (the design contemplates dropping it to
+   6 if DRAM runs short). nsl would then have to mirror the ceiling to name these
+   slots, and a -DOEVM_SPAN_SLOTS=6 build would silently point those names at the
+   wrong data. The reserved COUNT is stable where the ceiling is not, so kernel.nsl
+   seeds its name table with these two and register: hands out 2 upward by
+   construction — no duplicated constant anywhere. */
+#define SPAN_SLOT_HTTP_QUEUE 0   /* accept -> take           */
+#define SPAN_SLOT_EGRESS     1   /* the writes in http_chunk */
 #endif /* OEVM_SPAN_H */
