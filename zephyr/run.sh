@@ -178,6 +178,13 @@ if [ "$BOARD_ID" = esp32 ] && [ -f "$WIFI_CONF" ]; then
   EXTRA_CONF_FILES+=(prj_esp32_wifi.local.conf)
   echo "[wifi]  overlay found -> $WIFI_CONF"
 fi
+# C6 Thread dataset overlay (#59): gitignored real porta dataset, auto-layered like
+# the WiFi overlay so its 5 fields override prj_esp32c6_thread.conf's placeholders.
+THREAD_LOCAL="$ZDIR/prj_esp32c6_thread.local.conf"
+if [ "$BOARD_ID" = esp32c6 ] && [ -f "$THREAD_LOCAL" ]; then
+  EXTRA_CONF_FILES+=(prj_esp32c6_thread.local.conf)
+  echo "[thread] dataset overlay found -> $THREAD_LOCAL"
+fi
 # --conf-extra (Task 6): a generic caller-supplied EXTRA_CONF_FILE, e.g. the
 # C6's prj_esp32c6_thread.conf radio layer. Forwarded the same way as the WiFi
 # overlay above, and stacked with it (semicolon-joined) if both are present —
