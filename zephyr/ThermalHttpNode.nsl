@@ -258,14 +258,18 @@ class ThermalHttpNode packageUsing: manifest = () (
   statsPageOn: platform toId: id spans: spans = (
     | m |
     m:: platform metrics.
+    (* The latency table carries eleven columns and wants room; the prose does not.
+       So the PAGE is wide and the running text is constrained per-element instead
+       — a 34rem body made the histogram column wrap to two lines on a large
+       monitor while three quarters of the screen sat empty. *)
     platform httpChunkId: id data:
       '<html><head><title>tuvm vm stats</title></head>',
-      '<body style=''font-family:system-ui,sans-serif;max-width:34rem;margin:3rem auto;padding:0 1rem;line-height:1.5''>',
+      '<body style=''font-family:system-ui,sans-serif;max-width:78rem;margin:3rem auto;padding:0 1rem;line-height:1.5''>',
       '<h1>tuvm &mdash; vm stats</h1>',
-      '<p>A live snapshot from <code>platform metrics</code> (the #Metrics Record), read on request &mdash; no periodic publisher (G9).</p>',
-      '<table style=''border-collapse:collapse;width:100%''>',
+      '<p style=''max-width:44rem''>A live snapshot from <code>platform metrics</code> (the #Metrics Record), read on request &mdash; no periodic publisher (G9).</p>',
+      '<table style=''border-collapse:collapse;width:100%;max-width:44rem''>',
       '<thead><tr><th style=''text-align:left;border-bottom:2px solid #ccc;padding:.4rem''>metric</th>',
-      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>value</th></tr></thead><tbody>'.
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>value</th></tr></thead><tbody>'.
     self statRow: 'heap size (bytes)'        value: (m at: #heapSize         ifAbsent: [ -1 ]) toId: id on: platform.
     self statRow: 'live bytes'               value: (m at: #liveBytes        ifAbsent: [ -1 ]) toId: id on: platform.
     self statRow: 'heap high-water'          value: (m at: #heapHighWater    ifAbsent: [ -1 ]) toId: id on: platform.
@@ -300,21 +304,21 @@ class ThermalHttpNode packageUsing: manifest = () (
     | i |
     platform httpChunkId: id data:
       '<h2>job latency</h2>',
-      '<p>Percentiles are the bucket DECADE a sample falls in, never a number ',
+      '<p style=''max-width:44rem''>Percentiles are the bucket DECADE a sample falls in, never a number ',
       'interpolated inside one &mdash; a log-scaled bucket''s mass is not uniform, ',
       'so an interpolated figure would carry precision the data does not contain. ',
       'max is exact. No p95 is reported below n&nbsp;&ge;&nbsp;200.</p>',
       '<table style=''border-collapse:collapse;width:100%''>',
       '<thead><tr><th style=''text-align:left;border-bottom:2px solid #ccc;padding:.4rem''>span</th>',
-      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>n</th>',
-      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>fails</th>',
-      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>p50</th>',
-      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>p95</th>',
-      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>min &micro;s</th>',
-      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>max &micro;s</th>',
-      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>sumLo</th>',
-      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>sumHi</th>',
-      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>histogram</th></tr></thead><tbody>'.
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>n</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>fails</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>p50</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>p95</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>min &micro;s</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>max &micro;s</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>sumLo</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>sumHi</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>histogram</th></tr></thead><tbody>'.
     i:: 0. [ i < spans slotCount ] whileTrue: [
       self latencyRow: i toId: id on: platform spans: spans.
       i:: i + 1 ].
@@ -340,27 +344,27 @@ class ThermalHttpNode packageUsing: manifest = () (
     platform httpChunkId: id data:
       '<tr><td style=''padding:.35rem;border-bottom:1px solid #eee''>' ,
       (spans nameAt: slot) printString ,
-      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>' ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
       (s basicAt: 1) printString ,
-      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>' ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
       (spans failuresAt: slot) printString ,
-      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right''>' ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;white-space:nowrap''>' ,
       (self decadeCell: (spans p50At: slot)) ,
-      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right''>' ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;white-space:nowrap''>' ,
       (self decadeCell: (spans p95At: slot)) ,
-      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>' ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
       (s basicAt: 2) printString ,
-      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>' ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
       (s basicAt: 3) printString ,
       (* The SUM ships raw, as the two halves the C side keeps it in. The node does
          not compute a mean: reassembling hi*1000000000 + lo here would overflow a
          31-bit SMI the moment hi reaches 2, which is the very reason span.c splits
          it. Accumulate on the device, divide off it. *)
-      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>' ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
       (s basicAt: 4) printString ,
-      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>' ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
       (s basicAt: 5) printString ,
-      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>' ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
       b , '</td></tr>'.
     ^ self
   )
@@ -368,7 +372,7 @@ class ThermalHttpNode packageUsing: manifest = () (
   statRow: label value: v toId: id on: platform = (
     platform httpChunkId: id data:
       '<tr><td style=''padding:.35rem;border-bottom:1px solid #eee''>' , label ,
-      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>' ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
       v printString , '</td></tr>'.
     ^ self
   )
