@@ -27,12 +27,14 @@ target_sources(app PRIVATE
   src/main.c
   ${TUVM_SRC}/src/vm.c ${TUVM_SRC}/src/gc.c ${TUVM_SRC}/src/dispatch.c
   ${TUVM_SRC}/src/platform.c ${TUVM_SRC}/src/space.c ${TUVM_SRC}/src/handles.c
+  ${TUVM_SRC}/src/span.c
   ${TUVM_SRC}/src/serial.c ${TUVM_SRC}/src/udp.c ${TUVM_SRC}/src/mirror.c
   ${TUVM_SRC}/src/backend/zephyr/platform_zephyr.c
   ${TUVM_SRC}/src/backend/zephyr/serial_zephyr.c
   ${TUVM_SRC}/src/backend/zephyr/udp_zephyr.c
   ${TUVM_SRC}/src/backend/zephyr/pulse_zephyr.c
   ${TUVM_SRC}/src/backend/zephyr/timer_zephyr.c
+  ${TUVM_SRC}/src/backend/zephyr/span_zephyr.c
   ${TUVM_SRC}/src/backend/zephyr/sensor_zephyr.c
   ${TUVM_SRC}/src/http.c
   ${TUVM_SRC}/src/http_core.c
