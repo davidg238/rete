@@ -12,8 +12,11 @@ class ThreadPingNode usingPlatform: platform net: net = () (
   gwAddr = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )   (* gw ML-EID *)
   echoPort = ( ^ 7777 )
   pings = ( ^ 5 )
+  waitBudget = ( ^ 3000 )    (* ms to wait for each reflection — a REAL clock, as in
+                                ThreadTimerNode/SoakNode. An iteration-count bound races
+                                the mesh RTT and fails intermittently (#59). *)
   public main: platform2 args: args = (
-    | space sock bridge got i tries rec |
+    | space sock bridge got i deadline rec |
     space:: platform space.
     sock:: net udpBindPort: 54360.
     sock == nil ifTrue: [ ^ self fail: 'bind' ].
@@ -26,10 +29,11 @@ class ThreadPingNode usingPlatform: platform net: net = () (
       rec:: platform Record tag: #reading with: #seq -> i with: #milliC -> 235.
       got:: nil.
       (space channel: 'echo/out') out: '' value: rec.
-      tries:: 0.
-      [ (got == nil) and: [ tries < 2000 ] ] whileTrue: [
-        bridge pumpInbound. space drain. tries:: tries + 1 ].
-      (got = rec) ifFalse: [ ^ self fail: 'no echo seq' ].
+      deadline:: platform monotonicMillis + waitBudget.
+      [ (got == nil) and: [ platform monotonicMillis < deadline ] ] whileTrue: [
+        bridge pumpInbound. space drain ].
+      got == nil ifTrue: [ ^ self fail: 'echo timeout' ].
+      (got = rec) ifFalse: [ ^ self fail: 'echo mismatch' ].
       i:: i + 1 ].
     'UDP OK' println.
     ^ 0

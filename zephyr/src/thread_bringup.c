@@ -13,6 +13,14 @@
    incomplete header probe), so they were collapsed. Re-split behind the
    thread_bringup.h seam only if NCS and upstream OT APIs actually diverge.
 
+   ESP32-C6 CAVEAT (#59, 2026-07-20): this code is correct on stock Zephyr 4.2.0 but
+   the C6 will still never attach on it — 4.2.0's drivers/ieee802154/ieee802154_esp32.c
+   maps the radio stop() onto esp_ieee802154_disable() (a full teardown) where
+   OpenThread only expects sleep. Upstream fixed it in 4.3.x (d66a39f7b5b "ieee802154:
+   esp32: Fix start/stop API", plus a9eb90a20e9 for the 802.15.4 MAC universe). Our
+   ~/zephyr-esp32 workspace carries those as branch tuvm-c6-radio-fix; on a plain
+   v4.2.0 checkout the symptom is role stuck DETACHED with a provably correct dataset.
+
    Shape: enable -> admin-up the net_if -> poll role -> print, BLOCKING until the
    MTD attaches so the VM starts on a joined mesh. */
 #include <zephyr/kernel.h>
@@ -20,7 +28,6 @@
 #include <zephyr/net/openthread.h>
 #include <openthread.h>
 #include <openthread/thread.h>
-#include <openthread/link.h>
 #include "thread_bringup.h"
 
 void tuvm_thread_bringup(void) {
@@ -37,17 +44,10 @@ void tuvm_thread_bringup(void) {
     printk("thread: run=%d net_if_up=%d, joining...\n", rr, ur);
 
     otInstance *inst = openthread_get_default_instance();
-    if (inst) {                                      /* DIAG(#59): confirm the seed applied */
-        openthread_mutex_lock();
-        printk("thread: DIAG name=%s ch=%u panid=0x%04x\n",
-               otThreadGetNetworkName(inst), otLinkGetChannel(inst), otLinkGetPanId(inst));
-        openthread_mutex_unlock();
-    }
     for (int i = 0; i < 300 && inst; i++) {          /* wait up to ~30s for attach */
         openthread_mutex_lock();
         otDeviceRole role = otThreadGetDeviceRole(inst);
         openthread_mutex_unlock();
-        if (i % 10 == 0) printk("thread: DIAG role=%d t=%us\n", role, i / 10);  /* DIAG(#59) */
         if (role == OT_DEVICE_ROLE_CHILD || role == OT_DEVICE_ROLE_ROUTER) {
             printk("thread: attached role=%d\n", role);
             return;
