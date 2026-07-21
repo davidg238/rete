@@ -1,5 +1,8 @@
 (*
 expect:
+true
+true
+true
 false
 true
 true
@@ -19,8 +22,18 @@ class SpanSlotsTest packageUsing: manifest = () (
 public main: platform args: args = (
   | spans acquire compute s |
   spans::   platform Spans new.
+
+  (* Slots 0 and 1 are RESERVED for the two C-owned spans http_core.c stamps
+     itself. They are seeded here rather than derived from OEVM_SPAN_SLOTS so that
+     a -DOEVM_SPAN_SLOTS=6 build cannot silently point these names at the wrong
+     data — and so that the FIRST name an app registers lands at 2, never on top of
+     the HTTP queue. *)
+  ((spans nameAt: spans httpQueueSlot) = #httpQueue) printString println.  (* true *)
+  ((spans nameAt: spans egressSlot) = #egress) printString println.        (* true *)
+
   acquire:: spans register: #acquire.
   compute:: spans register: #vmCompute.
+  (acquire = 2) printString println.                         (* true — clear of both *)
 
   (* Registration hands out DISTINCT slots and remembers the names. *)
   (acquire = compute) printString println.                   (* false *)
