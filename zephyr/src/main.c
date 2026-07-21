@@ -24,43 +24,7 @@
 #include <stdio.h>
 #include "oevm.h"
 #include "oimg.h"
-
-#ifdef CONFIG_NET_L2_OPENTHREAD
-#include <zephyr/net/net_if.h>
-#include <zephyr/net/openthread.h>   /* openthread_get_default_context, struct openthread_context */
-#include <openthread.h>              /* Zephyr OT module: init/run/get_default_instance/mutex */
-#include <openthread/thread.h>       /* otThreadGetDeviceRole, OT_DEVICE_ROLE_* */
-
-/* Rung-7 (Layer 3): bring the OpenThread mesh up for the Zephyr SOCKET layer.
-   With CONFIG_OPENTHREAD_MANUAL_START=y the boot SYS_INIT runs openthread_init()
-   but NOT openthread_run(); and with NET_CONFIG off nothing calls net_if_up() on
-   the OT iface. Root cause found this rung: openthread_run() enables IPv6+Thread
-   (the node attaches, so ot-ctl ping + child table work) but NEVER admin-ups the
-   Zephyr net_if — so zsock_sendto returns ENETDOWN (errno 115) even though OT is
-   attached. openthread_run() + net_if_up() together fix it. Mirrors ns-zephyr's
-   app-owned bring-up (app/src/main_b.c), adapted to the NCS v3.2.4 API. */
-static void thread_bringup(void) {
-    (void)openthread_init();                        /* idempotent: L2 inited at boot */
-    int rr = openthread_run();                      /* enable IPv6 + Thread -> attach */
-    struct openthread_context *ctx = openthread_get_default_context();
-    struct net_if *iface = ctx ? ctx->iface : net_if_get_default();
-    int ur = iface ? net_if_up(iface) : -1;         /* THE fix: admin-up the OT net_if */
-    printk("thread: run=%d net_if_up=%d, joining...\n", rr, ur);
-
-    otInstance *inst = openthread_get_default_instance();
-    for (int i = 0; i < 300 && inst; i++) {         /* wait up to ~30s for attach */
-        openthread_mutex_lock();
-        otDeviceRole role = otThreadGetDeviceRole(inst);
-        openthread_mutex_unlock();
-        if (role == OT_DEVICE_ROLE_CHILD || role == OT_DEVICE_ROLE_ROUTER) {
-            printk("thread: attached role=%d\n", role);
-            return;
-        }
-        k_msleep(100);
-    }
-    printk("thread: attach timed out, continuing\n");
-}
-#endif /* CONFIG_NET_L2_OPENTHREAD */
+#include "thread_bringup.h"
 
 #ifdef CONFIG_WIFI
 #include <zephyr/net/net_if.h>
@@ -242,7 +206,7 @@ int main(void) {
     wire_pulse_gpio();   /* Task 8 (DK): arm BUTTON1 as the pulse edge; no-op on native_sim */
 
 #ifdef CONFIG_NET_L2_OPENTHREAD
-    thread_bringup();    /* Rung-7: enable OT + admin-up the net_if before the VM binds sockets */
+    tuvm_thread_bringup();   /* board-selected seam (backend/{ncs,zephyr}) */
 #endif
 #ifdef CONFIG_WIFI
     wifi_bringup();      /* #46: associate to WiFi + DHCPv4 before the VM binds the http listener */

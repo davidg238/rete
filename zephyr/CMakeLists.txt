@@ -40,6 +40,12 @@ target_sources(app PRIVATE
 )
 target_include_directories(app PRIVATE ${TUVM_SRC}/src)
 
+# Board-selected OpenThread bring-up TU. Gated on OPENTHREAD so the WROOM
+# (WiFi, upstream 4.2) compiles NEITHER impl — the NCS symbols are absent there.
+if (CONFIG_NET_L2_OPENTHREAD)
+  target_sources(app PRIVATE src/backend/ncs/thread_bringup_ncs.c)
+endif()
+
 # ---- Model A/B knob -------------------------------------------------------
 # A (default): the per-program baked image, src/solidified_image.c.
 # B: a generic VM + a .oimg blob .incbin'd into flash .rodata.
