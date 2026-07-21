@@ -33,6 +33,20 @@ This is the first end-to-end boot-test of **cell (d)** from #57.
 
 ## 1. Bring-up seam — a board-selected TU (not a second main)
 
+> **Amended 2026-07-20 (during implementation, David's call): collapsed to ONE shared
+> `src/thread_bringup.c`, not a board split.** The premise below — that the C6 cannot
+> compile the nRF bring-up because `openthread_init`/`openthread_get_default_instance` are
+> absent upstream — was **wrong**: those symbols are absent only from
+> `<zephyr/net/openthread.h>` (what the design-time probe checked); they are present in the
+> OpenThread *module* header `<openthread.h>` (Zephyr 4.2 refactored OT into
+> `modules/openthread/`), which is globally on the include path. Both the NCS (nRF) and
+> upstream (C6) toolchains expose the **same no-arg API**, so the two board TUs were
+> byte-identical duplication. Shipped: one `src/thread_bringup.c` behind the
+> `thread_bringup.h` seam, `CMakeLists.txt` compiling it under `if (CONFIG_NET_L2_OPENTHREAD)`
+> (still gated so the WROOM compiles it away). The seam is retained; re-split only if the
+> NCS and upstream OT APIs actually diverge in a future bump. The original reasoning below is
+> kept as the historical "why".
+
 **Decision (2026-07-20, supersedes #59's "separate `esp32c6_main`" line and the predecessor
 design's §B "shared-`main.c` `#if`" lean).** The divergence between the nRF and C6 OpenThread
 paths is isolated to **one function**, `thread_bringup()`. The entire rest of `zephyr/src/main.c`

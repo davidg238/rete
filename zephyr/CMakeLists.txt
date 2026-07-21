@@ -40,6 +40,14 @@ target_sources(app PRIVATE
 )
 target_include_directories(app PRIVATE ${TUVM_SRC}/src)
 
+# OpenThread bring-up TU (tuvm_thread_bringup). Gated on OPENTHREAD so the WROOM
+# (WiFi, no Thread) compiles it away. ONE shared impl: nRF (NCS) and C6 (upstream
+# 4.2) expose the same no-arg OT API, so the earlier board split was redundant
+# (#59, 2026-07-20). Re-split behind thread_bringup.h only if the APIs diverge.
+if (CONFIG_NET_L2_OPENTHREAD)
+  target_sources(app PRIVATE src/thread_bringup.c)
+endif()
+
 # ---- Model A/B knob -------------------------------------------------------
 # A (default): the per-program baked image, src/solidified_image.c.
 # B: a generic VM + a .oimg blob .incbin'd into flash .rodata.

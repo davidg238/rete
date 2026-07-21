@@ -186,6 +186,15 @@ if [ -n "$CONF_EXTRA" ]; then
   EXTRA_CONF_FILES+=("$CONF_EXTRA")
   echo "[extra] conf overlay -> $CONF_EXTRA"
 fi
+# C6 Thread dataset overlay (#59): gitignored real porta dataset, auto-layered like
+# the WiFi overlay. Appended LAST — Zephyr applies EXTRA_CONF_FILE fragments in order
+# and LATER wins, so this must follow --conf-extra prj_esp32c6_thread.conf for its 5
+# real dataset fields to override that file's placeholders (proven by .config check).
+THREAD_LOCAL="$ZDIR/prj_esp32c6_thread.local.conf"
+if [ "$BOARD_ID" = esp32c6 ] && [ -f "$THREAD_LOCAL" ]; then
+  EXTRA_CONF_FILES+=(prj_esp32c6_thread.local.conf)
+  echo "[thread] dataset overlay found -> $THREAD_LOCAL"
+fi
 EXTRA_CONF_ARG=()
 if [ ${#EXTRA_CONF_FILES[@]} -gt 0 ]; then
   IFS=';'
