@@ -1,0 +1,439 @@
+[bake]  richards.nsl  (model B)
+OIMG written to /home/david/workspace/tuvm/zephyr/richards.oimg (127712 bytes, entry=RichardsBench)
+[blob]  127712 bytes -> .incbin
+[build] -b esp32c6_devkitc/esp32c6/hpcore -d build-esp32c6-B -p always
+-- west build: making build dir /home/david/workspace/tuvm/zephyr/build-esp32c6-B pristine
+-- west build: generating a build system
+Loading Zephyr default modules (Zephyr base).
+-- Application: /home/david/workspace/tuvm/zephyr
+-- CMake version: 3.28.3
+-- Found Python3: /home/david/zephyr-esp32/.venv/bin/python3 (found suitable version "3.12.3", minimum required is "3.10") found components: Interpreter 
+-- Cache files will be written to: /home/david/.cache/zephyr
+-- Zephyr version: 4.2.0 (/home/david/zephyr-esp32/zephyr)
+-- Found west (found suitable version "1.5.0", minimum required is "0.14.0")
+-- Board: esp32c6_devkitc, qualifiers: esp32c6/hpcore
+-- Found host-tools: zephyr 0.17.4 (/home/david/zephyr-sdk-0.17.4)
+-- Found toolchain: zephyr 0.17.4 (/home/david/zephyr-sdk-0.17.4)
+-- Found Dtc: /home/david/zephyr-sdk-0.17.4/sysroots/x86_64-pokysdk-linux/usr/bin/dtc (found suitable version "1.7.0", minimum required is "1.4.6") 
+-- Found BOARD.dts: /home/david/zephyr-esp32/zephyr/boards/espressif/esp32c6_devkitc/esp32c6_devkitc_hpcore.dts
+-- Found devicetree overlay: /home/david/workspace/tuvm/zephyr/boards/esp32c6_devkitc_esp32c6_hpcore.overlay
+-- Generated zephyr.dts: /home/david/workspace/tuvm/zephyr/build-esp32c6-B/zephyr/zephyr.dts
+-- Generated pickled edt: /home/david/workspace/tuvm/zephyr/build-esp32c6-B/zephyr/edt.pickle
+-- Generated devicetree_generated.h: /home/david/workspace/tuvm/zephyr/build-esp32c6-B/zephyr/include/generated/zephyr/devicetree_generated.h
+Parsing /home/david/workspace/tuvm/zephyr/Kconfig
+Loaded configuration '/home/david/zephyr-esp32/zephyr/boards/espressif/esp32c6_devkitc/esp32c6_devkitc_hpcore_defconfig'
+Merged configuration '/home/david/workspace/tuvm/zephyr/prj_esp32c6.conf'
+Configuration saved to '/home/david/workspace/tuvm/zephyr/build-esp32c6-B/zephyr/.config'
+Kconfig header saved to '/home/david/workspace/tuvm/zephyr/build-esp32c6-B/zephyr/include/generated/zephyr/autoconf.h'
+-- Found GnuLd: /home/david/zephyr-sdk-0.17.4/riscv64-zephyr-elf/riscv64-zephyr-elf/bin/ld.bfd (found version "2.38") 
+-- The C compiler identification is GNU 12.2.0
+-- The CXX compiler identification is GNU 12.2.0
+-- The ASM compiler identification is GNU
+-- Found assembler: /home/david/zephyr-sdk-0.17.4/riscv64-zephyr-elf/bin/riscv64-zephyr-elf-gcc
+-- Espressif HAL path: /home/david/zephyr-esp32/modules/hal/espressif
+-- Use the esptool.py: /home/david/zephyr-esp32/modules/hal/espressif/tools/esptool_py/esptool.py
+-- Image partition address: 0x0
+-- Using ccache: /usr/bin/ccache
+-- Found gen_kobject_list: /home/david/zephyr-esp32/zephyr/scripts/build/gen_kobject_list.py
+-- tuvm: TUVM_MODEL=B
+-- Configuring done (3.4s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/david/workspace/tuvm/zephyr/build-esp32c6-B
+-- west build: building application
+[1/284] Preparing syscall dependency handling
+
+[2/284] Generating include/generated/zephyr/version.h
+-- Zephyr version: 4.2.0 (/home/david/zephyr-esp32/zephyr), build: v4.2.0
+[3/284] Generating misc/generated/syscalls_subdirs.trigger
+[4/284] Generating misc/generated/syscalls.json, misc/generated/struct_tags.json
+[5/284] Generating include/generated/device-api-sections.ld, include/generated/device-api-sections.cmake
+[6/284] Generating include/generated/zephyr/syscall_dispatch.c, include/generated/zephyr/syscall_exports_llext.c, syscall_weakdefs_llext.c, include/generated/zephyr/syscall_list.h
+[7/284] Generating include/generated/zephyr/driver-validation.h
+[8/284] Generating include/generated/zephyr/kobj-types-enum.h, include/generated/zephyr/otype-to-str.h, include/generated/zephyr/otype-to-size.h
+[9/284] Building C object zephyr/CMakeFiles/offsets.dir/arch/riscv/core/offsets/offsets.c.obj
+[10/284] Generating include/generated/zephyr/offsets.h
+[11/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/handles.c.obj
+[12/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/serial.c.obj
+[13/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/backend/zephyr/platform_zephyr.c.obj
+[14/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/udp.c.obj
+[15/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/mirror.c.obj
+[16/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/backend/zephyr/serial_zephyr.c.obj
+[17/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/space.c.obj
+[18/284] Building C object CMakeFiles/app.dir/src/main.c.obj
+[19/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/http.c.obj
+[20/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/gc.c.obj
+[21/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/backend/zephyr/pulse_zephyr.c.obj
+[22/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/backend/zephyr/timer_zephyr.c.obj
+[23/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/backend/zephyr/sensor_zephyr.c.obj
+[24/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/hanoi_native.c.obj
+[25/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/kernel_boot.c.obj
+[26/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/http_core.c.obj
+[27/284] Building ASM object CMakeFiles/app.dir/blob.S.obj
+[28/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/backend/zephyr/udp_zephyr.c.obj
+[29/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/platform.c.obj
+/home/david/workspace/tuvm/src/platform.c: In function 'platform_dispatch':
+/home/david/workspace/tuvm/src/platform.c:576:13: warning: this 'for' clause does not guard... [-Wmisleading-indentation]
+  576 |             for(int s=3;s>=0;s--) buf[4-s]=(uint8_t)(arg>>(8*s)); n=5; }
+      |             ^~~
+/home/david/workspace/tuvm/src/platform.c:576:67: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the 'for'
+  576 |             for(int s=3;s>=0;s--) buf[4-s]=(uint8_t)(arg>>(8*s)); n=5; }
+      |                                                                   ^
+/home/david/workspace/tuvm/src/platform.c:578:13: warning: this 'for' clause does not guard... [-Wmisleading-indentation]
+  578 |             for(int s=7;s>=0;s--) buf[8-s]=(uint8_t)(arg>>(8*s)); n=9; }
+      |             ^~~
+/home/david/workspace/tuvm/src/platform.c:578:67: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the 'for'
+  578 |             for(int s=7;s>=0;s--) buf[8-s]=(uint8_t)(arg>>(8*s)); n=9; }
+      |                                                                   ^
+/home/david/workspace/tuvm/src/platform.c:593:13: warning: this 'for' clause does not guard... [-Wmisleading-indentation]
+  593 |             for(int s=3;s>=0;s--) buf[4-s]=(uint8_t)(uu>>(8*s)); n=5; }
+      |             ^~~
+/home/david/workspace/tuvm/src/platform.c:593:66: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the 'for'
+  593 |             for(int s=3;s>=0;s--) buf[4-s]=(uint8_t)(uu>>(8*s)); n=5; }
+      |                                                                  ^
+/home/david/workspace/tuvm/src/platform.c:595:13: warning: this 'for' clause does not guard... [-Wmisleading-indentation]
+  595 |             for(int s=7;s>=0;s--) buf[8-s]=(uint8_t)(uu>>(8*s)); n=9; }
+      |             ^~~
+/home/david/workspace/tuvm/src/platform.c:595:66: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the 'for'
+  595 |             for(int s=7;s>=0;s--) buf[8-s]=(uint8_t)(uu>>(8*s)); n=9; }
+      |                                                                  ^
+[30/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/oimg_loader.c.obj
+[31/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/backend/zephyr/http_zephyr.c.obj
+[32/284] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/sem.c.obj
+[33/284] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/thread_entry.c.obj
+[34/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/vm.c.obj
+/home/david/workspace/tuvm/src/vm.c:364:12: warning: 'bp_hit' defined but not used [-Wunused-function]
+  364 | static int bp_hit(oop method, long off) {
+      |            ^~~~~~
+[35/284] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/dec.c.obj
+[36/284] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/printk.c.obj
+[37/284] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf_packaged.c.obj
+[38/284] Building C object CMakeFiles/app.dir/home/david/workspace/tuvm/src/dispatch.c.obj
+[39/284] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/clock.c.obj
+[40/284] Building C object zephyr/CMakeFiles/zephyr.dir/lib/heap/heap.c.obj
+[41/284] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/fdtable.c.obj
+[42/284] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/assert.c.obj
+[43/284] Building ASM object zephyr/CMakeFiles/zephyr.dir/soc/espressif/esp32c6/vectors.S.obj
+[44/284] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/last_section_id.c.obj
+[45/284] Linking C static library app/libapp.a
+[46/284] Building ASM object zephyr/CMakeFiles/zephyr.dir/soc/espressif/esp32c6/soc_irq.S.obj
+[47/284] Building C object zephyr/CMakeFiles/zephyr.dir/misc/generated/configs.c.obj
+[48/284] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/hex.c.obj
+[49/284] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/timeutil.c.obj
+[50/284] Building C object zephyr/CMakeFiles/zephyr.dir/soc/espressif/esp32c6/soc.c.obj
+[51/284] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/rb.c.obj
+[52/284] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/ring_buffer.c.obj
+[53/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/efuse/esp32c6/esp_efuse_table.c.obj
+[54/284] Building C object zephyr/CMakeFiles/zephyr.dir/lib/os/cbprintf_complete.c.obj
+[55/284] Building C object zephyr/CMakeFiles/zephyr.dir/soc/espressif/esp32c6/hw_init.c.obj
+[56/284] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/tracing/tracing_none.c.obj
+[57/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_mm/port/esp32c6/ext_mem_layout.c.obj
+[58/284] Building C object zephyr/CMakeFiles/zephyr.dir/lib/utils/bitarray.c.obj
+[59/284] Building C object zephyr/CMakeFiles/zephyr.dir/subsys/net/lib/utils/addr_utils.c.obj
+[60/284] Building C object zephyr/CMakeFiles/zephyr.dir/soc/espressif/common/loader.c.obj
+[61/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/efuse/esp32c6/esp_efuse_utility.c.obj
+[62/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/efuse/src/esp_efuse_utility.c.obj
+[63/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/hal/spi_flash_encrypt_hal_iram.c.obj
+[64/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/efuse/src/efuse_controller/keys/with_key_purposes/esp_efuse_api_key.c.obj
+[65/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/efuse/src/esp_efuse_api.c.obj
+[66/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/hal/cache_hal.c.obj
+[67/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/esp_gpio_reserve.c.obj
+[68/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/bootloader_support/src/flash_encrypt.c.obj
+[69/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/hal/mmu_hal.c.obj
+[70/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_mm/esp_mmu_map.c.obj
+[71/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/spi_flash/spi_flash_chip_boya.c.obj
+[72/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/hal/spi_flash_hal_gpspi.c.obj
+[73/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/spi_flash/flash_ops.c.obj
+[74/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/hal/spi_flash_hal_iram.c.obj
+[75/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/spi_flash/spi_flash_chip_gd.c.obj
+[76/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/hal/spi_flash_hal.c.obj
+[77/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/spi_flash/spi_flash_chip_drivers.c.obj
+[78/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/spi_flash/flash_mmap.c.obj
+[79/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/spi_flash/spi_flash_chip_issi.c.obj
+[80/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/spi_flash/memspi_host_driver.c.obj
+[81/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/spi_flash/spi_flash_chip_th.c.obj
+[82/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/spi_flash/spi_flash_chip_mxic.c.obj
+[83/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/spi_flash/esp_flash_spi_init.c.obj
+[84/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/spi_flash/spi_flash_os_func_noos.c.obj
+[85/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/hal/mpu_hal.c.obj
+[86/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/spi_flash/spi_flash_chip_winbond.c.obj
+[87/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/soc/esp32c6/gpio_periph.c.obj
+[88/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/spi_flash/spi_flash_chip_mxic_opi.c.obj
+[89/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/soc/esp32c6/temperature_sensor_periph.c.obj
+[90/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/bootloader_support/src/bootloader_clock_init.c.obj
+[91/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/soc/esp32c6/rtc_io_periph.c.obj
+[92/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/zephyr/common/console_init.c.obj
+[93/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/spi_flash/spi_flash_chip_generic.c.obj
+[94/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/spi_flash/spi_flash_os_func_app.c.obj
+[95/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/bootloader_support/bootloader_flash/src/flash_qio_mode.c.obj
+[96/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/zephyr/common/soc_init.c.obj
+[97/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/clk_ctrl_os.c.obj
+[98/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/mac_addr.c.obj
+[99/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/hw_random.c.obj
+[100/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/spi_flash/esp_flash_api.c.obj
+[101/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/cpu.c.obj
+[102/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/adc_share_hw_ctrl.c.obj
+[103/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/esp_clk.c.obj
+[104/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/regi2c_ctrl.c.obj
+[105/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/periph_ctrl.c.obj
+[106/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/port/esp_clk_tree_common.c.obj
+[107/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/sar_periph_ctrl_common.c.obj
+[108/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/port/esp32c6/esp_clk_tree.c.obj
+[109/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/modem_clock.c.obj
+[110/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/port/esp32c6/esp_cpu_intr.c.obj
+[111/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/port/esp32c6/systimer.c.obj
+[112/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/port/esp32c6/pmu_param.c.obj
+[113/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/port/esp32c6/sar_periph_ctrl.c.obj
+[114/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/port/regdma_link.c.obj
+[115/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/sleep_retention.c.obj
+[116/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/port/esp32c6/rtc_time.c.obj
+[117/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_rom/patches/esp_rom_crc.c.obj
+[118/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/port/esp32c6/pmu_init.c.obj
+[119/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_rom/patches/esp_rom_sys.c.obj
+[120/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/port/esp32c6/ocode_init.c.obj
+[121/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/port/esp32c6/rtc_clk_init.c.obj
+[122/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/port/esp32c6/rtc_clk.c.obj
+[123/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_rom/patches/esp_rom_efuse.c.obj
+[124/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/port/esp32c6/pmu_sleep.c.obj
+[125/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_rom/patches/esp_rom_systimer.c.obj
+[126/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_rom/patches/esp_rom_gpio.c.obj
+[127/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_rom/patches/esp_rom_spiflash.c.obj
+[128/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/port/esp32c6/cpu_region_protect.c.obj
+[129/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_rom/patches/esp_rom_uart.c.obj
+[130/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_rom/patches/esp_rom_wdt.c.obj
+[131/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_rom/patches/esp_rom_hp_regi2c_esp32c6.c.obj
+[132/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_system/port/soc/esp32c6/reset_reason.c.obj
+[133/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_timer/src/ets_timer_legacy.c.obj
+[134/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_timer/src/system_time.c.obj
+[135/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_system/port/soc/esp32c6/clk.c.obj
+[136/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_timer/src/esp_timer_etm.c.obj
+[137/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_system/esp_err.c.obj
+[138/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/hal/efuse_hal.c.obj
+[139/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_hw_support/sleep_modes.c.obj
+[140/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/hal/systimer_hal.c.obj
+[141/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_timer/src/esp_timer_impl_common.c.obj
+[142/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_timer/src/esp_timer_impl_systimer.c.obj
+[143/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_system/port/soc/esp32c6/system_internal.c.obj
+[144/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/hal/esp32c6/efuse_hal.c.obj
+[145/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/riscv/interrupt.c.obj
+[146/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/hal/wdt_hal_iram.c.obj
+[147/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/hal/esp32c6/modem_clock_hal.c.obj
+[148/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/riscv/instruction_decode.c.obj
+[149/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/log/log.c.obj
+[150/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/hal/lp_timer_hal.c.obj
+[151/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/esp_timer/src/esp_timer.c.obj
+[152/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/log/log_noos.c.obj
+[153/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/hal/esp32c6/clk_tree_hal.c.obj
+[154/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/zephyr/esp32c6/src/soc_random.c.obj
+[155/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/zephyr/esp32c6/src/stubs.c.obj
+[156/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/soc/esp32c6/uart_periph.c.obj
+[157/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/zephyr/common/flash_init.c.obj
+[158/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/zephyr/port/heap/heap_caps_zephyr.c.obj
+[159/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/hal/uart_hal_iram.c.obj
+[160/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/zephyr/esp32c6/src/soc_init.c.obj
+[161/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/zephyr/port/host_flash/cache_utils.c.obj
+[162/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/zephyr/common/esp_restart.c.obj
+[163/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/zephyr/port/bootloader/bootloader_flash.c.obj
+[164/284] Generating linker_zephyr_pre0.cmd
+[165/284] Building C object zephyr/CMakeFiles/zephyr_pre0.dir/misc/empty_file.c.obj
+[166/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/zephyr/esp32c6/src/soc_flash_init.c.obj
+[167/284] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/dynamic_isr.c.obj
+[168/284] Building C object zephyr/arch/common/CMakeFiles/arch__common.dir/sw_isr_common.c.obj
+[169/284] Building C object zephyr/arch/common/CMakeFiles/isr_tables.dir/isr_tables.c.obj
+[170/284] Linking C static library zephyr/arch/common/libisr_tables.a
+[171/284] Building C object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/cpu_idle.c.obj
+[172/284] Building C object zephyr/CMakeFiles/zephyr.dir/home/david/zephyr-esp32/modules/hal/espressif/components/hal/uart_hal.c.obj
+[173/284] Linking C static library zephyr/arch/common/libarch__common.a
+[174/284] Building ASM object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/reset.S.obj
+[175/284] Building C object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/reboot.c.obj
+[176/284] Building ASM object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/switch.S.obj
+[177/284] Building C object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/irq_manage.c.obj
+[178/284] Building C object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/fatal.c.obj
+[179/284] Building C object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/prep_c.c.obj
+[180/284] Building ASM object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/isr.S.obj
+[181/284] Building C object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/thread.c.obj
+[182/284] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/assert.c.obj
+[183/284] Linking C static library zephyr/libzephyr.a
+[184/284] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/cbprintf.c.obj
+[185/284] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/errno_wrap.c.obj
+[186/284] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/chk_fail.c.obj
+[187/284] Building C object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/tls.c.obj
+[188/284] Building C object zephyr/arch/arch/riscv/core/CMakeFiles/arch__riscv__core.dir/stacktrace.c.obj
+[189/284] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/locks.c.obj
+[190/284] Building C object zephyr/lib/libc/common/CMakeFiles/lib__libc__common.dir/source/stdlib/abort.c.obj
+[191/284] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/exit.c.obj
+[192/284] Building C object zephyr/lib/libc/common/CMakeFiles/lib__libc__common.dir/source/time/time.c.obj
+[193/284] Linking C static library zephyr/arch/arch/riscv/core/libarch__riscv__core.a
+[194/284] Building C object zephyr/lib/libc/picolibc/CMakeFiles/lib__libc__picolibc.dir/stdio.c.obj
+[195/284] Linking C static library zephyr/lib/libc/picolibc/liblib__libc__picolibc.a
+[196/284] Building C object zephyr/lib/libc/common/CMakeFiles/lib__libc__common.dir/source/stdlib/malloc.c.obj
+[197/284] Linking C static library zephyr/lib/libc/common/liblib__libc__common.a
+[198/284] Building C object zephyr/subsys/net/CMakeFiles/subsys__net.dir/lib/sockets/sockets_misc.c.obj
+[199/284] Building C object zephyr/lib/os/zvfs/CMakeFiles/lib__os__zvfs.dir/zvfs_select.c.obj
+[200/284] Building C object zephyr/subsys/net/CMakeFiles/subsys__net.dir/lib/sockets/getnameinfo.c.obj
+[201/284] Building C object zephyr/subsys/net/CMakeFiles/subsys__net.dir/lib/sockets/getaddrinfo.c.obj
+[202/284] Building C object zephyr/lib/net_buf/CMakeFiles/lib__net_buf.dir/buf.c.obj
+[203/284] Building C object zephyr/subsys/random/CMakeFiles/subsys__random.dir/random_entropy_device.c.obj
+[204/284] Building C object zephyr/lib/os/zvfs/CMakeFiles/lib__os__zvfs.dir/zvfs_poll.c.obj
+[205/284] Building C object zephyr/lib/net_buf/CMakeFiles/lib__net_buf.dir/buf_simple.c.obj
+[206/284] Linking C static library zephyr/subsys/random/libsubsys__random.a
+[207/284] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/net_timeout.c.obj
+[208/284] Linking C static library zephyr/lib/os/zvfs/liblib__os__zvfs.a
+[209/284] Linking C static library zephyr/lib/net_buf/liblib__net_buf.a
+[210/284] Building C object zephyr/subsys/net/CMakeFiles/subsys__net.dir/lib/sockets/sockets.c.obj
+[211/284] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/net_core.c.obj
+[212/284] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/net_tc.c.obj
+[213/284] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/nbr.c.obj
+[214/284] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/icmpv6.c.obj
+[215/284] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/utils.c.obj
+[216/284] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/icmp.c.obj
+[217/284] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/connection.c.obj
+[218/284] Building C object zephyr/subsys/net/CMakeFiles/subsys__net.dir/lib/sockets/sockets_inet.c.obj
+[219/284] Linking C static library zephyr/subsys/net/libsubsys__net.a
+[220/284] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/net_pkt.c.obj
+[221/284] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/udp.c.obj
+[222/284] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/ipv6_mld.c.obj
+[223/284] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/ipv6.c.obj
+[224/284] Building C object zephyr/drivers/console/CMakeFiles/drivers__console.dir/uart_console.c.obj
+[225/284] Linking C static library zephyr/drivers/console/libdrivers__console.a
+[226/284] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/route.c.obj
+[227/284] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/net_context.c.obj
+[228/284] Building C object zephyr/drivers/clock_control/CMakeFiles/drivers__clock_control.dir/clock_control_esp32.c.obj
+[229/284] Building C object zephyr/drivers/pinctrl/CMakeFiles/drivers__pinctrl.dir/common.c.obj
+[230/284] Building C object zephyr/drivers/interrupt_controller/CMakeFiles/drivers__interrupt_controller.dir/intc_esp32.c.obj
+[231/284] Linking C static library zephyr/drivers/clock_control/libdrivers__clock_control.a
+[232/284] Linking C static library zephyr/drivers/interrupt_controller/libdrivers__interrupt_controller.a
+[233/284] Building C object zephyr/drivers/entropy/CMakeFiles/drivers__entropy.dir/entropy_esp32.c.obj
+[234/284] Linking C static library zephyr/drivers/entropy/libdrivers__entropy.a
+[235/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/main_weak.c.obj
+[236/284] Building C object zephyr/drivers/pinctrl/CMakeFiles/drivers__pinctrl.dir/pinctrl_esp32.c.obj
+[237/284] Building C object zephyr/drivers/timer/CMakeFiles/drivers__timer.dir/sys_clock_init.c.obj
+[238/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/banner.c.obj
+[239/284] Building C object zephyr/drivers/serial/CMakeFiles/drivers__serial.dir/uart_esp32.c.obj
+[240/284] Linking C static library zephyr/drivers/pinctrl/libdrivers__pinctrl.a
+[241/284] Building C object zephyr/drivers/gpio/CMakeFiles/drivers__gpio.dir/gpio_esp32.c.obj
+[242/284] Building C object zephyr/drivers/timer/CMakeFiles/drivers__timer.dir/esp32_sys_timer.c.obj
+[243/284] Linking C static library zephyr/drivers/serial/libdrivers__serial.a
+[244/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/busy_wait.c.obj
+[245/284] Linking C static library zephyr/drivers/timer/libdrivers__timer.a
+[246/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/device.c.obj
+[247/284] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/ipv6_nbr.c.obj
+[248/284] Linking C static library zephyr/drivers/gpio/libdrivers__gpio.a
+[249/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/errno.c.obj
+[250/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/version.c.obj
+[251/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/fatal.c.obj
+[252/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/kheap.c.obj
+[253/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mem_slab.c.obj
+[254/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/float.c.obj
+[255/284] Building C object zephyr/subsys/net/ip/CMakeFiles/subsys__net__ip.dir/net_if.c.obj
+[256/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/init.c.obj
+[257/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/idle.c.obj
+[258/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mailbox.c.obj
+[259/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/msg_q.c.obj
+[260/284] Linking C static library zephyr/subsys/net/ip/libsubsys__net__ip.a
+[261/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/queue.c.obj
+[262/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mutex.c.obj
+[263/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/system_work_q.c.obj
+[264/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/sem.c.obj
+[265/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/condvar.c.obj
+[266/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/stack.c.obj
+[267/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/thread.c.obj
+[268/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timeslicing.c.obj
+[269/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/mempool.c.obj
+[270/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timer.c.obj
+[271/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/atomic_c.c.obj
+[272/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/timeout.c.obj
+[273/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/dynamic_disabled.c.obj
+[274/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/pipe.c.obj
+[275/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/work.c.obj
+[276/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/poll.c.obj
+[277/284] Building C object zephyr/kernel/CMakeFiles/kernel.dir/sched.c.obj
+[278/284] Linking C static library zephyr/kernel/libkernel.a
+[279/284] Linking C executable zephyr/zephyr_pre0.elf
+[280/284] Generating linker.cmd
+[281/284] Generating isr_tables.c, isr_tables_vt.ld, isr_tables_swi.ld
+[282/284] Building C object zephyr/CMakeFiles/zephyr_final.dir/misc/empty_file.c.obj
+[283/284] Building C object zephyr/CMakeFiles/zephyr_final.dir/isr_tables.c.obj
+[284/284] Linking C executable zephyr/zephyr.elf
+Memory region         Used Size  Region Size  %age Used
+           FLASH:      335572 B    8388352 B      4.00%
+     sram0_0_seg:      243200 B     437512 B     55.59%
+     irom0_0_seg:      101038 B         8 MB      1.20%
+     drom0_0_seg:      138964 B         8 MB      1.66%
+      lp_ram_seg:          0 GB        16 KB      0.00%
+        IDT_LIST:          0 GB         8 KB      0.00%
+Generating files from /home/david/workspace/tuvm/zephyr/build-esp32c6-B/zephyr/zephyr.elf for board: esp32c6_devkitc
+esptool.py v4.8.1
+Creating esp32c6 image...
+Image has only RAM segments visible. ROM segments are hidden and SHA256 digest is not appended.
+Merged 16 ELF sections
+Successfully created esp32c6 image.
+[flash] esptool esp32c6 @ 0x0 -> /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_40:4C:CA:45:47:A4-if00
+esptool.py v4.12.0
+Serial port /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_40:4C:CA:45:47:A4-if00
+Connecting...
+Chip is ESP32-C6 (QFN40) (revision v0.0)
+Features: Wi-Fi 6, BT 5 (LE), IEEE802.15.4, Single Core + LP Core, 160MHz, Unknown Embedded Flash
+Crystal is 40MHz
+USB mode: USB-Serial/JTAG
+MAC: 40:4c:ca:ff:fe:45:47:a4
+BASE MAC: 40:4c:ca:45:47:a4
+MAC_EXT: ff:fe
+Uploading stub...
+Running stub...
+Stub running...
+Changing baud rate to 921600
+Changed.
+Configuring flash size...
+Flash will be erased from 0x00000000 to 0x00058fff...
+Compressed 363184 bytes to 142636...
+Writing at 0x00000000... (11 %)
+Writing at 0x00005d0f... (22 %)
+Writing at 0x00013b78... (33 %)
+Writing at 0x00021b76... (44 %)
+Writing at 0x0002daa7... (55 %)
+Writing at 0x000430fb... (66 %)
+Writing at 0x000492c8... (77 %)
+Writing at 0x0004f0e5... (88 %)
+Writing at 0x00054e8a... (100 %)
+Wrote 363184 bytes (142636 compressed) at 0x00000000 in 1.6 seconds (effective 1801.3 kbit/s)...
+Hash of data verified.
+
+Leaving...
+Hard resetting via RTS pin...
+[watch] 90s
+ESP-ROM:esp32c6-20220919
+Build:Sep 19 2022
+rst:0x1 (POWERON),boot:0xc (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:2
+load:0x40800000,len:0x9c3c
+load:0x40809c50,len:0x1ea8
+SHA-256 comparison failed:
+Calculated: 4b984aa5b3903b6b79183d43308a73375b077b4d18c58d0ba6db874b26b9257b
+Expected: 00000000e0440000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x40801b88
+I (50) soc_init: ESP Simple boot
+I (50) soc_init: compile time Jul 20 2026 17:22:26
+I (50) soc_init: chip revision: v0.0
+I (51) flash_init: SPI Speed      : 80MHz
+I (53) flash_init: SPI Mode       : DIO
+I (56) flash_init: SPI Flash Size : 8MB
+I (60) boot: DRAM: lma 0x00000020 vma 0x40800000 len 0x9c3c   (39996)
+I (66) boot: DRAM: lma 0x00009c64 vma 0x40809c50 len 0x1ea8   (7848)
+I (72) boot: IRAM: lma 0x0000bb18 vma 0x00000000 len 0x44e0   (17632)
+I (78) boot: IMAP: lma 0x00010000 vma 0x42800000 len 0x21ed4  (138964)
+I (85) boot: IRAM: lma 0x00031edc vma 0x00000000 len 0xe11c   (57628)
+I (91) boot: IMAP: lma 0x00040000 vma 0x42000000 len 0x18ab0  (101040)
+I (97) boot: Image with 6 segments
+I (100) boot: IROM segment: paddr=00040000h, vaddr=42000000h, size=18AAEh (101038) map
+I (108) boot: DROM segment: paddr=00010000h, vaddr=42800000h, size=21EE0h (138976) map
+I (127) boot: libc heap size 260 kB.
+I (127) spi_flash: detected chip: gd
+I (127) spi_flash: flash io: dio
+*** Booting Zephyr OS build v4.2.0 ***
+richards: 12021
+richards: 12169
+richards: 12221
+verified: true
+done

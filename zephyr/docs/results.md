@@ -31,6 +31,7 @@ not here. This file is measurements + the evidence behind them.
 | E7 | `nsl-tests/00_perf/richards.nsl` (3 runs, **Model B**, baseline AND branch) | 96 KB | 3 timings + `verified: true` | PASS (2026-07-17) | 168816 B / 192 KB (85.86%) |
 | E8 | richards + blockcost on `perf/iram-interp` knobs (IRAM / NODBG / both) | 96 KB | same, production config | PASS (2026-07-17) | 168816 B dram; IRAM 16.6→20.1% |
 | E9 | `nsl-tests/00_perf/deltablue.nsl` (n=50, 3 runs, **Model B**) | **112 KB** | 3 timings + `verified: true` | PASS (2026-07-17) | 185712 B / 192 KB (94.46%) |
+| E10 | STIC + Richards + DeltaBlue on the **ESP32-C6** (RISC-V, **Model B**) | 128 KB | faster than WROOM on all | PASS (2026-07-20) | 243200 B / 437512 B sram (55.59%) — C6 |
 
 † E1's green run predates the Model A/B knob and its build was never re-run under
 plain `prj_esp32.conf` — the only surviving Model A elf carries the `coredump.conf`
@@ -560,6 +561,80 @@ output format. All four verified on host (host toit + CPython). The stic
 README's STIC table gained a caveated tuvm/nsl column (E4 numbers) and a new
 Richards/DeltaBlue table with the nsl device figures; Toit/CircuitPython
 device columns await runs on that toolchain (marked tbr).
+
+---
+
+## E10 — first ESP32-C6 numbers: STIC + Richards + DeltaBlue vs the WROOM-32
+
+**The first benchmarks off any board other than the WROOM-32.** Everything above (E1–E9) is
+the WROOM-32 (Xtensa, 240 MHz). This section is the **ESP32-C6** — RISC-V `rv32imac` @ 160 MHz,
+`esp32c6_devkitc/esp32c6/hpcore` — made the primary target on 2026-07-20 (#57). Run 2026-07-20,
+Model B (`.oimg`), **128 KB heap (the C6's new `run.sh` default)**, single pass each, all
+self-verifying (STIC prints `done`; Richards/DeltaBlue check canonical counts). Raw logs:
+`esp32-debug-artifacts/tuvm-esp32c6-{STIC,richards,deltablue50}-128k-run1.log`.
+
+### STIC — three columns
+
+Toit/WROOM-32 is the published reference (`~/workspaceToit/stic/README.md`; ESP-IDF, 240 MHz
+Xtensa, mean-of-3). nsl/WROOM-32 is **E4** above (96 KB heap). nsl/C6 is this run (128 KB heap).
+**Seconds; smaller is better.** Last column is the nsl WROOM→C6 speedup.
+
+| Test | Toit / WROOM-32 | nsl / WROOM-32 | nsl / C6 | C6 ÷ WROOM (nsl) |
+| --- | ---: | ---: | ---: | :---: |
+| alloc | 16.0 | 24.1 | 23.0 | 1.05× |
+| array write | 19.4 | 138.9 | 101.9 | 1.36× |
+| dictionary write | 5.7 | 43.3 | 28.9 | 1.50× |
+| float math | 41.1 | 35.1 | 34.9 | 1.01× |
+| integer math | 9.4 | 15.3 | 10.0 | 1.53× |
+| collection iterate | 12.7 | 532.6 | 235.8 | 2.26× |
+| collection write | 9.5 | 97.0 | 55.6 | 1.74× |
+| string compare | 1.5 | 5.2 | 4.0 | 1.30× |
+| hanoi @ 8 | 0.0000 | 0.004 | 0.003 | 1.33× |
+
+### Program-shaped — Richards and DeltaBlue
+
+Means of 3 runs, milliseconds. nsl/WROOM from **E7** (Richards, 96 KB) and **E9** (DeltaBlue
+n=50, 112 KB). **No Toit ESP32-device column exists for either** (E7/E9: the ports exist but
+await runs on that toolchain — `tbr`), so these are nsl-only, WROOM vs C6.
+
+| Benchmark | nsl / WROOM-32 | nsl / C6 | C6 ÷ WROOM |
+| --- | ---: | ---: | :---: |
+| Richards (3 runs) | 17,628 ms | **12,137 ms** | 1.45× |
+| DeltaBlue (n=50, 3 runs) | 1,161 ms | **899 ms** | 1.29× |
+
+C6 raw runs: Richards `12021 / 12169 / 12221`; DeltaBlue `894 / 901 / 903` — both verified,
+<1% within-run spread. DeltaBlue completed all three runs with room at 128 KB; the WROOM needed
+112 KB to finish three (E9 — 96 KB OOMs on the third from free-list fragmentation), and the C6's
+128 KB default clears that with margin.
+
+### Read it honestly — this is default-vs-default, not pure silicon
+
+- **The C6 is faster on every row despite 0.67× the clock** (160 vs 240 MHz). Per-clock the gap
+  is larger: collectionIterate is 2.26× wall on a 0.67× clock, i.e. ~3.4× per-MHz. Likely cause
+  is the C6's unified 512 KB SRAM (no XIP-from-flash penalty on the hot interpreter); IRAM-hot
+  pinning — the WROOM's Xtensa-only mitigation for exactly that penalty — has no C6 equivalent
+  (`run.sh` unsets `OEVM_IRAM_HOT` on the C6), so the C6 wins *without* it.
+- **`floatMath` is the tell (1.01×, flat).** Boxed-`double` soft-float is clock-bound library
+  code with little memory traffic, so the C6's memory advantage has nothing to bite on and its
+  lower clock cancels out. The one compute-/clock-bound row showing ~no C6 gain while every
+  memory-bound row does is internally consistent: the C6 win is memory/dispatch, not raw core.
+- **Still the collection/block rows that lose to Toit.** collectionIterate 235.8 vs Toit's 12.7
+  is **18.6×** — down from the WROOM's 41.9×, but the same tuvm#37 story (26.6 µs/block
+  activation; a *parameter* block can't inline). The C6 narrows the synthetic-collection gap; it
+  does not close it.
+
+### What this is NOT
+
+- **A matched comparison.** Each board ran its *own default heap* — WROOM 96 KB (STIC/Richards)
+  / 112 KB (DeltaBlue), C6 128 KB. A larger arena means less-frequent GC, which flatters the
+  allocation-heavy rows (alloc, both collection rows) independent of the chip, so the per-row
+  ratios conflate **chip + heap size + IRAM-availability**. For a pure-silicon delta, re-run the
+  C6 at a matched 96/112 KB — filed as the follow-up under #41.
+- **Repeated.** One pass per benchmark (Richards/DeltaBlue are 3 back-to-back runs in one boot;
+  STIC is a single pass). Toit's column is mean-of-3; the nsl columns are not.
+- **Same-RTOS / same-ISA.** tuvm on Zephyr vs Toit on ESP-IDF, now RISC-V vs Xtensa on top of
+  that. Orientation only — the honest cross-VM number still needs Toit (and CircuitPython) *on
+  the C6*.
 
 ---
 
