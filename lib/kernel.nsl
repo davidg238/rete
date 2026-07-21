@@ -1042,11 +1042,27 @@ class Kernel usingPlatform: platform = () (
        `ThermalView new` is the precedent (a plain `new`, instance variables
        starting nil), and it avoids depending on `super new` resolving in
        class-side context, which this kernel does nowhere else. *)
+    (* The first two slots are RESERVED for the C-owned spans (src/span.h's
+       SPAN_SLOT_HTTP_QUEUE and SPAN_SLOT_EGRESS), which http_core.c stamps itself
+       so that no node can ship an uninstrumented HTTP path. Seeding their names
+       here is what keeps register: — which hands out the next free index — from
+       ever colliding with them: it starts at 2 by construction, with no ceiling
+       arithmetic and no constant duplicated out of the C header. It is also why
+       they appear in a rendered latency table like any other span: C owns those two
+       indices, nsl still owns every name. *)
     ensureTables = (
       names isNil ifTrue: [
         names:: OrderedCollection new.
-        fails:: OrderedCollection new ].
+        fails:: OrderedCollection new.
+        names add: #httpQueue. fails add: 0.       (* slot 0 — accept -> take   *)
+        names add: #egress.    fails add: 0 ].     (* slot 1 — the chunk writes *)
       ^ self )
+
+    (* Named access to the reserved pair, for a caller that wants to read or
+       annotate one without re-deriving the index. register: answers the same two,
+       being idempotent by name. *)
+    public httpQueueSlot = ( self ensureTables. ^ 0 )
+    public egressSlot    = ( self ensureTables. ^ 1 )
 
     public register: aName = (
       | i n |
