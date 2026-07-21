@@ -15,9 +15,14 @@
    segment is hundreds of microseconds, so 1 ms cannot see it.
 
    THIS IS THE THIRD CLOCK IN THE TREE (tuvm#52). The other two:
-     oevm_millis()           — the in-language `millis` hook (src/vm.c)
-     timer_backend_millis()  — the timer seam's clock (src/timer_backend.h)
-   This is the only one that is 32-bit and therefore wrap-limited.
+     oevm_millis()           — the in-language `millis` hook (src/vm.c). REAL even on
+                               the host; it is NOT the virtual clock, which is the
+                               whole reason #52 exists.
+     timer_backend_millis()  — the timer seam's clock (src/timer_backend.h). Virtual
+                               by default on the host, real on target. 64-bit.
+   This is the only one that is 32-bit and therefore wrap-limited, and the only one
+   whose unit is not a stated time unit at all. timer_backend.h carries the same
+   three-way list, so whichever header you land in first names all three.
 
    ---------------------------------------------------------------------------
    TWO FUNCTIONS, AND THE SUBTRACTION BELONGS TO THE BACKEND. This is not
