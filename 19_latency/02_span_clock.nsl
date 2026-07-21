@@ -1,0 +1,50 @@
+(*
+expect:
+true
+true
+true
+true
+done
+*)
+(* tuvm#61: the begin/end CLOCK path, which 01_span_slots deliberately does not
+   touch (it feeds samples instead). Determinism comes from the VIRTUAL clock:
+   span_posix.c scales timer_backend_millis() to microseconds under the default
+   virtual clock, so advanceMillis: moves the span clock by an exact amount and the
+   resulting bucket is not a race. 5 ms -> 5000 us -> bucket 2 (the 1-10 ms
+   decade). Buckets b0..b5 are stats fields 6..11, so b2 is field 8.
+
+   The last two assertions are the failure modes the design calls out: an end with
+   no begin must record NOTHING (a phantom sample would move the percentiles by a
+   duration nobody measured), and an abandoned span must self-heal on the next
+   begin rather than accumulate. Both-path A==B gate. *)
+class SpanClockTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | spans job s |
+  spans:: platform Spans new.
+  job::   spans register: #job.
+
+  spans begin: job.
+  platform advanceMillis: 5.
+  spans end: job.
+  s:: spans statsAt: job.
+  ((s basicAt: 1) = 1) printString println.       (* one sample            *)
+  ((s basicAt: 8) = 1) printString println.       (* b2, the 1-10 ms decade *)
+
+  (* An end with no begin records nothing. *)
+  spans end: job.
+  s:: spans statsAt: job.
+  ((s basicAt: 1) = 1) printString println.       (* still one sample      *)
+
+  (* An abandoned span self-heals: begin, abandon, begin again, end -> exactly
+     one FURTHER sample, not two and not zero. *)
+  spans begin: job.
+  spans begin: job.
+  platform advanceMillis: 5.
+  spans end: job.
+  s:: spans statsAt: job.
+  ((s basicAt: 1) = 2) printString println.       (* two samples total     *)
+
+  'done' println.
+)
+) : (
+)
