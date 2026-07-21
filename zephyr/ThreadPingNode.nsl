@@ -34,7 +34,7 @@ class ThreadPingNode usingPlatform: platform net: net = () (
     'UDP OK' println.
     ^ 0
   )
-  fail: msg = ( 'FAIL: ' print. msg println. ^ 1 )
+  fail: msg = ( 'FAIL' println. msg println. ^ 1 )
 ) : (
   public packageUsing: manifest = ( ^ self new )
 )

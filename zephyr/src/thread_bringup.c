@@ -20,6 +20,7 @@
 #include <zephyr/net/openthread.h>
 #include <openthread.h>
 #include <openthread/thread.h>
+#include <openthread/link.h>
 #include "thread_bringup.h"
 
 void tuvm_thread_bringup(void) {
@@ -36,10 +37,17 @@ void tuvm_thread_bringup(void) {
     printk("thread: run=%d net_if_up=%d, joining...\n", rr, ur);
 
     otInstance *inst = openthread_get_default_instance();
+    if (inst) {                                      /* DIAG(#59): confirm the seed applied */
+        openthread_mutex_lock();
+        printk("thread: DIAG name=%s ch=%u panid=0x%04x\n",
+               otThreadGetNetworkName(inst), otLinkGetChannel(inst), otLinkGetPanId(inst));
+        openthread_mutex_unlock();
+    }
     for (int i = 0; i < 300 && inst; i++) {          /* wait up to ~30s for attach */
         openthread_mutex_lock();
         otDeviceRole role = otThreadGetDeviceRole(inst);
         openthread_mutex_unlock();
+        if (i % 10 == 0) printk("thread: DIAG role=%d t=%us\n", role, i / 10);  /* DIAG(#59) */
         if (role == OT_DEVICE_ROLE_CHILD || role == OT_DEVICE_ROLE_ROUTER) {
             printk("thread: attached role=%d\n", role);
             return;
