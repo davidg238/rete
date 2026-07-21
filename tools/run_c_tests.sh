@@ -78,7 +78,10 @@ run test_cbor "$ENG_B"
 # header comment — NOT serial.c/udp.c, which need the full VM)
 run test_serial "src/backend/posix/serial_posix.c"
 run test_udp    "src/backend/posix/udp_posix.c"
-run test_http   "src/http_core.c src/backend/posix/http_posix.c"
+# tuvm#61: http_core.c now stamps the two C-owned spans, so span.c + the posix
+# microsecond clock join the link set. The test supplies its own
+# timer_backend_millis stub (same reason as test_span below).
+run test_http   "src/http_core.c src/backend/posix/http_posix.c src/span.c src/backend/posix/span_posix.c"
 # tuvm#61: job-latency span slots (src/span.c + the posix microsecond clock seam).
 # Backend-only link like test_http/test_serial/test_udp above — span.c has no VM
 # dependencies at all, which is the point: any context may bump a slot. The test

@@ -34,4 +34,16 @@ void span_end(int slot);                    /* accumulate now-start; no-op if no
 void span_record(int slot, uint32_t us);    /* feed a sample directly (test seam + C callers) */
 void span_stats(int slot, uint32_t *out);   /* fill SPAN_STATS_FIELDS values; zeroes a bad slot */
 void span_reset_all(void);                  /* zero every slot — tests only */
+
+/* The two C-OWNED slots (#61 design §5) — the one place the nameless rule above is
+   bent, and it is bent by pinning two constants rather than by teaching C a name.
+   Everything else in the range is nsl's to allocate.
+
+   They exist because these two intervals are stamped inside the core functions that
+   own the work, so a node cannot ship an uninstrumented HTTP path by forgetting a
+   bracket — which means C must know the index without asking nsl. Pinned at the TOP
+   of the range so nsl's sequential register: allocation, which hands out 0 upward,
+   never collides. */
+#define SPAN_SLOT_HTTP_QUEUE (OEVM_SPAN_SLOTS - 2)   /* accept -> take           */
+#define SPAN_SLOT_EGRESS     (OEVM_SPAN_SLOTS - 1)   /* the writes in http_chunk */
 #endif /* OEVM_SPAN_H */

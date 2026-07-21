@@ -25,10 +25,12 @@ python3 "$NSL" zephyr/ThermalHttpNode.nsl /tmp/http_server.oimg --format=oimg --
 echo "[3/5] build image VM (http_poll, no accept thread)"
 gcc -Wall -std=c99 -Isrc \
     src/vm.c src/gc.c src/dispatch.c src/platform.c src/space.c src/handles.c \
+    src/span.c \
     "src/backend/$TARGET/platform_$TARGET.c" src/serial.c \
     "src/backend/$TARGET/serial_$TARGET.c" src/udp.c "src/backend/$TARGET/udp_$TARGET.c" \
     src/http.c src/http_core.c "src/backend/$TARGET/http_$TARGET.c" \
     "src/backend/$TARGET/pulse_$TARGET.c" "src/backend/$TARGET/timer_$TARGET.c" \
+    "src/backend/$TARGET/span_$TARGET.c" \
     "src/backend/$TARGET/sensor_$TARGET.c" \
     src/mirror.c \
     src/oimg_loader.c src/kernel_boot.c oevm_image_main.c -o /tmp/oevm_http -lm
