@@ -7,7 +7,7 @@
 # solidified_image.c.
 set -euo pipefail
 
-MODEL=B NODE=TimerNode.nsl DO_FLASH=0 CAPTURE=0 PRISTINE=0 BUILD_DIR="" BOARD_ID=esp32 CONF_EXTRA=""
+MODEL=B NODE=TimerNode.nsl DO_FLASH=0 CAPTURE=0 PRISTINE=0 BUILD_DIR="" BOARD_ID=esp32c6 CONF_EXTRA=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --model)      MODEL="$2"; shift 2 ;;
@@ -103,8 +103,16 @@ case "$BOARD_ID" in
     # patch-esp32-rom-ld.sh rewrites esp32.rom.newlib-funcs.ld, an Xtensa artifact.
     # The C6 has a different ROM export table; the patch is meaningless here.
     ROM_PATCH=0
-    # Provisional. Task 3 replaces this with the measured ceiling.
-    : "${OEVM_HEAP_SIZE:=53248}"
+    # C6 default 131072 (128 KB), chosen 2026-07-20 (#57) once the C6 was made
+    # primary. NOT the measured boot ceiling (319488 — 100% of the sramhp region,
+    # 8 B spare) and not the 262144 the promotion compared against: a default wants
+    # margin, not the edge. 128 KB clears every workload measured to date (deltablue
+    # 112 KB, HttpServerNode ~52.8 KB high-water) AND boots in BOTH radio configs
+    # (with-radio affords 262144, no-radio 319488), so a node that later layers
+    # Thread does not have to re-pick the heap. Real cost is ~135 KB (the GC bitmap
+    # adds OEVM_HEAP_SIZE/32 outside the arena). A caller can still override up
+    # toward the ceiling for a heavier compute node:  OEVM_HEAP_SIZE=262144 ...
+    : "${OEVM_HEAP_SIZE:=131072}"
     : "${BUILD_DIR:=build-esp32c6-$MODEL}"
     # Flash on the NATIVE USB port (303a:1001). Console lives on the UART bridge,
     # which stays enumerated across target resets — see #57.

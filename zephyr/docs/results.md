@@ -1,8 +1,17 @@
-# tuvm on-device results — ESP32
+# tuvm on-device results — ESP32-WROOM-32 (Xtensa)
 
-On-silicon milestones for the ESP32 port. Shape deliberately mirrors
+On-silicon milestones for the ESP32-**WROOM-32** port. Shape deliberately mirrors
 `ns-zephyr/docs/results.md` (the nRF52840 predecessor's ledger) so the two read
 side by side; `E` numbers here, `M`/`R` numbers there.
+
+> **Framing (2026-07-20, #57): every number below is WROOM-32, now the SECONDARY board.**
+> The **ESP32-C6** (RISC-V, `esp32c6_devkitc/esp32c6/hpcore`) was made the *primary*
+> target on 2026-07-20 (its 512 KB unified SRAM dissolves the WROOM's 192 KB DRAM
+> ceiling — `run.sh`'s default board and 131072 heap follow it). **The C6 has no
+> benchmark/STIC column yet** — silicon differs (RISC-V vs Xtensa, 160 MHz vs 240 MHz),
+> so none of the E1–E9 timings or the E4 cross-VM ranks carry over to it. A C6 perf
+> column is pending (it rides #41's controlled cross-VM re-run and the #59 Thread rung);
+> until then, do **not** quote these as "tuvm on the ESP32" without naming the WROOM-32.
 
 Board: **ESP32-D0WDQ6 / WROOM-32 devkit, rev v1.0 @ 240 MHz**, `/dev/ttyUSB0` (CP210x),
 `esp32_devkitc/esp32/procpu`, Zephyr **4.2.0** upstream via the `~/zephyr-esp32`
@@ -130,7 +139,7 @@ M3's nRF52840 build was 216,584 B / 256 KB (**82.6%**) for comparison. The blob 
 **112,832 B** of `.oimg` in DROM — XIP'd from flash, never copied to SRAM. That is the
 point of Model B: **the program costs flash, not RAM.**
 
-## E4 — STIC on ESP32 (Model B): the first cross-VM column
+## E4 — STIC on ESP32-WROOM-32 (Model B): the first cross-VM column
 
 The STIC benchmark (Smalltalk Industry Council, late '90s), ported to nsl as
 `nsl-tests/00_perf/performance.nsl` (`0e0715a`). Design + lineage:
@@ -204,6 +213,11 @@ calls `ensureCapacity` per element, recopying as a fresh collection reaches 10.
   says WROOM-32E (rev v3.0); the attached board is D0WDQ6 **rev v1.0**. Plan is to rerun
   Toit *and* nsl on a definitely-identical board.
 - **Heap-matched.** tuvm ran a 96 KB arena; the other three have their own GC policies.
+- **The primary target now (2026-07-20, #57).** This column is the WROOM-32, made the
+  *secondary* board the day these were framed. The primary is the **ESP32-C6** (RISC-V,
+  160 MHz) — different ISA and clock, so the ranks above do not predict its numbers. The
+  controlled cross-VM re-run (#41) is where the C6 earns its own column; this table stays
+  as the WROOM-32 orientation cut.
 
 ### Port fidelity — the gate passed
 

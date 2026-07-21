@@ -410,10 +410,12 @@ cd ~/workspace/tuvm
 bash zephyr/run.sh --board esp32c6 --model B --node TimerNode.nsl --pristine --flash
 ```
 
-`--board esp32` (default) targets the WROOM-32 (`esp32_devkitc/esp32/procpu`, Xtensa,
-flash offset `0x1000`, ROM-newlib patch applied). `--board esp32c6` targets the C6
-(`esp32c6_devkitc/esp32c6/hpcore`, RISC-V `rv32imac_zicsr` — no FPU, soft-float only —
-flash offset `0x0`; `0x1000` boot-loops the C6 silently, no error). `--pristine` is
+`--board esp32c6` (**default** since 2026-07-20, #57 — the C6 is the primary target)
+targets the C6 (`esp32c6_devkitc/esp32c6/hpcore`, RISC-V `rv32imac_zicsr` — no FPU,
+soft-float only — flash offset `0x0`; `0x1000` boot-loops the C6 silently, no error;
+heap default 131072). `--board esp32` targets the WROOM-32, now the supported *secondary*
+board (`esp32_devkitc/esp32/procpu`, Xtensa, flash offset `0x1000`, ROM-newlib patch
+applied, heap default 53248). `--pristine` is
 required on the first build after adding or changing an overlay — CMake caches overlay
 discovery, so a stale cache silently keeps the old (or no) overlay rather than erroring.
 
