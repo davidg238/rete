@@ -1,0 +1,46 @@
+(*
+expect:
+true
+true
+true
+true
+true
+true
+done
+*)
+(* tuvm#61 design 7: one #LatencySpan record PER SLOT on a sys/latency cell —
+   NOT a 12th #Metrics field. porta docs/PROTOCOL-NSL-RECORDS.md 4.4 forbids
+   appending there and names this issue as the reason: bucket counts are many
+   fields at once. The property worth preserving is that adding a JOB here adds a
+   RECORD, not a field, which is exactly what #Metrics lacks.
+
+   Publishing is the app's act on a user-requested cadence (G9) — this test IS the
+   publisher; no periodic publisher exists. Both-path A==B gate. *)
+class LatencyRecordTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | spans slot r cell got |
+  spans:: platform Spans new.
+  slot::  spans register: #acquire.
+  spans recordSlot: slot us: 1500.
+  spans recordSlot: slot us: 2500.
+  spans noteFailure: slot.
+
+  r:: spans recordAt: slot.
+  (r tag = #LatencySpan) printString println.
+  ((r at: #span  ifAbsent: [ nil ]) = #acquire) printString println.
+  ((r at: #n     ifAbsent: [ -1 ]) = 2) printString println.
+  ((r at: #fails ifAbsent: [ -1 ]) = 1) printString println.
+  ((r at: #b2    ifAbsent: [ -1 ]) = 2) printString println.
+
+  (* Round-trips through the CELL unchanged — a reader peeks by name,
+     non-destructively, without draining a stream someone else is counting
+     (4.4 kind C). *)
+  cell:: platform space channel: 'sys/latency'.
+  cell put: '' value: r.
+  got:: cell peek: '' ifAbsent: [ nil ].
+  (got = r) printString println.
+
+  'done' println.
+)
+) : (
+)
