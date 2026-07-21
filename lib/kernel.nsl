@@ -2083,6 +2083,14 @@ class Kernel usingPlatform: platform = () (
     pairs add: #handlesHighWater -> (s basicAt: 2).
     pairs add: #queueHighWater -> (s basicAt: 3).
     pairs add: #overruns -> (s basicAt: 4).
+    (* tuvm#34: the ISR pulse seam's own counters, widening this record from 9
+       fields to 11. That seam used to answer a full mailbox with k_oops, so there
+       was nothing to publish; now that it SHEDS instead, a silent shed would be
+       strictly worse than the crash it replaced. pulseDrops rising is the alarm —
+       the reactor is not pumping fast enough; pulseCoalesced rising is the
+       mechanism working, a repeating source folding into one pending wakeup. *)
+    pairs add: #pulseDrops -> (s basicAt: 5).
+    pairs add: #pulseCoalesced -> (s basicAt: 6).
     ^ Record tag: #Metrics fields: (Map fromPairs: pairs) )
   (* Milestone E Task 1: crash-Record factory reachable from ANY context. The
      error:/error:tag: raise prims cannot reach the sibling `Record` class from an
