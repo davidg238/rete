@@ -1079,6 +1079,48 @@ class Kernel usingPlatform: platform = () (
     public noteFailure: slot = (
       fails at: slot + 1 put: (fails at: slot + 1) + 1. ^ self )
     public failuresAt: slot = ( ^ fails at: slot + 1 )
+
+    (* --- design 4.1/4.2: percentiles as DECADES, gated on sample count --- *)
+
+    (* A p95 computed from too few samples is noise wearing a precise-looking
+       label: at n = 20 it is simply the 19th value, and one unlucky retransmit
+       relocates it wholesale. 200 is the floor below which nothing is reported. *)
+    public minSamplesForP95 = ( ^ 200 )
+
+    (* A chain rather than a literal array: this grammar has no #( ... ) literal,
+       and a chain also allocates nothing per call. Index is 1-based, matching the
+       stats fields 6..11 that hold b0..b5. *)
+    decadeName: i = (
+      i = 1 ifTrue: [ ^ #lt100us ].
+      i = 2 ifTrue: [ ^ #lt1ms ].
+      i = 3 ifTrue: [ ^ #lt10ms ].
+      i = 4 ifTrue: [ ^ #lt100ms ].
+      i = 5 ifTrue: [ ^ #lt1s ].
+      ^ #ge1s )
+
+    (* Walk the cumulative histogram and answer the decade in which the p-th
+       percentile sample falls. There is deliberately NO interpolation inside the
+       bucket: a bucket spanning 1 ms to 10 ms has its mass bunched at one end, so
+       interpolating would assume a uniformity that is not there and manufacture
+       three digits the data does not contain. The decade still says which segment
+       dominates and how far the tail sits from the median, and maxUs is exact. *)
+    public decadeAt: slot percentile: p = (
+      | s n target seen i |
+      s:: self statsAt: slot.
+      n:: s basicAt: 1.
+      (n < self minSamplesForP95) ifTrue: [ ^ #insufficient ].
+      (* 1-based rank of the percentile sample, rounded UP so p95 of 200 samples
+         is the 190th rather than the 189.99th. *)
+      target:: ((n * p) + 99) // 100.
+      seen:: 0. i:: 1.
+      [ i <= 6 ] whileTrue: [
+        seen:: seen + (s basicAt: 5 + i).     (* buckets are fields 6..11 *)
+        (seen >= target) ifTrue: [ ^ self decadeName: i ].
+        i:: i + 1 ].
+      ^ #ge1s )
+
+    public p50At: slot = ( ^ self decadeAt: slot percentile: 50 )
+    public p95At: slot = ( ^ self decadeAt: slot percentile: 95 )
   ) : (
   )
 

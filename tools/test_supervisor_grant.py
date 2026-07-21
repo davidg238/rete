@@ -23,6 +23,7 @@ OEVM_BACKEND = [f"src/backend/{OEVM_TARGET}/platform_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/udp_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/pulse_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/timer_{OEVM_TARGET}.c",
+                f"src/backend/{OEVM_TARGET}/span_{OEVM_TARGET}.c",   # tuvm#61
                 f"src/backend/{OEVM_TARGET}/http_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/sensor_{OEVM_TARGET}.c"]
 OEVM_EXTRA_CFLAGS = os.environ.get("OEVM_EXTRA_CFLAGS", "").split()
@@ -37,7 +38,7 @@ def build_a():
                     os.path.join(OEVM, "src", "solidified_image.c")],
                    cwd=NSROOT, check=True)
     subprocess.run(["gcc", "-Wall", "-Wextra", "-std=c99", "-Isrc", "-DOEVM_APPLIANCE",
-                    "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c",
+                    "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c", "src/span.c",
                     "src/serial.c",
                     "src/udp.c", "src/http.c", "src/http_core.c", "src/mirror.c", *OEVM_BACKEND,
                     "src/solidified_image.c", "src/oevm_main.c",
@@ -75,7 +76,7 @@ def build_b():
     # Step 3: build the image VM binary (matches _build_pathb_once lines ~78-91).
     subprocess.run(
         ["gcc", "-Wall", "-std=c99", "-Isrc",
-         "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c",
+         "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c", "src/span.c",
          "src/serial.c",
          "src/udp.c", "src/http.c", "src/http_core.c", "src/mirror.c",
          *OEVM_BACKEND,
