@@ -30,6 +30,7 @@ one retransmit relocates it. 500 requests is the default because it clears that 
 with margin — fixed up front, not tuned after seeing a result.
 """
 import argparse
+import collections
 import statistics
 import time
 import urllib.request
@@ -60,27 +61,42 @@ def main():
                     help="request count (default 500, clears the n>=200 p95 gate)")
     ap.add_argument("--timeout", type=float, default=10.0,
                     help="per-request timeout in seconds (default 10)")
+    ap.add_argument("--delay", type=float, default=0.0,
+                    help="seconds to pause between requests (default 0, "
+                         "back-to-back). A paced run measures a different thing "
+                         "from a burst — say which one you ran.")
     args = ap.parse_args()
 
     samples, failures = [], 0
-    for _ in range(args.n):
+    kinds = collections.Counter()
+    for i in range(args.n):
+        if args.delay and i:
+            time.sleep(args.delay)
         t0 = time.perf_counter()
         try:
             with urllib.request.urlopen(args.url, timeout=args.timeout) as r:
                 r.read()
-        except Exception:
+        except Exception as e:
             # A timeout or a reset is a FAILED job, not a slow one. Counting it
             # separately is the same rule the node applies to a nil sensor frame:
             # folding a failure into the distribution as a large sample, or
             # dropping it silently, both misreport — one inflates the tail, the
             # other flatters the percentiles by removing the worst cases.
+            #
+            # The KIND is kept too. A bare count was actively unhelpful the first
+            # time this ran against hardware: 488/500 failed and the number alone
+            # could not distinguish a shedding node from a node that had fallen
+            # off the network (it was the latter — EHOSTUNREACH, every time).
             failures += 1
+            kinds[f"{type(e).__name__}: {e}"] += 1
             continue
         samples.append((time.perf_counter() - t0) * 1e6)
 
     n = len(samples)
     print(f"url        {args.url}")
     print(f"n          {n} ok, {failures} failed")
+    for kind, count in kinds.most_common(5):
+        print(f"  failure  {count:5d}  {kind}")
     if n == 0:
         print("no successful samples — nothing to report")
         return

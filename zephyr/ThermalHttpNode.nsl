@@ -310,7 +310,10 @@ class ThermalHttpNode packageUsing: manifest = () (
       '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>fails</th>',
       '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>p50</th>',
       '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>p95</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>min &micro;s</th>',
       '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>max &micro;s</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>sumLo</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>sumHi</th>',
       '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>histogram</th></tr></thead><tbody>'.
     i:: 0. [ i < spans slotCount ] whileTrue: [
       self latencyRow: i toId: id on: platform spans: spans.
@@ -346,7 +349,17 @@ class ThermalHttpNode packageUsing: manifest = () (
       '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right''>' ,
       (self decadeCell: (spans p95At: slot)) ,
       '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>' ,
+      (s basicAt: 2) printString ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>' ,
       (s basicAt: 3) printString ,
+      (* The SUM ships raw, as the two halves the C side keeps it in. The node does
+         not compute a mean: reassembling hi*1000000000 + lo here would overflow a
+         31-bit SMI the moment hi reaches 2, which is the very reason span.c splits
+         it. Accumulate on the device, divide off it. *)
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>' ,
+      (s basicAt: 4) printString ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>' ,
+      (s basicAt: 5) printString ,
       '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>' ,
       b , '</td></tr>'.
     ^ self
