@@ -19,10 +19,13 @@ python3 "$NSL" zephyr/HanoiAB.nsl /tmp/hanoi_ab.oimg --format=oimg --layout=/tmp
 echo "[3/4] build image VM with -DOEVM_HANOI_NATIVE"
 gcc -Wall -std=c99 -DOEVM_HANOI_NATIVE -Isrc \
     src/vm.c src/gc.c src/dispatch.c src/platform.c src/space.c src/handles.c \
+    src/span.c \
     "src/backend/$TARGET/platform_$TARGET.c" src/serial.c \
     "src/backend/$TARGET/serial_$TARGET.c" src/udp.c "src/backend/$TARGET/udp_$TARGET.c" \
     src/http.c src/http_core.c "src/backend/$TARGET/http_$TARGET.c" \
     "src/backend/$TARGET/pulse_$TARGET.c" "src/backend/$TARGET/timer_$TARGET.c" \
+    "src/backend/$TARGET/span_$TARGET.c" \
+    "src/backend/$TARGET/sensor_$TARGET.c" \
     src/mirror.c src/hanoi_native.c \
     src/oimg_loader.c src/kernel_boot.c oevm_image_main.c -o /tmp/oevm_hanoi -lm
 
