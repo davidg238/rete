@@ -1,0 +1,57 @@
+(*
+expect:
+true
+true
+true
+true
+true
+true
+done
+*)
+(* tuvm#61 design 4.1/4.2: percentiles are the DECADE a sample falls in, never a
+   number interpolated inside a bucket — a log-scaled bucket's mass is not uniform,
+   so an interpolated figure would carry precision the data does not contain, and
+   inventing precision is the easiest thing for a critic to attack. And no p95 at
+   all below n >= 200, because at small n a p95 is just the k-th sample and one
+   retransmit relocates it.
+
+   Histograms here are hand-built with recordSlot:us: so every case is exact.
+   Both-path A==B gate. *)
+class DecadesTest packageUsing: manifest = () (
+  fill: spans slot: slot count: k us: us = (
+    | i |
+    i:: 1. [ i <= k ] whileTrue: [ spans recordSlot: slot us: us. i:: i + 1 ].
+    ^ self )
+
+public main: platform args: args = (
+  | spans a b c |
+  spans:: platform Spans new.
+  a:: spans register: #tooFew.
+  b:: spans register: #oneBucket.
+  c:: spans register: #tailed.
+
+  (* (1) Below the gate, p95 is refused outright. 199 samples is one short. *)
+  self fill: spans slot: a count: 199 us: 500.
+  ((spans p95At: a) = #insufficient) printString println.
+
+  (* (2) At exactly 200 it is reported. This is the boundary, both sides. *)
+  spans recordSlot: a us: 500.
+  ((spans p95At: a) = #lt1ms) printString println.
+
+  (* (3) All mass in ONE bucket: p50 and p95 are the SAME decade. An
+     interpolating reducer would have invented two different numbers here. *)
+  self fill: spans slot: b count: 300 us: 2000.
+  ((spans p50At: b) = #lt10ms) printString println.
+  ((spans p95At: b) = #lt10ms) printString println.
+
+  (* (4) A real tail: 290 fast samples and 10 slow ones (3.3%). p50 sits in the
+     fast decade, and p95 must NOT be dragged to the slow one — 3.3% is under 5%. *)
+  self fill: spans slot: c count: 290 us: 300.
+  self fill: spans slot: c count: 10  us: 2000000.
+  ((spans p50At: c) = #lt1ms) printString println.
+  ((spans p95At: c) = #lt1ms) printString println.
+
+  'done' println.
+)
+) : (
+)
