@@ -8,14 +8,33 @@
    an M6 handle index, resolved to an oop (handle_get) inside pulse_pump, then handed
    to space_post_id in thread context. See the design spec §2. */
 #include <stddef.h>
+#include <stdint.h>
 
 #ifndef OEVM_PULSE_MAILBOX_DEPTH
 #define OEVM_PULSE_MAILBOX_DEPTH 16
 #endif
 
 /* ISR-safe: enqueue (chan_id, handle_idx). Non-allocating, non-blocking.
-   Aborts "pulse mailbox full" when the mailbox is at capacity. */
+   SHEDS the post when the mailbox is at capacity — it never aborts/k_oops. tuvm#34:
+   the space ring behind this seam retired abort() under G2 (tuvm#20) precisely
+   because a load condition must not be a whole-node kill, but this seam kept it, so
+   a burst arriving while the reactor was not pumping still killed the node from ISR
+   context (tuvm#54: a blocking HTTP render starving the pump). Every shed post is
+   counted — see pulse_drops. */
 void pulse_post_isr(int chan_id, int handle_idx);
+
+/* tuvm#34 telemetry: monotonic count of posts shed because the mailbox was at
+   capacity. Read from thread context; surfaced through `platform sysStats` so the
+   never-silent law holds end to end. A non-zero value means the reactor was not
+   pumping fast enough — the condition that used to be a crash. */
+uint32_t pulse_drops(void);
+
+/* tuvm#34 telemetry: monotonic count of posts that merged into a pending post from
+   the SAME source instead of taking a new slot. Unlike pulse_drops this is healthy —
+   a repeating timer needs one pending wakeup, not N — but it is counted so the two
+   are never confused: a rising drops count is the alarm, a rising coalesced count is
+   the mechanism working. */
+uint32_t pulse_coalesced(void);
 
 /* Thread context, at the run-to-completion safe point. Drains every queued item
    (posix: returns 0 at once when empty; zephyr: blocks for the first item, then

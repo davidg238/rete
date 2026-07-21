@@ -230,6 +230,15 @@ class ThermalHttpNode packageUsing: manifest = () (
     self statRow: 'handles high-water'       value: (m at: #handlesHighWater ifAbsent: [ -1 ]) toId: id on: platform.
     self statRow: 'channel queue high-water' value: (m at: #queueHighWater   ifAbsent: [ -1 ]) toId: id on: platform.
     self statRow: 'channel overruns'         value: (m at: #overruns         ifAbsent: [ -1 ]) toId: id on: platform.
+    (* tuvm#34: the ISR pulse seam's own counters. This node is the reason they
+       exist — it is the first to run a periodic timer AND an HTTP listener, so a
+       blocking render starves the pump and ticks pile up in the mailbox (tuvm#54).
+       That used to be k_oops; it is now a counted shed, and an uncounted shed would
+       hide the very condition that used to announce itself as a crash.
+       pulse drops rising = the reactor is behind. pulse coalesced rising = the
+       repeating timer folding into one pending wakeup, which is the fix working. *)
+    self statRow: 'pulse drops (ISR mailbox)' value: (m at: #pulseDrops       ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'pulse coalesced'          value: (m at: #pulseCoalesced   ifAbsent: [ -1 ]) toId: id on: platform.
     platform httpChunkId: id data: '</tbody></table><p><a href=''/''>&larr; home</a></p></body></html>'.
     ^ self
   )

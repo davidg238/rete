@@ -39,26 +39,6 @@ static oop make_string(const char *s, size_t n) {
     return str;
 }
 
-static void (*g_trigger)(void);
-static void do_call_child(void) { g_trigger(); _exit(42); }
-static void expect_abort(const char *label, const char *expected_err) {
-    int pipefd[2]; if (pipe(pipefd)!=0){perror("pipe");_exit(1);}
-    pid_t pid = fork(); if (pid<0){perror("fork");_exit(1);}
-    if (pid==0){close(pipefd[0]);dup2(pipefd[1],STDERR_FILENO);close(pipefd[1]);do_call_child();}
-    close(pipefd[1]); char buf[512]; ssize_t total=0,r;
-    while (total<(ssize_t)sizeof(buf)-1 && (r=read(pipefd[0],buf+total,sizeof(buf)-1-total))>0) total+=r;
-    buf[total]='\0'; close(pipefd[0]); int status=0; waitpid(pid,&status,0);
-    if (!(WIFSIGNALED(status)&&WTERMSIG(status)==SIGABRT)){fprintf(stderr,"FAIL %s: no SIGABRT status=%d [%s]\n",label,status,buf);exit(1);}
-    if (expected_err && strstr(buf,expected_err)==NULL){fprintf(stderr,"FAIL %s: want '%s' got [%s]\n",label,expected_err,buf);exit(1);}
-    printf("test_pulse: %s PASS\n", label);
-}
-
-static void trigger_mailbox_overflow(void) {
-    int c = space_intern("sys/gpio", 8);
-    int h = handle_new(TAG_SMI(7));
-    for (int i = 0; i < 5; i++) pulse_post_isr(c, h);   /* depth 4 -> 5th overflows */
-}
-
 int main(void) {
     heap_init();
     kernel_boot();
@@ -78,9 +58,65 @@ int main(void) {
     assert(space_take("sys/gpio", 8, NULL) == TAG_SMI(22) && "FIFO: second value second");
     assert(space_take("sys/gpio", 8, NULL) == NULL && "queue drained");
 
-    /* overflow aborts with the frozen string */
-    g_trigger = trigger_mailbox_overflow;
-    expect_abort("mailbox_overflow", "pulse mailbox full");
+    /* tuvm#34: a full mailbox must NOT kill the node. G2 already retired abort() at
+       the space ring for exactly this reason; the seam in FRONT of it kept it, so a
+       burst arriving while the reactor was not pumping (a blocking HTTP render —
+       tuvm#54) was still a whole-node kill from ISR context. Posts beyond capacity
+       are SHED and COUNTED instead, and what the mailbox did accept still delivers.
+       Distinct handles so per-source coalescing is not what is being measured. */
+    {
+        int co = space_intern("sys/shed", 8);
+        int hs[OEVM_PULSE_MAILBOX_DEPTH + 3];
+        for (int i = 0; i < OEVM_PULSE_MAILBOX_DEPTH + 3; i++) hs[i] = handle_new(TAG_SMI(100 + i));
+        uint32_t before = pulse_drops();
+        for (int i = 0; i < OEVM_PULSE_MAILBOX_DEPTH + 3; i++) pulse_post_isr(co, hs[i]);
+        assert(pulse_drops() - before == 3 && "3 posts beyond depth shed and counted");
+        assert(pulse_pump() == OEVM_PULSE_MAILBOX_DEPTH && "mailbox still delivered its full depth");
+        printf("test_pulse: mailbox_overflow_sheds_not_aborts PASS\n");
+    }
+
+    /* tuvm#34/#55: one source must not be able to starve the others. A repeating
+       timer only ever needs ONE pending wakeup — queuing N identical (chan,handle)
+       tokens is pure waste, and it is what fills the mailbox (tuvm#54: 2 Hz ticks
+       piling up during a blocking render). Posts from a source that already has one
+       pending COALESCE into it and are counted separately from sheds: coalescing is
+       by design, a shed means the reactor is genuinely behind. Because the mailbox
+       payload is a doorbell token and not a value, merging loses nothing.
+       Depth here is 4, so 20 uncoalesced posts would shed 16 and starve `other`. */
+    {
+        int crep = space_intern("sys/rep", 7);
+        int hrep = handle_new(TAG_SMI(55));
+        int coth = space_intern("sys/other", 9);
+        int hoth = handle_new(TAG_SMI(66));
+        uint32_t cbefore = pulse_coalesced(), dbefore = pulse_drops();
+        for (int i = 0; i < 20; i++) pulse_post_isr(crep, hrep);
+        pulse_post_isr(coth, hoth);
+        assert(pulse_coalesced() - cbefore == 19 && "19 repeats coalesced into one pending");
+        assert(pulse_drops() - dbefore == 0 && "coalescing means nothing had to be shed");
+        assert(pulse_pump() == 2 && "one event per source, both sources delivered");
+        assert(space_take("sys/other", 9, NULL) == TAG_SMI(66)
+               && "the quiet source was NOT starved by the flooding one");
+        printf("test_pulse: repeat_source_coalesces_and_does_not_starve PASS\n");
+    }
+
+    /* tuvm#34 never-silent law: shedding that nobody can observe is how this class of
+       bug hides — the crash at least announced itself. prim 109 `sysStats` carries the
+       two counters so Kernel>>metrics can publish them on the sys/metrics cell beside
+       the existing space-ring overrun count. Asserted against LIVE non-zero values
+       (3 drops, 19 coalesced from the cases above), so this proves real wiring rather
+       than two zeros agreeing. */
+    {
+        oop out = NULL;
+        oop stat_args[1] = { NULL };
+        assert(platform_dispatch(PRIM_pf_sysStats, 0, stat_args, &out) == 1
+               && "sysStats dispatched");
+        struct ObjectInstance *a = (struct ObjectInstance *)out;
+        assert(a->slots[0] == TAG_SMI(6) && "sysStats widened to 6 fields");
+        assert(pulse_drops() > 0 && pulse_coalesced() > 0 && "counters are non-zero here");
+        assert(a->slots[5] == TAG_SMI((intptr_t)pulse_drops()) && "field 5 is pulseDrops");
+        assert(a->slots[6] == TAG_SMI((intptr_t)pulse_coalesced()) && "field 6 is pulseCoalesced");
+        printf("test_pulse: sysStats_surfaces_pulse_counters PASS\n");
+    }
 
     /* drive the real prim path: gpioPin registers, gpioFire simulates the edge,
        pumpEvents drains — the same route the nsl host gate uses. */

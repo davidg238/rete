@@ -754,11 +754,21 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         unsigned hh = handle_high_water();
         uint32_t qh = space_queue_high_water();
         uint32_t ov = space_overruns("", 0);
-        oop r = indexable_new(4);
+        /* tuvm#34: the ISR pulse seam's own shed/coalesce counters, widening this
+           record from 4 fields to 6. The seam used to answer a full mailbox with
+           k_oops, so there was nothing to report — now that it sheds, a silent shed
+           would be strictly worse than the crash it replaced. pulseDrops rising is
+           the alarm (the reactor is behind); pulseCoalesced rising is the mechanism
+           working (a repeating source folding into one pending wakeup). */
+        uint32_t pd = pulse_drops();
+        uint32_t pc = pulse_coalesced();
+        oop r = indexable_new(6);
         ((struct ObjectInstance *)r)->slots[1] = TAG_SMI((intptr_t)hl);
         ((struct ObjectInstance *)r)->slots[2] = TAG_SMI((intptr_t)hh);
         ((struct ObjectInstance *)r)->slots[3] = TAG_SMI((intptr_t)qh);
         ((struct ObjectInstance *)r)->slots[4] = TAG_SMI((intptr_t)ov);
+        ((struct ObjectInstance *)r)->slots[5] = TAG_SMI((intptr_t)pd);
+        ((struct ObjectInstance *)r)->slots[6] = TAG_SMI((intptr_t)pc);
         *out = r; return 1;
     }
     case PRIM_pf_pumpEvents: {
