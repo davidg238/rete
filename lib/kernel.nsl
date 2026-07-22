@@ -1183,6 +1183,103 @@ class Kernel usingPlatform: platform = () (
   ) : (
   )
 
+  (* tuvm#72: a BOUNDED span-capture session, controlled by a cell.
+
+     Why this exists: `egress` records one sample per emitted HTTP chunk for EVERY
+     route (src/http_core.c), and the /stats page emits ~24 chunks against
+     /thermal's 12 — so a cumulative span table partly measures the rendering of
+     the span table. Over a 300-request run that is noise for n and for the decade
+     percentiles, but max is a single-sample statistic and a /stats chunk is a much
+     larger string than an SVG row, so the max may be an artefact of the reporting.
+
+     The invariant is ORDERING: reset LAST on start, snapshot FIRST on stop. In
+     this shape it is structural rather than hand-maintained — a reaction runs
+     during `space drain` while an HTTP response renders synchronously in its own
+     request, so the report is always rendered on a LATER request than the one that
+     closed the window, and a report can never land inside the window it describes.
+
+     Deliberately generic: it knows a Space and a Spans and nothing else — no
+     sensor, no HTTP, no device. That is why it lives here beside Spans rather than
+     in a node file, and it is also what makes it host-testable. *)
+  class SpanCapture = ( | space spans ctl result t0 running | ) (
+    onSpace: sp spans: sn = (
+      space::   sp.
+      spans::   sn.
+      running:: false.
+      ctl::     sp channel: 'diag/spans/ctl'.
+      result::  sp channel: 'diag/spans/result'.
+      ^ self )
+
+    public start = (
+      (* A self-send: a reified block must not name a class. *)
+      ctl whenever: '' do: [ :c | self apply: c ].
+      self normalise.
+      ^ self )
+
+    (* Registering a reaction does NOT replay a retained value, so a ctl left at
+       #running by a crash mid-capture would sit there claiming a capture is
+       running forever and a remote reader would believe it. Peek and correct.
+       No result is published: t0 did not survive the restart, and a window whose
+       start cannot be named is not a measurement. *)
+    normalise = (
+      | c |
+      c:: ctl peek.
+      c isNil ifTrue: [ ^ self ].
+      ((c at: #state ifAbsent: [ #stopped ]) = #running) ifTrue: [
+        ctl put: '' value: (Record tag: #SpanCtl with: #state -> #stopped) ].
+      ^ self )
+
+    apply: c = (
+      | st |
+      st:: c at: #state ifAbsent: [ #stopped ].
+      st = #running ifTrue: [ ^ self beginWindow ].
+      st = #stopped ifTrue: [ ^ self endWindow ].
+      ^ self )
+
+    (* #running while already running RESTARTS the window. Writing the cell is a
+       statement of intent and "start again" is the only sane reading of it. *)
+    beginWindow = (
+      t0:: 0 millis.
+      spans resetAll.
+      running:: true.
+      ^ self )
+
+    (* #stopped while already stopped is ignored — otherwise a stray refresh
+       overwrites a good capture with a zero-length one. *)
+    endWindow = (
+      | ms |
+      running ifFalse: [ ^ self ].
+      ms:: 0 millis - t0.
+      (* `millis` tags into a 31-bit SMI and wraps at ~12.4 days of uptime. A
+         negative elapsed is published as -1 rather than as a plausible wrong
+         number: silent-wrong is the failure mode this class exists to remove. *)
+      ms < 0 ifTrue: [ ms:: -1 ].
+      result put: '' value: (self reportMs: ms).
+      running:: false.
+      ^ self )
+
+    (* Reuses Spans>>recordAt:, which already builds the per-slot #LatencySpan
+       Record with the short field names porta's size law wants. `n` is the TOTAL
+       across slots, deliberately not "cycles": this class must not know which span
+       represents a job. The per-job count is that job's row. *)
+    reportMs: ms = (
+      | i n rows total |
+      rows:: OrderedCollection new.
+      total:: 0.
+      i:: 0. n:: spans slotCount.
+      [ i < n ] whileTrue: [
+        rows add: (spans recordAt: i).
+        total:: total + ((spans statsAt: i) basicAt: 1).
+        i:: i + 1 ].
+      ^ Record tag: #SpanCapture
+          with: #n     -> total
+          with: #ms    -> ms
+          with: #slots -> (List fromCollection: rows) )
+  ) : (
+    public onSpace: aSpace spans: aSpans = (
+      ^ self new onSpace: aSpace spans: aSpans )
+  )
+
   class ReadStream = ( | source position | ) (
     (* Byte-granular cursor over an immutable String. `next`/`peek` answer a byte
        SMI; substring reads build Strings via `platform string:`. Open-ended reads
