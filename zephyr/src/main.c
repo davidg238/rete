@@ -30,8 +30,58 @@
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/wifi_mgmt.h>
 #include <zephyr/net/net_mgmt.h>
+#include <zephyr/net/net_event.h>   /* NET_EVENT_IPV4_ADDR_ADD/DEL (#65) */
 #include <zephyr/net/dhcpv4.h>
 #include <string.h>
+
+/* #65 INSTRUMENTATION — give the node a voice when it leaves the network.
+   Deliberately LOG-ONLY, not a reconnect: the open half of #65 is a node that
+   goes unreachable under load with a silent console and recovers only on a
+   hardware reset, and until we have SEEN which event precedes it, auto-reconnect
+   would paper over the very evidence we are collecting. Measured 2026-07-21: a
+   run of ~800 served requests plus ~1000 refusals printed NOTHING past the boot
+   banner, because nothing here was ever registered — a deauth, a lost lease, or
+   an iface down were all equally invisible. That silence is why #65 reads as
+   "no crash, no log". Cost is two callback structs and the strings.
+   These fire on the net_mgmt event thread, not the reactor. */
+static void wifi_evt(struct net_mgmt_event_callback *cb, uint64_t ev,
+                     struct net_if *iface) {
+    ARG_UNUSED(iface);
+    switch (ev) {
+    case NET_EVENT_WIFI_CONNECT_RESULT: {
+        const struct wifi_status *st = (const struct wifi_status *)cb->info;
+        printk("wifi-evt: CONNECT_RESULT status=%d\n", st ? st->status : -1);
+        break;
+    }
+    case NET_EVENT_WIFI_DISCONNECT_RESULT: {
+        /* THE line #65 is hunting. If it appears at the moment the node stops
+           answering ARP, the fatal mode is an association loss with no reconnect
+           path — and the fix is a reconnect, not anything in the socket layer. */
+        const struct wifi_status *st = (const struct wifi_status *)cb->info;
+        printk("wifi-evt: DISCONNECT_RESULT status=%d  <-- NODE LEFT THE BSS\n",
+               st ? st->status : -1);
+        break;
+    }
+    default:
+        printk("wifi-evt: unhandled event %llx\n", (unsigned long long)ev);
+        break;
+    }
+}
+
+static void ipv4_evt(struct net_mgmt_event_callback *cb, uint64_t ev,
+                     struct net_if *iface) {
+    ARG_UNUSED(cb); ARG_UNUSED(iface);
+    switch (ev) {
+    case NET_EVENT_IPV4_ADDR_ADD: printk("ip-evt: IPv4 address ADDED\n"); break;
+    /* Distinguishes "lost the lease / address" from "lost the association" —
+       the two produce the same symptom from the host side (ARP INCOMPLETE) and
+       need different fixes. */
+    case NET_EVENT_IPV4_ADDR_DEL: printk("ip-evt: IPv4 address REMOVED  <-- NO ADDRESS\n"); break;
+    default: break;
+    }
+}
+
+static struct net_mgmt_event_callback wifi_cb, ipv4_cb;
 
 /* Associate to WPA2 WiFi (2.4 GHz) from the CONFIG_TUVM_WIFI_* symbols, start
    DHCPv4, and wait for an IPv4 lease before the VM binds the listener. Mirrors
@@ -47,6 +97,16 @@ static void wifi_bringup(void) {
 
     struct net_if *iface = net_if_get_first_wifi();
     if (!iface) { printk("wifi: no wifi iface\n"); return; }
+
+    /* #65: registered BEFORE the connect request so the connect result itself is
+       reported, and so nothing between here and the lease can happen unobserved. */
+    net_mgmt_init_event_callback(&wifi_cb, wifi_evt,
+                                 NET_EVENT_WIFI_CONNECT_RESULT |
+                                 NET_EVENT_WIFI_DISCONNECT_RESULT);
+    net_mgmt_add_event_callback(&wifi_cb);
+    net_mgmt_init_event_callback(&ipv4_cb, ipv4_evt,
+                                 NET_EVENT_IPV4_ADDR_ADD | NET_EVENT_IPV4_ADDR_DEL);
+    net_mgmt_add_event_callback(&ipv4_cb);
 
     struct wifi_connect_req_params p;
     memset(&p, 0, sizeof p);
