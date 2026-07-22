@@ -198,7 +198,7 @@ class ThermalHttpNode packageUsing: manifest = () (
      that names a class aborts on outer-scope resolution). /stats and / name classes
      and read platform metrics, so they route through self-send helpers. *)
   public main: platform args: args = (
-    | space timers thermal tview http spans sRender |
+    | space timers thermal tview http spans sRender capture |
     space::   platform space.
     timers::  platform Timers usingSpace: space seam: platform.
     (* tuvm#61: one span table for the whole node, created here and handed down as
@@ -222,6 +222,13 @@ class ThermalHttpNode packageUsing: manifest = () (
        thermal job's four segments read together in the table. *)
     sRender:: spans register: #render.
 
+    (* tuvm#72: the capture session. Constructed here like every other job, so the
+       capabilities arrive as constructor args (the Milestone-C rule). Held in a
+       temp for the lifetime of main: — a collected capture would silently stop
+       reacting and the slider would appear to do nothing. *)
+    capture:: platform SpanCapture onSpace: space spans: spans.
+    capture start.
+
     (* The block captures `spans` and `sRender` from this method's temporaries,
        which is fine — the rule a reified block breaks is naming a CLASS, resolved
        in outer scope. *)
@@ -230,7 +237,33 @@ class ThermalHttpNode packageUsing: manifest = () (
         tview renderFrame: ((space channel: 'dev/thermal0/sample') peek) toId: id on: plat.
         spans end: sRender ].
     http route: '/hello' do: [ :id :plat | plat httpChunkId: id data: 'hello' ].
-    http route: '/stats' do: [ :id :plat | self showStatsTo: id on: plat spans: spans ].
+    (* tuvm#72: the result Record is peeked HERE and passed down. The page methods
+       are pure formatters holding no capabilities (the rule this file already
+       states about ThermalView), and the outer class has no instance variables to
+       reach `space` with anyway. *)
+    http route: '/stats' do: [ :id :plat |
+        self showStatsTo: id on: plat spans: spans
+             capture: ((space channel: 'diag/spans/result') peek) ].
+    (* tuvm#72: the slider. Writing the cell is the whole mechanism — porta will
+       write the same cell, so this page is a CLIENT of the facility and not the
+       facility itself. Sliding off does not hand back the report: the reaction has
+       not run at render time, and that is exactly what keeps the report out of the
+       window it describes. Read it from /stats afterwards. *)
+    http route: '/diag/spans/on' do: [ :id :plat |
+        (space channel: 'diag/spans/ctl')
+            put: '' value: (plat Record tag: #SpanCtl with: #state -> #running).
+        plat httpChunkId: id data:
+          '<html><body style=''font-family:system-ui,sans-serif;margin:3rem''>',
+          '<p><b>capturing.</b> Run the load, then stop.</p>',
+          '<p><a href=''/diag/spans/off''>stop capture</a> &middot; ',
+          '<a href=''/stats''>&larr; stats</a></p></body></html>' ].
+    http route: '/diag/spans/off' do: [ :id :plat |
+        (space channel: 'diag/spans/ctl')
+            put: '' value: (plat Record tag: #SpanCtl with: #state -> #stopped).
+        plat httpChunkId: id data:
+          '<html><body style=''font-family:system-ui,sans-serif;margin:3rem''>',
+          '<p><b>captured.</b> The report is on the stats page.</p>',
+          '<p><a href=''/stats''>&larr; stats</a></p></body></html>' ].
     http route: '/'      do: [ :id :plat | self showIndexTo: id on: plat ].
 
     http listen: 18080.
@@ -238,8 +271,8 @@ class ThermalHttpNode packageUsing: manifest = () (
   )
 
   showIndexTo: id on: platform = ( ^ self indexToId: id on: platform )
-  showStatsTo: id on: platform spans: spans = (
-    ^ self statsPageOn: platform toId: id spans: spans )
+  showStatsTo: id on: platform spans: spans capture: capture = (
+    ^ self statsPageOn: platform toId: id spans: spans capture: capture )
 
   indexToId: id on: platform = (
     platform httpChunkId: id data:
@@ -255,7 +288,7 @@ class ThermalHttpNode packageUsing: manifest = () (
     ^ self
   )
 
-  statsPageOn: platform toId: id spans: spans = (
+  statsPageOn: platform toId: id spans: spans capture: capture = (
     | m |
     m:: platform metrics.
     (* The latency table carries eleven columns and wants room; the prose does not.
@@ -290,6 +323,13 @@ class ThermalHttpNode packageUsing: manifest = () (
     self statRow: 'pulse coalesced'          value: (m at: #pulseCoalesced   ifAbsent: [ -1 ]) toId: id on: platform.
     platform httpChunkId: id data: '</tbody></table>'.
     self latencyTableOn: platform toId: id spans: spans.
+    (* tuvm#72: the clean table. The one above is cumulative since boot and partly
+       measures its own rendering — egress records one sample per emitted chunk,
+       for every route. This one covers a bounded window that excluded the
+       reporting of it. FIGURES QUOTED IN review/ OR IN THE DECK COME FROM THIS
+       TABLE ONLY. *)
+    self captureTableOn: platform toId: id result: capture.
+    self spanLegendOn: platform toId: id.
     platform httpChunkId: id data: '<p><a href=''/''>&larr; home</a></p></body></html>'.
     ^ self
   )
@@ -303,7 +343,10 @@ class ThermalHttpNode packageUsing: manifest = () (
   latencyTableOn: platform toId: id spans: spans = (
     | i |
     platform httpChunkId: id data:
-      '<h2>job latency</h2>',
+      (* tuvm#72: home link ABOVE the header. The legend below the tables is long
+         enough to bury a link at the page foot; the foot one stays too. *)
+      '<p><a href=''/''>&larr; home</a></p>',
+      '<h2>job latency (cumulative since boot)</h2>',
       '<p style=''max-width:44rem''>Percentiles are the bucket DECADE a sample falls in, never a number ',
       'interpolated inside one &mdash; a log-scaled bucket''s mass is not uniform, ',
       'so an interpolated figure would carry precision the data does not contain. ',
@@ -353,31 +396,35 @@ class ThermalHttpNode packageUsing: manifest = () (
     s:: spans statsAt: slot.
     (* b0..b5 are stats fields 6..11 — the decade edges are <100us, <1ms, <10ms,
        <100ms, <1s, >=1s (src/span.c's bucket_of). *)
+    (* tuvm#72: a middle dot between buckets. Joined with a bare space the six
+       counts read as one number soup. *)
     b:: ''. j:: 6. [ j <= 11 ] whileTrue: [
-      b:: b , (s basicAt: j) printString , ' '. j:: j + 1 ].
+      j > 6 ifTrue: [ b:: b , ' &middot; ' ].
+      b:: b , (self groupDigits: (s basicAt: j)).
+      j:: j + 1 ].
     platform httpChunkId: id data:
       '<tr><td style=''padding:.35rem;border-bottom:1px solid #eee''>' ,
       (spans nameAt: slot) printString ,
       '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
-      (s basicAt: 1) printString ,
+      (self groupDigits: (s basicAt: 1)) ,
       '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
-      (spans failuresAt: slot) printString ,
+      (self groupDigits: (spans failuresAt: slot)) ,
       '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;white-space:nowrap''>' ,
       (self decadeCell: (spans p50At: slot)) ,
       '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;white-space:nowrap''>' ,
       (self decadeCell: (spans p95At: slot)) ,
       '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
-      (s basicAt: 2) printString ,
+      (self groupDigits: (s basicAt: 2)) ,
       '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
-      (s basicAt: 3) printString ,
+      (self groupDigits: (s basicAt: 3)) ,
       (* The SUM ships raw, as the two halves the C side keeps it in. The node does
          not compute a mean: reassembling hi*1000000000 + lo here would overflow a
          31-bit SMI the moment hi reaches 2, which is the very reason span.c splits
          it. Accumulate on the device, divide off it. *)
       '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
-      (s basicAt: 4) printString ,
+      (self groupDigits: (s basicAt: 4)) ,
       '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
-      (s basicAt: 5) printString ,
+      (self groupDigits: (s basicAt: 5)) ,
       '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
       b , '</td></tr>'.
     ^ self
@@ -387,8 +434,140 @@ class ThermalHttpNode packageUsing: manifest = () (
     platform httpChunkId: id data:
       '<tr><td style=''padding:.35rem;border-bottom:1px solid #eee''>' , label ,
       '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
-      v printString , '</td></tr>'.
+      (self groupDigits: v) , '</td></tr>'.
     ^ self
   )
+
+  (* tuvm#72: the last capture's result, read off diag/spans/result. The Record is
+     PASSED IN, not fetched: these page methods are pure formatters holding no
+     capabilities (the rule this file states about ThermalView), and the outer
+     class has no instance variables to reach `space` with. *)
+  captureTableOn: platform toId: id result: r = (
+    | rows i row |
+    platform httpChunkId: id data:
+      '<h2>last capture</h2>',
+      '<p style=''max-width:44rem''><a href=''/diag/spans/on''>start capture</a> &middot; ',
+      '<a href=''/diag/spans/off''>stop capture</a> &mdash; start one, run the load, ',
+      'stop it, then reload this page.</p>'.
+    r isNil ifTrue: [
+      platform httpChunkId: id data:
+        '<p style=''max-width:44rem''><i>No capture taken since boot.</i></p>'.
+      ^ self ].
+    platform httpChunkId: id data:
+      '<p style=''max-width:44rem''><b>',
+      (self groupDigits: (r at: #n ifAbsent: [ 0 ])),
+      '</b> samples over <b>',
+      (self groupDigits: (r at: #ms ifAbsent: [ -1 ])),
+      '</b> ms.</p>',
+      '<table style=''border-collapse:collapse;width:100%;max-width:44rem''>',
+      '<thead><tr><th style=''text-align:left;border-bottom:2px solid #ccc;padding:.4rem''>span</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>n</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>fails</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>min &micro;s</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>max &micro;s</th>',
+      '</tr></thead><tbody>'.
+    rows:: r at: #slots ifAbsent: [ nil ].
+    i:: 1. [ i <= rows size ] whileTrue: [
+      row:: rows at: i.
+      platform httpChunkId: id data:
+        '<tr><td style=''padding:.35rem;border-bottom:1px solid #eee''>',
+        (row at: #span ifAbsent: [ #unnamed ]) printString,
+        '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>',
+        (self groupDigits: (row at: #n ifAbsent: [ 0 ])),
+        '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>',
+        (self groupDigits: (row at: #fails ifAbsent: [ 0 ])),
+        '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>',
+        (self groupDigits: (row at: #minUs ifAbsent: [ 0 ])),
+        '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>',
+        (self groupDigits: (row at: #maxUs ifAbsent: [ 0 ])),
+        '</td></tr>'.
+      i:: i + 1 ].
+    platform httpChunkId: id data: '</tbody></table>'.
+    ^ self )
+
+  (* tuvm#72: the legend documents the COLUMNS and what each SPAN represents. A
+     column legend alone leaves jobThermal versus acquire as a guess, which is the
+     harder question and the one a reader at the bench actually has. Boundaries are
+     pinned in docs/design/2026-07-21-job-latency-instrumentation-design.md §5 —
+     this must not drift from it.
+     Emitted as FEW chunks on purpose: egress records one sample per chunk, so a
+     legend split per paragraph would be a dozen extra samples. It is affordable
+     here only because this page renders outside every capture window. *)
+  spanLegendOn: platform toId: id = (
+    platform httpChunkId: id data:
+      '<h3>what the columns mean</h3>',
+      '<dl style=''max-width:44rem''>',
+      '<dt><b>n</b></dt><dd>samples recorded.</dd>',
+      '<dt><b>fails</b></dt><dd>jobs that ended without producing a sample. Counted ',
+      'separately because a failure that simply vanished would silently IMPROVE the ',
+      'percentiles &mdash; the run would look faster because the slow cases stopped ',
+      'being measured.</dd>',
+      '<dt><b>p50 / p95</b></dt><dd>the bucket DECADE a sample falls in, never a number ',
+      'interpolated inside one. No p95 below n&nbsp;&ge;&nbsp;200.</dd>',
+      '<dt><b>min / max &micro;s</b></dt><dd>exact, not bucketed.</dd>',
+      '<dt><b>sumLo / sumHi</b></dt><dd>the sum, split at 1e9 as the C side keeps it. ',
+      'Reassembling it on the node would overflow a 31-bit integer once sumHi reaches ',
+      '2, which is why the split exists. Divide it off the device.</dd>',
+      '<dt><b>histogram</b></dt><dd>the six decade buckets, &lt;100&micro;s to &ge;1s.</dd>',
+      '</dl>'.
+    platform httpChunkId: id data:
+      '<h3>what the spans mean</h3>',
+      '<dl style=''max-width:44rem''>',
+      '<dt><b>tickQueue</b></dt><dd>pulse post &rarr; reaction entry: the reactor delay.</dd>',
+      '<dt><b>acquire</b></dt><dd>the I2C read of the Grid-EYE.</dd>',
+      '<dt><b>vmCompute</b></dt><dd>the 64-element raw&rarr;List copy.</dd>',
+      '<dt><b>publish</b></dt><dd>the put onto the sample cell.</dd>',
+      '<dt><b>jobThermal</b></dt><dd><b>Outer span, nesting the four above.</b> Its time ',
+      'is not additional to theirs &mdash; summing the thermal rows double-counts.</dd>',
+      '<dt><b>httpQueue</b></dt><dd>accept &rarr; take: how long a request waited to be ',
+      'served.</dd>',
+      '<dt><b>render</b></dt><dd>the route block.</dd>',
+      '<dt><b>egress</b></dt><dd>the socket writes &mdash; one sample per emitted chunk, ',
+      'for every route.</dd>',
+      '</dl>',
+      '<p style=''max-width:44rem''><b>render and egress overlap by design.</b> ',
+      'Formatting happens in nsl and the write happens in C inside the same call, so ',
+      'render necessarily contains the writes. Render-compute is <b>render &minus; egress</b>, ',
+      'a DERIVED figure &mdash; the table does not measure it directly.</p>'.
+    ^ self )
+
+  (* tuvm#72: thousands separators. Zephyr gives us nothing here — the POSIX `%'d`
+     grouping flag needs locale support that picolibc/newlib does not have, so a C
+     route would mean writing this loop in C plus a new prim for no gain.
+
+     Done ARITHMETICALLY, not by walking the printString's bytes. The byte route
+     was written first and does not work from an app: what `main:` receives as
+     `platform` is the KERNEL INSTANCE, not the native platform object, so an app
+     reaches only the hand-written accessors (kernel.nsl's header, spec §3
+     reachability). `string:` and `basicNew:indexable:` are kernel-lexical raw
+     prims and are deliberately not among them. This version uses only `//`,
+     printString and `,` — exactly what ThermalView already relies on.
+     For BULK string building an app should use `platform WriteStream`, which IS
+     exposed; concatenation is fine here only because these strings are a dozen
+     characters and this page is off the measured path.
+
+     nsl has integer division but NO modulo operator, hence the
+     `v - ((v // 1000) * 1000)` spelling. pad3: matters: without it 1000007
+     renders as "1,7" instead of "1,000,007". *)
+  groupDigits: anInteger = (
+    | v res grp neg |
+    v:: anInteger.
+    neg:: v < 0.
+    neg ifTrue: [ v:: 0 - v ].
+    v < 1000 ifTrue: [ ^ anInteger printString ].
+    res:: ''.
+    [ v >= 1000 ] whileTrue: [
+      grp:: v - ((v // 1000) * 1000).
+      res:: ',' , (self pad3: grp) , res.
+      v:: v // 1000 ].
+    res:: v printString , res.
+    neg ifTrue: [ res:: '-' , res ].
+    ^ res )
+
+  (* A non-leading group is always three digits wide — leading zeroes included. *)
+  pad3: n = (
+    n < 10  ifTrue: [ ^ '00' , n printString ].
+    n < 100 ifTrue: [ ^ '0'  , n printString ].
+    ^ n printString )
 ) : (
 )
