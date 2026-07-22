@@ -227,11 +227,29 @@ and read-only from outside. One sentence, covers `dev/**` and `diag/**` both.
 | Reset reachable from nsl | One prim wrapping the **existing** `span_reset_all()` (`src/span.c:90`, currently "tests only"). Append-only prim id, counted-not-computed. **No new `.c` file**, so #63's nine-list footgun does not apply |
 | Two channels | Zero DRAM (§4.3) |
 | The accumulator | Already exists, already static C (`src/span.c:17`) |
-| `SpanCapture` class | ~60 lines, nested in `zephyr/ThermalHttpNode.nsl` beside `ThermalNode` |
+| `SpanCapture` class | ~60 lines in `~/workspace/nsl-tuvm/lib/kernel.nsl`, beside `Spans` — **not** in the node file; see below |
 | Result record | ~600–800 B, allocated **once, at stop** |
 
 **GC pressure inside the measurement window is zero.** Nothing allocates until the capture
 is stopped, and the stop allocation is by construction outside the window it reports.
+
+### 5.1 Why `SpanCapture` lives in the kernel library, not the node
+
+Corrected during planning (2026-07-22). An earlier draft put the class in
+`zephyr/ThermalHttpNode.nsl`. That is **incompatible with §6**: `nsl-tests/` cannot reach a
+class nested in a zephyr node file, so the host tests that pin both ordering invariants
+could not be written, and the one real improvement this design offers over the status quo
+would have been lost.
+
+It is also the better home on the merits. `SpanCapture` knows nothing about thermal
+sensors, HTTP, or any device — it takes a `Space` and a `Spans` and reacts to a cell. That
+is exactly the profile of `Spans` itself, which already lives in `lib/kernel.nsl`.
+
+**The cost to acknowledge:** the kernel is shared, so every node's image carries the class,
+including Thread-only nodes that will never start a capture. This is image/heap cost rather
+than static DRAM (the ceiling in #53), and `Spans` sets the precedent — but it is a real
+cost and the implementation must **measure it rather than assume it**: check live bytes and
+the footprint gate before and after, and record the delta.
 
 ## 6. Testing
 
@@ -243,8 +261,15 @@ already runs on host (`nsl-tests/19_latency/01..05`). New host tests:
 2. samples recorded **before** start do not appear — the reset-last invariant, asserted
 3. samples recorded **after** stop do not appear — the snapshot-first invariant, asserted
 4. `#stopped` while stopped writes nothing
-5. startup with a retained `#running` reports stopped
-6. a negative elapsed publishes `ms: -1`
+5. `#running` while already running restarts the window rather than extending it
+6. startup with a retained `#running` reports stopped
+
+**Not testable, and worth saying so rather than implying coverage:** the `millis`-wrap guard
+(`ms: -1`) has no test. `t0` is private to the instance and the clock is a real prim, so
+forcing a negative elapsed would need a clock seam that does not exist and that this work
+does not justify building. The guard is one comparison; the risk of it being wrong is low
+and the cost of the seam is not. Recorded here so a later reader does not mistake the test
+list for complete coverage.
 
 Both ordering invariants become assertions rather than comments, which is the part that
 would otherwise rot.
