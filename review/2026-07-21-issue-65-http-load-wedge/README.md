@@ -87,11 +87,67 @@ Every symptom in the original report falls out of that:
 Implicates `CONFIG_NET_PKT_RX_COUNT=8`, halved from 16 in #46's RAM trim — whose own
 comment says "trim or raise at bring-up if RAM is tight or connections stall".
 
-**OPEN:** why the stuck connections never time out and release. TCP retransmit timers
-should abort them and do not, across 4+ minutes. That answer decides whether the fix is
-more buffers (raises the bar, keeps the trap) or making the trap arithmetically impossible
-(cap concurrent connections below the pool size) — and it may land in Zephyr's TCP rather
-than in tuvm at all.
+### Why the stuck connections never time out — ANSWERED
+
+`net conn` on a wedged node, read over UART on a handle held open since before the load
+(`session-G.log`):
+
+```
+TCP        Context   Src port Dst port   Send-Seq   Send-Ack  MSS    State
+0x3ffdbb88 0x3ffcea3c   18080        0          0          0  1460   LISTEN
+0x3ffdc4e8 0x3ffceae4   18080    38254 3930841427   74448089  1460   ESTABLISHED
+0x3ffdc290 0x3ffceb8c   18080    38260 3145407352 2673545321  1460   ESTABLISHED
+0x3ffdbde0 0x3ffcec34   18080    38266 1168820119 2625408154  1460   ESTABLISHED
+0x3ffdc038 0x3ffcecdc   18080    38274  156486268 1438057269  1460   ESTABLISHED
+```
+
+Four connections, all **ESTABLISHED**, four distinct client ports, alongside the listener —
+and `net mem` in the same breath shows `RX 0/8 avail`.
+
+**`CONFIG_NET_TCP_KEEPALIVE is not set`, so an idle ESTABLISHED connection has no timer of
+any kind.** This was never a slow timeout or a long retry budget: *no timer exists*. The
+retransmit path (`NET_TCP_RETRY_COUNT=9` @ `RTO=200 ms`, ~204 s) never applies, because
+nothing is outstanding to retransmit — these connections are simply idle.
+
+They are **un-accepted backlog entries**, not connections the application ever saw:
+`inflight=0`, and had the app closed them they would read FIN_WAIT/TIME_WAIT rather than
+ESTABLISHED. Four stuck connections is exactly `zsock_listen(listen_fd, 4)` in
+`src/backend/zephyr/http_zephyr.c`.
+
+The complete chain:
+
+1. Load fills the 4-deep listen backlog with fully ESTABLISHED connections.
+2. Each pins RX `net_pkt`s holding its request data.
+3. The RX slab (8) exhausts.
+4. With zero RX packets `zsock_accept()` can no longer succeed — and `http_poll()` treats
+   **every** accept failure identically to "nothing pending" (`if (fd < 0) { k_msleep(1);
+   return; }`), so the node spins forever, accepting nothing and saying nothing.
+5. The backlog connections are idle ESTABLISHED with no keepalive ⇒ immortal.
+6. Freeing RX packets requires receiving; receiving requires RX packets. Closed loop.
+
+Step 4 is tuvm's own code, and `prj_esp32.conf` **predicted it**: *"a context-exhausted
+`zsock_accept()` in `http_poll()` is indistinguishable from 'nothing pending' (both take
+the same early return) — so a client would be silently dropped instead of hitting the
+ring's graceful 503 shed."* That comment was written about context exhaustion; it came true
+via RX-packet exhaustion.
+
+This makes the fix menu concrete, and the cheap ones are additive:
+
+- **`http_poll()` must distinguish accept failure from idle** (check `errno`; count it;
+  surface it). Turns a silent permanent wedge into a legible one. tuvm-side, cheap.
+- **Shrink the listen backlog** so the backlog cannot pin the whole RX slab.
+- **`CONFIG_NET_TCP_KEEPALIVE`** so idle ESTABLISHED connections are reaped even if the
+  trap is entered — the only lever that breaks the deadlock rather than avoiding it.
+- **Raise `NET_PKT_RX_COUNT`** so backlog plus working set fit — raises the bar, keeps the
+  trap.
+
+### Reproduction is timing-sensitive
+
+Not deterministic. The serial hunt wedged on round 8 (~860 served) on one build, then ran
+25 rounds / ~4200 served clean on a build differing only by the shell and a smaller VM
+heap. **"Did not reproduce" is therefore not evidence of a fix** — any fix needs either a
+mechanism argument or a very long soak. The concurrent 8-worker hammer is the faster
+trigger (wedge in ~8 minutes, and note `ok:0` — under it the node serves nothing at all).
 
 ## Files
 
@@ -103,7 +159,8 @@ than in tuvm at all.
 | `tools/hunt.sh` | the reproducer. Bursts of 300 unpaced requests; wedged on round 8. |
 | `tools/timewait_probe.py` | the time-resolved TIME_WAIT measurement (Finding 1). |
 | `tools/reset_watch.py` | reset into run mode and capture — for catching a boot banner. |
-| `tools/attach_watch.py` | attach **without** resetting, for reading a node mid-experiment. |
+| `tools/attach_watch.py` | **DOES NOT DO WHAT ITS NAME SAYS — kept only as the record of a failed approach.** Setting `dtr`/`rts` False before `open()` does *not* prevent the reset. |
+| `tools/probe_session.py` | the correct design: ONE serial handle held open across load, detection and interrogation. |
 
 ## Two methodology notes, both learned the expensive way
 
@@ -117,3 +174,21 @@ than in tuvm at all.
    network. This produced a "wedged node" that was really a board in the bootloader, on an
    issue whose entire subject is a node going unreachable. `cat` on the port also read zero
    bytes from a healthy node where pyserial read everything. Use the tools above.
+
+3. **OPENING the port at all reboots the board — so a tool that attaches at wedge time to
+   ask what happened destroys the state it came to read.** Setting `dtr`/`rts` False before
+   `open()` looks like it should avoid the auto-reset circuit. It does not. Verified
+   directly: two successive attaches to a long-running node both reported uptime restarting
+   at ~5 s. This was not caught before it did damage — an interrogation of a wedged node
+   returned "all pools full, no TCP connections, fresh `CONNECT_RESULT`", which was read as
+   evidence of a crash-and-reboot when it was simply *a fresh boot caused by the act of
+   asking*. The fix is structural, not a flag: hold ONE serial handle open from before the
+   load until after the interrogation (`tools/probe_session.py`), so the only reset is the
+   deliberate one at t=0.
+
+4. **A detector that probes while the load is still running cannot tell saturation from a
+   wedge.** Under sustained concurrent load the node genuinely cannot answer, so "N failed
+   probes" is guaranteed and means nothing — an 8-worker hammer produced a confident
+   "WEDGE CONFIRMED" for a node that was serving normally seconds after the load stopped.
+   Quiesce the load first, then judge; a node that recovers in the quiet window was
+   saturated, one that does not is wedged.

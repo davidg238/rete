@@ -1,0 +1,338 @@
+ets Jun  8 2016 00:22:57
+
+rst:0x1 (POWERON_RESET),boot:0x17 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3ffb0000,len:14956
+ho 0 tail 12 room 4
+load:0x40080000,len:70368
+1162 mmu set 00010000, pos 00010000
+entry 0x4008b208
+I (50) soc_init: ESP Simple boot
+I (50) soc_init: compile time Jul 21 2026 21:58:24
+W (50) soc_init: Unicore bootloader
+I (50) soc_init: chip revision: v1.0
+E (54) soc_init: You are using ESP32 chip revision (1) that is unsupported. While it may work, it could cause unexpected behavior or issues.
+E (66) soc_init: Proceeding with this ESP32 chip revision is not recommended unless you fully understand the potential risk and limitations.
+I (78) flash_init: SPI Speed      : 40MHz
+I (82) flash_init: SPI Mode       : DIO
+I (86) flash_init: SPI Flash Size : 4MB
+I (89) boot: DRAM: lma 0x00001020 vma 0x3ffb0000 len 0x3a6c   (14956)
+I (95) boot: IRAM: lma 0x00004a94 vma 0x40080000 len 0x112e0  (70368)
+I (102) boot: IRAM: lma 0x00015d88 vma 0x00000000 len 0xa270   (41584)
+I (108) boot: IMAP: lma 0x00020000 vma 0x400d0000 len 0x683c4  (426948)
+I (114) boot: IRAM: lma 0x000883cc vma 0x00000000 len 0x7c2c   (31788)
+I (120) boot: DMAP: lma 0x00090000 vma 0x3f400000 len 0x321d0  (205264)
+I (127) boot: Image with 6 segments
+I (130) boot: IROM segment: paddr=00020000h, vaddr=400d0000h, size=683C4h (426948) map
+I (138) boot: DROM segment: paddr=00090000h, vaddr=3f400000h, size=321D0h (205264) map
+I (156) boot: libc heap size 14 kB.
+I (157) spi_flash: detected chip: gd
+I (157) spi_flash: flash io: dio
+*** Booting Zephyr OS build v4.2.0-7-gcbc06d38482a ***
+wifi: connect(ssid_len=4) req=0
+[m
+[1;32muart:~$ [mwifi-evt: CONNECT_RESULT status=0
+hb 3199 ms: pkt rx=8/8 tx=16/16  data rx=16/16 tx=32/32  ctx=0  inflight=0
+hb 5200 ms: pkt rx=8/8 tx=16/16  data rx=16/16 tx=32/32  ctx=0  inflight=0
+hb 7200 ms: pkt rx=8/8 tx=16/16  data rx=16/16 tx=32/32  ctx=0  inflight=0
+ip-evt: IPv4 address ADDED
+wifi: up, ip=192.168.0.240 -> http://192.168.0.240:18080/thermal
+hb 9262 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=21/32  ctx=5  inflight=0
+hb 11329 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=14/32  ctx=5  inflight=1
+hb 13378 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=20/32  ctx=5  inflight=1
+hb 15422 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=20/32  ctx=5  inflight=1
+hb 17910 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=21/32  ctx=5  inflight=0
+hb 20110 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=14/32  ctx=5  inflight=1
+hb 22480 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=14/32  ctx=5  inflight=1
+hb 24570 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 26571 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 28571 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 30572 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 32572 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 34573 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 36573 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 38574 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 40574 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 42575 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 44575 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 46575 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 48576 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 50576 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 52577 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 54577 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 56578 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 58578 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 60579 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 62979 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=25/32  ctx=5  inflight=1
+hb 65031 ms: pkt rx=2/8 tx=11/16  data rx=15/16 tx=25/32  ctx=5  inflight=1
+hb 67234 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=32/32  ctx=5  inflight=0
+hb 69485 ms: pkt rx=2/8 tx=11/16  data rx=15/16 tx=20/32  ctx=5  inflight=1
+hb 71645 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=20/32  ctx=5  inflight=1
+hb 73835 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=27/32  ctx=5  inflight=0
+hb 75945 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=25/32  ctx=5  inflight=1
+hb 77946 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 79946 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 81947 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 83947 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 85948 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 87948 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 89996 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=25/32  ctx=5  inflight=1
+hb 92682 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=14/32  ctx=5  inflight=1
+hb 94732 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=20/32  ctx=5  inflight=1
+hb 96732 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 98733 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 100733 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 102734 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 104734 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 106735 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 108737 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 110737 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 112737 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 114738 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 116740 ms: pkt rx=4/8 tx=13/16  data rx=15/16 tx=25/32  ctx=3  inflight=1
+hb 118922 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=14/32  ctx=5  inflight=1
+hb 120951 ms: pkt rx=2/8 tx=11/16  data rx=15/16 tx=21/32  ctx=5  inflight=0
+hb 122989 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=21/32  ctx=5  inflight=0
+hb 125107 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=20/32  ctx=5  inflight=1
+hb 127178 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=20/32  ctx=5  inflight=1
+hb 129555 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=14/32  ctx=5  inflight=1
+hb 131698 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=21/32  ctx=5  inflight=0
+hb 133716 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 135717 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 137717 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 139718 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 141718 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 143719 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 145719 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 147720 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 149720 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 151721 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 153721 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 155722 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 157722 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 159735 ms: pkt rx=6/8 tx=14/16  data rx=16/16 tx=25/32  ctx=2  inflight=1
+hb 161742 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 163742 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 165743 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 167743 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 169744 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 171744 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 173745 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 175745 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 177746 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 179746 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 181747 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 183747 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 185748 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 187748 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 189748 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 191749 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 193749 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 195750 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 197750 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 199912 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=32/32  ctx=5  inflight=0
+hb 202098 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=14/32  ctx=5  inflight=1
+hb 204885 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=32/32  ctx=5  inflight=0
+hb 206954 ms: pkt rx=4/8 tx=12/16  data rx=16/16 tx=25/32  ctx=4  inflight=1
+hb 209012 ms: pkt rx=2/8 tx=11/16  data rx=15/16 tx=25/32  ctx=5  inflight=1
+hb 211462 ms: pkt rx=2/8 tx=11/16  data rx=15/16 tx=25/32  ctx=5  inflight=1
+hb 213463 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 215463 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 217464 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 219464 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 221465 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 223465 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 225497 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 227498 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 229499 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 231499 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 233500 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 235500 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 237500 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 239501 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 241501 ms: pkt rx=6/8 tx=14/16  data rx=16/16 tx=32/32  ctx=2  inflight=0
+hb 243502 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 245502 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 247503 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 249503 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 251504 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 253504 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 255505 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 257505 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 259506 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 261506 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 263507 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 265507 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 267508 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 269508 ms: pkt rx=6/8 tx=14/16  data rx=16/16 tx=32/32  ctx=2  inflight=0
+hb 271509 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 273509 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 275510 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 277510 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 279511 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 281511 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 283512 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 285512 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 287513 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 289513 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 291514 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 293514 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 295515 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 297515 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 299516 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 301516 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 303517 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 305517 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 307518 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 309518 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 311519 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 313519 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 315520 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 317520 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 319521 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 321521 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 323522 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 325522 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 327523 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 329523 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 331524 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 333524 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 335525 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 337525 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 339526 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 341526 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 343527 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 345527 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 347528 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 349528 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 351529 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 353529 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 355530 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 357530 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 359531 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 361531 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 363532 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 365532 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 367533 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 369533 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 371534 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 373534 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 375535 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 377535 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 379536 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 381536 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 383537 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 385537 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 387538 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 389737 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=20/32  ctx=5  inflight=1
+hb 391768 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=20/32  ctx=5  inflight=1
+hb 393788 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=27/32  ctx=5  inflight=0
+hb 395826 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=25/32  ctx=5  inflight=1
+hb 397975 ms: pkt rx=2/8 tx=11/16  data rx=15/16 tx=20/32  ctx=5  inflight=1
+hb 400037 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=20/32  ctx=5  inflight=1
+hb 402365 ms: pkt rx=3/8 tx=11/16  data rx=16/16 tx=25/32  ctx=5  inflight=1
+hb 404365 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 406366 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 408366 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 410367 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 412367 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 414368 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 416368 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 418369 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 420369 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 422370 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 424370 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 426371 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 428371 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 430371 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 432372 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=25/32  ctx=5  inflight=1
+hb 434406 ms: pkt rx=6/8 tx=14/16  data rx=16/16 tx=25/32  ctx=2  inflight=1
+hb 436430 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 438430 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 440431 ms: pkt rx=7/8 tx=15/16  data rx=16/16 tx=32/32  ctx=1  inflight=0
+hb 442438 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 444439 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 446439 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 448440 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 450440 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 452440 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 454441 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 456441 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 458442 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 460442 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 462442 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 464443 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 466443 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 468443 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 470444 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 472444 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 474445 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 476445 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 478445 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 480446 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 482446 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 484447 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 486447 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 488447 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 490448 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 492448 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 494448 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 496449 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 498449 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 500449 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 502450 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 504450 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 506450 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 508451 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 510451 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 512451 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 514452 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 516452 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 518452 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+
+##### SHELL: net conn #####
+net conn
+ hb 520453 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+    Context   	Iface  Flags            Local             Remote
+[ 1] 0x3ffcea3c	1      4ST      0.0.0.0:18080	       0.0.0.0:0
+[ 2] 0x3ffceae4	1      4ST   192.168.0.240:18080	192.168.0.175:38254
+[ 3] 0x3ffceb8c	1      4ST   192.168.0.240:18080	192.168.0.175:38260
+[ 4] 0x3ffcec34	1      4ST   192.168.0.240:18080	192.168.0.175:38266
+[ 5] 0x3ffcecdc	1      4ST   192.168.0.240:18080	192.168.0.175:38274
+
+     Handler    Callback  Proto            Local                  Remote
+[ 1] 0x3ffceee0 0x40102044  TCP	192.168.0.240:18080	192.168.0.175:38274
+[ 2] 0x3ffcef2c 0x40102044  TCP	192.168.0.240:18080	192.168.0.175:38266
+[ 3] 0x3ffcee94 0x40102044  TCP	192.168.0.240:18080	192.168.0.175:38260
+[ 4] 0x3ffcee48 0x40102044  TCP	192.168.0.240:18080	192.168.0.175:38254
+[ 5] 0x3ffcef78 0x40102044  TCP	   0.0.0.0:18080	       0.0.0.0:0
+[ 6] 0x3ffcefc4 0x401041a8  UDP	      0.0.0.0:68	       0.0.0.0:0
+
+TCP        Context   Src port Dst port   Send-Seq   Send-Ack  MSS    State
+0x3ffdbb88 0x3ffcea3c   18080        0          0          0  1460   LISTEN
+0x3ffdc4e8 0x3ffceae4   18080    38254 3930841427   74448089  1460   ESTABLISHED
+0x3ffdc290 0x3ffceb8c   18080    38260 3145407352 2673545321  1460   ESTABLISHED
+0x3ffdbde0 0x3ffcec34   18080    38266 1168820119 2625408154  1460   ESTABLISHED
+0x3ffdc038 0x3ffcecdc   18080    38274  156486268 1438057269  1460   ESTABLISHED
+[1;32mSet CONFIG_NET_TCP_LOG_LEVEL_DBG to enable TCP debugging support.
+[m[1;32muart:~$ [mhb 522453 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+
+##### SHELL: net mem #####
+net mem
+Fragment length 256 bytes
+Network buffer pools:
+Address		Total	Avail	MaxUsed	Name
+0x3ffb3774	8	0	-	RX
+0x3ffb37ac	16	11	-	TX
+0x3ffb3930	16	13	4	RX DATA (rx_bufs)
+0x3ffb3968	32	32	26	TX DATA (tx_bufs)
+[1;32muart:~$ [mhb 524453 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 526454 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+
+##### SHELL: net stats #####
+net stats
+[1;32mSet CONFIG_NET_STATISTICS to enable statistics support.
+[m[1;32muart:~$ [mhb 528454 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
+hb 530455 ms: pkt rx=0/8 tx=11/16  data rx=13/16 tx=32/32  ctx=5  inflight=0
