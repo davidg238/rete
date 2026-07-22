@@ -52,15 +52,15 @@ For content search across the program:
 
 <!-- BEGIN GENERATED INVENTORY — do not edit below; rerun tools/docmap.sh -->
 
-_Regenerated 2026-07-21 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
+_Regenerated 2026-07-22 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
 
 ### ~/workspace/tuvm/review
 
 - `~/workspace/tuvm/review/2026-07-03-first-step-design-addendum.md` — nsl-tuvm first-step design — addendum 1 (review amendments) _(record, 2026-07-14)_
 - `~/workspace/tuvm/review/2026-07-04-context-decision.md` — Task 8 design question: keep the deferred-lift heap Context? _(record, 2026-07-04)_
 - `~/workspace/tuvm/review/2026-07-04-pre-fiber-baseline.md` — Pre-fiber baseline commits in oevm / ns-oevm _(record, 2026-07-04)_
-- `~/workspace/tuvm/review/2026-07-21-issue-65-http-load-wedge/README.md` — tuvm#65 — evidence folder (2026-07-21) _(record, 2026-07-21)_
-- `~/workspace/tuvm/review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-07-16)_
+- `~/workspace/tuvm/review/2026-07-21-issue-65-http-load-wedge/README.md` — tuvm#65 — evidence folder (2026-07-21) _(record, 2026-07-22)_
+- `~/workspace/tuvm/review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-07-22)_
 - `~/workspace/tuvm/review/ISSUE-dongle-usb-openthread.md` — DRAFT ISSUE (post to davidg238/tuvm — created from a session without gh permission) _(record, 2026-07-12)_
 - `~/workspace/tuvm/review/WHY-AGENTS.md` — Why agents — nodus + porta as an agent-first platform _(record, 2026-07-14)_
 - `~/workspace/tuvm/review/WHY-OEOM.md` — Why OEOM — the kernel that survived the graveyard _(record, 2026-07-12)_
@@ -79,6 +79,7 @@ _Regenerated 2026-07-21 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `~/workspace/tuvm/review/reliability-gaps.md` — Reliability gaps — the questions not yet asked (2026-07-03) _(record, 2026-07-21)_
 - `~/workspace/tuvm/review/retained-channels-v2.html` — Names, and what answers to them — v2 _(record, 2026-07-13)_
 - `~/workspace/tuvm/review/retained-channels.html` — Retained channels, and where remoteness lives _(record, 2026-07-12)_
+- `~/workspace/tuvm/review/revisit.md` — REVISIT — things learned in passing that are not yet anyone's work item _(record)_
 - `~/workspace/tuvm/review/slides.html` — nsl-tuvm — script Zephyr, don't replace it _(record, 2026-07-12)_
 - `~/workspace/tuvm/review/test-suites-spec.md` — nsl-tests — verification suites for the first step (proposed) _(record, 2026-07-03)_
 - `~/workspace/tuvm/review/tests/CLAIMS.md` — CLAIMS — first-step spec §7 success criteria → proving tests _(record, 2026-07-21)_
