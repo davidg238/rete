@@ -120,7 +120,7 @@ mechanism.
 
 - **Build identity.** No version string or build id exists in the tree today (checked: no
   `GIT_DESCRIBE`/`VERSION` in CMake, none in `kernel.nsl`). A stored run is attributable only by
-  address until this lands. Filed as its own issue; honours "skip if expensive."
+  address until this lands. Filed as tuvm#74; honours "skip if expensive."
 - **Run diffing / history UI** — the store makes it possible; this slice does not build it.
 - **Thermal and stats as CBOR views** — the direction of travel (§9), explicitly not now.
 - **Auth, DTLS, multi-node** — porta's job, not porta-lite's.
