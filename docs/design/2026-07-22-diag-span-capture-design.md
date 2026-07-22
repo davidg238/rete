@@ -110,6 +110,40 @@ not a reply you receive, and the space has no request/reply at all.
 still useful for a glance) and the **last capture result** (clean). The four cosmetic items
 land on the result table, where they are free.
 
+### 3.5 The legend
+
+Below the result table, and it documents **two** things — the columns, and **what each span
+actually represents**. A column legend alone leaves `jobThermal` versus `acquire` as a
+guess, which is the harder question and the one a reader at the bench actually has.
+
+Span meanings are not this design's to invent; they are pinned in
+`~/workspace/tuvm/docs/design/2026-07-21-job-latency-instrumentation-design.md` §5 and the
+legend must not drift from it:
+
+| Job | Span | What it brackets |
+|---|---|---|
+| timer→thermal→cell | `tickQueue` | pulse post → reaction entry — the reactor delay #34/#55 made observable |
+| | `acquire` | `seam sensorFrame` — the I2C read |
+| | `vmCompute` | the 64-element raw→List copy |
+| | `publish` | `sample put:value:` |
+| | `jobThermal` | the whole chain — **outer, nested over the four above** |
+| request→format→response | `httpQueue` | `http_accept_request` → `http_take_request` |
+| | `render` | the route block |
+| | `egress` | the `write()` inside `http_chunk` |
+
+Two things the legend **must** say, because a reader who does not know them will draw wrong
+conclusions from correct numbers:
+
+- **`jobThermal` is an outer span nesting the other three.** Its time is not additional to
+  them, and summing the thermal rows double-counts.
+- **`render` and `egress` overlap by design.** `httpChunk:` formats in nsl and writes the
+  socket in C, so an nsl-bracketed `render` necessarily contains the writes. Render-compute
+  is **`render − egress`**, a *derived* figure — the legend says so rather than letting the
+  table imply it was measured directly.
+
+`sumLo`/`sumHi` also need a line: the sum ships as the two halves C keeps it in, because
+reassembling it on the node would overflow a 31-bit SMI at `hi ≥ 2`. Divide off the device.
+
 **Rule, and it is the point of the whole exercise: figures quoted in `review/` or in the
 deck come from the capture table only.**
 
