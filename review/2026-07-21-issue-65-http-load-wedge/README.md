@@ -1,14 +1,19 @@
 # tuvm#65 — evidence folder (2026-07-21)
 
-Raw artifacts behind the two findings on tuvm#65: the HTTP **accept ceiling** (fixed) and
-the **fatal RX-slab starvation** (root-caused, not fixed). This folder is the investigation
-record, not a document of record — per the repo's promotion rule the durable knowledge
-lands in a mainline doc at close-out, and the likely home is
+Raw artifacts behind the two findings on tuvm#65 — the HTTP **accept ceiling** and the
+**fatal RX-slab starvation**. Both are now root-caused and fixed, and the fix is verified
+by a 60-minute soak; #65 is not closed until someone accepts that evidence. This folder is
+the investigation record, not a document of record — per the repo's promotion rule the
+durable knowledge lands in a mainline doc at close-out, and the likely home is
 `~/workspace/tuvm/review/reliability-gaps.md`.
 
 Hardware: ESP32-D0WDQ6 / WROOM-32, MAC `30:ae:a4:1e:7b:84`, console `/dev/ttyUSB1`,
 DHCP `192.168.0.240`, serving `ThermalHttpNode.nsl` (`/thermal`, chunked SVG, 12 chunks).
-Branch `fix/65-http-load-wedge` (`ad462bf`, `093df88`, `8622000`).
+Branch `fix/65-http-load-wedge`.
+
+**Read in this order if you only want the answer:** Finding 2 → "Why the stuck connections
+never time out" → "The fix". Finding 1 is a separate, simpler defect that happens to live
+in the same issue.
 
 ## Finding 1 — the accept ceiling was TIME_WAIT, and it is fixed
 
