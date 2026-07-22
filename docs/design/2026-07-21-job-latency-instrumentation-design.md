@@ -520,3 +520,89 @@ under-reports the engine by span.c's text and its 384 B of bss. Adding it needs 
 `FOOTPRINT_UPDATE_BASELINE=1` rebase, which is a deliberate act, not a side effect of this
 rung. And `bench.sh` still `cd`s to `~/workspace/oevm` and takes `.ns` files — it builds a
 different repo entirely and is unaffected by #61, but it is stale enough to mislead.
+
+---
+
+## Addendum — implementation findings, 2026-07-21 (Tasks 9–11, device run)
+
+### §2.1's wrap reasoning was WRONG as written, and the device proved it
+
+This is the correction that matters most in this document.
+
+§2.1 and the original `span_backend.h` both argued that a 32-bit counter is safe here
+because "spans use unsigned 32-bit DIFFERENCES, which are correct across a wrap provided
+the interval is shorter than the wrap period." That argument is **only valid when the
+counter wraps at 2^32 in the units the subtraction happens in.** The Zephyr backend
+converted cycles to microseconds *before* returning, squeezing its value domain to
+0..17,895,696 — so it no longer wrapped at 2^32, and a u32 subtraction across the wrap
+produced ~4.28e9 instead of a small delta.
+
+The first WROOM-32 `/stats` read showed `jobThermal` max = **−17872490** (a u32 of
+4,277,094,806 printed as a signed SMI) with a phantom sample in the ≥1 s bucket. The
+arithmetic pins the mechanism exactly:
+
+    4,277,094,806 = 23,207 − 17,895,697 + 2^32
+
+i.e. an entirely ordinary 23 ms thermal job. **Silent on the host**, where the backend
+unit really is the microsecond and the counter really does wrap at 2^32 — so no host test
+could have caught it, and none did.
+
+Fixed by giving the seam two functions and moving the subtraction into the backend:
+`span_stamp()` answers an opaque counter in whatever unit is cheapest (cycles on Zephyr,
+microseconds on posix) and `span_elapsed_us()` differences and converts. Subtracting in
+cycles is correct across the real hardware wrap; converting a small difference cannot
+overflow. The stamp was **renamed** from `span_now` deliberately — a function named "now"
+returning cycles is the trap that made the original bug look correct.
+
+`tests/test_span.c` gained a direct wrap assertion. Read `src/span_backend.h` before
+touching that seam; it carries the full reasoning.
+
+### §5's C-owned slots moved to the BOTTOM of the range
+
+Task 8 pinned them at `OEVM_SPAN_SLOTS - 2` and `- 1`, which reads tidier but makes both
+indices depend on a **build knob** — and §7 itself contemplates dropping `OEVM_SPAN_SLOTS`
+to 6 if DRAM runs short. nsl has to name those slots to render them, so it would have had
+to mirror the ceiling, and a `-DOEVM_SPAN_SLOTS=6` build would silently point those names
+at the wrong data.
+
+They are now **0 and 1**. The reserved *count* is stable where the ceiling is not, so
+`kernel.nsl` seeds its name table with the pair and `register:` hands out 2 upward by
+construction. The no-collision property became structural instead of arithmetic, and no
+constant is duplicated across the seam.
+
+### §4.4's record-size estimate is discharged
+
+`#Metrics` **195 B**, `#LatencySpan` **140 B**, measured through the real `Cbor>>encode:`
+path (`nsl-tests/19_latency/05_record_size.nsl`, both paths agreeing). The estimate was
+sound — 195 lands inside ~185–230 — but the headroom is now a number: **61 B** under the
+256 B cap, roughly two more integer fields, not five.
+
+Method note worth keeping: the figures were built from values **measured on the device**,
+not round numbers. CBOR is shortest-form, so a sum of 7,820,873 costs five bytes where
+52,746 costs three; a size taken against placeholders is not the size the fleet sends.
+
+### The node does not compute the mean, by design
+
+`/stats` publishes `min`, `max`, `sumUsLo` and `sumUsHi` raw. Reassembling
+`hi * 1e9 + lo` on-node would overflow a 31-bit SMI the moment `hi` reaches 2 — which is
+the very reason `span.c` splits the sum. Accumulate on the device, divide off it. This is
+also `metrics-spec.md`'s "node reports raw; porta computes trends" rule applied literally,
+and it means every published figure is derived from the accumulator rather than from
+something the node rounded first.
+
+### What the device run found that the host could not
+
+Beyond the wrap defect: the node **leaves the network entirely under an unpaced request
+burst** (#65) — `EHOSTUNREACH`, no panic, no console output, recovery only by hardware
+reset. `pulseCoalesced` and `pulseDrops` were 0 throughout, so it is *not* the #54
+blocking-render-starves-the-pump pattern. Every HTTP figure in the published table
+therefore comes from a run **paced at 4 req/s**, and that qualifier is mandatory wherever
+those numbers appear.
+
+### Where the knowledge now lives
+
+Per the promotion rule this document is the historical *why*; the current statements of
+record are `review/program-sequence.md` (the rung and the table),
+`review/tests/CLAIMS.md` (three rows), `review/metrics-spec.md` (the latency group, and
+the removal of its now-false "nodes can't afford the slots" line) and
+`porta/docs/PROTOCOL-NSL-RECORDS.md` §4.4 (`sys/latency` plus both measured sizes).
