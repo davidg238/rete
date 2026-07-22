@@ -1016,6 +1016,41 @@ implementation addenda); plan: `docs/superpowers/plans/2026-07-21-job-latency-in
 fragility), and the derived columns above are subtractions rather than measurements —
 closing that would need a span inside `httpChunk:` on the nsl side of the write.
 
+**ADDENDUM 2026-07-22 — #65 is root-caused and fixed, and it partly invalidates the HTTP
+half of the table above.** Two corrections to point 6, which recorded #65 as it was
+understood on the day. Full record:
+`~/workspace/tuvm/review/2026-07-21-issue-65-http-load-wedge/README.md`; branch
+`fix/65-http-load-wedge`.
+
+- **The rate table in point 6 is ONE ceiling, not two regimes.** `latency_harness --delay`
+  sleeps *between* requests, so nominal "4/s" was really 1/(0.25+0.11) = 2.78/s and nominal
+  "10/s" was really 4.8/s. The node's actual ceiling was 4 net_contexts ÷ 1.5 s TIME_WAIT =
+  **2.67 req/s** — the node is the active closer (HTTP/1.0 `Connection: close`), so every
+  reply parked a context. "297/300 at 4/s" was simply the offered rate landing on the
+  ceiling. Fixed by `CONFIG_NET_TCP_TIME_WAIT_DELAY=250`.
+- **`EHOSTUNREACH` was RX packet-slab starvation, not a WiFi fault.** The node stayed
+  associated and addressed while unable to answer ARP: the 4-deep listen backlog filled
+  with idle ESTABLISHED connections which pinned all 8 RX `net_pkt`s, after which
+  `zsock_accept()` could never succeed again — and with `CONFIG_NET_TCP_KEEPALIVE` unset an
+  idle ESTABLISHED connection has *no timer of any kind*, so nothing reaped them. Freeing
+  RX required receiving. Fixed by keep-alive on the listening socket (the reaper), backlog
+  4 → 2, `NET_PKT_RX_COUNT` 8 → 16, and `http_poll()` no longer treating every accept
+  failure as "nothing pending". Verified by a 130-cycle / 60-minute concurrent soak.
+
+**Consequence for the table: the `egress` and `render` figures, and the client-side p50/p95,
+were taken on a build whose RX slab was a bottleneck, and should be re-taken before they are
+quoted again.** Widening the slab alone dropped client-side timeouts from 1716 to 183 over a
+comparable run — most of the "slow" tail was requests stalling on RX descriptors rather than
+on anything the VM did. The `egress` span's 727× max/min spread (point 3) is the figure most
+likely to move, and point 3's *argument* — percentiles over means — survives regardless,
+because it does not depend on the magnitude. The **thermal** job half of the table
+(`jobThermal`/`acquire`/`vmCompute`/`publish`) never touches the network path and is
+unaffected, as are points 1, 2, 4 and 5.
+
+Also of note for #53: the fix was funded from the VM arena rather than the packet pools
+(`run.sh` esp32 default 53248 → 49152, against measured live bytes of 21,860), which left
+`dram0` at **98.19% / 3568 B spare** — more headroom than before this rung, not less.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
