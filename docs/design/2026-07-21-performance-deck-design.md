@@ -269,16 +269,17 @@ places — and today's table was re-measured twice in a single session.
 ## 7. Gates this deck creates
 
 Filed as tracker issues so the deck plans honest gates rather than collecting holes.
+All four are open as of 2026-07-21.
 
-1. **Surface-in-tokens benchmark** — full peer set (nsl, Toit, uLisp, CircuitPython),
+1. **Surface-in-tokens benchmark (#66)** — full peer set (nsl, Toit, uLisp, CircuitPython),
    both tiers, published methodology: what counts as surface, per-system source of truth,
    how uLisp's C builtin table and CircuitPython's C-modules-plus-bundle are handled.
    Until then the deck shows the two-system indicative card.
-2. **OTA / change-without-reflash timing** — time-to-deployed-change on hardware versus a
+2. **OTA / change-without-reflash timing (#67)** — time-to-deployed-change on hardware versus a
    flash cycle. Currently unmeasured and load-bearing for the agent-loop claim.
-3. **Build/iteration timing, properly measured** — Model A vs Model B, timed rather than
+3. **Build/iteration timing, properly measured (#68)** — Model A vs Model B, timed rather than
    remembered. ~50 min / ~4.9 GB is from notes, not from a recorded measurement.
-4. **Deck-vs-record consistency check** — a script asserting every `DATA` figure still
+4. **Deck-vs-record consistency check (#69)** — a script asserting every `DATA` figure still
    matches its cited witness under `review/`.
 
 ---
