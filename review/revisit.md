@@ -82,5 +82,14 @@ a dependency worth remembering, in that correctness under overload now rests on
 recover a few hundred bytes would silently restore a permanent, silent, reset-only failure.
 That is the kind of regression no test currently catches.
 
+**ACTED ON 2026-07-22 — the keep-alive dependency now has an owner: tuvm#71.** Filed after
+checking all 15 `~/workspace/tuvm/zephyr/prj*.conf`: `CONFIG_NET_TCP_KEEPALIVE` is set by
+`prj_esp32.conf` alone, while `prj_esp32_nowifi.conf` has `CONFIG_NET_TCP=y` **without** it
+— so the exposure is present today, not merely future, and `prj_esp32c6.conf` carries the
+pre-fix `NET_PKT_RX_COUNT=8` into the board #57 wants to make the dev-loop target. Proposed
+guard is a `BUILD_ASSERT` in `~/workspace/tuvm/src/backend/zephyr/http_zephyr.c` gated on
+`CONFIG_NET_TCP` (that file is compiled for every board, `zephyr/CMakeLists.txt:41`). The
+rest of this entry — the `OEVM_HTTP_INFLIGHT` cap — remains unowned.
+
 **Cheap mitigation if it ever bites.** `OEVM_HTTP_INFLIGHT` is a compile-time constant in
 `~/workspace/tuvm/src/http_backend.h`; 4 → 2 costs nothing and needs no RAM.
