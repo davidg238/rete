@@ -2320,6 +2320,11 @@ class Kernel usingPlatform: platform = () (
      an instance-side selector to a class object silently NEWs the class and drops
      the message. Callers do `platform Spans new` and hold the instance. *)
   public Spans             = ( ^ Spans )
+  (* tuvm#72: same shape as Spans above — answers the CLASS, so
+     `platform SpanCapture onSpace:spans:` reaches the class-side constructor
+     rather than whatever an implicit accessor would hand back. Written out
+     explicitly for exactly the reason the comment above gives. *)
+  public SpanCapture       = ( ^ SpanCapture )
   public heapStats         = ( ^ HeapStats fromList: (platform heapStats) )
   (* tuvm#24: the sys/metrics snapshot — prim 104 (heapStats) + prim 109
      (sysStats) composed into ONE flat immutable Record, the sys/metrics
