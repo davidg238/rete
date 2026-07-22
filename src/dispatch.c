@@ -748,6 +748,19 @@ enum {
        PRIM_NAMES entries. Platform-dispatched (mirrored in prim_ids.h). */
     PRIM_pf_sensorFrame,
     PRIM_pf_sensorArmEvent,
+    /* tuvm#61 job latency: the span seam. spanBegin:/spanEnd: open and close a
+       NAMELESS slot (the name table lives in nsl's Spans class, the timer-seam
+       convention); spanStats: snapshots one; spanRecord:us: feeds a sample
+       directly — the deterministic test seam, compiled unconditionally because
+       gating it behind a test define would fork the parity guard below between
+       build flavours, and the only thing it can do is add a sample to a slot.
+       Appended after sensorArmEvent — no pre-existing id shifts. Counted (not
+       computed) to be the 118th-121st PRIM_NAMES entries. Platform-dispatched
+       (mirrored in prim_ids.h). */
+    PRIM_pf_spanBegin,
+    PRIM_pf_spanEnd,
+    PRIM_pf_spanStats,
+    PRIM_pf_spanRecord,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -799,16 +812,18 @@ static const char *const PRIM_NAMES[] = {
     "httpListen:", "httpRespondId:status:body:", "httpInject:path:",
     "httpBeginId:status:", "httpChunkId:data:", "httpEndId:",
     "sensorFrame", "sensorArmEventPost:on:threshold:",
+    "spanBegin:", "spanEnd:", "spanStats:", "spanRecord:us:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
 /* Compile-time parity guard for the load-bearing prim triple: PRIM_NAMES must
    stay parallel to the enum (index i -> id i+1, since PRIM_NONE=0 is unnamed),
-   so the count of names must equal the last enum id (PRIM_pf_sensorArmEvent). A miscount
-   here silently misroutes every platform prim after the insertion point — this
-   catches it at build time instead. C99-safe (no _Static_assert under -std=c99):
-   a false condition makes a negative-sized array, which is a hard compile error. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_sensorArmEvent) ? 1 : -1];
+   so the count of names must equal the last enum id (PRIM_pf_spanRecord, tuvm#61).
+   A miscount here silently misroutes every platform prim after the insertion point
+   — this catches it at build time instead. C99-safe (no _Static_assert under
+   -std=c99): a false condition makes a negative-sized array, which is a hard
+   compile error. ADVANCE THIS to the new last id whenever prims are appended. */
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_spanRecord) ? 1 : -1];
 
 /* Pointer-keyed cache mapping each interned selector symbol to its primitive id
    (PRIM_NONE if it is not an intercepted primitive). Selectors are interned, so

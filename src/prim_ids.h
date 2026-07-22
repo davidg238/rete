@@ -206,4 +206,15 @@
    decoded integer is never NULL, so nil is an unambiguous OOR signal. The Task 6
    nsl decode walk checks `r == nil` (i.e. r == CBOR_OOR_SENTINEL) and fails. */
 #define CBOR_OOR_SENTINEL NULL
+
+/* tuvm#61 job latency: the span seam — spanBegin:/spanEnd:/spanStats:/spanRecord:us:.
+   Appended after sensorArmEvent; no pre-existing id shifts. 118-121 were arrived at
+   by COUNTING PRIM_NAMES (117 entries before this append), not by 117+1 arithmetic,
+   per the standing rule above. The slots these address are NAMELESS in C — the
+   name<->slot table lives in nsl's Spans class, the same division timer_backend.h
+   states for the timer seam. */
+#define PRIM_pf_spanBegin  118
+#define PRIM_pf_spanEnd    119
+#define PRIM_pf_spanStats  120
+#define PRIM_pf_spanRecord 121
 #endif /* OEVM_PRIM_IDS_H */

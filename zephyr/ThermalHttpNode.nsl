@@ -65,13 +65,26 @@ class ThermalHttpNode packageUsing: manifest = () (
      Knows nothing about HTTP. Capabilities arrive as constructor args (the
      Milestone-C rule). The cadence exists only because a ctl record asked for it
      (G9): no unrequested periodic work, and the CPU idles between ticks. *)
-  class ThermalNode = ( | space seam timers sample ctl event tick timer rate | ) (
-    onSpace: sp seam: s timers: t = (
+  class ThermalNode = ( | space seam timers sample ctl event tick timer rate
+                          spans sJob sAcquire sCompute sPublish | ) (
+    (* tuvm#61: the span table arrives as a capability like every other (the
+       Milestone-C constructor-args rule), and the node registers ITS OWN segment
+       names here rather than being handed indices. The names are this class's
+       business — main: has no view into what a thermal job is made of — and
+       register: is idempotent, so a re-entered setup cannot consume the budget.
+       Registration happens ONCE, at construction: a name lookup is a send and an
+       allocation, and the measured path must do neither. *)
+    onSpace: sp seam: s timers: t spans: sn = (
       space::  sp.  seam:: s.  timers:: t.  rate:: 2.
       sample:: sp channel: 'dev/thermal0/sample'.    (* CELL:   latest frame out *)
       ctl::    sp channel: 'dev/thermal0/ctl'.       (* CELL:   {rate: N} in     *)
       event::  sp channel: 'dev/thermal0/event'.     (* STREAM: phase-2 alerts   *)
       tick::   sp channel: 'dev/thermal0/tick'.      (* STREAM: timer pulses     *)
+      spans::     sn.
+      sJob::      sn register: #jobThermal.          (* the whole timer->cell job *)
+      sAcquire::  sn register: #acquire.             (* the I2C fetch             *)
+      sCompute::  sn register: #vmCompute.           (* the raw->List copy        *)
+      sPublish::  sn register: #publish.             (* the put onto the cell     *)
       ^ self )
 
     public start = (
@@ -99,12 +112,27 @@ class ThermalHttpNode packageUsing: manifest = () (
        at:. *)
     sampleOnce = (
       | f oc i |
+      spans begin: sJob.
+      spans begin: sAcquire.
       f:: seam sensorFrame.
-      (f == nil) ifTrue: [ ^ self ].
+      spans end: sAcquire.
+      (f == nil) ifTrue: [
+        (* A failed fetch produces NO span sample, so it has to be counted or it
+           silently IMPROVES the percentiles — the run looks faster because the
+           slow cases stopped being measured. The outer sJob span is abandoned
+           deliberately rather than closed with a bogus duration; span.c self-heals
+           on the next begin (the exception-unwind case). *)
+        spans noteFailure: sJob.
+        ^ self ].
+      spans begin: sCompute.
       oc:: seam OrderedCollection new.
       i:: 1. [ i <= 64 ] whileTrue: [
         oc add: (f basicAt: i). i:: i + 1 ].
+      spans end: sCompute.
+      spans begin: sPublish.
       sample put: '' value: (seam List fromCollection: oc).
+      spans end: sPublish.
+      spans end: sJob.
       ^ self )
 
     (* Untrusted-input boundary: a bad rate leaves the current cadence standing. *)
@@ -117,7 +145,8 @@ class ThermalHttpNode packageUsing: manifest = () (
         rate:: r. self disarm. self arm ].
       ^ self )
   ) : (
-    public onSpace: sp seam: s timers: t = ( ^ self new onSpace: sp seam: s timers: t )
+    public onSpace: sp seam: s timers: t spans: sn = (
+      ^ self new onSpace: sp seam: s timers: t spans: sn )
   )
 
   (* ---- generic transport: a path->block route table over the chunked prims ----
@@ -169,24 +198,39 @@ class ThermalHttpNode packageUsing: manifest = () (
      that names a class aborts on outer-scope resolution). /stats and / name classes
      and read platform metrics, so they route through self-send helpers. *)
   public main: platform args: args = (
-    | space timers thermal tview http |
+    | space timers thermal tview http spans sRender |
     space::   platform space.
     timers::  platform Timers usingSpace: space seam: platform.
+    (* tuvm#61: one span table for the whole node, created here and handed down as
+       a capability. Slots 0 and 1 are already taken by the two spans http_core.c
+       stamps itself, so the first name registered below lands at 2 — see
+       kernel.nsl's Spans>>ensureTables for why that is seeded rather than
+       computed from the slot ceiling. *)
+    spans::   platform Spans new.
     (* REQUIRED — the seam posts every timer fire on the reserved 'sys/timer' path
        carrying only a token; Timers>>dispatch: fans it out onto the target
        channel, and that wiring lives in the CALLER by design (kernel.nsl Timers
        header). Omit it and fires reach 'sys/timer' and stop: the sample cell stays
        nil forever and /thermal renders 'no frame' with no error anywhere. *)
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
-    thermal:: ThermalNode onSpace: space seam: platform timers: timers.
+    thermal:: ThermalNode onSpace: space seam: platform timers: timers spans: spans.
     thermal start.
     tview::   ThermalView new.
     http::    HttpServer onSpace: space seam: platform.
+    (* The render is main:'s to name, not the view's: ThermalView is a pure
+       formatter and holds no capabilities. Registered AFTER the node, so the
+       thermal job's four segments read together in the table. *)
+    sRender:: spans register: #render.
 
+    (* The block captures `spans` and `sRender` from this method's temporaries,
+       which is fine — the rule a reified block breaks is naming a CLASS, resolved
+       in outer scope. *)
     http route: '/thermal' do: [ :id :plat |
-        tview renderFrame: ((space channel: 'dev/thermal0/sample') peek) toId: id on: plat ].
+        spans begin: sRender.
+        tview renderFrame: ((space channel: 'dev/thermal0/sample') peek) toId: id on: plat.
+        spans end: sRender ].
     http route: '/hello' do: [ :id :plat | plat httpChunkId: id data: 'hello' ].
-    http route: '/stats' do: [ :id :plat | self showStatsTo: id on: plat ].
+    http route: '/stats' do: [ :id :plat | self showStatsTo: id on: plat spans: spans ].
     http route: '/'      do: [ :id :plat | self showIndexTo: id on: plat ].
 
     http listen: 18080.
@@ -194,7 +238,8 @@ class ThermalHttpNode packageUsing: manifest = () (
   )
 
   showIndexTo: id on: platform = ( ^ self indexToId: id on: platform )
-  showStatsTo: id on: platform = ( ^ self statsPageOn: platform toId: id )
+  showStatsTo: id on: platform spans: spans = (
+    ^ self statsPageOn: platform toId: id spans: spans )
 
   indexToId: id on: platform = (
     platform httpChunkId: id data:
@@ -210,17 +255,21 @@ class ThermalHttpNode packageUsing: manifest = () (
     ^ self
   )
 
-  statsPageOn: platform toId: id = (
+  statsPageOn: platform toId: id spans: spans = (
     | m |
     m:: platform metrics.
+    (* The latency table carries eleven columns and wants room; the prose does not.
+       So the PAGE is wide and the running text is constrained per-element instead
+       — a 34rem body made the histogram column wrap to two lines on a large
+       monitor while three quarters of the screen sat empty. *)
     platform httpChunkId: id data:
       '<html><head><title>tuvm vm stats</title></head>',
-      '<body style=''font-family:system-ui,sans-serif;max-width:34rem;margin:3rem auto;padding:0 1rem;line-height:1.5''>',
+      '<body style=''font-family:system-ui,sans-serif;max-width:78rem;margin:3rem auto;padding:0 1rem;line-height:1.5''>',
       '<h1>tuvm &mdash; vm stats</h1>',
-      '<p>A live snapshot from <code>platform metrics</code> (the #Metrics Record), read on request &mdash; no periodic publisher (G9).</p>',
-      '<table style=''border-collapse:collapse;width:100%''>',
+      '<p style=''max-width:44rem''>A live snapshot from <code>platform metrics</code> (the #Metrics Record), read on request &mdash; no periodic publisher (G9).</p>',
+      '<table style=''border-collapse:collapse;width:100%;max-width:44rem''>',
       '<thead><tr><th style=''text-align:left;border-bottom:2px solid #ccc;padding:.4rem''>metric</th>',
-      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>value</th></tr></thead><tbody>'.
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>value</th></tr></thead><tbody>'.
     self statRow: 'heap size (bytes)'        value: (m at: #heapSize         ifAbsent: [ -1 ]) toId: id on: platform.
     self statRow: 'live bytes'               value: (m at: #liveBytes        ifAbsent: [ -1 ]) toId: id on: platform.
     self statRow: 'heap high-water'          value: (m at: #heapHighWater    ifAbsent: [ -1 ]) toId: id on: platform.
@@ -239,14 +288,91 @@ class ThermalHttpNode packageUsing: manifest = () (
        repeating timer folding into one pending wakeup, which is the fix working. *)
     self statRow: 'pulse drops (ISR mailbox)' value: (m at: #pulseDrops       ifAbsent: [ -1 ]) toId: id on: platform.
     self statRow: 'pulse coalesced'          value: (m at: #pulseCoalesced   ifAbsent: [ -1 ]) toId: id on: platform.
-    platform httpChunkId: id data: '</tbody></table><p><a href=''/''>&larr; home</a></p></body></html>'.
+    platform httpChunkId: id data: '</tbody></table>'.
+    self latencyTableOn: platform toId: id spans: spans.
+    platform httpChunkId: id data: '<p><a href=''/''>&larr; home</a></p></body></html>'.
+    ^ self
+  )
+
+  (* tuvm#61: the job-latency table. Every slot renders, C-owned ones included —
+     httpQueue and egress sit at 0 and 1 and are named in kernel.nsl's seed, so
+     nothing here has to know which spans C stamps and which nsl brackets.
+     The raw histogram ships beside the summary on purpose: it lets whoever is at
+     the bench see the SHAPE that produced the decades, which is the whole reason
+     the node publishes buckets instead of a single computed number. *)
+  latencyTableOn: platform toId: id spans: spans = (
+    | i |
+    platform httpChunkId: id data:
+      '<h2>job latency</h2>',
+      '<p style=''max-width:44rem''>Percentiles are the bucket DECADE a sample falls in, never a number ',
+      'interpolated inside one &mdash; a log-scaled bucket''s mass is not uniform, ',
+      'so an interpolated figure would carry precision the data does not contain. ',
+      'max is exact. No p95 is reported below n&nbsp;&ge;&nbsp;200.</p>',
+      '<table style=''border-collapse:collapse;width:100%''>',
+      '<thead><tr><th style=''text-align:left;border-bottom:2px solid #ccc;padding:.4rem''>span</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>n</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>fails</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>p50</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>p95</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>min &micro;s</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>max &micro;s</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>sumLo</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>sumHi</th>',
+      '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>histogram</th></tr></thead><tbody>'.
+    i:: 0. [ i < spans slotCount ] whileTrue: [
+      self latencyRow: i toId: id on: platform spans: spans.
+      i:: i + 1 ].
+    platform httpChunkId: id data: '</tbody></table>'.
+    ^ self
+  )
+
+  (* The reducer answers #insufficient when §4.2's gate is unmet. Say WHY in the
+     cell rather than printing the symbol: a reader who sees `n<200` knows the
+     figure is withheld and what would restore it, where `#insufficient` reads like
+     an error. The symbol stays the API — only the rendering changes. *)
+  decadeCell: aDecade = (
+    aDecade = #insufficient ifTrue: [ ^ 'n&lt;200' ].
+    ^ aDecade printString )
+
+  latencyRow: slot toId: id on: platform spans: spans = (
+    | s b j |
+    s:: spans statsAt: slot.
+    (* b0..b5 are stats fields 6..11 — the decade edges are <100us, <1ms, <10ms,
+       <100ms, <1s, >=1s (src/span.c's bucket_of). *)
+    b:: ''. j:: 6. [ j <= 11 ] whileTrue: [
+      b:: b , (s basicAt: j) printString , ' '. j:: j + 1 ].
+    platform httpChunkId: id data:
+      '<tr><td style=''padding:.35rem;border-bottom:1px solid #eee''>' ,
+      (spans nameAt: slot) printString ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
+      (s basicAt: 1) printString ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
+      (spans failuresAt: slot) printString ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;white-space:nowrap''>' ,
+      (self decadeCell: (spans p50At: slot)) ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;white-space:nowrap''>' ,
+      (self decadeCell: (spans p95At: slot)) ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
+      (s basicAt: 2) printString ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
+      (s basicAt: 3) printString ,
+      (* The SUM ships raw, as the two halves the C side keeps it in. The node does
+         not compute a mean: reassembling hi*1000000000 + lo here would overflow a
+         31-bit SMI the moment hi reaches 2, which is the very reason span.c splits
+         it. Accumulate on the device, divide off it. *)
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
+      (s basicAt: 4) printString ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
+      (s basicAt: 5) printString ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
+      b , '</td></tr>'.
     ^ self
   )
 
   statRow: label value: v toId: id on: platform = (
     platform httpChunkId: id data:
       '<tr><td style=''padding:.35rem;border-bottom:1px solid #eee''>' , label ,
-      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>' ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
       v printString , '</td></tr>'.
     ^ self
   )

@@ -931,6 +931,91 @@ merged — until it lands the C6 still depends on the local branch; whether to b
 workspace to Zephyr 4.3.1 wholesale (mbedtls Kconfig renames + OT deprecated-callback
 removals sit in that range, so it needs its own compat pass).
 
+**Job-latency instrumentation — rung CLOSED 2026-07-21 (#61, relates #53, #63, #65).**
+`ThermalHttpNode` on the WROOM-32 now measures and publishes segmented end-to-end latency
+for both job shapes it runs — timer→thermal→cell and request→format→response — as a live
+table on the node's own `/stats` page. Seven spans, all past the n ≥ 200 gate, measured on
+hardware over 310 thermal jobs and 296 paced HTTP requests:
+
+| span | n | mean µs | min µs | max µs | max/min | p50 | p95 |
+|---|---|---|---|---|---|---|---|
+| `httpQueue` (C-owned) | 297 | 61 | 41 | 118 | 2.9× | <100us | <100us |
+| `egress` (C-owned) | 3567 | 1319 | 98 | 71288 | **727×** | <1ms | <100ms |
+| `jobThermal` | 310 | 25229 | 24408 | 28338 | 1.16× | <100ms | <100ms |
+| `acquire` | 310 | 12798 | 12491 | 15533 | 1.24× | <100ms | <100ms |
+| `vmCompute` | 310 | 4101 | 3961 | 4804 | 1.21× | <10ms | <10ms |
+| `publish` | 310 | 8225 | 7848 | 9045 | 1.15× | <10ms | <10ms |
+| `render` | 296 | 39837 | 37401 | 98484 | 2.6× | <100ms | <100ms |
+
+Derived (**not measured** — subtractions, labelled as such): `render` = 15894 µs egress +
+**23942 µs compute** (12.05 chunks/render); client RTT p50 159071 µs − node service 39898 µs
+= **119173 µs network, 75% of what the client feels**. Client side, 296 paced requests:
+p50 159 ms, p95 179 ms, max 289 ms. DRAM cost **384 B** measured (`dram0` 195,936 →
+196,320 B; a further 16 B for the per-request HTTP stamp brings the shipped node to
+196,336 B / 99.86%). Encoded record sizes finally **measured**, not estimated:
+`#LatencySpan` **140 B**, `#Metrics` **195 B**.
+
+1. **The segments account for 99.6% of their parent** — `acquire` + `vmCompute` +
+   `publish` = 25,124 µs against `jobThermal`'s 25,229 µs. The 105 µs gap across four
+   begin/end pairs is the instrumentation's entire cost: **~13 µs per bracket**, including
+   the nsl send. Spans are effectively free at this granularity, which is the precondition
+   for the whole approach.
+
+2. **The VM is not the bottleneck of the sensor job; nothing is.** The I2C read is 12.8 ms,
+   everything the VM does is 12.3 ms — parity. But **two-thirds of the VM's share is
+   copying the same 64 numbers around**: `vmCompute` builds an OrderedCollection (4.1 ms),
+   and `publish` (8.2 ms) contains a *second* 64-element copy (`List fromCollection:`) plus
+   the channel's value algebra. Inferred split ~4.1 ms copy + ~4.1 ms `checkValue:`/
+   `rankOf:`. A single 25 ms job number would have said none of this.
+
+3. **Everything the VM touches is predictable; everything the network touches is wild.**
+   max/min is 1.15–1.24× across every VM segment and **727×** for `egress`, which is also
+   the only span whose p95 sits two decades above its p50. This is the argument for
+   percentiles-over-means in one column: a mean of 1319 µs describes neither the 98 µs
+   common case nor the 71 ms tail.
+
+4. **A collect-when-full GC on a saturated heap produced no latency outliers.** 1523
+   collections during the run, heap high-water pegged at 53,228/53,248 — and `vmCompute`'s
+   max is 1.21× its min. GC is frequent, cheap, and inside the mean rather than in the
+   tail. This contradicts the usual intuition and is worth citing.
+
+5. **The u32-difference wrap argument is only valid in the units the subtraction happens —
+   and the device run is what caught it.** The seam offered one `span_now()` documented as
+   free-running microseconds; the Zephyr backend converted cycles→µs *before* returning, so
+   its value domain wrapped at 17,895,697 rather than 2^32. `/stats` showed `jobThermal`
+   max = **−17872490** with a phantom sample in the ≥1 s bucket; the arithmetic pins it
+   exactly (4,277,094,806 = 23,207 − 17,895,697 + 2^32 — an ordinary 23 ms job). **Silent
+   on the host**, where the backend unit really is the microsecond. Fixed by moving the
+   subtraction into the backend (`span_stamp()` + `span_elapsed_us()`) and renaming the
+   stamp so nobody reads microseconds into it again.
+
+6. **The node cannot survive an unpaced request burst — filed as #65 (P1).** 500
+   back-to-back requests took it off the network entirely: `EHOSTUNREACH`, `ip neigh`
+   INCOMPLETE, **no panic and nothing on the console**, recovered only by hardware reset.
+   At 10/s half the connections are refused; at 4/s it is 297/300. `pulseCoalesced` and
+   `pulseDrops` were **0** throughout, so this is *not* the #54 blocking-render-starves-
+   the-pump pattern. The published HTTP figures are therefore from a **paced** run and are
+   labelled so. Pre-existing; #61's spans are what made it characterisable.
+
+7. **Two more source lists, and the count was never the point (#63).** `src/span.c` had to
+   reach *nine* enumerated lists across two repos, not the seven #63 recorded.
+   `tests/http_roundtrip_host.sh` and `tests/hanoi_ab_host.sh` had been failing to link
+   since the prims landed, and the suite's `0 failed` never saw them — neither is invoked by
+   `run_tests_oevm.py`. `hanoi_ab_host.sh` was additionally missing `sensor_posix.c` from an
+   *earlier* rung entirely.
+
+**Deliberately not built:** the `tickQueue` span (plan Task 12), dropped on David's call —
+spending the last of the DRAM on the one span that touches the ISR mailbox, a seam #34/#55
+had just stabilised and which #62 notes has no automated Zephyr coverage, is a bad trade.
+The published table is complete without it.
+
+Design: `docs/design/2026-07-21-job-latency-instrumentation-design.md` (with two
+implementation addenda); plan: `docs/superpowers/plans/2026-07-21-job-latency-instrumentation.md`.
+`CLAIMS.md` gains the latency rows; `metrics-spec.md` gains the latency group and has its
+*"histograms — nodes can't afford the slots"* line removed as now-false. Open: #65 (burst
+fragility), and the derived columns above are subtractions rather than measurements —
+closing that would need a span inside `httpChunk:` on the nsl side of the write.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),

@@ -5,6 +5,7 @@
          -lm -o /tmp/tp && /tmp/tp
    (link set = image-VM set minus oevm_image_main.c; this file supplies main). */
 #include "../src/oevm.h"
+#include "../src/span.h"          /* tuvm#61: span_reset_all for the prim assertions */
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -122,6 +123,56 @@ int main(void) {
     assert(fetched == inner);
 
     gc_additional_roots_hook = NULL;
+
+    /* --- tuvm#61: the span prims (118-121) through the FULL send path.
+       Deliberately routed via send()+sel() rather than platform_dispatch(): that
+       exercises selector_prim_id's name lookup, so if PRIM_NAMES and the enum ever
+       drift apart these assertions fail rather than silently calling the wrong
+       prim. src/span.c's own arithmetic is covered by tests/test_span.c; what is
+       new here is the SMI tag/untag across the capability boundary. */
+    {
+        oop rec_args[2];
+        oop slot2 = TAG_SMI(2);
+        oop stats, n, minUs, maxUs, sumLo, sumHi, b2, b0;
+
+        span_reset_all();
+
+        rec_args[0] = TAG_SMI(2);
+        rec_args[1] = TAG_SMI(1500);        /* 1.5 ms -> bucket 2 (< 10 ms) */
+        send(pf, sel("spanRecord:us:"), 2, rec_args);
+
+        stats = send(pf, sel("spanStats:"), 1, &slot2);
+        n     = send(stats, sel("basicAt:"), 1, (oop[]){ TAG_SMI(1) });
+        minUs = send(stats, sel("basicAt:"), 1, (oop[]){ TAG_SMI(2) });
+        maxUs = send(stats, sel("basicAt:"), 1, (oop[]){ TAG_SMI(3) });
+        sumLo = send(stats, sel("basicAt:"), 1, (oop[]){ TAG_SMI(4) });
+        sumHi = send(stats, sel("basicAt:"), 1, (oop[]){ TAG_SMI(5) });
+        b0    = send(stats, sel("basicAt:"), 1, (oop[]){ TAG_SMI(6) });
+        b2    = send(stats, sel("basicAt:"), 1, (oop[]){ TAG_SMI(8) });
+
+        assert(UNTAG_SMI(n)     == 1    && "n");
+        assert(UNTAG_SMI(minUs) == 1500 && "minUs");
+        assert(UNTAG_SMI(maxUs) == 1500 && "maxUs");
+        assert(UNTAG_SMI(sumLo) == 1500 && "sumUsLo");
+        assert(UNTAG_SMI(sumHi) == 0    && "sumUsHi");
+        assert(UNTAG_SMI(b2)    == 1    && "the 1-10 ms decade got the sample");
+        assert(UNTAG_SMI(b0)    == 0    && "the <100 us decade did not");
+
+        /* begin/end reaches span.c through the seam. The duration is not asserted
+           here — under the default virtual clock it is zero, and asserting a
+           duration is test_span's job, where the clock is controllable. */
+        {
+            oop slot3 = TAG_SMI(3);
+            send(pf, sel("spanBegin:"), 1, &slot3);
+            send(pf, sel("spanEnd:"), 1, &slot3);
+            stats = send(pf, sel("spanStats:"), 1, &slot3);
+            n = send(stats, sel("basicAt:"), 1, (oop[]){ TAG_SMI(1) });
+            assert(UNTAG_SMI(n) == 1
+                   && "begin/end through the prim seam recorded one sample");
+        }
+
+        printf("test_platform: span prims OK\n");
+    }
 
     printf("TASK2 OK\n");
     return 0;

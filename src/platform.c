@@ -9,6 +9,7 @@
 #include "http.h"
 #include "http_backend.h"
 #include "sensor_backend.h"  /* AMG8833 thermal rung: the Tier-1 sensor seam */
+#include "span.h"            /* tuvm#61: job-latency span slots */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -879,6 +880,47 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         int32_t thr = IS_SMI(args[2]) ? (int32_t)UNTAG_SMI(args[2]) : 0;
         sensor_arm_event(chan_id, hidx, thr);
         *out = platform_object();
+        return 1;
+    }
+    /* --- tuvm#61 job latency: the span seam. Slots are integers; the name table
+       lives in nsl (kernel.nsl's Spans class), so C never learns what slot 3
+       means — the timer-seam convention, and the reason no name strings land in
+       the WROOM-32's DRAM. All four answer the platform capability except
+       spanStats:, which answers its own snapshot (the heapStats/sysStats
+       convention). A bad slot index is INERT rather than fatal (src/span.c
+       guards), so a miscomputed index in nsl loses samples instead of corrupting
+       memory — the right failure mode for telemetry. */
+    case PRIM_pf_spanBegin:
+        span_begin((int)UNTAG_SMI(args[0]));
+        *out = platform_object();
+        return 1;
+    case PRIM_pf_spanEnd:
+        span_end((int)UNTAG_SMI(args[0]));
+        *out = platform_object();
+        return 1;
+    case PRIM_pf_spanRecord:
+        /* args mirror the keyword selector left-to-right (the
+           spaceRegister:block:owner: convention): spanRecord: slot us: n
+           -> args[0]=slot, args[1]=microseconds. */
+        span_record((int)UNTAG_SMI(args[0]), (uint32_t)UNTAG_SMI(args[1]));
+        *out = platform_object();
+        return 1;
+    case PRIM_pf_spanStats: {
+        /* Same GC-safety shape as heapStats/sysStats above: every scalar is copied
+           into a C local BEFORE the single allocating call (indexable_new), and the
+           stores are SMIs (immediates, no allocation), so no heap oop is held
+           across an allocation and no gc_temp_root pin is required.
+           Every field is SMI-safe by construction: counts and microsecond
+           magnitudes are far below 2^30, and sum is pre-split at 1e9 by span.c
+           precisely so sumUsLo cannot exceed it (src/span.h). */
+        uint32_t st[SPAN_STATS_FIELDS];
+        int i;
+        oop r;
+        span_stats((int)UNTAG_SMI(args[0]), st);
+        r = indexable_new(SPAN_STATS_FIELDS);
+        for (i = 0; i < SPAN_STATS_FIELDS; i++)
+            ((struct ObjectInstance *)r)->slots[i + 1] = TAG_SMI((intptr_t)st[i]);
+        *out = r;
         return 1;
     }
     default:

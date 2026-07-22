@@ -1,7 +1,17 @@
 #include "http_backend.h"
+#include "../src/span.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+
+/* tuvm#61: the virtual clock span_posix.c reads, stubbed here for the same reason
+   tests/test_span.c stubs it — linking the real timer_posix.c would drag in
+   space_post and from there the whole VM, defeating a backend-only unit test.
+   Because the test OWNS the clock, the queue-wait duration below is an exact
+   assertion rather than a timing race. */
+static uint64_t stub_ms;
+uint64_t timer_backend_millis(void) { return stub_ms; }
 
 static void test_frame_200(void) {
     char buf[512];
@@ -194,6 +204,58 @@ static void test_stream_lifecycle(void) {
     assert(http_inflight_count() == 0);                   /* http_end freed the slot */
 }
 
+/* tuvm#61: the two C-OWNED spans. They are stamped inside the core functions that
+   own the work — not bracketed by the app — precisely so no node can ship an
+   uninstrumented HTTP path by forgetting a bracket. What this test pins down is
+   that the samples appear on the right transitions and, just as importantly, that
+   they do NOT appear on the paths that do no work (a shed request, a take from an
+   empty ring): a phantom sample moves the percentiles with a duration nobody
+   waited for, which is worse than a missing one. */
+static void test_span_instrumentation(void) {
+    uint32_t st[SPAN_STATS_FIELDS];
+    int id, tid;
+    char m[8], p[64];
+
+    span_reset_all();
+    http_backend_reset();
+    stub_ms = 0;
+
+    id = http_accept_request(-1, "GET", 3, "/thermal", 8);
+    assert(id >= 0);
+    span_stats(SPAN_SLOT_HTTP_QUEUE, st);
+    assert(st[SPAN_STAT_N] == 0 && "no sample until the request is TAKEN");
+
+    stub_ms = 5;                                  /* 5 ms sat in the ring */
+    assert(http_take_request(&tid, m, sizeof m, p, sizeof p) == 1);
+    span_stats(SPAN_SLOT_HTTP_QUEUE, st);
+    assert(st[SPAN_STAT_N] == 1     && "accept->take recorded one queue sample");
+    assert(st[SPAN_STAT_MAX] == 5000 && "the queue wait, in microseconds");
+    assert(st[SPAN_STAT_B2] == 1    && "5 ms lands in the 1-10 ms decade");
+
+    /* A take from an empty ring returns before any slot exists to close. */
+    stub_ms = 99;
+    assert(http_take_request(&tid, m, sizeof m, p, sizeof p) == 0);
+    span_stats(SPAN_SLOT_HTTP_QUEUE, st);
+    assert(st[SPAN_STAT_N] == 1 && "an empty-ring take records nothing");
+
+    /* Egress: one sample per CHUNK. http_begin/http_end write too, but they are
+       fixed-size framing, not payload — folding them in would report a payload
+       cost the caller cannot act on. stdout is the injected sink for fd -1, so
+       redirect it exactly as test_stream_lifecycle does. */
+    freopen("/tmp/tuvm_span.out", "w", stdout);
+    http_begin(id, 200);
+    http_chunk(id, "AB", 2);
+    http_chunk(id, "CDE", 3);
+    http_chunk(id, "", 0);                        /* 0-length: never emitted */
+    http_end(id);
+    fflush(stdout);
+    if (!freopen("/dev/tty", "w", stdout)) {}     /* best-effort restore, as above */
+
+    span_stats(SPAN_SLOT_EGRESS, st);
+    assert(st[SPAN_STAT_N] == 2 && "one egress sample per emitted chunk, and none "
+                                   "for the 0-length chunk that is never written");
+}
+
 int main(void) {
     test_frame_200();
     test_frame_404();
@@ -206,6 +268,7 @@ int main(void) {
     test_frame_chunk_header();
     test_frame_chunked_headers();
     test_stream_lifecycle();
+    test_span_instrumentation();
     printf("test_http OK\n");
     return 0;
 }

@@ -22,10 +22,12 @@ case "${OEVM_BUILD:-}" in
 esac
 STD="-std=c99 -Isrc"; OUT=/tmp/tuvm_ctest; fail=0
 ENG_COMMON="src/platform.c src/serial.c src/udp.c src/http.c src/http_core.c src/mirror.c src/space.c src/handles.c \
+  src/span.c \
   src/backend/posix/platform_posix.c src/backend/posix/serial_posix.c src/backend/posix/udp_posix.c \
   src/backend/posix/http_posix.c \
   src/backend/posix/pulse_posix.c \
   src/backend/posix/timer_posix.c \
+  src/backend/posix/span_posix.c \
   src/backend/posix/sensor_posix.c"
 ENG_A="src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c $ENG_COMMON src/solidified_image.c"
 ENG_B="src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c $ENG_COMMON src/kernel_boot.c"
@@ -76,7 +78,16 @@ run test_cbor "$ENG_B"
 # header comment — NOT serial.c/udp.c, which need the full VM)
 run test_serial "src/backend/posix/serial_posix.c"
 run test_udp    "src/backend/posix/udp_posix.c"
-run test_http   "src/http_core.c src/backend/posix/http_posix.c"
+# tuvm#61: http_core.c now stamps the two C-owned spans, so span.c + the posix
+# microsecond clock join the link set. The test supplies its own
+# timer_backend_millis stub (same reason as test_span below).
+run test_http   "src/http_core.c src/backend/posix/http_posix.c src/span.c src/backend/posix/span_posix.c"
+# tuvm#61: job-latency span slots (src/span.c + the posix microsecond clock seam).
+# Backend-only link like test_http/test_serial/test_udp above — span.c has no VM
+# dependencies at all, which is the point: any context may bump a slot. The test
+# supplies its own timer_backend_millis stub rather than linking timer_posix.c,
+# which would drag in space_post and from there the whole VM; see the test header.
+run test_span   "src/span.c src/backend/posix/span_posix.c"
 # Header-only frame ABI test
 printf '%-28s ' test_frame_abi
 if $CC $STD tests/test_frame_abi.c -o $OUT 2>/tmp/tuvm_ctest.log && $OUT >/dev/null 2>&1; then echo PASS; else echo FAIL; cat /tmp/tuvm_ctest.log; fail=1; fi

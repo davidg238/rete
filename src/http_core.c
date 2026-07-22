@@ -5,6 +5,8 @@
    http_take_request (via http_pump) and http_respond all run on the one VM
    reactor thread at the pumpEvents safe point, so no lock is needed. */
 #include "http_backend.h"
+#include "span.h"
+#include "span_backend.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -92,7 +94,17 @@ int http_frame_response(int status, const char *body, int body_len,
 }
 
 struct InflightSlot { int live; int id; int fd; };
-struct RingItem { int id; char method[HTTP_METHOD_MAX]; char path[HTTP_PATH_MAX]; };
+struct RingItem {
+    int id; char method[HTTP_METHOD_MAX]; char path[HTTP_PATH_MAX];
+    /* #61: span_stamp() at accept, closed at take. An OPAQUE backend unit, not
+       microseconds — only span_elapsed_us() may interpret it (span_backend.h).
+       The stamp lives on the RING item
+       rather than on a shared slot start because several requests can be queued at
+       once and one shared start would have them overwrite each other. It rides the
+       ring rather than the in-flight table because the interval being measured is
+       exactly the ring's — enqueue to dequeue; the in-flight slot outlives it. */
+    uint32_t accepted_at;
+};
 
 static struct InflightSlot inflight[OEVM_HTTP_INFLIGHT];
 static struct RingItem ring[OEVM_HTTP_INFLIGHT];
@@ -144,6 +156,7 @@ int http_accept_request(int fd, const char *method, int ml,
     ring[tail].id = id;
     copy_bounded(ring[tail].method, HTTP_METHOD_MAX, method, ml);
     copy_bounded(ring[tail].path, HTTP_PATH_MAX, path, pl);
+    ring[tail].accepted_at = span_stamp();    /* #61: opens the httpQueue span */
     ring_count++;
     return id;
 }
@@ -154,6 +167,12 @@ int http_take_request(int *id, char *method, int mcap, char *path, int pcap) {
     *id = it->id;
     copy_bounded(method, mcap, it->method, (int)strlen(it->method));
     copy_bounded(path, pcap, it->path, (int)strlen(it->path));
+    /* #61: close the httpQueue span. span_record rather than span_begin/span_end
+       because the start is per-REQUEST, and the u32 difference is correct across a
+       counter wrap so long as the wait is shorter than the wrap period. The shed
+       path above never reaches here, so a 503 contributes no sample — it is a
+       failure, counted in nsl, not a fast job. */
+    span_record(SPAN_SLOT_HTTP_QUEUE, span_elapsed_us(it->accepted_at));
     ring_head = (ring_head + 1) % OEVM_HTTP_INFLIGHT;
     ring_count--;
     return 1;
@@ -193,9 +212,18 @@ void http_chunk(int id, const char *data, int len) {
     char szline[16];
     int sn = http_frame_chunk_header(len, szline, sizeof szline);
     if (sn < 0) return;
-    http_write(fd, szline, sn);
-    http_write(fd, data, len);
-    http_write(fd, "\r\n", 2);
+    {   /* #61: the egress span — one sample per emitted chunk, covering all three
+           writes because they are one chunk's worth of transport cost and a caller
+           tuning page size acts on the total, not on the payload write alone.
+           http_begin/http_end are deliberately outside: their framing is fixed-size
+           and per-response, so folding them in would smear a constant across a
+           per-chunk distribution. */
+        uint32_t t0 = span_stamp();
+        http_write(fd, szline, sn);
+        http_write(fd, data, len);
+        http_write(fd, "\r\n", 2);
+        span_record(SPAN_SLOT_EGRESS, span_elapsed_us(t0));
+    }
 }
 
 void http_end(int id) {
