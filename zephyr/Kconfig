@@ -9,4 +9,24 @@ config TUVM_WIFI_PSK
 	string "WiFi WPA2 PSK for the HTTP node"
 	default ""
 
+# #65 diagnostic. Default n so it never ships in a normal build: it costs a
+# thread + stack and prints forever. Turned on by the prj_esp32_netdiag.conf
+# overlay (run.sh --conf-extra), which also enables NET_BUF_POOL_USAGE.
+config TUVM_NET_HEARTBEAT
+	bool "Periodic net-buffer / context census on the console (#65 diagnostic)"
+	default n
+	depends on NETWORKING
+	help
+	  Prints a one-line census of the net_pkt slabs, the net_buf data pools and
+	  the in-use net_contexts every TUVM_NET_HEARTBEAT_MS. Exists to answer one
+	  question: when the node goes unreachable under load while still associated
+	  to the AP, has a packet pool drained to zero (exhaustion) or is the kernel
+	  no longer scheduling at all (deadlock)? The line stopping is as much of a
+	  result as any value in it.
+
+config TUVM_NET_HEARTBEAT_MS
+	int "Heartbeat period in milliseconds"
+	default 2000
+	depends on TUVM_NET_HEARTBEAT
+
 source "Kconfig.zephyr"

@@ -142,6 +142,52 @@ static void wifi_bringup(void) {
 }
 #endif /* CONFIG_WIFI */
 
+#ifdef CONFIG_TUVM_NET_HEARTBEAT
+/* #65 diagnostic — a census of the packet pools on its OWN thread.
+   Two things make this the right next instrument after the net_mgmt handlers
+   proved the node stays associated while going unreachable:
+     1. It runs on a thread that is NOT the VM reactor and NOT the net stack, so
+        the line stopping is itself a result — it separates "a pool drained to
+        zero" (exhaustion, the counts march down and stay down) from "nothing is
+        scheduling any more" (deadlock, the line simply stops mid-run).
+     2. Every number is read with no allocation, so observing costs none of the
+        resource being observed.
+   Deliberately printk and not LOG_INF: the log subsystem buffers through its own
+   pool and a wedged system is exactly when that stops coming out. */
+#include <zephyr/net/net_pkt.h>
+#include <zephyr/net/net_context.h>
+#include "http_backend.h"
+
+static void count_ctx(struct net_context *ctx, void *user_data) {
+    ARG_UNUSED(ctx);
+    (*(int *)user_data)++;
+}
+
+static void net_heartbeat(void *a, void *b, void *c) {
+    ARG_UNUSED(a); ARG_UNUSED(b); ARG_UNUSED(c);
+    struct k_mem_slab *rx, *tx;
+    struct net_buf_pool *rx_data, *tx_data;
+    for (;;) {
+        net_pkt_get_info(&rx, &tx, &rx_data, &tx_data);
+        int ctxs = 0;
+        net_context_foreach(count_ctx, &ctxs);
+        /* pkt slabs are k_mem_slab (always countable); the DATA pools need
+           CONFIG_NET_BUF_POOL_USAGE, which the netdiag overlay turns on. */
+        printk("hb %u ms: pkt rx=%u/%u tx=%u/%u  data rx=%ld/%u tx=%ld/%u  ctx=%d  inflight=%d\n",
+               (unsigned)k_uptime_get_32(),
+               k_mem_slab_num_free_get(rx), rx->info.num_blocks,
+               k_mem_slab_num_free_get(tx), tx->info.num_blocks,
+               atomic_get(&rx_data->avail_count), rx_data->buf_count,
+               atomic_get(&tx_data->avail_count), tx_data->buf_count,
+               ctxs, http_inflight_count());
+        k_msleep(CONFIG_TUVM_NET_HEARTBEAT_MS);
+    }
+}
+/* Priority 7: preemptible and BELOW the net RX/TX threads, so the heartbeat can
+   never itself be the reason a packet is not serviced. */
+K_THREAD_DEFINE(net_hb_tid, 1536, net_heartbeat, NULL, NULL, NULL, 7, 0, 3000);
+#endif /* CONFIG_TUVM_NET_HEARTBEAT */
+
 /* Task 8 (nRF52840-DK acceptance bar): bind the on-board BUTTON1 (P0.11) as the
    PHYSICAL edge source for the pulse seam, via the `pulsegpio` DT alias added in
    boards/nrf52840dk_nrf52840.overlay. Guarded on the alias's existence: for the
