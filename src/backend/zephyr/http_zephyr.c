@@ -106,7 +106,19 @@ int http_listen(int port) {
        probe after 10 s idle, then every 5 s, giving up after 3 => ~25 s to
        reclaim. Best-effort: a build without CONFIG_NET_TCP_KEEPALIVE answers
        -ENOPROTOOPT and the node still runs, just without the reaper. */
-    int ka = 1, idle = 10, intvl = 5, cnt = 3;
+    /* Timings tightened 10/5/3 (~25 s) -> 3/2/2 (~7 s) for tuvm#73. A BROWSER,
+       unlike curl, opens parallel and speculative connections to the origin and
+       leaves them idle-ESTABLISHED. Against NET_MAX_CONTEXTS=5 (four usable
+       after the listener) one open tab can pin the whole budget, and until the
+       reaper fires the node answers nothing at all — measured: every request hung
+       while a tab sat on /stats, and the node replied in 58 ms the instant that
+       tab navigated away. ~25 s is far too long for a page whose own workflow is
+       start -> load -> stop -> read. Costs no RAM: these are socket options, not
+       buffers, so this does not touch the #53 ceiling.
+       Floor is not zero — probes are traffic, and a node on battery pays for them
+       on every idle connection. 3/2/2 is chosen to be under a human's click
+       cadence, not minimal. */
+    int ka = 1, idle = 3, intvl = 2, cnt = 2;
     if (zsock_setsockopt(listen_fd, SOL_SOCKET, SO_KEEPALIVE, &ka, sizeof ka) < 0) {
         printk("http: SO_KEEPALIVE unavailable (errno %d) — no idle-connection reaper\n",
                errno);

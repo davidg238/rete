@@ -328,7 +328,7 @@ class ThermalHttpNode packageUsing: manifest = () (
        for every route. This one covers a bounded window that excluded the
        reporting of it. FIGURES QUOTED IN review/ OR IN THE DECK COME FROM THIS
        TABLE ONLY. *)
-    self captureTableOn: platform toId: id result: capture.
+    self captureTableOn: platform toId: id result: capture spans: spans.
     self spanLegendOn: platform toId: id.
     platform httpChunkId: id data: '<p><a href=''/''>&larr; home</a></p></body></html>'.
     ^ self
@@ -353,6 +353,9 @@ class ThermalHttpNode packageUsing: manifest = () (
       'max is exact. No p95 is reported below n&nbsp;&ge;&nbsp;200.</p>',
       '<table style=''border-collapse:collapse;width:100%''>',
       '<thead><tr><th style=''text-align:left;border-bottom:2px solid #ccc;padding:.4rem''>span</th>',
+      (* tuvm#72: which side stamps the span. Derived in Spans>>langAt: from the
+         reserved C-owned pair, never a hand-kept table. *)
+      '<th style=''text-align:left;border-bottom:2px solid #ccc;padding:.4rem''>lang</th>',
       '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>n</th>',
       '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>fails</th>',
       '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>p50</th>',
@@ -405,6 +408,8 @@ class ThermalHttpNode packageUsing: manifest = () (
     platform httpChunkId: id data:
       '<tr><td style=''padding:.35rem;border-bottom:1px solid #eee''>' ,
       (spans nameAt: slot) printString ,
+      '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;color:#777''>' ,
+      (spans langAt: slot) ,
       '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
       (self groupDigits: (s basicAt: 1)) ,
       '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap''>' ,
@@ -442,7 +447,7 @@ class ThermalHttpNode packageUsing: manifest = () (
      PASSED IN, not fetched: these page methods are pure formatters holding no
      capabilities (the rule this file states about ThermalView), and the outer
      class has no instance variables to reach `space` with. *)
-  captureTableOn: platform toId: id result: r = (
+  captureTableOn: platform toId: id result: r spans: spans = (
     | rows i row |
     platform httpChunkId: id data:
       '<h2>last capture</h2>',
@@ -461,6 +466,7 @@ class ThermalHttpNode packageUsing: manifest = () (
       '</b> ms.</p>',
       '<table style=''border-collapse:collapse;width:100%;max-width:44rem''>',
       '<thead><tr><th style=''text-align:left;border-bottom:2px solid #ccc;padding:.4rem''>span</th>',
+      '<th style=''text-align:left;border-bottom:2px solid #ccc;padding:.4rem''>lang</th>',
       '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>n</th>',
       '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>fails</th>',
       '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>min &micro;s</th>',
@@ -472,6 +478,8 @@ class ThermalHttpNode packageUsing: manifest = () (
       platform httpChunkId: id data:
         '<tr><td style=''padding:.35rem;border-bottom:1px solid #eee''>',
         (row at: #span ifAbsent: [ #unnamed ]) printString,
+        '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;color:#777''>',
+        (spans langAt: i - 1),
         '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>',
         (self groupDigits: (row at: #n ifAbsent: [ 0 ])),
         '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>',
