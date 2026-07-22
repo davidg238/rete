@@ -16,6 +16,14 @@ void udp_open(void) { /* net stack is brought up by Kconfig/boot */ }
 int udp_socket_bind(int port) {
     int fd = zsock_socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
     if (fd < 0) return -1;
+    /* tuvm#72: an AF_INET6 socket defaults to v6-only, so IPv4 datagrams (a wifi
+       node's gw ctl arrives over IPv4) are dropped even with
+       CONFIG_NET_IPV4_MAPPING_TO_IPV6=y. Clear V6ONLY so the socket accepts
+       v4-mapped (::ffff:a.b.c.d) traffic; the send path already builds mapped
+       destinations. Best-effort: on a build without the option it is a no-op and
+       the IPv6/Thread path is unaffected. */
+    int v6only = 0;
+    (void)zsock_setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &v6only, sizeof v6only);
     struct sockaddr_in6 a;
     memset(&a, 0, sizeof a);
     a.sin6_family = AF_INET6;
