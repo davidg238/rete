@@ -905,6 +905,15 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         span_record((int)UNTAG_SMI(args[0]), (uint32_t)UNTAG_SMI(args[1]));
         *out = platform_object();
         return 1;
+    case PRIM_pf_spanReset:
+        /* tuvm#72: nullary — every slot at once. Answers the platform capability
+           like spanBegin:/spanEnd:, not a snapshot. The nsl-side failure counts
+           are NOT reachable from here (they live in kernel.nsl's Spans, because a
+           failure is an app-level concept this seam cannot detect), so Spans>>resetAll
+           clears those itself — see the comment there. */
+        span_reset_all();
+        *out = platform_object();
+        return 1;
     case PRIM_pf_spanStats: {
         /* Same GC-safety shape as heapStats/sysStats above: every scalar is copied
            into a C local BEFORE the single allocating call (indexable_new), and the
