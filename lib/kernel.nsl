@@ -1096,6 +1096,21 @@ class Kernel usingPlatform: platform = () (
       fails at: slot + 1 put: (fails at: slot + 1) + 1. ^ self )
     public failuresAt: slot = ( ^ fails at: slot + 1 )
 
+    (* tuvm#72: clear the accumulator for a bounded capture window. BOTH halves —
+       the C sample table via the prim, and the nsl-side failure counts above,
+       which C cannot see. Clearing only the C half would publish failures
+       cumulative-since-boot beside windowed samples: a wrong table that looks
+       right. The name<->slot table is deliberately NOT cleared — every caller
+       holds a slot index handed out by register:, and moving those indices under
+       them would silently mis-attribute every subsequent sample. *)
+    public resetAll = (
+      | i n |
+      self ensureTables.
+      platform spanReset.
+      i:: 1. n:: fails size.
+      [ i <= n ] whileTrue: [ fails at: i put: 0. i:: i + 1 ].
+      ^ self )
+
     (* --- design 4.1/4.2: percentiles as DECADES, gated on sample count --- *)
 
     (* A p95 computed from too few samples is noise wearing a precise-looking
