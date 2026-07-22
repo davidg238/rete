@@ -87,7 +87,16 @@ case "$BOARD_ID" in
     # of both DRAM and VM heap; see review/model-capability-findings.md). A caller can
     # override (e.g. a heavier compute node on a future non-WiFi esp32 config):
     #   OEVM_HEAP_SIZE=65536 bash run.sh --node SomeNode.nsl
-    : "${OEVM_HEAP_SIZE:=53248}"
+    # 53248 -> 49152 (#65). Adding CONFIG_NET_TCP_KEEPALIVE — the reaper that breaks
+    # the #65 deadlock — overflowed dram0 by 112 B, because #53's ceiling had already
+    # been reached. The 4 KB comes from the VM arena rather than from the net-buffer
+    # pools deliberately: the pools are what the wedge exhausts, so shrinking them to
+    # pay for the fix would trade the cure for the disease.
+    # Justified by measurement, not guessed: /stats on the running node reported live
+    # bytes 21,860 against the 53,248 arena, so 49,152 keeps well over 2x headroom.
+    # Heap high-water reads as the arena ceiling no matter what — the GC is
+    # collect-when-full — so high-water is NOT evidence the node needs 52 KB.
+    : "${OEVM_HEAP_SIZE:=49152}"
     : "${BUILD_DIR:=build-esp32-$MODEL}"
     pick_port '/dev/serial/by-id/*CP210*' /dev/ttyUSB0
     ;;

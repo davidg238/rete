@@ -66,6 +66,12 @@ int http_listen(int port) {
 
 int http_is_listening(void) { return listen_fd >= 0; }
 
+/* #65: always 0 here. The host has no bounded packet pool to exhaust, so the
+   resource-exhaustion accept failure the zephyr backend counts cannot arise;
+   the symmetry exists so callers (stats, the diagnostic heartbeat) need no
+   per-target guard. */
+uint32_t http_accept_failures(void) { return 0; }
+
 /* Accept+read at most one pending connection each tick. Non-blocking accept;
    a short SO_RCVTIMEO bounds the read so a connected-but-silent client can never
    wedge the single-threaded reactor. */

@@ -30,8 +30,58 @@
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/wifi_mgmt.h>
 #include <zephyr/net/net_mgmt.h>
+#include <zephyr/net/net_event.h>   /* NET_EVENT_IPV4_ADDR_ADD/DEL (#65) */
 #include <zephyr/net/dhcpv4.h>
 #include <string.h>
+
+/* #65 INSTRUMENTATION — give the node a voice when it leaves the network.
+   Deliberately LOG-ONLY, not a reconnect: the open half of #65 is a node that
+   goes unreachable under load with a silent console and recovers only on a
+   hardware reset, and until we have SEEN which event precedes it, auto-reconnect
+   would paper over the very evidence we are collecting. Measured 2026-07-21: a
+   run of ~800 served requests plus ~1000 refusals printed NOTHING past the boot
+   banner, because nothing here was ever registered — a deauth, a lost lease, or
+   an iface down were all equally invisible. That silence is why #65 reads as
+   "no crash, no log". Cost is two callback structs and the strings.
+   These fire on the net_mgmt event thread, not the reactor. */
+static void wifi_evt(struct net_mgmt_event_callback *cb, uint64_t ev,
+                     struct net_if *iface) {
+    ARG_UNUSED(iface);
+    switch (ev) {
+    case NET_EVENT_WIFI_CONNECT_RESULT: {
+        const struct wifi_status *st = (const struct wifi_status *)cb->info;
+        printk("wifi-evt: CONNECT_RESULT status=%d\n", st ? st->status : -1);
+        break;
+    }
+    case NET_EVENT_WIFI_DISCONNECT_RESULT: {
+        /* THE line #65 is hunting. If it appears at the moment the node stops
+           answering ARP, the fatal mode is an association loss with no reconnect
+           path — and the fix is a reconnect, not anything in the socket layer. */
+        const struct wifi_status *st = (const struct wifi_status *)cb->info;
+        printk("wifi-evt: DISCONNECT_RESULT status=%d  <-- NODE LEFT THE BSS\n",
+               st ? st->status : -1);
+        break;
+    }
+    default:
+        printk("wifi-evt: unhandled event %llx\n", (unsigned long long)ev);
+        break;
+    }
+}
+
+static void ipv4_evt(struct net_mgmt_event_callback *cb, uint64_t ev,
+                     struct net_if *iface) {
+    ARG_UNUSED(cb); ARG_UNUSED(iface);
+    switch (ev) {
+    case NET_EVENT_IPV4_ADDR_ADD: printk("ip-evt: IPv4 address ADDED\n"); break;
+    /* Distinguishes "lost the lease / address" from "lost the association" —
+       the two produce the same symptom from the host side (ARP INCOMPLETE) and
+       need different fixes. */
+    case NET_EVENT_IPV4_ADDR_DEL: printk("ip-evt: IPv4 address REMOVED  <-- NO ADDRESS\n"); break;
+    default: break;
+    }
+}
+
+static struct net_mgmt_event_callback wifi_cb, ipv4_cb;
 
 /* Associate to WPA2 WiFi (2.4 GHz) from the CONFIG_TUVM_WIFI_* symbols, start
    DHCPv4, and wait for an IPv4 lease before the VM binds the listener. Mirrors
@@ -47,6 +97,16 @@ static void wifi_bringup(void) {
 
     struct net_if *iface = net_if_get_first_wifi();
     if (!iface) { printk("wifi: no wifi iface\n"); return; }
+
+    /* #65: registered BEFORE the connect request so the connect result itself is
+       reported, and so nothing between here and the lease can happen unobserved. */
+    net_mgmt_init_event_callback(&wifi_cb, wifi_evt,
+                                 NET_EVENT_WIFI_CONNECT_RESULT |
+                                 NET_EVENT_WIFI_DISCONNECT_RESULT);
+    net_mgmt_add_event_callback(&wifi_cb);
+    net_mgmt_init_event_callback(&ipv4_cb, ipv4_evt,
+                                 NET_EVENT_IPV4_ADDR_ADD | NET_EVENT_IPV4_ADDR_DEL);
+    net_mgmt_add_event_callback(&ipv4_cb);
 
     struct wifi_connect_req_params p;
     memset(&p, 0, sizeof p);
@@ -81,6 +141,56 @@ static void wifi_bringup(void) {
     printk("wifi: no IPv4 lease after 30s, continuing\n");
 }
 #endif /* CONFIG_WIFI */
+
+#ifdef CONFIG_TUVM_NET_HEARTBEAT
+/* #65 diagnostic — a census of the packet pools on its OWN thread.
+   Two things make this the right next instrument after the net_mgmt handlers
+   proved the node stays associated while going unreachable:
+     1. It runs on a thread that is NOT the VM reactor and NOT the net stack, so
+        the line stopping is itself a result — it separates "a pool drained to
+        zero" (exhaustion, the counts march down and stay down) from "nothing is
+        scheduling any more" (deadlock, the line simply stops mid-run).
+     2. Every number is read with no allocation, so observing costs none of the
+        resource being observed.
+   Deliberately printk and not LOG_INF: the log subsystem buffers through its own
+   pool and a wedged system is exactly when that stops coming out. */
+#include <zephyr/net/net_pkt.h>
+#include <zephyr/net/net_context.h>
+#include "http_backend.h"
+
+static void count_ctx(struct net_context *ctx, void *user_data) {
+    ARG_UNUSED(ctx);
+    (*(int *)user_data)++;
+}
+
+static void net_heartbeat(void *a, void *b, void *c) {
+    ARG_UNUSED(a); ARG_UNUSED(b); ARG_UNUSED(c);
+    struct k_mem_slab *rx, *tx;
+    struct net_buf_pool *rx_data, *tx_data;
+    for (;;) {
+        net_pkt_get_info(&rx, &tx, &rx_data, &tx_data);
+        int ctxs = 0;
+        net_context_foreach(count_ctx, &ctxs);
+        /* pkt slabs are k_mem_slab (always countable); the DATA pools need
+           CONFIG_NET_BUF_POOL_USAGE, which the netdiag overlay turns on. */
+        printk("hb %u ms: pkt rx=%u/%u tx=%u/%u  data rx=%ld/%u tx=%ld/%u  ctx=%d  inflight=%d\n",
+               (unsigned)k_uptime_get_32(),
+               k_mem_slab_num_free_get(rx), rx->info.num_blocks,
+               k_mem_slab_num_free_get(tx), tx->info.num_blocks,
+               atomic_get(&rx_data->avail_count), rx_data->buf_count,
+               atomic_get(&tx_data->avail_count), tx_data->buf_count,
+               ctxs, http_inflight_count());
+        /* #65: accept failures that were not "nothing pending". Non-zero is the
+           signature of the wedge — the listener cannot accept at all. */
+        uint32_t af = http_accept_failures();
+        if (af) printk("hb   accept-failures=%u  <-- LISTENER CANNOT ACCEPT\n", (unsigned)af);
+        k_msleep(CONFIG_TUVM_NET_HEARTBEAT_MS);
+    }
+}
+/* Priority 7: preemptible and BELOW the net RX/TX threads, so the heartbeat can
+   never itself be the reason a packet is not serviced. */
+K_THREAD_DEFINE(net_hb_tid, 1536, net_heartbeat, NULL, NULL, NULL, 7, 0, 3000);
+#endif /* CONFIG_TUVM_NET_HEARTBEAT */
 
 /* Task 8 (nRF52840-DK acceptance bar): bind the on-board BUTTON1 (P0.11) as the
    PHYSICAL edge source for the pulse seam, via the `pulsegpio` DT alias added in

@@ -78,12 +78,51 @@ int http_listen(int port) {
     if (zsock_bind(listen_fd, (struct sockaddr *)&a, sizeof a) < 0) {
         zsock_close(listen_fd); listen_fd = -1; return -1;
     }
-    if (zsock_listen(listen_fd, 4) < 0) {
+    /* Backlog 2, not 4 (#65). A backlogged connection is fully ESTABLISHED and
+       pins the RX net_pkts carrying its request until the app accepts it, so the
+       backlog depth is a direct claim on CONFIG_NET_PKT_RX_COUNT (8). At 4 the
+       backlog alone could pin the whole RX slab, and once it is empty
+       zsock_accept() can never succeed again — the deadlock below. This does not
+       reduce the number of connections served, only how many may queue
+       un-accepted; http_poll() drains one per reactor tick either way. */
+    if (zsock_listen(listen_fd, 2) < 0) {
         zsock_close(listen_fd); listen_fd = -1; return -1;
+    }
+    /* Keep-alive on the LISTENING socket (#65) — this is the deadlock breaker.
+       The stuck connections observed on target were idle ESTABLISHED backlog
+       entries, and with keep-alive off an idle ESTABLISHED connection has NO
+       timer of any kind: nothing was ever going to reap them, so the node stayed
+       deaf until a hardware reset.
+       Set here rather than after accept() because these connections are never
+       accepted — Zephyr copies the keep-alive params from the listening conn when
+       an incoming connection reaches ESTABLISHED (tcp.c keep_alive_param_copy),
+       so setting it on the listener is what reaches a backlog entry at all.
+       After keep_cnt unanswered probes tcp_send_keepalive_probe() calls
+       tcp_conn_close(-ETIMEDOUT), which frees the conn and its RX packets WITHOUT
+       needing to receive anything — that is what makes it break the loop rather
+       than depend on it.
+       The Kconfig defaults are useless here (idle 7200 s); a dead peer must be
+       reaped in seconds, not hours, so idle/intvl/cnt are set explicitly: first
+       probe after 10 s idle, then every 5 s, giving up after 3 => ~25 s to
+       reclaim. Best-effort: a build without CONFIG_NET_TCP_KEEPALIVE answers
+       -ENOPROTOOPT and the node still runs, just without the reaper. */
+    int ka = 1, idle = 10, intvl = 5, cnt = 3;
+    if (zsock_setsockopt(listen_fd, SOL_SOCKET, SO_KEEPALIVE, &ka, sizeof ka) < 0) {
+        printk("http: SO_KEEPALIVE unavailable (errno %d) — no idle-connection reaper\n",
+               errno);
+    } else {
+        zsock_setsockopt(listen_fd, IPPROTO_TCP, TCP_KEEPIDLE,  &idle,  sizeof idle);
+        zsock_setsockopt(listen_fd, IPPROTO_TCP, TCP_KEEPINTVL, &intvl, sizeof intvl);
+        zsock_setsockopt(listen_fd, IPPROTO_TCP, TCP_KEEPCNT,   &cnt,   sizeof cnt);
     }
     zsock_fcntl(listen_fd, F_SETFL, O_NONBLOCK);
     return 0;
 }
+
+/* #65: accept() failures that are NOT "nothing pending". Counted rather than
+   ignored because the two were previously indistinguishable — see http_poll. */
+static uint32_t accept_fail_count;
+uint32_t http_accept_failures(void) { return accept_fail_count; }
 
 int http_is_listening(void) { return listen_fd >= 0; }
 
@@ -91,11 +130,31 @@ void http_poll(void) {
     if (listen_fd < 0) return;
     int fd = zsock_accept(listen_fd, NULL, NULL);
     if (fd < 0) {
-        /* Nothing pending. The nsl reactor loop `[ true ] whileTrue: [ pumpEvents.
-           space drain ]` busy-spins with no sleep; on Zephyr that starves the
-           cooperative WiFi/TCP driver threads, so responses never flush and new
-           connections never get accepted. Yield the CPU here (idle path only) so
-           the net stack runs — a device-transport concern, invisible to nsl. */
+        /* EAGAIN/EWOULDBLOCK is the ONLY benign case: nothing pending. The nsl
+           reactor loop `[ true ] whileTrue: [ pumpEvents. space drain ]`
+           busy-spins with no sleep; on Zephyr that starves the cooperative
+           WiFi/TCP driver threads, so responses never flush and new connections
+           never get accepted. Yield the CPU here (idle path only) so the net
+           stack runs — a device-transport concern, invisible to nsl.
+
+           Anything else is resource exhaustion, and folding it into the same
+           early return is what made #65 silent: with the RX packet slab empty
+           zsock_accept() cannot succeed, and the node spun here forever
+           "accepting nothing" with no crash and no log, indistinguishable from an
+           idle node. prj_esp32.conf predicted exactly this in prose for context
+           exhaustion; it came true via RX-packet exhaustion.
+
+           Counted and announced (rate-limited to the first and every 1000th, so a
+           wedged node says something without flooding a console that may be the
+           only way in). Not fatal: the keep-alive reaper armed in http_listen is
+           what actually clears the condition, and this is how an operator — or a
+           supervisor policy — can see that it happened. */
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+            if (accept_fail_count % 1000 == 0)
+                printk("http: accept failed errno=%d (n=%u) — listener cannot accept, "
+                       "likely RX packet exhaustion\n", errno, accept_fail_count + 1);
+            accept_fail_count++;
+        }
         k_msleep(1);
         return;
     }

@@ -332,6 +332,20 @@ class ThermalHttpNode packageUsing: manifest = () (
      an error. The symbol stays the API — only the rendering changes. *)
   decadeCell: aDecade = (
     aDecade = #insufficient ifTrue: [ ^ 'n&lt;200' ].
+    (* The `lt`/`ge` spelling is a GRAMMAR artifact, not a name: a symbol literal
+       cannot contain `<`, so #lt1ms is how "<1ms" has to be written in nsl. It was
+       reaching the page verbatim via printString, which put `#lt1ms` in a column
+       whose neighbours are plain numbers — visually noisy, and it leaks an
+       internal spelling into a reader-facing table. Rendered here to the real
+       glyph (HTML-escaped), extending the rule the #insufficient case above
+       already sets: the symbol stays the API, only the rendering changes. The
+       19_latency suite asserts on the SYMBOLS, so it is untouched by this. *)
+    aDecade = #lt100us ifTrue: [ ^ '&lt;100us' ].
+    aDecade = #lt1ms   ifTrue: [ ^ '&lt;1ms'   ].
+    aDecade = #lt10ms  ifTrue: [ ^ '&lt;10ms'  ].
+    aDecade = #lt100ms ifTrue: [ ^ '&lt;100ms' ].
+    aDecade = #lt1s    ifTrue: [ ^ '&lt;1s'    ].
+    aDecade = #ge1s    ifTrue: [ ^ '&ge;1s'   ].
     ^ aDecade printString )
 
   latencyRow: slot toId: id on: platform spans: spans = (

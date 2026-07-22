@@ -52,14 +52,15 @@ For content search across the program:
 
 <!-- BEGIN GENERATED INVENTORY — do not edit below; rerun tools/docmap.sh -->
 
-_Regenerated 2026-07-16 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
+_Regenerated 2026-07-22 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
 
 ### ~/workspace/tuvm/review
 
 - `~/workspace/tuvm/review/2026-07-03-first-step-design-addendum.md` — nsl-tuvm first-step design — addendum 1 (review amendments) _(record, 2026-07-14)_
 - `~/workspace/tuvm/review/2026-07-04-context-decision.md` — Task 8 design question: keep the deferred-lift heap Context? _(record, 2026-07-04)_
 - `~/workspace/tuvm/review/2026-07-04-pre-fiber-baseline.md` — Pre-fiber baseline commits in oevm / ns-oevm _(record, 2026-07-04)_
-- `~/workspace/tuvm/review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-07-16)_
+- `~/workspace/tuvm/review/2026-07-21-issue-65-http-load-wedge/README.md` — tuvm#65 — evidence folder (2026-07-21) _(record, 2026-07-22)_
+- `~/workspace/tuvm/review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-07-22)_
 - `~/workspace/tuvm/review/ISSUE-dongle-usb-openthread.md` — DRAFT ISSUE (post to davidg238/tuvm — created from a session without gh permission) _(record, 2026-07-12)_
 - `~/workspace/tuvm/review/WHY-AGENTS.md` — Why agents — nodus + porta as an agent-first platform _(record, 2026-07-14)_
 - `~/workspace/tuvm/review/WHY-OEOM.md` — Why OEOM — the kernel that survived the graveyard _(record, 2026-07-12)_
@@ -72,14 +73,16 @@ _Regenerated 2026-07-16 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `~/workspace/tuvm/review/lib/exceptions.md` — Exceptions (`on:do:` / `ensure:`) — why NOT detailing it now is safe, and the _(record, 2026-07-07)_
 - `~/workspace/tuvm/review/lib/integers.md` — L7 — Integer semantics across 32/64-bit platforms (VM design) _(record, 2026-07-14)_
 - `~/workspace/tuvm/review/lib/messages.md` — Milestone B — nsl-facing message algebra API (proposed surface) _(record, 2026-07-03)_
-- `~/workspace/tuvm/review/metrics-spec.md` — Node health metrics — the long-term profile (G4/G9 companion) _(record, 2026-07-07)_
-- `~/workspace/tuvm/review/program-sequence.md` — nsl-tuvm — program sequence (the overarching order of work) _(record, 2026-07-16)_
-- `~/workspace/tuvm/review/reliability-gaps.md` — Reliability gaps — the questions not yet asked (2026-07-03) _(record, 2026-07-14)_
+- `~/workspace/tuvm/review/metrics-spec.md` — Node health metrics — the long-term profile (G4/G9 companion) _(record, 2026-07-21)_
+- `~/workspace/tuvm/review/model-capability-findings.md` — Model-capability findings — coordination-model spike series _(record, 2026-07-19)_
+- `~/workspace/tuvm/review/program-sequence.md` — nsl-tuvm — program sequence (the overarching order of work) _(record, 2026-07-21)_
+- `~/workspace/tuvm/review/reliability-gaps.md` — Reliability gaps — the questions not yet asked (2026-07-03) _(record, 2026-07-21)_
 - `~/workspace/tuvm/review/retained-channels-v2.html` — Names, and what answers to them — v2 _(record, 2026-07-13)_
 - `~/workspace/tuvm/review/retained-channels.html` — Retained channels, and where remoteness lives _(record, 2026-07-12)_
+- `~/workspace/tuvm/review/revisit.md` — REVISIT — things learned in passing that are not yet anyone's work item _(record)_
 - `~/workspace/tuvm/review/slides.html` — nsl-tuvm — script Zephyr, don't replace it _(record, 2026-07-12)_
 - `~/workspace/tuvm/review/test-suites-spec.md` — nsl-tests — verification suites for the first step (proposed) _(record, 2026-07-03)_
-- `~/workspace/tuvm/review/tests/CLAIMS.md` — CLAIMS — first-step spec §7 success criteria → proving tests _(record, 2026-07-15)_
+- `~/workspace/tuvm/review/tests/CLAIMS.md` — CLAIMS — first-step spec §7 success criteria → proving tests _(record, 2026-07-21)_
 - `~/workspace/tuvm/review/tests/README.md` — review/tests — staged verification suites (T0, T-A…T-D) _(record, 2026-07-07)_
 - `~/workspace/tuvm/review/tests/t0-gates/sanitizers.md` — T0.1 — sanitizer gate (the highest-value single item in the whole test plan) _(record, 2026-07-03)_
 - `~/workspace/tuvm/review/zephyr-driver-exposure.md` — Exposing Zephyr drivers to nsl — a sketch _(record, 2026-07-16)_
@@ -109,6 +112,20 @@ _Regenerated 2026-07-16 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `~/workspace/tuvm/docs/design/2026-07-03-derecursify-e1-retire-dead-access-walk-design.md` — De-recursify reify-on-escape — E1: retire the dead `home_ctx` walk in `get_top_level_method_closure` (design) _(design, 2026-07-14)_
 - `~/workspace/tuvm/docs/design/2026-07-16-performance-nsl-stic-column-design.md` — performance.nsl — an nsl column for the STIC ESP32 benchmark _(design, 2026-07-16)_
 - `~/workspace/tuvm/docs/design/2026-07-16-zephyr-model-ab-build-knob-design.md` — Zephyr Model A/B build knob + staged .oimg bring-up (design) _(design, 2026-07-16)_
+- `~/workspace/tuvm/docs/design/2026-07-17-collection-performance-assessment.md` — Collection performance: assessment and posture — decision record _(design, 2026-07-17)_
+- `~/workspace/tuvm/docs/design/2026-07-17-fastpath-opcodes-design.md` — Fast-path opcodes: OP_LT/LE/GT/GE + OP_AT/OP_AT_PUT — decision record _(design, 2026-07-17)_
+- `~/workspace/tuvm/docs/design/2026-07-17-ns-to-nsl-extension-migration-design.md` — `.ns` → `.nsl` source-extension migration — design _(design, 2026-07-18)_
+- `~/workspace/tuvm/docs/design/2026-07-17-oeom-native-substitution-hanoi-spike-design.md` — OEOM native-substitution spike (Hanoi) — design _(design, 2026-07-17)_
+- `~/workspace/tuvm/docs/design/2026-07-17-path-b-device-default-design.md` — Path B (.oimg / image-VM) as the device default _(design, 2026-07-17)_
+- `~/workspace/tuvm/docs/design/2026-07-18-coordination-model-spike-series-design.md` — Coordination-model spike series — does the reactor/channel model hold up post-fibers? _(design, 2026-07-18)_
+- `~/workspace/tuvm/docs/design/2026-07-18-esp32-wifi-http-last-mile-design.md` — ESP32/WiFi HTTP last mile (#46) — design _(design, 2026-07-18)_
+- `~/workspace/tuvm/docs/design/2026-07-18-streaming-render-chunked-egress-design.md` — Streaming render — chunked HTTP egress from nsl _(design, 2026-07-19)_
+- `~/workspace/tuvm/docs/design/2026-07-18-webserver-channel-device-spike-design.md` — Spike #1 — the webserver as a channel-native driver _(design, 2026-07-18)_
+- `~/workspace/tuvm/docs/design/2026-07-19-amg8833-thermal-sensor-rung-design.md` — AMG8833 Grid-EYE thermal sensor rung — design _(design, 2026-07-20)_
+- `~/workspace/tuvm/docs/design/2026-07-20-esp32c6-second-target-design.md` — ESP32-C6 as a Second Zephyr Target — Design _(design, 2026-07-20)_
+- `~/workspace/tuvm/docs/design/2026-07-20-esp32c6-thread-ping-rung-design.md` — ESP32-C6 end-to-end Thread ping — Rung Design _(design, 2026-07-20)_
+- `~/workspace/tuvm/docs/design/2026-07-21-job-latency-instrumentation-design.md` — End-to-end job latency instrumentation — Design _(design, 2026-07-21)_
+- `~/workspace/tuvm/docs/design/2026-07-21-performance-deck-design.md` — Performance deck — design _(design, 2026-07-21)_
 - `~/workspace/tuvm/docs/dev_process/phase1_walkthrough.md` — Walkthrough - Core C Structures for OEVM _(record, 2026-07-03)_
 - `~/workspace/tuvm/docs/dev_process/phase2_walkthrough.md` — Walkthrough - Phase 2: Instruction Set Expansion & XIP Solidification _(record, 2026-07-03)_
 - `~/workspace/tuvm/docs/dev_process/phase3_walkthrough.md` — Walkthrough - Phase 3: Introspection & Newspeak Mirrors _(record, 2026-07-03)_
@@ -123,7 +140,9 @@ _Regenerated 2026-07-16 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `~/workspace/tuvm/docs/implementation_plan.md` — Implementation Plan: Phases 5 - 8 Roadmap & Phase 5 Specification _(record, 2026-07-14)_
 - `~/workspace/tuvm/docs/op_send_implicit.md` — OP_SEND_IMPLICIT: Lexical Implicit-Receiver Message Sends _(record, 2026-07-03)_
 - `~/workspace/tuvm/docs/optimizations.md` — OEVM interpreter optimization log _(record, 2026-07-14)_
+- `~/workspace/tuvm/docs/results/2026-07-20-c6-heap-ceiling.md` — ESP32-C6 heap-ceiling bisect — Task 3 _(record, 2026-07-20)_
 - `~/workspace/tuvm/docs/spec.md` — Architectural Specification: Open, Lazy-Reified Virtual Machine _(record, 2026-07-03)_
+- `~/workspace/tuvm/docs/spikes/2026-07-17-oeom-native-hanoi/README.md` — Spike archive: OEOM native-substitution (Hanoi AOT ceiling) — 2026-07-17 _(record, 2026-07-17)_
 - `~/workspace/tuvm/docs/superpowers/notes/2026-06-18-w1-rooting-audit.md` — W1 Rooting Audit — Runtime `gc_allocate` / `float_alloc` Sites _(note, 2026-07-03)_
 - `~/workspace/tuvm/docs/superpowers/plans/2026-06-17-decoupled-xip-image.md` — Decoupled Image + Execute-In-Place Format — Implementation Plan _(plan, 2026-07-14)_
 - `~/workspace/tuvm/docs/superpowers/plans/2026-06-17-global-method-cache.md` — Global Method Lookup Cache Implementation Plan _(plan, 2026-07-03)_
@@ -132,7 +151,18 @@ _Regenerated 2026-07-16 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `~/workspace/tuvm/docs/superpowers/plans/2026-06-19-gh4-iterative-mark.md` — GH#4 — Iterative Mark Implementation Plan _(plan, 2026-07-03)_
 - `~/workspace/tuvm/docs/superpowers/plans/2026-06-19-w2a-float-arena-reclaim.md` — W2a — Float-Arena Reclaim Implementation Plan _(plan, 2026-07-03)_
 - `~/workspace/tuvm/docs/superpowers/plans/2026-06-19-w2a1-float-arena-trigger.md` — W2a.1 — Float-Arena GC Trigger Implementation Plan _(plan, 2026-07-03)_
+- `~/workspace/tuvm/docs/superpowers/plans/2026-07-16-perf-trials-pushframe-opat.md` — Perf trials: push_frame + OP_AT/OP_AT_PUT — working journal _(plan, 2026-07-17)_
 - `~/workspace/tuvm/docs/superpowers/plans/2026-07-16-zephyr-model-ab-build-knob.md` — Zephyr Model A/B Build Knob Implementation Plan _(plan, 2026-07-16)_
+- `~/workspace/tuvm/docs/superpowers/plans/2026-07-17-hanoi-ab-results.md` — Hanoi A/B — ESP32 results (native PrimitiveClosure vs bytecode interpreter) _(plan, 2026-07-17)_
+- `~/workspace/tuvm/docs/superpowers/plans/2026-07-17-ns-to-nsl-extension-migration.md` — `.ns` → `.nsl` Source-Extension Migration — Implementation Plan _(plan, 2026-07-18)_
+- `~/workspace/tuvm/docs/superpowers/plans/2026-07-17-oeom-native-hanoi-spike.md` — OEOM Native-Substitution Hanoi Spike — Implementation Plan _(plan, 2026-07-17)_
+- `~/workspace/tuvm/docs/superpowers/plans/2026-07-18-esp32-wifi-http-last-mile.md` — ESP32/WiFi HTTP Last Mile (#46) Implementation Plan _(plan, 2026-07-18)_
+- `~/workspace/tuvm/docs/superpowers/plans/2026-07-18-streaming-render.md` — Streaming Render — Chunked HTTP Egress Implementation Plan _(plan, 2026-07-18)_
+- `~/workspace/tuvm/docs/superpowers/plans/2026-07-18-webserver-channel-device-spike.md` — Webserver Channel-Device Spike (#1) Implementation Plan _(plan, 2026-07-18)_
+- `~/workspace/tuvm/docs/superpowers/plans/2026-07-19-amg8833-thermal-sensor-rung.md` — AMG8833 Grid-EYE Thermal Sensor Rung — Implementation Plan _(plan, 2026-07-20)_
+- `~/workspace/tuvm/docs/superpowers/plans/2026-07-20-esp32c6-second-target.md` — ESP32-C6 Second Zephyr Target — Implementation Plan _(plan, 2026-07-20)_
+- `~/workspace/tuvm/docs/superpowers/plans/2026-07-20-esp32c6-thread-ping.md` — ESP32-C6 end-to-end Thread ping — Implementation Plan _(plan, 2026-07-20)_
+- `~/workspace/tuvm/docs/superpowers/plans/2026-07-21-job-latency-instrumentation.md` — Job Latency Instrumentation Implementation Plan _(plan, 2026-07-21)_
 - `~/workspace/tuvm/docs/topics.md` — Design topics _(record, 2026-07-14)_
 
 ### ~/workspace/nsl-tuvm/docs
@@ -237,7 +267,7 @@ _Regenerated 2026-07-16 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `~/workspace/porta/docs/CLI.md` — porta CLI reference _(record, 2026-06-08)_
 - `~/workspace/porta/docs/DEVSDK.md` — porta dev-SDK (`devsdk/`) — the northbound contract _(record, 2026-06-07)_
 - `~/workspace/porta/docs/GETTING-STARTED.md` — Getting started with porta _(record, 2026-06-26)_
-- `~/workspace/porta/docs/PROTOCOL-NSL-RECORDS.md` — Porta ↔ nsl — the record schemas _(record, 2026-07-14)_
+- `~/workspace/porta/docs/PROTOCOL-NSL-RECORDS.md` — Porta ↔ nsl — the record schemas _(record, 2026-07-21)_
 - `~/workspace/porta/docs/PROTOCOL-NSL-draft-2026-07-11.md` — Porta ↔ nsl node protocol — the space-sync model (genesis draft) _(record, 2026-07-15)_
 - `~/workspace/porta/docs/PROTOCOL-NSL.md` — Porta ↔ nsl node protocol — the space-sync model _(record, 2026-07-15)_
 - `~/workspace/porta/docs/PROTOCOL.md` — Porta wire protocol _(record, 2026-07-12)_

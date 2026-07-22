@@ -7,6 +7,7 @@
    idiom (an nsl reaction forwards dev/http/reply records to httpRespondId:...,
    which lands in http_respond). See the design spec. */
 #include <stddef.h>
+#include <stdint.h>
 
 #ifndef OEVM_HTTP_INFLIGHT
 #define OEVM_HTTP_INFLIGHT 4
@@ -63,6 +64,12 @@ void http_backend_reset(void);
 /* Bind a TCP listener on port (non-blocking) so http_poll can accept on it.
    Returns 0 on success, -1 on any socket setup failure. */
 int  http_listen(int port);
+
+/* Count of accept() failures that were NOT "nothing pending" (#65). Non-zero means
+   the listener could not accept despite work being available — resource
+   exhaustion, historically silent and terminal. 0 on backends that cannot fail
+   this way. */
+uint32_t http_accept_failures(void);
 
 /* 1 once http_listen has bound a listener, else 0. pumpEvents uses this to decide
    whether it must poll http every tick (and therefore must NOT block in the pulse
