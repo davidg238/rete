@@ -178,6 +178,12 @@ health judged only after quiescing:
 |---|---|
 | pre-fix | **TRUE WEDGE at cycle 16** (`session-G.log`) |
 | keep-alive + accept legibility | 40 cycles / ~18 min / 1863 served, quiesced health TRUE at every cycle (`05-session-fix-verified-40-cycles.log`) |
+| + RX slab 8 → 16 — **the soak** | **130 cycles / ~60 min / 17,374 served / 405,722 refused, quiesced health TRUE at every one of 130 cycles**, zero WiFi or address-loss events, one accept-failure announcement (`06-session-soak-130-cycles.log`) |
+
+The RX widening also collapsed the **client-side timeout** count — 1716 → 183 over a
+comparable run, and 0/260 failures on a paced follow-up. Most of the "slow" tail was
+requests stalling on RX descriptors rather than on the VM, which means the #61 latency
+figures were partly measuring buffer starvation and are worth re-taking on this build.
 
 The absence of a wedge is the weaker half of the evidence. The stronger half is that the
 node **entered the condition and announced it**, then carried on serving:
@@ -209,7 +215,9 @@ trigger (wedge in ~8 minutes, and note `ok:0` — under it the node serves nothi
 | `tools/timewait_probe.py` | the time-resolved TIME_WAIT measurement (Finding 1). |
 | `tools/reset_watch.py` | reset into run mode and capture — for catching a boot banner. |
 | `tools/attach_watch.py` | **DOES NOT DO WHAT ITS NAME SAYS — kept only as the record of a failed approach.** Setting `dtr`/`rts` False before `open()` does *not* prevent the reset. |
-| `tools/probe_session.py` | the correct design: ONE serial handle held open across load, detection and interrogation. |
+| `tools/probe_session.py` | the correct design: ONE serial handle held open across load, detection and interrogation. Also the soak driver. |
+| `05-session-fix-verified-40-cycles.log` | first post-fix run (keep-alive + accept legibility). |
+| `06-session-soak-130-cycles.log` | the 60-minute soak on the final build. |
 
 ## Two methodology notes, both learned the expensive way
 
