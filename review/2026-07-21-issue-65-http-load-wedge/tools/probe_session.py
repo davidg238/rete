@@ -21,6 +21,11 @@ HOST, PORT, DEV = "192.168.0.240", 18080, "/dev/ttyUSB1"
 REQ = b"GET /thermal HTTP/1.0\r\n\r\n"
 WORKERS = 8
 log = open(sys.argv[1] if len(sys.argv) > 1 else "session.log", "w")
+# Cycles: ~27 s each (15 s hammer + 12 s quiesce). 40 was the first post-fix run
+# (05-session-fix-verified-40-cycles.log); 130 (~60 min) was the soak on the final
+# build (06-session-soak-130-cycles.log). Parameterised so the logs in this folder
+# can actually be reproduced from this file.
+CYCLES = int(sys.argv[2]) if len(sys.argv) > 2 else 130
 
 p = serial.Serial(); p.port = DEV; p.baudrate = 115200; p.timeout = 0.2
 p.dtr = False; p.rts = True; p.open(); time.sleep(0.2); p.rts = False  # deliberate boot
@@ -70,7 +75,7 @@ def worker():
 for _ in range(WORKERS): threading.Thread(target=worker,daemon=True).start()
 
 wedged = False
-for cycle in range(40):
+for cycle in range(CYCLES):
     time.sleep(15)                       # hammer
     hammer.clear()                       # QUIESCE before judging
     time.sleep(12)

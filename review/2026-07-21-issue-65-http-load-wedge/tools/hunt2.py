@@ -1,4 +1,9 @@
-"""#65 pass 2 — CONCURRENT hammer, then interrogate the node the moment it wedges.
+"""#65 pass 2 — CONCURRENT hammer. SUPERSEDED by probe_session.py; kept as the record.
+
+Two flaws, both found by using it: it judges health WITHOUT quiescing the load (so it
+cannot tell saturation from a wedge, and it did report a false wedge), and its
+interrogation attaches a second serial handle, which REBOOTS the node and reads a fresh
+boot. probe_session.py fixes both. Do not reuse this one.
 
 Every earlier repro drove the node with a SERIAL client, which can pin at most one
 connection at a time; the 4 contexts only ever filled via TIME_WAIT residue or
@@ -65,7 +70,7 @@ stop.set()
 time.sleep(2)
 with lock: print("final:", dict(counts), flush=True)
 
-if False:
+if bad >= 5:
     print("\n### interrogating the wedged node over UART ###", flush=True)
     subprocess.run([sys.executable,
                     "/tmp/claude-1000/-home-david-workspace-tuvm/fc2fcf9f-97cb-434e-8b17-eb311eb7e475/scratchpad/i65/shell_cmd.py",
