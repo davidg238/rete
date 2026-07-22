@@ -1,0 +1,38 @@
+--- reset issued, reading 900.0s ---
+ets Jun  8 2016 00:22:57
+
+rst:0x1 (POWERON_RESET),boot:0x17 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3ffb0000,len:14796
+ho 0 tail 12 room 4
+load:0x40080000,len:69504
+1162 mmu set 00010000, pos 00010000
+entry 0x4008aea8
+I (50) soc_init: ESP Simple boot
+I (50) soc_init: compile time Jul 21 2026 15:45:26
+W (50) soc_init: Unicore bootloader
+I (50) soc_init: chip revision: v1.0
+E (53) soc_init: You are using ESP32 chip revision (1) that is unsupported. While it may work, it could cause unexpected behavior or issues.
+E (66) soc_init: Proceeding with this ESP32 chip revision is not recommended unless you fully understand the potential risk and limitations.
+I (78) flash_init: SPI Speed      : 40MHz
+I (82) flash_init: SPI Mode       : DIO
+I (85) flash_init: SPI Flash Size : 4MB
+I (89) boot: DRAM: lma 0x00001020 vma 0x3ffb0000 len 0x39cc   (14796)
+I (95) boot: IRAM: lma 0x000049f4 vma 0x40080000 len 0x10f80  (69504)
+I (101) boot: IRAM: lma 0x00015988 vma 0x00000000 len 0xa670   (42608)
+I (107) boot: IMAP: lma 0x00020000 vma 0x400d0000 len 0x5dfa0  (384928)
+I (114) boot: IRAM: lma 0x0007dfa8 vma 0x00000000 len 0x2050   (8272)
+I (120) boot: DMAP: lma 0x00080000 vma 0x3f400000 len 0x2c180  (180608)
+I (126) boot: Image with 6 segments
+I (129) boot: IROM segment: paddr=00020000h, vaddr=400d0000h, size=5DFA0h (384928) map
+I (137) boot: DROM segment: paddr=00080000h, vaddr=3f400000h, size=2C180h (180608) map
+I (156) boot: libc heap size 0 kB.
+I (156) spi_flash: detected chip: gd
+I (156) spi_flash: flash io: dio
+*** Booting Zephyr OS build v4.2.0-7-gcbc06d38482a ***
+wifi: connect(ssid_len=4) req=0
+wifi: up, ip=192.168.0.240 -> http://192.168.0.240:18080/thermal
+
+--- 1814 bytes read ---
