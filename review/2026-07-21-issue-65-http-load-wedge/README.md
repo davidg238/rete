@@ -141,6 +141,55 @@ This makes the fix menu concrete, and the cheap ones are additive:
 - **Raise `NET_PKT_RX_COUNT`** so backlog plus working set fit — raises the bar, keeps the
   trap.
 
+## The fix (`be2e961`, plus the RX widening)
+
+Four changes, layered so that one *ends* the failure and the others make it rarer or
+visible. Ordered by what they actually do:
+
+1. **Keep-alive on the LISTENING socket** — the only change that breaks the deadlock once
+   entered. Set on the listener because the stuck connections are never accepted: Zephyr
+   copies keep-alive params from the listening conn when an incoming connection reaches
+   ESTABLISHED, so the listener is the only reachable place. After `keep_cnt` unanswered
+   probes `tcp_conn_close(-ETIMEDOUT)` frees the conn and its RX packets **without needing
+   to receive anything**. Timings in code (10 s idle / 5 s / 3 ⇒ ~25 s to reclaim); the
+   Kconfig default of 7200 s idle is useless here.
+2. **`http_poll()` distinguishes accept failure from idle** — only `EAGAIN`/`EWOULDBLOCK`
+   is benign; anything else is counted, announced (rate-limited) and exposed as
+   `http_accept_failures()`. This is the direct answer to "no crash, no log".
+3. **Listen backlog 4 → 2** — backlog depth is a direct claim on `NET_PKT_RX_COUNT`,
+   because a backlogged connection is fully ESTABLISHED and pins the RX packets carrying
+   its request. Serves no fewer connections; `http_poll` drains one per tick either way.
+4. **`NET_PKT_RX_COUNT` 8 → 16** — restores what #46's RAM trim halved. Raises the bar;
+   does not remove the trap. Taken *in addition to* 1, never instead of it.
+
+**Paid for from the VM arena, not the packet pools.** Keep-alive's per-connection state
+overflowed dram0 by 112 B (#53's ceiling was already reached), so `run.sh`'s esp32 default
+went 53248 → 49152. The pools are what the wedge exhausts, so shrinking them to fund the
+fix would have traded the cure for the disease. Justified by measurement: `/stats` reported
+live bytes 21,860 against the 53,248 arena. dram0 ended at 98.19% (3568 B spare, from
+224 B).
+
+### Verification
+
+Against the trigger that reliably wedged the node — continuous 8-worker concurrent load,
+health judged only after quiescing:
+
+| build | result |
+|---|---|
+| pre-fix | **TRUE WEDGE at cycle 16** (`session-G.log`) |
+| keep-alive + accept legibility | 40 cycles / ~18 min / 1863 served, quiesced health TRUE at every cycle (`05-session-fix-verified-40-cycles.log`) |
+
+The absence of a wedge is the weaker half of the evidence. The stronger half is that the
+node **entered the condition and announced it**, then carried on serving:
+
+```
+http: accept failed errno=113 (n=1) — listener cannot accept, likely RX packet exhaustion
+```
+
+`errno 113` is `ECONNABORTED` — a pending connection aborted before `accept()`, which is
+the signature of `tcp_conn_close(-ETIMEDOUT)`, i.e. the reaper firing. Mechanism confirmed
+in the field, not merely a quiet run.
+
 ### Reproduction is timing-sensitive
 
 Not deterministic. The serial hunt wedged on round 8 (~860 served) on one build, then ran
