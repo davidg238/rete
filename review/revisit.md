@@ -93,3 +93,15 @@ rest of this entry — the `OEVM_HTTP_INFLIGHT` cap — remains unowned.
 
 **Cheap mitigation if it ever bites.** `OEVM_HTTP_INFLIGHT` is a compile-time constant in
 `~/workspace/tuvm/src/http_backend.h`; 4 → 2 costs nothing and needs no RAM.
+
+**IT BIT, 2026-07-22 — and the reaper does not save you. Now tuvm#73.** A single browser tab
+on the node's own page pins the whole connection budget and the node answers nothing at all.
+The entry above says escape "depends on the reaper running"; the measurement says the reaper
+**cannot** run for this case: **keep-alive reaps a DEAD peer, not an IDLE one** — a browser
+answers the probes, so the connection is healthy by definition. Tightening the probes
+10/5/3 → 3/2/2 changed nothing (four held-open idle sockets, no recovery in 60 s). Recovery
+came only when the peer closed. So the "~25 s reaper latency" caveat above understates it:
+for a live-but-idle peer the latency is unbounded. The candidate fix is draining the accept
+backlog per tick so the existing 200 ms `SO_RCVTIMEO` close can reach those sockets;
+`OEVM_HTTP_INFLIGHT` capping is still not the lever, because these connections are
+un-accepted.

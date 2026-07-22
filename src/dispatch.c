@@ -761,6 +761,10 @@ enum {
     PRIM_pf_spanEnd,
     PRIM_pf_spanStats,
     PRIM_pf_spanRecord,
+    /* tuvm#72: spanReset — zero every slot, so a capture window can start from a
+       clean accumulator. Counted (not computed) to be the 122nd PRIM_NAMES entry.
+       Platform-dispatched (mirrored in prim_ids.h). */
+    PRIM_pf_spanReset,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -813,6 +817,7 @@ static const char *const PRIM_NAMES[] = {
     "httpBeginId:status:", "httpChunkId:data:", "httpEndId:",
     "sensorFrame", "sensorArmEventPost:on:threshold:",
     "spanBegin:", "spanEnd:", "spanStats:", "spanRecord:us:",
+    "spanReset",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
@@ -823,7 +828,7 @@ static const char *const PRIM_NAMES[] = {
    — this catches it at build time instead. C99-safe (no _Static_assert under
    -std=c99): a false condition makes a negative-sized array, which is a hard
    compile error. ADVANCE THIS to the new last id whenever prims are appended. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_spanRecord) ? 1 : -1];
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_spanReset) ? 1 : -1];
 
 /* Pointer-keyed cache mapping each interned selector symbol to its primitive id
    (PRIM_NONE if it is not an intercepted primitive). Selectors are interned, so

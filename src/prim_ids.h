@@ -217,4 +217,13 @@
 #define PRIM_pf_spanEnd    119
 #define PRIM_pf_spanStats  120
 #define PRIM_pf_spanRecord 121
+
+/* tuvm#72 diag span capture: spanReset — a bounded capture window needs the
+   accumulator zeroed at the start of it. Wraps span_reset_all(), which already
+   existed for tests (src/span.c). Appended after spanRecord; no pre-existing id
+   shifts. 122 was arrived at by COUNTING PRIM_NAMES (121 entries before this
+   append), not by 121+1 arithmetic, per the standing rule above. Nullary and
+   all-slots on purpose: a per-slot reset would let a caller clear half a window
+   and publish the result as if it were whole. */
+#define PRIM_pf_spanReset  122
 #endif /* OEVM_PRIM_IDS_H */
