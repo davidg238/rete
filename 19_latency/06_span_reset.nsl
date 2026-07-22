@@ -1,0 +1,40 @@
+(*
+expect:
+true
+true
+true
+true
+true
+true
+done
+*)
+(* tuvm#72: `resetAll` is what makes a bounded capture window possible. It must
+   clear BOTH halves of a span's state — the C sample table (span_reset_all) and
+   the nsl-side failure counts, which C cannot see. A reset that cleared only the
+   C half would report failures cumulative-since-boot beside windowed samples.
+   Names must SURVIVE: a reset clears data, not the slot table, or every holder
+   of a slot index from `register:` would be pointing at the wrong span. *)
+class SpanResetTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | spans a s |
+  spans:: platform Spans new.
+  a:: spans register: #acquire.
+
+  spans recordSlot: a us: 500.
+  spans noteFailure: a.
+  s:: spans statsAt: a.
+  ((s basicAt: 1) = 1) printString println.            (* true — one sample banked *)
+  ((spans failuresAt: a) = 1) printString println.     (* true — one failure banked *)
+
+  spans resetAll.
+
+  s:: spans statsAt: a.
+  ((s basicAt: 1) = 0) printString println.            (* true — n zeroed      *)
+  ((s basicAt: 3) = 0) printString println.            (* true — max zeroed    *)
+  ((spans failuresAt: a) = 0) printString println.     (* true — nsl side too  *)
+  ((spans nameAt: a) = #acquire) printString println.  (* true — name survives *)
+
+  'done' println.
+)
+) : (
+)
