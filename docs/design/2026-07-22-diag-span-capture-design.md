@@ -297,6 +297,40 @@ Not in scope here — recorded so the do-over inherits it rather than rediscover
   `PROTOCOL-NSL-RECORDS.md`, per the standing rule that per-prefix schemas are pinned
   before first implementation.
 
+## 7a. Implementation addendum — 2026-07-22
+
+Written after building and flashing it. The design above stands; these are the corrections
+and additions reality forced.
+
+**Added at David's request: a `lang` column** (C | nsl) between `span` and `n` on both
+tables, from `Spans>>langAt:`. The #61 design §5 already carried this as its `owner` column,
+and "is this the VM or the seam" is the first question a reader has. Deliberately **derived**
+from the reserved C-owned pair (slots 0/1) rather than kept as a table, so it cannot drift;
+and deliberately **not** added to `recordAt:`'s wire record, which is size-capped by porta's
+256 B value law and whose readers can derive it.
+
+**The shared-kernel RAM cost is zero, measured.** §5.1 required this be measured rather than
+assumed: the flashed build reports `dram0 193,040 B / 98.19%` — 3,568 B spare, exactly the
+figure the ladder recorded after #65. Moving `SpanCapture` into the shared kernel consumed no
+static DRAM.
+
+**The feature is not usable from a browser, and that is tuvm#73.** A single browser tab pins
+the node's connection budget (`CONFIG_NET_MAX_CONTEXTS=5`, four usable after the listener)
+with parallel and speculative sockets, and the node then answers nothing at all. Pre-existing
+— but this design is its first victim, because it turns a one-page-view into a
+start → load → stop → read workflow.
+
+**A wrong fix was tried and measured wrong, and the reasoning is worth keeping:**
+tightening the keep-alive probes 10/5/3 → 3/2/2 does **not** help, because **keep-alive reaps
+a DEAD peer, not an IDLE one** — a browser answers the probes, so the connection is healthy
+by definition. The original evidence ("the node recovered the instant Chrome navigated away")
+was Chrome *closing its sockets*, not a reaper firing; attributing it to the reaper is what
+produced the wrong fix. Caught by measuring: four held-open idle sockets, no recovery in 60 s.
+
+**Standing rule this design establishes, for the ladder to absorb at close-out:**
+figures quoted in `review/` or in the performance deck come from the **capture table only** —
+never from the cumulative table, which partly measures its own rendering.
+
 ## 8. Out of scope
 
 - The porta/nodus rewrite itself (§7 is input to it, not part of this work).
