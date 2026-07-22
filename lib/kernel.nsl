@@ -1080,6 +1080,15 @@ class Kernel usingPlatform: platform = () (
     public slotCount = ( self ensureTables. ^ names size )
     public nameAt: slot = ( ^ names at: slot + 1 )
 
+    (* tuvm#72: which side STAMPS this span. DERIVED from the reserved pair rather
+       than kept as a table, so it cannot drift from the seam: slots 0 and 1 are
+       the C-owned spans http_core.c stamps itself (ensureTables seeds them), and
+       every other slot was handed out by register: from nsl. Answers a String
+       because its only consumer is a rendered table; the wire record is
+       deliberately NOT given a lang field — recordAt:'s schema is size-capped
+       (porta's 256 B value law) and this is derivable by any reader. *)
+    public langAt: slot = ( ^ (slot < 2) ifTrue: [ 'C' ] ifFalse: [ 'nsl' ] )
+
     public begin: slot = ( platform spanBegin: slot. ^ self )
     public end:   slot = ( platform spanEnd: slot. ^ self )
     public recordSlot: slot us: n = ( platform spanRecord: slot us: n. ^ self )
