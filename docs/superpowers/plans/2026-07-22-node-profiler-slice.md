@@ -143,7 +143,29 @@ The loader mints exactly one second capability (`serial XOR net`, `oimg_loader.c
   diagResultPort = ( ^ 54371 )            (* gw receives result here *)
 ```
 
-Change the entry method signature to receive `net` as the second capability (keep the body; `args` was unused — confirm with `grep -n 'args' zephyr/ThermalHttpNode.nsl` first, and if it IS used, use the 3-arg form the loader supports: `init_args[3]` carries `{kernel, net, SMI(0)}`, so `usingPlatform: platform net: net args: args` also works).
+**RESOLVED convention (verified against the tree 2026-07-22, not the plan's original guess):**
+ThermalHttpNode currently declares `class ThermalHttpNode packageUsing: manifest = () (...) : ( )`
+— `packageUsing: manifest` is its INSTANCE constructor and the class-side is empty. The
+net-capable nodes (`NetNode`, `NetBridgeNode`, `ThreadPingNode`) use the opposite split, and
+that is the pattern to convert to:
+
+```
+class ThermalHttpNode usingPlatform: platform net: net = () (
+   ... all existing instance methods; `net` is now an instance var reachable from main: ...
+   public main: platform2 args: args = ( ... )   (* platform2 shadows; the class already holds platform + net *)
+) : (
+   public packageUsing: manifest = ( ^ self new )   (* class-side entry — moved here from the instance ctor slot *)
+)
+```
+
+So the edit is THREE coordinated changes, not one: (a) the class header line 11
+`packageUsing: manifest = ()` → `usingPlatform: platform net: net = ()`; (b) the empty
+class-side `) : ( )` at EOF → `) : ( public packageUsing: manifest = ( ^ self new ) )`; (c)
+inside `main:`, note `net` is now the class instance var — the loader mints it as the second
+capability (`serial XOR net`, `oimg_loader.c:212-217`), and HTTP is unaffected because it rides
+the `platform` seam, not the net cap. `args` is unused in the body (confirmed) so `main: platform2
+args: args` keeps its shape. THIS EDIT IS UNVERIFIED UNTIL THE BUILD IN STEP 4 — it changes the
+node's launch convention, and a wrong conversion yields a node that will not construct.
 
 - [ ] **Step 2: Bind the diag socket and wire the bridge in the composition root**
 
