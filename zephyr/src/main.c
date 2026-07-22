@@ -180,6 +180,10 @@ static void net_heartbeat(void *a, void *b, void *c) {
                atomic_get(&rx_data->avail_count), rx_data->buf_count,
                atomic_get(&tx_data->avail_count), tx_data->buf_count,
                ctxs, http_inflight_count());
+        /* #65: accept failures that were not "nothing pending". Non-zero is the
+           signature of the wedge — the listener cannot accept at all. */
+        uint32_t af = http_accept_failures();
+        if (af) printk("hb   accept-failures=%u  <-- LISTENER CANNOT ACCEPT\n", (unsigned)af);
         k_msleep(CONFIG_TUVM_NET_HEARTBEAT_MS);
     }
 }
