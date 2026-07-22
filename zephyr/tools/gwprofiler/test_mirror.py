@@ -21,3 +21,9 @@ def test_bad_cbor_is_dropped_not_raised(tmp_path):
     m = Mirror(s, bind_port=0)
     m.handle_datagram(b"\xff\xff\xff", ("192.168.0.240", 54371), ts=100.0)  # garbage
     assert s.event_count("192.168.0.240") == 0
+
+def test_truncated_cbor_is_dropped_not_raised(tmp_path):
+    s = Store(str(tmp_path / "p.db"))
+    m = Mirror(s, bind_port=0)
+    m.handle_datagram(b"\x9b\x00\x00\x00\x00", ("192.168.0.240", 54371), ts=100.0)
+    assert s.event_count("192.168.0.240") == 0
