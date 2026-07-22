@@ -15,3 +15,9 @@ def test_events_are_append_only(tmp_path):
 def test_missing_cell_is_none(tmp_path):
     s = Store(str(tmp_path / "p.db"))
     assert s.latest_cell("n1", "diag/spans/result") is None
+
+def test_upsert_cell_rejects_stale_seq(tmp_path):
+    s = Store(str(tmp_path / "p.db"))
+    s.upsert_cell("n1", "diag/spans/result", 2, {"n": 5}, 200.0)
+    s.upsert_cell("n1", "diag/spans/result", 1, {"n": 99}, 100.0)   # stale, arrives late
+    assert s.latest_cell("n1", "diag/spans/result")["n"] == 5       # newer survives
