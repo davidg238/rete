@@ -1,8 +1,10 @@
 # tuvm on Zephyr — board ports
 
-How tuvm/nsl-zephyr runs the **same VM + baked image** on **multiple nRF hardware
-targets with different IO**, via **per-board builds**. This is the design doc; the
-*why* behind every Kconfig choice lives in [`ZEPHYR_LESSONS.md`](./ZEPHYR_LESSONS.md).
+How tuvm/nsl-zephyr runs the **same VM + baked image** on **multiple hardware
+targets with different IO**, via **per-board builds** — nRF52840 (Thread/mesh) and
+Espressif (ESP32 / ESP32-C6 / ESP32-S2) families. This is the design doc; the
+*why* behind every Kconfig choice lives in [`ZEPHYR_LESSONS.md`](./ZEPHYR_LESSONS.md),
+and the per-rung Espressif port narrative in `review/program-sequence.md`.
 
 ## Principle: one core, per-board IO
 
@@ -124,6 +126,45 @@ future USB board inherits it automatically:
      bet).
 - ~~Thingy:52~~ — **not a target.** It is nRF52832 (64 KB RAM); OT MTD + mbedTLS + a
   ~48 KB VM arena will not fit. (Dropped 2026-07-11.)
+
+### Espressif targets
+
+The nRF matrix above is Thread/mesh-first. The Espressif boards are a different axis —
+capacity, WiFi, and display — and their build seams differ (a separate west workspace at
+`~/zephyr-esp32`, the `xtensa-espressif_*`/`riscv64` SDK toolchains, esptool flashing, a ROM
+`setjmp`/`longjmp` ld patch). **`zephyr/run.sh` owns the whole ESP32 dev loop** (bake → build
+→ flash → capture) per `--board`; it does **not** source the west env, so a caller must:
+`source ~/zephyr-esp32/.venv/bin/activate && export ZEPHYR_BASE=~/zephyr-esp32/zephyr
+ZEPHYR_SDK_INSTALL_DIR=~/zephyr-sdk-0.17.4 ZEPHYR_TOOLCHAIN_VARIANT=zephyr` first (a missing
+env fails silently as `west: command not found`). Full per-rung detail lives in the ladder.
+
+- **ESP32 (WROOM-32)** — ✅ node runs; the perf/latency witness board (#61 spans, #72 profiler).
+  Console on a CP210x UART (`/dev/ttyUSB*` — **identify by `esptool read_mac`, never trust the
+  number**). Flash offset `0x1000`. Details in the ladder (job-latency + node-profiler rungs).
+- **ESP32-C6** — ✅ Thread second target (#59). RISC-V, flash offset `0x0`, a separate CP2102N
+  console (`ttyUSB0`) that survives resets, native-USB flash (`ttyACM0`). The C6 radio needed
+  four Zephyr 802.15.4 driver fixes (branch `tuvm-c6-radio-fix`; one submitted upstream as
+  zephyr#114163). Details in the ladder (C6 second-target + radio-blocker rungs).
+- **Adafruit MagTag (ESP32-S2-WROVER)** — ✅ **VM boots, four buttons + chording, red LED + level
+  read proven on hardware 2026-07-23** (#60, #82). A capacity/display board, **not** perf or mesh:
+  no FPU (soft-float — no float figure belongs in the STIC table without "soft-float" on the row),
+  and PSRAM is present but not in the VM arena. Specifics:
+  - **No board port was written.** `esp32s2_saola/esp32s2` already targets the MagTag's module
+    (`esp32s2_saola.dts:9` includes `esp32s2_wrover_n4r2.dtsi`); only board IO needed the overlay
+    `boards/esp32s2_saola_esp32s2.overlay` (buttons 11/12/14/15, red LED 13, NeoPixel power gate 21).
+    Check for an existing board target on the same module before porting one.
+  - **Out-of-tree, invisible to git:** the Zephyr SDK needs `xtensa-espressif_esp32s2_zephyr-elf`
+    installed (`~/zephyr-sdk-0.17.4/setup.sh -t xtensa-espressif_esp32s2_zephyr-elf`); a fresh clone
+    cannot build this target without it.
+  - **Flashing is manual, and the UART header is the only console.** No reset line either way (the
+    soldered Debug header breaks out TX/RX only; the native USB belongs to the ROM): hold BOOT0,
+    click RESET. In download mode the port is `303a:0002` / `usb-Espressif_ESP32-S2_0-if00`; once
+    Zephyr is flashed the native USB stops enumerating entirely, so the soldered UART header
+    (a separate USB-serial dongle) is the board's *only* console — and opening it reboots the board,
+    so hold one pyserial handle. `run.sh --board esp32s2 --flash` scopes esptool to the S2 ROM id.
+  - **`OEVM_HEAP_SIZE=65536` is provisional** (dram0 at ~81.8% of 217 KB), not a measured ceiling.
+  - `flash 0x1000` (Xtensa keeps the ESP32 offset); ROM `setjmp`/`longjmp` patch applies with an
+    S2-specific symbol set (`tools/patch-esp32-rom-ld.sh --chip esp32s2`).
 
 ## Adding a new board (generic recipe)
 
