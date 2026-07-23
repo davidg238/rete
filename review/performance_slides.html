@@ -536,14 +536,17 @@
   <div class="kicker">Act II · the turn</div>
   <h2>That weakness is in the real job — and it still decides nothing</h2>
   <ul class="points">
-    <li><code>vmCompute</code> (<span class="fig" data-fig="vmCompute_mean_us"></span>) and
-    <code>publish</code> (<span class="fig" data-fig="publish_mean_us"></span>) are
-    <strong>exactly</strong> the collection work the bad row measures —
-    <span class="fig" data-fig="collection_work_us"></span> of it, in the shipping node,
-    every 500 ms</li>
+    <li><code>vmCompute</code> (<span class="fig" data-fig="vmCompute_mean_us" data-as="ms"></span>)
+    and <code>publish</code> (<span class="fig" data-fig="publish_mean_us" data-as="ms"></span>)
+    are <strong>exactly</strong> the collection work the bad row measures —
+    <span class="fig" data-fig="collection_work_us" data-as="ms"></span> of it, in the
+    shipping node, <strong>every 500 ms</strong></li>
+    <li>The whole sensor job is
+    <span class="fig" data-fig="jobThermal_mean_us" data-as="ms"></span> of that 500 —
+    the I2C read alone (<span class="fig" data-fig="acquire_mean_us" data-as="ms"></span>)
+    outweighs everything the VM does, and the node is idle for the rest</li>
     <li>And the whole VM share is <span class="fig" data-fig="vm_share_pc"></span> of what
-    the client feels. The I2C read alone —
-    <span class="fig" data-fig="acquire_mean_us"></span> — outweighs it</li>
+    the client feels</li>
     <li>Making the collections 40× faster would move the user-visible number by a few
     percent. <strong>It is a real deficiency in a place that does not decide anything.</strong></li>
   </ul>
@@ -1198,15 +1201,26 @@ function num(v) {
   return s;
 }
 
-function figHTML(key) {
+/* `as="ms"` renders a µs figure as whole milliseconds. Presentation only — DATA stays in
+   the unit it was measured in, and the tooltip always carries the exact measured value, so
+   rounding never loses the witness. Used where the reader's job is to compare against the
+   500 ms job cadence, and deliberately NOT used where the argument turns on µs (the 99.6%
+   accounting, the ~13 µs per bracket). */
+function figHTML(key, as) {
   const d = DATA[key];
   if (!d) return '<span class="fig miss">?' + key + '</span>';
   if (d.st === "tbd") {
     return '<span class="fig miss" title="' + esc(d.src) + '">' + esc(d.tbd) +
            '</span><span class="badge tbd">tbd</span>';
   }
-  const txt = (d.pre || "") + num(d.v) + (d.u ? (d.u === "%" || d.u === "×" ? d.u : " " + d.u) : "");
-  let out = '<span class="fig" title="' + esc(d.src) + (d.n ? "  ·  n = " + d.n : "") + '">' + txt + "</span>";
+  let txt, exact = "";
+  if (as === "ms" && d.u === "µs") {
+    txt = (d.pre || "") + Math.round(d.v / 1000) + "\u00a0ms";
+    exact = "  ·  " + num(d.v) + " µs measured";
+  } else {
+    txt = (d.pre || "") + num(d.v) + (d.u ? (d.u === "%" || d.u === "×" ? d.u : " " + d.u) : "");
+  }
+  let out = '<span class="fig" title="' + esc(d.src) + exact + (d.n ? "  ·  n = " + d.n : "") + '">' + txt + "</span>";
   if (d.st && BADGE[d.st]) {
     const b = BADGE[d.st];
     out += '<span class="badge ' + d.st + '" title="' + esc(b[1]) + '">' + b[0] + "</span>";
@@ -1329,7 +1343,7 @@ document.getElementById("hanoitable").innerHTML   = renderTable(HANOI, { firstNu
 document.getElementById("surfacetable").innerHTML = renderTable(SURFACE, { firstNum: 1 });
 document.getElementById("clientbar").innerHTML    = renderClientBar();
 document.getElementById("audittable").innerHTML   = renderAudit();
-document.querySelectorAll("[data-fig]").forEach(el => { el.outerHTML = figHTML(el.dataset.fig); });
+document.querySelectorAll("[data-fig]").forEach(el => { el.outerHTML = figHTML(el.dataset.fig, el.dataset.as); });
 Object.keys(PLAYLIST).forEach(a => {
   const el = document.querySelector('[data-count="' + a + '"]');
   if (el) el.textContent = PLAYLIST[a].length + " slides";
