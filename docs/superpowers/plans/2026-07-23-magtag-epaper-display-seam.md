@@ -1073,8 +1073,13 @@ static void display_bringup(void)
 	cfb_framebuffer_set_font(disp_dev, 0);
 	cfb_framebuffer_clear(disp_dev, true);
 
-	disp_rows   = cfb_get_display_parameter(disp_dev, CFB_DISPLAY_ROWS);
-	disp_cols   = cfb_get_display_parameter(disp_dev, CFB_DISPLAY_COLS);
+	/* NOT CFB_DISPLAY_ROWS/COLS. Those two are ASYMMETRIC for displays without
+	 * SCREEN_INFO_MONO_VTILED (cfb.c:648-655): ROWS answers y_res/ppt only when
+	 * VTILED and raw y_res otherwise, while COLS answers x_res/ppt otherwise.
+	 * uc81xx.c:480 sets no VTILED bit, so ROWS would answer 296 — the pixel
+	 * height — and every row bound below would be far too permissive. */
+	disp_rows = cfb_get_display_parameter(disp_dev, CFB_DISPLAY_HEIGHT) / fh;
+	disp_cols = cfb_get_display_parameter(disp_dev, CFB_DISPLAY_WIDTH) / fw;
 	disp_font_h = fh;
 	disp_ok     = true;
 	printk("DISPLAY OK rows=%d cols=%d font=%ux%u\n", disp_rows, disp_cols, fw, fh);
