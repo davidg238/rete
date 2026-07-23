@@ -248,3 +248,21 @@
 		zephyr,display = &epd;
 	};
 };
+
+/* tuvm#88 — disable i2c0: it and the e-paper CS both claim GPIO8. The base
+ * board's i2c0_default pinctrl routes GPIO8 as I2C0 SDA, while &spi2 above
+ * (line 221) drives the same pin as the e-paper's cs-gpios. Both drivers
+ * program the same IO-MUX / GPIO-matrix registers for pin 8, and both
+ * initialise at the same driver init priority, so which routing wins is
+ * decided by device-dependency ordering, not by anything visible in this
+ * file. If i2c0 wins the race, the CS line never toggles correctly, but
+ * display_write still returns rc=0 — a blank panel with no error, which
+ * reads exactly like a BUSY-pin fault and would send someone debugging the
+ * wrong signal. Nothing on this board currently needs i2c0, so disable it
+ * outright rather than leave the race latent. The MagTag does carry a
+ * STEMMA QT connector (GPIO33/34) — when that I2C bus is wired up, give it
+ * its own pinctrl on those pins rather than deleting this block.
+ */
+&i2c0 {
+	status = "disabled";
+};
