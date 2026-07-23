@@ -254,7 +254,27 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
         out: (space channel: 'diag/spans/result')
         peer: gwAddr port: diagResultPort
         in: (space channel: 'diag/spans/ctl').
-      diagBridge start ].
+      diagBridge start.
+      'DIAG BOUND' println ].
+
+    (* tuvm#72 observability, matching ThermalDiagNode: this node prints NOTHING for the
+       diag path otherwise, so a silent console cannot distinguish "ctl never arrived"
+       from "ctl arrived but no capture completed" — the exact ambiguity that cost a
+       session. Cheap and console-only; no HTTP, so tuvm#73 is untouched. *)
+    (* `eq=` asserts the COMPARISON, not just the value: printString renders a
+       symbol's name regardless of identity, so a state that prints #running proves
+       nothing about whether SpanCapture>>apply:'s `st = #running` actually fires. *)
+    (space channel: 'diag/spans/ctl') whenever: '' do: [ :c |
+        ('DIAG CTL state=' , (c at: #state ifAbsent: [ #NOSTATE ]) printString
+                 , ' eq=' , ((c at: #state ifAbsent: [ nil ]) = #running) printString) println ].
+    (space channel: 'diag/spans/result') whenever: '' do: [ :r |
+        ('DIAG RESULT n=' , (r at: #n ifAbsent: [ -1 ]) printString) println ].
+    (* A condition raised INSIDE a reaction is caught by protectedFire:, posted to
+       sys/crash and otherwise invisible — drain survives and the node looks healthy.
+       Without this, "no result" cannot be told from "result raised on the way out". *)
+    (space channel: 'sys') whenever: 'crash' do: [ :rec |
+        ('DIAG CRASH ch=' , (rec at: #channel ifAbsent: [ '?' ]) printString
+                 , ' text=' , (rec at: #text ifAbsent: [ '?' ]) printString) println ].
 
     (* The block captures `spans` and `sRender` from this method's temporaries,
        which is fine — the rule a reified block breaks is naming a CLASS, resolved

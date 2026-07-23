@@ -33,22 +33,42 @@ int udp_socket_bind(int port) {
     return fd;
 }
 
+/* tuvm#72: lazily-opened AF_INET socket used ONLY to send to IPv4 peers. See
+   udp_send. Never bound — the stack assigns an ephemeral source port, which is
+   all a push needs (the collector keys a node by source ADDRESS, not port). */
+static int v4_send_fd = -1;
+
 int udp_send(int sock, const char *host, int port, const uint8_t *data, int len) {
+    struct in_addr v4;
+    /* IPv4 literal FIRST. Sending to a v4-mapped destination (::ffff:a.b.c.d) on
+       the AF_INET6 socket is ACCEPTED — zsock_sendto answers the byte count — but
+       the datagram never reaches an IPv4 peer: CONFIG_NET_IPV4_MAPPING_TO_IPV6
+       maps INBOUND v4 onto the v6 socket, it does NOT translate an outbound
+       v4-mapped destination back to IPv4. A wifi node's push therefore vanished
+       with every indication of success: the node logged a written result, the
+       send reported OK, and the gw never saw a datagram (tuvm#72, WROOM-32).
+       Emit genuine IPv4 instead. The RECEIVE path stays AF_INET6 — inbound
+       v4-mapped delivery works and the Thread/IPv6 path is untouched. */
+    if (zsock_inet_pton(AF_INET, host, &v4) == 1) {
+        struct sockaddr_in a4;
+        if (v4_send_fd < 0) {
+            v4_send_fd = zsock_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+            if (v4_send_fd < 0) return -1;
+        }
+        memset(&a4, 0, sizeof a4);
+        a4.sin_family = AF_INET;
+        a4.sin_port = htons((unsigned short)port);
+        a4.sin_addr = v4;
+        return (int)zsock_sendto(v4_send_fd, data, (size_t)len, 0,
+                                 (struct sockaddr *)&a4, sizeof a4);
+    }
     struct sockaddr_in6 a;
     memset(&a, 0, sizeof a);
     a.sin6_family = AF_INET6;
     a.sin6_port = htons((unsigned short)port);
-    if (zsock_inet_pton(AF_INET6, host, &a.sin6_addr) != 1) {
-        struct in_addr v4;                       /* accept a v4 dotted literal */
-        if (zsock_inet_pton(AF_INET, host, &v4) != 1) return -1;
-        memset(&a.sin6_addr, 0, sizeof a.sin6_addr);   /* build ::ffff:a.b.c.d */
-        a.sin6_addr.s6_addr[10] = 0xff;
-        a.sin6_addr.s6_addr[11] = 0xff;
-        memcpy(&a.sin6_addr.s6_addr[12], &v4, 4);
-    }
-    ssize_t n = zsock_sendto(sock, data, (size_t)len, 0,
+    if (zsock_inet_pton(AF_INET6, host, &a.sin6_addr) != 1) return -1;
+    return (int)zsock_sendto(sock, data, (size_t)len, 0,
                              (struct sockaddr *)&a, sizeof a);
-    return (int)n;
 }
 
 int udp_receive(int sock, uint8_t *buf, int buf_cap,
