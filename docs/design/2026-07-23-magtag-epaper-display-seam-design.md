@@ -123,9 +123,20 @@ gate in D8; it is the pixels that must be right.
 
 ### D3 — nsl speaks characters, via Zephyr's CFB; it never sees a pixel
 
-`subsys/fb/cfb.c` is in-tree, mono, and ships default fonts. At 128 × 296 with an 8 × 8
-font that is a **16-column × 37-row grid** — see D9: this driver family cannot
-rotate, so the grid is portrait. This is the "ascii-art UI" decision of
+`subsys/fb/cfb.c` is in-tree, mono, and ships default fonts. At 128 × 296 with CFB's
+`font1016` (10 × 16 px) that is a **12-column × 18-row grid** — see D9: this driver family
+cannot rotate, so the grid is portrait.
+
+**Correction, found by the final whole-branch review.** Earlier drafts of this document said
+8 × 8 and therefore 16 × 37. That was wrong: **CFB ships no 8 × 8 font.** It has exactly
+three — `font1016`, `font1524`, `font2032` (`cfb_fonts.c:5156-5172`) — and index 0, which the
+seam uses, is `font1016`. The 8 came from CFB's `ppt`, which is a *tiling granularity*
+hardcoded to 8 (`cfb.c:724`), not a font size. `font1016` was chosen over the larger two
+because 12 characters per line is the narrowest usable width for status text; `font1524`
+would give only 8. **Geometry now lives in ONE place** — `OEVM_DISPLAY_ROWS`/`COLS` in
+`src/platform_backend.h` — and the device bring-up hard-checks its derived values against
+them and refuses to come up on mismatch, because a printed number a human is meant to eyeball
+is not an enforcement mechanism. This is the "ascii-art UI" decision of
 `review/zephyr-driver-exposure.md` Tier 2, taken as written.
 
 Compatibility verified rather than assumed — this was the check most likely to kill the
@@ -204,7 +215,7 @@ Exactly the division #82 established (`Vector>>at:` over `basicAt:`), for the sa
 | condition | C answers | nsl raises |
 |---|---|---|
 | no display node on this board | `nil` | `#displayUnavailable` |
-| row/col outside the 16 × 37 grid | `nil` | `#displayBounds` |
+| row/col outside the 12 × 18 grid | `nil` | `#displayBounds` |
 | driver returned `-EIO` | `nil` | `#displayFault` |
 
 `#displayFault` is the one that earns its keep. The speaker rung's lesson was that
@@ -254,7 +265,7 @@ worked around. Nothing in this design should be shaped to protect the claim.
 
 ### D8 — Host gets a real grid stub, not just the raise paths
 
-The posix backend keeps the 16-column × 37-row character grid in a plain array, so host tests assert
+The posix backend keeps the 12-column × 18-row character grid in a plain array, so host tests assert
 on **rendered text**, not merely on error tags.
 
 This deliberately closes the hole #82 left: there, `set:to:` created a slot on the host
@@ -301,11 +312,11 @@ on the controller. CFB has no rotation either. Landscape therefore means softwar
 framebuffer — a second 4,736 B buffer plus a transpose blitter, on a `dram0` already at
 81.8%, and partly re-creating the blitter D3 dropped.
 
-So the character grid is **portrait: 16 columns × 37 rows**, and **node text is capped at 16
+So the character grid is **portrait: 16 columns × 37 rows**, and **node text is capped at 12
 characters per line** or it raises `#displayBounds`.
 
 **Portrait is the design target, not a concession** (David, 2026-07-23): screens and the
-clock face are to be designed for a 16 × 37 portrait grid. Landscape is therefore not a
+clock face are to be designed for a 12 × 18 portrait grid. Landscape is therefore not a
 deferred goal — it is simply not wanted, which removes the whole question from the clock
 rung's path. `tuvm#89` remains open only as the record of *why* 90/270 is expensive and of
 the fact that a 2025 SSD1680 board would get it free.
@@ -381,7 +392,7 @@ if it turns out upstream has a better idea.
 `run_tests_oevm.py` always globs the whole suite):
 1. text placed at a row/col reads back from the stub grid
 2. overwrite and `clear` behave
-3. row/col outside the 16 × 37 grid raises `#displayBounds`
+3. row/col outside the 12 × 18 grid raises `#displayBounds`
 4. a board with no display raises `#displayUnavailable`
 
 Then the full suite green (214/0 as recorded at the #82 rung; re-baseline before
