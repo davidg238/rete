@@ -58,6 +58,59 @@ static void host_gpio_fire(int pin) {
             pulse_post_isr(host_gpio[i].chan_id, host_gpio[i].handle_idx);
 }
 
+/* tuvm#82: the host side of the OUTBOUND gpio seam. A pin counts as DECLARED on
+   the host if it has been written by gpioSet:to: or registered by
+   gpioPin:edge:post:on: — the host analogue of "declared in the board overlay".
+   Deliberately a SEPARATE table from host_gpio above: firing an edge and driving
+   a line are different things (the interesting chording test sets a level on one
+   pin while firing an edge on another), and keeping them apart leaves the proven
+   pulse path untouched.
+   KNOWN HOST/DEVICE DIVERGENCE: on the host, gpioSet:to: CREATES a slot, so it
+   never reports an undeclared pin; on target it fails for any pin the overlay
+   omits. A typo'd output pin therefore passes on the host and raises on the
+   board. Accepted: there is no overlay on the host to check against. The level
+   read has no such gap and is where the raise gets its host coverage. */
+#ifndef HOST_MAX_GPIO_LEVEL
+#define HOST_MAX_GPIO_LEVEL 16
+#endif
+struct HostGpioLevel { int pin; int level; int live; };
+static struct HostGpioLevel host_gpio_level[HOST_MAX_GPIO_LEVEL];
+static int host_n_gpio_level = 0;
+
+static struct HostGpioLevel *host_level_find(int pin) {
+    int i;
+    for (i = 0; i < host_n_gpio_level; i++)
+        if (host_gpio_level[i].live && host_gpio_level[i].pin == pin)
+            return &host_gpio_level[i];
+    return NULL;
+}
+static int host_gpio_is_registered(int pin) {
+    int i;
+    for (i = 0; i < host_n_gpio; i++)
+        if (host_gpio[i].live && host_gpio[i].pin == pin) return 1;
+    return 0;
+}
+
+/* Answers 1 on success, 0 for a pin that cannot be driven (host: table full). */
+int gpio_target_set(int pin, int level) {
+    struct HostGpioLevel *e = host_level_find(pin);
+    if (e) { e->level = level ? 1 : 0; return 1; }
+    if (host_n_gpio_level >= HOST_MAX_GPIO_LEVEL) return 0;
+    e = &host_gpio_level[host_n_gpio_level++];
+    e->pin = pin; e->level = level ? 1 : 0; e->live = 1;
+    return 1;
+}
+
+/* Answers 0/1 for a declared pin and -1 for an undeclared one. A pin registered
+   as a pulse input but never driven reads false — an input that nothing has
+   asserted, which is what an idle active-low button looks like. */
+int gpio_target_level(int pin) {
+    struct HostGpioLevel *e = host_level_find(pin);
+    if (e) return e->level;
+    if (host_gpio_is_registered(pin)) return 0;
+    return -1;
+}
+
 /* Target GPIO-ISR entry (Zephyr rung-2 Task 8): a real on-target GPIO edge
    callback (zephyr/src/main.c) calls this to post the pulse for `pin`, taking
    the exact same slot-lookup -> pulse_post_isr path the host-only gpioFire:
@@ -914,6 +967,32 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         span_reset_all();
         *out = platform_object();
         return 1;
+    case PRIM_pf_gpioSet: {
+        /* tuvm#82: `gpioSet: pin to: aBool` — args[0]=pin (SMI), args[1]=Boolean.
+           LOGICAL level: on target this goes through gpio_pin_set_dt, so `true`
+           means ACTIVE, and the overlay's GPIO_ACTIVE_LOW flags carry the polarity
+           instead of every caller. Answers nil for a pin the board never declared;
+           kernel.nsl's GpioPulse turns that nil into a tagged raise. */
+        /* is_truthy(), not `== true_symbol`: a user-written `true`/`false` literal
+           compiles to a fresh Symbol constant loaded with the image (same name,
+           different address from the VM's built-in true_sym_obj/false_sym_obj
+           singletons) — the same blob/image-literal divergence is_truthy's own
+           comment documents (src/dispatch.c). An identity compare here would
+           silently treat every literal `true` argument as false. */
+        int lvl = is_truthy(args[1]) ? 1 : 0;
+        if (!gpio_target_set((int)UNTAG_SMI(args[0]), lvl)) { *out = NULL; return 1; }
+        *out = true_symbol;
+        return 1;
+    }
+    case PRIM_pf_gpioLevel: {
+        /* tuvm#82: `gpioLevel: pin` — the LOGICAL level, so `true` reads as
+           "button pressed" for an active-low button and "powered" for the
+           active-low NeoPixel gate. nil for an undeclared pin (see above). */
+        int lvl = gpio_target_level((int)UNTAG_SMI(args[0]));
+        if (lvl < 0) { *out = NULL; return 1; }
+        *out = lvl ? true_symbol : false_symbol;
+        return 1;
+    }
     case PRIM_pf_spanStats: {
         /* Same GC-safety shape as heapStats/sysStats above: every scalar is copied
            into a C local BEFORE the single allocating call (indexable_new), and the

@@ -226,4 +226,16 @@
    all-slots on purpose: a per-slot reset would let a caller clear half a window
    and publish the result as if it were whole. */
 #define PRIM_pf_spanReset  122
+
+/* tuvm#82 (MagTag LEDs): the OUTBOUND half of the gpio seam. gpioSet:to: drives a
+   DECLARED pin to a LOGICAL level; gpioLevel: reads one back — and reads a button's
+   held state, which is what lets chording cost zero mailbox traffic instead of the
+   doubled event rate release events pay. Appended after spanReset; no pre-existing
+   id shifts. 123/124 were arrived at by COUNTING PRIM_NAMES (122 entries before
+   this append), not by 122+1 arithmetic, per the standing rule above.
+   Both answer nil for a pin the board never declared. The raise is written in nsl
+   (GpioPulse in kernel.nsl), not here — the same division Vector>>at: uses, and the
+   only one available, since build_and_raise is static to dispatch.c. */
+#define PRIM_pf_gpioSet   123
+#define PRIM_pf_gpioLevel 124
 #endif /* OEVM_PRIM_IDS_H */
