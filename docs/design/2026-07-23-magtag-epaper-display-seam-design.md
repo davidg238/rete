@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-23
 **Status:** design, approved, not implemented
-**Issue:** (to be filed — the display rung)
+**Issue:** tuvm#88
 **Follows:** `feat/magtag-esp32s2-port` — b50e89c (speaker rung promoted). Buttons,
 LEDs, outbound GPIO, WiFi and PWM sound are all proven on this board; it has no output
 a human can read.
