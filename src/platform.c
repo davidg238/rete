@@ -128,12 +128,17 @@ extern int gpio_target_level(int pin);
    test asserts on the text that was actually laid down (the existing expect:
    mechanism is the read-back path, which is why no fifth "read the grid" prim
    has to be spent). On target these live in zephyr/src/main.c beside CFB.
-   Geometry matches the MagTag at an 8x8 font: 296/8 = 37 columns, 128/8 = 16
-   rows. A host/device mismatch here would make a host-green test meaningless,
-   so the numbers are named once and asserted against the device at bring-up. */
+   Geometry: the panel is 128x296 px and CFB is configured with font1016 (10 wide
+   x 16 tall) — NOT 8x8; CFB ships no 8x8 font, and the `ppt` of 8 that looks like
+   a font size is a tiling granularity, not one. That gives 128/10 = 12 columns
+   and 296/16 = 18 rows. The numbers are named ONCE, in platform_backend.h
+   (OEVM_DISPLAY_ROWS/COLS), and this file plus zephyr/src/main.c both consume
+   that single definition — a host/device mismatch here would make a host-green
+   test meaningless, so the device side hard-checks its derived grid against
+   these same constants at bring-up rather than merely printing them. */
 #ifndef __ZEPHYR__
-#define HOST_DISPLAY_ROWS 37
-#define HOST_DISPLAY_COLS 16
+#define HOST_DISPLAY_ROWS OEVM_DISPLAY_ROWS
+#define HOST_DISPLAY_COLS OEVM_DISPLAY_COLS
 static char host_display[HOST_DISPLAY_ROWS][HOST_DISPLAY_COLS + 1];
 static int host_display_init_done = 0;
 
@@ -163,7 +168,20 @@ static int host_display_row_len(int r) {
     return end;
 }
 
-int display_target_available(void) { host_display_ensure(); return 1; }
+/* tuvm#88 TEST SEAM: OEVM_NO_DISPLAY=1 makes the host claim "no display", the
+   same shape as OEVM_GC_STRESS in gc.c — cached once so getenv is not re-read
+   per call. Without this, `display_target_available()` was hard-coded 1 and the
+   design's promised "no display -> #displayUnavailable" host test could not
+   exist; a board really can lack the panel (Finding 3), so the host needs a way
+   to exercise that path too. */
+int display_target_available(void) {
+    static int no_display_cached = -1;
+    if (no_display_cached < 0)
+        no_display_cached = (getenv("OEVM_NO_DISPLAY") != NULL) ? 1 : 0;
+    if (no_display_cached) return 0;
+    host_display_ensure();
+    return 1;
+}
 
 int display_target_clear(void) { host_display_reset(); return 0; }
 

@@ -205,18 +205,33 @@ static void magtag_chime(void) {
 }
 #endif /* CONFIG_PWM && spkren */
 
+#include "platform_backend.h"   /* OEVM_DISPLAY_ROWS/COLS — the one place the grid is named (tuvm#88) */
+
 #if DT_HAS_CHOSEN(zephyr_display)
 #include <zephyr/drivers/display.h>
 #include <zephyr/display/cfb.h>
 #include <string.h>   /* memcpy in display_target_put — not pulled in unconditionally
                        * elsewhere in this TU (same finding the smoke code this
                        * replaces already made for memset). */
+#endif
 
 /* tuvm#88: the device half of the display seam. The host half is in
  * src/platform.c under #ifndef __ZEPHYR__; both sides implement exactly these
  * five functions, and the geometry must agree or a host-green test says nothing
- * about the board — which is why the row/col counts are printed at boot for
- * comparison against HOST_DISPLAY_ROWS/COLS.
+ * about the board — which is why disp_rows/disp_cols are hard-checked against
+ * OEVM_DISPLAY_ROWS/COLS (platform_backend.h) at bring-up below, not merely
+ * printed for a human to eyeball.
+ *
+ * Finding 3: these five symbols must exist and link on EVERY Zephyr board,
+ * including ones with no display node at all (ESP32, C6, nRF52840-DK/dongle) —
+ * src/platform.c declares them `extern` unconditionally under __ZEPHYR__ and the
+ * prim dispatch in src/platform.c calls them, guarded only by
+ * display_target_available() (every dispatch site checks that first — see the
+ * PRIM_pf_display* cases). So the #if DT_HAS_CHOSEN(zephyr_display) guard goes
+ * INSIDE each function body (copying the gpio_target_set/level pattern just
+ * above), never around the definitions themselves. On a no-display board,
+ * available() returns 0 and the rest are unreachable in practice but still
+ * return 2 (driver fault) rather than silently claiming success.
  *
  * refresh/refreshRow BLOCK for the whole paint: uc81xx_busy_wait polls BUSY with
  * k_sleep(1ms) in the calling thread. That is safe because the pulse mailbox
@@ -224,10 +239,13 @@ static void magtag_chime(void) {
  * arrives once afterwards. The async driver-job alternative is the clock rung's
  * problem, per design D6.
  */
+#if DT_HAS_CHOSEN(zephyr_display)
 static const struct device *disp_dev;
 static int disp_rows, disp_cols, disp_font_h;
+#endif
 static bool disp_ok;
 
+#if DT_HAS_CHOSEN(zephyr_display)
 static void display_bringup(void)
 {
 	uint8_t fw, fh;
@@ -252,30 +270,71 @@ static void display_bringup(void)
 	 * does not set SCREEN_INFO_MONO_VTILED, and this one (uc81xx) doesn't —
 	 * it reports MONO_MSB_FIRST | EPD only. ROWS divides by ppt only in the
 	 * VTILED case, so on this panel it hands back the raw pixel height (296)
-	 * instead of the character-row count (37); COLS gets the right answer
-	 * here only by the mirror-image coincidence. CFB_DISPLAY_HEIGHT/WIDTH
-	 * are the raw pixel extents unconditionally, so dividing by the font
-	 * cell size is the only derivation that is right for both axes on both
-	 * kinds of panel. fw/fh come straight from a compiled-in font table
-	 * entry (FONT_ENTRY_DEFINE), which is never zero for a real font, and
+	 * instead of the character-row count; COLS gets the right answer here
+	 * only by the mirror-image coincidence. CFB_DISPLAY_HEIGHT/WIDTH are the
+	 * raw pixel extents unconditionally, so dividing by the font cell size
+	 * is the only derivation that is right for both axes on both kinds of
+	 * panel. fw/fh come straight from a compiled-in font table entry
+	 * (FONT_ENTRY_DEFINE), which is never zero for a real font, and
 	 * cfb_get_font_size already sent us home on the error path above if
 	 * there was no font at all — so this division is safe. */
 	disp_rows   = cfb_get_display_parameter(disp_dev, CFB_DISPLAY_HEIGHT) / fh;
 	disp_cols   = cfb_get_display_parameter(disp_dev, CFB_DISPLAY_WIDTH) / fw;
 	disp_font_h = fh;
-	disp_ok     = true;
+
+	/* tuvm#88 Finding 2c: a printed number is not an enforcement mechanism — a
+	 * human has to notice a mismatch in a boot log, and won't. Hard-check the
+	 * derived grid against the ONE place the host side also gets its numbers
+	 * from (platform_backend.h) and refuse to mark the display available on a
+	 * mismatch, so the seam reports unavailable rather than silently operating
+	 * on a different geometry than every host test assumes. */
+	if (disp_rows != OEVM_DISPLAY_ROWS || disp_cols != OEVM_DISPLAY_COLS) {
+		printk("DISPLAY geometry mismatch: derived rows=%d cols=%d "
+		       "(font=%ux%u) but OEVM_DISPLAY_ROWS/COLS=%d/%d — "
+		       "refusing to mark display available\n",
+		       disp_rows, disp_cols, fw, fh,
+		       OEVM_DISPLAY_ROWS, OEVM_DISPLAY_COLS);
+		return;
+	}
+
+	/* tuvm#88 Finding 1: uc81xx_controller_init leaves blanking_on == true,
+	 * and uc81xx_write only issues the panel refresh command when blanking is
+	 * OFF — with blanking on, every write loads controller RAM and returns 0
+	 * (success) while the panel itself never repaints and stays blank. This
+	 * call is what puts the driver into the mode where a write actually
+	 * refreshes the glass; without it, display_target_refresh() would report
+	 * success forever against a panel nothing ever appears on. */
+	if (display_blanking_off(disp_dev)) {
+		printk("DISPLAY blanking_off failed\n");
+		return;
+	}
+
+	disp_ok = true;
 	printk("DISPLAY OK rows=%d cols=%d font=%ux%u\n", disp_rows, disp_cols, fw, fh);
 }
+#endif /* DT_HAS_CHOSEN(zephyr_display) */
 
-int display_target_available(void) { return disp_ok ? 1 : 0; }
+int display_target_available(void)
+{
+#if DT_HAS_CHOSEN(zephyr_display)
+	return disp_ok ? 1 : 0;
+#else
+	return 0;   /* no display node on this board */
+#endif
+}
 
 int display_target_clear(void)
 {
+#if DT_HAS_CHOSEN(zephyr_display)
 	return cfb_framebuffer_clear(disp_dev, false) ? 2 : 0;
+#else
+	return 2;   /* unreachable in practice: available() already gated this */
+#endif
 }
 
 int display_target_put(int row, int col, const char *s, int n)
 {
+#if DT_HAS_CHOSEN(zephyr_display)
 	char buf[64];
 	uint8_t fw, fh;
 
@@ -290,15 +349,24 @@ int display_target_put(int row, int col, const char *s, int n)
 
 	if (cfb_get_font_size(disp_dev, 0, &fw, &fh)) return 2;
 	return cfb_print(disp_dev, buf, col * fw, row * fh) ? 2 : 0;
+#else
+	ARG_UNUSED(row); ARG_UNUSED(col); ARG_UNUSED(s); ARG_UNUSED(n);
+	return 2;   /* unreachable in practice: available() already gated this */
+#endif
 }
 
 int display_target_refresh(void)
 {
+#if DT_HAS_CHOSEN(zephyr_display)
 	return cfb_framebuffer_finalize(disp_dev) ? 2 : 0;
+#else
+	return 2;   /* unreachable in practice: available() already gated this */
+#endif
 }
 
 int display_target_refresh_row(int row)
 {
+#if DT_HAS_CHOSEN(zephyr_display)
 	int width = cfb_get_display_parameter(disp_dev, CFB_DISPLAY_WIDTH);
 
 	if (row < 0 || row >= disp_rows) return 1;
@@ -307,8 +375,11 @@ int display_target_refresh_row(int row)
 	 * cfb_framebuffer_finalize_area supports, and the only one this seam needs. */
 	return cfb_framebuffer_finalize_area(disp_dev, 0, row * disp_font_h,
 					     width, disp_font_h) ? 2 : 0;
-}
+#else
+	ARG_UNUSED(row);
+	return 2;   /* unreachable in practice: available() already gated this */
 #endif
+}
 
 #ifdef CONFIG_TUVM_NET_HEARTBEAT
 /* #65 diagnostic — a census of the packet pools on its OWN thread.
@@ -727,7 +798,7 @@ int main(void) {
 #endif
 
 #if DT_HAS_CHOSEN(zephyr_display)
-    display_bringup();   /* tuvm#88: init CFB + wire the display_target_* seam */
+    display_bringup();   /* tuvm#88: init CFB, verify geometry, blanking off, wire the seam */
 #endif
 
 #ifdef CONFIG_NET_L2_OPENTHREAD
