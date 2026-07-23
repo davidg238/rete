@@ -145,6 +145,32 @@ format allows" and a hand-rolled ~1 KB glyph blitter. It allows. The blitter is 
 it is not free, and `CONFIG_HEAP_MEM_POOL_SIZE` must rise to cover it plus slack. Per the
 #53 discipline this gets **measured on the linked image, not assumed**.
 
+**CFB cannot express a partial refresh, so CFB grows one.** Found while writing the
+implementation plan, and it is a direct conflict between this decision and D2:
+`cfb_framebuffer_finalize` (`cfb.c:558-585`) always writes the *whole* framebuffer at
+(0, 0), and `char_fb` is a file-static with no public buffer accessor — so nothing outside
+the subsystem can hand `display_write` a sub-rectangle.
+
+The resolution is to **add a bounded finalize to CFB**:
+
+```c
+int cfb_framebuffer_finalize_area(const struct device *dev,
+                                  uint16_t x, uint16_t y,
+                                  uint16_t width, uint16_t height);
+```
+
+It is `finalize`'s body with the descriptor and origin taken from the arguments instead of
+`fb->x_res`/`fb->y_res`/0,0, plus the same `cfb_invert` dance around the write. ~20 lines.
+
+The alternatives were rejected: doing partial-*waveform*-but-full-*window* (blanking off at
+init) makes gate 2 unprovable, and hand-rolling a framebuffer plus glyph blitter reverses
+this decision and re-adds the ~1 KB blitter for the sake of one rectangle. Patching CFB
+keeps D2 and D3 both whole. It does mean **the Zephyr-side patch spans a driver family and
+a subsystem, not just a driver** — see D10.
+
+Bounds discipline: the area is derived from the font metrics inside the seam, never passed
+in by nsl, so a caller still cannot state a pixel coordinate (D4).
+
 ### D4 — Four prims at 125-128, blocking, mirroring the #82 gpio seam
 
 | id | prim | nsl | blocks? |
@@ -277,6 +303,13 @@ so the option stays open — but the rung closes on hardware, not on review. Not
 standing tax: `west update` already breaks two boards' ROM patches (#48); this adds a
 third out-of-tree dependency to the same list.
 
+**The patch is two separable pieces** (D3): a new `uc81xx` family member, and
+`cfb_framebuffer_finalize_area` in `subsys/fb`. They should be **separate commits**,
+because they would be separate upstream PRs — the driver one is a straightforward new
+compatible, while the subsystem one changes a public header and will attract more review.
+Keeping them apart also means the CFB half can be dropped without losing the driver half
+if it turns out upstream has a better idea.
+
 ## Touch list
 
 **Zephyr (`~/zephyr-esp32/zephyr`, branch `tuvm-c6-radio-fix`)**
@@ -284,7 +317,9 @@ third out-of-tree dependency to the same list.
 - `drivers/display/uc81xx_regs.h` — two packed structs + `BUILD_ASSERT`s
 - `drivers/display/uc81xx.c` — `set_tres`/`set_ptl` variants, `il0373_quirks`,
   `DT_FOREACH_STATUS_OKAY_VARGS(ultrachip_il0373, …)`
-- `drivers/display/Kconfig.uc81xx` — the new compatible's symbol
+- `drivers/display/Kconfig.uc81xx` — the new compatible in the `depends on` list
+- `subsys/fb/cfb.c` + `include/zephyr/display/cfb.h` — `cfb_framebuffer_finalize_area`
+  (D3); a subsystem addition, not a driver one
 
 **tuvm**
 - `src/prim_ids.h` — 125-128, append-only
