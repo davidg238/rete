@@ -1,0 +1,28 @@
+(*
+expect:
+led true
+caught gpioUndeclared
+text gpio pin not declared
+finished
+*)
+(* tuvm#82 — an undeclared pin is a WRONG LITERAL, not a load condition, so it
+   raises rather than answering false and letting the node carry on with a value
+   that is simply incorrect. The check lives in nsl over a nil-answering C leaf,
+   exactly as Vector>>at: bounds-checks over a raw basicAt:. The tag is asserted,
+   not merely the fact that something failed — an untagged catch would pass even
+   if the raise came from somewhere else entirely. *)
+class GpioUndeclaredRaises packageUsing: manifest = () (
+  public main: platform args: args = (
+    | gpio |
+    gpio:: platform gpio.
+    gpio set: 13 to: true.
+    ('led ' , (gpio level: 13) printString) out.
+
+    [ gpio level: 99 ]
+      on: [ :e | e tag = #gpioUndeclared ]
+      do: [ :e | 'caught gpioUndeclared' out.
+                 ('text ' , (e at: #text ifAbsent: [ '?' ])) out ].
+    'finished' out.
+  )
+) : (
+)
