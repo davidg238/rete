@@ -15,9 +15,10 @@ class MagTagDisplayNode packageUsing: manifest = () (
     count:: 0.
 
     display clear.
-    (* 16 COLUMNS MAX — the grid is portrait (see Task 2). Anything longer
-       raises #displayBounds, which is a real gate, not a formatting nicety. *)
-    display at: 0 col: 0 put: 'TUVM  e-paper'.
+    (* 12 COLUMNS MAX — the grid is portrait 12x18 at CFB's font1016 (10x16 px
+       on a 128x296 panel). Anything longer raises #displayBounds, which is a
+       real gate, not a formatting nicety. *)
+    display at: 0 col: 0 put: 'TUVM e-paper'.
     display at: 2 col: 0 put: 'tuvm#88'.
     display at: 4 col: 0 put: 'presses: 0'.
     display refresh.

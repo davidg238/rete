@@ -1251,7 +1251,7 @@ export ZEPHYR_BASE=~/zephyr-esp32/zephyr ZEPHYR_SDK_INSTALL_DIR=~/zephyr-sdk-0.1
 
 - [ ] **Step 3: Gate 1 — full refresh**
 
-Expected console: `DISPLAY OK rows=37 cols=16 font=8x8`, then `gate1 painted`, `gate3 caught displayBounds`, `ready`.
+Expected console: `DISPLAY OK rows=18 cols=12 font=10x16`, then `gate1 painted`, `gate3 caught displayBounds`, `ready`. (Corrected from the drafted `rows=37 cols=16 font=8x8` — CFB ships no 8x8 font; see commit 65a884e. Bring-up now *hard-checks* its derived geometry against `OEVM_DISPLAY_ROWS/COLS`, so a mismatch refuses to come up rather than printing a wrong number.)
 Expected panel: three lines of text, legible.
 **Photograph it.** `rc=0` is not the gate.
 
