@@ -92,10 +92,56 @@ So bounce still reaches the node as several *logical presses*.
 equal one logical event — not a load-shedding measure.** Coalescing is
 structurally incapable of providing it.
 
-Implementation: per-pin last-accepted timestamp in the ISR, ignore edges within
-~20–50 ms. Fire on the **first** edge and swallow the tail, so latency stays at
-zero. Doing it in nsl instead would cost a `space_post_id` plus a full reaction
-fire per bounce edge.
+**Implementation — CORRECTED ON HARDWARE 2026-07-23.** This section originally
+prescribed "per-pin last-accepted timestamp, ignore edges within ~20–50 ms". That
+is **wrong**, and measurement killed it along with a second attempt. The final
+design is a **debounced press/release state machine** over
+`GPIO_INT_EDGE_BOTH`; the reasoning is preserved here because the two dead ends
+are each individually plausible.
+
+Test harness: host-side console capture with a 2 ms poll, timestamping each event
+and reporting the gap from the previous one. *(A first attempt used a 200 ms poll
+and measured its own loop — every gap came out as a multiple of 200 ms. If a gap
+histogram looks quantised, suspect the instrument before the board.)*
+
+| Design | 5 × 3 s holds | 10 presses | hard jabs |
+|---|---|---|---|
+| Edge + 30 ms lockout | ~10 | 13 | — |
+| Edge + level check at ISR entry | 8 | 14 | — |
+| **Debounced state machine** | **5** | **10** | 31, max gap 204.8 ms |
+
+1. **Edge + time lockout failed.** `GPIO_INT_EDGE_TO_ACTIVE` does **not** mean
+   press-only on this board, despite Zephyr inverting the trigger for `ACTIVE_LOW`
+   pins and `gpio_esp32.c`'s `convert_int_type` mapping `TRIG_LOW → NEGEDGE`. Hold
+   a button 3 s and the seam fires twice — the second event at **+2944 ms**,
+   exactly at release. A time lockout **cannot** fix this: the release happens an
+   arbitrary time after the press, so no window is wide enough. It merely *masked*
+   the fault for presses shorter than the window, which is why it first looked
+   like intermittent contact bounce.
+2. **Edge + level check failed.** Reading the level at ISR entry and discarding
+   non-active interrupts cut releases roughly in half (5 holds → 8 events). It is
+   a coin flip against a bouncing contact: the release bounces, and about half the
+   time the ISR samples during a brief active glitch.
+3. **State machine works.** Fire only on a debounced `released → pressed`
+   transition; require a settled release to re-arm. Bounce in either direction
+   lands inside the 30 ms window and is absorbed. Exact on both tests.
+
+`GPIO_INT_EDGE_BOTH` is requested **deliberately**: the state machine needs the
+release interrupt to re-arm, and asking for both edges makes that guaranteed on
+any compliant driver rather than dependent on what edge-to-active happens to mean
+— which is precisely the assumption that broke here.
+
+**Known limitation, analysed not observed.** The 30 ms window gates *both*
+transitions, so a press-and-release completed inside 30 ms has its release
+absorbed, leaving the state stuck at `pressed` and swallowing the **next** press.
+Press *rate* is irrelevant; only **dwell** matters. Not reproduced: a hard jab
+burst ran at ~5.7 taps/sec with a 150–205 ms period and no double-length gap
+anywhere, so nothing was dropped. If it ever bites, lower
+`OEVM_BUTTON_DEBOUNCE_MS` — press bounce measured well under 30 ms (no two
+accepted events ever landed closer than 60 ms), so there is room to go to ~15 ms.
+
+Debounce stays in C rather than nsl regardless: in nsl each bounce edge would
+cost a `space_post_id` plus a full reaction fire merely to discard it.
 
 ### D4 — Extend the existing logical-pin seam; do not replace it
 

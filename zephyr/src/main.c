@@ -236,8 +236,9 @@ struct pulse_input {
     struct gpio_dt_spec spec;
     struct gpio_callback cb;
     int      logical;
-    uint32_t last_ms;   /* uptime of the last ACCEPTED edge */
-    bool     seen;      /* false until the first accepted edge (0 is a real uptime) */
+    uint32_t last_ms;   /* uptime of the last ACCEPTED transition */
+    bool     seen;      /* false until the first accepted transition (0 is a real uptime) */
+    bool     pressed;   /* debounced state; a press fires only on released -> pressed */
 };
 
 static struct pulse_input pulse_inputs[] = {
@@ -280,15 +281,67 @@ static void pulse_isr(const struct device *port, struct gpio_callback *cb,
         if (in->spec.port != port || !(pins & BIT(in->spec.pin))) {
             continue;
         }
-        /* Fire on the FIRST edge and swallow the tail, so a press costs no
-           latency. Unsigned subtraction is wrap-correct across the ~49.7-day
+        /* DEBOUNCED PRESS/RELEASE STATE MACHINE. Arrived at by measurement, after
+           two simpler designs were tried on hardware and failed:
+
+           (1) Edge-only ("fire on every interrupt, lock out for 30 ms"). The seam
+               fired TWICE per press: hold BUTTON_A for 3 s and the second event
+               lands 2944 ms later, exactly at release. Ten deliberate presses gave
+               thirteen events, the extras 196/255/280 ms after their press — one
+               per press held longer than the lockout, since a shorter press has
+               its release swallowed by the window. That is why it first looked
+               like intermittent contact bounce and is not: GPIO_INT_EDGE_TO_ACTIVE
+               does NOT mean press-only here, despite Zephyr inverting the trigger
+               for ACTIVE_LOW pins and gpio_esp32.c mapping TRIG_LOW -> NEGEDGE.
+               A time lockout CANNOT fix this: the release happens an arbitrary
+               time after the press, so no window is wide enough.
+
+           (2) Edge + level check ("ignore interrupts where the pin reads
+               inactive"). Better but still wrong: five 3 s holds gave EIGHT
+               events, i.e. three releases still leaked. Sampling the level at ISR
+               entry is a coin flip against a bouncing contact — the release
+               bounces, and roughly half the time the ISR samples during a brief
+               active glitch and fires.
+
+           So: track the debounced STATE, and require a settled release before
+           another press can fire. A press fires only on a genuine
+           released -> pressed transition; bounce in either direction lands inside
+           the 30 ms window and is absorbed.
+
+           This needs a release interrupt to re-arm, which is exactly why
+           GPIO_INT_EDGE_BOTH is requested in wire_pulse_gpio() rather than
+           EDGE_TO_ACTIVE. Asking for both edges makes the re-arm GUARANTEED on any
+           compliant driver instead of depending on what edge-to-active happens to
+           mean — which is the assumption that broke here in the first place.
+           gpio_pin_get_dt returns the LOGICAL level (1 == active), honouring
+           GPIO_ACTIVE_LOW from the devicetree, so this stays polarity-correct on
+           every board.
+
+           Unsigned subtraction is wrap-correct across the ~49.7-day
            k_uptime_get_32() rollover. */
-        if (in->seen && (uint32_t)(now - in->last_ms) < OEVM_BUTTON_DEBOUNCE_MS) {
-            continue;
+        int lvl = gpio_pin_get_dt(&in->spec);
+        if (lvl < 0) {
+            continue;   /* read failed; nothing sane to report from an ISR */
         }
-        in->seen = true;
-        in->last_ms = now;
-        gpio_target_fire(pulse_logical_of(in));   /* -> pulse_post_isr (non-blocking) */
+        if (in->seen && (uint32_t)(now - in->last_ms) < OEVM_BUTTON_DEBOUNCE_MS) {
+            continue;   /* still settling — absorbs bounce on BOTH edges */
+        }
+        if (!in->pressed) {
+            if (lvl != 1) {
+                continue;   /* already released; nothing to do */
+            }
+            in->pressed = true;
+            in->seen    = true;
+            in->last_ms = now;
+            gpio_target_fire(pulse_logical_of(in));   /* -> pulse_post_isr (non-blocking) */
+        } else {
+            if (lvl != 0) {
+                continue;   /* still held */
+            }
+            in->pressed = false;   /* settled release: re-arm, but do NOT fire */
+            in->seen    = true;
+            in->last_ms = now;
+        }
     }
 }
 
@@ -302,7 +355,15 @@ static void wire_pulse_gpio(void) {
         }
         in->logical = pulse_logical_of(in);
         gpio_pin_configure_dt(&in->spec, GPIO_INPUT);
-        gpio_pin_interrupt_configure_dt(&in->spec, GPIO_INT_EDGE_TO_ACTIVE);
+        /* BOTH edges, not EDGE_TO_ACTIVE — deliberate, and the reason is measured
+           rather than stylistic. pulse_isr fires a press only on a debounced
+           released -> pressed transition, so it MUST see the release in order to
+           re-arm. Requesting both edges makes that guaranteed on any compliant
+           driver, instead of depending on what edge-to-active happens to mean on a
+           given one: on this board EDGE_TO_ACTIVE already delivered release
+           interrupts anyway, which is precisely the bug that made a press fire
+           twice. Asking for what we actually need removes the assumption. */
+        gpio_pin_interrupt_configure_dt(&in->spec, GPIO_INT_EDGE_BOTH);
         /* A callback per input rather than one shared mask: gpio_add_callback is
            per-port, and nothing guarantees a board puts every button on one port
            (the MagTag does; the next board might not). */
