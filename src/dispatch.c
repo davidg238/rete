@@ -770,6 +770,14 @@ enum {
        123rd/124th PRIM_NAMES entries. Platform-dispatched (mirrored in prim_ids.h). */
     PRIM_pf_gpioSet,
     PRIM_pf_gpioLevel,
+    /* tuvm#88: the display seam — displayClear / displayAt:col:put: /
+       displayRefresh / displayRefreshRow:. Appended after gpioLevel; no
+       pre-existing id shifts. Counted (not computed) to be the 125th-128th
+       PRIM_NAMES entries. Platform-dispatched (mirrored in prim_ids.h). */
+    PRIM_pf_displayClear,
+    PRIM_pf_displayAt,
+    PRIM_pf_displayRefresh,
+    PRIM_pf_displayRefreshRow,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -824,6 +832,7 @@ static const char *const PRIM_NAMES[] = {
     "spanBegin:", "spanEnd:", "spanStats:", "spanRecord:us:",
     "spanReset",
     "gpioSet:to:", "gpioLevel:",
+    "displayClear", "displayAt:col:put:", "displayRefresh", "displayRefreshRow:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
@@ -834,7 +843,7 @@ static const char *const PRIM_NAMES[] = {
    — this catches it at build time instead. C99-safe (no _Static_assert under
    -std=c99): a false condition makes a negative-sized array, which is a hard
    compile error. ADVANCE THIS to the new last id whenever prims are appended. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_gpioLevel) ? 1 : -1];
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_displayRefreshRow) ? 1 : -1];
 
 /* Pointer-keyed cache mapping each interned selector symbol to its primitive id
    (PRIM_NONE if it is not an intercepted primitive). Selectors are interned, so

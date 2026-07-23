@@ -123,6 +123,95 @@ extern int gpio_target_set(int pin, int level);
 extern int gpio_target_level(int pin);
 #endif
 
+/* tuvm#88: the host side of the display seam — a real character grid, not a
+   stub that only reports errors. `refresh` PRINTS the non-blank rows, so an nsl
+   test asserts on the text that was actually laid down (the existing expect:
+   mechanism is the read-back path, which is why no fifth "read the grid" prim
+   has to be spent). On target these live in zephyr/src/main.c beside CFB.
+   Geometry matches the MagTag at an 8x8 font: 296/8 = 37 columns, 128/8 = 16
+   rows. A host/device mismatch here would make a host-green test meaningless,
+   so the numbers are named once and asserted against the device at bring-up. */
+#ifndef __ZEPHYR__
+#define HOST_DISPLAY_ROWS 37
+#define HOST_DISPLAY_COLS 16
+static char host_display[HOST_DISPLAY_ROWS][HOST_DISPLAY_COLS + 1];
+static int host_display_init_done = 0;
+
+static void host_display_reset(void) {
+    int r, c;
+    for (r = 0; r < HOST_DISPLAY_ROWS; r++) {
+        for (c = 0; c < HOST_DISPLAY_COLS; c++) host_display[r][c] = ' ';
+        host_display[r][HOST_DISPLAY_COLS] = '\0';
+    }
+    host_display_init_done = 1;
+}
+static void host_display_ensure(void) {
+    if (!host_display_init_done) host_display_reset();
+}
+/* Output goes through platform_console_write, NOT printf. The `out` selector
+   uses it (see PRIM_pf_print above), and mixing the two would interleave two
+   different buffering regimes — an expect: block would then be asserting an
+   order that is an artefact of stdio, not of the program. */
+static void host_display_emit(const char *s, int n) {
+    platform_console_write(s, (size_t)n);
+}
+/* Trailing blanks carry no information and would make every expect: block
+   whitespace-fragile, so they are trimmed on the way out. */
+static int host_display_row_len(int r) {
+    int end = HOST_DISPLAY_COLS;
+    while (end > 0 && host_display[r][end - 1] == ' ') end--;
+    return end;
+}
+
+int display_target_available(void) { host_display_ensure(); return 1; }
+
+int display_target_clear(void) { host_display_reset(); return 0; }
+
+int display_target_put(int row, int col, const char *s, int n) {
+    int i;
+    host_display_ensure();
+    if (row < 0 || row >= HOST_DISPLAY_ROWS) return 1;
+    if (col < 0 || n < 0 || col + n > HOST_DISPLAY_COLS) return 1;
+    for (i = 0; i < n; i++) host_display[row][col + i] = s[i];
+    return 0;
+}
+
+int display_target_refresh(void) {
+    char line[80];
+    int r, len, end;
+    host_display_ensure();
+    host_display_emit("display:\n", 9);
+    for (r = 0; r < HOST_DISPLAY_ROWS; r++) {
+        end = host_display_row_len(r);
+        if (end == 0) continue;
+        len = snprintf(line, sizeof line, "  %d: %.*s\n", r, end, host_display[r]);
+        if (len > 0) host_display_emit(line, len);
+    }
+    return 0;
+}
+
+int display_target_refresh_row(int row) {
+    char line[80];
+    int len, end;
+    host_display_ensure();
+    if (row < 0 || row >= HOST_DISPLAY_ROWS) return 1;
+    end = host_display_row_len(row);
+    len = snprintf(line, sizeof line, "display row %d: %.*s\n", row, end, host_display[row]);
+    if (len > 0) host_display_emit(line, len);
+    return 0;
+}
+#else
+/* On target these live in zephyr/src/main.c, beside the CFB calls and the
+   devicetree node they read — the same split gpio_target_set/level use, and for
+   the same reason: a new .c file costs edits to nine enumerated source lists
+   across two repos (tuvm#63). */
+extern int display_target_available(void);
+extern int display_target_clear(void);
+extern int display_target_put(int row, int col, const char *s, int n);
+extern int display_target_refresh(void);
+extern int display_target_refresh_row(int row);
+#endif
+
 /* Target GPIO-ISR entry (Zephyr rung-2 Task 8): a real on-target GPIO edge
    callback (zephyr/src/main.c) calls this to post the pulse for `pin`, taking
    the exact same slot-lookup -> pulse_post_isr path the host-only gpioFire:
@@ -1003,6 +1092,41 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         int lvl = gpio_target_level((int)UNTAG_SMI(args[0]));
         if (lvl < 0) { *out = NULL; return 1; }
         *out = lvl ? true_symbol : false_symbol;
+        return 1;
+    }
+    case PRIM_pf_displayClear: {
+        /* tuvm#88. nil = no display on this board (structural); otherwise an SMI
+           status the nsl wrapper turns into a tag. See prim_ids.h for why the
+           convention differs from the gpio pair's plain nil. */
+        if (!display_target_available()) { *out = NULL; return 1; }
+        *out = TAG_SMI(display_target_clear());
+        return 1;
+    }
+    case PRIM_pf_displayAt: {          /* displayAt: row col: col put: aString */
+        oop data = args[2];
+        int rc;
+        if (data == NULL || IS_SMI(data) || StringVtable == NULL ||
+            obj_vtable(data) != StringVtable) {
+            fprintf(stderr, "VM Error: platform displayAt:col:put: expects a String\n");
+            abort();
+        }
+        if (!display_target_available()) { *out = NULL; return 1; }
+        {
+            struct String *s = (struct String *)data;
+            rc = display_target_put((int)UNTAG_SMI(args[0]), (int)UNTAG_SMI(args[1]),
+                                    (const char *)s->bytes, (int)s->length);
+        }
+        *out = TAG_SMI(rc);
+        return 1;
+    }
+    case PRIM_pf_displayRefresh: {
+        if (!display_target_available()) { *out = NULL; return 1; }
+        *out = TAG_SMI(display_target_refresh());
+        return 1;
+    }
+    case PRIM_pf_displayRefreshRow: {
+        if (!display_target_available()) { *out = NULL; return 1; }
+        *out = TAG_SMI(display_target_refresh_row((int)UNTAG_SMI(args[0])));
         return 1;
     }
     case PRIM_pf_spanStats: {

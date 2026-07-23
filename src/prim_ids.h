@@ -238,4 +238,23 @@
    only one available, since build_and_raise is static to dispatch.c. */
 #define PRIM_pf_gpioSet   123
 #define PRIM_pf_gpioLevel 124
+
+/* tuvm#88 (MagTag e-paper): the display seam. clear/at:col:put: touch only the
+   C-side character framebuffer and are cheap; refresh/refreshRow: drive the panel
+   and BLOCK the VM for the paint — safe because the pulse mailbox sheds and
+   coalesces rather than aborting (src/backend/zephyr/pulse_zephyr.c, tuvm#34), so
+   a button pressed mid-paint is delivered once afterwards.
+   Appended after gpioLevel; no pre-existing id shifts. 125-128 were arrived at by
+   COUNTING PRIM_NAMES (124 entries before this append), not by 124+1 arithmetic,
+   per the standing rule above.
+   ANSWER CONVENTION, an extension of the gpio pair's: nil still means "this board
+   has no such thing" (no display bound at all) and is the structural error a wrong
+   literal produces. An operational outcome the driver knows about answers an SMI
+   instead — 0 ok, 1 out of bounds, 2 driver fault — because one nil cannot carry
+   three different tags. The raises are written in nsl (Display in kernel.nsl), not
+   here, the same division Vector>>at: uses over basicAt:. */
+#define PRIM_pf_displayClear      125
+#define PRIM_pf_displayAt         126
+#define PRIM_pf_displayRefresh    127
+#define PRIM_pf_displayRefreshRow 128
 #endif /* OEVM_PRIM_IDS_H */
