@@ -207,36 +207,94 @@ static void magtag_chime(void) {
 
 #if DT_HAS_CHOSEN(zephyr_display)
 #include <zephyr/drivers/display.h>
-#include <string.h>   /* memset — not pulled in unconditionally elsewhere in this TU */
+#include <zephyr/display/cfb.h>
+#include <string.h>   /* memcpy in display_target_put — not pulled in unconditionally
+                       * elsewhere in this TU (same finding the smoke code this
+                       * replaces already made for memset). */
 
-/* tuvm#88 bring-up smoke. Raw display API on purpose: if this paints, the
- * IL0373 quirks, the MIPI-DBI wiring and BUSY are all good, and anything that
- * fails later is CFB's or the seam's. Per Risk 2, a panel that never asserts
- * BUSY means the init never landed — check that before doubting pixels. */
-static void display_smoke(void)
+/* tuvm#88: the device half of the display seam. The host half is in
+ * src/platform.c under #ifndef __ZEPHYR__; both sides implement exactly these
+ * five functions, and the geometry must agree or a host-green test says nothing
+ * about the board — which is why the row/col counts are printed at boot for
+ * comparison against HOST_DISPLAY_ROWS/COLS.
+ *
+ * refresh/refreshRow BLOCK for the whole paint: uc81xx_busy_wait polls BUSY with
+ * k_sleep(1ms) in the calling thread. That is safe because the pulse mailbox
+ * sheds and coalesces (pulse_zephyr.c, tuvm#34), so a button pressed mid-paint
+ * arrives once afterwards. The async driver-job alternative is the clock rung's
+ * problem, per design D6.
+ */
+static const struct device *disp_dev;
+static int disp_rows, disp_cols, disp_font_h;
+static bool disp_ok;
+
+static void display_bringup(void)
 {
-	const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
-	struct display_capabilities caps;
-	static uint8_t band[128];        /* 8 rows x (128/8) bytes, all black */
-	struct display_buffer_descriptor desc;
-	int rc;
+	uint8_t fw, fh;
 
-	if (!device_is_ready(dev)) {
+	disp_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
+	if (!device_is_ready(disp_dev)) {
 		printk("DISPLAY not ready\n");
 		return;
 	}
-	display_get_capabilities(dev, &caps);
-	printk("DISPLAY ready %ux%u\n", caps.x_resolution, caps.y_resolution);
+	if (cfb_framebuffer_init(disp_dev)) {
+		printk("DISPLAY cfb init failed\n");
+		return;
+	}
+	if (cfb_get_font_size(disp_dev, 0, &fw, &fh)) {
+		printk("DISPLAY no font\n");
+		return;
+	}
+	cfb_framebuffer_set_font(disp_dev, 0);
+	cfb_framebuffer_clear(disp_dev, true);
 
-	memset(band, 0x00, sizeof band);   /* MONO10: 0 bits are black */
-	desc.buf_size = sizeof band;
-	desc.width    = 128;
-	desc.height   = 8;
-	desc.pitch    = 128;
+	disp_rows   = cfb_get_display_parameter(disp_dev, CFB_DISPLAY_ROWS);
+	disp_cols   = cfb_get_display_parameter(disp_dev, CFB_DISPLAY_COLS);
+	disp_font_h = fh;
+	disp_ok     = true;
+	printk("DISPLAY OK rows=%d cols=%d font=%ux%u\n", disp_rows, disp_cols, fw, fh);
+}
 
-	rc = display_write(dev, 0, 0, &desc, band);
-	printk("DISPLAY smoke rc=%d\n", rc);
-	display_blanking_off(dev);
+int display_target_available(void) { return disp_ok ? 1 : 0; }
+
+int display_target_clear(void)
+{
+	return cfb_framebuffer_clear(disp_dev, false) ? 2 : 0;
+}
+
+int display_target_put(int row, int col, const char *s, int n)
+{
+	char buf[64];
+	uint8_t fw, fh;
+
+	if (row < 0 || row >= disp_rows) return 1;
+	if (col < 0 || n < 0 || col + n > disp_cols) return 1;
+	if (n >= (int)sizeof buf) return 1;
+
+	/* cfb_print takes a NUL-terminated C string and PIXEL coordinates; an nsl
+	 * String is counted and not terminated, so it is copied rather than cast. */
+	memcpy(buf, s, n);
+	buf[n] = '\0';
+
+	if (cfb_get_font_size(disp_dev, 0, &fw, &fh)) return 2;
+	return cfb_print(disp_dev, buf, col * fw, row * fh) ? 2 : 0;
+}
+
+int display_target_refresh(void)
+{
+	return cfb_framebuffer_finalize(disp_dev) ? 2 : 0;
+}
+
+int display_target_refresh_row(int row)
+{
+	int width = cfb_get_display_parameter(disp_dev, CFB_DISPLAY_WIDTH);
+
+	if (row < 0 || row >= disp_rows) return 1;
+
+	/* Full-width band on a character-row boundary — the only shape
+	 * cfb_framebuffer_finalize_area supports, and the only one this seam needs. */
+	return cfb_framebuffer_finalize_area(disp_dev, 0, row * disp_font_h,
+					     width, disp_font_h) ? 2 : 0;
 }
 #endif
 
@@ -657,7 +715,7 @@ int main(void) {
 #endif
 
 #if DT_HAS_CHOSEN(zephyr_display)
-    display_smoke();   /* tuvm#88: prove the e-paper panel paints at boot */
+    display_bringup();   /* tuvm#88: init CFB + wire the display_target_* seam */
 #endif
 
 #ifdef CONFIG_NET_L2_OPENTHREAD
