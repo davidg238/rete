@@ -2343,6 +2343,14 @@ class Kernel usingPlatform: platform = () (
      raw and a test can observe the nil directly. *)
   public gpioSet: n to: aBool = ( ^ platform gpioSet: n to: aBool )
   public gpioLevel: n = ( ^ platform gpioLevel: n )
+  (* tuvm#88: the display seam. Thin forwarders, same shape as the gpio family
+     above. All four answer nil when the board has no display and an SMI status
+     otherwise — the Display wrapper is what turns those into tagged raises, so
+     these stay raw and a test can observe the codes directly. *)
+  public displayClear = ( ^ platform displayClear )
+  public displayAt: r col: c put: s = ( ^ platform displayAt: r col: c put: s )
+  public displayRefresh = ( ^ platform displayRefresh )
+  public displayRefreshRow: r = ( ^ platform displayRefreshRow: r )
   public pumpEvents = ( ^ platform pumpEvents )
   (* webserver-channel-device spike, Task 3: the http driver's platform prims.
      Same thin-forwarder shape as the gpio/timer families above — the C-side
