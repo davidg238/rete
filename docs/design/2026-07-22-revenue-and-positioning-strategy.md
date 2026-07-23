@@ -149,14 +149,33 @@ pulls firmly *away* from dynamic scripting layers; and no upstream decision woul
 anyone's hands.
 
 **The party with the incentive is the silicon vendor.** Nordic, Espressif and NXP sell parts,
-and *time-to-first-working-prototype* is a sales metric for them — they fund tooling
-constantly for exactly this reason. The realistic ask is therefore not "Zephyr adopts nsl"
-but "a vendor funds a bring-up accelerator for their parts", which is a partnership
-conversation opened with a demo rather than a standards conversation.
+and *time-to-first-working-prototype* is a sales metric for them.
 
 Two assets already exist for that conversation: an upstream Zephyr contribution
 (zephyr#114163) as credibility, and a working multi-target story across nRF52840, ESP32 and
 ESP32-C6.
+
+> **CORRECTION, same day.** The sentence originally here — "they fund tooling constantly for
+> exactly this reason" — overstated the case, and David challenged it. Splitting the claim:
+>
+> - **Solid:** vendors invest enormously in their *own first-party* tooling. Nordic is all-in
+>   on Zephyr and nRF Connect SDK *is* Zephyr-based; Espressif maintains ESP-IDF and staffs
+>   the Zephyr ESP32 port; NXP funds MCUXpresso and Zephyr work. Time-to-first-prototype
+>   plainly is a thing they spend on.
+> - **Not supported:** that they fund *third-party* tooling from an outside developer. That
+>   is rare. The available counter-evidence is close to home — Toit was a funded startup with
+>   a strong product, and no vendor adopted its runtime. Vendor money flowing outward goes
+>   mostly to partner/design-house programs, eval hardware, co-marketing, occasional NRE tied
+>   to a specific customer design win, and acquisitions — not to independent runtimes.
+>
+> **What this changes:** do not pitch a vendor cold; there is no door there for a tool
+> without users. The door opens from the *customer* side — a design win on their part makes
+> their own FAE the internal advocate, and that is the channel that reaches a vendor's
+> ecosystem budget. Sequence: (1) a paying customer shipping on a vendor's part, (2) visible
+> public traction — upstream contributions, one undeniable demo, (3) *then* the partner /
+> co-marketing conversation. This makes path A a prerequisite for the vendor route, not an
+> alternative to it. Rollout, eyeballs and vendor access are their own problem and are filed
+> as a brainstorming issue rather than answered here.
 
 ### Honest bounds
 
