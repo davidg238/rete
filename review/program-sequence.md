@@ -1244,6 +1244,23 @@ which is a *different* port from the native-USB flash port). `CLAIMS.md`'s #82 r
 with the migration outcome. Open: #80 (nRF `EDGE_BOTH` still unverified on hardware — the
 re-arm this rung now relies on exclusively runs there too), #81 (`timer_zephyr.c:71`).
 
+**WiFi proven on the MagTag (ESP32-S2) — spike, 2026-07-23 (#85).** WiFi needed *no new
+code*: `CONFIG_WIFI_ESP32` builds for esp32s2 on Zephyr 4.2, and the `backend/zephyr` net
+stack + board-agnostic `wifi_bringup()` + #72's `NET_IPV4_MAPPING_TO_IPV6` carried the whole
+chain. On hardware: `CONNECT_RESULT status=0` → DHCPv4 `ip=192.168.0.157` → `TIMER OK`. **The
+cost is dram, and only dram:** WiFi's ~40 KB system heap + net bufs overflow `dram0` by
+32,704 B at the default 64 KB arena; **halving the arena to 32 KB fits at dram0 99.51%**
+(1,088 B spare — the WROOM-32 #53 knife-edge again). So a WiFi node on this no-PSRAM part
+trades half its VM heap: fine for a small/net/e-paper node (the e-paper framebuffer is a 5 KB
+C arena per G3, not VM heap), but it cannot also hold a large working set (deltablue 112 KB)
+or a colour TFT framebuffer (RGB565 150 KB) while WiFi is up. The only reclaim lever the S2
+has that the WROOM-32 lacks — its 2 MB PSRAM for the WiFi/LwIP heap — is **unproven and not a
+one-liner** (S2 PSRAM has WiFi-DMA constraints; Zephyr wires it as a separate
+`SHARED_MULTI_HEAP`, not the static `oevm_heap_store`). Spike only: overlay in scratch, heap an
+env override, no tracked-file change. Also reconciled #36 (native-ESP-IDF WiFi backend) as
+superseded — WiFi shipped via Zephyr under #46. Open: #85 (make S2 WiFi a tracked config +
+decide the arena/PSRAM tradeoff).
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
