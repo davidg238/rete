@@ -1,0 +1,68 @@
+(*
+MagTagLedNode — the two hardware gates for tuvm#82.
+
+GATE 1 (output): the red LED on GPIO13 follows BUTTON_A. Press A, the LED lights;
+press A again, it goes out.
+
+  The intended state is held in `ledOn` and is what drives the toggle. The node ALSO
+  prints what `gpio level: 13` reads back, but never steers on it — reading back an
+  output returns the driven state via the input register, and nothing guarantees the
+  esp32 driver leaves the input path enabled on a GPIO_OUTPUT pin (design Risk 1).
+  Steering on the readback would make a driver quirk look like a broken LED. Printing
+  it answers the readback question on real hardware at zero risk to the gate.
+
+GATE 2 (level read): on every BUTTON_B press the node prints the held state of all
+four buttons, read via `gpio level:` rather than tracked from events. Hold A and C
+down, tap B, and the line reads held=AC. That is chording with ZERO mailbox traffic —
+MagTagChordNode.nsl gets the same answer by paying a doubled event rate.
+
+The NeoPixel power gate on GPIO21 is driven once at startup, purely to prove it is
+reachable. NOTHING LIGHTS — the NeoPixels are WS2812 devices needing a ws2812/RMT
+driver, which is a separate issue. A dark strip here is the expected result.
+
+  BUTTON_A 15   BUTTON_B 14   BUTTON_C 12   BUTTON_D 11   red LED 13   npx power 21
+
+expect — press A, press A, hold A+C and tap B:
+led on   readback true
+led off  readback false
+held=AC
+*)
+class MagTagLedNode packageUsing: manifest = (
+  | ledOn ::= false. |
+) (
+  heldOf: gpio = (
+    | s |
+    s:: ''.
+    (gpio level: 15) ifTrue: [ s:: s , 'A' ].
+    (gpio level: 14) ifTrue: [ s:: s , 'B' ].
+    (gpio level: 12) ifTrue: [ s:: s , 'C' ].
+    (gpio level: 11) ifTrue: [ s:: s , 'D' ].
+    ^ s
+  )
+
+  public main: platform args: args = (
+    | space gpio aDn bDn |
+    space:: platform space.
+    gpio:: platform gpio.
+
+    (* Prove the power gate is reachable. Nothing lights; see the header. *)
+    gpio set: 21 to: true.
+
+    aDn:: space channel: 'btn/a/down'.
+    bDn:: space channel: 'btn/b/down'.
+
+    aDn whenever: '' do: [ :m |
+      ledOn:: ledOn not.
+      gpio set: 13 to: ledOn.
+      ((ledOn ifTrue: [ 'led on ' ] ifFalse: [ 'led off' ])
+        , '  readback ' , (gpio level: 13) printString) println ].
+
+    bDn whenever: '' do: [ :m | ('held=' , (self heldOf: gpio)) println ].
+
+    gpio pin: 15 edge: #falling post: 'A' on: aDn.
+    gpio pin: 14 edge: #falling post: 'B' on: bDn.
+
+    [ true ] whileTrue: [ platform pumpEvents. space drain ]
+  )
+) : (
+)

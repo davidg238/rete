@@ -1107,6 +1107,113 @@ links, zero console output, no slide overflowing a 680–720 px-tall viewport). 
 the deck asserts nothing new, it cites. Open: #66/#67/#68 are the three badges still
 showing, and #69 is the checker that keeps the appendix honest against reality.
 
+**Adafruit MagTag (ESP32-S2) third Zephyr target, and the button seam going plural —
+2026-07-23.** Branch `feat/magtag-esp32s2-port` (5 commits, pushed, no PR). The VM boots on
+internal SRAM (`TIMER OK`), four buttons deliver one event per press, and chording works.
+A capacity/display platform, **not** a perf or mesh one — see the caveats below before any
+number from this board goes anywhere.
+
+1. **No board port was written.** `esp32s2_saola.dts:9` already includes
+   `<espressif/esp32s2/esp32s2_wrover_n4r2.dtsi>`, which *is* the MagTag's module
+   (ESP32-S2-WROVER, 4 MB flash, 2 MB PSRAM), so the board target `esp32s2_saola/esp32s2`
+   carries the boot gate and only board IO needed an overlay. Check for an existing board
+   target on the same module before porting one.
+2. **No FPU.** `soc/espressif/esp32/Kconfig:12` and `esp32s3/Kconfig:11` both
+   `select CPU_HAS_FPU`; `esp32s2` does not. tuvm runs soft-float here, like the C6. **No
+   float figure from this board belongs in the STIC table without "soft-float" on the row.**
+3. **Flash offset `0x1000`, not the C6's `0x0`** — Xtensa keeps the ESP32's offset.
+   Confirmed from the board rather than assumed: `esp32s2_saola.dts:13` includes
+   `partitions_0x1000_default.dtsi`.
+4. **The ROM `setjmp`/`longjmp` patch applies, with a DIFFERENT symbol set.**
+   `esp32s2.rom.newlib-funcs.ld` forces `fflush`/`longjmp`/`setjmp` but **not** `ungetc`, so
+   `tools/patch-esp32-rom-ld.sh` grew a `--chip` flag and per-chip lists. `TIMER OK` is the
+   proof it works — `layoutdump` never calls `setjmp`, so only a fired nsl reaction tests it.
+   A `west update` now breaks two boards, not one (#48).
+5. **`layout-esp32s2.json` was generated on device**, per the C6 entry's rule above, and came
+   out byte-identical to both existing layouts. Generated, not assumed — that is the point.
+6. **Flashing is manual and cannot be automated.** The soldered UART Debug header breaks out
+   TX/RX only (no DTR/RTS) and the native USB port belongs to the ROM, so esptool has no
+   reset line either way: hold BOOT0, click RESET. Worse, **once Zephyr is flashed the native
+   USB stops enumerating at all** (no USB stack in this config), so the soldered header is
+   not a convenience — it is the board's only console. In download mode the port is
+   `303a:0002` / `usb-Espressif_ESP32-S2_0-if00`; in application mode it is a different
+   string (`239a:80e6`, Adafruit), which is why a `*MagTag*` glob would be exactly wrong.
+7. **`EDGE_TO_ACTIVE` did not mean press-only, and a time-lockout debounce cannot fix it.**
+   Two designs were disproved on hardware before the third worked; the failure *masqueraded
+   as contact bounce* because the lockout swallowed the release of any short press. The
+   working design is a debounced press/release state machine over `GPIO_INT_EDGE_BOTH`.
+   Full measurements in #60 and `docs/design/2026-07-23-magtag-buttons-leds-design.md` D3.
+   **Method note worth carrying:** the first harness polled the console at 200 ms and every
+   measured gap came out a multiple of 200 ms — it was measuring its own loop. A quantised
+   histogram means suspect the instrument.
+8. **Chording needed no new prim.** A logical pin is only a key into `platform.c`'s
+   `host_gpio_register` table, so a button owns a second key for its release (`GPIO + 100`).
+   Unregistered release pins are a silent no-op in `host_gpio_fire()`, so the nRF boards are
+   untouched. A `gpio level:` read remains the better long-term answer (zero mailbox traffic).
+9. **PSRAM is NOT in play.** 2 MB exists but `CONFIG_ESP_SPIRAM` is off, and enabling it
+   would not enlarge the VM arena anyway: `oevm_heap_store` is a static array, whereas
+   `ESP_SPIRAM` selects `SHARED_MULTI_HEAP` and hands PSRAM out as a separate runtime region.
+   Using it means changing how the arena is *obtained*. `OEVM_HEAP_SIZE=65536` is
+   **provisional** (dram0 at 81.8% of 217 KB), not a measured ceiling — run
+   `tools/heap-ceiling.sh` before quoting it.
+10. **Out-of-tree and invisible to git:** the Zephyr SDK needs
+    `xtensa-espressif_esp32s2_zephyr-elf` installed
+    (`~/zephyr-sdk-0.17.4/setup.sh -t xtensa-espressif_esp32s2_zephyr-elf`); only `riscv64`
+    and `xtensa-espressif_esp32` were present. A fresh clone cannot build this target
+    without it.
+
+Design: `docs/design/2026-07-23-magtag-buttons-leds-design.md` (8 decisions; the sleep half
+D5/D7/D8 is designed, not built). `CLAIMS.md` gains no row — nothing here is a performance
+claim. Open: #60 (nsl debounce API + counter API), #80 (nRF DK/dongle unverified on the
+`EDGE_BOTH` change — rungs 7/8 depend on that seam), #81 (`timer_zephyr.c:71` kills the node
+on a load condition), #82 (LEDs — next work item), #83 (deep sleep / ext1).
+
+**The gpio seam gains an outbound direction — 2026-07-23, #82 done, proven on the MagTag.**
+Until now the gpio seam was inbound-only: an edge became a channel post, and nothing could
+drive a pin out or ask it its state. Two primitives (`gpioSet:to:` / `gpioLevel:`, ids
+123/124) close that, appended to the counted-not-computed table with the parity guard advanced.
+
+1. **Pins are silkscreen GPIO numbers; polarity lives in the overlay.** The device leaves drive
+   through `gpio_pin_set_dt`/`get_dt`, so `gpio set: 21 to: true` means NeoPixels *powered*
+   though the gate is `GPIO_ACTIVE_LOW`, and `gpio level: 15` true means BUTTON_A *pressed*.
+   A raw-pin API would have pushed polarity into every caller and let a typo reach an e-paper
+   SPI line on the same controller. See `docs/design/2026-07-23-gpio-output-level-seam-design.md`.
+2. **An undeclared pin raises, and the raise is written in nsl.** `gpioLevel:` on a pin the
+   overlay never declared answers `nil` from C; `GpioPulse>>level:`/`set:to:` turn that into
+   `error: … tag: #gpioUndeclared` — the same division `Vector>>at:` uses over `basicAt:`,
+   and the only one available since `build_and_raise` is static to `dispatch.c`. An undeclared
+   pin is a wrong literal, not a load condition, so a silent `false` would be a value that is
+   simply wrong. **Host divergence (design Risk 4):** on the host `set:to:` creates a slot and
+   so cannot raise — the raise has host coverage only through `level:`.
+3. **The level read is chording for zero mailbox traffic.** `gpio_target_level` searches the
+   *input* table too, so a node reads a button's held state directly. Proven on hardware:
+   holding A+C and tapping B printed `held=ABC` (B still down at read time) — three concurrent
+   pin reads, no release events registered. This is the better answer the release-event path
+   (a6656d3) stood in for; migrating chording onto it is deferred to a follow-up, deliberately
+   not done in the rung that introduces its replacement.
+4. **`gpio level:` matches on the LOGICAL pin, not `spec.pin`.** A final-review catch: a node
+   names the pin it registered with `gpio pin: N`, which on single-button boards is decoupled
+   from the physical pin (`PULSE_LOGICAL_PIN 13` vs `P0.11`). Matching on `spec.pin` would make
+   `level: 13` on the nRF DK raise for a registered button and disagree with the host. Fixed to
+   match on `pulse_logical_of()`; identity on the MagTag, correct everywhere.
+5. **Output-readback is unusable on this driver (design Risk 1, now measured).** Reading GPIO13
+   back after driving it returned `false` regardless of the driven level — the esp32 driver does
+   not leave the input path enabled on a `GPIO_OUTPUT` pin. The LED node toggles from its own
+   state and only *prints* the readback, never steering on it, so the gate (the physical D13 LED
+   following BUTTON_A — confirmed) is unaffected. Do not use `level:` on an output as a fault
+   detector.
+6. **No new `.c` file.** The host/device split rides `#ifdef __ZEPHYR__` (precedent in `gc.c`,
+   `vm.c`), so the nine-source-list tax (#63) is avoided for two functions. Firmware links at
+   dram0 81.8% of 217 KB — fits, tight; `OEVM_HEAP_SIZE` stays provisional.
+
+Gates (`zephyr/MagTagLedNode.nsl`, over the soldered UART console): gate 1 — D13 red LED
+follows BUTTON_A (on→press→dark); gate 2 — `held=ABC` via `level:` with no release pins
+registered. Host: `nsl-tests/13_pulse/02_gpio_set_level.nsl` (drive/read/nil) and
+`03_gpio_undeclared_raises.nsl` (the tag-asserting raise gate). Full suite 214/0. `CLAIMS.md`
+gains a row (the raise is a behavioral guarantee). Open: the chording-migration follow-up
+(retire `OEVM_BUTTON_RELEASE_BASE`); NeoPixel *data* (ws2812/RMT driver) is a separate, larger
+issue — this rung only made the GPIO21 power gate drivable.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
