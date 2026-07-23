@@ -22,6 +22,11 @@
 - **Never run two nsl suites at once** (shared `/tmp`).
 - **Read the gate line, not "0 failed"** — the suite prints `0 failed` while aux gates are red (tuvm#63).
 - **Flashing the MagTag is manual.** Hold BOOT0, click RESET. Use `zephyr/flash-magtag.sh`. The native USB does not enumerate under Zephyr; the soldered UART header is the only console. **Never trust a `/dev/ttyUSB*` number** — identify by `esptool read_mac`.
+- **`run.sh` takes FLAGS, not positionals**, and does NOT source the west environment.
+  Build with `./run.sh --board esp32s2` (build is the default action; `--node <file.nsl>`
+  selects the node, `--flash` adds flashing). Every invocation must be preceded by
+  `source ~/zephyr-esp32/.venv/bin/activate` and exporting `ZEPHYR_BASE`/
+  `ZEPHYR_SDK_INSTALL_DIR`. `./run.sh esp32s2 build` fails with `unknown arg: esp32s2`.
 - **`rc=0` is not evidence of a physical effect.** A gate that claims the panel changed needs a photograph.
 
 ---
@@ -380,7 +385,9 @@ Call `display_smoke();` from `main()` alongside the existing board bring-up, gua
 
 ```bash
 cd ~/workspace/tuvm/zephyr
-./run.sh esp32s2 build 2>&1 | tail -30
+source ~/zephyr-esp32/.venv/bin/activate
+export ZEPHYR_BASE=~/zephyr-esp32/zephyr ZEPHYR_SDK_INSTALL_DIR=~/zephyr-sdk-0.17.4
+./run.sh --board esp32s2 2>&1 | tail -30
 ```
 
 Expected: a clean link, and in the output a devicetree line confirming the overlay was found:
@@ -523,7 +530,9 @@ The `width != fb->x_res` guard is deliberate and documented: a full-width band i
 
 ```bash
 cd ~/workspace/tuvm/zephyr
-./run.sh esp32s2 build 2>&1 | tail -20
+source ~/zephyr-esp32/.venv/bin/activate
+export ZEPHYR_BASE=~/zephyr-esp32/zephyr ZEPHYR_SDK_INSTALL_DIR=~/zephyr-sdk-0.17.4
+./run.sh --board esp32s2 2>&1 | tail -20
 ```
 
 Expected: clean link. Nothing calls the new function yet, so this only proves it compiles.
@@ -1120,7 +1129,10 @@ Call `display_bringup();` from `main()` where `display_smoke();` was.
 - [ ] **Step 2: Build**
 
 ```bash
-cd ~/workspace/tuvm/zephyr && ./run.sh esp32s2 build 2>&1 | tail -30
+cd ~/workspace/tuvm/zephyr
+source ~/zephyr-esp32/.venv/bin/activate
+export ZEPHYR_BASE=~/zephyr-esp32/zephyr ZEPHYR_SDK_INSTALL_DIR=~/zephyr-sdk-0.17.4
+./run.sh --board esp32s2 2>&1 | tail -30
 ```
 
 Expected: clean link. **Record the `dram0` percentage** — this is the measurement the design demands instead of an assumption (#53 discipline).
@@ -1225,7 +1237,11 @@ cd /tmp/claude-1000/-home-david-workspace-tuvm/82e761b7-69ae-49a4-8a88-509ec64b3
 - [ ] **Step 2: Build and flash the node**
 
 ```bash
-cd ~/workspace/tuvm/zephyr && ./run.sh esp32s2 build && ./flash-magtag.sh
+cd ~/workspace/tuvm/zephyr
+source ~/zephyr-esp32/.venv/bin/activate
+export ZEPHYR_BASE=~/zephyr-esp32/zephyr ZEPHYR_SDK_INSTALL_DIR=~/zephyr-sdk-0.17.4
+./run.sh --board esp32s2 --node MagTagDisplayNode.nsl
+./flash-magtag.sh
 ```
 
 - [ ] **Step 3: Gate 1 — full refresh**
@@ -1250,7 +1266,10 @@ Already covered by `gate3 caught displayBounds` in Step 3. Confirm the line appe
 - [ ] **Step 6: Record the measurements**
 
 ```bash
-cd ~/workspace/tuvm/zephyr && ./run.sh esp32s2 build 2>&1 | grep -i "dram0\|Used"
+cd ~/workspace/tuvm/zephyr
+source ~/zephyr-esp32/.venv/bin/activate
+export ZEPHYR_BASE=~/zephyr-esp32/zephyr ZEPHYR_SDK_INSTALL_DIR=~/zephyr-sdk-0.17.4
+./run.sh --board esp32s2 2>&1 | grep -i "dram0\|Used"
 ~/workspace/tuvm/tools/heap-ceiling.sh    # before quoting any OEVM_HEAP_SIZE
 ```
 
