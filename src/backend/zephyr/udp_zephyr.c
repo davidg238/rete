@@ -16,6 +16,14 @@ void udp_open(void) { /* net stack is brought up by Kconfig/boot */ }
 int udp_socket_bind(int port) {
     int fd = zsock_socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
     if (fd < 0) return -1;
+    /* tuvm#72: an AF_INET6 socket defaults to v6-only, so IPv4 datagrams (a wifi
+       node's gw ctl arrives over IPv4) are dropped even with
+       CONFIG_NET_IPV4_MAPPING_TO_IPV6=y. Clear V6ONLY so the socket accepts
+       v4-mapped (::ffff:a.b.c.d) traffic; the send path already builds mapped
+       destinations. Best-effort: on a build without the option it is a no-op and
+       the IPv6/Thread path is unaffected. */
+    int v6only = 0;
+    (void)zsock_setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &v6only, sizeof v6only);
     struct sockaddr_in6 a;
     memset(&a, 0, sizeof a);
     a.sin6_family = AF_INET6;
@@ -25,22 +33,42 @@ int udp_socket_bind(int port) {
     return fd;
 }
 
+/* tuvm#72: lazily-opened AF_INET socket used ONLY to send to IPv4 peers. See
+   udp_send. Never bound — the stack assigns an ephemeral source port, which is
+   all a push needs (the collector keys a node by source ADDRESS, not port). */
+static int v4_send_fd = -1;
+
 int udp_send(int sock, const char *host, int port, const uint8_t *data, int len) {
+    struct in_addr v4;
+    /* IPv4 literal FIRST. Sending to a v4-mapped destination (::ffff:a.b.c.d) on
+       the AF_INET6 socket is ACCEPTED — zsock_sendto answers the byte count — but
+       the datagram never reaches an IPv4 peer: CONFIG_NET_IPV4_MAPPING_TO_IPV6
+       maps INBOUND v4 onto the v6 socket, it does NOT translate an outbound
+       v4-mapped destination back to IPv4. A wifi node's push therefore vanished
+       with every indication of success: the node logged a written result, the
+       send reported OK, and the gw never saw a datagram (tuvm#72, WROOM-32).
+       Emit genuine IPv4 instead. The RECEIVE path stays AF_INET6 — inbound
+       v4-mapped delivery works and the Thread/IPv6 path is untouched. */
+    if (zsock_inet_pton(AF_INET, host, &v4) == 1) {
+        struct sockaddr_in a4;
+        if (v4_send_fd < 0) {
+            v4_send_fd = zsock_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+            if (v4_send_fd < 0) return -1;
+        }
+        memset(&a4, 0, sizeof a4);
+        a4.sin_family = AF_INET;
+        a4.sin_port = htons((unsigned short)port);
+        a4.sin_addr = v4;
+        return (int)zsock_sendto(v4_send_fd, data, (size_t)len, 0,
+                                 (struct sockaddr *)&a4, sizeof a4);
+    }
     struct sockaddr_in6 a;
     memset(&a, 0, sizeof a);
     a.sin6_family = AF_INET6;
     a.sin6_port = htons((unsigned short)port);
-    if (zsock_inet_pton(AF_INET6, host, &a.sin6_addr) != 1) {
-        struct in_addr v4;                       /* accept a v4 dotted literal */
-        if (zsock_inet_pton(AF_INET, host, &v4) != 1) return -1;
-        memset(&a.sin6_addr, 0, sizeof a.sin6_addr);   /* build ::ffff:a.b.c.d */
-        a.sin6_addr.s6_addr[10] = 0xff;
-        a.sin6_addr.s6_addr[11] = 0xff;
-        memcpy(&a.sin6_addr.s6_addr[12], &v4, 4);
-    }
-    ssize_t n = zsock_sendto(sock, data, (size_t)len, 0,
+    if (zsock_inet_pton(AF_INET6, host, &a.sin6_addr) != 1) return -1;
+    return (int)zsock_sendto(sock, data, (size_t)len, 0,
                              (struct sockaddr *)&a, sizeof a);
-    return (int)n;
 }
 
 int udp_receive(int sock, uint8_t *buf, int buf_cap,

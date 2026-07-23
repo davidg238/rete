@@ -1,0 +1,128 @@
+(*
+ThermalDiagNode — the C6/Thread diag-capture test node (tuvm#72). ThermalNode
+(the span-producing job) with NO HTTP server: no listener, so tuvm#73 cannot
+wedge it, and no /hello. The point is to verify the capture+push mechanism with a
+CONTINUOUS console (the C6's CP2102N survives resets) and native IPv6/Thread UDP
+(the AF_INET6 backend's home turf — no v4-mapping needed).
+
+One NetBridge over the OpenThread mesh: out->diag/spans/result (pushed to the gw
+ML-EID when a capture window closes), in->diag/spans/ctl (a gw ctl datagram drives
+the unchanged #72 SpanCapture). Console prints trace the mechanism:
+  DIAG BOUND            — the diag socket bound
+  DIAG CTL state=#...   — a ctl datagram arrived + decoded
+  DIAG RESULT n=<n>     — a capture completed + was written (the bridge then pushes)
+
+The thermal job ticks on its own timer and banks the acquire span each tick even
+with NO Grid-EYE attached (begin:/end: bracket the fetch before the nil-check), so
+a window always has samples. Dialect note (as the Thread nodes): `[ ... ] whileTrue:`.
+*)
+class ThermalDiagNode usingPlatform: platform net: net = () (
+
+  (* ---- the sensor service: samples the Grid-EYE, publishes frames + banks spans.
+     Copied verbatim from ThermalHttpNode — knows nothing about transport. *)
+  class ThermalNode = ( | space seam timers sample ctl event tick timer rate
+                          spans sJob sAcquire sCompute sPublish | ) (
+    onSpace: sp seam: s timers: t spans: sn = (
+      space::  sp.  seam:: s.  timers:: t.  rate:: 2.
+      sample:: sp channel: 'dev/thermal0/sample'.
+      ctl::    sp channel: 'dev/thermal0/ctl'.
+      event::  sp channel: 'dev/thermal0/event'.
+      tick::   sp channel: 'dev/thermal0/tick'.
+      spans::     sn.
+      sJob::      sn register: #jobThermal.
+      sAcquire::  sn register: #acquire.
+      sCompute::  sn register: #vmCompute.
+      sPublish::  sn register: #publish.
+      ^ self )
+
+    public start = (
+      tick whenever: '' do: [ :t | self sampleOnce ].
+      ctl  whenever: '' do: [ :c | self reconfigure: c ].
+      self arm.
+      ^ self )
+
+    arm = ( timer:: timers every: (1000 // rate) post: #tick on: tick. ^ self )
+    disarm = ( timer == nil ifFalse: [ timers cancel: timer. timer:: nil ]. ^ self )
+
+    sampleOnce = (
+      | f oc i |
+      spans begin: sJob.
+      spans begin: sAcquire.
+      f:: seam sensorFrame.
+      spans end: sAcquire.
+      (f == nil) ifTrue: [ spans noteFailure: sJob. ^ self ].
+      spans begin: sCompute.
+      oc:: seam OrderedCollection new.
+      i:: 1. [ i <= 64 ] whileTrue: [
+        oc add: (f basicAt: i). i:: i + 1 ].
+      spans end: sCompute.
+      spans begin: sPublish.
+      sample put: '' value: (seam List fromCollection: oc).
+      spans end: sPublish.
+      spans end: sJob.
+      ^ self )
+
+    reconfigure: c = (
+      | r on |
+      on:: c at: #on ifAbsent: [ true ].
+      r::  c at: #rate ifAbsent: [ rate ].
+      on = false ifTrue: [ ^ self disarm ].
+      ((r isNil not) and: [ r > 0 ]) ifTrue: [
+        rate:: r. self disarm. self arm ].
+      ^ self )
+  ) : (
+    public onSpace: sp seam: s timers: t spans: sn = (
+      ^ self new onSpace: sp seam: s timers: t spans: sn )
+  )
+
+  (* gw mesh-local EID — same value the proven Thread nodes push to (SoakNode,
+     ThreadEchoNodeDK). Intra-mesh routing, reachable from an MTD child. *)
+  gwAddr         = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )
+  diagBindPort   = ( ^ 54370 )   (* node receives diag/spans/ctl here *)
+  diagResultPort = ( ^ 54371 )   (* gw receives diag/spans/result here *)
+
+  public main: platform2 args: args = (
+    | space timers thermal spans capture diagSock diagBridge |
+    space::   platform space.
+    timers::  platform Timers usingSpace: space seam: platform.
+    spans::   platform Spans new.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    thermal:: ThermalNode onSpace: space seam: platform timers: timers spans: spans.
+    thermal start.
+
+    (* the #72 capture facility, unchanged — reacts to diag/spans/ctl, writes result *)
+    capture:: platform SpanCapture onSpace: space spans: spans.
+    capture start.
+
+    (* the diag transport over Thread. No HTTP anywhere in this node. *)
+    diagSock:: net udpBindPort: diagBindPort.
+    diagSock isNil ifTrue: [ 'DIAG BIND FAILED' println ]
+    ifFalse: [
+      'DIAG BOUND' println.
+      diagBridge:: platform NetBridge
+        socket: diagSock
+        out: (space channel: 'diag/spans/result')
+        peer: gwAddr port: diagResultPort
+        in: (space channel: 'diag/spans/ctl').
+      diagBridge start ].
+
+    (* observability: trace ctl arrival and capture completion on the console *)
+    (space channel: 'diag/spans/ctl') whenever: '' do: [ :c |
+        ('DIAG CTL state=' , (c at: #state ifAbsent: [ #NOSTATE ]) printString) println ].
+    (space channel: 'diag/spans/result') whenever: '' do: [ :r |
+        ('DIAG RESULT n=' , (r at: #n ifAbsent: [ -1 ]) printString) println ].
+
+    'THERMAL DIAG NODE READY' println.
+    (* Announce to gw once: fires the bridge's outbound push so gw learns our Thread
+       address (to send ctl back) AND proves node->gw push works over the mesh. *)
+    (space channel: 'diag/spans/result')
+        put: '' value: (platform Record tag: #announce with: #n -> 0).
+    [ true ] whileTrue: [
+      platform pumpEvents.
+      diagBridge isNil ifFalse: [ diagBridge pumpInbound ].
+      space drain ].
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

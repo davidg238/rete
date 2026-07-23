@@ -8,7 +8,7 @@ single-app-file, see the rung design 4a):
 They never reference each other; producer and consumer meet only at the channel
 name 'dev/thermal0/sample'. main: is the composition root.
 *)
-class ThermalHttpNode packageUsing: manifest = () (
+class ThermalHttpNode usingPlatform: platform net: net = () (
 
   (* ---- presentation: a 64-px centi-degC frame as an SVG heat-grid ----
      The frame arrives off the 'dev/thermal0/sample' CELL, so it is a List (rank
@@ -197,8 +197,19 @@ class ThermalHttpNode packageUsing: manifest = () (
      is resolved here in method-body context, never inside the block (a reified block
      that names a class aborts on outer-scope resolution). /stats and / name classes
      and read platform metrics, so they route through self-send helpers. *)
-  public main: platform args: args = (
-    | space timers thermal tview http spans sRender capture |
+  (* tuvm#72 profiler slice: the gw (porta-lite) peer and the diag UDP ports. gwAddr is
+     gw85224-01's LAN address; the node pushes diag/spans/result to it and receives
+     diag/spans/ctl on diagBindPort. *)
+  gwAddr         = ( ^ '192.168.0.176' )
+  diagBindPort   = ( ^ 54370 )
+  diagResultPort = ( ^ 54371 )
+  (* tuvm#73/#74: /hello answers a hand-maintained version — real build id is tuvm#74. *)
+  nslVersion     = ( ^ 'tuvm-node 2026-07-22' )
+
+  (* `platform2` is ignored — the body uses the class-level `platform` and `net` caps, the
+     convention every net-capable node follows (NetNode, NetBridgeNode, ThreadPingNode). *)
+  public main: platform2 args: args = (
+    | space timers thermal tview http spans sRender capture diagSock diagBridge |
     space::   platform space.
     timers::  platform Timers usingSpace: space seam: platform.
     (* tuvm#61: one span table for the whole node, created here and handed down as
@@ -229,6 +240,42 @@ class ThermalHttpNode packageUsing: manifest = () (
     capture:: platform SpanCapture onSpace: space spans: spans.
     capture start.
 
+    (* tuvm#72/#73: the diag transport. One NetBridge binds a UDP socket to two channels —
+       out->diag/spans/result (pushed to the gw whenever the capture window closes),
+       in->diag/spans/ctl (a gw ctl datagram drives the unchanged SpanCapture). No HTTP
+       accept path is involved, so a browser can never pin this. The #72 facility is
+       untouched — this is its second client over a new transport. diagBridge is held for
+       the life of main: (a collected bridge stops reacting), and pumped in the loop below. *)
+    diagSock:: net udpBindPort: diagBindPort.
+    diagSock isNil ifTrue: [ 'DIAG BIND FAILED' println ]
+    ifFalse: [
+      diagBridge:: platform NetBridge
+        socket: diagSock
+        out: (space channel: 'diag/spans/result')
+        peer: gwAddr port: diagResultPort
+        in: (space channel: 'diag/spans/ctl').
+      diagBridge start.
+      'DIAG BOUND' println ].
+
+    (* tuvm#72 observability, matching ThermalDiagNode: this node prints NOTHING for the
+       diag path otherwise, so a silent console cannot distinguish "ctl never arrived"
+       from "ctl arrived but no capture completed" — the exact ambiguity that cost a
+       session. Cheap and console-only; no HTTP, so tuvm#73 is untouched. *)
+    (* `eq=` asserts the COMPARISON, not just the value: printString renders a
+       symbol's name regardless of identity, so a state that prints #running proves
+       nothing about whether SpanCapture>>apply:'s `st = #running` actually fires. *)
+    (space channel: 'diag/spans/ctl') whenever: '' do: [ :c |
+        ('DIAG CTL state=' , (c at: #state ifAbsent: [ #NOSTATE ]) printString
+                 , ' eq=' , ((c at: #state ifAbsent: [ nil ]) = #running) printString) println ].
+    (space channel: 'diag/spans/result') whenever: '' do: [ :r |
+        ('DIAG RESULT n=' , (r at: #n ifAbsent: [ -1 ]) printString) println ].
+    (* A condition raised INSIDE a reaction is caught by protectedFire:, posted to
+       sys/crash and otherwise invisible — drain survives and the node looks healthy.
+       Without this, "no result" cannot be told from "result raised on the way out". *)
+    (space channel: 'sys') whenever: 'crash' do: [ :rec |
+        ('DIAG CRASH ch=' , (rec at: #channel ifAbsent: [ '?' ]) printString
+                 , ' text=' , (rec at: #text ifAbsent: [ '?' ]) printString) println ].
+
     (* The block captures `spans` and `sRender` from this method's temporaries,
        which is fine — the rule a reified block breaks is naming a CLASS, resolved
        in outer scope. *)
@@ -236,7 +283,11 @@ class ThermalHttpNode packageUsing: manifest = () (
         spans begin: sRender.
         tview renderFrame: ((space channel: 'dev/thermal0/sample') peek) toId: id on: plat.
         spans end: sRender ].
-    http route: '/hello' do: [ :id :plat | plat httpChunkId: id data: 'hello' ].
+    (* tuvm#73: /hello is the one HTTP path a wifi node keeps — proof-of-life with zero
+       infrastructure, a SINGLE chunk with NO links, so a browser has nothing to prefetch
+       and cannot fan out to pin the connection budget. Version is hand-maintained (tuvm#74). *)
+    http route: '/hello' do: [ :id :plat |
+        plat httpChunkId: id data: 'hello ', self nslVersion, ' up ', (0 millis) printString, 'ms' ].
     (* tuvm#72: the result Record is peeked HERE and passed down. The page methods
        are pure formatters holding no capabilities (the rule this file already
        states about ThermalView), and the outer class has no instance variables to
@@ -267,7 +318,13 @@ class ThermalHttpNode packageUsing: manifest = () (
     http route: '/'      do: [ :id :plat | self showIndexTo: id on: plat ].
 
     http listen: 18080.
-    [ true ] whileTrue: [ platform pumpEvents. space drain ].
+    (* Pump the diag bridge's INBOUND side each tick (pumpInbound calls socket receive) so
+       gw ctl datagrams are read — a pump, not a listener, so no accept queue and #73 immunity
+       holds. platform pumpEvents blocks on the timer ISR; the recv is non-blocking. *)
+    [ true ] whileTrue: [
+      platform pumpEvents.
+      diagBridge isNil ifFalse: [ diagBridge pumpInbound ].
+      space drain ].
   )
 
   showIndexTo: id on: platform = ( ^ self indexToId: id on: platform )
@@ -578,4 +635,5 @@ class ThermalHttpNode packageUsing: manifest = () (
     n < 100 ifTrue: [ ^ '0'  , n printString ].
     ^ n printString )
 ) : (
+  public packageUsing: manifest = ( ^ self new )
 )
