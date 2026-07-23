@@ -131,10 +131,15 @@
   .note strong { color: var(--ink-2); }
   .asterisk { margin-top: 0.9rem; font-size: 0.82rem; color: var(--s3); max-width: 48em; line-height: 1.5; border-left: 3px solid var(--s3); padding-left: 0.8em; }
 
-  /* ---- proportional bar (act I) ---- */
-  .bar { display: flex; height: 46px; gap: 2px; margin-top: 0.4rem; }
+  /* ---- proportional bars (act I) — two bars, ONE shared ms scale ---- */
+  .barrow { margin-top: 0.55rem; }
+  .barrow .lbl { font-size: 0.82rem; color: var(--ink-2); margin-bottom: 0.25rem; }
+  .barrow .lbl .qual { color: var(--muted); }
+  .bar { display: flex; height: 42px; gap: 2px; }
   .bar .seg { position: relative; border-radius: 3px; display: flex; align-items: center; justify-content: center;
               font-size: 0.74rem; font-weight: 650; color: #fff; overflow: hidden; white-space: nowrap; }
+  .bar .pad { flex: none; }
+  .scalenote { font-size: 0.76rem; color: var(--muted); margin-top: 0.5rem; }
   .barlegend { display: flex; flex-wrap: wrap; gap: 0.35rem 1.5rem; margin-top: 0.9rem; }
   .barlegend .item { display: flex; align-items: center; gap: 0.45rem; font-size: 0.84rem; }
   .barlegend .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
@@ -1243,31 +1248,59 @@ function renderTable(t, opts) {
   return h;
 }
 
-/* Act I proportional bar — one client request, where the milliseconds sit. */
+/* Act I proportional bars. Two bars on ONE shared millisecond scale, because the two
+   things are CONCURRENT, not nested: the thermal job runs on its own 2 Hz timer and is
+   never in the request path. Drawing its VM work as a slice of the request bar — which
+   an earlier draft's legend implied — would have been simply false. Every segment here
+   comes from DATA, so the picture cannot drift from the table. */
 function renderClientBar() {
-  const segs = [
-    { nm: "network / radio",        us: DATA.network_us.v,        v: "--s5" },
-    { nm: "render (node, egress + compute)", us: 39837,           v: "--s2" },
+  const SCALE = DATA.client_p50_us.v;                       /* 100% = the client's p50 */
+  const rows = [
+    {
+      lbl: "one HTTP request, p50 — what the client experiences",
+      qual: " · every figure in this bar is provisional",
+      segs: [
+        { nm: "network / radio — never touches the node", us: DATA.network_us.v,      v: "--s5" },
+        { nm: "the node's own service time (queue + render)", us: DATA.node_service_us.v, v: "--s2" },
+      ],
+    },
+    {
+      lbl: "meanwhile: one thermal job, every 500 ms — a different job, never in the request path",
+      qual: " · measured, not provisional",
+      segs: [
+        { nm: "acquire — the I2C sensor read", us: DATA.acquire_mean_us.v,     v: "--s3" },
+        { nm: "VM work — vmCompute + publish", us: DATA.collection_work_us.v,  v: "--s1" },
+      ],
+    },
   ];
-  const inner = [
-    { nm: "VM work in the thermal job (parallel, not in the request path)", us: 12326, v: "--s1" },
-  ];
-  const total = segs.reduce((a, s) => a + s.us, 0);
-  let bar = '<div class="bar">';
-  segs.forEach(s => {
-    bar += '<div class="seg" style="flex:' + s.us + ';background:var(' + s.v + ')">' +
-           (s.us / total > 0.15 ? (s.us / 1000).toFixed(0) + " ms" : "") + "</div>";
+  let h = "";
+  const leg = [];
+  rows.forEach(r => {
+    const used = r.segs.reduce((a, s) => a + s.us, 0);
+    h += '<div class="barrow"><div class="lbl">' + r.lbl +
+         '<span class="qual">' + r.qual + "</span></div>" +
+         '<div class="bar" style="width:100%">';
+    r.segs.forEach(s => {
+      const pc = 100 * s.us / SCALE;
+      h += '<div class="seg" style="flex:0 0 ' + pc.toFixed(2) + "%;background:var(" + s.v + ')">' +
+           (pc > 9 ? (s.us / 1000).toFixed(1) + " ms" : "") + "</div>";
+      leg.push(s);
+    });
+    /* the remainder of the scale, left blank, is what makes the second bar legible */
+    if (used < SCALE) h += '<div class="pad" style="flex:0 0 ' + (100 * (SCALE - used) / SCALE).toFixed(2) + '%"></div>';
+    h += "</div></div>";
   });
-  bar += "</div>";
-  let leg = '<div class="barlegend">';
-  segs.concat(inner).forEach(s => {
-    leg += '<span class="item"><span class="sw" style="background:var(' + s.v + ')"></span>' +
-           '<span class="nm">' + s.nm + "</span> " +
-           '<span class="vv">' + (s.us / 1000).toFixed(1) + " ms</span></span>";
+  let l = '<div class="barlegend">';
+  leg.forEach(s => {
+    l += '<span class="item"><span class="sw" style="background:var(' + s.v + ')"></span>' +
+         '<span class="nm">' + s.nm + "</span> " +
+         '<span class="vv">' + (s.us / 1000).toFixed(1) + " ms</span></span>";
   });
-  leg += "</div>";
-  return '<div style="font-size:0.83rem;color:var(--muted);margin-bottom:0.2rem">' +
-         "one HTTP request, p50, as the client experiences it</div>" + bar + leg;
+  l += "</div>";
+  return h + l + '<div class="scalenote">Both bars share one scale — full width is the ' +
+         "client's " + (SCALE / 1000).toFixed(0) + " ms p50. The whole sensor job is the " +
+         "short bar; the VM's part of it is the blue segment, which is the " +
+         "7.7% figure below, drawn.</div>";
 }
 
 function renderAudit() {
