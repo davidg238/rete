@@ -340,7 +340,7 @@
   thermal half; treat the network half as a placeholder.</p>
 </section>
 
-<section class="slide" id="thermal-witness">
+<section class="slide dense" id="thermal-witness">
   <div class="kicker">Act I · a second, independent witness</div>
   <h2>Measured again, a day later, through a different path</h2>
   <div id="thermaltable"></div>
@@ -353,9 +353,12 @@
     </div>
     <div>
       <ul class="points">
-        <li><code>jobThermal</code> <strong>encloses</strong> the other three — it is not
-        their sum. Adding all four double-counts; the outer span is
-        <span class="fig" data-fig="span_overhead_us"></span> of enclosing overhead.</li>
+        <li><code>jobThermal</code> <strong>encloses</strong> the other three, so adding
+        all four double-counts. The three children are <em>sequential siblings</em> and do
+        sum to their parent: <span class="fig" data-fig="thermal2_children_us"></span>
+        against <span class="fig" data-fig="thermal2_job_us"></span> —
+        <span class="fig" data-fig="span_overhead_us"></span> of enclosing overhead across
+        four begin/end pairs.</li>
         <li><code>publish</code> is an nsl <code>put:</code> that drops into a C prim, so
         <em>VM-side work</em> is the honest label for the ~10.7 ms, not <em>nsl</em>.</li>
       </ul>
@@ -1017,7 +1020,9 @@ const DATA = {
   vm_share_pc:        { v: 7.7,    u: "%",  src: SRC.rung61, st: "prov" },
 
   /* --- Act I: second witness, profiler slice 2026-07-22 --- */
-  span_overhead_us:   { v: 98, u: "µs", src: SRC.prof, pre: "~" },
+  span_overhead_us:    { v: 98,    u: "µs", src: SRC.prof, pre: "~", st: "der" },
+  thermal2_children_us:{ v: 23197, u: "µs", src: SRC.prof, st: "der" },
+  thermal2_job_us:     { v: 23295, u: "µs", src: SRC.prof },
 
   /* --- Act II --- */
   stic_iter_us:       { v: 532.6, u: "", src: SRC.stic },
@@ -1044,31 +1049,41 @@ const DATA = {
 
 /* Tables render from data too — otherwise the witness appendix is theatre. */
 
+/* Indentation is the span TREE, verified against the brackets in the source, not a
+   reading aid: jobThermal encloses its three children (ThermalHttpNode.nsl:113-135),
+   render encloses egress (the route block at :283 emits chunks through http_chunk(),
+   which records egress at http_core.c:215), and httpQueue is a SIBLING of render —
+   it opens at accept and closes when nsl takes the request (http_core.c:159,175). */
 const SPANS = {
   src: SRC.rung61,
   cap: "WROOM-32, 2026-07-21 · 310 thermal jobs, 296 paced HTTP requests · every row past the n ≥ 200 gate. " +
+       "<strong>Indented rows are nested inside the row above them</strong> — a parent's time is not the sum of its children, it <em>contains</em> them. " +
+       "<code>egress</code> is sampled once per emitted chunk, ~12.05 chunks per render, which is why its n is 12× <code>render</code>'s. " +
        "Rows marked <em>prov.</em> were measured on a build whose RX packet slab was itself the bottleneck (#65, root-caused 2026-07-22) and are pending a re-take.",
   cols: ["span", "owner", "n", "mean µs", "min µs", "max µs", "max/min"],
+  depth: [0, 0, 1, 0, 1, 1, 1],
   rows: [
     ["httpQueue", "C",   297,   61,    41,    118,   "2.9×",  "prov"],
+    ["render",    "nsl", 296,   39837, 37401, 98484, "2.6×",  "prov"],
     ["egress",    "C",   3567,  1319,  98,    71288, "727×",  "prov"],
     ["jobThermal","nsl", 310,   25229, 24408, 28338, "1.16×", ""],
     ["acquire",   "nsl", 310,   12798, 12491, 15533, "1.24×", ""],
     ["vmCompute", "nsl", 310,   4101,  3961,  4804,  "1.21×", ""],
     ["publish",   "nsl", 310,   8225,  7848,  9045,  "1.15×", ""],
-    ["render",    "nsl", 296,   39837, 37401, 98484, "2.6×",  "prov"],
   ],
 };
 
 const THERMAL2 = {
   src: SRC.prof,
-  cap: "WROOM-32, 2026-07-22 · ~3 s window at 2 Hz · captured over UDP/CBOR into the porta-lite store and rendered, not transcribed. Reproducible run to run.",
+  cap: "WROOM-32, 2026-07-22 · ~3 s window at 2 Hz · captured over UDP/CBOR into the porta-lite store and rendered, not transcribed. Reproducible run to run. " +
+       "The three children are <strong>sequential siblings</strong>, not a chain — each brackets a different pass over the frame.",
   cols: ["span", "what it is", "min µs", "max µs"],
+  depth: [0, 1, 1, 1],
   rows: [
     ["jobThermal", "the outer span — <strong>encloses</strong> the three below", 23295, 24188],
     ["acquire",    "Grid-EYE fetch over I2C via Zephyr's <code>sensor</code> API", 12524, 12734],
-    ["vmCompute",  "64-element raw → List copy, in nsl", 4116, 4286],
-    ["publish",    "<code>put:</code> onto the sample cell — a second copy, then the value algebra", 6557, 7040],
+    ["vmCompute",  "raw frame → <code>OrderedCollection</code>, 64 elements", 4116, 4286],
+    ["publish",    "→ <code>List</code> (a <em>second</em> copy + the value algebra), then <code>put:</code> onto the cell", 6557, 7040],
   ],
 };
 
@@ -1205,15 +1220,20 @@ function renderTable(t, opts) {
     h += '<th' + (i >= (opts.firstNum === undefined ? 1 : opts.firstNum) ? ' class="n"' : "") + ">" + c + "</th>";
   });
   h += "</tr></thead><tbody>";
-  t.rows.forEach(r => {
+  t.rows.forEach((r, ri) => {
     const flag = r[r.length - 1];
     const cells = r.slice(0, t.cols.length);
+    const d = t.depth ? t.depth[ri] : 0;
     const cls = (flag === "hurt" ? " hurt" : "") + (flag === "sub" ? " sub" : "") + (flag === "prov" ? " prov" : "");
     h += "<tr" + (cls ? ' class="' + cls.trim() + '"' : "") + ">";
     cells.forEach((c, i) => {
       const isNum = i >= (opts.firstNum === undefined ? 1 : opts.firstNum);
       const us = (flag === "us" && i === 0) || (opts.usCol !== undefined && i === opts.usCol);
-      h += "<td class=\"" + (i === 0 ? "name" : "") + (isNum ? " n" : "") + (us ? " us" : "") + '">' +
+      /* depth 0 rows keep the default padding; children are indented and get a rule
+         so the tree reads as a tree rather than as an unexplained ragged left edge */
+      const ind = (i === 0 && d) ? ' style="padding-left:' + (0.7 + d * 1.5) + "em;border-left:2px solid var(--grid)\"" : "";
+      h += "<td class=\"" + (i === 0 ? "name" : "") + (isNum ? " n" : "") + (us ? " us" : "") + '"' + ind + ">" +
+           (i === 0 && d ? '<span style="color:var(--muted);font-weight:400">└ </span>' : "") +
            (typeof c === "number" ? num(c) : c) + "</td>";
     });
     h += "</tr>";
@@ -1270,7 +1290,7 @@ function renderAudit() {
 
 /* ---- inject ---- */
 document.getElementById("spantable").innerHTML    = renderTable(SPANS, { firstNum: 2 });
-document.getElementById("thermaltable").innerHTML = renderTable(THERMAL2, { firstNum: 2 });
+document.getElementById("thermaltable").innerHTML = renderTable(THERMAL2, { firstNum: 2, dense: true });
 document.getElementById("stictable").innerHTML    = renderTable(STIC, { firstNum: 1, usCol: 4, dense: true });
 document.getElementById("hanoitable").innerHTML   = renderTable(HANOI, { firstNum: 1 });
 document.getElementById("surfacetable").innerHTML = renderTable(SURFACE, { firstNum: 1 });
