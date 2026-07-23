@@ -18,9 +18,15 @@ PUSH_WAIT_S = 6.0          # how long to wait for the node's async push before r
 
 # Display order and nesting. jobThermal ENCLOSES the three thermal children, so they
 # are indented under it: its time is not additional to theirs, and summing the
-# thermal rows double-counts. The C-owned HTTP spans are listed last.
-_ROWS = [("jobThermal", 0), ("acquire", 1), ("vmCompute", 1), ("publish", 1),
-         ("render", 0), ("httpQueue", 0), ("egress", 0)]
+# thermal rows double-counts.
+#
+# The HTTP spans (httpQueue, render, egress) are deliberately NOT shown. This page
+# never opens a socket to the node, and the thermal job serves no HTTP, so they carry
+# zero samples on every capture this spike takes — three permanently empty rows plus
+# the paragraph explaining their emptiness cost more attention than they returned.
+# They are still measured on the node and still appear on its own /stats page; if a
+# capture is ever taken while real HTTP load runs, add them back here.
+_ROWS = [("jobThermal", 0), ("acquire", 1), ("vmCompute", 1), ("publish", 1)]
 
 _CSS = """
 body{font:14px/1.5 system-ui,sans-serif;margin:2rem;max-width:46rem;color:#222}
@@ -49,14 +55,7 @@ _LEGEND = """
   API (I2C underneath, not raw I2C).</dd>
 <dt>vmCompute</dt><dd>the 64-element raw&rarr;List copy, in nsl.</dd>
 <dt>publish</dt><dd>the <code>put:</code> onto the sample cell.</dd>
-<dt>render</dt><dd>the HTTP route block.</dd>
-<dt>httpQueue</dt><dd>accept &rarr; take: how long a request waited to be served.</dd>
-<dt>egress</dt><dd>the socket writes &mdash; one sample per emitted chunk, every route.</dd>
 </dl>
-<p class="note"><b>render and egress overlap by design.</b> Formatting happens in nsl and
-the write happens in C inside the same call, so render necessarily contains the writes.
-Render-compute is <b>render &minus; egress</b>, a DERIVED figure &mdash; the table does
-not measure it directly.</p>
 """
 
 
@@ -114,17 +113,11 @@ def render_span_table(cell):
                     'The I2C read, not the interpreter, is the larger half.</p>'
                     % (_n(acq), _n(vmc + pub)))
 
-    idle = ('<p class="note">httpQueue, render and egress show <b>no samples</b> (not '
-            '&ldquo;0&nbsp;&micro;s&rdquo;): no HTTP request was served during the '
-            'window. This page never opens a socket to the node &mdash; that is the '
-            'structural defence against tuvm#73 &mdash; so driving a capture from here '
-            'generates no HTTP load on it.</p>')
-
     return (lead + standout
             + "<table><thead><tr><th>span</th><th>n</th><th>fails</th>"
               "<th>min &micro;s</th><th>max &micro;s</th></tr></thead>"
             + "<tbody>" + "".join(rows) + "</tbody></table>"
-            + idle + _LEGEND)
+            + _LEGEND)
 
 
 def make_handler(store, mirror, node_default):
