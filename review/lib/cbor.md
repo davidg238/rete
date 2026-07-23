@@ -88,3 +88,56 @@ Landed as:
 - `06_float_roundtrip` — f16/f32/f64 shortest-form round-trip
 
 Both-path (Path A solidified / Path B `.oimg`) verified A==B.
+
+## Addendum 2026-07-22 — two device-only failures the host tests did not catch (tuvm#72)
+
+Both surfaced only on a wifi node with a 49 KB VM arena, and both were **silent**: the
+node reported a written result and the gateway received nothing.
+
+### A decoded Symbol did not `=` an image literal (tuvm#75)
+
+There is no symbol intern table. `platform asSymbol:` (`src/platform.c:703`) mints a FRESH
+Symbol per tag-39 decode, and bare `Symbol>>=` fell through to
+`Object>>= other = ( ^ self == other )` (`kernel.nsl:30`) — **identity**. So every symbol
+arriving over the wire compared unequal to the literal of the same name.
+
+`asSymbol:`'s own comment claimed the opposite ("Symbol equality is VALUE-based… so this
+non-interned Symbol `=` the image-literal #foo"). It conflated the **value-object**
+machinery — `kernel.nsl:2131` byteCompares rank-6 symbols, which is why Map *key* lookup
+of a decoded `#state` succeeds — with bare `Symbol>>=` dispatch, which is `Object>>=`.
+
+Fixed by intercepting `=` for Symbol receivers in `send_resolve` (`src/dispatch.c`),
+comparing names. **`==` deliberately remains identity**, so the type now has two equality
+rules; interning is the durable fix and is tracked as tuvm#75.
+
+Two traps for anyone touching this:
+- For a Symbol in the `.oimg` blob, `->name` is an **encoded offset, not a pointer**
+  (`src/oimg.h:54`). It must go through `symbol_name()`; dereferencing directly segfaults
+  on exactly the image literals the comparison exists to match.
+- **`printString` renders a symbol's name regardless of identity.** A probe printing
+  `#running` proves the value arrived and proves NOTHING about whether a comparison
+  against it fires. Assert the comparison. This cost a full session of misdiagnosis:
+  a console reading `DIAG CTL state=#running` sat directly beside an `st = #running`
+  test that was returning false.
+
+Pinned by `nsl-tests/19_latency/10_ctl_cbor_decoded_drives_capture.nsl`.
+
+### The encode accumulator was 4 bytes per byte
+
+`Cbor>>encode:` accumulated into an `OrderedCollection` of byte SMIs. A mutable Array slot
+costs **four bytes per byte**, and the backing Array doubles. Encoding a 949-byte span
+push therefore asked for a 1024-slot Array and took the node out:
+
+```
+VM GC Error: Out of Memory (requested 4104, used 49152 of 49152) -> abort()
+```
+
+A **hard abort, not a catchable condition** — nothing reached `sys/crash`, so no probe or
+crash observer could see it. Now accumulates into `ByteBuilder` (packed, 1 byte/byte,
+exact-size frozen output). The dominant cost was never the top-level accumulator but
+`encodeMap:`, which holds a separate accumulator for **every key and every value
+simultaneously** before sorting — previously a minimum 8-slot Array each, however few
+bytes it held.
+
+`02_golden_hex` and `03_map_order` still pass, so emitted bytes are unchanged: this is a
+memory-shape change only, not a wire change.
