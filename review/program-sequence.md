@@ -1051,6 +1051,62 @@ Also of note for #53: the fix was funded from the VM arena rather than the packe
 (`run.sh` esp32 default 53248 → 49152, against measured live bytes of 21,860), which left
 `dram0` at **98.19% / 3568 B spare** — more headroom than before this rung, not less.
 
+**Performance deck (deck 2) — BUILT 2026-07-22 (#70, relates #61, #66–#69, #78).**
+`review/performance_slides.html` — one self-contained file, no build step, inheriting
+`review/slides.html`'s styling so the two decks read as one family. Thesis: *optimize the
+right thing*. Preamble + five acts (reality first · what 256 KB costs · the OEOM mechanism ·
+the unbenchmarked axes · agent-first as premise), 34 slides in a pool, **four playlists**
+over it — record 33 / peer 26 / investor 15 / talk 20 — plus per-element `data-aud`
+framing and one genuine variant slide (`stic-investor`). URL carries the audience:
+`#peer/9` deep-links a deck and a slide.
+
+The mechanism that matters for the program, not just for the deck:
+
+1. **A figure cannot render without a status.** Every number lives once in a `DATA` block
+   with a `src` naming its witness, and carries one of `measured` / `prov` / `der` / `rec` /
+   `ind` / `tbd`. A `tbd` is a first-class value that renders as a loud badge, so **an
+   unmeasured claim cannot quietly look measured** — the failure `PROTOCOL-NSL-RECORDS.md`
+   §4.4 committed against itself with `~185–230 B`. The three tables (spans, STIC, Hanoi,
+   surface) are *rendered from data* rather than hand-authored, and the last slide is a
+   witness appendix generated from that data at load. That appendix is the surface #69's
+   checker reads; hand-authored HTML would have made it theatre.
+2. **The #65 addendum above is carried into the artifact, not silently absorbed.** Every
+   HTTP-path figure (`egress`, `render`, client p50/p95, and the 7.7% VM share derived from
+   them) renders with a `provisional` badge and a slide-level note saying the rows were
+   taken on a build whose RX slab was the bottleneck and are pending a re-take. The paced-run
+   asterisk stays *as well* — it is a separate defect, and collapsing the two would lose one.
+3. **Act I has two independent witnesses now.** The #61 `/stats` table, and the 2026-07-22
+   profiler-slice capture of the same thermal job (#72) — the second one *rendered from the
+   porta-lite store rather than transcribed*, which is #69's story working before #69 exists.
+4. **Surface figures were re-measured at build time rather than transcribed**, and had
+   already drifted: `kernel.nsl` 123,308 → **131,423 chars** in one day (Toit's counts
+   unchanged; C substrate 422,315 chars ≈ 106k tokens over 36 files). One day of drift in
+   the deck's own numbers is the argument for the appendix in point 1.
+
+**Decisions this build made that the design left open.** The §8 open question —
+a normalised STIC column — is **decided NO**, not deferred: normalisation is a rhetorical
+act, and an option added "just in case" is how it reaches the investor slide. Act IV's
+`legibility` slide was rewritten because the design's "a silent failure we cannot yet
+explain" is no longer true; the counterexample gets *stronger* — the fix is reported and
+the indictment kept, because it was invisible for a day, which is precisely what the
+never-silent design law exists to prevent.
+
+**A finding the deck produced by being written: #78.** Tracing Act II's "the collection
+weakness is in the shipping job" down to the mechanism showed that `List setItems:` — and
+`Map setPairs:`/`Record` with it — computes every element's rank **twice**, once via
+`checkValue:` and again via `depthOf:`, each going out to the `platform valueRank:` prim.
+`publish`'s 8225 µs is a second 64-element copy plus that doubled walk; `put:value:` itself
+is O(1) and touches no element. Estimated ~20% off `publish` from one fused walk, to be
+**A/B'd on the device against the very spans that found it** rather than argued — which is
+the Act III strategy slide applied to itself.
+
+Verified in-browser (all four playlists walked, per-audience framing swaps confirmed, deep
+links, zero console output, no slide overflowing a 680–720 px-tall viewport). Design:
+`docs/design/2026-07-21-performance-deck-design.md`; plan:
+`docs/superpowers/plans/2026-07-22-performance-deck-build.md`. `CLAIMS.md` gains no row —
+the deck asserts nothing new, it cites. Open: #66/#67/#68 are the three badges still
+showing, and #69 is the checker that keeps the appendix honest against reality.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
