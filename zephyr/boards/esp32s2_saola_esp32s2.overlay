@@ -1,0 +1,114 @@
+/* Adafruit MagTag IO: four buttons, the red LED, and the NeoPixel power gate.
+ *
+ * FILENAME IS LOAD-BEARING. Zephyr auto-applies boards/<board>_<qualifiers>.overlay,
+ * where the qualifiers of the board target `esp32s2_saola/esp32s2` are joined with
+ * underscores (cmake/modules/extensions.cmake) — hence
+ * `esp32s2_saola_esp32s2.overlay`. A plain `esp32s2_saola.overlay` is NOT a name the
+ * build looks for: it would be silently ignored, the aliases below would never exist,
+ * DT_NODE_EXISTS would compile the single-button branch of ../src/main.c, and three
+ * of the four buttons would simply never fire with no error anywhere. If a button
+ * does nothing, check FIRST that the build log says
+ * "Found devicetree overlay: .../boards/esp32s2_saola_esp32s2.overlay".
+ *
+ * WHY esp32s2_saola AND NOT A MAGTAG BOARD: esp32s2_saola.dts:9 includes
+ * <espressif/esp32s2/esp32s2_wrover_n4r2.dtsi>, which IS the MagTag's module
+ * (ESP32-S2-WROVER, 4 MB flash, 2 MB PSRAM). The Saola and the MagTag differ only in
+ * board IO — which is exactly what this file supplies. See zephyr/prj_esp32s2.conf.
+ *
+ * Pins verified against the vendor pinout diagram (zephyr/boards/magtag/, gitignored):
+ *   BUTTON_A GPIO15   BUTTON_B GPIO14   BUTTON_C GPIO12   BUTTON_D GPIO11
+ *   Red LED  GPIO13   NeoPixel data GPIO1   NeoPixel POWER GPIO21
+ * All are 0..31, so all live on gpio0 (esp32s2_common.dtsi:215, ngpios = 32).
+ * GPIO 32+ would need gpio1 — that is where the e-paper's SPI lands (35/36/37), which
+ * is a later doc.
+ *
+ * BUTTONS ARE ACTIVE-LOW WITH NO BOARD PULL-UPS. The vendor guide is explicit:
+ * "There are no pull-ups on board, use internal pullups for this pins - when the
+ * buttons are pressed the IO pin labeled is set to LOW". So GPIO_PULL_UP is NOT
+ * optional here — without it the pins float and fire spuriously. With ACTIVE_LOW set,
+ * main.c's existing GPIO_INT_EDGE_TO_ACTIVE already means the falling edge, so that
+ * line needed no change when this board arrived.
+ *
+ * LATENT HAZARD: GPIO15 (BUTTON_A) is also XTAL_32K_P. The MagTag fits no 32 kHz
+ * crystal, so nothing claims it today — but if a future config ever enables one,
+ * BUTTON_A dies silently.
+ *
+ * gpio-keys is used only as a well-known BINDING for (gpios, zephyr,code); the input
+ * subsystem driver is NOT enabled (no CONFIG_INPUT_GPIO_KEYS), so nothing claims these
+ * pins and ../src/main.c binds them directly via GPIO_DT_SPEC_GET on the aliases. That
+ * is exactly how the nRF52840-DK and dongle overlays already use their board's
+ * button0. zephyr,code values are therefore inert here; they are supplied because the
+ * binding requires the property.
+ *
+ * ALIAS ORDER IS COSMETIC. main.c derives each input's LOGICAL pin from the DT spec's
+ * own GPIO number whenever more than one alias exists, so an nsl node registers
+ * `gpio pin: 15 ...` for BUTTON_A and reads like the silkscreen. The order below is
+ * simply left-to-right as the buttons sit on the board (D15 D14 D12 D11).
+ */
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+
+/ {
+	buttons {
+		compatible = "gpio-keys";
+
+		btn_a: button_a {
+			gpios = <&gpio0 15 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+			label = "MagTag Button A";
+			zephyr,code = <INPUT_KEY_A>;
+		};
+		btn_b: button_b {
+			gpios = <&gpio0 14 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+			label = "MagTag Button B";
+			zephyr,code = <INPUT_KEY_B>;
+		};
+		btn_c: button_c {
+			gpios = <&gpio0 12 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+			label = "MagTag Button C";
+			zephyr,code = <INPUT_KEY_C>;
+		};
+		btn_d: button_d {
+			gpios = <&gpio0 11 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+			label = "MagTag Button D";
+			zephyr,code = <INPUT_KEY_D>;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		red_led: led_0 {
+			gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;
+			label = "MagTag red LED D13";
+		};
+
+		/* NOT an indicator — this is the NeoPixel POWER GATE. Per the vendor
+		 * guide: "To use the NeoPixel LEDs you must also set pin 21 to be an
+		 * output and LOW - this is the NeoPixel power pin. If not using the
+		 * NeoPixels, keep pin 21 as an input or HIGH output - that will remove
+		 * the quiescent power usage". Declared ACTIVE_LOW so that "on" in
+		 * led/gpio terms means powered. It is modelled as an LED purely to get a
+		 * gpio-leds handle with no new binding; nothing lights when it is set.
+		 * Forgetting it is the classic MagTag time-sink: the strip looks dead.
+		 * It is also RTC-capable, which matters at deep-sleep time — see
+		 * docs/design/2026-07-23-magtag-buttons-leds-design.md D5.
+		 */
+		neopixel_power: neopixel_power {
+			gpios = <&gpio0 21 GPIO_ACTIVE_LOW>;
+			label = "MagTag NeoPixel power gate";
+		};
+	};
+
+	aliases {
+		/* pulsegpio (index 0) is the seam the nRF52840-DK and dongle already use;
+		 * pulsegpio1..3 are the extension for multi-button boards. main.c compiles
+		 * out whichever are absent, so single-button boards are unaffected. */
+		pulsegpio  = &btn_a;
+		pulsegpio1 = &btn_b;
+		pulsegpio2 = &btn_c;
+		pulsegpio3 = &btn_d;
+
+		magtagled = &red_led;
+		neopixelpower = &neopixel_power;
+	};
+};

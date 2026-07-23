@@ -206,30 +206,109 @@ K_THREAD_DEFINE(net_hb_tid, 1536, net_heartbeat, NULL, NULL, NULL, 7, 0, 3000);
 
 /* Logical pin the DK node registers via `gpio pin: 13 ...` (PulseNodeDK.nsl).
    The PHYSICAL pin (P0.11) is decoupled from it — the ISR maps one to the
-   other, mirroring how a driver maps a board pin to an app-level channel. */
+   other, mirroring how a driver maps a board pin to an app-level channel.
+   Used ONLY on single-button boards; see pulse_logical_of() below. */
 #define PULSE_LOGICAL_PIN 13
+
+/* Debounce window, milliseconds. See
+   docs/design/2026-07-23-magtag-buttons-leds-design.md D3 for WHY this lives in
+   C rather than nsl, and note the reason is NOT the obvious one:
+   pulse_post_isr already coalesces per (chan_id, handle_idx) and sheds rather
+   than aborting when full (src/pulse_backend.h:17, G2/tuvm#20), so bounce can
+   neither flood the mailbox nor kill the node. What coalescing CANNOT do is
+   survive a pump — it merges only while an entry is still queued, so once
+   pulse_pump drains it the next bounce edge enqueues afresh and the node sees
+   several logical presses. Debounce here is therefore a CORRECTNESS measure
+   (one physical press == one logical event), not load shedding.
+   30 ms is conventional and NOT measured on these particular switches. */
+#ifndef OEVM_BUTTON_DEBOUNCE_MS
+#define OEVM_BUTTON_DEBOUNCE_MS 30
+#endif
 
 extern void gpio_target_fire(int pin);   /* src/platform.c — ISR-safe */
 
-static const struct gpio_dt_spec pulse_in =
-    GPIO_DT_SPEC_GET(DT_ALIAS(pulsegpio), gpios);
-static struct gpio_callback pulse_cb;
+/* One entry per button. `logical` is the pin an nsl node names in
+   `gpio pin: N edge: ... post: ... on: <channel>`; src/platform.c's
+   host_gpio_register table is already keyed per logical pin with its OWN channel
+   and OWN posted message, so four buttons need no VM- or nsl-side change at all
+   — only this file arms four physical pins instead of one. */
+struct pulse_input {
+    struct gpio_dt_spec spec;
+    struct gpio_callback cb;
+    int      logical;
+    uint32_t last_ms;   /* uptime of the last ACCEPTED edge */
+    bool     seen;      /* false until the first accepted edge (0 is a real uptime) */
+};
+
+static struct pulse_input pulse_inputs[] = {
+    { .spec = GPIO_DT_SPEC_GET(DT_ALIAS(pulsegpio), gpios) },
+#if DT_NODE_EXISTS(DT_ALIAS(pulsegpio1))
+    { .spec = GPIO_DT_SPEC_GET(DT_ALIAS(pulsegpio1), gpios) },
+#endif
+#if DT_NODE_EXISTS(DT_ALIAS(pulsegpio2))
+    { .spec = GPIO_DT_SPEC_GET(DT_ALIAS(pulsegpio2), gpios) },
+#endif
+#if DT_NODE_EXISTS(DT_ALIAS(pulsegpio3))
+    { .spec = GPIO_DT_SPEC_GET(DT_ALIAS(pulsegpio3), gpios) },
+#endif
+};
+#define PULSE_N_INPUTS ARRAY_SIZE(pulse_inputs)
+
+/* LOGICAL PIN POLICY, and why it is conditional rather than uniform.
+   Single-button boards (nRF52840-DK P0.11, dongle P1.06) keep the historic 13,
+   because PulseNodeDK.nsl and ThreadTimerNode already register `gpio pin: 13`
+   and those are proven rung-7/8 gates — renumbering them here would break a
+   working node to no purpose. Multi-button boards have no such legacy, so they
+   take the DT spec's own GPIO number, which makes an nsl node read like the
+   board silkscreen (`gpio pin: 15` IS the MagTag's BUTTON_A). Deriving it from
+   the spec rather than hardcoding a per-board table also keeps board knowledge
+   out of this shared file. */
+static inline int pulse_logical_of(const struct pulse_input *in) {
+    return (PULSE_N_INPUTS == 1) ? PULSE_LOGICAL_PIN : (int)in->spec.pin;
+}
 
 static void pulse_isr(const struct device *port, struct gpio_callback *cb,
                       uint32_t pins) {
-    ARG_UNUSED(port); ARG_UNUSED(cb); ARG_UNUSED(pins);
-    gpio_target_fire(PULSE_LOGICAL_PIN);   /* -> pulse_post_isr (non-blocking) */
+    ARG_UNUSED(cb);
+    uint32_t now = k_uptime_get_32();
+
+    for (size_t i = 0; i < PULSE_N_INPUTS; i++) {
+        struct pulse_input *in = &pulse_inputs[i];
+        /* Demux: one callback per input, but the handler is shared, so match on
+           (port, pin) rather than trusting which cb fired. Zephyr passes the pin
+           bitmask in `pins` — the single-button version ignored it. */
+        if (in->spec.port != port || !(pins & BIT(in->spec.pin))) {
+            continue;
+        }
+        /* Fire on the FIRST edge and swallow the tail, so a press costs no
+           latency. Unsigned subtraction is wrap-correct across the ~49.7-day
+           k_uptime_get_32() rollover. */
+        if (in->seen && (uint32_t)(now - in->last_ms) < OEVM_BUTTON_DEBOUNCE_MS) {
+            continue;
+        }
+        in->seen = true;
+        in->last_ms = now;
+        gpio_target_fire(pulse_logical_of(in));   /* -> pulse_post_isr (non-blocking) */
+    }
 }
 
 static void wire_pulse_gpio(void) {
-    if (!gpio_is_ready_dt(&pulse_in)) {
-        printk("pulsegpio device not ready\n");
-        return;
+    for (size_t i = 0; i < PULSE_N_INPUTS; i++) {
+        struct pulse_input *in = &pulse_inputs[i];
+
+        if (!gpio_is_ready_dt(&in->spec)) {
+            printk("pulsegpio[%u] device not ready\n", (unsigned)i);
+            continue;   /* one dead pin must not cost the others */
+        }
+        in->logical = pulse_logical_of(in);
+        gpio_pin_configure_dt(&in->spec, GPIO_INPUT);
+        gpio_pin_interrupt_configure_dt(&in->spec, GPIO_INT_EDGE_TO_ACTIVE);
+        /* A callback per input rather than one shared mask: gpio_add_callback is
+           per-port, and nothing guarantees a board puts every button on one port
+           (the MagTag does; the next board might not). */
+        gpio_init_callback(&in->cb, pulse_isr, BIT(in->spec.pin));
+        gpio_add_callback(in->spec.port, &in->cb);
     }
-    gpio_pin_configure_dt(&pulse_in, GPIO_INPUT);
-    gpio_pin_interrupt_configure_dt(&pulse_in, GPIO_INT_EDGE_TO_ACTIVE);
-    gpio_init_callback(&pulse_cb, pulse_isr, BIT(pulse_in.pin));
-    gpio_add_callback(pulse_in.port, &pulse_cb);
 }
 #else
 static inline void wire_pulse_gpio(void) { }   /* native_sim: no physical button */
