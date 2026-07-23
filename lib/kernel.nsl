@@ -640,6 +640,45 @@ class Kernel usingPlatform: platform = () (
     public overRaw: r = ( ^ self new setRaw: r )
   )
 
+  (* tuvm#72: a PACKED byte accumulator for the CBOR encoder. The encoder used to
+     accumulate into an OrderedCollection of byte SMIs, which costs FOUR bytes per
+     byte (mutable Array slots — the RAM trap tuvm-vm-memory-model warns about) and
+     doubles its backing Array as it fills. On a WROOM-32 (49 KB arena) encoding a
+     span-capture push, that doubling asked for a 1024-slot Array and killed the
+     node outright:
+         VM GC Error: Out of Memory (requested 4104, used 49152 of 49152) -> abort()
+     — a hard abort, not a catchable condition, so nothing was logged and the node
+     simply died mid-push. Holding the bytes packed cuts that ~4x, and matters most
+     for encodeMap:, which holds a separate accumulator for EVERY key and value
+     simultaneously before sorting them.
+
+     Deliberately minimal: only the selectors the codec actually sends (`add:`,
+     `size`, `at:`, `do:`) exist, so this is a drop-in for the OrderedCollection it
+     replaces and nothing else can start depending on it. *)
+  class ByteBuilder = ( | buf ::= ByteArray new: 16. count ::= 0. | ) (
+    public size = ( ^ count )
+    public at: i = ( ^ buf u8At: i )
+    public add: b = (
+      count = buf byteSize ifTrue: [ self grow ].
+      count:: count + 1.
+      buf u8At: count put: b.
+      ^ b )
+    public do: aBlock = ( 1 to: count do: [ :i | aBlock value: (buf u8At: i) ]. ^ self )
+    grow = ( | bigger |
+      bigger:: ByteArray new: buf byteSize * 2.
+      1 to: count do: [ :i | bigger u8At: i put: (buf u8At: i) ].
+      buf:: bigger.
+      ^ self )
+    (* Exact-size immutable copy. `buf` normally carries slack from the last
+       doubling, and freezing it directly would publish those trailing bytes as
+       part of the value. *)
+    public frozenBytes = ( | exact |
+      exact:: ByteArray new: count.
+      1 to: count do: [ :i | exact u8At: i put: (buf u8At: i) ].
+      ^ exact freeze )
+  ) : (
+  )
+
   (* Rung 3 Task 5: the CBOR value codec — encode half. A module sibling of
      List/Map/Record; the recursive descent lives here in nsl and drops to the
      C leaf byte-primitives (`platform cborEncodeInt:`/`cborEncodeFloat:`) only
@@ -662,9 +701,9 @@ class Kernel usingPlatform: platform = () (
      `message depth exceeded`. *)
   class Cbor = () (
     public encode: v = ( | acc |
-      acc:: OrderedCollection new.
+      acc:: ByteBuilder new.
       self encode: v into: acc depth: 1.
-      ^ (ByteArray fromList: acc) freeze )
+      ^ acc frozenBytes )
 
     encode: v into: acc depth: d = ( | rank |
       d > 32 ifTrue: [ ^ self error: 'message depth exceeded' ].
@@ -756,8 +795,8 @@ class Kernel usingPlatform: platform = () (
        appended in lockstep to keyEncs/valEncs (the per-entry block-locals live
        in this method frame, keeping the keysAndValuesDo: block a single send). *)
     encodeEntry: k value: val keys: keyEncs vals: valEncs depth: d = ( | kb vb |
-      kb:: OrderedCollection new.
-      vb:: OrderedCollection new.
+      kb:: ByteBuilder new.
+      vb:: ByteBuilder new.
       self encode: k   into: kb depth: d + 1.
       self encode: val into: vb depth: d + 1.
       keyEncs add: kb.
