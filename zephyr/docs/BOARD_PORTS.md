@@ -146,13 +146,26 @@ env fails silently as `west: command not found`). Full per-rung detail lives in 
   four Zephyr 802.15.4 driver fixes (branch `tuvm-c6-radio-fix`; one submitted upstream as
   zephyr#114163). Details in the ladder (C6 second-target + radio-blocker rungs).
 - **Adafruit MagTag (ESP32-S2-WROVER)** — ✅ **VM boots, four buttons + chording, red LED + level
-  read proven on hardware 2026-07-23** (#60, #82). A capacity/display board, **not** perf or mesh:
+  read, WiFi, and the onboard buzzer all proven on hardware 2026-07-23** (#60, #82, #84, #85, #86).
+  A capacity/display board, **not** perf or mesh:
   no FPU (soft-float — no float figure belongs in the STIC table without "soft-float" on the row),
   and PSRAM is present but not in the VM arena. Specifics:
   - **No board port was written.** `esp32s2_saola/esp32s2` already targets the MagTag's module
     (`esp32s2_saola.dts:9` includes `esp32s2_wrover_n4r2.dtsi`); only board IO needed the overlay
-    `boards/esp32s2_saola_esp32s2.overlay` (buttons 11/12/14/15, red LED 13, NeoPixel power gate 21).
-    Check for an existing board target on the same module before porting one.
+    `boards/esp32s2_saola_esp32s2.overlay` (buttons 11/12/14/15, red LED 13, NeoPixel power gate 21,
+    speaker-enable 16 + LEDC channel on 17). Check for an existing board target on the same module
+    before porting one.
+  - **WiFi works, and costs half the VM arena (#85).** No new code — `CONFIG_WIFI_ESP32` builds for
+    the S2 and the existing `backend/zephyr` net stack + `wifi_bringup()` + #72's
+    `NET_IPV4_MAPPING_TO_IPV6` carry associate → DHCPv4 → VM. But WiFi's ~40 KB system heap
+    overflows dram0 by 32,704 B at the default 64 KB arena; at a **32 KB arena it fits at dram0
+    99.51%** (1,088 B spare — the #53 knife-edge again). So WiFi and a large working set do not
+    coexist here without PSRAM.
+  - **The onboard buzzer works (#86).** SPEAKER = GPIO17 (also DAC_1/A0) via LEDC; SPEAKER_SHUTDOWN
+    = GPIO16, HIGH = un-muted. **The amp needs ~50 ms to settle after enable or it is silent** —
+    the single biggest time sink of that rung. `rc=0` from `pwm_set` is *not* evidence of audio
+    (160 ms notes were inaudible; 500 ms is loud). LEDC bottoms out near 1 kHz, so a real bell
+    wants the DAC on the same pin, not PWM.
   - **Out-of-tree, invisible to git:** the Zephyr SDK needs `xtensa-espressif_esp32s2_zephyr-elf`
     installed (`~/zephyr-sdk-0.17.4/setup.sh -t xtensa-espressif_esp32s2_zephyr-elf`); a fresh clone
     cannot build this target without it.

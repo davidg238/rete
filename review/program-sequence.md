@@ -1261,6 +1261,36 @@ env override, no tracked-file change. Also reconciled #36 (native-ESP-IDF WiFi b
 superseded — WiFi shipped via Zephyr under #46. Open: #85 (make S2 WiFi a tracked config +
 decide the arena/PSRAM tradeoff).
 
+**The MagTag makes sound — spike, 2026-07-23 (#86, commit `5d7fdd8`).** The onboard buzzer
+works under Zephyr: SPEAKER is GPIO17 (also DAC_1/A0) driven by LEDC channel 0 through a
+pinctrl route; SPEAKER_SHUTDOWN is GPIO16, HIGH = un-muted. Proven on hardware as three
+ascending tones (E6/G6/C7, 500 ms each). Inert without `CONFIG_PWM` — the plain button build
+is unchanged at dram0 81.82% (181,808 B), so the button and WiFi images are untouched.
+
+Four gotchas, each of which cost a build, and one design consequence:
+
+1. **The amp needs ~50 ms to settle after enable.** Driving PWM in the same breath is silent.
+   This masqueraded as a pin-routing bug for three builds — the largest time sink of the rung.
+2. **A cold first `pwm_set` can return `-EINVAL`** (not *always*, as a first read of it claimed):
+   with the slow clock not yet enabled the driver falls back to full 14-bit resolution and the
+   prescaler underflows its `0x100` floor. **Low frequencies are what is at risk** — first-call
+   500 Hz → 250 and 1047 Hz → 119 rejected, first-call 2000 Hz → 500 passed. Spend the risky
+   first call on a throwaway tone.
+3. **`rc=0` is not evidence of audio.** 160 ms notes returned success and were inaudible; 500 ms
+   is loud. A silent pass reads exactly like a driver failure — the same "a silent port proves
+   nothing" trap in a new place (see also #87 on `--capture`).
+4. **LEDC has a low-frequency floor** (`SOC_LEDC_TIMER_BIT_WIDTH` = 14 on the S2), so ~1 kHz is
+   the practical bottom.
+
+**Consequence: a bell is not a PWM job.** A bell is a low fundamental with decaying partials;
+LEDC gives neither, and has no amplitude control. The bell path is the **DAC on the same pin**
+(GPIO17 = DAC_1/A0, what the vendor guide drives) streaming unsigned 8-bit PCM — `dac_esp32.c`
+and `dac@3f408800` already exist. PWM stays fine for a notification beep. This matters because
+the motivating idea — a **ship's-bell clock** (bells every 30 min on the 8-bell watch, struck in
+pairs) — converges WiFi/NTP + DAC + e-paper on one board, and #85's arena arithmetic (WiFi costs
+half the VM heap on this no-PSRAM part) is the budget that decides whether it fits. Not done:
+the chime is boot-time C; a real feature wants an nsl-facing `tone:for:` seam like #82's gpio.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
