@@ -215,6 +215,12 @@ nothing lights until the ws2812 work, so a dark strip at this rung is expected, 
 3. **A node written against pin numbers is board-specific.** That is the accepted cost of
    D2's silkscreen addressing. The mitigation is that an undeclared pin raises loudly (D3)
    rather than silently doing nothing on the wrong board.
+4. **`set:to:` cannot raise on the host, only on target.** D5 has the host create a slot on
+   first write, because there is no overlay to check against — so a typo'd *output* pin
+   passes every host test and raises on the board. Surfaced while planning the
+   implementation, and accepted: the alternative is a host-side declaration list that
+   nothing derives from the real board, which would be a second source of truth. The
+   *level read* has no such gap, and is where the raise gets its host coverage.
 
 ## Close-out (promotion rule)
 
