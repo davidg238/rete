@@ -2090,6 +2090,22 @@ class Kernel usingPlatform: platform = () (
       seam gpioPin: n edge: e post: aMessage on: aChannel rootPath.
       ^ self )
     public fire: n = ( seam gpioFire: n. ^ self )   (* host/test only *)
+    (* tuvm#82: the outbound direction. A pin the board never declared RAISES
+       rather than answering a plausible-but-false level — it is a wrong literal in
+       the source, not something traffic can produce, and a silent false would show
+       up as an LED that merely looks broken. The C leaf stays raw and answers nil;
+       the check lives here, the same division Vector>>at: uses over basicAt:. The
+       tag is what makes `on: [ :e | e tag = #gpioUndeclared ]` possible for code
+       that is deliberately probing an unknown board. *)
+    public set: n to: aBool = (
+      (seam gpioSet: n to: aBool) == nil
+        ifTrue: [ ^ self error: 'gpio pin not declared' tag: #gpioUndeclared ].
+      ^ self )
+    public level: n = (
+      | v |
+      v:: seam gpioLevel: n.
+      v == nil ifTrue: [ ^ self error: 'gpio pin not declared' tag: #gpioUndeclared ].
+      ^ v )
     setSpace: s seam: c = ( space:: s. seam:: c. ^ self )
   ) : (
     public usingSpace: s seam: c = ( ^ self new setSpace: s seam: c )
