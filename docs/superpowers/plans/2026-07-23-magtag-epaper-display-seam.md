@@ -38,7 +38,7 @@ Adds a new compatible to Zephyr's existing e-paper family. No new driver, no new
 
 **Interfaces:**
 - Consumes: nothing.
-- Produces: devicetree compatible `ultrachip,il0373`, accepting every property of `ultrachip,uc81xx-common.yaml` (`width`, `height`, `busy-gpios`, `rotation`, `softstart`, and `full`/`partial` profile child nodes).
+- Produces: devicetree compatible `ultrachip,il0373`, accepting every property of `ultrachip,uc81xx-common.yaml` (`width`, `height`, `busy-gpios`, `softstart`, and `full`/`partial` profile child nodes).
 
 - [ ] **Step 1: Confirm the branch, and that the compatible does not already exist**
 
@@ -269,8 +269,12 @@ Append to the same overlay file, at top level (after the `&ledc0 { … }` block)
  * examples pass EPD_BUSY -1 and never read it (adafruit-magtag.pdf:5123) — the
  * pin is genuinely wired, they simply rely on fixed delays instead.
  *
- * The panel is 128 wide x 296 tall in its own frame; rotation = 270 presents it
- * as the 296x128 landscape the case shows.
+ * THE PANEL IS 128 WIDE x 296 TALL AND STAYS THAT WAY. Neither
+ * ultrachip,uc81xx-common.yaml nor uc81xx.c has any notion of rotation (unlike
+ * solomon,ssd16xx-common.yaml, which does) — an undeclared `rotation` property
+ * is a hard edtlib error, not a warning. So the character grid is PORTRAIT,
+ * 16 cols x 37 rows, and the gate photo is taken with the board turned. See
+ * the follow-up issue for landscape.
  */
 &spi2 {
 	status = "okay";
@@ -297,7 +301,6 @@ Append to the same overlay file, at top level (after the `&ledc0 { … }` block)
 			mipi-max-frequency = <4000000>;
 			width = <128>;
 			height = <296>;
-			rotation = <270>;
 			busy-gpios = <&gpio0 5 GPIO_ACTIVE_LOW>;
 
 			full { };
@@ -326,7 +329,7 @@ CONFIG_DISPLAY=y
 CONFIG_CHARACTER_FRAMEBUFFER=y
 # CFB k_mallocs its framebuffer (subsys/fb/cfb.c:687): 296 * 128 / 8 = 4736 B.
 # 8192 leaves slack for the allocator header and anything else on the system heap.
-CONFIG_HEAP_MEM_POOL_SIZE=8192
+CONFIG_HEAP_MEM_POOL_SIZE=24576
 ```
 
 - [ ] **Step 4: Add the bring-up smoke to `main.c`**
@@ -347,7 +350,7 @@ static void display_smoke(void)
 {
 	const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
 	struct display_capabilities caps;
-	static uint8_t band[296];        /* 8 rows x (296/8) bytes, all black */
+	static uint8_t band[128];        /* 8 rows x (128/8) bytes, all black */
 	struct display_buffer_descriptor desc;
 	int rc;
 
@@ -360,9 +363,9 @@ static void display_smoke(void)
 
 	memset(band, 0x00, sizeof band);   /* MONO10: 0 bits are black */
 	desc.buf_size = sizeof band;
-	desc.width    = 296;
+	desc.width    = 128;
 	desc.height   = 8;
-	desc.pitch    = 296;
+	desc.pitch    = 128;
 
 	rc = display_write(dev, 0, 0, &desc, band);
 	printk("DISPLAY smoke rc=%d\n", rc);
@@ -396,7 +399,7 @@ cd ~/workspace/tuvm/zephyr
 Hold BOOT0, click RESET when prompted. Expected console:
 
 ```
-DISPLAY ready 296x128
+DISPLAY ready 128x296
 DISPLAY smoke rc=0
 ```
 
@@ -697,8 +700,8 @@ Insert after the `#endif` that closes the `#ifdef __ZEPHYR__` gpio block (i.e. a
    rows. A host/device mismatch here would make a host-green test meaningless,
    so the numbers are named once and asserted against the device at bring-up. */
 #ifndef __ZEPHYR__
-#define HOST_DISPLAY_ROWS 16
-#define HOST_DISPLAY_COLS 37
+#define HOST_DISPLAY_ROWS 37
+#define HOST_DISPLAY_COLS 16
 static char host_display[HOST_DISPLAY_ROWS][HOST_DISPLAY_COLS + 1];
 static int host_display_init_done = 0;
 
@@ -1128,9 +1131,9 @@ Expected: clean link. **Record the `dram0` percentage** — this is the measurem
 cd ~/workspace/tuvm/zephyr && ./flash-magtag.sh
 ```
 
-Expected console: `DISPLAY OK rows=16 cols=37 font=8x8`.
+Expected console: `DISPLAY OK rows=37 cols=16 font=8x8`.
 
-**If rows/cols differ from `HOST_DISPLAY_ROWS` (16) / `HOST_DISPLAY_COLS` (37)**, the host tests are asserting against a grid the board does not have. Fix the host constants in `src/platform.c` to match the board and re-run Task 4's tests — the device is the authority.
+**If rows/cols differ from `HOST_DISPLAY_ROWS` (37) / `HOST_DISPLAY_COLS` (16)**, the host tests are asserting against a grid the board does not have. Fix the host constants in `src/platform.c` to match the board and re-run Task 4's tests — the device is the authority.
 
 - [ ] **Step 4: Commit**
 
@@ -1185,8 +1188,10 @@ class MagTagDisplayNode packageUsing: manifest = () (
     count:: 0.
 
     display clear.
-    display at: 0 col: 0 put: 'TUVM on the MagTag'.
-    display at: 2 col: 0 put: 'e-paper seam, tuvm#88'.
+    (* 16 COLUMNS MAX — the grid is portrait (see Task 2). Anything longer
+       raises #displayBounds, which is a real gate, not a formatting nicety. *)
+    display at: 0 col: 0 put: 'TUVM  e-paper'.
+    display at: 2 col: 0 put: 'tuvm#88'.
     display at: 4 col: 0 put: 'presses: 0'.
     display refresh.
     'gate1 painted' out.
@@ -1225,7 +1230,7 @@ cd ~/workspace/tuvm/zephyr && ./run.sh esp32s2 build && ./flash-magtag.sh
 
 - [ ] **Step 3: Gate 1 — full refresh**
 
-Expected console: `DISPLAY OK rows=16 cols=37 font=8x8`, then `gate1 painted`, `gate3 caught displayBounds`, `ready`.
+Expected console: `DISPLAY OK rows=37 cols=16 font=8x8`, then `gate1 painted`, `gate3 caught displayBounds`, `ready`.
 Expected panel: three lines of text, legible.
 **Photograph it.** `rc=0` is not the gate.
 

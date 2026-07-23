@@ -123,8 +123,9 @@ gate in D8; it is the pixels that must be right.
 
 ### D3 — nsl speaks characters, via Zephyr's CFB; it never sees a pixel
 
-`subsys/fb/cfb.c` is in-tree, mono, and ships default fonts. At 296 × 128 with an 8 × 8
-font that is a **37 × 16 character grid**. This is the "ascii-art UI" decision of
+`subsys/fb/cfb.c` is in-tree, mono, and ships default fonts. At 128 × 296 with an 8 × 8
+font that is a **16-column × 37-row grid** — see D9: this driver family cannot
+rotate, so the grid is portrait. This is the "ascii-art UI" decision of
 `review/zephyr-driver-exposure.md` Tier 2, taken as written.
 
 Compatibility verified rather than assumed — this was the check most likely to kill the
@@ -203,7 +204,7 @@ Exactly the division #82 established (`Vector>>at:` over `basicAt:`), for the sa
 | condition | C answers | nsl raises |
 |---|---|---|
 | no display node on this board | `nil` | `#displayUnavailable` |
-| row/col outside the 37 × 16 grid | `nil` | `#displayBounds` |
+| row/col outside the 16 × 37 grid | `nil` | `#displayBounds` |
 | driver returned `-EIO` | `nil` | `#displayFault` |
 
 `#displayFault` is the one that earns its keep. The speaker rung's lesson was that
@@ -253,7 +254,7 @@ worked around. Nothing in this design should be shaped to protect the claim.
 
 ### D8 — Host gets a real grid stub, not just the raise paths
 
-The posix backend keeps the 37 × 16 character grid in a plain array, so host tests assert
+The posix backend keeps the 16-column × 37-row character grid in a plain array, so host tests assert
 on **rendered text**, not merely on error tags.
 
 This deliberately closes the hole #82 left: there, `set:to:` created a slot on the host
@@ -285,10 +286,30 @@ polls it. Had BUSY not been broken out, the choice would have been between a fab
 always-inactive GPIO and patching the binding. The pinout shows it reaching **GPIO5**, so
 the requirement is satisfied honestly and Adafruit simply chooses not to use it.
 
-The panel is 128 W × 296 H native and used **rotated 270°** for a 296 × 128 landscape
-grid; `rotation` is already a property of the common binding. Between `spi2` and the
-display node sits a `zephyr,mipi-dbi-spi` shim (`drivers/mipi_dbi/mipi_dbi_spi.c`) —
-`uc81xx` is a MIPI-DBI device, not a raw-SPI one
+**The panel stays 128 W × 296 H — this family cannot rotate, and the rung ships portrait.**
+An earlier draft of this decision specified `rotation = <270>` for a 296 × 128 landscape
+grid. That was wrong, and the error is worth recording because it is an easy one to repeat:
+`rotation` is declared in **`solomon,ssd16xx-common.yaml:34`**, the *other* e-paper family,
+and **not** in `ultrachip,uc81xx-common.yaml`. `uc81xx.c` contains no rotation logic at all,
+and Zephyr's edtlib treats an undeclared property as a hard error, so the devicetree would
+not even have generated.
+
+Nor is adding it cheap. `ssd16xx`'s rotation (`ssd16xx.c:890`) only writes a controller
+scan-direction register at init; the evidence says the IL0373 has no equivalent, because
+**Adafruit's CircuitPython driver performs rotation in the displayio *software* layer**, not
+on the controller. CFB has no rotation either. Landscape therefore means software-rotating a
+framebuffer — a second 4,736 B buffer plus a transpose blitter, on a `dram0` already at
+81.8%, and partly re-creating the blitter D3 dropped.
+
+So the character grid is **portrait: 16 columns × 37 rows**, and the gate photograph is taken
+with the board turned. This costs the rung nothing that it is actually trying to prove —
+orientation never touches the seam — but it does mean **node text is capped at 16 characters
+per line**, which the gate node must respect or it will raise `#displayBounds`. Landscape is
+a follow-up issue, properly owned by the ship's-bell clock rung, which is the first thing
+that genuinely needs it.
+
+Between `spi2` and the display node sits a `zephyr,mipi-dbi-spi` shim
+(`drivers/mipi_dbi/mipi_dbi_spi.c`) — `uc81xx` is a MIPI-DBI device, not a raw-SPI one
 (`ultrachip,uc81xx-common.yaml:12` includes `mipi-dbi-spi-device.yaml`).
 
 ### D10 — The Zephyr change is a local commit on the branch that already carries one
@@ -340,7 +361,7 @@ if it turns out upstream has a better idea.
 `run_tests_oevm.py` always globs the whole suite):
 1. text placed at a row/col reads back from the stub grid
 2. overwrite and `clear` behave
-3. row/col outside 37 × 16 raises `#displayBounds`
+3. row/col outside the 16 × 37 grid raises `#displayBounds`
 4. a board with no display raises `#displayUnavailable`
 
 Then the full suite green (214/0 as recorded at the #82 rung; re-baseline before
