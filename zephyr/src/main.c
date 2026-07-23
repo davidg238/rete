@@ -225,6 +225,27 @@ K_THREAD_DEFINE(net_hb_tid, 1536, net_heartbeat, NULL, NULL, NULL, 7, 0, 3000);
 #define OEVM_BUTTON_DEBOUNCE_MS 30
 #endif
 
+/* RELEASE EVENTS, for chording. A settled release fires the logical pin
+   (logical + OEVM_BUTTON_RELEASE_BASE) — e.g. MagTag BUTTON_A presses on logical
+   15 and releases on 115. A node that wants held-state tracks it by registering
+   both and flipping a flag, which is what makes "hold A, press B" expressible
+   WITHOUT a new prim: the logical pin is nothing but a key into
+   src/platform.c's host_gpio_register table, so a second key per button costs
+   nothing but a table slot.
+
+   COSTS NOTHING WHEN UNUSED, which is why this is unconditional and not a
+   Kconfig. host_gpio_fire() walks the registration table and posts only for pins
+   a node actually registered, so an unregistered release pin is a silent no-op.
+   PulseNodeDK.nsl and ThreadTimerNode register 13 and never 113, so the nRF
+   boards see no behaviour change at all.
+
+   The base is 100 because logical pins are GPIO numbers on multi-button boards
+   and the ESP32-S2 tops out at 46, so no press pin can ever collide with a
+   release pin. Revisit if a board ever has a GPIO >= 100. */
+#ifndef OEVM_BUTTON_RELEASE_BASE
+#define OEVM_BUTTON_RELEASE_BASE 100
+#endif
+
 extern void gpio_target_fire(int pin);   /* src/platform.c — ISR-safe */
 
 /* One entry per button. `logical` is the pin an nsl node names in
@@ -338,9 +359,13 @@ static void pulse_isr(const struct device *port, struct gpio_callback *cb,
             if (lvl != 0) {
                 continue;   /* still held */
             }
-            in->pressed = false;   /* settled release: re-arm, but do NOT fire */
+            in->pressed = false;   /* settled release: re-arm */
             in->seen    = true;
             in->last_ms = now;
+            /* Fire the RELEASE pin. A no-op unless a node registered it — see
+               OEVM_BUTTON_RELEASE_BASE above. This is what makes chording
+               possible without a level-read prim. */
+            gpio_target_fire(pulse_logical_of(in) + OEVM_BUTTON_RELEASE_BASE);
         }
     }
 }
