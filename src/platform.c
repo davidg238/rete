@@ -70,6 +70,7 @@ static void host_gpio_fire(int pin) {
    omits. A typo'd output pin therefore passes on the host and raises on the
    board. Accepted: there is no overlay on the host to check against. The level
    read has no such gap and is where the raise gets its host coverage. */
+#ifndef __ZEPHYR__
 #ifndef HOST_MAX_GPIO_LEVEL
 #define HOST_MAX_GPIO_LEVEL 16
 #endif
@@ -110,6 +111,17 @@ int gpio_target_level(int pin) {
     if (host_gpio_is_registered(pin)) return 0;
     return -1;
 }
+#else
+/* tuvm#82: on target these live in zephyr/src/main.c, beside the devicetree tables
+   they read. Conditional compilation in a shared src/*.c rather than a new backend
+   .c pair is deliberate: __ZEPHYR__ is already used this way in src/gc.c and
+   src/vm.c, and adding a .c file costs edits to nine enumerated source lists
+   across two repos (tuvm#63) for two functions.
+   Note the direction is the MIRROR of gpio_target_fire below, which platform.c
+   defines and main.c calls inbound. */
+extern int gpio_target_set(int pin, int level);
+extern int gpio_target_level(int pin);
+#endif
 
 /* Target GPIO-ISR entry (Zephyr rung-2 Task 8): a real on-target GPIO edge
    callback (zephyr/src/main.c) calls this to post the pulse for `pin`, taking

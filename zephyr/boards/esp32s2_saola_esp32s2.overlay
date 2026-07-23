@@ -110,5 +110,14 @@
 
 		magtagled = &red_led;
 		neopixelpower = &neopixel_power;
+
+		/* tuvm#82 — the OUTBOUND seam. gpioout* is to outputs what pulsegpio* is
+		 * to inputs: ../src/main.c compiles the table away entirely on boards
+		 * that declare none, so the nRF52840-DK and dongle are untouched. The
+		 * ALIAS NAMES NEVER REACH nsl — a node names the silkscreen GPIO number
+		 * (13 for the red LED, 21 for the NeoPixel power gate), which main.c
+		 * matches against each spec's own .pin. */
+		gpioout  = &red_led;
+		gpioout1 = &neopixel_power;
 	};
 };

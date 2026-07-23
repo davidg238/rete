@@ -20,6 +20,7 @@
    this engine — GC roots come from vm_stack/current_frame plus the explicit
    hooks below), so no stack-anchor call is needed here. */
 #include <zephyr/kernel.h>
+#include <zephyr/drivers/gpio.h>
 #include <stdint.h>
 #include <stdio.h>
 #include "oevm.h"
@@ -202,7 +203,6 @@ K_THREAD_DEFINE(net_hb_tid, 1536, net_heartbeat, NULL, NULL, NULL, 7, 0, 3000);
    context, which posts the pulse for the SAME logical pin the baked node
    (PulseNodeDK.nsl) registered. */
 #if DT_NODE_EXISTS(DT_ALIAS(pulsegpio))
-#include <zephyr/drivers/gpio.h>
 
 /* Logical pin the DK node registers via `gpio pin: 13 ...` (PulseNodeDK.nsl).
    The PHYSICAL pin (P0.11) is decoupled from it — the ISR maps one to the
@@ -400,6 +400,83 @@ static void wire_pulse_gpio(void) {
 static inline void wire_pulse_gpio(void) { }   /* native_sim: no physical button */
 #endif
 
+/* tuvm#82: the OUTBOUND half of the gpio seam. Outputs are declared as gpioout /
+   gpioout1..3 aliases, exactly as inputs are declared as pulsegpio / pulsegpio1..3,
+   and the whole table compiles away on a board that declares none. An nsl node
+   names the SILKSCREEN gpio number; the alias names never leave this file, which is
+   why the lookup below matches on spec.pin. */
+#if DT_NODE_EXISTS(DT_ALIAS(gpioout))
+static const struct gpio_dt_spec gpio_outputs[] = {
+    GPIO_DT_SPEC_GET(DT_ALIAS(gpioout), gpios),
+#if DT_NODE_EXISTS(DT_ALIAS(gpioout1))
+    GPIO_DT_SPEC_GET(DT_ALIAS(gpioout1), gpios),
+#endif
+#if DT_NODE_EXISTS(DT_ALIAS(gpioout2))
+    GPIO_DT_SPEC_GET(DT_ALIAS(gpioout2), gpios),
+#endif
+#if DT_NODE_EXISTS(DT_ALIAS(gpioout3))
+    GPIO_DT_SPEC_GET(DT_ALIAS(gpioout3), gpios),
+#endif
+};
+#define GPIO_N_OUTPUTS ARRAY_SIZE(gpio_outputs)
+
+static void wire_gpio_outputs(void) {
+    for (size_t i = 0; i < GPIO_N_OUTPUTS; i++) {
+        if (!gpio_is_ready_dt(&gpio_outputs[i])) {
+            printk("gpioout[%u] device not ready\n", (unsigned)i);
+            continue;   /* one dead pin must not cost the others */
+        }
+        /* INACTIVE, not ACTIVE. On the MagTag gpioout1 is the NeoPixel POWER GATE,
+           declared GPIO_ACTIVE_LOW, and coming up powered is exactly the quiescent
+           draw the vendor guide says to avoid. INACTIVE therefore drives that line
+           physically HIGH — the opposite of what the flag's name suggests, and
+           correct. Do not "fix" this to GPIO_OUTPUT_ACTIVE. */
+        gpio_pin_configure_dt(&gpio_outputs[i], GPIO_OUTPUT_INACTIVE);
+    }
+}
+#else
+static inline void wire_gpio_outputs(void) { }
+#endif
+
+/* The two leaves src/platform.c calls under #ifdef __ZEPHYR__. Return conventions
+   match the host definitions they replace: set answers 1/0, level answers 0/1/-1,
+   where -1 means "no board declared this pin" and becomes nil in nsl.
+   LOGICAL levels throughout (gpio_pin_set_dt / _get_dt), so the overlay's
+   GPIO_ACTIVE_LOW flags carry the polarity: true == NeoPixels POWERED, and
+   true == button PRESSED. */
+int gpio_target_set(int pin, int level) {
+#if DT_NODE_EXISTS(DT_ALIAS(gpioout))
+    for (size_t i = 0; i < GPIO_N_OUTPUTS; i++)
+        if ((int)gpio_outputs[i].pin == pin)
+            return gpio_pin_set_dt(&gpio_outputs[i], level) == 0;
+#endif
+    ARG_UNUSED(pin); ARG_UNUSED(level);
+    return 0;   /* not declared as an output on this board */
+}
+
+int gpio_target_level(int pin) {
+#if DT_NODE_EXISTS(DT_ALIAS(gpioout))
+    for (size_t i = 0; i < GPIO_N_OUTPUTS; i++)
+        if ((int)gpio_outputs[i].pin == pin) {
+            int v = gpio_pin_get_dt(&gpio_outputs[i]);
+            return (v < 0) ? -1 : (v != 0);
+        }
+#endif
+#if DT_NODE_EXISTS(DT_ALIAS(pulsegpio))
+    /* Searching the INPUT table too is the whole chording payoff: a node can ask
+       "is BUTTON_A held right now" for zero mailbox traffic, instead of tracking
+       state from the doubled press/release event stream. The table already exists
+       and already holds the button specs, so this costs nothing. */
+    for (size_t i = 0; i < PULSE_N_INPUTS; i++)
+        if ((int)pulse_inputs[i].spec.pin == pin) {
+            int v = gpio_pin_get_dt(&pulse_inputs[i].spec);
+            return (v < 0) ? -1 : (v != 0);
+        }
+#endif
+    ARG_UNUSED(pin);
+    return -1;
+}
+
 #ifndef TUVM_MODEL_B
 /* XIP stubs — Model A never loads an .oimg blob; oimg.h's is_in_blob() checks
    oimg_blob_base first and returns 0 while it is NULL, so the XIP accessor
@@ -479,6 +556,7 @@ int main(void) {
 #endif
 
     wire_pulse_gpio();   /* Task 8 (DK): arm BUTTON1 as the pulse edge; no-op on native_sim */
+    wire_gpio_outputs();   /* tuvm#82: configure declared outputs INACTIVE; no-op where none */
 
 #ifdef CONFIG_NET_L2_OPENTHREAD
     tuvm_thread_bringup();   /* shared OT bring-up seam (src/thread_bringup.c) */
