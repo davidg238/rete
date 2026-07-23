@@ -1033,6 +1033,37 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
         obj_vtable(receiver) == (oop)&BoundClassVtable) {
         return boundclass_construct(receiver, selector, argc, args);
     }
+    /* tuvm#75 — Symbol `=` is VALUE-based (name bytes), not identity.
+       There is no symbol intern table: `platform asSymbol:` (platform.c) mints a
+       FRESH Symbol per CBOR tag-39 decode, and bare `Symbol>>=` would otherwise
+       fall through to `Object>>= other = ( ^ self == other )` (kernel.nsl:30) —
+       identity — so a symbol arriving over the wire never equalled the image
+       literal of the same name. That silently broke every decoded-symbol test:
+       tuvm#72's `SpanCapture>>apply:` (`st = #running`) never opened a capture
+       window, and because `printString` renders the NAME regardless of identity
+       the console looked healthy, which cost a session of misdiagnosis.
+       `==` deliberately KEEPS identity semantics; only `=` is value-based — see
+       #75 for why interning (making the two agree) is the durable fix.
+       Gated on the receiver vtable first, a single pointer compare, so this hot
+       path costs ~nothing on the overwhelmingly common non-Symbol receiver. */
+    if (receiver != NULL && !IS_SMI(receiver) && SymbolVtable != NULL &&
+        obj_vtable(receiver) == SymbolVtable && argc == 1 &&
+        selector != NULL && !IS_SMI(selector) &&
+        obj_vtable(selector) == SymbolVtable &&
+        strcmp(symbol_name((struct Symbol *)selector), "=") == 0) {
+        oop other = args[0];
+        int eq = 0;
+        if (other != NULL && !IS_SMI(other) && obj_vtable(other) == SymbolVtable) {
+            /* MUST go through symbol_name(): for a Symbol living in the .oimg
+               blob, `->name` is an encoded OFFSET, not a pointer (oimg.h:54) —
+               dereferencing it directly segfaults on exactly the image literals
+               this comparison exists to match. */
+            eq = (receiver == other) ||
+                 strcmp(symbol_name((struct Symbol *)receiver),
+                        symbol_name((struct Symbol *)other)) == 0;
+        }
+        return eq ? true_symbol : false_symbol;
+    }
     /* Native capabilities: serial / net-UDP / mirror. Receiver-identity gates;
        each does its own selector matching, adding nothing to PRIM_NAMES
        (std-lib 3c-3b, Task 2, mirror step). The three singletons live at fixed
