@@ -1,0 +1,47 @@
+(*
+expect:
+fired true
+encoded non-empty true
+roundtrip n 2
+roundtrip min 100
+roundtrip max 200
+done
+*)
+(* tuvm#72/#73 profiler slice, design §4a: the capture result written by `put:`
+   must (a) fire a `whenever: ''` reaction on diag/spans/result — the same path
+   NetBridge>>start uses — and (b) CBOR round-trip back to an equal Record, which
+   is what the gw depends on. No socket: the reaction encodes into a temp. *)
+class CaptureCborRoundtrip packageUsing: manifest = ( | seen ::= nil. enc ::= nil. | ) (
+  public main: platform args: args = (
+    | space spans a cap ctl res dec slots row |
+    space:: platform space.
+    spans:: platform Spans new.
+    a::     spans register: #acquire.
+    cap::   platform SpanCapture onSpace: space spans: spans.
+    cap start.
+    ctl:: space channel: 'diag/spans/ctl'.
+    res:: space channel: 'diag/spans/result'.
+
+    (* the bridge's outbound subscription, minus the socket *)
+    res whenever: '' do: [ :v | seen:: v. enc:: platform Cbor encode: v ].
+
+    ctl put: '' value: (platform Record tag: #SpanCtl with: #state -> #running).
+    space drain.
+    spans recordSlot: a us: 100.
+    spans recordSlot: a us: 200.
+    ctl put: '' value: (platform Record tag: #SpanCtl with: #state -> #stopped).
+    space drain.
+
+    ('fired ' , (seen isNil not) printString) out.
+    ('encoded non-empty ' , (enc isNil not and: [ enc byteSize > 0 ]) printString) out.
+
+    dec:: platform Cbor decode: enc ifInvalid: [ :m | nil ].
+    ('roundtrip n ' , (dec at: #n ifAbsent: [ -1 ]) printString) out.
+    slots:: dec at: #slots ifAbsent: [ nil ].
+    row:: slots at: a + 1.
+    ('roundtrip min ' , (row at: #minUs ifAbsent: [ -1 ]) printString) out.
+    ('roundtrip max ' , (row at: #maxUs ifAbsent: [ -1 ]) printString) out.
+    'done' out.
+  )
+) : (
+)

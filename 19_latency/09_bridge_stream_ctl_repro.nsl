@@ -1,0 +1,55 @@
+(*
+expect:
+CTL state=#running
+CTL state=#stopped
+RESULT nil? false
+RESULT n=1
+done
+*)
+(* tuvm#72 REGRESSION: a bridge-driven ctl completes a capture. NetBridge>>
+   pumpInbound delivers inbound ctl with the STREAM verb `out:value:`
+   (kernel.nsl:1442); SpanCapture drives diag/spans/ctl as a CELL (peek/put).
+   This drives ctl EXACTLY as the bridge does — STREAM verb, plus a competing
+   observability `whenever:` sub (ThermalDiagNode:110), plus a sys/crash watcher.
+   It REFUTES the 2026-07-22 "prime lead" that a STREAM-driven ctl starves
+   SpanCapture>>apply: when a second sub is present: stream posts fan out to ALL
+   reactions (space.c space_dequeue snapshots the whole list), no throw, and a
+   result IS written. The device "no result" blocker therefore is NOT the
+   channel kind — look at ctl DELIVERY (the #stopped datagram) instead. *)
+class BridgeStreamCtlRepro packageUsing: manifest = () (
+public main: platform args: args = (
+  | space spans cap a ctl res r |
+  space:: platform space.
+  spans:: platform Spans new.
+  a::     spans register: #acquire.
+
+  (* reveal a swallowed condition raised inside a ctl reaction *)
+  (space channel: 'sys') whenever: 'crash' do: [ :rec |
+    ('CRASH ch=' , (rec at: #channel ifAbsent: [ '?' ]) printString
+              , ' text=' , (rec at: #text ifAbsent: [ '?' ]) printString) println ].
+
+  cap:: platform SpanCapture onSpace: space spans: spans.
+  cap start.                      (* registers apply: on diag/spans/ctl FIRST *)
+
+  ctl:: space channel: 'diag/spans/ctl'.
+  res:: space channel: 'diag/spans/result'.
+
+  (* observability probe — exactly ThermalDiagNode:110, registered AFTER cap start *)
+  ctl whenever: '' do: [ :c |
+    ('CTL state=' , (c at: #state ifAbsent: [ #NOSTATE ]) printString) println ].
+
+  (* drive ctl the way NetBridge>>pumpInbound does: the STREAM verb out:value: *)
+  ctl out: '' value: (platform Record tag: #SpanCtl with: #state -> #running).
+  space drain.
+  spans recordSlot: a us: 100.
+  ctl out: '' value: (platform Record tag: #SpanCtl with: #state -> #stopped).
+  space drain.
+
+  r:: res peek.
+  ('RESULT nil? ' , (r isNil) printString) println.
+  (r isNil) ifFalse: [
+    ('RESULT n=' , (r at: #n ifAbsent: [ -2 ]) printString) println ].
+  'done' println.
+)
+) : (
+)
