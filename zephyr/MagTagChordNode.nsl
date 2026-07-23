@@ -1,82 +1,69 @@
 (*
-MagTagChordNode — proves CHORDING ("hold A, press B") on the MagTag without a
-level-read prim and without any VM change.
+MagTagChordNode — proves CHORDING ("hold A, press B") on the MagTag by READING pin
+level on a press, rather than by tracking a doubled press/release event stream.
 
-HOW IT WORKS. zephyr/src/main.c's debounced button state machine fires TWO logical
-pins per button: the press on the button's GPIO number, and the settled release on
-GPIO + OEVM_BUTTON_RELEASE_BASE (100). A logical pin is nothing more than a key
-into src/platform.c's host_gpio_register table, so a second key per button costs a
-table slot and no new primitive. This node registers both, keeps a held-flag per
-button, and prints the whole held set on every transition — so a chord is visible
-directly in the console.
+HOW IT WORKS. Each button registers ONE press event (its GPIO number). On any press
+the node reads the live level of all four buttons via `gpio level: n` and prints the
+held set. Holding A and pressing B reads level 15 == true at the instant B fires, so
+the line is held=AB — no per-button flag, no release pin, no second event.
 
-  BUTTON_A  press 15   release 115
-  BUTTON_B  press 14   release 114
-  BUTTON_C  press 12   release 112
-  BUTTON_D  press 11   release 111
+  BUTTON_A 15   BUTTON_B 14   BUTTON_C 12   BUTTON_D 11
 
-WHY NOT A LEVEL READ. The design doc's preferred long-term answer is a
-`gpio level: n` primitive — chording then costs ZERO mailbox traffic, because the
-node asks only when it cares. Release events are the cheaper thing to TEST, since
-they need no cross-repo prim append, but they do double the event rate. If chording
-becomes a real feature rather than an experiment, revisit
-docs/design/2026-07-23-magtag-buttons-leds-design.md's "Deferred" section.
+WHY THIS REPLACES RELEASE EVENTS (tuvm#84, follows #82). The earlier version of this
+node (a6656d3) registered a second logical pin per button — the settled release on
+GPIO + 100 — and kept a held-flag it flipped on press and release. That worked, but
+doubled the event rate to carry state the node can now simply ASK for when it cares.
+`gpio level:` landed in #82 and is proven here and in MagTagLedNode.nsl (gate 2). So
+the release-fire branch and OEVM_BUTTON_RELEASE_BASE are gone from src/main.c; the
+debounce state machine still watches the release EDGE internally, purely to re-arm.
 
-RELEASE EVENTS COST NOTHING WHEN UNUSED, which is why main.c fires them
-unconditionally: host_gpio_fire walks the registration table and posts only for
-pins some node registered, so the nRF boards (which register 13 and never 113) see
-no change at all.
+LEVEL IS PULL, NOT PUSH. A release produces no event now, so the `up` lines the old
+node printed are GONE by construction — the node observes state only when a button is
+pressed. That is the trade the design chose (2026-07-23-magtag-buttons-leds-design.md,
+Deferred / D7): zero mailbox traffic for held-state, at the cost of not seeing a
+release until the next press.
 
-DEBOUNCE APPLIES TO BOTH EDGES, so a held button is a *settled* held button — the
-flags cannot flutter during contact bounce. That is what makes the held set
-trustworthy enough to test a chord against.
+TRUSTWORTHY BECAUSE DEBOUNCED. main.c fires a press only on a settled
+released -> pressed transition, so the press that triggers the read is real; and the
+level read itself honours GPIO_ACTIVE_LOW, so `true` means "down" on this ACTIVE_LOW
+board.
 
-expect — press A, keep holding, then press and release B, then release A:
-A down   held=A
+expect — hold A, tap B; hold A+C, tap D; then tap B alone:
 B down   held=AB
-B up     held=A
-A up     held=
+D down   held=ACD
+B down   held=B
 *)
 class MagTagChordNode packageUsing: manifest = (
-  | aHeld ::= false. bHeld ::= false. cHeld ::= false. dHeld ::= false. |
 ) (
-  heldSet = (
+  heldOf: gpio = (
     | s |
     s:: ''.
-    aHeld ifTrue: [ s:: s , 'A' ].
-    bHeld ifTrue: [ s:: s , 'B' ].
-    cHeld ifTrue: [ s:: s , 'C' ].
-    dHeld ifTrue: [ s:: s , 'D' ].
+    (gpio level: 15) ifTrue: [ s:: s , 'A' ].
+    (gpio level: 14) ifTrue: [ s:: s , 'B' ].
+    (gpio level: 12) ifTrue: [ s:: s , 'C' ].
+    (gpio level: 11) ifTrue: [ s:: s , 'D' ].
     ^ s
   )
 
   public main: platform args: args = (
-    | space gpio aDn aUp bDn bUp cDn cUp dDn dUp |
+    | space gpio aDn bDn cDn dDn |
     space:: platform space.
-
-    aDn:: space channel: 'btn/a/down'.  aUp:: space channel: 'btn/a/up'.
-    bDn:: space channel: 'btn/b/down'.  bUp:: space channel: 'btn/b/up'.
-    cDn:: space channel: 'btn/c/down'.  cUp:: space channel: 'btn/c/up'.
-    dDn:: space channel: 'btn/d/down'.  dUp:: space channel: 'btn/d/up'.
-
-    aDn whenever: '' do: [ :m | aHeld:: true.  ('A down   held=' , self heldSet) println ].
-    aUp whenever: '' do: [ :m | aHeld:: false. ('A up     held=' , self heldSet) println ].
-    bDn whenever: '' do: [ :m | bHeld:: true.  ('B down   held=' , self heldSet) println ].
-    bUp whenever: '' do: [ :m | bHeld:: false. ('B up     held=' , self heldSet) println ].
-    cDn whenever: '' do: [ :m | cHeld:: true.  ('C down   held=' , self heldSet) println ].
-    cUp whenever: '' do: [ :m | cHeld:: false. ('C up     held=' , self heldSet) println ].
-    dDn whenever: '' do: [ :m | dHeld:: true.  ('D down   held=' , self heldSet) println ].
-    dUp whenever: '' do: [ :m | dHeld:: false. ('D up     held=' , self heldSet) println ].
-
     gpio:: platform gpio.
-    gpio pin:  15 edge: #falling post: 'A' on: aDn.
-    gpio pin: 115 edge: #rising  post: 'A' on: aUp.
-    gpio pin:  14 edge: #falling post: 'B' on: bDn.
-    gpio pin: 114 edge: #rising  post: 'B' on: bUp.
-    gpio pin:  12 edge: #falling post: 'C' on: cDn.
-    gpio pin: 112 edge: #rising  post: 'C' on: cUp.
-    gpio pin:  11 edge: #falling post: 'D' on: dDn.
-    gpio pin: 111 edge: #rising  post: 'D' on: dUp.
+
+    aDn:: space channel: 'btn/a/down'.
+    bDn:: space channel: 'btn/b/down'.
+    cDn:: space channel: 'btn/c/down'.
+    dDn:: space channel: 'btn/d/down'.
+
+    aDn whenever: '' do: [ :m | ('A down   held=' , (self heldOf: gpio)) println ].
+    bDn whenever: '' do: [ :m | ('B down   held=' , (self heldOf: gpio)) println ].
+    cDn whenever: '' do: [ :m | ('C down   held=' , (self heldOf: gpio)) println ].
+    dDn whenever: '' do: [ :m | ('D down   held=' , (self heldOf: gpio)) println ].
+
+    gpio pin: 15 edge: #falling post: 'A' on: aDn.
+    gpio pin: 14 edge: #falling post: 'B' on: bDn.
+    gpio pin: 12 edge: #falling post: 'C' on: cDn.
+    gpio pin: 11 edge: #falling post: 'D' on: dDn.
 
     [ true ] whileTrue: [ platform pumpEvents. space drain ]
   )

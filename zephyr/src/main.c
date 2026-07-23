@@ -225,27 +225,17 @@ K_THREAD_DEFINE(net_hb_tid, 1536, net_heartbeat, NULL, NULL, NULL, 7, 0, 3000);
 #define OEVM_BUTTON_DEBOUNCE_MS 30
 #endif
 
-/* RELEASE EVENTS, for chording. A settled release fires the logical pin
-   (logical + OEVM_BUTTON_RELEASE_BASE) — e.g. MagTag BUTTON_A presses on logical
-   15 and releases on 115. A node that wants held-state tracks it by registering
-   both and flipping a flag, which is what makes "hold A, press B" expressible
-   WITHOUT a new prim: the logical pin is nothing but a key into
-   src/platform.c's host_gpio_register table, so a second key per button costs
-   nothing but a table slot.
+/* THE RELEASE EDGE IS INTERNAL, not an event. The debounce state machine below
+   watches BOTH edges (see GPIO_INT_EDGE_BOTH in wire_pulse_gpio) — but only the
+   press fires a logical pin. The release edge is consumed here purely to re-arm
+   the state machine (`in->pressed = false`); it produces nothing a node can see.
 
-   COSTS NOTHING WHEN UNUSED, which is why this is unconditional and not a
-   Kconfig. host_gpio_fire() walks the registration table and posts only for pins
-   a node actually registered, so an unregistered release pin is a silent no-op.
-   PulseNodeDK.nsl and ThreadTimerNode register 13 and never 113, so the nRF
-   boards see no behaviour change at all.
-
-   The base is 100 because logical pins are GPIO numbers on multi-button boards
-   and the ESP32-S2 tops out at 46, so no press pin can ever collide with a
-   release pin. Revisit if a board ever has a GPIO >= 100. */
-#ifndef OEVM_BUTTON_RELEASE_BASE
-#define OEVM_BUTTON_RELEASE_BASE 100
-#endif
-
+   Held-state / chording ("hold A, press B") is answered by `gpio level:` instead
+   (tuvm#82), which a node reads only when it cares — MagTagChordNode.nsl reads
+   levels 15/14/12/11 on a press. The earlier release-event route (a settled
+   release firing logical + OEVM_BUTTON_RELEASE_BASE, 100) doubled the event rate
+   to carry state and was retired in tuvm#84; that is why no release pin is fired
+   below and the OEVM_BUTTON_RELEASE_BASE macro is gone. */
 extern void gpio_target_fire(int pin);   /* src/platform.c — ISR-safe */
 
 /* One entry per button. `logical` is the pin an nsl node names in
@@ -359,13 +349,12 @@ static void pulse_isr(const struct device *port, struct gpio_callback *cb,
             if (lvl != 0) {
                 continue;   /* still held */
             }
-            in->pressed = false;   /* settled release: re-arm */
+            in->pressed = false;   /* settled release: re-arm, no event fired */
             in->seen    = true;
             in->last_ms = now;
-            /* Fire the RELEASE pin. A no-op unless a node registered it — see
-               OEVM_BUTTON_RELEASE_BASE above. This is what makes chording
-               possible without a level-read prim. */
-            gpio_target_fire(pulse_logical_of(in) + OEVM_BUTTON_RELEASE_BASE);
+            /* Release fires nothing: held-state is read via `gpio level:` (#82),
+               not carried on a release event (#84). The transition above is the
+               whole purpose of watching this edge — it re-arms the next press. */
         }
     }
 }
@@ -464,9 +453,9 @@ int gpio_target_level(int pin) {
 #endif
 #if DT_NODE_EXISTS(DT_ALIAS(pulsegpio))
     /* Searching the INPUT table too is the whole chording payoff: a node can ask
-       "is BUTTON_A held right now" for zero mailbox traffic, instead of tracking
-       state from the doubled press/release event stream. The table already exists
-       and already holds the button specs, so this costs nothing.
+       "is BUTTON_A held right now" for zero mailbox traffic — the sole chording
+       route since #84 retired the doubled press/release event stream. The table
+       already exists and already holds the button specs, so this costs nothing.
        Match on the LOGICAL pin (pulse_logical_of), not spec.pin: a node names the
        logical pin it registered with `gpio pin: N ...`, and on single-button boards
        that pin is decoupled from the physical one (PULSE_LOGICAL_PIN 13 vs P0.11).

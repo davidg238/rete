@@ -1189,8 +1189,8 @@ drive a pin out or ask it its state. Two primitives (`gpioSet:to:` / `gpioLevel:
    *input* table too, so a node reads a button's held state directly. Proven on hardware:
    holding A+C and tapping B printed `held=ABC` (B still down at read time) — three concurrent
    pin reads, no release events registered. This is the better answer the release-event path
-   (a6656d3) stood in for; migrating chording onto it is deferred to a follow-up, deliberately
-   not done in the rung that introduces its replacement.
+   (a6656d3) stood in for; the migration was deferred to a follow-up (deliberately not done in
+   the rung that introduces its replacement) and landed in #84 — see the close-out below.
 4. **`gpio level:` matches on the LOGICAL pin, not `spec.pin`.** A final-review catch: a node
    names the pin it registered with `gpio pin: N`, which on single-button boards is decoupled
    from the physical pin (`PULSE_LOGICAL_PIN 13` vs `P0.11`). Matching on `spec.pin` would make
@@ -1210,9 +1210,39 @@ Gates (`zephyr/MagTagLedNode.nsl`, over the soldered UART console): gate 1 — D
 follows BUTTON_A (on→press→dark); gate 2 — `held=ABC` via `level:` with no release pins
 registered. Host: `nsl-tests/13_pulse/02_gpio_set_level.nsl` (drive/read/nil) and
 `03_gpio_undeclared_raises.nsl` (the tag-asserting raise gate). Full suite 214/0. `CLAIMS.md`
-gains a row (the raise is a behavioral guarantee). Open: the chording-migration follow-up
-(retire `OEVM_BUTTON_RELEASE_BASE`); NeoPixel *data* (ws2812/RMT driver) is a separate, larger
-issue — this rung only made the GPIO21 power gate drivable.
+gains a row (the raise is a behavioral guarantee). Open: NeoPixel *data* (ws2812/RMT driver)
+is a separate, larger issue — this rung only made the GPIO21 power gate drivable. (The
+chording-migration follow-up landed as #84, below.)
+
+**Chording migrated onto `level:`; release events retired — 2026-07-23, #84 done, proven on
+the MagTag.** The #82 rung introduced `gpio level:` but left the older release-event chording
+path (a6656d3) in place, deliberately not replacing a proven seam in the rung that first ships
+its replacement. #84 completes the swap.
+
+1. **`MagTagChordNode.nsl` now reads, it does not track.** It registers only the four press
+   pins and, on any press, reads the held set via `gpio level:` (the same `heldOf:` shape as
+   `MagTagLedNode`). The four release-pin registrations and four held-flags are gone. Held
+   state is now *pulled* when a button fires, not *pushed* on every press and release.
+2. **`OEVM_BUTTON_RELEASE_BASE` and the release-fire branch are removed from `main.c`.** The
+   `else` branch that detects the settled release **stays** — it re-arms the debounce state
+   machine (`in->pressed = false`), which is why `GPIO_INT_EDGE_BOTH` is still requested. Only
+   the `gpio_target_fire(logical + 100)` call went; the release edge is now internal, firing
+   no event a node can see. `MagTagChordNode` was the sole registrant of a release pin, so
+   nothing else was touched.
+3. **The `up  held=` lines are gone by construction.** A release produces no event now, so the
+   node observes state only on a press — the trade the design chose (zero mailbox traffic for
+   held-state, at the cost of not seeing a release until the next press).
+4. **Hardware gate (MagTag ESP32-S2, 2026-07-23, soldered UART console):** hold A + tap B →
+   `held=AB`; hold A+C + tap B → `held=ABC`; tap B alone → `held=B`. The regression is covered
+   in the same trace: `B` fired **twice** (`held=ABC` then `held=B`), i.e. press → settled
+   release (silent internal re-arm) → press again — proving the release-fire removal did not
+   disturb the re-arm. No separate regression flash needed on the S2.
+
+Bench helper added: `zephyr/flash-magtag.sh` folds the S2's manual sequence run.sh cannot
+automate (wait for ROM download mode → flash → prompt for RESET → open the PL2303 console,
+which is a *different* port from the native-USB flash port). `CLAIMS.md`'s #82 row extended
+with the migration outcome. Open: #80 (nRF `EDGE_BOTH` still unverified on hardware — the
+re-arm this rung now relies on exclusively runs there too), #81 (`timer_zephyr.c:71`).
 
 ## Known stale docs (do not treat as current)
 
