@@ -2111,6 +2111,29 @@ class Kernel usingPlatform: platform = () (
     public usingSpace: s seam: c = ( ^ self new setSpace: s seam: c )
   )
 
+  (* tuvm#88: the display seam's nsl half. The C leaves stay raw — nil for a board
+     with no display, an SMI status otherwise — and the RAISE lives here, the same
+     division Vector>>at: uses over basicAt: and the only one available since
+     build_and_raise is static to dispatch.c.
+     Three tags rather than one because the three conditions want different
+     responses: unavailable is the wrong board, bounds is a wrong literal, and
+     fault is the panel or its wiring. A node probing an unknown board can catch
+     #displayUnavailable alone and carry on headless. *)
+  class Display = ( | seam | ) (
+    public clear = ( ^ self check: (seam displayClear) )
+    public at: r col: c put: s = ( ^ self check: (seam displayAt: r col: c put: s) )
+    public refresh = ( ^ self check: (seam displayRefresh) )
+    public refreshRow: r = ( ^ self check: (seam displayRefreshRow: r) )
+    check: rc = (
+      rc == nil ifTrue: [ ^ self error: 'no display on this board' tag: #displayUnavailable ].
+      rc = 1 ifTrue: [ ^ self error: 'row or column outside the grid' tag: #displayBounds ].
+      rc = 2 ifTrue: [ ^ self error: 'display driver fault' tag: #displayFault ].
+      ^ self )
+    setSeam: c = ( seam:: c. ^ self )
+  ) : (
+    public usingSeam: c = ( ^ self new setSeam: c )
+  )
+
   (* Module-level validation/depth helpers (Milestone B Task 6) — NOT public:
      reachable only by sibling classes nested directly in this module, via
      their own `outer` link (slot 0), never by application code (an app
@@ -2477,5 +2500,10 @@ class Kernel usingPlatform: platform = () (
      unlike `timers` there is no shared nsl-side registry callers need to
      keep a single instance of. *)
   public gpio              = ( ^ GpioPulse usingSpace: self space seam: self )
+  (* tuvm#88: a fresh Display instance wired to this Kernel instance as seam,
+     same "always fresh, same underlying substrate" shape as `gpio` above —
+     C owns the grid state, so there is no shared nsl-side registry callers
+     need to keep a single instance of. *)
+  public display           = ( ^ Display usingSeam: self )
 ) : (
 )
