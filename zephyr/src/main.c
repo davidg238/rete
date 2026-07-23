@@ -248,8 +248,20 @@ static void display_bringup(void)
 	cfb_framebuffer_set_font(disp_dev, 0);
 	cfb_framebuffer_clear(disp_dev, true);
 
-	disp_rows   = cfb_get_display_parameter(disp_dev, CFB_DISPLAY_ROWS);
-	disp_cols   = cfb_get_display_parameter(disp_dev, CFB_DISPLAY_COLS);
+	/* Not CFB_DISPLAY_ROWS/COLS: those two are asymmetric for a panel that
+	 * does not set SCREEN_INFO_MONO_VTILED, and this one (uc81xx) doesn't —
+	 * it reports MONO_MSB_FIRST | EPD only. ROWS divides by ppt only in the
+	 * VTILED case, so on this panel it hands back the raw pixel height (296)
+	 * instead of the character-row count (37); COLS gets the right answer
+	 * here only by the mirror-image coincidence. CFB_DISPLAY_HEIGHT/WIDTH
+	 * are the raw pixel extents unconditionally, so dividing by the font
+	 * cell size is the only derivation that is right for both axes on both
+	 * kinds of panel. fw/fh come straight from a compiled-in font table
+	 * entry (FONT_ENTRY_DEFINE), which is never zero for a real font, and
+	 * cfb_get_font_size already sent us home on the error path above if
+	 * there was no font at all — so this division is safe. */
+	disp_rows   = cfb_get_display_parameter(disp_dev, CFB_DISPLAY_HEIGHT) / fh;
+	disp_cols   = cfb_get_display_parameter(disp_dev, CFB_DISPLAY_WIDTH) / fw;
 	disp_font_h = fh;
 	disp_ok     = true;
 	printk("DISPLAY OK rows=%d cols=%d font=%ux%u\n", disp_rows, disp_cols, fw, fh);
