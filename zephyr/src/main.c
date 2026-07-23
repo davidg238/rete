@@ -143,6 +143,68 @@ static void wifi_bringup(void) {
 }
 #endif /* CONFIG_WIFI */
 
+#if defined(CONFIG_PWM) && DT_NODE_EXISTS(DT_ALIAS(spkren))
+#include <zephyr/drivers/pwm.h>
+/* MagTag speaker SPIKE (tuvm#85 follow-on). A PWM square-wave chime on GPIO17 —
+   the PAM8302 amp's audio input, routed from LEDC channel 0 by the board
+   overlay's ledc0_default pinctrl group — un-muted by driving SPEAKER_ENABLE
+   (GPIO16) high. Square wave is buzzy but proves the whole path end to end; a
+   real bell tone wants the DAC (GPIO17 = DAC_1), a later rung. Compiled only
+   when CONFIG_PWM is set (the button/WiFi builds leave it off), so those images
+   are byte-for-byte unaffected. */
+static const struct device *const chime_pwm = DEVICE_DT_GET(DT_NODELABEL(ledc0));
+static const struct gpio_dt_spec chime_en   = GPIO_DT_SPEC_GET(DT_ALIAS(spkren), gpios);
+
+static void magtag_chime(void) {
+    if (!device_is_ready(chime_pwm) || !gpio_is_ready_dt(&chime_en)) {
+        printk("chime: pwm or enable pin not ready\n");
+        return;
+    }
+    gpio_pin_configure_dt(&chime_en, GPIO_OUTPUT_ACTIVE);   /* un-mute the amp */
+
+    /* THE AMP NEEDS TO SETTLE. Enabling SPEAKER_SHUTDOWN and driving PWM in the
+       same breath is silent — measured on the bench, and the reason three
+       earlier builds looked like a routing bug when nothing was wrong. Give the
+       PAM8302 a moment before the first edge. */
+    gpio_pin_configure_dt(&chime_en, GPIO_OUTPUT_ACTIVE);   /* un-mute, and hold */
+    k_msleep(50);
+
+    /* An ascending C-major triad. Every note is above the ~1 kHz LEDC floor
+       measured on this part (500 Hz -> -EINVAL, 1000 Hz -> ok): the esp32s2
+       LEDC counter is 14 bits (SOC_LEDC_TIMER_BIT_WIDTH) and the driver must fit
+       clock/freq inside it, so low notes are simply unrepresentable. A real bell
+       — decaying partials, low fundamental — therefore wants the DAC on this same
+       pin (GPIO17 = DAC_1/A0, which is what the vendor guide drives), not PWM. */
+    /* PRIME — cheap insurance, not a fix for an "always" bug. A COLD first
+       pwm_set can return -EINVAL when the driver's slow clock source is not yet
+       enabled: it falls back to the full 14-bit resolution, and the prescaler
+       ((clk<<8)/freq/2^res) then underflows the driver's 0x100 minimum. LOW
+       frequencies are the ones at risk — measured on the bench, first-call
+       500 Hz -> 250 and 1047 Hz -> 119 were both rejected, while a first-call
+       2000 Hz -> 500 passed. So spend the risky first call on a throwaway 2 kHz
+       rather than on the chime's opening note. */
+    uint32_t p_prime = 1000000000U / 2000U;
+    int rc_prime = pwm_set(chime_pwm, 0, p_prime, p_prime / 2U, 0);
+    printk("chime: prime rc=%d\n", rc_prime);
+
+    /* Notes are LONG and run back-to-back with no silence between them: the
+       buzzer is tiny, and 160 ms notes were inaudible on the bench while a 2 s
+       tone was loud. Stepping the pitch without stopping keeps it unmistakably
+       one rising chime rather than three easily-missed blips. */
+    static const uint32_t notes_hz[] = { 1319, 1568, 2093 };   /* E6, G6, C7 */
+    for (size_t i = 0; i < ARRAY_SIZE(notes_hz); i++) {
+        uint32_t period_ns = 1000000000U / notes_hz[i];
+        int rc = pwm_set(chime_pwm, 0, period_ns, period_ns / 2U, 0);
+        printk("chime: %u Hz rc=%d\n", notes_hz[i], rc);
+        k_msleep(500);
+    }
+    (void)pwm_set(chime_pwm, 0, p_prime, 0, 0);   /* pulse 0 = silence */
+
+    gpio_pin_configure_dt(&chime_en, GPIO_OUTPUT_INACTIVE);   /* re-mute the amp */
+    printk("chime: played\n");
+}
+#endif /* CONFIG_PWM && spkren */
+
 #ifdef CONFIG_TUVM_NET_HEARTBEAT
 /* #65 diagnostic — a census of the packet pools on its OWN thread.
    Two things make this the right next instrument after the net_mgmt handlers
@@ -554,6 +616,10 @@ int main(void) {
 
     wire_pulse_gpio();   /* Task 8 (DK): arm BUTTON1 as the pulse edge; no-op on native_sim */
     wire_gpio_outputs();   /* tuvm#82: configure declared outputs INACTIVE; no-op where none */
+
+#if defined(CONFIG_PWM) && DT_NODE_EXISTS(DT_ALIAS(spkren))
+    magtag_chime();   /* spike: prove the MagTag speaker path at boot */
+#endif
 
 #ifdef CONFIG_NET_L2_OPENTHREAD
     tuvm_thread_bringup();   /* shared OT bring-up seam (src/thread_bringup.c) */

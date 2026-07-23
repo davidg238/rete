@@ -97,6 +97,18 @@
 			gpios = <&gpio0 21 GPIO_ACTIVE_LOW>;
 			label = "MagTag NeoPixel power gate";
 		};
+
+		/* SPEAKER_ENABLE (GPIO16) — the shutdown pin of the onboard PAM8302
+		 * class-D amp. Drive HIGH to un-mute; LOW leaves the amp shut down (its
+		 * quiescent-draw default, like the NeoPixel gate). Modelled as gpio-leds
+		 * only to get a handle with no new binding — nothing lights. The audio
+		 * itself is a separate pin (SPEAKER = GPIO17, an LEDC/DAC output). RTC-
+		 * capable, so it can hold an amp state across deep sleep if ever wanted.
+		 */
+		speaker_enable: speaker_enable {
+			gpios = <&gpio0 16 GPIO_ACTIVE_HIGH>;
+			label = "MagTag speaker-enable (PAM8302 amp)";
+		};
 	};
 
 	aliases {
@@ -119,5 +131,37 @@
 		 * matches against each spec's own .pin. */
 		gpioout  = &red_led;
 		gpioout1 = &neopixel_power;
+
+		/* Speaker spike: the amp-enable GPIO for ../src/main.c's magtag_chime()
+		 * (guarded by CONFIG_PWM, so absent from the button/WiFi builds). */
+		spkren = &speaker_enable;
+	};
+};
+
+/* SPEAKER audio path (spike). GPIO17 is the amp's audio input — it is DAC_1 and
+ * also reachable from the LEDC (PWM) peripheral via the GPIO matrix. This spike
+ * uses LEDC channel 0 for a square-wave tone (buzzy but audible); a real bell
+ * tone wants the DAC (dac@3f408800, GPIO17 = DAC_1), a later rung. The pinmux
+ * macro LEDC_CH0_GPIO17 comes from esp32s2-pinctrl.h (already pulled in by the
+ * board's -pinctrl.dtsi). Inert unless CONFIG_PWM builds the LEDC driver, so the
+ * proven button/WiFi images are unaffected. */
+&pinctrl {
+	ledc0_default: ledc0_default {
+		group1 {
+			pinmux = <LEDC_CH0_GPIO17>;
+			output-enable;
+		};
+	};
+};
+
+&ledc0 {
+	pinctrl-0 = <&ledc0_default>;
+	pinctrl-names = "default";
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	channel0@0 {
+		reg = <0x0>;
+		timer = <0>;
 	};
 };
