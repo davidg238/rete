@@ -301,12 +301,32 @@ on the controller. CFB has no rotation either. Landscape therefore means softwar
 framebuffer — a second 4,736 B buffer plus a transpose blitter, on a `dram0` already at
 81.8%, and partly re-creating the blitter D3 dropped.
 
-So the character grid is **portrait: 16 columns × 37 rows**, and the gate photograph is taken
-with the board turned. This costs the rung nothing that it is actually trying to prove —
-orientation never touches the seam — but it does mean **node text is capped at 16 characters
-per line**, which the gate node must respect or it will raise `#displayBounds`. Landscape is
-a follow-up issue, properly owned by the ship's-bell clock rung, which is the first thing
-that genuinely needs it.
+So the character grid is **portrait: 16 columns × 37 rows**, and **node text is capped at 16
+characters per line** or it raises `#displayBounds`.
+
+**Portrait is the design target, not a concession** (David, 2026-07-23): screens and the
+clock face are to be designed for a 16 × 37 portrait grid. Landscape is therefore not a
+deferred goal — it is simply not wanted, which removes the whole question from the clock
+rung's path. `tuvm#89` remains open only as the record of *why* 90/270 is expensive and of
+the fact that a 2025 SSD1680 board would get it free.
+
+**180° IS available, and free.** Distinguish it sharply from 90/270: a 180° rotation is a
+double axis flip, which this controller does in hardware. `uc81xx.c:198-203` hardcoded
+
+```c
+uint8_t psr = UC81XX_PSR_KW_R | UC81XX_PSR_UD | UC81XX_PSR_SHL | UC81XX_PSR_SHD | UC81XX_PSR_RST;
+```
+
+where `UD` (bit 3) is gate scan direction and `SHL` (bit 2) is source shift direction
+(`uc81xx_regs.h:84-85`). Clearing both flips both axes — no framebuffer work, no second
+buffer, no blitter, one register write. This rung adds a `rotate-180` devicetree boolean to
+`ultrachip,uc81xx-common.yaml` to expose it, which is a further upstream-quality addition to
+the family (see D10).
+
+Its purpose is physical: it chooses **which end of the portrait panel the USB-C connector
+sits at**. Which of the two states puts it at the bottom is a fact about how the panel is
+mounted and cannot be determined from documentation — the knob ships **off**, and the bench
+flips it if the first paint comes out inverted. That is one extra build, not a redesign.
 
 Between `spi2` and the display node sits a `zephyr,mipi-dbi-spi` shim
 (`drivers/mipi_dbi/mipi_dbi_spi.c`) — `uc81xx` is a MIPI-DBI device, not a raw-SPI one
