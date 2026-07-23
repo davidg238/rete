@@ -152,6 +152,30 @@
 			output-enable;
 		};
 	};
+
+	/* tuvm#88 — the e-paper's SPI2/FSPI pins. Verified present at
+	 * zephyr/include/zephyr/dt-bindings/pinctrl/esp32s2-pinctrl.h:3608,3691,3778.
+	 * NOTE: esp32s2_saola-pinctrl.dtsi already declares its OWN spim2_default
+	 * (the Saola devboard's onboard default: GPIO13/12/10/11), referenced by
+	 * &spi2 in the base esp32s2_saola.dts. Reusing the same node name here is
+	 * deliberate — devicetree property assignment is whole-property-replace,
+	 * not merge, so this definition simply overrides the Saola's own default
+	 * pins with the MagTag's actual e-paper wiring for the same spi2
+	 * controller. Confirmed safe with a standalone dtc merge (no duplicate-
+	 * label error; the later group1/group2 properties fully replace the
+	 * earlier ones) before relying on it here.
+	 */
+	spim2_default: spim2_default {
+		group1 {
+			pinmux = <SPIM2_MISO_GPIO37>;
+			input-enable;
+		};
+		group2 {
+			pinmux = <SPIM2_SCLK_GPIO36>,
+				 <SPIM2_MOSI_GPIO35>;
+			output-enable;
+		};
+	};
 };
 
 &ledc0 {
@@ -163,5 +187,64 @@
 	channel0@0 {
 		reg = <0x0>;
 		timer = <0>;
+	};
+};
+
+/* tuvm#88 — the e-paper panel. Pins read off the vendor pinout diagram
+ * (zephyr/boards/magtag/magtag-overview.png, DISPLAY block):
+ *   EPD_BUSY 5  EPD_RESET 6  EPD_DC 7  EPD_CS 8   (all gpio0, RTC-capable)
+ *   EPD_MOSI 35 EPD_SCK 36   EPD_MISO 37          (FSPI -> spi2, so gpio1)
+ *
+ * CS IS A PLAIN GPIO, NOT FSPICS0 (which is GPIO10 and goes to the D10 pad).
+ * It is therefore driven by the SPI driver's cs-gpios, not by pinctrl.
+ *
+ * BUSY IS DECLARED ACTIVE_LOW because that is what the silicon does and what
+ * ultrachip,uc81xx-common.yaml:20 requires ("The BUSY pin of UC81xx is active
+ * low. If connected directly the MCU pin should be configured as active low").
+ * uc81xx_busy_wait then spins while the LOGICAL level is 1. Note Adafruit's own
+ * examples pass EPD_BUSY -1 and never read it (adafruit-magtag.pdf:5123) — the
+ * pin is genuinely wired, they simply rely on fixed delays instead.
+ *
+ * THE PANEL IS 128 WIDE x 296 TALL AND STAYS THAT WAY. Neither
+ * ultrachip,uc81xx-common.yaml nor uc81xx.c has any notion of rotation (unlike
+ * solomon,ssd16xx-common.yaml, which does) — an undeclared `rotation` property
+ * is a hard edtlib error, not a warning. So the character grid is PORTRAIT,
+ * 16 cols x 37 rows, and the gate photo is taken with the board turned. See
+ * the follow-up issue for landscape.
+ */
+&spi2 {
+	status = "okay";
+	pinctrl-0 = <&spim2_default>;
+	pinctrl-names = "default";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	cs-gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
+};
+
+/ {
+	mipi_dbi_epd: mipi-dbi-epd {
+		compatible = "zephyr,mipi-dbi-spi";
+		spi-dev = <&spi2>;
+		dc-gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio0 6 GPIO_ACTIVE_LOW>;
+		write-only;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		epd: il0373@0 {
+			compatible = "ultrachip,il0373";
+			reg = <0>;
+			mipi-max-frequency = <4000000>;
+			width = <128>;
+			height = <296>;
+			busy-gpios = <&gpio0 5 GPIO_ACTIVE_LOW>;
+
+			full { };
+			partial { };
+		};
+	};
+
+	chosen {
+		zephyr,display = &epd;
 	};
 };

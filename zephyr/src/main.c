@@ -205,6 +205,41 @@ static void magtag_chime(void) {
 }
 #endif /* CONFIG_PWM && spkren */
 
+#if DT_HAS_CHOSEN(zephyr_display)
+#include <zephyr/drivers/display.h>
+#include <string.h>   /* memset — not pulled in unconditionally elsewhere in this TU */
+
+/* tuvm#88 bring-up smoke. Raw display API on purpose: if this paints, the
+ * IL0373 quirks, the MIPI-DBI wiring and BUSY are all good, and anything that
+ * fails later is CFB's or the seam's. Per Risk 2, a panel that never asserts
+ * BUSY means the init never landed — check that before doubting pixels. */
+static void display_smoke(void)
+{
+	const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
+	struct display_capabilities caps;
+	static uint8_t band[128];        /* 8 rows x (128/8) bytes, all black */
+	struct display_buffer_descriptor desc;
+	int rc;
+
+	if (!device_is_ready(dev)) {
+		printk("DISPLAY not ready\n");
+		return;
+	}
+	display_get_capabilities(dev, &caps);
+	printk("DISPLAY ready %ux%u\n", caps.x_resolution, caps.y_resolution);
+
+	memset(band, 0x00, sizeof band);   /* MONO10: 0 bits are black */
+	desc.buf_size = sizeof band;
+	desc.width    = 128;
+	desc.height   = 8;
+	desc.pitch    = 128;
+
+	rc = display_write(dev, 0, 0, &desc, band);
+	printk("DISPLAY smoke rc=%d\n", rc);
+	display_blanking_off(dev);
+}
+#endif
+
 #ifdef CONFIG_TUVM_NET_HEARTBEAT
 /* #65 diagnostic — a census of the packet pools on its OWN thread.
    Two things make this the right next instrument after the net_mgmt handlers
@@ -619,6 +654,10 @@ int main(void) {
 
 #if defined(CONFIG_PWM) && DT_NODE_EXISTS(DT_ALIAS(spkren))
     magtag_chime();   /* spike: prove the MagTag speaker path at boot */
+#endif
+
+#if DT_HAS_CHOSEN(zephyr_display)
+    display_smoke();   /* tuvm#88: prove the e-paper panel paints at boot */
 #endif
 
 #ifdef CONFIG_NET_L2_OPENTHREAD
