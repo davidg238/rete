@@ -2321,6 +2321,12 @@ class Kernel usingPlatform: platform = () (
      forwarder in this family. *)
   public gpioPin: n edge: e post: m on: path = ( ^ platform gpioPin: n edge: e post: m on: path )
   public gpioFire: n = ( ^ platform gpioFire: n )
+  (* tuvm#82: the OUTBOUND half of the gpio seam. Thin forwarders, same shape as
+     gpioPin:/gpioFire: above. Both answer nil for a pin the board never declared —
+     the GpioPulse wrapper is what turns that nil into a tagged raise, so these stay
+     raw and a test can observe the nil directly. *)
+  public gpioSet: n to: aBool = ( ^ platform gpioSet: n to: aBool )
+  public gpioLevel: n = ( ^ platform gpioLevel: n )
   public pumpEvents = ( ^ platform pumpEvents )
   (* webserver-channel-device spike, Task 3: the http driver's platform prims.
      Same thin-forwarder shape as the gpio/timer families above — the C-side
