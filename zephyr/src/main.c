@@ -242,6 +242,57 @@ static void magtag_chime(void) {
 #if DT_HAS_CHOSEN(zephyr_display)
 static const struct device *disp_dev;
 static int disp_rows, disp_cols, disp_font_h;
+
+/* tuvm#88 gate-2 finding: CFB's character drawing ORs, it does not overwrite.
+ *
+ * draw_char_htmono (cfb.c:262) only ever sets bits — `fb->buf[i] |= BIT(...)`
+ * — and never clears the glyph cell first. Its `draw_bg` parameter is accepted
+ * and then ignored entirely; only the VTILED path honours it (cfb.c:196), and
+ * this panel is not VTILED (uc81xx reports MONO_MSB_FIRST | EPD). Worse,
+ * draw_text passes `wrap` INTO that draw_bg slot (cfb.c:356-359), so under
+ * cfb_print the argument is false regardless.
+ *
+ * Consequence: printing '1' where '0' already stands leaves the union of both
+ * glyphs. Observed on the bench as a counter rendering 0,1,2,3 stacked in one
+ * cell — the framebuffer, in RAM, before any panel command; a driver-side
+ * theory about stale controller banks was tested and correctly refuted.
+ *
+ * The host seam does not have this problem: platform.c keeps a char grid and
+ * display_target_put REPLACES characters in it. So the divergence was between
+ * the two seams, and a host-green test could never have caught it. The fix
+ * removes the divergence rather than papering over it — the device keeps the
+ * same shadow grid, and CFB is demoted to a pure renderer that always draws
+ * onto a freshly cleared framebuffer. Public CFB API only, no patch to a
+ * shared subsystem.
+ *
+ * CFB's OR-only htmono drawing is worth reporting upstream on its own (it is
+ * why every caller must own a shadow), but that is a separate contribution
+ * from this rung's cfb_framebuffer_finalize_area.
+ */
+static char disp_grid[OEVM_DISPLAY_ROWS][OEVM_DISPLAY_COLS];
+
+static void disp_grid_reset(void)
+{
+	memset(disp_grid, ' ', sizeof disp_grid);
+}
+
+static int disp_render(void)
+{
+	char line[OEVM_DISPLAY_COLS + 1];
+	uint8_t fw, fh;
+
+	if (cfb_get_font_size(disp_dev, 0, &fw, &fh)) return 2;
+	if (cfb_framebuffer_clear(disp_dev, false)) return 2;
+
+	for (int r = 0; r < OEVM_DISPLAY_ROWS; r++) {
+		/* cfb_print takes a NUL-terminated C string and PIXEL
+		 * coordinates; the shadow row is counted, so it is copied. */
+		memcpy(line, disp_grid[r], OEVM_DISPLAY_COLS);
+		line[OEVM_DISPLAY_COLS] = '\0';
+		if (cfb_print(disp_dev, line, 0, r * fh)) return 2;
+	}
+	return 0;
+}
 #endif
 static bool disp_ok;
 
@@ -264,6 +315,32 @@ static void display_bringup(void)
 		return;
 	}
 	cfb_framebuffer_set_font(disp_dev, 0);
+
+	/* tuvm#88 gate-1 finding: without this the panel paints WHITE ON BLACK.
+	 *
+	 * uc81xx advertises PIXEL_FORMAT_MONO10 ("1 = Black", display.h:45) at
+	 * uc81xx.c:478-479, but its controller RAM convention is the opposite —
+	 * uc81xx_controller_init clears BOTH RAM banks to 0xff to reach a WHITE
+	 * panel (uc81xx.c:537), which is only coherent if 1 = White. CFB inverts
+	 * only when `(pixel_format == MONO10) == inverted` (cfb.c:578, and the
+	 * same rule in the cfb_framebuffer_finalize_area this rung added), so
+	 * with MONO10 and inverted == false it writes the buffer through
+	 * untouched: CFB's glyph bits (1) land as white and the cleared field
+	 * (0) as black. Flipping the flag restores black-on-white for both the
+	 * full and the partial path.
+	 *
+	 * cfb_framebuffer_invert only toggles a flag — no I/O — so it is safe
+	 * and necessary BEFORE the clear below, which would otherwise push a
+	 * black field to the panel.
+	 *
+	 * The driver's MONO10 declaration looks wrong for the whole uc81xx
+	 * family rather than just the IL0373, which would make it a fourth
+	 * candidate upstream contribution — but one panel is not evidence about
+	 * uc8175/uc8176, so this rung compensates locally and records the
+	 * question instead of changing a shared driver's capabilities.
+	 */
+	cfb_framebuffer_invert(disp_dev);
+	disp_grid_reset();
 	cfb_framebuffer_clear(disp_dev, true);
 
 	/* Not CFB_DISPLAY_ROWS/COLS: those two are asymmetric for a panel that
@@ -326,7 +403,8 @@ int display_target_available(void)
 int display_target_clear(void)
 {
 #if DT_HAS_CHOSEN(zephyr_display)
-	return cfb_framebuffer_clear(disp_dev, false) ? 2 : 0;
+	disp_grid_reset();
+	return 0;
 #else
 	return 2;   /* unreachable in practice: available() already gated this */
 #endif
@@ -335,20 +413,14 @@ int display_target_clear(void)
 int display_target_put(int row, int col, const char *s, int n)
 {
 #if DT_HAS_CHOSEN(zephyr_display)
-	char buf[64];
-	uint8_t fw, fh;
-
 	if (row < 0 || row >= disp_rows) return 1;
 	if (col < 0 || n < 0 || col + n > disp_cols) return 1;
-	if (n >= (int)sizeof buf) return 1;
 
-	/* cfb_print takes a NUL-terminated C string and PIXEL coordinates; an nsl
-	 * String is counted and not terminated, so it is copied rather than cast. */
-	memcpy(buf, s, n);
-	buf[n] = '\0';
-
-	if (cfb_get_font_size(disp_dev, 0, &fw, &fh)) return 2;
-	return cfb_print(disp_dev, buf, col * fw, row * fh) ? 2 : 0;
+	/* Mutate the shadow only — exactly what the host's display_target_put
+	 * does (platform.c). Rendering happens at refresh, so the two seams
+	 * agree on WHEN the grid becomes pixels as well as on what it holds. */
+	memcpy(&disp_grid[row][col], s, (size_t)n);
+	return 0;
 #else
 	ARG_UNUSED(row); ARG_UNUSED(col); ARG_UNUSED(s); ARG_UNUSED(n);
 	return 2;   /* unreachable in practice: available() already gated this */
@@ -358,6 +430,9 @@ int display_target_put(int row, int col, const char *s, int n)
 int display_target_refresh(void)
 {
 #if DT_HAS_CHOSEN(zephyr_display)
+	int err = disp_render();
+
+	if (err) return err;
 	return cfb_framebuffer_finalize(disp_dev) ? 2 : 0;
 #else
 	return 2;   /* unreachable in practice: available() already gated this */
@@ -368,8 +443,15 @@ int display_target_refresh_row(int row)
 {
 #if DT_HAS_CHOSEN(zephyr_display)
 	int width = cfb_get_display_parameter(disp_dev, CFB_DISPLAY_WIDTH);
+	int err;
 
 	if (row < 0 || row >= disp_rows) return 1;
+
+	/* Re-render the WHOLE framebuffer, then push only this row's band. The
+	 * other rows render to identical bytes (same shadow), so the bounded
+	 * write is unaffected — this costs RAM work, not panel time. */
+	err = disp_render();
+	if (err) return err;
 
 	/* Full-width band on a character-row boundary — the only shape
 	 * cfb_framebuffer_finalize_area supports, and the only one this seam needs. */
