@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nsl-tuvm — optimize the right thing</title>
+<style>
+  :root {
+    --page:        #f9f9f7;
+    --surface:     #fcfcfb;
+    --ink:         #0b0b0b;
+    --ink-2:       #52514e;
+    --muted:       #898781;
+    --grid:        #e1e0d9;
+    --baseline:    #c3c2b7;
+    --ring:        rgba(11,11,11,0.10);
+    --accent:      #2a78d6;
+    --s1: #2a78d6;  /* vm work        */
+    --s2: #1baf7a;  /* sensor / i2c   */
+    --s3: #eda100;  /* provisional    */
+    --s4: #008300;  /* measured       */
+    --s5: #4a3aa7;  /* network        */
+    --bad: #d03b3b;
+    --good-ink: #006300;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page:        #0d0d0d;
+      --surface:     #1a1a19;
+      --ink:         #ffffff;
+      --ink-2:       #c3c2b7;
+      --muted:       #898781;
+      --grid:        #2c2c2a;
+      --baseline:    #383835;
+      --ring:        rgba(255,255,255,0.10);
+      --accent:      #3987e5;
+      --s1: #3987e5; --s2: #199e70; --s3: #c98500; --s4: #008300; --s5: #9085e9;
+      --bad: #e66767;
+      --good-ink: #0ca30c;
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page); color: var(--ink);
+    overflow: hidden;
+  }
+  .deck { height: 100vh; display: flex; flex-direction: column; }
+  .slide {
+    display: none; flex: 1; min-height: 0;
+    padding: 4.5vh 8vw 3vh;
+    flex-direction: column; justify-content: center;
+    max-width: 1100px; margin: 0 auto; width: 100%;
+    overflow-y: auto;
+  }
+  .slide.active { display: flex; }
+  .kicker {
+    font-size: 0.85rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin-bottom: 0.9rem;
+  }
+  h1 { font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.08; letter-spacing: -0.02em; }
+  h2 { font-size: clamp(1.4rem, 3.2vw, 2.1rem); line-height: 1.15; letter-spacing: -0.015em; margin-bottom: 1.2rem; }
+  .sub { font-size: clamp(1rem, 1.9vw, 1.25rem); color: var(--ink-2); margin-top: 1.1rem; max-width: 42em; line-height: 1.5; }
+  p, li { font-size: clamp(0.92rem, 1.6vw, 1.08rem); line-height: 1.55; color: var(--ink-2); }
+  strong { color: var(--ink); }
+  ul.points { list-style: none; }
+  ul.points li { padding-left: 1.4em; position: relative; margin-bottom: 0.7em; max-width: 46em; }
+  ul.points li::before { content: "▪"; position: absolute; left: 0.1em; color: var(--accent); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2.2rem; align-items: start; }
+  .footer {
+    flex: none; display: flex; align-items: center; justify-content: space-between;
+    padding: 0.6rem 1.4rem; color: var(--muted); font-size: 0.8rem;
+    border-top: 1px solid var(--grid);
+  }
+  .footer .nav button, .footer .home button {
+    background: none; border: 1px solid var(--grid); color: var(--ink-2);
+    border-radius: 6px; padding: 0.25rem 0.7rem; font-size: 0.85rem; cursor: pointer; margin-left: 0.4rem;
+  }
+  .footer .nav button:hover, .footer .home button:hover { border-color: var(--accent); color: var(--accent); }
+  .footer .aud { text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.72rem; color: var(--accent); font-weight: 650; }
+
+  table.cmp { border-collapse: collapse; width: 100%; font-size: clamp(0.76rem, 1.4vw, 0.95rem); }
+  table.cmp th, table.cmp td { padding: 0.42em 0.7em; text-align: left; border-bottom: 1px solid var(--grid); color: var(--ink-2); }
+  table.cmp th { color: var(--muted); font-weight: 600; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.06em; }
+  table.cmp td.n, table.cmp th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  table.cmp td.us { color: var(--ink); font-weight: 650; background: color-mix(in srgb, var(--accent) 7%, transparent); }
+  table.cmp td.name { color: var(--ink); font-weight: 600; white-space: nowrap; }
+  table.cmp tr.hurt td { background: color-mix(in srgb, var(--bad) 9%, transparent); }
+  table.cmp tr.prov td.name::after { content: "prov."; margin-left: 0.5em; font-size: 0.72em; font-weight: 600; color: var(--s3); letter-spacing: 0.06em; text-transform: uppercase; }
+  table.cmp tr.sub td:first-child { padding-left: 2.2em; color: var(--muted); }
+  table.cmp caption { caption-side: bottom; text-align: left; padding-top: 0.9em; font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+  /* the 14-row STIC table is the one slide that will not fit a 720px-tall projector */
+  .slide.dense { padding-top: 3vh; padding-bottom: 2vh; }
+  .slide.dense h2 { margin-bottom: 0.7rem; }
+  table.cmp.dense th, table.cmp.dense td { padding: 0.26em 0.7em; }
+  table.cmp.dense caption { padding-top: 0.7em; font-size: 0.75rem; }
+
+  .badge {
+    display: inline-block; vertical-align: 0.08em; margin-left: 0.4em;
+    font-size: 0.68em; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+    padding: 0.16em 0.5em; border-radius: 5px; white-space: nowrap;
+  }
+  .badge.tbd  { background: var(--bad); color: #fff; }
+  .badge.prov { background: color-mix(in srgb, var(--s3) 22%, transparent); color: var(--s3); border: 1px solid var(--s3); }
+  .badge.rec  { background: color-mix(in srgb, var(--s3) 15%, transparent); color: var(--s3); }
+  .badge.der  { background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--muted); }
+  .badge.ind  { background: color-mix(in srgb, var(--s5) 18%, transparent); color: var(--s5); }
+  .fig { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 650; border-bottom: 1px dotted var(--baseline); cursor: help; }
+  .fig.miss { color: var(--bad); border-bottom: none; }
+
+  .tbdcard {
+    border: 2px solid var(--bad); border-radius: 12px; padding: 1.2rem 1.4rem;
+    background: color-mix(in srgb, var(--bad) 8%, transparent); max-width: 44em;
+  }
+  .tbdcard .t { font-weight: 750; color: var(--bad); text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.82rem; margin-bottom: 0.5rem; }
+  .tbdcard .d { color: var(--ink); font-size: 1rem; }
+
+  .card { border: 1px solid var(--ring); border-radius: 10px; padding: 0.9rem 1.1rem; background: var(--surface); margin-bottom: 0.8rem; }
+  .card .t { font-weight: 650; color: var(--ink); margin-bottom: 0.25rem; }
+  .card .d { font-size: 0.95em; }
+  .card.bad  { border-left: 4px solid var(--bad); }
+  .card.good { border-left: 4px solid var(--good-ink); }
+  .card.warn { border-left: 4px solid var(--s3); }
+  .card.acc  { border-left: 4px solid var(--accent); }
+
+  .big { font-size: clamp(1.15rem, 2.4vw, 1.6rem); line-height: 1.35; color: var(--ink); max-width: 34em; font-weight: 500; }
+  .big em { color: var(--accent); font-style: normal; }
+  code { font-family: ui-monospace, "Cascadia Code", Menlo, monospace; font-size: 0.92em; background: color-mix(in srgb, var(--ink) 7%, transparent); padding: 0.08em 0.35em; border-radius: 4px; }
+  .note { margin-top: 1rem; font-size: 0.85rem; color: var(--muted); max-width: 48em; line-height: 1.55; }
+  .note strong { color: var(--ink-2); }
+  .asterisk { margin-top: 0.9rem; font-size: 0.82rem; color: var(--s3); max-width: 48em; line-height: 1.5; border-left: 3px solid var(--s3); padding-left: 0.8em; }
+
+  /* ---- proportional bar (act I) ---- */
+  .bar { display: flex; height: 46px; gap: 2px; margin-top: 0.4rem; }
+  .bar .seg { position: relative; border-radius: 3px; display: flex; align-items: center; justify-content: center;
+              font-size: 0.74rem; font-weight: 650; color: #fff; overflow: hidden; white-space: nowrap; }
+  .barlegend { display: flex; flex-wrap: wrap; gap: 0.35rem 1.5rem; margin-top: 0.9rem; }
+  .barlegend .item { display: flex; align-items: center; gap: 0.45rem; font-size: 0.84rem; }
+  .barlegend .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .barlegend .nm { color: var(--ink-2); }
+  .barlegend .vv { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
+
+  /* ---- chooser ---- */
+  .picks { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; max-width: 52em; margin-top: 1.6rem; }
+  .pick { text-align: left; border: 1px solid var(--ring); border-radius: 12px; background: var(--surface);
+          padding: 1.1rem 1.3rem; cursor: pointer; font: inherit; }
+  .pick:hover { border-color: var(--accent); }
+  .pick .pt { font-weight: 700; color: var(--ink); font-size: 1.05rem; margin-bottom: 0.25rem; }
+  .pick .pd { color: var(--ink-2); font-size: 0.9rem; line-height: 1.45; }
+  .pick .pn { color: var(--muted); font-size: 0.78rem; margin-top: 0.5rem; letter-spacing: 0.06em; text-transform: uppercase; }
+
+  /* ---- witness appendix ---- */
+  .audit { font-size: 0.78rem; border-collapse: collapse; width: 100%; }
+  .audit th, .audit td { border-bottom: 1px solid var(--grid); padding: 0.3em 0.6em; text-align: left; vertical-align: top; color: var(--ink-2); }
+  .audit td.k { font-family: ui-monospace, Menlo, monospace; color: var(--ink); white-space: nowrap; }
+  .audit td.v { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .audit td.s { color: var(--muted); }
+  .scroll { overflow-y: auto; max-height: 62vh; }
+</style>
+</head>
+<body>
+<div class="deck">
+
+<!-- ═══════════ chooser — belongs to no playlist ═══════════ -->
+<section class="slide" id="chooser">
+  <div class="kicker">nsl-tuvm · performance · 2026-07</div>
+  <h1>Optimize the right thing.</h1>
+  <p class="sub">Four decks over one set of facts. The <strong>record</strong> deck is the
+  source — the data is assembled, checked and captioned once. The other three are
+  <em>orderings</em> over it. None of them adds a claim the record deck does not carry.</p>
+  <div class="picks">
+    <button class="pick" data-go="record">
+      <div class="pt">Record</div>
+      <div class="pd">The superset. Every caveat, every method note, the wrap-defect story in full.</div>
+      <div class="pn" data-count="record"></div>
+    </button>
+    <button class="pick" data-go="peer">
+      <div class="pt">Technical peers</div>
+      <div class="pd">Leads with the trade, expects the numbers to be checked, keeps the mechanism detail.</div>
+      <div class="pn" data-count="peer"></div>
+    </button>
+    <button class="pick" data-go="investor">
+      <div class="pt">Investors</div>
+      <div class="pd">We can optimize later, cheaply, without a rewrite — and here is the proof.</div>
+      <div class="pn" data-count="investor"></div>
+    </button>
+    <button class="pick" data-go="talk">
+      <div class="pt">Conference talk</div>
+      <div class="pd">Opens cold on the 50-minute build — the slide nobody has seen — then earns the rest.</div>
+      <div class="pn" data-count="talk"></div>
+    </button>
+  </div>
+  <p class="note">Deep-link with <code>#peer/7</code> — audience and slide. Hover any
+  underlined figure for its witness; the last slide lists every figure in the deck with its
+  source. <span class="badge tbd">tbd</span> <span class="badge prov">provisional</span>
+  <span class="badge rec">recalled</span> <span class="badge der">derived</span>
+  <span class="badge ind">indicative</span> are first-class here: an unmeasured claim
+  cannot quietly look measured.</p>
+</section>
+
+<!-- ═══════════ preamble ═══════════ -->
+
+<section class="slide" id="title">
+  <div class="kicker">nsl-tuvm · performance · 2026-07</div>
+  <h1>Optimize the right thing.</h1>
+  <p class="sub">Microbenchmarks say one thing. A real workload on real hardware says
+  another. And the axes that actually decide whether a product ships — build time,
+  observability, deployability, failure legibility — are mostly unbenchmarked by anyone.</p>
+  <p class="note">Companion to <em>“Script Zephyr. Don't replace it.”</em> That deck makes
+  the architecture argument. This one answers the question it provokes and does not
+  settle.</p>
+</section>
+
+<section class="slide" id="product">
+  <div class="kicker">What we're building</div>
+  <h2>A product that measures and controls values in the physical world</h2>
+  <ul class="points">
+    <li>Sensors and actuators, wired to real things — a thermal array, a valve, a doorbell, a display</li>
+    <li>Battery or mains, deployed in the field, expected to run <strong>for years</strong></li>
+    <li>A <strong>fleet</strong> — you do not get to visit it, and you do not get to reflash it by hand</li>
+    <li>Built by a small team who must also ship the product the device is part of</li>
+  </ul>
+  <p class="note">Every performance question below is downstream of this. A number that
+  does not change whether this ships is a number worth reporting honestly and then not
+  optimizing.</p>
+</section>
+
+<section class="slide" id="roadblocks">
+  <div class="kicker">The obstacle course</div>
+  <h2>What stops you shipping one</h2>
+  <div class="cols">
+    <div>
+      <div class="card"><div class="t">Chips</div><div class="d">choose one, source it, bring it up, live with it for a decade</div></div>
+      <div class="card"><div class="t">Drivers</div><div class="d">every sensor, every bus, every part — written and then <em>maintained</em></div></div>
+      <div class="card"><div class="t">Software</div><div class="d">the application logic, written safely enough to run unattended</div></div>
+    </div>
+    <div>
+      <div class="card"><div class="t">Deployment</div><div class="d">getting the first version out, and the fiftieth</div></div>
+      <div class="card"><div class="t">Maintenance</div><div class="d">diagnosing and fixing a fault in a device you cannot reach</div></div>
+      <div class="card acc"><div class="t">Only one of these is a language problem</div><div class="d">and it is not the one benchmarks measure</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="slide" id="zephyr">
+  <div class="kicker">Bridge from deck 1</div>
+  <h2>Zephyr removes one roadblock outright</h2>
+  <ul class="points">
+    <li>The <strong>widest choice of parts</strong> of any embedded OS — every Cortex-M, RISC-V, Xtensa class we care about</li>
+    <li><strong>Hundreds of maintained drivers</strong> behind uniform APIs, described by devicetree</li>
+    <li>OpenThread, power management, networking, filesystems — already there, already tested</li>
+  </ul>
+  <p class="big" style="margin-top:1.2rem">Reuse a Zephyr display driver.<br><em>Don't write one.</em></p>
+  <p class="note">That is deck 1's whole argument: put a tiny OO layer <em>on top of</em>
+  Zephyr rather than replacing it. The language is the coordinator; C is the datapath.</p>
+</section>
+
+<section class="slide" id="software-left">
+  <div class="kicker">What's left</div>
+  <h2>Software is the roadblock that remains</h2>
+  <p class="big">What is the fastest, safest way to <em>write</em>, <em>deploy</em> and
+  <em>maintain</em> the application that sits on top?</p>
+  <p class="note" style="margin-top:1.4rem">That question has a performance component. It
+  is not the whole question, and it is not usually the deciding one — but it is the one
+  everybody asks first, so this deck answers it first.</p>
+</section>
+
+<section class="slide" id="two-questions">
+  <div class="kicker">The two questions</div>
+  <h2>Is it fast enough? — and fast enough <em>for an agent</em>?</h2>
+  <div class="cols">
+    <div>
+      <div class="card acc">
+        <div class="t">Question 1 — is it fast enough?</div>
+        <div class="d">Almost everyone asks this, and almost everyone answers it with a
+        microbenchmark. Acts I–III answer it with a device instead, and say plainly where
+        we are slow.</div>
+      </div>
+    </div>
+    <div>
+      <div class="card acc">
+        <div class="t">Question 2 — fast enough for an agent?</div>
+        <div class="d">Almost nobody asks this. An agent's scarcest resource is not MIPS,
+        it is <strong>context</strong> — and slow loops, flaky tests and silent failures
+        are what burn it. Acts IV–V answer this one.</div>
+      </div>
+    </div>
+  </div>
+  <p class="note">The deck closes where it opens: these two questions, answered as far as
+  the evidence goes, with the gaps named rather than papered over.</p>
+</section>
+
+<!-- ═══════════ Act I — reality first ═══════════ -->
+
+<section class="slide" id="real-node">
+  <div class="kicker">Act I · reality first</div>
+  <h2>A real node, a real job</h2>
+  <div class="cols">
+    <div>
+      <p style="margin-bottom:0.7em"><strong><code>ThermalHttpNode</code></strong> on an
+      ESP32-WROOM-32, running two job shapes at once:</p>
+      <div class="card acc">
+        <div class="t">timer → thermal → cell</div>
+        <div class="d">2 Hz. Fetch 64 pixels from an AMG8833 Grid-EYE over I2C via
+        Zephyr's <code>sensor</code> API, copy them into an immutable value, publish onto a
+        channel cell.</div>
+      </div>
+      <div class="card acc">
+        <div class="t">request → format → response</div>
+        <div class="d">An HTTP page rendered from the latest frame and served by the node
+        itself — chunked, over WiFi.</div>
+      </div>
+    </div>
+    <div>
+      <p style="margin-bottom:0.7em"><strong>Seven spans, instrumented on the device</strong>,
+      published on the node's own <code>/stats</code> page. No host attached, no profiler,
+      no JTAG.</p>
+      <ul class="points">
+        <li>Every span past an <strong>n ≥ 200</strong> gate before it is quoted</li>
+        <li>Min / max / mean / p50 / p95, kept on the device in fixed slots</li>
+        <li>Cost: <span class="fig" data-fig="span_dram_b"></span> of DRAM for the whole facility</li>
+      </ul>
+      <p class="note">Reality precedes the microbenchmarks deliberately. It makes “the
+      right thing” the frame <em>before</em> any comparative number appears.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" id="device-table">
+  <div class="kicker">Act I · the measurement</div>
+  <h2 data-aud="record peer talk">Where the time actually goes</h2>
+  <h2 data-aud="investor">We measured it on the device, not on a laptop</h2>
+  <div id="spantable"></div>
+  <p class="asterisk"><strong>Paced-run asterisk — mandatory wherever these HTTP figures
+  appear.</strong> They come from a run paced below the node's connection ceiling, because
+  at the time the node could not survive an unpaced burst (#65). And the rows marked
+  <em>prov.</em> were taken on a build whose RX packet slab was itself the bottleneck —
+  root-caused and fixed on 2026-07-22, but <strong>not yet re-taken</strong>. Quote the
+  thermal half; treat the network half as a placeholder.</p>
+</section>
+
+<section class="slide" id="thermal-witness">
+  <div class="kicker">Act I · a second, independent witness</div>
+  <h2>Measured again, a day later, through a different path</h2>
+  <div id="thermaltable"></div>
+  <div class="cols" style="margin-top:1.1rem">
+    <div>
+      <p><strong>Why this matters more than the numbers.</strong> The first table was read
+      off the node's own web page and transcribed. This one was captured over UDP/CBOR into
+      a store and <em>rendered</em> — the figure and its witness are the same artifact.
+      Re-runnable, not re-typed.</p>
+    </div>
+    <div>
+      <ul class="points">
+        <li><code>jobThermal</code> <strong>encloses</strong> the other three — it is not
+        their sum. Adding all four double-counts; the outer span is
+        <span class="fig" data-fig="span_overhead_us"></span> of enclosing overhead.</li>
+        <li><code>publish</code> is an nsl <code>put:</code> that drops into a C prim, so
+        <em>VM-side work</em> is the honest label for the ~10.7 ms, not <em>nsl</em>.</li>
+      </ul>
+    </div>
+  </div>
+  <p class="note" data-aud="record peer"><strong>The sensor fetch costs more than
+  everything the VM does after it.</strong> Same shape as the HTTP argument, reached
+  through I/O instead — which makes it a genuinely separate witness rather than a
+  restatement.</p>
+</section>
+
+<section class="slide" id="client-view">
+  <div class="kicker">Act I · what the user feels</div>
+  <h2 data-aud="record peer talk">The client's view — and where the VM sits inside it</h2>
+  <h2 data-aud="investor">The VM is 8% of what the user feels</h2>
+  <div id="clientbar"></div>
+  <p class="note" style="margin-top:1.2rem"><strong>Client RTT p50
+  <span class="fig" data-fig="client_p50_us"></span></strong>, of which
+  <span class="fig" data-fig="network_us"></span> —
+  <span class="fig" data-fig="network_share_pc"></span> — never touches the node at all.
+  The node's own service time is <span class="fig" data-fig="node_service_us"></span>, and
+  the VM's share of the whole path is <span class="fig" data-fig="vm_share_pc"></span>.</p>
+  <p class="asterisk">Every figure on this slide is <strong>provisional</strong> and
+  <strong>derived</strong> — subtractions, not measurements, taken on the pre-#65-fix
+  build. The <em>shape</em> of the argument survives a re-take (the VM half never touched
+  the network path); the digits will move. They are re-taken before they go in front of
+  anyone.</p>
+</section>
+
+<section class="slide" id="accounting">
+  <div class="kicker">Act I · and we can see all of it</div>
+  <h2>The segments account for <span class="fig" data-fig="accounting_pc"></span> of their parent</h2>
+  <p class="big"><code>acquire</code> + <code>vmCompute</code> + <code>publish</code> =
+  <span class="fig" data-fig="segments_sum_us"></span> against <code>jobThermal</code>'s
+  <span class="fig" data-fig="jobThermal_mean_us"></span>.</p>
+  <ul class="points" style="margin-top:1.2rem">
+    <li>The gap is <span class="fig" data-fig="accounting_gap_us"></span> across four
+    begin/end pairs — <strong><span class="fig" data-fig="bracket_cost_us"></span> per
+    bracket</strong>, including the nsl send</li>
+    <li>Spans are effectively <strong>free at this granularity</strong>, which is the
+    precondition for the whole approach — you can afford to instrument the thing you
+    actually ship</li>
+    <li data-aud="record peer">A collect-when-full GC ran
+    <span class="fig" data-fig="gc_collections"></span> times during the run with the heap
+    high-water pegged at its ceiling, and <code>vmCompute</code>'s max is still only
+    <span class="fig" data-fig="vmcompute_ratio"></span> its min — <strong>GC is inside the
+    mean, not in the tail.</strong> That contradicts the usual intuition.</li>
+  </ul>
+  <p class="note" data-aud="record peer">A single 25 ms job number would have said none of
+  this. The 99.6% is what earns the right to the next three acts: if the segments did not
+  close, every attribution below would be a guess.</p>
+</section>
+
+<!-- ═══════════ Act II — what 256 KB costs ═══════════ -->
+
+<section class="slide" id="stic-intro">
+  <div class="kicker">Act II · the trade, stated first</div>
+  <h2>What 256 KB costs — and what it buys</h2>
+  <div class="cols">
+    <div>
+      <p style="margin-bottom:0.7em"><strong>The constraint that produced our column:</strong></p>
+      <ul class="points">
+        <li>nRF52840-class parts — <strong>256 KB of RAM</strong> — were a <em>key
+        deliverable</em>, not a stretch goal. Thread radios, coin cells, years-long
+        deployments live there.</li>
+        <li>After Zephyr and OpenThread, what remains for a language runtime is tens of
+        KB. <strong>We bought RAM with speed.</strong></li>
+      </ul>
+    </div>
+    <div>
+      <p style="margin-bottom:0.7em"><strong>The constraint that produced theirs:</strong></p>
+      <ul class="points">
+        <li><strong>Toit</strong> is sized for ESP32-class RAM and is faster for it. Same
+        problem space, different constraint, different optimum — and Toit is the reason
+        there is a target worth aiming at.</li>
+        <li><strong>uLisp</strong> and <strong>CircuitPython</strong> are different bets
+        again, and each wins rows below.</li>
+      </ul>
+    </div>
+  </div>
+  <p class="note">Rule for every comparator row in this deck: <strong>state the constraint
+  that produced it.</strong> A number without its constraint is an insult; with it, it is
+  an engineering result. Where a comparator wins, we say so plainly and without hedging.</p>
+</section>
+
+<section class="slide dense" id="stic-table">
+  <div class="kicker">Act II · the microbenchmarks, whole</div>
+  <h2>STIC on ESP32 — four languages, no row omitted</h2>
+  <div id="stictable"></div>
+</section>
+
+<section class="slide" id="stic-row">
+  <div class="kicker">Act II · the row that hurts</div>
+  <h2>Collection iterate — <span class="fig" data-fig="stic_iter_us"></span> against Toit's <span class="fig" data-fig="stic_iter_toit"></span></h2>
+  <p class="big"><span class="fig" data-fig="stic_iter_ratio"></span> slower, on the one
+  operation an object language does most.</p>
+  <p class="note" style="margin-top:1.3rem">No qualifier, no normalisation, no “but”. It is
+  the worst row in the table and it is a real result. What follows is the reason and the
+  consequence — in that order, because the reason does not excuse it.</p>
+</section>
+
+<section class="slide" id="stic-why">
+  <div class="kicker">Act II · why</div>
+  <h2>Because <code>OrderedCollection</code> is written in nsl, not in C</h2>
+  <div class="cols">
+    <div>
+      <ul class="points">
+        <li>Every <code>do:</code> is a real block activation. Every <code>at:</code> is a
+        real send with a real bounds check. <strong>There is no fast path, because there is
+        no special case</strong> — the uniformity that makes capabilities and the debugger
+        cheap costs exactly here.</li>
+        <li>Putting the collection classes in C would buy the row back and cost flash and
+        surface. <strong>That is a footprint decision, not a quality gap.</strong></li>
+      </ul>
+    </div>
+    <div>
+      <div class="card warn">
+        <div class="t">The same trade, in the other direction</div>
+        <div class="d">Toit's library is larger <em>because Toit is self-contained</em>.
+        Ours is small because Zephyr's C carries the drivers. That is an architecture
+        difference, not a virtue — and it is the same sentence read from the other end.</div>
+      </div>
+    </div>
+  </div>
+  <p class="note" data-aud="record peer"><strong>The mechanism, precisely.</strong>
+  Publishing a 64-element frame walks it twice: once to copy it into an immutable
+  <code>List</code>, then again to validate it, where <code>checkValue:</code> and
+  <code>depthOf:</code> each independently recompute the same element rank — two prim calls
+  and roughly thirteen sends per element to re-derive what was known one line earlier.
+  Named because it is fixable, not because it is fatal: filed as <strong>#78</strong>,
+  estimated at ~20% off <code>publish</code>, and it will be A/B'd on the device against
+  the very spans that found it rather than argued.</p>
+</section>
+
+<!-- variant: the STIC table shrinks to one line for investors -->
+<section class="slide" id="stic-investor">
+  <div class="kicker">Act II · the microbenchmarks, in one line</div>
+  <h2>We know exactly where we are slow — by name</h2>
+  <p class="big">Iterating a collection costs
+  <span class="fig" data-fig="stic_iter_us"></span> against Toit's
+  <span class="fig" data-fig="stic_iter_toit"></span> —
+  <span class="fig" data-fig="stic_iter_ratio"></span> — because our collection classes are
+  written in the language, not in C.</p>
+  <div class="cols" style="margin-top:1.3rem">
+    <div>
+      <div class="card warn">
+        <div class="t">The constraint that produced it</div>
+        <div class="d">256 KB parts were a <strong>key deliverable</strong>. After Zephyr
+        and OpenThread there are tens of KB left for a runtime, so we bought RAM with
+        speed. Toit is sized for larger parts and is faster for it — same problem space,
+        different constraint, different optimum.</div>
+      </div>
+    </div>
+    <div>
+      <div class="card good">
+        <div class="t">And it decides nothing</div>
+        <div class="d">That exact weakness is in the shipping node —
+        <span class="fig" data-fig="collection_work_us"></span> of collection work every
+        500 ms — inside a path the user experiences as
+        <span class="fig" data-fig="client_p50_us"></span>. The I2C read alone outweighs
+        it.</div>
+      </div>
+    </div>
+  </div>
+  <p class="note">The full four-language table, every row, is in the record and peer decks.
+  Nothing is omitted there that is claimed here.</p>
+</section>
+
+<section class="slide" id="stic-turn">
+  <div class="kicker">Act II · the turn</div>
+  <h2>That weakness is in the real job — and it still decides nothing</h2>
+  <ul class="points">
+    <li><code>vmCompute</code> (<span class="fig" data-fig="vmCompute_mean_us"></span>) and
+    <code>publish</code> (<span class="fig" data-fig="publish_mean_us"></span>) are
+    <strong>exactly</strong> the collection work the bad row measures —
+    <span class="fig" data-fig="collection_work_us"></span> of it, in the shipping node,
+    every 500 ms</li>
+    <li>And the whole VM share is <span class="fig" data-fig="vm_share_pc"></span> of what
+    the client feels. The I2C read alone —
+    <span class="fig" data-fig="acquire_mean_us"></span> — outweighs it</li>
+    <li>Making the collections 40× faster would move the user-visible number by a few
+    percent. <strong>It is a real deficiency in a place that does not decide anything.</strong></li>
+  </ul>
+  <p class="big" style="margin-top:1.3rem">The microbenchmark was not wrong.<br>
+  <em>It was answering a question the product does not ask.</em></p>
+  <p class="asterisk" data-aud="record peer">This is the deck's whole thesis and it cuts
+  both ways: the same reasoning forbids us from claiming a win on a benchmark that does not
+  decide anything either.</p>
+</section>
+
+<!-- ═══════════ Act III — the mechanism ═══════════ -->
+
+<section class="slide" id="oeom">
+  <div class="kicker">Act III · suppose it did matter</div>
+  <h2>A method is a field in a vtable — so optimization is a field write</h2>
+  <div class="cols">
+    <div>
+      <p style="margin-bottom:0.7em">The object model (Piumarta &amp; Warth's OEOM) is three
+      structures and one operation:</p>
+      <ul class="points">
+        <li><strong>object</strong> — word 0 names a vtable</li>
+        <li><strong>vtable</strong> — selector → binding, plus a delegate for lookup fallback</li>
+        <li><strong>send</strong> — walk the delegate chain, then apply</li>
+      </ul>
+      <p style="margin-top:0.8em">Every call in the system is a send. There is exactly
+      <strong>one</strong> choke point.</p>
+    </div>
+    <div>
+      <div class="card good">
+        <div class="t">What that buys, concretely</div>
+        <div class="d">A binding holds a closure. Swap the closure for a hand-written C
+        function and the method is now native — with <strong>callers, the interpreter, and
+        the <code>.oimg</code> image format all unchanged.</strong> No JIT. No recompile of
+        the callers. No format break.</div>
+      </div>
+      <p class="note">This is not a plan. It is a one-field write that has been done and
+      measured, on the same board, in the same binary.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" id="hanoi">
+  <div class="kicker">Act III · measured, same board, same binary</div>
+  <h2>Hanoi 20: <span class="fig" data-fig="hanoi20_interp"></span> → <span class="fig" data-fig="hanoi20_native"></span></h2>
+  <div id="hanoitable"></div>
+  <p class="asterisk" style="margin-top:1.1rem"><strong>What this number is, stated so it
+  cannot be misread.</strong> This is the <em>fully-inlined AOT ceiling</em> — the
+  recursion collapses to raw C, allocation-free, no GC. A real bytecode→native compiler
+  preserving send and GC semantics would land between the interpreter and this bound. The
+  claim is <strong>the lever, not the number</strong>.</p>
+  <p class="note" data-aud="record peer"><strong>A claim this deck explicitly refuses to
+  make:</strong> “0.103 s against Toit's 3.0 s — 29× faster than Toit.” That compares
+  <em>native C Hanoi</em> against <em>Toit's compiled Hanoi</em>: a C-vs-Toit number
+  wearing an nsl-vs-Toit label. The honest and still-strong claim is that a substituted
+  method runs at C speed — at which point it has stopped being a language comparison at
+  all.</p>
+</section>
+
+<section class="slide" id="strategy">
+  <div class="kicker">Act III · the strategy this makes available</div>
+  <h2>Write it in nsl · measure on the device · drop C in where the measurement points</h2>
+  <div class="cols">
+    <div>
+      <ul class="points">
+        <li><strong>Ship the interpreter.</strong> Small, uniform, confined, debuggable.</li>
+        <li><strong>Profile the real workload</strong> — Act I's spans, on the device, in
+        the field, not a benchmark you hope resembles it.</li>
+        <li><strong>Substitute surgically.</strong> One binding at a time, each with a
+        before/after on hardware.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="card good">
+        <div class="t">Why this ordering is the point</div>
+        <div class="d">Optimizing before measuring is how you end up 40× faster at
+        something that was 3% of the path. The mechanism is only valuable
+        <em>because</em> the measurement exists to aim it — Act I is what makes Act III
+        more than a party trick.</div>
+      </div>
+      <p class="note">And the cost of being wrong is one field. There is no rewrite to
+      regret, and no compiled artifact to keep in sync.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ Act IV — the unbenchmarked ═══════════ -->
+
+<section class="slide" id="unbenchmarked">
+  <div class="kicker">Act IV · the axes nobody publishes</div>
+  <h2>Everyone benchmarks the wrong things</h2>
+  <div class="cols">
+    <div>
+      <div class="card"><div class="t">Build &amp; iteration time</div><div class="d">how long from an edit to running code — the number you pay hundreds of times a day</div></div>
+      <div class="card"><div class="t">Change without reflash</div><div class="d">how long from an edit to <em>deployed</em> code, on a device in the field</div></div>
+    </div>
+    <div>
+      <div class="card"><div class="t">Observability</div><div class="d">do you know what your code is doing, on the device, with nothing attached?</div></div>
+      <div class="card"><div class="t">Failure legibility</div><div class="d">when it breaks at 3 a.m. in a building you cannot enter, what does it tell you?</div></div>
+    </div>
+  </div>
+  <p class="note">There is no shared benchmark for any of these, which is exactly why they
+  get left out of language comparisons — and exactly why they decide whether the product
+  ships. What follows is our own numbers on our own axes, with the two we have not yet
+  measured marked as such.</p>
+</section>
+
+<section class="slide" id="build-time">
+  <div class="kicker">Act IV · build &amp; iteration</div>
+  <h2 data-aud="record peer investor">The build that ate a desktop</h2>
+  <h2 data-aud="talk">Fifty minutes. Five gigabytes. One file changed.</h2>
+  <div class="cols">
+    <div>
+      <div class="card bad">
+        <div class="t">Model A — the whole image compiled as C</div>
+        <div class="d">≈ <span class="fig" data-fig="modelA_build_min"></span> and
+        ≈ <span class="fig" data-fig="modelA_rss_gb"></span> of peak RSS in a single
+        <code>cc1</code>. It has <strong>OOM-killed a developer desktop</strong>, and it
+        cannot build the larger benchmarks on a normal machine at all.</div>
+      </div>
+    </div>
+    <div>
+      <div class="card good">
+        <div class="t">Model B — the image as a loadable <code>.oimg</code></div>
+        <div class="d">The C substrate is built <em>once</em>. An application change is a
+        seconds-long image build, no compiler involved. Now the device default.</div>
+      </div>
+    </div>
+  </div>
+  <p class="asterisk"><strong>These two figures are <em>recalled, not recorded</em></strong>
+  — they come from session notes rather than a timed measurement, and they are the loosest
+  numbers in this deck. Filed as #68: Model A vs Model B, wall-clock and peak RSS, measured
+  properly. Until that closes, treat the ratio as directional and the digits as anecdote.</p>
+</section>
+
+<section class="slide" id="reflash">
+  <div class="kicker">Act IV · change without reflash</div>
+  <h2>Time from an edit to a deployed change, on a device in the field</h2>
+  <div class="tbdcard">
+    <div class="t">Not measured — #67</div>
+    <div class="d"><strong><span class="fig" data-fig="ota_cycle_s"></span></strong><br>
+    The <code>.oimg</code> push path over porta exists and works. What does not exist is a
+    <em>timed</em> comparison against a flash cycle on real hardware — and this number is
+    load-bearing for the agent-loop claim in Act V.</div>
+  </div>
+  <p class="note" style="margin-top:1.2rem">It would have been easy to write “seconds
+  versus minutes” here. That is what we <em>expect</em>, and expecting is not measuring.
+  The badge stays until the harness runs.</p>
+  <p class="note" data-aud="record peer"><strong>The honest caveat that comes with it:</strong>
+  the two-speed story only holds while the C substrate is stable. Every new primitive is
+  still a reflash, and the prim surface has not fully converged.</p>
+</section>
+
+<section class="slide" id="observability">
+  <div class="kicker">Act IV · observability</div>
+  <h2>Do you know what your code is doing — with nothing attached?</h2>
+  <div class="cols">
+    <div>
+      <ul class="points">
+        <li><strong>Latency spans</strong> — named, nested, min/max/mean/p50/p95, kept on the device</li>
+        <li><strong>Heap and GC</strong> — live bytes, high-water, collection counts</li>
+        <li><strong>Channel overrun counters</strong> — cumulative, never reset, first occurrence announced once</li>
+        <li><strong>ISR and mailbox counters</strong> — coalesced ticks, shed posts, drops</li>
+      </ul>
+    </div>
+    <div>
+      <div class="card acc">
+        <div class="t">Served by the node itself</div>
+        <div class="d">A web page from the device, or a CBOR record over the mesh into a
+        store. No JTAG, no host, no debug build, no “can you reproduce it on the bench”.
+        Total cost of the span facility: <span class="fig" data-fig="span_dram_b"></span>
+        of DRAM on a part with <span class="fig" data-fig="dram_spare_b"></span> spare.</div>
+      </div>
+    </div>
+  </div>
+  <p class="note">This is the difference between a system you can <em>reason</em> about and
+  one you can only <em>guess</em> at. The next slide is what it caught.</p>
+</section>
+
+<section class="slide" id="proof">
+  <div class="kicker">Act IV · the proof</div>
+  <h2>A 23 ms job reported as <span class="fig" data-fig="wrap_bug_us"></span></h2>
+  <div class="cols">
+    <div>
+      <ul class="points">
+        <li>The seam offered one <code>span_now()</code>, documented as free-running microseconds</li>
+        <li>The Zephyr backend converted cycles → µs <em>before</em> returning, so its value
+        domain wrapped at <span class="fig" data-fig="wrap_domain"></span>, not 2³²</li>
+        <li>A u32 difference is only valid <strong>in the units the subtraction happens in</strong></li>
+        <li><strong>Completely silent on the host</strong>, where the backend unit really is
+        the microsecond — only the device could catch it</li>
+      </ul>
+    </div>
+    <div>
+      <div class="card good">
+        <div class="t">How it was caught</div>
+        <div class="d">A phantom sample in the ≥1 s bucket on a web page served by the
+        node. The arithmetic then pinned it exactly — an ordinary 23 ms job. Fixed by moving
+        the subtraction into the backend and renaming the stamp so nobody reads microseconds
+        into it again.</div>
+      </div>
+      <p class="note">Instrumentation that is only good enough to confirm what you already
+      believe is decoration. This one contradicted us, which is the only evidence that it
+      works.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" id="legibility">
+  <div class="kicker">Act IV · failure legibility</div>
+  <h2>What it tells you when it breaks — and the time it told us nothing</h2>
+  <div class="cols">
+    <div>
+      <p style="margin-bottom:0.7em"><strong>What the design provides:</strong></p>
+      <ul class="points">
+        <li>Supervised jobs — a faulting handler unwinds to the reactor and the node keeps running</li>
+        <li><strong>Structured</strong> crash records on <code>sys/crash</code> — tag, text, channel — not stack-trace prose</li>
+        <li>Counted sheds and drops, rather than a <code>k_oops</code> and a reboot</li>
+      </ul>
+    </div>
+    <div>
+      <p style="margin-bottom:0.7em"><strong>And the counterexample, which is the more useful half:</strong></p>
+      <div class="card bad">
+        <div class="t">#65 — the node left the network in silence</div>
+        <div class="d"><span class="fig" data-fig="burst_requests"></span> back-to-back
+        requests took it off the network entirely. <strong>No panic. Nothing on the
+        console.</strong> Recovered only by a hardware reset. Our own instrumentation said
+        nothing, because nothing counted the thing that ran out.</div>
+      </div>
+    </div>
+  </div>
+  <p class="note"><strong>Root-caused and fixed 2026-07-22.</strong> Idle connections pinned
+  every RX packet buffer, and with no keep-alive there was no timer of any kind to reap
+  them — so freeing RX required receiving. Widening the slab alone dropped client-side
+  timeouts from <span class="fig" data-fig="timeouts_before"></span> to
+  <span class="fig" data-fig="timeouts_after"></span> over a comparable run. The fix is
+  real; the indictment stands — <strong>it was invisible for a day, which is exactly what
+  the next act says must never happen.</strong></p>
+</section>
+
+<!-- ═══════════ Act V — agent-first ═══════════ -->
+
+<section class="slide" id="not-a-language">
+  <div class="kicker">Act V · the premise, not the conclusion</div>
+  <h2>We are not building another scripting language</h2>
+  <p class="big">We are building a pipeline an <em>agent</em> is comfortable in.</p>
+  <ul class="points" style="margin-top:1.2rem">
+    <li>The operator of a fleet increasingly is an agent, running the same loop a developer
+    runs: <strong>observe → hypothesize → change → verify → bank evidence</strong></li>
+    <li>A platform is “agent-first” exactly to the degree every stage of that loop is
+    <strong>machine-legible and fast</strong>. Not “has an API”</li>
+    <li>This act does not introduce new evidence. It <strong>re-reads Acts I–IV</strong> —
+    which is the whole argument: these properties were not built for agents, and they are
+    what an agent needs</li>
+  </ul>
+</section>
+
+<section class="slide" id="context">
+  <div class="kicker">Act V · the scarce resource</div>
+  <h2>An agent's scarcest resource is context</h2>
+  <div id="surfacetable"></div>
+  <div class="cols" style="margin-top:1rem">
+    <div>
+      <p><strong>Whole system, language + VM:</strong> the stdlib plus the hand-written C
+      substrate ≈ <span class="fig" data-fig="whole_system_tok"></span>.
+      <strong>An agent can hold the entire system in one context window</strong> — semantics,
+      implementation, and seam.</p>
+    </div>
+    <div>
+      <p><strong>The demonstration, not the claim.</strong> One session, one agent, one
+      context, no handoff: edited <code>span.c</code>, <code>kernel.nsl</code>, the node's
+      application, an upstream Zephyr driver, four test files and five documents — and
+      produced the Act I table.</p>
+    </div>
+  </div>
+  <p class="asterisk"><strong>Indicative, not a benchmark.</strong> Two systems only,
+  chars ÷ 4 as a token proxy, and “surface” is not yet defined rigorously across peers.
+  Filed as #66: the full peer set with a published methodology — what counts as surface,
+  each system's source of truth, and how uLisp's C builtin table and CircuitPython's
+  C-modules-plus-bundle are handled. Until then this card is a sketch, and it says so.</p>
+</section>
+
+<section class="slide" id="determinism">
+  <div class="kicker">Act V · determinism as a budget</div>
+  <h2>A test that cannot flake is a context budget</h2>
+  <div class="cols">
+    <div>
+      <ul class="points">
+        <li>Time is <strong>virtual</strong> in host tests — <code>advanceMillis:</code>
+        makes timing deterministic by construction</li>
+        <li>A test therefore <strong>cannot</strong> flake on timing, so an agent never
+        burns a single token distinguishing flake from fault</li>
+        <li>Inline <code>(* expect: *)</code> oracles are machine-checkable; the
+        single-test cycle is seconds</li>
+      </ul>
+    </div>
+    <div>
+      <div class="card acc">
+        <div class="t">Why this is a performance slide</div>
+        <div class="d">A flaky test does not cost you a re-run. It costs an agent the
+        context it spends deciding whether the failure was real — and that context is the
+        budget that decides whether the loop closes at all.</div>
+      </div>
+    </div>
+  </div>
+  <p class="note" data-aud="record peer">Stated honestly: static types would help an agent
+  too — machine-checked interfaces, cheap early feedback. We did not buy them, for reasons
+  deck 1 records. What actually burns agent context is slow loops, flaky tests, silent
+  failures and unobservable state, and this system spends its budget there instead:
+  a tiny closed surface, fail-fast conventions, and schemas at the wire and prim seam with
+  dynamism inside.</p>
+</section>
+
+<section class="slide" id="never-silent">
+  <div class="kicker">Act V · the design law</div>
+  <h2>Never-silent instrumentation — and this act claims Act IV for it</h2>
+  <p class="big">If it can happen, something <em>machine-readable</em> must say it happened.</p>
+  <ul class="points" style="margin-top:1.2rem">
+    <li>A dropped event, a swept reaction, a shed post, a restarted job — each gets a
+    counter or a record. Cumulative, never reset, first occurrence announced once</li>
+    <li><strong>A human can sense that something is off. An agent only sees what is
+    surfaced.</strong> For a human operator this is good practice; for an agent operator it
+    is the difference between a diagnosable system and an invisible one</li>
+    <li>So the spans in Act IV were <strong>never a metrics feature</strong>. The 99.6%
+    accounting is “we know what our code is doing”, and the wrap defect is the proof it
+    works. #65 is the proof of what happens where the law was not yet applied</li>
+  </ul>
+  <p class="note">This is the slide that makes Act IV retroactively an agent argument
+  rather than an engineering-hygiene one. It does not repeat those slides — it claims them.</p>
+</section>
+
+<section class="slide" id="capabilities">
+  <div class="kicker">Act V · the underrated argument</div>
+  <h2>Capabilities are an agent sandbox the platform enforces</h2>
+  <div class="cols">
+    <div>
+      <ul class="points">
+        <li>A capability is a channel namespace <strong>rooted at a path prefix</strong>,
+        attenuated by extending it</li>
+        <li>Grant an agent a rooted cap over <code>fleet/lab/**</code> and its confinement
+        is <strong>structural</strong> — enforced at the one send choke point, not by a
+        prompt and not by a policy document</li>
+        <li>The enforcement predates the agent question entirely. It is there because
+        drivers should not be globals</li>
+      </ul>
+    </div>
+    <div>
+      <div class="card good">
+        <div class="t">Few platforms can say this</div>
+        <div class="d">“The agent cannot touch production” is a sentence most systems can
+        only implement as a convention. Here it is the same mechanism that stops one job
+        reading another's channel — already tested, already load-bearing.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide" id="gates">
+  <div class="kicker">Act V · what is not built</div>
+  <h2>Gates, not aspirations</h2>
+  <div class="cols">
+    <div>
+      <p style="margin-bottom:0.7em"><strong>Before an agent may push autonomously:</strong></p>
+      <ul class="points">
+        <li><strong>Signing</strong> (G5) — who may push code. No autonomous push before it</li>
+        <li><strong>Canary + auto-rollback</strong> (G1) — bounded blast radius as a
+        platform primitive, not agent etiquette</li>
+        <li><strong>Letter-log replay</strong> — capture a node's inbound letters, replay
+        under the virtual clock, turn a field fault into a seconds-long host test</li>
+        <li><strong>Remote eval</strong> — hypothesis-testing on a live node without a deploy</li>
+      </ul>
+    </div>
+    <div>
+      <p style="margin-bottom:0.7em"><strong>Before this deck's own numbers are complete:</strong></p>
+      <ul class="points">
+        <li><strong>#66</strong> — surface in tokens, full peer set, published methodology</li>
+        <li><strong>#67</strong> — time-to-deployed-change vs a flash cycle</li>
+        <li><strong>#68</strong> — build time and peak RSS, recorded rather than remembered</li>
+        <li><strong>#69</strong> — a checker asserting every figure in this deck still
+        matches its witness</li>
+      </ul>
+    </div>
+  </div>
+  <p class="note">Four badges in this deck are open issues, and the deck was built to
+  <em>produce</em> them rather than to hide them. If the numbers do not materialise, the
+  argument is wrong and should say so.</p>
+</section>
+
+<section class="slide" id="close">
+  <div class="kicker">Where we came in</div>
+  <h2>Two questions, answered as far as the evidence goes</h2>
+  <div class="cols">
+    <div>
+      <div class="card good">
+        <div class="t">Is it fast enough?</div>
+        <div class="d">For this class of workload on this hardware — <strong>yes</strong>,
+        and more usefully, we can say <em>where</em> the time goes and <em>where</em> we are
+        slow, by name. The worst microbenchmark row is real, is in the shipping job, and
+        decides nothing. If it ever does, the fix is one field in a vtable.</div>
+      </div>
+    </div>
+    <div>
+      <div class="card warn">
+        <div class="t">Fast enough for an agent?</div>
+        <div class="d">The loop is seconds and machine-legible: deterministic tests,
+        structured crash records, on-device spans, a system small enough to hold at once,
+        and a sandbox the platform enforces. <strong>Two of the four numbers that would
+        settle it are not measured</strong> — and they are filed, badged and visible on the
+        slides above.</div>
+      </div>
+    </div>
+  </div>
+  <p class="big" style="margin-top:1.3rem">Optimize the right thing —<br>
+  <em>which first requires knowing what the right thing is.</em></p>
+</section>
+
+<section class="slide" id="witnesses">
+  <div class="kicker">Appendix · every figure, every source</div>
+  <h2>Witnesses</h2>
+  <div class="scroll"><div id="audittable"></div></div>
+  <p class="note">Generated from the deck's own data block at load — this table cannot drift
+  from the slides, only from reality. Keeping it honest against reality is #69's job.</p>
+</section>
+
+  <div class="footer">
+    <span><span class="aud" id="audname"></span> <span id="deckinfo">nsl-tuvm — performance · 2026-07-22</span></span>
+    <span class="nav">
+      <span id="counter" style="margin-right:0.6rem"></span>
+      <button id="home" aria-label="audience chooser">⌂</button>
+      <button id="prev" aria-label="previous slide">←</button>
+      <button id="next" aria-label="next slide">→</button>
+    </span>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════════
+   DATA — every figure lives here once, with the witness that produced it.
+   status: (none) = measured and current
+           prov   = measured on a build since invalidated; re-take pending
+           der    = derived by subtraction, not measured
+           rec    = recalled from notes, never recorded
+           ind    = indicative, not yet a benchmark
+           tbd    = not measured at all
+   ══════════════════════════════════════════════════════════════════════════ */
+
+const SRC = {
+  rung61:  "review/program-sequence.md — job-latency rung (#61), WROOM-32, 2026-07-21",
+  addend:  "review/program-sequence.md — job-latency addendum 2026-07-22 (#65)",
+  prof:    "profiler-slice capture 2026-07-22 (#72), porta-lite store, gw85224-01:8086",
+  stic:    "~/workspaceToit/stic/README.md — ESP32 table",
+  hanoi:   "~/workspaceToit/stic/README.md — Hanoi A/B table (#/oeom spike)",
+  surface: "measured 2026-07-22, wc -c over lib/kernel.nsl, src/*.{c,h} and the Toit SDK",
+  notes:   "session notes — never recorded as a timed measurement (#68)",
+  i67:     "tuvm#67 — time-to-deployed-change, not yet measured",
+  i65:     "review/2026-07-21-issue-65-http-load-wedge/README.md",
+};
+
+const DATA = {
+  /* --- Act I: thermal job, #61 --- */
+  jobThermal_mean_us: { v: 25229, u: "µs", src: SRC.rung61, n: 310 },
+  acquire_mean_us:    { v: 12798, u: "µs", src: SRC.rung61, n: 310 },
+  vmCompute_mean_us:  { v: 4101,  u: "µs", src: SRC.rung61, n: 310 },
+  publish_mean_us:    { v: 8225,  u: "µs", src: SRC.rung61, n: 310 },
+  segments_sum_us:    { v: 25124, u: "µs", src: SRC.rung61, st: "der" },
+  accounting_pc:      { v: 99.6,  u: "%",  src: SRC.rung61 },
+  accounting_gap_us:  { v: 105,   u: "µs", src: SRC.rung61, st: "der" },
+  bracket_cost_us:    { v: 13,    u: "µs", src: SRC.rung61, st: "der", pre: "~" },
+  collection_work_us: { v: 12326, u: "µs", src: SRC.rung61, st: "der" },
+  gc_collections:     { v: 1523,  u: "",   src: SRC.rung61 },
+  vmcompute_ratio:    { v: 1.21,  u: "×",  src: SRC.rung61 },
+  span_dram_b:        { v: 384,   u: "B",  src: SRC.rung61 },
+  dram_spare_b:       { v: 3568,  u: "B",  src: SRC.addend },
+
+  /* --- Act I: HTTP path, #61 — all provisional after the #65 addendum --- */
+  client_p50_us:      { v: 159071, u: "µs", src: SRC.rung61, st: "prov" },
+  node_service_us:    { v: 39898,  u: "µs", src: SRC.rung61, st: "prov" },
+  network_us:         { v: 119173, u: "µs", src: SRC.rung61, st: "prov" },
+  network_share_pc:   { v: 75,     u: "%",  src: SRC.rung61, st: "prov" },
+  vm_share_pc:        { v: 7.7,    u: "%",  src: SRC.rung61, st: "prov" },
+
+  /* --- Act I: second witness, profiler slice 2026-07-22 --- */
+  span_overhead_us:   { v: 98, u: "µs", src: SRC.prof, pre: "~" },
+
+  /* --- Act II --- */
+  stic_iter_us:       { v: 532.6, u: "", src: SRC.stic },
+  stic_iter_toit:     { v: 12.7,  u: "", src: SRC.stic },
+  stic_iter_ratio:    { v: 42,    u: "×", src: SRC.stic, st: "der" },
+
+  /* --- Act III --- */
+  hanoi20_interp:     { v: 12.0,  u: "s", src: SRC.hanoi },
+  hanoi20_native:     { v: 0.103, u: "s", src: SRC.hanoi },
+
+  /* --- Act IV --- */
+  modelA_build_min:   { v: 50,  u: "min", src: SRC.notes, st: "rec", pre: "~" },
+  modelA_rss_gb:      { v: 4.9, u: "GB",  src: SRC.notes, st: "rec", pre: "~" },
+  ota_cycle_s:        { v: null, st: "tbd", tbd: "OTA / .oimg push cycle vs a flash cycle — not yet measured", src: SRC.i67 },
+  wrap_bug_us:        { v: 4277094806, u: "µs", src: SRC.rung61 },
+  wrap_domain:        { v: 17895697,   u: "",   src: SRC.rung61 },
+  burst_requests:     { v: 500, u: "", src: SRC.i65 },
+  timeouts_before:    { v: 1716, u: "", src: SRC.addend },
+  timeouts_after:     { v: 183,  u: "", src: SRC.addend },
+
+  /* --- Act V --- */
+  whole_system_tok:   { v: 138, u: "k tokens", src: SRC.surface, st: "ind", pre: "≈" },
+};
+
+/* Tables render from data too — otherwise the witness appendix is theatre. */
+
+const SPANS = {
+  src: SRC.rung61,
+  cap: "WROOM-32, 2026-07-21 · 310 thermal jobs, 296 paced HTTP requests · every row past the n ≥ 200 gate. " +
+       "Rows marked <em>prov.</em> were measured on a build whose RX packet slab was itself the bottleneck (#65, root-caused 2026-07-22) and are pending a re-take.",
+  cols: ["span", "owner", "n", "mean µs", "min µs", "max µs", "max/min"],
+  rows: [
+    ["httpQueue", "C",   297,   61,    41,    118,   "2.9×",  "prov"],
+    ["egress",    "C",   3567,  1319,  98,    71288, "727×",  "prov"],
+    ["jobThermal","nsl", 310,   25229, 24408, 28338, "1.16×", ""],
+    ["acquire",   "nsl", 310,   12798, 12491, 15533, "1.24×", ""],
+    ["vmCompute", "nsl", 310,   4101,  3961,  4804,  "1.21×", ""],
+    ["publish",   "nsl", 310,   8225,  7848,  9045,  "1.15×", ""],
+    ["render",    "nsl", 296,   39837, 37401, 98484, "2.6×",  "prov"],
+  ],
+};
+
+const THERMAL2 = {
+  src: SRC.prof,
+  cap: "WROOM-32, 2026-07-22 · ~3 s window at 2 Hz · captured over UDP/CBOR into the porta-lite store and rendered, not transcribed. Reproducible run to run.",
+  cols: ["span", "what it is", "min µs", "max µs"],
+  rows: [
+    ["jobThermal", "the outer span — <strong>encloses</strong> the three below", 23295, 24188],
+    ["acquire",    "Grid-EYE fetch over I2C via Zephyr's <code>sensor</code> API", 12524, 12734],
+    ["vmCompute",  "64-element raw → List copy, in nsl", 4116, 4286],
+    ["publish",    "<code>put:</code> onto the sample cell — a second copy, then the value algebra", 6557, 7040],
+  ],
+};
+
+const STIC = {
+  src: SRC.stic,
+  cap: "ESP32, 240 MHz, 520 KB RAM · smaller is better · <em>ut</em> = untested, <em>se</em> = stack exhausted · " +
+       "Toit v2.0.0-alpha.180 · uLisp v4.7 · CircuitPython 9.2.7 · nsl-tuvm on Zephyr 4.2.0 with a 96 KB VM heap. " +
+       "Shown whole, no row omitted and no column normalised.",
+  cols: ["test", "Toit", "uLisp", "CircuitPython", "tuvm/nsl"],
+  rows: [
+    ["alloc",              "16.0",   "21.6",  "11.4",  "24.1",  ""],
+    ["array write",        "19.4",   "98.1",  "63.3",  "138.9", ""],
+    ["dictionary write",   "5.7",    "1.4",   "0.9",   "43.3",  ""],
+    ["float math",         "41.1",   "124.3", "20.9",  "35.1",  ""],
+    ["integer math",       "9.4",    "122.5", "14.4",  "15.3",  ""],
+    ["collection iterate", "12.7",   "42.5",  "29.2",  "532.6", "hurt"],
+    ["collection write",   "9.5",    "6.7",   "15.4",  "97.0",  ""],
+    ["string compare",     "1.5",    "12.5",  "2.9",   "5.2",   ""],
+    ["hanoi @ blocks: 8",  "0.0000", "0.01",  "0.01",  "0.003", ""],
+    ["16",                 "0.2",    "3.2",   "1.4",   "0.7",   "sub"],
+    ["20",                 "3.0",    "54.2",  "21.6",  "12.0",  "sub"],
+    ["21",                 "ut",     "ut",    "43.1",  "24.0",  "sub"],
+    ["22",                 "ut",     "ut",    "se",    "ut",    "sub"],
+    ["24",                 "49.2",   "924.1", "se",    "191.7", "sub"],
+  ],
+};
+
+const HANOI = {
+  src: SRC.hanoi,
+  cap: "Same board, same binary, one vtable field swapped. ~11.75 µs/move → ~0.10 µs/move; the native path is linear and allocation-free, so no GC runs at all.",
+  cols: ["hanoi n", "interpreted (tuvm/nsl)", "native in the vtable", "speedup"],
+  rows: [
+    ["16", "0.7 s",  "0.0067 s", "~116×", ""],
+    ["20", "12.0 s", "0.103 s",  "~119×", ""],
+  ],
+};
+
+const SURFACE = {
+  src: SRC.surface,
+  cap: "Measured 2026-07-22 with <code>wc -c</code>; ≈ tokens at 4 chars/token. Two systems only, and “surface” is not yet defined rigorously across peers — hence the badge. #66 is the real benchmark.",
+  cols: ["what", "files", "chars", "≈ tokens"],
+  rows: [
+    ["<code>kernel.nsl</code> — the entire nsl stdlib", 1, 131423, "~33k", "us"],
+    ["Toit SDK <code>core/</code>", 21, 323032, "~81k", ""],
+    ["Toit SDK <code>lib/</code> (full)", 146, 1380028, "~345k", ""],
+    ["nsl-tuvm C substrate — <code>src/*.{c,h}</code>, excluding the generated image", 36, 422315, "~106k", "us"],
+  ],
+};
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Playlists — four orderings over one pool. The chooser belongs to none.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+const PLAYLIST = {
+  record: [
+    "title","product","roadblocks","zephyr","software-left","two-questions",
+    "real-node","device-table","thermal-witness","client-view","accounting",
+    "stic-intro","stic-table","stic-row","stic-why","stic-turn",
+    "oeom","hanoi","strategy",
+    "unbenchmarked","build-time","reflash","observability","proof","legibility",
+    "not-a-language","context","determinism","never-silent","capabilities","gates","close",
+    "witnesses",
+  ],
+  peer: [
+    "title","two-questions",
+    "real-node","device-table","thermal-witness","client-view","accounting",
+    "stic-intro","stic-table","stic-row","stic-why","stic-turn",
+    "oeom","hanoi","strategy",
+    "build-time","reflash","observability","proof","legibility",
+    "context","determinism","never-silent","gates","close",
+    "witnesses",
+  ],
+  investor: [
+    "title","product","roadblocks","zephyr","two-questions",
+    "device-table","client-view",
+    "stic-investor","oeom","hanoi",
+    "build-time","reflash","context","gates","close",
+  ],
+  talk: [
+    "build-time","title","product","zephyr","two-questions",
+    "real-node","device-table","client-view",
+    "stic-intro","stic-table","stic-row","stic-why","stic-turn",
+    "oeom","hanoi",
+    "proof","legibility",
+    "context","never-silent","close",
+  ],
+};
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Rendering
+   ══════════════════════════════════════════════════════════════════════════ */
+
+const BADGE = {
+  prov: ["prov", "provisional — measured on a build since invalidated (#65); re-take pending"],
+  der:  ["der",  "derived by subtraction, not measured"],
+  rec:  ["rec",  "recalled from notes — never recorded as a measurement (#68)"],
+  ind:  ["ind",  "indicative — not yet a benchmark (#66)"],
+  tbd:  ["tbd",  "not measured"],
+};
+
+function num(v) {
+  if (v === null || v === undefined) return "—";
+  if (typeof v !== "number") return String(v);
+  const s = Math.abs(v) >= 10000 && Number.isInteger(v)
+    ? v.toLocaleString("en-US")
+    : String(v);
+  return s;
+}
+
+function figHTML(key) {
+  const d = DATA[key];
+  if (!d) return '<span class="fig miss">?' + key + '</span>';
+  if (d.st === "tbd") {
+    return '<span class="fig miss" title="' + esc(d.src) + '">' + esc(d.tbd) +
+           '</span><span class="badge tbd">tbd</span>';
+  }
+  const txt = (d.pre || "") + num(d.v) + (d.u ? (d.u === "%" || d.u === "×" ? d.u : " " + d.u) : "");
+  let out = '<span class="fig" title="' + esc(d.src) + (d.n ? "  ·  n = " + d.n : "") + '">' + txt + "</span>";
+  if (d.st && BADGE[d.st]) {
+    const b = BADGE[d.st];
+    out += '<span class="badge ' + d.st + '" title="' + esc(b[1]) + '">' + b[0] + "</span>";
+  }
+  return out;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function renderTable(t, opts) {
+  opts = opts || {};
+  let h = '<table class="cmp' + (opts.dense ? " dense" : "") + '"><thead><tr>';
+  t.cols.forEach((c, i) => {
+    h += '<th' + (i >= (opts.firstNum === undefined ? 1 : opts.firstNum) ? ' class="n"' : "") + ">" + c + "</th>";
+  });
+  h += "</tr></thead><tbody>";
+  t.rows.forEach(r => {
+    const flag = r[r.length - 1];
+    const cells = r.slice(0, t.cols.length);
+    const cls = (flag === "hurt" ? " hurt" : "") + (flag === "sub" ? " sub" : "") + (flag === "prov" ? " prov" : "");
+    h += "<tr" + (cls ? ' class="' + cls.trim() + '"' : "") + ">";
+    cells.forEach((c, i) => {
+      const isNum = i >= (opts.firstNum === undefined ? 1 : opts.firstNum);
+      const us = (flag === "us" && i === 0) || (opts.usCol !== undefined && i === opts.usCol);
+      h += "<td class=\"" + (i === 0 ? "name" : "") + (isNum ? " n" : "") + (us ? " us" : "") + '">' +
+           (typeof c === "number" ? num(c) : c) + "</td>";
+    });
+    h += "</tr>";
+  });
+  h += "</tbody>";
+  h += '<caption>' + t.cap + '  <span style="color:var(--baseline)">·</span>  <em>witness:</em> ' + esc(t.src) + "</caption></table>";
+  return h;
+}
+
+/* Act I proportional bar — one client request, where the milliseconds sit. */
+function renderClientBar() {
+  const segs = [
+    { nm: "network / radio",        us: DATA.network_us.v,        v: "--s5" },
+    { nm: "render (node, egress + compute)", us: 39837,           v: "--s2" },
+  ];
+  const inner = [
+    { nm: "VM work in the thermal job (parallel, not in the request path)", us: 12326, v: "--s1" },
+  ];
+  const total = segs.reduce((a, s) => a + s.us, 0);
+  let bar = '<div class="bar">';
+  segs.forEach(s => {
+    bar += '<div class="seg" style="flex:' + s.us + ';background:var(' + s.v + ')">' +
+           (s.us / total > 0.15 ? (s.us / 1000).toFixed(0) + " ms" : "") + "</div>";
+  });
+  bar += "</div>";
+  let leg = '<div class="barlegend">';
+  segs.concat(inner).forEach(s => {
+    leg += '<span class="item"><span class="sw" style="background:var(' + s.v + ')"></span>' +
+           '<span class="nm">' + s.nm + "</span> " +
+           '<span class="vv">' + (s.us / 1000).toFixed(1) + " ms</span></span>";
+  });
+  leg += "</div>";
+  return '<div style="font-size:0.83rem;color:var(--muted);margin-bottom:0.2rem">' +
+         "one HTTP request, p50, as the client experiences it</div>" + bar + leg;
+}
+
+function renderAudit() {
+  const rows = Object.keys(DATA).map(k => {
+    const d = DATA[k];
+    const st = d.st ? '<span class="badge ' + d.st + '">' + BADGE[d.st][0] + "</span>"
+                    : '<span style="color:var(--good-ink);font-size:0.9em">measured</span>';
+    const val = d.st === "tbd" ? "—" : (d.pre || "") + num(d.v) + (d.u ? " " + d.u : "");
+    return "<tr><td class=\"k\">" + k + '</td><td class="v">' + val + "</td><td>" + st +
+           '</td><td class="s">' + esc(d.src) + "</td></tr>";
+  }).join("");
+  const tabs = [["device spans", SPANS], ["second thermal witness", THERMAL2],
+                ["STIC table", STIC], ["Hanoi A/B", HANOI], ["surface", SURFACE]]
+    .map(([n, t]) => '<tr><td class="k">' + n + '</td><td class="v">table</td><td>' +
+         '<span style="color:var(--good-ink);font-size:0.9em">rendered from data</span></td><td class="s">' +
+         esc(t.src) + "</td></tr>").join("");
+  return '<table class="audit"><thead><tr><th>figure</th><th>value</th><th>status</th><th>witness</th></tr></thead>' +
+         "<tbody>" + rows + tabs + "</tbody></table>";
+}
+
+/* ---- inject ---- */
+document.getElementById("spantable").innerHTML    = renderTable(SPANS, { firstNum: 2 });
+document.getElementById("thermaltable").innerHTML = renderTable(THERMAL2, { firstNum: 2 });
+document.getElementById("stictable").innerHTML    = renderTable(STIC, { firstNum: 1, usCol: 4, dense: true });
+document.getElementById("hanoitable").innerHTML   = renderTable(HANOI, { firstNum: 1 });
+document.getElementById("surfacetable").innerHTML = renderTable(SURFACE, { firstNum: 1 });
+document.getElementById("clientbar").innerHTML    = renderClientBar();
+document.getElementById("audittable").innerHTML   = renderAudit();
+document.querySelectorAll("[data-fig]").forEach(el => { el.outerHTML = figHTML(el.dataset.fig); });
+Object.keys(PLAYLIST).forEach(a => {
+  const el = document.querySelector('[data-count="' + a + '"]');
+  if (el) el.textContent = PLAYLIST[a].length + " slides";
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Navigation — #audience/slide
+   ══════════════════════════════════════════════════════════════════════════ */
+
+const all = [...document.querySelectorAll(".slide")];
+let aud = null, idx = 0;
+
+function parseHash() {
+  const m = /^#(record|peer|investor|talk)(?:\/(\d+))?$/.exec(location.hash || "");
+  if (m) { aud = m[1]; idx = Math.max(0, (parseInt(m[2], 10) || 1) - 1); }
+  else   { aud = null; idx = 0; }
+}
+
+function applyAud(root) {
+  root.querySelectorAll("[data-aud]").forEach(el => {
+    el.style.display = el.dataset.aud.split(/\s+/).includes(aud) ? "" : "none";
+  });
+}
+
+function show() {
+  all.forEach(s => s.classList.remove("active"));
+  const counter = document.getElementById("counter");
+  const audname = document.getElementById("audname");
+  if (!aud) {
+    document.getElementById("chooser").classList.add("active");
+    counter.textContent = "";
+    audname.textContent = "choose a deck";
+    history.replaceState(null, "", location.pathname + location.search);
+    return;
+  }
+  const list = PLAYLIST[aud];
+  idx = Math.max(0, Math.min(list.length - 1, idx));
+  const s = document.getElementById(list[idx]);
+  if (!s) { console.warn("playlist names a missing slide:", list[idx]); return; }
+  applyAud(s);
+  s.classList.add("active");
+  s.scrollTop = 0;
+  counter.textContent = (idx + 1) + " / " + list.length;
+  audname.textContent = aud;
+  history.replaceState(null, "", "#" + aud + "/" + (idx + 1));
+}
+
+function go(a) { aud = a; idx = 0; show(); }
+
+document.querySelectorAll("[data-go]").forEach(b => { b.onclick = () => go(b.dataset.go); });
+document.getElementById("prev").onclick = () => { idx--; show(); };
+document.getElementById("next").onclick = () => { idx++; show(); };
+document.getElementById("home").onclick = () => { aud = null; show(); };
+addEventListener("keydown", e => {
+  if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); idx++; show(); }
+  if (e.key === "ArrowLeft"  || e.key === "PageUp")                    { e.preventDefault(); idx--; show(); }
+  if (e.key === "Home") { idx = 0; show(); }
+  if (e.key === "End" && aud) { idx = PLAYLIST[aud].length - 1; show(); }
+  if (e.key === "Escape") { aud = null; show(); }
+});
+addEventListener("hashchange", () => { parseHash(); show(); });
+
+parseHash();
+show();
+</script>
+</body>
+</html>
