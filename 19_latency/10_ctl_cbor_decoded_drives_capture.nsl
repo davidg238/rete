@@ -1,0 +1,61 @@
+(*
+expect:
+DECODED state=#running
+true
+CTL state=#running
+CTL state=#stopped
+RESULT nil? false
+RESULT n=1
+done
+*)
+(* tuvm#72: the DEVICE path, on the host. The gw sends a CBOR #SpanCtl datagram;
+   NetBridge>>pumpInbound DECODES it (kernel.nsl:984 builds the symbol via
+   `platform asSymbol:`) and posts the decoded Record onto diag/spans/ctl with the
+   STREAM verb. 19_latency/09 drove ctl with a LITERAL #running symbol and passed;
+   the C6 shows both ctl datagrams arriving (the probe printString's them) yet no
+   capture completes. The one untested difference is that the device's #state is a
+   DECODED symbol, so this asserts a decoded symbol is identity-equal to the
+   literal — i.e. that SpanCapture>>apply:'s `st = #running` test actually fires. *)
+class CtlCborDecodedDrivesCapture packageUsing: manifest = () (
+public main: platform args: args = (
+  | space spans cap a ctl res r enc dec run stop |
+  space:: platform space.
+  spans:: platform Spans new.
+  a::     spans register: #acquire.
+
+  (space channel: 'sys') whenever: 'crash' do: [ :rec |
+    ('CRASH ch=' , (rec at: #channel ifAbsent: [ '?' ]) printString
+              , ' text=' , (rec at: #text ifAbsent: [ '?' ]) printString) println ].
+
+  cap:: platform SpanCapture onSpace: space spans: spans.
+  cap start.
+
+  ctl:: space channel: 'diag/spans/ctl'.
+  res:: space channel: 'diag/spans/result'.
+  ctl whenever: '' do: [ :c |
+    ('CTL state=' , (c at: #state ifAbsent: [ #NOSTATE ]) printString) println ].
+
+  (* the gw's datagram, decoded exactly as NetBridge>>pumpInbound decodes it *)
+  enc::  platform Cbor encode: (platform Record tag: #SpanCtl with: #state -> #running).
+  run::  platform Cbor decode: enc ifInvalid: [ :m | nil ].
+  ('DECODED state=' , (run at: #state ifAbsent: [ #NOSTATE ]) printString) println.
+  (((run at: #state ifAbsent: [ nil ]) = #running) printString) println.
+
+  enc::  platform Cbor encode: (platform Record tag: #SpanCtl with: #state -> #stopped).
+  stop:: platform Cbor decode: enc ifInvalid: [ :m | nil ].
+
+  (* drive ctl the way the bridge does: STREAM verb, DECODED record *)
+  ctl out: '' value: run.
+  space drain.
+  spans recordSlot: a us: 100.
+  ctl out: '' value: stop.
+  space drain.
+
+  r:: res peek.
+  ('RESULT nil? ' , (r isNil) printString) println.
+  (r isNil) ifFalse: [
+    ('RESULT n=' , (r at: #n ifAbsent: [ -2 ]) printString) println ].
+  'done' println.
+)
+) : (
+)
