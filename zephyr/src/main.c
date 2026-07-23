@@ -466,9 +466,17 @@ int gpio_target_level(int pin) {
     /* Searching the INPUT table too is the whole chording payoff: a node can ask
        "is BUTTON_A held right now" for zero mailbox traffic, instead of tracking
        state from the doubled press/release event stream. The table already exists
-       and already holds the button specs, so this costs nothing. */
+       and already holds the button specs, so this costs nothing.
+       Match on the LOGICAL pin (pulse_logical_of), not spec.pin: a node names the
+       logical pin it registered with `gpio pin: N ...`, and on single-button boards
+       that pin is decoupled from the physical one (PULSE_LOGICAL_PIN 13 vs P0.11).
+       Matching on spec.pin would make `gpio level: 13` on the nRF DK find nothing
+       and raise #gpioUndeclared for a button that IS registered — and disagree with
+       the host, which keys host_gpio_register by the logical pin. The READ still
+       goes through the physical spec. On the MagTag logical==spec.pin, so this is
+       identity there; it fixes the single-button case. */
     for (size_t i = 0; i < PULSE_N_INPUTS; i++)
-        if ((int)pulse_inputs[i].spec.pin == pin) {
+        if (pulse_logical_of(&pulse_inputs[i]) == pin) {
             int v = gpio_pin_get_dt(&pulse_inputs[i].spec);
             return (v < 0) ? -1 : (v != 0);
         }
