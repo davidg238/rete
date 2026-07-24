@@ -1327,7 +1327,11 @@ Five findings, four of which only hardware could produce:
 4. **CFB unions glyphs; it does not overwrite — and the two seams had diverged.** A counter
    refreshed in place rendered 0,1,2,3 *stacked in one cell*. `draw_char_htmono` (`cfb.c:262`)
    only sets bits and never clears the glyph cell; its `draw_bg` parameter is accepted and
-   ignored (only the VTILED path honours it), and `draw_text` passes `wrap` into that slot. The
+   ignored (only the VTILED path honours it). Separately — a second, independent defect that
+   is NOT the cause here — `draw_text` passes its `wrap` argument into that `draw_bg` slot,
+   conflating two unrelated concepts: `cfb_print` supplies true and `cfb_draw_text` false, so
+   on a VTILED panel whether the background is cleared depends on which spelling of "draw a
+   string" you called. The
    host seam had no such problem — `platform.c` keeps a char grid and REPLACES characters. **So a
    host-green test could never have caught this**, and the fix was to remove the divergence: the
    device now keeps the same shadow grid and CFB is demoted to a pure renderer over a freshly

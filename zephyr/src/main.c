@@ -248,9 +248,13 @@ static int disp_rows, disp_cols, disp_font_h;
  * draw_char_htmono (cfb.c:262) only ever sets bits — `fb->buf[i] |= BIT(...)`
  * — and never clears the glyph cell first. Its `draw_bg` parameter is accepted
  * and then ignored entirely; only the VTILED path honours it (cfb.c:196), and
- * this panel is not VTILED (uc81xx reports MONO_MSB_FIRST | EPD). Worse,
- * draw_text passes `wrap` INTO that draw_bg slot (cfb.c:356-359), so under
- * cfb_print the argument is false regardless.
+ * this panel is not VTILED (uc81xx reports MONO_MSB_FIRST | EPD). Separately,
+ * draw_text passes its `wrap` argument INTO that draw_bg slot (cfb.c:356-359),
+ * conflating two unrelated concepts: cfb_print supplies true and cfb_draw_text
+ * supplies false, so on a VTILED panel whether the background is cleared is
+ * decided by which spelling of "draw a string" you called. That conflation does
+ * not affect THIS panel — htmono ignores the argument either way — so it is a
+ * second, independent defect, not the cause here.
  *
  * Consequence: printing '1' where '0' already stands leaves the union of both
  * glyphs. Observed on the bench as a counter rendering 0,1,2,3 stacked in one
