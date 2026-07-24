@@ -91,8 +91,8 @@ class RtcSeam packageUsing: manifest = () (
   (* Must equal RTC_MAGIC 0x94BE11C0 = 2495717824 as an unsigned, but SMIs are
      signed 30-bit here; the seam compares the low 32 bits as uint32 in C, so the
      node writes the same bit pattern via its signed decimal. 0x94BE11C0 as int32 is
-     -1799676992. nsl has no hex literal, so spell the decimal. *)
-  magicWord = ( ^ -1799676992 )
+     -1799482944. nsl has no hex literal, so spell the decimal. *)
+  magicWord = ( ^ -1799482944 )
 ) : (
 )
 ```
@@ -508,7 +508,7 @@ sys.path.insert(0, str(TOOLS))
 import run_tests_oevm as R   # reuse the Path-B compile + host-oevm invocation
 
 NODE = Path.home() / "workspace/tuvm/zephyr/MagTagDeepSleepNode.nsl"
-RTC_MAGIC = -1799676992   # 0x94BE11C0 as int32
+RTC_MAGIC = -1799482944   # 0x94BE11C0 as int32
 
 # --- helpers (fill run_node in from run_tests_oevm's Path-B API) -------------------
 def run_wake(rtc_file, ntp=None, no_ntp=False):
@@ -643,7 +643,7 @@ class MagTagDeepSleepNode packageUsing: manifest = () (
   rtcDrift24Max = ( ^ 7 )
   rtcDrift24Min = ( ^ 8 )
   rtcSyncsWin   = ( ^ 9 )
-  magicWord     = ( ^ -1799676992 )   (* 0x94BE11C0 as int32 *)
+  magicWord     = ( ^ -1799482944 )   (* 0x94BE11C0 as int32 *)
 ) : (
 )
 ```
@@ -1035,4 +1035,4 @@ cd ~/workspace/tuvm && git add zephyr/docs/BOARD_PORTS.md && git commit -m "docs
 
 **Placeholder scan:** the only deliberately-deferred detail is the exact `esp_deep_sleep_start` vs `esp_deep_sleep` HAL entry (Task 8 Step 2) and the GPIO21 write path (reuse existing gpio_set if wired) — both resolved at device build against the real headers, with the fallback named. Every host task carries complete code.
 
-**Type/name consistency:** RTC field indices (`rtcMagic`..`rtcSyncsWin` = 0..9), `RTC_MAGIC 0x94BE11C0` / node `magicWord -1799676992`, and the formula spellings (`secondsToNextBoundary:`, `driftPpm:over:`, `staleField:`) are defined in Task 3's units and reused character-identically in the node (Tasks 4-6); the harness re-tests them through the real node, so any drift surfaces. Prim ids 131-134 counted, parity typedef updated in the task that adds the last id (Task 2 → `PRIM_pf_deepSleep`).
+**Type/name consistency:** RTC field indices (`rtcMagic`..`rtcSyncsWin` = 0..9), `RTC_MAGIC 0x94BE11C0` / node `magicWord -1799482944`, and the formula spellings (`secondsToNextBoundary:`, `driftPpm:over:`, `staleField:`) are defined in Task 3's units and reused character-identically in the node (Tasks 4-6); the harness re-tests them through the real node, so any drift surfaces. Prim ids 131-134 counted, parity typedef updated in the task that adds the last id (Task 2 → `PRIM_pf_deepSleep`).
