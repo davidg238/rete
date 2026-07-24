@@ -1365,6 +1365,74 @@ ship's-bell clock can claim explicitly and then boot-verify against #85's WiFi a
 `draw_char_htmono` / `wrap`-as-`draw_bg` confusion. See
 `review/zephyr-upstream-contribution` notes and #114163's process lessons before filing.
 
+## The DAC strikes a bell — 2026-07-23, #94 gates 1-2 done, proven on the MagTag
+
+**The rung was rescoped before it was built, and that is the first result.** #94 was filed as a
+*ship's-bell clock*: WiFi/NTP + DAC + e-paper converging, with the arena arithmetic as its gate.
+The clock face was dropped on the bench — what is wanted instead is a **notification appliance**
+(external alert → LED + a line of text + a button to acknowledge), which needs no timekeeping.
+So the whole arithmetic that motivated the issue evaporated for its original reason, and the
+rung collapsed to **sound only**.
+
+**#86's prediction is now evidence.** That issue argued a real bell needs the DAC because LEDC
+bottoms out near 1 kHz (`SOC_LEDC_TIMER_BIT_WIDTH` = 14 on this part; 500 Hz → `-EINVAL`) and
+has no amplitude control. Gate 1 swept 220/440/880/1760 Hz: **all four audible, and 220/440 are
+below the LEDC floor entirely** — the DAC reaches a register PWM cannot. Gate 2 struck the
+ship's-bell pattern at 440 vs 220: **440 far superior**, and the four-step amplitude ramp
+(`DAC_CW_SCALE_1/2/4/8`, −6 dB a step) **reads as a strike rather than a staircase**. Verified at
+1, 5 and 8 bells — lone stroke, odd count, full end-of-watch eight.
+
+**Two predictions were wrong, both usefully.** (1) A sine was expected to be *quieter* than a
+square wave on a tiny buzzer, since a square carries far more harmonic energy — backwards: the
+low end is the good end and 1760 Hz sounded bad. Sweeping rather than playing one note is what
+caught it; a single frequency would have produced a confident wrong conclusion in either
+direction. (2) The four-step ramp was expected to possibly staircase and force per-sample
+additive synthesis — it did not, so **the expensive option is off the table** and the bell costs
+**zero RAM and zero CPU** (hardware cosine generator, no buffer, no DMA, no blocked thread).
+
+**Zephyr's DAC API cannot make a tone at all.** `dac_esp32.c` is `channel_setup` + `write_value`
+— one 8-bit DC level per call, no buffer, no DMA, no continuous mode. So #86's "stream unsigned
+8-bit PCM" is not an API call. The tone comes from the legacy IDF `dac_cw_generator_*`
+(130 Hz–55 kHz, four amplitude steps), reachable because `CONFIG_DAC_ESP32` compiles
+`dac_common_legacy.c` and its directory is on the global include path.
+
+**A silent failure is not a missing failure — #95.** `dac_esp32_init` fails on this part:
+`clock_control_esp32.c` returns `-EALREADY` when a module clock is already on (a success), and
+`dac_esp32.c:71` treats any non-zero as fatal. `adc_esp32.c:668` discards that same call's return
+for the *same* clock module, so the ADC driver already tolerates what the DAC driver dies on.
+Invisible because these builds carry `CONFIG_PRINTK` but not `CONFIG_LOG`, so every driver
+`LOG_ERR` compiles to nothing; `CONFIG_LOG_MODE_MINIMAL` (~1 KB) made it speak. Same family as
+#86's "rc=0 is not evidence of a physical effect". Routed around by taking the pin enable from
+`dac_output_enable()` — which *removes* a dependency rather than adding a workaround. Upstream
+candidate, not patched locally because that checkout carries the C6 radio fix.
+
+**Known artifact, diagnosed not fixed.** An audible echo on each strike: `bell_strike()` calls
+`dac_cw_generator_config()` per envelope step, and that rewrites the frequency register and
+re-stamps phase mid-tone — a phase discontinuity, i.e. a transient, three times per strike. Fix
+is `dac_ll_cw_set_atten()` alone, which touches only the amplitude field.
+
+**The arena arithmetic came back for WiFi, and #85's cost model needed correcting.** Back-computed
+from #85's *measured* overflow rather than its quoted Kconfig number, WiFi's full static cost on
+this part is **~73 KB** (the 40,960 B heap add plus ~32 KB of driver static data and net buffers),
+against ~31 KB free in a display+DAC build. `ESP_WIFI_HEAP_SPIRAM` reclaims 21,504 B — a
+**first-class Kconfig choice**, not the bespoke work #85 assumed, with `ESP_SPIRAM` supported for
+this SoC series and the 2 MB deriving straight from `esp32s2_wrover_n4r2.dtsi`. But it closes only
+half the gap: **the arena must also come down**, 64 KB → ~32–40 KB. PSRAM links (adds a 1 MB
+`ext_ram_seg`, costs 2,544 B of dram0); **boot unproven**.
+
+**The 180 s refresh limit, settled (#89).** Real, and it applies to mono panels — Adafruit's own
+`il0373_flexible_2.13_monochrome.py` sleeps 180 s — but it is a convention, not an interlock. A
+one-row update does **not** escape it today, because #88's `finalize_area` still drives the OTP
+waveform: a partial *area* under a full-refresh waveform is smaller, not gentler. Only a real
+partial LUT changes that. Moot here: the display's job is now **stats every 30 minutes** = 48
+refreshes/day, comfortably inside the guidance, so no LUT is needed and #94's question 3 stays
+closed.
+
+**Still open on this rung:** gate 3 (the nsl seam, closing #86's "not done here", with button 15
+repeating the last striking), WiFi + NTP so the bells strike at real times, stats on the panel
+every 30 min, and the echo fix. The RGB/NeoPixel flash was dropped — it would have needed `spi3`
+or I2S, since this Zephyr tree has no RMT driver and `spi2` is the e-paper's.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),

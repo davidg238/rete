@@ -166,6 +166,34 @@ env fails silently as `west: command not found`). Full per-rung detail lives in 
     the single biggest time sink of that rung. `rc=0` from `pwm_set` is *not* evidence of audio
     (160 ms notes were inaudible; 500 ms is loud). LEDC bottoms out near 1 kHz, so a real bell
     wants the DAC on the same pin, not PWM.
+  - **The DAC strikes a bell (#94), at a pitch LEDC cannot reach.** Swept on hardware: 220/440/
+    880/1760 Hz all audible, **440 chosen** — and 440 is *below* the LEDC floor above, so this is
+    a tone the PWM path could never have produced. 1760 Hz sounded bad: **the usable range is the
+    BOTTOM**, the opposite of what a square-wave-harmonics argument predicts for a tiny buzzer.
+    A four-step amplitude ramp (`DAC_CW_SCALE_1/2/4/8`) reads as a *strike*, so no per-sample
+    synthesis is needed — the bell costs **zero RAM and zero CPU**.
+    - **Zephyr's DAC API cannot generate a tone.** `dac_esp32.c` is `channel_setup` +
+      `write_value` — one 8-bit DC level per call, no buffer, no DMA. The tone comes from the
+      legacy IDF `dac_cw_generator_*` (130 Hz–55 kHz, 4 amplitude steps), compiled by
+      `CONFIG_DAC_ESP32` and on the global include path.
+    - **`dac_esp32_init` FAILS on this part (#95)** — it treats `clock_control_on`'s `-EALREADY`
+      ("clock already on", a success) as fatal, while `adc_esp32.c` discards that same call's
+      return for the same clock module. Take the pin enable from `dac_output_enable()` instead.
+    - **GPIO17 is both `LEDC_CH0_GPIO17` and `DAC_1`.** Do not enable `CONFIG_PWM` and the DAC
+      together without disabling `&ledc0` — two peripherals on one pin, claimed through different
+      register families (pinctrl vs RTC IO), failing as `rc=0` and silence. Same shape as the
+      i2c0-vs-e-paper-CS race on GPIO8.
+  - **Driver failures are SILENT here: these builds have `CONFIG_PRINTK` but not `CONFIG_LOG`,**
+    so every driver `LOG_ERR` compiles to nothing. #95 cost a build to that. When a driver
+    misbehaves for no stated reason, add `CONFIG_LOG=y` + `CONFIG_LOG_MODE_MINIMAL=y` (~1 KB
+    dram0, no backend thread) and re-flash before debugging anything else.
+  - **PSRAM: 2 MB, links but boot unproven (#85, #94).** `prj_esp32s2_psram.conf` — nothing
+    bespoke: `ESP_SPIRAM` is first-class for this SoC series, `select`s `SHARED_MULTI_HEAP`, and
+    the size derives from `esp32s2_wrover_n4r2.dtsi`. Adds a 1 MB `ext_ram_seg`, costs 2,544 B of
+    dram0. It matters because **`ESP_WIFI_HEAP_SPIRAM` reclaims 21,504 B** of dram0
+    (`HEAP_MEM_POOL_ADD_SIZE_ESP_WIFI` 40960 → 19456). **But that is only half the gap:**
+    WiFi's *full* static cost here is ~73 KB, back-computed from #85's measured overflow rather
+    than its quoted heap figure, so the arena must also drop from 64 KB to ~32–40 KB.
   - **Out-of-tree, invisible to git:** the Zephyr SDK needs `xtensa-espressif_esp32s2_zephyr-elf`
     installed (`~/zephyr-sdk-0.17.4/setup.sh -t xtensa-espressif_esp32s2_zephyr-elf`); a fresh clone
     cannot build this target without it.
@@ -173,8 +201,15 @@ env fails silently as `west: command not found`). Full per-rung detail lives in 
     soldered Debug header breaks out TX/RX only; the native USB belongs to the ROM): hold BOOT0,
     click RESET. In download mode the port is `303a:0002` / `usb-Espressif_ESP32-S2_0-if00`; once
     Zephyr is flashed the native USB stops enumerating entirely, so the soldered UART header
-    (a separate USB-serial dongle) is the board's *only* console — and opening it reboots the board,
-    so hold one pyserial handle. `run.sh --board esp32s2 --flash` scopes esptool to the S2 ROM id.
+    (a separate USB-serial dongle, a PL2303 at `/dev/ttyUSB0`) is the board's *only* console.
+    **Opening that header does NOT reboot the board** — it breaks out TX/RX only, so there is no
+    DTR/RTS for an auto-reset circuit to drive. (An earlier revision of this entry said the
+    opposite; that is the WROOM-32's rule, and it cannot apply to a cable with no reset line. See
+    `prj_esp32s2.conf`'s header for the full argument.) Consequence worth exploiting: **a console
+    handle can be held across a flash**, so the boot banner is not lost the way it is on the other
+    ESP32s. Use pyserial and hold exactly ONE handle — two readers on the port split the byte
+    stream and each silently loses lines, which looks like missing output rather than contention.
+    `run.sh --board esp32s2 --flash` scopes esptool to the S2 ROM id.
   - **`OEVM_HEAP_SIZE=65536` is provisional** (dram0 at ~81.8% of 217 KB), not a measured ceiling.
   - `flash 0x1000` (Xtensa keeps the ESP32 offset); ROM `setjmp`/`longjmp` patch applies with an
     S2-specific symbol set (`tools/patch-esp32-rom-ld.sh --chip esp32s2`).
