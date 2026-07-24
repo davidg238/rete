@@ -118,24 +118,13 @@ Document it on the seam.
 No network. Proves the bell always rings. Use the existing timer seam (`TimerNode.nsl` is
 the reference).
 
-### Stage 3 — WiFi + NTP, arena down to 16 KB  ← THE RISK
+### Stage 3 — VM stats + correction history on the panel
 
-Configs are **already written and link-tested**: `zephyr/prj_esp32s2_wifi.conf`.
-
-- `sntp_simple(server, timeout, &ts)` does init/query/close in one call
-  (`include/zephyr/net/sntp.h:161`) — no NTP state machine needed.
-- Credentials: the git-ignored `prj_esp32_wifi.local.conf` (board-agnostic symbols).
-  **`run.sh:249` only auto-applies it for `BOARD_ID=esp32`** — extend it to `esp32s2`.
-- `CONFIG_ESP_WIFI_HEAP_SPIRAM` is **commented out** in that file and must stay so until
-  tuvm#96 is fixed; selecting a heap whose backing region never came up is worse than the
-  default.
-- **Do NOT add `CONFIG_POSIX_API`** — it exports a bare `send()` that collides with oevm's
-  own `send()` dispatch function.
-
-**If the node will not run at 16 KB**, the honest options in order: trim the stack (drop
-DNS and hardcode an NTP IP; drop SNTP and correct by button), or fix tuvm#96.
-
-### Stage 4 — VM stats + correction history on the panel
+**Reordered ahead of WiFi on 2026-07-23, deliberately.** Stages 1-3 then deliver a
+**fully working appliance** — the bell strikes on a timer and the panel shows stats — which
+merely *drifts*. WiFi becomes an accuracy upgrade to something already working rather than a
+prerequisite for anything. It also confines the RAM risk to a single stage: **stats without
+WiFi runs at the full 64 KB arena**, so nothing before stage 4 is squeezed.
 
 Grid is **portrait 12x18** — 12 columns is a hard limit; longer raises `#displayBounds`
 (tuvm#89, and `rotate-180` is ON for this board). Sketch:
@@ -152,11 +141,34 @@ Grid is **portrait 12x18** — 12 columns is a hard limit; longer raises `#displ
   24h +0.9/-1.2
 ```
 
-`heapStats` / `sysStats` prims already exist. The bottom block is this rung's own data:
-last NTP correction, and min/max correction over 24 h. **Repaint after the striking.**
+`heapStats` / `sysStats` prims already exist. The bottom block is stage 4's data — until then
+show a placeholder or omit those two rows; do not block stage 3 on it. **Repaint after the
+striking**, never on the same tick.
 
 At 30-minute updates this is **48 refreshes/day**, comfortably inside the 180 s guidance, so
 **no partial-refresh LUT is needed** and #94's original question 3 stays closed (see tuvm#89).
+
+### Stage 4 — WiFi + NTP, arena down to 16 KB  ← THE RISK, AND IT IS LAST
+
+Configs are **already written and link-tested**: `zephyr/prj_esp32s2_wifi.conf`.
+
+- `sntp_simple(server, timeout, &ts)` does init/query/close in one call
+  (`include/zephyr/net/sntp.h:161`) — no NTP state machine needed.
+- Credentials: the git-ignored `prj_esp32_wifi.local.conf` (board-agnostic symbols).
+  **`run.sh:249` only auto-applies it for `BOARD_ID=esp32`** — extend it to `esp32s2`.
+- `CONFIG_ESP_WIFI_HEAP_SPIRAM` is **commented out** in that file and must stay so until
+  tuvm#96 is fixed; selecting a heap whose backing region never came up is worse than the
+  default.
+- **Do NOT add `CONFIG_POSIX_API`** — it exports a bare `send()` that collides with oevm's
+  own `send()` dispatch function.
+
+Adds the bottom block of the stage-3 panel: last NTP correction, and min/max correction over
+24 h.
+
+**If the node will not run at 16 KB**, the honest options in order: trim the stack (drop
+DNS and hardcode an NTP IP; drop SNTP and correct by button), or fix tuvm#96. **Because this
+stage is last, a failure here costs the accuracy upgrade and nothing else** — stages 1-3 stay
+shipped and working at 64 KB.
 
 ## Carry-over defect: the echo (fold into stage 1)
 
