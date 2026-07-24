@@ -99,9 +99,25 @@ def test_sync_fail_keeps_striking():
         _, last, _, _, _, _, stale, *_ = read_rtc(rtc)
         assert last == 8 and stale == 14400, read_rtc(rtc)     # struck, count kept, stale grew
 
+def test_watch_end_panel():
+    with tempfile.TemporaryDirectory() as d:
+        rtc = Path(d) / "rtc.bin"
+        seed_rtc(rtc, last=7, anchor=0, elapsed=14400, syncs=2, d24max=8, d24min=-3)
+        out = run_wake(rtc, ntp=14400)                      # exact 04:00 -> on-time, drift 0
+        # heap row is intentionally skipped on host (16 MB arena -> "/16384K" overflows 12 cols).
+        for row in ("| tuvm", "| ----------", "| ppm", "| up",
+                    "| ntp", "| 24h", "| sync"):
+            assert row in out, (row, out)
+        assert "sync true 14400 predicted 14400 -> hold half 8" in out, out   # on-time -> drift measured
+        assert "| ntp" in out and "+0.0s" in out, out       # drift 0 measured this watch
+        for line in out.splitlines():
+            if line.startswith("| "):
+                assert len(line) - 2 <= 12, line            # 12-col hard limit (design §5)
+
 if __name__ == "__main__":
     test_cold_boot_strike()
     test_hold_when_ahead()
     test_advance_silent_when_behind()
     test_sync_fail_keeps_striking()
+    test_watch_end_panel()
     print("ok")
