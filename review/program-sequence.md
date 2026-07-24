@@ -1461,7 +1461,12 @@ striking re-entrant.
 **Witnessed on the MagTag** (console): `BELL OK 440 Hz` → `striking 5` (nsl) → `bell: 440 Hz x5`
 (the C leaf, i.e. the prim reached with the count the node meant) → `struck` → `gate3 caught
 bellBounds` → `ready`. Gate 3 firing **on the board** is what proves the range check shipped inside
-the `.oimg`, not merely that it passes on the host. **Button-15 repeat is not yet witnessed.**
+the `.oimg`, not merely that it passes on the host. Then **BUTTON_A pressed twice → exactly two
+`repeat 5` / `bell: 440 Hz x5` / `struck`** — the gate that proves the striking is re-entrant, i.e.
+that moving the amp mute/un-mute from once-at-boot to per-strike actually works. **Two presses,
+two strikings**: no double-fire from the `EDGE_TO_ACTIVE` question (tuvm#84) and no press lost to
+the ~2.5 s blocking strike, which is the mailbox shedding-and-coalescing property (tuvm#34) doing
+its job on a prim that blocks far longer than a display refresh does.
 
 **The echo: largely gone, and the residual is the honest part.** Configure once, then step
 `dac_ll_cw_set_atten()` alone — no frequency rewrite, no phase re-stamp, no RTC-8M re-measure
