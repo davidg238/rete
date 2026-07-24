@@ -28,16 +28,26 @@ class MagTagDisplayNode packageUsing: manifest = () (
       on: [ :e | e tag = #displayBounds ]
       do: [ :e | 'gate3 caught displayBounds' out ].
 
+    (* `whenever:do:` is the ONLY subscription selector in this dialect
+       (Channel>>whenever:do:, kernel.nsl:1608) — Space has no `on:do:`, and
+       because nsl dispatches dynamically the wrong selector compiles clean and
+       kills the node at run time. The first bench run died exactly here: gate 1
+       and gate 3 printed, `ready` never did. *)
     press:: space channel: 'btn/press'.
-    space on: press do: [ :m |
+    press whenever: '' do: [ :m |
       count:: count + 1.
       display at: 4 col: 0 put: 'presses: ' , count printString.
       display refreshRow: 4.
       ('gate2 row 4 -> ' , count printString) out ].
-    gpio pin: 15 edge: #falling post: #down on: press.
+    gpio pin: 15 edge: #falling post: 'A' on: press.
 
     'ready' out.
-    [ true ] whileTrue: [ platform pumpEvents ].
+    (* `platform pumpEvents` only pumps the backends INTO the space queue
+       (platform.c:947 — http_poll / pulse_pump / timer poll); `space drain` is
+       what dequeues and fires reactions (kernel.nsl:1651). A reactor loop
+       without the drain enqueues button presses forever and runs none of them.
+       Same pairing as MagTagChordNode.nsl:68, the proven button node. *)
+    [ true ] whileTrue: [ platform pumpEvents. space drain ].
   )
 ) : (
 )
