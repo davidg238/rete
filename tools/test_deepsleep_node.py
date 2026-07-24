@@ -45,6 +45,12 @@ def run_wake(rtc_file, ntp=None, no_ntp=False):
 def read_rtc(path):
     with open(path, "rb") as f: return struct.unpack("<10i", f.read(40))
 
+def seed_rtc(path, last=0, boot=0, anchor=0, elapsed=0, drift=0, stale=0,
+             d24max=0, d24min=0, syncs=0):
+    with open(path, "wb") as f:
+        f.write(struct.pack("<10i", RTC_MAGIC, last, boot, anchor, elapsed,
+                            drift, stale, d24max, d24min, syncs))
+
 # --- scenarios --------------------------------------------------------------------
 def test_cold_boot_strike():
     with tempfile.TemporaryDirectory() as d:
@@ -56,5 +62,46 @@ def test_cold_boot_strike():
         magic, last, boot, *_ = read_rtc(rtc)
         assert magic == RTC_MAGIC and last == 1 and boot == 1, read_rtc(rtc)
 
+def test_hold_when_ahead():
+    # Watch end at 04:00 (half 8). Seed lastStruckHalf=7, predictedNow=14400 (04:00).
+    # NTP says 03:59:57 -> trueHalf 7 <= struck 8 after the +1 strike -> HOLD, no re-strike.
+    with tempfile.TemporaryDirectory() as d:
+        rtc = Path(d) / "rtc.bin"
+        seed_rtc(rtc, last=7, anchor=0, elapsed=14400)
+        out = run_wake(rtc, ntp=14397)
+        # count the node's OWN per-wake marker, not "struck" — the host bell leaf also
+        # prints "bell: struck N", so out.count("struck") would be 2, not 1.
+        assert out.count("wake half") == 1, out               # exactly one strike wake
+        assert "-> hold half 8" in out, out                    # count not moved back
+        _, last, *_ = read_rtc(rtc)
+        assert last == 8, read_rtc(rtc)                        # ratchet held at 8
+
+def test_advance_silent_when_behind():
+    # Missed wakes: seed lastStruckHalf=7 but NTP says it is already 06:00 (half 12).
+    # After the +1 strike (half 8) the sync finds trueHalf 12 > 8 -> advance to 12,
+    # SILENTLY (only the one strike this wake, skipped bells not rung).
+    with tempfile.TemporaryDirectory() as d:
+        rtc = Path(d) / "rtc.bin"
+        seed_rtc(rtc, last=7, anchor=0, elapsed=14400)
+        out = run_wake(rtc, ntp=21600)                         # 06:00:00
+        assert out.count("wake half") == 1, out               # one strike wake, skipped bells NOT rung
+        assert "-> advance half 12" in out, out
+        _, last, *_ = read_rtc(rtc)
+        assert last == 12, read_rtc(rtc)
+
+def test_sync_fail_keeps_striking():
+    with tempfile.TemporaryDirectory() as d:
+        rtc = Path(d) / "rtc.bin"
+        seed_rtc(rtc, last=7, anchor=0, elapsed=14400, stale=0)
+        out = run_wake(rtc, no_ntp=True)
+        assert out.count("ntp miss") == 3, out                 # 3 attempts, all miss
+        assert "sync failed, stale grows" in out, out
+        _, last, _, _, _, _, stale, *_ = read_rtc(rtc)
+        assert last == 8 and stale == 14400, read_rtc(rtc)     # struck, count kept, stale grew
+
 if __name__ == "__main__":
-    test_cold_boot_strike(); print("ok")
+    test_cold_boot_strike()
+    test_hold_when_ahead()
+    test_advance_silent_when_behind()
+    test_sync_fail_keeps_striking()
+    print("ok")
