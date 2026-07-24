@@ -1491,6 +1491,64 @@ the bell had nothing to do with it: `build-esp32s2-B/CMakeCache.txt` still carri
 **Any RAM number quoted from an incremental Zephyr build is suspect** until the cache is checked —
 which matters most at stage 4, where the whole question *is* a RAM number.
 
+## The clock strikes itself — 2026-07-24, #94 stages 2-3, on the MagTag
+
+**The headline is not the feature, it is that the feature was claimed a day early.** Stages 2 and
+3 were committed and reported as "witnessed by button" on 2026-07-23: BUTTON_B drove
+`advanceAndStrike`, the bell rang, the panel repainted, and every visible thing a working clock
+does happened. Then the unattended run: **9h23m, 0 of ~19 expected strikes.** The button and the
+timer deliberately share ONE code path — the design's own note calls it "THE ONE PATH THE TIMER
+AND BUTTON_B SHARE" — so pressing the button exercised all of it *except the only part in
+question*, which is whether the timer ever calls it. **An interactive trigger cannot witness an
+autonomous path.** The shared path that made the code clean is exactly what made the test
+worthless, and neither the host suite nor a photograph of the panel could have caught it.
+
+**The bug is a platform-accessor freshness bug, and it is the reusable part.** `platform timers`
+answers a **fresh** `Timers` instance on every call. The node registered with one
+(`timers every: … post: … on: …`) and the drain loop dispatched on another, so the C-side k_timer
+fired correctly every 300 s, the event arrived, and `dispatch:` looked it up in an instance whose
+nsl-side `pending` registry was empty — and dropped it. Silently: no raise, no status code,
+nothing to read. **Fresh-instance accessors are safe only when C owns the state** — `display`,
+`gpio`, `bell` all qualify, because the instance is a stateless handle onto hardware. `timers` is
+the exception in the seam family, because its registry lives in **nsl**. Fix is one field holding
+one instance (`b6a9ead`); the general rule is that any seam keeping nsl-side state must be bound
+once, not re-fetched.
+
+**Witnessed unattended 2026-07-24, and the gate is a full watch, not a strike.** Boot 07:17,
+cadence 300 s, no button touched at any point:
+
+```
+00:30 →1  01:00 →2  01:30 →3  02:00 →4  02:30 →5
+03:00 →6  03:30 →7  04:00 →8  04:30 →1   ← the watch rolls
+```
+
+Nine ticks, nine strikings, zero misses, zero faults, every repaint landing **after** its strike
+as the ordering rule requires. Insisting on a full 8-bell watch rather than stopping at the first
+strike is what verifies `bellsForHalfHour:` across its whole range and the roll back to 1 — the
+button gates had only ever exercised a hand-picked count.
+
+**The cadence was cut 30 min → 5 min for the bench, and that makes it a 6× demo clock.** One tick
+still advances one half-hour of *clock* time, so a full watch costs 40 min of bench time instead
+of 4 hours — but the panel now reads `04:30` after 45 real minutes. 300 s was chosen as the
+fastest cadence that still clears the e-paper's ~180 s refresh guidance (#89), so the panel is
+never stressed. **Stage 4 must reconcile this**: NTP alignment needs either 1800000 for that
+build or an explicit tick→clock-time mapping. Flagged in the node, not left to be rediscovered.
+
+**Stage 3's panel is honest about what it does not know**, which is the point of putting stats on
+glass at all: `bells` reads `--` until the first strike rather than showing a seeded `lastBells`,
+and `ntp`/`24h` read `--` through stages 2-3. A panel that displays a plausible number it has not
+earned is worse than one that admits the gap.
+
+**One number came out of the run unresolved, and it is stage 4's problem.** Live bytes climbed
+monotonically across all nine ticks — 18 KB at boot, then 21/24/27/30/33/35/38/41/**44** KB — with
+`gc 0` throughout. That is the collect-when-full GC behaving exactly as `tuvm-vm-memory-model`
+says it does (nothing is reclaimed until the arena is full), so it is **not evidence of a leak** —
+but the run ended before the first collection, so it is **not evidence against one either, and no
+post-GC live figure was ever measured.** It matters because stage 4 links at a **16 KB arena**,
+and this build shows 18 KB live at boot on a 64 KB one: uncollected, that working set does not fit
+the arena stage 4 proposes. The cheap discriminator is a host run at `OEVM_HEAP_SIZE=16384` under
+simulated time, which costs no hardware.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
