@@ -379,64 +379,71 @@ The design §9 pins the state machine's pure formulas as standalone host tests, 
 
 - [ ] **Step 1: Write the failing test** — `~/workspace/nsl-tests/20_bell/09_bell_math.nsl`
 
+Every printed line below equals exactly one `expect:` row — the values are floor-division
+results (nsl `//` floors toward −∞), verified: `(10*1000000)//86400 = 115`, and the negative
+`(-10*1000000)//86400 = -116` (asymmetric — worth pinning, since a symmetric-magnitude drift
+does NOT give symmetric ppm under floor division).
+
 ```
 (*
 expect:
-boundary at 66600 is 1800
-boundary at 67500 is 900
-boundary at 68399 is 1
-boundary at 86399 is 1
-ratchet fwd 40 from 37 -> 40 struck false
-ratchet hold 35 from 37 -> 37 struck false
-ratchet next 38 from 37 -> 38 struck true
-ppm +116 over 86400 drift 10
-ppm -116 over 86400 drift -10
-stale 0d/00h from 0
-stale 0d/14h from 50400
-stale 2d/12h from 216000
+boundary 66600 1800
+boundary 67500 900
+boundary 68399 1
+boundary 86399 1
+ratchet true40 last37 new40 strike false
+ratchet true35 last37 new37 strike false
+ratchet true38 last37 new38 strike true
+ppm 10/86400 115
+ppm -10/86400 -116
+ppm 10/0 0
+stale 0 0d/00h
+stale 50400 0d/14h
+stale 216000 2d/12h
 finished
 *)
 (* tuvm#94 stage 5 — the run-once state machine's PURE arithmetic, host, no seam and
    no wall clock. Each formula is spelled EXACTLY as the node (Tasks 4-6) spells it, so
-   this test and the node cannot silently diverge. nsl has no modulo: `x mod n` is
-   `x - ((x // n) * n)` throughout. *)
+   this test and the node cannot silently diverge. nsl has no modulo (tuvm#97): `x mod n`
+   is `x - ((x // n) * n)` throughout. *)
 class BellMath packageUsing: manifest = () (
   public main: platform args: args = (
     (* seconds to the NEXT half-hour boundary, in SECONDS (design §3). A boundary-exact
        input yields a FULL interval (1800), never 0 — the double-strike edge. *)
-    ('boundary at 66600 is ' , (self secondsToNextBoundary: 66600) printString) out.  (* 18:30:00 *)
-    ('boundary at 67500 is ' , (self secondsToNextBoundary: 67500) printString) out.  (* 18:45:00 *)
-    ('boundary at 68399 is ' , (self secondsToNextBoundary: 68399) printString) out.  (* 18:59:59 *)
-    ('boundary at 86399 is ' , (self secondsToNextBoundary: 86399) printString) out.  (* 23:59:59 *)
+    ('boundary 66600 ' , (self secondsToNextBoundary: 66600) printString) out.  (* 18:30:00 exact *)
+    ('boundary 67500 ' , (self secondsToNextBoundary: 67500) printString) out.  (* 18:45:00 *)
+    ('boundary 68399 ' , (self secondsToNextBoundary: 68399) printString) out.  (* 18:59:59 *)
+    ('boundary 86399 ' , (self secondsToNextBoundary: 86399) printString) out.  (* 23:59:59 *)
 
     (* The §2 ratchet decision: given a true half-hour index and the last struck index,
-       answer the new lastStruckHalf and whether the CURRENT wake should strike. A sync
-       correction NEVER strikes (forward = silent catch-up; behind = hold). *)
-    (self showRatchet: 'fwd '  true: 40 last: 37).   (* clock ran slow: advance, silent *)
-    (self showRatchet: 'hold ' true: 35 last: 37).   (* clock ran fast: hold, no strike *)
-    (self showRatchet: 'next ' true: 38 last: 37).   (* the ordinary strike wake: +1, strike *)
+       answer the new lastStruckHalf and whether THIS wake strikes. Only the ordinary
+       strike wake (true = last+1) strikes; a sync jump forward, or a hold when ahead,
+       never strikes. *)
+    (self showRatchetTrue: 40 last: 37).   (* clock ran slow: advance, silent *)
+    (self showRatchetTrue: 35 last: 37).   (* clock ran fast: hold, no strike *)
+    (self showRatchetTrue: 38 last: 37).   (* the ordinary strike wake: +1, strike *)
 
-    (* drift in ppm = (measured drift seconds / elapsed seconds) * 1e6, signed. *)
-    ('ppm +116 over 86400 drift 10 has ppm '  , (self driftPpm: 10 over: 86400) printString) out.
-    ('ppm -116 over 86400 drift -10 has ppm ' , (self driftPpm: -10 over: 86400) printString) out.
+    (* drift in ppm = (drift seconds * 1e6) // elapsed seconds, signed, floored. The
+       0-elapsed guard answers 0 (the first sync has no interval to measure over). *)
+    ('ppm 10/86400 '  , (self driftPpm: 10 over: 86400) printString) out.
+    ('ppm -10/86400 ' , (self driftPpm: -10 over: 86400) printString) out.
+    ('ppm 10/0 '      , (self driftPpm: 10 over: 0) printString) out.
 
-    ('stale 0d/00h from 0 is '      , (self staleField: 0)) out.
-    ('stale 0d/14h from 50400 is '  , (self staleField: 50400)) out.   (* 14 h *)
-    ('stale 2d/12h from 216000 is ' , (self staleField: 216000)) out.  (* 2 d 12 h *)
+    ('stale 0 '      , (self staleField: 0)) out.
+    ('stale 50400 '  , (self staleField: 50400)) out.   (* 14 h *)
+    ('stale 216000 ' , (self staleField: 216000)) out.  (* 2 d 12 h *)
     'finished' out.
   )
 
   secondsToNextBoundary: sec = ( ^ 1800 - (sec - ((sec // 1800) * 1800)) )
 
-  showRatchet: tag true: trueHalf last: lastHalf = (
+  showRatchetTrue: trueHalf last: lastHalf = (
     | newHalf struck |
-    (* forward-only: a strike wake is `last + 1` and DOES strike; a sync that finds us
-       behind advances silently; a sync that finds us ahead holds. Encoded as: if the
-       target is exactly last+1 we strike; any jump/hold from a sync does not. *)
     (trueHalf > lastHalf)
        ifTrue:  [ newHalf:: trueHalf. struck:: (trueHalf = (lastHalf + 1)) ]
        ifFalse: [ newHalf:: lastHalf. struck:: false ].
-    (tag , (self padSign: '') , newHalf printString , ' struck ' , (struck ifTrue: [ 'true' ] ifFalse: [ 'false' ])) out.
+    ('ratchet true' , trueHalf printString , ' last' , lastHalf printString ,
+       ' new' , newHalf printString , ' strike ' , (struck ifTrue: [ 'true' ] ifFalse: [ 'false' ])) out.
     ^ self )
 
   driftPpm: driftSec over: elapsedSec = (
@@ -452,19 +459,16 @@ class BellMath packageUsing: manifest = () (
     ^ d printString , 'd/' , (self pad: h) , 'h' )
 
   pad: n = ( (n < 10) ifTrue: [ ^ '0' , n printString ]. ^ n printString )
-  padSign: s = ( ^ s )
 ) : (
 )
 ```
 
-Note the ratchet log lines are built to read `ratchet <tag><newHalf> from <last> -> ...`; adjust the `showRatchet:` string assembly so its output matches the `expect:` block verbatim before running (the `expect:` rows above are the contract — make the code print them). If the assembled string differs, fix the code, not the expectation.
-
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `python3 ~/workspace/nsl-tuvm/tools/run-one.py ~/workspace/nsl-tests/20_bell/09_bell_math.nsl B`
-Expected: FAIL — output does not yet match (methods not yet written / mismatched strings).
+Expected: FAIL — methods not yet written / output does not match.
 
-- [ ] **Step 3: Make it pass** — implement the five methods exactly as above and align the print strings to the `expect:` block.
+- [ ] **Step 3: Make it pass** — the code above IS the implementation; run it and confirm every printed line equals its `expect:` row. If a value differs, the arithmetic spelling is wrong — fix the method, not the expectation (the `expect:` values are verified floor-division results).
 
 - [ ] **Step 4: Run to verify it passes**
 
