@@ -1,0 +1,50 @@
+(*
+expect:
+foreign ticks 0
+done
+*)
+(* THE TIMER FOOTGUN THAT COST A NIGHT (2026-07-23/24, tuvm#94).
+
+   `platform timers` answers a **fresh Timers instance on every call**, and each
+   instance owns its own `pending` registry (token -> chan/msg). `Timers>>dispatch:`
+   does `pending at: tokenEvent ifAbsent: [nil]` and, finding nothing, **silently
+   returns** — no raise, no log, no crash.
+
+   So a node that registers its timer on one instance and dispatches `sys/timer` on
+   another gets a timer that is armed in C, fires correctly, posts correctly — and is
+   then dropped on the floor. The observable is TOTAL SILENCE, which is
+   indistinguishable from a hung board. A MagTag clock ran 9h23m overnight and struck
+   ZERO of ~19 expected bells this way; the bug was in the node, not the timer.
+
+   This test pins the negative: `good` is the dispatching instance and registers
+   NOTHING, so its `pending` is empty; a timer registered on a *foreign* instance
+   fires in C and delivers nothing. If a future change makes a foreign registration
+   deliverable (or makes the drop loud), this test is the one that must be revisited.
+
+   The positive case — one held instance, register and dispatch on it — is
+   `06_timers.nsl`, which is why this file only needs the negative. Determinism via
+   the host virtual clock (`advanceMillis:`), never wall time.
+
+   Note also, for anyone tempted to "just use two instances": each fresh Timers starts
+   `nextToken ::= 1`, so two instances hand out COLLIDING tokens. Even if dispatch
+   found an entry it could be the wrong one. One instance per registry is the only
+   coherent rule. *)
+class TimersInstanceIdentity packageUsing: manifest = ( | ticks ::= 0. | ) (
+  public main: platform args: args = (
+    | space good ping |
+    space:: platform space.
+    (* `good` is the DISPATCHER, and deliberately registers nothing. *)
+    good:: platform timers.
+    space whenever: 'sys/timer' do: [ :e | good dispatch: e ].
+    ping:: space channel: 'ping'.
+    ping whenever: '' do: [ :m | ticks:: ticks + 1 ].
+
+    (* FOREIGN registration — a different Timers instance owns this token. *)
+    (platform timers) every: 30 post: #o on: ping.
+
+    platform advanceMillis: 300. space drain.
+    ('foreign ticks ' , ticks printString) out.
+    'done' out.
+  )
+) : (
+)
