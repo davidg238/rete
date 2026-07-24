@@ -154,8 +154,17 @@ case "$BOARD_ID" in
     #
     # Entering download mode is MANUAL and unavoidable: the soldered UART Debug
     # header breaks out TX/RX only (no DTR/RTS), and this native port belongs to
-    # the ROM, so esptool has no reset line to drive either way. Hold BOOT0,
-    # click RESET, release BOOT0 — then flash.
+    # the ROM, so esptool has no reset line to drive. Hold BOOT0, click RESET,
+    # release BOOT0 — then flash.
+    #
+    # LEAVING download mode is NOT manual, contrary to what this comment and
+    # flash-magtag.sh both claimed until 2026-07-23. esptool does not need a
+    # reset line: ESP32S2ROM.hard_reset() detects USB-OTG and, when the
+    # strapping allows, arms the RTC watchdog and lets it fire
+    # (esptool/targets/esp32s2.py:291-314). Observed on the bench — esptool
+    # printed 'Hard resetting with a watchdog...' and the app booted with no
+    # hand on the board. So a flash-and-witness loop needs a human ONCE, to
+    # enter download mode, not twice.
     #
     # The console is the OTHER port: the UART header on GPIO43/44 via a PL2303
     # (usb-Prolific_...-if00-port0). It is a separate device from this one, so a

@@ -183,6 +183,23 @@ env fails silently as `west: command not found`). Full per-rung detail lives in 
       together without disabling `&ledc0` — two peripherals on one pin, claimed through different
       register families (pinctrl vs RTC IO), failing as `rc=0` and silence. Same shape as the
       i2c0-vs-e-paper-CS race on GPIO8.
+    - **Drive the envelope with `dac_ll_cw_set_atten()`, never `dac_cw_generator_config()`
+      (#94 stage 1).** `config()` is the legacy driver's only public route to the amplitude field,
+      but it also rewrites the frequency divider, re-stamps phase, and re-measures the uncalibrated
+      RTC-8M oscillator — so calling it per envelope step puts three phase discontinuities inside
+      one tone, heard on the bench as an echo. Configure **once** per strike, then step
+      `dac_ll_cw_set_atten()` (`hal/dac_ll.h`, on the global include path), which touches only
+      `SENS.sar_dac_ctrl2.dac_scale1`. Going under the driver skips its mutex — fine here, where
+      this TU is the only DAC user and the strike runs on the VM's single cooperative thread.
+      Verdict after the fix: **"largely gone", not gone.** Two mechanisms remain and are inherent
+      to a 4-step hardware envelope — each -6 dB step is an instantaneous amplitude jump, and the
+      strike ends by disabling the generator at 1/8 scale rather than at zero.
+  - **nsl drives the bell, via prim 129 `bellStrike:` (#94 stage 1).** `bell_bringup()` enables the
+    pin at boot and rings nothing; `bell_target_strike(n)` un-mutes the amp, waits the 50 ms
+    settle, strikes, and re-mutes — **per strike, not once at boot**, which is what makes a repeat
+    work. The 1-8 range check lives in nsl (`class Bell`), *not* in C, because it is the
+    ship's-bell convention rather than a hardware limit; so this seam has two status tags where
+    the display seam has three.
   - **Driver failures are SILENT here: these builds have `CONFIG_PRINTK` but not `CONFIG_LOG`,**
     so every driver `LOG_ERR` compiles to nothing. #95 cost a build to that. When a driver
     misbehaves for no stated reason, add `CONFIG_LOG=y` + `CONFIG_LOG_MODE_MINIMAL=y` (~1 KB
@@ -197,9 +214,15 @@ env fails silently as `west: command not found`). Full per-rung detail lives in 
   - **Out-of-tree, invisible to git:** the Zephyr SDK needs `xtensa-espressif_esp32s2_zephyr-elf`
     installed (`~/zephyr-sdk-0.17.4/setup.sh -t xtensa-espressif_esp32s2_zephyr-elf`); a fresh clone
     cannot build this target without it.
-  - **Flashing is manual, and the UART header is the only console.** No reset line either way (the
-    soldered Debug header breaks out TX/RX only; the native USB belongs to the ROM): hold BOOT0,
-    click RESET. In download mode the port is `303a:0002` / `usb-Espressif_ESP32-S2_0-if00`; once
+  - **ENTERING download mode is manual; LEAVING it is not.** Hold BOOT0, click RESET — there is no
+    reset line for esptool to drive (the soldered Debug header breaks out TX/RX only; the native
+    USB belongs to the ROM). But esptool does not need one to get *out*: `ESP32S2ROM.hard_reset()`
+    detects USB-OTG and arms the RTC watchdog instead (`esptool/targets/esp32s2.py:291-314`),
+    printing `Hard resetting with a watchdog...`. Observed 2026-07-23 — the app booted with no
+    hand on the board. **So the flash loop needs a human once, not twice**, and `run.sh`/
+    `flash-magtag.sh` said otherwise until that date. Fall back to a manual RESET click only if
+    that line is absent (esptool's strapping check can decline) or the console stays silent.
+    In download mode the port is `303a:0002` / `usb-Espressif_ESP32-S2_0-if00`; once
     Zephyr is flashed the native USB stops enumerating entirely, so the soldered UART header
     (a separate USB-serial dongle, a PL2303 at `/dev/ttyUSB0`) is the board's *only* console.
     **Opening that header does NOT reboot the board** — it breaks out TX/RX only, so there is no

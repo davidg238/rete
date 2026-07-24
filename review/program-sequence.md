@@ -1406,10 +1406,11 @@ Invisible because these builds carry `CONFIG_PRINTK` but not `CONFIG_LOG`, so ev
 `dac_output_enable()` — which *removes* a dependency rather than adding a workaround. Upstream
 candidate, not patched locally because that checkout carries the C6 radio fix.
 
-**Known artifact, diagnosed not fixed.** An audible echo on each strike: `bell_strike()` calls
-`dac_cw_generator_config()` per envelope step, and that rewrites the frequency register and
-re-stamps phase mid-tone — a phase discontinuity, i.e. a transient, three times per strike. Fix
-is `dac_ll_cw_set_atten()` alone, which touches only the amplitude field.
+**Known artifact, diagnosed not fixed** *(fixed in stage 1 below — largely, not wholly)*. An
+audible echo on each strike: `bell_strike()` calls `dac_cw_generator_config()` per envelope step,
+and that rewrites the frequency register and re-stamps phase mid-tone — a phase discontinuity,
+i.e. a transient, three times per strike. Fix is `dac_ll_cw_set_atten()` alone, which touches only
+the amplitude field.
 
 **The arena arithmetic came back for WiFi, and #85's cost model needed correcting.** Back-computed
 from #85's *measured* overflow rather than its quoted Kconfig number, WiFi's full static cost on
@@ -1428,10 +1429,62 @@ partial LUT changes that. Moot here: the display's job is now **stats every 30 m
 refreshes/day, comfortably inside the guidance, so no LUT is needed and #94's question 3 stays
 closed.
 
-**Still open on this rung:** gate 3 (the nsl seam, closing #86's "not done here", with button 15
-repeating the last striking), WiFi + NTP so the bells strike at real times, stats on the panel
-every 30 min, and the echo fix. The RGB/NeoPixel flash was dropped — it would have needed `spi3`
-or I2S, since this Zephyr tree has no RMT driver and `spi2` is the e-paper's.
+**Still open on this rung:** WiFi + NTP so the bells strike at real times, and stats on the panel
+every 30 min. The RGB/NeoPixel flash was dropped — it would have needed `spi3` or I2S, since this
+Zephyr tree has no RMT driver and `spi2` is the e-paper's.
+
+## nsl strikes the bell — 2026-07-23, #94 stage 1, on the MagTag
+
+**The seam, not the sound, is the result.** `PRIM_pf_bellStrike` (129) promotes the bell from
+boot-time C to something a node decides, closing #86's "not done here". Five sites, the same
+recipe #88's display seam established: `prim_ids.h`, the enum + `PRIM_NAMES` + **the parity check**
+in `dispatch.c`, the host leaf and dispatch case in `platform.c`, the device leaf in
+`zephyr/src/main.c`, and the `Bell` class + accessor in `nsl-tuvm/lib/kernel.nsl`. The parity
+check is the load-bearing one: omitting it silently misroutes every platform prim after the
+insertion point, and nothing else catches that.
+
+**ONE prim, not a family — and the boundary is the interesting decision.** The ship's-bell
+phrasing (pairs, lone final stroke) and the four-step envelope stay in C because they are
+hardware-shaped; exposing them separately would let nsl compose a striking the cosine generator
+cannot voice. The **1-8 range check went the other way, into nsl**, because it is *not* a hardware
+limit — the generator would happily strike twenty — it is the ship's-bell convention, a fact about
+the product. Consequence, and the reusable part: **C carries no bounds status code for the bell**,
+so this seam has two tags (`#bellUnavailable`, `#bellFault`) where the display has three. The rule
+that falls out: a status code in C is warranted only when C is the thing that knows.
+
+**The boot demo was deleted, not kept.** Gates 1-2 rang three times of day at start-up. Left in,
+that would be ~20 s of bells before a node got a word in — but the real objection is evidential: a
+board that rings on every reset sounds like a working seam **whether or not the seam works**. The
+amp mute/un-mute moved from once-at-boot to per-strike with it, which is also what makes the
+striking re-entrant.
+
+**Witnessed on the MagTag** (console): `BELL OK 440 Hz` → `striking 5` (nsl) → `bell: 440 Hz x5`
+(the C leaf, i.e. the prim reached with the count the node meant) → `struck` → `gate3 caught
+bellBounds` → `ready`. Gate 3 firing **on the board** is what proves the range check shipped inside
+the `.oimg`, not merely that it passes on the host. **Button-15 repeat is not yet witnessed.**
+
+**The echo: largely gone, and the residual is the honest part.** Configure once, then step
+`dac_ll_cw_set_atten()` alone — no frequency rewrite, no phase re-stamp, no RTC-8M re-measure
+mid-tone. Bench verdict was *"largely gone"*, so the diagnosed cause was real but not the only one.
+Two mechanisms remain and were never addressed: each -6 dB step is an **instantaneous amplitude
+jump**, a waveform discontinuity unless it lands on a zero crossing, and the strike **ends by
+disabling the generator at 1/8 scale**, a hard cut from a non-zero amplitude. Both are inherent to
+a 4-step hardware envelope; neither is a bug in the fix. A cheap discriminator if it ever matters:
+a per-*strike* artifact points at the steps, a per-*striking* one at the amp gate.
+
+**Corrected: esptool resets this board itself.** `run.sh` and `flash-magtag.sh` both claimed a
+manual RESET was needed after flashing because the native port belongs to the ROM. Wrong —
+`ESP32S2ROM.hard_reset()` detects USB-OTG and arms the RTC watchdog instead of driving a reset
+line it does not have (`esptool/targets/esp32s2.py:291-314`). Observed: `Hard resetting with a
+watchdog...`, then the app booted untouched. The flash loop needs a human **once**, to enter
+download mode, not twice. Also confirmed: reopening the PL2303 console handle does **not** reboot
+the board — unlike the CP210x consoles.
+
+**A build-hygiene trap worth one line.** The first stage-1 link overflowed dram0 by 38,848 B and
+the bell had nothing to do with it: `build-esp32s2-B/CMakeCache.txt` still carried
+`EXTRA_CONF_FILE=prj_esp32s2_wifi.conf` from the stage-4 link probe. `--pristine` cleared it.
+**Any RAM number quoted from an incremental Zephyr build is suspect** until the cache is checked —
+which matters most at stage 4, where the whole question *is* a RAM number.
 
 ## Known stale docs (do not treat as current)
 

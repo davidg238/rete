@@ -48,9 +48,16 @@ echo ">> flashing $NODE"
 "$ZDIR/run.sh" --board esp32s2 --model B --node "$NODE" --flash
 
 # ---- 3. boot the app ------------------------------------------------------
-# esptool cannot reset the native port, so this is manual too.
+# esptool RESETS THIS BOARD ITSELF. Corrected on the bench 2026-07-23: the
+# earlier claim here ("esptool cannot reset the native port") was wrong.
+# ESP32S2ROM.hard_reset() detects USB-OTG and arms the RTC watchdog instead of
+# driving a reset line it does not have — watch for 'Hard resetting with a
+# watchdog...' in esptool's output above. Only fall back to a manual click if
+# that line is absent (the strapping check in esptool/targets/esp32s2.py:301
+# can decline) or the console stays silent.
 echo
-echo ">> flash done. Click RESET (no BOOT0) to boot the app."
+echo ">> flash done. esptool should have watchdog-reset the board into the app;"
+echo "   click RESET (no BOOT0) only if the console shows no boot banner."
 
 # ---- 4. console -----------------------------------------------------------
 if [ "$OPEN_CONSOLE" = 1 ]; then
