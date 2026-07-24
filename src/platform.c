@@ -260,6 +260,32 @@ int bell_target_strike(int bells) {
     if (len > 0) platform_console_write(line, (size_t)len);
     return 0;
 }
+
+/* tuvm#94 stage 4: the host side of the NTP seam. The host has no clock to sync,
+   so what it offers instead is DETERMINISM — OEVM_NTP_SECONDS=N makes it answer N,
+   which is what lets a suite test drive the catchup arithmetic to an exact expected
+   value instead of against wall time. The env value is taken as the POST-offset
+   answer (seconds since local midnight), so `tz_offset_seconds` is deliberately
+   ignored here: on target the offset is applied to a real epoch, while on host the
+   test states the local time it wants directly. OEVM_NO_NTP forces the failure path,
+   the same shape as OEVM_NO_BELL / OEVM_NO_DISPLAY, because "the sync failed" is a
+   path the node must handle and no host can produce naturally.
+   Cached once so getenv is not re-read per sync. */
+int ntp_target_sync(int tz_offset_seconds) {
+    (void)tz_offset_seconds;   /* host: the env value is already the answer */
+    static int mode = -1;      /* -1 unknown, 0 no-ntp, 1 has-seconds */
+    static long secs = 0;
+    if (mode < 0) {
+        if (getenv("OEVM_NO_NTP") != NULL) { mode = 0; }
+        else {
+            const char *s = getenv("OEVM_NTP_SECONDS");
+            if (s != NULL) { mode = 1; secs = atol(s); }
+            else { mode = 0; }   /* default: no NTP configured on host */
+        }
+    }
+    if (mode == 0) return -1;
+    return (int)(((secs % 86400) + 86400) % 86400);
+}
 #else
 /* On target these live in zephyr/src/main.c, beside the legacy cosine-generator
    calls and the devicetree nodes they read — same split, same reason as the
@@ -268,6 +294,10 @@ int bell_target_strike(int bells) {
    the function bodies, never around the definitions. */
 extern int bell_target_available(void);
 extern int bell_target_strike(int bells);
+/* tuvm#94 stage 4. Same rule as the bell pair above: the symbol must link on EVERY
+   Zephyr board, so main.c guards the BODY (a board without CONFIG_WIFI answers -1),
+   never the definition. */
+extern int ntp_target_sync(int tz_offset_seconds);
 #endif
 
 /* Target GPIO-ISR entry (Zephyr rung-2 Task 8): a real on-target GPIO edge
@@ -1197,6 +1227,19 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            driver fault it cannot act on. */
         if (!bell_target_available()) { *out = NULL; return 1; }
         *out = TAG_SMI(bell_target_strike((int)UNTAG_SMI(args[0])));
+        return 1;
+    }
+    case PRIM_pf_ntpSync: {
+        /* tuvm#94 stage 4. nil = couldn't sync (structural: no WiFi, no route,
+           timeout); otherwise the SMI seconds-since-local-midnight. args[0] is the
+           tz offset in seconds, passed from nsl because the timezone is a product
+           fact rather than a hardware one.
+           There is no availability probe to run first — unlike the bell, "this board
+           cannot sync" and "this sync did not work" are the same answer to a node
+           that is going to free-run either way, so one nil serves both. */
+        int r = ntp_target_sync((int)UNTAG_SMI(args[0]));
+        if (r < 0) { *out = NULL; return 1; }
+        *out = TAG_SMI(r);
         return 1;
     }
     case PRIM_pf_spanStats: {

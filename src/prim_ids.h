@@ -277,4 +277,18 @@
    bounds code because a count outside 1-8 is checked in nsl, where the raise
    lives (Bell in kernel.nsl). */
 #define PRIM_pf_bellStrike        129
+
+/* tuvm#94 stage 4 (NTP catchup): `ntpSyncTz: offsetSeconds` runs sntp_simple,
+   applies the offset, and answers SECONDS SINCE LOCAL MIDNIGHT (0..86399, SMI-safe
+   — Unix epoch would overflow a 2^30 SMI). offsetSeconds is passed from nsl because
+   the timezone is a product fact, not a hardware one. BLOCKS up to the SNTP timeout,
+   so it is only ever called between strikes.
+   ANSWER CONVENTION: nil = couldn't sync (structural — no WiFi, no route, timeout);
+   an SMI = seconds-since-midnight. There is NO fault code, because there is nothing
+   a node would do differently: a miss is a nil and the clock free-runs on its own
+   crystal, which is the whole point of the rung (the network improves the time, it
+   does not gate the bell).
+   Counted (128 display + bellStrike = 129 entries before this), so this is the
+   130th PRIM_NAMES entry, per the standing rule above. */
+#define PRIM_pf_ntpSync           130
 #endif /* OEVM_PRIM_IDS_H */

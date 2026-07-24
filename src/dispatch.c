@@ -782,6 +782,10 @@ enum {
        pre-existing id shifts. Counted (not computed) to be the 129th PRIM_NAMES
        entry. Platform-dispatched (mirrored in prim_ids.h). */
     PRIM_pf_bellStrike,
+    /* tuvm#94 stage 4: the NTP seam — ntpSyncTz:. Appended after bellStrike; no
+       pre-existing id shifts. Counted (not computed) to be the 130th PRIM_NAMES
+       entry. Platform-dispatched (mirrored in prim_ids.h). */
+    PRIM_pf_ntpSync,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -838,6 +842,7 @@ static const char *const PRIM_NAMES[] = {
     "gpioSet:to:", "gpioLevel:",
     "displayClear", "displayAt:col:put:", "displayRefresh", "displayRefreshRow:",
     "bellStrike:",
+    "ntpSyncTz:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
@@ -848,7 +853,7 @@ static const char *const PRIM_NAMES[] = {
    — this catches it at build time instead. C99-safe (no _Static_assert under
    -std=c99): a false condition makes a negative-sized array, which is a hard
    compile error. ADVANCE THIS to the new last id whenever prims are appended. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_bellStrike) ? 1 : -1];
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_ntpSync) ? 1 : -1];
 
 /* Pointer-keyed cache mapping each interned selector symbol to its primitive id
    (PRIM_NONE if it is not an intercepted primitive). Selectors are interned, so

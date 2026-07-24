@@ -33,6 +33,7 @@
 #include <zephyr/net/net_mgmt.h>
 #include <zephyr/net/net_event.h>   /* NET_EVENT_IPV4_ADDR_ADD/DEL (#65) */
 #include <zephyr/net/dhcpv4.h>
+#include <zephyr/net/sntp.h>        /* tuvm#94 stage 4: sntp_simple for the bells */
 #include <string.h>
 
 /* #65 INSTRUMENTATION — give the node a voice when it leaves the network.
@@ -141,6 +142,33 @@ static void wifi_bringup(void) {
     }
     printk("wifi: no IPv4 lease after 30s, continuing\n");
 }
+
+/* tuvm#94 stage 4: the device side of the NTP seam. `sntp_simple` does
+   init/query/close in one call (include/zephyr/net/sntp.h:161), so the node needs no
+   NTP state machine and this seam holds no state between calls — a sync is a
+   request/response, not a session.
+   We add the caller's tz offset to the epoch and reduce to seconds-since-local-
+   midnight because an SMI is 2^30-1 and a Unix epoch (~1.75e9) overflows it. The
+   reduction is done HERE, in 64-bit C, rather than in nsl for that reason.
+   Any failure answers -1 (-> nil in nsl) so the clock free-runs: the network is
+   allowed to improve the time, never to stop the bell. */
+#ifndef OEVM_NTP_SERVER
+#define OEVM_NTP_SERVER "pool.ntp.org"
+#endif
+int ntp_target_sync(int tz_offset_seconds) {
+    struct sntp_time ts;
+    int rc = sntp_simple(OEVM_NTP_SERVER, 4000, &ts);   /* 4 s timeout */
+    if (rc < 0) { printk("ntp: sntp_simple rc=%d\n", rc); return -1; }
+    int64_t local = (int64_t)ts.seconds + tz_offset_seconds;
+    int64_t sod = ((local % 86400) + 86400) % 86400;    /* seconds of local day */
+    printk("ntp: ok, local sod=%lld\n", (long long)sod);
+    return (int)sod;
+}
+#else
+/* No CONFIG_WIFI on this board: the symbol must still link, because platform.c's
+   extern is unconditional and every Zephyr board shares that translation unit. Same
+   rule as the bell pair — guard the BODY, never the definition. */
+int ntp_target_sync(int tz_offset_seconds) { (void)tz_offset_seconds; return -1; }
 #endif /* CONFIG_WIFI */
 
 #if defined(CONFIG_PWM) && DT_NODE_EXISTS(DT_ALIAS(spkren))
