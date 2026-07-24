@@ -305,6 +305,7 @@ def parse_test_metadata(file_path: Path):
         "expect_runtime_fail": None,
         "skip_berry": False,
         "skip_oevm": False,
+        "env": {},
     }
 
     lines = comment_text.splitlines()
@@ -334,6 +335,20 @@ def parse_test_metadata(file_path: Path):
             metadata["skip_oevm"] = line[len("skip-oevm:"):].strip().lower() == "true"
         elif line.startswith("skip-soup:"):
             in_expect = False
+        elif line.startswith("env:"):
+            # `env: KEY=VALUE` — one variable per line, applied ONLY to this
+            # test's VM process (tuvm#88). Some seams are gated by getenv and
+            # are otherwise untestable: OEVM_NO_DISPLAY makes the host claim it
+            # has no panel, which is the only way to reach the
+            # #displayUnavailable path from a host test. Setting such a variable
+            # globally is not equivalent — it would leak into every other test
+            # in the suite (14_display/01 and /02 would then assert against a
+            # display that reports itself absent), so it has to be per-test.
+            in_expect = False
+            assignment = line[len("env:"):].strip()
+            if "=" in assignment:
+                key, _, value = assignment.partition("=")
+                metadata["env"][key.strip()] = value.strip()
         elif in_expect:
             metadata["expect"].append(line)
 
@@ -448,7 +463,8 @@ def run_test_file(src_path: Path) -> tuple[str, str]:
 
     # 3. Run the compiled runner (30s timeout guards against infinite loops)
     try:
-        proc_run = subprocess.run([str(runner_bin)], capture_output=True, text=True, timeout=30)
+        proc_run = subprocess.run([str(runner_bin)], capture_output=True, text=True, timeout=30,
+                                  env={**os.environ, **metadata.get("env", {})})
     except subprocess.TimeoutExpired:
         return "FAIL", "Runtime timed out (>30s)"
     if proc_run.returncode != 0:
@@ -526,7 +542,8 @@ def run_test_file_oimg(src_path: Path) -> tuple[str, str]:
     try:
         proc_run = subprocess.run(
             ["/tmp/oevm_img", oimg_path],
-            capture_output=True, text=True, timeout=30
+            capture_output=True, text=True, timeout=30,
+            env={**os.environ, **metadata.get("env", {})}
         )
     except subprocess.TimeoutExpired:
         return "FAIL", "Runtime timed out (>30s)"
