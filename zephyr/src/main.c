@@ -217,17 +217,39 @@ static void magtag_chime(void) {
    (hal/espressif/zephyr/esp32s2/CMakeLists.txt:12,64,209-215). So the PIN is
    enabled through the Zephyr API and the TONE is driven through the legacy one. */
 #include "driver/dac.h"
+/* THE LOW-LEVEL HEADER IS THE ECHO FIX (tuvm#94 stage 1), not a shortcut. The
+   envelope has to change ONE register field — dac_scale1 — and the legacy
+   driver's only route to it is dac_cw_generator_config(), which also rewrites the
+   frequency divider and RE-STAMPS THE PHASE. Doing that mid-tone is a phase
+   discontinuity, i.e. an audible transient, three times per strike; it also
+   re-measures the uncalibrated RTC-8M oscillator each call, so the pitch
+   micro-shifts too. Both were heard on the bench as an echo and initially assumed
+   impossible. dac_ll_cw_set_atten() touches SENS.sar_dac_ctrl2.dac_scale1 and
+   nothing else.
+   Going under the driver skips its mutex. That is safe HERE and only here: this
+   TU is the sole DAC user in the image, and the strike runs on the VM's single
+   cooperative thread — there is no second caller to race with. The header is on
+   the global include path (hal/espressif/zephyr/esp32s2/CMakeLists.txt:45). */
+#include "hal/dac_ll.h"
 /* MagTag bell (tuvm#94). The cosine generator on GPIO17 — same pin, same amp as
    the #86 LEDC chime, but reaching what LEDC cannot: 130 Hz-55 kHz (vs LEDC's
    ~1 kHz floor on this part) and four amplitude steps, which is what makes a
    decay envelope possible at all.
 
-   GATE 1 IS A SWEEP, NOT A NOTE. The open risk is that a sine is QUIETER than
-   the square wave #86 played — a square carries far more harmonic energy into a
-   tiny buzzer — and a single frequency cannot tell "the DAC is silent" apart
-   from "this buzzer will not reproduce 220 Hz". Sweeping is the same move that
-   located LEDC's floor in #86. */
+   GATE 1 WAS A SWEEP, NOT A NOTE, AND THE SWEEP WAS RIGHT TO BE ONE. The stated
+   risk was that a sine would be QUIETER than the square wave #86 played, since a
+   square carries far more harmonic energy into a tiny buzzer. Measured
+   2026-07-23, the risk was BACKWARDS: 220 and 440 are the good tones and 1760
+   sounded bad. A single frequency would have produced a confident wrong
+   conclusion either way — the same reason sweeping is what located LEDC's floor
+   in #86. */
 static const struct gpio_dt_spec bell_en = GPIO_DT_SPEC_GET(DT_ALIAS(spkren), gpios);
+
+/* Set by bell_bringup once the pin is enabled; read by bell_target_available.
+   Declared inside the guard, unlike disp_ok — every reference to it is inside the
+   same guard, and a file-scope bool on the boards with no speaker would be an
+   unused static. */
+static bool bell_ok;
 
 /* The bell's fundamental. 440 Hz beat 220 on the bench (gate 2), and it is BELOW
    the ~1 kHz LEDC floor measured in #86 — so this is a pitch the PWM path could
@@ -245,31 +267,35 @@ static const struct gpio_dt_spec bell_en = GPIO_DT_SPEC_GET(DT_ALIAS(spkren), gp
    what makes the tail read as ring-out rather than as a staircase. Total 500 ms —
    #86 measured 160 ms as inaudible at rc=0 and 500 ms as loud on this buzzer. */
 static void bell_strike(uint32_t hz) {
-    static const struct { dac_cw_scale_t scale; int ms; } envelope[] = {
-        { DAC_CW_SCALE_1,  50 },   /* attack: full amplitude, short */
-        { DAC_CW_SCALE_2,  90 },
-        { DAC_CW_SCALE_4, 140 },
-        { DAC_CW_SCALE_8, 220 },   /* tail: quietest, longest */
+    /* The attenuation names come from the HAL (dac_cosine_atten_t), not from the
+       legacy DAC_CW_SCALE_* aliases, because dac_ll_cw_set_atten takes that type.
+       The two enums are numerically identical (0-3) — this is a typing choice, not
+       a behaviour change. */
+    static const struct { dac_cosine_atten_t atten; int ms; } envelope[] = {
+        { DAC_COSINE_ATTEN_DB_0,   50 },   /* attack: full amplitude, short */
+        { DAC_COSINE_ATTEN_DB_6,   90 },
+        { DAC_COSINE_ATTEN_DB_12, 140 },
+        { DAC_COSINE_ATTEN_DB_18, 220 },   /* tail: quietest, longest */
     };
 
+    /* CONFIGURE ONCE, THEN STEP ATTENUATION ONLY. The frequency, phase and offset
+       are set here and never touched again for the life of the strike — that is
+       the whole of the echo fix (see the hal/dac_ll.h note above). config()
+       brackets the RTC-8M clock with enable/disable to read its frequency, but
+       that is refcounted and generator_enable holds a reference, so the clock does
+       not drop out mid-strike. */
+    dac_cw_config_t cw = {
+        .en_ch  = DAC_CHAN_0,
+        .scale  = DAC_CW_SCALE_1,
+        .phase  = DAC_CW_PHASE_0,
+        .freq   = hz,
+        .offset = 0,
+    };
+    (void)dac_cw_generator_config(&cw);
+    (void)dac_cw_generator_enable();
+
     for (size_t i = 0; i < ARRAY_SIZE(envelope); i++) {
-        dac_cw_config_t cw = {
-            .en_ch  = DAC_CHAN_0,
-            .scale  = envelope[i].scale,
-            .phase  = DAC_CW_PHASE_0,
-            .freq   = hz,
-            .offset = 0,
-        };
-        /* config() sets freq/atten/phase and enables the channel; enable() starts
-           the generator. Re-configuring while running just retunes it, so the
-           envelope is a sequence of config() calls with one enable() at the top.
-           config() internally brackets the RTC-8M clock with enable/disable to
-           read its frequency, but that is refcounted and generator_enable holds a
-           reference, so the clock does not drop out mid-strike. */
-        (void)dac_cw_generator_config(&cw);
-        if (i == 0) {
-            (void)dac_cw_generator_enable();
-        }
+        dac_ll_cw_set_atten(DAC_CHAN_0, envelope[i].atten);
         k_msleep(envelope[i].ms);
     }
 
@@ -298,7 +324,14 @@ static void bell_strike_pattern(uint32_t hz, int n) {
     }
 }
 
-static void magtag_bell(void) {
+/* tuvm#94 stage 1: BRING-UP ONLY — it no longer strikes anything. Gates 1 and 2
+   were a boot-time demo (sweep, then three times of day); now that nsl drives the
+   bell through PRIM_pf_bellStrike, a boot demo would be ~20 s of bells before the
+   node gets a word in, and worse, it would make every reset sound like a working
+   node whether or not the seam works. What is left here is exactly the state the
+   strike cannot re-derive per call: the pin enable and the availability flag.
+   The amp is NOT un-muted here — that is per-strike, below. */
+static void bell_bringup(void) {
     /* THE ZEPHYR DAC DEVICE IS DELIBERATELY NOT REQUIRED, AND ITS INIT FAILS.
        drivers/dac/dac_esp32.c:71 does `if (clock_control_on(...) != 0) return
        -EIO`, but clock_control_esp32.c:506 returns -EALREADY when the module
@@ -333,42 +366,58 @@ static void magtag_bell(void) {
         return;   /* never discard an error code on a bring-up path */
     }
 
-    /* THE AMP NEEDS TO SETTLE — the single biggest time sink in #86, where
-       enabling SPEAKER_SHUTDOWN and driving in the same breath was silent and
-       looked like a routing bug for three builds. */
-    gpio_pin_configure_dt(&bell_en, GPIO_OUTPUT_ACTIVE);   /* un-mute, and hold */
-    k_msleep(50);
-
-    /* 440 Hz, SETTLED ON THE BENCH 2026-07-23. Gate 1 swept 220/440/880/1760: all
-       four audible, 1760 bad. Gate 2 struck the pattern at 440 and 220 back to
-       back and 440 was "far superior". Note 440 is below LEDC's floor on this part
-       (#86: 500 Hz -> -EINVAL), so the pitch this bell actually wants is one PWM
-       could never have produced — the rung's whole justification, now measured
-       rather than argued.
-
-       THREE TIMES OF DAY, chosen to cover the pattern's edge cases as well as to
-       demo it: 1 is the lone single stroke (no pair at all), 5 is odd (two pairs
-       then a lone final stroke), 8 is the full end-of-watch count (four pairs, no
-       remainder). Five seconds apart so each is unmistakably a separate striking
-       rather than one long run. */
-    static const struct { int bells; const char *when; } times_of_day[] = {
-        { 1, "00:30 — one bell, first half-hour of the watch" },
-        { 5, "18:30 — five bells" },
-        { 8, "12:00 — eight bells, end of the watch" },
-    };
-
-    for (size_t i = 0; i < ARRAY_SIZE(times_of_day); i++) {
-        printk("bell: %s\n", times_of_day[i].when);
-        bell_strike_pattern(BELL_HZ, times_of_day[i].bells);
-        if (i + 1 < ARRAY_SIZE(times_of_day)) {
-            k_msleep(5000);
-        }
-    }
-
-    gpio_pin_configure_dt(&bell_en, GPIO_OUTPUT_INACTIVE);   /* re-mute the amp */
-    printk("bell: struck\n");
+    /* Leave the amp MUTED. It is un-muted per strike (bell_target_strike), so a
+       node that never rings leaves no idle hiss on the speaker and, more to the
+       point, so the 50 ms settle below is paid where it is actually needed. */
+    gpio_pin_configure_dt(&bell_en, GPIO_OUTPUT_INACTIVE);
+    bell_ok = true;
+    printk("BELL OK %u Hz\n", (unsigned)BELL_HZ);
 }
 #endif /* CONFIG_DAC && spkren */
+
+/* tuvm#94 stage 1: the device half of the bell seam. The host half is in
+ * src/platform.c under #ifndef __ZEPHYR__. Both symbols must exist and link on
+ * EVERY Zephyr board, including the ones with no DAC and no speaker (ESP32, C6,
+ * nRF52840-DK/dongle) — src/platform.c declares them extern unconditionally under
+ * __ZEPHYR__. So the guard goes INSIDE each body, exactly as the display five do,
+ * never around the definitions. On a board with no bell, available() answers 0
+ * and strike() is unreachable in practice but still reports a fault rather than
+ * silently claiming to have rung. */
+int bell_target_available(void)
+{
+#if defined(CONFIG_DAC) && DT_NODE_EXISTS(DT_ALIAS(spkren))
+	return bell_ok ? 1 : 0;
+#else
+	return 0;   /* no DAC or no speaker-enable pin on this board */
+#endif
+}
+
+int bell_target_strike(int bells)
+{
+#if defined(CONFIG_DAC) && DT_NODE_EXISTS(DT_ALIAS(spkren))
+	if (!bell_ok) return 2;
+
+	/* THE AMP NEEDS TO SETTLE — the single biggest time sink in #86, where
+	 * enabling SPEAKER_SHUTDOWN and driving in the same breath was silent
+	 * and looked like a routing bug for three builds. Per strike now, not
+	 * once at boot: 50 ms against a ~500 ms strike is noise, and holding the
+	 * amp live between strikings buys nothing.
+	 *
+	 * 440 Hz, SETTLED ON THE BENCH 2026-07-23. Gate 1 swept 220/440/880/1760:
+	 * all four audible, 1760 bad. Gate 2 struck the pattern at 440 and 220
+	 * back to back and 440 was "far superior". 440 is BELOW LEDC's floor on
+	 * this part (#86: 500 Hz -> -EINVAL), so the pitch this bell wants is one
+	 * PWM could never have produced — the rung's whole justification. */
+	gpio_pin_configure_dt(&bell_en, GPIO_OUTPUT_ACTIVE);
+	k_msleep(50);
+	bell_strike_pattern(BELL_HZ, bells);
+	gpio_pin_configure_dt(&bell_en, GPIO_OUTPUT_INACTIVE);   /* re-mute */
+	return 0;
+#else
+	ARG_UNUSED(bells);
+	return 2;   /* unreachable in practice: available() already gated this */
+#endif
+}
 
 #include "platform_backend.h"   /* OEVM_DISPLAY_ROWS/COLS — the one place the grid is named (tuvm#88) */
 
@@ -1049,7 +1098,7 @@ int main(void) {
 #endif
 
 #if defined(CONFIG_DAC) && DT_NODE_EXISTS(DT_ALIAS(spkren))
-    magtag_bell();   /* tuvm#94 gate 1: sweep the DAC cosine generator */
+    bell_bringup();   /* tuvm#94 stage 1: enable the DAC pin; nsl does the striking */
 #endif
 
 #if DT_HAS_CHOSEN(zephyr_display)

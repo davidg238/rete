@@ -257,4 +257,24 @@
 #define PRIM_pf_displayAt         126
 #define PRIM_pf_displayRefresh    127
 #define PRIM_pf_displayRefreshRow 128
+
+/* tuvm#94 stage 1 (MagTag bell): `bellStrike: n` strikes n bells in the
+   ship's-bell phrasing. ONE prim, not a family — the phrasing (pairs, lone final
+   stroke) and the envelope are hardware-shaped decisions that belong beside the
+   cosine generator, and exposing them separately would let nsl compose a
+   striking the hardware cannot actually voice.
+   IT BLOCKS, and for a long time: ~500 ms a strike plus the gaps, so eight bells
+   is ~4 s. That is the same bargain the display's refresh prims took (tuvm#88) —
+   safe because the pulse mailbox sheds and coalesces rather than aborting
+   (src/backend/zephyr/pulse_zephyr.c, tuvm#34), so a button pressed mid-strike is
+   delivered once afterwards instead of being lost.
+   Appended after displayRefreshRow; no pre-existing id shifts. 129 was arrived at
+   by COUNTING PRIM_NAMES (128 entries before this append), not by 128+1
+   arithmetic, per the standing rule above.
+   ANSWER CONVENTION, the display seam's: nil means "this board has no bell"
+   (structural — no DAC, no speaker-enable pin, or the bring-up failed), and an
+   operational outcome answers an SMI — 0 ok, 2 driver fault. There is no
+   bounds code because a count outside 1-8 is checked in nsl, where the raise
+   lives (Bell in kernel.nsl). */
+#define PRIM_pf_bellStrike        129
 #endif /* OEVM_PRIM_IDS_H */

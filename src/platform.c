@@ -230,6 +230,46 @@ extern int display_target_refresh(void);
 extern int display_target_refresh_row(int row);
 #endif
 
+/* tuvm#94 stage 1: the host side of the bell seam. There is nothing to synthesise
+   here — the host has no cosine generator and no speaker — so what the host owes
+   an nsl test is the ONE thing it can honestly report: that the seam was reached
+   with the count the node meant. It prints, exactly as display_target_refresh
+   prints its grid, and for the same reason: the existing expect: mechanism is the
+   read-back path, so no second "how many bells did you strike" prim has to be
+   spent.
+   Deliberately NOT sleeping the ~500 ms a strike takes on target. A host test
+   would then cost four seconds to assert on a printed line, and the blocking is a
+   property of the hardware envelope, not of the seam — see the note on
+   PRIM_pf_bellStrike in prim_ids.h. */
+#ifndef __ZEPHYR__
+/* Same shape as OEVM_NO_DISPLAY above: OEVM_NO_BELL=1 makes the host claim the
+   board has no bell, so the design's promised "no bell -> #bellUnavailable" path
+   is testable. Without it available() is hard-coded 1 and the structural-error
+   branch is unreachable — a board really can lack the speaker (every non-MagTag
+   target in this tree does). Cached once so getenv is not re-read per strike. */
+int bell_target_available(void) {
+    static int no_bell_cached = -1;
+    if (no_bell_cached < 0)
+        no_bell_cached = (getenv("OEVM_NO_BELL") != NULL) ? 1 : 0;
+    return no_bell_cached ? 0 : 1;
+}
+
+int bell_target_strike(int bells) {
+    char line[48];
+    int len = snprintf(line, sizeof line, "bell: struck %d\n", bells);
+    if (len > 0) platform_console_write(line, (size_t)len);
+    return 0;
+}
+#else
+/* On target these live in zephyr/src/main.c, beside the legacy cosine-generator
+   calls and the devicetree nodes they read — same split, same reason as the
+   display five above (tuvm#63). Like those, both symbols must exist and link on
+   EVERY Zephyr board, including the ones with no speaker: the guard goes inside
+   the function bodies, never around the definitions. */
+extern int bell_target_available(void);
+extern int bell_target_strike(int bells);
+#endif
+
 /* Target GPIO-ISR entry (Zephyr rung-2 Task 8): a real on-target GPIO edge
    callback (zephyr/src/main.c) calls this to post the pulse for `pin`, taking
    the exact same slot-lookup -> pulse_post_isr path the host-only gpioFire:
@@ -1145,6 +1185,18 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
     case PRIM_pf_displayRefreshRow: {
         if (!display_target_available()) { *out = NULL; return 1; }
         *out = TAG_SMI(display_target_refresh_row((int)UNTAG_SMI(args[0])));
+        return 1;
+    }
+    case PRIM_pf_bellStrike: {
+        /* tuvm#94. nil = no bell on this board (structural); otherwise an SMI
+           status the nsl wrapper turns into a tag — the display seam's convention,
+           minus the bounds code, because the count is range-checked in nsl (Bell
+           in kernel.nsl) where the raise can be written.
+           The availability check comes FIRST, before the count is even read, so a
+           node probing an unknown board gets #bellUnavailable rather than a
+           driver fault it cannot act on. */
+        if (!bell_target_available()) { *out = NULL; return 1; }
+        *out = TAG_SMI(bell_target_strike((int)UNTAG_SMI(args[0])));
         return 1;
     }
     case PRIM_pf_spanStats: {
