@@ -70,8 +70,90 @@ class MagTagDeepSleepNode packageUsing: manifest = () (
     plat rtcPut: self rtcMagic        value: self magicWord.
     ^ self )
 
-  (* Stub — Task 5 replaces this with sync + ratchet + re-anchor. *)
-  onWatchEnd: plat = ( ^ self )
+  onWatchEnd: plat = (
+    | trueSec |
+    trueSec:: self trySyncUpTo3: plat.
+    trueSec == nil
+       ifTrue:  [ self markSyncFailed: plat ]
+       ifFalse: [ self applySync: trueSec plat: plat ].
+    (* paintStats: is added in Task 6, AFTER the sync, so a FAIL shows on the glass. *)
+    self paintStats: plat.
+    ^ self )
+
+  (* 3 attempts fit one ~15 s awake window (design §4); "quit until next watch-end" is
+     just: return nil, schedule nothing — the next attempt is 4 h on. sntp_simple's own
+     4 s timeout spaces the retries (design §4: "3 × (4 s timeout + backoff)"); no extra
+     backoff is spelled here (tuvm#97 has no sleep-spin primitive worth adding for it). *)
+  trySyncUpTo3: plat = (
+    | secs |
+    3 timesRepeat: [
+      secs:: plat ntpSyncTz: self tzOffset.
+      secs == nil ifFalse: [ ^ secs ].
+      'ntp miss' out ].
+    ^ nil )
+
+  (* The §2 ratchet, both directions. NEVER moves the count backward; drift only ever
+     adjusts the sleep (phase) via the re-anchored predictedNow next wake. *)
+  applySync: trueSec plat: plat = (
+    | trueHalf lastHalf predicted drift |
+    trueHalf:: trueSec // 1800.
+    lastHalf:: plat rtcGet: self rtcLastHalf.
+    predicted:: self predictedNow: plat.
+
+    (trueHalf > lastHalf)
+       ifTrue:  [ (* Fell behind (missed wakes / dead battery, or the clock ran slow):
+                     advance SILENTLY — do NOT ring the skipped bells. `trueSec - predicted`
+                     here is a CATCH-UP GAP, not oscillator drift (the board was off, so
+                     elapsedSec never accrued those sleeps), so it is deliberately NOT
+                     recorded — recording it would spike the 24 h drift window with a value
+                     that is hours, not the seconds real drift produces. This also skips the
+                     first-sync-after-cold-boot reset, which is almost always an advance. *)
+                  ('sync true ' , trueSec printString , ' predicted ' , predicted printString , ' -> advance half ' , trueHalf printString) out.
+                  plat rtcPut: self rtcLastHalf value: trueHalf ]
+       ifFalse: [ (* On time / slightly ahead: HOLD the count and record the REAL drift —
+                     the small signed gap between where the crystal put us and true time,
+                     over the interval elapsedSec. This is the number the panel reports. *)
+                  drift:: self wrapDrift: (trueSec - predicted).
+                  self recordDrift: (self driftPpm: drift over: (plat rtcGet: self rtcElapsedSec)) plat: plat.
+                  ('sync true ' , trueSec printString , ' predicted ' , predicted printString , ' -> hold half ' , lastHalf printString) out ].
+
+    (* Re-anchor the wall clock to true time; zero the accumulated sleep + stale. *)
+    plat rtcPut: self rtcAnchorSec  value: trueSec.
+    plat rtcPut: self rtcElapsedSec value: 0.
+    plat rtcPut: self rtcStaleSec   value: 0.
+    ^ self )
+
+  markSyncFailed: plat = (
+    plat rtcPut: self rtcStaleSec value: (plat rtcGet: self rtcStaleSec) + 14400.
+    'sync failed, stale grows' out.
+    ^ self )
+
+  (* Rolling 6-sync (24 h) window of the drift ppm; reset the extremes at 6 (design §3). *)
+  recordDrift: ppm plat: plat = (
+    | n mx mn |
+    plat rtcPut: self rtcDriftPpm value: ppm.
+    n:: (plat rtcGet: self rtcSyncsWin) + 1.
+    n >= 6 ifTrue: [ n:: 0 ].
+    n = 0 ifTrue: [ plat rtcPut: self rtcDrift24Max value: ppm. plat rtcPut: self rtcDrift24Min value: ppm ]
+          ifFalse: [
+            mx:: plat rtcGet: self rtcDrift24Max. mn:: plat rtcGet: self rtcDrift24Min.
+            ppm > mx ifTrue: [ plat rtcPut: self rtcDrift24Max value: ppm ].
+            ppm < mn ifTrue: [ plat rtcPut: self rtcDrift24Min value: ppm ] ].
+    plat rtcPut: self rtcSyncsWin value: n.
+    ^ self )
+
+  (* Drift wrapped across midnight: a true 0 against a predicted 86399 is +1 s, not
+     -86399 (the same wrap the reactor's correctionTo: needed). *)
+  wrapDrift: d = (
+    d > 43200 ifTrue: [ ^ d - 86400 ].
+    d < -43200 ifTrue: [ ^ d + 86400 ].
+    ^ d )
+
+  (* IDENTICAL spelling to 09_bell_math.nsl. *)
+  driftPpm: driftSec over: elapsedSec = ( elapsedSec = 0 ifTrue: [ ^ 0 ]. ^ (driftSec * 1000000) // elapsedSec )
+
+  tzOffset = ( ^ -25200 )   (* Phoenix, UTC-7, no DST — a product fact passed to the prim *)
+  paintStats: plat = ( ^ self )   (* Task 6 fills this in *)
 
   predictedNow: plat = (
     | now |
