@@ -49,7 +49,7 @@
    exactly 12 by `line:val:`. This node never returns, so it drains forever and
    cannot leak a live repeater the way TimerNode could. *)
 class MagTagClockNode packageUsing: manifest = (
-  | plat halfHours ::= 0. bootTicks ::= 0. lastBells ::= 8. hasDisplay ::= false. | ) (
+  | plat timers halfHours ::= 0. bootTicks ::= 0. lastBells ::= 8. hasDisplay ::= false. | ) (
 
   public main: platform args: args = (
     | space tick btnA btnB |
@@ -61,14 +61,23 @@ class MagTagClockNode packageUsing: manifest = (
       on: [ :e | e tag = #displayUnavailable ]
       do: [ :e | 'no display; running headless' out ].
 
-    space whenever: 'sys/timer' do: [ :e | (plat timers) dispatch: e ].
+    (* HOLD ONE Timers INSTANCE — this is load-bearing, and getting it wrong is
+       why the 30-minute timer never fired for an entire night (2026-07-23/24).
+       `plat timers` answers a FRESH Timers on EVERY call, and each instance owns
+       its own `pending` registry (token -> chan/msg). `dispatch:` does
+       `pending at: tokenEvent ifAbsent: [nil]` and then SILENTLY DOES NOTHING when
+       absent. So registering on one instance and dispatching on another means the
+       k_timer fires, the ISR posts, the reaction runs — and drops the event on the
+       floor, with no crash and no output. The failure is INVISIBLE.
+       An earlier revision of this comment said re-fetching for dispatch was "fine";
+       it stated the correct fact (only the registering instance holds the token)
+       and then drew the opposite conclusion. TimerNode.nsl warns about exactly this.
+       Both the registration below and the dispatch above must be THIS instance. *)
+    timers:: plat timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
     tick:: space channel: 'clock/tick'.
     tick whenever: '' do: [ :m | self advanceAndStrike ].
-    (* hold ONE Timers instance for the registration; dispatch re-fetches, which
-       is fine — Timers is a thin wrapper and the pending registry it owns is
-       re-created per fetch, but only the instance that REGISTERED holds the token.
-       Registering here, once, is the only registration this node makes. *)
-    plat timers every: self halfHourMillis post: #tick on: tick.
+    timers every: self tickMillis post: #tick on: tick.
 
     btnA:: space channel: 'btn/a'.
     btnA whenever: '' do: [ :m |
@@ -82,7 +91,7 @@ class MagTagClockNode packageUsing: manifest = (
 
     (* Boot paint: show the appliance is alive before the first tick. *)
     self paintStats.
-    ('clock ready, ' , self halfHourMillis printString , ' ms per half-hour') out.
+    ('clock ready, ' , self tickMillis printString , ' ms per tick (1 tick = one half-hour of clock time)') out.
     [ true ] whileTrue: [ plat pumpEvents. space drain ].
   )
 
@@ -153,7 +162,11 @@ class MagTagClockNode packageUsing: manifest = (
      only repaints that often, so a finer figure would be invented precision. *)
   upField = (
     | mins d r h m |
-    mins:: bootTicks * 30.
+    (* REAL elapsed minutes, derived from the cadence — NOT a hardcoded 30. With the
+       5-minute tick the clock runs 6x fast, so `up` must count real minutes per tick
+       or it would claim six hours of uptime for every hour on the bench. Deriving it
+       keeps `up` honest if the cadence changes again. *)
+    mins:: bootTicks * (self tickMillis // 60000).
     d:: mins // 1440.
     r:: mins - (d * 1440).
     h:: r // 60.
@@ -188,6 +201,17 @@ class MagTagClockNode packageUsing: manifest = (
 
   pad: n = ( (n < 10) ifTrue: [ ^ '0' , n printString ]. ^ n printString )
 
-  halfHourMillis = ( ^ 1800000 )   (* 30 minutes *)
+  (* THE TICK CADENCE. 5 minutes (2026-07-24), down from 30.
+     WHY 5 AND NOT LESS: 300 s still clears the e-paper's ~180 s refresh guidance
+     (tuvm#89), so the panel is never stressed — 5 min is the FASTEST cadence that
+     is still gentle on the glass. It also makes the test/demo loop 6x faster: a
+     full 8-bell watch takes 40 min of bench time instead of 4 hours.
+     CONSEQUENCE, stated plainly: one tick still advances one HALF-HOUR of clock
+     time, so the clock now runs at 6x real time — a demo clock, not a wall clock.
+     Stage 4 (NTP) must reconcile this: real-time alignment needs one tick to BE a
+     real half-hour, so either the cadence goes back to 1800000 for the NTP build or
+     the counter's tick->clock-time mapping is made explicit. Recorded in the stage-4
+     design rather than silently inherited. *)
+  tickMillis = ( ^ 300000 )   (* 5 minutes *)
 ) : (
 )
