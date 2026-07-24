@@ -1628,10 +1628,38 @@ advancing it six times too fast is not a clock, and the alternative (an explicit
 mapping) only formalises being wrong between syncs. Bench speed was the only loss, and BUTTON_B
 still fast-forwards.
 
+**Second strike, and the steady state it revealed.** `09:00 strike 2` landed on the boundary
+with `ntp +0.0s` / `24h +0.0` / `+0.0` — the honest-coarse readout populated, reporting that the
+correction the count needed across the half hour was **zero**, i.e. the crystal held. Heap
+steady at `19/20K` with `gc 5`, so the collector is cycling and the working set is flat.
+
+**But the periodic strike timer never fires in the synced steady state, and that was not
+designed — it fell out.** The NTP timer is armed ONCE, on the first sync, as a periodic at
+1800000, so **every subsequent sync lands at the same offset within the half-hour, frozen at
+whatever moment the board first synced.** This board booted at 08:29:56, so its syncs land
+~4 s before every boundary; each one re-phases (cancel the periodic, arm a one-shot), the
+one-shot strikes and re-arms the periodic, and the next sync cancels it 1796 s later. The clock
+is therefore driven **sync → one-shot → sync → one-shot**, and the periodic is a fallback that
+only runs if a sync misses. That is benign — arguably better, since every strike is
+NTP-aligned, and the fallback is correctly phased because it was armed at a true boundary — but
+it means the free-running periodic path is **proven only by stages 2-3 and the host suite, not
+by this run**, and the honest reading of the hardware evidence is that the synced path was
+witnessed twice and the degraded path zero times.
+
+**The wart underneath it is a simplification made against the design.** The design specified
+`ntpServerMidpointMillis` (900000) precisely so syncs land at the inter-strike midpoint; the
+implementation dropped it, reasoning that the drain is serialised so a sync/strike collision
+costs latency rather than correctness. That reasoning holds — but it left the sync offset
+**boot-dependent**, and this boot froze it at the worst available position: 4 s before every
+strike, for a call that blocks up to 4 s on timeout. Cost is a bell up to ~4 s late, never a
+bell missed. Fix is one line — arm a one-shot at `msToBoundary + 900000`, then the periodic
+from there — and it is queued rather than flashed, because entering download mode needs a
+human.
+
 **Known imprecision, stated rather than hidden:** `up` counts one whole tick for the phase
-one-shot's partial interval, so it reads `0d00:30` about 40 s after a boot that syncs. At the
-row's 30-minute granularity that is inside the rounding it already admits to, but it is an
-over-count, not a rounding.
+one-shot's partial interval, so it reads `0d00:30` about 40 s after a boot that syncs, and
+`0d01:00` at the second strike. At the row's 30-minute granularity that is inside the rounding
+it already admits to, but it is an over-count, not a rounding.
 
 ## Known stale docs (do not treat as current)
 
