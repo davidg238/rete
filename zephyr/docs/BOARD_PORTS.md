@@ -211,6 +211,35 @@ env fails silently as `west: command not found`). Full per-rung detail lives in 
     (`HEAP_MEM_POOL_ADD_SIZE_ESP_WIFI` 40960 → 19456). **But that is only half the gap:**
     WiFi's *full* static cost here is ~73 KB, back-computed from #85's measured overflow rather
     than its quoted heap figure, so the arena must also drop from 64 KB to ~32–40 KB.
+  - **WiFi + SNTP arena: MEASURED, and the arena has a HARD FLOOR the estimates missed (#94
+    stage 4, 2026-07-24).** The shipped value is **`OEVM_HEAP_SIZE=20480`**, which links at
+    **96.64% dram0 (~7.4 KB spare)** and boots at `heap 18/20K`. The estimate above (~32–40 KB)
+    and #94's planned **16384 are both wrong, in opposite directions** — and 16384 is wrong
+    *structurally*, not marginally: with `VM_STACK_INIT_WORDS=4096` the VM allocates a
+    4096 × 4 B = **16,400 B** execution stack inside the arena, so a **16,384 B arena cannot
+    hold the VM's own stack** and dies at boot with
+    `Out of Memory (requested 16400, used 172 of 16384)` before any node code runs.
+    **This is the nRF52840 stack-inside-the-arena OOM above (line ~47) one level down** — that
+    entry records the failure at the *default* 16384-word stack; this one says the *reduced*
+    4096-word stack has a floor too. The general rule, worth applying to any new target:
+    **the arena must exceed `VM_STACK_INIT_WORDS × oop_size` by the node's whole working set**,
+    and a figure that merely LINKS says nothing about that — 16384 was only ever established as
+    a number that links.
+    Measured on a host `-m32` build with the device knob values, 20 simulated ticks each:
+    16384/4096w **fails at boot**, 18432/4096w fails mid-run, 20480/4096w survives (gc=60),
+    24576/4096w survives (gc=15); 16384 survives at a **2048**-word stack (gc=15) or 1024
+    (gc=9). So the stack is a genuine second lever — but it is **fixed-capacity, never grows**
+    (`src/vm.c:398`) and overflow is a bare `abort()` no node can catch, so shrinking it trades
+    a boot failure for a crash on the first deep call. Left on the shelf, deliberately.
+    Recipe for pre-flighting any arena WITHOUT the board (this is what turned a certain wasted
+    flash into a table): build `dump_layout` **`-m32`** → regenerate the layout (`oop_size: 4`)
+    → recompile the node `.oimg` against **that** layout → build the image VM `-m32` with
+    `-DOEVM_HEAP_SIZE=<candidate> -DMETHOD_CACHE_SIZE=256 -DPRIM_CACHE_SIZE=256
+    -DVM_STACK_INIT_WORDS=4096 -DOEVM_MARK_STACK_SIZE=512` → run under simulated time.
+    **Skipping the 32-bit layout is silent**: the VM dies with
+    `Message 'OIMG' not understood by receiver` and nothing points at the layout.
+    The 64-bit host has wider objects and is the HARDER case, so a fit there implies a fit on
+    device — the inference runs one way only.
   - **Out-of-tree, invisible to git:** the Zephyr SDK needs `xtensa-espressif_esp32s2_zephyr-elf`
     installed (`~/zephyr-sdk-0.17.4/setup.sh -t xtensa-espressif_esp32s2_zephyr-elf`); a fresh clone
     cannot build this target without it.

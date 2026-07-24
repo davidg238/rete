@@ -1549,6 +1549,90 @@ and this build shows 18 KB live at boot on a 64 KB one: uncollected, that workin
 the arena stage 4 proposes. The cheap discriminator is a host run at `OEVM_HEAP_SIZE=16384` under
 simulated time, which costs no hardware.
 
+## The bell rings at the right time — 2026-07-24, #94 stage 4, on the MagTag
+
+**WiFi + SNTP + count-and-phase catchup, witnessed at 08:30:00 Phoenix time.** The chain,
+unedited, ~40 s from reset:
+
+```
+wifi: up, ip=192.168.0.157
+clock ready, 1800000 ms per tick
+ntp: ok, local sod=30596            <- 08:29:56, against a wall clock reading 08:29:57
+ntp sync -> 08:00, boundary in 4000 ms
+08:30 strike 1
+| tuvm  08:30+ | heap 19/20K | gc 2 | bells 1 | ntp sync
+```
+
+Both halves of the catchup are visible in those two lines. **Count:** 30596 s floors to
+half-hour index 16, so the panel reads `08:00+` — the counter is in the 08:00 slot, which is
+what `+` has always meant. **Phase:** 1796 s into that slot leaves 4000 ms to the true
+boundary, and the strike lands there. A count that is right while the strikes fall at
+boot-relative offsets is still a clock that rings at the wrong minute; phase is what makes it
+a clock.
+
+**THE PLAN'S 16 KB ARENA COULD NOT HAVE BOOTED, and finding that without the board is the
+transferable part.** `VM_STACK_INIT_WORDS` is 4096 words = **16,400 B on a 32-bit target**,
+against a **16,384 B** arena — the VM stack alone is larger than the whole heap it must be
+allocated from. The failure is structural and lands at boot, before a line of node code runs:
+`Out of Memory (requested 16400, used 172 of 16384)`. Every RAM discussion on this rung — the
+design's own fallback ladder of *drop DNS → drop SNTP → fix PSRAM* — was aimed at the wrong
+quantity, because 16384 was only ever established as a figure that **links**, and linking says
+nothing about whether the arena can hold the VM's own fixed structures.
+
+**The method that caught it, which is the reusable recipe.** Build the host image VM
+`-m32` with the *device's* knob values (`METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256
+VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512`) and a candidate `-DOEVM_HEAP_SIZE`, then
+run the node's allocation path under simulated time. **The `.oimg` must be recompiled against a
+32-bit layout** (`dump_layout` built `-m32`, `oop_size: 4`) or the image is silently wrong and
+the VM dies with `Message 'OIMG' not understood` — the 64-bit layout is the default and nothing
+warns. Measured, 20 simulated ticks each:
+
+| arena | stack words | result |
+|---|---|---|
+| 16384 | 4096 (device stock) | **fails at boot** — `requested 16400, used 172 of 16384` |
+| 18432 | 4096 | fails mid-run |
+| 20480 | 4096 | survives, gc=60, live 19,256 |
+| 24576 | 4096 | survives, gc=15, live 21,984 |
+| 16384 | 2048 | survives, gc=15, live 13,792 |
+| 16384 | 1024 | survives, gc=9, live 6,812 |
+
+**Shipped at `OEVM_HEAP_SIZE=20480` with the stock stack**, which links at **96.64% dram0
+(~7.4 KB spare)** and boots at `heap 18/20K`. The alternative — 16384 with a 2048-word stack —
+has more link headroom and is tempting for the ADC rung queued next, but the VM stack is
+**fixed-capacity and never grows** (`vm.c:398`), and an overflow is a bare `abort()` that no
+node can catch. Shrinking it trades a boot failure for a crash on the first deep call, so it
+stays on the shelf as a *known* lever rather than a default. The 64-bit host, whose objects are
+wider, is the harder case — so a working set that fits there fits the device with room; the
+inference runs one way only and the probe file says so.
+
+**Why the pre-flight was worth its hour: the flash budget.** Entering download mode on this
+board is a hand operation (BOOT0 + RESET), so an unattended session gets **unlimited flashes
+but exactly one run** — esptool's post-flash watchdog reset boots the app, and Zephyr then takes
+the native USB down until a human intervenes. Under that constraint the ordering rule is
+absolute: everything provable on the host is proved before the reset is spent. Here it converted
+a certain wasted run into a table.
+
+**Three defects in the plan's code sketch, each fatal on a one-run budget.** (1) The sketch
+re-armed the periodic strike inside `advanceAndStrike` whenever `strikeTok == nil`, reading the
+token as a mode flag — but `advanceAndStrike` has a second caller, BUTTON_B, so a press between
+a re-phase and its boundary would have left **two strike timers armed forever**. The phase
+one-shot now posts to its own channel. (2) `(halfHours - newHalf) * 1800` is unwrapped, so a
+local 47 against a true 0 reads as a 47-half-hour correction instead of one, spiking the 24 h
+window by 84,600 s once a day. (3) `self corrField: lastCorr , 's'` — binary `,` binds tighter
+than a keyword message, so that passes `lastCorr , 's'`, an SMI concatenation, *into* the
+formatter. All three are the kind of defect a plan cannot catch by review, only by execution.
+
+**A cadence decision the rung forced.** Stages 2-3 ran a 300000 ms tick — a 6× demo clock — and
+stage 4 had to reconcile it. It went back to **1800000**: aligning a count to real time and then
+advancing it six times too fast is not a clock, and the alternative (an explicit tick→clock-time
+mapping) only formalises being wrong between syncs. Bench speed was the only loss, and BUTTON_B
+still fast-forwards.
+
+**Known imprecision, stated rather than hidden:** `up` counts one whole tick for the phase
+one-shot's partial interval, so it reads `0d00:30` about 40 s after a boot that syncs. At the
+row's 30-minute granularity that is inside the rounding it already admits to, but it is an
+over-count, not a rounding.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
