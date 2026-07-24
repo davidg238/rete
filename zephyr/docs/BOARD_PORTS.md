@@ -233,6 +233,15 @@ env fails silently as `west: command not found`). Full per-rung detail lives in 
     ESP32s. Use pyserial and hold exactly ONE handle — two readers on the port split the byte
     stream and each silently loses lines, which looks like missing output rather than contention.
     `run.sh --board esp32s2 --flash` scopes esptool to the S2 ROM id.
+  - **No battery-backed RTC — the clock does not survive a power cut (#94).** The MagTag has no
+    dedicated RTC chip and no coin-cell/VBAT backup domain; the "RTC" in the overlay is the
+    ESP32-S2's internal RTC-IO domain (deep-sleep-capable GPIOs, and the DAC through `rtc_io_hal`),
+    not timekeeping. The internal RTC timer DOES keep time across **deep sleep** on battery
+    (relevant to #83), but a full power loss resets it. Consequence: stages 1-3 of the bell clock
+    need continuous power (USB or LiPo) or they reboot to 00:00 and lose the time. This is a
+    first-class argument for stage 4 (NTP): with WiFi a power loss is a non-event — reboot ->
+    free-run from 00:00 -> NTP re-sync in seconds -> correct, so permanent power stops being a
+    requirement.
   - **`OEVM_HEAP_SIZE=65536` is provisional** (dram0 at ~81.8% of 217 KB), not a measured ceiling.
   - `flash 0x1000` (Xtensa keeps the ESP32 offset); ROM `setjmp`/`longjmp` patch applies with an
     S2-specific symbol set (`tools/patch-esp32-rom-ld.sh --chip esp32s2`).
