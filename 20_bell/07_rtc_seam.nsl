@@ -1,0 +1,44 @@
+(*
+expect:
+cold valid false
+put magic then valid true
+half 5
+bootticks 9
+anchor 66600
+finished
+*)
+(* tuvm#94 stage 5 — the RTC retention seam, host, in one process (no OEVM_RTC_FILE,
+   so the struct is cold at start and lives only in memory). Cross-process persistence
+   is exercised by the re-exec sequence harness (Task 7); here we pin the get/put
+   round-trip and the magic-guarded cold path. *)
+class RtcSeam packageUsing: manifest = () (
+  public main: platform args: args = (
+    (* Cold: no magic written yet -> invalid. *)
+    ('cold valid ' , (platform rtcValid ifTrue: [ 'true' ] ifFalse: [ 'false' ])) out.
+    (* Establish validity by writing the magic word, then read it back. *)
+    platform rtcPut: 0 value: self magicWord.
+    ('put magic then valid ' , (platform rtcValid ifTrue: [ 'true' ] ifFalse: [ 'false' ])) out.
+    platform rtcPut: 1 value: 5.
+    platform rtcPut: 2 value: 9.
+    platform rtcPut: 3 value: 66600.
+    ('half '      , (platform rtcGet: 1) printString) out.
+    ('bootticks ' , (platform rtcGet: 2) printString) out.
+    ('anchor '    , (platform rtcGet: 3) printString) out.
+    'finished' out.
+  )
+  (* Must equal RTC_MAGIC 0x94BE11C0 = 2495484352 as an unsigned; the seam compares
+     the low 32 bits as uint32 in C, so the node writes the same bit pattern via its
+     signed decimal. 0x94BE11C0 as int32 is -1799482944 (verified round-trip:
+     -1799482944 & 0xFFFFFFFF == 0x94BE11C0). nsl has no hex literal, so spell the
+     decimal.
+     NOTE (tuvm#94 stage 5, Task 1): the brief that originated this test carried
+     -1799676992 for this constant, which is NOT the same bit pattern as
+     0x94BE11C0 (it decodes to 0x94BB1BC0) — a transcription error, not an SMI
+     round-trip failure. Host SMIs here are 61 magnitude bits (oop_size=8 on this
+     build), so -1799676992 round-tripped through rtcPut:/rtcGet: exactly as
+     written; it simply wasn't the intended magic. Confirmed by direct probe
+     (rtcPut: 0 value: <literal>; rtcGet: 0 prints back the same literal either
+     way) before changing this to the arithmetically correct value. *)
+  magicWord = ( ^ -1799482944 )
+) : (
+)
