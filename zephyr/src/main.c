@@ -171,6 +171,51 @@ int ntp_target_sync(int tz_offset_seconds) {
 int ntp_target_sync(int tz_offset_seconds) { (void)tz_offset_seconds; return -1; }
 #endif /* CONFIG_WIFI */
 
+/* tuvm#94 stage 5: the RTC-retention seam, device side. On espressif SoCs g_rtc lands
+   in the S2's 8 KB rtc_slow_seg (.rtc.data at 0x50000000) and survives deep sleep; a
+   cold power-on leaves it UNDEFINED (not zeroed), which the magic word guards. The
+   field order is IDENTICAL to the host int32 array in platform.c and the node's rtc*
+   index constants (design §3). The symbols must link on EVERY board (platform.c's
+   externs are unconditional, one shared TU), so the definitions are unconditional and
+   only the espressif `.rtc.data` placement is guarded — on other boards g_rtc is plain
+   .bss, which is harmless because no non-MagTag board deep-sleeps. */
+#define OEVM_RTC_FIELDS 10
+#define OEVM_RTC_MAGIC  0x94BE11C0u
+#if defined(CONFIG_SOC_FAMILY_ESPRESSIF_ESP32)
+#define OEVM_RTC_DATA_ATTR __attribute__((section(".rtc.data")))
+#else
+#define OEVM_RTC_DATA_ATTR
+#endif
+static OEVM_RTC_DATA_ATTR int32_t g_rtc[OEVM_RTC_FIELDS];
+int rtc_target_valid(void) { return ((uint32_t)g_rtc[0] == OEVM_RTC_MAGIC) ? 1 : 0; }
+int rtc_target_get(int i) { if (i < 0 || i >= OEVM_RTC_FIELDS) return 0; return g_rtc[i]; }
+void rtc_target_put(int i, int v) { if (i < 0 || i >= OEVM_RTC_FIELDS) return; g_rtc[i] = v; }
+
+#if defined(CONFIG_SOC_FAMILY_ESPRESSIF_ESP32)
+#include <esp_sleep.h>
+#endif
+/* tuvm#94 stage 5: arm a timer wake and enter deep sleep. Direct ESP-IDF HAL call
+   because Zephyr's sys_poweroff() arms no wake source (#83); the HAL is already linked
+   on the espressif build. Never returns on device — the SoC powers down until the
+   timer fires and the VM cold-boots. On a non-espressif board it is a no-op (the seam
+   still links; only the MagTag path calls it). */
+void deep_sleep_target(int seconds) {
+#if defined(CONFIG_SOC_FAMILY_ESPRESSIF_ESP32)
+#if DT_NODE_EXISTS(DT_ALIAS(neopixelpower))
+    /* NeoPixel power gate (GPIO21, ACTIVE_LOW) driven inactive so the strip draws
+       nothing while asleep (design §10). */
+    {
+        const struct gpio_dt_spec np = GPIO_DT_SPEC_GET(DT_ALIAS(neopixelpower), gpios);
+        gpio_pin_configure_dt(&np, GPIO_OUTPUT_INACTIVE);
+    }
+#endif
+    esp_sleep_enable_timer_wakeup((uint64_t)seconds * 1000000ULL);
+    esp_deep_sleep_start();   /* does not return */
+#else
+    (void)seconds;
+#endif
+}
+
 #if defined(CONFIG_PWM) && DT_NODE_EXISTS(DT_ALIAS(spkren))
 #include <zephyr/drivers/pwm.h>
 /* MagTag speaker SPIKE (tuvm#85 follow-on). A PWM square-wave chime on GPIO17 —
