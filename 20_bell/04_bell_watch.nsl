@@ -1,0 +1,40 @@
+(*
+expect:
+00:30 -> 1
+12:00 -> 8
+18:30 -> 5
+day 812345678123456781234567812345678123456781234567
+*)
+(* tuvm#94 stage 2 — which count belongs to which half-hour, the other half of
+   the ship's-bell convention (the first half being `strike:`'s 1-8 guard).
+
+   THE WHOLE DAY IS ASSERTED, not three sample points. A mapping like this fails
+   at its wrap, and the three anchors the design happens to name (00:30, 12:00,
+   18:30) all sit at different offsets within the eight — so a rule that got the
+   RESET wrong could satisfy all three and still be broken at i=0, i=8, i=16.
+   Printing all 48 pins the reset explicitly: every eighth entry reads 8, never 0
+   and never silence.
+
+   The anchors are asserted anyway, and BY NAME, because they are the three the
+   spec and the earlier bench demos used — if this test ever has to be re-read
+   after a change, those are the values a human can check against the product
+   description rather than against the arithmetic.
+
+   Note 12:00 -> 8 is the interesting one: it is the case where `i // 8` divides
+   exactly, so it is the case a naive modulo answers 0 for. Eight bells is the
+   END of a watch, and a clock that went silent at noon would be the bug. *)
+class BellWatch packageUsing: manifest = () (
+  public main: platform args: args = (
+    | bell day |
+    bell:: platform bell.
+
+    ('00:30 -> ' , (bell bellsForHalfHour: 1) printString) out.
+    ('12:00 -> ' , (bell bellsForHalfHour: 24) printString) out.
+    ('18:30 -> ' , (bell bellsForHalfHour: 37) printString) out.
+
+    day:: ''.
+    0 to: 47 do: [ :i | day:: day , (bell bellsForHalfHour: i) printString ].
+    ('day ' , day) out.
+  )
+) : (
+)
