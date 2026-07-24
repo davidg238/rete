@@ -491,8 +491,8 @@ cd ~/workspace/nsl-tests && git add 20_bell/09_bell_math.nsl && git commit -m "t
 
 **Interfaces:**
 - Consumes: `rtcValid`, `rtcGet: i`, `rtcPut: i value: v`, `deepSleep: sec` (Tasks 1-2); the arithmetic spellings (Task 3).
-- Produces: `MagTagDeepSleepNode` with `main:args:` = the §7 straight-line script, plus pure helpers `secondsToNextBoundary:`, `bellsForHalfHour:`, `initColdState:`, `predictedNow:`, and the `rtc*` index constants. `bellsForHalfHour:` mirrors `Bell>>bellsForHalfHour:` (kernel.nsl:2167 — `i mod 8`, 0→8). The node prints, per wake, `wake half N bells B`, then `struck`, then `sleep: arming S s` — the harness's assertion surface.
-- Produces: `test_deepsleep_node.py` with a `run_wake(rtc_file, ntp=None, no_ntp=False)` helper (sets `OEVM_RTC_FILE` + `OEVM_NO_BELL=1` + optional NTP env, runs the compiled node once via `run_tests_oevm`'s Path-B host invocation, returns stdout) and a `read_rtc(path)` helper (`struct.unpack('<10i', ...)` → the field tuple). Later tasks add scenarios.
+- Produces: `MagTagDeepSleepNode` with `main:args:` = the §7 straight-line script, plus pure helpers `secondsToNextBoundary:`, `initColdState:`, `predictedNow:`, and the `rtc*` index constants. The node REUSES the kernel's `Bell>>bellsForHalfHour:` (call `(plat bell) bellsForHalfHour: half` — it already exists at kernel.nsl:2166, `i mod 8`, 0→8; the reactor calls it the same way at MagTagClockNode.nsl:250, so the node does NOT redefine it). The node prints, per wake, `wake half N bells B`, then `struck`, then `sleep: arming S s` — the harness's assertion surface.
+- Produces: `test_deepsleep_node.py` with a `run_wake(rtc_file, ntp=None, no_ntp=False)` helper (sets `OEVM_RTC_FILE` + optional NTP env, runs the compiled node once via the image VM, returns stdout) and a `read_rtc(path)` helper (`struct.unpack('<10i', ...)` → the field tuple). **Do NOT set `OEVM_NO_BELL`** — the host bell defaults available, so `strike:` prints `bell: struck N` and returns OK; with `OEVM_NO_BELL=1` the bell answers nil and the node's unguarded `strike:` would RAISE `#bellUnavailable` and never reach `deepSleep:`. Later tasks add scenarios.
 
 **Why a Python harness, not an nsl copy:** the node ends in `deepSleep:` (host `exit(0)`), so one process = one wake. The file-backed RTC (`OEVM_RTC_FILE`) makes state survive the exit, so the harness drives the REAL node across re-execs and pre-seeds state by writing the binary struct directly — the faithful realization of design §9's "simulated struct + scripted sync results" with zero body duplication.
 
@@ -514,14 +514,34 @@ import run_tests_oevm as R   # reuse the Path-B compile + host-oevm invocation
 NODE = Path.home() / "workspace/tuvm/zephyr/MagTagDeepSleepNode.nsl"
 RTC_MAGIC = -1799482944   # 0x94BE11C0 as int32
 
-# --- helpers (fill run_node in from run_tests_oevm's Path-B API) -------------------
+# --- Path-B plumbing (mirrors run_tests_oevm.run_test_file_oimg:496-546) -----------
+# Compile the node to .oimg ONCE, then re-run the image VM per wake with a custom env.
+_OIMG = None
+def _compile_once():
+    global _OIMG
+    if _OIMG: return _OIMG
+    ok, err = R._build_pathb_once()          # builds /tmp/oevm_img + /tmp/oevm_layout.json
+    if not ok: raise RuntimeError(err)
+    oimg = "/tmp/magtag_deepsleep.oimg"
+    comp = subprocess.run(
+        [sys.executable, str(TOOLS / "ns_compile_oevm.py"),
+         str(NODE), oimg, "--format=oimg", "--layout=/tmp/oevm_layout.json"],
+        capture_output=True, text=True)
+    if comp.returncode != 0:
+        raise RuntimeError("compile failed:\n" + (comp.stderr or comp.stdout))
+    _OIMG = oimg
+    return oimg
+
 def run_wake(rtc_file, ntp=None, no_ntp=False):
-    env = dict(os.environ, OEVM_RTC_FILE=str(rtc_file), OEVM_NO_BELL="1")
+    oimg = _compile_once()
+    env = dict(os.environ, OEVM_RTC_FILE=str(rtc_file))   # NOTE: no OEVM_NO_BELL (would raise)
     if no_ntp: env["OEVM_NO_NTP"] = "1"
     elif ntp is not None: env["OEVM_NTP_SECONDS"] = str(ntp)
     else: env.pop("OEVM_NTP_SECONDS", None)
-    # run_node: compile NODE to .oimg once (cache), run host oevm with env; return stdout.
-    return run_node(NODE, env)   # <- implement via R's Path-B helpers in Step 3
+    p = subprocess.run(["/tmp/oevm_img", oimg], capture_output=True, text=True, timeout=30, env=env)
+    # deepSleep: exits 0; a nonzero rc means an unhandled raise — surface it.
+    assert p.returncode == 0, f"node rc={p.returncode}\nSTDOUT:\n{p.stdout}\nSTDERR:\n{p.stderr}"
+    return p.stdout
 
 def read_rtc(path):
     with open(path, "rb") as f: return struct.unpack("<10i", f.read(40))
@@ -546,7 +566,7 @@ if __name__ == "__main__":
 Run: `python3 ~/workspace/nsl-tuvm/tools/test_deepsleep_node.py`
 Expected: FAIL — `run_node` unimplemented / node does not exist.
 
-- [ ] **Step 3: Write `MagTagDeepSleepNode.nsl`** — the §7 straight-line script (cold-boot + strike wake; the watch-end branch is a stub Task 5 fills). Then implement `run_node` in the harness using `run_tests_oevm`'s Path-B helpers (read that module for the exact compile-to-`.oimg` + host-`oevm` entry points that `run-one.py` imports).
+- [ ] **Step 3: Write `MagTagDeepSleepNode.nsl`** — the §7 straight-line script (cold-boot + strike wake; the watch-end branch is a stub Task 5 fills). The harness's `_compile_once`/`run_wake` above already carry the exact Path-B invocation — no reverse-engineering needed.
 
 ```
 (* tuvm#94 stage 5 — the ship's-bell clock as a RUN-ONCE deep-sleep appliance.
@@ -583,7 +603,7 @@ class MagTagDeepSleepNode packageUsing: manifest = () (
     (* The strike about to happen: a pure increment of the ratchet (design §2). *)
     half:: (plat rtcGet: self rtcLastHalf) + 1.
     half = 48 ifTrue: [ half:: 0 ].                       (* midnight wrap: 47 -> 0 *)
-    bells:: self bellsForHalfHour: half.
+    bells:: (plat bell) bellsForHalfHour: half.           (* reuse the kernel's Bell method *)
     isWatchEnd:: bells = 8.                               (* 8 bells == a watch end *)
 
     (* Strike BLOCKS to completion before any sleep (design §8: strike never cut off). *)
@@ -632,9 +652,9 @@ class MagTagDeepSleepNode packageUsing: manifest = () (
   (* IDENTICAL spelling to 09_bell_math.nsl. *)
   secondsToNextBoundary: sec = ( ^ 1800 - (sec - ((sec // 1800) * 1800)) )
 
-  (* Bells over a four-hour watch: 1..8, reset. Mirrors Bell>>bellsForHalfHour: in
-     kernel.nsl (i mod 8, with the 0 slot rung as 8). *)
-  bellsForHalfHour: i = ( | b | b:: i - ((i // 8) * 8). b = 0 ifTrue: [ ^ 8 ]. ^ b )
+  (* NOTE: bellsForHalfHour: is NOT redefined here — the node calls the kernel's
+     Bell>>bellsForHalfHour: via `(plat bell) bellsForHalfHour: half`, exactly as the
+     reactor does (MagTagClockNode.nsl:250). *)
 
   (* --- RTC field indices (design §3 table; identical order to the C struct) ------ *)
   rtcMagic      = ( ^ 0 )
@@ -657,10 +677,10 @@ class MagTagDeepSleepNode packageUsing: manifest = () (
 Run: `python3 ~/workspace/nsl-tuvm/tools/test_deepsleep_node.py`
 Expected: `ok` — cold boot strikes half 1, arms an 1800 s sleep, and the RTC file reads `magic, last=1, boot=1`.
 
-- [ ] **Step 5: Syntax-check + smoke-run the shipping node** (per [[nsl-app-seam-vs-kernel]] — syntax-check node files from a scratch dir):
+- [ ] **Step 5: Confirm a clean standalone compile** (the shipping node carries no `expect:` header, so `run-one.py` would SKIP it — compile it directly instead, which is also what `run_wake` does):
 
-Run: `OEVM_NO_BELL=1 python3 ~/workspace/nsl-tuvm/tools/run-one.py ~/workspace/tuvm/zephyr/MagTagDeepSleepNode.nsl B`
-Expected: clean compile; one cold wake prints the three lines and exits.
+Run: `python3 ~/workspace/nsl-tuvm/tools/ns_compile_oevm.py ~/workspace/tuvm/zephyr/MagTagDeepSleepNode.nsl /tmp/mtds_check.oimg --format=oimg --layout=/tmp/oevm_layout.json`
+Expected: exit 0, no compile errors. (Step 4's harness already compiled AND ran it; this isolates a syntax error from a runtime one per [[nsl-app-seam-vs-kernel]].)
 
 - [ ] **Step 6: Commit**
 
