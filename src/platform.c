@@ -316,6 +316,17 @@ static void rtc_store(void) {
 int rtc_target_valid(void) { rtc_load_once(); return ((uint32_t)g_rtc[0] == OEVM_RTC_MAGIC) ? 1 : 0; }
 int rtc_target_get(int i) { rtc_load_once(); if (i < 0 || i >= OEVM_RTC_FIELDS) return 0; return g_rtc[i]; }
 void rtc_target_put(int i, int v) { rtc_load_once(); if (i < 0 || i >= OEVM_RTC_FIELDS) return; g_rtc[i] = v; rtc_store(); }
+
+/* tuvm#94 stage 5: host deepSleep: — no real sleep exists, so log the commanded
+   duration and exit(0). This makes a host node run TERMINATE (not hang) at its idle
+   point, and — with OEVM_RTC_FILE set — leaves the retained state on disk for the
+   next re-exec, which is how the ratchet is witnessed across simulated sleeps. */
+void deep_sleep_target(int seconds) {
+    char line[48];
+    int len = snprintf(line, sizeof line, "sleep: arming %d s\n", seconds);
+    if (len > 0) platform_console_write(line, (size_t)len);
+    exit(0);
+}
 #else
 /* On target these live in zephyr/src/main.c, beside the legacy cosine-generator
    calls and the devicetree nodes they read — same split, same reason as the
@@ -334,6 +345,9 @@ extern int ntp_target_sync(int tz_offset_seconds);
 extern int rtc_target_valid(void);
 extern int rtc_target_get(int i);
 extern void rtc_target_put(int i, int v);
+/* tuvm#94 stage 5: deepSleep: device leaf deferred to a later task (zephyr/src/main.c
+   not yet touched); the extern must exist now so this shared translation unit links. */
+extern void deep_sleep_target(int seconds);
 #endif
 
 /* Target GPIO-ISR entry (Zephyr rung-2 Task 8): a real on-target GPIO edge
@@ -1290,6 +1304,12 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
     }
     case PRIM_pf_rtcPut: {
         rtc_target_put((int)UNTAG_SMI(args[0]), (int)UNTAG_SMI(args[1]));
+        *out = TAG_SMI(0);
+        return 1;
+    }
+    case PRIM_pf_deepSleep: {
+        /* Never returns (device sleeps; host exits). *out is set for form only. */
+        deep_sleep_target((int)UNTAG_SMI(args[0]));
         *out = TAG_SMI(0);
         return 1;
     }

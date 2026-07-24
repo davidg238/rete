@@ -301,4 +301,10 @@
 #define PRIM_pf_rtcValid          131
 #define PRIM_pf_rtcGet            132
 #define PRIM_pf_rtcPut            133
+
+/* tuvm#94 stage 5: deepSleep: seconds. On device it arms an esp_sleep timer wakeup
+   and starts deep sleep (never returns — the VM ceases to exist until the next boot).
+   On host it logs and exit(0)s so a run terminates. Counted (not computed) to be the
+   134th PRIM_NAMES entry. */
+#define PRIM_pf_deepSleep         134
 #endif /* OEVM_PRIM_IDS_H */
