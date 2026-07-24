@@ -206,11 +206,19 @@
  * pin is genuinely wired, they simply rely on fixed delays instead.
  *
  * THE PANEL IS 128 WIDE x 296 TALL AND STAYS THAT WAY. Neither
- * ultrachip,uc81xx-common.yaml nor uc81xx.c has any notion of rotation (unlike
- * solomon,ssd16xx-common.yaml, which does) — an undeclared `rotation` property
- * is a hard edtlib error, not a warning. So the character grid is PORTRAIT,
- * 16 cols x 37 rows, and the gate photo is taken with the board turned. See
- * the follow-up issue for landscape.
+ * ultrachip,uc81xx-common.yaml nor uc81xx.c has any notion of 90/270 rotation
+ * (unlike solomon,ssd16xx-common.yaml, which does) — an undeclared `rotation`
+ * property is a hard edtlib error, not a warning. So the character grid is
+ * PORTRAIT and the gate photo is taken with the board turned. tuvm#89 records
+ * why landscape is expensive and why it is no longer wanted; 180 degrees IS
+ * available and is the `rotate-180` boolean on the panel node below.
+ *
+ * The grid is 12 cols x 18 rows: CFB ships no 8x8 font — it has exactly three
+ * (font1016/font1524/font2032) and index 0 is font1016 at 10x16 px, so
+ * 128/10 = 12 and 296/16 = 18. The `8` that looks like a font size is CFB's
+ * `ppt`, a TILING GRANULARITY (cfb.c:724). The numbers live in one place,
+ * OEVM_DISPLAY_ROWS/COLS in src/platform_backend.h, and bring-up hard-checks
+ * its derived values against them rather than printing them for a human.
  */
 &spi2 {
 	status = "okay";
@@ -238,6 +246,16 @@
 			width = <128>;
 			height = <296>;
 			busy-gpios = <&gpio0 5 GPIO_ACTIVE_LOW>;
+
+			/* Which END of the portrait panel the USB-C connector sits
+			 * at. This is a double axis flip the CONTROLLER performs —
+			 * clearing PSR's UD and SHL bits, one register write, no
+			 * frame-buffer work (tuvm#89). Sharply unlike 90/270, which
+			 * this family cannot do at all. Which of the two states puts
+			 * the connector at the bottom is a fact about how the panel
+			 * is mounted and cannot be read out of any datasheet, so it
+			 * is settled on the bench. */
+			rotate-180;
 
 			full { };
 			partial { };

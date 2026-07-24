@@ -1291,6 +1291,72 @@ pairs) — converges WiFi/NTP + DAC + e-paper on one board, and #85's arena arit
 half the VM heap on this no-PSRAM part) is the budget that decides whether it fits. Not done:
 the chime is boot-time C; a real feature wants an nsl-facing `tone:for:` seam like #82's gpio.
 
+**nsl paints the e-paper — 2026-07-23, #88 done, proven on the MagTag.** An nsl node writes
+text to the 2.9" panel and refreshes it, full-panel and single-row, on host and ESP32-S2. Four
+blocking prims at 125-128 (`displayClear`, `displayAt:col:put:`, `displayRefresh`,
+`displayRefreshRow:`) over Zephyr's CFB; nsl never sees a pixel. Mirrors #82's gpio shape and
+rides `#ifdef __ZEPHYR__`, so no new `.c` file and no nine-source-list tax (#63). Gates, console
+plus photographs: `DISPLAY OK rows=18 cols=12 font=10x16` / `gate1 painted` (three legible lines,
+black on white) / `gate2 row 4 -> 1/2/3` (`presses: 3` clean, one row repainting) / `gate3 caught
+displayBounds`. dram0 86.10% (191,328 B). Design:
+`docs/design/2026-07-23-magtag-epaper-display-seam-design.md`.
+
+**This rung EXTENDED the Tier-1 catalog claim rather than consuming it.** The bench MagTag is the
+pre-July-2025 revision, whose IL0373 panel Zephyr supports *nowhere* — verified absent from both
+workspaces. The extension was bounded exactly as predicted (one binding yaml, one quirks struct,
+two byte-layout functions) because the IL0373 is a UC81xx in all but name. `review/zephyr-driver-
+exposure.md` carries the revised claim.
+
+Five findings, four of which only hardware could produce:
+
+1. **The grid is 12x18, and the number that looked like a font size was not one.** CFB ships no
+   8x8 font — exactly three (`font1016`/`font1524`/`font2032`); the `8` is `ppt`, a tiling
+   granularity (`cfb.c:724`). 128/10 = 12 cols, 296/16 = 18 rows. Geometry now lives in ONE place
+   (`OEVM_DISPLAY_ROWS/COLS` in `platform_backend.h`) and device bring-up **hard-checks** its
+   derived values against it and refuses to come up on mismatch — a printed number a human is
+   meant to eyeball is not an enforcement mechanism.
+2. **Blanking-off is load-bearing.** `uc81xx_write` only issues the refresh command with blanking
+   OFF; without `display_blanking_off()` every write loads RAM and returns success against a
+   panel that never repaints. `rc=0` against blank glass, again (cf. #86's silent audio).
+3. **The panel painted WHITE ON BLACK.** uc81xx advertises `PIXEL_FORMAT_MONO10` (1 = Black) but
+   its own init clears both RAM banks to `0xff` to reach white — coherent only if 1 = White. CFB
+   inverts only when `(pixel_format == MONO10) == inverted`, so it passed the buffer through
+   untouched. Fixed locally with `cfb_framebuffer_invert()` (flag-only, no I/O). The MONO10
+   declaration looks wrong for the whole family, but one panel is not evidence about
+   uc8175/uc8176, so the rung compensates and records the question.
+4. **CFB unions glyphs; it does not overwrite — and the two seams had diverged.** A counter
+   refreshed in place rendered 0,1,2,3 *stacked in one cell*. `draw_char_htmono` (`cfb.c:262`)
+   only sets bits and never clears the glyph cell; its `draw_bg` parameter is accepted and
+   ignored (only the VTILED path honours it), and `draw_text` passes `wrap` into that slot. The
+   host seam had no such problem — `platform.c` keeps a char grid and REPLACES characters. **So a
+   host-green test could never have caught this**, and the fix was to remove the divergence: the
+   device now keeps the same shadow grid and CFB is demoted to a pure renderer over a freshly
+   cleared framebuffer. +224 B dram0. The lesson generalises past this rung — the design's "one
+   place names the geometry" discipline did not extend to "one place defines the write
+   semantics", and that gap is where the bug lived.
+5. **A plausible fix was written, flashed, and refuted.** The first hypothesis for #4 blamed
+   `uc81xx_write`'s `!auto_copy` back-buffer copy (it targets DTM2 on every real refresh instead
+   of DTM1, so the controller's old-frame reference never advances). It made **no difference**,
+   because the union happens in RAM before any panel command. Reverted rather than left in the
+   shared tree as an unvalidated patch; whether it is a real latent bug is **open, and this
+   experiment could not answer it**.
+
+**Deviations from the plan.** Gate 2's row flashes black-then-white on each update — design D2
+predicted the OTP waveform and the plan pre-committed to calling that a pass; the LUT follow-up
+is now the clock rung's. Portrait shipped deliberately (#89: the uc81xx family has no rotation,
+and 180° turned out to be one free register write, exposed as a `rotate-180` devicetree boolean).
+
+**Heap ceiling, measured not guessed.** `tools/heap-ceiling.sh --board esp32s2` →
+max-linkable `OEVM_HEAP_SIZE=94208` (92 KB); 98304 overflows dram0 by 2,912 B — measured with
+driver, CFB and shadow grid linked in. The default stays 65536 because a value that LINKS is not
+a value that BOOTS and only 65536 has run on hardware. The ~28 KB between is headroom the
+ship's-bell clock can claim explicitly and then boot-verify against #85's WiFi arithmetic.
+
+**Three upstream candidates now.** The IL0373 family member, `cfb_framebuffer_finalize_area`
+(CFB cannot express a bounded flush — it grows `finalize_area`), and CFB's OR-only
+`draw_char_htmono` / `wrap`-as-`draw_bg` confusion. See
+`review/zephyr-upstream-contribution` notes and #114163's process lessons before filing.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),

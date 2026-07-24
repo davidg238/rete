@@ -123,10 +123,18 @@ case "$BOARD_ID" in
     # setjmp/longjmp only (no ungetc), hence --chip below.
     ROM_PATCH=1
     ROM_PATCH_CHIP="esp32s2"
-    # PROVISIONAL, like the C6's was: 65536 is a conservative first number for a
-    # 320 KB-SRAM part with no radio, NOT a measured ceiling. Run
-    # tools/heap-ceiling.sh --board esp32s2 before quoting it anywhere. Real cost
-    # is ~67.5 KB (the GC bitmap adds OEVM_HEAP_SIZE/32 outside the arena).
+    # MEASURED 2026-07-23 (tuvm#88), no longer provisional: the LINK ceiling is
+    #   tools/heap-ceiling.sh --board esp32s2 --node MagTagDisplayNode.nsl
+    #     -> max-linkable-OEVM_HEAP_SIZE=94208 (92 KB)
+    #        98304 overflows dram0_0_seg by 2912 B
+    # measured with the e-paper driver, CFB and the display seam's shadow grid
+    # all linked in — i.e. the display rung's own footprint is already paid for
+    # in that number. The default stays at the conservative 65536 because a
+    # value that LINKS is not a value that BOOTS, and only 65536 has been run on
+    # hardware; the ~28 KB between them is headroom a heavier node may claim
+    # explicitly (OEVM_HEAP_SIZE=... bash run.sh ...) and then boot-verify.
+    # Real cost is ~67.5 KB (the GC bitmap adds OEVM_HEAP_SIZE/32 outside the
+    # arena).
     # Note the 2 MB of PSRAM is NOT in play here: CONFIG_ESP_SPIRAM is off, and
     # enabling it would not enlarge this arena anyway — oevm_heap_store (gc.c) is
     # a static array, whereas ESP_SPIRAM selects SHARED_MULTI_HEAP and hands out
