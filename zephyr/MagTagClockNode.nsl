@@ -1,0 +1,97 @@
+(* tuvm#94 stage 2 — the bell strikes on the half-hour, from a local timer.
+
+   No network. The claim is exactly one thing: THE BELL ALWAYS RINGS. Accuracy is
+   stage 4's problem, and the architecture is built so that a WiFi outage costs
+   accuracy and never reliability — the local timer is authoritative for striking,
+   and NTP will only correct BETWEEN strikes.
+
+   THE CLOCK IS A COUNTER, NOT A TIMESTAMP. `halfHours` counts half-hours from
+   midnight, 0..47, and that is the whole of the node's notion of time. Deriving
+   time-of-day from `monotonicMillis` instead would have been the obvious move and
+   is worse twice over: it is an SMI on this target, so it wraps after ~12.4 days
+   on a device meant to run for months, and it would make every strike depend on
+   arithmetic that has to stay right across that wrap. A counter incremented once
+   per tick has neither problem, and stage 4's correction becomes a single
+   assignment to it rather than an epoch rebase.
+
+   NO BOOT STRIKE, deliberately — unlike stage 1's gate node. The claim here is
+   that the TIMER rings the bell, and a board that rings at start-up would sound
+   like a working clock during the entire first interval, before the claim has
+   been tested at all. `lastBells` is seeded to 8 so BUTTON_A still gives an
+   immediate liveness check by hand.
+
+   The 30-minute cadence is real (`halfHourMillis`), which makes the timer path
+   unwitnessable in a sitting — so BUTTON_B advances the clock by one half-hour
+   and strikes, through THE SAME method the timer calls. Eight presses walk the
+   whole watch (1..8) in under a minute and prove the mapping and the phrasing;
+   the timer path then proves its cadence over hours in the console log. A
+   bench affordance, and marked as one: it is the only thing here that would not
+   belong in a shipped appliance.
+
+   WHY `every:` AND NOT A RESCHEDULED `after:`: the Zephyr backend arms a PERIODIC
+   k_timer (`k_timer_start(&t, K_MSEC(ms), K_MSEC(ms))`, timer_zephyr.c:66), which
+   re-arms from the previous EXPIRY, not from handler completion. A striking blocks
+   ~2.5-4 s; with a periodic timer that eats into the interval and cannot shift the
+   schedule, so there is no drift to correct for and no need to compute the next
+   boundary by hand. Residual drift is the crystal's alone — 10-50 ppm on the
+   40 MHz part, i.e. 0.02-0.09 s per half-hour.
+
+   This node never returns, so it drains forever and cannot leak a live repeater
+   the way TimerNode could. *)
+class MagTagClockNode packageUsing: manifest = ( | halfHours ::= 0. lastBells ::= 8. | ) (
+  public main: platform args: args = (
+    | space bell timers gpio tick btnA btnB |
+    space:: platform space.
+    bell:: platform bell.
+    timers:: platform timers.   (* hold ONE instance — it owns the pending registry *)
+    gpio:: platform gpio.
+
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+
+    tick:: space channel: 'clock/tick'.
+    tick whenever: '' do: [ :m | self advanceAndStrike: bell ].
+    timers every: self halfHourMillis post: #tick on: tick.
+
+    (* BUTTON_A repeats the last striking — stage 1's gate, kept as a regression
+       and as the liveness check that covers the silent first interval. *)
+    btnA:: space channel: 'btn/a'.
+    btnA whenever: '' do: [ :m |
+      ('repeat ' , lastBells printString) out.
+      bell strike: lastBells ].
+    gpio pin: 15 edge: #falling post: 'A' on: btnA.
+
+    (* BUTTON_B fast-forwards one half-hour. Bench affordance — see the header. *)
+    btnB:: space channel: 'btn/b'.
+    btnB whenever: '' do: [ :m | self advanceAndStrike: bell ].
+    gpio pin: 14 edge: #falling post: 'B' on: btnB.
+
+    ('clock ready, ' , self halfHourMillis printString , ' ms per half-hour') out.
+    (* `platform pumpEvents` pumps the backends INTO the space queue; `space drain`
+       is what dequeues and fires reactions. A reactor loop without the drain
+       enqueues ticks and presses forever and runs none of them. *)
+    [ true ] whileTrue: [ platform pumpEvents. space drain ].
+  )
+
+  (* THE ONE PATH BOTH THE TIMER AND BUTTON_B TAKE. Keeping them on one method is
+     what makes the button a witness for the timer rather than a second
+     implementation that could agree with it by accident. *)
+  advanceAndStrike: bell = (
+    halfHours:: halfHours + 1.
+    halfHours = 48 ifTrue: [ halfHours:: 0 ].
+    lastBells:: bell bellsForHalfHour: halfHours.
+    ((self timeString: halfHours) , ' strike ' , lastBells printString) out.
+    bell strike: lastBells.
+    'struck' out.
+    ^ self )
+
+  timeString: i = (
+    | h |
+    h:: i // 2.
+    ^ (self pad: h) , (((i - (h * 2)) = 0) ifTrue: [ ':00' ] ifFalse: [ ':30' ]) )
+
+  pad: n = ( (n < 10) ifTrue: [ ^ '0' , n printString ]. ^ n printString )
+
+  (* REAL cadence. 1800000 ms = 30 minutes. *)
+  halfHourMillis = ( ^ 1800000 )
+) : (
+)
