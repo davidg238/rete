@@ -673,11 +673,16 @@ def main():
 
     portability = run_portability_gate()   # "PASS" | "SKIP" | "FAIL"
     boot_gc_ok = run_boot_gc_asan_gate()
+    # tuvm#94 stage 5: the deep-sleep node harness drives the REAL MagTagDeepSleepNode
+    # across simulated sleeps via OEVM_RTC_FILE. It uses absolute paths + its own
+    # _build_pathb_once(), so it does NOT clobber ../tuvm/src/solidified_image.c the way
+    # the grant/debugger gates do — safe here, after the checkout restore.
+    deepsleep_ok = run_integration_gate("test_deepsleep_node", "test_deepsleep_node.py")
     footprint = run_footprint_gate()   # "PASS" | "SKIP" | "FAIL"
 
     suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok
                 and portability != "FAIL" and boot_gc_ok
-                and footprint != "FAIL")
+                and footprint != "FAIL" and deepsleep_ok)
     print(f"\n{COLOR_GREEN if suite_ok else COLOR_RED}Test Execution Summary:{COLOR_RESET}")
     print(f"  Passed:  {passed}")
     print(f"  Failed:  {failed}")
@@ -686,6 +691,7 @@ def main():
           f"debugger-integration: {'PASS' if dbg_int_ok else 'FAIL'}  "
           f"portability-32: {portability}  "
           f"boot-gc-asan: {'PASS' if boot_gc_ok else 'FAIL'}  "
+          f"deepsleep: {'PASS' if deepsleep_ok else 'FAIL'}  "
           f"footprint: {footprint}")
 
     if not suite_ok:

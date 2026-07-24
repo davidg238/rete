@@ -117,10 +117,35 @@ def test_watch_end_panel():
         for line in painted:
             assert len(line) - 2 <= 12, line              # 12-col hard limit (design §5)
 
+def _mono_mod48(seq):
+    # Each step advances by exactly +1 half mod 48; the 47->0 wrap is (0-47)%48 == 1,
+    # a forward step, never a decrease. Any step outside 1..47 is a ratchet violation.
+    for a, b in zip(seq, seq[1:]):
+        step = (b - a) % 48
+        if step != 1:
+            return False
+    return True
+
+def test_ratchet_monotonic_across_sleeps():
+    # Seed the count near the day's end (last struck = 44) so a short run CROSSES the
+    # 47->0 midnight wrap — 12 cold wakes would only reach half 12 and never wrap. No NTP,
+    # so the ratchet advances purely on its own timebase across every simulated sleep.
+    with tempfile.TemporaryDirectory() as d:
+        rtc = Path(d) / "rtc.bin"
+        seed_rtc(rtc, last=44, anchor=0, elapsed=0)
+        halves = []
+        for _ in range(10):                        # 45,46,47,0,1,2,3,4,5,6
+            out = run_wake(rtc)                     # no ntp -> free-run on the ratchet
+            halves.append(int(out.split("wake half ")[1].split(" ")[0]))
+        assert _mono_mod48(halves), halves          # strictly +1 each sleep, wrap included
+        assert halves[0] == 45 and 0 in halves, halves   # crossed the 47->0 midnight wrap
+        assert halves[3] == 0, halves               # the wrap lands where expected
+
 if __name__ == "__main__":
     test_cold_boot_strike()
     test_hold_when_ahead()
     test_advance_silent_when_behind()
     test_sync_fail_keeps_striking()
     test_watch_end_panel()
+    test_ratchet_monotonic_across_sleeps()
     print("ok")
