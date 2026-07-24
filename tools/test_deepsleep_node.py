@@ -105,14 +105,17 @@ def test_watch_end_panel():
         seed_rtc(rtc, last=7, anchor=0, elapsed=14400, syncs=2, d24max=8, d24min=-3)
         out = run_wake(rtc, ntp=14400)                      # exact 04:00 -> on-time, drift 0
         # heap row is intentionally skipped on host (16 MB arena -> "/16384K" overflows 12 cols).
-        for row in ("| tuvm", "| ----------", "| ppm", "| up",
-                    "| ntp", "| 24h", "| sync"):
-            assert row in out, (row, out)
         assert "sync true 14400 predicted 14400 -> hold half 8" in out, out   # on-time -> drift measured
-        assert "| ntp" in out and "+0.0s" in out, out       # drift 0 measured this watch
-        for line in out.splitlines():
-            if line.startswith("| "):
-                assert len(line) - 2 <= 12, line            # 12-col hard limit (design §5)
+        painted = [l for l in out.splitlines() if l.startswith("| ")]
+        assert len(painted) == 9, painted               # 10 rows minus the host-skipped heap row
+        assert out.count("| ----------") == 2, out       # BOTH separator rows render
+        for row in ("| tuvm", "| ppm", "| up", "| ntp", "| 24h", "| sync"):
+            assert row in out, (row, out)
+        # row 8 = the unlabeled 24h-min continuation row (distinct from the 24h max row)
+        assert any(l.strip("| ").strip() == "-3" for l in painted), painted
+        assert "+0.0s" in out, out                        # drift 0 measured this watch
+        for line in painted:
+            assert len(line) - 2 <= 12, line              # 12-col hard limit (design §5)
 
 if __name__ == "__main__":
     test_cold_boot_strike()
