@@ -18,7 +18,7 @@
    RAM does not survive the sleep. Field indices are the constants below and are
    identical to the C struct order in zephyr/src/main.c. nsl has no modulo (tuvm#97), so
    `x mod n` is `x - ((x // n) * n)` throughout. *)
-class MagTagDeepSleepNode packageUsing: manifest = () (
+class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
 
   public main: platform args: args = (
     | plat half bells isWatchEnd predictedNow sleepSec |
@@ -74,10 +74,9 @@ class MagTagDeepSleepNode packageUsing: manifest = () (
     | trueSec |
     trueSec:: self trySyncUpTo3: plat.
     trueSec == nil
-       ifTrue:  [ self markSyncFailed: plat ]
-       ifFalse: [ self applySync: trueSec plat: plat ].
-    (* paintStats: is added in Task 6, AFTER the sync, so a FAIL shows on the glass. *)
-    self paintStats: plat.
+       ifTrue:  [ syncOk:: false. self markSyncFailed: plat ]
+       ifFalse: [ syncOk:: true.  self applySync: trueSec plat: plat ].
+    self paintStats: plat.                    (* AFTER the sync, so a FAIL shows *)
     ^ self )
 
   (* 3 attempts fit one ~15 s awake window (design §4); "quit until next watch-end" is
@@ -114,6 +113,7 @@ class MagTagDeepSleepNode packageUsing: manifest = () (
                      the small signed gap between where the crystal put us and true time,
                      over the interval elapsedSec. This is the number the panel reports. *)
                   drift:: self wrapDrift: (trueSec - predicted).
+                  lastDriftSec:: drift.
                   self recordDrift: (self driftPpm: drift over: (plat rtcGet: self rtcElapsedSec)) plat: plat.
                   ('sync true ' , trueSec printString , ' predicted ' , predicted printString , ' -> hold half ' , lastHalf printString) out ].
 
@@ -153,7 +153,96 @@ class MagTagDeepSleepNode packageUsing: manifest = () (
   driftPpm: driftSec over: elapsedSec = ( elapsedSec = 0 ifTrue: [ ^ 0 ]. ^ (driftSec * 1000000) // elapsedSec )
 
   tzOffset = ( ^ -25200 )   (* Phoenix, UTC-7, no DST — a product fact passed to the prim *)
-  paintStats: plat = ( ^ self )   (* Task 6 fills this in *)
+
+  (* Painted ONLY at watch-ends (design §5), AFTER the sync, so a FAIL shows. Per-row
+     best-effort: each row draws inside its own catch, so an over-wide value (e.g. the
+     16 MB host arena's heap row) skips just that row instead of blanking the panel.
+     A whole-panel guard around `display`/`clear` still carries on headless if the board
+     has no panel at all. *)
+  paintStats: plat = (
+    | disp hs |
+    (* Sentinel-and-return: a handler block is a real escaping closure, so `^` inside it
+       is a compile error under the no-NLR model (review/lib/errors.md) — capture the
+       on:do: result (the display, or the nil sentinel from the handler) and `^` from the
+       method body instead. *)
+    disp:: [ | d | d:: plat display. d clear. d ]
+      on: [ :e | e tag = #displayUnavailable ]
+      do: [ :e | nil ].
+    disp == nil ifTrue: [ 'no display; skipping paint' out. ^ self ].
+    hs:: plat heapStats.
+    self tryRow: 0 s: (self line: 'tuvm' val: '')                                       on: disp.
+    self tryRow: 1 s: '----------'                                                      on: disp.
+    self tryRow: 2 s: (self line: 'heap' val: (self heapField: hs))                     on: disp.
+    self tryRow: 3 s: (self line: 'ppm'  val: (self signedField: (plat rtcGet: self rtcDriftPpm))) on: disp.
+    self tryRow: 4 s: (self line: 'up'   val: (self upField: plat))                     on: disp.
+    self tryRow: 5 s: '----------'                                                      on: disp.
+    self tryRow: 6 s: (self line: 'ntp'  val: self ntpField)                            on: disp.
+    self tryRow: 7 s: (self line: '24h'  val: (self signedField: (plat rtcGet: self rtcDrift24Max))) on: disp.
+    self tryRow: 8 s: (self line: ''     val: (self signedField: (plat rtcGet: self rtcDrift24Min))) on: disp.
+    self tryRow: 9 s: (self line: 'sync' val: (self staleField: (plat rtcGet: self rtcStaleSec)))    on: disp.
+    [ disp refresh ] on: [ :e | (e tag = #displayFault) or: [ e tag = #displayUnavailable ] ]
+                     do: [ :e | ('refresh skipped: ' , e tag printString) out ].
+    ^ self )
+
+  (* Draw one row and echo it, catching a too-wide/faulted row so the rest still paint.
+     The echo is INSIDE the try and AFTER the draw, so a skipped row emits no `| ` line —
+     which is exactly what the host test keys on for the (skipped) heap row. *)
+  tryRow: r s: s on: disp = (
+    [ disp at: r col: 0 put: s. ('| ' , s) out ]
+      on: [ :e | (e tag = #displayBounds) or: [ e tag = #displayFault ] ]
+      do: [ :e | ('row ' , r printString , ' skipped: ' , e tag printString) out ].
+    ^ self )
+
+  (* live rounded to whole KiB / arena in KiB. On device (20 KB) this is `20/20K`; on the
+     host image VM (16 MB) it is `.../16384K`, which overflows the 12-col grid and is
+     skipped by tryRow: — the row is witnessed on device (Task 9), not on host. *)
+  heapField: hs = ( ^ (self kRound: hs liveBytes) , '/' , (hs heapSize // 1024) printString , 'K' )
+
+  (* The `ntp` row: this watch FAILED -> FAIL; synced and measured drift (hold branch) ->
+     `+N.Ns`; synced but advanced (missed wakes, no drift measured) -> `sync`. There is no
+     `--` never-synced case because paint happens ONLY at a watch-end, where a sync was
+     just attempted. *)
+  ntpField = (
+    syncOk ifFalse: [ ^ 'FAIL' ].
+    lastDriftSec == nil ifTrue: [ ^ 'sync' ].
+    ^ (self signedField: lastDriftSec) , '.0s' )
+
+  (* Uptime from bootTicks (30 min per tick), wrap-safe — the reactor's upField, with the
+     cadence inlined as 30 since a sleep tick IS one half-hour. *)
+  upField: plat = (
+    | mins d r h m |
+    mins:: (plat rtcGet: self rtcBootTicks) * 30.
+    d:: mins // 1440.
+    r:: mins - (d * 1440).
+    h:: r // 60.
+    m:: r - (h * 60).
+    ^ d printString , 'd' , (self pad: h) , ':' , (self pad: m) )
+
+  (* Age since last good sync, `Nd/NNh` — IDENTICAL spelling to 09_bell_math.nsl. *)
+  staleField: sec = (
+    | mins d r h |
+    mins:: sec // 60.
+    d:: mins // 1440.
+    r:: mins - (d * 1440).
+    h:: r // 60.
+    ^ d printString , 'd/' , (self pad: h) , 'h' )
+
+  (* Signed integer, `+N` / `-N`. nsl has no unary minus display, so build it. *)
+  signedField: n = (
+    n < 0 ifTrue: [ ^ '-' , (0 - n) printString ].
+    ^ '+' , n printString )
+
+  (* Right-justify `v` against `label` in exactly 12 columns; overshoot (pad < 0) is left
+     un-truncated so the too-wide row raises #displayBounds and tryRow: skips it. *)
+  line: label val: v = (
+    | pad |
+    pad:: 12 - label size - v size.
+    pad < 0 ifTrue: [ pad:: 0 ].
+    ^ label , (self spaces: pad) , v )
+
+  spaces: n = ( | s | s:: ''. n timesRepeat: [ s:: s , ' ' ]. ^ s )
+  kRound: bytes = ( ^ ((bytes + 512) // 1024) printString )
+  pad: n = ( (n < 10) ifTrue: [ ^ '0' , n printString ]. ^ n printString )
 
   predictedNow: plat = (
     | now |
