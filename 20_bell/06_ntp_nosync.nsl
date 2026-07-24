@@ -1,0 +1,35 @@
+(*
+env: OEVM_NO_NTP=1
+expect:
+sync failed nil
+still ringing
+finished
+*)
+(* tuvm#94 stage 4 — a failed sync answers nil, and the node must read that as
+   "keep free-running", not as an error.
+
+   OEVM_NO_NTP (src/platform.c) forces the failure path, delivered PER-TEST via the
+   env: header so it cannot leak into 05's has-seconds assertion -- a global export
+   would silently turn that test's arithmetic into a nil-dereference.
+
+   The second line is the actual claim. Answering nil is only half of the contract;
+   the other half is that nil is an ORDINARY answer, so a node can branch on it with
+   no handler in sight. If this seam ever grows a raise, this test stops compiling
+   its way to `still ringing` and that is the intended alarm -- the failure would
+   otherwise surface as a clock that stops ringing when the WiFi drops, which is the
+   exact opposite of what the rung promises. *)
+class NtpNoSync packageUsing: manifest = () (
+  public main: platform args: args = (
+    | secs |
+    secs:: platform ntpSyncTz: -25200.
+    secs == nil
+      ifTrue:  [ 'sync failed nil' out ]
+      ifFalse: [ ('sync did NOT fail: ' , secs printString) out ].
+
+    (* No handler anywhere above or below: reaching this line at all is the proof
+       that a missed sync is an answer and not a raise. *)
+    'still ringing' out.
+    'finished' out.
+  )
+) : (
+)
