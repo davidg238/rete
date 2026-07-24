@@ -286,6 +286,36 @@ int ntp_target_sync(int tz_offset_seconds) {
     if (mode == 0) return -1;
     return (int)(((secs % 86400) + 86400) % 86400);
 }
+
+/* tuvm#94 stage 5: the host side of the RTC-retention seam. On device this struct
+   lives in .rtc.data and survives deep sleep; on host it is a plain int32 array that
+   optionally persists to OEVM_RTC_FILE so the node can be re-exec'd N times and the
+   ratchet witnessed ACROSS simulated sleeps (Task 7's harness). With no file set the
+   array is cold at process start (magic unwritten -> rtcValid false), which is
+   exactly the cold-power-on path. A reusable test feature, not a one-off. */
+#define OEVM_RTC_FIELDS 10
+#define OEVM_RTC_MAGIC  0x94BE11C0u
+static int32_t g_rtc[OEVM_RTC_FIELDS];
+static int g_rtc_loaded = 0;
+static void rtc_load_once(void) {
+    if (g_rtc_loaded) return;
+    g_rtc_loaded = 1;
+    memset(g_rtc, 0, sizeof g_rtc);          /* cold default: magic mismatch -> invalid */
+    const char *p = getenv("OEVM_RTC_FILE");
+    if (p) {
+        FILE *f = fopen(p, "rb");
+        if (f) { (void)fread(g_rtc, sizeof(int32_t), OEVM_RTC_FIELDS, f); fclose(f); }
+    }
+}
+static void rtc_store(void) {
+    const char *p = getenv("OEVM_RTC_FILE");
+    if (!p) return;                          /* in-memory only */
+    FILE *f = fopen(p, "wb");
+    if (f) { (void)fwrite(g_rtc, sizeof(int32_t), OEVM_RTC_FIELDS, f); fclose(f); }
+}
+int rtc_target_valid(void) { rtc_load_once(); return ((uint32_t)g_rtc[0] == OEVM_RTC_MAGIC) ? 1 : 0; }
+int rtc_target_get(int i) { rtc_load_once(); if (i < 0 || i >= OEVM_RTC_FIELDS) return 0; return g_rtc[i]; }
+void rtc_target_put(int i, int v) { rtc_load_once(); if (i < 0 || i >= OEVM_RTC_FIELDS) return; g_rtc[i] = v; rtc_store(); }
 #else
 /* On target these live in zephyr/src/main.c, beside the legacy cosine-generator
    calls and the devicetree nodes they read — same split, same reason as the
@@ -298,6 +328,12 @@ extern int bell_target_strike(int bells);
    Zephyr board, so main.c guards the BODY (a board without CONFIG_WIFI answers -1),
    never the definition. */
 extern int ntp_target_sync(int tz_offset_seconds);
+/* tuvm#94 stage 5: RTC-retention leaves live in zephyr/src/main.c (the .rtc.data
+   struct is beside the wifi/ntp leaves). Same rule as bell/ntp — the symbols link on
+   every Zephyr board; main.c guards bodies, never definitions. */
+extern int rtc_target_valid(void);
+extern int rtc_target_get(int i);
+extern void rtc_target_put(int i, int v);
 #endif
 
 /* Target GPIO-ISR entry (Zephyr rung-2 Task 8): a real on-target GPIO edge
@@ -1240,6 +1276,21 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         int r = ntp_target_sync((int)UNTAG_SMI(args[0]));
         if (r < 0) { *out = NULL; return 1; }
         *out = TAG_SMI(r);
+        return 1;
+    }
+    case PRIM_pf_rtcValid: {
+        /* SMI 0/1; the kernel forwarder coerces to a Boolean, so no true/false oop
+           is needed in C. */
+        *out = TAG_SMI(rtc_target_valid());
+        return 1;
+    }
+    case PRIM_pf_rtcGet: {
+        *out = TAG_SMI(rtc_target_get((int)UNTAG_SMI(args[0])));
+        return 1;
+    }
+    case PRIM_pf_rtcPut: {
+        rtc_target_put((int)UNTAG_SMI(args[0]), (int)UNTAG_SMI(args[1]));
+        *out = TAG_SMI(0);
         return 1;
     }
     case PRIM_pf_spanStats: {

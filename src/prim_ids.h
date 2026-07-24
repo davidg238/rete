@@ -291,4 +291,14 @@
    Counted (128 display + bellStrike = 129 entries before this), so this is the
    130th PRIM_NAMES entry, per the standing rule above. */
 #define PRIM_pf_ntpSync           130
+
+/* tuvm#94 stage 5 (deep-sleep clock): the RTC-retention seam. State that must
+   outlive the dead VM across a deep sleep lives in a fixed 10-field SMI struct
+   (.rtc.data on device, a file on host). rtcValid guards the magic word; rtcGet:/
+   rtcPut:value: are indexed SMI accessors (design §3 table). Appended after
+   ntpSync; no pre-existing id shifts. Counted (not computed): these are the
+   131st/132nd/133rd PRIM_NAMES entries. */
+#define PRIM_pf_rtcValid          131
+#define PRIM_pf_rtcGet            132
+#define PRIM_pf_rtcPut            133
 #endif /* OEVM_PRIM_IDS_H */
