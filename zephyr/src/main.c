@@ -205,6 +205,171 @@ static void magtag_chime(void) {
 }
 #endif /* CONFIG_PWM && spkren */
 
+#if defined(CONFIG_DAC) && DT_NODE_EXISTS(DT_ALIAS(spkren))
+#include <zephyr/drivers/dac.h>
+/* THE LEGACY IDF HEADER IS NOT AN ACCIDENT. Zephyr's DAC API cannot produce a
+   tone at all: drivers/dac/dac_esp32.c exposes exactly channel_setup +
+   write_value, and write_value sets ONE 8-bit DC level per call — no buffer, no
+   DMA, no continuous mode. The ESP32-S2's hardware cosine generator is reachable
+   only through this deprecated header, whose implementation
+   (components/driver/deprecated/dac_common_legacy.c) is compiled under
+   CONFIG_DAC_ESP32 and whose directory is on the global include path
+   (hal/espressif/zephyr/esp32s2/CMakeLists.txt:12,64,209-215). So the PIN is
+   enabled through the Zephyr API and the TONE is driven through the legacy one. */
+#include "driver/dac.h"
+/* MagTag bell (tuvm#94). The cosine generator on GPIO17 — same pin, same amp as
+   the #86 LEDC chime, but reaching what LEDC cannot: 130 Hz-55 kHz (vs LEDC's
+   ~1 kHz floor on this part) and four amplitude steps, which is what makes a
+   decay envelope possible at all.
+
+   GATE 1 IS A SWEEP, NOT A NOTE. The open risk is that a sine is QUIETER than
+   the square wave #86 played — a square carries far more harmonic energy into a
+   tiny buzzer — and a single frequency cannot tell "the DAC is silent" apart
+   from "this buzzer will not reproduce 220 Hz". Sweeping is the same move that
+   located LEDC's floor in #86. */
+static const struct gpio_dt_spec bell_en = GPIO_DT_SPEC_GET(DT_ALIAS(spkren), gpios);
+
+/* The bell's fundamental. 440 Hz beat 220 on the bench (gate 2), and it is BELOW
+   the ~1 kHz LEDC floor measured in #86 — so this is a pitch the PWM path could
+   not have produced at all. */
+#define BELL_HZ 440
+
+/* ONE STRIKE. The cosine generator is a pure oscillator with no envelope of its
+   own, so what makes this a strike rather than a beep is the four-step amplitude
+   ramp — DAC_CW_SCALE_1/2/4/8 is 1, 1/2, 1/4, 1/8 of full scale, i.e. -6 dB a
+   step. Four steps is ALL the hardware has; a real bell's continuous exponential
+   decay (and its inharmonic partials) needs per-sample synthesis, which is the
+   decision this gate exists to inform.
+
+   The steps LENGTHEN as they quieten, which is what an exponential decay does and
+   what makes the tail read as ring-out rather than as a staircase. Total 500 ms —
+   #86 measured 160 ms as inaudible at rc=0 and 500 ms as loud on this buzzer. */
+static void bell_strike(uint32_t hz) {
+    static const struct { dac_cw_scale_t scale; int ms; } envelope[] = {
+        { DAC_CW_SCALE_1,  50 },   /* attack: full amplitude, short */
+        { DAC_CW_SCALE_2,  90 },
+        { DAC_CW_SCALE_4, 140 },
+        { DAC_CW_SCALE_8, 220 },   /* tail: quietest, longest */
+    };
+
+    for (size_t i = 0; i < ARRAY_SIZE(envelope); i++) {
+        dac_cw_config_t cw = {
+            .en_ch  = DAC_CHAN_0,
+            .scale  = envelope[i].scale,
+            .phase  = DAC_CW_PHASE_0,
+            .freq   = hz,
+            .offset = 0,
+        };
+        /* config() sets freq/atten/phase and enables the channel; enable() starts
+           the generator. Re-configuring while running just retunes it, so the
+           envelope is a sequence of config() calls with one enable() at the top.
+           config() internally brackets the RTC-8M clock with enable/disable to
+           read its frequency, but that is refcounted and generator_enable holds a
+           reference, so the clock does not drop out mid-strike. */
+        (void)dac_cw_generator_config(&cw);
+        if (i == 0) {
+            (void)dac_cw_generator_enable();
+        }
+        k_msleep(envelope[i].ms);
+    }
+
+    /* SILENCE BETWEEN STRIKES HAS TO COME FROM DISABLING THE GENERATOR. The
+       quietest step is 1/8 scale, not zero, so leaving it running would leave a
+       continuous tone under the whole pattern and destroy the phrasing. */
+    (void)dac_cw_generator_disable();
+}
+
+/* N BELLS, STRUCK IN PAIRS — the ship's-bell convention: two quick strikes, a
+   gap, two more, with a LONE FINAL STROKE for an odd count. Five bells is
+   ding-ding … ding-ding … ding, and it is the most informative count to demo
+   because it exercises both the pairing and the odd remainder.
+
+   The gap after a strike depends on its position: even index = first of a pair,
+   so a short gap holds the pair together; odd index = second of a pair, so a long
+   gap separates it from the next. No trailing gap after the final stroke. */
+static void bell_strike_pattern(uint32_t hz, int n) {
+    printk("bell: %u Hz x%d\n", hz, n);
+    for (int i = 0; i < n; i++) {
+        bell_strike(hz);
+        if (i == n - 1) {
+            break;
+        }
+        k_msleep((i % 2 == 0) ? 160 : 600);
+    }
+}
+
+static void magtag_bell(void) {
+    /* THE ZEPHYR DAC DEVICE IS DELIBERATELY NOT REQUIRED, AND ITS INIT FAILS.
+       drivers/dac/dac_esp32.c:71 does `if (clock_control_on(...) != 0) return
+       -EIO`, but clock_control_esp32.c:506 returns -EALREADY when the module
+       clock is ALREADY ON — a success condition. So dac_esp32_init reports -EIO,
+       the device never becomes ready, and every failure message is swallowed
+       because it goes through LOG_ERR while this build has only CONFIG_PRINTK.
+       Note drivers/adc/adc_esp32.c:668 calls the very same clock_control_on for
+       the very same module (both DAC and ADC hang off ESP32_PERIPH_SARADC_MODULE)
+       and DISCARDS the return value — i.e. the ADC driver already tolerates what
+       the DAC driver dies on. Upstream bug; not patched locally because this
+       Zephyr checkout carries the C6 radio fix and must not accrete casual
+       patches.
+
+       It costs nothing to route around: the tone must come from the legacy API
+       regardless (Zephyr's DAC API cannot generate one), so taking the pin enable
+       from the same place removes a dependency rather than adding a workaround.
+       CONFIG_DAC_ESP32 is still required — it is what compiles
+       dac_common_legacy.c — hence the devicetree node stays enabled. */
+    if (!gpio_is_ready_dt(&bell_en)) {
+        printk("bell: speaker-enable pin not ready\n");
+        return;
+    }
+
+    /* CHANNEL 0, AND THE NAME IS A TRAP. GPIO17 is DAC_CHAN_0
+       (soc/esp32s2/include/soc/dac_channel.h: DAC_GPIO17_CHANNEL == DAC_CHAN_0).
+       The legacy alias DAC_CHANNEL_1 is deprecated and its VALUE IS 0 — the name
+       says "1" and means the first channel. Writing 1 here would silently target
+       GPIO18, which goes nowhere on this board: rc=0 and no sound. */
+    int rc = dac_output_enable(DAC_CHAN_0);
+    printk("bell: dac_output_enable rc=%d\n", rc);
+    if (rc) {
+        return;   /* never discard an error code on a bring-up path */
+    }
+
+    /* THE AMP NEEDS TO SETTLE — the single biggest time sink in #86, where
+       enabling SPEAKER_SHUTDOWN and driving in the same breath was silent and
+       looked like a routing bug for three builds. */
+    gpio_pin_configure_dt(&bell_en, GPIO_OUTPUT_ACTIVE);   /* un-mute, and hold */
+    k_msleep(50);
+
+    /* 440 Hz, SETTLED ON THE BENCH 2026-07-23. Gate 1 swept 220/440/880/1760: all
+       four audible, 1760 bad. Gate 2 struck the pattern at 440 and 220 back to
+       back and 440 was "far superior". Note 440 is below LEDC's floor on this part
+       (#86: 500 Hz -> -EINVAL), so the pitch this bell actually wants is one PWM
+       could never have produced — the rung's whole justification, now measured
+       rather than argued.
+
+       THREE TIMES OF DAY, chosen to cover the pattern's edge cases as well as to
+       demo it: 1 is the lone single stroke (no pair at all), 5 is odd (two pairs
+       then a lone final stroke), 8 is the full end-of-watch count (four pairs, no
+       remainder). Five seconds apart so each is unmistakably a separate striking
+       rather than one long run. */
+    static const struct { int bells; const char *when; } times_of_day[] = {
+        { 1, "00:30 — one bell, first half-hour of the watch" },
+        { 5, "18:30 — five bells" },
+        { 8, "12:00 — eight bells, end of the watch" },
+    };
+
+    for (size_t i = 0; i < ARRAY_SIZE(times_of_day); i++) {
+        printk("bell: %s\n", times_of_day[i].when);
+        bell_strike_pattern(BELL_HZ, times_of_day[i].bells);
+        if (i + 1 < ARRAY_SIZE(times_of_day)) {
+            k_msleep(5000);
+        }
+    }
+
+    gpio_pin_configure_dt(&bell_en, GPIO_OUTPUT_INACTIVE);   /* re-mute the amp */
+    printk("bell: struck\n");
+}
+#endif /* CONFIG_DAC && spkren */
+
 #include "platform_backend.h"   /* OEVM_DISPLAY_ROWS/COLS — the one place the grid is named (tuvm#88) */
 
 #if DT_HAS_CHOSEN(zephyr_display)
@@ -881,6 +1046,10 @@ int main(void) {
 
 #if defined(CONFIG_PWM) && DT_NODE_EXISTS(DT_ALIAS(spkren))
     magtag_chime();   /* spike: prove the MagTag speaker path at boot */
+#endif
+
+#if defined(CONFIG_DAC) && DT_NODE_EXISTS(DT_ALIAS(spkren))
+    magtag_bell();   /* tuvm#94 gate 1: sweep the DAC cosine generator */
 #endif
 
 #if DT_HAS_CHOSEN(zephyr_display)

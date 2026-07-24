@@ -178,6 +178,26 @@
 	};
 };
 
+/* tuvm#94 — the DAC on GPIO17, the SAME pin as the LEDC chime above. DAC_1 is
+ * GPIO17 on the S2 (DAC_2 is GPIO18, unused here). The node exists in
+ * esp32s2_common.dtsi:381 (compatible "espressif,esp32-dac") but ships disabled.
+ *
+ * NO PINCTRL ENTRY, AND THAT IS NOT AN OMISSION. The legacy driver routes the
+ * DAC output through RTC IO (dac_output_enable -> rtc_io_hal), not through the
+ * GPIO matrix that pinctrl programs. So the DAC's claim on GPIO17 and the LEDC's
+ * claim on GPIO17 are made in two different register families and neither is
+ * visible from the other — the failure mode if both are active is silence with
+ * rc=0 everywhere, indistinguishable from a driver fault. Exactly the i2c0 /
+ * e-paper-CS race on GPIO8 documented at the foot of this file.
+ *
+ * They do not collide today only because CONFIG_PWM is not set in
+ * prj_esp32s2.conf, so &ledc0's pinctrl route is never applied. Enabling PWM and
+ * the DAC together requires disabling one of them here first.
+ */
+&dac {
+	status = "okay";
+};
+
 &ledc0 {
 	pinctrl-0 = <&ledc0_default>;
 	pinctrl-names = "default";
