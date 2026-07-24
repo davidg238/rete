@@ -1,0 +1,101 @@
+(* tuvm#94 stage 5 — the ship's-bell clock as a RUN-ONCE deep-sleep appliance.
+
+   THE REACTOR IS GONE. Stages 1-4 (MagTagClockNode.nsl, kept as the always-on demo
+   sample) boot one VM and drain an event loop forever. Here, between wakes the CPU is
+   off and THE VM DOES NOT EXIST: each timer wake is a fresh boot that lives a few
+   seconds and dies. There is no drain loop, no channel, no VM timer — deepSleep: IS the
+   idle point. This also DELETES the timer-instance bug class that cost the stage 2
+   overnight run (a timer registered on one Timers, dispatched on another): there are no
+   VM timers left to misregister.
+
+   THE HALF-HOUR INDEX IS A MONOTONIC RATCHET (design §2). A strike is a pure increment,
+   so a strike wake CANNOT double-bell. A sync may push the count FORWARD (skip missed
+   strikes, silently) but NEVER backward; when NTP says we are behind where we already
+   struck, we hold the count and lengthen the next sleep. Drift never touches the count —
+   only the sleep duration (phase).
+
+   STATE LIVES IN .rtc.data (design §3), reached through rtcGet:/rtcPut:value:, because
+   RAM does not survive the sleep. Field indices are the constants below and are
+   identical to the C struct order in zephyr/src/main.c. nsl has no modulo (tuvm#97), so
+   `x mod n` is `x - ((x // n) * n)` throughout. *)
+class MagTagDeepSleepNode packageUsing: manifest = () (
+
+  public main: platform args: args = (
+    | plat half bells isWatchEnd predictedNow sleepSec |
+    plat:: platform.
+
+    (* Cold power-on leaves .rtc.data UNDEFINED (not zeroed), so a magic mismatch means
+       "no valid state" -> free-run from 00:00 and let the first watch-end sync correct
+       everything (design §8). *)
+    (plat rtcValid) ifFalse: [ self initColdState: plat ].
+
+    (* The strike about to happen: a pure increment of the ratchet (design §2). *)
+    half:: (plat rtcGet: self rtcLastHalf) + 1.
+    half = 48 ifTrue: [ half:: 0 ].                       (* midnight wrap: 47 -> 0 *)
+    bells:: (plat bell) bellsForHalfHour: half.           (* reuse the kernel's Bell method *)
+    isWatchEnd:: bells = 8.                               (* 8 bells == a watch end *)
+
+    (* Strike BLOCKS to completion before any sleep (design §8: strike never cut off). *)
+    ('wake half ' , half printString , ' bells ' , bells printString) out.
+    (plat bell) strike: bells.
+    'struck' out.
+    plat rtcPut: self rtcLastHalf value: half.
+    plat rtcPut: self rtcBootTicks value: (plat rtcGet: self rtcBootTicks) + 1.
+
+    (* Watch-end: sync + paint (Tasks 5-6). Stubbed here so the skeleton stands alone. *)
+    isWatchEnd ifTrue: [ self onWatchEnd: plat ].
+
+    (* Phase-align the next wake to the true boundary. predictedNow = (anchor + elapsed)
+       mod 86400 (design §3). Cold/never-synced => anchor 0, elapsed accumulates. *)
+    predictedNow:: self predictedNow: plat.
+    sleepSec:: self secondsToNextBoundary: predictedNow.
+    plat rtcPut: self rtcElapsedSec value: (plat rtcGet: self rtcElapsedSec) + sleepSec.
+    plat deepSleep: sleepSec.                             (* NEVER RETURNS *)
+  )
+
+  (* Free-run from 00:00: predictedNow 0, ratchet 0 (so the first strike is half 1),
+     staleSec large so the panel shows "never synced". Magic set LAST so a crash between
+     writes cannot leave a half-initialised struct reading valid. *)
+  initColdState: plat = (
+    'cold boot: free-run from 00:00' out.
+    plat rtcPut: self rtcLastHalf     value: 0.
+    plat rtcPut: self rtcBootTicks    value: 0.
+    plat rtcPut: self rtcAnchorSec    value: 0.
+    plat rtcPut: self rtcElapsedSec   value: 0.
+    plat rtcPut: self rtcDriftPpm     value: 0.
+    plat rtcPut: self rtcStaleSec     value: 999999.
+    plat rtcPut: self rtcDrift24Max   value: 0.
+    plat rtcPut: self rtcDrift24Min   value: 0.
+    plat rtcPut: self rtcSyncsWin     value: 0.
+    plat rtcPut: self rtcMagic        value: self magicWord.
+    ^ self )
+
+  (* Stub — Task 5 replaces this with sync + ratchet + re-anchor. *)
+  onWatchEnd: plat = ( ^ self )
+
+  predictedNow: plat = (
+    | now |
+    now:: (plat rtcGet: self rtcAnchorSec) + (plat rtcGet: self rtcElapsedSec).
+    ^ now - ((now // 86400) * 86400) )    (* mod 86400 — nsl has no modulo (tuvm#97) *)
+
+  (* IDENTICAL spelling to 09_bell_math.nsl. *)
+  secondsToNextBoundary: sec = ( ^ 1800 - (sec - ((sec // 1800) * 1800)) )
+
+  (* NOTE: bellsForHalfHour: is NOT redefined here — the node calls the kernel's
+     Bell>>bellsForHalfHour: via `(plat bell) bellsForHalfHour: half`, exactly as the
+     reactor does (MagTagClockNode.nsl:250). *)
+
+  (* --- RTC field indices (design §3 table; identical order to the C struct) ------ *)
+  rtcMagic      = ( ^ 0 )
+  rtcLastHalf   = ( ^ 1 )
+  rtcBootTicks  = ( ^ 2 )
+  rtcAnchorSec  = ( ^ 3 )
+  rtcElapsedSec = ( ^ 4 )
+  rtcDriftPpm   = ( ^ 5 )
+  rtcStaleSec   = ( ^ 6 )
+  rtcDrift24Max = ( ^ 7 )
+  rtcDrift24Min = ( ^ 8 )
+  rtcSyncsWin   = ( ^ 9 )
+  magicWord     = ( ^ -1799482944 )   (* 0x94BE11C0 as int32 *)
+) : (
+)
