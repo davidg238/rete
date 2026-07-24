@@ -1045,35 +1045,59 @@ The single biggest payoff of the file-backed RTC: chain many real-node wakes thr
 
 ```python
 def _mono_mod48(seq):
-    # Each step advances by >=1 half, wrapping 47->0 counts as +1 (never a decrease).
+    # Each step advances by exactly +1 half mod 48; the 47->0 wrap is (0-47)%48 == 1,
+    # a forward step, never a decrease. Any step outside 1..47 is a ratchet violation.
     for a, b in zip(seq, seq[1:]):
         step = (b - a) % 48
-        if not (1 <= step <= 47):
+        if step != 1:
             return False
     return True
 
 def test_ratchet_monotonic_across_sleeps():
+    # Seed the count near the day's end (last struck = 44) so a short run CROSSES the
+    # 47->0 midnight wrap — 12 cold wakes would only reach half 12 and never wrap. No NTP,
+    # so the ratchet advances purely on its own timebase across every simulated sleep.
     with tempfile.TemporaryDirectory() as d:
-        rtc = Path(d) / "rtc.bin"          # absent -> cold boot on wake 1
+        rtc = Path(d) / "rtc.bin"
+        seed_rtc(rtc, last=44, anchor=0, elapsed=0)
         halves = []
-        for _ in range(12):                # 12 strike wakes through midnight-ish, no sync
-            out = run_wake(rtc)
+        for _ in range(10):                        # 45,46,47,0,1,2,3,4,5,6
+            out = run_wake(rtc)                     # no ntp -> free-run on the ratchet
             halves.append(int(out.split("wake half ")[1].split(" ")[0]))
-        assert _mono_mod48(halves), halves
-        assert 0 in halves, halves          # crossed the 47->0 midnight wrap
+        assert _mono_mod48(halves), halves          # strictly +1 each sleep, wrap included
+        assert halves[0] == 45 and 0 in halves, halves   # crossed the 47->0 midnight wrap
+        assert halves[3] == 0, halves               # the wrap lands where expected
 ```
 
-- [ ] **Step 2: Run to verify it fails, then passes** (it should pass once Tasks 4-6 are in; if it fails, the failure is a real ratchet/wrap bug — fix in the node, not the test).
+- [ ] **Step 2: Run to verify it passes** (it should pass once Tasks 4-6 are in; if it fails, the failure is a real ratchet/wrap bug — fix in the node, not the test).
 
 Run: `python3 ~/workspace/nsl-tuvm/tools/test_deepsleep_node.py`
-Expected: `ok` — 12 wakes strictly advance mod-48 and cross the midnight wrap.
+Expected: `ok` — 10 wakes strictly advance +1 mod-48 and cross the midnight wrap at index 3.
 
-- [ ] **Step 3: Register the harness as an aux gate.** Confirm whether `run_tests_oevm.py` auto-discovers `tools/test_*.py` (it runs the C unit tests + integration gates — [[tuvm-vm-source-lists]]). If it does not, add `test_deepsleep_node.py` to its gate list so the sequence witness runs with the suite. Record which mechanism was used.
+- [ ] **Step 3: Register the harness as an aux gate.** Gates are NOT auto-discovered — they are explicitly called in `run_tests_oevm.main()`. `run_integration_gate(label, script_name)` runs `tools/<script_name>` as a subprocess and passes iff it exits 0 (the harness prints `ok` and exits 0 on pass; an uncaught `AssertionError` exits 1). The harness uses absolute paths + `R._build_pathb_once()`, so it does NOT clobber `../tuvm/src/solidified_image.c` the way the grant/debugger gates do — register it beside the NON-clobbering gates (after the `git checkout` restore at `run_tests_oevm.py:669-672`). Three edits, mirroring `boot_gc_ok`:
+
+  1. After `boot_gc_ok = run_boot_gc_asan_gate()` (line ~675):
+```python
+    deepsleep_ok = run_integration_gate("test_deepsleep_node", "test_deepsleep_node.py")
+```
+  2. Fold into `suite_ok` (line ~678):
+```python
+    suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok
+                and portability != "FAIL" and boot_gc_ok
+                and footprint != "FAIL" and deepsleep_ok)
+```
+  3. Add to the gate-line print (line ~688), so the reader sees it per [[tuvm-vm-source-lists]] (read the gate line, not just "0 failed"):
+```python
+          f"boot-gc-asan: {'PASS' if boot_gc_ok else 'FAIL'}  "
+          f"deepsleep: {'PASS' if deepsleep_ok else 'FAIL'}  "
+          f"footprint: {footprint}")
+```
+  Then run the FULL suite once (`python3 tools/run_tests_oevm.py`) and confirm the gate line shows `deepsleep: PASS` alongside the others (all green). This is a controller-scale run (~2-3 min) — the CONTROLLER runs it, not a subagent (subagents stall on long runs).
 
 - [ ] **Step 4: Commit**
 
 ```bash
-cd ~/workspace/nsl-tuvm && git add tools/test_deepsleep_node.py && git commit -m "test(magtag): capstone — monotonic ratchet across 12 simulated sleeps (tuvm#94 stage 5)"
+cd ~/workspace/nsl-tuvm && git add tools/test_deepsleep_node.py && git commit -m "test(magtag): capstone — monotonic ratchet across 10 simulated sleeps + deepsleep aux gate (tuvm#94 stage 5)"
 ```
 
 
