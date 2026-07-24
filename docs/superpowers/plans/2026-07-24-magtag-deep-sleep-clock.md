@@ -868,49 +868,158 @@ cd ~/workspace/tuvm && git commit -m "feat(magtag): watch-end sync + forward-onl
 - Modify: `~/workspace/nsl-tuvm/tools/test_deepsleep_node.py` (assert echoed rows)
 
 **Interfaces:**
-- Consumes: the rtc seam, `plat display`, `plat heapStats`.
-- Produces: `paintStats: plat` painting the design §5 layout (10 rows), best-effort (catches `#displayUnavailable`/`#displayFault`/`#displayBounds`), each row echoed to the console as `| <row>`. Row formatters `heapField:`, `ppmField:`, `upField:`, `ntpField:`, `driftField:`, `staleField:`, and `line:val:`/`kRound:`/`spaces:`/`pad:` (lifted from the reactor).
+- Consumes: the rtc seam, `plat display`, `plat heapStats`, plus two SAME-WAKE instance vars set during `onWatchEnd:`/`applySync:` (below): `syncOk` (did THIS watch's sync succeed) and `lastDriftSec` (the measured drift in seconds, or nil if not measured). These need not survive sleep — `paintStats:` runs in the same wake as the sync — so they are plain instance vars, NOT RTC fields (the 10-field struct is full, and there is no free slot for "last drift seconds"; this is the clean way to show the `ntp` row's seconds without one).
+- Produces: `paintStats: plat` painting the design §5 layout, **per-row best-effort** — each row's draw is wrapped in its own catch (`tryRow:s:on:`), so one over-wide value skips only its own row instead of blanking the whole panel. This matters concretely on the host: the image VM's arena is a fixed 16 MB (`heapField` → `.../16384K`, 14 cols > the 12-col grid), so the **heap row raises `#displayBounds` and is skipped on host** while the other nine render; on device (20 KB arena → `20/20K`) every row fits. Formatters: `heapField:`, `signedField:`, `upField:`, `ntpField`, `staleField:`, `line:val:`, `kRound:`, `spaces:`, `pad:` (lifted from the reactor, `MagTagClockNode.nsl:266-352`).
 
-- [ ] **Step 1: Write the failing scenario** in `test_deepsleep_node.py`. On the host the display seam echoes each row, so the harness asserts the panel WITHOUT a photograph. Run a watch-end wake with a good sync and a seeded drift history, assert the §5 rows appear:
+- [ ] **Step 1: Add the SAME-WAKE instance vars and wire them.** Three small edits to the node (Tasks 4/5 code):
+
+  1. Class header — add the two vars:
+```
+class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
+```
+  2. `onWatchEnd:` — record the outcome so the panel can show it:
+```
+  onWatchEnd: plat = (
+    | trueSec |
+    trueSec:: self trySyncUpTo3: plat.
+    trueSec == nil
+       ifTrue:  [ syncOk:: false. self markSyncFailed: plat ]
+       ifFalse: [ syncOk:: true.  self applySync: trueSec plat: plat ].
+    self paintStats: plat.                    (* AFTER the sync, so a FAIL shows *)
+    ^ self )
+```
+  3. `applySync:` hold branch — capture the measured drift seconds for the `ntp` row (add `lastDriftSec:: drift.` right before the existing `recordDrift:` line):
+```
+       ifFalse: [ drift:: self wrapDrift: (trueSec - predicted).
+                  lastDriftSec:: drift.
+                  self recordDrift: (self driftPpm: drift over: (plat rtcGet: self rtcElapsedSec)) plat: plat.
+                  ('sync true ' , trueSec printString , ' predicted ' , predicted printString , ' -> hold half ' , lastHalf printString) out ].
+```
+
+- [ ] **Step 2: Write the failing scenario** in `test_deepsleep_node.py`. On the host the node echoes each successfully-drawn row as `| <row>`; the heap row is skipped (16 MB arena overflows the 12-col grid), so the test asserts the nine NON-heap rows and that each rendered row is ≤ 12 columns:
 
 ```python
 def test_watch_end_panel():
     with tempfile.TemporaryDirectory() as d:
         rtc = Path(d) / "rtc.bin"
         seed_rtc(rtc, last=7, anchor=0, elapsed=14400, syncs=2, d24max=8, d24min=-3)
-        out = run_wake(rtc, ntp=14400)                      # exact 04:00 -> drift 0
-        for row in ("| tuvm", "| ----------", "| heap", "| ppm",
-                    "| up", "| ntp", "| 24h", "| sync"):
+        out = run_wake(rtc, ntp=14400)                      # exact 04:00 -> on-time, drift 0
+        # heap row is intentionally skipped on host (16 MB arena -> "/16384K" overflows 12 cols).
+        for row in ("| tuvm", "| ----------", "| ppm", "| up",
+                    "| ntp", "| 24h", "| sync"):
             assert row in out, (row, out)
-        # every echoed row is <= 12 columns (design §5 hard limit)
+        assert "sync true 14400 predicted 14400 -> hold half 8" in out, out   # on-time -> drift measured
+        assert "| ntp" in out and "+0.0s" in out, out       # drift 0 measured this watch
         for line in out.splitlines():
             if line.startswith("| "):
-                assert len(line) - 2 <= 12, line
+                assert len(line) - 2 <= 12, line            # 12-col hard limit (design §5)
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [ ] **Step 3: Run to verify it fails**
 
 Run: `python3 ~/workspace/nsl-tuvm/tools/test_deepsleep_node.py`
-Expected: FAIL — `paintStats:` is a no-op stub.
+Expected: FAIL — `paintStats:` is a no-op stub (no `| ...` rows).
 
-- [ ] **Step 3: Implement `paintStats:`** — adapt the reactor's `paintStats`/`put:row:on:`/`line:val:` (`MagTagClockNode.nsl:266-345`): drop the exact-time and `bells N` rows (§5), repurpose `gc`→`ppm`, add the drift/stale rows, read every value from the rtc seam + `heapStats`, keep the best-effort catch. Reuse `staleField:` (identical spelling to Task 3). Layout (design §5):
+- [ ] **Step 4: Implement `paintStats:` + the formatters.** Replace the `paintStats:` stub and add the helpers (adapted from the reactor `MagTagClockNode.nsl:266-352`, dropping the exact-time/`bells` rows per §5, `gc`→`ppm`, adding the drift/stale rows):
 
 ```
- 0 tuvm          | 1 ---------- | 2 heap NN/NNK | 3 ppm +NNN | 4 up Nd00:00
- 5 ---------- | 6 ntp +N.Ns/FAIL/-- | 7 24h +N.N | 8 (min) +N.N | 9 sync 0d/14h
+  (* Painted ONLY at watch-ends (design §5), AFTER the sync, so a FAIL shows. Per-row
+     best-effort: each row draws inside its own catch, so an over-wide value (e.g. the
+     16 MB host arena's heap row) skips just that row instead of blanking the panel.
+     A whole-panel guard around `display`/`clear` still carries on headless if the board
+     has no panel at all. *)
+  paintStats: plat = (
+    | disp hs |
+    [ disp:: plat display. disp clear ]
+      on: [ :e | e tag = #displayUnavailable ]
+      do: [ :e | 'no display; skipping paint' out. ^ self ].
+    hs:: plat heapStats.
+    self tryRow: 0 s: (self line: 'tuvm' val: '')                                       on: disp.
+    self tryRow: 1 s: '----------'                                                      on: disp.
+    self tryRow: 2 s: (self line: 'heap' val: (self heapField: hs))                     on: disp.
+    self tryRow: 3 s: (self line: 'ppm'  val: (self signedField: (plat rtcGet: self rtcDriftPpm))) on: disp.
+    self tryRow: 4 s: (self line: 'up'   val: (self upField: plat))                     on: disp.
+    self tryRow: 5 s: '----------'                                                      on: disp.
+    self tryRow: 6 s: (self line: 'ntp'  val: self ntpField)                            on: disp.
+    self tryRow: 7 s: (self line: '24h'  val: (self signedField: (plat rtcGet: self rtcDrift24Max))) on: disp.
+    self tryRow: 8 s: (self line: ''     val: (self signedField: (plat rtcGet: self rtcDrift24Min))) on: disp.
+    self tryRow: 9 s: (self line: 'sync' val: (self staleField: (plat rtcGet: self rtcStaleSec)))    on: disp.
+    [ disp refresh ] on: [ :e | (e tag = #displayFault) or: [ e tag = #displayUnavailable ] ]
+                     do: [ :e | ('refresh skipped: ' , e tag printString) out ].
+    ^ self )
+
+  (* Draw one row and echo it, catching a too-wide/faulted row so the rest still paint.
+     The echo is INSIDE the try and AFTER the draw, so a skipped row emits no `| ` line —
+     which is exactly what the host test keys on for the (skipped) heap row. *)
+  tryRow: r s: s on: disp = (
+    [ disp at: r col: 0 put: s. ('| ' , s) out ]
+      on: [ :e | (e tag = #displayBounds) or: [ e tag = #displayFault ] ]
+      do: [ :e | ('row ' , r printString , ' skipped: ' , e tag printString) out ].
+    ^ self )
+
+  (* live rounded to whole KiB / arena in KiB. On device (20 KB) this is `20/20K`; on the
+     host image VM (16 MB) it is `.../16384K`, which overflows the 12-col grid and is
+     skipped by tryRow: — the row is witnessed on device (Task 9), not on host. *)
+  heapField: hs = ( ^ (self kRound: hs liveBytes) , '/' , (hs heapSize // 1024) printString , 'K' )
+
+  (* The `ntp` row: this watch FAILED -> FAIL; synced and measured drift (hold branch) ->
+     `+N.Ns`; synced but advanced (missed wakes, no drift measured) -> `sync`. There is no
+     `--` never-synced case because paint happens ONLY at a watch-end, where a sync was
+     just attempted. *)
+  ntpField = (
+    syncOk ifFalse: [ ^ 'FAIL' ].
+    lastDriftSec == nil ifTrue: [ ^ 'sync' ].
+    ^ (self signedField: lastDriftSec) , '.0s' )
+
+  (* Uptime from bootTicks (30 min per tick), wrap-safe — the reactor's upField, with the
+     cadence inlined as 30 since a sleep tick IS one half-hour. *)
+  upField: plat = (
+    | mins d r h m |
+    mins:: (plat rtcGet: self rtcBootTicks) * 30.
+    d:: mins // 1440.
+    r:: mins - (d * 1440).
+    h:: r // 60.
+    m:: r - (h * 60).
+    ^ d printString , 'd' , (self pad: h) , ':' , (self pad: m) )
+
+  (* Age since last good sync, `Nd/NNh` — IDENTICAL spelling to 09_bell_math.nsl. *)
+  staleField: sec = (
+    | mins d r h |
+    mins:: sec // 60.
+    d:: mins // 1440.
+    r:: mins - (d * 1440).
+    h:: r // 60.
+    ^ d printString , 'd/' , (self pad: h) , 'h' )
+
+  (* Signed integer, `+N` / `-N`. nsl has no unary minus display, so build it. *)
+  signedField: n = (
+    n < 0 ifTrue: [ ^ '-' , (0 - n) printString ].
+    ^ '+' , n printString )
+
+  (* Right-justify `v` against `label` in exactly 12 columns; overshoot (pad < 0) is left
+     un-truncated so the too-wide row raises #displayBounds and tryRow: skips it. *)
+  line: label val: v = (
+    | pad |
+    pad:: 12 - label size - v size.
+    pad < 0 ifTrue: [ pad:: 0 ].
+    ^ label , (self spaces: pad) , v )
+
+  spaces: n = ( | s | s:: ''. n timesRepeat: [ s:: s , ' ' ]. ^ s )
+  kRound: bytes = ( ^ ((bytes + 512) // 1024) printString )
+  pad: n = ( (n < 10) ifTrue: [ ^ '0' , n printString ]. ^ n printString )
 ```
 
-- [ ] **Step 4: Run to verify it passes**
+- [ ] **Step 5: Run to verify it passes**
 
 Run: `python3 ~/workspace/nsl-tuvm/tools/test_deepsleep_node.py`
-Expected: `ok` — all §5 rows present, each ≤12 columns.
+Expected: `ok` — the nine non-heap rows render (each ≤12 cols) and the `ntp` row shows `+0.0s`; the heap row is skipped on host (echoed as `row 2 skipped: #displayBounds`).
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 cd ~/workspace/tuvm && git add zephyr/MagTagDeepSleepNode.nsl
 cd ~/workspace/nsl-tuvm && git add tools/test_deepsleep_node.py
-cd ~/workspace/tuvm && git commit -m "feat(magtag): watch-end panel — ppm/drift/stale sleep layout (tuvm#94 stage 5)"
+cd ~/workspace/tuvm && git commit -m "feat(magtag): watch-end panel — ppm/drift/stale sleep layout, per-row best-effort (tuvm#94 stage 5)"
 ```
 
 ---
