@@ -2432,6 +2432,14 @@ class Kernel usingPlatform: platform = () (
      force every caller to write a handler for the normal case.
      IT BLOCKS up to the SNTP timeout; call only between strikes. *)
   public ntpSyncTz: offsetSeconds = ( ^ platform ntpSyncTz: offsetSeconds )
+  (* tuvm#94 stage 5: the RTC-retention seam. Thin forwarders over the platform prims,
+     the same shape as ntpSyncTz: above. rtcValid answers a Boolean here (the prim
+     answers an SMI 0/1 — no true/false oop is needed on the C side). rtcGet:/
+     rtcPut:value: are indexed SMI accessors; the field indices (design §3) are node
+     constants, not baked here, so the seam stays a dumb array. *)
+  public rtcValid = ( ^ (platform rtcValid) = 1 )
+  public rtcGet: i = ( ^ platform rtcGet: i )
+  public rtcPut: i value: v = ( platform rtcPut: i value: v. ^ self )
   public pumpEvents = ( ^ platform pumpEvents )
   (* webserver-channel-device spike, Task 3: the http driver's platform prims.
      Same thin-forwarder shape as the gpio/timer families above — the C-side
