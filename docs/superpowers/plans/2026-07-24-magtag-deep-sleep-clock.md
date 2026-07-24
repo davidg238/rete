@@ -904,15 +904,19 @@ def test_watch_end_panel():
         rtc = Path(d) / "rtc.bin"
         seed_rtc(rtc, last=7, anchor=0, elapsed=14400, syncs=2, d24max=8, d24min=-3)
         out = run_wake(rtc, ntp=14400)                      # exact 04:00 -> on-time, drift 0
-        # heap row is intentionally skipped on host (16 MB arena -> "/16384K" overflows 12 cols).
-        for row in ("| tuvm", "| ----------", "| ppm", "| up",
-                    "| ntp", "| 24h", "| sync"):
-            assert row in out, (row, out)
         assert "sync true 14400 predicted 14400 -> hold half 8" in out, out   # on-time -> drift measured
-        assert "| ntp" in out and "+0.0s" in out, out       # drift 0 measured this watch
-        for line in out.splitlines():
-            if line.startswith("| "):
-                assert len(line) - 2 <= 12, line            # 12-col hard limit (design §5)
+        # 10 rows draw; the heap row (16 MB host arena -> "/16384K") overflows 12 cols and is
+        # skipped, so EXACTLY 9 `| ` lines echo — assert the count so a missing row is caught.
+        painted = [l for l in out.splitlines() if l.startswith("| ")]
+        assert len(painted) == 9, painted
+        assert out.count("| ----------") == 2, out          # BOTH separator rows render
+        for row in ("| tuvm", "| ppm", "| up", "| ntp", "| 24h", "| sync"):
+            assert row in out, (row, out)
+        # row 8 = the unlabeled 24h-min continuation row, distinct from the 24h(max) row
+        assert any(l.strip("| ").strip() == "-3" for l in painted), painted
+        assert "+0.0s" in out, out                          # drift 0 measured this watch
+        for line in painted:
+            assert len(line) - 2 <= 12, line                # 12-col hard limit (design §5)
 ```
 
 - [ ] **Step 3: Run to verify it fails**
@@ -930,9 +934,15 @@ Expected: FAIL — `paintStats:` is a no-op stub (no `| ...` rows).
      has no panel at all. *)
   paintStats: plat = (
     | disp hs |
-    [ disp:: plat display. disp clear ]
+    (* Sentinel-and-return: a handler block is a real escaping closure, so `^` INSIDE it is
+       a compile error under nsl's no-NLR model (review/lib/errors.md). Capture the on:do:
+       result — the cleared display, or the nil sentinel from the handler — and `^` from the
+       METHOD BODY instead. (An earlier draft put `^ self` inside the handler; it does not
+       compile.) *)
+    disp:: [ | d | d:: plat display. d clear. d ]
       on: [ :e | e tag = #displayUnavailable ]
-      do: [ :e | 'no display; skipping paint' out. ^ self ].
+      do: [ :e | nil ].
+    disp == nil ifTrue: [ 'no display; skipping paint' out. ^ self ].
     hs:: plat heapStats.
     self tryRow: 0 s: (self line: 'tuvm' val: '')                                       on: disp.
     self tryRow: 1 s: '----------'                                                      on: disp.
