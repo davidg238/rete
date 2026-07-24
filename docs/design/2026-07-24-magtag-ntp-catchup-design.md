@@ -102,22 +102,39 @@ transient one-shot during a re-phase is at most 3. Ample.
 ## The panel's bottom block (the two rows stage 3 stubbed)
 
 ```
-ntp   -0.3s
-24h   +0.9
-      -1.2
+ntp   +0.0s
+24h   +0.0
+      +0.0
 ```
 
-- **`ntp`** — at each sync, the correction magnitude = (what the clock *thought* the
-  time was) − (what NTP said), in seconds. Steady-state sub-second (`-0.3s`); `--`
-  before the first sync; the first sync itself is a huge jump, shown as `sync`
-  rather than a misleading number.
-- **`24h`** — the running max (`+0.9`) and min (`-1.2`) steady-state correction over
-  a rolling 48-sync (24 h) window, reset daily, split across two rows with the label
-  on the max line. The honest health readout: if it ever grows past a second or two,
-  the crystal or the cadence is wrong.
-- Everything above these rows is unchanged from stage 3. A sync does **not** repaint
-  (it is between strikes); the panel is repainted only after a strike, so it is
-  current at every boundary.
+**Honest coarse readout, decided 2026-07-24.** The clock is a half-hour *counter*,
+so it has no sub-second notion of time to compare against — it cannot measure
+sub-second drift, and an earlier sketch showing `-0.3s` was aspirational. The rows
+instead report the correction the *count* needed:
+
+- **`ntp`** — the last steady-state correction, in seconds. Because a sync lands
+  between strikes and steady-state drift never crosses a half-hour boundary, this is
+  **`+0.0s` in practice, meaning the local crystal held alignment**. `--` before the
+  first sync. A non-zero value here (a multiple of 1800 s) is the alarm — it means a
+  correction had to move the count, i.e. the crystal or the network fell far behind.
+- **`24h`** — the running max and min steady-state correction over a rolling 48-sync
+  (24 h) window, reset daily, split across two rows with the label on the max line.
+  Normally `+0.0`/`+0.0`.
+- The **first sync's** large catchup jump is deliberately NOT recorded here (it is
+  the initial reset, not drift): corrections are logged only once `synced` is already
+  true.
+
+The rationale is the whole point of the architecture: precise timekeeping used to be
+expensive, and **±1 s/day is fine** for a bell. The crystal delivers ~1–4 s/day
+(10–50 ppm), NTP re-aligns the count long before that matters, and the panel reports
+*that alignment is holding* rather than pretending to a precision the counter never
+had. Measuring true sub-second drift would need millisecond tracking
+(`monotonicMillis`, itself SMI-wrapped at ~12.4 days) — code and RAM this rung, the
+one that can least afford it, deliberately does not spend.
+
+Everything above these rows is unchanged from stage 3. A sync does **not** repaint
+(it is between strikes); the panel is repainted only after a strike, so it is current
+at every boundary.
 
 ## RAM — the whole risk of this rung
 
