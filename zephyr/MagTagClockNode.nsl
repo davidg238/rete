@@ -114,7 +114,10 @@ class MagTagClockNode packageUsing: manifest = (
       disp:: plat display.
       hs:: plat heapStats.
       disp clear.
-      self put: (self line: 'tuvm'  val: (self timeString: halfHours)) row: 0 on: disp.
+      (* '+' suffix: the counter resolves to the half-hour, so the shown time is a
+         FLOOR — the true time is this boundary OR LATER (up to :29 past), never
+         before. 'HH:MM+' says so honestly. timeString: is already 24-hour. *)
+      self put: (self line: 'tuvm'  val: ((self timeString: halfHours) , '+')) row: 0 on: disp.
       self put: '----------'                                           row: 1 on: disp.
       self put: (self line: 'heap'  val: (self heapField: hs))         row: 2 on: disp.
       self put: (self line: 'gc'    val: hs gcCycles printString)      row: 3 on: disp.
