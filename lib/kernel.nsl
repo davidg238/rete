@@ -2148,6 +2148,25 @@ class Kernel usingPlatform: platform = () (
       ((n < 1) or: [ n > 8 ]) ifTrue: [
         ^ self error: 'bell count outside 1-8' tag: #bellBounds ].
       ^ self check: (seam bellStrike: n) )
+    (* tuvm#94 stage 2: which count belongs to which half-hour. `i` counts
+       half-hours from midnight, so i=1 is 00:30 and i=47 is 23:30.
+       THE LINE THIS SITS ON: `Bell` owns the CONVENTION — which counts are legal
+       and which count a given half-hour calls for; the node owns the SCHEDULE —
+       when a half-hour happens and what to do about it. Both halves of the
+       convention are therefore in one place and neither is in C.
+       Bells run 1-8 over a four-hour watch and reset, so the count is i modulo 8
+       with 0 reading as 8 (the full end-of-watch eight, not silence). Checks out
+       against the three anchors the design names: 00:30 -> 1, 18:30 -> 5,
+       12:00 -> 8.
+       NSL HAS NO MODULO, so it is spelled with `//`. Defined for i >= 0 only;
+       the caller is a counter, and a negative would answer nonsense rather than
+       raise — deliberately not guarded, because unlike `strike:` this answers a
+       number rather than reaching hardware. *)
+    public bellsForHalfHour: i = (
+      | m |
+      m:: i - ((i // 8) * 8).
+      m = 0 ifTrue: [ ^ 8 ].
+      ^ m )
     check: rc = (
       rc == nil ifTrue: [ ^ self error: 'no bell on this board' tag: #bellUnavailable ].
       rc = 2 ifTrue: [ ^ self error: 'bell driver fault' tag: #bellFault ].
