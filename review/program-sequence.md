@@ -1343,8 +1343,12 @@ Five findings, four of which only hardware could produce:
 
 **Deviations from the plan.** Gate 2's row flashes black-then-white on each update — design D2
 predicted the OTP waveform and the plan pre-committed to calling that a pass; the LUT follow-up
-is now the clock rung's. Portrait shipped deliberately (#89: the uc81xx family has no rotation,
-and 180° turned out to be one free register write, exposed as a `rotate-180` devicetree boolean).
+is now the clock rung's. Portrait shipped deliberately (#89: the uc81xx family has no 90/270
+rotation, and 180° turned out to be one free register write, exposed as a `rotate-180` devicetree
+boolean). **`rotate-180` is ON for this board, settled on the bench the same day** — with it off
+the text started at the wrong end and the board read upside down. Which state is correct is a
+fact about how the panel is mounted, in no datasheet, which is exactly why the knob shipped off
+and deferred to hardware. dram0 is 86.10% either way, confirming the "one register write" claim.
 
 **Heap ceiling, measured not guessed.** `tools/heap-ceiling.sh --board esp32s2` →
 max-linkable `OEVM_HEAP_SIZE=94208` (92 KB); 98304 overflows dram0 by 2,912 B — measured with

@@ -247,14 +247,19 @@
 			height = <296>;
 			busy-gpios = <&gpio0 5 GPIO_ACTIVE_LOW>;
 
-			/* Which END of the portrait panel the USB-C connector sits
-			 * at. This is a double axis flip the CONTROLLER performs —
-			 * clearing PSR's UD and SHL bits, one register write, no
-			 * frame-buffer work (tuvm#89). Sharply unlike 90/270, which
-			 * this family cannot do at all. Which of the two states puts
-			 * the connector at the bottom is a fact about how the panel
-			 * is mounted and cannot be read out of any datasheet, so it
-			 * is settled on the bench. */
+			/* Which END of the portrait panel the text starts at. A
+			 * double axis flip the CONTROLLER performs — clearing PSR's
+			 * UD and SHL bits, one register write, no frame-buffer work
+			 * (tuvm#89). Sharply unlike 90/270, which this family cannot
+			 * do at all.
+			 *
+			 * ON is correct for THIS board, settled on the bench
+			 * 2026-07-23: with it off, row 0 painted at the panel edge
+			 * furthest from the flex connector and the board read
+			 * upside down. Which state is right is a fact about how the
+			 * panel is mounted and is not in any datasheet, which is why
+			 * the knob shipped off and deferred to hardware. Rebuild
+			 * confirms it costs nothing: dram0 86.10% either way. */
 			rotate-180;
 
 			full { };
