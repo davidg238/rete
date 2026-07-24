@@ -2440,6 +2440,10 @@ class Kernel usingPlatform: platform = () (
   public rtcValid = ( ^ (platform rtcValid) = 1 )
   public rtcGet: i = ( ^ platform rtcGet: i )
   public rtcPut: i value: v = ( platform rtcPut: i value: v. ^ self )
+  (* tuvm#94 stage 5: deepSleep: seconds. NEVER RETURNS — the VM ceases to exist
+     until the next timer wake reboots it. There is no wrapper and no answer to coerce:
+     the caller's very next line is unreachable by construction. *)
+  public deepSleep: seconds = ( ^ platform deepSleep: seconds )
   public pumpEvents = ( ^ platform pumpEvents )
   (* webserver-channel-device spike, Task 3: the http driver's platform prims.
      Same thin-forwarder shape as the gpio/timer families above — the C-side
