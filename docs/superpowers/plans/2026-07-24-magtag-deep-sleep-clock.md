@@ -719,7 +719,9 @@ def test_hold_when_ahead():
         rtc = Path(d) / "rtc.bin"
         seed_rtc(rtc, last=7, anchor=0, elapsed=14400)
         out = run_wake(rtc, ntp=14397)
-        assert out.count("struck") == 1, out                  # struck exactly once
+        # count the node's OWN per-wake marker, not "struck" — the host bell leaf also
+        # prints "bell: struck N", so out.count("struck") would be 2, not 1.
+        assert out.count("wake half") == 1, out               # exactly one strike wake
         assert "-> hold half 8" in out, out                    # count not moved back
         _, last, *_ = read_rtc(rtc)
         assert last == 8, read_rtc(rtc)                        # ratchet held at 8
@@ -732,7 +734,7 @@ def test_advance_silent_when_behind():
         rtc = Path(d) / "rtc.bin"
         seed_rtc(rtc, last=7, anchor=0, elapsed=14400)
         out = run_wake(rtc, ntp=21600)                         # 06:00:00
-        assert out.count("struck") == 1, out
+        assert out.count("wake half") == 1, out               # one strike wake, skipped bells NOT rung
         assert "-> advance half 12" in out, out
         _, last, *_ = read_rtc(rtc)
         assert last == 12, read_rtc(rtc)
@@ -788,14 +790,22 @@ Expected: FAIL — `onWatchEnd:` is still a stub (`-> hold`/`advance` never prin
     lastHalf:: plat rtcGet: self rtcLastHalf.
     predicted:: self predictedNow: plat.
 
-    (* Measure drift BEFORE re-anchoring: signed seconds, true - predicted, wrapped. *)
-    drift:: self wrapDrift: (trueSec - predicted).
-    self recordDrift: (self driftPpm: drift over: (plat rtcGet: self rtcElapsedSec)) plat: plat.
-
     (trueHalf > lastHalf)
-       ifTrue:  [ ('sync true ' , trueSec printString , ' predicted ' , predicted printString , ' -> advance half ' , trueHalf printString) out.
+       ifTrue:  [ (* Fell behind (missed wakes / dead battery, or the clock ran slow):
+                     advance SILENTLY — do NOT ring the skipped bells. `trueSec - predicted`
+                     here is a CATCH-UP GAP, not oscillator drift (the board was off, so
+                     elapsedSec never accrued those sleeps), so it is deliberately NOT
+                     recorded — recording it would spike the 24 h drift window with a value
+                     that is hours, not the seconds real drift produces. This also skips the
+                     first-sync-after-cold-boot reset, which is almost always an advance. *)
+                  ('sync true ' , trueSec printString , ' predicted ' , predicted printString , ' -> advance half ' , trueHalf printString) out.
                   plat rtcPut: self rtcLastHalf value: trueHalf ]
-       ifFalse: [ ('sync true ' , trueSec printString , ' predicted ' , predicted printString , ' -> hold half ' , lastHalf printString) out ].
+       ifFalse: [ (* On time / slightly ahead: HOLD the count and record the REAL drift —
+                     the small signed gap between where the crystal put us and true time,
+                     over the interval elapsedSec. This is the number the panel reports. *)
+                  drift:: self wrapDrift: (trueSec - predicted).
+                  self recordDrift: (self driftPpm: drift over: (plat rtcGet: self rtcElapsedSec)) plat: plat.
+                  ('sync true ' , trueSec printString , ' predicted ' , predicted printString , ' -> hold half ' , lastHalf printString) out ].
 
     (* Re-anchor the wall clock to true time; zero the accumulated sleep + stale. *)
     plat rtcPut: self rtcAnchorSec  value: trueSec.
