@@ -251,11 +251,13 @@ fi
 PRISTINE_ARG=(); [ "$PRISTINE" = 1 ] && PRISTINE_ARG=(-p always)
 # WiFi credentials overlay (#46): git-ignored, generated once with the real
 # SSID/PSK (never tracked). Appended only when present so a checkout without
-# it (or a future non-WiFi board) builds unaffected. The overlay is ESP32-specific
-# today; scope it so a C6 build ignores it.
+# it (or a future non-WiFi board) builds unaffected. Scope it so a C6 build ignores it.
+# NOT esp32-specific despite the filename: it carries CONFIG_TUVM_WIFI_SSID/_PSK,
+# which zephyr/src/main.c reads on any board, so the MagTag (esp32s2) takes the same
+# credentials rather than a second git-ignored copy to keep in sync (tuvm#94 stage 4).
 WIFI_CONF="$ZDIR/prj_esp32_wifi.local.conf"
 EXTRA_CONF_FILES=()
-if [ "$BOARD_ID" = esp32 ] && [ -f "$WIFI_CONF" ]; then
+if { [ "$BOARD_ID" = esp32 ] || [ "$BOARD_ID" = esp32s2 ]; } && [ -f "$WIFI_CONF" ]; then
   EXTRA_CONF_FILES+=(prj_esp32_wifi.local.conf)
   echo "[wifi]  overlay found -> $WIFI_CONF"
 fi
