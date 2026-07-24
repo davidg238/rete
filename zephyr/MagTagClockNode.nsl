@@ -138,10 +138,13 @@ class MagTagClockNode packageUsing: manifest = (
 
   (* --- field formatters ------------------------------------------------- *)
 
-  (* live/size in KiB, live to one decimal. At the 64 KB arena size reads 64K;
-     stage 4 will read the smaller arena with no change here. *)
+  (* live/size in KiB, live ROUNDED to nearest whole K. The decimal cost the one
+     column that separated the label from the value ('heap18/64K' was flush); at
+     whole-K the value is at most 'NN/64K' (6 chars), so `line:val:` always has >=2
+     columns of padding and the row reads 'heap  18/64K'. At the 64 KB arena size
+     reads 64K; stage 4's smaller arena needs no change here. *)
   heapField: hs = (
-    ^ (self kOneDecimal: hs liveBytes) , '/' , (hs heapSize // 1024) printString , 'K' )
+    ^ (self kRound: hs liveBytes) , '/' , (hs heapSize // 1024) printString , 'K' )
 
   (* Uptime from bootTicks, wrap-safe. 30-min granularity is honest: the panel
      only repaints that often, so a finer figure would be invented precision. *)
@@ -171,11 +174,9 @@ class MagTagClockNode packageUsing: manifest = (
 
   spaces: n = ( | s | s:: ''. n timesRepeat: [ s:: s , ' ' ]. ^ s )
 
-  kOneDecimal: bytes = (
-    | whole frac |
-    whole:: bytes // 1024.
-    frac:: ((bytes - (whole * 1024)) * 10) // 1024.
-    ^ whole printString , '.' , frac printString )
+  (* Round bytes to nearest whole KiB: +512 before the floor-divide. nsl has no
+     rounding operator, so this is the standard bias-then-floor. *)
+  kRound: bytes = ( ^ ((bytes + 512) // 1024) printString )
 
   timeString: i = (
     | h |
