@@ -2422,6 +2422,16 @@ class Kernel usingPlatform: platform = () (
      observe the codes directly. IT BLOCKS for the whole striking, ~500 ms a
      bell. *)
   public bellStrike: n = ( ^ platform bellStrike: n )
+  (* tuvm#94 stage 4: the NTP seam. Thin forwarder — nil when the sync failed, an
+     SMI of seconds-since-local-midnight (0..86399) otherwise. The offset is passed
+     IN because the timezone is a product fact, not a hardware one.
+     There is deliberately NO wrapper class here, unlike Bell/Display: a wrapper
+     exists to turn status codes into tagged raises, and this seam has no error to
+     raise. A failed sync is an ordinary answer the node acts on directly (keep
+     free-running), not an exceptional condition — inventing a raise for it would
+     force every caller to write a handler for the normal case.
+     IT BLOCKS up to the SNTP timeout; call only between strikes. *)
+  public ntpSyncTz: offsetSeconds = ( ^ platform ntpSyncTz: offsetSeconds )
   public pumpEvents = ( ^ platform pumpEvents )
   (* webserver-channel-device spike, Task 3: the http driver's platform prims.
      Same thin-forwarder shape as the gpio/timer families above — the C-side
