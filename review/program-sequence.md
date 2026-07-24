@@ -1656,6 +1656,18 @@ bell missed. Fix is one line — arm a one-shot at `msToBoundary + 900000`, then
 from there — and it is queued rather than flashed, because entering download mode needs a
 human.
 
+**The panel reading `heap 20/20K` is a plateau, not a leak — measured, because the display
+cannot tell you which.** The device climbed 18 -> 19 -> 19 -> 20 KB across its first three
+strikes, which reads exactly like a slow leak and would be a genuine problem on a bench where
+re-flashing needs a person. Settled on the host instead: **96 simulated strikes (48 h) at the
+shipped 20480 arena** hold live between **19,084 and 20,384 B with no trend** (tick 1: 20,016;
+tick 96: 20,000; final 19,588) and a **constant** GC rate of ~2.9 cycles per strike. Constancy
+is the load-bearing half — an *accelerating* GC rate is what a shrinking free pool looks like,
+and a plateau at 95-99% of the arena is just collect-when-full doing what
+[[tuvm-vm-memory-model]] says it does. The lesson generalises: **at a collect-when-full GC the
+live figure pegs near the ceiling by construction, so a rounded panel reading is nearly
+uninformative about headroom — the informative series is the GC RATE.**
+
 **Known imprecision, stated rather than hidden:** `up` counts one whole tick for the phase
 one-shot's partial interval, so it reads `0d00:30` about 40 s after a boot that syncs, and
 `0d01:00` at the second strike. At the row's 30-minute granularity that is inside the rounding
