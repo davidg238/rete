@@ -286,3 +286,31 @@ the compressed device run is the only witness for the sleep/wake cycle itself.
 - **Power measurement** (actual µA asleep, battery-life estimate) is follow-up, not part
   of this rung. Driving GPIO21 (NeoPixel power gate) inactive before sleep is noted here
   (per #83) so the strip's quiescent draw does not survive the sleep.
+
+## Addendum 2026-07-25 (evening) — decisions made during the 1-min demo pass
+
+Four amendments to this design, all implemented (`01aa7fa`), witnessed at a 60 s slot, and
+running in the shipping build; the evening comment on tuvm#94 carries the full witness log.
+
+- **§3 amendment — `elapsedSec` accrues awake time, not just sleep.** The original accrual
+  (`elapsed += sleepSec`) omitted the wake's own duration (boot+WiFi+strike, ~15-20 s), so
+  predicted time ran slow by ~1% at the 1800 s slot — which would have put ~+9700 ppm of boot
+  overhead into the very drift figure §5 exists to report. Now `elapsed += sleepSec +
+  (0 millis // 1000)`, taken at arming. This is what makes the ppm row an oscillator
+  measurement rather than an overhead measurement.
+- **§7 amendment — the cadence is one parameterized constant, `slotSec` (1800).** A demo build
+  flips it to 60 and every derived quantity scales (boundary math, trueHalf, stale accrual
+  8×slot, up row, midnight wrap 86400//slot). Scaling the slot keeps every number honest;
+  compressing only the physical sleep (the Task-9 witness trick) is for state-machine
+  exercise only, since it makes a clock that is wrong between syncs — stage 4's rejected
+  6×-clock, rediscovered.
+- **§5 amendment — cold boot paints a placeholder panel** (dashes for the never-synced
+  `ntp`/`sync` rows, zeros elsewhere). Rationale: distinguishes "display dead" from "not yet
+  painted" for up to a whole watch, and wipes the stale image a reflash leaves (a reflash is
+  always a cold start — the BOOT0+RESET chord is a POWERON-class reset and RTC slow memory
+  does not survive it). Strike wakes still never paint.
+- **§5/§10 amendment — display bringup is lazy** (inside `display_target_available()`), because
+  the uc81xx driver's `display_blanking_off()` performs a full white refresh of RAM its init
+  just cleared: a boot-path bringup therefore wipes the glass on EVERY wake, which the
+  always-on stages could never observe (they boot once). Wakes that never paint now never
+  touch the panel. The same lazy-seam treatment for WiFi is filed as tuvm#99.

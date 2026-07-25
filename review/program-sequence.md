@@ -1729,14 +1729,25 @@ interaction and a retention failure. Both were something else:
    crossing the nsl↔C boundary must fit |v| < 2^30, and the detector is running the harness
    against a `-m32` VM — the 64-bit suite is structurally blind to this class.**
 
-**Two smaller facts the run surfaced.** The bringup clear was pushing to the e-paper glass on
-every boot, wiping each watch-end paint one wake later (blank panel ~87% of the time at
-shipping cadence); it now clears buffer-only (`1b96fee`) — e-paper holds its image unpowered,
-so the last stats stay on the glass across strike wakes, per the design's "strike wakes never
-touch the panel." And **a reflash is always a cold start**: the BOOT0+RESET chord reads as a
-POWERON-class reset and RTC slow memory does not survive it, so after any flash the clock
-free-runs from 00:00 and converges at its first watch-end sync (≤4 h) — accepted design
-behaviour, worth knowing before reading a 1-bell first strike as a bug.
+**Two smaller facts the run surfaced.** The e-paper was being wiped on every boot — and the
+first fix (`1b96fee`, buffer-only CFB clear) was necessary but NOT sufficient: the remaining
+wiper was `display_blanking_off()`, which the uc81xx driver implements as a full refresh of
+controller RAM its init just cleared to white. The durable fix (`01aa7fa`) makes bringup LAZY
+behind `display_target_available()` — wakes that never paint never touch the panel, and the
+watch-end stats persist on the glass across strike wakes (photographed on the 1-min demo). And
+**a reflash is always a cold start**: the BOOT0+RESET chord reads as a POWERON-class reset and
+RTC slow memory does not survive it, so after any flash the clock free-runs from 00:00 and
+converges at its first watch-end sync (≤4 h) — accepted design behaviour, worth knowing before
+reading a 1-bell first strike as a bug.
+
+**The evening's 1-min demo pass (same day) hardened three more things** — full detail in the
+2026-07-25 evening comment on #94: `elapsedSec` now accrues awake time (without it the drift
+row would carry ~+9700 ppm of pure boot overhead — the panel's zero-drift `ntp +0.0s` hold at
+`sync true 69132 predicted 69132` is what the fix looks like when it works); the cadence is one
+parameterized `slotSec` (1800 shipping / 60 demo — scaling the slot keeps every number honest,
+where compressing only the physical sleep repeats stage 4's rejected 6×-clock mistake); and a
+cold boot paints a placeholder panel (dashes for never-synced rows) as a display-alive signal
+that also wipes any stale reflash image.
 
 **Not witnessed on hardware:** the `ntp FAIL` watch-end (host-gated by the harness's no-NTP
 scenario); the RC-oscillator drift number the panel exists to show (needs the shipping

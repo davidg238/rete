@@ -296,11 +296,16 @@ env fails silently as `west: command not found`). Full per-rung detail lives in 
     (`rst:0x1`) and RTC slow memory does not survive it, so after any flash the deep-sleep clock
     free-runs from 00:00 and converges at its first watch-end NTP sync (≤4 h). A 1-bell first
     strike after a reflash is the design working, not a retention bug.
-  - **Never push a clear to the e-paper glass at bringup.** `display_bringup` clears CFB buffer +
-    shadow grid only (`cfb_framebuffer_clear(dev, false)`): e-paper holds its image unpowered, so
-    the deep-sleep clock's watch-end stats persist on the panel across strike wakes (which never
-    repaint, by design). The earlier push-clear left the panel blank ~87% of the time at the
-    shipping cadence.
+  - **Display bringup must be LAZY on a deep-sleep board — the uc81xx driver wipes the glass
+    from TWO places at init time.** First the CFB-level push-clear (fixed: `cfb_framebuffer_clear
+    (dev, false)`); but the deeper one is `display_blanking_off()`, which uc81xx implements as a
+    **full panel refresh of controller RAM that `controller_init` just cleared to white** — so
+    any boot that runs bringup flashes the glass white regardless of the CFB fix (witnessed
+    2026-07-25 as a full white-black-white "rewrite" seconds before each strike). Fix: bringup
+    runs inside `display_target_available()` (which every display prim dispatch gates on), so
+    wakes that never paint never touch the panel; the driver's own device init only resets the
+    controller and e-paper holds its image unpowered. The watch-end stats then persist across
+    strike wakes, photographed. (Same lazy-seam treatment queued for WiFi: tuvm#99.)
 
 ## Adding a new board (generic recipe)
 
