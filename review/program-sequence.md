@@ -1819,6 +1819,88 @@ number the panel exists to show (needs the shipping cadence's real watch-ends �
 sample is the second sync of a run); button wake and power measurement (out of scope, #83 /
 design §10, and now queued behind tuvm#99 since WiFi-every-wake dominates the power profile).
 
+## The bells land on the minute — 2026-07-25, #94 stage 5, the correction batch
+
+The queue set from the overnight run, worked in David's priority order (defect 5, defect 1+2,
+defect 3, then disciplining). Suite 227/0, all aux gates green; firmware links for
+`esp32s2_saola` with `rtc_slow_seg` at 40 B. Design doc §12 carries the detail.
+
+**Defect 5 — the sleep now belongs to the count, not to the clock.** Having struck `lastHalf`,
+the next strike is `lastHalf + 1` and it is due at *that half's* boundary, so the sleep runs to
+`((lastHalf + 1) * slotSec) - predictedNow` mod 86400. The same number as before on the
+free-running path, and the difference that matters after a hold: the sleep lengthens until the
+world reaches the count, which is what the class comment always promised. One formula replaced
+the branch-specific spelling, so advance / hold / free-run / cold-boot all phase-align the same
+way.
+
+**Defect 1 — the ratchet invariant is modular, and is now spelled that way**, as forward distance
+round the 48-slot dial rather than `>`. Defect 2 came free: the midnight case now takes the hold
+branch, so the real drift is measured instead of discarded. **The split is asymmetric on purpose**
+— hold only if the count leads by at most 3 slots, advance otherwise — because modular arithmetic
+cannot tell "3 slots ahead" from "45 slots behind", and the two mistakes are not equally
+survivable: advancing wrongly rings one wrong count and self-corrects, while holding wrongly goes
+*silent* for the length of the hold. A never-synced board (`staleSec >= 999999`) adopts true time
+unconditionally, which is the one real case of a large forward distance — a cold boot at 23:30 is
+genuinely 47 slots from the free-run 0.
+
+**Defect 3 — a rate needs a baseline.** Whole-second drift over a 68 s window is ±14,700 ppm of
+pure quantisation, which is how `+58823` happened. Below `slotSec * 2` (an hour at the shipping
+cadence, ±278 ppm) the sync is reported and the rate skipped. Derived from `slotSec` so a 60 s
+demo build can still measure and discipline itself.
+
+**Disciplining, and the cumulative-calibration trap.** `driftPpm` became `calPpm`, a cumulative
+calibration applied when *arming* the sleep. The trap is that overwriting it with each fresh
+measurement destroys the correction the moment it works: a well-disciplined watch measures ~0,
+which as a replacement zeroes the calibration and restores the full 1%. It must **accumulate** the
+residual, and `elapsedSec` must accrue the *intended* seconds rather than the commanded ones, or
+the loop double-corrects. Seeded from the overnight run's mean (−10,513 ppm) so a reflashed board
+is disciplined from its first sleep instead of spending a whole watch learning what is already
+known — a starting guess that the loop supersedes within one watch, not a constant.
+
+**Two further defects the fix itself exposed, both invisible to per-decision tests.**
+
+1. **The awake window was accrued but never subtracted.** The wake is strike → work → sleep, so
+   boot/WiFi/strike seconds fall *between* this strike and the next. Accruing them keeps the rate
+   honest and puts every strike one awake window (~15 s) past its boundary, permanently. It has to
+   be both subtracted from the sleep and added to the accrual; the invariant that says so is that
+   `predictedNow` after arming must land *exactly* on the boundary of the count about to be
+   struck. **The same error sits in the measurement path** and is worse there: `predictedNow` is
+   the clock at the strike while `trueSec` was read a window later, so differencing them scores
+   WiFi association as oscillator drift — a phantom +1041 ppm per sync that feeds the calibration,
+   so a *perfect* clock gets corrected every watch end and the loop walks away from the truth.
+   Both are fixed by stamping a clock basis at the instant NTP answers: on a synced wake only the
+   work *after* the read is subtracted. Getting that half wrong merely moves the error — it turns
+   a 15 s late bell into a 15 s early one.
+2. **The correction was truncated, not rounded.** The correction is whole seconds; discarding the
+   fraction is itself a rate error — up to 0.9 s per 1800 s slot = 500 ppm, the same order as the
+   residual the mechanism exists to remove. It walked the bells ~30 s off across a watch in
+   simulation. Rounding leaves ±0.5 s per slot, so ±4 s per watch before the next sync re-anchors,
+   which is the accuracy target. Sub-second correction would need fractional state across a deep
+   sleep — that is what #100's hardware timebase buys instead.
+
+**The test that closes the harness gap, and what it cost to not have it.** All the per-decision
+tests were green while defects 5, 6 and the truncation were live, because each pins one decision
+and none of them lets a per-cycle error accumulate into an audible one. The new capstone walks the
+real node through twelve wakes against a **simulated 1.07 % fast oscillator** — the rate actually
+measured on the board — with a device-sized awake window, across midnight and a watch-end sync,
+and asserts every count is the one the hour deserves at the minute it deserves it. It found all
+three. Against that model the clock now holds **every bell within 0.7 s of its boundary** with the
+calibration converging (−10,513 → −10,673 → −10,743); ablating the seed leaves the first watch
+57 s off before the first sync catches it, which is the value of seeding measured in bells. It is
+a simulation and says nothing about power, radio or temperature — **the wall-clock soak conclusion
+above stands unchanged**; this narrows what the soak has to discover, it does not replace it.
+
+**A VM seam fixed on the way.** `0 millis` on host was `CLOCK_MONOTONIC` since the *machine*
+booted, so a node reading it as its own awake window got days — and past ~12.4 days of host uptime
+the value no longer fits a 31-bit SMI. The hook's contract is `k_uptime_get()`'s, "ms since boot",
+and on a host a process *is* the boot; it now answers process-relative. Every delta-taking caller
+is unaffected (a constant offset cancels), and `OEVM_MILLIS_FIXED_MS` lets a host test pose a
+specific awake window. Whole suite 227/0 across the change.
+
+**Still not witnessed on hardware:** all of the above. The numbers here are host simulation
+against a measured oscillator rate, not a run — the reflash and the next unattended night are what
+promote them.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),

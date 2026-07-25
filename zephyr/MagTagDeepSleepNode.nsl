@@ -8,17 +8,26 @@
    overnight run (a timer registered on one Timers, dispatched on another): there are no
    VM timers left to misregister.
 
-   THE HALF-HOUR INDEX IS A MONOTONIC RATCHET (design §2). A strike is a pure increment,
-   so a strike wake CANNOT double-bell. A sync may push the count FORWARD (skip missed
-   strikes, silently) but NEVER backward; when NTP says we are behind where we already
-   struck, we hold the count and lengthen the next sleep. Drift never touches the count —
-   only the sleep duration (phase).
+   THE HALF-HOUR INDEX IS A MONOTONIC RATCHET, AND MONOTONIC MEANS MODULAR (design §2 as
+   restated by §11). A strike is a pure increment, so a strike wake CANNOT double-bell. A
+   sync may push the count FORWARD (skip missed strikes, silently) but NEVER backward —
+   and "forward" is the FORWARD DISTANCE round the 48-slot dial, never `>`. Stated as an
+   ordering it fails at midnight, where 47 and 0 change places: the 2026-07-24 run read a
+   66 s lead as a 23.5 h lag and rang eight bells twice. When NTP says we are behind where
+   we already struck, we hold the count and lengthen the next sleep — really lengthen it,
+   out to the held count's OWN boundary, which is the other half of what §2 promised and
+   the code did not do. Drift never touches the count, only the sleep duration (phase).
+
+   THE COUNT OWNS THE SCHEDULE. Every sleep runs to the boundary of the next count, less
+   the awake window, corrected by the persisted calibration. Those three terms fix three
+   different errors — which boundary (§11 defect 5), the strike-to-sleep gap (§11 defect 6)
+   and the RC oscillator's 1% rate (§11) — and the clock needs all three to ring on time.
 
    STATE LIVES IN .rtc.data (design §3), reached through rtcGet:/rtcPut:value:, because
    RAM does not survive the sleep. Field indices are the constants below and are
    identical to the C struct order in zephyr/src/main.c. nsl has no modulo (tuvm#97), so
    `x mod n` is `x - ((x // n) * n)` throughout. *)
-class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
+class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk basisMillis | ) (
 
   public main: platform args: args = (
     | plat half bells isWatchEnd |
@@ -46,25 +55,120 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
     (* Watch-end: sync + paint (Tasks 5-6). Stubbed here so the skeleton stands alone. *)
     isWatchEnd ifTrue: [ self onWatchEnd: plat ].
 
-    ^ self sleepToNextBoundary: plat            (* NEVER RETURNS *)
+    ^ self sleepToCountBoundary: plat            (* NEVER RETURNS *)
   )
 
-  (* Phase-align the next wake to the true boundary. predictedNow = (anchor + elapsed)
-     mod 86400 (design §3). Cold/never-synced => anchor 0, elapsed accumulates. *)
-  sleepToNextBoundary: plat = (
-    | predictedNow sleepSec |
+  (* THE NEXT WAKE BELONGS TO THE COUNT, NOT TO THE CLOCK (design §11, defect 5).
+     The ratchet owns the schedule: having just struck `lastHalf`, the next strike is
+     `lastHalf + 1`, and it is due at THAT half's boundary — so the sleep runs to
+     ((lastHalf + 1) * slotSec) - predictedNow, mod 86400.
+
+     This is the same number as "seconds to the next boundary" on the free-running path
+     (count and clock are in step there), but it is DIFFERENT, and correct, after a sync
+     that held the count: the sleep is LENGTHENED until the world reaches the count,
+     which is what the class comment above has always promised. The previous spelling
+     re-anchored to true time and ran to the next TRUE boundary, so a held count never
+     re-converged and the gap grew one slot per watch end — the clock rang the wrong
+     number of bells from 04:00 onward on the 2026-07-24 run.
+
+     predictedNow = (anchor + elapsed) mod 86400 (design §3); cold/never-synced =>
+     anchor 0, elapsed accumulates. *)
+  sleepToCountBoundary: plat = (
+    | predictedNow awakeSec sleepSec cal |
     predictedNow:: self predictedNow: plat.
-    sleepSec:: self secondsToNextBoundary: predictedNow.
-    (* Accrue the REAL interval to the next wake: the commanded sleep PLUS this wake's
-       awake time (boot + WiFi + strike, ~15-20 s on device; ~0 on host). Without the
-       awake term the predicted clock runs slow by that much per wake — ~1% at the
-       1800 s slot, which would swamp the RC-oscillator drift the panel exists to
-       measure (~+9700 ppm of pure boot overhead), and 25-30% at a demo 60 s slot.
-       `0 millis` is ms since THIS boot; one wake is far inside its 12.4-day wrap. *)
+    awakeSec:: self awakeSinceBasis.
+    sleepSec:: (self secondsToCountBoundary: (plat rtcGet: self rtcLastHalf) from: predictedNow) - awakeSec.
+    sleepSec < 1 ifTrue: [ sleepSec:: 1 ].    (* awake window longer than the slot *)
+    cal:: plat rtcGet: self rtcCalPpm.
+    (* Accrue the INTENDED REAL interval to the next wake: the target sleep PLUS this
+       wake's awake window (boot + WiFi + strike, ~15-20 s on device). Without the awake
+       term the predicted clock runs slow by that much per wake — ~1% at the 1800 s slot,
+       which would swamp the RC-oscillator drift the panel exists to measure (~+9700 ppm of
+       pure boot overhead), and 25-30% at a demo 60 s slot.
+
+       The awake window is BOTH added here and subtracted from the sleep above, and it has
+       to be both. Accruing it alone keeps the RATE honest but puts every strike one awake
+       window past its boundary, because the seconds fall between this strike and the next;
+       subtracting it alone would make the clock run fast. Together they hold the invariant
+       that makes the bell land on the minute: predictedNow after this line is EXACTLY the
+       boundary of the count about to be struck.
+
+       This accrues `sleepSec`, NOT the disciplined value armed below. That is what keeps
+       the correction from double-counting: the predicted clock advances by the real seconds
+       we intend to pass, so the next sync measures only what the correction FAILED to
+       remove, and calibration composes instead of oscillating. *)
     plat rtcPut: self rtcElapsedSec
-         value: (plat rtcGet: self rtcElapsedSec) + sleepSec + (0 millis // 1000).
-    plat deepSleep: (self witnessSleepFor: sleepSec).    (* NEVER RETURNS *)
+         value: (plat rtcGet: self rtcElapsedSec) + sleepSec + awakeSec.
+    ('sleep: target ' , sleepSec printString , ' s cal ' , (self signedField: cal)
+        , ' awake ' , awakeSec printString , ' s') out.
+    plat deepSleep: (self witnessSleepFor: (self disciplined: sleepSec ppm: cal)).  (* NEVER RETURNS *)
     ^ self )
+
+  (* Seconds of awake work since the moment predictedNow's basis was established — NOT
+     simply since boot. On a free-running wake those are the same thing: the clock comes
+     from RTC state that was already current when the VM booted, so the basis is boot and
+     `0 millis` is the answer.
+
+     A SYNCED wake is different, and getting it wrong just moves the error. There,
+     predictedNow is trueSec, which was true at the instant NTP answered — partway through
+     the awake window, not at boot. Subtracting the whole window would over-correct by
+     everything that happened before the NTP read (WiFi association is most of it), turning
+     a 15 s late bell into a 15 s early one. trySyncUpTo3: stamps the basis at that instant,
+     so only the work AFTER the read is subtracted. *)
+  awakeSinceBasis = (
+    | b |
+    b:: basisMillis.
+    b == nil ifTrue: [ b:: 0 ].       (* never synced this wake: the basis is boot *)
+    ^ ((0 millis) - b) // 1000 )
+
+  (* DISCIPLINE THE OSCILLATOR (design §11). Asleep, the sleep is counted by an internal
+     ~90 kHz RC oscillator — this module has no 32.768 kHz crystal — and the 2026-07-24 run
+     measured it at ~10,700 ppm FAST, 227x the navigator's 4 s/day, so bells landed up to
+     155 s early between the 4 h syncs. The error is STABLE (10,500 / 10,768 / 10,271 across
+     nine hours, +/-3%), and a stable rate error is correctable: command
+     `target / (1 + cal/1e6)` so that `target` REAL seconds elapse. Only the ~3% variation
+     survives, an estimated ~300 ppm — a watch going from 155 s of error to about 4 s, with
+     no new parts. The re-anchor at each sync fixes the PHASE; this fixes the RATE.
+
+     ROUNDED, not truncated, and that is not a nicety. The correction is whole seconds, so
+     throwing the fraction away is itself a rate error: at the shipping slot a truncating
+     spelling lost up to 0.9 s per 1800 s = 500 ppm, the same order as the residual this
+     whole mechanism exists to remove, and it walked the bells ~30 s off across a watch.
+     Rounding leaves +/-0.5 s per slot, so +/-4 s across a watch before the next sync
+     re-anchors — which is the accuracy target. Sub-second correction would need fractional
+     state across a deep sleep, and is what tuvm#100's hardware timebase buys instead.
+
+     Everything stays inside a 31-bit SMI on device (|v| < 2^30). The direct product is
+     used wherever it cannot overflow (target under 20000 caps it at 1e9); the rare long
+     target — only a hold that waits out a multi-slot lead — takes an eighth-scaled form
+     that caps at 5.4e8. The magnitude is divided rather than the signed value, so nothing
+     depends on which way nsl rounds a negative quotient. *)
+  disciplined: target ppm: cal = (
+    | p mag corr |
+    p:: cal.
+    p >  50000 ifTrue: [ p::  50000 ].    (* a rate beyond 5% is a broken measurement, *)
+    p < -50000 ifTrue: [ p:: -50000 ].    (* not an oscillator; refuse to act on it *)
+    mag:: p.
+    p < 0 ifTrue: [ mag:: 0 - p ].
+    target < 20000
+       ifTrue:  [ corr:: ((target * mag) + 500000) // 1000000 ]
+       ifFalse: [ corr:: (((target // 8) * mag) + 62500) // 125000 ].
+    p < 0 ifTrue: [ ^ target + corr ].             (* running fast -> command LONGER *)
+    target - corr < 1 ifTrue: [ ^ 1 ].
+    ^ target - corr )
+
+  (* Seconds from `predicted` to the boundary of the count AFTER `lastHalf`, modular over
+     the day. The single `+ 86400` is enough because predictedNow is already reduced to
+     [0, 86400) and the target is at most 86400, so the difference cannot be more than one
+     day negative — and doing it this way means no division of a negative number, whose
+     rounding direction nsl does not pin down. *)
+  secondsToCountBoundary: lastHalf from: predicted = (
+    | d |
+    d:: ((lastHalf + 1) * self slotSec) - predicted.
+    d < 0 ifTrue: [ d:: d + 86400 ].
+    d:: d - ((d // 86400) * 86400).      (* d >= 0 here, so // is unambiguous *)
+    d < 1 ifTrue: [ d:: 1 ].             (* boundary already reached: wake at once *)
+    ^ d )
 
   (* A COLD BOOT MUST NOT STRIKE. Power returns at an arbitrary second, and a bell struck
      then is a bell at a meaningless time — the 20:00:56 reset that produced "1 bell" is
@@ -89,7 +193,7 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
        boots are rare (true power loss / reflash), so this stays inside the e-paper
        refresh budget; ordinary strike wakes still never touch the panel (design §5). *)
     self paintStats: plat.
-    ^ self sleepToNextBoundary: plat )
+    ^ self sleepToCountBoundary: plat )
 
   (* Free-run from 00:00: predictedNow 0, ratchet 0 (so the first strike is half 1),
      staleSec large so the panel shows "never synced". Magic set LAST so a crash between
@@ -102,8 +206,8 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
     plat rtcPut: self rtcBootTicks    value: 0.
     plat rtcPut: self rtcAnchorSec    value: 0.
     plat rtcPut: self rtcElapsedSec   value: 0.
-    plat rtcPut: self rtcDriftPpm     value: 0.
-    plat rtcPut: self rtcStaleSec     value: 999999.
+    plat rtcPut: self rtcCalPpm       value: self calPpmSeed.
+    plat rtcPut: self rtcStaleSec     value: self neverSyncedSec.
     plat rtcPut: self rtcDrift24Max   value: 0.
     plat rtcPut: self rtcDrift24Min   value: 0.
     plat rtcPut: self rtcSyncsWin     value: 0.
@@ -127,19 +231,20 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
     | secs |
     3 timesRepeat: [
       secs:: plat ntpSyncTz: self tzOffset.
-      secs == nil ifFalse: [ ^ secs ].
+      (* Stamp the clock basis at the INSTANT true time was read — see awakeSinceBasis. *)
+      secs == nil ifFalse: [ basisMillis:: 0 millis. ^ secs ].
       'ntp miss' out ].
     ^ nil )
 
   (* The §2 ratchet, both directions. NEVER moves the count backward; drift only ever
      adjusts the sleep (phase) via the re-anchored predictedNow next wake. *)
   applySync: trueSec plat: plat = (
-    | trueHalf lastHalf predicted drift |
+    | trueHalf lastHalf predicted drift elapsed |
     trueHalf:: trueSec // self slotSec.
     lastHalf:: plat rtcGet: self rtcLastHalf.
-    predicted:: self predictedNow: plat.
+    predicted:: self predictedAtSync: plat.
 
-    (trueHalf > lastHalf)
+    ((self neverSynced: plat) or: [ self isBehind: trueHalf of: lastHalf ])
        ifTrue:  [ (* Fell behind (missed wakes / dead battery, or the clock ran slow):
                      advance SILENTLY — do NOT ring the skipped bells. `trueSec - predicted`
                      here is a CATCH-UP GAP, not oscillator drift (the board was off, so
@@ -154,8 +259,19 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
                      over the interval elapsedSec. This is the number the panel reports. *)
                   drift:: self wrapDrift: (trueSec - predicted).
                   lastDriftSec:: drift.
-                  self recordDrift: (self driftPpm: drift over: (plat rtcGet: self rtcElapsedSec)) plat: plat.
-                  ('sync true ' , trueSec printString , ' predicted ' , predicted printString , ' -> hold half ' , lastHalf printString) out ].
+                  ('sync true ' , trueSec printString , ' predicted ' , predicted printString , ' -> hold half ' , lastHalf printString) out.
+                  (* A RATE NEEDS A LONG ENOUGH BASELINE (design §11, defect 3). drift is
+                     measured in whole seconds, so ppm carries +/-1e6/elapsed of pure
+                     quantisation: 278 ppm over an hour, 14,700 ppm over a minute. The
+                     2026-07-24 run resynced 68 s after the previous sync and turned a 4 s
+                     error into `ppm +58823`. Report the sync (the ntp row still shows the
+                     seconds), skip the rate — a number that bad is not a measurement, and
+                     since disciplining now applies it to the SLEEP it would be a 5.9%
+                     correction rather than a bad pixel. *)
+                  elapsed:: plat rtcGet: self rtcElapsedSec.
+                  elapsed < self driftFloorSec
+                     ifTrue:  [ ('drift window ' , elapsed printString , ' s below floor ' , self driftFloorSec printString , ' s; ppm not recorded') out ]
+                     ifFalse: [ self recordDrift: (self driftPpm: drift over: elapsed) plat: plat ] ].
 
     (* Re-anchor the wall clock to true time; zero the accumulated sleep + stale. *)
     plat rtcPut: self rtcAnchorSec  value: trueSec.
@@ -163,15 +279,78 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
     plat rtcPut: self rtcStaleSec   value: 0.
     ^ self )
 
+  (* THE RATCHET INVARIANT IS MODULAR, NOT AN ORDERING (design §2 as restated by §11).
+     The half index wraps 47 -> 0, so `trueHalf > lastHalf` is meaningless across midnight:
+     on the 2026-07-24 run a 66 s LEAD (count 0, true 47) read as a 23.5 h LAG, the ratchet
+     was shoved backward, and 8 bells rang a second time 63 s later.
+
+     What is well defined is the FORWARD distance from the count to true time,
+     `(trueHalf - lastHalf) mod slotsPerDay`. Small forward distance = we genuinely fell
+     behind (missed wakes) -> advance. Distance 0 = on the count -> hold. Distance close to
+     a full day = true time has not yet REACHED the count, i.e. we are running ahead of the
+     world -> hold.
+
+     "Close to a full day" is deliberately narrow (holdAheadSlots). Modular arithmetic
+     cannot distinguish "3 slots ahead" from "45 slots behind", so the split is chosen by
+     which mistake is survivable: advancing wrongly rings one wrong count and self-corrects
+     next wake, while holding wrongly goes SILENT for the length of the hold. A lead can
+     only be accumulated drift since the last sync — the worst ever measured is 155 s over
+     a watch, well under one slot — so 3 slots is a 30x margin and still bounds a wrong
+     hold to 2 hours. *)
+  (* WHERE THE NODE'S CLOCK SAID IT WAS AT THE INSTANT NTP ANSWERED — the only thing
+     trueSec may be compared against. predictedNow is the clock at the STRIKE; the sync
+     happens an awake window later, so differencing the two scores boot and WiFi association
+     as oscillator drift. At a 15 s window that is a phantom +1041 ppm per sync, which does
+     not merely misreport: it feeds the calibration, so a PERFECT clock gets "corrected"
+     every watch end and the loop walks away from the truth instead of converging on it. *)
+  predictedAtSync: plat = (
+    | p b |
+    b:: basisMillis.
+    b == nil ifTrue: [ b:: 0 ].
+    p:: (self predictedNow: plat) + (b // 1000).
+    ^ p - ((p // 86400) * 86400) )
+
+  (* A NEVER-SYNCED BOARD HAS NO RATCHET TO PROTECT, so its first good sync ADOPTS true
+     time whatever the modular distance says. This is the one case where a large forward
+     distance really is a lag: the free-run starts at 00:00, so a cold boot at 23:30 is a
+     genuine 47 slots behind, which isBehind:of: would read as 1 slot ahead and hold —
+     going silent until tomorrow. Every other way of falling hours behind is impossible,
+     because a board that is merely failing NTP keeps ratcheting on its own timebase.
+
+     `>=`, not `=`: markSyncFailed: keeps ADDING to the sentinel, so a cold boot whose NTP
+     also failed reads 999999 + 14400 and must still count as never synced. *)
+  neverSynced: plat = ( ^ (plat rtcGet: self rtcStaleSec) >= self neverSyncedSec )
+
+  neverSyncedSec = ( ^ 999999 )
+
+  isBehind: trueHalf of: lastHalf = (
+    | n fwd |
+    n:: self slotsPerDay.
+    fwd:: trueHalf - lastHalf.
+    fwd < 0 ifTrue: [ fwd:: fwd + n ].          (* both are in [0, n), so one add suffices *)
+    fwd = 0 ifTrue: [ ^ false ].                (* exactly on the count: hold and measure *)
+    ^ fwd < (n - self holdAheadSlots) )
+
   markSyncFailed: plat = (
     plat rtcPut: self rtcStaleSec value: (plat rtcGet: self rtcStaleSec) + (self slotSec * 8).
     'sync failed, stale grows' out.
     ^ self )
 
-  (* Rolling 6-sync (24 h) window of the drift ppm; reset the extremes at 6 (design §3). *)
+  (* Two different numbers, easily confused, so name them apart:
+
+     `ppm` here is the RESIDUAL measured this watch — how far the disciplined clock still
+     missed by. It feeds the rolling 6-sync (24 h) extremes, reset at 6 (design §3), which
+     is the honest "how good is this board now" readout.
+
+     `rtcCalPpm` is the CUMULATIVE calibration actually applied when arming a sleep, so it
+     ACCUMULATES the residual rather than being overwritten by it. Overwriting would undo
+     the correction the moment it started working: a well-disciplined watch measures ~0,
+     which as a replacement would set the calibration to zero and put the 1% error straight
+     back. Composing two rates is a multiply, but at these magnitudes adding the ppm is
+     accurate to ~3 ppm — far inside the residual — and the loop self-corrects anyway. *)
   recordDrift: ppm plat: plat = (
     | n mx mn |
-    plat rtcPut: self rtcDriftPpm value: ppm.
+    plat rtcPut: self rtcCalPpm value: (plat rtcGet: self rtcCalPpm) + ppm.
     n:: (plat rtcGet: self rtcSyncsWin) + 1.
     n >= 6 ifTrue: [ n:: 0 ].
     n = 0 ifTrue: [ plat rtcPut: self rtcDrift24Max value: ppm. plat rtcPut: self rtcDrift24Min value: ppm ]
@@ -222,7 +401,7 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
     self tryRow: 0 s: (self line: 'tuvm' val: '')                                       on: disp.
     self tryRow: 1 s: '----------'                                                      on: disp.
     self tryRow: 2 s: (self line: 'heap' val: (self heapField: hs))                     on: disp.
-    self tryRow: 3 s: (self line: 'ppm'  val: (self signedField: (plat rtcGet: self rtcDriftPpm))) on: disp.
+    self tryRow: 3 s: (self line: 'ppm'  val: (self signedField: (plat rtcGet: self rtcCalPpm))) on: disp.
     self tryRow: 4 s: (self line: 'up'   val: (self upField: plat))                     on: disp.
     self tryRow: 5 s: '----------'                                                      on: disp.
     self tryRow: 6 s: (self line: 'ntp'  val: self ntpField)                            on: disp.
@@ -272,7 +451,7 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
      meaningless 11-day age. *)
   staleField: sec = (
     | mins d r h |
-    sec = 999999 ifTrue: [ ^ '--' ].
+    sec >= self neverSyncedSec ifTrue: [ ^ '--' ].
     mins:: sec // 60.
     d:: mins // 1440.
     r:: mins - (d * 1440).
@@ -301,12 +480,6 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
     now:: (plat rtcGet: self rtcAnchorSec) + (plat rtcGet: self rtcElapsedSec).
     ^ now - ((now // 86400) * 86400) )    (* mod 86400 — nsl has no modulo (tuvm#97) *)
 
-  (* IDENTICAL arithmetic spelling to 09_bell_math.nsl, over slotSec. *)
-  secondsToNextBoundary: sec = (
-    | s |
-    s:: self slotSec.
-    ^ s - (sec - ((sec // s) * s)) )
-
   (* THE CADENCE. One slot = one bell tick; a "watch" is 8 slots; the day is
      86400//slotSec slots. SHIPPING is 1800 (the real ship's-bell half-hour). A demo
      build may flip this to 60 (bells on real minute marks, sync+paint every 8 min —
@@ -315,6 +488,30 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
      any slot ONLY because elapsedSec accrues awake time too — without that term a
      small slot runs visibly slow (25-30% at 60 s). *)
   slotSec = ( ^ 1800 )
+
+  slotsPerDay = ( ^ 86400 // self slotSec )
+
+  (* How far the count may legitimately lead true time before a sync reads it as a lag
+     instead (see isBehind:of:). Three slots; the worst lead ever measured is 155 s. *)
+  holdAheadSlots = ( ^ 3 )
+
+  (* Shortest baseline that yields a believable ppm. Two slots = an hour at the shipping
+     cadence, which is David's "an hour is defensible" and bounds the whole-second
+     quantisation to +/-278 ppm — the same order as the residual disciplining aims for.
+     Derived from slotSec rather than hardcoded so a 60 s demo build can still measure and
+     discipline itself (floor 120 s) instead of never recording a rate at all. *)
+  driftFloorSec = ( ^ self slotSec * 2 )
+
+  (* FACTORY CALIBRATION — the calibration a never-synced board starts from, so the very
+     first sleep after a reflash is already disciplined instead of running a whole 4 h watch
+     at 155 s of error before the first sync has a number to work with. This is the mean of
+     the three measurements from the 2026-07-24/25 overnight run on THIS board
+     (10,500 / 10,768 / 10,271 ppm fast; negative here because a fast oscillator makes
+     predicted time outrun true time). It is a starting guess, not a constant: the first
+     watch-end sync composes the measured residual onto it, so a wrong seed self-heals
+     within one watch, and a board with a different RC part converges just as fast.
+     Retires when the DS3231M (tuvm#100, +/-5 ppm) takes over the timebase. *)
+  calPpmSeed = ( ^ -10513 )
 
   (* NOTE: bellsForHalfHour: is NOT redefined here — the node calls the kernel's
      Bell>>bellsForHalfHour: via `(plat bell) bellsForHalfHour: half`, exactly as the
@@ -326,7 +523,7 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
   rtcBootTicks  = ( ^ 2 )
   rtcAnchorSec  = ( ^ 3 )
   rtcElapsedSec = ( ^ 4 )
-  rtcDriftPpm   = ( ^ 5 )
+  rtcCalPpm     = ( ^ 5 )
   rtcStaleSec   = ( ^ 6 )
   rtcDrift24Max = ( ^ 7 )
   rtcDrift24Min = ( ^ 8 )

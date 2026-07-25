@@ -395,3 +395,118 @@ a spurious strike inflates it permanently.
 cadence, none by the host harness — which is green. The harness gap is specific: it crosses the
 47→0 wrap on the free-running path but never with a *sync* landing across it, and it never
 asserts that a hold arms a *longer* sleep. Both tests are queued.
+
+---
+
+## 12. The correction batch — 2026-07-25 (built; §2, §3 and §7 amended)
+
+§11's queue, worked in David's priority order. Everything below is **built and host-verified**;
+none of it is witnessed on hardware yet. Suite 227/0, all aux gates green, `esp32s2_saola`
+firmware links with `rtc_slow_seg` at 40 B.
+
+### §2 amended — the ratchet, restated in modular terms, and the sleep it implies
+
+The invariant is **forward distance round the dial**, not an ordering:
+`fwd = (trueHalf - lastHalf) mod slotsPerDay`. Distance 0 → on the count, hold and measure.
+Small distance → genuinely behind, advance silently. Distance close to a full day → true time has
+not yet *reached* the count, hold.
+
+**The split is deliberately asymmetric** — hold only when `fwd >= slotsPerDay - 3`. Modular
+arithmetic cannot distinguish "3 slots ahead" from "45 slots behind", so the boundary is chosen by
+which mistake is survivable: advancing wrongly rings one wrong count and self-corrects next wake;
+holding wrongly goes **silent** for the length of the hold. Three slots is a 30× margin over the
+worst lead ever measured (155 s) and bounds a wrong hold to two hours.
+
+**A never-synced board adopts true time unconditionally** (`staleSec >= 999999` — `>=`, because
+`markSyncFailed:` keeps adding to the sentinel). This is the one genuine case of a large forward
+distance: the free run starts at 00:00, so a cold boot at 23:30 really is 47 slots behind. Every
+other way of falling hours behind is impossible, because a board merely failing NTP keeps
+ratcheting on its own timebase.
+
+**And the sleep belongs to the count.** Having struck `lastHalf`, the next strike is `lastHalf + 1`
+at *that half's* boundary: `((lastHalf + 1) * slotSec) - predictedNow` mod 86400. One formula for
+advance, hold, free-run and cold boot — the same number as "seconds to the next boundary" when
+count and clock are in step, and the promised lengthening when a hold leaves them apart.
+
+### §3 amended — `driftPpm` is now `calPpm`, and it accumulates
+
+Field 5 is the **cumulative calibration applied when arming a sleep**, not the last measurement.
+The 24 h max/min window keeps the per-sync *residual*, which is the honest "how good is this board
+now" readout; the `ntp` row keeps the drift in seconds.
+
+**The trap this avoids:** overwriting the calibration with each fresh measurement destroys the
+correction the moment it starts working. A well-disciplined watch measures ≈0, which as a
+*replacement* sets the calibration to zero and puts the full 1 % straight back. It must
+**accumulate** the residual. Composing two rates is a multiply, but at these magnitudes adding ppm
+is accurate to ~3 ppm — far inside the residual — and the loop self-corrects regardless.
+
+Two further constraints, both load-bearing:
+
+- **`elapsedSec` accrues the intended seconds, not the commanded ones.** That is what stops the
+  loop double-correcting: the predicted clock advances by the real seconds we intend to pass, so
+  the next sync measures only what the correction *failed* to remove.
+- **A rate needs a baseline.** Whole-second drift over a 68 s window is ±14,700 ppm of pure
+  quantisation — that, not a bad sensor, is where `+58823` came from. Below `slotSec * 2` (an hour
+  at the shipping cadence, ±278 ppm) the sync is reported and the rate skipped. Derived from
+  `slotSec`, so a 60 s demo build can still measure and discipline itself.
+
+**Seeded from the measurement.** `initColdState:` starts the calibration at **−10,513 ppm**, the
+mean of the run's three samples, so a reflashed board is disciplined from its *first* sleep
+instead of spending a whole watch relearning a known number. It is a starting guess the loop
+supersedes within one watch — a different RC part converges just as fast — and it retires when
+#100's DS3231M takes over the timebase.
+
+### Defect 6, which the fix itself exposed: the awake window
+
+The wake is **strike → work → sleep**, so the boot/WiFi/strike seconds fall *between* this strike
+and the next. §7 accrued them and stopped there, which keeps the *rate* honest and puts every
+strike one awake window (~15 s) past its boundary, permanently. It survives a sync (which
+re-anchors) and it would have survived the DS3231 (which fixes the rate) — so disciplining alone
+would have left the bells 15 s late. The window must be **both** subtracted from the sleep and
+added to the accrual. The invariant that says so: after arming, `predictedNow` must land *exactly*
+on the boundary of the count about to be struck.
+
+**The same error sits in the measurement path, and there it is worse.** `predictedNow` is the
+clock at the strike; `trueSec` was read an awake window later. Differencing them scores WiFi
+association as oscillator drift — a phantom **+1041 ppm per sync** at a 15 s window — which does
+not merely misreport, it *feeds the calibration*, so a perfect clock is "corrected" every watch end
+and the loop walks away from the truth instead of converging on it.
+
+Both are fixed by stamping a **clock basis** at the instant NTP answers. On a free-running wake the
+basis is boot and the whole window applies; on a synced wake only the work *after* the read does.
+Getting that half wrong just moves the error — subtracting the whole window on a synced wake turns
+a 15 s late bell into a 15 s early one.
+
+### The correction is rounded, not truncated
+
+The correction is whole seconds, so discarding the fraction is itself a rate error: up to 0.9 s per
+1800 s slot = **500 ppm**, the same order as the residual the mechanism exists to remove. In
+simulation it walked the bells ~30 s off across a watch. Rounding leaves ±0.5 s per slot — ±4 s
+across a watch before the next sync re-anchors, which is the accuracy target. Sub-second correction
+would need fractional state carried across a deep sleep; that is what #100 buys instead.
+
+### §9 amended — the test that would have caught all of this
+
+The per-decision tests were green throughout, because each pins one decision and none lets a
+per-cycle error accumulate into an audible one. The capstone added here walks the **real node**
+through twelve wakes against a **simulated 1.07 % fast oscillator** — the rate actually measured on
+the board — with a device-sized awake window, across midnight and a watch-end sync, and asserts
+every count is the one the hour deserves at the minute it deserves it. It caught defect 6 in both
+paths and the truncation.
+
+Against that model: **every bell within 0.7 s of its boundary**, calibration converging
+−10,513 → −10,673 → −10,743. Ablating the seed leaves the first watch 57 s off until the first sync
+catches it, which is the value of seeding measured in bells.
+
+**It is a simulation, not a soak.** It models the oscillator and says nothing about power draw,
+radio behaviour or temperature. §11's conclusion stands: for a time-domain appliance, wall-clock
+soak is the only verification that addresses the product claim. This narrows what the soak has to
+discover; it does not replace it.
+
+### A VM seam fixed on the way
+
+`0 millis` on host was `CLOCK_MONOTONIC` since the **machine** booted, so a node reading it as its
+own awake window got days — and past ~12.4 days of host uptime the value stops fitting a 31-bit
+SMI. The hook's contract is `k_uptime_get()`'s, "ms since boot", and on a host a process *is* the
+boot; `src/vm.c` now answers process-relative. Delta-taking callers are unaffected (a constant
+offset cancels). `OEVM_MILLIS_FIXED_MS` pins it, so a host test can pose a specific awake window.

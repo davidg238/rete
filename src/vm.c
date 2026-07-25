@@ -18,9 +18,30 @@ static uint64_t default_millis(void) {
 #ifdef __ZEPHYR__
     return 0;   /* overridden by the app before first use */
 #else
+    /* MS SINCE THIS PROCESS STARTED, not since the machine booted. The contract this
+       hook exists to satisfy is k_uptime_get()'s — "ms since boot" — and on the host a
+       process IS the boot. Raw CLOCK_MONOTONIC broke that: `0 millis` answered the
+       machine's uptime, so any node reading it as its own awake time (the deep-sleep
+       clock's elapsedSec accrual) got days instead of seconds, and past ~12.4 days of
+       host uptime the value no longer fits a 31-bit SMI at all. Every delta-taking
+       caller is unaffected — a constant offset cancels in a subtraction.
+
+       OEVM_MILLIS_FIXED_MS pins the answer to a constant, so a host test can pose a
+       specific awake window (the same shape of host-only knob as OEVM_NTP_SECONDS and
+       OEVM_RTC_FILE). Resolved once; unset in every normal run. */
+    static uint64_t base_ms = 0;
+    static int64_t fixed_ms = -1;
     struct timespec ts;
+    uint64_t now;
+    if (fixed_ms < 0) {
+        const char *e = getenv("OEVM_MILLIS_FIXED_MS");
+        fixed_ms = (e && *e) ? (int64_t)strtoll(e, NULL, 10) : -2;
+    }
+    if (fixed_ms >= 0) return (uint64_t)fixed_ms;
     clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (uint64_t)ts.tv_sec * 1000u + (uint64_t)ts.tv_nsec / 1000000u;
+    now = (uint64_t)ts.tv_sec * 1000u + (uint64_t)ts.tv_nsec / 1000000u;
+    if (base_ms == 0) base_ms = now;
+    return now - base_ms;
 #endif
 }
 uint64_t (*oevm_millis)(void) = default_millis;
