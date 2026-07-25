@@ -134,7 +134,10 @@ static void wifi_bringup(void) {
             if (ua->addr_state == NET_ADDR_PREFERRED &&
                 ua->address.in_addr.s_addr != 0) {
                 net_addr_ntop(AF_INET, &ua->address.in_addr, ipbuf, sizeof ipbuf);
-                printk("wifi: up, ip=%s -> http://%s:18080/thermal\n", ipbuf, ipbuf);
+                /* Just the lease. The old form advertised ".../thermal", which is a
+                   different node's endpoint — this main.c is shared by every esp32
+                   node, and the deep-sleep clock serves nothing at all. */
+                printk("wifi: up, ip=%s\n", ipbuf);
                 return;
             }
         }

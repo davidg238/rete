@@ -21,13 +21,14 @@
 class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
 
   public main: platform args: args = (
-    | plat half bells isWatchEnd predictedNow sleepSec |
+    | plat half bells isWatchEnd |
     plat:: platform.
 
     (* Cold power-on leaves .rtc.data UNDEFINED (not zeroed), so a magic mismatch means
-       "no valid state" -> free-run from 00:00 and let the first watch-end sync correct
-       everything (design §8). *)
-    (plat rtcValid) ifFalse: [ self initColdState: plat ].
+       "no valid state". A cold boot NEVER strikes and never falls through to the strike
+       path below — it syncs, anchors, paints and sleeps to the next TRUE boundary
+       (design §8, amended). *)
+    (plat rtcValid) ifFalse: [ ^ self coldBoot: plat ].
 
     (* The strike about to happen: a pure increment of the ratchet (design §2). *)
     half:: (plat rtcGet: self rtcLastHalf) + 1.
@@ -45,8 +46,13 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
     (* Watch-end: sync + paint (Tasks 5-6). Stubbed here so the skeleton stands alone. *)
     isWatchEnd ifTrue: [ self onWatchEnd: plat ].
 
-    (* Phase-align the next wake to the true boundary. predictedNow = (anchor + elapsed)
-       mod 86400 (design §3). Cold/never-synced => anchor 0, elapsed accumulates. *)
+    ^ self sleepToNextBoundary: plat            (* NEVER RETURNS *)
+  )
+
+  (* Phase-align the next wake to the true boundary. predictedNow = (anchor + elapsed)
+     mod 86400 (design §3). Cold/never-synced => anchor 0, elapsed accumulates. *)
+  sleepToNextBoundary: plat = (
+    | predictedNow sleepSec |
     predictedNow:: self predictedNow: plat.
     sleepSec:: self secondsToNextBoundary: predictedNow.
     (* Accrue the REAL interval to the next wake: the commanded sleep PLUS this wake's
@@ -58,11 +64,38 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
     plat rtcPut: self rtcElapsedSec
          value: (plat rtcGet: self rtcElapsedSec) + sleepSec + (0 millis // 1000).
     plat deepSleep: (self witnessSleepFor: sleepSec).    (* NEVER RETURNS *)
-  )
+    ^ self )
+
+  (* A COLD BOOT MUST NOT STRIKE. Power returns at an arbitrary second, and a bell struck
+     then is a bell at a meaningless time — the 20:00:56 reset that produced "1 bell" is
+     the witness. Instead: sync immediately so the clock starts on the right footing, let
+     applySync: set the ratchet to true time (an advance from the free-run 0 — silent, no
+     skipped bells rung), paint the synced panel, and sleep to the next TRUE boundary. The
+     first strike is that boundary's bell with the RIGHT count.
+
+     If NTP fails all 3 attempts we keep the free-run-from-00:00 state (design §8): the
+     next boundary is 1800 s out and the count is wrong until the first good watch-end
+     sync. Honest, and no worse than before. *)
+  coldBoot: plat = (
+    | trueSec |
+    self initColdState: plat.
+    trueSec:: self trySyncUpTo3: plat.
+    trueSec == nil
+       ifTrue:  [ syncOk:: false. self markSyncFailed: plat ]
+       ifFalse: [ syncOk:: true.  self applySync: trueSec plat: plat ].
+    (* One paint on cold boot, AFTER the sync so it shows the synced state (or FAIL):
+       proves the display is alive without waiting up to a whole watch for the first
+       watch-end paint, and replaces any stale image a reflash left on the glass. Cold
+       boots are rare (true power loss / reflash), so this stays inside the e-paper
+       refresh budget; ordinary strike wakes still never touch the panel (design §5). *)
+    self paintStats: plat.
+    ^ self sleepToNextBoundary: plat )
 
   (* Free-run from 00:00: predictedNow 0, ratchet 0 (so the first strike is half 1),
      staleSec large so the panel shows "never synced". Magic set LAST so a crash between
-     writes cannot leave a half-initialised struct reading valid. *)
+     writes cannot leave a half-initialised struct reading valid. The paint is NOT here —
+     coldBoot: paints after the sync, so the panel never shows a state we already know is
+     about to be corrected. *)
   initColdState: plat = (
     'cold boot: free-run from 00:00' out.
     plat rtcPut: self rtcLastHalf     value: 0.
@@ -75,12 +108,6 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
     plat rtcPut: self rtcDrift24Min   value: 0.
     plat rtcPut: self rtcSyncsWin     value: 0.
     plat rtcPut: self rtcMagic        value: self magicWord.
-    (* One placeholder paint on cold boot (dashes for the never-synced rows): proves the
-       display is alive without waiting up to a whole watch for the first sync paint, and
-       replaces any stale image a reflash left on the glass. Cold boots are rare (true
-       power loss / reflash), so this stays inside the e-paper refresh budget; ordinary
-       strike wakes still never touch the panel (design §5). *)
-    self paintStats: plat.
     ^ self )
 
   onWatchEnd: plat = (
