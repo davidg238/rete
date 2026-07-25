@@ -274,6 +274,33 @@ env fails silently as `west: command not found`). Full per-rung detail lives in 
   - **`OEVM_HEAP_SIZE=65536` is provisional** (dram0 at ~81.8% of 217 KB), not a measured ceiling.
   - `flash 0x1000` (Xtensa keeps the ESP32 offset); ROM `setjmp`/`longjmp` patch applies with an
     S2-specific symbol set (`tools/patch-esp32-rom-ld.sh --chip esp32s2`).
+  - **Deep sleep needs the patched Zephyr tree, or the image dies at the boot handoff (#94
+    stage 5, 2026-07-25).** Zephyr's simple-boot segment walk (`soc/espressif/common/loader.c`
+    `map_rom_segments`) classified any segment loading into RTC IRAM (0x40070000 — the wake stub
+    `CONFIG_POWEROFF` links) or RTC slow mem (0x50000000, `RTC_DATA_ATTR`) as end-of-image, broke
+    early, and skipped the IROM/DROM flash-offset fix-up — the MMU then mapped stale linker
+    offsets and boot died with no output right after `libc heap size`, but ONLY on images where
+    elf2image had moved the segments (a big `.oimg` incbin does; the minimal deep_sleep sample
+    doesn't, which made it look like a config interaction). Fixed in `~/zephyr-esp32/zephyr`
+    commit `bc47c6fab9c` (branch `tuvm-c6-radio-fix`; upstream candidate) — **a west re-fetch of
+    that tree loses the fix and POWEROFF images stop booting again.** Verification without
+    hardware: `docs/spikes/2026-07-25-esp32-loader-walk-sim.py` replays the walk over a built
+    `zephyr.bin`.
+  - **Constants crossing the nsl↔C seam must fit a 32-bit SMI: |v| < 2^30.** The RTC magic
+    0x94BE11C0 round-tripped on the host's 61-bit SMI and stored garbage through `rtcPut:` on the
+    device — every host test green, every device wake a cold boot. Now 0x14BE11C0 = 348000704.
+    The detector for this whole class is re-running the relevant harness against a `-m32` host VM
+    (same `-m32 dump_layout` → recompile-the-.oimg recipe as the arena sweep above); the 64-bit
+    suite is structurally blind to it.
+  - **A reflash is always a cold start.** The BOOT0+RESET chord reads as a POWERON-class reset
+    (`rst:0x1`) and RTC slow memory does not survive it, so after any flash the deep-sleep clock
+    free-runs from 00:00 and converges at its first watch-end NTP sync (≤4 h). A 1-bell first
+    strike after a reflash is the design working, not a retention bug.
+  - **Never push a clear to the e-paper glass at bringup.** `display_bringup` clears CFB buffer +
+    shadow grid only (`cfb_framebuffer_clear(dev, false)`): e-paper holds its image unpowered, so
+    the deep-sleep clock's watch-end stats persist on the panel across strike wakes (which never
+    repaint, by design). The earlier push-clear left the panel blank ~87% of the time at the
+    shipping cadence.
 
 ## Adding a new board (generic recipe)
 

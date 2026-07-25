@@ -1673,6 +1673,75 @@ one-shot's partial interval, so it reads `0d00:30` about 40 s after a boot that 
 `0d01:00` at the second strike. At the row's 30-minute granularity that is inside the rounding
 it already admits to, but it is an over-count, not a rounding.
 
+## The clock survives its own death — 2026-07-25, #94 stage 5, on the MagTag
+
+**The rung:** the always-on reactor clock became a run-once deep-sleep appliance. Between
+strikes the CPU is off and **the VM does not exist** — each timer wake is a fresh boot that
+lives a few seconds, strikes, and dies; state crosses the gap in RTC slow memory through an
+indexed-SMI seam (`rtcGet:`/`rtcPut:value:`), and the bell counter is a **monotonic ratchet**
+(a sync may advance it, never retract it) so a backward NTP correction cannot double-strike.
+
+**Witnessed 2026-07-25 on the MagTag** (compressed witness build: physical sleeps cut to 15 s,
+the clock still advancing a true half-hour per wake): ~15 real deep-sleep cycles
+(`deep sleep 15 s` → 15.0 s powered down → `rst:0x5 (DSLEEP)` → cold boot), the ratchet
+climbing 1→8 **with no `cold boot` line after the first** — retention across real power-downs,
+the event a full bench day of reboot-substitutes never produced. At the first watch-end the
+sync **advanced** `true 66572 predicted 12600 -> advance half 36` (silently — no bell storm for
+the skipped halves), and the very next wake rang **5 bells as the wall clock read 18:30
+Phoenix** — half-hour index 37, watch position 5: right bells, right time, off an anchor the
+board fetched itself two minutes earlier. The second watch-end took the **hold** branch:
+`true 66681 predicted 72000 -> hold half 40` — NTP said the clock was 89 minutes ahead and the
+ratchet **held** rather than stepping back, recording `ntp -5319.0s` (= true − predicted,
+exact) and `ppm -979919` (= −5319/5428 s elapsed, exact; the magnitude is the compression
+artifact, the arithmetic is the witness). Both watch-end panels painted all rows inside the
+12-column grid, including the pathological ppm. The shipping build (1800 s cadence) is flashed
+and free-running; a genuine drift figure needs its first real watch-ends.
+
+**Two root causes found on the host, zero flashes, after a bench day of isolation pointed at a
+phantom.** The 2026-07-24 session ended with eight flashes "proving" a POWEROFF × config
+interaction and a retention failure. Both were something else:
+
+1. **`CONFIG_POWEROFF` died at the boot handoff because of a Zephyr loader bug.**
+   `soc/espressif/common/loader.c` `map_rom_segments` classified any segment loading into RTC
+   IRAM (0x40070000 — the wake stub the sleep HAL places, one address past `SOC_IRAM_HIGH`) or
+   RTC slow memory (0x50000000) as end-of-image, broke its walk early, and never ran the
+   IROM/DROM flash-offset fix-up — the MMU then mapped stale linker offsets and the first
+   flash-mapped fetch died silently right after `libc heap size`. The dying boots printed
+   `Image with 3 segments` while the ROM had loaded five, and their `paddr=00040000h` is
+   exactly the stale static. The minimal deep_sleep sample "worked" only because, without a
+   135 KB `.oimg` incbin moving the elf2image layout, the stale statics happen to be right.
+   Fixed (`bc47c6fab9c`, all three RTC windows classified; upstream candidate) and verified by
+   simulating the exact walk over the real failing binary (`docs/spikes/2026-07-25-esp32-
+   loader-walk-sim.py`): the fixed walk computes IROM `0x20000`/DROM `0x80000`, byte-identical
+   to the known-good boot. **The method lesson: the isolation ladder varied configs; the bug
+   was in code that reads the image, so no config delta could localise it. Reading the loader
+   against the image's actual segment table found it in one sitting.**
+
+2. **The "retention failure" was the RTC magic overflowing the device SMI.** `0x94BE11C0` has
+   int32 magnitude 2^30.7; a 32-bit SMI holds ±2^30, so `rtcPut:` stored garbage, the magic
+   never validated, and every wake cold-init — on the 61-bit-SMI host it round-trips, which is
+   why every host test passed. Reproduced with a `-m32` host VM + the real `.oimg` (wakes
+   1-2-3 all cold), fixed to `0x14BE11C0` = 348000704, re-verified (`wake half 2/3/4`).
+   **The false inference is the reusable half:** the prior session concluded `sys_reboot`
+   loses `.rtc_noinit` — but a magic that never validates is *observationally identical* to a
+   retention failure (garbage ≠ magic every wake, retained or not), so the reboot-substitute
+   run proved nothing about retention either way. And the seam rule it hardens: **any constant
+   crossing the nsl↔C boundary must fit |v| < 2^30, and the detector is running the harness
+   against a `-m32` VM — the 64-bit suite is structurally blind to this class.**
+
+**Two smaller facts the run surfaced.** The bringup clear was pushing to the e-paper glass on
+every boot, wiping each watch-end paint one wake later (blank panel ~87% of the time at
+shipping cadence); it now clears buffer-only (`1b96fee`) — e-paper holds its image unpowered,
+so the last stats stay on the glass across strike wakes, per the design's "strike wakes never
+touch the panel." And **a reflash is always a cold start**: the BOOT0+RESET chord reads as a
+POWERON-class reset and RTC slow memory does not survive it, so after any flash the clock
+free-runs from 00:00 and converges at its first watch-end sync (≤4 h) — accepted design
+behaviour, worth knowing before reading a 1-bell first strike as a bug.
+
+**Not witnessed on hardware:** the `ntp FAIL` watch-end (host-gated by the harness's no-NTP
+scenario); the RC-oscillator drift number the panel exists to show (needs the shipping
+cadence's real watch-ends); button wake and power measurement (out of scope, #83 / design §10).
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
