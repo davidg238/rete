@@ -11,7 +11,8 @@ sys.path.insert(0, str(TOOLS))
 import run_tests_oevm as R   # reuse the Path-B compile + host-oevm invocation
 
 NODE = Path.home() / "workspace/tuvm/zephyr/MagTagDeepSleepNode.nsl"
-RTC_MAGIC = -1799482944   # 0x94BE11C0 as int32
+RTC_MAGIC = 348000704   # 0x14BE11C0 — must fit a 32-bit SMI (|v| < 2^30); the old
+                        # 0x94BE11C0 only round-tripped on the 64-bit host
 
 # --- Path-B plumbing (mirrors run_tests_oevm.run_test_file_oimg:496-546) -----------
 # Compile the node to .oimg ONCE, then re-run the image VM per wake with a custom env.
