@@ -26,19 +26,17 @@ class RtcSeam packageUsing: manifest = () (
     ('anchor '    , (platform rtcGet: 3) printString) out.
     'finished' out.
   )
-  (* Must equal RTC_MAGIC 0x94BE11C0 = 2495484352 as an unsigned; the seam compares
-     the low 32 bits as uint32 in C, so the node writes the same bit pattern via its
-     signed decimal. 0x94BE11C0 as int32 is -1799482944 (verified round-trip:
-     -1799482944 & 0xFFFFFFFF == 0x94BE11C0). nsl has no hex literal, so spell the
-     decimal.
-     NOTE (tuvm#94 stage 5, Task 1): the brief that originated this test carried
-     -1799676992 for this constant, which is NOT the same bit pattern as
-     0x94BE11C0 (it decodes to 0x94BB1BC0) — a transcription error, not an SMI
-     round-trip failure. Host SMIs here are 61 magnitude bits (oop_size=8 on this
-     build), so -1799676992 round-tripped through rtcPut:/rtcGet: exactly as
-     written; it simply wasn't the intended magic. Confirmed by direct probe
-     (rtcPut: 0 value: <literal>; rtcGet: 0 prints back the same literal either
-     way) before changing this to the arithmetically correct value. *)
-  magicWord = ( ^ -1799482944 )
+  (* Must equal RTC_MAGIC 0x14BE11C0 = 348000704; the seam compares the low 32 bits
+     as uint32 in C. nsl has no hex literal, so spell the decimal.
+     HISTORY (tuvm#94 stage 5): the magic was originally 0x94BE11C0, whose int32
+     spelling -1799482944 round-trips on the 64-bit host (61 magnitude bits) but
+     OVERFLOWS the 31-bit SMI of a 32-bit target — on the MagTag rtcPut: stored
+     garbage, rtcValid never went true, and the clock cold-booted on every wake
+     (witnessed 2026-07-24, ~14 reboot cycles all reading "wake half 1").
+     Reproduced on a host -m32 build the same day. The magic therefore MUST keep
+     |value| < 2^30. An earlier revision of this comment verified the round-trip
+     on the host build and called it settled — the host proved nothing about the
+     device. *)
+  magicWord = ( ^ 348000704 )
 ) : (
 )
