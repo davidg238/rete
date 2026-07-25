@@ -1787,6 +1787,32 @@ above drove the real device through `ntp miss` ×3 → `sync failed, stale grows
 `ntp FAIL` / `sync 11d/17h`, which is the `markSyncFailed:` + FAIL-row code the harness had only
 ever exercised on host.
 
+**THE FIRST UNATTENDED SHIPPING-CADENCE RUN (22:15 → 08:00, 2026-07-24/25) IS THE RUNG'S REAL
+RESULT, AND IT IS A NEGATIVE ONE.** Detail on #94 (five defect write-ups + the ordered queue) and
+in §11 of the design doc; the durable points:
+
+**The timebase is measured at last: ~10,700 ppm fast (≈1%)** — three watch-end measurements
+(10,500 / 10,768 / 10,271) agreeing within ±3% across nine hours. 227× the navigator's 46 ppm
+(4 s/day). Bells arrive up to 155 s early at the 4 h sync cadence. **The stability is the useful
+part**: a stable rate error is correctable in software by applying the already-persisted
+`driftPpm` when arming the sleep (est. residual ~300 ppm — a watch goes from 155 s to ~4 s),
+which is why the DS3231M hardware timebase (#100, ±5 ppm) is an upgrade rather than a rescue.
+
+**Five defects, all in `applySync:`, none caught by a green host suite.** The worst — the hold
+branch holds the count but re-anchors the clock, so count and clock never re-converge and the gap
+grows one slot per watch end — meant the clock **rang the wrong bell count from 04:00 onward**.
+The midnight one — a magnitude compare on an index that wraps 47→0 — read a 66 s lead as a 23½ h
+lag and struck 8 bells twice.
+
+**The methodological lesson, and it is the one to carry to other rungs:** all five are the same
+shape as the cold-boot defect recorded above — **the prose specifies the behaviour correctly and
+the code does something else, in a case no test exercises.** Two of them are contradictions of
+comments sitting in the same file. The host harness is green and stayed green throughout; the
+gap is specific and now queued (a sync landing *across* the wrap; a hold arming a *longer*
+sleep). An unattended run at the real cadence found in nine hours what months of host-green
+development did not — for a time-domain appliance, **wall-clock soak is not optional
+verification, it is the only verification that addresses the product claim.**
+
 **Not witnessed on hardware:** the `ntp FAIL` *watch-end* specifically (the cold-boot FAIL above
 shares `markSyncFailed:` and the panel row, not the watch-end entry); the RC-oscillator drift
 number the panel exists to show (needs the shipping cadence's real watch-ends — the first honest

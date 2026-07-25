@@ -344,3 +344,54 @@ running in the shipping build; the evening comment on tuvm#94 carries the full w
   → `wake half 45 bells 5` at 22:30:14, correct on the wall clock. Host gate:
   `tools/test_deepsleep_node.py` pins all three branches (synced-no-strike, right-count-first-
   strike, ntp-fail-still-silent); suite 227/0, all aux gates green.
+
+---
+
+## 11. Overnight run 2026-07-24/25 — the measured oscillator, and five defects in `applySync:`
+
+The first unattended shipping-cadence run (22:15 anchor → 08:00, console captured throughout).
+Full evidence and the ordered work queue are on tuvm#94; this section records what the run
+*decided*, since the decisions invalidate parts of §2 and §3 above.
+
+**§3's premise is now measured, and it is far worse than assumed.** The RC oscillator runs
+**~10,700 ppm fast (≈1%)** — three independent watch-end measurements (10,500 / 10,768 / 10,271)
+agreeing within ±3% across nine hours. For scale, the navigator's standard of 4 s/day is 46 ppm;
+this is 227× worse. Mechanism: `elapsedSec` accrues the *commanded* `sleepSec` while a fast
+oscillator ends the sleep early, so the predicted clock outruns real time. Consequence at the
+4 h sync cadence: bells arrive up to **155 s early**.
+
+**Decision — discipline the oscillator, before any hardware.** The error being *stable* is the
+finding that matters: a stable rate error is correctable by scaling each `sleepSec` by the
+already-persisted `driftPpm`, leaving only the *variation* (~3%, so ~300 ppm residual) — a watch
+goes from 155 s of error to roughly 4 s, with no new parts. Two constraints: never apply a value
+recorded over a sub-floor interval, and do not double-correct (the sync re-anchors the clock;
+disciplining adjusts only the rate between syncs). Hardware timebase (DS3231M, ±5 ppm) is
+tuvm#100 — reframed by this measurement as a chronometer-grade *upgrade*, not a rescue.
+
+**§2's ratchet is under-specified, and the code diverges from it in two places.** Both are the
+same failure shape as the missing boot sync in the §8 amendment — the prose says X, the code does
+Y, and no test covered the difference:
+
+- **The hold branch does not lengthen the sleep.** The class comment promises "we hold the count
+  and lengthen the next sleep", but `applySync:` holds the count and then re-anchors to true time,
+  so the next strike fires at the next *true* boundary instead of waiting for the world to reach
+  the count. Count and clock never re-converge and the gap grows **one slot per watch end**
+  (gap 1 at 04:00, gap 2 at 08:00). The clock rang the **wrong bell count from 04:00 onward** —
+  the most consequential defect the run found, because it is audible every 30 minutes. Fix:
+  when holding, target the count's own boundary, `((lastHalf + 1) * slotSec) - trueSec` mod 86400.
+- **The monotonicity test is not wrap-safe.** `trueHalf > lastHalf` is a magnitude compare on a
+  value that wraps 47→0, so at midnight a 66 s *lead* read as a 23½ h *lag* and the ratchet was
+  pushed backward — 8 bells struck twice, 63 s apart. Fix with modular forward distance (the
+  `_mono_mod48` logic already in the harness). **§2 should state the invariant in modular terms**,
+  not as an ordering.
+
+**Two further defects, both blast radius of the above.** Drift is discarded on the advance branch
+(correct for a genuine catch-up gap, wrong when the advance is spurious — the wrap fix resolves
+it); and `recordDrift:` has no minimum-interval guard, so a 68 s window yielded `ppm +58823` and
+polluted the rolling 24 h window. Also cosmetic: `up` counts announced half-hours, not uptime, so
+a spurious strike inflates it permanently.
+
+**Method note worth keeping.** Every one of these was found by an unattended run at the real
+cadence, none by the host harness — which is green. The harness gap is specific: it crosses the
+47→0 wrap on the free-running path but never with a *sync* landing across it, and it never
+asserts that a hold arms a *longer* sleep. Both tests are queued.
