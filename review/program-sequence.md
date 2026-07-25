@@ -1749,9 +1749,49 @@ where compressing only the physical sleep repeats stage 4's rejected 6×-clock m
 cold boot paints a placeholder panel (dashes for never-synced rows) as a display-alive signal
 that also wipes any stale reflash image.
 
-**Not witnessed on hardware:** the `ntp FAIL` watch-end (host-gated by the harness's no-NTP
-scenario); the RC-oscillator drift number the panel exists to show (needs the shipping
-cadence's real watch-ends); button wake and power measurement (out of scope, #83 / design §10).
+**The same evening the cold-boot path was corrected, and the correction is the rung's sharpest
+lesson about where a defect hides** (`d2f82ed` tuvm / `6bdf90a` nsl-tuvm; design §8 amendment).
+The paragraph above records "after any flash the clock free-runs from 00:00 and converges at its
+first watch-end sync (≤4 h) — accepted design behaviour, worth knowing before reading a 1-bell
+first strike as a bug." **That was wrong, and it was wrong in the most expensive way: it wrote a
+defect down as intended behaviour.** §8 of the design had always called for a sync at cold boot;
+stage 4 ran a boot-sync retry every ~30 s precisely "so no wrong bell is heard"; the reactor
+rewrite dropped it and nothing replaced it. What the ladder had accepted was up to **4 hours of
+wrong bells after every power loss or reflash** — witnessed on the bench when a RESET at 20:00:56
+rang 1 bell and then 2/3/4/5 on the half-hours, every one wrong against true ship's time.
+
+The fix is a separate cold-boot path that **never reaches the strike**: sync → `applySync:`
+advances the ratchet from the free-run 0 to true time (silently; skipped bells are not rung) →
+paint the *synced* panel → sleep to the next *true* boundary, so the first bell heard is that
+boundary's with the right count. Device witness: cold boot 22:15:08 → `ntp: ok, local sod=80108`
+→ `sync true 80108 predicted 0 -> advance half 44` → `deep sleep 892 s` (a **partial** interval —
+the §3 phase alignment that no cold-boot path had ever exercised) → no bell at boot →
+`wake half 45 bells 5` at 22:30:14, correct on the wall clock. The §5 placeholder paint moved
+with it: it now runs after the sync, so dashes appear only when NTP genuinely fails.
+
+**The rule the stage now leaves, with midnight no longer special** — it is simply one of six
+watch-ends: *strike at every boundary; sync + paint at boot and at every 8 bells; radio on only
+for those.* The third clause is **not built** — `main.c:1232` still brings WiFi up on all 48
+daily wakes when only 6 need it (measured: 6.5 of every 7.5 awake seconds), filed as tuvm#99.
+
+**Two bench traps from the same evening, both of which produce a plausible-looking wrong result.**
+`flash-magtag.sh` calls `run.sh` **without `--conf-extra prj_esp32s2_wifi.conf`**, so it silently
+builds a no-WiFi image that boots clean and simply never syncs; and the esp32s2 profile's default
+`OEVM_HEAP_SIZE=65536` (`run.sh:143`) will not link against the WiFi stack — it overflows
+`dram0_0_seg` by 43,536 B, where this node's working arena is 20480. Confirm a flash by the
+panel's heap row and the presence of `wifi: up`, not by the build succeeding. Detail in
+`[[tuvm-esp32-port]]` item 19.
+
+**Now witnessed on hardware:** the **cold-boot `ntp FAIL` path** — the accidental no-WiFi build
+above drove the real device through `ntp miss` ×3 → `sync failed, stale grows` → a panel reading
+`ntp FAIL` / `sync 11d/17h`, which is the `markSyncFailed:` + FAIL-row code the harness had only
+ever exercised on host.
+
+**Not witnessed on hardware:** the `ntp FAIL` *watch-end* specifically (the cold-boot FAIL above
+shares `markSyncFailed:` and the panel row, not the watch-end entry); the RC-oscillator drift
+number the panel exists to show (needs the shipping cadence's real watch-ends — the first honest
+sample is the second sync of a run); button wake and power measurement (out of scope, #83 /
+design §10, and now queued behind tuvm#99 since WiFi-every-wake dominates the power profile).
 
 ## Known stale docs (do not treat as current)
 

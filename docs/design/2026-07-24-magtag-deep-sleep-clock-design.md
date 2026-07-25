@@ -232,7 +232,7 @@ main:
 - **Cold boot, no valid RTC:** `rtcValid` false → free-run from 00:00, attempt the sync;
   if it fails, keep free-running and correct at the first good watch-end. No time is
   known until the first success — honest, and identical in spirit to stage 4's
-  pre-first-sync behaviour.
+  pre-first-sync behaviour. **A cold boot NEVER strikes** — see the §8 amendment below.
 - **Strike never cut off:** the DAC strike blocks ~0.5–4 s; sleep is only entered after
   `struck`. Ordering in §7 guarantees it.
 - **Display fault:** paint is best-effort (existing #88 catch); a panelless or faulted
@@ -314,3 +314,33 @@ running in the shipping build; the evening comment on tuvm#94 carries the full w
   just cleared: a boot-path bringup therefore wipes the glass on EVERY wake, which the
   always-on stages could never observe (they boot once). Wakes that never paint now never
   touch the panel. The same lazy-seam treatment for WiFi is filed as tuvm#99.
+- **§8 amendment — a cold boot syncs FIRST and NEVER strikes** (2026-07-24 evening, David;
+  commits `d2f82ed` / `6bdf90a`). §8 above always called for the boot sync, but the reactor
+  rewrite dropped stage 4's boot-sync retry and nothing replaced it: `main:` reached the
+  strike path unconditionally, so a cold boot rang half 1 and then free-ran, wrong, until
+  the first watch-end — **up to 4 hours of wrong bells**. Witnessed: a RESET at 20:00:56 rang
+  1 bell, then 2/3/4/5 on the half-hours, every one of them wrong against true ship's time.
+  Cold boot now takes its own path (`coldBoot:`) and never reaches the strike:
+
+  > sync → `applySync:` advances the ratchet from the free-run 0 to true time (silent; the
+  > skipped bells are **not** rung) → paint the **synced** panel → sleep to the next **true**
+  > boundary. The first bell the house hears is that boundary's, with the right count.
+
+  Two consequences fold back into earlier sections. The **§5 placeholder paint moves**: it
+  now happens in `coldBoot:` *after* the sync (reading `ntp sync` / `sync 0d/00h`), not in
+  `initColdState:` before it, so the panel never shows a state we already know is about to
+  be corrected — the dashes now appear only when NTP actually fails. And the arming interval
+  on a synced cold boot is **partial, not a slot** (witnessed: `deep sleep 892 s` for a
+  22:15:08 boot), which is the phase alignment §3 always specified but which no cold-boot
+  path previously exercised.
+
+  The rule this leaves is three lines with no exceptions, and **midnight is no longer
+  special** — it is simply one of the six watch-ends: *strike at every boundary; sync + paint
+  at boot and at every 8 bells; radio on only for those.* (The third line is tuvm#99, not yet
+  built — the radio is still up on all 48 wakes.)
+
+  Device witness, 2026-07-24: cold boot 22:15:08 → `ntp: ok, local sod=80108` →
+  `sync true 80108 predicted 0 -> advance half 44` → `deep sleep 892 s` → **no bell at boot**
+  → `wake half 45 bells 5` at 22:30:14, correct on the wall clock. Host gate:
+  `tools/test_deepsleep_node.py` pins all three branches (synced-no-strike, right-count-first-
+  strike, ntp-fail-still-silent); suite 227/0, all aux gates green.
