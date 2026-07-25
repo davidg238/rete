@@ -1897,9 +1897,35 @@ and on a host a process *is* the boot; it now answers process-relative. Every de
 is unaffected (a constant offset cancels), and `OEVM_MILLIS_FIXED_MS` lets a host test pose a
 specific awake window. Whole suite 227/0 across the change.
 
-**Still not witnessed on hardware:** all of the above. The numbers here are host simulation
-against a measured oscillator rate, not a run — the reflash and the next unattended night are what
-promote them.
+**WITNESSED ON THE MAGTAG, 2026-07-25 10:00:02 — four bells at ten o'clock, heard.** Flashed
+09:59; cold boot acquired the clock (`ntp: ok, local sod=35955` against a wall clock reading
+09:59:15) and took the **adopt** branch — `sync true 35955 predicted 6 -> advance half 19` — the
+never-synced rule doing exactly the job it was added for. Then
+`sleep: target 39 s cal -10513 awake 6 s`: 36000 − 35955 − 6, the count's own boundary less the
+awake window, seeded calibration live. Woke 09:59:59, struck **half 20, four bells**. The same
+board four hours earlier rang 5 bells at 09:27:56 where 3 was due at 09:30. The state arithmetic
+closes exactly — `elapsed = 0 + 39 + 6 = 45`, `predicted = 36000`, dead on the boundary — which is
+the invariant the awake fix was built around, now confirmed off-simulation.
+
+**The one honest gap in that witness: the bell sounds ~2 s into the minute, and it is not the
+clock.** The *wake* is on time (09:59:59 for a 10:00:00 boundary); `wifi_bringup()` runs on every
+boot ahead of the node code, so association sits between the wake and the strike. That is
+**tuvm#99** (lazy WiFi), already filed, and it costs the 2 s and most of the power budget both.
+
+**Still not witnessed:** the **hold** branch, and the first *measured* ppm on this hardware — both
+need a watch-end (12:00), and that residual is the number that decides whether disciplining
+survives contact with a real oscillator rather than a modelled one. Until then the 0.7 s figure
+above remains a simulation result, and an unattended night is still what promotes the rest.
+
+**Witnessed by accident, and worth keeping:** a first flash built without
+`--conf-extra prj_esp32s2_wifi.conf` linked no WiFi stack at all, which drove the real device
+through the **cold-boot NTP-failure path** end to end — three instant misses, `sync failed, stale
+grows`, no bell struck, `ntp FAIL` and `sync --` painted from the sentinel, free-run arming a full
+slot. The ladder had that path recorded as host-gated only. **The process lesson is the reusable
+half:** the bad image *linked cleanly*, and a clean link says nothing about which Kconfig overlays
+went in. The tell was in the numbers — `dram0` well under the known-good **98.68%**, `libc heap
+102 kB` against 74 kB, panel `heap 18/64K` against `18/20K`. Check a build against the recorded
+good figures BEFORE flashing, not after it misbehaves.
 
 ## Known stale docs (do not treat as current)
 
