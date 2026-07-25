@@ -62,6 +62,15 @@ def test_cold_boot_strike():
         assert "sleep: arming 1800 s" in out, out       # predictedNow 0 -> full interval
         magic, last, boot, *_ = read_rtc(rtc)
         assert magic == RTC_MAGIC and last == 1 and boot == 1, read_rtc(rtc)
+        # Cold boot paints the PLACEHOLDER panel (display-alive signal + stale-image
+        # wipe): dashes for the never-synced rows, zeros elsewhere, heap row skipped on
+        # host as ever -> 9 rows, all inside the 12-col grid.
+        painted = [l for l in out.splitlines() if l.startswith("| ")]
+        assert len(painted) == 9, painted
+        assert any(l.startswith("| ntp") and l.endswith("--") for l in painted), painted
+        assert any(l.startswith("| sync") and l.endswith("--") for l in painted), painted
+        for line in painted:
+            assert len(line) - 2 <= 12, line
 
 def test_hold_when_ahead():
     # Watch end at 04:00 (half 8). Seed lastStruckHalf=7, predictedNow=14400 (04:00).
