@@ -657,7 +657,14 @@ static void display_bringup(void)
 	 */
 	cfb_framebuffer_invert(disp_dev);
 	disp_grid_reset();
-	cfb_framebuffer_clear(disp_dev, true);
+	/* Clear the CFB buffer + shadow grid but do NOT push to the glass (second arg
+	 * false): e-paper holds its image unpowered, and the deep-sleep clock's ordinary
+	 * strike wakes must not touch the panel (design §5) — pushing here wiped the
+	 * watch-end stats 15 s (device: 30 min) after every paint, leaving the panel
+	 * blank ~87% of the time. The watch-end paint does a full-buffer refresh, so
+	 * whatever the glass held before this boot is replaced wholesale at the next
+	 * paint; a stale image after a reflash lasts at most one watch. */
+	cfb_framebuffer_clear(disp_dev, false);
 
 	/* Not CFB_DISPLAY_ROWS/COLS: those two are asymmetric for a panel that
 	 * does not set SCREEN_INFO_MONO_VTILED, and this one (uc81xx) doesn't —
