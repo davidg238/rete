@@ -31,7 +31,7 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
 
     (* The strike about to happen: a pure increment of the ratchet (design §2). *)
     half:: (plat rtcGet: self rtcLastHalf) + 1.
-    half = 48 ifTrue: [ half:: 0 ].                       (* midnight wrap: 47 -> 0 *)
+    half = (86400 // self slotSec) ifTrue: [ half:: 0 ].  (* midnight wrap: last slot -> 0 *)
     bells:: (plat bell) bellsForHalfHour: half.           (* reuse the kernel's Bell method *)
     isWatchEnd:: bells = 8.                               (* 8 bells == a watch end *)
 
@@ -49,7 +49,14 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
        mod 86400 (design §3). Cold/never-synced => anchor 0, elapsed accumulates. *)
     predictedNow:: self predictedNow: plat.
     sleepSec:: self secondsToNextBoundary: predictedNow.
-    plat rtcPut: self rtcElapsedSec value: (plat rtcGet: self rtcElapsedSec) + sleepSec.
+    (* Accrue the REAL interval to the next wake: the commanded sleep PLUS this wake's
+       awake time (boot + WiFi + strike, ~15-20 s on device; ~0 on host). Without the
+       awake term the predicted clock runs slow by that much per wake — ~1% at the
+       1800 s slot, which would swamp the RC-oscillator drift the panel exists to
+       measure (~+9700 ppm of pure boot overhead), and 25-30% at a demo 60 s slot.
+       `0 millis` is ms since THIS boot; one wake is far inside its 12.4-day wrap. *)
+    plat rtcPut: self rtcElapsedSec
+         value: (plat rtcGet: self rtcElapsedSec) + sleepSec + (0 millis // 1000).
     plat deepSleep: (self witnessSleepFor: sleepSec).    (* NEVER RETURNS *)
   )
 
@@ -68,6 +75,12 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
     plat rtcPut: self rtcDrift24Min   value: 0.
     plat rtcPut: self rtcSyncsWin     value: 0.
     plat rtcPut: self rtcMagic        value: self magicWord.
+    (* One placeholder paint on cold boot (dashes for the never-synced rows): proves the
+       display is alive without waiting up to a whole watch for the first sync paint, and
+       replaces any stale image a reflash left on the glass. Cold boots are rare (true
+       power loss / reflash), so this stays inside the e-paper refresh budget; ordinary
+       strike wakes still never touch the panel (design §5). *)
+    self paintStats: plat.
     ^ self )
 
   onWatchEnd: plat = (
@@ -95,7 +108,7 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
      adjusts the sleep (phase) via the re-anchored predictedNow next wake. *)
   applySync: trueSec plat: plat = (
     | trueHalf lastHalf predicted drift |
-    trueHalf:: trueSec // 1800.
+    trueHalf:: trueSec // self slotSec.
     lastHalf:: plat rtcGet: self rtcLastHalf.
     predicted:: self predictedNow: plat.
 
@@ -124,7 +137,7 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
     ^ self )
 
   markSyncFailed: plat = (
-    plat rtcPut: self rtcStaleSec value: (plat rtcGet: self rtcStaleSec) + 14400.
+    plat rtcPut: self rtcStaleSec value: (plat rtcGet: self rtcStaleSec) + (self slotSec * 8).
     'sync failed, stale grows' out.
     ^ self )
 
@@ -207,29 +220,32 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
      skipped by tryRow: — the row is witnessed on device (Task 9), not on host. *)
   heapField: hs = ( ^ (self kRound: hs liveBytes) , '/' , (hs heapSize // 1024) printString , 'K' )
 
-  (* The `ntp` row: this watch FAILED -> FAIL; synced and measured drift (hold branch) ->
-     `+N.Ns`; synced but advanced (missed wakes, no drift measured) -> `sync`. There is no
-     `--` never-synced case because paint happens ONLY at a watch-end, where a sync was
-     just attempted. *)
+  (* The `ntp` row: never attempted (cold-boot placeholder paint) -> `--`; this watch
+     FAILED -> FAIL; synced and measured drift (hold branch) -> `+N.Ns`; synced but
+     advanced (missed wakes, no drift measured) -> `sync`. *)
   ntpField = (
+    syncOk == nil ifTrue: [ ^ '--' ].
     syncOk ifFalse: [ ^ 'FAIL' ].
     lastDriftSec == nil ifTrue: [ ^ 'sync' ].
     ^ (self signedField: lastDriftSec) , '.0s' )
 
-  (* Uptime from bootTicks (30 min per tick), wrap-safe — the reactor's upField, with the
-     cadence inlined as 30 since a sleep tick IS one half-hour. *)
+  (* Uptime from bootTicks (one slot per tick), wrap-safe — the reactor's upField with
+     the cadence derived from slotSec. *)
   upField: plat = (
     | mins d r h m |
-    mins:: (plat rtcGet: self rtcBootTicks) * 30.
+    mins:: (plat rtcGet: self rtcBootTicks) * (self slotSec // 60).
     d:: mins // 1440.
     r:: mins - (d * 1440).
     h:: r // 60.
     m:: r - (h * 60).
     ^ d printString , 'd' , (self pad: h) , ':' , (self pad: m) )
 
-  (* Age since last good sync, `Nd/NNh` — IDENTICAL spelling to 09_bell_math.nsl. *)
+  (* Age since last good sync, `Nd/NNh` — IDENTICAL spelling to 09_bell_math.nsl.
+     The cold-init sentinel (999999, "never synced") renders as `--`, not as a
+     meaningless 11-day age. *)
   staleField: sec = (
     | mins d r h |
+    sec = 999999 ifTrue: [ ^ '--' ].
     mins:: sec // 60.
     d:: mins // 1440.
     r:: mins - (d * 1440).
@@ -258,8 +274,20 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
     now:: (plat rtcGet: self rtcAnchorSec) + (plat rtcGet: self rtcElapsedSec).
     ^ now - ((now // 86400) * 86400) )    (* mod 86400 — nsl has no modulo (tuvm#97) *)
 
-  (* IDENTICAL spelling to 09_bell_math.nsl. *)
-  secondsToNextBoundary: sec = ( ^ 1800 - (sec - ((sec // 1800) * 1800)) )
+  (* IDENTICAL arithmetic spelling to 09_bell_math.nsl, over slotSec. *)
+  secondsToNextBoundary: sec = (
+    | s |
+    s:: self slotSec.
+    ^ s - (sec - ((sec // s) * s)) )
+
+  (* THE CADENCE. One slot = one bell tick; a "watch" is 8 slots; the day is
+     86400//slotSec slots. SHIPPING is 1800 (the real ship's-bell half-hour). A demo
+     build may flip this to 60 (bells on real minute marks, sync+paint every 8 min —
+     still beyond the 180 s e-paper guidance) and everything scales: boundary math,
+     trueHalf, the stale accrual, the up row, the midnight wrap. The math is honest at
+     any slot ONLY because elapsedSec accrues awake time too — without that term a
+     small slot runs visibly slow (25-30% at 60 s). *)
+  slotSec = ( ^ 1800 )
 
   (* NOTE: bellsForHalfHour: is NOT redefined here — the node calls the kernel's
      Bell>>bellsForHalfHour: via `(plat bell) bellsForHalfHour: half`, exactly as the

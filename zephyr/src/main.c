@@ -717,6 +717,21 @@ static void display_bringup(void)
 int display_target_available(void)
 {
 #if DT_HAS_CHOSEN(zephyr_display)
+	/* LAZY bringup (tuvm#94 stage 5): every display prim funnels through this check,
+	 * and bringup must NOT run on wakes that never paint. The reason is in the uc81xx
+	 * driver: display_blanking_off() is implemented as a full panel refresh of the
+	 * controller RAM that controller_init just cleared to white — so a boot-time
+	 * bringup blanks the glass on EVERY wake, wiping the previous watch-end's stats
+	 * (witnessed on the 1-min demo build, 2026-07-25; the driver's own device init
+	 * only resets the controller and leaves the glass holding its image). Strike
+	 * wakes never call a display prim, so with bringup here the panel persists; paint
+	 * wakes get the white flash immediately followed by their stats refresh. */
+	static int disp_tried;
+
+	if (!disp_tried) {
+		disp_tried = 1;
+		display_bringup();
+	}
 	return disp_ok ? 1 : 0;
 #else
 	return 0;   /* no display node on this board */
@@ -1206,9 +1221,10 @@ int main(void) {
     bell_bringup();   /* tuvm#94 stage 1: enable the DAC pin; nsl does the striking */
 #endif
 
-#if DT_HAS_CHOSEN(zephyr_display)
-    display_bringup();   /* tuvm#88: init CFB, verify geometry, blanking off, wire the seam */
-#endif
+    /* Display bringup is NOT called here: it is lazy, inside display_target_available()
+     * — the uc81xx blanking-off pushes a white refresh, so running it on every boot
+     * wipes the e-paper between the deep-sleep clock's paints. Wakes that paint reach
+     * it through their first display prim; wakes that don't never touch the glass. */
 
 #ifdef CONFIG_NET_L2_OPENTHREAD
     tuvm_thread_bringup();   /* shared OT bring-up seam (src/thread_bringup.c) */
