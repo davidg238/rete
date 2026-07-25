@@ -172,21 +172,31 @@ int ntp_target_sync(int tz_offset_seconds) { (void)tz_offset_seconds; return -1;
 #endif /* CONFIG_WIFI */
 
 /* tuvm#94 stage 5: the RTC-retention seam, device side. On espressif SoCs g_rtc lands
-   in the S2's 8 KB rtc_slow_seg (.rtc.data at 0x50000000) and survives deep sleep; a
-   cold power-on leaves it UNDEFINED (not zeroed), which the magic word guards. The
-   field order is IDENTICAL to the host int32 array in platform.c and the node's rtc*
-   index constants (design §3). The symbols must link on EVERY board (platform.c's
-   externs are unconditional, one shared TU), so the definitions are unconditional and
-   only the espressif `.rtc.data` placement is guarded — on other boards g_rtc is plain
-   .bss, which is harmless because no non-MagTag board deep-sleeps. */
+   in the S2's 8 KB rtc_slow memory (0x50000000) via the ESP-IDF RTC_DATA_ATTR macro and
+   survives deep sleep; on cold power-on it is LOADED as zeros (magic mismatch -> the
+   node's cold-init path runs, guarded by the magic word). The field order is IDENTICAL
+   to the host int32 array in platform.c and the node's rtc* index constants (design §3).
+   The symbols must link on EVERY board (platform.c's externs are unconditional, one
+   shared TU), so the definitions are unconditional and only the espressif placement is
+   guarded — on other boards g_rtc is plain .bss, harmless as no non-MagTag board
+   deep-sleeps.
+
+   Use RTC_NOINIT_ATTR (from esp_attr.h), NOT RTC_DATA_ATTR: RTC_NOINIT_ATTR's
+   `.rtc_noinit` is a NOLOAD section, so the value survives deep sleep AND a restart and
+   is UNDEFINED only on true power-loss, which the magic word already guards. (The
+   2026-07-24 handoff crash first blamed on the RTC_DATA_ATTR load segment was really
+   the loader.c segment-walk bug below — any loaded RTC segment tripped it — but NOLOAD
+   retention semantics remain the right fit regardless.) */
 #define OEVM_RTC_FIELDS 10
-#define OEVM_RTC_MAGIC  0x94BE11C0u
+#define OEVM_RTC_MAGIC  0x14BE11C0u  /* must fit a 32-bit SMI (31-bit tag): the node
+                                        writes it via rtcPut:, and a magnitude >= 2^30
+                                        never round-trips on a 32-bit target */
 #if defined(CONFIG_SOC_FAMILY_ESPRESSIF_ESP32)
-#define OEVM_RTC_DATA_ATTR __attribute__((section(".rtc.data")))
+#include <esp_attr.h>   /* RTC_NOINIT_ATTR */
+static RTC_NOINIT_ATTR int32_t g_rtc[OEVM_RTC_FIELDS];
 #else
-#define OEVM_RTC_DATA_ATTR
+static int32_t g_rtc[OEVM_RTC_FIELDS];
 #endif
-static OEVM_RTC_DATA_ATTR int32_t g_rtc[OEVM_RTC_FIELDS];
 int rtc_target_valid(void) { return ((uint32_t)g_rtc[0] == OEVM_RTC_MAGIC) ? 1 : 0; }
 int rtc_target_get(int i) { if (i < 0 || i >= OEVM_RTC_FIELDS) return 0; return g_rtc[i]; }
 void rtc_target_put(int i, int v) { if (i < 0 || i >= OEVM_RTC_FIELDS) return; g_rtc[i] = v; }
@@ -195,12 +205,20 @@ void rtc_target_put(int i, int v) { if (i < 0 || i >= OEVM_RTC_FIELDS) return; g
 #include <esp_sleep.h>
 #endif
 /* tuvm#94 stage 5: arm a timer wake and enter deep sleep. Direct ESP-IDF HAL call
-   because Zephyr's sys_poweroff() arms no wake source (#83); the HAL is already linked
-   on the espressif build. Never returns on device — the SoC powers down until the
-   timer fires and the VM cold-boots. On a non-espressif board it is a no-op (the seam
-   still links; only the MagTag path calls it). */
+   because Zephyr's sys_poweroff() arms no wake source (#83); CONFIG_POWEROFF links the
+   sleep HAL. Never returns on device — the SoC powers down until the timer fires and
+   the VM cold-boots. On a non-espressif board it is a no-op (the seam still links; only
+   the MagTag path calls it).
+
+   HISTORY (2026-07-24): enabling CONFIG_POWEROFF crashed the whole image at the
+   ESP-boot -> Zephyr handoff, across five flashes and a WiFi-off / no-rom-patch
+   isolation ladder. Root cause was NOT here: the sleep HAL's wake stub loads at
+   0x40070000 (RTC IRAM), and loader.c's map_rom_segments classified any RTC IRAM/SLOW
+   segment as "last", so the IROM/DROM flash-offset fix-up never ran and the MMU mapped
+   stale offsets. Fixed in zephyr soc/espressif/common/loader.c (IS_RTC now covers all
+   three RTC windows); upstream candidate alongside #91-#93/#95. */
 void deep_sleep_target(int seconds) {
-#if defined(CONFIG_SOC_FAMILY_ESPRESSIF_ESP32)
+#if defined(CONFIG_SOC_FAMILY_ESPRESSIF_ESP32) && defined(CONFIG_POWEROFF)
 #if DT_NODE_EXISTS(DT_ALIAS(neopixelpower))
     /* NeoPixel power gate (GPIO21, ACTIVE_LOW) driven inactive so the strip draws
        nothing while asleep (design §10). */
@@ -209,7 +227,14 @@ void deep_sleep_target(int seconds) {
         gpio_pin_configure_dt(&np, GPIO_OUTPUT_INACTIVE);
     }
 #endif
+    /* g_rtc retention across the sleep must not depend on the AUTO power-down
+       heuristic (it currently keeps RTC slow mem on only because _rtc_slow_length
+       links as a bogus nonzero value) — pin the domain ON explicitly. */
+    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_SLOW_MEM, ESP_PD_OPTION_ON);
     esp_sleep_enable_timer_wakeup((uint64_t)seconds * 1000000ULL);
+    /* Last console line of this wake, so a silent board distinguishes "never armed"
+       from "armed and never woke". */
+    printk("deep sleep %d s\n", seconds);
     esp_deep_sleep_start();   /* does not return */
 #else
     (void)seconds;

@@ -50,7 +50,7 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
     predictedNow:: self predictedNow: plat.
     sleepSec:: self secondsToNextBoundary: predictedNow.
     plat rtcPut: self rtcElapsedSec value: (plat rtcGet: self rtcElapsedSec) + sleepSec.
-    plat deepSleep: sleepSec.                             (* NEVER RETURNS *)
+    plat deepSleep: (self witnessSleepFor: sleepSec).    (* NEVER RETURNS *)
   )
 
   (* Free-run from 00:00: predictedNow 0, ratchet 0 (so the first strike is half 1),
@@ -153,6 +153,15 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
   driftPpm: driftSec over: elapsedSec = ( elapsedSec = 0 ifTrue: [ ^ 0 ]. ^ (driftSec * 1000000) // elapsedSec )
 
   tzOffset = ( ^ -25200 )   (* Phoenix, UTC-7, no DST — a product fact passed to the prim *)
+
+  (* Witness seam (tuvm#94 stage 5, Task 9): the bench witness build flips this to
+     `^ 15` so the PHYSICAL deep-sleep compresses to seconds and several strike wakes,
+     a watch-end sync+paint, and a real deepSleep->timer-wake->cold-boot cycle all
+     witness within minutes. The CLOCK still advances a real half-hour per wake —
+     elapsedSec accrues the true `sleepSec` above, unchanged — so the ratchet and
+     watch-end (half 8) land exactly as shipped; only the wall-clock wait shortens.
+     SHIPPING state is this pass-through (the aux gate asserts the 1800 s arming). *)
+  witnessSleepFor: realSec = ( ^ realSec )
 
   (* Painted ONLY at watch-ends (design §5), AFTER the sync, so a FAIL shows. Per-row
      best-effort: each row draws inside its own catch, so an over-wide value (e.g. the
@@ -267,6 +276,9 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk | ) (
   rtcDrift24Max = ( ^ 7 )
   rtcDrift24Min = ( ^ 8 )
   rtcSyncsWin   = ( ^ 9 )
-  magicWord     = ( ^ -1799482944 )   (* 0x94BE11C0 as int32 *)
+  magicWord     = ( ^ 348000704 )   (* 0x14BE11C0 — MUST fit a 32-bit SMI (31-bit
+     tag, so |value| < 2^30). The original 0x94BE11C0 overflowed: it round-tripped
+     on the 64-bit host but stored garbage through rtcPut: on the device, so
+     rtcValid was false on every wake and the clock cold-booted forever. *)
 ) : (
 )

@@ -294,7 +294,9 @@ int ntp_target_sync(int tz_offset_seconds) {
    array is cold at process start (magic unwritten -> rtcValid false), which is
    exactly the cold-power-on path. A reusable test feature, not a one-off. */
 #define OEVM_RTC_FIELDS 10
-#define OEVM_RTC_MAGIC  0x94BE11C0u
+#define OEVM_RTC_MAGIC  0x14BE11C0u  /* must fit a 32-bit SMI (31-bit tag): the node
+                                        writes it via rtcPut:, and a magnitude >= 2^30
+                                        never round-trips on a 32-bit target */
 static int32_t g_rtc[OEVM_RTC_FIELDS];
 static int g_rtc_loaded = 0;
 static void rtc_load_once(void) {
