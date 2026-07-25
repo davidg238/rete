@@ -53,24 +53,68 @@ def seed_rtc(path, last=0, boot=0, anchor=0, elapsed=0, drift=0, stale=0,
                             drift, stale, d24max, d24min, syncs))
 
 # --- scenarios --------------------------------------------------------------------
-def test_cold_boot_strike():
+def test_cold_boot_syncs_and_never_strikes():
+    # A COLD BOOT MUST NOT STRIKE (David, 2026-07-24): power returns at an arbitrary
+    # second, so a bell then is a bell at a meaningless time. Instead: sync, let
+    # applySync: advance the ratchet from the free-run 0 to true time, paint, and sleep
+    # to the next TRUE boundary. NTP says 22:15:08 (sod 80108) -> half 44, and the
+    # 22:30 boundary is 81000 - 80108 = 892 s out, NOT a full slot.
     with tempfile.TemporaryDirectory() as d:
         rtc = Path(d) / "rtc.bin"          # absent -> cold boot
-        out = run_wake(rtc)
+        out = run_wake(rtc, ntp=80108)
         assert "cold boot: free-run from 00:00" in out, out
-        assert "wake half 1 bells 1" in out, out      # first ratchet strike
-        assert "sleep: arming 1800 s" in out, out       # predictedNow 0 -> full interval
-        magic, last, boot, *_ = read_rtc(rtc)
-        assert magic == RTC_MAGIC and last == 1 and boot == 1, read_rtc(rtc)
-        # Cold boot paints the PLACEHOLDER panel (display-alive signal + stale-image
-        # wipe): dashes for the never-synced rows, zeros elsewhere, heap row skipped on
-        # host as ever -> 9 rows, all inside the 12-col grid.
+        assert "wake half" not in out, out                    # THE POINT: no bell at boot
+        assert "sync true 80108 predicted 0 -> advance half 44" in out, out
+        assert "sleep: arming 892 s" in out, out              # phase-aligned, not 1800
+        magic, last, boot, anchor, elapsed, *_ = read_rtc(rtc)
+        assert magic == RTC_MAGIC, read_rtc(rtc)
+        assert last == 44, read_rtc(rtc)                      # ratchet set to true time
+        assert boot == 0, read_rtc(rtc)                       # no strike -> no bootTick
+        assert anchor == 80108, read_rtc(rtc)
+        # Painted AFTER the sync, so it shows the SYNCED state: the ntp row reads `sync`
+        # (synced, no drift measurable on an advance) and stale is 0 — not the `--`
+        # placeholder the pre-sync paint used to show.
         painted = [l for l in out.splitlines() if l.startswith("| ")]
         assert len(painted) == 9, painted
-        assert any(l.startswith("| ntp") and l.endswith("--") for l in painted), painted
-        assert any(l.startswith("| sync") and l.endswith("--") for l in painted), painted
+        assert any(l.startswith("| ntp") and l.endswith("sync") for l in painted), painted
+        assert any(l.startswith("| sync") and l.endswith("0d/00h") for l in painted), painted
         for line in painted:
             assert len(line) - 2 <= 12, line
+
+def test_cold_boot_first_strike_has_the_right_count():
+    # The end-to-end of the above: after a synced cold boot, the FIRST bell the house
+    # hears must be the right count at the right time. Boot at 22:15:08 -> the next
+    # boundary is 22:30 = half 45 = 5 bells.
+    with tempfile.TemporaryDirectory() as d:
+        rtc = Path(d) / "rtc.bin"
+        run_wake(rtc, ntp=80108)                              # cold boot, silent
+        out = run_wake(rtc)                                   # the 22:30 wake
+        assert "wake half 45 bells 5" in out, out
+        _, last, boot, *_ = read_rtc(rtc)
+        assert last == 45 and boot == 1, read_rtc(rtc)
+        # The arming interval is deliberately NOT asserted here. elapsedSec accrues this
+        # wake's awake time as `0 millis // 1000`, and on the HOST that primitive is
+        # CLOCK_MONOTONIC — SYSTEM uptime, not process uptime (src/vm.c:22) — so the
+        # cold boot adds days of "awake time" and every phase after wake 1 is arbitrary.
+        # On device it is k_uptime_get() (~10 s), which is what the seam means. Wake-1
+        # phase IS pinned, in the test above: the sleepSec is computed BEFORE the accrual.
+
+def test_cold_boot_ntp_fail_free_runs_silently():
+    # Design §8: no NTP at boot -> keep the free-run-from-00:00 state and correct at the
+    # first good watch-end. Still NO strike (an unknown clock is not a reason to ring),
+    # and the panel says FAIL rather than dashes.
+    with tempfile.TemporaryDirectory() as d:
+        rtc = Path(d) / "rtc.bin"
+        out = run_wake(rtc, no_ntp=True)
+        assert "cold boot: free-run from 00:00" in out, out
+        assert out.count("ntp miss") == 3, out
+        assert "sync failed, stale grows" in out, out
+        assert "wake half" not in out, out                    # silent even with no clock
+        assert "sleep: arming 1800 s" in out, out             # free-run: a full slot
+        _, last, boot, *_ = read_rtc(rtc)
+        assert last == 0 and boot == 0, read_rtc(rtc)
+        painted = [l for l in out.splitlines() if l.startswith("| ")]
+        assert any(l.startswith("| ntp") and l.endswith("FAIL") for l in painted), painted
 
 def test_hold_when_ahead():
     # Watch end at 04:00 (half 8). Seed lastStruckHalf=7, predictedNow=14400 (04:00).
@@ -152,7 +196,9 @@ def test_ratchet_monotonic_across_sleeps():
         assert halves[3] == 0, halves               # the wrap lands where expected
 
 if __name__ == "__main__":
-    test_cold_boot_strike()
+    test_cold_boot_syncs_and_never_strikes()
+    test_cold_boot_first_strike_has_the_right_count()
+    test_cold_boot_ntp_fail_free_runs_silently()
     test_hold_when_ahead()
     test_advance_silent_when_behind()
     test_sync_fail_keeps_striking()
