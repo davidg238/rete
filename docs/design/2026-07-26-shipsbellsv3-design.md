@@ -432,3 +432,81 @@ Therefore:
 > sings, build the five and hold the mechanical striker as v4. **If it sounds like a doorbell,
 > promote the mechanical path immediately** rather than hand-finishing five objects that sound
 > wrong.
+
+---
+
+## 14. OPTION TO EXPLORE — solar for the electronics
+
+**Status: not decided. An option, recorded with its arithmetic so it can be evaluated rather
+than re-derived.** Applies on top of §13 (mechanical striker), where the electronics' job is
+reduced to releasing a detent.
+
+### 14.1 The arithmetic
+
+A **150 × 75 mm** face is **112.5 cm²**.
+
+| | |
+|---|---|
+| "Normally lit room" | 100–300 lux |
+| Vertical derate | ceiling light shines *down*; a vertical face sees ~50–60% of the horizontal illuminance |
+| Indoor PV yield (a-Si / indoor-optimised) | 5–20 µW/cm² |
+| **Output while lit** | **0.3–1.3 mW** |
+| **Over ~10 lit hours** | **10–47 J/day** |
+
+Against §13.2's electronics load of **6.9 J/day** (MCU System ON + RTC, BLE advertising, and 48
+detent releases), that is **met with margin even at the pessimistic end**.
+
+Sanity check: a solar calculator's cell is ~2 cm² and runs on tens of µW in office light —
+about 10 µW/cm², squarely inside that band.
+
+### 14.2 Explicitly out of scope: motor rewind
+
+Rewinding the weight electrically needs **~32 J/day** (13 J/day of hammer work ÷ ~40% for a
+small motor and gearbox). That sits at the *optimistic* edge of the harvest range, so it would
+work in a bright room and fail in a dim one — and **the failure mode is a clock that quietly
+stops.** Not worth the motor, the reduction gearing, the limit switch, or the risk.
+
+**The weight is hand-wound. Solar powers only the electronics.** Recorded so this is not
+re-litigated: the arithmetic was done and the answer was no.
+
+### 14.3 What it would change
+
+- **Deletes the battery entirely** — no 3× AA lithium, no battery door, no ten-year cell change.
+  §13.2's "≈19 years, shelf-life limited" becomes "no battery at all", which is a better
+  sentence and a better object.
+- The clock then **needs nothing but light and an occasional wind** — which is what a mechanical
+  clock has always asked for, and an honest claim rather than a marketing one.
+- Adds: a harvesting front end, an energy buffer, and a collector surface to design around.
+
+### 14.4 What it needs
+
+**A harvesting front end, not a diode.** At sub-milliwatt levels this wants a proper
+ultra-low-power boost charger with MPPT and a defined cold-start: **TI BQ25570**, **e-peas
+AEM10941**, or **ST SPV1050**. Cold-start behaviour from a fully dead buffer is the thing to
+check on the datasheet before committing.
+
+**A buffer sized for darkness, not for night.** Riding out two weeks of drawn curtains at
+6.9 J/day is ~97 J. A 10 F supercap at 3.3 V holds ~54 J and only the top part is usable — thin.
+A small **LiFePO4** cell (3.2 V, ~100 mAh ≈ 1150 J) rides out months, has a flat discharge that
+suits the nRF52840's 1.7–3.6 V range directly, and has none of Li-ion's calendar-ageing or
+safety profile. Preferred.
+
+**Cell type:** amorphous silicon indoor panels, or purpose-made indoor PV — search
+`Epishine LEH3`, `indoor photovoltaic module`, `amorphous silicon solar cell indoor`. Standard
+crystalline silicon performs badly at these light levels and is the wrong part.
+
+### 14.5 Point it up, not out
+
+Indoor light comes from the ceiling. **Angling the collector — a sloped top or a modest shelf —
+plausibly doubles the harvest**, and ~60 cm² horizontal likely beats 112 cm² vertical. This is
+free, and it is an industrial-design decision that has to be taken early because it shapes the
+case.
+
+### 14.6 What to measure before deciding
+
+Per §10's discipline: **the room dominates this by ±3×, so it is a measurement, not an
+estimate.**
+
+> Put a candidate cell where the clock will actually hang, with a logger, and record a week.
+> That single measurement decides §14 outright — and unlike the strike-energy measurement it
+> can run in the background while other work proceeds.
