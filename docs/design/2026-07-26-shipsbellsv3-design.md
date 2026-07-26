@@ -293,3 +293,142 @@ Following this program's habit of measuring rather than estimating, the assumpti
 | Conducted emissions if this ever goes to sale | Medium | Slow gate edge, tight strike loop, snubbing — designed in now, not retrofitted. |
 | Li-ion in a hand-built enclosure | Medium | Branded protected cell, a proper charge IC, a holder not a pouch. |
 | nsl working set on nRF52840 | **Low** | 256 KB RAM. This was #94's dominant risk and it simply is not one here. |
+
+---
+
+## 13. The mechanical striker — a costed alternative behind the same seam
+
+A weight on a line drives the hammer; the electronics only **releases a detent**. Recorded here
+as a genuine alternative, not a footnote, because the arithmetic favours it strongly.
+
+### 13.1 Why the physics favours it
+
+**A solenoid is roughly 8% efficient** at turning electricity into hammer kinetic energy — the
+rest is I²R heat in the coil. The 0.5 J in §7 is what the *solenoid* costs, not what the *bell*
+needs.
+
+Working backwards from a real movement: a one-day cuckoo's strike weight is ~350 g over ~1.5 m,
+so **~5 J/day**, driving ~180 operations including bellows and the fly governor. That is
+**~0.03 J per stroke, all-in**. A bell hammer is heavier than a whistle — call it
+**0.04–0.08 J**.
+
+So the hammer wants ~0.05 J. A solenoid burns 0.5 J to deliver it; **a falling weight delivers
+it at near unity**, less train friction.
+
+### 13.2 The electronics pays for the release, not the strike
+
+A detent is lifted **once per striking sequence — 48/day**, not once per stroke (216/day).
+
+| load | per year |
+|---|---|
+| Detent releases (48/day × ~20 mJ) | **0.1 Wh** |
+| nRF52840 System ON + RTC (~3 µA) | 0.1 Wh |
+| BLE advertising (2 s interval) | 0.5 Wh |
+| **Total** | **≈ 0.7 Wh** |
+| **3× AA lithium (Energizer L91)** | **13.5 Wh** |
+
+**≈19 years of load against a 20-year shelf life.** The cells get changed because they are old,
+not because they are flat.
+
+### 13.3 Three consequences that were not the goal
+
+**L91 primaries do not leak.** This matters more than the energy: **leaking alkalines are the
+commonest way a decade-lived battery device dies**, and a ruined heirloom is a far worse failure
+than a flat one.
+
+**The electronics get simpler.** No Li-ion, no charge IC, no protection, no USB-C receptacle,
+no CC resistors, no charging-inhibit logic, no recharge ritual. Most of §7 and half of §9
+delete.
+
+**Conducted emissions drops off cleanly** — literally, not arguably. §15.107(c) exempts devices
+that only employ battery power and contain **no provisions for operation while connected to AC**.
+With no charging port that is met on its face. Ship without cells and the lithium transport
+paperwork goes too.
+
+### 13.4 Let the electronics count — no count wheel
+
+A traditional count wheel strikes a fixed 1–12 sequence. Ship's bells need 1–8 plus the
+dog-watch variant, which would otherwise mean cutting custom wheels.
+
+Instead: **release the detent, count strokes with an optical or hall sensor, re-latch after N.**
+A bistable latching solenoid does it in two short pulses per sequence with zero holding current.
+This keeps `DOG WATCH` a firmware table rather than a machining problem, and it is what lets
+this option compose with the design above unchanged.
+
+**This is the project's real mechanical problem:** disabling the movement's own count-wheel stop
+and fitting an electrically-controlled detent in its place, ideally on a slow wheel rather than
+the fly.
+
+### 13.5 Weight sizing
+
+| weight × drop | energy | interval at ~0.06 J/stroke |
+|---|---|---|
+| 2 kg × 1.5 m | 29 J | ~2 days |
+| 3 kg × 2.0 m | 59 J | ~4½ days |
+| 5 kg × 1.5 m | 74 J | ~5½ days |
+| **7 kg × 1.5 m** | **103 J** | **~8 days — the classic longcase interval** |
+
+A weekly wind, for an owner who already winds clocks. That is a feature.
+
+### 13.6 The cost, honestly
+
+**It stops being an electronics project and becomes a horology project.** A strike train needs
+gears, a fly governor for the rhythm, a detent, and a hammer with proper lift and release.
+
+**Buy, do not build.** A **cuckoo clock movement** is weight-driven, already has a strike train,
+fly and detent, and is designed to be released by a lever. Gut the going train and drive the
+release electrically — a weekend of fettling rather than a winter of machining.
+
+Two further costs: **7 kg on a wall needs real mounting**, and a mechanical train can jam, wants
+levelling and eventually oil. An heirloom that stops is a repair visit where a solenoid version
+needs a battery.
+
+### 13.7 Sourcing
+
+**The vocabulary matters more than any part number** — these are the terms that make a search
+return clockmakers instead of gift shops:
+
+| term | what it is |
+|---|---|
+| **strike train** | the separate gear train that drives the striking (not the going train) |
+| **fly** / fan fly governor | the air brake that sets the *rhythm* of the strike — the thing that makes it sound like a clock |
+| **count wheel** / locking plate | the older way of counting strokes — **the part to disable** |
+| rack and snail | the newer way of counting; also to be bypassed |
+| **detent** / locking lever | what holds the train stopped — **the part to replace with a solenoid** |
+| **warning** | the partial release just before the strike |
+| hammer tail, lifting pins | how the hammer is raised and dropped |
+| **maintaining power** | keeps the train driven while winding |
+
+**Movements — the concrete search:**
+
+- **`Regula 25`** — the standard 1-day cuckoo movement, weight-driven, ~$40–90. `Regula 34` is
+  the 8-day. Also `Hubert Herr`. Search `cuckoo clock movement Regula 25`.
+- Generic: `cuckoo clock movement replacement`, `1-day cuckoo movement`, `8-day cuckoo movement`
+- Higher end, weight-driven: `Hermle weight driven movement`, `Kieninger movement` (€150–400 —
+  probably over-buying for a prototype)
+- **Cheapest route: salvage.** eBay `broken cuckoo clock` or `cuckoo clock for parts` — $20–40
+  and the movement is usually fine; it's the bellows or the case that failed.
+
+**Suppliers to search:** Klockit, Timesavers, Merritt's Antiques, Ronell Clock Co (US);
+Cousins UK (very large horological catalogue); Perrin (Canada).
+
+**A note on what you actually want from a cuckoo movement:** the strike train, the fly, and the
+gong hammer. **You do not want the bellows** — removing them cuts the load and lengthens the
+wind interval.
+
+### 13.8 The decision gate
+
+**The seam already isolates this.** The strike is a single call, `strike: n`; whether it drives
+a MOSFET or trips a detent lives entirely below it. Schedule, ratchet, dog watches, BLE
+set-time and the levers are all unchanged either way. **So do not fork the design — sequence
+it.**
+
+But sequencing carries one real risk: **if the sound is the whole product, a run of five could
+answer "nobody wants this" to a question the mechanical version would have answered "yes" to.**
+
+Therefore:
+
+> **Bench hour one is now a decision gate.** Strike the doorbell solenoid and listen. If it
+> sings, build the five and hold the mechanical striker as v4. **If it sounds like a doorbell,
+> promote the mechanical path immediately** rather than hand-finishing five objects that sound
+> wrong.
