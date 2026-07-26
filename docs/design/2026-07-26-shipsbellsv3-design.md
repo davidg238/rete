@@ -1,7 +1,9 @@
 # shipsBellsV3 — design
 
 **Date:** 2026-07-26
-**Status:** design settled in brainstorming; **no implementation started**
+**Status:** **SEALED 2026-07-26.** Design settled in brainstorming; **no implementation
+started**. Changes from here are amendments, not edits — §13 (mechanical striker) and §14
+(solar) are recorded as evaluated options with their arithmetic, so neither needs re-deriving.
 **Predecessor:** the MagTag ship's-bell clock (tuvm#94) — v2 in all but name
 **Related:** tuvm#100 (RTC timebase), tuvm#99 (lazy WiFi), tuvm#86 (bell), tuvm#83 (deep sleep)
 **Scope of this document:** a **run of five**, not a product. See §3.
@@ -485,11 +487,34 @@ ultra-low-power boost charger with MPPT and a defined cold-start: **TI BQ25570**
 AEM10941**, or **ST SPV1050**. Cold-start behaviour from a fully dead buffer is the thing to
 check on the datasheet before committing.
 
-**A buffer sized for darkness, not for night.** Riding out two weeks of drawn curtains at
-6.9 J/day is ~97 J. A 10 F supercap at 3.3 V holds ~54 J and only the top part is usable — thin.
-A small **LiFePO4** cell (3.2 V, ~100 mAh ≈ 1150 J) rides out months, has a flat discharge that
-suits the nRF52840's 1.7–3.6 V range directly, and has none of Li-ion's calendar-ageing or
-safety profile. Preferred.
+**A buffer sized for darkness, not for night: an `IFR18650` LiFePO4 cell, in a holder.**
+
+Riding out a fortnight of drawn curtains at 6.9 J/day is **~97 J**. An IFR18650 (3.2 V,
+1100–1800 mAh) holds **~17,000 J** — **175× more than needed**. It is therefore **not chosen
+for capacity**, and the two reasons it *is* chosen should survive any later attempt to shrink
+it:
+
+1. **It will still be buyable in twenty years.** The 18650 is the volume cylindrical format.
+   An object meant to outlive its maker should take a cell its owner's grandchild can buy.
+2. **It cannot be dangerously confused with a primary cell.** The AA-sized alternative
+   (`IFR14500`) is **dimensionally identical to an alkaline AA but 3.2 V against 1.5 V**. That
+   invites two real failure modes: an alkaline put into the bay (which can vent or rupture if
+   the harvester attempts to charge it), and the 14500 taken out and put into a 1.5 V device.
+   **Physical incompatibility is a safety feature and is worth more than the ~9 cm³ saved** —
+   in a wall clock with 7 kg hanging off it, volume is not the constraint.
+
+**Why not a supercapacitor**, despite "never needs replacing" being the better heirloom story:
+draining 3.4 → 2.4 V would need **~33 F**, which exists and is roughly 18650-sized — but such a
+part **leaks 10–30 µA, i.e. 2.6–7.8 J/day against a 6.9 J/day load.** That roughly doubles
+demand and consumes exactly the margin needed in the dim-room case. Supercaps buffer seconds to
+hours well and weeks badly. LiFePO4 self-discharge is ~2–3% *per year*; not a close call.
+
+**Do not feed the cell to the MCU directly.** A freshly charged LiFePO4 sits at 3.6 V — exactly
+the nRF52840's VDD ceiling. Set the harvester's over-voltage point to ~3.5 V and take a
+regulated ~3.0 V from its buck output.
+
+**Buy from a real distributor.** 18650 capacity fraud on marketplaces is rampant; "6000 mAh
+LiFePO4 18650" is a physical impossibility.
 
 **Cell type:** amorphous silicon indoor panels, or purpose-made indoor PV — search
 `Epishine LEH3`, `indoor photovoltaic module`, `amorphous silicon solar cell indoor`. Standard
