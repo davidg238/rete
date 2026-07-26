@@ -510,3 +510,58 @@ own awake window got days — and past ~12.4 days of host uptime the value stops
 SMI. The hook's contract is `k_uptime_get()`'s, "ms since boot", and on a host a process *is* the
 boot; `src/vm.c` now answers process-relative. Delta-taking callers are unaffected (a constant
 offset cancels). `OEVM_MILLIS_FIXED_MS` pins it, so a host test can pose a specific awake window.
+
+---
+
+## Addendum, 2026-07-26 — the oscillator is measured, and the loop's gain is wrong
+
+A 22½-hour free-running soak of the shipping build (flashed 2026-07-25 09:59; capture
+`~/magtag-captures/2026-07-25-corrected.log`) produced **46/46 wakes-to-strikes, zero faults, a
+clean midnight wrap, and six independent oscillator-rate measurements.** Full write-up on
+tuvm#94; timebase consequences on tuvm#100; the loop defect is now tuvm#101.
+
+**Two premises of this document are superseded.**
+
+### 1. "Drift is unmeasured" — it is now measured
+
+| window | oscillator |
+|---|---|
+| 09:59 → 12:00 | +11070 ppm |
+| 12:00 → 16:00 | +10084 ppm |
+| 16:00 → 20:00 | +10656 ppm |
+| 20:00 → 00:00 | +10160 ppm |
+| 00:00 → 04:00 | +10657 ppm |
+| 04:00 → 08:00 | +10442 ppm |
+
+**Mean +10,511.5 ppm, σ ≈ 333 ppm, range 986 ppm.**
+
+The RC **wanders about a stable centre** — it fell, rose, fell and rose again. It is not
+drifting and it is not a thermal ramp, so no model can track it. The design's premise that a
+4-hour sync would "bound and measure" the drift was half right: it measured it, and what it
+measured is that **bounding it at the endpoints cannot make it small.** ±333 ppm over a
+four-hour watch is **±4.8 s**; observed bell error was **RMS 8.0 s, envelope ±15 s**.
+
+`calPpmSeed = -10513`, derived from three overnight samples, sits **1.5 ppm** from the
+six-sample mean. The seed was excellent; the plant is the problem.
+
+### 2. The disciplining loop's gain is wrong — tuvm#101
+
+`recordDrift:plat:` (`MagTagDeepSleepNode.nsl:353`) applies the **entire** measured residual:
+`cal := cal + ppm`. That is a pure gain-1 deadbeat integrator, and against a plant that wanders
+about a stable mean it doubles the variance versus simply holding the mean.
+
+Confirmed three ways: the model predicted the next `cal` **five times to 0–1 ppm**; panel errors
+alternated sign **6 of 6** (p ≈ 3%); and the counterfactual computed from the run's own measured
+rates gives **8.0 s RMS observed against 4.8 s had `cal` never been adjusted**. **The loop made
+the clock ~1.67× worse than doing nothing.** Fix is ~1/3 gain or an EMA — one constant.
+
+**Note the ordering:** tuvm#100 (external RTC) *deletes* this loop entirely, #101 included. #101
+is worth doing only if the RC timebase stays in service.
+
+### 3. What this says about the verification strategy
+
+§11's conclusion is reinforced and sharpened: wall-clock soak was the only thing that could have
+found either of these. **Neither is visible to a per-decision test** — the loop gives the right
+answer at every individual sync and is wrong only as a statistical property across many windows.
+The capstone should drive a *wandering* rate rather than a constant one and assert on RMS across
+the run, not per-wake correctness.
