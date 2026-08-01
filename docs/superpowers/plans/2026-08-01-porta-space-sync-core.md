@@ -49,6 +49,9 @@ Plans 2 and 3 (node-side `seq`/`changedSince:`/bridge job; the C6 hardware gate)
 - Delete: `internal/{command,config,control,handler,tftp,telemetry,apisrv,web,mcpsrv,store}/`, `devsdk/apiclient/`
 - Modify: `internal/httpsrv/health.go`, `internal/httpsrv/server.go`, `internal/portacli/` (reduce to `serve`)
 - Modify: `docs/design/2026-08-01-porta-space-sync-rewrite-design.md` (append the audit table)
+- Modify: `CLAUDE.md` (it describes the deleted system — step 8)
+
+**Where to run this from:** start the session in `~/workspace/tuvm`, not `~/workspace/porta`, and work here by absolute path. The auto-memory namespace is keyed to the working directory, and the two memories written for this plan (`nsl-cbor-wire-shapes` — required by Task 2 — and `rewrite-may-not-delete-a-capability` — required by step 2 below) live in the tuvm namespace. The porta namespace holds six v1-era memories that this rewrite invalidates and that have not been reviewed against it.
 
 **Interfaces:**
 - Consumes: nothing.
@@ -162,7 +165,21 @@ func serveCmd() *cobra.Command {
 Run: `cd ~/workspace/porta && gofmt -l . && go build ./... && go test ./...`
 Expected: `gofmt` prints nothing; build succeeds; tests pass (only `httpsrv` and `serverstat` have any left).
 
-- [ ] **Step 8: Commit the demolition**
+- [ ] **Step 8: Rewrite `CLAUDE.md`, which now describes a deleted system**
+
+`~/workspace/porta/CLAUDE.md` opens by defining porta as the thing that "defines the command vocabulary and report schema, queues commands, delivers container images over TFTP, and ingests telemetry" — every clause of which this task just deleted. It auto-loads as project context, so leaving it stale actively misleads the next session.
+
+Rewrite the opening description and the `## Layout` section to describe the space model: porta mirrors each node's space (`cells`/`events`/`exchanges`), speaks the pull/push exchange over UDP+CBOR, and holds the operator vocabulary as CLI sugar over path writes. Point at `docs/design/2026-08-01-porta-space-sync-rewrite-design.md` as the current record and mark `docs/PROTOCOL.md` as v1, deleted, historical only.
+
+Two lines that must survive verbatim, because they are still true and still load-bearing:
+
+> porta and the nodes are coupled **only** over the wire; they never import each other's code.
+
+> This is a *different project context* — this file + `docs/` are your context.
+
+Also note in it that the porta auto-memory namespace (`~/.claude/projects/-home-david-workspace-porta/memory/`) is **v1-era and unreviewed** against this rewrite.
+
+- [ ] **Step 9: Commit the demolition**
 
 ```bash
 git add -A
