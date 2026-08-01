@@ -46,10 +46,20 @@ func TestDefaultAllowCIDRReturnsFreshSlice(t *testing.T) {
 
 func TestNewServeCmdRegistersFlags(t *testing.T) {
 	cmd := newServeCmd()
-	for _, name := range []string{"port", "http-port", "http-bind", "http-allow-cidr"} {
+	for _, name := range []string{"http-port", "http-bind", "http-allow-cidr"} {
 		if cmd.Flags().Lookup(name) == nil {
 			t.Errorf("flag --%s not registered", name)
 		}
+	}
+}
+
+// --port drove v1's TFTP listener, which was deleted with the bulk plane
+// (design §7). It is absent rather than accepted-and-ignored: a flag that
+// silently does nothing is worse than one that errors. The space listener
+// reintroduces its own port flag when the wire task lands.
+func TestServeHasNoStaleTFTPPortFlag(t *testing.T) {
+	if f := newServeCmd().Flags().Lookup("port"); f != nil {
+		t.Errorf("--port is still registered (%q) but nothing listens on it", f.Usage)
 	}
 }
 

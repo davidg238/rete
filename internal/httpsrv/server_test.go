@@ -28,7 +28,7 @@ func freePort(t *testing.T) int {
 }
 
 func TestNewServerRegistersHealth(t *testing.T) {
-	st := openTestStore(t)
+	st := testNodes(t)
 	srv, err := New(Config{Bind: "127.0.0.1", Port: freePort(t)}, st)
 	if err != nil {
 		t.Fatal(err)
@@ -44,7 +44,7 @@ func TestNewServerRegistersHealth(t *testing.T) {
 }
 
 func TestNewServerRejectsBadCIDR(t *testing.T) {
-	st := openTestStore(t)
+	st := testNodes(t)
 	_, err := New(Config{Bind: "127.0.0.1", Port: freePort(t), AllowCIDR: []string{"not-a-cidr"}}, st)
 	if err == nil {
 		t.Error("expected error on bad CIDR")
@@ -52,7 +52,7 @@ func TestNewServerRejectsBadCIDR(t *testing.T) {
 }
 
 func TestRunServesHealthAndExitsOnCancel(t *testing.T) {
-	st := openTestStore(t)
+	st := testNodes(t)
 	port := freePort(t)
 	srv, err := New(Config{Bind: "127.0.0.1", Port: port}, st)
 	if err != nil {
@@ -94,7 +94,7 @@ func TestRunServesHealthAndExitsOnCancel(t *testing.T) {
 // ReadHeaderTimeout — without it a slow client can hold a handler goroutine
 // open indefinitely by trickling header bytes (Slowloris).
 func TestNewSetsReadHeaderTimeout(t *testing.T) {
-	st := openTestStore(t)
+	st := testNodes(t)
 	srv, err := New(Config{Bind: "127.0.0.1", Port: freePort(t)}, st)
 	if err != nil {
 		t.Fatal(err)
@@ -109,7 +109,7 @@ func TestNewSetsReadHeaderTimeout(t *testing.T) {
 // dropped by the server once ReadHeaderTimeout elapses (overridden small here
 // to keep the test fast), instead of holding the connection forever.
 func TestReadHeaderTimeoutClosesSlowClient(t *testing.T) {
-	st := openTestStore(t)
+	st := testNodes(t)
 	port := freePort(t)
 	srv, err := New(Config{Bind: "127.0.0.1", Port: port}, st)
 	if err != nil {
@@ -151,7 +151,7 @@ func TestReadHeaderTimeoutClosesSlowClient(t *testing.T) {
 // which net.Listen rejects ("too many colons"); net.JoinHostPort makes it
 // "[::]:6970". The "::" dual-stack socket accepts an IPv4 loopback connect.
 func TestRunBindsBareIPv6(t *testing.T) {
-	st := openTestStore(t)
+	st := testNodes(t)
 	port := freePort(t)
 	srv, err := New(Config{Bind: "::", Port: port}, st)
 	if err != nil {
@@ -172,7 +172,7 @@ func TestRunBindsBareIPv6(t *testing.T) {
 }
 
 func TestRunReturnsErrorOnPortInUse(t *testing.T) {
-	st := openTestStore(t)
+	st := testNodes(t)
 	port := freePort(t)
 	// Squat the port.
 	squat, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(port))

@@ -1,6 +1,12 @@
 // Copyright (c) 2026 Ekorau LLC
 
 // Package portacli is the porta gateway's cobra command tree.
+//
+// During the space-sync rewrite the tree is `serve` alone. v1's verbs (scan,
+// ping, device, container, log, monitor, debug, profile) were deleted with the
+// command queue they wrote to; they return as sugar over path writes and tree
+// reads, and the design record's §4.2 capability audit names where each one
+// lands. Nothing was dropped silently.
 package portacli
 
 import (
@@ -10,7 +16,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/davidg238/porta/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -34,8 +39,6 @@ func versionString() string {
 	return version
 }
 
-func openStore() (*store.Store, error) { return store.Open(dbPath) }
-
 // NewRootCmd builds the porta command tree.
 func NewRootCmd() *cobra.Command {
 	root := &cobra.Command{
@@ -43,28 +46,18 @@ func NewRootCmd() *cobra.Command {
 		Short:   "porta — northbound gateway for nodus-style nodes",
 		Version: versionString(),
 	}
+	// --db survives the rewrite unused: the space store lands in Task 3 and
+	// serve opens it in Task 5, and deploy/ already passes the flag.
 	root.PersistentFlags().StringVar(&dbPath, "db", "porta.db", "SQLite database path")
-	root.PersistentFlags().StringVar(&serverFlag, "server", "",
-		"porta server base URL for write commands (default $PORTA_SERVER or http://localhost:6970)")
-	root.AddCommand(
-		newServeCmd(),
-		newScanCmd(),
-		newPingCmd(),
-		newDeviceCmd(),
-		newContainerCmd(),
-		newLogCmd(),
-		newMonitorCmd(),
-		newDebugCmd(),
-		newProfileCmd(),
-	)
+	root.AddCommand(newServeCmd())
 	return root
 }
 
 // Execute runs the porta CLI. The root context is cancelled on
-// SIGINT/SIGTERM so long-running subcommands (serve, monitor --follow)
-// can exit cleanly. Closes the gap from porta/porta#2 — until this
-// change, runMonitor's --follow cancel path was unreachable in
-// production because cmd.Context() was context.Background().
+// SIGINT/SIGTERM so long-running subcommands (serve) can exit cleanly.
+// Closes the gap from porta/porta#2 — until this change, the --follow cancel
+// path was unreachable in production because cmd.Context() was
+// context.Background().
 func Execute() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
