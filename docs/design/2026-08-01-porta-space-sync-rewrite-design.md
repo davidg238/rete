@@ -225,7 +225,10 @@ whose only difference was direction — now a column.
 2. **`exchanges` is a table v1 never had.** It buys liveness and replay indexing (D4.3). A
    real cost, deliberately paid.
 3. **`nodes.chip` / `nodes.sdk` had no successor** — closed by D8, which pins `obs/build`
-   rather than letting a revenue-gate regress inside a rewrite.
+   rather than letting a revenue-gate regress inside a rewrite. Walking all fourteen
+   columns for §4.2's audit found **two more** in the same condition, `source_addr` and
+   `last_reset_code`; both are closed there. Three of fourteen columns had no successor
+   until someone enumerated them, which is the case for doing the audit at all.
 
 ```sql
 CREATE TABLE nodes (
@@ -236,7 +239,10 @@ CREATE TABLE nodes (
   cadence_ms    INTEGER,   -- liveness floor; offline = k × cadence, k = 3 (v1's constant, kept)
   boot_id       INTEGER,   -- current session (RECORDS §2.4)
   cursor_acked  INTEGER,   -- how far the node has consumed porta's outbound seq
-  node_seq_hw   INTEGER    -- high-water of the node's push sequence, for dedup
+  node_seq_hw   INTEGER,   -- high-water of the node's push sequence, for dedup
+  last_addr     TEXT       -- peer address of the last datagram; successor to v1's
+                           -- source_addr, which serverstat.TransportOf() reads to
+                           -- produce the wifi-vs-Thread breakdown (§4.2)
 );
 
 CREATE TABLE cells (          -- latest value per path
@@ -331,12 +337,12 @@ are live: traced to their call sites, not assumed.
 
 | v1 column | reached by | fate |
 |---|---|---|
-| `nodes.source_addr` | `porta device show` (`inspect.go:135`), `GET /api/nodes{,/{sel}}`, web node list, MCP `list_devices` + `device_status`, **and `serverstat.TransportOf(n.SourceAddr)`** which produces the wifi-vs-Thread breakdown on `/api/status` and `/status` | **regression** — the new `nodes` DDL has no address column. Proposed fix: `last_addr TEXT` on `nodes`, stamped by the UDP loop from the datagram's peer address (Task 3/4). One column; the wire layer already holds the value |
-| `nodes.last_reset_code` | `porta device show` via `control.RenderReset(reason, code)` (`inspect.go:143`), `GET /api/nodes/{sel}` as `reset_code`, web node page | **regression (narrowing)** — RECORDS §4.4 pins `Reset { reason: sym, bootId: int }`, which has no integer code. On ESP32 the numeric code is the machine-readable form and the reason string is derived from it, so a symbol is lossy. Proposed fix: add `code: int` to `Reset` in RECORDS §4.4 |
+| `nodes.source_addr` | `porta device show` (`inspect.go:135`), `GET /api/nodes{,/{sel}}`, web node list, MCP `list_devices` + `device_status`, **and `serverstat.TransportOf(n.SourceAddr)`** which produces the wifi-vs-Thread breakdown on `/api/status` and `/status` | **regression → CLOSED in this plan.** `last_addr TEXT` on `nodes` (§4.1 DDL), stamped by the UDP loop from the datagram's peer address. One column; the wire layer already holds the value |
+| `nodes.last_reset_code` | `porta device show` via `control.RenderReset(reason, code)` (`inspect.go:143`), `GET /api/nodes/{sel}` as `reset_code`, web node page | **regression (narrowing) → CLOSED in this plan.** RECORDS §4.4's `Reset` gains `code: int`. On ESP32 the numeric code is the machine-readable form and the reason string is derived from it, so a symbol alone is lossy |
 
-Neither is a revenue-gate on tuvm#74's scale, and neither is expensive — one column and one
-record field. They are recorded here because the rule is that a capability gets a *fate*,
-and "nobody noticed" is not one.
+Neither was a revenue-gate on tuvm#74's scale, and neither was expensive — one column and
+one record field, both folded in before demolition rather than filed. They are recorded
+here because the rule is that a capability gets a *fate*, and "nobody noticed" is not one.
 
 One naming snag surfaced alongside them, not a regression but a conformance mismatch the
 wire task will hit: §4.1 above routes remote debug to `diag/dbg/req` / `diag/dbg/resp`,

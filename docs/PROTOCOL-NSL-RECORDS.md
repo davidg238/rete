@@ -272,7 +272,7 @@ the drop is counted (`Health.overruns`). Losing a log line to save a node is cor
 
 | path | kind | record |
 |---|---|---|
-| `sys/reset` | E | `Reset { reason: sym, bootId: int }` |
+| `sys/reset` | E | `Reset { reason: sym, code: int, bootId: int }` — `code` is the SoC's raw reset cause; `reason` is the symbol derived from it. Both are carried because the derivation is lossy and one-way: v1 stored `last_reset` and `last_reset_code` side by side, and the numeric form is the one an agent can compare across SDK versions (added 2026-08-01 by the space-sync capability audit, design §4.2) |
 | `sys/overrun` | E | `Overrun { path: str, dropped: int }` — G2's counter |
 | `sys/panic` | E, **must-deliver** | `Panic { … }` — §2.4 |
 | `sys/metrics` | **C (cell)** | `Metrics { heapSize: int, liveBytes: int, heapHighWater: int, largestFreeBlock: int, gcCycles: int, handlesLive: int, handlesHighWater: int, queueHighWater: int, overruns: int, pulseDrops: int, pulseCoalesced: int }` — tuvm#24, widened 9→11 by tuvm#34; **195 B encoded, MEASURED 2026-07-21** (was estimated ~185–230 B), within §2.2's 256 B/value cap with 61 B of headroom |

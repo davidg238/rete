@@ -36,7 +36,7 @@
 | `internal/space/schema.go` | DDL + `Open`/`Close` |
 | `internal/space/store.go` | `Write`, `OutboundSince`, `Ingest`, `RecordExchange`, `Tree`, `Events` |
 | `internal/wire/message.go` | pull/batch/push/ack ↔ `cval` |
-| `internal/wire/server.go` | pure `Handle([]byte) []byte` + the UDP loop |
+| `internal/wire/server.go` | pure `Handle([]byte) []byte` (and `HandleFrom` with the peer address) + the UDP loop |
 | `internal/portacli/*.go` | `serve`, `get`, `put`, `log` |
 
 Plans 2 and 3 (node-side `seq`/`changedSince:`/bridge job; the C6 hardware gate) are separate documents and depend on this one only through the §5 wire contract.
@@ -845,8 +845,9 @@ nsl-tests/14_cbor/02_golden_hex.nsl."
   - `func (*Store) Write(nodeID, path string, kind cval.Kind, value []byte, actor, reason string) (int64, error)`
   - `func (*Store) OutboundSince(nodeID string, cursor int64, maxBytes int) ([]Entry, int64, error)`
   - `func (*Store) Ingest(nodeID string, bootID int64, entries []Entry) (int64, error)`
-  - `func (*Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushedLo, pushedHi int64) error`
+  - `func (*Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushedLo, pushedHi int64, addr string) error`
   - `func (*Store) NoteCursor(nodeID string, cursor int64) error`
+  - `func (*Store) NodeAddr(nodeID string) (string, error)`
   - `func (*Store) Tree(nodeID, prefix string) ([]Entry, error)`
   - `func (*Store) Events(nodeID string, limit int) ([]Event, error)`
   - `const MaxValueBytes = 256`, `const MaxBatchBytes = 512`
@@ -1016,11 +1017,37 @@ func TestOversizeValueRejected(t *testing.T) {
 
 func TestExchangeRowRecorded(t *testing.T) {
 	st := testStore(t)
-	if err := st.RecordExchange("n1", 7, 0, 3, 1, 2); err != nil {
+	if err := st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1"); err != nil {
 		t.Fatalf("RecordExchange: %v", err)
 	}
 	if n, _ := st.CountNodes(); n != 1 {
 		t.Fatalf("CountNodes = %d, want 1", n)
+	}
+}
+
+// The peer address is v1's nodes.source_addr, which the capability audit
+// (design §4.2) caught with no successor. serverstat.TransportOf() reads it to
+// produce the wifi-vs-Thread breakdown, so losing it loses a fleet view, not a
+// display field.
+func TestExchangeRecordsPeerAddress(t *testing.T) {
+	st := testStore(t)
+	st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1")
+	got, err := st.NodeAddr("n1")
+	if err != nil {
+		t.Fatalf("NodeAddr: %v", err)
+	}
+	if got != "fdde:ad00::1" {
+		t.Fatalf("NodeAddr = %q, want fdde:ad00::1", got)
+	}
+}
+
+// An exchange recorded without a peer address must not erase a known one.
+func TestEmptyPeerAddressDoesNotClobber(t *testing.T) {
+	st := testStore(t)
+	st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1")
+	st.RecordExchange("n1", 7, 3, 4, 0, 0, "")
+	if got, _ := st.NodeAddr("n1"); got != "fdde:ad00::1" {
+		t.Fatalf("NodeAddr = %q after an addr-less exchange, want the address kept", got)
 	}
 }
 ```
@@ -1054,7 +1081,11 @@ CREATE TABLE IF NOT EXISTS nodes (
   boot_id       INTEGER,
   cursor_acked  INTEGER NOT NULL DEFAULT 0,
   node_seq_hw   INTEGER NOT NULL DEFAULT 0,
-  out_seq       INTEGER NOT NULL DEFAULT 0
+  out_seq       INTEGER NOT NULL DEFAULT 0,
+  -- Successor to v1's nodes.source_addr, which the capability audit (design
+  -- §4.2) caught with no home. It is not merely a display field: serverstat
+  -- .TransportOf() reads it to produce the wifi-vs-Thread fleet breakdown.
+  last_addr     TEXT
 );
 
 -- Latest value per path. Paths are NODE-RELATIVE (design D4.5): the
@@ -1344,7 +1375,12 @@ func (s *Store) NoteCursor(nodeID string, cursor int64) error {
 	return tx.Commit()
 }
 
-func (s *Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushedLo, pushedHi int64) error {
+// RecordExchange logs one check-in. addr is the peer address the datagram
+// arrived from; an EMPTY addr never clobbers a known one, which is v1's own
+// COALESCE discipline (v1 store.go:267) kept deliberately — a caller that does
+// not know the peer (the pure Handle path, a replayed session) must not erase
+// what the UDP loop learned.
+func (s *Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushedLo, pushedHi int64, addr string) error {
 	now := s.nowMs()
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -1360,10 +1396,23 @@ func (s *Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushe
 		nodeID, now, bootID, cursorIn, cursorOut, pushedLo, pushedHi); err != nil {
 		return err
 	}
-	if _, err := tx.Exec(`UPDATE nodes SET last_seen_ms = ? WHERE id = ?`, now, nodeID); err != nil {
+	if _, err := tx.Exec(
+		`UPDATE nodes SET last_seen_ms = ?, last_addr = COALESCE(NULLIF(?, ''), last_addr) WHERE id = ?`,
+		now, addr, nodeID); err != nil {
 		return err
 	}
 	return tx.Commit()
+}
+
+// NodeAddr returns the peer address of the node's last datagram, or "" if it
+// has never been seen.
+func (s *Store) NodeAddr(nodeID string) (string, error) {
+	var addr sql.NullString
+	err := s.db.QueryRow(`SELECT last_addr FROM nodes WHERE id = ?`, nodeID).Scan(&addr)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	return addr.String, err
 }
 
 // Tree returns the current cell values under prefix, path-ordered — the
@@ -1458,6 +1507,7 @@ Three properties the tests pin:
 - Produces:
   - `func NewServer(st *space.Store, logf func(string, ...any)) *Server`
   - `func (*Server) Handle(req []byte) []byte` — pure bytes→bytes; never returns nil
+  - `func (*Server) HandleFrom(req []byte, peer string) []byte` — same, plus the peer address to stamp on the exchange (design §4.2). `Handle(req)` is `HandleFrom(req, "")`, and an empty peer never clobbers a known address
   - `func (*Server) ListenAndServe(ctx context.Context, addr string) error`
   - `func EncodePull(id string, cursor, bootID, hw int64) ([]byte, error)`
   - `func EncodePush(id string, bootID int64, entries []space.Entry) ([]byte, error)`
@@ -1831,8 +1881,13 @@ func NewServer(st *space.Store, logf func(string, ...any)) *Server {
 // (bytes in, bytes out) so the whole protocol is testable without a socket,
 // and it NEVER returns nil: a node that gets no reply cannot distinguish a
 // rejection from a lost datagram, and would retry forever.
-func (s *Server) Handle(req []byte) []byte {
-	resp, err := s.handle(req)
+func (s *Server) Handle(req []byte) []byte { return s.HandleFrom(req, "") }
+
+// HandleFrom is Handle plus the address the datagram arrived from, stamped on
+// the exchange so the fleet keeps the transport breakdown v1 read out of
+// nodes.source_addr (design §4.2). An empty peer is legal and never clobbers.
+func (s *Server) HandleFrom(req []byte, peer string) []byte {
+	resp, err := s.handle(req, peer)
 	if err != nil {
 		s.logf("porta: rejecting datagram: %v", err)
 		return encodeErr(err.Error())
@@ -1840,7 +1895,7 @@ func (s *Server) Handle(req []byte) []byte {
 	return resp
 }
 
-func (s *Server) handle(req []byte) ([]byte, error) {
+func (s *Server) handle(req []byte, peer string) ([]byte, error) {
 	v, err := cval.Decode(req)
 	if err != nil {
 		return nil, err
@@ -1851,14 +1906,14 @@ func (s *Server) handle(req []byte) ([]byte, error) {
 	}
 	switch r.Tag {
 	case "pull":
-		return s.handlePull(r)
+		return s.handlePull(r, peer)
 	case "push":
-		return s.handlePush(r)
+		return s.handlePush(r, peer)
 	}
 	return nil, fmt.Errorf("%w: unknown message #%s", errShape, r.Tag)
 }
 
-func (s *Server) handlePull(r cval.Record) ([]byte, error) {
+func (s *Server) handlePull(r cval.Record, peer string) ([]byte, error) {
 	id, err := strField(r.Fields, "id")
 	if err != nil {
 		return nil, err
@@ -1881,13 +1936,13 @@ func (s *Server) handlePull(r cval.Record) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := s.st.RecordExchange(id, bootID, cursor, hi, 0, 0); err != nil {
+	if err := s.st.RecordExchange(id, bootID, cursor, hi, 0, 0, peer); err != nil {
 		return nil, err
 	}
 	return encodeBatch(hi, entries)
 }
 
-func (s *Server) handlePush(r cval.Record) ([]byte, error) {
+func (s *Server) handlePush(r cval.Record, peer string) ([]byte, error) {
 	id, err := strField(r.Fields, "id")
 	if err != nil {
 		return nil, err
@@ -1912,7 +1967,7 @@ func (s *Server) handlePush(r cval.Record) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := s.st.RecordExchange(id, bootID, 0, 0, lo, hw); err != nil {
+	if err := s.st.RecordExchange(id, bootID, 0, 0, lo, hw, peer); err != nil {
 		return nil, err
 	}
 	return encodeAck(hw)
@@ -1940,7 +1995,7 @@ func (s *Server) ListenAndServe(ctx context.Context, addr string) error {
 		}
 		req := make([]byte, n)
 		copy(req, buf[:n])
-		resp := s.Handle(req)
+		resp := s.HandleFrom(req, peer.String())
 		if _, err := pc.WriteTo(resp, peer); err != nil {
 			s.logf("porta: reply to %s failed: %v", peer, err)
 		}
