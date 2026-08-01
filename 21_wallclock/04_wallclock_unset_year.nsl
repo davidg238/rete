@@ -1,0 +1,52 @@
+(*
+expect:
+set 0
+reads nil
+still ringing
+finished
+*)
+(* tuvm#100 — a clock carrying a factory-default date is NOT a clock, even though
+   every field in it is well-formed.
+
+   THIS IS THE TEST FOR A FAILURE THAT HAPPENED. On the first hardware run of this
+   seam (C6 + DS3231, 2026-07-31) the module answered a clean I2C read with
+   2000-01-01 00:00:00 — it had never been set, or its CR2032 had gone flat with
+   mains off. Zephyr's rtc_get_time documents -ENODATA for exactly this
+   (include/zephyr/drivers/rtc.h:212) and the DS3231 driver NEVER RETURNS IT: it
+   reads seven registers and converts them (drivers/rtc/rtc_ds3231.c:339), never
+   consulting the part's own oscillator-stop flag. So the read succeeds, rc is 0,
+   and the answer is 00:00:00.
+
+   00:00:00 is seconds-of-day 0, which is midnight, which is when a ship's bell
+   strikes EIGHT. Trusting rc alone would make a flat backup cell ring the loudest
+   thing the product does, at the moment it is least expected, and go on doing it.
+   Hence the guard, and hence this test: the seam must answer nil for an
+   implausible year rather than hand a node a number that is technically valid.
+
+   2000 is not an arbitrary bad value — it is the DS3231's own power-on year, so
+   this test states the exact reading the hardware produces. The guard is a year
+   comparison rather than a check of the oscillator-stop flag only because that
+   flag is unreachable from here: the driver's accessor is static and compiled only
+   under CONFIG_RTC_ALARM. Making get_time answer -ENODATA when OSF is set is the
+   real fix and it is upstream's.
+
+   The last two lines are 02's claim, restated for this path: an untrustworthy
+   clock is an ORDINARY answer a node branches on, not a raise. A bell whose clock
+   cannot be trusted must fall back to free-running, and it must never strike a
+   time it does not know. *)
+class WallClockUnsetYear packageUsing: manifest = () (
+  public main: platform args: args = (
+    | rc secs |
+    (* Exactly what a factory-fresh DS3231 reports: 2000-01-01, midnight. *)
+    rc:: platform wallClockSetDate: 20000101 time: 0.
+    ('set ' , rc printString) out.
+
+    secs:: platform wallClock.
+    ('reads ' , secs printString) out.
+
+    (* No handler in sight: an untrustworthy clock is an answer, not a raise. *)
+    'still ringing' out.
+    'finished' out.
+  )
+) : (
+)

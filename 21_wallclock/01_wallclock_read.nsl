@@ -1,0 +1,37 @@
+(*
+env: OEVM_WALLCLOCK_SECONDS=66600
+expect:
+secs 66600
+half 37
+finished
+*)
+(* tuvm#100 — the wall-clock seam: an external RTC (DS3231 on I2C) as the
+   timebase, read as SECONDS SINCE LOCAL MIDNIGHT (0..86399).
+
+   The answer shape is deliberately IDENTICAL to ntpSyncTz:'s — an SMI in
+   0..86399, or nil. That is the whole point of the seam: a node's schedule
+   arithmetic must not be able to tell whether the time came from the network or
+   from the RTC, so the two timebases are interchangeable and the strike logic
+   proven in 20_bell/05 is reused verbatim. Epoch seconds would not fit an SMI
+   (2^30) on a 32-bit target, which is the other reason the day is the unit.
+
+   There is NO tz argument, unlike ntpSyncTz:. NTP hands out UTC and the product
+   must apply its own offset; a DS3231 holds whatever local time was written to
+   it, so a second offset here would apply the correction twice.
+
+   66600 s = 18:30:00, so half-hour index 37 — the same boundary-exact value
+   20_bell/05 pins, which makes the two seams' answers directly comparable.
+
+   On the host OEVM_WALLCLOCK_SECONDS supplies the reading (src/platform.c),
+   delivered PER-TEST via the env: header so it cannot leak into 02's
+   no-RTC assertion — a global export would turn that test's nil into 66600. *)
+class WallClockRead packageUsing: manifest = () (
+  public main: platform args: args = (
+    | secs |
+    secs:: platform wallClock.
+    ('secs ' , secs printString) out.
+    ('half ' , (secs // 1800) printString) out.
+    'finished' out.
+  )
+) : (
+)
