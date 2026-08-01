@@ -57,7 +57,7 @@ Plans 2 and 3 (node-side `seq`/`changedSince:`/bridge job; the C6 hardware gate)
 - Consumes: nothing.
 - Produces: a tree where `go build ./...` and `go test ./...` pass with only `cmd/porta`, `internal/httpsrv`, `internal/serverstat`, `internal/portacli` remaining. `httpsrv.New(cfg Config, nodes NodeCounter)` where `type NodeCounter interface { CountNodes() (int, error) }`.
 
-- [ ] **Step 1: Tag the last v1 tree**
+- [x] **Step 1: Tag the last v1 tree**
 
 ```bash
 cd ~/workspace/porta
@@ -65,7 +65,7 @@ git tag -a porta-v1-final -m "the last v1 tree: TFTP + JSON + command queue, bef
 git tag -l porta-v1-final
 ```
 
-- [ ] **Step 2: Run the capability audit before deleting anything**
+- [x] **Step 2: Run the capability audit before deleting anything**
 
 D8's rule: *a rewrite may delete a mechanism, but it may not silently delete a capability.* Enumerate every v1 operator capability and name where it lands. Produce the list mechanically, do not recall it:
 
@@ -78,14 +78,14 @@ grep -rhoE '"/(api|v1)/[a-z0-9/{}._-]*"' internal/apisrv internal/web | sort -u
 
 Append the result to the design record as a table `§4.2 Capability audit`, one row per verb/endpoint with fate ∈ {absorbed → `<path>`, deferred → `<plan>`, **regression**}. Any row landing on **regression** stops this task and gets raised before deletion — that is exactly how `obs/build` was caught.
 
-- [ ] **Step 3: Commit the audit**
+- [x] **Step 3: Commit the audit**
 
 ```bash
 git add docs/design/2026-08-01-porta-space-sync-rewrite-design.md
 git commit -m "docs(design): capability audit of v1's operator surface before demolition"
 ```
 
-- [ ] **Step 4: Decouple httpsrv from the v1 store**
+- [x] **Step 4: Decouple httpsrv from the v1 store**
 
 Replace the `*store.Store` parameter with a narrow interface so `httpsrv` survives the deletion. In `internal/httpsrv/server.go`:
 
@@ -126,7 +126,7 @@ func healthHandler(nodes NodeCounter, statsFn func() *serverstat.Stats) http.Han
 }
 ```
 
-- [ ] **Step 5: Delete the v1 packages**
+- [x] **Step 5: Delete the v1 packages**
 
 ```bash
 cd ~/workspace/porta
@@ -135,7 +135,7 @@ git rm -r internal/command internal/config internal/control internal/handler \
           internal/mcpsrv internal/store devsdk/apiclient
 ```
 
-- [ ] **Step 6: Reduce the CLI to `serve`**
+- [x] **Step 6: Reduce the CLI to `serve`**
 
 Delete every command file in `internal/portacli/` except the root and `serve`, and strip `serve.go` to a listener that opens no store yet:
 
@@ -160,12 +160,12 @@ func serveCmd() *cobra.Command {
 }
 ```
 
-- [ ] **Step 7: Verify the tree builds and tests green**
+- [x] **Step 7: Verify the tree builds and tests green**
 
 Run: `cd ~/workspace/porta && gofmt -l . && go build ./... && go test ./...`
 Expected: `gofmt` prints nothing; build succeeds; tests pass (only `httpsrv` and `serverstat` have any left).
 
-- [ ] **Step 8: Rewrite `CLAUDE.md`, which now describes a deleted system**
+- [x] **Step 8: Rewrite `CLAUDE.md`, which now describes a deleted system**
 
 `~/workspace/porta/CLAUDE.md` opens by defining porta as the thing that "defines the command vocabulary and report schema, queues commands, delivers container images over TFTP, and ingests telemetry" — every clause of which this task just deleted. It auto-loads as project context, so leaving it stale actively misleads the next session.
 
@@ -179,7 +179,7 @@ Two lines that must survive verbatim, because they are still true and still load
 
 Also note in it that the porta auto-memory namespace (`~/.claude/projects/-home-david-workspace-porta/memory/`) is **v1-era and unreviewed** against this rewrite.
 
-- [ ] **Step 9: Commit the demolition**
+- [x] **Step 9: Commit the demolition**
 
 ```bash
 git add -A
