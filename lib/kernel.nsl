@@ -2432,6 +2432,15 @@ class Kernel usingPlatform: platform = () (
      force every caller to write a handler for the normal case.
      IT BLOCKS up to the SNTP timeout; call only between strikes. *)
   public ntpSyncTz: offsetSeconds = ( ^ platform ntpSyncTz: offsetSeconds )
+  (* tuvm#100 (2026-08-01): the DATE of the last successful ntpSyncTz:, packed
+     decimal (20260801), in that call's timezone — nil if none has succeeded.
+     It exists so the RTC correction loop can complete: ntpSyncTz: answers
+     seconds-of-day, wallClockSetDate:time: demands a date, and without this a node
+     can measure the clock's error but not fix it.
+     DOES NOT BLOCK and does NOT ask the network — it reads what the sync already
+     received, so one request serves both halves.
+     Call ntpSyncTz: first and only trust this if that answered non-nil. *)
+  public ntpDate = ( ^ platform ntpDate )
   (* tuvm#94 stage 5: the RTC-retention seam. Thin forwarders over the platform prims,
      the same shape as ntpSyncTz: above. rtcValid answers a Boolean here (the prim
      answers an SMI 0/1 — no true/false oop is needed on the C side). rtcGet:/
@@ -2444,6 +2453,27 @@ class Kernel usingPlatform: platform = () (
      until the next timer wake reboots it. There is no wrapper and no answer to coerce:
      the caller's very next line is unreachable by construction. *)
   public deepSleep: seconds = ( ^ platform deepSleep: seconds )
+  (* tuvm#100: the wall-clock seam — an external RTC (DS3231 over I2C) as the
+     timebase. Thin forwarder, deliberately the SAME shape as ntpSyncTz: above:
+     nil when there is no RTC or it has never been set, an SMI of seconds-since-
+     local-midnight (0..86399) otherwise. That sameness is the point — schedule
+     arithmetic cannot tell which timebase answered, so a node moves between the
+     network and the RTC without touching its striking code.
+     NOT the rtcValid/rtcGet:/rtcPut:value: family above: those are the deep-sleep
+     RETENTION store. Different device, different question, hence the name.
+     No wrapper class and no raise, for ntpSyncTz:'s reason: a board with no RTC
+     is an ordinary answer the node acts on (free-run), not an exceptional
+     condition. Unlike ntpSyncTz: this does NOT block on a network — it is one
+     short I2C transaction — and it takes no tz offset, because an RTC holds the
+     local time that was written to it. *)
+  public wallClock = ( ^ platform wallClock )
+  (* tuvm#100: setting the RTC. `yyyymmdd` is a packed decimal date (20260731) and
+     `secondsOfDay` is wallClock's own unit, so a set followed by a read is an
+     identity. One call rather than two because a date write and a separate time
+     write leave a window where the part holds halves of two different instants.
+     nil when there is no RTC or the write was refused (a secondsOfDay outside
+     0..86399), SMI 0 when the clock was set. *)
+  public wallClockSetDate: yyyymmdd time: secondsOfDay = ( ^ platform wallClockSetDate: yyyymmdd time: secondsOfDay )
   public pumpEvents = ( ^ platform pumpEvents )
   (* webserver-channel-device spike, Task 3: the http driver's platform prims.
      Same thin-forwarder shape as the gpio/timer families above — the C-side
