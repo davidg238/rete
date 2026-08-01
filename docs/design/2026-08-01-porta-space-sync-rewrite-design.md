@@ -144,11 +144,29 @@ prefix. porta stores the kind per path as reported by the writer and does not in
 v1 is deleted in one commit before the new store is written, so no design decision is made
 with v1 still in the room. The tree is briefly near-inert; `porta-v1-final` is tagged first.
 
+### D8 — `obs/build` is pinned in this rung, not deferred.
+
+v1's `nodes.chip` and `nodes.sdk` columns have **no successor path** — the pinned catalogue
+in RECORDS §4.2 stopped at `obs/health`. Deleting them with nothing behind them takes fleet
+build provenance from *partial* to *absent*, and that is tuvm#74, which the tracker labels a
+**revenue-gate**: an agent cannot reason about a fleet when it cannot tell which code is on
+which node.
+
+`obs/build` is therefore pinned now (RECORDS §4.2): `Build { chip, sdk, image, builtAt }`.
+The porta side is free — it is another cell. The node answers `chip` and `sdk` today and
+omits `image`/`builtAt` until tuvm#74 lands; **absence means "the node cannot say"**, which
+is the honest value and not a default.
+
+The general rule this is an instance of: **a rewrite may delete a mechanism, but it may not
+silently delete a capability.** Anything v1 could answer that the new model cannot is a
+regression wearing the costume of a simplification.
+
 ---
 
 ## 3. Architecture
 
-Three live packages replace nine.
+Six packages are deleted outright, two are new, five are rewritten in place, and four
+survive untouched.
 
 | package | fate |
 |---|---|
@@ -173,8 +191,41 @@ Node kinds `toit` and `st` are deleted with them.
 
 ## 4. The store
 
-Four tables replace seven. All timestamps are **milliseconds** (D4.2); all paths are
+Four tables replace nine. All timestamps are **milliseconds** (D4.2); all paths are
 **node-relative** (D4.5); all values are **raw deterministic CBOR** (D4.1).
+
+### 4.1 Where each v1 table goes — the honest accounting
+
+| v1 table | fate |
+|---|---|
+| `nodes` (14 cols) | kept, **thinner** — six of its columns become `obs/**` cells |
+| `command_queue` | → `events` `direction='out'` |
+| `reports` | → `cells` under `obs/**` |
+| `data_log` | → `events` `direction='in'` under `tel/**` |
+| `debug_request` | → `events` at `diag/dbg/req` |
+| `debug_response` | → `events` at `diag/dbg/resp` |
+| `profile_session` | → `cells` at `goal/profile/<app>` |
+| `profile_result` | **split** — bounded span results to `events` at `diag/**`; profiler blobs are bulk |
+| `payloads` | **deferred, not absorbed** — see below |
+| — | `exchanges` is **new** (D4.3) |
+
+**The collapse has a structural cause, and it is worth naming.** Five of those tables —
+`command_queue`, `reports`, `data_log`, `debug_request`, `debug_response` — are the *same
+two shapes*: a queue with a delivered marker, or an append log keyed `(device, seq)`. That
+is `PROTOCOL-NSL.md` §2's multiplicative-extension diagnosis showing up in the schema rather
+than in prose. Once the unit of extension is a path, a new feature adds **rows, not tables**.
+`debug_request`/`debug_response` are the cleanest proof: two structurally identical tables
+whose only difference was direction — now a column.
+
+**Three deductions from the headline number**, so it is not oversold:
+
+1. **`payloads` is deferral, not absorption.** The size law keeps bulk off the space by
+   design, so image blobs need a home the moment OTA returns — content-addressed by hash
+   rather than v1's CRC. Honestly: 9 → 4 now, 9 → 5 when bulk lands.
+2. **`exchanges` is a table v1 never had.** It buys liveness and replay indexing (D4.3). A
+   real cost, deliberately paid.
+3. **`nodes.chip` / `nodes.sdk` had no successor** — closed by D8, which pins `obs/build`
+   rather than letting a revenue-gate regress inside a rewrite.
 
 ```sql
 CREATE TABLE nodes (

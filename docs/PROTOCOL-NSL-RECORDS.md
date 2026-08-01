@@ -229,6 +229,24 @@ construction. There is nothing to enforce.
 | `obs/config/<app>/<key>` | R | scalar echo |
 | `obs/mode` / `obs/name` / `obs/forward` | R | same shapes as their `goal/` twins |
 | `obs/health` | R | `Health { uptimeMs: int, bootId: int, wakes: int, pollTimeouts: int, heapFree: int, heapLargest: int, overruns: int }` |
+| `obs/build` | R | `Build { chip: sym, sdk: str, image: bytes, builtAt: int }` — see below |
+
+**`obs/build` — build provenance, pinned 2026-08-01.** Added by the space-sync rewrite
+(`design/2026-08-01-porta-space-sync-rewrite-design.md` D8) because v1's `nodes.chip` /
+`nodes.sdk` columns had no successor path, and deleting them without one takes fleet
+provenance from *partial* to *absent*. That is tuvm#74, a labelled revenue-gate: an agent
+cannot reason about a fleet when it cannot tell which code is on which node.
+
+- `chip` — the SoC family as a symbol (`#esp32c6`, `#esp32s2`, `#nrf52840`).
+- `sdk` — the Zephyr/SDK version string as the build reports it.
+- `image` — a truncated hash of the running `.oimg`, **8 bytes**, not a full digest: it
+  identifies a build against a known set, it does not authenticate one. Authentication is
+  the signing story and rides the bulk plane.
+- `builtAt` — build epoch seconds.
+
+The record is ~40 B encoded, well inside §2.2's 256 B/value cap. `chip` and `sdk` are
+answerable today; `image` and `builtAt` arrive with tuvm#74 and are **omitted** until then
+— absence means "the node cannot say", which is the honest value and not a default.
 
 **`obs/X` deliberately reuses the shape of `goal/X`.** Convergence is then a *structural*
 diff — `goal/mode` vs `obs/mode` — rather than a bespoke comparison per feature. v1's
