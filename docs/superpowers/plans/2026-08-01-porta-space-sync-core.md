@@ -852,7 +852,7 @@ nsl-tests/14_cbor/02_golden_hex.nsl."
   - `func (*Store) Events(nodeID string, limit int) ([]Event, error)`
   - `const MaxValueBytes = 256`, `const MaxBatchBytes = 512`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```go
 // internal/space/store_test.go
@@ -1052,12 +1052,12 @@ func TestEmptyPeerAddressDoesNotClobber(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run to confirm failure**
+- [x] **Step 2: Run to confirm failure**
 
 Run: `cd ~/workspace/porta && go test ./internal/space/ -v`
 Expected: FAIL — package does not exist.
 
-- [ ] **Step 3: Write the schema**
+- [x] **Step 3: Write the schema**
 
 ```go
 // internal/space/schema.go
@@ -1091,6 +1091,12 @@ CREATE TABLE IF NOT EXISTS nodes (
 -- Latest value per path. Paths are NODE-RELATIVE (design D4.5): the
 -- node/<id>/** prefix in PROTOCOL-NSL.md §3 is a view, never storage, so a
 -- captured session can be re-pointed at a different node.
+--
+-- This table holds BOTH directions, because the operator's goal/X vs obs/X
+-- diff is one query over one table. direction is therefore load-bearing and
+-- not decoration: seq is drawn from porta's out_seq for 'out' rows and from
+-- the NODE's push counter for 'in' rows, so the two are not comparable and a
+-- read that spans them is meaningless. OutboundSince filters on it.
 CREATE TABLE IF NOT EXISTS cells (
   node_id    TEXT NOT NULL,
   path       TEXT NOT NULL,
@@ -1098,9 +1104,10 @@ CREATE TABLE IF NOT EXISTS cells (
   kind       INTEGER NOT NULL,
   value_cbor BLOB NOT NULL,
   ts_ms      INTEGER NOT NULL,
+  direction  TEXT NOT NULL CHECK (direction IN ('in','out')),
   PRIMARY KEY (node_id, path)
 );
-CREATE INDEX IF NOT EXISTS idx_cells_seq ON cells(node_id, seq);
+CREATE INDEX IF NOT EXISTS idx_cells_seq ON cells(node_id, direction, seq);
 
 -- Append-only, both directions, with provenance (design D2/D3). There is no
 -- tombstone column: stopped state is written explicitly as a value, and
@@ -1136,7 +1143,7 @@ CREATE INDEX IF NOT EXISTS idx_exchanges_node ON exchanges(node_id, ts_ms);
 `
 ```
 
-- [ ] **Step 4: Implement the store**
+- [x] **Step 4: Implement the store**
 
 ```go
 // internal/space/store.go
@@ -1269,7 +1276,7 @@ func (s *Store) Write(nodeID, path string, kind cval.Kind, value []byte, actor, 
 func (s *Store) OutboundSince(nodeID string, cursor int64, maxBytes int) ([]Entry, int64, error) {
 	rows, err := s.db.Query(`
 		SELECT seq, path, kind, value_cbor FROM cells
-		  WHERE node_id = ? AND seq > ?
+		  WHERE node_id = ? AND direction = 'out' AND seq > ?
 		UNION ALL
 		SELECT seq, path, kind, value_cbor FROM events
 		  WHERE node_id = ? AND direction = 'out' AND kind = ? AND seq > ?
@@ -1469,12 +1476,12 @@ func escapeLike(s string) string {
 }
 ```
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `cd ~/workspace/porta && go test ./internal/space/ -v`
 Expected: PASS, all ten tests.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 gofmt -l . && go test ./internal/space/
