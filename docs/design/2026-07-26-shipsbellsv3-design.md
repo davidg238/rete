@@ -535,3 +535,139 @@ estimate.**
 > Put a candidate cell where the clock will actually hang, with a logger, and record a week.
 > That single measurement decides §14 outright — and unlike the strike-energy measurement it
 > can run in the background while other work proceeds.
+
+---
+
+## 15. ADDENDUM (2026-07-28) — the bench rig for §11's first two measurements
+
+The design above is sealed; this records how §11.1 (coil resistance) and §11.2 (minimum clean
+pulse) will actually be taken, and one refinement to §8 that came out of specifying it.
+
+### 15.1 The bench trial runs at 12 V, on parts already on hand
+
+Not a change to §8's 20–24 V rail — a deliberately gentler first strike, to answer "does the
+plunger throw at all" in the direction that cannot break anything.
+
+**Circuit:** `zephyr/boards/shipsBells/2026-07-28-shipsbells-12v-bench-driver.svg` / `.png`.
+High-side P-channel (IRF9Z14) with a 2N3904 level shifter, because a 3.3 V GPIO cannot drive a
+non-logic-level MOSFET and this arrangement is fail-safe **off** with one transistor. The build
+proper still wants §8's low-side topology with a logic-level part (IRLZ44N / IRLB8721).
+
+### 15.2 The §7 coil resistance is an assumption, and it swings the answer
+
+§7's 0.5 J rests on **15 Ω, assumed**. Real chime coils are often 8–12 Ω, in which case 12 V is
+approximately the rated drive rather than half of it:
+
+| measured R | current at 12 V | force vs 16 VAC rated |
+|---|---|---|
+| 8 Ω | 1.50 A | 1.4× |
+| 10 Ω | 1.20 A | 1.1× |
+| 15 Ω (assumed) | 0.80 A | 0.56× |
+| 20 Ω | 0.60 A | 0.34× |
+
+Note that 16 VAC is **not** 22 V for this purpose: RMS is what heats the coil and what average
+force follows, so 16 VAC ≈ 16 VDC of pull. This corrects a loose reading of "16 VAC rectifies to
+~22 V peak" — the peak matters for component ratings, not for pull.
+
+### 15.3 Refinement to §8: a Schottky flyback is the slowest-decay choice
+
+§8 says that if the strike sounds mushy, replace the plain flyback with a diode + zener to force
+a faster current decay. Worth naming the mechanism, because it changes what a bad result means:
+a Schottky's ~0.4 V forward drop lets the freewheel current coast down over the full L/R time,
+so the hammer stays pressed on the metal and damps the ring.
+
+**Therefore: a strike that sounds *dead* is a diode problem; a strike that sounds *weak* is a
+voltage or pulse-width problem.** Do not chase the first with more volts.
+
+### 15.4 A 40 V Schottky is fine at 12 V and tight at 24 V
+
+1N5819 is the top of its family (5817 = 20 V, 5818 = 30 V, 5819 = 40 V). Against the bench 12 V
+that is 3.3× margin; against §8's 20–24 V rail it is ~1.7×. **The build proper wants a 60 V
+part** — MBR360 / SB360.
+
+---
+
+## 16. ADDENDUM (2026-07-31) — the RTC seam exists, and §6 gained a mechanism it was missing
+
+The `rtc` seam §6 called for is built and running (tuvm#100), on an **ESP32-C6** rather than
+the nRF52840 of §9. Four things this changes or settles.
+
+### 16.1 There will be more than one version; this one is wall-powered
+
+The C6 rig is not a change of production MCU. David's framing: **"there will be multiple
+versions"**, and this one is mains-powered *because of the striker's power demand*. So §7's
+energy budget and §9's 18650 remain the design of record for the battery version, and this
+board is where the firmware is developed against real hardware.
+
+What wall power does change, for this variant only: §6's "the VM never dies" becomes free
+rather than earned (it was an argument about nRF52840 System-ON at ~3 µA), and the
+battery-level SAADC, the low-battery strike pattern and "inhibit striking while charging"
+have nothing to act on. None of that invalidates the sealed design; it means the two
+variants diverge below the seam, which is what a seam is for.
+
+### 16.2 The seam is `wallClock`, not `rtc` — the name was already taken
+
+`rtcValid` / `rtcGet:` / `rtcPut:value:` (tuvm#94 stage 5) are the deep-sleep RAM
+**retention** store: a different device answering a different question. The new prims are
+`wallClock` and `wallClockSetDate:time:`.
+
+`wallClock` answers **seconds since local midnight (0..86399), or nil** — deliberately the
+identical shape to `ntpSyncTz:`. The striking arithmetic therefore cannot tell which
+timebase produced the number, so the two are interchangeable and the logic proven in
+`nsl-tests/20_bell/05` is reused verbatim. There is **no tz argument**: NTP hands out UTC
+and the product applies its own offset, whereas an RTC holds the local time written to it,
+so a second offset would double-correct.
+
+Setting takes a packed decimal date (`20260731`) plus seconds-of-day, in **one call**. Two
+calls — a date write then a time write — leave a window where the part holds halves of two
+different instants, and the second write can land after midnight has moved the day on.
+
+### 16.3 "Never strike before the time is known" now has a mechanism, and it needed one
+
+§6 lists *never-strike-before-the-time-is-known* among what ports from #94. On this hardware
+that invariant was **unenforceable through the documented API**, and the gap is not obvious:
+
+Zephyr's `rtc_get_time()` documents `-ENODATA` for "time has not been set"
+(`include/zephyr/drivers/rtc.h:212`). **The DS3231 driver never returns it.** It reads the
+seven time registers and converts them (`drivers/rtc/rtc_ds3231.c:339`), never consulting
+the part's oscillator-stop flag. A never-set part — or one whose CR2032 died with mains off
+— answers `rc=0` and a well-formed `2000-01-01 00:00:00`.
+
+**00:00:00 is seconds-of-day 0. Midnight. Eight bells.** A flat backup cell would ring the
+loudest thing the product does, repeatedly, at the moment it is least expected. This is a
+§12-class risk that §12 does not list.
+
+Predicted by reading the driver before flashing; the first hardware run confirmed it (the
+module reported year 2000). The guard rejects an implausible year, since an unset DS3231
+reports 2000. That is weaker than the oscillator-stop flag — it cannot catch a part that
+stopped *this* year — but OSF is unreachable (`rtc_ds3231_get_ctrl_sts()` is static and
+compiled only under `CONFIG_RTC_ALARM`), and the year catches the shelf-stored failure that
+actually threatens a wall-hung clock. The proper fix is upstream: tuvm#103.
+
+**Add to §12's risk table:** *an RTC that answers a valid-looking time it does not actually
+know* — severity **High** (it strikes eight, at night, from a dead battery), mitigated by
+the year guard now and by tuvm#103 eventually.
+
+### 16.4 The strike trigger is Alarm2, not a 1 Hz square wave
+
+Settled while specifying the wiring. Alarm2 with a minutes-match mask fires on a boundary
+you set; after each strike the node writes the next half-hour into it and the MCU does
+nothing at all until the boundary — no polling, no counting edges, no accumulated error, and
+the wake instant is the RTC's own rather than the MCU's. A 1 Hz square wave is a poll loop
+wearing a hardware hat, and a missed edge is silent.
+
+This is consistent with §6's deletion of the disciplining loop: the RTC is not something to
+measure against, it is the thing that says when.
+
+Note for the build: INT/SQW stays asserted until `A2F` is cleared over I²C — the flag clear
+deasserts the line, *not* the read of the time.
+
+### 16.5 The bench part is a DS3231M, and its lid may be lying
+
+§95 already distinguishes DS3231M (MEMS, ±5 ppm) from the ±2 ppm TCXO §97 specifies for the
+run of five. The module on the bench is marked **DS3231M** — so the prototype's timebase is
+the ±5 ppm class, which is ample for firmware development and is *not* the shipping part.
+
+Additionally: its package is 16-pin, and a genuine DS3231M is 8-pin SO. Marking and package
+disagree. Relabelled parts are common on these modules, so §10's "measured, not assumed"
+discipline applies to this part's ppm specifically — measure it, do not read it off the lid.

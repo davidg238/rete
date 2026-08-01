@@ -20,12 +20,22 @@
    this engine — GC roots come from vm_stack/current_frame plus the explicit
    hooks below), so no stack-anchor call is needed here. */
 #include <zephyr/kernel.h>
+#include <zephyr/init.h>          /* SYS_INIT — gpio_outputs_early_init, below */
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/uart.h>  /* uart_poll_in — the strike-on-demand console */
+#include <stdlib.h>               /* atoi, same */
 #include <stdint.h>
 #include <stdio.h>
 #include "oevm.h"
 #include "oimg.h"
 #include "thread_bringup.h"
+
+/* OUTSIDE the CONFIG_WIFI block below, because the NTP seam is no longer inside
+   it: a Thread node has SNTP and no WiFi. See ntp_target_sync(). */
+#ifdef CONFIG_SNTP
+#include <zephyr/net/sntp.h>        /* tuvm#94 stage 4: sntp_simple for the bells */
+#include <zephyr/net/net_ip.h>      /* net_addr_pton, sockaddr_in6 — the literal path */
+#endif
 
 #ifdef CONFIG_WIFI
 #include <zephyr/net/net_if.h>
@@ -33,7 +43,6 @@
 #include <zephyr/net/net_mgmt.h>
 #include <zephyr/net/net_event.h>   /* NET_EVENT_IPV4_ADDR_ADD/DEL (#65) */
 #include <zephyr/net/dhcpv4.h>
-#include <zephyr/net/sntp.h>        /* tuvm#94 stage 4: sntp_simple for the bells */
 #include <string.h>
 
 /* #65 INSTRUMENTATION — give the node a voice when it leaves the network.
@@ -145,6 +154,7 @@ static void wifi_bringup(void) {
     }
     printk("wifi: no IPv4 lease after 30s, continuing\n");
 }
+#endif /* CONFIG_WIFI */
 
 /* tuvm#94 stage 4: the device side of the NTP seam. `sntp_simple` does
    init/query/close in one call (include/zephyr/net/sntp.h:161), so the node needs no
@@ -154,25 +164,100 @@ static void wifi_bringup(void) {
    midnight because an SMI is 2^30-1 and a Unix epoch (~1.75e9) overflows it. The
    reduction is done HERE, in 64-bit C, rather than in nsl for that reason.
    Any failure answers -1 (-> nil in nsl) so the clock free-runs: the network is
-   allowed to improve the time, never to stop the bell. */
+   allowed to improve the time, never to stop the bell.
+
+   THE GUARD IS CONFIG_SNTP, NOT CONFIG_WIFI (changed 2026-08-01). It named the
+   wrong dependency: this body needs the SNTP library, and WiFi is merely one way
+   to have a network. The two are not the same set, in BOTH directions —
+     - prj_esp32.conf (WROOM-32) sets CONFIG_WIFI=y and NOT CONFIG_SNTP, and
+       nothing in Zephyr selects SNTP, so that build compiled a call to
+       sntp_simple() with no implementation behind it. Only prj_esp32s2_wifi.conf
+       ever set both, which is why the seam worked on the MagTag and nowhere else.
+     - The C6 on Thread has a perfectly good IPv6 network and no WiFi at all, and
+       was handed the -1 stub for that reason alone.
+   Gating on the actual dependency fixes both at once. */
+#ifdef CONFIG_SNTP
 #ifndef OEVM_NTP_SERVER
 #define OEVM_NTP_SERVER "pool.ntp.org"
 #endif
+
+/* OEVM_NTP_SERVER6 — a LITERAL IPv6 address, and if defined it wins over the
+   hostname above. This is the Thread path, and the literal is the point rather
+   than a shortcut: the porta mesh's OMR prefix is a ULA (fd77:9957:d9f3:1::/64)
+   with no global IPv6 and no DNS64, so a hostname has nothing to resolve
+   against. Going straight to a sockaddr also drops CONFIG_DNS_RESOLVER from the
+   image, which on a part already carrying an FTD and a 128 KB VM arena is RAM
+   worth not spending.
+   sntp_simple_addr() fills in port 123 itself when the sockaddr's port is 0
+   (net_port_set_default, sntp_simple.c:77), so the port is deliberately left
+   unset here rather than byte-swapped by hand. */
+/* The date half of the seam, filled in by the sync below and read by ntpDate.
+   -1 until a sync has succeeded, which is the same "structural failure" answer
+   ntpSyncTz: gives, so a node handles both with one nil check. */
+static int ntp_last_date = -1;
+
 int ntp_target_sync(int tz_offset_seconds) {
     struct sntp_time ts;
-    int rc = sntp_simple(OEVM_NTP_SERVER, 4000, &ts);   /* 4 s timeout */
+    int rc;
+
+#ifdef OEVM_NTP_SERVER6
+    struct sockaddr_in6 srv = { .sin6_family = AF_INET6, .sin6_port = 0 };
+
+    if (net_addr_pton(AF_INET6, OEVM_NTP_SERVER6, &srv.sin6_addr) < 0) {
+        /* A malformed literal is a build-time typo that would otherwise present
+           as a silent -1 forever, indistinguishable from an unreachable server. */
+        printk("ntp: OEVM_NTP_SERVER6 '%s' is not a valid IPv6 address\n",
+               OEVM_NTP_SERVER6);
+        return -1;
+    }
+    rc = sntp_simple_addr((struct sockaddr *)&srv, sizeof(srv), 4000, &ts);
+    if (rc < 0) {
+        printk("ntp: sntp_simple_addr(%s) rc=%d\n", OEVM_NTP_SERVER6, rc);
+        return -1;
+    }
+#else
+    rc = sntp_simple(OEVM_NTP_SERVER, 4000, &ts);   /* 4 s timeout */
     if (rc < 0) { printk("ntp: sntp_simple rc=%d\n", rc); return -1; }
+#endif
+
+    /* FLOOR division, not truncation: C's / rounds toward zero, so a pre-1970
+       instant would land a day out and take the seconds-of-day with it. Modern
+       dates never reach that branch, which is exactly why it would survive
+       unnoticed if written wrong. */
     int64_t local = (int64_t)ts.seconds + tz_offset_seconds;
-    int64_t sod = ((local % 86400) + 86400) % 86400;    /* seconds of local day */
-    printk("ntp: ok, local sod=%lld\n", (long long)sod);
+    int64_t days  = (local >= 0) ? (local / 86400) : ((local - 86399) / 86400);
+    int64_t sod   = local - days * 86400;               /* seconds of local day */
+
+    /* Howard Hinnant's civil_from_days: days-since-1970 -> y/m/d, exact for any
+       Gregorian date and with no libc `time` dependency. gmtime_r would do it, but
+       it drags in locale/timezone machinery this seam has no use for — the tz
+       offset was already applied above, deliberately, because NTP hands out UTC
+       and the timezone is a product fact the caller owns. */
+    int64_t z = days + 719468;
+    int64_t era = (z >= 0 ? z : z - 146096) / 146097;
+    unsigned doe = (unsigned)(z - era * 146097);                        /* [0, 146096] */
+    unsigned yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    int64_t  yy  = (int64_t)yoe + era * 400;
+    unsigned doy = doe - (365 * yoe + yoe / 4 - yoe / 100);             /* [0, 365]   */
+    unsigned mp  = (5 * doy + 2) / 153;                                 /* [0, 11]    */
+    unsigned dd  = doy - (153 * mp + 2) / 5 + 1;                        /* [1, 31]    */
+    unsigned mm  = (mp < 10) ? (mp + 3) : (mp - 9);                     /* [1, 12]    */
+    yy += (mm <= 2);
+
+    ntp_last_date = (int)(yy * 10000 + mm * 100 + dd);
+
+    printk("ntp: ok, local %d sod=%lld\n", ntp_last_date, (long long)sod);
     return (int)sod;
 }
+
+int ntp_target_date(void) { return ntp_last_date; }
 #else
-/* No CONFIG_WIFI on this board: the symbol must still link, because platform.c's
-   extern is unconditional and every Zephyr board shares that translation unit. Same
-   rule as the bell pair — guard the BODY, never the definition. */
+/* No SNTP in this image: the symbols must still link, because platform.c's externs
+   are unconditional and every Zephyr board shares that translation unit. Same rule
+   as the bell pair — guard the BODY, never the definition. */
 int ntp_target_sync(int tz_offset_seconds) { (void)tz_offset_seconds; return -1; }
-#endif /* CONFIG_WIFI */
+int ntp_target_date(void) { return -1; }
+#endif /* CONFIG_SNTP */
 
 /* tuvm#94 stage 5: the RTC-retention seam, device side. On espressif SoCs g_rtc lands
    in the S2's 8 KB rtc_slow memory (0x50000000) via the ESP-IDF RTC_DATA_ATTR macro and
@@ -203,6 +288,127 @@ static int32_t g_rtc[OEVM_RTC_FIELDS];
 int rtc_target_valid(void) { return ((uint32_t)g_rtc[0] == OEVM_RTC_MAGIC) ? 1 : 0; }
 int rtc_target_get(int i) { if (i < 0 || i >= OEVM_RTC_FIELDS) return 0; return g_rtc[i]; }
 void rtc_target_put(int i, int v) { if (i < 0 || i >= OEVM_RTC_FIELDS) return; g_rtc[i] = v; }
+
+/* tuvm#100: the WALL-CLOCK seam, device side — an external RTC (DS3231 over I2C)
+   read through Zephyr's uniform `rtc` API, so the seam is the API and not the
+   part. The board names its RTC with the `wallclock` DT alias; a board that wires
+   a different chip (the design's RV-3028-C7 fallback, §99) re-points that alias
+   and this function does not change.
+
+   Answers SECONDS SINCE LOCAL MIDNIGHT, computed HERE in C for ntp_target_sync's
+   reason: it is the only reduction that fits an SMI, and doing it in nsl would
+   mean shipping a 32-bit epoch through a 31-bit tag. The DS3231 holds LOCAL time
+   directly (whatever was written to it), so unlike the NTP leaf there is no tz
+   offset to apply — see prim_ids.h.
+
+   -1 (-> nil in nsl) for every failure, and for a board with no RTC at all, so
+   the clock free-runs: exactly the NTP leaf's contract. Note the symbol is
+   defined UNCONDITIONALLY — platform.c's extern is unconditional and every Zephyr
+   board shares that translation unit — so the guard is inside the body, never
+   around the definition. Same rule as bell/ntp/rtc above.
+
+   device_is_ready() is checked on EVERY call rather than cached at boot. It costs
+   a pointer test, and the alternative caches a "yes" taken before the I2C bus was
+   necessarily up; a bell that decides once at boot that it has no clock would
+   free-run for the rest of its life on a transient. */
+#if DT_NODE_EXISTS(DT_ALIAS(wallclock))
+#include <zephyr/drivers/rtc.h>
+#endif
+/* The floor the unset-clock guard below compares against. A calendar year rather
+   than a build date because it must not drift with the build: a device flashed
+   once and hung on a wall for a decade keeps this comparison meaningful, whereas
+   __DATE__ would start rejecting a correctly-set clock the moment the firmware
+   outlived its own build year. Any value between the program's start and the
+   present works; it only has to be above the DS3231's power-on 2000. */
+#ifndef OEVM_WALLCLOCK_MIN_YEAR
+#define OEVM_WALLCLOCK_MIN_YEAR 2020
+#endif
+int wallclock_target_read(void) {
+#if DT_NODE_EXISTS(DT_ALIAS(wallclock))
+    static const struct device *const rtc_dev = DEVICE_DT_GET(DT_ALIAS(wallclock));
+    struct rtc_time tm;
+    int rc;
+
+    if (!device_is_ready(rtc_dev)) { printk("wallclock: device not ready\n"); return -1; }
+    rc = rtc_get_time(rtc_dev, &tm);
+    if (rc < 0) { printk("wallclock: rtc_get_time rc=%d\n", rc); return -1; }
+
+    /* THE UNSET-CLOCK GUARD, and why it reads a year to answer a question about
+       seconds. rtc_get_time() documents -ENODATA for "time has not been set"
+       (include/zephyr/drivers/rtc.h:212) — but THIS DRIVER NEVER RETURNS IT.
+       rtc_ds3231_get_time (drivers/rtc/rtc_ds3231.c:339) reads the seven time
+       registers and converts, full stop; it never consults the DS3231's own
+       oscillator-stop flag. So a part fresh from the factory, or one whose coin
+       cell died while mains was off, answers rc=0 with a perfectly well-formed
+       00:00:00 — and 00:00:00 is a VALID time, the exact moment eight bells are
+       due. Trusting rc alone would make a dead battery ring midnight.
+
+       OSF is the right signal and it is not reachable: rtc_ds3231_get_ctrl_sts()
+       is static AND compiled only under CONFIG_RTC_ALARM (line 196), which is off
+       here until the ISW wire lands. Making get_time answer -ENODATA when OSF is
+       set is an upstream fix, and belongs on the same list as #91-#93/#95.
+
+       Until then the YEAR is the proxy, because it is in the public struct and an
+       unset DS3231 reports 2000 (tm_year 100, years-since-1900) while any clock
+       someone actually set reports the year they set it to. This is weaker than
+       OSF — it cannot catch a part that stopped this year — but it is exactly
+       strong enough for the failure that matters on a shelf-stored bell: never
+       set, or set once and then power-lost with a flat CR2032. */
+    if (tm.tm_year + 1900 < OEVM_WALLCLOCK_MIN_YEAR) {
+        printk("wallclock: unset (year %d)\n", tm.tm_year + 1900);
+        return -1;
+    }
+    return tm.tm_hour * 3600 + tm.tm_min * 60 + tm.tm_sec;
+#else
+    return -1;   /* no RTC in this board's devicetree */
+#endif
+}
+
+/* tuvm#100: the other half of the seam — set the RTC. `yyyymmdd` is a packed
+   decimal date (20260731) and `seconds_of_day` is wallclock_target_read's own
+   unit, so a set followed by a read is an identity. -1 (-> nil) for no RTC or a
+   refused write; 0 on success.
+
+   struct rtc_time is Zephyr's own alias for struct tm, so the two fields that bite
+   everywhere else bite here: tm_year is YEARS SINCE 1900 (2026 -> 126) and tm_mon
+   is 0-BASED (July -> 6). Getting either wrong writes a plausible-looking wrong
+   date that the read side's year guard would then happily accept, so they are
+   converted here, once, next to the comment that says why.
+
+   The remaining fields are zeroed rather than left uninitialised: rtc_set_time
+   hands the whole struct to the driver, which writes all seven registers, so a
+   stack-garbage tm_wday reaches the part. tm_wday is set to 0 rather than
+   computed — the DS3231 keeps a day-of-week counter that nothing in this product
+   reads, and inventing a value would imply a correctness this seam does not
+   provide. */
+int wallclock_target_set(int yyyymmdd, int seconds_of_day) {
+#if DT_NODE_EXISTS(DT_ALIAS(wallclock))
+    static const struct device *const rtc_dev = DEVICE_DT_GET(DT_ALIAS(wallclock));
+    struct rtc_time tm;
+    int rc;
+
+    if (seconds_of_day < 0 || seconds_of_day > 86399) return -1;
+    if (!device_is_ready(rtc_dev)) { printk("wallclock: device not ready\n"); return -1; }
+
+    memset(&tm, 0, sizeof tm);
+    tm.tm_year = (yyyymmdd / 10000) - 1900;          /* years since 1900 */
+    tm.tm_mon  = ((yyyymmdd / 100) % 100) - 1;       /* 0-based month */
+    tm.tm_mday = yyyymmdd % 100;
+    tm.tm_hour = seconds_of_day / 3600;
+    tm.tm_min  = (seconds_of_day % 3600) / 60;
+    tm.tm_sec  = seconds_of_day % 60;
+
+    rc = rtc_set_time(rtc_dev, &tm);
+    if (rc < 0) { printk("wallclock: rtc_set_time rc=%d\n", rc); return -1; }
+    printk("wallclock: set %04d-%02d-%02d %02d:%02d:%02d\n",
+           yyyymmdd / 10000, ((yyyymmdd / 100) % 100), yyyymmdd % 100,
+           tm.tm_hour, tm.tm_min, tm.tm_sec);
+    return 0;
+#else
+    (void)yyyymmdd; (void)seconds_of_day;
+    return -1;   /* no RTC in this board's devicetree */
+#endif
+}
 
 #if defined(CONFIG_SOC_FAMILY_ESPRESSIF_ESP32)
 #include <esp_sleep.h>
@@ -1084,6 +1290,34 @@ static void wire_gpio_outputs(void) {
         gpio_pin_configure_dt(&gpio_outputs[i], GPIO_OUTPUT_INACTIVE);
     }
 }
+/* AS EARLY AS THE OS ALLOWS, because a declared output is a load that is OFF only
+ * while something drives it that way (2026-07-31, shipsBellsV3 bench).
+ *
+ * Calling this from main() — where it used to live, and still is, harmlessly — is
+ * far too late for anything that can be damaged by being left on. The 12 V strike
+ * driver has no base pull-down on its level-shifter, so its coil is energised for
+ * every microsecond GPIO18 is not actively held low; main() runs after ALL init
+ * levels, after kernel_boot() and after oimg_load_blob(), which on this board is
+ * hundreds of milliseconds of coil.
+ *
+ * PRE_KERNEL_1 at priority 50: CONFIG_GPIO_INIT_PRIORITY defaults to
+ * KERNEL_INIT_PRIORITY_DEFAULT (40, drivers/gpio/Kconfig:48), so 50 is the first
+ * slot at which gpio_pin_configure_dt() is legal — the controller exists and
+ * nothing else has run.
+ *
+ * THIS IS A MITIGATION, NOT A FIX, and the distinction matters enough to write
+ * down. It cannot help during esptool's download mode, the ROM bootloader, a
+ * brown-out, or a CPU that never reaches init at all — windows of SECONDS during
+ * which the pin is whatever reset left it. Only a pull-down resistor at the
+ * transistor makes the off-state a property of the circuit instead of a property
+ * of software being alive. See docs/design/2026-07-26-shipsbellsv3-design.md §8:
+ * "Never let a crashed VM be the only thing between a GPIO and a burnt coil."
+ */
+static int gpio_outputs_early_init(void) {
+    wire_gpio_outputs();
+    return 0;
+}
+SYS_INIT(gpio_outputs_early_init, PRE_KERNEL_1, 50);
 #else
 static inline void wire_gpio_outputs(void) { }
 #endif
@@ -1171,6 +1405,241 @@ static void oevm_roots_callback(void) {
 
 static uint64_t zephyr_millis(void) { return (uint64_t)k_uptime_get(); }
 
+/* shipsBellsV3 §11.2 — ONE strike, from C, with no VM involved.
+ *
+ * This is bench instrumentation for the first energisation of a coil, not the
+ * product path: the real striker will go through the gpio seam from nsl. It
+ * exists because the first time current flows through a solenoid is the wrong
+ * moment to also be debugging an image load, a heap size and a channel
+ * reaction — if this pulse throws the plunger, every one of those is exonerated
+ * in advance.
+ *
+ * Compiled ONLY when TUVM_SOLENOID_PULSE_MS is defined on the command line
+ * (run.sh --conf-extra), so no ordinary build can strike anything by accident.
+ *
+ * BUSY-WAIT, NOT k_msleep. The on-time IS the measurement here — §11.2 walks
+ * 100 -> 50 -> 30 -> 25 -> 20 -> 15 -> 10 ms hunting the minimum pulse that
+ * still throws — and k_msleep quantises to the kernel tick, which would silently
+ * round the bottom of that ladder up and make two rungs report as one. IRQs are
+ * deliberately NOT locked: 15 ms of locked interrupts would be far more hostile
+ * to a build that also carries a radio than the few microseconds an ISR can add
+ * to the pulse, and that error is in the harmless direction against a cap of a
+ * second. */
+#if defined(TUVM_SOLENOID_PULSE_MS) && DT_NODE_EXISTS(DT_ALIAS(gpioout))
+#ifndef TUVM_SOLENOID_PIN
+#define TUVM_SOLENOID_PIN 18
+#endif
+/* §8's firmware on-time cap, enforced where it cannot be forgotten. ~10 W flows
+ * while the coil is held; a fat-fingered --conf-extra is exactly the fault the
+ * cap exists for, and a build error costs nothing next to a burnt coil. */
+BUILD_ASSERT(TUVM_SOLENOID_PULSE_MS > 0 && TUVM_SOLENOID_PULSE_MS <= 1000,
+             "TUVM_SOLENOID_PULSE_MS must be within (0, 1000] ms — shipsBellsV3 §8 on-time cap");
+
+static void solenoid_oneshot(void) {
+    /* The delay is for the operator, not the hardware: esptool's post-flash reset
+       means the board is already running by the time a console reader attaches,
+       and a strike nobody is listening to is a wasted flash cycle. */
+    printk("strike: GPIO%d armed, %d ms pulse, firing in 3 s\n",
+           TUVM_SOLENOID_PIN, TUVM_SOLENOID_PULSE_MS);
+    k_sleep(K_SECONDS(3));
+
+    /* gpio_target_set answers 1/0, where 0 means "this board declared no such
+       output" — which on a bring-up path is the difference between "the driver
+       did not fire" and "the firmware never addressed the pin". Never discard it. */
+    int on  = gpio_target_set(TUVM_SOLENOID_PIN, 1);
+    k_busy_wait(TUVM_SOLENOID_PULSE_MS * 1000);
+    int off = gpio_target_set(TUVM_SOLENOID_PIN, 0);
+
+    printk("strike: fired on=%d off=%d (1==pin driven, 0==pin not declared)\n", on, off);
+}
+#endif
+
+/* shipsBellsV3 — STRIKE ON DEMAND from the console, so the §11.2 ladder can be
+ * walked by ear without a reflash between rungs (2026-07-31 bench).
+ *
+ * Type a decimal number of milliseconds and Enter; that pulse fires immediately.
+ * Deliberately NOT the Zephyr shell: CONFIG_SHELL would take ownership of the
+ * console this image already prints the VM's output on, for one command. This is
+ * ~30 lines of uart_poll_in against the same console device, and RX is otherwise
+ * unused in this build (no shell, no console subsystem — verified in .config).
+ *
+ * Independent of TUVM_SOLENOID_PULSE_MS: this build has no boot strike at all,
+ * which is the point — every strike is one the operator asked for, at a moment
+ * they chose, so a ring nobody typed is unambiguously a fault rather than a
+ * feature. That distinction is what the boot-window investigation still needs.
+ */
+#if defined(TUVM_SOLENOID_CONSOLE) && DT_NODE_EXISTS(DT_ALIAS(gpioout))
+#ifndef TUVM_SOLENOID_PIN
+#define TUVM_SOLENOID_PIN 18
+#endif
+
+/* Two limits, both about the coil rather than the code. 250 ms is well inside
+ * §8's 1 s cap and already 2.5x the top of §11.2's ladder — an interactive path
+ * where a stray keystroke can energise a coil does not need the full range. The
+ * 1 s cooldown bounds the duty cycle when someone leans on Enter: at 250 ms per
+ * strike that is 25%, and §7's ~10 W while held is what is being rationed. */
+#define STRIKE_MAX_MS   250
+#define STRIKE_COOLDOWN_MS 1000
+
+static const struct device *const strike_uart = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+
+/* The bare pulse. No limits and no cooldown of its own — every caller below
+   applies those BEFORE getting here, once per operator request rather than once
+   per strike, so a bell pattern is not fought by the single-strike governor. */
+static void strike_pulse(int ms) {
+    /* Busy-wait, not k_msleep: the on-time IS the measurement — see the note on
+       solenoid_oneshot above for why the tick would blur the bottom rungs. */
+    int on = gpio_target_set(TUVM_SOLENOID_PIN, 1);
+    k_busy_wait(ms * 1000);
+    int off = gpio_target_set(TUVM_SOLENOID_PIN, 0);
+    printk("strike: %d ms fired on=%d off=%d\n", ms, on, off);
+}
+
+static int64_t strike_last;          /* uptime of the last operator request */
+static int     strike_width = 10;    /* ms; what `bN` strikes with. 10 was solid on
+                                        the bench 2026-07-31, 5 failed. */
+
+static bool strike_governor(void) {
+    int64_t now = k_uptime_get();
+    if (strike_last && (now - strike_last) < STRIKE_COOLDOWN_MS) {
+        printk("strike: too soon (%d ms since last, need %d) — coil duty cycle\n",
+               (int)(now - strike_last), STRIKE_COOLDOWN_MS);
+        return false;
+    }
+    strike_last = now;
+    return true;
+}
+
+static void strike_fire(int ms) {
+    if (ms <= 0 || ms > STRIKE_MAX_MS) {
+        printk("strike: %d ms REFUSED (allowed 1..%d)\n", ms, STRIKE_MAX_MS);
+        return;
+    }
+    if (!strike_governor()) {
+        return;
+    }
+    strike_width = ms;   /* so `bN` rings at whatever width was last proven by ear */
+    strike_pulse(ms);
+}
+
+/* N BELLS, STRUCK IN PAIRS — the ship's-bell convention, on the solenoid.
+   Two quick strikes, a gap, two more, with a LONE FINAL STROKE for an odd count.
+
+   THE GAPS ARE RUNTIME-SETTABLE, and the reason is a bench result: the 160/600 ms
+   pair borrowed from bell_strike_pattern() above was "way too fast" on both gaps
+   (2026-07-31). That is not a bug in either — the DAC bell is a synthetic tone
+   that decays in a few hundred ms, while a real bell rings for seconds, so the
+   rhythm that suits one crowds the other. Physical decay is a property of the
+   bell on the bench, so it is tuned by ear, not chosen in a header.
+
+   Defaults below are a deliberate over-correction from the DAC figures; expect to
+   land them by ear with `p`/`g` and then promote whatever wins into the design.
+
+   BELL_MAX_WIDTH_MS is the duty guard: eight strikes at the 250 ms single-shot
+   ceiling would be 2 s of coil inside 3 s, so the pattern path caps the width far
+   lower. At 50 ms x 8 it is 400 ms of coil, now spread over even longer. Gaps are
+   OFF-time, so stretching them only ever improves the duty cycle. */
+#define BELL_MAX_COUNT      8
+#define BELL_MAX_WIDTH_MS   50
+#define BELL_GAP_MIN_MS     50
+#define BELL_GAP_MAX_MS     5000
+
+static int bell_gap_pair = 500;    /* within a pair */
+static int bell_gap_set  = 1600;   /* between pairs */
+
+static void bell_show(void) {
+    printk("bells: width %d ms, pair gap %d ms, set gap %d ms\n",
+           strike_width, bell_gap_pair, bell_gap_set);
+}
+
+static void bell_set_gap(int *slot, const char *name, int ms) {
+    if (ms < BELL_GAP_MIN_MS || ms > BELL_GAP_MAX_MS) {
+        printk("bells: %s gap %d ms REFUSED (allowed %d..%d)\n",
+               name, ms, BELL_GAP_MIN_MS, BELL_GAP_MAX_MS);
+        return;
+    }
+    *slot = ms;
+    bell_show();
+}
+
+static void strike_bells(int n) {
+    if (n <= 0 || n > BELL_MAX_COUNT) {
+        printk("bells: %d REFUSED (allowed 1..%d)\n", n, BELL_MAX_COUNT);
+        return;
+    }
+    if (strike_width > BELL_MAX_WIDTH_MS) {
+        printk("bells: width %d ms REFUSED for a pattern (max %d) — set it with a "
+               "single strike first\n", strike_width, BELL_MAX_WIDTH_MS);
+        return;
+    }
+    if (!strike_governor()) {
+        return;
+    }
+
+    printk("bells: %d x %d ms (pair %d, set %d)\n",
+           n, strike_width, bell_gap_pair, bell_gap_set);
+    for (int i = 0; i < n; i++) {
+        strike_pulse(strike_width);
+        if (i == n - 1) {
+            break;
+        }
+        /* even index = first of a pair, so the SHORT gap holds the pair together;
+           odd index = second of a pair, so the LONG gap separates the pairs. */
+        k_msleep((i % 2 == 0) ? bell_gap_pair : bell_gap_set);
+    }
+    strike_last = k_uptime_get();   /* cooldown runs from the END of the pattern */
+    printk("bells: done\n");
+}
+
+static void strike_console(void *a, void *b, void *c) {
+    ARG_UNUSED(a); ARG_UNUSED(b); ARG_UNUSED(c);
+    char line[8];
+    int n = 0;
+    unsigned char ch;
+
+    if (!device_is_ready(strike_uart)) {
+        printk("strike-console: console uart not ready\n");
+        return;
+    }
+    printk("strike-console: <ms>=one strike (1..%d)  b<n>=ring n bells (1..%d)  "
+           "p<ms>=pair gap  g<ms>=set gap  s=show\n",
+           STRIKE_MAX_MS, BELL_MAX_COUNT);
+
+    for (;;) {
+        if (uart_poll_in(strike_uart, &ch) != 0) {
+            k_msleep(20);   /* nothing typed; this thread must not spin */
+            continue;
+        }
+        if (ch == '\r' || ch == '\n') {
+            if (n) {
+                line[n] = '\0';
+                switch (line[0]) {
+                case 'b': strike_bells(atoi(line + 1)); break;
+                case 'p': bell_set_gap(&bell_gap_pair, "pair", atoi(line + 1)); break;
+                case 'g': bell_set_gap(&bell_gap_set,  "set",  atoi(line + 1)); break;
+                case 's': bell_show(); break;
+                default:  strike_fire(atoi(line)); break;
+                }
+                n = 0;
+            }
+        } else if ((ch >= '0' && ch <= '9') ||
+                   (n == 0 && (ch == 'b' || ch == 'p' || ch == 'g' || ch == 's'))) {
+            if (n < (int)sizeof(line) - 1) {
+                line[n++] = (char)ch;
+            }
+        } else {
+            n = 0;   /* anything else abandons the line rather than firing a
+                        partially-parsed width */
+        }
+    }
+}
+
+/* Low priority and a small stack: it polls, sleeps, and calls two gpio setters.
+   Started by the kernel after all init levels, so the SYS_INIT above has already
+   driven the pin low before this thread can touch it. */
+K_THREAD_DEFINE(strike_console_tid, 1024, strike_console, NULL, NULL, NULL, 10, 0, 0);
+#endif
+
 int main(void) {
     /* Unbuffered stdout: native_sim's console is a thin wrapper over the
        host's own stdout. Without this, libc line-buffers and a crash
@@ -1215,6 +1684,13 @@ int main(void) {
 
     wire_pulse_gpio();   /* Task 8 (DK): arm BUTTON1 as the pulse edge; no-op on native_sim */
     wire_gpio_outputs();   /* tuvm#82: configure declared outputs INACTIVE; no-op where none */
+
+#if defined(TUVM_SOLENOID_PULSE_MS) && DT_NODE_EXISTS(DT_ALIAS(gpioout))
+    /* Immediately after wire_gpio_outputs(), and before any radio bring-up: the
+       pin is now driven de-energised rather than floating, and nothing else has
+       had a chance to hold the CPU. */
+    solenoid_oneshot();
+#endif
 
 #if defined(CONFIG_PWM) && DT_NODE_EXISTS(DT_ALIAS(spkren))
     magtag_chime();   /* spike: prove the MagTag speaker path at boot */

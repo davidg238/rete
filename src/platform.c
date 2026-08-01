@@ -287,6 +287,77 @@ int ntp_target_sync(int tz_offset_seconds) {
     return (int)(((secs % 86400) + 86400) % 86400);
 }
 
+/* tuvm#100 (2026-08-01): the host side of `ntpDate`. Same determinism contract as
+   ntp_target_sync above — OEVM_NTP_DATE=20260801 is what a suite test sets when it
+   wants to drive the RTC-correction path to an exact expected value.
+   Deliberately INDEPENDENT of OEVM_NTP_SECONDS rather than derived from it, so a
+   test can set either alone — 20_bell/11 exercises the date-absent path by simply
+   omitting this one. On the device the two always come from one response. */
+int ntp_target_date(void) {
+    static int mode = -1;      /* -1 unknown, 0 no-date, 1 has-date */
+    static long date = 0;
+    if (mode < 0) {
+        const char *s = getenv("OEVM_NTP_DATE");
+        if (s != NULL) { mode = 1; date = atol(s); }
+        else { mode = 0; }
+    }
+    if (mode == 0) return -1;
+    return (int)date;
+}
+
+/* tuvm#100: the host side of the WALL-CLOCK seam. Same shape and same reasoning
+   as ntp_target_sync above — the host has no RTC, so what it offers instead is
+   DETERMINISM: OEVM_WALLCLOCK_SECONDS=N makes it answer N (seconds since local
+   midnight), which is what lets a suite test drive schedule arithmetic to an
+   exact expected value instead of against wall time.
+   With the variable UNSET the answer is -1 (-> nil), which is the honest default:
+   a host really has no DS3231 on it, and that is precisely the "no RTC on this
+   board" path a node must handle. So unlike the bell and the display, this seam
+   needs no OEVM_NO_* knob to reach its structural-failure branch — absence IS
+   the default. Cached once so getenv is not re-read per reading. */
+/* The host models a DATE as well as a time-of-day, even though nothing on the
+   host reads a calendar. Two reasons, both about keeping the two sides honest:
+   wallClockSetDate:time: takes a date because Zephyr's rtc_set_time does, so a
+   host that dropped it would let a node pass garbage the device would reject; and
+   the unset-clock guard is a YEAR comparison (zephyr/src/main.c), so modelling the
+   year is what lets 04 exercise that guard without a DS3231 on the bench. */
+#define OEVM_WALLCLOCK_MIN_YEAR 2020   /* keep in step with zephyr/src/main.c */
+static int g_wc_set = 0;               /* 0 = never set — the cold, no-RTC default */
+static int g_wc_secs = 0;
+static int g_wc_year = 0;
+static void wallclock_load_once(void) {
+    static int loaded = 0;
+    const char *s;
+    if (loaded) return;
+    loaded = 1;
+    s = getenv("OEVM_WALLCLOCK_SECONDS");
+    if (s == NULL) return;             /* default: no RTC on host */
+    /* Setting the variable MEANS "this board has a clock and it has been set", so
+       the year is stamped plausible here. Otherwise every existing test would have
+       to name a date it does not care about just to get past the year guard, and
+       the guard is not what those tests are about. */
+    g_wc_set = 1;
+    g_wc_secs = (int)(((atol(s) % 86400) + 86400) % 86400);
+    g_wc_year = OEVM_WALLCLOCK_MIN_YEAR;
+}
+int wallclock_target_read(void) {
+    wallclock_load_once();
+    if (!g_wc_set) return -1;
+    if (g_wc_year < OEVM_WALLCLOCK_MIN_YEAR) return -1;   /* mirrors the device guard */
+    return g_wc_secs;
+}
+/* yyyymmdd is packed decimal (20260731). Only the year is inspected — the host has
+   no calendar to keep, and the month and day are carried solely so the argument
+   shape matches the device's, where they reach a real register. */
+int wallclock_target_set(int yyyymmdd, int seconds_of_day) {
+    wallclock_load_once();
+    if (seconds_of_day < 0 || seconds_of_day > 86399) return -1;
+    g_wc_year = yyyymmdd / 10000;
+    g_wc_secs = seconds_of_day;
+    g_wc_set = 1;
+    return 0;
+}
+
 /* tuvm#94 stage 5: the host side of the RTC-retention seam. On device this struct
    lives in .rtc.data and survives deep sleep; on host it is a plain int32 array that
    optionally persists to OEVM_RTC_FILE so the node can be re-exec'd N times and the
@@ -341,6 +412,10 @@ extern int bell_target_strike(int bells);
    Zephyr board, so main.c guards the BODY (a board without CONFIG_WIFI answers -1),
    never the definition. */
 extern int ntp_target_sync(int tz_offset_seconds);
+/* tuvm#100 (2026-08-01): the date half of the NTP seam. Same linkage rule; it
+   answers -1 until a sync has succeeded, so a board with no network is already
+   handled without a second guard. */
+extern int ntp_target_date(void);
 /* tuvm#94 stage 5: RTC-retention leaves live in zephyr/src/main.c (the .rtc.data
    struct is beside the wifi/ntp leaves). Same rule as bell/ntp — the symbols link on
    every Zephyr board; main.c guards bodies, never definitions. */
@@ -350,6 +425,12 @@ extern void rtc_target_put(int i, int v);
 /* tuvm#94 stage 5: deepSleep: device leaf deferred to a later task (zephyr/src/main.c
    not yet touched); the extern must exist now so this shared translation unit links. */
 extern void deep_sleep_target(int seconds);
+/* tuvm#100: the wall-clock leaf lives in zephyr/src/main.c beside the other
+   devicetree-reading leaves. Same rule as bell/ntp/rtc — the symbol must link on
+   EVERY Zephyr board, so main.c guards the BODY (a board with no RTC node in its
+   devicetree answers -1), never the definition. */
+extern int wallclock_target_read(void);
+extern int wallclock_target_set(int yyyymmdd, int seconds_of_day);
 #endif
 
 /* Target GPIO-ISR entry (Zephyr rung-2 Task 8): a real on-target GPIO edge
@@ -1294,6 +1375,15 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = TAG_SMI(r);
         return 1;
     }
+    case PRIM_pf_ntpDate: {
+        /* tuvm#100. nil = no sync has succeeded this boot; otherwise the SMI
+           yyyymmdd of the LAST one. No request is made here — the date came back
+           in the response ntpSyncTz: already received. */
+        int r = ntp_target_date();
+        if (r < 0) { *out = NULL; return 1; }
+        *out = TAG_SMI(r);
+        return 1;
+    }
     case PRIM_pf_rtcValid: {
         /* SMI 0/1; the kernel forwarder coerces to a Boolean, so no true/false oop
            is needed in C. */
@@ -1306,6 +1396,27 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
     }
     case PRIM_pf_rtcPut: {
         rtc_target_put((int)UNTAG_SMI(args[0]), (int)UNTAG_SMI(args[1]));
+        *out = TAG_SMI(0);
+        return 1;
+    }
+    case PRIM_pf_wallClock: {
+        /* tuvm#100. nil = no RTC on this board, or it has never been set;
+           otherwise the SMI seconds-since-local-midnight. Exactly ntpSync's
+           answer shape and, like it, no availability probe runs first: to a node
+           that will free-run either way, "this board has no RTC" and "the RTC
+           could not be read" are the same answer, so one nil serves both. */
+        int r = wallclock_target_read();
+        if (r < 0) { *out = NULL; return 1; }
+        *out = TAG_SMI(r);
+        return 1;
+    }
+    case PRIM_pf_wallClockSet: {
+        /* nil = no RTC, or the write was refused; SMI 0 = set. The range check on
+           the time lives in the leaf rather than here so both sides enforce it
+           identically — a caller that passes 90000 gets nil, not a part programmed
+           with a time that cannot exist. */
+        int r = wallclock_target_set((int)UNTAG_SMI(args[0]), (int)UNTAG_SMI(args[1]));
+        if (r < 0) { *out = NULL; return 1; }
         *out = TAG_SMI(0);
         return 1;
     }

@@ -307,4 +307,50 @@
    On host it logs and exit(0)s so a run terminates. Counted (not computed) to be the
    134th PRIM_NAMES entry. */
 #define PRIM_pf_deepSleep         134
+
+/* tuvm#100: the WALL-CLOCK seam — an external RTC (DS3231 over I2C) as the
+   timebase. `wallClock` answers SECONDS SINCE LOCAL MIDNIGHT (0..86399).
+   NOT to be confused with PRIM_pf_rtcValid/rtcGet/rtcPut above: those are the
+   deep-sleep RETENTION store (RAM that survives a sleep), which is a different
+   device and a different question. The name collision is why this seam is
+   `wallClock` and not `rtc*`.
+   ANSWER CONVENTION, ntpSync's exactly: nil = no RTC on this board, or it has
+   never been set (structural, and a node treats both the same way — free-run);
+   an SMI = seconds since local midnight. Answering in the same shape as
+   ntpSyncTz: is deliberate: schedule arithmetic must not be able to tell which
+   timebase produced the number, so the two are interchangeable.
+   Epoch seconds are NOT an option — 2^30 SMI, same reason ntpSync gives.
+   There is no tz argument: NTP hands out UTC and the product applies its own
+   offset, whereas an RTC holds the local time that was written to it, so a
+   second offset here would double-correct.
+   Counted (not computed): 134 PRIM_NAMES entries precede this, so this is the
+   135th, per the standing rule above. */
+#define PRIM_pf_wallClock         135
+
+/* tuvm#100: `wallClockSetDate: yyyymmdd time: secondsOfDay` sets the RTC.
+   The date is packed DECIMAL (20260731), not three arguments: Zephyr's
+   rtc_set_time takes a whole struct rtc_time so the seam cannot be time-of-day
+   only, but a six-keyword prim would exceed anything else in this VM. 20260731
+   is SMI-safe with room to spare (2.0e7 against 2^30). The time half stays in
+   `wallClock`'s own unit so a round trip is an identity, not a conversion.
+   ONE call rather than a date write then a time write: two steps leave a window
+   where the part holds a date from one instant and a time from another, and the
+   second write can land after midnight has moved the day on.
+   ANSWER CONVENTION: nil = no RTC on this board, or the write failed; SMI 0 = set.
+   Counted (not computed): the 136th PRIM_NAMES entry. */
+#define PRIM_pf_wallClockSet      136
+
+/* tuvm#100 (2026-08-01): `ntpDate` answers the packed DECIMAL date (20260801) of
+   the last successful ntpSyncTz:, in that call's timezone. It exists because
+   ntpSyncTz: answers seconds-of-day while wallClockSetDate:time: requires a date,
+   so without this the correction loop can measure the RTC's error and not fix it.
+   IT DOES NOT PERFORM A REQUEST — it reads the response ntpSyncTz: already
+   received. A second request would mean another 4-second blocking call and more
+   radio traffic for a value already in hand.
+   ORDERING CONTRACT: call ntpSyncTz: first and only read this if it answered
+   non-nil. A node that ignores that gets the previous sync's date, or nil.
+   ANSWER CONVENTION: nil = no sync has ever succeeded in this boot (structural,
+   same as ntpSyncTz:'s own nil); otherwise the SMI yyyymmdd.
+   Counted (not computed): the 137th PRIM_NAMES entry. */
+#define PRIM_pf_ntpDate           137
 #endif /* OEVM_PRIM_IDS_H */

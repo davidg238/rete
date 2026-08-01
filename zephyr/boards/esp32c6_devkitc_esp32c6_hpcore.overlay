@@ -10,6 +10,127 @@
  * -> esp32c6_devkitc_esp32c6_hpcore.overlay). CMake CACHES overlay discovery, so
  * a newly-added overlay needs -p always on the first build after adding it.
  */
+#include <zephyr/dt-bindings/gpio/gpio.h>   /* GPIO_ACTIVE_LOW / GPIO_PULL_UP below */
+
 &ieee802154 {
 	status = "okay";
+};
+
+/* tuvm#100 — DS3231 on the C6's i2c0, the shipsBellsV3 timebase.
+ *
+ * i2c0 is ALREADY status = "okay" with clock-frequency = I2C_BITRATE_FAST in the
+ * board devicetree (esp32c6_devkitc_hpcore.dts:53-58) on SDA -> GPIO6, SCL ->
+ * GPIO7 (esp32c6_devkitc_hpcore-pinctrl.dtsi:38-39), so this overlay adds only
+ * the device nodes. Same shape as the WROOM-32's amg88xx overlay next door,
+ * including the load-bearing filename rule stated in that file's header.
+ *
+ * TWO NODES, not one: Zephyr's DS3231 support is an MFD. The parent
+ * `maxim,ds3231-mfd` owns the I2C address and the shared register access; the
+ * `maxim,ds3231-rtc` CHILD is what CONFIG_RTC_DS3231 binds and what
+ * DEVICE_DT_GET must name. Pointing the alias at the parent yields a device with
+ * no RTC API and rtc_get_time() fails at runtime with no build error.
+ *
+ * WIRING (bench, 2026-07-31): module VCC -> 3V3, GND -> GND, SDA -> GPIO6,
+ * SCL -> GPIO7, SQW -> GPIO10. Power the module from 3V3 and NOT 5V: its
+ * on-board R22/R23 pull SDA/SCL up to whatever VCC is fed, straight onto the
+ * C6's pins. Do not add pull-ups here — the module already carries 10k on SDA,
+ * SCL and INT/SQW (R21/R22/R23), so GPIO_PULL_UP below is belt-and-braces for a
+ * module that lacks them, not a second parallel resistor worth worrying about.
+ *
+ * `isw-gpios` IS MANDATORY, and not because the binding says so — the binding
+ * leaves it optional. The driver's device macro reads it with
+ * GPIO_DT_SPEC_INST_GET, not the _OR form it uses for freq-32khz-gpios
+ * (drivers/rtc/rtc_ds3231.c:855), so omitting the property is a COMPILE error,
+ * not a graceful degradation. It is declared here ahead of the wire existing.
+ * Nothing touches the pin while CONFIG_RTC_ALARM and CONFIG_RTC_UPDATE are both
+ * off: rtc_ds3231_init_isw() — the only code that configures it — is inside
+ * `#if defined(CONFIG_RTC_UPDATE) || defined(CONFIG_RTC_ALARM)` and both default
+ * to n. Turning either on before the wire is physically in place makes device
+ * init return -ENODEV and the whole RTC disappears, which is worth knowing
+ * because it presents as "the driver is broken" rather than "the pin is
+ * floating".
+ *
+ * GPIO10 was checked free on this part: nothing in the board devicetree claims
+ * it, it is not a strapping pin (4/5/8/9/15), not USB (12/13), not the UART0
+ * console (16/17), and not SPI flash (24-29 — ngpios is 30).
+ *
+ * freq-32khz-gpios is deliberately ABSENT. That pin is not wired, and the
+ * driver does not use it either way (the binding says so outright); the seam
+ * reads the time over I2C rather than disciplining anything against a 32 kHz
+ * edge, which is exactly what the shipsBellsV3 design deleted along with the
+ * MagTag's integrator (tuvm#101).
+ *
+ * The part on the bench module is marked DS3231M (MEMS, +/-5 ppm), not the
+ * +/-2 ppm TCXO the run-of-five specifies. Same driver, same registers, worse
+ * drift — see docs/design/2026-07-26-shipsbellsv3-design.md §95.
+ */
+&i2c0 {
+	status = "okay";
+
+	ds3231: ds3231@68 {
+		compatible = "maxim,ds3231-mfd";
+		reg = <0x68>;
+		status = "okay";
+
+		ds3231_rtc: ds3231_rtc {
+			compatible = "maxim,ds3231-rtc";
+			status = "okay";
+			isw-gpios = <&gpio0 10 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+		};
+	};
+};
+
+/* shipsBellsV3 §8/§15.1 — the strike solenoid's gate, on GPIO18.
+ *
+ * WIRING (bench, 2026-07-31): GPIO18 -> R1 (10k) -> 2N3904 base, per
+ * docs/design/assets/2026-07-28-shipsbells-12v-bench-driver.png. The schematic's
+ * box is still labelled "MagTag ESP32-S2" — §16.1 moved this rig to the C6 and
+ * the diagram has not caught up. Same 3.3 V logic either way.
+ *
+ * ACTIVE_HIGH, and the polarity is load-bearing rather than cosmetic. The
+ * schematic's note 2: "GPIO low, or MCU unplugged -> R2 holds the gate at +12 V
+ * -> MOSFET OFF. The coil cannot energise." So the driver is fail-safe OFF, and
+ * declaring it ACTIVE_HIGH is what makes wire_gpio_outputs()'s
+ * GPIO_OUTPUT_INACTIVE (../src/main.c) drive the pin physically LOW at boot —
+ * i.e. de-energised. Inverting this flag would energise the coil for the entire
+ * life of the image, which is the burnt-coil failure §8 spends three independent
+ * layers defending against. Do not "tidy" it.
+ *
+ * GPIO18 chosen over the other free pins on this part: not strapping (4/5/8/9/15,
+ * with 9 = BOOT button and 8 = the onboard RGB LED), not USB (12/13), not the
+ * UART0 console (16/17), not SPI flash (24-29), not the DS3231's I2C pair (6/7)
+ * or its SQW (10) — and deliberately NOT one of GPIO0-6, which are ADC1 and are
+ * wanted for §11.1's coil-current measurement. It is also NOT an LP GPIO (0-7):
+ * those are the only deep-sleep-wake-capable pins, and §16.1 states this rig is
+ * mains-powered precisely because of the striker, so there is nothing to spend
+ * one on.
+ *
+ * Modelled as gpio-leds only to get a handle with no new binding — nothing
+ * lights — exactly as the MagTag's NeoPixel power gate is
+ * (boards/esp32s2_saola_esp32s2.overlay:96).
+ */
+/ {
+	strike {
+		compatible = "gpio-leds";
+
+		solenoid: solenoid {
+			gpios = <&gpio0 18 GPIO_ACTIVE_HIGH>;
+			label = "shipsBellsV3 strike solenoid (12 V bench driver)";
+		};
+	};
+
+	aliases {
+		/* The seam names the RTC through this alias, never through a node
+		 * label, so a board that wires a different part (the design's
+		 * RV-3028-C7 fallback, §99) re-points one line here and
+		 * wallclock_target_read() is untouched. */
+		wallclock = &ds3231_rtc;
+
+		/* tuvm#82 — the OUTBOUND gpio seam. The ALIAS NAME NEVER REACHES nsl: a
+		 * node names the silkscreen number (18), which ../src/main.c matches
+		 * against this spec's own .pin. Declaring it here is what gets the pin
+		 * driven de-energised at boot by wire_gpio_outputs(), independently of
+		 * whether anything ever strikes. */
+		gpioout = &solenoid;
+	};
 };

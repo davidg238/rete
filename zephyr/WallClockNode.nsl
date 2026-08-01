@@ -1,0 +1,98 @@
+(*
+WallClockNode — tuvm#100 bring-up. Reads the DS3231 over I2C through the
+wallClock seam and prints the time five times, two seconds apart.
+
+FIVE READS, NOT ONE, and that is the whole point of the node. A single reading
+proves only that the I2C transaction completed; it cannot distinguish a running
+clock from a stuck register, a NACK the driver swallowed, or a part answering the
+same power-on default forever. Five readings two seconds apart must ADVANCE, and
+the delta line is the actual assertion — `+2` four times over is the evidence that
+the oscillator is ticking. (A nil answer is also a real result: it is what a board
+with no RTC on the bus reports, and it is what the seam promises rather than an
+error, so a missing module reads as `no rtc` and not as a crash.)
+
+Cancels its repeater before returning, for TimerNode's reason: this node RETURNS
+from main:, so it stops draining, and an uncancelled repeater then fills the
+16-deep pulse mailbox and k_oops()es the node a few seconds later. The token IS
+the right to cancel; holding it is the point.
+
+`platform timers` answers a FRESH Timers each call — it owns the nsl-side pending
+registry — so register and dispatch MUST share ONE instance or every timer event
+is silently dropped. Hold it in a local, never re-ask.
+
+nsl has no modulo, so the h:m:s split is spelled with `//` and subtraction
+throughout (the `x - ((x // n) * n)` form, tuvm#97).
+
+expect:
+finished
+*)
+class WallClockNode packageUsing: manifest = ( | reads ::= 0. prev ::= nil. | ) (
+  public main: platform args: args = (
+    | space timers tick tok |
+    space:: platform space.
+    timers:: platform timers.   (* hold ONE instance — it owns the pending registry *)
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    tick:: space channel: 'tick'.
+    tick whenever: '' do: [ :m | self report: platform ].
+
+    self seedIfUnset: platform.
+
+    tok:: timers every: 2000 post: #t on: tick.
+    [ reads < 5 ] whileTrue: [ platform pumpEvents. space drain ].
+    timers cancel: tok.
+    'finished' out.
+  )
+
+  (* Set the clock ONLY when it reads nil, never when it reads a time.
+     That asymmetry is the whole design of this method. A DS3231 keeps running on
+     its coin cell across a power cycle AND across a re-flash, so a node that set
+     the clock unconditionally would silently reset it to a stale build-time
+     constant on every single flash — and the drift measurement the design asks
+     for (§10) would then measure nothing but how often the board was
+     reprogrammed. Reading first and declining to write is what makes the RTC's
+     time survive this node.
+
+     The seed itself is a CONSTANT baked at authoring time, so it is only as good
+     as the delay between writing this line and the board booting — a minute or
+     two. That is deliberately enough to start the part ticking and no more; it is
+     not a substitute for the real set-time path (§6's BLE service), and the
+     seconds field should not be read as precision it does not have. *)
+  seedIfUnset: platform = (
+    | now rc |
+    now:: platform wallClock.
+    now == nil
+      ifFalse: [ ^ ('clock already set at ' , (self hms: now) , ' — leaving it alone') out ].
+    rc:: platform wallClockSetDate: 20260731 time: 42900.   (* 2026-07-31 11:55:00 MST *)
+    rc == nil
+      ifTrue:  [ 'seed FAILED — no rtc, or the write was refused' out ]
+      ifFalse: [ 'seeded 2026-07-31 11:55:00 (approximate — replace via the real set path)' out ].
+  )
+
+  report: platform = (
+    | secs |
+    reads:: reads + 1.
+    secs:: platform wallClock.
+    secs == nil
+      ifTrue:  [ ('read ' , reads printString , ' no rtc') out ]
+      ifFalse: [
+        ('read ' , reads printString ,
+         ' ' , (self hms: secs) ,
+         ' sod ' , secs printString ,
+         (prev == nil ifTrue: [ '' ] ifFalse: [ ' delta ' , (secs - prev) printString ])) out.
+        prev:: secs ].
+  )
+
+  (* seconds-since-midnight -> 'HH:MM:SS', zero-padded so the columns line up in a
+     serial log. No modulo in nsl: each field is a division and a subtraction. *)
+  hms: secs = (
+    | h rem m s |
+    h::   secs // 3600.
+    rem:: secs - (h * 3600).
+    m::   rem // 60.
+    s::   rem - (m * 60).
+    ^ (self pad: h) , ':' , (self pad: m) , ':' , (self pad: s)
+  )
+
+  pad: n = ( ^ n < 10 ifTrue: [ '0' , n printString ] ifFalse: [ n printString ] )
+) : (
+)
