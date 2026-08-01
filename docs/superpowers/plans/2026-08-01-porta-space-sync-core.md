@@ -213,7 +213,7 @@ names where every v1 verb lands."
   - `func Format(v any) string`
   - `var ErrNotAValue, ErrDepth, ErrTrailing, ErrUTF8, ErrIntRange error`
 
-- [ ] **Step 1: Write the failing golden test**
+- [x] **Step 1: Write the failing golden test**
 
 The first assertion is the node's own published golden, so a passing Go encoder is byte-compatible with the shipped VM by construction.
 
@@ -330,12 +330,12 @@ func TestIntegerBandEdges(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run it to confirm it fails**
+- [x] **Step 2: Run it to confirm it fails**
 
 Run: `cd ~/workspace/porta && go test ./internal/cval/ -v`
 Expected: FAIL — the package does not exist.
 
-- [ ] **Step 3: Implement the types**
+- [x] **Step 3: Implement the types**
 
 ```go
 // internal/cval/value.go
@@ -396,7 +396,7 @@ var (
 const maxDepth = 32
 ```
 
-- [ ] **Step 4: Implement encode**
+- [x] **Step 4: Implement encode**
 
 ```go
 // internal/cval/encode.go
@@ -533,7 +533,7 @@ func encMap(w *bytes.Buffer, m Map, depth int) error {
 }
 ```
 
-- [ ] **Step 5: Implement decode and Validate**
+- [x] **Step 5: Implement decode and Validate**
 
 ```go
 // internal/cval/decode.go
@@ -726,7 +726,7 @@ func decTag(b []byte, tag uint64, n, depth int) (any, int, error) {
 }
 ```
 
-- [ ] **Step 6: Implement Format (display only)**
+- [x] **Step 6: Implement Format (display only)**
 
 ```go
 // internal/cval/format.go
@@ -781,12 +781,12 @@ func Format(v any) string {
 }
 ```
 
-- [ ] **Step 7: Run the tests**
+- [x] **Step 7: Run the tests**
 
 Run: `cd ~/workspace/porta && go test ./internal/cval/ -v`
 Expected: PASS, all seven tests. If `TestEncodeNodeGolden` fails, the encoder disagrees with the shipped VM — fix the encoder, never the golden.
 
-- [ ] **Step 8: Re-confirm the Record fixture against the node's encoder**
+- [x] **Step 8: Re-confirm the Record fixture against the node's encoder**
 
 The published golden covers only a Map. The Record fixture below was **generated from the node and verified 2026-08-01** — `Path A: PASS / Path B: PASS`, output `d81b82d8276361636ba1d82762687705`, which is the value already asserted in `TestEncodeRecordNameIsSymbol`. Re-run it to confirm nothing has drifted:
 
@@ -808,7 +808,7 @@ cd ~/workspace/nsl-tuvm && python3 tools/run-one.py /tmp/claude-1000/-home-david
 
 If the node prints anything other than the hex above, **the node is right and this plan is wrong** — update the test's `want` and the encoder, never the other way round.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 gofmt -l . && go test ./internal/cval/
