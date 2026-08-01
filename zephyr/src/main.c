@@ -1310,7 +1310,7 @@ static void wire_gpio_outputs(void) {
  * brown-out, or a CPU that never reaches init at all — windows of SECONDS during
  * which the pin is whatever reset left it. Only a pull-down resistor at the
  * transistor makes the off-state a property of the circuit instead of a property
- * of software being alive. See docs/design/2026-07-26-shipsbellsv3-design.md §8:
+ * of software being alive. See zephyr/boards/shipsBells/2026-07-26-shipsbellsv3-design.md §8:
  * "Never let a crashed VM be the only thing between a GPIO and a burnt coil."
  */
 static int gpio_outputs_early_init(void) {

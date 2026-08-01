@@ -62,7 +62,7 @@
  *
  * The part on the bench module is marked DS3231M (MEMS, +/-5 ppm), not the
  * +/-2 ppm TCXO the run-of-five specifies. Same driver, same registers, worse
- * drift — see docs/design/2026-07-26-shipsbellsv3-design.md §95.
+ * drift — see zephyr/boards/shipsBells/2026-07-26-shipsbellsv3-design.md §95.
  */
 &i2c0 {
 	status = "okay";
@@ -83,7 +83,7 @@
 /* shipsBellsV3 §8/§15.1 — the strike solenoid's gate, on GPIO18.
  *
  * WIRING (bench, 2026-07-31): GPIO18 -> R1 (10k) -> 2N3904 base, per
- * docs/design/assets/2026-07-28-shipsbells-12v-bench-driver.png. The schematic's
+ * zephyr/boards/shipsBells/2026-07-28-shipsbells-12v-bench-driver.png. The schematic's
  * box is still labelled "MagTag ESP32-S2" — §16.1 moved this rig to the C6 and
  * the diagram has not caught up. Same 3.3 V logic either way.
  *
