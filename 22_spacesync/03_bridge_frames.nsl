@@ -1,0 +1,66 @@
+(*
+porta space-sync (plan 2) — the bridge's frames, with no socket in sight. The
+exchange is bytes-in / bytes-out, so every interesting property is testable on the
+host without a network: a #pull carries the cursor the node has ALREADY applied, a
+#batch is applied to the local space and moves the cursor to `hi`, a #push carries
+obs cells and captured stream entries in ONE ascending seq sequence, and an #ack
+drops exactly the pending entries the gateway accepted.
+
+A decoded Symbol is NOT the image's interned Symbol (tuvm#75), so every tag test in
+the bridge uses `=` and never `==` — exercised here by feeding it records that have
+been through a real encode/decode round trip.
+expect:
+pull tag true
+pull cursor 0
+applied true
+goal name bench
+cursor 7
+push entries 2
+push ascending true
+acked drops pending 0
+err is not a batch false
+*)
+class BridgeFrames packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space bridge pull batch push rows |
+    space:: platform space.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969.
+
+    (* --- the pull frame ---
+       `=` and not printString: printing a Symbol MASKS the identity question, and
+       `=` is the comparison the bridge itself must get right. *)
+    pull:: platform Cbor decode: bridge pullFrame ifInvalid: [ :m | nil ].
+    ('pull tag ' , (pull tag = #pull) printString) out.
+    ('pull cursor ' , (pull at: #cursor ifAbsent: [ 0 - 1 ]) printString) out.
+
+    (* --- a batch, shaped exactly as porta builds it, applied --- *)
+    batch:: platform Cbor encode:
+      (platform Record tag: #batch
+         with: #hi -> 7
+         with: #entries -> (platform List with:
+            (platform List with: 7 with: 'goal/name' with: 2 with: 'bench'))).
+    ('applied ' , (bridge applyBatch: batch) printString) out.
+    ('goal name ' , (space peek: 'goal/name')) out.
+    ('cursor ' , bridge cursor printString) out.
+
+    (* --- the push frame: one obs cell and one captured stream entry --- *)
+    bridge subscribeStream: 'tel/log'.
+    space put: 'obs/health' value: 11.
+    space out: 'tel/log' value: 'up'.
+    space drain.                          (* the capture is an ordinary reaction *)
+    push:: platform Cbor decode: bridge pushFrame ifInvalid: [ :m | nil ].
+    rows:: push at: #entries ifAbsent: [ nil ].
+    ('push entries ' , rows size printString) out.
+    ('push ascending ' , (((rows at: 1) at: 1) < ((rows at: 2) at: 1)) printString) out.
+
+    (* --- the ack: pending stream entries at or below hw are done --- *)
+    bridge applyAck: (platform Cbor encode:
+      (platform Record tag: #ack with: #hw -> space seq)).
+    ('acked drops pending ' , bridge pendingSize printString) out.
+
+    (* --- an #err reply is not a batch, and must not move the cursor --- *)
+    ('err is not a batch ' , (bridge applyBatch: (platform Cbor encode:
+       (platform Record tag: #err with: #msg -> 'malformed'))) printString) out.
+  )
+) : (
+)

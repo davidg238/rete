@@ -1,0 +1,46 @@
+(*
+porta space-sync (plan 2) — the space's monotonic seq and the changed-since scan,
+from nsl. The scan is the cell-replication query: it answers CELLS ONLY, ascending
+by seq, cursor-exclusive, and each row carries the value so a caller never needs a
+second peek. A stream's seq advances too (every write is stamped) but a stream can
+never ride this scan — its value is killed on delivery, so the row would carry a
+stale-or-nil value under a fresh seq.
+expect:
+seq advances 3
+scan 2
+first obs/health
+ascending true
+stream not scanned true
+cursor exclusive 0
+stamp strictly increasing true
+*)
+class SeqAndScan packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space obs rows s0 s1 a b |
+    space:: platform space.
+    s0:: space seq.
+    space put: 'obs/health' value: 11.
+    space out: 'tel/log' value: 'hello'.
+    space put: 'obs/name' value: 'bench'.
+    s1:: space seq.
+    ('seq advances ' , (s1 - s0) printString) out.
+
+    obs:: space channel: 'obs'.
+    rows:: obs changedSince: 0 max: 8.
+    ('scan ' , rows size printString) out.
+    ('first ' , ((rows at: 1) at: 1)) out.
+    ('ascending ' , (((rows at: 1) at: 2) < ((rows at: 2) at: 2)) printString) out.
+
+    (* the tel/log stream was written BETWEEN the two cells, so a root-scoped scan
+       would see it if streams rode the scan at all *)
+    rows:: space changedSince: 0 max: 8.
+    ('stream not scanned ' , (rows size = 2) printString) out.
+
+    ('cursor exclusive ' , (space changedSince: space seq max: 8) size printString) out.
+
+    a:: space stamp.
+    b:: space stamp.
+    ('stamp strictly increasing ' , (a < b) printString) out.
+  )
+) : (
+)

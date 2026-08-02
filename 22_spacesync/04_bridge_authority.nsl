@@ -1,0 +1,46 @@
+(*
+porta space-sync (plan 2) — inbound prefix authority. porta writes goal/** and
+dbg/req; that is the whole of its authority, and the NODE is where it is enforced,
+because the node is the thing that would be lied to. An entry at obs/** would forge
+the convergence view — the node's own report of what it observes — so it is counted
+and dropped, never applied.
+
+The node survives all of it: this is untrusted network input, and a node that
+crashes on a malformed datagram is a node an attacker can switch off (the NetBridge
+drop-on-malformed rule, widened to a path rule).
+expect:
+goal applied bench
+obs rejected true
+obs untouched true
+rejected 2
+garbage survived false
+still alive true
+*)
+class BridgeAuthority packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space bridge bytes |
+    space:: platform space.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969.
+
+    bytes:: platform Cbor encode:
+      (platform Record tag: #batch
+         with: #hi -> 3
+         with: #entries -> (platform List
+            with: (platform List with: 1 with: 'goal/name' with: 2 with: 'bench')
+            with: (platform List with: 2 with: 'obs/health' with: 2 with: 99)
+            with: (platform List with: 3 with: 'sys/panic' with: 1 with: 'boo'))).
+    bridge applyBatch: bytes.
+    ('goal applied ' , (space peek: 'goal/name')) out.
+    ('obs rejected ' , ((space peek: 'obs/health') == nil) printString) out.
+    (* `peek:ifAbsent:` and not a kind probe: `spaceKind:` has no Kernel-instance
+       forwarder, so an app cannot reach it — and the ifAbsent: branch is the
+       stronger statement anyway, since it fires only on a name NOBODY has ever
+       written, which is exactly the claim. *)
+    ('obs untouched ' , ((space peek: 'obs/health' ifAbsent: [ #ABSENT ]) = #ABSENT) printString) out.
+    ('rejected ' , bridge rejected printString) out.
+
+    ('garbage survived ' , (bridge applyBatch: ((platform ByteArray new: 1) freeze)) printString) out.
+    ('still alive ' , true printString) out.
+  )
+) : (
+)
