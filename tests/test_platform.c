@@ -6,6 +6,7 @@
    (link set = image-VM set minus oevm_image_main.c; this file supplies main). */
 #include "../src/oevm.h"
 #include "../src/span.h"          /* tuvm#61: span_reset_all for the prim assertions */
+#include "../src/space.h"         /* porta space-sync: space_make_string_pub for path args */
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -32,7 +33,9 @@ static void platform_roots(void) { mark_object(g_outer); }
    selectors by symbol_name() string, so a local Symbol works as long as its
    vtable is SymbolVtable. */
 static oop sel(const char *name) {
-    static struct Symbol pool[32];
+    /* One pool slot per CALL SITE, not per distinct name — the pool was full at
+       31 when the space-sync prim block below was added, so it is 64 now. */
+    static struct Symbol pool[64];
     static int n = 0;
     struct Symbol *s = &pool[n++];
     s->base.vtable = SymbolVtable;
@@ -172,6 +175,51 @@ int main(void) {
         }
 
         printf("test_platform: span prims OK\n");
+    }
+
+    /* --- porta space-sync (plan 2): spaceSeq / spaceStamp /
+       spaceChangedSince:under:max:, ids 138-140. Driven through send()+sel()
+       rather than the C functions — tests/test_space_seq.c already covers those
+       — so what this proves is the OTHER half: the PRIM_NAMES wiring, the SMI
+       tagging, and the shape of the answer. A miscount in PRIM_NAMES misroutes
+       every platform prim after the insertion point, and this is where that
+       shows up. --- */
+    {
+        oop path   = space_make_string_pub("obs/one", 7);
+        oop prefix = space_make_string_pub("obs", 3);
+
+        oop put_args[2] = { path, TAG_SMI(11) };
+        send(pf, sel("spacePut:value:"), 2, put_args);
+
+        oop seq_before = send(pf, sel("spaceSeq"), 0, NULL);
+        assert(IS_SMI(seq_before) && UNTAG_SMI(seq_before) >= 1
+               && "the write advanced the space's counter");
+
+        oop stamped = send(pf, sel("spaceStamp"), 0, NULL);
+        assert(UNTAG_SMI(stamped) == UNTAG_SMI(seq_before) + 1
+               && "a stamp bumps the counter — it does not merely read it");
+
+        oop scan_args[3] = { TAG_SMI(0), prefix, TAG_SMI(4) };
+        oop rows = send(pf, sel("spaceChangedSince:under:max:"), 3, scan_args);
+        assert(rows != NULL);
+        oop nrows = send(rows, sel("basicSize"), 0, NULL);
+        assert(UNTAG_SMI(nrows) == 1 && "exactly one obs cell has been written");
+
+        oop row = send(rows, sel("basicAt:"), 1, (oop[]){ TAG_SMI(1) });
+        oop rowsz = send(row, sel("basicSize"), 0, NULL);
+        assert(UNTAG_SMI(rowsz) == 3 && "{path, seq, value}");
+        oop rowseq = send(row, sel("basicAt:"), 1, (oop[]){ TAG_SMI(2) });
+        oop rowval = send(row, sel("basicAt:"), 1, (oop[]){ TAG_SMI(3) });
+        assert(UNTAG_SMI(rowseq) == UNTAG_SMI(seq_before) && "the write's own seq");
+        assert(UNTAG_SMI(rowval) == 11 && "the value rides with the row — no second peek");
+
+        /* An empty answer is an empty indexable, not nil: a caller loops over
+           basicSize and must not have to special-case "nothing changed". */
+        oop none_args[3] = { stamped, prefix, TAG_SMI(4) };
+        oop none = send(pf, sel("spaceChangedSince:under:max:"), 3, none_args);
+        assert(none != NULL && UNTAG_SMI(send(none, sel("basicSize"), 0, NULL)) == 0);
+
+        printf("test_platform: space-sync prims OK\n");
     }
 
     printf("TASK2 OK\n");
