@@ -786,6 +786,46 @@ cd ~/workspace/tuvm && bash tools/docmap.sh && git diff --stat review/DOCMAP.md
 
 Expected: the generated inventory below the `BEGIN GENERATED INVENTORY` marker is rewritten with in-repo paths.
 
+- [ ] **Step 4b: Sweep the stale path citations in the documents of record**
+
+Tasks 1–4 repointed every path that *executes*. This sweeps the paths that are
+merely *cited* — and only in the mainline documents of record, per David's
+ruling of 2026-08-02. The historical record is deliberately left alone and is
+filed as a deferral in Task 8 Step 2b.
+
+Counts measured 2026-08-02 (`grep -rE 'nsl-tests/|nsl-tuvm/|~/workspace/(nsl-tuvm|nsl-tests|porta)'`):
+
+| target | hits | files | treatment |
+|---|---|---|---|
+| `review/DOCMAP.md` | 163 | 1 | **do not hand-edit** — Step 4 regenerates it |
+| `review/program-sequence.md` | 19 | 1 | hand-edit |
+| `review/tests/CLAIMS.md` | 37 | 1 | hand-edit |
+| `review/lib/**` | 11 | — | hand-edit |
+| rest of `review/` | ~34 | — | hand-edit |
+| `docs/next-steps-overview.md` | 2 | 1 | Step 5 covers it |
+| `CLAUDE.md` | 0 | — | nothing to do |
+
+```bash
+cd ~/workspace/tuvm
+grep -rnE 'nsl-tests/|nsl-tuvm/|~/workspace/(nsl-tuvm|nsl-tests|porta)' \
+  review/ docs/next-steps-overview.md CLAUDE.md --include=*.md --include=*.html \
+  | grep -v '^review/DOCMAP.md'
+```
+
+Rewrite each hit: `nsl-tests/X` → `nodus/tests/X`, `nsl-tuvm/X` → `nodus/nsl/X`,
+`~/workspace/nsl-tuvm` → `~/workspace/rete/nodus/nsl`, `~/workspace/nsl-tests` →
+`~/workspace/rete/nodus/tests`, `~/workspace/porta` → `~/workspace/rete/porta`.
+
+**By hand, not with `sed`** — the same reason Task 4 Step 5 says so, and it was
+the right call there: many hits are prose, and some sit in shell blocks whose
+paired `cd` must move with the path or the block becomes self-contradictory.
+`review/` content is otherwise untouched — this is the D10 path-fix permission,
+not licence to tidy.
+
+Verification: re-run the grep above; expected zero hits outside `review/DOCMAP.md`.
+Then confirm a sample of five rewritten paths actually exist:
+`while read -r p; do [ -e "$p" ] || echo "DEAD: $p"; done`
+
 - [ ] **Step 5: Update `docs/next-steps-overview.md`**
 
 Add a line to Part 2 recording that the restructure landed and #56 is next. Replace any `~/workspace/{tuvm,nsl-tuvm,nsl-tests,porta}` path in the file with its `rete` equivalent.
@@ -1011,6 +1051,52 @@ EOF
 - **#63** (nine enumerated source lists): comment that it is now a single-repo problem — still nine lists, not fixed, but no longer spanning two repos.
 - **#79**: comment that the merge landed and the front door remains unbuilt, so #79 stays open on its actual blocker.
 
+- [ ] **Step 2b: File the historical stale-path-citation deferral**
+
+Task 6 Step 4b sweeps the documents of record. It deliberately leaves the
+historical record, and that decision must be recorded rather than absorbed —
+this task exists because a decision nobody wrote down is indistinguishable from
+an oversight.
+
+```bash
+cd ~/workspace/rete
+gh issue create --title "Stale path citations in the historical record after the rete consolidation (#79)" --body "$(cat <<'EOF'
+704 path citations across 66 files still name the pre-merge repo roots
+(`nsl-tuvm/`, `nsl-tests/`, `~/workspace/porta`). Measured 2026-08-02:
+
+| area | hits | files |
+|---|---|---|
+| `docs/superpowers/plans/` | 349 | — |
+| `nodus/nsl/docs/` | 305 | — |
+| `docs/design/` | 50 | — |
+
+**These were left deliberately, not missed.** The documents of record —
+`review/program-sequence.md`, `review/tests/CLAIMS.md`, `review/lib/**`,
+`docs/next-steps-overview.md` — were swept in Task 6 Step 4b, and
+`review/DOCMAP.md` is regenerated from `tools/docmap.sh`. What remains is the
+historical record: dated design docs and closed execution plans. Per the
+`CLAUDE.md` docs convention the dated design doc *is* the historical "why", so
+rewriting its paths would falsify what was true when it was written.
+
+**The cost of leaving them.** The three local clones were deleted in Task 7
+Step 8, so these citations no longer resolve on disk. Following one from a
+closed plan now leads nowhere. The mapping is mechanical if it is ever wanted:
+`nsl-tuvm/X` → `nodus/nsl/X`, `nsl-tests/X` → `nodus/tests/X`,
+`~/workspace/porta` → `~/workspace/rete/porta`.
+
+**Do not fix this with a blind `sed`.** Task 4 Step 5 and Task 6 Step 4b both
+required hand-editing for the same reason: many hits are prose, and some sit in
+shell blocks whose paired `cd` must move with the path or the block becomes
+self-contradictory.
+
+Legitimate outcomes include closing this as WONTFIX — the point is that the
+choice is on the record.
+
+Refs #79.
+EOF
+)"
+```
+
 - [ ] **Step 3: Verify no deferral is silent**
 
 ```bash
@@ -1025,6 +1111,33 @@ Expected: the goldens issue exists. Every item in design §9 now has either a fi
 ## Self-Review
 
 **Spec coverage.** Every design section maps to a task: §3 tree + §4 fates → Tasks 1–4; §4.2 `review/` → Task 1 Steps 1–2 (with a byte-identical check); §4.3 `protocol/v1/` → Task 4 Step 2; §4.4 CI → Task 4 Step 3; §5.1 subtree-not-filter-repo → Tasks 2/3/4 Step 1 with anti-`--squash` gates; §5.2 tracker → Task 5; §5.3 archive-not-delete → Task 7 Step 6; §6 visibility → Task 7 Step 6 (explicitly does not change it); §7.1 preconditions → Task 0; §7.3 seams → Tasks 1–3; §8 fresh-clone gate → Task 7; §9 deferrals → Task 8; §10 sequencing → after this plan, #56.
+
+**Gaps found and fixed while executing (2026-08-02).** Recorded here because
+each was a defect in this document, not in the work:
+
+1. **The anti-`--squash` gate did not work.** Tasks 2/3/4 Step 1 and Task 7
+   Step 5 all used `git log --oneline -- <prefix> | wc -l`, which returns **1**
+   on a *correct* non-squashed `git subtree add` — the imported commits touch
+   the source's original paths, so none match the new prefix. It could never
+   detect the thing it existed to detect. Replaced everywhere with
+   `git merge-base --is-ancestor <source-head> HEAD`.
+2. **Task 1's gate was impossible as written** — it demanded all aux gates PASS
+   while `portability-32` cannot pass until Task 3 creates `nodus/tests`.
+   Corrected to require the failure and pin its exact form.
+3. **The npm bootstrap was missing.** `nodus/nsl/grammar` needs `ohm-js` from a
+   gitignored `node_modules`, so a fresh checkout gates at **0 passed / 239
+   failed with every aux gate FAIL** — a signature indistinguishable from "the
+   consolidation broke everything". Task 7 Step 4 now bootstraps first.
+4. **Task 3's Modify list was incomplete.** `test_supervisor_grant.py` and
+   `test_debugger_integration.py` hardcode their own corpus path in a different
+   expression from the one Step 2's `sed` targets. Added as Step 2b.
+5. **Task 5 rewrote references for only one of the two repos it transfers.**
+   Steps 2/4/5 covered `porta#NN` but not `nsl-tuvm#NN` (46 sites, 26 files),
+   even though Step 3 transfers both. The plan's "46 `porta#NN`" was itself the
+   *nsl-tuvm* count; porta has 42. Both are now captured, mapped and rewritten.
+6. **Nothing swept the stale path citations.** ~1,400 across ~100 files. The
+   documents of record are now swept in Task 6 Step 4b; the 704 historical ones
+   are deliberately left and filed in Task 8 Step 2b.
 
 **Placeholder scan.** No TBD/TODO. Two steps intentionally require reading before editing rather than a blind command — Task 4 Step 3 (merging into an existing `on:` block) and Task 4 Step 5 (prose references a `sed` would mangle) — and both say so and say why.
 
