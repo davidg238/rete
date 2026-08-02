@@ -253,6 +253,37 @@ On the node these are the *same paths* its local jobs already use — the superv
 reacts to `goal/apps/**` exactly as it reacts to any channel. There is no separate
 "protocol handler": **the protocol is the space, filtered by grant.**
 
+**What landed on the node (2026-08-02 — plan 2 of the space-sync rewrite, host-green).**
+The VM gained ONE monotonic counter per space plus a `last_seq` per channel (D5),
+reached by prims 138–140 (`spaceSeq`, `spaceStamp`, `spaceChangedSince:under:max:`) and
+the nsl verbs `Channel>>changedSince:max:` / `Space>>seq` / `Space>>stamp`. The bridge
+is `class PortaBridge` in `kernel.nsl`, beside `NetBridge`; the node holds ONE instance.
+Four rules were decided in the writing and are part of the contract:
+
+- **The changed-since scan answers CELLS ONLY.** A stream's `seq` advances on every
+  write, but its value is killed on delivery, so a stream row would carry a
+  stale-or-nil value under a fresh seq. Streams reach the wire by reaction capture in
+  the bridge, stamped with `spaceStamp` so both halves share ONE ascending sequence.
+  Reading the counter rather than bumping it would let two captures collide on one seq,
+  which the gateway drops as a duplicate — silent loss, not a repeated delivery.
+- **Ascending order is load-bearing.** The bridge sends a *prefix* of the scan and
+  advances its cursor to the last entry it sent, so any other order would strand
+  everything it skipped. The same rule governs trimming a batch from the tail to fit
+  the 512 B cap: what is dropped rides the next check-in.
+- **Inbound authority is enforced on the node,** because the node is the thing that
+  would be lied to. porta may write `goal/**` and `dbg/req`; an entry at any other path
+  is counted and dropped, never applied and never raised. An accepted write to `obs/**`
+  would forge the node's own report of what it observes, which is the one thing the
+  convergence view rests on.
+- **`diag/spans/result` is not synced** until tuvm#107 splits its ~1120 B value into
+  sibling cells at `diag/spans/<span>` (RECORDS §4.6).
+
+Still owed, each filed rather than assumed: the cursor and `bootId` live in RAM (NVS is
+G7 work), the bridge holds the root space rather than a `goal`-write + `obs`-read pair
+(G5), cadence is a constant rather than §4.4's controller, and a stream entry written
+while the bridge is down is lost — bounded and honest for `tel/**`, which is lossy by
+policy, but **not** for `sys/panic`, which RECORDS marks must-deliver.
+
 ### 4.2 Node-side path map (what replaces the nine verbs)
 
 | v1 verb / report field | nsl path | kind | record shape (sketch) |
