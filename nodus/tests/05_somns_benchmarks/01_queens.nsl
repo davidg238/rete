@@ -1,0 +1,72 @@
+(*
+expect:
+true
+skip-berry: true
+*)
+class QueensBenchmarkTest packageUsing: manifest = () (
+class Benchmark = () (
+    public innerBenchmarkLoop: innerIterations = (
+      1 to: innerIterations do: [:i |
+        (self verifyResult: self benchmark) ifFalse: [ ^ false ].
+      ].
+      ^ true
+    )
+)
+class Queens usingPlatform: platform = (
+) (
+  public class Queens = Benchmark (
+    | freeMaxs freeRows freeMins queenRows |
+  )(
+    public benchmark = (
+      | result |
+      result:: true.
+      1 to: 10 do: [ :i | result:: result and: [ self queens ] ].
+      ^ result
+    )
+
+    verifyResult: result = (
+      ^ result
+    )
+
+    queens = (
+      freeRows::  Array new:  8.
+      1 to: 8 do: [ :i | freeRows at: i put: true ].
+      freeMaxs::  Array new: 16.
+      1 to: 16 do: [ :i | freeMaxs at: i put: true ].
+      freeMins::  Array new: 16.
+      1 to: 16 do: [ :i | freeMins at: i put: true ].
+      queenRows:: Array new:  8.
+      1 to: 8 do: [ :i | queenRows at: i put: -1 ].
+      ^ self placeQueen: 1
+    )
+
+    placeQueen: c = (
+      1 to: 8 do: [ :r |
+        (self row: r column: c)
+          ifTrue: [
+            queenRows at: r put: c.
+            self row: r column: c put: false.
+            (c = 8) ifTrue: [ ^true ].
+            (self placeQueen: c + 1) ifTrue: [ ^true ].
+            self row: r column: c put: true ] ].
+      ^false
+    )
+
+    row: r column: c = (
+      ^((freeRows at: r) & (freeMaxs at: c + r)) & (freeMins at: c - r + 8)
+    )
+
+    row: r column: c put: v = (
+      freeRows at: r         put: v.
+      freeMaxs at: c + r     put: v.
+      freeMins at: c - r + 8 put: v.
+    )
+  )
+  public newInstance = ( ^ Queens new )
+)
+public main: platform args: args = (
+    | q = Queens usingPlatform: platform. |
+    q newInstance benchmark printString out.
+)
+) : (
+)

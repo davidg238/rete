@@ -1,0 +1,33 @@
+(*
+expect:
+observed 42
+done
+*)
+(* T-D.6 event-source seam — the full host loop: a timer (C seam) posts onto
+   sys/timer, Timers dispatches it into a job's channel, the job's reaction posts a
+   result, and an observer sees it: timer -> C seam (host_advance/space_post) ->
+   sys/timer -> Timers dispatch: -> job/go reaction -> result channel -> observer.
+   Deterministic input via advanceMillis: (host virtual clock), never wall time.
+
+   `Timers>>dispatch:` posts `p msg` on `p chan` at the channel's own root ('' ->
+   resolve('') answers the channel's root path unchanged, Channel>>resolve:), so
+   `timers after: 10 post: #go on: (space channel: 'job/go')` delivers `#go` onto
+   'job/go' directly — which `job whenever: 'go' do:` observes, since `job`'s root is
+   'job' and resolve('go') joins to 'job/go' too. *)
+class EventSeam packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space timers job result |
+    space:: platform space.
+    timers:: Timers usingSpace: space seam: platform.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    job::    space channel: 'job'.
+    result:: space channel: 'result'.
+    job whenever: 'go' do: [ :m | result out: '' value: 42 ].
+    result whenever: '' do: [ :v | ('observed ' , v printString) out ].
+    timers after: 10 post: #go on: (space channel: 'job/go').
+    platform advanceMillis: 20.
+    space drain.
+    'done' out.
+  )
+) : (
+)

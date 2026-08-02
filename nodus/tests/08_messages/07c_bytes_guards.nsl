@@ -1,0 +1,13 @@
+(*
+expect-runtime-fail: index out of bounds
+*)
+class BytesGuardOutOfBounds packageUsing: manifest = () (
+public main: platform args: args = (
+  | BA ba |
+  BA:: platform ByteArray.
+  ba:: BA new: 2.
+  ba u8At: 99.
+  'unreached' out.
+)
+) : (
+)

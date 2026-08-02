@@ -1,0 +1,8 @@
+(*
+expect:
+3
+*)
+| n |
+n:: 0.
+3 timesRepeat: [ n:: n + 1 ].
+n println

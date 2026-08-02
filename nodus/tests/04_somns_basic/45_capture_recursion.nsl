@@ -1,0 +1,20 @@
+(*
+Each recursion level captures its own n in a closure; closures must not alias.
+Tests regAt: at each recursion depth.
+expect:
+1
+2
+3
+*)
+class CaptureRecursionTest packageUsing: manifest = () (
+rec: k = (
+    | n |
+    n:: k.
+    k > 1 ifTrue: [ self rec: k - 1 ].
+    [ n println ] value.
+)
+public main: platform args: args = (
+    self rec: 3.
+)
+) : (
+)

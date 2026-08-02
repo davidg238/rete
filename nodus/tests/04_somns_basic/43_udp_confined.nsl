@@ -1,0 +1,16 @@
+(*
+Confinement pin: a class declaring only usingPlatform: platform cannot reach net.
+R4. Compile succeeds (net is an unknown unary send), but runtime aborts with DNU —
+"Message 'net' not understood by receiver" — because the entry module instance has
+no net: slot. Compiler exit 0, runner exit 134. Mirrors 39_serial_confined.ns.
+expect-runtime-fail: Message 'net' not understood by receiver
+*)
+class UdpConfinedTest usingPlatform: platform = () (
+  public main: platform2 args: args = (
+    (net udp) sendTo: '127.0.0.1' port: 9 data: 'oops'.
+    'SHOULD NOT REACH' println.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

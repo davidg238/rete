@@ -1,0 +1,25 @@
+(*
+expect:
+ok
+expect-runtime-fail: not a value
+*)
+(* T-B.4 — acyclicity is BY CONSTRUCTION: a value must exist before it can be
+   an element, so no algebra API can close a loop. The one construction path
+   that could smuggle a cycle in — freezing a mutable collection that
+   (transitively) contains a mutable container — is exactly the `not a value`
+   boundary. This test pins that boundary with a self-containing
+   OrderedCollection; the cycle dies at validation before any algebra value
+   exists. (No positive cycle test is POSSIBLE — that unrepresentability is
+   the property, documented here.) *)
+class CycleImpossible packageUsing: manifest = () (
+public main: platform args: args = (
+  | oc |
+  'ok' out.
+  oc:: platform OrderedCollection new.
+  oc add: 1.
+  oc add: oc.                          (* mutable cycle — fine, it's not a message *)
+  platform List fromCollection: oc.    (* validation: element 2 is not a value *)
+  'unreached' out.
+)
+) : (
+)

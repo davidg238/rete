@@ -1,0 +1,24 @@
+(*
+expect:
+e1
+r-e2
+*)
+(* T-C C.10 take-vs-dispatch (D-C2) — a reaction r is registered on `a`, then
+   two events are posted, oldest first. Before any drain, `take:` dequeues
+   the single global FIFO's head directly: it answers 'e1' (the oldest,
+   proving FIFO order) and REMOVES it from the queue — a taken event is
+   consumed, not delivered. The subsequent drain then fires r exactly once,
+   for 'e2' only: the taken 'e1' never reaches a reaction. *)
+class TakeVsDispatch packageUsing: manifest = () (
+public main: platform args: args = (
+  | space a |
+  space:: platform space.
+  a:: space channel: 'a'.
+  a whenever: '' do: [ :v | ('r-' , v) out ].
+  a out: '' value: 'e1'.
+  a out: '' value: 'e2'.
+  (a take: '' ifEmpty: [ nil ]) out.
+  space drain.
+)
+) : (
+)

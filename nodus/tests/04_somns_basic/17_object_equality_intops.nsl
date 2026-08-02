@@ -1,0 +1,40 @@
+(*
+expect:
+false
+false
+true
+true
+true
+0
+1
+3
+16
+32
+48
+*)
+class ObjectEqualityIntopsTest packageUsing: manifest = () (
+  public class D = () ()
+  public main: platform args: args = (
+    | a b |
+    a:: D new.
+    b:: D new.
+    (* Object>>= defaults to identity. Previously the `=` primitive coerced
+       non-numeric operands to 0.0, so nil = anyObject and any two heap
+       objects compared equal — which silently broke richards' scheduler
+       (NoTask = currentTask was always true). *)
+    (nil = a) printString out.        (* false: nil is not the object *)
+    (a = b) printString out.          (* false: distinct objects *)
+    (a = a) printString out.          (* true:  same object *)
+    (nil = nil) printString out.      (* true *)
+    (* Numeric value equality still works for small integers. *)
+    (1 = 1) printString out.          (* true *)
+    (* Integer bitwise / shift / division operators sent as messages. *)
+    (6 & 1) printString out.          (* 0:  bitwise and, not boolean *)
+    (7 & 1) printString out.          (* 1 *)
+    (1 | 2) printString out.          (* 3:  bitwise or *)
+    (100 // 6) printString out.       (* 16: floored integer division *)
+    (5 bitXor: 37) printString out.   (* 32 *)
+    (3 << 4) printString out.         (* 48: left shift *)
+  )
+) : (
+)

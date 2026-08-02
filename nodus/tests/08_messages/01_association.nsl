@@ -1,0 +1,19 @@
+(*
+expect:
+#k
+42
+7
+false
+*)
+class AssocTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | a b |
+  a:: #k -> 42.
+  a key printString out.
+  a value printString out.
+  b:: 3 -> 7.                (* Integer receiver — compile-time rewrite, no dispatch *)
+  b value printString out.
+  (a isValue) printString out.   (* Association is NOT a value *)
+)
+) : (
+)

@@ -1,0 +1,41 @@
+(*
+expect:
+before nil
+set 0
+after 66600
+finished
+*)
+(* tuvm#100 — setting the RTC, and reading back what was set.
+
+   TWO ARGUMENTS, NOT SIX. Zephyr's rtc_set_time takes a full struct rtc_time, and
+   the design (§6) has the phone app write a full date and time, so the seam cannot
+   be time-of-day only. But a six-keyword prim would push past the argument counts
+   anything else in this VM uses, so the date is packed as YYYYMMDD — 20260731 —
+   which is an ordinary decimal a human can read in a log and is comfortably inside
+   the 2^30 SMI ceiling (20,260,731 against 1,073,741,824). The time stays as
+   seconds-since-midnight, the same unit `wallClock` answers in, so a round trip is
+   an identity rather than a conversion.
+
+   ONE call, not a date call followed by a time call: setting a clock in two steps
+   means a window where the part holds a date from one instant and a time from
+   another, and the second write can land after midnight has moved the day on.
+
+   `before` is nil because a host has no RTC until something sets it — the same
+   default 02 asserts. That it becomes readable purely as a RESULT OF THE SET is
+   the claim: it distinguishes a seam that stores what it was given from one that
+   merely accepts and discards it, which a set-only test could not tell apart. *)
+class WallClockSet packageUsing: manifest = () (
+  public main: platform args: args = (
+    | before rc after |
+    before:: platform wallClock.
+    ('before ' , before printString) out.
+
+    rc:: platform wallClockSetDate: 20260731 time: 66600.
+    ('set ' , rc printString) out.
+
+    after:: platform wallClock.
+    ('after ' , after printString) out.
+    'finished' out.
+  )
+) : (
+)

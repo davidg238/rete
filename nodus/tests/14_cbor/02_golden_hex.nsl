@@ -1,0 +1,20 @@
+(*
+expect:
+a2d827616e182ad8276173626869
+*)
+(* Rung 3 Task 5: Cbor encode golden. A Map with Symbol keys #n -> 42, #s -> 'hi'.
+   Symbols encode as CBOR tag 39 (identifier) wrapping major-3 text; the Map is
+   major 5 with keys in RFC 8949 bytewise order over the ENCODED key bytes, and
+   Integer/String payloads via the C int leaf / major-3 text.
+   Golden authored independently from python cbor2 6.1.3 (see 14_cbor/README.md):
+   dumps({CBORTag(39,'n'):42, CBORTag(39,'s'):'hi'}, canonical=True) — verified
+   equal to an explicit RFC 8949 bytewise sort. *)
+class CborGoldenHexTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | M m |
+  M:: platform Map.
+  m:: M with: #n -> 42 with: #s -> 'hi'.
+  (platform Cbor encode: m) printHex println.
+)
+) : (
+)

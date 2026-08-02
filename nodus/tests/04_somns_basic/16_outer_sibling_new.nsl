@@ -1,0 +1,26 @@
+(*
+expect:
+42
+*)
+class OuterSiblingTest packageUsing: manifest = () (
+  public class Holder = (
+    | private konst = 42. |
+  )(
+    public class Reader = ()(
+      (* reads Holder's slot via one outer hop *)
+      public readK = ( ^ konst )
+    )
+    public class Driver = ()(
+      (* Reader is a SIBLING (both nested in Holder). When Driver instantiates
+         Reader, Reader's outer (slot 0) must be Holder — Driver's outer — NOT
+         Driver itself, otherwise readK reads the wrong object's slots.
+         This is the outer-pointer bug that crashed richards. *)
+      public makeAndRead = ( ^ Reader new readK )
+    )
+    public run = ( ^ Driver new makeAndRead )
+  )
+  public main: platform args: args = (
+    Holder new run printString out.
+  )
+) : (
+)

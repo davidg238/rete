@@ -1,0 +1,23 @@
+(*
+expect:
+true
+true
+1
+true
+false
+true
+*)
+class HashProtocolTest packageUsing: manifest = () (
+public main: platform args: args = (
+    | o1 o2 |
+    (2 hash = 2) println.
+    (5 hash = 5) println.
+    nil hash println.
+    (3 = 3) println.
+    o1:: Object new.
+    o2:: Object new.
+    (o1 identityHash = o2 identityHash) println.
+    (o1 identityHash = o1 identityHash) println.
+)
+) : (
+)

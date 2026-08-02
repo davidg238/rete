@@ -1,0 +1,22 @@
+(*
+expect:
+unhandled: #bogus
+#idle
+*)
+(* T-C L4 Protocol — `onUnhandled:` hook (Milestone C Task 5): an event with
+   no matching transition in the current state's table runs the registered
+   `onUnhandled:` block (printing the event) instead of crashing or silently
+   dropping it, and leaves `currentState` unchanged — still #idle, since
+   #bogus has no transition at all from #idle in this machine. *)
+class ProtocolUnhandled packageUsing: manifest = () (
+public main: platform args: args = (
+  | machine |
+  machine:: platform Protocol named: #tmp117.
+  machine state: #idle on: #start do: [ :m :e | nil ] then: #converting.
+  machine onUnhandled: [ :m :e | ('unhandled: ' , e printString) out ].
+  machine startIn: #idle.
+  machine handle: #bogus.
+  machine currentState printString out.
+)
+) : (
+)

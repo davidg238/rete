@@ -1,0 +1,17 @@
+(*
+expect:
+42
+42
+skip-berry: true
+*)
+class InitializersTest packageUsing: manifest = () (
+public class OneParam new: x = ( | public x = x. |) (
+)
+public class OneSub new: x = OneParam new: x () (
+)
+public main: platform args: args = (
+    (OneParam new: 42) x printString out.
+    (OneSub new: 42) x printString out.
+)
+) : (
+)

@@ -1,0 +1,17 @@
+(*
+Captured-var READ at nesting depth >= 2, inside and outside do:.
+Tests regAt: home-walk at depth=2 (block inside block) and inside
+a do: extra frame.
+expect:
+7
+7
+*)
+class CaptureReadTest packageUsing: manifest = () (
+public main: platform args: args = (
+    | x |
+    x:: 7.
+    [ [ x println ] value ] value.
+    (Array new: 1) do: [ :e | [ x println ] value ].
+)
+) : (
+)

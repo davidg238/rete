@@ -1,0 +1,15 @@
+(*
+expect-runtime-fail: bad channel path
+*)
+(* T-C canonicalization guard — a relative segment (`..`) is rejected at
+   grant time, never silently normalized (addendum A1). Same `dots = segLen`
+   rule as the single-dot case (01d), just a longer dot-only segment. *)
+class CanonicalizationDotDotSegment packageUsing: manifest = () (
+public main: platform args: args = (
+  | space |
+  space:: platform space.
+  space channel: 'a/../b'.
+  'unreached' out.
+)
+) : (
+)

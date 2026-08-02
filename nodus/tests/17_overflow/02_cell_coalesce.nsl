@@ -1,0 +1,45 @@
+(*
+expect:
+fired 1
+last 5
+peek 5
+overruns 4
+done
+*)
+(* tuvm#20 — a CELL under pressure COALESCES (G2's latest-value case), with zero
+   new API: choosing `put:` at rung 9 WAS choosing latest-value semantics, so the
+   overflow policy derives from the kind. A cell's queued ring events are doorbell
+   pokes — the value is already in the slot — so collapsing them loses nothing a
+   cell ever promised: `peek:` answers the latest value and the reader gets at
+   least one poke.
+
+   Trace (depth 64): put sp=1 (the cell's poke occupies slot 1), fill the
+   remaining 63 slots with stream posts to `filler` (no reaction registered —
+   drained-and-dropped later, but they hold the ring full NOW), then 4 more puts
+   (sp=2..5). Each finds the ring full and coalesces into the cell's own queued
+   poke — the poke's payload becomes 5, no new slot, 4 overruns counted. Drain:
+   the reaction fires ONCE with the LAST value. N puts under overload -> one
+   firing with the latest value, and the fires-on-WRITE guarantee (16_cells/04)
+   yielded only at overflow, observably.
+
+   Below the overflow line nothing changes: 16_cells/04 still pins 3 puts ->
+   3 fires when the ring has room. *)
+class CellCoalesce packageUsing: manifest = ( | fired ::= 0. last ::= nil. | ) (
+  public main: platform args: args = (
+    | space pid filler |
+    space:: platform space.
+    pid::    space channel: 'pid'.
+    filler:: space channel: 'filler'.
+    pid whenever: 'sp' do: [ :v | fired:: fired + 1. last:: v ].
+    pid put: 'sp' value: 1.
+    1 to: 63 do: [ :i | filler out: '' value: i ].
+    2 to: 5 do: [ :i | pid put: 'sp' value: i ].
+    space drain.
+    ('fired ' , fired printString) out.
+    ('last ' , last printString) out.
+    ('peek ' , (pid peek: 'sp' ifAbsent: [ 0 ]) printString) out.
+    ('overruns ' , (platform spaceOverruns: 'pid/sp') printString) out.
+    'done' out.
+  )
+) : (
+)

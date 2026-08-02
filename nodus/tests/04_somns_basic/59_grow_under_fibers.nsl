@@ -1,0 +1,33 @@
+(*
+Grow-under-fibers (de-recursify deferred lift, Phase 3).
+
+A spawned worker fiber recurses ~2000 deep (forcing its OWN stack to grow while
+the scheduler fiber holds live frames on its separate, un-grown stack). Proves
+per-fiber growth isolation: growing one fiber's Stack (realloc-copy + repoint)
+does not disturb another fiber's frames, and GC traces a mix of grown and
+un-grown Stacks. Worker computes sum 1..2000 == 2001000; main prints it after the
+scheduler drains.
+
+expect:
+2001000
+done
+skip-berry: true
+skip-oevm: true
+*)
+class GrowUnderFibersTest usingPlatform: platform concurrency: concurrency = () (
+  sum: n = (
+    n = 0 ifTrue: [ ^ 0 ].
+    ^ n + (self sum: n - 1)
+  )
+  public main: platform2 args: args = (
+    | result |
+    concurrency spawn: [
+      result:: self sum: 2000 ].
+    concurrency run.
+    result println.
+    'done' println.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

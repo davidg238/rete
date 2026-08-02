@@ -1,0 +1,182 @@
+(*
+expect:
+reading 235
+restarted
+quarantined false
+reading 235
+restarted
+quarantined false
+restarted
+quarantined false
+quarantined true
+readings 2
+restarts 3
+done
+*)
+(* T-D.7 demo-node-shaped integration test — the Milestone D north star. Composes
+   everything landed in Tasks 1-6: a real `Protocol` FSM (idle/converting, Milestone C
+   Task 5), real timers (Task 6) arming/cancelling a watchdog, the protected reactor's
+   crash containment (Task 2), and the `Supervisor`'s restart/quarantine/progress-reset
+   policy (Task 5) — driving a `resume:`-rehydrated job through healthy and silent
+   sample cycles. Modeled on `tuvm/review/demo-node.ns`'s `TempNode`, REDUCED per the
+   Task 7 brief: no i2c, no `onAlertPost:` (phase-2 concerns) — `startConversion` only
+   arms the timeout timer, `readMilliC` answers a fixed mock constant, and the "sensor"
+   is driven directly by the test: a healthy cycle posts `#done` on the job's own
+   channel; a silent (wedged) cycle withholds `#done` and instead `advanceMillis:`s
+   the host virtual clock past the armed timeout, so the timer fires `#timeout` on the
+   SAME channel (Timers>>dispatch: posts at the capability's own root, same idiom as
+   `07_event_seam.ns`) -> the FSM's `#timeout` transition -> `self error:` -> contained
+   crash -> `sys/crash` -> Supervisor.
+
+   TempNode's `chan` ivar is set ONCE at construction and never reassigned (mirrors
+   demo-node.ns's capabilities-as-constructor-args design) — this is what makes the
+   restart contract work: `Space>>whenever:do:` registers a reaction OWNED BY the
+   receiver object (Task 2's `owner: self`), and `Supervisor>>restart:`/`quarantine:`
+   sweep reactions by `==` against the exact rootCap object handed to `register:`
+   (`04_owner_sweep.ns`). Since `chan` never changes identity, `resume:` (which
+   re-runs `start`, re-registering `chan whenever: '' do: [...]` against a FRESH
+   `Protocol` instance) always lands the new reaction on the SAME capability the
+   supervisor is watching — the crashed generation's reaction was already swept
+   before the restart thunk ran (`Supervisor>>restart:`), so there is never a
+   double registration.
+
+   The cycle sequence (host clock starts at 0; each `#sample` arms a fresh 50ms
+   timeout; `advanceMillis: 51` always lands just past it):
+     A. healthy   -> #sample, #done                      -> reading 235          (a)
+     B. silent    -> #sample, advanceMillis: 51           -> crash 1 -> restart   (b)
+     C. healthy   -> #sample, #done                      -> reading 235          (b, and
+                     resets the crash counter via the `progress:` capability -- Task 5's
+                     `noteProgress`, the path `05_restart_quarantine.ns` never exercised)
+     D. silent    -> crash (count 1 post-reset)           -> restart
+     E. silent    -> crash (count 2 post-reset)           -> restart, NOT quarantined
+                     -- the load-bearing assertion: without C's reset this would be the
+                     THIRD cumulative crash (B, D, E) and would already quarantine here.
+     F. silent    -> crash (count 3 post-reset)           -> quarantine              (c)
+     G. healthy attempt post-quarantine -> #sample, #done -> NO further reading:
+                     the job's reactions were swept at quarantine and never restarted.
+
+   Final tallies confirm the whole story: readings 2 (A, C only — not G), restarts 3
+   (B, D, E — not F, which quarantines instead). *)
+class DemoNodeIntegration packageUsing: manifest = () (
+
+  (* ---- TempNode, reduced: real FSM + real timer + test-driven mock sensor ---- *)
+  class TempNode = ( | chan timers plat machine timeout ::= nil. | ) (
+
+    (* No i2c: arm the watchdog only. The real TMP117 write is gone (Task 7 brief) —
+       the test itself plays the sensor, posting #done or letting the timer win. *)
+    startConversion = (
+      timeout:: timers after: 50 post: #timeout on: chan.
+    )
+
+    (* Fixed deterministic mock reading (stands in for `mockI2cWithTemp:` + register
+       math in demo-node.ns — no i2c here, so no scaling math needed either). *)
+    readMilliC = ( ^ 235 )
+
+    publish: milliC = (
+      chan out: 'reading' value: milliC.
+    )
+
+    buildMachine = (
+      machine:: plat Protocol named: #tmp117.
+
+      machine state: #idle on: #sample do: [ :m :e |
+        startConversion.
+      ] then: #converting.
+
+      machine state: #converting on: #done do: [ :m :e |
+        timers cancel: timeout.
+        publish: readMilliC.
+      ] then: #idle.
+
+      (* Sensor silent past the deadline: let-it-crash, contained + restarted by the
+         supervisor (errors.md Tier-2), exactly as demo-node.ns's own comment argues. *)
+      machine state: #converting on: #timeout do: [ :m :e |
+        self error: 'tmp117 timeout'
+      ] then: #idle.
+
+      machine validate.
+    )
+
+    public start = (
+      buildMachine.
+      machine startIn: #idle.
+      chan whenever: '' do: [ :e | machine handle: e ].
+    )
+
+    (* Wake/restart: re-run start (fresh Protocol instance, fresh reaction on the SAME
+       `chan` capability), then rehydrate to the given state (#idle when nil) — same
+       shape as demo-node.ns's own `resume:`. There is no suspended stack to restore;
+       every state's work is re-startable, so #idle is always a safe default. *)
+    public resume: snapshot = (
+      self start.
+      machine restore: (snapshot == nil ifTrue: [ #idle ] ifFalse: [ snapshot ]).
+    )
+
+    setChan: c timers: t platform: p = ( chan:: c. timers:: t. plat:: p. ^ self )
+  ) : (
+    public chan: c timers: t platform: p = ( ^ self new setChan: c timers: t platform: p )
+  )
+
+  public main: platform args: args = (
+    | space sup timers jobChan readingChan node readingCount restartCount |
+    space::  platform space.
+    sup::    platform supervisor.
+    timers:: platform Timers usingSpace: space seam: platform.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+
+    jobChan::     space channel: 'tmp117'.
+    readingChan:: space channel: 'tmp117/reading'.
+    node:: TempNode chan: jobChan timers: timers platform: platform.
+
+    readingCount::  0.
+    restartCount::  0.
+    readingChan whenever: '' do: [ :v | readingCount:: readingCount + 1. ('reading ' , v printString) out ].
+
+    sup register: jobChan
+        restart: [ restartCount:: restartCount + 1. node resume: nil. 'restarted' out ]
+        progress: readingChan.
+    sup start.
+    node start.
+
+    (* A: healthy cycle -> reading. *)
+    jobChan out: '' value: #sample. space drain.
+    jobChan out: '' value: #done.   space drain.
+
+    (* B: silent cycle -> crash 1 -> restart (resume: rehydrates to #idle). *)
+    jobChan out: '' value: #sample. space drain.
+    platform advanceMillis: 51. space drain.
+    ('quarantined ' , (sup isQuarantined: 'tmp117') printString) out.
+
+    (* C: healthy cycle again -> proves the restarted FSM works AND resets the
+       crash counter via the progress capability. *)
+    jobChan out: '' value: #sample. space drain.
+    jobChan out: '' value: #done.   space drain.
+
+    (* D: silent -> crash (count 1 post-reset) -> restart. *)
+    jobChan out: '' value: #sample. space drain.
+    platform advanceMillis: 51. space drain.
+    ('quarantined ' , (sup isQuarantined: 'tmp117') printString) out.
+
+    (* E: silent -> crash (count 2 post-reset) -> restart, still NOT quarantined —
+       without C's reset this would be the 3rd cumulative crash and would already
+       quarantine here. *)
+    jobChan out: '' value: #sample. space drain.
+    platform advanceMillis: 51. space drain.
+    ('quarantined ' , (sup isQuarantined: 'tmp117') printString) out.
+
+    (* F: silent -> crash (count 3 post-reset) -> quarantine. *)
+    jobChan out: '' value: #sample. space drain.
+    platform advanceMillis: 51. space drain.
+    ('quarantined ' , (sup isQuarantined: 'tmp117') printString) out.
+
+    (* G: post-quarantine attempt -> no reaction survives the sweep, no restart
+       re-registers one -> no reading. *)
+    jobChan out: '' value: #sample. space drain.
+    jobChan out: '' value: #done.   space drain.
+
+    ('readings ' , readingCount printString) out.
+    ('restarts ' , restartCount printString) out.
+    'done' out.
+  )
+) : (
+)

@@ -1,0 +1,88 @@
+(*
+expect:
+6
+3
+1
+25
+15
+10
+10
+7
+3
+0
+*)
+class LoopInliningTest packageUsing: manifest = () (
+public class LoopInlining = () (
+	public testToDoSum = (
+		| sum |
+		sum:: 0.
+		1 to: 3 do: [ :i | sum:: sum + i ].
+		^ sum
+	)
+	public testToDoReturnsReceiver = (
+		^ 3 to: 5 do: [ :i | i ]
+	)
+	public testToDoEmptyRange = (
+		| count |
+		count:: 0.
+		5 to: 1 do: [ :i | count:: count + 1 ].
+		^ count + 1
+	)
+	public testToByDoUp = (
+		| sum |
+		sum:: 0.
+		1 to: 10 by: 2 do: [ :i | sum:: sum + i ].
+		^ sum
+	)
+	public testToByDoDown = (
+		| sum |
+		sum:: 0.
+		5 to: 1 by: -1 do: [ :i | sum:: sum + i ].
+		^ sum
+	)
+	public testWhileTrueCountUp = (
+		| i sum |
+		i:: 1. sum:: 0.
+		[ i <= 4 ] whileTrue: [ sum:: sum + i. i:: i + 1 ].
+		^ sum
+	)
+	public testWhileFalseCountUp = (
+		| i sum |
+		i:: 1. sum:: 0.
+		[ i > 4 ] whileFalse: [ sum:: sum + i. i:: i + 1 ].
+		^ sum
+	)
+	public testWhileNeverRuns = (
+		| n |
+		n:: 7.
+		[ 1 > 2 ] whileTrue: [ n:: 99 ].
+		^ n
+	)
+	public testWhileEarlyReturn = (
+		| i |
+		i:: 0.
+		[ true ] whileTrue: [ i:: i + 1. i = 3 ifTrue: [ ^ i ] ].
+		^ 0
+	)
+	public testToByZeroStep = (
+		| sum |
+		sum:: 0.
+		3 to: 5 by: 0 do: [ :i | sum:: sum + i ].
+		^ sum
+	)
+)
+public main: platform args: args = (
+	| t = LoopInlining new. |
+	t testToDoSum printString out.
+	t testToDoReturnsReceiver printString out.
+	t testToDoEmptyRange printString out.
+	t testToByDoUp printString out.
+	t testToByDoDown printString out.
+	t testWhileTrueCountUp printString out.
+	t testWhileFalseCountUp printString out.
+	t testWhileNeverRuns printString out.
+	t testWhileEarlyReturn printString out.
+	t testToByZeroStep printString out.
+)
+) : (
+)

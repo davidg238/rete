@@ -1,0 +1,16 @@
+(*
+expect:
+ok
+expect-runtime-fail: not a value
+*)
+class ListGuardValue packageUsing: manifest = () (
+public main: platform args: args = (
+  | oc |
+  'ok' out.
+  oc:: platform OrderedCollection new.
+  oc add: 7.
+  platform List with: 1 with: oc.
+  'unreached' out.
+)
+) : (
+)

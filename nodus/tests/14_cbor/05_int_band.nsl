@@ -1,0 +1,23 @@
+(*
+expect:
+true
+*)
+(* Rung 3 Task 7: Cbor round-trip of integer literals in the [2^61, 2^62) gap band
+   (de-risked by Task 1's .oimg SMI ref-word capacity fix). These literals fit the
+   runtime tagged-SMI range but EXCEED the .oimg SMI ref-word (2 tag bits => ±2^61),
+   so on Path B (.oimg) they travel the LargeInteger path while on Path A they are
+   native SMIs. CBOR major-0 shortest-form must round-trip them identically on both
+   paths and decode back value-equal. Both-path A==B gate. *)
+class CborIntBandTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | L C orig enc back |
+  L:: platform List. C:: platform Cbor.
+  orig:: L with: 2305843009213693952      (* 2^61: bottom of the gap band *)
+          with: 3458764513820540928       (* 3*2^60: mid-band *)
+          with: 4611686018427387903.      (* 2^62-1: top of the runtime SMI range *)
+  enc:: C encode: orig.
+  back:: C decode: enc ifInvalid: [ :e | e ].
+  (orig = back) printString println.
+)
+) : (
+)

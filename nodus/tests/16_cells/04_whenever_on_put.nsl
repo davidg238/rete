@@ -1,0 +1,50 @@
+(*
+expect:
+fired 3
+last seen 22
+cell still holds 22
+nobody listening, value kept 99
+done
+*)
+(* Rung 9 — a `whenever:` on a cell fires through the EXISTING reactor. `space_put`
+   writes the slot and then posts the value onto the same ring a stream uses, so there
+   is no second delivery mechanism and no change to `Space>>drain`. From the reactor's
+   side the only difference is that the cell ALSO KEPT A COPY:
+
+     · a stream's `take:` REMOVES the value; after a cell's reaction has fired, the value
+       is still in the slot (`cell still holds`);
+     · and a put with NOBODY REGISTERED still leaves the value in the slot. The event is
+       drained and dropped — exactly as it is for a stream — and the value survives. That
+       case is not a leak; it is the entire reason a cell exists.
+
+   Note "fires on WRITE", not "fires on CHANGE of value": the third put below writes 22
+   over 22 and still fires. We do not compare old to new (deep record equality on a
+   control loop's hot path, to skip a reaction that is idempotent anyway) — de-duplicating
+   identical writes is the writer's business. *)
+class WheneverOnPut packageUsing: manifest = ( | fired ::= 0. lastSeen ::= nil. | ) (
+  public main: platform args: args = (
+    | space pid quiet |
+    space:: platform space.
+    pid::   space channel: 'pid2'.
+    quiet:: space channel: 'quiet'.
+
+    pid whenever: 'sp' do: [ :v | fired:: fired + 1. lastSeen:: v ].
+
+    pid put: 'sp' value: 43.
+    pid put: 'sp' value: 22.
+    pid put: 'sp' value: 22.        (* a re-write of the same value: still fires *)
+    space drain.
+
+    ('fired ' , fired printString) out.
+    ('last seen ' , lastSeen printString) out.
+    ('cell still holds ' , (pid peek: 'sp' ifAbsent: [ 0 ]) printString) out.
+
+    (* no reaction was ever registered here: the event is drained and dropped, and the
+       value stays in the pigeonhole for whoever eventually comes to look *)
+    quiet put: 'sp' value: 99.
+    space drain.
+    ('nobody listening, value kept ' , (quiet peek: 'sp' ifAbsent: [ 0 ]) printString) out.
+    'done' out.
+  )
+) : (
+)

@@ -1,0 +1,36 @@
+(*
+expect:
+105
+7
+done
+*)
+(* T-A.2 — `^` inside INLINED control-flow blocks is the sanctioned local method
+   return (zero VM machinery). Exercises: ^ in an ifTrue: arm nested inside a
+   whileTrue: body (the loop-search idiom), and ^ in a bare ifTrue:ifFalse:.
+   Also proves the method truly exits (the 'unreached' line must not print). *)
+class LocalReturnInInlined packageUsing: manifest = () (
+
+  (* first multiple of 7 above `n` — ^ from inside whileTrue:+ifTrue: *)
+  public firstMultipleOf7Above: n = (
+    | i |
+    i:: n + 1.
+    [ true ] whileTrue: [
+      (i - (i // 7 * 7)) = 0 ifTrue: [ ^ i ].
+      i:: i + 1 ].
+    'unreached' out.
+    ^ 0 - 1
+  )
+
+  public pick: aBool = (
+    aBool ifTrue: [ ^ 7 ] ifFalse: [ ^ 8 ].
+    'unreached' out.
+    ^ 0 - 1
+  )
+
+  public main: platform args: args = (
+    (self firstMultipleOf7Above: 100) printString out.
+    (self pick: true) printString out.
+    'done' out.
+  )
+) : (
+)

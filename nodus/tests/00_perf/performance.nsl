@@ -1,0 +1,221 @@
+(*
+performance.nsl — OEVM/Newspeak port of the STIC benchmark.
+
+Ported to earn an nsl column beside Toit / uLisp / CircuitPython in the published
+ESP32 table (~/workspaceToit/stic/README.md, ekorau.com/some-numbers).
+
+THREE SOURCES, deliberately split (see tuvm/docs/design/2026-07-16-performance-nsl-
+stic-column-design.md):
+  - structure  <- st-zephyr/samples/benchmark/performance.st (Smalltalk sibling)
+  - COUNTS     <- ~/workspaceToit/stic/performance.toit's ITER_10K/100K/300K/1000K.
+                  performance.{toit,py,lsp} all share these, so they define the
+                  published table. The .st's own 100K/10K counts do NOT match it.
+  - SEMANTICS  <- performance.toit. Where the .st and .toit disagree about WHAT IS
+                  MEASURED, the .toit wins — it produced the published numbers.
+
+Semantic note, load-bearing: the .st writes `a := #(0 0 0 ...)`, a Smalltalk LITERAL —
+shared, compile-time, NOT allocated per evaluation. Ported verbatim, alloc would measure
+assignment and report a meaningless number, while Toit's `List 10 --initial=0` really
+allocates 1M arrays. So every allocation here is real: `Array new: 10`.
+
+Collection mapping: Toit `List` (fixed) -> `Array`; Toit `[]` (growable) ->
+`platform OrderedCollection`; Toit `{:}` -> `platform Dictionary`.
+
+Reports ELAPSED MILLISECONDS per test (as perfstex.ns does), NOT Toit's `%.1f` seconds:
+integer ms are exact and convert trivially, where float formatting is a needless risk.
+Divide by 1000 for the table.
+
+FIRST PASS RUNS ONCE. performance.toit's main runs the suite THREE times with a fresh
+SpeedTester and reports (one+two+three)/3.0, so the published columns are means of three.
+A single run is NOT comparable to them — it is for orientation only. Each test prints as
+it completes, so a truncated capture costs one test, not the job.
+*)
+class PerformanceBench packageUsing: manifest = () (
+public class Performance usingPlatform: platform = () (
+
+	(* Toit's `junk` is a SimpleHanoi instance — an object reference, not a
+	   SmallInteger. Kept as an object so stores match Toit's shape. *)
+	junk = ( ^ Array new: 1 )
+
+	(* ITER_100K x 10 allocations of a 10-element array. Toit: alloc-speed-test. *)
+	public alloc = (
+		| a b c d e f g h j k i t0 t1 |
+		i:: 0.
+		t0:: 0 millis.
+		[ i < 100000 ] whileTrue: [
+			a:: Array new: 10.  b:: Array new: 10.  c:: Array new: 10.
+			d:: Array new: 10.  e:: Array new: 10.  f:: Array new: 10.
+			g:: Array new: 10.  h:: Array new: 10.  j:: Array new: 10.
+			k:: Array new: 10.
+			i:: i + 1.
+		].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+
+	(* ITER_1000K x 10 at:put: = 10M writes. Toit: array-write-speed-test. *)
+	public arrayWrite = (
+		| array o i t0 t1 |
+		o:: self junk.
+		array:: Array new: 10.
+		i:: 0.
+		t0:: 0 millis.
+		[ i < 1000000 ] whileTrue: [
+			array at: 1 put: o.  array at: 2 put: o.  array at: 3 put: o.
+			array at: 4 put: o.  array at: 5 put: o.  array at: 6 put: o.
+			array at: 7 put: o.  array at: 8 put: o.  array at: 9 put: o.
+			array at: 10 put: o.
+			i:: i + 1.
+		].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+
+	(* ITER_10K x { fresh Dictionary, 10 string keys }. Toit: dictionary-write-speed-test,
+	   which builds a fresh `{:}` each iteration and does `keys.do: dict[it] = junk`. *)
+	public dictionaryWrite = (
+		| keys o d i t0 t1 |
+		o:: self junk.
+		keys:: Array new: 10.
+		keys at: 1 put: 'a'.  keys at: 2 put: 'b'.  keys at: 3 put: 'c'.
+		keys at: 4 put: 'd'.  keys at: 5 put: 'e'.  keys at: 6 put: 'f'.
+		keys at: 7 put: 'g'.  keys at: 8 put: 'h'.  keys at: 9 put: 'i'.
+		keys at: 10 put: 'j'.
+		i:: 0.
+		t0:: 0 millis.
+		[ i < 10000 ] whileTrue: [
+			d:: platform Dictionary new.
+			keys do: [ :k | d at: k put: o ].
+			i:: i + 1.
+		].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+
+	(* ITER_300K x 10 float multiply-add chains = 3M. Toit: float-math-speed-test. *)
+	public floatMath = (
+		| a b c d e i t0 t1 |
+		a:: 87.0. b:: 53.0. c:: -87.0. d:: 42461.0. e:: 5.0. i:: 0.
+		t0:: 0 millis.
+		[ i < 300000 ] whileTrue: [
+			e:: (e * a + b) * c + d.  e:: (e * a + b) * c + d.
+			e:: (e * a + b) * c + d.  e:: (e * a + b) * c + d.
+			e:: (e * a + b) * c + d.  e:: (e * a + b) * c + d.
+			e:: (e * a + b) * c + d.  e:: (e * a + b) * c + d.
+			e:: (e * a + b) * c + d.  e:: (e * a + b) * c + d.
+			i:: i + 1.
+		].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+
+	(* ITER_300K x 10 integer multiply-add chains = 3M. Toit: integer-math-speed-test.
+	   Overflows SmallInteger into boxed LargeInteger, as perfstex's does; both VMs
+	   wrap at 64-bit. *)
+	public integerMath = (
+		| a b c d e i t0 t1 |
+		a:: 87. b:: 53. c:: -87. d:: 42461. e:: 5. i:: 0.
+		t0:: 0 millis.
+		[ i < 300000 ] whileTrue: [
+			e:: (e * a + b) * c + d.  e:: (e * a + b) * c + d.
+			e:: (e * a + b) * c + d.  e:: (e * a + b) * c + d.
+			e:: (e * a + b) * c + d.  e:: (e * a + b) * c + d.
+			e:: (e * a + b) * c + d.  e:: (e * a + b) * c + d.
+			e:: (e * a + b) * c + d.  e:: (e * a + b) * c + d.
+			i:: i + 1.
+		].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+
+	(* ITER_100K x 10 `do:` over a 20-element collection = 20M block evaluations.
+	   Toit: ordered-collection-iterate-speed-test (`oc := List 20 --initial=junk`). *)
+	public collectionIterate = (
+		| o oc n i t0 t1 |
+		o:: self junk.
+		oc:: platform OrderedCollection new.
+		n:: 0.
+		[ n < 20 ] whileTrue: [ oc add: o. n:: n + 1 ].
+		i:: 0.
+		t0:: 0 millis.
+		[ i < 100000 ] whileTrue: [
+			oc do: [ :e | e ].  oc do: [ :e | e ].  oc do: [ :e | e ].
+			oc do: [ :e | e ].  oc do: [ :e | e ].  oc do: [ :e | e ].
+			oc do: [ :e | e ].  oc do: [ :e | e ].  oc do: [ :e | e ].
+			oc do: [ :e | e ].
+			i:: i + 1.
+		].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+
+	(* ITER_100K x { fresh OrderedCollection, 10 add: }. Toit:
+	   ordered-collection-write-speed-test (`oc := []` fresh each iteration). *)
+	public collectionWrite = (
+		| o oc i t0 t1 |
+		o:: self junk.
+		i:: 0.
+		t0:: 0 millis.
+		[ i < 100000 ] whileTrue: [
+			oc:: platform OrderedCollection new.
+			oc add: o.  oc add: o.  oc add: o.  oc add: o.  oc add: o.
+			oc add: o.  oc add: o.  oc add: o.  oc add: o.  oc add: o.
+			i:: i + 1.
+		].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+
+	(* ITER_100K x 10 compares = 1M. Toit: string-compare-speed-test, `s1 == s2` on two
+	   equal long literals. Toit interns strings, so its compare is a pointer test; oevm
+	   pools identical literals too (oevm#17, `String=` identity fast path), so `=` here
+	   should hit the same shape. Same string as the Toit source. *)
+	public stringCompare = (
+		| s1 s2 i t0 t1 |
+		s1:: 'this is a test of a string compare of two long strings'.
+		s2:: 'this is a test of a string compare of two long strings'.
+		i:: 0.
+		t0:: 0 millis.
+		[ i < 100000 ] whileTrue: [
+			s1 = s2.  s1 = s2.  s1 = s2.  s1 = s2.  s1 = s2.
+			s1 = s2.  s1 = s2.  s1 = s2.  s1 = s2.  s1 = s2.
+			i:: i + 1.
+		].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+
+	(* Toit's SimpleHanoi: `move 8 --from 1 --to 2 --pile 3`, returning early at 1 disk. *)
+	public hanoiMove: n from: src to: dst temp: tmp = (
+		n > 1 ifTrue: [
+			self hanoiMove: n - 1 from: src to: tmp temp: dst.
+			self hanoiMove: n - 1 from: tmp to: dst temp: src.
+		].
+		^ n
+	)
+	public hanoi8 = (
+		| t0 t1 |
+		t0:: 0 millis.
+		self hanoiMove: 8 from: 1 to: 2 temp: 3.
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+)
+public main: platform args: args = (
+	| p |
+	p:: Performance usingPlatform: platform.
+	(* Printed as each test completes, not collected — the suite is ~12 min on ESP32,
+	   so a truncated capture must not cost the whole job. *)
+	('alloc: '             , p alloc printString) out.
+	('arrayWrite: '        , p arrayWrite printString) out.
+	('dictionaryWrite: '   , p dictionaryWrite printString) out.
+	('floatMath: '         , p floatMath printString) out.
+	('integerMath: '       , p integerMath printString) out.
+	('collectionIterate: ' , p collectionIterate printString) out.
+	('collectionWrite: '   , p collectionWrite printString) out.
+	('stringCompare: '     , p stringCompare printString) out.
+	('hanoi8: '            , p hanoi8 printString) out.
+	('done') out.
+)
+) : (
+)

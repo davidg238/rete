@@ -1,0 +1,19 @@
+(*
+expect:
+9223372036854775808
+-9223372036854775809
+2147483646
+18446744073709551614
+9223372036854775807
+skip-berry: true
+*)
+class IntegerOverflowLimitTest packageUsing: manifest = () (
+public main: platform args: args = (
+  ((9223372036854775807 + 1) printString) out.
+  ((-9223372036854775808 - 1) printString) out.
+  ((1073741823 * 2) printString) out.
+  ((9223372036854775807 * 2) printString) out.
+  ((18446744073709551614 // 2) printString) out.
+)
+) : (
+)

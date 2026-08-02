@@ -1,0 +1,33 @@
+(*
+expect:
+6
+*)
+(* 3-level inheritance: C -> B -> A. A's slot `strength` is initialized from a
+   constructor arg threaded up two superInit levels. The initializer must inline
+   the WHOLE super chain (grandparent A included), not just the immediate parent
+   B — otherwise A's `strength` slot is never set. Regression for deltablue's
+   ScaleConstraint -> BinaryConstraint -> Constraint chain. *)
+class GrandparentInitTest packageUsing: manifest = () (
+  public class A strength: s = (
+  | public strength = s. |
+  )(
+    public getStrength = ( ^ strength )
+  )
+
+  public class B var: v strength: s = A strength: s (
+  | public v = v. |
+  )(
+  )
+
+  public class C var: v strength: s = B var: v strength: s (
+  | |
+  )(
+  )
+
+  public main: platform args: args = (
+    | c |
+    c:: C var: 99 strength: 6.
+    c getStrength printString out.
+  )
+) : (
+)

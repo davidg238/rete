@@ -1,0 +1,42 @@
+(*
+WriteStream — io.Buffer-style String builder (std-lib 3c-3a).
+expect:
+hello
+5
+true
+42
+3
+true
+0
+true
+*)
+class WriteStreamTest packageUsing: manifest = () (
+public main: platform args: args = (
+    | ws |
+    ws:: platform WriteStream new.
+    ws nextPutAll: 'hel'. ws nextPut: 108. ws nextPut: 111.
+    (ws contents) println.            (* hello *)
+    (ws contents) size println.       (* 5 *)
+
+    ws:: platform WriteStream new.
+    ws nextPut: 195. ws nextPut: 169.
+    ((ws contents) = 'é') println.    (* true — bytes of é round-trip *)
+
+    ws:: platform WriteStream new.
+    ws print: 42.
+    (ws contents) println.            (* 42 *)
+
+    ws:: platform WriteStream new.
+    ws nextPutLine: 'ab'.
+    (ws size) println.                (* 3 — 'ab' + LF *)
+    (((ws contents) at: 3) = 10) println.  (* true — trailing LF *)
+
+    ws reset.
+    (ws size) println.                (* 0 *)
+
+    ws:: platform WriteStream new.
+    1 to: 100 do: [ :i | ws nextPut: 97 ].
+    ((ws contents) size = 100) println.    (* true — OrderedCollection growth *)
+)
+) : (
+)

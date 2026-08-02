@@ -1,0 +1,32 @@
+(*
+expect:
+12
+24
+*)
+(* Implicit-receiver sends inside a NON-inlined block must resolve to the home
+   method's self, not the running block closure (whose R0 is the closure). Both
+   the keyword form (`add: x`) and the unary form (`bump`) are exercised.
+   Regression for deltablue's `unsatisfied do: [:u | ... incrementalAdd: u]`. *)
+class ImplicitSendInBlockTest packageUsing: manifest = () (
+  public class C = (
+  | sum ::= 0. |
+  )(
+    public add: n = ( sum:: sum + n )
+    public bump = ( sum:: sum + 7 )
+    public apply: blk = ( ^ blk value: 5 )
+    public applyNoArg: blk = ( ^ blk value )
+    public run = (
+      self apply: [:x | add: x ].   (* keyword implicit send in a real closure *)
+      self applyNoArg: [ bump ].    (* unary implicit send in a real closure *)
+      ^ sum
+    )
+  )
+
+  public main: platform args: args = (
+    | c |
+    c:: C new.
+    c run printString out.          (* +5 +7 = 12 *)
+    c run printString out.          (* +5 +7 = 24 *)
+  )
+) : (
+)

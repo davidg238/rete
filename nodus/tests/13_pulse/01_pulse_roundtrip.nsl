@@ -1,0 +1,29 @@
+(*
+expect:
+observed #done
+drained 1
+finished
+*)
+(* Zephyr rung-2 sub-project 1 — the ISR→channel pulse path, host differential form.
+   Register a GPIO pulse to post #done on 'sensor/alert'; simulate the edge (fire:)
+   which routes through the REAL pulse mailbox + M6 handle table; pumpEvents drains
+   it (thread-context space_post_id); space drain fans it to the observer. Same C
+   path the on-target GPIO ISR uses; only the stimulus (fire: vs a real edge) differs. *)
+class PulseRoundtrip packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space alert gpio drained |
+    space:: platform space.
+    alert:: space channel: 'sensor/alert'.
+    alert whenever: '' do: [ :e | ('observed ' , e printString) out ].
+
+    gpio:: platform gpio.
+    gpio pin: 13 edge: #rising post: #done on: alert.
+
+    gpio fire: 13.                                  (* simulated GPIO edge -> mailbox *)
+    drained:: platform pumpEvents.                  (* mailbox -> space queue *)
+    space drain.                                    (* reactor observes #done *)
+    ('drained ' , drained printString) out.
+    'finished' out.
+  )
+) : (
+)

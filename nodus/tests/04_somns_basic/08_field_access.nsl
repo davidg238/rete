@@ -1,0 +1,45 @@
+(*
+expect:
+33
+skip-berry: true
+*)
+class FieldAccessTest packageUsing: manifest = () (
+  public class Count new: iterations = (
+  | private iterations = iterations. |
+  )(
+    class Base new: iterations = (
+    | private iterations = iterations.
+      private cnt ::= 0. |
+    )(
+      public count = (
+        cnt:: cnt + 1.
+        ^ cnt = iterations
+      )
+    )
+
+    (* There was an issue, because A always got a new ClassFactory
+       because Base was always a different object. *)
+    class A new: iterations = Base new: iterations ()()
+  
+    public run = (
+      | e |
+      e:: A new: iterations.
+      [e count] whileFalse: [].
+      ^ true
+    )
+  )
+
+  public inheritanceOfLocalClass = ( 
+    1 to: 500 do: [:i |
+      | c |
+      c:: Count new: 100.
+      c run.
+    ].
+    ^ 33
+  )
+
+public main: platform args: args = (
+    inheritanceOfLocalClass printString out.
+)
+) : (
+)

@@ -1,0 +1,601 @@
+(*
+DeltaBlue — OEVM/Newspeak port of the classic incremental-constraint-solver
+benchmark. Body is verbatim from 05_somns_benchmarks/07_deltablue.ns (SOMns
+lineage); this variant is self-timed via the `millis` primitive: 3 runs of
+chainTest+projectionTest at the n=50 (n=100 overruns a 96 KB device heap), one "deltablue: <elapsed-ms>"
+line each, then "verified: <bool>" and "done". The workload self-verifies
+(chain/projection value checks raise on any wrong plan).
+No expect: block — timings vary (perf bucket, like richards.ns).
+*)
+class DeltaBlueBench packageUsing: manifest = () (
+class DeltaBlueNS usingPlatform: platform = (
+| private List = Vector.
+
+  private required        = Strength name: 'required' value: 0.
+  private strongPreferred = Strength name: 'strongPreferred' value: 1.
+  private preferred       = Strength name: 'preferred' value: 2.
+  private strongDefault   = Strength name: 'strongDefault' value: 3.
+  private normal          = Strength name: 'normal' value: 4.
+  private weakDefault     = Strength name: 'weakDefault' value: 5.
+  private weakest         = Strength name: 'weakest' value: 6.
+
+  private descendingStrengths = { required. strongPreferred. preferred. strongDefault. normal. weakDefault. weakest }.
+
+  private forward = Direction named: 'forward'.
+  private backward = Direction named: 'backward'.
+|
+)(
+  public class DeltaBlueBenchmark = ()(
+    public innerBenchmarkLoop: innerIterations numThreads: threads = (
+      | planner = Planner new. |
+      planner chainTest: innerIterations.
+      planner projectionTest: innerIterations.
+      ^ true
+    )
+  )
+
+  class Vector new: size = (
+  | private firstIdx ::= 1.
+    private lastIdx  ::= 1.
+    private storage  ::= Array new: size. |
+  ) (
+    public at: index = (
+      self checkIndex: index.
+      ^ storage at: index
+    )
+
+    public at: index put: value = (
+      self checkIndex: index.
+      storage at: index put: value.
+    )
+
+    public first = ( ^ isEmpty ifTrue: [nil] ifFalse: [storage at: firstIdx] )
+
+    public last = ( ^ isEmpty ifTrue: [nil] ifFalse: [storage at: lastIdx - 1] )
+
+    public do: block = (
+      firstIdx to: lastIdx - 1 do: [ :i | block value: (storage at: i) ]
+    )
+
+    public append: element = (
+      (lastIdx > storage size) ifTrue: [
+        | newStorage |
+        newStorage:: Array new: 2 * storage size.
+        1 to: storage size do: [ :i | newStorage at: i put: (storage at: i) ].
+        storage:: newStorage. ].
+
+      storage at: lastIdx put: element.
+      lastIdx:: lastIdx + 1.
+      ^ self
+    )
+
+    public remove = (
+      lastIdx > firstIdx
+        ifTrue:  [ lastIdx:: lastIdx - 1. ^storage at: lastIdx ]
+        ifFalse: [
+          self error: 'Vector is empty' ]
+    )
+
+    public remove: object = (
+      | newArray newLast found |
+      newArray:: Array new: self capacity.
+      newLast:: 1.
+      found:: false.
+
+      self do: [ :it |
+        it = object
+          ifTrue:  [ found:: true ]
+          ifFalse: [
+            newArray at: newLast put: it.
+            newLast:: newLast + 1.
+          ]
+      ].
+
+      storage:: newArray.
+      lastIdx:: newLast.
+      firstIdx:: 1.
+      ^ found
+    )
+
+    public isEmpty  = ( ^ lastIdx = firstIdx   )
+    public size     = ( ^ lastIdx - firstIdx   )
+    public capacity = ( ^ storage size )
+
+    checkIndex: index = (
+      ((firstIdx <= index) and: [index < lastIdx])
+        ifFalse: [
+          self error: 'Index out of bounds'
+        ].
+    )
+  ) : (
+    public new = ( ^ self new: 50 )
+  )
+
+  private class Direction named: n = (
+  | name = n. |
+  )()
+
+  private class Plan = (
+  | private constraints = List new. |
+  )(
+    public addConstraint: c = (
+      constraints append: c.
+    )
+
+    public execute = (
+      constraints do: [:c | c execute].
+    )
+  )
+
+  private class Planner = (
+  | currentMark ::= 0. |
+  )(
+    private class BinaryConstraint var: v1 var: v2 strength: s = Constraint strength: s (
+    | v1 = v1.
+      v2 = v2.
+      direction
+    |)(
+      public addToGraph = (
+        v1 addConstraint: self.
+        v2 addConstraint: self.
+        direction:: nil.
+      )
+
+      protected chooseMethod: mark = (
+        v1 mark = mark ifTrue:
+          [((v2 mark = mark) not and: [strength strongerThan: v2 walkStrength])
+            ifTrue: [direction:: forward]
+            ifFalse: [direction:: nil].
+          ^self].
+        v2 mark = mark ifTrue:
+          [((v1 mark = mark) not and: [strength strongerThan: v1 walkStrength])
+            ifTrue: [direction:: backward]
+            ifFalse: [direction:: nil].
+          ^self].
+
+        (v1 walkStrength weakerThan: v2 walkStrength)
+          ifTrue:
+            [direction:: (strength strongerThan: v1 walkStrength)
+              ifTrue: [backward]
+              ifFalse: [nil]]
+          ifFalse:
+            [direction:: (strength strongerThan: v2 walkStrength)
+              ifTrue: [forward]
+              ifFalse: [backward]].
+      )
+
+      public input = (
+        ^direction = forward ifTrue: [v1] ifFalse: [v2]
+      )
+
+      public inputsKnown: mark = (
+        | in = input. |
+        ^in mark = mark or: [in stay or: [in determinedBy isNil]]
+      )
+
+      public isSatisfied = (
+        ^(nil = direction) not
+      )
+
+      public markInputs: mark = (
+        input mark: mark
+      )
+
+      public markUnsatisfied = (
+        direction:: nil.
+      )
+
+      public output = (
+        ^direction = forward ifTrue: [v2] ifFalse: [v1]
+      )
+
+      public recalculate = (
+        | in = input. out = output. |
+        out walkStrength: (strength weakest: in walkStrength).
+        out stay: in stay.
+        out stay ifTrue: [execute].
+      )
+
+      public removeFromGraph = (
+        v1 isNil ifFalse: [v1 removeConstraint: self].
+        v2 isNil ifFalse: [v2 removeConstraint: self].
+        direction:: nil.
+      )
+    )
+
+    private class Constraint strength: s = (
+    | public strength = s. |
+    )(
+      public addConstraint = (
+        addToGraph.
+        incrementalAdd: self.
+      )
+
+      public addToGraph = (
+        subclassResponsibility
+      )
+
+      public chooseMethod: mark = (
+        subclassResponsibility
+      )
+
+      public destroyConstraint = (
+        isSatisfied ifTrue: [incrementalRemove: self].
+        removeFromGraph.
+      )
+
+      public execute = (
+        subclassResponsibility
+      )
+
+      public inputsKnown: mark = (
+        subclassResponsibility
+      )
+
+      public isInput = (
+        ^false
+      )
+
+      public isSatisfied = (
+        subclassResponsibility
+      )
+
+      public markInputs: mark = (
+        subclassResponsibility
+      )
+
+      public markUnsatisfied = (
+        subclassResponsibility
+      )
+
+      public output = (
+        subclassResponsibility
+      )
+
+      public recalculate = (
+        subclassResponsibility
+      )
+
+      public removeFromGraph = (
+        subclassResponsibility
+      )
+
+      public satisfy: mark = (
+        | out overridden |
+        chooseMethod: mark.
+        isSatisfied ifFalse:
+          [strength = required ifTrue:
+            [self error: 'Could not satisfy a required constraint'].
+          ^nil].
+        markInputs: mark.
+        out:: output.
+        overridden:: out determinedBy.
+        overridden isNil ifFalse: [overridden markUnsatisfied].
+        out determinedBy: self.
+        (addPropagate: self mark: mark) ifFalse: [self error: 'Cycle encountered'].
+        out mark: mark.
+        ^overridden
+      )
+    )
+
+    private class EditConstraint var: v strength: s = UnaryConstraint var: v strength: s (
+      addConstraint
+    ) (
+      public execute = (
+      )
+
+      public isInput = (
+        ^true
+      )
+    )
+
+    private class EqualityConstraint var: v1 var: v2 strength: s = BinaryConstraint var: v1 var: v2 strength: s (
+      addConstraint
+    ) (
+      public execute = (
+        output value: input value.
+      )
+    )
+
+    private class ScaleConstraint source: src scale: scale offset: offset destination: dest strength: s = BinaryConstraint var: src var: dest strength: s (
+    | scaleVal = scale.
+      offsetVal = offset.
+    |
+      addConstraint
+    )(
+      public addToGraph = (
+        super addToGraph.
+        scaleVal addConstraint: self.
+        offsetVal addConstraint: self.
+      )
+
+      public execute = (
+        direction = forward
+          ifTrue: [v2 value: v1 value * scaleVal value + offsetVal value]
+          ifFalse: [v1 value: (v2 value - offsetVal value) // scaleVal value].
+      )
+
+      public markInputs: mark = (
+        super markInputs: mark.
+        scaleVal mark: mark.
+        offsetVal mark: mark.
+      )
+
+      public recalculate = (
+        | in = input. out = output. |
+        out walkStrength: (strength weakest: in walkStrength).
+        out stay: (in stay and: [scaleVal stay and: [offsetVal stay]]).
+        out stay ifTrue: [execute].
+      )
+
+      public removeFromGraph = (
+        super removeFromGraph.
+        scaleVal isNil ifFalse: [scaleVal removeConstraint: self].
+        offsetVal isNil ifFalse: [offsetVal removeConstraint: self].
+      )
+    )
+
+    private class StayConstraint var: v strength: s = UnaryConstraint var: v strength: s (
+      addConstraint
+    )(
+      public execute = (
+      )
+    )
+
+    private class UnaryConstraint var: v strength: s = Constraint strength: s (
+    | public output = v.
+      protected satisfied ::= false.
+    |)(
+      public addToGraph = (
+        output addConstraint: self.
+        satisfied: false.
+      )
+
+      public chooseMethod: mark = (
+        satisfied:: ((output mark = mark) not and: [strength strongerThan: output walkStrength])
+      )
+
+      public inputsKnown: mark = (
+        ^true
+      )
+
+      public isSatisfied = (
+        ^satisfied
+      )
+
+      public markInputs: mark = (
+      )
+
+      public markUnsatisfied = (
+        satisfied: false
+      )
+
+      public recalculate = (
+        output walkStrength: strength.
+        output stay: isInput not.
+        output stay ifTrue: [execute].
+      )
+
+      public removeFromGraph = (
+        output isNil ifFalse: [output removeConstraint: self].
+        satisfied: false.
+      )
+    )
+
+    private class Variable name: n initialValue: v = (
+    | public value ::= v.
+      public constraints = List new: 2.
+      public determinedBy
+      public mark ::= 0.
+      public walkStrength ::= weakest.
+      public stay ::= true.
+      public name = n.
+    |)(
+      public addConstraint: c = (
+        constraints append: c.
+      )
+
+      public removeConstraint: c = (
+        constraints remove: c.
+        determinedBy = c ifTrue: [determinedBy: nil].
+      )
+    )
+
+    public addConstraintsConsuming: v to: list = (
+      | determining = v determinedBy. |
+      v constraints do: [:c | ((c = determining) not and: [c isSatisfied]) ifTrue: [list append: c]].
+    )
+
+    public addPropagate: c mark: mark = (
+      | todo = List new. |
+      todo append: c.
+      [todo isEmpty] whileFalse: [
+        | d = todo remove. |
+        d output mark = mark ifTrue: [incrementalRemove: c. ^false].
+        d recalculate.
+        addConstraintsConsuming: d output to: todo.
+      ].
+      ^true
+    )
+
+    public chainTest: n = (
+      | prev first last
+      editC editV plan |
+      1 to: n do: [:i |
+        | name v |
+        name:: 'v', i printString.
+        v:: Variable name: name initialValue: 0.
+        prev isNil ifFalse: [EqualityConstraint var: prev var: v strength: required].
+        i = 1 ifTrue: [first:: v].
+        i = n ifTrue: [last:: v].
+        prev:: v.
+      ].
+
+      StayConstraint var: last strength: strongDefault.
+      editC:: EditConstraint var: first strength: preferred.
+      editV:: List new.
+      editV append: editC.
+      plan:: extractPlanFromConstraints: editV.
+      1 to: n do: [:i |
+        first value: i.
+        plan execute.
+        last value = i ifFalse: [self error: 'Chain test failed!'].
+      ].
+      editC destroyConstraint.
+    )
+
+    public extractPlanFromConstraints: constraints = (
+      | sources = List new. |
+      constraints do: [:c | (c isInput and: [c isSatisfied]) ifTrue: [sources append: c]].
+      ^makePlan: sources
+    )
+
+    public incrementalAdd: c = (
+      | mark = newMark.
+        overridden ::= c satisfy: mark. |
+      [overridden isNil] whileFalse: [overridden:: overridden satisfy: mark].
+    )
+
+    public incrementalRemove: c = (
+      | out unsatisfied |
+      out:: c output.
+      c markUnsatisfied.
+      c removeFromGraph.
+      unsatisfied:: removePropagateFrom: out.
+      descendingStrengths do: [:strength |
+        unsatisfied do: [:u |
+          u strength = strength
+            ifTrue: [incrementalAdd: u]]].
+    )
+
+    public makePlan: sources = (
+      | mark = newMark.
+        plan = Plan new.
+        todo = sources. |
+      [todo isEmpty] whileFalse: [
+        | c = todo remove. |
+        ((c output mark = mark) not and: [c inputsKnown: mark]) ifTrue: [
+          plan addConstraint: c.
+          c output mark: mark.
+          addConstraintsConsuming: c output to: todo.
+        ]
+      ].
+      ^plan
+    )
+
+    public newMark = (
+      currentMark:: currentMark + 1.
+      ^currentMark
+    )
+
+    public projectionTest: n = (
+      | scale offset src dst dests |
+      scale:: Variable name: 'scale' initialValue: 10.
+      offset:: Variable name: 'offset' initialValue: 1000.
+      dests:: List new.
+      0 to: n - 1 do: [:i |
+        src:: Variable name: 'src', i printString initialValue: i.
+        dst:: Variable name: 'dst', i printString initialValue: i.
+        dests append: dst.
+        StayConstraint var: src strength: normal.
+        ScaleConstraint source: src scale: scale offset: offset destination: dst strength: required.
+      ].
+
+      setValueOf: src to: 17.
+      dst value = 1170 ifFalse: [self error: 'Projection test 1 failed!'].
+
+      setValueOf: dst to: 1050.
+      src value = 5 ifFalse: [self error: 'Projection test 2 failed!'].
+
+      setValueOf: scale to: 5.
+      0 to: n - 2 do:
+        [:i | (dests at: i + 1) value = (i * 5 + 1000)
+          ifFalse: [self error: 'Projection test 3 failed!'] ].
+
+      setValueOf: offset to: 2000.
+      0 to: n - 2 do:
+        [:i | (dests at: i + 1) value = (i * 5 + 2000)
+          ifFalse: [self error: 'Projection test 4 failed!']].
+    )
+
+    public propagateFrom: v = (
+      | todo = List new. |
+      addConstraintsConsuming: v to: todo.
+      [todo isEmpty] whileFalse: [
+        | c = todo remove. |
+        c execute.
+        addConstraintsConsuming: c output to: todo.
+      ].
+    )
+
+    public removePropagateFrom: out = (
+      | unsatisfied todo |
+      out determinedBy: nil.
+      out walkStrength: weakest.
+      out stay: true.
+      unsatisfied:: List new.
+      todo:: List new.
+      todo append: out.
+      [todo isEmpty] whileFalse: [
+        | v determining |
+        v:: todo remove.
+        v constraints do: [:c | c isSatisfied ifFalse: [unsatisfied append: c]].
+        determining:: v determinedBy.
+        v constraints do: [:nextC |
+          ((nextC = determining) not and: [nextC isSatisfied])
+            ifTrue: [nextC recalculate. todo append: nextC output]].
+      ].
+      ^unsatisfied
+    )
+
+    public setValueOf: var to: newValue = (
+      | editC editV plan |
+      editC:: EditConstraint var: var strength: preferred.
+      editV:: List new.
+      editV append: editC.
+      plan:: extractPlanFromConstraints: editV.
+      10 timesRepeat: [var value: newValue. plan execute].
+      editC destroyConstraint.
+    )
+  )
+
+  class Strength name: n value: v = (
+  | public name = n.
+    public value = v.
+  |)(
+    public strongerThan: other = (
+      ^self value < other value
+    )
+
+    public strongest: other = (
+      ^(self strongerThan: other) ifTrue: [self] ifFalse: [other]
+    )
+
+    public weakerThan: other = (
+      ^self value > other value
+    )
+
+    public weakest: other = (
+      ^(self weakerThan: other) ifTrue: [self] ifFalse: [other]
+    )
+  )
+)
+public main: platform args: args = (
+	| db deltablue ok result t0 t1 i |
+	db:: DeltaBlueNS usingPlatform: platform.
+	deltablue:: db DeltaBlueBenchmark new.
+	ok:: true.
+	i:: 0.
+	[ i < 3 ] whileTrue: [
+		t0:: 0 millis.
+		result:: deltablue innerBenchmarkLoop: 50 numThreads: 1.
+		t1:: 0 millis.
+		result ifFalse: [ ok:: false ].
+		('deltablue: ' , (t1 - t0) printString) out.
+		i:: i + 1.
+	].
+	('verified: ' , ok printString) out.
+	('done') out.
+)
+) : (
+)

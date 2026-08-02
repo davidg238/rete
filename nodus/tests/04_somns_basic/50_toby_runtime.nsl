@@ -1,0 +1,25 @@
+(*
+`to:by:do:` with a NON-LITERAL step (step held in a temp, sign unknown at
+compile time) exercises compile_to_by_do_runtime's runtime-direction counted
+loops (l_pos for step>0, l_neg for step<0) driving OP_BLOCK_INVOKE — the code
+path with no other suite coverage. Positive step 2 over 1..7 -> 1+3+5+7 = 16;
+negative step -1 over 5..1 -> 5+4+3+2+1 = 15.
+
+expect:
+16
+15
+*)
+class ToByRuntimeTest packageUsing: manifest = () (
+public main: platform args: args = (
+    | posStep negStep sum sum2 |
+    posStep:: 2.
+    negStep:: 0 - 1.
+    sum:: 0.
+    sum2:: 0.
+    1 to: 7 by: posStep do: [:i | sum:: sum + i].
+    5 to: 1 by: negStep do: [:i | sum2:: sum2 + i].
+    sum printString out.
+    sum2 printString out.
+)
+) : (
+)

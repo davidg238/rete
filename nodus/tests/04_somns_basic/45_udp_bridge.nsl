@@ -1,0 +1,72 @@
+(*
+Rung 6 Layer 2 — the reactive channel<->UDP bridge, bidirectional, over REAL
+UDP loopback. Two NetBridges A<->B in one Space: a Record posted to a bridge's
+`out` channel is CBOR-encoded and sent; the peer's pumpInbound receives it,
+CBOR-decodes, and posts the decoded Record onto its `in` channel, where a
+reaction observes it value-equal. Then the reverse direction. Finally a garbage
+(non-CBOR) datagram is delivered: the bridge DROPS it (decode ifInvalid) and the
+node survives — no crash, no spurious reaction.
+
+R4 (declares net:). Payload is CBOR bytes (Rung 6).
+expect:
+a->b ok
+b->a ok
+survived garbage
+BRIDGE OK
+*)
+class UdpBridgeTest usingPlatform: platform net: net = () (
+  public main: platform2 args: args = (
+    | space sockA sockB portA portB bridgeA bridgeB gotB gotA rec |
+    space:: platform space.
+
+    (* two receivers on fixed loopback ports; a sender socket each *)
+    portA:: 54341. portB:: 54342.
+    sockA:: net udpBindPort: portA.
+    sockB:: net udpBindPort: portB.
+    (sockA == nil or: [ sockB == nil ]) ifTrue: [ ^ self fail: 'bind' ].
+
+    bridgeA:: platform NetBridge
+      socket: sockA out: (space channel: 'a/out') peer: '127.0.0.1' port: portB in: (space channel: 'a/in').
+    bridgeB:: platform NetBridge
+      socket: sockB out: (space channel: 'b/out') peer: '127.0.0.1' port: portA in: (space channel: 'b/in').
+    bridgeA start. bridgeB start.
+
+    gotB:: nil. gotA:: nil.
+    (space channel: 'b/in') whenever: '' do: [ :v | gotB:: v ].
+    (space channel: 'a/in') whenever: '' do: [ :v | gotA:: v ].
+
+    (* A -> B *)
+    rec:: platform Record tag: #reading with: #seq -> 1 with: #milliC -> 235.
+    (space channel: 'a/out') out: '' value: rec. space drain.
+    [ gotB == nil ] whileTrue: [ bridgeB pumpInbound. space drain ].
+    (gotB = rec) ifTrue: [ 'a->b ok' println ] ifFalse: [ ^ self fail: 'a->b mismatch' ].
+
+    (* B -> A *)
+    (space channel: 'b/out') out: '' value: rec. space drain.
+    [ gotA == nil ] whileTrue: [ bridgeA pumpInbound. space drain ].
+    (gotA = rec) ifTrue: [ 'b->a ok' println ] ifFalse: [ ^ self fail: 'b->a mismatch' ].
+
+    (* garbage datagram -> B: a raw non-CBOR byte the bridge must drop *)
+    gotB:: nil.
+    self sendGarbageTo: portB.
+    bridgeB pumpInbound. space drain.        (* one pump: decode fails -> dropped *)
+    gotB == nil ifTrue: [ 'survived garbage' println ] ifFalse: [ ^ self fail: 'garbage leaked' ].
+
+    'BRIDGE OK' println.
+    ^ 0
+  )
+
+  (* 0xFF is a reserved/invalid CBOR initial byte -> Cbor decode fails -> drop *)
+  sendGarbageTo: aPort = (
+    | tx b |
+    tx:: net udp.
+    b:: (platform ByteArray) new: 1.
+    b u8At: 1 put: 255.
+    tx sendTo: '127.0.0.1' port: aPort data: b freeze.
+    tx close.
+    ^ self
+  )
+  fail: msg = ( msg println. ^ 1 )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

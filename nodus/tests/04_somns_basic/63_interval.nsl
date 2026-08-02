@@ -1,0 +1,62 @@
+(*
+expect:
+5
+1
+5
+15
+4
+1 4 7 10
+5 4 3 2 1
+0
+true
+3
+55
+7
+*)
+(* L1 — Interval: an integer range as a FIRST-CLASS collection, so numeric ranges
+   get the whole Collection protocol (select:, anySatisfy:, count:, inject:into:, …).
+
+   The compiler still lowers the `to:do:` / `to:by:do:` LOOP forms to bytecode —
+   Interval is for range-as-VALUE uses and does not change that.
+
+   NOTE: the spec's `1 to: n` sugar is NOT available here. Integers are VM builtins
+   with no nsl-reachable vtable — `1 to: 5` compiles to a real send and dies with
+   `Message 'to:' not understood by receiver 0x3 (vtable: (nil))` — so a range value
+   is constructed explicitly. See tuvm#30. *)
+class IntervalTest packageUsing: manifest = () (
+  join: col = (
+    | s |
+    s:: ''.
+    col do: [ :e | s:: s , e printString ] separatedBy: [ s:: s , ' ' ].
+    ^ s )
+
+  public main: platform args: args = (
+    | r ten |
+    r:: Interval from: 1 to: 5.
+    r size printString out.                                  (* 5 *)
+    r first printString out.                                 (* 1 *)
+    r last printString out.                                  (* 5 *)
+    (r inject: 0 into: [ :a :e | a + e ]) printString out.   (* 15 *)
+
+    (* stepped *)
+    r:: Interval from: 1 to: 10 by: 3.
+    r size printString out.                                  (* 4 — 1,4,7,10 *)
+    (self join: r) out.                                      (* 1 4 7 10 *)
+
+    (* descending *)
+    (self join: (Interval from: 5 to: 1 by: 0 - 1)) out.     (* 5 4 3 2 1 *)
+
+    (* empty when the range cannot be walked forward *)
+    (Interval from: 5 to: 1) size printString out.           (* 0 *)
+
+    (* it really IS a Collection — the inherited combinators work on it *)
+    ten:: Interval from: 1 to: 10.
+    (ten anySatisfy: [ :e | e > 9 ]) printString out.        (* true *)
+    (ten count: [ :e | e > 7 ]) printString out.             (* 3 — 8,9,10 *)
+    (ten inject: 0 into: [ :a :e | a + e ]) printString out. (* 55 *)
+
+    (* indexed access is 1-based over the STEPPED sequence *)
+    (ten at: 7) printString out.                             (* 7 *)
+  )
+) : (
+)

@@ -1,0 +1,17 @@
+(*
+expect:
+3
+0
+*)
+class DetectNoNlrTest packageUsing: manifest = () (
+public main: platform args: args = (
+    | c |
+    c:: OrderedCollection new.
+    c add: 1.
+    c add: 2.
+    c add: 3.
+    (c detect: [ :e | e > 2 ] ifNone: [ 0 ]) println.
+    (c detect: [ :e | e > 9 ] ifNone: [ 0 ]) println.
+)
+) : (
+)

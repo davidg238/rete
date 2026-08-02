@@ -1,0 +1,29 @@
+(*
+expect:
+display:
+  1: HELLO
+caught displayBounds
+text row or column outside the grid
+finished
+*)
+(* tuvm#88 — an out-of-grid row is a WRONG LITERAL, not a load condition, so it
+   raises rather than silently doing nothing and leaving a node that looks fine
+   and displays nothing. The tag is asserted, not merely the fact that something
+   failed — an untagged catch would pass even if the raise came from elsewhere.
+   Same shape as 13_pulse/03_gpio_undeclared_raises.nsl. *)
+class DisplayRaises packageUsing: manifest = () (
+  public main: platform args: args = (
+    | display |
+    display:: platform display.
+    display clear.
+    display at: 1 col: 0 put: 'HELLO'.
+    display refresh.
+
+    [ display at: 99 col: 0 put: 'X' ]
+      on: [ :e | e tag = #displayBounds ]
+      do: [ :e | 'caught displayBounds' out.
+                 ('text ' , (e at: #text ifAbsent: [ '?' ])) out ].
+    'finished' out.
+  )
+) : (
+)

@@ -1,0 +1,12 @@
+(*
+expect-runtime-fail: not a value
+*)
+class RecordGuardTag packageUsing: manifest = () (
+public main: platform args: args = (
+  | R |
+  R:: platform Record.
+  R tag: 42 fields: (platform Map with: #seq -> 42).
+  'unreached' out.
+)
+) : (
+)

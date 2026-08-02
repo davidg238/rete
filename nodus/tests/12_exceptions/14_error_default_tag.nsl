@@ -1,0 +1,15 @@
+(*
+expect:
+caught default #error
+*)
+(* A bare `self error:` (no explicit tag) must be catchable by the spec §3/§6 idiom
+   `[ :e | e tag = #error ]` — the default tag is the image-INTERNED #error, so
+   identity-`=` matches. Guards the F1 non-interned-symbol regression. *)
+class ErrorDefaultTag packageUsing: manifest = () (
+  public main: platform args: args = (
+    [ self error: 'oops' ]
+      on: [ :e | e tag = #error ]
+      do: [ :e | ('caught default ' , e tag printString) out ].
+  )
+) : (
+)

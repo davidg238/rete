@@ -1,0 +1,56 @@
+(*
+expect:
+true
+false
+false
+true
+true
+false
+true
+true
+0
+0
+5
+7
+true
+false
+true
+*)
+class AndOrTest packageUsing: manifest = () (
+public class AndOr = () (
+	public testAndTrueTrue     = ( ^ (1 < 2) and: [ 3 > 2 ] )
+	public testAndTrueFalse    = ( ^ (1 < 2) and: [ 3 < 2 ] )
+	public testAndShortCircuit = ( ^ (1 > 2) and: [ 3 > 2 ] )
+	public testOrTrue       = ( ^ (1 < 2) or: [ 3 < 2 ] )
+	public testOrFalseTrue  = ( ^ (1 > 2) or: [ 3 > 2 ] )
+	public testOrFalseFalse = ( ^ (1 > 2) or: [ 3 < 2 ] )
+	public testAndChain = ( ^ ((1 < 2) and: [ 2 < 3 ]) and: [ 3 < 4 ] )
+	public testOrChain  = ( ^ ((1 > 2) or: [ 2 > 3 ]) or: [ 3 < 4 ] )
+	public testAndSideEffect = ( | x | x:: 0. (1 > 2) and: [ x:: 1. 3 < 2 ]. ^ x )
+	public testOrSideEffect  = ( | x | x:: 0. (1 < 2) or: [ x:: 1. 3 < 2 ]. ^ x )
+	public testAndValue  = ( ^ (1 < 2) and: [ 5 ] )
+	public testAndThenIf = ( ^ ((1 < 2) and: [ 2 < 3 ]) ifTrue: [ 7 ] ifFalse: [ 8 ] )
+	public testFallback  = ( | b | b:: [ 3 > 2 ]. ^ (1 < 2) and: b )
+	public testSmiAnd = ( ^ 0 and: [ 1 ] )
+	public testSmiOr  = ( ^ 5 or: [ 1 < 2 ] )
+)
+public main: platform args: args = (
+	| t = AndOr new. |
+	t testAndTrueTrue printString out.
+	t testAndTrueFalse printString out.
+	t testAndShortCircuit printString out.
+	t testOrTrue printString out.
+	t testOrFalseTrue printString out.
+	t testOrFalseFalse printString out.
+	t testAndChain printString out.
+	t testOrChain printString out.
+	t testAndSideEffect printString out.
+	t testOrSideEffect printString out.
+	t testAndValue printString out.
+	t testAndThenIf printString out.
+	t testFallback printString out.
+	t testSmiAnd printString out.
+	t testSmiOr printString out.
+)
+) : (
+)

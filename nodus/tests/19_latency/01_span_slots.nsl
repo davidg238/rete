@@ -1,0 +1,59 @@
+(*
+expect:
+true
+true
+true
+false
+true
+true
+true
+true
+true
+true
+true
+done
+*)
+(* tuvm#61: the span slot seam end-to-end — prims 118-121 through the kernel's
+   Spans class. Values are FED, not timed (spanRecord:us:), so bucket edges are
+   asserted exactly and nothing is timing-dependent; the clock plumbing is a
+   separate test (02_span_clock). Slots are NAMELESS in C and named here, so this
+   also proves the name<->slot table round-trips. Both-path A==B gate. *)
+class SpanSlotsTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | spans acquire compute s |
+  spans::   platform Spans new.
+
+  (* Slots 0 and 1 are RESERVED for the two C-owned spans http_core.c stamps
+     itself. They are seeded here rather than derived from OEVM_SPAN_SLOTS so that
+     a -DOEVM_SPAN_SLOTS=6 build cannot silently point these names at the wrong
+     data — and so that the FIRST name an app registers lands at 2, never on top of
+     the HTTP queue. *)
+  ((spans nameAt: spans httpQueueSlot) = #httpQueue) printString println.  (* true *)
+  ((spans nameAt: spans egressSlot) = #egress) printString println.        (* true *)
+
+  acquire:: spans register: #acquire.
+  compute:: spans register: #vmCompute.
+  (acquire = 2) printString println.                         (* true — clear of both *)
+
+  (* Registration hands out DISTINCT slots and remembers the names. *)
+  (acquire = compute) printString println.                   (* false *)
+  ((spans nameAt: acquire) = #acquire) printString println.  (* true  *)
+
+  (* A virgin slot is all zeroes. *)
+  s:: spans statsAt: acquire.
+  ((s basicAt: 1) = 0) printString println.                  (* true  *)
+
+  (* Exact bucket edges: 99 us -> b0, 100 us -> b1. Buckets are fields 6..11. *)
+  spans recordSlot: acquire us: 99.
+  spans recordSlot: acquire us: 100.
+  s:: spans statsAt: acquire.
+  ((s basicAt: 1) = 2) printString println.                  (* n = 2     *)
+  ((s basicAt: 6) = 1) printString println.                  (* b0 = 1    *)
+  ((s basicAt: 7) = 1) printString println.                  (* b1 = 1    *)
+  ((s basicAt: 2) = 99) printString println.                 (* min = 99  *)
+  ((s basicAt: 3) = 100) printString println.                (* max = 100 *)
+
+  'done' println.
+)
+) : (
+)

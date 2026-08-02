@@ -1,0 +1,40 @@
+(*
+expect:
+2
+42
+0
+true
+true
+*)
+class MapBasics packageUsing: manifest = () (
+public main: platform args: args = (
+  | M m m2 oc |
+  M:: platform Map.
+  m:: M with: #k -> 42 with: #j -> 7.
+  m size printString out.
+  (m at: #k ifAbsent: [ 0 ]) printString out.
+  (m at: #zzz ifAbsent: [ 0 ]) printString out.
+  (* NOTE (deviation from the brief's literal verbatim text, flagged for
+     review — see mb-task-8-report.md): the brief's `05_map.ns` built
+     fromPairs:'s input as `platform List with: (#j -> 7) with: (#k -> 42)`.
+     That crashes `not a value` on ITS OWN — unrelated to Map — because
+     List's pre-existing (Task 6/7) `setItems:` validates every element via
+     `checkValue:`, and a bare Association is deliberately "not a value"
+     (design doc: "A bare Association inside a List/Map value position is
+     `not a value`"; pinned by 08_messages/01_association.ns). So an algebra
+     `List` can never legally hold raw Associations as elements, verbatim or
+     not. `fromPairs:`'s "aList" is therefore a plain (unvalidated) indexable
+     collection of pairs, not itself an algebra List — `OrderedCollection`
+     here, matching that read; `Map>>fromPairs:` only requires `size`/`at:`,
+     which OrderedCollection provides. Same feature under test (fromPairs:
+     unwrapping bare Associations, order-independence, structural = / hash),
+     same expected output — only the throwaway input container changed. *)
+  oc:: platform OrderedCollection new.
+  oc add: (#j -> 7).
+  oc add: (#k -> 42).
+  m2:: M fromPairs: oc.
+  (m = m2) printString out.              (* sugar == fromPairs, order-independent *)
+  (m hash = m2 hash) printString out.
+)
+) : (
+)

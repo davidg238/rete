@@ -1,0 +1,122 @@
+(*
+Perfstex — OEVM/Newspeak port of the classic Smalltalk SpeedTester.
+Adapted from st-zephyr/samples/benchmark/Perfstex.st for the OEVM VM.
+Self-timed via the `millis` primitive; prints "name: <elapsed-ms>" per test.
+No expect: block — timings vary (perf bucket, like fib.ns).
+*)
+class PerfstexBench packageUsing: manifest = () (
+public class Perfstex usingPlatform: platform = () (
+	public integerMath = (
+		| a b c d e i t0 t1 |
+		a:: 87. b:: 53. c:: -87. d:: 42461. e:: 5. i:: 0.
+		t0:: 0 millis.
+		[ i < 1000 ] whileTrue: [
+			e:: (e * a + b) * c + d.
+			e:: (e * a + b) * c + d.
+			e:: (e * a + b) * c + d.
+			e:: (e * a + b) * c + d.
+			e:: (e * a + b) * c + d.
+			i:: i + 1.
+		].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+	public floatMath = (
+		| a b c d e i t0 t1 |
+		a:: 87.0. b:: 53.0. c:: -87.0. d:: 42461.0. e:: 5.0. i:: 0.
+		t0:: 0 millis.
+		[ i < 1000 ] whileTrue: [
+			e:: (e * a + b) * c + d.
+			e:: (e * a + b) * c + d.
+			e:: (e * a + b) * c + d.
+			e:: (e * a + b) * c + d.
+			e:: (e * a + b) * c + d.
+			i:: i + 1.
+		].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+	public arrayWrite = (
+		| array i t0 t1 |
+		array:: Array new: 10.
+		i:: 0.
+		t0:: 0 millis.
+		[ i < 10000 ] whileTrue: [
+			array at: 1 put: 42.  array at: 2 put: 42.  array at: 3 put: 42.
+			array at: 4 put: 42.  array at: 5 put: 42.  array at: 6 put: 42.
+			array at: 7 put: 42.  array at: 8 put: 42.  array at: 9 put: 42.
+			array at: 10 put: 42.
+			i:: i + 1.
+		].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+	public arrayIterate = (
+		| array i t0 t1 |
+		array:: Array new: 10.
+		array at: 1 put: 1.  array at: 2 put: 2.  array at: 3 put: 3.
+		array at: 4 put: 4.  array at: 5 put: 5.  array at: 6 put: 6.
+		array at: 7 put: 7.  array at: 8 put: 8.  array at: 9 put: 9.
+		array at: 10 put: 10.
+		i:: 0.
+		t0:: 0 millis.
+		[ i < 1000 ] whileTrue: [
+			array do: [ :e | e ].
+			array do: [ :e | e ].
+			array do: [ :e | e ].
+			array do: [ :e | e ].
+			array do: [ :e | e ].
+			i:: i + 1.
+		].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+	public stringCompare = (
+		| i t0 t1 |
+		i:: 0.
+		t0:: 0 millis.
+		[ i < 10000 ] whileTrue: [
+			'this is a test of string compare' = 'this is a test of string compare'.
+			'this is a test of string compare' = 'this is a test of string compare'.
+			'this is a test of string compare' = 'this is a test of string compare'.
+			'this is a test of string compare' = 'this is a test of string compare'.
+			'this is a test of string compare' = 'this is a test of string compare'.
+			i:: i + 1.
+		].
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+	public hanoiMove: n from: src to: dst temp: tmp = (
+		n > 1 ifTrue: [
+			self hanoiMove: n - 1 from: src to: tmp temp: dst.
+			self hanoiMove: n - 1 from: tmp to: dst temp: src.
+		].
+		^ n
+	)
+	public hanoi18 = (
+		| t0 t1 |
+		t0:: 0 millis.
+		self hanoiMove: 18 from: 1 to: 2 temp: 3.
+		t1:: 0 millis.
+		^ t1 - t0
+	)
+)
+public main: platform args: args = (
+	| p |
+	p:: Perfstex usingPlatform: platform.
+	('MK-' , 'integerMath') out.
+	('integerMath: '   , p integerMath printString) out.
+	('MK-' , 'floatMath') out.
+	('floatMath: '     , p floatMath printString) out.
+	('MK-' , 'arrayWrite') out.
+	('arrayWrite: '    , p arrayWrite printString) out.
+	('MK-' , 'arrayIterate') out.
+	('arrayIterate: '  , p arrayIterate printString) out.
+	('MK-' , 'stringCompare') out.
+	('stringCompare: ' , p stringCompare printString) out.
+	('MK-' , 'hanoi18') out.
+	('hanoi18: '       , p hanoi18 printString) out.
+	('done') out.
+)
+) : (
+)

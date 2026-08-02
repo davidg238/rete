@@ -1,0 +1,23 @@
+(*
+expect:
+true
+false
+true
+false
+true
+*)
+class TypedEq packageUsing: manifest = () (
+public main: platform args: args = (
+  | L a b c |
+  L:: platform List.
+  a:: L with: 1 with: 2.
+  b:: L with: 1 with: 2.
+  c:: L with: 1.0 with: 2.
+  (a = b) printString out.               (* structural, cross-construction *)
+  (a = c) printString out.               (* typed: Integer 1 /= Float 1.0 in the algebra *)
+  (a hash = b hash) printString out.
+  (a = (L with: 1)) printString out.     (* length differs *)
+  ((1 = 1.0)) printString out.           (* leaf numeric equality UNCHANGED *)
+)
+) : (
+)

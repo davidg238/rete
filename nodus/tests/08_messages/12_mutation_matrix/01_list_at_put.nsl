@@ -1,0 +1,20 @@
+(*
+expect:
+3
+expect-runtime-fail: at:put:
+*)
+(* T-B.2 mutation matrix, row `List at:put:` — mutation selectors DO NOT
+   EXIST on algebra values (immutability by construction, not a guarded
+   write): sending one is doesNotUnderstand, whose text contains the
+   selector. See 12_mutation_selectors.txt for the full row list. *)
+class ListAtPut packageUsing: manifest = () (
+public main: platform args: args = (
+  | L l |
+  L:: platform List.
+  l:: L with: 1 with: 2 with: 3.
+  l size printString out.          (* 3 — reads fine *)
+  l at: 1 put: 99.                 (* must be DNU: no such method exists *)
+  'unreached' out.
+)
+) : (
+)

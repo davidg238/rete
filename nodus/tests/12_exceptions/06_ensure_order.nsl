@@ -1,0 +1,14 @@
+(*
+expect:
+inner
+outer
+caught boom
+*)
+class EnsureOrder packageUsing: manifest = () (
+  public main: platform args: args = (
+    [ [ [ self error: 'boom' tag: #x ] ensure: [ 'inner' out ] ] ensure: [ 'outer' out ] ]
+      on: [ :e | true ]
+      do: [ :e | ('caught ' , (e at: #text ifAbsent: [ '?' ])) out ].
+  )
+) : (
+)

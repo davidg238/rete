@@ -1,0 +1,40 @@
+(*
+env: OEVM_NTP_SECONDS=35138
+expect:
+secs 35138
+date nil
+finished
+*)
+(* tuvm#100 (2026-08-01) — ntpDate's STRUCTURAL-NIL path.
+
+   A sync can succeed while no date is available: on the host that is simply
+   OEVM_NTP_DATE unset (this test), and on a device it is any boot in which no sync
+   has yet completed. The seam answers nil for both, exactly as ntpSyncTz: answers
+   one nil for "no network" and "the request timed out" — to a node that will
+   free-run either way, the distinction buys nothing and a second failure code
+   would force every caller to write a branch it has no different action for.
+
+   Worth testing separately rather than trusting the happy path, because this is
+   the branch a correction loop hits FIRST on a cold boot: read the date before the
+   first successful sync and you get nil, and a node that writes it to the RTC
+   anyway would program the part with garbage. 20_bell/10 proves the value; this
+   proves the absence is legible.
+
+   NOTE the pairing with 10_ntp_date.nsl: the two differ by exactly one env line.
+   A global export would collapse them into the same test — which is precisely why
+   the runner sets env PER TEST (tuvm#88, run_tests_oevm.py). *)
+class NtpDateAbsent packageUsing: manifest = () (
+  public main: platform args: args = (
+    | secs date |
+    secs:: platform ntpSyncTz: -25200.
+    ('secs ' , secs printString) out.
+
+    date:: platform ntpDate.
+    date == nil
+      ifTrue:  [ 'date nil' out ]
+      ifFalse: [ ('date UNEXPECTED ' , date printString) out ].
+
+    'finished' out.
+  )
+) : (
+)

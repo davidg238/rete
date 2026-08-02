@@ -1,0 +1,30 @@
+(*
+expect:
+33
+33
+true
+true
+true
+4
+skip-berry: true
+*)
+class ReturnTest packageUsing: manifest = () (
+public class Return = () (
+    public returnIntLiteral = ( ^ 33 )
+    public returnUnarySend = ( ^ returnIntLiteral )
+    public returnSelf = ( ^ self )
+    public returnSelfImplicitly = ( )
+    public noReturnReturnsSelf = ( 1 )
+    public blockReturnsImplicitlyLastValue = ( ^ ([4] value) )
+)
+public main: platform args: args = (
+    | r = Return new. |
+    r returnIntLiteral printString out.
+    r returnUnarySend printString out.
+    (r returnSelf = r) printString out.
+    (r returnSelfImplicitly = r) printString out.
+    (r noReturnReturnsSelf = r) printString out.
+    r blockReturnsImplicitlyLastValue printString out.
+)
+) : (
+)

@@ -1,0 +1,22 @@
+(*
+A non-literal `whileTrue:` — both the condition and the body blocks are held
+in temps (not literal blocks), forcing the compiler's fallback path:
+`compile_loop_inline` generalized via `emit_block_value` OP_BLOCK_INVOKE's
+`cond value` and `body value` each pass, rather than routing through the
+BytecodeClosureVtable `whileTrue:` intercept in dispatch.c (retired). Loops
+while n < 3, incrementing n each pass -> 3.
+
+expect:
+3
+*)
+class WhileNonliteralTest packageUsing: manifest = () (
+public main: platform args: args = (
+    | n cond body |
+    n:: 0.
+    cond:: [n < 3].
+    body:: [n:: n + 1].
+    cond whileTrue: body.
+    n printString out.
+)
+) : (
+)

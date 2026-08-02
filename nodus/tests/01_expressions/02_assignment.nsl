@@ -1,0 +1,7 @@
+(*
+expect:
+42
+*)
+| x |
+x:: 42.
+x println

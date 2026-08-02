@@ -1,0 +1,33 @@
+(*
+expect:
+bell: struck 1
+raw 0
+bell: struck 5
+bell: struck 8
+finished
+*)
+(* ORDERING IS NOT A TYPO, and it is the same one 14_display/01 documents: the
+   host leaf prints DURING the prim call, so `bell: struck 1` lands before the
+   `raw 0` that reports that call's result.
+
+   tuvm#94 stage 1 — the host half of the bell seam, exercised through BOTH
+   halves on purpose. The raw `platform bellStrike:` forwarder is asserted first
+   so the status code is observable at all (the Bell wrapper answers self, by
+   design — a striking has no interesting result, only a failure mode), and then
+   the wrapper strikes the two counts that matter on the bench: 5 is the odd
+   count that exercises pairs plus a lone final stroke, 8 is the full
+   end-of-watch. The host cannot make a sound, so what it owes this test is
+   evidence that the seam was reached WITH THE COUNT THE NODE MEANT — which is
+   exactly the thing a wrong-argument bug would break and a status code would
+   not catch. *)
+class BellStrike packageUsing: manifest = () (
+  public main: platform args: args = (
+    | bell |
+    ('raw ' , (platform bellStrike: 1) printString) out.
+    bell:: platform bell.
+    bell strike: 5.
+    bell strike: 8.
+    'finished' out.
+  )
+) : (
+)

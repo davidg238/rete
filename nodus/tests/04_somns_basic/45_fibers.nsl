@@ -1,0 +1,41 @@
+(*
+Fibers — cooperative scheduler. Two fibers each yield twice, appending their tag
+to a shared log; run drives them round-robin. Expected interleave: A B A B A B.
+R7. Entry declares the `concurrency:` capability.
+
+De-recursify Phase 3 correctness proof (ABBBAA -> ABABAB): this is THE
+regression for the old Zephyr-hijack activation-reuse bug. The old recursive
+engine + single-shared-C-stack hijack reused one run_interpreter activation
+across fibers and produced the WRONG interleave, deterministically
+'ABBBAA' (confirmed both on native_sim and via a -D__ZEPHYR__ host repro —
+see oevm/docs/fiber_implementation.md section 1-2). The flat non-recursive
+engine (swap-Stack fiber switch, one mechanism on every target, no
+__ZEPHYR__-conditional switch code left in vm.c/gc.c/dispatch.c) must
+produce the strictly-alternating 'ABABAB' below. A single accumulated
+string makes any deviation from the exact round-robin order (including
+'ABBBAA') an immediate, unmissable string mismatch.
+expect:
+ABABAB
+done
+skip-oevm: true
+*)
+class FibersTest usingPlatform: platform concurrency: concurrency = () (
+  public main: platform2 args: args = (
+    | log |
+    log:: ''.                                          (* empty string accumulator *)
+    concurrency spawn: [
+      log:: log , 'A'. concurrency yield.
+      log:: log , 'A'. concurrency yield.
+      log:: log , 'A' ].
+    concurrency spawn: [
+      log:: log , 'B'. concurrency yield.
+      log:: log , 'B'. concurrency yield.
+      log:: log , 'B' ].
+    concurrency run.
+    log println.
+    'done' println.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

@@ -1,0 +1,18 @@
+(*
+Unary `[cond] whileTrue` (no body) — the condition block carries the side effect
+and eventually goes false. Lowered to a bytecode loop (no PRIM/intercept).
+n starts 0, cond increments n and yields (n < 3); loop ends at n = 3.
+
+expect:
+3
+*)
+class WhileUnaryTest packageUsing: manifest = () (
+public main: platform args: args = (
+    | n cond |
+    n:: 0.
+    cond:: [n:: n + 1. n < 3].
+    cond whileTrue.
+    n printString out.
+)
+) : (
+)

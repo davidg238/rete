@@ -1,0 +1,48 @@
+(*
+expect:
+no rtc nil
+still ringing
+finished
+*)
+(* tuvm#100 — a board with no RTC answers nil, and the node must read that as
+   "keep free-running", not as an error.
+
+   There is deliberately NO env: header here. Unlike OEVM_NO_BELL / OEVM_NO_NTP,
+   this seam needs no forcing knob to reach its structural-failure branch: a host
+   genuinely has no DS3231, so ABSENCE IS THE DEFAULT (src/platform.c). 01 is the
+   test that has to opt in, not this one. That asymmetry is worth stating, because
+   it means the no-RTC path is exercised by every host run of this seam rather
+   than only when someone remembers to set a variable.
+
+   The second line is the actual claim, and it is 06_ntp_nosync's claim about the
+   other timebase. Answering nil is only half the contract; the other half is that
+   nil is an ORDINARY answer, so a node can branch on it with no handler in sight.
+   If this seam ever grows a raise, this test stops reaching `still ringing` — the
+   intended alarm, because the failure would otherwise surface as a clock that
+   stops ringing when the RTC is unplugged, the exact opposite of what the seam
+   promises. A ship's bell whose battery-backed clock fails should fall back to
+   free-running, not fall silent.
+
+   The `secs == nil` test is doing real work rather than restating the seam: the
+   failing form of this test (verified by temporarily making the host answer 0)
+   prints `rtc unexpectedly answered: 0`, and ZERO IS A VALID READING — 0 seconds
+   since local midnight is exactly midnight, the moment the day's first strike is
+   due. So "no clock" and "the top of the day" must not collapse to the same
+   answer, and only nil-vs-SMI keeps them apart. A seam that signalled absence
+   with a sentinel 0 would silently strike eight bells every time the RTC was
+   unplugged. *)
+class WallClockAbsent packageUsing: manifest = () (
+  public main: platform args: args = (
+    | secs |
+    secs:: platform wallClock.
+    secs == nil
+      ifTrue:  [ 'no rtc nil' out ]
+      ifFalse: [ ('rtc unexpectedly answered: ' , secs printString) out ].
+
+    (* No handler anywhere above or below: reaching this line at all is the proof
+       that a missing RTC is an answer and not a raise. *)
+    'still ringing' out.
+    'finished' out.
+  )
+) : (
+)

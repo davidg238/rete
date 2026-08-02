@@ -1,0 +1,37 @@
+(*
+expect:
+clear 0
+put 0
+oob 1
+display:
+  0: TUVM
+  2: BELL 4
+refresh 0
+display row 2: BELL 4
+row 0
+finished
+*)
+(* ORDERING IS NOT A TYPO. The grid is printed by the C leaf DURING the prim
+   call, so it lands before the `refresh 0` that reports the call's result. Any
+   expect: block that puts `refresh 0` first is asserting an order the code
+   cannot produce. *)
+(* tuvm#88 — the host half of the display seam, using the RAW kernel forwarders.
+   The GpioPulse-style wrapper that turns these status codes into tagged raises is
+   the next task, and this test must keep passing after it lands (the same shape
+   13_pulse/02_gpio_set_level.nsl uses).
+
+   The host stub RENDERS: refresh prints the non-blank rows, so this asserts on
+   the text that was actually laid into the grid rather than merely on a status
+   code. That is the host-divergence hole tuvm#82 left, closed. *)
+class DisplayGrid packageUsing: manifest = () (
+  public main: platform args: args = (
+    ('clear ' , (platform displayClear) printString) out.
+    ('put ' , (platform displayAt: 0 col: 0 put: 'TUVM') printString) out.
+    platform displayAt: 2 col: 0 put: 'BELL 4'.
+    ('oob ' , (platform displayAt: 99 col: 0 put: 'X') printString) out.
+    ('refresh ' , (platform displayRefresh) printString) out.
+    ('row ' , (platform displayRefreshRow: 2) printString) out.
+    'finished' out.
+  )
+) : (
+)

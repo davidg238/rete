@@ -1,0 +1,22 @@
+(*
+Non-local return unwinds past multiple intervening method frames.
+
+[ ^7 ]'s home method is `deep`. The block is passed down through `outer:` and
+`inner:`, where it is invoked. The NLR must walk past `inner:` and `outer:`
+back to `deep` — exercising the multi-hop sender-walk in unwindTo:value: that
+Task 3 modifies. `deep` returns 7 (the `^ 0` branch is never reached); main
+prints 7.
+
+expect:
+7
+skip-oevm: true
+*)
+class NLRMultiFrameTest packageUsing: manifest = () (
+inner: blk = ( ^ blk value )
+outer: blk = ( ^ self inner: blk )
+deep = ( self outer: [ ^ 7 ]. ^ 0 )
+public main: platform args: args = (
+    (self deep) println
+)
+) : (
+)

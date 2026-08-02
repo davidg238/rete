@@ -1,0 +1,25 @@
+(*
+expect:
+posted-nil-is-nil
+empty-ran-block
+never-ran-block
+*)
+(* tuvm#21 — a stream that had `nil` posted to it is distinguishable from an
+   empty stream. `take:ifEmpty:` yields the stored nil (the block does NOT run)
+   when a nil was queued, and runs the block when nothing is queued. This is the
+   pull-side read; bare one-arg `take:` no longer exists (removed in a later
+   task). *)
+class TakeNilVsEmpty packageUsing: manifest = () (
+public main: platform args: args = (
+  | space r |
+  space:: platform space.
+  space out: 'n' value: nil.                                 (* post a genuine nil *)
+  r:: space take: 'n' ifEmpty: [ 'BUG:empty-on-posted-nil' ].
+  (r == nil)
+    ifTrue:  [ 'posted-nil-is-nil' out ]
+    ifFalse: [ 'BUG:value-not-nil' out ].
+  (space take: 'n'     ifEmpty: [ 'empty-ran-block' ]) out.  (* 'n' now drained *)
+  (space take: 'never' ifEmpty: [ 'never-ran-block' ]) out.  (* never posted *)
+)
+) : (
+)

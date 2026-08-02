@@ -1,0 +1,59 @@
+(*
+expect:
+10
+20
+30
+false
+40
+false
+2
+50
+60
+100
+200
+2
+1
+70
+15
+5
+*)
+class IfInliningTest packageUsing: manifest = () (
+public class IfInlining = () (
+	public testTwoArmedTrue   = ( ^ (1 < 2) ifTrue: [ 10 ] ifFalse: [ 20 ] )
+	public testTwoArmedFalse  = ( ^ (1 > 2) ifTrue: [ 10 ] ifFalse: [ 20 ] )
+	public testOneArmedTaken    = ( ^ (1 < 2) ifTrue: [ 30 ] )
+	public testOneArmedNotTaken = ( ^ (1 > 2) ifTrue: [ 30 ] )
+	public testIfFalseTaken    = ( ^ (1 > 2) ifFalse: [ 40 ] )
+	public testIfFalseNotTaken = ( ^ (1 < 2) ifFalse: [ 40 ] )
+	public testNested = ( ^ (1 < 2) ifTrue: [ (1 > 2) ifTrue: [ 1 ] ifFalse: [ 2 ] ] ifFalse: [ 3 ] )
+	public testIfFalseIfTrueFalse = ( ^ (1 > 2) ifFalse: [ 50 ] ifTrue: [ 60 ] )
+	public testIfFalseIfTrueTrue  = ( ^ (1 < 2) ifFalse: [ 50 ] ifTrue: [ 60 ] )
+	public testEarlyReturnTrue  = ( (1 < 2) ifTrue: [ ^ 100 ]. ^ 200 )
+	public testEarlyReturnFalse = ( (1 > 2) ifTrue: [ ^ 100 ]. ^ 200 )
+	public testLocalShadowTrue  = ( | a | a:: 1. ^ (1 < 2) ifTrue: [ | a | a:: 2. a ] ifFalse: [ a ] )
+	public testLocalShadowFalse = ( | a | a:: 1. ^ (1 > 2) ifTrue: [ | a | a:: 2. a ] ifFalse: [ a ] )
+	public testFallback = ( | blk | blk:: [ 70 ]. ^ (1 < 2) ifTrue: blk )
+	public testResultAsReceiver = ( ^ ((1 < 2) ifTrue: [ 10 ] ifFalse: [ 20 ]) + 5 )
+	public testSiblingResults   = ( ^ ((1 < 2) ifTrue: [ 1 ] ifFalse: [ 2 ]) + ((1 > 2) ifTrue: [ 3 ] ifFalse: [ 4 ]) )
+)
+public main: platform args: args = (
+	| t = IfInlining new. |
+	t testTwoArmedTrue printString out.
+	t testTwoArmedFalse printString out.
+	t testOneArmedTaken printString out.
+	t testOneArmedNotTaken printString out.
+	t testIfFalseTaken printString out.
+	t testIfFalseNotTaken printString out.
+	t testNested printString out.
+	t testIfFalseIfTrueFalse printString out.
+	t testIfFalseIfTrueTrue printString out.
+	t testEarlyReturnTrue printString out.
+	t testEarlyReturnFalse printString out.
+	t testLocalShadowTrue printString out.
+	t testLocalShadowFalse printString out.
+	t testFallback printString out.
+	t testResultAsReceiver printString out.
+	t testSiblingResults printString out.
+)
+) : (
+)

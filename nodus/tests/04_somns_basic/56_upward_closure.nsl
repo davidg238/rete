@@ -1,0 +1,41 @@
+(*
+Upward-escaping closures (de-recursify deferred lift, Phase 1 — temp-vectors).
+
+Two closures ESCAPE the method that defines them (returned via `^`, invoked
+from `main` after that method's frame has popped):
+
+  makeAdder: n  returns [:x | x + n]         — reads a captured ARG (n) after escape
+  makeCounter   returns [ c:: c + 1. c ]     — reads AND mutates a captured TEMP (c)
+                                               across repeated post-escape invocations
+
+Under the old stack-home closure model the block's `home_ctx` is an absolute
+pointer into the defining method's frame; once that frame is popped its
+registers are reused by later calls, so reading/mutating the captured local
+yields garbage (or crashes). This is correct only when the captured locals
+live in a heap `Context` that outlives the defining frame — the temp-vector
+lift this phase installs. The counter must read 1, 2, 3 (proving the SAME heap
+slot persists and mutates across invocations), not 1, 1, 1 or garbage.
+
+expect:
+15
+25
+1
+2
+3
+skip-berry: true
+*)
+class UpwardClosureTest packageUsing: manifest = () (
+  makeAdder: n = ( ^ [ :x | x + n ] )
+  makeCounter = ( | c | c:: 0. ^ [ c:: c + 1. c ] )
+  public main: platform args: args = (
+    | add5 ctr |
+    add5:: makeAdder: 5.
+    (add5 value: 10) println.
+    (add5 value: 20) println.
+    ctr:: makeCounter.
+    (ctr value) println.
+    (ctr value) println.
+    (ctr value) println.
+  )
+) : (
+)

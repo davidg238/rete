@@ -1,0 +1,12 @@
+(*
+expect:
+true
+false
+*)
+class StringDeleg packageUsing: manifest = () (
+public main: platform args: args = (
+  ('s' notNil) printString out.
+  ('s' isNil) printString out.
+)
+) : (
+)

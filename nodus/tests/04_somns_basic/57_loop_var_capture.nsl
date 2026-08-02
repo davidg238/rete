@@ -1,0 +1,27 @@
+(*
+Loop-variable capture (de-recursify deferred lift, Phase 1 — Task 4 fix).
+
+An inlined `to:do:` induction var `i` is CAPTURED by a nested REAL block
+(`b:: [ i ]`). Before the fix, `i` was given a Context slot and the loop's OWN
+same-frame reads (`sum:: sum + i`) were rewritten to OP_LD_CTX against a slot the
+inline loop codegen never writes -> nil -> crash. The fix keeps inlined-block-
+managed captured locals register+home_ctx-homed (excluded from Context-homing),
+so the same-frame read of `i` still works. `sum` accumulates 1+2+3 = 6.
+
+LIMITATION (deferred): the nested block's captured `i` remains register+home_ctx-
+homed and is therefore NOT upward/cross-fiber-safe (same as pre-phase). This test
+only exercises the SAME-FRAME read, which is the regression point.
+
+expect:
+6
+skip-berry: true
+*)
+class LoopVarCaptureTest packageUsing: manifest = () (
+  public main: platform args: args = ( | sum |
+    sum:: 0.
+    1 to: 3 do: [:i | | b | b:: [ i ]. sum:: sum + i ].
+    sum println.
+    ^ 0
+  )
+) : (
+)

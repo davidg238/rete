@@ -1,0 +1,41 @@
+(*
+expect:
+4
+5
+*)
+class InheritanceSlotsTest packageUsing: manifest = () (
+  public class SlotMerge = () (
+    (* Base has param n (slot 1) and a mutable private slot acc (slot 2).
+       Without the slot-merge fix, Sub would only have slots [outer, n],
+       so inherited methods indexing slot 2 (acc) would corrupt memory. *)
+    class Base new: n = (
+    | private n = n.
+      private acc ::= 0. |
+    )(
+      public increment = (
+        acc:: acc + 1.
+        ^ acc
+      )
+      public getN = (
+        ^ n
+      )
+    )
+
+    class Sub new: n = Base new: n () ()
+
+    public run = (
+      | s |
+      s:: Sub new: 5.
+      s increment.
+      s increment.
+      s increment.
+      s increment printString out.
+      s getN printString out.
+    )
+  )
+
+  public main: platform args: args = (
+    SlotMerge new run.
+  )
+) : (
+)

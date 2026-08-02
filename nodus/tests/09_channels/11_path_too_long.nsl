@@ -1,0 +1,19 @@
+(*
+expect-runtime-fail: channel path too long
+*)
+(* #9.3 — a canonical channel path exceeding OEVM_SPACE_MAX_PATH (64) reaching the C
+   substrate via out: drives the kernel->C length cap end-to-end (test_space property 8
+   covers only the C side). The path below is a single segment (no `/`, no empty/dot
+   segments, confirmed against `checkPath:` kernel.ns:1057) so it passes canonicalization
+   and reaches `space_intern` (space.c:105), where the length cap aborts with the frozen
+   string (space.c:112). *)
+class PathTooLong packageUsing: manifest = () (
+public main: platform args: args = (
+  | space long |
+  space:: platform space.
+  long:: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'. (* 72 a's *)
+  space out: long value: 1.
+  'unreached' out.
+)
+) : (
+)

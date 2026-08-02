@@ -1,0 +1,19 @@
+(*
+A non-literal block (held in a temp, not inlined by the compiler) invoked via
+`value:`. This is the case that today routes through the dispatch.c
+BytecodeClosureVtable intercept and, after the OP_BLOCK_INVOKE task, routes
+through the new opcode instead — value-family sends on a receiver that IS a
+closure.
+
+expect:
+42
+*)
+class BlockInvokeTest packageUsing: manifest = () (
+public main: platform args: args = (
+    | adder result |
+    adder:: [:x | x + 1].
+    result:: adder value: 41.
+    result printString out.
+)
+) : (
+)

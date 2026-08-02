@@ -1,0 +1,76 @@
+(*
+expect:
+boundary 66600 1800
+boundary 67500 900
+boundary 68399 1
+boundary 86399 1
+ratchet true40 last37 new40 strike false
+ratchet true35 last37 new37 strike false
+ratchet true38 last37 new38 strike true
+ppm 10/86400 115
+ppm -10/86400 -116
+ppm 10/0 0
+stale 0 0d/00h
+stale 50400 0d/14h
+stale 216000 2d/12h
+finished
+*)
+(* tuvm#94 stage 5 — the run-once state machine's PURE arithmetic, host, no seam and
+   no wall clock. Each formula is spelled EXACTLY as the node (Tasks 4-6) spells it, so
+   this test and the node cannot silently diverge. nsl has no modulo (tuvm#97): `x mod n`
+   is `x - ((x // n) * n)` throughout. *)
+class BellMath packageUsing: manifest = () (
+  public main: platform args: args = (
+    (* seconds to the NEXT half-hour boundary, in SECONDS (design §3). A boundary-exact
+       input yields a FULL interval (1800), never 0 — the double-strike edge. *)
+    ('boundary 66600 ' , (self secondsToNextBoundary: 66600) printString) out.  (* 18:30:00 exact *)
+    ('boundary 67500 ' , (self secondsToNextBoundary: 67500) printString) out.  (* 18:45:00 *)
+    ('boundary 68399 ' , (self secondsToNextBoundary: 68399) printString) out.  (* 18:59:59 *)
+    ('boundary 86399 ' , (self secondsToNextBoundary: 86399) printString) out.  (* 23:59:59 *)
+
+    (* The §2 ratchet decision: given a true half-hour index and the last struck index,
+       answer the new lastStruckHalf and whether THIS wake strikes. Only the ordinary
+       strike wake (true = last+1) strikes; a sync jump forward, or a hold when ahead,
+       never strikes. *)
+    (self showRatchetTrue: 40 last: 37).   (* clock ran slow: advance, silent *)
+    (self showRatchetTrue: 35 last: 37).   (* clock ran fast: hold, no strike *)
+    (self showRatchetTrue: 38 last: 37).   (* the ordinary strike wake: +1, strike *)
+
+    (* drift in ppm = (drift seconds * 1e6) // elapsed seconds, signed, floored. The
+       0-elapsed guard answers 0 (the first sync has no interval to measure over). *)
+    ('ppm 10/86400 '  , (self driftPpm: 10 over: 86400) printString) out.
+    ('ppm -10/86400 ' , (self driftPpm: -10 over: 86400) printString) out.
+    ('ppm 10/0 '      , (self driftPpm: 10 over: 0) printString) out.
+
+    ('stale 0 '      , (self staleField: 0)) out.
+    ('stale 50400 '  , (self staleField: 50400)) out.   (* 14 h *)
+    ('stale 216000 ' , (self staleField: 216000)) out.  (* 2 d 12 h *)
+    'finished' out.
+  )
+
+  secondsToNextBoundary: sec = ( ^ 1800 - (sec - ((sec // 1800) * 1800)) )
+
+  showRatchetTrue: trueHalf last: lastHalf = (
+    | newHalf struck |
+    (trueHalf > lastHalf)
+       ifTrue:  [ newHalf:: trueHalf. struck:: (trueHalf = (lastHalf + 1)) ]
+       ifFalse: [ newHalf:: lastHalf. struck:: false ].
+    ('ratchet true' , trueHalf printString , ' last' , lastHalf printString ,
+       ' new' , newHalf printString , ' strike ' , (struck ifTrue: [ 'true' ] ifFalse: [ 'false' ])) out.
+    ^ self )
+
+  driftPpm: driftSec over: elapsedSec = (
+    elapsedSec = 0 ifTrue: [ ^ 0 ].
+    ^ (driftSec * 1000000) // elapsedSec )
+
+  staleField: sec = (
+    | mins d r h |
+    mins:: sec // 60.
+    d:: mins // 1440.
+    r:: mins - (d * 1440).
+    h:: r // 60.
+    ^ d printString , 'd/' , (self pad: h) , 'h' )
+
+  pad: n = ( (n < 10) ifTrue: [ ^ '0' , n printString ]. ^ n printString )
+) : (
+)

@@ -1,0 +1,16 @@
+(*
+expect:
+before sleep
+sleep: arming 5 s
+*)
+(* tuvm#94 stage 5 — deepSleep: on the host is log-then-exit(0), so a host run
+   TERMINATES rather than hanging (design §6). The proof is that 'after sleep' below
+   is NEVER printed: the prim does not return. *)
+class DeepSleep packageUsing: manifest = () (
+  public main: platform args: args = (
+    'before sleep' out.
+    platform deepSleep: 5.
+    'after sleep' out.   (* unreachable — deepSleep: never returns *)
+  )
+) : (
+)

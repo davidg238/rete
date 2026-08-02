@@ -1,0 +1,82 @@
+(*
+expect:
+true
+3
+2
+1
+true
+false
+3
+22
+-1
+1
+4
+4
+4
+30
+22
+3
+false
+no
+8
+3
+3
+30
+289
+900
+9455
+465
+9455
+9455
+3
+100
+200
+300
+*)
+class DictionaryTest packageUsing: manifest = () (
+public main: platform args: args = (
+    | d g m ksum vsum dsum |
+    d:: platform Dictionary new.
+    d isEmpty println.                                  (* true  *)
+    d at: 'one' put: 1. d at: 'two' put: 2. d at: 'three' put: 3.
+    d size println.                                     (* 3     *)
+    (d at: 'two') println.                              (* 2     *)
+    (d at: 'one') println.                              (* 1     *)
+    (d includesKey: 'three') println.                   (* true  *)
+    (d includesKey: 'nope') println.                    (* false *)
+    d at: 'two' put: 22.                                (* update, not insert *)
+    d size println.                                     (* 3     *)
+    (d at: 'two') println.                              (* 22    *)
+    (d at: 'missing' ifAbsent: [ -1 ]) println.         (* -1    *)
+    (d at: 'one' ifAbsent: [ -1 ]) println.             (* 1     *)
+    (d at: 'four' ifAbsentPut: [ 4 ]) println.          (* 4     *)
+    (d at: 'four') println.                             (* 4     *)
+    d size println.                                     (* 4     *)
+    (d inject: 0 into: [ :a :v | a + v ]) println.      (* 30  — folds over values *)
+    (d removeKey: 'two') println.                       (* 22  — removed value *)
+    d size println.                                     (* 3     *)
+    (d includesKey: 'two') println.                     (* false *)
+    (d removeKey: 'x' ifAbsent: [ 'no' ]) println.      (* no    *)
+    (d inject: 0 into: [ :a :v | a + v ]) println.      (* 8  = 1+3+4: folds over values *)
+    (d values) size println.                            (* 3     *)
+    (d keys) size println.                              (* 3     *)
+    g:: platform Dictionary new.
+    1 to: 30 do: [ :i | g at: i put: i * i ].           (* forces grow *)
+    g size println.                                     (* 30    *)
+    (g at: 17) println.                                 (* 289   *)
+    (g at: 30) println.                                 (* 900   *)
+    (g inject: 0 into: [ :a :v | a + v ]) println.      (* 9455 = sum i^2, 1..30 *)
+    ksum:: 0. vsum:: 0.
+    g keysAndValuesDo: [ :k :v | ksum:: ksum + k. vsum:: vsum + v ].
+    ksum println.                                       (* 465  = sum 1..30 *)
+    vsum println.                                       (* 9455 *)
+    dsum:: 0. g do: [ :v | dsum:: dsum + v ]. dsum println.  (* 9455 — do: over values *)
+    m:: platform Dictionary new.
+    m at: 'k' put: 100. m at: #k put: 200. m at: 7 put: 300.
+    m size println.                                     (* 3 — String 'k' /= Symbol #k *)
+    (m at: 'k') println.                                (* 100 — content key *)
+    (m at: #k) println.                                 (* 200 *)
+    (m at: 7) println.                                  (* 300 *)
+)
+) : (
+)

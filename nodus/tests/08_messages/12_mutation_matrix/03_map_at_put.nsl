@@ -1,0 +1,17 @@
+(*
+expect:
+2
+expect-runtime-fail: at:put:
+*)
+(* T-B.2 mutation matrix, row `Map at:put:` — see 01_list_at_put.ns header. *)
+class MapAtPut packageUsing: manifest = () (
+public main: platform args: args = (
+  | M m |
+  M:: platform Map.
+  m:: M with: #k -> 1 with: #j -> 2.
+  m size printString out.
+  m at: #k put: 99.
+  'unreached' out.
+)
+) : (
+)

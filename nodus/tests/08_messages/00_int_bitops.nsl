@@ -1,0 +1,20 @@
+(*
+expect:
+8
+14
+1
+2147483648
+255
+*)
+(* Milestone B Task 1 — Integer bitops the algebra hash and bytes.ns register
+   helpers need. bitXor:/<< already exist; this adds bitAnd:/bitOr:/>>. *)
+class IntBitops packageUsing: manifest = () (
+public main: platform args: args = (
+  ((12 bitAnd: 10) printString) out.        (* 8 *)
+  ((12 bitOr: 6) printString) out.          (* 14 *)
+  ((5 >> 2) printString) out.               (* 1 *)
+  ((4294967296 >> 1) printString) out.      (* 2^32 >> 1 = 2147483648 *)
+  ((4294967295 bitAnd: 255) printString) out.  (* u32 max masked *)
+)
+) : (
+)

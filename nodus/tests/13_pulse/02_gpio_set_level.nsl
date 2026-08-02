@@ -1,0 +1,35 @@
+(*
+expect:
+set true
+level true
+level false
+input false
+undeclared nil
+finished
+*)
+(* tuvm#82 — the OUTBOUND half of the gpio seam, host differential form. Drives a
+   pin and reads it back; reads a pin declared only as a pulse INPUT (host: a
+   gpioPin: registration counts as declared, at level false, which is the host
+   analogue of an overlay declaration); and asks about a pin nothing declared,
+   which answers nil. This test uses the RAW kernel forwarders on purpose — the
+   GpioPulse wrapper that turns that nil into a raise is the next task, and this
+   test must keep passing after it lands. *)
+class GpioSetLevel packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space alert gpio |
+    space:: platform space.
+    alert:: space channel: 'sensor/alert'.
+
+    gpio:: platform gpio.
+    gpio pin: 15 edge: #falling post: #down on: alert.   (* declares 15 as an input *)
+
+    ('set ' , (platform gpioSet: 13 to: true) printString) out.
+    ('level ' , (platform gpioLevel: 13) printString) out.
+    platform gpioSet: 13 to: false.
+    ('level ' , (platform gpioLevel: 13) printString) out.
+    ('input ' , (platform gpioLevel: 15) printString) out.
+    ('undeclared ' , (platform gpioLevel: 99) printString) out.
+    'finished' out.
+  )
+) : (
+)

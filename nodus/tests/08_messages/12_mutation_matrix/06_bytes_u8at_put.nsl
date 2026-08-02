@@ -1,0 +1,20 @@
+(*
+expect:
+0
+expect-runtime-fail: u8At:put:
+*)
+(* T-B.2 mutation matrix, row `Bytes u8At:put:` — built via
+   `(platform ByteArray new: 2) freeze` per the brief. Bytes has the shared
+   read protocol (u8At:) only; the writer selector does not exist on the
+   frozen value type (only the ByteArray workbench has it). See
+   01_list_at_put.ns header. *)
+class BytesU8AtPut packageUsing: manifest = () (
+public main: platform args: args = (
+  | b |
+  b:: (platform ByteArray new: 2) freeze.
+  (b u8At: 1) printString out.      (* 0 — zero-filled workbench, reads fine *)
+  b u8At: 1 put: 5.                 (* must be DNU: no such method exists *)
+  'unreached' out.
+)
+) : (
+)

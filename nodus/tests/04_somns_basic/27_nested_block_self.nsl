@@ -1,0 +1,19 @@
+(*
+expect:
+52
+62
+*)
+class NestedBlockSelf packageUsing: manifest = (
+| private base ::= 0. |
+) (
+public main: platform args: args = (
+    | arr |
+    base:: 42.
+    arr:: Array new: 2.
+    arr at: 1 put: 10.
+    arr at: 2 put: 20.
+    arr do: [ :x | [ self report: x ] value ].
+)
+report: x = ( (base + x) println )
+) : (
+)

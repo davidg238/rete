@@ -1,0 +1,46 @@
+(*
+expect:
+3
+1
+2
+3
+515
+770
+16
+1
+true
+true
+true
+false
+true
+1
+*)
+class BytesBasics packageUsing: manifest = () (
+public main: platform args: args = (
+  | BA ba b b2 b3 l |
+  BA:: platform ByteArray.
+  ba:: BA new: 3.
+  ba u8At: 1 put: 1.
+  ba u16BeAt: 2 put: 515.                (* 0x0203 -> byte2=2, byte3=3 *)
+  ba byteSize printString out.
+  (ba u8At: 1) printString out.
+  (ba u8At: 2) printString out.
+  (ba u8At: 3) printString out.
+  (ba u16BeAt: 2) printString out.       (* 515 back *)
+  (ba u16At: 2) printString out.         (* LE re-read: 0x0302 = 770 *)
+  b:: ba freeze.
+  ba u8At: 1 put: 16.                    (* mutate the workbench AFTER freeze *)
+  (ba u8At: 1) printString out.          (* 16 *)
+  (b u8At: 1) printString out.           (* frozen copy unchanged: 1 *)
+  b isBytes printString out.
+  l:: platform List with: b.             (* Bytes IS a value - construction succeeds *)
+  (l size = 1) printString out.
+  b2:: (BA fromList: (platform List with: 1 with: 2 with: 3)) freeze.
+  (b = b2) printString out.              (* equal freezes, equal *)
+  b3:: (BA fromList: (platform List with: 9 with: 2 with: 3)) freeze.
+  (b = b3) printString out.              (* differ at byte 1 *)
+  (b hash = b2 hash) printString out.    (* equal values hash equal *)
+  ((b asByteArray) u8At: 1) printString out.  (* thaw-copy reads back 1 *)
+)
+) : (
+)

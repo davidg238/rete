@@ -1,0 +1,27 @@
+(*
+expect:
+true
+99
+true
+77
+*)
+(* T-C C.1 segment-aligned confinement (addendum A1) — a capability rooted at
+   `sensor` must NOT address `sensors/...` (a string-prefix collision, but
+   NOT a path-segment collision), and one rooted at `a/b` must NOT address
+   `a/bc`. Proven directly via `out:`/`take:` (no reactor/drain involved —
+   Task 3's concern): post under the exact rooted channel, then show an
+   independently-derived capability at the near-miss sibling path sees
+   nothing (nil) while a capability at the EXACT path sees the value. *)
+class Confinement packageUsing: manifest = () (
+public main: platform args: args = (
+  | space |
+  space:: platform space.
+  (space channel: 'sensor') out: '' value: 99.
+  (((space channel: 'sensors') take: '' ifEmpty: [ nil ]) == nil) printString out.
+  ((space channel: 'sensor') take: '' ifEmpty: [ nil ]) printString out.
+  (space channel: 'a/b') out: '' value: 77.
+  (((space channel: 'a/bc') take: '' ifEmpty: [ nil ]) == nil) printString out.
+  ((space channel: 'a/b') take: '' ifEmpty: [ nil ]) printString out.
+)
+) : (
+)

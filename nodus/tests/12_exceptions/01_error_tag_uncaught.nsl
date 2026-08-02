@@ -1,0 +1,24 @@
+(*
+expect:
+crash #timeout
+text tmp117 timeout
+done
+*)
+(* An uncaught error:tag: becomes the crash Record the supervisor reads on sys/crash: the record's
+   #tag is the RAISE tag (#timeout, per controller decision (a) — not the old #crash) and #text is
+   the message. Proves the in-flight value is the tagged Record end-to-end. *)
+class ErrorTagUncaught packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space job |
+    space:: platform space.
+    job:: space channel: 'job'.
+    space whenever: 'sys/crash' do: [ :rec |
+      ('crash ' , rec tag printString) out.
+      ('text ' , (rec at: #text ifAbsent: [ 'NONE' ])) out ].
+    job whenever: '' do: [ :m | self error: 'tmp117 timeout' tag: #timeout ].
+    job out: '' value: #go.
+    space drain.
+    'done' out.
+  )
+) : (
+)

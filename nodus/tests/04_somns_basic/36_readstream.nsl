@@ -1,0 +1,68 @@
+(*
+ReadStream — byte-granular String cursor (std-lib 3c-3a).
+Uses WriteStream (task 1) to build inputs containing control bytes (LF=10, CR=13).
+expect:
+a
+b
+88
+88
+89
+true
+99
+hel
+true
+x
+true
+0
+true
+true
+true
+*)
+class ReadStreamTest packageUsing: manifest = () (
+public main: platform args: args = (
+    | rs ws mb crlf nl |
+    rs:: platform ReadStream on: 'a,b'.
+    (rs upTo: 44) println.            (* a  — comma=44, consumed *)
+    (rs upToEnd) println.             (* b *)
+
+    rs:: platform ReadStream on: 'XY'.
+    (rs peek) println.                (* 88 — 'X' *)
+    (rs next) println.                (* 88 *)
+    (rs next) println.                (* 89 — 'Y' *)
+    (rs atEnd) println.               (* true *)
+
+    rs:: platform ReadStream on: 'abcd'.
+    rs skip: 2.
+    (rs next) println.                (* 99 — 'c' *)
+
+    rs:: platform ReadStream on: 'hello'.
+    (rs next: 3) println.             (* hel *)
+
+    (* UTF-8 safety: ASCII delimiter never splits a multi-byte char.
+       build 'é,x' = bytes 195 169 44 120 *)
+    ws:: platform WriteStream new.
+    ws nextPut: 195. ws nextPut: 169. ws nextPut: 44. ws nextPut: 120.
+    mb:: ws contents.
+    rs:: platform ReadStream on: mb.
+    ((rs upTo: 44) = 'é') println.    (* true — 'é' intact across the comma split *)
+    (rs upToEnd) println.             (* x *)
+
+    (* nil-at-EOF vs blank line: build 'a' LF LF 'b' = bytes 97 10 10 98 *)
+    ws:: platform WriteStream new.
+    ws nextPut: 97. ws nextPut: 10. ws nextPut: 10. ws nextPut: 98.
+    nl:: ws contents.
+    rs:: platform ReadStream on: nl.
+    ((rs nextLine) = 'a') println.    (* true *)
+    (rs nextLine) size println.       (* 0 — blank line, NOT EOF *)
+    ((rs nextLine) = 'b') println.    (* true *)
+    ((rs nextLine) == nil) println.   (* true — EOF (use == nil, not isNil) *)
+
+    (* CR strip: build 'x' CR LF = bytes 120 13 10 *)
+    ws:: platform WriteStream new.
+    ws nextPut: 120. ws nextPut: 13. ws nextPut: 10.
+    crlf:: ws contents.
+    rs:: platform ReadStream on: crlf.
+    ((rs nextLine) = 'x') println.    (* true — trailing CR stripped *)
+)
+) : (
+)

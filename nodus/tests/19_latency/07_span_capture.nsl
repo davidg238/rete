@@ -1,0 +1,89 @@
+(*
+expect:
+true
+true
+true
+true
+true
+true
+true
+true
+done
+*)
+(* tuvm#72: the two ordering invariants of a bounded capture window, asserted
+   rather than commented — reset LAST on start (so samples banked before the
+   window are excluded) and snapshot FIRST on stop (so samples banked after it
+   are excluded). Values are FED with recordSlot:us:, never timed, so nothing
+   here is timing-dependent. Both-path A==B gate. *)
+class SpanCaptureTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | space spans cap a ctl res r slots row |
+  space:: platform space.
+  spans:: platform Spans new.
+  a::     spans register: #acquire.
+  cap::   platform SpanCapture onSpace: space spans: spans.
+  cap start.
+  ctl:: space channel: 'diag/spans/ctl'.
+  res:: space channel: 'diag/spans/result'.
+
+  (* A sample banked BEFORE the window opens must not survive it. *)
+  spans recordSlot: a us: 500.
+
+  ctl put: '' value: (platform Record tag: #SpanCtl with: #state -> #running).
+  space drain.
+
+  (* Two samples INSIDE the window. *)
+  spans recordSlot: a us: 100.
+  spans recordSlot: a us: 200.
+
+  ctl put: '' value: (platform Record tag: #SpanCtl with: #state -> #stopped).
+  space drain.
+
+  (* A sample banked AFTER the window closes must not appear in the report. *)
+  spans recordSlot: a us: 900.
+
+  r:: res peek.
+  (r isNil not) printString println.                             (* true — published    *)
+  ((r at: #n ifAbsent: [ -1 ]) = 2) printString println.         (* true — the two only *)
+
+  slots:: r at: #slots ifAbsent: [ nil ].
+  row:: slots at: a + 1.
+  ((row at: #n ifAbsent: [ -1 ]) = 2) printString println.       (* true              *)
+  ((row at: #minUs ifAbsent: [ -1 ]) = 100) printString println. (* true — not 500    *)
+  ((row at: #maxUs ifAbsent: [ -1 ]) = 200) printString println. (* true — not 900    *)
+
+  (* #stopped while already stopped must not overwrite a good capture with an
+     empty one — a stray refresh would otherwise destroy the measurement. *)
+  ctl put: '' value: (platform Record tag: #SpanCtl with: #state -> #stopped).
+  space drain.
+  r:: res peek.
+  ((r at: #n ifAbsent: [ -1 ]) = 2) printString println.         (* true — unchanged *)
+
+  (* #running while ALREADY running restarts the window rather than extending it:
+     writing the cell is a statement of intent, and "start again" is the only sane
+     reading. Assert it, because the alternative (ignore a redundant start) is
+     equally plausible to a future reader and would silently change what a capture
+     means. *)
+  ctl put: '' value: (platform Record tag: #SpanCtl with: #state -> #running).
+  space drain.
+  spans recordSlot: a us: 300.
+  ctl put: '' value: (platform Record tag: #SpanCtl with: #state -> #running).
+  space drain.
+  spans recordSlot: a us: 400.
+  ctl put: '' value: (platform Record tag: #SpanCtl with: #state -> #stopped).
+  space drain.
+  r:: res peek.
+  ((r at: #n ifAbsent: [ -1 ]) = 1) printString println.         (* true — only the 400 *)
+
+  (* A retained #running is normalised to #stopped at start-up: a window whose
+     start cannot be named is not a measurement. *)
+  ctl put: '' value: (platform Record tag: #SpanCtl with: #state -> #running).
+  space drain.
+  (platform SpanCapture onSpace: space spans: spans) start.
+  space drain.
+  (((ctl peek) at: #state ifAbsent: [ nil ]) = #stopped) printString println.  (* true *)
+
+  'done' println.
+)
+) : (
+)

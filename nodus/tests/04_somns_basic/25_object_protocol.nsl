@@ -1,0 +1,19 @@
+(*
+expect:
+false
+self-equal
+hello
+*)
+class ObjectProtocolTest packageUsing: manifest = () (
+class Widget = () (
+  public describe = ( ^ 'hello' )
+) : ()
+public main: platform args: args = (
+    | w |
+    w:: Widget new.
+    w isNil ifTrue: [ 'is-nil' println ] ifFalse: [ 'false' println ].
+    (w = w) ifTrue: [ 'self-equal' println ] ifFalse: [ 'not-equal' println ].
+    w describe println.
+)
+) : (
+)

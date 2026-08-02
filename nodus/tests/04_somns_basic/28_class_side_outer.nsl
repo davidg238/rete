@@ -1,0 +1,16 @@
+(*
+expect:
+42
+*)
+class ClassSideOuter packageUsing: manifest = (
+  | secret ::= 42. |
+)(
+  class Probe = () (
+  ) : (
+    public reveal = ( ^ secret )
+  )
+  public main: platform args: args = (
+    (Probe reveal) printString out.
+  )
+) : (
+)

@@ -1,0 +1,39 @@
+(*
+expect:
+caught bellBounds
+text bell count outside 1-8
+nine also raised
+finished
+*)
+(* tuvm#94 stage 1 — the ship's-bell convention runs 1 to 8, and a count outside
+   it is a WRONG LITERAL in the node, not a load condition. So it raises rather
+   than striking something the convention has no reading for.
+
+   NOTE WHAT IS ABSENT FROM THE expect: BLOCK: no `bell: struck` line. The check
+   lives in nsl (Bell>>strike:, kernel.nsl) and the prim is never reached, which
+   is the whole point of putting it there — C has no bounds status code for the
+   bell, unlike the display seam's 1. If this test ever prints a `bell: struck 0`,
+   the check has been pushed down into C and the raise has been lost.
+
+   The tag is asserted, not merely that something failed — an untagged catch
+   would pass even if the raise came from somewhere else. Both ends of the range
+   are exercised: a zero and a nine fail for the same reason but through
+   different halves of the condition. *)
+class BellBounds packageUsing: manifest = () (
+  public main: platform args: args = (
+    | bell |
+    bell:: platform bell.
+
+    [ bell strike: 0 ]
+      on: [ :e | e tag = #bellBounds ]
+      do: [ :e | 'caught bellBounds' out.
+                 ('text ' , (e at: #text ifAbsent: [ '?' ])) out ].
+
+    [ bell strike: 9 ]
+      on: [ :e | e tag = #bellBounds ]
+      do: [ :e | 'nine also raised' out ].
+
+    'finished' out.
+  )
+) : (
+)

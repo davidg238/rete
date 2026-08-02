@@ -1,0 +1,50 @@
+(*
+env: OEVM_NTP_SECONDS=35138
+env: OEVM_NTP_DATE=20260801
+expect:
+secs 35138
+date 20260801
+yyyy 2026
+mm 8
+dd 1
+finished
+*)
+(* tuvm#100 (2026-08-01) — the DATE half of the NTP seam.
+
+   ntpSyncTz: answers seconds-of-day, but wallClockSetDate:time: demands a date, so
+   without ntpDate a node can MEASURE the RTC's error and not correct it. That gap
+   is why this prim exists, and this test is the host-side proof it answers.
+
+   ntpDate reports the date of the response ntpSyncTz: already received, so one
+   request serves both halves. The ordering contract (sync first, then read) is
+   what this test's first two lines pin.
+
+   The unpacking rows matter as much as the value. 20260801 is packed decimal, and
+   August is the month where a naive `// 100` reader that forgets the year term
+   still looks plausible (20260801 // 100 = 202608, not 8). Spelling out all three
+   fields pins the packing rather than the one number.
+
+   nsl has no modulo, so each field is a division and a subtraction — the same
+   spelling wallClockSetDate:time:'s callers use. *)
+class NtpDate packageUsing: manifest = () (
+  public main: platform args: args = (
+    | secs date yyyy rest mm dd |
+    secs:: platform ntpSyncTz: -25200.   (* offset ignored on host; env is the answer *)
+    ('secs ' , secs printString) out.
+
+    date:: platform ntpDate.
+    date == nil ifTrue: [ ^ 'date MISSING — ntpDate answered nil after a good sync' out ].
+    ('date ' , date printString) out.
+
+    yyyy:: date // 10000.
+    rest:: date - (yyyy * 10000).
+    mm::   rest // 100.
+    dd::   rest - (mm * 100).
+    ('yyyy ' , yyyy printString) out.
+    ('mm ' , mm printString) out.
+    ('dd ' , dd printString) out.
+
+    'finished' out.
+  )
+) : (
+)

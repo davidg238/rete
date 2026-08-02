@@ -1,0 +1,40 @@
+(*
+expect:
+fired 3
+done
+*)
+(* T-D.6 timer defect regression — code review Critical fix for a hang in
+   `host_advance` (tuvm/src/platform.c). A REPEATING timer registered with a
+   0ms interval (`every: 0`) used to leave `due_ms` pinned at-or-behind
+   `host_clock_ms` forever: the fire loop's `t->due_ms += t->interval_ms`
+   added 0 each iteration, so `t->due_ms <= host_clock_ms` never went false
+   and a single `advanceMillis:` call never returned. The fix floors a
+   repeating timer's interval to 1ms in `host_timer_add`; a one-shot with
+   ms==0 is left untouched (it fires once and deactivates — no loop, no
+   hang risk there).
+
+   With the floor, `every: 0` behaves exactly like `every: 1`: registering at
+   clock 0 sets due=1, interval=1. `advanceMillis: 3` moves the clock to 3 and
+   the fire loop fires at due 1, 2, 3 (each still <= 3), rescheduling to
+   4 after the third fire — 4 > 3, so the loop stops. That is 3 fires, a
+   bounded and fully deterministic count.
+
+   The test's real assertion is that `space drain` returns at all: if the
+   defect regresses (the floor is removed or bypassed), this test hangs the
+   process instead of failing an expectation. *)
+class TimerZeroInterval packageUsing: manifest = ( | fired ::= 0. | ) (
+  public main: platform args: args = (
+    | space timers ping repeater |
+    space:: platform space.
+    timers:: Timers usingSpace: space seam: platform.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    ping:: space channel: 'ping'.
+    ping whenever: '' do: [ :m | fired:: fired + 1 ].
+    repeater:: timers every: 0 post: #x on: ping.
+    platform advanceMillis: 3. space drain.
+    timers cancel: repeater.
+    ('fired ' , fired printString) out.
+    'done' out.
+  )
+) : (
+)

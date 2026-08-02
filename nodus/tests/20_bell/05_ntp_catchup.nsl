@@ -1,0 +1,66 @@
+(*
+env: OEVM_NTP_SECONDS=66600
+expect:
+secs 66600
+half 37
+into 0
+msToBoundary 1800000
+mid half 37 into 900 ms 900000
+late half 37 into 1799 ms 1000
+next half 38 into 0 ms 1800000
+wrap half 47 into 1799 ms 1000
+finished
+*)
+(* tuvm#94 stage 4 — the count+phase arithmetic, on the host, against a known NTP
+   answer. This test deliberately exercises the ARITHMETIC directly rather than
+   through the node's timer wiring, so the risky rung's core logic is proven with no
+   hardware and no wall-clock dependence.
+
+   66600 s = 18:30:00 exactly (18*3600 + 30*60), so the seam's own answer is a
+   BOUNDARY-EXACT input: half-hour index 37, and ms-to-next-boundary is a FULL
+   interval (1800000), not zero. That edge is the one worth pinning, because the
+   tempting `1800000 - into*1000` reading of "we are at the boundary" is 0 ms, which
+   would fire a one-shot immediately and strike the same half-hour TWICE. Landing
+   exactly on a boundary is not rare here either -- it is precisely what a good sync
+   produces.
+
+   The remaining rows are computed purely, without the seam, because the env can
+   only hand this process ONE value and the formula needs more than one point to be
+   pinned. `mid` and `late` walk the interval; `next` crosses into 38 (19:00); `wrap`
+   is the last half-hour of the day (47 = 23:30), where the count is about to roll to
+   0 -- the one place an off-by-one in `//` would show up as a clock that strikes
+   midnight in the wrong slot.
+
+   nsl has no modulo, so `into` is spelled `n - ((n // 1800) * 1800)` throughout --
+   the same spelling the node uses, which is the point: this test pins the exact
+   expression, not an equivalent one. *)
+class NtpCatchup packageUsing: manifest = () (
+  public main: platform args: args = (
+    | secs |
+    secs:: platform ntpSyncTz: -25200.   (* offset ignored on host; env is the answer *)
+    ('secs ' , secs printString) out.
+    ('half ' , (secs // 1800) printString) out.
+    ('into ' , (self into: secs) printString) out.
+    ('msToBoundary ' , (self msToBoundary: secs) printString) out.
+
+    ('mid '  , (self describe: 67500)) out.
+    ('late ' , (self describe: 68399)) out.
+    ('next ' , (self describe: 68400)) out.
+    ('wrap ' , (self describe: 86399)) out.
+
+    'finished' out.
+  )
+
+  (* seconds into the current half-hour *)
+  into: secs = ( ^ secs - ((secs // 1800) * 1800) )
+
+  (* ms from `secs` to the NEXT half-hour boundary. At a boundary this is a full
+     interval, never 0 -- see the header. *)
+  msToBoundary: secs = ( ^ 1800000 - ((self into: secs) * 1000) )
+
+  describe: secs = (
+    ^ 'half ' , (secs // 1800) printString ,
+      ' into ' , (self into: secs) printString ,
+      ' ms '   , (self msToBoundary: secs) printString )
+) : (
+)

@@ -1,0 +1,42 @@
+(*
+expect:
+cold valid false
+put magic then valid true
+half 5
+bootticks 9
+anchor 66600
+finished
+*)
+(* tuvm#94 stage 5 — the RTC retention seam, host, in one process (no OEVM_RTC_FILE,
+   so the struct is cold at start and lives only in memory). Cross-process persistence
+   is exercised by the re-exec sequence harness (Task 7); here we pin the get/put
+   round-trip and the magic-guarded cold path. *)
+class RtcSeam packageUsing: manifest = () (
+  public main: platform args: args = (
+    (* Cold: no magic written yet -> invalid. *)
+    ('cold valid ' , (platform rtcValid ifTrue: [ 'true' ] ifFalse: [ 'false' ])) out.
+    (* Establish validity by writing the magic word, then read it back. *)
+    platform rtcPut: 0 value: self magicWord.
+    ('put magic then valid ' , (platform rtcValid ifTrue: [ 'true' ] ifFalse: [ 'false' ])) out.
+    platform rtcPut: 1 value: 5.
+    platform rtcPut: 2 value: 9.
+    platform rtcPut: 3 value: 66600.
+    ('half '      , (platform rtcGet: 1) printString) out.
+    ('bootticks ' , (platform rtcGet: 2) printString) out.
+    ('anchor '    , (platform rtcGet: 3) printString) out.
+    'finished' out.
+  )
+  (* Must equal RTC_MAGIC 0x14BE11C0 = 348000704; the seam compares the low 32 bits
+     as uint32 in C. nsl has no hex literal, so spell the decimal.
+     HISTORY (tuvm#94 stage 5): the magic was originally 0x94BE11C0, whose int32
+     spelling -1799482944 round-trips on the 64-bit host (61 magnitude bits) but
+     OVERFLOWS the 31-bit SMI of a 32-bit target — on the MagTag rtcPut: stored
+     garbage, rtcValid never went true, and the clock cold-booted on every wake
+     (witnessed 2026-07-24, ~14 reboot cycles all reading "wake half 1").
+     Reproduced on a host -m32 build the same day. The magic therefore MUST keep
+     |value| < 2^30. An earlier revision of this comment verified the round-trip
+     on the host build and called it settled — the host proved nothing about the
+     device. *)
+  magicWord = ( ^ 348000704 )
+) : (
+)

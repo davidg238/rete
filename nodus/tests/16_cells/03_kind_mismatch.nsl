@@ -1,0 +1,70 @@
+(*
+expect:
+out: on a cell -> not a stream
+take: on a cell -> not a stream
+put: on a stream -> not a cell
+peek: on a stream -> not a cell
+whenever: works on both 2
+cell still 43
+done
+*)
+(* Rung 9 — the verb declares the kind, and the wrong verb on an existing name is an
+   ERROR. `put:value:` makes a name a cell; `out:value:` makes it a stream; the kind is
+   fixed by the first write. This is deliberate and it is ordinary: `read()` on a
+   directory answers EISDIR and nobody has ever called that a design flaw.
+
+   The rule is enforced in nsl (Channel), not in space.c — which is storage, not policy —
+   so a mismatch raises an ordinary Milestone-E condition: catchable with `on:do:`, and
+   uncaught it reaches the supervisor as any other crash does. And it does NOT corrupt
+   the cell: the last line proves the value is untouched by the four rejected sends.
+
+   `whenever:do:` is the one verb that works on BOTH kinds and sets no kind. *)
+class KindMismatch packageUsing: manifest = ( | hits ::= 0. | ) (
+  public main: platform args: args = (
+    | space c s |
+    space:: platform space.
+    c:: space channel: 'cells'.
+    s:: space channel: 'streams'.
+
+    c put: 'sp'  value: 43.        (* now a CELL   *)
+    s out: 'log' value: 'hello'.   (* now a STREAM *)
+
+    [ c out: 'sp' value: 1 ]
+      on: [ :e | true ]
+      do: [ :e | ('out: on a cell -> ' , (e at: #text ifAbsent: [ '?' ])) out ].
+
+    [ c take: 'sp' ifEmpty: [ nil ] ]
+      on: [ :e | true ]
+      do: [ :e | ('take: on a cell -> ' , (e at: #text ifAbsent: [ '?' ])) out ].
+
+    [ s put: 'log' value: 1 ]
+      on: [ :e | true ]
+      do: [ :e | ('put: on a stream -> ' , (e at: #text ifAbsent: [ '?' ])) out ].
+
+    [ s peek: 'log' ifAbsent: [ 0 ] ]
+      on: [ :e | true ]
+      do: [ :e | ('peek: on a stream -> ' , (e at: #text ifAbsent: [ '?' ])) out ].
+
+    (* Drain first, so the count below is only about the two writes that follow.
+       Without this it reads 4, not 2 — and correctly so: the reaction snapshot is
+       taken AT DEQUEUE (Milestone D, D-C5), so the two writes at the top of this
+       test are still in the ring and fire the reactions we are about to register.
+       True for a cell exactly as it already was for a stream — which is itself the
+       point: `put` goes onto the SAME ring, through the SAME reactor. *)
+    space drain.
+
+    (* the neutral verb: registers on a cell and on a stream alike *)
+    c whenever: 'sp'  do: [ :v | hits:: hits + 1 ].
+    s whenever: 'log' do: [ :v | hits:: hits + 1 ].
+    c put: 'sp'  value: 44.
+    s out: 'log' value: 'again'.
+    space drain.
+    ('whenever: works on both ' , hits printString) out.
+
+    (* and none of the four rejected sends disturbed the cell *)
+    c put: 'sp' value: 43.
+    ('cell still ' , (c peek: 'sp' ifAbsent: [ 0 ]) printString) out.
+    'done' out.
+  )
+) : (
+)

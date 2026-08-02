@@ -1,0 +1,19 @@
+(*
+Confinement pin: reflection is no longer ambient (mirror step). An ordinary app
+cannot reflect -- sending a reflective selector (`sender`) to any receiver is now a
+runtime DNU, because the 12 reflective prims were removed from the universal
+switch(pid) and no boot path hands this app a `mirror` capability. The compiler
+exits 0 (`sender` is just an unknown unary send); the runner aborts with DNU. Like
+39_serial_confined.ns, the failure IS the passing evidence that reflection is
+confined and no grant exists this cycle.
+expect-runtime-fail: Message 'sender' not understood by receiver
+*)
+class MirrorConfinedTest usingPlatform: platform = () (
+  public main: platform2 args: args = (
+    self sender.
+    'SHOULD NOT REACH' println.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

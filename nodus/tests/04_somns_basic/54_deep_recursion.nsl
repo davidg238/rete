@@ -1,0 +1,30 @@
+(*
+Deep self-recursion positive-proof for the de-recursify Phase 2 flip.
+
+`sum: n` recurses n frames deep, each adding n to the recursive result — so it
+exercises deep frame PUSH on the way down and deep OP_RET result-DELIVERY on the
+way back up (sum 1..800 == 320400). On the flat non-recursive interpreter this
+runs in ONE C activation regardless of depth: C-stack use is O(1) in the NS
+recursion depth. The pre-flip recursive engine used one nested run_interpreter C
+activation PER frame, so this same shape at large depth would exhaust the C
+stack. (Demonstrated out-of-suite: with a raised VM_STACK_MAX_WORDS the flat
+engine computes `sum: 50000` correctly even under a 512 KB C-stack ulimit — a
+depth the recursive engine could never reach.)
+
+Depth is 800 here to stay comfortably under the default VM_STACK_MAX_WORDS
+(16384 words; this method overflows the NS stack around ~950 frames) so the test
+passes on both the solidified (Path A) and .oimg (Path B) builds.
+
+expect:
+320400
+*)
+class DeepRecursionTest packageUsing: manifest = () (
+sum: n = (
+    n = 0 ifTrue: [ ^ 0 ].
+    ^ n + (self sum: n - 1)
+)
+public main: platform args: args = (
+    (self sum: 800) println
+)
+) : (
+)

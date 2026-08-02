@@ -1,0 +1,15 @@
+(*
+expect:
+handling first
+outer got two
+*)
+class NestedInHandler packageUsing: manifest = () (
+  public main: platform args: args = (
+    [ [ self error: 'one' tag: #first ]
+        on: [ :e | e tag = #first ]
+        do: [ :e | 'handling first' out. self error: 'two' tag: #second ] ]
+      on: [ :e | e tag = #second ]
+      do: [ :e | ('outer got ' , (e at: #text ifAbsent: [ '?' ])) out ].
+  )
+) : (
+)

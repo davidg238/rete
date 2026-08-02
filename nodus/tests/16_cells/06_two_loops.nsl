@@ -1,0 +1,57 @@
+(*
+expect:
+pid1 sp 43
+pid2 sp 22
+pid1 confined true
+one class, two loops
+done
+*)
+(* Rung 9 — David's two-PID node (2026-07-13). Node5 runs two control loops:
+
+     /node5/pid1/sp  /node5/pid1/pv  /node5/pid1/out  /node5/pid1/auto
+     /node5/pid2/sp  /node5/pid2/pv  /node5/pid2/out  /node5/pid2/auto
+
+   TWO LOOPS ARE TWO ROOTED CAPABILITIES AND ONE PIECE OF SOURCE. Each Loop is handed
+   `space channel: 'pidN'` at construction and says `peek: 'sp'` — identical code, isolated
+   by name. Neither can reach the other's setpoint: a capability is a rooted prefix and
+   attenuation only ever narrows, so `pid1` cannot name `pid2/sp` at all (the `..` escape
+   is rejected by `checkPath:`).
+
+   And the `/node5` prefix is nowhere in this file — it is the BRIDGE's business, truncated
+   on delivery and prepended on push. The node does not know it is node5, which is what lets
+   the same app image run on any node. *)
+class TwoLoops packageUsing: manifest = () (
+
+  class Loop = ( | goal sp | ) (
+    setGoal: g = ( goal:: g. ^ self )
+    public sp = ( ^ sp )
+    public start = ( sp:: goal peek: 'sp' ifAbsent: [ 0 ]. ^ self )
+  ) : (
+  )
+
+  public main: platform args: args = (
+    | space one two escaped |
+    space:: platform space.
+
+    (* the operator writes both setpoints *)
+    (space channel: 'pid1') put: 'sp' value: 43.
+    (space channel: 'pid2') put: 'sp' value: 22.
+
+    one:: (Loop new setGoal: (space channel: 'pid1')) start.
+    two:: (Loop new setGoal: (space channel: 'pid2')) start.
+
+    ('pid1 sp ' , one sp printString) out.
+    ('pid2 sp ' , two sp printString) out.
+
+    (* confinement: pid1's capability cannot name pid2's setpoint *)
+    escaped:: false.
+    [ (space channel: 'pid1') peek: '../pid2/sp' ifAbsent: [ 0 ] ]
+      on: [ :e | true ]
+      do: [ :e | escaped:: true ].
+    ('pid1 confined ' , escaped printString) out.
+
+    'one class, two loops' out.
+    'done' out.
+  )
+) : (
+)

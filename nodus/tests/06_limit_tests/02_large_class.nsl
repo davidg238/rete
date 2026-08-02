@@ -1,0 +1,20 @@
+(*
+expect:
+6105
+skip-berry: true
+*)
+class LargeClassLimitTest packageUsing: manifest = () (
+class LargeClass = (
+| public slot1 ::= 1. public slot2 ::= 2. public slot3 ::= 3. public slot4 ::= 4. public slot5 ::= 5. public slot6 ::= 6. public slot7 ::= 7. public slot8 ::= 8. public slot9 ::= 9. public slot10 ::= 10. public slot11 ::= 11. public slot12 ::= 12. public slot13 ::= 13. public slot14 ::= 14. public slot15 ::= 15. public slot16 ::= 16. public slot17 ::= 17. public slot18 ::= 18. public slot19 ::= 19. public slot20 ::= 20. public slot21 ::= 21. public slot22 ::= 22. public slot23 ::= 23. public slot24 ::= 24. public slot25 ::= 25. public slot26 ::= 26. public slot27 ::= 27. public slot28 ::= 28. public slot29 ::= 29. public slot30 ::= 30. public slot31 ::= 31. public slot32 ::= 32. public slot33 ::= 33. public slot34 ::= 34. public slot35 ::= 35. public slot36 ::= 36. public slot37 ::= 37. public slot38 ::= 38. public slot39 ::= 39. public slot40 ::= 40. public slot41 ::= 41. public slot42 ::= 42. public slot43 ::= 43. public slot44 ::= 44. public slot45 ::= 45. public slot46 ::= 46. public slot47 ::= 47. public slot48 ::= 48. public slot49 ::= 49. public slot50 ::= 50. public slot51 ::= 51. public slot52 ::= 52. public slot53 ::= 53. public slot54 ::= 54. public slot55 ::= 55. public slot56 ::= 56. public slot57 ::= 57. public slot58 ::= 58. public slot59 ::= 59. public slot60 ::= 60. public slot61 ::= 61. public slot62 ::= 62. public slot63 ::= 63. public slot64 ::= 64. public slot65 ::= 65. public slot66 ::= 66. public slot67 ::= 67. public slot68 ::= 68. public slot69 ::= 69. public slot70 ::= 70. public slot71 ::= 71. public slot72 ::= 72. public slot73 ::= 73. public slot74 ::= 74. public slot75 ::= 75. public slot76 ::= 76. public slot77 ::= 77. public slot78 ::= 78. public slot79 ::= 79. public slot80 ::= 80. public slot81 ::= 81. public slot82 ::= 82. public slot83 ::= 83. public slot84 ::= 84. public slot85 ::= 85. public slot86 ::= 86. public slot87 ::= 87. public slot88 ::= 88. public slot89 ::= 89. public slot90 ::= 90. public slot91 ::= 91. public slot92 ::= 92. public slot93 ::= 93. public slot94 ::= 94. public slot95 ::= 95. public slot96 ::= 96. public slot97 ::= 97. public slot98 ::= 98. public slot99 ::= 99. public slot100 ::= 100. public slot101 ::= 101. public slot102 ::= 102. public slot103 ::= 103. public slot104 ::= 104. public slot105 ::= 105. public slot106 ::= 106. public slot107 ::= 107. public slot108 ::= 108. public slot109 ::= 109. public slot110 ::= 110. |
+)(
+  public sum = (
+    ^ slot1 + slot2 + slot3 + slot4 + slot5 + slot6 + slot7 + slot8 + slot9 + slot10 + slot11 + slot12 + slot13 + slot14 + slot15 + slot16 + slot17 + slot18 + slot19 + slot20 + slot21 + slot22 + slot23 + slot24 + slot25 + slot26 + slot27 + slot28 + slot29 + slot30 + slot31 + slot32 + slot33 + slot34 + slot35 + slot36 + slot37 + slot38 + slot39 + slot40 + slot41 + slot42 + slot43 + slot44 + slot45 + slot46 + slot47 + slot48 + slot49 + slot50 + slot51 + slot52 + slot53 + slot54 + slot55 + slot56 + slot57 + slot58 + slot59 + slot60 + slot61 + slot62 + slot63 + slot64 + slot65 + slot66 + slot67 + slot68 + slot69 + slot70 + slot71 + slot72 + slot73 + slot74 + slot75 + slot76 + slot77 + slot78 + slot79 + slot80 + slot81 + slot82 + slot83 + slot84 + slot85 + slot86 + slot87 + slot88 + slot89 + slot90 + slot91 + slot92 + slot93 + slot94 + slot95 + slot96 + slot97 + slot98 + slot99 + slot100 + slot101 + slot102 + slot103 + slot104 + slot105 + slot106 + slot107 + slot108 + slot109 + slot110
+  )
+)
+public main: platform args: args = (
+  | lc |
+  lc:: LargeClass new.
+  lc sum printString out.
+)
+) : (
+)

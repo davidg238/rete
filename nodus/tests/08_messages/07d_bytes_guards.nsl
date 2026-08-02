@@ -1,0 +1,13 @@
+(*
+expect-runtime-fail: byte out of range
+*)
+class BytesGuardByteRange packageUsing: manifest = () (
+public main: platform args: args = (
+  | BA ba |
+  BA:: platform ByteArray.
+  ba:: BA new: 2.
+  ba u8At: 1 put: 300.
+  'unreached' out.
+)
+) : (
+)

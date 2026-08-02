@@ -1,0 +1,17 @@
+(*
+expect:
+3
+expect-runtime-fail: add:
+*)
+(* T-B.2 mutation matrix, row `List add:` — see 01_list_at_put.ns header. *)
+class ListAdd packageUsing: manifest = () (
+public main: platform args: args = (
+  | L l |
+  L:: platform List.
+  l:: L with: 1 with: 2 with: 3.
+  l size printString out.
+  l add: 4.
+  'unreached' out.
+)
+) : (
+)

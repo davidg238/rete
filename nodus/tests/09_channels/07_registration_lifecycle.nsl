@@ -1,0 +1,43 @@
+(*
+expect:
+dropped
+r1
+2
+mid
+r1
+3
+r2
+3
+end
+*)
+(* T-C C.7 registration lifecycle — three claims, one script:
+     - silent drop (D-C): a post on `a` with NO reaction, drained, delivers
+       to nobody — provable because r1 (registered only AFTER that drain)
+       then fires exactly once for a FRESH post: the dropped value-1 signal
+       did not queue up for the new registrant (no 'r1'/'1' prints anywhere);
+     - a reaction registered DURING a firing (r2, registered while r1 handles
+       value 2) does not see the event being fanned out (snapshot at dequeue,
+       D-C5) but DOES fire for a subsequently-posted event (value 3);
+     - fan-out order is registration order (D-C3): for value 3, r1 prints
+       before r2. *)
+class RegistrationLifecycle packageUsing: manifest = () (
+public main: platform args: args = (
+  | space a |
+  space:: platform space.
+  a:: space channel: 'a'.
+  a out: '' value: 1.
+  space drain.
+  'dropped' out.
+  a whenever: '' do: [ :v |
+    'r1' out.
+    v printString out.
+    (v = 2) ifTrue: [ a whenever: '' do: [ :w | 'r2' out. w printString out ] ] ].
+  a out: '' value: 2.
+  space drain.
+  'mid' out.
+  a out: '' value: 3.
+  space drain.
+  'end' out.
+)
+) : (
+)

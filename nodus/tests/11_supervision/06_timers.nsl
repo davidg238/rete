@@ -1,0 +1,47 @@
+(*
+expect:
+early nil
+tick 1
+tick 2
+cancelled
+done
+*)
+(* T-D.6 timers — a host virtual-clock event source (Milestone D Task 6). A one-shot
+   fires only after the virtual clock passes its due time; a repeating timer fires
+   each interval; cancel stops future fires. The C seam carries only (token, ms);
+   `Timers` (lib/kernel.ns) owns the fan-out onto the target channel. Determinism via
+   `platform advanceMillis:` (host virtual clock) driving `space drain` — never wall
+   time, so the tick sequence below is exactly reproducible.
+
+   Trace (host clock starts at 0):
+     after: 50 registered at clock 0            -> due 50
+     advanceMillis: 10  -> clock 10  (50 > 10, not yet due; ticks stays 0)
+     advanceMillis: 100 -> clock 110 (50 <= 110, one-shot fires once -> tick 1)
+     every: 30 registered at clock 110          -> due 140, interval 30
+     advanceMillis: 30  -> clock 140 (140 <= 140, repeater fires once -> tick 2;
+                                        reschedules to due 170, not due again yet)
+     cancel: repeater
+     advanceMillis: 300 -> clock 440 (repeater is dead -> no more fires) *)
+class TimerTest packageUsing: manifest = ( | ticks ::= 0. | ) (
+  public main: platform args: args = (
+    | space timers ping oneShot repeater |
+    space:: platform space.
+    timers:: Timers usingSpace: space seam: platform.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    ping:: space channel: 'ping'.
+    ping whenever: '' do: [ :m | ticks:: ticks + 1. ('tick ' , ticks printString) out ].
+    oneShot:: timers after: 50 post: #t on: ping.
+    (* not yet due *)
+    platform advanceMillis: 10. space drain.
+    ('early ' , ((ticks = 0) ifTrue: [ 'nil' ] ifFalse: [ 'NO' ])) out.
+    (* now due *)
+    platform advanceMillis: 100. space drain.        (* tick 1 *)
+    repeater:: timers every: 30 post: #r on: ping.
+    platform advanceMillis: 30. space drain.         (* tick 2 *)
+    timers cancel: repeater.
+    platform advanceMillis: 300. space drain.        (* no more ticks *)
+    'cancelled' out.
+    'done' out.
+  )
+) : (
+)

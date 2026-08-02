@@ -1,0 +1,6 @@
+List at:put:
+List add:
+Map at:put:
+Map removeKey:
+Record at:put:
+Bytes u8At:put:

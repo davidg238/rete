@@ -1,0 +1,8 @@
+(*
+expect:
+1
+*)
+| n |
+n:: 0.
+[ n:: n + 1 ] value.
+n println

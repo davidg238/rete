@@ -1,0 +1,46 @@
+(*
+env: OEVM_NO_DISPLAY=1
+expect:
+caught displayUnavailable
+text no display on this board
+refresh also raised
+finished
+*)
+(* tuvm#88 — a board can genuinely lack the panel (the MagTag's own two
+   revisions differ in which controller they carry, and most boards have no
+   display node at all), so `#displayUnavailable` is a condition a node must be
+   able to catch and carry on headless from. That path had NO host coverage:
+   `display_target_available()` was hard-coded to 1 on the host, so every host
+   test saw a display and the raise was unreachable.
+
+   `OEVM_NO_DISPLAY=1` (platform.c) is the seam that makes it reachable — the
+   same shape as `OEVM_GC_STRESS` in gc.c. It is delivered by the `env:` header
+   above rather than exported globally, because a global export would make
+   01_display_grid and 02_display_raises assert against a display that reports
+   itself absent.
+
+   The tag is asserted, not merely the fact that something failed — an untagged
+   catch would pass even if the raise came from somewhere else entirely. Same
+   discipline as 13_pulse/03_gpio_undeclared_raises.nsl.
+
+   Both a write AND a refresh are exercised: all four seam functions answer nil
+   under this condition, and a node that caught only the first would still wedge
+   on the second. *)
+class DisplayUnavailable packageUsing: manifest = () (
+  public main: platform args: args = (
+    | display |
+    display:: platform display.
+
+    [ display at: 0 col: 0 put: 'HI' ]
+      on: [ :e | e tag = #displayUnavailable ]
+      do: [ :e | 'caught displayUnavailable' out.
+                 ('text ' , (e at: #text ifAbsent: [ '?' ])) out ].
+
+    [ display refresh ]
+      on: [ :e | e tag = #displayUnavailable ]
+      do: [ :e | 'refresh also raised' out ].
+
+    'finished' out.
+  )
+) : (
+)

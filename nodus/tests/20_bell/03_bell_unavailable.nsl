@@ -1,0 +1,43 @@
+(*
+env: OEVM_NO_BELL=1
+expect:
+caught bellUnavailable
+text no bell on this board
+raw answered nil
+finished
+*)
+(* tuvm#94 stage 1 — MOST boards in this tree have no bell. The MagTag is the
+   only one with a DAC wired to a speaker; the ESP32, the C6 and both nRF52840
+   targets have neither, and `bell_target_available()` answers 0 on all of them.
+   So a node that rings must be able to catch #bellUnavailable and carry on
+   silent, exactly as a headless node carries on past #displayUnavailable.
+
+   That path has no host coverage without a seam: `bell_target_available()` is
+   hard-coded 1 on the host, so every host test sees a bell. `OEVM_NO_BELL=1`
+   (platform.c) makes it reachable — the same shape as OEVM_NO_DISPLAY, and
+   delivered by the `env:` header rather than exported globally, because a global
+   export would make 01_bell_strike assert against a bell that reports itself
+   absent.
+
+   The RAW forwarder is checked too, and it must answer nil rather than raise:
+   that split is the seam's contract (C reports, nsl raises), and a test that
+   only ever went through the wrapper could not tell a working split from one
+   where C had quietly started raising on its own. *)
+class BellUnavailable packageUsing: manifest = () (
+  public main: platform args: args = (
+    | bell |
+    bell:: platform bell.
+
+    [ bell strike: 5 ]
+      on: [ :e | e tag = #bellUnavailable ]
+      do: [ :e | 'caught bellUnavailable' out.
+                 ('text ' , (e at: #text ifAbsent: [ '?' ])) out ].
+
+    (platform bellStrike: 5) == nil
+      ifTrue: [ 'raw answered nil' out ]
+      ifFalse: [ 'raw did NOT answer nil' out ].
+
+    'finished' out.
+  )
+) : (
+)

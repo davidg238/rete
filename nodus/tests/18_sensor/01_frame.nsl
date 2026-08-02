@@ -1,0 +1,25 @@
+(*
+expect:
+size 64
+px1 2200
+px30 3120
+done
+*)
+(* AMG8833 rung Task 1 — the Tier-1 sensor seam through the uniform Zephyr
+   `sensor` API. On the host the posix backend answers a deterministic synthetic
+   frame (uniform 22.00 C, one hot pixel at nsl index 30 = 31.20 C), identical to
+   the frame the pre-sensor HttpServerNode hard-coded, so the rendered page is
+   unchanged by this rung. `platform sensorFrame` answers a RAW indexable Array
+   (like heapStats / udp basicReceive), so read it with basicAt:, not the
+   Array-class at: — the prim receiver does not carry the Array vtable. *)
+class SensorFrame packageUsing: manifest = () (
+  public main: platform args: args = (
+    | f |
+    f:: platform sensorFrame.
+    ('size ' , f basicSize printString) out.
+    ('px1 '  , (f basicAt: 1)  printString) out.
+    ('px30 ' , (f basicAt: 30) printString) out.
+    'done' out.
+  )
+) : (
+)

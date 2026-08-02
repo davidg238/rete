@@ -1,0 +1,19 @@
+(*
+expect:
+3
+10
+20
+30
+*)
+class ArrayKernelTest packageUsing: manifest = () (
+public main: platform args: args = (
+    | a |
+    a:: Array new: 3.
+    a at: 1 put: 10.
+    a at: 2 put: 20.
+    a at: 3 put: 30.
+    a size println.
+    a do: [ :x | x println ].
+)
+) : (
+)

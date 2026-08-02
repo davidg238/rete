@@ -1,0 +1,36 @@
+(*
+expect:
+HTTP/1.0 200 OK
+Content-Type: text/html
+Content-Length: 5
+Connection: close
+
+hello
+finished
+*)
+class HttpHello packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space req reply |
+    space:: platform space.
+    req::   space channel: 'dev/http/request'.
+    reply:: space channel: 'dev/http/reply'.
+    req whenever: '' do: [ :r |
+      | id path status body |
+      id::   r basicAt: 1.
+      path:: r basicAt: 3.
+      (path = '/hello')
+        ifTrue:  [ status:: 200. body:: 'hello' ]
+        ifFalse: [ status:: 404. body:: 'not found' ].
+      reply out: '' value: (platform Record tag: #response
+                              with: #id -> id with: #status -> status with: #body -> body) ].
+    reply whenever: '' do: [ :resp |
+      platform httpRespondId: (resp at: #id ifAbsent: [ 0 ])
+               status:        (resp at: #status ifAbsent: [ 500 ])
+               body:          (resp at: #body ifAbsent: [ '' ]) ].
+    platform httpInject: 'GET' path: '/hello'.
+    platform pumpEvents.
+    space drain.
+    'finished' out.
+  )
+) : (
+)

@@ -1,0 +1,17 @@
+(*
+expect:
+42
+skip-berry: true
+*)
+class MethodCallTest packageUsing: manifest = () (
+public class MethodCall = () (
+	public test = (
+		^ test2
+	)
+	public test2 = ( ^ 42 )
+)
+public main: platform args: args = (
+	(MethodCall new test) printString out.
+)
+) : (
+)

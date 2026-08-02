@@ -1,0 +1,16 @@
+(*
+expect:
+Foo
+skip-berry: true
+*)
+class DoesNotUnderstandTest packageUsing: manifest = () (
+public class DoesNotUnderstand = () (
+  protected doesNotUnderstand: message = (
+    ^ message selector
+  )
+)
+public main: platform args: args = (
+    (DoesNotUnderstand new Foo) asString out.
+)
+) : (
+)
