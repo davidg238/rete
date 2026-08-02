@@ -11,7 +11,7 @@
 # Correctness of the round-trip over sockets is the deliverable.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-NSL="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)/nodus/nsl/tools/ns_compile_oevm.py"
+NSL="$(git rev-parse --show-toplevel)/nodus/nsl/tools/ns_compile_oevm.py"
 TARGET="${OEVM_TARGET:-posix}"
 PORT="${OEVM_HTTP_PORT:-18080}"   # 8080 is commonly taken (e.g. Jetty); node hardcodes 18080
 

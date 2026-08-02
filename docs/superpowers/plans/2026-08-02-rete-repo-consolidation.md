@@ -272,15 +272,19 @@ Task 1 Step 3 left an interim absolute path. Now that `nsl` is in the repo, make
 
 ```bash
 cd ~/workspace/tuvm
-sed -i 's|\$HOME/workspace/tuvm/nodus/nsl|\$(git -C "\$(dirname "\${BASH_SOURCE[0]}")" rev-parse --show-toplevel)/nodus/nsl|g' \
+# The three tests/*.sh already `cd "$(dirname "$0")/.."` into the repo first,
+# so a plain `git rev-parse --show-toplevel` is both correct and robust there.
+sed -i 's|\$HOME/workspace/tuvm/nodus/nsl|\$(git rev-parse --show-toplevel)/nodus/nsl|g' \
   nodus/tuvm/tests/porta_sync_host.sh \
   nodus/tuvm/tests/hanoi_ab_host.sh \
-  nodus/tuvm/tests/http_roundtrip_host.sh \
+  nodus/tuvm/tests/http_roundtrip_host.sh
+# run.sh has no preceding cd, but it already has an absolute $ZDIR on line 30.
+sed -i 's|\$HOME/workspace/tuvm/nodus/nsl|\$(git -C "\$ZDIR" rev-parse --show-toplevel)/nodus/nsl|g' \
   nodus/tuvm/zephyr/run.sh
 grep -n 'nodus/nsl' nodus/tuvm/tests/porta_sync_host.sh | head -2
 ```
 
-Expected: the `NSL=` line now derives from `git rev-parse --show-toplevel`, so a fresh clone anywhere works — which is what the Task 7 gate tests.
+Expected: the `NSL=` line derives from `git rev-parse --show-toplevel`, so a fresh clone anywhere works — which is what the Task 7 gate tests. Do **not** use `git -C "$(dirname "${BASH_SOURCE[0]}")"` in the three `tests/*.sh`: their preceding `cd` re-bases that relative path against the new cwd, so `bash nodus/tuvm/tests/hanoi_ab_host.sh` from the repo root dies with `fatal: cannot change to 'nodus/tuvm/tests'`.
 
 - [ ] **Step 5: Run the gate from the in-repo harness**
 

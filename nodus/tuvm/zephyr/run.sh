@@ -29,7 +29,7 @@ case "$BOARD_ID" in esp32|esp32s2|esp32c6) ;; *) echo "--board must be esp32, es
 
 ZDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # zephyr/ — the app dir
 ROOT="$(cd "$ZDIR/.." && pwd)"                          # repo root
-NSL="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)/nodus/nsl/tools/ns_compile_oevm.py" # NOT ~/workspace/ns-oevm (stale)
+NSL="$(git -C "$ZDIR" rev-parse --show-toplevel)/nodus/nsl/tools/ns_compile_oevm.py" # NOT ~/workspace/ns-oevm (stale)
 ESPTOOL="$HOME/.espressif/python_env/idf5.4_py3.12_env/bin/esptool.py"
 
 # ---- board profiles -------------------------------------------------------
