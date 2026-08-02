@@ -70,7 +70,13 @@ func (s *Server) Handle(req []byte) []byte { return s.HandleFrom(req, "") }
 func (s *Server) HandleFrom(req []byte, peer string) []byte {
 	resp, err := s.handle(req, peer)
 	if err != nil {
-		s.logf("porta: rejecting datagram: %v", err)
+		// Name the sender and show the bytes. A bare "rejecting datagram:
+		// trailing bytes" cannot distinguish one misbehaving node from another,
+		// nor a framing bug from a stray sender on the port — which is exactly
+		// the ambiguity that cost an afternoon during the C6 bring-up. The hex
+		// is capped so a hostile or confused peer cannot flood the log.
+		s.logf("porta: rejecting datagram from %s (%d bytes): %v; hex=%x",
+			peer, len(req), err, req[:min(len(req), 96)])
 		return encodeErr(err.Error())
 	}
 	return resp
