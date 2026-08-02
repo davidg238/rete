@@ -1,0 +1,13 @@
+{
+  "name": "ns-berry-grammar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Newspeak (nsLite) Ohm grammar — emits the ns-berry JSON AST",
+  "main": "ns-parse.js",
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "ohm-js": "^17.1.0"
+  }
+}

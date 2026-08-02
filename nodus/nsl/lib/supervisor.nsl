@@ -1,0 +1,338 @@
+(*
+ns-oevm supervisor (in-image debugger, step 1: the grant). A confined boot
+citizen and the ONLY holder of the native mirror capability. Boot mints one
+Supervisor, grants it `mirror_object()` via `init_mirror:`, then routes the
+app launch through `run:platform:args:debug:` instead of calling the app's
+`main:args:` directly. With OEVM_DEBUG off the supervisor is transparent (it just
+forwards to the app, so the suite is byte-for-byte unchanged). With it on it
+first prints one `dbg:ready` line that exercises the granted mirror — an
+un-granted receiver could not even name `mirror`, and `vtableOf:` on a non-holder
+would DNU. The interactive `dbg:*` command loop and the ObjectMirror facade
+arrive in step 2 (Plan 2).
+*)
+class Supervisor usingMirror: mirror = () (
+  (* entry: the app instance. plat: the Kernel instance the app sees as its
+     `platform`. args: the app's main: args. debugFlag: 1 when OEVM_DEBUG set. *)
+  public run: entry platform: plat args: args debug: debugFlag = (
+    (* `dbg` is hoisted to the METHOD top (not the ifTrue: block) so the onBreak:
+       hook block's home context is this `run:` activation, which stays alive
+       through `entry main:`. If it lived in the ifTrue: block, that frame would be
+       dead by the time a breakpoint fires inside main:, and the captured `dbg`
+       would read a stale slot -> onBreakContext: DNU on a wrong receiver. *)
+    | dbg |
+    debugFlag = 1 ifTrue: [
+      dbg:: Debugger usingMirror: mirror channel: plat.
+      dbg registerEntry: entry.
+      mirror onBreak: [ :ctx | dbg onBreakContext: ctx ].
+      'dbg:ready' println.
+      dbg initialLoop ].
+    ^ entry main: plat args: args )
+
+  (* HLL mirror facade (Plan 2). Each facade takes the native mirror as a
+     param, so only Supervisor — the sole mirror holder — can construct one;
+     there is no ambient mirror access. *)
+  public class ObjectMirror usingMirror: m reflecting: obj = () (
+    public vtable    = ( ^ m vtableOf: obj )
+    public bindings  = ( ^ m bindingsOf: self vtable )
+    public reflectee = ( ^ obj )
+  ) : ()
+
+  public class ContextMirror usingMirror: m context: ctx = () (
+    public context   = ( ^ ctx )
+    public rawSender = ( ^ m senderOf: ctx )
+    public sender = (
+      | s |
+      s:: m senderOf: ctx.
+      ^ s == nil ifTrue: [ nil ] ifFalse: [ ContextMirror usingMirror: m context: s ] )
+    public pc            = ( ^ m pcOf: ctx )
+    public offset        = ( ^ m offsetOf: ctx )
+    public registerAt: i = ( ^ m reg: ctx at: i )
+    public registerAt: i put: v = ( ^ m reg: ctx at: i put: v )
+    public numRegisters = ( ^ m numRegistersOf: ctx )
+  ) : ()
+
+  (* The debugger proper (Plan 2). Holds the granted mirror (m) and the Kernel
+     instance (io) for stdin/stdout AND collection allocation — never bare-name
+     reachable from a top-level class. Builds a flat methodId registry by walking
+     the entry's vtable delegate chain, answers `dbg:methods`, and runs the
+     interactive command loop. Tasks 7-8 extend the loop and the registry use. *)
+  public class Debugger usingMirror: m channel: io = ( | entry ids sels meths tags bpIds bpMethods bpOffs stepMode stepDepth curCtx | ) (
+    public registerEntry: anEntry = ( entry:: anEntry. ^ self )
+
+    (* Lazily build parallel registry collections (ids/sels/meths/tags). Walk the
+       delegate chain from the entry's vtable; per vtable read the raw selector /
+       method indexables (1-based basicAt:) and assign a fresh, monotonic id to
+       each binding. `tag` is the vtable identityHash so a method can be traced
+       back to its defining vtable. Guarded so it runs at most once. *)
+    buildRegistry = (
+      | vt |
+      ids == nil ifTrue: [
+        ids:: io OrderedCollection new. sels:: io OrderedCollection new.
+        meths:: io OrderedCollection new. tags:: io OrderedCollection new.
+        vt:: m vtableOf: entry.
+        [ vt == nil ] whileFalse: [
+          | s mm tag |
+          s:: m selectorsOf: vt. mm:: m methodsOf: vt. tag:: vt identityHash.
+          1 to: s basicSize do: [ :i |
+            ids add: ids size + 1.
+            sels add: (s basicAt: i).
+            meths add: (mm basicAt: i).
+            tags add: tag ].
+          vt:: m delegateOf: vt ] ].
+      ^ self )
+
+    (* One line per registered method: `<id> <selector> <tag>`, then the ok
+       sentinel. Built lazily on first use. *)
+    public listMethods = (
+      self buildRegistry.
+      1 to: ids size do: [ :i |
+        | ws |
+        ws:: io WriteStream new.
+        ws print: (ids at: i).
+        ws nextPutAll: ' '.
+        ws nextPutAll: (sels at: i) printString.
+        ws nextPutAll: ' '.
+        ws print: (tags at: i).
+        ws contents println ].
+      'dbg:ok methods' println.
+      ^ self )
+
+    (* Look up the method oop for a given id (linear scan of the parallel
+       collections), or nil if unknown. Used by Tasks 7-8. *)
+    public methodAt: id = (
+      self buildRegistry.
+      1 to: ids size do: [ :i |
+        (ids at: i) = id ifTrue: [ ^ meths at: i ] ].
+      ^ nil )
+
+    (* Parse a non-negative integer from a String of ASCII digits (no asInteger
+       in this dialect): n:: n*10 + (byte - 48). Empty string answers 0. *)
+    parseInt: s = (
+      | n i b |
+      n:: 0.
+      i:: 1.
+      [ i <= s size ] whileTrue: [
+        b:: s at: i.
+        (b >= 48 and: [ b <= 57 ]) ifTrue: [ n:: (n * 10) + (b - 48) ].
+        i:: i + 1 ].
+      ^ n )
+
+    (* Lazily allocate the parallel breakpoint record (id, method, offset). *)
+    ensureBp = (
+      bpIds == nil ifTrue: [
+        bpIds:: io OrderedCollection new.
+        bpMethods:: io OrderedCollection new.
+        bpOffs:: io OrderedCollection new ].
+      ^ self )
+
+    (* Set a breakpoint at (methodId, offset). Resolves the method oop from the
+       registry; nil -> error. Records the (id, method, off) triple and arms the
+       C-side bp table via the confined mirror prim. *)
+    public break: id at: off = (
+      | mm key |
+      self ensureBp.
+      mm:: self methodAt: id.
+      mm == nil ifTrue: [ 'dbg:error no-method' println. ^ self ].
+      (* breakAt:offset: answers the NORMALIZED CompiledMethod oop, i.e. the same
+         oop `mirror methodOf: ctx` yields at a hit, so onBreakContext: can match. *)
+      key:: m breakAt: mm offset: off.
+      bpIds add: id.
+      bpMethods add: key.
+      bpOffs add: off.
+      'dbg:ok break' println.
+      ^ self )
+
+    (* Clear a breakpoint at (methodId, offset): disarm the C-side entry and drop
+       the record. Unknown -> error. *)
+    public clear: id at: off = (
+      | i hit n |
+      self ensureBp.
+      hit:: 0 - 1.
+      i:: 1.
+      [ hit < 0 and: [ i <= bpIds size ] ] whileTrue: [
+        ((bpIds at: i) = id and: [ (bpOffs at: i) = off ]) ifTrue: [ hit:: i ].
+        i:: i + 1 ].
+      hit < 0 ifTrue: [ 'dbg:error no-bp' println. ^ self ].
+      m unbreakAt: (bpMethods at: hit) offset: off.
+      (* compact: shift each later entry down one, then drop the last slot. *)
+      n:: bpIds size.
+      hit to: n - 1 do: [ :j |
+        bpIds at: j put: (bpIds at: j + 1).
+        bpMethods at: j put: (bpMethods at: j + 1).
+        bpOffs at: j put: (bpOffs at: j + 1) ].
+      bpIds removeLast.
+      bpMethods removeLast.
+      bpOffs removeLast.
+      'dbg:ok clear' println.
+      ^ self )
+
+    (* Tokenize `dbg:break <id> <off>` / `dbg:clear <id> <off>` and act. *)
+    doBreak: line = (
+      | rs ignore idTok offTok |
+      rs:: io ReadStream on: line.
+      ignore:: rs upTo: 32.
+      idTok:: rs upTo: 32.
+      offTok:: rs upTo: 32.
+      idTok == nil ifTrue: [ 'dbg:error usage' println. ^ self ].
+      offTok == nil ifTrue: [ 'dbg:error usage' println. ^ self ].
+      self break: (self parseInt: idTok) at: (self parseInt: offTok).
+      ^ self )
+
+    doClear: line = (
+      | rs ignore idTok offTok |
+      rs:: io ReadStream on: line.
+      ignore:: rs upTo: 32.
+      idTok:: rs upTo: 32.
+      offTok:: rs upTo: 32.
+      idTok == nil ifTrue: [ 'dbg:error usage' println. ^ self ].
+      offTok == nil ifTrue: [ 'dbg:error usage' println. ^ self ].
+      self clear: (self parseInt: idTok) at: (self parseInt: offTok).
+      ^ self )
+
+    (* Fired by the registered onBreak: hook when the C bp table matches. Reverse-
+       map (method, offset) -> the registry methodId, announce the pause, then run
+       the paused command loop until continue/EOF. *)
+    public onBreakContext: ctx = (
+      | off meth id i ws depth mid pause |
+      (* The SAME hook fires for a C bp-table match (stepMode nil) AND after every
+         instruction while stepping (stepMode non-nil). curCtx is set in BOTH paths
+         so dbg:inspect / depth-recompute use the live frame. *)
+      curCtx:: ctx.
+      off:: m offsetOf: ctx.
+      stepMode == nil ifTrue: [
+        (* BREAKPOINT path: reverse-map (method, offset) -> bp id, announce, loop. *)
+        meth:: m methodOf: ctx.
+        id:: 0 - 1.
+        i:: 1.
+        [ id < 0 and: [ i <= bpIds size ] ] whileTrue: [
+          ((bpMethods at: i) == meth and: [ (bpOffs at: i) = off ]) ifTrue: [ id:: bpIds at: i ].
+          i:: i + 1 ].
+        ws:: io WriteStream new.
+        ws nextPutAll: 'dbg:paused break '.
+        ws print: id.
+        ws nextPutAll: ' '.
+        ws print: off.
+        ws contents println.
+        self commandLoop.
+        ^ self ].
+      (* STEP path: decide whether to pause based on stepMode + sender-chain depth. *)
+      depth:: self depthOf: ctx.
+      pause:: false.
+      stepMode = #into ifTrue: [ pause:: true ].
+      stepMode = #over ifTrue: [ pause:: depth <= stepDepth ].
+      stepMode = #out  ifTrue: [ pause:: depth < (stepDepth + 1) ].
+      pause ifFalse: [ m requestStep: 1. ^ self ].
+      mid:: self methodIdOfCtx: ctx.
+      ws:: io WriteStream new.
+      ws nextPutAll: 'dbg:paused step '.
+      ws print: mid.
+      ws nextPutAll: ' '.
+      ws print: off.
+      ws contents println.
+      self commandLoop.
+      ^ self )
+
+    (* Count rawSender hops to nil (counts the current frame too; only the relative
+       comparison matters for step-over/out). *)
+    public depthOf: ctx = (
+      | d s |
+      d:: 0.
+      s:: ctx.
+      [ s == nil ] whileFalse: [ d:: d + 1. s:: m senderOf: s ].
+      ^ d )
+
+    (* Reverse-map a live context to its registry methodId (-1 if not registered).
+       The registry stores vtable-binding closures (methodsOf:), whereas
+       `methodOf: ctx` yields the underlying CompiledMethod, so NORMALIZE each
+       registry entry through `methodOf:` too before comparing -- otherwise a
+       BytecodeClosure never == a CompiledMethod and every lookup answers -1. *)
+    public methodIdOfCtx: ctx = (
+      | meth i |
+      self buildRegistry.
+      meth:: m methodOf: ctx.
+      i:: 1.
+      [ i <= meths size ] whileTrue: [
+        (m methodOf: (meths at: i)) == meth ifTrue: [ ^ ids at: i ].
+        i:: i + 1 ].
+      ^ 0 - 1 )
+
+    (* dbg:inspect [frameIndex] -> ONE flat line:
+       `dbg:stack off=<n> r0=<printString> r1=<...>` bounded by numRegisters.
+       Walks `frameIndex` senderOf: hops from curCtx (nil -> dbg:error no-frame). *)
+    doInspect: line = (
+      | rs ignore idxTok idx s cm off n i ws |
+      rs:: io ReadStream on: line.
+      ignore:: rs upTo: 32.
+      idxTok:: rs upTo: 32.
+      idx:: idxTok == nil ifTrue: [ 0 ] ifFalse: [ self parseInt: idxTok ].
+      s:: curCtx.
+      i:: 0.
+      [ i < idx and: [ s == nil ifTrue: [ false ] ifFalse: [ true ] ] ] whileTrue: [
+        s:: m senderOf: s. i:: i + 1 ].
+      s == nil ifTrue: [ 'dbg:error no-frame' println. ^ self ].
+      cm:: ContextMirror usingMirror: m context: s.
+      off:: cm offset.
+      n:: cm numRegisters.
+      ws:: io WriteStream new.
+      ws nextPutAll: 'dbg:stack off='.
+      ws print: off.
+      i:: 0.
+      [ i < n ] whileTrue: [
+        ws nextPutAll: ' r'.
+        ws print: i.
+        ws nextPutAll: '='.
+        ws nextPutAll: (cm registerAt: i) printString.
+        i:: i + 1 ].
+      ws contents println.
+      ^ self )
+
+    (* Minimal interactive loop: read `dbg:*` lines from stdin until continue/run
+       or EOF. `dbg:methods` lists the registry; `dbg:continue`/`dbg:run` detach
+       (let the app run); EOF (nil) detaches; anything else is an error line.
+       Tasks 7-8 add more verbs here. *)
+    public initialLoop = (
+      | line verb |
+      [ true ] whileTrue: [
+        line:: io readLine.
+        line == nil ifTrue: [ ^ self ].
+        verb:: self verbOf: line.
+        verb = 'dbg:methods' ifTrue: [ self listMethods ] ifFalse: [
+        (verb = 'dbg:continue' or: [ verb = 'dbg:run' ]) ifTrue: [ ^ self ] ifFalse: [
+        verb = 'dbg:break' ifTrue: [ self doBreak: line ] ifFalse: [
+        verb = 'dbg:clear' ifTrue: [ self doClear: line ] ifFalse: [
+          'dbg:error unknown' println ] ] ] ] ] )
+
+    (* The paused command loop (entered from onBreakContext:). Reads commands until
+       `dbg:continue` (resume; the bp re-fires on the next visit) or EOF. Shares the
+       methods/break/clear verbs; step verbs are stubbed until Task 8. *)
+    public commandLoop = (
+      | line verb |
+      [ true ] whileTrue: [
+        line:: io readLine.
+        line == nil ifTrue: [ ^ self ].
+        verb:: self verbOf: line.
+        (* dbg:continue: a STEP continue must clear stepMode AND requestStep: 0,
+           else was_stepping keeps the app single-stepping forever; for a plain
+           breakpoint continue requestStep: 0 is harmless (single_step already 0). *)
+        verb = 'dbg:continue' ifTrue: [ stepMode:: nil. m requestStep: 0. ^ self ] ifFalse: [
+        verb = 'dbg:methods' ifTrue: [ self listMethods ] ifFalse: [
+        verb = 'dbg:break' ifTrue: [ self doBreak: line ] ifFalse: [
+        verb = 'dbg:clear' ifTrue: [ self doClear: line ] ifFalse: [
+        (* step verbs: arm stepMode (+depth), request stepping, RETURN so the hook
+           returns and single-stepping engages. *)
+        verb = 'dbg:step' ifTrue: [ stepMode:: #into. m requestStep: 1. ^ self ] ifFalse: [
+        verb = 'dbg:over' ifTrue: [ stepMode:: #over. stepDepth:: self depthOf: curCtx. m requestStep: 1. ^ self ] ifFalse: [
+        verb = 'dbg:out' ifTrue: [ stepMode:: #out. stepDepth:: (self depthOf: curCtx) - 1. m requestStep: 1. ^ self ] ifFalse: [
+        (* dbg:inspect is a QUERY: emit the dump, keep looping. *)
+        verb = 'dbg:inspect' ifTrue: [ self doInspect: line ] ifFalse: [
+          'dbg:error unknown' println ] ] ] ] ] ] ] ] ] )
+
+    (* First space-delimited token of a command line (the verb). *)
+    verbOf: line = (
+      | rs t |
+      rs:: io ReadStream on: line.
+      t:: rs upTo: 32.
+      ^ t == nil ifTrue: [ line ] ifFalse: [ t ] )
+  ) : ()
+) : (
+)

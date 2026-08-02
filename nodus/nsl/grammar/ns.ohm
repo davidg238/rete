@@ -1,0 +1,109 @@
+NsLite {
+  Program  = ClassDef+                -- module
+           | Temps? Statements         -- script
+
+  ClassDef    = visibility? classKw identifier CtorSig "=" SuperClause? ClassBody (":" ClassSide)?
+  ClassBody   = "(" SlotSection? Statements ")" "(" Member* ")"
+  ClassSide
+    = ClassBody             -- nested
+    | "(" Member* ")"       -- flat
+  Member      = ClassDef | MethodDef
+  // A superclass clause is a class-valued expression: a head identifier
+  // (a class name, or `super`/`self`/`outer`) followed by unary messages that
+  // navigate to a nested class, then an optional keyword message that is the
+  // parent's initializer (superInit). E.g. `SuperHierarchy`,
+  // `super Inner1 new: x`, `outer InnerHierarchy Inner1 new: x`, `self Inner0 new: x`.
+  // The leading identifier (never `(`) keeps this unambiguous against the
+  // ClassBody that follows.
+  SuperClause = identifier unaryMessage* SuperInit?
+  SuperInit
+    = (keyword BinarySend)+ -- kw
+  classKw     = "class" ~identifierPart
+  CtorSig
+    = unarySelector         -- un
+    | KwPair*               -- kw
+  KwPair      = keyword identifier
+  SlotSection = "|" SlotDecl* "|"
+  SlotDecl    = visibility? identifier SlotInit? "."?
+  SlotInit    = slotOp Expression
+  slotOp      = "::=" | "="
+  visibility  = ("public" | "private" | "protected") ~identifierPart
+  MethodDef   = visibility? MethodPattern "=" "(" Temps? Statements ")"
+  MethodPattern
+    = KwPair+               -- kw
+    | binaryOp identifier   -- bin
+    | unarySelector         -- un
+  unarySelector = identifier ~":"
+
+  Temps    = "|" TempDecl* "|"
+  TempDecl = identifier SlotInit? "."?
+  Statements = ListOf<Statement, ".">  "."?
+  Statement  = Return | Expression
+  Return     = "^" Expression
+
+  Expression = Assignment
+
+  Assignment
+    = identifier assignOp Expression    -- assign
+    | KeywordSend                       -- pass
+
+  assignOp = "::" ~"="
+
+  KeywordSend
+    = BinarySend (keyword BinarySend)+  -- kw
+    | (keyword BinarySend)+             -- implicitKw
+    | BinarySend                        -- pass
+
+  BinarySend
+    = BinarySend binaryOp UnarySend     -- bin
+    | UnarySend                         -- pass
+
+  UnarySend
+    = UnarySend unaryMessage            -- un
+    | Primary                           -- pass
+
+  unaryMessage = identifier ~":"
+
+  Primary
+    = "(" Expression ")"                -- paren
+    | Block
+    | DynArray
+    | Literal
+    | identifier                        -- var
+
+  DynArray    = "{" ListOf<Expression, "."> "."? "}"
+
+  Block       = "[" BlockParams? Temps? Statements "]"
+  BlockParams = blockParam+ "|"
+  blockParam  = ":" identifier
+
+  Literal
+    = float
+    | integer
+    | string
+    | symbol
+    | trueKw   -- true
+    | falseKw  -- false
+    | nilKw    -- nil
+
+  trueKw  = "true"  ~identifierPart
+  falseKw = "false" ~identifierPart
+  nilKw   = "nil"   ~identifierPart
+
+  float   = "-"? digit+ "." digit+
+  integer = "-"? digit+
+  string  = "'" (~"'" any | "''")* "'"
+  symbol  = "#" symbolName
+  symbolName = keyword+ | binaryOp | identifier
+
+  keyword    = identifier ":"
+  identifier = identifierStart identifierPart*
+  identifierStart = letter | "_"
+  identifierPart  = letter | digit | "_"
+
+  binaryOp   = binaryChar+
+  binaryChar = "+" | "-" | "*" | "/" | "~" | "<" | ">" | "=" | "&" | "|" | "@" | "%" | "," | "?" | "!"
+
+  space    += comment
+  comment   = "(*" (~"*)" any)* "*)"
+}

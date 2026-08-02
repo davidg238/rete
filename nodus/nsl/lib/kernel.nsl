@@ -1,0 +1,3029 @@
+(*
+ns-oevm kernel library (std-lib step 3b). One module — `Kernel usingPlatform:
+platform` — nesting the library classes as siblings. The native C
+platform_object() is injected as `platform`; the APP receives the Kernel
+INSTANCE as its own `platform` and reaches library classes through the
+hand-written accessors at the bottom.
+
+Reachability (spec §3):
+  Kernel -> native primitives : lexically via the injected `platform` param.
+  Kernel -> Kernel            : compile-time lexical (sibling slot read / OP_NEW).
+  App    -> Kernel            : runtime send to an accessor (`platform Array`).
+
+NB: inside this module NEVER write `Array new: n` (it compiles to a fixed-slot
+OP_NEW, not an indexable). Allocate indexables via `platform basicNew: Array
+indexable: n` (Array as an argument is a slot read of the class object).
+*)
+class Kernel usingPlatform: platform = () (
+  class Object = () (
+    (* Milestone E Task 1: the in-flight error value is a crash Record (#tag/#text),
+       not a bare String. `self error: text` and `text error: tag` are BOTH C prims
+       (PRIM_error id 9, PRIM_errorTag id 91): they build the Record in C via the
+       captured Kernel instance's `crashRecordTag:text:` accessor, then `raise` it
+       (terminate-only prim, id 90, longjmps to the active protection frame). No
+       kernel Object method is involved — an app receiver cannot reach the `Record`
+       class lexically, so building it here would be unreachable. *)
+    public isNil = ( ^ false )
+    public notNil = ( ^ true )
+    public ifNil: aBlock = ( ^ self )
+    public ifNotNil: aBlock = ( ^ aBlock value: self )
+    public = other = ( ^ self == other )
+    public printString = ( ^ 'an Object' )
+    public asString = ( ^ self printString )
+    public hash = ( ^ self identityHash )
+    public isValue = ( ^ false )
+    public isSymbol = ( ^ false )
+    public isList = ( ^ false )
+    public isMap = ( ^ false )
+    public isRecord = ( ^ false )
+    public isBytes = ( ^ false )
+    public valueRank = ( ^ -1 )
+    public valueDepth = ( ^ 0 )
+  ) : (
+  )
+
+  class Array = () (
+    public at: i = ( ^ self basicAt: i )
+    public at: i put: v = ( self basicAt: i put: v. ^ v )
+    public size = ( ^ self basicSize )
+    public do: aBlock = ( 1 to: self size do: [ :i | aBlock value: (self basicAt: i) ]. ^ self )
+  ) : (
+    public new: n = ( ^ platform basicNew: self indexable: n )
+  )
+
+  class Collection = () (
+    do: aBlock = ( ^ self error: 'subclassResponsibility' )
+    public size = ( ^ self inject: 0 into: [ :n :e | n + 1 ] )
+    public isEmpty = ( ^ self size = 0 )
+    public inject: a into: b = ( | acc | acc:: a. self do: [ :e | acc:: b value: acc value: e ]. ^ acc )
+    public collect: b = ( | r | r:: OrderedCollection new. self do: [ :e | r add: (b value: e) ]. ^ r )
+    public select: b = ( | r | r:: OrderedCollection new. self do: [ :e | (b value: e) ifTrue: [ r add: e ] ]. ^ r )
+    public reject: b = ( | r | r:: OrderedCollection new. self do: [ :e | (b value: e) ifFalse: [ r add: e ] ]. ^ r )
+    public includes: o = ( ^ self inject: false into: [ :acc :e | acc or: [ e = o ] ] )
+    public asArray = ( | arr i | arr:: platform basicNew: Array indexable: self size. i:: 1. self do: [ :e | arr at: i put: e. i:: i + 1 ]. ^ arr )
+    public detect: b ifNone: n = (
+      | found result |
+      found:: false.
+      self do: [ :e |
+        (found not and: [ b value: e ]) ifTrue: [ found:: true. result:: e ] ].
+      found ifTrue: [ ^ result ].
+      ^ n value )
+    public detect: b = ( ^ self detect: b ifNone: [ self error: 'not found' ] )
+
+    (* ---- L1 combinators (landed from staged review/lib/combinators.ns) --------
+       With NLR gone these ARE the early-exit story, so they all use the found-flag
+       pattern: iteration is not cut short, but the block is not SENT again once the
+       answer is known. The observable contract is therefore EVALUATION COUNT, not
+       iteration count — identical to detect:ifNone: above, and pinned by
+       nsl-tests/07_no_nlr/05. No `^` inside any block (dialect: NLR is gone).
+       Everything here bottoms out in `do:`, so it works for every Collection —
+       including Interval. *)
+    public anySatisfy: aBlock = (
+      | found |
+      found:: false.
+      self do: [ :e | found ifFalse: [ found:: aBlock value: e ] ].
+      ^ found )
+    public allSatisfy: aBlock = (
+      | ok |
+      ok:: true.
+      self do: [ :e | ok ifTrue: [ ok:: aBlock value: e ] ].
+      ^ ok )
+    public noneSatisfy: aBlock = ( ^ (self anySatisfy: aBlock) not )
+    public count: aBlock = (
+      ^ self inject: 0 into: [ :n :e | (aBlock value: e) ifTrue: [ n + 1 ] ifFalse: [ n ] ] )
+    public do: aBlock separatedBy: sepBlock = (
+      | first |
+      first:: true.
+      self do: [ :e |
+        first ifTrue: [ first:: false ] ifFalse: [ sepBlock value ].
+        aBlock value: e ].
+      ^ self )
+    public withIndexDo: aBlock = (
+      | i |
+      i:: 0.
+      self do: [ :e | i:: i + 1. aBlock value: e value: i ].
+      ^ self )
+    public indexOf: anObject ifAbsent: absentBlock = (
+      | idx |
+      idx:: 0.
+      self withIndexDo: [ :e :i | (idx = 0 and: [ e = anObject ]) ifTrue: [ idx:: i ] ].
+      idx = 0 ifTrue: [ ^ absentBlock value ].
+      ^ idx )
+    public indexOf: anObject = ( ^ self indexOf: anObject ifAbsent: [ self error: 'not found' ] )
+    (* Element with the maximal aBlock value; ifNone: on empty. *)
+    public detectMax: aBlock ifNone: noneBlock = (
+      | found best bestVal v |
+      found:: false.
+      self do: [ :e |
+        v:: aBlock value: e.
+        (found not or: [ v > bestVal ]) ifTrue: [ found:: true. best:: e. bestVal:: v ] ].
+      found ifTrue: [ ^ best ].
+      ^ noneBlock value )
+    public detectMin: aBlock ifNone: noneBlock = (
+      ^ self detectMax: [ :e | 0 - (aBlock value: e) ] ifNone: noneBlock )
+    public detectMax: aBlock = ( ^ self detectMax: aBlock ifNone: [ self error: 'not found' ] )
+    public detectMin: aBlock = ( ^ self detectMin: aBlock ifNone: [ self error: 'not found' ] )
+  ) : (
+  )
+
+  class OrderedCollection = Collection (
+    | contents ::= platform basicNew: Array indexable: 8. count ::= 0. |
+  ) (
+    (* Hot paths index `contents` (always a kernel Array) via basicAt: directly,
+       skipping the Array>>at: frame — the perf/op-cmp-at trial widened the
+       basicAt: emitter discipline from "Array methods on self" to "kernel
+       collection internals on their Array-typed slots" (see dispatch.c's
+       PRIM_ix_basicAt note). Bounds stay guarded: do: is count-bounded,
+       at:/at:put: check before touching contents. *)
+    public do: aBlock = ( 1 to: count do: [ :i | aBlock value: (contents basicAt: i) ]. ^ self )
+    public size = ( ^ count )
+    public isEmpty = ( ^ count = 0 )
+    public add: anObject = ( self ensureCapacity. count:: count + 1. contents basicAt: count put: anObject. ^ anObject )
+    public addLast: anObject = ( ^ self add: anObject )
+    public at: i = ( (i < 1 or: [ i > count ]) ifTrue: [ ^ self error: 'index out of bounds' ]. ^ contents basicAt: i )
+    public at: i put: v = ( (i < 1 or: [ i > count ]) ifTrue: [ ^ self error: 'index out of bounds' ]. ^ contents basicAt: i put: v )
+    public first = ( ^ self at: 1 )
+    public last = ( ^ self at: count )
+    public removeLast = ( | v | v:: contents at: count. count:: count - 1. ^ v )
+    public removeFirst = ( | v | v:: contents at: 1. 2 to: count do: [ :i | contents at: i - 1 put: (contents at: i) ]. count:: count - 1. ^ v )
+    ensureCapacity = ( count = contents size ifTrue: [ self grow ]. ^ self )
+    grow = ( | bigger | bigger:: platform basicNew: Array indexable: 2 * contents size. 1 to: count do: [ :i | bigger at: i put: (contents at: i) ]. contents:: bigger. ^ self )
+
+    (* ---- L1 sequence combinators (staged review/lib/combinators.ns) ----------
+       These need indexed access (`at:`/`size`), so they live here rather than on
+       Collection — a Set has no order to copy, reverse or concatenate. Interval
+       is indexed too but defines its own `at:`; it inherits the do:-based
+       combinators from Collection, which is all it needs.
+       1-based and inclusive, per Smalltalk convention. Bounds errors crash (L5). *)
+    public with: other collect: aBlock = (
+      | r |
+      self size = other size ifFalse: [ ^ self error: 'size mismatch' ].
+      r:: OrderedCollection new.
+      self withIndexDo: [ :e :i | r add: (aBlock value: e value: (other at: i)) ].
+      ^ r )
+    public copyFrom: start to: stop = (
+      | r |
+      (start < 1 or: [ stop > self size ]) ifTrue: [ ^ self error: 'index out of bounds' ].
+      r:: OrderedCollection new.
+      start to: stop do: [ :i | r add: (self at: i) ].
+      ^ r )
+    public reversed = (
+      | r n |
+      r:: OrderedCollection new.
+      n:: self size.
+      1 to: n do: [ :i | r add: (self at: n - i + 1) ].
+      ^ r )
+    public first: n = ( ^ self copyFrom: 1 to: n )
+    public last: n = ( ^ self copyFrom: self size - n + 1 to: self size )
+    (* Concatenation. `,` is a VM prim that answers String-String only; every other
+       receiver falls through to normal vtable lookup (dispatch.c), so this method
+       is reachable and does not collide with String concat. *)
+    public , other = (
+      | r |
+      r:: OrderedCollection new.
+      self do: [ :e | r add: e ].
+      other do: [ :e | r add: e ].
+      ^ r )
+  ) : (
+  )
+
+  (* L1 — an integer range as a FIRST-CLASS collection, so numeric ranges get the
+     whole Collection protocol (select:, anySatisfy:, count:, inject:into:, …).
+     The compiler still lowers the `to:do:` / `to:by:do:` LOOP forms straight to
+     bytecode; Interval is for range-as-VALUE uses and does not change that.
+
+     The spec's `1 to: n` sugar is NOT provided: integers are VM builtins with no
+     nsl-reachable vtable (`1 to: 5` compiles to a real send and dies with
+     `Message 'to:' not understood`), so a range is constructed explicitly via the
+     class-side. See tuvm#30 — giving integers a protocol is a VM/dialect decision,
+     not a library one.
+
+     Only do:/size/at: are primitive to it; everything else is inherited. *)
+  class Interval = Collection ( | start stop step | ) (
+    public do: aBlock = (
+      | i |
+      step > 0
+        ifTrue: [ i:: start. [ i <= stop ] whileTrue: [ aBlock value: i. i:: i + step ] ]
+        ifFalse: [ i:: start. [ i >= stop ] whileTrue: [ aBlock value: i. i:: i + step ] ].
+      ^ self )
+    public size = (
+      step > 0
+        ifTrue: [ stop < start ifTrue: [ ^ 0 ]. ^ (stop - start) // step + 1 ].
+      start < stop ifTrue: [ ^ 0 ].
+      ^ (start - stop) // (0 - step) + 1 )
+    public at: i = (
+      (i < 1 or: [ i > self size ]) ifTrue: [ ^ self error: 'index out of bounds' ].
+      ^ start + ((i - 1) * step) )
+    public first = ( ^ self at: 1 )
+    public last = ( ^ self at: self size )
+    setStart: a stop: b step: s = (
+      s = 0 ifTrue: [ ^ self error: 'zero step' ].
+      start:: a. stop:: b. step:: s. ^ self )
+  ) : (
+    public from: a to: b = ( ^ self new setStart: a stop: b step: 1 )
+    public from: a to: b by: s = ( ^ self new setStart: a stop: b step: s )
+  )
+
+  class HashedCollection = Collection ( | table count | ) (
+    (* Abstract open-addressing hash table over `table` (the keys/elements
+       Array); `count` is the live-entry tally. Concrete subclasses re-declare
+       `table`/`count` WITH initializers to set the initial capacity — the bare
+       `= Super` inheritance form does not run an ancestor's slot initializers,
+       and a per-target bounded variant would pick a different capacity here. *)
+    capacity = ( ^ table size )
+    public size = ( ^ count )
+    public isEmpty = ( ^ count = 0 )
+
+    (* 1-based home bucket for aKey. Floored `//` gives a correct non-negative
+       modulo for any sign of hash; the value protocol supplies `hash`. *)
+    indexFor: aKey = ( | h c | h:: aKey hash. c:: self capacity. ^ (h - (h // c * c)) + 1 )
+
+    (* Linear probe from the home bucket (wrapping) to the slot holding aKey OR
+       the first empty (nil) slot. Load factor < 1 guarantees an empty slot, so
+       this terminates. The `and:` short-circuits, so `=` is only sent to a
+       non-nil key. *)
+    slotFor: aKey = ( | c i k |
+      c:: self capacity. i:: self indexFor: aKey. k:: table at: i.
+      [ ((k == nil) not) and: [ (k = aKey) not ] ] whileTrue: [
+        i:: i + 1. i > c ifTrue: [ i:: 1 ]. k:: table at: i ].
+      ^ i )
+
+    containsKey: aKey = ( ^ ((table at: (self slotFor: aKey)) == nil) not )
+
+    atCapacity = ( ^ count * 4 >= (table size * 3) )           (* load factor 0.75 *)
+    growIfNeeded = ( self atCapacity ifTrue: [ self grow ]. ^ self )
+
+    (* Cluster-rehash deletion (no tombstones): after a slot is vacated, walk the
+       contiguous run that follows and re-place each entry, pulling forward any
+       entry that had probed past the hole. Stops at the first empty slot. *)
+    rehashFrom: start = ( | c j |
+      c:: self capacity. j:: start + 1. j > c ifTrue: [ j:: 1 ].
+      [ ((table at: j) == nil) not ] whileTrue: [
+        self reinsertEntryAt: j.
+        j:: j + 1. j > c ifTrue: [ j:: 1 ] ].
+      ^ self )
+
+    grow = ( ^ self error: 'subclassResponsibility' )
+    reinsertEntryAt: j = ( ^ self error: 'subclassResponsibility' )
+    public do: aBlock = ( ^ self error: 'subclassResponsibility' )
+  ) : (
+  )
+
+  class Set = HashedCollection ( | table ::= platform basicNew: Array indexable: 8. count ::= 0. | ) (
+    public add: anObject = ( (anObject == nil) ifTrue: [ ^ self error: 'nil element not allowed' ]. self place: anObject. self growIfNeeded. ^ anObject )
+    public addAll: aCollection = ( aCollection do: [ :e | self add: e ]. ^ aCollection )
+    public remove: anObject = ( ^ self remove: anObject ifAbsent: [ self error: 'element not found' ] )
+    public remove: anObject ifAbsent: aBlock = ( | i |
+      i:: self slotFor: anObject.
+      (table at: i) == nil ifTrue: [ ^ aBlock value ].
+      table at: i put: nil. count:: count - 1. self rehashFrom: i. ^ anObject )
+    public includes: anObject = ( ^ self containsKey: anObject )
+    public do: aBlock = ( 1 to: self capacity do: [ :i | | e | e:: table at: i. (e == nil) ifFalse: [ aBlock value: e ] ]. ^ self )
+    place: anObject = ( | i | i:: self slotFor: anObject. (table at: i) == nil ifTrue: [ table at: i put: anObject. count:: count + 1 ]. ^ self )
+    reinsertEntryAt: j = ( | e | e:: table at: j. table at: j put: nil. count:: count - 1. self place: e. ^ self )
+    grow = ( | old oldCap | old:: table. oldCap:: table size. table:: platform basicNew: Array indexable: oldCap * 2. count:: 0. 1 to: oldCap do: [ :i | | e | e:: old at: i. (e == nil) ifFalse: [ self place: e ] ]. ^ self )
+  ) : (
+  )
+
+  class Dictionary = HashedCollection ( | table ::= platform basicNew: Array indexable: 8. count ::= 0. vals ::= platform basicNew: Array indexable: 8. | ) (
+    public at: aKey put: aValue = ( (aKey == nil) ifTrue: [ ^ self error: 'nil key not allowed' ]. self place: aKey value: aValue. self growIfNeeded. ^ aValue )
+    public at: aKey ifAbsent: aBlock = ( | i | i:: self slotFor: aKey. (table at: i) == nil ifTrue: [ ^ aBlock value ]. ^ vals at: i )
+    public at: aKey = ( ^ self at: aKey ifAbsent: [ self error: 'key not found' ] )
+    public at: aKey ifAbsentPut: aBlock = ( | i | i:: self slotFor: aKey. ((table at: i) == nil) not ifTrue: [ ^ vals at: i ]. ^ self at: aKey put: aBlock value )
+    public includesKey: aKey = ( ^ self containsKey: aKey )
+    public removeKey: aKey = ( ^ self removeKey: aKey ifAbsent: [ self error: 'key not found' ] )
+    public removeKey: aKey ifAbsent: aBlock = ( | i v |
+      i:: self slotFor: aKey.
+      (table at: i) == nil ifTrue: [ ^ aBlock value ].
+      v:: vals at: i. table at: i put: nil. count:: count - 1. self rehashFrom: i. ^ v )
+    public keys = ( | arr j | arr:: platform basicNew: Array indexable: count. j:: 0. 1 to: self capacity do: [ :i | | k | k:: table at: i. (k == nil) ifFalse: [ j:: j + 1. arr at: j put: k ] ]. ^ arr )
+    public values = ( | arr j | arr:: platform basicNew: Array indexable: count. j:: 0. 1 to: self capacity do: [ :i | | k | k:: table at: i. (k == nil) ifFalse: [ j:: j + 1. arr at: j put: (vals at: i) ] ]. ^ arr )
+    public keysAndValuesDo: aBlock = ( 1 to: self capacity do: [ :i | | k | k:: table at: i. (k == nil) ifFalse: [ aBlock value: k value: (vals at: i) ] ]. ^ self )
+    public do: aBlock = ( 1 to: self capacity do: [ :i | | k | k:: table at: i. (k == nil) ifFalse: [ aBlock value: (vals at: i) ] ]. ^ self )
+    place: aKey value: aValue = ( | i | i:: self slotFor: aKey. (table at: i) == nil ifTrue: [ table at: i put: aKey. count:: count + 1 ]. vals at: i put: aValue. ^ self )
+    reinsertEntryAt: j = ( | k v | k:: table at: j. v:: vals at: j. table at: j put: nil. count:: count - 1. self place: k value: v. ^ self )
+    grow = ( | oldK oldV oldCap | oldK:: table. oldV:: vals. oldCap:: table size. table:: platform basicNew: Array indexable: oldCap * 2. vals:: platform basicNew: Array indexable: oldCap * 2. count:: 0. 1 to: oldCap do: [ :i | | k | k:: oldK at: i. (k == nil) ifFalse: [ self place: k value: (oldV at: i) ] ]. ^ self )
+  ) : (
+  )
+
+  class Association = ( | key value | ) (
+    setKey: aKey value: aValue = ( key:: aKey. value:: aValue. ^ self )
+    public key = ( ^ key )
+    public value = ( ^ value )
+    public printString = ( ^ key printString , ' -> ' , value printString )
+  ) : (
+    public key: aKey value: aValue = ( ^ self new setKey: aKey value: aValue )
+  )
+
+  (* Immutable algebra list (Milestone B Task 6). Backing `items` is a plain
+     Array, copied at construction and never returned/aliased; `depth` is
+     computed once at construction (checkDepth-validated) and cached, so
+     `valueDepth` is O(1) rather than a deep walk. Every constructor path
+     (the four `with:` arities and `fromCollection:`) funnels through the
+     private `setItems:`, which validates each element (checkValue:, via the
+     `outer` link to the module-level helpers below) and folds the max child
+     depth in the same O(children) pass. *)
+  class List = ( | items depth | ) (
+    public size = ( ^ items size )
+    public at: i = ( (i < 1 or: [ i > items size ]) ifTrue: [ ^ self error: 'index out of bounds' ]. ^ items at: i )
+    public at: i ifAbsent: aBlock = ( (i < 1 or: [ i > items size ]) ifTrue: [ ^ aBlock value ]. ^ items at: i )
+    public do: aBlock = ( items do: aBlock. ^ self )
+    public inject: a into: b = ( | acc | acc:: a. items do: [ :e | acc:: b value: acc value: e ]. ^ acc )
+    public anySatisfy: aBlock = ( | found | found:: false. items do: [ :e | (found not and: [ aBlock value: e ]) ifTrue: [ found:: true ] ]. ^ found )
+    public isList = ( ^ true )
+    public isValue = ( ^ true )
+    public valueRank = ( ^ 7 )
+    public valueDepth = ( ^ depth )
+    (* Typed structural equality (Milestone B Task 7). Guard via
+       `isValueObject:` (the native `platform valueRank:` oracle), NOT via
+       sending `isList`/similar to `other` — a builtin non-value receiver
+       (e.g. an Integer) doesn't delegate to Kernel Object, so probing it
+       with an ad hoc selector can DNU-crash; `isValueObject:` inspects the
+       vtable instead and never sends anything to `other`. A non-value
+       foreign receiver (Dictionary, raw heap object, ...) answers false; a
+       value of a different rank (e.g. Integer) also safely answers false via
+       the rank-first compare in `valueCompare:with:`. *)
+    public = other = (
+      (outer isValueObject: other) ifFalse: [ ^ false ].
+      ^ outer value: self equals: other
+    )
+    public hash = ( ^ outer valueHashOf: self )
+    setItems: anArray = (
+      | d |
+      d:: 0.
+      1 to: anArray size do: [ :i | | e cd |
+        e:: anArray at: i.
+        outer checkValue: e.
+        cd:: outer depthOf: e.
+        cd > d ifTrue: [ d:: cd ] ].
+      items:: anArray.
+      depth:: outer checkDepth: (1 + d).
+      ^ self )
+  ) : (
+    public with: a = ( | arr | arr:: platform basicNew: Array indexable: 1. arr at: 1 put: a. ^ self new setItems: arr )
+    public with: a with: b = ( | arr | arr:: platform basicNew: Array indexable: 2. arr at: 1 put: a. arr at: 2 put: b. ^ self new setItems: arr )
+    public with: a with: b with: c = ( | arr | arr:: platform basicNew: Array indexable: 3. arr at: 1 put: a. arr at: 2 put: b. arr at: 3 put: c. ^ self new setItems: arr )
+    public with: a with: b with: c with: d = ( | arr | arr:: platform basicNew: Array indexable: 4. arr at: 1 put: a. arr at: 2 put: b. arr at: 3 put: c. arr at: 4 put: d. ^ self new setItems: arr )
+    public fromCollection: aCollection = ( | n arr i |
+      n:: aCollection size.
+      arr:: platform basicNew: Array indexable: n.
+      i:: 0.
+      aCollection do: [ :e | i:: i + 1. arr at: i put: e ].
+      ^ self new setItems: arr )
+  )
+
+  (* Immutable algebra map (Milestone B Task 8): a sorted association array —
+     two parallel private Arrays (`keys`/`vals`), NEVER Association storage
+     (Associations from the `#k -> v` sugar are unwrapped at construction and
+     never retained). Entries are kept sorted by `valueCompare:with:` on the
+     keys, so iteration order is canonical/deterministic regardless of
+     construction order (`keysDo:`/`do:`/`keysAndValuesDo:` all walk the same
+     sorted order — this is what makes `05b_map_canonical_order.nsl` pass).
+     Duplicate keys in construction: LAST WINS (a later `with:`/`fromPairs:`
+     argument overwrites an earlier one with the same key) — pinned because
+     future CBOR decoders construct by overwrite. Both keys AND values are
+     validated via `outer checkValue:`; `depth` is folded over ALL keys and
+     ALL values (mirrors List's `setItems:`) and cached at construction. *)
+  class Map = ( | keys vals depth | ) (
+    public size = ( ^ keys size )
+    public at: aKey ifAbsent: aBlock = ( | lo hi mid c |
+      lo:: 1. hi:: keys size.
+      [ lo <= hi ] whileTrue: [
+        mid:: (lo + hi) // 2.
+        c:: outer valueCompare: aKey with: (keys at: mid).
+        c = 0 ifTrue: [ ^ vals at: mid ].
+        c < 0 ifTrue: [ hi:: mid - 1 ] ifFalse: [ lo:: mid + 1 ] ].
+      ^ aBlock value )
+    public keysDo: aBlock = ( keys do: aBlock. ^ self )
+    public do: aBlock = ( vals do: aBlock. ^ self )
+    public keysAndValuesDo: aBlock = ( 1 to: keys size do: [ :i | aBlock value: (keys at: i) value: (vals at: i) ]. ^ self )
+    (* Minimal indexed read accessors (Milestone B Task 8 design decision —
+       see report for surface-creep review): the module-level `mapCompare:with:`
+       helper below needs to walk TWO DIFFERENT Maps' entries in lockstep by
+       index, which `keysAndValuesDo:` cannot give it (it only iterates one
+       receiver at a time). These return individual elements, never the
+       backing Array itself — "do not expose the raw backing arrays" still
+       holds. *)
+    public keyAt: i = ( ^ keys at: i )
+    public valueAt: i = ( ^ vals at: i )
+    public isMap = ( ^ true )
+    public isValue = ( ^ true )
+    public valueRank = ( ^ 8 )
+    public valueDepth = ( ^ depth )
+    (* Typed structural equality/hash — same guard idiom as List (Task 7):
+       never send an ad-hoc predicate to `other`, only the native rank oracle
+       via `isValueObject:` (a foreign non-value receiver, or a value of a
+       different rank, safely answers false without risking a DNU crash). *)
+    public = other = (
+      (outer isValueObject: other) ifFalse: [ ^ false ].
+      ^ outer value: self equals: other
+    )
+    public hash = ( ^ outer valueHashOf: self )
+    (* Construction: validate every key/value, insertion-sort the parallel
+       arrays by `valueCompare:with:` on keys (stable — the shift condition is
+       strict `> 0`, so equal keys are never swapped past one another and
+       their original relative order survives the sort), then compact
+       consecutive equal-key runs keeping the LAST entry of each run
+       (last-wins falls out of stability: among duplicates the one built
+       later in the caller's argument list stays later after a stable sort,
+       so keeping the run's last element is exactly last-wins), then
+       fold/check depth over the final (deduplicated) entries. Messages are
+       small, so plain insertion sort — "no need for anything cleverer"
+       (plan's own words) — and a linear compaction pass. *)
+    setPairs: karr values: varr = ( | n j outCount i d k v nextI kk vv cd |
+      n:: karr size.
+      1 to: n do: [ :ii | outer checkValue: (karr at: ii). outer checkValue: (varr at: ii) ].
+      2 to: n do: [ :ii |
+        kk:: karr at: ii. vv:: varr at: ii.
+        j:: ii - 1.
+        [ j >= 1 and: [ (outer valueCompare: (karr at: j) with: kk) > 0 ] ] whileTrue: [
+          karr at: j + 1 put: (karr at: j).
+          varr at: j + 1 put: (varr at: j).
+          j:: j - 1 ].
+        karr at: j + 1 put: kk.
+        varr at: j + 1 put: vv ].
+      outCount:: 0. i:: 1.
+      [ i <= n ] whileTrue: [
+        k:: karr at: i. v:: varr at: i. nextI:: i + 1.
+        [ nextI <= n and: [ (outer valueCompare: (karr at: nextI) with: k) = 0 ] ] whileTrue: [
+          v:: varr at: nextI. nextI:: nextI + 1 ].
+        outCount:: outCount + 1.
+        karr at: outCount put: k.
+        varr at: outCount put: v.
+        i:: nextI ].
+      keys:: platform basicNew: Array indexable: outCount.
+      vals:: platform basicNew: Array indexable: outCount.
+      1 to: outCount do: [ :ii | keys at: ii put: (karr at: ii). vals at: ii put: (varr at: ii) ].
+      d:: 0.
+      1 to: outCount do: [ :ii |
+        cd:: outer depthOf: (keys at: ii). cd > d ifTrue: [ d:: cd ].
+        cd:: outer depthOf: (vals at: ii). cd > d ifTrue: [ d:: cd ] ].
+      depth:: outer checkDepth: (1 + d).
+      ^ self )
+  ) : (
+    public with: a = ( | k v |
+      k:: platform basicNew: Array indexable: 1. v:: platform basicNew: Array indexable: 1.
+      k at: 1 put: a key. v at: 1 put: a value.
+      ^ self new setPairs: k values: v )
+    public with: a with: b = ( | k v |
+      k:: platform basicNew: Array indexable: 2. v:: platform basicNew: Array indexable: 2.
+      k at: 1 put: a key. v at: 1 put: a value.
+      k at: 2 put: b key. v at: 2 put: b value.
+      ^ self new setPairs: k values: v )
+    public with: a with: b with: c = ( | k v |
+      k:: platform basicNew: Array indexable: 3. v:: platform basicNew: Array indexable: 3.
+      k at: 1 put: a key. v at: 1 put: a value.
+      k at: 2 put: b key. v at: 2 put: b value.
+      k at: 3 put: c key. v at: 3 put: c value.
+      ^ self new setPairs: k values: v )
+    public with: a with: b with: c with: d = ( | k v |
+      k:: platform basicNew: Array indexable: 4. v:: platform basicNew: Array indexable: 4.
+      k at: 1 put: a key. v at: 1 put: a value.
+      k at: 2 put: b key. v at: 2 put: b value.
+      k at: 3 put: c key. v at: 3 put: c value.
+      k at: 4 put: d key. v at: 4 put: d value.
+      ^ self new setPairs: k values: v )
+    (* Each element of `aList` is EITHER a 2-element algebra List (element 1 =
+       key, element 2 = value) OR an Association (from `#k -> v`) — accept
+       both. `isList` is a safe probe here (unlike an ad-hoc predicate on a
+       foreign receiver): both accepted shapes are Kernel-nested classes that
+       properly inherit Object's `isList` default, so this can never DNU. *)
+    public fromPairs: aList = ( | n k v |
+      n:: aList size.
+      k:: platform basicNew: Array indexable: n.
+      v:: platform basicNew: Array indexable: n.
+      1 to: n do: [ :i | | e |
+        e:: aList at: i.
+        e isList
+          ifTrue: [ k at: i put: (e at: 1). v at: i put: (e at: 2) ]
+          ifFalse: [ k at: i put: e key. v at: i put: e value ] ].
+      ^ self new setPairs: k values: v )
+  )
+
+  (* Immutable algebra record (Milestone B Task 9): a Symbol `tag` plus a Map
+     of `fields` — the tagged-variant counterpart to Map's plain associative
+     shape. Same immutable, depth-cached-at-construction, `outer`-link-to-
+     module-helpers shape as List/Map. Construction validates `tag` (must be
+     a genuine Symbol — checked via `isSymbol`, which only a builtin Symbol
+     answers true for; every other receiver, including a heap value, falls to
+     Object's `isSymbol = (^false)`) and `fields` (must be a heap Map — checked
+     via `isMap`, the nsl override only Map has), else crashes `not a value`
+     (the same frozen string `checkValue:` uses, via `self error:`). `depth`
+     is `fields`' own depth plus one (tag is a Symbol, depth 0, so it never
+     drives the fold) — computed once at construction and cached, same as
+     List/Map's `valueDepth`. *)
+  class Record = ( | tag fields depth | ) (
+    public tag = ( ^ tag )
+    public fields = ( ^ fields )
+    public at: aKey ifAbsent: aBlock = ( ^ fields at: aKey ifAbsent: aBlock )
+    public isRecord = ( ^ true )
+    public isValue = ( ^ true )
+    public valueRank = ( ^ 9 )
+    public valueDepth = ( ^ depth )
+    (* Typed structural equality/hash — same guard idiom as List/Map (Tasks
+       7/8): never send an ad-hoc predicate to `other`, only the native rank
+       oracle via `isValueObject:` (a foreign non-value receiver, or a value
+       of a different rank, safely answers false without risking a DNU
+       crash). *)
+    public = other = (
+      (outer isValueObject: other) ifFalse: [ ^ false ].
+      ^ outer value: self equals: other
+    )
+    public hash = ( ^ outer valueHashOf: self )
+    setTag: aTag fields: aMap = (
+      aTag isSymbol ifFalse: [ ^ self error: 'not a value' ].
+      aMap isMap ifFalse: [ ^ self error: 'not a value' ].
+      tag:: aTag.
+      fields:: aMap.
+      depth:: outer checkDepth: (1 + aMap valueDepth).
+      ^ self )
+  ) : (
+    public tag: aTag fields: aMap = ( ^ self new setTag: aTag fields: aMap )
+    public tag: aTag with: a = ( ^ self tag: aTag fields: (Map with: a) )
+    public tag: aTag with: a with: b = ( ^ self tag: aTag fields: (Map with: a with: b) )
+    public tag: aTag with: a with: b with: c = ( ^ self tag: aTag fields: (Map with: a with: b with: c) )
+    public tag: aTag with: a with: b with: c with: d = ( ^ self tag: aTag fields: (Map with: a with: b with: c with: d) )
+  )
+
+  (* Shared multi-byte read protocol (Milestone B Task 10) — composes on the
+     concrete class's u8At:/byteSize. LE is the default (u16At:), BE spelled
+     out (u16BeAt:) — per the staged bytes.ns naming decision. *)
+  class BytesReadProtocol = () (
+    public u16At: i   = ( ^ (self u8At: i) + ((self u8At: i + 1) << 8) )
+    public u16BeAt: i = ( ^ ((self u8At: i) << 8) + (self u8At: i + 1) )
+  ) : ( )
+
+  (* Mutable workbench — NOT a value (no isValue override -> Object false).
+     Storage = private raw slot holding the Task-3 RawBytes C object; ALL
+     bounds/range crashes come from the C layer (frozen strings), so the
+     accessors here are thin forwarders — no nsl-side bounds/range checks
+     (superseded staged-design decision; see Task 10 brief). *)
+  class ByteArray = BytesReadProtocol ( | raw | ) (
+    public byteSize = ( ^ raw size )
+    public u8At: i = ( ^ raw at: i )
+    public u8At: i put: v = ( raw at: i put: v. ^ v )
+    public u16At: i put: v = ( self u8At: i put: (v bitAnd: 255). self u8At: i + 1 put: ((v >> 8) bitAnd: 255). ^ v )
+    public u16BeAt: i put: v = ( self u8At: i put: ((v >> 8) bitAnd: 255). self u8At: i + 1 put: (v bitAnd: 255). ^ v )
+    public freeze = ( ^ Bytes overRaw: (platform freezeBytes: raw) )
+    setRaw: r = ( raw:: r. ^ self )
+  ) : (
+    public new: n = ( ^ self new setRaw: (platform basicNewBytes: n) )
+    public fromList: aList = ( | r | r:: self new: aList size. 1 to: aList size do: [ :i | r u8At: i put: (aList at: i) ]. ^ r )
+    (* Inverse of Bytes>>printHex (Rung 3 Task 5, hardened Task 6): parse an
+       even-length lower/upper-case hex String to an IMMUTABLE Bytes via this
+       mutable workbench + `freeze` copy. Lives here (not on the unexposed Bytes
+       class) because `platform ByteArray` is the reachable byte-builder accessor
+       — the Task-6 decode reject fixtures are its first consumers. HARDENED:
+       rejects odd-length input and any non-hex character (a silent nibble-drop
+       would corrupt a reject fixture). *)
+    public fromHex: aString = ( | len n ba |
+      len:: aString size.
+      ((len // 2) * 2) = len ifFalse: [ ^ self error: 'odd-length hex' ].
+      n:: len // 2.
+      ba:: self new: n.
+      1 to: n do: [ :i |
+        ba u8At: i put: ((self hexDigit: (aString at: (i * 2) - 1)) * 16
+                        + (self hexDigit: (aString at: i * 2))) ].
+      ^ ba freeze )
+    (* Single-hex-digit decode: '0'..'9' = 48..57, 'A'..'F' = 65..70,
+       'a'..'f' = 97..102 — anything else crashes rather than mis-decoding. *)
+    hexDigit: ch = (
+      (ch >= 48 and: [ ch <= 57 ])  ifTrue: [ ^ ch - 48 ].
+      (ch >= 65 and: [ ch <= 70 ])  ifTrue: [ ^ ch - 55 ].
+      (ch >= 97 and: [ ch <= 102 ]) ifTrue: [ ^ ch - 87 ].
+      ^ self error: 'invalid hex digit' )
+  )
+
+  (* Immutable algebra value, rank 5 (Milestone B Task 10). Read protocol
+     only — write selectors DO NOT EXIST here (immutability by construction;
+     a write attempt is a DNU, no frozen string — design §7). Reached only
+     via ByteArray>>freeze; no module accessor exposes this class to app
+     code (keeping the class-side constructor unreachable keeps app code
+     from minting a Bytes without going through a real freeze copy). *)
+  class Bytes = BytesReadProtocol ( | raw | ) (
+    public byteSize = ( ^ raw size )
+    public u8At: i = ( ^ raw at: i )
+    public freeze = ( ^ self )
+    public asByteArray = ( | r | r:: ByteArray new: self byteSize. 1 to: self byteSize do: [ :i | r u8At: i put: (self u8At: i) ]. ^ r )
+    public isBytes = ( ^ true )
+    public isValue = ( ^ true )
+    public valueRank = ( ^ 5 )
+    public valueDepth = ( ^ 0 )
+    public = other = ( (outer isValueObject: other) ifFalse: [ ^ false ]. ^ outer value: self equals: other )
+    public hash = ( ^ outer valueHashOf: self )
+    (* Wire-type textual form (Rung 3 Task 5): lowercase hex, no separators, two
+       digits per byte. Built as a byte Array of ASCII hex then interned to a
+       String in one `platform string:` — the natural rendering for a Bytes on
+       the CBOR wire seam and for golden-hex fixtures. *)
+    public printHex = ( | n arr j b hi lo |
+      n:: self byteSize.
+      arr:: platform basicNew: Array indexable: n * 2.
+      j:: 0.
+      1 to: n do: [ :i |
+        b:: self u8At: i.
+        hi:: (b >> 4) bitAnd: 15.
+        lo:: b bitAnd: 15.
+        j:: j + 1. arr at: j put: (hi < 10 ifTrue: [ 48 + hi ] ifFalse: [ 87 + hi ]).
+        j:: j + 1. arr at: j put: (lo < 10 ifTrue: [ 48 + lo ] ifFalse: [ 87 + lo ]) ].
+      ^ platform string: arr )
+    setRaw: r = ( raw:: r. ^ self )
+    (* Module-internal (Rung 6 Layer 2): answer the underlying RawBytes leaf for
+       the send prim to read. Non-public by convention only, like every other
+       non-public kernel setter — this VM's access modifiers are not enforced
+       (oevm#36); nothing stops a caller outside the module from reaching this.
+       The leaf itself is mutation-capable (RawBytes understands at:put:), so
+       this is not an immutability boundary; it works only because the single
+       caller, Socket>>sendTo:, is relied upon to treat it as read-only (memcpy
+       out to the socket). *)
+    rawLeaf = ( ^ raw )
+  ) : (
+    public overRaw: r = ( ^ self new setRaw: r )
+  )
+
+  (* tuvm#72: a PACKED byte accumulator for the CBOR encoder. The encoder used to
+     accumulate into an OrderedCollection of byte SMIs, which costs FOUR bytes per
+     byte (mutable Array slots — the RAM trap tuvm-vm-memory-model warns about) and
+     doubles its backing Array as it fills. On a WROOM-32 (49 KB arena) encoding a
+     span-capture push, that doubling asked for a 1024-slot Array and killed the
+     node outright:
+         VM GC Error: Out of Memory (requested 4104, used 49152 of 49152) -> abort()
+     — a hard abort, not a catchable condition, so nothing was logged and the node
+     simply died mid-push. Holding the bytes packed cuts that ~4x, and matters most
+     for encodeMap:, which holds a separate accumulator for EVERY key and value
+     simultaneously before sorting them.
+
+     Deliberately minimal: only the selectors the codec actually sends (`add:`,
+     `size`, `at:`, `do:`) exist, so this is a drop-in for the OrderedCollection it
+     replaces and nothing else can start depending on it. *)
+  class ByteBuilder = ( | buf ::= ByteArray new: 16. count ::= 0. | ) (
+    public size = ( ^ count )
+    public at: i = ( ^ buf u8At: i )
+    public add: b = (
+      count = buf byteSize ifTrue: [ self grow ].
+      count:: count + 1.
+      buf u8At: count put: b.
+      ^ b )
+    public do: aBlock = ( 1 to: count do: [ :i | aBlock value: (buf u8At: i) ]. ^ self )
+    grow = ( | bigger |
+      bigger:: ByteArray new: buf byteSize * 2.
+      1 to: count do: [ :i | bigger u8At: i put: (buf u8At: i) ].
+      buf:: bigger.
+      ^ self )
+    (* Exact-size immutable copy. `buf` normally carries slack from the last
+       doubling, and freezing it directly would publish those trailing bytes as
+       part of the value. *)
+    public frozenBytes = ( | exact |
+      exact:: ByteArray new: count.
+      1 to: count do: [ :i | exact u8At: i put: (buf u8At: i) ].
+      ^ exact freeze )
+  ) : (
+  )
+
+  (* Rung 3 Task 5: the CBOR value codec — encode half. A module sibling of
+     List/Map/Record; the recursive descent lives here in nsl and drops to the
+     C leaf byte-primitives (`platform cborEncodeInt:`/`cborEncodeFloat:`) only
+     for the int/float bytes that must be byte-identical across host and target
+     (LargeInteger magnitude + IEEE shortest-form are unreachable from nsl,
+     design §2.3). Everything else — container heads, symbol/string/bytes
+     payloads, the deterministic RFC 8949 §4.2 bytewise map-key order, the
+     depth bound (32) — is natural nsl here. `encode:` walks bottom-up into an
+     OrderedCollection byte accumulator (byte SMIs), frozen to an immutable
+     `Bytes` at the very end via ByteArray>>freeze; intermediate work stays in
+     OrderedCollections. Value classification is `outer rankOf:` (the native
+     `platform valueRank:` oracle with the heap-class `valueRank` fallback), so
+     builtins and heap values dispatch uniformly. Determinism: the C leaves emit
+     shortest-form ints/floats; container/tag/string heads are emitted
+     shortest-form here (definite lengths only); map keys are re-sorted at emit
+     time bytewise over their ENCODED key bytes (NOT the Map's stored
+     valueCompare order — the two diverge when keys differ in encoded length).
+     No float<->int coercion (the ranks dispatch to distinct leaves). A receiver
+     `rankOf:` cannot classify fails `not a value`; over-deep nesting fails
+     `message depth exceeded`. *)
+  class Cbor = () (
+    public encode: v = ( | acc |
+      acc:: ByteBuilder new.
+      self encode: v into: acc depth: 1.
+      ^ acc frozenBytes )
+
+    encode: v into: acc depth: d = ( | rank |
+      d > 32 ifTrue: [ ^ self error: 'message depth exceeded' ].
+      v == nil   ifTrue: [ acc add: 246. ^ self ].    (* 0xf6 *)
+      v == true  ifTrue: [ acc add: 245. ^ self ].    (* 0xf5 *)
+      v == false ifTrue: [ acc add: 244. ^ self ].    (* 0xf4 *)
+      rank:: outer rankOf: v.
+      rank = 2 ifTrue: [ ^ self appendFrag: (platform cborEncodeInt: v) into: acc ].   (* Integer -> major 0/1 (C leaf) *)
+      rank = 3 ifTrue: [ ^ self appendFrag: (platform cborEncodeFloat: v) into: acc ]. (* Float -> major 7 (C leaf) *)
+      rank = 4 ifTrue: [ ^ self encodeString: v into: acc ].                           (* String -> major 3 *)
+      rank = 5 ifTrue: [ ^ self encodeBytes: v into: acc ].                            (* Bytes -> major 2 *)
+      rank = 6 ifTrue: [ ^ self encodeSymbol: v into: acc ].                           (* Symbol -> tag 39 + text *)
+      rank = 7 ifTrue: [ ^ self encodeList: v into: acc depth: d ].                    (* List -> major 4 *)
+      rank = 8 ifTrue: [ ^ self encodeMap: v into: acc depth: d ].                     (* Map -> major 5, bytewise keys *)
+      rank = 9 ifTrue: [ ^ self encodeRecord: v into: acc depth: d ].                  (* Record -> tag 27 + [tag, fields] *)
+      ^ self error: 'not a value' )
+
+    (* CBOR head for (major m, argument n) shortest-form, definite length. Reused
+       for container/string/bytes lengths AND for tag numbers (major 6, arg =
+       tag) — tags share the head varint encoding. n is a small SMI here. *)
+    emitHead: m len: n into: acc = ( | mt |
+      mt:: m * 32.
+      n < 24 ifTrue: [ acc add: mt + n. ^ self ].
+      n < 256 ifTrue: [ acc add: mt + 24. acc add: n. ^ self ].
+      n < 65536 ifTrue: [ acc add: mt + 25.
+        acc add: ((n >> 8) bitAnd: 255). acc add: (n bitAnd: 255). ^ self ].
+      n < 4294967296 ifTrue: [ acc add: mt + 26.
+        acc add: ((n >> 24) bitAnd: 255). acc add: ((n >> 16) bitAnd: 255).
+        acc add: ((n >> 8) bitAnd: 255). acc add: (n bitAnd: 255). ^ self ].
+      acc add: mt + 27.
+      acc add: ((n >> 56) bitAnd: 255). acc add: ((n >> 48) bitAnd: 255).
+      acc add: ((n >> 40) bitAnd: 255). acc add: ((n >> 32) bitAnd: 255).
+      acc add: ((n >> 24) bitAnd: 255). acc add: ((n >> 16) bitAnd: 255).
+      acc add: ((n >> 8) bitAnd: 255). acc add: (n bitAnd: 255).
+      ^ self )
+
+    (* Append a C-leaf RawBytes fragment (int/float bytes) byte-by-byte; RawBytes
+       answers `size`/`at:` (byte SMIs), NOT basicSize/basicAt:. *)
+    appendFrag: frag into: acc = ( 1 to: frag size do: [ :i | acc add: (frag at: i) ]. ^ self )
+
+    encodeString: v into: acc = ( | n |
+      n:: v size.                       (* String size = byte count; at: = byte SMI *)
+      self emitHead: 3 len: n into: acc.
+      1 to: n do: [ :i | acc add: (v at: i) ].
+      ^ self )
+
+    encodeBytes: v into: acc = ( | n |
+      n:: v byteSize.
+      self emitHead: 2 len: n into: acc.
+      1 to: n do: [ :i | acc add: (v u8At: i) ].
+      ^ self )
+
+    (* Symbol -> tag 39 (identifier) wrapping its UTF-8 text as major-3. A Symbol
+       has no at:/size fast path (dispatch.c), so its text is taken from
+       printString ('#' + name) with the leading '#' dropped. *)
+    encodeSymbol: v into: acc = ( | ps n |
+      self emitHead: 6 len: 39 into: acc.    (* tag 39 = 0xd827 *)
+      ps:: v printString.
+      n:: ps size - 1.
+      self emitHead: 3 len: n into: acc.
+      1 to: n do: [ :i | acc add: (ps at: i + 1) ].
+      ^ self )
+
+    encodeList: v into: acc depth: d = (
+      self emitHead: 4 len: v size into: acc.
+      v do: [ :e | self encode: e into: acc depth: d + 1 ].
+      ^ self )
+
+    (* Map -> major 5, keys in RFC 8949 §4.2 bytewise order over ENCODED key
+       bytes. The Map iterates in valueCompare order, which is NOT bytewise (they
+       diverge when keys differ in encoded length), so re-sort at emit time:
+       encode each (key,value) into its own byte OrderedCollection, insertion-sort
+       the pairs bytewise by encoded key, then emit the count head + concatenated
+       pairs. *)
+    encodeMap: v into: acc depth: d = ( | keyEncs valEncs n |
+      keyEncs:: OrderedCollection new.
+      valEncs:: OrderedCollection new.
+      v keysAndValuesDo: [ :k :val |
+        self encodeEntry: k value: val keys: keyEncs vals: valEncs depth: d ].
+      n:: keyEncs size.
+      self sortPairsBytewise: keyEncs vals: valEncs.
+      self emitHead: 5 len: n into: acc.
+      1 to: n do: [ :i |
+        self appendColl: (keyEncs at: i) into: acc.
+        self appendColl: (valEncs at: i) into: acc ].
+      ^ self )
+
+    (* One map entry -> its own encoded key/value byte OrderedCollections,
+       appended in lockstep to keyEncs/valEncs (the per-entry block-locals live
+       in this method frame, keeping the keysAndValuesDo: block a single send). *)
+    encodeEntry: k value: val keys: keyEncs vals: valEncs depth: d = ( | kb vb |
+      kb:: ByteBuilder new.
+      vb:: ByteBuilder new.
+      self encode: k   into: kb depth: d + 1.
+      self encode: val into: vb depth: d + 1.
+      keyEncs add: kb.
+      valEncs add: vb.
+      ^ self )
+
+    (* Record -> tag 27 (language object) wrapping a 2-element array [tag, fields]
+       where tag is the Symbol (itself tag 39) and fields is the Map. *)
+    encodeRecord: v into: acc depth: d = (
+      self emitHead: 6 len: 27 into: acc.    (* tag 27 = 0xd81b *)
+      self emitHead: 4 len: 2 into: acc.     (* array(2) = 0x82 *)
+      self encode: v tag    into: acc depth: d + 1.
+      self encode: v fields into: acc depth: d + 1.
+      ^ self )
+
+    appendColl: src into: acc = ( src do: [ :b | acc add: b ]. ^ self )
+
+    (* Stable insertion sort of (keyEncs, valEncs) pairs in lockstep, keyed on the
+       encoded key bytes via compareBytes:with: — the RFC 8949 bytewise rule. *)
+    sortPairsBytewise: keyEncs vals: valEncs = ( | n j kk vv |
+      n:: keyEncs size.
+      2 to: n do: [ :ii |
+        kk:: keyEncs at: ii. vv:: valEncs at: ii.
+        j:: ii - 1.
+        [ j >= 1 and: [ (self compareBytes: (keyEncs at: j) with: kk) > 0 ] ] whileTrue: [
+          keyEncs at: j + 1 put: (keyEncs at: j).
+          valEncs at: j + 1 put: (valEncs at: j).
+          j:: j - 1 ].
+        keyEncs at: j + 1 put: kk.
+        valEncs at: j + 1 put: vv ].
+      ^ self )
+
+    (* Bytewise total order over two byte OrderedCollections: shared-prefix bytes
+       decide first, an exact-prefix tie falls to shorter-is-less. *)
+    compareBytes: a with: b = ( | n m lim ab bb |
+      n:: a size. m:: b size. lim:: n < m ifTrue: [ n ] ifFalse: [ m ].
+      1 to: lim do: [ :i |
+        ab:: a at: i. bb:: b at: i.
+        ab < bb ifTrue: [ ^ -1 ].
+        bb < ab ifTrue: [ ^ 1 ] ].
+      n < m ifTrue: [ ^ -1 ]. n > m ifTrue: [ ^ 1 ]. ^ 0 )
+
+    (* ==== Rung 3 Task 6: the CBOR value codec — DECODE half ====
+       `decode: aBytes ifInvalid: aBlock` is TOTAL: any byte sequence yields
+       either one valid algebra message OR exactly one error routed to aBlock
+       with its text (errors.md vocabulary), never a partial parse / pass-through.
+       The recursive descent (`parse:at:depth:`) lives here in nsl and drops to
+       the C decode leaves (cborReadHead:/cborIntFromMajor:/cborReadFloat:/
+       utf8Valid:, and asSymbol: for tag 39) for the byte work that must be
+       byte-identical across host and target. Totality is via the Milestone-E
+       exception mechanism: any violation raises `self error: msg tag: #cborInvalid`
+       (helper `failDecode:`) and the outer `[...] on: [pred] do: [handler]` routes
+       the caught text to aBlock. NO `^` (non-local return) appears inside the
+       protected / predicate / handler blocks (rejected by this VM — see
+       12_caret_in_handler_rejected); the handler evaluates `aBlock value: text`
+       and returns normally, and the outer `^` is on the whole on:do: expression.
+
+       INDEX BASE: the C decode leaves are 0-BASED (cborReadHead:at:0 reads the
+       first byte and returns the next index 0-based), so this walk threads a
+       0-based index `i` and the raw byte at 0-based i is `b at: i + 1` (nsl
+       String at: is 1-based). The input `aBytes` (a Bytes/String algebra value)
+       is copied ONCE into a raw String `b` (`platform string:`) so the leaves
+       see the {length,bytes[]} layout they require (a Bytes kernel object wraps
+       its raw store in an ivar and is NOT layout-compatible with struct String).
+       After a full parse the walk asserts ALL bytes were consumed (nextIndex =
+       byteSize), else `not a value`. Depth is threaded and bounded at 32 (the
+       walk trips FIRST — strictly before any container constructor's own
+       checkDepth: — so a constructor never raises the UNTAGGED depth error that
+       on:do: would not catch; decoded elements are all valid algebra values so
+       checkValue: likewise never fires untagged). *)
+    public decode: aBytes ifInvalid: aBlock = ( | b n |
+      n:: aBytes byteSize.
+      b:: self rawBytesOf: aBytes size: n.
+      ^ [ | r |
+          r:: self parse: b at: 0 depth: 1.
+          (r at: 2) = n ifFalse: [ self failDecode: 'not a value' ].
+          r at: 1 ]
+        on: [ :e | e tag = #cborInvalid ]
+        do: [ :e | aBlock value: (e at: #text ifAbsent: [ 'not a value' ]) ] )
+
+    (* Copy the input's bytes into a fresh raw String so the C leaves see a
+       {length, inline bytes} layout (a Bytes wrapper is not layout-compatible). *)
+    rawBytesOf: aBytes size: n = ( | arr |
+      arr:: platform basicNew: Array indexable: n.
+      1 to: n do: [ :i | arr at: i put: (aBytes u8At: i) ].
+      ^ platform string: arr )
+
+    failDecode: s = ( ^ self error: s tag: #cborInvalid )
+
+    (* Every parse result is this UNIFORM Array-classed 2-elt {value, nextIdx}
+       (built via basicNew:indexable:, so it answers `at:`) — NOT `Array with:`
+       (no such selector here) and NOT a raw C-leaf indexable (those answer only
+       `basicAt:`). The C-leaf head/float arrays ARE read with `basicAt:` (they
+       carry a class-less vtable, like spaceDequeue's events). Sentinel tests use
+       identity `==` against -1: the success value is a class-less indexable that
+       does not understand `=`. *)
+    result: v next: idx = ( | a |
+      a:: platform basicNew: Array indexable: 2.
+      a at: 1 put: v. a at: 2 put: idx. ^ a )
+
+    (* Parse ONE value at 0-based index i; answers {value, nextIdx} (nextIdx
+       0-based) or raises #cborInvalid. The simple values (nil/bool/float/undefined
+       = major 7 bytes) are peeked directly since cborReadHead: only serves majors
+       0..6; everything else goes through the head leaf. *)
+    parse: b at: i depth: d = ( | first h major arg nxt |
+      d > 32 ifTrue: [ ^ self failDecode: 'message depth exceeded' ].
+      i >= (b size) ifTrue: [ ^ self failDecode: 'not a value' ].     (* truncated *)
+      first:: b at: i + 1.
+      first = 246 ifTrue: [ ^ self result: nil   next: i + 1 ].       (* 0xf6 nil *)
+      first = 245 ifTrue: [ ^ self result: true  next: i + 1 ].       (* 0xf5 true *)
+      first = 244 ifTrue: [ ^ self result: false next: i + 1 ].       (* 0xf4 false *)
+      first = 247 ifTrue: [ ^ self failDecode: 'not a value' ].       (* 0xf7 undefined *)
+      (first = 249 or: [ first = 250 or: [ first = 251 ] ]) ifTrue: [ (* f16/f32/f64 *)
+        ^ self floatFrom: b at: i ].
+      h:: platform cborReadHead: b at: i.
+      h == -1 ifTrue: [ ^ self failDecode: 'not a value' ].           (* truncated / indefinite / reserved *)
+      major:: h basicAt: 1. arg:: h basicAt: 2. nxt:: h basicAt: 3.
+      major = 0 ifTrue: [ ^ self result: (self intFrom: 0 arg: arg) next: nxt ].
+      major = 1 ifTrue: [ ^ self result: (self intFrom: 1 arg: arg) next: nxt ].
+      major = 2 ifTrue: [ ^ self bytesFrom: b at: nxt len: arg ].
+      major = 3 ifTrue: [ ^ self stringFrom: b at: nxt len: arg ].
+      major = 4 ifTrue: [ ^ self listFrom: b at: nxt count: arg depth: d ].
+      major = 5 ifTrue: [ ^ self mapFrom: b at: nxt count: arg depth: d ].
+      major = 6 ifTrue: [ ^ self tagFrom: b at: nxt tag: arg depth: d ].
+      ^ self failDecode: 'not a value' )                              (* major 7 non-simple *)
+
+    intFrom: m arg: arg = ( | r |
+      r:: platform cborIntFromMajor: m arg: arg.
+      r == nil ifTrue: [ ^ self failDecode: 'integer out of range' ].  (* -2^64 *)
+      ^ r )
+
+    (* A decoded NaN is a spec §5 totality hole: it is a genuine Float object but
+       NOT a valid algebra value (`platform valueRank:` answers -1 for NaN,
+       kernel.nsl rankOf: would then DNU-send `valueRank` to a builtin, and even
+       `checkValue:` would raise the UNTAGGED #error the handler can't catch).
+       Reject it HERE, guarded by the C oracle directly (NOT rankOf:/checkValue:,
+       which re-trigger the same DNU): valueRank: = 3 for a real Float (incl.
+       +/-Infinity, which are legal and round-trip), -1 for NaN. Mirrors the
+       encode side, which also maps NaN -> 'not a value'. *)
+    floatFrom: b at: i = ( | fr fl |
+      fr:: platform cborReadFloat: b at: i.
+      fr == -1 ifTrue: [ ^ self failDecode: 'not a value' ].
+      fl:: fr basicAt: 1.
+      (platform valueRank: fl) = 3 ifFalse: [ ^ self failDecode: 'not a value' ].
+      ^ self result: fl next: (fr basicAt: 2) )
+
+    (* major 2: definite-length byte string -> algebra Bytes (ByteArray>>freeze).
+       A length running past the buffer (incl. an 8-byte LargeInteger length) is
+       caught by the bounds test BEFORE any allocation. *)
+    bytesFrom: b at: i len: n = ( | ba end |
+      end:: i + n.
+      end > (b size) ifTrue: [ ^ self failDecode: 'not a value' ].
+      ba:: ByteArray new: n.
+      1 to: n do: [ :k | ba u8At: k put: (b at: i + k) ].
+      ^ self result: ba freeze next: end )
+
+    (* major 3: definite-length text -> re-validated UTF-8 String. *)
+    stringFrom: b at: i len: n = ( | arr end s |
+      end:: i + n.
+      end > (b size) ifTrue: [ ^ self failDecode: 'not a value' ].
+      arr:: platform basicNew: Array indexable: n.
+      1 to: n do: [ :k | arr at: k put: (b at: i + k) ].
+      s:: platform string: arr.
+      (platform utf8Valid: s) ifFalse: [ ^ self failDecode: 'invalid utf-8' ].
+      ^ self result: s next: end )
+
+    (* major 4: definite-length array -> List. A hostile over-large count cannot
+       loop unbounded: each element parse advances into the finite buffer and the
+       first read past the end fails 'not a value'. *)
+    listFrom: b at: i count: n depth: d = ( | items idx pr |
+      items:: OrderedCollection new.
+      idx:: i.
+      1 to: n do: [ :k |
+        pr:: self parse: b at: idx depth: d + 1.
+        items add: (pr at: 1).
+        idx:: pr at: 2 ].
+      ^ self result: (List fromCollection: items) next: idx )
+
+    (* major 5: definite-length map -> Map. Duplicate keys are stricter than the
+       Map constructor's last-wins: each freshly-decoded key is checked (algebra
+       `=`) against those already collected and rejected 'not a value' BEFORE
+       construction (design §5). *)
+    mapFrom: b at: i count: n depth: d = ( | keys vals idx kp vp k v pairs |
+      keys:: OrderedCollection new.
+      vals:: OrderedCollection new.
+      idx:: i.
+      1 to: n do: [ :c |
+        kp:: self parse: b at: idx depth: d + 1.
+        k:: kp at: 1. idx:: kp at: 2.
+        self checkNoDupKey: k in: keys.
+        vp:: self parse: b at: idx depth: d + 1.
+        v:: vp at: 1. idx:: vp at: 2.
+        keys add: k. vals add: v ].
+      pairs:: OrderedCollection new.
+      1 to: keys size do: [ :c | pairs add: (List with: (keys at: c) with: (vals at: c)) ].
+      ^ self result: (Map fromPairs: pairs) next: idx )
+
+    (* No `^` inside a non-inlined (`do:`) block — use a found flag over an
+       inlined `to:do:`, mirroring `anySatisfy:`. *)
+    checkNoDupKey: k in: keys = ( | dup |
+      dup:: false.
+      1 to: keys size do: [ :c | (dup not and: [ (keys at: c) = k ]) ifTrue: [ dup:: true ] ].
+      dup ifTrue: [ ^ self failDecode: 'not a value' ].
+      ^ self )
+
+    (* major 6: tags. 39 = identifier -> Symbol; 27 = language object -> Record;
+       2/3 = bignum -> the distinct 'integer out of range'; anything else closed
+       out as 'not a value'. `tag` may be a LargeInteger for huge tag numbers —
+       the `=` probes below safely answer false. *)
+    tagFrom: b at: i tag: tag depth: d = (
+      tag = 39 ifTrue: [ ^ self symbolTagFrom: b at: i depth: d ].
+      tag = 27 ifTrue: [ ^ self recordTagFrom: b at: i depth: d ].
+      (tag = 2 or: [ tag = 3 ]) ifTrue: [ ^ self failDecode: 'integer out of range' ].
+      ^ self failDecode: 'not a value' )
+
+    (* tag 39 wraps a major-3 text; the text must be a String (rank 4) -> a
+       genuine Symbol via the C leaf. A symbol is a leaf, so the inner text is
+       parsed at the SAME depth (no increment), matching the encode side (which
+       emits tag 39 + text without recursing through the depth-counted walk). *)
+    symbolTagFrom: b at: i depth: d = ( | inner s |
+      inner:: self parse: b at: i depth: d.
+      s:: inner at: 1.
+      (outer rankOf: s) = 4 ifFalse: [ ^ self failDecode: 'not a value' ].
+      ^ self result: (platform asSymbol: s) next: (inner at: 2) )
+
+    (* tag 27 wraps a 2-element array [tagSymbol, fieldsMap]. Validate the head is
+       exactly array(2), then that element 1 is a Symbol (rank 6) and element 2 a
+       Map (rank 8) BEFORE `Record tag:fields:` (whose own isSymbol/isMap failures
+       raise the UNTAGGED 'not a value' that on:do: would not catch). *)
+    recordTagFrom: b at: i depth: d = ( | ah idx tp fp tg fl |
+      ah:: platform cborReadHead: b at: i.
+      ah == -1 ifTrue: [ ^ self failDecode: 'not a value' ].
+      (ah basicAt: 1) = 4 ifFalse: [ ^ self failDecode: 'not a value' ].
+      (ah basicAt: 2) = 2 ifFalse: [ ^ self failDecode: 'not a value' ].
+      idx:: ah basicAt: 3.
+      tp:: self parse: b at: idx depth: d + 1.
+      tg:: tp at: 1. idx:: tp at: 2.
+      (outer rankOf: tg) = 6 ifFalse: [ ^ self failDecode: 'not a value' ].
+      fp:: self parse: b at: idx depth: d + 1.
+      fl:: fp at: 1. idx:: fp at: 2.
+      (outer rankOf: fl) = 8 ifFalse: [ ^ self failDecode: 'not a value' ].
+      ^ self result: (Record tag: tg fields: fl) next: idx )
+  ) : (
+  )
+
+  class HeapStats = ( | heapSize liveBytes highWater largestFreeBlock gcCycles | ) (
+    (* A read-only snapshot of GC heap telemetry (src/gc.c oevm_heap_stats),
+       surfaced by the native `platform heapStats` leaf (prim 104) as a 5-element
+       Array in field order. Construct via the class-side `fromList:`. *)
+    public heapSize         = ( ^ heapSize )
+    public liveBytes        = ( ^ liveBytes )
+    public highWater        = ( ^ highWater )
+    public largestFreeBlock = ( ^ largestFreeBlock )
+    public gcCycles         = ( ^ gcCycles )
+    setFromList: a = (
+      (* `platform heapStats` answers a raw IndexableVtable Array (like udp
+         basicReceive / cborReadHead), so read slots with basicAt:, not the
+         Array-class at: — the prim receiver does not carry the Array vtable. *)
+      heapSize:: a basicAt: 1. liveBytes:: a basicAt: 2. highWater:: a basicAt: 3.
+      largestFreeBlock:: a basicAt: 4. gcCycles:: a basicAt: 5. ^ self )
+    public printString = (
+      ^ 'live ', liveBytes printString, ' / hw ', highWater printString,
+        ' / free ', largestFreeBlock printString, ' / gc ', gcCycles printString,
+        ' / size ', heapSize printString )
+  ) : (
+    public fromList: a = ( ^ self new setFromList: a )
+  )
+
+  class Spans = ( | names fails | ) (
+    (* tuvm#61: named access to the C span slots (prims 118-121). The C side is
+       NAMELESS — slots are integers 0..N-1 — exactly as the timer seam carries
+       only a token and keeps the channel and the message in nsl. This class owns
+       the name<->slot table and the per-slot failure counts, so no name string
+       ever lands in the device's DRAM.
+
+       register: is called ONCE per name at setup and answers the slot index; the
+       caller HOLDS that index and passes it to begin:/end:. Nothing on a measured
+       path may do a name lookup, because a lookup is a send and an allocation and
+       this code runs inside the very thing it is measuring.
+
+       State is lazily initialised rather than in a class-side `new` override —
+       `ThermalView new` is the precedent (a plain `new`, instance variables
+       starting nil), and it avoids depending on `super new` resolving in
+       class-side context, which this kernel does nowhere else. *)
+    (* The first two slots are RESERVED for the C-owned spans (src/span.h's
+       SPAN_SLOT_HTTP_QUEUE and SPAN_SLOT_EGRESS), which http_core.c stamps itself
+       so that no node can ship an uninstrumented HTTP path. Seeding their names
+       here is what keeps register: — which hands out the next free index — from
+       ever colliding with them: it starts at 2 by construction, with no ceiling
+       arithmetic and no constant duplicated out of the C header. It is also why
+       they appear in a rendered latency table like any other span: C owns those two
+       indices, nsl still owns every name. *)
+    ensureTables = (
+      names isNil ifTrue: [
+        names:: OrderedCollection new.
+        fails:: OrderedCollection new.
+        names add: #httpQueue. fails add: 0.       (* slot 0 — accept -> take   *)
+        names add: #egress.    fails add: 0 ].     (* slot 1 — the chunk writes *)
+      ^ self )
+
+    (* Named access to the reserved pair, for a caller that wants to read or
+       annotate one without re-deriving the index. register: answers the same two,
+       being idempotent by name. *)
+    public httpQueueSlot = ( self ensureTables. ^ 0 )
+    public egressSlot    = ( self ensureTables. ^ 1 )
+
+    public register: aName = (
+      | i n |
+      self ensureTables.
+      (* Idempotent: registering the same name twice answers the SAME slot, so a
+         re-entered setup path cannot silently consume the slot budget. *)
+      i:: 1. n:: names size.
+      [ i <= n ] whileTrue: [
+        ((names at: i) = aName) ifTrue: [ ^ i - 1 ].
+        i:: i + 1 ].
+      names add: aName.
+      fails add: 0.
+      ^ names size - 1 )
+
+    public slotCount = ( self ensureTables. ^ names size )
+    public nameAt: slot = ( ^ names at: slot + 1 )
+
+    (* tuvm#72: which side STAMPS this span. DERIVED from the reserved pair rather
+       than kept as a table, so it cannot drift from the seam: slots 0 and 1 are
+       the C-owned spans http_core.c stamps itself (ensureTables seeds them), and
+       every other slot was handed out by register: from nsl. Answers a String
+       because its only consumer is a rendered table; the wire record is
+       deliberately NOT given a lang field — recordAt:'s schema is size-capped
+       (porta's 256 B value law) and this is derivable by any reader. *)
+    public langAt: slot = ( ^ (slot < 2) ifTrue: [ 'C' ] ifFalse: [ 'nsl' ] )
+
+    public begin: slot = ( platform spanBegin: slot. ^ self )
+    public end:   slot = ( platform spanEnd: slot. ^ self )
+    public recordSlot: slot us: n = ( platform spanRecord: slot us: n. ^ self )
+    (* Answers the raw IndexableVtable Array the prim builds — read with basicAt:,
+       the heapStats precedent (the prim receiver carries no Array vtable).
+       Field order mirrors src/span.h's SPAN_STAT_*, 1-based here:
+         1 n, 2 minUs, 3 maxUs, 4 sumUsLo, 5 sumUsHi, 6..11 buckets b0..b5 *)
+    public statsAt: slot = ( ^ platform spanStats: slot )
+
+    (* A failed job produces NO span sample, so without this a failure would
+       silently improve the percentiles. Counted in nsl because a failure is an
+       app-level concept the C seam cannot detect. *)
+    public noteFailure: slot = (
+      fails at: slot + 1 put: (fails at: slot + 1) + 1. ^ self )
+    public failuresAt: slot = ( ^ fails at: slot + 1 )
+
+    (* tuvm#72: clear the accumulator for a bounded capture window. BOTH halves —
+       the C sample table via the prim, and the nsl-side failure counts above,
+       which C cannot see. Clearing only the C half would publish failures
+       cumulative-since-boot beside windowed samples: a wrong table that looks
+       right. The name<->slot table is deliberately NOT cleared — every caller
+       holds a slot index handed out by register:, and moving those indices under
+       them would silently mis-attribute every subsequent sample. *)
+    public resetAll = (
+      | i n |
+      self ensureTables.
+      platform spanReset.
+      i:: 1. n:: fails size.
+      [ i <= n ] whileTrue: [ fails at: i put: 0. i:: i + 1 ].
+      ^ self )
+
+    (* --- design 4.1/4.2: percentiles as DECADES, gated on sample count --- *)
+
+    (* A p95 computed from too few samples is noise wearing a precise-looking
+       label: at n = 20 it is simply the 19th value, and one unlucky retransmit
+       relocates it wholesale. 200 is the floor below which nothing is reported. *)
+    public minSamplesForP95 = ( ^ 200 )
+
+    (* A chain rather than a literal array: this grammar has no #( ... ) literal,
+       and a chain also allocates nothing per call. Index is 1-based, matching the
+       stats fields 6..11 that hold b0..b5. *)
+    decadeName: i = (
+      i = 1 ifTrue: [ ^ #lt100us ].
+      i = 2 ifTrue: [ ^ #lt1ms ].
+      i = 3 ifTrue: [ ^ #lt10ms ].
+      i = 4 ifTrue: [ ^ #lt100ms ].
+      i = 5 ifTrue: [ ^ #lt1s ].
+      ^ #ge1s )
+
+    (* Walk the cumulative histogram and answer the decade in which the p-th
+       percentile sample falls. There is deliberately NO interpolation inside the
+       bucket: a bucket spanning 1 ms to 10 ms has its mass bunched at one end, so
+       interpolating would assume a uniformity that is not there and manufacture
+       three digits the data does not contain. The decade still says which segment
+       dominates and how far the tail sits from the median, and maxUs is exact. *)
+    public decadeAt: slot percentile: p = (
+      | s n target seen i |
+      s:: self statsAt: slot.
+      n:: s basicAt: 1.
+      (n < self minSamplesForP95) ifTrue: [ ^ #insufficient ].
+      (* 1-based rank of the percentile sample, rounded UP so p95 of 200 samples
+         is the 190th rather than the 189.99th. *)
+      target:: ((n * p) + 99) // 100.
+      seen:: 0. i:: 1.
+      [ i <= 6 ] whileTrue: [
+        seen:: seen + (s basicAt: 5 + i).     (* buckets are fields 6..11 *)
+        (seen >= target) ifTrue: [ ^ self decadeName: i ].
+        i:: i + 1 ].
+      ^ #ge1s )
+
+    public p50At: slot = ( ^ self decadeAt: slot percentile: 50 )
+    public p95At: slot = ( ^ self decadeAt: slot percentile: 95 )
+
+    (* One record PER SLOT, published onto sys/latency. Deliberately NOT an
+       extension of #Metrics: porta docs/PROTOCOL-NSL-RECORDS.md 4.4 forbids a
+       12th field there and names tuvm#61 as the reason, because bucket counts are
+       many fields at once. The consequence worth preserving is that adding a JOB
+       adds a RECORD, not a field — so this schema never grows.
+
+       Field names are deliberately SHORT: 4.4 observes that symbol field names
+       dominate the encoded size, which is how #Metrics reached ~185-230 B on
+       eleven fields with names like largestFreeBlock. *)
+    public recordAt: slot = (
+      | s pairs |
+      s:: self statsAt: slot.
+      pairs:: OrderedCollection new.
+      pairs add: #span    -> (self nameAt: slot).
+      pairs add: #n       -> (s basicAt: 1).
+      pairs add: #fails   -> (self failuresAt: slot).
+      pairs add: #minUs   -> (s basicAt: 2).
+      pairs add: #maxUs   -> (s basicAt: 3).
+      pairs add: #sumUsLo -> (s basicAt: 4).
+      pairs add: #sumUsHi -> (s basicAt: 5).
+      pairs add: #b0      -> (s basicAt: 6).
+      pairs add: #b1      -> (s basicAt: 7).
+      pairs add: #b2      -> (s basicAt: 8).
+      pairs add: #b3      -> (s basicAt: 9).
+      pairs add: #b4      -> (s basicAt: 10).
+      pairs add: #b5      -> (s basicAt: 11).
+      ^ Record tag: #LatencySpan fields: (Map fromPairs: pairs) )
+  ) : (
+  )
+
+  (* tuvm#72: a BOUNDED span-capture session, controlled by a cell.
+
+     Why this exists: `egress` records one sample per emitted HTTP chunk for EVERY
+     route (src/http_core.c), and the /stats page emits ~24 chunks against
+     /thermal's 12 — so a cumulative span table partly measures the rendering of
+     the span table. Over a 300-request run that is noise for n and for the decade
+     percentiles, but max is a single-sample statistic and a /stats chunk is a much
+     larger string than an SVG row, so the max may be an artefact of the reporting.
+
+     The invariant is ORDERING: reset LAST on start, snapshot FIRST on stop. In
+     this shape it is structural rather than hand-maintained — a reaction runs
+     during `space drain` while an HTTP response renders synchronously in its own
+     request, so the report is always rendered on a LATER request than the one that
+     closed the window, and a report can never land inside the window it describes.
+
+     Deliberately generic: it knows a Space and a Spans and nothing else — no
+     sensor, no HTTP, no device. That is why it lives here beside Spans rather than
+     in a node file, and it is also what makes it host-testable. *)
+  class SpanCapture = ( | space spans ctl result t0 running | ) (
+    onSpace: sp spans: sn = (
+      space::   sp.
+      spans::   sn.
+      running:: false.
+      ctl::     sp channel: 'diag/spans/ctl'.
+      result::  sp channel: 'diag/spans/result'.
+      ^ self )
+
+    public start = (
+      (* A self-send: a reified block must not name a class. *)
+      ctl whenever: '' do: [ :c | self apply: c ].
+      self normalise.
+      ^ self )
+
+    (* Registering a reaction does NOT replay a retained value, so a ctl left at
+       #running by a crash mid-capture would sit there claiming a capture is
+       running forever and a remote reader would believe it. Peek and correct.
+       No result is published: t0 did not survive the restart, and a window whose
+       start cannot be named is not a measurement. *)
+    normalise = (
+      | c |
+      c:: ctl peek.
+      c isNil ifTrue: [ ^ self ].
+      ((c at: #state ifAbsent: [ #stopped ]) = #running) ifTrue: [
+        ctl put: '' value: (Record tag: #SpanCtl with: #state -> #stopped) ].
+      ^ self )
+
+    apply: c = (
+      | st |
+      st:: c at: #state ifAbsent: [ #stopped ].
+      st = #running ifTrue: [ ^ self beginWindow ].
+      st = #stopped ifTrue: [ ^ self endWindow ].
+      ^ self )
+
+    (* #running while already running RESTARTS the window. Writing the cell is a
+       statement of intent and "start again" is the only sane reading of it. *)
+    beginWindow = (
+      t0:: 0 millis.
+      spans resetAll.
+      running:: true.
+      ^ self )
+
+    (* #stopped while already stopped is ignored — otherwise a stray refresh
+       overwrites a good capture with a zero-length one. *)
+    endWindow = (
+      | ms |
+      running ifFalse: [ ^ self ].
+      ms:: 0 millis - t0.
+      (* `millis` tags into a 31-bit SMI and wraps at ~12.4 days of uptime. A
+         negative elapsed is published as -1 rather than as a plausible wrong
+         number: silent-wrong is the failure mode this class exists to remove. *)
+      ms < 0 ifTrue: [ ms:: -1 ].
+      result put: '' value: (self reportMs: ms).
+      running:: false.
+      ^ self )
+
+    (* Reuses Spans>>recordAt:, which already builds the per-slot #LatencySpan
+       Record with the short field names porta's size law wants. `n` is the TOTAL
+       across slots, deliberately not "cycles": this class must not know which span
+       represents a job. The per-job count is that job's row. *)
+    reportMs: ms = (
+      | i n rows total |
+      rows:: OrderedCollection new.
+      total:: 0.
+      i:: 0. n:: spans slotCount.
+      [ i < n ] whileTrue: [
+        rows add: (spans recordAt: i).
+        total:: total + ((spans statsAt: i) basicAt: 1).
+        i:: i + 1 ].
+      ^ Record tag: #SpanCapture
+          with: #n     -> total
+          with: #ms    -> ms
+          with: #slots -> (List fromCollection: rows) )
+  ) : (
+    public onSpace: aSpace spans: aSpans = (
+      ^ self new onSpace: aSpace spans: aSpans )
+  )
+
+  class ReadStream = ( | source position | ) (
+    (* Byte-granular cursor over an immutable String. `next`/`peek` answer a byte
+       SMI; substring reads build Strings via `platform string:`. Open-ended reads
+       answer nil at EOF so a blank line ('') stays distinct from end-of-stream. *)
+    public next = ( self atEnd ifTrue: [ ^ self error: 'next past end' ]. position:: position + 1. ^ source at: position )
+    public peek = ( self atEnd ifTrue: [ ^ self error: 'peek past end' ]. ^ source at: position + 1 )
+    public atEnd = ( ^ position >= source size )
+    public skip: n = ( position:: position + n. ^ self )
+    public position = ( ^ position )
+    public reset = ( position:: 0. ^ self )
+    public next: n = ( | a |
+      (position + n) > source size ifTrue: [ ^ self error: 'next: beyond end' ].
+      a:: platform basicNew: Array indexable: n.
+      1 to: n do: [ :i | a at: i put: (source at: position + i) ].
+      position:: position + n.
+      ^ platform string: a )
+    public upTo: aByte = ( | r b |
+      self atEnd ifTrue: [ ^ nil ].
+      r:: OrderedCollection new.
+      [ self atEnd ] whileFalse: [
+        b:: self next.
+        b = aByte ifTrue: [ ^ platform string: r asArray ].
+        r add: b ].
+      ^ platform string: r asArray )
+    public nextLine = ( | s n |
+      self atEnd ifTrue: [ ^ nil ].
+      s:: self upTo: 10.
+      n:: s size.
+      (n > 0 and: [ (s at: n) = 13 ]) ifTrue: [ ^ self prefixOf: s upTo: n - 1 ].
+      ^ s )
+    public upToEnd = ( | r |
+      self atEnd ifTrue: [ ^ nil ].
+      r:: OrderedCollection new.
+      [ self atEnd ] whileFalse: [ r add: self next ].
+      ^ platform string: r asArray )
+    public do: aBlock = ( [ self atEnd ] whileFalse: [ aBlock value: self next ]. ^ self )
+    prefixOf: s upTo: k = ( | a | a:: platform basicNew: Array indexable: k. 1 to: k do: [ :i | a at: i put: (s at: i) ]. ^ platform string: a )
+    setSource: aString = ( source:: aString. position:: 0. ^ self )
+  ) : (
+    public on: aString = ( ^ self new setSource: aString )
+  )
+
+  class WriteStream = ( | bytes ::= OrderedCollection new. | ) (
+    (* io.Buffer-style String builder: accumulate bytes, emit one String via
+       `platform string:` — the O(n) replacement for O(n^2) `,` chaining. *)
+    public nextPut: aByte = ( (aByte < 0 or: [ aByte > 255 ]) ifTrue: [ ^ self error: 'byte out of range 0..255' ]. bytes add: aByte. ^ aByte )
+    public nextPutAll: aString = ( 1 to: aString size do: [ :i | bytes add: (aString at: i) ]. ^ aString )
+    public print: anObject = ( ^ self nextPutAll: anObject printString )
+    public nextPutLine: aString = ( self nextPutAll: aString. self nextPut: 10. ^ aString )
+    public contents = ( ^ platform string: bytes asArray )
+    public size = ( ^ bytes size )
+    public reset = ( bytes:: OrderedCollection new. ^ self )
+  ) : (
+  )
+
+  class Serial = ( | port | ) (
+    (* Confined native capability: byte/line port over a link-time backend.
+       `port` holds the native serial singleton; raw bytes go through its
+       basicReadByte/basicWriteByte:/basicAtEnd prims. Strings via platform. *)
+    setPort: aPort = ( port:: aPort. ^ self )
+    public writeByte: aByte = ( port basicWriteByte: aByte. ^ self )
+    public write: aString = ( 1 to: aString size do: [ :i | port basicWriteByte: (aString at: i) ]. ^ self )
+    public atEnd = ( ^ port basicAtEnd )
+    public readByte = ( port basicAtEnd ifTrue: [ ^ nil ]. ^ port basicReadByte )
+    public read: n = ( | bytes |
+      bytes:: OrderedCollection new.
+      [ bytes size < n and: [ port basicAtEnd not ] ] whileTrue: [ bytes add: port basicReadByte ].
+      ^ platform string: bytes asArray )
+    public readLine = ( | bytes b done |
+      port basicAtEnd ifTrue: [ ^ nil ].
+      bytes:: OrderedCollection new. done:: false.
+      [ done not and: [ port basicAtEnd not ] ] whileTrue: [
+        b:: port basicReadByte.
+        b = 10 ifTrue: [ done:: true ] ifFalse: [ bytes add: b ] ].
+      (* strip a trailing CR if present (CRLF) *)
+      (bytes size > 0 and: [ (bytes at: bytes size) = 13 ]) ifTrue: [ bytes removeLast ].
+      ^ platform string: bytes asArray )
+  ) : (
+    public onPort: aPort = ( ^ self new setPort: aPort )
+  )
+
+  class Net = ( | port | ) (
+    (* Confined native capability: vends UDP Sockets over a link-time backend. *)
+    setPort: aPort = ( port:: aPort. ^ self )
+    public udp = ( ^ self udpBindPort: 0 )                       (* ephemeral port *)
+    public udpBindPort: aPort = ( | h |
+      h:: port basicBind: aPort.
+      h < 0 ifTrue: [ ^ nil ].
+      ^ Socket onPort: port handle: h )
+  ) : (
+    public onPort: aPort = ( ^ self new setPort: aPort )
+  )
+
+  class Socket = ( | port handle | ) (
+    setPort: aPort handle: h = ( port:: aPort. handle:: h. ^ self )
+    public sendTo: host port: aPort data: aBytes = (
+      port basicSend: handle to: host port: aPort data: aBytes rawLeaf. ^ self )
+    public receive = ( | t |
+      t:: port basicReceive: handle.
+      t == nil ifTrue: [ ^ nil ].
+      ^ Datagram data: (Bytes overRaw: (t basicAt: 1)) senderHost: (t basicAt: 2) senderPort: (t basicAt: 3) )
+    public close = ( port basicClose: handle. ^ self )
+  ) : (
+    public onPort: aPort handle: h = ( ^ self new setPort: aPort handle: h )
+  )
+
+  class Datagram = ( | data senderHost senderPort | ) (
+    setData: d host: h port: p = ( data:: d. senderHost:: h. senderPort:: p. ^ self )
+    public data = ( ^ data )
+    public senderHost = ( ^ senderHost )
+    public senderPort = ( ^ senderPort )
+  ) : (
+    public data: d senderHost: h senderPort: p = ( ^ self new setData: d host: h port: p )
+  )
+
+  (* Rung 6 Layer 2 — the reactive channel<->UDP bridge. Holds a bound Socket, an
+     `out` Channel it subscribes to (posts there are CBOR-encoded and sent to the
+     peer), and an `in` Channel it posts decoded inbound Records onto. Reuses the
+     L1 Socket send/receive prims and the Cbor codec; no new C. Outbound is a
+     normal drain-time reaction; inbound is an explicit pumpInbound step (the
+     reactor's pump-then-drain idiom — pumpInbound stages, drain fires). Peer is a
+     raw host String + port SMI. A malformed inbound datagram is DROPPED (untrusted
+     network input, errors.md expected condition) — it must never crash the node. *)
+  class NetBridge = ( | socket out peerHost peerPort in | ) (
+    setSocket: s out: o peerHost: ph peerPort: pp in: i = (
+      socket:: s. out:: o. peerHost:: ph. peerPort:: pp. in:: i. ^ self )
+    (* VM workaround: the block passed to `whenever:do:` is a genuine reified
+       BlockClosure (stored by the reactor, unlike an inlined control-flow block
+       such as `whileFalse:`'s argument below); a DIRECT cross-class call
+       (`Cbor new encode: v`) written inline in such a block's body does not
+       correctly resolve the callee's outer/platform context on this VM (LD_SLOT
+       aborts on a non-object receiver) — reproduced with a minimal repro
+       (`OrderedCollection new` alone, called from inside a `whenever:do:` block,
+       crashes identically; the same call one line above/below the block, or
+       reached via a `self`-send FROM the block, does not). Routing through a
+       `self`-send from inside the block gives the encode call a normal method
+       activation, which resolves correctly. *)
+    encodeFor: v = ( ^ Cbor new encode: v )
+    public start = (
+      out whenever: '' do: [ :v | socket sendTo: peerHost port: peerPort data: (self encodeFor: v) ].
+      ^ self )
+    (* Receive-until-empty; decode each datagram; drop on decode failure (bad `set`
+       true), post the decoded value onto `in` otherwise (a legitimately-nil value
+       still posts — only a decode FAILURE drops). *)
+    public pumpInbound = (
+      | dg bad v |
+      dg:: socket receive.
+      [ dg == nil ] whileFalse: [
+        bad:: false.
+        v:: Cbor new decode: dg data ifInvalid: [ :msg | bad:: true. nil ].
+        bad ifFalse: [ in out: '' value: v ].
+        dg:: socket receive ].
+      ^ self )
+  ) : (
+    public socket: s out: o peer: ph port: pp in: i = (
+      ^ self new setSocket: s out: o peerHost: ph peerPort: pp in: i )
+  )
+
+  (* porta space-sync, plan 2 — the NODE half of the check-in exchange
+     (porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md §5/§6).
+
+     Two node-initiated CBOR datagrams over plain UDP, both idempotent:
+
+       PULL { id, cursor, bootId, hw }  ->  BATCH { hi, entries }
+       PUSH { id, bootId, entries }     ->  ACK   { hw }
+
+     where an entry is [ seq, path, kind, value ] and kind is 1 stream / 2 cell.
+     Either request may instead be answered ERR { msg }.
+
+     THERE IS NO RETRANSMIT LAYER, deliberately: the exchange is idempotent by
+     cursor in BOTH directions — a lost pull re-pulls the same range at the next
+     check-in, and a lost push is re-sent and deduped on the gateway's node-seq
+     high-water. Loss is absorbed by convergence, not by retransmission.
+
+     WHAT THIS HOLDS, and why each is here rather than elsewhere:
+       `space`  — the ROOT capability. porta writes goal/** and dbg/req, the node
+                  reports obs/** + tel/** + sys/**, and one object addressing both
+                  is simpler than two until the grant machinery (G5) can express
+                  the pair. Authority is enforced below, in `mayApply:`.
+       `cursor` — porta's OUT-sequence: the last seq this node has APPLIED. RAM
+                  only in this slice; cold boot = cursor 0 = full replay is the
+                  DESIGNED behaviour, and the cell scan bounds that replay by
+                  tree size rather than by history length.
+       `acked`  — the high-water the gateway has ACCEPTED from us, in the LOCAL
+                  space's seq (one counter per space per side). Cells newer than
+                  this are re-scanned every check-in; pending entries at or below
+                  it are done.
+       `pending`— captured stream entries not yet acked. A stream's value is
+                  killed on delivery, so unlike a cell it cannot be re-read later:
+                  capture is the only chance.
+
+     A crash of this job is a CONTAINED fault — porta sees a late check-in and
+     nothing worse. So nothing here may take the node down: every decode failure,
+     every unexpected tag and every out-of-authority path is a counted drop. *)
+  class PortaBridge = (
+    | socket space nodeId peerHost peerPort
+      cursor ::= 0. acked ::= 0. rejected ::= 0. misses ::= 0. dropped ::= 0.
+      crossed ::= 0.
+      pending ::= OrderedCollection new. |
+  ) (
+    setSocket: s space: sp id: anId peer: h port: p = (
+      socket:: s. space:: sp. nodeId:: anId. peerHost:: h. peerPort:: p. ^ self )
+
+    (* bootId rides the batch envelope, not every record — it is constant for
+       every entry in a check-in, and paying 3-9 bytes per entry for it would be
+       real money against a 512-byte batch. A source constant in this slice:
+       persisting a boot counter is NVS work, and porta stores this to order
+       observations across reboots, which a constant makes degenerate — honest
+       for a node that cannot yet count its own boots. *)
+    bootId = ( ^ 1 )
+    (* The caps are a RADIO constraint, not a preference: 6LoWPAN fragments above
+       ~102 B and a datagram survives only if every fragment does. porta rejects
+       a push that breaks either, so the trimming below is what keeps a node from
+       talking itself out of the fleet. *)
+    maxBatchBytes = ( ^ 512 )
+    maxValueBytes = ( ^ 256 )
+    maxRows = ( ^ 8 )
+    replyBudget = ( ^ 2000 )   (* ms to wait for one reply before scoring a miss *)
+
+    (* The pending queue is BOUNDED. Found on hardware: with the gateway
+       unreachable, applyAck: never runs and this queue is the only thing that
+       grows — the node OOMs and panics at about ninety seconds. A miss must cost
+       latency and bounded loss, never unbounded memory (plan 2's N7 said
+       otherwise; the bench corrected it).
+
+       64 rows is eight full pushes of backlog at maxRows = 8, which is a real
+       reconnection window, and at four smallish fields a row it is far from the
+       heap. Oldest-first eviction: for tel/** the newest entry is the one worth
+       keeping, and it leaves the survivors in ascending seq order, which the push
+       frame requires. sys/panic is marked must-deliver in RECORDS and needs a
+       different answer than "drop it" — that is a design question, not this cap.
+
+       Say the cost outright: oldest-first eviction MANUFACTURES A GAP at the
+       HEAD of the pushed seq series once the bound bites — CLAIMS.md's "no gaps"
+       is proven only for the runs where it never does. At one capture per tick
+       and the 2 s cadence, the bound bites after roughly 65 consecutive unacked
+       ticks, about 130 seconds of sustained disconnection. *)
+    maxPending = ( ^ 64 )
+
+    public cursor = ( ^ cursor )
+    public acked = ( ^ acked )
+    public rejected = ( ^ rejected )
+    public misses = ( ^ misses )
+    public dropped = ( ^ dropped )
+    (* Replies that arrived in the OTHER leg's wait and were walked past. Counted
+       rather than merely handled: a silent skip makes "the window never opened"
+       and "it opened and we coped" read identically from the outside. *)
+    public crossed = ( ^ crossed )
+    public pendingSize = ( ^ pending size )
+    public pendingRows = ( ^ pending )
+
+    (* ---- outbound stream capture ------------------------------------------
+       A cell can be re-read at check-in time; a stream entry cannot — the
+       reactor kills the event on delivery. So each outbound stream path is
+       subscribed here and its writes are captured into `pending`, stamped with
+       `space stamp` so they share ONE ascending sequence with the cell writes.
+
+       The block body is a single self-send: a direct cross-class call written
+       inline in a block the reactor STORES does not resolve its outer context on
+       this VM (see NetBridge>>encodeFor:, which documents the same workaround
+       and the minimal repro behind it). *)
+    public subscribeStream: absolutePath = (
+      (space channel: absolutePath) whenever: '' do: [ :v | self capture: absolutePath value: v ].
+      ^ self )
+    capture: absolutePath value: v = (
+      pending add: (List with: space stamp with: absolutePath with: 1 with: v).
+      [ pending size > self maxPending ] whileTrue: [
+        pending removeFirst.
+        dropped:: dropped + 1 ].
+      ^ self )
+
+    (* ---- the pull half ---------------------------------------------------- *)
+    (* The cursor sent is the one already APPLIED, which is what makes "the
+       node's cursor passed seq N" better evidence of delivery than any
+       gateway-side delivered_at flag. *)
+    public pullFrame = (
+      ^ Cbor new encode: (Record tag: #pull
+          with: #id -> nodeId
+          with: #cursor -> cursor
+          with: #bootId -> self bootId
+          with: #hw -> acked) )
+
+    (* Apply one #batch; answer whether it WAS one. An #err reply, a malformed
+       datagram or anything else answers false and moves nothing.
+       `=` and never `==` on the tag: a decoded Symbol is not the image's
+       interned one, and `==` (identity) would silently never match. *)
+    public applyBatch: aBytes = (
+      | bad r entries i hi |
+      bad:: false.
+      r:: Cbor new decode: aBytes ifInvalid: [ :m | bad:: true. nil ].
+      bad ifTrue: [ ^ false ].
+      (outer rankOf: r) = 9 ifFalse: [ ^ false ].
+      (r tag = #batch) ifFalse: [ ^ false ].
+      entries:: r at: #entries ifAbsent: [ nil ].
+      (outer rankOf: entries) = 7 ifFalse: [ ^ false ].
+      i:: 1.
+      [ i <= entries size ] whileTrue: [
+        self applyEntry: (entries at: i).
+        i:: i + 1 ].
+      hi:: r at: #hi ifAbsent: [ cursor ].
+      (outer rankOf: hi) = 2 ifTrue: [ hi > cursor ifTrue: [ cursor:: hi ] ].
+      ^ true )
+
+    (* One inbound entry. EVERYTHING here is untrusted: a wrong shape, a wrong
+       kind or an out-of-authority path is counted and dropped — never applied,
+       never raised. A node that crashes on a malformed datagram is a node an
+       attacker can switch off. *)
+    applyEntry: row = (
+      | path kind value |
+      (outer rankOf: row) = 7 ifFalse: [ rejected:: rejected + 1. ^ self ].
+      row size = 4 ifFalse: [ rejected:: rejected + 1. ^ self ].
+      path::  row at: 2.
+      kind::  row at: 3.
+      value:: row at: 4.
+      (outer rankOf: path) = 4 ifFalse: [ rejected:: rejected + 1. ^ self ].
+      (self mayApply: path) ifFalse: [ rejected:: rejected + 1. ^ self ].
+      kind = 2 ifTrue: [ space put: path value: value. ^ self ].
+      kind = 1 ifTrue: [ space out: path value: value. ^ self ].
+      rejected:: rejected + 1.
+      ^ self )
+
+    (* porta's authority, enforced where it can be believed: goal/** and dbg/req,
+       and nothing else. An accepted write to obs/** would forge the node's own
+       report of what it observes, which is the one thing the convergence view
+       rests on. *)
+    mayApply: path = (
+      (path = 'dbg/req') ifTrue: [ ^ true ].
+      (path = 'goal') ifTrue: [ ^ true ].
+      ^ self path: path startsWith: 'goal/' )
+
+    (* No `startsWith:` exists in this dialect — the same grep-confirmed finding
+       Space>>isSysPath: and SupervisedJob>>addresses: already record. Byte
+       compare over size/at:. *)
+    path: p startsWith: prefix = (
+      | n i |
+      n:: prefix size.
+      p size < n ifTrue: [ ^ false ].
+      i:: 1.
+      [ i <= n ] whileTrue: [
+        (p at: i) = (prefix at: i) ifFalse: [ ^ false ].
+        i:: i + 1 ].
+      ^ true )
+
+    (* ---- the push half ---------------------------------------------------- *)
+    (* Answer the encoded #push, or nil when there is nothing to send. Cells come
+       from the scan (obs/** newer than `acked`), stream entries from `pending`;
+       both carry seqs from the ONE space counter, so merging them ascending is a
+       sort and not a reconciliation.
+
+       Then TRIM FROM THE TAIL until the datagram fits: entries dropped here are
+       not lost, they ride the next check-in — whereas an oversize datagram is
+       lost on the mesh, which is strictly worse. *)
+    public pushFrame = (
+      | rows bytes |
+      rows:: self collectOutbound.
+      rows isEmpty ifTrue: [ ^ nil ].
+      bytes:: self encodePush: rows.
+      [ bytes byteSize > self maxBatchBytes and: [ rows size > 1 ] ] whileTrue: [
+        rows removeLast.
+        bytes:: self encodePush: rows ].
+      bytes byteSize > self maxBatchBytes ifTrue: [ ^ nil ].
+      ^ bytes )
+
+    encodePush: rows = (
+      ^ Cbor new encode: (Record tag: #push
+          with: #id -> nodeId
+          with: #bootId -> self bootId
+          with: #entries -> (List fromCollection: rows)) )
+
+    collectOutbound = (
+      | rows cells i r |
+      rows:: OrderedCollection new.
+      i:: 1.
+      [ i <= pending size ] whileTrue: [ rows add: (pending at: i). i:: i + 1 ].
+      cells:: (space channel: 'obs') changedSince: acked max: self maxRows.
+      i:: 1.
+      [ i <= cells size ] whileTrue: [
+        r:: cells at: i.
+        (self valueFits: (r at: 3))
+          ifTrue: [ rows add: (List with: (r at: 2) with: (r at: 1) with: 2 with: (r at: 3)) ]
+          ifFalse: [ rejected:: rejected + 1 ].
+        i:: i + 1 ].
+      ^ self sortedBySeq: rows )
+
+    (* An oversize value is rejected by porta for the WHOLE push, so one bad cell
+       would stall every good one behind it. Drop it here, count it, keep going. *)
+    (* `byteSize`, not `size`: an immutable Bytes has no `size` — the read
+       protocol is byteSize/u8At:. *)
+    valueFits: v = ( ^ (Cbor new encode: v) byteSize <= self maxValueBytes )
+
+    sortedBySeq: rows = (
+      | i j cur |
+      i:: 2.
+      [ i <= rows size ] whileTrue: [
+        cur:: rows at: i.
+        j:: i - 1.
+        [ j >= 1 and: [ ((rows at: j) at: 1) > (cur at: 1) ] ] whileTrue: [
+          rows at: j + 1 put: (rows at: j).
+          j:: j - 1 ].
+        rows at: j + 1 put: cur.
+        i:: i + 1 ].
+      ^ rows )
+
+    (* Apply one #ack. `hw` is what the gateway ACCEPTED, so pending entries at or
+       below it are done and cells at or below it need not be re-scanned. A
+       trimmed push acks LOWER than we offered — which is correct, and is why the
+       watermark is taken from the reply and never from what we sent. *)
+    public applyAck: aBytes = (
+      | bad r hw keep i row |
+      bad:: false.
+      r:: Cbor new decode: aBytes ifInvalid: [ :m | bad:: true. nil ].
+      bad ifTrue: [ ^ false ].
+      (outer rankOf: r) = 9 ifFalse: [ ^ false ].
+      (r tag = #ack) ifFalse: [ ^ false ].
+      hw:: r at: #hw ifAbsent: [ nil ].
+      (outer rankOf: hw) = 2 ifFalse: [ ^ false ].
+      hw > acked ifTrue: [ acked:: hw ].
+      keep:: OrderedCollection new.
+      i:: 1.
+      [ i <= pending size ] whileTrue: [
+        row:: pending at: i.
+        (row at: 1) > acked ifTrue: [ keep add: row ].
+        i:: i + 1 ].
+      pending:: keep.
+      ^ true )
+
+    (* ---- one check-in ----------------------------------------------------- *)
+    (* PULL, apply, PUSH, ack. Each leg waits a bounded time and then GIVES UP,
+       counting a miss: a node that blocks forever on a silent gateway is a node
+       that has stopped doing its actual job. The next check-in re-pulls the same
+       range and re-pushes the same entries, so a miss costs latency and nothing
+       else — which is the whole reason there is no retransmit layer. *)
+    public checkIn = (
+      | reply |
+      socket == nil ifTrue: [ ^ self ].
+      socket sendTo: peerHost port: peerPort data: self pullFrame.
+      reply:: self awaitReply: #batch.
+      reply == nil
+        ifTrue: [ misses:: misses + 1 ]
+        ifFalse: [ self applyBatch: reply ].
+      ^ self pushOnce )
+
+    pushOnce = (
+      | frame reply |
+      frame:: self pushFrame.
+      frame == nil ifTrue: [ ^ self ].
+      socket sendTo: peerHost port: peerPort data: frame.
+      reply:: self awaitReply: #ack.
+      reply == nil
+        ifTrue: [ misses:: misses + 1 ]
+        ifFalse: [ self applyAck: reply ].
+      ^ self )
+
+    (* Wait for a reply TO THE LEG THAT ASKED (tuvm#108). Both legs share one
+       socket and one budget, so answering the first datagram to arrive crosses
+       them: a #batch delayed past the pull's budget lands in the push's wait, is
+       handed to applyAck:, is rejected — and the real #ack is then never read,
+       costing a re-push. On loopback that window is microseconds wide, which is
+       why the host gate and the C6 gate could both be green with it open.
+
+       Only a KNOWN reply tag meant for the other leg is walked past. Everything
+       else comes straight back, which is deliberate: an #err is porta's real
+       terminal answer to whichever leg asked, and skipping it would turn a
+       one-datagram rejection into a full budget burnt and a miss scored. Garbage
+       likewise ends the wait exactly as it did before — applyBatch:/applyAck:
+       reject it, and a real reply displaced behind it is picked up as a crossed
+       skip on the next leg rather than being lost.
+
+       A skipped datagram is DISCARDED, not applied on the way past, and that is
+       safe for the same reason the protocol carries no retransmit layer: the
+       exchange is idempotent by cursor in both directions. The dropped #batch is
+       re-sent on the next pull because the cursor never moved; the dropped #ack
+       costs one re-push that porta dedupes by seq. Applying it here would mean a
+       reply moving state in a leg that did not ask for it — cheaper to re-ask. *)
+    awaitReply: expected = (
+      | deadline dg |
+      deadline:: platform monotonicMillis + self replyBudget.
+      [ platform monotonicMillis < deadline ] whileTrue: [
+        dg:: socket receive.
+        dg == nil ifFalse: [
+          (self isCrossed: (self tagOf: dg data) expecting: expected)
+            ifTrue: [ crossed:: crossed + 1 ]
+            ifFalse: [ ^ dg data ] ] ].
+      ^ nil )
+
+    (* The tag, or nil for anything that is not a decodable Record — nil is never
+       crossed, so undecodable traffic keeps its old fail-fast behaviour. *)
+    tagOf: aBytes = (
+      | bad r |
+      bad:: false.
+      r:: Cbor new decode: aBytes ifInvalid: [ :m | bad:: true. nil ].
+      bad ifTrue: [ ^ nil ].
+      (outer rankOf: r) = 9 ifFalse: [ ^ nil ].
+      ^ r tag )
+
+    (* `=` and never `==`: a decoded Symbol is not the image's interned one
+       (tuvm#75), and identity would silently never match — the same trap
+       applyBatch:/applyAck: document. `== nil` is identity on purpose. *)
+    isCrossed: tag expecting: expected = (
+      tag == nil ifTrue: [ ^ false ].
+      tag = expected ifTrue: [ ^ false ].
+      tag = #batch ifTrue: [ ^ true ].
+      tag = #ack ifTrue: [ ^ true ].
+      ^ false )
+  ) : (
+    public socket: s space: sp id: anId peer: h port: p = (
+      ^ self new setSocket: s space: sp id: anId peer: h port: p )
+  )
+
+  serialOn: aPort = ( ^ Serial onPort: aPort )
+  netOn: aPort = ( ^ Net onPort: aPort )
+
+  (* Capability-scoped channel (Milestone C Task 2, addendum A1) — a
+     rooted-prefix capability into the C tuple-space singleton (Task 1's
+     space.c substrate, reached only by selector via `platform`; there is no
+     nsl-side storage here beyond the root string). `root` is set once at
+     construction, always a `checkPath:`-validated canonical relative path
+     ('' is the legal root-of-everything path). Every verb resolves its
+     ARGUMENT path against `root` via the shared `resolve:` helper below
+     before ever reaching a `platform space...` prim, so a capability can
+     only ever name a channel at-or-under its own root: segment-aligned per
+     A1 (a capability rooted at `sensor` does NOT address `sensors/temp` —
+     `resolve:` always joins with an explicit `/` separator, so the two can
+     never collapse to the same string) and never silently normalized
+     (`checkPath:` rejects, it does not fix up). There is no accessor for
+     `root` itself and no widening operation — the only ways to obtain a
+     capability are `channel:` (monotonic attenuation: the child's resolved
+     root is always the parent's root plus a validated suffix) or the
+     module's own `space` accessor (the sole capability with an empty root).
+     Any other message a capability doesn't define (e.g. a hypothetical
+     `parent`) is a plain DNU — there is no reflective escape hatch. This
+     task lands the class shape, `setRoot:`, `resolve:`, `channel:`, and the
+     three verbs as thin forwarders to the Task-1 prims (`out:value:`,
+     `take:`, `whenever:do:` — each validates/resolves, then makes exactly
+     one `platform` send); Task 3 lands `Space>>drain`, the reactor loop that
+     actually fires `whenever:`-registered blocks. *)
+  class Channel = ( | root | ) (
+    setRoot: r = ( root:: r. ^ self )
+    (* Module-internal accessor (Milestone D Task 2) — answers the capability's
+       own root String, so `Space>>drain` can post it as `#channel` on a crash
+       record and `postCrash:channel:` can run the sys/-loop guard on it. No
+       reflective escape hatch: only code inside this module (`outer`/sibling
+       sends) can reach it, same confinement as every other Channel verb. *)
+    rootPath = ( ^ root )
+    (* Validate `rel` (crash `bad channel path` on any A1 violation), then
+       join it under `root`: `''` answers `root` itself (the capability's own
+       channel — demo-node's `chan out: '' value: ...` idiom); an empty
+       `root` (the space's own root capability) answers `rel` unprefixed;
+       otherwise the two joined with an explicit `/` (never a bare
+       concatenation — that is what keeps `sensor`/`sensors` and `a/b`/`a/bc`
+       from ever colliding). *)
+    resolve: rel = (
+      outer checkPath: rel.
+      rel = '' ifTrue: [ ^ root ].
+      root = '' ifTrue: [ ^ rel ].
+      ^ root , '/' , rel )
+    public channel: rel = ( ^ Channel new setRoot: (self resolve: rel) )
+    (* ---- rung 9 (tuvm#32, option A): streams and cells --------------------
+       A name is a STREAM (a pigeonhole you EMPTY: `out:value:` appends, `take:`
+       removes) or a CELL (a pigeonhole that HOLDS the latest letter: `put:value:`
+       overwrites, `peek:ifAbsent:` reads without removing). The kind is fixed by
+       the FIRST WRITE, and the wrong verb on an existing name is an error — the
+       same bargain as `read()` on a directory answering EISDIR. `whenever:do:`
+       is the one verb that works on both and sets no kind.
+
+       The RULE is enforced here, in nsl, not in `space.c` — which is storage, not
+       policy (its own file header says so), exactly as capability confinement is
+       enforced by `checkPath:` here and not there. `self error:` raises an ordinary
+       Milestone-E condition, so a job can catch a kind mismatch with `on:do:` and,
+       uncaught, it reaches the supervisor as any other crash does.
+
+       Why a cell exists at all: `space_dequeue` kills an event on delivery whether
+       or not anyone was registered for it, so a job that was DOWN when a letter
+       arrived is replayed nothing when it restarts — and there is no request/reply
+       with which to ask for a re-send. A cell survives the job that reads it. That
+       is what lets a restarted PID read its setpoint back with no network, no
+       bridge, and nobody to ask (nsl-tests/15_cells/02_survives_crash). *)
+    KIND_STREAM = ( ^ 1 )
+    KIND_CELL   = ( ^ 2 )                (* 0 = unset: nobody has ever written it *)
+
+    public out: rel value: v = (
+      | p |
+      outer checkValue: v.
+      p:: self resolve: rel.
+      (platform spaceKind: p) = self KIND_CELL ifTrue: [ self error: 'not a stream' ].
+      platform spacePost: p value: v.
+      ^ self )
+    public take: rel ifEmpty: emptyBlock = (
+      | p r |
+      p:: self resolve: rel.
+      (platform spaceKind: p) = self KIND_CELL ifTrue: [ self error: 'not a stream' ].
+      r:: platform spaceTake: p.
+      r == nil ifTrue: [ ^ emptyBlock value ].
+      ^ r basicAt: 1 )
+
+    (* Write the cell. Creates it if new; overwrites if not. Fires `whenever:`
+       reactions on every WRITE (not only on a CHANGE of value: we do not compare
+       the new value to the old — deep record equality on a control loop's hot path,
+       to skip a reaction that is idempotent anyway. De-duplicating identical writes
+       is the writer's business). *)
+    public put: rel value: v = (
+      | p |
+      outer checkValue: v.
+      p:: self resolve: rel.
+      (platform spaceKind: p) = self KIND_STREAM ifTrue: [ self error: 'not a cell' ].
+      platform spacePut: p value: v.
+      ^ self )
+
+    (* Read the cell, non-destructively. `aBlock` on a name NOBODY HAS EVER WRITTEN
+       — the kernel's expected-miss convention (review/lib/errors.md), and the reason
+       this is correct without waiting on tuvm#21: the kind, not the value, says
+       whether the pigeonhole is empty, so a cell holding `nil` answers `nil` and
+       does NOT take the ifAbsent: branch. Two prim calls, no allocation: a PID reads
+       its setpoint every tick. *)
+    public peek: rel ifAbsent: aBlock = (
+      | p k |
+      p:: self resolve: rel.
+      k:: platform spaceKind: p.
+      k = self KIND_STREAM ifTrue: [ self error: 'not a cell' ].
+      k = 0 ifTrue: [ ^ aBlock value ].
+      ^ platform spacePeek: p )
+    (* Nil-defaulting cell reads — the common case where absence and a held `nil`
+       are treated alike (a never-written cell reads as `nil`, no ifAbsent: needed).
+       `peek` reads THIS channel's own root cell; `peek: rel` reads a named sub-cell.
+       Use `peek:ifAbsent:` above when the never-written-vs-holds-nil distinction
+       matters. Distinct selectors — arity is part of the name, no collision. *)
+    public peek = ( ^ self peek: '' ifAbsent: [ nil ] )
+    public peek: rel = ( ^ self peek: rel ifAbsent: [ nil ] )
+    (* ---- porta space-sync (plan 2): the cell-replication query ---------------
+       Answer every CELL at or under this capability's root whose last write is
+       newer than `cursor`, OLDEST FIRST, at most `n` of them — each row a
+       3-element algebra List {absolutePath, seq, value}.
+
+       Confinement is enforced the way every other verb here enforces it: the
+       scan prefix IS `root`, resolved before the prim is reached, so a
+       capability can only ever be told about names it can already address.
+       Segment alignment comes from the C side, matching the rule `resolve:`
+       obeys for whole paths — a capability rooted at `obs` never matches
+       `obscure`.
+
+       CELLS ONLY. A stream's seq advances on every write, but its value is
+       killed on delivery (`space_dequeue`), so a stream row would carry a
+       stale-or-nil value under a fresh seq. Streams reach the wire by reaction
+       capture instead (`PortaBridge>>subscribeStream:`).
+
+       ASCENDING is load-bearing, not tidiness: a caller sends a PREFIX of this
+       list and moves its cursor to the last row it sent, so any other order
+       strands whatever it skipped. `n` is how a caller keeps a batch inside the
+       radio's datagram cap.
+
+       Paths are ABSOLUTE (space-relative), not root-relative — they are what
+       goes on the wire, and the protocol stores them node-relative with the node
+       id beside them, never re-prefixed per capability. *)
+    public changedSince: cursor max: n = (
+      | raw rows i |
+      raw:: platform spaceChangedSince: cursor under: root max: n.
+      rows:: OrderedCollection new.
+      i:: 1.
+      [ i <= raw basicSize ] whileTrue: [
+        rows add: (self rowOf: (raw basicAt: i)).
+        i:: i + 1 ].
+      ^ rows )
+    (* The prim answers a bare `indexable_new` backing store (class-less vtable),
+       exactly as `spaceDequeue` does, so it is consumed ONLY via the shape-gated
+       basicAt:/basicSize and never escapes as itself — `Space>>drain`'s rule. *)
+    rowOf: raw = (
+      ^ List with: (raw basicAt: 1) with: (raw basicAt: 2) with: (raw basicAt: 3) )
+
+    public whenever: rel do: aBlock = (
+      platform spaceRegister: (self resolve: rel) block: aBlock owner: self.
+      ^ self )
+    (* Module-internal (Milestone D Task 4): drop every reaction owned by THIS
+       capability, across every channel. The Supervisor (Task 5) calls the
+       platform prim directly with a job's rootCap instead — this helper exists
+       for any module-internal caller that already holds the capability object
+       rather than passing it around separately. *)
+    dropMyReactions = (
+      platform spaceDropReactionsOwnedBy: self.
+      ^ self )
+  ) : (
+  )
+
+  (* The root capability's class (Milestone C Task 2) — identical shape to
+     Channel (attenuating a Space via `channel:` answers a plain Channel,
+     never another Space: only the module's `space` accessor ever mints a
+     Space, so a derived capability can only ever be narrower). `drain`
+     (Task 3) is the host reactor loop and is unique to the root — an
+     attenuated Channel never drains, it only addresses. *)
+  class Space = Channel ( ) (
+    (* The host reactor (Milestone C Task 3; PROTECTED — Milestone D Task 2):
+       dispatch queued events until the queue is empty (supervisor idle-wait
+       is a later Milestone D task). Each `platform spaceDequeue` answers nil
+       (queue empty) or a raw 3-slot indexable {value, reactionBlocksSnapshot,
+       channelPath} — snapshot taken at dequeue (D-C5), in registration order
+       (D-C3); `channelPath` is the firing event's channel, added by Task 2 so
+       a caught crash can be attributed to it. The raw indexable is a bare
+       `indexable_new` backing store (class-less vtable — probe-proven,
+       Task-3 controller correction), so it is consumed ONLY via the
+       shape-gated `basicAt:`/`basicSize` and never escapes this method.
+       Fan-out invokes every snapshot block with the carried value THROUGH
+       `platform protectedFire:value:` (Task 1's setjmp crash boundary): a
+       clean firing answers the canonical nil and drain moves on; a firing
+       that `self error:`s is caught, unwound, and abandoned mid-body (the
+       crashing reaction's own remaining statements never run — the process
+       survives) and `protectedFire:` answers the raised condition (a
+       non-nil String), which `postCrash:channel:` turns into a first-class
+       crash record. A reaction that posts merely enqueues — the outer
+       whileTrue picks the new event up on a LATER iteration, never
+       recursively (run-to-completion, D-C). `drain` is not re-entrant — a
+       reaction that itself called `drain` would violate run-to-completion;
+       reactions post (enqueue) and return. *)
+    public drain = (
+      | ev v bs ch i cond |
+      [ ev:: platform spaceDequeue. (ev == nil) not ] whileTrue: [
+        v::  ev basicAt: 1.
+        bs:: ev basicAt: 2.
+        ch:: ev basicAt: 3.
+        i:: 1.
+        [ i <= bs basicSize ] whileTrue: [
+          cond:: platform protectedFire: (bs basicAt: i) value: v.
+          cond == nil ifFalse: [ self postCrash: cond channel: ch ].
+          i:: i + 1 ] ].
+      ^ self )
+
+    (* porta space-sync (plan 2): the space's ONE monotonic counter (design D5).
+       `seq` reads it; `stamp` bumps it and answers the new value.
+
+       On Space and not on Channel because the counter is space-GLOBAL — an
+       attenuated capability has no narrower counter to read, so offering it one
+       would be a lie about the scope.
+
+       `stamp` exists for captured stream entries: a stream's value is not
+       retained, so `PortaBridge` captures it in a `whenever:` reaction, and two
+       captures with no intervening write would share a seq if it merely READ the
+       counter. The gateway drops `seq <= high-water` as a duplicate, so that is
+       silent loss rather than a repeated delivery. *)
+    public seq = ( ^ platform spaceSeq )
+    public stamp = ( ^ platform spaceStamp )
+
+    (* A contained crash posts a first-class crash record on sys/crash —
+       EXCEPT a crash raised while firing a sys/-rooted reaction (a
+       supervisor/observer bug): re-posting would amplify into a loop (the
+       new crash record would itself land on sys/crash, re-firing the very
+       reaction that just crashed), so it is reported via `out` (this
+       dialect has no dedicated stderr selector — grep-confirmed: kernel.nsl
+       and tuvm/src/dispatch.c's PRIM_NAMES have no `outError`/`startsWith:`
+       primitive) and dropped instead. `self out: 'sys/crash' value: ...`
+       uses the existing `Channel>>out:value:` — `drain` runs on the root
+       `Space`, whose root is `''`, so `resolve: 'sys/crash'` answers
+       `'sys/crash'` unprefixed. *)
+    (* Milestone E Task 1: `caught` is the raised crash Record (protectedFire's
+       return is now the in-flight Record, not a bare String). Per controller
+       decision (a) the sys/crash record carries the RAISE tag (`caught tag`),
+       NOT the retired constant `#crash` — the supervisor is channel-matched
+       (`handleCrash:` reads `#channel`, never the tag). #text is read back the
+       same way it was stored (`at: #text ifAbsent:`). *)
+    postCrash: caught channel: chPath = (
+      (self isSysPath: chPath)
+        ifTrue: [ ('supervisor-crash ' , chPath , ' ' , (caught at: #text ifAbsent: [ '' ])) out ]
+        ifFalse: [
+          self out: 'sys/crash'
+               value: (Record tag: (caught tag)
+                              with: #text -> (caught at: #text ifAbsent: [ '' ])
+                              with: #channel -> chPath) ].
+      ^ self )
+
+    (* `chPath = 'sys'` or `chPath` starts with `'sys/'`. No generic
+       `startsWith:` exists in this dialect (grep-confirmed), so this is
+       spelled directly over `size`/`at:` byte comparison — same idiom
+       `checkPath:` (~:801) already uses for its own segment scan. ASCII:
+       $s=115, $y=121, /=47. *)
+    isSysPath: p = (
+      (p = 'sys') ifTrue: [ ^ true ].
+      ^ p size > 4
+        and: [ (p at: 1) = 115
+        and: [ (p at: 2) = 121
+        and: [ (p at: 3) = 115
+        and: [ (p at: 4) = 47 ] ] ] ] )
+  ) : (
+  )
+
+  (* One supervised job's restart-policy bookkeeping (Milestone D Task 5) —
+     Kernel-module sibling of Space, same flat shape as Transition/Protocol
+     below. `rootCap` is the job's own root capability (the object `whenever:`
+     registrations are OWNED by, per Task 2's `owner: self`), so
+     `platform spaceDropReactionsOwnedBy: rootCap` sweeps exactly this job's
+     reactions and no other job's. `rootPath` is cached at registration
+     (`rootCap rootPath`, Task 2) so `addresses:` can attribute a crash
+     record's `#channel` string to this job without re-deriving anything.
+     `addresses:` answers whether `chPath` is this job's own root or a
+     channel nested under it (`root` or `root/...`) — hand-rolled byte
+     compare (NOT `startsWith:`: no such selector exists in this dialect,
+     grep-confirmed against kernel.nsl/dispatch.c PRIM_NAMES, same finding
+     `postCrash:channel:` already documents above), same at:/size idiom as
+     `isSysPath:`. The `^` returns below are all inside `whileTrue:`, which
+     `dispatch.c` inlines at compile time (no real closure/call frame is
+     created), so they are ordinary method returns — NOT the deleted-NLR
+     pattern; a `^` inside a block actually passed to a real method (`do:`,
+     `detect:ifNone:`, `whenever:do:`) would be unsafe and is avoided
+     throughout this class and Supervisor below. *)
+  class SupervisedJob = ( | rootCap rootPath restartThunk crashes ::= 0. quarantined ::= false. | ) (
+    public rootCap = ( ^ rootCap )
+    public rootPath = ( ^ rootPath )
+    public restartThunk = ( ^ restartThunk )
+    public crashes = ( ^ crashes )
+    public quarantined = ( ^ quarantined )
+    public bumpCrashes = ( crashes:: crashes + 1. ^ crashes )
+    public noteProgress = ( crashes:: 0. ^ self )
+    public markQuarantined = ( quarantined:: true. ^ self )
+    public addresses: chPath = (
+      | rlen clen i |
+      (chPath = rootPath) ifTrue: [ ^ true ].
+      rlen:: rootPath size.
+      clen:: chPath size.
+      (clen > rlen) ifFalse: [ ^ false ].
+      i:: 1.
+      [ i <= rlen ] whileTrue: [
+        (chPath at: i) = (rootPath at: i) ifFalse: [ ^ false ].
+        i:: i + 1 ].
+      ^ (chPath at: rlen + 1) = 47 )
+    setRootCap: c restart: t = (
+      rootCap:: c. rootPath:: c rootPath. restartThunk:: t. ^ self )
+  ) : (
+    public rootCap: c restart: t = ( ^ self new setRootCap: c restart: t )
+  )
+
+  (* The Supervisor (Milestone D Task 5, spec §5) — observes crash records on
+     `sys/crash` (posted by the protected reactor, Task 2), attributes each
+     crash to the owning `SupervisedJob` via `jobAddressing:`, sweeps that
+     job's reactions (`platform spaceDropReactionsOwnedBy:` — Task 4's raw
+     native prim, called directly since the Supervisor lives INSIDE this
+     module, same idiom as Channel's own `dropMyReactions` above; the
+     Kernel-level `spaceDropReactionsOwnedBy:` forwarder near `space` is for
+     app-level callers only), and either restarts (re-runs the job's own
+     start thunk, which re-registers its reaction under the SAME rootCap
+     object, so the next sweep still finds it) or quarantines (stops
+     restarting; logs a `#quarantine` record to `sys/log` for observability)
+     once `quarantineLimit` consecutive crashes accumulate. A `progress:`
+     capability lets a job report it is running cleanly (an ordinary
+     `whenever: '' do:` reaction — no special mechanism, just a channel
+     event), resetting its crash count so transient trouble doesn't
+     accumulate toward quarantine across unrelated healthy periods. *)
+  class Supervisor = ( | space jobs quarantineLimit ::= 3. timers | ) (
+    setSpace: s = ( space:: s. jobs:: OrderedCollection new. ^ self )
+
+    (* tuvm#23: hand the supervisor the Timers registry so its crash sweep can
+       cancel a job's timers alongside its reactions (see sweepJob: below).
+       Optional — nil (never wired) preserves the pre-#23 reaction-only sweep,
+       so a rig with no timers changes nothing. *)
+    public timers: t = ( timers:: t. ^ self )
+
+    public register: rootCap restart: aThunk progress: progressCap = (
+      | j |
+      j:: SupervisedJob rootCap: rootCap restart: aThunk.
+      jobs add: j.
+      progressCap whenever: '' do: [ :e | j noteProgress ].
+      ^ j )
+
+    public start = (
+      (space channel: 'sys') whenever: 'crash' do: [ :rec | self handleCrash: rec ].
+      ^ self )
+
+    public isQuarantined: aRootPath = (
+      | j |
+      j:: jobs detect: [ :x | x rootPath = aRootPath ] ifNone: [ nil ].
+      ^ (j == nil) ifTrue: [ false ] ifFalse: [ j quarantined ] )
+
+    handleCrash: rec = (
+      | chPath j |
+      chPath:: rec at: #channel ifAbsent: [ nil ].
+      j:: self jobAddressing: chPath.
+      j == nil ifTrue: [ ^ self ].                  (* crash on an unowned channel: already logged *)
+      j quarantined ifTrue: [ ^ self ].
+      j bumpCrashes.
+      (j crashes >= quarantineLimit)
+        ifTrue: [ self quarantine: j ]
+        ifFalse: [ self restart: j ].
+      ^ self )
+
+    (* tuvm#23 — the FULL sweep of a crashed job's registrations, applied
+       before restart and at quarantine alike: reactions (Task 4's owner-object
+       sweep, as before) AND timers (address-attributed; Timers>>
+       cancelAddressedBy:). Timers must go too or a crash-looping job leaks a
+       live repeater per restart — on target each one pins an M6 handle slot,
+       so let-it-crash inverted into node death in <=32 restarts. Sweep BEFORE
+       the restart thunk runs, so the fresh instance's registrations are not
+       caught by their own job's sweep. *)
+    sweepJob: j = (
+      platform spaceDropReactionsOwnedBy: j rootCap.
+      timers == nil ifFalse: [ timers cancelAddressedBy: j rootPath ].
+      ^ self )
+
+    restart: j = (
+      self sweepJob: j.
+      j restartThunk value.
+      ^ self )
+
+    quarantine: j = (
+      self sweepJob: j.
+      j markQuarantined.
+      (space channel: 'sys') out: 'log'
+          value: (Record tag: #quarantine with: #channel -> j rootPath).
+      ^ self )
+
+    jobAddressing: chPath = (
+      chPath == nil ifTrue: [ ^ nil ].
+      ^ jobs detect: [ :x | x addresses: chPath ] ifNone: [ nil ] )
+  ) : (
+  )
+
+  (* A single `state:on:do:then:` wire — landed from staged `tuvm/review/lib/
+     fsm.ns` (Milestone C Task 5). Kernel-module sibling of Protocol (staged
+     nested it as `Protocol class Transition`; flattened to a top-level
+     sibling here, matching this module's exclusively-flat class shape — no
+     other kernel.nsl class nests a class, and the public surface — `action`,
+     `target`, class-side `action:target:` — is unchanged by the move). *)
+  class Transition = ( | action target | ) (
+    public action = ( ^ action )
+    public target = ( ^ target )
+    setAction: a target: t = ( action:: a. target:: t. ^ self )
+  ) : (
+    public action: a target: t = ( ^ self new setAction: a target: t )
+  )
+
+  (* L4 — Protocol: the state-machine idiom (Milestone C Task 5; THE fiber
+     replacement, addendum A3 mechanism #1). One object per device protocol;
+     events in, actions out; current state explicit, inspectable, and
+     trivially persistable via `snapshot`/`restore:`. Landed from the staged
+     `tuvm/review/lib/fsm.ns` (PLAN-DRAFT CAUTION — see task report for the
+     staged-vs-landed divergence). Depends on Dictionary (per-machine mutable
+     transition/entry tables: `states` maps state -> Dictionary of
+     eventKey -> Transition, `entryActions` maps state -> block — Map is the
+     wrong tool here, it is an immutable value type, not a mutable table) and,
+     by convention only, the channel surface (a transition/entry action may
+     `out:value:`; this class itself sends no channel prim — it adds no new
+     VM surface, exactly as the staged header promises). *)
+  class Protocol = ( | name ::= #protocol. current ::= #initial.
+      states ::= Dictionary new.       (* state -> (eventKey -> Transition) *)
+      unhandled ::= nil.               (* block or nil; nil = silently ignore *)
+      entryActions ::= Dictionary new. (* state -> block, optional *)
+      trace ::= false. | ) (
+
+    (* ---- definition ---- *)
+    (* Staged fsm.ns:48 built the missing-table branch with a block that
+       declared its OWN temp (`[ | t | t:: Dictionary new. states at: s put:
+       t. t ]`) — a genuine (non-inlined) escaping block carrying a local
+       slot. Landed differently: `table` (already a method temp) is reused
+       inside the ifAbsent: block instead of a fresh block-local, and the
+       Dictionary-new-and-store step is hoisted to a plain ifTrue: after the
+       lookup returns nil. Same net effect (create-once, get-or-create), no
+       surface change — flagged as an internal-adaptation, not a logic bug:
+       traced against the VM (`OP_LD_SLOT`/`Invalid receiver`) with an
+       isolated probe and confirmed it is a real compiler/VM limitation on
+       escaping blocks that declare their own temp slots, not staged-logic
+       breakage; avoided rather than chased further, since the plan's
+       PLAN-DRAFT CAUTION rule authorizes internal-logic fixes with an
+       unchanged public surface. *)
+    public state: s on: eventKey do: action then: target = (
+      | table |
+      table:: states at: s ifAbsent: [ nil ].
+      table == nil ifTrue: [ table:: Dictionary new. states at: s put: table ].
+      table at: eventKey put: (Transition action: action target: target).
+      ^ self
+    )
+    public state: s onEntry: aBlock = ( entryActions at: s put: aBlock. ^ self )
+    public onUnhandled: aBlock = ( unhandled:: aBlock. ^ self )
+    public startIn: s = ( current:: s. self runEntry: s with: nil. ^ self )
+    public trace: aBool = ( trace:: aBool. ^ self )
+
+    (* ---- introspection / persistence (the deep-sleep hooks) ---- *)
+    public currentState = ( ^ current )
+    public name = ( ^ name )
+    (* Persistable snapshot is just the state symbol; a protocol carries no
+       other implicit state BY DESIGN — anything else the handler needs
+       lives in the job's own slots or in channel messages, both of which are
+       already explicit. *)
+    public snapshot = ( ^ current )
+    public restore: s = ( current:: s. ^ self )
+
+    (* ---- dispatch (run-to-completion; called from a whenever: handler) ---- *)
+    public handle: event = (
+      | key table hit t |
+      key:: self keyFor: event.
+      table:: states at: current ifAbsent: [ nil ].
+      hit:: false.
+      table == nil ifFalse: [
+        t:: table at: key ifAbsent: [ nil ].
+        t == nil ifFalse: [
+          hit:: true.
+          trace ifTrue: [ (name asString , ': ' , current asString , ' -' , key asString , '-> ' , t target asString) out ].
+          t action value: self value: event.
+          current:: t target.
+          self runEntry: current with: event ] ].
+      hit ifFalse: [
+        unhandled == nil ifFalse: [ unhandled value: self value: event ] ].
+      ^ hit
+    )
+
+    keyFor: event = (
+      (* Symbol -> itself; Record -> tag; anything else -> the catch-all key.
+         isSymbol/isRecord are the type predicates from messages.md. *)
+      event isSymbol ifTrue: [ ^ event ].
+      event isRecord ifTrue: [ ^ event tag ].
+      ^ #event
+    )
+
+    (* Setup-time check: every transition target has a state table or an
+       entry action. Configuration bugs die at setup, not in the field. Call
+       at end of definition: `machine validate.` *)
+    public validate = (
+      states do: [ :table |
+        table do: [ :t |
+          ((states containsKey: t target) or: [ entryActions containsKey: t target ])
+            ifFalse: [ self error: 'unknown state' ] ] ].
+      ^ self
+    )
+    runEntry: s with: event = (
+      | a |
+      a:: entryActions at: s ifAbsent: [ nil ].
+      a == nil ifFalse: [ a value: self value: event ].
+      ^ self
+    )
+    setName: n = ( name:: n. ^ self )
+  ) : (
+    public named: n = ( ^ self new setName: n )
+  )
+
+  (* A pending timer registration — landed from staged `tuvm/review/lib/
+     timers.ns` (Milestone D Task 6). Kernel-module sibling of Transition
+     above (staged nested it as `Timers class Pending`; flattened to a
+     top-level sibling here, matching this module's exclusively-flat class
+     shape — no other kernel.nsl class nests a class, and the public surface
+     — `chan`, `msg`, `repeating`, class-side `chan:msg:repeating:` — is
+     unchanged by the move). *)
+  class Pending = ( | chan msg repeating | ) (
+    public chan = ( ^ chan )
+    public msg = ( ^ msg )
+    public repeating = ( ^ repeating )
+    setChan: c msg: m repeating: r = ( chan:: c. msg:: m. repeating:: r. ^ self )
+  ) : (
+    public chan: c msg: m repeating: r = ( ^ self new setChan: c msg: m repeating: r )
+  )
+
+  (* L3 — timers as channel events (Milestone D Task 6; design doc's
+     event-source seam). Landed from the staged `tuvm/review/lib/timers.ns`,
+     Kernel-module sibling of Space/Supervisor/Protocol above — same flat
+     shape (see Pending's comment just above for why `class Pending` was
+     flattened out of it). No new VM semantics: a timer is an ordinary event
+     source that posts into the space via the C seam (`platform
+     timerAfter:token:`/`timerEvery:token:`/`timerCancel:`/`monotonicMillis`
+     — the five forwarders near `readLine` above, wired to Task 6's
+     `host_timer_*`/`host_monotonic_millis` C prims). The C side carries DATA
+     ONLY (a token, a millisecond count) — which channel, what message, and
+     cancellation bookkeeping all live here in nsl, so C stays one dumb
+     registry + one posting path (design constraint, staged header). Wiring
+     at boot: `timers:: Timers usingSpace: space seam: platform. space
+     whenever: 'sys/timer' do: [:e | timers dispatch: e].` — `'sys/timer'`
+     (no `%` prefix: Milestone C retired `%` as a mechanism, so the reserved
+     channel is a plain path like any other) lives in the caller (test/
+     supervisor setup), not in this class, exactly as the staged header
+     already noted. Every fire is an ordinary reactor dispatch — run-to-
+     completion ordering (T-C.6) applies to timer events identically; no
+     ISR-context nsl execution ever happens (host_advance's C posts are the
+     only ISR-adjacent code and they only ever call space_post). A timer
+     token is a small capability: holding it is the right to cancel it. *)
+  class Timers = ( | space seam nextToken ::= 1. pending ::= Dictionary new. | ) (
+    (* pending: token -> Pending(chan, msg, repeating) *)
+
+    public after: ms post: aMessage on: aChannel = (
+      | tok |
+      tok:: self allocateToken.
+      pending at: tok put: (Pending chan: aChannel msg: aMessage repeating: false).
+      seam timerAfter: ms token: tok.
+      ^ tok
+    )
+
+    public every: ms post: aMessage on: aChannel = (
+      | tok |
+      tok:: self allocateToken.
+      pending at: tok put: (Pending chan: aChannel msg: aMessage repeating: true).
+      seam timerEvery: ms token: tok.
+      ^ tok
+    )
+
+    public cancel: tok = (
+      | p |
+      p:: pending at: tok ifAbsent: [ nil ].       (* cancelling twice is a no-op *)
+      p == nil ifFalse: [
+        pending removeKey: tok.
+        seam timerCancel: tok ].
+      ^ self
+    )
+
+    public pendingCount = ( ^ pending size )
+
+    (* tuvm#23 — the supervisor's timer sweep. Cancel every pending timer whose
+       TARGET channel is rootPath or nested under it, through the ordinary
+       `cancel:` path — which unregisters at the seam, and on target that is
+       what stops the k_timer AND frees its M6 handle pin (timer_zephyr.c).
+       Without this sweep a crash-looping job's restarts each register a fresh
+       `every:` while the dead instance's repeater lives on (its token was held
+       only by the dead instance), pinning one handle slot per restart until
+       "handle table full" kills the node. Ownership is derived from the
+       letter's ADDRESS (`p chan rootPath`), not stored per registration: under
+       the capability discipline a job's timers post into its own subtree, so
+       the address IS the owner — the same attribution rule the supervisor
+       already applies to crash records (SupervisedJob>>addresses:). Snapshot
+       `keys` first: cancel: mutates `pending`, and the walk must not iterate
+       a table being edited. *)
+    public cancelAddressedBy: rootPath = (
+      | ks |
+      ks:: pending keys.
+      1 to: ks size do: [ :i | | tok p |
+        tok:: ks at: i.
+        p:: pending at: tok ifAbsent: [ nil ].
+        p == nil ifFalse: [
+          (self is: p chan rootPath under: rootPath) ifTrue: [ self cancel: tok ] ] ].
+      ^ self
+    )
+
+    (* chPath equals rootPath, or is nested under it (rootPath then '/', byte
+       47). The same hand-rolled byte compare as SupervisedJob>>addresses: (no
+       startsWith: exists in this dialect — that method documents the grep);
+       every `^` below sits inside whileTrue:, which dispatch.c inlines, so
+       they are ordinary method returns, not the deleted-NLR pattern. *)
+    is: chPath under: rootPath = (
+      | rlen clen i |
+      (chPath = rootPath) ifTrue: [ ^ true ].
+      rlen:: rootPath size.
+      clen:: chPath size.
+      (clen > rlen) ifFalse: [ ^ false ].
+      i:: 1.
+      [ i <= rlen ] whileTrue: [
+        (chPath at: i) = (rootPath at: i) ifFalse: [ ^ false ].
+        i:: i + 1 ].
+      ^ (chPath at: rlen + 1) = 47 )
+
+    public now = ( ^ seam monotonicMillis )
+
+    (* Called by the boot-time reserved-channel reaction (see the wiring
+       comment above). Event = the fired token (a SmallInteger). Late fire
+       after cancel -> not in `pending` -> dropped silently BY DESIGN
+       (transient-signal semantics; the race is inherent, the resolution is
+       pinned here). *)
+    public dispatch: tokenEvent = (
+      | p |
+      p:: pending at: tokenEvent ifAbsent: [ nil ].
+      p == nil ifFalse: [
+        p repeating ifFalse: [ pending removeKey: tokenEvent ].
+        p chan out: '' value: p msg ].    (* '' = post at the capability's own root *)
+      ^ self
+    )
+
+    allocateToken = ( | t | t:: nextToken. nextToken:: nextToken + 1. ^ t )
+    setSpace: s seam: c = ( space:: s. seam:: c. ^ self )
+  ) : (
+    public usingSpace: s seam: c = ( ^ self new setSpace: s seam: c )
+  )
+
+  (* Zephyr rung-2 sub-project 1: the ISR→channel pulse capability. Registration
+     hands the seam a (pin, edge, message, channel-path); C pins the message via the
+     M6 handle table and stores the ISR slot. On target a GPIO edge ISR posts the
+     pulse; on host, `fire:` simulates the edge. No nsl-side state — data, not policy. *)
+  class GpioPulse = ( | space seam | ) (
+    public pin: n edge: e post: aMessage on: aChannel = (
+      seam gpioPin: n edge: e post: aMessage on: aChannel rootPath.
+      ^ self )
+    public fire: n = ( seam gpioFire: n. ^ self )   (* host/test only *)
+    (* tuvm#82: the outbound direction. A pin the board never declared RAISES
+       rather than answering a plausible-but-false level — it is a wrong literal in
+       the source, not something traffic can produce, and a silent false would show
+       up as an LED that merely looks broken. The C leaf stays raw and answers nil;
+       the check lives here, the same division Vector>>at: uses over basicAt:. The
+       tag is what makes `on: [ :e | e tag = #gpioUndeclared ]` possible for code
+       that is deliberately probing an unknown board. *)
+    public set: n to: aBool = (
+      (seam gpioSet: n to: aBool) == nil
+        ifTrue: [ ^ self error: 'gpio pin not declared' tag: #gpioUndeclared ].
+      ^ self )
+    public level: n = (
+      | v |
+      v:: seam gpioLevel: n.
+      v == nil ifTrue: [ ^ self error: 'gpio pin not declared' tag: #gpioUndeclared ].
+      ^ v )
+    setSpace: s seam: c = ( space:: s. seam:: c. ^ self )
+  ) : (
+    public usingSpace: s seam: c = ( ^ self new setSpace: s seam: c )
+  )
+
+  (* tuvm#88: the display seam's nsl half. The C leaves stay raw — nil for a board
+     with no display, an SMI status otherwise — and the RAISE lives here, the same
+     division Vector>>at: uses over basicAt: and the only one available since
+     build_and_raise is static to dispatch.c.
+     Three tags rather than one because the three conditions want different
+     responses: unavailable is the wrong board, bounds is a wrong literal, and
+     fault is the panel or its wiring. A node probing an unknown board can catch
+     #displayUnavailable alone and carry on headless. *)
+  class Display = ( | seam | ) (
+    public clear = ( ^ self check: (seam displayClear) )
+    public at: r col: c put: s = ( ^ self check: (seam displayAt: r col: c put: s) )
+    public refresh = ( ^ self check: (seam displayRefresh) )
+    public refreshRow: r = ( ^ self check: (seam displayRefreshRow: r) )
+    check: rc = (
+      rc == nil ifTrue: [ ^ self error: 'no display on this board' tag: #displayUnavailable ].
+      rc = 1 ifTrue: [ ^ self error: 'row or column outside the grid' tag: #displayBounds ].
+      rc = 2 ifTrue: [ ^ self error: 'display driver fault' tag: #displayFault ].
+      ^ self )
+    setSeam: c = ( seam:: c. ^ self )
+  ) : (
+    public usingSeam: c = ( ^ self new setSeam: c )
+  )
+
+  (* tuvm#94 stage 1: the bell seam's nsl half, the same division as Display
+     above — the C leaf stays raw (nil for a board with no bell, an SMI status
+     otherwise) and the RAISE lives here.
+     THE 1-8 CHECK IS HERE AND NOT IN C on purpose. It is not a hardware limit:
+     the cosine generator would happily strike twenty. It is the ship's-bell
+     convention, which is a fact about the PRODUCT, and the product's rules belong
+     where they can be read — and where a raise can be written at all, since
+     build_and_raise is static to dispatch.c. C therefore has no bounds status
+     code; there are only two tags here, not the display's three. *)
+  class Bell = ( | seam | ) (
+    public strike: n = (
+      ((n < 1) or: [ n > 8 ]) ifTrue: [
+        ^ self error: 'bell count outside 1-8' tag: #bellBounds ].
+      ^ self check: (seam bellStrike: n) )
+    (* tuvm#94 stage 2: which count belongs to which half-hour. `i` counts
+       half-hours from midnight, so i=1 is 00:30 and i=47 is 23:30.
+       THE LINE THIS SITS ON: `Bell` owns the CONVENTION — which counts are legal
+       and which count a given half-hour calls for; the node owns the SCHEDULE —
+       when a half-hour happens and what to do about it. Both halves of the
+       convention are therefore in one place and neither is in C.
+       Bells run 1-8 over a four-hour watch and reset, so the count is i modulo 8
+       with 0 reading as 8 (the full end-of-watch eight, not silence). Checks out
+       against the three anchors the design names: 00:30 -> 1, 18:30 -> 5,
+       12:00 -> 8.
+       NSL HAS NO MODULO, so it is spelled with `//`. Defined for i >= 0 only;
+       the caller is a counter, and a negative would answer nonsense rather than
+       raise — deliberately not guarded, because unlike `strike:` this answers a
+       number rather than reaching hardware. *)
+    public bellsForHalfHour: i = (
+      | m |
+      m:: i - ((i // 8) * 8).
+      m = 0 ifTrue: [ ^ 8 ].
+      ^ m )
+    check: rc = (
+      rc == nil ifTrue: [ ^ self error: 'no bell on this board' tag: #bellUnavailable ].
+      rc = 2 ifTrue: [ ^ self error: 'bell driver fault' tag: #bellFault ].
+      ^ self )
+    setSeam: c = ( seam:: c. ^ self )
+  ) : (
+    public usingSeam: c = ( ^ self new setSeam: c )
+  )
+
+  (* Module-level validation/depth helpers (Milestone B Task 6) — NOT public:
+     reachable only by sibling classes nested directly in this module, via
+     their own `outer` link (slot 0), never by application code (an app
+     module's own `outer` never points at this Kernel instance). `rankOf:`
+     mirrors the native `platform valueRank:` prim but falls back to asking
+     the object itself when the prim answers -1 ("other heap" — Task 4),
+     which is how a heap value type (e.g. List) opts in via its own
+     `valueRank` override. *)
+  rankOf: v = ( | r | r:: platform valueRank: v. r = -1 ifTrue: [ ^ v valueRank ]. ^ r )
+  isValueObject: v = ( ^ (rankOf: v) >= 0 )
+  depthOf: v = ( (rankOf: v) >= 7 ifTrue: [ ^ v valueDepth ]. ^ 0 )
+  checkValue: v = ( (isValueObject: v) ifFalse: [ self error: 'not a value' ]. ^ v )
+  checkDepth: d = ( d > 32 ifTrue: [ self error: 'message depth exceeded' ]. ^ d )
+
+  (* Channel-path canonicalization (Milestone C Task 2, addendum A1) — same
+     non-public family as the helpers above, reached the same way (Channel's
+     `outer` send). Byte-walks `p` (`/` = 47, `.` = 46) rejecting: a leading
+     or trailing `/`, an empty segment (`//`), and any segment made ENTIRELY
+     of `.` bytes (`dots = segLen`) — which covers both `.` and `..` and also
+     `...`+ ; stricter than A1 strictly demands (A1 only names `.`/`..`), but
+     deliberate: a dot-only segment has no legitimate use, so the wider
+     rejection closes the whole family in one rule rather than special-casing
+     two lengths. Segment bytes are otherwise unrestricted except `/` — no
+     other character carries reserved meaning (design §9 Q1). `''` is the
+     legal root-of-everything path (checked first, before the leading/
+     trailing-slash test would otherwise need to guard against `p at: 1` on
+     an empty String). Answers `p` unchanged when canonical; crashes
+     `bad channel path` (never silently normalizes) otherwise. *)
+  checkPath: p = (
+    | n i segLen dots |
+    n:: p size.
+    n = 0 ifTrue: [ ^ p ].                                   (* '' = the root, legal *)
+    ((p at: 1) = 47 or: [ (p at: n) = 47 ]) ifTrue: [ self error: 'bad channel path' ].
+    i:: 1. segLen:: 0. dots:: 0.
+    [ i <= n ] whileTrue: [
+      (p at: i) = 47
+        ifTrue: [
+          (segLen = 0 or: [ dots = segLen ]) ifTrue: [ self error: 'bad channel path' ].
+          segLen:: 0. dots:: 0 ]
+        ifFalse: [
+          segLen:: segLen + 1.
+          (p at: i) = 46 ifTrue: [ dots:: dots + 1 ] ].
+      i:: i + 1 ].
+    (segLen = 0 or: [ dots = segLen ]) ifTrue: [ self error: 'bad channel path' ].
+    ^ p )
+
+  (* Value order, typed equality, structural hash (Milestone B Task 7) — same
+     non-public family as the helpers above, reached the same way (List's
+     `outer` send; Map/Record join later the same way). Rank arms cover ONLY
+     the ranks that exist today — 0 nil, 1 Boolean, 2 Integer, 3 Float,
+     4 String, 6 Symbol, 7 List. Rank compare always runs FIRST, so values of
+     different ranks are never equal (Integer 1 is not Float 1.0 in this
+     algebra) even though both ranks individually order via `<`. Boolean
+     order is a fixed, arbitrary choice: false < true. Symbol has no
+     `at:`/`size` fast path in dispatch.c (only String's PRIM_at/PRIM_size do
+     — confirmed by reading src/dispatch.c; a bare Symbol falls through to
+     does_not_understand on `at:`), so genuine Symbols (Booleans are already
+     peeled off as rank 1 before this arm) are compared byte-wise via their
+     `printString` (which renders as '#' + name for a real Symbol), reusing
+     the String byte-compare helper below. *)
+  valueCompare: a with: b = (
+    | ra rb |
+    ra:: rankOf: a. rb:: rankOf: b.
+    ra = rb ifFalse: [ ^ ra < rb ifTrue: [ -1 ] ifFalse: [ 1 ] ].
+    ra = 0 ifTrue: [ ^ 0 ].                                     (* nil = nil *)
+    ra = 1 ifTrue: [                                            (* Boolean: false < true *)
+      a == b ifTrue: [ ^ 0 ].
+      ^ a ifTrue: [ 1 ] ifFalse: [ -1 ] ].
+    (ra = 2 or: [ ra = 3 ]) ifTrue: [                            (* Integer / Float *)
+      a < b ifTrue: [ ^ -1 ]. b < a ifTrue: [ ^ 1 ]. ^ 0 ].
+    ra = 4 ifTrue: [ ^ byteCompare: a with: b ].                 (* String *)
+    ra = 5 ifTrue: [ ^ bytesCompare: a with: b ].                (* Bytes *)
+    ra = 6 ifTrue: [ ^ byteCompare: a printString with: b printString ]. (* Symbol *)
+    ra = 7 ifTrue: [ ^ listCompare: a with: b ].                 (* List *)
+    ra = 8 ifTrue: [ ^ mapCompare: a with: b ].                  (* Map *)
+    ra = 9 ifTrue: [ ^ recordCompare: a with: b ].                (* Record *)
+    ^ self error: 'not a value'
+  )
+
+  (* Byte-wise total order over two Strings: shared-prefix bytes decide first;
+     an exact-prefix tie falls to shorter-is-less. Shared by the String (rank
+     4) and Symbol (rank 6, via printString) arms above. *)
+  byteCompare: s with: t = (
+    | n m lim |
+    n:: s size. m:: t size. lim:: n < m ifTrue: [ n ] ifFalse: [ m ].
+    1 to: lim do: [ :i | | sb tb |
+      sb:: s at: i. tb:: t at: i.
+      sb < tb ifTrue: [ ^ -1 ].
+      tb < sb ifTrue: [ ^ 1 ] ].
+    n < m ifTrue: [ ^ -1 ]. n > m ifTrue: [ ^ 1 ]. ^ 0
+  )
+
+  (* Byte-wise total order over two Bytes values: shared-prefix bytes decide
+     first (via u8At:/byteSize, a RawBytes-wrapping kernel object — NOT a
+     String — so byteCompare:with: itself cannot be reused, it sends
+     at:/size), an exact-prefix tie falls to shorter-is-less. Same shape as
+     byteCompare:with: above. *)
+  bytesCompare: a with: b = (
+    | n m lim |
+    n:: a byteSize. m:: b byteSize. lim:: n < m ifTrue: [ n ] ifFalse: [ m ].
+    1 to: lim do: [ :i | | sb tb |
+      sb:: a u8At: i. tb:: b u8At: i.
+      sb < tb ifTrue: [ ^ -1 ].
+      tb < sb ifTrue: [ ^ 1 ] ].
+    n < m ifTrue: [ ^ -1 ]. n > m ifTrue: [ ^ 1 ]. ^ 0
+  )
+
+  (* Element-wise total order over two Lists: shared-index elements decide
+     first (recursively, via valueCompare:with:), an exact-prefix tie falls
+     to shorter-is-less. *)
+  listCompare: a with: b = (
+    | n m lim |
+    n:: a size. m:: b size. lim:: n < m ifTrue: [ n ] ifFalse: [ m ].
+    1 to: lim do: [ :i | | c |
+      c:: valueCompare: (a at: i) with: (b at: i).
+      c = 0 ifFalse: [ ^ c ] ].
+    n < m ifTrue: [ ^ -1 ]. n > m ifTrue: [ ^ 1 ]. ^ 0
+  )
+
+  (* Entry-wise total order over two Maps' SORTED entries: shared-index
+     entries decide first, pairwise key-then-value (recursively, via
+     valueCompare:with:), an exact-prefix tie falls to shorter-map-is-less.
+     Same shape as listCompare:with: above, but each step is two compares
+     (key, then value only if the keys tied) instead of one. Walks both Maps
+     by index via the `keyAt:`/`valueAt:` accessors (see Map's own comment on
+     why keysAndValuesDo: alone can't do lockstep two-receiver iteration). *)
+  mapCompare: a with: b = (
+    | n m lim c |
+    n:: a size. m:: b size. lim:: n < m ifTrue: [ n ] ifFalse: [ m ].
+    1 to: lim do: [ :i |
+      c:: valueCompare: (a keyAt: i) with: (b keyAt: i).
+      c = 0 ifFalse: [ ^ c ].
+      c:: valueCompare: (a valueAt: i) with: (b valueAt: i).
+      c = 0 ifFalse: [ ^ c ] ].
+    n < m ifTrue: [ ^ -1 ]. n > m ifTrue: [ ^ 1 ]. ^ 0
+  )
+
+  (* Tag-then-fields total order over two Records: tag decides first (both
+     Symbols, compared via the rank-6 arm above), fields decide the tie
+     (both Maps, routes through mapCompare:with:). Uses only the public
+     tag/fields accessors — no new public surface needed (unlike Map's
+     keyAt:/valueAt:, which exist purely so this family can walk two
+     receivers in lockstep; Record has exactly one field of each kind, so a
+     plain accessor read suffices). *)
+  recordCompare: a with: b = (
+    | c |
+    c:: valueCompare: a tag with: b tag.
+    c = 0 ifFalse: [ ^ c ].
+    ^ valueCompare: a fields with: b fields
+  )
+
+  value: a equals: b = ( ^ (valueCompare: a with: b) = 0 )
+
+  (* FNV-style structural hash: a leaf folds its existing `hash` with its
+     rank; a container seeds the fold with its rank and mixes in each
+     child's valueHashOf: in canonical (construction) order. 30-bit mask
+     keeps every intermediate SMI-safe (mirrors the Integer bitops fold
+     idiom from Task 1) — this is why the LEAF fallback below masks too
+     (Milestone B Task 8 fix, discovered via TDD: a bare Symbol's native
+     `hash` is a large, unbounded value — NOT a small SMI like Integer's
+     self-hash — so folding it into a container's `h * 16777619` step
+     unmasked overflows LargeInteger's 64-bit magnitude limit before the
+     container's own bitAnd ever runs; Task 7's own test never combined a
+     Symbol into a container hash, so this went uncaught until a Map with
+     Symbol keys exercised it here). Masking the leaf is a no-op for every
+     already-passing case (Integer/List leaf hashes here are already well
+     under 2^30) and only changes behavior for previously-broken cases. *)
+  valueHashOf: v = (
+    | r h |
+    r:: rankOf: v.
+    r = 7 ifTrue: [                                              (* List *)
+      h:: r.
+      v do: [ :e | h:: ((h bitXor: (valueHashOf: e)) * 16777619) bitAnd: 1073741823 ].
+      ^ h ].
+    r = 8 ifTrue: [                                              (* Map *)
+      h:: r.
+      v keysAndValuesDo: [ :k :val |
+        h:: ((h bitXor: (valueHashOf: k)) * 16777619) bitAnd: 1073741823.
+        h:: ((h bitXor: (valueHashOf: val)) * 16777619) bitAnd: 1073741823 ].
+      ^ h ].
+    r = 9 ifTrue: [                                              (* Record *)
+      h:: r.
+      h:: ((h bitXor: (valueHashOf: v tag)) * 16777619) bitAnd: 1073741823.
+      h:: ((h bitXor: (valueHashOf: v fields)) * 16777619) bitAnd: 1073741823.
+      ^ h ].
+    r = 5 ifTrue: [                                              (* Bytes — folded
+      explicitly, container-style, ABOVE the leaf fallback: a Bytes value's own
+      `hash` method calls back into `outer valueHashOf: self`, so if rank 5 ever
+      reached the fallback below it would recurse forever. *)
+      h:: r.
+      1 to: v byteSize do: [ :i | h:: ((h bitXor: (v u8At: i)) * 16777619) bitAnd: 1073741823 ].
+      ^ h ].
+    ^ ((v hash) bitXor: r) bitAnd: 1073741823
+  )
+
+  public readLine = ( ^ platform readLine )
+  public protectedFire: aBlock value: v = ( ^ platform protectedFire: aBlock value: v )
+  public valueRank: v = ( ^ platform valueRank: v )
+  (* The restart-sweep verb (Milestone D Task 4): the Supervisor (Task 5) calls
+     this directly with a crashed job's rootCap to drop every reaction it owns,
+     across every channel, before the job restarts. Thin forwarder to the C
+     prim, same shape as protectedFire:/valueRank: above. *)
+  public spaceDropReactionsOwnedBy: cap = ( ^ platform spaceDropReactionsOwnedBy: cap )
+  (* tuvm#20: posts shed by the full event ring — per exact channel, or the
+     node total for ''. Cumulative, never reset. The pull side of G2's "never
+     silent" (the periodic sys/metrics push side is tuvm#24). Thin forwarder,
+     same shape as spaceDropReactionsOwnedBy: above. *)
+  public spaceOverruns: p = ( ^ platform spaceOverruns: p )
+  public sysStats = ( ^ platform sysStats )
+  (* Milestone D Task 6: the host virtual-clock timer seam. Thin forwarders,
+     same shape as spaceDropReactionsOwnedBy: above — the `Timers` class
+     (below) is the only intended caller (it holds `platform` as its
+     `seam`), but these are ordinary public Kernel-instance selectors like
+     every other forwarder in this family. *)
+  public timerAfter: ms token: tok = ( ^ platform timerAfter: ms token: tok )
+  public timerEvery: ms token: tok = ( ^ platform timerEvery: ms token: tok )
+  public timerCancel: tok = ( ^ platform timerCancel: tok )
+  public monotonicMillis = ( ^ platform monotonicMillis )
+  public advanceMillis: ms = ( ^ platform advanceMillis: ms )
+  (* Zephyr rung-2 sub-project 1: the ISR→channel pulse seam. Thin forwarders,
+     same shape as the timer forwarders above — the `GpioPulse` class (above)
+     is the only intended caller (it holds `platform` as its `seam`), but
+     these are ordinary public Kernel-instance selectors like every other
+     forwarder in this family. *)
+  public gpioPin: n edge: e post: m on: path = ( ^ platform gpioPin: n edge: e post: m on: path )
+  public gpioFire: n = ( ^ platform gpioFire: n )
+  (* tuvm#82: the OUTBOUND half of the gpio seam. Thin forwarders, same shape as
+     gpioPin:/gpioFire: above. Both answer nil for a pin the board never declared —
+     the GpioPulse wrapper is what turns that nil into a tagged raise, so these stay
+     raw and a test can observe the nil directly. *)
+  public gpioSet: n to: aBool = ( ^ platform gpioSet: n to: aBool )
+  public gpioLevel: n = ( ^ platform gpioLevel: n )
+  (* tuvm#88: the display seam. Thin forwarders, same shape as the gpio family
+     above. All four answer nil when the board has no display and an SMI status
+     otherwise — the Display wrapper is what turns those into tagged raises, so
+     these stay raw and a test can observe the codes directly. *)
+  public displayClear = ( ^ platform displayClear )
+  public displayAt: r col: c put: s = ( ^ platform displayAt: r col: c put: s )
+  public displayRefresh = ( ^ platform displayRefresh )
+  public displayRefreshRow: r = ( ^ platform displayRefreshRow: r )
+  (* tuvm#94: the bell seam. Same thin-forwarder shape as the display family
+     above — nil when the board has no bell, an SMI status otherwise; the Bell
+     wrapper turns those into tagged raises, so this stays raw and a test can
+     observe the codes directly. IT BLOCKS for the whole striking, ~500 ms a
+     bell. *)
+  public bellStrike: n = ( ^ platform bellStrike: n )
+  (* tuvm#94 stage 4: the NTP seam. Thin forwarder — nil when the sync failed, an
+     SMI of seconds-since-local-midnight (0..86399) otherwise. The offset is passed
+     IN because the timezone is a product fact, not a hardware one.
+     There is deliberately NO wrapper class here, unlike Bell/Display: a wrapper
+     exists to turn status codes into tagged raises, and this seam has no error to
+     raise. A failed sync is an ordinary answer the node acts on directly (keep
+     free-running), not an exceptional condition — inventing a raise for it would
+     force every caller to write a handler for the normal case.
+     IT BLOCKS up to the SNTP timeout; call only between strikes. *)
+  public ntpSyncTz: offsetSeconds = ( ^ platform ntpSyncTz: offsetSeconds )
+  (* tuvm#100 (2026-08-01): the DATE of the last successful ntpSyncTz:, packed
+     decimal (20260801), in that call's timezone — nil if none has succeeded.
+     It exists so the RTC correction loop can complete: ntpSyncTz: answers
+     seconds-of-day, wallClockSetDate:time: demands a date, and without this a node
+     can measure the clock's error but not fix it.
+     DOES NOT BLOCK and does NOT ask the network — it reads what the sync already
+     received, so one request serves both halves.
+     Call ntpSyncTz: first and only trust this if that answered non-nil. *)
+  public ntpDate = ( ^ platform ntpDate )
+  (* tuvm#94 stage 5: the RTC-retention seam. Thin forwarders over the platform prims,
+     the same shape as ntpSyncTz: above. rtcValid answers a Boolean here (the prim
+     answers an SMI 0/1 — no true/false oop is needed on the C side). rtcGet:/
+     rtcPut:value: are indexed SMI accessors; the field indices (design §3) are node
+     constants, not baked here, so the seam stays a dumb array. *)
+  public rtcValid = ( ^ (platform rtcValid) = 1 )
+  public rtcGet: i = ( ^ platform rtcGet: i )
+  public rtcPut: i value: v = ( platform rtcPut: i value: v. ^ self )
+  (* tuvm#94 stage 5: deepSleep: seconds. NEVER RETURNS — the VM ceases to exist
+     until the next timer wake reboots it. There is no wrapper and no answer to coerce:
+     the caller's very next line is unreachable by construction. *)
+  public deepSleep: seconds = ( ^ platform deepSleep: seconds )
+  (* tuvm#100: the wall-clock seam — an external RTC (DS3231 over I2C) as the
+     timebase. Thin forwarder, deliberately the SAME shape as ntpSyncTz: above:
+     nil when there is no RTC or it has never been set, an SMI of seconds-since-
+     local-midnight (0..86399) otherwise. That sameness is the point — schedule
+     arithmetic cannot tell which timebase answered, so a node moves between the
+     network and the RTC without touching its striking code.
+     NOT the rtcValid/rtcGet:/rtcPut:value: family above: those are the deep-sleep
+     RETENTION store. Different device, different question, hence the name.
+     No wrapper class and no raise, for ntpSyncTz:'s reason: a board with no RTC
+     is an ordinary answer the node acts on (free-run), not an exceptional
+     condition. Unlike ntpSyncTz: this does NOT block on a network — it is one
+     short I2C transaction — and it takes no tz offset, because an RTC holds the
+     local time that was written to it. *)
+  public wallClock = ( ^ platform wallClock )
+  (* tuvm#100: setting the RTC. `yyyymmdd` is a packed decimal date (20260731) and
+     `secondsOfDay` is wallClock's own unit, so a set followed by a read is an
+     identity. One call rather than two because a date write and a separate time
+     write leave a window where the part holds halves of two different instants.
+     nil when there is no RTC or the write was refused (a secondsOfDay outside
+     0..86399), SMI 0 when the clock was set. *)
+  public wallClockSetDate: yyyymmdd time: secondsOfDay = ( ^ platform wallClockSetDate: yyyymmdd time: secondsOfDay )
+  public pumpEvents = ( ^ platform pumpEvents )
+  (* webserver-channel-device spike, Task 3: the http driver's platform prims.
+     Same thin-forwarder shape as the gpio/timer families above — the C-side
+     work (framing, ring, in-flight table) lives entirely in src/http.c +
+     src/backend/<target>/http_<target>.c; this Kernel instance is just the
+     capability the user's nsl code actually holds as `platform`. *)
+  public httpListen: port = ( ^ platform httpListen: port )
+  public httpRespondId: id status: st body: b = ( ^ platform httpRespondId: id status: st body: b )
+  public httpInject: m path: p = ( ^ platform httpInject: m path: p )
+  public httpBeginId: id status: st = ( ^ platform httpBeginId: id status: st )
+  public httpChunkId: id data: s    = ( ^ platform httpChunkId: id data: s )
+  public httpEndId: id              = ( ^ platform httpEndId: id )
+  (* AMG8833 thermal rung Task 1: the Tier-1 sensor seam. Same thin-forwarder
+     shape as the http family above — the C-side work lives entirely in
+     src/sensor_backend.h + src/backend/<target>/sensor_<target>.c; this Kernel
+     instance is just the capability the user's nsl code actually holds as
+     `platform`. sensorFrame answers a raw 64-slot Array of centi-degC SMIs (or
+     nil when the device is not ready) — read with basicAt:, the heapStats
+     precedent, not Array's at:. *)
+  public sensorFrame = ( ^ platform sensorFrame )
+  public sensorArmEventPost: msg on: path threshold: centi = ( ^ platform sensorArmEventPost: msg on: path threshold: centi )
+
+  public Object            = ( ^ Object )
+  public Array             = ( ^ Array )
+  public Collection        = ( ^ Collection )
+  public OrderedCollection = ( ^ OrderedCollection )
+  public Interval          = ( ^ Interval )
+  public Set               = ( ^ Set )
+  public Dictionary        = ( ^ Dictionary )
+  public Association       = ( ^ Association )
+  public List              = ( ^ List )
+  public Map               = ( ^ Map )
+  public Protocol          = ( ^ Protocol )
+  public Record            = ( ^ Record )
+  (* Rung 3 Task 5: the CBOR codec is a stateless utility, but its public entry
+     (`encode:`) is an INSTANCE method, so the accessor answers a fresh instance
+     (same "always fresh, same underlying substrate" shape as `space`/`timers`).
+     Returning the class object instead would route `Cbor encode:` through the
+     compiler's class-construction fallback — sending an instance-side selector
+     to a class object silently NEWs the class and drops the message. *)
+  public Cbor              = ( ^ Cbor new )
+  public HeapStats         = ( ^ HeapStats )
+  (* tuvm#61: the span-slot capability. Answers the CLASS, not an instance — the
+     `Cbor new` comment above explains why the two are spelled differently: sending
+     an instance-side selector to a class object silently NEWs the class and drops
+     the message. Callers do `platform Spans new` and hold the instance. *)
+  public Spans             = ( ^ Spans )
+  (* tuvm#72: same shape as Spans above — answers the CLASS, so
+     `platform SpanCapture onSpace:spans:` reaches the class-side constructor
+     rather than whatever an implicit accessor would hand back. Written out
+     explicitly for exactly the reason the comment above gives. *)
+  public SpanCapture       = ( ^ SpanCapture )
+  public heapStats         = ( ^ HeapStats fromList: (platform heapStats) )
+  (* tuvm#24: the sys/metrics snapshot — prim 104 (heapStats) + prim 109
+     (sysStats) composed into ONE flat immutable Record, the sys/metrics
+     cell's wire schema (pinned in porta/docs/PROTOCOL-NSL-RECORDS.md §4.4).
+     The kernel only BUILDS the record; publishing it onto a cell is the
+     app's act, on a user-requested cadence (G9), with the channel arriving
+     as a capability — the kernel never conjures space access (Milestone-C
+     constructor-args rule). Raw prim arrays are read with basicAt:, the
+     HeapStats precedent. *)
+  public metrics = ( | h s pairs |
+    h:: platform heapStats.
+    s:: platform sysStats.
+    pairs:: OrderedCollection new.
+    pairs add: #heapSize -> (h basicAt: 1).
+    pairs add: #liveBytes -> (h basicAt: 2).
+    pairs add: #heapHighWater -> (h basicAt: 3).
+    pairs add: #largestFreeBlock -> (h basicAt: 4).
+    pairs add: #gcCycles -> (h basicAt: 5).
+    pairs add: #handlesLive -> (s basicAt: 1).
+    pairs add: #handlesHighWater -> (s basicAt: 2).
+    pairs add: #queueHighWater -> (s basicAt: 3).
+    pairs add: #overruns -> (s basicAt: 4).
+    (* tuvm#34: the ISR pulse seam's own counters, widening this record from 9
+       fields to 11. That seam used to answer a full mailbox with k_oops, so there
+       was nothing to publish; now that it SHEDS instead, a silent shed would be
+       strictly worse than the crash it replaced. pulseDrops rising is the alarm —
+       the reactor is not pumping fast enough; pulseCoalesced rising is the
+       mechanism working, a repeating source folding into one pending wakeup. *)
+    pairs add: #pulseDrops -> (s basicAt: 5).
+    pairs add: #pulseCoalesced -> (s basicAt: 6).
+    ^ Record tag: #Metrics fields: (Map fromPairs: pairs) )
+  (* Milestone E Task 1: crash-Record factory reachable from ANY context. The
+     error:/error:tag: raise prims cannot reach the sibling `Record` class from an
+     app receiver (v1 BLOCKED finding), but they DO hold the captured Kernel
+     instance, so they send it this accessor — kernel scope, where `Record`
+     resolves — to build the in-flight crash Record before raising it. *)
+  public crashRecordTag: aTag text: aText = ( ^ Record tag: aTag with: #text -> aText )
+  (* Milestone E F1: the default-tag factory for a bare `self error:` (no explicit
+     tag). The `#error` literal here compiles into the image's INTERNED symbol
+     table, so any `#error` elsewhere (e.g. an app handler predicate
+     `[ :e | e tag = #error ]`) interns to the SAME oop and identity-`=` matches.
+     The v1 PRIM_error minted a FRESH non-interned Symbol, which never matched. *)
+  public crashRecordText: aText = ( ^ Record tag: #error with: #text -> aText )
+  public ByteArray         = ( ^ ByteArray )
+  public NetBridge         = ( ^ NetBridge )
+  (* porta space-sync (plan 2). Answers the CLASS, not an instance — `platform
+     PortaBridge socket:space:id:peer:port:` must reach the class-side
+     constructor, and sending an instance-side selector to a class object
+     silently NEWs the class and drops the message (the `Cbor new` note above).
+     THE NODE MUST HOLD THE ONE INSTANCE IT GETS: the cursor, the ack high-water
+     and the pending capture queue all live on it, so re-fetching this accessor
+     would silently start a second, empty bridge — the `platform timers` lesson,
+     which cost a 9h23m run and every bell in it. *)
+  public PortaBridge       = ( ^ PortaBridge )
+  public ReadStream        = ( ^ ReadStream )
+  public WriteStream       = ( ^ WriteStream )
+  (* Stateless facade (Milestone C Task 2): the tuple-space substrate is the
+     C singleton (Task 1's space.c), so every call answers a FRESH Space
+     object rooted at '' — not a cached instance — yet all of them address
+     the same underlying space, exactly like two `platform List` sends
+     answering the same class object above. *)
+  public space             = ( ^ Space new setRoot: '' )
+  (* Milestone D Task 5: a fresh Supervisor holding the root Space, same
+     "always fresh, same underlying substrate" shape as `space` above — the
+     jobs OrderedCollection lives on this particular Supervisor instance, so
+     callers keep the one answered by `platform supervisor` rather than
+     re-fetching it. *)
+  public supervisor        = ( ^ Supervisor new setSpace: self space )
+  (* Milestone D Task 6: a fresh Timers instance wired to a fresh root Space
+     and this Kernel instance as seam, same "always fresh, same underlying
+     substrate" shape as `space`/`supervisor` above. Callers that need a
+     SINGLE shared registry (the common case — see the two 11_supervision
+     timer tests) construct their own `Timers usingSpace:seam:` once instead
+     of re-fetching this accessor, exactly as `05_restart_quarantine.nsl`
+     keeps the one `Supervisor` it got from `platform supervisor`. *)
+  public timers            = ( ^ Timers usingSpace: self space seam: self )
+  (* Zephyr rung-2 sub-project 1: a fresh GpioPulse instance wired to a fresh
+     root Space and this Kernel instance as seam, same "always fresh, same
+     underlying substrate" shape as `timers` above. Callers register pulses
+     directly via this accessor — C owns the per-pin registration slot, so
+     unlike `timers` there is no shared nsl-side registry callers need to
+     keep a single instance of. *)
+  public gpio              = ( ^ GpioPulse usingSpace: self space seam: self )
+  (* tuvm#88: a fresh Display instance wired to this Kernel instance as seam,
+     same "always fresh, same underlying substrate" shape as `gpio` above —
+     C owns the grid state, so there is no shared nsl-side registry callers
+     need to keep a single instance of. *)
+  public display           = ( ^ Display usingSeam: self )
+  (* tuvm#94: a fresh Bell instance wired to this Kernel instance as seam, same
+     shape as `display` above. A NEW KERNEL CLASS IS UNREACHABLE WITHOUT AN
+     EXPLICIT ACCESSOR — an app's `platform` is this Kernel instance, so a class
+     nested here that nothing hands out simply does not exist for a node. *)
+  public bell              = ( ^ Bell usingSeam: self )
+) : (
+)
