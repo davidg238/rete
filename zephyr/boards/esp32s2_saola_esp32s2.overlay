@@ -1,0 +1,311 @@
+/* Adafruit MagTag IO: four buttons, the red LED, and the NeoPixel power gate.
+ *
+ * FILENAME IS LOAD-BEARING. Zephyr auto-applies boards/<board>_<qualifiers>.overlay,
+ * where the qualifiers of the board target `esp32s2_saola/esp32s2` are joined with
+ * underscores (cmake/modules/extensions.cmake) — hence
+ * `esp32s2_saola_esp32s2.overlay`. A plain `esp32s2_saola.overlay` is NOT a name the
+ * build looks for: it would be silently ignored, the aliases below would never exist,
+ * DT_NODE_EXISTS would compile the single-button branch of ../src/main.c, and three
+ * of the four buttons would simply never fire with no error anywhere. If a button
+ * does nothing, check FIRST that the build log says
+ * "Found devicetree overlay: .../boards/esp32s2_saola_esp32s2.overlay".
+ *
+ * WHY esp32s2_saola AND NOT A MAGTAG BOARD: esp32s2_saola.dts:9 includes
+ * <espressif/esp32s2/esp32s2_wrover_n4r2.dtsi>, which IS the MagTag's module
+ * (ESP32-S2-WROVER, 4 MB flash, 2 MB PSRAM). The Saola and the MagTag differ only in
+ * board IO — which is exactly what this file supplies. See zephyr/prj_esp32s2.conf.
+ *
+ * Pins verified against the vendor pinout diagram (zephyr/boards/magtag/, gitignored):
+ *   BUTTON_A GPIO15   BUTTON_B GPIO14   BUTTON_C GPIO12   BUTTON_D GPIO11
+ *   Red LED  GPIO13   NeoPixel data GPIO1   NeoPixel POWER GPIO21
+ * All are 0..31, so all live on gpio0 (esp32s2_common.dtsi:215, ngpios = 32).
+ * GPIO 32+ would need gpio1 — that is where the e-paper's SPI lands (35/36/37), which
+ * is a later doc.
+ *
+ * BUTTONS ARE ACTIVE-LOW WITH NO BOARD PULL-UPS. The vendor guide is explicit:
+ * "There are no pull-ups on board, use internal pullups for this pins - when the
+ * buttons are pressed the IO pin labeled is set to LOW". So GPIO_PULL_UP is NOT
+ * optional here — without it the pins float and fire spuriously. With ACTIVE_LOW set,
+ * main.c's existing GPIO_INT_EDGE_TO_ACTIVE already means the falling edge, so that
+ * line needed no change when this board arrived.
+ *
+ * LATENT HAZARD: GPIO15 (BUTTON_A) is also XTAL_32K_P. The MagTag fits no 32 kHz
+ * crystal, so nothing claims it today — but if a future config ever enables one,
+ * BUTTON_A dies silently.
+ *
+ * gpio-keys is used only as a well-known BINDING for (gpios, zephyr,code); the input
+ * subsystem driver is NOT enabled (no CONFIG_INPUT_GPIO_KEYS), so nothing claims these
+ * pins and ../src/main.c binds them directly via GPIO_DT_SPEC_GET on the aliases. That
+ * is exactly how the nRF52840-DK and dongle overlays already use their board's
+ * button0. zephyr,code values are therefore inert here; they are supplied because the
+ * binding requires the property.
+ *
+ * ALIAS ORDER IS COSMETIC. main.c derives each input's LOGICAL pin from the DT spec's
+ * own GPIO number whenever more than one alias exists, so an nsl node registers
+ * `gpio pin: 15 ...` for BUTTON_A and reads like the silkscreen. The order below is
+ * simply left-to-right as the buttons sit on the board (D15 D14 D12 D11).
+ */
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+
+/ {
+	buttons {
+		compatible = "gpio-keys";
+
+		btn_a: button_a {
+			gpios = <&gpio0 15 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+			label = "MagTag Button A";
+			zephyr,code = <INPUT_KEY_A>;
+		};
+		btn_b: button_b {
+			gpios = <&gpio0 14 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+			label = "MagTag Button B";
+			zephyr,code = <INPUT_KEY_B>;
+		};
+		btn_c: button_c {
+			gpios = <&gpio0 12 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+			label = "MagTag Button C";
+			zephyr,code = <INPUT_KEY_C>;
+		};
+		btn_d: button_d {
+			gpios = <&gpio0 11 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+			label = "MagTag Button D";
+			zephyr,code = <INPUT_KEY_D>;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		red_led: led_0 {
+			gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;
+			label = "MagTag red LED D13";
+		};
+
+		/* NOT an indicator — this is the NeoPixel POWER GATE. Per the vendor
+		 * guide: "To use the NeoPixel LEDs you must also set pin 21 to be an
+		 * output and LOW - this is the NeoPixel power pin. If not using the
+		 * NeoPixels, keep pin 21 as an input or HIGH output - that will remove
+		 * the quiescent power usage". Declared ACTIVE_LOW so that "on" in
+		 * led/gpio terms means powered. It is modelled as an LED purely to get a
+		 * gpio-leds handle with no new binding; nothing lights when it is set.
+		 * Forgetting it is the classic MagTag time-sink: the strip looks dead.
+		 * It is also RTC-capable, which matters at deep-sleep time — see
+		 * docs/design/2026-07-23-magtag-buttons-leds-design.md D5.
+		 */
+		neopixel_power: neopixel_power {
+			gpios = <&gpio0 21 GPIO_ACTIVE_LOW>;
+			label = "MagTag NeoPixel power gate";
+		};
+
+		/* SPEAKER_ENABLE (GPIO16) — the shutdown pin of the onboard PAM8302
+		 * class-D amp. Drive HIGH to un-mute; LOW leaves the amp shut down (its
+		 * quiescent-draw default, like the NeoPixel gate). Modelled as gpio-leds
+		 * only to get a handle with no new binding — nothing lights. The audio
+		 * itself is a separate pin (SPEAKER = GPIO17, an LEDC/DAC output). RTC-
+		 * capable, so it can hold an amp state across deep sleep if ever wanted.
+		 */
+		speaker_enable: speaker_enable {
+			gpios = <&gpio0 16 GPIO_ACTIVE_HIGH>;
+			label = "MagTag speaker-enable (PAM8302 amp)";
+		};
+	};
+
+	aliases {
+		/* pulsegpio (index 0) is the seam the nRF52840-DK and dongle already use;
+		 * pulsegpio1..3 are the extension for multi-button boards. main.c compiles
+		 * out whichever are absent, so single-button boards are unaffected. */
+		pulsegpio  = &btn_a;
+		pulsegpio1 = &btn_b;
+		pulsegpio2 = &btn_c;
+		pulsegpio3 = &btn_d;
+
+		magtagled = &red_led;
+		neopixelpower = &neopixel_power;
+
+		/* tuvm#82 — the OUTBOUND seam. gpioout* is to outputs what pulsegpio* is
+		 * to inputs: ../src/main.c compiles the table away entirely on boards
+		 * that declare none, so the nRF52840-DK and dongle are untouched. The
+		 * ALIAS NAMES NEVER REACH nsl — a node names the silkscreen GPIO number
+		 * (13 for the red LED, 21 for the NeoPixel power gate), which main.c
+		 * matches against each spec's own .pin. */
+		gpioout  = &red_led;
+		gpioout1 = &neopixel_power;
+
+		/* Speaker spike: the amp-enable GPIO for ../src/main.c's magtag_chime()
+		 * (guarded by CONFIG_PWM, so absent from the button/WiFi builds). */
+		spkren = &speaker_enable;
+	};
+};
+
+/* SPEAKER audio path (spike). GPIO17 is the amp's audio input — it is DAC_1 and
+ * also reachable from the LEDC (PWM) peripheral via the GPIO matrix. This spike
+ * uses LEDC channel 0 for a square-wave tone (buzzy but audible); a real bell
+ * tone wants the DAC (dac@3f408800, GPIO17 = DAC_1), a later rung. The pinmux
+ * macro LEDC_CH0_GPIO17 comes from esp32s2-pinctrl.h (already pulled in by the
+ * board's -pinctrl.dtsi). Inert unless CONFIG_PWM builds the LEDC driver, so the
+ * proven button/WiFi images are unaffected. */
+&pinctrl {
+	ledc0_default: ledc0_default {
+		group1 {
+			pinmux = <LEDC_CH0_GPIO17>;
+			output-enable;
+		};
+	};
+
+	/* tuvm#88 — the e-paper's SPI2/FSPI pins. Verified present at
+	 * zephyr/include/zephyr/dt-bindings/pinctrl/esp32s2-pinctrl.h:3608,3691,3778.
+	 * NOTE: esp32s2_saola-pinctrl.dtsi already declares its OWN spim2_default
+	 * (the Saola devboard's onboard default: GPIO13/12/10/11), referenced by
+	 * &spi2 in the base esp32s2_saola.dts. Reusing the same node name here is
+	 * deliberate — devicetree property assignment is whole-property-replace,
+	 * not merge, so this definition simply overrides the Saola's own default
+	 * pins with the MagTag's actual e-paper wiring for the same spi2
+	 * controller. Confirmed safe with a standalone dtc merge (no duplicate-
+	 * label error; the later group1/group2 properties fully replace the
+	 * earlier ones) before relying on it here.
+	 */
+	spim2_default: spim2_default {
+		group1 {
+			pinmux = <SPIM2_MISO_GPIO37>;
+			input-enable;
+		};
+		group2 {
+			pinmux = <SPIM2_SCLK_GPIO36>,
+				 <SPIM2_MOSI_GPIO35>;
+			output-enable;
+		};
+	};
+};
+
+/* tuvm#94 — the DAC on GPIO17, the SAME pin as the LEDC chime above. DAC_1 is
+ * GPIO17 on the S2 (DAC_2 is GPIO18, unused here). The node exists in
+ * esp32s2_common.dtsi:381 (compatible "espressif,esp32-dac") but ships disabled.
+ *
+ * NO PINCTRL ENTRY, AND THAT IS NOT AN OMISSION. The legacy driver routes the
+ * DAC output through RTC IO (dac_output_enable -> rtc_io_hal), not through the
+ * GPIO matrix that pinctrl programs. So the DAC's claim on GPIO17 and the LEDC's
+ * claim on GPIO17 are made in two different register families and neither is
+ * visible from the other — the failure mode if both are active is silence with
+ * rc=0 everywhere, indistinguishable from a driver fault. Exactly the i2c0 /
+ * e-paper-CS race on GPIO8 documented at the foot of this file.
+ *
+ * They do not collide today only because CONFIG_PWM is not set in
+ * prj_esp32s2.conf, so &ledc0's pinctrl route is never applied. Enabling PWM and
+ * the DAC together requires disabling one of them here first.
+ */
+&dac {
+	status = "okay";
+};
+
+&ledc0 {
+	pinctrl-0 = <&ledc0_default>;
+	pinctrl-names = "default";
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	channel0@0 {
+		reg = <0x0>;
+		timer = <0>;
+	};
+};
+
+/* tuvm#88 — the e-paper panel. Pins read off the vendor pinout diagram
+ * (zephyr/boards/magtag/magtag-overview.png, DISPLAY block):
+ *   EPD_BUSY 5  EPD_RESET 6  EPD_DC 7  EPD_CS 8   (all gpio0, RTC-capable)
+ *   EPD_MOSI 35 EPD_SCK 36   EPD_MISO 37          (FSPI -> spi2, so gpio1)
+ *
+ * CS IS A PLAIN GPIO, NOT FSPICS0 (which is GPIO10 and goes to the D10 pad).
+ * It is therefore driven by the SPI driver's cs-gpios, not by pinctrl.
+ *
+ * BUSY IS DECLARED ACTIVE_LOW because that is what the silicon does and what
+ * ultrachip,uc81xx-common.yaml:20 requires ("The BUSY pin of UC81xx is active
+ * low. If connected directly the MCU pin should be configured as active low").
+ * uc81xx_busy_wait then spins while the LOGICAL level is 1. Note Adafruit's own
+ * examples pass EPD_BUSY -1 and never read it (adafruit-magtag.pdf:5123) — the
+ * pin is genuinely wired, they simply rely on fixed delays instead.
+ *
+ * THE PANEL IS 128 WIDE x 296 TALL AND STAYS THAT WAY. Neither
+ * ultrachip,uc81xx-common.yaml nor uc81xx.c has any notion of 90/270 rotation
+ * (unlike solomon,ssd16xx-common.yaml, which does) — an undeclared `rotation`
+ * property is a hard edtlib error, not a warning. So the character grid is
+ * PORTRAIT and the gate photo is taken with the board turned. tuvm#89 records
+ * why landscape is expensive and why it is no longer wanted; 180 degrees IS
+ * available and is the `rotate-180` boolean on the panel node below.
+ *
+ * The grid is 12 cols x 18 rows: CFB ships no 8x8 font — it has exactly three
+ * (font1016/font1524/font2032) and index 0 is font1016 at 10x16 px, so
+ * 128/10 = 12 and 296/16 = 18. The `8` that looks like a font size is CFB's
+ * `ppt`, a TILING GRANULARITY (cfb.c:724). The numbers live in one place,
+ * OEVM_DISPLAY_ROWS/COLS in src/platform_backend.h, and bring-up hard-checks
+ * its derived values against them rather than printing them for a human.
+ */
+&spi2 {
+	status = "okay";
+	pinctrl-0 = <&spim2_default>;
+	pinctrl-names = "default";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	cs-gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
+};
+
+/ {
+	mipi_dbi_epd: mipi-dbi-epd {
+		compatible = "zephyr,mipi-dbi-spi";
+		spi-dev = <&spi2>;
+		dc-gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio0 6 GPIO_ACTIVE_LOW>;
+		write-only;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		epd: il0373@0 {
+			compatible = "ultrachip,il0373";
+			reg = <0>;
+			mipi-max-frequency = <4000000>;
+			width = <128>;
+			height = <296>;
+			busy-gpios = <&gpio0 5 GPIO_ACTIVE_LOW>;
+
+			/* Which END of the portrait panel the text starts at. A
+			 * double axis flip the CONTROLLER performs — clearing PSR's
+			 * UD and SHL bits, one register write, no frame-buffer work
+			 * (tuvm#89). Sharply unlike 90/270, which this family cannot
+			 * do at all.
+			 *
+			 * ON is correct for THIS board, settled on the bench
+			 * 2026-07-23: with it off, row 0 painted at the panel edge
+			 * furthest from the flex connector and the board read
+			 * upside down. Which state is right is a fact about how the
+			 * panel is mounted and is not in any datasheet, which is why
+			 * the knob shipped off and deferred to hardware. Rebuild
+			 * confirms it costs nothing: dram0 86.10% either way. */
+			rotate-180;
+
+			full { };
+			partial { };
+		};
+	};
+
+	chosen {
+		zephyr,display = &epd;
+	};
+};
+
+/* tuvm#88 — disable i2c0: it and the e-paper CS both claim GPIO8. The base
+ * board's i2c0_default pinctrl routes GPIO8 as I2C0 SDA, while &spi2 above
+ * (line 221) drives the same pin as the e-paper's cs-gpios. Both drivers
+ * program the same IO-MUX / GPIO-matrix registers for pin 8, and both
+ * initialise at the same driver init priority, so which routing wins is
+ * decided by device-dependency ordering, not by anything visible in this
+ * file. If i2c0 wins the race, the CS line never toggles correctly, but
+ * display_write still returns rc=0 — a blank panel with no error, which
+ * reads exactly like a BUSY-pin fault and would send someone debugging the
+ * wrong signal. Nothing on this board currently needs i2c0, so disable it
+ * outright rather than leave the race latent. The MagTag does carry a
+ * STEMMA QT connector (GPIO33/34) — when that I2C bus is wired up, give it
+ * its own pinctrl on those pins rather than deleting this block.
+ */
+&i2c0 {
+	status = "disabled";
+};

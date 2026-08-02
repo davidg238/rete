@@ -1,0 +1,78 @@
+(*
+MagTagButtonsNode — the MagTag four-button bring-up node (running-node half of
+docs/design/2026-07-23-magtag-buttons-leds-design.md).
+
+Proves the plural pulse seam end to end on real hardware:
+
+  4x GPIO ISR -> pulse_isr demux + debounce -> gpio_target_fire(logical)
+              -> pulse_post_isr -> k_msgq -> pumpEvents -> per-button channel
+              -> the node's reaction
+
+ONE CHANNEL PER BUTTON (design D1). This needs NO new prim and NO VM change:
+src/platform.c's host_gpio_register table is already keyed per LOGICAL PIN, each
+slot carrying its own channel id and its own posted message, so four buttons are
+just four registrations. That the seam was already per-pin is why the whole
+four-button change landed in zephyr/src/main.c and a devicetree overlay.
+
+LOGICAL PIN == THE MAGTAG'S GPIO NUMBER, so these lines read like the silkscreen:
+BUTTON_A is GPIO15, B is 14, C is 12, D is 11 (vendor pinout). That mapping is
+NOT a coincidence — zephyr/src/main.c's pulse_logical_of() derives the logical pin
+from the devicetree spec's own pin number on any board with more than one button,
+precisely so a node can name the pin the board is labelled with. Single-button
+boards (nRF52840-DK, dongle) still get the historic 13, so PulseNodeDK.nsl is
+untouched.
+
+`edge: #falling` is ADVISORY ONLY — src/platform.c's PRIM_pf_gpioPin reads args[1]
+and then never uses it (host_gpio_register takes pin/chan/handle). The real edge is
+set in the overlay: the buttons are declared GPIO_ACTIVE_LOW | GPIO_PULL_UP (the
+MagTag has NO board pull-ups), which makes main.c's GPIO_INT_EDGE_TO_ACTIVE the
+falling edge. #falling is written here because it is what physically happens, not
+because anything reads it.
+
+DEBOUNCE IS IN C, not here, and deliberately so — see design D3. The short version:
+pulse_post_isr already coalesces and sheds, so bounce can neither flood the mailbox
+nor kill the node; but coalescing only merges while an entry is still QUEUED, so
+after a pump the next bounce edge arrives as another logical press. Debouncing in
+nsl would therefore cost a full reaction fire per bounce edge to discard it.
+
+Node shape is PulseNodeDK's (`packageUsing: manifest`, platform arriving as the
+`main:` argument); grants no capability, so no `net:` header. Dialect: `[ ... ]
+whileTrue:`, never `repeat`.
+
+This node never returns, so — unlike TimerNode — it keeps draining forever and
+cannot leak a live repeater.
+
+expect (one line per press, in whatever order the buttons are pressed):
+BTN A
+BTN B
+BTN C
+BTN D
+*)
+class MagTagButtonsNode packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space gpio btnA btnB btnC btnD |
+    space:: platform space.
+
+    btnA:: space channel: 'btn/a'.
+    btnB:: space channel: 'btn/b'.
+    btnC:: space channel: 'btn/c'.
+    btnD:: space channel: 'btn/d'.
+
+    btnA whenever: '' do: [ :m | ('BTN ' , m printString) println ].
+    btnB whenever: '' do: [ :m | ('BTN ' , m printString) println ].
+    btnC whenever: '' do: [ :m | ('BTN ' , m printString) println ].
+    btnD whenever: '' do: [ :m | ('BTN ' , m printString) println ].
+
+    gpio:: platform gpio.
+    (* pin: is the MagTag GPIO number == the silkscreen label *)
+    gpio pin: 15 edge: #falling post: 'A' on: btnA.
+    gpio pin: 14 edge: #falling post: 'B' on: btnB.
+    gpio pin: 12 edge: #falling post: 'C' on: btnC.
+    gpio pin: 11 edge: #falling post: 'D' on: btnD.
+
+    (* No `gpio fire:` — every edge is a physical press. pumpEvents BLOCKS on the
+       pulse mailbox between presses, so the VM idles the CPU rather than spinning. *)
+    [ true ] whileTrue: [ platform pumpEvents. space drain ]
+  )
+) : (
+)

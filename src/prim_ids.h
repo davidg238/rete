@@ -226,4 +226,131 @@
    all-slots on purpose: a per-slot reset would let a caller clear half a window
    and publish the result as if it were whole. */
 #define PRIM_pf_spanReset  122
+
+/* tuvm#82 (MagTag LEDs): the OUTBOUND half of the gpio seam. gpioSet:to: drives a
+   DECLARED pin to a LOGICAL level; gpioLevel: reads one back — and reads a button's
+   held state, which is what lets chording cost zero mailbox traffic instead of the
+   doubled event rate release events pay. Appended after spanReset; no pre-existing
+   id shifts. 123/124 were arrived at by COUNTING PRIM_NAMES (122 entries before
+   this append), not by 122+1 arithmetic, per the standing rule above.
+   Both answer nil for a pin the board never declared. The raise is written in nsl
+   (GpioPulse in kernel.nsl), not here — the same division Vector>>at: uses, and the
+   only one available, since build_and_raise is static to dispatch.c. */
+#define PRIM_pf_gpioSet   123
+#define PRIM_pf_gpioLevel 124
+
+/* tuvm#88 (MagTag e-paper): the display seam. clear/at:col:put: touch only the
+   C-side character framebuffer and are cheap; refresh/refreshRow: drive the panel
+   and BLOCK the VM for the paint — safe because the pulse mailbox sheds and
+   coalesces rather than aborting (src/backend/zephyr/pulse_zephyr.c, tuvm#34), so
+   a button pressed mid-paint is delivered once afterwards.
+   Appended after gpioLevel; no pre-existing id shifts. 125-128 were arrived at by
+   COUNTING PRIM_NAMES (124 entries before this append), not by 124+1 arithmetic,
+   per the standing rule above.
+   ANSWER CONVENTION, an extension of the gpio pair's: nil still means "this board
+   has no such thing" (no display bound at all) and is the structural error a wrong
+   literal produces. An operational outcome the driver knows about answers an SMI
+   instead — 0 ok, 1 out of bounds, 2 driver fault — because one nil cannot carry
+   three different tags. The raises are written in nsl (Display in kernel.nsl), not
+   here, the same division Vector>>at: uses over basicAt:. */
+#define PRIM_pf_displayClear      125
+#define PRIM_pf_displayAt         126
+#define PRIM_pf_displayRefresh    127
+#define PRIM_pf_displayRefreshRow 128
+
+/* tuvm#94 stage 1 (MagTag bell): `bellStrike: n` strikes n bells in the
+   ship's-bell phrasing. ONE prim, not a family — the phrasing (pairs, lone final
+   stroke) and the envelope are hardware-shaped decisions that belong beside the
+   cosine generator, and exposing them separately would let nsl compose a
+   striking the hardware cannot actually voice.
+   IT BLOCKS, and for a long time: ~500 ms a strike plus the gaps, so eight bells
+   is ~4 s. That is the same bargain the display's refresh prims took (tuvm#88) —
+   safe because the pulse mailbox sheds and coalesces rather than aborting
+   (src/backend/zephyr/pulse_zephyr.c, tuvm#34), so a button pressed mid-strike is
+   delivered once afterwards instead of being lost.
+   Appended after displayRefreshRow; no pre-existing id shifts. 129 was arrived at
+   by COUNTING PRIM_NAMES (128 entries before this append), not by 128+1
+   arithmetic, per the standing rule above.
+   ANSWER CONVENTION, the display seam's: nil means "this board has no bell"
+   (structural — no DAC, no speaker-enable pin, or the bring-up failed), and an
+   operational outcome answers an SMI — 0 ok, 2 driver fault. There is no
+   bounds code because a count outside 1-8 is checked in nsl, where the raise
+   lives (Bell in kernel.nsl). */
+#define PRIM_pf_bellStrike        129
+
+/* tuvm#94 stage 4 (NTP catchup): `ntpSyncTz: offsetSeconds` runs sntp_simple,
+   applies the offset, and answers SECONDS SINCE LOCAL MIDNIGHT (0..86399, SMI-safe
+   — Unix epoch would overflow a 2^30 SMI). offsetSeconds is passed from nsl because
+   the timezone is a product fact, not a hardware one. BLOCKS up to the SNTP timeout,
+   so it is only ever called between strikes.
+   ANSWER CONVENTION: nil = couldn't sync (structural — no WiFi, no route, timeout);
+   an SMI = seconds-since-midnight. There is NO fault code, because there is nothing
+   a node would do differently: a miss is a nil and the clock free-runs on its own
+   crystal, which is the whole point of the rung (the network improves the time, it
+   does not gate the bell).
+   Counted (128 display + bellStrike = 129 entries before this), so this is the
+   130th PRIM_NAMES entry, per the standing rule above. */
+#define PRIM_pf_ntpSync           130
+
+/* tuvm#94 stage 5 (deep-sleep clock): the RTC-retention seam. State that must
+   outlive the dead VM across a deep sleep lives in a fixed 10-field SMI struct
+   (.rtc.data on device, a file on host). rtcValid guards the magic word; rtcGet:/
+   rtcPut:value: are indexed SMI accessors (design §3 table). Appended after
+   ntpSync; no pre-existing id shifts. Counted (not computed): these are the
+   131st/132nd/133rd PRIM_NAMES entries. */
+#define PRIM_pf_rtcValid          131
+#define PRIM_pf_rtcGet            132
+#define PRIM_pf_rtcPut            133
+
+/* tuvm#94 stage 5: deepSleep: seconds. On device it arms an esp_sleep timer wakeup
+   and starts deep sleep (never returns — the VM ceases to exist until the next boot).
+   On host it logs and exit(0)s so a run terminates. Counted (not computed) to be the
+   134th PRIM_NAMES entry. */
+#define PRIM_pf_deepSleep         134
+
+/* tuvm#100: the WALL-CLOCK seam — an external RTC (DS3231 over I2C) as the
+   timebase. `wallClock` answers SECONDS SINCE LOCAL MIDNIGHT (0..86399).
+   NOT to be confused with PRIM_pf_rtcValid/rtcGet/rtcPut above: those are the
+   deep-sleep RETENTION store (RAM that survives a sleep), which is a different
+   device and a different question. The name collision is why this seam is
+   `wallClock` and not `rtc*`.
+   ANSWER CONVENTION, ntpSync's exactly: nil = no RTC on this board, or it has
+   never been set (structural, and a node treats both the same way — free-run);
+   an SMI = seconds since local midnight. Answering in the same shape as
+   ntpSyncTz: is deliberate: schedule arithmetic must not be able to tell which
+   timebase produced the number, so the two are interchangeable.
+   Epoch seconds are NOT an option — 2^30 SMI, same reason ntpSync gives.
+   There is no tz argument: NTP hands out UTC and the product applies its own
+   offset, whereas an RTC holds the local time that was written to it, so a
+   second offset here would double-correct.
+   Counted (not computed): 134 PRIM_NAMES entries precede this, so this is the
+   135th, per the standing rule above. */
+#define PRIM_pf_wallClock         135
+
+/* tuvm#100: `wallClockSetDate: yyyymmdd time: secondsOfDay` sets the RTC.
+   The date is packed DECIMAL (20260731), not three arguments: Zephyr's
+   rtc_set_time takes a whole struct rtc_time so the seam cannot be time-of-day
+   only, but a six-keyword prim would exceed anything else in this VM. 20260731
+   is SMI-safe with room to spare (2.0e7 against 2^30). The time half stays in
+   `wallClock`'s own unit so a round trip is an identity, not a conversion.
+   ONE call rather than a date write then a time write: two steps leave a window
+   where the part holds a date from one instant and a time from another, and the
+   second write can land after midnight has moved the day on.
+   ANSWER CONVENTION: nil = no RTC on this board, or the write failed; SMI 0 = set.
+   Counted (not computed): the 136th PRIM_NAMES entry. */
+#define PRIM_pf_wallClockSet      136
+
+/* tuvm#100 (2026-08-01): `ntpDate` answers the packed DECIMAL date (20260801) of
+   the last successful ntpSyncTz:, in that call's timezone. It exists because
+   ntpSyncTz: answers seconds-of-day while wallClockSetDate:time: requires a date,
+   so without this the correction loop can measure the RTC's error and not fix it.
+   IT DOES NOT PERFORM A REQUEST — it reads the response ntpSyncTz: already
+   received. A second request would mean another 4-second blocking call and more
+   radio traffic for a value already in hand.
+   ORDERING CONTRACT: call ntpSyncTz: first and only read this if it answered
+   non-nil. A node that ignores that gets the previous sync's date, or nil.
+   ANSWER CONVENTION: nil = no sync has ever succeeded in this boot (structural,
+   same as ntpSyncTz:'s own nil); otherwise the SMI yyyymmdd.
+   Counted (not computed): the 137th PRIM_NAMES entry. */
+#define PRIM_pf_ntpDate           137
 #endif /* OEVM_PRIM_IDS_H */

@@ -765,6 +765,49 @@ enum {
        clean accumulator. Counted (not computed) to be the 122nd PRIM_NAMES entry.
        Platform-dispatched (mirrored in prim_ids.h). */
     PRIM_pf_spanReset,
+    /* tuvm#82: the outbound gpio pair — gpioSet:to: / gpioLevel:. Appended after
+       spanReset; no pre-existing id shifts. Counted (not computed) to be the
+       123rd/124th PRIM_NAMES entries. Platform-dispatched (mirrored in prim_ids.h). */
+    PRIM_pf_gpioSet,
+    PRIM_pf_gpioLevel,
+    /* tuvm#88: the display seam — displayClear / displayAt:col:put: /
+       displayRefresh / displayRefreshRow:. Appended after gpioLevel; no
+       pre-existing id shifts. Counted (not computed) to be the 125th-128th
+       PRIM_NAMES entries. Platform-dispatched (mirrored in prim_ids.h). */
+    PRIM_pf_displayClear,
+    PRIM_pf_displayAt,
+    PRIM_pf_displayRefresh,
+    PRIM_pf_displayRefreshRow,
+    /* tuvm#94: the bell seam — bellStrike:. Appended after displayRefreshRow; no
+       pre-existing id shifts. Counted (not computed) to be the 129th PRIM_NAMES
+       entry. Platform-dispatched (mirrored in prim_ids.h). */
+    PRIM_pf_bellStrike,
+    /* tuvm#94 stage 4: the NTP seam — ntpSyncTz:. Appended after bellStrike; no
+       pre-existing id shifts. Counted (not computed) to be the 130th PRIM_NAMES
+       entry. Platform-dispatched (mirrored in prim_ids.h). */
+    PRIM_pf_ntpSync,
+    /* tuvm#94 stage 5: the RTC-retention seam — rtcValid / rtcGet: / rtcPut:value:.
+       Appended after ntpSync; counted (not computed) to be the 131st/132nd/133rd
+       PRIM_NAMES entries. Platform-dispatched (mirrored in prim_ids.h). */
+    PRIM_pf_rtcValid,
+    PRIM_pf_rtcGet,
+    PRIM_pf_rtcPut,
+    /* tuvm#94 stage 5: deepSleep: — arms a timer wake and sleeps (device) / exits
+       (host). Counted (not computed) to be the 134th PRIM_NAMES entry. */
+    PRIM_pf_deepSleep,
+    /* tuvm#100: the wall-clock seam — wallClock. Appended after deepSleep; no
+       pre-existing id shifts. Counted (not computed) to be the 135th PRIM_NAMES
+       entry. Platform-dispatched (mirrored in prim_ids.h). */
+    PRIM_pf_wallClock,
+    /* tuvm#100: wallClockSetDate:time:. Counted (not computed) to be the 136th
+       PRIM_NAMES entry. Platform-dispatched (mirrored in prim_ids.h). */
+    PRIM_pf_wallClockSet,
+    /* tuvm#100 (2026-08-01): ntpDate — the date half of the NTP seam, so the RTC
+       correction loop can complete (ntpSyncTz: answers seconds-of-day, and
+       wallClockSetDate:time: demands a date). Reads the last sync's response
+       rather than issuing one. Counted (not computed) to be the 137th PRIM_NAMES
+       entry. Platform-dispatched (mirrored in prim_ids.h). */
+    PRIM_pf_ntpDate,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -818,6 +861,15 @@ static const char *const PRIM_NAMES[] = {
     "sensorFrame", "sensorArmEventPost:on:threshold:",
     "spanBegin:", "spanEnd:", "spanStats:", "spanRecord:us:",
     "spanReset",
+    "gpioSet:to:", "gpioLevel:",
+    "displayClear", "displayAt:col:put:", "displayRefresh", "displayRefreshRow:",
+    "bellStrike:",
+    "ntpSyncTz:",
+    "rtcValid", "rtcGet:", "rtcPut:value:",
+    "deepSleep:",
+    "wallClock",
+    "wallClockSetDate:time:",
+    "ntpDate",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
@@ -828,7 +880,7 @@ static const char *const PRIM_NAMES[] = {
    — this catches it at build time instead. C99-safe (no _Static_assert under
    -std=c99): a false condition makes a negative-sized array, which is a hard
    compile error. ADVANCE THIS to the new last id whenever prims are appended. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_spanReset) ? 1 : -1];
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_ntpDate) ? 1 : -1];
 
 /* Pointer-keyed cache mapping each interned selector symbol to its primitive id
    (PRIM_NONE if it is not an intercepted primitive). Selectors are interned, so

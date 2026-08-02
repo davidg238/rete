@@ -59,3 +59,10 @@ zephyr/build-c6-thread/
 zephyr/build-esp32c6-*/
 zephyr/build-heapprobe-*/
 zephyr/layoutdump/build-c6/
+# ESP32-S2 / MagTag (run.sh defaults to build-esp32s2-<MODEL>) and its layoutdump run.
+zephyr/build-esp32s2-*/
+zephyr/build-layoutdump-s2/
+# The Adafruit MagTag reference drop: an 18 MB vendor PDF plus the CircuitPython
+# IL0373 driver zips. Reference material, not source — the IL0373 register map it
+# documents belongs in the uc81xx quirks entry when that lands, not here.
+zephyr/boards/magtag/

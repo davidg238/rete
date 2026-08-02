@@ -1107,6 +1107,826 @@ links, zero console output, no slide overflowing a 680–720 px-tall viewport). 
 the deck asserts nothing new, it cites. Open: #66/#67/#68 are the three badges still
 showing, and #69 is the checker that keeps the appendix honest against reality.
 
+**Adafruit MagTag (ESP32-S2) third Zephyr target, and the button seam going plural —
+2026-07-23.** Branch `feat/magtag-esp32s2-port` (5 commits, pushed, no PR). The VM boots on
+internal SRAM (`TIMER OK`), four buttons deliver one event per press, and chording works.
+A capacity/display platform, **not** a perf or mesh one — see the caveats below before any
+number from this board goes anywhere.
+
+1. **No board port was written.** `esp32s2_saola.dts:9` already includes
+   `<espressif/esp32s2/esp32s2_wrover_n4r2.dtsi>`, which *is* the MagTag's module
+   (ESP32-S2-WROVER, 4 MB flash, 2 MB PSRAM), so the board target `esp32s2_saola/esp32s2`
+   carries the boot gate and only board IO needed an overlay. Check for an existing board
+   target on the same module before porting one.
+2. **No FPU.** `soc/espressif/esp32/Kconfig:12` and `esp32s3/Kconfig:11` both
+   `select CPU_HAS_FPU`; `esp32s2` does not. tuvm runs soft-float here, like the C6. **No
+   float figure from this board belongs in the STIC table without "soft-float" on the row.**
+3. **Flash offset `0x1000`, not the C6's `0x0`** — Xtensa keeps the ESP32's offset.
+   Confirmed from the board rather than assumed: `esp32s2_saola.dts:13` includes
+   `partitions_0x1000_default.dtsi`.
+4. **The ROM `setjmp`/`longjmp` patch applies, with a DIFFERENT symbol set.**
+   `esp32s2.rom.newlib-funcs.ld` forces `fflush`/`longjmp`/`setjmp` but **not** `ungetc`, so
+   `tools/patch-esp32-rom-ld.sh` grew a `--chip` flag and per-chip lists. `TIMER OK` is the
+   proof it works — `layoutdump` never calls `setjmp`, so only a fired nsl reaction tests it.
+   A `west update` now breaks two boards, not one (#48).
+5. **`layout-esp32s2.json` was generated on device**, per the C6 entry's rule above, and came
+   out byte-identical to both existing layouts. Generated, not assumed — that is the point.
+6. **Flashing is manual and cannot be automated.** The soldered UART Debug header breaks out
+   TX/RX only (no DTR/RTS) and the native USB port belongs to the ROM, so esptool has no
+   reset line either way: hold BOOT0, click RESET. Worse, **once Zephyr is flashed the native
+   USB stops enumerating at all** (no USB stack in this config), so the soldered header is
+   not a convenience — it is the board's only console. In download mode the port is
+   `303a:0002` / `usb-Espressif_ESP32-S2_0-if00`; in application mode it is a different
+   string (`239a:80e6`, Adafruit), which is why a `*MagTag*` glob would be exactly wrong.
+7. **`EDGE_TO_ACTIVE` did not mean press-only, and a time-lockout debounce cannot fix it.**
+   Two designs were disproved on hardware before the third worked; the failure *masqueraded
+   as contact bounce* because the lockout swallowed the release of any short press. The
+   working design is a debounced press/release state machine over `GPIO_INT_EDGE_BOTH`.
+   Full measurements in #60 and `docs/design/2026-07-23-magtag-buttons-leds-design.md` D3.
+   **Method note worth carrying:** the first harness polled the console at 200 ms and every
+   measured gap came out a multiple of 200 ms — it was measuring its own loop. A quantised
+   histogram means suspect the instrument.
+8. **Chording needed no new prim.** A logical pin is only a key into `platform.c`'s
+   `host_gpio_register` table, so a button owns a second key for its release (`GPIO + 100`).
+   Unregistered release pins are a silent no-op in `host_gpio_fire()`, so the nRF boards are
+   untouched. A `gpio level:` read remains the better long-term answer (zero mailbox traffic).
+9. **PSRAM is NOT in play.** 2 MB exists but `CONFIG_ESP_SPIRAM` is off, and enabling it
+   would not enlarge the VM arena anyway: `oevm_heap_store` is a static array, whereas
+   `ESP_SPIRAM` selects `SHARED_MULTI_HEAP` and hands PSRAM out as a separate runtime region.
+   Using it means changing how the arena is *obtained*. `OEVM_HEAP_SIZE=65536` is
+   **provisional** (dram0 at 81.8% of 217 KB), not a measured ceiling — run
+   `tools/heap-ceiling.sh` before quoting it.
+10. **Out-of-tree and invisible to git:** the Zephyr SDK needs
+    `xtensa-espressif_esp32s2_zephyr-elf` installed
+    (`~/zephyr-sdk-0.17.4/setup.sh -t xtensa-espressif_esp32s2_zephyr-elf`); only `riscv64`
+    and `xtensa-espressif_esp32` were present. A fresh clone cannot build this target
+    without it.
+
+Design: `docs/design/2026-07-23-magtag-buttons-leds-design.md` (8 decisions; the sleep half
+D5/D7/D8 is designed, not built). `CLAIMS.md` gains no row — nothing here is a performance
+claim. Open: #60 (nsl debounce API + counter API), #80 (nRF DK/dongle unverified on the
+`EDGE_BOTH` change — rungs 7/8 depend on that seam), #81 (`timer_zephyr.c:71` kills the node
+on a load condition), #82 (LEDs — next work item), #83 (deep sleep / ext1).
+
+**The gpio seam gains an outbound direction — 2026-07-23, #82 done, proven on the MagTag.**
+Until now the gpio seam was inbound-only: an edge became a channel post, and nothing could
+drive a pin out or ask it its state. Two primitives (`gpioSet:to:` / `gpioLevel:`, ids
+123/124) close that, appended to the counted-not-computed table with the parity guard advanced.
+
+1. **Pins are silkscreen GPIO numbers; polarity lives in the overlay.** The device leaves drive
+   through `gpio_pin_set_dt`/`get_dt`, so `gpio set: 21 to: true` means NeoPixels *powered*
+   though the gate is `GPIO_ACTIVE_LOW`, and `gpio level: 15` true means BUTTON_A *pressed*.
+   A raw-pin API would have pushed polarity into every caller and let a typo reach an e-paper
+   SPI line on the same controller. See `docs/design/2026-07-23-gpio-output-level-seam-design.md`.
+2. **An undeclared pin raises, and the raise is written in nsl.** `gpioLevel:` on a pin the
+   overlay never declared answers `nil` from C; `GpioPulse>>level:`/`set:to:` turn that into
+   `error: … tag: #gpioUndeclared` — the same division `Vector>>at:` uses over `basicAt:`,
+   and the only one available since `build_and_raise` is static to `dispatch.c`. An undeclared
+   pin is a wrong literal, not a load condition, so a silent `false` would be a value that is
+   simply wrong. **Host divergence (design Risk 4):** on the host `set:to:` creates a slot and
+   so cannot raise — the raise has host coverage only through `level:`.
+3. **The level read is chording for zero mailbox traffic.** `gpio_target_level` searches the
+   *input* table too, so a node reads a button's held state directly. Proven on hardware:
+   holding A+C and tapping B printed `held=ABC` (B still down at read time) — three concurrent
+   pin reads, no release events registered. This is the better answer the release-event path
+   (a6656d3) stood in for; the migration was deferred to a follow-up (deliberately not done in
+   the rung that introduces its replacement) and landed in #84 — see the close-out below.
+4. **`gpio level:` matches on the LOGICAL pin, not `spec.pin`.** A final-review catch: a node
+   names the pin it registered with `gpio pin: N`, which on single-button boards is decoupled
+   from the physical pin (`PULSE_LOGICAL_PIN 13` vs `P0.11`). Matching on `spec.pin` would make
+   `level: 13` on the nRF DK raise for a registered button and disagree with the host. Fixed to
+   match on `pulse_logical_of()`; identity on the MagTag, correct everywhere.
+5. **Output-readback is unusable on this driver (design Risk 1, now measured).** Reading GPIO13
+   back after driving it returned `false` regardless of the driven level — the esp32 driver does
+   not leave the input path enabled on a `GPIO_OUTPUT` pin. The LED node toggles from its own
+   state and only *prints* the readback, never steering on it, so the gate (the physical D13 LED
+   following BUTTON_A — confirmed) is unaffected. Do not use `level:` on an output as a fault
+   detector.
+6. **No new `.c` file.** The host/device split rides `#ifdef __ZEPHYR__` (precedent in `gc.c`,
+   `vm.c`), so the nine-source-list tax (#63) is avoided for two functions. Firmware links at
+   dram0 81.8% of 217 KB — fits, tight; `OEVM_HEAP_SIZE` stays provisional.
+
+Gates (`zephyr/MagTagLedNode.nsl`, over the soldered UART console): gate 1 — D13 red LED
+follows BUTTON_A (on→press→dark); gate 2 — `held=ABC` via `level:` with no release pins
+registered. Host: `nsl-tests/13_pulse/02_gpio_set_level.nsl` (drive/read/nil) and
+`03_gpio_undeclared_raises.nsl` (the tag-asserting raise gate). Full suite 214/0. `CLAIMS.md`
+gains a row (the raise is a behavioral guarantee). Open: NeoPixel *data* (ws2812/RMT driver)
+is a separate, larger issue — this rung only made the GPIO21 power gate drivable. (The
+chording-migration follow-up landed as #84, below.)
+
+**Chording migrated onto `level:`; release events retired — 2026-07-23, #84 done, proven on
+the MagTag.** The #82 rung introduced `gpio level:` but left the older release-event chording
+path (a6656d3) in place, deliberately not replacing a proven seam in the rung that first ships
+its replacement. #84 completes the swap.
+
+1. **`MagTagChordNode.nsl` now reads, it does not track.** It registers only the four press
+   pins and, on any press, reads the held set via `gpio level:` (the same `heldOf:` shape as
+   `MagTagLedNode`). The four release-pin registrations and four held-flags are gone. Held
+   state is now *pulled* when a button fires, not *pushed* on every press and release.
+2. **`OEVM_BUTTON_RELEASE_BASE` and the release-fire branch are removed from `main.c`.** The
+   `else` branch that detects the settled release **stays** — it re-arms the debounce state
+   machine (`in->pressed = false`), which is why `GPIO_INT_EDGE_BOTH` is still requested. Only
+   the `gpio_target_fire(logical + 100)` call went; the release edge is now internal, firing
+   no event a node can see. `MagTagChordNode` was the sole registrant of a release pin, so
+   nothing else was touched.
+3. **The `up  held=` lines are gone by construction.** A release produces no event now, so the
+   node observes state only on a press — the trade the design chose (zero mailbox traffic for
+   held-state, at the cost of not seeing a release until the next press).
+4. **Hardware gate (MagTag ESP32-S2, 2026-07-23, soldered UART console):** hold A + tap B →
+   `held=AB`; hold A+C + tap B → `held=ABC`; tap B alone → `held=B`. The regression is covered
+   in the same trace: `B` fired **twice** (`held=ABC` then `held=B`), i.e. press → settled
+   release (silent internal re-arm) → press again — proving the release-fire removal did not
+   disturb the re-arm. No separate regression flash needed on the S2.
+
+Bench helper added: `zephyr/flash-magtag.sh` folds the S2's manual sequence run.sh cannot
+automate (wait for ROM download mode → flash → prompt for RESET → open the PL2303 console,
+which is a *different* port from the native-USB flash port). `CLAIMS.md`'s #82 row extended
+with the migration outcome. Open: #80 (nRF `EDGE_BOTH` still unverified on hardware — the
+re-arm this rung now relies on exclusively runs there too), #81 (`timer_zephyr.c:71`).
+
+**WiFi proven on the MagTag (ESP32-S2) — spike, 2026-07-23 (#85).** WiFi needed *no new
+code*: `CONFIG_WIFI_ESP32` builds for esp32s2 on Zephyr 4.2, and the `backend/zephyr` net
+stack + board-agnostic `wifi_bringup()` + #72's `NET_IPV4_MAPPING_TO_IPV6` carried the whole
+chain. On hardware: `CONNECT_RESULT status=0` → DHCPv4 `ip=192.168.0.157` → `TIMER OK`. **The
+cost is dram, and only dram:** WiFi's ~40 KB system heap + net bufs overflow `dram0` by
+32,704 B at the default 64 KB arena; **halving the arena to 32 KB fits at dram0 99.51%**
+(1,088 B spare — the WROOM-32 #53 knife-edge again). So a WiFi node on this no-PSRAM part
+trades half its VM heap: fine for a small/net/e-paper node (the e-paper framebuffer is a 5 KB
+C arena per G3, not VM heap), but it cannot also hold a large working set (deltablue 112 KB)
+or a colour TFT framebuffer (RGB565 150 KB) while WiFi is up. The only reclaim lever the S2
+has that the WROOM-32 lacks — its 2 MB PSRAM for the WiFi/LwIP heap — is **unproven and not a
+one-liner** (S2 PSRAM has WiFi-DMA constraints; Zephyr wires it as a separate
+`SHARED_MULTI_HEAP`, not the static `oevm_heap_store`). Spike only: overlay in scratch, heap an
+env override, no tracked-file change. Also reconciled #36 (native-ESP-IDF WiFi backend) as
+superseded — WiFi shipped via Zephyr under #46. Open: #85 (make S2 WiFi a tracked config +
+decide the arena/PSRAM tradeoff).
+
+**The MagTag makes sound — spike, 2026-07-23 (#86, commit `5d7fdd8`).** The onboard buzzer
+works under Zephyr: SPEAKER is GPIO17 (also DAC_1/A0) driven by LEDC channel 0 through a
+pinctrl route; SPEAKER_SHUTDOWN is GPIO16, HIGH = un-muted. Proven on hardware as three
+ascending tones (E6/G6/C7, 500 ms each). Inert without `CONFIG_PWM` — the plain button build
+is unchanged at dram0 81.82% (181,808 B), so the button and WiFi images are untouched.
+
+Four gotchas, each of which cost a build, and one design consequence:
+
+1. **The amp needs ~50 ms to settle after enable.** Driving PWM in the same breath is silent.
+   This masqueraded as a pin-routing bug for three builds — the largest time sink of the rung.
+2. **A cold first `pwm_set` can return `-EINVAL`** (not *always*, as a first read of it claimed):
+   with the slow clock not yet enabled the driver falls back to full 14-bit resolution and the
+   prescaler underflows its `0x100` floor. **Low frequencies are what is at risk** — first-call
+   500 Hz → 250 and 1047 Hz → 119 rejected, first-call 2000 Hz → 500 passed. Spend the risky
+   first call on a throwaway tone.
+3. **`rc=0` is not evidence of audio.** 160 ms notes returned success and were inaudible; 500 ms
+   is loud. A silent pass reads exactly like a driver failure — the same "a silent port proves
+   nothing" trap in a new place (see also #87 on `--capture`).
+4. **LEDC has a low-frequency floor** (`SOC_LEDC_TIMER_BIT_WIDTH` = 14 on the S2), so ~1 kHz is
+   the practical bottom.
+
+**Consequence: a bell is not a PWM job.** A bell is a low fundamental with decaying partials;
+LEDC gives neither, and has no amplitude control. The bell path is the **DAC on the same pin**
+(GPIO17 = DAC_1/A0, what the vendor guide drives) streaming unsigned 8-bit PCM — `dac_esp32.c`
+and `dac@3f408800` already exist. PWM stays fine for a notification beep. This matters because
+the motivating idea — a **ship's-bell clock** (bells every 30 min on the 8-bell watch, struck in
+pairs) — converges WiFi/NTP + DAC + e-paper on one board, and #85's arena arithmetic (WiFi costs
+half the VM heap on this no-PSRAM part) is the budget that decides whether it fits. Not done:
+the chime is boot-time C; a real feature wants an nsl-facing `tone:for:` seam like #82's gpio.
+
+**nsl paints the e-paper — 2026-07-23, #88 done, proven on the MagTag.** An nsl node writes
+text to the 2.9" panel and refreshes it, full-panel and single-row, on host and ESP32-S2. Four
+blocking prims at 125-128 (`displayClear`, `displayAt:col:put:`, `displayRefresh`,
+`displayRefreshRow:`) over Zephyr's CFB; nsl never sees a pixel. Mirrors #82's gpio shape and
+rides `#ifdef __ZEPHYR__`, so no new `.c` file and no nine-source-list tax (#63). Gates, console
+plus photographs: `DISPLAY OK rows=18 cols=12 font=10x16` / `gate1 painted` (three legible lines,
+black on white) / `gate2 row 4 -> 1/2/3` (`presses: 3` clean, one row repainting) / `gate3 caught
+displayBounds`. dram0 86.10% (191,328 B). Design:
+`docs/design/2026-07-23-magtag-epaper-display-seam-design.md`.
+
+**This rung EXTENDED the Tier-1 catalog claim rather than consuming it.** The bench MagTag is the
+pre-July-2025 revision, whose IL0373 panel Zephyr supports *nowhere* — verified absent from both
+workspaces. The extension was bounded exactly as predicted (one binding yaml, one quirks struct,
+two byte-layout functions) because the IL0373 is a UC81xx in all but name. `review/zephyr-driver-
+exposure.md` carries the revised claim.
+
+Five findings, four of which only hardware could produce:
+
+1. **The grid is 12x18, and the number that looked like a font size was not one.** CFB ships no
+   8x8 font — exactly three (`font1016`/`font1524`/`font2032`); the `8` is `ppt`, a tiling
+   granularity (`cfb.c:724`). 128/10 = 12 cols, 296/16 = 18 rows. Geometry now lives in ONE place
+   (`OEVM_DISPLAY_ROWS/COLS` in `platform_backend.h`) and device bring-up **hard-checks** its
+   derived values against it and refuses to come up on mismatch — a printed number a human is
+   meant to eyeball is not an enforcement mechanism.
+2. **Blanking-off is load-bearing.** `uc81xx_write` only issues the refresh command with blanking
+   OFF; without `display_blanking_off()` every write loads RAM and returns success against a
+   panel that never repaints. `rc=0` against blank glass, again (cf. #86's silent audio).
+3. **The panel painted WHITE ON BLACK.** uc81xx advertises `PIXEL_FORMAT_MONO10` (1 = Black) but
+   its own init clears both RAM banks to `0xff` to reach white — coherent only if 1 = White. CFB
+   inverts only when `(pixel_format == MONO10) == inverted`, so it passed the buffer through
+   untouched. Fixed locally with `cfb_framebuffer_invert()` (flag-only, no I/O). The MONO10
+   declaration looks wrong for the whole family, but one panel is not evidence about
+   uc8175/uc8176, so the rung compensates and records the question.
+4. **CFB unions glyphs; it does not overwrite — and the two seams had diverged.** A counter
+   refreshed in place rendered 0,1,2,3 *stacked in one cell*. `draw_char_htmono` (`cfb.c:262`)
+   only sets bits and never clears the glyph cell; its `draw_bg` parameter is accepted and
+   ignored (only the VTILED path honours it). Separately — a second, independent defect that
+   is NOT the cause here — `draw_text` passes its `wrap` argument into that `draw_bg` slot,
+   conflating two unrelated concepts: `cfb_print` supplies true and `cfb_draw_text` false, so
+   on a VTILED panel whether the background is cleared depends on which spelling of "draw a
+   string" you called. The
+   host seam had no such problem — `platform.c` keeps a char grid and REPLACES characters. **So a
+   host-green test could never have caught this**, and the fix was to remove the divergence: the
+   device now keeps the same shadow grid and CFB is demoted to a pure renderer over a freshly
+   cleared framebuffer. +224 B dram0. The lesson generalises past this rung — the design's "one
+   place names the geometry" discipline did not extend to "one place defines the write
+   semantics", and that gap is where the bug lived.
+5. **A plausible fix was written, flashed, and refuted.** The first hypothesis for #4 blamed
+   `uc81xx_write`'s `!auto_copy` back-buffer copy (it targets DTM2 on every real refresh instead
+   of DTM1, so the controller's old-frame reference never advances). It made **no difference**,
+   because the union happens in RAM before any panel command. Reverted rather than left in the
+   shared tree as an unvalidated patch; whether it is a real latent bug is **open, and this
+   experiment could not answer it**.
+
+**Deviations from the plan.** Gate 2's row flashes black-then-white on each update — design D2
+predicted the OTP waveform and the plan pre-committed to calling that a pass; the LUT follow-up
+is now the clock rung's. Portrait shipped deliberately (#89: the uc81xx family has no 90/270
+rotation, and 180° turned out to be one free register write, exposed as a `rotate-180` devicetree
+boolean). **`rotate-180` is ON for this board, settled on the bench the same day** — with it off
+the text started at the wrong end and the board read upside down. Which state is correct is a
+fact about how the panel is mounted, in no datasheet, which is exactly why the knob shipped off
+and deferred to hardware. dram0 is 86.10% either way, confirming the "one register write" claim.
+
+**Heap ceiling, measured not guessed.** `tools/heap-ceiling.sh --board esp32s2` →
+max-linkable `OEVM_HEAP_SIZE=94208` (92 KB); 98304 overflows dram0 by 2,912 B — measured with
+driver, CFB and shadow grid linked in. The default stays 65536 because a value that LINKS is not
+a value that BOOTS and only 65536 has run on hardware. The ~28 KB between is headroom the
+ship's-bell clock can claim explicitly and then boot-verify against #85's WiFi arithmetic.
+
+**Three upstream candidates now.** The IL0373 family member, `cfb_framebuffer_finalize_area`
+(CFB cannot express a bounded flush — it grows `finalize_area`), and CFB's OR-only
+`draw_char_htmono` / `wrap`-as-`draw_bg` confusion. See
+`review/zephyr-upstream-contribution` notes and #114163's process lessons before filing.
+
+## The DAC strikes a bell — 2026-07-23, #94 gates 1-2 done, proven on the MagTag
+
+**The rung was rescoped before it was built, and that is the first result.** #94 was filed as a
+*ship's-bell clock*: WiFi/NTP + DAC + e-paper converging, with the arena arithmetic as its gate.
+The clock face was dropped on the bench — what is wanted instead is a **notification appliance**
+(external alert → LED + a line of text + a button to acknowledge), which needs no timekeeping.
+So the whole arithmetic that motivated the issue evaporated for its original reason, and the
+rung collapsed to **sound only**.
+
+**#86's prediction is now evidence.** That issue argued a real bell needs the DAC because LEDC
+bottoms out near 1 kHz (`SOC_LEDC_TIMER_BIT_WIDTH` = 14 on this part; 500 Hz → `-EINVAL`) and
+has no amplitude control. Gate 1 swept 220/440/880/1760 Hz: **all four audible, and 220/440 are
+below the LEDC floor entirely** — the DAC reaches a register PWM cannot. Gate 2 struck the
+ship's-bell pattern at 440 vs 220: **440 far superior**, and the four-step amplitude ramp
+(`DAC_CW_SCALE_1/2/4/8`, −6 dB a step) **reads as a strike rather than a staircase**. Verified at
+1, 5 and 8 bells — lone stroke, odd count, full end-of-watch eight.
+
+**Two predictions were wrong, both usefully.** (1) A sine was expected to be *quieter* than a
+square wave on a tiny buzzer, since a square carries far more harmonic energy — backwards: the
+low end is the good end and 1760 Hz sounded bad. Sweeping rather than playing one note is what
+caught it; a single frequency would have produced a confident wrong conclusion in either
+direction. (2) The four-step ramp was expected to possibly staircase and force per-sample
+additive synthesis — it did not, so **the expensive option is off the table** and the bell costs
+**zero RAM and zero CPU** (hardware cosine generator, no buffer, no DMA, no blocked thread).
+
+**Zephyr's DAC API cannot make a tone at all.** `dac_esp32.c` is `channel_setup` + `write_value`
+— one 8-bit DC level per call, no buffer, no DMA, no continuous mode. So #86's "stream unsigned
+8-bit PCM" is not an API call. The tone comes from the legacy IDF `dac_cw_generator_*`
+(130 Hz–55 kHz, four amplitude steps), reachable because `CONFIG_DAC_ESP32` compiles
+`dac_common_legacy.c` and its directory is on the global include path.
+
+**A silent failure is not a missing failure — #95.** `dac_esp32_init` fails on this part:
+`clock_control_esp32.c` returns `-EALREADY` when a module clock is already on (a success), and
+`dac_esp32.c:71` treats any non-zero as fatal. `adc_esp32.c:668` discards that same call's return
+for the *same* clock module, so the ADC driver already tolerates what the DAC driver dies on.
+Invisible because these builds carry `CONFIG_PRINTK` but not `CONFIG_LOG`, so every driver
+`LOG_ERR` compiles to nothing; `CONFIG_LOG_MODE_MINIMAL` (~1 KB) made it speak. Same family as
+#86's "rc=0 is not evidence of a physical effect". Routed around by taking the pin enable from
+`dac_output_enable()` — which *removes* a dependency rather than adding a workaround. Upstream
+candidate, not patched locally because that checkout carries the C6 radio fix.
+
+**Known artifact, diagnosed not fixed** *(fixed in stage 1 below — largely, not wholly)*. An
+audible echo on each strike: `bell_strike()` calls `dac_cw_generator_config()` per envelope step,
+and that rewrites the frequency register and re-stamps phase mid-tone — a phase discontinuity,
+i.e. a transient, three times per strike. Fix is `dac_ll_cw_set_atten()` alone, which touches only
+the amplitude field.
+
+**The arena arithmetic came back for WiFi, and #85's cost model needed correcting.** Back-computed
+from #85's *measured* overflow rather than its quoted Kconfig number, WiFi's full static cost on
+this part is **~73 KB** (the 40,960 B heap add plus ~32 KB of driver static data and net buffers),
+against ~31 KB free in a display+DAC build. `ESP_WIFI_HEAP_SPIRAM` reclaims 21,504 B — a
+**first-class Kconfig choice**, not the bespoke work #85 assumed, with `ESP_SPIRAM` supported for
+this SoC series and the 2 MB deriving straight from `esp32s2_wrover_n4r2.dtsi`. But it closes only
+half the gap: **the arena must also come down**, 64 KB → ~32–40 KB. PSRAM links (adds a 1 MB
+`ext_ram_seg`, costs 2,544 B of dram0); **boot unproven**.
+
+**The 180 s refresh limit, settled (#89).** Real, and it applies to mono panels — Adafruit's own
+`il0373_flexible_2.13_monochrome.py` sleeps 180 s — but it is a convention, not an interlock. A
+one-row update does **not** escape it today, because #88's `finalize_area` still drives the OTP
+waveform: a partial *area* under a full-refresh waveform is smaller, not gentler. Only a real
+partial LUT changes that. Moot here: the display's job is now **stats every 30 minutes** = 48
+refreshes/day, comfortably inside the guidance, so no LUT is needed and #94's question 3 stays
+closed.
+
+**Still open on this rung:** WiFi + NTP so the bells strike at real times, and stats on the panel
+every 30 min. The RGB/NeoPixel flash was dropped — it would have needed `spi3` or I2S, since this
+Zephyr tree has no RMT driver and `spi2` is the e-paper's.
+
+## nsl strikes the bell — 2026-07-23, #94 stage 1, on the MagTag
+
+**The seam, not the sound, is the result.** `PRIM_pf_bellStrike` (129) promotes the bell from
+boot-time C to something a node decides, closing #86's "not done here". Five sites, the same
+recipe #88's display seam established: `prim_ids.h`, the enum + `PRIM_NAMES` + **the parity check**
+in `dispatch.c`, the host leaf and dispatch case in `platform.c`, the device leaf in
+`zephyr/src/main.c`, and the `Bell` class + accessor in `nsl-tuvm/lib/kernel.nsl`. The parity
+check is the load-bearing one: omitting it silently misroutes every platform prim after the
+insertion point, and nothing else catches that.
+
+**ONE prim, not a family — and the boundary is the interesting decision.** The ship's-bell
+phrasing (pairs, lone final stroke) and the four-step envelope stay in C because they are
+hardware-shaped; exposing them separately would let nsl compose a striking the cosine generator
+cannot voice. The **1-8 range check went the other way, into nsl**, because it is *not* a hardware
+limit — the generator would happily strike twenty — it is the ship's-bell convention, a fact about
+the product. Consequence, and the reusable part: **C carries no bounds status code for the bell**,
+so this seam has two tags (`#bellUnavailable`, `#bellFault`) where the display has three. The rule
+that falls out: a status code in C is warranted only when C is the thing that knows.
+
+**The boot demo was deleted, not kept.** Gates 1-2 rang three times of day at start-up. Left in,
+that would be ~20 s of bells before a node got a word in — but the real objection is evidential: a
+board that rings on every reset sounds like a working seam **whether or not the seam works**. The
+amp mute/un-mute moved from once-at-boot to per-strike with it, which is also what makes the
+striking re-entrant.
+
+**Witnessed on the MagTag** (console): `BELL OK 440 Hz` → `striking 5` (nsl) → `bell: 440 Hz x5`
+(the C leaf, i.e. the prim reached with the count the node meant) → `struck` → `gate3 caught
+bellBounds` → `ready`. Gate 3 firing **on the board** is what proves the range check shipped inside
+the `.oimg`, not merely that it passes on the host. Then **BUTTON_A pressed twice → exactly two
+`repeat 5` / `bell: 440 Hz x5` / `struck`** — the gate that proves the striking is re-entrant, i.e.
+that moving the amp mute/un-mute from once-at-boot to per-strike actually works. **Two presses,
+two strikings**: no double-fire from the `EDGE_TO_ACTIVE` question (tuvm#84) and no press lost to
+the ~2.5 s blocking strike, which is the mailbox shedding-and-coalescing property (tuvm#34) doing
+its job on a prim that blocks far longer than a display refresh does.
+
+**The echo: largely gone, and the residual is the honest part.** Configure once, then step
+`dac_ll_cw_set_atten()` alone — no frequency rewrite, no phase re-stamp, no RTC-8M re-measure
+mid-tone. Bench verdict was *"largely gone"*, so the diagnosed cause was real but not the only one.
+Two mechanisms remain and were never addressed: each -6 dB step is an **instantaneous amplitude
+jump**, a waveform discontinuity unless it lands on a zero crossing, and the strike **ends by
+disabling the generator at 1/8 scale**, a hard cut from a non-zero amplitude. Both are inherent to
+a 4-step hardware envelope; neither is a bug in the fix. A cheap discriminator if it ever matters:
+a per-*strike* artifact points at the steps, a per-*striking* one at the amp gate.
+
+**Corrected: esptool resets this board itself.** `run.sh` and `flash-magtag.sh` both claimed a
+manual RESET was needed after flashing because the native port belongs to the ROM. Wrong —
+`ESP32S2ROM.hard_reset()` detects USB-OTG and arms the RTC watchdog instead of driving a reset
+line it does not have (`esptool/targets/esp32s2.py:291-314`). Observed: `Hard resetting with a
+watchdog...`, then the app booted untouched. The flash loop needs a human **once**, to enter
+download mode, not twice. Also confirmed: reopening the PL2303 console handle does **not** reboot
+the board — unlike the CP210x consoles.
+
+**A build-hygiene trap worth one line.** The first stage-1 link overflowed dram0 by 38,848 B and
+the bell had nothing to do with it: `build-esp32s2-B/CMakeCache.txt` still carried
+`EXTRA_CONF_FILE=prj_esp32s2_wifi.conf` from the stage-4 link probe. `--pristine` cleared it.
+**Any RAM number quoted from an incremental Zephyr build is suspect** until the cache is checked —
+which matters most at stage 4, where the whole question *is* a RAM number.
+
+## The clock strikes itself — 2026-07-24, #94 stages 2-3, on the MagTag
+
+**The headline is not the feature, it is that the feature was claimed a day early.** Stages 2 and
+3 were committed and reported as "witnessed by button" on 2026-07-23: BUTTON_B drove
+`advanceAndStrike`, the bell rang, the panel repainted, and every visible thing a working clock
+does happened. Then the unattended run: **9h23m, 0 of ~19 expected strikes.** The button and the
+timer deliberately share ONE code path — the design's own note calls it "THE ONE PATH THE TIMER
+AND BUTTON_B SHARE" — so pressing the button exercised all of it *except the only part in
+question*, which is whether the timer ever calls it. **An interactive trigger cannot witness an
+autonomous path.** The shared path that made the code clean is exactly what made the test
+worthless, and neither the host suite nor a photograph of the panel could have caught it.
+
+**The bug is a platform-accessor freshness bug, and it is the reusable part.** `platform timers`
+answers a **fresh** `Timers` instance on every call. The node registered with one
+(`timers every: … post: … on: …`) and the drain loop dispatched on another, so the C-side k_timer
+fired correctly every 300 s, the event arrived, and `dispatch:` looked it up in an instance whose
+nsl-side `pending` registry was empty — and dropped it. Silently: no raise, no status code,
+nothing to read. **Fresh-instance accessors are safe only when C owns the state** — `display`,
+`gpio`, `bell` all qualify, because the instance is a stateless handle onto hardware. `timers` is
+the exception in the seam family, because its registry lives in **nsl**. Fix is one field holding
+one instance (`b6a9ead`); the general rule is that any seam keeping nsl-side state must be bound
+once, not re-fetched.
+
+**Witnessed unattended 2026-07-24, and the gate is a full watch, not a strike.** Boot 07:17,
+cadence 300 s, no button touched at any point:
+
+```
+00:30 →1  01:00 →2  01:30 →3  02:00 →4  02:30 →5
+03:00 →6  03:30 →7  04:00 →8  04:30 →1   ← the watch rolls
+```
+
+Nine ticks, nine strikings, zero misses, zero faults, every repaint landing **after** its strike
+as the ordering rule requires. Insisting on a full 8-bell watch rather than stopping at the first
+strike is what verifies `bellsForHalfHour:` across its whole range and the roll back to 1 — the
+button gates had only ever exercised a hand-picked count.
+
+**The cadence was cut 30 min → 5 min for the bench, and that makes it a 6× demo clock.** One tick
+still advances one half-hour of *clock* time, so a full watch costs 40 min of bench time instead
+of 4 hours — but the panel now reads `04:30` after 45 real minutes. 300 s was chosen as the
+fastest cadence that still clears the e-paper's ~180 s refresh guidance (#89), so the panel is
+never stressed. **Stage 4 must reconcile this**: NTP alignment needs either 1800000 for that
+build or an explicit tick→clock-time mapping. Flagged in the node, not left to be rediscovered.
+
+**Stage 3's panel is honest about what it does not know**, which is the point of putting stats on
+glass at all: `bells` reads `--` until the first strike rather than showing a seeded `lastBells`,
+and `ntp`/`24h` read `--` through stages 2-3. A panel that displays a plausible number it has not
+earned is worse than one that admits the gap.
+
+**One number came out of the run unresolved, and it is stage 4's problem.** Live bytes climbed
+monotonically across all nine ticks — 18 KB at boot, then 21/24/27/30/33/35/38/41/**44** KB — with
+`gc 0` throughout. That is the collect-when-full GC behaving exactly as `tuvm-vm-memory-model`
+says it does (nothing is reclaimed until the arena is full), so it is **not evidence of a leak** —
+but the run ended before the first collection, so it is **not evidence against one either, and no
+post-GC live figure was ever measured.** It matters because stage 4 links at a **16 KB arena**,
+and this build shows 18 KB live at boot on a 64 KB one: uncollected, that working set does not fit
+the arena stage 4 proposes. The cheap discriminator is a host run at `OEVM_HEAP_SIZE=16384` under
+simulated time, which costs no hardware.
+
+## The bell rings at the right time — 2026-07-24, #94 stage 4, on the MagTag
+
+**WiFi + SNTP + count-and-phase catchup, witnessed at 08:30:00 Phoenix time.** The chain,
+unedited, ~40 s from reset:
+
+```
+wifi: up, ip=192.168.0.157
+clock ready, 1800000 ms per tick
+ntp: ok, local sod=30596            <- 08:29:56, against a wall clock reading 08:29:57
+ntp sync -> 08:00, boundary in 4000 ms
+08:30 strike 1
+| tuvm  08:30+ | heap 19/20K | gc 2 | bells 1 | ntp sync
+```
+
+Both halves of the catchup are visible in those two lines. **Count:** 30596 s floors to
+half-hour index 16, so the panel reads `08:00+` — the counter is in the 08:00 slot, which is
+what `+` has always meant. **Phase:** 1796 s into that slot leaves 4000 ms to the true
+boundary, and the strike lands there. A count that is right while the strikes fall at
+boot-relative offsets is still a clock that rings at the wrong minute; phase is what makes it
+a clock.
+
+**THE PLAN'S 16 KB ARENA COULD NOT HAVE BOOTED, and finding that without the board is the
+transferable part.** `VM_STACK_INIT_WORDS` is 4096 words = **16,400 B on a 32-bit target**,
+against a **16,384 B** arena — the VM stack alone is larger than the whole heap it must be
+allocated from. The failure is structural and lands at boot, before a line of node code runs:
+`Out of Memory (requested 16400, used 172 of 16384)`. Every RAM discussion on this rung — the
+design's own fallback ladder of *drop DNS → drop SNTP → fix PSRAM* — was aimed at the wrong
+quantity, because 16384 was only ever established as a figure that **links**, and linking says
+nothing about whether the arena can hold the VM's own fixed structures.
+
+**The method that caught it, which is the reusable recipe.** Build the host image VM
+`-m32` with the *device's* knob values (`METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256
+VM_STACK_INIT_WORDS=4096 OEVM_MARK_STACK_SIZE=512`) and a candidate `-DOEVM_HEAP_SIZE`, then
+run the node's allocation path under simulated time. **The `.oimg` must be recompiled against a
+32-bit layout** (`dump_layout` built `-m32`, `oop_size: 4`) or the image is silently wrong and
+the VM dies with `Message 'OIMG' not understood` — the 64-bit layout is the default and nothing
+warns. Measured, 20 simulated ticks each:
+
+| arena | stack words | result |
+|---|---|---|
+| 16384 | 4096 (device stock) | **fails at boot** — `requested 16400, used 172 of 16384` |
+| 18432 | 4096 | fails mid-run |
+| 20480 | 4096 | survives, gc=60, live 19,256 |
+| 24576 | 4096 | survives, gc=15, live 21,984 |
+| 16384 | 2048 | survives, gc=15, live 13,792 |
+| 16384 | 1024 | survives, gc=9, live 6,812 |
+
+**Shipped at `OEVM_HEAP_SIZE=20480` with the stock stack**, which links at **96.64% dram0
+(~7.4 KB spare)** and boots at `heap 18/20K`. The alternative — 16384 with a 2048-word stack —
+has more link headroom and is tempting for the ADC rung queued next, but the VM stack is
+**fixed-capacity and never grows** (`vm.c:398`), and an overflow is a bare `abort()` that no
+node can catch. Shrinking it trades a boot failure for a crash on the first deep call, so it
+stays on the shelf as a *known* lever rather than a default. The 64-bit host, whose objects are
+wider, is the harder case — so a working set that fits there fits the device with room; the
+inference runs one way only and the probe file says so.
+
+**Why the pre-flight was worth its hour: the flash budget.** Entering download mode on this
+board is a hand operation (BOOT0 + RESET), so an unattended session gets **unlimited flashes
+but exactly one run** — esptool's post-flash watchdog reset boots the app, and Zephyr then takes
+the native USB down until a human intervenes. Under that constraint the ordering rule is
+absolute: everything provable on the host is proved before the reset is spent. Here it converted
+a certain wasted run into a table.
+
+**Three defects in the plan's code sketch, each fatal on a one-run budget.** (1) The sketch
+re-armed the periodic strike inside `advanceAndStrike` whenever `strikeTok == nil`, reading the
+token as a mode flag — but `advanceAndStrike` has a second caller, BUTTON_B, so a press between
+a re-phase and its boundary would have left **two strike timers armed forever**. The phase
+one-shot now posts to its own channel. (2) `(halfHours - newHalf) * 1800` is unwrapped, so a
+local 47 against a true 0 reads as a 47-half-hour correction instead of one, spiking the 24 h
+window by 84,600 s once a day. (3) `self corrField: lastCorr , 's'` — binary `,` binds tighter
+than a keyword message, so that passes `lastCorr , 's'`, an SMI concatenation, *into* the
+formatter. All three are the kind of defect a plan cannot catch by review, only by execution.
+
+**A cadence decision the rung forced.** Stages 2-3 ran a 300000 ms tick — a 6× demo clock — and
+stage 4 had to reconcile it. It went back to **1800000**: aligning a count to real time and then
+advancing it six times too fast is not a clock, and the alternative (an explicit tick→clock-time
+mapping) only formalises being wrong between syncs. Bench speed was the only loss, and BUTTON_B
+still fast-forwards.
+
+**Second strike, and the steady state it revealed.** `09:00 strike 2` landed on the boundary
+with `ntp +0.0s` / `24h +0.0` / `+0.0` — the honest-coarse readout populated, reporting that the
+correction the count needed across the half hour was **zero**, i.e. the crystal held. Heap
+steady at `19/20K` with `gc 5`, so the collector is cycling and the working set is flat.
+
+**But the periodic strike timer never fires in the synced steady state, and that was not
+designed — it fell out.** The NTP timer is armed ONCE, on the first sync, as a periodic at
+1800000, so **every subsequent sync lands at the same offset within the half-hour, frozen at
+whatever moment the board first synced.** This board booted at 08:29:56, so its syncs land
+~4 s before every boundary; each one re-phases (cancel the periodic, arm a one-shot), the
+one-shot strikes and re-arms the periodic, and the next sync cancels it 1796 s later. The clock
+is therefore driven **sync → one-shot → sync → one-shot**, and the periodic is a fallback that
+only runs if a sync misses. That is benign — arguably better, since every strike is
+NTP-aligned, and the fallback is correctly phased because it was armed at a true boundary — but
+it means the free-running periodic path is **proven only by stages 2-3 and the host suite, not
+by this run**, and the honest reading of the hardware evidence is that the synced path was
+witnessed twice and the degraded path zero times.
+
+**The wart underneath it is a simplification made against the design.** The design specified
+`ntpServerMidpointMillis` (900000) precisely so syncs land at the inter-strike midpoint; the
+implementation dropped it, reasoning that the drain is serialised so a sync/strike collision
+costs latency rather than correctness. That reasoning holds — but it left the sync offset
+**boot-dependent**, and this boot froze it at the worst available position: 4 s before every
+strike, for a call that blocks up to 4 s on timeout. Cost is a bell up to ~4 s late, never a
+bell missed. Fix is one line — arm a one-shot at `msToBoundary + 900000`, then the periodic
+from there — and it is queued rather than flashed, because entering download mode needs a
+human.
+
+**The panel reading `heap 20/20K` is a plateau, not a leak — measured, because the display
+cannot tell you which.** The device climbed 18 -> 19 -> 19 -> 20 KB across its first three
+strikes, which reads exactly like a slow leak and would be a genuine problem on a bench where
+re-flashing needs a person. Settled on the host instead: **96 simulated strikes (48 h) at the
+shipped 20480 arena** hold live between **19,084 and 20,384 B with no trend** (tick 1: 20,016;
+tick 96: 20,000; final 19,588) and a **constant** GC rate of ~2.9 cycles per strike. Constancy
+is the load-bearing half — an *accelerating* GC rate is what a shrinking free pool looks like,
+and a plateau at 95-99% of the arena is just collect-when-full doing what
+[[tuvm-vm-memory-model]] says it does. The lesson generalises: **at a collect-when-full GC the
+live figure pegs near the ceiling by construction, so a rounded panel reading is nearly
+uninformative about headroom — the informative series is the GC RATE.**
+
+**Known imprecision, stated rather than hidden:** `up` counts one whole tick for the phase
+one-shot's partial interval, so it reads `0d00:30` about 40 s after a boot that syncs, and
+`0d01:00` at the second strike. At the row's 30-minute granularity that is inside the rounding
+it already admits to, but it is an over-count, not a rounding.
+
+## The clock survives its own death — 2026-07-25, #94 stage 5, on the MagTag
+
+**The rung:** the always-on reactor clock became a run-once deep-sleep appliance. Between
+strikes the CPU is off and **the VM does not exist** — each timer wake is a fresh boot that
+lives a few seconds, strikes, and dies; state crosses the gap in RTC slow memory through an
+indexed-SMI seam (`rtcGet:`/`rtcPut:value:`), and the bell counter is a **monotonic ratchet**
+(a sync may advance it, never retract it) so a backward NTP correction cannot double-strike.
+
+**Witnessed 2026-07-25 on the MagTag** (compressed witness build: physical sleeps cut to 15 s,
+the clock still advancing a true half-hour per wake): ~15 real deep-sleep cycles
+(`deep sleep 15 s` → 15.0 s powered down → `rst:0x5 (DSLEEP)` → cold boot), the ratchet
+climbing 1→8 **with no `cold boot` line after the first** — retention across real power-downs,
+the event a full bench day of reboot-substitutes never produced. At the first watch-end the
+sync **advanced** `true 66572 predicted 12600 -> advance half 36` (silently — no bell storm for
+the skipped halves), and the very next wake rang **5 bells as the wall clock read 18:30
+Phoenix** — half-hour index 37, watch position 5: right bells, right time, off an anchor the
+board fetched itself two minutes earlier. The second watch-end took the **hold** branch:
+`true 66681 predicted 72000 -> hold half 40` — NTP said the clock was 89 minutes ahead and the
+ratchet **held** rather than stepping back, recording `ntp -5319.0s` (= true − predicted,
+exact) and `ppm -979919` (= −5319/5428 s elapsed, exact; the magnitude is the compression
+artifact, the arithmetic is the witness). Both watch-end panels painted all rows inside the
+12-column grid, including the pathological ppm. The shipping build (1800 s cadence) is flashed
+and free-running; a genuine drift figure needs its first real watch-ends.
+
+**Two root causes found on the host, zero flashes, after a bench day of isolation pointed at a
+phantom.** The 2026-07-24 session ended with eight flashes "proving" a POWEROFF × config
+interaction and a retention failure. Both were something else:
+
+1. **`CONFIG_POWEROFF` died at the boot handoff because of a Zephyr loader bug.**
+   `soc/espressif/common/loader.c` `map_rom_segments` classified any segment loading into RTC
+   IRAM (0x40070000 — the wake stub the sleep HAL places, one address past `SOC_IRAM_HIGH`) or
+   RTC slow memory (0x50000000) as end-of-image, broke its walk early, and never ran the
+   IROM/DROM flash-offset fix-up — the MMU then mapped stale linker offsets and the first
+   flash-mapped fetch died silently right after `libc heap size`. The dying boots printed
+   `Image with 3 segments` while the ROM had loaded five, and their `paddr=00040000h` is
+   exactly the stale static. The minimal deep_sleep sample "worked" only because, without a
+   135 KB `.oimg` incbin moving the elf2image layout, the stale statics happen to be right.
+   Fixed (`bc47c6fab9c`, all three RTC windows classified; upstream candidate) and verified by
+   simulating the exact walk over the real failing binary (`docs/spikes/2026-07-25-esp32-
+   loader-walk-sim.py`): the fixed walk computes IROM `0x20000`/DROM `0x80000`, byte-identical
+   to the known-good boot. **The method lesson: the isolation ladder varied configs; the bug
+   was in code that reads the image, so no config delta could localise it. Reading the loader
+   against the image's actual segment table found it in one sitting.**
+
+2. **The "retention failure" was the RTC magic overflowing the device SMI.** `0x94BE11C0` has
+   int32 magnitude 2^30.7; a 32-bit SMI holds ±2^30, so `rtcPut:` stored garbage, the magic
+   never validated, and every wake cold-init — on the 61-bit-SMI host it round-trips, which is
+   why every host test passed. Reproduced with a `-m32` host VM + the real `.oimg` (wakes
+   1-2-3 all cold), fixed to `0x14BE11C0` = 348000704, re-verified (`wake half 2/3/4`).
+   **The false inference is the reusable half:** the prior session concluded `sys_reboot`
+   loses `.rtc_noinit` — but a magic that never validates is *observationally identical* to a
+   retention failure (garbage ≠ magic every wake, retained or not), so the reboot-substitute
+   run proved nothing about retention either way. And the seam rule it hardens: **any constant
+   crossing the nsl↔C boundary must fit |v| < 2^30, and the detector is running the harness
+   against a `-m32` VM — the 64-bit suite is structurally blind to this class.**
+
+**Two smaller facts the run surfaced.** The e-paper was being wiped on every boot — and the
+first fix (`1b96fee`, buffer-only CFB clear) was necessary but NOT sufficient: the remaining
+wiper was `display_blanking_off()`, which the uc81xx driver implements as a full refresh of
+controller RAM its init just cleared to white. The durable fix (`01aa7fa`) makes bringup LAZY
+behind `display_target_available()` — wakes that never paint never touch the panel, and the
+watch-end stats persist on the glass across strike wakes (photographed on the 1-min demo). And
+**a reflash is always a cold start**: the BOOT0+RESET chord reads as a POWERON-class reset and
+RTC slow memory does not survive it, so after any flash the clock free-runs from 00:00 and
+converges at its first watch-end sync (≤4 h) — accepted design behaviour, worth knowing before
+reading a 1-bell first strike as a bug.
+
+**The evening's 1-min demo pass (same day) hardened three more things** — full detail in the
+2026-07-25 evening comment on #94: `elapsedSec` now accrues awake time (without it the drift
+row would carry ~+9700 ppm of pure boot overhead — the panel's zero-drift `ntp +0.0s` hold at
+`sync true 69132 predicted 69132` is what the fix looks like when it works); the cadence is one
+parameterized `slotSec` (1800 shipping / 60 demo — scaling the slot keeps every number honest,
+where compressing only the physical sleep repeats stage 4's rejected 6×-clock mistake); and a
+cold boot paints a placeholder panel (dashes for never-synced rows) as a display-alive signal
+that also wipes any stale reflash image.
+
+**The same evening the cold-boot path was corrected, and the correction is the rung's sharpest
+lesson about where a defect hides** (`d2f82ed` tuvm / `6bdf90a` nsl-tuvm; design §8 amendment).
+The paragraph above records "after any flash the clock free-runs from 00:00 and converges at its
+first watch-end sync (≤4 h) — accepted design behaviour, worth knowing before reading a 1-bell
+first strike as a bug." **That was wrong, and it was wrong in the most expensive way: it wrote a
+defect down as intended behaviour.** §8 of the design had always called for a sync at cold boot;
+stage 4 ran a boot-sync retry every ~30 s precisely "so no wrong bell is heard"; the reactor
+rewrite dropped it and nothing replaced it. What the ladder had accepted was up to **4 hours of
+wrong bells after every power loss or reflash** — witnessed on the bench when a RESET at 20:00:56
+rang 1 bell and then 2/3/4/5 on the half-hours, every one wrong against true ship's time.
+
+The fix is a separate cold-boot path that **never reaches the strike**: sync → `applySync:`
+advances the ratchet from the free-run 0 to true time (silently; skipped bells are not rung) →
+paint the *synced* panel → sleep to the next *true* boundary, so the first bell heard is that
+boundary's with the right count. Device witness: cold boot 22:15:08 → `ntp: ok, local sod=80108`
+→ `sync true 80108 predicted 0 -> advance half 44` → `deep sleep 892 s` (a **partial** interval —
+the §3 phase alignment that no cold-boot path had ever exercised) → no bell at boot →
+`wake half 45 bells 5` at 22:30:14, correct on the wall clock. The §5 placeholder paint moved
+with it: it now runs after the sync, so dashes appear only when NTP genuinely fails.
+
+**The rule the stage now leaves, with midnight no longer special** — it is simply one of six
+watch-ends: *strike at every boundary; sync + paint at boot and at every 8 bells; radio on only
+for those.* The third clause is **not built** — `main.c:1232` still brings WiFi up on all 48
+daily wakes when only 6 need it (measured: 6.5 of every 7.5 awake seconds), filed as tuvm#99.
+
+**Two bench traps from the same evening, both of which produce a plausible-looking wrong result.**
+`flash-magtag.sh` calls `run.sh` **without `--conf-extra prj_esp32s2_wifi.conf`**, so it silently
+builds a no-WiFi image that boots clean and simply never syncs; and the esp32s2 profile's default
+`OEVM_HEAP_SIZE=65536` (`run.sh:143`) will not link against the WiFi stack — it overflows
+`dram0_0_seg` by 43,536 B, where this node's working arena is 20480. Confirm a flash by the
+panel's heap row and the presence of `wifi: up`, not by the build succeeding. Detail in
+`[[tuvm-esp32-port]]` item 19.
+
+**Now witnessed on hardware:** the **cold-boot `ntp FAIL` path** — the accidental no-WiFi build
+above drove the real device through `ntp miss` ×3 → `sync failed, stale grows` → a panel reading
+`ntp FAIL` / `sync 11d/17h`, which is the `markSyncFailed:` + FAIL-row code the harness had only
+ever exercised on host.
+
+**THE FIRST UNATTENDED SHIPPING-CADENCE RUN (22:15 → 08:00, 2026-07-24/25) IS THE RUNG'S REAL
+RESULT, AND IT IS A NEGATIVE ONE.** Detail on #94 (five defect write-ups + the ordered queue) and
+in §11 of the design doc; the durable points:
+
+**The timebase is measured at last: ~10,700 ppm fast (≈1%)** — three watch-end measurements
+(10,500 / 10,768 / 10,271) agreeing within ±3% across nine hours. 227× the navigator's 46 ppm
+(4 s/day). Bells arrive up to 155 s early at the 4 h sync cadence. **The stability is the useful
+part**: a stable rate error is correctable in software by applying the already-persisted
+`driftPpm` when arming the sleep (est. residual ~300 ppm — a watch goes from 155 s to ~4 s),
+which is why the DS3231M hardware timebase (#100, ±5 ppm) is an upgrade rather than a rescue.
+
+**Five defects, all in `applySync:`, none caught by a green host suite.** The worst — the hold
+branch holds the count but re-anchors the clock, so count and clock never re-converge and the gap
+grows one slot per watch end — meant the clock **rang the wrong bell count from 04:00 onward**.
+The midnight one — a magnitude compare on an index that wraps 47→0 — read a 66 s lead as a 23½ h
+lag and struck 8 bells twice.
+
+**The methodological lesson, and it is the one to carry to other rungs:** all five are the same
+shape as the cold-boot defect recorded above — **the prose specifies the behaviour correctly and
+the code does something else, in a case no test exercises.** Two of them are contradictions of
+comments sitting in the same file. The host harness is green and stayed green throughout; the
+gap is specific and now queued (a sync landing *across* the wrap; a hold arming a *longer*
+sleep). An unattended run at the real cadence found in nine hours what months of host-green
+development did not — for a time-domain appliance, **wall-clock soak is not optional
+verification, it is the only verification that addresses the product claim.**
+
+**Not witnessed on hardware:** the `ntp FAIL` *watch-end* specifically (the cold-boot FAIL above
+shares `markSyncFailed:` and the panel row, not the watch-end entry); the RC-oscillator drift
+number the panel exists to show (needs the shipping cadence's real watch-ends — the first honest
+sample is the second sync of a run); button wake and power measurement (out of scope, #83 /
+design §10, and now queued behind tuvm#99 since WiFi-every-wake dominates the power profile).
+
+## The bells land on the minute — 2026-07-25, #94 stage 5, the correction batch
+
+The queue set from the overnight run, worked in David's priority order (defect 5, defect 1+2,
+defect 3, then disciplining). Suite 227/0, all aux gates green; firmware links for
+`esp32s2_saola` with `rtc_slow_seg` at 40 B. Design doc §12 carries the detail.
+
+**Defect 5 — the sleep now belongs to the count, not to the clock.** Having struck `lastHalf`,
+the next strike is `lastHalf + 1` and it is due at *that half's* boundary, so the sleep runs to
+`((lastHalf + 1) * slotSec) - predictedNow` mod 86400. The same number as before on the
+free-running path, and the difference that matters after a hold: the sleep lengthens until the
+world reaches the count, which is what the class comment always promised. One formula replaced
+the branch-specific spelling, so advance / hold / free-run / cold-boot all phase-align the same
+way.
+
+**Defect 1 — the ratchet invariant is modular, and is now spelled that way**, as forward distance
+round the 48-slot dial rather than `>`. Defect 2 came free: the midnight case now takes the hold
+branch, so the real drift is measured instead of discarded. **The split is asymmetric on purpose**
+— hold only if the count leads by at most 3 slots, advance otherwise — because modular arithmetic
+cannot tell "3 slots ahead" from "45 slots behind", and the two mistakes are not equally
+survivable: advancing wrongly rings one wrong count and self-corrects, while holding wrongly goes
+*silent* for the length of the hold. A never-synced board (`staleSec >= 999999`) adopts true time
+unconditionally, which is the one real case of a large forward distance — a cold boot at 23:30 is
+genuinely 47 slots from the free-run 0.
+
+**Defect 3 — a rate needs a baseline.** Whole-second drift over a 68 s window is ±14,700 ppm of
+pure quantisation, which is how `+58823` happened. Below `slotSec * 2` (an hour at the shipping
+cadence, ±278 ppm) the sync is reported and the rate skipped. Derived from `slotSec` so a 60 s
+demo build can still measure and discipline itself.
+
+**Disciplining, and the cumulative-calibration trap.** `driftPpm` became `calPpm`, a cumulative
+calibration applied when *arming* the sleep. The trap is that overwriting it with each fresh
+measurement destroys the correction the moment it works: a well-disciplined watch measures ~0,
+which as a replacement zeroes the calibration and restores the full 1%. It must **accumulate** the
+residual, and `elapsedSec` must accrue the *intended* seconds rather than the commanded ones, or
+the loop double-corrects. Seeded from the overnight run's mean (−10,513 ppm) so a reflashed board
+is disciplined from its first sleep instead of spending a whole watch learning what is already
+known — a starting guess that the loop supersedes within one watch, not a constant.
+
+**Two further defects the fix itself exposed, both invisible to per-decision tests.**
+
+1. **The awake window was accrued but never subtracted.** The wake is strike → work → sleep, so
+   boot/WiFi/strike seconds fall *between* this strike and the next. Accruing them keeps the rate
+   honest and puts every strike one awake window (~15 s) past its boundary, permanently. It has to
+   be both subtracted from the sleep and added to the accrual; the invariant that says so is that
+   `predictedNow` after arming must land *exactly* on the boundary of the count about to be
+   struck. **The same error sits in the measurement path** and is worse there: `predictedNow` is
+   the clock at the strike while `trueSec` was read a window later, so differencing them scores
+   WiFi association as oscillator drift — a phantom +1041 ppm per sync that feeds the calibration,
+   so a *perfect* clock gets corrected every watch end and the loop walks away from the truth.
+   Both are fixed by stamping a clock basis at the instant NTP answers: on a synced wake only the
+   work *after* the read is subtracted. Getting that half wrong merely moves the error — it turns
+   a 15 s late bell into a 15 s early one.
+2. **The correction was truncated, not rounded.** The correction is whole seconds; discarding the
+   fraction is itself a rate error — up to 0.9 s per 1800 s slot = 500 ppm, the same order as the
+   residual the mechanism exists to remove. It walked the bells ~30 s off across a watch in
+   simulation. Rounding leaves ±0.5 s per slot, so ±4 s per watch before the next sync re-anchors,
+   which is the accuracy target. Sub-second correction would need fractional state across a deep
+   sleep — that is what #100's hardware timebase buys instead.
+
+**The test that closes the harness gap, and what it cost to not have it.** All the per-decision
+tests were green while defects 5, 6 and the truncation were live, because each pins one decision
+and none of them lets a per-cycle error accumulate into an audible one. The new capstone walks the
+real node through twelve wakes against a **simulated 1.07 % fast oscillator** — the rate actually
+measured on the board — with a device-sized awake window, across midnight and a watch-end sync,
+and asserts every count is the one the hour deserves at the minute it deserves it. It found all
+three. Against that model the clock now holds **every bell within 0.7 s of its boundary** with the
+calibration converging (−10,513 → −10,673 → −10,743); ablating the seed leaves the first watch
+57 s off before the first sync catches it, which is the value of seeding measured in bells. It is
+a simulation and says nothing about power, radio or temperature — **the wall-clock soak conclusion
+above stands unchanged**; this narrows what the soak has to discover, it does not replace it.
+
+**A VM seam fixed on the way.** `0 millis` on host was `CLOCK_MONOTONIC` since the *machine*
+booted, so a node reading it as its own awake window got days — and past ~12.4 days of host uptime
+the value no longer fits a 31-bit SMI. The hook's contract is `k_uptime_get()`'s, "ms since boot",
+and on a host a process *is* the boot; it now answers process-relative. Every delta-taking caller
+is unaffected (a constant offset cancels), and `OEVM_MILLIS_FIXED_MS` lets a host test pose a
+specific awake window. Whole suite 227/0 across the change.
+
+**WITNESSED ON THE MAGTAG, 2026-07-25 10:00:02 — four bells at ten o'clock, heard.** Flashed
+09:59; cold boot acquired the clock (`ntp: ok, local sod=35955` against a wall clock reading
+09:59:15) and took the **adopt** branch — `sync true 35955 predicted 6 -> advance half 19` — the
+never-synced rule doing exactly the job it was added for. Then
+`sleep: target 39 s cal -10513 awake 6 s`: 36000 − 35955 − 6, the count's own boundary less the
+awake window, seeded calibration live. Woke 09:59:59, struck **half 20, four bells**. The same
+board four hours earlier rang 5 bells at 09:27:56 where 3 was due at 09:30. The state arithmetic
+closes exactly — `elapsed = 0 + 39 + 6 = 45`, `predicted = 36000`, dead on the boundary — which is
+the invariant the awake fix was built around, now confirmed off-simulation.
+
+**The one honest gap in that witness: the bell sounds ~2 s into the minute, and it is not the
+clock.** The *wake* is on time (09:59:59 for a 10:00:00 boundary); `wifi_bringup()` runs on every
+boot ahead of the node code, so association sits between the wake and the strike. That is
+**tuvm#99** (lazy WiFi), already filed, and it costs the 2 s and most of the power budget both.
+
+**Still not witnessed:** the **hold** branch, and the first *measured* ppm on this hardware — both
+need a watch-end (12:00), and that residual is the number that decides whether disciplining
+survives contact with a real oscillator rather than a modelled one. Until then the 0.7 s figure
+above remains a simulation result, and an unattended night is still what promotes the rest.
+
+**Witnessed by accident, and worth keeping:** a first flash built without
+`--conf-extra prj_esp32s2_wifi.conf` linked no WiFi stack at all, which drove the real device
+through the **cold-boot NTP-failure path** end to end — three instant misses, `sync failed, stale
+grows`, no bell struck, `ntp FAIL` and `sync --` painted from the sentinel, free-run arming a full
+slot. The ladder had that path recorded as host-gated only. **The process lesson is the reusable
+half:** the bad image *linked cleanly*, and a clean link says nothing about which Kconfig overlays
+went in. The tell was in the numbers — `dram0` well under the known-good **98.68%**, `libc heap
+102 kB` against 74 kB, panel `heap 18/64K` against `18/20K`. Check a build against the recorded
+good figures BEFORE flashing, not after it misbehaves.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),

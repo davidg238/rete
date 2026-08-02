@@ -1,0 +1,61 @@
+(* tuvm#94 stage 1 gate node — the witness that nsl, not boot-time C, now drives
+   the bell.
+
+   Gate 1: a striking at start-up, ordered by nsl. Five bells, because an odd
+   count exercises BOTH halves of the ship's-bell phrasing: two pairs and then a
+   lone final stroke. Hearing ding-ding … ding-ding … ding is the proof; a single
+   stroke would sound identical whether the phrasing survived the move into the
+   prim or was lost in it.
+
+   Gate 2: BUTTON_A repeats the LAST striking. That is the gate that actually
+   proves the seam is re-entrant and that the amp mute/un-mute is per strike
+   rather than a one-shot done at boot — the failure mode this replaces is a bell
+   that rings once after reset and is silent forever after.
+
+   Gate 3: a count outside 1-8 raises with its tag rather than striking something
+   the convention has no reading for. Same shape as MagTagDisplayNode's
+   out-of-grid gate, and worth having ON THE BOARD as well as on the host: the
+   check lives in nsl (Bell>>strike:), so this confirms the kernel that shipped in
+   the image is the one that carries it.
+
+   `bell strike:` BLOCKS for the whole striking — about half a second a bell, so
+   ~2.5 s here. That is safe for the same reason the display's refresh is: the
+   pulse mailbox sheds and coalesces rather than aborting (pulse_zephyr.c,
+   tuvm#34), so a button pressed mid-strike arrives once afterwards instead of
+   being lost. Lean on the button during a striking and you should hear exactly
+   one repeat, not a queue of them. *)
+class MagTagBellNode packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space bell gpio press last |
+    space:: platform space.
+    bell:: platform bell.
+    gpio:: platform gpio.
+    last:: 5.
+
+    ('striking ' , last printString) out.
+    bell strike: last.
+    'struck' out.
+
+    [ bell strike: 9 ]
+      on: [ :e | e tag = #bellBounds ]
+      do: [ :e | 'gate3 caught bellBounds' out ].
+
+    (* `whenever:do:` is the ONLY subscription selector in this dialect
+       (Channel>>whenever:do:) — Space has no `on:do:`, and because nsl dispatches
+       dynamically the wrong selector compiles clean and kills the node at run
+       time. MagTagDisplayNode died exactly there on its first bench run. *)
+    press:: space channel: 'btn/press'.
+    press whenever: '' do: [ :m |
+      ('repeat ' , last printString) out.
+      bell strike: last.
+      'struck' out ].
+    gpio pin: 15 edge: #falling post: 'A' on: press.
+
+    'ready' out.
+    (* `platform pumpEvents` only pumps the backends INTO the space queue;
+       `space drain` is what dequeues and fires reactions. A reactor loop without
+       the drain enqueues button presses forever and runs none of them. *)
+    [ true ] whileTrue: [ platform pumpEvents. space drain ].
+  )
+) : (
+)

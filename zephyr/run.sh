@@ -8,6 +8,9 @@
 set -euo pipefail
 
 MODEL=B NODE=TimerNode.nsl DO_FLASH=0 CAPTURE=0 PRISTINE=0 BUILD_DIR="" BOARD_ID=esp32c6 CONF_EXTRA=""
+# Which chip's ROM ld the setjmp/longjmp patch targets. Only meaningful when a
+# profile sets ROM_PATCH=1; the esp32 profile leaves this default.
+ROM_PATCH_CHIP=esp32
 while [ $# -gt 0 ]; do
   case "$1" in
     --model)      MODEL="$2"; shift 2 ;;
@@ -22,7 +25,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 case "$MODEL" in A|B) ;; *) echo "--model must be A or B" >&2; exit 2 ;; esac
-case "$BOARD_ID" in esp32|esp32c6) ;; *) echo "--board must be esp32 or esp32c6" >&2; exit 2 ;; esac
+case "$BOARD_ID" in esp32|esp32s2|esp32c6) ;; *) echo "--board must be esp32, esp32s2 or esp32c6" >&2; exit 2 ;; esac
 
 ZDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # zephyr/ — the app dir
 ROOT="$(cd "$ZDIR/.." && pwd)"                          # repo root
@@ -99,6 +102,75 @@ case "$BOARD_ID" in
     : "${OEVM_HEAP_SIZE:=49152}"
     : "${BUILD_DIR:=build-esp32-$MODEL}"
     pick_port '/dev/serial/by-id/*CP210*' /dev/ttyUSB0
+    ;;
+  esp32s2)
+    # Adafruit MagTag (ESP32-S2-WROVER). NOT a MagTag board target — there is no
+    # MagTag board in Zephyr and none is needed to boot: esp32s2_saola.dts:9
+    # includes <espressif/esp32s2/esp32s2_wrover_n4r2.dtsi>, which IS the
+    # MagTag's module (WROVER, 4 MB flash, 2 MB PSRAM). Board IO that actually
+    # differs (buttons, NeoPixels, the IL0373 e-paper) arrives later as
+    # boards/esp32s2_saola_esp32s2.overlay. See prj_esp32s2.conf's header.
+    BOARD="esp32s2_saola/esp32s2"
+    CONF_FILE="prj_esp32s2.conf"
+    LAYOUT_JSON="$ZDIR/layout-esp32s2.json"
+    ESPTOOL_CHIP="esp32s2"
+    # Xtensa parts keep the bootloader at 0x1000 (the C6's 0x0 is a RISC-V
+    # change). Same offset as the WROOM-32.
+    ESPTOOL_OFFSET="0x1000"
+    ESPTOOL_FLASH_SIZE="4MB"
+    # The S2 ROM ld forces setjmp/longjmp to ROM exactly like the WROOM-32's
+    # does, so the patch is load-bearing here too — but the S2 symbol set is
+    # setjmp/longjmp only (no ungetc), hence --chip below.
+    ROM_PATCH=1
+    ROM_PATCH_CHIP="esp32s2"
+    # MEASURED 2026-07-23 (tuvm#88), no longer provisional: the LINK ceiling is
+    #   tools/heap-ceiling.sh --board esp32s2 --node MagTagDisplayNode.nsl
+    #     -> max-linkable-OEVM_HEAP_SIZE=94208 (92 KB)
+    #        98304 overflows dram0_0_seg by 2912 B
+    # measured with the e-paper driver, CFB and the display seam's shadow grid
+    # all linked in — i.e. the display rung's own footprint is already paid for
+    # in that number. The default stays at the conservative 65536 because a
+    # value that LINKS is not a value that BOOTS, and only 65536 has been run on
+    # hardware; the ~28 KB between them is headroom a heavier node may claim
+    # explicitly (OEVM_HEAP_SIZE=... bash run.sh ...) and then boot-verify.
+    # Real cost is ~67.5 KB (the GC bitmap adds OEVM_HEAP_SIZE/32 outside the
+    # arena).
+    # Note the 2 MB of PSRAM is NOT in play here: CONFIG_ESP_SPIRAM is off, and
+    # enabling it would not enlarge this arena anyway — oevm_heap_store (gc.c) is
+    # a static array, whereas ESP_SPIRAM selects SHARED_MULTI_HEAP and hands out
+    # PSRAM as a separate runtime heap region. Using it means changing how the
+    # arena is obtained, not flipping a Kconfig.
+    : "${OEVM_HEAP_SIZE:=65536}"
+    : "${BUILD_DIR:=build-esp32s2-$MODEL}"
+    # Flash on the MagTag's NATIVE USB, in ROM download mode. Observed on the
+    # bench 2026-07-22: holding BOOT0 while clicking RESET enumerates
+    #   303a:0002 Espressif ESP32-S2  ->  usb-Espressif_ESP32-S2_0-if00
+    # so the glob below is the ROM bootloader's own id, NOT the board's. In its
+    # normal application mode this same port enumerates as 239a:80e6
+    # 'usb-Adafruit_MagTag_<serial>-if00' — a DIFFERENT string that is absent
+    # exactly when you want to flash, which is why '*MagTag*' would be wrong.
+    # Scoped to ESP32-S2 rather than the C6 profile's bare '*Espressif*' so two
+    # Espressif parts in download mode at once stay distinguishable.
+    #
+    # Entering download mode is MANUAL and unavoidable: the soldered UART Debug
+    # header breaks out TX/RX only (no DTR/RTS), and this native port belongs to
+    # the ROM, so esptool has no reset line to drive. Hold BOOT0, click RESET,
+    # release BOOT0 — then flash.
+    #
+    # LEAVING download mode is NOT manual, contrary to what this comment and
+    # flash-magtag.sh both claimed until 2026-07-23. esptool does not need a
+    # reset line: ESP32S2ROM.hard_reset() detects USB-OTG and, when the
+    # strapping allows, arms the RTC watchdog and lets it fire
+    # (esptool/targets/esp32s2.py:291-314). Observed on the bench — esptool
+    # printed 'Hard resetting with a watchdog...' and the app booted with no
+    # hand on the board. So a flash-and-witness loop needs a human ONCE, to
+    # enter download mode, not twice.
+    #
+    # The console is the OTHER port: the UART header on GPIO43/44 via a PL2303
+    # (usb-Prolific_...-if00-port0). It is a separate device from this one, so a
+    # console handle can be held across a flash. It does NOT collide with the
+    # esp32 profile's '*CP210*' glob — different bridge chip entirely.
+    pick_port '/dev/serial/by-id/*Espressif_ESP32-S2*' /dev/ttyACM0
     ;;
   esp32c6)
     BOARD="esp32c6_devkitc/esp32c6/hpcore"
@@ -179,11 +251,13 @@ fi
 PRISTINE_ARG=(); [ "$PRISTINE" = 1 ] && PRISTINE_ARG=(-p always)
 # WiFi credentials overlay (#46): git-ignored, generated once with the real
 # SSID/PSK (never tracked). Appended only when present so a checkout without
-# it (or a future non-WiFi board) builds unaffected. The overlay is ESP32-specific
-# today; scope it so a C6 build ignores it.
+# it (or a future non-WiFi board) builds unaffected. Scope it so a C6 build ignores it.
+# NOT esp32-specific despite the filename: it carries CONFIG_TUVM_WIFI_SSID/_PSK,
+# which zephyr/src/main.c reads on any board, so the MagTag (esp32s2) takes the same
+# credentials rather than a second git-ignored copy to keep in sync (tuvm#94 stage 4).
 WIFI_CONF="$ZDIR/prj_esp32_wifi.local.conf"
 EXTRA_CONF_FILES=()
-if [ "$BOARD_ID" = esp32 ] && [ -f "$WIFI_CONF" ]; then
+if { [ "$BOARD_ID" = esp32 ] || [ "$BOARD_ID" = esp32s2 ]; } && [ -f "$WIFI_CONF" ]; then
   EXTRA_CONF_FILES+=(prj_esp32_wifi.local.conf)
   echo "[wifi]  overlay found -> $WIFI_CONF"
 fi
@@ -213,8 +287,10 @@ fi
 # ROM setjmp/longjmp/ungetc fault under Zephyr+picolibc (same forced-ROM-newlib
 # family as fflush); patch the vendored SDK ld to use picolibc's. Idempotent; a
 # west re-fetch reverts the SDK, so re-apply every build. Zero-SDK-touch: tuvm #48.
+# The forced-symbol set differs per part (the S2 forces setjmp/longjmp but not
+# ungetc), so the chip is passed explicitly; the script keeps a per-chip list.
 if [ "$ROM_PATCH" = 1 ]; then
-  "$ROOT/tools/patch-esp32-rom-ld.sh"
+  "$ROOT/tools/patch-esp32-rom-ld.sh" --chip "$ROM_PATCH_CHIP"
 fi
 
 echo "[build] -b $BOARD -d $BUILD_DIR ${PRISTINE_ARG[*]:-(incremental)}"

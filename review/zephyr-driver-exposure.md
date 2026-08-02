@@ -42,6 +42,30 @@ product thesis made mechanical: write one seam module, inherit a catalog. Expect
 cover the long tail of environmental/IMU/light/battery parts with zero per-device
 code.
 
+> **Revised by tuvm#88 (2026-07-23, e-paper on the MagTag): the catalog is real, but
+> "zero per-device code" is not the claim that survived contact.** The bench MagTag is
+> the pre-July-2025 revision, and its IL0373 panel is supported by Zephyr **nowhere** —
+> verified absent from both workspaces (`~/zephyr-esp32/zephyr` @ v4.2.0, `~/ncs/zephyr`
+> @ 4.2.99). So the rung had to *extend* the catalog rather than consume it.
+>
+> The honest form of the claim: **the catalog's value is that extending it is bounded
+> and local, not that extension never happens.** The IL0373 is a UC81xx in all but name
+> — byte-identical opcodes, same BUSY polarity, same KW mode — so joining the family
+> cost one binding yaml, one quirks struct, and two ~25-line byte-layout functions. No
+> new datapath, no new API, nothing above the driver changed. That is the property worth
+> selling: a part Zephyr has never heard of lands as a *family member*, and every layer
+> above it (seam, prims, nsl) is untouched.
+>
+> Two further Tier-1 caveats the rung produced, both about the *uniform API* rather than
+> the drivers behind it. (1) The uniform API can be uniformly WRONG: `uc81xx` declares
+> `PIXEL_FORMAT_MONO10` while its own init clears RAM to `0xff` for white — the panel
+> painted inverted, and the fix was local compensation because one panel is not evidence
+> about the rest of the family. (2) A uniform API does not imply uniform *semantics*:
+> CFB's glyph drawing ORs and never clears (`draw_char_htmono`, `cfb.c:262`), so the
+> device seam silently diverged from the host seam, which replaces. Binding an API
+> family buys you the datapath; it does not buy you agreement about what a write MEANS,
+> and that agreement is the seam's job to pin down.
+
 **Tier 2 — subsystems with their own machinery (display: a character-grid UI).**
 Decision 2026-07-11: **LVGL is dropped** — its RAM appetite (widget heap + working
 buffers) and its own timer/event loop are exactly the kind of foreign machinery the
@@ -102,6 +126,29 @@ Three examples, one per tier, each earning the next:
    deliberately "ascii-art": lines/at/ctl records, block-glyph bars for graphics.
    LVGL is dropped, not deferred — revisit only if a product genuinely demands rich
    UI, and then as its own project.
+
+   > **Landed 2026-07-23 as tuvm#88, and it did NOT need the Tier-2 machinery this
+   > entry predicted.** Shipped on e-paper (MagTag, IL0373) rather than a 128×128
+   > TFT, and as **four blocking prims (125-128) over CFB** — not a driver *job*
+   > owning SPI, not a channel record protocol, not a dedicated thread. `displayClear`
+   > / `displayAt:col:put:` / `displayRefresh` / `displayRefreshRow:`, the same shape
+   > as #82's gpio, riding `#ifdef __ZEPHYR__` so no new `.c` file and no nine-source-
+   > list tax (#63). The grid is 12×18 (CFB's font1016 at 10×16 px on 128×296) — note
+   > the "16×16 char grid with an 8×8 font" above was doubly wrong: CFB ships **no**
+   > 8×8 font at all.
+   >
+   > **Blocking was verified safe rather than assumed:** `pulse_zephyr.c:42` sheds and
+   > coalesces per source (the #34 fix), so a button pressed during a multi-second
+   > paint is delivered once afterward — not lost, not a node kill. The async
+   > driver-job shape remains the better eventual answer and is what the ship's-bell
+   > clock rung will force; deferring it was the #82 → #84 discipline, not an oversight.
+   >
+   > So the *open question* below — "where Tier-2 driver jobs run" — was answered by
+   > sidestepping it: on the reactor's thread, blocking, because the measurement said
+   > that was safe. And "CFB vs own blitter" resolved to CFB, which then had to be
+   > **extended** (`cfb_framebuffer_finalize_area` — CFB could not express a bounded
+   > flush) and **worked around** (its glyph drawing ORs and never clears, so the seam
+   > owns a shadow grid and CFB renders it). Both are upstream candidates.
 
 ## Why this ladder
 

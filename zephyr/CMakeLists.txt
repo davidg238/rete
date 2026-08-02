@@ -141,6 +141,43 @@ if(DEFINED ENV{OEVM_MARK_STACK_SIZE})
   target_compile_definitions(app PRIVATE OEVM_MARK_STACK_SIZE=$ENV{OEVM_MARK_STACK_SIZE})
 endif()
 
+# shipsBellsV3 §11.2 bench instrumentation: a single strike-solenoid pulse of N ms
+# fired from C at boot (src/main.c solenoid_oneshot). ABSENT BY DEFAULT and env-gated
+# rather than Kconfig-gated so that the only way to build an image that energises a
+# coil is to say so on the command line, in the same breath as the width:
+#
+#   TUVM_SOLENOID_PULSE_MS=15 ./run.sh --board esp32c6 --flash ...
+#
+# Walking §11.2's ladder (100 -> 50 -> 30 -> 25 -> 20 -> 15 -> 10 ms) is then one env
+# var per rebuild. main.c BUILD_ASSERTs the value against §8's 1 s on-time cap.
+if(DEFINED ENV{TUVM_SOLENOID_PULSE_MS})
+  target_compile_definitions(app PRIVATE TUVM_SOLENOID_PULSE_MS=$ENV{TUVM_SOLENOID_PULSE_MS})
+endif()
+
+# Strike on demand from the console (src/main.c strike_console): type <ms><Enter>.
+# Separate knob from TUVM_SOLENOID_PULSE_MS on purpose — walking §11.2's ladder by
+# ear wants NO boot strike, so that every ring heard is one somebody typed.
+#
+#   TUVM_SOLENOID_CONSOLE=1 ./run.sh --board esp32c6 --flash ...
+if(DEFINED ENV{TUVM_SOLENOID_CONSOLE})
+  target_compile_definitions(app PRIVATE TUVM_SOLENOID_CONSOLE=1)
+endif()
+
+# The NTP server the bell corrects itself against (src/main.c ntp_target_sync).
+#
+# OEVM_NTP_SERVER6 is a LITERAL IPv6 address and WINS over OEVM_NTP_SERVER when
+# both are set — it is the Thread path, where the mesh is a ULA with no global
+# IPv6 and no DNS64, so a hostname has nothing to resolve against. Env rather than
+# Kconfig for the same NCS-sysbuild reason as every knob above.
+#
+#   OEVM_NTP_SERVER6=fd77:9957:d9f3:1:2935:a821:1d56:c329 ./run.sh --board esp32c6 ...
+if(DEFINED ENV{OEVM_NTP_SERVER})
+  target_compile_definitions(app PRIVATE OEVM_NTP_SERVER="$ENV{OEVM_NTP_SERVER}")
+endif()
+if(DEFINED ENV{OEVM_NTP_SERVER6})
+  target_compile_definitions(app PRIVATE OEVM_NTP_SERVER6="$ENV{OEVM_NTP_SERVER6}")
+endif()
+
 # Hot-path IRAM placement. Routes the interpreter's hottest functions
 # (oevm.h OEVM_HOT) into internal IRAM instead of flash XIP; ends the
 # combinator-row cache roulette (ledger E8: ocDo −36%, ~8 KB IRAM).

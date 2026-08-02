@@ -58,6 +58,381 @@ static void host_gpio_fire(int pin) {
             pulse_post_isr(host_gpio[i].chan_id, host_gpio[i].handle_idx);
 }
 
+/* tuvm#82: the host side of the OUTBOUND gpio seam. A pin counts as DECLARED on
+   the host if it has been written by gpioSet:to: or registered by
+   gpioPin:edge:post:on: — the host analogue of "declared in the board overlay".
+   Deliberately a SEPARATE table from host_gpio above: firing an edge and driving
+   a line are different things (the interesting chording test sets a level on one
+   pin while firing an edge on another), and keeping them apart leaves the proven
+   pulse path untouched.
+   KNOWN HOST/DEVICE DIVERGENCE: on the host, gpioSet:to: CREATES a slot, so it
+   never reports an undeclared pin; on target it fails for any pin the overlay
+   omits. A typo'd output pin therefore passes on the host and raises on the
+   board. Accepted: there is no overlay on the host to check against. The level
+   read has no such gap and is where the raise gets its host coverage. */
+#ifndef __ZEPHYR__
+#ifndef HOST_MAX_GPIO_LEVEL
+#define HOST_MAX_GPIO_LEVEL 16
+#endif
+struct HostGpioLevel { int pin; int level; int live; };
+static struct HostGpioLevel host_gpio_level[HOST_MAX_GPIO_LEVEL];
+static int host_n_gpio_level = 0;
+
+static struct HostGpioLevel *host_level_find(int pin) {
+    int i;
+    for (i = 0; i < host_n_gpio_level; i++)
+        if (host_gpio_level[i].live && host_gpio_level[i].pin == pin)
+            return &host_gpio_level[i];
+    return NULL;
+}
+static int host_gpio_is_registered(int pin) {
+    int i;
+    for (i = 0; i < host_n_gpio; i++)
+        if (host_gpio[i].live && host_gpio[i].pin == pin) return 1;
+    return 0;
+}
+
+/* Answers 1 on success, 0 for a pin that cannot be driven (host: table full). */
+int gpio_target_set(int pin, int level) {
+    struct HostGpioLevel *e = host_level_find(pin);
+    if (e) { e->level = level ? 1 : 0; return 1; }
+    if (host_n_gpio_level >= HOST_MAX_GPIO_LEVEL) return 0;
+    e = &host_gpio_level[host_n_gpio_level++];
+    e->pin = pin; e->level = level ? 1 : 0; e->live = 1;
+    return 1;
+}
+
+/* Answers 0/1 for a declared pin and -1 for an undeclared one. A pin registered
+   as a pulse input but never driven reads false — an input that nothing has
+   asserted, which is what an idle active-low button looks like. */
+int gpio_target_level(int pin) {
+    struct HostGpioLevel *e = host_level_find(pin);
+    if (e) return e->level;
+    if (host_gpio_is_registered(pin)) return 0;
+    return -1;
+}
+#else
+/* tuvm#82: on target these live in zephyr/src/main.c, beside the devicetree tables
+   they read. Conditional compilation in a shared src/*.c rather than a new backend
+   .c pair is deliberate: __ZEPHYR__ is already used this way in src/gc.c and
+   src/vm.c, and adding a .c file costs edits to nine enumerated source lists
+   across two repos (tuvm#63) for two functions.
+   Note the direction is the MIRROR of gpio_target_fire below, which platform.c
+   defines and main.c calls inbound. */
+extern int gpio_target_set(int pin, int level);
+extern int gpio_target_level(int pin);
+#endif
+
+/* tuvm#88: the host side of the display seam — a real character grid, not a
+   stub that only reports errors. `refresh` PRINTS the non-blank rows, so an nsl
+   test asserts on the text that was actually laid down (the existing expect:
+   mechanism is the read-back path, which is why no fifth "read the grid" prim
+   has to be spent). On target these live in zephyr/src/main.c beside CFB.
+   Geometry: the panel is 128x296 px and CFB is configured with font1016 (10 wide
+   x 16 tall) — NOT 8x8; CFB ships no 8x8 font, and the `ppt` of 8 that looks like
+   a font size is a tiling granularity, not one. That gives 128/10 = 12 columns
+   and 296/16 = 18 rows. The numbers are named ONCE, in platform_backend.h
+   (OEVM_DISPLAY_ROWS/COLS), and this file plus zephyr/src/main.c both consume
+   that single definition — a host/device mismatch here would make a host-green
+   test meaningless, so the device side hard-checks its derived grid against
+   these same constants at bring-up rather than merely printing them. */
+#ifndef __ZEPHYR__
+#define HOST_DISPLAY_ROWS OEVM_DISPLAY_ROWS
+#define HOST_DISPLAY_COLS OEVM_DISPLAY_COLS
+static char host_display[HOST_DISPLAY_ROWS][HOST_DISPLAY_COLS + 1];
+static int host_display_init_done = 0;
+
+static void host_display_reset(void) {
+    int r, c;
+    for (r = 0; r < HOST_DISPLAY_ROWS; r++) {
+        for (c = 0; c < HOST_DISPLAY_COLS; c++) host_display[r][c] = ' ';
+        host_display[r][HOST_DISPLAY_COLS] = '\0';
+    }
+    host_display_init_done = 1;
+}
+static void host_display_ensure(void) {
+    if (!host_display_init_done) host_display_reset();
+}
+/* Output goes through platform_console_write, NOT printf. The `out` selector
+   uses it (see PRIM_pf_print above), and mixing the two would interleave two
+   different buffering regimes — an expect: block would then be asserting an
+   order that is an artefact of stdio, not of the program. */
+static void host_display_emit(const char *s, int n) {
+    platform_console_write(s, (size_t)n);
+}
+/* Trailing blanks carry no information and would make every expect: block
+   whitespace-fragile, so they are trimmed on the way out. */
+static int host_display_row_len(int r) {
+    int end = HOST_DISPLAY_COLS;
+    while (end > 0 && host_display[r][end - 1] == ' ') end--;
+    return end;
+}
+
+/* tuvm#88 TEST SEAM: OEVM_NO_DISPLAY=1 makes the host claim "no display", the
+   same shape as OEVM_GC_STRESS in gc.c — cached once so getenv is not re-read
+   per call. Without this, `display_target_available()` was hard-coded 1 and the
+   design's promised "no display -> #displayUnavailable" host test could not
+   exist; a board really can lack the panel (Finding 3), so the host needs a way
+   to exercise that path too. */
+int display_target_available(void) {
+    static int no_display_cached = -1;
+    if (no_display_cached < 0)
+        no_display_cached = (getenv("OEVM_NO_DISPLAY") != NULL) ? 1 : 0;
+    if (no_display_cached) return 0;
+    host_display_ensure();
+    return 1;
+}
+
+int display_target_clear(void) { host_display_reset(); return 0; }
+
+int display_target_put(int row, int col, const char *s, int n) {
+    int i;
+    host_display_ensure();
+    if (row < 0 || row >= HOST_DISPLAY_ROWS) return 1;
+    if (col < 0 || n < 0 || col + n > HOST_DISPLAY_COLS) return 1;
+    for (i = 0; i < n; i++) host_display[row][col + i] = s[i];
+    return 0;
+}
+
+int display_target_refresh(void) {
+    char line[80];
+    int r, len, end;
+    host_display_ensure();
+    host_display_emit("display:\n", 9);
+    for (r = 0; r < HOST_DISPLAY_ROWS; r++) {
+        end = host_display_row_len(r);
+        if (end == 0) continue;
+        len = snprintf(line, sizeof line, "  %d: %.*s\n", r, end, host_display[r]);
+        if (len > 0) host_display_emit(line, len);
+    }
+    return 0;
+}
+
+int display_target_refresh_row(int row) {
+    char line[80];
+    int len, end;
+    host_display_ensure();
+    if (row < 0 || row >= HOST_DISPLAY_ROWS) return 1;
+    end = host_display_row_len(row);
+    len = snprintf(line, sizeof line, "display row %d: %.*s\n", row, end, host_display[row]);
+    if (len > 0) host_display_emit(line, len);
+    return 0;
+}
+#else
+/* On target these live in zephyr/src/main.c, beside the CFB calls and the
+   devicetree node they read — the same split gpio_target_set/level use, and for
+   the same reason: a new .c file costs edits to nine enumerated source lists
+   across two repos (tuvm#63). */
+extern int display_target_available(void);
+extern int display_target_clear(void);
+extern int display_target_put(int row, int col, const char *s, int n);
+extern int display_target_refresh(void);
+extern int display_target_refresh_row(int row);
+#endif
+
+/* tuvm#94 stage 1: the host side of the bell seam. There is nothing to synthesise
+   here — the host has no cosine generator and no speaker — so what the host owes
+   an nsl test is the ONE thing it can honestly report: that the seam was reached
+   with the count the node meant. It prints, exactly as display_target_refresh
+   prints its grid, and for the same reason: the existing expect: mechanism is the
+   read-back path, so no second "how many bells did you strike" prim has to be
+   spent.
+   Deliberately NOT sleeping the ~500 ms a strike takes on target. A host test
+   would then cost four seconds to assert on a printed line, and the blocking is a
+   property of the hardware envelope, not of the seam — see the note on
+   PRIM_pf_bellStrike in prim_ids.h. */
+#ifndef __ZEPHYR__
+/* Same shape as OEVM_NO_DISPLAY above: OEVM_NO_BELL=1 makes the host claim the
+   board has no bell, so the design's promised "no bell -> #bellUnavailable" path
+   is testable. Without it available() is hard-coded 1 and the structural-error
+   branch is unreachable — a board really can lack the speaker (every non-MagTag
+   target in this tree does). Cached once so getenv is not re-read per strike. */
+int bell_target_available(void) {
+    static int no_bell_cached = -1;
+    if (no_bell_cached < 0)
+        no_bell_cached = (getenv("OEVM_NO_BELL") != NULL) ? 1 : 0;
+    return no_bell_cached ? 0 : 1;
+}
+
+int bell_target_strike(int bells) {
+    char line[48];
+    int len = snprintf(line, sizeof line, "bell: struck %d\n", bells);
+    if (len > 0) platform_console_write(line, (size_t)len);
+    return 0;
+}
+
+/* tuvm#94 stage 4: the host side of the NTP seam. The host has no clock to sync,
+   so what it offers instead is DETERMINISM — OEVM_NTP_SECONDS=N makes it answer N,
+   which is what lets a suite test drive the catchup arithmetic to an exact expected
+   value instead of against wall time. The env value is taken as the POST-offset
+   answer (seconds since local midnight), so `tz_offset_seconds` is deliberately
+   ignored here: on target the offset is applied to a real epoch, while on host the
+   test states the local time it wants directly. OEVM_NO_NTP forces the failure path,
+   the same shape as OEVM_NO_BELL / OEVM_NO_DISPLAY, because "the sync failed" is a
+   path the node must handle and no host can produce naturally.
+   Cached once so getenv is not re-read per sync. */
+int ntp_target_sync(int tz_offset_seconds) {
+    (void)tz_offset_seconds;   /* host: the env value is already the answer */
+    static int mode = -1;      /* -1 unknown, 0 no-ntp, 1 has-seconds */
+    static long secs = 0;
+    if (mode < 0) {
+        if (getenv("OEVM_NO_NTP") != NULL) { mode = 0; }
+        else {
+            const char *s = getenv("OEVM_NTP_SECONDS");
+            if (s != NULL) { mode = 1; secs = atol(s); }
+            else { mode = 0; }   /* default: no NTP configured on host */
+        }
+    }
+    if (mode == 0) return -1;
+    return (int)(((secs % 86400) + 86400) % 86400);
+}
+
+/* tuvm#100 (2026-08-01): the host side of `ntpDate`. Same determinism contract as
+   ntp_target_sync above — OEVM_NTP_DATE=20260801 is what a suite test sets when it
+   wants to drive the RTC-correction path to an exact expected value.
+   Deliberately INDEPENDENT of OEVM_NTP_SECONDS rather than derived from it, so a
+   test can set either alone — 20_bell/11 exercises the date-absent path by simply
+   omitting this one. On the device the two always come from one response. */
+int ntp_target_date(void) {
+    static int mode = -1;      /* -1 unknown, 0 no-date, 1 has-date */
+    static long date = 0;
+    if (mode < 0) {
+        const char *s = getenv("OEVM_NTP_DATE");
+        if (s != NULL) { mode = 1; date = atol(s); }
+        else { mode = 0; }
+    }
+    if (mode == 0) return -1;
+    return (int)date;
+}
+
+/* tuvm#100: the host side of the WALL-CLOCK seam. Same shape and same reasoning
+   as ntp_target_sync above — the host has no RTC, so what it offers instead is
+   DETERMINISM: OEVM_WALLCLOCK_SECONDS=N makes it answer N (seconds since local
+   midnight), which is what lets a suite test drive schedule arithmetic to an
+   exact expected value instead of against wall time.
+   With the variable UNSET the answer is -1 (-> nil), which is the honest default:
+   a host really has no DS3231 on it, and that is precisely the "no RTC on this
+   board" path a node must handle. So unlike the bell and the display, this seam
+   needs no OEVM_NO_* knob to reach its structural-failure branch — absence IS
+   the default. Cached once so getenv is not re-read per reading. */
+/* The host models a DATE as well as a time-of-day, even though nothing on the
+   host reads a calendar. Two reasons, both about keeping the two sides honest:
+   wallClockSetDate:time: takes a date because Zephyr's rtc_set_time does, so a
+   host that dropped it would let a node pass garbage the device would reject; and
+   the unset-clock guard is a YEAR comparison (zephyr/src/main.c), so modelling the
+   year is what lets 04 exercise that guard without a DS3231 on the bench. */
+#define OEVM_WALLCLOCK_MIN_YEAR 2020   /* keep in step with zephyr/src/main.c */
+static int g_wc_set = 0;               /* 0 = never set — the cold, no-RTC default */
+static int g_wc_secs = 0;
+static int g_wc_year = 0;
+static void wallclock_load_once(void) {
+    static int loaded = 0;
+    const char *s;
+    if (loaded) return;
+    loaded = 1;
+    s = getenv("OEVM_WALLCLOCK_SECONDS");
+    if (s == NULL) return;             /* default: no RTC on host */
+    /* Setting the variable MEANS "this board has a clock and it has been set", so
+       the year is stamped plausible here. Otherwise every existing test would have
+       to name a date it does not care about just to get past the year guard, and
+       the guard is not what those tests are about. */
+    g_wc_set = 1;
+    g_wc_secs = (int)(((atol(s) % 86400) + 86400) % 86400);
+    g_wc_year = OEVM_WALLCLOCK_MIN_YEAR;
+}
+int wallclock_target_read(void) {
+    wallclock_load_once();
+    if (!g_wc_set) return -1;
+    if (g_wc_year < OEVM_WALLCLOCK_MIN_YEAR) return -1;   /* mirrors the device guard */
+    return g_wc_secs;
+}
+/* yyyymmdd is packed decimal (20260731). Only the year is inspected — the host has
+   no calendar to keep, and the month and day are carried solely so the argument
+   shape matches the device's, where they reach a real register. */
+int wallclock_target_set(int yyyymmdd, int seconds_of_day) {
+    wallclock_load_once();
+    if (seconds_of_day < 0 || seconds_of_day > 86399) return -1;
+    g_wc_year = yyyymmdd / 10000;
+    g_wc_secs = seconds_of_day;
+    g_wc_set = 1;
+    return 0;
+}
+
+/* tuvm#94 stage 5: the host side of the RTC-retention seam. On device this struct
+   lives in .rtc.data and survives deep sleep; on host it is a plain int32 array that
+   optionally persists to OEVM_RTC_FILE so the node can be re-exec'd N times and the
+   ratchet witnessed ACROSS simulated sleeps (Task 7's harness). With no file set the
+   array is cold at process start (magic unwritten -> rtcValid false), which is
+   exactly the cold-power-on path. A reusable test feature, not a one-off. */
+#define OEVM_RTC_FIELDS 10
+#define OEVM_RTC_MAGIC  0x14BE11C0u  /* must fit a 32-bit SMI (31-bit tag): the node
+                                        writes it via rtcPut:, and a magnitude >= 2^30
+                                        never round-trips on a 32-bit target */
+static int32_t g_rtc[OEVM_RTC_FIELDS];
+static int g_rtc_loaded = 0;
+static void rtc_load_once(void) {
+    if (g_rtc_loaded) return;
+    g_rtc_loaded = 1;
+    memset(g_rtc, 0, sizeof g_rtc);          /* cold default: magic mismatch -> invalid */
+    const char *p = getenv("OEVM_RTC_FILE");
+    if (p) {
+        FILE *f = fopen(p, "rb");
+        if (f) { (void)fread(g_rtc, sizeof(int32_t), OEVM_RTC_FIELDS, f); fclose(f); }
+    }
+}
+static void rtc_store(void) {
+    const char *p = getenv("OEVM_RTC_FILE");
+    if (!p) return;                          /* in-memory only */
+    FILE *f = fopen(p, "wb");
+    if (f) { (void)fwrite(g_rtc, sizeof(int32_t), OEVM_RTC_FIELDS, f); fclose(f); }
+}
+int rtc_target_valid(void) { rtc_load_once(); return ((uint32_t)g_rtc[0] == OEVM_RTC_MAGIC) ? 1 : 0; }
+int rtc_target_get(int i) { rtc_load_once(); if (i < 0 || i >= OEVM_RTC_FIELDS) return 0; return g_rtc[i]; }
+void rtc_target_put(int i, int v) { rtc_load_once(); if (i < 0 || i >= OEVM_RTC_FIELDS) return; g_rtc[i] = v; rtc_store(); }
+
+/* tuvm#94 stage 5: host deepSleep: — no real sleep exists, so log the commanded
+   duration and exit(0). This makes a host node run TERMINATE (not hang) at its idle
+   point, and — with OEVM_RTC_FILE set — leaves the retained state on disk for the
+   next re-exec, which is how the ratchet is witnessed across simulated sleeps. */
+void deep_sleep_target(int seconds) {
+    char line[48];
+    int len = snprintf(line, sizeof line, "sleep: arming %d s\n", seconds);
+    if (len > 0) platform_console_write(line, (size_t)len);
+    exit(0);
+}
+#else
+/* On target these live in zephyr/src/main.c, beside the legacy cosine-generator
+   calls and the devicetree nodes they read — same split, same reason as the
+   display five above (tuvm#63). Like those, both symbols must exist and link on
+   EVERY Zephyr board, including the ones with no speaker: the guard goes inside
+   the function bodies, never around the definitions. */
+extern int bell_target_available(void);
+extern int bell_target_strike(int bells);
+/* tuvm#94 stage 4. Same rule as the bell pair above: the symbol must link on EVERY
+   Zephyr board, so main.c guards the BODY (a board without CONFIG_WIFI answers -1),
+   never the definition. */
+extern int ntp_target_sync(int tz_offset_seconds);
+/* tuvm#100 (2026-08-01): the date half of the NTP seam. Same linkage rule; it
+   answers -1 until a sync has succeeded, so a board with no network is already
+   handled without a second guard. */
+extern int ntp_target_date(void);
+/* tuvm#94 stage 5: RTC-retention leaves live in zephyr/src/main.c (the .rtc.data
+   struct is beside the wifi/ntp leaves). Same rule as bell/ntp — the symbols link on
+   every Zephyr board; main.c guards bodies, never definitions. */
+extern int rtc_target_valid(void);
+extern int rtc_target_get(int i);
+extern void rtc_target_put(int i, int v);
+/* tuvm#94 stage 5: deepSleep: device leaf deferred to a later task (zephyr/src/main.c
+   not yet touched); the extern must exist now so this shared translation unit links. */
+extern void deep_sleep_target(int seconds);
+/* tuvm#100: the wall-clock leaf lives in zephyr/src/main.c beside the other
+   devicetree-reading leaves. Same rule as bell/ntp/rtc — the symbol must link on
+   EVERY Zephyr board, so main.c guards the BODY (a board with no RTC node in its
+   devicetree answers -1), never the definition. */
+extern int wallclock_target_read(void);
+extern int wallclock_target_set(int yyyymmdd, int seconds_of_day);
+#endif
+
 /* Target GPIO-ISR entry (Zephyr rung-2 Task 8): a real on-target GPIO edge
    callback (zephyr/src/main.c) calls this to post the pulse for `pin`, taking
    the exact same slot-lookup -> pulse_post_isr path the host-only gpioFire:
@@ -914,6 +1289,143 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         span_reset_all();
         *out = platform_object();
         return 1;
+    case PRIM_pf_gpioSet: {
+        /* tuvm#82: `gpioSet: pin to: aBool` — args[0]=pin (SMI), args[1]=Boolean.
+           LOGICAL level: on target this goes through gpio_pin_set_dt, so `true`
+           means ACTIVE, and the overlay's GPIO_ACTIVE_LOW flags carry the polarity
+           instead of every caller. Answers nil for a pin the board never declared;
+           kernel.nsl's GpioPulse turns that nil into a tagged raise. */
+        /* is_truthy(), not `== true_symbol`: a user-written `true`/`false` literal
+           compiles to a fresh Symbol constant loaded with the image (same name,
+           different address from the VM's built-in true_sym_obj/false_sym_obj
+           singletons) — the same blob/image-literal divergence is_truthy's own
+           comment documents (src/dispatch.c). An identity compare here would
+           silently treat every literal `true` argument as false. */
+        int lvl = is_truthy(args[1]) ? 1 : 0;
+        if (!gpio_target_set((int)UNTAG_SMI(args[0]), lvl)) { *out = NULL; return 1; }
+        *out = true_symbol;
+        return 1;
+    }
+    case PRIM_pf_gpioLevel: {
+        /* tuvm#82: `gpioLevel: pin` — the LOGICAL level, so `true` reads as
+           "button pressed" for an active-low button and "powered" for the
+           active-low NeoPixel gate. nil for an undeclared pin (see above). */
+        int lvl = gpio_target_level((int)UNTAG_SMI(args[0]));
+        if (lvl < 0) { *out = NULL; return 1; }
+        *out = lvl ? true_symbol : false_symbol;
+        return 1;
+    }
+    case PRIM_pf_displayClear: {
+        /* tuvm#88. nil = no display on this board (structural); otherwise an SMI
+           status the nsl wrapper turns into a tag. See prim_ids.h for why the
+           convention differs from the gpio pair's plain nil. */
+        if (!display_target_available()) { *out = NULL; return 1; }
+        *out = TAG_SMI(display_target_clear());
+        return 1;
+    }
+    case PRIM_pf_displayAt: {          /* displayAt: row col: col put: aString */
+        oop data = args[2];
+        int rc;
+        if (data == NULL || IS_SMI(data) || StringVtable == NULL ||
+            obj_vtable(data) != StringVtable) {
+            fprintf(stderr, "VM Error: platform displayAt:col:put: expects a String\n");
+            abort();
+        }
+        if (!display_target_available()) { *out = NULL; return 1; }
+        {
+            struct String *s = (struct String *)data;
+            rc = display_target_put((int)UNTAG_SMI(args[0]), (int)UNTAG_SMI(args[1]),
+                                    (const char *)s->bytes, (int)s->length);
+        }
+        *out = TAG_SMI(rc);
+        return 1;
+    }
+    case PRIM_pf_displayRefresh: {
+        if (!display_target_available()) { *out = NULL; return 1; }
+        *out = TAG_SMI(display_target_refresh());
+        return 1;
+    }
+    case PRIM_pf_displayRefreshRow: {
+        if (!display_target_available()) { *out = NULL; return 1; }
+        *out = TAG_SMI(display_target_refresh_row((int)UNTAG_SMI(args[0])));
+        return 1;
+    }
+    case PRIM_pf_bellStrike: {
+        /* tuvm#94. nil = no bell on this board (structural); otherwise an SMI
+           status the nsl wrapper turns into a tag — the display seam's convention,
+           minus the bounds code, because the count is range-checked in nsl (Bell
+           in kernel.nsl) where the raise can be written.
+           The availability check comes FIRST, before the count is even read, so a
+           node probing an unknown board gets #bellUnavailable rather than a
+           driver fault it cannot act on. */
+        if (!bell_target_available()) { *out = NULL; return 1; }
+        *out = TAG_SMI(bell_target_strike((int)UNTAG_SMI(args[0])));
+        return 1;
+    }
+    case PRIM_pf_ntpSync: {
+        /* tuvm#94 stage 4. nil = couldn't sync (structural: no WiFi, no route,
+           timeout); otherwise the SMI seconds-since-local-midnight. args[0] is the
+           tz offset in seconds, passed from nsl because the timezone is a product
+           fact rather than a hardware one.
+           There is no availability probe to run first — unlike the bell, "this board
+           cannot sync" and "this sync did not work" are the same answer to a node
+           that is going to free-run either way, so one nil serves both. */
+        int r = ntp_target_sync((int)UNTAG_SMI(args[0]));
+        if (r < 0) { *out = NULL; return 1; }
+        *out = TAG_SMI(r);
+        return 1;
+    }
+    case PRIM_pf_ntpDate: {
+        /* tuvm#100. nil = no sync has succeeded this boot; otherwise the SMI
+           yyyymmdd of the LAST one. No request is made here — the date came back
+           in the response ntpSyncTz: already received. */
+        int r = ntp_target_date();
+        if (r < 0) { *out = NULL; return 1; }
+        *out = TAG_SMI(r);
+        return 1;
+    }
+    case PRIM_pf_rtcValid: {
+        /* SMI 0/1; the kernel forwarder coerces to a Boolean, so no true/false oop
+           is needed in C. */
+        *out = TAG_SMI(rtc_target_valid());
+        return 1;
+    }
+    case PRIM_pf_rtcGet: {
+        *out = TAG_SMI(rtc_target_get((int)UNTAG_SMI(args[0])));
+        return 1;
+    }
+    case PRIM_pf_rtcPut: {
+        rtc_target_put((int)UNTAG_SMI(args[0]), (int)UNTAG_SMI(args[1]));
+        *out = TAG_SMI(0);
+        return 1;
+    }
+    case PRIM_pf_wallClock: {
+        /* tuvm#100. nil = no RTC on this board, or it has never been set;
+           otherwise the SMI seconds-since-local-midnight. Exactly ntpSync's
+           answer shape and, like it, no availability probe runs first: to a node
+           that will free-run either way, "this board has no RTC" and "the RTC
+           could not be read" are the same answer, so one nil serves both. */
+        int r = wallclock_target_read();
+        if (r < 0) { *out = NULL; return 1; }
+        *out = TAG_SMI(r);
+        return 1;
+    }
+    case PRIM_pf_wallClockSet: {
+        /* nil = no RTC, or the write was refused; SMI 0 = set. The range check on
+           the time lives in the leaf rather than here so both sides enforce it
+           identically — a caller that passes 90000 gets nil, not a part programmed
+           with a time that cannot exist. */
+        int r = wallclock_target_set((int)UNTAG_SMI(args[0]), (int)UNTAG_SMI(args[1]));
+        if (r < 0) { *out = NULL; return 1; }
+        *out = TAG_SMI(0);
+        return 1;
+    }
+    case PRIM_pf_deepSleep: {
+        /* Never returns (device sleeps; host exits). *out is set for form only. */
+        deep_sleep_target((int)UNTAG_SMI(args[0]));
+        *out = TAG_SMI(0);
+        return 1;
+    }
     case PRIM_pf_spanStats: {
         /* Same GC-safety shape as heapStats/sysStats above: every scalar is copied
            into a C local BEFORE the single allocating call (indexable_new), and the
