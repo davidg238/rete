@@ -132,8 +132,8 @@ Accepted — `rete` is private for now (§6) and this is not a marketing decisio
 
 ## 4. A fate for every item
 
-Counted from the repos with `ls`, not from recall — a restructure that loses a capability
-silently is the failure mode worth designing against.
+Counted from the repos with `ls` **and `git ls-files`**, not from recall — a restructure that
+loses a capability silently is the failure mode worth designing against.
 
 | from | item | fate |
 |---|---|---|
@@ -153,6 +153,15 @@ silently is the failure mode worth designing against.
 | nodus (Toit) | everything | **archived, not imported** (§4.1) |
 | all five | `CLAUDE.md` × 5 | merged into one root file + scoped children |
 | all | `LICENSE`, `README.md` | one of each at root |
+| all five | `.gitignore` × 5 | merged into one root file, every pattern re-rooted to its new prefix |
+| porta | `.github/workflows/` (1 workflow) | → root `.github/workflows/porta-*.yml`, paths fixed **and a `paths:` filter added** so it does not fire on node-only commits (§4.4) |
+| nodus | `.github/workflows/` (1 workflow) | not migrated — goes read-only with `nodus-v1` |
+
+**The two `.github/` rows and the `.gitignore` row were missed on the first pass**, because
+the table was built from a bare `ls`, which does not show dotfiles. Recovered by
+`git ls-files | grep -oE '^\.[^/]*'` across all five repos. Recording the miss rather than
+quietly fixing it: this is exactly the failure mode the "count the old surface with a command,
+not from recall" rule exists for, and it went wrong here on the first try.
 
 ### 4.1 `nodus/toit/` starts empty — deliberately
 
@@ -190,6 +199,16 @@ but the standing rule is to read v1 as **evidence, not spec**, and that rule is 
 the evidence is only reachable in an archived repo nobody thinks to open. They move to
 `protocol/v1/`, clearly fenced, alongside the contract that replaced them.
 
+### 4.4 CI: one workflow, scoped
+
+`porta` carries the program's only CI workflow. Merged naively it fires on every commit to
+`rete`, including node-only ones, and its paths all assume repo-root == porta-root. It moves
+to root `.github/workflows/porta-*.yml` with paths corrected and a
+`paths: ['porta/**', 'protocol/**']` filter, so a `kernel.nsl` edit does not run Go tests.
+
+The node side has **no** CI today; the merge neither adds nor removes that. Out of scope here
+— but it does become a single-repo problem, which is the only thing that changes.
+
 ---
 
 ## 5. History and the tracker
@@ -210,6 +229,13 @@ them distinct**, across `review/` and `docs/` — the ladder is dense with `0fb9
 
 **Decision: subtree.** Cosmetic history beauty is not worth invalidating 87 citations in the
 documents this program navigates by.
+
+> **Never pass `--squash`.** `git subtree add --squash` collapses the incoming repo into a
+> single commit and discards exactly the history D5 exists to preserve — all 87 citations die
+> and `blame` stops at the merge. It is also what most tutorials recommend, which is what makes
+> it dangerous. The plan must state the bare form explicitly, and step 2's gate must include
+> `git log --oneline -- nodus/nsl | wc -l` returning the incoming repo's real commit count,
+> not 1.
 
 ### 5.2 The tracker is the status system, so it sets the constraint
 
@@ -240,6 +266,19 @@ That inverts the intuition that a fresh repo is the clean option. A fresh repo i
   after the transfer, because the mapping is not known until then. Refs to closed issues
   become full URLs into the archive; refs to transferred issues become plain `#NNN`.
 
+**Two assumptions here are unverified and must be tested before the plan relies on them:**
+
+1. **Can `gh issue transfer` move an issue from a PUBLIC repo (`porta`) into a PRIVATE one
+   (`rete`)?** GitHub requires push access to both and same ownership, which holds — but the
+   public→private direction is not something this program has ever exercised. **Test it with
+   one throwaway issue before transferring 28.** If it is refused, the fallback is to re-file
+   the 17 open porta issues by hand and leave the originals as closed pointers; annoying, not
+   blocking.
+2. **The rename redirect is not unconditional.** GitHub redirects `tuvm` → `rete` permanently
+   *unless a new repository named `tuvm` is created under the same account*, which silently
+   breaks every redirect. **Never create a repo named `tuvm` again.** Worth a line in the root
+   `CLAUDE.md`, because it will not be obvious to anyone who wasn't here.
+
 ### 5.3 What GitHub looks like afterwards
 
 Nothing disappears. Nothing is deleted.
@@ -253,9 +292,20 @@ Nothing disappears. Nothing is deleted.
 Subsumed as *code*, preserved as *tombstones*. That preservation is what keeps the 46
 `porta#NN` refs and the 87 SHA citations alive.
 
-**The two-workspace-root split disappears.** `~/workspaceToit/nodus` was the only reason
-`~/workspaceToit` figured in this program. `CLAUDE.md`, `DOCMAP.md` and the cross-program `rg`
-recipe all encode "five doc homes across two roots"; all three get simpler.
+**The two-workspace-root split does NOT disappear — an earlier draft of this document claimed
+it would, and that was wrong.** Checked: `~/workspaceToit/stic` is its own git repo, cited
+**13 times** across `review/` and `docs/` — including `review/DOCMAP.md` and
+`review/performance_slides.html` — and it holds the published ESP32 benchmark table
+(`stic/README.md`, cited 10× on its own) plus `performance.toit`. `~/workspaceToit/toit/src`
+is cited too, as the cross-VM comparison source.
+
+So `~/workspaceToit` survives the merge, and `stic` stays outside `rete` on purpose: it is a
+**comparative benchmark harness measuring rete against other VMs**, not a part of the system.
+Folding a thing that measures you into the thing being measured is the wrong boundary.
+
+What does get simpler is smaller and should be stated as such: `CLAUDE.md`, `DOCMAP.md` and
+the cross-program `rg` recipe go from **five doc homes across two roots** to **two** —
+`~/workspace/rete` and `~/workspaceToit/stic`. Real, but not the clean collapse first claimed.
 
 ---
 
@@ -401,3 +451,28 @@ Revised program order: porta→channels ✅ → **rete restructure** → **#56**
 | D9 | `nodus/toit/` starts empty; v1 archived as evidence | Importing a scrapped protocol imports archeology |
 | D10 | `review/` moves to root, by explicit permission | It spans both children; a whole-tree `git mv` is not a sweep |
 | D11 | Fresh-clone gate, empty parent | The only thing that proves no path still reaches outside the repo |
+| D12 | `stic` stays outside `rete`, in `~/workspaceToit` | A harness that measures rete against other VMs does not belong inside rete |
+| D13 | porta's CI workflow moves to root with a `paths:` filter | Otherwise Go tests fire on every `kernel.nsl` edit |
+
+---
+
+## 12. Review record
+
+This document was reviewed against the repos on 2026-08-02, after being written. The review
+found **two factual errors and one execution footgun**, all corrected in place and left
+visible rather than silently patched:
+
+1. **The fate table missed every dotfile** — `.github/` (porta's only CI workflow) and five
+   `.gitignore`s. Cause: the table was built from a bare `ls`. Fixed by re-counting with
+   `git ls-files`. This is the precise failure the "count with a command, not from recall"
+   rule guards against, and it still happened.
+2. **"The two-workspace-root split disappears" was false** (§5.3). `~/workspaceToit/stic` is a
+   separate repo cited 13× in the program docs. The claim is now the smaller true one: five
+   doc homes across two roots become two.
+3. **`git subtree add --squash` would silently destroy D5** — it is the form most tutorials
+   recommend, and it discards the history the whole SHA-preservation decision rests on. Now an
+   explicit prohibition with a counting gate (§5.1).
+
+Also added: two unverified GitHub assumptions (public→private issue transfer; the rename
+redirect breaking if `tuvm` is ever recreated) are now flagged as things to test rather than
+things to rely on.
