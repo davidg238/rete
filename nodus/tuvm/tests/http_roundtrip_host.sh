@@ -11,7 +11,7 @@
 # Correctness of the round-trip over sockets is the deliverable.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-NSL="$HOME/workspace/nsl-tuvm/tools/ns_compile_oevm.py"
+NSL="$HOME/workspace/tuvm/nodus/nsl/tools/ns_compile_oevm.py"
 TARGET="${OEVM_TARGET:-posix}"
 PORT="${OEVM_HTTP_PORT:-18080}"   # 8080 is commonly taken (e.g. Jetty); node hardcodes 18080
 

@@ -6,7 +6,7 @@
 # deliverable (host clock may not advance); correctness + dispatch fidelity are.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-NSL="$HOME/workspace/nsl-tuvm/tools/ns_compile_oevm.py"
+NSL="$HOME/workspace/tuvm/nodus/nsl/tools/ns_compile_oevm.py"
 TARGET="${OEVM_TARGET:-posix}"
 
 echo "[1/4] host-ABI layout descriptor"

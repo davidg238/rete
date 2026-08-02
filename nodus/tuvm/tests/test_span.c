@@ -13,7 +13,7 @@
    merely a link fix: because the test CONTROLS it, the virtual-clock scaling that
    the nsl suite depends on becomes exactly assertable here (case 10). The real
    timer_posix.c pairing is covered end-to-end by
-   ~/workspace/nsl-tests/19_latency/02_span_clock.nsl. */
+   nodus/tests/19_latency/02_span_clock.nsl. */
 #include "../src/span.h"
 #include "../src/span_backend.h"
 #include <assert.h>

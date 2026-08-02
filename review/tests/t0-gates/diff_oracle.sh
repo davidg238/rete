@@ -10,8 +10,8 @@ set -u
 
 FROZEN_DIR=${FROZEN_DIR:-$HOME/workspace/oevm}          # frozen VM (never modified)
 TUVM_DIR=${TUVM_DIR:-$HOME/workspace/tuvm}              # seeded VM under test
-TESTS_DIR=${TESTS_DIR:-$HOME/workspace/nsl-tests}
-RUNNER=${RUNNER:-$HOME/workspace/nsl-tuvm/tools/run_tests_oevm.py}
+TESTS_DIR=${TESTS_DIR:-$HOME/workspace/tuvm/nodus/tests}
+RUNNER=${RUNNER:-$HOME/workspace/tuvm/nodus/nsl/tools/run_tests_oevm.py}
 MANIFEST=${MANIFEST:-$TESTS_DIR/pared-subset.txt}       # shared-test list (Milestone A artifact)
 OUT=${OUT:-$(mktemp -d)}
 FILTER=${1:-*}

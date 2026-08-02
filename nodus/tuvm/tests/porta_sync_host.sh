@@ -19,7 +19,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 PORTA_DIR="${PORTA_DIR:-$HOME/workspace/porta}"
-NSL="$HOME/workspace/nsl-tuvm/tools/ns_compile_oevm.py"
+NSL="$HOME/workspace/tuvm/nodus/nsl/tools/ns_compile_oevm.py"
 TARGET="${OEVM_TARGET:-posix}"
 DB=/tmp/porta_sync_gate.db
 NODE=bench-node

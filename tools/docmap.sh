@@ -15,7 +15,7 @@ MARKER='<!-- BEGIN GENERATED INVENTORY — do not edit below; rerun tools/docmap
 ROOTS=(
   "$HOME/workspace/tuvm/review"
   "$HOME/workspace/tuvm/docs"
-  "$HOME/workspace/nsl-tuvm/docs"
+  "$HOME/workspace/tuvm/nodus/nsl/docs"
   "$HOME/workspace/porta/docs"
   "$HOME/workspaceToit/nodus/docs"
 )

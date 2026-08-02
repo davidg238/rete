@@ -177,8 +177,27 @@ cd ~/workspace/nsl-tuvm
 OEVM_DIR=~/workspace/tuvm/nodus/tuvm python3 tools/run_tests_oevm.py 2>&1 | tail -8
 ```
 
-Expected: `Passed: 239`, `Failed: 0`, aux gates PASS, `footprint: SKIP`.
-If `portability-32` fails, re-check Step 4 — it is the one gate that uses the relative paths.
+Expected: `Passed: 239`, `Failed: 0`, and
+
+```
+grant: PASS  debugger-integration: PASS  portability-32: FAIL  boot-gc-asan: PASS  deepsleep: PASS  footprint: SKIP
+```
+
+> **`portability-32: FAIL` is REQUIRED here, not tolerated.** An earlier version of
+> this plan demanded all aux gates PASS at Task 1, which is impossible by
+> construction: `test_portability_32.sh` resolves `NS=../nsl` and
+> `SRC=../tests/...` relative to the VM root, which is now `nodus/tuvm` — so it
+> reaches for `nodus/nsl` (created in Task 2) and `nodus/tests` (created in
+> Task 3). Before Task 1 it passed only because the VM root was the repo root,
+> where `../nsl-tuvm` hit the real sibling repo.
+>
+> The failure must be exactly `No such file or directory` on
+> `nodus/nsl/tools/ns_compile_oevm.py`. **Any other portability-32 failure is a
+> real regression** — check Step 4. `Failed: 0` on the 239 tests is not
+> negotiable and is what proves the move itself is sound.
+>
+> **`portability-32` first passes at Task 3**, which is the first fully green
+> gate in this plan.
 
 - [ ] **Step 6: Commit**
 

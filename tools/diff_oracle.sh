@@ -50,8 +50,8 @@ set -u
 FROZEN_VM_DIR=${FROZEN_VM_DIR:-$HOME/workspace/oevm}          # frozen VM (never modified)
 FROZEN_TOOLS_DIR=${FROZEN_TOOLS_DIR:-$HOME/workspace/ns-oevm/tools}
 TUVM_VM_DIR=${TUVM_VM_DIR:-$HOME/workspace/tuvm}              # seeded VM under test
-TUVM_TOOLS_DIR=${TUVM_TOOLS_DIR:-$HOME/workspace/nsl-tuvm/tools}
-TESTS_DIR=${TESTS_DIR:-$HOME/workspace/nsl-tests}
+TUVM_TOOLS_DIR=${TUVM_TOOLS_DIR:-$HOME/workspace/tuvm/nodus/nsl/tools}
+TESTS_DIR=${TESTS_DIR:-$HOME/workspace/tuvm/nodus/tests}
 MANIFEST=${MANIFEST:-$TESTS_DIR/pared-subset.txt}             # shared-test list (Milestone A artifact)
 OUT=${OUT:-$(mktemp -d)}
 
