@@ -12,9 +12,28 @@ which new targets are worth timing a bring-up on.
 ## Part 1 — C6 shipsBells: what to do at the bench
 
 Status: the wall-clock seam (#100) is built, tested and running. The DS3231 answers on
-i2c0 and its oscillator is ticking. Everything below is blocked on wire and hands.
+i2c0 and its oscillator is ticking.
 
-### 1.1 Check the trickle-charger BEFORE trusting the coin cell
+**Updated 2026-08-02 — §1.1 and §1.2 are done.** David reports the trickle-charge resistor
+removed and SQW wired to GPIO10 at the bench (reported, not re-measured here). They are kept
+below as the record of what was done and why.
+
+**What that leaves is software, and only software.** `CONFIG_RTC_ALARM` is still `n` —
+`zephyr/prj_esp32c6.conf:92`, and `# CONFIG_RTC_ALARM is not set` in every built C6 config
+(`build-c6-ftd`, `build-c6-ftd-ntp`, `build-c6-mtd`). So the alarm has never been *built*,
+let alone flashed, and §1.4's seam is designed but not written. The wire is no longer the
+blocker; the Kconfig flip and the seam are.
+
+**Do not confuse this deferral with the piezo one.** They are different pins, different
+circuits and different issues. The piezo buzzer arriving 2026-08-02 unblocks **#105** — the
+12 V strike path (GPIO18 → 2N3904 → IRF9Z14 → solenoid), where the coil pulls in and holds
+for ~1 s at boot for reasons still unknown, so the solenoid is disconnected and a piezo
+carries no burn risk. It has nothing to do with the RTC, and the clock's alarm work is not
+waiting on it.
+
+### 1.1 Check the trickle-charger BEFORE trusting the coin cell — DONE
+
+**Done at the bench: the resistor was removed.** Kept for the record.
 
 **Do this first, and do it with the board unpowered.**
 
@@ -37,7 +56,11 @@ The test, one minute:
 If present: remove the `201` resistor or the diode, or fit a LIR2032 instead. Do not leave
 a CR2032 on a charger.
 
-### 1.2 Wire INT/SQW → GPIO10
+### 1.2 Wire INT/SQW → GPIO10 — DONE
+
+**Done at the bench.** The devicetree half was already in place and is verified here:
+`zephyr/boards/esp32c6_devkitc_esp32c6_hpcore.overlay:78` carries
+`isw-gpios = <&gpio0 10 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>`. Kept for the record.
 
 The pin is labelled **`SQW`** on the module's 6-pin header (`32K, SQW, SCL, SDA, VCC, GND`).
 It is the DS3231's INT/SQW output, and `rtc-schematic.png` confirms **R21 pulls it up 10 kΩ
@@ -57,13 +80,16 @@ Two standing rules for this module:
 - **Do not add pull-ups.** The module already carries 10 kΩ on SDA, SCL and INT/SQW
   (R21/R22/R23).
 
-### 1.3 Then, and only then, turn the alarm on
+### 1.3 Then, and only then, turn the alarm on — NOT DONE, and it is the next move
 
-In `zephyr/prj_esp32c6.conf`, flip:
+In `zephyr/prj_esp32c6.conf:92`, flip:
 
 ```
-CONFIG_RTC_ALARM=y
+CONFIG_RTC_ALARM=n     ->     CONFIG_RTC_ALARM=y
 ```
+
+Verified still `n` on 2026-08-02, in the source and in all three built C6 configs. The
+precondition below is now satisfied, so this is unblocked.
 
 **Not before the wire is physically in place.** Either `CONFIG_RTC_ALARM` or
 `CONFIG_RTC_UPDATE` makes `rtc_ds3231_init()` call `rtc_ds3231_init_isw()`, which configures
@@ -186,11 +212,22 @@ MCUboot + A/B + NVS *up front*. The point is not to ship OTA before release — 
 flash map becomes a transcription of proven host behaviour instead of a guess. Cheap:
 localhost UDP, no hardware. Do the slice, defer real OTA.
 
-**3. Debug/profiling/console over porta (#56).**
+**3. Debug/profiling/console over porta (#56). — PROMOTED TO SECOND, 2026-08-02, David's call.**
 Highest narrative value of the four — it *is* the agent story, not a supporting feature. And
 it just got cheaper: #57 said the C6 unlocks the debug leg of #56, and as of 2026-07-31 the
-C6 is proven and running tuvm with 44% of SRAM spare. Third only by sequencing, since it
-should ride on the new protocol.
+C6 is proven and running tuvm with 44% of SRAM spare. It was third *only* by sequencing,
+because it should ride on the new protocol — **and that constraint dissolved when the
+protocol landed green on hardware.** Nothing now argues for doing #25's host slice first
+except foreclosure, and foreclosure only bites at the moment a flash map is committed, which
+is not imminent. So: #56 next, #25 after.
+
+**One correction to carry into it, because the two bars are still easy to swap.** #56 is
+*not* the largest unlock to a public release of nsl-tuvm — by this document's own reasoning
+above, that gate is #79's "no entry point that does not start with 'read five repos'", and
+the public-release bar is much smaller than the fleet-service one. What #56 is the largest
+unlock for is the **agent/fleet story** — the pitch, the demo, and the thing that makes the
+platform legible to something that arrives after the node is already dead. Both are worth
+doing; conflating them is what the reframe at the top of Part 2 warns costs months.
 
 **4. Agent-friendliness.** Fourth because it is mostly not a separate workstream — see below.
 
@@ -237,9 +274,9 @@ timing signature, C6 radio localised to four driver bugs (zephyr#114163), and no
 DS3231's missing `-ENODATA` (#103) predicted from source and confirmed on the first hardware
 run. Three is a pattern, not an anecdote.
 
-**Suggested sequencing:** porta→channels, then the #25 host slice, then #56 riding on the
-new protocol — and start timing bring-ups now, because that measurement is free and it is
-the one number that would make the pitch land.
+**Sequencing (revised 2026-08-02):** porta→channels ✅, then **#56 riding on the new
+protocol**, then the #25 host slice — and start timing bring-ups now, because that
+measurement is free and it is the one number that would make the pitch land.
 
 ---
 
