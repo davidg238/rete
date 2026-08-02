@@ -13,10 +13,11 @@ import (
 	"github.com/davidg238/porta/internal/space"
 )
 
-// dropHarness runs a real ListenAndServe on loopback and answers a push helper.
-// A real socket rather than a direct Handle call, because the swallow happens in
-// the UDP loop and not in Handle — testing Handle would test the wrong layer.
-func dropHarness(t *testing.T, dropEvery int) (*Server, *space.Store, func(seq int64, text string) bool) {
+// dropHarness runs a real ListenAndServe on loopback and answers push/pull
+// helpers. A real socket rather than a direct Handle call, because the
+// swallow happens in the UDP loop and not in Handle — testing Handle would
+// test the wrong layer AND would never exercise swallowAck at all.
+func dropHarness(t *testing.T, dropEvery int) (*Server, *space.Store, func(seq int64, text string) bool, func(cursor int64) (int64, []space.Entry, bool)) {
 	t.Helper()
 	srv, st := testServer(t)
 	srv.SetDropAckEvery(dropEvery)
@@ -62,7 +63,29 @@ func dropHarness(t *testing.T, dropEvery int) (*Server, *space.Store, func(seq i
 		}
 		return true
 	}
-	return srv, st, push
+
+	pull := func(cursor int64) (int64, []space.Entry, bool) {
+		t.Helper()
+		req, err := EncodePull("n1", cursor, 1, 0)
+		if err != nil {
+			t.Fatalf("EncodePull: %v", err)
+		}
+		if _, err := conn.Write(req); err != nil {
+			t.Fatalf("write: %v", err)
+		}
+		buf := make([]byte, 1500)
+		conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+		n, err := conn.Read(buf)
+		if err != nil {
+			return 0, nil, false // no reply within the budget: lost (never swallowed)
+		}
+		hi, entries, err := DecodeBatch(buf[:n])
+		if err != nil {
+			t.Fatalf("reply to pull at cursor %d was not a #batch: %v", cursor, err)
+		}
+		return hi, entries, true
+	}
+	return srv, st, push, pull
 }
 
 // waitForListener sends seq 1 until it is answered. UDP has no accept, so a
@@ -79,13 +102,27 @@ func waitForListener(t *testing.T, push func(int64, string) bool) {
 	t.Fatal("the listener never answered")
 }
 
+// waitForListenerViaPull is waitForListener's counterpart for a harness where
+// push can never signal readiness — e.g. dropEvery=1, where every ack is
+// swallowed and push always reports false. A #batch is never swallowed, so
+// retrying a pull is the "the socket is up" probe instead.
+func waitForListenerViaPull(t *testing.T, pull func(int64) (int64, []space.Entry, bool)) {
+	t.Helper()
+	for i := 0; i < 50; i++ {
+		if _, _, ok := pull(0); ok {
+			return
+		}
+	}
+	t.Fatal("the listener never answered a pull")
+}
+
 // The fault injector the C6 hardware gate scores leg 4 with. What matters is not
 // that an ack went missing but WHEN: the push must already be committed, so the
 // node re-pushes rows porta has applied and only the `seq <= hw` dedupe stands
 // between that and a duplicate. A drop placed before the commit would merely
 // reproduce a lost push, which any retry handles and which proves nothing.
 func TestDropAckEverySwallowsTheNthAckAfterTheCommit(t *testing.T) {
-	_, st, push := dropHarness(t, 3)
+	_, st, push, _ := dropHarness(t, 3)
 	waitForListener(t, push) // ack #1
 
 	if !push(2, "two") {
@@ -107,20 +144,40 @@ func TestDropAckEverySwallowsTheNthAckAfterTheCommit(t *testing.T) {
 // The push half only. A node that never hears a #batch stalls its cursor, which
 // is a different failure from the one being injected — so with every ack
 // swallowed, pulls must still answer.
+//
+// This must go over the live socket, not a direct srv.HandleFrom call:
+// HandleFrom never routes through swallowAck (that only runs inside
+// ListenAndServe's reply loop), so asserting against HandleFrom would still
+// pass even if swallowAck's #ack-vs-everything-else guard were deleted and it
+// swallowed every outbound datagram. Only a real round-trip through the
+// listener exercises the discriminator this test exists to prove.
 func TestDropAckEveryAnswersPullsWhileSwallowingAcks(t *testing.T) {
-	srv, st, push := dropHarness(t, 1)
+	_, st, push, pull := dropHarness(t, 1)
 	if _, err := st.Write("n1", "goal/name", cval.KindCell, mustEnc(t, "alpha"), "david", ""); err != nil {
 		t.Fatalf("Write: %v", err)
 	}
-	req, err := EncodePull("n1", 0, 1, 0)
-	if err != nil {
-		t.Fatalf("EncodePull: %v", err)
+	// push can't signal readiness here — dropEvery=1 swallows every ack, so
+	// push always reports false. Wait via pull instead: a #batch is never
+	// swallowed.
+	waitForListenerViaPull(t, pull)
+
+	hi, entries, ok := pull(0)
+	if !ok {
+		t.Fatal("a #batch must never be swallowed, but the pull got no reply")
 	}
-	// Handle directly for the batch half: the swallow is ack-only, so this
-	// asserts the discriminator rather than the socket.
-	if _, _, err := DecodeBatch(srv.HandleFrom(req, "")); err != nil {
-		t.Fatalf("a #batch must never be swallowed: %v", err)
+	if hi < 1 {
+		t.Fatalf("hi = %d, want at least 1", hi)
 	}
+	found := false
+	for _, e := range entries {
+		if e.Path == "goal/name" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("batch entries = %+v, missing goal/name", entries)
+	}
+
 	if push(1, "one") {
 		t.Fatal("with dropEvery=1 no ack should ever be delivered")
 	}
