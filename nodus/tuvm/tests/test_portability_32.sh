@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 # Task 9a: repointed from the frozen ns-oevm/ns-tests ancestors to the active
 # nodus/nsl compiler + nodus/tests corpus. The ns-oevm compiler still stamps
 # registry_version 4; after the Task 9a registry compaction the tuvm firmware is
-# v5, so an ns-oevm-built image is rejected on load. nsl-tuvm emits v5 and matches.
+# v5, so an ns-oevm-built image is rejected on load. nodus/nsl emits v5 and matches.
 NS=../nsl
 TARGET="${OEVM_TARGET:-posix}"   # per-target backend dir: src/backend/$TARGET/
 gcc -m32 -std=c99 -Isrc tools/dump_layout.c -o /tmp/dl32 && /tmp/dl32 > /tmp/layout32.json

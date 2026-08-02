@@ -8,10 +8,14 @@
 # Exit: 0 = no divergence, 1 = divergence (report printed), 2 = setup error.
 set -u
 
+# Repo root, independent of cwd: this script lives at review/tests/t0-gates/,
+# four levels below the root, regardless of where it is invoked from.
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && git rev-parse --show-toplevel)"
+
 FROZEN_DIR=${FROZEN_DIR:-$HOME/workspace/oevm}          # frozen VM (never modified)
-TUVM_DIR=${TUVM_DIR:-$HOME/workspace/tuvm}              # seeded VM under test
-TESTS_DIR=${TESTS_DIR:-$HOME/workspace/tuvm/nodus/tests}
-RUNNER=${RUNNER:-$HOME/workspace/tuvm/nodus/nsl/tools/run_tests_oevm.py}
+TUVM_DIR=${TUVM_DIR:-$REPO_ROOT/nodus/tuvm}             # seeded VM under test
+TESTS_DIR=${TESTS_DIR:-$REPO_ROOT/nodus/tests}
+RUNNER=${RUNNER:-$REPO_ROOT/nodus/nsl/tools/run_tests_oevm.py}
 MANIFEST=${MANIFEST:-$TESTS_DIR/pared-subset.txt}       # shared-test list (Milestone A artifact)
 OUT=${OUT:-$(mktemp -d)}
 FILTER=${1:-*}

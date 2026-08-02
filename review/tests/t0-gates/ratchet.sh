@@ -9,7 +9,10 @@
 # Usage: ratchet.sh   (from anywhere; TUVM_DIR overridable)
 set -eu
 
-TUVM_DIR=${TUVM_DIR:-$HOME/workspace/tuvm}
+# Repo root, independent of cwd: this script lives at review/tests/t0-gates/,
+# four levels below the root, regardless of where it is invoked from.
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && git rev-parse --show-toplevel)"
+TUVM_DIR=${TUVM_DIR:-$REPO_ROOT/nodus/tuvm}
 TOL_PCT=2
 
 # footprint.sh (Milestone A, Task 1) prints a `size`-style table; totals line is last.

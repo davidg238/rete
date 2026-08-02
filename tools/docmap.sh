@@ -8,15 +8,18 @@
 # silent gate: it looks authoritative precisely when it is wrong.
 set -euo pipefail
 
-MAP="$(cd "$(dirname "$0")/.." && pwd)/review/DOCMAP.md"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+MAP="$ROOT/review/DOCMAP.md"
 MARKER='<!-- BEGIN GENERATED INVENTORY — do not edit below; rerun tools/docmap.sh -->'
 
-# The five doc homes of the program (two workspace roots).
+# The doc homes of the program. porta and nsl are in-repo now (rete
+# consolidation Task 4); only ~/workspaceToit/nodus is a genuinely separate
+# repo living outside this tree.
 ROOTS=(
-  "$HOME/workspace/tuvm/review"
-  "$HOME/workspace/tuvm/docs"
-  "$HOME/workspace/tuvm/nodus/nsl/docs"
-  "$HOME/workspace/porta/docs"
+  "$ROOT/review"
+  "$ROOT/docs"
+  "$ROOT/nodus/nsl/docs"
+  "$ROOT/porta/docs"
   "$HOME/workspaceToit/nodus/docs"
 )
 

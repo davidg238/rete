@@ -742,7 +742,10 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 **Files:**
 - Modify: root `CLAUDE.md` (merging five), `review/DOCMAP.md`, `docs/next-steps-overview.md`, `tools/docmap.sh`
 - Create: root `README.md`
-- Delete: `nodus/nsl/CLAUDE.md`, `porta/CLAUDE.md` (contents merged)
+- Delete: `nodus/nsl/CLAUDE.md` (contents merged). `porta/CLAUDE.md` was never
+  imported — its own `.gitignore` excluded it from the Task 4 subtree add —
+  so there is nothing in-repo to delete; its rules must be read from
+  `~/workspace/porta/CLAUDE.md` instead (see Step 1).
 
 **Interfaces:**
 - Consumes: the finished tree.
@@ -750,12 +753,25 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 
 - [ ] **Step 1: Read all the CLAUDE.md files before merging any of them**
 
+> **`porta/CLAUDE.md` is not in the repo.** porta's own `.gitignore` had
+> `/CLAUDE.md`, so `git subtree add` correctly never imported it, and the root
+> `.gitignore`'s re-rooted `/porta/CLAUDE.md` line (Task 4 Step 4) would have
+> made it un-addable forever — that line has been removed for exactly this
+> step. The only surviving copy is `~/workspace/porta/CLAUDE.md`. Read it from
+> there and merge its rules here BEFORE Task 7 Step 2 deletes that clone; once
+> that runs, porta's standing rules are gone if they were not read now.
+
 ```bash
 cd ~/workspace/tuvm
-for f in CLAUDE.md nodus/nsl/CLAUDE.md porta/CLAUDE.md; do echo "=== $f"; cat "$f"; done
+for f in CLAUDE.md nodus/nsl/CLAUDE.md ~/workspace/porta/CLAUDE.md; do echo "=== $f"; cat "$f"; done
 ```
 
-Merge into the root file. Keep every rule; do not drop one because it looks redundant — a rule that survived this long earned its place. Add three new lines:
+Merge into the root file. Keep every rule; do not drop one because it looks
+redundant — a rule that survived this long earned its place. Whether a
+standalone `porta/CLAUDE.md` is also worth keeping alongside the merge is a
+judgment call for this step — the `.gitignore` line that would have silently
+blocked adding it has already been removed, so the option is open either way.
+Add three new lines:
 
 - The tree map (`porta/`, `nodus/{tuvm,nsl,tests,toit}`, `protocol/`, `review/`).
 - **"Never create a GitHub repo named `tuvm` — it silently breaks the rete rename redirect."**
@@ -793,38 +809,48 @@ merely *cited* — and only in the mainline documents of record, per David's
 ruling of 2026-08-02. The historical record is deliberately left alone and is
 filed as a deferral in Task 8 Step 2b.
 
-Counts measured 2026-08-02 against the tree at `252ff1c`, with ONE combined
-regex — `grep -rE 'nsl-tests/|nsl-tuvm/|~/workspace/(nsl-tuvm|nsl-tests|porta)'`.
-Do not sum separate per-pattern greps: `~/workspace/nsl-tuvm/docs/x` matches two
-of those alternatives at once, and summing them overcounts by ~35% (1,424 vs
-the true 1,050). An earlier revision of this step made exactly that mistake.
+Counts measured 2026-08-02 against the tree at `b60d828`, with ONE combined
+regex — `grep -rE 'nsl-tests/|nsl-tuvm/|~/workspace/(nsl-tuvm|nsl-tests|porta)|(~|\$HOME)/workspace/tuvm'`
+(`--include=*.md --include=*.html`, repo root). This widens the regex an
+earlier revision shipped: that one omitted `~/workspace/tuvm` and
+`$HOME/workspace/tuvm` entirely, so every citation of the pre-move repo root
+itself — as opposed to its three now-folded-in siblings — went uncounted,
+including one sitting in this very file's `CLAUDE.md` row (see below). Every
+one of those breaks at Task 7 Step 7's `mv ~/workspace/tuvm ~/workspace/rete`.
+Do not sum separate per-pattern greps: `~/workspace/nsl-tuvm/docs/x` matches
+two alternatives at once, and summing overcounts.
 
-**In scope here — 106 hits in 16 files:**
+**In scope here — 127 hits in 20 files:**
 
 | target | hits | files | treatment |
 |---|---|---|---|
-| `review/` except `DOCMAP.md` | 101 | 14 | hand-edit (incl. `program-sequence.md` 19, `tests/CLAIMS.md` 37, `lib/**` 7) |
+| `review/` except `DOCMAP.md` | 117 | 17 | hand-edit (incl. `program-sequence.md` 22, `tests/CLAIMS.md` 37, `lib/**` 7) |
 | `protocol/PROTOCOL-NSL-RECORDS.md` | 3 | 1 | hand-edit — this is the LIVE contract Task 4 hoisted; it is not history |
-| `docs/next-steps-overview.md` | 2 | 1 | Step 5 covers it |
-| `CLAUDE.md` | 0 | — | nothing to do |
-| `review/DOCMAP.md` | 163 | 1 | **do not hand-edit** — Step 4 regenerates it |
+| `docs/next-steps-overview.md` | 6 | 1 | Step 5 covers it |
+| `CLAUDE.md` | 1 | 1 | hand-edit — line 18's example path (`~/workspace/tuvm/review/program-sequence.md`) is exactly the citation the old regex missed |
+| `review/DOCMAP.md` | 273 | 1 | **do not hand-edit** — Step 4 regenerates it |
 
-Everything else — 781 hits in 77 files — is the historical record and is
-deferred by Task 8 Step 2b. The three buckets sum to 1,050 across 94 files; if
-your recount does not reconcile, find the remainder before editing. Doing that
-reconciliation is what surfaced `protocol/PROTOCOL-NSL-RECORDS.md` sitting in
-the wrong bucket.
+Everything else — 1,266 hits in 84 files, one of which is `nodus/nsl/CLAUDE.md`
+(4 hits — moot, Step 1 deletes the file after merging its rules, so its
+citations vanish with it rather than needing a sweep) — is the historical
+record and is deferred by Task 8 Step 2b. The buckets sum to 1,666 across 105
+files; if your recount does not reconcile, find the remainder before editing —
+that is what surfaced `nodus/nsl/CLAUDE.md` sitting outside every bucket in
+the first widened measurement.
 
 ```bash
 cd ~/workspace/tuvm
-grep -rnE 'nsl-tests/|nsl-tuvm/|~/workspace/(nsl-tuvm|nsl-tests|porta)' \
+grep -rnE 'nsl-tests/|nsl-tuvm/|~/workspace/(nsl-tuvm|nsl-tests|porta)|(~|\$HOME)/workspace/tuvm' \
   review/ protocol/ docs/next-steps-overview.md CLAUDE.md \
   --include=*.md --include=*.html | grep -v '^review/DOCMAP.md'
 ```
 
 Rewrite each hit: `nsl-tests/X` → `nodus/tests/X`, `nsl-tuvm/X` → `nodus/nsl/X`,
 `~/workspace/nsl-tuvm` → `~/workspace/rete/nodus/nsl`, `~/workspace/nsl-tests` →
-`~/workspace/rete/nodus/tests`, `~/workspace/porta` → `~/workspace/rete/porta`.
+`~/workspace/rete/nodus/tests`, `~/workspace/porta` → `~/workspace/rete/porta`,
+`~/workspace/tuvm` (and `$HOME/workspace/tuvm`) → `~/workspace/rete` — but only
+when the path is the repo root itself, not a worktree such as
+`~/workspace/tuvm-wt-*`, which names a different, unaffected directory.
 
 **By hand, not with `sed`** — the same reason Task 4 Step 5 says so, and it was
 the right call there: many hits are prose, and some sit in shell blocks whose
@@ -1071,33 +1097,45 @@ an oversight.
 ```bash
 cd ~/workspace/rete
 gh issue create --title "Stale path citations in the historical record after the rete consolidation (#79)" --body "$(cat <<'EOF'
-781 path citations across 77 files still name the pre-merge repo roots
-(`nsl-tuvm/`, `nsl-tests/`, `~/workspace/porta`). Measured 2026-08-02 against
-`252ff1c` with one combined regex — not by summing per-pattern greps, which
-double-counts any line matching two alternatives:
+1,266 path citations across 84 files still name the pre-merge repo roots
+(`nsl-tuvm/`, `nsl-tests/`, `~/workspace/porta`, `~/workspace/tuvm` /
+`$HOME/workspace/tuvm`). Measured 2026-08-02 against `b60d828` with one
+combined regex — not by summing per-pattern greps, which double-counts any
+line matching two alternatives:
+`grep -rE 'nsl-tests/|nsl-tuvm/|~/workspace/(nsl-tuvm|nsl-tests|porta)|(~|\$HOME)/workspace/tuvm'`
+(`--include=*.md --include=*.html`, repo root; a `~/workspace/tuvm-wt-*`
+worktree path is a different, unaffected directory and does not count):
 
 | area | hits | files |
 |---|---|---|
-| `docs/superpowers/plans/` | 356 | 20 |
-| `nodus/nsl/docs/` | 305 | 31 |
-| `docs/design/` | 50 | 15 |
-| `nodus/tuvm/` + `nodus/tests/` | 25 | 6 |
-| `porta/docs/` | 24 | 2 |
+| `docs/superpowers/plans/` | 736 | 21 |
+| `nodus/nsl/docs/` | 362 | 31 |
+| `docs/design/` | 87 | 20 |
+| `nodus/tuvm/` + `nodus/tests/` | 29 | 6 |
+| `porta/docs/` | 27 | 2 |
 | `docs/MILESTONE_{A,D,E}.md` | 21 | 3 |
+| `nodus/nsl/CLAUDE.md` | 4 | 1 |
 
-**These were left deliberately, not missed.** The documents of record — 106
-hits in 16 files: `review/` except DOCMAP, `protocol/PROTOCOL-NSL-RECORDS.md`,
-`docs/next-steps-overview.md` — were swept in Task 6 Step 4b, and
-`review/DOCMAP.md`'s 163 are regenerated from `tools/docmap.sh`. What remains is the
+The `nodus/nsl/CLAUDE.md` row is moot rather than deferred: Task 6 Step 1
+deletes that file after merging its rules into the root `CLAUDE.md`, so its
+citations vanish with the file rather than needing a sweep — it is listed
+here only so the buckets reconcile to the measured total.
+
+**These were left deliberately, not missed.** The documents of record — 127
+hits in 20 files: `review/` except DOCMAP, `protocol/PROTOCOL-NSL-RECORDS.md`,
+`docs/next-steps-overview.md`, `CLAUDE.md` — were swept in Task 6 Step 4b, and
+`review/DOCMAP.md`'s 273 are regenerated from `tools/docmap.sh`. What remains is the
 historical record: dated design docs and closed execution plans. Per the
 `CLAUDE.md` docs convention the dated design doc *is* the historical "why", so
 rewriting its paths would falsify what was true when it was written.
 
 **The cost of leaving them.** The three local clones were deleted in Task 7
-Step 8, so these citations no longer resolve on disk. Following one from a
-closed plan now leads nowhere. The mapping is mechanical if it is ever wanted:
+Step 8, and the working directory itself was renamed off `~/workspace/tuvm`,
+so these citations no longer resolve on disk. Following one from a closed plan
+now leads nowhere. The mapping is mechanical if it is ever wanted:
 `nsl-tuvm/X` → `nodus/nsl/X`, `nsl-tests/X` → `nodus/tests/X`,
-`~/workspace/porta` → `~/workspace/rete/porta`.
+`~/workspace/porta` → `~/workspace/rete/porta`, `~/workspace/tuvm` (exactly,
+not a `tuvm-wt-*` worktree) → `~/workspace/rete`.
 
 **Do not fix this with a blind `sed`.** Task 4 Step 5 and Task 6 Step 4b both
 required hand-editing for the same reason: many hits are prose, and some sit in
@@ -1163,6 +1201,20 @@ each was a defect in this document, not in the work:
    The lesson is not "count with a command"; that was done. It is that
    overlapping patterns do not sum, and a table whose parts do not add up to
    its total is telling you something.
+8. **The combined regex itself was still short one alternative.** It covered
+   `~/workspace/(nsl-tuvm|nsl-tests|porta)` but not `~/workspace/tuvm` or
+   `$HOME/workspace/tuvm` — the pre-move root itself, as opposed to the three
+   siblings folded into it. Every citation of the bare tuvm root, including one
+   in this file's own `CLAUDE.md` row (line 18, previously recorded as "0,
+   nothing to do") and 21 more across the documents of record, went uncounted;
+   all of them break at Task 7 Step 7's `mv ~/workspace/tuvm ~/workspace/rete`.
+   Re-measured 2026-08-02 at `b60d828` with the widened regex: 1,666 across 105
+   files, reconciling as 127 hand-edited + 273 regenerated (Task 6 Step 4b) +
+   1,266 historical (Task 8 Step 2b, including a `nodus/nsl/CLAUDE.md` row that
+   is moot rather than deferred — Step 1 deletes that file). Caught by the same
+   discipline item 7 argues for: the buckets did not sum to the old 1,050
+   total once `nodus/nsl/CLAUDE.md` was counted, and finding that remainder is
+   what surfaced the missing alternative.
 
 **Placeholder scan.** No TBD/TODO. Two steps intentionally require reading before editing rather than a blind command — Task 4 Step 3 (merging into an existing `on:` block) and Task 4 Step 5 (prose references a `sed` would mangle) — and both say so and say why.
 

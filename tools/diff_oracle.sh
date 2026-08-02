@@ -47,11 +47,15 @@
 # Exit: 0 = no divergence, 1 = divergence (report printed), 2 = setup error.
 set -u
 
+# Repo root, independent of cwd: this script lives in tools/, so its parent is
+# the root regardless of where it is invoked from or symlinked to.
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && git rev-parse --show-toplevel)"
+
 FROZEN_VM_DIR=${FROZEN_VM_DIR:-$HOME/workspace/oevm}          # frozen VM (never modified)
 FROZEN_TOOLS_DIR=${FROZEN_TOOLS_DIR:-$HOME/workspace/ns-oevm/tools}
-TUVM_VM_DIR=${TUVM_VM_DIR:-$HOME/workspace/tuvm}              # seeded VM under test
-TUVM_TOOLS_DIR=${TUVM_TOOLS_DIR:-$HOME/workspace/tuvm/nodus/nsl/tools}
-TESTS_DIR=${TESTS_DIR:-$HOME/workspace/tuvm/nodus/tests}
+TUVM_VM_DIR=${TUVM_VM_DIR:-$REPO_ROOT/nodus/tuvm}             # seeded VM under test
+TUVM_TOOLS_DIR=${TUVM_TOOLS_DIR:-$REPO_ROOT/nodus/nsl/tools}
+TESTS_DIR=${TESTS_DIR:-$REPO_ROOT/nodus/tests}
 MANIFEST=${MANIFEST:-$TESTS_DIR/pared-subset.txt}             # shared-test list (Milestone A artifact)
 OUT=${OUT:-$(mktemp -d)}
 

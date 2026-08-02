@@ -13,19 +13,23 @@
 #      counter, so a re-pushed entry would show up as a repeated 'tick N'.
 # Leg 3 under a DELIBERATE datagram drop is plan 3's, on the C6 over the mesh.
 #
-# Cross-repo on purpose, and deliberately NOT wired into run_tests_oevm.py: the
-# tuvm suite must not go red because a sibling repo is absent. It SKIPS instead.
+# Not wired into run_tests_oevm.py — it builds a separate Go binary and a
+# second VM image, heavier than the rest of that suite, so it runs standalone.
+# porta lives in-repo now (rete consolidation, Task 4) at porta/, so a missing
+# PORTA_DIR here is a broken checkout, not an absent sibling repo — this gate
+# FAILS rather than skipping it. A missing `go` toolchain is still a genuine
+# environment SKIP (below).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-PORTA_DIR="${PORTA_DIR:-$HOME/workspace/porta}"
+PORTA_DIR="${PORTA_DIR:-$(git rev-parse --show-toplevel)/porta}"
 NSL="$(git rev-parse --show-toplevel)/nodus/nsl/tools/ns_compile_oevm.py"
 TARGET="${OEVM_TARGET:-posix}"
 DB=/tmp/porta_sync_gate.db
 NODE=bench-node
 
 if [ ! -d "$PORTA_DIR" ]; then
-  echo "SKIP: no porta checkout at $PORTA_DIR (set PORTA_DIR)"; exit 0
+  echo "FAIL: no porta at $PORTA_DIR"; exit 1
 fi
 if ! command -v go >/dev/null 2>&1; then
   echo "SKIP: go is not on PATH — cannot build the porta counterparty"; exit 0
