@@ -573,7 +573,11 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 ## Task 5: Rename the repo, transfer the open issues, rewrite the references
 
 **Files:**
-- Modify: the 46 `porta#NN` reference sites across `review/` and `docs/`
+- Modify: the 42 `porta#NN` sites (9 files) **and** the 46 `nsl-tuvm#NN` sites
+  (26 files) across `review/`, `docs/`, `protocol/`, `porta/` and `nodus/`.
+  Both source repos have their open issues transferred by Step 3, so both need
+  a captured list, a mapping and a rewrite. `nsl-tests#NN` has 0 sites and 0
+  open issues — nothing to do. Counts measured 2026-08-02.
 
 **Interfaces:**
 - Consumes: Task 0 Step 4's answer on whether public→private transfer works.
@@ -593,13 +597,21 @@ Expected: `rete PRIVATE`. GitHub keeps a permanent redirect from `tuvm` — **ne
 
 - [ ] **Step 2: Capture the pre-transfer issue list, so the mapping can be built**
 
+**Both source repos, not just `porta`.** Step 3 transfers from `porta` AND
+`nsl-tuvm`; a list captured for only one of them yields a mapping for only one
+of them, and the other repo's references get silently skipped in Step 5.
+
 ```bash
 cd ~/workspace/porta
 gh issue list --state open --limit 100 --json number,title --jq '.[] | "\(.number)\t\(.title)"' > /tmp/porta-open-before.tsv
 wc -l /tmp/porta-open-before.tsv
+cd ~/workspace/nsl-tuvm
+gh issue list --state open --limit 100 --json number,title --jq '.[] | "\(.number)\t\(.title)"' > /tmp/nsltuvm-open-before.tsv
+wc -l /tmp/nsltuvm-open-before.tsv
 ```
 
-Expected: 17 lines (or whatever the current count is — record it).
+Expected: 17 lines for `porta`, 11 for `nsl-tuvm` (or whatever the current
+counts are — record both). 17 + 11 = the 28 of Step 3.
 
 - [ ] **Step 3: Transfer the 28 open issues**
 
@@ -613,10 +625,16 @@ while IFS=$'\t' read -r num title; do
 done < /tmp/porta-open-before.tsv
 
 cd ~/workspace/nsl-tuvm
-gh issue list --state open --limit 100 --json number --jq '.[].number' | while read n; do
-  gh issue transfer "$n" davidg238/rete
-done
+while IFS=$'\t' read -r num title; do
+  echo "transferring nsl-tuvm#$num — $title"
+  gh issue transfer "$num" davidg238/rete
+done < /tmp/nsltuvm-open-before.tsv
 ```
+
+Transfers **renumber** (proved in Task 0). Never delete a transferred issue —
+that destroys its redirect. Note Task 0 Step 4 told you to delete the probe;
+that was the one action documented to kill a redirect, and it should not be
+repeated for a real issue.
 
 If Task 0 Step 4 recorded `TRANSFER_WORKS=no`, use the fallback: re-file each open issue by hand in `rete` with its original body plus a first line `Transferred from davidg238/porta#NN`, then close the original with a comment pointing at the new number.
 
@@ -629,24 +647,59 @@ gh issue list --repo davidg238/rete --state open --limit 200 --json number,title
 join -t $'\t' -1 2 -2 2 -o 1.1,2.1 \
   <(sort -t $'\t' -k2 /tmp/porta-open-before.tsv) \
   <(sort -t $'\t' -k2 /tmp/rete-open-after.tsv) > /tmp/porta-map.tsv
-cat /tmp/porta-map.tsv
+join -t $'\t' -1 2 -2 2 -o 1.1,2.1 \
+  <(sort -t $'\t' -k2 /tmp/nsltuvm-open-before.tsv) \
+  <(sort -t $'\t' -k2 /tmp/rete-open-after.tsv) > /tmp/nsltuvm-map.tsv
+wc -l /tmp/porta-map.tsv /tmp/nsltuvm-map.tsv
+cat /tmp/porta-map.tsv /tmp/nsltuvm-map.tsv
 ```
 
-Expected: 17 `old<TAB>new` pairs, matched on title. Eyeball it — a title that changed during transfer will not join, and a missing row means a reference will be rewritten wrongly or not at all.
+Expected: 17 pairs in `porta-map.tsv` and 11 in `nsltuvm-map.tsv`, matched on
+title. **The counts must equal the Step 2 line counts exactly.** Eyeball both —
+a title that changed during transfer will not join, and a missing row means a
+reference is rewritten wrongly or not at all. A short map is the failure that
+looks like success: Step 5 simply skips what is not in it.
 
-- [ ] **Step 5: Rewrite the 46 `porta#NN` sites**
+> Titles are the join key across BOTH maps against the same
+> `rete-open-after.tsv`, so a title colliding between the two source repos
+> would join wrong. Check for that before rewriting:
+> `cut -f2 /tmp/porta-open-before.tsv /tmp/nsltuvm-open-before.tsv | sort | uniq -d`
+> must print nothing.
+
+- [ ] **Step 5: Rewrite the 42 `porta#NN` and 46 `nsl-tuvm#NN` sites**
 
 ```bash
 cd ~/workspace/tuvm
-while IFS=$'\t' read -r old new; do
-  grep -rl "porta#$old\b" review docs protocol porta nodus 2>/dev/null | while read f; do
-    sed -i "s|porta#$old\b|#$new|g" "$f"
-  done
-done < /tmp/porta-map.tsv
-grep -rn 'porta#[0-9]' review docs protocol | head -20
+for src in porta nsltuvm; do
+  case $src in porta) prefix=porta;; nsltuvm) prefix=nsl-tuvm;; esac
+  while IFS=$'\t' read -r old new; do
+    grep -rl "$prefix#$old\b" review docs protocol porta nodus 2>/dev/null | while read f; do
+      sed -i "s|$prefix#$old\b|#$new|g" "$f"
+    done
+  done < /tmp/$src-map.tsv
+done
+grep -rn 'porta#[0-9]\|nsl-tuvm#[0-9]' review docs protocol porta nodus | grep -v node_modules
 ```
 
-Expected: the remaining hits are references to **closed** porta issues, which stay in the archive. Rewrite each of those by hand to a full URL: `porta#16` → `https://github.com/davidg238/porta/issues/16`.
+Expected: the remaining hits are references to **closed** issues in either
+repo, which are never transferred and stay in the archive. Rewrite each by hand
+to a full URL: `porta#16` → `https://github.com/davidg238/porta/issues/16`,
+`nsl-tuvm#4` → `https://github.com/davidg238/nsl-tuvm/issues/4`.
+
+> **Why this must not be skipped, and why it is worse than a dead link.**
+> `repo#NN` is not a GitHub autolink (only `owner/repo#NN` is) — it is a
+> navigation convention this program reads by. `tuvm`'s own numbers are
+> preserved by the in-place restructure, so after the merge the same integer
+> names a real, unrelated issue rather than nothing: `nsl-tuvm#10` is the
+> LD_SLOT codegen gotcha cited in `nodus/tuvm/zephyr/ThreadTimerNode.nsl:23`
+> and `SoakNode.nsl:21`, while `tuvm#10` is a docs-sync task; `nsl-tuvm#4` is
+> the oimg SMI-constant corruption cited in
+> `nodus/tests/06_limit_tests/07_smi_boundary_constants.nsl:10`, while `tuvm#4`
+> is the Integer bitop gap. Nothing errors. You just read the wrong issue.
+> Counts measured 2026-08-02: `porta#NN` 42 sites in 9 files, `nsl-tuvm#NN` 46
+> sites in 26 files, `nsl-tests#NN` 0. An earlier draft of this plan said
+> "46 `porta#NN`" — that 46 was the *nsl-tuvm* count, and conflating the two is
+> how `nsl-tuvm` fell out of Steps 2, 4 and 5 entirely.
 
 - [ ] **Step 6: Verify a sample resolves**
 
@@ -673,8 +726,11 @@ issues from porta and nsl-tuvm transfer in; closed ones stay readable in the
 archived repos, so the references citing them as history stay valid where
 they are.
 
-The 46 porta#NN sites are rewritten from the transfer mapping, joined on
-title. References to closed porta issues become full URLs into the archive.
+The 42 porta#NN and 46 nsl-tuvm#NN sites are rewritten from their transfer
+mappings, joined on title. References to closed issues in either repo become
+full URLs into the archive. Both repos are covered, not just porta: tuvm's own
+numbers are preserved, so an unrewritten repo#NN does not dangle — it silently
+names a different, real issue.
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 ```
@@ -880,7 +936,7 @@ for r in nsl-tuvm nsl-tests porta nodus-v1; do
 done
 ```
 
-Expected: four `archived=true`. **Archived, never deleted** (D7) — deletion breaks the 46 `porta#NN` references and every permalink.
+Expected: four `archived=true`. **Archived, never deleted** (D7) — deletion breaks every full-URL reference into the archive (the closed-issue citations Step 5 leaves behind), every permalink, and the redirects left by the 28 transferred issues.
 
 `porta` and `nodus-v1` stay **public**; `nsl-tuvm` and `nsl-tests` stay private. Do not change visibility.
 
