@@ -13,8 +13,15 @@ import (
 	"time"
 
 	"github.com/davidg238/porta/internal/serverstat"
-	"github.com/davidg238/porta/internal/store"
 )
+
+// NodeCounter is the only thing the health endpoint needs from a store.
+// Narrow by design: httpsrv outlived v1's store and should outlive the next
+// one, so it depends on the question it asks rather than on whoever answers.
+// A nil NodeCounter is legal — /health then reports nodes:-1 and still 200.
+type NodeCounter interface {
+	CountNodes() (int, error)
+}
 
 // defaultReadHeaderTimeout bounds how long the server waits for a client to
 // send complete request headers, closing the connection otherwise. Defeats
@@ -50,7 +57,7 @@ func (s *Server) SetStats(st *serverstat.Stats) { s.stats = st }
 // fresh mux. /health is pre-registered; consumer packages (mcp, web)
 // register additional routes via s.Mux.Handle. Returns an error if
 // AllowCIDR fails to parse any entry.
-func New(cfg Config, st *store.Store) (*Server, error) {
+func New(cfg Config, nodes NodeCounter) (*Server, error) {
 	nets, err := AllowCIDR(cfg.AllowCIDR)
 	if err != nil {
 		return nil, fmt.Errorf("httpsrv: parse allow-cidr: %w", err)
@@ -66,7 +73,7 @@ func New(cfg Config, st *store.Store) (*Server, error) {
 		},
 		Mux: mux,
 	}
-	mux.Handle("/health", healthHandler(st, func() *serverstat.Stats { return s.stats }))
+	mux.Handle("/health", healthHandler(nodes, func() *serverstat.Stats { return s.stats }))
 	return s, nil
 }
 

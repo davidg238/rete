@@ -225,7 +225,10 @@ whose only difference was direction — now a column.
 2. **`exchanges` is a table v1 never had.** It buys liveness and replay indexing (D4.3). A
    real cost, deliberately paid.
 3. **`nodes.chip` / `nodes.sdk` had no successor** — closed by D8, which pins `obs/build`
-   rather than letting a revenue-gate regress inside a rewrite.
+   rather than letting a revenue-gate regress inside a rewrite. Walking all fourteen
+   columns for §4.2's audit found **two more** in the same condition, `source_addr` and
+   `last_reset_code`; both are closed there. Three of fourteen columns had no successor
+   until someone enumerated them, which is the case for doing the audit at all.
 
 ```sql
 CREATE TABLE nodes (
@@ -236,7 +239,10 @@ CREATE TABLE nodes (
   cadence_ms    INTEGER,   -- liveness floor; offline = k × cadence, k = 3 (v1's constant, kept)
   boot_id       INTEGER,   -- current session (RECORDS §2.4)
   cursor_acked  INTEGER,   -- how far the node has consumed porta's outbound seq
-  node_seq_hw   INTEGER    -- high-water of the node's push sequence, for dedup
+  node_seq_hw   INTEGER,   -- high-water of the node's push sequence, for dedup
+  last_addr     TEXT       -- peer address of the last datagram; successor to v1's
+                           -- source_addr, which serverstat.TransportOf() reads to
+                           -- produce the wifi-vs-Thread breakdown (§4.2)
 );
 
 CREATE TABLE cells (          -- latest value per path
@@ -264,6 +270,84 @@ written explicitly as a value, and genuine removal is an action on a `do/` strea
 Convergence is structural: `goal/X` vs `obs/X` is a tree diff, and the operator's
 desired-vs-observed view and the self-heal loop are the same query. Self-heal as a separate
 mechanism disappears.
+
+### 4.2 Capability audit — every v1 operator surface, and where it lands
+
+§4.1 accounts for the *tables*. This section accounts for the *capabilities*, under D8's
+rule: **a rewrite may delete a mechanism, but it may not silently delete a capability.**
+Produced mechanically on 2026-08-01 from `porta --help` over every subcommand, the mux
+registrations in `apisrv`/`web`/`mcpsrv`/`httpsrv`, and the v1 `nodes` DDL — not from
+recall. Fates are `absorbed → <path>`, `deferred → <plan>`, or **regression**.
+
+> A note on method, because it cost a correction: the enumeration grep first written into
+> the plan (`grep -rhoE '"/(api|v1)/…"' internal/apisrv internal/web`) returns **test
+> fixtures, not routes** — v1 registers `"GET /api/nodes/{sel}"`, so the method prefix puts
+> the path off the front of the string literal and the pattern cannot match it. It reported
+> twelve paths, of which every real one was absent and several were `blinky`/`ghost` test
+> doubles. The routes below come from the `HandleFunc` registrations.
+
+**CLI verbs** (9 root commands, 15 subcommands):
+
+| v1 capability | fate |
+|---|---|
+| `scan [--include-never-seen]` | deferred → operator surface. Data survives: `nodes.last_seen_ms` + `cadence_ms` (offline = k × cadence, k = 3), and a node staged but never seen still gets a row via `ensureNode` |
+| `ping -d` | deferred → operator surface; same liveness source, now corroborated by `exchanges` |
+| `device show` | deferred → operator surface; `nodes` + `Tree(id,"obs/")` — **but see the two regressions below** |
+| `device get [app] [key]` | **absorbed → structural.** `Tree(id,"goal/")` vs `Tree(id,"obs/")` is the diff; `porta get` in plan 1 |
+| `device set` | absorbed → `Write` to `goal/config/<app>/<key>` (RECORDS §4.1); `porta put` in plan 1 |
+| `device reboot` | absorbed → stream write `goal/do/reboot`. Carries §8's replay hazard — that is why the hazard is filed |
+| `device set-forward` (absolute, all streams) | absorbed → `goal/forward`, pinned as `Forward{…}` — *"the whole policy, never a patch"*, which preserves the absoluteness exactly |
+| `container list` | absorbed → `Tree(id,"obs/apps/")`, `AppObs{…}` |
+| `container install` | **deferred → bulk/OTA plane (§7).** The image ride is TFTP, deleted here; CoAP blockwise replaces it, content-addressed by hash rather than v1's CRC32. `goal/apps/<name>` already carries the `BlobRef` |
+| `container uninstall` | absorbed → `goal/apps/<name>` with `lifecycle` written to stopped (no tombstone, §4.1) |
+| `log -d` | **absorbed → `Events`, and widened.** Gains `actor`/`reason` provenance (D3) and superseded intent, which a drained queue could not offer |
+| `monitor -d [--kind --since --follow]` | absorbed → `tel/**` events; the three filters are deferred → operator surface. `--kind` is a path prefix (`tel/log`, `tel/m/`, `sys/panic`), `--since` is `ts_ms`, `--follow` is a tail over `events.id` |
+| `debug attach/detach/send/poll` | absorbed → `goal/debug/<app>` (`Debug{action}`) + `diag/dbg/req` / `diag/dbg/resp` events; `--after id` maps to `events.id` |
+| `profile start/stop` | absorbed → `goal/profile/<app>`, `Profile{action,durationS,continuous}` |
+| `profile poll` | absorbed → bounded span results as `diag/**` events |
+| `profile get <seq>` | **deferred → bulk/OTA plane (§7).** The blob is opaque and unbounded; it cannot ride a 256 B value |
+| `serve` | absorbed → Task 1 (HTTP `/health`) + Task 4 (UDP space listener) |
+| `completion`, `--db`, `--server`, `-v` | unchanged (cobra/global) |
+
+**HTTP surface** (13 routes registered, plus 9 web routes):
+
+| v1 route | fate |
+|---|---|
+| `GET /health` | kept — survives behind the narrow `NodeCounter` interface (Task 1 step 4) |
+| `GET /api/status` | deferred → operator surface. **Depends on a regression** — see `source_addr` below |
+| `GET /api/nodes`, `GET /api/nodes/{sel}` | deferred → operator surface |
+| `POST /api/nodes/{sel}/commands` | absorbed → a path write |
+| `GET /api/nodes/{sel}/commands` | absorbed → `Events` where `direction='out'` |
+| `POST /api/nodes/{sel}/containers` | deferred → bulk plane (§7) |
+| `GET /api/nodes/{sel}/config` | absorbed → the `goal/` vs `obs/` tree diff |
+| `GET /api/nodes/{sel}/telemetry` | absorbed → `Events` under `tel/**` |
+| `POST /api/nodes/{sel}/debug/send`, `GET …/debug/responses` | absorbed → `diag/dbg/req` / `diag/dbg/resp` |
+| `GET /api/nodes/{sel}/profile` | absorbed → `diag/**` events |
+| `GET /api/nodes/{sel}/profile/{seq}` | deferred → bulk plane (§7) |
+| web `/`, `/n/`, `/log`, `/status`, `/telemetry`, `/partials/{status,telemetry,nodes,log}`, `/assets/` | deferred → operator surface. §7's warning governs: the web UI must be a *client* of the path surface, not the thing the path surface is shaped around |
+| MCP `list_devices`, `device_status`, `device_get_config`, `container_list`, `query_telemetry`, `command_log` | deferred → §7 names this explicitly; `mcpsrv` is rewritten as a client of the same path surface |
+| TFTP resource surface (`internal/handler`, port 6969) | deferred → bulk plane (§7) |
+| v1 UDP report/poll protocol | **mechanism replaced** by §5's pull/push exchange — a mechanism, not a capability |
+
+#### Two rows land on regression
+
+D8 already caught `nodes.chip`/`nodes.sdk` and pinned `obs/build`. Walking all fourteen
+`nodes` columns rather than the six §4.1 counted turns up two more with no successor. Both
+are live: traced to their call sites, not assumed.
+
+| v1 column | reached by | fate |
+|---|---|---|
+| `nodes.source_addr` | `porta device show` (`inspect.go:135`), `GET /api/nodes{,/{sel}}`, web node list, MCP `list_devices` + `device_status`, **and `serverstat.TransportOf(n.SourceAddr)`** which produces the wifi-vs-Thread breakdown on `/api/status` and `/status` | **regression → CLOSED in this plan.** `last_addr TEXT` on `nodes` (§4.1 DDL), stamped by the UDP loop from the datagram's peer address. One column; the wire layer already holds the value |
+| `nodes.last_reset_code` | `porta device show` via `control.RenderReset(reason, code)` (`inspect.go:143`), `GET /api/nodes/{sel}` as `reset_code`, web node page | **regression (narrowing) → CLOSED in this plan.** RECORDS §4.4's `Reset` gains `code: int`. On ESP32 the numeric code is the machine-readable form and the reason string is derived from it, so a symbol alone is lossy |
+
+Neither was a revenue-gate on tuvm#74's scale, and neither was expensive — one column and
+one record field, both folded in before demolition rather than filed. They are recorded
+here because the rule is that a capability gets a *fate*, and "nobody noticed" is not one.
+
+One naming snag surfaced alongside them, not a regression but a conformance mismatch the
+wire task will hit: §4.1 above routes remote debug to `diag/dbg/req` / `diag/dbg/resp`,
+while RECORDS §4.5 pins the prefix as `dbg/*`. One of the two documents has to yield before
+the debug paths are written.
 
 ---
 

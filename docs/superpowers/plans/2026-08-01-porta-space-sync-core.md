@@ -36,7 +36,7 @@
 | `internal/space/schema.go` | DDL + `Open`/`Close` |
 | `internal/space/store.go` | `Write`, `OutboundSince`, `Ingest`, `RecordExchange`, `Tree`, `Events` |
 | `internal/wire/message.go` | pull/batch/push/ack ↔ `cval` |
-| `internal/wire/server.go` | pure `Handle([]byte) []byte` + the UDP loop |
+| `internal/wire/server.go` | pure `Handle([]byte) []byte` (and `HandleFrom` with the peer address) + the UDP loop |
 | `internal/portacli/*.go` | `serve`, `get`, `put`, `log` |
 
 Plans 2 and 3 (node-side `seq`/`changedSince:`/bridge job; the C6 hardware gate) are separate documents and depend on this one only through the §5 wire contract.
@@ -57,7 +57,7 @@ Plans 2 and 3 (node-side `seq`/`changedSince:`/bridge job; the C6 hardware gate)
 - Consumes: nothing.
 - Produces: a tree where `go build ./...` and `go test ./...` pass with only `cmd/porta`, `internal/httpsrv`, `internal/serverstat`, `internal/portacli` remaining. `httpsrv.New(cfg Config, nodes NodeCounter)` where `type NodeCounter interface { CountNodes() (int, error) }`.
 
-- [ ] **Step 1: Tag the last v1 tree**
+- [x] **Step 1: Tag the last v1 tree**
 
 ```bash
 cd ~/workspace/porta
@@ -65,7 +65,7 @@ git tag -a porta-v1-final -m "the last v1 tree: TFTP + JSON + command queue, bef
 git tag -l porta-v1-final
 ```
 
-- [ ] **Step 2: Run the capability audit before deleting anything**
+- [x] **Step 2: Run the capability audit before deleting anything**
 
 D8's rule: *a rewrite may delete a mechanism, but it may not silently delete a capability.* Enumerate every v1 operator capability and name where it lands. Produce the list mechanically, do not recall it:
 
@@ -78,14 +78,14 @@ grep -rhoE '"/(api|v1)/[a-z0-9/{}._-]*"' internal/apisrv internal/web | sort -u
 
 Append the result to the design record as a table `§4.2 Capability audit`, one row per verb/endpoint with fate ∈ {absorbed → `<path>`, deferred → `<plan>`, **regression**}. Any row landing on **regression** stops this task and gets raised before deletion — that is exactly how `obs/build` was caught.
 
-- [ ] **Step 3: Commit the audit**
+- [x] **Step 3: Commit the audit**
 
 ```bash
 git add docs/design/2026-08-01-porta-space-sync-rewrite-design.md
 git commit -m "docs(design): capability audit of v1's operator surface before demolition"
 ```
 
-- [ ] **Step 4: Decouple httpsrv from the v1 store**
+- [x] **Step 4: Decouple httpsrv from the v1 store**
 
 Replace the `*store.Store` parameter with a narrow interface so `httpsrv` survives the deletion. In `internal/httpsrv/server.go`:
 
@@ -126,7 +126,7 @@ func healthHandler(nodes NodeCounter, statsFn func() *serverstat.Stats) http.Han
 }
 ```
 
-- [ ] **Step 5: Delete the v1 packages**
+- [x] **Step 5: Delete the v1 packages**
 
 ```bash
 cd ~/workspace/porta
@@ -135,7 +135,7 @@ git rm -r internal/command internal/config internal/control internal/handler \
           internal/mcpsrv internal/store devsdk/apiclient
 ```
 
-- [ ] **Step 6: Reduce the CLI to `serve`**
+- [x] **Step 6: Reduce the CLI to `serve`**
 
 Delete every command file in `internal/portacli/` except the root and `serve`, and strip `serve.go` to a listener that opens no store yet:
 
@@ -160,12 +160,12 @@ func serveCmd() *cobra.Command {
 }
 ```
 
-- [ ] **Step 7: Verify the tree builds and tests green**
+- [x] **Step 7: Verify the tree builds and tests green**
 
 Run: `cd ~/workspace/porta && gofmt -l . && go build ./... && go test ./...`
 Expected: `gofmt` prints nothing; build succeeds; tests pass (only `httpsrv` and `serverstat` have any left).
 
-- [ ] **Step 8: Rewrite `CLAUDE.md`, which now describes a deleted system**
+- [x] **Step 8: Rewrite `CLAUDE.md`, which now describes a deleted system**
 
 `~/workspace/porta/CLAUDE.md` opens by defining porta as the thing that "defines the command vocabulary and report schema, queues commands, delivers container images over TFTP, and ingests telemetry" — every clause of which this task just deleted. It auto-loads as project context, so leaving it stale actively misleads the next session.
 
@@ -179,7 +179,7 @@ Two lines that must survive verbatim, because they are still true and still load
 
 Also note in it that the porta auto-memory namespace (`~/.claude/projects/-home-david-workspace-porta/memory/`) is **v1-era and unreviewed** against this rewrite.
 
-- [ ] **Step 9: Commit the demolition**
+- [x] **Step 9: Commit the demolition**
 
 ```bash
 git add -A
@@ -213,7 +213,7 @@ names where every v1 verb lands."
   - `func Format(v any) string`
   - `var ErrNotAValue, ErrDepth, ErrTrailing, ErrUTF8, ErrIntRange error`
 
-- [ ] **Step 1: Write the failing golden test**
+- [x] **Step 1: Write the failing golden test**
 
 The first assertion is the node's own published golden, so a passing Go encoder is byte-compatible with the shipped VM by construction.
 
@@ -330,12 +330,12 @@ func TestIntegerBandEdges(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run it to confirm it fails**
+- [x] **Step 2: Run it to confirm it fails**
 
 Run: `cd ~/workspace/porta && go test ./internal/cval/ -v`
 Expected: FAIL — the package does not exist.
 
-- [ ] **Step 3: Implement the types**
+- [x] **Step 3: Implement the types**
 
 ```go
 // internal/cval/value.go
@@ -396,7 +396,7 @@ var (
 const maxDepth = 32
 ```
 
-- [ ] **Step 4: Implement encode**
+- [x] **Step 4: Implement encode**
 
 ```go
 // internal/cval/encode.go
@@ -533,7 +533,7 @@ func encMap(w *bytes.Buffer, m Map, depth int) error {
 }
 ```
 
-- [ ] **Step 5: Implement decode and Validate**
+- [x] **Step 5: Implement decode and Validate**
 
 ```go
 // internal/cval/decode.go
@@ -726,7 +726,7 @@ func decTag(b []byte, tag uint64, n, depth int) (any, int, error) {
 }
 ```
 
-- [ ] **Step 6: Implement Format (display only)**
+- [x] **Step 6: Implement Format (display only)**
 
 ```go
 // internal/cval/format.go
@@ -781,17 +781,17 @@ func Format(v any) string {
 }
 ```
 
-- [ ] **Step 7: Run the tests**
+- [x] **Step 7: Run the tests**
 
 Run: `cd ~/workspace/porta && go test ./internal/cval/ -v`
 Expected: PASS, all seven tests. If `TestEncodeNodeGolden` fails, the encoder disagrees with the shipped VM — fix the encoder, never the golden.
 
-- [ ] **Step 8: Re-confirm the Record fixture against the node's encoder**
+- [x] **Step 8: Re-confirm the Record fixture against the node's encoder**
 
 The published golden covers only a Map. The Record fixture below was **generated from the node and verified 2026-08-01** — `Path A: PASS / Path B: PASS`, output `d81b82d8276361636ba1d82762687705`, which is the value already asserted in `TestEncodeRecordNameIsSymbol`. Re-run it to confirm nothing has drifted:
 
 ```bash
-cat > /tmp/claude-1000/-home-david-workspace-tuvm/728b0719-a646-49f0-88c0-ddd9eeff8505/scratchpad/CvalFixture.nsl <<'EOF'
+cat > $SCRATCH/CvalFixture.nsl <<'EOF'
 (*
 expect:
 d81b82d8276361636ba1d82762687705
@@ -803,12 +803,12 @@ public main: platform args: args = (
 ) : (
 )
 EOF
-cd ~/workspace/nsl-tuvm && python3 tools/run-one.py /tmp/claude-1000/-home-david-workspace-tuvm/728b0719-a646-49f0-88c0-ddd9eeff8505/scratchpad/CvalFixture.nsl
+cd ~/workspace/nsl-tuvm && python3 tools/run-one.py $SCRATCH/CvalFixture.nsl
 ```
 
 If the node prints anything other than the hex above, **the node is right and this plan is wrong** — update the test's `want` and the encoder, never the other way round.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 gofmt -l . && go test ./internal/cval/
@@ -845,13 +845,14 @@ nsl-tests/14_cbor/02_golden_hex.nsl."
   - `func (*Store) Write(nodeID, path string, kind cval.Kind, value []byte, actor, reason string) (int64, error)`
   - `func (*Store) OutboundSince(nodeID string, cursor int64, maxBytes int) ([]Entry, int64, error)`
   - `func (*Store) Ingest(nodeID string, bootID int64, entries []Entry) (int64, error)`
-  - `func (*Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushedLo, pushedHi int64) error`
+  - `func (*Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushedLo, pushedHi int64, addr string) error`
   - `func (*Store) NoteCursor(nodeID string, cursor int64) error`
+  - `func (*Store) NodeAddr(nodeID string) (string, error)`
   - `func (*Store) Tree(nodeID, prefix string) ([]Entry, error)`
   - `func (*Store) Events(nodeID string, limit int) ([]Event, error)`
   - `const MaxValueBytes = 256`, `const MaxBatchBytes = 512`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```go
 // internal/space/store_test.go
@@ -1016,21 +1017,47 @@ func TestOversizeValueRejected(t *testing.T) {
 
 func TestExchangeRowRecorded(t *testing.T) {
 	st := testStore(t)
-	if err := st.RecordExchange("n1", 7, 0, 3, 1, 2); err != nil {
+	if err := st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1"); err != nil {
 		t.Fatalf("RecordExchange: %v", err)
 	}
 	if n, _ := st.CountNodes(); n != 1 {
 		t.Fatalf("CountNodes = %d, want 1", n)
 	}
 }
+
+// The peer address is v1's nodes.source_addr, which the capability audit
+// (design §4.2) caught with no successor. serverstat.TransportOf() reads it to
+// produce the wifi-vs-Thread breakdown, so losing it loses a fleet view, not a
+// display field.
+func TestExchangeRecordsPeerAddress(t *testing.T) {
+	st := testStore(t)
+	st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1")
+	got, err := st.NodeAddr("n1")
+	if err != nil {
+		t.Fatalf("NodeAddr: %v", err)
+	}
+	if got != "fdde:ad00::1" {
+		t.Fatalf("NodeAddr = %q, want fdde:ad00::1", got)
+	}
+}
+
+// An exchange recorded without a peer address must not erase a known one.
+func TestEmptyPeerAddressDoesNotClobber(t *testing.T) {
+	st := testStore(t)
+	st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1")
+	st.RecordExchange("n1", 7, 3, 4, 0, 0, "")
+	if got, _ := st.NodeAddr("n1"); got != "fdde:ad00::1" {
+		t.Fatalf("NodeAddr = %q after an addr-less exchange, want the address kept", got)
+	}
+}
 ```
 
-- [ ] **Step 2: Run to confirm failure**
+- [x] **Step 2: Run to confirm failure**
 
 Run: `cd ~/workspace/porta && go test ./internal/space/ -v`
 Expected: FAIL — package does not exist.
 
-- [ ] **Step 3: Write the schema**
+- [x] **Step 3: Write the schema**
 
 ```go
 // internal/space/schema.go
@@ -1054,12 +1081,22 @@ CREATE TABLE IF NOT EXISTS nodes (
   boot_id       INTEGER,
   cursor_acked  INTEGER NOT NULL DEFAULT 0,
   node_seq_hw   INTEGER NOT NULL DEFAULT 0,
-  out_seq       INTEGER NOT NULL DEFAULT 0
+  out_seq       INTEGER NOT NULL DEFAULT 0,
+  -- Successor to v1's nodes.source_addr, which the capability audit (design
+  -- §4.2) caught with no home. It is not merely a display field: serverstat
+  -- .TransportOf() reads it to produce the wifi-vs-Thread fleet breakdown.
+  last_addr     TEXT
 );
 
 -- Latest value per path. Paths are NODE-RELATIVE (design D4.5): the
 -- node/<id>/** prefix in PROTOCOL-NSL.md §3 is a view, never storage, so a
 -- captured session can be re-pointed at a different node.
+--
+-- This table holds BOTH directions, because the operator's goal/X vs obs/X
+-- diff is one query over one table. direction is therefore load-bearing and
+-- not decoration: seq is drawn from porta's out_seq for 'out' rows and from
+-- the NODE's push counter for 'in' rows, so the two are not comparable and a
+-- read that spans them is meaningless. OutboundSince filters on it.
 CREATE TABLE IF NOT EXISTS cells (
   node_id    TEXT NOT NULL,
   path       TEXT NOT NULL,
@@ -1067,9 +1104,10 @@ CREATE TABLE IF NOT EXISTS cells (
   kind       INTEGER NOT NULL,
   value_cbor BLOB NOT NULL,
   ts_ms      INTEGER NOT NULL,
+  direction  TEXT NOT NULL CHECK (direction IN ('in','out')),
   PRIMARY KEY (node_id, path)
 );
-CREATE INDEX IF NOT EXISTS idx_cells_seq ON cells(node_id, seq);
+CREATE INDEX IF NOT EXISTS idx_cells_seq ON cells(node_id, direction, seq);
 
 -- Append-only, both directions, with provenance (design D2/D3). There is no
 -- tombstone column: stopped state is written explicitly as a value, and
@@ -1105,7 +1143,7 @@ CREATE INDEX IF NOT EXISTS idx_exchanges_node ON exchanges(node_id, ts_ms);
 `
 ```
 
-- [ ] **Step 4: Implement the store**
+- [x] **Step 4: Implement the store**
 
 ```go
 // internal/space/store.go
@@ -1238,7 +1276,7 @@ func (s *Store) Write(nodeID, path string, kind cval.Kind, value []byte, actor, 
 func (s *Store) OutboundSince(nodeID string, cursor int64, maxBytes int) ([]Entry, int64, error) {
 	rows, err := s.db.Query(`
 		SELECT seq, path, kind, value_cbor FROM cells
-		  WHERE node_id = ? AND seq > ?
+		  WHERE node_id = ? AND direction = 'out' AND seq > ?
 		UNION ALL
 		SELECT seq, path, kind, value_cbor FROM events
 		  WHERE node_id = ? AND direction = 'out' AND kind = ? AND seq > ?
@@ -1344,7 +1382,12 @@ func (s *Store) NoteCursor(nodeID string, cursor int64) error {
 	return tx.Commit()
 }
 
-func (s *Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushedLo, pushedHi int64) error {
+// RecordExchange logs one check-in. addr is the peer address the datagram
+// arrived from; an EMPTY addr never clobbers a known one, which is v1's own
+// COALESCE discipline (v1 store.go:267) kept deliberately — a caller that does
+// not know the peer (the pure Handle path, a replayed session) must not erase
+// what the UDP loop learned.
+func (s *Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushedLo, pushedHi int64, addr string) error {
 	now := s.nowMs()
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -1360,10 +1403,23 @@ func (s *Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushe
 		nodeID, now, bootID, cursorIn, cursorOut, pushedLo, pushedHi); err != nil {
 		return err
 	}
-	if _, err := tx.Exec(`UPDATE nodes SET last_seen_ms = ? WHERE id = ?`, now, nodeID); err != nil {
+	if _, err := tx.Exec(
+		`UPDATE nodes SET last_seen_ms = ?, last_addr = COALESCE(NULLIF(?, ''), last_addr) WHERE id = ?`,
+		now, addr, nodeID); err != nil {
 		return err
 	}
 	return tx.Commit()
+}
+
+// NodeAddr returns the peer address of the node's last datagram, or "" if it
+// has never been seen.
+func (s *Store) NodeAddr(nodeID string) (string, error) {
+	var addr sql.NullString
+	err := s.db.QueryRow(`SELECT last_addr FROM nodes WHERE id = ?`, nodeID).Scan(&addr)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	return addr.String, err
 }
 
 // Tree returns the current cell values under prefix, path-ordered — the
@@ -1420,12 +1476,12 @@ func escapeLike(s string) string {
 }
 ```
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `cd ~/workspace/porta && go test ./internal/space/ -v`
 Expected: PASS, all ten tests.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 gofmt -l . && go test ./internal/space/
@@ -1458,11 +1514,20 @@ Three properties the tests pin:
 - Produces:
   - `func NewServer(st *space.Store, logf func(string, ...any)) *Server`
   - `func (*Server) Handle(req []byte) []byte` — pure bytes→bytes; never returns nil
+  - `func (*Server) HandleFrom(req []byte, peer string) []byte` — same, plus the peer address to stamp on the exchange (design §4.2). `Handle(req)` is `HandleFrom(req, "")`, and an empty peer never clobbers a known address
   - `func (*Server) ListenAndServe(ctx context.Context, addr string) error`
   - `func EncodePull(id string, cursor, bootID, hw int64) ([]byte, error)`
   - `func EncodePush(id string, bootID int64, entries []space.Entry) ([]byte, error)`
   - `func DecodeBatch(b []byte) (hi int64, entries []space.Entry, err error)`
   - `func DecodeAck(b []byte) (hw int64, err error)`
+
+**Batch capping.** `space.OutboundSince` budgets `len(value)+len(path)+8` per entry, but an
+entry encodes to `len(value)+len(path)+4` and the `#batch` wrapper costs 29 bytes on top. So
+the store's budget can be fully spent and the DATAGRAM still overrun: two 239 B values on
+6-char paths fill the budget to 506 and encode to **527**, over the 512 B cap. `handlePull`
+therefore builds the reply through `encodeBatchCapped`, which trims from the tail and lowers
+`hi` with it — `hi` must name what actually rode, or the node advances past writes it never
+saw. Long paths hide this; short ones expose it.
 
 Wire shapes, as nsl Records (no second codec, RECORDS §1):
 
@@ -1474,7 +1539,7 @@ ack   = #ack   { #hw: int }                     ; #hint reserved, not emitted
 err   = #err   { #msg: str }
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```go
 // internal/wire/wire_test.go
@@ -1612,12 +1677,12 @@ func TestGarbageRequestAnswersErr(t *testing.T) {
 func (s *Store) DB() *sql.DB { return s.db }
 ```
 
-- [ ] **Step 2: Run to confirm failure**
+- [x] **Step 2: Run to confirm failure**
 
 Run: `cd ~/workspace/porta && go test ./internal/wire/ -v`
 Expected: FAIL — package does not exist.
 
-- [ ] **Step 3: Implement the message layer**
+- [x] **Step 3: Implement the message layer**
 
 ```go
 // internal/wire/message.go
@@ -1798,7 +1863,7 @@ func DecodeAck(b []byte) (int64, error) {
 }
 ```
 
-- [ ] **Step 4: Implement the server**
+- [x] **Step 4: Implement the server**
 
 ```go
 // internal/wire/server.go
@@ -1831,8 +1896,13 @@ func NewServer(st *space.Store, logf func(string, ...any)) *Server {
 // (bytes in, bytes out) so the whole protocol is testable without a socket,
 // and it NEVER returns nil: a node that gets no reply cannot distinguish a
 // rejection from a lost datagram, and would retry forever.
-func (s *Server) Handle(req []byte) []byte {
-	resp, err := s.handle(req)
+func (s *Server) Handle(req []byte) []byte { return s.HandleFrom(req, "") }
+
+// HandleFrom is Handle plus the address the datagram arrived from, stamped on
+// the exchange so the fleet keeps the transport breakdown v1 read out of
+// nodes.source_addr (design §4.2). An empty peer is legal and never clobbers.
+func (s *Server) HandleFrom(req []byte, peer string) []byte {
+	resp, err := s.handle(req, peer)
 	if err != nil {
 		s.logf("porta: rejecting datagram: %v", err)
 		return encodeErr(err.Error())
@@ -1840,7 +1910,7 @@ func (s *Server) Handle(req []byte) []byte {
 	return resp
 }
 
-func (s *Server) handle(req []byte) ([]byte, error) {
+func (s *Server) handle(req []byte, peer string) ([]byte, error) {
 	v, err := cval.Decode(req)
 	if err != nil {
 		return nil, err
@@ -1851,14 +1921,14 @@ func (s *Server) handle(req []byte) ([]byte, error) {
 	}
 	switch r.Tag {
 	case "pull":
-		return s.handlePull(r)
+		return s.handlePull(r, peer)
 	case "push":
-		return s.handlePush(r)
+		return s.handlePush(r, peer)
 	}
 	return nil, fmt.Errorf("%w: unknown message #%s", errShape, r.Tag)
 }
 
-func (s *Server) handlePull(r cval.Record) ([]byte, error) {
+func (s *Server) handlePull(r cval.Record, peer string) ([]byte, error) {
 	id, err := strField(r.Fields, "id")
 	if err != nil {
 		return nil, err
@@ -1881,13 +1951,24 @@ func (s *Server) handlePull(r cval.Record) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := s.st.RecordExchange(id, bootID, cursor, hi, 0, 0); err != nil {
+	// Build the datagram first: capping may trim the tail, and the exchange
+	// row must record the hi the node was actually told, not the one the
+	// store offered.
+	resp, err := encodeBatchCapped(hi, entries, space.MaxBatchBytes)
+	if err != nil {
 		return nil, err
 	}
-	return encodeBatch(hi, entries)
+	deliveredHi, _, err := DecodeBatch(resp)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.st.RecordExchange(id, bootID, cursor, deliveredHi, 0, 0, peer); err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
-func (s *Server) handlePush(r cval.Record) ([]byte, error) {
+func (s *Server) handlePush(r cval.Record, peer string) ([]byte, error) {
 	id, err := strField(r.Fields, "id")
 	if err != nil {
 		return nil, err
@@ -1912,7 +1993,7 @@ func (s *Server) handlePush(r cval.Record) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := s.st.RecordExchange(id, bootID, 0, 0, lo, hw); err != nil {
+	if err := s.st.RecordExchange(id, bootID, 0, 0, lo, hw, peer); err != nil {
 		return nil, err
 	}
 	return encodeAck(hw)
@@ -1940,7 +2021,7 @@ func (s *Server) ListenAndServe(ctx context.Context, addr string) error {
 		}
 		req := make([]byte, n)
 		copy(req, buf[:n])
-		resp := s.Handle(req)
+		resp := s.HandleFrom(req, peer.String())
 		if _, err := pc.WriteTo(resp, peer); err != nil {
 			s.logf("porta: reply to %s failed: %v", peer, err)
 		}
@@ -1948,12 +2029,12 @@ func (s *Server) ListenAndServe(ctx context.Context, addr string) error {
 }
 ```
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `cd ~/workspace/porta && go test ./internal/wire/ -v`
 Expected: PASS, all six tests.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 gofmt -l . && go test ./...
@@ -1984,7 +2065,7 @@ a rejection from a lost datagram and would retry forever."
 - Consumes: `space`, `wire`, `cval`, `httpsrv`.
 - Produces: `porta serve --db --udp --http`; `porta get <node> [prefix]`; `porta put <node> <path> <value>`; `porta log <node>`.
 
-- [ ] **Step 1: Write the failing loopback gate**
+- [x] **Step 1: Write the failing loopback gate**
 
 This is the task's deliverable: a synthetic node driving a real UDP socket against a live server.
 
@@ -2155,51 +2236,68 @@ func mustEncode(t *testing.T, v any) []byte {
 }
 ```
 
-- [ ] **Step 2: Run to confirm failure**
+- [x] **Step 2: Run to confirm failure**
 
 Run: `cd ~/workspace/porta && go test ./internal/portacli/ -run TestLoopbackGate -v`
 Expected: FAIL — compile error, the CLI does not import these yet.
 
-- [ ] **Step 3: Wire `serve` to the store and the UDP listener**
+- [x] **Step 3: Wire `serve` to the store and the UDP listener**
+
+> **The snippet below is illustrative, not literal — three things in it do not exist.**
+> `httpsrv.Config` has no `Addr` field (it is `Bind`/`Port`/`AllowCIDR`) and `*httpsrv.Server`
+> has no `ListenAndServe` (it is `Run(ctx)`); `signal.NotifyContext` is already applied by
+> `Execute()` in `root.go`, so re-applying it here is redundant; and `--db` is a PERSISTENT
+> flag on the root command, so redeclaring it per-verb shadows the root one and the two can
+> diverge. Keep the real API, the existing `--http-port`/`--http-bind`/`--http-allow-cidr`
+> flags (including `--http-port 0` = disabled) and `awaitServeExit`, and add only `--udp`.
+> The same `--db` caveat applies to `get`, `put` and `log` in steps 4–5.
 
 ```go
 // internal/portacli/serve.go
-func serveCmd() *cobra.Command {
-	var dbPath, udpAddr, httpAddr string
+func newServeCmd() *cobra.Command {
+	var udpAddr, httpBind string
+	var httpPort int
+	var httpAllowCIDR []string
 	cmd := &cobra.Command{
 		Use:   "serve",
 		Short: "Run the porta gateway: UDP space listener + operator HTTP surface",
-		RunE: func(c *cobra.Command, _ []string) error {
-			st, err := space.Open(dbPath, func() int64 { return time.Now().UnixMilli() })
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx := cmd.Context()
+			st, err := space.Open(dbPath, nowMs) // dbPath is the root's persistent flag
 			if err != nil {
 				return err
 			}
 			defer st.Close()
 
-			ctx, cancel := signal.NotifyContext(c.Context(), os.Interrupt, syscall.SIGTERM)
-			defer cancel()
+			stats := serverstat.New(version, commit, nowSec)
 
-			errc := make(chan error, 2)
-			go func() { errc <- wire.NewServer(st, log.Printf).ListenAndServe(ctx, udpAddr) }()
-			go func() {
-				srv, err := httpsrv.New(httpsrv.Config{Addr: httpAddr}, st)
+			udpErr := make(chan error, 1)
+			go func() { udpErr <- wire.NewServer(st, log.Printf).ListenAndServe(ctx, udpAddr) }()
+
+			// httpErr stays nil when --http-port 0, so its select arm blocks
+			// forever and UDP keeps serving until ctx cancel.
+			var httpErr chan error
+			if httpPort > 0 {
+				srv, err := httpsrv.New(httpsrv.Config{
+					Bind: httpBind, Port: httpPort, AllowCIDR: httpAllowCIDR,
+				}, st) // *space.Store satisfies httpsrv.NodeCounter
 				if err != nil {
-					errc <- err
-					return
+					return err
 				}
-				errc <- srv.ListenAndServe(ctx)
-			}()
-			return <-errc
+				srv.SetStats(stats)
+				httpErr = make(chan error, 1)
+				go func() { httpErr <- srv.Run(ctx) }()
+			}
+			return awaitServeExit(ctx, udpErr, httpErr)
 		},
 	}
-	cmd.Flags().StringVar(&dbPath, "db", "porta.db", "SQLite database path")
 	cmd.Flags().StringVar(&udpAddr, "udp", ":6969", "node-facing UDP listen address")
-	cmd.Flags().StringVar(&httpAddr, "http", ":6970", "operator HTTP listen address")
+	// … the three http flags, unchanged from Task 1
 	return cmd
 }
 ```
 
-- [ ] **Step 4: Add the read verbs**
+- [x] **Step 4: Add the read verbs**
 
 ```go
 // internal/portacli/get.go
@@ -2311,7 +2409,7 @@ func logCmd() *cobra.Command {
 }
 ```
 
-- [ ] **Step 5: Add the write verb**
+- [x] **Step 5: Add the write verb**
 
 ```go
 // internal/portacli/put.go
@@ -2412,25 +2510,25 @@ func currentActor() string {
 
 Register all three in `root.go` alongside `serve`.
 
-- [ ] **Step 6: Run the gate**
+- [x] **Step 6: Run the gate**
 
 Run: `cd ~/workspace/porta && go test ./internal/portacli/ -run TestLoopbackGate -v`
 Expected: PASS.
 
-- [ ] **Step 7: Run everything and exercise the CLI by hand**
+- [x] **Step 7: Run everything and exercise the CLI by hand**
 
 ```bash
 cd ~/workspace/porta
 gofmt -l . && go build ./... && go test ./...
-rm -f /tmp/claude-1000/-home-david-workspace-tuvm/728b0719-a646-49f0-88c0-ddd9eeff8505/scratchpad/demo.db
-go run ./cmd/porta put c6-01 goal/name shipsbells --db /tmp/claude-1000/-home-david-workspace-tuvm/728b0719-a646-49f0-88c0-ddd9eeff8505/scratchpad/demo.db --reason "bring-up"
-go run ./cmd/porta get c6-01 --db /tmp/claude-1000/-home-david-workspace-tuvm/728b0719-a646-49f0-88c0-ddd9eeff8505/scratchpad/demo.db
-go run ./cmd/porta log c6-01 --db /tmp/claude-1000/-home-david-workspace-tuvm/728b0719-a646-49f0-88c0-ddd9eeff8505/scratchpad/demo.db
+rm -f $SCRATCH/demo.db
+go run ./cmd/porta put c6-01 goal/name shipsbells --db $SCRATCH/demo.db --reason "bring-up"
+go run ./cmd/porta get c6-01 --db $SCRATCH/demo.db
+go run ./cmd/porta log c6-01 --db $SCRATCH/demo.db
 ```
 
 Expected: `get` prints `goal/name  seq=1  "shipsbells"`; `log` prints one `→` row with your username as the actor and `bring-up` recorded.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add internal/portacli

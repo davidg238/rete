@@ -5,18 +5,12 @@ package portacli
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"log"
-	"net"
 
-	"github.com/davidg238/porta/internal/apisrv"
-	"github.com/davidg238/porta/internal/handler"
 	"github.com/davidg238/porta/internal/httpsrv"
-	"github.com/davidg238/porta/internal/mcpsrv"
 	"github.com/davidg238/porta/internal/serverstat"
-	"github.com/davidg238/porta/internal/tftp"
-	"github.com/davidg238/porta/internal/web"
+	"github.com/davidg238/porta/internal/space"
+	"github.com/davidg238/porta/internal/wire"
 	"github.com/spf13/cobra"
 )
 
@@ -38,48 +32,35 @@ func defaultAllowCIDR() []string {
 	}
 }
 
+// newServeCmd runs the gateway: the node-facing UDP space listener plus the
+// operator HTTP surface. The two are independent — a node keeps checking in
+// with --http-port 0, and the health endpoint stays up if the mesh is quiet.
 func newServeCmd() *cobra.Command {
-	var port, httpPort int
-	var httpBind string
+	var udpAddr, httpBind string
+	var httpPort int
 	var httpAllowCIDR []string
 	cmd := &cobra.Command{
 		Use:   "serve",
-		Short: "Run the porta gateway: UDP/TFTP listener + optional HTTP operator surface",
+		Short: "Run the porta gateway: UDP space listener + operator HTTP surface",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
-			st, err := openStore()
+			st, err := space.Open(dbPath, nowMs)
 			if err != nil {
 				return err
 			}
 			defer st.Close()
 
-			// UDP listener (preserves the existing serveUDPLoop; ctx
-			// cancels via conn.Close from a sidekick goroutine, and
-			// net.ErrClosed from ReadFrom = clean shutdown).
-			udpAddr := fmt.Sprintf(":%d", port)
-			udpConn, err := net.ListenPacket("udp", udpAddr)
-			if err != nil {
-				return err
-			}
-			defer udpConn.Close()
-
-			// Process-lifetime stats shared by the dispatcher (report outcomes),
-			// the UDP loop (per-transport packet volume), and the HTTP surface.
+			// Process-lifetime stats shared by the HTTP surface.
 			stats := serverstat.New(version, commit, nowSec)
 
-			disp := handler.New(st, nowSec)
-			disp.SetStats(stats)
-			tftpSrv := tftp.NewServer()
-			tftpSrv.SetDispatcher(disp)
-			log.Printf("porta: serving TFTP on udp %s (db=%s)", udpAddr, dbPath)
 			udpErr := make(chan error, 1)
-			go func() { udpErr <- serveUDPLoop(ctx, udpConn, tftpSrv, stats) }()
+			go func() { udpErr <- wire.NewServer(st, log.Printf).ListenAndServe(ctx, udpAddr) }()
+			log.Printf("porta: serving the space on udp %s (db=%s)", udpAddr, dbPath)
 
-			// HTTP listener (B4a, optional). When --http-port 0, httpErr
-			// stays nil so the select arm blocks forever — UDP keeps
-			// serving until ctx cancel. (A closed channel would fire
-			// the select immediately and exit the serve, which is the
-			// bug found in T5 review.)
+			// When --http-port 0, httpErr stays nil so the select arm blocks
+			// forever and UDP keeps serving until ctx cancel. (A closed
+			// channel would fire the select immediately and exit the serve —
+			// the bug found in T5 review.)
 			var httpErr chan error
 			if httpPort > 0 {
 				srv, err := httpsrv.New(httpsrv.Config{
@@ -91,9 +72,6 @@ func newServeCmd() *cobra.Command {
 					return err
 				}
 				srv.SetStats(stats)
-				web.New(st).WithStats(stats).Register(srv.Mux)
-				mcpsrv.New(st).Register(srv.Mux)
-				apisrv.New(st).WithStats(stats).Register(srv.Mux)
 				httpErr = make(chan error, 1)
 				go func() { httpErr <- srv.Run(ctx) }()
 				log.Printf("porta: serving HTTP on %s:%d", httpBind, httpPort)
@@ -102,7 +80,7 @@ func newServeCmd() *cobra.Command {
 			return awaitServeExit(ctx, udpErr, httpErr)
 		},
 	}
-	cmd.Flags().IntVar(&port, "port", 6969, "UDP/TFTP port")
+	cmd.Flags().StringVar(&udpAddr, "udp", ":6969", "node-facing UDP listen address")
 	cmd.Flags().IntVar(&httpPort, "http-port", 6970, "operator HTTP port (0 = disabled)")
 	cmd.Flags().StringVar(&httpBind, "http-bind", "0.0.0.0", "operator HTTP bind address")
 	cmd.Flags().StringSliceVar(&httpAllowCIDR, "http-allow-cidr",
@@ -111,60 +89,32 @@ func newServeCmd() *cobra.Command {
 	return cmd
 }
 
-// serveUDPLoop reads TFTP packets and writes the server's replies back to
-// the peer. Mirrors the pre-B4a serveUDP body, with two additions: a
-// sidekick goroutine that closes the conn when ctx fires, and clean-exit
-// recognition for the net.ErrClosed that results.
-func serveUDPLoop(ctx context.Context, conn net.PacketConn, srv *tftp.Server, stats *serverstat.Stats) error {
-	go func() {
-		<-ctx.Done()
-		conn.Close()
-	}()
-	buf := make([]byte, 2048)
-	for {
-		n, peer, err := conn.ReadFrom(buf)
-		if err != nil {
-			if errors.Is(err, net.ErrClosed) {
-				return nil
-			}
-			return err
-		}
-		// Tag inbound volume by transport: IPv4 source = WiFi, IPv6 = Thread
-		// (both arrive on the one dual-stack socket).
-		if stats != nil {
-			stats.Packet(serverstat.TransportOf(peer.String()), n)
-		}
-		pkt := make([]byte, n)
-		copy(pkt, buf[:n])
-		for _, reply := range srv.HandlePacketFrom(pkt, peer.String()) {
-			if _, err := conn.WriteTo(reply, peer); err != nil {
-				log.Printf("porta: WriteTo(%s): %v", peer, err)
-			}
-		}
-	}
-}
-
 // awaitServeExit blocks until a listener goroutine exits or ctx is cancelled.
+// It is transport-agnostic — two error channels, either of which may be nil.
 //
-//   - A listener error (udpErr or non-nil httpErr) propagates verbatim.
+//   - A listener error (non-nil udpErr or httpErr) propagates verbatim.
 //   - A clean HTTP exit (httpErr delivers nil) while UDP still runs falls
 //     through to wait on UDP.
 //   - On ctx cancel (SIGINT/SIGTERM) it DRAINS both channels first, so the
-//     UDP loop and the HTTP server's 5s graceful Shutdown complete before
-//     RunE returns and its deferred conn/store Close fire (#7). httpErr is
-//     nil in --http-port 0 mode; nil-channel select arms block forever and
-//     the nil guard skips draining it.
+//     listeners and the HTTP server's 5s graceful Shutdown complete before
+//     RunE returns and its deferred Close calls fire (#7). A nil channel's
+//     select arm blocks forever and the nil guard skips draining it.
 func awaitServeExit(ctx context.Context, udpErr, httpErr <-chan error) error {
 	select {
 	case err := <-udpErr:
 		return err
 	case err := <-httpErr:
 		if err == nil {
-			return <-udpErr
+			if udpErr != nil {
+				return <-udpErr
+			}
+			return nil
 		}
 		return err
 	case <-ctx.Done():
-		<-udpErr
+		if udpErr != nil {
+			<-udpErr
+		}
 		if httpErr != nil {
 			<-httpErr
 		}

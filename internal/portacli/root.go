@@ -1,6 +1,13 @@
 // Copyright (c) 2026 Ekorau LLC
 
 // Package portacli is the porta gateway's cobra command tree.
+//
+// The tree is serve, get, put and log. v1's verbs (scan, ping, device,
+// container, monitor, debug, profile) were deleted with the command queue they
+// wrote to; put and get are the general forms they become sugar over, since
+// verbs live at the CLI and nowhere else (design D2). The design record's §4.2
+// capability audit names where each v1 verb lands. Nothing was dropped
+// silently.
 package portacli
 
 import (
@@ -10,7 +17,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/davidg238/porta/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -25,6 +31,10 @@ var (
 
 func nowSec() int64 { return time.Now().Unix() }
 
+// nowMs is the store's clock. Everything in the space model is milliseconds
+// (design D4.2); nowSec survives only for serverstat, which predates it.
+func nowMs() int64 { return time.Now().UnixMilli() }
+
 // versionString is what `porta --version` prints and what the status surface
 // reports: the version, with the short commit appended when linked in.
 func versionString() string {
@@ -34,8 +44,6 @@ func versionString() string {
 	return version
 }
 
-func openStore() (*store.Store, error) { return store.Open(dbPath) }
-
 // NewRootCmd builds the porta command tree.
 func NewRootCmd() *cobra.Command {
 	root := &cobra.Command{
@@ -43,28 +51,23 @@ func NewRootCmd() *cobra.Command {
 		Short:   "porta — northbound gateway for nodus-style nodes",
 		Version: versionString(),
 	}
+	// --db is persistent so every verb reads the same store without each
+	// redeclaring the flag (which would shadow this one and diverge).
 	root.PersistentFlags().StringVar(&dbPath, "db", "porta.db", "SQLite database path")
-	root.PersistentFlags().StringVar(&serverFlag, "server", "",
-		"porta server base URL for write commands (default $PORTA_SERVER or http://localhost:6970)")
 	root.AddCommand(
 		newServeCmd(),
-		newScanCmd(),
-		newPingCmd(),
-		newDeviceCmd(),
-		newContainerCmd(),
+		newGetCmd(),
+		newPutCmd(),
 		newLogCmd(),
-		newMonitorCmd(),
-		newDebugCmd(),
-		newProfileCmd(),
 	)
 	return root
 }
 
 // Execute runs the porta CLI. The root context is cancelled on
-// SIGINT/SIGTERM so long-running subcommands (serve, monitor --follow)
-// can exit cleanly. Closes the gap from porta/porta#2 — until this
-// change, runMonitor's --follow cancel path was unreachable in
-// production because cmd.Context() was context.Background().
+// SIGINT/SIGTERM so long-running subcommands (serve) can exit cleanly.
+// Closes the gap from porta/porta#2 — until this change, the --follow cancel
+// path was unreachable in production because cmd.Context() was
+// context.Background().
 func Execute() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
