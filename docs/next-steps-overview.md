@@ -132,7 +132,7 @@ That is the gate. Everything below is roadmap.
 
 ### The four candidates, ranked
 
-**1. porta → channels. First, and not close. — DESIGNED 2026-08-01, PLANS 1-2 DONE, PLAN 3 (HARDWARE) NEXT.**
+**1. porta → channels. First, and not close. — CLOSED 2026-08-02, ALL THREE PLANS DONE, HARDWARE GATE GREEN 5/5.**
 The only one that *forecloses* the others. Debug-over-porta, OTA-over-porta and
 agent-facing-porta all ride on the protocol — demo any of them on the v1 command protocol
 and you rebuild the demo after the rewrite. #25 says it outright: "porta development gets a
@@ -151,10 +151,17 @@ Design 2026-08-01; plan 1 (porta side) and plan 2 (node side) are both built and
   `tuvm/tests/porta_sync_host.sh` — the nsl node against a real `porta serve` over UDP
   loopback, green on the first protocol run (`obs/health` reaches porta, `goal/name`
   converges to `obs/name`, `tel/log` exactly once).
-- **Plan 3 — the C6 hardware gate — is unwritten, and it is what closes the rung.** The
-  same three legs witnessed over a real Thread mesh, including a deliberate datagram
-  drop. Everything it needs is host-proven; what it adds is the radio, the C6's node id
-  and gateway address, and the drop.
+- **Plan 3 — the C6 hardware gate — closed the rung, green 5/5.**
+  `~/workspace/tuvm/tests/porta_sync_c6.sh` — the same three legs witnessed over a real
+  Thread mesh, including a deliberate post-commit ack drop, re-runnable on demand. Every
+  run is a cold re-flash: leg 3 `rows=13 distinct=13, 1..13`; leg 4 `rows=26 distinct=26,
+  1..26` across 4 swallowed acks. Hardware found what loopback could not: an unacked
+  node's `pending` queue grew without bound and OOM-panicked at tick 48 (~96 s) on a
+  128 KB heap, falsifying plan 2's N7 ("a miss costs latency and nothing else") — fixed
+  by bounding `pending` at 64 rows with a counted `#streamDropped`. `sys/panic` delivery
+  while the bridge is down remains undecided (porta#32). Design:
+  `~/workspace/tuvm/docs/design/2026-08-01-porta-space-sync-c6-gate-design.md`; plan:
+  `~/workspace/tuvm/docs/superpowers/plans/2026-08-01-porta-space-sync-c6-gate.md`.
 
 Deferred out of plan 2, each filed rather than assumed: the cursor and `bootId` live in
 RAM (NVS), the bridge holds the root space rather than a `goal`-write + `obs`-read pair

@@ -2040,6 +2040,72 @@ tool invocation against the wrong store looks exactly like a dead node.* That is
 same family as "rc=0 is not a physical effect": check what the instrument is pointed at
 before debugging the thing it is pointed away from.
 
+## The rung closes — 2026-08-02, porta space-sync plan 3 (the C6 hardware gate, green 5/5)
+
+**The rung is CLOSED.** `tests/porta_sync_c6.sh` ran `PortaBridgeNodeC6.nsl` on a real
+ESP32-C6 over a real Thread mesh against `porta serve` on gw85224-01, five consecutive
+clean runs, each a cold re-flash exercising cold-boot-at-cursor-0 full replay (porta#29).
+Every run: leg 3 `rows=13 distinct=13, 1..13`; leg 4 `rows=26 distinct=26, 1..26` across
+4 swallowed acks, `misses 0 → 5`. What the radio added over loopback is not recoverable
+from the code, so it is recorded here:
+
+- **The `seq <= hw` dedupe was witnessed, not reasoned about.** Leg 4's drop made the node
+  re-push rows porta had already applied, and porta discarded them by `seq <= hw` — the
+  same property plan 2 proved by construction on loopback, here observed actually firing
+  under a real ack loss.
+- **A 512 B batch is 5–6 6LoWPAN fragments over a 127 B 802.15.4 PHY**, so real loss is
+  expected on a mesh in a way it is not on a LAN. The gate asserts *no duplicates and no
+  gaps*, never `misses == 0` — a node's `misses` climbing is normal operation, not a fault.
+- **A gateway restart mid-stream is indistinguishable from loss to the node**, and the
+  high-water cursor survives it — the same idempotent-by-cursor property that removes the
+  need for a retransmit layer (design D1) also absorbs a dead gateway coming back.
+
+**N7 was wrong, and hardware is what proved it.** Plan 2's N7 held that "a miss costs
+latency and nothing else, which is the whole reason there is no retransmit layer." On the
+first C6 boot, with the gateway's :6969 still owned by v1 and every check-in missing, the
+node's unacked `PortaBridge` grew its `pending` queue without bound and OOM-panicked at
+tick 48 (~96 s) on a 128 KB heap — a miss also costs memory, and costs it unboundedly. No
+loopback run could have found this: loopback's gateway always answers, so `pending` is
+trimmed every tick and never grows. The fix bounds `pending` at 64 rows with oldest-first
+eviction and a counted, published `#streamDropped` (`nsl-tuvm/lib/kernel.nsl`, `79885aa`;
+test `nsl-tests/22_spacesync/05_pending_bound.nsl`, `75228d4`; node publish, `8250831`).
+The cost is accepted plainly: the bound trades an OOM death for a telemetry gap, and the
+gap is counted rather than silent.
+
+**`sys/panic` is not decided, and this rung does not decide it.** "Drop the oldest" is the
+wrong answer for a must-deliver path (RECORDS §4.3); that decision, and the adjacent case
+of a stream entry written while the bridge is down, belong together at porta#32.
+
+**The gate found two bugs in itself**, both worth keeping as durable operational
+knowledge because they are exactly the kind that produces a silently-wrong green:
+
+- A first run failed `leg 2: obs/build missing` with 45 minutes of uptime on a
+  "just-flashed" node — the gateway had started on a fresh db *before* flashing, so the
+  still-running pre-flash node repopulated it, and `obs/health` (rewritten every tick)
+  satisfied the wait while `obs/build` (written once per boot) never arrived. Fixed by
+  flashing first, then wiping the db and starting the gateway, and by waiting on
+  `obs/build` rather than `obs/health` — only the once-per-boot cell can prove *this* boot
+  pushed.
+- The swallowed-ack count in leg 4 was read cumulatively from an appended `serve.log`
+  (8 → 16 → 24 across runs), so a run could pass leg 4 on a *previous* run's drops even if
+  its own injector never fired. Fixed with a per-run delta and a truncated `serve.log`;
+  falsified end-to-end with `DROP_EVERY=100000` (`leg 4: gateway swallowed 0 acks this
+  run — the drop never fired`, exit 1) with a genuine ordinary-loss `misses 0 → 1` still
+  present, proving natural loss cannot masquerade as an injected drop. Commit `59c475b`.
+
+Five clean runs of the corrected gate are the claim (`docs/spikes/2026-08-02-c6-gate-run1.log`,
+`79f1c7f`); an earlier 5/5 against the pre-fix (cumulative) assertion is superseded and not
+counted, and one run of the definitive sequence was killed mid-leg by the harness and
+re-run clean — a flake was not rounded up to a pass.
+
+**Filed, not built:** the orphaned v1 LAN nodes at 192.168.0.240/.241 (porta#33) — no
+migration path from v1's JSON wire to v2's CBOR space-sync wire; and it is worse than "no
+gateway" (porta#34) — .241 sends a TFTP read request to :6969 once a second, forever, and
+porta rejects each one (decoded: opcode `0001`, filename `commands?id=7c9ebdd8f58c`, mode
+`octet`); and `PortaBridge>>awaitReply` consuming the first datagram to arrive, whatever
+it is, rather than checking the record tag (tuvm#108) — a narrowing loopback could not
+surface. All three filed as GitHub issues out of this close-out.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
