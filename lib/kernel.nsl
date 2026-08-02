@@ -1486,6 +1486,308 @@ class Kernel usingPlatform: platform = () (
       ^ self new setSocket: s out: o peerHost: ph peerPort: pp in: i )
   )
 
+  (* porta space-sync, plan 2 — the NODE half of the check-in exchange
+     (porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md §5/§6).
+
+     Two node-initiated CBOR datagrams over plain UDP, both idempotent:
+
+       PULL { id, cursor, bootId, hw }  ->  BATCH { hi, entries }
+       PUSH { id, bootId, entries }     ->  ACK   { hw }
+
+     where an entry is [ seq, path, kind, value ] and kind is 1 stream / 2 cell.
+     Either request may instead be answered ERR { msg }.
+
+     THERE IS NO RETRANSMIT LAYER, deliberately: the exchange is idempotent by
+     cursor in BOTH directions — a lost pull re-pulls the same range at the next
+     check-in, and a lost push is re-sent and deduped on the gateway's node-seq
+     high-water. Loss is absorbed by convergence, not by retransmission.
+
+     WHAT THIS HOLDS, and why each is here rather than elsewhere:
+       `space`  — the ROOT capability. porta writes goal/** and dbg/req, the node
+                  reports obs/** + tel/** + sys/**, and one object addressing both
+                  is simpler than two until the grant machinery (G5) can express
+                  the pair. Authority is enforced below, in `mayApply:`.
+       `cursor` — porta's OUT-sequence: the last seq this node has APPLIED. RAM
+                  only in this slice; cold boot = cursor 0 = full replay is the
+                  DESIGNED behaviour, and the cell scan bounds that replay by
+                  tree size rather than by history length.
+       `acked`  — the high-water the gateway has ACCEPTED from us, in the LOCAL
+                  space's seq (one counter per space per side). Cells newer than
+                  this are re-scanned every check-in; pending entries at or below
+                  it are done.
+       `pending`— captured stream entries not yet acked. A stream's value is
+                  killed on delivery, so unlike a cell it cannot be re-read later:
+                  capture is the only chance.
+
+     A crash of this job is a CONTAINED fault — porta sees a late check-in and
+     nothing worse. So nothing here may take the node down: every decode failure,
+     every unexpected tag and every out-of-authority path is a counted drop. *)
+  class PortaBridge = (
+    | socket space nodeId peerHost peerPort
+      cursor ::= 0. acked ::= 0. rejected ::= 0. misses ::= 0. dropped ::= 0.
+      pending ::= OrderedCollection new. |
+  ) (
+    setSocket: s space: sp id: anId peer: h port: p = (
+      socket:: s. space:: sp. nodeId:: anId. peerHost:: h. peerPort:: p. ^ self )
+
+    (* bootId rides the batch envelope, not every record — it is constant for
+       every entry in a check-in, and paying 3-9 bytes per entry for it would be
+       real money against a 512-byte batch. A source constant in this slice:
+       persisting a boot counter is NVS work, and porta stores this to order
+       observations across reboots, which a constant makes degenerate — honest
+       for a node that cannot yet count its own boots. *)
+    bootId = ( ^ 1 )
+    (* The caps are a RADIO constraint, not a preference: 6LoWPAN fragments above
+       ~102 B and a datagram survives only if every fragment does. porta rejects
+       a push that breaks either, so the trimming below is what keeps a node from
+       talking itself out of the fleet. *)
+    maxBatchBytes = ( ^ 512 )
+    maxValueBytes = ( ^ 256 )
+    maxRows = ( ^ 8 )
+    replyBudget = ( ^ 2000 )   (* ms to wait for one reply before scoring a miss *)
+
+    (* The pending queue is BOUNDED. Found on hardware: with the gateway
+       unreachable, applyAck: never runs and this queue is the only thing that
+       grows — the node OOMs and panics at about ninety seconds. A miss must cost
+       latency and bounded loss, never unbounded memory (plan 2's N7 said
+       otherwise; the bench corrected it).
+
+       64 rows is eight full pushes of backlog at maxRows = 8, which is a real
+       reconnection window, and at four smallish fields a row it is far from the
+       heap. Oldest-first eviction: for tel/** the newest entry is the one worth
+       keeping, and it leaves the survivors in ascending seq order, which the push
+       frame requires. sys/panic is marked must-deliver in RECORDS and needs a
+       different answer than "drop it" — that is a design question, not this cap.
+
+       Say the cost outright: oldest-first eviction MANUFACTURES A GAP at the
+       HEAD of the pushed seq series once the bound bites — CLAIMS.md's "no gaps"
+       is proven only for the runs where it never does. At one capture per tick
+       and the 2 s cadence, the bound bites after roughly 65 consecutive unacked
+       ticks, about 130 seconds of sustained disconnection. *)
+    maxPending = ( ^ 64 )
+
+    public cursor = ( ^ cursor )
+    public acked = ( ^ acked )
+    public rejected = ( ^ rejected )
+    public misses = ( ^ misses )
+    public dropped = ( ^ dropped )
+    public pendingSize = ( ^ pending size )
+    public pendingRows = ( ^ pending )
+
+    (* ---- outbound stream capture ------------------------------------------
+       A cell can be re-read at check-in time; a stream entry cannot — the
+       reactor kills the event on delivery. So each outbound stream path is
+       subscribed here and its writes are captured into `pending`, stamped with
+       `space stamp` so they share ONE ascending sequence with the cell writes.
+
+       The block body is a single self-send: a direct cross-class call written
+       inline in a block the reactor STORES does not resolve its outer context on
+       this VM (see NetBridge>>encodeFor:, which documents the same workaround
+       and the minimal repro behind it). *)
+    public subscribeStream: absolutePath = (
+      (space channel: absolutePath) whenever: '' do: [ :v | self capture: absolutePath value: v ].
+      ^ self )
+    capture: absolutePath value: v = (
+      pending add: (List with: space stamp with: absolutePath with: 1 with: v).
+      [ pending size > self maxPending ] whileTrue: [
+        pending removeFirst.
+        dropped:: dropped + 1 ].
+      ^ self )
+
+    (* ---- the pull half ---------------------------------------------------- *)
+    (* The cursor sent is the one already APPLIED, which is what makes "the
+       node's cursor passed seq N" better evidence of delivery than any
+       gateway-side delivered_at flag. *)
+    public pullFrame = (
+      ^ Cbor new encode: (Record tag: #pull
+          with: #id -> nodeId
+          with: #cursor -> cursor
+          with: #bootId -> self bootId
+          with: #hw -> acked) )
+
+    (* Apply one #batch; answer whether it WAS one. An #err reply, a malformed
+       datagram or anything else answers false and moves nothing.
+       `=` and never `==` on the tag: a decoded Symbol is not the image's
+       interned one, and `==` (identity) would silently never match. *)
+    public applyBatch: aBytes = (
+      | bad r entries i hi |
+      bad:: false.
+      r:: Cbor new decode: aBytes ifInvalid: [ :m | bad:: true. nil ].
+      bad ifTrue: [ ^ false ].
+      (outer rankOf: r) = 9 ifFalse: [ ^ false ].
+      (r tag = #batch) ifFalse: [ ^ false ].
+      entries:: r at: #entries ifAbsent: [ nil ].
+      (outer rankOf: entries) = 7 ifFalse: [ ^ false ].
+      i:: 1.
+      [ i <= entries size ] whileTrue: [
+        self applyEntry: (entries at: i).
+        i:: i + 1 ].
+      hi:: r at: #hi ifAbsent: [ cursor ].
+      (outer rankOf: hi) = 2 ifTrue: [ hi > cursor ifTrue: [ cursor:: hi ] ].
+      ^ true )
+
+    (* One inbound entry. EVERYTHING here is untrusted: a wrong shape, a wrong
+       kind or an out-of-authority path is counted and dropped — never applied,
+       never raised. A node that crashes on a malformed datagram is a node an
+       attacker can switch off. *)
+    applyEntry: row = (
+      | path kind value |
+      (outer rankOf: row) = 7 ifFalse: [ rejected:: rejected + 1. ^ self ].
+      row size = 4 ifFalse: [ rejected:: rejected + 1. ^ self ].
+      path::  row at: 2.
+      kind::  row at: 3.
+      value:: row at: 4.
+      (outer rankOf: path) = 4 ifFalse: [ rejected:: rejected + 1. ^ self ].
+      (self mayApply: path) ifFalse: [ rejected:: rejected + 1. ^ self ].
+      kind = 2 ifTrue: [ space put: path value: value. ^ self ].
+      kind = 1 ifTrue: [ space out: path value: value. ^ self ].
+      rejected:: rejected + 1.
+      ^ self )
+
+    (* porta's authority, enforced where it can be believed: goal/** and dbg/req,
+       and nothing else. An accepted write to obs/** would forge the node's own
+       report of what it observes, which is the one thing the convergence view
+       rests on. *)
+    mayApply: path = (
+      (path = 'dbg/req') ifTrue: [ ^ true ].
+      (path = 'goal') ifTrue: [ ^ true ].
+      ^ self path: path startsWith: 'goal/' )
+
+    (* No `startsWith:` exists in this dialect — the same grep-confirmed finding
+       Space>>isSysPath: and SupervisedJob>>addresses: already record. Byte
+       compare over size/at:. *)
+    path: p startsWith: prefix = (
+      | n i |
+      n:: prefix size.
+      p size < n ifTrue: [ ^ false ].
+      i:: 1.
+      [ i <= n ] whileTrue: [
+        (p at: i) = (prefix at: i) ifFalse: [ ^ false ].
+        i:: i + 1 ].
+      ^ true )
+
+    (* ---- the push half ---------------------------------------------------- *)
+    (* Answer the encoded #push, or nil when there is nothing to send. Cells come
+       from the scan (obs/** newer than `acked`), stream entries from `pending`;
+       both carry seqs from the ONE space counter, so merging them ascending is a
+       sort and not a reconciliation.
+
+       Then TRIM FROM THE TAIL until the datagram fits: entries dropped here are
+       not lost, they ride the next check-in — whereas an oversize datagram is
+       lost on the mesh, which is strictly worse. *)
+    public pushFrame = (
+      | rows bytes |
+      rows:: self collectOutbound.
+      rows isEmpty ifTrue: [ ^ nil ].
+      bytes:: self encodePush: rows.
+      [ bytes byteSize > self maxBatchBytes and: [ rows size > 1 ] ] whileTrue: [
+        rows removeLast.
+        bytes:: self encodePush: rows ].
+      bytes byteSize > self maxBatchBytes ifTrue: [ ^ nil ].
+      ^ bytes )
+
+    encodePush: rows = (
+      ^ Cbor new encode: (Record tag: #push
+          with: #id -> nodeId
+          with: #bootId -> self bootId
+          with: #entries -> (List fromCollection: rows)) )
+
+    collectOutbound = (
+      | rows cells i r |
+      rows:: OrderedCollection new.
+      i:: 1.
+      [ i <= pending size ] whileTrue: [ rows add: (pending at: i). i:: i + 1 ].
+      cells:: (space channel: 'obs') changedSince: acked max: self maxRows.
+      i:: 1.
+      [ i <= cells size ] whileTrue: [
+        r:: cells at: i.
+        (self valueFits: (r at: 3))
+          ifTrue: [ rows add: (List with: (r at: 2) with: (r at: 1) with: 2 with: (r at: 3)) ]
+          ifFalse: [ rejected:: rejected + 1 ].
+        i:: i + 1 ].
+      ^ self sortedBySeq: rows )
+
+    (* An oversize value is rejected by porta for the WHOLE push, so one bad cell
+       would stall every good one behind it. Drop it here, count it, keep going. *)
+    (* `byteSize`, not `size`: an immutable Bytes has no `size` — the read
+       protocol is byteSize/u8At:. *)
+    valueFits: v = ( ^ (Cbor new encode: v) byteSize <= self maxValueBytes )
+
+    sortedBySeq: rows = (
+      | i j cur |
+      i:: 2.
+      [ i <= rows size ] whileTrue: [
+        cur:: rows at: i.
+        j:: i - 1.
+        [ j >= 1 and: [ ((rows at: j) at: 1) > (cur at: 1) ] ] whileTrue: [
+          rows at: j + 1 put: (rows at: j).
+          j:: j - 1 ].
+        rows at: j + 1 put: cur.
+        i:: i + 1 ].
+      ^ rows )
+
+    (* Apply one #ack. `hw` is what the gateway ACCEPTED, so pending entries at or
+       below it are done and cells at or below it need not be re-scanned. A
+       trimmed push acks LOWER than we offered — which is correct, and is why the
+       watermark is taken from the reply and never from what we sent. *)
+    public applyAck: aBytes = (
+      | bad r hw keep i row |
+      bad:: false.
+      r:: Cbor new decode: aBytes ifInvalid: [ :m | bad:: true. nil ].
+      bad ifTrue: [ ^ false ].
+      (outer rankOf: r) = 9 ifFalse: [ ^ false ].
+      (r tag = #ack) ifFalse: [ ^ false ].
+      hw:: r at: #hw ifAbsent: [ nil ].
+      (outer rankOf: hw) = 2 ifFalse: [ ^ false ].
+      hw > acked ifTrue: [ acked:: hw ].
+      keep:: OrderedCollection new.
+      i:: 1.
+      [ i <= pending size ] whileTrue: [
+        row:: pending at: i.
+        (row at: 1) > acked ifTrue: [ keep add: row ].
+        i:: i + 1 ].
+      pending:: keep.
+      ^ true )
+
+    (* ---- one check-in ----------------------------------------------------- *)
+    (* PULL, apply, PUSH, ack. Each leg waits a bounded time and then GIVES UP,
+       counting a miss: a node that blocks forever on a silent gateway is a node
+       that has stopped doing its actual job. The next check-in re-pulls the same
+       range and re-pushes the same entries, so a miss costs latency and nothing
+       else — which is the whole reason there is no retransmit layer. *)
+    public checkIn = (
+      | reply |
+      socket == nil ifTrue: [ ^ self ].
+      socket sendTo: peerHost port: peerPort data: self pullFrame.
+      reply:: self awaitReply.
+      reply == nil
+        ifTrue: [ misses:: misses + 1 ]
+        ifFalse: [ self applyBatch: reply ].
+      ^ self pushOnce )
+
+    pushOnce = (
+      | frame reply |
+      frame:: self pushFrame.
+      frame == nil ifTrue: [ ^ self ].
+      socket sendTo: peerHost port: peerPort data: frame.
+      reply:: self awaitReply.
+      reply == nil
+        ifTrue: [ misses:: misses + 1 ]
+        ifFalse: [ self applyAck: reply ].
+      ^ self )
+
+    awaitReply = (
+      | deadline dg |
+      deadline:: platform monotonicMillis + self replyBudget.
+      [ platform monotonicMillis < deadline ] whileTrue: [
+        dg:: socket receive.
+        dg == nil ifFalse: [ ^ dg data ] ].
+      ^ nil )
+  ) : (
+    public socket: s space: sp id: anId peer: h port: p = (
+      ^ self new setSocket: s space: sp id: anId peer: h port: p )
+  )
+
   serialOn: aPort = ( ^ Serial onPort: aPort )
   netOn: aPort = ( ^ Net onPort: aPort )
 
@@ -1605,6 +1907,46 @@ class Kernel usingPlatform: platform = () (
        matters. Distinct selectors — arity is part of the name, no collision. *)
     public peek = ( ^ self peek: '' ifAbsent: [ nil ] )
     public peek: rel = ( ^ self peek: rel ifAbsent: [ nil ] )
+    (* ---- porta space-sync (plan 2): the cell-replication query ---------------
+       Answer every CELL at or under this capability's root whose last write is
+       newer than `cursor`, OLDEST FIRST, at most `n` of them — each row a
+       3-element algebra List {absolutePath, seq, value}.
+
+       Confinement is enforced the way every other verb here enforces it: the
+       scan prefix IS `root`, resolved before the prim is reached, so a
+       capability can only ever be told about names it can already address.
+       Segment alignment comes from the C side, matching the rule `resolve:`
+       obeys for whole paths — a capability rooted at `obs` never matches
+       `obscure`.
+
+       CELLS ONLY. A stream's seq advances on every write, but its value is
+       killed on delivery (`space_dequeue`), so a stream row would carry a
+       stale-or-nil value under a fresh seq. Streams reach the wire by reaction
+       capture instead (`PortaBridge>>subscribeStream:`).
+
+       ASCENDING is load-bearing, not tidiness: a caller sends a PREFIX of this
+       list and moves its cursor to the last row it sent, so any other order
+       strands whatever it skipped. `n` is how a caller keeps a batch inside the
+       radio's datagram cap.
+
+       Paths are ABSOLUTE (space-relative), not root-relative — they are what
+       goes on the wire, and the protocol stores them node-relative with the node
+       id beside them, never re-prefixed per capability. *)
+    public changedSince: cursor max: n = (
+      | raw rows i |
+      raw:: platform spaceChangedSince: cursor under: root max: n.
+      rows:: OrderedCollection new.
+      i:: 1.
+      [ i <= raw basicSize ] whileTrue: [
+        rows add: (self rowOf: (raw basicAt: i)).
+        i:: i + 1 ].
+      ^ rows )
+    (* The prim answers a bare `indexable_new` backing store (class-less vtable),
+       exactly as `spaceDequeue` does, so it is consumed ONLY via the shape-gated
+       basicAt:/basicSize and never escapes as itself — `Space>>drain`'s rule. *)
+    rowOf: raw = (
+      ^ List with: (raw basicAt: 1) with: (raw basicAt: 2) with: (raw basicAt: 3) )
+
     public whenever: rel do: aBlock = (
       platform spaceRegister: (self resolve: rel) block: aBlock owner: self.
       ^ self )
@@ -1660,6 +2002,21 @@ class Kernel usingPlatform: platform = () (
           cond == nil ifFalse: [ self postCrash: cond channel: ch ].
           i:: i + 1 ] ].
       ^ self )
+
+    (* porta space-sync (plan 2): the space's ONE monotonic counter (design D5).
+       `seq` reads it; `stamp` bumps it and answers the new value.
+
+       On Space and not on Channel because the counter is space-GLOBAL — an
+       attenuated capability has no narrower counter to read, so offering it one
+       would be a lie about the scope.
+
+       `stamp` exists for captured stream entries: a stream's value is not
+       retained, so `PortaBridge` captures it in a `whenever:` reaction, and two
+       captures with no intervening write would share a seq if it merely READ the
+       counter. The gateway drops `seq <= high-water` as a duplicate, so that is
+       silent loss rather than a repeated delivery. *)
+    public seq = ( ^ platform spaceSeq )
+    public stamp = ( ^ platform spaceStamp )
 
     (* A contained crash posts a first-class crash record on sys/crash —
        EXCEPT a crash raised while firing a sys/-rooted reaction (a
@@ -2571,6 +2928,15 @@ class Kernel usingPlatform: platform = () (
   public crashRecordText: aText = ( ^ Record tag: #error with: #text -> aText )
   public ByteArray         = ( ^ ByteArray )
   public NetBridge         = ( ^ NetBridge )
+  (* porta space-sync (plan 2). Answers the CLASS, not an instance — `platform
+     PortaBridge socket:space:id:peer:port:` must reach the class-side
+     constructor, and sending an instance-side selector to a class object
+     silently NEWs the class and drops the message (the `Cbor new` note above).
+     THE NODE MUST HOLD THE ONE INSTANCE IT GETS: the cursor, the ack high-water
+     and the pending capture queue all live on it, so re-fetching this accessor
+     would silently start a second, empty bridge — the `platform timers` lesson,
+     which cost a 9h23m run and every bell in it. *)
+  public PortaBridge       = ( ^ PortaBridge )
   public ReadStream        = ( ^ ReadStream )
   public WriteStream       = ( ^ WriteStream )
   (* Stateless facade (Milestone C Task 2): the tuple-space substrate is the
