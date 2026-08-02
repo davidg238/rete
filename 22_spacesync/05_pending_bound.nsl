@@ -12,11 +12,16 @@ threw away telemetry indistinguishable from one that had none to send.
 Oldest-first, because for tel/** the newest entry is the one worth keeping — and it
 keeps the surviving rows in ascending seq order, which the push frame requires.
 
+The exact invariant is `dropped + pendingSize == n` — every write is either kept or
+counted, never both and never neither — so the assertions below check EQUALITY
+(`pendingSize == cap`, `dropped == n - cap`), not the looser `dropped >= (n - cap)`
+that would still pass if some writes vanished uncounted.
+
 socket: nil is the whole test rig: no send, no receive, so no ack, forever.
 expect:
 pending starts 0
-pending bounded true
-dropped grew true
+pending size exact true
+dropped exact true
 newest kept true
 oldest evicted true
 *)
@@ -41,8 +46,8 @@ class PendingBound packageUsing: manifest = () (
     n:: cap * 4.
     1 to: n do: [ :i | space out: 'tel/log' value: i. space drain ].
 
-    ('pending bounded ' , (bridge pendingSize <= cap) printString) out.
-    ('dropped grew ' , (bridge dropped >= (n - cap)) printString) out.
+    ('pending size exact ' , (bridge pendingSize = cap) printString) out.
+    ('dropped exact ' , (bridge dropped = (n - cap)) printString) out.
 
     (* The newest write must have survived, and the very first must not have. Read
        the queue through the push frame the bridge would actually send: rows carry
