@@ -1927,6 +1927,225 @@ went in. The tell was in the numbers — `dram0` well under the known-good **98.
 102 kB` against 74 kB, panel `heap 18/64K` against `18/20K`. Check a build against the recorded
 good figures BEFORE flashing, not after it misbehaves.
 
+## shipsBellsV3 on the C6 — the timebase closes, the striker opens (2026-07-31/08-01)
+
+**The clock half is done and witnessed.** A DS3231 on the C6's i2c0 is read, corrected over
+Thread from a chrony on gw85224-01, and read back at **skew 0** — `ThreadNtpNode.nsl`, commits
+0fb9a21/7787f88 (tuvm), 8eefae4 (nsl-tuvm), 3cc505b (nsl-tests). #100 has the transcript.
+The part was **10h16m48s slow**, and the number that made that legible is that the skew was
+*stable across two runs*: a fixed offset is a bad seed, an accumulating one would have been
+drift. `WallClockNode`'s own comment had predicted exactly this failure of a constant seed.
+
+**One prim cost SIX edit sites, not the three the seam's shape suggests** — `prim_ids.h`, a
+*second parallel enum* inside `dispatch.c`, `PRIM_NAMES`, the parity guard's `== PRIM_pf_…`
+comparison, `platform.c` (case + host leaf + extern), and the `kernel.nsl` accessor without
+which nsl cannot reach it at all. Two of those were missed on the first build and **both were
+caught at compile time by `prim_names_enum_parity_check`**, whose negative-sized-array trick
+and whose comment ("ADVANCE THIS to the new last id") did precisely the job they exist for.
+This is the counted-not-computed discipline paying for itself; do not soften it.
+
+**A guard that names the wrong dependency fails in both directions.** `ntp_target_sync` was
+gated on `CONFIG_WIFI` when what it needs is SNTP. That left the WROOM-32 *unbuildable* (#104:
+`CONFIG_WIFI=y`, no `CONFIG_SNTP`, undefined reference to `sntp_simple`) **and** left the C6 —
+which has a perfectly good IPv6 network and no WiFi — holding the `-1` stub. Gating on the real
+dependency fixed both at once, verified by rebuilding the WROOM-32 from the issue's own repro.
+The generalisable half: **gate on the thing you call, not on the reason you thought you'd have
+it.**
+
+**FTD fits, and the reason to choose it is not room.** +8 KB SRAM over MTD on the C6, with the
+VM's whole 128 KB arena already inside that figure (`oevm_heap_store` is a static array, not a
+runtime malloc). The mesh reports `D=1` and promoted the node to **Router**. The decision is a
+role decision that splits along the two product versions: FTD for the mains-powered one that
+never moves, MTD/SED for §9's battery version where not keeping the radio up is the point.
+
+**The striker half opened, and it bites.** §12's decision gate was reached — the doorbell chime
+sounds like a doorbell and is out, replaced by a telephone gong and a uxcell XRN-0530 (#102).
+§11.2's ladder was aimed too high: **10 ms throws solidly, 5 ms fails**, so the minimum clean
+pulse is *below* the design's floor. Single shots per rung, so a bracket rather than a
+threshold.
+
+**The hazard, and the lesson worth carrying past this rung: a declared GPIO output is OFF only
+while something is actively driving it that way.** The `gpioout` seam configured the strike pin
+inside `main()` — hundreds of milliseconds after reset, and *not at all* during esptool's
+download window, which is **seconds**. The coil was energised throughout. Moving configuration
+to `SYS_INIT(PRE_KERNEL_1, 50)` shrinks the firmware-side window and **cannot close it**; only a
+pull-down at the transistor makes the off-state a property of the circuit. The design's own 12 V
+schematic omits that resistor, and §11's instruction to verify a pull-down refers to a
+*different* candidate driver that has one — corrected in the design record at §17.3.
+
+**Still not witnessed:** a **~1 s energisation at boot** (#105) whose cause is unknown — the pin
+appears to be actively *driven* high, since a 10 kΩ base pull-down is fitted and measures ~0 V
+through reset. The localising test (drain node, coil disconnected, watched across a full flash
+cycle) has not been run. Deprioritised behind a piezo buzzer, and **blocking before any coil is
+reconnected**.
+
+**Process note.** A suite run leaves the tracked `src/solidified_image.c`/`.stmap` fixture dirty
+(#106) — 16,301 lines that a `git add -A` would have committed into the fixture. `run.sh`
+defends against this with an EXIT trap; the nsl runners do not. Stage file-by-file until they do.
+
+## The node speaks the new protocol — 2026-08-02, porta space-sync plan 2 (host-green)
+
+**Two independently written implementations of one wire agreed on the first protocol
+run.** `PortaBridgeNode.nsl` checks in against a real `porta serve` over UDP loopback:
+`obs/health` reaches porta's cell tree, `goal/name` converges to `obs/name`, and every
+`tel/log` entry arrives exactly once (`tuvm/tests/porta_sync_host.sh`). No wire fixes
+were needed, and the reason is that plan 1 golden-tested the Go codec against *this
+VM's own CBOR* rather than against the spec — the second implementation was written to
+the bytes, not to the prose. **The rung is NOT closed:** the gate is the C6 over a real
+Thread mesh, including a deliberate datagram drop, and that is plan 3.
+
+**The VM change is small and the reason it is small is rung 9.** One monotonic counter
+per space, one `last_seq` per channel, three prims (138–140), one nsl verb. Cells were
+already a value that outlives the job that wrote it; replication needed only a number
+on top of them. Design D5 settled ONE counter per space, not one per path, and the
+forcing argument is that a **scalar cursor cannot address a per-path sequence** — a
+per-path seq makes a cursor a vector over every name in the space.
+
+**The scan answers cells only, and the asymmetry is the interesting part.** A stream's
+`seq` advances on every write like a cell's, but `space_dequeue` kills the event on
+delivery, so there is nothing left to send by the time a check-in comes round. Cells are
+re-readable and therefore *pollable*; streams are not, and must be **captured as they
+are written**. That single fact produced three consequences: the bridge subscribes each
+outbound stream path with `whenever:`; captures are stamped with a **bump**
+(`spaceStamp`) rather than a read, because two captures with no intervening write would
+otherwise share a seq and the gateway drops `seq <= high-water` as a duplicate — *silent
+loss, not a repeated delivery*; and a stream entry written while the bridge is down is
+gone, which is honest for `tel/**` (lossy by policy) and **not** honest for `sys/panic`
+(must-deliver). Filed, not papered over.
+
+**Ascending order is a correctness property, not tidiness.** The bridge sends a prefix
+of the scan and moves its cursor to the last entry it sent; any other order strands
+whatever it skipped. The same rule makes tail-trimming a batch to 512 B safe — what is
+dropped rides the next check-in — and it is why the ack watermark is taken from the
+gateway's reply and never from what was sent.
+
+**Where authority is enforced is a design decision, and it belongs on the node.** porta
+may write `goal/**` and `dbg/req`. An inbound entry anywhere else is counted and
+dropped — never applied, never raised — because an accepted write to `obs/**` would let
+the network *forge the node's own report of what it observes*, which is the one thing
+the whole convergence view rests on. A node that crashes on a malformed datagram is a
+node an attacker can switch off, so nothing on this path raises.
+
+**Two old lessons paid out again, unprompted.** `prim_names_enum_parity_check` caught
+nothing this time because the six edit sites were followed deliberately — the previous
+rung's cost is what made that cheap. And the `platform timers` freshness trap is
+restated on the `PortaBridge` accessor: the cursor, the ack watermark and the pending
+queue all live on the instance, so a node that re-fetches the accessor silently starts a
+second, empty bridge.
+
+**One process note, and it is embarrassing in the useful way.** The interop gate's first
+failure was not a protocol bug — it was `porta get` called without `--db`, reading an
+empty default database while the real one filled up correctly two feet away. *A green
+tool invocation against the wrong store looks exactly like a dead node.* That is the
+same family as "rc=0 is not a physical effect": check what the instrument is pointed at
+before debugging the thing it is pointed away from.
+
+## The rung closes — 2026-08-02, porta space-sync plan 3 (the C6 hardware gate, green 5/5)
+
+**The rung is CLOSED.** `tests/porta_sync_c6.sh` ran `PortaBridgeNodeC6.nsl` on a real
+ESP32-C6 over a real Thread mesh against `porta serve` on gw85224-01, five consecutive
+clean runs, each a cold re-flash exercising cold-boot-at-cursor-0 full replay (porta#29).
+Every run: leg 3 `rows=13 distinct=13, 1..13`; leg 4 `rows=26 distinct=26, 1..26` across
+4 swallowed acks, `misses 0 → 5`. What the radio added over loopback is not recoverable
+from the code, so it is recorded here:
+
+- **The `seq <= hw` dedupe fired, but this 5/5 asserted its effect, not the dedupe
+  itself — corrected below.** Leg 4's drop made the node re-push rows porta had already
+  applied; `assert_exactly_once` then saw no duplicate in the log, which is consistent
+  with the dedupe firing but *equally* consistent with the node never having re-pushed at
+  all (`Ingest` in `porta/internal/space/store.go` skipped those rows silently — nothing
+  observed the skip). The fix-wave that closed the review (2026-08-02, same day) makes
+  the skip count a return value of `Ingest`, logs it from `handlePush` only when it is
+  nonzero, and leg 4 now takes a per-run delta over that log line
+  (`tests/porta_sync_c6.sh`, `gw_skips`) and fails if it never moves — the same shape as
+  `gw_drops` for swallowed acks. That change lands `go test ./...` green
+  (`TestReplayedPushLogsSkipCount`, `TestIngestDedupesOnHighWater` now asserts the skip
+  count too), **and it has now been re-run on hardware: 5/5 clean with the corrected
+  gate, every run logging `gateway logged 4 duplicate-skip line(s) this run`.** So the
+  dedupe is witnessed rather than inferred — the node re-pushed rows porta had already
+  applied, and porta was observed discarding them. The earlier 5/5 (pre-fix-wave) stands
+  only for the properties it actually asserted: no duplicates, no gaps, `misses` moved.
+- **A 512 B batch is 5–6 6LoWPAN fragments over a 127 B 802.15.4 PHY**, so real loss is
+  expected on a mesh in a way it is not on a LAN. The gate asserts *no duplicates and no
+  gaps*, never `misses == 0` — a node's `misses` climbing is normal operation, not a fault.
+- **A gateway restart mid-stream is indistinguishable from loss to the node**, and the
+  high-water cursor survives it — the same idempotent-by-cursor property that removes the
+  need for a retransmit layer (design D1) also absorbs a dead gateway coming back.
+
+**N7 was wrong, and hardware is what proved it.** Plan 2's N7 held that "a miss costs
+latency and nothing else, which is the whole reason there is no retransmit layer." On the
+first C6 boot, with the gateway's :6969 still owned by v1 and every check-in missing, the
+node's unacked `PortaBridge` grew its `pending` queue without bound and OOM-panicked at
+tick 48 (~96 s) on a 128 KB heap — a miss also costs memory, and costs it unboundedly. No
+loopback run could have found this: loopback's gateway always answers, so `pending` is
+trimmed every tick and never grows. The fix bounds `pending` at 64 rows with oldest-first
+eviction and a counted, published `#streamDropped` (`nsl-tuvm/lib/kernel.nsl`, `79885aa`;
+test `nsl-tests/22_spacesync/05_pending_bound.nsl`, `75228d4`; node publish, `8250831`).
+The cost is accepted plainly: the bound trades an OOM death for a telemetry gap, and the
+gap is counted rather than silent.
+
+**`sys/panic` is not decided, and this rung does not decide it.** "Drop the oldest" is the
+wrong answer for a must-deliver path (RECORDS §4.3); that decision, and the adjacent case
+of a stream entry written while the bridge is down, belong together at porta#32.
+
+**The gate found two bugs in itself**, both worth keeping as durable operational
+knowledge because they are exactly the kind that produces a silently-wrong green:
+
+- A first run failed `leg 2: obs/build missing` with 45 minutes of uptime on a
+  "just-flashed" node — the gateway had started on a fresh db *before* flashing, so the
+  still-running pre-flash node repopulated it, and `obs/health` (rewritten every tick)
+  satisfied the wait while `obs/build` (written once per boot) never arrived. Fixed by
+  flashing first, then wiping the db and starting the gateway, and by waiting on
+  `obs/build` rather than `obs/health` — only the once-per-boot cell can prove *this* boot
+  pushed.
+- The swallowed-ack count in leg 4 was read cumulatively from an appended `serve.log`
+  (8 → 16 → 24 across runs), so a run could pass leg 4 on a *previous* run's drops even if
+  its own injector never fired. Fixed with a per-run delta and a truncated `serve.log`;
+  falsified end-to-end with `DROP_EVERY=100000` (`leg 4: gateway swallowed 0 acks this
+  run — the drop never fired`, exit 1) with a genuine ordinary-loss `misses 0 → 1` still
+  present, proving natural loss cannot masquerade as an injected drop. Commit `59c475b`.
+
+Five clean runs of the corrected gate are the claim (`docs/spikes/2026-08-02-c6-gate-run1.log`,
+`79f1c7f`); an earlier 5/5 against the pre-fix (cumulative) assertion is superseded and not
+counted, and one run of the definitive sequence was killed mid-leg by the harness and
+re-run clean — a flake was not rounded up to a pass.
+
+**Filed, not built:** the orphaned v1 LAN nodes at 192.168.0.240/.241 (porta#33) — no
+migration path from v1's JSON wire to v2's CBOR space-sync wire; and it is worse than "no
+gateway" (porta#34) — .241 sends a TFTP read request to :6969 once a second, forever, and
+porta rejects each one (decoded: opcode `0001`, filename `commands?id=7c9ebdd8f58c`, mode
+`octet`); and `PortaBridge>>awaitReply` consuming the first datagram to arrive, whatever
+it is, rather than checking the record tag (tuvm#108) — a narrowing loopback could not
+surface. All three filed as GitHub issues out of this close-out.
+
+**A whole-branch review fix-wave, same day, before merge.** Beyond the dedupe-evidence
+gap above, the review found two more gaps in the gate script itself. All were applied,
+verified on the host (`go test ./...` green, `tests/porta_sync_host.sh` still prints
+`PORTA SYNC OK`, `nsl-tests/22_spacesync/05_pending_bound.nsl` still passes) **and then
+re-run on hardware, 5/5 clean**:
+- `MISSES_BEFORE` was sampled *before* the deliberate gateway restart in leg 4, so the
+  restart's own 4–6 s outage (against a 2 s cadence) scored a miss regardless of what the
+  injector did — the team's own falsification run showed `misses 0 → 1` with zero acks
+  swallowed. Now sampled after `gw_serve_start` returns, excluding the restart's own miss
+  from the delta.
+- Contiguity alone does not pin the start of the tick series: `porta log --limit N`
+  truncates from the OLDEST end, and `PortaBridge`'s `maxPending` eviction (also
+  oldest-first) produces the identical shape under a long pre-connection outage — both
+  leave a contiguous tail that `assert_exactly_once` would have passed. Both scripts now
+  assert `first == 1`; the C6 gate's `--limit` is raised to 5000 for headroom, and it now
+  also asserts `obs/health` reports `#streamDropped: 0` during legs 3 and 4 — the node-side
+  half of the same property.
+- Minors: `nsl-tuvm/lib/kernel.nsl`'s `maxPending` comment now states outright that
+  oldest-first eviction manufactures a gap at the head of the series once the bound bites
+  (roughly 65 unacked ticks, ~130 s, at the 2 s cadence); `05_pending_bound.nsl` tightened
+  to the exact invariant `dropped + pendingSize == n`; `PortaBridgeNodeC6.nsl`'s header
+  corrected to four differences (the `dropped` console field) and carries the
+  `chip`/`sdk`/`image`/`builtAt` provenance comment now, matching the host file; `porta`'s
+  `SetDropAckEvery` documents `s.acks` as fleet-wide; a `dropHarness(t, 0)` test covers the
+  never-armed default; `porta_c6_console.py --reset` (unused, and not the flashing
+  interface on this board) is deleted; `DO_FLASH=0` now skips the db wipe and the
+  `PORTA NODE READY` wait, both of which assumed a fresh boot only a flash guarantees.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),

@@ -353,4 +353,32 @@
    same as ntpSyncTz:'s own nil); otherwise the SMI yyyymmdd.
    Counted (not computed): the 137th PRIM_NAMES entry. */
 #define PRIM_pf_ntpDate           137
+
+/* porta space-sync, plan 2 (design D5): the space-sync seam — the piece the
+   node's PortaBridge job replicates its space with.
+     spaceSeq   -> SMI, the space's ONE monotonic counter (0 before any write).
+     spaceStamp -> SMI, that counter BUMPED. The bridge stamps a CAPTURED stream
+                   entry with it. A stream's value is killed on delivery, so it
+                   is captured in a `whenever:` reaction — and reading the
+                   counter instead of bumping it would let two captures with no
+                   intervening write share one seq, which the gateway drops as a
+                   duplicate. That is silent LOSS, not a repeated delivery.
+     spaceChangedSince: cursor under: prefix max: n
+                -> a raw indexable of up to n 3-slot indexables
+                   {pathString, seqSMI, value}, ASCENDING by seq; an empty
+                   indexable (not nil) when nothing changed, so a caller loops
+                   over basicSize without a special case.
+                   CELLS ONLY: a stream's last_seq advances on every post but its
+                   value is not retained, so a stream row would carry a
+                   stale-or-nil value under a fresh seq.
+                   The prefix is SEGMENT-ALIGNED ('obs' never matches 'obscure')
+                   and '' is the root; confinement is resolved in nsl before it
+                   arrives here, exactly as checkPath: confines the write verbs.
+                   Does NOT intern (space_take's rule).
+   Appended after ntpDate; no pre-existing id shifts. 138-140 were arrived at by
+   COUNTING PRIM_NAMES (137 entries before this append), not by 137+1 arithmetic,
+   per the standing lesson above. */
+#define PRIM_pf_spaceSeq          138
+#define PRIM_pf_spaceStamp        139
+#define PRIM_pf_spaceChangedSince 140
 #endif /* OEVM_PRIM_IDS_H */

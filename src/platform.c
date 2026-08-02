@@ -854,6 +854,70 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = TAG_SMI((intptr_t)space_overruns((const char *)p->bytes, p->length));
         return 1;
     }
+    case PRIM_pf_spaceSeq: {
+        /* porta space-sync — `platform spaceSeq` -> the space's ONE monotonic
+           counter (design D5). No args, no allocation. */
+        *out = TAG_SMI((intptr_t)space_seq());
+        return 1;
+    }
+    case PRIM_pf_spaceStamp: {
+        /* porta space-sync — `platform spaceStamp` -> that counter, BUMPED.
+           See prim_ids.h: reading instead of bumping would let two captured
+           stream entries share a seq, which the gateway drops as a duplicate. */
+        *out = TAG_SMI((intptr_t)space_stamp());
+        return 1;
+    }
+    case PRIM_pf_spaceChangedSince: {
+        /* porta space-sync — `platform spaceChangedSince: cursor under: prefix
+           max: n`. args[0] = cursor SMI, args[1] = prefix String, args[2] = max
+           SMI. Answers a raw indexable of 3-slot indexables
+           {pathString, seqSMI, value}, ascending by seq — empty, never nil, so
+           the nsl side loops over basicSize with no special case.
+
+           GC-hazard discipline (space_dequeue's, and for the same reason — this
+           collector is PRECISE, and every indexable_new/space_make_string_pub
+           below can collect): the OUTER array is allocated first and pushed as a
+           temp root, and each row is stored INTO it before that row's own path
+           String is allocated. Nothing heap-shaped is ever held only in a C
+           local across an allocation. The cell values need no pinning — the
+           channel table roots them via space_gc_trace, which is the whole reason
+           a cell's value survives the job that wrote it. */
+        oop prefix = args[1];
+        if (prefix == NULL || IS_SMI(prefix) || StringVtable == NULL ||
+            obj_vtable(prefix) != StringVtable) {
+            fprintf(stderr, "VM Error: platform spaceChangedSince:under:max: expects a String prefix\n");
+            abort();
+        }
+        struct String *p = (struct String *)prefix;
+        intptr_t want = UNTAG_SMI(args[2]);
+        if (want < 0) want = 0;
+        if (want > OEVM_SPACE_MAX_CHANNELS) want = OEVM_SPACE_MAX_CHANNELS;
+
+        int ids[OEVM_SPACE_MAX_CHANNELS];
+        int n = space_changed_since((uint32_t)UNTAG_SMI(args[0]),
+                                    (const char *)p->bytes, p->length,
+                                    ids, (int)want);
+
+        extern void gc_temp_root_push(oop o);
+        extern int gc_temp_roots_count;
+        int saved = gc_temp_roots_count;
+
+        oop rows = indexable_new(n);
+        gc_temp_root_push(rows);
+        for (int i = 0; i < n; i++) {
+            oop row = indexable_new(3);
+            ((struct ObjectInstance *)rows)->slots[i + 1] = row;   /* rooted now */
+            size_t plen = 0;
+            const char *path = space_path_of(ids[i], &plen);
+            ((struct ObjectInstance *)row)->slots[1] = space_make_string_pub(path, plen);
+            ((struct ObjectInstance *)row)->slots[2] =
+                TAG_SMI((intptr_t)space_last_seq_of(ids[i]));
+            ((struct ObjectInstance *)row)->slots[3] = space_value_of(ids[i]);
+        }
+        gc_temp_roots_count = saved;
+        *out = rows;
+        return 1;
+    }
     case PRIM_pf_spaceDequeue: {
         /* `platform spaceDequeue` — no args; answers the {value,
            blocksSnapshot, channelPath} 3-slot Array (Milestone D) or nil

@@ -54,7 +54,7 @@ extern void mark_object(oop ptr);
 extern oop gc_allocate(oop vtable, size_t size);
 extern oop StringVtable;
 
-static oop space_make_string(const char *bytes, size_t len) {
+oop space_make_string_pub(const char *bytes, size_t len) {
     oop s = gc_allocate(StringVtable, sizeof(struct String) + len);
     struct String *str = (struct String *)s;
     str->length = len;
@@ -83,6 +83,10 @@ struct SpaceChannel {
     /* tuvm#20 (G2): posts to this channel shed by a full ring — cumulative,
        never reset (a drain empties the ring; it does not rewrite history). */
     uint32_t overruns;
+    /* Space-sync (design D5): the counter value at this channel's last write.
+       0 means never written — interning is not a write, exactly as `kind`
+       records. This is etcd's mod_revision to `seq_counter`'s revision. */
+    uint32_t last_seq;
 };
 
 struct SpaceEvent {
@@ -108,6 +112,12 @@ static uint32_t total_overruns = 0;
    staleness note) — so it measures ring-slot PRESSURE (slots unavailable to a
    burst, the number G2 depth-sizing needs), not logical queue depth. */
 static uint32_t q_high_water = 0;
+
+/* Space-sync (design D5): ONE monotonic counter for the whole space, stamped on
+   every write, and bumpable by space_stamp for a captured stream entry. One
+   counter and not one per path, because the exchange's cursor is a scalar —
+   see the space.h header for the full argument. */
+static uint32_t seq_counter = 0;
 
 /* Count one shed post — and say so ONCE per channel: the first overrun prints
    a single line so a console human sees the onset without being flooded;
@@ -160,6 +170,7 @@ int space_intern(const char *path, size_t len) {
     c->kind = SPACE_KIND_UNSET;   /* interning is not a write: `whenever:` on a
                                      name nobody has written leaves it UNSET */
     c->overruns = 0;
+    c->last_seq = 0;              /* interning is not a write */
     return id;
 }
 
@@ -182,6 +193,14 @@ void space_post_id(int chan_id, oop value) {
     if (c->kind == SPACE_KIND_UNSET) {
         c->kind = SPACE_KIND_STREAM;
     }
+    /* Space-sync (design D5): stamp the write. HERE rather than in space_put and
+       space_post separately, because both of those reach this function —
+       space_put writes the value slot and then calls us to fan out — so one
+       stamp covers both and a cell write is not counted twice. Before the
+       full-ring check for the same reason the kind fix is: a write the ring is
+       about to shed still happened, and declaring it is not contingent on
+       delivery. */
+    c->last_seq = ++seq_counter;
     if (q_count >= OEVM_SPACE_QUEUE_DEPTH) {
         /* tuvm#20 — the G2 overflow policy, replacing the abort() that made a
            burst of events a whole-node kill (bypassing the crash boundary and
@@ -381,7 +400,7 @@ oop space_dequeue(void) {
        Space>>drain's crash record (`Record ... with: #channel -> chPath`) and
        its sys/-loop guard. Built from the same `path`/`len` the registry
        already holds per channel (space.c:53-ish, struct SpaceChannel). */
-    oop path_string = space_make_string(c->path, c->len);
+    oop path_string = space_make_string_pub(c->path, c->len);
     gc_temp_root_push(path_string);
 
     oop result = indexable_new(3);
@@ -421,3 +440,57 @@ void space_gc_trace(void) {
 }
 
 uint32_t space_queue_high_water(void) { return q_high_water; }
+
+/* ---- Space-sync (design D5) -----------------------------------------------
+   The counter, the per-channel last_seq readers, and the prefix-scoped
+   changed-since scan that backs `Channel>>changedSince:max:`. Storage only, as
+   ever: WHICH prefix a caller may scan is capability policy and is resolved in
+   nsl before it reaches here, exactly as checkPath: confines the write verbs. */
+
+uint32_t space_seq(void)   { return seq_counter; }
+uint32_t space_stamp(void) { return ++seq_counter; }
+
+uint32_t space_last_seq_of(int id) { return channels[id].last_seq; }
+int      space_kind_of(int id)     { return (int)channels[id].kind; }
+oop      space_value_of(int id)    { return channels[id].value; }
+
+const char *space_path_of(int id, size_t *len_out) {
+    if (len_out) *len_out = channels[id].len;
+    return channels[id].path;
+}
+
+/* Segment-aligned prefix test — the A1 rule Channel>>resolve: enforces for whole
+   paths, restated here because this scan takes a PREFIX: "obs" is at-or-above
+   "obs" and "obs/health" and is NOT above "obscure". */
+static int under_prefix(const struct SpaceChannel *c, const char *prefix, size_t plen) {
+    if (plen == 0) return 1;                        /* the root capability */
+    if (c->len < plen) return 0;
+    if (memcmp(c->path, prefix, plen) != 0) return 0;
+    return c->len == plen || c->path[plen] == '/';
+}
+
+int space_changed_since(uint32_t cursor, const char *prefix, size_t plen,
+                        int *ids, int max) {
+    int n = 0;
+    /* `taken` is the last seq already emitted, so each pass picks the smallest
+       last_seq strictly above it: a selection walk, ascending. Seqs are unique
+       across channels (one counter), so there are no ties to break. n_channels
+       is bounded by OEVM_SPACE_MAX_CHANNELS (32 by default), so the quadratic
+       walk is bounded by a small constant and needs no scratch allocation —
+       which also keeps this callable from a drain-time reaction. */
+    uint32_t taken = cursor;
+    while (n < max) {
+        int best = -1;
+        for (int i = 0; i < n_channels; i++) {
+            struct SpaceChannel *c = &channels[i];
+            if (c->kind != SPACE_KIND_CELL) continue;
+            if (c->last_seq <= taken) continue;
+            if (!under_prefix(c, prefix, plen)) continue;
+            if (best < 0 || c->last_seq < channels[best].last_seq) best = i;
+        }
+        if (best < 0) break;
+        ids[n++] = best;
+        taken = channels[best].last_seq;
+    }
+    return n;
+}

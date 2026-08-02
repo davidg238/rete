@@ -61,6 +61,11 @@ run test_raw_bytes "$ENG_B"
 # Small capacity overrides make the boundary-fill/overflow properties fast
 # and deterministic (same idiom as test_coalesce/test_heap_stats above).
 run test_space "$ENG_B" -DOEVM_SPACE_MAX_CHANNELS=8 -DOEVM_SPACE_QUEUE_DEPTH=4
+# porta space-sync (plan 2): the per-space monotonic counter (design D5), the
+# per-channel last_seq, and the prefix-scoped changed-since scan. Model-B link
+# set, same reasoning as test_space above; the capacity overrides keep property
+# 7's ring flood short and the scan's channel walk small.
+run test_space_seq "$ENG_B" -DOEVM_SPACE_MAX_CHANNELS=16 -DOEVM_SPACE_QUEUE_DEPTH=8
 # M6 C-boundary handle table (src/handles.c): JNI-global-ref-style GC roots for
 # C code (the Zephyr ISR->channel pulse seam, timer callbacks). Tiny capacity
 # override makes the overflow property fast/deterministic (same idiom as
