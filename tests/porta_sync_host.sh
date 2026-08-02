@@ -94,15 +94,28 @@ done
   echo "FAIL: goal/name never converged to obs/name"; /tmp/porta get --db "$DB" "$NODE"; exit 1; }
 echo "  goal/name converged to obs/name — the diff IS the view"
 
-# Leg 3: exactly once.
+# Leg 3: exactly once, which is TWO claims and not one.
+#   no duplicates -> rows == distinct ticks
+#   no gaps       -> the distinct ticks run contiguously
+# Loopback loses nothing, so only the first can fail here; the second exists so
+# that this gate and the C6 gate (plan 3) score the same property. Parse with
+# `grep -o` rather than `sed 's/.*tick //'` — the record's formatting puts
+# punctuation after the number, which sort -u tolerates and arithmetic does not.
 sleep 3
-LOGS=$(/tmp/porta log --db "$DB" "$NODE" --limit 200 | grep -c "tel/log" || true)
-UNIQ=$(/tmp/porta log --db "$DB" "$NODE" --limit 200 | grep "tel/log" | sed 's/.*tick //' | sort -u | wc -l)
+TICKS=$(/tmp/porta log --db "$DB" "$NODE" --limit 200 | grep -o 'tick [0-9]\+' | awk '{print $2}')
+LOGS=$(printf '%s\n' "$TICKS" | grep -c . || true)
+UNIQ=$(printf '%s\n' "$TICKS" | sort -n -u | grep -c . || true)
 echo "  tel/log rows=$LOGS distinct ticks=$UNIQ"
 test "$LOGS" -ge 2 || { echo "FAIL: fewer than two tel/log entries — the stream never rode"; exit 1; }
 test "$LOGS" = "$UNIQ" || {
   echo "FAIL: a tel/log entry was delivered more than once"
   /tmp/porta log --db "$DB" "$NODE" --limit 200; exit 1; }
-echo "  tel/log arrived exactly once per entry"
+
+FIRST=$(printf '%s\n' "$TICKS" | sort -n -u | head -1)
+LAST=$(printf '%s\n' "$TICKS" | sort -n -u | tail -1)
+test $((LAST - FIRST + 1)) -eq "$UNIQ" || {
+  echo "FAIL: a gap in the tick series ($FIRST..$LAST holds only $UNIQ entries) — an entry was lost"
+  /tmp/porta log --db "$DB" "$NODE" --limit 200; exit 1; }
+echo "  tel/log arrived exactly once per entry, with no gaps ($FIRST..$LAST)"
 
 echo "PORTA SYNC OK"
