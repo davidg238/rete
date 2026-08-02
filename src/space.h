@@ -149,6 +149,70 @@ void space_put(const char *path, size_t len, oop value);
    Channel>>peek:ifAbsent: guards on the kind and not on the value. */
 oop space_peek(const char *path, size_t len);
 
+/* ---- Space-sync (porta space-sync rewrite, design D5) ---------------------
+   Replication needs three things the raw event queue never had: a latest-value
+   slot per cell (rung 9 gave that), ONE monotonic counter per space, and a
+   changed-since-cursor query. This is the second and third.
+
+   ONE counter per space, not one per path (D5, resolving a PROTOCOL-NSL
+   §3/§5.1 contradiction): a per-path seq would make a cursor a VECTOR over
+   every path, and the exchange's cursor is a scalar. Each channel additionally
+   records the counter value of its own last write — exactly etcd's
+   revision / mod_revision split.
+
+   The counter is stamped inside space_post_id, which is on the path of BOTH
+   writes (space_put fans out through it), so a cell write is stamped once and
+   not twice. It is stamped BEFORE the full-ring check, for the same reason the
+   kind is: a write the ring is about to shed still happened.
+
+   uint32 wraps after 4.29e9 writes. At the fastest cadence this stack has ever
+   run that is decades; a node that reached it would re-pull from a cursor it
+   has already passed, which the exchange absorbs as an ordinary full replay. */
+uint32_t space_seq(void);
+
+/* Bump the counter and answer the new value. The bridge stamps a CAPTURED
+   stream entry with this: a stream's value is not retained (space_dequeue kills
+   the event on delivery), so it is captured by a reaction, and reading the
+   counter instead of bumping it would let two captures with no intervening
+   write share one seq. The gateway drops `seq <= high-water` as a duplicate, so
+   that is silent LOSS, not a repeated delivery. Hence a bump. */
+uint32_t space_stamp(void);
+
+/* The counter value at that channel's last write; 0 if it has never been
+   written (interning is not a write, exactly as `kind` records). */
+uint32_t space_last_seq_of(int id);
+
+/* Fill `ids` with the ids of CELL channels whose last write is newer than
+   `cursor`, at or under `prefix`, ASCENDING BY last_seq, at most `max` of them;
+   answers how many were written.
+
+   CELLS ONLY: a stream's last_seq advances on every post, but its value is
+   killed on delivery, so returning one would publish a stale-or-nil value under
+   a fresh seq. Streams reach the wire by reaction capture instead.
+
+   Prefix matching is SEGMENT-ALIGNED, the A1 rule `Channel>>resolve:` already
+   obeys for whole paths: "obs" matches "obs" and "obs/health", never "obscure".
+   plen == 0 matches everything (the root capability). Never interns — asking
+   about names must not create one (space_take's rule).
+
+   ASCENDING is load-bearing, not tidiness: the caller sends a PREFIX of this
+   list and advances its cursor to the last entry it sent, so any other order
+   would strand every entry it skipped. */
+int space_changed_since(uint32_t cursor, const char *prefix, size_t plen,
+                        int *ids, int max);
+
+/* Read the row the scan named. `space_path_of` answers a pointer INTO the
+   registry's static path buffer — NOT NUL-terminated, so take the length. It
+   stays valid for the life of the process: channels are never removed. */
+const char *space_path_of(int id, size_t *len_out);
+int space_kind_of(int id);
+oop space_value_of(int id);
+
+/* The registry's own String constructor, exported for the spaceChangedSince:
+   prim so a path String is built exactly the way space_dequeue builds one —
+   one allocation idiom, one place to review for GC hazards. */
+oop space_make_string_pub(const char *bytes, size_t len);
+
 /* GC root trace: marks every queued (still-live) event's value oop, every
    registered reaction's block + owner oop, and EVERY CELL'S VALUE, across every
    channel. Called from gc.c's root scan beside the other builtin-vtable roots.
