@@ -338,6 +338,45 @@ Porta stays a **stateless relay**; the debug session lives in the node (unchange
 v1 §8). Long responses obey `MAX_VALUE_BYTES` like everything else — the debugger
 paginates, which it must do for a serial console anyway.
 
+**Not yet implemented on the nsl node.** `dbg/*` is pinned here as the contract; the node
+carries no `dbg/` channel today (v1's debugger was JSON over TFTP, which went with v1).
+Contrast `diag/**` below, which *is* shipped.
+
+### 4.6 `diag/**` — bounded diagnostic capture (both ways)
+
+Added 2026-08-01, cataloguing what the node already ships (tuvm#72, `class SpanCapture` in
+`nsl-tuvm/lib/kernel.nsl`). This namespace was live in node source before it was written
+down here; the entry below documents it rather than proposing it.
+
+| path | kind | record |
+|---|---|---|
+| `diag/spans/ctl` | **C (cell)**, ↓ | `SpanCtl { state: sym }` — `#running` / `#stopped`. Writing `#running` while already running RESTARTS the window; a write is a statement of intent |
+| `diag/spans/<span>` | **C (cell)**, ↑ | `LatencySpan { … }` — the §4.4 record, **one cell per span slot**, 140 B each |
+| `diag/spans/result` | **C (cell)**, ↑ | `SpanCapture { n: int, ms: int }` — the window summary ONLY: total samples across slots, and the window's elapsed ms (`-1` when the millis counter wrapped, published rather than a plausible wrong number) |
+
+**Why `diag/` and not `obs/`.** §1's inherited rule: diagnostics stay out of the
+`goal/`/`obs/` convergence tree, so fleet anti-entropy never walks them. A span capture is
+never a *desired* state, so it has no `goal/` twin and nothing to converge against.
+
+**Why the per-span rows are siblings of the summary, and not nested inside it.** The node's
+`SpanCapture>>reportMs:` currently returns `#SpanCapture { n, ms, slots: [ … ] }` with every
+slot's `LatencySpan` nested in a list. That shape **cannot ride the space**: with
+`OEVM_SPAN_SLOTS = 8` and `LatencySpan` measured at 140 B, the list alone is ~1120 B against
+§2.2's **256 B** value cap — 4.4× over the value cap and 2.2× over the 512 B batch cap. §2.2
+calls an oversized outbound value a *programming error*, and it is one; it has gone
+unnoticed only because the capture is read locally by the node's own `/stats` page and has
+never been synced.
+
+Splitting it costs the node nothing it does not already have: `Spans>>recordAt: slot`
+already builds exactly the per-slot `LatencySpan` this table wants, and the record already
+carries a `#span` field naming its slot, so the path parameter and the field agree. What
+changes is that the slots are *published* per-path instead of being nested into one value.
+**Filed as tuvm#107**; until it lands, `diag/spans/result` must not be synced.
+
+This is the general shape for any capture whose size scales with a count: **the collection
+is the path space, not a list inside one value.** `sys/latency` states the same principle
+one level up — adding an instrumented job adds a record, never a field.
+
 ---
 
 ## 5. Evolution (G8 — fleet version skew)

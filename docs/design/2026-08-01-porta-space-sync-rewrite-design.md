@@ -205,7 +205,7 @@ Four tables replace nine. All timestamps are **milliseconds** (D4.2); all paths 
 | `debug_request` | → `events` at `dbg/req` |
 | `debug_response` | → `events` at `dbg/resp` |
 | `profile_session` | → `cells` at `goal/profile/<app>` |
-| `profile_result` | **split** — profiler blobs are bulk (§7); the bounded span results have **no pinned path yet** — see §7.1 |
+| `profile_result` | **split** — profiler blobs are bulk (§7, RECORDS §2.4); the bounded span results land at `diag/spans/**` (RECORDS §4.6) |
 | `payloads` | **deferred, not absorbed** — see below |
 | — | `exchanges` is **new** (D4.3) |
 
@@ -304,7 +304,7 @@ recall. Fates are `absorbed → <path>`, `deferred → <plan>`, or **regression*
 | `monitor -d [--kind --since --follow]` | absorbed → `tel/**` events; the three filters are deferred → operator surface. `--kind` is a path prefix (`tel/log`, `tel/m/`, `sys/panic`), `--since` is `ts_ms`, `--follow` is a tail over `events.id` |
 | `debug attach/detach/send/poll` | absorbed → `goal/debug/<app>` (`Debug{action}`) + `dbg/req` / `dbg/resp` events; `--after id` maps to `events.id` |
 | `profile start/stop` | absorbed → `goal/profile/<app>`, `Profile{action,durationS,continuous}` |
-| `profile poll` | **deferred — no pinned path** (§7.1). The blob half is bulk; the span half has nowhere to land yet |
+| `profile poll` | absorbed → `diag/spans/<span>` cells + the `diag/spans/result` summary (RECORDS §4.6); the blob half is bulk |
 | `profile get <seq>` | **deferred → bulk/OTA plane (§7).** The blob is opaque and unbounded; it cannot ride a 256 B value |
 | `serve` | absorbed → Task 1 (HTTP `/health`) + Task 4 (UDP space listener) |
 | `completion`, `--db`, `--server`, `-v` | unchanged (cobra/global) |
@@ -322,7 +322,7 @@ recall. Fates are `absorbed → <path>`, `deferred → <plan>`, or **regression*
 | `GET /api/nodes/{sel}/config` | absorbed → the `goal/` vs `obs/` tree diff |
 | `GET /api/nodes/{sel}/telemetry` | absorbed → `Events` under `tel/**` |
 | `POST /api/nodes/{sel}/debug/send`, `GET …/debug/responses` | absorbed → `dbg/req` / `dbg/resp` |
-| `GET /api/nodes/{sel}/profile` | **deferred — no pinned path** (§7.1) |
+| `GET /api/nodes/{sel}/profile` | absorbed → `Tree(id, "diag/spans/")` (RECORDS §4.6) |
 | `GET /api/nodes/{sel}/profile/{seq}` | deferred → bulk plane (§7) |
 | web `/`, `/n/`, `/log`, `/status`, `/telemetry`, `/partials/{status,telemetry,nodes,log}`, `/assets/` | deferred → operator surface. §7's warning governs: the web UI must be a *client* of the path surface, not the thing the path surface is shaped around |
 | MCP `list_devices`, `device_status`, `device_get_config`, `container_list`, `query_telemetry`, `command_log` | deferred → §7 names this explicitly; `mcpsrv` is rewritten as a client of the same path surface |
@@ -344,13 +344,27 @@ Neither was a revenue-gate on tuvm#74's scale, and neither was expensive — one
 one record field, both folded in before demolition rather than filed. They are recorded
 here because the rule is that a capability gets a *fate*, and "nobody noticed" is not one.
 
-**A namespace this record invented, now withdrawn.** Earlier drafts of §4.1 routed remote
-debug to `diag/dbg/req` / `diag/dbg/resp` and profiler spans to `diag/**`. There is no
-`diag/` namespace: `PROTOCOL-NSL.md` §3 defines exactly five roots — `goal/`, `obs/`,
-`tel/`, `sys/`, `dbg/` — and `dbg/` is load-bearing in the authority model, which grants
-porta write access to *"only `goal/**` and `dbg/req`"*. `diag/` appears nowhere in either
-protocol document. The debug rows are corrected to the pinned `dbg/req` / `dbg/resp`
-(RECORDS §4.5); the profiler-span rows had no successor at all and are now §7.1.
+**One conflated path prefix, resolved in opposite directions.** §4.1 originally routed both
+remote debug and profiler spans through a single `diag/` prefix: `diag/dbg/req` /
+`diag/dbg/resp` and `diag/**`. Those are two different questions and they resolve
+differently.
+
+- **Remote debug → `dbg/req` / `dbg/resp`.** RECORDS §4.5 pins the prefix as `dbg/*`, and
+  `PROTOCOL-NSL.md` §3's authority model is written in those terms — porta may write
+  *"only `goal/**` and `dbg/req`"*. Nesting it under `diag/` was a slip. Nothing implements
+  `dbg/` on the node yet (v1's debugger was JSON over TFTP), so the pinned contract stands
+  unopposed.
+- **Profiler spans → `diag/**` was RIGHT.** The first correction of this section claimed
+  `diag/` did not exist, on the evidence that it appears in neither protocol document. That
+  was checking the wrong artefact. `diag/` is **live in shipped node code**:
+  `nsl-tuvm/lib/kernel.nsl` binds `diag/spans/ctl` and `diag/spans/result` in
+  `class SpanCapture` (tuvm#72), and those are two of only three channel paths the node
+  uses at all. The namespace was undocumented, not invented — the catalogue was incomplete.
+  It is now written down as **RECORDS §4.6**.
+
+The lesson is worth keeping with the record: *the protocol documents are not the system.*
+A namespace absent from both of them was nonetheless already shipping, and one grep of the
+node source would have said so.
 
 ---
 
@@ -409,29 +423,30 @@ Named so they are not silently dropped:
 - **Node identity.** A constant in the node's source for this slice; hardware-derived
   identity is a follow-on (relates tuvm#74, a node cannot name its own build).
 
-### 7.1 Open question — profiler span results have no pinned path (porta#28)
+### 7.1 Resolved — profiler spans land at `diag/spans/**` (porta#28, closed)
 
-`profile_result` was v1's one genuinely two-shaped table, and the split in §4.1 only
-resolves half of it. The **blobs** are bulk and go to the CoAP plane with the images. The
-**bounded span results** — the thing `porta profile poll` printed — were routed here to
-`diag/**`, a namespace that does not exist (§4.2). They therefore have *no successor path*,
-which by D8's rule makes this a capability with no fate rather than a deferral.
+Filed as an open question, then answered by reading the node instead of the documents. The
+node already ships the whole mechanism (tuvm#72, `class SpanCapture`): a bounded capture
+session controlled by the cell `diag/spans/ctl` (`SpanCtl { state: sym }`), reporting to
+`diag/spans/result`. Nothing needed designing; it needed cataloguing, and it is now
+**RECORDS §4.6**.
 
-It is filed rather than decided because it is a catalogue decision, not a porta one, and the
-candidates are not obviously ranked:
+The candidate ranking in the original filing was wrong on its leading option. "It probably
+merges into `sys/latency`" was a guess from schema shape; the node had already made the
+call, and `diag/` is the right prefix for the reason §1 states — diagnostics stay out of the
+`goal/`/`obs/` convergence tree, and a span capture has no `goal/` twin to converge against.
 
-- **`sys/**`** — `sys/latency` already pins `LatencySpan { span, n, fails, minUs, maxUs,
-  sumUsLo, sumUsHi, b0..b5 }` as a **cell**, one record *per span*. A profile result is
-  structurally the same measurement, so this may be less a new path than a realisation that
-  profiling and `sys/latency` are one feature. That would be the cheapest outcome and is the
-  one worth disproving first.
-- **`tel/**`** — if a profile run is an *episode* rather than a standing measurement, it is
-  an event, not a cell, and belongs with telemetry.
-- **A new pinned path** — only if neither of the above holds without distortion.
+**Cataloguing it surfaced a real defect.** `SpanCapture>>reportMs:` nests every slot's
+`LatencySpan` in one value: 8 slots (`OEVM_SPAN_SLOTS`) × 140 B measured = **~1120 B**
+against §2.2's **256 B** value cap — 4.4× over, and 2.2× over the 512 B batch cap. §2.2
+calls that a programming error. It is latent rather than live, because the capture is read
+by the node's own `/stats` page and has never been synced. RECORDS §4.6 therefore pins the
+per-slot rows as **sibling cells** at `diag/spans/<span>` with `diag/spans/result` carrying
+only `{n, ms}`, and the node change is **tuvm#107**. Until that lands,
+`diag/spans/result` must not be synced.
 
-Nothing in this rung writes the path, so nothing is blocked today. It must be answered
-before `porta profile` is rebuilt on the operator surface, and the answer belongs in
-`PROTOCOL-NSL-RECORDS.md` §4, not here. Filed as **porta#28**.
+The general rule, now stated in RECORDS §4.6: **a collection whose size scales with a count
+belongs in the path space, not in a list inside one value.**
 
 ## 8. Known hazards
 
