@@ -337,3 +337,7 @@ func escapeLike(s string) string {
 	r := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
 	return r.Replace(s)
 }
+
+// DB exposes the handle for tests and for the operator surface's ad-hoc
+// queries. Not part of the protocol path.
+func (s *Store) DB() *sql.DB { return s.db }

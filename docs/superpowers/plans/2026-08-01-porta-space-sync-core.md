@@ -1521,6 +1521,14 @@ Three properties the tests pin:
   - `func DecodeBatch(b []byte) (hi int64, entries []space.Entry, err error)`
   - `func DecodeAck(b []byte) (hw int64, err error)`
 
+**Batch capping.** `space.OutboundSince` budgets `len(value)+len(path)+8` per entry, but an
+entry encodes to `len(value)+len(path)+4` and the `#batch` wrapper costs 29 bytes on top. So
+the store's budget can be fully spent and the DATAGRAM still overrun: two 239 B values on
+6-char paths fill the budget to 506 and encode to **527**, over the 512 B cap. `handlePull`
+therefore builds the reply through `encodeBatchCapped`, which trims from the tail and lowers
+`hi` with it — `hi` must name what actually rode, or the node advances past writes it never
+saw. Long paths hide this; short ones expose it.
+
 Wire shapes, as nsl Records (no second codec, RECORDS §1):
 
 ```
@@ -1531,7 +1539,7 @@ ack   = #ack   { #hw: int }                     ; #hint reserved, not emitted
 err   = #err   { #msg: str }
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```go
 // internal/wire/wire_test.go
@@ -1669,12 +1677,12 @@ func TestGarbageRequestAnswersErr(t *testing.T) {
 func (s *Store) DB() *sql.DB { return s.db }
 ```
 
-- [ ] **Step 2: Run to confirm failure**
+- [x] **Step 2: Run to confirm failure**
 
 Run: `cd ~/workspace/porta && go test ./internal/wire/ -v`
 Expected: FAIL — package does not exist.
 
-- [ ] **Step 3: Implement the message layer**
+- [x] **Step 3: Implement the message layer**
 
 ```go
 // internal/wire/message.go
@@ -1855,7 +1863,7 @@ func DecodeAck(b []byte) (int64, error) {
 }
 ```
 
-- [ ] **Step 4: Implement the server**
+- [x] **Step 4: Implement the server**
 
 ```go
 // internal/wire/server.go
@@ -1943,10 +1951,21 @@ func (s *Server) handlePull(r cval.Record, peer string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := s.st.RecordExchange(id, bootID, cursor, hi, 0, 0, peer); err != nil {
+	// Build the datagram first: capping may trim the tail, and the exchange
+	// row must record the hi the node was actually told, not the one the
+	// store offered.
+	resp, err := encodeBatchCapped(hi, entries, space.MaxBatchBytes)
+	if err != nil {
 		return nil, err
 	}
-	return encodeBatch(hi, entries)
+	deliveredHi, _, err := DecodeBatch(resp)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.st.RecordExchange(id, bootID, cursor, deliveredHi, 0, 0, peer); err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (s *Server) handlePush(r cval.Record, peer string) ([]byte, error) {
@@ -2010,12 +2029,12 @@ func (s *Server) ListenAndServe(ctx context.Context, addr string) error {
 }
 ```
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `cd ~/workspace/porta && go test ./internal/wire/ -v`
 Expected: PASS, all six tests.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 gofmt -l . && go test ./...
