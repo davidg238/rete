@@ -1,0 +1,34 @@
+(*
+porta space-sync (plan 2) — the scan obeys A1 confinement, and it obeys it the same
+way every other Channel verb does: by resolving against the capability's own root
+before the prim is ever reached. A capability rooted at `obs` cannot learn that
+`goal/name` was written, and — the segment-alignment rule `resolve:` already enforces
+for whole paths, restated for prefixes — it does not match `obscure` either.
+
+Rows carry ABSOLUTE paths: they are what goes on the wire, and a capability that can
+already address a name learns nothing new from being told that name in full.
+expect:
+obs sees 1
+obs path obs/health
+obscure not matched true
+root sees 3
+*)
+class ScanConfinement packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space obs rows |
+    space:: platform space.
+    space put: 'goal/name' value: 'bench'.
+    space put: 'obs/health' value: 11.
+    space put: 'obscure' value: 99.
+
+    obs:: space channel: 'obs'.
+    rows:: obs changedSince: 0 max: 8.
+    ('obs sees ' , rows size printString) out.
+    ('obs path ' , ((rows at: 1) at: 1)) out.
+    ('obscure not matched ' , (rows size = 1) printString) out.
+
+    rows:: space changedSince: 0 max: 8.
+    ('root sees ' , rows size printString) out.
+  )
+) : (
+)
