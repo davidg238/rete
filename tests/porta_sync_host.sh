@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+# porta space-sync plan 2, the host interop gate: PortaBridgeNode.nsl (nsl/tuvm)
+# against a real `porta serve` (Go), over real UDP loopback. Two independently
+# written implementations of one wire — which is the only kind of test that can
+# catch a protocol MISREADING, and the reason it runs before hardware.
+#
+# What it witnesses (the host-side legs of the rung's gate):
+#   1. `goal/name` written at porta appears in the node's space — proven by the
+#      node echoing it back to `obs/name`, which porta then reads.
+#   2. `obs/health` pushed by the node appears in porta's cell tree. An idle
+#      check-in IS the heartbeat, so this is also the liveness proof.
+#   3. `tel/log` entries arrive EXACTLY ONCE: every entry carries a monotone tick
+#      counter, so a re-pushed entry would show up as a repeated 'tick N'.
+# Leg 3 under a DELIBERATE datagram drop is plan 3's, on the C6 over the mesh.
+#
+# Cross-repo on purpose, and deliberately NOT wired into run_tests_oevm.py: the
+# tuvm suite must not go red because a sibling repo is absent. It SKIPS instead.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+PORTA_DIR="${PORTA_DIR:-$HOME/workspace/porta}"
+NSL="$HOME/workspace/nsl-tuvm/tools/ns_compile_oevm.py"
+TARGET="${OEVM_TARGET:-posix}"
+DB=/tmp/porta_sync_gate.db
+NODE=bench-node
+
+if [ ! -d "$PORTA_DIR" ]; then
+  echo "SKIP: no porta checkout at $PORTA_DIR (set PORTA_DIR)"; exit 0
+fi
+if ! command -v go >/dev/null 2>&1; then
+  echo "SKIP: go is not on PATH — cannot build the porta counterparty"; exit 0
+fi
+
+echo "[1/7] build porta"
+( cd "$PORTA_DIR" && go build -o /tmp/porta ./cmd/porta )
+
+echo "[2/7] host-ABI layout descriptor"
+gcc -std=c99 -Isrc tools/dump_layout.c -o /tmp/dl
+/tmp/dl > /tmp/layout.json
+
+echo "[3/7] compile PortaBridgeNode.nsl -> .oimg"
+python3 "$NSL" zephyr/PortaBridgeNode.nsl /tmp/porta_node.oimg --format=oimg --layout=/tmp/layout.json
+
+echo "[4/7] build the image VM"
+gcc -Wall -std=c99 -Isrc \
+    src/vm.c src/gc.c src/dispatch.c src/platform.c src/space.c src/handles.c \
+    src/span.c \
+    "src/backend/$TARGET/platform_$TARGET.c" src/serial.c \
+    "src/backend/$TARGET/serial_$TARGET.c" src/udp.c "src/backend/$TARGET/udp_$TARGET.c" \
+    src/http.c src/http_core.c "src/backend/$TARGET/http_$TARGET.c" \
+    "src/backend/$TARGET/pulse_$TARGET.c" "src/backend/$TARGET/timer_$TARGET.c" \
+    "src/backend/$TARGET/span_$TARGET.c" \
+    "src/backend/$TARGET/sensor_$TARGET.c" \
+    src/mirror.c \
+    src/oimg_loader.c src/kernel_boot.c oevm_image_main.c -o /tmp/oevm_porta -lm
+
+echo "[5/7] start porta serve on udp 127.0.0.1:16969"
+rm -f "$DB"
+/tmp/porta serve --db "$DB" --udp 127.0.0.1:16969 --http-port 0 >/tmp/porta_serve.log 2>&1 &
+PORTA_PID=$!
+NODE_PID=""
+trap 'kill $PORTA_PID ${NODE_PID:-} 2>/dev/null || true' EXIT
+for _ in $(seq 1 50); do grep -q "serving the space" /tmp/porta_serve.log && break; sleep 0.1; done
+grep -q "serving the space" /tmp/porta_serve.log || {
+  echo "FAIL: porta did not start"; cat /tmp/porta_serve.log; exit 1; }
+
+# The node's cadence runs on real time; the suite's default virtual clock never
+# advances on its own, so the timer would never fire (the same knob the http gate
+# needs, for the same reason).
+echo "[6/7] start the node"
+OEVM_TIMER_WALLCLOCK=1 /tmp/oevm_porta /tmp/porta_node.oimg >/tmp/porta_node.log 2>&1 &
+NODE_PID=$!
+for _ in $(seq 1 50); do grep -q "PORTA NODE READY" /tmp/porta_node.log && break; sleep 0.1; done
+grep -q "PORTA NODE READY" /tmp/porta_node.log || {
+  echo "FAIL: node did not start"; cat /tmp/porta_node.log; exit 1; }
+
+echo "[7/7] drive it"
+# Leg 2 first: it needs no operator write at all.
+for _ in $(seq 1 100); do
+  /tmp/porta get --db "$DB" "$NODE" obs 2>/dev/null | grep -q "obs/health" && break; sleep 0.2
+done
+/tmp/porta get --db "$DB" "$NODE" obs | grep -q "obs/health" || {
+  echo "FAIL: obs/health never reached porta"; /tmp/porta get --db "$DB" "$NODE"; cat /tmp/porta_serve.log; exit 1; }
+echo "  obs/health is in porta's cell tree"
+/tmp/porta get --db "$DB" "$NODE" obs | grep -q "obs/build" || { echo "FAIL: obs/build missing"; exit 1; }
+echo "  obs/build carries the node's provenance"
+
+# Leg 1: write the goal, wait for the node to echo it as obs.
+/tmp/porta put --db "$DB" "$NODE" goal/name bench >/dev/null
+for _ in $(seq 1 100); do
+  /tmp/porta get --db "$DB" "$NODE" obs/name 2>/dev/null | grep -q "bench" && break; sleep 0.2
+done
+/tmp/porta get --db "$DB" "$NODE" obs/name | grep -q "bench" || {
+  echo "FAIL: goal/name never converged to obs/name"; /tmp/porta get --db "$DB" "$NODE"; exit 1; }
+echo "  goal/name converged to obs/name — the diff IS the view"
+
+# Leg 3: exactly once.
+sleep 3
+LOGS=$(/tmp/porta log --db "$DB" "$NODE" --limit 200 | grep -c "tel/log" || true)
+UNIQ=$(/tmp/porta log --db "$DB" "$NODE" --limit 200 | grep "tel/log" | sed 's/.*tick //' | sort -u | wc -l)
+echo "  tel/log rows=$LOGS distinct ticks=$UNIQ"
+test "$LOGS" -ge 2 || { echo "FAIL: fewer than two tel/log entries — the stream never rode"; exit 1; }
+test "$LOGS" = "$UNIQ" || {
+  echo "FAIL: a tel/log entry was delivered more than once"
+  /tmp/porta log --db "$DB" "$NODE" --limit 200; exit 1; }
+echo "  tel/log arrived exactly once per entry"
+
+echo "PORTA SYNC OK"
