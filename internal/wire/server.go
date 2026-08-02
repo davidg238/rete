@@ -15,6 +15,10 @@ import (
 type Server struct {
 	st   *space.Store
 	logf func(string, ...any)
+
+	// TEST-ONLY fault injection — see SetDropAckEvery.
+	dropAckEvery int
+	acks         int
 }
 
 func NewServer(st *space.Store, logf func(string, ...any)) *Server {
@@ -22,6 +26,36 @@ func NewServer(st *space.Store, logf func(string, ...any)) *Server {
 		logf = func(string, ...any) {}
 	}
 	return &Server{st: st, logf: logf}
+}
+
+// SetDropAckEvery makes the UDP loop swallow every Nth outbound #ack. TEST ONLY;
+// 0 (the zero value) disables it, so a production gateway is unaffected by the
+// field's existence.
+//
+// The swallow happens in ListenAndServe, AFTER handle() has ingested the push
+// and advanced the high-water. That position is load-bearing and is the whole
+// reason the injector lives in the gateway rather than in a firewall rule: the
+// node must re-push rows porta has ALREADY applied, so the `seq <= hw` dedupe is
+// what stops the duplicate. Dropping the datagram BEFORE the commit would only
+// reproduce a lost push — the node re-pushes, porta applies once, and the
+// exactly-once assertion passes without ever exercising the dedupe.
+//
+// Not concurrency-safe, and does not need to be: ListenAndServe is one
+// goroutine and the setter is called before it starts.
+func (s *Server) SetDropAckEvery(n int) { s.dropAckEvery = n }
+
+// swallowAck counts outbound acks and answers whether this one is the Nth. A
+// #batch or an #err is never swallowed: starving the pull half stalls the
+// node's cursor, which is a different failure from the one being injected.
+func (s *Server) swallowAck(resp []byte) bool {
+	if s.dropAckEvery <= 0 {
+		return false
+	}
+	if _, err := DecodeAck(resp); err != nil {
+		return false
+	}
+	s.acks++
+	return s.acks%s.dropAckEvery == 0
 }
 
 // Handle turns one request datagram into one response datagram. It is pure
@@ -154,6 +188,10 @@ func (s *Server) ListenAndServe(ctx context.Context, addr string) error {
 		req := make([]byte, n)
 		copy(req, buf[:n])
 		resp := s.HandleFrom(req, peer.String())
+		if s.swallowAck(resp) {
+			s.logf("porta: TEST-DROP: ack %d to %s swallowed after commit", s.acks, peer)
+			continue
+		}
 		if _, err := pc.WriteTo(resp, peer); err != nil {
 			s.logf("porta: reply to %s failed: %v", peer, err)
 		}
