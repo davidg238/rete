@@ -96,6 +96,7 @@ class PortaBridgeNode usingPlatform: platform net: net = (
     pairs add: #heapFree -> (h heapSize - h liveBytes).
     pairs add: #heapLargest -> h largestFreeBlock.
     pairs add: #overruns -> (platform spaceOverruns: '').
+    pairs add: #streamDropped -> bridge dropped.
     space put: 'obs/health' value:
       (platform Record tag: #Health fields: (platform Map fromPairs: pairs)).
     ^ self

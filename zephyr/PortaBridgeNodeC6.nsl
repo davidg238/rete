@@ -88,7 +88,8 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
     ('tick ' , ticks printString ,
      ' misses ' , bridge misses printString ,
      ' cursor ' , bridge cursor printString ,
-     ' acked ' , bridge acked printString) println.
+     ' acked ' , bridge acked printString ,
+     ' dropped ' , bridge dropped printString) println.
     ^ self
   )
 
@@ -109,6 +110,7 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
     pairs add: #heapFree -> (h heapSize - h liveBytes).
     pairs add: #heapLargest -> h largestFreeBlock.
     pairs add: #overruns -> (platform spaceOverruns: '').
+    pairs add: #streamDropped -> bridge dropped.
     space put: 'obs/health' value:
       (platform Record tag: #Health fields: (platform Map fromPairs: pairs)).
     ^ self
