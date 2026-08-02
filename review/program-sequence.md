@@ -2049,10 +2049,21 @@ Every run: leg 3 `rows=13 distinct=13, 1..13`; leg 4 `rows=26 distinct=26, 1..26
 4 swallowed acks, `misses 0 → 5`. What the radio added over loopback is not recoverable
 from the code, so it is recorded here:
 
-- **The `seq <= hw` dedupe was witnessed, not reasoned about.** Leg 4's drop made the node
-  re-push rows porta had already applied, and porta discarded them by `seq <= hw` — the
-  same property plan 2 proved by construction on loopback, here observed actually firing
-  under a real ack loss.
+- **The `seq <= hw` dedupe fired, but this 5/5 asserted its effect, not the dedupe
+  itself — corrected below.** Leg 4's drop made the node re-push rows porta had already
+  applied; `assert_exactly_once` then saw no duplicate in the log, which is consistent
+  with the dedupe firing but *equally* consistent with the node never having re-pushed at
+  all (`Ingest` in `porta/internal/space/store.go` skipped those rows silently — nothing
+  observed the skip). The fix-wave that closed the review (2026-08-02, same day) makes
+  the skip count a return value of `Ingest`, logs it from `handlePush` only when it is
+  nonzero, and leg 4 now takes a per-run delta over that log line
+  (`tests/porta_sync_c6.sh`, `gw_skips`) and fails if it never moves — the same shape as
+  `gw_drops` for swallowed acks. That change lands `go test ./...` green
+  (`TestReplayedPushLogsSkipCount`, `TestIngestDedupesOnHighWater` now asserts the skip
+  count too) but **has not yet been re-run on hardware**; the 5/5 above stands as
+  evidence for the properties it actually asserted (no duplicates, no gaps, `misses`
+  moved), not for the dedupe having fired, until a hardware run with the corrected gate
+  confirms `gw_skips` moved during leg 4.
 - **A 512 B batch is 5–6 6LoWPAN fragments over a 127 B 802.15.4 PHY**, so real loss is
   expected on a mesh in a way it is not on a LAN. The gate asserts *no duplicates and no
   gaps*, never `misses == 0` — a node's `misses` climbing is normal operation, not a fault.
@@ -2105,6 +2116,34 @@ porta rejects each one (decoded: opcode `0001`, filename `commands?id=7c9ebdd8f5
 `octet`); and `PortaBridge>>awaitReply` consuming the first datagram to arrive, whatever
 it is, rather than checking the record tag (tuvm#108) — a narrowing loopback could not
 surface. All three filed as GitHub issues out of this close-out.
+
+**A whole-branch review fix-wave, same day, before merge.** Beyond the dedupe-evidence
+gap above, the review found two more gaps in the gate script itself, applied on the host
+(`go test ./...` green, `tests/porta_sync_host.sh` still prints `PORTA SYNC OK`,
+`nsl-tests/22_spacesync/05_pending_bound.nsl` still passes) but **not yet re-run on
+hardware**:
+- `MISSES_BEFORE` was sampled *before* the deliberate gateway restart in leg 4, so the
+  restart's own 4–6 s outage (against a 2 s cadence) scored a miss regardless of what the
+  injector did — the team's own falsification run showed `misses 0 → 1` with zero acks
+  swallowed. Now sampled after `gw_serve_start` returns, excluding the restart's own miss
+  from the delta.
+- Contiguity alone does not pin the start of the tick series: `porta log --limit N`
+  truncates from the OLDEST end, and `PortaBridge`'s `maxPending` eviction (also
+  oldest-first) produces the identical shape under a long pre-connection outage — both
+  leave a contiguous tail that `assert_exactly_once` would have passed. Both scripts now
+  assert `first == 1`; the C6 gate's `--limit` is raised to 5000 for headroom, and it now
+  also asserts `obs/health` reports `#streamDropped: 0` during legs 3 and 4 — the node-side
+  half of the same property.
+- Minors: `nsl-tuvm/lib/kernel.nsl`'s `maxPending` comment now states outright that
+  oldest-first eviction manufactures a gap at the head of the series once the bound bites
+  (roughly 65 unacked ticks, ~130 s, at the 2 s cadence); `05_pending_bound.nsl` tightened
+  to the exact invariant `dropped + pendingSize == n`; `PortaBridgeNodeC6.nsl`'s header
+  corrected to four differences (the `dropped` console field) and carries the
+  `chip`/`sdk`/`image`/`builtAt` provenance comment now, matching the host file; `porta`'s
+  `SetDropAckEvery` documents `s.acks` as fleet-wide; a `dropHarness(t, 0)` test covers the
+  never-armed default; `porta_c6_console.py --reset` (unused, and not the flashing
+  interface on this board) is deleted; `DO_FLASH=0` now skips the db wipe and the
+  `PORTA NODE READY` wait, both of which assumed a fresh boot only a flash guarantees.
 
 ## Known stale docs (do not treat as current)
 

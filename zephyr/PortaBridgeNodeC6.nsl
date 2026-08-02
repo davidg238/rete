@@ -2,12 +2,15 @@
 PortaBridgeNodeC6 — PortaBridgeNode, on the C6, over a real Thread mesh. The
 hardware half of design §9's gate (plan 3 of 3).
 
-This file is PortaBridgeNode.nsl with three differences and no others:
+This file is PortaBridgeNode.nsl with four differences and no others:
   1. the constants below address the real gateway instead of loopback;
   2. `chip` answers #esp32c6, so obs/build says which silicon reported;
   3. `tick` prints one console line, because the gate must be able to tell a
      surviving drop from a drop that never fired — porta cannot witness the
-     node's own `misses`, and a leg that passes either way is not a test (D8).
+     node's own `misses`, and a leg that passes either way is not a test (D8);
+  4. `report` also prints ` dropped N` — the bridge's counted `#streamDropped`,
+     appended after ` acked N` so the existing `^tick ` and `misses [0-9]\+`
+     greps still match.
 A change to the body of either file is a change to both.
 
 The gateway is addressed by its MESH-LOCAL EID, not its OMR address: there is no
@@ -21,7 +24,7 @@ Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
 reaction block is a one-line self-send (the LD_SLOT gotcha).
 expect (console, once attached):
 PORTA NODE READY
-tick 1 misses 0 cursor 0 acked 2
+tick 1 misses 0 cursor 0 acked 2 dropped 0
 *)
 class PortaBridgeNodeC6 usingPlatform: platform net: net = (
   | space bridge timers ticks ::= 0. |
@@ -33,6 +36,11 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
   gwPort    = ( ^ 6969 )
   localPort = ( ^ 16970 )
   cadence   = ( ^ 2000 )   (* ms between check-ins *)
+  (* Build provenance, so an agent can tell which code is on which node — tuvm#74,
+     a labelled revenue-gate. `chip` is a source constant because it is a build
+     fact; `sdk`, `image` and `builtAt` are OMITTED until tuvm#74 gives the node a
+     way to name its own build, and absence means "the node cannot say", which is
+     honest and is not a default. *)
   chip      = ( ^ #esp32c6 )
 
   public main: platform2 args: args = (

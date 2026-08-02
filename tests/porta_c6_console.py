@@ -40,8 +40,6 @@ def main() -> int:
     ap.add_argument("--timeout", type=float, default=90.0)
     ap.add_argument("--follow", action="store_true",
                     help="never exit on a pattern; read until killed")
-    ap.add_argument("--reset", action="store_true",
-                    help="pulse DTR/RTS to reset the board after opening")
     args = ap.parse_args()
 
     # Append, never truncate: the gate opens this reader once and greps the log
@@ -49,12 +47,6 @@ def main() -> int:
     # evidence.
     with serial.Serial(args.port, args.baud, timeout=1) as ser, \
             open(args.log, "a", buffering=1) as log:
-        if args.reset:
-            ser.dtr = False
-            ser.rts = True
-            time.sleep(0.1)
-            ser.rts = False
-
         deadline = time.time() + args.timeout
         while args.follow or time.time() < deadline:
             raw = ser.readline()

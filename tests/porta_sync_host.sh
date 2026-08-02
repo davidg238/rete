@@ -94,13 +94,20 @@ done
   echo "FAIL: goal/name never converged to obs/name"; /tmp/porta get --db "$DB" "$NODE"; exit 1; }
 echo "  goal/name converged to obs/name — the diff IS the view"
 
-# Leg 3: exactly once, which is TWO claims and not one.
-#   no duplicates -> rows == distinct ticks
-#   no gaps       -> the distinct ticks run contiguously
-# Loopback loses nothing, so only the first can fail here; the second exists so
-# that this gate and the C6 gate (plan 3) score the same property. Parse with
-# `grep -o` rather than `sed 's/.*tick //'` — the record's formatting puts
-# punctuation after the number, which sort -u tolerates and arithmetic does not.
+# Leg 3: exactly once, which is THREE claims and not one.
+#   no duplicates  -> rows == distinct ticks
+#   no gaps        -> the distinct ticks run contiguously
+#   pinned start   -> the series starts at 1
+# Loopback loses nothing, so only the first can fail here in the ordinary run;
+# the other two exist so this gate and the C6 gate (plan 3) score the same
+# property. The pinned-start check exists because contiguity alone does not
+# pin where the series starts: `porta log --limit N` truncates from the
+# OLDEST end (Store.Events is ORDER BY id DESC LIMIT ?), so a truncated log
+# would leave a contiguous TAIL and pass anyway; and the bridge's own
+# maxPending eviction is oldest-first, so a long pre-connection outage
+# produces the identical shape on hardware. Parse with `grep -o` rather than
+# `sed 's/.*tick //'` — the record's formatting puts punctuation after the
+# number, which sort -u tolerates and arithmetic does not.
 sleep 3
 TICKS=$(/tmp/porta log --db "$DB" "$NODE" --limit 200 | grep -o 'tick [0-9]\+' | awk '{print $2}' || true)
 LOGS=$(printf '%s\n' "$TICKS" | grep -c . || true)
@@ -115,6 +122,9 @@ FIRST=$(printf '%s\n' "$TICKS" | sort -n -u | head -1)
 LAST=$(printf '%s\n' "$TICKS" | sort -n -u | tail -1)
 test $((LAST - FIRST + 1)) -eq "$UNIQ" || {
   echo "FAIL: a gap in the tick series ($FIRST..$LAST holds only $UNIQ entries) — an entry was lost"
+  /tmp/porta log --db "$DB" "$NODE" --limit 200; exit 1; }
+test "$FIRST" = 1 || {
+  echo "FAIL: the series starts at $FIRST, not 1 — either --limit truncated the OLDEST rows (raise it) or the bridge's maxPending eviction dropped the head of the series under a long outage"
   /tmp/porta log --db "$DB" "$NODE" --limit 200; exit 1; }
 echo "  tel/log arrived exactly once per entry, with no gaps ($FIRST..$LAST)"
 
