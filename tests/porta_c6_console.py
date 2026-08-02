@@ -63,7 +63,10 @@ def main() -> int:
             line = raw.decode("utf-8", errors="replace").rstrip("\r\n")
             log.write(line + "\n")
             print(line, flush=True)
-            if args.pattern and args.pattern in line:
+            # --follow wins over --await: the flag promises "read until killed",
+            # and a caller that passes both wants the log tailed for the whole
+            # run, not closed the moment the first pattern lands.
+            if args.pattern and not args.follow and args.pattern in line:
                 return 0
         return 0 if args.follow else 1
 
