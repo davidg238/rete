@@ -22,8 +22,8 @@ and a pending queue; `PortaBridgeNode.nsl` is the minimal node that runs it.
 
 **Source of truth for every decision below:**
 `~/workspace/porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md` (§5 wire,
-§6 node side, D5/D6/D8), `~/workspace/porta/docs/PROTOCOL-NSL.md` §3–§4,
-`~/workspace/porta/docs/PROTOCOL-NSL-RECORDS.md` §2.2/§3/§4, and the shipped Go
+§6 node side, D5/D6/D8), `~/workspace/tuvm/protocol/PROTOCOL-NSL.md` §3–§4,
+`~/workspace/tuvm/protocol/PROTOCOL-NSL-RECORDS.md` §2.2/§3/§4, and the shipped Go
 counterparty `~/workspace/porta/internal/wire/message.go`.
 
 ---
@@ -123,7 +123,7 @@ working code. They are decisions, not preferences; each names what it rules out.
 | `nsl-tests/22_spacesync/*.nsl` | **create** | seq/scan/confinement + bridge frame properties |
 | `tuvm/zephyr/PortaBridgeNode.nsl` | **create** | the minimal node that runs the bridge |
 | `tuvm/tests/porta_sync_host.sh` | **create** | the cross-repo gate: this node vs real `porta serve` |
-| `porta/docs/PROTOCOL-NSL.md` | modify | §4.1 records what actually landed |
+| `protocol/PROTOCOL-NSL.md` | modify | §4.1 records what actually landed |
 | `tuvm/review/tests/CLAIMS.md`, `tuvm/review/program-sequence.md` | modify | the promotion (close-out) |
 
 ---
@@ -1651,7 +1651,7 @@ cd ~/workspace/tuvm && git add tests/porta_sync_host.sh && \
 ### Task 7: Promotion and the loose ends
 
 **Files:**
-- Modify: `porta/docs/PROTOCOL-NSL.md` (§4.1), `tuvm/review/tests/CLAIMS.md`,
+- Modify: `protocol/PROTOCOL-NSL.md` (§4.1), `tuvm/review/tests/CLAIMS.md`,
   `tuvm/review/program-sequence.md`, `tuvm/docs/next-steps-overview.md`
 
 The promotion rule: a rung is not closed until its durable knowledge is in a mainline
@@ -1725,7 +1725,7 @@ gh issue create --title "space-sync: a stream entry written while the bridge is 
 ```bash
 cd ~/workspace/tuvm && git add review/tests/CLAIMS.md review/program-sequence.md docs/next-steps-overview.md && \
   git commit -m "docs(spacesync): promote plan 2 — the ladder, CLAIMS, and what plan 3 still owes"
-cd ~/workspace/porta && git add docs/PROTOCOL-NSL.md && \
+cd ~/workspace/tuvm && git add protocol/PROTOCOL-NSL.md && \
   git commit -m "docs(protocol): §4.1 records the node side as built (porta#25)"
 ```
 

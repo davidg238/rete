@@ -137,7 +137,7 @@ fleet-wide symptom by then.
   flat `Record tag: #Metrics`, published on a `sys/metrics` **cell** (rung 9
   `put:`/`peek:`) so any grantee reads current state by name without draining
   a stream another consumer counts on. Schema pinned
-  `porta/docs/PROTOCOL-NSL-RECORDS.md` §4.4. `nsl-tests/11_supervision/
+  `protocol/PROTOCOL-NSL-RECORDS.md` §4.4. `nsl-tests/11_supervision/
   10_soak_leak.ns` (T-D.5) now asserts a STRICT live-bytes plateau, not the
   completion proxy — the gap above is closed. Design:
   `nsl-tuvm/docs/design/2026-07-14-tuvm24-sys-metrics-design.md`.

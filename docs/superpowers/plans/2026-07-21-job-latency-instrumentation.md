@@ -1208,7 +1208,7 @@ true
 done
 *)
 (* tuvm#61 design 7: one #LatencySpan record PER SLOT on a sys/latency cell —
-   NOT a 12th #Metrics field. porta docs/PROTOCOL-NSL-RECORDS.md 4.4 forbids
+   NOT a 12th #Metrics field. protocol/PROTOCOL-NSL-RECORDS.md 4.4 forbids
    appending there and names this issue as the reason: bucket counts are many
    fields at once. Adding a JOB here adds a record, not a field, which is exactly
    the property #Metrics lacks.
@@ -1258,7 +1258,7 @@ Add inside the `Spans` class in `~/workspace/nsl-tuvm/lib/kernel.nsl`:
 
 ```
     (* One record PER SLOT, published onto sys/latency. Deliberately NOT an
-       extension of #Metrics: porta docs/PROTOCOL-NSL-RECORDS.md 4.4 forbids a
+       extension of #Metrics: protocol/PROTOCOL-NSL-RECORDS.md 4.4 forbids a
        12th field there and names tuvm#61 as the reason, because bucket counts are
        many fields at once. The consequence worth preserving is that adding a JOB
        adds a RECORD, not a field, so this schema never grows.
@@ -1680,7 +1680,7 @@ than tuned after seeing a result."
 
 **Files:**
 - Modify: `review/program-sequence.md`, `review/tests/CLAIMS.md`, `review/metrics-spec.md`
-- Modify: `~/workspace/porta/docs/PROTOCOL-NSL-RECORDS.md` §4.4
+- Modify: `~/workspace/tuvm/protocol/PROTOCOL-NSL-RECORDS.md` §4.4
 - Modify: `src/timer_backend.h` (the #52 footgun note)
 
 **Interfaces:**
@@ -1731,7 +1731,7 @@ Per the promotion rule, #61 is not closed until all five land:
 1. **`review/program-sequence.md`** — the rung and the measured table.
 2. **`review/tests/CLAIMS.md`** — each latency claim with its witness, its **sample count**, and percentiles stated as decades.
 3. **`review/metrics-spec.md`** — the catalog gains a latency group, **and** the line under *Deliberately NOT collected* reading *"histograms (porta can bucket; nodes can't afford the slots)"* must be amended: it is now false, and a spec that contradicts the code is worse than no spec. Say what the slot budget was that made it affordable.
-4. **`~/workspace/porta/docs/PROTOCOL-NSL-RECORDS.md` §4.4** — `#LatencySpan` added to the `sys/**` table, plus both measured encoded sizes from Step 5.
+4. **`~/workspace/tuvm/protocol/PROTOCOL-NSL-RECORDS.md` §4.4** — `#LatencySpan` added to the `sys/**` table, plus both measured encoded sizes from Step 5.
 5. **`src/timer_backend.h` and `src/span_backend.h`** — #52's footgun note gains a third clock. There are now `oevm_millis`, `timer_backend_millis` and `span_now`; the seam headers must say which is which and that only `span_now` is wrap-limited.
 
 - [ ] **Step 7: Commit and close**

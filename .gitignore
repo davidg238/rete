@@ -75,3 +75,42 @@ zephyr/build*/
 # Agent scratch: session config and the SDD ledger/briefs. Not repo content.
 .claude/
 .superpowers/
+
+# --- Merged from nodus/nsl/.gitignore (rete consolidation Task 4) ---
+# grammar/node_modules re-rooted from nodus/nsl/.gitignore:1 — the ohm-js
+# toolchain installed by the nodus/nsl README npm-install bootstrap.
+/nodus/nsl/grammar/node_modules
+
+# .pytest_cache/ was listed (unanchored) in both nodus/nsl/.gitignore and
+# nodus/tests/.gitignore; kept unanchored here, matching the existing
+# __pycache__/ convention above, so any future Python test tree is covered.
+.pytest_cache/
+
+# --- Merged from porta/.gitignore (rete consolidation Task 4) ---
+# Re-rooted so patterns only match inside porta/, not repo-wide.
+/porta/porta
+/porta/cmd/porta/porta
+/porta/**/*.db
+/porta/**/*.db-shm
+/porta/**/*.db-wal
+/porta/**/build/
+/porta/**/build-host/
+/porta/**/.packages/
+/porta/**/*.snapshot
+/porta/**/*.bin
+/porta/**/*.image
+/porta/**/*.envelope
+/porta/**/*.envelope.gz
+/porta/nodus/host/image
+/porta/nodus/host/image.crc32
+/porta/nodus/host/firmware
+/porta/**/*.log
+/porta/deploy/dist/
+/porta/CLAUDE.md
+
+# Tracked-build-artifact D-table names (not migrated into the monorepo history;
+# see the rete consolidation design doc §4/D-table).
+/porta/porta.db
+/porta/porta-soak.log
+/nodus/tuvm/oevm_bench
+/nodus/tuvm/oevm_runner

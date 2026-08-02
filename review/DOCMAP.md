@@ -33,10 +33,10 @@ For content search across the program:
 - `tuvm/docs/MILESTONE_{A,D,E}.md` — milestone close-out records.
 - `tuvm/zephyr/docs/BOARD_PORTS.md` — per-board build/DFU recipes (DK + dongle knobs).
 
-**The wire and the fleet** — `~/workspace/porta/docs/` and `~/workspaceToit/nodus/docs/`:
+**The wire and the fleet** — `~/workspace/tuvm/protocol/` and `~/workspaceToit/nodus/docs/`:
 
-- `porta/docs/PROTOCOL.md` — porta protocol v1, frozen for Toit nodes.
-- `porta/docs/PROTOCOL-NSL.md` + `PROTOCOL-NSL-RECORDS.md` — the nsl space-sync wire;
+- `protocol/v1/PROTOCOL.md` — porta protocol v1, frozen for Toit nodes.
+- `protocol/PROTOCOL-NSL.md` + `PROTOCOL-NSL-RECORDS.md` — the nsl space-sync wire;
   records schemas must be pinned before the bridge rung implements.
 - `nodus/docs/ARCHITECTURE.md` / `NODE-LIFECYCLE.md` — the Toit node implementation.
 

@@ -3,7 +3,13 @@ name: ci
 on:
   push:
     branches: [master]
+    paths: ['porta/**', 'protocol/**', '.github/workflows/porta-*']
   pull_request:
+    paths: ['porta/**', 'protocol/**', '.github/workflows/porta-*']
+
+defaults:
+  run:
+    working-directory: porta
 
 jobs:
   go:
@@ -12,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version-file: porta/go.mod
       - run: go build ./...
       - run: go test ./...
 

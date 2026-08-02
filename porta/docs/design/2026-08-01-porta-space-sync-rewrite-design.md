@@ -472,5 +472,5 @@ Witnessed on the C6 over a real Thread mesh, not simulated:
 
 Host-side coverage lands with it (store, framing, cursor arithmetic); the hardware run is
 what closes the rung. Per the promotion rule, close-out promotes the durable knowledge to
-`~/workspace/tuvm/review/program-sequence.md` and `~/workspace/porta/docs/PROTOCOL-NSL.md`,
+`~/workspace/tuvm/review/program-sequence.md` and `~/workspace/tuvm/protocol/PROTOCOL-NSL.md`,
 which this record amends at D3, D5 and D6.

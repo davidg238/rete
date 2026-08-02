@@ -9,7 +9,7 @@ true
 done
 *)
 (* tuvm#61 design 7: one #LatencySpan record PER SLOT on a sys/latency cell —
-   NOT a 12th #Metrics field. porta docs/PROTOCOL-NSL-RECORDS.md 4.4 forbids
+   NOT a 12th #Metrics field. protocol/PROTOCOL-NSL-RECORDS.md 4.4 forbids
    appending there and names this issue as the reason: bucket counts are many
    fields at once. The property worth preserving is that adding a JOB here adds a
    RECORD, not a field, which is exactly what #Metrics lacks.

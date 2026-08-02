@@ -1202,7 +1202,7 @@ class Kernel usingPlatform: platform = () (
     public p95At: slot = ( ^ self decadeAt: slot percentile: 95 )
 
     (* One record PER SLOT, published onto sys/latency. Deliberately NOT an
-       extension of #Metrics: porta docs/PROTOCOL-NSL-RECORDS.md 4.4 forbids a
+       extension of #Metrics: protocol/PROTOCOL-NSL-RECORDS.md 4.4 forbids a
        12th field there and names tuvm#61 as the reason, because bucket counts are
        many fields at once. The consequence worth preserving is that adding a JOB
        adds a RECORD, not a field — so this schema never grows.
@@ -2935,7 +2935,7 @@ class Kernel usingPlatform: platform = () (
   public heapStats         = ( ^ HeapStats fromList: (platform heapStats) )
   (* tuvm#24: the sys/metrics snapshot — prim 104 (heapStats) + prim 109
      (sysStats) composed into ONE flat immutable Record, the sys/metrics
-     cell's wire schema (pinned in porta/docs/PROTOCOL-NSL-RECORDS.md §4.4).
+     cell's wire schema (pinned in protocol/PROTOCOL-NSL-RECORDS.md §4.4).
      The kernel only BUILDS the record; publishing it onto a cell is the
      app's act, on a user-requested cadence (G9), with the channel arriving
      as a capability — the kernel never conjures space access (Milestone-C

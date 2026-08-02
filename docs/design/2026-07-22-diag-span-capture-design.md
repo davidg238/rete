@@ -3,7 +3,7 @@
 **Date:** 2026-07-22
 **Status:** approved (design), unimplemented
 **Tracking issue:** **#72** (relates #61, #50, #63; constrained by #53; anticipates #32 option B)
-**Constrains / is constrained by:** `~/workspace/porta/docs/PROTOCOL-NSL.md` — but **in the
+**Constrains / is constrained by:** `~/workspace/tuvm/protocol/PROTOCOL-NSL.md` — but **in the
 reverse of the usual direction.** porta and the wire protocol are slated for a total
 do-over (David, 2026-07-22): the command model is scrapped, channels win, and the node side
 is designed first. This document therefore takes porta's *vocabulary* (cells vs streams,

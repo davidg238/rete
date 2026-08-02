@@ -3,7 +3,7 @@
 **Date:** 2026-07-21
 **Status:** approved (design), unimplemented
 **Tracking issue:** **#61** (relates #34, #55, #60; constrained by #53)
-**Constrains / is constrained by:** `~/workspace/porta/docs/PROTOCOL-NSL-RECORDS.md` §2.2
+**Constrains / is constrained by:** `~/workspace/tuvm/protocol/PROTOCOL-NSL-RECORDS.md` §2.2
 (the 256 B `MAX_VALUE_BYTES` cap) and §4.4 (which explicitly forbids a 12th `#Metrics`
 field and names this issue as the reason to split).
 **Standing rules honoured:** `~/workspace/tuvm/review/metrics-spec.md` ("collection is a
@@ -421,7 +421,7 @@ Per the promotion rule, this issue is not closed until:
   collected**, and that line is now wrong. It must be amended to say per-job latency
   buckets are collected, with the slot budget that made it affordable — otherwise the
   spec contradicts the code.
-- **`~/workspace/porta/docs/PROTOCOL-NSL-RECORDS.md` §4.4** — `#LatencySpan` added to the
+- **`~/workspace/tuvm/protocol/PROTOCOL-NSL-RECORDS.md` §4.4** — `#LatencySpan` added to the
   `sys/**` table, plus the measured encoded sizes from §7.
 - **`src/timer_backend.h` / `src/span_backend.h`** — #52's footgun note gains a third
   clock. There are now `oevm_millis`, `timer_backend_millis`, and `span_now`; the seam
@@ -605,4 +605,4 @@ Per the promotion rule this document is the historical *why*; the current statem
 record are `review/program-sequence.md` (the rung and the table),
 `review/tests/CLAIMS.md` (three rows), `review/metrics-spec.md` (the latency group, and
 the removal of its now-false "nodes can't afford the slots" line) and
-`porta/docs/PROTOCOL-NSL-RECORDS.md` §4.4 (`sys/latency` plus both measured sizes).
+`protocol/PROTOCOL-NSL-RECORDS.md` §4.4 (`sys/latency` plus both measured sizes).

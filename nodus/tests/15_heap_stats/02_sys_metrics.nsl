@@ -12,7 +12,7 @@ done
 *)
 (* tuvm#24: the sys/metrics story end-to-end — prim 109 (sysStats) + kernel
    metrics (the 9-field flat Record, schema pinned in
-   porta/docs/PROTOCOL-NSL-RECORDS.md) + the sys/metrics CELL (rung 9): a
+   protocol/PROTOCOL-NSL-RECORDS.md) + the sys/metrics CELL (rung 9): a
    reader peeks current state by NAME, non-destructively, without draining a
    stream another consumer counts on (WHY-AGENTS rider). Absolute values vary
    run-to-run, so this asserts structural invariants only (01_invariants

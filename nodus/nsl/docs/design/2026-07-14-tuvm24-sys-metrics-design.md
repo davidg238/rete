@@ -77,7 +77,7 @@ change; a couple of integer ops per event.
   `cell put: '' value: kernel metrics` on whatever cadence it wired. **No periodic publisher
   ships this rung** (G9: no unrequested periodic work — a future keeper/app wires a timer
   reaction when it wants cadence). T-D.5 and the schema test pull explicitly.
-- **Schema pinned in `porta/docs/PROTOCOL-NSL-RECORDS.md`** as part of this rung (2026-07-11
+- **Schema pinned in `~/workspace/tuvm/protocol/PROTOCOL-NSL-RECORDS.md`** as part of this rung (2026-07-11
   addendum rule: per-prefix record schemas pinned before first implementation).
 
 ## 4 — Strict T-D.5 + tests + gates

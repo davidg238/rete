@@ -239,7 +239,7 @@ Hazards the gate is written against:
 | `internal/wire/server.go` | modify | the drop hook: a counter and one branch on the outbound ack path, *after* the commit, with the ordering explained in the doc comment |
 | `internal/portacli/serve.go` | modify | `--test-drop-ack N`, default 0, help text marking it test-only |
 | `internal/wire/server_test.go` | modify/create | with N=3 the third ack never leaves **and** the store shows that push applied |
-| `docs/PROTOCOL-NSL.md` | modify | close-out |
+| `~/workspace/tuvm/protocol/PROTOCOL-NSL.md` | modify | close-out |
 
 No change to `deploy/` — the gate runs the binary directly and the unit stays disabled.
 
@@ -284,7 +284,7 @@ flakiness is what the contiguity assertion already tolerates.
 - `~/workspace/tuvm/review/program-sequence.md` — the rung closes, stating what the radio
   added over loopback: fragmentation-driven real loss, and the `seq <= hw` dedupe
   witnessed rather than reasoned about.
-- `~/workspace/porta/docs/PROTOCOL-NSL.md` §4.1 — one paragraph on what hardware taught,
+- `~/workspace/tuvm/protocol/PROTOCOL-NSL.md` §4.1 — one paragraph on what hardware taught,
   including the 512 B / 127 B fragmentation consequence, which is a protocol-sizing fact
   and not a bench anecdote.
 - `~/workspace/tuvm/docs/next-steps-overview.md` — porta → channels moves off

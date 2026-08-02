@@ -70,7 +70,7 @@ legs themselves.
 | `tuvm/zephyr/PortaBridgeNodeC6.nsl` | **create** | the C6 node: plan 2's body, C6 constants, per-tick line |
 | `tuvm/tests/porta_c6_console.py` | **create** | the single console handle; tees to a log |
 | `tuvm/tests/porta_sync_c6.sh` | **create** | the four-leg hardware gate |
-| `tuvm/review/tests/CLAIMS.md`, `tuvm/review/program-sequence.md`, `tuvm/docs/next-steps-overview.md`, `porta/docs/PROTOCOL-NSL.md` | modify | close-out promotion |
+| `tuvm/review/tests/CLAIMS.md`, `tuvm/review/program-sequence.md`, `tuvm/docs/next-steps-overview.md`, `tuvm/protocol/PROTOCOL-NSL.md` | modify | close-out promotion |
 
 ---
 
@@ -1105,7 +1105,7 @@ cd ~/workspace/tuvm && git add docs/spikes/2026-08-01-c6-gate-run1.log && \
 - Modify: `~/workspace/tuvm/review/tests/CLAIMS.md`,
   `~/workspace/tuvm/review/program-sequence.md`,
   `~/workspace/tuvm/docs/next-steps-overview.md`,
-  `~/workspace/porta/docs/PROTOCOL-NSL.md`
+  `~/workspace/tuvm/protocol/PROTOCOL-NSL.md`
 
 The promotion rule: a rung is not closed until its durable knowledge is in a mainline
 document of record. The dated design stays behind as the historical "why".
@@ -1136,7 +1136,7 @@ recoverable from the code:
 
 - [ ] **Step 3: Amend PROTOCOL-NSL §4.1**
 
-Append to `~/workspace/porta/docs/PROTOCOL-NSL.md` §4.1, after the plan-2 paragraph:
+Append to `~/workspace/tuvm/protocol/PROTOCOL-NSL.md` §4.1, after the plan-2 paragraph:
 
 ```markdown
 **What hardware added (2026-08-01, plan 3 — the C6 gate).** The exchange was witnessed on
@@ -1175,7 +1175,7 @@ gh issue create --title "PortaBridge>>awaitReply consumes the first datagram, wh
 ```bash
 cd ~/workspace/tuvm && git add review/tests/CLAIMS.md review/program-sequence.md docs/next-steps-overview.md && \
   git commit -m "docs(spacesync): close the rung — the C6 hardware gate is green (porta#25)"
-cd ~/workspace/porta && git add docs/PROTOCOL-NSL.md && \
+cd ~/workspace/tuvm && git add protocol/PROTOCOL-NSL.md && \
   git commit -m "docs(protocol): §4.1 records what hardware added (porta#25)"
 ```
 

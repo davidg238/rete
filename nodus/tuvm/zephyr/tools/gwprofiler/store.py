@@ -1,5 +1,5 @@
 """porta-lite store: space_cells + space_events, SQLite (stdlib).
-Schema mirrors porta/docs/PROTOCOL-NSL.md:349-352. value stored as JSON text
+Schema mirrors protocol/PROTOCOL-NSL.md:349-352. value stored as JSON text
 (the codec's decoded dict) rather than raw CBOR — the gw is the readable end."""
 import json
 import sqlite3

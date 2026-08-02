@@ -473,7 +473,7 @@ Decided in the 2026-07-11 architecture review (David's calls); owner docs writte
   → C-side driver job → custom prims). Ladder for phase-2 rung 2+: **BME280 → AMG8833 Grid-EYE
   (native Zephyr driver, same Tier-1 binding) → character-grid UI on a 128×128 TFT. LVGL is
   dropped, not deferred.**
-- **Porta wire** (`porta/docs/PROTOCOL-NSL.md`, porta#23): porta protocol v1 is frozen for Toit
+- **Porta wire** (`protocol/PROTOCOL-NSL.md`, porta#23): porta protocol v1 is frozen for Toit
   nodes; **nsl nodes speak a space-sync protocol** (goal/obs retained trees + event channels,
   cursor sync; `take:` never crosses the wire; payload bulk + auth off-space). This refines
   phase 3 item 1 (keeper/porta rejoin) and the CBOR wire rung: pin per-prefix record schemas
@@ -521,7 +521,7 @@ Decided in the 2026-07-11 architecture review (David's calls); owner docs writte
   it reacts to any channel") and §3.3 ("the protocol IS the space, filtered by grant") are only
   true if the space owns it. Nothing downstream — bridge job, porta store, fleet-sim — is safe
   to build first. Decision material: `review/retained-channels-v2.html` (the current deck; v1
-  kept alongside for contrast) and `porta/docs/PROTOCOL-NSL-RECORDS.md`.
+  kept alongside for contrast) and `protocol/PROTOCOL-NSL-RECORDS.md`.
 
   **Reframed 2026-07-12 (David's read):** a channel is a **name**, not a pointer, so the real
   question is what the name resolves to and *who can answer it*. Consequences: (a) **"retained"
@@ -545,7 +545,7 @@ Decided in the 2026-07-11 architecture review (David's calls); owner docs writte
   second customer, not C.** New hazard found and filed: **porta#24** — a node whose cursor falls
   behind porta's tombstone retention is **silently stranded** (etcd's compaction-vs-watch bug).
 
-- **The records precondition is met.** `porta/docs/PROTOCOL-NSL-RECORDS.md` (porta `921e8a4`)
+- **The records precondition is met.** `protocol/PROTOCOL-NSL-RECORDS.md` (porta `921e8a4`)
   pins the per-prefix schemas the 2026-07-11 addendum required *before* implementation, and adds
   the **size law**: the binding constraint on message size is the **radio, not the heap** —
   6LoWPAN fragments above ~102 B and a datagram survives only if every fragment does, so at the

@@ -81,7 +81,7 @@ site, or have the bridge peek-on-write. Test this before anything else.
 
 ## 5. Gateway side — porta-lite, one slice
 
-The store is porta's schema (`porta/docs/PROTOCOL-NSL.md:349-352`), in SQLite (stdlib — still a
+The store is porta's schema (`protocol/PROTOCOL-NSL.md:349-352`), in SQLite (stdlib — still a
 python hack, no new dependency):
 
 ```

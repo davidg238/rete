@@ -350,11 +350,11 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'store'`.
 
 - [ ] **Step 8: Implement `store.py`**
 
-Value stored as JSON text (the decoded dict), keyed exactly like porta's `space_cells`/`space_events` (`porta/docs/PROTOCOL-NSL.md:349-352`); `node_id` is the source address until tuvm#74 (design §5, §7):
+Value stored as JSON text (the decoded dict), keyed exactly like porta's `space_cells`/`space_events` (`protocol/PROTOCOL-NSL.md:349-352`); `node_id` is the source address until tuvm#74 (design §5, §7):
 
 ```python
 """porta-lite store: space_cells + space_events, SQLite (stdlib).
-Schema mirrors porta/docs/PROTOCOL-NSL.md:349-352. value stored as JSON text
+Schema mirrors protocol/PROTOCOL-NSL.md:349-352. value stored as JSON text
 (the codec's decoded dict) rather than raw CBOR — the gw is the readable end."""
 import json
 import sqlite3

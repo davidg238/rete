@@ -265,7 +265,7 @@ done
 *)
 (* tuvm#24: the sys/metrics story end-to-end — prim 109 (sysStats) + kernel
    metrics (the 9-field flat Record, schema pinned in
-   porta/docs/PROTOCOL-NSL-RECORDS.md) + the sys/metrics CELL (rung 9): a
+   protocol/PROTOCOL-NSL-RECORDS.md) + the sys/metrics CELL (rung 9): a
    reader peeks current state by NAME, non-destructively, without draining a
    stream another consumer counts on (WHY-AGENTS rider). Absolute values vary
    run-to-run, so this asserts structural invariants only (01_invariants
@@ -372,7 +372,7 @@ Directly after `public heapStats` (line 2028):
 ```
   (* tuvm#24: the sys/metrics snapshot — prim 104 (heapStats) + prim 109
      (sysStats) composed into ONE flat immutable Record, the sys/metrics
-     cell's wire schema (pinned in porta/docs/PROTOCOL-NSL-RECORDS.md §4.4).
+     cell's wire schema (pinned in protocol/PROTOCOL-NSL-RECORDS.md §4.4).
      The kernel only BUILDS the record; publishing it onto a cell is the
      app's act, on a user-requested cadence (G9), with the channel arriving
      as a capability — the kernel never conjures space access (Milestone-C
@@ -516,7 +516,7 @@ git commit -m "test(tuvm#24): T-D.5 strict heap-high-water plateau — the leak 
 ### Task 5: Pin the wire schema (porta)
 
 **Files:**
-- Modify: `~/workspace/porta/docs/PROTOCOL-NSL-RECORDS.md` §4.4 (the `sys/**` catalogue table)
+- Modify: `~/workspace/tuvm/protocol/PROTOCOL-NSL-RECORDS.md` §4.4 (the `sys/**` catalogue table)
 
 **Interfaces:**
 - Consumes: Task 3's exact field list (the schema and `kernel metrics` must agree symbol-for-symbol).
@@ -545,7 +545,7 @@ published explicitly.
 - [ ] **Step 2: Commit (porta)**
 
 ```bash
-cd ~/workspace/porta && git add docs/PROTOCOL-NSL-RECORDS.md
+cd ~/workspace/tuvm && git add protocol/PROTOCOL-NSL-RECORDS.md
 git commit -m "docs(tuvm#24): pin sys/metrics cell schema — 9-field Metrics record"
 ```
 
