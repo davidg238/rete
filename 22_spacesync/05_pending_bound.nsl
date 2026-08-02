@@ -1,0 +1,60 @@
+(*
+porta space-sync — the bridge's pending queue is BOUNDED.
+
+Found on hardware (plan 3, Task 5): with the gateway unreachable, `applyAck:` never
+runs, `pending` grows on every captured stream write, and the node OOMs and panics
+at about ninety seconds on a 128 KB heap. A miss must cost latency and BOUNDED
+loss, never unbounded memory.
+
+The loss is deliberate and it is counted: dropping silently would make a node that
+threw away telemetry indistinguishable from one that had none to send.
+
+Oldest-first, because for tel/** the newest entry is the one worth keeping — and it
+keeps the surviving rows in ascending seq order, which the push frame requires.
+
+socket: nil is the whole test rig: no send, no receive, so no ack, forever.
+expect:
+pending starts 0
+pending bounded true
+dropped grew true
+newest kept true
+oldest evicted true
+*)
+class PendingBound packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space bridge cap n last rows sawOld |
+    space:: platform space.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969.
+    bridge subscribeStream: 'tel/log'.
+
+    ('pending starts ' , bridge pendingSize printString) out.
+
+    (* Write far more than the cap. 4x is enough to prove a bound without making
+       the test slow. `drain` runs inline: `out:` only enqueues onto the space's
+       own fixed-depth ring (OEVM_SPACE_QUEUE_DEPTH, space.h) — undrained, THAT
+       ring overruns and sheds posts long before PortaBridge ever sees them,
+       which would prove the wrong bound. Draining every write is what a real
+       check-in tick does (the node's own `report`/`checkIn` loop calls `space
+       drain` every tick), so this is the reaction actually running, not a queue
+       starving upstream of it. *)
+    cap:: bridge maxPending.
+    n:: cap * 4.
+    1 to: n do: [ :i | space out: 'tel/log' value: i. space drain ].
+
+    ('pending bounded ' , (bridge pendingSize <= cap) printString) out.
+    ('dropped grew ' , (bridge dropped >= (n - cap)) printString) out.
+
+    (* The newest write must have survived, and the very first must not have. Read
+       the queue through the push frame the bridge would actually send: rows carry
+       {seq, path, kind, value} and the value is what `space out:` wrote. *)
+    rows:: bridge pendingRows.
+    last:: (rows at: rows size) at: 4.
+    ('newest kept ' , (last = n) printString) out.
+    sawOld:: false.
+    1 to: rows size do: [ :i | ((rows at: i) at: 4) = 1 ifTrue: [ sawOld:: true ] ].
+    ('oldest evicted ' , sawOld not printString) out.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)
