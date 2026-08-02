@@ -37,7 +37,7 @@ func defaultAllowCIDR() []string {
 // with --http-port 0, and the health endpoint stays up if the mesh is quiet.
 func newServeCmd() *cobra.Command {
 	var udpAddr, httpBind string
-	var httpPort int
+	var httpPort, testDropAck int
 	var httpAllowCIDR []string
 	cmd := &cobra.Command{
 		Use:   "serve",
@@ -53,8 +53,13 @@ func newServeCmd() *cobra.Command {
 			// Process-lifetime stats shared by the HTTP surface.
 			stats := serverstat.New(version, commit, nowSec)
 
+			srv := wire.NewServer(st, log.Printf)
+			if testDropAck > 0 {
+				srv.SetDropAckEvery(testDropAck)
+				log.Printf("porta: TEST-DROP ACTIVE — every %d-th #ack will be swallowed AFTER commit", testDropAck)
+			}
 			udpErr := make(chan error, 1)
-			go func() { udpErr <- wire.NewServer(st, log.Printf).ListenAndServe(ctx, udpAddr) }()
+			go func() { udpErr <- srv.ListenAndServe(ctx, udpAddr) }()
 			log.Printf("porta: serving the space on udp %s (db=%s)", udpAddr, dbPath)
 
 			// When --http-port 0, httpErr stays nil so the select arm blocks
@@ -86,6 +91,8 @@ func newServeCmd() *cobra.Command {
 	cmd.Flags().StringSliceVar(&httpAllowCIDR, "http-allow-cidr",
 		defaultAllowCIDR(),
 		"CIDR ranges allowed to reach the operator HTTP listener (repeatable; empty = serve any peer)")
+	cmd.Flags().IntVar(&testDropAck, "test-drop-ack", 0,
+		"TEST ONLY: swallow every Nth outbound #ack AFTER the push is committed (0 = off)")
 	return cmd
 }
 

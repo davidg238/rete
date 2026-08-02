@@ -111,7 +111,7 @@ func TestOutboundStopsAtBatchCap(t *testing.T) {
 func TestOutboundNeverEchoesIngestedCells(t *testing.T) {
 	st := testStore(t)
 	st.Write("n1", "goal/name", cval.KindCell, enc(t, "alpha"), "david", "")
-	if _, err := st.Ingest("n1", 7, []Entry{
+	if _, _, err := st.Ingest("n1", 7, []Entry{
 		{Seq: 1, Path: "obs/name", Kind: cval.KindCell, Value: enc(t, "alpha")},
 		{Seq: 2, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(99))},
 	}); err != nil {
@@ -136,18 +136,20 @@ func TestOutboundNeverEchoesIngestedCells(t *testing.T) {
 }
 
 // A push replayed after loss must not double-apply (dedup on high-water).
+// The skip count is asserted too: it is what makes the dedupe observable
+// rather than provable only by the absence of a duplicate.
 func TestIngestDedupesOnHighWater(t *testing.T) {
 	st := testStore(t)
 	batch := []Entry{
 		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: enc(t, "one")},
 		{Seq: 2, Path: "tel/log", Kind: cval.KindStream, Value: enc(t, "two")},
 	}
-	hw, err := st.Ingest("n1", 7, batch)
-	if err != nil || hw != 2 {
-		t.Fatalf("Ingest = %d, %v; want 2, nil", hw, err)
+	hw, skipped, err := st.Ingest("n1", 7, batch)
+	if err != nil || hw != 2 || skipped != 0 {
+		t.Fatalf("Ingest = %d, %d, %v; want 2, 0, nil", hw, skipped, err)
 	}
-	if hw, _ = st.Ingest("n1", 7, batch); hw != 2 {
-		t.Fatalf("replayed Ingest = %d, want 2", hw)
+	if hw, skipped, err = st.Ingest("n1", 7, batch); hw != 2 || skipped != 2 || err != nil {
+		t.Fatalf("replayed Ingest = %d, %d, %v; want 2, 2, nil", hw, skipped, err)
 	}
 	evs, _ := st.Events("n1", 100)
 	if len(evs) != 2 {

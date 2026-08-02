@@ -15,6 +15,14 @@ import (
 type Server struct {
 	st   *space.Store
 	logf func(string, ...any)
+
+	// TEST-ONLY fault injection — see SetDropAckEvery. acks is a FLEET-WIDE
+	// counter (one Server serves every node on the port), so "every Nth ack"
+	// is a global modulo across whichever nodes are checking in — harmless on
+	// a single-node bench, but a second node would steal some of the first
+	// node's drops and vice versa. Fine for what this exists to test.
+	dropAckEvery int
+	acks         int
 }
 
 func NewServer(st *space.Store, logf func(string, ...any)) *Server {
@@ -22,6 +30,36 @@ func NewServer(st *space.Store, logf func(string, ...any)) *Server {
 		logf = func(string, ...any) {}
 	}
 	return &Server{st: st, logf: logf}
+}
+
+// SetDropAckEvery makes the UDP loop swallow every Nth outbound #ack. TEST ONLY;
+// 0 (the zero value) disables it, so a production gateway is unaffected by the
+// field's existence.
+//
+// The swallow happens in ListenAndServe, AFTER handle() has ingested the push
+// and advanced the high-water. That position is load-bearing and is the whole
+// reason the injector lives in the gateway rather than in a firewall rule: the
+// node must re-push rows porta has ALREADY applied, so the `seq <= hw` dedupe is
+// what stops the duplicate. Dropping the datagram BEFORE the commit would only
+// reproduce a lost push — the node re-pushes, porta applies once, and the
+// exactly-once assertion passes without ever exercising the dedupe.
+//
+// Not concurrency-safe, and does not need to be: ListenAndServe is one
+// goroutine and the setter is called before it starts.
+func (s *Server) SetDropAckEvery(n int) { s.dropAckEvery = n }
+
+// swallowAck counts outbound acks and answers whether this one is the Nth. A
+// #batch or an #err is never swallowed: starving the pull half stalls the
+// node's cursor, which is a different failure from the one being injected.
+func (s *Server) swallowAck(resp []byte) bool {
+	if s.dropAckEvery <= 0 {
+		return false
+	}
+	if _, err := DecodeAck(resp); err != nil {
+		return false
+	}
+	s.acks++
+	return s.acks%s.dropAckEvery == 0
 }
 
 // Handle turns one request datagram into one response datagram. It is pure
@@ -36,7 +74,13 @@ func (s *Server) Handle(req []byte) []byte { return s.HandleFrom(req, "") }
 func (s *Server) HandleFrom(req []byte, peer string) []byte {
 	resp, err := s.handle(req, peer)
 	if err != nil {
-		s.logf("porta: rejecting datagram: %v", err)
+		// Name the sender and show the bytes. A bare "rejecting datagram:
+		// trailing bytes" cannot distinguish one misbehaving node from another,
+		// nor a framing bug from a stray sender on the port — which is exactly
+		// the ambiguity that cost an afternoon during the C6 bring-up. The hex
+		// is capped so a hostile or confused peer cannot flood the log.
+		s.logf("porta: rejecting datagram from %s (%d bytes): %v; hex=%x",
+			peer, len(req), err, req[:min(len(req), 96)])
 		return encodeErr(err.Error())
 	}
 	return resp
@@ -121,9 +165,18 @@ func (s *Server) handlePush(r cval.Record, peer string) ([]byte, error) {
 	if len(entries) > 0 {
 		lo = entries[0].Seq
 	}
-	hw, err := s.st.Ingest(id, bootID, entries)
+	hw, skipped, err := s.st.Ingest(id, bootID, entries)
 	if err != nil {
 		return nil, err
+	}
+	// Only when skipped > 0, so an ordinary push stays quiet. This is what
+	// makes the seq <= hw dedupe OBSERVABLE rather than merely reasoned
+	// about: previously it was a silent skip, provable only by the ABSENCE
+	// of a duplicate — which reads identically to a node that never
+	// re-pushed at all.
+	if skipped > 0 {
+		s.logf("porta: push from %s skipped %d already-applied row(s) (high-water %d)",
+			id, skipped, hw)
 	}
 	if err := s.st.RecordExchange(id, bootID, 0, 0, lo, hw, peer); err != nil {
 		return nil, err
@@ -154,6 +207,10 @@ func (s *Server) ListenAndServe(ctx context.Context, addr string) error {
 		req := make([]byte, n)
 		copy(req, buf[:n])
 		resp := s.HandleFrom(req, peer.String())
+		if s.swallowAck(resp) {
+			s.logf("porta: TEST-DROP: ack %d to %s swallowed after commit", s.acks, peer)
+			continue
+		}
 		if _, err := pc.WriteTo(resp, peer); err != nil {
 			s.logf("porta: reply to %s failed: %v", peer, err)
 		}

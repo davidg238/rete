@@ -147,3 +147,16 @@ func TestAwaitServeExitPropagatesListenerErrors(t *testing.T) {
 		t.Errorf("clean http then udp error: got %v, want errSentinel", got)
 	}
 }
+
+// The injector must be off unless asked for: a gateway that silently drops one
+// ack in three is a gateway that manufactures the very bug the flag exists to
+// study.
+func TestServeRegistersTestDropAckFlagDefaultingToOff(t *testing.T) {
+	f := newServeCmd().Flags().Lookup("test-drop-ack")
+	if f == nil {
+		t.Fatal("--test-drop-ack is not registered")
+	}
+	if f.DefValue != "0" {
+		t.Fatalf("default = %q, want \"0\" (off)", f.DefValue)
+	}
+}
