@@ -1524,7 +1524,7 @@ class Kernel usingPlatform: platform = () (
      every unexpected tag and every out-of-authority path is a counted drop. *)
   class PortaBridge = (
     | socket space nodeId peerHost peerPort
-      cursor ::= 0. acked ::= 0. rejected ::= 0. misses ::= 0.
+      cursor ::= 0. acked ::= 0. rejected ::= 0. misses ::= 0. dropped ::= 0.
       pending ::= OrderedCollection new. |
   ) (
     setSocket: s space: sp id: anId peer: h port: p = (
@@ -1546,11 +1546,27 @@ class Kernel usingPlatform: platform = () (
     maxRows = ( ^ 8 )
     replyBudget = ( ^ 2000 )   (* ms to wait for one reply before scoring a miss *)
 
+    (* The pending queue is BOUNDED. Found on hardware: with the gateway
+       unreachable, applyAck: never runs and this queue is the only thing that
+       grows — the node OOMs and panics at about ninety seconds. A miss must cost
+       latency and bounded loss, never unbounded memory (plan 2's N7 said
+       otherwise; the bench corrected it).
+
+       64 rows is eight full pushes of backlog at maxRows = 8, which is a real
+       reconnection window, and at four smallish fields a row it is far from the
+       heap. Oldest-first eviction: for tel/** the newest entry is the one worth
+       keeping, and it leaves the survivors in ascending seq order, which the push
+       frame requires. sys/panic is marked must-deliver in RECORDS and needs a
+       different answer than "drop it" — that is a design question, not this cap. *)
+    maxPending = ( ^ 64 )
+
     public cursor = ( ^ cursor )
     public acked = ( ^ acked )
     public rejected = ( ^ rejected )
     public misses = ( ^ misses )
+    public dropped = ( ^ dropped )
     public pendingSize = ( ^ pending size )
+    public pendingRows = ( ^ pending )
 
     (* ---- outbound stream capture ------------------------------------------
        A cell can be re-read at check-in time; a stream entry cannot — the
@@ -1567,6 +1583,9 @@ class Kernel usingPlatform: platform = () (
       ^ self )
     capture: absolutePath value: v = (
       pending add: (List with: space stamp with: absolutePath with: 1 with: v).
+      [ pending size > self maxPending ] whileTrue: [
+        pending removeFirst.
+        dropped:: dropped + 1 ].
       ^ self )
 
     (* ---- the pull half ---------------------------------------------------- *)
