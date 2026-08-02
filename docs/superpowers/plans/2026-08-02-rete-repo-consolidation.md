@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- **NEVER pass `--squash` to `git subtree add`.** It collapses the incoming repo to one commit and destroys the history that D5 exists to preserve. Every subtree task carries a commit-count gate to catch it.
+- **NEVER pass `--squash` to `git subtree add`.** It collapses the incoming repo to one commit and destroys the history that D5 exists to preserve. Every subtree task carries an **ancestry** gate to catch it — `git merge-base --is-ancestor <source-head> HEAD`. A path-scoped `git log -- <prefix> | wc -l` is NOT that gate: it reads 1 whether or not `--squash` was used (Task 2 Step 3 explains why).
 - **Never create a GitHub repo named `tuvm` again.** Doing so silently breaks the `tuvm` → `rete` rename redirect, and with it every old issue and clone URL.
 - **Nothing in `review/` may be swept, tidied, renamed, reordered or deleted.** It moves as a whole tree via `git mv`, contents untouched. This is D10, granted by explicit permission on 2026-08-02.
 - **The full nsl gate is `239 passed, 0 failed`** with aux gates grant / debugger-integration / portability-32 / boot-gc-asan / deepsleep all PASS. `footprint: SKIP (no arm-zephyr-eabi toolchain)` is pre-existing and expected.
@@ -255,13 +255,16 @@ Expected: `Added dir 'nodus/nsl'`. No `--squash`. This is the Global Constraint.
 
 ```bash
 cd ~/workspace/tuvm
-git log --oneline -- nodus/nsl | wc -l
-git log --oneline --all | grep -c 639666a || echo "MISSING: the nsl-tuvm #108 merge SHA"
+git merge-base --is-ancestor 639666a HEAD && echo "ANCESTRY OK" || echo "D5 FAILURE"
+git rev-list 639666a | wc -l
+git log --oneline -1 639666a
 ```
 
-Expected: the first number matches Step 1's count (within a commit or two for the merge itself), **not 1**. The second confirms an original SHA is still resolvable — `639666a` is the nsl-tuvm `#108` merge, and D5 exists so that citations like it keep working.
+Expected: `ANCESTRY OK`; the `rev-list` count matches Step 1's count; and `639666a` — the nsl-tuvm `#108` merge — still resolves by SHA, which is what D5 exists for.
 
-If the count is 1, `git reset --hard HEAD~2` and redo Step 2 without `--squash`.
+If ancestry fails, `git reset --hard HEAD~2` and redo Step 2 without `--squash`.
+
+> **Do NOT use `git log --oneline -- nodus/nsl | wc -l` as the anti-`--squash` gate.** It returns **1** on a correct, non-squashed subtree add, so it cannot distinguish the two cases. `git subtree add` merges the source commit with its files at their *original* paths (`tools/…`); the `nodus/nsl/` prefix exists only in the merge's result tree, so no historical commit touches that pathspec and both plain and `--full-history` path logs stop at the merge. Verified empirically at Task 2 (2026-08-02) and reproduced in an isolated scratch repo. Ancestry is the real gate: `--squash` produces a commit with **no** link to the source head, so `merge-base --is-ancestor` fails exactly when history was destroyed.
 
 - [ ] **Step 4: Point the moved shell scripts at the in-repo path**
 
@@ -332,12 +335,14 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 cd ~/workspace/tuvm
 git remote add tests-src ~/workspace/nsl-tests
 git fetch tests-src
+SRC=$(git rev-parse tests-src/master)
 git log --oneline tests-src/master | wc -l   # record this
 git subtree add --prefix=nodus/tests tests-src master
-git log --oneline -- nodus/tests | wc -l     # must match, must not be 1
+git merge-base --is-ancestor $SRC HEAD && echo "ANCESTRY OK" || echo "D5 FAILURE"
+git rev-list $SRC | wc -l                    # must match the recorded count
 ```
 
-Expected: the two counts match. If the second is 1, `--squash` slipped in — reset and redo.
+Expected: `ANCESTRY OK` and the two counts match. If ancestry fails, `--squash` slipped in — reset and redo. (Do **not** substitute `git log -- nodus/tests | wc -l`; it reads 1 even when history is intact — see the note at Task 2 Step 3.)
 
 - [ ] **Step 2: Repoint the three `nsl-tests` lookups in the harness**
 
@@ -432,10 +437,14 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 cd ~/workspace/tuvm
 git remote add porta-src ~/workspace/porta
 git fetch porta-src
+SRC=$(git rev-parse porta-src/master)
 git log --oneline porta-src/master | wc -l   # record
 git subtree add --prefix=porta porta-src master
-git log --oneline -- porta | wc -l           # must match, must not be 1
+git merge-base --is-ancestor $SRC HEAD && echo "ANCESTRY OK" || echo "D5 FAILURE"
+git rev-list $SRC | wc -l                    # must match the recorded count
 ```
+
+Expected: `ANCESTRY OK` and the two counts match. (Not a path-scoped `git log` count — see the note at Task 2 Step 3.)
 
 - [ ] **Step 2: Hoist the protocol documents (D3)**
 
@@ -822,11 +831,13 @@ cd /tmp/rete-gate/rete
 for s in 639666a a0ed88f bdbedf9 0fb9a21; do
   printf "%s: " "$s"; git log --oneline -1 "$s" 2>/dev/null || echo "MISSING"
 done
-git log --oneline -- nodus/nsl | wc -l
-git log --oneline -- porta | wc -l
+for s in 639666a a0ed88f bdbedf9 0fb9a21; do
+  printf "%s ancestry: " "$s"
+  git merge-base --is-ancestor "$s" HEAD 2>/dev/null && echo OK || echo "D5 FAILURE"
+done
 ```
 
-Expected: all four SHAs resolve (they are cited in `review/program-sequence.md`), and neither path count is 1. If any is missing, `--squash` got in somewhere — that is a D5 failure and the subtree task must be redone.
+Expected: all four SHAs resolve (they are cited in `review/program-sequence.md`) and all four are ancestors of `HEAD`. If any is missing or non-ancestral, `--squash` got in somewhere — that is a D5 failure and the subtree task must be redone. (Path-scoped `git log -- nodus/nsl | wc -l` is **not** a valid check here — see the note at Task 2 Step 3.)
 
 - [ ] **Step 6: Archive the four old repos**
 
