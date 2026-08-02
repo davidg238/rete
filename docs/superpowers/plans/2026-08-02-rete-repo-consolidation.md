@@ -793,23 +793,33 @@ merely *cited* — and only in the mainline documents of record, per David's
 ruling of 2026-08-02. The historical record is deliberately left alone and is
 filed as a deferral in Task 8 Step 2b.
 
-Counts measured 2026-08-02 (`grep -rE 'nsl-tests/|nsl-tuvm/|~/workspace/(nsl-tuvm|nsl-tests|porta)'`):
+Counts measured 2026-08-02 against the tree at `252ff1c`, with ONE combined
+regex — `grep -rE 'nsl-tests/|nsl-tuvm/|~/workspace/(nsl-tuvm|nsl-tests|porta)'`.
+Do not sum separate per-pattern greps: `~/workspace/nsl-tuvm/docs/x` matches two
+of those alternatives at once, and summing them overcounts by ~35% (1,424 vs
+the true 1,050). An earlier revision of this step made exactly that mistake.
+
+**In scope here — 106 hits in 16 files:**
 
 | target | hits | files | treatment |
 |---|---|---|---|
-| `review/DOCMAP.md` | 163 | 1 | **do not hand-edit** — Step 4 regenerates it |
-| `review/program-sequence.md` | 19 | 1 | hand-edit |
-| `review/tests/CLAIMS.md` | 37 | 1 | hand-edit |
-| `review/lib/**` | 11 | — | hand-edit |
-| rest of `review/` | ~34 | — | hand-edit |
+| `review/` except `DOCMAP.md` | 101 | 14 | hand-edit (incl. `program-sequence.md` 19, `tests/CLAIMS.md` 37, `lib/**` 7) |
+| `protocol/PROTOCOL-NSL-RECORDS.md` | 3 | 1 | hand-edit — this is the LIVE contract Task 4 hoisted; it is not history |
 | `docs/next-steps-overview.md` | 2 | 1 | Step 5 covers it |
 | `CLAUDE.md` | 0 | — | nothing to do |
+| `review/DOCMAP.md` | 163 | 1 | **do not hand-edit** — Step 4 regenerates it |
+
+Everything else — 781 hits in 77 files — is the historical record and is
+deferred by Task 8 Step 2b. The three buckets sum to 1,050 across 94 files; if
+your recount does not reconcile, find the remainder before editing. Doing that
+reconciliation is what surfaced `protocol/PROTOCOL-NSL-RECORDS.md` sitting in
+the wrong bucket.
 
 ```bash
 cd ~/workspace/tuvm
 grep -rnE 'nsl-tests/|nsl-tuvm/|~/workspace/(nsl-tuvm|nsl-tests|porta)' \
-  review/ docs/next-steps-overview.md CLAUDE.md --include=*.md --include=*.html \
-  | grep -v '^review/DOCMAP.md'
+  review/ protocol/ docs/next-steps-overview.md CLAUDE.md \
+  --include=*.md --include=*.html | grep -v '^review/DOCMAP.md'
 ```
 
 Rewrite each hit: `nsl-tests/X` → `nodus/tests/X`, `nsl-tuvm/X` → `nodus/nsl/X`,
@@ -1061,19 +1071,24 @@ an oversight.
 ```bash
 cd ~/workspace/rete
 gh issue create --title "Stale path citations in the historical record after the rete consolidation (#79)" --body "$(cat <<'EOF'
-704 path citations across 66 files still name the pre-merge repo roots
-(`nsl-tuvm/`, `nsl-tests/`, `~/workspace/porta`). Measured 2026-08-02:
+781 path citations across 77 files still name the pre-merge repo roots
+(`nsl-tuvm/`, `nsl-tests/`, `~/workspace/porta`). Measured 2026-08-02 against
+`252ff1c` with one combined regex — not by summing per-pattern greps, which
+double-counts any line matching two alternatives:
 
 | area | hits | files |
 |---|---|---|
-| `docs/superpowers/plans/` | 349 | — |
-| `nodus/nsl/docs/` | 305 | — |
-| `docs/design/` | 50 | — |
+| `docs/superpowers/plans/` | 356 | 20 |
+| `nodus/nsl/docs/` | 305 | 31 |
+| `docs/design/` | 50 | 15 |
+| `nodus/tuvm/` + `nodus/tests/` | 25 | 6 |
+| `porta/docs/` | 24 | 2 |
+| `docs/MILESTONE_{A,D,E}.md` | 21 | 3 |
 
-**These were left deliberately, not missed.** The documents of record —
-`review/program-sequence.md`, `review/tests/CLAIMS.md`, `review/lib/**`,
+**These were left deliberately, not missed.** The documents of record — 106
+hits in 16 files: `review/` except DOCMAP, `protocol/PROTOCOL-NSL-RECORDS.md`,
 `docs/next-steps-overview.md` — were swept in Task 6 Step 4b, and
-`review/DOCMAP.md` is regenerated from `tools/docmap.sh`. What remains is the
+`review/DOCMAP.md`'s 163 are regenerated from `tools/docmap.sh`. What remains is the
 historical record: dated design docs and closed execution plans. Per the
 `CLAUDE.md` docs convention the dated design doc *is* the historical "why", so
 rewriting its paths would falsify what was true when it was written.
@@ -1135,9 +1150,19 @@ each was a defect in this document, not in the work:
    Steps 2/4/5 covered `porta#NN` but not `nsl-tuvm#NN` (46 sites, 26 files),
    even though Step 3 transfers both. The plan's "46 `porta#NN`" was itself the
    *nsl-tuvm* count; porta has 42. Both are now captured, mapped and rewritten.
-6. **Nothing swept the stale path citations.** ~1,400 across ~100 files. The
-   documents of record are now swept in Task 6 Step 4b; the 704 historical ones
-   are deliberately left and filed in Task 8 Step 2b.
+6. **Nothing swept the stale path citations.** 1,050 across 94 files. The 106
+   in the documents of record are now swept in Task 6 Step 4b; the 781
+   historical ones are deliberately left and filed in Task 8 Step 2b.
+7. **This section's own first count was wrong**, and the task reviewer caught
+   it. Item 6 originally said "~1,400 across ~100 files", which was the sum of
+   five separate per-pattern greps — a line reading `~/workspace/nsl-tuvm/docs/x`
+   matches two of those patterns, so the sum overcounts by ~35%. One combined
+   regex gives 1,050. Re-measuring to make the buckets reconcile is also what
+   surfaced `protocol/PROTOCOL-NSL-RECORDS.md` — the live contract Task 4 had
+   just hoisted — sitting in the historical bucket instead of the swept one.
+   The lesson is not "count with a command"; that was done. It is that
+   overlapping patterns do not sum, and a table whose parts do not add up to
+   its total is telling you something.
 
 **Placeholder scan.** No TBD/TODO. Two steps intentionally require reading before editing rather than a blind command — Task 4 Step 3 (merging into an existing `on:` block) and Task 4 Step 5 (prose references a `sed` would mangle) — and both say so and say why.
 
