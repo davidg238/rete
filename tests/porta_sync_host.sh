@@ -102,7 +102,7 @@ echo "  goal/name converged to obs/name — the diff IS the view"
 # `grep -o` rather than `sed 's/.*tick //'` — the record's formatting puts
 # punctuation after the number, which sort -u tolerates and arithmetic does not.
 sleep 3
-TICKS=$(/tmp/porta log --db "$DB" "$NODE" --limit 200 | grep -o 'tick [0-9]\+' | awk '{print $2}')
+TICKS=$(/tmp/porta log --db "$DB" "$NODE" --limit 200 | grep -o 'tick [0-9]\+' | awk '{print $2}' || true)
 LOGS=$(printf '%s\n' "$TICKS" | grep -c . || true)
 UNIQ=$(printf '%s\n' "$TICKS" | sort -n -u | grep -c . || true)
 echo "  tel/log rows=$LOGS distinct ticks=$UNIQ"
