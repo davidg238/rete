@@ -284,6 +284,30 @@ G7 work), the bridge holds the root space rather than a `goal`-write + `obs`-rea
 while the bridge is down is lost — bounded and honest for `tel/**`, which is lossy by
 policy, but **not** for `sys/panic`, which RECORDS marks must-deliver.
 
+**What hardware added (2026-08-01, plan 3 — the C6 gate).** The exchange was witnessed on
+an ESP32-C6 over a real Thread mesh against `porta serve` on the border router, including
+a deliberate post-commit ack drop. Two facts belong to the protocol rather than to the
+bench:
+
+- **Exactly-once is two claims.** No duplicates *and* no gaps. On loopback only the first
+  can fail, so a gate that checks only duplication is green for the wrong reason.
+- **A 512 B batch is not one radio frame.** The 802.15.4 PHY payload is 127 B, so a
+  full-size datagram is five or six 6LoWPAN fragments and losing any one kills the whole
+  datagram. Batch sizing trades against loss probability on a mesh in a way it does not on
+  a LAN, and a node's `misses` being non-zero is normal operation, not a fault.
+
+**A third fact corrects, rather than adds to, §4.1 above.** N7 held that a missed
+check-in "costs latency and nothing else, which is the whole reason there is no
+retransmit layer" — that was wrong on real hardware. With the gateway unreachable, an
+unacked bridge's `pending` queue grew without bound and OOM-panicked the node at tick 48
+(~96 s) on a 128 KB heap: a miss also costs memory, and costs it unboundedly, which no
+loopback run could show because loopback's gateway always answers. The fix bounds
+`pending` at 64 rows, oldest-first eviction, with a counted `dropped` published as
+`#streamDropped` — so a node that discarded telemetry is distinguishable from one that
+had none to send. This narrows, but does not resolve, the "still owed" item above:
+`sys/panic` must-deliver semantics remain undecided, and "drop the oldest" is the wrong
+answer for that path specifically — the decision belongs with porta#32.
+
 ### 4.2 Node-side path map (what replaces the nine verbs)
 
 | v1 verb / report field | nsl path | kind | record shape (sketch) |
