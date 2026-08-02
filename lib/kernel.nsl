@@ -1525,6 +1525,7 @@ class Kernel usingPlatform: platform = () (
   class PortaBridge = (
     | socket space nodeId peerHost peerPort
       cursor ::= 0. acked ::= 0. rejected ::= 0. misses ::= 0. dropped ::= 0.
+      crossed ::= 0.
       pending ::= OrderedCollection new. |
   ) (
     setSocket: s space: sp id: anId peer: h port: p = (
@@ -1571,6 +1572,10 @@ class Kernel usingPlatform: platform = () (
     public rejected = ( ^ rejected )
     public misses = ( ^ misses )
     public dropped = ( ^ dropped )
+    (* Replies that arrived in the OTHER leg's wait and were walked past. Counted
+       rather than merely handled: a silent skip makes "the window never opened"
+       and "it opened and we coped" read identically from the outside. *)
+    public crossed = ( ^ crossed )
     public pendingSize = ( ^ pending size )
     public pendingRows = ( ^ pending )
 
@@ -1759,7 +1764,7 @@ class Kernel usingPlatform: platform = () (
       | reply |
       socket == nil ifTrue: [ ^ self ].
       socket sendTo: peerHost port: peerPort data: self pullFrame.
-      reply:: self awaitReply.
+      reply:: self awaitReply: #batch.
       reply == nil
         ifTrue: [ misses:: misses + 1 ]
         ifFalse: [ self applyBatch: reply ].
@@ -1770,19 +1775,63 @@ class Kernel usingPlatform: platform = () (
       frame:: self pushFrame.
       frame == nil ifTrue: [ ^ self ].
       socket sendTo: peerHost port: peerPort data: frame.
-      reply:: self awaitReply.
+      reply:: self awaitReply: #ack.
       reply == nil
         ifTrue: [ misses:: misses + 1 ]
         ifFalse: [ self applyAck: reply ].
       ^ self )
 
-    awaitReply = (
+    (* Wait for a reply TO THE LEG THAT ASKED (tuvm#108). Both legs share one
+       socket and one budget, so answering the first datagram to arrive crosses
+       them: a #batch delayed past the pull's budget lands in the push's wait, is
+       handed to applyAck:, is rejected — and the real #ack is then never read,
+       costing a re-push. On loopback that window is microseconds wide, which is
+       why the host gate and the C6 gate could both be green with it open.
+
+       Only a KNOWN reply tag meant for the other leg is walked past. Everything
+       else comes straight back, which is deliberate: an #err is porta's real
+       terminal answer to whichever leg asked, and skipping it would turn a
+       one-datagram rejection into a full budget burnt and a miss scored. Garbage
+       likewise ends the wait exactly as it did before — applyBatch:/applyAck:
+       reject it, and a real reply displaced behind it is picked up as a crossed
+       skip on the next leg rather than being lost.
+
+       A skipped datagram is DISCARDED, not applied on the way past, and that is
+       safe for the same reason the protocol carries no retransmit layer: the
+       exchange is idempotent by cursor in both directions. The dropped #batch is
+       re-sent on the next pull because the cursor never moved; the dropped #ack
+       costs one re-push that porta dedupes by seq. Applying it here would mean a
+       reply moving state in a leg that did not ask for it — cheaper to re-ask. *)
+    awaitReply: expected = (
       | deadline dg |
       deadline:: platform monotonicMillis + self replyBudget.
       [ platform monotonicMillis < deadline ] whileTrue: [
         dg:: socket receive.
-        dg == nil ifFalse: [ ^ dg data ] ].
+        dg == nil ifFalse: [
+          (self isCrossed: (self tagOf: dg data) expecting: expected)
+            ifTrue: [ crossed:: crossed + 1 ]
+            ifFalse: [ ^ dg data ] ] ].
       ^ nil )
+
+    (* The tag, or nil for anything that is not a decodable Record — nil is never
+       crossed, so undecodable traffic keeps its old fail-fast behaviour. *)
+    tagOf: aBytes = (
+      | bad r |
+      bad:: false.
+      r:: Cbor new decode: aBytes ifInvalid: [ :m | bad:: true. nil ].
+      bad ifTrue: [ ^ nil ].
+      (outer rankOf: r) = 9 ifFalse: [ ^ nil ].
+      ^ r tag )
+
+    (* `=` and never `==`: a decoded Symbol is not the image's interned one
+       (tuvm#75), and identity would silently never match — the same trap
+       applyBatch:/applyAck: document. `== nil` is identity on purpose. *)
+    isCrossed: tag expecting: expected = (
+      tag == nil ifTrue: [ ^ false ].
+      tag = expected ifTrue: [ ^ false ].
+      tag = #batch ifTrue: [ ^ true ].
+      tag = #ack ifTrue: [ ^ true ].
+      ^ false )
   ) : (
     public socket: s space: sp id: anId peer: h port: p = (
       ^ self new setSocket: s space: sp id: anId peer: h port: p )
