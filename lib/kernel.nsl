@@ -1605,6 +1605,46 @@ class Kernel usingPlatform: platform = () (
        matters. Distinct selectors — arity is part of the name, no collision. *)
     public peek = ( ^ self peek: '' ifAbsent: [ nil ] )
     public peek: rel = ( ^ self peek: rel ifAbsent: [ nil ] )
+    (* ---- porta space-sync (plan 2): the cell-replication query ---------------
+       Answer every CELL at or under this capability's root whose last write is
+       newer than `cursor`, OLDEST FIRST, at most `n` of them — each row a
+       3-element algebra List {absolutePath, seq, value}.
+
+       Confinement is enforced the way every other verb here enforces it: the
+       scan prefix IS `root`, resolved before the prim is reached, so a
+       capability can only ever be told about names it can already address.
+       Segment alignment comes from the C side, matching the rule `resolve:`
+       obeys for whole paths — a capability rooted at `obs` never matches
+       `obscure`.
+
+       CELLS ONLY. A stream's seq advances on every write, but its value is
+       killed on delivery (`space_dequeue`), so a stream row would carry a
+       stale-or-nil value under a fresh seq. Streams reach the wire by reaction
+       capture instead (`PortaBridge>>subscribeStream:`).
+
+       ASCENDING is load-bearing, not tidiness: a caller sends a PREFIX of this
+       list and moves its cursor to the last row it sent, so any other order
+       strands whatever it skipped. `n` is how a caller keeps a batch inside the
+       radio's datagram cap.
+
+       Paths are ABSOLUTE (space-relative), not root-relative — they are what
+       goes on the wire, and the protocol stores them node-relative with the node
+       id beside them, never re-prefixed per capability. *)
+    public changedSince: cursor max: n = (
+      | raw rows i |
+      raw:: platform spaceChangedSince: cursor under: root max: n.
+      rows:: OrderedCollection new.
+      i:: 1.
+      [ i <= raw basicSize ] whileTrue: [
+        rows add: (self rowOf: (raw basicAt: i)).
+        i:: i + 1 ].
+      ^ rows )
+    (* The prim answers a bare `indexable_new` backing store (class-less vtable),
+       exactly as `spaceDequeue` does, so it is consumed ONLY via the shape-gated
+       basicAt:/basicSize and never escapes as itself — `Space>>drain`'s rule. *)
+    rowOf: raw = (
+      ^ List with: (raw basicAt: 1) with: (raw basicAt: 2) with: (raw basicAt: 3) )
+
     public whenever: rel do: aBlock = (
       platform spaceRegister: (self resolve: rel) block: aBlock owner: self.
       ^ self )
@@ -1660,6 +1700,21 @@ class Kernel usingPlatform: platform = () (
           cond == nil ifFalse: [ self postCrash: cond channel: ch ].
           i:: i + 1 ] ].
       ^ self )
+
+    (* porta space-sync (plan 2): the space's ONE monotonic counter (design D5).
+       `seq` reads it; `stamp` bumps it and answers the new value.
+
+       On Space and not on Channel because the counter is space-GLOBAL — an
+       attenuated capability has no narrower counter to read, so offering it one
+       would be a lie about the scope.
+
+       `stamp` exists for captured stream entries: a stream's value is not
+       retained, so `PortaBridge` captures it in a `whenever:` reaction, and two
+       captures with no intervening write would share a seq if it merely READ the
+       counter. The gateway drops `seq <= high-water` as a duplicate, so that is
+       silent loss rather than a repeated delivery. *)
+    public seq = ( ^ platform spaceSeq )
+    public stamp = ( ^ platform spaceStamp )
 
     (* A contained crash posts a first-class crash record on sys/crash —
        EXCEPT a crash raised while firing a sys/-rooted reaction (a
