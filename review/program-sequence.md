@@ -2118,6 +2118,29 @@ porta rejects each one (decoded: opcode `0001`, filename `commands?id=7c9ebdd8f5
 it is, rather than checking the record tag (tuvm#108) — a narrowing loopback could not
 surface. All three filed as GitHub issues out of this close-out.
 
+**tuvm#108 built and closed the following day, 2026-08-02** (`nsl-tuvm` `f051e34`,
+`nsl-tests` `6aefda8`). `awaitReply:` now takes the tag its leg asked for and walks past a
+known reply tag meant for the other leg, counting each skip in `#crossed`. The interesting
+part is the two things it deliberately does *not* do. It does not skip an `#err` — that is
+porta's real terminal answer to whichever leg asked, and treating it as foreign traffic
+would convert a one-datagram rejection into a full 2 s budget burnt plus a miss scored;
+undecodable traffic keeps its old fail-fast behaviour for the same reason. And it
+*discards* a skipped datagram rather than applying it on the way past, which is safe for
+exactly the reason the protocol carries no retransmit layer: the exchange is idempotent by
+cursor in both directions, so the dropped `#batch` is re-sent on the next pull (the cursor
+never moved) and the dropped `#ack` costs one re-push that porta dedupes by seq.
+
+Worth naming as evidence about gates rather than about this bug: **5/5 hardware runs and a
+green host gate were both consistent with the defect being present**, because the window is
+microseconds wide on loopback and only milliseconds wide on a mesh. The test
+(`nsl-tests/22_spacesync/06_reply_tag_match.nsl`) does not try to *hit* the window — it
+makes it certain, with a four-slot scripted socket that feeds every wait the other leg's
+reply first and then its own. Watched to fail first with the old semantics: `cursor 0`
+where 7 is expected, and `acked applied false`. Verified: full nsl suite 239 passed / 0
+failed with every aux gate PASS, and `tests/porta_sync_host.sh` still `PORTA SYNC OK`. **Not
+re-run on the C6** — the fix is host-provable and the hardware gate costs a cold re-flash;
+re-running it is a bench task, not a claim made here.
+
 **A whole-branch review fix-wave, same day, before merge.** Beyond the dedupe-evidence
 gap above, the review found two more gaps in the gate script itself. All were applied,
 verified on the host (`go test ./...` green, `tests/porta_sync_host.sh` still prints
