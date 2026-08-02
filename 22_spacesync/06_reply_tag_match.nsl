@@ -1,0 +1,126 @@
+(*
+porta space-sync (tuvm#108) — a reply is matched to the LEG THAT ASKED FOR IT.
+
+The bridge's two legs share one socket and one budget: `checkIn` sends a #pull and
+waits, then `pushOnce` sends a #push and waits. `awaitReply` used to answer the
+first datagram to arrive, whatever it was — so a #batch delayed past the pull's
+budget and landing during the push's wait was handed to `applyAck:`, which
+rejected it (moving nothing) and left the real #ack unread. Microseconds of
+exposure on loopback; milliseconds over a mesh, which is why plan 3 could not have
+caught it.
+
+The rig below makes that window certain rather than likely: every wait is fed the
+OTHER leg's reply first, then its own.
+
+What is asserted, and why each one is falsifiable:
+
+- `cursor 7` — the pull leg walked PAST a crossed #ack and found its #batch. It is
+  also the assertion that the crossed #batch handed to the push leg (hi = 99) was
+  DISCARDED and not applied: if a skipped datagram were applied on the way past,
+  this reads 99.
+- `acked applied true` — the push leg walked past a crossed #batch and found its
+  #ack. Under the old code this is false: the #batch was consumed as the ack.
+- `acked untouched by cross 0` is checked BEFORE the push leg runs, so the crossed
+  #ack (hw = 99) is proven not to have moved the watermark on its way past.
+- `crossed 2` — the skips are COUNTED, not silent. An absence proves nothing; a
+  count is what distinguishes "the window never opened" from "it opened twice and
+  the bridge handled it".
+- `misses 0` — skipping must not cost a leg its reply. A budget burnt walking past
+  crossed traffic and then timing out would show here.
+
+Discarding rather than applying a crossed reply is safe for exactly the reason the
+protocol has no retransmit layer: the exchange is idempotent by cursor in both
+directions. A dropped #batch is re-sent on the next pull (the cursor never moved);
+a dropped #ack costs a re-push that porta dedupes by seq.
+
+An #err is deliberately NOT skipped — it is a real terminal answer to whichever
+leg asked, and waiting out the full budget for a reply porta will never send would
+turn a one-datagram rejection into a 2-second stall plus a miss.
+expect:
+acked untouched by cross 0
+cursor 7
+acked applied true
+crossed 2
+misses 0
+err is not skipped true
+*)
+class ReplyTagMatch packageUsing: manifest = () (
+
+  (* Duck-typed stand-ins: PortaBridge only ever sends `sendTo:port:data:` and
+     `receive` to its socket, and `data` to what receive answers. *)
+  public class FakeDatagram = ( | data | ) (
+    public setData: d = ( data:: d. ^ self )
+    public data = ( ^ data )
+  ) : (
+    public on: d = ( ^ self new setData: d )
+  )
+
+  (* A four-slot scripted socket. Slots are stepped one per `receive`; a nil slot
+     (and everything past the fourth) answers nil, which is what a quiet socket
+     looks like to `awaitReply`. Four explicit slots rather than a collection:
+     the kernel instance an app is handed vends no OrderedCollection. *)
+  public class FakeSocket = ( | a b c d n | ) (
+    public setA: w b: x c: y d: z = ( a:: w. b:: x. c:: y. d:: z. n:: 0. ^ self )
+    public sendTo: host port: p data: bytes = ( ^ self )
+    public receive = ( | slot |
+      n:: n + 1.
+      slot:: nil.
+      n = 1 ifTrue: [ slot:: a ].
+      n = 2 ifTrue: [ slot:: b ].
+      n = 3 ifTrue: [ slot:: c ].
+      n = 4 ifTrue: [ slot:: d ].
+      slot == nil ifTrue: [ ^ nil ].
+      ^ FakeDatagram on: slot )
+  ) : (
+    public a: w b: x c: y d: z = ( ^ self new setA: w b: x c: y d: z )
+  )
+
+  public main: platform args: args = (
+    | space bridge hw strayAck realBatch strayBatch realAck sock err errBridge errSock |
+    space:: platform space.
+
+    (* Something for the push leg to send, so `pushFrame` is not nil and the
+       second wait actually happens. *)
+    space put: 'obs/health' value: 11.
+    hw:: space seq.
+
+    (* The crossed pair. hw = 99 and hi = 99 are far above any real seq here, so
+       either one leaking into the wrong applier is loud rather than subtle. *)
+    strayAck:: platform Cbor encode:
+      (platform Record tag: #ack with: #hw -> 99).
+    realBatch:: platform Cbor encode:
+      (platform Record tag: #batch
+         with: #hi -> 7
+         with: #entries -> (platform List with:
+            (platform List with: 7 with: 'goal/name' with: 2 with: 'bench'))).
+    strayBatch:: platform Cbor encode:
+      (platform Record tag: #batch
+         with: #hi -> 99
+         with: #entries -> (platform List with:
+            (platform List with: 99 with: 'goal/name' with: 2 with: 'leaked'))).
+    realAck:: platform Cbor encode:
+      (platform Record tag: #ack with: #hw -> hw).
+
+    sock:: FakeSocket a: strayAck b: realBatch c: strayBatch d: realAck.
+    bridge:: platform PortaBridge socket: sock space: space id: 'n1' peer: '::1' port: 6969.
+
+    ('acked untouched by cross ' , bridge acked printString) out.
+    bridge checkIn.
+    ('cursor ' , bridge cursor printString) out.
+    ('acked applied ' , (bridge acked = hw) printString) out.
+    ('crossed ' , bridge crossed printString) out.
+    ('misses ' , bridge misses printString) out.
+
+    (* An #err answers the leg. It must come straight back — not be skipped as
+       foreign traffic — so the leg fails fast instead of burning its budget.
+       Nothing is pushed here, so the single wait is the pull's. *)
+    err:: platform Cbor encode: (platform Record tag: #err with: #msg -> 'malformed').
+    errSock:: FakeSocket a: err b: err c: nil d: nil.
+    errBridge:: platform PortaBridge socket: errSock space: space id: 'n2' peer: '::1' port: 6969.
+    errBridge checkIn.
+    ('err is not skipped ' , (errBridge crossed = 0) printString) out.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)
