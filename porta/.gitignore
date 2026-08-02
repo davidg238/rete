@@ -1,0 +1,37 @@
+# Go server build output
+/porta
+/cmd/porta/porta
+*.db
+*.db-shm
+*.db-wal
+
+# Build artifacts / caches
+build/
+build-host/
+__pycache__/
+*.pyc
+
+# Toit
+.packages/
+
+# Build artifacts (regenerated)
+*.snapshot
+*.bin
+*.image
+*.envelope
+*.envelope.gz
+nodus/host/image
+nodus/host/image.crc32
+nodus/host/firmware
+
+# brainstorming visual-companion artifacts
+.superpowers/
+
+# Runtime / soak logs
+*.log
+
+# .deb build output
+/deploy/dist/
+
+# Internal AI/dev context — not published
+/CLAUDE.md
