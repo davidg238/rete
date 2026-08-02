@@ -66,3 +66,12 @@ zephyr/build-layoutdump-s2/
 # IL0373 driver zips. Reference material, not source — the IL0373 register map it
 # documents belongs in the uc81xx quirks entry when that lands, not here.
 zephyr/boards/magtag/
+
+# Zephyr build trees — 4.5 GB as of 2026-08-02, never commit. The path-agnostic
+# form survives the rete restructure (zephyr/ becomes nodus/tuvm/zephyr/).
+**/zephyr/build*/
+zephyr/build*/
+
+# Agent scratch: session config and the SDD ledger/briefs. Not repo content.
+.claude/
+.superpowers/
