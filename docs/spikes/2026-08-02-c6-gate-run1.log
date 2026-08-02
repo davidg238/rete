@@ -153,7 +153,7 @@ No change to Kconfig header in '/home/david/workspace/tuvm/zephyr/build-esp32c6-
 -- Using ccache: /usr/bin/ccache
 -- Found gen_kobject_list: /home/david/zephyr-esp32/zephyr/scripts/build/gen_kobject_list.py
 -- tuvm: TUVM_MODEL=B
--- Configuring done (3.3s)
+-- Configuring done (3.2s)
 -- Generating done (0.1s)
 -- Build files have been written to: /home/david/workspace/tuvm/zephyr/build-esp32c6-B
 -- west build: building application
@@ -313,13 +313,14 @@ Changed.
 Configuring flash size...
 Flash will be erased from 0x00000000 to 0x0008bfff...
 Compressed 571864 bytes to 299024...
-Wrote 571864 bytes (299024 compressed) at 0x00000000 in 3.0 seconds (effective 1535.4 kbit/s)...
+Wrote 571864 bytes (299024 compressed) at 0x00000000 in 3.0 seconds (effective 1540.1 kbit/s)...
 Hash of data verified.
 
 Leaving...
 Hard resetting via RTS pin...
 [4/8] wipe the db and start the gateway
-[5/8] wait for the node: attach, then READY
+[5/8] wait for the node
+  attach, then READY
   node is up and attached
 [6/8] legs 1 and 2
   leg 2 PASS: obs/health and obs/build are in porta's cell tree, from real silicon
@@ -331,8 +332,9 @@ Hard resetting via RTS pin...
   leg 3 PASS
 [8/8] leg 4: exactly once ACROSS a deliberate drop
   waiting for 10 more ticks (leg 4), budget 50s
-  leg 4: gateway swallowed 4 acks this run; node misses 0 -> 5
+  leg 4: gateway swallowed 4 acks this run; node misses 1 -> 5
+  leg 4: gateway logged 4 duplicate-skip line(s) this run
   leg 4: tel/log rows=26 distinct ticks=26
   leg 4: exactly once, no gaps (1..26)
-  leg 4 PASS: the node re-pushed rows porta had already applied, and porta deduped them
+  leg 4 PASS: the node re-pushed rows porta had already applied, and porta deduped them (witnessed: 4 skip line(s) logged)
 PORTA SYNC C6 OK

@@ -2060,10 +2060,11 @@ from the code, so it is recorded here:
   (`tests/porta_sync_c6.sh`, `gw_skips`) and fails if it never moves — the same shape as
   `gw_drops` for swallowed acks. That change lands `go test ./...` green
   (`TestReplayedPushLogsSkipCount`, `TestIngestDedupesOnHighWater` now asserts the skip
-  count too) but **has not yet been re-run on hardware**; the 5/5 above stands as
-  evidence for the properties it actually asserted (no duplicates, no gaps, `misses`
-  moved), not for the dedupe having fired, until a hardware run with the corrected gate
-  confirms `gw_skips` moved during leg 4.
+  count too), **and it has now been re-run on hardware: 5/5 clean with the corrected
+  gate, every run logging `gateway logged 4 duplicate-skip line(s) this run`.** So the
+  dedupe is witnessed rather than inferred — the node re-pushed rows porta had already
+  applied, and porta was observed discarding them. The earlier 5/5 (pre-fix-wave) stands
+  only for the properties it actually asserted: no duplicates, no gaps, `misses` moved.
 - **A 512 B batch is 5–6 6LoWPAN fragments over a 127 B 802.15.4 PHY**, so real loss is
   expected on a mesh in a way it is not on a LAN. The gate asserts *no duplicates and no
   gaps*, never `misses == 0` — a node's `misses` climbing is normal operation, not a fault.
@@ -2118,10 +2119,10 @@ it is, rather than checking the record tag (tuvm#108) — a narrowing loopback c
 surface. All three filed as GitHub issues out of this close-out.
 
 **A whole-branch review fix-wave, same day, before merge.** Beyond the dedupe-evidence
-gap above, the review found two more gaps in the gate script itself, applied on the host
-(`go test ./...` green, `tests/porta_sync_host.sh` still prints `PORTA SYNC OK`,
-`nsl-tests/22_spacesync/05_pending_bound.nsl` still passes) but **not yet re-run on
-hardware**:
+gap above, the review found two more gaps in the gate script itself. All were applied,
+verified on the host (`go test ./...` green, `tests/porta_sync_host.sh` still prints
+`PORTA SYNC OK`, `nsl-tests/22_spacesync/05_pending_bound.nsl` still passes) **and then
+re-run on hardware, 5/5 clean**:
 - `MISSES_BEFORE` was sampled *before* the deliberate gateway restart in leg 4, so the
   restart's own 4–6 s outage (against a 2 s cadence) scored a miss regardless of what the
   injector did — the team's own falsification run showed `misses 0 → 1` with zero acks
