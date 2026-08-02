@@ -202,10 +202,10 @@ Four tables replace nine. All timestamps are **milliseconds** (D4.2); all paths 
 | `command_queue` | → `events` `direction='out'` |
 | `reports` | → `cells` under `obs/**` |
 | `data_log` | → `events` `direction='in'` under `tel/**` |
-| `debug_request` | → `events` at `diag/dbg/req` |
-| `debug_response` | → `events` at `diag/dbg/resp` |
+| `debug_request` | → `events` at `dbg/req` |
+| `debug_response` | → `events` at `dbg/resp` |
 | `profile_session` | → `cells` at `goal/profile/<app>` |
-| `profile_result` | **split** — bounded span results to `events` at `diag/**`; profiler blobs are bulk |
+| `profile_result` | **split** — profiler blobs are bulk (§7); the bounded span results have **no pinned path yet** — see §7.1 |
 | `payloads` | **deferred, not absorbed** — see below |
 | — | `exchanges` is **new** (D4.3) |
 
@@ -302,9 +302,9 @@ recall. Fates are `absorbed → <path>`, `deferred → <plan>`, or **regression*
 | `container uninstall` | absorbed → `goal/apps/<name>` with `lifecycle` written to stopped (no tombstone, §4.1) |
 | `log -d` | **absorbed → `Events`, and widened.** Gains `actor`/`reason` provenance (D3) and superseded intent, which a drained queue could not offer |
 | `monitor -d [--kind --since --follow]` | absorbed → `tel/**` events; the three filters are deferred → operator surface. `--kind` is a path prefix (`tel/log`, `tel/m/`, `sys/panic`), `--since` is `ts_ms`, `--follow` is a tail over `events.id` |
-| `debug attach/detach/send/poll` | absorbed → `goal/debug/<app>` (`Debug{action}`) + `diag/dbg/req` / `diag/dbg/resp` events; `--after id` maps to `events.id` |
+| `debug attach/detach/send/poll` | absorbed → `goal/debug/<app>` (`Debug{action}`) + `dbg/req` / `dbg/resp` events; `--after id` maps to `events.id` |
 | `profile start/stop` | absorbed → `goal/profile/<app>`, `Profile{action,durationS,continuous}` |
-| `profile poll` | absorbed → bounded span results as `diag/**` events |
+| `profile poll` | **deferred — no pinned path** (§7.1). The blob half is bulk; the span half has nowhere to land yet |
 | `profile get <seq>` | **deferred → bulk/OTA plane (§7).** The blob is opaque and unbounded; it cannot ride a 256 B value |
 | `serve` | absorbed → Task 1 (HTTP `/health`) + Task 4 (UDP space listener) |
 | `completion`, `--db`, `--server`, `-v` | unchanged (cobra/global) |
@@ -321,8 +321,8 @@ recall. Fates are `absorbed → <path>`, `deferred → <plan>`, or **regression*
 | `POST /api/nodes/{sel}/containers` | deferred → bulk plane (§7) |
 | `GET /api/nodes/{sel}/config` | absorbed → the `goal/` vs `obs/` tree diff |
 | `GET /api/nodes/{sel}/telemetry` | absorbed → `Events` under `tel/**` |
-| `POST /api/nodes/{sel}/debug/send`, `GET …/debug/responses` | absorbed → `diag/dbg/req` / `diag/dbg/resp` |
-| `GET /api/nodes/{sel}/profile` | absorbed → `diag/**` events |
+| `POST /api/nodes/{sel}/debug/send`, `GET …/debug/responses` | absorbed → `dbg/req` / `dbg/resp` |
+| `GET /api/nodes/{sel}/profile` | **deferred — no pinned path** (§7.1) |
 | `GET /api/nodes/{sel}/profile/{seq}` | deferred → bulk plane (§7) |
 | web `/`, `/n/`, `/log`, `/status`, `/telemetry`, `/partials/{status,telemetry,nodes,log}`, `/assets/` | deferred → operator surface. §7's warning governs: the web UI must be a *client* of the path surface, not the thing the path surface is shaped around |
 | MCP `list_devices`, `device_status`, `device_get_config`, `container_list`, `query_telemetry`, `command_log` | deferred → §7 names this explicitly; `mcpsrv` is rewritten as a client of the same path surface |
@@ -344,10 +344,13 @@ Neither was a revenue-gate on tuvm#74's scale, and neither was expensive — one
 one record field, both folded in before demolition rather than filed. They are recorded
 here because the rule is that a capability gets a *fate*, and "nobody noticed" is not one.
 
-One naming snag surfaced alongside them, not a regression but a conformance mismatch the
-wire task will hit: §4.1 above routes remote debug to `diag/dbg/req` / `diag/dbg/resp`,
-while RECORDS §4.5 pins the prefix as `dbg/*`. One of the two documents has to yield before
-the debug paths are written.
+**A namespace this record invented, now withdrawn.** Earlier drafts of §4.1 routed remote
+debug to `diag/dbg/req` / `diag/dbg/resp` and profiler spans to `diag/**`. There is no
+`diag/` namespace: `PROTOCOL-NSL.md` §3 defines exactly five roots — `goal/`, `obs/`,
+`tel/`, `sys/`, `dbg/` — and `dbg/` is load-bearing in the authority model, which grants
+porta write access to *"only `goal/**` and `dbg/req`"*. `diag/` appears nowhere in either
+protocol document. The debug rows are corrected to the pinned `dbg/req` / `dbg/resp`
+(RECORDS §4.5); the profiler-span rows had no successor at all and are now §7.1.
 
 ---
 
@@ -405,6 +408,30 @@ Named so they are not silently dropped:
   not the other way round.
 - **Node identity.** A constant in the node's source for this slice; hardware-derived
   identity is a follow-on (relates tuvm#74, a node cannot name its own build).
+
+### 7.1 Open question — profiler span results have no pinned path (porta#28)
+
+`profile_result` was v1's one genuinely two-shaped table, and the split in §4.1 only
+resolves half of it. The **blobs** are bulk and go to the CoAP plane with the images. The
+**bounded span results** — the thing `porta profile poll` printed — were routed here to
+`diag/**`, a namespace that does not exist (§4.2). They therefore have *no successor path*,
+which by D8's rule makes this a capability with no fate rather than a deferral.
+
+It is filed rather than decided because it is a catalogue decision, not a porta one, and the
+candidates are not obviously ranked:
+
+- **`sys/**`** — `sys/latency` already pins `LatencySpan { span, n, fails, minUs, maxUs,
+  sumUsLo, sumUsHi, b0..b5 }` as a **cell**, one record *per span*. A profile result is
+  structurally the same measurement, so this may be less a new path than a realisation that
+  profiling and `sys/latency` are one feature. That would be the cheapest outcome and is the
+  one worth disproving first.
+- **`tel/**`** — if a profile run is an *episode* rather than a standing measurement, it is
+  an event, not a cell, and belongs with telemetry.
+- **A new pinned path** — only if neither of the above holds without distortion.
+
+Nothing in this rung writes the path, so nothing is blocked today. It must be answered
+before `porta profile` is rebuilt on the operator surface, and the answer belongs in
+`PROTOCOL-NSL-RECORDS.md` §4, not here. Filed as **porta#28**.
 
 ## 8. Known hazards
 
