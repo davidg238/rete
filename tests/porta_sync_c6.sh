@@ -47,22 +47,32 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# ticks_from_log prints the distinct tick numbers porta has logged, ascending.
-# grep -o rather than sed 's/.*tick //': the record's formatting puts punctuation
-# after the number, which sort tolerates and arithmetic does not. Every caller
-# guards with || true — under `set -euo pipefail` a zero-match grep inside a
-# command substitution aborts the script before its own diagnostic can print.
-ticks_from_log() {
-  gwporta "log $NODE --limit 500" | grep -o 'tick [0-9]\+' | awk '{print $2}' | sort -n -u || true
+# gw_drops answers the gateway's CUMULATIVE swallowed-ack count; leg 4 takes a
+# delta across it. Answers 0 rather than failing when the pattern is absent —
+# under `set -euo pipefail` a zero-match grep inside a command substitution
+# aborts the script before its own diagnostic can print.
+# `grep -c` PRINTS the count and EXITS 1 when the count is zero. So the guard has
+# to live on the remote side: `ssh ... || echo 0` locally would emit grep's "0"
+# AND the fallback "0", and the arithmetic below would die on "0\n0". Guarded
+# remotely, ssh exits 0 and the output is a single number; the ${n:-0} covers a
+# missing file, where grep prints nothing at all.
+gw_drops() {
+  local n
+  n=$(ssh "$GW" "grep -c 'TEST-DROP: ack' ~/$GWDIR/serve.log 2>/dev/null || true" | head -1 || true)
+  printf '%s\n' "${n:-0}"
 }
 
 # assert_exactly_once enforces BOTH halves of the claim: no duplicates (rows ==
 # distinct) and no gaps (the distinct ticks run contiguously). A radio can lose
 # a datagram where loopback cannot, so the second half is not decoration here.
 assert_exactly_once() {
-  local leg="$1" rows uniq first last ticks
-  rows=$(gwporta "log $NODE --limit 500" | grep -c 'tel/log' || true)
-  ticks=$(ticks_from_log)
+  local leg="$1" rows uniq first last ticks snapshot
+  # ONE fetch, both numbers derived from it. Two fetches let a tel/log push land
+  # between them, making rows != uniq with nothing duplicated — a spurious
+  # failure. The host gate takes one snapshot for the same reason.
+  snapshot=$(gwporta "log $NODE --limit 500" || true)
+  rows=$(printf '%s\n' "$snapshot" | grep -c 'tel/log' || true)
+  ticks=$(printf '%s\n' "$snapshot" | grep -o 'tick [0-9]\+' | awk '{print $2}' | sort -n -u || true)
   uniq=$(printf '%s\n' "$ticks" | grep -c . || true)
   say "$leg: tel/log rows=$rows distinct ticks=$uniq"
   [ "$uniq" -ge 2 ] || fail "$leg: fewer than two tel/log entries — the stream never rode"
@@ -95,7 +105,8 @@ wait_ticks() {  # wait_ticks <n-more> <what>
 # the session will not close while it is held. setsid + </dev/null is what
 # actually detaches. Learned the hard way during bring-up.
 gw_serve_start() {  # gw_serve_start [extra flags...]
-  ssh "$GW" "cd ~/$GWDIR && (setsid nohup ./porta serve --db space.db --udp :6969 --http-port 0 $* >> serve.log 2>&1 < /dev/null &)"
+  ssh "$GW" "cd ~/$GWDIR && (setsid nohup ./porta serve --db space.db --udp :6969 --http-port 0 $* >> serve.log 2>&1 < /dev/null &)" \
+    || fail "could not reach $GW to start the gateway"
   sleep 2
   ssh "$GW" "grep -q 'serving the space' ~/$GWDIR/serve.log" || fail "the gateway did not start"
 }
@@ -142,7 +153,10 @@ fi
 # and there is no unacked window to spend the pending queue on either.
 echo "[4/8] wipe the db and start the gateway"
 gw_serve_stop
-ssh "$GW" "cd ~/$GWDIR && rm -f space.db"
+# serve.log is truncated with the db so a failure dump shows THIS run only. The
+# leg-4 assertion takes a delta and so does not depend on this, but a human
+# reading the dump does.
+ssh "$GW" "cd ~/$GWDIR && rm -f space.db && : > serve.log"
 gw_serve_start
 
 echo "[5/8] wait for the node: attach, then READY"
@@ -185,15 +199,19 @@ echo "[8/8] leg 4: exactly once ACROSS a deliberate drop"
 # gateway restart; the node sees the restart window as ordinary loss and
 # re-pushes, which is the designed behaviour.
 MISSES_BEFORE=$(console_misses)
+# A DELTA, not a total. serve.log is appended across runs, so a running total
+# would let this run pass on a previous run's drops even if the injector never
+# fired here — which is precisely the false pass leg 4 exists to prevent.
+DROPS_BEFORE=$(gw_drops)
 gw_serve_stop
 gw_serve_start --test-drop-ack "$DROP_EVERY"
 ssh "$GW" "grep -q 'TEST-DROP ACTIVE' ~/$GWDIR/serve.log" || fail "leg 4: the injector did not arm"
 wait_ticks "$TICKS_PER_LEG" "leg 4"
 
-DROPS=$(ssh "$GW" "grep -c 'TEST-DROP: ack' ~/$GWDIR/serve.log" || true)
+DROPS=$(( $(gw_drops) - DROPS_BEFORE ))
 MISSES_AFTER=$(console_misses)
-say "leg 4: gateway swallowed $DROPS acks; node misses $MISSES_BEFORE -> $MISSES_AFTER"
-[ "${DROPS:-0}" -ge 2 ] || fail "leg 4: the gateway swallowed ${DROPS:-0} acks — the drop never fired"
+say "leg 4: gateway swallowed $DROPS acks this run; node misses $MISSES_BEFORE -> $MISSES_AFTER"
+[ "${DROPS:-0}" -ge 2 ] || fail "leg 4: the gateway swallowed ${DROPS:-0} acks this run — the drop never fired"
 [ "${MISSES_AFTER:-0}" -gt "${MISSES_BEFORE:-0}" ] || \
   fail "leg 4: the node's misses never moved — it did not notice the drop, so nothing was tested"
 assert_exactly_once "leg 4"
