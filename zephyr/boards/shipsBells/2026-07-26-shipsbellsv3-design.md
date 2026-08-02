@@ -671,3 +671,95 @@ the ±5 ppm class, which is ample for firmware development and is *not* the ship
 Additionally: its package is 16-pin, and a genuine DS3231M is 8-pin SO. Marking and package
 disagree. Relabelled parts are common on these modules, so §10's "measured, not assumed"
 discipline applies to this part's ppm specifically — measure it, do not read it off the lid.
+
+---
+
+## 17. ADDENDUM (2026-08-01) — the bench answered §12's gate, and §15.1 has an error
+
+Bench session 2026-07-31/08-01, on the C6 rig of §16. Four things this settles and one it
+corrects. Tracker: #102 (this design), #100 (the RTC seam), #105 (the open hazard).
+
+### 17.1 §12's decision gate: the doorbell loses, the phone gong wins
+
+§12's top risk was *"the chime unit sounds like a doorbell, not a bell — High, it is the whole
+point."* Struck on the bench, it does. **The doorbell chime is out.** The acoustic element is
+now **one of the two gongs from an old Bell telephone** — the fallback §12 already named — and
+the striker is a **uxcell XRN-0530** push-pull solenoid (12 V, 5 N over 10 mm stroke). Photo and
+listing: `uxcell_solenoid.png`, beside this file.
+
+That solenoid does **≈0.05 J** of mechanical work at rated force, which is almost exactly §7.1's
+"the hammer wants ~0.05 J". Encouraging, but it is a coincidence of specification, not a
+measurement — §7's 8% efficiency claim is untouched by it.
+
+### 17.2 §11.2 is answered, and its ladder was aimed too high
+
+**10 ms throws the plunger solidly. 5 ms fails.**
+
+§11.2 walks 100 → 50 → 30 → 25 → 20 → 15 → 10 ms on the assumption that 10 ms is near the
+limit. It is not — the minimum clean pulse lies **between 5 and 10 ms, below the design's
+floor**. That reduces strike energy proportionally and feeds straight back into §7's budget and
+§9's 18650 sizing, both of which were computed against much longer pulses.
+
+**This is a bracket, not a threshold.** Each rung was a single shot, and a solenoid near
+threshold is precisely where shot-to-shot variation lives — plunger start position, residual
+magnetism, supply sag. §10's discipline applies to this number as much as any other: the real
+figure wants ~5 repeats per rung, with 12 V confirmed *under load* rather than open-circuit.
+
+### 17.3 CORRECTION to §15.1 — the bench schematic has no base pull-down
+
+**`2026-07-28-shipsbells-12v-bench-driver.svg` is missing a resistor**, and the omission is the
+kind §8 spends three layers defending against.
+
+R2 (10 kΩ, gate → +12 V) holds the *MOSFET* off when the NPN is off. **Nothing holds the NPN
+off when the GPIO is not driven.** Note 2 on that schematic — *"GPIO low, or MCU unplugged →
+MOSFET OFF"* — is true for a physically removed wire, i.e. a floating base. It is not true for
+a pin sitting at an indeterminate reset level.
+
+§11 item 3 *does* say to confirm a gate pull-down — but it says it about **"the blue MOSFET
+module"**, a different candidate driver which has one. **The protection the design assumed was
+present is on the part that was not used.** A 10 kΩ base-to-GND resistor is now fitted.
+
+**The general rule, which belongs in §8 and not only here: a declared GPIO output is OFF only
+while something is actively driving it that way.** For an LED that distinction is free. For a
+coil it is not — and the windows in which nothing drives the pin are much longer than they look:
+
+| window | GPIO driven? | duration |
+|---|---|---|
+| esptool download mode (the whole flash) | no | **seconds** |
+| ROM boot → second-stage bootloader | no | ~100–200 ms |
+| Zephyr init → wherever the app configures the pin | no | ~100 ms+ |
+
+Firmware can shrink the last row and nothing else. Only a resistor at the transistor makes the
+off-state a property of the circuit rather than of software being alive.
+
+### 17.4 The striker's cadence is NOT the DAC bell's
+
+The 160 ms / 600 ms pair (within a pair / between pairs) that `bell_strike_pattern` uses for the
+MagTag's DAC bell was **"way too fast" on both gaps** when driving a physical bell.
+
+Neither figure is wrong: a synthetic tone decays in a few hundred milliseconds, while a real
+bell rings for seconds, so the rhythm that suits one crowds the other. **These are two separate
+constants and the design should carry both.** Provisionally 500 / 1600 ms on the striker, not
+yet settled by ear — it is a property of the bell on the bench, so it is tuned, not chosen.
+
+### 17.5 Timekeeping decisions taken (detail in #100)
+
+- **One NTP sync a day, a few minutes after midnight. One request; it sets date and time.** At
+  ±5 ppm that is 0.43 s to correct, so no boundary-avoidance and no ratchet gymnastics are
+  needed. Per-watch (6×/day) was considered and rejected: same work six times, buying
+  detection-within-4-hours instead of within-a-day.
+- **The bell never reads the date.** Ship's bells are a function of time-of-day alone. The date
+  exists only because the RTC will not accept a time without one — so a wrong date is
+  *inaudible*, and this is hygiene rather than correctness.
+- **FTD, not MTD**, for this mains-powered version: +8 KB SRAM, and the mesh promoted it to
+  Router. §9's battery version stays MTD, where not keeping the radio up is the entire point.
+
+### 17.6 Still open
+
+**A ~1 s coil energisation at boot, cause unknown** (#105). Firmware now configures the pin at
+`PRE_KERNEL_1`, and the base measures ~0 V through reset — so something appears to be actively
+*driving* GPIO18 high, not merely leaving it floating. The test that would localise it (drain
+node, coil disconnected, watched through a full flash cycle) has not been run.
+
+Deprioritised, not dismissed: the solenoid is disconnected and a piezo buzzer replaces it for
+firmware work. **It must be answered before a coil is reconnected.**

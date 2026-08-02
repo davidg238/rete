@@ -1927,6 +1927,119 @@ went in. The tell was in the numbers — `dram0` well under the known-good **98.
 102 kB` against 74 kB, panel `heap 18/64K` against `18/20K`. Check a build against the recorded
 good figures BEFORE flashing, not after it misbehaves.
 
+## shipsBellsV3 on the C6 — the timebase closes, the striker opens (2026-07-31/08-01)
+
+**The clock half is done and witnessed.** A DS3231 on the C6's i2c0 is read, corrected over
+Thread from a chrony on gw85224-01, and read back at **skew 0** — `ThreadNtpNode.nsl`, commits
+0fb9a21/7787f88 (tuvm), 8eefae4 (nsl-tuvm), 3cc505b (nsl-tests). #100 has the transcript.
+The part was **10h16m48s slow**, and the number that made that legible is that the skew was
+*stable across two runs*: a fixed offset is a bad seed, an accumulating one would have been
+drift. `WallClockNode`'s own comment had predicted exactly this failure of a constant seed.
+
+**One prim cost SIX edit sites, not the three the seam's shape suggests** — `prim_ids.h`, a
+*second parallel enum* inside `dispatch.c`, `PRIM_NAMES`, the parity guard's `== PRIM_pf_…`
+comparison, `platform.c` (case + host leaf + extern), and the `kernel.nsl` accessor without
+which nsl cannot reach it at all. Two of those were missed on the first build and **both were
+caught at compile time by `prim_names_enum_parity_check`**, whose negative-sized-array trick
+and whose comment ("ADVANCE THIS to the new last id") did precisely the job they exist for.
+This is the counted-not-computed discipline paying for itself; do not soften it.
+
+**A guard that names the wrong dependency fails in both directions.** `ntp_target_sync` was
+gated on `CONFIG_WIFI` when what it needs is SNTP. That left the WROOM-32 *unbuildable* (#104:
+`CONFIG_WIFI=y`, no `CONFIG_SNTP`, undefined reference to `sntp_simple`) **and** left the C6 —
+which has a perfectly good IPv6 network and no WiFi — holding the `-1` stub. Gating on the real
+dependency fixed both at once, verified by rebuilding the WROOM-32 from the issue's own repro.
+The generalisable half: **gate on the thing you call, not on the reason you thought you'd have
+it.**
+
+**FTD fits, and the reason to choose it is not room.** +8 KB SRAM over MTD on the C6, with the
+VM's whole 128 KB arena already inside that figure (`oevm_heap_store` is a static array, not a
+runtime malloc). The mesh reports `D=1` and promoted the node to **Router**. The decision is a
+role decision that splits along the two product versions: FTD for the mains-powered one that
+never moves, MTD/SED for §9's battery version where not keeping the radio up is the point.
+
+**The striker half opened, and it bites.** §12's decision gate was reached — the doorbell chime
+sounds like a doorbell and is out, replaced by a telephone gong and a uxcell XRN-0530 (#102).
+§11.2's ladder was aimed too high: **10 ms throws solidly, 5 ms fails**, so the minimum clean
+pulse is *below* the design's floor. Single shots per rung, so a bracket rather than a
+threshold.
+
+**The hazard, and the lesson worth carrying past this rung: a declared GPIO output is OFF only
+while something is actively driving it that way.** The `gpioout` seam configured the strike pin
+inside `main()` — hundreds of milliseconds after reset, and *not at all* during esptool's
+download window, which is **seconds**. The coil was energised throughout. Moving configuration
+to `SYS_INIT(PRE_KERNEL_1, 50)` shrinks the firmware-side window and **cannot close it**; only a
+pull-down at the transistor makes the off-state a property of the circuit. The design's own 12 V
+schematic omits that resistor, and §11's instruction to verify a pull-down refers to a
+*different* candidate driver that has one — corrected in the design record at §17.3.
+
+**Still not witnessed:** a **~1 s energisation at boot** (#105) whose cause is unknown — the pin
+appears to be actively *driven* high, since a 10 kΩ base pull-down is fitted and measures ~0 V
+through reset. The localising test (drain node, coil disconnected, watched across a full flash
+cycle) has not been run. Deprioritised behind a piezo buzzer, and **blocking before any coil is
+reconnected**.
+
+**Process note.** A suite run leaves the tracked `src/solidified_image.c`/`.stmap` fixture dirty
+(#106) — 16,301 lines that a `git add -A` would have committed into the fixture. `run.sh`
+defends against this with an EXIT trap; the nsl runners do not. Stage file-by-file until they do.
+
+## The node speaks the new protocol — 2026-08-02, porta space-sync plan 2 (host-green)
+
+**Two independently written implementations of one wire agreed on the first protocol
+run.** `PortaBridgeNode.nsl` checks in against a real `porta serve` over UDP loopback:
+`obs/health` reaches porta's cell tree, `goal/name` converges to `obs/name`, and every
+`tel/log` entry arrives exactly once (`tuvm/tests/porta_sync_host.sh`). No wire fixes
+were needed, and the reason is that plan 1 golden-tested the Go codec against *this
+VM's own CBOR* rather than against the spec — the second implementation was written to
+the bytes, not to the prose. **The rung is NOT closed:** the gate is the C6 over a real
+Thread mesh, including a deliberate datagram drop, and that is plan 3.
+
+**The VM change is small and the reason it is small is rung 9.** One monotonic counter
+per space, one `last_seq` per channel, three prims (138–140), one nsl verb. Cells were
+already a value that outlives the job that wrote it; replication needed only a number
+on top of them. Design D5 settled ONE counter per space, not one per path, and the
+forcing argument is that a **scalar cursor cannot address a per-path sequence** — a
+per-path seq makes a cursor a vector over every name in the space.
+
+**The scan answers cells only, and the asymmetry is the interesting part.** A stream's
+`seq` advances on every write like a cell's, but `space_dequeue` kills the event on
+delivery, so there is nothing left to send by the time a check-in comes round. Cells are
+re-readable and therefore *pollable*; streams are not, and must be **captured as they
+are written**. That single fact produced three consequences: the bridge subscribes each
+outbound stream path with `whenever:`; captures are stamped with a **bump**
+(`spaceStamp`) rather than a read, because two captures with no intervening write would
+otherwise share a seq and the gateway drops `seq <= high-water` as a duplicate — *silent
+loss, not a repeated delivery*; and a stream entry written while the bridge is down is
+gone, which is honest for `tel/**` (lossy by policy) and **not** honest for `sys/panic`
+(must-deliver). Filed, not papered over.
+
+**Ascending order is a correctness property, not tidiness.** The bridge sends a prefix
+of the scan and moves its cursor to the last entry it sent; any other order strands
+whatever it skipped. The same rule makes tail-trimming a batch to 512 B safe — what is
+dropped rides the next check-in — and it is why the ack watermark is taken from the
+gateway's reply and never from what was sent.
+
+**Where authority is enforced is a design decision, and it belongs on the node.** porta
+may write `goal/**` and `dbg/req`. An inbound entry anywhere else is counted and
+dropped — never applied, never raised — because an accepted write to `obs/**` would let
+the network *forge the node's own report of what it observes*, which is the one thing
+the whole convergence view rests on. A node that crashes on a malformed datagram is a
+node an attacker can switch off, so nothing on this path raises.
+
+**Two old lessons paid out again, unprompted.** `prim_names_enum_parity_check` caught
+nothing this time because the six edit sites were followed deliberately — the previous
+rung's cost is what made that cheap. And the `platform timers` freshness trap is
+restated on the `PortaBridge` accessor: the cursor, the ack watermark and the pending
+queue all live on the instance, so a node that re-fetches the accessor silently starts a
+second, empty bridge.
+
+**One process note, and it is embarrassing in the useful way.** The interop gate's first
+failure was not a protocol bug — it was `porta get` called without `--db`, reading an
+empty default database while the real one filled up correctly two feet away. *A green
+tool invocation against the wrong store looks exactly like a dead node.* That is the
+same family as "rc=0 is not a physical effect": check what the instrument is pointed at
+before debugging the thing it is pointed away from.
+
 ## Known stale docs (do not treat as current)
 
 `tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
