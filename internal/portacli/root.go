@@ -2,11 +2,12 @@
 
 // Package portacli is the porta gateway's cobra command tree.
 //
-// During the space-sync rewrite the tree is `serve` alone. v1's verbs (scan,
-// ping, device, container, log, monitor, debug, profile) were deleted with the
-// command queue they wrote to; they return as sugar over path writes and tree
-// reads, and the design record's §4.2 capability audit names where each one
-// lands. Nothing was dropped silently.
+// The tree is serve, get, put and log. v1's verbs (scan, ping, device,
+// container, monitor, debug, profile) were deleted with the command queue they
+// wrote to; put and get are the general forms they become sugar over, since
+// verbs live at the CLI and nowhere else (design D2). The design record's §4.2
+// capability audit names where each v1 verb lands. Nothing was dropped
+// silently.
 package portacli
 
 import (
@@ -30,6 +31,10 @@ var (
 
 func nowSec() int64 { return time.Now().Unix() }
 
+// nowMs is the store's clock. Everything in the space model is milliseconds
+// (design D4.2); nowSec survives only for serverstat, which predates it.
+func nowMs() int64 { return time.Now().UnixMilli() }
+
 // versionString is what `porta --version` prints and what the status surface
 // reports: the version, with the short commit appended when linked in.
 func versionString() string {
@@ -46,10 +51,15 @@ func NewRootCmd() *cobra.Command {
 		Short:   "porta — northbound gateway for nodus-style nodes",
 		Version: versionString(),
 	}
-	// --db survives the rewrite unused: the space store lands in Task 3 and
-	// serve opens it in Task 5, and deploy/ already passes the flag.
+	// --db is persistent so every verb reads the same store without each
+	// redeclaring the flag (which would shadow this one and diverge).
 	root.PersistentFlags().StringVar(&dbPath, "db", "porta.db", "SQLite database path")
-	root.AddCommand(newServeCmd())
+	root.AddCommand(
+		newServeCmd(),
+		newGetCmd(),
+		newPutCmd(),
+		newLogCmd(),
+	)
 	return root
 }
 

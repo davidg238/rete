@@ -9,6 +9,8 @@ import (
 
 	"github.com/davidg238/porta/internal/httpsrv"
 	"github.com/davidg238/porta/internal/serverstat"
+	"github.com/davidg238/porta/internal/space"
+	"github.com/davidg238/porta/internal/wire"
 	"github.com/spf13/cobra"
 )
 
@@ -30,44 +32,56 @@ func defaultAllowCIDR() []string {
 	}
 }
 
-// newServeCmd runs the gateway. During the space-sync rewrite it serves only
-// /health and opens no store — the UDP space listener arrives in Task 4 and
-// the operator surface in the operator-surface plan. The TFTP listener and its
-// --port flag went with v1; bulk transfer returns on the CoAP blockwise plane
-// (design §7), so the flag is deliberately absent rather than accepted and
-// ignored.
+// newServeCmd runs the gateway: the node-facing UDP space listener plus the
+// operator HTTP surface. The two are independent — a node keeps checking in
+// with --http-port 0, and the health endpoint stays up if the mesh is quiet.
 func newServeCmd() *cobra.Command {
+	var udpAddr, httpBind string
 	var httpPort int
-	var httpBind string
 	var httpAllowCIDR []string
 	cmd := &cobra.Command{
 		Use:   "serve",
-		Short: "Run the porta gateway",
+		Short: "Run the porta gateway: UDP space listener + operator HTTP surface",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
-
-			// Process-lifetime stats. The report-outcome and per-transport
-			// packet counters have no feeder until the wire task lands; the
-			// version/uptime pair that /health reports works today.
-			stats := serverstat.New(version, commit, nowSec)
-
-			srv, err := httpsrv.New(httpsrv.Config{
-				Bind:      httpBind,
-				Port:      httpPort,
-				AllowCIDR: httpAllowCIDR,
-			}, nil)
+			st, err := space.Open(dbPath, nowMs)
 			if err != nil {
 				return err
 			}
-			srv.SetStats(stats)
-			httpErr := make(chan error, 1)
-			go func() { httpErr <- srv.Run(ctx) }()
-			log.Printf("porta: serving HTTP on %s:%d (health only; space listener pending)", httpBind, httpPort)
+			defer st.Close()
 
-			return awaitServeExit(ctx, nil, httpErr)
+			// Process-lifetime stats shared by the HTTP surface.
+			stats := serverstat.New(version, commit, nowSec)
+
+			udpErr := make(chan error, 1)
+			go func() { udpErr <- wire.NewServer(st, log.Printf).ListenAndServe(ctx, udpAddr) }()
+			log.Printf("porta: serving the space on udp %s (db=%s)", udpAddr, dbPath)
+
+			// When --http-port 0, httpErr stays nil so the select arm blocks
+			// forever and UDP keeps serving until ctx cancel. (A closed
+			// channel would fire the select immediately and exit the serve —
+			// the bug found in T5 review.)
+			var httpErr chan error
+			if httpPort > 0 {
+				srv, err := httpsrv.New(httpsrv.Config{
+					Bind:      httpBind,
+					Port:      httpPort,
+					AllowCIDR: httpAllowCIDR,
+				}, st)
+				if err != nil {
+					return err
+				}
+				srv.SetStats(stats)
+				httpErr = make(chan error, 1)
+				go func() { httpErr <- srv.Run(ctx) }()
+				log.Printf("porta: serving HTTP on %s:%d", httpBind, httpPort)
+			}
+
+			return awaitServeExit(ctx, udpErr, httpErr)
 		},
 	}
-	cmd.Flags().IntVar(&httpPort, "http-port", 6970, "operator HTTP port")
+	cmd.Flags().StringVar(&udpAddr, "udp", ":6969", "node-facing UDP listen address")
+	cmd.Flags().IntVar(&httpPort, "http-port", 6970, "operator HTTP port (0 = disabled)")
 	cmd.Flags().StringVar(&httpBind, "http-bind", "0.0.0.0", "operator HTTP bind address")
 	cmd.Flags().StringSliceVar(&httpAllowCIDR, "http-allow-cidr",
 		defaultAllowCIDR(),
@@ -76,8 +90,7 @@ func newServeCmd() *cobra.Command {
 }
 
 // awaitServeExit blocks until a listener goroutine exits or ctx is cancelled.
-// It is transport-agnostic — two error channels, either of which may be nil —
-// so the space listener plugs into the udpErr arm when Task 4 lands.
+// It is transport-agnostic — two error channels, either of which may be nil.
 //
 //   - A listener error (non-nil udpErr or httpErr) propagates verbatim.
 //   - A clean HTTP exit (httpErr delivers nil) while UDP still runs falls

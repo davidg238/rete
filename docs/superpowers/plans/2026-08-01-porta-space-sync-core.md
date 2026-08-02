@@ -791,7 +791,7 @@ Expected: PASS, all seven tests. If `TestEncodeNodeGolden` fails, the encoder di
 The published golden covers only a Map. The Record fixture below was **generated from the node and verified 2026-08-01** — `Path A: PASS / Path B: PASS`, output `d81b82d8276361636ba1d82762687705`, which is the value already asserted in `TestEncodeRecordNameIsSymbol`. Re-run it to confirm nothing has drifted:
 
 ```bash
-cat > /tmp/claude-1000/-home-david-workspace-tuvm/728b0719-a646-49f0-88c0-ddd9eeff8505/scratchpad/CvalFixture.nsl <<'EOF'
+cat > $SCRATCH/CvalFixture.nsl <<'EOF'
 (*
 expect:
 d81b82d8276361636ba1d82762687705
@@ -803,7 +803,7 @@ public main: platform args: args = (
 ) : (
 )
 EOF
-cd ~/workspace/nsl-tuvm && python3 tools/run-one.py /tmp/claude-1000/-home-david-workspace-tuvm/728b0719-a646-49f0-88c0-ddd9eeff8505/scratchpad/CvalFixture.nsl
+cd ~/workspace/nsl-tuvm && python3 tools/run-one.py $SCRATCH/CvalFixture.nsl
 ```
 
 If the node prints anything other than the hex above, **the node is right and this plan is wrong** — update the test's `want` and the encoder, never the other way round.
@@ -2065,7 +2065,7 @@ a rejection from a lost datagram and would retry forever."
 - Consumes: `space`, `wire`, `cval`, `httpsrv`.
 - Produces: `porta serve --db --udp --http`; `porta get <node> [prefix]`; `porta put <node> <path> <value>`; `porta log <node>`.
 
-- [ ] **Step 1: Write the failing loopback gate**
+- [x] **Step 1: Write the failing loopback gate**
 
 This is the task's deliverable: a synthetic node driving a real UDP socket against a live server.
 
@@ -2236,51 +2236,68 @@ func mustEncode(t *testing.T, v any) []byte {
 }
 ```
 
-- [ ] **Step 2: Run to confirm failure**
+- [x] **Step 2: Run to confirm failure**
 
 Run: `cd ~/workspace/porta && go test ./internal/portacli/ -run TestLoopbackGate -v`
 Expected: FAIL — compile error, the CLI does not import these yet.
 
-- [ ] **Step 3: Wire `serve` to the store and the UDP listener**
+- [x] **Step 3: Wire `serve` to the store and the UDP listener**
+
+> **The snippet below is illustrative, not literal — three things in it do not exist.**
+> `httpsrv.Config` has no `Addr` field (it is `Bind`/`Port`/`AllowCIDR`) and `*httpsrv.Server`
+> has no `ListenAndServe` (it is `Run(ctx)`); `signal.NotifyContext` is already applied by
+> `Execute()` in `root.go`, so re-applying it here is redundant; and `--db` is a PERSISTENT
+> flag on the root command, so redeclaring it per-verb shadows the root one and the two can
+> diverge. Keep the real API, the existing `--http-port`/`--http-bind`/`--http-allow-cidr`
+> flags (including `--http-port 0` = disabled) and `awaitServeExit`, and add only `--udp`.
+> The same `--db` caveat applies to `get`, `put` and `log` in steps 4–5.
 
 ```go
 // internal/portacli/serve.go
-func serveCmd() *cobra.Command {
-	var dbPath, udpAddr, httpAddr string
+func newServeCmd() *cobra.Command {
+	var udpAddr, httpBind string
+	var httpPort int
+	var httpAllowCIDR []string
 	cmd := &cobra.Command{
 		Use:   "serve",
 		Short: "Run the porta gateway: UDP space listener + operator HTTP surface",
-		RunE: func(c *cobra.Command, _ []string) error {
-			st, err := space.Open(dbPath, func() int64 { return time.Now().UnixMilli() })
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx := cmd.Context()
+			st, err := space.Open(dbPath, nowMs) // dbPath is the root's persistent flag
 			if err != nil {
 				return err
 			}
 			defer st.Close()
 
-			ctx, cancel := signal.NotifyContext(c.Context(), os.Interrupt, syscall.SIGTERM)
-			defer cancel()
+			stats := serverstat.New(version, commit, nowSec)
 
-			errc := make(chan error, 2)
-			go func() { errc <- wire.NewServer(st, log.Printf).ListenAndServe(ctx, udpAddr) }()
-			go func() {
-				srv, err := httpsrv.New(httpsrv.Config{Addr: httpAddr}, st)
+			udpErr := make(chan error, 1)
+			go func() { udpErr <- wire.NewServer(st, log.Printf).ListenAndServe(ctx, udpAddr) }()
+
+			// httpErr stays nil when --http-port 0, so its select arm blocks
+			// forever and UDP keeps serving until ctx cancel.
+			var httpErr chan error
+			if httpPort > 0 {
+				srv, err := httpsrv.New(httpsrv.Config{
+					Bind: httpBind, Port: httpPort, AllowCIDR: httpAllowCIDR,
+				}, st) // *space.Store satisfies httpsrv.NodeCounter
 				if err != nil {
-					errc <- err
-					return
+					return err
 				}
-				errc <- srv.ListenAndServe(ctx)
-			}()
-			return <-errc
+				srv.SetStats(stats)
+				httpErr = make(chan error, 1)
+				go func() { httpErr <- srv.Run(ctx) }()
+			}
+			return awaitServeExit(ctx, udpErr, httpErr)
 		},
 	}
-	cmd.Flags().StringVar(&dbPath, "db", "porta.db", "SQLite database path")
 	cmd.Flags().StringVar(&udpAddr, "udp", ":6969", "node-facing UDP listen address")
-	cmd.Flags().StringVar(&httpAddr, "http", ":6970", "operator HTTP listen address")
+	// … the three http flags, unchanged from Task 1
 	return cmd
 }
 ```
 
-- [ ] **Step 4: Add the read verbs**
+- [x] **Step 4: Add the read verbs**
 
 ```go
 // internal/portacli/get.go
@@ -2392,7 +2409,7 @@ func logCmd() *cobra.Command {
 }
 ```
 
-- [ ] **Step 5: Add the write verb**
+- [x] **Step 5: Add the write verb**
 
 ```go
 // internal/portacli/put.go
@@ -2493,25 +2510,25 @@ func currentActor() string {
 
 Register all three in `root.go` alongside `serve`.
 
-- [ ] **Step 6: Run the gate**
+- [x] **Step 6: Run the gate**
 
 Run: `cd ~/workspace/porta && go test ./internal/portacli/ -run TestLoopbackGate -v`
 Expected: PASS.
 
-- [ ] **Step 7: Run everything and exercise the CLI by hand**
+- [x] **Step 7: Run everything and exercise the CLI by hand**
 
 ```bash
 cd ~/workspace/porta
 gofmt -l . && go build ./... && go test ./...
-rm -f /tmp/claude-1000/-home-david-workspace-tuvm/728b0719-a646-49f0-88c0-ddd9eeff8505/scratchpad/demo.db
-go run ./cmd/porta put c6-01 goal/name shipsbells --db /tmp/claude-1000/-home-david-workspace-tuvm/728b0719-a646-49f0-88c0-ddd9eeff8505/scratchpad/demo.db --reason "bring-up"
-go run ./cmd/porta get c6-01 --db /tmp/claude-1000/-home-david-workspace-tuvm/728b0719-a646-49f0-88c0-ddd9eeff8505/scratchpad/demo.db
-go run ./cmd/porta log c6-01 --db /tmp/claude-1000/-home-david-workspace-tuvm/728b0719-a646-49f0-88c0-ddd9eeff8505/scratchpad/demo.db
+rm -f $SCRATCH/demo.db
+go run ./cmd/porta put c6-01 goal/name shipsbells --db $SCRATCH/demo.db --reason "bring-up"
+go run ./cmd/porta get c6-01 --db $SCRATCH/demo.db
+go run ./cmd/porta log c6-01 --db $SCRATCH/demo.db
 ```
 
 Expected: `get` prints `goal/name  seq=1  "shipsbells"`; `log` prints one `→` row with your username as the actor and `bring-up` recorded.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add internal/portacli
