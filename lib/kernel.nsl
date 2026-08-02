@@ -1557,7 +1557,13 @@ class Kernel usingPlatform: platform = () (
        heap. Oldest-first eviction: for tel/** the newest entry is the one worth
        keeping, and it leaves the survivors in ascending seq order, which the push
        frame requires. sys/panic is marked must-deliver in RECORDS and needs a
-       different answer than "drop it" — that is a design question, not this cap. *)
+       different answer than "drop it" — that is a design question, not this cap.
+
+       Say the cost outright: oldest-first eviction MANUFACTURES A GAP at the
+       HEAD of the pushed seq series once the bound bites — CLAIMS.md's "no gaps"
+       is proven only for the runs where it never does. At one capture per tick
+       and the 2 s cadence, the bound bites after roughly 65 consecutive unacked
+       ticks, about 130 seconds of sustained disconnection. *)
     maxPending = ( ^ 64 )
 
     public cursor = ( ^ cursor )
