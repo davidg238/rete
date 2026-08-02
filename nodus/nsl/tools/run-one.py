@@ -11,7 +11,7 @@
 # Usage:
 #   python3 tools/run-one.py <path-to.nsl> [A|B|AB]     # default AB
 # Example:
-#   python3 tools/run-one.py ../nsl-tests/01_expressions/01_addition.nsl
+#   python3 tools/run-one.py ../tests/01_expressions/01_addition.nsl
 import os, sys
 from pathlib import Path
 

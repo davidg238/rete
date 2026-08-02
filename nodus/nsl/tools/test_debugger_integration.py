@@ -28,7 +28,7 @@ NSROOT = os.path.dirname(HERE)
 # their OWN VM — compiler and VM must come from the same branch or lowering
 # changes run new bytecode on an old VM ("unknown opcode").
 OEVM = os.environ.get("OEVM_DIR") or os.path.join(NSROOT, "..", "tuvm")
-APP = os.path.join(NSROOT, "..", "nsl-tests", "04_somns_basic", "46_debug_target.nsl")
+APP = os.path.join(NSROOT, "..", "tests", "04_somns_basic", "46_debug_target.nsl")
 BINARY_A = "/tmp/oevm_debugger"
 BINARY_B = "/tmp/oevm_img"
 OIMG_B = "/tmp/46_debug_target.oimg"

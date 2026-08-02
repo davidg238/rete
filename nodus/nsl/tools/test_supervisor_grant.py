@@ -6,14 +6,14 @@ import os, subprocess, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 NSROOT = os.path.dirname(HERE)
 # Task 9a: repointed from the frozen oevm/ns-tests ancestors to the active
-# tuvm VM + nsl-tests corpus (matching run_tests_oevm.py and the runner's own
+# tuvm VM + nodus/tests corpus (matching run_tests_oevm.py and the runner's own
 # "clobber ../tuvm/src/solidified_image.c" restore logic). Building Path B
 # against the frozen oevm (registry v4) rejects the v5 images the compiler now
 # emits after the registry compaction; tuvm is v5 and matches.
 # Honor OEVM_DIR (as run_tests_oevm.py does): branch worktrees must gate
 # against their own VM, or lowering changes run new bytecode on an old VM.
 OEVM = os.environ.get("OEVM_DIR") or os.path.join(NSROOT, "..", "tuvm")
-APP = os.path.join(NSROOT, "..", "nsl-tests", "04_somns_basic", "41_supervisor_grant.nsl")
+APP = os.path.join(NSROOT, "..", "tests", "04_somns_basic", "41_supervisor_grant.nsl")
 
 # Honor the same backend/cflags seam as run_tests_oevm.py so this gate builds
 # identically to the conformance suite (default = posix, no extra cflags).

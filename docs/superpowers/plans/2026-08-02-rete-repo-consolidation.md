@@ -327,7 +327,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 
 **Files:**
 - Create: `nodus/tests/` (from the `nsl-tests` repo, full history)
-- Modify: `nodus/nsl/tools/run_tests_oevm.py:161,397,578`, `nodus/nsl/tools/run-one.py:14`, `nodus/nsl/tools/test_deepsleep_node.py:13`
+- Modify: `nodus/nsl/tools/run_tests_oevm.py:161,397,578`, `nodus/nsl/tools/run-one.py:14`, `nodus/nsl/tools/test_deepsleep_node.py:13`, `nodus/nsl/tools/test_supervisor_grant.py:16`, `nodus/nsl/tools/test_debugger_integration.py:31`
 
 **Interfaces:**
 - Consumes: `nodus/nsl/` from Task 2.
@@ -359,6 +359,17 @@ grep -n '"tests"\|"nsl-tests"' nodus/nsl/tools/run_tests_oevm.py
 Expected: three hits on `/ "tests"` (lines ~161, ~397, ~578), zero on `"nsl-tests"`.
 
 > These resolve to `nodus/nsl/tools/../../tests` = `nodus/tests`. Correct.
+
+- [ ] **Step 2b: Repoint the two aux gates' own nsl-tests paths**
+
+```bash
+cd ~/workspace/tuvm
+sed -i 's|"\.\.", "nsl-tests"|"..", "tests"|' \
+  nodus/nsl/tools/test_supervisor_grant.py \
+  nodus/nsl/tools/test_debugger_integration.py
+```
+
+Expected: zero hits for `grep -rn 'nsl-tests' nodus/nsl/tools/*.py`. These two gates hardcode their own corpus path in a different expression from run_tests_oevm.py's, so Step 2's sed does not reach them. Missing this shows up as `grant: FAIL  debugger-integration: FAIL` with the tests themselves at 239/0 — a green test count next to two red aux gates, which is easy to skim past.
 
 - [ ] **Step 3: Fix the absolute path in the deep-sleep aux gate**
 
@@ -812,10 +823,24 @@ Expected: the tree from the Global Constraints, and **nothing else in `/tmp/rete
 - [ ] **Step 4: THE GATE — run everything from the fresh clone**
 
 ```bash
+# BOOTSTRAP FIRST — see the note below. Without this the gate reads 0/239.
+cd /tmp/rete-gate/rete/nodus/nsl/grammar && npm install
 cd /tmp/rete-gate/rete/nodus/nsl && python3 tools/run_tests_oevm.py 2>&1 | tail -8
 cd /tmp/rete-gate/rete/porta && go test ./... 2>&1 | tail -6
 cd /tmp/rete-gate/rete/nodus/tuvm && bash tests/porta_sync_host.sh 2>&1 | tail -4
 ```
+
+> **The `npm install` is mandatory and is not consolidation state.** The nsl
+> parser `nodus/nsl/grammar/ns-parse.js` requires `ohm-js`, which lives in
+> `grammar/node_modules/` — gitignored in the source repo and therefore in
+> every clone, before and after this consolidation. `nodus/nsl/README.md:41`
+> has always documented it. Discovered at Task 3 (2026-08-02): the first run
+> of the Task 3 gate in a fresh worktree returned **0 passed / 239 failed**
+> with every aux gate FAIL, purely for want of this one package. That failure
+> mode is indistinguishable at a glance from "the consolidation broke
+> everything", so bootstrap before you gate, and do not diagnose a 0/239 as a
+> path regression until `node -e "require('ohm-js')"` succeeds from
+> `nodus/nsl/grammar`.
 
 Expected, all three:
 ```

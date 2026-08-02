@@ -10,7 +10,7 @@ TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
 import run_tests_oevm as R   # reuse the Path-B compile + host-oevm invocation
 
-NODE = Path.home() / "workspace/tuvm/zephyr/MagTagDeepSleepNode.nsl"
+NODE = Path(__file__).resolve().parent.parent.parent / "tuvm" / "zephyr" / "MagTagDeepSleepNode.nsl"
 RTC_MAGIC = 348000704   # 0x14BE11C0 — must fit a 32-bit SMI (|v| < 2^30); the old
                         # 0x94BE11C0 only round-tripped on the 64-bit host
 

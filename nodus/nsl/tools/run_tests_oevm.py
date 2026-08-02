@@ -158,7 +158,7 @@ def run_boot_gc_asan_gate() -> bool:
     Build a tiny appliance WITH AddressSanitizer (fake-stack ON) under GC_STRESS and
     require the expected output. Requires the entry instance to be a PRECISE root.
     Skips cleanly (PASS) if the compiler lacks -fsanitize=address support."""
-    src = Path(__file__).parent.parent.parent / "nsl-tests" / "04_somns_basic" / "01_method_call.nsl"
+    src = Path(__file__).parent.parent.parent / "tests" / "04_somns_basic" / "01_method_call.nsl"
     if not src.exists():
         print(f"{COLOR_RED}boot-gc-asan: FAIL{COLOR_RESET} (missing {src})")
         return False
@@ -394,7 +394,7 @@ def _dump_stdout(src_path: Path, path_label: str, stdout: str) -> None:
     Called only when OEVM_DUMP_DIR is set; the dump does NOT affect pass/fail."""
     if not OEVM_DUMP_DIR:
         return
-    test_dir = Path(__file__).parent.parent.parent / "nsl-tests"
+    test_dir = Path(__file__).parent.parent.parent / "tests"
     try:
         rel = src_path.relative_to(test_dir)
     except ValueError:
@@ -575,7 +575,7 @@ def run_test_file_oimg(src_path: Path) -> tuple[str, str]:
 
 
 def main():
-    test_dir = Path(__file__).parent.parent.parent / "nsl-tests"
+    test_dir = Path(__file__).parent.parent.parent / "tests"
     if not test_dir.exists():
         print(f"Error: tests directory not found at {test_dir}")
         sys.exit(1)
