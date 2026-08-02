@@ -434,7 +434,7 @@ void space_gc_trace(void) {
            in the heap — that is the whole point of a cell: it outlives the job
            that wrote it, and outlives the queued event that announced it (which
            space_dequeue kills on delivery). Miss this line and a running plant
-           gets a collected setpoint. Guarded by nsl-tests/15_cells/05_gc_root. */
+           gets a collected setpoint. Guarded by nodus/tests/15_cells/05_gc_root. */
         if (c->kind == SPACE_KIND_CELL && c->value) mark_object(c->value);
     }
 }

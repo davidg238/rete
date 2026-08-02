@@ -7,7 +7,7 @@
 #   GET /nope    -> 404,
 #   an 8-way concurrent burst (informational: with a 4-deep in-flight table some
 #   requests may shed 503 under load — the deterministic shed proof is the C unit
-#   test test_backpressure_shed + nsl-tests/14_http/03_backpressure).
+#   test test_backpressure_shed + nodus/tests/14_http/03_backpressure).
 # Correctness of the round-trip over sockets is the deliverable.
 set -euo pipefail
 cd "$(dirname "$0")/.."

@@ -7,7 +7,7 @@ set -e
 gcc -m32 -E -x c /dev/null >/dev/null 2>&1 || { echo "SKIP: gcc-multilib not installed. Run: sudo apt-get install gcc-multilib"; exit 77; }
 cd "$(dirname "$0")/.."
 # Task 9a: repointed from the frozen ns-oevm/ns-tests ancestors to the active
-# nsl-tuvm compiler + nsl-tests corpus. The ns-oevm compiler still stamps
+# nodus/nsl compiler + nodus/tests corpus. The ns-oevm compiler still stamps
 # registry_version 4; after the Task 9a registry compaction the tuvm firmware is
 # v5, so an ns-oevm-built image is rejected on load. nsl-tuvm emits v5 and matches.
 NS=../nsl

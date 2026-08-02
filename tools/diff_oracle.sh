@@ -12,7 +12,7 @@
 # Semantic caveat: the frozen oevm still has fibers/NLR and the pre-renumber
 # opcodes/format; only tests whose SOURCE is byte-identical across both corpora AND
 # whose stdout is verified identical on both VMs belong in the manifest (see
-# nsl-tests/pared-subset.txt's header comment for the exact exclusion list and
+# nodus/tests/pared-subset.txt's header comment for the exact exclusion list and
 # reasons — e.g. `^` in an escaping block compiles fine on frozen's real-NLR
 # compiler but is a compile error on tuvm's no-NLR compiler, so that test cannot be
 # an oracle test). Re-verify the manifest whenever either side's corpus changes.
