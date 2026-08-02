@@ -181,49 +181,53 @@ func (s *Store) OutboundSince(nodeID string, cursor int64, maxBytes int) ([]Entr
 }
 
 // Ingest applies a node push. Entries at or below the stored high-water are
-// dropped as duplicates — which is why the exchange needs no retransmit
-// layer: a lost push is simply resent, and a resent push is idempotent.
-func (s *Store) Ingest(nodeID string, bootID int64, entries []Entry) (int64, error) {
+// skipped as duplicates — which is why the exchange needs no retransmit
+// layer: a lost push is simply resent, and a resent push is idempotent. The
+// skip count is returned rather than silently absorbed, so a caller can make
+// the dedupe observable (e.g. a log line) instead of it only being provable
+// by the absence of a duplicate — which is equally consistent with the node
+// never having re-pushed at all.
+func (s *Store) Ingest(nodeID string, bootID int64, entries []Entry) (hw int64, skipped int, err error) {
 	now := s.nowMs()
 	tx, err := s.db.Begin()
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	defer tx.Rollback()
 	if err := ensureNode(tx, nodeID, now); err != nil {
-		return 0, err
+		return 0, 0, err
 	}
-	var hw int64
 	if err := tx.QueryRow(`SELECT node_seq_hw FROM nodes WHERE id = ?`, nodeID).Scan(&hw); err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	for _, e := range entries {
 		if e.Seq <= hw {
+			skipped++
 			continue // duplicate; the node is re-sending an unacked batch
 		}
 		if len(e.Value) > MaxValueBytes {
-			return 0, fmt.Errorf("node %s sent a %d byte value at %s, over the %d byte cap",
+			return 0, 0, fmt.Errorf("node %s sent a %d byte value at %s, over the %d byte cap",
 				nodeID, len(e.Value), e.Path, MaxValueBytes)
 		}
 		if err := cval.Validate(e.Value); err != nil {
-			return 0, fmt.Errorf("node %s sent a malformed value at %s: %w", nodeID, e.Path, err)
+			return 0, 0, fmt.Errorf("node %s sent a malformed value at %s: %w", nodeID, e.Path, err)
 		}
 		if e.Kind == cval.KindCell {
 			if err := upsertCell(tx, nodeID, e.Path, e.Seq, e.Kind, e.Value, now, "in"); err != nil {
-				return 0, err
+				return 0, 0, err
 			}
 		}
 		if err := appendEvent(tx, nodeID, e.Path, e.Seq, e.Kind, e.Value, now, "in", nodeID, ""); err != nil {
-			return 0, err
+			return 0, 0, err
 		}
 		hw = e.Seq
 	}
 	if _, err := tx.Exec(
 		`UPDATE nodes SET node_seq_hw = ?, boot_id = ?, last_seen_ms = ? WHERE id = ?`,
 		hw, bootID, now, nodeID); err != nil {
-		return 0, err
+		return 0, 0, err
 	}
-	return hw, tx.Commit()
+	return hw, skipped, tx.Commit()
 }
 
 func (s *Store) NoteCursor(nodeID string, cursor int64) error {

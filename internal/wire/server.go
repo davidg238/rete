@@ -16,7 +16,11 @@ type Server struct {
 	st   *space.Store
 	logf func(string, ...any)
 
-	// TEST-ONLY fault injection — see SetDropAckEvery.
+	// TEST-ONLY fault injection — see SetDropAckEvery. acks is a FLEET-WIDE
+	// counter (one Server serves every node on the port), so "every Nth ack"
+	// is a global modulo across whichever nodes are checking in — harmless on
+	// a single-node bench, but a second node would steal some of the first
+	// node's drops and vice versa. Fine for what this exists to test.
 	dropAckEvery int
 	acks         int
 }
@@ -161,9 +165,18 @@ func (s *Server) handlePush(r cval.Record, peer string) ([]byte, error) {
 	if len(entries) > 0 {
 		lo = entries[0].Seq
 	}
-	hw, err := s.st.Ingest(id, bootID, entries)
+	hw, skipped, err := s.st.Ingest(id, bootID, entries)
 	if err != nil {
 		return nil, err
+	}
+	// Only when skipped > 0, so an ordinary push stays quiet. This is what
+	// makes the seq <= hw dedupe OBSERVABLE rather than merely reasoned
+	// about: previously it was a silent skip, provable only by the ABSENCE
+	// of a duplicate — which reads identically to a node that never
+	// re-pushed at all.
+	if skipped > 0 {
+		s.logf("porta: push from %s skipped %d already-applied row(s) (high-water %d)",
+			id, skipped, hw)
 	}
 	if err := s.st.RecordExchange(id, bootID, 0, 0, lo, hw, peer); err != nil {
 		return nil, err

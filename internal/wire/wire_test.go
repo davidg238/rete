@@ -4,6 +4,8 @@
 package wire
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/davidg238/porta/internal/cval"
@@ -92,6 +94,45 @@ func TestReplayedPushIsIdempotent(t *testing.T) {
 	evs, _ := st.Events("n1", 100)
 	if len(evs) != 1 {
 		t.Fatalf("got %d events after a replayed push, want 1", len(evs))
+	}
+}
+
+// The dedupe above was previously provable only by the ABSENCE of a
+// duplicate event — which reads identically to a node that never re-pushed
+// at all. This test drives the positive evidence: a replayed push logs its
+// skip count, and a fresh push logs nothing.
+func TestReplayedPushLogsSkipCount(t *testing.T) {
+	var lines []string
+	st, err := space.Open(t.TempDir()+"/t.db", func() int64 { return 1000 })
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	t.Cleanup(func() { st.Close() })
+	srv := NewServer(st, func(format string, args ...any) {
+		lines = append(lines, fmt.Sprintf(format, args...))
+	})
+
+	req, _ := EncodePush("n1", 7, []space.Entry{
+		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one")},
+	})
+
+	srv.Handle(req) // fresh push: nothing to skip
+	for _, l := range lines {
+		if strings.Contains(l, "skipped") {
+			t.Fatalf("a fresh push logged a skip: %q", l)
+		}
+	}
+
+	lines = nil
+	srv.Handle(req) // replay: seq 1 is already applied
+	found := false
+	for _, l := range lines {
+		if strings.Contains(l, "n1") && strings.Contains(l, "skipped 1") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("a replayed push did not log its skip count; got %v", lines)
 	}
 }
 

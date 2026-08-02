@@ -182,3 +182,16 @@ func TestDropAckEveryAnswersPullsWhileSwallowingAcks(t *testing.T) {
 		t.Fatal("with dropEvery=1 no ack should ever be delivered")
 	}
 }
+
+// The zero value must be a true off-switch. Every other test in this file
+// drives a Server whose SetDropAckEvery was called with a nonzero N; none
+// exercises the default a production gateway actually runs with. dropEvery=0
+// is the constructor's zero value too, so this also covers a Server on which
+// SetDropAckEvery was never called at all.
+func TestDropAckEveryZeroNeverSwallows(t *testing.T) {
+	_, _, push, _ := dropHarness(t, 0)
+	waitForListener(t, push) // ack #1
+	if !push(2, "two") {
+		t.Fatal("dropAckEvery=0 must never swallow an ack, but the push got no reply")
+	}
+}
