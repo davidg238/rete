@@ -742,7 +742,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 **Files:**
 - Modify: root `CLAUDE.md` (merging five), `review/DOCMAP.md`, `docs/next-steps-overview.md`, `tools/docmap.sh`
 - Create: root `README.md`
-- Delete: `nodus/nsl/CLAUDE.md` (contents merged). `porta/CLAUDE.md` was never
+- Delete: `nodus/nsl/CLAUDE.md` (contents merged). No `porta/CLAUDE.md` is created — porta’s rules merge into the root file, same as nsl’s. It was never
   imported — its own `.gitignore` excluded it from the Task 4 subtree add —
   so there is nothing in-repo to delete; its rules must be read from
   `~/workspace/porta/CLAUDE.md` instead (see Step 1).
@@ -767,10 +767,16 @@ for f in CLAUDE.md nodus/nsl/CLAUDE.md ~/workspace/porta/CLAUDE.md; do echo "===
 ```
 
 Merge into the root file. Keep every rule; do not drop one because it looks
-redundant — a rule that survived this long earned its place. Whether a
-standalone `porta/CLAUDE.md` is also worth keeping alongside the merge is a
-judgment call for this step — the `.gitignore` line that would have silently
-blocked adding it has already been removed, so the option is open either way.
+redundant — a rule that survived this long earned its place.
+
+**One `CLAUDE.md`, no per-child copies.** That is this task's title and the
+reason it exists. `nodus/nsl/CLAUDE.md` is deleted once merged; porta's rules
+get the same treatment — merged into the root file, with **no** `porta/CLAUDE.md`
+created. Do not "keep one alongside for convenience": a second copy is a rule
+set that drifts from the first, and the next session cannot tell which governs.
+The `/porta/CLAUDE.md` line was removed from the root `.gitignore` only so that
+nothing is *silently* blocked; removing it is not an instruction to add the file.
+
 Add three new lines:
 
 - The tree map (`porta/`, `nodus/{tuvm,nsl,tests,toit}`, `protocol/`, `review/`).
@@ -779,12 +785,38 @@ Add three new lines:
 
 - [ ] **Step 2: Update `tools/docmap.sh` for the new single-root layout**
 
+**The re-rooting part of this step is already done.** The final-review fix wave
+(`e137cf5`) rewrote `ROOTS` to derive from `$ROOT` rather than `$HOME/workspace`,
+because two sibling scripts were broken by the same stale absolute and it was
+one edit. `grep -n 'workspace' tools/docmap.sh` now returns one line
+(`~/workspaceToit/nodus/docs`), not five — that is expected, not a missed step.
+
 ```bash
 cd ~/workspace/tuvm
-grep -n 'workspace' tools/docmap.sh
+sed -n '/^ROOTS=(/,/^)/p' tools/docmap.sh
 ```
 
-Replace the five doc-home paths with the in-repo ones (`docs`, `nodus/nsl/docs`, `nodus/tuvm/docs`, `porta/docs`, `protocol`, `review`) plus `~/workspaceToit/stic` — which **stays outside** per D12.
+Current contents: `review`, `docs`, `nodus/nsl/docs`, `porta/docs`,
+`$HOME/workspaceToit/nodus/docs`.
+
+What remains is to add the doc homes the consolidation *created*, and one that
+was always missing:
+
+- `$ROOT/protocol` — 4 documents, new in Task 4 and the contract both sides
+  cite. Omitting it is how the protocol drops off the map.
+- `$ROOT/nodus/tuvm/zephyr/docs` — 4 documents (`BOARD_PORTS.md` and siblings).
+- `$HOME/workspaceToit/stic` — 1 document (`README.md`, the published ESP32
+  benchmark table). It **stays outside** the repo per D12; it is a doc home,
+  not a child.
+
+> **Do NOT add `$ROOT/nodus/tuvm/docs`** — an earlier revision of this step said
+> to. That directory does not exist and will not: Task 1 left `docs/` at the
+> repo root, so tuvm's own documents (`MILESTONE_{A,D,E}.md`, the design and
+> plan trees) are already covered by the `$ROOT/docs` entry. Adding a
+> nonexistent root makes the script's own inventory silently short.
+
+Verify: `bash tools/docmap.sh` runs clean, and the regenerated inventory in
+Step 4 contains at least one entry from each of the three added homes.
 
 - [ ] **Step 3: Fix the cross-program search recipe in `review/DOCMAP.md`**
 

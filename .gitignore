@@ -109,12 +109,16 @@ _*.stmap
 /porta/**/*.log
 /porta/deploy/dist/
 
-# porta/CLAUDE.md is deliberately NOT ignored (rete consolidation, IMPORTANT 3):
+# No /porta/CLAUDE.md rule here, deliberately (rete consolidation, IMPORTANT 3).
 # porta's own .gitignore had `/CLAUDE.md`, so `git subtree add` correctly never
-# imported it, and re-rooting that line here would make it un-addable forever.
-# Task 6 Step 1 is expected to `git add porta/CLAUDE.md` after merging its
-# rules from ~/workspace/porta/CLAUDE.md (the only surviving copy, read BEFORE
-# Task 7 Step 2 deletes that clone).
+# imported it; re-rooting that line here would have made the file un-addable
+# forever, and silently. That is the only reason the line is absent.
+#
+# It is NOT an instruction to add the file. Task 6 merges porta's rules into
+# the ROOT CLAUDE.md and creates no porta/CLAUDE.md — one CLAUDE.md is the
+# whole point of that task, and a second copy is a rule set that drifts.
+# The rules must be read from ~/workspace/porta/CLAUDE.md (the only surviving
+# copy) BEFORE Task 7 Step 2 deletes that clone.
 
 # Tracked-build-artifact D-table names (not migrated into the monorepo history;
 # see the rete consolidation design doc §4/D-table).
