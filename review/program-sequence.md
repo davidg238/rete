@@ -2,7 +2,7 @@
 
 **Status:** drafted 2026-07-04 (mid-Milestone-B). This is the ONE document that sequences
 the whole program. It is an *index with ordering*: every line points at the document that
-owns the detail — decisions live in `nsl-tuvm/docs/design/`, execution state in
+owns the detail — decisions live in `nodus/nsl/docs/design/`, execution state in
 the SDD ledger, open items in GitHub issues on `davidg238/{tuvm,nsl-tuvm}`. Update this file
 at milestone boundaries, not per task.
 
@@ -11,13 +11,13 @@ at milestone boundaries, not per task.
 keeper on the porta fleet plane — nRF52840-class (~256 KB) + OpenThread. What the 2026-07-03
 pivot changed is the concurrency pillar: **no fibers, no NLR** — a reactive, run-to-completion
 model (channels + reactor + supervisor) replaces them. The Zephyr gate remains **memory, not
-speed** (old `tuvm/docs/ROADMAP.md` prime directive; still true).
+speed** (old `docs/ROADMAP.md` prime directive; still true).
 
 ---
 
 ## Phase 0 — heritage: what the pivot kept (done, pre-2026-07-03)
 
-The pre-pivot ladder (`nsl-tuvm/docs/superpowers/plans/2026-06-25-ns-zephyr-capability-node-roadmap.md`)
+The pre-pivot ladder (`nodus/nsl/docs/superpowers/plans/2026-06-25-ns-zephyr-capability-node-roadmap.md`)
 ran R0–R7 on the fiber-era VM. Its **infrastructure rungs survive the pivot** (language-neutral
 or VM-shape-independent); its **concurrency rungs are dead**:
 
@@ -36,12 +36,12 @@ reference = oevm `cee55d4` / ns-oevm `a327d60` (`review/2026-07-04-pre-fiber-bas
 
 ## Phase 1 — the first step: prove the model on the host (Milestones A–D)
 
-Owner doc: `nsl-tuvm/docs/design/2026-07-03-nsl-tuvm-first-step-design.md` §4
+Owner doc: `nodus/nsl/docs/design/2026-07-03-nsl-tuvm-first-step-design.md` §4
 (+ `review/2026-07-03-first-step-design-addendum.md` A1–A3). Bar: end-to-end on the desktop
 with the balloon gone.
 
 - **A — Seed + delete. DONE 2026-07-04.** Merged to master all 3 repos; 88/0/12 both paths;
-  text −10.02% banked; deletion machine-proven (07_no_nlr + diff oracle). `tuvm/docs/MILESTONE_A.md`.
+  text −10.02% banked; deletion machine-proven (07_no_nlr + diff oracle). `docs/MILESTONE_A.md`.
 - **B — Immutable message algebra. DONE.** Merged to master all 3 repos (12 tasks landed,
   reviewed, gates green). Standing decisions absorbed: L7 signed-64-bit integers,
   `->` as compile-time rewrite (no builtin→kernel-Object delegation exists — Task 2 finding).
@@ -55,7 +55,7 @@ with the balloon gone.
   frame, per `review/lib/exceptions.md` constraint 4; `Supervisor`/`SupervisedJob`
   restart+quarantine; owner-tag identity sweep; host virtual-clock timers; the soak/leak
   test D.5; the demo-node-shaped integration test D.7; carry-forwards nsl-tuvm#5 and
-  #9.1/#9.2/#9.3 all closed). `tuvm/docs/MILESTONE_D.md`.
+  #9.1/#9.2/#9.3 all closed). `docs/MILESTONE_D.md`.
 
 **Phase 1 (host proof) is now COMPLETE — Milestones A through D all landed and green.**
 Phase 2 (below) is entered next.
@@ -73,8 +73,8 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
    setjmp crash boundary. Retires the td-crash/04 'policy TBD' placeholder.
    **DONE 2026-07-07 (Milestone E).** `vm_on_do`/`vm_ensure` built beside D's `vm_protected_fire`
    (prims 90-93: `raise`/`error:tag:`/`on:do:`/`ensure:`); Record-valued raise; `^`-in-handler
-   rejected; C5 no-cross-dispatch pinned; `nsl-tests/12_exceptions/01..14`. Whole-milestone gate
-   green both paths; whole-branch review Ready (F1 interned-`#error` fix landed). `tuvm/docs/MILESTONE_E.md`.
+   rejected; C5 no-cross-dispatch pinned; `nodus/tests/12_exceptions/01..14`. Whole-milestone gate
+   green both paths; whole-branch review Ready (F1 interned-`#error` fix landed). `docs/MILESTONE_E.md`.
 2. **Zephyr bring-up** of the backend seam (`backend/<target>/`). Precursors that can land
    during phase 1: FOOTPRINT_CONFIG=mcu true-target RAM line (tuvm#5 — ideally before B Task 12
    banks RAM numbers); OEVM_BUILD=asan|ubsan harness knob. First work order: the **ISR→channel
@@ -83,10 +83,10 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
    mitigations); soft watchdog via the debugger safe-point hook (kept in A for this reason).
 
    In-rung finding 2026-07-16 — **the ESP32 ROM silently outranks the libc Kconfig.** The VM
-   boots and runs on a real ESP32-WROOM-32 (`esp32_devkitc/esp32/procpu`, `tuvm/zephyr/prj_esp32.conf`),
+   boots and runs on a real ESP32-WROOM-32 (`esp32_devkitc/esp32/procpu`, `nodus/tuvm/zephyr/prj_esp32.conf`),
    prints `TIMER OK`, then faulted EXCCAUSE 28 (load prohibited, VADDR 0). Root cause is NOT
    the `^0` return path and NOT the uncancelled `every: 200` k_timer — both hypotheses were
-   wrong, and both cost a session. It is the **print itself**: `tuvm/src/dispatch.c`'s `out`
+   wrong, and both cost a session. It is the **print itself**: `nodus/tuvm/src/dispatch.c`'s `out`
    prim called `fflush(stdout)` → ROM `fflush` 0x40059394 → ROM `__getreent` 0x4000be8c →
    NULL load. `esp32.rom.newlib-funcs.ld` assigns all 62 of its newlib symbols by **plain
    assignment, not PROVIDE** — i.e. STRONG symbols, deliberately, per that file's own header
@@ -103,15 +103,15 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
 
    The rule this rung takes from it: **core must not reach around `backend/<target>/`.**
    `dispatch.c` calling `fflush(stdout)` directly at two sites *was* the defect — the seam
-   (`tuvm/src/platform_backend.h`, `platform_console_flush`) already existed and was bypassed,
+   (`nodus/tuvm/src/platform_backend.h`, `platform_console_flush`) already existed and was bypassed,
    which is exactly how a host-only assumption reached the SoC. Fixed in
-   `tuvm/src/backend/zephyr/platform_zephyr.c` (flush is a no-op: `main()` sets stdout
+   `nodus/tuvm/src/backend/zephyr/platform_zephyr.c` (flush is a no-op: `main()` sets stdout
    `_IONBF`, so nothing is ever buffered) + `dispatch.c` now calling the seam; 25/25 C tests
    pass, host ASan+UBSan clean.
 
    **DEVICE-CONFIRMED 2026-07-16 — and it unmasked a second, stacked bug.** Reflashed: the
    fflush fault is gone, but the node then died at **4.29s** with `pulse mailbox full` →
-   `k_oops()`. Cause: `tuvm/zephyr/TimerNode.ns` started an `every: 200` repeater and
+   `k_oops()`. Cause: `nodus/tuvm/zephyr/TimerNode.ns` started an `every: 200` repeater and
    **returned from `main:`** — so it stopped draining while the k_timer kept firing into the
    16-deep pulse mailbox. Arithmetic pins it: `OEVM_PULSE_MAILBOX_DEPTH` = 16; 0.891s → 4.290s
    = 3.399s = **17.0 fires**; 16 fill it, the 17th aborts. The long-standing "uncancelled
@@ -133,26 +133,26 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
    | after fix #2 (cancel) | TIMER OK 0.891s → nothing → **ALIVE at 20s**, log ends 0.891s |
 
    **Rung-2 gate 1 (TimerNode, the real on-target timer backend) is now GREEN on ESP32** —
-   no fault, no oops, no coredump. Green log: `tuvm/zephyr/esp32-debug-artifacts/`.
+   no fault, no oops, no coredump. Green log: `nodus/tuvm/zephyr/esp32-debug-artifacts/`.
 
    **Residue this leaves on the ladder — the pulse mailbox still kills the node.** tuvm#20
    (`1857c26`) replaced the *event ring's* `abort()` with the G2 overflow policy — "the ring
-   never kills the node" — but `pulse_post_isr` (`tuvm/src/backend/zephyr/pulse_zephyr.c:19`)
-   still `k_oops()`es on a full mailbox, by design (`tuvm/src/pulse_backend.h:17`). #20 fixed
+   never kills the node" — but `pulse_post_isr` (`nodus/tuvm/src/backend/zephyr/pulse_zephyr.c:19`)
+   still `k_oops()`es on a full mailbox, by design (`nodus/tuvm/src/pulse_backend.h:17`). #20 fixed
    the ring and left the ISR-side mailbox behind. That is a **G2 consistency gap**, not a
    TimerNode issue, and it outlives this node — a real ISR burst would kill a production node
    the same way. Deliberately NOT fixed with #2 (that would have papered over a genuine node
    bug). Decide whether G2's "never kills the node" extends to the ISR seam.
 
-   Loose thread: `setjmp`/`longjmp` are ROM-bound too and `tuvm/src/vm.c` builds the
+   Loose thread: `setjmp`/`longjmp` are ROM-bound too and `nodus/tuvm/src/vm.c` builds the
    raise/ensure crash boundary on them; the non-fatal `<err> os: ** SYSCALL` dumps (still
    present in the green log, expected) are ROM `setjmp` (0x40056268) spilling register
    windows — noisy, execution continues, soundness on Xtensa unverified.
 
    **In-rung 2026-07-16 — the Zephyr Model A/B build knob. Model B is GREEN on ESP32.**
    The rung stays OPEN: stage 2 is unbuilt (see the open item at the end). Design
-   `tuvm/docs/design/2026-07-16-zephyr-model-ab-build-knob-design.md`, plan
-   `tuvm/docs/superpowers/plans/2026-07-16-zephyr-model-ab-build-knob.md`.
+   `docs/design/2026-07-16-zephyr-model-ab-build-knob-design.md`, plan
+   `docs/superpowers/plans/2026-07-16-zephyr-model-ab-build-knob.md`.
 
    `zephyr/run.sh --model A|B` now owns the loop (bake → build → flash → capture) and
    `TUVM_MODEL` selects the link set: **A** = `src/solidified_image.c` (today's build,
@@ -213,10 +213,10 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
    `stderr` `_IONBF` so a bad blob cannot fail silently.
 
    **And then the first cross-VM column — E4, STIC on ESP32 (2026-07-16).** With the loop
-   at 44 s, the STIC benchmark was ported to nsl (`nsl-tests/00_perf/performance.ns`,
-   `0e0715a`; design `tuvm/docs/design/2026-07-16-performance-nsl-stic-column-design.md`)
+   at 44 s, the STIC benchmark was ported to nsl (`nodus/tests/00_perf/performance.ns`,
+   `0e0715a`; design `docs/design/2026-07-16-performance-nsl-stic-column-design.md`)
    and run against the published Toit / uLisp / CircuitPython numbers for this class of
-   chip. Nine tests, 14.9 min, clean. Full table + caveats: `tuvm/zephyr/docs/results.md`
+   chip. Nine tests, 14.9 min, clean. Full table + caveats: `nodus/tuvm/zephyr/docs/results.md`
    **E4**.
 
    **tuvm is last on 5 of 9 and wins nothing** — that is the honest headline, and the
@@ -242,16 +242,16 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
    **No `CLAIMS.md` row for this.** `review/tests/CLAIMS.md`'s rule is that a criterion
    without a green *named test* is unproven, and the Model B gate is a manual device run
    (`zephyr/run.sh --model B ... --flash --capture`), not an automated test. The evidence is
-   the banked green log (`tuvm/zephyr/esp32-debug-artifacts/tuvm-esp32-GREEN-modelB-oimg.log`)
+   the banked green log (`nodus/tuvm/zephyr/esp32-debug-artifacts/tuvm-esp32-GREEN-modelB-oimg.log`)
    and this entry. Automating an on-target A/B equivalence gate would earn a row — the
    `.oimg` path makes that affordable for the first time (44 s, no 4.9 GB `cc1`), so it is
    now worth considering rather than dismissing.
 
    **The knob paid for itself the same day: `perfstex` now runs on ESP32.** With the loop at
-   44 s, the classic SpeedTester (`nsl-tests/00_perf/perfstex.ns` — already a node,
+   44 s, the classic SpeedTester (`nodus/tests/00_perf/perfstex.ns` — already a node,
    `main: platform args:`, so it boots unmodified) was baked, flashed and run on real
    silicon in about a minute. All six sub-tests plus `done`. Full write-up +
-   reproduction: **`tuvm/zephyr/docs/results.md`** — the ESP32 on-device ledger (E1
+   reproduction: **`nodus/tuvm/zephyr/docs/results.md`** — the ESP32 on-device ledger (E1
    TimerNode/Model A, E2 TimerNode/Model B, E3 perfstex), deliberately shaped like
    `ns-zephyr/docs/results.md` so the two ports read side by side.
 
@@ -300,7 +300,7 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
    rung.
 
    **Open papercut:** `run.sh` resolves `--node` relative to `zephyr/` only, so it cannot
-   drive nodes that live outside the tree — `perfstex.ns` (in `nsl-tests/00_perf/`) has to
+   drive nodes that live outside the tree — `perfstex.ns` (in `nodus/tests/00_perf/`) has to
    be built by hand. Every in-tree node is fine; the perf suite is not in-tree.
 3. **Wire seam: CBOR + Int64. DONE 2026-07-10.** Owners: `review/lib/cbor.md` (CBOR over custom
    wire format, tags 27/39) and `review/lib/integers.md` (L7: boxed Int64 on 32-bit — decided,
@@ -317,23 +317,23 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
    integer contract is the ratified L7 range **±(2^64−1)** (both SMI and LargeInteger, shortest
    form); only `−2^64` and the CBOR bignum tags (2/3) overflow it, both routing to
    `integer out of range`. Both-path (Path A solidified / Path B `.oimg`) verified A==B; tests
-   in `nsl-tests/14_cbor/` (01_roundtrip, 02_golden_hex, 03_map_order, 04_reject, 05_int_band,
+   in `nodus/tests/14_cbor/` (01_roundtrip, 02_golden_hex, 03_map_order, 04_reject, 05_int_band,
    06_float_roundtrip). Co-landed a `.oimg` large-SMI capacity fix (Task 1) needed to represent
    the widened integer range.
 
    (Infrastructure rung between 3 and 4, not its own conceptual step: **on-target measurement.
    DONE 2026-07-10** — prim 104 `heapStats` + `HeapStats` class, the MCU footprint ratchet as a
-   5th named gate, DK capture. `tuvm/docs`/SDD ledger.)
+   5th named gate, DK capture. `docs`/SDD ledger.)
 4. **Transport: UDP/OpenThread — a three-layer arc.** The transport that the wire seam (item 3)
    and the reactive channel model (Milestone C) were built to feed. Design/plan:
-   `nsl-tuvm/docs/design|superpowers/plans/2026-07-10-rung5-udp-transport-l1.*` (Layer 1) and
+   `nodus/nsl/docs/design|superpowers/plans/2026-07-10-rung5-udp-transport-l1.*` (Layer 1) and
    `.../2026-07-10-rung6-udp-bridge-l2.*` (Layer 2). Sequenced
    host-proof-first, each layer de-risking the next:
    - **Layer 1 — the confined `net` UDP capability. DONE 2026-07-10 (rung 5).** The host POSIX
      capability (`Net`/`Socket`/`Datagram` over `udp.c` + `udp_posix.c`, both-path boot grant,
      receiver-identity dispatch) was already complete and green (`nsl-tests` `42_udp`/`43_udp_confined`,
      suite 179/0/12). Rung 5 proved the **Zephyr `udp_zephyr.c` backend functionally on
-     `native_sim`** (previously link-only): a `net`-granting Model-A node (`tuvm/zephyr/NetNode.ns`)
+     `native_sim`** (previously link-only): a `net`-granting Model-A node (`nodus/tuvm/zephyr/NetNode.ns`)
      round-trips a datagram over Zephyr NSOS loopback (`UDP OK`). No VM/facade/compiler change;
      footprint unchanged. Payload stays `String` this layer.
    - **Layer 2 — the reactive channel↔UDP bridge. DONE 2026-07-10 (rung 6).** A pure-`.ns`
@@ -344,7 +344,7 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
      **dropped, never crashes the node** (untrusted-input boundary). Lands the immutable-`Bytes`
      payload deferred from L1 (a module-internal `Bytes>>rawLeaf` send seam; `Datagram>>data` is
      now a `Bytes`). Proven **bidirectionally on host AND native_sim** (`nsl-tests` `45_udp_bridge`
-     A↔B + garbage-drop; `tuvm/zephyr/NetBridgeNode.ns` → `BRIDGE OK` over NSOS loopback). Makes
+     A↔B + garbage-drop; `nodus/tuvm/zephyr/NetBridgeNode.ns` → `BRIDGE OK` over NSOS loopback). Makes
      the node network-transparent (demo-node north star: node posts `node7/reading`; porta bridges
      it to the LAN, CBOR wire). Ingress stays an explicit `pumpInbound` call (rule-of-three — a
      unified `pumpEvents` registry waits for a second data source; serial-rx paper-sketch in the
@@ -354,7 +354,7 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
    - **Layer 3 — real OpenThread on the nRF52840-DK. DONE 2026-07-11 (rung 7).** Brings the
      native_sim-validated `udp_zephyr.c` up on silicon over an OpenThread mesh. The Rung-6
      `NetBridge` is **unchanged** — no VM/bridge/CBOR/facade edit — so this rung is radio/mesh
-     bring-up only. A Model-A MTD child (`tuvm/zephyr/ThreadEchoNodeDK.ns`) auto-joins the porta
+     bring-up only. A Model-A MTD child (`nodus/tuvm/zephyr/ThreadEchoNodeDK.ns`) auto-joins the porta
      OTBR mesh with a baked (gitignored) dataset; a BUTTON1 press posts a `Record` whose outbound
      reaction CBOR-encodes and sends it over 802.15.4 to the gateway's `udp-echo6` (:7777), which
      reflects it verbatim; the node receives, decodes value-equal, and prints **`BRIDGE OK`**
@@ -374,7 +374,7 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
      Also ported to the **nRF52840 dongle**: it attaches to the mesh as an MTD child but is
      **headless** — the SoC USB-CDC console does not survive the radio coming up (Issue A; picolibc
      did not beat it). Its cadence + headless proof are rung 8
-     (`nsl-tuvm/docs/design/2026-07-11-rung8-ontarget-timer-design.md`): a real Zephyr
+     (`nodus/nsl/docs/design/2026-07-11-rung8-ontarget-timer-design.md`): a real Zephyr
      `k_timer` backend for the nsl `Timers` seam drives a 15 s autonomous send, and a **self-gating
      train** (the next send is conditional on the previous reflection decoding value-equal) makes the
      gateway's outbound-only echo log witness round-trip closure with no console.
@@ -424,7 +424,7 @@ PID scenario under option A and under option C — the diff is the argument).
    crash-timer-sweep and tuvm#20 G2 overflow policy both landed, gated, and closed;
    suite floor now 193/0/10; ISR-side residue filed as tuvm#34. The kind field this
    rung added is what let #20's overflow policy need zero new API.)*
-   `nsl-tuvm/docs/design|superpowers/plans/2026-07-13-rung9-cells.*`. A value
+   `nodus/nsl/docs/design|superpowers/plans/2026-07-13-rung9-cells.*`. A value
    slot on `SpaceChannel`, three prims (`spaceKind:` / `spacePeek:` / `spacePut:value:`), two
    `Channel` methods (`put:value:`, `peek:ifAbsent:`). `put` posts onto the **existing** ring, so
    a `whenever:` on a cell fires through the unchanged reactor — the only difference from a post
@@ -459,7 +459,7 @@ event sources, power/deep-sleep. No owner docs yet — write them when a workloa
 - **Metrics** `review/metrics-spec.md`: every phase banks its footprint/latency lines; the RAM
   line becomes target-config (mcu) at phase 2 rung 2 (tuvm#5).
 - **Test suites** `review/test-suites-spec.md` + `review/tests/CLAIMS.md`: T-A, T-B, T-C, T-D
-  all landed with their milestones (`nsl-tests/07_no_nlr`, `08_messages`, `09_channels`,
+  all landed with their milestones (`nodus/tests/07_no_nlr`, `08_messages`, `09_channels`,
   `11_supervision` + `10_fsm/02`); `CLAIMS.md` is current as of Milestone D's close.
 - **Target user program**: `review/demo-node.ns` — readme-driven; every phase should shrink the
   gap between it and what actually runs.
@@ -573,8 +573,8 @@ semantics lands between the interpreter and this bound. Hanoi is all-heat-in-one
 spread-heat workloads (DeltaBlue) dilute it — this is a ceiling, not a whole-program
 number. Go-signal for the "collect months of usage → push a bespoke-AOT patch for a
 proven hot method" path filed under Phase 4 (generalize). Why + full method:
-`tuvm/docs/design/2026-07-17-oeom-native-substitution-hanoi-spike-design.md`; numbers:
-`tuvm/docs/superpowers/plans/2026-07-17-hanoi-ab-results.md`.
+`docs/design/2026-07-17-oeom-native-substitution-hanoi-spike-design.md`; numbers:
+`docs/superpowers/plans/2026-07-17-hanoi-ab-results.md`.
 
 ## Addendum 2026-07-17 — the next arc: demo → connect/observe → harden → optimize
 
@@ -643,7 +643,7 @@ because composition is already by injection — only where a class lives and how
 changes, never the `main:` wiring.
 
 **Arc-1 precursor — DONE 2026-07-18: `.ns` → `.nsl` source-extension migration.** Hard cut
-across the live repos (nsl-tests 209 files, tuvm/zephyr 13 nodes, nsl-tuvm `kernel`/`supervisor`);
+across the live repos (nsl-tests 209 files, nodus/tuvm/zephyr 13 nodes, nsl-tuvm `kernel`/`supervisor`);
 all discovery globs + hardcoded paths repointed; discriminating comment sweep + active-zephyr-docs
 sweep. Deliberately kept `.ns`: the frozen oracles (`ns-tests`/`oevm`/`ns-oevm`), the primordialsoup
 Newspeak std lib, `review/`, `docs/spikes/` archives, historical docs (dated design records,
@@ -657,7 +657,7 @@ Verdict **clean** — request/reply decomposed into pulse ingress + NetBridge eg
 id, no channel reification, no VM-core change; G2 shed proven under real concurrent curl load. Idiom sharp-edges
 surfaced (`\\` modulo is not a selector; channel payloads must be algebra **values**, not mutable Arrays) plus an
 egress-datapath lesson (stream large bodies, don't stage them in a bounded C buffer). Findings of record:
-`~/workspace/tuvm/review/model-capability-findings.md`; design/plan dated `2026-07-18-webserver-channel-device-*`.
+`~/workspace/rete/review/model-capability-findings.md`; design/plan dated `2026-07-18-webserver-channel-device-*`.
 
 **On-device last mile (#46) — DONE 2026-07-18: HttpServerNode serves `/thermal` (8×8 SVG heat-grid) live over
 WiFi from an ESP32 WROOM-32.** posix → device was **backend-only, zero nsl change** (seam portability proven on
@@ -666,7 +666,7 @@ sleep starved a second source; fix = `pulse_pump_nb()` gated on `http_is_listeni
 design point, now load-bearing code). Also fixed: ROM-newlib forced `setjmp`/`ungetc` faults (patch script +
 hand-rolled parse; zero-SDK-touch tracked in #48) and on-device egress capacity (chunked send + net-buf pool).
 RAM is the ceiling (VM heap + WiFi + net-bufs barely coexist on a no-PSRAM WROOM-32). Findings: the `#46` section
-in `~/workspace/tuvm/review/model-capability-findings.md`; design/plan dated `2026-07-18-esp32-wifi-http-last-mile-*`.
+in `~/workspace/rete/review/model-capability-findings.md`; design/plan dated `2026-07-18-esp32-wifi-http-last-mile-*`.
 (Superseded 2026-07-20 by the AMG8833 rung below: `HttpServerNode`/`HttpNode` are retired and
 `/thermal` is now served by `ThermalHttpNode` from a **real** sensor. The entry above stands as the
 record of what was true on 2026-07-18 — the frame it served was hard-coded.)
@@ -1019,7 +1019,7 @@ closing that would need a span inside `httpChunk:` on the nsl side of the write.
 **ADDENDUM 2026-07-22 — #65 is root-caused and fixed, and it partly invalidates the HTTP
 half of the table above.** Two corrections to point 6, which recorded #65 as it was
 understood on the day. Full record:
-`~/workspace/tuvm/review/2026-07-21-issue-65-http-load-wedge/README.md`; branch
+`~/workspace/rete/review/2026-07-21-issue-65-http-load-wedge/README.md`; branch
 `fix/65-http-load-wedge`.
 
 - **The rate table in point 6 is ONE ceiling, not two regimes.** `latency_harness --delay`
@@ -1208,7 +1208,7 @@ drive a pin out or ask it its state. Two primitives (`gpioSet:to:` / `gpioLevel:
 
 Gates (`zephyr/MagTagLedNode.nsl`, over the soldered UART console): gate 1 — D13 red LED
 follows BUTTON_A (on→press→dark); gate 2 — `held=ABC` via `level:` with no release pins
-registered. Host: `nsl-tests/13_pulse/02_gpio_set_level.nsl` (drive/read/nil) and
+registered. Host: `nodus/tests/13_pulse/02_gpio_set_level.nsl` (drive/read/nil) and
 `03_gpio_undeclared_raises.nsl` (the tag-asserting raise gate). Full suite 214/0. `CLAIMS.md`
 gains a row (the raise is a behavioral guarantee). Open: NeoPixel *data* (ws2812/RMT driver)
 is a separate, larger issue — this rung only made the GPIO21 power gate drivable. (The
@@ -1439,7 +1439,7 @@ Zephyr tree has no RMT driver and `spi2` is the e-paper's.
 boot-time C to something a node decides, closing #86's "not done here". Five sites, the same
 recipe #88's display seam established: `prim_ids.h`, the enum + `PRIM_NAMES` + **the parity check**
 in `dispatch.c`, the host leaf and dispatch case in `platform.c`, the device leaf in
-`zephyr/src/main.c`, and the `Bell` class + accessor in `nsl-tuvm/lib/kernel.nsl`. The parity
+`zephyr/src/main.c`, and the `Bell` class + accessor in `nodus/nsl/lib/kernel.nsl`. The parity
 check is the load-bearing one: omitting it silently misroutes every platform prim after the
 insertion point, and nothing else catches that.
 
@@ -1988,7 +1988,7 @@ defends against this with an EXIT trap; the nsl runners do not. Stage file-by-fi
 **Two independently written implementations of one wire agreed on the first protocol
 run.** `PortaBridgeNode.nsl` checks in against a real `porta serve` over UDP loopback:
 `obs/health` reaches porta's cell tree, `goal/name` converges to `obs/name`, and every
-`tel/log` entry arrives exactly once (`tuvm/tests/porta_sync_host.sh`). No wire fixes
+`tel/log` entry arrives exactly once (`nodus/tuvm/tests/porta_sync_host.sh`). No wire fixes
 were needed, and the reason is that plan 1 golden-tested the Go codec against *this
 VM's own CBOR* rather than against the spec — the second implementation was written to
 the bytes, not to the prose. **The rung is NOT closed:** the gate is the C6 over a real
@@ -2079,8 +2079,8 @@ node's unacked `PortaBridge` grew its `pending` queue without bound and OOM-pani
 tick 48 (~96 s) on a 128 KB heap — a miss also costs memory, and costs it unboundedly. No
 loopback run could have found this: loopback's gateway always answers, so `pending` is
 trimmed every tick and never grows. The fix bounds `pending` at 64 rows with oldest-first
-eviction and a counted, published `#streamDropped` (`nsl-tuvm/lib/kernel.nsl`, `79885aa`;
-test `nsl-tests/22_spacesync/05_pending_bound.nsl`, `75228d4`; node publish, `8250831`).
+eviction and a counted, published `#streamDropped` (`nodus/nsl/lib/kernel.nsl`, `79885aa`;
+test `nodus/tests/22_spacesync/05_pending_bound.nsl`, `75228d4`; node publish, `8250831`).
 The cost is accepted plainly: the bound trades an OOM death for a telemetry gap, and the
 gap is counted rather than silent.
 
@@ -2133,7 +2133,7 @@ never moved) and the dropped `#ack` costs one re-push that porta dedupes by seq.
 Worth naming as evidence about gates rather than about this bug: **5/5 hardware runs and a
 green host gate were both consistent with the defect being present**, because the window is
 microseconds wide on loopback and only milliseconds wide on a mesh. The test
-(`nsl-tests/22_spacesync/06_reply_tag_match.nsl`) does not try to *hit* the window — it
+(`nodus/tests/22_spacesync/06_reply_tag_match.nsl`) does not try to *hit* the window — it
 makes it certain, with a four-slot scripted socket that feeds every wait the other leg's
 reply first and then its own. Watched to fail first with the old semantics: `cursor 0`
 where 7 is expected, and `acked applied false`. Verified: full nsl suite 239 passed / 0
@@ -2144,7 +2144,7 @@ re-running it is a bench task, not a claim made here.
 **A whole-branch review fix-wave, same day, before merge.** Beyond the dedupe-evidence
 gap above, the review found two more gaps in the gate script itself. All were applied,
 verified on the host (`go test ./...` green, `tests/porta_sync_host.sh` still prints
-`PORTA SYNC OK`, `nsl-tests/22_spacesync/05_pending_bound.nsl` still passes) **and then
+`PORTA SYNC OK`, `nodus/tests/22_spacesync/05_pending_bound.nsl` still passes) **and then
 re-run on hardware, 5/5 clean**:
 - `MISSES_BEFORE` was sampled *before* the deliberate gateway restart in leg 4, so the
   restart's own 4–6 s outage (against a 2 s cadence) scored a miss regardless of what the
@@ -2158,7 +2158,7 @@ re-run on hardware, 5/5 clean**:
   assert `first == 1`; the C6 gate's `--limit` is raised to 5000 for headroom, and it now
   also asserts `obs/health` reports `#streamDropped: 0` during legs 3 and 4 — the node-side
   half of the same property.
-- Minors: `nsl-tuvm/lib/kernel.nsl`'s `maxPending` comment now states outright that
+- Minors: `nodus/nsl/lib/kernel.nsl`'s `maxPending` comment now states outright that
   oldest-first eviction manufactures a gap at the head of the series once the bound bites
   (roughly 65 unacked ticks, ~130 s, at the 2 s cadence); `05_pending_bound.nsl` tightened
   to the exact invariant `dropped + pendingSize == n`; `PortaBridgeNodeC6.nsl`'s header
@@ -2171,7 +2171,7 @@ re-run on hardware, 5/5 clean**:
 
 ## Known stale docs (do not treat as current)
 
-`tuvm/docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
+`docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
 `fiber_*.md`, `2026-06-29-r7-fibers-design.md` and the derecursify plans (historical record of
 the dead pillar), `topics.md`/`optimizations.md` (pre-pivot snapshots). `ECOSYSTEM.md` and
 `deployment-model.md` remain valid for the fleet/keeper layers until phase 3 revisits them.

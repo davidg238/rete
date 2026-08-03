@@ -364,7 +364,7 @@
     <div class="eyebrow">what exists today</div>
     <h2>The space is three verbs</h2>
     <p>A job never touches the space directly. It holds a <strong>Channel capability</strong> — an object rooted at a path prefix — and everything it can do is these three sends.</p>
-    <pre class="c"><span class="c">(* nsl-tuvm/lib/kernel.ns — the whole surface *)</span>
+    <pre class="c"><span class="c">(* nodus/nsl/lib/kernel.ns — the whole surface *)</span>
 public out: rel value: v  = ( platform spacePost:   (self resolve: rel) value: v )
 public take: rel          = ( platform spaceTake:   (self resolve: rel) )
 public whenever: rel do: b = ( platform spaceRegister: (self resolve: rel) block: b owner: self )</pre>

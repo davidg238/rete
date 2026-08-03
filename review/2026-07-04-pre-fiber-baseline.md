@@ -66,7 +66,7 @@ git -C ~/workspace/oevm diff --stat cee55d4 aea0af1 -- src/
 
 # shape check: fiber surface then vs stripped tuvm now
 git -C ~/workspace/oevm grep -c -i fiber cee55d4 -- src/
-grep -rci fiber ~/workspace/tuvm/src/ | grep -v ':0'
+grep -rci fiber ~/workspace/rete/nodus/tuvm/src/ | grep -v ':0'
 ```
 
 Useful questions to ask of the stripped tuvm against this baseline:

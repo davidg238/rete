@@ -1,6 +1,6 @@
 # nsl-tuvm — language sufficiency & library roadmap (proposed)
 
-**Status:** proposed 2026-07-03 by external design review; parked in `tuvm/review/`.
+**Status:** proposed 2026-07-03 by external design review; parked in `review/`.
 Nothing here is first-step scope except where marked; this is the post-Milestone-D
 roadmap for making the language *sufficient for its user* — someone scripting Zephyr
 drivers and coordination logic, not writing a VM.
@@ -21,7 +21,7 @@ the code, the code has usually been ratified since. Check before re-litigating.*
 
 Note `review/lib/` is a **staging** directory — `combinators.ns`, `bytes.ns` and
 `strings.ns` are written but **not loaded by any harness**; only `fsm.ns` and `timers.ns`
-have been landed into `nsl-tuvm/lib/kernel.ns`.
+have been landed into `nodus/nsl/lib/kernel.ns`.
 
 **Sufficiency verdict.** For the coordinator role (jobs, channels, supervision, driver
 facades), the language as specced is sufficient. The risks are (a) stdlib gaps that push
@@ -144,13 +144,13 @@ fallback.**
 - 64-bit host: SMI covers the full range in practice; no boxing.
 - 32-bit target: SMI fast path (±2^30) + a boxed heap `LargeInteger` fallback, allocated
   only when a value exceeds SMI range. The SMI band is derived from `sizeof(intptr_t)`
-  (`tuvm/src/dispatch.c`), so the *same* program boxes at ±2^30 on target and ±2^62 on
+  (`nodus/tuvm/src/dispatch.c`), so the *same* program boxes at ±2^30 on target and ±2^62 on
   host and computes the same answer. u32 register values and ms-since-boot timestamps fit
   without ceremony; the box is rare in real driver code (most values are small).
 - **The ratified range is ±(2^64−1)** — sign + `uint64_t` magnitude (`struct LargeInteger`,
-  `tuvm/src/oevm.h`), *not* signed-64. Overflow **traps (crash) at magnitude 2^64**, never
+  `nodus/tuvm/src/oevm.h`), *not* signed-64. Overflow **traps (crash) at magnitude 2^64**, never
   wraps silently; only `−2^64` and the CBOR bignum tags (2/3) exceed it, both routing to
-  `integer out of range`. Pinned by `nsl-tests/06_limit_tests/04_integer_overflow.ns` and
+  `integer out of range`. Pinned by `nodus/tests/06_limit_tests/04_integer_overflow.ns` and
   by the rung-3 wire contract (`program-sequence.md` phase 2 item 3).
   *(This supersedes the original proposal of signed-64 semantics trapping at ±2^63. The
   wider band was ratified when CBOR landed: RFC 8949 major 0/1 carries the full unsigned

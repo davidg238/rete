@@ -203,7 +203,7 @@ silicon the free space is large:
   handler and the node runs on — a contained fault, not a smashed C stack. So the stack
   can be sized tight without risking the node.
 
-Measured on the nRF52840-DK (2026-07-09, `nsl-tests/00_perf/RESULTS.md`): the recommended
+Measured on the nRF52840-DK (2026-07-09, `nodus/tests/00_perf/RESULTS.md`): the recommended
 config runs full perfstex at **45 % RAM (55 % free)**, an aggressive profile at **37 %
 (63 % free)** — for a scripting VM with drivers and OpenThread linked. The free region is
 genuine headroom (larger object graphs, more channels, wire/DMA buffers), tunable via

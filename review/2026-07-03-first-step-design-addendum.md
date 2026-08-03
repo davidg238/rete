@@ -1,15 +1,15 @@
 # nsl-tuvm first-step design — addendum 1 (review amendments)
 
-> **MOVED 2026-07-04 → `nsl-tuvm/docs/design/2026-07-03-first-step-design-addendum.md`.**
+> **MOVED 2026-07-04 → `nodus/nsl/docs/design/2026-07-03-first-step-design-addendum.md`.**
 > Now that Milestone A has landed this addendum lives in the specs tree; this copy is a
 > provenance tombstone.
 
 **Status:** three amendments accepted by David 2026-07-03 following external design review.
-Parked in `tuvm/review/` (NOT under `nsl-tuvm/docs/design/`) because an agent is
+Parked in `review/` (NOT under `nodus/nsl/docs/design/`) because an agent is
 actively executing Milestone A and sweeps untracked files there — a first copy of this
 addendum was lost that way. Move into the specs tree when Milestone A lands.
 Each amendment states which section of the main spec
-(`nsl-tuvm/docs/design/2026-07-03-nsl-tuvm-first-step-design.md`) it extends.
+(`nodus/nsl/docs/design/2026-07-03-nsl-tuvm-first-step-design.md`) it extends.
 Nothing here changes Milestone A scope; A1 and A2 land in Milestones C and A/§7
 respectively, A3 is a non-goal clarification.
 
@@ -36,7 +36,7 @@ matching bug is a capability escape rather than an ordinary defect.
 
 ## A2 — Footprint banking must include a target-config RAM budget line (extends §4 Milestone A, §7)
 
-The host baseline (`tuvm/tools/footprint-baseline.txt`, text = 39,148 bytes) carries
+The host baseline (`nodus/tuvm/tools/footprint-baseline.txt`, text = 39,148 bytes) carries
 host-sized static arenas (multi-MB gc bss, ~192 KB dispatch bss), so **text is currently
 the only meaningful column**. But the number that decides nRF52840 feasibility is RAM:
 Zephyr kernel + OpenThread typically claim ~60–100 KB of the 256 KB before nsl-tuvm

@@ -87,4 +87,4 @@ Rules:
 - `sys/crash` carries the **raise tag** (Milestone E decision (a); the Milestone D `#crash` tag
   retired — the supervisor matches jobs by `#channel`, never the tag, so this is safe).
 
-Proven by `nsl-tests/12_exceptions/01..14`. See `tuvm/docs/MILESTONE_E.md`.
+Proven by `nodus/tests/12_exceptions/01..14`. See `docs/MILESTONE_E.md`.

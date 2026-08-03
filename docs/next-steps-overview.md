@@ -19,7 +19,7 @@ removed and SQW wired to GPIO10 at the bench (reported, not re-measured here). T
 below as the record of what was done and why.
 
 **What that leaves is software, and only software.** `CONFIG_RTC_ALARM` is still `n` —
-`zephyr/prj_esp32c6.conf:92`, and `# CONFIG_RTC_ALARM is not set` in every built C6 config
+`nodus/tuvm/zephyr/prj_esp32c6.conf:92`, and `# CONFIG_RTC_ALARM is not set` in every built C6 config
 (`build-c6-ftd`, `build-c6-ftd-ntp`, `build-c6-mtd`). So the alarm has never been *built*,
 let alone flashed, and §1.4's seam is designed but not written. The wire is no longer the
 blocker; the Kconfig flip and the seam are.
@@ -38,11 +38,11 @@ waiting on it.
 **Do this first, and do it with the board unpowered.**
 
 The module is the common ZS-042 layout. The photo in
-`zephyr/boards/shipsBells/board.png` shows a small red glass diode and a `201` (200 Ω)
+`nodus/tuvm/zephyr/boards/shipsBells/board.png` shows a small red glass diode and a `201` (200 Ω)
 resistor beside the SCL pad — that board's well-documented **LIR2032 trickle-charge path
 from VCC to VBAT**. The cell fitted is a **CR2032, which is not rechargeable**.
 
-`zephyr/boards/shipsBells/rtc-schematic.png` shows no such circuit and a plain
+`nodus/tuvm/zephyr/boards/shipsBells/rtc-schematic.png` shows no such circuit and a plain
 "Battery1 +3V", so **it cannot be used to rule this out** — it is not a schematic of this
 module.
 
@@ -59,7 +59,7 @@ a CR2032 on a charger.
 ### 1.2 Wire INT/SQW → GPIO10 — DONE
 
 **Done at the bench.** The devicetree half was already in place and is verified here:
-`zephyr/boards/esp32c6_devkitc_esp32c6_hpcore.overlay:78` carries
+`nodus/tuvm/zephyr/boards/esp32c6_devkitc_esp32c6_hpcore.overlay:78` carries
 `isw-gpios = <&gpio0 10 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>`. Kept for the record.
 
 The pin is labelled **`SQW`** on the module's 6-pin header (`32K, SQW, SCL, SDA, VCC, GND`).
@@ -82,7 +82,7 @@ Two standing rules for this module:
 
 ### 1.3 Then, and only then, turn the alarm on — NOT DONE, and it is the next move
 
-In `zephyr/prj_esp32c6.conf:92`, flip:
+In `nodus/tuvm/zephyr/prj_esp32c6.conf:92`, flip:
 
 ```
 CONFIG_RTC_ALARM=n     ->     CONFIG_RTC_ALARM=y
@@ -126,7 +126,7 @@ caller. An ISR must never touch the VM.
 ### 1.5 Correct the clock
 
 It currently reads **+20 s against host**. That is the stale seed constant in
-`WallClockNode.nsl` (baked at authoring, written ~40 s later), not drift. `seedIfUnset:`
+`nodus/tuvm/zephyr/WallClockNode.nsl` (baked at authoring, written ~40 s later), not drift. `seedIfUnset:`
 deliberately refuses to overwrite a clock that already reads a valid time, so a re-flash
 will not fix it — set it through a real path, or bump the constant and clear the RTC first.
 
@@ -156,6 +156,20 @@ this running, and can I tell what it is doing.* Conflating the two costs months.
 
 That is the gate. Everything below is roadmap.
 
+**Half of it landed 2026-08-02: the restructure.** `tuvm`, `nsl-tuvm`, `nsl-tests` and
+`porta` are one repository, `rete` — `porta/` + `nodus/{tuvm,nsl,tests}` + `protocol/`,
+built by restructuring `tuvm` in place so every issue number and every `#NN` citation still
+resolves. Plan:
+`~/workspace/rete/docs/superpowers/plans/2026-08-02-rete-repo-consolidation.md`; design
+`~/workspace/rete/docs/design/2026-08-02-rete-repo-consolidation-design.md`.
+
+**#79 stays open, because "read five repos" was only half the sentence.** The other half is
+*entry point*, and the root `README.md` written with the restructure is deliberately
+minimal — the quickstart is explicitly out of that plan's scope (design §9). One repo with
+no front door is a smaller problem than five repos with no front door, not a solved one.
+
+**Next is #56** (debug/profiling/console over porta), per the ranking below.
+
 ### The four candidates, ranked
 
 **1. porta → channels. First, and not close. — CLOSED 2026-08-02, ALL THREE PLANS DONE, HARDWARE GATE GREEN 5/5.**
@@ -167,18 +181,18 @@ node side first**, and read nodus/porta as evidence rather than spec.
 
 Design 2026-08-01; plan 1 (porta side) and plan 2 (node side) are both built and green:
 
-- `~/workspace/porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md` — decisions
+- `~/workspace/rete/porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md` — decisions
   D1–D8, three of which *correct* the ratified `PROTOCOL-NSL.md`.
-- `~/workspace/porta/docs/superpowers/plans/2026-08-01-porta-space-sync-core.md` — **plan 1,
+- `~/workspace/rete/porta/docs/superpowers/plans/2026-08-01-porta-space-sync-core.md` — **plan 1,
   DONE** (demolition → `cval` → `space` → `wire` → loopback gate).
-- `~/workspace/tuvm/docs/superpowers/plans/2026-08-02-porta-space-sync-node.md` — **plan 2,
+- `~/workspace/rete/docs/superpowers/plans/2026-08-02-porta-space-sync-node.md` — **plan 2,
   DONE 2026-08-02**: the space's monotonic seq + `changedSince:` (prims 138–140),
-  `class PortaBridge` in `kernel.nsl`, `zephyr/PortaBridgeNode.nsl`, and
-  `tuvm/tests/porta_sync_host.sh` — the nsl node against a real `porta serve` over UDP
+  `class PortaBridge` in `nodus/nsl/lib/kernel.nsl`, `nodus/tuvm/zephyr/PortaBridgeNode.nsl`, and
+  `nodus/tuvm/tests/porta_sync_host.sh` — the nsl node against a real `porta serve` over UDP
   loopback, green on the first protocol run (`obs/health` reaches porta, `goal/name`
   converges to `obs/name`, `tel/log` exactly once).
 - **Plan 3 — the C6 hardware gate — closed the rung, green 5/5.**
-  `~/workspace/tuvm/tests/porta_sync_c6.sh` — the same three legs witnessed over a real
+  `~/workspace/rete/nodus/tuvm/tests/porta_sync_c6.sh` — the same three legs witnessed over a real
   Thread mesh, including a deliberate post-commit ack drop, re-runnable on demand. Every
   run is a cold re-flash: leg 3 `rows=13 distinct=13, 1..13`; leg 4 `rows=26 distinct=26,
   1..26` across 4 swallowed acks. Hardware found what loopback could not: an unacked
@@ -186,8 +200,8 @@ Design 2026-08-01; plan 1 (porta side) and plan 2 (node side) are both built and
   128 KB heap, falsifying plan 2's N7 ("a miss costs latency and nothing else") — fixed
   by bounding `pending` at 64 rows with a counted `#streamDropped`. `sys/panic` delivery
   while the bridge is down remains undecided (porta#32). Design:
-  `~/workspace/tuvm/docs/design/2026-08-01-porta-space-sync-c6-gate-design.md`; plan:
-  `~/workspace/tuvm/docs/superpowers/plans/2026-08-01-porta-space-sync-c6-gate.md`.
+  `~/workspace/rete/docs/design/2026-08-01-porta-space-sync-c6-gate-design.md`; plan:
+  `~/workspace/rete/docs/superpowers/plans/2026-08-01-porta-space-sync-c6-gate.md`.
 
 Deferred out of plan 2, each filed rather than assumed: the cursor and `bootId` live in
 RAM (NVS), the bridge holds the root space rather than a `goal`-write + `obs`-read pair
@@ -310,7 +324,7 @@ ST alone has 127 board directories in-tree — the deepest bench available, and 
 
 ### The non-obvious one: nsl uses doubles
 
-`src/oevm.h:187` — `struct Float { double value; }`.
+`nodus/tuvm/src/oevm.h:187` — `struct Float { double value; }`.
 
 Every Cortex-M4F/M33 has a **single**-precision FPU, so nsl floats have been
 software-emulated on the nRF52840 all along. Two consequences:
@@ -321,7 +335,7 @@ software-emulated on the nRF52840 all along. Two consequences:
   would run in *hardware*. Against the existing STIC/Perfstex numbers that is a genuinely
   novel data point, on a ~$12 board.
 
-(Unrelated: `prj_dongle_softfloat.conf` was about matching Nordic's MPSL radio-library ABI,
+(Unrelated: `nodus/tuvm/zephyr/prj_dongle_softfloat.conf` was about matching Nordic's MPSL radio-library ABI,
 not about nsl.)
 
 ### Picks

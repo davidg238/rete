@@ -69,7 +69,7 @@ C leaf prims (ids 97-103, append-only after `pumpEvents`=96):
   strings). **Not** a `platform` primitive — the codec is class-side nsl backed by the leaf
   prims above.
 
-## Test fixtures (as-built: `nsl-tests/14_cbor/`)
+## Test fixtures (as-built: `nodus/tests/14_cbor/`)
 
 Golden pairs generated with python `cbor2` at fixture-authoring time, stored as hex:
 - each scalar type, ± edge values (int at ±SMI boundary, **±(2^64−1)**; f32-exact vs f64 float)
@@ -120,7 +120,7 @@ Two traps for anyone touching this:
   a console reading `DIAG CTL state=#running` sat directly beside an `st = #running`
   test that was returning false.
 
-Pinned by `nsl-tests/19_latency/10_ctl_cbor_decoded_drives_capture.nsl`.
+Pinned by `nodus/tests/19_latency/10_ctl_cbor_decoded_drives_capture.nsl`.
 
 ### The encode accumulator was 4 bytes per byte
 

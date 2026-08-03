@@ -26,4 +26,4 @@ Notes specific to this VM:
 - Full conformance suite under both configs **before every task-final review** and at
   every milestone gate (cheap: minutes on host).
 - Any report = suite failure. No suppression files without a comment linking a decision.
-- The C unit tests (`tuvm/tools/run_c_tests.sh`) run under the same two configs.
+- The C unit tests (`nodus/tuvm/tools/run_c_tests.sh`) run under the same two configs.

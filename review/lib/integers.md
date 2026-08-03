@@ -1,6 +1,6 @@
 # L7 — Integer semantics across 32/64-bit platforms (VM design)
 
-> **SUPERSEDED 2026-07-04 → `nsl-tuvm/docs/design/2026-07-04-L7-integer-semantics-decision.md`.**
+> **SUPERSEDED 2026-07-04 → `nodus/nsl/docs/design/2026-07-04-L7-integer-semantics-decision.md`.**
 > This file is the pre-code *recommendation* (signed-64 + trap-at-2^63 + 8-byte `Int64`
 > box). Milestone A shipped a different, wider model — a ±(2^64−1) sign+magnitude
 > LargeInteger — which better serves the register-math domain (it holds `u32 × u32`,

@@ -5,7 +5,7 @@ defines the *model* (retained/event channels, cursor sync, the grant boundary). 
 document pins the *values* — one schema per path prefix — and the size law that keeps
 bulk data off the channels entirely.
 
-The addendum in `tuvm/review/program-sequence.md` (2026-07-11) requires these schemas
+The addendum in `review/program-sequence.md` (2026-07-11) requires these schemas
 be pinned **before first implementation**. That is what this is.
 
 Nothing here presumes *where* retained channels are implemented (C space vs an nsl
@@ -16,7 +16,7 @@ library). Records are the same either way; that decision is deliberately left op
 ## 1. The encoding contract
 
 Every value on the wire is a **CBOR-encoded value of the nsl message algebra** — the
-codec that shipped at rung 3 (`Cbor` in `nsl-tuvm/lib/kernel.nsl`, RFC 8949). No second
+codec that shipped at rung 3 (`Cbor` in `nodus/nsl/lib/kernel.nsl`, RFC 8949). No second
 codec, no bespoke framing, no JSON.
 
 Inherited from that codec, and therefore **already true and already tested** — this
@@ -291,7 +291,7 @@ published explicitly.
 
 **`Metrics` headroom — MEASURED 2026-07-21 (tuvm#61), superseding the estimate below.**
 `Metrics` encodes to **195 B** and `LatencySpan` to **140 B**, both through the real
-`Cbor>>encode:` path, witnessed by `nsl-tests/19_latency/05_record_size.nsl` (which also
+`Cbor>>encode:` path, witnessed by `nodus/tests/19_latency/05_record_size.nsl` (which also
 serves as the regression guard, since encoded size is what porta pays for on every
 uplink). The measurement used the values read off a WROOM-32 rather than round numbers:
 CBOR is shortest-form, so a field holding 7,820,873 costs five bytes where one holding
@@ -345,7 +345,7 @@ Contrast `diag/**` below, which *is* shipped.
 ### 4.6 `diag/**` — bounded diagnostic capture (both ways)
 
 Added 2026-08-01, cataloguing what the node already ships (tuvm#72, `class SpanCapture` in
-`nsl-tuvm/lib/kernel.nsl`). This namespace was live in node source before it was written
+`nodus/nsl/lib/kernel.nsl`). This namespace was live in node source before it was written
 down here; the entry below documents it rather than proposing it.
 
 | path | kind | record |

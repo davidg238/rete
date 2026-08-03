@@ -4,13 +4,13 @@
 side.** The node/VM half of the model shipped as tuvm **rung 9** (tuvm#32 closed,
 option A: the node's space owns the value-holding channel kind — see §3.1); the
 porta half (bridge job, store, wire) is unbuilt and lands with the phase-3 rungs in
-`tuvm/review/program-sequence.md`. This document is the conformance spec for
+`review/program-sequence.md`. This document is the conformance spec for
 `kind: "nsl"` nodes.
 
 **Companions:**
 - Record schemas per path prefix + the radio size law: [`PROTOCOL-NSL-RECORDS.md`](PROTOCOL-NSL-RECORDS.md).
 - The Toit-node (v1) protocol this one sits beside: [`PROTOCOL.md`](PROTOCOL.md).
-- Background / derivation: `tuvm/review/WHY.md` (§"The model, named", §"Paths extend across the network").
+- Background / derivation: `review/WHY.md` (§"The model, named", §"Paths extend across the network").
 - How this doc reached its current form: [`PROTOCOL-NSL-draft-2026-07-11.md`](PROTOCOL-NSL-draft-2026-07-11.md) — the superseded genesis draft, kept as the reasoning trail.
 
 ---
@@ -471,7 +471,7 @@ the fleet-sim (RECORDS "the size law").
   over localhost UDP) — prove the exchange, cursor resync, and kill-mid-transfer
   recovery there before any radio is involved.
 - The nsl node's conformance doc is this file; the bridge job + C seam land with the
-  phase-3 (CBOR wire) rungs in `tuvm/review/program-sequence.md`.
+  phase-3 (CBOR wire) rungs in `review/program-sequence.md`.
 - **The bridge toward the north star (§0).** Coexistence is the mechanism that lets
   the nsl model earn its keep in production *before* any Toit node is touched. If it
   earns it, the follow-on is a v1→space alignment for the `nodus` fleet — the verb
@@ -511,7 +511,7 @@ the fleet-sim (RECORDS "the size law").
 ## 8. Provenance & decision log
 
 Distilled from the 2026-07-11 architecture review (actors-at-the-grain /
-Linda-at-the-joints framing; `tuvm/review/WHY.md`). The §2 convergence table cites v1
+Linda-at-the-joints framing; `review/WHY.md`). The §2 convergence table cites v1
 behaviours verbatim from `PROTOCOL.md`.
 
 Decisions folded into this edition (full reasoning trail in

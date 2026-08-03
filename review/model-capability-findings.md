@@ -6,7 +6,7 @@ datapaths at the `pumpEvents` safe point) express the coordination patterns a
 real device program needs — and, for each, is the fit **clean**, does it
 **need-a-helper**, or is it a **corner** (expressible only awkwardly)?
 
-- Series design: `~/workspace/tuvm/docs/design/2026-07-18-coordination-model-spike-series-design.md`
+- Series design: `~/workspace/rete/docs/design/2026-07-18-coordination-model-spike-series-design.md`
 - Rubric per spike: (a) expressible? (b) the idiom (the actual reactions/prims),
   (c) verdict per sub-pattern, (d) helper needed, (e) rough cost.
 
@@ -14,11 +14,11 @@ real device program needs — and, for each, is the fit **clean**, does it
 
 ## Spike #1 — Webserver channel-device (request/reply / RPC over channels)
 
-- Design: `~/workspace/tuvm/docs/design/2026-07-18-webserver-channel-device-spike-design.md`
-- Plan: `~/workspace/tuvm/docs/superpowers/plans/2026-07-18-webserver-channel-device-spike.md`
+- Design: `~/workspace/rete/docs/design/2026-07-18-webserver-channel-device-spike-design.md`
+- Plan: `~/workspace/rete/docs/superpowers/plans/2026-07-18-webserver-channel-device-spike.md`
 - Landed: driver (`src/http.c`, `src/backend/posix/http_posix.c`, 3 platform
-  prims), node (`~/workspace/tuvm/zephyr/HttpNode.nsl`, `HttpServerNode.nsl`),
-  conformance twins (`~/workspace/nsl-tests/14_http/0{0,1,2,3}_*.nsl`), C unit
+  prims), node (`~/workspace/rete/nodus/tuvm/zephyr/HttpNode.nsl`, `HttpServerNode.nsl`),
+  conformance twins (`~/workspace/rete/nodus/tests/14_http/0{0,1,2,3}_*.nsl`), C unit
   test (`tests/test_http.c`), curl integration (`tests/http_roundtrip_host.sh`).
 
 ### (a) Expressible? — YES, cleanly.
@@ -122,7 +122,7 @@ one is a **C/model-boundary capacity** lesson. None blocked the pattern.
 
 ### Evidence
 
-- `~/workspace/nsl-tests/14_http/01_hello_roundtrip.nsl` — request/reply round
+- `~/workspace/rete/nodus/tests/14_http/01_hello_roundtrip.nsl` — request/reply round
   trip over channels (framed 200 to stdout).
 - `…/02_thermal_render.nsl` — on-node reduce (max/min/hot-pixel) + SVG render of
   the `dev/thermal0/sample` List frame; routing 200 / 404.

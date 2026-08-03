@@ -1,8 +1,8 @@
 # nsl-tests — verification suites for the first step (proposed)
 
-**Status:** proposed 2026-07-03 by external design review; parked in `tuvm/review/` until
-David approves and Milestone A lands. Intended home: `nsl-tests/` (behavioral suites) and
-`tuvm/tools/` (harness gates).
+**Status:** proposed 2026-07-03 by external design review; parked in `review/` until
+David approves and Milestone A lands. Intended home: `nodus/tests/` (behavioral suites) and
+`nodus/tuvm/tools/` (harness gates).
 
 **Purpose.** The project owner is not auditing the VM C code. Trust therefore comes from
 **black-box behavioral tests that encode the spec's claims**, plus tooling that catches
@@ -32,7 +32,7 @@ are excluded by the pared-subset manifest, which already exists.)
   grows beyond its banked baseline + 2%.
 Deliberate growth requires re-banking the baseline in the same commit, with rationale.
 
-**T0.4 Claims manifest.** `nsl-tests/CLAIMS.md`: a table mapping each first-step spec §7
+**T0.4 Claims manifest.** `review/tests/CLAIMS.md`: a table mapping each first-step spec §7
 bullet to the test files that prove it. Reviewed at each milestone gate; "all named tests
 green" is the definition of proven.
 

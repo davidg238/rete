@@ -5,7 +5,7 @@ Raw artifacts behind the two findings on tuvm#65 — the HTTP **accept ceiling**
 by a 60-minute soak; #65 is not closed until someone accepts that evidence. This folder is
 the investigation record, not a document of record — per the repo's promotion rule the
 durable knowledge lands in a mainline doc at close-out, and the likely home is
-`~/workspace/tuvm/review/reliability-gaps.md`.
+`~/workspace/rete/review/reliability-gaps.md`.
 
 Hardware: ESP32-D0WDQ6 / WROOM-32, MAC `30:ae:a4:1e:7b:84`, console `/dev/ttyUSB1`,
 DHCP `192.168.0.240`, serving `ThermalHttpNode.nsl` (`/thermal`, chunked SVG, 12 chunks).

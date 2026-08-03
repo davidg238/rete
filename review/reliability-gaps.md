@@ -40,8 +40,8 @@ events keep causal order — the crash that started the storm must not be the re
 lost). Never silent: per-channel + node-total counters (`spaceOverruns:`, prim 108;
 first overrun per channel prints one line). `abort()` in space.c now means only
 structural invariants. Design:
-`nsl-tuvm/docs/design/2026-07-14-tuvm20-overflow-policy-design.md`; gate
-`nsl-tests/17_overflow/`. Still open here: the ISR-half rules below at each new
+`nodus/nsl/docs/design/2026-07-14-tuvm20-overflow-policy-design.md`; gate
+`nodus/tests/17_overflow/`. Still open here: the ISR-half rules below at each new
 event source.
 
 **ISR half RESOLVED 2026-07-21 (tuvm#34/#55, surfaced by #54).** The seam in FRONT of
@@ -80,7 +80,7 @@ GPIO **signal conditioning** (debounce for doorbells, a counting API for pulse t
 deliberately NOT here — it belongs at the pin, before this seam: **tuvm#60**.
 
 **Queue high-water + push side CLOSED 2026-07-14 (tuvm#24):** ring-occupancy
-high-water (`q_high_water` in `tuvm/src/space.c`, monotonic max of `q_count`
+high-water (`q_high_water` in `nodus/tuvm/src/space.c`, monotonic max of `q_count`
 bumped at post time — note it counts ring SLOTS including lazily-dead
 not-yet-compacted ones, so it measures ring-slot **pressure**, not logical
 queue depth) is pulled via prim 109 `sysStats` and pushed as the
@@ -88,7 +88,7 @@ queue depth) is pulled via prim 109 `sysStats` and pushed as the
 marks are a first-class metric" is now landed, not just named). Overruns
 (this section, above) were already counted by #20; both numbers now travel
 together in the one record. Design:
-`nsl-tuvm/docs/design/2026-07-14-tuvm24-sys-metrics-design.md`.
+`nodus/nsl/docs/design/2026-07-14-tuvm24-sys-metrics-design.md`.
 
 The C→nsl event path is the reactor's front door, and its failure mode under load
 was previously undefined.
@@ -124,10 +124,10 @@ fleet-wide symptom by then.
 - **Decide:** moving-vs-not before Milestone B lands lots of allocation paths; the
   "big buffers live in C" rule can be adopted immediately.
 - **Status at Milestone D close (2026-07-07):** the C-side counters exist
-  (`oevm_heap_stats()`, `tuvm/src/gc.c`/`oevm.h`, live_bytes/high_water/
+  (`oevm_heap_stats()`, `nodus/tuvm/src/gc.c`/`oevm.h`, live_bytes/high_water/
   largest_free_block, landed pre-D for G3/M2) but are still NOT exported as a
-  `sys/heap` record or any nsl-visible prim — `tuvm/src/prim_ids.h`'s
-  append-only list (59-89) has nothing heap-related. `nsl-tests/11_supervision/
+  `sys/heap` record or any nsl-visible prim — `nodus/tuvm/src/prim_ids.h`'s
+  append-only list (59-89) has nothing heap-related. `nodus/tests/11_supervision/
   10_soak_leak.ns` (T-D.5, landed) therefore asserts the weaker
   completion+responsiveness invariant, not a strict plateau — this gap is
   still open and is exactly what closing it would unblock.
@@ -137,10 +137,10 @@ fleet-wide symptom by then.
   flat `Record tag: #Metrics`, published on a `sys/metrics` **cell** (rung 9
   `put:`/`peek:`) so any grantee reads current state by name without draining
   a stream another consumer counts on. Schema pinned
-  `protocol/PROTOCOL-NSL-RECORDS.md` §4.4. `nsl-tests/11_supervision/
+  `protocol/PROTOCOL-NSL-RECORDS.md` §4.4. `nodus/tests/11_supervision/
   10_soak_leak.ns` (T-D.5) now asserts a STRICT live-bytes plateau, not the
   completion proxy — the gap above is closed. Design:
-  `nsl-tuvm/docs/design/2026-07-14-tuvm24-sys-metrics-design.md`.
+  `nodus/nsl/docs/design/2026-07-14-tuvm24-sys-metrics-design.md`.
   **Gauge-correction story (execution finding, keep — the next person who
   reaches for `highWater` will hit this too):** the originally planned gauge
   — "highWater plateaus unless there's a leak" — is FALSE on this VM: GC

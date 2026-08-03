@@ -11,7 +11,7 @@ bind later but does not bind today.
 
 **What does not.** Anything actionable now — that is a GitHub issue, and the tracker is the
 status of record. Anything already promoted to a mainline document of record (the ladder,
-`~/workspace/tuvm/review/tests/CLAIMS.md`, the owning doc under `~/workspace/tuvm/review/lib/`).
+`~/workspace/rete/review/tests/CLAIMS.md`, the owning doc under `~/workspace/rete/review/lib/`).
 An entry here is a note that promotion has *not* happened and a decision is still owed.
 
 **Entry format.** Dated heading, the finding stated as a claim, the evidence that supports
@@ -28,7 +28,7 @@ table is full — is unreachable when the overload is in the *connection rate* r
 concurrent work. At that layer the guarantee is a paper one.
 
 **Why.** The refusal happens in the TCP stack *below* `zsock_accept()`. `http_accept_request`
-(`~/workspace/tuvm/src/http_core.c`) can only shed a connection that has already been
+(`~/workspace/rete/nodus/tuvm/src/http_core.c`) can only shed a connection that has already been
 accepted, so a client turned away by an RST never reaches the shed at all. This is why every
 failure observed in tuvm#65 was a connect-level error (`ECONNREFUSED`/`EHOSTUNREACH`) and
 never an `HTTPError` — a fact the issue body had already noticed under "What it is not"
@@ -38,7 +38,7 @@ without yet having the explanation.
 4 contexts ÷ 1.5 s TIME_WAIT = 2.67 req/s, and everything above it was RST; measured
 achieved throughput was pinned at 2.44–2.82/s at every offered rate from 4/s to unpaced,
 with zero 503s emitted. Full record:
-`~/workspace/tuvm/review/2026-07-21-issue-65-http-load-wedge/README.md`.
+`~/workspace/rete/review/2026-07-21-issue-65-http-load-wedge/README.md`.
 
 **What would make it matter.** Any claim that the node "degrades gracefully under load", any
 supervisor/OOM policy that expects to *see* shed events as its overload signal (cf. tuvm#22),
@@ -68,7 +68,7 @@ likelihood but preserve the shape: enough simultaneous connections can still pin
 and escape then depends on the reaper running.
 
 **Evidence.** The measured chain is in
-`~/workspace/tuvm/review/2026-07-21-issue-65-http-load-wedge/README.md` — backlog fills with
+`~/workspace/rete/review/2026-07-21-issue-65-http-load-wedge/README.md` — backlog fills with
 ESTABLISHED connections, each pins RX `net_pkt`s, the slab hits 0, `zsock_accept()` can no
 longer succeed, and freeing requires receiving. A 130-cycle / 60-minute soak on the fixed
 build stayed healthy throughout, and the reaper was observed firing once
@@ -83,16 +83,16 @@ recover a few hundred bytes would silently restore a permanent, silent, reset-on
 That is the kind of regression no test currently catches.
 
 **ACTED ON 2026-07-22 — the keep-alive dependency now has an owner: tuvm#71.** Filed after
-checking all 15 `~/workspace/tuvm/zephyr/prj*.conf`: `CONFIG_NET_TCP_KEEPALIVE` is set by
+checking all 15 `~/workspace/rete/nodus/tuvm/zephyr/prj*.conf`: `CONFIG_NET_TCP_KEEPALIVE` is set by
 `prj_esp32.conf` alone, while `prj_esp32_nowifi.conf` has `CONFIG_NET_TCP=y` **without** it
 — so the exposure is present today, not merely future, and `prj_esp32c6.conf` carries the
 pre-fix `NET_PKT_RX_COUNT=8` into the board #57 wants to make the dev-loop target. Proposed
-guard is a `BUILD_ASSERT` in `~/workspace/tuvm/src/backend/zephyr/http_zephyr.c` gated on
+guard is a `BUILD_ASSERT` in `~/workspace/rete/nodus/tuvm/src/backend/zephyr/http_zephyr.c` gated on
 `CONFIG_NET_TCP` (that file is compiled for every board, `zephyr/CMakeLists.txt:41`). The
 rest of this entry — the `OEVM_HTTP_INFLIGHT` cap — remains unowned.
 
 **Cheap mitigation if it ever bites.** `OEVM_HTTP_INFLIGHT` is a compile-time constant in
-`~/workspace/tuvm/src/http_backend.h`; 4 → 2 costs nothing and needs no RAM.
+`~/workspace/rete/nodus/tuvm/src/http_backend.h`; 4 → 2 costs nothing and needs no RAM.
 
 **IT BIT, 2026-07-22 — and the reaper does not save you. Now tuvm#73.** A single browser tab
 on the node's own page pins the whole connection budget and the node answers nothing at all.
