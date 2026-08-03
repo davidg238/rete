@@ -82,7 +82,29 @@ If it is **refused**, record the exact error and set `TRANSFER_WORKS=no` — Tas
 
 Then delete the probe: `gh issue delete <NEW_NUM> --repo davidg238/tuvm --yes`
 
-- [ ] **Step 5: Rename the Toit repo so the name is not overloaded (D9)**
+> **RESULT, measured 2026-08-02: `TRANSFER_WORKS=yes`.** The probe ran late (after
+> Task 6, before Task 5 — Step 4 was never executed in the original Task 0 pass and
+> nothing was recorded, so Task 5's branch point was still unknown). `porta#36`
+> (PUBLIC) transferred to `davidg238/tuvm#111` (PRIVATE) with exit 0, title and body
+> intact. **Task 5 takes the `TRANSFER_WORKS=yes` path; the hand-refile fallback is
+> not needed.**
+>
+> Two things the probe established beyond the yes/no:
+>
+> - **The source issue is gone, not closed.** `gh issue view 36 --repo davidg238/porta`
+>   answers `Could not resolve to an issue`. There is no tombstone to tidy up
+>   afterwards.
+> - **The old URL redirects.** `gh api repos/davidg238/porta/issues/36` returns
+>   `html_url: https://github.com/davidg238/tuvm/issues/111`. So existing `porta#NN`
+>   citations in the historical record still resolve after the transfer — for a viewer
+>   authenticated with access to the private destination. An anonymous visitor
+>   following a `porta#NN` link will not see a private issue, which is a visibility
+>   consequence of the merge, not of the transfer.
+>
+> Cost: issue number 111 was consumed and then deleted.
+
+- [ ] **Step 5: Rename the Toit repo so the name is not overloaded (D9)** — **DONE.**
+  `davidg238/nodus` is now `davidg238/nodus-v1` (public), verified 2026-08-02.
 
 ```bash
 gh repo rename nodus-v1 --repo davidg238/nodus --yes
