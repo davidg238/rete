@@ -81,43 +81,43 @@ _Regenerated 2026-08-02 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 
 ### review
 
-- `review/2026-07-03-first-step-design-addendum.md` — nsl-tuvm first-step design — addendum 1 (review amendments) _(record, 2026-07-14)_
+- `review/2026-07-03-first-step-design-addendum.md` — nsl-tuvm first-step design — addendum 1 (review amendments) _(record, 2026-08-02)_
 - `review/2026-07-04-context-decision.md` — Task 8 design question: keep the deferred-lift heap Context? _(record, 2026-07-04)_
-- `review/2026-07-04-pre-fiber-baseline.md` — Pre-fiber baseline commits in oevm / ns-oevm _(record, 2026-07-04)_
-- `review/2026-07-21-issue-65-http-load-wedge/README.md` — tuvm#65 — evidence folder (2026-07-21) _(record, 2026-07-22)_
+- `review/2026-07-04-pre-fiber-baseline.md` — Pre-fiber baseline commits in oevm / ns-oevm _(record, 2026-08-02)_
+- `review/2026-07-21-issue-65-http-load-wedge/README.md` — tuvm#65 — evidence folder (2026-07-21) _(record, 2026-08-02)_
 - `review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-08-02)_
 - `review/ISSUE-dongle-usb-openthread.md` — DRAFT ISSUE (post to davidg238/tuvm — created from a session without gh permission) _(record, 2026-07-12)_
 - `review/WHY-AGENTS.md` — Why agents — nodus + porta as an agent-first platform _(record, 2026-07-14)_
 - `review/WHY-OEOM.md` — Why OEOM — the kernel that survived the graveyard _(record, 2026-07-12)_
-- `review/WHY.md` — Why nsl-tuvm _(record, 2026-07-14)_
+- `review/WHY.md` — Why nsl-tuvm _(record, 2026-08-02)_
 - `review/cells-and-streams-v3.html` — Letters and pigeonholes — v3 _(record, 2026-07-13)_
-- `review/language-and-library-spec.md` — nsl-tuvm — language sufficiency & library roadmap (proposed) _(record, 2026-07-12)_
-- `review/lib/README.md` — review/lib — designed library surface (pre-implementation staging) _(record, 2026-07-12)_
-- `review/lib/cbor.md` — L6 — CBOR wire codec (the TISON-analog decision; design frozen, now implemented) _(record, 2026-07-22)_
-- `review/lib/errors.md` — L5 — Error convention (adopt before the stdlib grows) _(record, 2026-07-10)_
+- `review/language-and-library-spec.md` — nsl-tuvm — language sufficiency & library roadmap (proposed) _(record, 2026-08-02)_
+- `review/lib/README.md` — review/lib — designed library surface (pre-implementation staging) _(record, 2026-08-02)_
+- `review/lib/cbor.md` — L6 — CBOR wire codec (the TISON-analog decision; design frozen, now implemented) _(record, 2026-08-02)_
+- `review/lib/errors.md` — L5 — Error convention (adopt before the stdlib grows) _(record, 2026-08-02)_
 - `review/lib/exceptions.md` — Exceptions (`on:do:` / `ensure:`) — why NOT detailing it now is safe, and the _(record, 2026-07-07)_
-- `review/lib/integers.md` — L7 — Integer semantics across 32/64-bit platforms (VM design) _(record, 2026-07-14)_
+- `review/lib/integers.md` — L7 — Integer semantics across 32/64-bit platforms (VM design) _(record, 2026-08-02)_
 - `review/lib/messages.md` — Milestone B — nsl-facing message algebra API (proposed surface) _(record, 2026-07-03)_
 - `review/metrics-spec.md` — Node health metrics — the long-term profile (G4/G9 companion) _(record, 2026-07-21)_
-- `review/model-capability-findings.md` — Model-capability findings — coordination-model spike series _(record, 2026-07-19)_
+- `review/model-capability-findings.md` — Model-capability findings — coordination-model spike series _(record, 2026-08-02)_
 - `review/performance_slides.html` — nsl-tuvm — optimize the right thing _(record, 2026-07-22)_
 - `review/program-sequence.md` — nsl-tuvm — program sequence (the overarching order of work) _(record, 2026-08-02)_
 - `review/reliability-gaps.md` — Reliability gaps — the questions not yet asked (2026-07-03) _(record, 2026-08-02)_
 - `review/retained-channels-v2.html` — Names, and what answers to them — v2 _(record, 2026-07-13)_
 - `review/retained-channels.html` — Retained channels, and where remoteness lives _(record, 2026-08-02)_
-- `review/revisit.md` — REVISIT — things learned in passing that are not yet anyone's work item _(record, 2026-07-22)_
+- `review/revisit.md` — REVISIT — things learned in passing that are not yet anyone's work item _(record, 2026-08-02)_
 - `review/slides.html` — nsl-tuvm — script Zephyr, don't replace it _(record, 2026-07-12)_
-- `review/test-suites-spec.md` — nsl-tests — verification suites for the first step (proposed) _(record, 2026-07-03)_
+- `review/test-suites-spec.md` — nsl-tests — verification suites for the first step (proposed) _(record, 2026-08-02)_
 - `review/tests/CLAIMS.md` — CLAIMS — first-step spec §7 success criteria → proving tests _(record, 2026-08-02)_
-- `review/tests/README.md` — review/tests — staged verification suites (T0, T-A…T-D) _(record, 2026-07-07)_
-- `review/tests/t0-gates/sanitizers.md` — T0.1 — sanitizer gate (the highest-value single item in the whole test plan) _(record, 2026-07-03)_
+- `review/tests/README.md` — review/tests — staged verification suites (T0, T-A…T-D) _(record, 2026-08-02)_
+- `review/tests/t0-gates/sanitizers.md` — T0.1 — sanitizer gate (the highest-value single item in the whole test plan) _(record, 2026-08-02)_
 - `review/zephyr-driver-exposure.md` — Exposing Zephyr drivers to nsl — a sketch _(record, 2026-07-23)_
 
 ### docs
 
 - `docs/ECOSYSTEM.md` — Ecosystem map — the language/VM/fleet constellation _(record, 2026-07-03)_
 - `docs/MILESTONE_A.md` — Milestone A — provenance and validation note _(record, 2026-07-04)_
-- `docs/MILESTONE_D.md` — Milestone D — provenance and validation note _(record, 2026-07-07)_
+- `docs/MILESTONE_D.md` — Milestone D — provenance and validation note _(record, 2026-08-02)_
 - `docs/MILESTONE_E.md` — Milestone E — provenance and validation note _(record, 2026-07-07)_
 - `docs/ROADMAP.md` — OEVM Roadmap _(record, 2026-07-14)_
 - `docs/concept.md` — OEVM Concept & Genesis: From LLM-Driven Titelang to Custom Micro-Kernel VM _(record, 2026-07-03)_
@@ -202,7 +202,7 @@ _Regenerated 2026-08-02 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/superpowers/plans/2026-07-20-esp32c6-second-target.md` — ESP32-C6 Second Zephyr Target — Implementation Plan _(plan, 2026-07-20)_
 - `docs/superpowers/plans/2026-07-20-esp32c6-thread-ping.md` — ESP32-C6 end-to-end Thread ping — Implementation Plan _(plan, 2026-07-20)_
 - `docs/superpowers/plans/2026-07-21-job-latency-instrumentation.md` — Job Latency Instrumentation Implementation Plan _(plan, 2026-08-02)_
-- `docs/superpowers/plans/2026-07-22-diag-span-capture.md` — Bounded span-capture sessions on a `diag/` channel family — Implementation Plan _(plan, 2026-07-22)_
+- `docs/superpowers/plans/2026-07-22-diag-span-capture.md` — Bounded span-capture sessions on a `diag/` channel family — Implementation Plan _(plan, 2026-08-02)_
 - `docs/superpowers/plans/2026-07-22-node-profiler-slice.md` — Node Profiler — porta-lite slice — Implementation Plan _(plan, 2026-08-02)_
 - `docs/superpowers/plans/2026-07-22-performance-deck-build.md` — Performance deck (#70) — build plan _(plan, 2026-07-22)_
 - `docs/superpowers/plans/2026-07-23-gpio-output-level-seam.md` — GPIO output + level-read seam — Implementation Plan _(plan, 2026-07-23)_

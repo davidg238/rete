@@ -2169,6 +2169,52 @@ re-run on hardware, 5/5 clean**:
   interface on this board) is deleted; `DO_FLASH=0` now skips the db wipe and the
   `PORTA NODE READY` wait, both of which assumed a fresh boot only a flash guarantees.
 
+## Five repos become one — 2026-08-02, the rete consolidation (#79)
+
+`tuvm`, `nsl-tuvm`, `nsl-tests` and `porta` are now one repository, **`rete`**:
+`porta/` + `nodus/{tuvm,nsl,tests}` + `protocol/`, with `review/`, `docs/` and `tools/`
+at the root. Design `docs/design/2026-08-02-rete-repo-consolidation-design.md` (D1–D14);
+plan `docs/superpowers/plans/2026-08-02-rete-repo-consolidation.md`.
+
+**The method is the load-bearing decision.** `tuvm` was restructured **in place** rather
+than replaced by a fresh repo, which is what preserved its 107 issue numbers and the
+several hundred bare `#NN` references this ladder navigates by. The other three folded in
+with `git subtree add` and **never `--squash`**, so their original SHAs still resolve.
+Verified rather than asserted: each source repo's `origin/master`
+(`nsl-tuvm` 639666a, `nsl-tests` a0ed88f, `porta` bdbedf9) is an ancestor of `rete`'s HEAD.
+A path-scoped `git log -- <prefix> | wc -l` is **not** that check — it reads 1 on a
+correct non-squashed add, so it cannot detect the failure it appears to test.
+
+**The gate was a fresh clone into an empty parent directory**, run *after* the three local
+clones were deleted, not before. That ordering is the whole instrument: every script here
+resolves siblings by relative path, and the stale clones sat exactly where the old paths
+pointed, so gating first would have found them, passed green and proved nothing. Result:
+`239 passed / 0 failed` with grant / debugger-integration / portability-32 / boot-gc-asan /
+deepsleep all PASS, `go test ./...` green, `PORTA SYNC OK`. (`footprint: SKIP` is the
+pre-existing missing-toolchain skip. The `npm install` in `nodus/nsl/grammar` is a
+mandatory bootstrap, not consolidation state — without it the suite reads a very
+convincing 0/239.)
+
+**One tracker.** The 28 open issues from `porta` (17) and `nsl-tuvm` (11) transferred in as
+#112–#139; `nsl-tests` had none. 51 citation sites were repointed from the transfer
+mapping and 23 references to closed issues became full URLs into the archive. This
+mattered more than a broken link would: `tuvm`'s own numbers survive, so an unrewritten
+`nsl-tuvm#10` does not dangle — it silently names a different, real issue.
+
+**Archived, never deleted** (D7). `nsl-tuvm`, `nsl-tests`, `porta` and `nodus-v1` are all
+read-only on GitHub with visibility unchanged; deletion would break the transferred-issue
+redirects and every archive URL. **Never create a GitHub repo named `tuvm` again** — it
+silently takes down the `tuvm` → `rete` rename redirect and with it every old issue and
+clone URL.
+
+**What did not land.** #79 stays open on its actual blocker: the root `README.md` is
+deliberately minimal and the quickstart is out of scope (design §9). One repo with no
+front door is a smaller problem than five repos with no front door, not a solved one.
+The historical record — 1,266 stale path citations across 84 dated designs and closed
+plans — was left deliberately and filed rather than swept, because a dated design doc *is*
+the historical "why" and rewriting its paths would falsify what was true when it was
+written. The documents of record were swept.
+
 ## Known stale docs (do not treat as current)
 
 `docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
