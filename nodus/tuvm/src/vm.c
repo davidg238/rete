@@ -665,7 +665,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
         switch (op) {
             case OP_LD_CONST:
                 if (src1 < method->constant_count && dest < method->num_registers) {
-                    ctx->regs[dest] = oevm_int_demote(cm_const_at(method, src1)); /* canonicalize boxed int constants (nsl-tuvm#4) */
+                    ctx->regs[dest] = oevm_int_demote(cm_const_at(method, src1)); /* canonicalize boxed int constants (https://github.com/davidg238/nsl-tuvm/issues/4) */
                 }
                 break;
 

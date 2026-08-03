@@ -174,7 +174,7 @@ def test_const_ref_branches():
 
 
 # ---------------------------------------------------------------------------
-# SMI capacity gap band (nsl-tuvm#4): a "SMI:<v>" constant whose value fits the
+# SMI capacity gap band (https://github.com/davidg238/nsl-tuvm/issues/4): a "SMI:<v>" constant whose value fits the
 # oop-width word but NOT the 2-tag-bit SMI immediate must be routed to a
 # LargeInteger record (app-offset ref), not truncated into a corrupt SMI
 # ref-word — and must dedup with an equal LARGEINT: constant.

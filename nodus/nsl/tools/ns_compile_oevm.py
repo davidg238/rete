@@ -831,7 +831,7 @@ class MethodCompiler:
                 # _smi_fits() enforces. The old bound (2^(oop_bytes*8-2), i.e.
                 # a fixed 1<<62 on a 64-bit host) was one bit too lenient and
                 # let gap-band literals get labeled "SMI:" here even though
-                # they don't fit the ref-word (nsl-tuvm#4).
+                # they don't fit the ref-word (https://github.com/davidg238/nsl-tuvm/issues/4).
                 smi_limit = 1 << (self.oop_bytes * 8 - 3)
                 if -smi_limit <= ival < smi_limit:
                     cidx = self.add_constant(f"SMI:{ival}")
@@ -1419,7 +1419,7 @@ class OevmCompiler:
         # oimg_serialize.py's OimgSerializer reads (`self.oop = layout["oop_size"]`).
         # Path A (--format=c, no --layout) runs as native C on the host, so it
         # defaults to the host's own width (8). Path B (--format=oimg) passes
-        # layout["oop_size"] in from main() (nsl-tuvm#4: compile_expr's
+        # layout["oop_size"] in from main() (https://github.com/davidg238/nsl-tuvm/issues/4: compile_expr's
         # SMI/LARGEINT split must agree with the ref-word's true capacity).
         self.oop_bytes = oop_bytes
         self.solidify = SolidifyCompiler()
@@ -2204,7 +2204,7 @@ def main():
     # width (8); Path B (--format=oimg) supplies layout.json, whose oop_size
     # is the same source of truth oimg_serialize.py's OimgSerializer reads
     # (self.oop = layout["oop_size"]). Loading it here lets compile_expr's
-    # SMI/LARGEINT split (nsl-tuvm#4) use the real target width instead of a
+    # SMI/LARGEINT split (https://github.com/davidg238/nsl-tuvm/issues/4) use the real target width instead of a
     # hardcoded host-64-bit assumption.
     layout = None
     oop_bytes = 8

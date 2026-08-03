@@ -258,7 +258,7 @@ cannot be mutated — plus the pins above.
   surface (mechanical; the review README anticipates it).
 - `FOOTPRINT_CONFIG=mcu` RAM line (pending sync point) — wanted before B's gates bank
   RAM numbers; independent tooling task.
-- nsl-tuvm#1 (CompileError line numbers) before B *implementation* starts writing
+- #139 (CompileError line numbers) before B *implementation* starts writing
   many failing-compile tests.
 - The CBOR codec milestone consumes §5's invariants and `cbor.md` as written.
 

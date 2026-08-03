@@ -85,7 +85,7 @@ working code. They are decisions, not preferences; each names what it rules out.
   a single ascending sequence.
 - **N3 — `PortaBridge` lives in `kernel.nsl`,** beside `NetBridge`, reached by
   `platform PortaBridge`. It needs `Cbor`/`Record`/`Map`/`List`/`OrderedCollection`,
-  which an app cannot reach as classes; and porta#25 wants a *stable node-side
+  which an app cannot reach as classes; and #120 wants a *stable node-side
   contract*, which a per-node copy would not be. **The node holds ONE instance** — the
   `platform timers` lesson: an accessor answering a fresh instance silently drops
   everything held in the old one's registry.
@@ -97,9 +97,9 @@ working code. They are decisions, not preferences; each names what it rules out.
   path is **counted and dropped**, never applied and never a crash. Untrusted network
   input must not be able to write `obs/**` (which would forge the convergence view) —
   the `NetBridge` drop-on-malformed precedent, widened to a path rule.
-- **N6 — node id and `bootId` are source constants** in this slice (porta#27), and the
+- **N6 — node id and `bootId` are source constants** in this slice (#118), and the
   inbound cursor lives in RAM. Cold boot = cursor 0 = full replay is the *designed*
-  behaviour (PROTOCOL-NSL §3); the `goal/do/*` replay hazard is porta#26 and is not
+  behaviour (PROTOCOL-NSL §3); the `goal/do/*` replay hazard is #119 and is not
   built here.
 - **N7 — one datagram at a time, bounded wait, never wedge.** A check-in is
   PULL→reply→PUSH→ack, each with a millisecond budget; a missing reply is counted and
@@ -479,7 +479,7 @@ Expected: every line PASS, including `test_space` (unchanged behaviour) and
 ```bash
 cd ~/workspace/tuvm
 git add src/space.h src/space.c tests/test_space_seq.c tools/run_c_tests.sh
-git commit -m "feat(space): one monotonic seq per space, and the changed-since scan (porta#25)"
+git commit -m "feat(space): one monotonic seq per space, and the changed-since scan (#120)"
 ```
 
 ---
@@ -686,7 +686,7 @@ advanced in Step 4 — fix that, do not silence it.
 ```bash
 cd ~/workspace/tuvm
 git add src/prim_ids.h src/dispatch.c src/platform.c src/space.c src/space.h tests/test_platform.c
-git commit -m "feat(prims): spaceSeq / spaceStamp / spaceChangedSince:under:max: (138-140, porta#25)"
+git commit -m "feat(prims): spaceSeq / spaceStamp / spaceChangedSince:under:max: (138-140, #120)"
 ```
 
 ---
@@ -877,7 +877,7 @@ Expected: both PASS.
 
 ```bash
 cd ~/workspace/nsl-tuvm && git add lib/kernel.nsl && \
-  git commit -m "feat(channel): changedSince:max: and the space's seq/stamp (porta#25)"
+  git commit -m "feat(channel): changedSince:max: and the space's seq/stamp (#120)"
 cd ~/workspace/nsl-tests && git add 22_spacesync && \
   git commit -m "test(spacesync): the seq counter, the cell scan, and its confinement"
 ```
@@ -1084,7 +1084,7 @@ channel↔UDP bridge), before the `serialOn:` / `netOn:` accessors.
 
     (* bootId rides the batch envelope, not every record (RECORDS §3). It is a
        source constant in this slice — persisting a boot counter is NVS work
-       (G7) and porta#27 owns node identity. porta stores it and uses it to
+       (G7) and #118 owns node identity. porta stores it and uses it to
        order observations across reboots; a constant makes that ordering
        degenerate, which is honest for a node that cannot yet count its boots. *)
     bootId = ( ^ 1 )
@@ -1344,7 +1344,7 @@ the count (tuvm#63: the suite prints "0 failed" while an aux gate is red).
 
 ```bash
 cd ~/workspace/nsl-tuvm && git add lib/kernel.nsl && \
-  git commit -m "feat(bridge): PortaBridge — the node half of the space-sync exchange (porta#25)"
+  git commit -m "feat(bridge): PortaBridge — the node half of the space-sync exchange (#120)"
 cd ~/workspace/nsl-tests && git add 22_spacesync && \
   git commit -m "test(spacesync): bridge frames, and porta's inbound authority"
 ```
@@ -1493,7 +1493,7 @@ KERNEL INSTANCE, so every class it names needs an explicit accessor.
 
 ```bash
 cd ~/workspace/tuvm && git add zephyr/PortaBridgeNode.nsl && \
-  git commit -m "feat(node): PortaBridgeNode — the minimal space-sync check-in node (porta#25)"
+  git commit -m "feat(node): PortaBridgeNode — the minimal space-sync check-in node (#120)"
 ```
 
 ---
@@ -1643,7 +1643,7 @@ fresh DB but the same node id, which is the cold-boot-at-cursor-0 path.
 
 ```bash
 cd ~/workspace/tuvm && git add tests/porta_sync_host.sh && \
-  git commit -m "test(spacesync): the host interop gate — nsl node vs real porta serve (porta#25)"
+  git commit -m "test(spacesync): the host interop gate — nsl node vs real porta serve (#120)"
 ```
 
 ---
@@ -1711,7 +1711,7 @@ Each of these is named in the plan and deliberately not built. File in
 ```bash
 cd ~/workspace/porta
 gh issue create --title "space-sync: the node's cursor and bootId live in RAM — a reboot re-pulls everything" \
-  --body "Plan 2 N6. Cold boot = cursor 0 = full replay is the designed behaviour (PROTOCOL-NSL §3), and the cell scan bounds a replay by TREE SIZE rather than history length, so this is survivable rather than urgent. What it costs: every reboot re-applies every goal cell, and bootId is a source constant (1), so porta cannot order observations across reboots — the (bootId, monoMs) session key of RECORDS §3 is degenerate. Needs NVS (G7). Relates porta#26 (replaying goal/do/* is a brick), porta#27 (node identity)."
+  --body "Plan 2 N6. Cold boot = cursor 0 = full replay is the designed behaviour (PROTOCOL-NSL §3), and the cell scan bounds a replay by TREE SIZE rather than history length, so this is survivable rather than urgent. What it costs: every reboot re-applies every goal cell, and bootId is a source constant (1), so porta cannot order observations across reboots — the (bootId, monoMs) session key of RECORDS §3 is degenerate. Needs NVS (G7). Relates #119 (replaying goal/do/* is a brick), #118 (node identity)."
 gh issue create --title "space-sync: the bridge holds the ROOT space, not a goal-write + obs-read pair" \
   --body "Plan 2 N4. PROTOCOL-NSL §4.1 grants the bridge job write access to goal/** and dbg/req and read access to obs/**, tel/**, sys/**, dbg/resp. The implementation takes the root Space and enforces the inbound half itself in mayApply: — the Supervisor's shape, and the only one available until a capability can carry two roots. Authority IS enforced (04_bridge_authority.nsl), it is just enforced by the holder rather than by the capability. Tighten when the grant machinery (G5) lands."
 gh issue create --title "space-sync: cadence is a constant — PROTOCOL-NSL §4.4's adaptive controller is unbuilt" \
@@ -1726,7 +1726,7 @@ gh issue create --title "space-sync: a stream entry written while the bridge is 
 cd ~/workspace/tuvm && git add review/tests/CLAIMS.md review/program-sequence.md docs/next-steps-overview.md && \
   git commit -m "docs(spacesync): promote plan 2 — the ladder, CLAIMS, and what plan 3 still owes"
 cd ~/workspace/tuvm && git add protocol/PROTOCOL-NSL.md && \
-  git commit -m "docs(protocol): §4.1 records the node side as built (porta#25)"
+  git commit -m "docs(protocol): §4.1 records the node side as built (#120)"
 ```
 
 ---
@@ -1743,8 +1743,8 @@ ruling → Task 1. D8's `obs/build` → Task 5, with `sdk`/`image`/`builtAt` omi
 tuvm#74 named. §9's gate: legs 1–3 land on the host in Task 6; the same three
 witnessed on the C6 over a real mesh, including the deliberate drop, are plan 3's and
 are stated as such in Tasks 6 and 7. Deliberately not covered, each with a home:
-tuvm#107 (Task 5 excludes `diag/spans/result`), porta#24 (retention vs cursor — a
-porta-side policy, untouched here), porta#26 (`goal/do/*` replay — filed, not built).
+tuvm#107 (Task 5 excludes `diag/spans/result`), #121 (retention vs cursor — a
+porta-side policy, untouched here), #119 (`goal/do/*` replay — filed, not built).
 
 **2. Placeholders.** None: every step carries the code or the exact command, and the
 one place a name is uncertain (`test_platform.c`'s helper names, Task 2 Step 1) says

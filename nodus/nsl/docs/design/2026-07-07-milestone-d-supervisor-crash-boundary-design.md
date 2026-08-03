@@ -22,7 +22,7 @@ crash driver.
   (`timers.ns` → Milestone D; `exceptions.md` → read before D).
 - `tuvm/review/demo-node.ns` (the north-star program + findings 1/4 — the FSM idiom and the
   supervisor/job restart contract) and `tuvm/review/test-suites-spec.md` T-D (D.1–D.6).
-- GitHub: `davidg238/nsl-tuvm#5` (adopt exceptions.md C4/C5), `#9` (Milestone C carry-forwards:
+- GitHub: `davidg238/#138` (adopt exceptions.md C4/C5), `#9` (Milestone C carry-forwards:
   Protocol snapshot/restore test, owner-tag identity pin, `channel path too long` test).
 - Program position: phase 1 milestone **D of 4** (final host milestone),
   `tuvm/review/program-sequence.md`. Milestone D green is the entry criterion for phase 2.

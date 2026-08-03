@@ -61,7 +61,7 @@ Plans 2 and 3 (node-side `seq`/`changedSince:`/bridge job; the C6 hardware gate)
 
 ```bash
 cd ~/workspace/porta
-git tag -a porta-v1-final -m "the last v1 tree: TFTP + JSON + command queue, before the space-sync rewrite (porta#25)"
+git tag -a porta-v1-final -m "the last v1 tree: TFTP + JSON + command queue, before the space-sync rewrite (#120)"
 git tag -l porta-v1-final
 ```
 
@@ -183,7 +183,7 @@ Also note in it that the porta auto-memory namespace (`~/.claude/projects/-home-
 
 ```bash
 git add -A
-git commit -m "refactor!: delete porta v1 — command queue, TFTP, reports, operator surface (porta#25)
+git commit -m "refactor!: delete porta v1 — command queue, TFTP, reports, operator surface (#120)
 
 D7: demolition precedes construction, so no decision in the rewrite is
 made with v1 still in the room. The last v1 tree is tagged porta-v1-final.

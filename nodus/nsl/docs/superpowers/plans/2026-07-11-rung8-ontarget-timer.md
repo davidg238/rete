@@ -480,7 +480,7 @@ One node source for BOTH boards. Prove it on the DK, where the console is visibl
 
 - [ ] **Step 1: Create `tuvm/zephyr/ThreadTimerNode.ns`**
 
-State lives in **instance slots**, not `main:` locals, so every reaction block is a one-line self-send — the house style that dodges the reified-block LD_SLOT gotcha (nsl-tuvm#10).
+State lives in **instance slots**, not `main:` locals, so every reaction block is a one-line self-send — the house style that dodges the reified-block LD_SLOT gotcha (#133).
 
 ```
 (*
@@ -502,7 +502,7 @@ DELIBERATE: a single lost datagram wedges this node forever. That is a GATE
 property (failure must be loud, never a silent pass), not production behavior.
 
 Dialect: `[ ... ] whileTrue:`, not `repeat`. State is in instance slots so the
-reaction blocks stay one-line self-sends (nsl-tuvm#10).
+reaction blocks stay one-line self-sends (#133).
 expect (DK console, every ~15s after attach):
 BRIDGE OK
 *)

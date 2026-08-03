@@ -411,7 +411,7 @@ one level up — adding an instrumented job adds a record, never a field.
 5. **Does `obs/**` push per-path or snapshot-batched?** (§6.6 of the parent doc.) The
    size law says: whichever fits 512 bytes; measure.
 6. **Tombstone retention at porta** — until the cursor passes, or time-boxed? **This is not a
-   shrug; it is a live hazard — now porta#24.** A delete is only visible as a tombstone in the
+   shrug; it is a live hazard — now #121.** A delete is only visible as a tombstone in the
    cursor stream, so a node that is away long enough for porta to reclaim tombstones past its
    cursor comes back, asks for `seq > N`, and porta **silently answers a question it cannot
    answer**: the node keeps running an app that was uninstalled, and nothing anywhere notices.

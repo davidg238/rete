@@ -45,7 +45,7 @@ skip() { # $1=name  $2=reason — pre-existing seed breakage unrelated to Milest
 # Model-A-linked core tests
 for t in test_arena test_float_arena; do run $t "$ENG_A"; done
 run test_coalesce "$ENG_A" -DOEVM_HEAP_SIZE=8192
-# G3/M2 (nsl-tuvm#3): heap telemetry counters (live_bytes/high_water/
+# G3/M2 (https://github.com/davidg238/nsl-tuvm/issues/3): heap telemetry counters (live_bytes/high_water/
 # largest_free_block/gc_cycles) — fragmentation early-warning API.
 run test_heap_stats "$ENG_A" -DOEVM_HEAP_SIZE=65536
 run test_method_cache "$ENG_A" -DOEVM_CACHE_STATS

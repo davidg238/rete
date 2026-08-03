@@ -20,7 +20,7 @@ behave. This node is a gate.
 
 Dialect: `[ ... ] whileTrue:`, never `repeat`. State lives in instance slots (not main:
 locals) so every reaction block is a one-line self-send — the house style that dodges the
-reified-block LD_SLOT gotcha (nsl-tuvm#10). `platform timers` answers a FRESH Timers each
+reified-block LD_SLOT gotcha (#133). `platform timers` answers a FRESH Timers each
 call, so hold ONE instance.
 expect (DK console, every ~15s once attached):
 BRIDGE OK

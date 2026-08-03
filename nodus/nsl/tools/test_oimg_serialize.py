@@ -87,7 +87,7 @@ def test_descriptor_block_is_dense_word_strided(W):
 
 
 # ---------------------------------------------------------------------------
-# _smi() capacity boundary (nsl-tuvm#4): the ref-word packs (v << 2) | TAG_SMI
+# _smi() capacity boundary (https://github.com/davidg238/nsl-tuvm/issues/4): the ref-word packs (v << 2) | TAG_SMI
 # into an oop*8-bit word, so only oop*8-2 bits remain for the signed payload;
 # TWO bits are consumed by the tag, so the true SMI capacity is oop*8-3
 # magnitude bits: [-(2^(oop*8-3)), 2^(oop*8-3) - 1]. A guard of oop*8-2 (one

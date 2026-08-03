@@ -23,7 +23,7 @@ final gate, and the measured footprint delta.
   of unwinding the whole process. Built as "unwind to a marked frame" (one
   marked frame — the reactor's), per `review/lib/exceptions.md` constraint 4,
   so the future `on:do:`/`ensure:` step (phase 2) generalizes the same
-  recovery path instead of reworking it (closes nsl-tuvm#5).
+  recovery path instead of reworking it (closes #138).
 - **The protected reactor** — `nsl-tuvm/lib/kernel.ns` `Space>>drain`
   (~L667-678) wraps every reaction firing in `platform protectedFire:value:`
   (prim `PRIM_pf_protectedFire`, id 83). A clean firing answers nil and drain
@@ -45,8 +45,8 @@ final gate, and the measured footprint delta.
   `space_drop_reactions_owned_by`, prim id 84) sweeps exactly one job's
   reactions by `==` against its rootCap, proven against a second, untouched
   capability by `nsl-tests/11_supervision/04_owner_sweep.ns`. This pins
-  nsl-tuvm#9's item 2 (owner-tag identity) explicitly rather than leaving it
-  implicit (closes nsl-tuvm#9.2).
+  #134's item 2 (owner-tag identity) explicitly rather than leaving it
+  implicit (closes #134.2).
 - **The Supervisor** (`nsl-tuvm/lib/kernel.ns` `SupervisedJob`/`Supervisor`,
   ~L714-822) — observes `sys/crash`, attributes each crash to the owning job
   by prefix-matching the crash record's `#channel` against the job's
@@ -75,12 +75,12 @@ final gate, and the measured footprint delta.
   `TempNode` per the Task 7 brief (no i2c, mock reading).
 - **The soak/leak-plateau test** (D.5,
   `nsl-tests/11_supervision/10_soak_leak.ns`) — see §2.
-- **Two Milestone-C carry-forward tests**, closing nsl-tuvm#9's remaining
+- **Two Milestone-C carry-forward tests**, closing #134's remaining
   items: `nsl-tests/10_fsm/02_snapshot_restore.ns` (D.8, direct
-  `Protocol>>snapshot`/`restore:` round-trip — closes nsl-tuvm#9.1) and
+  `Protocol>>snapshot`/`restore:` round-trip — closes #134.1) and
   `nsl-tests/09_channels/11_path_too_long.ns` (D.9, a canonical
   single-segment path over `OEVM_SPACE_MAX_PATH` (64) reaching
-  `space_intern` end-to-end via `out:` — closes nsl-tuvm#9.3).
+  `space_intern` end-to-end via `out:` — closes #134.3).
 
 ## 2. The soak/leak-plateau test (D.5) and the missing heap gauge
 
@@ -133,13 +133,13 @@ events and assert bounded variance instead.
 
 ## 4. Carry-forwards closed
 
-- **nsl-tuvm#5** — "Milestone D spec must adopt exceptions.md constraint 4:
+- **#138** — "Milestone D spec must adopt exceptions.md constraint 4:
   crash boundary as 'unwind to a marked frame'." Closed: the setjmp boundary
   (§1) is built exactly that way, with exactly one marked frame (the
   reactor's), constraint 5 (exceptions never cross a dispatch boundary)
   riding along for free (a raise unwinds at most to the current firing's own
   reactor frame).
-- **nsl-tuvm#9** — "Milestone D carry-forwards from the Milestone C final
+- **#134** — "Milestone D carry-forwards from the Milestone C final
   whole-branch review," all three items landed:
   - **#9.1** Protocol snapshot/restore direct behavioral test →
     `nsl-tests/10_fsm/02_snapshot_restore.ns`.

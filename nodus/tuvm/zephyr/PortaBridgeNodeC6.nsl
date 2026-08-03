@@ -18,7 +18,7 @@ global IPv6 here and no DNS64, so literal addresses are the only ones that work,
 and an MTD child has no OMR source address at all (rung-7). This node is an FTD,
 but the ML-EID is correct either way and does not depend on the role.
 
-Cadence stays the 2 s of plan 2. The adaptive controller is porta#31.
+Cadence stays the 2 s of plan 2. The adaptive controller is #115.
 
 Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
 reaction block is a one-line self-send (the LD_SLOT gotcha).

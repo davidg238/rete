@@ -1,7 +1,7 @@
 # porta → channels: the space-sync rewrite (v1 deleted)
 
 **Status: design record, approved by David 2026-08-01.** This is the decision record for
-porta#25 — the total do-over that scraps the command model. It supersedes the *porta half*
+#120 — the total do-over that scraps the command model. It supersedes the *porta half*
 of `../PROTOCOL-NSL.md` §5 and amends its §3/§5.1 where the two contradict each other; the
 node-facing conformance semantics in §§1–4 of that document stand.
 
@@ -11,13 +11,13 @@ node-facing conformance semantics in §§1–4 of that document stand.
 
 **Companions:** `../PROTOCOL-NSL.md` (the ratified model), `../PROTOCOL-NSL-RECORDS.md`
 (per-prefix schemas + the size law), `~/workspace/tuvm/review/program-sequence.md` (the
-ladder), porta#23 / porta#24 / porta#25.
+ladder), #122 / #121 / #120.
 
 ---
 
 ## 1. Why now, and what the reversal means
 
-porta#25 set the working order: **lay out what is best on the node, then fix porta to
+#120 set the working order: **lay out what is best on the node, then fix porta to
 match — never the reverse.** The node side is already there. `space.c` has carried cells
 and streams since tuvm rung 9 (tuvm#32 option A), the CBOR codec has shipped since rung 3,
 and the socket seam is proven on a real OpenThread mesh (`ThreadPingNode.nsl` → gw85224-01).
@@ -133,7 +133,7 @@ last-write seq exceeds the cursor.
 
 ### D6 — Kind is a property of the leaf, set by the first write.
 
-Dropping `PROTOCOL-NSL.md` §3's "fixed by its path prefix" rule, per porta#25 item 3. The
+Dropping `PROTOCOL-NSL.md` §3's "fixed by its path prefix" rule, per #120 item 3. The
 node has enforced leaf-kind since rung 9 (`put` makes a cell, `post` makes a stream, the
 wrong verb raises), and the prefix rule is already contradicted by the node's own `dev/**`
 family — `dev/thermal0/sample` is a cell and `dev/thermal0/tick` is a stream under one
@@ -423,7 +423,7 @@ Named so they are not silently dropped:
 - **Node identity.** A constant in the node's source for this slice; hardware-derived
   identity is a follow-on (relates tuvm#74, a node cannot name its own build).
 
-### 7.1 Resolved — profiler spans land at `diag/spans/**` (porta#28, closed)
+### 7.1 Resolved — profiler spans land at `diag/spans/**` (https://github.com/davidg238/porta/issues/28, closed)
 
 Filed as an open question, then answered by reading the node instead of the documents. The
 node already ships the whole mechanism (tuvm#72, `class SpanCapture`): a bounded capture
@@ -454,9 +454,9 @@ belongs in the path space, not in a list inside one value.**
   and dangerous for streams: replaying a cell is idempotent by construction, replaying
   `goal/do/reboot` reboots the node again, and a node that cold-boots into a reboot loop is
   bricked in the field. Replay-from-0 must mean *latest value per cell path*, and for `do/`
-  streams only entries written after the node's current `bootId`. Adjacent to porta#24 and
+  streams only entries written after the node's current `bootId`. Adjacent to #121 and
   not previously written down. **To be filed as an issue, not built in this slice.**
-- **porta#24 — cursor vs retention.** A node whose cursor falls behind porta's retention
+- **#121 — cursor vs retention.** A node whose cursor falls behind porta's retention
   point is silently stranded (etcd's compaction scar). Still unanswered; the `events` table
   is append-only with no compaction in this rung, which defers rather than solves it.
 

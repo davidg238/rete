@@ -54,7 +54,7 @@ with the balloon gone.
   `milestone-d` (crash boundary `vm_protected_fire` unwinding to the one marked reactor
   frame, per `review/lib/exceptions.md` constraint 4; `Supervisor`/`SupervisedJob`
   restart+quarantine; owner-tag identity sweep; host virtual-clock timers; the soak/leak
-  test D.5; the demo-node-shaped integration test D.7; carry-forwards nsl-tuvm#5 and
+  test D.5; the demo-node-shaped integration test D.7; carry-forwards #138 and
   #9.1/#9.2/#9.3 all closed). `docs/MILESTONE_D.md`.
 
 **Phase 1 (host proof) is now COMPLETE — Milestones A through D all landed and green.**
@@ -473,7 +473,7 @@ Decided in the 2026-07-11 architecture review (David's calls); owner docs writte
   → C-side driver job → custom prims). Ladder for phase-2 rung 2+: **BME280 → AMG8833 Grid-EYE
   (native Zephyr driver, same Tier-1 binding) → character-grid UI on a 128×128 TFT. LVGL is
   dropped, not deferred.**
-- **Porta wire** (`protocol/PROTOCOL-NSL.md`, porta#23): porta protocol v1 is frozen for Toit
+- **Porta wire** (`protocol/PROTOCOL-NSL.md`, #122): porta protocol v1 is frozen for Toit
   nodes; **nsl nodes speak a space-sync protocol** (goal/obs retained trees + event channels,
   cursor sync; `take:` never crosses the wire; payload bulk + auth off-space). This refines
   phase 3 item 1 (keeper/porta rejoin) and the CBOR wire rung: pin per-prefix record schemas
@@ -542,7 +542,7 @@ Decided in the 2026-07-11 architecture review (David's calls); owner docs writte
   (transparency you pay for later). Three options enumerated on tuvm#32: **A** cell as a second
   kind in `space.c`; **B** served prefixes (Plan 9's move); **C** nsl only. A and B are
   *indistinguishable from the job's side*. Current recommendation: **A now, B when it has a
-  second customer, not C.** New hazard found and filed: **porta#24** — a node whose cursor falls
+  second customer, not C.** New hazard found and filed: **#121** — a node whose cursor falls
   behind porta's tombstone retention is **silently stranded** (etcd's compaction-vs-watch bug).
 
 - **The records precondition is met.** `protocol/PROTOCOL-NSL-RECORDS.md` (porta `921e8a4`)
@@ -2044,7 +2044,7 @@ before debugging the thing it is pointed away from.
 
 **The rung is CLOSED.** `tests/porta_sync_c6.sh` ran `PortaBridgeNodeC6.nsl` on a real
 ESP32-C6 over a real Thread mesh against `porta serve` on gw85224-01, five consecutive
-clean runs, each a cold re-flash exercising cold-boot-at-cursor-0 full replay (porta#29).
+clean runs, each a cold re-flash exercising cold-boot-at-cursor-0 full replay (#117).
 Every run: leg 3 `rows=13 distinct=13, 1..13`; leg 4 `rows=26 distinct=26, 1..26` across
 4 swallowed acks, `misses 0 → 5`. What the radio added over loopback is not recoverable
 from the code, so it is recorded here:
@@ -2086,7 +2086,7 @@ gap is counted rather than silent.
 
 **`sys/panic` is not decided, and this rung does not decide it.** "Drop the oldest" is the
 wrong answer for a must-deliver path (RECORDS §4.3); that decision, and the adjacent case
-of a stream entry written while the bridge is down, belong together at porta#32.
+of a stream entry written while the bridge is down, belong together at #114.
 
 **The gate found two bugs in itself**, both worth keeping as durable operational
 knowledge because they are exactly the kind that produces a silently-wrong green:
@@ -2110,9 +2110,9 @@ Five clean runs of the corrected gate are the claim (`docs/spikes/2026-08-02-c6-
 counted, and one run of the definitive sequence was killed mid-leg by the harness and
 re-run clean — a flake was not rounded up to a pass.
 
-**Filed, not built:** the orphaned v1 LAN nodes at 192.168.0.240/.241 (porta#33) — no
+**Filed, not built:** the orphaned v1 LAN nodes at 192.168.0.240/.241 (#113) — no
 migration path from v1's JSON wire to v2's CBOR space-sync wire; and it is worse than "no
-gateway" (porta#34) — .241 sends a TFTP read request to :6969 once a second, forever, and
+gateway" (#112) — .241 sends a TFTP read request to :6969 once a second, forever, and
 porta rejects each one (decoded: opcode `0001`, filename `commands?id=7c9ebdd8f58c`, mode
 `octet`); and `PortaBridge>>awaitReply` consuming the first datagram to arrive, whatever
 it is, rather than checking the record tag (tuvm#108) — a narrowing loopback could not

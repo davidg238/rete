@@ -48,7 +48,7 @@ uintptr_t flash_rom_end = 0;
 #define FREE_BIN_COUNT 64
 static struct HeapHeader *free_bins[FREE_BIN_COUNT];
 
-/* ---- Heap telemetry (G3/M2, nsl-tuvm#3) --------------------------------
+/* ---- Heap telemetry (G3/M2, https://github.com/davidg238/nsl-tuvm/issues/3) --------------------------------
    Fragmentation early-warning counters for the fixed embedded arena. Kept as
    plain static counters (not gated behind a -D flag): the whole point is that
    firmware can call oevm_heap_stats() at any time to see how close the arena
@@ -880,7 +880,7 @@ void gc_collect(void) {
     float_sweep();
 }
 
-/* Heap telemetry accessor (G3/M2, nsl-tuvm#3). largest_free_block is computed
+/* Heap telemetry accessor (G3/M2, https://github.com/davidg238/nsl-tuvm/issues/3). largest_free_block is computed
    here, on demand, rather than maintained per-allocation: stats are read
    rarely, so the walk cost belongs here, not on the hot alloc path. Walks
    every free bin fully (including the catch-all last bin, which holds mixed

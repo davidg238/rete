@@ -2,7 +2,7 @@
 
 **Status:** diagnosed, NOT fixed. Ready to file as a GitHub issue on `nsl-tuvm` once
 David approves (issue-creation is reserved for his word). Found while doing the
-Milestone-B pre-work (nsl-tuvm#2, L7 integer decision). Separate from — and not a
+Milestone-B pre-work (https://github.com/davidg238/nsl-tuvm/issues/2, L7 integer decision). Separate from — and not a
 regression of — the LargeInteger `=` fix on branch `milestone-b-prework`.
 
 ## Summary

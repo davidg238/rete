@@ -917,7 +917,7 @@ document of record. For this work:
   than leaving it unstated.
 - [ ] **Close tuvm#72** with the merge SHA, the measured image-size delta from Task 2 Step 6,
   and the new suite floor (209).
-- [ ] **Leave porta#25 open.** §7 of the design is input to it; nothing in this plan
+- [ ] **Leave #120 open.** §7 of the design is input to it; nothing in this plan
   discharges it.
 
 ## Then, and only then: the #61 re-take

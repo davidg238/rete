@@ -22,7 +22,7 @@ done
    Under option C (the cell in the bridge's private Map) this test cannot be written at
    all: the job has nothing to peek and nobody to ask. See tuvm/review/cells-sketch.ns.
 
-   VM gotcha (nsl-tuvm#10, recurred in rungs 3 and 6): the `restart:` block is a genuine
+   VM gotcha (#133, recurred in rungs 3 and 6): the `restart:` block is a genuine
    REIFIED BlockClosure (the supervisor stores it), and a direct cross-class call written
    inline in such a block (`Loop new …`) does not resolve its outer/platform context —
    `Invalid receiver for LD_SLOT`. Routed through a `self`-send (`self respawn:`), which

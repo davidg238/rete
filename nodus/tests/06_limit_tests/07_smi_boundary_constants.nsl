@@ -7,7 +7,7 @@ expect:
 true
 hit
 *)
-(* nsl-tuvm#4: integer literal constants in the "gap band" — values that fit the
+(* https://github.com/davidg238/nsl-tuvm/issues/4: integer literal constants in the "gap band" — values that fit the
    runtime tagged-SMI range (+-2^62 on a 64-bit host) but NOT the .oimg SMI
    ref-word (2 tag bits -> +-2^61). The oimg backend used to sign-flip these
    (2^61 loaded as -2^61) and load -2^62 as 0. Contract: every literal below

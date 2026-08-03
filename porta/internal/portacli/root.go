@@ -65,7 +65,7 @@ func NewRootCmd() *cobra.Command {
 
 // Execute runs the porta CLI. The root context is cancelled on
 // SIGINT/SIGTERM so long-running subcommands (serve) can exit cleanly.
-// Closes the gap from porta/porta#2 — until this change, the --follow cancel
+// Closes the gap from https://github.com/davidg238/porta/issues/2 — until this change, the --follow cancel
 // path was unreachable in production because cmd.Context() was
 // context.Background().
 func Execute() error {

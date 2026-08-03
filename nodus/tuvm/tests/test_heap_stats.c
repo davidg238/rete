@@ -1,4 +1,4 @@
-/* Unit test for heap telemetry counters (src/gc.c, G3/M2, nsl-tuvm#3).
+/* Unit test for heap telemetry counters (src/gc.c, G3/M2, https://github.com/davidg238/nsl-tuvm/issues/3).
    These counters are the fragmentation early-warning system for a non-moving
    mark-sweep GC on a small embedded arena: largest_free_block is the number
    that matters most, since a raw "bytes free" total can overstate what the

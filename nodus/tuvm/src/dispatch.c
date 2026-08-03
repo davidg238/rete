@@ -120,7 +120,7 @@ static oop sm_to_int(int sign, uint64_t mag) {
     return largeint_alloc(sign, mag);
 }
 
-/* Canonical integer representation (nsl-tuvm#4): demote a boxed LargeInteger
+/* Canonical integer representation (https://github.com/davidg238/nsl-tuvm/issues/4): demote a boxed LargeInteger
    to a tagged SMI when the value fits the tagged range. Never allocates and
    returns non-integers untouched, so it is safe on any constant (including
    blob-resident .oimg objects: sign/mag are direct scalar fields, and the

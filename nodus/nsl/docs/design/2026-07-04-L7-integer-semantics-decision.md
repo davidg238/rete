@@ -102,7 +102,7 @@ invariants (platform-independent width, trap-not-wrap, fixed width), and maps on
 integer major types. The cost is one boxed leaf type and an overflow check the SMI fast
 path already mostly pays.
 
-**On-target performance caveat (feed the G3 GC decision, nsl-tuvm#3):** on the 32-bit
+**On-target performance caveat (feed the G3 GC decision, https://github.com/davidg238/nsl-tuvm/issues/3):** on the 32-bit
 target the SMI boundary is ≈2^30, so the *motivating* values — u32 registers with the high
 bit set, ms-timestamps past ~12 days of uptime, any u32×u32 — fall onto the LargeInteger
 (heap) path routinely, not rarely. The GC/allocation strategy must make short-lived

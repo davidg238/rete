@@ -31,7 +31,7 @@ FSM shape; §4), so E adds only a regression test to lock it, no fix.
 - `2026-07-03-nsl-tuvm-first-step-design.md` §8 (the `on:do:`/`ensure:` deferral this
   milestone retires) + §5 (minimal crash boundary), §6 (additive-on-the-same-VM-shape
   guarantee).
-- GitHub: `davidg238/nsl-tuvm#5` (adopt exceptions.md C4/C5 — the D half closed the
+- GitHub: `davidg238/#138` (adopt exceptions.md C4/C5 — the D half closed the
   boundary; E closes the `on:do:` generalization half).
 - `tuvm/review/tests/td-crash/04` — the `policy TBD` placeholder this milestone realizes into
   a real test (`program-sequence.md` phase 2 rung 1: "Retires the td-crash/04 placeholder").

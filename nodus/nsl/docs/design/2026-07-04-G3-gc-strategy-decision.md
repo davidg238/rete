@@ -1,6 +1,6 @@
 # G3 — GC strategy: non-moving mark-sweep, ratified
 
-**Status:** DECIDED 2026-07-04 (ratified by David; nsl-tuvm#3). Resolves the G3 gap
+**Status:** DECIDED 2026-07-04 (ratified by David; https://github.com/davidg238/nsl-tuvm/issues/3). Resolves the G3 gap
 (`tuvm/review/reliability-gaps.md` §G3) at the A→B boundary, before Milestone B lands
 the allocation-heavy paths (message values, tuple space). Includes the G4 line-table
 provision rider.
@@ -118,7 +118,7 @@ The provision is now explicit in the format CONTRACT comment
 ref at the header tail and/or a `LINETABLE` cluster kind at the end of `KIND_ORDER`;
 blob content unreachable from the resolved root graph is ignored by the loader, so
 the addition is structurally additive. The compiler-side work (emitting line tables;
-CompileError line numbers) is nsl-tuvm#1 and lands on its own schedule; the format
+CompileError line numbers) is #139 and lands on its own schedule; the format
 door is what this rider keeps open. The porta-side symbolizer-keyed-by-image-hash
 alternative from G4 remains open as a cheaper v1.
 

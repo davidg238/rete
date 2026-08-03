@@ -214,7 +214,7 @@ oop  oevm_int_sub(oop a, oop b);
 oop  oevm_int_mul(oop a, oop b);
 oop  oevm_int_floordiv(oop a, oop b);
 oop  int_from_intptr(intptr_t v);   /* normalise a raw result to SMI or LargeInteger */
-oop  oevm_int_demote(oop v);        /* canonicalize a boxed int constant to SMI if it fits (nsl-tuvm#4) */
+oop  oevm_int_demote(oop v);        /* canonicalize a boxed int constant to SMI if it fits (https://github.com/davidg238/nsl-tuvm/issues/4) */
 double oevm_int_to_double(oop x);
 
 /*
@@ -445,7 +445,7 @@ struct MethodCacheStats method_cache_stats(void);
 int check_access_allowed(oop receiver, oop selector, struct CompiledMethod *target_method, oop target_defining_vtable);
 int is_truthy(oop obj);
 
-/* Heap telemetry (G3/M2, nsl-tuvm#3): fragmentation early-warning for the
+/* Heap telemetry (G3/M2, https://github.com/davidg238/nsl-tuvm/issues/3): fragmentation early-warning for the
    non-moving mark-sweep GC on a small embedded arena. largest_free_block is
    the number that matters most — it is the actual worst-case allocation the
    arena can still satisfy without triggering the terminal OOM handler, which

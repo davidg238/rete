@@ -143,7 +143,7 @@ dies in the stack — and feasible, since otbr runs `--network host` and `wpan0`
 `fdc5:9109:9afe:97ea::/64` is in the host netns; but every toggle needs a sudo password,
 so the gate could not run unattended); a node-side drop knob (changes the thing under
 test); a deliberate reboot (a real and worthwhile failure, but it resets cursor and
-bootId to their RAM defaults and so proves full-replay behaviour, porta#29, not
+bootId to their RAM defaults and so proves full-replay behaviour, #117, not
 exactly-once).
 
 ### D7 — exactly-once is two assertions, not one
@@ -298,7 +298,7 @@ flakiness is what the contiguity assertion already tolerates.
   a real narrowing of the bridge's assumptions that loopback could not have surfaced.
 - Anything the five runs turn up that is not this rung's business.
 
-**Inherited and still open**, each already filed by plan 2: porta#29 (cursor/bootId in
-RAM), porta#30 (root space vs a capability pair), porta#31 (constant cadence), porta#32
+**Inherited and still open**, each already filed by plan 2: #117 (cursor/bootId in
+RAM), #116 (root space vs a capability pair), #115 (constant cadence), #114
 (a stream entry written while the bridge is down is lost). tuvm#107 keeps
 `diag/spans/result` out of the sync until its ~1120 B value is split.

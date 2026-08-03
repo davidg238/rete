@@ -116,7 +116,7 @@ class OimgWriter:
         #           net_on_sel_ref@120, header padded to 128.
         # (format_version 1: Kernel descriptor absent, header 56 bytes.)
         #
-        # RESERVED — G4 line-table provision (nsl-tuvm#3 rider, decided 2026-07-04;
+        # RESERVED — G4 line-table provision (https://github.com/davidg238/nsl-tuvm/issues/3 rider, decided 2026-07-04;
         # see docs/design/2026-07-04-G3-gc-strategy-decision.md). A future
         # format bump may append a `line_table_ref` ref-word at the header tail
         # (after net_on_sel_ref, same pad-to-ALIGN discipline) and/or a "LINETABLE"
@@ -125,7 +125,7 @@ class OimgWriter:
         # records no header/method ref points at are ignored bytes. Do NOT insert
         # new header fields before the tail or reorder KIND_ORDER — offsets and
         # cluster grouping are position-dependent. Compiler-side emission of line
-        # tables (CompileError line numbers) is nsl-tuvm#1; this note only keeps
+        # tables (CompileError line numbers) is #139; this note only keeps
         # the format door open, per G4: "retrofitting line tables into an image
         # format is painful — decide the format early".
         if not kernel_vtable_ref and (serial_on_sel_ref or supervisor_vtable_ref
@@ -240,14 +240,14 @@ class OimgSerializer:
         magnitude bits: [-(2^(oop*8-3)), 2^(oop*8-3) - 1]. This is the single
         source of truth for that boundary; _smi()'s guard, the largeint
         object-collection pass, and _const_ref's routing all call this so they
-        can never drift apart (nsl-tuvm#4).
+        can never drift apart (https://github.com/davidg238/nsl-tuvm/issues/4).
         """
         lo = -(1 << (self.oop * 8 - 3))
         hi = (1 << (self.oop * 8 - 3))
         return lo <= v < hi
 
     def _smi(self, v):
-        # nsl-tuvm#4: a previous guard of oop*8-2 bits was one bit too lenient
+        # https://github.com/davidg238/nsl-tuvm/issues/4: a previous guard of oop*8-2 bits was one bit too lenient
         # (it ignored that the payload is signed on top of the 2 tag bits), so
         # gap-band values silently overflowed into the sign bit at load time
         # (e.g. 2**61 loaded back as -2**61). Callers MUST route anything that
@@ -306,7 +306,7 @@ class OimgSerializer:
         if isinstance(c, str):
             if c.startswith("SMI:"):
                 v = int(c.split(":", 1)[1])
-                # nsl-tuvm#4: the compiler's own SMI/LargeInteger split (in
+                # https://github.com/davidg238/nsl-tuvm/issues/4: the compiler's own SMI/LargeInteger split (in
                 # ns_compile_oevm.py) is one bit too lenient too, so a "SMI:"
                 # constant here can still land in the gap band. Route those to
                 # a LargeInteger record instead of letting _smi() raise (or,
@@ -326,7 +326,7 @@ class OimgSerializer:
         if isinstance(c, bool):
             return RefWord.singleton(1 if c else 2)
         if isinstance(c, int):
-            # nsl-tuvm#4: same gap-band routing as the "SMI:" string branch
+            # https://github.com/davidg238/nsl-tuvm/issues/4: same gap-band routing as the "SMI:" string branch
             # above, for constants that are raw (unwrapped) Python ints.
             if not self._smi_fits(c):
                 return self._aref(f"largeint:{c}")
@@ -418,7 +418,7 @@ class OimgSerializer:
                     iv = int(c.split(":", 1)[1])
                     largeints.setdefault(iv, iv)
                 elif isinstance(c, str) and c.startswith("SMI:"):
-                    # nsl-tuvm#4: a "SMI:" constant that doesn't fit the SMI
+                    # https://github.com/davidg238/nsl-tuvm/issues/4: a "SMI:" constant that doesn't fit the SMI
                     # ref-word (the compiler's own SMI/LargeInteger split is one
                     # bit too lenient too) still needs a LargeInteger record —
                     # keyed into the same largeint:{v} namespace as LARGEINT:

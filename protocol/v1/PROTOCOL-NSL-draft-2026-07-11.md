@@ -368,7 +368,7 @@ Worth recording, because it tells us which prior art to steal from and which to 
   tombstones come from. They are forced by the radio, not chosen for elegance.
 - Which means **we are building etcd, not 9P**: their `revision` is our per-path `seq`, their
   *watch-from-revision* is our `changedSince: cursor`, their tombstones are ours — and **their
-  compaction hazard is ours too** (porta#24: a node whose cursor falls behind the retention
+  compaction hazard is ours too** (#121: a node whose cursor falls behind the retention
   point is silently stranded). Steal their vocabulary *and* their scars.
 - **LOCUS** is the cautionary bookend to §1's "one law": Plan 9 got away with far more
   transparency than LOCUS largely because its interface was *file I/O, which everyone already

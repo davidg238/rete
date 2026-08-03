@@ -52,8 +52,8 @@ legs themselves.
 - **nsl dialect:** `[ ... ] whileTrue:`, never `repeat`; no modulo; state in instance slots
   so every reaction block is a one-line self-send (the LD_SLOT gotcha).
 - **Deliberately out of scope**, each with a home: NVS persistence of cursor/bootId
-  (porta#29), the adaptive cadence controller (porta#31), a capability pair for the bridge
-  (porta#30), stream loss while the bridge is down (porta#32), and `diag/spans/result`,
+  (#117), the adaptive cadence controller (#115), a capability pair for the bridge
+  (#116), stream loss while the bridge is down (#114), and `diag/spans/result`,
   which stays unsynced until tuvm#107 splits its ~1120 B value.
 
 ---
@@ -371,7 +371,7 @@ read that test — it may enumerate the expected flag set and need the new name 
 ```bash
 cd ~/workspace/porta && git add internal/wire/server.go internal/wire/drop_test.go \
   internal/portacli/serve.go internal/portacli/serve_test.go && \
-  git commit -m "feat(wire): --test-drop-ack, the post-commit ack injector for the C6 gate (porta#25)"
+  git commit -m "feat(wire): --test-drop-ack, the post-commit ack injector for the C6 gate (#120)"
 ```
 
 ---
@@ -435,7 +435,7 @@ plan 2's node loses entries in the absence of any loss at all.
 
 ```bash
 cd ~/workspace/tuvm && git add tests/porta_sync_host.sh && \
-  git commit -m "test(spacesync): exactly-once is no duplicates AND no gaps (porta#25)"
+  git commit -m "test(spacesync): exactly-once is no duplicates AND no gaps (#120)"
 ```
 
 ---
@@ -480,7 +480,7 @@ global IPv6 here and no DNS64, so literal addresses are the only ones that work,
 and an MTD child has no OMR source address at all (rung-7). This node is an FTD,
 but the ML-EID is correct either way and does not depend on the role.
 
-Cadence stays the 2 s of plan 2. The adaptive controller is porta#31.
+Cadence stays the 2 s of plan 2. The adaptive controller is #115.
 
 Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
 reaction block is a one-line self-send (the LD_SLOT gotcha).
@@ -611,7 +611,7 @@ remove it.
 
 ```bash
 cd ~/workspace/tuvm && git add zephyr/PortaBridgeNodeC6.nsl && \
-  git commit -m "feat(node): PortaBridgeNodeC6 — the space-sync node on real silicon (porta#25)"
+  git commit -m "feat(node): PortaBridgeNodeC6 — the space-sync node on real silicon (#120)"
 ```
 
 ---
@@ -761,7 +761,7 @@ Three failures worth telling apart before touching anything:
 
 ```bash
 cd ~/workspace/tuvm && git add tests/porta_c6_console.py && \
-  git commit -m "test(spacesync): the single-handle C6 console reader (porta#25)"
+  git commit -m "test(spacesync): the single-handle C6 console reader (#120)"
 ```
 
 ---
@@ -1059,7 +1059,7 @@ The candidates, in the order they are likely:
 
 ```bash
 cd ~/workspace/tuvm && git add tests/porta_sync_c6.sh && \
-  git commit -m "test(spacesync): THE HARDWARE GATE — C6 over Thread vs real porta, with a deliberate drop (porta#25)"
+  git commit -m "test(spacesync): THE HARDWARE GATE — C6 over Thread vs real porta, with a deliberate drop (#120)"
 ```
 
 ---
@@ -1079,7 +1079,7 @@ done
 grep -c PASS /tmp/c6_gate_*.log
 ```
 Expected: five `PORTA SYNC C6 OK`. Each run re-flashes, which is deliberate: it exercises
-cold boot at cursor 0, the designed full-replay path (porta#29).
+cold boot at cursor 0, the designed full-replay path (#117).
 
 - [ ] **Step 2: Do not round a flake up to a pass**
 
@@ -1094,7 +1094,7 @@ found something.
 mkdir -p ~/workspace/tuvm/docs/spikes && \
   cp /tmp/c6_gate_1.log ~/workspace/tuvm/docs/spikes/2026-08-01-c6-gate-run1.log
 cd ~/workspace/tuvm && git add docs/spikes/2026-08-01-c6-gate-run1.log && \
-  git commit -m "docs(spacesync): the C6 gate's first clean run, kept as evidence (porta#25)"
+  git commit -m "docs(spacesync): the C6 gate's first clean run, kept as evidence (#120)"
 ```
 
 ---
@@ -1174,9 +1174,9 @@ gh issue create --title "PortaBridge>>awaitReply consumes the first datagram, wh
 
 ```bash
 cd ~/workspace/tuvm && git add review/tests/CLAIMS.md review/program-sequence.md docs/next-steps-overview.md && \
-  git commit -m "docs(spacesync): close the rung — the C6 hardware gate is green (porta#25)"
+  git commit -m "docs(spacesync): close the rung — the C6 hardware gate is green (#120)"
 cd ~/workspace/tuvm && git add protocol/PROTOCOL-NSL.md && \
-  git commit -m "docs(protocol): §4.1 records what hardware added (porta#25)"
+  git commit -m "docs(protocol): §4.1 records what hardware added (#120)"
 ```
 
 ---

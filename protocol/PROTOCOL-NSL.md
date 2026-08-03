@@ -152,7 +152,7 @@ Recorded because it tells us what to steal and what to leave:
   elegance.
 - Which means **we are building etcd, not 9P**: their `revision` is our per-path
   `seq`, their *watch-from-revision* is our `changedSince: cursor`, and **their
-  compaction hazard is ours too** (porta#24 — a node whose cursor falls behind
+  compaction hazard is ours too** (#121 — a node whose cursor falls behind
   porta's retention point is silently stranded; §7). Steal their vocabulary *and*
   their scars.
 - **LOCUS** is the cautionary bookend: Plan 9 got away with far more transparency
@@ -306,7 +306,7 @@ loopback run could show because loopback's gateway always answers. The fix bound
 `#streamDropped` — so a node that discarded telemetry is distinguishable from one that
 had none to send. This narrows, but does not resolve, the "still owed" item above:
 `sys/panic` must-deliver semantics remain undecided, and "drop the oldest" is the wrong
-answer for that path specifically — the decision belongs with porta#32.
+answer for that path specifically — the decision belongs with #114.
 
 ### 4.2 Node-side path map (what replaces the nine verbs)
 
@@ -484,7 +484,7 @@ the fleet-sim (RECORDS "the size law").
 
 1. **Cursor persistence granularity** on the node (NVS write per check-in vs
    per-batch; flash-wear budget, G7 discipline).
-2. **Porta retention window + the compaction-vs-cursor hazard** (porta#24, *still
+2. **Porta retention window + the compaction-vs-cursor hazard** (#121, *still
    unanswered*): how long porta keeps cell history, and what happens to a node whose
    cursor falls behind that point — etcd's compaction scar, ours too (§2). This is the
    one hazard the cell/stream decision did *not* close.

@@ -156,7 +156,7 @@ the seam refactor.
 **Shape change:** the node's state (`space`, `bridge`, `rec`, `awaiting`, `got`) lives in
 **instance slots**, not `main:` locals, so the reaction blocks are one-line self-sends
 (`[:e | self tick]`, `[:v | self reflected: v]`). This is the house style that dodges the
-reified-block LD_SLOT gotcha (nsl-tuvm#10) rather than discovering it a third time.
+reified-block LD_SLOT gotcha (#133) rather than discovering it a third time.
 
 ---
 

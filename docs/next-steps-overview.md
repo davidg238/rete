@@ -199,7 +199,7 @@ Design 2026-08-01; plan 1 (porta side) and plan 2 (node side) are both built and
   node's `pending` queue grew without bound and OOM-panicked at tick 48 (~96 s) on a
   128 KB heap, falsifying plan 2's N7 ("a miss costs latency and nothing else") — fixed
   by bounding `pending` at 64 rows with a counted `#streamDropped`. `sys/panic` delivery
-  while the bridge is down remains undecided (porta#32). Design:
+  while the bridge is down remains undecided (#114). Design:
   `~/workspace/rete/docs/design/2026-08-01-porta-space-sync-c6-gate-design.md`; plan:
   `~/workspace/rete/docs/superpowers/plans/2026-08-01-porta-space-sync-c6-gate.md`.
 
@@ -215,9 +215,9 @@ bulk/OTA plane (blockwise) and DTLS, not on a control plane capped at 512 B/batc
 exchange needs no retransmit layer** — it is idempotent by cursor in both directions, so
 loss is absorbed by the next check-in.
 
-New issues from that session: porta#26 (a cold boot at cursor 0 must not re-execute old
+New issues from that session: #119 (a cold boot at cursor 0 must not re-execute old
 `goal/do/*` actions — replaying a cell is idempotent, replaying `reboot` is a brick) and
-porta#27 (node identity is a source constant in the first slice).
+#118 (node identity is a source constant in the first slice).
 
 **2. OTA — but only the host-only slice (#25).**
 Marked P1 revenue-gate, and the reasoning is the strongest in the tracker: simultaneously
