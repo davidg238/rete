@@ -82,7 +82,7 @@ Note what run.sh does *not* do today: for the C6 it names only `ESPTOOL_PORT`
 | **D2** | Always-on `systemd --user` unit | The only arrangement that closes #56's lesson 1. `Linger=yes` is already set for this user, so a unit starts at boot and survives logout |
 | **D3** | Dumb collector, smart offline reader | A parser bug in the reader costs an answer; a parser bug in a collector costs the evidence. Also makes the reader re-runnable over history and testable with no board |
 | **D4** | ELF archived per flash, keyed by build id; symbolizing **refuses** on a miss | Symbolizing a pre-reflash panic against the current build dir yields confident, precise, wrong locations — worse than the CORRUPTED backtrace #56 complained about, because it looks like an answer |
-| **D5** | Build id = **GNU build-id** (`--build-id=sha1`), pending a spike (§7); `git describe --dirty` + build timestamp is the documented fallback | The id is the linked content, so it cannot collide, and it is the format the crash-reporting category already speaks — which is what #56's `revenue-gate` framing asks for. Whatever the key turns out to be, it is **opaque to everything downstream**: a run declares a key, the archive is filed under the same string. Switching schemes changes what the banner prints, not how anything consumes it |
+| **D5** | Build id = `git describe --always --dirty` + CMake build timestamp; host also stores `sha256(zephyr.bin)`. **GNU build-id was tried on hardware and rejected with evidence** (§7) | GNU build-id is the better identifier and the spike went after it. It breaks the ESP32-C6 image: any `SHT_NOTE` input section makes GNU ld synthesise a `PT_NOTE` program header over the whole rodata region, and the Espressif image builder mishandles it — the board boots and then emits garbage. Three-boot A/B/A in §7. The key is **opaque to everything downstream** either way: a run declares a key, the archive is filed under the same string |
 | **D6** | The collector monopolises the console port; `--capture N` is redefined as a log read | One handle, no split streams. `--capture` gains rather than loses: it now shows the boot you just triggered even if it fired before you asked, which is the exact failure that lost the first AMG8833 panic |
 | **D7** | Heartbeat marker every 60 s, written even when the device is silent | A log that stops looks identical to a board that went quiet. Every check asserts a *recent heartbeat present*, never an absence. 60 s is short enough that a dead collector is caught within one coffee-length gap and long enough to be invisible in a day's log |
 | **D8** | Deliberate fault trigger, Kconfig-gated, default `n` | Otherwise the symbolizing path is only ever exercised by the incident it exists to explain |
@@ -169,9 +169,9 @@ with no repo checked out.
 **Runs:** the reader splits a log at the Zephyr boot banner plus the build-id line. A
 run is the unit everything else is expressed in.
 
-## 7. Alternatives — rejected, and one still open
+## 7. Alternatives — all settled, one by hardware
 
-The build-id question is **open pending a spike**; everything below it is settled.
+The build-id question was **settled by the spike run on 2026-08-03**; the result is below.
 
 **`git describe --always --dirty` + build timestamp** (the original D5; now the
 fallback). Cheap and needs no linker work. Two arguments were made for it during design
@@ -190,27 +190,66 @@ legible only to our own tooling. #56 is labelled `revenue-gate` on the grounds t
 reliability reporting *is* the product — and that argument applies to the identifier
 format as directly as to anything else.
 
-**GNU build-id — what the spike must establish.** Not free, and not a gap Zephyr forgot:
+**GNU build-id — tried on hardware, rejected.** Everything about it worked except the
+last step, and the last step is the only one that matters.
+
+*What worked.* `--build-id=sha1` overrides Zephyr's base `--build-id=none` by
+last-flag-wins. The note links correctly: `namesz=4 descsz=20 type=3 "GNU\0"` followed by
+20 bytes, at `0x42800000` in `.flash.rodata`, allocated and flash-mapped, bracketing
+symbols resolving to a 36-byte span. The bootloader maps it —
+`DROM segment: paddr=00050000h vaddr=42800000h size=25010h map`. Build id
+`7f638d0a01fe1302f38121bbd4187ff2e0597e5b`.
+
+*What broke.* The board boots and then emits **garbage**. Not a crash, not a silent
+board — a working bootloader, a verified flash hash, and then 2360 lines of noise where
+the console should be.
+
+*Attribution, by three boots with one variable each.* This is the part that matters,
+because the first hypothesis was wrong:
+
+| build | garbage lines | outcome |
+|---|---|---|
+| note spliced into rodata | **2360** | garbled |
+| control — nothing added | 0 | `Booting Zephyr` → `TIMER OK` |
+| 36 bytes of padding, same place, no note | 0 | `Booting Zephyr` → `TIMER OK` |
+
+The obvious explanation — 36 bytes inserted at the DROM base shifts rodata and breaks the
+image — is **false**. Padding alone is harmless. The cause is that any `SHT_NOTE` **input**
+section makes GNU ld synthesise a `PT_NOTE` program header spanning the whole rodata
+region (observed: `NOTE 0x42800000 size 0x24e20`), even when the note is spliced into a
+PROGBITS output section. The Espressif image builder mishandles that segment typing.
+There is no standard linker flag to suppress a `PT_NOTE`, so fixing this is upstream
+work, not configuration.
+
+**This is #98's family, and it fails the same way: silently.** The image builds, flashes,
+passes its hash check and boots. Nothing reports a problem. Only a console read attributes
+it — which is the argument for the collector this design is about.
+
+*A second finding, recorded because it cost time.* `zephyr_linker_sources(ROM_SECTIONS …)`
+is **accepted, generates its snippet file, and is then silently dropped on Espressif
+SoCs.** That hook exists only in the generic RISC-V template
+(`zephyr/include/zephyr/arch/riscv/common/linker.ld`);
+`soc/espressif/esp32c6/default.ld` honours only rwdata, data-sections, ram-sections and
+rodata. The symptom is an orphan-section warning and undefined symbols, never anything
+naming the cause.
+
+*A method note, since it nearly produced a wrong answer.* An intermediate check searched
+`zephyr.bin` for the 20 build-id bytes, did not find them, and looked like proof the note
+never reached the image. The control killed it: `"Booting Zephyr"` is not findable in
+`zephyr.bin` either. The image is not a byte concatenation, so that search could not have
+found anything. **The instrument was broken, not the note.**
+
+**What the spike would have had to establish, for the record.** Not free, and not a gap
+Zephyr forgot:
 `cmake/linker/ld/linker_flags.cmake:7` sets `--build-id=none` **deliberately**, in the
 base property beside `--gc-sections`. Overriding it is a standing commitment — every SDK
-bump is an opportunity for it to revert silently. Feasibility checked at the desk:
-`riscv64-zephyr-elf-ld` 2.38 supports `--build-id[=STYLE]`, and
-`zephyr_linker_sources(ROM_SECTIONS …)` can place the note with a symbol so it is never
-an orphan section. The firmware-side note parser is ~25 lines.
+bump is an opportunity for it to revert silently. `riscv64-zephyr-elf-ld` 2.38 supports
+`--build-id[=STYLE]`, and the firmware-side note parser is ~25 lines. None of that was
+the obstacle.
 
-The one thing that cannot be settled from the desk is whether the note survives into the
-flashed image and reads back at runtime on this SoC. **#98 is precedent that this
-platform's segment walk misclassifies sections and fails silently** — a POWEROFF image
-that simply stopped booting. So this is a probe with a hardware witness, not an
-assumption:
-
-1. `--build-id=sha1`, note placed via `ROM_SECTIONS`, symbol exported.
-2. `readelf -n zephyr.elf` shows the note.
-3. The flashed C6 prints the same 20 bytes at boot.
-
-Three must agree. If they do, D5 is GNU build-id. If the note does not survive, the
-fallback above is taken **with evidence rather than as a guess**, and the reason is
-recorded here.
+**Reopen this if** the `PT_NOTE` behaviour is fixed upstream, or if a way is found to
+suppress the synthesised segment without patching the image builder. The identifier is
+still the better one; only the platform is in the way.
 
 **Smart collector (parse and symbolize inline).** One artifact, already symbolized. Puts
 parsing logic and an `addr2line` subprocess in the path of data capture — the observer

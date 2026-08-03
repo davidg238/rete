@@ -42,20 +42,6 @@ target_sources(app PRIVATE
 )
 target_include_directories(app PRIVATE ${TUVM_SRC}/src)
 
-# ---- SPIKE (#56 / D5): GNU build-id ---------------------------------------
-# Zephyr sets --build-id=none in its BASE linker property
-# (cmake/linker/ld/linker_flags.cmake:7) — a deliberate upstream decision, not an
-# omission. This appends the opposite AFTER that base, relying on last-flag-wins
-# in GNU ld. If it ever silently reverts (an SDK bump is the likely cause), the
-# boot banner prints "note span=0" rather than going quiet — see src/build_id.c.
-# RODATA, not ROM_SECTIONS: soc/espressif/esp32c6/default.ld does not include
-# snippets-rom-sections.ld — that hook exists only in the GENERIC riscv linker
-# template, which Espressif SoCs do not use. ROM_SECTIONS is accepted here, writes
-# its snippet file, and is then silently dropped. See build_id.ld's header.
-zephyr_link_libraries(-Wl,--build-id=sha1)
-zephyr_linker_sources(RODATA build_id.ld)
-target_sources(app PRIVATE src/build_id.c)
-
 # OpenThread bring-up TU (tuvm_thread_bringup). Gated on OPENTHREAD so the WROOM
 # (WiFi, no Thread) compiles it away. ONE shared impl: nRF (NCS) and C6 (upstream
 # 4.2) expose the same no-arg OT API, so the earlier board split was redundant
