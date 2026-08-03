@@ -570,3 +570,71 @@ have passed while proving less than it claimed:
 Both are fixed. The generalisation worth keeping: **§8's instrument was itself
 subject to §8's own thesis.** A gate that resolves anything by absolute path, or
 that treats a missing dependency as a skip, is measuring the old world.
+
+---
+
+## 13. Execution addendum — decisions made while running the plan (2026-08-02)
+
+Recorded here because they were made *during* Tasks 5–8, not before, and a decision
+that only exists in a commit message is a decision the next reader has to reconstruct.
+
+### D15 — `rete` stays PRIVATE, and porta's issues go private with it
+
+Explicit call by David during Task 5. `porta` was public; `tuvm` (now `rete`) is private.
+The moment the 17 open porta issues transferred, their public URLs began redirecting into
+a private repository — so an anonymous visitor following an old `porta#NN` link sees
+nothing. That is a consequence of the *merge*, not of the transfer, and it was accepted
+knowingly rather than discovered later. Reversible by making `rete` public, but that
+would also publish `nsl-tuvm` and `nsl-tests` content, which are private today. §9's
+"visibility — nothing here advances a public release" still holds.
+
+### D16 — the generated inventory emits in-repo paths repo-relative
+
+`tools/docmap.sh` emitted `$HOME`-relative absolutes. That was about to bake
+`~/workspace/tuvm/...` into ~300 citations **one task before** Task 7 renamed that
+directory, and it already read wrong from a branch worktree. In-repo entries are now
+repo-relative; only the two `~/workspaceToit` homes stay `~`-absolute. Verified after
+the rename: regenerating produced **zero** path churn, only date changes.
+
+The date changes are the cost, and they are filed rather than hidden: 197 of 351 entries
+now read `2026-08-02` because that is when the move touched them. `--follow` returns
+*empty* across a subtree import, so it is worse, not better. Caveat in the DOCMAP header;
+issue for the real fix.
+
+### D17 — the Step 4b sweep was widened past its own regex
+
+The plan's regex covered `nsl-tuvm/`, `nsl-tests/` and the absolute repo roots. It did
+not cover bare relative `tuvm/` citations — `tuvm/src/space.c`, `tuvm/docs/MILESTONE_E.md`
+— 66 more hits in the same documents of record, several sharing a line with a hit the
+regex did catch. Fixing one and leaving its neighbour is worse than fixing neither, so
+the sweep was widened. D10 compliance was then checked rather than asserted: re-deriving
+each of the 162 changed `review/` lines from its original by path substitution alone
+reproduces 161 exactly, the one exception being a citation of `nsl-tests/CLAIMS.md`, a
+path that never existed.
+
+### D18 — an archived repo is where a doomed commit goes
+
+porta's orphan branch `chore/b4-brainstorm-kickoff` was held in `rete` only by the
+`porta-src` remote-tracking ref. Task 7 Step 2 deletes the clone and Step 8 removes that
+remote; between them, `2e4372a` becomes unreachable and is GC'd, with `porta` archived
+and no copy anywhere. Nothing in the plan would have reported it.
+
+Pushed to `porta`'s origin before archiving. The generalisation: **D7's "archive, never
+delete" protects refs that exist on the remote — it does not protect work that only ever
+existed locally.** Before archiving a repo, push what is only local. #123 is now a
+decision rather than a loss.
+
+### Two things `git mv` cannot carry, discovered at Task 7
+
+Both are consequences of the same fact — the restructure moves *tracked* files — and both
+would have been silent:
+
+1. **Gitignored local config.** Four Thread/wifi `.conf` files existed only at the old
+   `zephyr/` path and exist nowhere else. Copied to `nodus/tuvm/zephyr/` before the stale
+   tree was deleted; without that, the next C6 or ESP32 build comes up missing its dataset
+   with nothing pointing at the cause.
+2. **The agent memory namespace.** `~/.claude/projects/` is keyed by working-directory
+   path, so `mv ~/workspace/tuvm ~/workspace/rete` orphans all 44 memories — every
+   standing order and hardware gotcha — behind a namespace no future session opens.
+   Copied across and repointed. Not a repo concern, which is exactly why the plan had no
+   step for it.
