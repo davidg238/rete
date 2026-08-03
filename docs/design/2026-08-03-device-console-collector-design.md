@@ -82,7 +82,7 @@ Note what run.sh does *not* do today: for the C6 it names only `ESPTOOL_PORT`
 | **D2** | Always-on `systemd --user` unit | The only arrangement that closes #56's lesson 1. `Linger=yes` is already set for this user, so a unit starts at boot and survives logout |
 | **D3** | Dumb collector, smart offline reader | A parser bug in the reader costs an answer; a parser bug in a collector costs the evidence. Also makes the reader re-runnable over history and testable with no board |
 | **D4** | ELF archived per flash, keyed by build id; symbolizing **refuses** on a miss | Symbolizing a pre-reflash panic against the current build dir yields confident, precise, wrong locations — worse than the CORRUPTED backtrace #56 complained about, because it looks like an answer |
-| **D5** | Build id = `git describe --always --dirty` + CMake build timestamp; host also stores `sha256(zephyr.bin)` | Bench work is dirty by nature, so `--dirty` alone gives every dirty build the same key and the archive would overwrite one binary's ELF with another's. GNU build-id is the canonical fix but this Zephyr has no `LINKER_USE_BUILD_ID` (§7) |
+| **D5** | Build id = **GNU build-id** (`--build-id=sha1`), pending a spike (§7); `git describe --dirty` + build timestamp is the documented fallback | The id is the linked content, so it cannot collide, and it is the format the crash-reporting category already speaks — which is what #56's `revenue-gate` framing asks for. Whatever the key turns out to be, it is **opaque to everything downstream**: a run declares a key, the archive is filed under the same string. Switching schemes changes what the banner prints, not how anything consumes it |
 | **D6** | The collector monopolises the console port; `--capture N` is redefined as a log read | One handle, no split streams. `--capture` gains rather than loses: it now shows the boot you just triggered even if it fired before you asked, which is the exact failure that lost the first AMG8833 panic |
 | **D7** | Heartbeat marker every 60 s, written even when the device is silent | A log that stops looks identical to a board that went quiet. Every check asserts a *recent heartbeat present*, never an absence. 60 s is short enough that a dead collector is caught within one coffee-length gap and long enough to be invisible in a day's log |
 | **D8** | Deliberate fault trigger, Kconfig-gated, default `n` | Otherwise the symbolizing path is only ever exercised by the incident it exists to explain |
@@ -169,15 +169,48 @@ with no repo checked out.
 **Runs:** the reader splits a log at the Zephyr boot banner plus the build-id line. A
 run is the unit everything else is expressed in.
 
-## 7. Rejected alternatives
+## 7. Alternatives — rejected, and one still open
 
-**GNU build-id (`-Wl,--build-id` + reading `.note.gnu.build-id` at runtime).** The
-canonical answer — the id *is* the content, so it cannot collide. Rejected for now:
-`LINKER_USE_BUILD_ID` does not exist in `~/zephyr-esp32/zephyr`, so it means adding the
-link flag and plumbing a symbol for the firmware to read its own note. More correct,
-meaningfully more work, and more to go wrong in a build system that already carries
-#63's nine-enumerated-source-lists problem. D5 is the cheap approximation; this is the
-upgrade path if a collision is ever observed.
+The build-id question is **open pending a spike**; everything below it is settled.
+
+**`git describe --always --dirty` + build timestamp** (the original D5; now the
+fallback). Cheap and needs no linker work. Two arguments were made for it during design
+and only one survives:
+
+- *Survives:* it collides only if two builds land in the same second, which is not a
+  real bench risk.
+- *Does not survive:* it was claimed that build-id makes the archive re-derivable where
+  this does not. Both are re-derivable — the baked string is a rodata literal, so
+  `strings zephyr.elf` recovers it exactly as `readelf -n` recovers a note. The archive
+  is repairable either way and that is not a discriminator.
+
+What actually decides it is interoperability. GNU build-id is what coredump handlers,
+symbol servers and crash-reporting backends key on; a `describe+timestamp` string is
+legible only to our own tooling. #56 is labelled `revenue-gate` on the grounds that
+reliability reporting *is* the product — and that argument applies to the identifier
+format as directly as to anything else.
+
+**GNU build-id — what the spike must establish.** Not free, and not a gap Zephyr forgot:
+`cmake/linker/ld/linker_flags.cmake:7` sets `--build-id=none` **deliberately**, in the
+base property beside `--gc-sections`. Overriding it is a standing commitment — every SDK
+bump is an opportunity for it to revert silently. Feasibility checked at the desk:
+`riscv64-zephyr-elf-ld` 2.38 supports `--build-id[=STYLE]`, and
+`zephyr_linker_sources(ROM_SECTIONS …)` can place the note with a symbol so it is never
+an orphan section. The firmware-side note parser is ~25 lines.
+
+The one thing that cannot be settled from the desk is whether the note survives into the
+flashed image and reads back at runtime on this SoC. **#98 is precedent that this
+platform's segment walk misclassifies sections and fails silently** — a POWEROFF image
+that simply stopped booting. So this is a probe with a hardware witness, not an
+assumption:
+
+1. `--build-id=sha1`, note placed via `ROM_SECTIONS`, symbol exported.
+2. `readelf -n zephyr.elf` shows the note.
+3. The flashed C6 prints the same 20 bytes at boot.
+
+Three must agree. If they do, D5 is GNU build-id. If the note does not survive, the
+fallback above is taken **with evidence rather than as a guess**, and the reason is
+recorded here.
 
 **Smart collector (parse and symbolize inline).** One artifact, already symbolized. Puts
 parsing logic and an `addr2line` subprocess in the path of data capture — the observer
