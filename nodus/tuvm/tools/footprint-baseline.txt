@@ -1,14 +1,18 @@
    text	   data	    bss	    dec	    hex	filename
-  13260	      8	   1152	  14420	   3854	vm.o
-  12308	    624	 196928	 209860	  333c4	dispatch.o
-   3999	     24	17048384	17052407	10432f7	gc.o
-    901	   1488	      4	   2393	    959	kernel_boot.o
-   1653	      0	    144	   1797	    705	platform.o
+  12715	     20	   1160	  13895	   3647	vm.o
+  15352	   1176	 196928	 213456	  341d0	dispatch.o
+   4206	     24	17048416	17052646	10433e6	gc.o
+    656	   1040	      4	   1700	    6a4	kernel_boot.o
+  10983	     16	    960	  11959	   2eb7	platform.o
     538	      0	     88	    626	    272	serial.o
-    971	      0	     88	   1059	    423	udp.o
+    969	      0	     88	   1057	    421	udp.o
+    474	      0	      0	    474	    1da	http.o
+   2703	      4	    400	   3107	    c23	http_core.o
    1759	      0	     88	   1847	    737	mirror.o
-   2043	      0	    360	   2403	    963	oimg_loader.o
+   1929	      0	    304	   2233	    8b9	oimg_loader.o
+   3203	      0	   9024	  12227	   2fc3	space.o
     245	      0	      0	    245	     f5	platform_posix.o
     336	      0	   4128	   4464	   1170	serial_posix.o
    1135	      0	      0	   1135	    46f	udp_posix.o
-  39148	   2144	17251364	17292656	107dd70	(TOTALS)
+   1059	      4	      0	   1063	    427	http_posix.o
+  58262	   2284	17261588	17322134	1085096	(TOTALS)
