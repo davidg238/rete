@@ -50,30 +50,18 @@ if [ "${FOOTPRINT_CONFIG:-host}" = "mcu" ]; then
   CUR_DATA_BSS=$(( CUR_DATA + CUR_BSS ))
   echo "footprint(mcu): text=$CUR_TEXT data+bss=$CUR_DATA_BSS"
 
+  # This script MEASURES and BANKS. It does not render a verdict (#143).
+  # T0.3 is `review/tests/t0-gates/ratchet.sh`, which applies the spec's +2%
+  # tolerance (review/test-suites-spec.md §T0.3) to these same figures. This
+  # branch used to ratchet internally at ZERO tolerance, so the two gates
+  # disagreed: mcu data+bss = 69048 failed here and passed there. One number,
+  # one tolerance, one script that decides — this one no longer decides.
   BASELINE="tools/footprint-mcu-baseline.txt"
   if [ "${FOOTPRINT_UPDATE_BASELINE:-0}" = "1" ]; then
     printf 'text %s\ndata_bss %s\n' "$CUR_TEXT" "$CUR_DATA_BSS" > "$BASELINE"
     echo "footprint(mcu): baseline updated -> text=$CUR_TEXT data+bss=$CUR_DATA_BSS"
-    exit 0
   fi
-  if [ ! -f "$BASELINE" ]; then
-    echo "footprint(mcu): FAIL — no baseline; run FOOTPRINT_UPDATE_BASELINE=1 first" >&2
-    exit 1; fi
-  BASE_TEXT=$(awk '/^text /{print $2}' "$BASELINE")
-  BASE_DATA_BSS=$(awk '/^data_bss /{print $2}' "$BASELINE")
-  # Corrupt/incomplete baseline: a missing text or data_bss line yields an empty
-  # string, which would make the integer -gt tests error (skipped under set -e as an
-  # `if` condition) and fall through to a false PASS. Fail loudly instead.
-  if [ -z "$BASE_TEXT" ] || [ -z "$BASE_DATA_BSS" ]; then
-    echo "footprint(mcu): FAIL — corrupt baseline $BASELINE (missing text/data_bss line); run FOOTPRINT_UPDATE_BASELINE=1 to rebase" >&2
-    exit 1; fi
-  RC=0
-  if [ "$CUR_TEXT" -gt "$BASE_TEXT" ]; then
-    echo "footprint(mcu): FAIL text $CUR_TEXT > baseline $BASE_TEXT" >&2; RC=1; fi
-  if [ "$CUR_DATA_BSS" -gt "$BASE_DATA_BSS" ]; then
-    echo "footprint(mcu): FAIL data+bss $CUR_DATA_BSS > baseline $BASE_DATA_BSS" >&2; RC=1; fi
-  [ "$RC" -eq 0 ] && echo "footprint(mcu): PASS (text<=$BASE_TEXT data+bss<=$BASE_DATA_BSS)"
-  exit "$RC"
+  exit 0
 fi
 
 CC=${CC:-gcc}; TMP=$(mktemp -d)
