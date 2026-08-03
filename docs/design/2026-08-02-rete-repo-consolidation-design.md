@@ -453,6 +453,7 @@ Revised program order: porta→channels ✅ → **rete restructure** → **#56**
 | D11 | Fresh-clone gate, empty parent | The only thing that proves no path still reaches outside the repo |
 | D12 | `stic` stays outside `rete`, in `~/workspaceToit` | A harness that measures rete against other VMs does not belong inside rete |
 | D13 | porta's CI workflow moves to root with a `paths:` filter | Otherwise Go tests fire on every `kernel.nsl` edit |
+| D14 | Sweep stale path citations in the documents of record only; leave the 1,266 in the historical record, filed as an explicit deferral | A dated design doc is the historical *why*; rewriting its paths falsifies what was true when it was written (§13.1) |
 
 ---
 
@@ -476,3 +477,96 @@ visible rather than silently patched:
 Also added: two unverified GitHub assumptions (public→private issue transfer; the rename
 redirect breaking if `tuvm` is ever recreated) are now flagged as things to test rather than
 things to rely on.
+
+---
+
+## 13. Addendum — decisions made and corrected during execution (2026-08-02)
+
+Written after Tasks 1–4 landed and the whole-branch review closed. §12's review
+record was written *before* execution; this section records what execution
+itself changed. The plan's Self-Review lists the seven defects found in the
+plan; this section covers only what changed a **decision**.
+
+### 13.1 D14 (new) — the stale-path citation sweep is scoped to the documents of record
+
+Restructuring moved paths that thousands of documents cite. Measured at
+`b60d828` with one combined regex: **1,666 citations across 105 files** name
+pre-merge locations.
+
+**Decision (David, 2026-08-02):** sweep the documents of record — `review/`
+except `DOCMAP.md`, `protocol/PROTOCOL-NSL-RECORDS.md`,
+`docs/next-steps-overview.md` — and regenerate `review/DOCMAP.md` from
+`tools/docmap.sh` rather than hand-editing its generated inventory. The 1,266
+citations in the historical record (`docs/design/`, `docs/superpowers/plans/`,
+`nodus/nsl/docs/`, `docs/MILESTONE_*`, `porta/docs/`) are **deliberately left**.
+
+**Rationale.** The docs convention in `CLAUDE.md` makes the dated design doc the
+historical *why*. Rewriting its paths would falsify what was true when it was
+written. A closed plan describing work done in `~/workspace/nsl-tuvm` is
+accurate history; the same text with `nodus/nsl` substituted is a document
+claiming something that never happened.
+
+**Consequence, accepted:** Task 7 deletes the three local clones, after which
+those 1,266 citations resolve to nothing. That is the price of not falsifying
+the record, and it is filed as an explicit deferral (Task 8 Step 2b) rather than
+absorbed silently — WONTFIX is a legitimate outcome, silence is not.
+
+### 13.2 D5's verification method was wrong, and D5 itself is unchanged
+
+D5 chose `git subtree` over `filter-repo` to preserve the 87 SHA citations. That
+decision stands and is verified: all three source heads are ancestors of `HEAD`
+and every imported tree is byte-identical to its source commit.
+
+What was wrong was the **gate**. §5.1 and every subtree task asserted D5 with a
+path-scoped commit count — `git log --oneline -- <prefix> | wc -l` — described
+as a "counting gate". That check returns **1 on a correct, non-squashed
+`git subtree add`**: the imported commits touch the source's *original* paths,
+so none match the new prefix, and both plain and `--full-history` path logs stop
+at the merge. It could never have detected `--squash`.
+
+**The gate is now ancestry:** `git merge-base --is-ancestor <source-head> HEAD`.
+`--squash` produces a commit with no link to the source head, so ancestry fails
+exactly when history was destroyed and passes exactly when it was not.
+
+§12's item 3 ("`--squash` would silently destroy D5 — it is the form most
+tutorials show, so the plan needs an explicit prohibition **with a counting
+gate**") is correct in its concern and wrong in its remedy. The prohibition was
+right; the counting gate was decorative.
+
+### 13.3 D2's "one `CLAUDE.md`" means no per-child copies
+
+Ambiguity surfaced during the final review: the plan's Task 6 both said keeping
+a standalone `porta/CLAUDE.md` was "a judgment call" and, in a `.gitignore`
+comment, that Task 6 "is expected to `git add`" it. Neither matched the task's
+own title or its deletion of `nodus/nsl/CLAUDE.md`.
+
+**Resolved:** porta's rules merge into the root file and **no** `porta/CLAUDE.md`
+is created — identical treatment to nsl's. A second copy is a rule set that
+drifts from the first, and a later session cannot tell which governs.
+
+Note the mechanism that nearly lost porta's rules entirely: porta's own
+`.gitignore` contained `/CLAUDE.md`, so `git subtree add` correctly never
+imported the file, and Task 4 faithfully re-rooted that rule as
+`/porta/CLAUDE.md` — making it *un-addable*, silently. The rule is removed. The
+only surviving copy is `~/workspace/porta/CLAUDE.md` and it must be read before
+Task 7 deletes that clone.
+
+### 13.4 The gate that decides whether this worked (§8) needed two corrections
+
+§8 makes a fresh clone into an empty parent the deciding gate, on the reasoning
+that stale sibling clones sit exactly where the old relative paths point. That
+reasoning is sound and was vindicated twice — but the gate as specified would
+have passed while proving less than it claimed:
+
+1. It ran the nsl suite without `npm install`. `nodus/nsl/grammar` needs
+   `ohm-js` from a gitignored `node_modules`, so a fresh clone reads **0 passed
+   / 239 failed with every aux gate FAIL** — a signature indistinguishable from
+   "the consolidation broke everything", against a tree that is fine.
+2. `porta_sync_host.sh` defaulted `PORTA_DIR` to `$HOME/workspace/porta` and
+   turned its absence into `exit 0`. Since the gate runs *after* the clones are
+   deleted, the one check that exercises both children **and** the protocol
+   between them would have reported success having done nothing.
+
+Both are fixed. The generalisation worth keeping: **§8's instrument was itself
+subject to §8's own thesis.** A gate that resolves anything by absolute path, or
+that treats a missing dependency as a skip, is measuring the old world.
