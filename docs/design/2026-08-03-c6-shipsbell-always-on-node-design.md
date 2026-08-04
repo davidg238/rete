@@ -224,3 +224,62 @@ trace that anything is missing.
 - **Whether "the solenoid sounds bad" generalises past this device** — see the shipsBells design
   §19. It was stated about this board; §17.1 chose the gong on evidence, and §3's run of five has
   not been re-decided.
+
+## 7. IMPLEMENTATION ADDENDUM (2026-08-04) — it rings itself, and what the build corrected
+
+`nodus/tuvm/zephyr/ShipsBellNodeC6.nsl` landed as designed: one file, one `Timers`
+instance, three channels, the striker as a state machine. Host coverage is
+`nodus/tests/20_bell/12_shipsbell_schedule.nsl` (suite 240 passed / 0 failed) —
+slot derivation, the boot seed, the ratchet, the 47→0 wrap, both refusals, the
+phrasing and the bench slot, each spelled exactly as the node spells it, with the
+COUNT taken from the real `Bell>>bellsForHalfHour:` rather than a copy.
+
+**WITNESSED ON THE BENCH, 2026-08-04, four boundaries at the D8 60 s slot, heard
+and logged.** Image `porta-v1-final-797-g9dcb4dd-20260804T083106`:
+
+| time | log | shape |
+|---|---|---|
+| 08:31:12 | `seed slot 511 — nothing rung` | D4: a reflash mid-slot rings nothing |
+| 08:32:00.972 | `bell slot 512 — 8 bells`, done 08:32:07.991 | 7.02 s: 8 strokes, 4 pair gaps, 3 set gaps |
+| 08:33:01.148 | `bell slot 513 — 1 bell`, done same instant | the lone stroke has no trailing gap |
+| 08:34:01.101 | `bell slot 514 — 2 bells` | one pair |
+| 08:35:01.083 | `bell slot 515 — 3 bells`, done 08:35:03.090 | 2.01 s — pair, set gap, lone tail |
+
+Counts ascending, **every boundary struck exactly once**, every strike inside 1.2 s
+of its boundary — D1's stated cost, paid and measured. David confirmed each by ear.
+Then rebuilt at 1800 and reflashed. **The 47→0 wrap is the one §5 item NOT witnessed
+on target** (it needs the RTC seeded near midnight); it is covered on the host only.
+
+### Three things the build corrected
+
+**§3's width is wrong: it is 10 ms, not 50.** 50 is `BELL_MAX_WIDTH_MS`, the
+pattern-path duty cap in `src/main.c`, not a cadence. What rang on 2026-08-03 and
+was approved by ear was `bells: width 10 ms, pair gap 500 ms, set gap 1600 ms`
+(collector log 21:19:01–21:21:12). The node carries 10/500/1600, and the 7.02 s
+eight-bell pattern above is that arithmetic (8×10 + 4×500 + 3×1600 = 6.88 s) landing
+where it should. Under §19 the piezo is this device's ringer rather than a stand-in,
+so these are a result here even though §18.3 rightly refuses to promote them to a gong.
+
+**A missing build knob is indistinguishable from a network outage.** The first two
+images answered `ntp: sntp_simple rc=-2` on every boot. Not a race and not the
+gateway: `OEVM_NTP_SERVER6` was simply not in the build, so `main.c` fell back to
+`sntp_simple("pool.ntp.org")` on a mesh with a ULA, no DNS64 and no
+`CONFIG_DNS_RESOLVER`. The node behaved exactly as D6 says — shrugged, kept the RTC,
+kept ringing — which is why it was quiet enough to miss. **The printk names the
+branch**: `sntp_simple_addr(` means the literal was compiled in, bare `sntp_simple`
+means it was not. The variable is read at CMake CONFIGURE time, so adding it needs
+`--pristine`. With it, `ntp ok 20260804 08:39:56` and the RTC written and read back.
+The full command is in the node's own header, where the next person will be.
+
+**The radio config was deliberately NOT changed.** The witnessed image is an MTD
+(`prj_esp32c6_thread.conf` alone). §6's "an FTD promoted to Router" describes what a
+mains-powered bell should eventually be, and `prj_esp32c6_thread_ftd.conf` is one
+`--conf-extra` away — but the node was the only thing changed here, on purpose.
+
+### What is still open
+
+- **#105 is unchanged and now the loudest thing the device does**: a ~1 s beep on
+  every power-up and every flash, before the VM exists. Confirmed again on all three
+  flashes today. It is the first sound of every boot and no node can prevent it.
+- The 47→0 wrap on target (above).
+- The daily sync has not yet run — the first one is due after the midnight bells.

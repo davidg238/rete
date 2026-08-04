@@ -1,0 +1,330 @@
+(*
+ShipsBellNodeC6 — the C6 ship's bell as an always-on node.
+
+Design: docs/design/2026-08-03-c6-shipsbell-always-on-node-design.md (cited D1-D10),
+extending zephyr/boards/shipsBells/2026-07-26-shipsbellsv3-design.md (cited by §).
+
+The rig could ring (§18) and could keep time (§16, §17.1) and could not do both
+without a person typing: `ThreadNtpNode` syncs, prints and RETURNS, and the only
+strike path in that image is `strike_console`, which needs a UART — so a
+wall-powered board with no data cable had no trigger at all (§18.5). This node is
+the smallest thing that is a bell: it never returns, it reads the DS3231, and it
+strikes the watch on the half hour.
+
+  D1  The trigger is a 1 s POLL of the RTC, posted on `clock/tick`. Alarm2 (§16.4)
+      is deferred on this device, not scoped away — the INT/SQW line IS wired to
+      GPIO10. Nothing above `clock/tick` knows what produced the tick, so swapping
+      the poll for the ISR later is a change to one registration.
+  D2  The slot is DERIVED, never counted: `slot := secondsOfDay // slotSeconds`.
+      A missed tick, a late tick, a GC pause and a reboot all answer the same,
+      because the answer is a property of the TIME and not of this node's history.
+      `lastSlot` is a has-this-one-rung marker. It is not a clock.
+  D3  The pattern lives here; C keeps only `gpioSet`. `strike_console` in
+      src/main.c stays exactly where it is, as the bench instrument §11.2 called it.
+      The COUNT is not re-implemented: `Bell>>bellsForHalfHour:` owns it (i mod 8,
+      0 reading as 8; plain modulo, so NO dog watches — 18:30 rings 5).
+  D4  A missed strike is skipped silently and the marker never moves backward.
+      Power restored at 21:45 does not ring 21:30's three; the next sound is
+      22:00's four. A bell at a time that is not a half hour is worse than a
+      missing bell — the missing one is absent, the wrong one is misinformation.
+  D5  Midnight is a CASE, not an inequality. `slot > lastSlot` is false at the
+      47 -> 0 wrap. This exact wrap rang eight bells twice on 2026-07-24.
+  D6  The clock may be improved by the network and never stopped by it: one sync
+      at boot, then one immediately after the MIDNIGHT striking completes.
+      `ntpSyncTz:` blocks up to the SNTP timeout, so hanging it off the end of the
+      striking satisfies "only between strikes" by construction.
+  D7  Never strike before the time is known. `wallClock` nil -> poll, print, do
+      not ring. Silence is the correct failure mode for a bell; a guess is not.
+  D8  `slotSeconds` is 1800 in the product and 60 on the bench: four boundaries in
+      four minutes with the ratchet, the wrap, the phrasing and the in-flight
+      guard all running unchanged. Unlike MagTagClockNode's deleted 6x demo tick,
+      this does NOT advance the clock — only how often the derived index changes.
+
+WIDTH IS 10 ms, NOT 50. The design record says 50; 50 is `BELL_MAX_WIDTH_MS`, the
+pattern-path duty cap in src/main.c. What actually rang on 2026-08-03 and was
+approved by ear was `bells: width 10 ms, pair gap 500 ms, set gap 1600 ms`
+(collector log 21:19:01 through 21:21:12, b4/b8/b3). These constants are that line.
+They are a piezo result: §18.3 says a continuous-tone element has no decay and
+cannot settle a cadence for a gong — but §19 then took the solenoid off THIS device
+for good, so here the piezo is the ringer and not a stand-in.
+
+ONE `Timers` INSTANCE, held in a slot. `platform timers` answers a FRESH instance
+per call, each with its own `pending` registry, and `dispatch:` silently drops a
+token it does not know. Registering on one and dispatching on another cost
+MagTagClockNode an entire overnight run: 0 of ~19 bells, no crash, no output.
+
+The reactor drain is `pumpEvents` + `drain`, and `pumpEvents` BLOCKS (K_FOREVER)
+on the pulse mailbox until the k_timer ISR posts — which is exactly right for a
+node whose every input is a timer, and would be a hang for one that also polls
+(TimerNode/SoakNode/PortaBridgeNodeC6 all take this shape).
+
+BUILD IT WITH THE NTP ADDRESS OR THE DAILY SYNC IS DEAD ON ARRIVAL:
+
+  OEVM_NTP_SERVER6=fdc5:9109:9afe:97ea:9541:d963:f8d9:8567 \
+  TUVM_SOLENOID_CONSOLE=1 \
+  ./run.sh --board esp32c6 --node ShipsBellNodeC6.nsl \
+           --conf-extra prj_esp32c6_thread.conf --flash
+
+Without `OEVM_NTP_SERVER6` main.c falls back to `sntp_simple("pool.ntp.org")`, and
+the porta mesh is a ULA with no DNS64 and no `CONFIG_DNS_RESOLVER` — so it answers
+`ntp: sntp_simple rc=-2` on every boot, forever, and the node correctly shrugs and
+rings off the RTC. It is a build-time omission that looks exactly like a network
+outage. Read the printk to tell them apart: `sntp_simple_addr(` means the address
+was compiled in, bare `sntp_simple` means it was not. The env var is read at CMake
+CONFIGURE time, so adding it needs `--pristine` (2026-08-04).
+
+Dialect: `[ ... ] whileTrue:`, never `repeat`. No modulo in nsl — every one is
+spelled `n - ((n // d) * d)`. State lives in instance slots.
+
+expect (C6 console, wall-powered, USB carrying only power):
+shipsbell ready, slot 1800 s, 10/500/1600 ms
+bell slot 44 at 22:00:00 — 4 bells
+*)
+class ShipsBellNodeC6 packageUsing: manifest = (
+  | plat space timers tick bellCh
+    lastSlot. striking ::= false. strokeCount ::= 0. strokeIndex ::= 0. pinOn ::= false.
+    haveClock ::= false. gpioMissing ::= false. midnightPending ::= false. ticks ::= 0. | ) (
+
+  (* --- boot --------------------------------------------------------------- *)
+
+  public main: platform args: args = (
+    plat:: platform.
+    space:: plat space.
+
+    (* HOLD ONE. See the header — this is the single easiest thing to get wrong
+       in this file, and its failure mode is silence. *)
+    timers:: plat timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+
+    tick:: space channel: 'clock/tick'.
+    tick whenever: '' do: [ :m | self onTick ].
+
+    bellCh:: space channel: 'bell/stroke'.
+    bellCh whenever: '' do: [ :m | self strokeStep ].
+
+    ('shipsbell ready, slot ' , self slotSeconds printString , ' s, ' ,
+      self widthMillis printString , '/' , self pairGapMillis printString , '/' ,
+      self setGapMillis printString , ' ms') out.
+
+    (* D6/D7: one sync before anything is scheduled. It blocks up to the SNTP
+       timeout, which is free here — no bell can be late yet, and a board that has
+       been off may have been off long enough to matter. A nil is shrugged off and
+       the RTC carries on. *)
+    self syncClock.
+    self showClock.
+
+    (* D1. The FIRST tick seeds `lastSlot` and rings nothing (D4). *)
+    timers every: self pollMillis post: #tick on: tick.
+
+    [ true ] whileTrue: [ plat pumpEvents. space drain ].
+  )
+
+  (* --- the schedule ------------------------------------------------------- *)
+
+  (* One poll. Everything here is re-derived from the clock; nothing accumulates. *)
+  onTick = (
+    | secs slot |
+    ticks:: ticks + 1.
+    secs:: plat wallClock.
+    secs == nil ifTrue: [ ^ self noClock ].
+
+    haveClock ifFalse: [
+      haveClock:: true.
+      ('clock ' , (self hms: secs) , ' — readings good') out ].
+
+    slot:: secs // self slotSeconds.
+
+    (* D4: the boot seed rings nothing. Restored at 21:45, the next sound is 22:00. *)
+    lastSlot == nil ifTrue: [
+      lastSlot:: slot.
+      ('seed slot ' , slot printString , ' at ' , (self hms: secs) ,
+        ' — nothing rung') out.
+      ^ self ].
+
+    (self advancedTo: slot from: lastSlot) ifFalse: [ ^ self heartbeat: secs ].
+
+    lastSlot:: slot.
+    self ringSlot: slot at: secs.
+    ^ self )
+
+  (* THE RATCHET, and the midnight case (D4, D5). Forward is a boundary; equal is
+     the same half hour, already rung; backward is a clock correction and stays
+     SILENT — unless it lands on slot 0, which is midnight however it was reached,
+     and midnight is where the plain `slot > lastSlot` reading rang eight bells
+     twice on 2026-07-24. *)
+  advancedTo: slot from: prev = (
+    slot = prev  ifTrue: [ ^ false ].
+    slot > prev  ifTrue: [ ^ true ].
+    ^ slot = 0 )
+
+  (* D3: the COUNT comes from Bell, which owns the convention. This node owns only
+     when a half hour happened and what to do about it. *)
+  ringSlot: slot at: secs = (
+    | n |
+    n:: (plat bell) bellsForHalfHour: slot.
+    ('bell slot ' , slot printString , ' at ' , (self hms: secs) , ' — ' ,
+      n printString , (self bellWord: n)) out.
+    slot = 0 ifTrue: [ midnightPending:: true ].    (* D6: sync AFTER the striking *)
+    self startPattern: n.
+    ^ self )
+
+  (* D7. A nil mid-run is a dead part or a bus fault: stop striking, say so ONCE,
+     and resume when readings resume. Silence is the correct failure mode. *)
+  noClock = (
+    haveClock ifTrue: [
+      haveClock:: false.
+      'clock nil — no DS3231 reading; not striking until it returns' out.
+      ^ self ].
+    (ticks = 1) ifTrue: [
+      'clock nil at boot — polling, not striking (no DS3231, or never set)' out ].
+    ^ self )
+
+  (* Liveness in the collector without a line a second: 86400 of those a day would
+     bury the ~48 that carry the product. *)
+  heartbeat: secs = (
+    (ticks - ((ticks // self printEveryTicks) * self printEveryTicks)) = 0
+      ifTrue: [ ('tick ' , (self hms: secs) , ' slot ' , lastSlot printString) out ].
+    ^ self )
+
+  (* --- the striker: a state machine, so the poll keeps running -------------- *)
+
+  (* `set: true` -> one-shot at WIDTH -> `set: false` -> one-shot at the pair or
+     set gap -> next stroke. Odd stroke (1-based) = first of a pair, so the SHORT
+     gap follows it and holds the pair together; even = the long gap separates the
+     pairs; the last stroke gets no trailing gap, which is what produces the lone
+     final stroke of an odd count. `b3` is the rung that proves both branches. *)
+  startPattern: n = (
+    striking ifTrue: [
+      (* Unreachable at 1800 s, reachable at D8's 60 s. Two rings interleaved on
+         one pin is neither ring. *)
+      ('bells ' , n printString , ' REFUSED — a pattern is already in flight') out.
+      ^ self ].
+    ((n < 1) or: [ n > 8 ]) ifTrue: [
+      ('bells ' , n printString , ' REFUSED (allowed 1..8)') out.
+      ^ self ].
+    strokeCount:: n.
+    strokeIndex:: 0.
+    striking:: true.
+    ^ self strikeOn )
+
+  strokeStep = (
+    pinOn ifTrue: [ ^ self strikeOff ].
+    ^ self strikeOn )
+
+  strikeOn = (
+    strokeIndex:: strokeIndex + 1.
+    pinOn:: true.
+    self pin: true.
+    timers after: self widthMillis post: #stroke on: bellCh.
+    ^ self )
+
+  strikeOff = (
+    pinOn:: false.
+    self pin: false.
+    strokeIndex = strokeCount ifTrue: [
+      striking:: false.
+      'bells done' out.
+      ^ self afterPattern ].
+    timers after: (self gapAfter: strokeIndex) post: #stroke on: bellCh.
+    ^ self )
+
+  (* No modulo in nsl. Odd index -> within a pair; even -> between pairs. *)
+  gapAfter: i = (
+    (i - ((i // 2) * 2)) = 1 ifTrue: [ ^ self pairGapMillis ].
+    ^ self setGapMillis )
+
+  (* D6: the daily sync is an EVENT — "after the midnight bells" — rather than a
+     constant. That satisfies kernel.nsl's "call it only between strikes" by
+     construction, instead of by a 300 s guess that has to be re-justified if eight
+     bells ever take longer. *)
+  afterPattern = (
+    midnightPending ifTrue: [
+      midnightPending:: false.
+      self syncClock.
+      self showClock ].
+    ^ self )
+
+  (* A pin the board never declared RAISES rather than answering a plausible false
+     (tuvm#82). Caught here and said ONCE: a bell with no ringer should still keep
+     time and still say why it is silent. *)
+  pin: aBool = (
+    [ (plat gpio) set: self strikePin to: aBool ]
+      on: [ :e | e tag = #gpioUndeclared ]
+      do: [ :e |
+        gpioMissing ifFalse: [
+          gpioMissing:: true.
+          ('bell: GPIO' , self strikePin printString ,
+            ' not declared on this board — keeping time, ringing nothing') out ] ].
+    ^ self )
+
+  (* --- the clock ---------------------------------------------------------- *)
+
+  (* One sync. nil at any step leaves the RTC alone and the bell ringing off it
+     (MagTagClockNode's rule) — the network may improve this clock and may never
+     stop it. The date comes from the same response as the time: the RTC will not
+     accept a time without one, and the bell itself never reads the date. *)
+  syncClock = (
+    | secs date rc |
+    secs:: plat ntpSyncTz: self tzOffset.
+    secs == nil ifTrue: [ 'ntp miss — keeping the RTC' out. ^ self ].
+    date:: plat ntpDate.
+    date == nil ifTrue: [ 'ntp date miss — keeping the RTC' out. ^ self ].
+    rc:: plat wallClockSetDate: date time: secs.
+    rc == nil ifTrue: [ 'rtc write REFUSED — keeping the RTC' out. ^ self ].
+    ('ntp ok ' , date printString , ' ' , (self hms: secs)) out.
+    ^ self )
+
+  (* A write that answered 0 is not evidence the part holds the time. *)
+  showClock = (
+    | secs |
+    secs:: plat wallClock.
+    secs == nil
+      ifTrue:  [ 'rtc nil (no DS3231, or never set)' out ]
+      ifFalse: [ ('rtc ' , (self hms: secs) , '  slot ' ,
+                   (secs // self slotSeconds) printString) out ].
+    ^ self )
+
+  (* seconds-since-midnight -> 'HH:MM:SS', zero-padded so a serial log lines up.
+     No modulo: each field is a division and a subtraction. *)
+  hms: secs = (
+    | h rem m s |
+    h::   secs // 3600.
+    rem:: secs - (h * 3600).
+    m::   rem // 60.
+    s::   rem - (m * 60).
+    ^ (self pad: h) , ':' , (self pad: m) , ':' , (self pad: s) )
+
+  pad: n = ( ^ n < 10 ifTrue: [ '0' , n printString ] ifFalse: [ n printString ] )
+
+  (* One bell is a bell. The log is read by a person. *)
+  bellWord: n = ( ^ n = 1 ifTrue: [ ' bell' ] ifFalse: [ ' bells' ] )
+
+  (* --- constants ---------------------------------------------------------- *)
+
+  (* D8. 1800 in the product; 60 on the bench, which is a ONE-LINE edit and a
+     rebuild. At 60 the counts stop matching wall time (1..8 cycling every eight
+     minutes) and nothing else changes — eight bells is ~7 s, so a pattern still
+     finishes well inside the slot. *)
+  slotSeconds     = ( ^ 1800 )
+  pollMillis      = ( ^ 1000 )
+
+  (* §8/§15.1: GPIO18, ACTIVE_HIGH, de-energised at boot by wire_gpio_outputs().
+     The node names the silkscreen number; main.c matches it against the `gpioout`
+     alias. Do not invert the polarity — see the overlay. *)
+  strikePin       = ( ^ 18 )
+
+  (* The line that rang on 2026-08-03 and was approved by ear. See the header for
+     why this is 10 and the design record says 50. *)
+  widthMillis     = ( ^ 10 )
+  pairGapMillis   = ( ^ 500 )
+  setGapMillis    = ( ^ 1600 )
+
+  (* One liveness line every 5 minutes, so a silent watch is distinguishable from
+     a dead node without burying the log. *)
+  printEveryTicks = ( ^ 300 )
+
+  (* US/Arizona: UTC-7 and no DST, so a constant is honest here in a way it would
+     not be anywhere that observes summer time. *)
+  tzOffset        = ( ^ -25200 )
+) : (
+)

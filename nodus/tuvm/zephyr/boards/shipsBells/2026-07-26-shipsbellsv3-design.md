@@ -901,3 +901,39 @@ coil is reconnected" remains correct as written; there is simply no coil here to
 **never deep-sleeps** — it interrogates the RTC instead. The DS3231 interrupt line **is wired**,
 and polling is a deliberate first step with the interrupt a later upgrade **on this same board**,
 not only on §9's battery version. That narrows §16.4: Alarm2 is deferred here, not scoped away.
+
+## 20. ADDENDUM (2026-08-04) — the bell rings itself. §18.5 is closed.
+
+**§18.5 said "nothing in this image rings the watch". That is no longer true of this
+device.** `zephyr/ShipsBellNodeC6.nsl` is flashed and running: it never returns, polls
+the DS3231 once a second, derives the half-hour slot from the clock, and strikes the
+watch through the gpio seam from nsl — which is where §11.2 always said the product
+path belonged. Design record and the bench witness:
+`docs/design/2026-08-03-c6-shipsbell-always-on-node-design.md` (§7 addendum).
+
+Taking §18.5's three reasons in order:
+
+- **`main:` returns** — the new node does not. It is a reactor: `pumpEvents` +
+  `drain`, forever.
+- **`CONFIG_RTC_ALARM is not set`** — still not set, and deliberately. §16.4's Alarm2
+  is DEFERRED on this device, not scoped away (§19): the INT/SQW line is wired to
+  GPIO10, and the node reacts to a `clock/tick` channel that a 1 s poll feeds today
+  and an ISR can feed later with nothing above the channel changing. The cost of
+  polling is one bounded thing: a strike lands up to a second late.
+- **`strike_console` needs a UART** — it is still compiled in as the bench instrument
+  §11.2 calls it, but it is no longer the only strike path. **Unplug the data cables
+  and the bell keeps ringing.**
+
+**Witnessed 2026-08-04 at the bench**, four boundaries at a 60 s test slot: 8, 1, 2, 3
+bells, ascending, each struck once, each within 1.2 s of its boundary, each confirmed
+by ear — including the odd tail on three. Then rebuilt at 1800 s.
+
+**The cadence is now a result on this device, not a placeholder.** 10 ms width, 500 ms
+pair gap, 1600 ms set gap — §3 of the node design said 50 ms, which was a misreading of
+`BELL_MAX_WIDTH_MS`; 10 ms is what §18.2 actually rang. §18.3's refusal to promote
+these numbers to a **gong** stands untouched, and under §19 there is no gong on this
+board to promote them to.
+
+**#105 is untouched and is now the first sound of every boot.** It fired on all three
+of today's flashes. It gates a coil, and there is no coil here (§19) — but it is the
+one part of this device that still rings without being asked.

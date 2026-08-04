@@ -1,0 +1,121 @@
+(*
+expect:
+slot 79200 44
+slot 79199 43
+slot 86399 47
+slot 0 0
+decide 44 last nil seed
+decide 44 last 44 silent
+decide 45 last 44 ring
+decide 43 last 44 silent
+decide 0 last 47 ring
+decide 0 last 0 silent
+count 0 8
+count 1 1
+count 24 8
+count 37 5
+count 44 4
+count 47 7
+accept 4 idle ring
+accept 4 striking refused-inflight
+accept 0 idle refused-bounds
+accept 9 idle refused-bounds
+gap 1 500
+gap 2 1600
+gap 3 500
+bench 79200 1320
+finished
+*)
+(* The C6 ship's-bell node's SCHEDULE, on the host, with no seam and no wall clock
+   (design docs/design/2026-08-03-c6-shipsbell-always-on-node-design.md §5).
+
+   The host clock does not tick: OEVM_WALLCLOCK_SECONDS is loaded once into
+   g_wc_secs and never advances (src/platform.c), so a host run cannot witness a
+   boundary ARRIVING of its own accord. The decisions are therefore written as pure
+   functions of (slot, lastSlot) and pinned here — spelled EXACTLY as
+   zephyr/ShipsBellNodeC6.nsl spells them, the same bargain 09_bell_math.nsl makes
+   with the deep-sleep node: this test and the node cannot silently diverge.
+
+   nsl has no modulo (tuvm#97): `x mod n` is `x - ((x // n) * n)` throughout.
+
+   The COUNT is deliberately NOT re-implemented here. It comes from the real
+   `Bell>>bellsForHalfHour:` through the platform, because D3's whole point is that
+   the node does not own the convention — a copy in this file would pass while the
+   node rang the wrong number. *)
+class ShipsBellSchedule packageUsing: manifest = () (
+  public main: platform args: args = (
+    (* D2 — the slot is DERIVED from the clock. 79200 = 22:00:00 exactly. *)
+    ('slot 79200 ' , (self slotFor: 79200) printString) out.
+    ('slot 79199 ' , (self slotFor: 79199) printString) out.   (* 21:59:59 *)
+    ('slot 86399 ' , (self slotFor: 86399) printString) out.   (* 23:59:59 — the last slot *)
+    ('slot 0 '     , (self slotFor: 0) printString) out.       (* midnight *)
+
+    (* D4/D5 — the boot seed, the ratchet, and the wrap. `nil` is "nothing has rung
+       yet", which is the state a cold boot is in: it seeds and stays silent, so a
+       reboot loop is inaudible and power restored at 21:45 does not ring 21:30. *)
+    ('decide 44 last nil ' , (self decideSlot: 44 last: nil)) out.
+    ('decide 44 last 44 '  , (self decideSlot: 44 last: 44)) out.
+    ('decide 45 last 44 '  , (self decideSlot: 45 last: 44)) out.
+    ('decide 43 last 44 '  , (self decideSlot: 43 last: 44)) out.  (* clock corrected back: silent *)
+    ('decide 0 last 47 '   , (self decideSlot: 0 last: 47)) out.   (* THE WRAP — rings 8 *)
+    ('decide 0 last 0 '    , (self decideSlot: 0 last: 0)) out.    (* and rings it once *)
+
+    (* D3 — the convention, from Bell itself. Anchors: 00:30 -> 1, 12:00 -> 8,
+       18:30 -> 5. Plain modulo, so no dog watches. *)
+    ('count 0 '  , ((platform bell) bellsForHalfHour: 0) printString) out.   (* midnight: 8 *)
+    ('count 1 '  , ((platform bell) bellsForHalfHour: 1) printString) out.   (* 00:30 *)
+    ('count 24 ' , ((platform bell) bellsForHalfHour: 24) printString) out.  (* 12:00 *)
+    ('count 37 ' , ((platform bell) bellsForHalfHour: 37) printString) out.  (* 18:30 *)
+    ('count 44 ' , ((platform bell) bellsForHalfHour: 44) printString) out.  (* 22:00 *)
+    ('count 47 ' , ((platform bell) bellsForHalfHour: 47) printString) out.  (* 23:30 *)
+
+    (* §4 — the two refusals. In-flight is unreachable at 1800 s and reachable at
+       D8's 60 s bench slot; two rings interleaved on one pin is neither ring. *)
+    ('accept 4 idle '     , (self accept: 4 while: false)) out.
+    ('accept 4 striking ' , (self accept: 4 while: true)) out.
+    ('accept 0 idle '     , (self accept: 0 while: false)) out.
+    ('accept 9 idle '     , (self accept: 9 while: false)) out.
+
+    (* §3 — the phrasing. Odd stroke (1-based) is the first of a pair, so the SHORT
+       gap follows it; even is the long gap between pairs. Three strokes therefore
+       phrase as pair-gap-lone, which is the ship's-bell odd tail. *)
+    ('gap 1 ' , (self gapAfter: 1) printString) out.
+    ('gap 2 ' , (self gapAfter: 2) printString) out.
+    ('gap 3 ' , (self gapAfter: 3) printString) out.
+
+    (* D8 — the bench slot changes only how often the derived index changes. The
+       clock is untouched, which is what makes this safe where MagTagClockNode's
+       6x demo tick was not. *)
+    ('bench 79200 ' , (self slotFor: 79200 every: 60) printString) out.
+
+    'finished' out.
+  )
+
+  slotFor: secs = ( ^ self slotFor: secs every: 1800 )
+  slotFor: secs every: slotSeconds = ( ^ secs // slotSeconds )
+
+  (* The node's onTick decision tree, minus the seam reads. *)
+  decideSlot: slot last: last = (
+    last == nil ifTrue: [ ^ 'seed' ].
+    (self advancedTo: slot from: last) ifTrue: [ ^ 'ring' ].
+    ^ 'silent' )
+
+  (* Forward is a boundary; equal is the same half hour, already rung; backward is
+     a clock correction and stays silent — UNLESS it lands on slot 0, which is
+     midnight however it was reached. `slot > prev` alone is false at 47 -> 0, and
+     that reading rang eight bells twice on 2026-07-24. *)
+  advancedTo: slot from: prev = (
+    slot = prev ifTrue: [ ^ false ].
+    slot > prev ifTrue: [ ^ true ].
+    ^ slot = 0 )
+
+  accept: n while: striking = (
+    striking ifTrue: [ ^ 'refused-inflight' ].
+    ((n < 1) or: [ n > 8 ]) ifTrue: [ ^ 'refused-bounds' ].
+    ^ 'ring' )
+
+  gapAfter: i = (
+    (i - ((i // 2) * 2)) = 1 ifTrue: [ ^ 500 ].
+    ^ 1600 )
+) : (
+)
