@@ -763,3 +763,101 @@ node, coil disconnected, watched through a full flash cycle) has not been run.
 
 Deprioritised, not dismissed: the solenoid is disconnected and a piezo buzzer replaces it for
 firmware work. **It must be answered before a coil is reconnected.**
+
+## 18. ADDENDUM (2026-08-03) — the piezo bench rings, and it hears #105
+
+Bench session 2026-08-03, C6 rig of §16 with §17.6's piezo now fitted and the coil off the
+board. The pattern path is exercised end to end for the first time. Tracker: #102 (this
+design), #105 (the boot hazard, now audible).
+
+### 18.1 The driver is a 3.3 V low-side NPN, and the 12 V rail is gone
+
+`2026-08-03-shipsbells-3v3-piezo-driver.svg` (and `.png`), beside this file. The IRF9Z14, R2
+(10 k gate pull-up), R3 (1 k gate series) and the whole +12 V rail are **deleted**, not
+bypassed — its note 1 is the reason: leave R2/R3 in with the MOSFET gone and +12 V still
+reaches the collector through 11 kΩ, back-feeding both the piezo and the 3V3 rail. The 2N3904
+is now the switch rather than a level shifter, and §17.3's 10 k base-to-GND resistor stays.
+
+**Polarity is unchanged — still active-high.** No firmware inversion, and the overlay's
+`GPIO_ACTIVE_HIGH` on GPIO18 keeps meaning de-energised-at-boot exactly as §8 requires.
+
+The element is a continuous-tone piezo (3–24 V, 15 mA @ 12 V) running at the very bottom of its
+range, ~3.1 V across it after V_CE(sat). Audibly quieter than 12 V would be, and loud enough
+across a room.
+
+### 18.2 What actually rang
+
+Image `porta-v1-final-791-g500ff26-20260803T211803` — `ThreadNtpNode.nsl`, built
+`TUVM_SOLENOID_CONSOLE=1`, no boot strike compiled in. Struck from the console by typing;
+captured by the #56 collector, so the transcript below is a log read, not a claim from memory:
+
+| typed | result |
+|---|---|
+| `10` | `strike: 10 ms fired on=1 off=1` |
+| `b4` | 4 strikes, two pairs, set gap **1602 ms** |
+| `b8` | 8 strikes, four pairs, set gaps **1603/1602/1602 ms** — 6.8 s end to end |
+| `b3` | pair, then the **lone final stroke** after a full set gap |
+| `b2030` | `bells: 2030 REFUSED (allowed 1..8)` |
+
+Every strike answered `on=1 off=1`, which is the seam reporting the pin was *declared and
+driven* rather than silently absent — the distinction `gpio_target_set`'s return exists for.
+
+**`b3` is the rung worth keeping.** Three is the smallest count that exercises both branches of
+`strike_bells`' gap choice AND the `break` before the trailing gap, so the odd tail — a bell
+convention, not a loop detail — is now witnessed rather than assumed.
+
+Pair gaps read 400–600 ms in the log against a 500 ms setting. That is **host-side line-arrival
+jitter in the collector, not firmware jitter**: the set gaps land within 3 ms because they
+straddle a longer quiet period. Timestamps from a log collector are evidence of ORDER and of
+the long intervals; they are not a timing measurement, and nothing here should be read as one.
+
+### 18.3 What this does NOT settle — three of them, and §17.4 is the one that matters
+
+**§17.4's 500/1600 ms remains unsettled.** The cadence sounded right on the piezo and that is
+not evidence about the bell: §17.4's whole argument is that gap length is a property of the
+acoustic decay, and a continuous-tone piezo has none — it is a tone burst that stops when the
+pin drops, the opposite end of the decay range from a gong that rings for seconds. The piezo can
+prove the *pattern* (counts, pairs, the odd tail, the guards); only the gong can settle the
+*rhythm*. Do not promote these numbers off this bench.
+
+**§11.2's pulse bracket is untouched.** 10 ms here is a tone width, not a plunger throw; there
+is no coil, so the 5–10 ms minimum-clean-pulse bracket stands exactly where §17.2 left it,
+still owed its ~5 repeats per rung.
+
+**The firmware caps are now the wrong shape for the load, and were deliberately left alone.**
+`STRIKE_MAX_MS` 250, the 1 s cooldown and `BELL_MAX_WIDTH_MS` 50 all ration coil duty cycle
+(§7's ~10 W while held). Schematic note 7: with no coil there is no heating and none of them
+applies. They stay because **the coil is disconnected, not gone**, and a guard removed for a
+bench session is a guard absent when the coil returns.
+
+### 18.4 #105 is no longer inferred — it is audible
+
+**The piezo beeps loudly at power-on and after every flash, in an image with no boot strike
+compiled in.** `TUVM_SOLENOID_PULSE_MS` was unset, so `solenoid_oneshot()` is not in the binary;
+nothing in this image strikes without a keystroke. §17.6 reached "something appears to be
+actively driving GPIO18 high" from a base measuring ~0 V through reset. That inference is now a
+sound anyone in the room can hear, on every power cycle.
+
+This does not localise the cause and does not change §17.6's verdict — it **must** still be
+answered before a coil is reconnected. What it changes is the cost of investigating: the fault
+now announces itself, so the drain-node test can be run against something observable instead of
+against a theory. Fitting the piezo turned an invisible hazard into an instrument.
+
+### 18.5 The bell cannot ring itself, and this is the next gap to close
+
+Stated plainly because the piezo working invites the opposite conclusion: **nothing in this
+image rings the watch.** Three independent reasons, each verified on the flashed build —
+
+- `ThreadNtpNode main:` reads the RTC, syncs, writes back, prints `NTP OK` and returns. No loop,
+  no schedule.
+- `CONFIG_RTC_ALARM is not set` in the image (`build-esp32c6-B/zephyr/.config`). §16.4 names
+  Alarm2 as the strike trigger, and `prj_esp32c6.conf` holds it off deliberately until the alarm
+  seam lands.
+- `strike_console` is the only strike path compiled in, and it needs a UART. **Unplug the USB
+  cables and the sole trigger leaves with them** — a wall-powered board would beep once at boot
+  (§18.4) and then stay silent through every half hour.
+
+The distance from here to a bell is therefore: the alarm seam (§16.4's Alarm2 on GPIO10, with
+`CONFIG_RTC_ALARM=y` in the same commit), a node that computes the count from time-of-day, and
+the strike path moved from C's console thread to the gpio seam from nsl, where §11.2 always said
+the product path belongs.
