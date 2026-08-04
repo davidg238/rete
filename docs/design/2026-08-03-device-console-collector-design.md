@@ -2,7 +2,8 @@
 
 **Date:** 2026-08-03
 **Issue:** #56 (sub-project 1 of 4)
-**Status:** design, awaiting approval
+**Status:** approved 2026-08-03 (David), with the D6 scoping, the D4 escape hatch and the
+§10 MagTag-script disposition added at approval
 **Refs:** #57, #74, #87, #53, #63, #110
 
 ---
@@ -81,9 +82,9 @@ Note what run.sh does *not* do today: for the C6 it names only `ESPTOOL_PORT`
 | **D1** | C6 only; the port-acquisition seam stays explicit | Only board attached; only board whose design can be falsified rather than reasoned about. MagTag/nRF needs are written down (§10), not built |
 | **D2** | Always-on `systemd --user` unit | The only arrangement that closes #56's lesson 1. `Linger=yes` is already set for this user, so a unit starts at boot and survives logout |
 | **D3** | Dumb collector, smart offline reader | A parser bug in the reader costs an answer; a parser bug in a collector costs the evidence. Also makes the reader re-runnable over history and testable with no board |
-| **D4** | ELF archived per flash, keyed by build id; symbolizing **refuses** on a miss | Symbolizing a pre-reflash panic against the current build dir yields confident, precise, wrong locations — worse than the CORRUPTED backtrace #56 complained about, because it looks like an answer |
+| **D4** | ELF archived per flash, keyed by build id; symbolizing **refuses** on a miss. One named exception: `--assume-build <key>`, which must be typed and is echoed in the output (D4a) | Symbolizing a pre-reflash panic against the current build dir yields confident, precise, wrong locations — worse than the CORRUPTED backtrace #56 complained about, because it looks like an answer. But refusal alone makes the *earliest* faults permanently opaque: a fault before the banner prints (§5.4) leaves a run with no build id at all, and that is exactly the early-driver case §9 calls out. The exception keeps refusal as the default while letting a human say what they know — never a fallback the tool picks for itself |
 | **D5** | Build id = `git describe --always --dirty` + CMake build timestamp; host also stores `sha256(zephyr.bin)`. **GNU build-id was tried on hardware and rejected with evidence** (§7) | GNU build-id is the better identifier and the spike went after it. It breaks the ESP32-C6 image: any `SHT_NOTE` input section makes GNU ld synthesise a `PT_NOTE` program header over the whole rodata region, and the Espressif image builder mishandles it — the board boots and then emits garbage. Three-boot A/B/A in §7. The key is **opaque to everything downstream** either way: a run declares a key, the archive is filed under the same string |
-| **D6** | The collector monopolises the console port; `--capture N` is redefined as a log read | One handle, no split streams. `--capture` gains rather than loses: it now shows the boot you just triggered even if it fired before you asked, which is the exact failure that lost the first AMG8833 panic |
+| **D6** | The collector monopolises the console port; `--capture N` is redefined as a log read **for `--board esp32c6` only**. The esp32 and esp32s2 paths are untouched until their own collectors land (§10) | One handle, no split streams. `--capture` gains rather than loses: it now shows the boot you just triggered even if it fired before you asked, which is the exact failure that lost the first AMG8833 panic. The board qualifier is not pedantry — `run.sh:309` calls `capture_coredump.py` for all three boards, so an unqualified redefinition breaks the two that have no collector. It would also silently drop a side effect: `capture_coredump.py:9` pulses DTR/RTS to reset the target, which is a no-op on the C6's CP2102N but genuinely works on the esp32, where that same CP210 port is both the flash port and the console |
 | **D7** | Heartbeat marker every 60 s, written even when the device is silent | A log that stops looks identical to a board that went quiet. Every check asserts a *recent heartbeat present*, never an absence. 60 s is short enough that a dead collector is caught within one coffee-length gap and long enough to be invisible in a day's log |
 | **D8** | Deliberate fault trigger, Kconfig-gated, default `n` | Otherwise the symbolizing path is only ever exercised by the incident it exists to explain |
 
@@ -123,11 +124,24 @@ Offline, over the log store. Subcommands:
 All parsing lives here. `symbolize` resolves the ELF from the run's build-id banner and
 refuses if the archive has no match. It never falls back to `build-*/zephyr/zephyr.elf`.
 
+The one exception is D4a: `symbolize --assume-build <key>`, for the run that faulted before
+its banner ever printed. The key must be typed out; the tool will not infer it, not even
+from the `last-flashed` pointer (§5.3), which exists so a human can *look up* what to type,
+not so the tool can guess on their behalf. Every line of an assumed symbolization is
+prefixed with the key it assumed, so the assumption travels with the output into whatever
+issue comment it gets pasted into.
+
 ### 5.3 ELF archive
 
 `run.sh --flash` copies `zephyr.elf` into the archive keyed by build id **as part of
 flashing**, not as a separate step. Alongside it: `sha256(zephyr.bin)`, so a key
 collision is detectable after the fact rather than silently wrong.
+
+The same step writes `last-flashed-<board>` — one line, the key it just flashed. It is a
+human-facing note, read by a person deciding what to pass to `--assume-build`. Nothing in
+the reader consults it automatically; if it did, D4's refusal would be a fallback wearing
+a disguise, and a board flashed twice since the fault would hand back a confident wrong
+answer.
 
 ### 5.4 Build id and boot banner
 
@@ -288,6 +302,12 @@ board, and it is the step that proves the fault actually reaches the console on 
 hardware — a driver failing silently for want of `CONFIG_LOG` is a documented way this
 bench lies.
 
+Because D8 defaults to `n`, this gate does not build the default image. It builds with
+`CONFIG_RETE_FAULT_TRIGGER=y`, carried in a checked-in overlay
+(`nodus/tuvm/zephyr/overlay-faultgate.conf`) rather than a flag typed at the prompt, so
+the gate is reproducible and so the one build that can fault on purpose is named in the
+tree.
+
 **Falsify the gate, not just the code.** The acceptance test must fail when the
 collector is not running. Stopping the unit and re-running the check must go red; a
 check that passes with the daemon stopped is measuring nothing.
@@ -295,7 +315,13 @@ check that passes with the daemon stopped is measuring nothing.
 ## 10. Out of scope, recorded so it is deferred rather than forgotten
 
 - Capabilities (3) and (4) of #56 — out-of-band metrics, and the device test harness.
-- MagTag and nRF consoles. What they will need, written down now: the MagTag's PL2303
+- MagTag and nRF consoles — the *collector* for them. But `~/magtag-captures/capture.py`
+  does not stay outside the repo: it moves to `nodus/tuvm/zephyr/boards/magtag/capture.py`
+  **unchanged**, in its own commit, no behaviour edits and no attempt to generalise it.
+  §2 names untracked out-of-repo tooling as the problem; shipping the sub-project that
+  says so while leaving the specimen in `~` would be the diagnosis without the treatment.
+  Tracking it is not endorsing it — it is deleted when the MagTag collector lands.
+  What that collector will need, written down now: the MagTag's PL2303
   header does not reset the board on open (so a collector may attach to a *running*
   board mid-life, and the log will start mid-stream); an nRF USB-CDC node disappears
   from `/dev` entirely on reset and returns as a possibly-different node, so
@@ -311,4 +337,6 @@ check that passes with the daemon stopped is measuring nothing.
   existing; its job moves into the collector and the reader.
 - **Consumes part of #74** — the CMake bake and the boot banner. #74 stays open for the
   accessor.
+- **Tracks** `~/magtag-captures/capture.py` verbatim under `boards/magtag/` (§10) — the
+  only change to any non-C6 board in this sub-project, and not a functional one.
 - **Unblocks** #56's (3) and (4).
