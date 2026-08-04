@@ -35,6 +35,14 @@ enumerated across target resets (design §3, #57). Holding it costs nothing and
 means a panic that fires before you thought to look is still captured — the
 exact failure that lost the first AMG8833 panic.
 
+**Restarting the unit does not reset the C6.** Witnessed 2026-08-04 08:08: the
+collector dropped and reopened the CP2102N and the target neither rebooted nor
+printed a banner. That is the opposite of the flash-port rule on the plain esp32
+and the MagTag, where any open — `stty` included — reboots the board, and it is
+what makes this daemon restartable while the board is doing something you care
+about. It is a property of *this* adapter wiring; do not carry it to another
+board without witnessing it there.
+
 This is **C6-only**. The MagTag and the nRF dongle both need design work first
 (§10), and the plain esp32's CP210x port is both flash port and console, so a
 permanent holder there would fight `--flash`.
