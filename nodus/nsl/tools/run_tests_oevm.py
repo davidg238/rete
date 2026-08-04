@@ -13,6 +13,10 @@ COLOR_RESET = "\033[0m"
 # The oevm VM (the "bedrock") lives in a sibling repo. Override with $OEVM_DIR.
 OEVM_DIR = Path(os.environ.get("OEVM_DIR") or (Path(__file__).resolve().parent.parent.parent / "tuvm"))
 
+# Repo root, for gates that live outside nodus/ (review/tests/t0-gates/). Derived from
+# THIS file's location, not from OEVM_DIR — OEVM_DIR may be pointed at another tree.
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+
 # OEVM_PATH controls which execution paths are exercised.
 #   (unset / "B")  — run Path B only (.oimg / image-VM workflow) — DEFAULT.
 #                    Path B builds the image VM once, then per test only
@@ -262,30 +266,48 @@ def run_portability_gate() -> str:
 
 
 def run_footprint_gate() -> str:
-    """Gate the MCU cross-compile footprint ratchet (tuvm/tools/footprint.sh).
+    """Gate T0.3 — the footprint ratchet (review/tests/t0-gates/ratchet.sh).
 
-    Cross-compiles the engine core with arm-zephyr-eabi and ratchets text +
-    data+bss against tools/footprint-mcu-baseline.txt: a size regression is a
-    gate failure like a text regression (design addendum A2 / tuvm#5). Returns
-    "PASS", "SKIP" (exit 77 — no cross toolchain on PATH), or "FAIL"."""
-    script = OEVM_DIR / "tools" / "footprint.sh"
+    Runs the T0.3 gate itself rather than footprint.sh (#143). footprint.sh now
+    only MEASURES and BANKS; ratchet.sh is what applies the spec's +2% tolerance
+    (review/test-suites-spec.md §T0.3) to host text, mcu text and mcu data+bss —
+    RAM is a gate failure like text (addendum A2 / tuvm#5). Calling footprint.sh
+    here meant the suite enforced a zero tolerance the spec never asked for while
+    the actual T0.3 script had no caller at all and had never run.
+
+    Returns "PASS", "SKIP" (exit 77 — no arm-zephyr-eabi, so the MCU half did not
+    run), or "FAIL"."""
+    script = REPO_ROOT / "review" / "tests" / "t0-gates" / "ratchet.sh"
+    if not script.is_file():
+        # An in-repo gate that cannot be found is a FAIL, never a SKIP: a missing
+        # path is the restructure hazard from #143/#110, not an absent toolchain.
+        print(f"{COLOR_RED}footprint(T0.3): FAIL{COLOR_RESET} (gate script not found at {script})")
+        return "FAIL"
     try:
         proc = subprocess.run(
             ["bash", str(script)],
-            cwd=str(OEVM_DIR), capture_output=True, text=True, timeout=300,
-            env={**os.environ, "FOOTPRINT_CONFIG": "mcu"})
+            cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=600,
+            # ratchet.sh resolves the tree it measures from its own location; honour
+            # an OEVM_DIR override so a branch worktree still measures itself.
+            env={**os.environ, "TUVM_DIR": str(OEVM_DIR)})
     except Exception as e:
-        print(f"{COLOR_RED}footprint: FAIL{COLOR_RESET} (runner error: {e})")
+        print(f"{COLOR_RED}footprint(T0.3): FAIL{COLOR_RESET} (runner error: {e})")
         return "FAIL"
+    out = (proc.stdout or "") + (proc.stderr or "")
     if proc.returncode == 77:
-        print(f"footprint: SKIP (no arm-zephyr-eabi toolchain)")
+        # Yellow, and it says what did NOT run: an unrun gate must not read as a
+        # passing one (tuvm#31 — this gate reported SKIP for weeks and scrolled past).
+        print(f"{COLOR_YELLOW}footprint(T0.3): SKIP{COLOR_RESET} — the MCU half did NOT run "
+              f"(no arm-zephyr-eabi on PATH; source ns-zephyr/tools/env.sh). Host half only.")
         return "SKIP"
     if proc.returncode != 0:
-        print(f"{COLOR_RED}footprint: FAIL{COLOR_RESET}")
-        out = (proc.stdout or "") + (proc.stderr or "")
+        print(f"{COLOR_RED}footprint(T0.3): FAIL{COLOR_RESET}")
         print("  " + "\n  ".join(out.strip().splitlines()[-30:]))
         return "FAIL"
-    print(f"{COLOR_GREEN}footprint: PASSED{COLOR_RESET}")
+    print(f"{COLOR_GREEN}footprint(T0.3): PASSED{COLOR_RESET}")
+    for line in out.strip().splitlines():
+        if line.startswith("ratchet ok:"):
+            print(f"  {line}")
     return "PASS"
 
 
@@ -687,12 +709,22 @@ def main():
     print(f"  Passed:  {passed}")
     print(f"  Failed:  {failed}")
     print(f"  Skipped: {skipped}")
-    print(f"  grant: {'PASS' if grant_ok else 'FAIL'}  "
-          f"debugger-integration: {'PASS' if dbg_int_ok else 'FAIL'}  "
-          f"portability-32: {portability}  "
-          f"boot-gc-asan: {'PASS' if boot_gc_ok else 'FAIL'}  "
-          f"deepsleep: {'PASS' if deepsleep_ok else 'FAIL'}  "
-          f"footprint: {footprint}")
+    # A SKIP is coloured, because an aux gate that did not run must not read as one
+    # that passed (tuvm#31, #63, #143): footprint sat at SKIP for weeks under a green
+    # header while the real T0.3 numbers were three-quarters red.
+    def _mark(status: str) -> str:
+        if status == "SKIP":
+            return f"{COLOR_YELLOW}SKIP{COLOR_RESET}"
+        if status == "FAIL":
+            return f"{COLOR_RED}FAIL{COLOR_RESET}"
+        return status
+
+    print(f"  grant: {_mark('PASS' if grant_ok else 'FAIL')}  "
+          f"debugger-integration: {_mark('PASS' if dbg_int_ok else 'FAIL')}  "
+          f"portability-32: {_mark(portability)}  "
+          f"boot-gc-asan: {_mark('PASS' if boot_gc_ok else 'FAIL')}  "
+          f"deepsleep: {_mark('PASS' if deepsleep_ok else 'FAIL')}  "
+          f"footprint(T0.3): {_mark(footprint)}")
 
     if not suite_ok:
         sys.exit(1)
