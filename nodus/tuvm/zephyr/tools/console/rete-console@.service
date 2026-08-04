@@ -1,0 +1,28 @@
+# Persistent console collector, one instance per board (#56, design D2/D1).
+#   systemctl --user enable --now rete-console@c6
+#
+# %i is the board name. It selects both the env file naming the port and the
+# log-file prefix, so a second board is a second instantiation rather than a
+# second unit file — that template IS the D1 seam.
+#
+# The port lives in ~/.config/rete/console-%i.env, not in this file: a
+# /dev/serial/by-id/ hash identifies one physical adapter on one bench, and
+# baking it into a tracked unit is the same hardcode design §2 objects to in
+# capture_coredump.py:5. See console-c6.env.example beside this file.
+[Unit]
+Description=rete console collector (%i)
+Documentation=file:%h/workspace/rete/docs/design/2026-08-03-device-console-collector-design.md
+
+[Service]
+Type=simple
+# Not optional (no leading '-'): if the env file is missing the unit must fail
+# loudly. Falling back to a default port would mean collecting from whatever
+# happened to enumerate first, which is the failure that clobbered the jag
+# board on 2026-07-16, one layer up.
+EnvironmentFile=%h/.config/rete/console-%i.env
+ExecStart=/usr/bin/python3 %h/workspace/rete/nodus/tuvm/zephyr/tools/console/collect.py ${RETE_CONSOLE_PORT} --board %i
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
