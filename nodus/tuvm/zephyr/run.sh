@@ -198,6 +198,26 @@ case "$BOARD_ID" in
     # Flash on the NATIVE USB port (303a:1001). Console lives on the UART bridge,
     # which stays enumerated across target resets — see #57.
     pick_port '/dev/serial/by-id/*Espressif*' /dev/ttyACM0
+    # The console is a DIFFERENT physical port from the flash port (#57, #56 §3):
+    # flash over the native USB JTAG bridge above, console over the CP2102N, which
+    # stays enumerated across target resets. Naming it here is what lets an
+    # always-on collector and --flash coexist. Same zero/one/many discipline as
+    # pick_port, for the same reason: this bench has more than one CP210x device,
+    # and guessing between them is what clobbered the jag board on 2026-07-16.
+    if [ -z "${CONSOLE_PORT:-}" ]; then
+      cmatches=$(ls /dev/serial/by-id/*CP2102N* 2>/dev/null || true)
+      cn=$(printf '%s' "$cmatches" | grep -c . || true)
+      if [ "$cn" -gt 1 ]; then
+        echo "more than one CP2102N console candidate:" >&2
+        printf '%s\n' "$cmatches" >&2
+        echo "Set CONSOLE_PORT explicitly and retry." >&2
+        exit 2
+      elif [ "$cn" -eq 1 ]; then
+        CONSOLE_PORT="$cmatches"
+      else
+        CONSOLE_PORT=/dev/ttyUSB0
+      fi
+    fi
     ;;
 esac
 
@@ -304,6 +324,29 @@ if [ "$DO_FLASH" = 1 ]; then
   "$ESPTOOL" --chip "$ESPTOOL_CHIP" --port "$ESPTOOL_PORT" --baud 921600 write_flash \
     --flash_mode dio --flash_freq 40m --flash_size "$ESPTOOL_FLASH_SIZE" \
     "$ESPTOOL_OFFSET" "$ZDIR/$BUILD_DIR/zephyr/zephyr.bin"
+  # Part of flashing, not a step to remember afterwards (#56 §5.3). Keyed by the
+  # build id the firmware itself prints, read from tuvm_build_id.txt so host and
+  # device cannot disagree about the string.
+  if [ "$BOARD_ID" = esp32c6 ]; then
+    "$ZDIR/tools/console/archive.sh" "$ZDIR/$BUILD_DIR" c6
+    # The collector reads its port from its own env file. If that disagrees with
+    # the console port this bench actually resolves, the boot you just triggered
+    # is being logged from a different adapter — or not at all — and every
+    # symptom of that looks like "the board went quiet". Say so here, where the
+    # operator is already looking.
+    ENVF="$HOME/.config/rete/console-c6.env"
+    if [ -f "$ENVF" ]; then
+      want=$(sed -n 's/^RETE_CONSOLE_PORT=//p' "$ENVF")
+      if [ -n "$want" ] && [ "$want" != "$CONSOLE_PORT" ]; then
+        echo "[console] WARNING: collector is configured for" >&2
+        echo "[console]   $want" >&2
+        echo "[console] but this bench resolves the console to" >&2
+        echo "[console]   $CONSOLE_PORT" >&2
+        echo "[console] The boot you just triggered may not be in the log." >&2
+      fi
+    fi
+    echo "[console] $CONSOLE_PORT"
+  fi
 fi
 
 if [ "${CAPTURE:-0}" != 0 ]; then
