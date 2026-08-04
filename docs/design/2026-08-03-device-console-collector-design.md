@@ -342,3 +342,64 @@ check that passes with the daemon stopped is measuring nothing.
 - **Tracks** `~/magtag-captures/capture.py` verbatim under `boards/magtag/` (§10) — the
   only change to any non-C6 board in this sub-project, and not a functional one.
 - **Unblocks** #56's (3) and (4).
+
+---
+
+## 12. Implementation addendum — what the build changed (2026-08-03)
+
+Written after implementing §1–§11 on `feat/56-console-collector`. Everything here
+is a correction to this document, not a change of plan.
+
+**§11's "Closes #87" is wrong.** `run.sh` still calls `capture_coredump.py` for
+`esp32` and `esp32s2`, which have no collector under D1, so its hardcoded port
+survives — reachable from two boards instead of three. #87 closes when its last
+caller does. Correction posted on #87; the claim above is left standing so the
+error stays visible rather than being quietly rewritten.
+
+**D8's names follow the tree.** `CONFIG_TUVM_FAULT_TRIGGER` and
+`prj_esp32c6_faultgate.conf`, not the `RETE_`/`overlay-` spellings originally
+written here — `CONFIG_TUVM_NET_HEARTBEAT` and `prj_esp32_netdiag.conf` are the
+precedents. Amended in §9 (`93f053b`).
+
+**§9's fixtures did not exist, and D8 is what makes them.** No C6 had ever
+faulted on purpose, so the fault parser had to be written *after* the trigger,
+not before. A parser written first would have been written against an invented
+format — D4's failure one layer up.
+
+**`prj_esp32c6.conf` has no coredump configuration.** §9 assumed a fault would be
+decodable; on this board it would have printed a banner and nothing else. The
+faultgate overlay enables `CONFIG_DEBUG_COREDUMP*` alongside the trigger.
+
+**A boot has two banners, so §6's "splits a log at the Zephyr boot banner plus
+the build-id line" splits it wrongly.** The C6 prints `ESP-ROM:esp32c6-...` and,
+~30 lines later, `*** Booting Zephyr OS`. Treating either as a boundary puts a
+fault in a different run from the build id naming its binary, so D4 refuses a
+fault it has the ELF for. The ROM line is the boot; the kernel banner opens a run
+only when none is in progress — which is also how a collector attaching to an
+already-running board (§10's MagTag case) still gets a boundary.
+
+**D7's heartbeat is not sufficient for the §8 health gate on its own.** The first
+heartbeat is 60 s after start, so a heartbeat-only check reports a working
+collector as down for a minute after every restart — a false red on exactly the
+action taken to clear a real one. The collector's startup marker is the same proof
+of life and counts. It does not become a permanent pass: a collector that starts
+and wedges goes red when that marker ages out. Found by performing §9's "falsify
+the gate" step, not by reading the code.
+
+**Environment facts §5.2 needed and did not state.** Symbolizing requires the
+Zephyr venv's Python (`scripts/coredump/` imports `pyelftools`, absent from the
+system interpreter) and the SDK's `riscv64-zephyr-elf-gdb` — never the host
+`gdb`, which yields plausible wrong output for a RISC-V core. The stub is driven
+over `--pipe`: it does `listen(1)` + `accept()` once, so any readiness probe
+consumes the connection gdb needs.
+
+**One addition beyond the design.** `run.sh` cross-checks the console port it
+resolves against the collector's env file and warns on a mismatch. A collector
+watching a different adapter than the one just flashed is silent, and every
+symptom of that looks like "the board went quiet" — the failure class this
+sub-project exists to remove. Without it `CONSOLE_PORT` would have been named and
+never read.
+
+**First finding.** The collector immediately surfaced a DS3231 RTC init failure on
+every C6 boot (`rtc_ds3231.c:253`), pre-existing and unrelated to this work.
+Filed as #146.
