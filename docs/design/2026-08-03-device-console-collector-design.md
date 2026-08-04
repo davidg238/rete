@@ -303,10 +303,12 @@ hardware — a driver failing silently for want of `CONFIG_LOG` is a documented 
 bench lies.
 
 Because D8 defaults to `n`, this gate does not build the default image. It builds with
-`CONFIG_RETE_FAULT_TRIGGER=y`, carried in a checked-in overlay
-(`nodus/tuvm/zephyr/overlay-faultgate.conf`) rather than a flag typed at the prompt, so
-the gate is reproducible and so the one build that can fault on purpose is named in the
-tree.
+`CONFIG_TUVM_FAULT_TRIGGER=y`, carried in a checked-in overlay
+(`prj_esp32c6_faultgate.conf`, applied via `run.sh --conf-extra`) rather than a flag
+typed at the prompt, so the gate is reproducible and so the one build that can fault on
+purpose is named in the tree. Both names follow what is already there:
+`CONFIG_TUVM_NET_HEARTBEAT` is the precedent for a default-`n` diagnostic, and
+`prj_esp32_netdiag.conf` is the precedent for the overlay that turns one on.
 
 **Falsify the gate, not just the code.** The acceptance test must fail when the
 collector is not running. Stopping the unit and re-running the check must go red; a
