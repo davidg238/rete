@@ -212,15 +212,15 @@ trace that anything is missing.
 - **The cadence is unsettled** (§18.3). 50/500/1600 is a piezo starting point.
 - **Alarm2 is deferred, not dropped** (D1). §9's battery version needs it.
 - **porta check-in** (D9) is tomorrow's node.
-- **WiFi or Thread for the daily sync — UNRESOLVED, and it is the first question to settle.**
-  David described the bench as "power, rtc + wifi" on 2026-08-03. Everything witnessed on this
-  board syncs over **Thread**: `prj_esp32c6_thread.conf` carries `CONFIG_SNTP`, the node is an FTD
-  promoted to Router, and the NTP server is reached at a literal IPv6 ML-EID because the mesh has
-  no DNS64 (`fdc5:9109:9afe:97ea:9541:d963:f8d9:8567`, read out of the flash on the board itself).
-  **No C6 WiFi path exists in the build system** — `run.sh` scopes `prj_esp32_wifi.local.conf` to
-  the esp32/esp32s2 profiles and a C6 build ignores it. If "wifi" meant the mesh's uplink, nothing
-  changes and this design stands. If it meant the C6 should join WiFi directly, that is a separate
-  rung: a Kconfig layer, credentials, and a hostname path that Thread deliberately does without.
+- ~~WiFi or Thread for the daily sync~~ — **CLOSED 2026-08-03, same evening: Thread.** David:
+  *"I should have written Thread … we already put a NTP server on the gw for thread use."* The
+  design stands as written and no WiFi work is in scope. Recorded because the transport is the
+  one thing that would have changed the sync path: `prj_esp32c6_thread.conf` carries
+  `CONFIG_SNTP`, the node is an FTD promoted to Router, and the server is reached at a **literal
+  IPv6 ML-EID** — `fdc5:9109:9afe:97ea:9541:d963:f8d9:8567`, the gateway's own, read out of the
+  flash on this board — because the mesh is a ULA with no DNS64 and `CONFIG_DNS_RESOLVER` is
+  deliberately absent. There is no C6 WiFi path in the build system and none is wanted:
+  `run.sh` scopes `prj_esp32_wifi.local.conf` to the esp32/esp32s2 profiles.
 - **Whether "the solenoid sounds bad" generalises past this device** — see the shipsBells design
   §19. It was stated about this board; §17.1 chose the gong on evidence, and §3's run of five has
   not been re-decided.
