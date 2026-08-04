@@ -937,3 +937,50 @@ board to promote them to.
 **#105 is untouched and is now the first sound of every boot.** It fired on all three
 of today's flashes. It gates a coil, and there is no coil here (§19) — but it is the
 one part of this device that still rings without being asked.
+
+## 21. ADDENDUM (2026-08-04) — §16.4's alarm is built, and the pin was GPIO11
+
+**The interrupt trigger §16.4 settled is implemented, flashed and witnessed**, as a SECOND node
+beside the poll one (`zephyr/ShipsBellAlarmNodeC6.nsl`; `ShipsBellNodeC6.nsl` is untouched and
+stays the poll demonstration). Design record: `docs/design/2026-08-03-c6-shipsbell-always-on-node-design.md`.
+
+**Alarm1, not Alarm2.** §16.4 named Alarm2; Alarm1 is the one with a SECONDS register, and the
+node wants a lead measured in seconds — it wakes at boundary − 5 s and counts down to the
+boundary with a local one-shot, so the strike instant is a timer over 5 s rather than an I²C
+read inside the interrupt path. Everything else §16.4 settled is unchanged, including the
+re-arm after every strike.
+
+**§16.4's "a missed edge is silent" is answered by a WATCHDOG, not by a poll.** After each
+strike the node also arms a one-shot for the next boundary + 2 s. If the alarm arrives, the
+countdown rings and the watchdog finds the slot already rung; if it never arrives, the watchdog
+rings 2 s late and PRINTS THAT IT DID. The MCU still holds exactly one armed timer between
+boundaries, so §9's battery version is not foreclosed the way a backstop poll would foreclose
+it. It is not a collision with an 8-bell pattern (6.88 s) because the ratchet advances when the
+ring STARTS, not when it finishes.
+
+### The pin is GPIO11. §1.2 of the next-steps doc and every reference above say GPIO10.
+
+**The bench wire runs SQW → GPIO11.** Measured 2026-08-04, after the alarm failed to arrive at
+four consecutive boundaries while every software layer reported success.
+
+The evidence chain is worth keeping, because the fault was invisible from every direction but
+one. `rtc_alarm_set_time` returned 0. The part was correct: `ctrl=45` → `INTCN=1`, `A1IE=1`, and
+`status` showed **A1F setting on schedule, every cycle** — the DS3231 was matching the alarm and
+pulling INT/SQW low exactly as asked. And GPIO10 read *inactive* at the same instant.
+
+**An unconnected input with a pull-up is indistinguishable from an idle open-drain interrupt.**
+Both read high forever. What separated them was reading the part's FLAG and the PIN in the same
+breath: flag set AND line high is not a timing question, it is a wiring question. Neither
+measurement alone would have said anything.
+
+The watchdog carried the bell correctly through the entire diagnosis — every boundary rang, 2 s
+late, with `watchdog: no alarm for slot NN` in the log. The feature that made the failure
+survivable is the same one that reported it.
+
+### Unplugging the data cables does not silence a console-driven striker
+
+Stated because §18.5 says the opposite by implication. `strike_console` reads the console UART;
+pull the cable and the input does not go quiet, it goes UNDRIVEN, and a floating RX is noise a
+strike parser will happily act on. An unattended board must not have `TUVM_SOLENOID_CONSOLE`
+compiled in — the product strike path is the nsl gpio seam (§11.2, D3), and the console striker
+is bench instrumentation that belongs on a bench.

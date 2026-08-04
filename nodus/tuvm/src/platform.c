@@ -358,6 +358,18 @@ int wallclock_target_set(int yyyymmdd, int seconds_of_day) {
     return 0;
 }
 
+/* shipsBellsV3 (#102): the host side of the RTC ALARM seam. The host has no
+   DS3231 and no interrupt line, so it REFUSES — and that is the useful host
+   behaviour, not a gap: a node written against this seam has to carry the
+   fallback that makes a missed alarm survivable, and refusing here is what
+   exercises that path in the suite. There is nothing to simulate: the alarm's
+   value is that the RTC rather than the MCU decides the instant, and a simulated
+   alarm would be the MCU deciding. */
+int rtc_alarm_arm(int seconds_of_day, int chan_id, int handle_idx) {
+    (void)seconds_of_day; (void)chan_id; (void)handle_idx;
+    return -1;
+}
+
 /* tuvm#94 stage 5: the host side of the RTC-retention seam. On device this struct
    lives in .rtc.data and survives deep sleep; on host it is a plain int32 array that
    optionally persists to OEVM_RTC_FILE so the node can be re-exec'd N times and the
@@ -431,6 +443,11 @@ extern void deep_sleep_target(int seconds);
    devicetree answers -1), never the definition. */
 extern int wallclock_target_read(void);
 extern int wallclock_target_set(int yyyymmdd, int seconds_of_day);
+/* shipsBellsV3 (#102): the RTC alarm leaf, same rule as the wall-clock one above
+   — zephyr/src/main.c guards the BODY (a board with no RTC alias, or an image
+   built without CONFIG_RTC_ALARM, answers -1), never the definition, so the
+   symbol links on every Zephyr board. */
+extern int rtc_alarm_arm(int seconds_of_day, int chan_id, int handle_idx);
 #endif
 
 /* Target GPIO-ISR entry (Zephyr rung-2 Task 8): a real on-target GPIO edge
@@ -1318,6 +1335,32 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         int hidx = handle_new(args[0]);                 /* pin the message oop via M6 */
         int32_t thr = IS_SMI(args[2]) ? (int32_t)UNTAG_SMI(args[2]) : 0;
         sensor_arm_event(chan_id, hidx, thr);
+        *out = platform_object();
+        return 1;
+    }
+    case PRIM_pf_rtcAlarmAt: {
+        /* rtcAlarmAt: secondsOfDay post: msg on: 'path' (#102). Same shape as
+           sensorArmEventPost:on:threshold: above and for the same reason: the
+           channel arrives as a String PATH, interned here in thread context, and
+           the message oop is pinned via an M6 handle because the delivery side
+           (the DS3231 driver's workqueue callback) must never touch the VM.
+           Answers NIL when the alarm cannot be armed — no RTC on this board, or
+           an image built without CONFIG_RTC_ALARM. nsl raises on the nil; the
+           node catches it and falls back to its watchdog. */
+        oop path = args[2];
+        if (path == NULL || IS_SMI(path) || StringVtable == NULL ||
+            obj_vtable(path) != StringVtable) {
+            fprintf(stderr, "VM Error: platform rtcAlarmAt:post:on: expects a String channel\n");
+            abort();
+        }
+        if (!IS_SMI(args[0])) { *out = NULL; return 1; }
+        struct String *p = (struct String *)path;
+        int chan_id = space_intern((const char *)p->bytes, p->length);
+        int hidx = handle_new(args[1]);                 /* pin the message oop via M6 */
+        if (rtc_alarm_arm((int)UNTAG_SMI(args[0]), chan_id, hidx) != 0) {
+            *out = NULL;                                /* nil — could not arm */
+            return 1;
+        }
         *out = platform_object();
         return 1;
     }

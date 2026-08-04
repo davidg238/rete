@@ -15,7 +15,8 @@ Status: the wall-clock seam (#100) is built, tested and running. The DS3231 answ
 i2c0 and its oscillator is ticking.
 
 **Updated 2026-08-02 — §1.1 and §1.2 are done.** David reports the trickle-charge resistor
-removed and SQW wired to GPIO10 at the bench (reported, not re-measured here). They are kept
+removed and SQW wired to GPIO10 at the bench (reported, not re-measured here). **The pin was
+GPIO11** — measured 2026-08-04 when the alarm never arrived; see §1.2. They are kept
 below as the record of what was done and why.
 
 **What that leaves is software, and only software.** `CONFIG_RTC_ALARM` is still `n` —
@@ -56,7 +57,7 @@ The test, one minute:
 If present: remove the `201` resistor or the diode, or fit a LIR2032 instead. Do not leave
 a CR2032 on a charger.
 
-### 1.2 Wire INT/SQW → GPIO10 — DONE
+### 1.2 Wire INT/SQW → GPIO11 — DONE (the pin below is wrong; corrected 2026-08-04)
 
 **Done at the bench.** The devicetree half was already in place and is verified here:
 `nodus/tuvm/zephyr/boards/esp32c6_devkitc_esp32c6_hpcore.overlay:78` carries
@@ -67,7 +68,15 @@ It is the DS3231's INT/SQW output, and `rtc-schematic.png` confirms **R21 pulls 
 to +VCC3.3** — open-drain with the pull-up already on the board, so nothing is needed
 MCU-side.
 
-Target is **GPIO10**, already declared in the overlay. Checked free on this part: not
+**CORRECTION, 2026-08-04 (#102): the bench wire runs SQW → GPIO11, not GPIO10.** The overlay
+now declares 11. This was invisible for as long as nobody looked at both ends at once: the
+driver armed the alarm, the DS3231 matched on schedule and set A1F with INTCN=1 and A1IE=1 —
+and GPIO10, with nothing attached, read inactive through its own pull-up. An unconnected input
+with a pull-up is indistinguishable from an idle open-drain interrupt. Only reading the part's
+FLAG and the PIN in the same breath separates them. "Reported, not re-measured" is exactly the
+class of claim that hides this.
+
+Target is **GPIO11**, declared in the overlay. Checked free on this part: not
 strapping (4/5/8/9/15), not USB (12/13), not the UART0 console (16/17), not SPI flash
 (24–29; `ngpios` is 30).
 

@@ -410,6 +410,130 @@ int wallclock_target_set(int yyyymmdd, int seconds_of_day) {
 #endif
 }
 
+/* shipsBellsV3 §16.4 (#102) — THE RTC SAYS WHEN.
+ *
+ * Arms the DS3231's ALARM1 for a time-of-day and posts `msg` on `chan_id` when it
+ * fires. Alarm1 rather than §16.4's Alarm2 for one reason: Alarm1 has a SECONDS
+ * register and Alarm2 does not, and the node wants a lead time measured in seconds
+ * (fire at boundary-5 s, count down to the boundary) rather than in whole minutes.
+ * Everything else §16.4 settled is unchanged.
+ *
+ * The mask is the full hour+minute+second match, i.e. ONCE PER DAY, and the node
+ * re-arms after every strike. A repeating mask cannot express "every half hour" on
+ * this part, and the node must re-arm anyway to move the alarm forward — so the
+ * repeating masks buy nothing and cost a second way to be wrong.
+ *
+ * Delivery is the ORDINARY pulse mailbox. The DS3231 driver takes the INT/SQW edge
+ * in a real ISR and hands it to the system workqueue (rtc_ds3231_isw_isr ->
+ * k_work_submit), so this callback runs in thread context — but it still only calls
+ * pulse_post_isr, because that is the one path the run-to-completion loop drains and
+ * it is non-allocating either way.
+ *
+ * A2F: the driver clears the alarm flag when it reads the state
+ * (rtc_ds3231_alarm_is_pending), and clearing A2F/A1F is what DEASSERTS INT/SQW.
+ * That matters more than it looks: the line is a LEVEL, not a pulse, so a failed
+ * clear leaves it asserted and the NEXT alarm produces no new edge at all. The node
+ * survives that through its watchdog; nothing here can.
+ */
+#if defined(CONFIG_RTC_ALARM) && DT_NODE_EXISTS(DT_ALIAS(wallclock))
+#include "pulse_backend.h"           /* pulse_post_isr */
+
+#define TUVM_RTC_ALARM_ID 0          /* DS3231 Alarm1 — the one with a seconds field */
+
+static int tuvm_alarm_chan = -1;
+static int tuvm_alarm_handle = -1;
+
+static void tuvm_rtc_alarm_cb(const struct device *dev, uint16_t id, void *user_data)
+{
+    ARG_UNUSED(dev); ARG_UNUSED(id); ARG_UNUSED(user_data);
+    if (tuvm_alarm_chan >= 0) {
+        pulse_post_isr(tuvm_alarm_chan, tuvm_alarm_handle);
+    }
+}
+
+/* The ISW line itself, read-only, purely as an instrument. The driver owns this
+ * pin; reading its level cannot disturb it, and it is the one measurement that
+ * separates "the RTC never asserted" from "the RTC asserted and nothing noticed".
+ * Logical level (ACTIVE_LOW applied): 1 = ASSERTED = physically low. */
+static const struct gpio_dt_spec tuvm_isw =
+    GPIO_DT_SPEC_GET_OR(DT_ALIAS(wallclock), isw_gpios, {0});
+
+/* The DS3231 itself on i2c0. The `wallclock` alias names the RTC CHILD; its PARENT
+ * is the maxim,ds3231-mfd node that owns the I2C address. Raw register reads only —
+ * every WRITE stays the driver's, so this instrument cannot become a second owner. */
+#include <zephyr/drivers/i2c.h>
+static const struct i2c_dt_spec tuvm_ds3231 = I2C_DT_SPEC_GET(DT_PARENT(DT_ALIAS(wallclock)));
+
+int rtc_alarm_arm(int seconds_of_day, int chan_id, int handle_idx)
+{
+    static const struct device *const rtc_dev = DEVICE_DT_GET(DT_ALIAS(wallclock));
+    struct rtc_time tm;
+    int rc;
+
+    if (seconds_of_day < 0 || seconds_of_day > 86399) return -1;
+    if (!device_is_ready(rtc_dev)) { printk("rtcalarm: device not ready\n"); return -1; }
+
+    /* CLEAR A STALE FLAG BEFORE ARMING, and say whether there was one.
+     * INT/SQW is a LEVEL, not a pulse: it stays asserted until A1F/A2F is cleared.
+     * So a flag left set from any earlier alarm holds the line low, and the next
+     * alarm match produces NO NEW FALLING EDGE — the interrupt is armed, correct,
+     * and permanently unheard. rtc_alarm_is_pending() clears the flag as it reads
+     * it, which is exactly the write needed. Doing this on every arm makes the
+     * mode unreachable rather than merely documented. */
+    {
+        int p0 = rtc_alarm_is_pending(rtc_dev, 0);
+        int p1 = rtc_alarm_is_pending(rtc_dev, 1);
+        int isw = tuvm_isw.port ? gpio_pin_get_dt(&tuvm_isw) : -1;
+        if (p0 > 0 || p1 > 0 || isw > 0) {
+            printk("rtcalarm: pre-arm a1f=%d a2f=%d isw=%d (1=asserted)\n", p0, p1, isw);
+        }
+        /* The part's own control and status bytes, read raw, because the driver's
+         * return codes only say the WRITES were accepted. A1F setting while the
+         * line stays high has exactly two explanations — the interrupt output is
+         * not enabled, or the wire is not there — and these two bytes tell them
+         * apart. ctrl: bit2 INTCN, bit1 A2IE, bit0 A1IE. status: bit1 A2F, bit0 A1F.
+         * Bring-up instrument (#102); costs one 2-byte I2C read per arm. */
+        if (tuvm_ds3231.bus != NULL) {
+            uint8_t reg = 0x0E, cs[2] = {0, 0};
+            int rc2 = i2c_write_read_dt(&tuvm_ds3231, &reg, 1, cs, sizeof cs);
+            printk("rtcalarm: ctrl=%02x status=%02x (rc=%d) intcn=%d a1ie=%d\n",
+                   cs[0], cs[1], rc2, (cs[0] >> 2) & 1, cs[0] & 1);
+        }
+    }
+
+    /* Registered before the time is set, so an alarm that somehow fires between the
+       two writes has somewhere to go. */
+    tuvm_alarm_chan = chan_id;
+    tuvm_alarm_handle = handle_idx;
+    rc = rtc_alarm_set_callback(rtc_dev, TUVM_RTC_ALARM_ID, tuvm_rtc_alarm_cb, NULL);
+    if (rc < 0) { printk("rtcalarm: set_callback rc=%d\n", rc); return -1; }
+
+    memset(&tm, 0, sizeof tm);
+    tm.tm_hour = seconds_of_day / 3600;
+    tm.tm_min  = (seconds_of_day % 3600) / 60;
+    tm.tm_sec  = seconds_of_day % 60;
+
+    rc = rtc_alarm_set_time(rtc_dev, TUVM_RTC_ALARM_ID,
+                            RTC_ALARM_TIME_MASK_HOUR | RTC_ALARM_TIME_MASK_MINUTE |
+                            RTC_ALARM_TIME_MASK_SECOND, &tm);
+    if (rc < 0) { printk("rtcalarm: set_time rc=%d\n", rc); return -1; }
+
+    printk("rtcalarm: armed %02d:%02d:%02d isw=%d\n", tm.tm_hour, tm.tm_min, tm.tm_sec,
+           tuvm_isw.port ? gpio_pin_get_dt(&tuvm_isw) : -1);
+    return 0;
+}
+#else
+int rtc_alarm_arm(int seconds_of_day, int chan_id, int handle_idx)
+{
+    /* No RTC in this board's devicetree, or an image built without
+       CONFIG_RTC_ALARM. Refusing here is what makes the node print
+       `trigger=poll ONLY` instead of silently behaving like the polling node —
+       the failure class that cost twenty minutes over OEVM_NTP_SERVER6. */
+    (void)seconds_of_day; (void)chan_id; (void)handle_idx;
+    return -1;
+}
+#endif
+
 #if defined(CONFIG_SOC_FAMILY_ESPRESSIF_ESP32)
 #include <esp_sleep.h>
 #endif

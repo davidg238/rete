@@ -2582,6 +2582,25 @@ class Kernel usingPlatform: platform = () (
     public usingSeam: c = ( ^ self new setSeam: c )
   )
 
+  (* shipsBellsV3 §16.4 (#102): the RTC alarm capability. The RTC says WHEN — the
+     MCU's own timebase never competes as the trigger, which is the entire reason
+     for having a DS3231 at all.
+     `at:post:on:` answers TRUE when the alarm was armed and FALSE when it could
+     not be — no RTC, or an image built without CONFIG_RTC_ALARM. It does NOT
+     raise, and that is the deliberate difference from GpioPulse>>set:to:: an
+     undeclared pin is a wrong literal in the source, while an unarmable alarm is
+     a real state of a real board, and a node that must survive a MISSED alarm has
+     to survive an unarmable one by the same path. A raise would push that into an
+     exception handler and tempt a caller to treat it as impossible. *)
+  class RtcAlarm = ( | space seam | ) (
+    public at: secondsOfDay post: aMessage on: aChannel = (
+      ^ (seam rtcAlarmAt: secondsOfDay post: aMessage on: aChannel rootPath) == nil
+          ifTrue: [ false ] ifFalse: [ true ] )
+    setSpace: s seam: c = ( space:: s. seam:: c. ^ self )
+  ) : (
+    public usingSpace: s seam: c = ( ^ self new setSpace: s seam: c )
+  )
+
   (* Module-level validation/depth helpers (Milestone B Task 6) — NOT public:
      reachable only by sibling classes nested directly in this module, via
      their own `outer` link (slot 0), never by application code (an app
@@ -2880,6 +2899,13 @@ class Kernel usingPlatform: platform = () (
      nil when there is no RTC or the write was refused (a secondsOfDay outside
      0..86399), SMI 0 when the clock was set. *)
   public wallClockSetDate: yyyymmdd time: secondsOfDay = ( ^ platform wallClockSetDate: yyyymmdd time: secondsOfDay )
+  (* shipsBellsV3 (#102): the RTC's own alarm. Arms it for a time-of-day; when it
+     fires, `aMessage` is posted on `aChannelPath` through the ordinary pulse
+     mailbox — the same delivery the gpio and sensor seams use. nil when it cannot
+     be armed (no RTC, or an image without CONFIG_RTC_ALARM), which is a REAL
+     answer a node is expected to handle rather than an error: the fallback it
+     forces is what makes a missed alarm survivable. *)
+  public rtcAlarmAt: secondsOfDay post: aMessage on: aChannelPath = ( ^ platform rtcAlarmAt: secondsOfDay post: aMessage on: aChannelPath )
   public pumpEvents = ( ^ platform pumpEvents )
   (* webserver-channel-device spike, Task 3: the http driver's platform prims.
      Same thin-forwarder shape as the gpio/timer families above — the C-side
@@ -3025,5 +3051,10 @@ class Kernel usingPlatform: platform = () (
      EXPLICIT ACCESSOR — an app's `platform` is this Kernel instance, so a class
      nested here that nothing hands out simply does not exist for a node. *)
   public bell              = ( ^ Bell usingSeam: self )
+  (* shipsBellsV3 (#102): a fresh RtcAlarm wired to this Kernel instance as seam,
+     same shape as `gpio` — C owns the one alarm registration, so there is no
+     nsl-side registry to keep a single instance of. (Contrast `timers`, whose
+     pending table IS nsl-side and must be held.) *)
+  public rtcAlarm          = ( ^ RtcAlarm usingSpace: self space seam: self )
 ) : (
 )
