@@ -33,6 +33,12 @@ What the scoping buys: **no new prim, no Kconfig change, no ISR path.** `CONFIG_
 stays as `prj_esp32c6.conf:92` intends ("flip it in the same commit that lands the alarm seam,
 not before"), and this node uses only seams already witnessed on this board.
 
+**AMENDED 2026-08-03, same evening (David).** The DS3231 interrupt line is *wired* on this board,
+and the intent is "poll for now, int later" — so Alarm2 is **deferred on this device**, not
+scoped away to §9's battery version as the paragraph above frames it. The node should therefore
+be written so the trigger is replaceable: the schedule reacts to a `clock/tick` channel, and
+nothing above that channel should care whether the tick came from a 1 s repeater or an ISR.
+
 **§16.4's "no accumulated error" objection does not apply to this poll,** and the reason is D2
 rather than a concession: nothing here counts. The cost that IS real: a strike lands up to one
 poll period late — under a second, against a bell that rings for seconds.
@@ -89,9 +95,13 @@ midnight out loud.
 
 ### D6 — The clock may be improved by the network and may never be stopped by it.
 
-One NTP sync at boot, then one a day at `slot = 0` with `secondsOfDay >= 300` — §17.5's "a few
-minutes after midnight", 25 minutes clear of a strike, which matters because `ntpSyncTz:` BLOCKS
-up to the SNTP timeout and `kernel.nsl` says to call it only between strikes.
+One NTP sync at boot, then one a day **immediately after the midnight striking completes** —
+David's own statement of the cadence, 2026-08-03: *"after boot and then after midnight bells, it
+will set the RTC via NTP."* This is §17.5's "a few minutes after midnight" expressed as an event
+rather than a constant, and it is the better spelling: `ntpSyncTz:` BLOCKS up to the SNTP timeout
+and `kernel.nsl` says to call it only between strikes, so hanging it off the *end of the striking*
+satisfies that by construction instead of by a 300-second guess that has to be re-justified if
+eight bells ever take longer.
 
 A `nil` from NTP is shrugged off and the bell keeps ringing on the DS3231 (`MagTagClockNode`'s
 rule). The boot sync is additional to §17.5's daily one and justified separately: a boot is rare,
@@ -186,6 +196,15 @@ Then rebuilt at 1800 and left running to hear a real half hour.
 **The acceptance claim is audible and it is one sentence:** with the USB cables carrying nothing
 but power, the bell rings the correct count on the half hour, and rings it once.
 
+### D10 — A new named node. Nothing existing is renamed, folded in or replaced.
+
+`ShipsBellNodeC6.nsl` is added; `ThreadNtpNode.nsl` stays exactly as it is. David's standing rule,
+stated 2026-08-03: **the `zephyr/*.nsl` collection is a set of kept demonstrations, each showing a
+different aspect of nsl-tuvm** — the always-on reactor (`MagTagClockNode`), the run-once appliance
+with no VM between wakes (`MagTagDeepSleepNode`), the timebase witness (`ThreadNtpNode`), the
+protocol client (`PortaBridgeNodeC6`). Repurposing one deletes the aspect it demonstrated, with no
+trace that anything is missing.
+
 ## 6. What this leaves open
 
 - **#105 is untouched and still blocking.** The boot beep happens before the VM exists; no node
@@ -193,3 +212,15 @@ but power, the bell rings the correct count on the half hour, and rings it once.
 - **The cadence is unsettled** (§18.3). 50/500/1600 is a piezo starting point.
 - **Alarm2 is deferred, not dropped** (D1). §9's battery version needs it.
 - **porta check-in** (D9) is tomorrow's node.
+- **WiFi or Thread for the daily sync — UNRESOLVED, and it is the first question to settle.**
+  David described the bench as "power, rtc + wifi" on 2026-08-03. Everything witnessed on this
+  board syncs over **Thread**: `prj_esp32c6_thread.conf` carries `CONFIG_SNTP`, the node is an FTD
+  promoted to Router, and the NTP server is reached at a literal IPv6 ML-EID because the mesh has
+  no DNS64 (`fdc5:9109:9afe:97ea:9541:d963:f8d9:8567`, read out of the flash on the board itself).
+  **No C6 WiFi path exists in the build system** — `run.sh` scopes `prj_esp32_wifi.local.conf` to
+  the esp32/esp32s2 profiles and a C6 build ignores it. If "wifi" meant the mesh's uplink, nothing
+  changes and this design stands. If it meant the C6 should join WiFi directly, that is a separate
+  rung: a Kconfig layer, credentials, and a hostname path that Thread deliberately does without.
+- **Whether "the solenoid sounds bad" generalises past this device** — see the shipsBells design
+  §19. It was stated about this board; §17.1 chose the gong on evidence, and §3's run of five has
+  not been re-decided.

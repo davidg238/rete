@@ -861,3 +861,43 @@ The distance from here to a bell is therefore: the alarm seam (§16.4's Alarm2 o
 `CONFIG_RTC_ALARM=y` in the same commit), a node that computes the count from time-of-day, and
 the strike path moved from C's console thread to the gpio seam from nsl, where §11.2 always said
 the product path belongs.
+
+## 19. AMENDMENT (2026-08-03, same evening) — the solenoid is off this device for good
+
+**Stated by David after hearing the piezo ring: the solenoid is gone from this device, because
+it sounds bad.** The piezo is not a stand-in on this board any more — it is the ringer. "Ugly,
+but it works and you can hear it easily."
+
+**This corrects §18.3 for this device.** That section kept §8's coil-era guards on the grounds
+that "the coil is disconnected, not gone". On this board it is now gone, and the guards
+(`STRIKE_MAX_MS`, the 1 s cooldown, the 50 ms pattern width cap) are guarding a load that is not
+there. They are harmless where they sit — in `strike_console`, which §11.2 calls bench
+instrumentation — so nothing needs deleting today; but no future work on this device should
+reason about coil duty cycle, and §11.2's 5–10 ms bracket describes a load this board no longer
+carries.
+
+**The acoustic comparison, recorded because it is the reason and it is measurable by ear:**
+
+| ringer | verdict |
+|---|---|
+| MagTag DAC beeper | **tiny** — audible only standing right beside it |
+| doorbell chime (§12's gate) | sounds like a doorbell — rejected §17.1 |
+| solenoid + telephone gong (§17.1) | **sounds bad** — off this device, 2026-08-03 |
+| C6 piezo, 3.3 V NPN driver (§18.1) | ugly, but audible across a room, and it works |
+
+**What this does NOT settle, and it is deliberately left open:** whether §17.1's gong-and-striker
+decision survives for §3's run of five, or whether "the solenoid sounds bad" generalises off this
+bench. §17.1 chose that pairing on evidence and this amendment was stated about *this device*.
+The mechanical-striker alternative (§13) is untouched either way — it was always about *how the
+hammer is released*, not about what it hits.
+
+**Consequences that follow immediately.** #105's unexplained boot energisation is still real and
+still audible (§18.4), but on this device it no longer gates a coil — it is a beep, not a burnt
+winding, and its priority should be re-read in that light. §17.6's "must be answered before a
+coil is reconnected" remains correct as written; there is simply no coil here to reconnect.
+
+**Also settled this evening, for the always-on node** (design record:
+`docs/design/2026-08-03-c6-shipsbell-always-on-node-design.md`): the device is wall-powered and
+**never deep-sleeps** — it interrogates the RTC instead. The DS3231 interrupt line **is wired**,
+and polling is a deliberate first step with the interrupt a later upgrade **on this same board**,
+not only on §9's battery version. That narrows §16.4: Alarm2 is deferred here, not scoped away.
