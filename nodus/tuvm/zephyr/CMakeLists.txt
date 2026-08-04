@@ -42,6 +42,33 @@ target_sources(app PRIVATE
 )
 target_include_directories(app PRIVATE ${TUVM_SRC}/src)
 
+# ---- Build id (#56 §5.4, part of #74) --------------------------------------
+# The firmware prints this before the VM starts, and run.sh files the flashed
+# ELF under the same string, so a log segment always names the binary it came
+# from. OUTPUT lists a file the command never creates, which is what forces the
+# command to re-run on every build — the timestamp must be this build's, not the
+# first build's. Two builds keyed alike would silently archive one binary over
+# another, which is the failure D4's refusal exists to prevent.
+#
+# NOT GNU build-id: that was tried on hardware and rejected. Any SHT_NOTE input
+# section makes GNU ld synthesise a PT_NOTE spanning the whole rodata region and
+# the Espressif image builder mishandles it — the board boots, then emits
+# garbage. Three-boot A/B/A attribution in the design doc §7. Do not re-attempt
+# without reading it.
+set(TUVM_BUILD_ID_C   ${CMAKE_CURRENT_BINARY_DIR}/tuvm_build_id.c)
+set(TUVM_BUILD_ID_TXT ${CMAKE_CURRENT_BINARY_DIR}/tuvm_build_id.txt)
+add_custom_command(
+  OUTPUT ${TUVM_BUILD_ID_C} ${TUVM_BUILD_ID_TXT} ${CMAKE_CURRENT_BINARY_DIR}/build_id.always
+  COMMAND ${CMAKE_COMMAND}
+          -DSRC=${CMAKE_CURRENT_SOURCE_DIR}
+          -DOUT_C=${TUVM_BUILD_ID_C}
+          -DOUT_TXT=${TUVM_BUILD_ID_TXT}
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/gen_build_id.cmake
+  COMMENT "Baking tuvm build id")
+add_custom_target(tuvm_build_id_gen DEPENDS ${TUVM_BUILD_ID_C})
+target_sources(app PRIVATE ${TUVM_BUILD_ID_C})
+add_dependencies(app tuvm_build_id_gen)
+
 # OpenThread bring-up TU (tuvm_thread_bringup). Gated on OPENTHREAD so the WROOM
 # (WiFi, no Thread) compiles it away. ONE shared impl: nRF (NCS) and C6 (upstream
 # 4.2) expose the same no-arg OT API, so the earlier board split was redundant

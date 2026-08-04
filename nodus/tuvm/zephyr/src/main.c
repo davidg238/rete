@@ -1398,6 +1398,11 @@ extern oop  oimg_bootstrap(oop entry_vtable);
 extern void (*gc_additional_roots_hook)(void);
 extern uint64_t (*oevm_millis)(void);
 
+/* Baked by cmake/gen_build_id.cmake into a generated TU, regenerated every
+   build (#56 §5.4). A rodata literal, so `strings zephyr.elf` recovers it —
+   which is what makes the ELF archive repairable after the fact. */
+extern const char tuvm_build_id[];
+
 static void oevm_roots_callback(void) {
     /* Standard GC roots (vm_stack, current_frame, g_active_stack) are scanned
        automatically by gc.c; this gate needs no additional roots. */
@@ -1664,6 +1669,13 @@ int main(void) {
 #if DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart)
     k_sleep(K_SECONDS(3));
 #endif
+
+    /* Before anything that can die: a VM that faults on its first instruction
+       must still leave a log segment naming the binary it faulted in (#56 §5.4).
+       After the USB-CDC wait above, or on those boards the banner is emitted
+       into an unenumerated console and lost — the same "Issue A" reason that
+       sleep exists. printk, not printf: the fault path gags newlib stdio. */
+    printk("tuvm: build-id %s\n", tuvm_build_id);
 
     gc_additional_roots_hook = oevm_roots_callback;
     oevm_millis = zephyr_millis;
