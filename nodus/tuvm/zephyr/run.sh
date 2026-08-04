@@ -350,6 +350,20 @@ if [ "$DO_FLASH" = 1 ]; then
 fi
 
 if [ "${CAPTURE:-0}" != 0 ]; then
-  echo "[watch] ${CAPTURE}s"
-  python3 "$ZDIR/capture_coredump.py" "$CAPTURE"
+  if [ "$BOARD_ID" = esp32c6 ]; then
+    # D6: the collector owns the port, so --capture is a READ of what it already
+    # has. This gains rather than loses — it shows the boot you just triggered
+    # even if it fired before you asked, which is the exact failure that lost
+    # the first AMG8833 panic.
+    echo "[watch] last ${CAPTURE}s from the collector log"
+    # `--` is load-bearing: without it argparse reads -180s as an option flag.
+    python3 "$ZDIR/tools/console/logread.py" since -- "-${CAPTURE}s"
+  else
+    # esp32 / esp32s2 keep the direct serial read, including its DTR/RTS reset
+    # pulse (capture_coredump.py:9), which is a no-op on the C6 but real here —
+    # on the esp32 that same CP210x port is both flash port and console. They
+    # get a collector when they get a design (#56 §10).
+    echo "[watch] ${CAPTURE}s"
+    python3 "$ZDIR/capture_coredump.py" "$CAPTURE"
+  fi
 fi
