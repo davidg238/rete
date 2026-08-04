@@ -1677,6 +1677,18 @@ int main(void) {
        sleep exists. printk, not printf: the fault path gags newlib stdio. */
     printk("tuvm: build-id %s\n", tuvm_build_id);
 
+#ifdef CONFIG_TUVM_FAULT_TRIGGER
+    /* #56 D8: fault on purpose, from a line whose number is the thing under
+       test. `volatile` so the compiler cannot treat this as UB it may delete.
+       After the build-id banner so the run is attributable — a fault whose log
+       segment names no binary is exactly what D4 refuses to symbolize. */
+    printk("tuvm: faulting on purpose (CONFIG_TUVM_FAULT_TRIGGER)\n");
+    {
+        volatile int *tuvm_fault_target = (volatile int *)0;
+        *tuvm_fault_target = 1;
+    }
+#endif
+
     gc_additional_roots_hook = oevm_roots_callback;
     oevm_millis = zephyr_millis;
 
