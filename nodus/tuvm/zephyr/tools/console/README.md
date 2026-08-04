@@ -50,6 +50,54 @@ permanent holder there would fight `--flash`.
 open. It shows the boot you just triggered even if it happened before you
 asked.
 
+## Symbolizing
+
+    ./logread.py symbolize                 # last run with a panic
+    ./logread.py symbolize --run 12
+    ./logread.py symbolize --assume-build <key>
+
+`symbolize` resolves the ELF from the run's own `tuvm: build-id` line and
+**refuses** if the archive has no match (design D4). It never falls back to
+`build-*/zephyr/zephyr.elf`: a confident wrong source location is worse than
+no answer, because it looks like one. Exit 5 is a refusal.
+
+`--assume-build` is the one way past that, for a run that faulted before its
+banner printed. It must be typed; nothing infers it. Every line of the result
+is prefixed with the key that was assumed, so the assumption travels with the
+output. `~/.local/state/rete/elf/last-flashed-c6` will tell you what was
+flashed last — read it yourself, the tool will not.
+
+It needs two things that are easy to get wrong:
+
+- **The Zephyr venv's Python**, because `scripts/coredump/` imports
+  `pyelftools`, which is not in the system interpreter. Located automatically
+  at `~/zephyr-esp32/.venv/bin/python`; override with `RETE_ZEPHYR_PYTHON`.
+- **`riscv64-zephyr-elf-gdb`** from the SDK, found on `PATH` or under
+  `~/zephyr-sdk-*/`; override with `RETE_GDB`. It will not fall back to the
+  host `gdb`, which produces plausible and wrong output for a RISC-V core.
+
+The stub is driven over `--pipe`, not a TCP port. It does `listen(1)` +
+`accept()` exactly once, so anything that opens a probe connection first
+consumes the one gdb needs and the session dies in packet errors.
+
+## Health
+
+    ./check.py ; echo $?        # 0 = alive, 1 = down or wedged
+
+Asserts a heartbeat newer than 180 s — three missed beats, so one slow write
+is not a false alarm. It is a positive assertion; device traffic does not
+count, because a chatty board proves the *board* is alive, not that the
+collector is still writing.
+
+To confirm it can actually fail:
+
+    systemctl --user stop rete-console@c6
+    # wait past 180s
+    ./check.py ; echo $?        # must be 1
+    systemctl --user start rete-console@c6
+
+A check that passes with the daemon stopped is measuring nothing (design §9).
+
 ## Reading the markers
 
 Lines beginning `@@rete-console@@` are the collector's own, not the device's:
