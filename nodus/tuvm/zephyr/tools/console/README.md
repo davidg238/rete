@@ -82,21 +82,36 @@ consumes the one gdb needs and the session dies in packet errors.
 
 ## Health
 
-    ./check.py ; echo $?        # 0 = alive, 1 = down or wedged
+    ./check.py ; echo $?        # 0 = alive and attached, 1 = down, wedged or orphaned
 
-Asserts a heartbeat newer than 180 s — three missed beats, so one slow write
-is not a false alarm. It is a positive assertion; device traffic does not
-count, because a chatty board proves the *board* is alive, not that the
-collector is still writing.
+Two assertions, and it takes both:
 
-To confirm it can actually fail:
+- **a heartbeat newer than 180 s** — three missed beats, so one slow write is
+  not a false alarm. A positive assertion; device traffic does not count,
+  because a chatty board proves the *board* is alive, not that the collector is
+  still writing.
+- **the port is attached** — the collector's own most recent statement about
+  its port is not `down`.
+
+The second one is #147, and it is the mirror of the first: a heartbeat is the
+collector writing about *itself*, so it proves the process and says nothing
+about the pipeline. On 2026-08-03 a C6 swap changed the `/dev/serial/by-id/`
+hash, the port went away at 21:04, and this check printed `ok: collector alive`
+for seven minutes. **A health check that reads only the process proves the
+process, not the pipeline.**
+
+To confirm it can actually fail, both ways:
 
     systemctl --user stop rete-console@c6
     # wait past 180s
-    ./check.py ; echo $?        # must be 1
+    ./check.py ; echo $?        # must be 1 — the heartbeat gate
     systemctl --user start rete-console@c6
 
-A check that passes with the daemon stopped is measuring nothing (design §9).
+    # then, with the collector running, unplug the console adapter
+    ./check.py ; echo $?        # must be 1 — the port gate
+
+A check that passes with the daemon stopped is measuring nothing (design §9);
+a check that passes with the adapter unplugged is measuring only half of it.
 
 ## Reading the markers
 
@@ -105,7 +120,8 @@ Lines beginning `@@rete-console@@` are the collector's own, not the device's:
 | marker | means |
 |---|---|
 | `collector started pid=… port=…` | a fresh collector process took the port |
-| `heartbeat` | the collector was alive at this instant, device silent or not |
+| `heartbeat port=up` | the collector was alive at this instant AND had the port, device silent or not |
+| `heartbeat port=down` | the collector was alive and had **no input** — it is collecting nothing |
 | `port lost: …` | the port went away; the reason is verbatim from the OS |
 | `port reacquired` | it came back |
 | `pruned …` | a day's log was deleted to stay under budget |
@@ -113,6 +129,11 @@ Lines beginning `@@rete-console@@` are the collector's own, not the device's:
 The heartbeat exists because a log that stops looks identical to a board that
 went quiet. Every health check asserts a *recent heartbeat is present* — never
 the absence of an error (design D7, §8).
+
+`port lost` is written once, at the transition; the heartbeat restates the port
+state on every beat (#147). That is what carries the state across a midnight
+rollover — a loss recorded in yesterday's file is invisible to anything reading
+today's.
 
 ## Testing
 

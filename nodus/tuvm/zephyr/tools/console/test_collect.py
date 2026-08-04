@@ -110,3 +110,35 @@ def test_second_instance_is_refused(tmp_path):
 def test_lock_is_released_on_close(tmp_path):
     acquire_lock(str(tmp_path), "c6").close()
     acquire_lock(str(tmp_path), "c6").close()   # must not raise
+
+
+def test_the_heartbeat_states_the_port_is_up(tmp_path):
+    # #147: health is evidence of INPUT, so the beat says what the port is doing.
+    s = LogStore(str(tmp_path), "c6")
+    clock = Clock()
+    c = Collector("/dev/fake", s, heartbeat_s=60.0, now=clock,
+                  open_port=lambda: FakePort([b"", b""]))
+    c.step()
+    clock.advance(61)
+    c.step()
+    assert "%s heartbeat port=up" % MARKER in body(s)
+
+
+def test_the_heartbeat_states_the_port_is_down_while_it_stays_down(tmp_path):
+    # The transition marker is written once; the beat restates the state, so a
+    # collector that has been orphaned since yesterday still says so today.
+    s = LogStore(str(tmp_path), "c6")
+    clock = Clock()
+
+    def refuse():
+        raise OSError("no such device")
+
+    c = Collector("/dev/fake", s, heartbeat_s=60.0, now=clock, open_port=refuse)
+    c.step()
+    clock.advance(61)
+    c.step()
+    clock.advance(61)
+    c.step()
+    text = body(s)
+    assert text.count("%s port lost" % MARKER) == 1
+    assert text.count("%s heartbeat port=down" % MARKER) == 2

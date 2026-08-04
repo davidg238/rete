@@ -402,4 +402,43 @@ never read.
 
 **First finding.** The collector immediately surfaced a DS3231 RTC init failure on
 every C6 boot (`rtc_ds3231.c:253`), pre-existing and unrelated to this work.
-Filed as #146.
+Filed as #146, and **closed 2026-08-04 by the collector's own log**: the six boots
+between 20:09 and 20:20 print it; the boots at 21:13, 21:16 and 21:18 — after the
+board on the bench was changed — do not, and those same boots print
+`wallclock: set` and `NTP OK`. Same image config either way (`prj_esp32c6.conf` is
+the base for both the plain and the Thread builds, so `CONFIG_RTC_DS3231=y` is in
+both). The two lines are the driver reporting that **nothing answered at 0x68** —
+which is what `CONFIG_LOG_MODE_MINIMAL` was turned on for at `prj_esp32c6.conf:96`,
+"what makes an I2C fault legible". Not a bug, and not to be silenced: on a board
+that has the module the boot is clean, and on a board that does not, the errors
+are the intended report. Recorded because the fixture `c6-boot.log` is one of the
+early boots and carries the lines forever.
+
+### D7 amended — a heartbeat proves the process, not the pipeline (#147, 2026-08-04)
+
+**The §8 health gate passed while the collector was collecting nothing.** On
+2026-08-03 the C6 on the bench was replaced; the CP2102N's `/dev/serial/by-id/`
+hash changed with it; the collector logged one `port lost: device reports
+readiness to read but returned no data` at 21:04 and then heartbeated at a port
+that had left the bench for seven minutes. `systemctl --user status` read *active
+(running)* throughout and `check.py` printed **`ok: collector alive`**, because it
+gated on heartbeat freshness alone — and a heartbeat is the collector writing
+about *itself*.
+
+**A collector's health is evidence of INPUT.** `check.py` now takes two
+assertions: a recent heartbeat *and* the collector's own most recent statement
+that its port is attached. This is not the absence-assertion D7 forbids — it fires
+on a positive statement of trouble, not on the failure to find one.
+
+**The heartbeat carries the port state** (`heartbeat port=up` / `port=down`)
+rather than a new marker, because `port lost` is written once at the transition
+and the logs roll at midnight: a loss recorded in yesterday's file is invisible to
+anything reading today's, which is exactly the state this bench was in on the
+morning of 2026-08-04. Restating it every beat costs one field and removes the
+cross-day hole entirely.
+
+Falsified against the real incident rather than a fixture: replaying the actual
+2026-08-03 log up to 21:11:59 through the new `check_health` returns *"the port
+has been lost for 464s — the collector is running and collecting nothing"*, in the
+same seven-minute window that previously read green. A pre-#147 heartbeat with no
+`port=` field states nothing about the port and is treated as such.

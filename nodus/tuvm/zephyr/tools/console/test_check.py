@@ -67,3 +67,47 @@ def test_device_traffic_alone_is_not_health(tmp_path):
     s.append("%s heartbeat" % MARKER, now - dt.timedelta(seconds=400))
     s.append("TIMER OK", now)
     assert check.check_health(str(tmp_path), "c6", now=now)
+
+
+def test_a_lost_port_fails_even_with_a_fresh_heartbeat(tmp_path):
+    # #147: the collector heartbeating about ITSELF proves the process, not the
+    # pipeline. Witnessed 2026-08-03: a C6 swap changed the by-id hash, the port
+    # went away at 21:04, and check.py printed `ok: collector alive` for seven
+    # minutes while nothing was being collected.
+    s = LogStore(str(tmp_path), "c6")
+    now = dt.datetime.now(dt.timezone.utc).astimezone()
+    s.append("%s port lost: device disconnected" % MARKER,
+             now - dt.timedelta(seconds=400))
+    s.append("%s heartbeat port=down" % MARKER, now)
+    problems = check.check_health(str(tmp_path), "c6", now=now)
+    assert problems and "port" in problems[0]
+
+
+def test_a_reacquired_port_clears_the_failure(tmp_path):
+    s = LogStore(str(tmp_path), "c6")
+    now = dt.datetime.now(dt.timezone.utc).astimezone()
+    s.append("%s port lost: device disconnected" % MARKER,
+             now - dt.timedelta(seconds=400))
+    s.append("%s port reacquired" % MARKER, now - dt.timedelta(seconds=300))
+    s.append("%s heartbeat port=up" % MARKER, now)
+    assert check.check_health(str(tmp_path), "c6", now=now) == []
+
+
+def test_the_latest_port_statement_wins_whatever_carries_it(tmp_path):
+    # The heartbeat restates the port state every beat precisely so the current
+    # day's file always carries it: a `port lost` written yesterday would be
+    # invisible to a check that reads only the latest day.
+    s = LogStore(str(tmp_path), "c6")
+    now = dt.datetime.now(dt.timezone.utc).astimezone()
+    s.append("%s port reacquired" % MARKER, now - dt.timedelta(seconds=300))
+    s.append("%s heartbeat port=down" % MARKER, now - dt.timedelta(seconds=30))
+    assert check.check_health(str(tmp_path), "c6", now=now)
+
+
+def test_a_legacy_heartbeat_states_nothing_about_the_port(tmp_path):
+    # Heartbeats written before #147 carry no port field. Absence of a statement
+    # is not a statement of trouble — the age gate still applies, nothing else.
+    s = LogStore(str(tmp_path), "c6")
+    now = dt.datetime.now(dt.timezone.utc).astimezone()
+    s.append("%s heartbeat" % MARKER, now)
+    assert check.check_health(str(tmp_path), "c6", now=now) == []

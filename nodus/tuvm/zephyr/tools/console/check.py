@@ -1,12 +1,22 @@
 #!/usr/bin/env python3
-"""Is the collector actually collecting? (#56 §8, D7)
+"""Is the collector actually collecting? (#56 §8, D7; #147)
 
-Asserts a RECENT HEARTBEAT IS PRESENT. Never asserts the absence of an error
-message: a log that stops looks exactly like a board that went quiet, and only
-a positive signal tells them apart.
+Two assertions, and it takes both:
+
+1. A RECENT HEARTBEAT IS PRESENT — the collector is still writing.
+2. THE PORT IS ATTACHED — the collector still has an input.
+
+Never asserts the absence of an error message: a log that stops looks exactly
+like a board that went quiet, and only a positive signal tells them apart. The
+port gate is not an absence either — it fires on the collector's own most
+recent *statement* about its port, which every heartbeat now carries.
 
 Device traffic does not count. A chatty board proves the BOARD is alive; only
-the collector's own marker proves the collector is still writing.
+the collector's own marker proves the collector is still writing. But #147 is
+the mirror of that: a heartbeat is the collector writing about ITSELF, so
+heartbeat-alone proves the process and says nothing about the pipeline. On
+2026-08-03 a C6 swap changed the by-id hash, the port went away at 21:04, and
+this check printed `ok: collector alive` for seven minutes.
 
 180 s = three missed 60 s beats, so one slow write is not a false alarm.
 """
@@ -28,6 +38,8 @@ def check_health(root, board, now=None, max_age_s=MAX_AGE_S):
         return ["no log files at all under %s — the collector has never run" % root]
 
     latest = None
+    port_down_since = None      # None = the collector's last word was "attached"
+    port_reason = ""
     path = store.path_for(days[-1])
     with open(path) as fh:
         for line in fh:
@@ -43,14 +55,35 @@ def check_health(root, board, now=None, max_age_s=MAX_AGE_S):
             if (text.startswith("%s heartbeat" % MARKER)
                     or text.startswith("%s collector started" % MARKER)):
                 latest = when
+            # The most recent statement about the port wins, whichever marker
+            # carries it. A heartbeat with no `port=` field is a pre-#147
+            # collector saying nothing about its port — which is not a report
+            # of trouble, so it changes nothing either way.
+            if text.startswith("%s port lost" % MARKER):
+                port_down_since = when
+                port_reason = text.split("port lost:", 1)[-1].strip()
+            elif text.startswith("%s port reacquired" % MARKER):
+                port_down_since = None
+            elif text.startswith("%s heartbeat port=down" % MARKER):
+                if port_down_since is None:
+                    port_down_since = when
+            elif text.startswith("%s heartbeat port=up" % MARKER):
+                port_down_since = None
+
     if latest is None:
         return ["no collector marker in %s — the collector is not writing" % path]
 
+    problems = []
     age = (now - latest).total_seconds()
     if age > max_age_s:
-        return ["last heartbeat is %.0fs old (limit %.0fs) — the collector is "
-                "down or wedged" % (age, max_age_s)]
-    return []
+        problems.append("last heartbeat is %.0fs old (limit %.0fs) — the "
+                        "collector is down or wedged" % (age, max_age_s))
+    if port_down_since is not None:
+        down_for = (now - port_down_since).total_seconds()
+        problems.append("the port has been lost for %.0fs — the collector is "
+                        "running and collecting nothing%s"
+                        % (down_for, ": %s" % port_reason if port_reason else ""))
+    return problems
 
 
 def main(argv=None):

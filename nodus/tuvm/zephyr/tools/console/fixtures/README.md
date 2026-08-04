@@ -6,6 +6,12 @@ trimmed beyond run boundaries.
 
 - `c6-boot.log` — a clean boot of a default build.
   Key `porta-v1-final-779-gc76a6d5-dirty-20260803T201928`, 37 lines, no `#CD:`.
+  It carries `E: Couldn't set control register.` / `E: Failed to init settings.`
+  because it was captured on a C6 with no DS3231 on the bus. Those two lines are
+  the RTC driver correctly reporting an absent part, not a fault in the capture
+  (#146, and the reasoning is at `prj_esp32c6.conf`'s RTC block). **Do not
+  regenerate the fixture to make them go away** — a fixture edited to look
+  cleaner is measuring the edit.
 - `c6-fault.log` — a boot of a `prj_esp32c6_faultgate.conf` build, faulting on
   purpose at `src/main.c:1688`, with the 270 `#CD:` coredump lines that follow.
   Key `porta-v1-final-779-gc76a6d5-dirty-20260803T202011`, 329 lines.

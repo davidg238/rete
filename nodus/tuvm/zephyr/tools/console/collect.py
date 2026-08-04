@@ -83,10 +83,10 @@ class Collector:
             try:
                 self.port = self.open_port()
             except Exception as exc:
-                self._beat()
                 if not self._lost:
                     self._mark("port lost: %s" % exc)
                     self._lost = True
+                self._beat()
                 return
             if self._lost:
                 self._mark("port reacquired")
@@ -110,9 +110,13 @@ class Collector:
         self._beat()
 
     def _beat(self):
+        # #147: the beat restates the PORT state, not just the process's own
+        # pulse. `port lost` is written once, at the transition, so a collector
+        # orphaned yesterday would look silent-but-fine in today's file; the
+        # beat is what carries the state forward into every day and every tail.
         now = self.now()
         if (now - self._last_beat).total_seconds() >= self.heartbeat_s:
-            self._mark("heartbeat")
+            self._mark("heartbeat port=%s" % ("down" if self._lost else "up"))
             self._last_beat = now
 
     def run(self, stop=None):
