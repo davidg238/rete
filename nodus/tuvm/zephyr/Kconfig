@@ -29,4 +29,17 @@ config TUVM_NET_HEARTBEAT_MS
 	default 2000
 	depends on TUVM_NET_HEARTBEAT
 
+# #56 D8. Default n so it is not merely unreachable in a normal build but
+# absent from it. Turned on by prj_esp32c6_faultgate.conf (run.sh --conf-extra),
+# which also enables the coredump backend — a fault with no #CD: lines is a
+# banner, not evidence. Same shape as TUVM_NET_HEARTBEAT above.
+config TUVM_FAULT_TRIGGER
+	bool "Fault on purpose at boot, to exercise the symbolizing path (#56)"
+	default n
+	help
+	  Dereferences a null pointer from a known source line shortly after boot.
+	  Exists so `logread.py symbolize` is proven by a scripted gate rather than
+	  by the next real incident. If this is set in a build you did not
+	  deliberately configure, that build is wrong.
+
 source "Kconfig.zephyr"

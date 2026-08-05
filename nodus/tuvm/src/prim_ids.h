@@ -381,4 +381,21 @@
 #define PRIM_pf_spaceSeq          138
 #define PRIM_pf_spaceStamp        139
 #define PRIM_pf_spaceChangedSince 140
+
+/* shipsBellsV3 (#102): `rtcAlarmAt: secondsOfDay post: msg on: 'path'` — the RTC
+   says WHEN. Arms the DS3231's Alarm1 (the one with a seconds field) for a
+   time-of-day; when it fires, the driver's workqueue callback posts `msg` on the
+   interned channel through the ordinary pulse mailbox. Mirrors
+   sensorArmEventPost:on:threshold: exactly: the path is interned and the message
+   oop pinned via an M6 handle HERE, in thread context, because the delivery side
+   must never touch the VM.
+   FULL match mask (hour+minute+second), i.e. once per day, and the node re-arms
+   after every strike — a repeating mask would have to encode "every half hour",
+   which the part cannot express, and re-arming is needed regardless.
+   Answers nil when the alarm cannot be armed: no RTC, or an image built without
+   CONFIG_RTC_ALARM. A node that reads nil degrades to its own watchdog rather
+   than falling silent, which is the whole point of having one.
+   Appended after spaceChangedSince:under:max:; no pre-existing id shifts.
+   Counted (not computed): the 141st PRIM_NAMES entry. */
+#define PRIM_pf_rtcAlarmAt        141
 #endif /* OEVM_PRIM_IDS_H */

@@ -48,6 +48,33 @@ convenience.
   Add `~/workspaceToit/nodus` to reach the frozen Toit v1 implementation (the GitHub repo
   is now `nodus-v1`; the local directory keeps its old name).
 
+## Design posture (David, 2026-08-04)
+
+How to make decisions here. These override the instinct to be thorough.
+
+- **This is an evolving story, so expect the documents to contradict each other.** When
+  two documents of record disagree, that is a finding, not an error to route around —
+  resolve it and make them agree. Do not preserve both readings, and do not implement to
+  whichever one you happened to read.
+- **Resolve for simplicity, robustness and expressiveness, with a dash of elegance.**
+  In that order. See also the standing preference for **mechanism minimization**: fewer
+  distinct mechanisms and API symmetry beat convenience or low blast radius, and
+  call-site churn is an acceptable price.
+- **There is ZERO need to maintain backward compatibility, and no "fleet" to protect.**
+  Both ends of the wire are reflashed together. A shape change is an edit to the
+  documents and a rebuild — never a versioned field, a dual-read, or a deprecation
+  window. This is what makes corrections possible instead of accretions: the usual way a
+  record grows wrong is that each field was added *beside* what was there rather than
+  *instead of* it.
+- **Prefer progress, spikes and data over complex decisions made early.** Limit scope and
+  get something working. **Do not invent tunables before there is data to choose them
+  from** — if a design needs N invented constants before it can run once, ship the
+  degenerate case whose cost can be measured, and let the measurement earn the knobs
+  back. Record what would earn them, so the deferral is falsifiable rather than vague.
+- **Remember the lineage: `st/berry` → `ns/berry` → `ns/oevm` → `nsl/tuvm`.** This system
+  has been rewritten wholesale four times to get here. Nothing is built to last; it is
+  built to teach. Design accordingly.
+
 ## Docs convention (2026-07-14)
 
 - **Design specs are decision records** and live in `docs/design/` (moved from

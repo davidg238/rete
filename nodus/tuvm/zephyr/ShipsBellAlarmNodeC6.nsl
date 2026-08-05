@@ -1,0 +1,331 @@
+(*
+ShipsBellAlarmNodeC6 — the same bell, triggered by the RTC instead of by a poll.
+
+Design: docs/design/2026-08-03-c6-shipsbell-always-on-node-design.md, with the
+trigger taken from §16.4 of zephyr/boards/shipsBells/2026-07-26-shipsbellsv3-design.md.
+Sibling of `ShipsBellNodeC6.nsl`, which stays exactly as it is: that node is the
+POLL demonstration and this one is the INTERRUPT demonstration, and deleting either
+deletes the aspect it demonstrates (D10).
+
+THE DIVISION THIS NODE EXISTS TO SHOW: **the RTC says when; the MCU's own timer only
+ever says "the RTC didn't."** The MCU timebase never competes as a trigger, which is
+the entire reason for fitting a DS3231. The poll version measured the cost of the
+other arrangement: across one day its strikes walked from 174 ms to 465 ms after the
+boundary — about 15 ppm of MCU crystal against the RTC, visible as a drift and not
+as jitter (2026-08-04).
+
+THREE SOURCES, ONE REACTION. `clock/tick` is fed by:
+
+  1. THE ALARM, at boundary − 5 s. DS3231 Alarm1 (Alarm2 has no seconds register),
+     re-armed after every strike, delivered through the driver's own ISW workqueue.
+  2. THE COUNTDOWN, a one-shot armed by (1) for the boundary itself. This is what
+     actually strikes, so the strike instant is a local timer over 5 s rather than
+     an I2C read in the interrupt path.
+  3. THE WATCHDOG, a one-shot armed at each strike for the NEXT boundary + 2 s.
+
+Nothing above `clock/tick` knows which one arrived. Every one of them does the same
+thing: re-derive the slot from the clock and let the ratchet decide. That is D1's
+amendment taken literally, and it is why adding a second trigger needs no new state.
+
+WHY A WATCHDOG AND NOT A BACKSTOP POLL. §16.4 is right that "a missed edge is
+silent", and the modes that can eat an edge are specific: a failed re-arm, or a
+failed A2F clear — INT/SQW is a LEVEL, so if the flag is never cleared the line stays
+asserted and the next alarm produces no new edge at all. Both have one signature: an
+alarm we armed did not fire when it was due. That is a DEADLINE, and a deadline wants
+a one-shot, not a repeater. A 60 s poll would ring up to 60 s late; this rings 2 s
+late. And between boundaries the MCU holds exactly one armed timer and is otherwise
+idle — the same posture as a pure interrupt, so §9's battery version is not
+foreclosed by this design the way a poll would foreclose it.
+
+The watchdog fires DURING the pattern in the healthy case (boundary + 2 s, against an
+eight-bell pattern that runs 6.88 s). That is not a collision, and the reason is worth
+stating because it is what makes 2 s honest rather than lucky: **the ratchet advances
+`lastSlot` when the ring STARTS, not when it finishes**, so the watchdog's tick
+derives a slot that has already been rung and does nothing. If the ratchet advanced at
+the end, this grace would have to clear 6.88 s.
+
+The watchdog is also the only DIAGNOSTIC here. When it fires and finds the boundary
+unrung, that is positive evidence the alarm failed, and it says so. A poll could never
+report that, because it would be ringing everything and the alarm's failure would be
+invisible underneath.
+
+BUILD IT WITH BOTH FRAGMENTS OR IT IS THE POLLING NODE WEARING THIS NAME:
+
+  OEVM_NTP_SERVER6=fdc5:9109:9afe:97ea:9541:d963:f8d9:8567 \
+  TUVM_SOLENOID_CONSOLE=1 \
+  ./run.sh --board esp32c6 --node ShipsBellAlarmNodeC6.nsl \
+           --conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_rtcalarm.conf" \
+           --pristine --flash
+
+Without `prj_esp32c6_rtcalarm.conf` there is no `CONFIG_RTC_ALARM`, `rtcAlarm at:`
+answers false, and the node runs on its watchdog alone — correct behaviour, wrong
+node. So it PRINTS ITS TRIGGER at boot and names what is missing. That line exists
+because this bench lost twenty minutes on 2026-08-04 to `OEVM_NTP_SERVER6` being
+absent from a build and the node correctly, quietly, carrying on without it.
+
+Dialect: `[ ... ] whileTrue:`, never `repeat`. No modulo in nsl — every one is
+spelled `n - ((n // d) * d)`. State lives in instance slots. ONE `Timers` instance,
+held in a slot: `platform timers` answers a fresh one per call and `dispatch:`
+silently drops a token it does not know.
+
+expect (C6 console, wall-powered):
+shipsbell(alarm) ready, slot 1800 s, lead 5 s, watchdog +2 s, 10/500/1600 ms
+rtcalarm: armed 14:59:55
+bell slot 30 at 15:00:00 — 6 bells
+*)
+class ShipsBellAlarmNodeC6 packageUsing: manifest = (
+  | plat space timers tick bellCh
+    lastSlot. striking ::= false. strokeCount ::= 0. strokeIndex ::= 0. pinOn ::= false.
+    haveClock ::= false. gpioMissing ::= false. midnightPending ::= false.
+    alarmOk ::= false. armedFor. | ) (
+
+  (* --- boot --------------------------------------------------------------- *)
+
+  public main: platform args: args = (
+    plat:: platform.
+    space:: plat space.
+
+    timers:: plat timers.                (* HOLD ONE — see the header *)
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+
+    (* ONE reaction, three sources: the alarm, the countdown, the watchdog. *)
+    tick:: space channel: 'clock/tick'.
+    tick whenever: '' do: [ :m | self onTick ].
+
+    bellCh:: space channel: 'bell/stroke'.
+    bellCh whenever: '' do: [ :m | self strokeStep ].
+
+    ('shipsbell(alarm) ready, slot ' , self slotSeconds printString ,
+      ' s, lead ' , self leadSeconds printString ,
+      ' s, watchdog +' , (self graceMillis // 1000) printString , ' s, ' ,
+      self widthMillis printString , '/' , self pairGapMillis printString , '/' ,
+      self setGapMillis printString , ' ms') out.
+
+    self syncClock.
+    self showClock.
+
+    (* Seed and arm. Nothing rings at boot (D4). *)
+    self seedAndArm.
+
+    [ true ] whileTrue: [ plat pumpEvents. space drain ].
+  )
+
+  (* --- the schedule ------------------------------------------------------- *)
+
+  (* Every tick, whatever produced it. Re-derives the slot and lets the ratchet
+     decide; a tick with nothing to do is the healthy case, not an error. *)
+  onTick = (
+    | secs slot |
+    secs:: plat wallClock.
+    secs == nil ifTrue: [ ^ self noClock ].
+
+    haveClock ifFalse: [
+      haveClock:: true.
+      ('clock ' , (self hms: secs) , ' — readings good') out ].
+
+    slot:: secs // self slotSeconds.
+
+    lastSlot == nil ifTrue: [
+      lastSlot:: slot.
+      ('seed slot ' , slot printString , ' at ' , (self hms: secs) ,
+        ' — nothing rung') out.
+      ^ self armAfter: secs ].
+
+    (self advancedTo: slot from: lastSlot) ifTrue: [
+      (* A boundary is behind us. Either the countdown just delivered us onto it,
+         or the alarm never came and this is the watchdog earning its keep. *)
+      (armedFor == slot) ifFalse: [
+        ('watchdog: no alarm for slot ' , slot printString , ' — ringing late') out ].
+      lastSlot:: slot.
+      ^ self ringSlot: slot at: secs ].
+
+    (* Not a boundary. If one is close, this was the alarm's early wake: count
+       down to it exactly. Guarded on `armedFor` so a second early tick does not
+       arm a second countdown for the same boundary. *)
+    ((self secondsToBoundary: secs) <= self leadSeconds) ifTrue: [
+      ^ self armCountdownAt: secs slot: slot ].
+    ^ self )
+
+  (* THE RATCHET, and the midnight case (D4, D5) — identical to the poll node's,
+     deliberately: the trigger changed, the schedule did not. *)
+  advancedTo: slot from: prev = (
+    slot = prev  ifTrue: [ ^ false ].
+    slot > prev  ifTrue: [ ^ true ].
+    ^ slot = 0 )
+
+  ringSlot: slot at: secs = (
+    | n |
+    n:: (plat bell) bellsForHalfHour: slot.
+    ('bell slot ' , slot printString , ' at ' , (self hms: secs) , ' — ' ,
+      n printString , (self bellWord: n)) out.
+    slot = 0 ifTrue: [ midnightPending:: true ].
+    self startPattern: n.
+    (* Arm the NEXT boundary from here, so a strike and its successor's arming are
+       one event. The watchdog armed below fires 2 s into this very pattern in the
+       healthy case and finds the slot already rung. *)
+    ^ self armAfter: secs )
+
+  (* --- arming: the alarm, the watchdog, the countdown ---------------------- *)
+
+  seedAndArm = (
+    | secs |
+    secs:: plat wallClock.
+    secs == nil ifTrue: [ ^ self noClock ].
+    lastSlot:: secs // self slotSeconds.
+    ('seed slot ' , lastSlot printString , ' at ' , (self hms: secs) ,
+      ' — nothing rung') out.
+    ^ self armAfter: secs )
+
+  (* Arm both deadlines for the next boundary after `secs`. The RTC alarm is the
+     trigger; the watchdog only ever says the alarm did not come. *)
+  armAfter: secs = (
+    | toBoundary |
+    armedFor:: nil.
+    toBoundary:: self secondsToBoundary: secs.
+
+    (* The alarm, at boundary - lead. Wrapped into the day, because 00:00 minus a
+       lead is 23:59:55 and the part matches a time-of-day, not an offset. *)
+    alarmOk:: (plat rtcAlarm) at: (self wrapDay: secs + toBoundary - self leadSeconds)
+                             post: #alarm on: tick.
+    alarmOk ifFalse: [
+      'trigger=WATCHDOG ONLY — rtcAlarm refused (image built without prj_esp32c6_rtcalarm.conf?)' out ].
+
+    (* The watchdog, at boundary + grace. Never cancelled: it is cheaper to let it
+       fire into a ratchet that has nothing to do than to carry cancel state. *)
+    timers after: (toBoundary * 1000) + self graceMillis post: #watchdog on: tick.
+    ^ self )
+
+  (* The alarm's early wake. One local one-shot for the remaining milliseconds,
+     plus a small margin so the RTC's second has certainly rolled over when the
+     countdown re-reads it — wallClock has 1 s resolution, and firing 1 ms early
+     would read the OLD slot and ring nothing until the watchdog. *)
+  armCountdownAt: secs slot: slot = (
+    (armedFor == nil) ifFalse: [ ^ self ].
+    armedFor:: slot + 1.
+    timers after: ((self secondsToBoundary: secs) * 1000) + self strikeMarginMillis
+           post: #countdown on: tick.
+    ^ self )
+
+  (* Seconds from `secs` to the NEXT boundary. At a boundary this is a FULL slot,
+     never 0 — the same edge 05_ntp_catchup.nsl pins, and for the same reason: 0
+     would arm a one-shot that fires immediately and strikes the slot twice. *)
+  secondsToBoundary: secs = (
+    ^ self slotSeconds - (secs - ((secs // self slotSeconds) * self slotSeconds)) )
+
+  wrapDay: secs = (
+    secs < 0     ifTrue: [ ^ secs + 86400 ].
+    secs > 86399 ifTrue: [ ^ secs - 86400 ].
+    ^ secs )
+
+  (* D7. Silence is the correct failure mode for a bell; a guess is not. *)
+  noClock = (
+    haveClock ifTrue: [
+      haveClock:: false.
+      'clock nil — no DS3231 reading; not striking until it returns' out ].
+    ^ self )
+
+  (* --- the striker (identical to the poll node's) --------------------------- *)
+
+  startPattern: n = (
+    striking ifTrue: [
+      ('bells ' , n printString , ' REFUSED — a pattern is already in flight') out.
+      ^ self ].
+    ((n < 1) or: [ n > 8 ]) ifTrue: [
+      ('bells ' , n printString , ' REFUSED (allowed 1..8)') out.
+      ^ self ].
+    strokeCount:: n.
+    strokeIndex:: 0.
+    striking:: true.
+    ^ self strikeOn )
+
+  strokeStep = (
+    pinOn ifTrue: [ ^ self strikeOff ].
+    ^ self strikeOn )
+
+  strikeOn = (
+    strokeIndex:: strokeIndex + 1.
+    pinOn:: true.
+    self pin: true.
+    timers after: self widthMillis post: #stroke on: bellCh.
+    ^ self )
+
+  strikeOff = (
+    pinOn:: false.
+    self pin: false.
+    strokeIndex = strokeCount ifTrue: [
+      striking:: false.
+      'bells done' out.
+      ^ self afterPattern ].
+    timers after: (self gapAfter: strokeIndex) post: #stroke on: bellCh.
+    ^ self )
+
+  gapAfter: i = (
+    (i - ((i // 2) * 2)) = 1 ifTrue: [ ^ self pairGapMillis ].
+    ^ self setGapMillis )
+
+  afterPattern = (
+    midnightPending ifTrue: [
+      midnightPending:: false.
+      self syncClock.
+      self showClock ].
+    ^ self )
+
+  pin: aBool = (
+    [ (plat gpio) set: self strikePin to: aBool ]
+      on: [ :e | e tag = #gpioUndeclared ]
+      do: [ :e |
+        gpioMissing ifFalse: [
+          gpioMissing:: true.
+          ('bell: GPIO' , self strikePin printString ,
+            ' not declared on this board — keeping time, ringing nothing') out ] ].
+    ^ self )
+
+  (* --- the clock ---------------------------------------------------------- *)
+
+  syncClock = (
+    | secs date rc |
+    secs:: plat ntpSyncTz: self tzOffset.
+    secs == nil ifTrue: [ 'ntp miss — keeping the RTC' out. ^ self ].
+    date:: plat ntpDate.
+    date == nil ifTrue: [ 'ntp date miss — keeping the RTC' out. ^ self ].
+    rc:: plat wallClockSetDate: date time: secs.
+    rc == nil ifTrue: [ 'rtc write REFUSED — keeping the RTC' out. ^ self ].
+    ('ntp ok ' , date printString , ' ' , (self hms: secs)) out.
+    ^ self )
+
+  showClock = (
+    | secs |
+    secs:: plat wallClock.
+    secs == nil
+      ifTrue:  [ 'rtc nil (no DS3231, or never set)' out ]
+      ifFalse: [ ('rtc ' , (self hms: secs) , '  slot ' ,
+                   (secs // self slotSeconds) printString) out ].
+    ^ self )
+
+  hms: secs = (
+    | h rem m s |
+    h::   secs // 3600.
+    rem:: secs - (h * 3600).
+    m::   rem // 60.
+    s::   rem - (m * 60).
+    ^ (self pad: h) , ':' , (self pad: m) , ':' , (self pad: s) )
+
+  pad: n = ( ^ n < 10 ifTrue: [ '0' , n printString ] ifFalse: [ n printString ] )
+
+  bellWord: n = ( ^ n = 1 ifTrue: [ ' bell' ] ifFalse: [ ' bells' ] )
+
+  (* --- constants ---------------------------------------------------------- *)
+
+  slotSeconds        = ( ^ 1800 )
+  leadSeconds        = ( ^ 5 )       (* alarm fires here before the boundary *)
+  graceMillis        = ( ^ 2000 )    (* watchdog, after the boundary *)
+  strikeMarginMillis = ( ^ 200 )     (* countdown overshoot; see armCountdownAt: *)
+
+  strikePin          = ( ^ 18 )
+  widthMillis        = ( ^ 10 )
+  pairGapMillis      = ( ^ 500 )
+  setGapMillis       = ( ^ 1600 )
+
+  tzOffset           = ( ^ -25200 )
+) : (
+)

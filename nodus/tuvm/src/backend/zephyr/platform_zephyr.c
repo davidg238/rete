@@ -8,10 +8,30 @@
 #include "platform_backend.h"
 #include <stdio.h>
 
+/* The remote console (#56 §10). Weak so this TU still links for any Zephyr build
+   that does not include zephyr/src/log_udp.c; the strong definition tees into a
+   ring that a UDP thread drains. Called BESIDE fwrite rather than replacing it,
+   so the local console is byte-for-byte unchanged.
+   An explicit tee, not a stdout hook: picolibc's __stdout_hook_install has no
+   getter, so hooking it would REPLACE the console path instead of chaining it —
+   and nsl's `out` is the output that matters most here (it is what prints the
+   bell lines), so a console that loses it locally to gain it remotely is a bad
+   trade. */
+/* DECLARED here, DEFINED in zephyr/src/log_udp.c (a no-op there when the image
+   was built without OEVM_LOG_UDP6). The weak stub that used to live here was
+   defined in THIS translation unit — so the compiler bound the call below to its
+   own local definition and the strong one was never reached. The tee silently did
+   nothing, and the remote log carried every C line and none of nsl's. A weak
+   fallback must not live in the TU that calls it. */
+void log_udp_tee(const char *bytes, size_t n);
+
 #ifdef CONFIG_STDOUT_CONSOLE
 
 void platform_console_write(const char *bytes, size_t n) {
-    if (n) fwrite(bytes, 1, n, stdout);
+    if (n) {
+        fwrite(bytes, 1, n, stdout);
+        log_udp_tee(bytes, n);
+    }
 }
 void platform_console_flush(void) {
     /* Deliberately empty. main() sets stdout to _IONBF, so there is never

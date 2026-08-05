@@ -75,7 +75,20 @@
 		ds3231_rtc: ds3231_rtc {
 			compatible = "maxim,ds3231-rtc";
 			status = "okay";
-			isw-gpios = <&gpio0 10 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+			/* GPIO11, and the number is MEASURED rather than planned (#102,
+			 * 2026-08-04). §16.4/§1.2 both say GPIO10 and the bench wire runs
+			 * SQW -> GPIO11. With 10 declared, everything looked healthy and
+			 * nothing worked: the driver armed Alarm1, the part matched on
+			 * schedule (A1F set every cycle) with INTCN=1 and A1IE=1 — and the
+			 * pin we were watching had nothing attached to it, so it read
+			 * inactive through its own pull-up, forever. An unconnected input
+			 * with a pull-up is indistinguishable from an idle open-drain
+			 * interrupt: only reading the part's flag AND the pin in the same
+			 * breath tells them apart.
+			 * GPIO11 clears the same list GPIO10 did: not strapping (4/5/8/9/15),
+			 * not USB (12/13), not the UART0 console (16/17), not SPI flash
+			 * (24-29), not the DS3231's own I2C pair (6/7), not the strike pin (18). */
+			isw-gpios = <&gpio0 11 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 		};
 	};
 };

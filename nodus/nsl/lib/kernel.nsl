@@ -1679,7 +1679,37 @@ class Kernel usingPlatform: platform = () (
 
        Then TRIM FROM THE TAIL until the datagram fits: entries dropped here are
        not lost, they ride the next check-in — whereas an oversize datagram is
-       lost on the mesh, which is strictly worse. *)
+       lost on the mesh, which is strictly worse.
+
+       Known and accepted for v1 — filed as #150 (P3): trimming from the tail drops the HIGHEST seq
+       first, and sys/metrics is written immediately before the push, so it always
+       holds the highest seq — under batch pressure it is the FIRST thing dropped.
+
+       Why TAIL: porta acks one high-water mark and applyAck: sets `acked:: hw`,
+       after which cells are re-scanned `changedSince: acked` — so a frame that
+       omitted a LOW seq while carrying a high one would have the ack advance past
+       the omitted entry, which `changedSince:` never returns again.
+
+       That is survivable for a cell REWRITTEN every tick (obs/health, sys/metrics:
+       the cost is one lost sample, not the value) and permanent for a WRITE-ONCE
+       cell. obs/build is the one that bites — written once in main, and it is the
+       node's provenance (#74). So tail-trimming is not the only safe rule, it is the
+       only rule that needs no knowledge of which paths are write-once.
+
+       REORDERING cannot help either way: metrics are written last precisely so they
+       are fresh, and freshness and trim-survival are the same axis pointing opposite
+       ways. obs/health is written after checkIn returns, so it always rides the
+       FOLLOWING check-in with an older seq — metrics are newest wherever inside
+       checkIn they are published.
+
+       So if the cap binds, the answer is to RESERVE bytes for sys/ before filling
+       from obs/, or to trim BY TYPE and protect the write-once and must-deliver
+       paths — which is the same question already parked above for sys/panic, and is
+       probably worth answering once for both. Measured
+       headroom is 87 B of 512 with two cells and one tel/log row (design §9.1), so
+       this cannot bite today; it starts to when a node has many obs/ paths. Said out
+       loud because a metrics record that silently loses the race under load is
+       exactly the observability that lies when it matters. *)
     public pushFrame = (
       | rows bytes |
       rows:: self collectOutbound.
@@ -1697,12 +1727,30 @@ class Kernel usingPlatform: platform = () (
           with: #bootId -> self bootId
           with: #entries -> (List fromCollection: rows)) )
 
+    (* BOTH prefixes are the node's own authority (PROTOCOL-NSL §4.1 grants the bridge
+       obs/**, tel/**, sys/** and dbg/resp outbound); only the cell half of that grant
+       used to be implemented, which left RECORDS §4.4's sys/metrics — a pinned CELL —
+       unsendable by construction, and is why no node app ever published it.
+
+       goal/** is porta's authority and is excluded BY CONSTRUCTION, not by a test:
+       each scan runs against a capability rooted at its own prefix, and a rooted
+       channel cannot learn that `goal/name` was written (22_spacesync/02). There is
+       no prefix check here to get wrong.
+
+       maxRows applies PER PREFIX, so up to 2x maxRows rows can enter before pushFrame
+       trims by bytes. Safe, and not free — see the starvation note on pushFrame. *)
     collectOutbound = (
-      | rows cells i r |
+      | rows i |
       rows:: OrderedCollection new.
       i:: 1.
       [ i <= pending size ] whileTrue: [ rows add: (pending at: i). i:: i + 1 ].
-      cells:: (space channel: 'obs') changedSince: acked max: self maxRows.
+      self addCellsFrom: 'obs' into: rows.
+      self addCellsFrom: 'sys' into: rows.
+      ^ self sortedBySeq: rows )
+
+    addCellsFrom: prefix into: rows = (
+      | cells i r |
+      cells:: (space channel: prefix) changedSince: acked max: self maxRows.
       i:: 1.
       [ i <= cells size ] whileTrue: [
         r:: cells at: i.
@@ -1710,7 +1758,7 @@ class Kernel usingPlatform: platform = () (
           ifTrue: [ rows add: (List with: (r at: 2) with: (r at: 1) with: 2 with: (r at: 3)) ]
           ifFalse: [ rejected:: rejected + 1 ].
         i:: i + 1 ].
-      ^ self sortedBySeq: rows )
+      ^ self )
 
     (* An oversize value is rejected by porta for the WHOLE push, so one bad cell
        would stall every good one behind it. Drop it here, count it, keep going. *)
@@ -1768,7 +1816,30 @@ class Kernel usingPlatform: platform = () (
       reply == nil
         ifTrue: [ misses:: misses + 1 ]
         ifFalse: [ self applyBatch: reply ].
+      (* In THIS order: applying goal/** first means the metrics published here
+         describe the state porta just asked for, not the one before it — the same
+         reasoning PortaBridgeNodeC6>>tick already gives for publishHealth. *)
+      self publishMetrics.
       ^ self pushOnce )
+
+    (* #56 capability (3): "metrics die with the node", and /stats is a PULL, which
+       is a human affordance — an agent arrives after the corpse is cold.
+
+       The record is BUILT by the kernel and WRITTEN by the bridge, which holds
+       `space` only because the app granted it at construction; the kernel never
+       conjures space access. Publishing here rather than in each app is design D4:
+       every bridged app inherits metrics without re-implementing anything, which is
+       the duplication that gave obs/health three inconsistent definitions.
+
+       v1 publishes on EVERY check-in. Escalating on degradation was designed and
+       deliberately staged out (design D6): it needed five invented constants, and D7
+       had already capped its worst case at exactly this — one record per check-in.
+       The ceiling of the elaborate design is the simple design, and it is the only
+       setting whose cost can be measured. Do not add cadence logic here without the
+       data D6 names as earning it back. *)
+    publishMetrics = (
+      space put: 'sys/metrics' value: outer metrics.
+      ^ self )
 
     pushOnce = (
       | frame reply |
@@ -2582,6 +2653,25 @@ class Kernel usingPlatform: platform = () (
     public usingSeam: c = ( ^ self new setSeam: c )
   )
 
+  (* shipsBellsV3 §16.4 (#102): the RTC alarm capability. The RTC says WHEN — the
+     MCU's own timebase never competes as the trigger, which is the entire reason
+     for having a DS3231 at all.
+     `at:post:on:` answers TRUE when the alarm was armed and FALSE when it could
+     not be — no RTC, or an image built without CONFIG_RTC_ALARM. It does NOT
+     raise, and that is the deliberate difference from GpioPulse>>set:to:: an
+     undeclared pin is a wrong literal in the source, while an unarmable alarm is
+     a real state of a real board, and a node that must survive a MISSED alarm has
+     to survive an unarmable one by the same path. A raise would push that into an
+     exception handler and tempt a caller to treat it as impossible. *)
+  class RtcAlarm = ( | space seam | ) (
+    public at: secondsOfDay post: aMessage on: aChannel = (
+      ^ (seam rtcAlarmAt: secondsOfDay post: aMessage on: aChannel rootPath) == nil
+          ifTrue: [ false ] ifFalse: [ true ] )
+    setSpace: s seam: c = ( space:: s. seam:: c. ^ self )
+  ) : (
+    public usingSpace: s seam: c = ( ^ self new setSpace: s seam: c )
+  )
+
   (* Module-level validation/depth helpers (Milestone B Task 6) — NOT public:
      reachable only by sibling classes nested directly in this module, via
      their own `outer` link (slot 0), never by application code (an app
@@ -2880,6 +2970,13 @@ class Kernel usingPlatform: platform = () (
      nil when there is no RTC or the write was refused (a secondsOfDay outside
      0..86399), SMI 0 when the clock was set. *)
   public wallClockSetDate: yyyymmdd time: secondsOfDay = ( ^ platform wallClockSetDate: yyyymmdd time: secondsOfDay )
+  (* shipsBellsV3 (#102): the RTC's own alarm. Arms it for a time-of-day; when it
+     fires, `aMessage` is posted on `aChannelPath` through the ordinary pulse
+     mailbox — the same delivery the gpio and sensor seams use. nil when it cannot
+     be armed (no RTC, or an image without CONFIG_RTC_ALARM), which is a REAL
+     answer a node is expected to handle rather than an error: the fallback it
+     forces is what makes a missed alarm survivable. *)
+  public rtcAlarmAt: secondsOfDay post: aMessage on: aChannelPath = ( ^ platform rtcAlarmAt: secondsOfDay post: aMessage on: aChannelPath )
   public pumpEvents = ( ^ platform pumpEvents )
   (* webserver-channel-device spike, Task 3: the http driver's platform prims.
      Same thin-forwarder shape as the gpio/timer families above — the C-side
@@ -3025,5 +3122,10 @@ class Kernel usingPlatform: platform = () (
      EXPLICIT ACCESSOR — an app's `platform` is this Kernel instance, so a class
      nested here that nothing hands out simply does not exist for a node. *)
   public bell              = ( ^ Bell usingSeam: self )
+  (* shipsBellsV3 (#102): a fresh RtcAlarm wired to this Kernel instance as seam,
+     same shape as `gpio` — C owns the one alarm registration, so there is no
+     nsl-side registry to keep a single instance of. (Contrast `timers`, whose
+     pending table IS nsl-side and must be held.) *)
+  public rtcAlarm          = ( ^ RtcAlarm usingSpace: self space seam: self )
 ) : (
 )

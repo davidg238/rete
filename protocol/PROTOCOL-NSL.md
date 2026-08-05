@@ -245,9 +245,11 @@ On each check-in (cadence per `obs/mode`, exactly as v1 derives liveness):
    to the local space (cell paths become local cell values via `put:value:`;
    `goal/do/*` stream entries are `out:`ed once); persist the new cursor (NVS) only
    after apply.
-2. **Push** — send cell `obs/**` values changed since the last acked push, plus
-   queued `tel/**` / `sys/**` / `dbg/resp` stream entries, each batch tagged with a
-   node-side sequence for gateway dedup.
+2. **Push** — send cell `obs/**` **and `sys/**`** values changed since the last acked
+   push, plus queued `tel/**` / `sys/**` / `dbg/resp` stream entries, each batch tagged
+   with a node-side sequence for gateway dedup. Both cell prefixes are the node's own
+   authority per §4.1; scanning only `obs/**` (as this said until 2026-08-04) left
+   RECORDS §4.4's `sys/metrics` — a pinned cell — unsendable by construction.
 
 On the node these are the *same paths* its local jobs already use — the supervisor
 reacts to `goal/apps/**` exactly as it reacts to any channel. There is no separate
@@ -324,7 +326,7 @@ answer for that path specifically — the decision belongs with #114.
 | report `apps` | `obs/apps/<name>` | cell | observed `{crc:, runlevel:, lifecycle:, triggers:}` |
 | report `config` echo | `obs/config/<app>/<key>` | cell | scalar echo |
 | `node_config` echo | `obs/mode`, `obs/name`, `obs/forward` | cell | publish-on-change is what cells do; no echo-cadence rules |
-| `health` | `obs/health` | cell | `{uptimeUs:, wakes:, pollTimeouts:}` |
+| `health` | `obs/health` | cell | `{uptimeMs:, bootId:, wakes:, pollTimeouts:, streamDropped:}` — liveness and delivery; VM internals are `sys/metrics` |
 | `health.reset` (fault) | `sys/reset` | stream | `{category:, code:}` — v1's "data_log on first fault" is just an entry |
 | telemetry `print`/`log` | `tel/print`, `tel/log` | stream | `{text:}` / `{level:, text:}` |
 | telemetry `metric` | `tel/m/<name>` | stream | `{value:, ts:}` |

@@ -25,6 +25,7 @@ project(tuvm_pulse)
 set(TUVM_SRC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_sources(app PRIVATE
   src/main.c
+  src/log_udp.c
   ${TUVM_SRC}/src/vm.c ${TUVM_SRC}/src/gc.c ${TUVM_SRC}/src/dispatch.c
   ${TUVM_SRC}/src/platform.c ${TUVM_SRC}/src/space.c ${TUVM_SRC}/src/handles.c
   ${TUVM_SRC}/src/span.c
@@ -41,6 +42,33 @@ target_sources(app PRIVATE
   ${TUVM_SRC}/src/backend/zephyr/http_zephyr.c
 )
 target_include_directories(app PRIVATE ${TUVM_SRC}/src)
+
+# ---- Build id (#56 §5.4, part of #74) --------------------------------------
+# The firmware prints this before the VM starts, and run.sh files the flashed
+# ELF under the same string, so a log segment always names the binary it came
+# from. OUTPUT lists a file the command never creates, which is what forces the
+# command to re-run on every build — the timestamp must be this build's, not the
+# first build's. Two builds keyed alike would silently archive one binary over
+# another, which is the failure D4's refusal exists to prevent.
+#
+# NOT GNU build-id: that was tried on hardware and rejected. Any SHT_NOTE input
+# section makes GNU ld synthesise a PT_NOTE spanning the whole rodata region and
+# the Espressif image builder mishandles it — the board boots, then emits
+# garbage. Three-boot A/B/A attribution in the design doc §7. Do not re-attempt
+# without reading it.
+set(TUVM_BUILD_ID_C   ${CMAKE_CURRENT_BINARY_DIR}/tuvm_build_id.c)
+set(TUVM_BUILD_ID_TXT ${CMAKE_CURRENT_BINARY_DIR}/tuvm_build_id.txt)
+add_custom_command(
+  OUTPUT ${TUVM_BUILD_ID_C} ${TUVM_BUILD_ID_TXT} ${CMAKE_CURRENT_BINARY_DIR}/build_id.always
+  COMMAND ${CMAKE_COMMAND}
+          -DSRC=${CMAKE_CURRENT_SOURCE_DIR}
+          -DOUT_C=${TUVM_BUILD_ID_C}
+          -DOUT_TXT=${TUVM_BUILD_ID_TXT}
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/gen_build_id.cmake
+  COMMENT "Baking tuvm build id")
+add_custom_target(tuvm_build_id_gen DEPENDS ${TUVM_BUILD_ID_C})
+target_sources(app PRIVATE ${TUVM_BUILD_ID_C})
+add_dependencies(app tuvm_build_id_gen)
 
 # OpenThread bring-up TU (tuvm_thread_bringup). Gated on OPENTHREAD so the WROOM
 # (WiFi, no Thread) compiles it away. ONE shared impl: nRF (NCS) and C6 (upstream
@@ -176,6 +204,22 @@ if(DEFINED ENV{OEVM_NTP_SERVER})
 endif()
 if(DEFINED ENV{OEVM_NTP_SERVER6})
   target_compile_definitions(app PRIVATE OEVM_NTP_SERVER6="$ENV{OEVM_NTP_SERVER6}")
+endif()
+
+# THE REMOTE CONSOLE (src/log_udp.c). A LITERAL IPv6 address, for the same reason
+# as OEVM_NTP_SERVER6 above — the mesh has nothing to resolve a name against. Set
+# it and printk is TEED to one UDP datagram per line; leave it unset and the image
+# says so at boot rather than looking like an unreachable gateway.
+#
+#   OEVM_LOG_UDP6=fdc5:9109:9afe:97ea:9541:d963:f8d9:8567 ./run.sh --board esp32c6 ...
+#
+# OEVM_LOG_UDP_PORT is optional (default 54330). It is deliberately NOT any of the
+# ports the soak dashboard scores (:54360/:54361) or the gw echo target (:54331).
+if(DEFINED ENV{OEVM_LOG_UDP6})
+  target_compile_definitions(app PRIVATE OEVM_LOG_UDP6="$ENV{OEVM_LOG_UDP6}")
+endif()
+if(DEFINED ENV{OEVM_LOG_UDP_PORT})
+  target_compile_definitions(app PRIVATE OEVM_LOG_UDP_PORT=$ENV{OEVM_LOG_UDP_PORT})
 endif()
 
 # Hot-path IRAM placement. Routes the interpreter's hottest functions

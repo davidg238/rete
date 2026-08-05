@@ -815,6 +815,12 @@ enum {
     PRIM_pf_spaceSeq,
     PRIM_pf_spaceStamp,
     PRIM_pf_spaceChangedSince,
+    /* shipsBellsV3 (#102): rtcAlarmAt:post:on: — the RTC's own alarm as a strike
+       trigger, so the MCU's timebase is never what says when. Appended after
+       spaceChangedSince:under:max:; no pre-existing id shifts. Counted (not
+       computed) to be the 141st PRIM_NAMES entry. Platform-dispatched (mirrored
+       in prim_ids.h). */
+    PRIM_pf_rtcAlarmAt,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -878,6 +884,7 @@ static const char *const PRIM_NAMES[] = {
     "wallClockSetDate:time:",
     "ntpDate",
     "spaceSeq", "spaceStamp", "spaceChangedSince:under:max:",
+    "rtcAlarmAt:post:on:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
@@ -888,7 +895,7 @@ static const char *const PRIM_NAMES[] = {
    — this catches it at build time instead. C99-safe (no _Static_assert under
    -std=c99): a false condition makes a negative-sized array, which is a hard
    compile error. ADVANCE THIS to the new last id whenever prims are appended. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_spaceChangedSince) ? 1 : -1];
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_rtcAlarmAt) ? 1 : -1];
 
 /* Pointer-keyed cache mapping each interned selector symbol to its primitive id
    (PRIM_NONE if it is not an intercepted primitive). Selectors are interned, so
@@ -1529,18 +1536,33 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
             }
             break;
             case PRIM_println: {
+                /* THROUGH platform_console_write, not printf/fwrite. platform.c's
+                   own comment states this invariant ("Output goes through
+                   platform_console_write, NOT printf") and this arm was the one
+                   place that broke it — every nsl string went straight to libc
+                   stdout, past the console leaf. Invisible until something needed
+                   to observe output: the #56 remote console teed the leaf and
+                   captured every C line and not one of the node's, which on a
+                   bell is every line that matters. Byte-identical on host
+                   (platform_posix.c does exactly this fwrite). */
+                char nbuf[48];
+                int nlen;
                 if (IS_SMI(receiver)) {
-                    printf("%ld\n", (long)UNTAG_SMI(receiver));
+                    nlen = snprintf(nbuf, sizeof nbuf, "%ld\n", (long)UNTAG_SMI(receiver));
+                    if (nlen > 0) platform_console_write(nbuf, (size_t)nlen);
                 } else if (receiver != NULL && obj_vtable(receiver) == FloatVtable) {
-                    printf("%g\n", ((struct Float *)receiver)->value);
+                    nlen = snprintf(nbuf, sizeof nbuf, "%g\n", ((struct Float *)receiver)->value);
+                    if (nlen > 0) platform_console_write(nbuf, (size_t)nlen);
                 } else if (receiver != NULL && StringVtable != NULL && obj_vtable(receiver) == StringVtable) {
                     struct String *s = (struct String *)receiver;
-                    fwrite(s->bytes, 1, s->length, stdout);
-                    fputc('\n', stdout);
+                    platform_console_write((const char *)s->bytes, s->length);
+                    platform_console_write("\n", 1);
                 } else if (receiver != NULL && obj_vtable(receiver) == SymbolVtable) {
-                    printf("%s\n", symbol_name((struct Symbol *)receiver));
+                    const char *nm = symbol_name((struct Symbol *)receiver);
+                    platform_console_write(nm, strlen(nm));
+                    platform_console_write("\n", 1);
                 } else if (receiver == NULL) {
-                    printf("nil\n");
+                    platform_console_write("nil\n", 4);
                 } else {
                     // std-lib step 3a: a real heap object's println is served
                     // by Object.nsl (via printString) — fall through to vtable method lookup.
@@ -1618,18 +1640,30 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
             break;
             case PRIM_out: {
                 // SOMns stdout: each `... out` emits one newline-terminated line.
+                // THROUGH platform_console_write — this arm and PRIM_println are
+                // twins, and `out` is the one nsl nodes actually use, so anything
+                // observing the console must be teed here or it sees nothing a
+                // NODE printed. Both were fixed together (#56 §10); finding only
+                // println first was a truncated grep, not a second bug.
+                char obuf[64];
+                int olen;
                 if (IS_SMI(receiver)) {
-                    printf("%ld\n", (long)UNTAG_SMI(receiver));
+                    olen = snprintf(obuf, sizeof obuf, "%ld\n", (long)UNTAG_SMI(receiver));
+                    if (olen > 0) platform_console_write(obuf, (size_t)olen);
                 } else if (receiver != NULL && obj_vtable(receiver) == FloatVtable) {
-                    printf("%g\n", ((struct Float *)receiver)->value);
+                    olen = snprintf(obuf, sizeof obuf, "%g\n", ((struct Float *)receiver)->value);
+                    if (olen > 0) platform_console_write(obuf, (size_t)olen);
                 } else if (receiver != NULL && StringVtable != NULL && obj_vtable(receiver) == StringVtable) {
                     struct String *s = (struct String *)receiver;
-                    fwrite(s->bytes, 1, s->length, stdout);
-                    fputc('\n', stdout);
+                    platform_console_write((const char *)s->bytes, s->length);
+                    platform_console_write("\n", 1);
                 } else if (receiver != NULL && obj_vtable(receiver) == SymbolVtable) {
-                    printf("%s\n", symbol_name((struct Symbol *)receiver));
+                    const char *nm = symbol_name((struct Symbol *)receiver);
+                    platform_console_write(nm, strlen(nm));
+                    platform_console_write("\n", 1);
                 } else {
-                    printf("[Object %p]\n", (void *)receiver);
+                    olen = snprintf(obuf, sizeof obuf, "[Object %p]\n", (void *)receiver);
+                    if (olen > 0) platform_console_write(obuf, (size_t)olen);
                 }
                 platform_console_flush();
                 return receiver;

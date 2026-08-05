@@ -2215,6 +2215,51 @@ plans — was left deliberately and filed rather than swept, because a dated des
 the historical "why" and rewriting its paths would falsify what was true when it was
 written. The documents of record were swept.
 
+## The piezo rings on the C6 — the pattern is witnessed, #105 is audible (2026-08-03)
+
+**The striker's pattern path is proven end to end, on a substitute load.** §17.6's piezo is
+fitted in place of the solenoid, driven by a 3.3 V low-side NPN
+(`2026-08-03-shipsbells-3v3-piezo-driver.svg`) with the MOSFET, both gate resistors and the
+entire +12 V rail deleted rather than bypassed. Struck from the console on image
+`porta-v1-final-791-g500ff26-20260803T211803`: `b4` and `b8` phrase into exact pairs, `b3`
+gives the pair-then-lone-stroke that the ship's-bell convention requires, `b2030` is refused
+against the 1..8 guard, and every strike answers `on=1 off=1`. Design record: §18.
+
+**A substitute load proves the half of the system it shares, and silently does not prove the
+other half.** The piezo settles the *pattern* — counts, pairing, the odd tail, the guards, the
+whole path from overlay through `gpio_target_set` to the element. It cannot settle the
+*cadence*: §17.4's argument is that gap length is a property of acoustic decay, and a
+continuous-tone piezo has none where a gong rings for seconds. It cannot touch §11.2's 5–10 ms
+minimum-pulse bracket either, because there is no coil in the circuit. **I called 500/1600 ms
+settled mid-session on the strength of two patterns sounding right, and that was wrong** —
+corrected in the design record at §18.3 before it could be promoted off the bench. The coil-era
+guards (`STRIKE_MAX_MS`, the 1 s cooldown, the 50 ms pattern width cap) were deliberately left
+in place for the same reason: the coil is disconnected, not gone.
+
+**Fitting an audible load turned an invisible hazard into an instrument.** #105 — the ~1 s
+unexplained energisation at boot — was previously an inference from a base voltage measured
+through reset. It now beeps, loudly, on every power-up and after every flash, in an image where
+`TUVM_SOLENOID_PULSE_MS` is unset and `solenoid_oneshot()` is therefore not in the binary. The
+verdict is unchanged and still blocking (§17.6), but the localising test can now be run against
+something observable rather than against a theory.
+
+**A hardware swap silently orphans a by-id-pinned service, and "running" is not "collecting".**
+Replacing the C6 changed the CP2102N's `/dev/serial/by-id/` hash, so #56's collector spent seven
+minutes heartbeating at a port that had left the bench. Every liveness signal was green:
+`systemctl --user status` read *active (running)*, and **`check.py` printed `ok: collector
+alive`** — it gates on heartbeat freshness alone (`check.py:43`), and a heartbeat is the
+collector writing about *itself*. The collector had in fact logged `port lost: device reports
+readiness to read but returned no data` at the moment of the unplug, and **nothing gates on that
+line.** The generalisable half: **a health check that reads only the process proves the process,
+not the pipeline.** A collector's health is evidence of INPUT — bytes from the device, or at
+minimum the absence of a `port lost` since the last successful read.
+
+**Where the bell actually stands: it cannot ring itself.** `ThreadNtpNode main:` syncs and
+returns; `CONFIG_RTC_ALARM is not set` in the flashed image, held off deliberately until the
+alarm seam lands; and `strike_console` — the only strike path compiled in — needs a UART, so
+unplugging USB removes the sole trigger. A wall-powered board today would beep once at boot and
+stay silent through every half hour. §18.5 names the distance to a real bell.
+
 ## Known stale docs (do not treat as current)
 
 `docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),

@@ -89,6 +89,19 @@ echo "  obs/health is in porta's cell tree"
 /tmp/porta get --db "$DB" "$NODE" obs | grep -q "obs/build" || { echo "FAIL: obs/build missing"; exit 1; }
 echo "  obs/build carries the node's provenance"
 
+# sys/metrics — #56 capability (3). RECORDS §4.4 has pinned this as a CELL since
+# 2026-07-21, and it was UNSENDABLE until the cell scan reached sys/ (design D1):
+# collectOutbound only ever scanned obs/**, so the value sat in the node's own space
+# forever and no app ever bothered to publish it. Assert the path is PRESENT — an
+# assertion that merely checks nothing errored would pass with the feature removed.
+for _ in $(seq 1 100); do
+  /tmp/porta get --db "$DB" "$NODE" sys 2>/dev/null | grep -q "sys/metrics" && break; sleep 0.2
+done
+/tmp/porta get --db "$DB" "$NODE" sys | grep -q "sys/metrics" || {
+  echo "FAIL: sys/metrics never reached porta — the cell scan is not covering sys/"
+  /tmp/porta get --db "$DB" "$NODE"; cat /tmp/porta_serve.log; exit 1; }
+echo "  sys/metrics is in porta's cell tree"
+
 # Leg 1: write the goal, wait for the node to echo it as obs.
 /tmp/porta put --db "$DB" "$NODE" goal/name bench >/dev/null
 for _ in $(seq 1 100); do
@@ -131,5 +144,18 @@ test "$FIRST" = 1 || {
   echo "FAIL: the series starts at $FIRST, not 1 — either --limit truncated the OLDEST rows (raise it) or the bridge's maxPending eviction dropped the head of the series under a long outage"
   /tmp/porta log --db "$DB" "$NODE" --limit 200; exit 1; }
 echo "  tel/log arrived exactly once per entry, with no gaps ($FIRST..$LAST)"
+
+# THE RUN-UP. #56 design §4 claims porta retains metrics history for free, because
+# store.go appends an event for every accepted entry with no value dedup — so repeated
+# pushes of one cell ACCUMULATE rather than collapsing to latest-value. That claim was
+# read out of the source and never once run. It is the load-bearing simplification of
+# the whole design: if it is false, the run-up needs a mechanism after all.
+# An empty or non-integer count makes `test` error, which fails — the safe direction.
+METRICS_ROWS=$(/tmp/porta log --db "$DB" "$NODE" --limit 200 | grep -c 'sys/metrics' || true)
+test "$METRICS_ROWS" -ge 2 || {
+  echo "FAIL: sys/metrics appears $METRICS_ROWS time(s) in the event log, expected >= 2."
+  echo "      A cell push must be APPENDED, not collapsed to latest-value."
+  /tmp/porta log --db "$DB" "$NODE" --limit 200; exit 1; }
+echo "  sys/metrics accumulates in the event log: $METRICS_ROWS rows — the run-up is retained"
 
 echo "PORTA SYNC OK"

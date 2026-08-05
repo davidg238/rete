@@ -65,7 +65,13 @@ _*.stmap
 # The Adafruit MagTag reference drop: an 18 MB vendor PDF plus the CircuitPython
 # IL0373 driver zips. Reference material, not source — the IL0373 register map it
 # documents belongs in the uc81xx quirks entry when that lands, not here.
-/nodus/tuvm/zephyr/boards/magtag/
+# Written as dir/* rather than dir/ so git still descends and the negations below
+# take effect: an ignored *directory* is never entered, and a `!` inside one is
+# silently dead. The vendor drop stays out; the two source files opt back in by
+# name, so anything new here is ignored by default — deliberate (#56).
+/nodus/tuvm/zephyr/boards/magtag/*
+!/nodus/tuvm/zephyr/boards/magtag/capture.py
+!/nodus/tuvm/zephyr/boards/magtag/README.md
 
 # Zephyr build trees — 4.5 GB as of 2026-08-02, never commit. The path-agnostic
 # form survives the rete restructure (zephyr/ becomes nodus/tuvm/zephyr/); the

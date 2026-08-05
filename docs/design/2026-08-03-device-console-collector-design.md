@@ -2,7 +2,8 @@
 
 **Date:** 2026-08-03
 **Issue:** #56 (sub-project 1 of 4)
-**Status:** design, awaiting approval
+**Status:** approved 2026-08-03 (David), with the D6 scoping, the D4 escape hatch and the
+§10 MagTag-script disposition added at approval
 **Refs:** #57, #74, #87, #53, #63, #110
 
 ---
@@ -81,9 +82,9 @@ Note what run.sh does *not* do today: for the C6 it names only `ESPTOOL_PORT`
 | **D1** | C6 only; the port-acquisition seam stays explicit | Only board attached; only board whose design can be falsified rather than reasoned about. MagTag/nRF needs are written down (§10), not built |
 | **D2** | Always-on `systemd --user` unit | The only arrangement that closes #56's lesson 1. `Linger=yes` is already set for this user, so a unit starts at boot and survives logout |
 | **D3** | Dumb collector, smart offline reader | A parser bug in the reader costs an answer; a parser bug in a collector costs the evidence. Also makes the reader re-runnable over history and testable with no board |
-| **D4** | ELF archived per flash, keyed by build id; symbolizing **refuses** on a miss | Symbolizing a pre-reflash panic against the current build dir yields confident, precise, wrong locations — worse than the CORRUPTED backtrace #56 complained about, because it looks like an answer |
+| **D4** | ELF archived per flash, keyed by build id; symbolizing **refuses** on a miss. One named exception: `--assume-build <key>`, which must be typed and is echoed in the output (D4a) | Symbolizing a pre-reflash panic against the current build dir yields confident, precise, wrong locations — worse than the CORRUPTED backtrace #56 complained about, because it looks like an answer. But refusal alone makes the *earliest* faults permanently opaque: a fault before the banner prints (§5.4) leaves a run with no build id at all, and that is exactly the early-driver case §9 calls out. The exception keeps refusal as the default while letting a human say what they know — never a fallback the tool picks for itself |
 | **D5** | Build id = `git describe --always --dirty` + CMake build timestamp; host also stores `sha256(zephyr.bin)`. **GNU build-id was tried on hardware and rejected with evidence** (§7) | GNU build-id is the better identifier and the spike went after it. It breaks the ESP32-C6 image: any `SHT_NOTE` input section makes GNU ld synthesise a `PT_NOTE` program header over the whole rodata region, and the Espressif image builder mishandles it — the board boots and then emits garbage. Three-boot A/B/A in §7. The key is **opaque to everything downstream** either way: a run declares a key, the archive is filed under the same string |
-| **D6** | The collector monopolises the console port; `--capture N` is redefined as a log read | One handle, no split streams. `--capture` gains rather than loses: it now shows the boot you just triggered even if it fired before you asked, which is the exact failure that lost the first AMG8833 panic |
+| **D6** | The collector monopolises the console port; `--capture N` is redefined as a log read **for `--board esp32c6` only**. The esp32 and esp32s2 paths are untouched until their own collectors land (§10) | One handle, no split streams. `--capture` gains rather than loses: it now shows the boot you just triggered even if it fired before you asked, which is the exact failure that lost the first AMG8833 panic. The board qualifier is not pedantry — `run.sh:309` calls `capture_coredump.py` for all three boards, so an unqualified redefinition breaks the two that have no collector. It would also silently drop a side effect: `capture_coredump.py:9` pulses DTR/RTS to reset the target, which is a no-op on the C6's CP2102N but genuinely works on the esp32, where that same CP210 port is both the flash port and the console |
 | **D7** | Heartbeat marker every 60 s, written even when the device is silent | A log that stops looks identical to a board that went quiet. Every check asserts a *recent heartbeat present*, never an absence. 60 s is short enough that a dead collector is caught within one coffee-length gap and long enough to be invisible in a day's log |
 | **D8** | Deliberate fault trigger, Kconfig-gated, default `n` | Otherwise the symbolizing path is only ever exercised by the incident it exists to explain |
 
@@ -123,11 +124,24 @@ Offline, over the log store. Subcommands:
 All parsing lives here. `symbolize` resolves the ELF from the run's build-id banner and
 refuses if the archive has no match. It never falls back to `build-*/zephyr/zephyr.elf`.
 
+The one exception is D4a: `symbolize --assume-build <key>`, for the run that faulted before
+its banner ever printed. The key must be typed out; the tool will not infer it, not even
+from the `last-flashed` pointer (§5.3), which exists so a human can *look up* what to type,
+not so the tool can guess on their behalf. Every line of an assumed symbolization is
+prefixed with the key it assumed, so the assumption travels with the output into whatever
+issue comment it gets pasted into.
+
 ### 5.3 ELF archive
 
 `run.sh --flash` copies `zephyr.elf` into the archive keyed by build id **as part of
 flashing**, not as a separate step. Alongside it: `sha256(zephyr.bin)`, so a key
 collision is detectable after the fact rather than silently wrong.
+
+The same step writes `last-flashed-<board>` — one line, the key it just flashed. It is a
+human-facing note, read by a person deciding what to pass to `--assume-build`. Nothing in
+the reader consults it automatically; if it did, D4's refusal would be a fallback wearing
+a disguise, and a board flashed twice since the fault would hand back a confident wrong
+answer.
 
 ### 5.4 Build id and boot banner
 
@@ -288,6 +302,14 @@ board, and it is the step that proves the fault actually reaches the console on 
 hardware — a driver failing silently for want of `CONFIG_LOG` is a documented way this
 bench lies.
 
+Because D8 defaults to `n`, this gate does not build the default image. It builds with
+`CONFIG_TUVM_FAULT_TRIGGER=y`, carried in a checked-in overlay
+(`prj_esp32c6_faultgate.conf`, applied via `run.sh --conf-extra`) rather than a flag
+typed at the prompt, so the gate is reproducible and so the one build that can fault on
+purpose is named in the tree. Both names follow what is already there:
+`CONFIG_TUVM_NET_HEARTBEAT` is the precedent for a default-`n` diagnostic, and
+`prj_esp32_netdiag.conf` is the precedent for the overlay that turns one on.
+
 **Falsify the gate, not just the code.** The acceptance test must fail when the
 collector is not running. Stopping the unit and re-running the check must go red; a
 check that passes with the daemon stopped is measuring nothing.
@@ -295,7 +317,13 @@ check that passes with the daemon stopped is measuring nothing.
 ## 10. Out of scope, recorded so it is deferred rather than forgotten
 
 - Capabilities (3) and (4) of #56 — out-of-band metrics, and the device test harness.
-- MagTag and nRF consoles. What they will need, written down now: the MagTag's PL2303
+- MagTag and nRF consoles — the *collector* for them. But `~/magtag-captures/capture.py`
+  does not stay outside the repo: it moves to `nodus/tuvm/zephyr/boards/magtag/capture.py`
+  **unchanged**, in its own commit, no behaviour edits and no attempt to generalise it.
+  §2 names untracked out-of-repo tooling as the problem; shipping the sub-project that
+  says so while leaving the specimen in `~` would be the diagnosis without the treatment.
+  Tracking it is not endorsing it — it is deleted when the MagTag collector lands.
+  What that collector will need, written down now: the MagTag's PL2303
   header does not reset the board on open (so a collector may attach to a *running*
   board mid-life, and the log will start mid-stream); an nRF USB-CDC node disappears
   from `/dev` entirely on reset and returns as a possibly-different node, so
@@ -311,4 +339,165 @@ check that passes with the daemon stopped is measuring nothing.
   existing; its job moves into the collector and the reader.
 - **Consumes part of #74** — the CMake bake and the boot banner. #74 stays open for the
   accessor.
+- **Tracks** `~/magtag-captures/capture.py` verbatim under `boards/magtag/` (§10) — the
+  only change to any non-C6 board in this sub-project, and not a functional one.
 - **Unblocks** #56's (3) and (4).
+
+---
+
+## 12. Implementation addendum — what the build changed (2026-08-03)
+
+Written after implementing §1–§11 on `feat/56-console-collector`. Everything here
+is a correction to this document, not a change of plan.
+
+**§11's "Closes #87" is wrong.** `run.sh` still calls `capture_coredump.py` for
+`esp32` and `esp32s2`, which have no collector under D1, so its hardcoded port
+survives — reachable from two boards instead of three. #87 closes when its last
+caller does. Correction posted on #87; the claim above is left standing so the
+error stays visible rather than being quietly rewritten.
+
+**D8's names follow the tree.** `CONFIG_TUVM_FAULT_TRIGGER` and
+`prj_esp32c6_faultgate.conf`, not the `RETE_`/`overlay-` spellings originally
+written here — `CONFIG_TUVM_NET_HEARTBEAT` and `prj_esp32_netdiag.conf` are the
+precedents. Amended in §9 (`93f053b`).
+
+**§9's fixtures did not exist, and D8 is what makes them.** No C6 had ever
+faulted on purpose, so the fault parser had to be written *after* the trigger,
+not before. A parser written first would have been written against an invented
+format — D4's failure one layer up.
+
+**`prj_esp32c6.conf` has no coredump configuration.** §9 assumed a fault would be
+decodable; on this board it would have printed a banner and nothing else. The
+faultgate overlay enables `CONFIG_DEBUG_COREDUMP*` alongside the trigger.
+
+**A boot has two banners, so §6's "splits a log at the Zephyr boot banner plus
+the build-id line" splits it wrongly.** The C6 prints `ESP-ROM:esp32c6-...` and,
+~30 lines later, `*** Booting Zephyr OS`. Treating either as a boundary puts a
+fault in a different run from the build id naming its binary, so D4 refuses a
+fault it has the ELF for. The ROM line is the boot; the kernel banner opens a run
+only when none is in progress — which is also how a collector attaching to an
+already-running board (§10's MagTag case) still gets a boundary.
+
+**D7's heartbeat is not sufficient for the §8 health gate on its own.** The first
+heartbeat is 60 s after start, so a heartbeat-only check reports a working
+collector as down for a minute after every restart — a false red on exactly the
+action taken to clear a real one. The collector's startup marker is the same proof
+of life and counts. It does not become a permanent pass: a collector that starts
+and wedges goes red when that marker ages out. Found by performing §9's "falsify
+the gate" step, not by reading the code.
+
+**Environment facts §5.2 needed and did not state.** Symbolizing requires the
+Zephyr venv's Python (`scripts/coredump/` imports `pyelftools`, absent from the
+system interpreter) and the SDK's `riscv64-zephyr-elf-gdb` — never the host
+`gdb`, which yields plausible wrong output for a RISC-V core. The stub is driven
+over `--pipe`: it does `listen(1)` + `accept()` once, so any readiness probe
+consumes the connection gdb needs.
+
+**One addition beyond the design.** `run.sh` cross-checks the console port it
+resolves against the collector's env file and warns on a mismatch. A collector
+watching a different adapter than the one just flashed is silent, and every
+symptom of that looks like "the board went quiet" — the failure class this
+sub-project exists to remove. Without it `CONSOLE_PORT` would have been named and
+never read.
+
+**First finding.** The collector immediately surfaced a DS3231 RTC init failure on
+every C6 boot (`rtc_ds3231.c:253`), pre-existing and unrelated to this work.
+Filed as #146, and **closed 2026-08-04 by the collector's own log**: the six boots
+between 20:09 and 20:20 print it; the boots at 21:13, 21:16 and 21:18 — after the
+board on the bench was changed — do not, and those same boots print
+`wallclock: set` and `NTP OK`. Same image config either way (`prj_esp32c6.conf` is
+the base for both the plain and the Thread builds, so `CONFIG_RTC_DS3231=y` is in
+both). The two lines are the driver reporting that **nothing answered at 0x68** —
+which is what `CONFIG_LOG_MODE_MINIMAL` was turned on for at `prj_esp32c6.conf:96`,
+"what makes an I2C fault legible". Not a bug, and not to be silenced: on a board
+that has the module the boot is clean, and on a board that does not, the errors
+are the intended report. Recorded because the fixture `c6-boot.log` is one of the
+early boots and carries the lines forever.
+
+### D7 amended — a heartbeat proves the process, not the pipeline (#147, 2026-08-04)
+
+**The §8 health gate passed while the collector was collecting nothing.** On
+2026-08-03 the C6 on the bench was replaced; the CP2102N's `/dev/serial/by-id/`
+hash changed with it; the collector logged one `port lost: device reports
+readiness to read but returned no data` at 21:04 and then heartbeated at a port
+that had left the bench for seven minutes. `systemctl --user status` read *active
+(running)* throughout and `check.py` printed **`ok: collector alive`**, because it
+gated on heartbeat freshness alone — and a heartbeat is the collector writing
+about *itself*.
+
+**A collector's health is evidence of INPUT.** `check.py` now takes two
+assertions: a recent heartbeat *and* the collector's own most recent statement
+that its port is attached. This is not the absence-assertion D7 forbids — it fires
+on a positive statement of trouble, not on the failure to find one.
+
+**The heartbeat carries the port state** (`heartbeat port=up` / `port=down`)
+rather than a new marker, because `port lost` is written once at the transition
+and the logs roll at midnight: a loss recorded in yesterday's file is invisible to
+anything reading today's, which is exactly the state this bench was in on the
+morning of 2026-08-04. Restating it every beat costs one field and removes the
+cross-day hole entirely.
+
+Falsified against the real incident rather than a fixture: replaying the actual
+2026-08-03 log up to 21:11:59 through the new `check_health` returns *"the port
+has been lost for 464s — the collector is running and collecting nothing"*, in the
+same seven-minute window that previously read green. A pre-#147 heartbeat with no
+`port=` field states nothing about the port and is treated as such.
+
+### §10's remote console, built 2026-08-04 (#102 forced it)
+
+**The requirement arrived as a cost, not a wish.** A bell on wallwart power with no
+data cables is unobservable, and this bench paid for that twice in one afternoon: a
+correct 7-bell strike at 15:30 whose TRIGGER (alarm or watchdog) could not be
+determined, and nine minutes of continuous chirping with no way to see why.
+
+**Shape:** the console is TEED, not redirected. `zephyr/src/log_udp.c` chains the
+printk hook (`__printk_get_hook` then `__printk_hook_install`) and is called
+directly by the VM's console leaf, so the UART console and the #56 collector are
+byte-for-byte unaffected. Characters go into a 4 KB ring; a dedicated thread
+assembles lines and sends one UDP datagram each to the gateway. Never from the hook
+— printk is called from ISR and workqueue context and a console that can block is a
+console that can hang the thing it observes.
+
+Destination is `OEVM_LOG_UDP6`, the same env→define pattern as `OEVM_NTP_SERVER6`,
+pointed at the gateway ML-EID NTP already reaches — reusing a proven path rather
+than debugging mesh-to-LAN routing and a logging feature at once. Unset, the image
+SAYS SO at boot: a silently-inactive remote console is the failure class that cost
+this bench twenty minutes over a missing NTP address.
+
+The sink (`tools/console/udpsink.py`) writes THIS project's store format through
+the same `LogStore`, so `logread.py --root` and `check.py --root` work on it
+unchanged. That is the whole reason it is not `nc -lu >> file`.
+
+**Four defects found in the building, each invisible from outside:**
+
+1. **A refused send discarded the line**, so everything printed before the mesh
+   attached was lost — the banner, `tuvm: build-id`, the node's ready line, i.e.
+   precisely the lines guaranteed to exist before there is a route. The assembled
+   line is now HELD and retried; the ring drops the NEWEST characters instead,
+   which is the right end to lose because a boot is bounded and a running node's
+   chatter is not.
+2. **The hook was installed in `main()`**, after the boot banner. Moved to
+   `SYS_INIT(POST_KERNEL)`, which matters beyond tidiness: `logread.split_runs()`
+   opens a run on that banner, so a remote log missing it parses as ZERO runs — the
+   reader would work on the local store and quietly fail on this one.
+3. **The VM had two print arms writing straight to libc stdout** — `dispatch.c`'s
+   `PRIM_out` and `PRIM_println` — bypassing `platform_console_write`, whose own
+   neighbouring comment states the opposite invariant. So the remote log carried
+   every C line and none of nsl's, which on a bell is every line that matters. Both
+   now route through the leaf; byte-identical on host. **Finding only `println`
+   first was a truncated grep**, and a truncated search that reports one path when
+   there are two is indistinguishable from a correct answer.
+4. **A weak fallback defined in the TU that CALLS it** is bound at compile time to
+   the local definition, so the strong override never runs. The tee silently did
+   nothing. The declaration now lives at the call site and both definitions live in
+   `log_udp.c`.
+
+**And the sink had no lock**, so two instances bound the same UDP port under
+`SO_REUSEADDR` and split the datagrams. `acquire_lock`/`Busy` moved from
+`collect.py` to `logstore.py` — the one-reader rule is a property of the STORE, not
+of the serial reader — and re-exported so callers and tests are unchanged.
+
+**Witnessed:** full boot captured remotely including the build id, the node's own
+lines, and the 16:00 ring attributed to the alarm rather than the watchdog by the
+re-arm landing 0.88 s after the boundary. Then it diagnosed #149 by SILENCE, which
+is the observation a local console could never have made.

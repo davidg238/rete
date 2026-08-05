@@ -763,3 +763,258 @@ node, coil disconnected, watched through a full flash cycle) has not been run.
 
 Deprioritised, not dismissed: the solenoid is disconnected and a piezo buzzer replaces it for
 firmware work. **It must be answered before a coil is reconnected.**
+
+## 18. ADDENDUM (2026-08-03) — the piezo bench rings, and it hears #105
+
+Bench session 2026-08-03, C6 rig of §16 with §17.6's piezo now fitted and the coil off the
+board. The pattern path is exercised end to end for the first time. Tracker: #102 (this
+design), #105 (the boot hazard, now audible).
+
+### 18.1 The driver is a 3.3 V low-side NPN, and the 12 V rail is gone
+
+`2026-08-03-shipsbells-3v3-piezo-driver.svg` (and `.png`), beside this file. The IRF9Z14, R2
+(10 k gate pull-up), R3 (1 k gate series) and the whole +12 V rail are **deleted**, not
+bypassed — its note 1 is the reason: leave R2/R3 in with the MOSFET gone and +12 V still
+reaches the collector through 11 kΩ, back-feeding both the piezo and the 3V3 rail. The 2N3904
+is now the switch rather than a level shifter, and §17.3's 10 k base-to-GND resistor stays.
+
+**Polarity is unchanged — still active-high.** No firmware inversion, and the overlay's
+`GPIO_ACTIVE_HIGH` on GPIO18 keeps meaning de-energised-at-boot exactly as §8 requires.
+
+The element is a continuous-tone piezo (3–24 V, 15 mA @ 12 V) running at the very bottom of its
+range, ~3.1 V across it after V_CE(sat). Audibly quieter than 12 V would be, and loud enough
+across a room.
+
+### 18.2 What actually rang
+
+Image `porta-v1-final-791-g500ff26-20260803T211803` — `ThreadNtpNode.nsl`, built
+`TUVM_SOLENOID_CONSOLE=1`, no boot strike compiled in. Struck from the console by typing;
+captured by the #56 collector, so the transcript below is a log read, not a claim from memory:
+
+| typed | result |
+|---|---|
+| `10` | `strike: 10 ms fired on=1 off=1` |
+| `b4` | 4 strikes, two pairs, set gap **1602 ms** |
+| `b8` | 8 strikes, four pairs, set gaps **1603/1602/1602 ms** — 6.8 s end to end |
+| `b3` | pair, then the **lone final stroke** after a full set gap |
+| `b2030` | `bells: 2030 REFUSED (allowed 1..8)` |
+
+Every strike answered `on=1 off=1`, which is the seam reporting the pin was *declared and
+driven* rather than silently absent — the distinction `gpio_target_set`'s return exists for.
+
+**`b3` is the rung worth keeping.** Three is the smallest count that exercises both branches of
+`strike_bells`' gap choice AND the `break` before the trailing gap, so the odd tail — a bell
+convention, not a loop detail — is now witnessed rather than assumed.
+
+Pair gaps read 400–600 ms in the log against a 500 ms setting. That is **host-side line-arrival
+jitter in the collector, not firmware jitter**: the set gaps land within 3 ms because they
+straddle a longer quiet period. Timestamps from a log collector are evidence of ORDER and of
+the long intervals; they are not a timing measurement, and nothing here should be read as one.
+
+### 18.3 What this does NOT settle — three of them, and §17.4 is the one that matters
+
+**§17.4's 500/1600 ms remains unsettled.** The cadence sounded right on the piezo and that is
+not evidence about the bell: §17.4's whole argument is that gap length is a property of the
+acoustic decay, and a continuous-tone piezo has none — it is a tone burst that stops when the
+pin drops, the opposite end of the decay range from a gong that rings for seconds. The piezo can
+prove the *pattern* (counts, pairs, the odd tail, the guards); only the gong can settle the
+*rhythm*. Do not promote these numbers off this bench.
+
+**§11.2's pulse bracket is untouched.** 10 ms here is a tone width, not a plunger throw; there
+is no coil, so the 5–10 ms minimum-clean-pulse bracket stands exactly where §17.2 left it,
+still owed its ~5 repeats per rung.
+
+**The firmware caps are now the wrong shape for the load, and were deliberately left alone.**
+`STRIKE_MAX_MS` 250, the 1 s cooldown and `BELL_MAX_WIDTH_MS` 50 all ration coil duty cycle
+(§7's ~10 W while held). Schematic note 7: with no coil there is no heating and none of them
+applies. They stay because **the coil is disconnected, not gone**, and a guard removed for a
+bench session is a guard absent when the coil returns.
+
+### 18.4 #105 is no longer inferred — it is audible
+
+**The piezo beeps loudly at power-on and after every flash, in an image with no boot strike
+compiled in.** `TUVM_SOLENOID_PULSE_MS` was unset, so `solenoid_oneshot()` is not in the binary;
+nothing in this image strikes without a keystroke. §17.6 reached "something appears to be
+actively driving GPIO18 high" from a base measuring ~0 V through reset. That inference is now a
+sound anyone in the room can hear, on every power cycle.
+
+This does not localise the cause and does not change §17.6's verdict — it **must** still be
+answered before a coil is reconnected. What it changes is the cost of investigating: the fault
+now announces itself, so the drain-node test can be run against something observable instead of
+against a theory. Fitting the piezo turned an invisible hazard into an instrument.
+
+### 18.5 The bell cannot ring itself, and this is the next gap to close
+
+Stated plainly because the piezo working invites the opposite conclusion: **nothing in this
+image rings the watch.** Three independent reasons, each verified on the flashed build —
+
+- `ThreadNtpNode main:` reads the RTC, syncs, writes back, prints `NTP OK` and returns. No loop,
+  no schedule.
+- `CONFIG_RTC_ALARM is not set` in the image (`build-esp32c6-B/zephyr/.config`). §16.4 names
+  Alarm2 as the strike trigger, and `prj_esp32c6.conf` holds it off deliberately until the alarm
+  seam lands.
+- `strike_console` is the only strike path compiled in, and it needs a UART. **Unplug the USB
+  cables and the sole trigger leaves with them** — a wall-powered board would beep once at boot
+  (§18.4) and then stay silent through every half hour.
+
+The distance from here to a bell is therefore: the alarm seam (§16.4's Alarm2 on GPIO10, with
+`CONFIG_RTC_ALARM=y` in the same commit), a node that computes the count from time-of-day, and
+the strike path moved from C's console thread to the gpio seam from nsl, where §11.2 always said
+the product path belongs.
+
+## 19. AMENDMENT (2026-08-03, same evening) — the solenoid is off this device for good
+
+**Stated by David after hearing the piezo ring: the solenoid is gone from this device, because
+it sounds bad.** The piezo is not a stand-in on this board any more — it is the ringer. "Ugly,
+but it works and you can hear it easily."
+
+**This corrects §18.3 for this device.** That section kept §8's coil-era guards on the grounds
+that "the coil is disconnected, not gone". On this board it is now gone, and the guards
+(`STRIKE_MAX_MS`, the 1 s cooldown, the 50 ms pattern width cap) are guarding a load that is not
+there. They are harmless where they sit — in `strike_console`, which §11.2 calls bench
+instrumentation — so nothing needs deleting today; but no future work on this device should
+reason about coil duty cycle, and §11.2's 5–10 ms bracket describes a load this board no longer
+carries.
+
+**The acoustic comparison, recorded because it is the reason and it is measurable by ear:**
+
+| ringer | verdict |
+|---|---|
+| MagTag DAC beeper | **tiny** — audible only standing right beside it |
+| doorbell chime (§12's gate) | sounds like a doorbell — rejected §17.1 |
+| solenoid + telephone gong (§17.1) | **sounds bad** — off this device, 2026-08-03 |
+| C6 piezo, 3.3 V NPN driver (§18.1) | ugly, but audible across a room, and it works |
+
+**What this does NOT settle, and it is deliberately left open:** whether §17.1's gong-and-striker
+decision survives for §3's run of five, or whether "the solenoid sounds bad" generalises off this
+bench. §17.1 chose that pairing on evidence and this amendment was stated about *this device*.
+The mechanical-striker alternative (§13) is untouched either way — it was always about *how the
+hammer is released*, not about what it hits.
+
+**Consequences that follow immediately.** #105's unexplained boot energisation is still real and
+still audible (§18.4), but on this device it no longer gates a coil — it is a beep, not a burnt
+winding, and its priority should be re-read in that light. §17.6's "must be answered before a
+coil is reconnected" remains correct as written; there is simply no coil here to reconnect.
+
+**Also settled this evening, for the always-on node** (design record:
+`docs/design/2026-08-03-c6-shipsbell-always-on-node-design.md`): the device is wall-powered and
+**never deep-sleeps** — it interrogates the RTC instead. The DS3231 interrupt line **is wired**,
+and polling is a deliberate first step with the interrupt a later upgrade **on this same board**,
+not only on §9's battery version. That narrows §16.4: Alarm2 is deferred here, not scoped away.
+
+## 20. ADDENDUM (2026-08-04) — the bell rings itself. §18.5 is closed.
+
+**§18.5 said "nothing in this image rings the watch". That is no longer true of this
+device.** `zephyr/ShipsBellNodeC6.nsl` is flashed and running: it never returns, polls
+the DS3231 once a second, derives the half-hour slot from the clock, and strikes the
+watch through the gpio seam from nsl — which is where §11.2 always said the product
+path belonged. Design record and the bench witness:
+`docs/design/2026-08-03-c6-shipsbell-always-on-node-design.md` (§7 addendum).
+
+Taking §18.5's three reasons in order:
+
+- **`main:` returns** — the new node does not. It is a reactor: `pumpEvents` +
+  `drain`, forever.
+- **`CONFIG_RTC_ALARM is not set`** — still not set, and deliberately. §16.4's Alarm2
+  is DEFERRED on this device, not scoped away (§19): the INT/SQW line is wired to
+  GPIO10, and the node reacts to a `clock/tick` channel that a 1 s poll feeds today
+  and an ISR can feed later with nothing above the channel changing. The cost of
+  polling is one bounded thing: a strike lands up to a second late.
+- **`strike_console` needs a UART** — it is still compiled in as the bench instrument
+  §11.2 calls it, but it is no longer the only strike path. **Unplug the data cables
+  and the bell keeps ringing.**
+
+**Witnessed 2026-08-04 at the bench**, four boundaries at a 60 s test slot: 8, 1, 2, 3
+bells, ascending, each struck once, each within 1.2 s of its boundary, each confirmed
+by ear — including the odd tail on three. Then rebuilt at 1800 s.
+
+**The cadence is now a result on this device, not a placeholder.** 10 ms width, 500 ms
+pair gap, 1600 ms set gap — §3 of the node design said 50 ms, which was a misreading of
+`BELL_MAX_WIDTH_MS`; 10 ms is what §18.2 actually rang. §18.3's refusal to promote
+these numbers to a **gong** stands untouched, and under §19 there is no gong on this
+board to promote them to.
+
+**#105 is untouched and is now the first sound of every boot.** It fired on all three
+of today's flashes. It gates a coil, and there is no coil here (§19) — but it is the
+one part of this device that still rings without being asked.
+
+## 21. ADDENDUM (2026-08-04) — §16.4's alarm is built, and the pin was GPIO11
+
+**The interrupt trigger §16.4 settled is implemented, flashed and witnessed**, as a SECOND node
+beside the poll one (`zephyr/ShipsBellAlarmNodeC6.nsl`; `ShipsBellNodeC6.nsl` is untouched and
+stays the poll demonstration). Design record: `docs/design/2026-08-03-c6-shipsbell-always-on-node-design.md`.
+
+**Alarm1, not Alarm2.** §16.4 named Alarm2; Alarm1 is the one with a SECONDS register, and the
+node wants a lead measured in seconds — it wakes at boundary − 5 s and counts down to the
+boundary with a local one-shot, so the strike instant is a timer over 5 s rather than an I²C
+read inside the interrupt path. Everything else §16.4 settled is unchanged, including the
+re-arm after every strike.
+
+**§16.4's "a missed edge is silent" is answered by a WATCHDOG, not by a poll.** After each
+strike the node also arms a one-shot for the next boundary + 2 s. If the alarm arrives, the
+countdown rings and the watchdog finds the slot already rung; if it never arrives, the watchdog
+rings 2 s late and PRINTS THAT IT DID. The MCU still holds exactly one armed timer between
+boundaries, so §9's battery version is not foreclosed the way a backstop poll would foreclose
+it. It is not a collision with an 8-bell pattern (6.88 s) because the ratchet advances when the
+ring STARTS, not when it finishes.
+
+### The pin is GPIO11. §1.2 of the next-steps doc and every reference above say GPIO10.
+
+**The bench wire runs SQW → GPIO11.** Measured 2026-08-04, after the alarm failed to arrive at
+four consecutive boundaries while every software layer reported success.
+
+The evidence chain is worth keeping, because the fault was invisible from every direction but
+one. `rtc_alarm_set_time` returned 0. The part was correct: `ctrl=45` → `INTCN=1`, `A1IE=1`, and
+`status` showed **A1F setting on schedule, every cycle** — the DS3231 was matching the alarm and
+pulling INT/SQW low exactly as asked. And GPIO10 read *inactive* at the same instant.
+
+**An unconnected input with a pull-up is indistinguishable from an idle open-drain interrupt.**
+Both read high forever. What separated them was reading the part's FLAG and the PIN in the same
+breath: flag set AND line high is not a timing question, it is a wiring question. Neither
+measurement alone would have said anything.
+
+The watchdog carried the bell correctly through the entire diagnosis — every boundary rang, 2 s
+late, with `watchdog: no alarm for slot NN` in the log. The feature that made the failure
+survivable is the same one that reported it.
+
+### 22. The wallwart resets the board, and the chirping is #105 on repeat
+
+**Filed as #149.** On wallwart power alone the piezo chirps continuously. The remote
+console (#56 §10) settled it by what was MISSING: nine minutes of audible chirping and
+**not one line over Thread**, where a healthy boot reaches `thread: attached` in ~300 ms
+and then talks. The board never gets far enough to attach — it is resetting in a tight
+loop, and every reset fires §18.4/#105's ~1 s energisation of GPIO18. Corroborated
+directly: chirping while a connector was moved, silence the instant it seated.
+
+**RESOLVED 2026-08-04, and the candidate list above was wrong.** It was not the cable, the
+connector or CC negotiation. **3.3 V was being brought directly into the C6 module**;
+feeding **5 V and letting the onboard LDO make 3.3 V** stopped it. Both symptoms went at
+once — the ~1 s startup chirp and the continuous chirping.
+
+Verified by a **5 h 38 m unattended run with zero resets** (last boot 16:52:03; all six of
+the day's boots precede it) and **12 consecutive correct strikes**, slots 34–45. #149
+closed on that evidence.
+
+The lesson is about the shape of the guess, not the guess: every candidate named above was
+*downstream of the connector*, because the reproducer was "chirping while a connector was
+moved, silence the instant it seated". That observation was real and pointed at the wrong
+half — a marginal rail browns out on movement too, and the module was being fed a rail with
+no headroom for the LDO to regulate away. **A 2 A rating is still not a delivery; it just
+was not the delivery that failed here.**
+
+**#105 is therefore a power-integrity readout.** On a board with no console, continuous
+chirping means "I am resetting" — the second time on this rig that fitting an audible
+load turned an invisible fault into an obvious one.
+
+### Unplugging the data cables does not silence a console-driven striker
+
+**REFUTED AS THE CAUSE of the chirping, kept as a real hazard.** It fitted the 0.5 s
+cadence — a `bN` pattern's pair gap is 500 ms — and it was wrong: the current image has
+`TUVM_SOLENOID_CONSOLE` compiled out entirely and still chirps (§22, #149). The hazard
+below is genuine and the build change was right; it simply was not this fault.
+
+Stated because §18.5 says the opposite by implication. `strike_console` reads the console UART;
+pull the cable and the input does not go quiet, it goes UNDRIVEN, and a floating RX is noise a
+strike parser will happily act on. An unattended board must not have `TUVM_SOLENOID_CONSOLE`
+compiled in — the product strike path is the nsl gpio seam (§11.2, D3), and the console striker
+is bench instrumentation that belongs on a bench.
