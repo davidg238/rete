@@ -103,21 +103,26 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
 
   nameChanged: v = ( space put: 'obs/name' value: v. ^ self )
 
-  (* Health. heapFree/heapLargest come from heapStats: largestFreeBlock is the
-     fragmentation signal — the number that says a years-long node is dying slowly,
-     which heapFree alone will not. wakes/pollTimeouts carry the tick count and the
-     bridge's missed replies until the mode record gives them a stricter meaning. *)
+  (* LIVENESS AND DELIVERY ONLY (design D2, 2026-08-04). heapFree/heapLargest/overruns
+     left this record — not duplicated elsewhere, DELETED from here, because every one
+     of them already lives at sys/metrics (RECORDS §4.4), which the bridge now
+     publishes on every check-in. Two overlapping health records is how obs/health
+     came to have three mutually inconsistent definitions: 3 fields in the conformance
+     target, 7 in RECORDS, 8 actually on the wire.
+
+     wakes/pollTimeouts carry the tick count and the bridge's missed replies until the
+     mode record gives them a stricter meaning.
+
+     streamDropped STAYS. It counts information lost on the way OUT, which is the
+     number that says the observability itself is lying — a delivery fact about this
+     node's reporting, not a VM internal. *)
   publishHealth = (
-    | h pairs |
-    h:: platform heapStats.
+    | pairs |
     pairs:: platform OrderedCollection new.
     pairs add: #uptimeMs -> platform monotonicMillis.
     pairs add: #bootId -> 1.
     pairs add: #wakes -> ticks.
     pairs add: #pollTimeouts -> bridge misses.
-    pairs add: #heapFree -> (h heapSize - h liveBytes).
-    pairs add: #heapLargest -> h largestFreeBlock.
-    pairs add: #overruns -> (platform spaceOverruns: '').
     pairs add: #streamDropped -> bridge dropped.
     space put: 'obs/health' value:
       (platform Record tag: #Health fields: (platform Map fromPairs: pairs)).

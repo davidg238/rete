@@ -326,7 +326,7 @@ answer for that path specifically — the decision belongs with #114.
 | report `apps` | `obs/apps/<name>` | cell | observed `{crc:, runlevel:, lifecycle:, triggers:}` |
 | report `config` echo | `obs/config/<app>/<key>` | cell | scalar echo |
 | `node_config` echo | `obs/mode`, `obs/name`, `obs/forward` | cell | publish-on-change is what cells do; no echo-cadence rules |
-| `health` | `obs/health` | cell | `{uptimeUs:, wakes:, pollTimeouts:}` |
+| `health` | `obs/health` | cell | `{uptimeMs:, bootId:, wakes:, pollTimeouts:, streamDropped:}` — liveness and delivery; VM internals are `sys/metrics` |
 | `health.reset` (fault) | `sys/reset` | stream | `{category:, code:}` — v1's "data_log on first fault" is just an entry |
 | telemetry `print`/`log` | `tel/print`, `tel/log` | stream | `{text:}` / `{level:, text:}` |
 | telemetry `metric` | `tel/m/<name>` | stream | `{value:, ts:}` |

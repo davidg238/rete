@@ -228,7 +228,7 @@ construction. There is nothing to enforce.
 | `obs/apps/<name>` | R | `AppObs { image: BlobRef, runlevel: int, lifecycle: sym, triggers: [sym] }` |
 | `obs/config/<app>/<key>` | R | scalar echo |
 | `obs/mode` / `obs/name` / `obs/forward` | R | same shapes as their `goal/` twins |
-| `obs/health` | R | `Health { uptimeMs: int, bootId: int, wakes: int, pollTimeouts: int, heapFree: int, heapLargest: int, overruns: int }` |
+| `obs/health` | R | `Health { uptimeMs: int, bootId: int, wakes: int, pollTimeouts: int, streamDropped: int }` — liveness and delivery only; the VM internals live at `sys/metrics` (§4.4), which the bridge publishes on every check-in. `heapFree`/`heapLargest`/`overruns` were **removed** 2026-08-04 (#56 design D2) rather than duplicated. **87 B encoded, MEASURED 2026-08-04** |
 | `obs/build` | R | `Build { chip: sym, sdk: str, image: bytes, builtAt: int }` — see below |
 
 **`obs/build` — build provenance, pinned 2026-08-01.** Added by the space-sync rewrite
