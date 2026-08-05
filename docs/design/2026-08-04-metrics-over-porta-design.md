@@ -125,7 +125,9 @@ accreted field already has a home in `sys/metrics`.
   Forensics, never part of convergence — nobody writes a `goal/` for `gcCycles`.
 
 `heapFree`/`heapLargest`/`overruns` **leave** `obs/health`; they are not duplicated,
-they are deleted from it. The record drops 8 fields → 5.
+they are deleted from it. The record drops 8 fields → 5, and **130 B → 87 B measured**
+(§9.1) — which doubles the slack in a full push frame, from 44 B to 87 B under the
+512 B cap. The split earns its keep in bytes, not only in clarity.
 
 **D3 — `PROTOCOL-NSL.md:327` is corrected to match**, including `uptimeUs` → `uptimeMs`.
 It is the conformance target and it currently describes a record no implementation has
@@ -233,17 +235,47 @@ count — about five slots. This matters against the DRAM ceiling (#53).
   injecting counter movement and asserts the published cadence — floor, escalation on
   each of the three edges, the `largestFreeBlock` threshold, and decay after *K* clean
   check-ins. The state machine must be testable without a radio.
-- **Size, measured not estimated:** extend the method of
-  `nodus/tests/19_latency/05_record_size.nsl` to the new 5-field `obs/health` and assert
-  `obs/health + sys/metrics` against the 512 B batch cap with device-realistic values.
-  **This measurement is OWED and is not yet taken** — see §12. The house rule is that a
-  size in a protocol document is measured through the real `Cbor>>encode:` path, because
-  CBOR is shortest-form and placeholder values encode to a different number than the
-  fleet actually sends.
+- **Size — MEASURED 2026-08-04, see §9.1.** The measurement is taken; what remains for
+  implementation is landing it in `nodus/tests/` as a **regression guard**, the same job
+  `19_latency/05_record_size.nsl` does for `#Metrics`. 61 B of value headroom is eaten
+  silently by one field addition.
 - **Wire, end to end:** extend `nodus/tuvm/tests/porta_sync_host.sh` to assert
   `sys/metrics` arrives in porta's cell tree **and** that repeated pushes accumulate as
   distinct `events` rows — the §4 claim, asserted rather than assumed.
 - **Hardware:** on the second C6, not the bell (see §11).
+
+### 9.1 The measurement, taken 2026-08-04
+
+Not a sum of record sizes. The thing that must fit 512 B is the **push frame** —
+envelope and rows included — so this builds the frame `PortaBridge>>encodePush:` would
+build and encodes it through the real `Cbor>>encode:` path. Values are chosen for a
+**long-running** node (30 days of uptime, 1,296,000 wakes), because CBOR is
+shortest-form and a fresh node encodes narrower than one that has been up for weeks:
+measuring the easy case is exactly how an estimate becomes wrong in the field.
+
+| encoded | bytes |
+|---|---|
+| `obs/health` as sent today (8 fields) | **130** |
+| `obs/health` proposed (5 fields, D2) | **87** |
+| `sys/metrics` (11 fields) | **195** |
+| `tel/log` one entry | **45** |
+| **push frame: proposed health + metrics** | **365** — 147 B under the cap |
+| **push frame: + `tel/log`** | **425** — 87 B under the cap |
+| push frame: today's health + metrics | 408 |
+| push frame: today's health + metrics + `tel/log` | 468 — 44 B under the cap |
+
+**It fits, with room.** Three findings worth keeping:
+
+1. **`sys/metrics` reproduces at exactly 195 B**, the value §4.4 pinned on 2026-07-21.
+   That is the control: had it come out otherwise, every other number here would be
+   suspect. The method is validated, not merely used.
+2. **D2 doubles the headroom.** The full three-row batch is 468 B with today's
+   `obs/health` and 425 B with the proposed one — 44 B of slack versus 87 B. Slimming
+   the record is not tidiness; it is the difference between one future field being
+   affordable and not.
+3. **The batch was never in danger, but it was never checked either.** 468 B fits
+   today, which means this design could have shipped on an assumption and been right —
+   and the next field added to any of the three records is the one that finds the cap.
 
 ## 10. Out of scope, recorded so it is deferred rather than forgotten
 
@@ -291,7 +323,8 @@ afterwards costs a constructor call, not a second implementation.
   state machine (D4).
 - **Touches `PortaBridgeNode.nsl` / `PortaBridgeNodeC6.nsl`** — `publishHealth` loses
   the heap fields; a change to the body of either file is a change to both.
-- **OWED before implementation is called done:** the §9 size measurement. Until it is
-  taken, the claim that `obs/health + sys/metrics` fits one 512 B batch is an estimate,
-  and this project has already paid once for an estimate in a protocol document
-  (§4.4's own history, discharged by tuvm#61).
+- **The size measurement is DISCHARGED** (§9.1, 2026-08-04): the full three-row push
+  frame is **425 B** against the 512 B cap, and `sys/metrics` reproduces the pinned
+  195 B exactly as a control. What implementation still owes is landing that
+  measurement as a **regression guard** in `nodus/tests/`, because the number protects
+  nothing if nothing re-checks it.
