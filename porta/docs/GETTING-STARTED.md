@@ -1,15 +1,27 @@
 # Getting started with porta
 
-porta is a self-hosted, language-neutral LAN gateway for a fleet of nodes: it
-owns a wire protocol, queues commands, delivers container images over TFTP, and
-ingests telemetry. This guide gets a gateway running and a node talking to it,
-then points at the [CLI reference](CLI.md). For the big picture first, read
-[`ARCHITECTURE.md`](ARCHITECTURE.md).
+> **The listeners and endpoints in this guide were corrected against the code on
+> 2026-08-05. The operator verbs in §3–§4 and the repo layout at the end are
+> still v1 and no longer exist.** porta v1 — the command vocabulary, the command
+> queue, TFTP image delivery and the report schema — was deleted in one commit;
+> the last v1 tree is tagged `porta-v1-final`. The v2 vocabulary is
+> `porta serve | get | put | log`, all of it sugar over path writes and tree
+> reads. See [`CLI.md`](CLI.md), and
+> [`../../protocol/PROTOCOL-NSL.md`](../../protocol/PROTOCOL-NSL.md) for the wire.
+
+porta is a self-hosted, language-neutral LAN gateway for a fleet of nodes. Each
+node owns a tree of paths and porta holds a mirror of it: operators write intent
+under `goal/**`, the node writes what it sees under `obs/**`, `tel/**` and
+`sys/**`, and convergence is the diff between them. This guide gets a gateway
+running, then points at the [CLI reference](CLI.md). For the big picture first,
+read [`ARCHITECTURE.md`](ARCHITECTURE.md) — itself stale in parts.
 
 porta is one process with two listeners:
 
-- **`:6969/udp`** — TFTP: node check-ins, command delivery, image transfer.
-- **`:6970/tcp`** — the operator surface: web dashboard, JSON API, read-only MCP.
+- **`:6969/udp`** — the node-facing space sync: two node-initiated, idempotent
+  messages (`pull`, `push`) carrying CBOR. No TFTP, and no verbs on the wire.
+- **`:6970/tcp`** — the operator HTTP surface. Today that is **exactly one
+  route, `GET /health`**; `--http-port 0` disables the listener entirely.
 
 ---
 
@@ -49,7 +61,7 @@ C compiler:
 ```bash
 go build ./cmd/porta
 ./porta serve --db ./porta.db
-# porta: serving TFTP on udp :6969 (db=./porta.db)
+# porta: serving the space on udp :6969 (db=./porta.db)
 # porta: serving HTTP on 0.0.0.0:6970
 ```
 
@@ -63,16 +75,26 @@ go test ./...
 
 ## 2. Confirm it's up
 
+`GET /health` is the whole HTTP surface:
+
 ```bash
-# web dashboard
-open http://localhost:6970/                 # fleet list
-
-# JSON API
-curl -s http://localhost:6970/api/nodes     # {"ok":true,"data":{"nodes":[...]}}
-
-# CLI (a client over the API; --server defaults to http://localhost:6970)
-porta scan                                  # empty fleet prints nothing, exit 0
+curl -s http://localhost:6970/health
+# {"nodes":2,"reports_rejected":0,"status":"ok","uptime_s":51966,"version":"dev"}
 ```
+
+- `nodes` is the row count in the `nodes` table. **`-1` is not an error state** —
+  it means the count was unavailable (no store attached, or a transient DB blip)
+  and the response is still `200`, because the endpoint reports that the
+  *listener* is healthy, not that the store is. A gateway serving before any
+  store exists is a supported state.
+- `version` is the build stamp; a plain `go build` with no release ldflags reads
+  `dev`.
+- The body is deliberately cheap — in-memory stats only, no `PRAGMA` and no
+  `stat`, so it is safe as an uptime probe on any interval.
+
+**There is no other route.** `/`, `/api/nodes` and `/api/status` were v1's and
+answer `404`. Reading the fleet is a CLI job against the database: `porta get`,
+`porta log`.
 
 The HTTP listener is allow-listed to RFC1918 + loopback + Tailscale CGNAT by
 default, so it's reachable from your LAN and over Tailscale, but not the public
@@ -120,20 +142,25 @@ Full command details: [CLI reference](CLI.md).
 
 ---
 
-## 5. The web dashboard
+## 5. The operator surface
 
-`http://<host>:6970/` is a read-only operator console (polling htmx, no JS app):
+**There is no web dashboard.** v1's htmx console — fleet page, node detail,
+telemetry, command log, status page — was deleted with the rest of v1, and so
+were `GET /api/status`, `GET /api/nodes` and the read-only MCP server. Their
+fate is recorded as **deferred → operator surface** in the capability audit
+(`docs/design/2026-08-01-porta-space-sync-rewrite-design.md` §4.2), not as a
+silent drop: a rewrite may delete a mechanism, but it may not delete a
+capability.
 
-- **Fleet page** — every node with a check-in gauge.
-- **Node detail** — identity, desired-vs-observed config, recent commands with
-  lifecycle badges, containers, and two console panels (Prints / Logs). Panic
-  rows carry a `[decode ↗]` link that hands the trace to the node's dev tool.
-- **Telemetry** and **Command Log** pages.
-- **Status page** — porta build identity + uptime, per-transport volume
-  (wifi/thread/espnow nodes, packets, bytes), report ok/rejected counts, and
-  sqlite store metrics (on-disk size, pages, per-table rows, data_log span).
-  The same surface is available as JSON at `GET /api/status` (and a slimmer
-  subset at `/health`).
+What that audit turned up is worth knowing before anyone rebuilds it: the status
+page's wifi-vs-Thread breakdown was computed from `nodes.source_addr`, a column
+with no successor in the new schema until it was enumerated. It came back as
+`nodes.last_addr`, stamped by the UDP loop from the datagram's peer address — so
+the data a future status page needs is being recorded now, rather than waiting
+for the page to notice it is missing.
+
+Until that page exists, the operator surface is `GET /health` (§2) plus the CLI
+reading the database directly.
 
 ---
 

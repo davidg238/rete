@@ -1,8 +1,14 @@
 # porta CLI reference
 
-`porta` is one binary. `porta serve` runs the gateway daemon (the only command
-that opens the database); **every other command is a thin client** that talks to
-a running server over its HTTP API. New to porta? Start with
+> **The endpoints and global flags in this file were corrected against the code
+> on 2026-08-05. Every verb below except `serve` is v1 and no longer exists.**
+> The v2 vocabulary is `porta serve | get | put | log` — `put` writes a value at
+> a `goal/` path, `get` reads a subtree, `log` queries the append-only event log.
+> Verbs live only at the CLI: the store and the wire have none.
+
+`porta` is one binary. **Every command opens the SQLite database directly**
+(`--db`, default `porta.db`); there is no HTTP client mode and no `--server`
+flag. `serve` additionally binds the listeners. New to porta? Start with
 [`GETTING-STARTED.md`](GETTING-STARTED.md).
 
 ```
@@ -25,8 +31,7 @@ porta container uninstall -d <node> <name>
 
 | Flag | Default | Notes |
 |------|---------|-------|
-| `--server <url>` | `$PORTA_SERVER`, else `http://localhost:6970` | Base URL of the running gateway. Used by every command **except** `serve`. |
-| `--db <path>` | `porta.db` | SQLite path. Only `serve` opens the store; ignored by client commands. |
+| `--db <path>` | `porta.db` | SQLite path. Persistent — **every** command opens the store, including the read-only ones. |
 
 `-d` / `--device` takes a **node name or MAC** and is required by every per-node
 command. Durations (`<dur>`) accept Go-style strings: `30s`, `5m`, `1h`.
@@ -35,17 +40,19 @@ command. Durations (`<dur>`) accept Go-style strings: `30s`, `5m`, `1h`.
 
 ## serve
 
-Run the gateway: the UDP/TFTP listener plus the optional HTTP operator surface
-(web dashboard + JSON API + read-only MCP).
+Run the gateway: the node-facing UDP listener (space sync — `pull`/`push`
+carrying CBOR) plus the optional HTTP surface, which is **`GET /health` and
+nothing else**. v1's dashboard, JSON API and MCP server are gone; see
+GETTING-STARTED §5.
 
 ```
-porta serve [--port 6969] [--http-port 6970] [--http-bind 0.0.0.0] [--http-allow-cidr …]
+porta serve [--udp :6969] [--http-port 6970] [--http-bind 0.0.0.0] [--http-allow-cidr …]
 ```
 
 | Flag | Default | Notes |
 |------|---------|-------|
-| `--port` | `6969` | UDP/TFTP port (node traffic). |
-| `--http-port` | `6970` | Operator HTTP port; `0` disables the HTTP surface. |
+| `--udp` | `:6969` | Node-facing UDP **listen address**, not a bare port number (was `--port` in v1). |
+| `--http-port` | `6970` | Operator HTTP port; `0` disables the listener, and the gateway still serves nodes. |
 | `--http-bind` | `0.0.0.0` | HTTP bind address. |
 | `--http-allow-cidr` | RFC1918 + loopback + Tailscale `100.64.0.0/10` | Repeatable allow-list for the HTTP listener; empty = serve any peer. |
 
