@@ -12,9 +12,13 @@ came from David, not from the logs: a reset loop produces repeated ~1 s bursts (
 #149, closed the previous day by feeding 5 V and letting the module's LDO make 3.3 V).
 A *solid* tone means the pin was driven high and stayed high.
 
-There is no console record of the event. The serial collector had been `port=down` since
-2026-08-04 14:54:33, and the UDP tee (#56) landed at 17:15 that day — after the board was
-last flashed. So the event was unobserved in both channels at once.
+**There IS a console record, and it was missed for most of a day.** The serial collector
+on the workstation had been `port=down` since 2026-08-04 14:54:33, and that absence was
+mistaken for "no record". The node was in fact teeing its console over Thread to the
+gateway's `udpsink` throughout — `~/.local/state/rete/console/console-c6-2026-08-05.log`
+**on gw85224-01**, not on the workstation. The lesson is cheap and worth keeping: with two
+collectors, checking one and finding it dead is not checking. §2's conclusions were drawn
+before that log was read; §3 records what it then corrected.
 
 ## 2. What was measured
 
@@ -49,8 +53,33 @@ Three steps, in `nodus/tuvm/src/backend/zephyr/`:
 A's timer event is destroyed by a later, unrelated registration. Nothing is dropped,
 nothing is coalesced, nothing is logged.
 
-This is exactly what `ShipsBellAlarmNodeC6` executes at every boundary, inside one
-reaction:
+### What this does and does not explain about 2026-08-05
+
+**Corrected after reading the overnight remote console**, which existed on the gateway
+the whole time and was not consulted until after this section was first written. The node
+struck cleanly every half hour to 06:30 and then produced **no output at all** until it
+was power-cycled at 08:26 — slots 14, 15 and 16 all missed — after which it ran cleanly
+all morning on the *same pre-fix firmware*.
+
+What fits: two independent timer events (the RTC alarm's countdown and the watchdog armed
+at 06:30:00.628) both failed to deliver at 07:00, which is squarely this seam. And the
+pattern durations grow with bell count — 0.013 s at one bell, 4.235 s at five — so slot 14
+would have been the first six-bell pattern, i.e. the most stroke registrations yet. A
+per-stroke race has exactly that dose-response.
+
+What does **not** fit: there is no `bell slot 14` line, and that print happens in
+`ringSlot:` *before* `startPattern:`. So the node never reached the striker, `strikeOn`
+never ran, and the pin should have been LOW — which the reported solid tone contradicts.
+The console record shows silence, not a latched striker.
+
+**Therefore: the defect below is proven by the A/B on hardware, and is a real event-loss
+bug worth fixing on its own terms. Whether it is what made the piezo sound on 2026-08-05
+is CONSISTENT but NOT ESTABLISHED.** The unexplained residue is the total console silence
+from 06:30:04 and the absence of any slot-14 output. Do not treat #151 as closing that
+question; it needs its own evidence.
+
+The shape below is what `ShipsBellAlarmNodeC6` executes at every boundary, inside one
+reaction, and is what the A/B was built to model:
 
 ```
 ringSlot: → startPattern: → strikeOn
