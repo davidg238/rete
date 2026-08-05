@@ -9,7 +9,12 @@
 #include "../../handles.h"
 #include <zephyr/kernel.h>
 
-struct PulseItem { int chan_id; int handle_idx; };
+/* #151: handle_idx >= 0 -> heap payload behind an M6 handle (a GPIO message object).
+   handle_idx < 0 -> `value` IS the payload, an immediate that cannot move and needs
+   no pinning. Compared together when coalescing, so two distinct timer tokens no
+   longer look identical to the merge test. */
+#define PULSE_BY_VALUE (-1)
+struct PulseItem { int chan_id; int handle_idx; oop value; };
 K_MSGQ_DEFINE(pulse_q, sizeof(struct PulseItem), OEVM_PULSE_MAILBOX_DEPTH, 4);
 
 /* tuvm#34: k_msgq offers no way to inspect what it already holds (k_msgq_peek sees
@@ -22,8 +27,8 @@ static struct PulseItem shadow[OEVM_PULSE_MAILBOX_DEPTH];
 static int sh_head = 0, sh_count = 0;
 static uint32_t mb_drops = 0, mb_coalesced = 0;
 
-void pulse_post_isr(int chan_id, int handle_idx) {
-    struct PulseItem it = { chan_id, handle_idx };
+static void pulse_enqueue(int chan_id, int handle_idx, oop value) {
+    struct PulseItem it = { chan_id, handle_idx, value };
     unsigned int key = irq_lock();
 
     /* Coalesce: a source with a post already pending gains nothing from a second.
@@ -32,7 +37,8 @@ void pulse_post_isr(int chan_id, int handle_idx) {
        every slot and starving a GPIO edge (tuvm#54/#55). */
     for (int k = 0; k < sh_count; k++) {
         int idx = (sh_head + k) % OEVM_PULSE_MAILBOX_DEPTH;
-        if (shadow[idx].chan_id == chan_id && shadow[idx].handle_idx == handle_idx) {
+        if (shadow[idx].chan_id == chan_id && shadow[idx].handle_idx == handle_idx
+            && shadow[idx].value == value) {
             mb_coalesced++;
             irq_unlock(key);
             return;
@@ -52,6 +58,21 @@ void pulse_post_isr(int chan_id, int handle_idx) {
     irq_unlock(key);
 }
 
+void pulse_post_isr(int chan_id, int handle_idx) {
+    pulse_enqueue(chan_id, handle_idx, NULL);
+}
+
+void pulse_post_isr_value(int chan_id, oop immediate) {
+    pulse_enqueue(chan_id, PULSE_BY_VALUE, immediate);
+}
+
+/* An immediate needs no lookup and can never stale. tuvm#13: for a HANDLE, NULL means
+   the pinned slot was freed and reused between post and pump (a stale generation) —
+   drop it rather than post the new occupant. */
+static oop pulse_payload(const struct PulseItem *it) {
+    return (it->handle_idx == PULSE_BY_VALUE) ? it->value : handle_get(it->handle_idx);
+}
+
 /* Pop the shadow head, keeping it in lockstep with a successful k_msgq_get. */
 static void shadow_pop(void) {
     unsigned int key = irq_lock();
@@ -69,15 +90,13 @@ int pulse_pump(void) {
     struct PulseItem it;
     int drained = 0;
     /* block for the first event (idle safe point), then drain all currently queued */
-    /* tuvm#13: NULL means the pinned slot was freed and reused between post and pump
-       (a stale generation) — drop it rather than post the new occupant. */
     if (k_msgq_get(&pulse_q, &it, K_FOREVER) == 0) {
         shadow_pop();
-        oop o = handle_get(it.handle_idx);
+        oop o = pulse_payload(&it);
         if (o) { space_post_id(it.chan_id, o); drained++; }
         while (k_msgq_get(&pulse_q, &it, K_NO_WAIT) == 0) {
             shadow_pop();
-            o = handle_get(it.handle_idx);
+            o = pulse_payload(&it);
             if (o) { space_post_id(it.chan_id, o); drained++; }
         }
     }
@@ -94,7 +113,7 @@ int pulse_pump_nb(void) {
     int drained = 0;
     while (k_msgq_get(&pulse_q, &it, K_NO_WAIT) == 0) {
         shadow_pop();
-        oop o = handle_get(it.handle_idx);
+        oop o = pulse_payload(&it);
         if (o) { space_post_id(it.chan_id, o); drained++; }
     }
     return drained;

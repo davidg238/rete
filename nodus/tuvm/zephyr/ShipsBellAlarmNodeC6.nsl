@@ -73,15 +73,40 @@ shipsbell(alarm) ready, slot 1800 s, lead 5 s, watchdog +2 s, 10/500/1600 ms
 rtcalarm: armed 14:59:55
 bell slot 30 at 15:00:00 — 6 bells
 *)
-class ShipsBellAlarmNodeC6 packageUsing: manifest = (
-  | plat space timers tick bellCh
+class ShipsBellAlarmNodeC6 usingPlatform: platform net: net = (
+  | plat space timers tick bellCh bridge beatCh
     lastSlot. striking ::= false. strokeCount ::= 0. strokeIndex ::= 0. pinOn ::= false.
     haveClock ::= false. gpioMissing ::= false. midnightPending ::= false.
-    alarmOk ::= false. armedFor. | ) (
+    alarmOk ::= false. armedFor. checkIns ::= 0. | ) (
+
+  (* --- proof of life (#56 D8, added 2026-08-05) -----------------------------
+     This node speaks once per HALF HOUR, and `udpsink` cannot tell a dead node
+     from a quiet one — a UDP listener has no peer to lose, so it reports
+     `port=up` forever. On 2026-08-05 that cost two hours of silence which read
+     as four ordinary gaps. A check-in on porta's cadence makes absence
+     detectable, and carries `sys/metrics` for free.
+
+     D8 of the metrics design (2026-08-04) scoped the bridge onto the gate node
+     and wrote down exactly what deferring it cost: "the node with metrics is the
+     gate node, and the node that runs for days has none." This is that debt paid,
+     and the class header had to change to acquire `net:` — a shade more than the
+     "constructor call" D8 estimated.
+
+     CADENCE IS 30 s, NOT the bridge node's 2 s, and the number is DERIVED rather
+     than picked: it only has to be well inside this node's own 30-minute quiet
+     gap for silence to be detectable, and nothing here needs finer. At 2 s it
+     would be 900 check-ins per gap, forever, on a mesh that also carries a bell. *)
+  nodeId    = ( ^ 'c6-bell' )
+  gwAddr    = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )
+  gwPort    = ( ^ 6969 )
+  localPort = ( ^ 16971 )   (* NOT 16970 — PortaBridgeNodeC6 owns that one *)
+  cadence   = ( ^ 30000 )
+  chip      = ( ^ #esp32c6 )
 
   (* --- boot --------------------------------------------------------------- *)
 
-  public main: platform args: args = (
+  public main: platform2 args: args = (
+    | sock |
     plat:: platform.
     space:: plat space.
 
@@ -94,6 +119,24 @@ class ShipsBellAlarmNodeC6 packageUsing: manifest = (
 
     bellCh:: space channel: 'bell/stroke'.
     bellCh whenever: '' do: [ :m | self strokeStep ].
+
+    (* The bridge. A bind failure is NOT fatal here, unlike on the gate node: this
+       node's job is to ring on time, and it must keep ringing with no gateway,
+       no mesh and no report. Silence about itself is a degradation; a bell that
+       stops for want of a socket is a regression. *)
+    sock:: net udpBindPort: self localPort.
+    sock == nil
+      ifTrue:  [ 'porta: bind FAILED — ringing on, reporting nothing' out ]
+      ifFalse: [
+        bridge:: plat PortaBridge
+          socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort.
+        space put: 'obs/build' value:
+          (plat Record tag: #Build with: #chip -> self chip).
+        beatCh:: space channel: 'sys/tick'.
+        beatCh whenever: '' do: [ :m | self checkIn ].
+        timers every: self cadence post: #beat on: beatCh.
+        ('porta: check-in every ' , (self cadence // 1000) printString ,
+          ' s as ' , self nodeId) out ].
 
     ('shipsbell(alarm) ready, slot ' , self slotSeconds printString ,
       ' s, lead ' , self leadSeconds printString ,
@@ -109,6 +152,37 @@ class ShipsBellAlarmNodeC6 packageUsing: manifest = (
 
     [ true ] whileTrue: [ plat pumpEvents. space drain ].
   )
+
+  (* --- proof of life ------------------------------------------------------
+     ONE check-in. Guarded on `striking`, and that guard is load-bearing rather
+     than tidy: `checkIn` is a UDP round trip with a budget, and blocking inside a
+     reaction while a pattern is in flight stretches the gap between strokes. A
+     missed check-in is idempotent — the next one carries the same cells, by
+     cursor — but a bell that pauses mid-pattern is audibly wrong, and this node's
+     one job is to sound right. Reporting yields to ringing.
+
+     A raised checkIn must not take the node down either: the bell outranks its
+     own telemetry, so the failure is counted-and-carried rather than propagated. *)
+  checkIn = (
+    bridge == nil ifTrue: [ ^ self ].
+    striking ifTrue: [ ^ self ].
+    [ bridge checkIn. checkIns:: checkIns + 1 ]
+      on: [ :e | true ]
+      do: [ :e | 'porta: check-in raised — ringing on' out ].
+
+    (* PRINT EVERY CHECK-IN, and print the bridge's own counters with it. The first
+       cut of this method printed only on failure, which made a working check-in
+       and a silently-missing one look identical on the console — the exact blind
+       spot this whole change exists to close, rebuilt inside the fix for it. A
+       proof of life that cannot be distinguished from silence is not one.
+       `misses` is the load-bearing number: it rising means the datagram left and
+       no reply came back, which separates "the mesh ate it" from "the node never
+       tried". *)
+    ('porta: check-in ' , checkIns printString ,
+      ' misses ' , bridge misses printString ,
+      ' cursor ' , bridge cursor printString ,
+      ' acked ' , bridge acked printString) out.
+    ^ self )
 
   (* --- the schedule ------------------------------------------------------- *)
 

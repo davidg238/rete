@@ -501,3 +501,33 @@ of the serial reader — and re-exported so callers and tests are unchanged.
 lines, and the 16:00 ring attributed to the alarm rather than the watchdog by the
 re-arm landing 0.88 s after the boundary. Then it diagnosed #149 by SILENCE, which
 is the observation a local console could never have made.
+
+---
+
+## Addendum, 2026-08-05 — two collectors, and what an absence at one of them means
+
+Written after #151, where a two-hour node outage was read as "no record exists".
+
+**D1's per-board template is now actually used, and the instances are not
+interchangeable.** `rete-console@c6` is the SHIP'S BELL — wallwart-powered, no data
+cable, so its serial instance sits at `port=down` by design and that is healthy, not
+broken. `rete-console@c6bench` is the spare devkit, and it is where target gates run.
+The two ESP32-C6 devkits are otherwise identical; only the CP2102N by-id hash tells
+them apart, and mistaking one for the other cost most of a morning. `stale_handle_c6.sh`
+therefore defaults to `c6bench` — a gate that flashed over the bell would destroy the
+soak it exists to protect.
+
+**Checking one collector and finding it dead is not checking.** On 2026-08-05 the
+workstation's serial collector had been `port=down` since the previous afternoon, and
+that absence was taken for the whole picture. The node had been teeing its console over
+Thread to `udpsink` on gw85224-01 the entire time, and that log held the complete
+overnight record — strikes every half hour, then the silence, then the power cycle. It
+was not consulted for most of a day. **With two sinks, "I looked and there was nothing"
+must name WHICH sink.**
+
+**A UDP sink cannot report a node's silence, and its heartbeat actively misleads.**
+`port=up` means the socket is bound; a UDP listener has no peer to lose. For a node that
+speaks once per half hour, a two-hour outage is four ordinary gaps and looks like
+nothing at all. Filed as #152. The instance was closed by giving the bell a `PortaBridge`
+(#56 D8, commit `98513af`) so its liveness rides porta's cadence rather than its own —
+but the class remains, and #147 is the same bug one layer up in `check.py`.

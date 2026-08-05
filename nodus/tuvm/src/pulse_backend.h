@@ -4,11 +4,14 @@
    backend/posix/pulse_posix.c (in-process ring, non-blocking pump) for the host
    gate; backend/zephyr/pulse_zephyr.c (k_msgq, ISR-safe put, blocking pump) on
    target. An interrupt calls pulse_post_isr ONLY; the run-to-completion main loop
-   calls pulse_pump at the safe point. C never holds a raw oop — the mailbox carries
-   an M6 handle index, resolved to an oop (handle_get) inside pulse_pump, then handed
-   to space_post_id in thread context. See the design spec §2. */
+   calls pulse_pump at the safe point. A HEAP payload rides as an M6 handle index,
+   resolved to an oop (handle_get) inside pulse_pump, then handed to space_post_id in
+   thread context — C never holds a raw heap oop across the queue, because the GC can
+   move it. An IMMEDIATE payload rides by value; see pulse_post_isr_value. See the
+   design spec §2. */
 #include <stddef.h>
 #include <stdint.h>
+#include "oevm.h"     /* oop — an immediate payload rides in the item by value */
 
 #ifndef OEVM_PULSE_MAILBOX_DEPTH
 #define OEVM_PULSE_MAILBOX_DEPTH 16
@@ -22,6 +25,21 @@
    context (tuvm#54: a blocking HTTP render starving the pump). Every shed post is
    counted — see pulse_drops. */
 void pulse_post_isr(int chan_id, int handle_idx);
+
+/* ISR-safe: enqueue (chan_id, immediate). Same shed and coalesce rules as above; the
+   ONLY difference is that the payload rides in the item instead of behind a handle.
+   #151. An M6 handle exists to keep a HEAP oop findable across a GC that can move it.
+   An immediate — a SmallInteger token, say — cannot move and needs no pinning, and
+   pinning it anyway is not merely wasteful, it is unsound: the handle must be freed
+   at some point, and freeing it while a post that names it is still queued makes that
+   post resolve NULL, at which case pulse_pump DISCARDS it (tuvm#13's ABA guard, which
+   is right to prefer a loss over a mis-delivery). That is how a fired one-shot's
+   timer event was destroyed by the NEXT, unrelated registration — measured on a C6,
+   and the cause of a ship's bell holding its striker on indefinitely.
+
+   Callers MUST pass an immediate. A heap oop passed here would be an unrooted
+   reference across a GC; use pulse_post_isr and a handle for those. */
+void pulse_post_isr_value(int chan_id, oop immediate);
 
 /* tuvm#34 telemetry: monotonic count of posts shed because the mailbox was at
    capacity. Read from thread context; surfaced through `platform sysStats` so the
