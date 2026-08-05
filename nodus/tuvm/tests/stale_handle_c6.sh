@@ -39,7 +39,14 @@ NODE=${NODE:-StaleHandleProbeC6.nsl}
 BOARD=${BOARD:-esp32c6}
 DO_FLASH=${DO_FLASH:-1}
 STORE=${STORE:-$HOME/.local/state/rete/console}
-CONSOLE_BOARD=${CONSOLE_BOARD:-c6}
+# c6bench, NOT c6, and the default is the point. This bench has TWO ESP32-C6
+# devkits and they are otherwise identical — only the CP2102N by-id hash tells
+# them apart, and mistaking one for the other cost most of a morning on
+# 2026-08-05. Instance `c6` is the SHIP'S BELL, which lives on a wallwart and
+# whose whole value is soaking uninterrupted for days; flashing a probe over it
+# to run a test would destroy the thing the test exists to protect. Instance
+# `c6bench` is the spare. Override only if you know which board is which.
+CONSOLE_BOARD=${CONSOLE_BOARD:-c6bench}
 TIMEOUT_S=${TIMEOUT_S:-120}
 
 say()  { echo "  $*"; }
