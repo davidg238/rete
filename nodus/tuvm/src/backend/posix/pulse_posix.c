@@ -9,12 +9,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-struct PulseItem { int chan_id; int handle_idx; };
+/* #151: handle_idx >= 0 -> heap payload behind an M6 handle (a GPIO message object).
+   handle_idx < 0 -> `value` IS the payload, an immediate that cannot move and needs
+   no pinning. The two are compared together when coalescing, so posts that differ
+   only in payload — two distinct timer tokens — no longer look identical. */
+#define PULSE_BY_VALUE (-1)
+struct PulseItem { int chan_id; int handle_idx; oop value; };
 static struct PulseItem mailbox[OEVM_PULSE_MAILBOX_DEPTH];
 static int mb_head = 0, mb_count = 0;
 static uint32_t mb_drops = 0, mb_coalesced = 0;
 
-void pulse_post_isr(int chan_id, int handle_idx) {
+static void pulse_enqueue(int chan_id, int handle_idx, oop value) {
     /* tuvm#34: shed, never abort. A full mailbox is a load condition (the reactor
        is not pumping — e.g. a blocking render, tuvm#54), not a structural invariant
        violation, and G2 already settled that a load condition must not kill the
@@ -29,7 +34,8 @@ void pulse_post_isr(int chan_id, int handle_idx) {
        depth 16, all comparisons, ISR-cheap. */
     for (int k = 0; k < mb_count; k++) {
         int idx = (mb_head + k) % OEVM_PULSE_MAILBOX_DEPTH;
-        if (mailbox[idx].chan_id == chan_id && mailbox[idx].handle_idx == handle_idx) {
+        if (mailbox[idx].chan_id == chan_id && mailbox[idx].handle_idx == handle_idx
+            && mailbox[idx].value == value) {
             mb_coalesced++;
             return;
         }
@@ -38,7 +44,16 @@ void pulse_post_isr(int chan_id, int handle_idx) {
     int tail = (mb_head + mb_count) % OEVM_PULSE_MAILBOX_DEPTH;
     mailbox[tail].chan_id = chan_id;
     mailbox[tail].handle_idx = handle_idx;
+    mailbox[tail].value = value;
     mb_count++;
+}
+
+void pulse_post_isr(int chan_id, int handle_idx) {
+    pulse_enqueue(chan_id, handle_idx, NULL);
+}
+
+void pulse_post_isr_value(int chan_id, oop immediate) {
+    pulse_enqueue(chan_id, PULSE_BY_VALUE, immediate);
 }
 
 int pulse_pump(void) {
@@ -47,9 +62,10 @@ int pulse_pump(void) {
         struct PulseItem it = mailbox[mb_head];
         mb_head = (mb_head + 1) % OEVM_PULSE_MAILBOX_DEPTH;
         mb_count--;
-        /* tuvm#13: NULL means the pinned slot was freed and reused between post and
-           pump (a stale generation) — drop it rather than post the new occupant. */
-        oop o = handle_get(it.handle_idx);
+        /* An immediate needs no lookup and can never stale. tuvm#13: for a HANDLE,
+           NULL means the pinned slot was freed and reused between post and pump (a
+           stale generation) — drop it rather than post the new occupant. */
+        oop o = (it.handle_idx == PULSE_BY_VALUE) ? it.value : handle_get(it.handle_idx);
         if (o) { space_post_id(it.chan_id, o); drained++; }
     }
     return drained;
