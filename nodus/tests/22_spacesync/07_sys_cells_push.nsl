@@ -1,0 +1,47 @@
+(*
+porta space-sync — the cell scan covers the node's OWN authority, which is `sys/`
+as well as `obs/`. Before this, RECORDS §4.4 pinned sys/metrics as a CELL while the
+scan only ever looked at obs/**, so the value was unsendable by construction and no
+node app ever published it (design 2026-08-04 §3, D1). PROTOCOL-NSL §4.1 grants the
+bridge read access to obs/**, tel/**, sys/** and dbg/resp outbound; only the cell
+half of that grant was implemented.
+
+goal/ must NOT appear: it is porta's authority, and echoing porta's own writes back
+at it is what the direction rule forbids. Confinement does that filtering — the
+bridge scans through capabilities ROOTED at each prefix, so there is no prefix test
+in the code to get wrong (22_spacesync/02 proves the rooting).
+
+Rows are the wire shape, (seq, path, kind, value), which is what applyEntry: reads.
+expect:
+rows 2
+has obs/health true
+has sys/metrics true
+has goal/name false
+*)
+class SysCellsPush packageUsing: manifest = () (
+  has: rows path: p = (
+    | i |
+    i:: 1.
+    [ i <= rows size ] whileTrue: [
+      ((rows at: i) at: 2) = p ifTrue: [ ^ true ].
+      i:: i + 1 ].
+    ^ false )
+
+  public main: platform args: args = (
+    | space bridge rows |
+    space:: platform space.
+    space put: 'goal/name' value: 'bench'.
+    space put: 'obs/health' value: 11.
+    space put: 'sys/metrics' value: 22.
+
+    (* A nil socket is legal here and never reached: collectOutbound does no I/O. *)
+    bridge:: platform PortaBridge socket: nil space: space id: 'test' peer: '::1' port: 1.
+    rows:: bridge collectOutbound.
+
+    ('rows ' , rows size printString) println.
+    ('has obs/health ' , (self has: rows path: 'obs/health') printString) println.
+    ('has sys/metrics ' , (self has: rows path: 'sys/metrics') printString) println.
+    ('has goal/name ' , (self has: rows path: 'goal/name') printString) println.
+  )
+) : (
+)

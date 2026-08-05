@@ -1679,7 +1679,31 @@ class Kernel usingPlatform: platform = () (
 
        Then TRIM FROM THE TAIL until the datagram fits: entries dropped here are
        not lost, they ride the next check-in — whereas an oversize datagram is
-       lost on the mesh, which is strictly worse. *)
+       lost on the mesh, which is strictly worse.
+
+       Known and accepted for v1 — filed as #150 (P3): trimming from the tail drops the HIGHEST seq
+       first, and sys/metrics is written immediately before the push, so it always
+       holds the highest seq — under batch pressure it is the FIRST thing dropped.
+
+       TAIL is not a choice. porta acks one high-water mark and applyAck: sets
+       `acked:: hw`, after which cells are re-scanned `changedSince: acked` — so a
+       frame that omitted a LOW seq while carrying a high one would have the ack
+       advance `acked` past the omitted entry, which `changedSince:` then never
+       returns again. Dropping anything but the newest loses it silently and forever.
+
+       Nor does REORDERING help: metrics are written last precisely so they are
+       fresh, and freshness and trim-survival are the same axis pointing opposite
+       ways. obs/health is written after checkIn returns, so it always rides the
+       FOLLOWING check-in with an older seq — metrics are newest wherever inside
+       checkIn they are published.
+
+       So if the cap ever binds, the answer is to RESERVE, not to reorder: scan sys/
+       first against a reserved byte allowance and fill the remainder from obs/, so
+       the metrics record has room carved out before the competition starts. Measured
+       headroom is 87 B of 512 with two cells and one tel/log row (design §9.1), so
+       this cannot bite today; it starts to when a node has many obs/ paths. Said out
+       loud because a metrics record that silently loses the race under load is
+       exactly the observability that lies when it matters. *)
     public pushFrame = (
       | rows bytes |
       rows:: self collectOutbound.
@@ -1697,12 +1721,30 @@ class Kernel usingPlatform: platform = () (
           with: #bootId -> self bootId
           with: #entries -> (List fromCollection: rows)) )
 
+    (* BOTH prefixes are the node's own authority (PROTOCOL-NSL §4.1 grants the bridge
+       obs/**, tel/**, sys/** and dbg/resp outbound); only the cell half of that grant
+       used to be implemented, which left RECORDS §4.4's sys/metrics — a pinned CELL —
+       unsendable by construction, and is why no node app ever published it.
+
+       goal/** is porta's authority and is excluded BY CONSTRUCTION, not by a test:
+       each scan runs against a capability rooted at its own prefix, and a rooted
+       channel cannot learn that `goal/name` was written (22_spacesync/02). There is
+       no prefix check here to get wrong.
+
+       maxRows applies PER PREFIX, so up to 2x maxRows rows can enter before pushFrame
+       trims by bytes. Safe, and not free — see the starvation note on pushFrame. *)
     collectOutbound = (
-      | rows cells i r |
+      | rows i |
       rows:: OrderedCollection new.
       i:: 1.
       [ i <= pending size ] whileTrue: [ rows add: (pending at: i). i:: i + 1 ].
-      cells:: (space channel: 'obs') changedSince: acked max: self maxRows.
+      self addCellsFrom: 'obs' into: rows.
+      self addCellsFrom: 'sys' into: rows.
+      ^ self sortedBySeq: rows )
+
+    addCellsFrom: prefix into: rows = (
+      | cells i r |
+      cells:: (space channel: prefix) changedSince: acked max: self maxRows.
       i:: 1.
       [ i <= cells size ] whileTrue: [
         r:: cells at: i.
@@ -1710,7 +1752,7 @@ class Kernel usingPlatform: platform = () (
           ifTrue: [ rows add: (List with: (r at: 2) with: (r at: 1) with: 2 with: (r at: 3)) ]
           ifFalse: [ rejected:: rejected + 1 ].
         i:: i + 1 ].
-      ^ self sortedBySeq: rows )
+      ^ self )
 
     (* An oversize value is rejected by porta for the WHOLE push, so one bad cell
        would stall every good one behind it. Drop it here, count it, keep going. *)
