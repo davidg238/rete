@@ -1,0 +1,47 @@
+(*
+porta space-sync — the bridge publishes its own VM internals. #56 capability (3):
+"metrics die with the node", and /stats is a PULL, which is a human affordance —
+an agent arrives after the corpse is cold.
+
+Published by the BRIDGE and not by each app (design D4): the bridge is HANDED `space`
+as a constructor capability, so it does not conjure space access, and it already owns
+the check-in — the wake everything must ride (D7). Every bridged app then inherits
+metrics without re-implementing anything, which is the duplication that gave
+obs/health three inconsistent definitions.
+
+v1 publishes on EVERY check-in. Escalating on degradation was designed and then
+deliberately staged out (D6): it needed five invented constants, and D7 already
+capped its worst case at exactly this — one record per check-in. The ceiling of the
+elaborate design IS the simple design.
+
+The socket is nil, so no I/O is attempted; publishMetrics is called directly, which
+is the seam under test.
+expect:
+tag true
+heapSize positive true
+queueHighWater present true
+pulseDrops present true
+seq advanced true
+*)
+class MetricsOnCheckIn packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space bridge before m |
+    space:: platform space.
+    before:: space stamp.
+
+    bridge:: platform PortaBridge socket: nil space: space id: 'test' peer: '::1' port: 1.
+    bridge publishMetrics.
+
+    m:: (space channel: 'sys/metrics') peek: '' ifAbsent: [ nil ].
+    ('tag ' , (m tag = #Metrics) printString) println.
+    ('heapSize positive ' , ((m at: #heapSize ifAbsent: [ -1 ]) > 0) printString) println.
+    ('queueHighWater present ' , ((m at: #queueHighWater ifAbsent: [ -1 ]) >= 0) printString) println.
+    ('pulseDrops present ' , ((m at: #pulseDrops ifAbsent: [ -1 ]) >= 0) printString) println.
+
+    (* The write must STAMP, or the cell exists locally and never rides a push:
+       collectOutbound scans `changedSince: acked`, so an unstamped value is
+       invisible to the very thing this record is for. *)
+    ('seq advanced ' , (space stamp > before) printString) println.
+  )
+) : (
+)

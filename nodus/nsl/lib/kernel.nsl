@@ -1685,21 +1685,27 @@ class Kernel usingPlatform: platform = () (
        first, and sys/metrics is written immediately before the push, so it always
        holds the highest seq — under batch pressure it is the FIRST thing dropped.
 
-       TAIL is not a choice. porta acks one high-water mark and applyAck: sets
-       `acked:: hw`, after which cells are re-scanned `changedSince: acked` — so a
-       frame that omitted a LOW seq while carrying a high one would have the ack
-       advance `acked` past the omitted entry, which `changedSince:` then never
-       returns again. Dropping anything but the newest loses it silently and forever.
+       Why TAIL: porta acks one high-water mark and applyAck: sets `acked:: hw`,
+       after which cells are re-scanned `changedSince: acked` — so a frame that
+       omitted a LOW seq while carrying a high one would have the ack advance past
+       the omitted entry, which `changedSince:` never returns again.
 
-       Nor does REORDERING help: metrics are written last precisely so they are
-       fresh, and freshness and trim-survival are the same axis pointing opposite
+       That is survivable for a cell REWRITTEN every tick (obs/health, sys/metrics:
+       the cost is one lost sample, not the value) and permanent for a WRITE-ONCE
+       cell. obs/build is the one that bites — written once in main, and it is the
+       node's provenance (#74). So tail-trimming is not the only safe rule, it is the
+       only rule that needs no knowledge of which paths are write-once.
+
+       REORDERING cannot help either way: metrics are written last precisely so they
+       are fresh, and freshness and trim-survival are the same axis pointing opposite
        ways. obs/health is written after checkIn returns, so it always rides the
        FOLLOWING check-in with an older seq — metrics are newest wherever inside
        checkIn they are published.
 
-       So if the cap ever binds, the answer is to RESERVE, not to reorder: scan sys/
-       first against a reserved byte allowance and fill the remainder from obs/, so
-       the metrics record has room carved out before the competition starts. Measured
+       So if the cap binds, the answer is to RESERVE bytes for sys/ before filling
+       from obs/, or to trim BY TYPE and protect the write-once and must-deliver
+       paths — which is the same question already parked above for sys/panic, and is
+       probably worth answering once for both. Measured
        headroom is 87 B of 512 with two cells and one tel/log row (design §9.1), so
        this cannot bite today; it starts to when a node has many obs/ paths. Said out
        loud because a metrics record that silently loses the race under load is
@@ -1810,7 +1816,30 @@ class Kernel usingPlatform: platform = () (
       reply == nil
         ifTrue: [ misses:: misses + 1 ]
         ifFalse: [ self applyBatch: reply ].
+      (* In THIS order: applying goal/** first means the metrics published here
+         describe the state porta just asked for, not the one before it — the same
+         reasoning PortaBridgeNodeC6>>tick already gives for publishHealth. *)
+      self publishMetrics.
       ^ self pushOnce )
+
+    (* #56 capability (3): "metrics die with the node", and /stats is a PULL, which
+       is a human affordance — an agent arrives after the corpse is cold.
+
+       The record is BUILT by the kernel and WRITTEN by the bridge, which holds
+       `space` only because the app granted it at construction; the kernel never
+       conjures space access. Publishing here rather than in each app is design D4:
+       every bridged app inherits metrics without re-implementing anything, which is
+       the duplication that gave obs/health three inconsistent definitions.
+
+       v1 publishes on EVERY check-in. Escalating on degradation was designed and
+       deliberately staged out (design D6): it needed five invented constants, and D7
+       had already capped its worst case at exactly this — one record per check-in.
+       The ceiling of the elaborate design is the simple design, and it is the only
+       setting whose cost can be measured. Do not add cadence logic here without the
+       data D6 names as earning it back. *)
+    publishMetrics = (
+      space put: 'sys/metrics' value: outer metrics.
+      ^ self )
 
     pushOnce = (
       | frame reply |
