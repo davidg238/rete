@@ -1,7 +1,8 @@
 # Next steps — overview
 
-Written 2026-07-31 at the end of the #100 session. A living document, not a dated decision
-record: re-read it at the start of a session and edit it, don't append to it.
+Written 2026-07-31 at the end of the #100 session. **Last edited 2026-08-05.** A living
+document, not a dated decision record: re-read it at the start of a session and edit it,
+don't append to it.
 
 Two audiences in one file. **Part 1 is the bench** — the physical work waiting on the C6
 shipsBells rig. **Parts 2-4 are the thinking** — what actually gates a public release, and
@@ -19,18 +20,29 @@ removed and SQW wired to GPIO10 at the bench (reported, not re-measured here). *
 GPIO11** — measured 2026-08-04 when the alarm never arrived; see §1.2. They are kept
 below as the record of what was done and why.
 
-**What that leaves is software, and only software.** `CONFIG_RTC_ALARM` is still `n` —
-`nodus/tuvm/zephyr/prj_esp32c6.conf:92`, and `# CONFIG_RTC_ALARM is not set` in every built C6 config
-(`build-c6-ftd`, `build-c6-ftd-ntp`, `build-c6-mtd`). So the alarm has never been *built*,
-let alone flashed, and §1.4's seam is designed but not written. The wire is no longer the
-blocker; the Kconfig flip and the seam are.
+**Updated 2026-08-05 — §1.3 and §1.4 are done, and the bell is ringing on the RTC alarm.**
+`ShipsBellAlarmNodeC6.nsl` is built, flashed and soaking; `CONFIG_RTC_ALARM=y` lives in the
+opt-in overlay `prj_esp32c6_rtcalarm.conf`, **not** flipped in the base conf as §1.3 below
+instructs — see the correction there. The alarm arrives on GPIO11, which also retires the
+last doubt from §1.2. **What remains at the bench is §1.5 (the +20 s seed) and §1.6 (measure
+the part's real ppm), and neither has been started.**
 
-**Do not confuse this deferral with the piezo one.** They are different pins, different
-circuits and different issues. The piezo buzzer arriving 2026-08-02 unblocks **#105** — the
-12 V strike path (GPIO18 → 2N3904 → IRF9Z14 → solenoid), where the coil pulls in and holds
-for ~1 s at boot for reasons still unknown, so the solenoid is disconnected and a piezo
-carries no burn risk. It has nothing to do with the RTC, and the clock's alarm work is not
-waiting on it.
+**#105 is CLOSED**, and the strike path is now a **3.3 V piezo**, not the 12 V solenoid:
+GPIO18 → 2N3904 → piezo, with **R2, a 47 kΩ base pull-down** added 2026-08-05 so the
+transistor's base is held down through the seconds *before* `wire_gpio_outputs()` runs, when
+a Zephyr output is still a floating input. Drawing:
+`nodus/tuvm/zephyr/boards/shipsBells/2026-08-03-shipsbells-3v3-piezo-driver.svg`. R2 does
+**not** mitigate #151 — it holds the base down only while the pin is undriven, and a solid
+tone is the pin being *driven*.
+
+**What is soaking now, and what it is worth watching for.** The bell runs a `PortaBridge`
+and reports `obs/build` + `sys/metrics` to porta every 30 s (#56 D8), carrying `pulseDrops`
+and `pulseCoalesced`. Three live stakes on that, all filed: **#153** (watch
+`largestFreeBlock` now the bridge is on the bell — the measurement is available today and
+the window will not be cleaner later), **#150** (push trim starves `sys/metrics`, which is
+the very instrument aimed at #151's residue), and **#152** (a UDP console sink reports
+`port=up` forever and cannot tell a dead node from a quiet one — the reason #151's overnight
+event went unexplained for most of a day).
 
 ### 1.1 Check the trickle-charger BEFORE trusting the coin cell — DONE
 
@@ -89,16 +101,23 @@ Two standing rules for this module:
 - **Do not add pull-ups.** The module already carries 10 kΩ on SDA, SCL and INT/SQW
   (R21/R22/R23).
 
-### 1.3 Then, and only then, turn the alarm on — NOT DONE, and it is the next move
+### 1.3 Then, and only then, turn the alarm on — DONE, but NOT the way this said
 
-In `nodus/tuvm/zephyr/prj_esp32c6.conf:92`, flip:
+**Done 2026-08-05, and the instruction below was superseded rather than followed.** The
+base conf stays `CONFIG_RTC_ALARM=n`; `y` lives in an opt-in overlay,
+`nodus/tuvm/zephyr/prj_esp32c6_rtcalarm.conf`, selected per build:
 
 ```
-CONFIG_RTC_ALARM=n     ->     CONFIG_RTC_ALARM=y
+west build … --conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_rtcalarm.conf"
 ```
 
-Verified still `n` on 2026-08-02, in the source and in all three built C6 configs. The
-precondition below is now satisfied, so this is unblocked.
+That is the better shape and worth keeping: the caveat below is real — `CONFIG_RTC_ALARM`
+takes the *entire RTC device* down if the ISW pin is not ready — so every C6 build that does
+not need the alarm should not pay that risk. The cost is that **forgetting the overlay is
+silent**: `rtcAlarm at:` simply answers false and the node runs on its watchdog alone, which
+is correct behaviour and the wrong node. `ShipsBellAlarmNodeC6.nsl`'s header documents this.
+
+Kept below as the record of the constraint, which still binds.
 
 **Not before the wire is physically in place.** Either `CONFIG_RTC_ALARM` or
 `CONFIG_RTC_UPDATE` makes `rtc_ds3231_init()` call `rtc_ds3231_init_isw()`, which configures
@@ -110,9 +129,23 @@ hour if you hit it without expecting it.
 it with `GPIO_DT_SPEC_INST_GET` — not the `_OR` form it uses for `freq-32khz-gpios` — so
 omitting the property is a *compile* error, not graceful degradation.)
 
-### 1.4 Build the alarm seam
+### 1.4 Build the alarm seam — DONE (`ShipsBellAlarmNodeC6.nsl`)
 
-Design settled this session, not yet written:
+**Built 2026-08-05, and the design below survived contact.** Alarm2 with a minutes-match
+mask is what shipped. Two things the design did not anticipate, both now in the source:
+
+- **A watchdog rides alongside the alarm, and it is the only diagnostic.** It fires at
+  boundary + 2 s. When it finds the boundary unrung, that is *positive evidence the alarm
+  failed* — a poll could never report that, because it would be ringing everything and the
+  alarm's failure would be invisible. `lastSlot` is stamped when the ring **starts**, not
+  when it finishes, or the watchdog's own tick lands inside the pattern and re-fires.
+- **The seam was where #151 lived.** One reaction serves three sources (alarm, countdown,
+  watchdog), and registering the alarm + watchdog *reaped* the 10 ms stroke one-shot still
+  queued in the pulse mailbox — a timer event destroyed by the next, unrelated registration.
+  Fixed by carrying the token by value (#151, closed 2026-08-05); target gate
+  `nodus/tuvm/tests/stale_handle_c6.sh`.
+
+Kept below as the design record:
 
 **Alarm2, not a 1 Hz square wave.** Alarm2 with a minutes-match mask fires on a boundary you
 set, so after each strike you write the next half-hour into it and the C6 does *nothing at
@@ -177,7 +210,8 @@ resolves. Plan:
 minimal — the quickstart is explicitly out of that plan's scope (design §9). One repo with
 no front door is a smaller problem than five repos with no front door, not a solved one.
 
-**Next is #56** (debug/profiling/console over porta), per the ranking below.
+**Next is #56 step 4 — the device test harness.** Steps 1–3 landed 2026-08-04/05; see the
+ranking below for what that leaves and why step 4 was always the one that mattered.
 
 ### The four candidates, ranked
 
@@ -235,7 +269,43 @@ MCUboot + A/B + NVS *up front*. The point is not to ship OTA before release — 
 flash map becomes a transcription of proven host behaviour instead of a guess. Cheap:
 localhost UDP, no hardware. Do the slice, defer real OTA.
 
-**3. Debug/profiling/console over porta (#56). — PROMOTED TO SECOND, 2026-08-02, David's call.**
+**3. Debug/profiling/console over porta (#56). — PROMOTED TO SECOND, 2026-08-02, David's call. IN PROGRESS: steps 1–3 landed, step 4 is the remaining work.**
+
+#56 lists four capabilities. Where they stand as of 2026-08-05:
+
+1. **Serial/remote console — DONE** (merged 5de48f6). `printk` *and* nsl's own output teed
+   over Thread to a gateway sink, so a node on wallwart power with no data cable is
+   observable at all. It earned its keep immediately: it is the only reason the bell's
+   twelve unattended strikes are on record, and it diagnosed #149 **by silence**, which a
+   local console could never have done.
+2. **Symbolized panics — DONE.** Offline symbolizer; the build-id leg cost a spike (a
+   `PT_NOTE` segment breaks the C6 image silently — no GNU build-id on this SoC, so the note
+   goes in DROM via a RODATA snippet).
+3. **Out-of-band periodic metrics — DONE** (merged 5de48f6, extended to the bell in
+   c1798a3). `sys/metrics` published every check-in and accumulating gateway-side. The
+   finding underneath it: the record was **unsendable by construction** — RECORDS §4.4
+   pinned it as a cell while the conformance target scanned cells from `obs/**` alone, so no
+   app had ever published it and neither document said so on its own.
+4. **Device test harness — NOT DONE. This is the next move, and #56 calls it "the real
+   unlock; (1) and (3) are what make it possible."**
+
+**The first instance of step 4 already exists and was not called that.**
+`nodus/tuvm/tests/stale_handle_c6.sh` (#151) is exactly `reset → scenario → assert →
+report`: one command, flashes, drives, asserts **both** arms positively, anchors every
+assertion on the build id `run.sh` archives for *that* flash, and reads the #56 collector's
+log rather than opening the port (on the C6 the collector holds the CP2102N permanently and
+two readers split the stream). Every preflight **fails rather than skips**, because a skip
+whose message names an unverified cause is how a gate reports success for a run that never
+happened. Generalising that script is a shorter step than designing a harness from scratch —
+and `nodus/tuvm/tests/porta_sync_c6.sh` is a second worked example.
+
+**Why this is more urgent than it looks.** #151 established that
+`nodus/tuvm/src/backend/zephyr/timer_zephyr.c` posts through the pulse mailbox while
+`timer_posix.c` posts straight into the space via `space_post`. The host path has no
+mailbox, so **on host a timer event can be neither coalesced nor dropped nor staled — and
+all 243 suite tests run there.** Every claim about coalescing, shedding and stale handles
+needs a *target* gate or it is untested, and porting one to host deletes what it proves.
+Today there are two such gates and no framework holding them.
 Highest narrative value of the four — it *is* the agent story, not a supporting feature. And
 it just got cheaper: #57 said the C6 unlocks the debug leg of #56, and as of 2026-07-31 the
 C6 is proven and running tuvm with 44% of SRAM spare. It was third *only* by sequencing,
@@ -264,6 +334,11 @@ were never labelled as such:
   agent arrives after the corpse is cold.
 - **Provenance (#74).** A node cannot name its own build. An agent cannot reason about a
   fleet when it cannot tell which code is on which node. Unglamorous, load-bearing.
+  **Largely built as of 2026-08-05, still open:** the C6 carries a build id (in DROM via a
+  RODATA snippet — a `PT_NOTE` segment breaks the image silently on this SoC) and publishes
+  `obs/build` to porta, and `stale_handle_c6.sh` already anchors its assertions on it. What
+  #74 asks for beyond that should be re-read before the issue is closed rather than assumed
+  satisfied.
 - **Iteration cost (#67).** Agents iterate 10–100× more than humans, so per-cycle cost
   multiplies in a way it never did for a human developer. This is the argument that survives
   the "an agent writes C fine" substitution.
@@ -297,9 +372,19 @@ timing signature, C6 radio localised to four driver bugs (zephyr#114163), and no
 DS3231's missing `-ENODATA` (#103) predicted from source and confirmed on the first hardware
 run. Three is a pattern, not an anecdote.
 
-**Sequencing (revised 2026-08-02):** porta→channels ✅, then **#56 riding on the new
-protocol**, then the #25 host slice — and start timing bring-ups now, because that
-measurement is free and it is the one number that would make the pitch land.
+**Sequencing (revised 2026-08-05):** porta→channels ✅, then #56 — steps 1–3 ✅, **step 4
+(the device test harness) is where the work is now** — then the #25 host slice. Start timing
+bring-ups now, because that measurement is free and it is the one number that would make the
+pitch land.
+
+**A fourth instance of the best story arrived 2026-08-05, and it is a different kind.** The
+three above were all *defects found by reading source before flashing*. #151 was found the
+other way — by an A/B on hardware differing by one line, against a defect no host test could
+ever have exhibited. It is worth telling alongside them precisely because it shows the limit
+of the reading trick: `reap_oneshots()` had been correct-looking C for as long as it existed,
+and #13 had already looked straight at the ABA window and chosen dropping over mis-delivery.
+Nobody asked why a `SmallInteger` needed a handle at all. That question is what the harness
+(step 4) makes cheap to ask again next time.
 
 ---
 
