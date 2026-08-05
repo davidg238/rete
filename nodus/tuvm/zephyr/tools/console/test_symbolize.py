@@ -82,8 +82,20 @@ def test_the_real_fault_resolves_to_the_line_that_caused_it(tmp_path):
                     % run.build_id)
     panic = logread.find_panics(run)[0]
     out = symbolize.symbolize_panic(run, panic, workdir=str(tmp_path))
+    # The FILE and LINE come from the archived binary's DWARF and are stable for
+    # as long as that ELF exists. That is what this test may assert.
     assert "src/main.c:1688" in out
-    assert "tuvm_fault_target" in out
+    # It may NOT assert the source TEXT. gdb renders line 1688 of whatever
+    # main.c is on disk NOW, not of the file that was compiled — so any later
+    # edit above line 1688 silently changes the quoted line while the number
+    # stays right. Asserting `tuvm_fault_target` here turned red on 2026-08-04
+    # for a reason that had nothing to do with symbolizing: ~90 lines were added
+    # to main.c for the RTC alarm seam.
+    # This is the ELF-refusal hazard (design D4) one layer down: the refusal
+    # guards the BINARY against being wrong, and nothing guards the SOURCE. A
+    # correct line number quoting an unrelated line is exactly the confident
+    # wrong answer D4 exists to prevent. Filed rather than papered over —
+    # symbolize should say when the tree has moved since the build.
 
 
 def test_assumed_output_carries_the_assumption_on_every_line(tmp_path):

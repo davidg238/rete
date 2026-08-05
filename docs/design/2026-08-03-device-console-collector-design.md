@@ -442,3 +442,62 @@ Falsified against the real incident rather than a fixture: replaying the actual
 has been lost for 464s — the collector is running and collecting nothing"*, in the
 same seven-minute window that previously read green. A pre-#147 heartbeat with no
 `port=` field states nothing about the port and is treated as such.
+
+### §10's remote console, built 2026-08-04 (#102 forced it)
+
+**The requirement arrived as a cost, not a wish.** A bell on wallwart power with no
+data cables is unobservable, and this bench paid for that twice in one afternoon: a
+correct 7-bell strike at 15:30 whose TRIGGER (alarm or watchdog) could not be
+determined, and nine minutes of continuous chirping with no way to see why.
+
+**Shape:** the console is TEED, not redirected. `zephyr/src/log_udp.c` chains the
+printk hook (`__printk_get_hook` then `__printk_hook_install`) and is called
+directly by the VM's console leaf, so the UART console and the #56 collector are
+byte-for-byte unaffected. Characters go into a 4 KB ring; a dedicated thread
+assembles lines and sends one UDP datagram each to the gateway. Never from the hook
+— printk is called from ISR and workqueue context and a console that can block is a
+console that can hang the thing it observes.
+
+Destination is `OEVM_LOG_UDP6`, the same env→define pattern as `OEVM_NTP_SERVER6`,
+pointed at the gateway ML-EID NTP already reaches — reusing a proven path rather
+than debugging mesh-to-LAN routing and a logging feature at once. Unset, the image
+SAYS SO at boot: a silently-inactive remote console is the failure class that cost
+this bench twenty minutes over a missing NTP address.
+
+The sink (`tools/console/udpsink.py`) writes THIS project's store format through
+the same `LogStore`, so `logread.py --root` and `check.py --root` work on it
+unchanged. That is the whole reason it is not `nc -lu >> file`.
+
+**Four defects found in the building, each invisible from outside:**
+
+1. **A refused send discarded the line**, so everything printed before the mesh
+   attached was lost — the banner, `tuvm: build-id`, the node's ready line, i.e.
+   precisely the lines guaranteed to exist before there is a route. The assembled
+   line is now HELD and retried; the ring drops the NEWEST characters instead,
+   which is the right end to lose because a boot is bounded and a running node's
+   chatter is not.
+2. **The hook was installed in `main()`**, after the boot banner. Moved to
+   `SYS_INIT(POST_KERNEL)`, which matters beyond tidiness: `logread.split_runs()`
+   opens a run on that banner, so a remote log missing it parses as ZERO runs — the
+   reader would work on the local store and quietly fail on this one.
+3. **The VM had two print arms writing straight to libc stdout** — `dispatch.c`'s
+   `PRIM_out` and `PRIM_println` — bypassing `platform_console_write`, whose own
+   neighbouring comment states the opposite invariant. So the remote log carried
+   every C line and none of nsl's, which on a bell is every line that matters. Both
+   now route through the leaf; byte-identical on host. **Finding only `println`
+   first was a truncated grep**, and a truncated search that reports one path when
+   there are two is indistinguishable from a correct answer.
+4. **A weak fallback defined in the TU that CALLS it** is bound at compile time to
+   the local definition, so the strong override never runs. The tee silently did
+   nothing. The declaration now lives at the call site and both definitions live in
+   `log_udp.c`.
+
+**And the sink had no lock**, so two instances bound the same UDP port under
+`SO_REUSEADDR` and split the datagrams. `acquire_lock`/`Busy` moved from
+`collect.py` to `logstore.py` — the one-reader rule is a property of the STORE, not
+of the serial reader — and re-exported so callers and tests are unchanged.
+
+**Witnessed:** full boot captured remotely including the build id, the node's own
+lines, and the 16:00 ring attributed to the alarm rather than the watchdog by the
+re-arm landing 0.88 s after the boundary. Then it diagnosed #149 by SILENCE, which
+is the observation a local console could never have made.

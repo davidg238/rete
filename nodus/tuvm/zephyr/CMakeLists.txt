@@ -25,6 +25,7 @@ project(tuvm_pulse)
 set(TUVM_SRC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_sources(app PRIVATE
   src/main.c
+  src/log_udp.c
   ${TUVM_SRC}/src/vm.c ${TUVM_SRC}/src/gc.c ${TUVM_SRC}/src/dispatch.c
   ${TUVM_SRC}/src/platform.c ${TUVM_SRC}/src/space.c ${TUVM_SRC}/src/handles.c
   ${TUVM_SRC}/src/span.c
@@ -203,6 +204,22 @@ if(DEFINED ENV{OEVM_NTP_SERVER})
 endif()
 if(DEFINED ENV{OEVM_NTP_SERVER6})
   target_compile_definitions(app PRIVATE OEVM_NTP_SERVER6="$ENV{OEVM_NTP_SERVER6}")
+endif()
+
+# THE REMOTE CONSOLE (src/log_udp.c). A LITERAL IPv6 address, for the same reason
+# as OEVM_NTP_SERVER6 above — the mesh has nothing to resolve a name against. Set
+# it and printk is TEED to one UDP datagram per line; leave it unset and the image
+# says so at boot rather than looking like an unreachable gateway.
+#
+#   OEVM_LOG_UDP6=fdc5:9109:9afe:97ea:9541:d963:f8d9:8567 ./run.sh --board esp32c6 ...
+#
+# OEVM_LOG_UDP_PORT is optional (default 54330). It is deliberately NOT any of the
+# ports the soak dashboard scores (:54360/:54361) or the gw echo target (:54331).
+if(DEFINED ENV{OEVM_LOG_UDP6})
+  target_compile_definitions(app PRIVATE OEVM_LOG_UDP6="$ENV{OEVM_LOG_UDP6}")
+endif()
+if(DEFINED ENV{OEVM_LOG_UDP_PORT})
+  target_compile_definitions(app PRIVATE OEVM_LOG_UDP_PORT=$ENV{OEVM_LOG_UDP_PORT})
 endif()
 
 # Hot-path IRAM placement. Routes the interpreter's hottest functions

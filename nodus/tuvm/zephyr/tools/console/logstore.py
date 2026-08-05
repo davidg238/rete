@@ -5,6 +5,8 @@ nothing about boot banners, build ids or faults. Daily files make `since` a
 file-selection problem rather than a rotation-offset problem (§6).
 """
 import datetime as dt
+import errno
+import fcntl
 import os
 
 MARKER = "@@rete-console@@"
@@ -57,3 +59,32 @@ class LogStore:
             os.remove(victim)
             deleted.append(victim)
         return deleted
+
+
+class Busy(Exception):
+    pass
+
+
+def acquire_lock(root, board):
+    """One reader per (root, board). Two readers SPLIT the stream (design D6) —
+    proven on the gateway 2026-08-04, where two udpsink instances bound the same
+    UDP port under SO_REUSEADDR and both wrote into one file. Lives here rather
+    than in collect.py because it is a property of the STORE, not of the serial
+    reader, and the second reader that needed it was not a serial one."""
+    os.makedirs(root, exist_ok=True)
+    fh = open(os.path.join(root, "%s.lock" % board), "a+")
+    try:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError as exc:
+        if exc.errno not in (errno.EACCES, errno.EAGAIN):
+            raise
+        fh.seek(0)
+        holder = fh.read().strip() or "unknown pid"
+        fh.close()
+        raise Busy("another reader holds %s (%s). Two readers would split the "
+                   "stream (design D6)." % (board, holder))
+    fh.seek(0)
+    fh.truncate()
+    fh.write("pid=%d\n" % os.getpid())
+    fh.flush()
+    return fh

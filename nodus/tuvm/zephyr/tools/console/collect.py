@@ -18,31 +18,13 @@ import sys
 import time
 
 from lines import LineAssembler
-from logstore import LogStore, MARKER, DEFAULT_ROOT, DEFAULT_BUDGET
+from logstore import (LogStore, MARKER, DEFAULT_ROOT, DEFAULT_BUDGET,
+                      acquire_lock, Busy)
 
 
-class Busy(Exception):
-    pass
-
-
-def acquire_lock(root, board):
-    os.makedirs(root, exist_ok=True)
-    fh = open(os.path.join(root, "%s.lock" % board), "a+")
-    try:
-        fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except OSError as exc:
-        if exc.errno not in (errno.EACCES, errno.EAGAIN):
-            raise
-        fh.seek(0)
-        holder = fh.read().strip() or "unknown pid"
-        fh.close()
-        raise Busy("another collector holds %s (%s). Two readers would split "
-                   "the stream (design D6)." % (board, holder))
-    fh.seek(0)
-    fh.truncate()
-    fh.write("pid=%d\n" % os.getpid())
-    fh.flush()
-    return fh
+# acquire_lock/Busy moved to logstore.py (2026-08-04): the one-reader rule is a
+# property of the STORE, and udpsink.py needed it without needing a serial port.
+# Re-exported here because callers and tests name them through this module.
 
 
 def _default_opener(port_path):

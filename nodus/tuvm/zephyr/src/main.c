@@ -29,6 +29,7 @@
 #include "oevm.h"
 #include "oimg.h"
 #include "thread_bringup.h"
+#include "log_udp.h"
 
 /* OUTSIDE the CONFIG_WIFI block below, because the NTP seam is no longer inside
    it: a Thread node has SNTP and no WiFi. See ntp_target_sync(). */
@@ -1800,6 +1801,14 @@ int main(void) {
        into an unenumerated console and lost — the same "Issue A" reason that
        sleep exists. printk, not printf: the fault path gags newlib stdio. */
     printk("tuvm: build-id %s\n", tuvm_build_id);
+
+    /* The remote console, installed HERE — immediately after the build-id and
+       before the mesh comes up. Everything printed from now on is buffered and
+       goes out once there is a route, so the boot the remote log shows starts at
+       the same line the local one does and carries the build id that names the
+       binary. Earlier is not possible for the ESP-ROM lines: they are printed by
+       the bootloader, before any Zephyr code runs at all. */
+    log_udp_start();
 
 #ifdef CONFIG_TUVM_FAULT_TRIGGER
     /* #56 D8: fault on purpose, from a line whose number is the thing under

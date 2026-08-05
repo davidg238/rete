@@ -977,7 +977,28 @@ The watchdog carried the bell correctly through the entire diagnosis — every b
 late, with `watchdog: no alarm for slot NN` in the log. The feature that made the failure
 survivable is the same one that reported it.
 
+### 22. The wallwart resets the board, and the chirping is #105 on repeat
+
+**Filed as #149.** On wallwart power alone the piezo chirps continuously. The remote
+console (#56 §10) settled it by what was MISSING: nine minutes of audible chirping and
+**not one line over Thread**, where a healthy boot reaches `thread: attached` in ~300 ms
+and then talks. The board never gets far enough to attach — it is resetting in a tight
+loop, and every reset fires §18.4/#105's ~1 s energisation of GPIO18. Corroborated
+directly: chirping while a connector was moved, silence the instant it seated.
+
+**A 2 A rating is not a delivery.** Cable gauge, connector seating and USB-C CC
+negotiation are the candidates, in that order.
+
+**#105 is therefore a power-integrity readout.** On a board with no console, continuous
+chirping means "I am resetting" — the second time on this rig that fitting an audible
+load turned an invisible fault into an obvious one.
+
 ### Unplugging the data cables does not silence a console-driven striker
+
+**REFUTED AS THE CAUSE of the chirping, kept as a real hazard.** It fitted the 0.5 s
+cadence — a `bN` pattern's pair gap is 500 ms — and it was wrong: the current image has
+`TUVM_SOLENOID_CONSOLE` compiled out entirely and still chirps (§22, #149). The hazard
+below is genuine and the build change was right; it simply was not this fault.
 
 Stated because §18.5 says the opposite by implication. `strike_console` reads the console UART;
 pull the cable and the input does not go quiet, it goes UNDRIVEN, and a floating RX is noise a
