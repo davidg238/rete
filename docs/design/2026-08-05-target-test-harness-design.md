@@ -105,7 +105,7 @@ a rewrite. **The seam is the deliverable**; the field implementations are not bu
 ### D3 — The workload emits TAP-lite: a declared plan, then results
 
 ```
-TAP stale-handle plan=2 build=porta-v1-final-817-gdc7f4b1
+TAP stale-handle plan=2
 TAP stale-handle ok 1 control delivered=1
 TAP stale-handle ok 2 test delivered=1
 TAP stale-handle done pass=2 fail=0
@@ -115,10 +115,27 @@ Rules:
 
 - Every line self-identifies with the scenario, so interleaved output from two workloads,
   or a log holding an earlier run, cannot be misattributed.
-- The **plan line carries the build id**. It is the anchor, emitted by the thing being
-  tested rather than inferred by the thing testing it.
 - The runner FAILS — not times out — when `done` is missing, when `pass + fail != plan`,
-  or on any `not ok`. A truncated run and a passing run must not look alike.
+  when the result indices are not exactly `1..plan` each appearing once, when `done`'s own
+  tallies disagree with the results that arrived, or on any `not ok`. A truncated run and a
+  passing run must not look alike.
+
+> **Amended during implementation, 2026-08-05.** An earlier draft put `build=<id>` on the
+> plan line, so the anchor would be emitted by the thing being tested rather than inferred
+> by the thing testing it. **A node cannot do that today.** `obs/build` carries `#chip` and
+> nothing else — `PortaBridgeNodeC6.nsl:63`, `ShipsBellAlarmNodeC6.nsl:133` — which is
+> exactly **#74**, still open. The C6 *prints* a build id at boot from the DROM note, but
+> that is the C side; nsl has no accessor for it.
+>
+> So the bench anchor is the **boot banner**: the runner reads forward from the line
+> carrying the build id `run.sh` archived for that flash. Sound here, because the collector
+> writes one stream in order.
+>
+> The consequence worth naming: **the field path's anchor is blocked on #74.** Over porta
+> there is no boot-banner ordering to lean on, so until a node can name its own build there
+> is no way to tie a remote result to an image. That is a concrete dependency between two
+> issues nobody had connected. A `platform buildId` accessor would close both, and is
+> deliberately not built here — it is a VM prim, not harness work.
 
 The plan count is the structural defense against this bench's signature failure: a gate
 that goes green having armed nothing. It matters more in the field, where the transport is
@@ -162,11 +179,22 @@ string parsing and becomes something the transport already guarantees and report
 | class | means | may deploy to |
 |---|---|---|
 | `observe` | reads state; no timing impact | anything, including a live field node |
-| `perturb` | measurably affects timing or load | disposable, or a field node with explicit consent |
-| `exclusive` | needs the device to itself; may reboot or latch it | disposable only |
+| `disruptive` | affects timing or load, may reboot or latch the device | disposable only |
 
-`stale-handle` is `exclusive` — it deliberately burns past a one-shot's expiry inside a
-reaction. `pulse-coalesce` is `perturb`. A bridge health check would be `observe`.
+`stale-handle` and `pulse-coalesce` are both `disruptive` — each deliberately burns the
+reactor. A bridge health check would be `observe`.
+
+> **Amended during implementation, 2026-08-05.** The draft had three classes, splitting
+> `disruptive` into `perturb` ("disposable, **or a field node with explicit consent**") and
+> `exclusive` ("disposable only"). The distinction rests entirely on a consent mechanism
+> that does not exist and that nothing here would exercise — an invented tunable with no
+> data to choose it from, which the standing posture says to defer.
+>
+> Collapsed to two. **What would earn the third:** a consent path on the field deploy — a
+> grant recorded under the node's own tree that a `perturb` workload can be checked
+> against. At that point `perturb` means "runnable where consent is recorded", which is a
+> mechanism rather than an adjective. Until then two classes answer every question this
+> harness can actually ask.
 
 One mechanism covers both "do not flash the ship's bell" and "do not wedge a node in the
 field". **A hardcoded by-id deny-list is kept as a backstop on the flash path only**, and
@@ -249,7 +277,7 @@ A scenario manifest is sourced bash — the repo's existing idiom:
 SCENARIO=stale-handle
 NODE=StaleHandleProbeC6.nsl
 CONF_EXTRA="prj_esp32c6_thread.conf"
-CLASS=exclusive
+CLASS=disruptive
 TIMEOUT_S=120
 ```
 
@@ -259,23 +287,45 @@ into the scenario contract, and once one scenario has a driver the next one will
 ### Report
 
 ```
-target gates — board c6bench, build porta-v1-final-817-gdc7f4b1
-  stale-handle     PASS  2/2   38s
-  pulse-coalesce   PASS  3/3   71s
-  bridge-health    FAIL  2/3   64s   not ok 3 tel/log gaps at 7,8
-TARGET 2/3 PASS
+target gates — board c6bench
+  stale-handle     PASS 2/2      38s  porta-v1-final-824-g92e2968-20260805T142329
+  pulse-coalesce   PASS 3/3      96s  porta-v1-final-825-ga646d0a-20260805T151204
+  bridge-health    FAIL 2/3      64s  porta-v1-final-825-ga646d0a-20260805T151731
+TARGET 2/3 PASS — 1 FAILED
 ```
 
 Nonzero exit on any FAIL. The header names the board and the build id so a pasted report
 is self-describing — a report that cannot say which board and which image produced it is
 the same class of defect as an unanchored assertion.
 
-## 5. The three scenarios
+## 5. The scenarios
+
+> **What actually shipped, 2026-08-05: the runner and TWO of the three.** `stale-handle` and
+> `pulse-coalesce` are green on hardware (`TARGET 2/2 PASS`). **`bridge-health` is not
+> built** — it is the one that needs `porta_sync_c6.sh` decomposed, and the decomposition is
+> the part of this design I was least sure of. Building the runner against two dissimilar
+> workloads first was the smaller step; the third arrives with the split, or the split
+> proves harder than expected and that is a finding worth having on its own.
+>
+> Two things the falsification pass caught that no amount of design would have:
+>
+> - **The collector and `esptool` were fighting over the tty.** A tty has no exclusive open,
+>   so both read it and the ROM handshake gets split. It is a RACE, which is why both
+>   existing gates had carried it while appearing reliable — the first flash of the session
+>   won, the second lost. Closed in the shared layer: the collector is stopped for the
+>   deploy window and the board is then reset AGAIN deliberately, because `esptool`'s own
+>   post-flash reset happens while there is no reader and takes the boot banner — the anchor
+>   — with it.
+> - **The bell interlock ran too late.** With the collector check first, a deploy aimed at
+>   the bell was refused with `port=down — wrong by-id, or unplugged`: a guess, and one that
+>   invites the operator to go and plug the bell into USB, which is the single action the
+>   interlock exists to prevent. The board-level refusal now runs before the lock, before
+>   the collector check, before anything reads the board's state.
 
 1. **`stale-handle`** — migrated from `stale_handle_c6.sh`. `StaleHandleProbeC6.nsl` gains
-   TAP lines; the bash shrinks to a manifest. Class `exclusive`.
+   TAP lines; the bash shrinks to a manifest. Class `disruptive`.
 2. **`pulse-coalesce`** — `PulseCoalesceProbeC6.nsl` exists, was hand-run once, and has no
-   gate. It is today's "a probe nobody runs is decoration" case. Class `perturb`.
+   gate. It is today's "a probe nobody runs is decoration" case. Class `disruptive`.
 3. **`bridge-health`** — the node half of `porta_sync_c6.sh`, split out per D1. Per D4.1
    the properties divide by who can see them: the **workload** asserts that it published
    `obs/health`, that `goal/name` converged to `obs/name`, and that its own
@@ -338,6 +388,25 @@ closes, and each must fail **for the stated reason**:
 4. Mark `stale-handle` as `observe` and target the bell's by-id → refused twice, once by
    class and once by the deny-list.
 5. Flip one probe's expected value → that scenario FAILs and the run exits nonzero.
+
+### Run 2026-08-05 — all five, and two of them found real defects
+
+| # | outcome |
+|---|---|
+| 1 | `TIMEOUT: build id NEVER-FLASHED-XYZ never appeared in …` then `FAIL 0/0`, `rc=1`. The message distinguishes *the image did not boot* from *it booted but never finished*, because those have different next steps and one timeout string that cannot tell them apart sends you to the wrong one. |
+| 2 | `FAIL 1/2 no done line — the workload did not finish (saw 1 ok, 0 not ok of 2)`. Also checked: a lost middle result where the aggregate would still add up (`plan promised 2 results, 1 arrived`) and a duplicated index where `pass+fail == plan` (`result 1 appeared 2 times`). Both would pass a naive tally. |
+| 3 | `FAIL: collector rete-console@c6bench is not running; this harness reads its log and never opens the port`. |
+| 4 | **Found a defect.** The refusal came out as `port=down — wrong by-id, or unplugged` — the collector check ran *before* the interlock. Two things wrong: it named a cause it had not verified, and on the bell `port=down` is *healthy*, so the message invites the operator to plug the bell into USB — the one action the interlock exists to prevent. Fixed by moving the board-level refusal ahead of the lock and the collector check. Now: `refusing to deploy to 'c6': …is the ship's bell…`, `rc=1`, whether the manifest says `disruptive` or is mislabelled `observe`. |
+| 5 | A never-flashed anchor exits `rc=1` through the full runner, so FAIL→nonzero is wired. Both directions of the class gate checked in isolation: `disruptive` on a non-disposable board refuses; `observe` on the same board passes through. |
+
+**A sixth, which the design did not anticipate and the run did.** Two scenarios back to back
+flashed the first and failed the second with `device reports readiness to read but returned
+no data`. `esptool` and the collector were both reading the tty — a race both pre-existing
+gates carry, which is why neither ever looked broken. Closed in the shared layer, and the
+non-obvious half is the sequencing: `esptool` resets the board when it finishes, so the boot
+banner — the anchor — is emitted while the collector is still stopped. The board is
+therefore reset a second time, deliberately, once there is a reader. A hand-run
+`zephyr/run.sh --flash` still races; filed as **#154**.
 
 ## 9. Closes / touches
 

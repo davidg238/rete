@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# nodus/tuvm/tests/target/run.sh — the target gates.
+#
+#   ./run.sh                     every scenario
+#   ./run.sh stale-handle        one of them
+#   ./run.sh --board c6bench …   override the disposable board (rarely wanted)
+#   ./run.sh --no-deploy --build-id <id> stale-handle
+#                                assert against an image already running
+#
+# WHY THIS IS NOT PART OF THE NSL SUITE. It needs hardware, it costs a flash
+# cycle per scenario, and a boardless run would have to degrade to a SKIP — which
+# on this bench is how a gate reports success for a run that never happened. The
+# nsl suite instead prints a POSITIVE statement of what it cannot test and points
+# here (D8).
+#
+# WHAT IT IS FOR. `timer_zephyr.c` posts through the pulse mailbox;
+# `timer_posix.c` posts straight into the space via `space_post`. The host path
+# has no mailbox, so on host a timer event can be neither coalesced nor shed nor
+# staled — and all 243 nsl tests run there. Everything in this directory speaks
+# to a seam the host suite is structurally silent about.
+#
+# Design: docs/design/2026-08-05-target-test-harness-design.md
+set -euo pipefail
+cd "$(dirname "$0")"
+HERE=$PWD
+ZDIR="$HERE/../../zephyr"
+
+source "$HERE/lib/target.sh"
+source "$HERE/lib/deploy_flash.sh"
+source "$HERE/lib/collect_console.sh"
+
+BOARD=$TARGET_DEFAULT_BOARD
+DO_DEPLOY=1
+OVERRIDE_TIMEOUT=""
+GIVEN_BUILD_ID=""
+WANTED=()
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --board)      BOARD=$2; shift 2 ;;
+    --no-deploy)  DO_DEPLOY=0; shift ;;
+    --build-id)   GIVEN_BUILD_ID=$2; shift 2 ;;
+    --timeout)    OVERRIDE_TIMEOUT=$2; shift 2 ;;
+    -h|--help)    sed -n '2,12p' "$0"; exit 0 ;;
+    -*)           target::die "unknown flag $1" ;;
+    *)            WANTED+=("$1"); shift ;;
+  esac
+done
+
+# D7 — THE ANCHOR IS MANDATORY. Skipping the deploy is legal; asserting against
+# "whatever happens to be running" is not. Without an anchor, result lines from an
+# earlier run sit in the same log and score a green against firmware that was
+# never written.
+if [ "$DO_DEPLOY" = 0 ] && [ -z "$GIVEN_BUILD_ID" ]; then
+  target::die "--no-deploy requires --build-id: an assertion with no anchor cannot say which image it tested"
+fi
+
+if [ ${#WANTED[@]} -eq 0 ]; then
+  for f in "$HERE"/*.env; do WANTED+=("$(basename "$f" .env)"); done
+fi
+
+# The bell interlock runs FIRST — before the lock, before the collector check,
+# before anything reads the board's state. Refusing to flash the bell must not
+# depend on how the bell happens to be behaving today, and the refusal must be
+# the FIRST thing said, or the operator acts on whatever cause was reported
+# instead. Only gated on the deploy: pointing --no-deploy at the bell to read its
+# log is legitimate and is how you would inspect it.
+[ "$DO_DEPLOY" = 1 ] && target::assert_not_the_bell "$BOARD"
+
+target::lock "$BOARD"
+target::collector_ok "$BOARD"
+
+echo "target gates — board $BOARD, ${#WANTED[@]} scenario(s)"
+echo
+
+ROWS=()
+PASSED=0
+for name in "${WANTED[@]}"; do
+  manifest="$HERE/$name.env"
+  [ -f "$manifest" ] || target::die "no manifest $manifest"
+
+  # Each manifest is sourced into a subshell-free scope, so clear what it sets
+  # rather than inheriting the previous scenario's values — a manifest that omits
+  # CONF_EXTRA must not silently pick up the last one's.
+  SCENARIO=""; NODE=""; BOARD_ID=""; CONF_EXTRA=""; CLASS=""; TIMEOUT_S=""
+  # shellcheck disable=SC1090
+  source "$manifest"
+  [ -n "$SCENARIO" ] || target::die "$manifest sets no SCENARIO"
+  [ -n "$NODE" ]     || target::die "$manifest sets no NODE"
+  [ -n "$CLASS" ]    || target::die "$manifest sets no CLASS (observe or disruptive)"
+  [ -f "$ZDIR/$NODE" ] || target::die "workload $ZDIR/$NODE not found"
+
+  target::assert_deployable "$BOARD" "$CLASS"
+
+  echo "── $SCENARIO (class=$CLASS)"
+  started=$SECONDS
+  if [ "$DO_DEPLOY" = 1 ]; then
+    target::say "deploying $NODE"
+    build_id=$(deploy::flash "$ZDIR" "$BOARD")
+  else
+    build_id=$GIVEN_BUILD_ID
+    target::say "no deploy; anchored on $build_id"
+  fi
+  target::say "build $build_id"
+
+  if tap=$(collect::console "$build_id" "$SCENARIO" "${OVERRIDE_TIMEOUT:-${TIMEOUT_S:-120}}" "$BOARD"); then
+    verdict=$(echo "$tap" | target::tap_verify "$SCENARIO") || true
+  else
+    verdict="FAIL 0/0 no TAP output (see the TIMEOUT line above)"
+  fi
+
+  elapsed=$(( SECONDS - started ))
+  target::say "$verdict"
+  echo
+  ROWS+=("$(printf '  %-16s %-4s %-8s %3ss  %s' \
+      "$SCENARIO" "${verdict%% *}" "$(echo "$verdict" | cut -d' ' -f2)" \
+      "$elapsed" "$build_id")")
+  case "$verdict" in PASS*) PASSED=$((PASSED + 1)) ;; esac
+done
+
+echo "target gates — board $BOARD"
+printf '%s\n' "${ROWS[@]}"
+total=${#WANTED[@]}
+if [ "$PASSED" = "$total" ]; then
+  echo "TARGET $PASSED/$total PASS"
+else
+  echo "TARGET $PASSED/$total PASS — $((total - PASSED)) FAILED"
+  exit 1
+fi

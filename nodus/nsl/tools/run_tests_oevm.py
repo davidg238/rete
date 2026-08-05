@@ -726,6 +726,23 @@ def main():
           f"deepsleep: {_mark('PASS' if deepsleep_ok else 'FAIL')}  "
           f"footprint(T0.3): {_mark(footprint)}")
 
+    # NOT a skip, and deliberately not coloured like one: a skip names a cause it
+    # has not verified, and this names one that IS verified. timer_zephyr.c posts
+    # through the pulse mailbox; timer_posix.c posts straight into the space via
+    # space_post. Every test counted above ran on the latter, so this suite is
+    # STRUCTURALLY silent about coalescing, shedding and stale handles — a green
+    # header here says nothing whatever about them (#151, #56 step 4).
+    #
+    # The reader most likely to be misled by "N passed, 0 failed" is the one who
+    # never opens review/tests/CLAIMS.md, and that reader is often an agent
+    # reading this line and nothing else. So the line says it here.
+    target_dir = Path(__file__).resolve().parents[2] / "tuvm" / "tests" / "target"
+    n_scen = len(list(target_dir.glob("*.env"))) if target_dir.is_dir() else 0
+    print(f"  target gates: {COLOR_YELLOW}NOT RUN BY THIS SUITE{COLOR_RESET} — the posix timer "
+          f"backend bypasses the pulse\n"
+          f"    mailbox, so coalescing, shedding and stale handles are UNTESTED here.\n"
+          f"    Run: nodus/tuvm/tests/target/run.sh   ({n_scen} scenarios, needs a board)")
+
     if not suite_ok:
         sys.exit(1)
 

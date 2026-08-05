@@ -1,0 +1,248 @@
+# nodus/tuvm/tests/target/lib/target.sh
+#
+# The parts every target scenario shares: board resolution and the two deploy
+# interlocks, locking, collector preflight, and TAP-lite verification.
+#
+# Sourced, never executed. Design:
+# docs/design/2026-08-05-target-test-harness-design.md
+#
+# THE RULE THIS FILE EXISTS TO ENFORCE: nothing here knows what any scenario
+# means. It sees a board, a class, a build id and TAP lines. Scenario semantics
+# live in the workload (D1), which is what lets the same verification run over a
+# different transport later (D2).
+
+# ---- the board registry ----------------------------------------------------
+# Two physically identical ESP32-C6 devkits; only the CP2102N by-id hash tells
+# them apart, and mistaking one for the other cost most of a morning on
+# 2026-08-05.
+#
+# c6      THE SHIP'S BELL. Wallwart, no data cable, console over Thread. Its
+#         whole value is soaking uninterrupted for days.
+# c6bench The spare, and the default. Disposable: flash it, brick it, throw the
+#         state away.
+TARGET_STORE=${TARGET_STORE:-$HOME/.local/state/rete/console}
+TARGET_LOCKDIR=${TARGET_LOCKDIR:-$HOME/.local/state/rete/target}
+TARGET_DEFAULT_BOARD=${TARGET_DEFAULT_BOARD:-c6bench}
+
+# The bell's adapter. Refused on the deploy path with NO override env, and that
+# asymmetry is deliberate: a mislabelled workload is a plausible mistake and an
+# ended multi-day soak is not recoverable. If the bell genuinely must be
+# reflashed, that is a hand operation with zephyr/run.sh — not something a test
+# suite has a code path for.
+TARGET_DENY_BYID_SUBSTR="4e5729ee"
+
+target::say()  { echo "  $*"; }
+target::warn() { echo "  ! $*" >&2; }
+target::die()  { echo "FAIL: $*" >&2; exit 1; }
+
+# target::board_byid <board> -> the /dev/serial/by-id path for that instance.
+#
+# Resolved from the collector's own env file rather than from a table here, so
+# there is ONE place on this bench that maps an instance to an adapter. A table
+# here that disagreed with the collector's would send the flash to one board and
+# read the console of the other, and every symptom of that reads as "the board
+# went quiet".
+target::board_byid() {
+  local board=$1 envf port
+  envf="$HOME/.config/rete/console-$board.env"
+  [ -f "$envf" ] || target::die "no collector env at $envf — instance '$board' is not configured on this bench"
+  port=$(sed -n 's/^RETE_CONSOLE_PORT=//p' "$envf")
+  [ -n "$port" ] || target::die "$envf names no RETE_CONSOLE_PORT"
+  echo "$port"
+}
+
+# target::assert_not_the_bell <board>
+#
+# The board-level half of D5's backstop, and it MUST run before anything else
+# touches the board — earlier than the collector check, earlier than the lock.
+#
+# Learned by falsifying this file, 2026-08-05: with the collector check first, a
+# deploy aimed at the bell was refused with "port=down — wrong by-id, or
+# unplugged", which is both a guess and actively harmful. The bell's serial
+# instance sits at port=down BECAUSE IT IS HEALTHY — wallwart power, no data
+# cable, console over Thread — so that message invites someone to go and plug the
+# bell into USB, which is the one action the interlock exists to prevent.
+target::assert_not_the_bell() {
+  local board=$1 port
+  port=$(target::board_byid "$board")
+  case "$port" in
+    *"$TARGET_DENY_BYID_SUBSTR"*)
+      target::die "refusing to deploy to '$board': $port is the ship's bell. Flashing it ends a soak that cannot be restarted, and its port=down is healthy (wallwart, console over Thread). Deploy by hand with zephyr/run.sh if you really mean to." ;;
+  esac
+}
+
+# target::assert_deployable <board> <class>
+#
+# The two interlocks of D5, in the order that matters: the class check is the
+# model, the by-id deny-list is the backstop. Both run; neither is skippable.
+target::assert_deployable() {
+  local board=$1 class=$2 port
+
+  case "$class" in
+    observe)
+      : ;;                       # safe anywhere, including a live field node
+    disruptive)
+      # Disposable targets only. There is no consent mechanism for a field node
+      # yet, so there is no third answer to invent here.
+      [ "$board" = "$TARGET_DEFAULT_BOARD" ] \
+        || target::die "scenario is class=disruptive and board '$board' is not the disposable one ($TARGET_DEFAULT_BOARD)"
+      ;;
+    *)
+      target::die "unknown class '$class' — expected observe or disruptive" ;;
+  esac
+
+  # The backstop. Resolve the adapter this deploy would actually write to and
+  # refuse the bell's, whatever the manifest claimed.
+  port=$(target::board_byid "$board")
+  case "$port" in
+    *"$TARGET_DENY_BYID_SUBSTR"*)
+      target::die "refusing to deploy: $port is the ship's bell. Flashing it ends a soak that cannot be restarted. Do it by hand with zephyr/run.sh if you really mean to." ;;
+  esac
+
+  [ -e "$port" ] || target::die "adapter $port is not present — is '$board' attached?"
+}
+
+# target::lock <board> — one runner per board. Two runs racing over one board is
+# a failure mode that only appears once there is a suite, so it is closed before
+# there is one. Uses its own lock dir, NOT the collector's .lock files.
+target::lock() {
+  local board=$1
+  mkdir -p "$TARGET_LOCKDIR"
+  exec 9>"$TARGET_LOCKDIR/$board.lock"
+  flock -n 9 || target::die "another target run holds $board (see $TARGET_LOCKDIR/$board.lock)"
+}
+
+# target::logfile <board> — re-resolved on every poll, never cached: the
+# collector rolls its log at midnight and a long run can outlive the path.
+target::logfile() { echo "$TARGET_STORE/console-$1-$(date +%F).log"; }
+
+# target::collector_ok <board>
+#
+# Every check FAILS rather than SKIPS, and each names a VERIFIED cause. A skip
+# whose message names an unverified cause is how a gate reports success for a
+# run that never happened.
+target::collector_ok() {
+  local board=$1 logfile
+  systemctl --user is-active --quiet "rete-console@$board" \
+    || target::die "collector rete-console@$board is not running; this harness reads its log and never opens the port"
+  logfile=$(target::logfile "$board")
+  [ -f "$logfile" ] || target::die "no console log at $logfile"
+  # port=down means the collector is alive and seeing NOTHING, which would turn
+  # every assertion below into a timeout with a misleading cause. Say it now, and
+  # say only what has been VERIFIED — the earlier wording named two candidate
+  # causes it had not checked, which is the same defect as a skip whose message
+  # names an unverified cause.
+  if tail -3 "$logfile" | grep -q "port=down"; then
+    target::die "collector rete-console@$board reports port=down: it is running and reading nothing, so every assertion here would time out with a misleading cause. (On the ship's bell this state is normal — its console goes over Thread, not this cable.)"
+  fi
+}
+
+# ---- the collector must yield for a flash, and the board must be re-reset ----
+#
+# THE HAZARD, found 2026-08-05 the first time two scenarios ran back to back.
+# The collector holds the CP2102N open permanently. A tty has no exclusive open,
+# so esptool and the collector both read it and the ROM handshake bytes are split
+# between them:
+#
+#   A serial exception error occurred: device reports readiness to read but
+#   returned no data (device disconnected or multiple access on port?)
+#
+# This is a RACE, not a hard failure, which is why stale_handle_c6.sh and
+# porta_sync_c6.sh have both appeared reliable while carrying it. It is
+# pre-existing and it is closed here, in the shared layer, because every future
+# scenario needs the same thing.
+#
+# A HAND-RUN `zephyr/run.sh --flash` STILL RACES — the fix below only covers
+# deploys that go through this harness. Filed as #154, where it belongs: run.sh
+# already claims to own every step that has a wrong-by-default, and the
+# collector's grip on the port is one of those.
+#
+# The sequencing matters and is not obvious. esptool resets the board when it
+# finishes, so the boot banner — which IS the anchor — is emitted in the window
+# where the collector is still stopped, and would be lost. So the board is reset
+# AGAIN, deliberately, once the collector is back and reading.
+target::collector_pause() {
+  TARGET_PAUSED_BOARD=$1
+  trap 'target::collector_resume' EXIT
+  systemctl --user stop "rete-console@$TARGET_PAUSED_BOARD"
+}
+
+target::collector_resume() {
+  [ -n "${TARGET_PAUSED_BOARD:-}" ] || return 0
+  systemctl --user start "rete-console@$TARGET_PAUSED_BOARD"
+  local deadline=$(( $(date +%s) + 20 ))
+  while [ "$(date +%s)" -lt "$deadline" ]; do
+    systemctl --user is-active --quiet "rete-console@$TARGET_PAUSED_BOARD" && break
+    sleep 1
+  done
+  TARGET_PAUSED_BOARD=""
+}
+
+# target::reset_board <board> — pulse RTS (EN) to reboot, leaving DTR (IO0) high
+# so it boots the application rather than the ROM downloader.
+#
+# The C6's console does NOT reset on open, so merely attaching cannot produce a
+# banner — the reset has to be driven. Held open only for the pulse, and nothing
+# is read through this handle, so the collector stays the single reader.
+target::reset_board() {
+  local port
+  port=$(target::board_byid "$1")
+  python3 - "$port" <<'PY'
+import sys, time, serial
+p = serial.Serial(sys.argv[1], 115200, timeout=0.1)
+p.dtr = False          # IO0 high — boot the application
+p.rts = True           # EN low  — hold in reset
+time.sleep(0.15)
+p.rts = False          # release
+time.sleep(0.05)
+p.close()
+PY
+}
+
+# target::tap_verify <scenario>   [TAP lines on stdin]
+#
+# Prints "<verdict> <pass>/<plan> <detail>" and returns 0 only on PASS.
+#
+# A truncated run and a passing run MUST NOT look alike, which is the whole
+# reason the workload declares a plan before emitting results. Checked here:
+#
+#   - exactly one plan line and exactly one done line
+#   - pass + fail == plan                     (nothing vanished in aggregate)
+#   - result indices are exactly 1..plan,     (and nothing vanished individually
+#     each appearing once                      — an aggregate that happens to add
+#                                              up cannot hide a swapped index)
+#   - the ok/not-ok tallies match done's own  (the workload's arithmetic agrees
+#     pass/fail counts                         with its results)
+#   - fail == 0
+target::tap_verify() {
+  # The collector stamps every line with an ISO timestamp, so `TAP` is not field
+  # 1 on the bench — and over porta it will not be field 1 either, for different
+  # reasons. Normalise to the grammar first and let the parser below assume
+  # nothing about what precedes it.
+  sed -n 's/.*\(TAP .*\)/\1/p' |
+  awk -v want="$1" '
+    $1 != "TAP" || $2 != want { next }
+    $3 ~ /^plan=/ { split($3, a, "="); plan = a[2]; plans++; next }
+    $3 == "done" {
+      for (i = 4; i <= NF; i++) {
+        if ($i ~ /^pass=/) { split($i, p, "="); dpass = p[2] }
+        if ($i ~ /^fail=/) { split($i, f, "="); dfail = f[2] }
+      }
+      dones++; next
+    }
+    $3 == "ok"                { seen[$4]++; oks++;    next }
+    $3 == "not" && $4 == "ok" { seen[$5]++; notoks++; bad = bad " " $5; next }
+    END {
+      if (plans != 1) { print "FAIL 0/0 expected exactly one plan line, saw " plans+0; exit 1 }
+      if (dones != 1) { print "FAIL " oks+0 "/" plan " no done line — the workload did not finish (saw " oks+0 " ok, " notoks+0 " not ok of " plan ")"; exit 1 }
+      if (oks + notoks != plan) { print "FAIL " oks+0 "/" plan " plan promised " plan " results, " oks+notoks+0 " arrived"; exit 1 }
+      if (dpass + dfail != plan) { print "FAIL " oks+0 "/" plan " done says pass=" dpass+0 " fail=" dfail+0 ", which is not the promised " plan; exit 1 }
+      if (dpass != oks || dfail != notoks) { print "FAIL " oks+0 "/" plan " done says " dpass+0 "/" dfail+0 " but " oks+0 " ok and " notoks+0 " not ok arrived"; exit 1 }
+      for (i = 1; i <= plan; i++) {
+        if (seen[i] != 1) { print "FAIL " oks+0 "/" plan " result " i " appeared " seen[i]+0 " times, expected once"; exit 1 }
+      }
+      if (notoks > 0) { print "FAIL " oks+0 "/" plan " not ok:" bad; exit 1 }
+      print "PASS " oks+0 "/" plan
+    }
+  '
+}

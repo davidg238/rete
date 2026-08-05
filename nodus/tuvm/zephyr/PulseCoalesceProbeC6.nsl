@@ -49,7 +49,10 @@ class PulseCoalesceProbeC6 packageUsing: manifest = (
   | plat space timers
     strokeCh tickCh
     strokes ::= 0. ticks ::= 0. busyMillis ::= 0.
-    chaining ::= false. |
+    chaining ::= false.
+    tapPass ::= 0. tapFail ::= 0.
+    p1Strokes ::= 0. p1Coal ::= 0. p2Coal ::= 0.
+    p3Ran ::= false. p3Strokes ::= 0. |
 ) (
 
   public main: platform args: args = (
@@ -67,9 +70,30 @@ class PulseCoalesceProbeC6 packageUsing: manifest = (
     ('probe: mailbox depth is 16; chain width ' , self widthMillis printString ,
       ' ms, matching the striker') out.
 
+    (* Declared before any phase runs: a probe that dies in phase 2 then emits
+       one result against a promised three and is FAILED, rather than reading as
+       a pass because the one thing it managed to say was green. *)
+    self tapPlan: 3.
+
     self phase1.
     self phase2.
     self phase3.
+
+    (* Phase 2 is asserted POSITIVELY and it asserts that coalescing HAPPENS.
+       That is not a contradiction: it is the instrument check. If a repeater
+       under a slow handler coalesces nothing, the mechanism does not exist on
+       this silicon and phases 1 and 3 are measuring nothing at all. *)
+    self tap: 1 named: 'phase1-clean'
+                ok: ((p1Strokes = 2000) and: [ p1Coal = 0 ])
+                detail: ('delivered=' , p1Strokes printString ,
+                         ' coalesced=' , p1Coal printString).
+    self tap: 2 named: 'phase2-mechanism-present'
+                ok: p2Coal > 0
+                detail: ('coalesced=' , p2Coal printString).
+    self tap: 3 named: 'phase3-chain-alive'
+                ok: p3Ran
+                detail: ('strokes=' , p3Strokes printString).
+    self tapDone.
 
     'probe done' out.
   )
@@ -86,6 +110,7 @@ class PulseCoalesceProbeC6 packageUsing: manifest = (
     timers after: self widthMillis post: #s on: strokeCh.
     [ strokes < 2000 ] whileTrue: [ plat pumpEvents. space drain ].
     chaining:: false.
+    p1Strokes:: strokes. p1Coal:: self coalesced - c0.
     self report: 'phase 1' owed: 2000 got: strokes since: c0 drops: d0.
     ^ self )
 
@@ -107,6 +132,7 @@ class PulseCoalesceProbeC6 packageUsing: manifest = (
        handler each is ~2 s of wall clock, and a 10 ms repeater owes ~200 over
        that. The exact number does not matter — coalesced > 0 is the finding. *)
     owed:: 200.
+    p2Coal:: self coalesced - c0.
     self report: 'phase 2' owed: owed got: ticks since: c0 drops: d0.
     ^ self )
 
@@ -133,6 +159,7 @@ class PulseCoalesceProbeC6 packageUsing: manifest = (
         ifTrue:  [ stuck:: stuck + 1 ]
         ifFalse: [ stuck:: 0. last:: strokes ] ].
     chaining:: false.
+    p3Ran:: stuck < 40. p3Strokes:: strokes.
 
     stuck < 40
       ifTrue:  [ 'phase 3: chain ran to completion' out ]
@@ -174,6 +201,34 @@ class PulseCoalesceProbeC6 packageUsing: manifest = (
     ^ self )
 
   widthMillis = ( ^ 10 )    (* the striker's own on-time *)
+
+  (* --- TAP-lite (design D3) ------------------------------------------------
+     Identical in shape to StaleHandleProbeC6's. It is duplicated rather than
+     shared because a node file is a single class — there is nowhere to put it
+     that both can reach without promoting it into the kernel, and four short
+     methods in two probes is a smaller price than a kernel class that exists
+     only for tests. If a third probe wants it, revisit. *)
+
+  scenarioName = ( ^ 'pulse-coalesce' )
+
+  tapPlan: n = (
+    ('TAP ' , self scenarioName , ' plan=' , n printString) out.
+    ^ self )
+
+  tap: idx named: nm ok: passed detail: d = (
+    passed
+      ifTrue:  [ tapPass:: tapPass + 1.
+                 ('TAP ' , self scenarioName , ' ok ' , idx printString ,
+                   ' ' , nm , ' ' , d) out ]
+      ifFalse: [ tapFail:: tapFail + 1.
+                 ('TAP ' , self scenarioName , ' not ok ' , idx printString ,
+                   ' ' , nm , ' ' , d) out ].
+    ^ self )
+
+  tapDone = (
+    ('TAP ' , self scenarioName , ' done pass=' , tapPass printString ,
+      ' fail=' , tapFail printString) out.
+    ^ self )
 
 ) : (
 )

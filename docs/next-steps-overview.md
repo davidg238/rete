@@ -143,7 +143,7 @@ mask is what shipped. Two things the design did not anticipate, both now in the 
   watchdog), and registering the alarm + watchdog *reaped* the 10 ms stroke one-shot still
   queued in the pulse mailbox — a timer event destroyed by the next, unrelated registration.
   Fixed by carrying the token by value (#151, closed 2026-08-05); target gate
-  `nodus/tuvm/tests/stale_handle_c6.sh`.
+  `nodus/tuvm/tests/target/run.sh stale-handle`.
 
 Kept below as the design record:
 
@@ -286,11 +286,26 @@ localhost UDP, no hardware. Do the slice, defer real OTA.
    finding underneath it: the record was **unsendable by construction** — RECORDS §4.4
    pinned it as a cell while the conformance target scanned cells from `obs/**` alone, so no
    app had ever published it and neither document said so on its own.
-4. **Device test harness — NOT DONE. This is the next move, and #56 calls it "the real
-   unlock; (1) and (3) are what make it possible."**
+4. **Device test harness — IN PROGRESS as of 2026-08-05. Runner built, two of three
+   scenarios green on hardware (`TARGET 2/2 PASS` on c6bench).** #56 calls it "the real
+   unlock; (1) and (3) are what make it possible", and it is now
+   `nodus/tuvm/tests/target/run.sh`. Design:
+   `docs/design/2026-08-05-target-test-harness-design.md`.
+
+   The shape, decided by one requirement — diagnostics must eventually run on FIELD
+   devices, so a scenario may not wipe a store, restart a daemon or ssh anywhere: **a
+   scenario is a deployable workload, and there is no test framework on the device.** The
+   workload emits TAP-lite with a DECLARED PLAN, so a probe that died halfway is failed
+   rather than read as a pass. Two symmetric seams (`deploy` / `collect`) mean the field
+   path is a swap of two functions.
+
+   **Remaining: `bridge-health`**, which needs `porta_sync_c6.sh` split into a self-asserting
+   workload plus a residual bench script. Its legs 4-8 (db wipe, gateway start, ack-drop
+   injection) are a bench integration test of porta, not a device diagnostic, and stay
+   outside the harness under that name.
 
 **The first instance of step 4 already exists and was not called that.**
-`nodus/tuvm/tests/stale_handle_c6.sh` (#151) is exactly `reset → scenario → assert →
+`nodus/tuvm/tests/stale_handle_c6.sh` (#151) was exactly `reset → scenario → assert →
 report`: one command, flashes, drives, asserts **both** arms positively, anchors every
 assertion on the build id `run.sh` archives for *that* flash, and reads the #56 collector's
 log rather than opening the port (on the C6 the collector holds the CP2102N permanently and
@@ -334,11 +349,15 @@ were never labelled as such:
   agent arrives after the corpse is cold.
 - **Provenance (#74).** A node cannot name its own build. An agent cannot reason about a
   fleet when it cannot tell which code is on which node. Unglamorous, load-bearing.
-  **Largely built as of 2026-08-05, still open:** the C6 carries a build id (in DROM via a
-  RODATA snippet — a `PT_NOTE` segment breaks the image silently on this SoC) and publishes
-  `obs/build` to porta, and `stale_handle_c6.sh` already anchors its assertions on it. What
-  #74 asks for beyond that should be re-read before the issue is closed rather than assumed
-  satisfied.
+  **CORRECTED 2026-08-05 — less built than an earlier edit of this file claimed.** Two
+  different things were conflated. The C6 *prints* a build id at boot (DROM via a RODATA
+  snippet — a `PT_NOTE` segment breaks the image silently on this SoC), and the target
+  harness anchors on that printed line. But **`obs/build` carries `#chip` and nothing
+  else** — `PortaBridgeNodeC6.nsl:63`, `ShipsBellAlarmNodeC6.nsl:133` — so over porta a
+  node still cannot name its build, which is exactly what #74 asks for. **This now blocks
+  something concrete:** the target harness's field path has no anchor without it, because
+  off the bench there is no boot-banner ordering to lean on. A `platform buildId` accessor
+  closes both.
 - **Iteration cost (#67).** Agents iterate 10–100× more than humans, so per-cycle cost
   multiplies in a way it never did for a human developer. This is the argument that survives
   the "an agent writes C fine" substitution.

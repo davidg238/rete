@@ -35,10 +35,12 @@ stale-handle probe done
    there are none here, only one-shots. Dialect: `[ ... ] whileTrue:`, no modulo. *)
 class StaleHandleProbeC6 packageUsing: manifest = (
   | plat space timers lostCh kickCh beatCh beats ::= 0.
-    delivered ::= 0. kicks ::= 0. armDecoy ::= false. |
+    delivered ::= 0. kicks ::= 0. armDecoy ::= false.
+    tapPass ::= 0. tapFail ::= 0. |
 ) (
 
   public main: platform args: args = (
+    | ctl tst |
     plat:: platform.
     space:: plat space.
     timers:: plat timers.
@@ -64,8 +66,23 @@ class StaleHandleProbeC6 packageUsing: manifest = (
        keeps it out of both arms, so the A/B still differs by exactly one line. *)
     timers every: 25 post: #h on: beatCh.
 
-    self runArm: 'control (no registration after)' decoy: false.
-    self runArm: 'test    (registration after)   ' decoy: true.
+    (* The plan is declared BEFORE either arm runs. That ordering is the whole
+       point: a probe that dies between the two arms then emits one result
+       against a promised two, and the runner fails it instead of reading a
+       single green arm as a pass. *)
+    self tapPlan: 2.
+
+    ctl:: self runArm: 'control (no registration after)' decoy: false.
+    tst:: self runArm: 'test    (registration after)   ' decoy: true.
+
+    (* BOTH arms are asserted POSITIVELY. Checking only that the test arm is
+       nonzero would pass a build where the probe never armed anything at all,
+       and the control arm is what makes the test arm mean something. *)
+    self tap: 1 named: 'control' ok: ctl = 1
+                detail: ('delivered=' , ctl printString).
+    self tap: 2 named: 'test'    ok: tst = 1
+                detail: ('delivered=' , tst printString).
+    self tapDone.
 
     'stale-handle probe done' out.
   )
@@ -86,7 +103,7 @@ class StaleHandleProbeC6 packageUsing: manifest = (
       plat pumpEvents. space drain ].
 
     (label , ': delivered ' , delivered printString) out.
-    ^ self )
+    ^ delivered )
 
   onKick = (
     kicks:: kicks + 1.
@@ -109,6 +126,37 @@ class StaleHandleProbeC6 packageUsing: manifest = (
     | until |
     until:: plat monotonicMillis + ms.
     [ plat monotonicMillis < until ] whileTrue: [ ].
+    ^ self )
+
+  (* --- TAP-lite (design D3) -------------------------------------------------
+     A declared plan, then one line per result, then a done line the runner
+     reconciles against both. The runner FAILS — not times out — when fewer
+     results arrive than were promised, which is what stops a truncated run and
+     a passing run from looking alike. That matters little over a wire you can
+     trust and a great deal over the UDP/Thread path this will use in the field.
+
+     Every line carries the scenario name, so two workloads sharing a log, or a
+     log holding an earlier run, cannot be misattributed to each other. *)
+
+  scenarioName = ( ^ 'stale-handle' )
+
+  tapPlan: n = (
+    ('TAP ' , self scenarioName , ' plan=' , n printString) out.
+    ^ self )
+
+  tap: idx named: nm ok: passed detail: d = (
+    passed
+      ifTrue:  [ tapPass:: tapPass + 1.
+                 ('TAP ' , self scenarioName , ' ok ' , idx printString ,
+                   ' ' , nm , ' ' , d) out ]
+      ifFalse: [ tapFail:: tapFail + 1.
+                 ('TAP ' , self scenarioName , ' not ok ' , idx printString ,
+                   ' ' , nm , ' ' , d) out ].
+    ^ self )
+
+  tapDone = (
+    ('TAP ' , self scenarioName , ' done pass=' , tapPass printString ,
+      ' fail=' , tapFail printString) out.
     ^ self )
 
 ) : (
