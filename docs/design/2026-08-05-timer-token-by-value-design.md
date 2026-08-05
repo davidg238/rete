@@ -185,11 +185,27 @@ test — converting it would delete the only thing it proves. The general rule g
 `review/tests/CLAIMS.md`: *a claim about ISR-context event delivery is unproven by the
 host suite, because the host does not use that path.*
 
-### D5 — #105 is closed in hardware, and it is a separate defect
+### D5 — R2 fixes the piezo rig's boot sound; #105 stays OPEN and is a separate defect
+
+**Corrected 2026-08-05, after reading #105's body rather than its title.**
 
 The 47 kΩ base pull-down (schematic rev B, `2026-08-03-shipsbells-3v3-piezo-driver.svg`)
 stopped the buzzer sounding at power-up — witnessed on the bench 2026-08-05. That confirms
 the boot window in which GPIO18 is an undriven input, before `wire_gpio_outputs()` runs.
+
+**It does NOT close #105, and the first draft of this section claimed it did.** #105 is
+about the **12 V solenoid** rig, and its body already records that a 10 kΩ base-to-GND
+resistor was fitted there on 2026-07-31 and the base measured ~0 V through reset — so the
+floating-pin explanation was ruled out *for that rig*, and the issue's real finding stands:
+something appears to be actively **driving** GPIO18 high for ~1 s, which no pull-down
+addresses.
+
+What R2 fixes is a different omission. The 3.3 V piezo redesign deleted the 12 V version's
+MOSFET gate parts and carried **no** base pull-down forward — the schematic showed R1
+alone. So the piezo rig had the hole the solenoid rig had already plugged, and plugging it
+fixed the boot sound *here* while saying nothing about *there*. Two rigs, two different
+faults, one shared symptom; reading the issue's title and not its body is what conflated
+them.
 
 It is unrelated to this bug and does not mitigate it: R2 holds the base down only while
 the pin is **undriven**. A solid tone is the pin being *driven* high, and no resistor
