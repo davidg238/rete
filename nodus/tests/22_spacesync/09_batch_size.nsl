@@ -1,0 +1,80 @@
+(*
+expect:
+health 87
+metrics 195
+batch 425
+*)
+(* #56 design §9.1, landed as a REGRESSION GUARD. A measured size protects nothing if
+   nothing re-checks it, and there are 87 B of headroom for one future field to eat
+   silently.
+
+   NOT a sum of record sizes: the thing that must fit 512 B is the PUSH FRAME —
+   envelope and rows included — so this builds the frame PortaBridge>>encodePush:
+   builds and encodes it through the real Cbor path.
+
+   Values are for a node that has been up THIRTY DAYS, because CBOR is shortest-form
+   and a fresh node encodes narrower than a long-lived one: a field holding 1296000
+   costs five bytes where one holding 12 costs one. Measuring the easy case is exactly
+   how an estimate becomes wrong in the field.
+
+   `metrics 195` is the CONTROL. It is the value RECORDS §4.4 pinned on 2026-07-21
+   through a different test (19_latency/05_record_size), so if it moves, the failure
+   is not in this file and every other number here is suspect.
+
+   Note: `platform Cbor` answers an INSTANCE where `platform Spans` answers the CLASS
+   — an asymmetry worth knowing before copying either line. *)
+class BatchSize packageUsing: manifest = () (
+
+  (* obs/health as design D2 slimmed it: liveness and delivery, five fields. *)
+  health: platform = (
+    | pairs |
+    pairs:: platform OrderedCollection new.
+    pairs add: #uptimeMs -> 2592000000.      (* 30 days *)
+    pairs add: #bootId -> 1.
+    pairs add: #wakes -> 1296000.            (* 30 d at the 2 s cadence *)
+    pairs add: #pollTimeouts -> 431.
+    pairs add: #streamDropped -> 17.
+    ^ platform Record tag: #Health fields: (platform Map fromPairs: pairs) )
+
+  (* The eleven fields kernel.nsl builds, with the WROOM-32 values 05_record_size.nsl
+     measured, so the 195 B control reproduces exactly. *)
+  metrics: platform = (
+    | pairs |
+    pairs:: platform OrderedCollection new.
+    pairs add: #heapSize -> 53248.
+    pairs add: #liveBytes -> 36196.
+    pairs add: #heapHighWater -> 53228.
+    pairs add: #largestFreeBlock -> 18608.
+    pairs add: #gcCycles -> 1523.
+    pairs add: #handlesLive -> 1.
+    pairs add: #handlesHighWater -> 1.
+    pairs add: #queueHighWater -> 2.
+    pairs add: #overruns -> 0.
+    pairs add: #pulseDrops -> 0.
+    pairs add: #pulseCoalesced -> 0.
+    ^ platform Record tag: #Metrics fields: (platform Map fromPairs: pairs) )
+
+  log: platform = (
+    ^ platform Record tag: #Log with: #level -> #info
+                              with: #text -> 'tick 1296000' )
+
+  row: platform seq: s path: p value: v = (
+    ^ platform List with: s with: p with: 2 with: v )
+
+public main: platform args: args = (
+  | cbor rows |
+  cbor:: platform Cbor.
+  ('health ' , (cbor encode: (self health: platform)) byteSize printString) println.
+  ('metrics ' , (cbor encode: (self metrics: platform)) byteSize printString) println.
+
+  rows:: platform OrderedCollection new.
+  rows add: (self row: platform seq: 1296000 path: 'obs/health' value: (self health: platform)).
+  rows add: (self row: platform seq: 1296001 path: 'sys/metrics' value: (self metrics: platform)).
+  rows add: (self row: platform seq: 1296002 path: 'tel/log' value: (self log: platform)).
+  ('batch ' , (cbor encode: (platform Record tag: #push
+      with: #id -> 'c6-bench'
+      with: #bootId -> 1
+      with: #entries -> (platform List fromCollection: rows))) byteSize printString) println.
+)
+) : (
+)
