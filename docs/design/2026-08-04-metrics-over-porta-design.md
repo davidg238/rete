@@ -360,3 +360,59 @@ afterwards costs a constructor call, not a second implementation.
   195 B exactly as a control. What implementation still owes is landing that
   measurement as a **regression guard** in `nodus/tests/`, because the number protects
   nothing if nothing re-checks it.
+
+---
+
+## 13. Hardware witness, 2026-08-04 — everything above, on silicon
+
+Written the same evening the design landed, because a design gated only on the host is a
+design whose radio assumptions are untested.
+
+A fresh C6 devkit running `PortaBridgeNodeC6`, checking into porta on `gw85224-01` over a
+real Thread mesh:
+
+```
+obs/build     seq=1     #Build{#chip: #esp32c6}
+obs/health    seq=1985  #Health{#wakes: 331, #bootId: 1, #uptimeMs: 664140,
+                                #pollTimeouts: 6, #streamDropped: 0}
+sys/metrics   seq=1990  #Metrics{#gcCycles: 211, #heapSize: 131072, #liveBytes: 89592,
+                                 #largestFreeBlock: 37356, #queueHighWater: 3,
+                                 #pulseDrops: 0, ...}
+
+tick 326 misses 6 cursor 0 acked 1954 dropped 0
+```
+
+Confirmed, in order of how badly each would have hurt if false:
+
+1. **D1's widened scan carries `sys/` over the radio.** The record that was unsendable by
+   construction is in porta's cell tree.
+2. **§4's claim holds on real traffic** — 134 `sys/metrics` rows in the event log within
+   minutes, accumulating rather than collapsing. At the 2 s bring-up cadence, ~1,800
+   rows/hour. The node stores nothing; the series lives gateway-side, which is the answer
+   to #56's "metrics die with the node".
+3. **D2's slimmed `obs/health` is what actually goes on the wire** — five fields, no heap
+   fields, `streamDropped` present.
+4. `dropped 0` and `misses 6` of 326 ticks: the batch is nowhere near the cap in practice,
+   consistent with §9.1's measured 425 B of 512.
+
+**The escalation measurement (D6) is now collectable** from this run. It was not taken
+tonight; the run exists to make it takeable.
+
+### 13.1 What the bring-up cost, recorded so it is not re-paid
+
+The node was silent for seven diagnostic probes and the cause was **not** in anything this
+design touches. A C6 image built without
+`--conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_thread_ftd.conf"` contains **no
+OpenThread at all** — no `CONFIG_NET_L2_OPENTHREAD`, no settings, no dataset — and the only
+symptoms are the absence of the `thread:` boot lines and the app printing a bare `bind`,
+which is `udpBindPort:` answering nil because there is no interface. The correct invocation
+was already in `nodus/tuvm/tests/porta_sync_c6.sh:173`.
+
+**The compounding error is the more useful record.** Seven "zero bytes" reads were reported
+as evidence the board was dead, from a serial reader that had never once been shown to work.
+The C6 console does not reset on open — unlike the WROOM, and the bench notes say so — so
+attaching to an already-booted, quiet node yields nothing, and that silence means nothing.
+The control that resolved it was entering bootloader mode deliberately: `esptool --before
+no_reset chip_id` succeeds *only* if the chip is already in the ROM loader, which separates
+"not booting" from "booted and quiet" in one command. **Validate the instrument against a
+known-present signal before believing an absence.**

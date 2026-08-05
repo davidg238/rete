@@ -986,8 +986,21 @@ and then talks. The board never gets far enough to attach — it is resetting in
 loop, and every reset fires §18.4/#105's ~1 s energisation of GPIO18. Corroborated
 directly: chirping while a connector was moved, silence the instant it seated.
 
-**A 2 A rating is not a delivery.** Cable gauge, connector seating and USB-C CC
-negotiation are the candidates, in that order.
+**RESOLVED 2026-08-04, and the candidate list above was wrong.** It was not the cable, the
+connector or CC negotiation. **3.3 V was being brought directly into the C6 module**;
+feeding **5 V and letting the onboard LDO make 3.3 V** stopped it. Both symptoms went at
+once — the ~1 s startup chirp and the continuous chirping.
+
+Verified by a **5 h 38 m unattended run with zero resets** (last boot 16:52:03; all six of
+the day's boots precede it) and **12 consecutive correct strikes**, slots 34–45. #149
+closed on that evidence.
+
+The lesson is about the shape of the guess, not the guess: every candidate named above was
+*downstream of the connector*, because the reproducer was "chirping while a connector was
+moved, silence the instant it seated". That observation was real and pointed at the wrong
+half — a marginal rail browns out on movement too, and the module was being fed a rail with
+no headroom for the LDO to regulate away. **A 2 A rating is still not a delivery; it just
+was not the delivery that failed here.**
 
 **#105 is therefore a power-integrity readout.** On a board with no console, continuous
 chirping means "I am resetting" — the second time on this rig that fitting an audible
