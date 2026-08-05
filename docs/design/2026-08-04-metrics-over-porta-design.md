@@ -133,6 +133,16 @@ they are deleted from it. The record drops 8 fields → 5, and **130 B → 87 B 
 It is the conformance target and it currently describes a record no implementation has
 ever sent, in units nothing downstream uses (D4.2 makes milliseconds the rule).
 
+**D9 — there is no backward compatibility to keep, and no migration path to design.**
+David, 2026-08-04: *"there is ZERO need to maintain backward compatibility or 'the
+fleet': we will reflash as necessary."* Both ends of the wire are reflashed together,
+so a record shape change is an edit to two documents and a rebuild — not a versioned
+field, not a dual-read, not a deprecation window. This is what lets D1, D2 and D3 be
+corrections rather than accretions, and it is the difference between this design and
+the one that produced the three-way `obs/health` disagreement in the first place: every
+one of those extra fields was added *beside* what was there rather than *instead of*
+it.
+
 **Noted, not fixed here:** `bootId` is the source constant `1` (`kernel.nsl:1540`) —
 "honest for a node that cannot yet count its own boots". porta stores it to order
 observations across reboots, which a constant makes degenerate. Out of scope; it needs
@@ -155,52 +165,70 @@ The app keeps control through constructor knobs: the floor, and off.
 
 ## 7. Triggers
 
-**D5 — the floor is counted in check-ins, never in seconds.** The current 2 s cadence
+**D5 — the unit of cadence is the check-in, never the second.** The current 2 s cadence
 (`PortaBridgeNodeC6.nsl:38`) is a bring-up number for the hardware gate, and #115's
-adaptive controller will change it. A floor in seconds silently becomes a different
-policy the day the cadence moves; a floor in check-ins rides whatever the controller
-picks. This is the "reporting rides existing wakes" rule (G9) applied to the floor
-itself.
+adaptive controller will change it. Any policy expressed in seconds silently becomes a
+different policy the day the cadence moves; one expressed in check-ins rides whatever
+the controller picks. This is the "reporting rides existing wakes" rule (G9) applied to
+the cadence itself, and it is why D6 can be as simple as it is — "every check-in" is
+already adaptive, for free, because the check-in is.
 
-**D6 — escalate on degradation, with hysteresis.**
+**D6 — v1 publishes `sys/metrics` on every check-in. Escalation is staged, not built.**
 
-| trigger | signal | why this shape |
-|---|---|---|
-| **floor** | every *N*th check-in | cheap baseline when healthy |
-| **edge** | *any* movement in `pulseDrops`, `overruns`, `streamDropped` | these are supposed to be zero, so movement **is** the event; no threshold to tune |
-| **threshold** | `largestFreeBlock` below a mark | always non-zero, so only a level carries information |
-| **decay** | *K* consecutive clean check-ins | one transient must not pin the node at maximum forever, and a flapping counter must not oscillate the cadence |
+*Revised 2026-08-04 under David's standing guidance: limit scope, get something
+working, run spikes and gather data rather than making complex decisions early — and
+remember the lineage, `st/berry → ns/berry → ns/oevm → nsl/tuvm`. This system has been
+rewritten wholesale four times. Nothing here is built to last; it is built to teach.*
 
-Levels: `every N` → `every M` → `every check-in`. An edge or threshold breach moves up
-one level; *K* clean check-ins move down one.
+The escalating design (a healthy floor of every *N*th check-in, edge triggers on
+`pulseDrops`/`overruns`/`streamDropped`, a fragmentation threshold on
+`largestFreeBlock`, and decay after *K* clean check-ins) needs **five invented
+constants** before it can run once. None of them can be chosen from evidence today,
+because nobody has measured what a metrics push costs on this mesh.
 
-**Defaults, so the plan does not have to invent them** — all overridable by the app:
+**And D7 already caps escalation's worst case at one record per check-in — so the
+ceiling of the elaborate design is the simple design.** Publishing unconditionally is
+not a lesser version of escalation; it is escalation with the dial at maximum, which is
+the only setting whose cost we can measure directly.
 
-| knob | default | reasoning |
-|---|---|---|
-| *N*, healthy floor | **30 check-ins** | 60 s at the 2 s gate cadence, 15 min at a 30 s production cadence — a floor that stays sane across the range #115 will pick |
-| *M*, degraded | **5 check-ins** | fine enough to see a trend, still 6× cheaper than maximum |
-| critical | **every check-in** | the D7 ceiling |
-| *K*, clean check-ins to decay one level | **10** | long enough that a flapping counter cannot oscillate the cadence |
-| `largestFreeBlock` threshold | **`largestFreeBlock * 2 < (heapSize − liveBytes)`** | expressed as a ratio of *free* bytes, not an absolute count: fragmentation means "the largest block is small **relative to what is free**", and an absolute byte mark would mean different things on a 53 KB device heap and a host heap |
+So v1 is: **compose `platform metrics`, `put:` it at `sys/metrics`, every check-in.**
+No levels, no thresholds, no hysteresis, no counters, no tunables, no new node state.
 
-**Dialect constraint for the plan: nsl has no modulo.** "Every *N*th check-in" is a
-down-counter reset to *N*, never `checkIns \\ N = 0`. Stated here because the natural
-expression of this policy is the one the language does not have.
+What that buys beyond simplicity: cadence policy then lives in exactly one place
+(#115's adaptive controller) instead of two mechanisms interacting, and the run-up
+resolution is simply the check-in rate.
 
-**D7 — escalation may change what rides a check-in. It may never add a check-in.**
+**What earns escalation back**, recorded so the deferral is falsifiable rather than
+vague — any one of:
 
-This is the rule that makes escalation safe, and it exists because the objection to
-escalation is real: `queueHighWater` and `pulseDrops` rise precisely when the reactor is
-not pumping fast enough, so a cadence that reacts to them adds work to a starving
-reactor — the tuvm#54 failure mode wearing a helpful hat. Under D7:
+- the measured per-check-in cost (radio time, power, or batch pressure) turns out to
+  matter at the cadence #115 picks;
+- `maxRows = 8` or the 512 B batch starts binding as `obs/` paths multiply (§9.1 says
+  there is 87 B of slack today);
+- a real degradation event shows that check-in-rate resolution was too coarse to see
+  the run-up.
 
-- The worst case is bounded and budgetable: **one `sys/metrics` per check-in**, which is
-  the simplest possible policy, not a pathological one.
-- The marginal cost of escalating is composing a record and adding one row to a batch
-  that was being sent anyway — no extra wake, no extra radio round-trip, no extra power.
-- An edge detected between check-ins publishes on the **next** check-in. It does not
-  wake the node.
+The escalation design is preserved above in outline for whoever picks that up. It was
+not wrong; it was unearned.
+
+**Dialect note kept for whenever a cadence divisor does arrive: nsl has no modulo.**
+"Every *N*th check-in" is a down-counter reset to *N*, never `checkIns \\ N = 0` — the
+natural expression of that policy is the one the language does not have.
+
+**D7 — reporting may change what rides a check-in. It may never add a check-in.**
+
+The standing rule, and the reason D6 could collapse to "every check-in" without
+argument. It exists because the objection to any reactive cadence is real:
+`queueHighWater` and `pulseDrops` rise precisely when the reactor is not pumping fast
+enough, so a policy that reacts to them adds work to a starving reactor — the tuvm#54
+failure mode wearing a helpful hat. Under D7:
+
+- The cost is bounded and budgetable: **one `sys/metrics` per check-in**, measured at
+  195 B in a 425 B frame (§9.1).
+- The marginal cost is composing a record and adding one row to a batch that was being
+  sent anyway — no extra wake, no extra radio round-trip, no extra power.
+- Nothing metrics-related may ever wake the node. If a future escalation returns, it
+  publishes on the **next** check-in, never on its own schedule.
 
 A consequence worth naming: because `sys/metrics` is a **cell**, writing it more often
 than the check-in gains nothing — the bridge re-reads the latest value at check-in and
@@ -227,14 +255,18 @@ count — about five slots. This matters against the DRAM ceiling (#53).
   be evicted from `pending` the way a stream entry can. Under sustained disconnection
   the node reports the latest state on reconnect and the intervening run-up is lost —
   bounded and honest, and the same answer the space gives for every other cell.
-- **Escalation stuck at maximum.** Bounded by D7: maximum is one record per check-in.
+- **Cost runaway.** Cannot happen in v1: the rate is the check-in rate, one record per
+  check-in, and D7 forbids metrics from ever adding a wake. The failure mode this
+  design has instead is the opposite one — resolution too coarse to see a fast
+  degradation — which is the observation that would earn escalation back (D6).
 
 ## 9. Testing
 
-- **Host, deterministic:** a test under `nodus/tests/` that drives the state machine by
-  injecting counter movement and asserts the published cadence — floor, escalation on
-  each of the three edges, the `largestFreeBlock` threshold, and decay after *K* clean
-  check-ins. The state machine must be testable without a radio.
+- **Host, deterministic:** a test under `nodus/tests/` asserting that a check-in
+  publishes `sys/metrics` and that the published record is the `#Metrics` shape §4.4
+  pins. With D6 staged there is no state machine to drive, which is most of why v1 is
+  worth shipping first: the test is an assertion about one behaviour, not a matrix over
+  five constants.
 - **Size — MEASURED 2026-08-04, see §9.1.** The measurement is taken; what remains for
   implementation is landing it in `nodus/tests/` as a **regression guard**, the same job
   `19_latency/05_record_size.nsl` does for `#Metrics`. 61 B of value headroom is eaten
