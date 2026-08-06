@@ -380,6 +380,14 @@ oop primitive_request_step(oop receiver, int argc, oop *args);
 oop primitive_method_offset(oop receiver, int argc, oop *args);
 oop primitive_compiled_method_instruction_at(oop receiver, int argc, oop *args);
 /* Confined C-assisted breakpoint prims (Task 7 — reachable ONLY via mirror_dispatch). */
+#ifdef OEVM_METHOD_PROFILE
+/* #164 SPIKE: exact per-method call counts, keyed on the CompiledMethod pointer
+   (the same identity the breakpoint table uses). Mirror-confined, selector-named,
+   so no prim id is consumed. See the mprof_ block in vm.c. */
+oop primitive_calls_of(oop receiver, int argc, oop *args);
+oop primitive_calls_stats(oop receiver, int argc, oop *args);
+oop primitive_calls_reset(oop receiver, int argc, oop *args);
+#endif
 oop primitive_break_add(oop receiver, int argc, oop *args);
 oop primitive_break_remove(oop receiver, int argc, oop *args);
 oop primitive_method_of(oop receiver, int argc, oop *args);

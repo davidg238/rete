@@ -73,6 +73,15 @@ oop mirror_dispatch(oop selector, int argc, oop *args) {
     if (strcmp(sel, "breakAt:offset:") == 0)   return primitive_break_add(NULL, argc, args);
     if (strcmp(sel, "unbreakAt:offset:") == 0) return primitive_break_remove(NULL, argc, args);
     if (strcmp(sel, "methodOf:") == 0)         return primitive_method_of(args[0], argc - 1, args + 1);
+#ifdef OEVM_METHOD_PROFILE
+    /* #164 per-method call counts. callsOf: takes the method as the reflectee;
+       callsStats:/callsReset: ignore theirs (the argc>=1 guard above still holds,
+       so nsl passes nil). Absent from a build without the knob, so an off build
+       DNUs loudly rather than answering a plausible zero. */
+    if (strcmp(sel, "callsOf:") == 0)    return primitive_calls_of(args[0], argc - 1, args + 1);
+    if (strcmp(sel, "callsStats:") == 0) return primitive_calls_stats(args[0], argc - 1, args + 1);
+    if (strcmp(sel, "callsReset:") == 0) return primitive_calls_reset(args[0], argc - 1, args + 1);
+#endif
     /* mutations */
     if (strcmp(sel, "fiber:singleStep:") == 0)         return primitive_debugger_set_single_step(args[0], argc - 1, args + 1);
     if (strcmp(sel, "vtable:bind:to:") == 0)           return primitive_vtable_bind(args[0], argc - 1, args + 1);
