@@ -2,7 +2,7 @@
 PortaBridgeNodeC6 — PortaBridgeNode, on the C6, over a real Thread mesh. The
 hardware half of design §9's gate (plan 3 of 3).
 
-This file is PortaBridgeNode.nsl with four differences and no others:
+This file is PortaBridgeNode.nsl with five differences and no others:
   1. the constants below address the real gateway instead of loopback;
   2. `chip` answers #esp32c6, so obs/build says which silicon reported;
   3. `tick` prints one console line, because the gate must be able to tell a
@@ -11,7 +11,18 @@ This file is PortaBridgeNode.nsl with four differences and no others:
   4. `report` also prints ` dropped N` — the bridge's counted `#streamDropped`,
      appended after ` acked N` so the existing `^tick ` and `misses [0-9]\+`
      greps still match.
-A change to the body of either file is a change to both.
+  5. THE SELF-CHECK: it emits the `bridge-health` scenario's TAP-lite verdict
+     once, and then goes on bridging forever (target harness design D1/D3,
+     2026-08-05). See the block above `tapPlan:`.
+A change to the BRIDGING body of either file is a change to both; difference 5
+is additive and has no counterpart in the host file.
+
+expect (console, once attached):
+PORTA NODE READY
+TAP bridge-health plan=3
+tick 1 misses 0 cursor 0 acked 2 dropped 0
+...
+TAP bridge-health done pass=3 fail=0
 
 The gateway is addressed by its MESH-LOCAL EID, not its OMR address: there is no
 global IPv6 here and no DNS64, so literal addresses are the only ones that work,
@@ -22,12 +33,15 @@ Cadence stays the 2 s of plan 2. The adaptive controller is #115.
 
 Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
 reaction block is a one-line self-send (the LD_SLOT gotcha).
-expect (console, once attached):
-PORTA NODE READY
-tick 1 misses 0 cursor 0 acked 2 dropped 0
 *)
 class PortaBridgeNodeC6 usingPlatform: platform net: net = (
-  | space bridge timers ticks ::= 0. |
+  | space bridge timers ticks ::= 0.
+    (* difference 5 — the bridge-health self-check. `obsCap` is held rather than
+       re-derived per tick for the same reason `timers` is: one instance, minted
+       once. *)
+    obsCap goalName ::= nil. lastUnacked ::= -1. lastAcked ::= 0.
+    obsConverged ::= false.
+    verdictDone ::= false. tapPass ::= 0. tapFail ::= 0. |
 ) (
   nodeId    = ( ^ 'c6-bench' )
   (* gw85224-01's mesh-local EID, read from the OTBR on 2026-06-28 and unchanged
@@ -62,6 +76,8 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
 
     space put: 'obs/build' value: (platform Record tag: #Build with: #chip -> self chip).
 
+    obsCap:: space channel: 'obs'.
+
     timers:: platform timers.     (* hold ONE instance — it owns the pending registry *)
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
     tickChan:: space channel: 'sys/tick'.
@@ -69,6 +85,12 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
     timers every: self cadence post: #go on: tickChan.
 
     'PORTA NODE READY' println.
+    (* The plan is declared BEFORE the first tick, and before the mesh has even
+       attached. A node that never attaches then emits a plan and no results,
+       which the runner FAILS as an unfinished workload — where a bare timeout
+       could not say whether it ran and lost, or never ran at all. *)
+    self tapPlan: 3.
+
     [ true ] whileTrue: [
       platform pumpEvents.        (* blocks until the cadence timer fires *)
       space drain ].
@@ -81,11 +103,18 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
   tick = (
     ticks:: ticks + 1.
     bridge checkIn.
+    (* MEASURED HERE, between the check-in and the next health write, and nowhere
+       else: `publishHealth` below immediately makes obs/ unacked again, so a
+       reading taken after it would never be 0 and the assertion would be
+       unfalsifiable in the wrong direction — permanently red instead of
+       permanently green, but just as meaningless. *)
+    self noteObsAcked.
     self publishHealth.
     space out: 'tel/log' value:
       (platform Record tag: #Log with: #level -> #info
                                  with: #text -> ('tick ' , ticks printString)).
     self report.
+    self checkVerdict.
     ^ self
   )
 
@@ -101,7 +130,10 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
     ^ self
   )
 
-  nameChanged: v = ( space put: 'obs/name' value: v. ^ self )
+  (* `goalName` is kept so the self-check can compare what porta ASKED for against
+     what this node then reported observing — the convergence property itself,
+     rather than the weaker "obs/name is non-empty". *)
+  nameChanged: v = ( goalName:: v. space put: 'obs/name' value: v. ^ self )
 
   (* LIVENESS AND DELIVERY ONLY (design D2, 2026-08-04). heapFree/heapLargest/overruns
      left this record — not duplicated elsewhere, DELETED from here, because every one
@@ -130,6 +162,136 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
   )
 
   fail: msg = ( msg println. ^ 1 )
+
+  (* --- difference 5: the `bridge-health` scenario (design D1/D3) -------------
+     The node half of what tests/porta_sync_c6.sh used to assert from the
+     gateway, moved to where it belongs: a workload testifies about what only it
+     can see, and this node is the only party that can see its own bounded
+     `pending` queue evicting rows. What only the FAR end can see — that the
+     tel/log series arrived contiguously and exactly once — stays at porta and is
+     not claimed here (D4.1).
+
+     class=observe: nothing below writes, reboots, latches or slows anything. It
+     reads three numbers the bridge is keeping anyway, which is what makes this
+     the first scenario that could later be pointed at a live field node.
+
+     It emits ONCE and then goes on bridging forever. That matters twice over: a
+     health check that ends the workload could not be a health check, and the
+     bench integration test of porta (tests/porta_sync_c6.sh) needs a node still
+     ticking after the verdict is in. *)
+
+  (* 180 s at the 2 s cadence. The budget is for ATTACH, not for convergence:
+     porta_sync_c6.sh has waited 90 s for the first obs/build to land since the
+     gate was written, and the three properties below are all true within two
+     check-ins of the mesh coming up. Reaching this deadline emits the verdict
+     as it stands — a FAIL that says which of the three is false, never a
+     silence the runner has to guess at. *)
+  verdictTicks = ( ^ 90 )
+
+  (* Every obs/ cell this node has written has been acknowledged by porta.
+     `changedSince: acked` answers the cells porta has NOT yet accepted, so 0
+     looks like a real ack. Sampled between the check-in and the next health
+     write; see the note in `tick`.
+
+     AND THE WATERMARK MUST BE INSIDE THIS BOOT'S SEQUENCE. Found by this gate on
+     its first hardware run, 2026-08-05, which it scored 3/3 while every cell the
+     node wrote was being thrown away: the space counter restarts at 0 on boot,
+     porta's stored high-water for the node does not, so a REBOOTED node pushes
+     seq 1..7 against a stored high-water of 7138, porta skips all of it as
+     already-applied, and `applyAck:` then advances the node's own `acked` to
+     7138 — after which `changedSince: acked` is empty FOREVER, for the same
+     reason the rows are being discarded. The green and the loss had the identical
+     cause.
+
+     `acked <= space seq` is the invariant that separates them, and it needs
+     nothing new on the wire: porta can only legitimately acknowledge a seq this
+     node has issued, so a watermark ABOVE this node's own counter is proof the
+     two ends are talking about different boots. Silent, total and permanent
+     otherwise — until somebody wipes the store, which is exactly what the old
+     gate did and why nobody had seen it.
+
+     The far end is fixed too (porta rewinds its high-water when a pull declares
+     both a lower cursor and a lower hw — PROTOCOL-NSL rule 5 of five), so this
+     clause is now a REGRESSION DETECTOR rather than a live condition. It stays
+     because it is the node's only way to notice, and because the gap that fix
+     leaves — a node porta has never written to — is real. *)
+  noteObsAcked = (
+    lastUnacked:: (obsCap changedSince: bridge acked max: 8) size.
+    lastAcked:: bridge acked.
+    (lastUnacked = 0 and: [ lastAcked <= space seq ]) ifTrue: [ obsConverged:: true ].
+    ^ self )
+
+  healthPresent = ( ^ ((space peek: 'obs/health') == nil) not )
+
+  (* Convergence, stated as the tree diff it is: what porta asked for at
+     goal/name is what this node now reports at obs/name. `goalName` nil means
+     no goal/** entry ever arrived — which is a real failure of the downstream
+     half and is reported as one, with the operator action that fixes it. *)
+  nameConverged = (
+    goalName == nil ifTrue: [ ^ false ].
+    ^ (space peek: 'obs/name') = goalName )
+
+  checkVerdict = (
+    verdictDone ifTrue: [ ^ self ].
+    (obsConverged and: [ self nameConverged and: [ bridge dropped = 0 ] ])
+      ifTrue: [ ^ self emitVerdict ].
+    ticks < self verdictTicks ifTrue: [ ^ self ].
+    ^ self emitVerdict )
+
+  emitVerdict = (
+    verdictDone:: true.
+    self tap: 1 named: 'obs-acked'
+                ok: (obsConverged and: [ self healthPresent ])
+                detail: ('health=' , (self healthPresent ifTrue: [ 'present' ] ifFalse: [ 'absent' ]) ,
+                         ' hw=' , lastAcked printString ,
+                         ' seq=' , space seq printString ,
+                         ' unacked=' , lastUnacked printString ,
+                         (lastAcked > space seq
+                            ifTrue:  [ ' PORTA HIGH-WATER IS AHEAD OF THIS BOOT: every cell this node writes is being discarded as already-applied' ]
+                            ifFalse: [ '' ])).
+    self tap: 2 named: 'goal-converged'
+                ok: self nameConverged
+                detail: (goalName == nil
+                  ifTrue:  [ 'no goal/name arrived from porta — write one: porta put ' , self nodeId , ' goal/name <value>' ]
+                  ifFalse: [ 'obs/name=' , (space peek: 'obs/name') printString ,
+                             ' goal/name=' , goalName printString ]).
+    self tap: 3 named: 'no-stream-drops'
+                ok: bridge dropped = 0
+                detail: ('streamDropped=' , bridge dropped printString ,
+                         ' misses=' , bridge misses printString).
+    self tapDone.
+    ^ self )
+
+  (* --- TAP-lite (design D3) -------------------------------------------------
+     Byte-identical to the block in StaleHandleProbeC6 and PulseCoalesceProbeC6,
+     and duplicated on purpose: D1 says there is no assertion library in the
+     kernel, because a test category in the VM is the thing this design exists
+     not to build. Three copies of eleven lines is the price, and it is cheaper
+     than a mechanism.
+
+     Every line self-identifies with the scenario, so a log holding an earlier
+     run — or two workloads sharing one — cannot be misattributed. *)
+
+  scenarioName = ( ^ 'bridge-health' )
+
+  tapPlan: n = (
+    ('TAP ' , self scenarioName , ' plan=' , n printString) out.
+    ^ self )
+
+  tap: idx named: nm ok: passed detail: d = (
+    passed
+      ifTrue:  [ tapPass:: tapPass + 1.
+                 ('TAP ' , self scenarioName , ' ok ' , idx printString ,
+                   ' ' , nm , ' ' , d) out ]
+      ifFalse: [ tapFail:: tapFail + 1.
+                 ('TAP ' , self scenarioName , ' not ok ' , idx printString ,
+                   ' ' , nm , ' ' , d) out ].
+    ^ self )
+
+  tapDone = (
+    ('TAP ' , self scenarioName , ' done pass=' , tapPass printString ,
+      ' fail=' , tapFail printString) out.
+    ^ self )
 ) : (
   public packageUsing: manifest = ( ^ self new )
 )

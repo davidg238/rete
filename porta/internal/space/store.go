@@ -230,22 +230,69 @@ func (s *Store) Ingest(nodeID string, bootID int64, entries []Entry) (hw int64, 
 	return hw, skipped, tx.Commit()
 }
 
-func (s *Store) NoteCursor(nodeID string, cursor int64) error {
+// NoteCheckIn records what a pull declared: the cursor the node has applied, and
+// `hw` — what it believes porta has accepted FROM it. Both fields were already on
+// the wire; `hw` was decoded and thrown away until 2026-08-05.
+//
+// It answers whether the node RESTARTED, and rewinds `node_seq_hw` when it did.
+//
+// THE DEFECT THIS CLOSES. `node_seq_hw` is a CACHE of the node's own `acked`, and
+// the node is the only party that can be authoritative for its own outbound
+// sequence: the space counter restarts at 0 on every boot and this row does not.
+// A rebooted node pushes seq 1..n against a stored high-water of (say) 7138,
+// Ingest discards every row as already-applied — and the ack carries 7138, which
+// `applyAck:` adopts. From then on the node believes everything it writes has
+// been accepted, porta holds observations hours old, and NEITHER END CAN TELL.
+// It stayed invisible because the C6 gate wiped porta's db before every run.
+// Found by the bridge-health target gate, which scored 3/3 over it.
+//
+// WHY THE CURSOR AND NOT `hw` ALONE. A missed ack ALSO leaves the node declaring
+// a lower `hw` — and that case must NOT rewind, because porta committed those
+// rows and the node is legitimately re-offering them: rewinding deletes the
+// `seq <= hw` dedupe, which is the one thing making a re-push idempotent. The
+// first version of this did exactly that, and the bench integration test caught
+// it inside one leg ("the gateway never logged a duplicate-skip", where it had
+// logged 959 before).
+//
+// The cursor separates them, and not as a heuristic: the cursor is advanced by
+// the BATCH and the watermark by the ACK, so a swallowed ack cannot move the
+// cursor. A cursor that went BACKWARDS can only mean the node lost the RAM
+// holding it — which is the same event that reset its seq counter.
+//
+// KNOWN GAP, named rather than papered over: a node porta has never written to
+// has a cursor of 0 in both places, so its reboot carries no signal here and the
+// loss above persists for it. Closing that needs a per-boot identity — the
+// `bootId` field is already on the wire and is a source constant (#74). This
+// mechanism does not conflict with that one; it makes it unnecessary for every
+// node that has ever been given a goal.
+func (s *Store) NoteCheckIn(nodeID string, cursor, nodeHW int64) (restartedFrom int64, restarted bool, err error) {
 	now := s.nowMs()
 	tx, err := s.db.Begin()
 	if err != nil {
-		return err
+		return 0, false, err
 	}
 	defer tx.Rollback()
 	if err := ensureNode(tx, nodeID, now); err != nil {
-		return err
+		return 0, false, err
+	}
+	var storedCursor, storedHW int64
+	if err := tx.QueryRow(`SELECT cursor_acked, node_seq_hw FROM nodes WHERE id = ?`, nodeID).
+		Scan(&storedCursor, &storedHW); err != nil {
+		return 0, false, err
+	}
+	restarted = cursor < storedCursor && nodeHW < storedHW
+	if restarted {
+		restartedFrom = storedHW
+		if _, err := tx.Exec(`UPDATE nodes SET node_seq_hw = ? WHERE id = ?`, nodeHW, nodeID); err != nil {
+			return 0, false, err
+		}
 	}
 	if _, err := tx.Exec(
 		`UPDATE nodes SET cursor_acked = ?, last_seen_ms = ? WHERE id = ?`,
 		cursor, now, nodeID); err != nil {
-		return err
+		return 0, false, err
 	}
-	return tx.Commit()
+	return restartedFrom, restarted, tx.Commit()
 }
 
 // RecordExchange logs one check-in. addr is the peer address the datagram

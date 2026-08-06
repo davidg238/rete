@@ -48,7 +48,42 @@ Both scripts contain patterns worth keeping, and this design keeps them explicit
 preflight that **fails rather than skips**, assertions that are **positive on both arms**,
 and an anchor tying every assertion to the image that was actually written.
 
-### The finding: the wipe was never necessary
+### The finding: the wipe was necessary, and it was hiding a defect
+
+> **Corrected 2026-08-05, by building the scenario this section is about.** What
+> follows was written as *"the wipe was never necessary"*, and the argument below is
+> sound as far as it goes — the `starts at 1` assertion really does become
+> `starts at baseline+1` and the privilege really does evaporate. But the wipe was
+> load-bearing for a second reason nobody had seen, in the opposite direction:
+>
+> **porta's stored high-water for a node survives the node's reboot, and the node's
+> space counter does not.** A reflashed node pushes seq 1..n against a stored
+> high-water of thousands, porta discards every row as already-applied, and the ack
+> carries that stale high-water — which `applyAck:` adopts. From then on the node
+> believes everything it writes has been accepted, porta holds observations hours old,
+> and neither end can say so. The wipe was resetting the high-water on every run, which
+> is exactly why this gate had been green for three days over a defect that makes a
+> node's observability silently permanent-dead in the field.
+>
+> Found by `bridge-health`'s first hardware run, which scored **3/3 while every cell the
+> node wrote was being thrown away** — the vacuous green and the loss had the identical
+> cause, because `changedSince: acked` is empty for the same reason the rows are
+> discarded. Both halves are closed: the workload now asserts `acked <= space seq`
+> (a watermark above this node's own counter is proof the two ends are talking about
+> different boots), and porta rewinds its high-water when a pull declares **both** a
+> lower cursor and a lower `hw` (`Store.NoteCheckIn`; PROTOCOL-NSL §"Five rules", rule 5).
+> The wipe is now genuinely unnecessary — but it was not, and the difference is a real bug
+> it was concealing.
+>
+> **The first version of that fix was wrong, and the split's other half caught it.**
+> Rewinding on `hw` alone treats a MISSED ACK as a restart — and there the node is
+> legitimately re-offering rows porta already committed, so the rewind deletes the
+> `seq <= hw` dedupe and manufactures the duplicate it was meant to prevent. The decomposed
+> `porta_sync_c6.sh` failed within one leg on `the gateway never logged a duplicate-skip`,
+> where it had logged 959 before. That is the D4.1 split earning its keep in the direction
+> it was argued for: the workload cannot see delivery, and the thing that can, did.
+
+The original argument, which stands on its own terms:
 
 `porta_sync_c6.sh` already contains both halves of this argument.
 
@@ -300,12 +335,15 @@ the same class of defect as an unanchored assertion.
 
 ## 5. The scenarios
 
-> **What actually shipped, 2026-08-05: the runner and TWO of the three.** `stale-handle` and
-> `pulse-coalesce` are green on hardware (`TARGET 2/2 PASS`). **`bridge-health` is not
-> built** — it is the one that needs `porta_sync_c6.sh` decomposed, and the decomposition is
-> the part of this design I was least sure of. Building the runner against two dissimilar
-> workloads first was the smaller step; the third arrives with the split, or the split
-> proves harder than expected and that is a finding worth having on its own.
+> **What shipped, 2026-08-05: all three. `TARGET 3/3 PASS`** on c6bench —
+> `bridge-health` 3/3 in 24 s, `pulse-coalesce` 3/3 in 76 s, `stale-handle` 2/2 in 18 s.
+> The runner and the first two landed in d73b698; `bridge-health` and the
+> `porta_sync_c6.sh` split landed after it, and the split turned out to be the cheap part
+> — what was expensive was the defect the decomposition exposed (§2's correction).
+>
+> The earlier note here read *"the third arrives with the split, or the split proves
+> harder than expected and that is a finding worth having on its own."* Neither: the
+> split was easy and the finding came from the scenario, not the script.
 >
 > Two things the falsification pass caught that no amount of design would have:
 >
@@ -339,6 +377,26 @@ the same class of defect as an unanchored assertion.
    than glossed: the bench run proves the node-side properties and the field run proves
    both.
 
+   > **As built, 2026-08-05.** The workload is `PortaBridgeNodeC6.nsl` itself — the
+   > bridge certifies itself and then goes on bridging forever, which is the only shape a
+   > health check can have. A separate probe node would have been a third copy of the
+   > bridge body to keep in step with two others, for no property a copy could assert
+   > that the original cannot. It emits once, at the first tick where all three hold or
+   > at its own 180 s deadline, whichever comes first — so an unattached node yields a
+   > FAIL naming which property is false, never a silence the runner has to interpret.
+   >
+   > **Result 1 is not the one the design named.** "It published `obs/health`" is not
+   > node-observable, and the closest thing that is — `changedSince: acked` is empty —
+   > passed 3/3 over a node whose every write was being discarded (§2). What it asserts
+   > instead is *every obs/ cell I wrote has been acked* **and** *porta's watermark is
+   > inside this boot's sequence*. The second half is the load-bearing one and it cost
+   > nothing on the wire.
+   >
+   > Result 2 needs a `goal/name` to exist at porta, and says so when there is none
+   > rather than passing vacuously. That is not a bench affordance leaking in: a node's
+   > configured name is an ordinary operator write, it persists, a cold-booted node
+   > replays it from cursor 0, and "does obs match goal" is the convergence view itself.
+
 ### What happens to `porta_sync_c6.sh`
 
 Its legs 4–8 — wipe the db, start a gateway, inject ack drops, diff the gateway's
@@ -348,6 +406,24 @@ stays, is relabelled for what it tests, and loses its private console reader (D6
 delta assertions its db wipe should also be removable; that is expected to shrink it
 substantially and is **not** assumed here — if the wipe turns out to be load-bearing for a
 reason not yet seen, that is a finding to write down rather than a step to force.
+
+> **Done, 2026-08-05 — and the wipe WAS load-bearing.** The script now borrows the shared
+> gateway instead of starting one, restores the exact command line it found (on every exit
+> path, including a failed assertion — an injector left armed would silently corrupt every
+> later measurement on this bench), reads the collector's log instead of opening the port,
+> and scores two legs instead of four steps of setup plus four legs. Eight steps became
+> five; the node-side legs left entirely.
+>
+> `assert_exactly_once` became `assert_exactly_once_since <rows-at-baseline>
+> <last-tick-at-baseline>` — same three properties, no wipe. The non-obvious part is that
+> the baseline has to be a **row COUNT and not a seq or a tick value**: both restart at 1
+> on every node boot, so a store holding a previous session (which is now the normal case,
+> not the exceptional one) makes any `> baseline` comparison on either meaningless. Row
+> order is the only thing that survives a reboot.
+>
+> And the finding the parenthesis above asked for, in the direction nobody was looking:
+> the wipe was concealing a porta defect, not merely compensating for an assertion shape.
+> See §2's correction.
 
 ## 6. Failure modes, and how each is gated
 
@@ -362,6 +438,7 @@ reason not yet seen, that is a finding to write down rather than a step to force
 | A gate flashes the ship's bell | D5 class check **plus** the by-id deny-list backstop, no override |
 | Two runs race over one board | The `.lock` convention already in the console store |
 | The suite exists but nothing calls it | D8: the nsl suite prints the absence and the command |
+| **An assertion and the failure it should catch share a cause** | Added 2026-08-05 after `bridge-health` scored 3/3 over total data loss: `changedSince: acked` was empty *because* porta was discarding the rows. No mechanism gates this one — the only defence is to check the assertion against the FAR END once, by hand, the first time it goes green. A green whose evidence was never corroborated off-node is not yet evidence. |
 
 ## 7. Out of scope, recorded so it is deferred rather than forgotten
 
@@ -408,13 +485,73 @@ banner — the anchor — is emitted while the collector is still stopped. The b
 therefore reset a second time, deliberately, once there is a reader. A hand-run
 `zephyr/run.sh --flash` still races; filed as **#154**.
 
+**A seventh, from `bridge-health`, and the most expensive of them: the gate went GREEN on a
+node whose every write was being discarded.** Falsification 5 says "flip an expected value
+and watch it fail", which this scenario passed — and it would still have passed while
+testifying to nothing, because the assertion (`changedSince: acked` is empty) and the
+failure (porta skipping the rows) had the same cause. What caught it was not a harness
+mechanism but the habit of checking a first green against the independently written
+implementation: `porta get c6-bench obs/health` was returning a record hours old. The
+lesson is now a row in §6, and the assertion carries a second clause that has no shared
+cause with the first (`acked <= space seq`).
+
+**An eighth, in the deploy of that fix, and it took the gateway down for a minute.**
+`ssh gw 'pkill -f "porta serve --db X"'` MATCHES ITS OWN COMMAND LINE: pkill kills the
+remote shell mid-script, ssh exits 255, and the statements after it — installing the new
+binary, restarting — never run. The pattern was inherited verbatim from the old
+`porta_sync_c6.sh`, where `|| true` had been swallowing the same self-kill for months
+(the porta process died too, so it "worked"). Fixed with the bracket trick,
+`pkill -f "porta serv[e]"` — and then it happened a SECOND time, because the bracket only
+helps if the literal appears nowhere else in the command, and the restart half of the same
+line carried `./porta serve --db …`. The rule that actually holds: **the kill gets its own
+ssh invocation.**
+
+**A ninth: the fix for the seventh was wrong, and the OTHER half of the split caught it.**
+Rewinding porta's high-water whenever the node declares a lower `hw` also fires on a
+MISSED ACK — where the node is legitimately re-offering rows porta already committed — so
+it deleted the `seq <= hw` dedupe and manufactured the duplicate that dedupe exists to
+prevent. `bridge-health` passed it; `porta_sync_c6.sh` failed inside one leg with `the
+gateway never logged a duplicate-skip`, against 959 before. The discriminator is the
+CURSOR, and it is structural rather than heuristic: the cursor is advanced by the batch and
+the watermark by the ack, so a swallowed ack cannot move the cursor, while a reboot moves
+both. Worth naming twice: the D4.1 split ("the workload asserts what only it can see, the
+far end asserts delivery") was argued on paper and then paid out in a case neither half
+could have caught alone.
+
+**A tenth, small and old: two fetches where the original had one.** The rewritten
+`porta_sync_c6.sh` sampled its baseline row-count and its baseline tick in two `porta log`
+calls, and a push landing between them produced `the leg's first tick is 2, not 3 — an
+entry was lost` about an entry that was never lost. The script it replaced already carried
+this fix *and* its reasoning, in a comment; the rewrite dropped both. Now a
+`take_baseline` function, so the two numbers cannot be taken separately.
+
 ## 9. Closes / touches
 
-Closes the last leg of **#56**. Touches **#151** (its gate is scenario 1), **#67** (D9
-names what would earn the `.oimg` deploy), **#25** (D10 hands docker to its fourth item),
-**#118** (a node's gateway address is a source constant, which is why the field path uses
-the production porta plus a baseline rather than a private instance), **#152** and **#153**
-(both are `watch`-shaped and explicitly out of scope).
+**Closes the last leg of #56.** The runner and all three scenarios are built and green on
+hardware: `TARGET 3/3 PASS`, 2026-08-05 (`bridge-health` 3/3, `pulse-coalesce` 3/3,
+`stale-handle` 2/2). Touches **#151** (its gate is scenario
+1), **#67** (D9 names what would earn the `.oimg` deploy), **#25** (D10 hands docker to its
+fourth item), **#118** (a node's gateway address is a source constant, which is why the
+field path uses the production porta plus a baseline rather than a private instance),
+**#152** and **#153** (both are `watch`-shaped and explicitly out of scope).
+
+**And it closed a defect nobody had filed**, because the wipe it deleted was the thing
+hiding it: a rebooted node's cells were discarded by porta as already-applied, silently and
+permanently. Node side asserts it (`PortaBridgeNodeC6>>noteObsAcked`), porta side fixes it
+(`Store.SyncHighWater` + `handlePull` reading the `hw` it had been decoding and ignoring),
+and the contract records it (PROTOCOL-NSL, rule 5 of five). Three regression tests in
+`porta/internal/wire/wire_test.go` cover the reboot, the seq re-use it implies, and the
+absence of a duplicate under a stale pull.
+
+**Blocks and blocked-by, discovered during implementation:**
+
+- **#74 blocks the field `collect`.** A node cannot name its own build, so off the bench
+  there is no anchor. See the D3 amendment.
+- **#154** — a hand-run `zephyr/run.sh --flash` still races the collector for the tty. The
+  harness closes it for its own deploys only.
+- **#155** — `run.sh` hardcodes the console instance as `c6`, so a `c6bench` flash
+  mislabels `last-flashed-c6`. Small: the ELF archive itself is keyed by build id and is
+  correct.
 
 **Promotion on close:** `review/tests/CLAIMS.md` gains the claim that the host suite is
 silent about the ISR/mailbox seam and which gate speaks to it;

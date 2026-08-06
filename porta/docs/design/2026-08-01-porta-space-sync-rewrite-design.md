@@ -131,6 +131,35 @@ path additionally records the seq of its last write. This is exactly etcd's
 `revision` / `mod_revision` split, and `changedSince: cursor` is a scan for paths whose
 last-write seq exceeds the cursor.
 
+> **Amended 2026-08-05, by hardware.** The counter is monotonic *within a boot* and starts
+> at 0 on the next one — the node holds it in RAM (NVS is G7 work), which is stated in
+> PROTOCOL-NSL but was never carried through to what porta does with it. porta's
+> `nodes.node_seq_hw` persists, so a rebooted node pushed seq 1..n against a stored
+> high-water of thousands and `Ingest` skipped every row as already-applied. Worse than
+> a lost batch: the ack carries that high-water and the node's `applyAck:` adopts it, after
+> which the node believes everything it writes is accepted and porta holds observations
+> hours old, with no error at either end. The C6 gate's db wipe had been resetting it every
+> run, which is why three days of green said nothing about it.
+>
+> **`node_seq_hw` is a CACHE of the node's own `acked`, and a RESTART invalidates it.**
+> The pull frame already carried `hw` — what the node believes porta has accepted — and
+> `handlePull` decoded the frame without ever reading that field. porta now rewinds to the
+> declared `hw` when the node declares **both** a lower cursor and a lower `hw`
+> (`Store.NoteCheckIn`), because both are RAM state that only advances within a boot.
+>
+> **The first version tested `hw` alone and was wrong.** A missed ack produces the same
+> lower `hw`, and rewinding there deletes the `seq <= hw` dedupe — porta had committed
+> those rows and the node was legitimately re-offering them, so the rewind manufactures
+> exactly the duplicate the dedupe exists to prevent. `porta_sync_c6.sh` caught it inside
+> one leg: "the gateway never logged a duplicate-skip", where it had logged 959. The
+> cursor separates the two cases structurally rather than by heuristic — it is advanced by
+> the batch and the watermark by the ack, so a swallowed ack cannot move it.
+>
+> Known gap, named: a node porta has never written to has a cursor of 0 on both sides and
+> its restart carries no signal here. Closing that needs the per-boot identity `bootId` was
+> reserved for (#74). The two mechanisms do not conflict, and this one makes the other
+> unnecessary for every node that has ever been given a goal.
+
 ### D6 — Kind is a property of the leaf, set by the first write.
 
 Dropping `PROTOCOL-NSL.md` §3's "fixed by its path prefix" rule, per #120 item 3. The

@@ -119,9 +119,26 @@ func (s *Server) handlePull(r cval.Record, peer string) ([]byte, error) {
 	}
 	// A pull carries the cursor the node has ALREADY applied, so recording
 	// it here is what makes "the node's cursor passed seq N" better evidence
-	// of delivery than v1's delivered_at ever was.
-	if err := s.st.NoteCursor(id, cursor); err != nil {
+	// of delivery than v1's delivered_at ever was. It also carries `hw` — what
+	// the node believes porta has accepted FROM it — which was decoded and
+	// thrown away until 2026-08-05. Required, not optional: a peer that cannot
+	// name its own watermark is mis-versioned, and decoding here is closed by
+	// design. Both go to the store together, because the RESTART test compares
+	// the declared cursor against the stored one and the order of those two
+	// writes is the whole correctness of it (see Store.NoteCheckIn).
+	nodeHW, err := intField(r.Fields, "hw")
+	if err != nil {
 		return nil, err
+	}
+	was, restarted, err := s.st.NoteCheckIn(id, cursor, nodeHW)
+	if err != nil {
+		return nil, err
+	}
+	// Logged for the same reason the skip line is: a correction nobody can see
+	// is indistinguishable from one that never fired.
+	if restarted {
+		s.logf("porta: %s restarted (cursor and high-water both went backwards) — high-water %d -> %d, so this boot's rows are not mistaken for duplicates",
+			id, was, nodeHW)
 	}
 	entries, hi, err := s.st.OutboundSince(id, cursor, space.MaxBatchBytes)
 	if err != nil {

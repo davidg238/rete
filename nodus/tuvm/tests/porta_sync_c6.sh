@@ -1,126 +1,160 @@
 #!/usr/bin/env bash
-# porta space-sync plan 3 — THE HARDWARE GATE. PortaBridgeNodeC6.nsl on a real
-# ESP32-C6, over a real Thread mesh, against a real `porta serve` on the border
-# router, including a deliberate datagram drop.
+# porta_sync_c6.sh — THE BENCH INTEGRATION TEST OF PORTA. Not a device gate.
 #
-# Legs 1-3 are plan 2's host gate in the same shape, so a failure of legs 1-3
-# here is a HARDWARE or MESH failure and not a protocol one — that separation is
-# the whole reason the host gate ran first. Leg 4 is new and is what design §9
-# actually asks for.
+# What it tests: that porta, on the border router, over a real Thread mesh,
+# takes a node's tel/log stream exactly once and contiguously ACROSS A
+# DELIBERATE ACK DROP, and that its `seq <= hw` dedupe is WITNESSED firing.
+# Those are facts about the far end of the wire, and the node cannot testify to
+# any of them — a node that dropped a row is precisely the node that cannot
+# report it.
 #
-# Assertions live at porta, because porta is the independently written
-# implementation: if it says obs/health is there, two codebases agree about one
-# wire. The console supplies only what porta cannot see — the node's own misses —
-# and leg 4 fails if that number never moves, because an injector that silently
-# did nothing must not be scored as a survived drop.
+# WHAT LEFT, AND WHY (target harness design D1, 2026-08-05). The node-side
+# properties this script used to score — obs/health published and acked,
+# goal/name converged to obs/name, #streamDropped 0 — are now the
+# `bridge-health` scenario, asserted by the workload itself, on the device, with
+# no privilege at all:
+#
+#     nodus/tuvm/tests/target/run.sh bridge-health
+#
+# A property a node can testify to should not be checked by a script holding an
+# ssh key. What remains here is what genuinely needs the key.
+#
+# THE PRIVILEGE IS THE WHOLE REASON THIS IS NOT A SCENARIO. It restarts the
+# gateway with an injector flag, and the node's gateway port is a source
+# constant (#118), so it TAKES :6969 for the duration: every node checking in —
+# including the ship's bell — sees a ~10 s outage and re-pushes. That is designed
+# behaviour and it is also why this is run deliberately, by hand, and never from
+# the target suite. It restores the gateway to the exact command line it found.
+#
+# PRECONDITIONS, all asserted rather than assumed:
+#   - a bridge node is already running on the bench C6 (deploy it with the
+#     bridge-health scenario above; this script does NOT flash);
+#   - the #56 console collector for that board is up. This script never opens
+#     the serial port (design D6) — it reads the collector's log, because two
+#     readers split the stream and both halves look plausible;
+#   - a `porta serve` is already running on the gateway. It is not started from
+#     scratch here: there is ONE porta, it is shared, and this test borrows it.
+#
+# NO DB WIPE (design D4). The old version wiped the store so its assertions
+# could demand a series starting at 1. Every assertion here takes a DELTA from a
+# baseline sampled before the leg, which is the same assertion at the same
+# strength and the only shape that survives contact with a field node. It also
+# stopped the wipe from hiding things: the wipe was concealing that a rebooted
+# node's cells were being discarded as already-applied, found 2026-08-05 by the
+# bridge-health gate and fixed in porta (Store.SyncHighWater).
 set -euo pipefail
-cd "$(dirname "$0")/.."
+# Resolved BEFORE the cd, or the source below resolves against the new cwd.
+HERE="$(cd "$(dirname "$0")" && pwd)"
+cd "$HERE/.."
 
 GW=${GW:-gw85224-01}
 GWDIR=${GWDIR:-porta-v2}
 NODE=${NODE_ID:-c6-bench}
+BOARD=${BOARD:-c6bench}
 DROP_EVERY=${DROP_EVERY:-3}
 TICKS_PER_LEG=${TICKS_PER_LEG:-10}
 CADENCE_MS=2000
-CONSOLE=${CONSOLE:-/dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_ac2dce6f529ced118f43fd6be259fb3e-if00-port0}
-LOG=${LOG:-/tmp/c6_console.log}
-DO_FLASH=${DO_FLASH:-1}
 # One of the v1 LAN nodes lost its gateway when v2 took :6969 and now polls this
 # port with TFTP read requests once a second, forever. porta answers #err and
 # moves on, so it costs nothing but log noise — but a human reading a failure
 # dump should not have to wade through it. Filtered from dumps only; never from
-# an assertion. Tracked as a porta issue.
+# an assertion.
 NOISY_PEER=${NOISY_PEER:-192.168.0.241}
-CONSOLE_PID=""
+
+# The collector's log path and its preflight come from the target harness's
+# shared layer, so there is ONE place on this bench that knows where a board's
+# console lands. A second copy here would eventually disagree with it, and every
+# symptom of that reads as "the board went quiet".
+# shellcheck source=target/lib/target.sh
+source "$HERE/target/lib/target.sh"
 
 say()  { echo "  $*"; }
+LOG=""   # resolved per read: the collector rolls its log at midnight
 dump() {
-  echo "--- last 20 console lines ---" >&2; tail -20 "$LOG" >&2 || true
+  echo "--- last 20 console lines ($BOARD) ---" >&2; tail -20 "$(target::logfile "$BOARD")" >&2 || true
   echo "--- last 20 gateway lines (excluding $NOISY_PEER) ---" >&2
   ssh "$GW" "grep -v '$NOISY_PEER' ~/$GWDIR/serve.log | tail -20" >&2 || true
 }
 fail() { echo "FAIL: $*" >&2; dump; exit 1; }
-gwporta() { ssh "$GW" "cd ~/$GWDIR && ./porta $* --db space.db"; }
-cleanup() {
-  [ -n "$CONSOLE_PID" ] && kill "$CONSOLE_PID" 2>/dev/null || true
-  ssh "$GW" 'pkill -f "porta serve --db space.db"' 2>/dev/null || true
-}
-trap cleanup EXIT
+gwporta() { ssh "$GW" "cd ~/$GWDIR && ./porta $* --db $GWDB"; }
 
-# gw_drops answers the gateway's CUMULATIVE swallowed-ack count; leg 4 takes a
-# delta across it. Answers 0 rather than failing when the pattern is absent —
-# under `set -euo pipefail` a zero-match grep inside a command substitution
-# aborts the script before its own diagnostic can print.
-# `grep -c` PRINTS the count and EXITS 1 when the count is zero. So the guard has
-# to live on the remote side: `ssh ... || echo 0` locally would emit grep's "0"
-# AND the fallback "0", and the arithmetic below would die on "0\n0". Guarded
-# remotely, ssh exits 0 and the output is a single number; the ${n:-0} covers a
-# missing file, where grep prints nothing at all.
-gw_drops() {
+# ---- the gateway, borrowed and given back --------------------------------
+# GW_CMDLINE is the command line found running at preflight, and it is what gets
+# restored — including its db, which is NOT assumed to be any particular file.
+# The gateway on this bench serves the soak store, and a test that restarted it
+# onto a different db would quietly take the fleet's history away.
+GW_CMDLINE=""
+GWDB=""
+
+# `pkill -f "porta serve --db X"` MATCHES ITS OWN SSH COMMAND LINE and kills the
+# shell running it — the remote command dies before its next statement, ssh exits
+# 255, and the gateway is left DOWN. It cost two outages on 2026-08-05, and the
+# old version of this script carried the same bug with `|| true` swallowing it
+# (porta died either way, so it "worked").
+#
+# TWO rules, and the second is the one that bit twice. The bracket makes the
+# pattern text differ from the string it matches, so the ERE cannot match the
+# command carrying it — but that only holds if the literal appears NOWHERE ELSE
+# in the same command line. `pkill … ; … ./porta serve --db X` self-matches
+# through the restart half. So the kill gets its own ssh invocation, always.
+gw_serve_stop() { ssh "$GW" 'pkill -f "porta serv[e]"' 2>/dev/null || true; sleep 1; }
+
+# `ssh host 'nohup cmd &'` HANGS: the child inherits the ssh channel's stdio and
+# the session will not close while it is held. setsid + </dev/null is what
+# actually detaches. Learned the hard way during bring-up.
+gw_serve_start() {  # gw_serve_start [extra flags...]
+  ssh "$GW" "cd ~/$GWDIR && (setsid nohup $GW_CMDLINE $* >> serve.log 2>&1 < /dev/null &)" \
+    || fail "could not reach $GW to start the gateway"
+  sleep 3
+  ssh "$GW" "pgrep -f 'porta serv[e]' > /dev/null" || fail "the gateway did not come back up"
+}
+
+# Restored on EVERY exit path, including a failed assertion: leaving the bench's
+# one gateway running with an ack injector armed would silently corrupt every
+# later measurement on it, and nothing downstream would say why.
+restore_gateway() {
+  [ -n "$GW_CMDLINE" ] || return 0
+  ssh "$GW" 'pkill -f "porta serv[e]"' 2>/dev/null || true
+  sleep 1
+  ssh "$GW" "cd ~/$GWDIR && (setsid nohup $GW_CMDLINE >> serve.log 2>&1 < /dev/null &)" || true
+  sleep 2
+  ssh "$GW" "pgrep -f 'porta serv[e]' > /dev/null" \
+    && say "gateway restored: $GW_CMDLINE" \
+    || echo "  ! THE GATEWAY IS DOWN and could not be restarted: $GW_CMDLINE" >&2
+}
+trap restore_gateway EXIT
+
+# gw_drops / gw_skips answer the gateway's CUMULATIVE counts; every leg takes a
+# DELTA across them, because serve.log is appended across runs and a running
+# total would let this run pass on a previous run's drops even if nothing fired
+# here — precisely the false pass leg 2 exists to prevent.
+#
+# `grep -c` PRINTS the count and EXITS 1 when the count is zero, so the guard has
+# to live on the REMOTE side: `ssh ... || echo 0` locally would emit grep's "0"
+# AND the fallback "0", and the arithmetic below would die on "0\n0".
+gw_count() {  # gw_count <pattern>
   local n
-  n=$(ssh "$GW" "grep -c 'TEST-DROP: ack' ~/$GWDIR/serve.log 2>/dev/null || true" | head -1 || true)
+  n=$(ssh "$GW" "grep -c '$1' ~/$GWDIR/serve.log 2>/dev/null || true" | head -1 || true)
   printf '%s\n' "${n:-0}"
 }
+gw_drops() { gw_count 'TEST-DROP: ack'; }
+gw_skips() { gw_count 'skipped .* already-applied'; }
 
-# gw_skips answers the gateway's CUMULATIVE count of "already-applied" log
-# lines — porta's positive evidence that the `seq <= hw` dedupe actually fired
-# on a re-pushed row, not merely that no duplicate was ever seen (which is
-# equally consistent with the node never re-pushing at all). Same remote-side
-# guard as gw_drops, for the same grep -c -exits-1-on-zero reason.
-gw_skips() {
-  local n
-  n=$(ssh "$GW" "grep -c 'skipped .* already-applied' ~/$GWDIR/serve.log 2>/dev/null || true" | head -1 || true)
-  printf '%s\n' "${n:-0}"
+# ---- the console, read from the ONE reader --------------------------------
+# The collector stamps every line with an ISO timestamp, so the old `^tick `
+# anchor no longer matches and its absence would read as a silent node. Matched
+# on the field itself instead.
+#
+# `|| true` on every one of these: under `set -o pipefail` a zero-match grep
+# fails the whole pipeline, which fails the command substitution, which under
+# `set -e` kills the script BEFORE the guard that was written to catch the empty
+# value can run. A missing number must reach its own diagnostic.
+console_field() {  # console_field <name>  -> the last value of `<name> N`
+  grep -o "$1 [0-9]\+" "$(target::logfile "$BOARD")" 2>/dev/null | tail -1 | awk '{print $2}' || true
 }
-
-# assert_exactly_once enforces THREE things: no duplicates (rows == distinct),
-# no gaps (the distinct ticks run contiguously), AND the series starts at 1.
-# The third exists because contiguity alone does not pin the start: `porta log
-# --limit N` truncates from the OLDEST end (Store.Events is ORDER BY id DESC
-# LIMIT ?), so a truncated log leaves a contiguous TAIL and would otherwise
-# pass; and the bridge's own maxPending eviction is oldest-first, so a long
-# pre-connection outage produces exactly the same shape — a series that starts
-# late and is contiguous thereafter. Either cause is a real loss, and first==1
-# is what catches both.
-assert_exactly_once() {
-  local leg="$1" rows uniq first last ticks snapshot
-  # ONE fetch, both numbers derived from it. Two fetches let a tel/log push land
-  # between them, making rows != uniq with nothing duplicated — a spurious
-  # failure. The host gate takes one snapshot for the same reason.
-  snapshot=$(gwporta "log $NODE --limit 5000" || true)
-  rows=$(printf '%s\n' "$snapshot" | grep -c 'tel/log' || true)
-  ticks=$(printf '%s\n' "$snapshot" | grep -o 'tick [0-9]\+' | awk '{print $2}' | sort -n -u || true)
-  uniq=$(printf '%s\n' "$ticks" | grep -c . || true)
-  say "$leg: tel/log rows=$rows distinct ticks=$uniq"
-  [ "$uniq" -ge 2 ] || fail "$leg: fewer than two tel/log entries — the stream never rode"
-  [ "$rows" = "$uniq" ] || fail "$leg: a tel/log entry was delivered more than once"
-  first=$(printf '%s\n' "$ticks" | head -1)
-  last=$(printf '%s\n' "$ticks" | tail -1)
-  [ $((last - first + 1)) -eq "$uniq" ] || \
-    fail "$leg: a gap in the tick series ($first..$last holds only $uniq) — an entry was lost"
-  [ "$first" = 1 ] || \
-    fail "$leg: the series starts at $first, not 1 — either --limit truncated the OLDEST rows (raise it) or the bridge's maxPending eviction dropped the head of the series under a long outage"
-  say "$leg: exactly once, no gaps ($first..$last)"
-}
-
-# assert_no_stream_drops reads the node's OWN #streamDropped count out of
-# obs/health — the node-side half of the same property assert_exactly_once
-# checks from porta's side. A nonzero count means the bridge's bounded
-# `pending` queue evicted rows before this leg ever got a chance to push them,
-# which the gateway-side check cannot see (it only sees what arrived).
-# Rendering confirmed via internal/cval/format.go: Record prints
-# "#Health{...}" and each Map pair as "#key: value", so the exact substring is
-# "#streamDropped: 0".
-assert_no_stream_drops() {
-  local leg="$1"
-  gwporta "get $NODE obs/health" | grep -q '#streamDropped: 0' || \
-    fail "$leg: obs/health does not report #streamDropped: 0 — the bridge evicted pending rows during this leg"
-}
-
-# console_ticks / console_misses read the log the ONE reader writes. Nothing here
-# opens the port: a second reader splits the stream and both halves look plausible.
-console_ticks()  { grep -c '^tick ' "$LOG" || true; }
-console_misses() { grep '^tick ' "$LOG" | tail -1 | grep -o 'misses [0-9]\+' | awk '{print $2}' || true; }
+console_ticks()   { grep -c ' tick [0-9]' "$(target::logfile "$BOARD")" || true; }
+console_misses()  { console_field misses; }
+console_dropped() { console_field dropped; }
 
 wait_ticks() {  # wait_ticks <n-more> <what>
   local want budget
@@ -134,154 +168,135 @@ wait_ticks() {  # wait_ticks <n-more> <what>
   fail "$2: the node stopped ticking (have $(console_ticks), want $want)"
 }
 
-# `ssh host 'nohup cmd &'` HANGS: the child inherits the ssh channel's stdio and
-# the session will not close while it is held. setsid + </dev/null is what
-# actually detaches. Learned the hard way during bring-up.
-gw_serve_start() {  # gw_serve_start [extra flags...]
-  ssh "$GW" "cd ~/$GWDIR && (setsid nohup ./porta serve --db space.db --udp :6969 --http-port 0 $* >> serve.log 2>&1 < /dev/null &)" \
-    || fail "could not reach $GW to start the gateway"
-  sleep 2
-  ssh "$GW" "grep -q 'serving the space' ~/$GWDIR/serve.log" || fail "the gateway did not start"
+# ---- exactly-once, FROM A BASELINE ----------------------------------------
+# porta_log_ticks answers this node's tel/log tick numbers, NEWEST FIRST, one
+# per line. Newest-first is what makes the baseline work without timestamps:
+# events are append-only, so the rows added during a leg are exactly the first
+# (after - before) of them.
+#
+# Tick numbers RESTART AT 1 on every node boot, and so do seq values, so no
+# filter on the VALUE of either can separate this boot's rows from an earlier
+# one's — a previous session that reached tick 1189 would swamp any `> baseline`
+# comparison. Row order is the only thing that survives a reboot, which is why
+# the baseline is a COUNT.
+porta_log_ticks() {
+  gwporta "log $NODE --limit 5000" 2>/dev/null | grep 'tel/log' | grep -o 'tick [0-9]\+' | awk '{print $2}' || true
 }
-gw_serve_stop() { ssh "$GW" 'pkill -f "porta serve --db space.db"' 2>/dev/null || true; sleep 1; }
 
-echo "[1/8] preflight"
-[ -e "$CONSOLE" ] || fail "no console at $CONSOLE (ls /dev/serial/by-id/)"
+# take_baseline sets ROWS_BEFORE and LAST_TICK from ONE snapshot, and exists as a
+# function so it cannot be taken any other way. Two fetches let a tel/log push
+# land between them: the row is missing from the count but present in the newest
+# tick, so the leg then reports "first tick is N, not N+1 — an entry was lost"
+# about an entry that was never lost. Cost 2026-08-05: one red leg, and the
+# script it replaced already carried this fix and its reasoning.
+take_baseline() {
+  local snapshot
+  snapshot=$(porta_log_ticks)
+  ROWS_BEFORE=$(printf '%s\n' "$snapshot" | grep -c . || true)
+  LAST_TICK=$(printf '%s\n' "$snapshot" | head -1)
+}
+
+# assert_exactly_once_since <leg> <rows-at-baseline> <last-tick-at-baseline>
+#
+# THREE things, all of which the old wipe-and-start-at-1 version checked, and
+# none of which needs a wipe: no duplicates (rows == distinct), no gaps (the
+# distinct ticks run contiguously), and — the one the wipe used to buy —
+# NOTHING LOST AT THE JOIN: the first new tick is baseline+1. `porta log
+# --limit` truncates from the OLDEST end and the bridge's maxPending eviction is
+# oldest-first, so contiguity alone never pins the start of the run.
+assert_exactly_once_since() {
+  local leg="$1" before="$2" last="$3" all now new rows uniq lo hi
+  all=$(porta_log_ticks)
+  now=$(printf '%s\n' "$all" | grep -c . || true)
+  rows=$(( now - before ))
+  [ "$rows" -ge 2 ] || fail "$leg: only $rows tel/log row(s) reached porta during this leg — the stream never rode"
+  new=$(printf '%s\n' "$all" | head -n "$rows" | sort -n)
+  uniq=$(printf '%s\n' "$new" | sort -n -u | grep -c . || true)
+  lo=$(printf '%s\n' "$new" | head -1)
+  hi=$(printf '%s\n' "$new" | tail -1)
+  say "$leg: $rows new tel/log rows, ticks $lo..$hi, $uniq distinct"
+  [ "$rows" = "$uniq" ] || fail "$leg: a tel/log entry was delivered more than once ($rows rows, $uniq distinct)"
+  [ $((hi - lo + 1)) -eq "$uniq" ] || \
+    fail "$leg: a gap in the tick series ($lo..$hi holds only $uniq) — an entry was lost"
+  [ "$lo" -eq $((last + 1)) ] || \
+    fail "$leg: the leg's first tick is $lo, not $((last + 1)) — an entry was lost at the join with the baseline"
+  say "$leg: exactly once from the baseline, no gaps ($lo..$hi)"
+}
+
+# The node's OWN eviction count, read from the console rather than from porta:
+# a row the bridge evicted before it could ever be pushed is invisible at the
+# gateway by construction. The bridge-health workload asserts this for itself at
+# boot; it is re-checked here because the injected outage is exactly the load
+# that would make it move, and that happens long after the workload's verdict.
+assert_no_stream_drops() {
+  local leg="$1" d
+  d=$(console_dropped)
+  [ "${d:-x}" = 0 ] || fail "$leg: the node reports dropped=${d:-<no tick line>} — the bridge evicted pending rows during this leg"
+}
+
+echo "[1/5] preflight"
 ssh -o BatchMode=yes "$GW" true || fail "cannot ssh to $GW without a password"
-ssh "$GW" "test -x ~/$GWDIR/porta" || fail "no executable v2 binary at ~/$GWDIR/porta on $GW (Task 5; scp does not preserve the exec bit)"
+ssh "$GW" "test -x ~/$GWDIR/porta" || fail "no executable porta at ~/$GWDIR/porta on $GW (scp does not preserve the exec bit)"
 V1=$(ssh "$GW" 'systemctl is-active porta.service' 2>/dev/null || true)
-[ "$V1" = "active" ] && fail "v1 porta.service is still running and owns :6969 (Task 5 Step 2)"
-say "console, gateway binary and a free :6969 all present"
+[ "$V1" = "active" ] && fail "v1 porta.service is running and owns :6969"
+GW_CMDLINE=$(ssh "$GW" 'for p in $(pgrep -f "porta serv[e]"); do tr "\0" " " < /proc/$p/cmdline; echo; done' | head -1 | sed 's/ *$//')
+[ -n "$GW_CMDLINE" ] || fail "no porta is running on $GW. This test borrows the shared gateway rather than starting one, because there is only one and it holds the fleet's history"
+GWDB=$(printf '%s\n' "$GW_CMDLINE" | sed -n 's/.*--db \([^ ]*\).*/\1/p')
+[ -n "$GWDB" ] || fail "the running gateway names no --db: $GW_CMDLINE"
+say "gateway: $GW_CMDLINE"
 
-echo "[2/8] start the console reader — BEFORE any flash, and held across it"
-: > "$LOG"
-tests/porta_c6_console.py --port "$CONSOLE" --log "$LOG" --follow >/dev/null 2>&1 &
-CONSOLE_PID=$!
-sleep 1
-kill -0 "$CONSOLE_PID" 2>/dev/null || fail "the console reader died immediately (port busy?)"
+# Every check FAILS rather than SKIPS, each naming a VERIFIED cause.
+target::collector_ok "$BOARD"
+[ "$(console_ticks)" -ge 1 ] || \
+  fail "no tick lines on $BOARD's console — no bridge node is running. Deploy one: nodus/tuvm/tests/target/run.sh bridge-health"
+say "collector up, node ticking (tick $(console_field tick))"
 
-echo "[3/8] build and flash the node"
-if [ "$DO_FLASH" = 1 ]; then
-  # run.sh does not source the west env (zephyr/docs/BOARD_PORTS.md), and a
-  # missing env fails silently as `west: command not found`.
-  ( set +u
-    # shellcheck disable=SC1090
-    source ~/zephyr-esp32/.venv/bin/activate
-    export ZEPHYR_BASE=~/zephyr-esp32/zephyr \
-           ZEPHYR_SDK_INSTALL_DIR=~/zephyr-sdk-0.17.4 \
-           ZEPHYR_TOOLCHAIN_VARIANT=zephyr
-    cd zephyr && ./run.sh --board esp32c6 --node PortaBridgeNodeC6.nsl --flash \
-      --conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_thread_ftd.conf" ) \
-    || fail "the build/flash failed"
-else
-  say "DO_FLASH=0 — using whatever is already on the board"
-fi
-
-# The db is wiped and the gateway started AFTER the flash, not before. Flashing
-# resets the board, so from here no previously-running firmware can check in —
-# and a pre-flash node WILL repopulate a freshly wiped db if given the chance,
-# which is how the first version of this gate scored a stale obs/health from a
-# 45-minute-old session as if it were this run's. The node needs ~20-40s to
-# attach after the reset, so the gateway is up long before its first check-in
-# and there is no unacked window to spend the pending queue on either.
-#
-# DO_FLASH=0 skips the reset, so this step must too: a wipe assumes the fresh
-# boot that only a flash guarantees. Without it, the node's own `acked`
-# watermark (in-memory, never rewound) stays ahead of a wiped db's high-water
-# of 0, and it would never re-offer already-acked cells like obs/build —
-# failing leg 2 forever, not because anything is broken but because the db
-# and the still-running node disagree about history. Keep both intact instead.
-echo "[4/8] $([ "$DO_FLASH" = 1 ] && echo "wipe the db and start the gateway" || echo "start the gateway (DO_FLASH=0 — keeping the existing db)")"
-gw_serve_stop
-if [ "$DO_FLASH" = 1 ]; then
-  # serve.log is truncated with the db so a failure dump shows THIS run only.
-  # The leg-4 assertion takes a delta and so does not depend on this, but a
-  # human reading the dump does.
-  ssh "$GW" "cd ~/$GWDIR && rm -f space.db && : > serve.log"
-fi
-gw_serve_start
-
-echo "[5/8] wait for the node"
-if [ "$DO_FLASH" = 1 ]; then
-  say "attach, then READY"
-  for _ in $(seq 1 120); do grep -q 'PORTA NODE READY' "$LOG" && break; sleep 1; done
-  grep -q 'PORTA NODE READY' "$LOG" || \
-    fail "the node never printed PORTA NODE READY — no role line means the mesh never attached"
-  say "node is up and attached"
-else
-  # An already-booted node never re-prints the once-per-boot banner, so wait
-  # for tick activity instead — proof it is alive and checking in, without
-  # requiring the fresh-boot-only line.
-  for _ in $(seq 1 60); do [ "$(console_ticks)" -ge 1 ] && break; sleep 1; done
-  [ "$(console_ticks)" -ge 1 ] || fail "DO_FLASH=0 but no console ticks arrived — is the node actually running?"
-  say "node is already running (DO_FLASH=0); skipped the READY wait"
-fi
-
-echo "[6/8] legs 1 and 2"
-# Leg 2 first: it needs no operator write at all — an idle check-in IS the
-# heartbeat, so obs/build arriving is also the liveness proof.
-#
-# Wait on obs/build, NOT obs/health. obs/build is written once at boot, so its
-# arrival proves THIS boot pushed. obs/health is rewritten every tick, so a stale
-# copy from an earlier session would satisfy the wait and let the gate race ahead
-# of the node it is supposed to be testing — which is exactly what happened the
-# first time this ran.
-for _ in $(seq 1 90); do gwporta "get $NODE obs" 2>/dev/null | grep -q 'obs/build' && break; sleep 1; done
-gwporta "get $NODE obs" | grep -q 'obs/build'  || fail "leg 2: obs/build never reached porta — this boot pushed nothing"
-gwporta "get $NODE obs" | grep -q 'esp32c6'    || fail "leg 2: obs/build does not say esp32c6"
-for _ in $(seq 1 30); do gwporta "get $NODE obs" 2>/dev/null | grep -q 'obs/health' && break; sleep 1; done
-gwporta "get $NODE obs" | grep -q 'obs/health' || fail "leg 2: obs/health never reached porta"
-say "leg 2 PASS: obs/health and obs/build are in porta's cell tree, from real silicon"
-
-gwporta "put $NODE goal/name c6" >/dev/null
-for _ in $(seq 1 60); do gwporta "get $NODE obs/name" 2>/dev/null | grep -q 'c6' && break; sleep 1; done
-gwporta "get $NODE obs/name" | grep -q 'c6' || fail "leg 1: goal/name never converged to obs/name"
-say "leg 1 PASS: goal/name converged to obs/name — the diff IS the view"
-
-echo "[7/8] leg 3: exactly once, no injected drop"
-wait_ticks "$TICKS_PER_LEG" "leg 3"
-assert_exactly_once "leg 3"
-assert_no_stream_drops "leg 3"
-say "leg 3 PASS"
-
-echo "[8/8] leg 4: exactly once ACROSS a deliberate drop"
-# Restart onto the flag keeping the SAME db, and leave the node running. A fresh
-# db would reset porta's high-water to 0 while the node's acked kept climbing,
-# breaking contiguity for reasons that have nothing to do with the drop. Reusing
-# it also means leg 4 incidentally witnesses that the high-water survives a
-# gateway restart; the node sees the restart window as ordinary loss and
-# re-pushes, which is the designed behaviour.
-#
-# A DELTA, not a total, for both counters below: serve.log is appended across
-# runs, so a running total would let this run pass on a previous run's drops
-# (or skips) even if nothing fired here — precisely the false pass leg 4
-# exists to prevent.
+echo "[2/5] baseline"
+# Sampled BEFORE anything is touched. Every assertion below is a delta against
+# these four numbers; not one of them requires an empty store.
+take_baseline
+[ -n "$LAST_TICK" ] || fail "porta holds no tel/log row for $NODE — has the node ever checked in?"
 DROPS_BEFORE=$(gw_drops)
 SKIPS_BEFORE=$(gw_skips)
+say "porta holds $ROWS_BEFORE tel/log rows, newest tick $LAST_TICK; gateway drops=$DROPS_BEFORE skips=$SKIPS_BEFORE"
+
+echo "[3/5] leg 1: exactly once, no injected drop"
+wait_ticks "$TICKS_PER_LEG" "leg 1"
+assert_exactly_once_since "leg 1" "$ROWS_BEFORE" "$LAST_TICK"
+assert_no_stream_drops "leg 1"
+say "leg 1 PASS"
+
+echo "[4/5] arm the injector"
+# The SAME db, deliberately. A fresh one would reset porta's high-water while
+# the node's `acked` kept climbing, breaking contiguity for reasons that have
+# nothing to do with the drop. Reusing it also means leg 2 incidentally
+# witnesses that the high-water survives a gateway restart: the node sees the
+# restart window as ordinary loss and re-pushes, which is designed behaviour.
+take_baseline
 gw_serve_stop
 gw_serve_start --test-drop-ack "$DROP_EVERY"
-ssh "$GW" "grep -q 'TEST-DROP ACTIVE' ~/$GWDIR/serve.log" || fail "leg 4: the injector did not arm"
-# Sampled AFTER the restart, not before: the restart is a 4-6s outage against
-# a 2s cadence, so it scores a miss on its own regardless of what the injector
-# does — proven by the falsification run where misses moved 0->1 with zero
-# acks swallowed. Sampling here excludes the restart's own miss from the
-# delta below, so a move in MISSES_AFTER reflects the injector, not the
-# restart.
+ssh "$GW" "grep -q 'TEST-DROP ACTIVE' ~/$GWDIR/serve.log" || fail "leg 2: the injector did not arm"
+# Sampled AFTER the restart, not before: the restart is a 4-6 s outage against a
+# 2 s cadence, so it scores a miss on its own regardless of what the injector
+# does — proven by a falsification run where misses moved 0->1 with zero acks
+# swallowed. Sampling here keeps the restart's own miss out of the delta, so a
+# move below reflects the injector and nothing else.
 MISSES_BEFORE=$(console_misses)
-wait_ticks "$TICKS_PER_LEG" "leg 4"
 
+echo "[5/5] leg 2: exactly once ACROSS a deliberate drop"
+wait_ticks "$TICKS_PER_LEG" "leg 2"
 DROPS=$(( $(gw_drops) - DROPS_BEFORE ))
 SKIPS=$(( $(gw_skips) - SKIPS_BEFORE ))
 MISSES_AFTER=$(console_misses)
-say "leg 4: gateway swallowed $DROPS acks this run; node misses $MISSES_BEFORE -> $MISSES_AFTER"
-[ "${DROPS:-0}" -ge 2 ] || fail "leg 4: the gateway swallowed ${DROPS:-0} acks this run — the drop never fired"
+say "leg 2: gateway swallowed $DROPS acks this run; node misses $MISSES_BEFORE -> $MISSES_AFTER"
+[ "${DROPS:-0}" -ge 2 ] || fail "leg 2: the gateway swallowed ${DROPS:-0} acks this run — the drop never fired"
 [ "${MISSES_AFTER:-0}" -gt "${MISSES_BEFORE:-0}" ] || \
-  fail "leg 4: the node's misses never moved — it did not notice the drop, so nothing was tested"
-say "leg 4: gateway logged $SKIPS duplicate-skip line(s) this run"
+  fail "leg 2: the node's misses never moved — it did not notice the drop, so nothing was tested"
+say "leg 2: gateway logged $SKIPS duplicate-skip line(s) this run"
 [ "${SKIPS:-0}" -ge 1 ] || \
-  fail "leg 4: the gateway never logged a duplicate-skip — the node re-pushed rows but the seq<=hw dedupe was never observed firing"
-assert_exactly_once "leg 4"
-assert_no_stream_drops "leg 4"
-say "leg 4 PASS: the node re-pushed rows porta had already applied, and porta deduped them (witnessed: $SKIPS skip line(s) logged)"
+  fail "leg 2: the gateway never logged a duplicate-skip — the node re-pushed rows but the seq<=hw dedupe was never observed firing"
+assert_exactly_once_since "leg 2" "$ROWS_BEFORE" "$LAST_TICK"
+assert_no_stream_drops "leg 2"
+say "leg 2 PASS: the node re-pushed rows porta had already applied, and porta deduped them (witnessed: $SKIPS skip line(s) logged)"
 
 echo "PORTA SYNC C6 OK"

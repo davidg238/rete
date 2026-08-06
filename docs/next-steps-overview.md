@@ -286,8 +286,8 @@ localhost UDP, no hardware. Do the slice, defer real OTA.
    finding underneath it: the record was **unsendable by construction** — RECORDS §4.4
    pinned it as a cell while the conformance target scanned cells from `obs/**` alone, so no
    app had ever published it and neither document said so on its own.
-4. **Device test harness — IN PROGRESS as of 2026-08-05. Runner built, two of three
-   scenarios green on hardware (`TARGET 2/2 PASS` on c6bench).** #56 calls it "the real
+4. **Device test harness — DONE 2026-08-05. `TARGET 3/3 PASS` on c6bench**
+   (`bridge-health` 3/3, `pulse-coalesce` 3/3, `stale-handle` 2/2). #56 calls it "the real
    unlock; (1) and (3) are what make it possible", and it is now
    `nodus/tuvm/tests/target/run.sh`. Design:
    `docs/design/2026-08-05-target-test-harness-design.md`.
@@ -299,10 +299,20 @@ localhost UDP, no hardware. Do the slice, defer real OTA.
    rather than read as a pass. Two symmetric seams (`deploy` / `collect`) mean the field
    path is a swap of two functions.
 
-   **Remaining: `bridge-health`**, which needs `porta_sync_c6.sh` split into a self-asserting
-   workload plus a residual bench script. Its legs 4-8 (db wipe, gateway start, ack-drop
-   injection) are a bench integration test of porta, not a device diagnostic, and stay
-   outside the harness under that name.
+   **`bridge-health` landed with the split.** The workload is `PortaBridgeNodeC6.nsl`
+   itself — the bridge certifies itself and goes on bridging — and `porta_sync_c6.sh` kept
+   only what genuinely needs privilege: the ack-drop injection and the delivery-side
+   exactly-once check, now taken as a delta from a baseline instead of behind a db wipe.
+
+   **The split paid for itself immediately by exposing a defect the wipe was hiding.** A
+   rebooted node's cells were being discarded by porta as already-applied — the node's space
+   counter restarts at 0, `nodes.node_seq_hw` does not — and the ack then handed the node the
+   stale high-water, so neither end could tell. porta's `obs/health` for c6-bench was hours
+   old while the node reported perfect delivery. `bridge-health` scored 3/3 over it on its
+   first run, because its assertion and the failure shared a cause; the fix is
+   `Store.SyncHighWater` (porta adopts the node's declared `hw`, a field it had been
+   decoding and ignoring), a second clause on the node's assertion, and rule 5 of five in
+   `protocol/PROTOCOL-NSL.md`.
 
 **The first instance of step 4 already exists and was not called that.**
 `nodus/tuvm/tests/stale_handle_c6.sh` (#151) was exactly `reset → scenario → assert →

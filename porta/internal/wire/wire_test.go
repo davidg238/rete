@@ -83,6 +83,175 @@ func TestPushIngestsAndAcks(t *testing.T) {
 	}
 }
 
+// A REBOOTED NODE IS NOT A DUPLICATE. The whole defect in one test: the node's
+// space counter restarts at 0 on boot and porta's node_seq_hw does not, so
+// without the pull-declared high-water every cell the rebooted node writes is
+// discarded as already-applied — and the ack hands the node the stale watermark,
+// so neither end can tell. Found on hardware by the bridge-health target gate
+// on 2026-08-05, having been hidden for as long as the C6 gate wiped the db.
+func TestRebootedNodeIsNotMistakenForADuplicate(t *testing.T) {
+	srv, st := testServer(t)
+
+	// A long first session: the node applies a goal write (cursor 1) and its own
+	// counter reaches seq 40.
+	st.Write("n1", "goal/name", cval.KindCell, mustEnc(t, "alpha"), "david", "")
+	pull, _ := EncodePull("n1", 1, 1, 0)
+	srv.Handle(pull)
+	req, _ := EncodePush("n1", 1, []space.Entry{
+		{Seq: 40, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
+	})
+	if hw, _ := DecodeAck(srv.Handle(req)); hw != 40 {
+		t.Fatalf("first session hw = %d, want 40", hw)
+	}
+
+	// It reboots. BOTH numbers it declares go backwards — the cursor because the
+	// applied state was RAM, the watermark because the counter was too. That
+	// pair is what says "restart" rather than "the last ack was lost".
+	pull, _ = EncodePull("n1", 0, 1, 0)
+	if _, _, err := DecodeBatch(srv.Handle(pull)); err != nil {
+		t.Fatalf("pull after reboot: %v", err)
+	}
+	req, _ = EncodePush("n1", 1, []space.Entry{
+		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(2))},
+	})
+	hw, err := DecodeAck(srv.Handle(req))
+	if err != nil {
+		t.Fatalf("DecodeAck: %v", err)
+	}
+	// The ack must describe THIS boot. An ack of 40 is the silent failure: the
+	// node adopts it and never offers anything again.
+	if hw != 1 {
+		t.Fatalf("hw after reboot = %d, want 1 — the node's push was discarded as already-applied", hw)
+	}
+	tree, _ := st.Tree("n1", "obs/")
+	if len(tree) != 1 {
+		t.Fatalf("obs tree = %+v", tree)
+	}
+	v, _ := cval.Decode(tree[0].Value)
+	if v != int64(2) {
+		t.Fatalf("obs/health = %v, want 2 — porta is still holding the previous boot's value", v)
+	}
+}
+
+// After the rewind the two boots RE-USE seq values, which is the case the store
+// has to tolerate for the fix to be worth anything: the second boot's rows carry
+// seqs the first boot already spent. `cells` is keyed by (node, path) so the
+// newest write wins, and `events` is append-only with its own id — but that is
+// worth a test rather than a reading of the schema.
+func TestRebootReusesSeqValues(t *testing.T) {
+	srv, st := testServer(t)
+	st.Write("n1", "goal/name", cval.KindCell, mustEnc(t, "alpha"), "david", "")
+	pull, _ := EncodePull("n1", 1, 1, 0) // first boot, goal applied
+	srv.Handle(pull)
+	first, _ := EncodePush("n1", 1, []space.Entry{
+		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "boot1-a")},
+		{Seq: 2, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(11))},
+	})
+	srv.Handle(first)
+
+	pull, _ = EncodePull("n1", 0, 1, 0) // rebooted: cursor AND hw back to 0
+	srv.Handle(pull)
+
+	second, _ := EncodePush("n1", 1, []space.Entry{
+		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "boot2-a")},
+		{Seq: 2, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(22))},
+	})
+	if hw, err := DecodeAck(srv.Handle(second)); err != nil || hw != 2 {
+		t.Fatalf("second boot ack = %d, %v; want 2, nil", hw, err)
+	}
+	evs, _ := st.Events("n1", 100)
+	ins := 0
+	for _, e := range evs {
+		if e.Direction == "in" {
+			ins++
+		}
+	}
+	if ins != 4 {
+		t.Fatalf("got %d inbound events, want 4 — a re-used seq was dropped", ins)
+	}
+	tree, _ := st.Tree("n1", "obs/")
+	v, _ := cval.Decode(tree[0].Value)
+	if v != int64(22) {
+		t.Fatalf("obs/health = %v, want 22 — the second boot's value did not win", v)
+	}
+}
+
+// A MISSED ACK IS NOT A REBOOT, and telling them apart is the whole difficulty:
+// both make the node declare a high-water below the one porta holds. This is the
+// case that must NOT rewind — porta committed those rows and swallowed the ack,
+// so the node re-pushes rows that are genuinely already applied, and the
+// `seq <= hw` dedupe is the only thing standing between that and a duplicate.
+//
+// Written after the first version of SyncHighWater rewound on `hw` alone and
+// deleted the dedupe: the bench integration test caught it within one leg —
+// "the gateway never logged a duplicate-skip" where it had logged 959 before.
+//
+// The signal that separates them is the CURSOR, and it is not a heuristic: the
+// cursor is advanced by the batch and the watermark by the ack, so a swallowed
+// ack cannot move the cursor. A cursor that went BACKWARDS can only mean the
+// node lost the RAM holding it.
+func TestMissedAckIsNotMistakenForAReboot(t *testing.T) {
+	srv, st := testServer(t)
+	st.Write("n1", "goal/name", cval.KindCell, mustEnc(t, "alpha"), "david", "")
+
+	// The node pulls, applies goal/name, and pushes. porta commits at hw 5.
+	pull, _ := EncodePull("n1", 0, 1, 0)
+	srv.Handle(pull)
+	push, _ := EncodePush("n1", 1, []space.Entry{
+		{Seq: 5, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one")},
+	})
+	srv.Handle(push)
+
+	// The ack is lost. The node's watermark stays at 4 — but its cursor does
+	// not move backwards, because it applied the batch.
+	pull, _ = EncodePull("n1", 1, 1, 4)
+	srv.Handle(pull)
+	srv.Handle(push) // the same rows, re-offered
+
+	evs, _ := st.Events("n1", 100)
+	ins := 0
+	for _, e := range evs {
+		if e.Direction == "in" {
+			ins++
+		}
+	}
+	if ins != 1 {
+		t.Fatalf("got %d inbound events, want 1 — a re-push after a swallowed ack was applied twice", ins)
+	}
+}
+
+// The rewind must not re-open a window the node will push into twice. A stale or
+// duplicated pull frame from earlier in the SAME boot carries the cursor of that
+// moment, which is not below what porta holds, so nothing moves.
+func TestStalePullDoesNotDuplicate(t *testing.T) {
+	srv, st := testServer(t)
+	st.Write("n1", "goal/name", cval.KindCell, mustEnc(t, "alpha"), "david", "")
+	pull, _ := EncodePull("n1", 1, 1, 0)
+	srv.Handle(pull)
+	push, _ := EncodePush("n1", 1, []space.Entry{
+		{Seq: 5, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one")},
+	})
+	srv.Handle(push)
+
+	srv.Handle(pull) // the duplicate, arriving late
+
+	next, _ := EncodePush("n1", 1, []space.Entry{
+		{Seq: 6, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "two")},
+	})
+	srv.Handle(next)
+
+	evs, _ := st.Events("n1", 100)
+	ins := 0
+	for _, e := range evs {
+		if e.Direction == "in" {
+			ins++
+		}
+	}
+	if ins != 2 {
+		t.Fatalf("got %d inbound events, want 2 — the rewind duplicated a row", ins)
+	}
+}
+
 // The property that removes the need for a retransmit layer.
 func TestReplayedPushIsIdempotent(t *testing.T) {
 	srv, st := testServer(t)

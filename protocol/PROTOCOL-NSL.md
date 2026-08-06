@@ -241,7 +241,9 @@ kind, not the owner of it.
 
 On each check-in (cadence per `obs/mode`, exactly as v1 derives liveness):
 
-1. **Pull** — request `goal/**` (+ `dbg/req`) entries with `seq > cursor`; apply each
+1. **Pull** — request `goal/**` (+ `dbg/req`) entries with `seq > cursor`, declaring
+   both the `cursor` applied so far and the `hw` the node believes porta has accepted
+   from it (see the fifth rule below); apply each
    to the local space (cell paths become local cell values via `put:value:`;
    `goal/do/*` stream entries are `out:`ed once); persist the new cursor (NVS) only
    after apply.
@@ -260,7 +262,8 @@ The VM gained ONE monotonic counter per space plus a `last_seq` per channel (D5)
 reached by prims 138–140 (`spaceSeq`, `spaceStamp`, `spaceChangedSince:under:max:`) and
 the nsl verbs `Channel>>changedSince:max:` / `Space>>seq` / `Space>>stamp`. The bridge
 is `class PortaBridge` in `kernel.nsl`, beside `NetBridge`; the node holds ONE instance.
-Four rules were decided in the writing and are part of the contract:
+Five rules were decided in the writing and are part of the contract — the fifth added
+2026-08-05, after hardware found what its absence cost:
 
 - **The changed-since scan answers CELLS ONLY.** A stream's `seq` advances on every
   write, but its value is killed on delivery, so a stream row would carry a
@@ -279,6 +282,33 @@ Four rules were decided in the writing and are part of the contract:
   convergence view rests on.
 - **`diag/spans/result` is not synced** until tuvm#107 splits its ~1120 B value into
   sibling cells at `diag/spans/<span>` (RECORDS §4.6).
+- **A RESTART is declared by the pair (`cursor`, `hw`) going backwards together, and it
+  rewinds porta's high-water** (added 2026-08-05). porta's stored high-water for a node
+  is a *cache* of the node's own `acked`, and both numbers a pull carries are RAM state
+  that only advances within a boot. When **both** go backwards, the node lost that RAM,
+  so it will never issue those seqs again and the cache is unusable: porta adopts the
+  declared `hw`.
+
+  Without it a **rebooted node is indistinguishable from a duplicate** — the space
+  counter restarts at 0 and porta's high-water does not, so every cell the node writes
+  is skipped as already-applied, and the ack carries the stale high-water, which
+  `applyAck:` adopts. After that the node believes everything it writes has been
+  accepted and porta holds observations hours old. Neither end can tell.
+
+  **Both halves of the test are load-bearing, and `hw` alone is NOT enough.** A missed
+  ack also leaves the node declaring a lower `hw`, and that case must not rewind: porta
+  committed those rows and the node is legitimately re-offering them, so a rewind
+  deletes the `seq <= hw` dedupe and manufactures the duplicate it was meant to prevent.
+  The cursor is what separates them, and not by heuristic — the cursor is advanced by
+  the **batch** and the watermark by the **ack**, so a swallowed ack cannot move the
+  cursor. Known gap: a node porta has never written to has a cursor of 0 on both sides,
+  so its restart carries no signal; closing that needs the per-boot identity `bootId`
+  was reserved for (#74), which this does not conflict with.
+
+  Found on hardware 2026-08-05 by the `bridge-health` target gate — hidden until then
+  for as long as the C6 gate wiped porta's store before every run — and the `hw`-only
+  version of the fix was caught within one leg by `porta_sync_c6.sh`, which saw the
+  dedupe stop firing. porta side is `Store.NoteCheckIn`.
 
 Still owed, each filed rather than assumed: the cursor and `bootId` live in RAM (NVS is
 G7 work), the bridge holds the root space rather than a `goal`-write + `obs`-read pair
