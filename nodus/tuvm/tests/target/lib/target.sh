@@ -12,17 +12,33 @@
 # different transport later (D2).
 
 # ---- the board registry ----------------------------------------------------
-# Two physically identical ESP32-C6 devkits; only the CP2102N by-id hash tells
-# them apart, and mistaking one for the other cost most of a morning on
-# 2026-08-05.
+# THREE physically identical ESP32-C6 devkits as of 2026-08-06; only the CP2102N
+# by-id hash tells them apart, and mistaking one for the other cost most of a
+# morning on 2026-08-05.
 #
-# c6      THE SHIP'S BELL. Wallwart, no data cable, console over Thread. Its
-#         whole value is soaking uninterrupted for days.
-# c6bench The spare, and the default. Disposable: flash it, brick it, throw the
-#         state away.
+# c6      THE SHIP'S BELL. Its whole value is soaking uninterrupted for days.
+#         Usually wallwart-only with console over Thread — but it was given a
+#         data cable on 2026-08-06, so `port=down` describes its usual state and
+#         not an invariant. Refused on the deploy path either way, by hash.
+# c6bench The original spare. Disposable. Off the bench since 2026-08-06 07:46.
+# c6spare A third devkit, adopted 2026-08-06 (console d2e21074…, JTAG
+#         40:4C:CA:44:6E:60), found running a stock ESP-IDF example. Disposable,
+#         and currently the one physically attached.
+#
+# There is no table of hashes here on purpose: target::board_byid resolves every
+# board through the collector's own env file, so a board exists for this harness
+# exactly when ~/.config/rete/console-<board>.env exists. Adding a board is
+# adding that file and starting its collector instance — never repointing an
+# existing one at different hardware, which is the mix-up the pinning prevents.
 TARGET_STORE=${TARGET_STORE:-$HOME/.local/state/rete/console}
 TARGET_LOCKDIR=${TARGET_LOCKDIR:-$HOME/.local/state/rete/target}
-TARGET_DEFAULT_BOARD=${TARGET_DEFAULT_BOARD:-c6bench}
+# THE DISPOSABLE BOARD, and the only one a class=disruptive scenario may touch.
+# It follows whichever disposable devkit is actually on the bench: edit this line
+# when the bench changes, or override for one run with
+# `TARGET_DEFAULT_BOARD=c6bench ./run.sh …`. It is a single name rather than a
+# list because "may I brick this?" has exactly one safe answer per bench day, and
+# a list is a thing that goes stale pointing at hardware nobody has seen in weeks.
+TARGET_DEFAULT_BOARD=${TARGET_DEFAULT_BOARD:-c6spare}
 
 # The bell's adapter. Refused on the deploy path with NO override env, and that
 # asymmetry is deliberate: a mislabelled workload is a plausible mistake and an
