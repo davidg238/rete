@@ -55,5 +55,12 @@ wants kernel-side spans and no protocol change at all).
 **The decomposition is the cheaper and more informative of the two, and it needs neither
 #159 nor a tunable.**
 
+> **ANSWERED THE SAME DAY — `docs/results/2026-08-05-c6-checkin-decomposition.md`.**
+> `checkIn` is now six spans inside `PortaBridge`. The 300 ms is **70% VM and 30% radio**,
+> and `PortaBridge>>pushFrame` alone is 62% of the check-in (tuvm#161). The paragraph above
+> is left as written: it called the decomposition the informative one and it was right, but
+> for the wrong reason — the fragmentation cost it expected to find in the push send is not
+> there. `pushSend` is the cheapest span in the table.
+
 Related: `protocol/PROTOCOL-NSL-RECORDS.md` §4.6, `protocol/PROTOCOL-NSL.md` §4.1,
 `docs/results/2026-07-20-c6-heap-ceiling.md`.

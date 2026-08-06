@@ -339,6 +339,28 @@ protocol landed green on hardware.** Nothing now argues for doing #25's host sli
 except foreclosure, and foreclosure only bites at the moment a flash map is committed, which
 is not imminent. So: #56 next, #25 after. **(#56 closed 2026-08-05 — so #25 is now.)**
 
+**One thing ran ahead of #25, on 2026-08-05, and it is finished.** The span capture that
+closed #107 left a check-in costing ~300 ms with no breakdown, and the breakdown was one
+reflash away. `PortaBridge>>checkIn` is now six spans (`pullSend` / `pullWait` / `applyIn` /
+`pushBuild` / `pushSend` / `pushWait`), `OEVM_SPAN_SLOTS` is 16, and the answer is
+**70% VM, 30% radio — with `pushFrame` alone at 62% of the check-in and 60% of the tick**
+(`docs/results/2026-08-05-c6-checkin-decomposition.md`, gate `TARGET 1/1 PASS`). The
+expected culprit was 6LoWPAN fragmentation on the 512 B push frame; `pushSend` measured
+3.1 ms, the cheapest span in the table, so that hypothesis is dead.
+
+Two consequences for the queue. **#161** (the same value is CBOR-encoded three or more times
+per push — `valueFits:` encodes and discards, `encodePush:` re-encodes, the trim loop
+re-encodes the whole frame per dropped row) is now a named, cheap, node-side piece of work
+with a measurement behind it. **#159 does not get earned**: the reason to want porta driving
+`diag/spans/ctl` was a repeating window for a distribution, and the thing worth
+characterising turns out to be VM-side and deterministic — three more spans and another
+boot, not an authority change. It stays open with a fourth option on it (a node-chosen
+free-running cadence, which adds no mechanism) that the other three must beat.
+
+**#25 is still next.** #161 is the cheaper and more contained of the two, but it is an
+optimisation with a measurement behind it and no deadline, where #25 is the decision-
+foreclosing one.
+
 **One correction to carry into it, because the two bars are still easy to swap.** #56 is
 *not* the largest unlock to a public release of nsl-tuvm — by this document's own reasoning
 above, that gate is #79's "no entry point that does not start with 'read five repos'", and
