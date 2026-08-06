@@ -99,6 +99,14 @@ class ThermalDiagNode usingPlatform: platform net: net = () (
     diagSock isNil ifTrue: [ 'DIAG BIND FAILED' println ]
     ifFalse: [
       'DIAG BOUND' println.
+      (* tuvm#107 REGRESSION, RECORDED RATHER THAN FIXED. This bridge now carries
+         the SUMMARY only. The per-slot rows moved to sibling cells at
+         diag/spans/<span>, and a NetBridge reacts on one exact path — so sending
+         them would mean one bridge per slot, on a node whose successor is the
+         porta space, not another fleet of UDP bridges. gwprofiler's mirror.py
+         already routes a LatencySpan by the record's own `span` field, so the
+         receiving end is ready if this node is ever revived; it is the SENDING
+         side that was not rebuilt. Do not read a thin gw table as a fast node. *)
       diagBridge:: platform NetBridge
         socket: diagSock
         out: (space channel: 'diag/spans/result')

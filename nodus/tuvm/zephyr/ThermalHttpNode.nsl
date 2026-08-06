@@ -294,7 +294,8 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
        reach `space` with anyway. *)
     http route: '/stats' do: [ :id :plat |
         self showStatsTo: id on: plat spans: spans
-             capture: ((space channel: 'diag/spans/result') peek) ].
+             capture: ((space channel: 'diag/spans/result') peek)
+             rows: (self captureRowsFrom: space spans: spans) ].
     (* tuvm#72: the slider. Writing the cell is the whole mechanism — porta will
        write the same cell, so this page is a CLIENT of the facility and not the
        facility itself. Sliding off does not hand back the report: the reaction has
@@ -328,8 +329,8 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
   )
 
   showIndexTo: id on: platform = ( ^ self indexToId: id on: platform )
-  showStatsTo: id on: platform spans: spans capture: capture = (
-    ^ self statsPageOn: platform toId: id spans: spans capture: capture )
+  showStatsTo: id on: platform spans: spans capture: capture rows: rows = (
+    ^ self statsPageOn: platform toId: id spans: spans capture: capture rows: rows )
 
   indexToId: id on: platform = (
     platform httpChunkId: id data:
@@ -345,7 +346,7 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
     ^ self
   )
 
-  statsPageOn: platform toId: id spans: spans capture: capture = (
+  statsPageOn: platform toId: id spans: spans capture: capture rows: rows = (
     | m |
     m:: platform metrics.
     (* The latency table carries eleven columns and wants room; the prose does not.
@@ -385,7 +386,7 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
        for every route. This one covers a bounded window that excluded the
        reporting of it. FIGURES QUOTED IN review/ OR IN THE DECK COME FROM THIS
        TABLE ONLY. *)
-    self captureTableOn: platform toId: id result: capture spans: spans.
+    self captureTableOn: platform toId: id result: capture rows: rows spans: spans.
     self spanLegendOn: platform toId: id.
     platform httpChunkId: id data: '<p><a href=''/''>&larr; home</a></p></body></html>'.
     ^ self
@@ -500,12 +501,29 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
     ^ self
   )
 
+  (* tuvm#107: the per-slot rows are sibling cells at diag/spans/<span> now, not a
+     `slots` list inside the summary. Read HERE, in the route block where `space`
+     is in scope, and passed down for exactly the reason the summary is.
+
+     One entry PER SLOT, holding nil where a cell is absent, so the position in
+     this collection stays the slot number — `langAt:` is derived from the slot
+     index, and compacting the holes out would silently relabel every span after
+     the gap as the wrong language. *)
+  captureRowsFrom: space spans: spans = (
+    | rows i n |
+    rows:: platform OrderedCollection new.
+    i:: 0. n:: spans slotCount.
+    [ i < n ] whileTrue: [
+      rows add: ((space channel: 'diag/spans/' , (spans pathAt: i)) peek).
+      i:: i + 1 ].
+    ^ rows )
+
   (* tuvm#72: the last capture's result, read off diag/spans/result. The Record is
      PASSED IN, not fetched: these page methods are pure formatters holding no
      capabilities (the rule this file states about ThermalView), and the outer
      class has no instance variables to reach `space` with. *)
-  captureTableOn: platform toId: id result: r spans: spans = (
-    | rows i row |
+  captureTableOn: platform toId: id result: r rows: rows spans: spans = (
+    | i row |
     platform httpChunkId: id data:
       '<h2>last capture</h2>',
       '<p style=''max-width:44rem''><a href=''/diag/spans/on''>start capture</a> &middot; ',
@@ -529,9 +547,11 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
       '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>min &micro;s</th>',
       '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem''>max &micro;s</th>',
       '</tr></thead><tbody>'.
-    rows:: r at: #slots ifAbsent: [ nil ].
     i:: 1. [ i <= rows size ] whileTrue: [
       row:: rows at: i.
+      (* nil = that slot published no cell; skip it rather than render a blank row
+         built out of at:ifAbsent: defaults, which would read as a real zero. *)
+      row isNil ifFalse: [
       platform httpChunkId: id data:
         '<tr><td style=''padding:.35rem;border-bottom:1px solid #eee''>',
         (row at: #span ifAbsent: [ #unnamed ]) printString,
@@ -545,7 +565,7 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
         (self groupDigits: (row at: #minUs ifAbsent: [ 0 ])),
         '</td><td style=''padding:.35rem;border-bottom:1px solid #eee;text-align:right;font-variant-numeric:tabular-nums''>',
         (self groupDigits: (row at: #maxUs ifAbsent: [ 0 ])),
-        '</td></tr>'.
+        '</td></tr>' ].
       i:: i + 1 ].
     platform httpChunkId: id data: '</tbody></table>'.
     ^ self )

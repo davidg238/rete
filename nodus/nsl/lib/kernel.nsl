@@ -1119,6 +1119,18 @@ class Kernel usingPlatform: platform = () (
     public slotCount = ( self ensureTables. ^ names size )
     public nameAt: slot = ( ^ names at: slot + 1 )
 
+    (* tuvm#107: the path segment for this slot's sibling cell at
+       diag/spans/<span>. A Symbol printStrings with a leading '#', which must not
+       appear in a path. The strip lives HERE, in one place, because SpanCapture
+       writes the cell and every reader derives the same string to find it — two
+       copies of this rule are two ways for them to disagree. *)
+    public pathAt: slot = (
+      | s ws |
+      s:: (self nameAt: slot) printString.
+      ws:: WriteStream new.
+      2 to: s size do: [ :i | ws nextPut: (s at: i) ].
+      ^ ws contents )
+
     (* tuvm#72: which side STAMPS this span. DERIVED from the reserved pair rather
        than kept as a table, so it cannot drift from the seam: slots 0 and 1 are
        the C-owned spans http_core.c stamps itself (ensureTables seeds them), and
@@ -1302,27 +1314,47 @@ class Kernel usingPlatform: platform = () (
          negative elapsed is published as -1 rather than as a plausible wrong
          number: silent-wrong is the failure mode this class exists to remove. *)
       ms < 0 ifTrue: [ ms:: -1 ].
-      result put: '' value: (self reportMs: ms).
+      (* Rows FIRST, summary LAST. Both readers of this facility — the bridge's
+         outbound subscription and the node's own /stats page — react to
+         diag/spans/result, so the summary is what says "the capture is complete".
+         It may not arrive before the rows it summarises. *)
+      result put: '' value: (self summaryMs: ms total: self publishSlots).
       running:: false.
       ^ self )
 
-    (* Reuses Spans>>recordAt:, which already builds the per-slot #LatencySpan
-       Record with the short field names porta's size law wants. `n` is the TOTAL
-       across slots, deliberately not "cycles": this class must not know which span
-       represents a job. The per-job count is that job's row. *)
-    reportMs: ms = (
-      | i n rows total |
-      rows:: OrderedCollection new.
+    (* tuvm#107: one cell per slot at diag/spans/<span>. Reuses Spans>>recordAt:,
+       which already builds the per-slot #LatencySpan Record with the short field
+       names porta's size law wants, and already carries a #span field naming its
+       slot — so this is a change of WHERE the rows are published, not how they are
+       built.
+
+       EVERY slot publishes, including one that took no samples. Skipping the empty
+       ones would leave a slot that had samples last window holding that value
+       forever, silently attributing stale numbers to the current window — the
+       failure mode this class exists to remove.
+
+       Answers the TOTAL sample count across slots, computed here rather than in a
+       second pass over the same table. *)
+    publishSlots = (
+      | i n total |
       total:: 0.
       i:: 0. n:: spans slotCount.
       [ i < n ] whileTrue: [
-        rows add: (spans recordAt: i).
+        (space channel: 'diag/spans/' , (spans pathAt: i))
+          put: '' value: (spans recordAt: i).
         total:: total + ((spans statsAt: i) basicAt: 1).
         i:: i + 1 ].
+      ^ total )
+
+    (* The window summary ONLY (RECORDS §4.6): total samples and elapsed ms. It
+       carries nothing that scales with the slot count — that is the whole of
+       tuvm#107. `n` is the TOTAL across slots, deliberately not "cycles": this
+       class must not know which span represents a job. The per-job count is that
+       job's row. *)
+    summaryMs: ms total: total = (
       ^ Record tag: #SpanCapture
-          with: #n     -> total
-          with: #ms    -> ms
-          with: #slots -> (List fromCollection: rows) )
+          with: #n  -> total
+          with: #ms -> ms )
   ) : (
     public onSpace: aSpace spans: aSpans = (
       ^ self new onSpace: aSpace spans: aSpans )

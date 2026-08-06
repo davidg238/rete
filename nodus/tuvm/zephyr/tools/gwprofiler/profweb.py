@@ -67,10 +67,11 @@ def _n(v):
         return html.escape(str(v))
 
 
-def render_span_table(cell):
-    if not cell or not cell.get("slots"):
+def render_span_table(cell, by_name):
+    """cell is the diag/spans/result summary; by_name maps span name -> the
+    LatencySpan read from its own sibling cell at diag/spans/<span> (tuvm#107)."""
+    if not cell:
         return "<p>No capture taken yet — press <b>Run capture</b>.</p>"
-    by_name = {s.get("span"): s for s in cell["slots"]}
     rows = []
     for name, depth in _ROWS:
         s = by_name.get(name)
@@ -132,6 +133,12 @@ def make_handler(store, mirror, node_default):
             q = parse_qs(urlparse(self.path).query)
             node = q.get("node", [node_default])[0]
             cell = store.latest_cell(node, "diag/spans/result")
+            # tuvm#107: one read per row, at the path the row was published to.
+            by_name = {}
+            for _name, _depth in _ROWS:
+                _row = store.latest_cell(node, "diag/spans/%s" % _name)
+                if _row is not None:
+                    by_name[_name] = _row
             self._send(
                 "<html><head><meta charset='utf-8'><title>ThermalNode spans</title>"
                 "<style>%s</style></head><body>"
@@ -139,7 +146,7 @@ def make_handler(store, mirror, node_default):
                 "<p class='sub'>node %s &middot; porta-lite span capture</p>"
                 '<form method="post" action="/run?node=%s"><button>Run capture</button></form>'
                 "%s</body></html>"
-                % (_CSS, html.escape(node), html.escape(node), render_span_table(cell)))
+                % (_CSS, html.escape(node), html.escape(node), render_span_table(cell, by_name)))
 
         def do_POST(self):
             q = parse_qs(urlparse(self.path).query)

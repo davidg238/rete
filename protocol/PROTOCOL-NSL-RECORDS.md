@@ -359,7 +359,7 @@ down here; the entry below documents it rather than proposing it.
 never a *desired* state, so it has no `goal/` twin and nothing to converge against.
 
 **Why the per-span rows are siblings of the summary, and not nested inside it.** The node's
-`SpanCapture>>reportMs:` currently returns `#SpanCapture { n, ms, slots: [ … ] }` with every
+`SpanCapture>>reportMs:` used to return `#SpanCapture { n, ms, slots: [ … ] }` with every
 slot's `LatencySpan` nested in a list. That shape **cannot ride the space**: with
 `OEVM_SPAN_SLOTS = 8` and `LatencySpan` measured at 140 B, the list alone is ~1120 B against
 §2.2's **256 B** value cap — 4.4× over the value cap and 2.2× over the 512 B batch cap. §2.2
@@ -371,7 +371,11 @@ Splitting it costs the node nothing it does not already have: `Spans>>recordAt: 
 already builds exactly the per-slot `LatencySpan` this table wants, and the record already
 carries a `#span` field naming its slot, so the path parameter and the field agree. What
 changes is that the slots are *published* per-path instead of being nested into one value.
-**Filed as tuvm#107**; until it lands, `diag/spans/result` must not be synced.
+**Filed as tuvm#107, landed 2026-08-05**: `SpanCapture>>publishSlots` writes one cell per
+slot and `summaryMs:total:` carries `{ n, ms }` only. `diag/spans/**` is syncable. Every
+slot publishes each window, including one that took no samples — skipping the empty ones
+would leave a slot that had samples last window holding that value forever, silently
+attributing stale numbers to the current window.
 
 This is the general shape for any capture whose size scales with a count: **the collection
 is the path space, not a list inside one value.** `sys/latency` states the same principle

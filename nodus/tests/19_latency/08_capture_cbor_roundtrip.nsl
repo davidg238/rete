@@ -13,7 +13,7 @@ done
    is what the gw depends on. No socket: the reaction encodes into a temp. *)
 class CaptureCborRoundtrip packageUsing: manifest = ( | seen ::= nil. enc ::= nil. | ) (
   public main: platform args: args = (
-    | space spans a cap ctl res dec slots row |
+    | space spans a cap ctl res dec row |
     space:: platform space.
     spans:: platform Spans new.
     a::     spans register: #acquire.
@@ -37,8 +37,12 @@ class CaptureCborRoundtrip packageUsing: manifest = ( | seen ::= nil. enc ::= ni
 
     dec:: platform Cbor decode: enc ifInvalid: [ :m | nil ].
     ('roundtrip n ' , (dec at: #n ifAbsent: [ -1 ]) printString) out.
-    slots:: dec at: #slots ifAbsent: [ nil ].
-    row:: slots at: a + 1.
+
+    (* tuvm#107: the per-slot row is a SIBLING CELL now, so it is a second value
+       the bridge encodes — round-trip it on its own rather than through the
+       summary, which no longer carries it. *)
+    row:: platform Cbor decode: (platform Cbor encode:
+            ((space channel: 'diag/spans/acquire') peek)) ifInvalid: [ :m | nil ].
     ('roundtrip min ' , (row at: #minUs ifAbsent: [ -1 ]) printString) out.
     ('roundtrip max ' , (row at: #maxUs ifAbsent: [ -1 ]) printString) out.
     'done' out.

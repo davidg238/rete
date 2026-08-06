@@ -280,8 +280,11 @@ Five rules were decided in the writing and are part of the contract — the fift
   is counted and dropped, never applied and never raised. An accepted write to `obs/**`
   would forge the node's own report of what it observes, which is the one thing the
   convergence view rests on.
-- **`diag/spans/result` is not synced** until tuvm#107 splits its ~1120 B value into
-  sibling cells at `diag/spans/<span>` (RECORDS §4.6).
+- **`diag/spans/**` is syncable** as of tuvm#107 (2026-08-05): the per-slot rows are sibling
+  cells at `diag/spans/<span>` (140 B each) and `diag/spans/result` carries the window
+  summary `{ n, ms }` only, so no value in the subtree approaches the 256 B cap. The rows
+  are written BEFORE the summary — a reader that reacts to `diag/spans/result` is entitled
+  to find every row already in place (RECORDS §4.6).
 - **A RESTART is declared by the pair (`cursor`, `hw`) going backwards together, and it
   rewinds porta's high-water** (added 2026-08-05). porta's stored high-water for a node
   is a *cache* of the node's own `acked`, and both numbers a pull carries are RAM state

@@ -17,7 +17,7 @@ done
    here is timing-dependent. Both-path A==B gate. *)
 class SpanCaptureTest packageUsing: manifest = () (
 public main: platform args: args = (
-  | space spans cap a ctl res r slots row |
+  | space spans cap a ctl res r row |
   space:: platform space.
   spans:: platform Spans new.
   a::     spans register: #acquire.
@@ -46,8 +46,9 @@ public main: platform args: args = (
   (r isNil not) printString println.                             (* true — published    *)
   ((r at: #n ifAbsent: [ -1 ]) = 2) printString println.         (* true — the two only *)
 
-  slots:: r at: #slots ifAbsent: [ nil ].
-  row:: slots at: a + 1.
+  (* tuvm#107: the slot's row is its own cell at diag/spans/<span>, not a `slots`
+     list nested in the summary — 8 x 140 B was 4.4x the 256 B value cap. *)
+  row:: (space channel: 'diag/spans/acquire') peek.
   ((row at: #n ifAbsent: [ -1 ]) = 2) printString println.       (* true              *)
   ((row at: #minUs ifAbsent: [ -1 ]) = 100) printString println. (* true — not 500    *)
   ((row at: #maxUs ifAbsent: [ -1 ]) = 200) printString println. (* true — not 900    *)

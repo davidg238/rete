@@ -78,6 +78,27 @@ grep -qi '^Transfer-Encoding: chunked' /tmp/http_hdrs2 || { echo "FAIL: /stats n
 grep -q "heap high-water" /tmp/http_body2 || { echo "FAIL: /stats missing metrics"; exit 1; }
 echo "  /stats chunked + metrics present"
 
+# tuvm#107: the capture table is rendered from SIBLING CELLS at diag/spans/<span>,
+# not from a `slots` list inside diag/spans/result. Take a real window, then assert a
+# row reached the page.
+#
+# Two things make a naive grep a false green, and both were witnessed:
+#   - the legend below the table spells the span names out in prose, so "egress"
+#     alone matches with an empty table body;
+#   - the page renders TWO span tables — "job latency (cumulative since boot)",
+#     built straight off the live `spans` object, and then "last capture". Only the
+#     second reads the cells, so >#egress</td> matches the live table whether or not
+#     the capture table rendered a single row.
+# Hence: cut everything up to the "last capture" heading first, then match the markup.
+curl -s -o /dev/null "http://127.0.0.1:$PORT/diag/spans/on"
+curl -s -o /dev/null "http://127.0.0.1:$PORT/thermal"
+curl -s -o /dev/null "http://127.0.0.1:$PORT/diag/spans/off"
+curl -s -o /tmp/http_body3 "http://127.0.0.1:$PORT/stats"
+grep -q "last capture" /tmp/http_body3 || { echo "FAIL: /stats has no capture section"; exit 1; }
+sed 's/.*<h2>last capture<\/h2>//' /tmp/http_body3 > /tmp/http_capture_section
+grep -q ">#egress</td>" /tmp/http_capture_section || { echo "FAIL: capture table has no span row (tuvm#107 sibling cells)"; exit 1; }
+echo "  capture table renders sibling-cell rows (tuvm#107)"
+
 echo "  concurrent burst (8-way, informational):"
 for _ in $(seq 1 8); do curl -s -o /dev/null -w '%{http_code}\n' "http://127.0.0.1:$PORT/thermal" & done | sort | uniq -c | sed 's/^/    /'
 

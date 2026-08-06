@@ -6,8 +6,19 @@ import time
 
 import codec
 
-# The one path this slice mirrors; a record's _tag maps to its cell path.
-_TAG_TO_PATH = {"SpanCapture": "diag/spans/result"}
+# Where a record lands. The summary has a fixed path; a per-slot row names its own
+# slot (tuvm#107 split the eight rows out of the summary into sibling cells, because
+# 8 x 140 B in one value was 4.4x RECORDS §2.2's 256 B cap).
+def _path_for(value):
+    tag = value.get("_tag")
+    if tag == "SpanCapture":
+        return "diag/spans/result"
+    if tag == "LatencySpan":
+        name = value.get("span")
+        # No slot name means no path. Filing it somewhere plausible would attribute
+        # one slot's numbers to another, which is worse than losing the datagram.
+        return "diag/spans/%s" % name if name else None
+    return None
 
 
 class Mirror:
@@ -29,7 +40,7 @@ class Mirror:
             return  # closed algebra: a bad datagram is dropped, never stored
         if not isinstance(value, dict) or "_tag" not in value:
             return
-        path = _TAG_TO_PATH.get(value["_tag"])
+        path = _path_for(value)
         if path is None:
             return
         seq = self._next_seq(node_id)

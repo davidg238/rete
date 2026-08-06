@@ -1,0 +1,66 @@
+(*
+expect:
+sibling n 2
+sibling min 100
+sibling max 200
+summary n 2
+summary ms present true
+summary slots absent true
+empty slot published true
+done
+*)
+(* tuvm#107: a capture's per-slot rows are SIBLING CELLS at diag/spans/<span>,
+   not a `slots` list nested in diag/spans/result. Eight slots x 140 B put the
+   nested value at ~1120 B against RECORDS §2.2's 256 B value cap — 4.4x over,
+   and 2.2x the 512 B batch cap, so the moment the bridge replicated diag/** it
+   was rejected or fragmented into ~11 6LoWPAN fragments.
+
+   The principle (#107, and tuvm#61 one level up): a collection whose size
+   scales with a count belongs in the PATH SPACE, not in a list inside one
+   value. Adding an instrumented job adds a cell, never a field.
+
+   EVERY slot is published, including one with zero samples. Skipping the empty
+   ones would leave a slot that had samples last window holding that old value
+   forever — silently attributing stale numbers to the current window, which is
+   the exact failure mode SpanCapture exists to remove. *)
+class SpanSiblingCellsTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | space spans a cap ctl res row r |
+  space:: platform space.
+  spans:: platform Spans new.
+  a::     spans register: #acquire.
+  cap::   platform SpanCapture onSpace: space spans: spans.
+  cap start.
+  ctl:: space channel: 'diag/spans/ctl'.
+  res:: space channel: 'diag/spans/result'.
+
+  ctl put: '' value: (platform Record tag: #SpanCtl with: #state -> #running).
+  space drain.
+  spans recordSlot: a us: 100.
+  spans recordSlot: a us: 200.
+  ctl put: '' value: (platform Record tag: #SpanCtl with: #state -> #stopped).
+  space drain.
+
+  (* The registered slot's row is a cell of its own, at the name it registered —
+     `acquire`, NOT `#acquire`: a Symbol printStrings with a leading hash and a
+     path must not carry it. *)
+  row:: (space channel: 'diag/spans/acquire') peek.
+  ('sibling n '   , (row at: #n     ifAbsent: [ -1 ]) printString) println.
+  ('sibling min ' , (row at: #minUs ifAbsent: [ -1 ]) printString) println.
+  ('sibling max ' , (row at: #maxUs ifAbsent: [ -1 ]) printString) println.
+
+  (* The summary keeps the window facts and nothing that scales with slot count. *)
+  r:: res peek.
+  ('summary n ' , (r at: #n ifAbsent: [ -1 ]) printString) println.
+  ('summary ms present ' , ((r at: #ms ifAbsent: [ nil ]) isNil not) printString) println.
+  ('summary slots absent ' , ((r at: #slots ifAbsent: [ nil ]) isNil) printString) println.
+
+  (* A reserved C-owned slot that took no samples still publishes, at 0. *)
+  row:: (space channel: 'diag/spans/httpQueue') peek.
+  ('empty slot published ' ,
+    ((row isNil not) and: [ (row at: #n ifAbsent: [ -1 ]) = 0 ]) printString) println.
+
+  'done' println.
+)
+) : (
+)
