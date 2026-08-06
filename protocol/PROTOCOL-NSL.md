@@ -316,6 +316,23 @@ Five rules were decided in the writing and are part of the contract — the fift
   so its restart carries no signal; closing that needs the per-boot identity `bootId`
   was reserved for (#74), which this does not conflict with.
 
+  **That gap was witnessed in the field on 2026-08-06 and cost `c6-bell` ten hours of
+  telemetry (#162).** The node had only ever written `obs/build` and `sys/metrics` — porta
+  had never written to it — so its stored cursor was 0, `cursor < storedCursor` was
+  `0 < 0`, and the rewind could not fire. It rebooted, pushed against a stale high-water of
+  3981, had every row discarded, adopted 3981 from the ack, and then reported
+  `misses 0` on its console every 30 s while delivering nothing. **Until #74 lands, the
+  operational inoculation is one write per node, in the ordinary operator vocabulary:**
+
+  ```
+  porta put <node> goal/name <node>
+  ```
+
+  Do it the first time a node appears. It is sufficient because it makes `storedCursor`
+  nonzero, which is the only precondition the rewind is missing. Note the node still needs
+  one power cycle afterwards to clear its own in-RAM `acked` — `applyAck:` raises that
+  value and never lowers it.
+
   Found on hardware 2026-08-05 by the `bridge-health` target gate — hidden until then
   for as long as the C6 gate wiped porta's store before every run — and the `hw`-only
   version of the fix was caught within one leg by `porta_sync_c6.sh`, which saw the

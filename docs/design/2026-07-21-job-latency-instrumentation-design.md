@@ -606,3 +606,43 @@ record are `review/program-sequence.md` (the rung and the table),
 `review/tests/CLAIMS.md` (three rows), `review/metrics-spec.md` (the latency group, and
 the removal of its now-false "nodes can't afford the slots" line) and
 `protocol/PROTOCOL-NSL-RECORDS.md` §4.4 (`sys/latency` plus both measured sizes).
+
+---
+
+## Addendum, 2026-08-06 — the slot budget doubled, and six slots became kernel-owned
+
+Two statements in this document are now superseded by `nodus/tuvm/src/span.h`, which is the
+authority. Recorded here rather than edited above, because this document is the historical
+*why*.
+
+**`OEVM_SPAN_SLOTS` is 16, not 8** (§2.1's "default 8 → 384 B" is now 16 → 772 B, including
+the 4 B open-mask). The knob's *character* is unchanged — §7's "a DRAM-tight target can trim
+it" still holds — but the default moved, and it moved because the budget ran out at exactly
+the point the interesting question became askable. It deliberately stops at half of the hard
+ceiling of 32 (`span_open_mask` is one `uint32_t`), so the next node wanting a span does not
+have to re-argue the DRAM.
+
+**Six slots are now owned by the kernel, not by the app.** `PortaBridge` registers
+`pullSend` / `pullWait` / `applyIn` / `pushBuild` / `pushSend` / `pushWait` at construction,
+and `spans` is a mandatory constructor argument — the same reasoning §5 gives for pinning the
+two C-owned HTTP slots, one level up: a node must not be able to ship an uninstrumented
+bridge by forgetting a bracket. So the reserved count this document describes as *two* is
+effectively *eight* for any bridged node, and an app's own spans start above them.
+
+This does not disturb the §5 decision that made those two slots the **bottom** of the range.
+That decision was taken precisely so the reserved indices would not depend on the ceiling —
+and it is what let the ceiling move today with no constant duplicated anywhere and no test
+edited. `nodus/tests/19_latency/01_span_slots.nsl` still passes unmodified, because it seeds
+the reserved pair rather than deriving it from the knob. The design note warning that a
+`-DOEVM_SPAN_SLOTS=6` build "would silently point those names at the wrong data" is the same
+property that made an 8 → 16 build safe.
+
+**What the slots bought.** `docs/results/2026-08-05-c6-checkin-decomposition.md`: the six
+partition `checkIn` to 0.16%, the brackets cost nothing measurable against the previous
+capture, and a porta check-in is **70% VM / 30% radio** with `PortaBridge>>pushFrame` alone
+at 62% of the check-in. The expected culprit — 6LoWPAN fragmentation on the 512 B push frame
+— measured 3.1 ms, the cheapest span in the table. Follow-on: #161.
+
+Current statements of record for this addendum: `nodus/tuvm/src/span.h`,
+`review/tests/CLAIMS.md` (the bracketing row), `protocol/PROTOCOL-NSL-RECORDS.md` §4.6 (the
+eight non-app span names and the per-window cell-count consequence).
