@@ -90,11 +90,12 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
        control of the window is a different question and is blocked on tuvm#159 —
        porta may write only goal/** and dbg/req, so it cannot drive diag/spans/ctl
        at all today. *)
-    (* `spans` was minted above, with the bridge. The bridge holds slots 2-7 (its
-       own six-way decomposition of checkIn); these three land at 8-10. sCheckIn
-       stays even though it now brackets six inner spans — it is the only way to
-       see UN-BRACKETED time inside the bridge, and `sCheckIn - (sum of six)`
-       should read as zero. *)
+    (* `spans` was minted above, with the bridge. The bridge holds slots 2-10 (its
+       six-way decomposition of checkIn, plus tuvm#161's three-way split of
+       pushBuild nested inside it); these three land at 11-13, of
+       OEVM_SPAN_SLOTS = 16. sCheckIn stays even though it now brackets six inner
+       spans — it is the only way to see UN-BRACKETED time inside the bridge, and
+       `sCheckIn - (sum of six)` should read as zero. *)
     sTick::     spans register: #jobTick.     (* the whole timer -> report job *)
     sCheckIn::  spans register: #checkIn.     (* pull + push, the radio round trip *)
     sPublish::  spans register: #publish.     (* the health and log writes *)

@@ -151,11 +151,28 @@ echo "  tel/log arrived exactly once per entry, with no gaps ($FIRST..$LAST)"
 # read out of the source and never once run. It is the load-bearing simplification of
 # the whole design: if it is false, the run-up needs a mechanism after all.
 # An empty or non-integer count makes `test` error, which fails — the safe direction.
-METRICS_ROWS=$(/tmp/porta log --db "$DB" "$NODE" --limit 200 | grep -c 'sys/metrics' || true)
+#
+# WAITS FOR THE SECOND ROW rather than counting after a fixed sleep, and the
+# assertion is unchanged in strength: still >= 2, still a hard FAIL on timeout,
+# never a skip. What changed is that the window is now stated instead of assumed.
+# Found by tuvm#161, which added three span cells and turned this red: the capture
+# publishes one diag/spans/<slot> cell PER SLOT in one burst, and that burst is a
+# backlog bigger than the 512 B frame, so the bridge trims — from the TAIL, which
+# is the HIGHEST seq, which is sys/metrics, written immediately before the push
+# (tuvm#150). Until the burst drains, the newest cell is the one that never rides.
+# Measured on this gate's own setup: with 14 span slots the drain takes ~8 ticks
+# (~16 s) and metrics accumulates one per tick thereafter; the old fixed `sleep 3`
+# sampled at ~7 ticks, so it was passing on the drain finishing first — an
+# assumption that got shorter every time a node registered another span.
+for _ in $(seq 1 150); do
+  METRICS_ROWS=$(/tmp/porta log --db "$DB" "$NODE" --limit 500 | grep -c 'sys/metrics' || true)
+  test "$METRICS_ROWS" -ge 2 && break; sleep 0.4
+done
 test "$METRICS_ROWS" -ge 2 || {
-  echo "FAIL: sys/metrics appears $METRICS_ROWS time(s) in the event log, expected >= 2."
-  echo "      A cell push must be APPENDED, not collapsed to latest-value."
-  /tmp/porta log --db "$DB" "$NODE" --limit 200; exit 1; }
+  echo "FAIL: sys/metrics appears $METRICS_ROWS time(s) in the event log after 60s, expected >= 2."
+  echo "      Either a cell push is being collapsed to latest-value instead of APPENDED,"
+  echo "      or the push backlog never drained and metrics was trimmed every tick (tuvm#150)."
+  /tmp/porta log --db "$DB" "$NODE" --limit 500; exit 1; }
 echo "  sys/metrics accumulates in the event log: $METRICS_ROWS rows — the run-up is retained"
 
 # tuvm#107 + the diag/** outbound grant: a span capture has to survive the whole chain —

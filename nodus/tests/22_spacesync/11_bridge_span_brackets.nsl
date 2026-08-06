@@ -1,6 +1,6 @@
 (*
-porta space-sync — `checkIn` is SIX spans, and each one fires exactly once per
-check-in.
+porta space-sync — `checkIn` is SIX spans and `pushBuild` is three more nested
+inside it, and each one fires exactly once per check-in.
 
 Why this exists: the first span capture off c6-bench
 (docs/results/2026-08-05-c6-span-capture-first.md) found a check-in costing ~300 ms
@@ -19,6 +19,15 @@ time and any gap is a bug in the bracketing rather than a finding about the mesh
   pushSend   send the #push frame
   pushWait   wait for the #ack and apply it
 
+And tuvm#161 splits `pushBuild` the same way, because it measured 62% of the
+check-in on c6-bench and the source says a value is CBOR-encoded three or more
+times per push:
+
+  pushCollect  collectOutbound — the scans and `valueFits:`, which encodes every
+               candidate value in full and discards the bytes
+  pushEncode   the first full-frame encode, encoding those values again
+  pushTrim     the re-encode-per-dropped-row loop
+
 Why the SENDS are separated from the WAITS, which is the whole point: the pull
 frame is ~40 B and rides one 6LoWPAN fragment, while a push frame runs to the
 512 B cap and rides five or six — and a datagram survives only if every fragment
@@ -32,7 +41,7 @@ uninstrumented bridge by forgetting a bracket.
 
 What is asserted, and why each is falsifiable:
 
-- `slots 8` — 2 reserved (C-owned) + the bridge's 6, registered AT CONSTRUCTION.
+- `slots 11` — 2 reserved (C-owned) + the bridge's 9, registered AT CONSTRUCTION.
   Registering lazily on first use would grow the table mid-window, and
   SpanCapture publishes one cell per slot — so a capture would publish a
   different set of cells at stop than the set that existed at start.
@@ -41,15 +50,19 @@ What is asserted, and why each is falsifiable:
 - `after two ... 2` — one sample per span per check-in, across TWO check-ins. A
   bracket left open across the boundary records nothing on the next `begin:`
   (span_end no-ops on a closed slot), so it would read 1, not 2.
+- `pushTrim` reading 2 IS AN ASSERTION, not a side effect. This frame is far
+  under the 512 B cap, so the trim loop never drops a row — and the span still
+  has to fire, because a conditional bracket would make "the loop never ran" and
+  "the span is missing" the same reading in the capture.
 
 The fake socket alternates #batch, #ack, #batch, #ack — the real reply sequence,
 which is what lets two whole check-ins run without any wait burning its 2 s
 budget.
 
 expect:
-slots 8
-virgin 0 0 0 0 0 0
-after two 2 2 2 2 2 2
+slots 11
+virgin 0 0 0 0 0 0 0 0 0
+after two 2 2 2 2 2 2 2 2 2
 *)
 class BridgeSpanBrackets packageUsing: manifest = () (
 
@@ -91,7 +104,10 @@ class BridgeSpanBrackets packageUsing: manifest = () (
       ' ' , (self nOf: spans named: #applyIn)   printString ,
       ' ' , (self nOf: spans named: #pushBuild) printString ,
       ' ' , (self nOf: spans named: #pushSend)  printString ,
-      ' ' , (self nOf: spans named: #pushWait)  printString )
+      ' ' , (self nOf: spans named: #pushWait)  printString ,
+      ' ' , (self nOf: spans named: #pushCollect) printString ,
+      ' ' , (self nOf: spans named: #pushEncode)  printString ,
+      ' ' , (self nOf: spans named: #pushTrim)    printString )
 
   public main: platform args: args = (
     | space spans bridge batch ack sock |

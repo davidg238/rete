@@ -1561,8 +1561,11 @@ class Kernel usingPlatform: platform = () (
       pending ::= OrderedCollection new.
       (* tuvm#107 follow-on: the six spans that decompose `checkIn`. See the
          bracket comment on checkIn for what each one covers and why the sends are
-         separated from the waits. *)
-      spans sPullSend sPullWait sApplyIn sPushBuild sPushSend sPushWait |
+         separated from the waits.
+         tuvm#161: three more NESTED inside `pushBuild`, which measured 62% of the
+         check-in — see the bracket comment on pushFrame. *)
+      spans sPullSend sPullWait sApplyIn sPushBuild sPushSend sPushWait
+      sPushCollect sPushEncode sPushTrim |
   ) (
     (* `spans` is a CONSTRUCTOR ARGUMENT and not optional, for the reason
        src/span.h gives for pinning the two C-owned slots: a node must not be able
@@ -1590,6 +1593,14 @@ class Kernel usingPlatform: platform = () (
       sPushBuild:: sn register: #pushBuild.
       sPushSend::  sn register: #pushSend.
       sPushWait::  sn register: #pushWait.
+      (* tuvm#161. Registered here with the other six rather than lazily inside
+         pushFrame, for the reason the comment above gives: the slot table must be
+         complete before any capture window opens, or stop publishes a different
+         set of cells than start. Three more takes a bridged C6 node from 11 slots
+         to 14 of OEVM_SPAN_SLOTS = 16 — which is what the 8 -> 16 raise was for. *)
+      sPushCollect:: sn register: #pushCollect.
+      sPushEncode::  sn register: #pushEncode.
+      sPushTrim::    sn register: #pushTrim.
       ^ self )
 
     (* bootId rides the batch envelope, not every record — it is constant for
@@ -1771,14 +1782,46 @@ class Kernel usingPlatform: platform = () (
        this cannot bite today; it starts to when a node has many obs/ paths. Said out
        loud because a metrics record that silently loses the race under load is
        exactly the observability that lies when it matters. *)
+    (* THE THREE INNER SPANS (tuvm#161), nested inside `pushBuild`:
+
+         pushCollect  collectOutbound — the pending walk, the three cell scans,
+                      and `valueFits:`, which CBOR-encodes every candidate value
+                      in full and throws the bytes away
+         pushEncode   the FIRST full-frame encode, re-encoding every one of those
+                      values a second time
+         pushTrim     the re-encode-per-dropped-row loop
+
+       This is the falsifiable precondition #161 names, and it is the whole point
+       of taking it before any fix: the source reading says a value is encoded
+       once to be measured, once to be sent, and once more per trim iteration, and
+       the two proposed fixes address DIFFERENT terms of that sum — carrying
+       `valueFits:`'s bytes into the row pays off in `pushCollect` + `pushEncode`,
+       sizing the frame incrementally pays off in `pushTrim`. Without this split,
+       "the trim loop is expensive" is a reading of the source, not a finding.
+
+       THE THREE ARE UNCONDITIONAL, so they partition `pushBuild` the way the six
+       partition `checkIn`. In particular `pushTrim` is entered on every push even
+       when nothing is trimmed, and then measures one failed predicate — a
+       near-zero mean against a full sample count is exactly the reading that says
+       the loop never fired, where a conditional bracket would report the same
+       thing as a missing span. The one place the partition breaks is the empty
+       early return, which is the same unreachable-in-practice case `pushOnce`
+       documents: publishMetrics writes sys/metrics every check-in, so there is
+       always a row. *)
     public pushFrame = (
       | rows bytes |
+      spans begin: sPushCollect.
       rows:: self collectOutbound.
+      spans end: sPushCollect.
       rows isEmpty ifTrue: [ ^ nil ].
+      spans begin: sPushEncode.
       bytes:: self encodePush: rows.
+      spans end: sPushEncode.
+      spans begin: sPushTrim.
       [ bytes byteSize > self maxBatchBytes and: [ rows size > 1 ] ] whileTrue: [
         rows removeLast.
         bytes:: self encodePush: rows ].
+      spans end: sPushTrim.
       bytes byteSize > self maxBatchBytes ifTrue: [ ^ nil ].
       ^ bytes )
 
@@ -1886,6 +1929,10 @@ class Kernel usingPlatform: platform = () (
          pushBuild  collectOutbound + encode + the trim re-encodes
          pushSend   send the #push frame
          pushWait   wait for the #ack and apply it
+
+       `pushBuild` is itself split three ways by tuvm#161 — pushCollect /
+       pushEncode / pushTrim, nested inside it and bracketed in pushFrame. Those
+       three do not join the partition above; they partition pushBuild.
 
        WHY THE SENDS ARE SEPARATED FROM THE WAITS. The first capture off c6-bench
        (docs/results/2026-08-05-c6-span-capture-first.md) found a check-in costing

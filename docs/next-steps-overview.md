@@ -361,6 +361,23 @@ free-running cadence, which adds no mechanism) that the other three must beat.
 optimisation with a measurement behind it and no deadline, where #25 is the decision-
 foreclosing one.
 
+**#161's precondition landed on 2026-08-06 and its C6 half is parked on hardware.**
+`pushBuild` is now three nested spans (`pushCollect` / `pushEncode` / `pushTrim`, 14 slots
+of 16), green on all three gates, and the capture that gives them numbers is waiting for
+`c6bench` — off USB since 07:46 that day. Two findings came out of the host half and both
+matter beyond #161 (`docs/results/2026-08-06-pushbuild-three-way-host.md`):
+**(a)** the boot-to-verdict window is structurally blind to the trim loop — trimming only
+starts once the capture's own 14 cells create a backlog over 512 B, and the window closes
+before they are written, so a capture in this shape reports `pushTrim ≈ 0` for a loop it
+never observed. That is the thing `PortaBridgeNodeC6.nsl` said would earn a repeating
+window, and it argues for **#159's fourth option** (a node-chosen free-running cadence,
+no authority change) rather than for porta driving `diag/spans/ctl`.
+**(b)** those same span cells starve `sys/metrics` — **#150, now measured**: the burst
+drains in ~8 ticks, and until it does, the tail-trim drops the highest seq, which is
+always the metrics record written immediately before the push. It turned
+`porta_sync_host.sh` red, which is how it was found; the gate now waits for the run-up
+instead of assuming a drain time, and no trim policy was invented.
+
 **One correction to carry into it, because the two bars are still easy to swap.** #56 is
 *not* the largest unlock to a public release of nsl-tuvm — by this document's own reasoning
 above, that gate is #79's "no entry point that does not start with 'read five repos'", and
