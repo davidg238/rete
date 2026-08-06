@@ -72,7 +72,9 @@ So "the same value is encoded three or more times" is true and worth fixing, but
 **~20% fix on top of a codec that costs 230 µs/byte**. The next question after #161 is not
 how many times `Cbor>>encode:` runs — it is why one run is that expensive, which is a
 question about allocation and copying inside the encoder, and is the first thing a fourth
-span inside `encodePush:` would answer.
+span inside `encodePush:` would answer. **Filed as tuvm#163**, with the same posture #161
+took: the candidate causes are listed and none of them is to be acted on before something
+measures a known payload.
 
 ## The host numbers
 
@@ -196,5 +198,5 @@ same image, same `c6-bench` node id on the mesh, and the numbers land within 3% 
 Gates green with this change: nsl suite 246/0, `go test ./...` ok, `PORTA SYNC OK`,
 `TARGET 1/1 PASS`.
 
-Related: tuvm#161, tuvm#150, tuvm#159,
+Related: tuvm#161, tuvm#163 (the codec cost this raised), tuvm#150, tuvm#159,
 `docs/results/2026-08-05-c6-checkin-decomposition.md`.

@@ -370,7 +370,8 @@ check-in, and fix (2) (incremental trim sizing) is unearned by this data.
 **The bigger number is one #161 did not ask about:** 118.6 ms for a ≤512 B frame is
 ~230 µs *per byte*, so deleting the duplicate encode still leaves ~119 ms. The cost is the
 codec itself, not how many times it runs — the next question is inside `Cbor>>encode:`,
-and it is about allocation and copying rather than call count.
+and it is about allocation and copying rather than call count. **Filed as #163**, and it is
+the larger of the two: a bridged node spends ~19% of wall-clock inside that one method.
 Two findings from the host half matter beyond #161
 (`docs/results/2026-08-06-pushbuild-three-way.md`):
 **(a)** the boot-to-verdict window is structurally blind to the trim loop — trimming only
