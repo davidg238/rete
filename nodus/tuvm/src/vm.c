@@ -431,8 +431,14 @@ static void mprof_phase_advance(void) {
         g_mprof_countdown = (OEVM_MPROF_DUMP_AT > OEVM_MPROF_FLIP_AT)
                           ? (OEVM_MPROF_DUMP_AT - OEVM_MPROF_FLIP_AT) : 0xFFFFFFFFu;
     } else {
+        /* RE-ARMS: once counting, dump every (DUMP_AT - FLIP_AT) activations.
+           A one-shot dump has to be aimed, and aiming it needs the activation
+           rate — which is the thing being measured. A periodic dump lands
+           whatever the rate turns out to be, and the counts are cumulative so
+           any single window is readable on its own. */
         mprof_report("dump");
-        g_mprof_countdown = 0xFFFFFFFFu;
+        g_mprof_countdown = (OEVM_MPROF_DUMP_AT > OEVM_MPROF_FLIP_AT)
+                          ? (OEVM_MPROF_DUMP_AT - OEVM_MPROF_FLIP_AT) : 0xFFFFFFFFu;
     }
 }
 #endif
@@ -464,6 +470,15 @@ static OEVM_HOT void mprof_bump(const void *m) {
    that grant inside a spike, dump from C at exit under an env gate.
    A destructor rather than an atexit registration so the hot path pays NOTHING for
    the dump's existence -- no init flag, no branch in mprof_bump. */
+/* Reported as a BLOB-RELATIVE OFFSET, not a pointer. A CompiledMethod carries no
+   name, and a raw address is unresolvable off-node — it moves with the link and
+   means nothing to a reader holding only the image. `ptr - oimg_blob_base` is the
+   file offset the serializer assigned, so it joins directly against the
+   <image>.oimg.methods.json sidecar and names every method AND every block.
+
+   A method outside the blob (Model A / solidified .rodata) has no such offset;
+   it prints as `@<pointer>` so it is visibly a different kind of thing rather
+   than a plausible wrong offset. */
 static void mprof_report(const char *why) {
     int i;
     uint32_t total = 0;
@@ -471,7 +486,14 @@ static void mprof_report(const char *why) {
     fprintf(stderr, "mprof[%s]: methods=%u activations=%u overflow=%u cap=%d\n",
             why, g_mprof_used, total, g_mprof_overflow, OEVM_MPROF_SLOTS);
     for (i = 0; i < OEVM_MPROF_SLOTS; i++) {
-        if (g_mprof_key[i]) fprintf(stderr, "mprof: %p %u\n", g_mprof_key[i], g_mprof_n[i]);
+        if (!g_mprof_key[i]) continue;
+        if (is_in_blob(g_mprof_key[i])) {
+            fprintf(stderr, "mprof: %lu %u\n",
+                    (unsigned long)((const uint8_t *)g_mprof_key[i] - oimg_blob_base),
+                    g_mprof_n[i]);
+        } else {
+            fprintf(stderr, "mprof: @%p %u\n", g_mprof_key[i], g_mprof_n[i]);
+        }
     }
 }
 
