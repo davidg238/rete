@@ -99,7 +99,8 @@ class ThermalDiagNode usingPlatform: platform net: net = () (
     diagSock isNil ifTrue: [ 'DIAG BIND FAILED' println ]
     ifFalse: [
       'DIAG BOUND' println.
-      (* tuvm#107 REGRESSION, RECORDED RATHER THAN FIXED. This bridge now carries
+      (* tuvm#107 REGRESSION, RECORDED RATHER THAN FIXED — tracked as tuvm#160,
+         which carries the three fates. This bridge now carries
          the SUMMARY only. The per-slot rows moved to sibling cells at
          diag/spans/<span>, and a NetBridge reacts on one exact path — so sending
          them would mean one bridge per slot, on a node whose successor is the

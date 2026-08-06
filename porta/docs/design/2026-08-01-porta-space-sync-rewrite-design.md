@@ -429,6 +429,10 @@ Landing in `~/workspace/tuvm` and `~/workspace/nsl-tuvm`, conforming to this doc
 - **`PortaBridge`** — an ordinary supervised nsl job holding the socket capability, write
   access to `goal/**`, and read access to `obs/**` / `tel/**` / `sys/**`. A crash of the
   bridge is a contained fault: porta sees a late check-in and nothing worse.
+  > **Superseded 2026-08-05 (tuvm#107).** The outbound grant now also covers `diag/**`,
+  > and `collectOutbound` scans three cell prefixes rather than two. The current statement
+  > is `protocol/PROTOCOL-NSL.md` §4.1; this line is left as written because this document
+  > is the historical *why*, not the conformance target.
 - **`PortaBridgeNode.nsl`** — a fresh minimal node for the gate, *not* the shipsBells rig,
   which is entangled with the DS3231, the strike driver and #105's boot-energise defect.
 - **The cursor lives in RAM for this slice.** Cold boot = cursor 0 = full replay is the
