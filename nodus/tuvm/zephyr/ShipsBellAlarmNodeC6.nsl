@@ -74,7 +74,7 @@ rtcalarm: armed 14:59:55
 bell slot 30 at 15:00:00 — 6 bells
 *)
 class ShipsBellAlarmNodeC6 usingPlatform: platform net: net = (
-  | plat space timers tick bellCh bridge beatCh
+  | plat space timers tick bellCh bridge beatCh spans
     lastSlot. striking ::= false. strokeCount ::= 0. strokeIndex ::= 0. pinOn ::= false.
     haveClock ::= false. gpioMissing ::= false. midnightPending ::= false.
     alarmOk ::= false. armedFor. checkIns ::= 0. | ) (
@@ -128,8 +128,14 @@ class ShipsBellAlarmNodeC6 usingPlatform: platform net: net = (
     sock == nil
       ifTrue:  [ 'porta: bind FAILED — ringing on, reporting nothing' out ]
       ifFalse: [
+        (* The bridge registers six span slots of its own at construction and so
+           needs a Spans. This node takes no app-level spans, so the instance
+           exists only to hold the bridge's name<->slot table — but it must be ONE
+           instance, and it must be this one. *)
+        spans:: plat Spans new.
         bridge:: plat PortaBridge
-          socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort.
+          socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
+          spans: spans.
         space put: 'obs/build' value:
           (plat Record tag: #Build with: #chip -> self chip).
         beatCh:: space channel: 'sys/tick'.

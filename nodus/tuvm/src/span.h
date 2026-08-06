@@ -13,8 +13,14 @@
 #include <stdint.h>
 
 #ifndef OEVM_SPAN_SLOTS
-#define OEVM_SPAN_SLOTS 8          /* 8 * 48 B + a 4 B open-mask = 388 B of DRAM */
+#define OEVM_SPAN_SLOTS 16         /* 16 * 48 B + a 4 B open-mask = 772 B of DRAM */
 #endif
+/* Raised 8 -> 16 on 2026-08-05 (tuvm#107 follow-on). A bridged node now spends
+   2 reserved + 6 inside PortaBridge>>checkIn + whatever the app registers, and at
+   8 the C6 bridge node ran out at exactly the point the check-in decomposition
+   became askable. 32 is the HARD ceiling — span_open_mask is one u32 — and this
+   deliberately stops at half of it rather than at the ceiling, so the next node to
+   want a span does not have to re-argue the DRAM. */
 
 /* span_stats field order — mirrored by the spanStats: prim and by nsl's Spans class.
    sum is SPLIT because an SMI is 31-bit (TAG_SMI is `val << 1 | 1`, so the max is

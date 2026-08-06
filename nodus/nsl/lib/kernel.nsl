@@ -1558,10 +1558,39 @@ class Kernel usingPlatform: platform = () (
     | socket space nodeId peerHost peerPort
       cursor ::= 0. acked ::= 0. rejected ::= 0. misses ::= 0. dropped ::= 0.
       crossed ::= 0.
-      pending ::= OrderedCollection new. |
+      pending ::= OrderedCollection new.
+      (* tuvm#107 follow-on: the six spans that decompose `checkIn`. See the
+         bracket comment on checkIn for what each one covers and why the sends are
+         separated from the waits. *)
+      spans sPullSend sPullWait sApplyIn sPushBuild sPushSend sPushWait |
   ) (
-    setSocket: s space: sp id: anId peer: h port: p = (
-      socket:: s. space:: sp. nodeId:: anId. peerHost:: h. peerPort:: p. ^ self )
+    (* `spans` is a CONSTRUCTOR ARGUMENT and not optional, for the reason
+       src/span.h gives for pinning the two C-owned slots: a node must not be able
+       to ship an uninstrumented bridge by forgetting a bracket. The cost is a
+       sixth keyword at every construction site, which is the price named under
+       "mechanism minimization" — one shape, no instrumented/uninstrumented modes,
+       no nil guard on a measured path.
+
+       IT MUST BE THE APP'S ONE Spans. Each Spans instance owns its own name<->slot
+       table and hands out indices sequentially from 2, so two instances in one
+       image both allocate slot 2 and then silently accumulate into each other's
+       samples — the same one-instance rule `platform timers` already lives under.
+       The constructor cannot enforce this (a freshly minted Spans is accepted and
+       collides); making `platform Spans` answer a memoized instance would, and is
+       the right follow-on. Registration happens HERE, at construction, so the slot
+       table is complete before any capture window opens: SpanCapture publishes one
+       cell per slot, and a table that grew mid-window would publish a different set
+       of cells at stop than existed at start. *)
+    setSocket: s space: sp id: anId peer: h port: p spans: sn = (
+      socket:: s. space:: sp. nodeId:: anId. peerHost:: h. peerPort:: p.
+      spans:: sn.
+      sPullSend::  sn register: #pullSend.
+      sPullWait::  sn register: #pullWait.
+      sApplyIn::   sn register: #applyIn.
+      sPushBuild:: sn register: #pushBuild.
+      sPushSend::  sn register: #pushSend.
+      sPushWait::  sn register: #pushWait.
+      ^ self )
 
     (* bootId rides the batch envelope, not every record — it is constant for
        every entry in a check-in, and paying 3-9 bytes per entry for it would be
@@ -1847,11 +1876,43 @@ class Kernel usingPlatform: platform = () (
        that has stopped doing its actual job. The next check-in re-pulls the same
        range and re-pushes the same entries, so a miss costs latency and nothing
        else — which is the whole reason there is no retransmit layer. *)
+    (* THE SIX SPANS PARTITION THIS METHOD EXACTLY, which is the property that
+       makes them readable: `checkIn - (sum of the six)` is un-bracketed time, so a
+       gap is a bug in the bracketing rather than a finding about the mesh.
+
+         pullSend   encode the #pull frame and send it
+         pullWait   wait for the #batch
+         applyIn    apply the batch, publish sys/metrics
+         pushBuild  collectOutbound + encode + the trim re-encodes
+         pushSend   send the #push frame
+         pushWait   wait for the #ack and apply it
+
+       WHY THE SENDS ARE SEPARATED FROM THE WAITS. The first capture off c6-bench
+       (docs/results/2026-08-05-c6-span-capture-first.md) found a check-in costing
+       ~300 ms and being 97% of the tick, with no way to say whether that was radio
+       or VM. The tempting cheap split is "wait versus everything else" — and it is
+       wrong, because it puts both sends on the VM side of the line. The pull frame
+       is ~40 B and rides one 6LoWPAN fragment; a push frame runs to the 512 B cap
+       and rides five or six, and a datagram survives only if every fragment does.
+       So `pushSend` is the one stretch where fragmentation and MAC retries can
+       hide, and a coarser split would report that cost as interpreter cost.
+
+       The two small VM tails ride with their leg rather than getting slots of
+       their own: the pull frame's encode is inside `pullSend` (four fields), and
+       `applyAck:` is inside `pushWait` (one small record). Said out loud because
+       neither span is therefore PURE radio, and a reader comparing pullWait
+       against pushWait should know which one carries a decode. *)
     public checkIn = (
-      | reply |
+      | frame reply |
       socket == nil ifTrue: [ ^ self ].
-      socket sendTo: peerHost port: peerPort data: self pullFrame.
+      spans begin: sPullSend.
+      frame:: self pullFrame.
+      socket sendTo: peerHost port: peerPort data: frame.
+      spans end: sPullSend.
+      spans begin: sPullWait.
       reply:: self awaitReply: #batch.
+      spans end: sPullWait.
+      spans begin: sApplyIn.
       reply == nil
         ifTrue: [ misses:: misses + 1 ]
         ifFalse: [ self applyBatch: reply ].
@@ -1859,6 +1920,7 @@ class Kernel usingPlatform: platform = () (
          describe the state porta just asked for, not the one before it — the same
          reasoning PortaBridgeNodeC6>>tick already gives for publishHealth. *)
       self publishMetrics.
+      spans end: sApplyIn.
       ^ self pushOnce )
 
     (* #56 capability (3): "metrics die with the node", and /stats is a PULL, which
@@ -1882,13 +1944,25 @@ class Kernel usingPlatform: platform = () (
 
     pushOnce = (
       | frame reply |
+      spans begin: sPushBuild.
       frame:: self pushFrame.
+      spans end: sPushBuild.
+      (* This early return is the ONE place the six stop partitioning checkIn, and
+         in practice it is unreachable: publishMetrics writes sys/metrics on every
+         check-in and `collectOutbound` scans sys/**, so there is always at least
+         one row. Left as written — a bridge that has nothing to say must not send
+         an empty frame — but a reader should not expect to see pushSend and
+         pushWait ever lag pushBuild. *)
       frame == nil ifTrue: [ ^ self ].
+      spans begin: sPushSend.
       socket sendTo: peerHost port: peerPort data: frame.
+      spans end: sPushSend.
+      spans begin: sPushWait.
       reply:: self awaitReply: #ack.
       reply == nil
         ifTrue: [ misses:: misses + 1 ]
         ifFalse: [ self applyAck: reply ].
+      spans end: sPushWait.
       ^ self )
 
     (* Wait for a reply TO THE LEG THAT ASKED (tuvm#108). Both legs share one
@@ -1943,8 +2017,8 @@ class Kernel usingPlatform: platform = () (
       tag = #ack ifTrue: [ ^ true ].
       ^ false )
   ) : (
-    public socket: s space: sp id: anId peer: h port: p = (
-      ^ self new setSocket: s space: sp id: anId peer: h port: p )
+    public socket: s space: sp id: anId peer: h port: p spans: sn = (
+      ^ self new setSocket: s space: sp id: anId peer: h port: p spans: sn )
   )
 
   serialOn: aPort = ( ^ Serial onPort: aPort )

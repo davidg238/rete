@@ -27,9 +27,10 @@ oldest evicted true
 *)
 class PendingBound packageUsing: manifest = () (
   public main: platform args: args = (
-    | space bridge cap n last rows sawOld |
+    | space bridge cap n last rows sawOld spans |
     space:: platform space.
-    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969.
+    spans:: platform Spans new.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans.
     bridge subscribeStream: 'tel/log'.
 
     ('pending starts ' , bridge pendingSize printString) out.

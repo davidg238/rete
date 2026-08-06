@@ -1,0 +1,128 @@
+(*
+porta space-sync — `checkIn` is SIX spans, and each one fires exactly once per
+check-in.
+
+Why this exists: the first span capture off c6-bench
+(docs/results/2026-08-05-c6-span-capture-first.md) found a check-in costing ~300 ms
+and being 97% of the tick, with NO breakdown inside it — pull versus push, radio
+versus VM, send versus wait, all invisible, because `checkIn` was one span measured
+from the app. The breakdown needs spans INSIDE PortaBridge, which is what this
+test pins.
+
+The six PARTITION `checkIn` exactly, so `checkIn - (sum of six)` is un-bracketed
+time and any gap is a bug in the bracketing rather than a finding about the mesh:
+
+  pullSend   encode the #pull frame and send it
+  pullWait   wait for the #batch
+  applyIn    apply the batch, publish sys/metrics
+  pushBuild  collectOutbound + encode + the trim re-encodes
+  pushSend   send the #push frame
+  pushWait   wait for the #ack and apply it
+
+Why the SENDS are separated from the WAITS, which is the whole point: the pull
+frame is ~40 B and rides one 6LoWPAN fragment, while a push frame runs to the
+512 B cap and rides five or six — and a datagram survives only if every fragment
+does. So `pushSend` is the one stretch where fragmentation and MAC retries can
+hide. A coarser "radio wait versus everything else" split puts both sends on the
+VM side of the line and would report a fragmentation cost as interpreter cost.
+
+`spans` is a CONSTRUCTOR ARGUMENT and not optional, for the reason src/span.h
+gives for pinning the two C-owned slots: a node must not be able to ship an
+uninstrumented bridge by forgetting a bracket.
+
+What is asserted, and why each is falsifiable:
+
+- `slots 8` — 2 reserved (C-owned) + the bridge's 6, registered AT CONSTRUCTION.
+  Registering lazily on first use would grow the table mid-window, and
+  SpanCapture publishes one cell per slot — so a capture would publish a
+  different set of cells at stop than the set that existed at start.
+- `virgin ... 0` — registration alone records no sample. Falsifies a bracket that
+  fires at register: time.
+- `after two ... 2` — one sample per span per check-in, across TWO check-ins. A
+  bracket left open across the boundary records nothing on the next `begin:`
+  (span_end no-ops on a closed slot), so it would read 1, not 2.
+
+The fake socket alternates #batch, #ack, #batch, #ack — the real reply sequence,
+which is what lets two whole check-ins run without any wait burning its 2 s
+budget.
+
+expect:
+slots 8
+virgin 0 0 0 0 0 0
+after two 2 2 2 2 2 2
+*)
+class BridgeSpanBrackets packageUsing: manifest = () (
+
+  (* Duck-typed stand-ins, as in 06_reply_tag_match: PortaBridge only ever sends
+     `sendTo:port:data:` and `receive` to its socket, and `data` to what receive
+     answers. *)
+  public class FakeDatagram = ( | data | ) (
+    public setData: d = ( data:: d. ^ self )
+    public data = ( ^ data )
+  ) : (
+    public on: d = ( ^ self new setData: d )
+  )
+
+  (* Alternates the two replies rather than stepping a fixed list of slots: the
+     legs ask in a strict batch/ack order, so a toggle serves any number of
+     check-ins and no wait ever times out. A flag, not `n // 2` — this dialect has
+     no modulo. *)
+  public class FakeSocket = ( | batch ack wantAck | ) (
+    public setBatch: b ack: a = ( batch:: b. ack:: a. wantAck:: false. ^ self )
+    public sendTo: host port: p data: bytes = ( ^ self )
+    public receive = (
+      wantAck ifTrue: [ wantAck:: false. ^ FakeDatagram on: ack ].
+      wantAck:: true.
+      ^ FakeDatagram on: batch )
+  ) : (
+    public batch: b ack: a = ( ^ self new setBatch: b ack: a )
+  )
+
+  (* register: is idempotent by name, so this answers the slot the BRIDGE was
+     given rather than a new one — which is also the only way a test can ask for
+     it without the bridge exposing six accessors nothing else would use. *)
+  nOf: spans named: aName = (
+    ^ (spans statsAt: (spans register: aName)) basicAt: 1 )
+
+  line: label spans: spans = (
+    ^ label ,
+      ' ' , (self nOf: spans named: #pullSend)  printString ,
+      ' ' , (self nOf: spans named: #pullWait)  printString ,
+      ' ' , (self nOf: spans named: #applyIn)   printString ,
+      ' ' , (self nOf: spans named: #pushBuild) printString ,
+      ' ' , (self nOf: spans named: #pushSend)  printString ,
+      ' ' , (self nOf: spans named: #pushWait)  printString )
+
+  public main: platform args: args = (
+    | space spans bridge batch ack sock |
+    space:: platform space.
+    spans:: platform Spans new.
+
+    (* Something for the push leg to send, so `pushFrame` is not nil and the
+       second half of each check-in actually runs. sys/metrics is written by the
+       bridge on every check-in anyway, but this makes the first one independent
+       of that. *)
+    space put: 'obs/health' value: 11.
+
+    batch:: platform Cbor encode:
+      (platform Record tag: #batch
+         with: #hi -> 7
+         with: #entries -> (platform List with:
+            (platform List with: 7 with: 'goal/name' with: 2 with: 'bench'))).
+    ack:: platform Cbor encode: (platform Record tag: #ack with: #hw -> 1).
+
+    sock:: FakeSocket batch: batch ack: ack.
+    bridge:: platform PortaBridge
+      socket: sock space: space id: 'n1' peer: '::1' port: 6969 spans: spans.
+
+    ('slots ' , spans slotCount printString) println.
+    (self line: 'virgin' spans: spans) println.
+
+    bridge checkIn.
+    bridge checkIn.
+    (self line: 'after two' spans: spans) println.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

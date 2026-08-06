@@ -18,9 +18,10 @@ still alive true
 *)
 class BridgeAuthority packageUsing: manifest = () (
   public main: platform args: args = (
-    | space bridge bytes |
+    | space bridge bytes spans |
     space:: platform space.
-    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969.
+    spans:: platform Spans new.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans.
 
     bytes:: platform Cbor encode:
       (platform Record tag: #batch

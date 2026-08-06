@@ -25,11 +25,12 @@ seq advanced true
 *)
 class MetricsOnCheckIn packageUsing: manifest = () (
   public main: platform args: args = (
-    | space bridge before m |
+    | space bridge before m spans |
     space:: platform space.
+    spans:: platform Spans new.
     before:: space stamp.
 
-    bridge:: platform PortaBridge socket: nil space: space id: 'test' peer: '::1' port: 1.
+    bridge:: platform PortaBridge socket: nil space: space id: 'test' peer: '::1' port: 1 spans: spans.
     bridge publishMetrics.
 
     m:: (space channel: 'sys/metrics') peek: '' ifAbsent: [ nil ].

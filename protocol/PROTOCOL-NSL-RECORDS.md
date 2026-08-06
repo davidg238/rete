@@ -351,7 +351,7 @@ down here; the entry below documents it rather than proposing it.
 | path | kind | record |
 |---|---|---|
 | `diag/spans/ctl` | **C (cell)**, ↓ | `SpanCtl { state: sym }` — `#running` / `#stopped`. Writing `#running` while already running RESTARTS the window; a write is a statement of intent |
-| `diag/spans/<span>` | **C (cell)**, ↑ | `LatencySpan { … }` — the §4.4 record, **one cell per span slot**, 140 B each |
+| `diag/spans/<span>` | **C (cell)**, ↑ | `LatencySpan { … }` — the §4.4 record, **one cell per span slot**, 140 B each. `<span>` is the slot's nsl name with its leading `#` stripped |
 | `diag/spans/result` | **C (cell)**, ↑ | `SpanCapture { n: int, ms: int }` — the window summary ONLY: total samples across slots, and the window's elapsed ms (`-1` when the millis counter wrapped, published rather than a plausible wrong number) |
 
 **`diag/spans/ctl` is marked ↓ and porta cannot write it.** §3's inbound authority is
@@ -365,6 +365,23 @@ on purpose or not at all. **Filed as tuvm#159.** Until it is settled, a node tha
 span data published runs a FREE-RUNNING capture on its own cadence, which needs no inbound
 path at all, and whose cost is measurable rather than argued about.
 
+**Eight of the span names are not the app's to choose, and every bridged node publishes
+them.** Two are C-owned (`httpQueue`, `egress` — `src/span.h` pins the slots so a node
+cannot ship an uninstrumented HTTP path). Six more became kernel-owned on 2026-08-05:
+`PortaBridge` registers `pullSend`, `pullWait`, `applyIn`, `pushBuild`, `pushSend` and
+`pushWait` at construction, decomposing one check-in into its two radio sends, its two
+radio waits and its two VM stretches. A reader of any bridged node's tree will find those
+eight paths without any app having asked for them, and an app's own spans start after
+them. Why they exist at all: the first capture off real hardware
+(`docs/results/2026-08-05-c6-span-capture-first.md`) found a check-in costing ~300 ms with
+no way to say whether that was radio or interpreter.
+
+Consequence for the size law, and it is not free: the number of `diag/spans/**` cells a
+node publishes per window is its **registered slot count**, not `OEVM_SPAN_SLOTS`. A
+bridged gate node went from 5 cells to 11 on that date. Each is a separate push row under
+§2.2's 512 B batch cap and `maxRows`, so a window's rows now take several check-ins to
+drain rather than one. They are cells, so this costs latency and never loss.
+
 **Why `diag/` and not `obs/`.** §1's inherited rule: diagnostics stay out of the
 `goal/`/`obs/` convergence tree, so fleet anti-entropy never walks them. A span capture is
 never a *desired* state, so it has no `goal/` twin and nothing to converge against.
@@ -372,7 +389,7 @@ never a *desired* state, so it has no `goal/` twin and nothing to converge again
 **Why the per-span rows are siblings of the summary, and not nested inside it.** The node's
 `SpanCapture>>reportMs:` used to return `#SpanCapture { n, ms, slots: [ … ] }` with every
 slot's `LatencySpan` nested in a list. That shape **cannot ride the space**: with
-`OEVM_SPAN_SLOTS = 8` and `LatencySpan` measured at 140 B, the list alone is ~1120 B against
+the 8 slots registered at the time and `LatencySpan` measured at 140 B, the list alone is ~1120 B against
 §2.2's **256 B** value cap — 4.4× over the value cap and 2.2× over the 512 B batch cap. §2.2
 calls an oversized outbound value a *programming error*, and it is one; it has gone
 unnoticed only because the capture is read locally by the node's own `/stats` page and has

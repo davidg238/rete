@@ -76,8 +76,9 @@ class ReplyTagMatch packageUsing: manifest = () (
   )
 
   public main: platform args: args = (
-    | space bridge hw strayAck realBatch strayBatch realAck sock err errBridge errSock |
+    | space bridge hw strayAck realBatch strayBatch realAck sock err errBridge errSock spans |
     space:: platform space.
+    spans:: platform Spans new.
 
     (* Something for the push leg to send, so `pushFrame` is not nil and the
        second wait actually happens. *)
@@ -102,7 +103,7 @@ class ReplyTagMatch packageUsing: manifest = () (
       (platform Record tag: #ack with: #hw -> hw).
 
     sock:: FakeSocket a: strayAck b: realBatch c: strayBatch d: realAck.
-    bridge:: platform PortaBridge socket: sock space: space id: 'n1' peer: '::1' port: 6969.
+    bridge:: platform PortaBridge socket: sock space: space id: 'n1' peer: '::1' port: 6969 spans: spans.
 
     ('acked untouched by cross ' , bridge acked printString) out.
     bridge checkIn.
@@ -116,7 +117,7 @@ class ReplyTagMatch packageUsing: manifest = () (
        Nothing is pushed here, so the single wait is the pull's. *)
     err:: platform Cbor encode: (platform Record tag: #err with: #msg -> 'malformed').
     errSock:: FakeSocket a: err b: err c: nil d: nil.
-    errBridge:: platform PortaBridge socket: errSock space: space id: 'n2' peer: '::1' port: 6969.
+    errBridge:: platform PortaBridge socket: errSock space: space id: 'n2' peer: '::1' port: 6969 spans: spans.
     errBridge checkIn.
     ('err is not skipped ' , (errBridge crossed = 0) printString) out.
     ^ 0

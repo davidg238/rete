@@ -28,14 +28,15 @@ class SysCellsPush packageUsing: manifest = () (
     ^ false )
 
   public main: platform args: args = (
-    | space bridge rows |
+    | space bridge rows spans |
     space:: platform space.
+    spans:: platform Spans new.
     space put: 'goal/name' value: 'bench'.
     space put: 'obs/health' value: 11.
     space put: 'sys/metrics' value: 22.
 
     (* A nil socket is legal here and never reached: collectOutbound does no I/O. *)
-    bridge:: platform PortaBridge socket: nil space: space id: 'test' peer: '::1' port: 1.
+    bridge:: platform PortaBridge socket: nil space: space id: 'test' peer: '::1' port: 1 spans: spans.
     rows:: bridge collectOutbound.
 
     ('rows ' , rows size printString) println.

@@ -22,9 +22,10 @@ err is not a batch false
 *)
 class BridgeFrames packageUsing: manifest = () (
   public main: platform args: args = (
-    | space bridge pull batch push rows |
+    | space bridge pull batch push rows spans |
     space:: platform space.
-    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969.
+    spans:: platform Spans new.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans.
 
     (* --- the pull frame ---
        `=` and not printString: printing a Symbol MASKS the identity question, and
