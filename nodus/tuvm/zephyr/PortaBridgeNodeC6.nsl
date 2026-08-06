@@ -41,7 +41,9 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
        once. *)
     obsCap goalName ::= nil. lastUnacked ::= -1. lastAcked ::= 0.
     obsConverged ::= false.
-    verdictDone ::= false. tapPass ::= 0. tapFail ::= 0. |
+    verdictDone ::= false. tapPass ::= 0. tapFail ::= 0.
+    (* tuvm#107: the span table. ONE window per boot — see `main:args:`. *)
+    spans capture sTick sCheckIn sPublish | 
 ) (
   nodeId    = ( ^ 'c6-bench' )
   (* gw85224-01's mesh-local EID, read from the OTBR on 2026-06-28 and unchanged
@@ -66,9 +68,31 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
       socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort.
     bridge subscribeStream: 'tel/log'.
     bridge subscribeStream: 'sys/reset'.
-    (* NOT diag/spans/result: SpanCapture publishes ~1120 B against the 256 B value
-       cap (tuvm#107). It must not be synced until that value is split into sibling
-       cells at diag/spans/<span>. *)
+
+    (* tuvm#107 landed, so the span cells fit the 256 B cap and `diag/**` is in the
+       bridge's outbound cell scan. No subscribeStream: here — these are CELLS, and
+       the scan finds them.
+
+       ONE window per boot: opened here, closed in `emitVerdict`. That is not a
+       cadence anybody invented, it is the window this workload already defines —
+       the certification run — and it is the degenerate case whose cost can be
+       measured. After the verdict the cells stop changing, so `changedSince:`
+       stops returning them and the steady-state wire cost is exactly zero.
+
+       A repeating window would need a period, a period is a tunable, and there is
+       no data yet to choose one from. What would earn it: this capture showing
+       that one boot-to-verdict window does not answer where the time goes. Remote
+       control of the window is a different question and is blocked on tuvm#159 —
+       porta may write only goal/** and dbg/req, so it cannot drive diag/spans/ctl
+       at all today. *)
+    spans::     platform Spans new.
+    sTick::     spans register: #jobTick.     (* the whole timer -> report job *)
+    sCheckIn::  spans register: #checkIn.     (* pull + push, the radio round trip *)
+    sPublish::  spans register: #publish.     (* the health and log writes *)
+    capture::   platform SpanCapture onSpace: space spans: spans.
+    capture start.
+    (space channel: 'diag/spans/ctl')
+      put: '' value: (platform Record tag: #SpanCtl with: #state -> #running).
 
     (* porta's writes land as ordinary cell writes, so the echo is an ordinary
        reaction — there is no protocol handler anywhere in this node. *)
@@ -102,18 +126,26 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
      one before it. *)
   tick = (
     ticks:: ticks + 1.
+    spans begin: sTick.
+    spans begin: sCheckIn.
     bridge checkIn.
+    spans end: sCheckIn.
     (* MEASURED HERE, between the check-in and the next health write, and nowhere
        else: `publishHealth` below immediately makes obs/ unacked again, so a
        reading taken after it would never be 0 and the assertion would be
        unfalsifiable in the wrong direction — permanently red instead of
        permanently green, but just as meaningless. *)
     self noteObsAcked.
+    spans begin: sPublish.
     self publishHealth.
     space out: 'tel/log' value:
       (platform Record tag: #Log with: #level -> #info
                                  with: #text -> ('tick ' , ticks printString)).
+    spans end: sPublish.
     self report.
+    (* jobTick closes BEFORE checkVerdict, so the tick that ends the window is
+       itself measured — otherwise the last sample would be the one missing. *)
+    spans end: sTick.
     self checkVerdict.
     ^ self
   )
@@ -240,6 +272,11 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
 
   emitVerdict = (
     verdictDone:: true.
+    (* Close the one window (tuvm#107). Writing #stopped is what makes SpanCapture
+       publish the per-slot cells and the { n, ms } summary; they ride the NEXT
+       check-in's push, after this tick's assertions have already been taken. *)
+    (space channel: 'diag/spans/ctl')
+      put: '' value: (platform Record tag: #SpanCtl with: #state -> #stopped).
     self tap: 1 named: 'obs-acked'
                 ok: (obsConverged and: [ self healthPresent ])
                 detail: ('health=' , (self healthPresent ifTrue: [ 'present' ] ifFalse: [ 'absent' ]) ,

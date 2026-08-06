@@ -226,8 +226,13 @@ replay.
 
 An ordinary supervised nsl job, granted: the radio/transport capability, write
 access to `goal/**` and `dbg/req` (inbound), and read/reaction access to `obs/**`,
-`tel/**`, `sys/**`, `dbg/resp` (outbound). A crash of the bridge is a contained
-fault: porta sees a late check-in, nothing worse.
+`tel/**`, `sys/**`, `dbg/resp` and `diag/**` (outbound). A crash of the bridge is a
+contained fault: porta sees a late check-in, nothing worse.
+
+`diag/**` joined the outbound grant with tuvm#107 (2026-08-05). It is outbound ONLY:
+the node reports what it measured. Driving a capture from porta would need an
+*inbound* path, and §3's inbound authority is deliberately two paths wide — see the
+note under RECORDS §4.6.
 
 **The VM did change — and had to.** The value-holding kind lives in the *space*, not
 in the bridge's private map. tuvm#32 settled this (rung 9, option A): because the
@@ -247,11 +252,14 @@ On each check-in (cadence per `obs/mode`, exactly as v1 derives liveness):
    to the local space (cell paths become local cell values via `put:value:`;
    `goal/do/*` stream entries are `out:`ed once); persist the new cursor (NVS) only
    after apply.
-2. **Push** — send cell `obs/**` **and `sys/**`** values changed since the last acked
-   push, plus queued `tel/**` / `sys/**` / `dbg/resp` stream entries, each batch tagged
-   with a node-side sequence for gateway dedup. Both cell prefixes are the node's own
-   authority per §4.1; scanning only `obs/**` (as this said until 2026-08-04) left
-   RECORDS §4.4's `sys/metrics` — a pinned cell — unsendable by construction.
+2. **Push** — send cell `obs/**`, `sys/**` **and `diag/**`** values changed since the
+   last acked push, plus queued `tel/**` / `sys/**` / `dbg/resp` stream entries, each
+   batch tagged with a node-side sequence for gateway dedup. All three cell prefixes
+   are the node's own authority per §4.1; scanning only `obs/**` (as this said until
+   2026-08-04) left RECORDS §4.4's `sys/metrics` — a pinned cell — unsendable by
+   construction, and scanning only those two (until 2026-08-05) did the same to the
+   span cells tuvm#107 had just made small enough to send. A value that fits the cap
+   but is never scanned is unsendable in exactly the same way.
 
 On the node these are the *same paths* its local jobs already use — the supervisor
 reacts to `goal/apps/**` exactly as it reacts to any channel. There is no separate

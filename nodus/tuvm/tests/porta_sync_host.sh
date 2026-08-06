@@ -158,4 +158,29 @@ test "$METRICS_ROWS" -ge 2 || {
   /tmp/porta log --db "$DB" "$NODE" --limit 200; exit 1; }
 echo "  sys/metrics accumulates in the event log: $METRICS_ROWS rows — the run-up is retained"
 
+# tuvm#107 + the diag/** outbound grant: a span capture has to survive the whole chain —
+# split into sibling cells small enough for the 256 B cap, picked up by the cell scan,
+# carried by the push, stored by porta. Any one of those missing and the capture is
+# invisible, which is exactly how sys/metrics stayed unpublished for a rung.
+#
+# The node closes its one window on the first tick where the gateway has acked, so this
+# waits rather than assuming a tick count.
+for _ in $(seq 1 60); do
+  /tmp/porta get --db "$DB" "$NODE" diag 2>/dev/null | grep -q "diag/spans/result" && break; sleep 0.2
+done
+/tmp/porta get --db "$DB" "$NODE" diag | grep -q "diag/spans/result" || {
+  echo "FAIL: diag/spans/result never reached porta (tuvm#107 / diag outbound grant)"
+  /tmp/porta get --db "$DB" "$NODE"; cat /tmp/porta_serve.log; exit 1; }
+
+# The summary alone would pass while every row was silently dropped at the value cap —
+# which is the failure this whole change exists to remove. Assert a ROW, by name.
+for _ in $(seq 1 60); do
+  /tmp/porta get --db "$DB" "$NODE" diag 2>/dev/null | grep -q "diag/spans/checkIn" && break; sleep 0.2
+done
+/tmp/porta get --db "$DB" "$NODE" diag | grep -q "diag/spans/checkIn" || {
+  echo "FAIL: no per-slot span cell reached porta — only the summary did"
+  /tmp/porta get --db "$DB" "$NODE" diag; exit 1; }
+SPAN_ROWS=$(/tmp/porta get --db "$DB" "$NODE" diag | grep -c "diag/spans/")
+echo "  diag/spans: $SPAN_ROWS cells in porta's tree, rows and summary (tuvm#107)"
+
 echo "PORTA SYNC OK"

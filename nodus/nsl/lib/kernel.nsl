@@ -1759,10 +1759,16 @@ class Kernel usingPlatform: platform = () (
           with: #bootId -> self bootId
           with: #entries -> (List fromCollection: rows)) )
 
-    (* BOTH prefixes are the node's own authority (PROTOCOL-NSL §4.1 grants the bridge
-       obs/**, tel/**, sys/** and dbg/resp outbound); only the cell half of that grant
-       used to be implemented, which left RECORDS §4.4's sys/metrics — a pinned CELL —
-       unsendable by construction, and is why no node app ever published it.
+    (* ALL THREE prefixes are the node's own authority (PROTOCOL-NSL §4.1 grants the
+       bridge obs/**, tel/**, sys/**, dbg/resp and diag/** outbound); only the cell
+       half of that grant used to be implemented, which left RECORDS §4.4's
+       sys/metrics — a pinned CELL — unsendable by construction, and is why no node
+       app ever published it.
+
+       `diag` joined the scan with tuvm#107, which is the OTHER half of making a span
+       capture sendable: #107 split the ~1120 B nested value into sibling cells that
+       fit the 256 B cap, and a value that fits but is never scanned is unsendable in
+       exactly the same way sys/metrics was. Both halves, or neither is worth having.
 
        goal/** is porta's authority and is excluded BY CONSTRUCTION, not by a test:
        each scan runs against a capability rooted at its own prefix, and a rooted
@@ -1778,6 +1784,7 @@ class Kernel usingPlatform: platform = () (
       [ i <= pending size ] whileTrue: [ rows add: (pending at: i). i:: i + 1 ].
       self addCellsFrom: 'obs' into: rows.
       self addCellsFrom: 'sys' into: rows.
+      self addCellsFrom: 'diag' into: rows.
       ^ self sortedBySeq: rows )
 
     addCellsFrom: prefix into: rows = (

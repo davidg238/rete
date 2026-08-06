@@ -354,6 +354,17 @@ down here; the entry below documents it rather than proposing it.
 | `diag/spans/<span>` | **C (cell)**, ↑ | `LatencySpan { … }` — the §4.4 record, **one cell per span slot**, 140 B each |
 | `diag/spans/result` | **C (cell)**, ↑ | `SpanCapture { n: int, ms: int }` — the window summary ONLY: total samples across slots, and the window's elapsed ms (`-1` when the millis counter wrapped, published rather than a plausible wrong number) |
 
+**`diag/spans/ctl` is marked ↓ and porta cannot write it.** §3's inbound authority is
+exactly two paths wide — porta may write `goal/**` and `dbg/req`, and the node DROPS an
+entry at any other path. `diag/spans/ctl` is neither, so the downward arrow in this table
+describes an intent no gateway can currently exercise; the only writers today are the
+node's own `/stats` page links. This is a genuine contradiction between two documents of
+record, resolved here by naming it rather than by quietly widening the authority model —
+that model is the one rule the whole direction argument rests on, and it should be widened
+on purpose or not at all. **Filed as tuvm#159.** Until it is settled, a node that wants
+span data published runs a FREE-RUNNING capture on its own cadence, which needs no inbound
+path at all, and whose cost is measurable rather than argued about.
+
 **Why `diag/` and not `obs/`.** §1's inherited rule: diagnostics stay out of the
 `goal/`/`obs/` convergence tree, so fleet anti-entropy never walks them. A span capture is
 never a *desired* state, so it has no `goal/` twin and nothing to converge against.
