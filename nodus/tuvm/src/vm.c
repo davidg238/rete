@@ -397,16 +397,49 @@ static uint32_t    g_mprof_used = 0;
    Cross-binary timing cannot resolve this hook: an OFF-vs-ON build of fib(35) put
    the ON build 4% FASTER, which is the code-layout roulette the benchmark
    discipline warns about, not a measurement. A runtime flag puts both arms in ONE
-   binary, so the delta is the table operation and nothing else.
-   Read once at startup in a constructor, so the read is not on the hot path. */
+   binary -- same layout, same cache, same boot -- so the delta is the table
+   operation and nothing else.
+
+   The trigger is an ACTIVATION COUNT, not an env var and not a clock: getenv does
+   not exist on Zephyr, and a count makes the two arms exactly reproducible and
+   exactly equal in size on both host and device. The workload runs a fixed number
+   of identical iterations; the gate flips at a count that falls on an iteration
+   boundary, so the first half is the OFF arm and the second half the ON arm.
+
+   ONE decrement and one branch on the hot path for ALL of this scaffolding --
+   both arms pay it identically, so it cancels out of the delta. It does inflate
+   the baseline slightly, which makes the measured percentage a mild UNDERSTATEMENT
+   of the true relative cost. */
 #ifdef OEVM_MPROF_RUNTIME_GATE
-static int g_mprof_enabled = 0;
-__attribute__((constructor))
-static void mprof_read_gate(void) { g_mprof_enabled = getenv("OEVM_MPROF_ON") ? 1 : 0; }
+#ifndef OEVM_MPROF_FLIP_AT
+#define OEVM_MPROF_FLIP_AT 3000000u    /* activations before the ON arm begins */
+#endif
+#ifndef OEVM_MPROF_DUMP_AT
+#define OEVM_MPROF_DUMP_AT 0u          /* 0 = never dump from the hot path */
+#endif
+static int      g_mprof_enabled = 0;
+static int      g_mprof_phase = 0;
+static uint32_t g_mprof_countdown = OEVM_MPROF_FLIP_AT;
+static void mprof_report(const char *why);
+
+/* Cold: runs twice in a whole measurement. */
+static void mprof_phase_advance(void) {
+    if (g_mprof_phase == 0) {
+        g_mprof_enabled = 1;
+        g_mprof_phase = 1;
+        mprof_report("flip");
+        g_mprof_countdown = (OEVM_MPROF_DUMP_AT > OEVM_MPROF_FLIP_AT)
+                          ? (OEVM_MPROF_DUMP_AT - OEVM_MPROF_FLIP_AT) : 0xFFFFFFFFu;
+    } else {
+        mprof_report("dump");
+        g_mprof_countdown = 0xFFFFFFFFu;
+    }
+}
 #endif
 
 static OEVM_HOT void mprof_bump(const void *m) {
 #ifdef OEVM_MPROF_RUNTIME_GATE
+    if (--g_mprof_countdown == 0) mprof_phase_advance();
     if (!g_mprof_enabled) return;
 #endif
     /* Knuth multiplicative hash on the pointer, shifted past the alignment bits
@@ -427,22 +460,31 @@ static OEVM_HOT void mprof_bump(const void *m) {
 /* SPIKE-ONLY readback, and it exists because the real one is not reachable yet:
    the mirror is granted to the image's SUPERVISOR (oimg_loader.c:238), not to the
    app, so an ordinary node app cannot ask `mirror callsOf:` and publish
-   diag/calls/** without the supervisor handing something down. Rather than design
+   a `diag/calls` subtree without the supervisor handing something down. Rather than design
    that grant inside a spike, dump from C at exit under an env gate.
    A destructor rather than an atexit registration so the hot path pays NOTHING for
    the dump's existence -- no init flag, no branch in mprof_bump. */
-__attribute__((destructor))
-static void mprof_dump_at_exit(void) {
+static void mprof_report(const char *why) {
     int i;
     uint32_t total = 0;
-    if (!getenv("OEVM_MPROF_DUMP")) return;
     for (i = 0; i < OEVM_MPROF_SLOTS; i++) total += g_mprof_n[i];
-    fprintf(stderr, "mprof: methods=%u activations=%u overflow=%u cap=%d\n",
-            g_mprof_used, total, g_mprof_overflow, OEVM_MPROF_SLOTS);
+    fprintf(stderr, "mprof[%s]: methods=%u activations=%u overflow=%u cap=%d\n",
+            why, g_mprof_used, total, g_mprof_overflow, OEVM_MPROF_SLOTS);
     for (i = 0; i < OEVM_MPROF_SLOTS; i++) {
         if (g_mprof_key[i]) fprintf(stderr, "mprof: %p %u\n", g_mprof_key[i], g_mprof_n[i]);
     }
 }
+
+/* On a hosted run the process exits, so report there too. A destructor rather
+   than an atexit registration keeps the hot path free of an init flag. Absent on
+   Zephyr, where nothing ever exits -- the device path reports from
+   mprof_phase_advance instead. */
+#ifndef __ZEPHYR__
+__attribute__((destructor))
+static void mprof_dump_at_exit(void) {
+    if (getenv("OEVM_MPROF_DUMP")) mprof_report("exit");
+}
+#endif
 
 static uint32_t mprof_count(const void *m) {
     uint32_t h = (uint32_t)(((uintptr_t)m >> 4) * 2654435761u) & (OEVM_MPROF_SLOTS - 1);

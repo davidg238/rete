@@ -1,0 +1,53 @@
+(*
+MethodProfileNodeC6 — the #164 device measurement: what does an exact per-method
+call counter cost on a C6, in the shadow of a real interpreter?
+
+WHY HANOI. `hanoiMove:` makes exactly 2^n - 1 activations, so the workload
+predicts its own activation count and the counter can be checked against a
+number rather than against itself. Body verbatim from HanoiNode.nsl (which took
+it from 00_perf/performance.nsl), self-timed via `millis` the same way.
+
+WHY 20 IDENTICAL RUNS AND NOT TWO BUILDS. A cross-binary OFF/ON comparison of
+this hook on host put the ON build 4% FASTER — code-layout roulette, not a
+result. So both arms live in ONE binary, one boot, one cache state, and the VM
+flips the counter on at a fixed ACTIVATION COUNT (-DOEVM_MPROF_FLIP_AT). Runs
+1-10 are the OFF arm, runs 12-20 the ON arm, and run 11 is discarded because the
+flip lands inside it.
+
+  depth 18   -> 262143 activations per run
+  20 runs    -> 5242860, so FLIP_AT=2621430 (mid-run-11) and DUMP_AT=5242860
+
+Build (no Thread needed — this workload never touches the network):
+  OEVM_METHOD_PROFILE=1 OEVM_MPROF_RUNTIME_GATE=1 \
+  OEVM_MPROF_FLIP_AT=2621430u OEVM_MPROF_DUMP_AT=5242860u \
+  ./run.sh --board esp32c6 --node MethodProfileNodeC6.nsl --flash
+*)
+class MethodProfileNodeC6 packageUsing: manifest = () (
+  public main: platform args: args = (
+    | i |
+    ('mprof-node: depth 18, 20 runs, 262143 activations each') out.
+    i:: 1.
+    [ i <= 20 ] whileTrue: [
+      self runHanoi: 18 index: i.
+      i:: i + 1.
+    ].
+    ('mprof-node: done') out.
+    ^ 0
+  )
+  runHanoi: n index: i = (
+    | t0 t1 |
+    t0:: 0 millis.
+    self hanoiMove: n from: 1 to: 2 temp: 3.
+    t1:: 0 millis.
+    ('mprof-run ' , i printString , ' ' , (t1 - t0) printString) out.
+    ^ n
+  )
+  hanoiMove: n from: src to: dst temp: tmp = (
+    n > 1 ifTrue: [
+      self hanoiMove: n - 1 from: src to: tmp temp: dst.
+      self hanoiMove: n - 1 from: tmp to: dst temp: src.
+    ].
+    ^ n
+  )
+) : (
+)

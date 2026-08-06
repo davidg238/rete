@@ -1,6 +1,10 @@
 # Exact per-method call counts — spike result (#164)
 
-**Date:** 2026-08-06 · **Issue:** #164 · **Status:** spike, host only. Device number NOT taken.
+**Date:** 2026-08-06 · **Issue:** #164 · **Status:** spike. Host **and** C6 measured.
+
+**Answer up front: 0.90% on a C6** — 106 ns against an 11.83 µs/activation interpreter.
+For comparison, the debugger's three per-bytecode checks cost 10–16% and are compiled out
+of every Zephyr build for it (`zephyr/CMakeLists.txt`, #40).
 
 ## What this answers
 
@@ -68,6 +72,41 @@ under ~0.6% and cannot be resolved further by this method.
 That baseline is why: at 58 ns of interpreter work per activation, ~7 independent
 instructions disappear into the shadow of an out-of-order core.
 
+## Cost on the C6 — 0.90%, and the device is where it is measurable
+
+Host could not resolve this hook at all; the C6 resolves it to three significant figures,
+because an in-order 32-bit RISC-V has no out-of-order shadow for those instructions to hide
+in and its millisecond clock is 0.03% of a 3.1 s run.
+
+Workload: `MethodProfileNodeC6.nsl`, Hanoi depth 18 — **exactly 2¹⁸−1 = 262,143 activations
+per run**, 20 identical runs, one binary, one boot. The counter flips on at a fixed
+activation count (`OEVM_MPROF_FLIP_AT=2621430`, exactly 10 runs), so runs 1–10 are the OFF
+arm and 11–20 the ON arm with the same code layout and the same cache state.
+
+```
+run   1..10  (counter off)   3101 3101 3101 3101 3101 3102 3101 3101 3101 3101  ms
+run  11..20  (counter on)    3129 3129 3129 3129 3129 3129 3129 3129 3129 3129  ms
+```
+
+The device is essentially noise-free — one millisecond of scatter across ten runs on the
+OFF arm and **zero** on the ON arm.
+
+| | |
+|---|---|
+| interpreter baseline | **11.83 µs / activation** (204× the host's 58 ns) |
+| counter cost | **+27.9 ms per 262,143 activations = +106 ns / activation** |
+| **relative** | **+0.900%** |
+
+The scaffolding decrement is in *both* arms, so it cancels out of the delta; it inflates the
+denominator very slightly, making 0.900% a hair's-breadth understatement.
+
+The counter was also exact on device: the ON arm reported **2,621,430 activations, overflow
+0**, split 2,621,420 to `hanoiMove:from:to:temp:` and exactly **10** to `runHanoi:index:` —
+one per run. Both keys are `0x428…`, i.e. XIP flash, confirming the `.rodata` reasoning above.
+
+Incidental finding: only **two** methods were activated in the whole window. The reporting
+path (`,`, `printString`, `out`) costs no method activations at all — it is prims end to end.
+
 ## Footprint (`vm.o`, x86-64 host, `-O2`)
 
 | | off | on | delta |
@@ -89,18 +128,29 @@ the default build is unchanged.
 
 ## What this does NOT settle
 
-1. **The device number.** Per the standing rule, a host absolute is never quoted for an
-   ESP32 claim, and host results have inverted on device before. The C6 is in-order 32-bit
-   RISC-V where those ~7 instructions execute serially and cannot hide in an out-of-order
-   shadow, and its per-activation baseline is far larger — both push the ratio, in opposite
-   directions. **This is the measurement that decides whether the facility ships on, off, or
-   at all.**
-2. **The readback grant.** The mirror is handed to the image's **Supervisor**
+1. **The readback grant.** The mirror is handed to the image's **Supervisor**
    (`oimg_loader.c:238`), not to the app — an ordinary node app cannot send `mirror callsOf:`
    and therefore cannot publish `diag/calls/**` today. The spike sidesteps this with a
    C-side exit dump under `OEVM_MPROF_DUMP`. Deciding the real grant (supervisor publishes,
    or supervisor attenuates and hands down) is separate work and belongs with the
    capability posture, not inside a spike.
-3. **Time attribution.** Counts only. Counts × an existing span sum already gives µs/call
+2. **Time attribution.** Counts only. Counts × an existing span sum already gives µs/call
    without inventing a sampling rate; per-method *time* (entry/exit stamping) is a
    different and more expensive mechanism, deliberately not attempted.
+3. **Whether 0.90% is cheap enough to be unconditional.** That is a judgement, not a
+   measurement, and it is David's. What the measurement supports: it is **an order of
+   magnitude cheaper than the per-bytecode debugger checks** that were judged too expensive
+   for Zephyr (10–16%), and 2 KB of `.bss` remains the binding constraint on an ESP32
+   (816 B spare, #53) rather than the time.
+4. **Table capacity under a real app.** Hanoi touches two methods; a bridged node will touch
+   far more. 256 slots at a ≤0.7 load factor is ~180 distinct methods, and overflow is
+   counted so saturation is visible — but nobody has yet run this under `PortaBridgeNodeC6`
+   to see the real number.
+
+## Bench state
+
+Measured on **c6spare** (console `d2e21074…`, JTAG `40:4C:CA:44:6E:60`) — the disposable
+board and current `TARGET_DEFAULT_BOARD`. The ship's bell was not on the cable and is
+refused by by-id hash on the deploy path regardless. **c6spare is left running
+`MethodProfileNodeC6`**, which finishes its 20 runs and returns; reflash it before using it
+as a gate target.
