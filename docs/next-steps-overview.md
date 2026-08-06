@@ -361,17 +361,25 @@ free-running cadence, which adds no mechanism) that the other three must beat.
 optimisation with a measurement behind it and no deadline, where #25 is the decision-
 foreclosing one.
 
-**#161's precondition landed on 2026-08-06 and its C6 half is parked on hardware.**
-`pushBuild` is now three nested spans (`pushCollect` / `pushEncode` / `pushTrim`, 14 slots
-of 16), green on all three gates, and the capture that gives them numbers is waiting for
-`c6bench` — off USB since 07:46 that day. Two findings came out of the host half and both
-matter beyond #161 (`docs/results/2026-08-06-pushbuild-three-way-host.md`):
+**#161's precondition landed on 2026-08-06 and answered the question.** `pushBuild` is
+three nested spans (`pushCollect` / `pushEncode` / `pushTrim`, 14 slots of 16), and on the
+C6: **encode 118.6 ms (63.5%), collect 67.7 ms (36.3%), trim 139 µs (0.07%)**, both
+partitions holding to 0.14%. So `pushBuild` is **one thing done twice, not three things** —
+#161's fix (1) (keep the bytes `valueFits:` already produced) is worth up to ~21% of a
+check-in, and fix (2) (incremental trim sizing) is unearned by this data.
+**The bigger number is one #161 did not ask about:** 118.6 ms for a ≤512 B frame is
+~230 µs *per byte*, so deleting the duplicate encode still leaves ~119 ms. The cost is the
+codec itself, not how many times it runs — the next question is inside `Cbor>>encode:`,
+and it is about allocation and copying rather than call count.
+Two findings from the host half matter beyond #161
+(`docs/results/2026-08-06-pushbuild-three-way.md`):
 **(a)** the boot-to-verdict window is structurally blind to the trim loop — trimming only
 starts once the capture's own 14 cells create a backlog over 512 B, and the window closes
 before they are written, so a capture in this shape reports `pushTrim ≈ 0` for a loop it
-never observed. That is the thing `PortaBridgeNodeC6.nsl` said would earn a repeating
-window, and it argues for **#159's fourth option** (a node-chosen free-running cadence,
-no authority change) rather than for porta driving `diag/spans/ctl`.
+never observed. Predicted on host, then confirmed on the C6 at 139 µs — so that 0.07% is
+the blind spot, not a verdict on the loop. That is the thing `PortaBridgeNodeC6.nsl` said
+would earn a repeating window, and it argues for **#159's fourth option** (a node-chosen
+free-running cadence, no authority change) rather than for porta driving `diag/spans/ctl`.
 **(b)** those same span cells starve `sys/metrics` — **#150, now measured**: the burst
 drains in ~8 ticks, and until it does, the tail-trim drops the highest seq, which is
 always the metrics record written immediately before the push. It turned
