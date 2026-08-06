@@ -535,9 +535,10 @@ fourth item), **#118** (a node's gateway address is a source constant, which is 
 field path uses the production porta plus a baseline rather than a private instance),
 **#152** and **#153** (both are `watch`-shaped and explicitly out of scope).
 
-**And it closed a defect nobody had filed**, because the wipe it deleted was the thing
-hiding it: a rebooted node's cells were discarded by porta as already-applied, silently and
-permanently. Node side asserts it (`PortaBridgeNodeC6>>noteObsAcked`), porta side fixes it
+**And it closed a defect nobody had filed** (now **#157**, filed after the fact and closed on
+arrival, because the tracker is how this program is navigated), because the wipe it deleted
+was the thing hiding it: a rebooted node's cells were discarded by porta as already-applied,
+silently and permanently. Node side asserts it (`PortaBridgeNodeC6>>noteObsAcked`), porta side fixes it
 (`Store.SyncHighWater` + `handlePull` reading the `hw` it had been decoding and ignoring),
 and the contract records it (PROTOCOL-NSL, rule 5 of five). Three regression tests in
 `porta/internal/wire/wire_test.go` cover the reboot, the seq re-use it implies, and the

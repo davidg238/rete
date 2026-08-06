@@ -337,7 +337,7 @@ C6 is proven and running tuvm with 44% of SRAM spare. It was third *only* by seq
 because it should ride on the new protocol — **and that constraint dissolved when the
 protocol landed green on hardware.** Nothing now argues for doing #25's host slice first
 except foreclosure, and foreclosure only bites at the moment a flash map is committed, which
-is not imminent. So: #56 next, #25 after.
+is not imminent. So: #56 next, #25 after. **(#56 closed 2026-08-05 — so #25 is now.)**
 
 **One correction to carry into it, because the two bars are still easy to swap.** #56 is
 *not* the largest unlock to a public release of nsl-tuvm — by this document's own reasoning
@@ -401,10 +401,16 @@ timing signature, C6 radio localised to four driver bugs (zephyr#114163), and no
 DS3231's missing `-ENODATA` (#103) predicted from source and confirmed on the first hardware
 run. Three is a pattern, not an anecdote.
 
-**Sequencing (revised 2026-08-05):** porta→channels ✅, then #56 — steps 1–3 ✅, **step 4
-(the device test harness) is where the work is now** — then the #25 host slice. Start timing
-bring-ups now, because that measurement is free and it is the one number that would make the
-pitch land.
+**Sequencing (revised 2026-08-05, updated the same evening):** porta→channels ✅, then
+#56 — **all four steps ✅ and the issue is CLOSED** (`TARGET 3/3 PASS`, commit 16d2ce9) —
+so **the #25 host slice is where the work is now**. Start timing bring-ups now, because that
+measurement is free and it is the one number that would make the pitch land.
+
+> The harness closed #56 and opened one thing worth carrying forward: it found #157 (a
+> rebooted node's cells discarded as already-applied, silent at both ends) within minutes of
+> first running, and the remaining sliver of that lands on **#74** — which is now the
+> prerequisite for two separate things, the field `collect` anchor and the per-boot identity.
+> #74 is small and it is upstream of more than its title suggests.
 
 **A fourth instance of the best story arrived 2026-08-05, and it is a different kind.** The
 three above were all *defects found by reading source before flashing*. #151 was found the
