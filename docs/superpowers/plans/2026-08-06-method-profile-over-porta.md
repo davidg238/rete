@@ -16,7 +16,7 @@
 - **Prim ids are append-only, and a new id is arrived at by COUNTING `PRIM_NAMES` in `nodus/tuvm/src/dispatch.c`** — never by arithmetic on the previous `#define`. This is a standing lesson recorded repeatedly in `nodus/tuvm/src/prim_ids.h`; an off-by-one silently rebinds an existing selector.
 - **`OEVM_METHOD_PROFILE` stays off by default.** Every C change in this plan lives inside `#ifdef OEVM_METHOD_PROFILE` so a production build is byte-identical to today.
 - **All timestamps and durations on the wire are milliseconds** (design D4.2).
-- **Never run two nsl suites concurrently** — they share `/tmp` paths.
+- **Never run two nsl suites concurrently** — they share `/tmp` paths. **This extends to anything else that builds or runs the VM**, including a review agent verifying a claim: the suite rewrites `src/solidified_image.c` per test and restores it afterwards, so a concurrent build sees a half-written file. Observed 2026-08-06 — a suite run alongside a reviewer died at `12_exceptions/10` with exit 1 and no failure message, which reads exactly like a real regression.
 - **The nsl suite prints `Passed: N / Failed: 0` AND a line of aux gates.** Read the aux line; it can be red while the count reads zero failures. `footprint: SKIP (no arm-zephyr-eabi toolchain)` is pre-existing and expected.
 - **nsl test convention:** inline `(* expect: ... *)` block at the TOP of the file, a class with `main: platform args:`, output via `println`. There are no `.expected` files. Single-test inner loop: `python3 nodus/nsl/tools/run-one.py <file.nsl>`.
 - **nsl has no modulo and no `startsWith:`.** Byte-compare over `size`/`at:` — `Kernel>>path:startsWith:` (`nodus/nsl/lib/kernel.nsl:1735`) is the existing helper; reuse it, do not write a second one.
