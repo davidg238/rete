@@ -2,7 +2,7 @@
 PortaBridgeNodeC6 — PortaBridgeNode, on the C6, over a real Thread mesh. The
 hardware half of design §9's gate (plan 3 of 3).
 
-This file is PortaBridgeNode.nsl with five differences and no others:
+This file is PortaBridgeNode.nsl with six differences and no others:
   1. the constants below address the real gateway instead of loopback;
   2. `chip` answers #esp32c6, so obs/build says which silicon reported;
   3. `tick` prints one console line, because the gate must be able to tell a
@@ -14,8 +14,13 @@ This file is PortaBridgeNode.nsl with five differences and no others:
   5. THE SELF-CHECK: it emits the `bridge-health` scenario's TAP-lite verdict
      once, and then goes on bridging forever (target harness design D1/D3,
      2026-08-05). See the block above `tapPlan:`.
-A change to the BRIDGING body of either file is a change to both; difference 5
-is additive and has no counterpart in the host file. #165's `dbg/req` wiring
+  6. the span-capture window closes on a different signal: the host closes it
+     on `bridge acked > 0` (`closeWindowIfAcked`), this file inside
+     `emitVerdict`/`checkVerdict`. Came in with 97a4912 (#107), which is when
+     the count above silently became wrong — it was corrected on 2026-08-07,
+     after #165's re-review noticed the header and the file disagreed.
+A change to the BRIDGING body of either file is a change to both; differences 5
+and 6 are additive and have no counterpart in the host file. #165's `dbg/req` wiring
 landed here FIRST and briefly made a sixth — it is now in both files, which is
 what the rule above asks for and what gives the chain a host-side gate
 (tests/porta_sync_host.sh leg 8) instead of hardware-only proof.

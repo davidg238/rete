@@ -17,6 +17,15 @@ done
    gateway, no socket and no mesh, and a test that stood one up would be
    testing the bridge instead.
 
+   SO BE CLEAR ABOUT WHAT THIS DOES NOT GATE. Because the body is reproduced,
+   deleting the wiring from either bridge file leaves this test GREEN. It
+   guards the PATTERN — that a cancel-then-arm chain behaves — not the fact
+   that either bridge carries it. The gate for that is leg 8 of
+   `nodus/tuvm/tests/porta_sync_host.sh`, which drives a real `porta put` of
+   `dbg/req` over UDP and asserts an `mprof[window]` header comes back; revert
+   the wiring and that leg goes red. Named here because a test whose name says
+   `dbg_req_chain` reads like the regression gate for the chain, and is not.
+
    The build under test has no OEVM_METHOD_PROFILE, so `profileStart`/
    `profileStop` are no-ops that answer self (01_window_lifecycle). That is the
    point of the split: the COUNTS are a C unit test (test_mprof_gate), and what
