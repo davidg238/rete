@@ -504,7 +504,7 @@ reports a sum spanning both, and nothing in the output would say so."
 - Modify: `nodus/tuvm/src/dispatch.c` (append two `PRIM_NAMES` entries, in the same order)
 - Modify: `nodus/tuvm/src/platform.c` (two cases in `platform_dispatch`)
 - Modify: `nodus/nsl/lib/kernel.nsl` (two Kernel methods, beside `heapStats` at line 3192)
-- Test: `nodus/nsl/tests/23_mprof/01_window_lifecycle.nsl` (create)
+- Test: `nodus/tests/23_mprof/01_window_lifecycle.nsl` (create)
 
 **Interfaces:**
 - Consumes: `mprof_start()`, `mprof_stop()`, `mprof_is_running()` from Task 3.
@@ -515,7 +515,7 @@ reports a sum spanning both, and nothing in the output would say so."
 
 - [ ] **Step 1: Write the failing nsl test**
 
-Create `nodus/nsl/tests/23_mprof/01_window_lifecycle.nsl`:
+Create `nodus/tests/23_mprof/01_window_lifecycle.nsl`:
 
 ```
 (* expect:
@@ -626,7 +626,7 @@ Expected: the single test PASSes, then `Passed: 247+ / Failed: 0` with the aux l
 - [ ] **Step 8: Commit**
 
 ```bash
-git add nodus/tuvm/src/prim_ids.h nodus/tuvm/src/dispatch.c nodus/tuvm/src/platform.c nodus/nsl/lib/kernel.nsl nodus/nsl/tests/23_mprof/01_window_lifecycle.nsl
+git add nodus/tuvm/src/prim_ids.h nodus/tuvm/src/dispatch.c nodus/tuvm/src/platform.c nodus/nsl/lib/kernel.nsl nodus/tests/23_mprof/01_window_lifecycle.nsl
 git commit -m "feat(#165): an app can open a profile window, and cannot read the counts
 
 Two platform prims and two Kernel selectors. Deliberately write-only: nsl opens
@@ -647,7 +647,7 @@ The bridge already *accepts* `dbg/req` — `Kernel>>mayApply:` (`nodus/nsl/lib/k
 
 **Files:**
 - Modify: `nodus/nsl/lib/kernel.nsl` — `applyEntry` (around line 1715) and the `PortaBridge` class
-- Test: `nodus/nsl/tests/23_mprof/02_dbg_req_profile.nsl` (create)
+- Test: `nodus/tests/23_mprof/02_dbg_req_profile.nsl` (create)
 
 **Interfaces:**
 - Consumes: `platform profileStart` / `platform profileStop` from Task 4; `Kernel>>path:startsWith:` (line 1735).
@@ -655,7 +655,7 @@ The bridge already *accepts* `dbg/req` — `Kernel>>mayApply:` (`nodus/nsl/lib/k
 
 - [ ] **Step 1: Write the failing nsl test**
 
-Create `nodus/nsl/tests/23_mprof/02_dbg_req_profile.nsl`:
+Create `nodus/tests/23_mprof/02_dbg_req_profile.nsl`:
 
 ```
 (* expect:
@@ -688,7 +688,7 @@ class DbgReqProfileTest = () (
 ) : ()
 ```
 
-If `platform portaBridgeForTest` does not exist, construct the bridge the way `nodus/nsl/tests/22_spacesync/*.nsl` already does — read one of those files first and follow its exact construction, rather than adding a test-only accessor to the Kernel.
+If `platform portaBridgeForTest` does not exist, construct the bridge the way `nodus/tests/22_spacesync/*.nsl` already does — read one of those files first and follow its exact construction, rather than adding a test-only accessor to the Kernel.
 
 - [ ] **Step 2: Run it to verify it fails**
 
@@ -776,7 +776,7 @@ Expected: the test PASSes with all four lines, `Passed: 248+ / Failed: 0` aux gr
 - [ ] **Step 6: Commit**
 
 ```bash
-git add nodus/nsl/lib/kernel.nsl nodus/nsl/tests/23_mprof/02_dbg_req_profile.nsl
+git add nodus/nsl/lib/kernel.nsl nodus/tests/23_mprof/02_dbg_req_profile.nsl
 git commit -m "feat(#165): dbg/req gets its first implementation since v1, and the window closes itself
 
 porta was already authorized to write dbg/req (§3, and mayApply: has returned
@@ -875,7 +875,7 @@ Design D3 makes this a hard dependency: the sidecar must be chosen by the build 
 - Modify: `nodus/tuvm/src/prim_ids.h`, `nodus/tuvm/src/dispatch.c`, `nodus/tuvm/src/platform.c` (one more prim, same pattern as Task 4)
 - Modify: `nodus/nsl/lib/kernel.nsl` (a `buildId` accessor)
 - Modify: `nodus/tuvm/zephyr/PortaBridgeNodeC6.nsl:63`, `nodus/tuvm/zephyr/ShipsBellAlarmNodeC6.nsl:133` (add the field to `obs/build`)
-- Test: `nodus/nsl/tests/23_mprof/03_build_id.nsl` (create)
+- Test: `nodus/tests/23_mprof/03_build_id.nsl` (create)
 
 **Interfaces:**
 - Consumes: nothing from earlier tasks.
@@ -893,7 +893,7 @@ gh issue view 74
 
 - [ ] **Step 2: Write the failing nsl test**
 
-Create `nodus/nsl/tests/23_mprof/03_build_id.nsl`:
+Create `nodus/tests/23_mprof/03_build_id.nsl`:
 
 ```
 (* expect:
@@ -972,7 +972,7 @@ Expected: all green. `porta_sync_host.sh` prints `obs/build carries the node's p
 - [ ] **Step 8: Commit**
 
 ```bash
-git add nodus/tuvm/src/prim_ids.h nodus/tuvm/src/dispatch.c nodus/tuvm/src/platform.c nodus/nsl/lib/kernel.nsl nodus/tuvm/zephyr/PortaBridgeNodeC6.nsl nodus/tuvm/zephyr/ShipsBellAlarmNodeC6.nsl protocol/PROTOCOL-NSL-RECORDS.md nodus/nsl/tests/23_mprof/03_build_id.nsl
+git add nodus/tuvm/src/prim_ids.h nodus/tuvm/src/dispatch.c nodus/tuvm/src/platform.c nodus/nsl/lib/kernel.nsl nodus/tuvm/zephyr/PortaBridgeNodeC6.nsl nodus/tuvm/zephyr/ShipsBellAlarmNodeC6.nsl protocol/PROTOCOL-NSL-RECORDS.md nodus/tests/23_mprof/03_build_id.nsl
 git commit -m "feat(#74): a node names its own build, so the sidecar cannot be picked wrong
 
 obs/build carried #chip and nothing else, so joining a profile's offsets to
