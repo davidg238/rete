@@ -248,7 +248,7 @@ def test_get_root_falls_back_to_an_older_day_and_names_when_it_was_taken(
         server, tmp_path):
     """round 2, finding 3: reading only `days()[-1]` (today) made a real
     capture in an OLDER file invisible the instant midnight rolled past it —
-    Task 6's one hardware capture (181 rows, zero UNKNOWN) sat in yesterday's
+    Task 6's one hardware capture (177 rows, zero UNKNOWN) sat in yesterday's
     file while today's held nothing, and the view said 'No capture' as if it
     had never happened. The `server` fixture already seeded 2026-08-06 with
     LOG (one window); this adds a NEWER, window-less day on top of it and

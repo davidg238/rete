@@ -160,7 +160,7 @@ class Handler(BaseHTTPRequestHandler):
         it — or (None, 0, None, 0) if no retained day has one.
 
         `days()[-1]` alone (today's file) was round 1's plan-inherited bug:
-        Task 6's one hardware capture — 181 rows, zero UNKNOWN — sat in
+        Task 6's one hardware capture — 177 rows, zero UNKNOWN — sat in
         yesterday's file, today's file held nothing, and the view reported
         'No capture in this window' as if the capture had never happened.
         Every capture became invisible at midnight. `when` is what makes
