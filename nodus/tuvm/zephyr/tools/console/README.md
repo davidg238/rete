@@ -75,7 +75,19 @@ is prefixed with the key that was assumed, so the assumption travels with the
 output. `~/.local/state/rete/elf/last-flashed-c6` will tell you what was
 flashed last — read it yourself, the tool will not.
 
-It needs two things that are easy to get wrong:
+**A profile can be resolved later by build id.** `archive.sh` now copies the
+`.oimg.methods.json` offset→name map and the `.stmap` source map into the same
+`~/.local/state/rete/elf/<build-id>/` directory it already keeps the ELF in —
+one build-id-keyed symbol store, not two. So a capture taken today stays
+readable after the board has been reflashed twice: take the `tuvm: build-id`
+line out of the run and point `mprof_resolve.py` at that directory's sidecar
+rather than at whatever `.oimg.methods.json` happens to be sitting in
+`nodus/tuvm/zephyr/` (that one is the LAST build, not necessarily this run's,
+and a map from a different build resolves nothing while looking identical to a
+quiet program). If a Model B bake's sidecars are missing, `archive.sh` fails
+and names the file rather than archiving less than it claims.
+
+`symbolize` needs two things that are easy to get wrong:
 
 - **The Zephyr venv's Python**, because `scripts/coredump/` imports
   `pyelftools`, which is not in the system interpreter. Located automatically

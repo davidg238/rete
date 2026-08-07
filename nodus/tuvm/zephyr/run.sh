@@ -352,7 +352,11 @@ if [ "$DO_FLASH" = 1 ]; then
   # build id the firmware itself prints, read from tuvm_build_id.txt so host and
   # device cannot disagree about the string.
   if [ "$BOARD_ID" = esp32c6 ]; then
-    "$ZDIR/tools/console/archive.sh" "$ZDIR/$BUILD_DIR" c6
+    # ${OIMG:-} is set only by a Model B bake (above); archive.sh then also
+    # takes the .oimg.methods.json and .stmap sidecars into the same build-id
+    # directory, so a profile taken today can be resolved after the board has
+    # been reflashed twice.
+    "$ZDIR/tools/console/archive.sh" "$ZDIR/$BUILD_DIR" c6 "${OIMG:-}"
     # The collector reads its port from its own env file. If that disagrees with
     # the console port this bench actually resolves, the boot you just triggered
     # is being logged from a different adapter — or not at all — and every
