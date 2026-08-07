@@ -249,6 +249,49 @@ exact counts, no change to the counter at all. If it does not fit, the choice is
   the 2 KB table excludes. Its cost is honesty: Space-Saving **overestimates**, so counts
   become bounded ranges and the per-entry error field must be kept and rendered as such.
 
+### D10 — Localized profiling scopes by METHOD IDENTITY, not by breakpoint (deferred, gated on D9)
+
+David's workflow, 2026-08-06: profile the whole program for a rough estimate, then narrow to
+a region and re-profile for a higher-quality measurement. This is the right shape and it
+attacks D9's capacity question from a better angle than displacement does — **narrowing the
+scope shrinks the working set**, so 64 slots may become generous rather than tight. It also
+fixes signal quality: a whole-program profile is dominated by the event loop
+(`pumpEvents` / `Space>>drain`), rows a reader is currently told to ignore by hand.
+
+**Rejected: reusing the existing breakpoint machinery.** It is not available where this has
+to run. `nodus/tuvm/zephyr/CMakeLists.txt:267` compiles `OEVM_NO_DEBUG_HOOKS=1` into every
+Zephyr build, recording that the per-bytecode checks cost **10–16% (ledger E8)** and that no
+on-target debugger transport exists. Gating a 0.90% measurement behind a 10–16% tax inverts
+the economics. The bp check at `vm.c:765` is also per-bytecode with a linear `bp_hit` scan,
+and it requires `debugger_hook`, which is registered through the mirror — returning to
+exactly the Supervisor confinement problem D5 retired.
+
+**Accepted shape: scope by method identity, using #164's own hook.** `push_frame` already
+fires on every activation and already holds the `CompiledMethod *`. `OP_RET` (`vm.c:1063`)
+is the single symmetric return site. So:
+
+- `push_frame`: `if (m == scope_key) g_mprof_scope_depth++`
+- count only while `g_mprof_scope_depth > 0`
+- `OP_RET`: `if (method == scope_key) g_mprof_scope_depth--`
+
+The depth counter rather than a flag is what makes recursion correct. Both sites sit inside
+`#ifdef OEVM_METHOD_PROFILE`, so a normal build pays nothing, and a profile build pays two
+pointer compares.
+
+It composes with every decision above without adding a mechanism: the scope is named by the
+**same blob offset** the profiler already reports and the sidecar already resolves, so the
+start request grows one optional field and porta needs no new concept. The loop becomes
+whole-program → read the table → scope to the dominant method → re-profile.
+
+What is given up versus real breakpoints is **granularity**: a scope is a method, not an
+arbitrary bytecode offset. For profiling that is the correct unit — the question is
+inclusive cost under a call, not the cost of a bytecode range.
+
+**Deferred, and gated on D9's measurement**, per David: whether this is needed depends on what
+the real distinct-method count turns out to be. Recorded now because it changes what the D9
+answer *means* — if scoping is this cheap, narrowing is a better answer than a larger table
+or displacement, and D9 should be read with that option on the table.
+
 ## Implementation notes and traps
 
 - **`platform timers` must be held as a single instance.** It is the one platform accessor
