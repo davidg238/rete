@@ -646,12 +646,27 @@ This is `dbg/*`'s **first implementation since v1 was deleted**. RECORDS §4.5 h
 The bridge already *accepts* `dbg/req` — `Kernel>>mayApply:` (`nodus/nsl/lib/kernel.nsl:1729`) returns true for it — but nothing consumes it. `applyEntry` currently routes every accepted path to `space put:` / `space out:` (`kernel.nsl:1719-1720`).
 
 **Files:**
-- Modify: `nodus/nsl/lib/kernel.nsl` — `applyEntry` (around line 1715) and the `PortaBridge` class
+- Modify: `nodus/nsl/lib/kernel.nsl` — add ONE pure parsing method to the Kernel, beside `profileStart`
+- Modify: `nodus/tuvm/zephyr/PortaBridgeNodeC6.nsl` — the channel wiring, the window start, and the timer that ends it
 - Test: `nodus/tests/23_mprof/02_dbg_req_profile.nsl` (create)
 
 **Interfaces:**
-- Consumes: `platform profileStart` / `platform profileStop` from Task 4; `Kernel>>path:startsWith:` (line 1735).
-- Produces: `PortaBridge>>handleDbgReq: line` — parses `profile <ms>` and returns `true` if it consumed the line, `false` otherwise (so an unrecognised verb still falls through to the space and is not silently eaten).
+- Consumes: `platform profileStart` / `platform profileStop` from Task 4.
+- Produces: `Kernel>>parseProfileMs: line` — a **pure function** answering the window length in ms for a well-formed `profile <ms>` line, or `0` for anything else. Nothing else in the plan depends on it, but keeping it pure is what makes it testable without constructing a bridge.
+
+**Two corrections to what an earlier draft of this task said. Both are load-bearing.**
+
+**1. There is no `applyEntry` change to make.** `Kernel>>mayApply:` (`nodus/nsl/lib/kernel.nsl:1729`) already returns true for `dbg/req`, and `dbg/req` is a **stream** (RECORDS §4.5), so `applyEntry` already delivers it with `space out:`. An app therefore just reacts to it, exactly the way `PortaBridgeNodeC6.nsl:109` already reacts to `goal/name`:
+
+```
+(space channel: 'goal/name') whenever: '' do: [ :v | self nameChanged: v ].
+```
+
+Leave the kernel's inbound path alone. It already does the right thing.
+
+**2. Do NOT create a second `Timers` instance.** `Timers` allocates from `nextToken ::= 1` **per instance**, but the C seam's timer registry is keyed **globally** by token — so a second instance would hand out token 1 while the app's repeating cadence timer (`PortaBridgeNodeC6.nsl:119`) already holds token 1, and the two would alias. `Timers>>dispatch:` drops unknown tokens silently by design, so this would not crash; it would misfire quietly, which is worse.
+
+The app already holds the one legitimate instance (`timers:: platform timers` at line 115, with `space whenever: 'sys/timer' do: [ :e | timers dispatch: e ]` at line 116). **Use that one.** This is also why the orchestration lives in the app rather than in the kernel's `PortaBridge`.
 
 - [ ] **Step 1: Write the failing nsl test**
 
@@ -659,36 +674,39 @@ Create `nodus/tests/23_mprof/02_dbg_req_profile.nsl`:
 
 ```
 (* expect:
-profile 5000 -> consumed true
-profile -> consumed false
-reboot now -> consumed false
-profile 0 -> consumed false
+profile 5000 -> 5000
+profile 250 -> 250
+profile -> 0
+reboot now -> 0
+profile 0 -> 0
+profile abc -> 0
 *)
-(* #165 D2/D6: a dbg/req line opens a self-limiting window. The verb is consumed
-   ONLY when it parses; a malformed or unknown line must fall through to the
-   space rather than be swallowed, because a silently eaten debug request is
-   indistinguishable from a node that never got it.
+(* #165 D2/D6: a dbg/req line opens a self-limiting window. Parsing is a PURE
+   function on the Kernel so it can be tested without standing up a bridge; the
+   orchestration that acts on it lives in the app, where the one legitimate
+   Timers instance is.
 
-   A zero or missing duration is REFUSED, not defaulted: a defaulted window
-   length is an invented constant, and a zero-length one would enable counting
-   and never stop it. *)
-class DbgReqProfileTest = () (
+   A zero, missing or non-numeric duration answers 0 and the caller does
+   nothing. Refused rather than defaulted: a defaulted window length is an
+   invented constant, and a zero-length one would enable counting and never
+   stop it. *)
+class ParseProfileMsTest = () (
   public main: platform args: args = (
-    | b |
-    b:: platform portaBridgeForTest.
-    self report: 'profile 5000' for: (b handleDbgReq: 'profile 5000').
-    self report: 'profile'      for: (b handleDbgReq: 'profile').
-    self report: 'reboot now'   for: (b handleDbgReq: 'reboot now').
-    self report: 'profile 0'    for: (b handleDbgReq: 'profile 0').
+    self report: 'profile 5000' for: (platform parseProfileMs: 'profile 5000').
+    self report: 'profile 250'  for: (platform parseProfileMs: 'profile 250').
+    self report: 'profile'      for: (platform parseProfileMs: 'profile').
+    self report: 'reboot now'   for: (platform parseProfileMs: 'reboot now').
+    self report: 'profile 0'    for: (platform parseProfileMs: 'profile 0').
+    self report: 'profile abc'  for: (platform parseProfileMs: 'profile abc').
     ^ 0 )
 
-  report: label for: consumed = (
-    (label, ' -> consumed ', consumed printString) println.
+  report: label for: ms = (
+    (label, ' -> ', ms printString) println.
     ^ self )
 ) : ()
 ```
 
-If `platform portaBridgeForTest` does not exist, construct the bridge the way `nodus/tests/22_spacesync/*.nsl` already does — read one of those files first and follow its exact construction, rather than adding a test-only accessor to the Kernel.
+Note `profile abc` must answer 0, not the 0 that a digit-free parse would coincidentally produce for the right reason — write the parser so a token containing any non-digit is rejected outright rather than skipped over. The existing `Debugger>>parseInt:` in `nodus/nsl/lib/supervisor.nsl` *skips* non-digits, which would make `profile a5` answer 5. Do not copy that behaviour here.
 
 - [ ] **Step 2: Run it to verify it fails**
 
@@ -698,68 +716,97 @@ cd nodus/nsl && python3 tools/run-one.py tests/23_mprof/02_dbg_req_profile.nsl
 
 Expected: FAIL — doesNotUnderstand on `handleDbgReq:`.
 
-- [ ] **Step 3: Implement the handler on `PortaBridge`**
+- [ ] **Step 3: Add the pure parser to the Kernel**
 
-In `nodus/nsl/lib/kernel.nsl`, inside the `PortaBridge` class beside `publishMetrics`, add:
-
-```
-    (* #165 D2: dbg/req's first implementation since v1 was deleted. porta is
-       already authorized to write this path (PROTOCOL-NSL §3, and mayApply:
-       above), so no capability changes.
-
-       Answers true only when the line was CONSUMED. An unparseable line falls
-       through to the space untouched — a debug request that is silently eaten
-       looks exactly like one that never arrived, and the operator has no way to
-       tell the difference. *)
-    public handleDbgReq: line = (
-      | rs verb msTok ms |
-      rs:: outer ReadStream on: line.
-      verb:: rs upTo: 32.
-      verb = 'profile' ifFalse: [ ^ false ].
-      msTok:: rs upTo: 32.
-      msTok == nil ifTrue: [ ^ false ].
-      ms:: self parseInt: msTok.
-      ms <= 0 ifTrue: [ ^ false ].
-      self startProfileWindow: ms.
-      ^ true )
-
-    (* D6: SELF-LIMITING. The node stops on its own, so a node that never hears
-       from porta again still stops counting and still reports. An explicit stop
-       message would leave a field node at 0.90% forever the first time one is
-       lost, and there is no half-open state here to reason about.
-
-       `timers` is held as ONE instance for the bridge's life. Re-fetching
-       `platform timers` answers a FRESH registry, and dispatch: then silently
-       drops every event registered on the old one. *)
-    startProfileWindow: ms = (
-      platform profileStart.
-      self timers after: ms do: [ platform profileStop ].
-      ^ self )
-
-    (* No asInteger in this dialect. Empty or non-numeric answers 0, which
-       startProfileWindow:'s caller rejects. *)
-    parseInt: s = (
-      | n i b |
-      n:: 0.
-      i:: 1.
-      [ i <= s size ] whileTrue: [
-        b:: s at: i.
-        (b >= 48 and: [ b <= 57 ]) ifTrue: [ n:: (n * 10) + (b - 48) ].
-        i:: i + 1 ].
-      ^ n )
-```
-
-**Before writing `self timers after:do:`, read the existing timer registration in `nodus/tuvm/zephyr/ShipsBellAlarmNodeC6.nsl`** and match its exact selector and construction. The `Timers` API is `Timers usingSpace:seam:` and the bridge must hold one instance in a slot, not call `platform timers` at the call site.
-
-- [ ] **Step 4: Wire it into `applyEntry`**
-
-In `Kernel>>applyEntry` (`nodus/nsl/lib/kernel.nsl`, around line 1719), before the two `kind =` clauses, add:
+In `nodus/nsl/lib/kernel.nsl`, beside the `profileStart` / `profileStop` accessors added in Task 4, add:
 
 ```
-      (path = 'dbg/req' and: [ self handleDbgReq: value ]) ifTrue: [ ^ self ].
+  (* #165 D2/D6: parse a dbg/req line into a window length in ms. PURE — it
+     starts nothing and touches no state, so it is testable without a bridge and
+     the app stays in charge of the window's lifecycle.
+
+     Answers 0 for anything that is not a well-formed `profile <positive int>`:
+     a wrong verb, a missing duration, a zero duration, or a duration with any
+     non-digit in it. Refused rather than defaulted — a defaulted length is an
+     invented constant, and a zero-length window would enable counting and never
+     stop. The caller does nothing on 0, and the line still lands in the space,
+     so a request that could not be understood is visible rather than eaten. *)
+  public parseProfileMs: line = (
+    | rs verb tok n i b |
+    rs:: self ReadStream on: line.
+    verb:: rs upTo: 32.
+    verb = 'profile' ifFalse: [ ^ 0 ].
+    tok:: rs upTo: 32.
+    tok == nil ifTrue: [ ^ 0 ].
+    tok size = 0 ifTrue: [ ^ 0 ].
+    (* Every character must be a digit. supervisor.nsl's parseInt: SKIPS
+       non-digits, which would read 'a5' as 5; that is wrong for a wire value. *)
+    n:: 0.
+    i:: 1.
+    [ i <= tok size ] whileTrue: [
+      b:: tok at: i.
+      (b < 48 or: [ b > 57 ]) ifTrue: [ ^ 0 ].
+      n:: (n * 10) + (b - 48).
+      i:: i + 1 ].
+    ^ n )
 ```
 
-The `and:` ordering matters: `handleDbgReq:` runs only for `dbg/req`, and a `false` answer falls through to the existing `space out:` so the line is still recorded.
+Check how the Kernel refers to its own `ReadStream` in the surrounding code before writing `self ReadStream on:` — other Kernel methods may use a different form. Match what is already there.
+
+- [ ] **Step 3b: Wire the app (this is where the window actually runs)**
+
+In `nodus/tuvm/zephyr/PortaBridgeNodeC6.nsl`, following the existing pattern at lines 109–119:
+
+Add a slot for the end-of-window channel beside the existing `space bridge timers ticks` slots (line 38), then in the same setup method that already holds lines 109–119:
+
+```
+    (* #165 D2: react to porta's dbg/req. The kernel already accepts this path
+       (mayApply:) and already delivers it as a stream (space out:), so nothing
+       inbound changes — this is just a reader, exactly like the goal/name
+       reaction above. *)
+    (space channel: 'dbg/req') whenever: '' do: [ :v | self dbgReq: v ].
+
+    (* D6: the end-of-window signal. Timers post a MESSAGE to a CHANNEL — there
+       is no after:do: — so the window's end is an ordinary channel event. *)
+    profChan:: space channel: 'sys/profileEnd'.
+    profChan whenever: '' do: [ :m | self profileWindowEnd ].
+```
+
+and the three handlers:
+
+```
+  (* Each of these is a SELF-SEND from inside the whenever: block above, not
+     inline work. A cross-class call inside a reified block cannot resolve its
+     outer chain (rete#133), so the block must do nothing but send to self. *)
+  dbgReq: line = (
+    | ms |
+    ms:: platform parseProfileMs: line.
+    ms > 0 ifTrue: [ self profileWindowStart: ms ].
+    ^ self )
+
+  (* SELF-LIMITING (D6). The node stops on its own, so a node that never hears
+     from porta again still stops counting and still reports. An explicit stop
+     message would leave a field node paying the counter's cost forever the
+     first time one was lost, with nobody aware.
+
+     `timers` is the app's ONE instance (line 115). Do NOT mint a second: token
+     allocation is per-instance but the C timer registry is keyed globally, so a
+     second instance would alias this one's tokens and misfire silently. *)
+  profileWindowStart: ms = (
+    platform profileStart.
+    timers after: ms post: #profileEnd on: profChan.
+    ^ self )
+
+  profileWindowEnd = (
+    platform profileStop.
+    ^ self )
+```
+
+- [ ] **Step 4: Confirm nothing in the kernel's inbound path needed changing**
+
+Re-read `Kernel>>applyEntry` and `Kernel>>mayApply:` (`nodus/nsl/lib/kernel.nsl`, around lines 1715–1731) and confirm you did **not** modify them. `mayApply:` already returns true for `dbg/req` and `applyEntry` already delivers a stream entry with `space out:`, which is what the app's `whenever:` reacts to.
+
+If you found yourself needing to change either, stop and report — it means the reaction is not receiving the value, and the fix is in the app's channel path, not in the kernel's authority check.
 
 - [ ] **Step 5: Run the test and the full suite**
 
@@ -776,7 +823,7 @@ Expected: the test PASSes with all four lines, `Passed: 248+ / Failed: 0` aux gr
 - [ ] **Step 6: Commit**
 
 ```bash
-git add nodus/nsl/lib/kernel.nsl nodus/tests/23_mprof/02_dbg_req_profile.nsl
+git add nodus/nsl/lib/kernel.nsl nodus/tuvm/zephyr/PortaBridgeNodeC6.nsl nodus/tests/23_mprof/02_dbg_req_profile.nsl
 git commit -m "feat(#165): dbg/req gets its first implementation since v1, and the window closes itself
 
 porta was already authorized to write dbg/req (§3, and mayApply: has returned
