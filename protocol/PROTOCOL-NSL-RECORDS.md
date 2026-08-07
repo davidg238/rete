@@ -229,24 +229,34 @@ construction. There is nothing to enforce.
 | `obs/config/<app>/<key>` | R | scalar echo |
 | `obs/mode` / `obs/name` / `obs/forward` | R | same shapes as their `goal/` twins |
 | `obs/health` | R | `Health { uptimeMs: int, bootId: int, wakes: int, pollTimeouts: int, streamDropped: int }` — liveness and delivery only; the VM internals live at `sys/metrics` (§4.4), which the bridge publishes on every check-in. `heapFree`/`heapLargest`/`overruns` were **removed** 2026-08-04 (#56 design D2) rather than duplicated. **87 B encoded, MEASURED 2026-08-04** |
-| `obs/build` | R | `Build { chip: sym, sdk: str, image: bytes, builtAt: int }` — see below |
+| `obs/build` | R | `Build { chip: sym, build: str, sdk: str, image: bytes }` — see below |
 
-**`obs/build` — build provenance, pinned 2026-08-01.** Added by the space-sync rewrite
-(`design/2026-08-01-porta-space-sync-rewrite-design.md` D8) because v1's `nodes.chip` /
-`nodes.sdk` columns had no successor path, and deleting them without one takes fleet
-provenance from *partial* to *absent*. That is tuvm#74, a labelled revenue-gate: an agent
-cannot reason about a fleet when it cannot tell which code is on which node.
+**`obs/build` — build provenance, pinned 2026-08-01, `build` added by #74 (2026-08-07).**
+Added by the space-sync rewrite (`design/2026-08-01-porta-space-sync-rewrite-design.md`
+D8) because v1's `nodes.chip` / `nodes.sdk` columns had no successor path, and deleting
+them without one takes fleet provenance from *partial* to *absent*. #74 (tuvm#74, a
+labelled revenue-gate) is why a per-method profile (§4.x, `mprof:` lines) can be named at
+all: the profile's offsets are only meaningful against the `.oimg.methods.json` sidecar
+of the exact build that produced them, and a node that cannot say which build it is
+running makes a mismatched sidecar indistinguishable from a quiet program.
 
 - `chip` — the SoC family as a symbol (`#esp32c6`, `#esp32s2`, `#nrf52840`).
-- `sdk` — the Zephyr/SDK version string as the build reports it.
+- `build` — the build actually running: `platform buildId`, which on Zephyr is
+  `git describe --always --dirty` plus a build timestamp
+  (`<describe>-<YYYYmmddTHHMMSS>`, baked in fresh on every build — see
+  `nodus/tuvm/zephyr/cmake/gen_build_id.cmake`) and on host is the literal `"host"`.
+  Deliberately **one opaque string**, not `sdk`/`image`/`builtAt` as separate fields:
+  the timestamp it already carries is what `builtAt` would have answered, and a reader
+  picks a sidecar by matching this string whole, not by comparing fields piecewise.
+- `sdk` — the Zephyr/SDK version string as the build reports it. Still **omitted** —
+  #74 covers only the build id, not this — absence means "the node cannot say", which
+  is the honest value and not a default.
 - `image` — a truncated hash of the running `.oimg`, **8 bytes**, not a full digest: it
   identifies a build against a known set, it does not authenticate one. Authentication is
-  the signing story and rides the bulk plane.
-- `builtAt` — build epoch seconds.
+  the signing story and rides the bulk plane. Still **omitted**, for the same reason as
+  `sdk`.
 
-The record is ~40 B encoded, well inside §2.2's 256 B/value cap. `chip` and `sdk` are
-answerable today; `image` and `builtAt` arrive with tuvm#74 and are **omitted** until then
-— absence means "the node cannot say", which is the honest value and not a default.
+The record is well inside §2.2's 256 B/value cap.
 
 **`obs/X` deliberately reuses the shape of `goal/X`.** Convergence is then a *structural*
 diff — `goal/mode` vs `obs/mode` — rather than a bespoke comparison per feature. v1's

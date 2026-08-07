@@ -1,0 +1,24 @@
+(* expect:
+buildId is non-empty: true
+buildId first byte > 0: true
+*)
+(* #74/#165 D3: the node names its own build, so a reader can pick the matching
+   .oimg.methods.json sidecar. A mismatched sidecar resolves nothing and looks
+   identical to a quiet program — this is the field that removes the chance to
+   get it wrong by hand. Asserts SHAPE, not the value: the value changes every
+   build, and a test that pinned it would fail on every rebuild.
+
+   This dialect has no `isString` predicate — kernel.nsl's only builtin type
+   predicates are isValue/isSymbol/isList/isMap/isRecord/isBytes, none of
+   which cover String — so the shape is asserted the way the brief's fallback
+   prescribes: `size` (non-empty) and `at:` (a String answers a byte SMI
+   0..255 for any in-range index; that is the behaviour that actually
+   distinguishes a String from every other sized value). *)
+class BuildIdTest = () (
+  public main: platform args: args = (
+    | b |
+    b:: platform buildId.
+    ('buildId is non-empty: ', (b size > 0) printString) println.
+    ('buildId first byte > 0: ', ((b at: 1) > 0) printString) println.
+    ^ 0 )
+) : ()

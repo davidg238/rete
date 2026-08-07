@@ -3196,6 +3196,8 @@ class Kernel usingPlatform: platform = () (
      to the console, which is already teed off the board (design D4). *)
   public profileStart      = ( platform profileStart. ^ self )
   public profileStop       = ( platform profileStop. ^ self )
+  (* #74: the build actually running, so a reader can pick the matching sidecar. *)
+  public buildId           = ( ^ platform buildId )
   (* #165 D2/D6: parse a dbg/req line into a window length in ms. PURE — it
      starts nothing and touches no state, so it is testable without a bridge and
      the app stays in charge of the window's lifecycle.

@@ -29,11 +29,13 @@ class PortaBridgeNode usingPlatform: platform net: net = (
   gwPort    = ( ^ 16969 )
   localPort = ( ^ 16970 )
   cadence   = ( ^ 2000 )   (* ms between check-ins *)
-  (* Build provenance, so an agent can tell which code is on which node — tuvm#74,
-     a labelled revenue-gate. `chip` is a source constant because it is a build
-     fact; `sdk`, `image` and `builtAt` are OMITTED until tuvm#74 gives the node a
-     way to name its own build, and absence means "the node cannot say", which is
-     honest and is not a default. *)
+  (* Build provenance, so an agent can tell which code is on which node. `chip`
+     is a source constant because it is a build fact; `build` (obs/build, below)
+     carries the string #74 gave the node to name its own build — "host" here,
+     since this is the host twin of the C6 bridge and platform buildId answers
+     the host #define, not a git describe. `sdk` and `image` are still OMITTED
+     — #74 covers only the build id, not those — and absence means "the node
+     cannot say", which is honest and is not a default. *)
   chip      = ( ^ #host )
 
   public main: platform2 args: args = (
@@ -78,7 +80,8 @@ class PortaBridgeNode usingPlatform: platform net: net = (
        reaction — there is no protocol handler anywhere in this node. *)
     (space channel: 'goal/name') whenever: '' do: [ :v | self nameChanged: v ].
 
-    space put: 'obs/build' value: (platform Record tag: #Build with: #chip -> self chip).
+    space put: 'obs/build' value: (platform Record tag: #Build
+      with: #chip -> self chip with: #build -> platform buildId).
 
     timers:: platform timers.     (* hold ONE instance — it owns the pending registry *)
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].

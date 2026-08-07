@@ -137,7 +137,7 @@ class ShipsBellAlarmNodeC6 usingPlatform: platform net: net = (
           socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
           spans: spans.
         space put: 'obs/build' value:
-          (plat Record tag: #Build with: #chip -> self chip).
+          (plat Record tag: #Build with: #chip -> self chip with: #build -> plat buildId).
         beatCh:: space channel: 'sys/tick'.
         beatCh whenever: '' do: [ :m | self checkIn ].
         timers every: self cadence post: #beat on: beatCh.
