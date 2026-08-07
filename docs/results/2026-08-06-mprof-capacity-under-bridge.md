@@ -102,7 +102,10 @@ the cost at the real load is unknown.** It may still be under 1%. It has not bee
   224 methods in 64 slots**: the table would be permanently saturated and displacing
   continuously, putting the linear min-scan on a hot path instead of a cold one. k=64 is
   viable **only in combination with** D10's scoping, which shrinks the working set below the
-  table. It is not viable on its own, and the design says otherwise today.
+  table. It is not viable on its own. **The design has since been amended and now agrees** —
+  D10 carries a "Corrected 2026-08-06 by measurement" block citing this document, so the two
+  no longer disagree and this paragraph is the reason for the amendment rather than an open
+  objection to it.
 
 ## Not decided here
 

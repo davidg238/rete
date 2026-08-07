@@ -167,6 +167,42 @@ Lifecycle, complete: **start = zero the table + enable**; **end = disable + `mpr
 A start arriving while a window is open restarts it, matching `SpanCapture`'s existing
 treatment of a re-start.
 
+**Restarting means cancelling the pending end-timer, and the first implementation did not.**
+`profileWindowStart:` armed a second one-shot on `sys/profileEnd` without cancelling the
+first, so the earlier timer still fired and closed the second window at the *first*
+window's deadline — a window shorter than the operator asked for, reported with no
+indication that it was cut. `Timers>>cancel:` already exists (`nodus/nsl/lib/kernel.nsl`),
+so this is D6 implemented rather than D6 corrected; both bridge files now hold the pending
+token in a slot and cancel it before arming the next. That slot is nil exactly when no
+window is open, which is also what bounds the replay hazard below.
+
+#### `dbg/req` is a stream, so a cold boot replays every request ever written
+
+Recorded, not solved. The node's cursor is RAM-only (`nodus/nsl/lib/kernel.nsl:1542`), so
+cold boot = cursor 0 = full replay, which the space-sync design already names as safe for
+cells and **dangerous for streams**
+(`porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md` §8, the `goal/do/reboot`
+example). `dbg/req` is now the second such stream, and it was in neither that list nor
+RECORDS §4.5.
+
+The consequence is small but it falsifies a claim this rung makes about itself. After a
+reboot the node re-receives every `profile <ms>` porta ever wrote and starts counting
+unbidden — so "a field node profiles on request, and was silent before it was asked" is
+true of a running node and not of a rebooted one. The cost is bounded: the counter is
+~0.90% (D9, at an unrepresentative load factor), the windows are self-limiting by
+construction, and with the cancel above only ONE end-timer is ever outstanding, so N
+replayed requests cost one window of the last duration rather than N overlapping ones.
+
+**Not fixed here, on purpose.** Every fix is a mechanism this rung has no data to choose
+between: persisting the cursor (flash writes, a wear budget, a schema), a per-boot
+generation on the request (a field, and #74's `bootId` already exists for a different
+purpose), or porta declining to replay `dbg/**` at all (an exception in the one authority
+rule the direction argument rests on). What would earn one: a node observed profiling
+after a reboot in a way that mattered — a measurable cost, a corrupted capture, or an
+operator misled by rows they did not ask for. Until then this paragraph is the record, and
+the hardware gate's "silent before it was asked" leg should be read as scoped to a node
+that has not rebooted since porta last wrote the path.
+
 ### D7 — porta relays the `dbg` path statelessly, and holds developer assets statefully
 
 RECORDS §4.5's "porta stays a stateless relay" governs the **`dbg/req` / `dbg/resp` path**:

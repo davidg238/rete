@@ -256,7 +256,18 @@ running makes a mismatched sidecar indistinguishable from a quiet program.
   the signing story and rides the bulk plane. Still **omitted**, for the same reason as
   `sdk`.
 
-The record is well inside §2.2's 256 B/value cap.
+**82 B encoded, MEASURED 2026-08-07** — `chip: #esp32c6` plus the 43-character
+`porta-v1-final-862-g8410661-20260806T223944` this bench's C6 build actually produced,
+through `porta/internal/cval`'s encoder (golden-tested against the node's own `Cbor`).
+The host twin's `build: "host"` is **42 B**, and the pre-#74 `chip`-only record was 29 B.
+Well inside §2.2's 256 B/value cap, with 174 B of headroom on the longest of the three.
+
+A figure and not an assurance, deliberately: this line read "the record is ~40 B encoded"
+until #74 added a ~43-byte string, at which point it became "well inside the cap" — a
+document whose §2 is a size law had replaced its one measurement with a reassurance in the
+same edit that made the record twice as large. `build` is the only field here that can
+grow without a schema change (a longer `git describe`, a dirty suffix), so it is the one
+that has to be measured rather than reasoned about.
 
 **`obs/X` deliberately reuses the shape of `goal/X`.** Convergence is then a *structural*
 diff — `goal/mode` vs `obs/mode` — rather than a bespoke comparison per feature. v1's
@@ -367,6 +378,17 @@ counting and still reports. The rows themselves stay off this path — they leav
 console already teed to the collector (#56), never over `dbg/resp`, which keeps a profile
 table off the same plane the size law keeps every other blob off (§2.4) rather than testing
 `MAX_VALUE_BYTES`'s pagination story against it.
+
+**`dbg/req` is a STREAM, so it carries the cursor-0 replay hazard.** The node's cursor is
+RAM-only, so cold boot = cursor 0 = full replay — safe for cells, which are idempotent by
+construction, and dangerous for streams, which are actions
+(`porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md` §8, whose example is
+`goal/do/reboot` rebooting the node again). `dbg/req` is the second such path: after a
+reboot the node re-receives every `profile <ms>` porta ever wrote and starts counting
+unbidden. Bounded rather than fixed — the windows are self-limiting and only one end-timer
+is outstanding at a time — and recorded rather than mechanised, because every fix is a
+tunable no measurement has earned yet
+(`docs/design/2026-08-06-method-profile-over-porta-design.md` D6).
 
 ### 4.6 `diag/**` — bounded diagnostic capture (both ways)
 

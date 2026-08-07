@@ -2307,7 +2307,7 @@ spike nine hours and one image earlier — the log is per-board and long-lived, 
 so a read has to be scoped by `since <boot timestamp>`, never by a line count. And a view's
 own tests read green twice while the page itself was broken: first every `GET /` raised (a
 literal `%` in the CSS colliding with Python `%`-formatting) while `/health` answered `ok`
-throughout, then the page reported "no capture" while a real 181-row capture sat in the
+throughout, then the page reported "no capture" while a real 177-row capture sat in the
 previous day's log file. Neither was visible from source review or from a unit suite that
 never assembled the page. **Loading the page was the gate** — a liveness probe that cannot
 tell "serving" from "raising on every request" reports green through a total outage.
