@@ -398,4 +398,14 @@
    Appended after spaceChangedSince:under:max:; no pre-existing id shifts.
    Counted (not computed): the 141st PRIM_NAMES entry. */
 #define PRIM_pf_rtcAlarmAt        141
+
+/* #165 Task 4: per-method profile window control (`profileStart`/`profileStop`).
+   heapStats (104) is NOT the last entry — rtcAlarmAt:post:on: (141, above) is;
+   these two are appended after it, no pre-existing id shifts. The two ids were
+   arrived at by COUNTING PRIM_NAMES (141 entries before this append), not by
+   141+1 arithmetic, per the standing lesson above. Platform-dispatched. Both
+   are no-ops in a build without OEVM_METHOD_PROFILE so an app runs unchanged
+   on a production image. */
+#define PRIM_pf_profileStart      142
+#define PRIM_pf_profileStop       143
 #endif /* OEVM_PRIM_IDS_H */

@@ -1,0 +1,18 @@
+(* expect:
+start ok
+stop ok
+*)
+(* #165: the window control is reachable from an ordinary app's platform seam.
+   This asserts REACHABILITY and idempotence, not counts — the counts are a C
+   unit test (test_mprof_gate). On a build without OEVM_METHOD_PROFILE both
+   sends are no-ops that still answer self, which is what makes an app portable
+   between a profile build and a production one. *)
+class MprofWindowTest packageUsing: manifest = () (
+  public main: platform args: args = (
+    platform profileStart.
+    'start ok' println.
+    platform profileStop.
+    'stop ok' println.
+    ^ 0 )
+) : (
+)

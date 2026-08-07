@@ -1197,6 +1197,25 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         ((struct ObjectInstance *)r)->slots[5] = TAG_SMI((intptr_t)st.gc_cycles);
         *out = r; return 1;
     }
+    case PRIM_pf_profileStart: {
+        /* #165 D1/D6: open a per-method capture window. No-op without the
+           profiler built in — deliberately silent rather than an error, so one
+           app image runs on both a profile build and a production build. The
+           absence is visible where it matters: no `mprof:` lines ever appear. */
+#ifdef OEVM_METHOD_PROFILE
+        mprof_start();
+#endif
+        *out = platform_object(); return 1;
+    }
+    case PRIM_pf_profileStop: {
+        /* Closes the window and dumps. The dump goes to stderr, which reaches
+           the #56 collector because the console is TEED, not because anything
+           here routes it. */
+#ifdef OEVM_METHOD_PROFILE
+        mprof_stop();
+#endif
+        *out = platform_object(); return 1;
+    }
     case PRIM_pf_sysStats: {
         /* tuvm#24: `platform sysStats` — snapshot handle/ring/overrun telemetry
            into a 4-slot Array of SMIs, in field order [handlesLive,

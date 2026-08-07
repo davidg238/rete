@@ -3190,6 +3190,12 @@ class Kernel usingPlatform: platform = () (
      explicitly for exactly the reason the comment above gives. *)
   public SpanCapture       = ( ^ SpanCapture )
   public heapStats         = ( ^ HeapStats fromList: (platform heapStats) )
+  (* #165: open and close a per-method profile window. The counter is a build
+     option (OEVM_METHOD_PROFILE) and these are no-ops without it, so an app may
+     send them unconditionally. The rows do NOT come back through here — they go
+     to the console, which is already teed off the board (design D4). *)
+  public profileStart      = ( platform profileStart. ^ self )
+  public profileStop       = ( platform profileStop. ^ self )
   (* tuvm#24: the sys/metrics snapshot — prim 104 (heapStats) + prim 109
      (sysStats) composed into ONE flat immutable Record, the sys/metrics
      cell's wire schema (pinned in protocol/PROTOCOL-NSL-RECORDS.md §4.4).
