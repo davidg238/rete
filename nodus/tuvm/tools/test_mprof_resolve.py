@@ -1,5 +1,6 @@
 # Copyright (c) 2026 Ekorau LLC
 import json
+import tempfile
 import mprof_resolve
 
 
@@ -38,3 +39,35 @@ def test_unresolved_offset_keeps_the_offset_and_is_not_dropped():
     assert len(rows) == 2
     assert "16" in rows[0][0]
     assert "UNKNOWN" in rows[0][0]
+
+
+def test_mixed_windows_warning_fires_on_sum_mismatch(capsys):
+    """Rows summing to 250 but header saying activations=300 is a truncation."""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        json.dump(MAP, f)
+        map_file = f.name
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.log', delete=False) as f:
+        f.write("mprof[dump]: methods=2 activations=300 overflow=0 cap=256\n")
+        f.write("mprof: 16 200\n")
+        f.write("mprof: 32 50\n")
+        log_file = f.name
+
+    mprof_resolve.main([None, map_file, log_file])
+    captured = capsys.readouterr()
+    assert "mixed windows" in captured.out
+
+
+def test_mixed_windows_warning_does_not_fire_on_saturated_log_with_intact_rows(capsys):
+    """Rows summing to 300 with overflow=100 should NOT fire the warning."""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        json.dump(MAP, f)
+        map_file = f.name
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.log', delete=False) as f:
+        f.write("mprof[dump]: methods=2 activations=300 overflow=100 cap=256\n")
+        f.write("mprof: 16 200\n")
+        f.write("mprof: 32 100\n")
+        log_file = f.name
+
+    mprof_resolve.main([None, map_file, log_file])
+    captured = capsys.readouterr()
+    assert "mixed windows" not in captured.out

@@ -94,7 +94,8 @@ def main(argv):
     header = None
     for m in HDR_RE.finditer(text):
         header = m.groups()
-    if not DUMP_RE.findall(text):
+    rows = [(k, int(n)) for k, n in DUMP_RE.findall(text)]
+    if not rows:
         print("no 'mprof:' lines found — was the image built with "
               "-DOEVM_METHOD_PROFILE and did the dump fire?", file=sys.stderr)
         return 1
@@ -115,10 +116,14 @@ def main(argv):
             print(f"INCOMPLETE: overflow={overflow} activations were dropped — "
                   f"the table saturated, so methods are MISSING from this table. "
                   f"Counts below are exact; percentages are lower bounds.")
-        rows_len = len(DUMP_RE.findall(text))
+        rows_len = len(rows)
         if rows_len != int(methods):
             print(f"WARNING: {rows_len} rows for methods={methods} — the log is "
                   f"truncated or holds more than one window.")
+        rows_sum = sum(n for _, n in rows)
+        if rows_sum != int(acts):
+            print(f"WARNING: rows sum to {rows_sum}, header says {acts} — mixed "
+                  f"windows.")
 
     resolved = resolve(mmap, text, top=top)
     unknown = sum(1 for name, _, _ in resolved if name.startswith("UNKNOWN"))
