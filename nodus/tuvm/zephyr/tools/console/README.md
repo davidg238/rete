@@ -219,6 +219,13 @@ because that is where it already lives.
 
     python3 -m pytest
 
+**This suite is a gate.** `nodus/nsl/tools/run_tests_oevm.py` runs it as
+`console-py` on the aux line, alongside `mprof-tools-py` for
+`nodus/tuvm/tools/`. Until #165 it was run by nothing at all, which meant the
+view and `mprof_resolve.py` could break with all three CLAUDE.md gates green —
+a test that is never run is worse than no test, because the suite still reads
+green and the coverage is believed rather than merely absent.
+
 No board required: the collector takes a *path*, which is a
 `/dev/serial/by-id/` symlink in production and a PTY in tests — the same code
 path either way, which is the whole reason the daemon is testable.

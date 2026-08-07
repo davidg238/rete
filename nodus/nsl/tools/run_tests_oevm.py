@@ -233,6 +233,57 @@ def run_boot_gc_asan_gate() -> bool:
                 pass
 
 
+def run_pytest_gate(label: str, rel_dir: str) -> str:
+    """Run a pytest suite living outside nodus/nsl as a subprocess gate.
+
+    #165: `nodus/tuvm/tools/test_mprof_resolve.py` and the seven suites under
+    `nodus/tuvm/zephyr/tools/console/` were referenced by nothing — no gate, no
+    CI, no script. `mprof_resolve.py` could break, and the profile view with it,
+    with all three CLAUDE.md gates green. A test that is never run is worse than
+    no test, because the suite still reads green and the coverage is now
+    believed rather than merely absent.
+
+    cwd is the suite's own directory: these files import their siblings by bare
+    name (`import mprof_resolve`, `import view`, `import logstore`), which is
+    what makes them runnable by hand from where they live.
+
+    Returns "PASS", "SKIP" (pytest is not installed — a real environment gap,
+    coloured like every other skip so it cannot read as a pass) or "FAIL"."""
+    d = REPO_ROOT / rel_dir
+    if not d.is_dir():
+        print(f"{COLOR_RED}{label}: FAIL{COLOR_RESET} (no such directory: {d})")
+        return "FAIL"
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-m", "pytest", "-q", "--no-header"],
+            cwd=str(d), capture_output=True, text=True, timeout=600)
+    except Exception as e:
+        print(f"{COLOR_RED}{label}: FAIL{COLOR_RESET} (runner error: {e})")
+        return "FAIL"
+    out = (proc.stdout or "") + (proc.stderr or "")
+    if proc.returncode == 4 and "No module named pytest" in out:
+        print(f"{COLOR_YELLOW}{label}: SKIP{COLOR_RESET} (pytest is not installed)")
+        return "SKIP"
+    if "No module named pytest" in out:
+        print(f"{COLOR_YELLOW}{label}: SKIP{COLOR_RESET} (pytest is not installed)")
+        return "SKIP"
+    if proc.returncode != 0:
+        print(f"{COLOR_RED}{label}: FAIL{COLOR_RESET}")
+        print("  " + "\n  ".join(out.strip().splitlines()[-30:]))
+        return "FAIL"
+    # The pass COUNT is printed, not just the word: "0 passed" exits 0 under
+    # some pytest configurations, and a gate that cannot tell "everything
+    # passed" from "nothing ran" is the shape this whole change exists to fix.
+    tail = [ln for ln in out.strip().splitlines()
+            if " passed" in ln or "no tests ran" in ln]
+    if not tail or "no tests ran" in tail[-1]:
+        print(f"{COLOR_RED}{label}: FAIL{COLOR_RESET} (exit 0, but pytest "
+              f"collected nothing — a green gate over an empty suite)")
+        return "FAIL"
+    print(f"{COLOR_GREEN}{label}: PASSED{COLOR_RESET} ({tail[-1].strip()})")
+    return "PASS"
+
+
 def run_integration_gate(label: str, script_name: str) -> bool:
     """Run a tools/<script_name> integration harness as a subprocess gate.
 
@@ -721,10 +772,15 @@ def main():
     # the grant/debugger gates do — safe here, after the checkout restore.
     deepsleep_ok = run_integration_gate("test_deepsleep_node", "test_deepsleep_node.py")
     footprint = run_footprint_gate()   # "PASS" | "SKIP" | "FAIL"
+    # #165: the host-tool Python suites. They build nothing and touch no shared
+    # /tmp path, so they are safe here; they were run by NOTHING until now.
+    mprof_py = run_pytest_gate("mprof-tools-py", "nodus/tuvm/tools")
+    console_py = run_pytest_gate("console-py", "nodus/tuvm/zephyr/tools/console")
 
     suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok
                 and portability != "FAIL" and boot_gc_ok
-                and footprint != "FAIL" and deepsleep_ok)
+                and footprint != "FAIL" and deepsleep_ok
+                and mprof_py != "FAIL" and console_py != "FAIL")
     print(f"\n{COLOR_GREEN if suite_ok else COLOR_RED}Test Execution Summary:{COLOR_RESET}")
     print(f"  Passed:  {passed}")
     print(f"  Failed:  {failed}")
@@ -744,7 +800,9 @@ def main():
           f"portability-32: {_mark(portability)}  "
           f"boot-gc-asan: {_mark('PASS' if boot_gc_ok else 'FAIL')}  "
           f"deepsleep: {_mark('PASS' if deepsleep_ok else 'FAIL')}  "
-          f"footprint(T0.3): {_mark(footprint)}")
+          f"footprint(T0.3): {_mark(footprint)}\n"
+          f"  mprof-tools-py: {_mark(mprof_py)}  "
+          f"console-py: {_mark(console_py)}")
 
     # NOT a skip, and deliberately not coloured like one: a skip names a cause it
     # has not verified, and this names one that IS verified. timer_zephyr.c posts
