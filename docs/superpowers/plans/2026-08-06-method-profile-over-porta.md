@@ -928,15 +928,36 @@ Design D3 makes this a hard dependency: the sidecar must be chosen by the build 
 - Consumes: nothing from earlier tasks.
 - Produces: `platform buildId` answering a String; `obs/build` gains a `#build` field carrying it.
 
-- [ ] **Step 1: Decide what the id IS, and read #74 first**
+- [ ] **Step 1: Do NOT invent an id — one already exists and is already baked in**
 
-```bash
-gh issue view 74
+This step was open when the plan was written and is now closed by reading the code. **Invent nothing.**
+
+`nodus/tuvm/zephyr/cmake/gen_build_id.cmake` already bakes `git describe --always --dirty` plus a build timestamp into a generated TU as:
+
+```c
+const char tuvm_build_id[] = "<describe>-<YYYYmmddTHHMMSS>";
 ```
 
-**Do not invent the scheme.** #74 exists and may already name one. If it does not, the cheapest id that satisfies D3 is the sidecar's own content hash — the compiler already writes `<image>.oimg.methods.json`, so hashing it at compile time and embedding the hex digest as a C string means the id and the sidecar cannot disagree by construction. Record whichever you choose, and why, in the commit message.
+It is regenerated on **every** build (the custom command lists an output it never creates, which forces the re-run), it is already `extern`'d at `nodus/tuvm/zephyr/src/main.c:1529`, and it is already printed at boot by `main.c:1803`. `run.sh` archives the ELF under the same string by reading the matching `.txt`, so the id already keys the symbol archive.
 
-**A GNU build-id is NOT available on this SoC** — a `PT_NOTE` segment over the DROM region produces a booting-but-garbled console on the C6 (#144), and the #56 symbolizer already had to put its note in DROM via a RODATA snippet. Do not reach for `-Wl,--build-id`.
+Confirmed live on c6spare 2026-08-06: `tuvm: build-id porta-v1-final-846-g4315fb0-dirty-20260806T204341`.
+
+So the whole of #74 is **surfacing a string that already exists** to nsl.
+
+**It is Zephyr-only.** The generated TU is added by the Zephyr `CMakeLists.txt`, so a host build has no such symbol and will not link against a bare `extern`. Provide a host value with a `#ifdef __ZEPHYR__` split rather than a weak symbol — the codebase already splits on that macro elsewhere, and a weak symbol that silently resolves to the wrong definition is exactly the failure mode this id exists to prevent:
+
+```c
+#ifdef __ZEPHYR__
+extern const char tuvm_build_id[];
+#define OEVM_BUILD_ID tuvm_build_id
+#else
+#define OEVM_BUILD_ID "host"
+#endif
+```
+
+**Do not reach for a GNU build-id.** `nodus/tuvm/zephyr/CMakeLists.txt:54` already records why in full: any `SHT_NOTE` input section makes GNU ld synthesise a `PT_NOTE` spanning the whole rodata region, the Espressif image builder mishandles it, and the board boots and then emits garbage. That was tried on hardware and rejected (#144), with three-boot A/B/A attribution in the design doc §7.
+
+Read `gh issue view 74` for anything else it asks for beyond this, but the scheme question is settled.
 
 - [ ] **Step 2: Write the failing nsl test**
 
