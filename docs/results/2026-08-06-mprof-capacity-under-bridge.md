@@ -10,20 +10,26 @@ because 224 is well above the ~180 the load factor allows.
 
 **The host gate, not the device — deliberately, and it exercises MORE of the path.** The
 plan originally called for `PortaBridgeNodeC6` on a C6. That was rescoped (David, 2026-08-06)
-after the bench turned out not to be in the state the plan assumed: `~/porta-v2` does not
-exist, no `porta` binary or service is running anywhere, and the flashed node emitted no
-Thread or network activity after `bind`. **A bridge with no peer never runs the reply/apply
-path**, so a device number would have been a lower bound — the falsely-reassuring direction.
+because the flashed node never executed enough to produce a number (below).
+
+> **Correction, same day.** An earlier revision of this document said "`~/porta-v2` does not
+> exist, no `porta` binary or service is running anywhere." **That was wrong** — it was
+> checked on the workstation instead of on **gw85224-01**, which is where the gateway lives
+> and where `porta serve --db soak-2026-08-04.db` was running the whole time (pid 231625).
+> The rescope stands on the evidence below, which does not depend on porta at all; the
+> reason given for it was partly false and is corrected here.
 
 **The device was tried first and produced nothing at all.** c6spare was flashed with the same
 profile build (`FLIP_AT=1000000`) and polled for 7½ minutes: **zero `mprof` lines**, meaning
 the counter never even reached its flip threshold. One million activations in 450 s is ~2200/s,
-a rate no live VM would fail to exceed — so the node was not merely peerless, it was not
-executing. That matches `pulse_pump` being `K_FOREVER`-blocking on Zephyr while non-blocking
-on posix: with no Thread peer there is nothing to wake the pump, so the bridge sleeps.
+a rate no live VM would fail to exceed — so **the node was not executing**. That matches
+`pulse_pump` being `K_FOREVER`-blocking on Zephyr while non-blocking on posix: with nothing
+arriving to wake the pump, the bridge sleeps.
 
-So the rescope is stronger than "the device would undercount." **The device could not produce
-a number at all** in the bench's current state.
+Note what this does and does not say. porta *was* up on gw85224-01 throughout, so the node's
+silence is **its own** — it showed no Thread or network activity after `bind`, i.e. it never
+joined the mesh. Why is untracked and out of scope here; what matters for this measurement is
+that **the device could not produce a number at all**, whatever the cause.
 
 Care was needed reading this: the log store is day-partitioned, and an unfiltered `tail`
 reaches back into the *same day's* earlier spike run, which reports `methods=2` and exactly
