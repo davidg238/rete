@@ -96,7 +96,7 @@ window=window methods=177 activations=148442 cap=256
 showing top 20 of 177 rows — percentages are of ALL activations, not of the shown rows.
 ```
 
-**Four per-byte accessors are 61.3% of everything the node does**: `u8At:put:` 21.9 +
+**Four per-byte accessors are 61.2% of everything the node does**: `u8At:put:` 21.9 +
 `u8At:` 20.5 + `byteSize` 9.5 + `ByteBuilder>>add:` 9.4. This is the standing
 per-byte-accessor cost (#163) measured for the first time on a real bridging workload rather
 than on a synthetic one, and it is what makes the codec the target rather than a suspect.
