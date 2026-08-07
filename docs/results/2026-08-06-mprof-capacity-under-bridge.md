@@ -15,6 +15,21 @@ exist, no `porta` binary or service is running anywhere, and the flashed node em
 Thread or network activity after `bind`. **A bridge with no peer never runs the reply/apply
 path**, so a device number would have been a lower bound — the falsely-reassuring direction.
 
+**The device was tried first and produced nothing at all.** c6spare was flashed with the same
+profile build (`FLIP_AT=1000000`) and polled for 7½ minutes: **zero `mprof` lines**, meaning
+the counter never even reached its flip threshold. One million activations in 450 s is ~2200/s,
+a rate no live VM would fail to exceed — so the node was not merely peerless, it was not
+executing. That matches `pulse_pump` being `K_FOREVER`-blocking on Zephyr while non-blocking
+on posix: with no Thread peer there is nothing to wake the pump, so the bridge sleeps.
+
+So the rescope is stronger than "the device would undercount." **The device could not produce
+a number at all** in the bench's current state.
+
+Care was needed reading this: the log store is day-partitioned, and an unfiltered `tail`
+reaches back into the *same day's* earlier spike run, which reports `methods=2` and exactly
+2,621,430 activations (Hanoi). Read without a timestamp filter that looks like a valid bridge
+measurement showing a 2-method program. Every read here is filtered to after the boot banner.
+
 The host gate stands up a real porta on `127.0.0.1:16969` and drives a real node through
 pull → apply → push → encode → decode. The span table from the run confirms a genuine
 exchange occurred (`pullSend`, `pullWait`, `pushBuild`, `pushCollect`, `pushEncode`,
