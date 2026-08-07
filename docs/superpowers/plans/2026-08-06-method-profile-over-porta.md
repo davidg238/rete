@@ -72,8 +72,15 @@ export OEVM_METHOD_PROFILE=1
 export OEVM_MPROF_RUNTIME_GATE=1
 export OEVM_MPROF_FLIP_AT=1000000
 export OEVM_MPROF_DUMP_AT=20000000
-bash run.sh --flash --node PortaBridgeNodeC6.nsl --board esp32c6
+bash run.sh --flash --node PortaBridgeNodeC6.nsl --board esp32c6 \
+  --conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_thread_ftd.conf"
 ```
+
+**The `--conf-extra` above was missing when this task ran and it cost the bench a night.**
+`prj_esp32c6.conf` has no OpenThread; the radio layer arrives only through this flag. Without
+it the image has no `NET_L2_OPENTHREAD`, the node's UDP bind returns nil, and it dies at boot
+— while `run.sh` printed `[thread] dataset overlay found`, because the credentials overlay
+used to key on the board rather than on the radio. See Task 6 Step 1 and commit d30f963.
 
 **Do not pass `--capture`.** A `collect.py` console collector already holds c6spare's port under systemd, and a second handle splits the stream — `logstore.acquire_lock` exists precisely because two readers on one board were proven to interleave into one file on 2026-08-04. Read the console through `logread.py` instead.
 
@@ -850,32 +857,89 @@ The host suite cannot witness this. Design D6's whole claim is about a device.
 - Consumes: Tasks 3–5.
 - Produces: a witnessed `mprof[window]:` header in the console log, and the elapsed time between the request and the dump.
 
-- [ ] **Step 1: Flash a profile build of `PortaBridgeNodeC6` to c6bench**
+- [ ] **Step 1: Flash a profile build of `PortaBridgeNodeC6` to c6spare**
+
+**The board is `c6spare`, not `c6bench`.** c6bench went off the bench 2026-08-06 07:46 and its
+by-id is absent; c6spare is the attached disposable devkit and `TARGET_DEFAULT_BOARD`
+(`nodus/tuvm/tests/target/lib/target.sh:41`).
+
+**`--conf-extra` is not optional.** `prj_esp32c6.conf` contains no OpenThread at all —
+the radio layer arrives only through `--conf-extra`, and without it the image has no
+`NET_L2_OPENTHREAD`, the node's UDP bind returns nil, and `fail: 'bind'`
+(`PortaBridgeNodeC6.nsl:66`) prints one word and exits. That is exactly what happened on
+2026-08-06 at 20:43: a node dead for 72 minutes with the build log reporting the
+credentials were in. `run.sh` now warns in both directions (d30f963), but the flag is
+still what makes the image work.
 
 ```bash
 source ~/zephyr-esp32/.venv/bin/activate
 source ~/zephyr-esp32/zephyr/zephyr-env.sh
+git -C ~/zephyr-esp32/zephyr branch --show-current    # must print tuvm-c6-radio-fix
 cd nodus/tuvm/zephyr
 export OEVM_METHOD_PROFILE=1
 unset OEVM_MPROF_RUNTIME_GATE OEVM_MPROF_FLIP_AT OEVM_MPROF_DUMP_AT
-bash run.sh --flash --node PortaBridgeNodeC6.nsl --board esp32c6
+bash run.sh --flash --pristine --node PortaBridgeNodeC6.nsl --board esp32c6 \
+  --conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_thread_ftd.conf"
 ```
 
-Unsetting the countdown macros is the point: this build must produce **no** `mprof:` lines until asked.
+`--pristine` because `OEVM_METHOD_PROFILE` reaches the build through CMake, and an
+incremental build over a cache configured without it is not guaranteed to pick it up.
+
+Unsetting the countdown macros is the point: this build must produce **no** `mprof:` lines
+until asked.
+
+**The collector holds the port.** `esptool` and a live collector on the same tty fail with
+`device reports readiness to read but returned no data (multiple access on port?)`. Release
+it around the flash:
+
+```bash
+systemctl --user stop  rete-console@c6spare.service     # before
+systemctl --user start rete-console@c6spare.service     # after
+```
+
+If you flash by hand rather than through `run.sh`, also run the archive step `run.sh` would
+have run — and pass the real board, because `run.sh:354` hard-codes `c6`:
+
+```bash
+bash nodus/tuvm/zephyr/tools/console/archive.sh nodus/tuvm/zephyr/build-esp32c6-B c6spare
+```
+
+Confirm the radio actually made it in before believing anything downstream:
+
+```bash
+rg -N "^CONFIG_(NET_L2_OPENTHREAD|OPENTHREAD_FTD|OPENTHREAD_NETWORK_NAME)=" \
+  nodus/tuvm/zephyr/build-esp32c6-B/zephyr/.config
+```
+
+Expected: `NET_L2_OPENTHREAD=y`, `OPENTHREAD_FTD=y`, and a network name that is **not** the
+committed placeholder `ot_zephyr`. Then wait for `thread: attached role=` and
+`PORTA NODE READY` on the console.
 
 - [ ] **Step 2: Confirm silence before the request**
 
+**`logread.py --since 2m` is not the CLI.** `since` is a subcommand taking an ISO
+timestamp; the count-based form is `tail -n N`, and `--board` is mandatory or the read is
+pointed at no sink at all:
+
 ```bash
-python3 nodus/tuvm/zephyr/tools/console/logread.py --since 2m | rg "mprof" | wc -l
+python3 nodus/tuvm/zephyr/tools/console/logread.py --board c6spare tail -n 500 | rg -c "mprof"
 ```
 
-Expected: `0`. **This is the control.** A gate that cannot distinguish "the window worked" from "it was already dumping" measures nothing — and a query that returns nothing because it was pointed at the wrong sink looks identical to a quiet node. Confirm the same command returns non-zero for an unrelated known-present pattern (e.g. `rg "checkin"`) before trusting the zero.
+Expected: `0`. **This is the control.** A gate that cannot distinguish "the window worked"
+from "it was already dumping" measures nothing — and a query that returns nothing because it
+was pointed at the wrong sink looks identical to a quiet node. Confirm the same command
+returns non-zero for an unrelated known-present pattern (`rg -c "tick"`) before trusting
+the zero.
 
 - [ ] **Step 3: Write `dbg/req` from porta**
 
 ```bash
-porta put <node-id> dbg/req 'profile 10000' --kind stream
+porta put c6-bench dbg/req 'profile 10000' --kind stream
 ```
+
+**The node id is `c6-bench`, and the board is `c6spare`.** `PortaBridgeNodeC6.nsl:47`
+hard-codes `nodeId = ( ^ 'c6-bench' )`, so porta addresses the node by that name whichever
+devkit is running the image. Do not substitute the board name here.
 
 **Three things about this invocation, all verified against `porta/internal/portacli/put.go`:**
 
@@ -886,7 +950,7 @@ porta put <node-id> dbg/req 'profile 10000' --kind stream
 - [ ] **Step 4: Witness the dump, and time it**
 
 ```bash
-python3 nodus/tuvm/zephyr/tools/console/logread.py --since 2m | rg "mprof\[window\]"
+python3 nodus/tuvm/zephyr/tools/console/logread.py --board c6spare tail -n 2000 | rg "mprof\[window\]"
 ```
 
 Expected: exactly one `mprof[window]: methods=… activations=… overflow=… cap=256` header, arriving ~10 s after the request, followed by the rows.
@@ -900,10 +964,14 @@ Assert all three, and record each:
 
 ```bash
 python3 nodus/tuvm/tools/mprof_resolve.py \
-  nodus/tuvm/zephyr/build/PortaBridgeNodeC6.oimg.methods.json \
+  nodus/tuvm/zephyr/PortaBridgeNodeC6.oimg.methods.json \
   --top 20 \
-  <(python3 nodus/tuvm/zephyr/tools/console/logread.py --since 2m)
+  <(python3 nodus/tuvm/zephyr/tools/console/logread.py --board c6spare tail -n 2000)
 ```
+
+The sidecar is written **beside the `.oimg`** in `nodus/tuvm/zephyr/`, not under `build/` —
+`run.sh`'s bake step reports its real path (`method map written to …`). It is regenerated on
+every bake, so the copy on disk is the one matching the image you just flashed.
 
 Expected: 20 named rows, percentages summing to less than 100 (they are of *all* activations), and no `UNKNOWN` rows. Any `UNKNOWN` means the sidecar is from a different build than the image on the board — reflash and repeat rather than reading the table.
 
