@@ -351,6 +351,43 @@ class OimgSerializer:
         foff = self.structs[struct_name]["fields"][fname]["offset"]
         buf[base + foff: base + foff + len(raw)] = raw
 
+    def method_name_map(self, graph):
+        """#164: blob-relative offset of every CompiledMethod -> its name.
+
+        A CompiledMethod carries no name at runtime, so the VM can report a
+        method only as `ptr - oimg_blob_base` — a blob-relative byte offset.
+        This is the join key, and this map is the other half of it.
+
+        Two names per entry, because neither alone is enough:
+          - `qual`  "Vtable>>selector", the readable one, and the same
+                    convention stmap.py uses so the two sidecars agree. Absent
+                    for a method no vtable binds.
+          - `id`    the serializer's own key (`Method_<Vtable>_<sel>`,
+                    `Method_Block_...`), ALWAYS present. This is what names
+                    BLOCKS, which no vtable binds and which are exactly what a
+                    per-activation profile needs to see (#37: block activation
+                    is the STIC gap).
+
+        Call AFTER generate() — self.offset is assigned there.
+        """
+        qual = {}
+        for vt_name, vt in graph.vtables.items():
+            if vt_name in self.reg:          # firmware-owned; not serialized
+                continue
+            for sel, method_id in vt["bindings"]:
+                # A method bound in more than one vtable keeps every name rather
+                # than the last one to win: which binding was activated is not
+                # knowable from the offset, and silently picking one would print
+                # a confident wrong answer.
+                qual.setdefault(method_id, []).append(f"{vt_name}>>{sel}")
+        out = {}
+        for m in graph.methods:
+            off = self.offset.get(f"cm:{m['id']}")
+            if off is None:
+                continue
+            out[str(off)] = {"id": m["id"], "qual": qual.get(m["id"], [])}
+        return out
+
     # ---- main ---------------------------------------------------------------
     def generate(self, graph, entry_vtable_name,
                  init_sel_name=None, init_argc=0, main_sel_name="main:args:",

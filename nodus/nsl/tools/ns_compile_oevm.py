@@ -2273,7 +2273,8 @@ def main():
         _sparams = compiler.all_classes["Supervisor"].get("params", [])
         _sinit_selector = f"init_{''.join(f'{p}:' for p in _sparams) or 'new'}"
         _supervisor_nslots = len(compiler.class_slots["Supervisor"])
-        blob = OimgSerializer(layout, REGISTRY, registry_version=VERSION).generate(
+        _ser = OimgSerializer(layout, REGISTRY, registry_version=VERSION)
+        blob = _ser.generate(
             _Graph, entry_class,
             init_sel_name=_init_selector, init_argc=_init_argc,
             main_sel_name="main:args:", entry_nslots=_entry_nslots,
@@ -2287,7 +2288,17 @@ def main():
             supervisor_nslots=_supervisor_nslots)
         with open(out_c, "wb") as f:
             f.write(blob)
+        # #164 sidecar: offset -> method name, so a per-method profile taken on a
+        # node (which can only report `ptr - oimg_blob_base`) can be read back as
+        # names. Written beside the .oimg and named after it, the way the .stmap
+        # is — a profile is worthless against the wrong build, and a sidecar that
+        # travels with the image cannot drift from it.
+        import json as _json
+        _mm = out_c + ".methods.json"
+        with open(_mm, "w") as f:
+            _json.dump(_ser.method_name_map(_Graph), f, indent=1, sort_keys=True)
         print(f"OIMG written to {out_c} ({len(blob)} bytes, entry={entry_class})")
+        print(f"method map written to {_mm} ({len(_ser.method_name_map(_Graph))} methods)")
         return
 
     # Solidify custom additions

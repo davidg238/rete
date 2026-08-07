@@ -356,6 +356,170 @@ extern oop debugger_hook;
 static struct { oop method; long off; } g_bp[64];
 static int g_bp_count = 0;
 
+/* ---------------------------------------------------------------------------
+   #164 SPIKE: exact per-method call counts.
+
+   The question spans cannot answer is "which code inside the box is expensive".
+   Spans measure hand-placed brackets, so finding out costs a guess, a build and
+   a reflash per question. This counts every method activation exactly, at the
+   one chokepoint every activation already passes through, and needs no sampling
+   rate, no ISR and no bracket.
+
+   Same mechanic as span.c, different key: a fixed array of counters, zero
+   allocation on the hot path. The key is the CompiledMethod POINTER, which is
+   already this system's method identity -- it is what the breakpoint table above
+   keys on (bp_method_key) and what `mirror methodOf:` answers -- and it is stable
+   because the GC is non-moving mark-sweep. A count field inside CompiledMethod
+   would be cheaper still and is NOT available: solidified methods live in
+   .rodata, as the bp comment above already records.
+
+   NAMELESS, exactly like a span slot. C never learns that this pointer is
+   #encode: -- nsl walks `mirror methodsOf:`/`selectorsOf:` and asks
+   `mirror callsOf: m`, so the name<->method table lives in nsl.
+
+   OFF BY DEFAULT (-DOEVM_METHOD_PROFILE to build it in), following #40's
+   OEVM_NO_DEBUG_HOOKS precedent, because the ESP32 has 816 B of dram0 spare
+   (#53) and this table is 2 KB. */
+#ifdef OEVM_METHOD_PROFILE
+#ifndef OEVM_MPROF_SLOTS
+#define OEVM_MPROF_SLOTS 256        /* 256 * 8 B = 2 KB on a 32-bit target */
+#endif
+/* Open addressing with linear probing. Power-of-two capacity so the mask is an
+   AND; a load factor above ~0.7 degrades the probe, which is why overflow is
+   COUNTED rather than absorbed silently -- a full table must not read as "this
+   method was never called". */
+static const void *g_mprof_key[OEVM_MPROF_SLOTS];
+static uint32_t    g_mprof_n[OEVM_MPROF_SLOTS];
+static uint32_t    g_mprof_overflow = 0;   /* activations dropped: table full */
+static uint32_t    g_mprof_used = 0;
+
+/* SPIKE MEASUREMENT SEAM ONLY (-DOEVM_MPROF_RUNTIME_GATE), not a shipping feature.
+   Cross-binary timing cannot resolve this hook: an OFF-vs-ON build of fib(35) put
+   the ON build 4% FASTER, which is the code-layout roulette the benchmark
+   discipline warns about, not a measurement. A runtime flag puts both arms in ONE
+   binary -- same layout, same cache, same boot -- so the delta is the table
+   operation and nothing else.
+
+   The trigger is an ACTIVATION COUNT, not an env var and not a clock: getenv does
+   not exist on Zephyr, and a count makes the two arms exactly reproducible and
+   exactly equal in size on both host and device. The workload runs a fixed number
+   of identical iterations; the gate flips at a count that falls on an iteration
+   boundary, so the first half is the OFF arm and the second half the ON arm.
+
+   ONE decrement and one branch on the hot path for ALL of this scaffolding --
+   both arms pay it identically, so it cancels out of the delta. It does inflate
+   the baseline slightly, which makes the measured percentage a mild UNDERSTATEMENT
+   of the true relative cost. */
+#ifdef OEVM_MPROF_RUNTIME_GATE
+#ifndef OEVM_MPROF_FLIP_AT
+#define OEVM_MPROF_FLIP_AT 3000000u    /* activations before the ON arm begins */
+#endif
+#ifndef OEVM_MPROF_DUMP_AT
+#define OEVM_MPROF_DUMP_AT 0u          /* 0 = never dump from the hot path */
+#endif
+static int      g_mprof_enabled = 0;
+static int      g_mprof_phase = 0;
+static uint32_t g_mprof_countdown = OEVM_MPROF_FLIP_AT;
+static void mprof_report(const char *why);
+
+/* Cold: runs twice in a whole measurement. */
+static void mprof_phase_advance(void) {
+    if (g_mprof_phase == 0) {
+        g_mprof_enabled = 1;
+        g_mprof_phase = 1;
+        mprof_report("flip");
+        g_mprof_countdown = (OEVM_MPROF_DUMP_AT > OEVM_MPROF_FLIP_AT)
+                          ? (OEVM_MPROF_DUMP_AT - OEVM_MPROF_FLIP_AT) : 0xFFFFFFFFu;
+    } else {
+        /* RE-ARMS: once counting, dump every (DUMP_AT - FLIP_AT) activations.
+           A one-shot dump has to be aimed, and aiming it needs the activation
+           rate — which is the thing being measured. A periodic dump lands
+           whatever the rate turns out to be, and the counts are cumulative so
+           any single window is readable on its own. */
+        mprof_report("dump");
+        g_mprof_countdown = (OEVM_MPROF_DUMP_AT > OEVM_MPROF_FLIP_AT)
+                          ? (OEVM_MPROF_DUMP_AT - OEVM_MPROF_FLIP_AT) : 0xFFFFFFFFu;
+    }
+}
+#endif
+
+static OEVM_HOT void mprof_bump(const void *m) {
+#ifdef OEVM_MPROF_RUNTIME_GATE
+    if (--g_mprof_countdown == 0) mprof_phase_advance();
+    if (!g_mprof_enabled) return;
+#endif
+    /* Knuth multiplicative hash on the pointer, shifted past the alignment bits
+       (a CompiledMethod is pointer-aligned, so the low bits are always zero and
+       would collapse the table onto every eighth slot). */
+    uint32_t h = (uint32_t)(((uintptr_t)m >> 4) * 2654435761u) & (OEVM_MPROF_SLOTS - 1);
+    uint32_t start = h;
+    for (;;) {
+        if (g_mprof_key[h] == m) { g_mprof_n[h]++; return; }
+        if (g_mprof_key[h] == NULL) {
+            g_mprof_key[h] = m; g_mprof_n[h] = 1; g_mprof_used++; return;
+        }
+        h = (h + 1) & (OEVM_MPROF_SLOTS - 1);
+        if (h == start) { g_mprof_overflow++; return; }
+    }
+}
+
+/* SPIKE-ONLY readback, and it exists because the real one is not reachable yet:
+   the mirror is granted to the image's SUPERVISOR (oimg_loader.c:238), not to the
+   app, so an ordinary node app cannot ask `mirror callsOf:` and publish
+   a `diag/calls` subtree without the supervisor handing something down. Rather than design
+   that grant inside a spike, dump from C at exit under an env gate.
+   A destructor rather than an atexit registration so the hot path pays NOTHING for
+   the dump's existence -- no init flag, no branch in mprof_bump. */
+/* Reported as a BLOB-RELATIVE OFFSET, not a pointer. A CompiledMethod carries no
+   name, and a raw address is unresolvable off-node — it moves with the link and
+   means nothing to a reader holding only the image. `ptr - oimg_blob_base` is the
+   file offset the serializer assigned, so it joins directly against the
+   <image>.oimg.methods.json sidecar and names every method AND every block.
+
+   A method outside the blob (Model A / solidified .rodata) has no such offset;
+   it prints as `@<pointer>` so it is visibly a different kind of thing rather
+   than a plausible wrong offset. */
+static void mprof_report(const char *why) {
+    int i;
+    uint32_t total = 0;
+    for (i = 0; i < OEVM_MPROF_SLOTS; i++) total += g_mprof_n[i];
+    fprintf(stderr, "mprof[%s]: methods=%u activations=%u overflow=%u cap=%d\n",
+            why, g_mprof_used, total, g_mprof_overflow, OEVM_MPROF_SLOTS);
+    for (i = 0; i < OEVM_MPROF_SLOTS; i++) {
+        if (!g_mprof_key[i]) continue;
+        if (is_in_blob(g_mprof_key[i])) {
+            fprintf(stderr, "mprof: %lu %u\n",
+                    (unsigned long)((const uint8_t *)g_mprof_key[i] - oimg_blob_base),
+                    g_mprof_n[i]);
+        } else {
+            fprintf(stderr, "mprof: @%p %u\n", g_mprof_key[i], g_mprof_n[i]);
+        }
+    }
+}
+
+/* On a hosted run the process exits, so report there too. A destructor rather
+   than an atexit registration keeps the hot path free of an init flag. Absent on
+   Zephyr, where nothing ever exits -- the device path reports from
+   mprof_phase_advance instead. */
+#ifndef __ZEPHYR__
+__attribute__((destructor))
+static void mprof_dump_at_exit(void) {
+    if (getenv("OEVM_MPROF_DUMP")) mprof_report("exit");
+}
+#endif
+
+static uint32_t mprof_count(const void *m) {
+    uint32_t h = (uint32_t)(((uintptr_t)m >> 4) * 2654435761u) & (OEVM_MPROF_SLOTS - 1);
+    uint32_t start = h;
+    for (;;) {
+        if (g_mprof_key[h] == m)    return g_mprof_n[h];
+        if (g_mprof_key[h] == NULL) return 0;
+        h = (h + 1) & (OEVM_MPROF_SLOTS - 1);
+        if (h == start) return 0;
+    }
+}
+#endif /* OEVM_METHOD_PROFILE */
+
 static void bp_add(oop method, long off) {
     int i;
     for (i = 0; i < g_bp_count; i++) {
@@ -428,6 +592,11 @@ static void stack_overflow_abort(size_t need, size_t cap) {
 static OEVM_HOT struct MethodContext *push_frame(oop closure, oop receiver, int argc, oop *args) {
     struct Closure *cl = (struct Closure *)closure;
     struct CompiledMethod *m = (struct CompiledMethod *)closure_entry(cl);
+#ifdef OEVM_METHOD_PROFILE
+    /* #164: the whole hook. `m` is already loaded for num_registers below, so the
+       key costs nothing to obtain -- this is a hash, a probe and an increment. */
+    mprof_bump((const void *)m);
+#endif
     size_t frame_words = sizeof(struct MethodContext) / sizeof(oop) + m->num_registers;
     /* Fixed-capacity stack (Task 7): bounds-check the push against the hard cap.
        The stack never moves, so `args`/current_frame/vm_stack stay valid — no rebase. */
@@ -1648,6 +1817,64 @@ static oop bp_method_key(oop method) {
     }
     return method;
 }
+
+#ifdef OEVM_METHOD_PROFILE
+/* #164 readback, confined to the mirror exactly like the breakpoint prims below.
+   The argument is whatever nsl already holds: an element of `mirror methodsOf:`
+   (a Bytecode/Primitive Closure), a `mirror methodOf: ctx` result, or a bare
+   CompiledMethod -- all normalize to the pointer mprof_bump keyed on, which is
+   the same normalization bp_method_key does for breakpoints.
+
+   NO PRIM ID. mirror_dispatch branches on the selector NAME, so this adds nothing
+   to prim_ids.h and shifts nothing -- the append-only registry is untouched. */
+oop primitive_calls_of(oop receiver, int argc, oop *args) {
+    (void)argc; (void)args;
+    if (receiver == NULL || IS_SMI(receiver)) return TAG_SMI(0);
+    {
+        oop vt = obj_vtable(receiver);
+        const void *key = (vt == BytecodeClosureVtable || vt == PrimitiveClosureVtable)
+                        ? (const void *)closure_entry((struct Closure *)receiver)
+                        : (const void *)receiver;
+        return TAG_SMI((intptr_t)mprof_count(key));
+    }
+}
+
+/* Distinct methods seen, and activations DROPPED because the table was full.
+   Reported separately and never folded into a count, so a saturated table cannot
+   read as "that method was never called" -- silence and success must look
+   different. A non-zero overflow invalidates the whole run, not one row. */
+oop primitive_calls_stats(oop receiver, int argc, oop *args) {
+    (void)receiver; (void)argc; (void)args;
+    {
+        /* Total activations is SUMMED here rather than kept as a running counter:
+           a second increment on the hot path would be pure cost for a number the
+           table already contains. */
+        uint32_t total = 0; int i;
+        oop arr = indexable_new(4);
+        struct ObjectInstance *inst;
+        for (i = 0; i < OEVM_MPROF_SLOTS; i++) total += g_mprof_n[i];
+        inst = (struct ObjectInstance *)arr;
+        inst->slots[1] = TAG_SMI((intptr_t)g_mprof_used);
+        inst->slots[2] = TAG_SMI((intptr_t)g_mprof_overflow);
+        inst->slots[3] = TAG_SMI((intptr_t)OEVM_MPROF_SLOTS);
+        inst->slots[4] = TAG_SMI((intptr_t)total);
+        return arr;
+    }
+}
+
+/* Zero every counter -- the bounded-window opener, same role span_reset_all plays
+   for #72's capture. All-slots on purpose: a per-method reset would let a caller
+   clear half a window and publish the result as if it were whole. */
+oop primitive_calls_reset(oop receiver, int argc, oop *args) {
+    (void)receiver; (void)argc; (void)args;
+    {
+        int i;
+        for (i = 0; i < OEVM_MPROF_SLOTS; i++) { g_mprof_key[i] = NULL; g_mprof_n[i] = 0; }
+        g_mprof_overflow = 0; g_mprof_used = 0;
+    }
+    return NULL;
+}
+#endif /* OEVM_METHOD_PROFILE */
 
 /* Confined C-assisted breakpoint prims (Task 7 -- reachable ONLY via mirror_dispatch).
    `method` is a CompiledMethod or BytecodeClosure oop (normalized to the former);

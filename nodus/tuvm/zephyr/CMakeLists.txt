@@ -244,6 +244,25 @@ if("$ENV{OEVM_HANOI_NATIVE}" STREQUAL "1")
   target_compile_definitions(app PRIVATE OEVM_HANOI_NATIVE=1)
 endif()
 
+# Spike (2026-08-06, #164): exact per-method call counts at push_frame. OFF by
+# default — the table is ~2 KB of .bss, which the ESP32's 816 B of dram0 spare
+# (#53) cannot carry and the C6 can. export OEVM_METHOD_PROFILE=1 to build it in.
+# OEVM_MPROF_RUNTIME_GATE + OEVM_MPROF_FLIP_AT/DUMP_AT are the MEASUREMENT seam:
+# both arms in one binary, flipped at an activation count, because cross-binary
+# timing cannot resolve a hook this small. Scaffolding, not a feature.
+if("$ENV{OEVM_METHOD_PROFILE}" STREQUAL "1")
+  target_compile_definitions(app PRIVATE OEVM_METHOD_PROFILE=1)
+  if("$ENV{OEVM_MPROF_RUNTIME_GATE}" STREQUAL "1")
+    target_compile_definitions(app PRIVATE OEVM_MPROF_RUNTIME_GATE=1)
+    if(NOT "$ENV{OEVM_MPROF_FLIP_AT}" STREQUAL "")
+      target_compile_definitions(app PRIVATE OEVM_MPROF_FLIP_AT=$ENV{OEVM_MPROF_FLIP_AT})
+    endif()
+    if(NOT "$ENV{OEVM_MPROF_DUMP_AT}" STREQUAL "")
+      target_compile_definitions(app PRIVATE OEVM_MPROF_DUMP_AT=$ENV{OEVM_MPROF_DUMP_AT})
+    endif()
+  endif()
+endif()
+
 # Production default (accepted 2026-07-17): the three per-bytecode debugger
 # checks (oevm.h OEVM_NO_DEBUG_HOOKS) are compiled OUT of Zephyr builds —
 # no on-target debugger transport exists, and the checks cost 10-16% per
