@@ -1,10 +1,20 @@
 # Copyright (c) 2026 Ekorau LLC
+import datetime as dt
 import http.client
+import json
 import threading
 
 import pytest
 
+import logstore
 import view
+
+# Captured before any test monkeypatches view.logstore.LogStore below: that
+# patch replaces the attribute on the SHARED module object (this file's
+# `logstore` and view.py's `view.logstore` are the same `sys.modules` entry),
+# so a fixture that called `logstore.LogStore(...)` after patching would be
+# calling its own replacement, not the real class.
+_RealLogStore = logstore.LogStore
 
 
 LOG = ("2026-08-06T10:00:00.000-07:00 checkin ok\n"
@@ -46,6 +56,16 @@ def test_render_of_no_window_says_so():
     assert "no capture" in html.lower()
 
 
+def test_render_includes_the_capture_time_when_given_one():
+    """round 2: a capture found by searching backward into older days must
+    say WHEN it was taken, or a three-day-old table reads as a current one
+    — the exact false green that made the narrower `days()[-1]`-only search
+    look safe by accident."""
+    html = view.render(view.latest_window(LOG, MAP), overflow=0,
+                       when="2026-08-06T10:00:01.000-07:00")
+    assert "2026-08-06T10:00:01.000-07:00" in html
+
+
 def test_latest_window_does_not_merge_an_earlier_window_in_the_same_log():
     rows = view.latest_window(TWO_WINDOWS, MAP)
     assert len(rows) == 1
@@ -77,12 +97,28 @@ def test_page_assembly_does_not_raise_and_keeps_the_css_percent_literal():
 # request is actually dispatched through the handler machinery.
 
 @pytest.fixture
-def server(monkeypatch):
+def server(tmp_path, monkeypatch):
+    """A real view.Handler on an ephemeral port, backed by a real LogStore
+    rooted at `tmp_path` (seeded with one day, 2026-08-06, holding LOG) —
+    not a monkeypatched `_log_text`, because round 2's bug was in HOW the
+    handler chose which day to read, and a fixture that hands it text
+    directly cannot exercise that choice at all.
+
+    `view.logstore.LogStore` is replaced with a factory pinned to `tmp_path`
+    rather than passing a root through Handler, since Handler.--board is
+    the only knob the real CLI exposes and adding a test-only --root would
+    be a second way to point at a store."""
+    sidecar = tmp_path / "sidecar.json"
+    sidecar.write_text(json.dumps(MAP))
     view.Handler.board = "testboard"
     view.Handler.node = "testnode"
-    view.Handler.sidecar = None
+    view.Handler.sidecar = str(sidecar)
     view.Handler.top = 64
-    monkeypatch.setattr(view.Handler, "_log_text", lambda self: LOG)
+    store = _RealLogStore(str(tmp_path), board="testboard")
+    with open(store.path_for(dt.date(2026, 8, 6)), "w", encoding="utf-8") as fh:
+        fh.write(LOG)
+    monkeypatch.setattr(view.logstore, "LogStore",
+                        lambda board=None, **kw: _RealLogStore(str(tmp_path), board=board))
     srv = view.HTTPServer(("127.0.0.1", 0), view.Handler)
     thread = threading.Thread(target=srv.serve_forever, daemon=True)
     thread.start()
@@ -121,6 +157,28 @@ def test_get_health_answers_ok_independent_of_root(server):
 def test_get_unknown_path_is_404(server):
     status, _ = _get(server, "/nope")
     assert status == 404
+
+
+def test_get_root_falls_back_to_an_older_day_and_names_when_it_was_taken(
+        server, tmp_path):
+    """round 2, finding 3: reading only `days()[-1]` (today) made a real
+    capture in an OLDER file invisible the instant midnight rolled past it —
+    Task 6's one hardware capture (181 rows, zero UNKNOWN) sat in yesterday's
+    file while today's held nothing, and the view said 'No capture' as if it
+    had never happened. The `server` fixture already seeded 2026-08-06 with
+    LOG (one window); this adds a NEWER, window-less day on top of it and
+    the page must still find and show the older one — WITH its own capture
+    time, not today's, so a stale table cannot be mistaken for a fresh one."""
+    store = _RealLogStore(str(tmp_path), board="testboard")
+    with open(store.path_for(dt.date(2026, 8, 7)), "w", encoding="utf-8") as fh:
+        fh.write("2026-08-07T09:00:00.000-07:00 checkin ok\n")   # no window
+
+    status, body = _get(server, "/")
+    assert status == 200
+    assert b"No capture" not in body
+    assert b"u8At" in body                        # the OLDER day's rows
+    assert b"2026-08-06T10:00:01" in body          # its OWN capture time
+    assert b"2026-08-07" not in body               # not today's date
 
 
 def test_post_capture_reports_when_porta_is_absent(server, monkeypatch):

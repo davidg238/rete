@@ -47,10 +47,18 @@ def latest_window(text, mmap, top=0):
     return mprof_resolve.resolve(mmap, window_text, top=top)
 
 
-def render(rows, overflow):
+def render(rows, overflow, when=None):
+    """`when` is the capture's OWN log timestamp (the collector's stamp on
+    the `mprof[window]:` line), not the file's mtime and not the day key —
+    round 2 widened the search to older days, and showing a stale capture
+    with no indication of its age would be its own false green, the exact
+    failure the search being scoped to `days()[-1]` alone was accidentally
+    guarding against in round 1's report (by making every capture vanish at
+    midnight instead)."""
     if rows is None:
         return ("<p id='table'>No capture in this window. Start one, then "
                 "reload.</p>")
+    meta = f"<p class='meta'>captured {_html.escape(when)}</p>" if when else ""
     banner = ""
     if overflow:
         banner = (f"<p class='warn'>INCOMPLETE: {overflow} activations were "
@@ -59,7 +67,7 @@ def render(rows, overflow):
     body = "".join(
         f"<tr><td>{n}</td><td>{pct:.1f}%</td><td>{_html.escape(name)}</td></tr>"
         for name, n, pct in rows)
-    return (f"<div id='table'>{banner}<table>"
+    return (f"<div id='table'>{meta}{banner}<table>"
             f"<tr><th>count</th><th>%</th><th>method</th></tr>{body}"
             f"</table></div>")
 
@@ -105,22 +113,41 @@ class Handler(BaseHTTPRequestHandler):
     node = None
     top = 64
 
-    def _log_text(self):
+    def _capture(self):
+        """Scan retained days NEWEST FIRST for the most recent one that
+        actually holds a window, and return (rows, overflow, when) for it —
+        or (None, 0, None) if no retained day has one.
+
+        `days()[-1]` alone (today's file) was round 1's plan-inherited bug:
+        Task 6's one hardware capture — 181 rows, zero UNKNOWN — sat in
+        yesterday's file, today's file held nothing, and the view reported
+        'No capture in this window' as if the capture had never happened.
+        Every capture became invisible at midnight. `when` is what makes
+        searching backward safe rather than merely quiet: it is read off the
+        `mprof[window]:` line's own log timestamp, not the file's mtime and
+        not the day key, so a three-day-old capture cannot be mistaken for a
+        fresh one just because the search found it.
+        """
         store = logstore.LogStore(board=self.board)
-        days = store.days()
-        if not days:
-            return ""
-        return open(store.path_for(days[-1]), encoding="utf-8",
-                    errors="replace").read()
+        mmap = json.load(open(self.sidecar)) if self.sidecar else {}
+        for day in sorted(store.days(), reverse=True):
+            text = open(store.path_for(day), encoding="utf-8",
+                        errors="replace").read()
+            rows = latest_window(text, mmap, top=self.top)
+            if rows is None:
+                continue
+            overflow = 0
+            when = None
+            for m in mprof_resolve.HDR_RE.finditer(text):
+                overflow = int(m.group(4))          # last window in the DAY wins
+                line_start = text.rfind("\n", 0, m.start()) + 1
+                when = text[line_start:m.start()].strip()
+            return rows, overflow, when
+        return None, 0, None
 
     def _table(self):
-        text = self._log_text()
-        mmap = json.load(open(self.sidecar)) if self.sidecar else {}
-        rows = latest_window(text, mmap, top=self.top)
-        overflow = 0
-        for m in mprof_resolve.HDR_RE.finditer(text):
-            overflow = int(m.group(4))          # last window wins
-        return render(rows, overflow)
+        rows, overflow, when = self._capture()
+        return render(rows, overflow, when)
 
     def _send(self, code, body, ctype="text/html; charset=utf-8"):
         payload = body.encode("utf-8")
