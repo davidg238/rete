@@ -393,6 +393,13 @@ static uint32_t    g_mprof_n[OEVM_MPROF_SLOTS];
 static uint32_t    g_mprof_overflow = 0;   /* activations dropped: table full */
 static uint32_t    g_mprof_used = 0;
 
+/* #165 D1: the shipping control. The spike's OEVM_MPROF_RUNTIME_GATE flipped
+   this on an activation countdown because Zephyr has no getenv and a count
+   makes two measurement arms exactly reproducible. That seam stays below, opt
+   in, for benchmarking. This flag is the one porta drives, and it defaults OFF:
+   a node pays the 0.90% only inside a window it was asked for. */
+static int g_mprof_enabled = 0;
+
 /* SPIKE MEASUREMENT SEAM ONLY (-DOEVM_MPROF_RUNTIME_GATE), not a shipping feature.
    Cross-binary timing cannot resolve this hook: an OFF-vs-ON build of fib(35) put
    the ON build 4% FASTER, which is the code-layout roulette the benchmark
@@ -417,7 +424,6 @@ static uint32_t    g_mprof_used = 0;
 #ifndef OEVM_MPROF_DUMP_AT
 #define OEVM_MPROF_DUMP_AT 0u          /* 0 = never dump from the hot path */
 #endif
-static int      g_mprof_enabled = 0;
 static int      g_mprof_phase = 0;
 static uint32_t g_mprof_countdown = OEVM_MPROF_FLIP_AT;
 static void mprof_report(const char *why);
@@ -446,8 +452,8 @@ static void mprof_phase_advance(void) {
 static OEVM_HOT void mprof_bump(const void *m) {
 #ifdef OEVM_MPROF_RUNTIME_GATE
     if (--g_mprof_countdown == 0) mprof_phase_advance();
-    if (!g_mprof_enabled) return;
 #endif
+    if (!g_mprof_enabled) return;
     /* Knuth multiplicative hash on the pointer, shifted past the alignment bits
        (a CompiledMethod is pointer-aligned, so the low bits are always zero and
        would collapse the table onto every eighth slot). */
@@ -496,6 +502,30 @@ static void mprof_report(const char *why) {
         }
     }
 }
+
+/* #165 D1/D6 lifecycle. start = zero + enable; stop = disable + report. Zeroing
+   at START rather than at stop is what makes a window mean one window: the
+   counts are cumulative by construction, so a second capture that inherited the
+   first one's table would report a sum spanning both and no reader could tell. */
+void mprof_start(void) {
+    int i;
+    for (i = 0; i < OEVM_MPROF_SLOTS; i++) { g_mprof_key[i] = NULL; g_mprof_n[i] = 0; }
+    g_mprof_used = 0;
+    g_mprof_overflow = 0;
+    g_mprof_enabled = 1;
+}
+
+void mprof_stop(void) {
+    g_mprof_enabled = 0;
+    mprof_report("window");
+}
+
+int mprof_is_running(void) { return g_mprof_enabled; }
+
+/* Test-only shims. mprof_bump is static and OEVM_HOT; exposing it directly
+   would put a non-inlinable call on the activation path. */
+void mprof_bump_for_test(const void *m) { mprof_bump(m); }
+unsigned mprof_used_for_test(void) { return g_mprof_used; }
 
 /* On a hosted run the process exits, so report there too. A destructor rather
    than an atexit registration keeps the hot path free of an init flag. Absent on

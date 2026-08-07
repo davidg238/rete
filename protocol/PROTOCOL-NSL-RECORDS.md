@@ -229,24 +229,45 @@ construction. There is nothing to enforce.
 | `obs/config/<app>/<key>` | R | scalar echo |
 | `obs/mode` / `obs/name` / `obs/forward` | R | same shapes as their `goal/` twins |
 | `obs/health` | R | `Health { uptimeMs: int, bootId: int, wakes: int, pollTimeouts: int, streamDropped: int }` — liveness and delivery only; the VM internals live at `sys/metrics` (§4.4), which the bridge publishes on every check-in. `heapFree`/`heapLargest`/`overruns` were **removed** 2026-08-04 (#56 design D2) rather than duplicated. **87 B encoded, MEASURED 2026-08-04** |
-| `obs/build` | R | `Build { chip: sym, sdk: str, image: bytes, builtAt: int }` — see below |
+| `obs/build` | R | `Build { chip: sym, build: str, sdk: str, image: bytes }` — see below |
 
-**`obs/build` — build provenance, pinned 2026-08-01.** Added by the space-sync rewrite
-(`design/2026-08-01-porta-space-sync-rewrite-design.md` D8) because v1's `nodes.chip` /
-`nodes.sdk` columns had no successor path, and deleting them without one takes fleet
-provenance from *partial* to *absent*. That is tuvm#74, a labelled revenue-gate: an agent
-cannot reason about a fleet when it cannot tell which code is on which node.
+**`obs/build` — build provenance, pinned 2026-08-01, `build` added by #74 (2026-08-07).**
+Added by the space-sync rewrite (`design/2026-08-01-porta-space-sync-rewrite-design.md`
+D8) because v1's `nodes.chip` / `nodes.sdk` columns had no successor path, and deleting
+them without one takes fleet provenance from *partial* to *absent*. #74 (tuvm#74, a
+labelled revenue-gate) is why a per-method profile (§4.x, `mprof:` lines) can be named at
+all: the profile's offsets are only meaningful against the `.oimg.methods.json` sidecar
+of the exact build that produced them, and a node that cannot say which build it is
+running makes a mismatched sidecar indistinguishable from a quiet program.
 
 - `chip` — the SoC family as a symbol (`#esp32c6`, `#esp32s2`, `#nrf52840`).
-- `sdk` — the Zephyr/SDK version string as the build reports it.
+- `build` — the build actually running: `platform buildId`, which on Zephyr is
+  `git describe --always --dirty` plus a build timestamp
+  (`<describe>-<YYYYmmddTHHMMSS>`, baked in fresh on every build — see
+  `nodus/tuvm/zephyr/cmake/gen_build_id.cmake`) and on host is the literal `"host"`.
+  Deliberately **one opaque string**, not `sdk`/`image`/`builtAt` as separate fields:
+  the timestamp it already carries is what `builtAt` would have answered, and a reader
+  picks a sidecar by matching this string whole, not by comparing fields piecewise.
+- `sdk` — the Zephyr/SDK version string as the build reports it. Still **omitted** —
+  #74 covers only the build id, not this — absence means "the node cannot say", which
+  is the honest value and not a default.
 - `image` — a truncated hash of the running `.oimg`, **8 bytes**, not a full digest: it
   identifies a build against a known set, it does not authenticate one. Authentication is
-  the signing story and rides the bulk plane.
-- `builtAt` — build epoch seconds.
+  the signing story and rides the bulk plane. Still **omitted**, for the same reason as
+  `sdk`.
 
-The record is ~40 B encoded, well inside §2.2's 256 B/value cap. `chip` and `sdk` are
-answerable today; `image` and `builtAt` arrive with tuvm#74 and are **omitted** until then
-— absence means "the node cannot say", which is the honest value and not a default.
+**82 B encoded, MEASURED 2026-08-07** — `chip: #esp32c6` plus the 43-character
+`porta-v1-final-862-g8410661-20260806T223944` this bench's C6 build actually produced,
+through `porta/internal/cval`'s encoder (golden-tested against the node's own `Cbor`).
+The host twin's `build: "host"` (with `chip: #host`) is **39 B**, and the pre-#74 `chip`-only record was 29 B.
+Well inside §2.2's 256 B/value cap, with 174 B of headroom on the longest of the three.
+
+A figure and not an assurance, deliberately: this line read "the record is ~40 B encoded"
+until #74 added a ~43-byte string, at which point it became "well inside the cap" — a
+document whose §2 is a size law had replaced its one measurement with a reassurance in the
+same edit that made the record twice as large. `build` is the only field here that can
+grow without a schema change (a longer `git describe`, a dirty suffix), so it is the one
+that has to be measured rather than reasoned about.
 
 **`obs/X` deliberately reuses the shape of `goal/X`.** Convergence is then a *structural*
 diff — `goal/mode` vs `obs/mode` — rather than a bespoke comparison per feature. v1's
@@ -334,13 +355,40 @@ with the heap.
 | `dbg/req` | E, ↓ | `DbgReq { line: str }` |
 | `dbg/resp` | E, ↑ | `DbgResp { line: str }` |
 
-Porta stays a **stateless relay**; the debug session lives in the node (unchanged from
-v1 §8). Long responses obey `MAX_VALUE_BYTES` like everything else — the debugger
-paginates, which it must do for a serial console anyway.
+**Porta does not interpret or own the `dbg/req` / `dbg/resp` session** (unchanged from v1
+§8): it relays whatever line arrives, and the debug session itself — parsing the line,
+running the window, formatting the reply — lives entirely in the node. Long responses obey
+`MAX_VALUE_BYTES` like everything else — the debugger paginates, which it must do for a
+serial console anyway.
 
-**Not yet implemented on the nsl node.** `dbg/*` is pinned here as the contract; the node
-carries no `dbg/` channel today (v1's debugger was JSON over TFTP, which went with v1).
-Contrast `diag/**` below, which *is* shipped.
+**This is a claim about the session on this path, not about developer-facing assets.**
+Console history, `.oimg` archives and symbol sidecars are not the `dbg/` session and are not
+bound by this rule; they live off the space entirely, as host-side dev tooling
+(`nodus/tuvm/zephyr/tools/console/`), by the same rule that keeps profiler blobs off the
+space at all (§2.4). Conflating the two readings would make porta holding console history,
+or a view built on that tooling, look like a violation of "stateless relay" when it is not
+(`docs/design/2026-08-06-method-profile-over-porta-design.md` D7).
+
+**Implemented 2026-08-06** (`docs/design/2026-08-06-method-profile-over-porta-design.md`,
+issues #164/#165) — `dbg/*`'s first implementation since v1 was deleted. The line this
+channel carries today is `profile <ms>`: the node opens a self-limiting per-method
+activation-count window sized in milliseconds, counts for that duration, and reports without
+needing a matching stop request, so a node that never hears from porta again still stops
+counting and still reports. The rows themselves stay off this path — they leave over the
+console already teed to the collector (#56), never over `dbg/resp`, which keeps a profile
+table off the same plane the size law keeps every other blob off (§2.4) rather than testing
+`MAX_VALUE_BYTES`'s pagination story against it.
+
+**`dbg/req` is a STREAM, so it carries the cursor-0 replay hazard.** The node's cursor is
+RAM-only, so cold boot = cursor 0 = full replay — safe for cells, which are idempotent by
+construction, and dangerous for streams, which are actions
+(`porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md` §8, whose example is
+`goal/do/reboot` rebooting the node again). `dbg/req` is the second such path: after a
+reboot the node re-receives every `profile <ms>` porta ever wrote and starts counting
+unbidden. Bounded rather than fixed — the windows are self-limiting and only one end-timer
+is outstanding at a time — and recorded rather than mechanised, because every fix is a
+tunable no measurement has earned yet
+(`docs/design/2026-08-06-method-profile-over-porta-design.md` D6).
 
 ### 4.6 `diag/**` — bounded diagnostic capture (both ways)
 

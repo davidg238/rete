@@ -16,6 +16,23 @@
 #include <stdint.h>
 #include <math.h>
 
+/* #74/#165 D3: the build actually running, so a profile reader can pick the
+   matching .oimg.methods.json sidecar instead of choosing by hand — a
+   mismatched sidecar resolves nothing and looks exactly like a quiet program.
+   `tuvm_build_id` is generated fresh on every Zephyr build (git describe +
+   a timestamp; see zephyr/cmake/gen_build_id.cmake) and already `extern`'d
+   and printed at boot by zephyr/src/main.c. A host build has no such TU, so
+   this is a #define split rather than a weak symbol — a weak symbol that
+   silently resolved to the wrong definition would be exactly the failure
+   mode this field exists to prevent. Not a GNU build-id: a PT_NOTE segment
+   over DROM boots the C6 and then emits garbage on the console (#144). */
+#ifdef __ZEPHYR__
+extern const char tuvm_build_id[];
+#define OEVM_BUILD_ID tuvm_build_id
+#else
+#define OEVM_BUILD_ID "host"
+#endif
+
 /* The host virtual-clock timer facility that used to live here was lifted in rung 8
    into the timer seam: src/timer_backend.h + src/backend/posix/timer_posix.c (the
    virtual clock, verbatim) and src/backend/zephyr/timer_zephyr.c (a real k_timer).
@@ -1196,6 +1213,36 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         ((struct ObjectInstance *)r)->slots[4] = TAG_SMI((intptr_t)st.largest_free_block);
         ((struct ObjectInstance *)r)->slots[5] = TAG_SMI((intptr_t)st.gc_cycles);
         *out = r; return 1;
+    }
+    case PRIM_pf_profileStart: {
+        /* #165 D1/D6: open a per-method capture window. No-op without the
+           profiler built in — deliberately silent rather than an error, so one
+           app image runs on both a profile build and a production build. The
+           absence is visible where it matters: no `mprof:` lines ever appear. */
+#ifdef OEVM_METHOD_PROFILE
+        mprof_start();
+#endif
+        *out = platform_object(); return 1;
+    }
+    case PRIM_pf_profileStop: {
+        /* Closes the window and dumps. The dump goes to stderr, which reaches
+           the #56 collector because the console is TEED, not because anything
+           here routes it. */
+#ifdef OEVM_METHOD_PROFILE
+        mprof_stop();
+#endif
+        *out = platform_object(); return 1;
+    }
+    case PRIM_pf_buildId: {
+        /* #74: the node names its own build so a reader can pick the matching
+           .oimg.methods.json sidecar. Unconditional — NOT part of the profiler,
+           so it is not gated on OEVM_METHOD_PROFILE like the two cases above.
+           Same String-build idiom as spaceChangedSince:under:max: above
+           (space_make_string_pub copies bytes+len into a fresh String; no
+           allocation happens before OEVM_BUILD_ID's bytes are read, so there is
+           nothing to root). */
+        *out = space_make_string_pub(OEVM_BUILD_ID, strlen(OEVM_BUILD_ID));
+        return 1;
     }
     case PRIM_pf_sysStats: {
         /* tuvm#24: `platform sysStats` — snapshot handle/ring/overrun telemetry

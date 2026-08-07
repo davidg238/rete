@@ -289,14 +289,38 @@ if [ -n "$CONF_EXTRA" ]; then
   EXTRA_CONF_FILES+=("$CONF_EXTRA")
   echo "[extra] conf overlay -> $CONF_EXTRA"
 fi
-# C6 Thread dataset overlay (#59): gitignored real porta dataset, auto-layered like
-# the WiFi overlay. Appended LAST — Zephyr applies EXTRA_CONF_FILE fragments in order
-# and LATER wins, so this must follow --conf-extra prj_esp32c6_thread.conf for its 5
-# real dataset fields to override that file's placeholders (proven by .config check).
+# C6 Thread dataset overlay (#59): gitignored real porta dataset. Appended LAST —
+# Zephyr applies EXTRA_CONF_FILE fragments in order and LATER wins, so this must
+# follow --conf-extra prj_esp32c6_thread.conf for its 5 real dataset fields to
+# override that file's placeholders (proven by .config check).
+#
+# Keyed on the RADIO LAYER being requested, not on the board (#165, 2026-08-06).
+# It used to key on `BOARD_ID = esp32c6` alone, so any C6 build printed "dataset
+# overlay found" — including one built with no --conf-extra at all, which has no
+# NET_L2_OPENTHREAD, which makes Kconfig silently discard all five
+# CONFIG_OPENTHREAD_* symbols the overlay sets. The build then looked configured
+# for Thread and shipped an image with no radio: PortaBridgeNodeC6 failed its UDP
+# bind at boot and sat dead for over an hour while the log said the credentials
+# were in. Credentials follow the radio, so there is ONE condition rather than
+# two independent ones that can disagree.
 THREAD_LOCAL="$ZDIR/prj_esp32c6_thread.local.conf"
-if [ "$BOARD_ID" = esp32c6 ] && [ -f "$THREAD_LOCAL" ]; then
+case ";$CONF_EXTRA;" in
+  *prj_esp32c6_thread.conf*) WANTS_THREAD=1 ;;
+  *)                         WANTS_THREAD=0 ;;
+esac
+if [ "$WANTS_THREAD" = 1 ] && [ -f "$THREAD_LOCAL" ]; then
   EXTRA_CONF_FILES+=(prj_esp32c6_thread.local.conf)
   echo "[thread] dataset overlay found -> $THREAD_LOCAL"
+elif [ "$WANTS_THREAD" = 1 ]; then
+  # Loud, because the mirror failure is just as quiet: the node builds, boots and
+  # attaches to nothing, using the placeholder dataset committed in the .conf.
+  echo "[thread] ! NO dataset overlay at $THREAD_LOCAL — this image gets the" >&2
+  echo "[thread] ! PLACEHOLDER dataset and will NOT join the porta mesh." >&2
+  echo "[thread] ! Read the live one: ssh gw85224-01 docker exec otbr ot-ctl dataset active" >&2
+elif [ "$BOARD_ID" = esp32c6 ] && [ -f "$THREAD_LOCAL" ]; then
+  echo "[thread] radio layer not requested — dataset overlay NOT applied. This" >&2
+  echo "[thread] image has no OpenThread. Add:" >&2
+  echo "[thread]   --conf-extra \"prj_esp32c6_thread.conf;prj_esp32c6_thread_ftd.conf\"" >&2
 fi
 EXTRA_CONF_ARG=()
 if [ ${#EXTRA_CONF_FILES[@]} -gt 0 ]; then
@@ -328,7 +352,11 @@ if [ "$DO_FLASH" = 1 ]; then
   # build id the firmware itself prints, read from tuvm_build_id.txt so host and
   # device cannot disagree about the string.
   if [ "$BOARD_ID" = esp32c6 ]; then
-    "$ZDIR/tools/console/archive.sh" "$ZDIR/$BUILD_DIR" c6
+    # ${OIMG:-} is set only by a Model B bake (above); archive.sh then also
+    # takes the .oimg.methods.json and .stmap sidecars into the same build-id
+    # directory, so a profile taken today can be resolved after the board has
+    # been reflashed twice.
+    "$ZDIR/tools/console/archive.sh" "$ZDIR/$BUILD_DIR" c6 "${OIMG:-}"
     # The collector reads its port from its own env file. If that disagrees with
     # the console port this bench actually resolves, the boot you just triggered
     # is being logged from a different adapter — or not at all — and every

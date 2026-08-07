@@ -389,7 +389,7 @@ answer for that path specifically — the decision belongs with #114.
 | telemetry `print`/`log` | `tel/print`, `tel/log` | stream | `{text:}` / `{level:, text:}` |
 | telemetry `metric` | `tel/m/<name>` | stream | `{value:, ts:}` |
 | telemetry `panic` | `sys/panic` | stream, **must-deliver** | bounded inline summary + `BlobRef` (RECORDS §2.4) |
-| debug lines | `dbg/req` ↓ / `dbg/resp` ↑ | stream | `{line:}` — porta stays a stateless relay, session lives in the node (v1 §8) |
+| debug lines | `dbg/req` ↓ / `dbg/resp` ↑ | stream | `{line:}` — porta does not interpret or own the session (v1 §8); scope of that claim: RECORDS §4.5 |
 
 ### 4.3 What stays OFF the space
 

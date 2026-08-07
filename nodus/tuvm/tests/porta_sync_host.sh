@@ -11,6 +11,10 @@
 #      check-in IS the heartbeat, so this is also the liveness proof.
 #   3. `tel/log` entries arrive EXACTLY ONCE: every entry carries a monotone tick
 #      counter, so a re-pushed entry would show up as a repeated 'tick N'.
+#   4. a `dbg/req` written at porta opens a per-method profile window on the node
+#      and the window CLOSES ITSELF (#165 D2/D6) — the only off-target proof that
+#      the request survives the wire, since the node-side chain alone is covered
+#      by nodus/tests/23_mprof/04_dbg_req_chain.nsl.
 # Leg 3 under a DELIBERATE datagram drop is plan 3's, on the C6 over the mesh.
 #
 # Not wired into run_tests_oevm.py — it builds a separate Go binary and a
@@ -35,18 +39,23 @@ if ! command -v go >/dev/null 2>&1; then
   echo "SKIP: go is not on PATH — cannot build the porta counterparty"; exit 0
 fi
 
-echo "[1/7] build porta"
+echo "[1/8] build porta"
 ( cd "$PORTA_DIR" && go build -o /tmp/porta ./cmd/porta )
 
-echo "[2/7] host-ABI layout descriptor"
+echo "[2/8] host-ABI layout descriptor"
 gcc -std=c99 -Isrc tools/dump_layout.c -o /tmp/dl
 /tmp/dl > /tmp/layout.json
 
-echo "[3/7] compile PortaBridgeNode.nsl -> .oimg"
+echo "[3/8] compile PortaBridgeNode.nsl -> .oimg"
 python3 "$NSL" zephyr/PortaBridgeNode.nsl /tmp/porta_node.oimg --format=oimg --layout=/tmp/layout.json
 
-echo "[4/7] build the image VM"
-gcc -Wall -std=c99 -Isrc \
+echo "[4/8] build the image VM"
+# -DOEVM_METHOD_PROFILE: leg 8 below drives a real dbg/req profile window end
+# to end. Without the define `profileStart`/`profileStop` are silent no-ops
+# (platform.c:1217), so the leg would pass on a node that never counted — the
+# gate would be green with the whole feature compiled out. The counter costs
+# ~0.9% of activations, which no leg above is timed tightly enough to notice.
+gcc -Wall -std=c99 -DOEVM_METHOD_PROFILE -Isrc \
     src/vm.c src/gc.c src/dispatch.c src/platform.c src/space.c src/handles.c \
     src/span.c \
     "src/backend/$TARGET/platform_$TARGET.c" src/serial.c \
@@ -58,7 +67,7 @@ gcc -Wall -std=c99 -Isrc \
     src/mirror.c \
     src/oimg_loader.c src/kernel_boot.c oevm_image_main.c -o /tmp/oevm_porta -lm
 
-echo "[5/7] start porta serve on udp 127.0.0.1:16969"
+echo "[5/8] start porta serve on udp 127.0.0.1:16969"
 rm -f "$DB"
 /tmp/porta serve --db "$DB" --udp 127.0.0.1:16969 --http-port 0 >/tmp/porta_serve.log 2>&1 &
 PORTA_PID=$!
@@ -71,14 +80,14 @@ grep -q "serving the space" /tmp/porta_serve.log || {
 # The node's cadence runs on real time; the suite's default virtual clock never
 # advances on its own, so the timer would never fire (the same knob the http gate
 # needs, for the same reason).
-echo "[6/7] start the node"
+echo "[6/8] start the node"
 OEVM_TIMER_WALLCLOCK=1 /tmp/oevm_porta /tmp/porta_node.oimg >/tmp/porta_node.log 2>&1 &
 NODE_PID=$!
 for _ in $(seq 1 50); do grep -q "PORTA NODE READY" /tmp/porta_node.log && break; sleep 0.1; done
 grep -q "PORTA NODE READY" /tmp/porta_node.log || {
   echo "FAIL: node did not start"; cat /tmp/porta_node.log; exit 1; }
 
-echo "[7/7] drive it"
+echo "[7/8] drive it"
 # Leg 2 first: it needs no operator write at all.
 for _ in $(seq 1 100); do
   /tmp/porta get --db "$DB" "$NODE" obs 2>/dev/null | grep -q "obs/health" && break; sleep 0.2
@@ -183,7 +192,7 @@ echo "  sys/metrics accumulates in the event log: $METRICS_ROWS rows — the run
 # The node closes its one window on the first tick where the gateway has acked, so this
 # waits rather than assuming a tick count.
 for _ in $(seq 1 60); do
-  /tmp/porta get --db "$DB" "$NODE" diag 2>/dev/null | grep -q "diag/spans/result" && break; sleep 0.2
+  /tmp/porta get --db "$DB" "$NODE" diag 2>/dev/null | grep -q "diag/spans/result" && break; sleep 0.4
 done
 /tmp/porta get --db "$DB" "$NODE" diag | grep -q "diag/spans/result" || {
   echo "FAIL: diag/spans/result never reached porta (tuvm#107 / diag outbound grant)"
@@ -192,12 +201,40 @@ done
 # The summary alone would pass while every row was silently dropped at the value cap —
 # which is the failure this whole change exists to remove. Assert a ROW, by name.
 for _ in $(seq 1 60); do
-  /tmp/porta get --db "$DB" "$NODE" diag 2>/dev/null | grep -q "diag/spans/checkIn" && break; sleep 0.2
+  /tmp/porta get --db "$DB" "$NODE" diag 2>/dev/null | grep -q "diag/spans/checkIn" && break; sleep 0.4
 done
 /tmp/porta get --db "$DB" "$NODE" diag | grep -q "diag/spans/checkIn" || {
   echo "FAIL: no per-slot span cell reached porta — only the summary did"
   /tmp/porta get --db "$DB" "$NODE" diag; exit 1; }
 SPAN_ROWS=$(/tmp/porta get --db "$DB" "$NODE" diag | grep -c "diag/spans/")
 echo "  diag/spans: $SPAN_ROWS cells in porta's tree, rows and summary (tuvm#107)"
+
+# LEG 8 — the #165 profile chain, end to end over the real wire: porta writes
+# dbg/req, the node's inbound filter accepts it (kernel `mayApply:`), the bridge
+# applies it as a STREAM, the channel reaction self-sends `dbgReq:`, the parsed
+# duration arms a one-shot on the app's ONE Timers instance, and the fired timer
+# posts to sys/profileEnd, which closes the window and dumps.
+#
+# Every one of those hops was proven ONLY by the C6 hardware gate until now:
+# nodus/tests/23_mprof/04_dbg_req_chain.nsl drives the node-side half on the
+# host virtual clock, but nothing off-target had ever carried a dbg/req across
+# the wire. This leg is the other half, and it is why the wiring was ported to
+# PortaBridgeNode.nsl rather than left C6-only.
+#
+# `mprof[window]` is asserted by name, not `mprof`: mprof_report also prints
+# `mprof[exit]` (vm.c's destructor, gated on OEVM_MPROF_DUMP) and `mprof[flip]`
+# / `mprof[dump]` under the old countdown seam, and a grep for the bare prefix
+# would score any of them as a window that closed.
+echo "[8/8] dbg/req opens and closes a profile window"
+/tmp/porta put --db "$DB" "$NODE" dbg/req "profile 3000" --kind stream >/dev/null
+for _ in $(seq 1 100); do
+  grep -q 'mprof\[window\]' /tmp/porta_node.log && break; sleep 0.4
+done
+grep -q 'mprof\[window\]' /tmp/porta_node.log || {
+  echo "FAIL: dbg/req 'profile 3000' never closed a window — no mprof[window] in the node log."
+  echo "      The chain is porta put -> mayApply: -> the dbg/req channel reaction ->"
+  echo "      parseProfileMs: -> timers after: -> sys/profileEnd -> profileStop."
+  tail -40 /tmp/porta_node.log; exit 1; }
+echo "  the window closed itself and dumped — porta never sent a stop"
 
 echo "PORTA SYNC OK"

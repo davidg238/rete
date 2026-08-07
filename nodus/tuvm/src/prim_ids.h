@@ -398,4 +398,26 @@
    Appended after spaceChangedSince:under:max:; no pre-existing id shifts.
    Counted (not computed): the 141st PRIM_NAMES entry. */
 #define PRIM_pf_rtcAlarmAt        141
+
+/* #165 Task 4: per-method profile window control (`profileStart`/`profileStop`).
+   heapStats (104) is NOT the last entry — rtcAlarmAt:post:on: (141, above) is;
+   these two are appended after it, no pre-existing id shifts. The two ids were
+   arrived at by COUNTING PRIM_NAMES (141 entries before this append), not by
+   141+1 arithmetic, per the standing lesson above. Platform-dispatched. Both
+   are no-ops in a build without OEVM_METHOD_PROFILE so an app runs unchanged
+   on a production image. */
+#define PRIM_pf_profileStart      142
+#define PRIM_pf_profileStop       143
+
+/* #74/#165 D3: `buildId`, the string baked into the image at build time (git
+   describe + timestamp) — so a profile reader can pick the .oimg.methods.json
+   sidecar that actually matches what is running, rather than choosing by hand
+   and getting a mismatch that resolves nothing and looks identical to a quiet
+   program. Appended after profileStop; no pre-existing id shifts. 144 was
+   arrived at by COUNTING PRIM_NAMES (143 entries before this append), not by
+   143+1 arithmetic, per the standing lesson above. Platform-dispatched.
+   Unconditional: unlike profileStart/profileStop, this is NOT gated on
+   OEVM_METHOD_PROFILE — it is not part of the profiler, and a build without
+   the profiler still needs to name itself for the sidecar to be pickable. */
+#define PRIM_pf_buildId           144
 #endif /* OEVM_PRIM_IDS_H */

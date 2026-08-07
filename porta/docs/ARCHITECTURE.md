@@ -112,6 +112,26 @@ What the gateway *is*:
 What the gateway is **not**: a compiler, a flasher, a relocator, a panic decoder, a
 fleet-wide pod builder. Those are node-repo concerns (§6).
 
+### 3.1 The CLI is a local sqlite writer, not a client (recorded 2026-08-07)
+
+**`porta put`, `porta get` and `porta log` do not talk to `porta serve`.** Every verb opens
+the sqlite file named by `--db` directly (`internal/portacli/root.go`), and `--db` defaults
+to a **relative** `porta.db`. `space.Open` runs `db.Exec(schema)` on whatever path it is
+handed, so sqlite *creates* the file: a `put` against the wrong path succeeds, exits 0, and
+lands in an empty store nobody serves.
+
+This is not a defect to fix — it is what makes the CLI usable against a captured session or
+a copied store, and it follows from D2 (verbs live only at the CLI). But it has two
+consequences that anything shelling out to the CLI must respect, and #165's profile-capture
+button shipped violating both before it was caught:
+
+1. **It must run on the host holding the served store**, because there is no network path.
+2. **It must name the store explicitly.** A defaulted `--db` cannot fail loudly, since the
+   default is always openable.
+
+Recorded here because neither is inferable from the CLI's shape, and the failure it
+produces is silent success — the hardest kind to find.
+
 ---
 
 ## 4. Transports
