@@ -146,9 +146,27 @@ today's.
 ## The profile view (#165)
 
     python3 view.py --board c6spare --node c6-bench \
-      --sidecar ../../PortaBridgeNodeC6.oimg.methods.json --port 8087
+      --sidecar ../../PortaBridgeNodeC6.oimg.methods.json \
+      --porta-db <the store porta serve is serving> --port 8087
 
 Open `http://localhost:8087`.
+
+**Run this on the host holding the served store, and point `--porta-db` at
+that file.** `porta` is not a network client: every verb — `put`, `get`,
+`log` — opens the sqlite file directly, so starting a capture from here is a
+local write to that file and nothing else. Without `--porta-db` the CLI
+defaults `--db` to a *relative* `porta.db` and porta creates it on open, so
+the write succeeds, exits 0, and lands in an empty store nobody serves —
+after which the page shows an earlier capture that reads like the one just
+requested. That is the defect this flag exists to make impossible, and it is
+why the flag is required rather than defaulted: which file is served is a
+fact about the deployment, and neither this tool nor its README can guess it.
+`porta-gateway-operational-state` records that the running v2 instance serves
+one shared store, hand-started; ask that deployment, do not assume a path.
+
+If the collector and the served store are on different hosts, this view
+cannot start a capture — that is a deployment fact, not something to engineer
+around here. Move the view, or write `dbg/req` by hand on the store's host.
 
 **The board and the node id are different strings, and both flags are
 required.** `--board` names the collector's log file (`console-<board>-*.log`)
@@ -167,19 +185,31 @@ Three routes:
   `mprof_resolve` against the `--sidecar` map. The search scans retained
   days NEWEST FIRST and falls back to an older day when today's has no
   window — a capture doesn't go blind at midnight — and the table always
-  states WHEN it was taken, read from the capture's own log timestamp, so an
-  old table is never mistaken for a fresh one. `htmx.min.js` is vendored
+  states WHEN it was taken, read from the capture's own log timestamp — or
+  says `capture time unknown` when it cannot, never omitting the line, since
+  showing the age is the condition under which searching backward is safe.
+  The table is truncated to `--top` (64 by default) and **says how many rows
+  it is not showing**: a profile that silently drops rows reads as complete
+  while hiding its largest caller. `htmx.min.js` is vendored
   beside this file and never fetched from a CDN, because the bench network
   may have no route out and a view that blanks when the internet is down is
   useless at exactly the moment it is wanted.
 - `POST /capture` — starts a window. This is the only place the trigger
   crosses the seam to porta: it shells out to `porta put <node> dbg/req
-  "profile <ms>" --kind stream`, because porta owns the `dbg/req` write and
-  the store pins a leaf's kind on its first write with no tombstone to undo
-  it. A failure to start (porta not on `PATH`, the write timing out, a
-  non-zero exit) renders an explicit "capture NOT started" message rather
-  than the same blank table a healthy-but-empty window would show.
-- `GET /health` — `200 ok`, for a liveness probe on the view process itself.
+  "profile <ms>" --kind stream --db <--porta-db>`, because porta owns the
+  `dbg/req` write and the store pins a leaf's kind on its first write with no
+  tombstone to undo it. It then **reads the write back** with `porta log`
+  — not `porta get`, which is a cell-tree read and can never see a stream —
+  and reports "capture NOT started" if the row is not there. A failure to
+  start (porta not on `PATH`, the write timing out, a non-zero exit, or a
+  write that exits 0 and lands nowhere) renders that message, quoting porta's
+  own stderr, rather than the same blank table a healthy-but-empty window
+  would show.
+- `GET /health` — builds the whole page and throws it away: `200 ok` only if
+  `GET /` would have served a real table, `500 not ok` if it raises or
+  assembles only an error banner. A probe that does not build the thing it
+  certifies can report only that the process is running, which is the one
+  fact nobody was in doubt about (#147, and this view's own round 1).
 
 The view moves only the trigger across the seam; the bulk (log history, the
 offset→name join, the symbolizer) stays on the console collector's side,
