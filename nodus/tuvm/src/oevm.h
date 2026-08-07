@@ -388,6 +388,12 @@ oop primitive_calls_of(oop receiver, int argc, oop *args);
 oop primitive_calls_stats(oop receiver, int argc, oop *args);
 oop primitive_calls_reset(oop receiver, int argc, oop *args);
 #endif
+/* #165: per-method profile window control. Present only in a profile build. */
+#ifdef OEVM_METHOD_PROFILE
+void mprof_start(void);
+void mprof_stop(void);
+int  mprof_is_running(void);
+#endif
 oop primitive_break_add(oop receiver, int argc, oop *args);
 oop primitive_break_remove(oop receiver, int argc, oop *args);
 oop primitive_method_of(oop receiver, int argc, oop *args);

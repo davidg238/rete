@@ -120,18 +120,23 @@ def _build_pathb_once():
 
 
 def run_c_unit_tests(oevm_dir):
-    """Build + run standalone C unit tests (test_debugger.c) — oevm#14 proof.
+    """Build + run standalone C unit tests — oevm#14 proof, extended by #165 for
+    the method-profile gate.
 
     Links against src/oimg_loader.c (provides oimg_blob_base/end, builtin_registry,
     oimg_singleton) + src/solidified_image.c (provides init_solidified_vtables) —
     NOT kernel_boot.c, whose static Vtable_* defs would clash with solidified_image.c.
     """
+    common_srcs = [
+        "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c", "src/span.c",
+        "src/serial.c",
+        "src/udp.c", "src/http.c", "src/http_core.c", "src/mirror.c", *OEVM_BACKEND,
+        "src/oimg_loader.c", "src/solidified_image.c",
+    ]
+
     build = subprocess.run(
         ["gcc", "-Wall", "-std=c99", "-Isrc",
-         "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c", "src/span.c",
-         "src/serial.c",
-         "src/udp.c", "src/http.c", "src/http_core.c", "src/mirror.c", *OEVM_BACKEND,
-         "src/oimg_loader.c", "src/solidified_image.c",
+         *common_srcs,
          "tests/test_debugger.c", "-o", "/tmp/test_debugger", "-lm"],
         cwd=str(oevm_dir), capture_output=True, text=True)
     if build.returncode != 0:
@@ -143,6 +148,21 @@ def run_c_unit_tests(oevm_dir):
         print("test_debugger FAILED:\n" + run.stdout + run.stderr)
         return False
     print("C unit test test_debugger: PASSED")
+
+    build = subprocess.run(
+        ["gcc", "-Wall", "-std=c99", "-DOEVM_METHOD_PROFILE", "-Isrc",
+         *common_srcs,
+         "tests/test_mprof_gate.c", "-o", "/tmp/test_mprof_gate", "-lm"],
+        cwd=str(oevm_dir), capture_output=True, text=True)
+    if build.returncode != 0:
+        print("test_mprof_gate build FAILED:\n" + build.stderr)
+        return False
+    run = subprocess.run(["/tmp/test_mprof_gate"], cwd=str(oevm_dir),
+                         capture_output=True, text=True)
+    if run.returncode != 0:
+        print("test_mprof_gate FAILED:\n" + run.stdout + run.stderr)
+        return False
+    print("C unit test test_mprof_gate: PASSED")
     return True
 
 
