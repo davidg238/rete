@@ -29,13 +29,22 @@ import logstore                                               # noqa: E402
 def latest_window(text, mmap, top=0):
     """Rows of the LAST mprof window in `text`, or None if there is none.
 
+    Sliced to the text from the last `mprof[window]:` header onward before
+    handing it to mprof_resolve.resolve(): a day's log can hold more than one
+    profile run, and resolve() sums every `mprof:` line it is GIVEN — handing
+    it the whole day would merge two windows' rows under whichever header
+    happened to be last, silently. mprof_resolve.py itself is Task 2's and is
+    not touched here; this is a caller-side slice, not a change to resolve().
+
     None rather than [] on purpose: an empty table and a node that was never
     asked to profile render identically otherwise, and the operator cannot tell
     'it reported nothing' from 'it was never asked'.
     """
     if not mprof_resolve.DUMP_RE.search(text):
         return None
-    return mprof_resolve.resolve(mmap, text, top=top)
+    headers = list(mprof_resolve.HDR_RE.finditer(text))
+    window_text = text[headers[-1].start():] if headers else text
+    return mprof_resolve.resolve(mmap, window_text, top=top)
 
 
 def render(rows, overflow):
@@ -55,10 +64,14 @@ def render(rows, overflow):
             f"</table></div>")
 
 
+# %-formatted (see do_GET), so any literal `%` in the CSS below — e.g. a
+# percentage width — must be written `%%`, or PAGE % {...} raises ValueError
+# on every request while /health keeps answering ok, which is the exact
+# silent-outage shape this view exists to prevent (found in review round 1).
 PAGE = """<!doctype html><meta charset=utf-8><title>node profile</title>
 <script src="/htmx.min.js"></script>
 <style>body{font-family:system-ui;margin:2rem;max-width:60rem}
-table{border-collapse:collapse;width:100%}td,th{padding:.25rem .75rem;
+table{border-collapse:collapse;width:100%%}td,th{padding:.25rem .75rem;
 text-align:left;border-bottom:1px solid #ccc}td:first-child,td:nth-child(2)
 {text-align:right;font-variant-numeric:tabular-nums}
 .warn{background:#fee;padding:.5rem;border-left:3px solid #c00}</style>
@@ -71,6 +84,15 @@ text-align:left;border-bottom:1px solid #ccc}td:first-child,td:nth-child(2)
 reach the node. Reload after it elapses.</p>
 %(table)s
 """
+
+
+def page(board, table):
+    """Assemble the whole page. Split out from do_GET so it is testable on
+    its own — the bug that shipped in review round 1 (a literal `%` in the
+    CSS breaking `PAGE % {...}` on every request, while /health kept
+    answering ok) lived entirely in this one substitution and nowhere a test
+    ever exercised it."""
+    return PAGE % {"board": _html.escape(board), "table": table}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -120,8 +142,7 @@ class Handler(BaseHTTPRequestHandler):
                               "application/javascript")
         if self.path != "/":
             return self._send(404, "not found", "text/plain; charset=utf-8")
-        self._send(200, PAGE % {"board": _html.escape(self.board),
-                                "table": self._table()})
+        self._send(200, page(self.board, self._table()))
 
     def do_POST(self):
         if self.path != "/capture":
