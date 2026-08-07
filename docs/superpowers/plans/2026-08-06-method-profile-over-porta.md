@@ -62,14 +62,22 @@ The spike ran on **c6spare** (JTAG `40:4C:CA:44:6E:60`), the disposable board an
 
 `DUMP_AT` must be generous. A 50k-activation period produced 1.9M log lines on a bridge in the spike and would drown the #56 console collector.
 
+**`run.sh` does not source the west env** — it calls `west build` directly, so the env must already be live. And its flags are `--node <file>.nsl --board esp32c6`; there is no `--app`.
+
 ```bash
+source ~/zephyr-esp32/.venv/bin/activate
+source ~/zephyr-esp32/zephyr/zephyr-env.sh
 cd nodus/tuvm/zephyr
 export OEVM_METHOD_PROFILE=1
 export OEVM_MPROF_RUNTIME_GATE=1
 export OEVM_MPROF_FLIP_AT=1000000
 export OEVM_MPROF_DUMP_AT=20000000
-bash run.sh --flash --app PortaBridgeNodeC6
+bash run.sh --flash --node PortaBridgeNodeC6.nsl --board esp32c6
 ```
+
+**Do not pass `--capture`.** A `collect.py` console collector already holds c6spare's port under systemd, and a second handle splits the stream — `logstore.acquire_lock` exists precisely because two readers on one board were proven to interleave into one file on 2026-08-04. Read the console through `logread.py` instead.
+
+**Confirm `~/zephyr-esp32/zephyr` is on branch `tuvm-c6-radio-fix`** before building. A west re-fetch reverts it, and C6 Thread regresses silently without it.
 
 - [ ] **Step 3: Let it run through at least two dumps, and read the header**
 
@@ -785,10 +793,12 @@ The host suite cannot witness this. Design D6's whole claim is about a device.
 - [ ] **Step 1: Flash a profile build of `PortaBridgeNodeC6` to c6bench**
 
 ```bash
+source ~/zephyr-esp32/.venv/bin/activate
+source ~/zephyr-esp32/zephyr/zephyr-env.sh
 cd nodus/tuvm/zephyr
 export OEVM_METHOD_PROFILE=1
 unset OEVM_MPROF_RUNTIME_GATE OEVM_MPROF_FLIP_AT OEVM_MPROF_DUMP_AT
-bash run.sh --flash --app PortaBridgeNodeC6
+bash run.sh --flash --node PortaBridgeNodeC6.nsl --board esp32c6
 ```
 
 Unsetting the countdown macros is the point: this build must produce **no** `mprof:` lines until asked.
