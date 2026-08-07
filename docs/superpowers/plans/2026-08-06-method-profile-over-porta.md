@@ -874,10 +874,14 @@ Expected: `0`. **This is the control.** A gate that cannot distinguish "the wind
 - [ ] **Step 3: Write `dbg/req` from porta**
 
 ```bash
-porta put node/<id>/dbg/req 'profile 10000'
+porta put <node-id> dbg/req 'profile 10000' --kind stream
 ```
 
-If `porta put` refuses a non-`goal/` path, read `porta/internal/portacli/` and use whatever write path the CLI exposes for `dbg/req`; the wire and the store have no verbs, so this is a path write and nothing more. If the CLI genuinely cannot address `dbg/req`, **stop and report it** — that is a missing capability, and design D2 assumes porta can write this path.
+**Three things about this invocation, all verified against `porta/internal/portacli/put.go`:**
+
+1. **The node is a separate argument and the path is NODE-RELATIVE.** The signature is `put <node> <path> <value>`. Do **not** write `node/<id>/dbg/req` — per design D4.5 the `node/<id>/**` prefix is a *view*, never storage, which is what lets a captured session be re-pointed at a different node.
+2. **`--kind stream` is required.** It defaults to `cell`, and `dbg/req` is a stream (RECORDS §4.5). Kind is a property of the leaf set by the *first* write (D6), so getting this wrong the first time pins the path to the wrong kind permanently — and there is no tombstone to undo it.
+3. **`put` is not restricted to `goal/`.** Its `Short` string says "a node's goal tree", but the code writes whatever path it is given. The authority check that matters is on the **node** side (`Kernel>>mayApply:`), which is where it can be believed. No CLI change is needed.
 
 - [ ] **Step 4: Witness the dump, and time it**
 
@@ -1252,8 +1256,13 @@ class Handler(BaseHTTPRequestHandler):
         # nowhere else. A failure is REPORTED, not swallowed: a capture that
         # never started and one that returned nothing look identical otherwise.
         try:
+            # `put <node> <path> <value>` — the node is its own argument and the
+            # path is NODE-RELATIVE (design D4.5). --kind stream is required:
+            # it defaults to cell, and kind is pinned by the FIRST write, so a
+            # cell write to dbg/req would fix the wrong kind permanently.
             subprocess.run(
-                ["porta", "put", f"node/{self.node}/dbg/req", f"profile {ms}"],
+                ["porta", "put", self.node, "dbg/req", f"profile {ms}",
+                 "--kind", "stream"],
                 check=True, capture_output=True, timeout=10)
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired,
                 FileNotFoundError) as exc:
