@@ -3196,6 +3196,34 @@ class Kernel usingPlatform: platform = () (
      to the console, which is already teed off the board (design D4). *)
   public profileStart      = ( platform profileStart. ^ self )
   public profileStop       = ( platform profileStop. ^ self )
+  (* #165 D2/D6: parse a dbg/req line into a window length in ms. PURE — it
+     starts nothing and touches no state, so it is testable without a bridge and
+     the app stays in charge of the window's lifecycle.
+
+     Answers 0 for anything that is not a well-formed `profile <positive int>`:
+     a wrong verb, a missing duration, a zero duration, or a duration with any
+     non-digit in it. Refused rather than defaulted — a defaulted length is an
+     invented constant, and a zero-length window would enable counting and never
+     stop. The caller does nothing on 0, and the line still lands in the space,
+     so a request that could not be understood is visible rather than eaten. *)
+  public parseProfileMs: line = (
+    | rs verb tok n i b |
+    rs:: ReadStream on: line.
+    verb:: rs upTo: 32.
+    verb = 'profile' ifFalse: [ ^ 0 ].
+    tok:: rs upTo: 32.
+    tok == nil ifTrue: [ ^ 0 ].
+    tok size = 0 ifTrue: [ ^ 0 ].
+    (* Every character must be a digit. supervisor.nsl's parseInt: SKIPS
+       non-digits, which would read 'a5' as 5; that is wrong for a wire value. *)
+    n:: 0.
+    i:: 1.
+    [ i <= tok size ] whileTrue: [
+      b:: tok at: i.
+      (b < 48 or: [ b > 57 ]) ifTrue: [ ^ 0 ].
+      n:: (n * 10) + (b - 48).
+      i:: i + 1 ].
+    ^ n )
   (* tuvm#24: the sys/metrics snapshot — prim 104 (heapStats) + prim 109
      (sysStats) composed into ONE flat immutable Record, the sys/metrics
      cell's wire schema (pinned in protocol/PROTOCOL-NSL-RECORDS.md §4.4).
