@@ -220,11 +220,22 @@ slots only, so it excludes overflowed activations, and the resolver divides by i
 `activations + overflow`, which makes each percentage a correct lower bound, and downgrade
 `INVALID` to a caveat.
 
-**The real distinct-method count under a bridged node is unmeasured.** The spike ran only
-`fib` (3 methods) and Hanoi (2); the "~224 rows" figure quoted in earlier drafts of this
-document was an estimate, never a measurement, and the results doc names this as its own
-open item 4. At the ≤0.7 load factor the code itself warns about, 256 slots is ~180 usable
-distinct methods.
+**MEASURED 2026-08-06: 224 distinct methods, overflow=0, load factor 0.875.** See
+`docs/results/2026-08-06-mprof-capacity-under-bridge.md`. Taken on the host gate rather than
+a device, because the bench had no porta running and a peerless bridge never runs the
+reply/apply path — and because a distinct-method count is a property of the program, not the
+processor. The "~224 rows" quoted in earlier drafts of this document was an estimate that
+happened to be right; it is now a measurement.
+
+This is **branch 2** below: 224 is 25% past the ~180 the ≤0.7 load factor allows, leaving 32
+slots of headroom that the `dbg/` handler in this very rung will spend some of.
+
+**And it undermines the cost figure.** 0.90% was measured on Hanoi — two methods, load factor
+0.008, where every lookup is one probe. Unweighted linear-probe cost at 0.875 is ~4.5 probes.
+The activation-weighted figure is probably much lower, because the hot methods were inserted
+while the table was sparse and sit at their home slots — but it is **unmeasured**, and the
+"1% is acceptable" judgement was made against a table that was empty. Measuring the ON arm
+against a populated table is the first thing this earns.
 
 So the first task of the plan is one bench run: profile `PortaBridgeNodeC6` and read
 `methods=` and `overflow=`. It decides which problem is being solved, and no tunable is
@@ -265,6 +276,17 @@ on-target debugger transport exists. Gating a 0.90% measurement behind a 10–16
 the economics. The bp check at `vm.c:765` is also per-bytecode with a linear `bp_hit` scan,
 and it requires `debugger_hook`, which is registered through the mirror — returning to
 exactly the Supervisor confinement problem D5 retired.
+
+> **Corrected 2026-08-06 by measurement.** The paragraph below argued Space-Saving at k=64
+> would be nearly free because "a miss happens roughly once per distinct method *ever*." That
+> premise assumed the working set fits the table. It does not: the measured working set is
+> **224 distinct methods** (`docs/results/2026-08-06-mprof-capacity-under-bridge.md`). At 224
+> methods in 64 slots the table is permanently saturated and displacing continuously, which
+> puts the linear min-scan on a **hot** path instead of a cold one and inverts the whole
+> argument. **k=64 is viable only in combination with the scoping below**, which shrinks the
+> working set beneath the table — never on its own. The same measurement shows the existing
+> 256-slot table runs at a **0.875 load factor**, so the 0.90% cost figure (measured on Hanoi
+> at load 0.008) does not describe a real workload either.
 
 **Accepted shape: scope by method identity, using #164's own hook.** `push_frame` already
 fires on every activation and already holds the `CompiledMethod *`. `OP_RET` (`vm.c:1063`)
