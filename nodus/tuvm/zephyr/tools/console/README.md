@@ -143,6 +143,44 @@ state on every beat (#147). That is what carries the state across a midnight
 rollover — a loss recorded in yesterday's file is invisible to anything reading
 today's.
 
+## The profile view (#165)
+
+    python3 view.py --board c6spare --node c6-bench \
+      --sidecar ../../zephyr/PortaBridgeNodeC6.oimg.methods.json --port 8087
+
+Open `http://localhost:8087`.
+
+**The board and the node id are different strings, and both flags are
+required.** `--board` names the collector's log file (`console-<board>-*.log`)
+— the attached devkit is `c6spare`. `--node` is what porta addresses the node
+as on the wire — `PortaBridgeNodeC6.nsl:47` hard-codes `nodeId = 'c6-bench'`
+regardless of which physical board runs the image. Neither flag defaults:
+`c6bench` (a third, similarly-named board) has been off the bench since
+2026-08-06 with its by-id gone, and a baked-in default naming an absent board
+would make "no capture in this window" indistinguishable from "you read the
+wrong sink" — the one failure this view exists to prevent.
+
+Three routes:
+
+- `GET /` — the page: a capture form and the last window's table, read
+  straight out of this collector's own log via `logstore` and named via
+  `mprof_resolve` against the `--sidecar` map. `htmx.min.js` is vendored
+  beside this file and never fetched from a CDN, because the bench network
+  may have no route out and a view that blanks when the internet is down is
+  useless at exactly the moment it is wanted.
+- `POST /capture` — starts a window. This is the only place the trigger
+  crosses the seam to porta: it shells out to `porta put <node> dbg/req
+  "profile <ms>" --kind stream`, because porta owns the `dbg/req` write and
+  the store pins a leaf's kind on its first write with no tombstone to undo
+  it. A failure to start (porta not on `PATH`, the write timing out, a
+  non-zero exit) renders an explicit "capture NOT started" message rather
+  than the same blank table a healthy-but-empty window would show.
+- `GET /health` — `200 ok`, for a liveness probe on the view process itself.
+
+The view moves only the trigger across the seam; the bulk (log history, the
+offset→name join, the symbolizer) stays on the console collector's side,
+because that is where it already lives.
+
 ## Testing
 
     python3 -m pytest
