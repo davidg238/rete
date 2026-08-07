@@ -230,6 +230,27 @@ happened to be right; it is now a measurement.
 This is **branch 2** below: 224 is 25% past the ~180 the ≤0.7 load factor allows, leaving 32
 slots of headroom that the `dbg/` handler in this very rung will spend some of.
 
+**AMENDED 2026-08-06, on hardware: 177 distinct methods, overflow=0, load factor 0.69.** See
+`docs/results/2026-08-06-mprof-window-hardware.md` — a 10 s window on c6spare, attached to the
+porta mesh, driven by the `dbg/req` this rung built. The two numbers do not conflict and
+neither supersedes the other; they answer different questions:
+
+- **224** is the union of every path the host gate exercises, accumulated over a long run.
+- **177** is a node in steady-state bridging for ten seconds.
+
+So the branch depends on which case the table must hold. 256 slots is comfortable for the
+steady state — 0.69 is *under* the ≤0.7 the code warns about — and tight for the general one;
+a window opened during start-up or an unusual path lands nearer 224. The honest reading is
+that **the table is adequate for what this rung ships and marginal for the general case**, and
+since a saturated table now reports `INCOMPLETE` with exact counts and lower-bound
+percentages rather than `INVALID`, saturation degrades rather than lies.
+
+**What forces the decision is not this number.** Call-site keying
+(`docs/design/2026-08-07-inclusive-attribution-design.md`, D9) multiplies cardinality from
+methods to send sites — plausibly 400–700 — and that is where a 256-slot table stops working.
+Deciding then means deciding against a measured call-site count instead of either estimate
+above.
+
 **And it undermines the cost figure.** 0.90% was measured on Hanoi — two methods, load factor
 0.008, where every lookup is one probe. Unweighted linear-probe cost at 0.875 is ~4.5 probes.
 The activation-weighted figure is probably much lower, because the hot methods were inserted
