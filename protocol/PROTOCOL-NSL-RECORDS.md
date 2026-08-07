@@ -344,13 +344,29 @@ with the heap.
 | `dbg/req` | E, ↓ | `DbgReq { line: str }` |
 | `dbg/resp` | E, ↑ | `DbgResp { line: str }` |
 
-Porta stays a **stateless relay**; the debug session lives in the node (unchanged from
-v1 §8). Long responses obey `MAX_VALUE_BYTES` like everything else — the debugger
-paginates, which it must do for a serial console anyway.
+**Porta does not interpret or own the `dbg/req` / `dbg/resp` session** (unchanged from v1
+§8): it relays whatever line arrives, and the debug session itself — parsing the line,
+running the window, formatting the reply — lives entirely in the node. Long responses obey
+`MAX_VALUE_BYTES` like everything else — the debugger paginates, which it must do for a
+serial console anyway.
 
-**Not yet implemented on the nsl node.** `dbg/*` is pinned here as the contract; the node
-carries no `dbg/` channel today (v1's debugger was JSON over TFTP, which went with v1).
-Contrast `diag/**` below, which *is* shipped.
+**This is a claim about the session on this path, not about developer-facing assets.**
+Console history, `.oimg` archives and symbol sidecars are not the `dbg/` session and are not
+bound by this rule; they live off the space entirely, as host-side dev tooling
+(`nodus/tuvm/zephyr/tools/console/`), by the same rule that keeps profiler blobs off the
+space at all (§2.4). Conflating the two readings would make porta holding console history,
+or a view built on that tooling, look like a violation of "stateless relay" when it is not
+(`docs/design/2026-08-06-method-profile-over-porta-design.md` D7).
+
+**Implemented 2026-08-06** (`docs/design/2026-08-06-method-profile-over-porta-design.md`,
+issues #164/#165) — `dbg/*`'s first implementation since v1 was deleted. The line this
+channel carries today is `profile <ms>`: the node opens a self-limiting per-method
+activation-count window sized in milliseconds, counts for that duration, and reports without
+needing a matching stop request, so a node that never hears from porta again still stops
+counting and still reports. The rows themselves stay off this path — they leave over the
+console already teed to the collector (#56), never over `dbg/resp`, which keeps a profile
+table off the same plane the size law keeps every other blob off (§2.4) rather than testing
+`MAX_VALUE_BYTES`'s pagination story against it.
 
 ### 4.6 `diag/**` — bounded diagnostic capture (both ways)
 

@@ -1,6 +1,6 @@
 # Per-method profiling, surfaced over porta
 
-**Status:** design COMPLETE · **Date:** 2026-08-06
+**Status:** IMPLEMENTED 2026-08-06 · **Date:** 2026-08-06
 **Issues:** #165 (this work), #164 (the counter), #163 / #161 (what it was built to answer),
 #159 (made moot by D2), #74 (promoted to a hard dependency by D3), #28 (named as the fix for #163),
 #56 (the console path this leans on)
@@ -280,6 +280,15 @@ exact counts, no change to the counter at all. If it does not fit, the choice is
   field, which fits the ESP32's 816 B of spare dram0 and would put the profiler on a target
   the 2 KB table excludes. Its cost is honesty: Space-Saving **overestimates**, so counts
   become bounded ranges and the per-entry error field must be kept and rendered as such.
+
+**Outcome of this rung: no branch was selected, on purpose.** Task 1 delivered both
+numbers this design asked for — 224/256 (host, load factor 0.875,
+`docs/results/2026-08-06-mprof-capacity-under-bridge.md`) and 177/256 (device, load factor
+0.69, `docs/results/2026-08-06-mprof-window-hardware.md`) — and both are measurements of the
+table this rung ships, not of the counter's cost at either load. Per the standing posture
+(no tunable before the measurement that earns it), the choice between a larger table,
+Space-Saving displacement and D10's scoping stays **open, and is David's call**. It is out
+of scope for #165 and gated on the realistic-load cost figure neither number above supplies.
 
 ### D10 — Localized profiling scopes by METHOD IDENTITY, not by breakpoint (deferred, gated on D9)
 

@@ -2260,6 +2260,58 @@ alarm seam lands; and `strike_console` — the only strike path compiled in — 
 unplugging USB removes the sole trigger. A wall-powered board today would beep once at boot and
 stay silent through every half hour. §18.5 names the distance to a real bell.
 
+## A field node profiles on request, and was silent before it was asked (2026-08-06, #164/#165, #74)
+
+**#164 landed an exact per-method activation counter and answered #163 by hand, off a
+console log; #165 turned that into something a production porta can ask a field node for
+without a reflash.** The counter itself did not change — what changed is the trigger and
+the split of where the answer goes. `dbg/req` gets its **first implementation since v1 was
+deleted**: a `profile <ms>` line opens a **self-limiting** window — the node stops on its
+own and reports even if it never hears from porta again, because a lost stop request is not
+an option in a field where messages are lost. The rows leave over the console already teed
+to the collector (#56), never over `dbg/resp` and never through the space — a profile table
+is exactly the kind of blob the size law already keeps off every other channel. nsl opens
+and closes the window through two write-only Kernel-seam prims and never reads the table
+itself; the confined mirror is not involved. #74 closed alongside it: `platform buildId`
+lets the node name its own build, which is what stops a mismatched `.oimg.methods.json`
+sidecar from resolving nothing and looking exactly like a quiet program.
+
+**Cost and capacity are two different measurements and must not be blurred.** The cost
+figure everyone will reach for — **0.90% on a C6** — was measured on Hanoi, two methods,
+load factor 0.008, where a table lookup is essentially always a single probe. Capacity was
+measured twice, on purpose, because the two answer different questions:
+`methods=224 overflow=0` at load factor 0.875 is the host gate's whole run, the union of
+every path the suite takes over a long window
+(`docs/results/2026-08-06-mprof-capacity-under-bridge.md`); `methods=177 overflow=0` at load
+factor 0.69 is a real C6, on the mesh, in ten seconds of steady-state bridging
+(`docs/results/2026-08-06-mprof-window-hardware.md`). Neither supersedes the other. What
+neither measures is the cost figure *at* either load — 0.90% was bought at a load factor
+100× below the real one, and the honest statement is that the real cost is unmeasured, not
+that it is fine. The 256-slot table's fate — larger, Space-Saving displacement, or scoping
+by method identity — is deferred on that missing number, David's call
+(`docs/design/2026-08-06-method-profile-over-porta-design.md` D9/D10).
+
+**Two things this rung answered that would otherwise be rediscovered on the next profiling
+question.** First, **counts are a property of the program, not the processor**: a
+distinct-method count and a call-count ratio measured on the host gate hold on a C6, so only
+per-activation *time* ever needs the device — this is why the 224-method capacity number was
+taken on host and trusted. Second, **`pumpEvents` / `Space>>drain` dominate any host
+profile**, because `pulse_pump` is non-blocking on posix and `K_FOREVER`-blocking on Zephyr —
+a profile taken on host is not silent about this, it is loud about the wrong thing, and a
+reader has to know to discount it by hand until D10's scoping exists.
+
+**Two lessons about gates that lie, in both directions, both durable.** A count-based log
+check is a false red: on
+c6spare, `tail -n 2000 | rg -c "mprof"` answered 50, and all fifty were from an unrelated
+spike nine hours and one image earlier — the log is per-board and long-lived, not per-boot,
+so a read has to be scoped by `since <boot timestamp>`, never by a line count. And a view's
+own tests read green twice while the page itself was broken: first every `GET /` raised (a
+literal `%` in the CSS colliding with Python `%`-formatting) while `/health` answered `ok`
+throughout, then the page reported "no capture" while a real 181-row capture sat in the
+previous day's log file. Neither was visible from source review or from a unit suite that
+never assembled the page. **Loading the page was the gate** — a liveness probe that cannot
+tell "serving" from "raising on every request" reports green through a total outage.
+
 ## Known stale docs (do not treat as current)
 
 `docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),

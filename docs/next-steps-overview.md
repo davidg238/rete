@@ -339,6 +339,23 @@ protocol landed green on hardware.** Nothing now argues for doing #25's host sli
 except foreclosure, and foreclosure only bites at the moment a flash map is committed, which
 is not imminent. So: #56 next, #25 after. **(#56 closed 2026-08-05 — so #25 is now.)**
 
+5. **Per-method profiling over `dbg/req` (#164/#165) — DONE 2026-08-06.** Not one of #56's
+   original four, but riding directly on capability 1 above: `dbg/req` gets its first
+   implementation since v1 was deleted, carrying a `profile <ms>` line. The node opens a
+   self-limiting activation-count window and the rows leave over the console already teed
+   to the collector, never over `dbg/resp` and never through the space. Cost measured at
+   **0.90%** (C6, Hanoi, load factor 0.008 — the cost at a realistic load is unmeasured).
+   Capacity measured two ways, on purpose, because they answer different questions:
+   `methods=224 overflow=0` (host gate, load factor 0.875, the union of every path the suite
+   takes, `docs/results/2026-08-06-mprof-capacity-under-bridge.md`) and
+   `methods=177 overflow=0` (a 10 s window on c6spare in steady-state bridging on the real
+   mesh, load factor 0.69, `docs/results/2026-08-06-mprof-window-hardware.md`). The choice
+   between a larger table, Space-Saving displacement, or scoping by method identity is
+   deferred on the still-missing realistic-load cost number — David's call
+   (`docs/design/2026-08-06-method-profile-over-porta-design.md` D9/D10). Also closed #74:
+   `platform buildId` names the running build, so the `.oimg.methods.json` sidecar the
+   profiler's offsets are resolved against cannot be picked wrong.
+
 **One thing ran ahead of #25, on 2026-08-05, and it is finished.** The span capture that
 closed #107 left a check-in costing ~300 ms with no breakdown, and the breakdown was one
 reflash away. `PortaBridge>>checkIn` is now six spans (`pullSend` / `pullWait` / `applyIn` /
