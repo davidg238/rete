@@ -2,7 +2,7 @@
 # Copyright (c) 2026 Ekorau LLC
 """#164: turn a node's per-method call-count dump into named rows.
 
-    mprof_resolve.py <image.oimg.methods.json> [dump.log ...]
+    mprof_resolve.py <image.oimg.methods.json> [--top N] [dump.log ...]
 
 The VM reports a method as a blob-relative byte offset, because a CompiledMethod
 carries no name and a raw address is meaningless off-node. The sidecar map that
@@ -15,9 +15,10 @@ count.
 
 REFUSES to guess. An offset absent from the map prints as UNKNOWN with the
 offset intact, because a profile that silently drops the rows it cannot name is
-a profile that reads as complete while hiding its largest caller. Likewise a
-non-zero `overflow` is reported as INVALID at the top: a saturated table has
-dropped activations, and no row in it can be trusted as a total.
+a profile that reads as complete while hiding its largest caller. A non-zero
+`overflow` is reported as INCOMPLETE, not INVALID: the slotted counts are exact,
+but methods are missing and the percentages are lower bounds (the denominator
+includes the dropped activations).
 """
 import json
 import re
@@ -39,6 +40,37 @@ def name_of(entry):
     return entry["id"]                    # a block, or an unbound method
 
 
+def resolve(mmap, text, top=0):
+    """Join `mprof:` rows against the sidecar map and return
+    [(name, count, percent), ...] sorted by count descending.
+
+    The denominator is activations + overflow, NOT the header's activations.
+    A saturated table drops activations entirely: they are counted in aggregate
+    by `overflow` but attributed to no slot, so dividing by the slotted sum
+    alone inflates every percentage. Adding overflow back makes each percentage
+    a correct LOWER BOUND, which is a true statement rather than a flattering
+    one. `top` truncates the returned rows and never the denominator.
+    """
+    header = None
+    for m in HDR_RE.finditer(text):
+        header = m.groups()                # last window wins
+    rows = [(k, int(n)) for k, n in DUMP_RE.findall(text)]
+
+    overflow = int(header[3]) if header else 0
+    total = sum(n for _, n in rows) + overflow or 1
+
+    out = []
+    for key, n in sorted(rows, key=lambda r: -r[1]):
+        if key.startswith("@"):
+            name = f"UNKNOWN (not in the image blob: {key})"
+        else:
+            entry = mmap.get(key)
+            name = name_of(entry) if entry is not None else \
+                f"UNKNOWN (offset {key} absent from the map — wrong build?)"
+        out.append((name, n, n / total * 100))
+    return out[:top] if top else out
+
+
 def main(argv):
     if len(argv) < 2:
         print(__doc__.strip())
@@ -46,48 +78,56 @@ def main(argv):
     with open(argv[1]) as f:
         mmap = json.load(f)
 
-    text = "".join(open(p).read() for p in argv[2:]) if len(argv) > 2 \
+    # Filter out --top and its value from the file argument list
+    file_paths = []
+    i = 2
+    while i < len(argv):
+        if argv[i] == "--top":
+            i += 2  # skip the flag and its value
+        else:
+            file_paths.append(argv[i])
+            i += 1
+
+    text = "".join(open(p).read() for p in file_paths) if file_paths \
         else sys.stdin.read()
 
     header = None
     for m in HDR_RE.finditer(text):
-        header = m.groups()                # last window wins
-    rows = [(k, int(n)) for k, n in DUMP_RE.findall(text)]
-    if not rows:
+        header = m.groups()
+    if not DUMP_RE.findall(text):
         print("no 'mprof:' lines found — was the image built with "
               "-DOEVM_METHOD_PROFILE and did the dump fire?", file=sys.stderr)
         return 1
+
+    top = 0
+    if "--top" in argv:
+        top = int(argv[argv.index("--top") + 1])
 
     if header:
         why, methods, acts, overflow, cap = header
         print(f"window={why} methods={methods} activations={acts} cap={cap}")
         if int(overflow):
-            print(f"INVALID: overflow={overflow} — the table saturated and "
-                  f"dropped activations. No count below is a total.")
-        # The dump is emitted per slot, so these must agree; if they do not, the
-        # log was truncated or two windows were spliced together.
-        if len(rows) != int(methods):
-            print(f"WARNING: {len(rows)} rows for methods={methods} — the log is "
+            # Not INVALID: the slotted counts are EXACT. A method already in the
+            # table always increments correctly; only a NEW method arriving at a
+            # full table is dropped. What overflow costs is completeness — some
+            # methods are missing entirely — and it is already paid for in the
+            # denominator above, which makes each percent a lower bound.
+            print(f"INCOMPLETE: overflow={overflow} activations were dropped — "
+                  f"the table saturated, so methods are MISSING from this table. "
+                  f"Counts below are exact; percentages are lower bounds.")
+        rows_len = len(DUMP_RE.findall(text))
+        if rows_len != int(methods):
+            print(f"WARNING: {rows_len} rows for methods={methods} — the log is "
                   f"truncated or holds more than one window.")
-        if sum(n for _, n in rows) != int(acts):
-            print(f"WARNING: rows sum to {sum(n for _, n in rows)}, header says "
-                  f"{acts} — mixed windows.")
 
-    total = sum(n for _, n in rows) or 1
-    unknown = 0
+    resolved = resolve(mmap, text, top=top)
+    unknown = sum(1 for name, _, _ in resolved if name.startswith("UNKNOWN"))
     print(f"\n{'count':>12}  {'%':>6}  method")
-    for key, n in sorted(rows, key=lambda r: -r[1]):
-        if key.startswith("@"):
-            name = f"UNKNOWN (not in the image blob: {key})"
-            unknown += 1
-        else:
-            entry = mmap.get(key)
-            if entry is None:
-                name = f"UNKNOWN (offset {key} absent from the map — wrong build?)"
-                unknown += 1
-            else:
-                name = name_of(entry)
-        print(f"{n:>12}  {100.0 * n / total:>5.1f}%  {name}")
+    for name, n, pct in resolved:
+        print(f"{n:>12}  {pct:>5.1f}%  {name}")
+    if top:
+        print(f"\nshowing top {top} of {len(resolve(mmap, text))} rows — "
+              f"percentages are of ALL activations, not of the shown rows.")
     if unknown:
         print(f"\n{unknown} row(s) unresolved — a map from a DIFFERENT build "
               f"resolves nothing and looks identical to a quiet program.")
