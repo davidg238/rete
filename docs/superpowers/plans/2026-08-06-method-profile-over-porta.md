@@ -921,15 +921,22 @@ committed placeholder `ot_zephyr`. Then wait for `thread: attached role=` and
 timestamp; the count-based form is `tail -n N`, and `--board` is mandatory or the read is
 pointed at no sink at all:
 
+**Scope the read to THIS boot with `since`, not to a line count.** Take the boot timestamp
+from the `tuvm: build-id` line and use it for every read in Steps 2, 4 and 5:
+
 ```bash
-python3 nodus/tuvm/zephyr/tools/console/logread.py --board c6spare tail -n 500 | rg -c "mprof"
+python3 nodus/tuvm/zephyr/tools/console/logread.py --board c6spare since <BOOT-ISO-TS> | rg -c "mprof"
 ```
 
 Expected: `0`. **This is the control.** A gate that cannot distinguish "the window worked"
 from "it was already dumping" measures nothing — and a query that returns nothing because it
-was pointed at the wrong sink looks identical to a quiet node. Confirm the same command
-returns non-zero for an unrelated known-present pattern (`rg -c "tick"`) before trusting
-the zero.
+was pointed at the wrong sink looks identical to a quiet node. Confirm the same read returns
+non-zero for a known-present pattern (`rg -c "tick "`) before trusting the zero.
+
+**A count-based window is a false red here, measured 2026-08-06.** `tail -n 2000 | rg -c
+"mprof"` answered `50` on c6spare, and all fifty came from an unrelated `MethodProfileNodeC6`
+spike nine hours and one image earlier. Any line window big enough to feel safe is big enough
+to reach a previous experiment; the log is per-board and long-lived, not per-boot.
 
 - [ ] **Step 3: Write `dbg/req` from porta**
 
