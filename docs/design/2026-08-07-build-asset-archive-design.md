@@ -34,9 +34,12 @@ Two things those ecosystems consistently do **not** do, both of which decide thi
 `~/.local/state/rete/elf/<build-id>/zephyr.elf` on every `--flash`, and
 `console/symbolize.py` resolves a panic against it and **refuses** when the archive has no
 match, with `--assume-build` as a typed override echoed onto every line of output. That is
-a symbol server, including the property most homegrown ones get wrong. What is missing is
-that the profiler's metadata is not in it, nothing reads it by id, and it has no
-retention policy at all.
+a symbol server, including the property most homegrown ones get wrong.
+
+The profiler's metadata joined it on 2026-08-07 (`fbf604d`, on the #165 branch): `archive.sh`
+now copies `<app>.oimg.methods.json` and `<app>.stmap` into the same build-id directory and
+fails loudly by name if either is absent. **What remains missing is that nothing reads the
+archive by id, and that it has no retention policy at all.**
 
 ## What is there today, measured 2026-08-07
 
@@ -166,9 +169,15 @@ served store and the logs makes that failure structurally impossible instead of 
 
 ### D7 — The readers move; the collector cannot; the console path already exists
 
-`view.py`, `logread.py`, `check.py`, `symbolize.py` and `mprof_resolve.py` all already take
-a `--root`, so moving them is configuration rather than code — `logread.py --root <copy>`
-is a supported path today.
+**Corrected 2026-08-07 by reading the code, having first claimed otherwise.** Only
+`logread.py` and `check.py` take a `--root`. `view.py`, `mprof_resolve.py` and
+`symbolize.py` do **not** — three of the five. So this is not pure configuration: the move
+carries a small, real code change, and `--root` should be added to those three as part of
+rung 1 rather than discovered under rung 2.
+
+`logread.py --root <copy>` being a supported path today is what makes that addition a
+pattern to copy rather than a decision to make. It is also the proof the pattern works
+against a synced copy, which is the whole of what rung 2 asks of it.
 
 `collect.py` stays on the bench, pinned by physics: it holds a USB serial port. It does not
 need to move. **`udpsink.py` already runs on the gateway** (#56 §10, built 2026-08-04),
@@ -220,11 +229,13 @@ the absence of an error.
 
 ## Testing
 
-**Rung 1.** `archive.sh` exercised three ways: all artefacts present, sidecar absent, build-id
-file absent. Resolver unit tests for hit, miss and typed override. A view test asserting a
+**Rung 1.** `archive.sh` is already exercised three ways as of `fbf604d` (all artefacts
+present, sidecar absent, `OIMG` empty), so this rung inherits that and adds: a prune test
+asserting a pinned build survives a prune that evicts its unpinned neighbours, and a
+`--root` test for each of the three readers that gain one under D7.
+Resolver unit tests for hit, miss and typed override. And a view test asserting a
 refusal renders as prose, not as an empty table — the invariant the profile view broke twice
-before it shipped. A prune test asserting a pinned build survives a prune that evicts its
-unpinned neighbours.
+before it shipped.
 
 **Rung 2.** The host move is not unit-testable; three things around it are. The resolver
 against a `--root` that is a synced copy — the pattern `logread --root <copy>` already
