@@ -1,0 +1,90 @@
+(* expect:
+ignored 0
+open 0
+restarted 0
+ended 1
+done
+*)
+(* #165 D2/D6: the WHOLE chain, on host — channel -> dbgReq: -> timer ->
+   profileWindowEnd. 02_dbg_req_profile covers only `parseProfileMs:`, which is
+   a pure function; everything between it and the window closing was proven
+   solely by the C6 hardware gate, so a wiring regression (a reaction never
+   registered, a token dropped, an end that never fires) could reach a board
+   with the whole host suite green.
+
+   This is the body PortaBridgeNode.nsl and PortaBridgeNodeC6.nsl both carry,
+   reproduced here rather than driven through the bridge: the chain needs no
+   gateway, no socket and no mesh, and a test that stood one up would be
+   testing the bridge instead.
+
+   The build under test has no OEVM_METHOD_PROFILE, so `profileStart`/
+   `profileStop` are no-ops that answer self (01_window_lifecycle). That is the
+   point of the split: the COUNTS are a C unit test (test_mprof_gate), and what
+   is unproven off-target is the WIRING, which this file drives end to end on
+   the host virtual clock — never wall time, so the sequence is exact.
+
+   `restarted 0` is the load-bearing line. Without the cancel in
+   profileWindowStart: the first window's end-timer survives the restart, fires
+   at its own deadline, and closes the second window early — the line would
+   read `restarted 1`. D6 says a start arriving while a window is open restarts
+   it; this is what makes that sentence checkable. *)
+class DbgReqChainTest packageUsing: manifest = (
+  | plat space timers profChan profTok ::= nil. ends ::= 0. |
+) (
+  public main: platform args: args = (
+    | req |
+    plat:: platform.
+    space:: platform space.
+    timers:: platform timers.     (* hold ONE instance — it owns the registry *)
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    profChan:: space channel: 'sys/profileEnd'.
+    profChan whenever: '' do: [ :m | self profileWindowEnd ].
+    req:: space channel: 'dbg/req'.
+    req whenever: '' do: [ :v | self dbgReq: v ].
+
+    (* A line naming no duration must arm NOTHING. A defaulted window would be
+       an invented constant, and one that armed a timer anyway would close a
+       window nobody opened. *)
+    req out: '' value: 'reboot now'. space drain.
+    platform advanceMillis: 1000. space drain.
+    ('ignored ' , ends printString) println.
+
+    (* clock 1000: a 100 ms window opens, due at 1100 *)
+    req out: '' value: 'profile 100'. space drain.
+    platform advanceMillis: 50. space drain.          (* clock 1050, not due *)
+    ('open ' , ends printString) println.
+
+    (* clock 1050: a start while the window is open RESTARTS it — the 1100
+       timer is cancelled and a 200 ms one is armed, due at 1250. *)
+    req out: '' value: 'profile 200'. space drain.
+    platform advanceMillis: 60. space drain.          (* clock 1110, PAST 1100 *)
+    ('restarted ' , ends printString) println.
+
+    platform advanceMillis: 200. space drain.         (* clock 1310, past 1250 *)
+    ('ended ' , ends printString) println.
+    'done' println.
+    ^ 0 )
+
+  (* Each of these is a SELF-SEND from inside the whenever: block above, not
+     inline work — a cross-class call inside a reified block cannot resolve its
+     outer chain (rete#133). *)
+  dbgReq: line = (
+    | ms |
+    ms:: plat parseProfileMs: line.
+    ms > 0 ifTrue: [ self profileWindowStart: ms ].
+    ^ self )
+
+  profileWindowStart: ms = (
+    profTok == nil ifFalse: [ timers cancel: profTok ].
+    profTok:: nil.
+    plat profileStart.
+    profTok:: timers after: ms post: #profileEnd on: profChan.
+    ^ self )
+
+  profileWindowEnd = (
+    profTok:: nil.
+    plat profileStop.
+    ends:: ends + 1.
+    ^ self )
+) : (
+)

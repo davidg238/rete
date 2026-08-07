@@ -20,7 +20,7 @@ expect (console):
 PORTA NODE READY
 *)
 class PortaBridgeNode usingPlatform: platform net: net = (
-  | space bridge timers ticks ::= 0.
+  | space bridge timers profChan ticks ::= 0. profTok ::= nil.
     (* tuvm#107: the span table. ONE window per boot — see `main:args:`. *)
     spans capture sTick sCheckIn sPublish capturing ::= false. |
 ) (
@@ -80,6 +80,17 @@ class PortaBridgeNode usingPlatform: platform net: net = (
        reaction — there is no protocol handler anywhere in this node. *)
     (space channel: 'goal/name') whenever: '' do: [ :v | self nameChanged: v ].
 
+    (* #165 D2: react to porta's dbg/req. The kernel already accepts this path
+       (mayApply:) and already delivers it as a stream (space out:), so nothing
+       inbound changes — this is just a reader, exactly like the goal/name
+       reaction above. *)
+    (space channel: 'dbg/req') whenever: '' do: [ :v | self dbgReq: v ].
+
+    (* D6: the end-of-window signal. Timers post a MESSAGE to a CHANNEL — there
+       is no after:do: — so the window's end is an ordinary channel event. *)
+    profChan:: space channel: 'sys/profileEnd'.
+    profChan whenever: '' do: [ :m | self profileWindowEnd ].
+
     space put: 'obs/build' value: (platform Record tag: #Build
       with: #chip -> self chip with: #build -> platform buildId).
 
@@ -132,6 +143,43 @@ class PortaBridgeNode usingPlatform: platform net: net = (
   )
 
   nameChanged: v = ( space put: 'obs/name' value: v. ^ self )
+
+  (* Each of these is a SELF-SEND from inside the whenever: block above, not
+     inline work. A cross-class call inside a reified block cannot resolve its
+     outer chain (rete#133), so the block must do nothing but send to self. *)
+  dbgReq: line = (
+    | ms |
+    ms:: platform parseProfileMs: line.
+    ms > 0 ifTrue: [ self profileWindowStart: ms ].
+    ^ self )
+
+  (* SELF-LIMITING (D6). The node stops on its own, so a node that never hears
+     from porta again still stops counting and still reports. An explicit stop
+     message would leave a field node paying the counter's cost forever the
+     first time one was lost, with nobody aware.
+
+     `timers` is the app's ONE instance (see `main:args:`). Do NOT mint a
+     second: token allocation is per-instance but the C timer registry is keyed
+     globally, so a second instance would alias this one's tokens and misfire
+     silently.
+
+     A START ARRIVING WHILE A WINDOW IS OPEN RESTARTS IT (D6), and cancelling
+     the pending end-timer is what makes that sentence true. Without the cancel
+     the first timer still fires and closes the SECOND window early — and since
+     `dbg/req` is a stream, a cold boot replays every request porta ever wrote
+     from cursor 0, arming one end-timer per replayed line with only the last
+     one ever cancelled. `profTok` is nil exactly when no window is open. *)
+  profileWindowStart: ms = (
+    profTok == nil ifFalse: [ timers cancel: profTok ].
+    profTok:: nil.
+    platform profileStart.
+    profTok:: timers after: ms post: #profileEnd on: profChan.
+    ^ self )
+
+  profileWindowEnd = (
+    profTok:: nil.
+    platform profileStop.
+    ^ self )
 
   (* LIVENESS AND DELIVERY ONLY (design D2, 2026-08-04). heapFree/heapLargest/overruns
      left this record — not duplicated elsewhere, DELETED from here, because every one
