@@ -146,7 +146,7 @@ today's.
 ## The profile view (#165)
 
     python3 view.py --board c6spare --node c6-bench \
-      --sidecar ../../zephyr/PortaBridgeNodeC6.oimg.methods.json --port 8087
+      --sidecar ../../PortaBridgeNodeC6.oimg.methods.json --port 8087
 
 Open `http://localhost:8087`.
 
@@ -162,9 +162,13 @@ wrong sink" — the one failure this view exists to prevent.
 
 Three routes:
 
-- `GET /` — the page: a capture form and the last window's table, read
-  straight out of this collector's own log via `logstore` and named via
-  `mprof_resolve` against the `--sidecar` map. `htmx.min.js` is vendored
+- `GET /` — the page: a capture form and the most recent window's table,
+  read straight out of this collector's own log via `logstore` and named via
+  `mprof_resolve` against the `--sidecar` map. The search scans retained
+  days NEWEST FIRST and falls back to an older day when today's has no
+  window — a capture doesn't go blind at midnight — and the table always
+  states WHEN it was taken, read from the capture's own log timestamp, so an
+  old table is never mistaken for a fresh one. `htmx.min.js` is vendored
   beside this file and never fetched from a CDN, because the bench network
   may have no route out and a view that blanks when the internet is down is
   useless at exactly the moment it is wanted.

@@ -15,6 +15,7 @@ import json
 import os
 import subprocess
 import sys
+import traceback
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 # view.py lives in nodus/tuvm/zephyr/tools/console/; mprof_resolve.py lives in
@@ -36,14 +37,23 @@ def latest_window(text, mmap, top=0):
     happened to be last, silently. mprof_resolve.py itself is Task 2's and is
     not touched here; this is a caller-side slice, not a change to resolve().
 
+    The "is there a window at all" gate is checked against the SLICE, not the
+    unsliced `text` (round 3 fix — checking the whole text reopened the very
+    None-vs-[] conflation this function exists to prevent: a re-capture that
+    legitimately counts zero activations is ordinary, and if it is the LAST
+    window, the earlier window's dump lines would pass a whole-text gate while
+    the slice resolve() actually sees is empty, drawing a headers-only table
+    that looks identical to "it reported nothing" rather than "it was never
+    asked" — the exact pair this function's return value exists to keep apart).
+
     None rather than [] on purpose: an empty table and a node that was never
     asked to profile render identically otherwise, and the operator cannot tell
     'it reported nothing' from 'it was never asked'.
     """
-    if not mprof_resolve.DUMP_RE.search(text):
-        return None
     headers = list(mprof_resolve.HDR_RE.finditer(text))
     window_text = text[headers[-1].start():] if headers else text
+    if not mprof_resolve.DUMP_RE.search(window_text):
+        return None
     return mprof_resolve.resolve(mmap, window_text, top=top)
 
 
@@ -129,10 +139,15 @@ class Handler(BaseHTTPRequestHandler):
         fresh one just because the search found it.
         """
         store = logstore.LogStore(board=self.board)
-        mmap = json.load(open(self.sidecar)) if self.sidecar else {}
+        if self.sidecar:
+            with open(self.sidecar) as fh:
+                mmap = json.load(fh)
+        else:
+            mmap = {}
         for day in sorted(store.days(), reverse=True):
-            text = open(store.path_for(day), encoding="utf-8",
-                        errors="replace").read()
+            with open(store.path_for(day), encoding="utf-8",
+                      errors="replace") as fh:
+                text = fh.read()
             rows = latest_window(text, mmap, top=self.top)
             if rows is None:
                 continue
@@ -165,11 +180,25 @@ class Handler(BaseHTTPRequestHandler):
             # no route out, and a view that blanks when the internet is down is
             # useless at exactly the moment it is wanted.
             vendored = os.path.join(os.path.dirname(__file__), "htmx.min.js")
-            return self._send(200, open(vendored, encoding="utf-8").read(),
-                              "application/javascript")
+            with open(vendored, encoding="utf-8") as fh:
+                return self._send(200, fh.read(), "application/javascript")
         if self.path != "/":
             return self._send(404, "not found", "text/plain; charset=utf-8")
-        self._send(200, page(self.board, self._table()))
+        try:
+            table = self._table()
+        except (OSError, json.JSONDecodeError) as exc:
+            # REPORTED, not swallowed — the same principle POST /capture
+            # already gets. Caught narrowly (OSError covers a missing or
+            # unreadable sidecar/log file; JSONDecodeError covers a sidecar
+            # that isn't valid JSON) rather than a bare `except Exception`,
+            # which would also have hidden round 1's ValueError from ever
+            # being found. The banner tells the operator something broke;
+            # the traceback in the server log tells whoever fixes it what.
+            traceback.print_exc()
+            table = (f"<p id='table' class='warn'>error reading the capture: "
+                     f"{_html.escape(str(exc))} — see the server log for the "
+                     f"traceback</p>")
+        self._send(200, page(self.board, table))
 
     def do_POST(self):
         if self.path != "/capture":
@@ -195,8 +224,15 @@ class Handler(BaseHTTPRequestHandler):
                 check=True, capture_output=True, timeout=10)
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired,
                 FileNotFoundError) as exc:
+            detail = str(exc)
+            stderr = getattr(exc, "stderr", None)   # FileNotFoundError has none
+            if stderr:
+                # stderr is usually the ONLY useful diagnostic for why
+                # `porta put` refused — str(exc) alone is often just the
+                # exit code.
+                detail += f" — {stderr.decode('utf-8', 'replace').strip()}"
             return self._send(200, f"<p id='table' class='warn'>capture NOT "
-                                   f"started: {_html.escape(str(exc))}</p>")
+                                   f"started: {_html.escape(detail)}</p>")
         self._send(200, f"<p id='table'>capture requested ({ms} ms). Reload "
                         f"once it elapses.</p>")
 

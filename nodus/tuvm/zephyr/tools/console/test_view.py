@@ -34,6 +34,14 @@ TWO_WINDOWS = (
 MAP = {"16": {"id": "m16", "qual": ["Cbor>>u8At:"]},
        "32": {"id": "m32", "qual": ["Cbor>>encode:"]}}
 
+# A re-capture that legitimately counts zero activations is ordinary — this
+# is NOT malformed data. The LAST window here has a header and no dump
+# lines at all.
+ZERO_ROW_LAST_WINDOW = (
+    "2026-08-06T10:00:00.000-07:00 mprof[window]: methods=1 activations=5 overflow=0 cap=256\n"
+    "2026-08-06T10:00:00.001-07:00 mprof: 16 5\n"
+    "2026-08-06T10:05:00.000-07:00 mprof[window]: methods=0 activations=0 overflow=0 cap=256\n")
+
 
 def test_latest_window_is_extracted_from_surrounding_traffic():
     rows = view.latest_window(LOG, MAP, top=10)
@@ -71,6 +79,22 @@ def test_latest_window_does_not_merge_an_earlier_window_in_the_same_log():
     assert len(rows) == 1
     assert rows[0][0] == "Cbor>>encode:"
     assert rows[0][1] == 9
+
+
+def test_latest_window_answers_none_when_the_last_window_has_no_rows():
+    """round 3, finding 5: the "is there a window" gate used to run against
+    the WHOLE text while resolve() ran against the LAST window's slice — an
+    earlier window's dump lines could pass the gate even though the last
+    window (the one actually shown) was empty, reopening the None-vs-[]
+    conflation this function exists to prevent."""
+    rows = view.latest_window(ZERO_ROW_LAST_WINDOW, MAP)
+    assert rows is None
+
+
+def test_render_of_a_zero_row_last_window_is_prose_not_a_headers_only_table():
+    html = view.render(view.latest_window(ZERO_ROW_LAST_WINDOW, MAP), overflow=0)
+    assert "no capture" in html.lower()
+    assert "<table>" not in html
 
 
 # --- page assembly -----------------------------------------------------
@@ -179,6 +203,22 @@ def test_get_root_falls_back_to_an_older_day_and_names_when_it_was_taken(
     assert b"u8At" in body                        # the OLDER day's rows
     assert b"2026-08-06T10:00:01" in body          # its OWN capture time
     assert b"2026-08-07" not in body               # not today's date
+
+
+def test_get_root_reports_an_unreadable_sidecar_rather_than_dying_silently(
+        server, tmp_path, capsys):
+    """round 3, finding 6: a missing/unreadable/malformed sidecar used to
+    crash do_GET with nothing sent to the client — while GET /health kept
+    answering ok throughout, the same silent-outage shape round 1 fixed one
+    specific cause of. Caught narrowly (OSError, json.JSONDecodeError), not
+    a bare `except Exception` that would also have hidden round 1's bug."""
+    view.Handler.sidecar = str(tmp_path / "does-not-exist.json")
+
+    status, body = _get(server, "/")
+    assert status == 200                       # not a dead connection
+    assert b"error reading the capture" in body
+    assert b"node profile" in body             # the page shell still renders
+    assert "Traceback" in capsys.readouterr().err   # the diagnosis reaches the log
 
 
 def test_post_capture_reports_when_porta_is_absent(server, monkeypatch):
