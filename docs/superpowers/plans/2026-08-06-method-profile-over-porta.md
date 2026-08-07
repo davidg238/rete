@@ -379,10 +379,19 @@ int main(void) {
 
 ```bash
 cd nodus/tuvm
-gcc -DOEVM_METHOD_PROFILE -Isrc -o /tmp/test_mprof_gate tests/test_mprof_gate.c src/*.c 2>&1 | head -5
+gcc -Wall -std=c99 -Isrc -DOEVM_METHOD_PROFILE \
+    src/vm.c src/gc.c src/dispatch.c src/platform.c src/space.c src/handles.c \
+    src/span.c src/serial.c src/udp.c src/http.c src/http_core.c src/mirror.c \
+    src/backend/posix/*.c src/oimg_loader.c src/solidified_image.c \
+    tests/test_mprof_gate.c -o /tmp/test_mprof_gate -lm 2>&1 | head -5
 ```
 
 Expected: FAIL at link with `undefined reference to 'mprof_start'`.
+
+**Do not shortcut this to `src/*.c`.** That glob pulls in both `src/kernel_boot.c` and
+`src/solidified_image.c`, whose static `Vtable_*` definitions collide — the link then fails
+for a reason that has nothing to do with the test. The list above is exactly the one
+`run_c_unit_tests` in `nodus/nsl/tools/run_tests_oevm.py` uses, and for the same reason.
 
 - [ ] **Step 3: Restructure the gate in `nodus/tuvm/src/vm.c`**
 
@@ -461,7 +470,11 @@ Add the new test the same way, compiling with `-DOEVM_METHOD_PROFILE`. A C unit 
 - [ ] **Step 5: Run the test and the full suite**
 
 ```bash
-cd nodus/tuvm && gcc -DOEVM_METHOD_PROFILE -Isrc -o /tmp/test_mprof_gate tests/test_mprof_gate.c src/*.c && /tmp/test_mprof_gate
+cd nodus/tuvm && gcc -Wall -std=c99 -Isrc -DOEVM_METHOD_PROFILE \
+    src/vm.c src/gc.c src/dispatch.c src/platform.c src/space.c src/handles.c \
+    src/span.c src/serial.c src/udp.c src/http.c src/http_core.c src/mirror.c \
+    src/backend/posix/*.c src/oimg_loader.c src/solidified_image.c \
+    tests/test_mprof_gate.c -o /tmp/test_mprof_gate -lm && /tmp/test_mprof_gate
 cd nodus/nsl && python3 tools/run_tests_oevm.py
 ```
 
