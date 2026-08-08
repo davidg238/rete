@@ -61,6 +61,7 @@ gcc -Wall -std=c99 -DOEVM_METHOD_PROFILE -Isrc \
     "src/backend/$TARGET/platform_$TARGET.c" src/serial.c \
     "src/backend/$TARGET/serial_$TARGET.c" src/udp.c "src/backend/$TARGET/udp_$TARGET.c" \
     src/http.c src/http_core.c "src/backend/$TARGET/http_$TARGET.c" \
+    src/ota.c "src/backend/$TARGET/ota_$TARGET.c" \
     "src/backend/$TARGET/pulse_$TARGET.c" "src/backend/$TARGET/timer_$TARGET.c" \
     "src/backend/$TARGET/span_$TARGET.c" \
     "src/backend/$TARGET/sensor_$TARGET.c" \

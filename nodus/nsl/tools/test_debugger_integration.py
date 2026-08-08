@@ -49,12 +49,14 @@ def build_a():
     subprocess.run(["gcc", "-Wall", "-Wextra", "-std=c99", "-Isrc", "-DOEVM_APPLIANCE",
                     "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c", "src/span.c",
                     "src/serial.c",
-                    "src/udp.c", "src/http.c", "src/http_core.c", "src/mirror.c", "src/backend/posix/platform_posix.c",
+                    "src/udp.c", "src/http.c", "src/http_core.c", "src/mirror.c", "src/ota.c",
+                    "src/backend/posix/platform_posix.c",
                     "src/backend/posix/serial_posix.c", "src/backend/posix/udp_posix.c",
                     "src/backend/posix/http_posix.c",
                     "src/backend/posix/pulse_posix.c", "src/backend/posix/timer_posix.c",
                     "src/backend/posix/span_posix.c",   # tuvm#61
                     "src/backend/posix/sensor_posix.c",
+                    "src/backend/posix/ota_posix.c",   # rete#25
                     "src/solidified_image.c", "src/oevm_main.c",
                     "-o", BINARY_A, "-lm"], cwd=OEVM, check=True)
 
