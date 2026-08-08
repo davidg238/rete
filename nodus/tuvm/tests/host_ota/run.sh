@@ -346,11 +346,17 @@ M1=$(( $(lines_in "$WORK/runner1.log") + 1 ))
 echo "  node-1 goal/apps/main -> v3 ${V3H:0:12}… (staging into ${SLOT##*/}, $TOTAL B, slot was $PRESZ B)"
 
 KILLED_AT=0
+MKILL=1
 for _ in $(seq 1 1200); do          # 1200 * 0.05 s == 60 s, hard-bounded
   SZ=$(stat -c %s "$SLOT" 2>/dev/null || echo 0)
   if [ "$SZ" -gt "$KILL_ABOVE" ] && [ "$SZ" -lt "$KILL_BELOW" ] && [ "$SZ" != "$PRESZ" ]; then
     kill -9 "$VMPID" 2>/dev/null || true
     KILLED_AT=$SZ
+    # Taken at the kill and NOT at the push: the first stage attempt legitimately
+    # prints "not on a block boundary" (the slot still held the 203792 B v1
+    # image, which is 16 B past a 256 B boundary), so a negative anchored at the
+    # push would score that line and always fail.
+    MKILL=$(( $(lines_in "$WORK/runner1.log") + 1 ))
     break
   fi
   sleep 0.05
@@ -388,6 +394,19 @@ L=$(wait_line "$WORK/runner1.log" "$((L + 1))" "runner: exec [ab] hash=$V3H" 200
   fail "node-1 never exec'd the v3 hash"
 wait_line "$WORK/runner1.log" "$((L + 1))" 'runner: confirmed [ab]' 200 >/dev/null ||
   fail "node-1's v3 boot never confirmed"
+
+# RESUME AT THE RIGHT OFFSET, and not merely "resume". The shrink sampling above
+# proves the slot was never thrown away; this proves the seam did not decide to
+# throw it away and then rebuild it faster than a 50 ms sample. `ota.c` announces
+# exactly one did-not-resume path on the console — "slot not on a block boundary,
+# restarting" — and every restart path in ota_stage truncates to zero, so the two
+# assertions are belt and suspender on the same claim from opposite ends. No
+# change to ota.c was needed: the line was already there and already lands in the
+# runner's log, interleaved on the same stream.
+if seen_since "$WORK/runner1.log" "$MKILL" 'not on a block boundary'; then
+  fail "node-1 restarted the fetch after the kill instead of resuming: ota.c reported an off-boundary slot"
+fi
+echo "  and it resumed at the block boundary the kill left, not from zero"
 poll_cmd 150 0.2 porta_has node-1 obs/apps/main "0x$V3H" ||
   fail "porta's tree never showed node-1 at the v3 hash"
 echo "ok 2 - kill mid-transfer resumed"
@@ -476,8 +495,23 @@ T0=$SECONDS
 L=$(wait_line "$WORK/runner3.log" "$((L + 1))" 'runner: revert [ab]' $((WATCHDOG * 15))) ||
   fail "node-3 was never reverted — the trial watchdog did not fire within $((WATCHDOG * 3)) s"
 ELAPSED=$((SECONDS - T0))
+# BOUNDED FROM BOTH SIDES, because `runner: revert <slot>` is printed for three
+# different causes and this scenario names exactly one of them. The upper bound
+# alone would score a never_bridges that CRASHED a second after its banner —
+# ~1 s to revert, plan says no-check-in. Only the watchdog takes the full
+# window, so the elapsed time IS the discriminator. (-2 s of slack: T0 is taken
+# when the banner is first SEEN, up to a poll interval after the child spawned,
+# and $SECONDS truncates.)
 [ "$ELAPSED" -le $((WATCHDOG * 2)) ] ||
   fail "node-3 took ${ELAPSED}s to revert, more than 2x the ${WATCHDOG}s watchdog"
+[ "$ELAPSED" -ge $((WATCHDOG - 2)) ] ||
+  fail "node-3 reverted after only ${ELAPSED}s, far short of the ${WATCHDOG}s watchdog — the trial image DIED rather than failing to check in, which is a different scenario"
+# The third cause. A trial slot that failed VERIFY reverts before it ever runs,
+# and would leave no watchdog window at all; asserting its absence is what makes
+# "the watchdog did this" the only reading left.
+if seen_since "$WORK/runner3.log" "$M3" 'runner: verify-fail'; then
+  fail "node-3's revert followed a verify-fail, not the watchdog — the staged image never got a boot"
+fi
 if seen_since "$WORK/runner3.log" "$M3" 'runner: confirmed'; then
   fail "node-3 CONFIRMED an image that never checked in"
 fi
