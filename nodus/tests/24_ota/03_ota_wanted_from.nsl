@@ -1,0 +1,114 @@
+(*
+expect:
+good hash e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+good sig 64
+not a record nil
+nil nil
+wrong tag nil
+no image nil
+image not a record nil
+image wrong tag nil
+hash not bytes nil
+no sig nil
+sig not bytes nil
+finished
+*)
+(* rete#25 — the PURE half of PortaBridge's update policy. `otaWantedFrom:` is
+   the parse/decide step lifted out of `otaCheck` precisely so it can be asked
+   these questions with no socket, no gateway and no runner environment: given
+   the record sitting at `goal/apps/main`, is there an image this node is being
+   asked to run, and if so which bytes are its hash and its signature?
+
+   EVERY input here arrives OFF THE WIRE in production — porta writes that cell
+   and the bridge applies it without inspecting it (applyEntry: checks the path's
+   authority, never the value's shape). So the malformed cases are not defensive
+   padding: each one is a datagram a buggy or hostile gateway can send, and the
+   required answer is `nil` — "there is nothing to do" — rather than a raise. A
+   raise here would take the bridge job down on one bad write, which is the
+   whole class of failure the seam's C-side and Platform-side guards were added
+   to close (24_ota/01). This test closes it one layer further out.
+
+   `nil` and a non-Record are asked separately because they fail at different
+   guards: `nil` is a builtin with no vtable an nsl predicate can reach, so only
+   the native rank oracle (`platform valueRank:`) can classify it, while a String
+   would answer an nsl `isRecord`. A guard written with the wrong one passes this
+   test on one line and aborts the VM on the other.
+
+   The fixture digest is sha256 of the empty string, so a reader can regenerate
+   it; the signature is 64 bytes of a recognisable pattern, since nothing here
+   verifies it — carrying it intact is the only claim (design D4: verification
+   has exactly one seat, and it is the runner). *)
+class OtaWantedFrom packageUsing: manifest = () (
+  public main: platform args: args = (
+    | bridge hash sig |
+    bridge:: platform PortaBridge socket: nil space: platform space id: 'n1'
+               peer: '::1' port: 6969 spans: platform Spans new.
+    hash:: platform ByteArray fromHex: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'.
+    sig::  platform ByteArray fromHex:
+      'ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00'.
+
+    (* The one accepting case. Both fields must come back, and they must be the
+       SAME bytes that went in — a helper that answered a well-formed-looking
+       pair built from the wrong fields would satisfy a mere non-nil check. *)
+    self report: 'good' of: (bridge otaWantedFrom:
+      (platform Record tag: #App
+         with: #image -> (platform Record tag: #BlobRef
+                            with: #hash -> hash
+                            with: #size -> 4096)
+         with: #sig -> sig)).
+
+    self nilCheck: 'not a record' of: (bridge otaWantedFrom: 'App').
+    self nilCheck: 'nil' of: (bridge otaWantedFrom: nil).
+
+    (* A record of the wrong shape entirely. porta pins ONE record type at this
+       path (PROTOCOL-NSL-RECORDS), so a different tag is not a variant to
+       tolerate — it is evidence the two ends disagree, and staging from it would
+       be acting on a guess. *)
+    self nilCheck: 'wrong tag' of: (bridge otaWantedFrom:
+      (platform Record tag: #AppObs with: #sig -> sig)).
+
+    self nilCheck: 'no image' of: (bridge otaWantedFrom:
+      (platform Record tag: #App with: #sig -> sig)).
+    self nilCheck: 'image not a record' of: (bridge otaWantedFrom:
+      (platform Record tag: #App with: #image -> 42 with: #sig -> sig)).
+    self nilCheck: 'image wrong tag' of: (bridge otaWantedFrom:
+      (platform Record tag: #App
+         with: #image -> (platform Record tag: #App with: #hash -> hash)
+         with: #sig -> sig)).
+
+    (* The field that reaches `rawLeaf` on the way to C. An Integer here is the
+       exact argument that used to abort the VM before the Platform guard. *)
+    self nilCheck: 'hash not bytes' of: (bridge otaWantedFrom:
+      (platform Record tag: #App
+         with: #image -> (platform Record tag: #BlobRef with: #hash -> 7)
+         with: #sig -> sig)).
+
+    (* ABSENT and MALFORMED are both refusals, and for the same reason the
+       Platform seam refuses them: an image staged with its provenance missing
+       or unreadable reaches the runner with nothing left to check. *)
+    self nilCheck: 'no sig' of: (bridge otaWantedFrom:
+      (platform Record tag: #App
+         with: #image -> (platform Record tag: #BlobRef with: #hash -> hash))).
+    self nilCheck: 'sig not bytes' of: (bridge otaWantedFrom:
+      (platform Record tag: #App
+         with: #image -> (platform Record tag: #BlobRef with: #hash -> hash)
+         with: #sig -> 'signed, honest')).
+
+    (* No handler anywhere above: reaching this line is the proof that a
+       malformed gateway write is an ANSWER and not a crash. *)
+    'finished' println.
+  )
+
+  report: label of: want = (
+    want == nil ifTrue: [ ^ (label , ' MISSING — well-formed record refused') println ].
+    (label , ' hash ' , (want at: 1) printHex) println.
+    (label , ' sig ' , (want at: 2) byteSize printString) println.
+    ^ self )
+
+  nilCheck: label of: want = (
+    want == nil
+      ifTrue:  [ (label , ' nil') println ]
+      ifFalse: [ (label , ' ACCEPTED — guard missing') println ].
+    ^ self )
+) : (
+)

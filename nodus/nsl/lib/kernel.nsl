@@ -1558,6 +1558,17 @@ class Kernel usingPlatform: platform = () (
     | socket space nodeId peerHost peerPort
       cursor ::= 0. acked ::= 0. rejected ::= 0. misses ::= 0. dropped ::= 0.
       crossed ::= 0.
+      (* rete#25 — the whole of the image-push policy's state, four slots and no
+         object. `otaStaged` is the one-tick delay between "the bytes are on
+         flash" and "boot them" made explicit (see otaCheck); `otaConfirmed` is
+         what makes the confirm happen ONCE per boot rather than every check-in;
+         `stagedHash`/`stagedSig` carry the two arguments the activation needs
+         across that tick, because by then `goal/apps/main` is only where they
+         CAME from and re-reading it would let a gateway retarget an activation
+         mid-flight. All four are per-boot and deliberately not persisted: a
+         reboot re-reads the goal and re-decides, which is the same replay-safe
+         reasoning the cursor rests on. *)
+      otaStaged ::= false. otaConfirmed ::= false.
       pending ::= OrderedCollection new.
       (* tuvm#107 follow-on: the six spans that decompose `checkIn`. See the
          bracket comment on checkIn for what each one covers and why the sends are
@@ -1565,7 +1576,8 @@ class Kernel usingPlatform: platform = () (
          tuvm#161: three more NESTED inside `pushBuild`, which measured 62% of the
          check-in — see the bracket comment on pushFrame. *)
       spans sPullSend sPullWait sApplyIn sPushBuild sPushSend sPushWait
-      sPushCollect sPushEncode sPushTrim |
+      sPushCollect sPushEncode sPushTrim
+      stagedHash stagedSig |
   ) (
     (* `spans` is a CONSTRUCTOR ARGUMENT and not optional, for the reason
        src/span.h gives for pinning the two C-owned slots: a node must not be able
@@ -1966,9 +1978,28 @@ class Kernel usingPlatform: platform = () (
       (* In THIS order: applying goal/** first means the metrics published here
          describe the state porta just asked for, not the one before it — the same
          reasoning PortaBridgeNodeC6>>tick already gives for publishHealth. *)
+      (* publishApps BEFORE publishMetrics, and that order is not arbitrary:
+         pushFrame trims from the TAIL of an ascending-seq frame, so the LAST
+         cell written before the push is the first one dropped under batch
+         pressure. sys/metrics is rewritten every check-in and can afford to
+         lose a sample; obs/apps/main is written on every check-in too but is
+         the node's answer to "what are you running", which is the one thing an
+         operator watching a rollout is reading. Same reasoning the trim comment
+         on pushFrame gives for obs/build, applied one path further. *)
+      self publishApps.
       self publishMetrics.
       spans end: sApplyIn.
-      ^ self pushOnce )
+      self pushOnce.
+      (* AFTER the exchange, and outside all six spans — otaCheck is not exchange
+         time, and `checkIn - (sum of the six)` must stay readable as un-bracketed
+         VM time. The position is the whole timing mechanism (design D6): a stage
+         on tick T writes `tel/log 'ota staged'` here, the reaction captures it
+         before tick T+1, and T+1's push delivers it BEFORE T+1's otaCheck
+         activates. Activation exits the process, so a log line written on the
+         exit tick would die unpushed in the in-RAM pending queue — the one-tick
+         delay is what makes a rollout's last words reach the gateway, and it
+         costs no timer, no state machine and no cadence knob. *)
+      ^ self otaCheck )
 
     (* #56 capability (3): "metrics die with the node", and /stats is a PULL, which
        is a human affordance — an agent arrives after the corpse is cold.
@@ -1988,6 +2019,133 @@ class Kernel usingPlatform: platform = () (
     publishMetrics = (
       space put: 'sys/metrics' value: outer metrics.
       ^ self )
+
+    (* rete#25 — the observed half of the image pair. `goal/apps/main` is what
+       porta wants running; this is what IS running, so the rollout view is the
+       same tree diff every other convergence question is, with no rollout table
+       and no per-node status verb.
+
+       SILENT WHEN THE NODE DOES NOT KNOW. `otaRunningHash` answers nil on any
+       node launched without a runner environment — every host run of this tree,
+       the porta_sync_host gate included — and the honest report of "I cannot
+       name my own image" is to write NOTHING, not to publish a nil hash or an
+       #unknown lifecycle. Absence is already the reading obs/build carries for
+       the same case (#74), and a published placeholder would make a bare node
+       and a node whose runner broke look identical from the gateway.
+
+       `#running` is the only lifecycle this node can honestly claim: it is
+       executing, and it says so. The trial/confirmed distinction lives in the
+       runner's own markers and in `otaTrial`, not here — publishing it would
+       mean two places answer "is this image confirmed", and they would
+       eventually disagree. *)
+    publishApps = (
+      | h |
+      h:: outer otaRunningHash.
+      h == nil ifTrue: [ ^ self ].
+      space put: 'obs/apps/main' value: (Record tag: #AppObs
+        with: #image -> (Record tag: #BlobRef with: #hash -> h)
+        with: #lifecycle -> #running).
+      ^ self )
+
+    (* rete#25 — the ENTIRE image-update policy, run once per check-in from the
+       tail of `checkIn`. No timer, no job, no state machine and no `whenever:`
+       reaction: the cadence is the check-in's cadence, and the ordering the
+       design needs falls out of the call site (see checkIn). A `whenever:` on
+       `goal/apps/main` would also be wrong for a second reason — a cross-class
+       send inside a reified block cannot resolve its outer chain on this VM
+       (tuvm#133), so the body would have to be a self-send anyway, and then the
+       reaction is buying nothing but an unpredictable moment to exit the process
+       in.
+
+       The five steps are ORDERED, and each ordering is load-bearing:
+
+       1. CONFIRM FIRST, and only after an ack. `acked > 0` is the node's proof
+          that this image can still talk to the gateway — the one property a
+          rollback exists to protect. Confirming on boot instead would confirm an
+          image that cannot reach anyone, which is exactly the brick the trial
+          marker is there to prevent. Once per boot: `otaConfirm` is cheap but not
+          free, and a confirm per check-in would write flash every two seconds.
+
+       2. ACTIVATE BEFORE READING THE GOAL. `otaActivate:` does not return — it
+          exits into the runner — so anything after it in this method is dead code
+          on the tick it fires. Reading the goal first would mean a gateway that
+          rewrote the goal between staging and activating could send us into a
+          reboot with a hash we never fetched. The staged pair comes from the
+          slots, never re-read.
+
+       3. NOTHING TO DO IS THE COMMON CASE. A node with no `goal/apps/main` (every
+          node in the fleet, almost always) does one cell peek and returns.
+
+       4. A MALFORMED RECORD IS A LOG LINE, NOT A CRASH. It arrives off the wire
+          from a gateway this node cannot audit; `otaWantedFrom:` answers nil for
+          every shape that is not exactly the pinned one, and the node keeps
+          running. Logged every check-in on purpose — a gateway writing garbage to
+          this path is not a transient, and one line at boot would scroll away
+          long before anyone looked.
+
+       5. A FAILED STAGE IS NOT REMEMBERED. `otaStage:` is blocking and answers
+          false for an unreachable block server, a digest mismatch or no slot at
+          all; the next check-in simply tries again, which is a retry loop with no
+          backoff state, no attempt counter and no give-up threshold — none of
+          which there is data to choose yet (design D6). The cost of the degenerate
+          case is one blocked check-in per tick against an unreachable server,
+          which is measurable; invent the knobs when it has been measured.
+
+       The block plane is `peerPort + 1` by construction, not by configuration —
+       one address, one port pair, nothing new to provision. *)
+    otaCheck = (
+      | rec want hash sig |
+      (otaConfirmed not and: [ acked > 0 and: [ outer otaTrial ] ]) ifTrue: [
+        outer otaConfirm.
+        otaConfirmed:: true.
+        space out: 'tel/log' value: 'ota confirmed' ].
+      otaStaged ifTrue: [ ^ outer otaActivate: stagedHash sig: stagedSig ].
+      rec:: space peek: 'goal/apps/main'.
+      rec == nil ifTrue: [ ^ self ].
+      want:: self otaWantedFrom: rec.
+      want == nil ifTrue: [
+        space out: 'tel/log' value: 'ota bad record'.
+        ^ self ].
+      hash:: want at: 1.
+      sig::  want at: 2.
+      (outer otaIsRunning: hash) ifTrue: [ ^ self ].
+      (outer otaStage: hash sig: sig host: peerHost port: peerPort + 1)
+        ifTrue: [
+          stagedHash:: hash.
+          stagedSig::  sig.
+          otaStaged::  true.
+          space out: 'tel/log' value: 'ota staged' ]
+        ifFalse: [ space out: 'tel/log' value: 'ota stage failed' ].
+      ^ self )
+
+    (* The pure decision: given whatever sits at `goal/apps/main`, answer the
+       {hash, sig} pair this node is being asked to run, or nil for "nothing to
+       do". Split out of `otaCheck` because it is the only part with an answer
+       worth asserting — every case below is a datagram a gateway can send, and
+       they are exercised as such in 24_ota/03 with no socket in sight.
+
+       `outer rankOf:` and not `isRecord`, for the reason applyEntry: already
+       gives: `rankOf:` is the NATIVE oracle and classifies a builtin — nil
+       included — where an nsl predicate send would first have to find a vtable.
+       `=` and never `==` on both tags: these Symbols came off the wire through a
+       real decode and are not the image's interned ones (tuvm#75).
+
+       Both fields are REQUIRED and neither is defaulted. An absent signature is
+       not "unsigned, carry on" — the runner is the one seat where verification
+       happens (design D4), and handing it a record with the provenance quietly
+       missing would leave it nothing to check. *)
+    public otaWantedFrom: rec = (
+      | img hash sig |
+      (outer rankOf: rec) = 9 ifFalse: [ ^ nil ].
+      rec tag = #App ifFalse: [ ^ nil ].
+      img:: rec at: #image ifAbsent: [ nil ].
+      (outer rankOf: img) = 9 ifFalse: [ ^ nil ].
+      img tag = #BlobRef ifFalse: [ ^ nil ].
+      hash:: img at: #hash ifAbsent: [ nil ].
+      hash isBytes ifFalse: [ ^ nil ].
+      sig:: rec at: #sig ifAbsent: [ nil ].
+      sig isBytes ifFalse: [ ^ nil ].
+      ^ List with: hash with: sig )
 
     pushOnce = (
       | frame reply |
