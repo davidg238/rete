@@ -4,6 +4,7 @@
 package portacli
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
 	"os/user"
@@ -19,6 +20,7 @@ import (
 // nowhere else (design D2).
 func newPutCmd() *cobra.Command {
 	var kind, reason, actor string
+	var raw bool
 	cmd := &cobra.Command{
 		Use:   "put <node> <path> <value>",
 		Short: "Write a value to a node's goal tree",
@@ -30,9 +32,21 @@ func newPutCmd() *cobra.Command {
 			} else if kind != "cell" {
 				return fmt.Errorf("--kind must be cell or stream, got %q", kind)
 			}
-			raw, err := cval.Encode(parseScalar(args[2]))
-			if err != nil {
-				return err
+			var enc []byte
+			var err error
+			if raw {
+				enc, err = hex.DecodeString(args[2])
+				if err != nil {
+					return fmt.Errorf("--raw value is not hex: %w", err)
+				}
+				if err := cval.Validate(enc); err != nil {
+					return fmt.Errorf("--raw value is not a closed cval encoding: %w", err)
+				}
+			} else {
+				enc, err = cval.Encode(parseScalar(args[2]))
+				if err != nil {
+					return err
+				}
 			}
 			who := actor
 			if who == "" {
@@ -43,7 +57,7 @@ func newPutCmd() *cobra.Command {
 				return err
 			}
 			defer st.Close()
-			seq, err := st.Write(args[0], args[1], k, raw, who, reason)
+			seq, err := st.Write(args[0], args[1], k, enc, who, reason)
 			if err != nil {
 				return err
 			}
@@ -54,6 +68,7 @@ func newPutCmd() *cobra.Command {
 	cmd.Flags().StringVar(&kind, "kind", "cell", "cell or stream")
 	cmd.Flags().StringVar(&reason, "reason", "", "why this write is being made (recorded in the log)")
 	cmd.Flags().StringVar(&actor, "actor", "", "who is making this write (defaults to the OS user)")
+	cmd.Flags().BoolVar(&raw, "raw", false, "value is hex-encoded raw deterministic CBOR")
 	return cmd
 }
 
