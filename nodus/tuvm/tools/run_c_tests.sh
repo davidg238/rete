@@ -93,6 +93,12 @@ run test_http   "src/http_core.c src/backend/posix/http_posix.c src/span.c src/b
 # supplies its own timer_backend_millis stub rather than linking timer_posix.c,
 # which would drag in space_post and from there the whole VM; see the test header.
 run test_span   "src/span.c src/backend/posix/span_posix.c"
+# rete#25: the C ota seam (src/ota.c). Backend-only link like test_http/test_udp
+# above — ota.c depends on nothing but its two seams (ota_backend.h and
+# udp_backend.h), BOTH of which the test stubs in-file, so the block-fetch loop,
+# the resume arithmetic and the file-local SHA-256 are proven without a socket,
+# a filesystem or a porta. platform_posix.c is linked only for the console sink.
+run ota_seam_test "src/ota.c src/backend/posix/platform_posix.c"
 # Header-only frame ABI test
 printf '%-28s ' test_frame_abi
 if $CC $STD tests/test_frame_abi.c -o $OUT 2>/tmp/tuvm_ctest.log && $OUT >/dev/null 2>&1; then echo PASS; else echo FAIL; cat /tmp/tuvm_ctest.log; fail=1; fi
