@@ -242,7 +242,45 @@ static void test_unknown_hash(void) {
     printf("  unknown hash      OK\n");
 }
 
-/* 6. no stage slot configured: the seam must fail, never crash. A node
+/* 6. the retarget wedge: a STALE slot longer than the new target.
+ *
+ * The slot carries no record of which image its bytes belong to, and the fetch
+ * resumes at staged/256. Retarget a node while a partial slot survives, to an
+ * image SHORTER than what is already staged, and the resume block is past the
+ * new image's end: blockserv answers 0x7F "block past end". Without a truncate
+ * on that path every cadence tick repeats the identical request forever and no
+ * operator write can clear it — the node is wedged permanently.
+ *
+ * Asserted here as the two-tick self-heal the cadence actually performs: the
+ * first call discards the slot and fails, the SECOND one succeeds from block 0.
+ * The same wedge shape covers a wrong FULL-length slot sitting on an exact 256
+ * multiple (off == len && blk != 0 is the same peer error), which this fix
+ * closes by the same path.
+ */
+static void test_retarget_wedge(void) {
+    reset(blob_a, hash_a);           /* the peer serves the 600-byte blob A */
+    drop_block1_once = 0;            /* retry is covered above; keep counts exact */
+    for (int i = 0; i < 11 * BLOCK; i++)      /* 2816 bytes of a former image */
+        stage_buf[i] = (uint8_t)(i ^ 0x5a);
+    stage_len = 11 * BLOCK;
+
+    /* tick 1: resume asks for block 11, the peer says "block past end". */
+    assert(ota_stage(hash_a, NULL, 0, "::1", 5684) == 0);
+    assert(n_requested == 1);
+    assert(requested[0] == 11);
+    assert(stage_len == 0);          /* the wedge: this was 2816 before the fix */
+
+    /* tick 2: the same call, unchanged, now completes from block 0. */
+    n_requested = 0;
+    assert(ota_stage(hash_a, NULL, 0, "::1", 5684) == 1);
+    assert(stage_len == BLOB_LEN);
+    assert(memcmp(stage_buf, blob_a, BLOB_LEN) == 0);
+    assert(n_requested == 3);
+    assert(requested[0] == 0 && requested[1] == 1 && requested[2] == 2);
+    printf("  retarget wedge    OK\n");
+}
+
+/* 7. no stage slot configured: the seam must fail, never crash. A node
  *    launched with no ota env at all still runs. */
 static void test_unconfigured(void) {
     reset(blob_a, hash_a);
@@ -257,7 +295,7 @@ static void test_unconfigured(void) {
     printf("  unconfigured      OK\n");
 }
 
-/* 7. ota_running_hash / ota_is_running read OEVM_IMAGE_HASH. */
+/* 8. ota_running_hash / ota_is_running read OEVM_IMAGE_HASH. */
 static void test_running_hash(void) {
     reset(blob_a, hash_a);
     uint8_t got[32];
@@ -276,7 +314,7 @@ static void test_running_hash(void) {
     printf("  running hash      OK\n");
 }
 
-/* 8. trial / confirm / activate. */
+/* 9. trial / confirm / activate. */
 static void test_trial_confirm_activate(void) {
     reset(blob_a, hash_a);
     assert(ota_trial() == 0);
@@ -312,6 +350,7 @@ int main(void) {
     test_cold_fetch();
     test_corrupt();
     test_unknown_hash();
+    test_retarget_wedge();
     test_unconfigured();
     test_running_hash();
     test_trial_confirm_activate();

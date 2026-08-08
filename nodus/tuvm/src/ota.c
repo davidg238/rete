@@ -294,15 +294,42 @@ int ota_stage(const uint8_t hash[32], const uint8_t *sig, int sig_len,
 
     uint8_t data[OTA_BLOCK];
     uint32_t blk = (uint32_t)(staged / OTA_BLOCK);
+    const uint32_t first_blk = blk;      /* non-zero == this fetch is a RESUME */
     long total = staged;
     int ok = 1;
     for (;;) {
         int len = 0, more = 0;
         int r = fetch_block(sock, host, port, hash, blk, data, &len, &more);
         if (r <= 0) {
-            if (r == 0) say_n("block timed out after 5 attempts, block=", (long)blk);
+            if (r == 0) {
+                /* A timeout is porta being unreachable. The staged bytes are
+                 * still a good prefix, so the slot stays and IS the cursor for
+                 * the next tick — that is the whole point of resuming. */
+                say_n("block timed out after 5 attempts, block=", (long)blk);
+            } else if (first_blk > 0) {
+                /* A peer ERROR while resuming means the staged bytes are not a
+                 * prefix of the wanted image at all. The commonest cause is a
+                 * retarget: the goal hash changed under a partial slot and the
+                 * new image is SHORTER, so the resume block is past its end and
+                 * blockserv answers "block past end". A wrong full-length slot
+                 * on an exact block boundary lands on the identical frame.
+                 *
+                 * The slot carries no record of which image its bytes belong
+                 * to, so there is nothing to consult and no way to narrow the
+                 * cursor — dropping it is the only exit. Leaving it makes every
+                 * later tick repeat this exact request forever, and NO operator
+                 * write can clear it: the node is wedged permanently. One
+                 * discarded partial download is the bounded cost of that.
+                 *
+                 * A fresh stage (first_blk == 0) is deliberately left alone.
+                 * That is the record-pushed-before-the-blob case of the design's
+                 * failure table — the slot is empty, there is nothing to
+                 * discard, and it self-heals when the blob lands. */
+                say("peer rejected a resumed block — discarding the stale slot");
+                ota_stage_truncate();
+            }
             ok = 0;
-            break;                       /* leave the slot: the next tick resumes */
+            break;
         }
         if (len > 0 && !ota_stage_append(data, len)) {
             say("staging slot write failed");
