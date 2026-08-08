@@ -402,9 +402,12 @@ answer for that path specifically — the decision belongs with #114.
 ### 4.3 What stays OFF the space
 
 - **Bulk image payload** — data plane. Delivery is a bulk transfer selected by
-  content hash, referenced from the `goal/apps/<name>` record. v1 §5's raw-bytes+CRC
-  model carries over as-is (transport per node class: TFTP today, CoAP blockwise on
-  Thread).
+  content hash, referenced from the `goal/apps/<name>` record. What rides is raw image
+  bytes verified against that hash; v1 §5's CRC32 does **not** carry over, because the
+  `BlobRef`'s hash is already the integrity check. **The transport today is the block
+  frame of §5.3** — exchange port + 1, stop-and-wait, resumable by block number — with
+  CoAP blockwise the ratified direction for Thread. Not TFTP: that was v1's surface and
+  it was deleted with v1.
 - **Auth / identity (G5)** — the grant machinery cannot ride the thing it guards.
   Node identity + session auth wrap the exchange at the transport layer; prefix
   authority is enforced *inside*: porta may write only `goal/**` and `dbg/req`; the
@@ -509,8 +512,10 @@ transport-agnostic):
   high-water. Empty body = up to date.
 - **Push** — node sends CBOR array of `[nodeSeq, path, kind, value]`; gateway dedupes
   on `nodeSeq` high-water and acks it.
-- Transport — whatever the node class carries. The v1 TFTP surface can carry these
-  two resources unchanged on day one; **the ratified direction is TFTP → CoAP** for
+- Transport — whatever the node class carries. **Today it is plain UDP carrying
+  CBOR**; the v1 TFTP surface this bullet once named as the day-one carrier was
+  deleted with v1 and carries nothing. **The ratified direction is CoAP** — logged in
+  §8 under its original name, TFTP → CoAP, from when TFTP was the carrier — for
   `kind: "nsl"` nodes (Zephyr ships a native CoAP client/server, so this rides the
   same BSD-socket seam already proven for UDP in rungs 5–7). CoAP earns the switch
   for its **resource model** (paths = URIs), **ETag-conditional GET** (our `seq`/cursor

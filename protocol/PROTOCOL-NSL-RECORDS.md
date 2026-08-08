@@ -134,10 +134,11 @@ that already holds `hash` does nothing. A reflashed node, a node that resumes fr
 cursor 0, and a node seeing the value for the first time all take the same path. There
 is no "have I already applied this?" state to get wrong — the hash *is* the answer.
 
-The bulk bytes are then fetched **out of band**, over the transport the node class
-already has (TFTP today; CoAP blockwise the natural Thread evolution). The space never
-sees them. Verifying the fetched bytes against `hash` is what makes the data plane
-trustworthy without putting auth on the control plane.
+The bulk bytes are then fetched **out of band**, on the data plane: today the
+stop-and-wait block frame on exchange port + 1 (`PROTOCOL-NSL.md` §5.3), with CoAP
+blockwise the ratified direction for Thread. Not TFTP — that was v1's surface and it was
+deleted with v1. The space never sees them. Verifying the fetched bytes against `hash` is
+what makes the data plane trustworthy without putting auth on the control plane.
 
 ### 2.4 What is a blob, and what is not
 

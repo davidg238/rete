@@ -168,7 +168,7 @@ The loop:
 3. **On exit** —
    - **42 (STAGE_READY):** staged slot's SHA-256 must match `ready.json.hash` and the
      signature must verify over it. Pass → `prev=active, active=other, trial=true`,
-     re-exec. Fail → count + log, truncate the staged slot, re-exec the old image.
+     re-exec. Fail → log, truncate the staged slot, re-exec the old image.
    - **any other exit while trial and unconfirmed** → **REVERT**: `active=prev,
      trial=false`, re-exec. A crashing trial image never gets a second chance
      (`prev` is never itself trial).
@@ -187,11 +187,19 @@ is C and out of scope).
 | Block timeout / porta down mid-fetch | Bounded stop-and-wait retries (default 5 × 1 s), then abort the stage; `tel/log` once; next cadence tick resumes from the staged length |
 | Unknown hash at porta | Error frame → abort, log, retry next tick (record pushed before blob — visible, self-heals when the blob lands) |
 | Staged hash mismatch | C seam truncates the slot, logs; refetch next tick |
-| Signature rejected at runner | Truncate staged slot, count + log, keep running the old image. The node refetches each cadence — deliberate: the loop is operator-visible (goal ≠ obs) and the fix is pushing a good record. A rejected-hash memo is deferred until the noise is measured |
+| Signature rejected at runner | Truncate staged slot, log, keep running the old image. The node refetches each cadence — deliberate: the loop is operator-visible (goal ≠ obs) and the fix is pushing a good record. A rejected-hash memo is deferred until the noise is measured |
 | Crash between `otaActivate` write and exit | `ready.json` does not match the staged file → same path as sig-reject |
 | Trial image crashes or never confirms | Revert, exactly once |
 | Retarget arrives during an unconfirmed trial | Staging deferred until confirm or revert — a trial node never stages, so the rollback slot is never destroyed while unproven. Enforced in `PortaBridge>>otaCheck`, not in the runner: §5 step 3 handles exit-42 before the trial revert, so a trial node that staged would leave `active` = a never-confirmed image with `prev` cleared, breaking "`prev` is never itself trial"; and reordering the runner is worse, because by exit-42 the staging has already overwritten the rollback slot, so a revert-first runner verify-fails on a cleared `prev` and exits 3 — a brick. Cost of deferring: at most one tick of latency, either way the trial ends |
 | Stale confirm marker | Deleted on trial entry |
+
+**Amendment 2026-08-08 (as built): a rejected signature is LOGGED, not counted.** Both
+this table and §5 step 3 said "count + log", and no counter was ever built — the runner
+prints `runner: staged-reject <why>` and nothing accumulates. Struck rather than
+implemented, on the same reasoning that defers the rejected-hash memo: a count nobody
+reads is a mechanism invented ahead of the question it would answer, and the refetch loop
+is already operator-visible as `goal` ≠ `obs`. If the memo is ever earned, it and its
+counter arrive together.
 
 ## 7. Testing
 
