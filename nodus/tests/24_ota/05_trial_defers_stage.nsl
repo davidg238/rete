@@ -1,0 +1,91 @@
+(*
+env: OEVM_OTA_TRIAL=1
+expect:
+trial true
+the record is stageable 32
+pending before 0
+pending after 0
+still here — otaCheck returned and nothing exited
+*)
+(* rete#25 — A TRIAL-UNCONFIRMED NODE MUST NOT STAGE. The finding came out of the
+   Task 8 runner review; the fix is node-side, so the test is here.
+
+   The chain being closed: a trial node that stages exits 42, and the runner
+   handles exit-42 BEFORE the trial-unconfirmed revert (design §5 step 3, in that
+   written order), so the manifest ends with `active` = an image that was never
+   confirmed and `prev` cleared to the image that was itself on trial. The last
+   known-good image is then in neither slot. Reordering the runner is worse: by
+   exit-42 the staging has already overwritten the rollback slot, so a
+   revert-first runner verify-fails against a cleared `prev` and exits 3 — a
+   brick rather than a bad manifest. So the node simply does not start a stage it
+   cannot afford to finish.
+
+   `OEVM_OTA_TRIAL=1` is per-test (tuvm#88): exported globally it would leak into
+   24_ota/01, which asserts `trial false`.
+
+   WHY THIS IS TESTABLE WITHOUT A NETWORK. `otaCheck` is one decision, and every
+   step before the stage is local: the confirm needs `acked > 0`, which a bridge
+   that has never exchanged does not have; the goal is a cell this test plants
+   itself; and `otaIsRunning:` is false because no `OEVM_IMAGE_HASH` is set. The
+   step that would reach the block plane is `otaStage:`, and it is exactly the
+   step the guard must prevent. With the guard deleted this file prints
+   `pending after 1` and the C seam's own `ota: no staging slot (OEVM_OTA_STAGE
+   unset)` — measured, not assumed. Note what that means: the seam refuses before
+   any I/O, so the regression is caught by the LOG ENTRY and not by a timeout,
+   which is why `pending` is asserted rather than elapsed time.
+
+   THE FALSIFIER IS THE SECOND LINE. A test that planted a malformed record, or
+   one whose hash happened to match, would pass for the wrong reason and would
+   keep passing after the guard was deleted. So the record is handed to
+   `otaWantedFrom:` first and asserted STAGEABLE — 32 bytes of hash come back —
+   before `otaCheck` is asked to ignore it. Without that line the whole file is
+   theatre.
+
+   `pending` is the assertion surface because `tel/log` is a stream: the bridge's
+   own capture reaction is the only thing that retains an entry, so a subscribed
+   bridge with an empty pending queue after a drain is the same claim as "no log
+   line was written", and it needs no gateway. Both `ota staged` and
+   `ota stage failed` would land there, so the guard is distinguished from a
+   stage that merely failed. *)
+class TrialDefersStage packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space bridge rec |
+    space:: platform space.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1'
+               peer: '::1' port: 6969 spans: platform Spans new.
+    bridge subscribeStream: 'tel/log'.
+
+    (* The runner says this boot is unproven. Everything below hangs off it. *)
+    platform otaTrial
+      ifTrue:  [ 'trial true' println ]
+      ifFalse: [ 'trial FALSE — the env: header did not reach this test' println ].
+
+    (* sha256 of 'abc' — a hash this node is certainly not already running, since
+       no OEVM_IMAGE_HASH is set and `otaRunningHash` answers nil. *)
+    rec:: platform Record tag: #App
+            with: #image -> (platform Record tag: #BlobRef
+                               with: #hash -> (platform ByteArray fromHex:
+                                 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad')
+                               with: #size -> 4096)
+            with: #sig -> (platform ByteArray fromHex:
+              'ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00ab00').
+
+    (* The falsifier: this record IS one the bridge would act on. Assert it before
+       asserting that the bridge does not. *)
+    ('the record is stageable ' , ((bridge otaWantedFrom: rec) at: 1) byteSize printString) println.
+
+    space put: 'goal/apps/main' value: rec.
+    space drain.
+    ('pending before ' , bridge pendingSize printString) println.
+
+    (* The whole test. With the guard: returns immediately, writes nothing. Without
+       it: `otaStage:` is called, fails, and logs `ota stage failed` — `pending
+       after 1`. *)
+    bridge otaCheck.
+    space drain.
+    ('pending after ' , bridge pendingSize printString) println.
+
+    'still here — otaCheck returned and nothing exited' println.
+  )
+) : (
+)

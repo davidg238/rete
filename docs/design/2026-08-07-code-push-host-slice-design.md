@@ -190,6 +190,7 @@ is C and out of scope).
 | Signature rejected at runner | Truncate staged slot, count + log, keep running the old image. The node refetches each cadence — deliberate: the loop is operator-visible (goal ≠ obs) and the fix is pushing a good record. A rejected-hash memo is deferred until the noise is measured |
 | Crash between `otaActivate` write and exit | `ready.json` does not match the staged file → same path as sig-reject |
 | Trial image crashes or never confirms | Revert, exactly once |
+| Retarget arrives during an unconfirmed trial | Staging deferred until confirm or revert — a trial node never stages, so the rollback slot is never destroyed while unproven. Enforced in `PortaBridge>>otaCheck`, not in the runner: §5 step 3 handles exit-42 before the trial revert, so a trial node that staged would leave `active` = a never-confirmed image with `prev` cleared, breaking "`prev` is never itself trial"; and reordering the runner is worse, because by exit-42 the staging has already overwritten the rollback slot, so a revert-first runner verify-fails on a cleared `prev` and exits 3 — a brick. Cost of deferring: at most one tick of latency, either way the trial ends |
 | Stale confirm marker | Deleted on trial entry |
 
 ## 7. Testing

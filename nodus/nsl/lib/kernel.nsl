@@ -2109,13 +2109,43 @@ class Kernel usingPlatform: platform = () (
 
        The block plane is `peerPort + 1` by construction, not by configuration —
        one address, one port pair, nothing new to provision. *)
-    otaCheck = (
+    (* PUBLIC only so the suite can drive one decision without a socket: `checkIn`
+       returns at its first line when `socket == nil`, so there is no other way in,
+       and the trial-unconfirmed guard below is a claim worth a test rather than a
+       gate. No app calls this — the cadence is `checkIn`'s and must stay so. *)
+    public otaCheck = (
       | rec want hash sig |
       (otaConfirmed not and: [ acked > 0 and: [ outer otaTrial ] ]) ifTrue: [
         outer otaConfirm.
         otaConfirmed:: true.
         self otaLog: #info text: 'ota confirmed' ].
       otaStaged ifTrue: [ ^ outer otaActivate: stagedHash sig: stagedSig ].
+      (* A TRIAL-UNCONFIRMED NODE NEVER STAGES. Found in the Task 8 runner review
+         and fixed here, because the node is the only place it can be fixed.
+
+         The chain: a trial node that stages exits 42, and the runner handles
+         exit-42 BEFORE the trial-unconfirmed revert (design §5 step 3, in that
+         written order) — so the manifest ends `active = an image that was never
+         confirmed`, `prev` cleared to the image that was itself on trial. The
+         last known-good image is now in neither slot and §5's own invariant,
+         "`prev` is never itself trial", is broken. Reordering the RUNNER makes it
+         worse rather than better: by exit-42 time the staging has already
+         overwritten the rollback slot, so a revert-first runner would verify-fail
+         against a cleared `prev` and exit 3 — a hard brick instead of a bad
+         manifest.
+
+         Deferring the stage removes the whole class from the node side and costs
+         nothing. A retarget arriving inside the 30 s trial window simply waits:
+         either this node confirms (step 1 above, on the next tick with an ack)
+         and the tick after that stages normally, or the watchdog reverts and the
+         REVERTED image's next tick reads the same goal and stages from a proven
+         base. One tick of latency, at most, and nothing is lost — the goal is a
+         cell, so it is still there whichever way the trial ends.
+
+         Placed after the confirm and activate steps, not before them: a node that
+         can confirm this tick has already done so above, and must not then be
+         held back by the flag it just cleared. *)
+      (otaConfirmed not and: [ outer otaTrial ]) ifTrue: [ ^ self ].
       (* `peekCell:ifStream:` and never `peek:`. A gateway can create this leaf as
          a STREAM (`porta put --raw --kind stream` is a legal write), kind is
          pinned by the first write and re-created by replay, and `peek:` would
