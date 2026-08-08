@@ -90,6 +90,13 @@ UDP loop idiom as `wire`. Block data payload is 256 B (the value-cap number;
 radio-honest). Unknown hash answers an error frame. The server is stateless — resume is
 the client re-asking from any block number.
 
+**Amendment 2026-08-07 (planning): the block frames are fixed binary, not cval CBOR.**
+Request `0x01 ‖ hash[32] ‖ blockNo u32 BE`; response `0x02 ‖ blockNo ‖ more ‖ data`;
+error `0x7F ‖ text`. The fetch loop lives in the C seam (G3), which cannot reach the
+nsl `Cbor` class — a C CBOR encoder for one fixed shape would be more mechanism than a
+37-byte frame, and CoAP, the ratified successor, is itself binary-framed. CBOR remains
+the law of the space planes; this is the data plane's one binary surface.
+
 ## 3. Porta side
 
 - `porta/internal/blob/` — content-addressed file store (D8).
