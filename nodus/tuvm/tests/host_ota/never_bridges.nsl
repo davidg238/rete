@@ -1,0 +1,33 @@
+(*
+never_bridges — scenario 4's payload for `tests/host_ota/run.sh` (rete#25).
+
+A VALID, correctly signed image that simply never contacts porta: no socket, no
+`PortaBridge`, no check-in, and therefore no `otaConfirm`. It is the honest shape
+of the failure the trial window exists to catch — not a crash, not a corrupt
+image, but a build that boots perfectly and then never proves itself. A crash
+would be caught by the exit code alone; only silence exercises the watchdog.
+
+It is deliberately NOT under `nodus/tests/`, and therefore not a suite test: it
+has no `expect:` header and it never terminates, so `run_tests_oevm.py` would
+hang on it. `run.sh` compiles it directly.
+
+THE IDLE LOOP SPINS, and that is a property of the host and not a choice. There
+is no sleep prim: `pulse_pump` is non-blocking on posix (blocking only on
+Zephyr, where this loop would idle at zero cost — the memory note
+`pumpevents-blocks-forever`), and the only other way for an image to yield is
+`deepSleep:`, which on the host `exit(0)`s and would turn this into the
+crash-revert case instead of the no-check-in one. So it burns one core for the
+length of the trial window, which the gate sets to 10 s.
+*)
+class NeverBridges packageUsing: manifest = () (
+  public main: platform args: args = (
+    'SILENT NODE READY' println.
+    (* A real reactor's loop, minus the one thing that matters: nothing in this
+       image ever opens a socket, so `bridge checkIn` never happens, so
+       `otaConfirm` never touches the runner's marker. The runner's watchdog is
+       the only thing that ends this process. *)
+    [ true ] whileTrue: [ platform pumpEvents ].
+    ^ 0
+  )
+) : (
+)

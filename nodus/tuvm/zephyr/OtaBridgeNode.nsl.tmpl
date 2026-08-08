@@ -1,0 +1,122 @@
+(*
+OtaBridgeNode — a TEMPLATE, not a compilable file. `tests/host_ota/run.sh` seds
+three placeholders and compiles the result:
+
+    @NODE_ID@     the node's id, quoted    ('node-1')
+    @LOCAL_PORT@  the UDP port it binds    (26971 / 26972 / 26973)
+    @VERSION@     an integer, 1..4         — the ONLY thing that differs between
+                  two builds of the same node, and the reason two builds hash
+                  differently
+
+The `.tmpl` extension is load-bearing: `.nsl` means "a source file the suite may
+pick up and run", and this one cannot compile until the placeholders are gone
+(memory note `nsl-source-extension`, the glob discrimination rule).
+
+It is `PortaBridgeNode.nsl` with the span-capture machinery removed — no
+`SpanCapture`, no `diag/spans/**`, no `dbg/req` profile leg, and therefore no
+`-DOEVM_METHOD_PROFILE` on the VM that runs it. Three nodes plus a rollout is
+already the thing under test; a profile window would put fourteen more cells
+into a 512 B batch that #150 already reports trimming, and the first row
+`pushFrame` trims is the last one written — which on a rollout tick is the
+`ota staged` log line, the only trace the node leaves before it exits.
+
+The ONE `Spans` instance stays, because `PortaBridge`'s constructor requires it
+(kernel.nsl, `socket:space:id:peer:port:spans:` — a bridge must not be able to
+ship uninstrumented). Nothing starts a capture, so it costs six registered slot
+names and no cells on the wire.
+
+`gwPort` is 26969 and NOT 16969: porta_sync_host.sh owns the 16969/16970 pair,
+and this gate must be runnable while that one's artifacts linger. As there, the
+node's own `localPort` must stay clear of porta's exchange..exchange+1 band —
+26970 is the BLOCK plane, which `porta serve` binds first and which this node
+fetches its images FROM.
+
+Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
+reaction block is a one-line self-send (the LD_SLOT gotcha, rete#133).
+expect (console):
+OTA NODE READY v@VERSION@
+*)
+class OtaBridgeNode usingPlatform: platform net: net = (
+  | space bridge timers spans ticks ::= 0. |
+) (
+  nodeId    = ( ^ '@NODE_ID@' )
+  gwAddr    = ( ^ '127.0.0.1' )
+  gwPort    = ( ^ 26969 )
+  localPort = ( ^ @LOCAL_PORT@ )
+  cadence   = ( ^ 2000 )   (* ms between check-ins *)
+  chip      = ( ^ #host )
+
+  (* The whole point of the template. Two images that differ only here differ in
+     their compiled bytes, so `porta blob put` gives them different hashes and
+     `runner: exec <slot> hash=<hex>` says which one is running. It is READ (in
+     the banner and in obs/build) rather than merely declared: a method nobody
+     sends is a method a future compiler may fold away, and then v1 and v2 would
+     hash the same and every assertion in the gate would pass vacuously. *)
+  version   = ( ^ @VERSION@ )
+
+  public main: platform2 args: args = (
+    | sock tickChan |
+    space:: platform space.
+    sock:: net udpBindPort: self localPort.
+    sock == nil ifTrue: [ ^ self fail: 'bind' ].
+    spans:: platform Spans new.
+    bridge:: platform PortaBridge
+      socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
+      spans: spans.
+    bridge subscribeStream: 'tel/log'.
+    bridge subscribeStream: 'sys/reset'.
+
+    (* porta's writes land as ordinary cell writes, so the echo is an ordinary
+       reaction — there is no protocol handler anywhere in this node. *)
+    (space channel: 'goal/name') whenever: '' do: [ :v | self nameChanged: v ].
+
+    space put: 'obs/build' value: (platform Record tag: #Build
+      with: #chip -> self chip
+      with: #build -> ('v' , self version printString)).
+
+    timers:: platform timers.     (* hold ONE instance — it owns the pending registry *)
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    tickChan:: space channel: 'sys/tick'.
+    tickChan whenever: '' do: [ :m | self tick ].
+    timers every: self cadence post: #go on: tickChan.
+
+    ('OTA NODE READY v' , self version printString) println.
+    [ true ] whileTrue: [
+      platform pumpEvents.        (* fires the cadence timer; posix does not block *)
+      space drain ].
+    ^ 0
+  )
+
+  (* One check-in, then one report. In that order: applying goal/** first means
+     the health this node publishes describes the state porta just asked for.
+     `checkIn` carries the ota tail (kernel.nsl `otaCheck`) — confirm, activate,
+     stage — so a rollout needs nothing at all in this file. *)
+  tick = (
+    ticks:: ticks + 1.
+    bridge checkIn.
+    self publishHealth.
+    space out: 'tel/log' value:
+      (platform Record tag: #Log with: #level -> #info
+                                 with: #text -> ('tick ' , ticks printString)).
+    ^ self
+  )
+
+  nameChanged: v = ( space put: 'obs/name' value: v. ^ self )
+
+  publishHealth = (
+    | pairs |
+    pairs:: platform OrderedCollection new.
+    pairs add: #uptimeMs -> platform monotonicMillis.
+    pairs add: #bootId -> 1.
+    pairs add: #wakes -> ticks.
+    pairs add: #pollTimeouts -> bridge misses.
+    pairs add: #streamDropped -> bridge dropped.
+    space put: 'obs/health' value:
+      (platform Record tag: #Health fields: (platform Map fromPairs: pairs)).
+    ^ self
+  )
+
+  fail: msg = ( msg println. ^ 1 )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)
