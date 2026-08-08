@@ -27,7 +27,15 @@ class PortaBridgeNode usingPlatform: platform net: net = (
   nodeId    = ( ^ 'bench-node' )
   gwAddr    = ( ^ '127.0.0.1' )
   gwPort    = ( ^ 16969 )
-  localPort = ( ^ 16970 )
+  (* NOT 16970, which is gwPort+1 and therefore porta's BLOCK plane (#25 design
+     §2: the bulk listener sits one port above the exchange). On the C6 that is
+     porta's host and not the node's, so PortaBridgeNodeC6 keeps 16970 — but
+     this is the HOST twin and porta_sync_host.sh runs both ends on loopback,
+     where the two ports are the same port. Before #25's block server existed,
+     the node won that bind; after it, `porta serve` takes it first and the node
+     dies with `bind` at [6/8]. Anything the node binds must stay clear of
+     porta's exchange..exchange+1 band. *)
+  localPort = ( ^ 16979 )
   cadence   = ( ^ 2000 )   (* ms between check-ins *)
   (* Build provenance, so an agent can tell which code is on which node. `chip`
      is a source constant because it is a build fact; `build` (obs/build, below)
