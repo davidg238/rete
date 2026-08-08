@@ -1,0 +1,46 @@
+(*
+expect:
+hash nil
+trial false
+running false
+finished
+*)
+(* rete#25 — the ota seam with NO runner environment, which is every host run of
+   this tree and every node launched bare. The claim is not "the prims exist";
+   it is that their honest answers are ORDINARY VALUES a caller can branch on
+   with no handler in sight — nil for "I do not know what I am running", false
+   for "no, this is not a trial boot", false for "no, that is not me".
+
+   There is no env: header here ON PURPOSE. Absence is the default (ota.c's
+   ota_env answers NULL for an unset variable), so this path is exercised by
+   every run rather than only when someone remembers a knob — the asymmetry
+   21_wallclock/02 documents, for the same reason.
+
+   `otaIsRunning:` is asked with a well-formed 32-byte digest, not with junk:
+   the interesting failure is not "a bad argument is rejected" but "a perfectly
+   good hash still cannot match, because nothing is known to be running". A seam
+   that answered true here would let a node skip a push it has never applied. *)
+class OtaEnvAbsent packageUsing: manifest = () (
+  public main: platform args: args = (
+    | h probe |
+    h:: platform otaRunningHash.
+    h == nil
+      ifTrue:  [ 'hash nil' println ]
+      ifFalse: [ ('hash unexpectedly ' , h printHex) println ].
+
+    platform otaTrial
+      ifTrue:  [ 'trial true' println ]
+      ifFalse: [ 'trial false' println ].
+
+    (* sha256 of the empty string — a real digest, so the fixture is checkable. *)
+    probe:: platform ByteArray fromHex: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'.
+    (platform otaIsRunning: probe)
+      ifTrue:  [ 'running true' println ]
+      ifFalse: [ 'running false' println ].
+
+    (* No handler anywhere above: reaching this line is the proof that a missing
+       runner is an answer and not a raise. *)
+    'finished' println.
+  )
+) : (
+)

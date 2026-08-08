@@ -3198,6 +3198,48 @@ class Kernel usingPlatform: platform = () (
   public profileStop       = ( platform profileStop. ^ self )
   (* #74: the build actually running, so a reader can pick the matching sidecar. *)
   public buildId           = ( ^ platform buildId )
+  (* rete#25: the image-push seam (prims 145-150, src/ota.h). Six accessors, no
+     policy — an app decides WHICH hash it wants and WHEN to confirm; C owns the
+     bytes, because a staged image must never enter the VM heap (design G3).
+
+     Bytes cross the prim boundary as the RawBytes LEAF, not as an nsl Bytes
+     object: C has no way to read a wrapper's slot, so these accessors do the
+     wrap (`Bytes overRaw:`) and unwrap (`rawLeaf`) — the same division of
+     labour Socket>>sendTo: already uses. That is the whole reason these are not
+     one-line forwarders like buildId above.
+
+     With no runner environment every answer is an ORDINARY VALUE a caller can
+     branch on with no handler in sight: nil, false, false. A node launched bare
+     is unchanged by this seam existing. *)
+  public otaRunningHash = ( | r |
+    r:: platform otaRunningHash.
+    r == nil ifTrue: [ ^ nil ].
+    ^ Bytes overRaw: r )
+  public otaIsRunning: aHash = ( ^ platform otaIsRunning: aHash rawLeaf )
+  public otaTrial = ( ^ platform otaTrial )
+  (* BLOCKING (design D7). Answers false on any failure — an unreachable block
+     server, a digest that does not match at the end, or no staging slot at all.
+     The DETAIL went to the console; publishing it as `tel/log` is the caller's
+     job, because only the caller knows the cadence tick it belongs to. *)
+  public otaStage: aHash sig: aSig host: aHost port: aPort = (
+    ^ platform otaStage: aHash rawLeaf
+               sig: (self otaRawOf: aSig)
+               host: aHost
+               port: aPort )
+  public otaConfirm = ( platform otaConfirm. ^ self )
+  (* DOES NOT RETURN when the backend can exit: the process leaves in
+     STAGE_READY(42) and the runner relaunches on the staged image. The `^ self`
+     is reached only on a backend that cannot exit. *)
+  public otaActivate: aHash sig: aSig = (
+    platform otaActivate: aHash rawLeaf sig: (self otaRawOf: aSig).
+    ^ self )
+  (* nil signature stays nil across the seam — `sig` is CARRIED, not checked
+     (design D4: verification has exactly one seat and it is the runner), so
+     "there is no signature" has to survive the trip rather than becoming an
+     empty one. *)
+  otaRawOf: aBytes = (
+    aBytes == nil ifTrue: [ ^ nil ].
+    ^ aBytes rawLeaf )
   (* #165 D2/D6: parse a dbg/req line into a window length in ms. PURE — it
      starts nothing and touches no state, so it is testable without a bridge and
      the app stays in charge of the window's lifecycle.

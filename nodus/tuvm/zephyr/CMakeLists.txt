@@ -40,6 +40,13 @@ target_sources(app PRIVATE
   ${TUVM_SRC}/src/http.c
   ${TUVM_SRC}/src/http_core.c
   ${TUVM_SRC}/src/backend/zephyr/http_zephyr.c
+  # rete#25: the image-push seam. NOT optional here — platform.c's prims 145-150
+  # call ota_running_hash() and its siblings unconditionally, so omitting these
+  # two files fails the link on nine undefined symbols. ota_zephyr.c is
+  # deliberately inert (no flash, no reboot); read its header comment before
+  # assuming the omission was the safer choice.
+  ${TUVM_SRC}/src/ota.c
+  ${TUVM_SRC}/src/backend/zephyr/ota_zephyr.c
 )
 target_include_directories(app PRIVATE ${TUVM_SRC}/src)
 

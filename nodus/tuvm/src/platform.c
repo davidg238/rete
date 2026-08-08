@@ -10,6 +10,7 @@
 #include "http_backend.h"
 #include "sensor_backend.h"  /* AMG8833 thermal rung: the Tier-1 sensor seam */
 #include "span.h"            /* tuvm#61: job-latency span slots */
+#include "ota.h"             /* rete#25: the image-push seam, prims 145-150 */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -623,6 +624,25 @@ static int double_to_half(double d, uint16_t *out) {
     }
     *out = (uint16_t)(sign | hbits);
     return 1;
+}
+
+/* rete#25: read a byte-leaf argument as bytes+length. Both RawBytes and String
+   are the `struct String` layout (length + inline bytes), and both are accepted
+   because a hash arriving off the wire is a RawBytes while a host literal is a
+   String — refusing one of them would be a distinction the caller cannot see.
+   Answers NULL for nil or for anything that is not a leaf, so "absent" stays
+   distinguishable from "empty" (a zero-length leaf answers a non-NULL pointer
+   with *len 0). Non-allocating, so nothing here can move or collect the heap:
+   the pointer it hands back stays valid until the next allocation, and the ota
+   cases below make none. */
+static const uint8_t *ota_leaf_bytes(oop v, size_t *len) {
+    struct String *s;
+    if (v == NULL || IS_SMI(v)) return NULL;
+    if ((RawBytesVtable == NULL || obj_vtable(v) != RawBytesVtable) &&
+        (StringVtable   == NULL || obj_vtable(v) != StringVtable)) return NULL;
+    s = (struct String *)v;
+    *len = s->length;
+    return (const uint8_t *)s->bytes;
 }
 
 int platform_dispatch(int pid, int argc, oop *args, oop *out) {
@@ -1242,6 +1262,100 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            allocation happens before OEVM_BUILD_ID's bytes are read, so there is
            nothing to root). */
         *out = space_make_string_pub(OEVM_BUILD_ID, strlen(OEVM_BUILD_ID));
+        return 1;
+    }
+    /* --- rete#25: the image-push seam (src/ota.h). Six thin translations and
+       nothing else — no policy lives here. Every one of them is honest with no
+       runner environment (nil / false / a console line), which is what lets a
+       node launched bare behave exactly as it did before they existed.
+       Bytes cross as RawBytes/String LEAVES, never as nsl Bytes objects;
+       kernel.nsl's Platform accessors do the wrap/unwrap, the same division of
+       labour Socket>>sendTo: already uses. */
+    case PRIM_pf_otaRunningHash: {
+        /* nil when OEVM_IMAGE_HASH is unset or malformed — "I do not know what
+           I am running" is an ordinary answer, not an error (ota.h). GC-safety
+           is the buildId/heapStats shape: the 32 bytes are filled into the C
+           local `h` BEFORE the single gc_allocate, so no heap oop is held
+           across an allocation and nothing needs pinning. */
+        uint8_t h[32];
+        oop b;
+        if (!ota_running_hash(h)) { *out = NULL; return 1; }
+        b = gc_allocate(RawBytesVtable, sizeof(struct String) + 32);
+        ((struct String *)b)->length = 32;
+        memcpy(((struct String *)b)->bytes, h, 32);
+        *out = b;
+        return 1;
+    }
+    case PRIM_pf_otaIsRunning: {
+        /* The comparison is ota.c's memcmp, deliberately: which image is
+           installed must not be decided by nsl's `Bytes =`, which routes
+           through the value algebra and could be shadowed by an app.
+           A leaf of any length other than 32 is simply not this image — false,
+           not a crash, because the argument comes off the wire. */
+        size_t n = 0;
+        const uint8_t *p = ota_leaf_bytes(args[0], &n);
+        *out = (p != NULL && n == 32 && ota_is_running(p)) ? true_symbol
+                                                           : false_symbol;
+        return 1;
+    }
+    case PRIM_pf_otaTrial:
+        /* The runner saying an unconfirmed image is under test and a confirm is
+           owed. False on a node with no runner, which is the safe reading: a
+           node that wrongly believed itself on trial would confirm an image
+           nobody staged. */
+        *out = ota_trial() ? true_symbol : false_symbol;
+        return 1;
+    case PRIM_pf_otaStage: {
+        /* otaStage: hash sig: sig host: host port: port — args mirror the
+           keyword selector left-to-right (the spaceRegister:block:owner:
+           convention). BLOCKING (design D7): the exchange cadence is seconds
+           and a stage is bounded, so a synchronous fetch costs one late tick
+           and buys no scheduler. `sig` may be nil (carried, never checked —
+           verification has exactly one seat and it is the runner, design D4).
+
+           A malformed call answers FALSE rather than aborting, unlike
+           spaceChangedSince:under:max:'s String check above: every argument here
+           can originate in a `goal/` record written by the gateway, so a bad
+           one is a peer's mistake to report, not this node's to die of.
+
+           No allocation happens between reading the leaves and the call, and
+           ota_stage never re-enters the VM, so the raw pointers stay valid for
+           the whole (possibly seconds-long) fetch. */
+        size_t hn = 0, sn = 0, hostn = 0;
+        const uint8_t *hp   = ota_leaf_bytes(args[0], &hn);
+        const uint8_t *sp   = ota_leaf_bytes(args[1], &sn);
+        const uint8_t *hostp = ota_leaf_bytes(args[2], &hostn);
+        char host[128];
+        if (hp == NULL || hn != 32 || hostp == NULL ||
+            hostn == 0 || hostn >= sizeof host || !IS_SMI(args[3])) {
+            *out = false_symbol;
+            return 1;
+        }
+        memcpy(host, hostp, hostn);
+        host[hostn] = '\0';
+        *out = ota_stage(hp, sp, (int)sn, host, (int)UNTAG_SMI(args[3]))
+                 ? true_symbol : false_symbol;
+        return 1;
+    }
+    case PRIM_pf_otaConfirm:
+        /* "This trial image works." Idempotent and never fails loudly (ota.h),
+           so it answers the platform capability rather than a status — there is
+           no failure a caller could act on differently. */
+        ota_confirm();
+        *out = platform_object();
+        return 1;
+    case PRIM_pf_otaActivate: {
+        /* Writes ready.json and leaves the process in STAGE_READY(42) — the
+           host analog of rebooting into the trial slot. DOES NOT RETURN when
+           the backend really exits; *out is set for form, exactly as
+           deepSleep: does above, and is reached only on a backend that cannot
+           exit. A malformed hash is a silent no-op for the same reason
+           otaStage:... answers false: the record came from the gateway. */
+        size_t hn = 0, sn = 0;
+        const uint8_t *hp = ota_leaf_bytes(args[0], &hn);
+        const uint8_t *sp = ota_leaf_bytes(args[1], &sn);
+        if (hp != NULL && hn == 32) ota_activate(hp, sp, (int)sn);
+        *out = platform_object();
         return 1;
     }
     case PRIM_pf_sysStats: {

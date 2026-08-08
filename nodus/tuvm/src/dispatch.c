@@ -836,6 +836,20 @@ enum {
        lesson above. Platform-dispatched (mirrored in prim_ids.h). Unconditional —
        NOT gated on OEVM_METHOD_PROFILE, unlike profileStart/profileStop above. */
     PRIM_pf_buildId,
+    /* rete#25: the ota seam reaches nsl — otaRunningHash / otaIsRunning: /
+       otaTrial / otaStage:sig:host:port: / otaConfirm / otaActivate:sig:.
+       Appended after buildId; no pre-existing id shifts. 145-150 were arrived at
+       by COUNTING PRIM_NAMES (144 entries before this append), not by 144+1
+       arithmetic, per the standing lesson above. Platform-dispatched (mirrored
+       in prim_ids.h). Unconditional: with no runner environment they answer
+       nil/false and the two void ones are no-ops, so a node launched bare
+       behaves exactly as it did before this append. */
+    PRIM_pf_otaRunningHash,
+    PRIM_pf_otaIsRunning,
+    PRIM_pf_otaTrial,
+    PRIM_pf_otaStage,
+    PRIM_pf_otaConfirm,
+    PRIM_pf_otaActivate,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -902,6 +916,8 @@ static const char *const PRIM_NAMES[] = {
     "rtcAlarmAt:post:on:",
     "profileStart", "profileStop",
     "buildId",
+    "otaRunningHash", "otaIsRunning:", "otaTrial",
+    "otaStage:sig:host:port:", "otaConfirm", "otaActivate:sig:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
@@ -912,7 +928,7 @@ static const char *const PRIM_NAMES[] = {
    — this catches it at build time instead. C99-safe (no _Static_assert under
    -std=c99): a false condition makes a negative-sized array, which is a hard
    compile error. ADVANCE THIS to the new last id whenever prims are appended. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_buildId) ? 1 : -1];
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_otaActivate) ? 1 : -1];
 
 /* Pointer-keyed cache mapping each interned selector symbol to its primitive id
    (PRIM_NONE if it is not an intercepted primitive). Selectors are interned, so

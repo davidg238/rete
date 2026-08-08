@@ -1,0 +1,56 @@
+(*
+env: OEVM_IMAGE_HASH=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+env: OEVM_OTA_TRIAL=1
+expect:
+size 32
+hash e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+match true
+differ false
+trial true
+finished
+*)
+(* rete#25 — the same seam with a runner's environment present. The env: lines
+   are PER-TEST (tuvm#88): exported globally they would leak into 01, which
+   asserts the exact opposite answers, so the two tests would agree only by
+   accident of ordering.
+
+   Three separate claims, and the middle one is the load-bearing one:
+
+   1. `otaRunningHash` answers 32 bytes whose hex round-trips the variable — the
+      parse is real, not a pass-through of the string.
+   2. `otaIsRunning:` is true for the matching digest and FALSE for a different
+      one. Both directions are asserted because a seam stuck at true is
+      indistinguishable from a working one when only the match is tested, and a
+      node that answers "yes, already running" to every hash never applies a
+      push at all. The comparison is a C memcmp (ota.c) — nsl's Bytes `=` is
+      deliberately not what decides whether an image is installed.
+   3. `otaTrial` is true, which is the runner saying an unconfirmed image is
+      under test and a confirm is owed.
+
+   Both fixtures are real sha256 digests (of '' and of 'abc') so a reader can
+   regenerate them rather than trusting a random string. *)
+class OtaEnvPresent packageUsing: manifest = () (
+  public main: platform args: args = (
+    | h same other |
+    h:: platform otaRunningHash.
+    h == nil ifTrue: [ ^ 'hash MISSING — otaRunningHash answered nil with OEVM_IMAGE_HASH set' println ].
+    ('size ' , h byteSize printString) println.
+    ('hash ' , h printHex) println.
+
+    same::  platform ByteArray fromHex: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'.
+    other:: platform ByteArray fromHex: 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'.
+    (platform otaIsRunning: same)
+      ifTrue:  [ 'match true' println ]
+      ifFalse: [ 'match false' println ].
+    (platform otaIsRunning: other)
+      ifTrue:  [ 'differ true' println ]
+      ifFalse: [ 'differ false' println ].
+
+    platform otaTrial
+      ifTrue:  [ 'trial true' println ]
+      ifFalse: [ 'trial false' println ].
+
+    'finished' println.
+  )
+) : (
+)

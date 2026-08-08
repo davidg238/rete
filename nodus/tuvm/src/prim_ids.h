@@ -420,4 +420,37 @@
    OEVM_METHOD_PROFILE — it is not part of the profiler, and a build without
    the profiler still needs to name itself for the sidecar to be pickable. */
 #define PRIM_pf_buildId           144
+
+/* rete#25: the image-push seam reaches nsl. Six prims, one per ota.h function,
+   each case in platform.c a thin translation and nothing more — the policy
+   (which hash is wanted, when to confirm) lives in nsl, and the bytes live in C
+   because a staged image must never enter the VM heap (design G3).
+
+   Appended after buildId; no pre-existing id shifts. 145-150 were arrived at by
+   COUNTING PRIM_NAMES (144 entries before this append), not by 144+1
+   arithmetic, per the standing lesson above. Platform-dispatched.
+
+   UNCONDITIONAL, like buildId and unlike profileStart/profileStop: there is no
+   build flag to gate them on, because the gate is the RUNNER'S ENVIRONMENT and
+   it is read at run time. With OEVM_IMAGE_HASH unset, otaRunningHash answers
+   nil and otaIsRunning:/otaTrial/otaStage:... answer false; otaConfirm and
+   otaActivate:sig: degrade to a console line. A node launched bare — which is
+   every host test in this tree — therefore behaves exactly as it did before
+   these six existed.
+
+   BYTES CROSS THE SEAM AS LEAVES, NOT AS nsl VALUES: 146/148/150 take the
+   RawBytes leaf (the `struct String` layout: length + inline bytes) and 145
+   answers one. kernel.nsl's Platform accessors do the wrap/unwrap
+   (`Bytes overRaw:` / `rawLeaf`), the same division of labour Socket>>sendTo:
+   already uses — C never learns what an nsl Bytes object is.
+
+   146 compares with memcmp in ota.c. That is deliberate and load-bearing: which
+   image is installed must not be decided by nsl's `Bytes =`, which routes
+   through the value algebra and could be shadowed by an app. */
+#define PRIM_pf_otaRunningHash    145
+#define PRIM_pf_otaIsRunning      146
+#define PRIM_pf_otaTrial          147
+#define PRIM_pf_otaStage          148
+#define PRIM_pf_otaConfirm        149
+#define PRIM_pf_otaActivate       150
 #endif /* OEVM_PRIM_IDS_H */

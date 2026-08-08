@@ -7,14 +7,20 @@
  * build from src/backend/$OEVM_TARGET/, the same rule as udp_backend.h and
  * platform_backend.h:
  *   backend/posix/ota_posix.c   — files under a runner-owned node directory.
- *   backend/zephyr/ota_zephyr.c — NOT WRITTEN YET. The staging slot becomes the
- *                                 inactive MCUboot flash partition, the markers
- *                                 become boot_write_img_confirmed()/the mcuboot
- *                                 swap flags, and the exit becomes sys_reboot().
- *                                 Until it exists, ota.c is a POSIX-only source
- *                                 and must not be enrolled in zephyr's
- *                                 CMakeLists — the seam is posix-first by
- *                                 design (design §4).
+ *   backend/zephyr/ota_zephyr.c — PRESENT AND INERT (rete#25 task 6). It had to
+ *                                 exist the moment platform.c grew prims
+ *                                 145-150: those call ota_* unconditionally and
+ *                                 zephyr compiles platform.c, so the choice was
+ *                                 never posix-first-or-not, it was an inert
+ *                                 backend versus an #ifdef fence that would
+ *                                 make the same app a different app on target.
+ *                                 It answers exactly what an unset environment
+ *                                 answers, which the contract below already
+ *                                 defines. The REAL one — staging slot = the
+ *                                 inactive MCUboot partition, markers =
+ *                                 boot_write_img_confirmed()/the swap flags,
+ *                                 exit = sys_reboot() — is still unwritten; the
+ *                                 seam remains posix-first by design (§4).
  *
  * CONTRACT: every function here must NO-OP OR FAIL GRACEFULLY when its
  * environment variable is unset. A node launched with no runner and no ota env
