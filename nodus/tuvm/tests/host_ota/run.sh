@@ -456,8 +456,8 @@ wait_line "$WORK/runner2.log" "$((L + 1))" "runner: exec [ab] hash=${V2H[2]}" 20
 porta_has node-2 obs/apps/main "0x${V2H[2]}" ||
   fail "porta's tree no longer shows node-2 on v2 after the refusal"
 
-# Alive, not merely un-upgraded: obs/health carries a fresh seq on every publish,
-# so a node that had wedged would leave this number where it was.
+# Alive, not merely un-upgraded: every check-in appends another obs/health row to
+# porta's event log, so a node that had wedged would leave this count where it was.
 poll_cmd 150 0.2 health_advanced node-2 "$HS_BEFORE" ||
   fail "node-2's obs/health stopped arriving after the refusal (still $HS_BEFORE rows in the event log)"
 echo "  node-2 still on v2 and still checking in (obs/health rows $HS_BEFORE -> $(health_rows node-2))"

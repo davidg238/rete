@@ -43,8 +43,8 @@ OEVM_BACKEND = [f"src/backend/{OEVM_TARGET}/platform_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/span_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/http_{OEVM_TARGET}.c",
                 f"src/backend/{OEVM_TARGET}/sensor_{OEVM_TARGET}.c",
-                # rete#25: the image-push seam. posix-only for now — there is no
-                # ota_zephyr.c yet, so a non-posix OEVM_TARGET will not resolve this.
+                # rete#25: the image-push seam. Every OEVM_TARGET has a backend —
+                # ota_zephyr.c exists and is deliberately inert (no flash map yet).
                 f"src/backend/{OEVM_TARGET}/ota_{OEVM_TARGET}.c"]
 
 # OEVM_DUMP_DIR: differential harness knob. When set, every test's raw program stdout

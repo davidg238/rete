@@ -2,12 +2,15 @@
 
 // Package portacli is the porta gateway's cobra command tree.
 //
-// The tree is serve, get, put and log. v1's verbs (scan, ping, device,
-// container, monitor, debug, profile) were deleted with the command queue they
-// wrote to; put and get are the general forms they become sugar over, since
-// verbs live at the CLI and nowhere else (design D2). The design record's §4.2
-// capability audit names where each v1 verb lands. Nothing was dropped
-// silently.
+// The tree is serve, get, put, log, key and blob — the last two added by rete#25
+// for the image-push path (`key gen` once, `blob put` storing and signing an
+// image, whose output is a `put` line: still no verb the store knows about).
+//
+// v1's verbs (scan, ping, device, container, monitor, debug, profile) were
+// deleted with the command queue they wrote to; put and get are the general
+// forms they become sugar over, since verbs live at the CLI and nowhere else
+// (design D2). The design record's §4.2 capability audit names where each v1
+// verb lands. Nothing was dropped silently.
 package portacli
 
 import (

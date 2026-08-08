@@ -262,12 +262,42 @@ New issues from that session: #119 (a cold boot at cursor 0 must not re-execute 
 `goal/do/*` actions — replaying a cell is idempotent, replaying `reboot` is a brick) and
 #118 (node identity is a source constant in the first slice).
 
-**2. OTA — but only the host-only slice (#25).**
+**2. OTA — but only the host-only slice (#25). BUILT AND GATED, 2026-08-08.**
 Marked P1 revenue-gate, and the reasoning is the strongest in the tracker: simultaneously
 the least-built and the most decision-foreclosing part, and the nRF52840's 1 MB must budget
 MCUboot + A/B + NVS *up front*. The point is not to ship OTA before release — it is that the
 flash map becomes a transcription of proven host behaviour instead of a guess. Cheap:
-localhost UDP, no hardware. Do the slice, defer real OTA.
+localhost UDP, no hardware. The call was: do the slice, defer real OTA.
+
+**That is now done.** `cd nodus/tuvm && bash tests/host_ota/run.sh` prints **HOST OTA OK**
+on a plan of four scenarios against three runner-wrapped VMs and a real `porta serve` over
+localhost UDP: a signed deploy converges on all three nodes; a SIGKILL mid-transfer resumes
+from the staged length rather than refetching; a corrupted signature is refused **outside**
+the image with the old one still running and still checking in; and an image that boots but
+never bridges is reverted by the trial watchdog. The state machine
+(stage → verify → activate → trial → confirm | revert) is MCUboot's on purpose, so the
+Zephyr rung transcribes it rather than inventing it. Design:
+`docs/design/2026-08-07-code-push-host-slice-design.md`.
+
+**What it deliberately did not do**, each with what earns it back:
+
+- **Async fetch.** `otaStage:` blocks; invisible on localhost. Earned by a *measured*
+  check-in stall on a target-class transfer (D7).
+- **Multi-app.** Exactly `apps/main` is read and written (D5). Separately compiled images
+  sharing one VM is a VM feature for its own rung, if a fleet ever earns it.
+- **The zephyr OTA backend.** `nodus/tuvm/src/backend/zephyr/ota_zephyr.c` exists and is deliberately
+  **inert** — it keeps the link and the seam shape identical everywhere while refusing to
+  invent a flash layout there is no board to measure. The real one lands with the real
+  flash map, next rung.
+- **Boot-loop containment / safe mode (G11).** Its own decision at Zephyr bring-up.
+
+**And one number the rung was supposed to come back with.** D6 chose the degenerate retry
+— a failed stage is not remembered, the next check-in simply tries again, with no backoff,
+no attempt counter and no give-up threshold, because there was no data to choose any of
+them from. The gate measured its cost: **a stuck node — bad signature, or an image that
+never confirms — refetches the whole ~200 kB image every ~6 s, sustained.** That is the
+criterion the design set for earning the rejected-hash memo back, and it is now met: the
+knob has a price tag instead of an argument.
 
 **3. Debug/profiling/console over porta (#56). — PROMOTED TO SECOND, 2026-08-02, David's call. IN PROGRESS: steps 1–3 landed, step 4 is the remaining work.**
 
@@ -374,9 +404,9 @@ characterising turns out to be VM-side and deterministic — three more spans an
 boot, not an authority change. It stays open with a fourth option on it (a node-chosen
 free-running cadence, which adds no mechanism) that the other three must beat.
 
-**#25 is still next.** #161 is the cheaper and more contained of the two, but it is an
-optimisation with a measurement behind it and no deadline, where #25 is the decision-
-foreclosing one.
+**#25 went first, and is now built and gated** (see thread 2 above — `HOST OTA OK`,
+2026-08-08). #161 is the cheaper and more contained of the two, but it is an optimisation
+with a measurement behind it and no deadline, where #25 was the decision-foreclosing one.
 
 **#161's precondition landed on 2026-08-06 and answered the question.** `pushBuild` is
 three nested spans (`pushCollect` / `pushEncode` / `pushTrim`, 14 slots of 16), and on the
@@ -466,10 +496,12 @@ timing signature, C6 radio localised to four driver bugs (zephyr#114163), and no
 DS3231's missing `-ENODATA` (#103) predicted from source and confirmed on the first hardware
 run. Three is a pattern, not an anecdote.
 
-**Sequencing (revised 2026-08-05, updated the same evening):** porta→channels ✅, then
+**Sequencing (revised 2026-08-05, updated 2026-08-08):** porta→channels ✅, then
 #56 — **all four steps ✅ and the issue is CLOSED** (`TARGET 3/3 PASS`, commit 16d2ce9) —
-so **the #25 host slice is where the work is now**. Start timing bring-ups now, because that
-measurement is free and it is the one number that would make the pitch land.
+then **the #25 host slice, now built and gated** (`HOST OTA OK`; thread 2 above names the
+four deferrals and the measured retry cost). Next is the Zephyr OTA backend against a real
+flash map. Start timing bring-ups now, because that measurement is free and it is the one
+number that would make the pitch land.
 
 > The harness closed #56 and opened one thing worth carrying forward: it found #157 (a
 > rebooted node's cells discarded as already-applied, silent at both ends) within minutes of

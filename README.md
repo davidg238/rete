@@ -15,7 +15,7 @@ The two halves are coupled only over the wire; they never import each other's co
 
 Gates:
 
-    cd nodus/nsl && python3 tools/run_tests_oevm.py     # 239 passed, 0 failed
+    cd nodus/nsl && python3 tools/run_tests_oevm.py     # 255 passed, 0 failed
     cd porta && go test ./...
     cd nodus/tuvm && bash tests/porta_sync_host.sh      # PORTA SYNC OK
 

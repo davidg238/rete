@@ -218,6 +218,14 @@ changed-since-cursor query. A node persists its cursor (NVS) only *after* applyi
 batch, so a crash mid-apply re-pulls rather than skips. Cold boot = cursor 0 = full
 replay.
 
+**A cell's `seq` is not a liveness signal across a reboot.** The counter is RAM state and
+restarts at 0 on every boot — porta logs the restart and adopts the node's declared
+high-water rather than reading the rewind as duplicates (§4.1, the fifth rule) — so a
+node rebooting every few seconds reaches a *lower* seq than one wedged since its last
+boot, which is exactly backwards. **Progress and liveness are read from the append-only
+event log**, whose rows only ever accumulate; the #25 host-OTA gate found this by writing
+its first liveness assertion on `seq` and watching it fail against a healthy node.
+
 ---
 
 ## 4. The node end
@@ -513,6 +521,22 @@ transport-agnostic):
   sleepy and always-on nodes alike. Framing is transport-independent by construction;
   the one thing to retire before committing is the **DTLS RAM footprint** on the most
   constrained target (§7).
+
+**The bulk plane, as actually built (rete#25, 2026-08-08).** Images never ride the
+exchange; they are pulled over a second port, **exchange port + 1** — a convention, not a
+knob, so a node that knows where to check in knows where to fetch. The framing is fixed
+binary and the server is stateless: the node asks `0x01 ‖ hash[32] ‖ blockNo u32 BE`,
+porta answers `0x02 ‖ blockNo ‖ more ‖ data` with `data` ≤ 256 B (the value cap, and
+radio-honest), and every refusal is `0x7F ‖ text`. Stop-and-wait, one datagram in and
+one out, nothing kept per client — so **resume is the client re-asking from any block number**,
+and a killed transfer costs only the blocks it had not got. This is deliberately the
+shape of a CoAP blockwise GET, so the ratified **TFTP → CoAP** direction above is
+unchanged and the later move is framing, not redesign — still gated on the §7 q7 DTLS
+footprint measurement. Binary rather than CBOR because the fetch loop lives in the node's
+C seam, which cannot reach the nsl `Cbor` class, and a C encoder for one fixed 37-byte
+request would be more mechanism than the frame it encodes — CoAP, the successor, is
+itself binary-framed. **CBOR stays the law of the space planes; this is the data plane's
+one binary surface.**
 
 **The size law is a real constraint, not a free choice.** The binding limit is the
 *radio*, not the heap: 6LoWPAN fragments above ~102 B, and a datagram survives only

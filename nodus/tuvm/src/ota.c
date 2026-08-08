@@ -9,7 +9,8 @@
  * docs/design/2026-08-07-code-push-host-slice-design.md §4 for the why.
  *
  * Everything below is written against two seams and nothing else, so the whole
- * file ports to zephyr the day backend/zephyr/ota_zephyr.c exists.
+ * file ports to zephyr through backend/zephyr/ota_zephyr.c, which exists and is
+ * deliberately inert until there is a real flash map to write against.
  *
  * The SHA-256 here is FILE-LOCAL ON PURPOSE. A separate sha256.c would be a
  * tenth entry in every one of the enumerated source lists (#63), and this tree

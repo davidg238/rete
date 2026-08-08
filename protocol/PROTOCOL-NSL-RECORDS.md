@@ -204,7 +204,7 @@ forward, `R` reads as "cell". Direction is from the node's point of view.
 
 | path | kind | record |
 |---|---|---|
-| `goal/apps/<name>` | R | `App { image: BlobRef, triggers: [sym], runlevel: int, lifecycle: sym, arguments: {…} }` |
+| `goal/apps/<name>` | R | `App { image: BlobRef, sig: bytes, triggers: [sym], runlevel: int, lifecycle: sym, arguments: {…} }` |
 | *(tombstone of above)* | R | delete = uninstall. The absence *is* the instruction. |
 | `goal/mode` | R | `Mode { mode: sym, minAwakeS: int, maxAwakeS: int, maxAsleepS: int, loopSleepS: int }` |
 | `goal/name` | R | `str` |
@@ -216,6 +216,22 @@ forward, `R` reads as "cell". Direction is from the node's point of view.
 
 `goal/apps/<name>` is where the size law earns its keep: the image is a `BlobRef`, so
 this record is ~80 bytes regardless of whether the app is 4 KB or 400 KB.
+
+**`sig` — signed at push, verified outside the image, added by rete#25 (2026-08-08).**
+porta signs the image's SHA-256 with its ed25519 key at `porta blob put`, and the
+signature rides in the record beside the `BlobRef` it covers. **The one seat that
+verifies it is the runner** (#25 design D4) — the process that launches the VM, not the
+VM: the node's C staging seam checks only the content hash, which is transfer integrity,
+and never holds a key, because the thing that judges an image must live outside the image
+it judges. The field is **required, and the bridge refuses an `App` without it**:
+`PortaBridge>>otaWantedFrom:` answers nil for a record carrying no `sig`, so nothing is
+staged rather than something being staged with its provenance quietly missing. Absent is
+not "unsigned, carry on".
+
+**This slice reads and writes exactly `apps/main`** (#25 design D5). tuvm has one image,
+one heap and one world; the per-`<name>` shape is kept because multi-app later adds
+per-name slots and per-name checks — rows, not mechanisms — but no node today answers for
+a second name.
 
 **`set-mode`'s atomicity rule dissolves.** v1 needed a paragraph demanding "accept the
 whole thing or reject it"; here `Mode` is *one record at one path*, so it is atomic by
@@ -230,6 +246,18 @@ construction. There is nothing to enforce.
 | `obs/mode` / `obs/name` / `obs/forward` | R | same shapes as their `goal/` twins |
 | `obs/health` | R | `Health { uptimeMs: int, bootId: int, wakes: int, pollTimeouts: int, streamDropped: int }` — liveness and delivery only; the VM internals live at `sys/metrics` (§4.4), which the bridge publishes on every check-in. `heapFree`/`heapLargest`/`overruns` were **removed** 2026-08-04 (#56 design D2) rather than duplicated. **87 B encoded, MEASURED 2026-08-04** |
 | `obs/build` | R | `Build { chip: sym, build: str, sdk: str, image: bytes }` — see below |
+
+**`obs/apps/<name>` — the node currently writes image and lifecycle, and nothing else
+(rete#25, 2026-08-08).** `PortaBridge>>publishApps` writes
+`AppObs { image: BlobRef { hash }, lifecycle: #running }` once per boot: the hash of the
+image actually executing, and the fact that it is executing. `runlevel`, `triggers` and
+the `BlobRef`'s own `size` / `alg` are **omitted**, on `obs/build`'s precedent —
+**absence means "the node cannot say"**, which is the honest value and not a default. It
+is honest in both directions here: no node holds a runlevel or a trigger list yet (D5,
+one image and one world), and `size`/`alg` are porta's facts about a blob porta stored,
+not something the node observes. The four fields stay pinned, because this record is what
+`goal/apps/<name>` is diffed against — a field the node learns to answer later is then a
+write, not a schema edit.
 
 **`obs/build` — build provenance, pinned 2026-08-01, `build` added by #74 (2026-08-07).**
 Added by the space-sync rewrite (`design/2026-08-01-porta-space-sync-rewrite-design.md`

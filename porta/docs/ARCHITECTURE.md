@@ -132,6 +132,43 @@ button shipped violating both before it was caught:
 Recorded here because neither is inferable from the CLI's shape, and the failure it
 produces is silent success — the hardest kind to find.
 
+### 3.2 The blob store — content-addressed files beside the db (rete#25, recorded 2026-08-08)
+
+Image bytes are **not** a sqlite table. `internal/blob` writes each blob to
+`blobs/<hex-sha256>` in the directory holding the `--db` file, streamed to a temp file,
+hashed as it copies, and renamed into place — so a blob that already exists is a success
+by construction and a crashed upload leaves no half-file under a real name. The space
+store's four tables stay four (the unit of extension is a path, not a table), and bulk
+bytes stay off the space entirely (`protocol/PROTOCOL-NSL.md` §4.3, at the rete root).
+
+Two files sit beside it: **`porta.key` and `porta.pub`**, one ed25519 keypair written
+once by `porta key gen`, refusing to overwrite an existing key rather than rotating
+implicitly. **`porta blob put <file.oimg>` stores the blob and signs its SHA-256 at push
+time**, printing the hash, the signature, and the ready-made
+`porta put <node> goal/apps/main --raw <cbor>` line that carries both. The private key
+never leaves porta; the node's runner holds only the public half, and verification
+happens there (§3.3). The key story is deliberately dumb — one keypair, two files, a
+missing key is an error and never "unsigned".
+
+### 3.3 The block server — exchange port + 1, stateless (rete#25, recorded 2026-08-08)
+
+`porta serve` brings up a second UDP listener on **the exchange port + 1**, a convention
+rather than a flag: a node that knows where to check in knows where to fetch. It answers
+one fixed binary frame — request `0x01 ‖ hash[32] ‖ blockNo u32 BE`, response
+`0x02 ‖ blockNo ‖ more ‖ data` with `data` ≤ 256 B, error `0x7F ‖ text` — as a pure
+`Handle([]byte) []byte` wrapped by the same thin UDP loop as `internal/wire`.
+
+It holds **no state per client**, which is the property that matters: resume is the node
+re-asking from any block number, so a transfer killed halfway costs only the blocks it
+had not got. The shape is a CoAP blockwise GET's, so the ratified TFTP → CoAP direction
+costs a reframing and not a redesign. Binary rather than CBOR because the fetching half
+is the node's C seam, which cannot reach the nsl `Cbor` class — the full argument, plus
+the node-side runner's manifest/marker contract (`manifest.json`, A/B slots,
+`stage/ready.json`, the confirm marker, exit 42, and the trial watchdog that reverts a
+node which never checks in), is in the rete root's
+`docs/design/2026-08-07-code-push-host-slice-design.md` §§2–5 — not `porta/docs/design/`,
+because that rung spans both halves.
+
 ---
 
 ## 4. Transports
