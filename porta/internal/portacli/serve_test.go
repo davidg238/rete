@@ -64,27 +64,29 @@ func TestServeHasNoStaleTFTPPortFlag(t *testing.T) {
 }
 
 // TestAwaitServeExitDrainsOnCtxCancel is the #7 guard: on SIGINT (ctx
-// cancel) the serve must wait for BOTH listener goroutines to finish their
-// graceful shutdown — draining udpErr and httpErr — before returning, rather
-// than racing the deferred conn/store Close.
+// cancel) the serve must wait for every listener goroutine to finish its
+// graceful shutdown — draining udpErr, blocksErr and httpErr — before
+// returning, rather than racing the deferred conn/store Close.
 func TestAwaitServeExitDrainsOnCtxCancel(t *testing.T) {
 	udpErr := make(chan error, 1)
+	blocksErr := make(chan error, 1)
 	httpErr := make(chan error, 1)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // SIGINT analog: ctx.Done fires immediately
 
 	done := make(chan error, 1)
-	go func() { done <- awaitServeExit(ctx, udpErr, httpErr) }()
+	go func() { done <- awaitServeExit(ctx, udpErr, blocksErr, httpErr) }()
 
-	// Must not return while either listener is still shutting down.
+	// Must not return while any listener is still shutting down.
 	select {
 	case <-done:
-		t.Fatal("returned before draining udpErr/httpErr")
+		t.Fatal("returned before draining udpErr/blocksErr/httpErr")
 	case <-time.After(50 * time.Millisecond):
 	}
 
 	// Listeners report clean shutdown; only now may awaitServeExit return.
 	udpErr <- nil
+	blocksErr <- nil
 	httpErr <- nil
 	select {
 	case err := <-done:
@@ -92,7 +94,7 @@ func TestAwaitServeExitDrainsOnCtxCancel(t *testing.T) {
 			t.Errorf("got %v, want nil", err)
 		}
 	case <-time.After(time.Second):
-		t.Fatal("did not return after both channels drained")
+		t.Fatal("did not return after all channels drained")
 	}
 }
 
@@ -100,13 +102,15 @@ func TestAwaitServeExitDrainsOnCtxCancel(t *testing.T) {
 // ctx-cancel drain must not deadlock waiting on a nil channel.
 func TestAwaitServeExitNilHTTPErr(t *testing.T) {
 	udpErr := make(chan error, 1)
+	blocksErr := make(chan error, 1)
 	var httpErr chan error // nil, like --http-port 0
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
 	done := make(chan error, 1)
-	go func() { done <- awaitServeExit(ctx, udpErr, httpErr) }()
+	go func() { done <- awaitServeExit(ctx, udpErr, blocksErr, httpErr) }()
 	udpErr <- nil
+	blocksErr <- nil
 	select {
 	case err := <-done:
 		if err != nil {
@@ -119,31 +123,42 @@ func TestAwaitServeExitNilHTTPErr(t *testing.T) {
 
 // TestAwaitServeExitPropagatesListenerErrors confirms a listener failure (no
 // ctx cancel) is returned verbatim, and a clean HTTP exit falls through to
-// wait on UDP.
+// wait on the remaining listeners.
 func TestAwaitServeExitPropagatesListenerErrors(t *testing.T) {
 	ctx := context.Background()
 
 	// UDP listener fails → its error propagates.
 	udpErr := make(chan error, 1)
+	blocksErr := make(chan error, 1)
 	udpErr <- errSentinel
-	if got := awaitServeExit(ctx, udpErr, nil); got != errSentinel {
+	if got := awaitServeExit(ctx, udpErr, blocksErr, nil); got != errSentinel {
 		t.Errorf("udp error: got %v, want errSentinel", got)
+	}
+
+	// Blocks listener fails → its error propagates.
+	udpErr = make(chan error, 1)
+	blocksErr = make(chan error, 1)
+	blocksErr <- errSentinel
+	if got := awaitServeExit(ctx, udpErr, blocksErr, nil); got != errSentinel {
+		t.Errorf("blocks error: got %v, want errSentinel", got)
 	}
 
 	// HTTP fails → its error propagates.
 	udpErr = make(chan error, 1)
+	blocksErr = make(chan error, 1)
 	httpErr := make(chan error, 1)
 	httpErr <- errSentinel
-	if got := awaitServeExit(ctx, udpErr, httpErr); got != errSentinel {
+	if got := awaitServeExit(ctx, udpErr, blocksErr, httpErr); got != errSentinel {
 		t.Errorf("http error: got %v, want errSentinel", got)
 	}
 
 	// HTTP exits cleanly while UDP still running → fall through to UDP.
 	udpErr = make(chan error, 1)
+	blocksErr = make(chan error, 1)
 	httpErr = make(chan error, 1)
 	httpErr <- nil
 	udpErr <- errSentinel
-	if got := awaitServeExit(ctx, udpErr, httpErr); got != errSentinel {
+	if got := awaitServeExit(ctx, udpErr, blocksErr, httpErr); got != errSentinel {
 		t.Errorf("clean http then udp error: got %v, want errSentinel", got)
 	}
 }

@@ -6,7 +6,11 @@ package portacli
 import (
 	"context"
 	"log"
+	"net"
+	"strconv"
 
+	"github.com/davidg238/porta/internal/blob"
+	"github.com/davidg238/porta/internal/blockserv"
 	"github.com/davidg238/porta/internal/httpsrv"
 	"github.com/davidg238/porta/internal/serverstat"
 	"github.com/davidg238/porta/internal/space"
@@ -62,6 +66,27 @@ func newServeCmd() *cobra.Command {
 			go func() { udpErr <- srv.ListenAndServe(ctx, udpAddr) }()
 			log.Printf("porta: serving the space on udp %s (db=%s)", udpAddr, dbPath)
 
+			// The block server shares the exchange host but sits one port up
+			// (design D1 note): the bulk plane is a separate stateless listener,
+			// never multiplexed onto the space socket.
+			blocksHost, exPort, err := net.SplitHostPort(udpAddr)
+			if err != nil {
+				return err
+			}
+			exPortNum, err := strconv.Atoi(exPort)
+			if err != nil {
+				return err
+			}
+			blocksAddr := net.JoinHostPort(blocksHost, strconv.Itoa(exPortNum+1))
+			bst, err := blob.Open(blobDir(dbPath))
+			if err != nil {
+				return err
+			}
+			blocksSrv := blockserv.New(bst)
+			blocksErr := make(chan error, 1)
+			go func() { blocksErr <- blocksSrv.ListenAndServe(ctx, blocksAddr) }()
+			log.Printf("porta: serving blobs on udp %s", blocksAddr)
+
 			// When --http-port 0, httpErr stays nil so the select arm blocks
 			// forever and UDP keeps serving until ctx cancel. (A closed
 			// channel would fire the select immediately and exit the serve —
@@ -82,7 +107,7 @@ func newServeCmd() *cobra.Command {
 				log.Printf("porta: serving HTTP on %s:%d", httpBind, httpPort)
 			}
 
-			return awaitServeExit(ctx, udpErr, httpErr)
+			return awaitServeExit(ctx, udpErr, blocksErr, httpErr)
 		},
 	}
 	cmd.Flags().StringVar(&udpAddr, "udp", ":6969", "node-facing UDP listen address")
@@ -97,30 +122,39 @@ func newServeCmd() *cobra.Command {
 }
 
 // awaitServeExit blocks until a listener goroutine exits or ctx is cancelled.
-// It is transport-agnostic — two error channels, either of which may be nil.
+// It is transport-agnostic — three error channels; only httpErr may be nil
+// (udp and blocks are unconditional listeners, so those two are always live).
 //
-//   - A listener error (non-nil udpErr or httpErr) propagates verbatim.
-//   - A clean HTTP exit (httpErr delivers nil) while UDP still runs falls
-//     through to wait on UDP.
-//   - On ctx cancel (SIGINT/SIGTERM) it DRAINS both channels first, so the
+//   - A listener error (non-nil udpErr, blocksErr or httpErr) propagates
+//     verbatim.
+//   - A clean HTTP exit (httpErr delivers nil) while UDP/blocks still run
+//     falls through to wait on whichever of them reports next.
+//   - On ctx cancel (SIGINT/SIGTERM) it DRAINS every channel first, so the
 //     listeners and the HTTP server's 5s graceful Shutdown complete before
 //     RunE returns and its deferred Close calls fire (#7). A nil channel's
 //     select arm blocks forever and the nil guard skips draining it.
-func awaitServeExit(ctx context.Context, udpErr, httpErr <-chan error) error {
+func awaitServeExit(ctx context.Context, udpErr, blocksErr, httpErr <-chan error) error {
 	select {
 	case err := <-udpErr:
 		return err
+	case err := <-blocksErr:
+		return err
 	case err := <-httpErr:
 		if err == nil {
-			if udpErr != nil {
-				return <-udpErr
+			select {
+			case err := <-udpErr:
+				return err
+			case err := <-blocksErr:
+				return err
 			}
-			return nil
 		}
 		return err
 	case <-ctx.Done():
 		if udpErr != nil {
 			<-udpErr
+		}
+		if blocksErr != nil {
+			<-blocksErr
 		}
 		if httpErr != nil {
 			<-httpErr
