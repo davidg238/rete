@@ -3,6 +3,12 @@ expect:
 hash nil
 trial false
 running false
+int refused
+nil refused
+unfrozen refused
+stage refused
+bad sig refused
+activate refused
 finished
 *)
 (* rete#25 — the ota seam with NO runner environment, which is every host run of
@@ -16,10 +22,14 @@ finished
    every run rather than only when someone remembers a knob — the asymmetry
    21_wallclock/02 documents, for the same reason.
 
-   `otaIsRunning:` is asked with a well-formed 32-byte digest, not with junk:
-   the interesting failure is not "a bad argument is rejected" but "a perfectly
-   good hash still cannot match, because nothing is known to be running". A seam
-   that answered true here would let a node skip a push it has never applied. *)
+   The first half asks `otaIsRunning:` with a well-formed 32-byte digest, not
+   with junk: the interesting failure there is not "a bad argument is rejected"
+   but "a perfectly good hash still cannot match, because nothing is known to be
+   running". A seam that answered true would let a node skip a push it has never
+   applied.
+
+   The second half is the opposite question and a separate claim — that a
+   MALFORMED argument is refused rather than fatal. See the comment above it. *)
 class OtaEnvAbsent packageUsing: manifest = () (
   public main: platform args: args = (
     | h probe |
@@ -37,6 +47,54 @@ class OtaEnvAbsent packageUsing: manifest = () (
     (platform otaIsRunning: probe)
       ifTrue:  [ 'running true' println ]
       ifFalse: [ 'running false' println ].
+
+    (* A HOSTILE ARGUMENT MUST NOT KILL THE NODE. Once PortaBridge wires this
+       seam up, the argument to each of these comes out of a gateway-written
+       `goal/` record, so "not a Bytes" is a peer's mistake and must be an
+       answer. It nearly was not: the accessors used to send `rawLeaf` to the
+       argument before any guard could run, and `rawLeaf` exists only on Bytes,
+       so a malformed field reached dispatch.c's abort() — one datagram, one
+       dead node. Every line below aborted the VM before the guard was added.
+
+       Reaching `finished` at all is therefore the real assertion here; the
+       printed words only say which arm answered. *)
+    (platform otaIsRunning: 42)
+      ifTrue:  [ 'int accepted — GUARD MISSING' println ]
+      ifFalse: [ 'int refused' println ].
+    (platform otaIsRunning: nil)
+      ifTrue:  [ 'nil accepted — GUARD MISSING' println ]
+      ifFalse: [ 'nil refused' println ].
+
+    (* An UNFROZEN ByteArray is the interesting one: it is byte-shaped and has a
+       raw leaf, so it would have sailed through a guard written as "does it
+       have bytes?". It is refused because its owner can still mutate it
+       underneath a blocking fetch, and because Bytes is reachable only through
+       a real freeze copy. *)
+    (platform otaIsRunning: (platform ByteArray new: 32))
+      ifTrue:  [ 'unfrozen accepted — GUARD MISSING' println ]
+      ifFalse: [ 'unfrozen refused' println ].
+
+    (* The guard fires BEFORE any I/O: a refused stage touches no socket, so
+       this line costs nothing even though the seam is otherwise blocking. *)
+    (platform otaStage: 42 sig: nil host: '127.0.0.1' port: 1)
+      ifTrue:  [ 'stage accepted — GUARD MISSING' println ]
+      ifFalse: [ 'stage refused' println ].
+
+    (* A malformed SIGNATURE refuses the whole call too, rather than being
+       dropped to nil — a staged image with its provenance quietly removed would
+       reach the runner unsigned, with nothing left to check. Absent and
+       malformed are different things. The hash here is well-formed, so only the
+       sig can be what refuses this. *)
+    (platform otaStage: probe sig: 42 host: '127.0.0.1' port: 1)
+      ifTrue:  [ 'bad sig accepted — GUARD MISSING' println ]
+      ifFalse: [ 'bad sig refused' println ].
+
+    (* otaActivate: answers self and cannot report a refusal, so the proof is
+       structural: with a valid hash this call would write ready.json and exit
+       the process with 42, and with a bad one it must simply return. The next
+       line printing at all is the whole assertion. *)
+    platform otaActivate: 42 sig: nil.
+    'activate refused' println.
 
     (* No handler anywhere above: reaching this line is the proof that a missing
        runner is an answer and not a raise. *)

@@ -3215,13 +3215,39 @@ class Kernel usingPlatform: platform = () (
     r:: platform otaRunningHash.
     r == nil ifTrue: [ ^ nil ].
     ^ Bytes overRaw: r )
-  public otaIsRunning: aHash = ( ^ platform otaIsRunning: aHash rawLeaf )
+  (* GUARDED BEFORE `rawLeaf`, and that ordering is the whole point. `rawLeaf`
+     exists only on Bytes, so sending it to anything else is a
+     doesNotUnderstand — and a DNU here is not a catchable nsl condition, it is
+     dispatch.c's abort(). Once PortaBridge wires this up, the argument
+     originates in a gateway-written `goal/` record, so an unguarded send would
+     let a peer kill the node with one malformed field. That is exactly the
+     failure the C side's own guards are written to avoid (platform.c: "a bad
+     one is a peer's mistake to report, not this node's to die of"), and it was
+     reachable in front of them.
+
+     `isBytes` is TOTAL — every builtin receiver, nil included, answers false in
+     dispatch.c's predicate fast-path, and every heap object falls through to
+     Object>>isBytes — so this guard cannot itself become the crash it prevents.
+
+     An UNFROZEN ByteArray is refused too, and deliberately: it inherits
+     Object>>isBytes (false), and accepting it would mean the seam reading bytes
+     that its owner can still mutate underneath a blocking fetch. Refusing is
+     also the honest reading of `Bytes` being reachable only through a real
+     freeze copy. Note Socket>>sendTo: sends `rawLeaf` unguarded — no precedent
+     was broken here, because its argument is app-supplied and this one is not.
+
+     The C-side guards stay exactly as they are. Defense is layered, not moved. *)
+  public otaIsRunning: aHash = (
+    aHash isBytes ifFalse: [ ^ false ].
+    ^ platform otaIsRunning: aHash rawLeaf )
   public otaTrial = ( ^ platform otaTrial )
   (* BLOCKING (design D7). Answers false on any failure — an unreachable block
      server, a digest that does not match at the end, or no staging slot at all.
      The DETAIL went to the console; publishing it as `tel/log` is the caller's
      job, because only the caller knows the cadence tick it belongs to. *)
   public otaStage: aHash sig: aSig host: aHost port: aPort = (
+    aHash isBytes ifFalse: [ ^ false ].
+    (aSig == nil or: [ aSig isBytes ]) ifFalse: [ ^ false ].
     ^ platform otaStage: aHash rawLeaf
                sig: (self otaRawOf: aSig)
                host: aHost
@@ -3231,12 +3257,20 @@ class Kernel usingPlatform: platform = () (
      STAGE_READY(42) and the runner relaunches on the staged image. The `^ self`
      is reached only on a backend that cannot exit. *)
   public otaActivate: aHash sig: aSig = (
+    aHash isBytes ifFalse: [ ^ self ].
+    (aSig == nil or: [ aSig isBytes ]) ifFalse: [ ^ self ].
     platform otaActivate: aHash rawLeaf sig: (self otaRawOf: aSig).
     ^ self )
-  (* nil signature stays nil across the seam — `sig` is CARRIED, not checked
-     (design D4: verification has exactly one seat and it is the runner), so
-     "there is no signature" has to survive the trip rather than becoming an
-     empty one. *)
+  (* A BAD SIGNATURE REFUSES THE WHOLE CALL rather than being dropped to nil.
+     Dropping it would stage or activate an image with its provenance quietly
+     removed — the runner would then see an unsigned record and have nothing to
+     check, which is worse than the tick that never happened. Absent (nil) and
+     malformed are different things and must not collapse.
+
+     A nil signature, on the other hand, stays nil across the seam — `sig` is
+     CARRIED, not checked (design D4: verification has exactly one seat and it
+     is the runner), so "there is no signature" has to survive the trip rather
+     than becoming an empty one. *)
   otaRawOf: aBytes = (
     aBytes == nil ifTrue: [ ^ nil ].
     ^ aBytes rawLeaf )
