@@ -156,7 +156,13 @@ missing key is an error and never "unsigned".
 rather than a flag: a node that knows where to check in knows where to fetch. It answers
 one fixed binary frame — request `0x01 ‖ hash[32] ‖ blockNo u32 BE`, response
 `0x02 ‖ blockNo ‖ more ‖ data` with `data` ≤ 256 B, error `0x7F ‖ text` — as a pure
-`Handle([]byte) []byte` wrapped by the same thin UDP loop as `internal/wire`.
+`Handle([]byte) []byte`, mirroring the `wire` package's UDP loop shape (a copy of the
+idiom, not a reuse of the code: the two planes share no type).
+
+**One coincidence worth naming, because it reads like a conflict and is not.** At the
+defaults the operator HTTP listener is `:6970` **TCP** and the block plane is `:6970`
+**UDP** — the same number, two protocols, two sockets, no collision. `--udp` and
+`--http-port` move independently, so the pairing is a default and not a constraint.
 
 It holds **no state per client**, which is the property that matters: resume is the node
 re-asking from any block number, so a transfer killed halfway costs only the blocks it
@@ -172,6 +178,17 @@ because that rung spans both halves.
 ---
 
 ## 4. Transports
+
+> **v1 — SUPERSEDED (marked 2026-08-08). Everything below describes the deleted TFTP
+> surface and no longer names a live transport.** porta speaks two today, both plain UDP:
+> the **exchange** (node-initiated pull/push carrying CBOR, `:6969` by default,
+> `internal/wire`), and the **block plane** for bulk image bytes on exchange port + 1
+> (§3.3, `internal/blockserv`). There is no TFTP listener left in the binary — `--port`
+> went with it, and a test asserts the flag stays gone. The current contract is
+> `protocol/PROTOCOL-NSL.md` §§1–4 at the rete root, not `PROTOCOL.md`. Kept below
+> because the Toit v1 nodes still speak it, and because §4's link-agnosticism argument
+> (the resource surface, not the link, is the contract) is the reasoning the space model
+> inherited.
 
 Today the only transport is **TFTP over UDP** (`:6969`): the node is the TFTP
 **client**, the gateway is the **server**, and the node identifies itself with a

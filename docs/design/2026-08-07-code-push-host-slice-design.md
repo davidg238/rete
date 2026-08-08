@@ -100,8 +100,8 @@ the law of the space planes; this is the data plane's one binary surface.
 ## 3. Porta side
 
 - `porta/internal/blob/` — content-addressed file store (D8).
-- `porta/internal/blockserv/` — the block responder, CBOR frames via the existing
-  `cval` codec.
+- `porta/internal/blockserv/` — the block responder, **fixed binary frames** per the §2
+  amendment above (not `cval` CBOR: the fetching half is the node's C seam).
 - CLI: `porta key gen` (once), `porta blob put <file.oimg>` → prints `{hash, sig,
   size}`. The record is written with the existing `porta put`. A `porta deploy` sugar
   verb (blob put + record put in one) is **not** built this rung; it can come later if
@@ -192,6 +192,16 @@ is C and out of scope).
 | Trial image crashes or never confirms | Revert, exactly once |
 | Retarget arrives during an unconfirmed trial | Staging deferred until confirm or revert — a trial node never stages, so the rollback slot is never destroyed while unproven. Enforced in `PortaBridge>>otaCheck`, not in the runner: §5 step 3 handles exit-42 before the trial revert, so a trial node that staged would leave `active` = a never-confirmed image with `prev` cleared, breaking "`prev` is never itself trial"; and reordering the runner is worse, because by exit-42 the staging has already overwritten the rollback slot, so a revert-first runner verify-fails on a cleared `prev` and exits 3 — a brick. Cost of deferring: at most one tick of latency, either way the trial ends |
 | Stale confirm marker | Deleted on trial entry |
+
+**A retarget that lands on a partial stage costs one wasted fetch, and heals itself.**
+The resume offset is the slot's own length, so a new hash arriving over a half-staged
+different image resumes *into a foreign prefix* whenever the new image is the same length
+or longer at that offset; the bytes are wrong rather than incomplete, the whole-image
+digest catches it, the seam truncates and the next cadence tick refetches clean. (The
+shorter case is caught earlier: the resume block is past the new image's end, porta
+answers an error frame, and a resumed fetch treats that as a stale slot and truncates.)
+Not worth a fix — a length-preserving truncate or a stored per-hash cursor would be a
+second mechanism for a case that already self-heals at the price of one transfer.
 
 **Amendment 2026-08-08 (as built): a rejected signature is LOGGED, not counted.** Both
 this table and §5 step 3 said "count + log", and no counter was ever built — the runner

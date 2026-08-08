@@ -125,9 +125,18 @@ should not change.
 BlobRef {
   hash:  bytes,   (* content hash; the identity AND the integrity check *)
   size:  int,     (* bytes, so the node can refuse before it starts *)
-  alg:   sym,     (* #sha256 — pinned, so the hash is self-describing *)
+  alg:   sym,     (* #sha256 — pinned; UNWRITTEN today, absence means #sha256 *)
 }
 ```
+
+**`alg` is written by nobody, on either side, and that is the honest state** (recorded
+2026-08-08). `porta blob put` emits `hash` and `size`; the node's `publishApps` emits
+`hash` alone. Absence therefore means **`#sha256`** here rather than "the writer cannot
+say" — the §4.2 reading — because there has only ever been one algorithm on this plane:
+the C seam hashes SHA-256, porta signs a SHA-256, and a second algorithm would be a wire
+change on both halves, not a field a reader could infer. The field stays pinned so the
+day a second one exists it is a write and not a schema edit; until then, reading `alg`
+and defaulting it is the same thing as not reading it.
 
 Content-addressed, so it is **idempotent and cache-correct by construction**: a node
 that already holds `hash` does nothing. A reflashed node, a node that resumes from

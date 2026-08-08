@@ -367,7 +367,8 @@ C6 is proven and running tuvm with 44% of SRAM spare. It was third *only* by seq
 because it should ride on the new protocol — **and that constraint dissolved when the
 protocol landed green on hardware.** Nothing now argues for doing #25's host slice first
 except foreclosure, and foreclosure only bites at the moment a flash map is committed, which
-is not imminent. So: #56 next, #25 after. **(#56 closed 2026-08-05 — so #25 is now.)**
+is not imminent. So: #56 next, #25 after. **(#56 closed 2026-08-05, and #25 followed —
+built and gated 2026-08-08; thread 2 above has the status.)**
 
 5. **Per-method profiling over `dbg/req` (#164/#165) — DONE 2026-08-06.** Not one of #56's
    original four, but riding directly on capability 1 above: `dbg/req` gets its first
