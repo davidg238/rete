@@ -1567,8 +1567,10 @@ class Kernel usingPlatform: platform = () (
          CAME from and re-reading it would let a gateway retarget an activation
          mid-flight. All four are per-boot and deliberately not persisted: a
          reboot re-reads the goal and re-decides, which is the same replay-safe
-         reasoning the cursor rests on. *)
-      otaStaged ::= false. otaConfirmed ::= false.
+         reasoning the cursor rests on. `appsPublished` is the fifth and belongs
+         to the same story from the other end: obs/apps/main is written once per
+         boot because the running hash cannot change without one. *)
+      otaStaged ::= false. otaConfirmed ::= false. appsPublished ::= false.
       pending ::= OrderedCollection new.
       (* tuvm#107 follow-on: the six spans that decompose `checkIn`. See the
          bracket comment on checkIn for what each one covers and why the sends are
@@ -1981,11 +1983,11 @@ class Kernel usingPlatform: platform = () (
       (* publishApps BEFORE publishMetrics, and that order is not arbitrary:
          pushFrame trims from the TAIL of an ascending-seq frame, so the LAST
          cell written before the push is the first one dropped under batch
-         pressure. sys/metrics is rewritten every check-in and can afford to
-         lose a sample; obs/apps/main is written on every check-in too but is
-         the node's answer to "what are you running", which is the one thing an
-         operator watching a rollout is reading. Same reasoning the trim comment
-         on pushFrame gives for obs/build, applied one path further. *)
+         pressure. sys/metrics is rewritten every check-in and can afford to lose
+         a sample; obs/apps/main is written ONCE per boot (see publishApps), so
+         losing its one push would leave the node's answer to "what are you
+         running" permanently absent — the write-once trim hazard the pushFrame
+         comment already records for obs/build, and now a second instance of it. *)
       self publishApps.
       self publishMetrics.
       spans end: sApplyIn.
@@ -2037,14 +2039,28 @@ class Kernel usingPlatform: platform = () (
        executing, and it says so. The trial/confirmed distinction lives in the
        runner's own markers and in `otaTrial`, not here — publishing it would
        mean two places answer "is this image confirmed", and they would
-       eventually disagree. *)
+       eventually disagree.
+
+       WRITTEN ONCE PER BOOT, which is the obs/build precedent (#74) and not an
+       optimisation. The running hash cannot change without the process exiting,
+       so every rewrite would carry identical bytes — but `put:` refreshes the
+       cell's seq unconditionally (it does not compare values), so a per-check-in
+       write would make `changedSince: acked` re-send this ~55 B row on EVERY
+       push, forever, against 87 B of measured headroom (design §9.1). That is
+       not just waste: `pushFrame` trims from the tail when the batch overflows,
+       and the row it would start dropping is whatever was written last — which,
+       on the tick a rollout activates, is the `ota staged` log line that is the
+       only record the node leaves behind before it exits. A cell that never
+       changes must not be allowed to crowd out the one that does. *)
     publishApps = (
       | h |
+      appsPublished ifTrue: [ ^ self ].
       h:: outer otaRunningHash.
       h == nil ifTrue: [ ^ self ].
       space put: 'obs/apps/main' value: (Record tag: #AppObs
         with: #image -> (Record tag: #BlobRef with: #hash -> h)
         with: #lifecycle -> #running).
+      appsPublished:: true.
       ^ self )
 
     (* rete#25 — the ENTIRE image-update policy, run once per check-in from the
@@ -2098,13 +2114,24 @@ class Kernel usingPlatform: platform = () (
       (otaConfirmed not and: [ acked > 0 and: [ outer otaTrial ] ]) ifTrue: [
         outer otaConfirm.
         otaConfirmed:: true.
-        space out: 'tel/log' value: 'ota confirmed' ].
+        self otaLog: #info text: 'ota confirmed' ].
       otaStaged ifTrue: [ ^ outer otaActivate: stagedHash sig: stagedSig ].
-      rec:: space peek: 'goal/apps/main'.
+      (* `peekCell:ifStream:` and never `peek:`. A gateway can create this leaf as
+         a STREAM (`porta put --raw --kind stream` is a legal write), kind is
+         pinned by the first write and re-created by replay, and `peek:` would
+         raise `'not a cell'` here on every tick forever. That raise is caught by
+         `protectedFire:` in whatever reaction drives the tick, which ABANDONS the
+         rest of that reaction's body — so obs/health and tel/log would silently
+         stop while the exchange kept working, permanently, with nothing logged.
+         A wrongly kinded leaf is a peer disagreeing with the pinned record, so it
+         gets the same report a malformed value gets. *)
+      rec:: space peekCell: 'goal/apps/main' ifStream: [
+        self otaLog: #error text: 'ota bad record'.
+        nil ].
       rec == nil ifTrue: [ ^ self ].
       want:: self otaWantedFrom: rec.
       want == nil ifTrue: [
-        space out: 'tel/log' value: 'ota bad record'.
+        self otaLog: #error text: 'ota bad record'.
         ^ self ].
       hash:: want at: 1.
       sig::  want at: 2.
@@ -2114,8 +2141,22 @@ class Kernel usingPlatform: platform = () (
           stagedHash:: hash.
           stagedSig::  sig.
           otaStaged::  true.
-          space out: 'tel/log' value: 'ota staged' ]
-        ifFalse: [ space out: 'tel/log' value: 'ota stage failed' ].
+          self otaLog: #info text: 'ota staged' ]
+        ifFalse: [ self otaLog: #error text: 'ota stage failed' ].
+      ^ self )
+
+    (* tel/log carries a `Log { level, text }` record and NOT a bare String —
+       PROTOCOL-NSL-RECORDS §4 pins the shape, both production node apps already
+       honour it, and porta's log query reads the fields. A bare String would
+       decode and store fine and then be un-filterable by level, which is the
+       kind of divergence that is only ever noticed once someone needs it.
+
+       Levels: staging and confirming are the machine reporting progress it was
+       asked for (#info); a bad record, a wrongly kinded leaf and a failed stage
+       are all "this rollout is not happening" (#error). *)
+    otaLog: level text: text = (
+      space out: 'tel/log' value:
+        (Record tag: #Log with: #level -> level with: #text -> text).
       ^ self )
 
     (* The pure decision: given whatever sits at `goal/apps/main`, answer the
@@ -2345,6 +2386,41 @@ class Kernel usingPlatform: platform = () (
        matters. Distinct selectors — arity is part of the name, no collision. *)
     public peek = ( ^ self peek: '' ifAbsent: [ nil ] )
     public peek: rel = ( ^ self peek: rel ifAbsent: [ nil ] )
+
+    (* rete#25 — the cell read for a leaf WHOSE KIND YOU DO NOT CONTROL. Same
+       answer as `peek: rel` for absent (nil) and for a real cell (the value),
+       but a STREAM runs `aBlock` instead of raising.
+
+       Why this exists, and why it is a Channel verb rather than a guard at the
+       one call site. `peek:` raises `'not a cell'` on a stream leaf, and kind is
+       pinned by the FIRST write and re-created by replay — so any reader of a
+       leaf some OTHER writer creates can be permanently disabled by one wrongly
+       kinded write, with no way to recover short of a new path. For a reader
+       inside a space reaction that failure is worse than a crash: `drain` fires
+       reactions through `protectedFire:`, which catches the raise, abandons the
+       REST of that reaction's body, and moves on — so every statement after the
+       read silently stops running on every tick, for good, while everything
+       before it keeps working. Nothing is logged and nothing looks broken.
+
+       PortaBridge reading gateway-written `goal/apps/main` is exactly that
+       reader (`porta put --raw --kind stream` is a legal write today), but the
+       shape is general: any leaf whose writer is not its reader has it. Hence
+       one verb here rather than a probe at the call site — and a probe at the
+       call site would have to reach `platform spaceKind:` directly, past
+       `resolve:`, which is the confinement this class exists to enforce.
+
+       `ifStream:` and not a nil-for-both answer, because the two cases call for
+       different behaviour: absence is the ordinary "nothing to do", while a
+       stream where a cell was pinned is a peer disagreeing with the protocol and
+       is worth reporting. Same shape as `peek:ifAbsent:` — the caller names what
+       the unusual case means. *)
+    public peekCell: rel ifStream: aBlock = (
+      | p k |
+      p:: self resolve: rel.
+      k:: platform spaceKind: p.
+      k = self KIND_STREAM ifTrue: [ ^ aBlock value ].
+      k = 0 ifTrue: [ ^ nil ].
+      ^ platform spacePeek: p )
     (* ---- porta space-sync (plan 2): the cell-replication query ---------------
        Answer every CELL at or under this capability's root whose last write is
        newer than `cursor`, OLDEST FIRST, at most `n` of them — each row a
@@ -3425,10 +3501,17 @@ class Kernel usingPlatform: platform = () (
      check, which is worse than the tick that never happened. Absent (nil) and
      malformed are different things and must not collapse.
 
-     A nil signature, on the other hand, stays nil across the seam — `sig` is
-     CARRIED, not checked (design D4: verification has exactly one seat and it
-     is the runner), so "there is no signature" has to survive the trip rather
-     than becoming an empty one. *)
+     A nil signature is TOLERATED HERE AND REFUSED UPSTREAM, and the two are not
+     in tension — they are defense in depth with the decision in one place.
+     Design D3 requires a real signature: `PortaBridge>>otaWantedFrom:` answers
+     nil for a `goal/apps/main` record with no `#sig`, so no unsigned image is
+     ever staged or activated by this node, and the field is pinned in
+     PROTOCOL-NSL-RECORDS. This accessor still lets nil across because `sig` is
+     CARRIED, not checked (design D4: verification has exactly one seat and it is
+     the runner) — collapsing "there is no signature" into an empty one here
+     would hand the runner something that LOOKS checkable and is not. So: the
+     bridge decides whether a signature is required, this seam decides only that
+     a malformed one is a refusal and an absent one is not silently invented. *)
   otaRawOf: aBytes = (
     aBytes == nil ifTrue: [ ^ nil ].
     ^ aBytes rawLeaf )

@@ -1,0 +1,59 @@
+(*
+expect:
+absent nil
+cell 11
+cell holding nil nil
+stream #STREAM
+stream did not raise
+after a stream read the caller keeps going
+finished
+*)
+(* rete#25 — `Channel>>peekCell:ifStream:`, the cell read for a leaf WHOSE KIND
+   THE READER DOES NOT CONTROL.
+
+   `peek:` raises `'not a cell'` on a stream leaf. That is right for a reader
+   that owns the name, and it is a trap for one that does not: kind is pinned by
+   the FIRST write and re-created by replay, so one wrongly kinded write disables
+   the reader permanently, with no recovery short of a new path. And the visible
+   symptom is worse than a crash — a reader inside a space reaction runs under
+   `protectedFire:`, which catches the raise and abandons the REST of the
+   reaction's body, so everything after the read silently stops happening on
+   every tick while everything before it keeps working. Nothing is logged.
+   PortaBridge reading gateway-written `goal/apps/main` is exactly that reader.
+
+   The three kinds get three answers and all three are asserted, because the
+   interesting bug is a guard that collapses two of them: nil for a leaf nobody
+   has written, the value for a real cell, and the BLOCK for a stream. A cell
+   holding nil is asked separately from an absent one for the reason
+   `peek:ifAbsent:` already documents — the kind, not the value, says whether the
+   pigeonhole is empty, and these two answer the same `nil` by different routes.
+
+   The last two lines are the whole point restated as behaviour: no handler is
+   installed anywhere in this test, so a stream leaf reaching the reader has to
+   be an ANSWER. Under `peek:` the statements after the stream read would never
+   execute. *)
+class PeekCellIfStream packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space seen |
+    space:: platform space.
+
+    ('absent ' , (space peekCell: 'goal/never/written' ifStream: [ #STREAM ]) printString) println.
+
+    space put: 'goal/apps/main' value: 11.
+    ('cell ' , (space peekCell: 'goal/apps/main' ifStream: [ #STREAM ]) printString) println.
+
+    space put: 'goal/held/nil' value: nil.
+    ('cell holding nil ' , (space peekCell: 'goal/held/nil' ifStream: [ #STREAM ]) printString) println.
+
+    (* A gateway can create this leaf as a stream — `porta put --raw --kind
+       stream` writes one, and applyEntry: applies kind 1 with `out:value:`. *)
+    space out: 'goal/wrong/kind' value: 'surprise'.
+    seen:: space peekCell: 'goal/wrong/kind' ifStream: [ #STREAM ].
+    ('stream ' , seen printString) println.
+    'stream did not raise' println.
+    'after a stream read the caller keeps going' println.
+
+    'finished' println.
+  )
+) : (
+)
