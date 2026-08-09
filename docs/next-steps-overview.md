@@ -417,9 +417,31 @@ partitions holding to 0.14%. So `pushBuild` is **one thing done twice, not three
 check-in, and fix (2) (incremental trim sizing) is unearned by this data.
 **The bigger number is one #161 did not ask about:** 118.6 ms for a ≤512 B frame is
 ~230 µs *per byte*, so deleting the duplicate encode still leaves ~119 ms. The cost is the
-codec itself, not how many times it runs — the next question is inside `Cbor>>encode:`,
-and it is about allocation and copying rather than call count. **Filed as #163**, and it is
-the larger of the two: a bridged node spends ~19% of wall-clock inside that one method.
+codec itself, not how many times it runs. **Filed as #163**, and it is the larger of the
+two: a bridged node spends ~19% of wall-clock inside that one method.
+
+**#163's precondition landed on 2026-08-09, and it refuted the guess this document made
+about it** (`docs/results/2026-08-09-cbor-encode-shape.md`). The guess was "allocation and
+copying rather than call count". It is **call count**, and allocation is not in the picture
+at all: the GC counter moves by *one* across 400 encodes of a 425 B frame. The cost is
+**per byte** — ~9 activations per byte flat, 22.6 for a real push frame — and the CBOR
+recursive descent is **0.5%** of it. Everything else is byte plumbing: one `acc add: b`
+costs four activations, and `ByteBuilder`'s doubling growth plus `frozenBytes`' exact-size
+copy are **two thirds of a flat encode**. `encodeMap:` multiplies the rate by re-copying
+every entry through a per-entry buffer, one `add:` send per byte, once per level of nesting
+— the real frame re-copies 704 bytes to emit 425, while Lists (which write straight
+through) cost +2% for the same nesting.
+
+The count also *predicts* the hardware number above: 9 624 activations × #164's measured
+11.83 µs/activation on the C6 = **113.9 ms** against the 118.6 ms measured — 4%. So the
+honest statement of the rate is **22.6 activations/byte × 11.83 µs/activation**, not
+"230 µs/byte": the same number, split into the part a fix can move and the part it cannot.
+One term is already sized — `ByteBuilder`'s initial capacity 16 → 512 takes the frame from
+9 624 to 7 456 activations (−22.5%), though that constant is a probe and not a proposal,
+since `encodeMap:` allocates two builders per entry. The fixes it picks, in order: a
+byte-append costing one activation instead of four; deleting the map re-copy; sizing the
+accumulator instead of growing then freezing it. #161's fix (1) is unaffected and still
+true — it deletes a whole extra encode, where this is what one encode costs.
 Two findings from the host half matter beyond #161
 (`docs/results/2026-08-06-pushbuild-three-way.md`):
 **(a)** the boot-to-verdict window is structurally blind to the trim loop — trimming only

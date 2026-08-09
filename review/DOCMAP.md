@@ -77,7 +77,7 @@ and `~/workspaceToit/nodus/docs/`:
 
 <!-- BEGIN GENERATED INVENTORY — do not edit below; rerun tools/docmap.sh -->
 
-_Regenerated 2026-08-08 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
+_Regenerated 2026-08-09 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
 
 ### review
 
@@ -85,7 +85,7 @@ _Regenerated 2026-08-08 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `review/2026-07-04-context-decision.md` — Task 8 design question: keep the deferred-lift heap Context? _(record, 2026-07-04)_
 - `review/2026-07-04-pre-fiber-baseline.md` — Pre-fiber baseline commits in oevm / ns-oevm _(record, 2026-08-02)_
 - `review/2026-07-21-issue-65-http-load-wedge/README.md` — tuvm#65 — evidence folder (2026-07-21) _(record, 2026-08-02)_
-- `review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-08-02)_
+- `review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-08-08)_
 - `review/ISSUE-dongle-usb-openthread.md` — DRAFT ISSUE (post to davidg238/tuvm — created from a session without gh permission) _(record, 2026-07-12)_
 - `review/WHY-AGENTS.md` — Why agents — nodus + porta as an agent-first platform _(record, 2026-07-14)_
 - `review/WHY-OEOM.md` — Why OEOM — the kernel that survived the graveyard _(record, 2026-07-12)_
@@ -196,6 +196,7 @@ _Regenerated 2026-08-08 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/results/2026-08-06-mprof-capacity-under-bridge.md` — Table capacity under a real bridged node (#165 Task 1, design D9) _(record, 2026-08-07)_
 - `docs/results/2026-08-06-mprof-window-hardware.md` — A field node profiles on request, and was silent before it was asked _(record, 2026-08-07)_
 - `docs/results/2026-08-06-pushbuild-three-way.md` — `pushBuild` is three spans — and it is one thing done twice, not three things _(record, 2026-08-06)_
+- `docs/results/2026-08-09-cbor-encode-shape.md` — `Cbor>>encode:` — what shape is the cost? (#163) _(record)_
 - `docs/spec.md` — Architectural Specification: Open, Lazy-Reified Virtual Machine _(record, 2026-07-03)_
 - `docs/spikes/2026-07-17-oeom-native-hanoi/README.md` — Spike archive: OEOM native-substitution (Hanoi AOT ceiling) — 2026-07-17 _(record, 2026-07-17)_
 - `docs/superpowers/notes/2026-06-18-w1-rooting-audit.md` — W1 Rooting Audit — Runtime `gc_allocate` / `float_alloc` Sites _(note, 2026-07-03)_

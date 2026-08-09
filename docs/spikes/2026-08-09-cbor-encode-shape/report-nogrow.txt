@@ -1,0 +1,158 @@
+==============================================================================
+build host
+=== timing: min of 20 samples x 20 encodes, one binary ===
+str16 bytes=17 ns/encode=10300 ns/byte=605 gc=0
+str64 bytes=66 ns/encode=23700 ns/byte=359 gc=0
+str256 bytes=259 ns/encode=87200 ns/byte=336 gc=0
+ints64 bytes=66 ns/encode=54850 ns/byte=831 gc=0
+map8 bytes=41 ns/encode=62350 ns/byte=1520 gc=0
+listNest1 bytes=260 ns/encode=89500 ns/byte=344 gc=0
+listNest4 bytes=263 ns/encode=92100 ns/byte=350 gc=0
+mapNest1 bytes=264 ns/encode=167450 ns/byte=634 gc=1
+mapNest4 bytes=279 ns/encode=388850 ns/byte=1393 gc=1
+batch bytes=425 ns/encode=470600 ns/byte=1107 gc=2
+=== activation counts: one encode per window, exact ===
+done
+
+==============================================================================
+ACTIVATION COUNTS PER ENCODE
+
+str16      bytes=17  activations=100  act/byte=5.88  methods=17  overflow=0  -> C6 predicted 1.2 ms
+        34  Kernel_ByteArray>>u8At:put:
+        17  Kernel_ByteArray>>byteSize
+        17  Kernel_ByteArray>>u8At:
+        17  Kernel_ByteBuilder>>add:
+         2  Kernel_ByteArray>>setRaw:
+         2  Kernel_ByteArray>>init_new
+         1  Kernel>>rankOf:
+         1  Kernel_ByteArray>>freeze
+         1  Kernel_ByteBuilder>>frozenBytes
+         1  Kernel_ByteBuilder>>init_new
+         1  Kernel>>profileStop
+         1  Kernel_Cbor>>encode:
+
+str64      bytes=66  activations=345  act/byte=5.23  methods=17  overflow=0  -> C6 predicted 4.1 ms
+       132  Kernel_ByteArray>>u8At:put:
+        66  Kernel_ByteArray>>byteSize
+        66  Kernel_ByteArray>>u8At:
+        66  Kernel_ByteBuilder>>add:
+         2  Kernel_ByteArray>>setRaw:
+         2  Kernel_ByteArray>>init_new
+         1  Kernel>>rankOf:
+         1  Kernel_ByteArray>>freeze
+         1  Kernel_ByteBuilder>>frozenBytes
+         1  Kernel_ByteBuilder>>init_new
+         1  Kernel>>profileStop
+         1  Kernel_Cbor>>encode:
+
+str256     bytes=259  activations=1310  act/byte=5.06  methods=17  overflow=0  -> C6 predicted 15.5 ms
+       518  Kernel_ByteArray>>u8At:put:
+       259  Kernel_ByteArray>>byteSize
+       259  Kernel_ByteArray>>u8At:
+       259  Kernel_ByteBuilder>>add:
+         2  Kernel_ByteArray>>setRaw:
+         2  Kernel_ByteArray>>init_new
+         1  Kernel>>rankOf:
+         1  Kernel_ByteArray>>freeze
+         1  Kernel_ByteBuilder>>frozenBytes
+         1  Kernel_ByteBuilder>>init_new
+         1  Kernel>>profileStop
+         1  Kernel_Cbor>>encode:
+
+ints64     bytes=66  activations=607  act/byte=9.20  methods=24  overflow=0  -> C6 predicted 7.2 ms
+       132  Kernel_ByteArray>>u8At:put:
+        66  Kernel_ByteArray>>byteSize
+        66  Kernel_ByteArray>>u8At:
+        66  Kernel_ByteBuilder>>add:
+        65  Kernel>>rankOf:
+        65  Kernel_Cbor>>encode:into:depth:
+        64  Block_Kernel_Cbor_block33>>value:
+        64  Kernel_Cbor>>appendFrag:into:
+         2  Kernel_Array>>size
+         2  Kernel_ByteArray>>setRaw:
+         2  Kernel_ByteArray>>init_new
+         1  Kernel_Cbor>>encodeList:into:depth:
+
+map8       bytes=41  activations=836  act/byte=20.39  methods=38  overflow=0  -> C6 predicted 9.9 ms
+       137  Kernel_ByteArray>>u8At:
+       122  Kernel_ByteArray>>u8At:put:
+        81  Kernel_ByteArray>>byteSize
+        81  Kernel_ByteBuilder>>add:
+        56  Kernel_ByteBuilder>>at:
+        40  Block_Kernel_Cbor_block35>>value:
+        37  Kernel_OrderedCollection>>at:
+        18  Kernel_ByteArray>>setRaw:
+        18  Kernel_ByteArray>>init_new
+        17  Kernel_Array>>size
+        17  Kernel>>rankOf:
+        17  Kernel_ByteBuilder>>init_new
+
+listNest1  bytes=260  activations=1326  act/byte=5.10  methods=24  overflow=0  -> C6 predicted 15.7 ms
+       520  Kernel_ByteArray>>u8At:put:
+       260  Kernel_ByteArray>>byteSize
+       260  Kernel_ByteArray>>u8At:
+       260  Kernel_ByteBuilder>>add:
+         2  Kernel_Array>>size
+         2  Kernel>>rankOf:
+         2  Kernel_ByteArray>>setRaw:
+         2  Kernel_Cbor>>encode:into:depth:
+         2  Kernel_Cbor>>emitHead:len:into:
+         2  Kernel_ByteArray>>init_new
+         1  Kernel_Cbor>>encodeList:into:depth:
+         1  Block_Kernel_Cbor_block33>>value:
+
+listNest4  bytes=263  activations=1374  act/byte=5.22  methods=24  overflow=0  -> C6 predicted 16.3 ms
+       526  Kernel_ByteArray>>u8At:put:
+       263  Kernel_ByteArray>>byteSize
+       263  Kernel_ByteArray>>u8At:
+       263  Kernel_ByteBuilder>>add:
+         8  Kernel_Array>>size
+         5  Kernel>>rankOf:
+         5  Kernel_Cbor>>encode:into:depth:
+         5  Kernel_Cbor>>emitHead:len:into:
+         4  Kernel_Cbor>>encodeList:into:depth:
+         4  Block_Kernel_Cbor_block33>>value:
+         4  Kernel_Array>>do:
+         4  Kernel_List>>valueRank
+
+mapNest1   bytes=264  activations=2689  act/byte=10.19  methods=34  overflow=0  -> C6 predicted 31.8 ms
+       791  Kernel_ByteArray>>u8At:put:
+       527  Kernel_ByteArray>>byteSize
+       527  Kernel_ByteArray>>u8At:
+       527  Kernel_ByteBuilder>>add:
+       263  Block_Kernel_Cbor_block35>>value:
+         4  Kernel_ByteArray>>setRaw:
+         4  Kernel_Cbor>>emitHead:len:into:
+         4  Kernel_ByteArray>>init_new
+         3  Kernel_Array>>size
+         3  Kernel>>rankOf:
+         3  Kernel_ByteBuilder>>init_new
+         3  Kernel_Cbor>>encode:into:depth:
+
+mapNest4   bytes=279  activations=6976  act/byte=25.00  methods=34  overflow=0  -> C6 predicted 82.5 ms
+      1640  Kernel_ByteArray>>u8At:put:
+      1361  Kernel_ByteArray>>byteSize
+      1361  Kernel_ByteArray>>u8At:
+      1361  Kernel_ByteBuilder>>add:
+      1082  Block_Kernel_Cbor_block35>>value:
+        13  Kernel_Cbor>>emitHead:len:into:
+        12  Kernel_Array>>size
+        10  Kernel_ByteArray>>setRaw:
+        10  Kernel_ByteArray>>init_new
+         9  Kernel>>rankOf:
+         9  Kernel_ByteBuilder>>init_new
+         9  Kernel_Cbor>>encode:into:depth:
+
+batch      bytes=425  activations=7456  act/byte=17.54  methods=51  overflow=0  -> C6 predicted 88.2 ms
+      1554  Kernel_ByteArray>>u8At:put:
+      1413  Kernel_ByteArray>>u8At:
+      1129  Kernel_ByteArray>>byteSize
+      1129  Kernel_ByteBuilder>>add:
+       704  Block_Kernel_Cbor_block35>>value:
+       284  Kernel_ByteBuilder>>at:
+       186  Kernel_OrderedCollection>>at:
+        98  Kernel_OrderedCollection>>at:put:
+        92  Kernel_ByteBuilder>>size
+        73  Kernel_Cbor>>emitHead:len:into:
+        66  Kernel>>rankOf:
+        66  Kernel_Cbor>>encode:into:depth:

@@ -1,0 +1,201 @@
+(* #163 — what SHAPE is Cbor>>encode:'s cost? Per byte, per element, or per
+   allocation?
+
+   #163 says plainly: do not optimise from the source reading. This program is the
+   falsifiable precondition. It encodes payloads that vary ONE axis at a time and
+   reports, for each, the encoded byte count (measured, never assumed), the
+   best-of-N wall-clock microseconds, and the GC cycles the encodes cost.
+
+   THE DECISIVE PAIR is `listNest4` vs `mapNest4`. Both wrap the SAME 256-byte
+   string in four containers, so they differ only in which container:
+
+     encodeList: writes its elements STRAIGHT into the caller's accumulator.
+     encodeMap:  gives every entry its OWN ByteBuilder, then copies those bytes
+                 into the accumulator one `add:` send at a time (appendColl:).
+
+   If the cost is per byte and maps re-copy, mapNest4 costs ~4x mapNest1 while
+   listNest4 costs ~1x listNest1. If the cost is per element or per allocation,
+   the two nests move together. One number separates the hypotheses.
+
+   The mprof half (a build with -DOEVM_METHOD_PROFILE) wraps ONE encode per
+   payload in a profile window, so the activation counts are exact and carry no
+   timing noise at all. Counts x the C6's measured 11.83 us/activation
+   (docs/results/2026-08-06-method-call-counter-spike.md) PREDICTS the 118 571 us
+   #163 measured for pushEncode on hardware — which is what makes this host run a
+   claim about the device rather than about this laptop.
+
+   Run it with ./run.sh in this directory. Deliberately NOT in nodus/tests: it
+   prints timings, which are not reproducible, and a suite test that cannot fail
+   is worse than no test.
+
+   `platform Cbor` answers an INSTANCE where `platform Spans` answers the CLASS —
+   the asymmetry 19_latency/05_record_size.nsl warns about. *)
+class CborEncodeShape packageUsing: manifest = ( | platform cbor spans | ) (
+
+  (* Span samples x encodes per sample. The bracket wraps a BATCH because a
+     16-byte encode is near the host clock's 1 us floor and would otherwise read
+     as zero; the reported per-encode figure is the MIN sample divided by the
+     batch, which is the benchmark discipline's estimator (min of reps, one
+     binary, deltas within it). *)
+  reps = ( ^ 20 )
+  samples = ( ^ 20 )
+
+  (* ---- payloads ---------------------------------------------------------- *)
+
+  (* The real 425 B push frame, copied from 22_spacesync/09_batch_size.nsl so the
+     anchor is the frame the fleet actually sends, not a plausible stand-in. *)
+  health = ( | pairs |
+    pairs:: platform OrderedCollection new.
+    pairs add: #uptimeMs -> 2592000000.
+    pairs add: #bootId -> 1.
+    pairs add: #wakes -> 1296000.
+    pairs add: #pollTimeouts -> 431.
+    pairs add: #streamDropped -> 17.
+    ^ platform Record tag: #Health fields: (platform Map fromPairs: pairs) )
+
+  metrics = ( | pairs |
+    pairs:: platform OrderedCollection new.
+    pairs add: #heapSize -> 53248.
+    pairs add: #liveBytes -> 36196.
+    pairs add: #heapHighWater -> 53228.
+    pairs add: #largestFreeBlock -> 18608.
+    pairs add: #gcCycles -> 1523.
+    pairs add: #handlesLive -> 1.
+    pairs add: #handlesHighWater -> 1.
+    pairs add: #queueHighWater -> 2.
+    pairs add: #overruns -> 0.
+    pairs add: #pulseDrops -> 0.
+    pairs add: #pulseCoalesced -> 0.
+    ^ platform Record tag: #Metrics fields: (platform Map fromPairs: pairs) )
+
+  logRec = ( ^ platform Record tag: #Log with: #level -> #info
+                                     with: #text -> 'tick 1296000' )
+
+  rowSeq: s path: p value: v = ( ^ platform List with: s with: p with: 2 with: v )
+
+  batch = ( | rows |
+    rows:: platform OrderedCollection new.
+    rows add: (self rowSeq: 1296000 path: 'obs/health'  value: self health).
+    rows add: (self rowSeq: 1296001 path: 'sys/metrics' value: self metrics).
+    rows add: (self rowSeq: 1296002 path: 'tel/log'     value: self logRec).
+    ^ platform Record tag: #push
+        with: #id -> 'c6-bench'
+        with: #bootId -> 1
+        with: #entries -> (platform List fromCollection: rows) )
+
+  (* 64 one-byte integers: the same order of magnitude of BYTES as str64 with 64x
+     the ELEMENTS. The pair separates per-byte from per-element. `// 4` keeps
+     every value under 24, so each is a single CBOR byte — this dialect has no
+     modulo. *)
+  ints64 = ( | oc i |
+    oc:: platform OrderedCollection new.
+    i:: 1. [ i <= 64 ] whileTrue: [ oc add: i // 4. i:: i + 1 ].
+    ^ platform List fromCollection: oc )
+
+  map8 = ( | pairs |
+    pairs:: platform OrderedCollection new.
+    pairs add: #a -> 1. pairs add: #b -> 2. pairs add: #c -> 3. pairs add: #d -> 4.
+    pairs add: #e -> 5. pairs add: #f -> 6. pairs add: #g -> 7. pairs add: #h -> 8.
+    ^ platform Map fromPairs: pairs )
+
+  (* ---- the two measurement halves --------------------------------------- *)
+
+  (* Timing. `slot` is registered by the CALLER with a literal Symbol: Spans
+     seeds its table with two Symbols and compares names with `=`, so handing it
+     a String would be comparing a Symbol against a String on a path where a
+     false answer silently allocates a second slot. *)
+  time: name slot: slot of: v = (
+    | st bytes minUs perEncodeNs gc0 gc1 s |
+    bytes:: (cbor encode: v) byteSize.
+    gc0:: platform heapStats gcCycles.
+    s:: 1.
+    [ s <= self samples ] whileTrue: [
+      spans begin: slot.
+      self encodeTimes: v.
+      spans end: slot.
+      s:: s + 1 ].
+    gc1:: platform heapStats gcCycles.
+    st:: spans statsAt: slot.
+    minUs:: st basicAt: 2.
+    perEncodeNs:: minUs * 1000 // self reps.
+    (name, ' bytes=', bytes printString,
+           ' ns/encode=', perEncodeNs printString,
+           ' ns/byte=', (perEncodeNs // bytes) printString,
+           ' gc=', (gc1 - gc0) printString) println.
+    ^ self )
+
+  (* Hoisted out of the timing method so nothing sits between the span brackets
+     but the encoder and one whileTrue: — no reified block on the measured path
+     (the LD_SLOT gotcha), and no argument shuffling per iteration. *)
+  encodeTimes: v = ( | i n |
+    i:: 1. n:: self reps.
+    [ i <= n ] whileTrue: [ cbor encode: v. i:: i + 1 ].
+    ^ self )
+
+  (* Exact activation counts for ONE encode. The dump lands on stderr as
+     `mprof: <blob-offset> <count>` lines; join them against the image's
+     .oimg.methods.json sidecar to get names. A build without
+     -DOEVM_METHOD_PROFILE makes both sends no-ops and prints only the header,
+     which is the visible absence #165 designed for. *)
+  count: name of: v = (
+    ('--- mprof ' , name , ' bytes=' , (cbor encode: v) byteSize printString) println.
+    platform profileStart.
+    cbor encode: v.
+    platform profileStop.
+    ^ self )
+
+(* The parameter is `p`, not `platform`, because the seam is held in an INSTANCE
+   SLOT of that name: `->` is compile-time sugar that rewrites to
+   `Association key:value:`, and a bare capitalised varRef resolves through
+   `platform Association` — so every method that writes `#k -> v` needs
+   `platform` in ITS OWN scope, which a main:-only parameter would not give it.
+   Naming the parameter `platform` too would shadow the slot it is assigned to. *)
+public main: p args: args = (
+  | s16 s64 s256 listNest1 listNest4 mapNest1 mapNest4 i64 m8 bat |
+  platform:: p.
+  cbor::  platform Cbor.
+  spans:: platform Spans new.
+
+  s16::  '0123456789abcdef'.
+  s64::  s16, s16, s16, s16.
+  s256:: s64, s64, s64, s64.
+
+  (* Same payload, same depth, different container. *)
+  listNest1:: platform List with: s256.
+  listNest4:: platform List with: (platform List with: (platform List with: (platform List with: s256))).
+  mapNest1::  platform Map with: #v -> s256.
+  mapNest4::  platform Map with: #v -> (platform Map with: #v -> (platform Map with: #v -> (platform Map with: #v -> s256))).
+
+  i64:: self ints64.
+  m8::  self map8.
+  bat:: self batch.
+
+  ('build ' , platform buildId) println.
+  '=== timing: min of 20 samples x 20 encodes, one binary ===' println.
+  self time: 'str16'     slot: (spans register: #str16)     of: s16.
+  self time: 'str64'     slot: (spans register: #str64)     of: s64.
+  self time: 'str256'    slot: (spans register: #str256)    of: s256.
+  self time: 'ints64'    slot: (spans register: #ints64)    of: i64.
+  self time: 'map8'      slot: (spans register: #map8)      of: m8.
+  self time: 'listNest1' slot: (spans register: #listNest1) of: listNest1.
+  self time: 'listNest4' slot: (spans register: #listNest4) of: listNest4.
+  self time: 'mapNest1'  slot: (spans register: #mapNest1)  of: mapNest1.
+  self time: 'mapNest4'  slot: (spans register: #mapNest4)  of: mapNest4.
+  self time: 'batch'     slot: (spans register: #batch)     of: bat.
+
+  '=== activation counts: one encode per window, exact ===' println.
+  self count: 'str16'     of: s16.
+  self count: 'str64'     of: s64.
+  self count: 'str256'    of: s256.
+  self count: 'ints64'    of: i64.
+  self count: 'map8'      of: m8.
+  self count: 'listNest1' of: listNest1.
+  self count: 'listNest4' of: listNest4.
+  self count: 'mapNest1'  of: mapNest1.
+  self count: 'mapNest4'  of: mapNest4.
+  self count: 'batch'     of: bat.
+
+  'done' println.
+  ^ 0 )
+) : (
+)
