@@ -252,6 +252,46 @@ at 128 KB, for a reason unrelated to the codec — a single boot-time allocation
 arena + 24 B, identical in all three arms and not chased here. Cycles at a fixed arena are
 proportional to bytes allocated, so the **ratios** transfer; the absolute counts do not.
 
+## On the metal: c6spare, both arms, same bench
+
+`nodus/tuvm/zephyr/CborBenchNodeC6.nsl`, 20 encodes per payload, self-timed with
+`millis`, no bridge and no Thread. Two flashes (`git show 216a38b~1:…kernel.nsl` for the
+before arm), which is **cross-binary** — normally forbidden by the benchmark discipline,
+and acceptable here for a stated reason: that rule exists because #164's *0.9%* hook
+measured 4% faster across two builds. It protects small effects. These are 2–8×, which no
+code layout produces.
+
+| payload | bytes | before µs | after µs | speedup | gc before → after |
+|---|---:|---:|---:|---:|---:|
+| `str256` | 259 | 30 850 | 15 100 | 2.04× | 0 → 0 |
+| `map8` | 41 | 13 200 | 8 100 | 1.63× | 1 → 0 |
+| `mapNest4` | 279 | 148 550 | 18 850 | **7.88×** | 7 → 1 |
+| **`batch`** | **425** | **123 800** | **53 600** | **2.31×** | 6 → 3 |
+
+**The before arm validates the whole exercise.** `batch` costs **123.8 ms** for a *known*
+425 B frame, against the **118.571 ms** #163 measured for `pushEncode` on a bridged C6 with
+a frame of "at most 512 B" — 4% apart, from an entirely different program. The synthetic
+payload really is the frame, so everything above is about the thing that ships.
+
+### The activation-count model is DIRECTIONAL, NOT QUANTITATIVE — this run falsified it
+
+| | counts predict | board says | over-promise |
+|---|---:|---:|---:|
+| `batch` | 4.14× | **2.31×** | 1.8× |
+| `mapNest4` | 26.5× | **7.88×** | 3.4× |
+| `str256` | 8.5× | 2.04× | 4.2× |
+
+The model was validated at 4% on the *unmodified* codec and is stated that way above. It
+does not survive being used to price a **change**, because a change alters the activation
+mix — and every one of these fixes removed *cheap* activations (one-line accessors) while
+leaving expensive ones. `batch` after is 2 325 activations in 53.6 ms = **23 µs per
+activation**, double the 11.83 µs Hanoi average.
+
+The `host ns/act` column predicted this before the flash (67–68 flat before, 126–312 after)
+and the 39–79 ms bracket contained the true 53.6 ms. **Use counts to rank candidate fixes;
+use the board to size them.** Anyone quoting 4× from the count table would have been wrong
+by 1.8×.
+
 ## What this picks, in order
 
 Everything below is now sized rather than argued, which was the whole point of measuring
