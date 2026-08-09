@@ -1,0 +1,78 @@
+(*
+porta space-sync (rete#174) — an inbound entry whose kind disagrees with the leaf's
+PINNED kind is counted, reported once on tel/log, and SKIPPED, so the batch completes
+and the cursor advances.
+
+WHAT THIS PREVENTS. Before the fix the write raised out of `applyEntry:` and escaped
+`applyBatch:` BEFORE the high-water was adopted, so the cursor never moved — the same
+batch re-pulled and re-raised every tick, forever. One ordinary operator write reaches
+it (`porta put <node> <an existing cell path> --kind stream`), and the node goes on
+exchanging happily while applying nothing, so neither end can see it. A permanent wedge
+of the pull cursor is a worse outcome than a crash, which is the same argument
+24_ota/04 makes about the read side.
+
+This is the WRITE-side twin of that read-side defect. Same root: kind is pinned by the
+FIRST write and re-created by replay, while the wire carries an operator-chosen kind —
+so the party that does not own the name must ask before it writes.
+
+`Channel` STILL raises, and 16_cells/03 pins that. It is right for a caller that owns
+the name. What changed is that `PortaBridge`, which does not, asks first — the same
+split `peekCell:ifStream:` already makes on the read side.
+
+BOTH DIRECTIONS ARE ASSERTED, because a guard that only checks one of them looks
+identical on the traffic that happens to be flowing: a stream write onto a pinned cell,
+and a cell write onto a pinned stream.
+
+The `cursor` lines are the point of the test, not decoration. `rejected` alone would go
+up even in the broken version — it is the cursor ADVANCING PAST a rejected entry that
+says the batch completed rather than aborting mid-loop.
+expect:
+cell pinned pinned
+cursor 4
+rejected 1
+cursor 5
+cell untouched pinned
+log level #error
+rejected 2
+cursor 9
+still alive true
+*)
+class BridgeKindMismatch packageUsing: manifest = () (
+
+  (* One entry per batch, so each assertion below is about exactly one decision. *)
+  batch: platform hi: hi seq: seq path: path kind: kind value: value = (
+    ^ platform Cbor encode:
+        (platform Record tag: #batch
+           with: #hi -> hi
+           with: #entries -> (platform List
+              with: (platform List with: seq with: path with: kind with: value))) )
+
+  public main: platform args: args = (
+    | space bridge spans log |
+    space:: platform space.
+    spans:: platform Spans new.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans.
+
+    (* goal/name becomes a CELL, pinned by this first write. *)
+    bridge applyBatch: (self batch: platform hi: 4 seq: 1 path: 'goal/name' kind: 2 value: 'pinned').
+    ('cell pinned ' , (space peek: 'goal/name')) out.
+    ('cursor ' , bridge cursor printString) out.
+
+    (* The same leaf, now claimed as a STREAM. Under the defect this raised. *)
+    bridge applyBatch: (self batch: platform hi: 5 seq: 5 path: 'goal/name' kind: 1 value: 'surprise').
+    ('rejected ' , bridge rejected printString) out.
+    ('cursor ' , bridge cursor printString) out.
+    ('cell untouched ' , (space peek: 'goal/name')) out.
+    log:: space take: 'tel/log' ifEmpty: [ nil ].
+    ('log level ' , (log at: #level ifAbsent: [ #NONE ]) printString) out.
+
+    (* The mirror: a CELL write onto a leaf pinned as a stream. *)
+    bridge applyBatch: (self batch: platform hi: 8 seq: 8 path: 'goal/do/go' kind: 1 value: 'run').
+    bridge applyBatch: (self batch: platform hi: 9 seq: 9 path: 'goal/do/go' kind: 2 value: 'nope').
+    ('rejected ' , bridge rejected printString) out.
+    ('cursor ' , bridge cursor printString) out.
+
+    ('still alive ' , true printString) out.
+  )
+) : (
+)

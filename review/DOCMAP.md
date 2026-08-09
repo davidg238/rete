@@ -197,7 +197,7 @@ _Regenerated 2026-08-09 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/results/2026-08-06-mprof-window-hardware.md` — A field node profiles on request, and was silent before it was asked _(record, 2026-08-07)_
 - `docs/results/2026-08-06-pushbuild-three-way.md` — `pushBuild` is three spans — and it is one thing done twice, not three things _(record, 2026-08-06)_
 - `docs/results/2026-08-09-cbor-encode-shape.md` — `Cbor>>encode:` — what shape is the cost? (#163) _(record, 2026-08-09)_
-- `docs/results/2026-08-09-checkin-after-the-codec-fix.md` — The check-in after the codec fix — `pushBuild` is still the top span, and it is no longer the story _(record)_
+- `docs/results/2026-08-09-checkin-after-the-codec-fix.md` — The check-in after the codec fix — `pushBuild` is still the top span, and it is no longer the story _(record, 2026-08-09)_
 - `docs/spec.md` — Architectural Specification: Open, Lazy-Reified Virtual Machine _(record, 2026-07-03)_
 - `docs/spikes/2026-07-17-oeom-native-hanoi/README.md` — Spike archive: OEOM native-substitution (Hanoi AOT ceiling) — 2026-07-17 _(record, 2026-07-17)_
 - `docs/superpowers/notes/2026-06-18-w1-rooting-audit.md` — W1 Rooting Audit — Runtime `gc_allocate` / `float_alloc` Sites _(note, 2026-07-03)_

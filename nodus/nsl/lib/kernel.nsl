@@ -1757,7 +1757,7 @@ class Kernel usingPlatform: platform = () (
        never raised. A node that crashes on a malformed datagram is a node an
        attacker can switch off. *)
     applyEntry: row = (
-      | path kind value |
+      | path kind value have |
       (outer rankOf: row) = 7 ifFalse: [ rejected:: rejected + 1. ^ self ].
       row size = 4 ifFalse: [ rejected:: rejected + 1. ^ self ].
       path::  row at: 2.
@@ -1765,9 +1765,24 @@ class Kernel usingPlatform: platform = () (
       value:: row at: 4.
       (outer rankOf: path) = 4 ifFalse: [ rejected:: rejected + 1. ^ self ].
       (self mayApply: path) ifFalse: [ rejected:: rejected + 1. ^ self ].
+      (kind = 1 or: [ kind = 2 ]) ifFalse: [ rejected:: rejected + 1. ^ self ].
+      (* THE KIND MUST BE ASKED, NOT ASSUMED (rete#174). Kind is pinned by the
+         first write and re-created by replay, and the wire carries a kind the
+         OPERATOR chose — so `put:` on a pinned stream and `out:` on a pinned cell
+         are both reachable by one ordinary `porta put --kind …`. Both raise, and
+         the raise escapes `applyBatch:` before the high-water is adopted: the
+         cursor never advances, the same batch re-pulls, and it raises again every
+         tick forever while the exchange goes on looking healthy. A permanent
+         wedge, invisible from both ends.
+         The write-side twin of `peekCell:ifStream:`, and the same rule as every
+         other check here: untrusted input is counted and dropped, never raised. *)
+      have:: space kindAt: path.
+      (have = 0 or: [ have = kind ]) ifFalse: [
+        rejected:: rejected + 1.
+        self telLog: #error text: 'kind mismatch'.
+        ^ self ].
       kind = 2 ifTrue: [ space put: path value: value. ^ self ].
-      kind = 1 ifTrue: [ space out: path value: value. ^ self ].
-      rejected:: rejected + 1.
+      space out: path value: value.
       ^ self )
 
     (* porta's authority, enforced where it can be believed: goal/** and dbg/req,
@@ -2153,7 +2168,7 @@ class Kernel usingPlatform: platform = () (
       (otaConfirmed not and: [ acked > 0 and: [ outer otaTrial ] ]) ifTrue: [
         outer otaConfirm.
         otaConfirmed:: true.
-        self otaLog: #info text: 'ota confirmed' ].
+        self telLog: #info text: 'ota confirmed' ].
       otaStaged ifTrue: [ ^ outer otaActivate: stagedHash sig: stagedSig ].
       (* A TRIAL-UNCONFIRMED NODE NEVER STAGES. Found in the Task 8 runner review
          and fixed here, because the node is the only place it can be fixed.
@@ -2191,12 +2206,12 @@ class Kernel usingPlatform: platform = () (
          A wrongly kinded leaf is a peer disagreeing with the pinned record, so it
          gets the same report a malformed value gets. *)
       rec:: space peekCell: 'goal/apps/main' ifStream: [
-        self otaLog: #error text: 'ota bad record'.
+        self telLog: #error text: 'ota bad record'.
         nil ].
       rec == nil ifTrue: [ ^ self ].
       want:: self otaWantedFrom: rec.
       want == nil ifTrue: [
-        self otaLog: #error text: 'ota bad record'.
+        self telLog: #error text: 'ota bad record'.
         ^ self ].
       hash:: want at: 1.
       sig::  want at: 2.
@@ -2206,8 +2221,8 @@ class Kernel usingPlatform: platform = () (
           stagedHash:: hash.
           stagedSig::  sig.
           otaStaged::  true.
-          self otaLog: #info text: 'ota staged' ]
-        ifFalse: [ self otaLog: #error text: 'ota stage failed' ].
+          self telLog: #info text: 'ota staged' ]
+        ifFalse: [ self telLog: #error text: 'ota stage failed' ].
       ^ self )
 
     (* tel/log carries a `Log { level, text }` record and NOT a bare String —
@@ -2218,8 +2233,13 @@ class Kernel usingPlatform: platform = () (
 
        Levels: staging and confirming are the machine reporting progress it was
        asked for (#info); a bad record, a wrongly kinded leaf and a failed stage
-       are all "this rollout is not happening" (#error). *)
-    otaLog: level text: text = (
+       are all "this is not happening" (#error).
+
+       Named `telLog:` and not `otaLog:` since rete#174: the ota tail was merely
+       its first caller, and `applyEntry:`'s kind-mismatch report is the second.
+       One helper rather than one per caller — the shape it writes is pinned by
+       RECORDS §4 for every writer, not for ota. *)
+    telLog: level text: text = (
       space out: 'tel/log' value:
         (Record tag: #Log with: #level -> level with: #text -> text).
       ^ self )
@@ -2402,6 +2422,18 @@ class Kernel usingPlatform: platform = () (
        bridge, and nobody to ask (nsl-tests/15_cells/02_survives_crash). *)
     KIND_STREAM = ( ^ 1 )
     KIND_CELL   = ( ^ 2 )                (* 0 = unset: nobody has ever written it *)
+
+    (* The pinned kind at `rel`: 1 stream, 2 cell, 0 nobody has ever written it.
+       For a caller that does NOT own the name and must therefore not use the
+       raising verb — `peekCell:ifStream:` is the read-side convenience built on
+       this, and PortaBridge>>applyEntry: is the write side, which has two verbs
+       to guard rather than one and so wants the kind itself.
+
+       Confinement is intact for the reason `peekCell:ifStream:` gives: the
+       resolve happens HERE, so a capability can only ever be told about names it
+       can already address, and no caller reaches `platform spaceKind:` past
+       `resolve:`. *)
+    public kindAt: rel = ( ^ platform spaceKind: (self resolve: rel) )
 
     public out: rel value: v = (
       | p |

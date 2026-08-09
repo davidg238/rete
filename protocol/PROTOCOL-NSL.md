@@ -192,6 +192,14 @@ the C space — which is storage, not policy):
   and telemetry live here (`tel/**`, `sys/**`, `dbg/*`, `goal/do/*`). Sync transfers
   entries once, in order, deduped by sequence number.
 
+**A party that does not own a name must ask its kind before it touches it**, and must
+not use the raising verb. Kind is pinned by the first write and re-created by replay,
+so one wrongly kinded write would otherwise disable a reader or a writer permanently,
+with no recovery short of a new path. The two seams where this bites are both on the
+node: reading a gateway-written leaf (`Channel>>peekCell:ifStream:`) and applying an
+inbound entry whose kind the *operator* chose (`Channel>>kindAt:`, used by
+`PortaBridge>>applyEntry:`). See the sixth bridge rule in §4.1.
+
 Every value on the wire is a **CBOR record** from the nsl message algebra (null,
 bool, int, float, string, bytes, symbol, list, map, record — the L6/`cbor.md`
 encoding). Schemas are pinned **per path prefix** in `PROTOCOL-NSL-RECORDS.md`;
@@ -278,8 +286,9 @@ The VM gained ONE monotonic counter per space plus a `last_seq` per channel (D5)
 reached by prims 138–140 (`spaceSeq`, `spaceStamp`, `spaceChangedSince:under:max:`) and
 the nsl verbs `Channel>>changedSince:max:` / `Space>>seq` / `Space>>stamp`. The bridge
 is `class PortaBridge` in `kernel.nsl`, beside `NetBridge`; the node holds ONE instance.
-Five rules were decided in the writing and are part of the contract — the fifth added
-2026-08-05, after hardware found what its absence cost:
+Six rules were decided in the writing and are part of the contract — the fifth added
+2026-08-05, after hardware found what its absence cost, and the sixth 2026-08-09, after
+a review of the #25 branch found the same shape on the write side:
 
 - **The changed-since scan answers CELLS ONLY.** A stream's `seq` advances on every
   write, but its value is killed on delivery, so a stream row would carry a
@@ -345,6 +354,23 @@ Five rules were decided in the writing and are part of the contract — the fift
   for as long as the C6 gate wiped porta's store before every run — and the `hw`-only
   version of the fix was caught within one leg by `porta_sync_c6.sh`, which saw the
   dedupe stop firing. porta side is `Store.NoteCheckIn`.
+
+- **An inbound entry whose kind disagrees with the leaf's PINNED kind is counted,
+  reported once on `tel/log`, and SKIPPED — the batch completes and the cursor advances**
+  (added 2026-08-09, rete#174). The wire carries a kind the *operator* chose, and kind is
+  pinned by the first write, so `put:` onto a pinned stream and `out:` onto a pinned cell
+  are both reachable by one ordinary `porta put --kind …`. Both raise in `Channel`, which
+  is correct for a caller that owns the name and fatal for the bridge, which does not:
+  the raise escaped `applyBatch:` **before the high-water was adopted**, so the cursor
+  never advanced, the same batch re-pulled, and it raised again every tick forever. The
+  node went on exchanging and applied nothing, and neither end could see it — the same
+  silent-permanent shape the read side had at `goal/apps/main` before
+  `peekCell:ifStream:`. The bridge now asks `Channel>>kindAt:` first.
+
+  **This stops the wedge; it does not make the two ends agree.** porta then believes the
+  leaf is one kind and the node keeps the other, permanently, marked only by one log row
+  per replay. porta's `Store.Write` pins no kind at all — D6 is unenforced on the gateway
+  side, and that is **rete#180**, not this rule.
 
 Still owed, each filed rather than assumed: the cursor and `bootId` live in RAM (NVS is
 G7 work), the bridge holds the root space rather than a `goal`-write + `obs`-read pair
