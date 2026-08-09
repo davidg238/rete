@@ -37,8 +37,20 @@ deploy::flash() {
   # from the adapter we already resolved and vetted is what makes D5's deny-list
   # protective rather than advisory: without it, run.sh detects a port itself and
   # could pick the other board entirely.
+  #
+  # CONSOLE_PORT GETS THE SAME TREATMENT, and for the same reason (2026-08-09).
+  # Pinning only the flash port left run.sh detecting the CONSOLE port itself,
+  # which is the identical hazard one line up — and it went unnoticed for as long
+  # as exactly one CP2102N was ever attached. The moment a second board joined the
+  # bench, run.sh refused outright:
+  #
+  #   more than one CP2102N console candidate: … Set CONSOLE_PORT explicitly and retry.
+  #
+  # Failing closed is the right behaviour and it is still a bench that cannot run
+  # its own gates with two boards plugged in. Both ports now come from the single
+  # resolved adapter, so neither is ever detected and the deny-list covers both.
   port=$(target::board_byid "$board")
-  export ESPTOOL_PORT="$port"
+  export ESPTOOL_PORT="$port" CONSOLE_PORT="$port"
 
   local args=(--board "${BOARD_ID:-esp32c6}" --node "$NODE" --flash)
   [ -n "${CONF_EXTRA:-}" ] && args+=(--conf-extra "$CONF_EXTRA")
