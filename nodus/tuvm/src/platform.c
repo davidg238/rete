@@ -1264,6 +1264,17 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = space_make_string_pub(OEVM_BUILD_ID, strlen(OEVM_BUILD_ID));
         return 1;
     }
+    case PRIM_pf_bootId:
+        /* rete#162: the per-boot counter. Sibling of buildId above — buildId
+           names the IMAGE, this names the RUN of it — and unconditional for the
+           same reason: the storage is a property of the board, not of a build
+           flag. The backend does the increment-and-persist once and latches, so
+           this is a cached read on every call after the first (see
+           platform_backend.h on why the latch is load-bearing rather than
+           thrifty). No allocation: the backend's contract caps the value below
+           2^30 so TAG_SMI is exact on a 32-bit target. */
+        *out = TAG_SMI(platform_backend_boot_id());
+        return 1;
     /* --- rete#25: the image-push seam (src/ota.h). Six thin translations and
        nothing else — no policy lives here. Every one of them is honest with no
        runner environment (nil / false / a console line), which is what lets a

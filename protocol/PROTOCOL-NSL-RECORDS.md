@@ -191,11 +191,24 @@ precisely that the node had no bounded way to say what happened.
 monotonic-only; porta maps it to wall-clock at ingest using porta's own clock.
 
 - `monoMs` — milliseconds since boot (`monotonicMillis`, real on target since rung 8).
-- `bootId` — a counter incremented once per boot and persisted (NVS, G7).
+- `bootId` — a counter incremented once per boot and persisted (NVS), **real on target
+  since 2026-08-09** (rete#162). It was the source constant `1` from the space-sync rung
+  until then, which made the ordering claim below degenerate; the storage was never the
+  obstacle, since every `prj_*_thread.conf` already mounts NVS for OpenThread's own
+  dataset, so this cost one settings key (`tuvm/bootid`) and no new subsystem.
 
 The pair `(bootId, monoMs)` totally orders every observation a node ever makes, across
 reboots, **without a clock**. A node that reboots does not emit timestamps that appear
-to travel backwards, which is what a naive monotonic-only scheme does.
+to travel backwards, which is what a naive monotonic-only scheme does. This is also why
+`bootId` is a persisted **counter** and not a per-boot random nonce: a nonce would
+distinguish boots without ordering them, and the ordering is the claim.
+
+**`bootId = 0` means the node has no persistent boot identity** — no settings/NVS backend
+on that board, or a write that failed. It is a value to branch on, not an error: porta
+reads it as "restart detection is unavailable for this node" and logs that on every
+check-in. A node in this state must never be *guessed* about, because the guess would
+rewind a watermark on a node whose ack was merely lost — the one case the `seq <= hw`
+dedupe cannot survive.
 
 `bootId` rides the **batch envelope, not every record** — it is constant for every entry
 in a check-in, and paying 3–9 bytes per entry for it would be real money against a 512-byte
@@ -254,7 +267,7 @@ construction. There is nothing to enforce.
 | `obs/apps/<name>` | R | `AppObs { image: BlobRef, runlevel: int, lifecycle: sym, triggers: [sym] }` |
 | `obs/config/<app>/<key>` | R | scalar echo |
 | `obs/mode` / `obs/name` / `obs/forward` | R | same shapes as their `goal/` twins |
-| `obs/health` | R | `Health { uptimeMs: int, bootId: int, wakes: int, pollTimeouts: int, streamDropped: int }` — liveness and delivery only; the VM internals live at `sys/metrics` (§4.4), which the bridge publishes on every check-in. `heapFree`/`heapLargest`/`overruns` were **removed** 2026-08-04 (#56 design D2) rather than duplicated. **87 B encoded, MEASURED 2026-08-04** |
+| `obs/health` | R | `Health { uptimeMs: int, bootId: int, wakes: int, pollTimeouts: int, streamDropped: int }` — liveness and delivery only; the VM internals live at `sys/metrics` (§4.4), which the bridge publishes on every check-in. `heapFree`/`heapLargest`/`overruns` were **removed** 2026-08-04 (#56 design D2) rather than duplicated. **91 B encoded, MEASURED 2026-08-09** (was 87 B; rete#162 made `bootId` a real persisted counter, and CBOR is shortest-form, so a saturated counter is five bytes where the old constant `1` was one — the guard in `nodus/tests/22_spacesync/09_batch_size.nsl` now pins the worst legal value rather than a fresh node's) |
 | `obs/build` | R | `Build { chip: sym, build: str, sdk: str, image: bytes }` — see below |
 
 **`obs/apps/<name>` — the node currently writes image and lifecycle, and nothing else

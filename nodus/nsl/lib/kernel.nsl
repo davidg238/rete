@@ -1614,7 +1614,7 @@ class Kernel usingPlatform: platform = () (
          check-in — see the bracket comment on pushFrame. *)
       spans sPullSend sPullWait sApplyIn sPushBuild sPushSend sPushWait
       sPushCollect sPushEncode sPushTrim
-      stagedHash stagedSig |
+      stagedHash stagedSig bootId |
   ) (
     (* `spans` is a CONSTRUCTOR ARGUMENT and not optional, for the reason
        src/span.h gives for pinning the two C-owned slots: a node must not be able
@@ -1636,6 +1636,10 @@ class Kernel usingPlatform: platform = () (
     setSocket: s space: sp id: anId peer: h port: p spans: sn = (
       socket:: s. space:: sp. nodeId:: anId. peerHost:: h. peerPort:: p.
       spans:: sn.
+      (* rete#162 — read ONCE, here, for the reason the bracket comment on
+         `bootId` gives: this send is what performs the NVS write, and it must
+         not happen inside a measured check-in. *)
+      bootId:: platform bootId.
       sPullSend::  sn register: #pullSend.
       sPullWait::  sn register: #pullWait.
       sApplyIn::   sn register: #applyIn.
@@ -1654,11 +1658,30 @@ class Kernel usingPlatform: platform = () (
 
     (* bootId rides the batch envelope, not every record — it is constant for
        every entry in a check-in, and paying 3-9 bytes per entry for it would be
-       real money against a 512-byte batch. A source constant in this slice:
-       persisting a boot counter is NVS work, and porta stores this to order
-       observations across reboots, which a constant makes degenerate — honest
-       for a node that cannot yet count its own boots. *)
-    bootId = ( ^ 1 )
+       real money against a 512-byte batch.
+
+       rete#162: this WAS the source constant 1, and the constant is what cost
+       c6-bell a night of telemetry. porta cannot distinguish "the node rebooted,
+       so its seq counter restarted at 0" from "porta's ack went missing, so the
+       node is legitimately re-offering rows it already sent" — and those two
+       need OPPOSITE responses. Reading a reboot as a missed ack leaves porta's
+       high-water hours ahead of the node's fresh sequence, every pushed row is
+       discarded as already-applied, and the ack carries the stale watermark back
+       so the node believes it was delivered. Both ends then report success
+       forever. A per-boot identity collapses the ambiguity to a comparison.
+
+       LATCHED HERE, at construction, and deliberately not read per check-in.
+       The first read is what performs the NVS increment-and-store, and a flash
+       erase/write inside `checkIn` would land in the middle of the six spans
+       #161 exists to measure — it would be charged to pushBuild and read as a
+       codec regression. Latching also makes the constant-within-a-boot property
+       structural rather than a promise the C side happens to keep.
+
+       0 means the node has NO persistent boot identity (no settings/NVS backend,
+       or a write that failed). It is a value to branch on, not an error: porta
+       reads it as "restart detection unavailable for this node" and says so,
+       which is the one thing the old constant could never do. *)
+    public bootId = ( ^ bootId )
     (* The caps are a RADIO constraint, not a preference: 6LoWPAN fragments above
        ~102 B and a datagram survives only if every fragment does. porta rejects
        a push that breaks either, so the trimming below is what keeps a node from
@@ -3529,6 +3552,12 @@ class Kernel usingPlatform: platform = () (
   public profileStop       = ( platform profileStop. ^ self )
   (* #74: the build actually running, so a reader can pick the matching sidecar. *)
   public buildId           = ( ^ platform buildId )
+  (* rete#162: the RUN of that build — a counter incremented once per boot and
+     persisted in NVS (RECORDS §3). Sibling of buildId above and forwarded here
+     for the same reason: an app's `platform` is the kernel instance, so without
+     this line no app could name its own boot. Answers 0 on a node with no
+     persistent storage, which is a value to branch on and not an error. *)
+  public bootId            = ( ^ platform bootId )
   (* rete#25: the image-push seam (prims 145-150, src/ota.h). Six accessors, no
      policy — an app decides WHICH hash it wants and WHEN to confirm; C owns the
      bytes, because a staged image must never enter the VM heap (design G3).

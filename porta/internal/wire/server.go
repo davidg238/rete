@@ -130,15 +130,23 @@ func (s *Server) handlePull(r cval.Record, peer string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	was, restarted, err := s.st.NoteCheckIn(id, cursor, nodeHW)
+	was, restarted, err := s.st.NoteCheckIn(id, cursor, nodeHW, bootID)
 	if err != nil {
 		return nil, err
 	}
 	// Logged for the same reason the skip line is: a correction nobody can see
 	// is indistinguishable from one that never fired.
 	if restarted {
-		s.logf("porta: %s restarted (cursor and high-water both went backwards) — high-water %d -> %d, so this boot's rows are not mistaken for duplicates",
-			id, was, nodeHW)
+		s.logf("porta: %s restarted (boot %d) — high-water %d -> %d, so this boot's rows are not mistaken for duplicates",
+			id, bootID, was, nodeHW)
+	}
+	// A node with no persistent boot identity cannot be told apart from one whose
+	// ack we merely missed, which is the whole of #162. Said once per check-in
+	// rather than swallowed: this node is running WITHOUT the protection every
+	// other node has, and the only symptom of that is silence.
+	if bootID == 0 {
+		s.logf("porta: %s declares bootId 0 — no persistent boot identity, so a reboot cannot be distinguished from a missed ack for this node",
+			id)
 	}
 	entries, hi, err := s.st.OutboundSince(id, cursor, space.MaxBatchBytes)
 	if err != nil {

@@ -1,12 +1,17 @@
 (*
 expect:
-health 87
+health 91
 metrics 195
-batch 425
+batch 429
 *)
 (* #56 design §9.1, landed as a REGRESSION GUARD. A measured size protects nothing if
-   nothing re-checks it, and there are 87 B of headroom for one future field to eat
+   nothing re-checks it, and there are 83 B of headroom for one future field to eat
    silently.
+
+   Was 425/87 B until 2026-08-09; rete#162 made `bootId` a real persisted counter
+   rather than the constant 1, and a saturated counter is five CBOR bytes where 1
+   is one. The 4 B is a real cost of the fix, paid once per batch envelope and not
+   per row — see the note on the bootId field below.
 
    NOT a sum of record sizes: the thing that must fit 512 B is the PUSH FRAME —
    envelope and rows included — so this builds the frame PortaBridge>>encodePush:
@@ -30,7 +35,15 @@ class BatchSize packageUsing: manifest = () (
     | pairs |
     pairs:: platform OrderedCollection new.
     pairs add: #uptimeMs -> 2592000000.      (* 30 days *)
-    pairs add: #bootId -> 1.
+    (* rete#162: the WORST LEGAL bootId, not a fresh node's. This was 1 while
+       bootId was a source constant; it is now a counter persisted in NVS across
+       the node's whole lifetime, and CBOR is shortest-form, so the value decides
+       the field width — 1 costs one byte and a saturated counter costs five. A
+       guard must prove the frame fits for ANY legal value, and 2^30-1 is the
+       band's ceiling (the VM keeps it inside an SMI on a 32-bit target). This is
+       the same reasoning as the 30-day uptime beside it: measuring the easy case
+       is exactly how an estimate becomes wrong in the field. *)
+    pairs add: #bootId -> 1073741823.
     pairs add: #wakes -> 1296000.            (* 30 d at the 2 s cadence *)
     pairs add: #pollTimeouts -> 431.
     pairs add: #streamDropped -> 17.

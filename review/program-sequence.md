@@ -2312,6 +2312,59 @@ previous day's log file. Neither was visible from source review or from a unit s
 never assembled the page. **Loading the page was the gate** — a liveness probe that cannot
 tell "serving" from "raising on every request" reports green through a total outage.
 
+## A node names its own boot, and the storage was already there (2026-08-09, #162)
+
+**`bootId` had ridden the pull and push envelopes since the space-sync rung answering the
+constant `1`.** That constant is what cost `c6-bell` a night of telemetry on 2026-08-06:
+porta cannot distinguish *"the node rebooted, so its outbound sequence restarted at 0"*
+from *"porta's ack went missing, so the node is legitimately re-offering rows"*, and those
+two need opposite responses. Read a reboot as a missed ack and porta's high-water stays
+hours ahead of a fresh sequence, every pushed row is discarded as already-applied, and the
+ack hands the stale watermark back so the node adopts it. Both ends then report success,
+forever. The mechanism that was supposed to catch it — rewind when the declared cursor
+*and* watermark both went backwards — was sound but incomplete: a node porta had never
+written to has a cursor of 0 on both sides, so `0 < 0` was false and its reboot carried no
+signal at all. The gap was named in `NoteCheckIn`'s own comment for four days before a node
+fell into it.
+
+**The correction is that a reboot is now evidence rather than an inference.** `bootId` is a
+counter the node increments once per boot and persists, so only a reboot can change it and a
+swallowed ack cannot. The cursor heuristic was **deleted, not kept beside its replacement** —
+a boot counter needs no `goal/` to have been written, so the old test had no remaining case,
+and this is the standing rule about records growing wrong by accretion applied to a
+mechanism rather than to a field.
+
+**The lesson worth keeping is about the scoping, not the fix.** This was framed as a choice
+between a cheap per-boot random nonce and "NVS, the expensive one" — and the framing was
+wrong in both directions. NVS is *already enabled, mounted and proven* on every Thread board,
+because OpenThread persists its dataset there and `CONFIG_SETTINGS=n` fails at link; the C6's
+`storage_partition` is 192 KB at `0x3B0000` from the vendor's default table. The real answer
+cost **one settings key**. Reaching for a new mechanism to avoid one already linked into the
+image is backwards here, and the cure is to grep the Kconfig for the capability you believe
+is missing before proposing a seam. The nonce was independently the wrong shape: RECORDS §3
+claims `(bootId, monoMs)` totally *orders* every observation a node makes, and a nonce
+distinguishes boots without ordering them — it would have forced that line to be weakened
+rather than finally made true.
+
+**Two things the fix had to be careful about.** A check-in is a pull then a push, so losing
+one pull makes the *push* porta's first contact with a new boot; with the test only in
+`NoteCheckIn`, `Ingest` would have adopted the new boot id while still holding the old
+watermark, and the next pull would compare two equal ids forever — #162 reproduced through
+its own fix. Both entry points carry the rule. And a node whose storage is unavailable
+reports `bootId = 0`, which porta treats as *"restart detection is unavailable here"* and
+says so on every check-in, rather than guessing: answering `1` on failure is exactly the old
+constant, and inventing a reboot would rewind a watermark on a node whose ack was merely
+lost — the one case the `seq <= hw` dedupe cannot survive.
+
+Deliberately **not** closed: the cursor still lives in RAM, the other half of #117. Persisting
+it changes what a reboot *means* — cold boot = cursor 0 = full replay is designed behaviour —
+and is entangled with #119, so it is its own decision and rides the same seam when it is made.
+
+Measured cost, since a persisted counter is up to five CBOR bytes where `1` was one:
+`obs/health` 87 → 91 B, the push frame 425 → 429 B of the 512 B cap. The size guard now pins
+the *worst legal* boot id rather than a fresh node's, on that test's own principle that
+measuring the easy case is how an estimate becomes wrong in the field.
+
 ## Known stale docs (do not treat as current)
 
 `docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),

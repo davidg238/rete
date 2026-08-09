@@ -246,8 +246,11 @@ Design 2026-08-01; plan 1 (porta side) and plan 2 (node side) are both built and
   `~/workspace/rete/docs/design/2026-08-01-porta-space-sync-c6-gate-design.md`; plan:
   `~/workspace/rete/docs/superpowers/plans/2026-08-01-porta-space-sync-c6-gate.md`.
 
-Deferred out of plan 2, each filed rather than assumed: the cursor and `bootId` live in
-RAM (NVS), the bridge holds the root space rather than a `goal`-write + `obs`-read pair
+Deferred out of plan 2, each filed rather than assumed: the **cursor** lives in RAM
+(`bootId` no longer does — rete#162 landed it in NVS on 2026-08-09; the cursor half of
+#117 stays open on purpose, since persisting it changes what a reboot means and is
+entangled with replaying `goal/do/*`, #119), the bridge holds the root space rather than
+a `goal`-write + `obs`-read pair
 (G5), cadence is a constant rather than §4.4's controller, and a stream entry written
 while the bridge is down is lost — fine for `tel/**`, **not** for `sys/panic`.
 

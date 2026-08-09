@@ -322,7 +322,10 @@ measuring the easy case is exactly how an estimate becomes wrong in the field.
   out of scope"*) and useless for the one that cost this bench an afternoon (#149, a
   power-integrity reset loop). Escalation and retained RAM cover different deaths;
   neither substitutes for the other.
-- **`bootId` as a real counter** (§5) — needs NVS.
+- ~~**`bootId` as a real counter** (§5) — needs NVS.~~ **LANDED 2026-08-09 (rete#162).**
+  The NVS was never the obstacle: every `prj_*_thread.conf` already mounts it for
+  OpenThread's dataset, so this cost one settings key. See `protocol/PROTOCOL-NSL-RECORDS.md`
+  §3.
 - **#56 capability (4)**, the device test harness. This design is what makes its
   assertions possible.
 - **The crash boundary itself**, which is less naked than it was: `log_udp.c` now

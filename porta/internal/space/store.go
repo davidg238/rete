@@ -197,8 +197,37 @@ func (s *Store) Ingest(nodeID string, bootID int64, entries []Entry) (hw int64, 
 	if err := ensureNode(tx, nodeID, now); err != nil {
 		return 0, 0, err
 	}
-	if err := tx.QueryRow(`SELECT node_seq_hw FROM nodes WHERE id = ?`, nodeID).Scan(&hw); err != nil {
+	var storedBoot int64
+	if err := tx.QueryRow(`SELECT node_seq_hw, COALESCE(boot_id, 0) FROM nodes WHERE id = ?`, nodeID).
+		Scan(&hw, &storedBoot); err != nil {
 		return 0, 0, err
+	}
+	// THE SAME BOOT TEST AS NoteCheckIn, AND IT MUST BE HERE TOO. A check-in is
+	// a pull then a push, so the pull normally detects the reboot first and this
+	// is a no-op. But a pull datagram is not guaranteed to arrive: lose one, and
+	// the push is porta's FIRST contact with the new boot. Without this, Ingest
+	// would adopt the new boot_id below while `hw` still held the old boot's
+	// watermark — every row discarded as a duplicate, the ack carrying the stale
+	// watermark back — and the next pull would then compare two EQUAL boot ids
+	// and never rewind. That is #162 reproduced exactly, through a hole opened by
+	// the fix for it.
+	//
+	// The rewind target is 0, not a declared watermark: a push carries no `hw`
+	// field, and a boot whose reboot we are learning about here has by definition
+	// had nothing accepted from it yet.
+	//
+	// THE TEST IS `!=` AND NOT `>`, and the asymmetry is deliberate. `>` would be
+	// immune to a stale datagram from the PREVIOUS boot arriving after the new
+	// boot's first contact (UDP reorders, and a reboot takes seconds, so this is
+	// rare but not impossible) — that misfire costs duplicate events and a
+	// temporarily low watermark, both of which the next push corrects. But `>`
+	// wedges permanently after an NVS erase, which is an ordinary development act
+	// (`west flash --erase`): the counter restarts at 1, never exceeds the stored
+	// high-water again for as many boots as the node had before, and restart
+	// detection is silently off for all of them. Duplicates are recoverable and a
+	// wedge is not, so the failure is steered toward the recoverable one.
+	if bootID != storedBoot && bootID != 0 && storedBoot != 0 {
+		hw = 0
 	}
 	for _, e := range entries {
 		if e.Seq <= hw {
@@ -246,26 +275,34 @@ func (s *Store) Ingest(nodeID string, bootID int64, entries []Entry) (hw int64, 
 // It stayed invisible because the C6 gate wiped porta's db before every run.
 // Found by the bridge-health target gate, which scored 3/3 over it.
 //
-// WHY THE CURSOR AND NOT `hw` ALONE. A missed ack ALSO leaves the node declaring
-// a lower `hw` — and that case must NOT rewind, because porta committed those
-// rows and the node is legitimately re-offering them: rewinding deletes the
-// `seq <= hw` dedupe, which is the one thing making a re-push idempotent. The
-// first version of this did exactly that, and the bench integration test caught
-// it inside one leg ("the gateway never logged a duplicate-skip", where it had
-// logged 959 before).
+// WHY NOT `hw` ALONE. A missed ack ALSO leaves the node declaring a lower `hw` —
+// and that case must NOT rewind, because porta committed those rows and the node
+// is legitimately re-offering them: rewinding deletes the `seq <= hw` dedupe,
+// which is the one thing making a re-push idempotent. The first version of this
+// did exactly that, and the bench integration test caught it inside one leg
+// ("the gateway never logged a duplicate-skip", where it had logged 959 before).
 //
-// The cursor separates them, and not as a heuristic: the cursor is advanced by
-// the BATCH and the watermark by the ACK, so a swallowed ack cannot move the
-// cursor. A cursor that went BACKWARDS can only mean the node lost the RAM
-// holding it — which is the same event that reset its seq counter.
+// `bootId` SEPARATES THEM, and it is evidence rather than inference: it is a
+// counter the node increments once per boot and persists in NVS (RECORDS §3),
+// so a CHANGE in it means the node rebooted and nothing else can produce one. A
+// swallowed ack leaves it untouched, which is precisely the negative above.
 //
-// KNOWN GAP, named rather than papered over: a node porta has never written to
-// has a cursor of 0 in both places, so its reboot carries no signal here and the
-// loss above persists for it. Closing that needs a per-boot identity — the
-// `bootId` field is already on the wire and is a source constant (#74). This
-// mechanism does not conflict with that one; it makes it unnecessary for every
-// node that has ever been given a goal.
-func (s *Store) NoteCheckIn(nodeID string, cursor, nodeHW int64) (restartedFrom int64, restarted bool, err error) {
+// THIS REPLACED A CURSOR HEURISTIC on 2026-08-09, and the replacement is the
+// point rather than an addition beside it. That test — `cursor < storedCursor &&
+// nodeHW < storedHW` — inferred a restart from the cursor going backwards, which
+// is sound but INCOMPLETE: a node porta has never written to has a cursor of 0 in
+// both places, so `0 < 0` is false and its reboot carried no signal at all. That
+// gap was named in this comment for four days before c6-bell fell into it and
+// lost a night of telemetry with both ends reporting success (#162). A node's own
+// boot counter needs no goal to have been written, so the heuristic has no
+// remaining case and is gone.
+//
+// bootID 0 means the node has NO persistent boot identity — no settings/NVS
+// backend, or a write that failed (see platform_backend.h). Restart detection is
+// genuinely unavailable for such a node, and the honest response is to leave the
+// watermark alone and let the caller say so out loud, NOT to guess from a value
+// that is the same on every boot.
+func (s *Store) NoteCheckIn(nodeID string, cursor, nodeHW, bootID int64) (restartedFrom int64, restarted bool, err error) {
 	now := s.nowMs()
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -275,21 +312,28 @@ func (s *Store) NoteCheckIn(nodeID string, cursor, nodeHW int64) (restartedFrom 
 	if err := ensureNode(tx, nodeID, now); err != nil {
 		return 0, false, err
 	}
-	var storedCursor, storedHW int64
-	if err := tx.QueryRow(`SELECT cursor_acked, node_seq_hw FROM nodes WHERE id = ?`, nodeID).
-		Scan(&storedCursor, &storedHW); err != nil {
+	var storedHW, storedBoot int64
+	if err := tx.QueryRow(`SELECT node_seq_hw, COALESCE(boot_id, 0) FROM nodes WHERE id = ?`, nodeID).
+		Scan(&storedHW, &storedBoot); err != nil {
 		return 0, false, err
 	}
-	restarted = cursor < storedCursor && nodeHW < storedHW
+	// storedBoot == 0 is a node porta has never recorded a boot for, so there is
+	// no PREVIOUS boot to have differed from — the first check-in of a node's
+	// life must not be reported as a restart. `storedHW > nodeHW` is the guard
+	// that keeps this to cases with something to actually correct.
+	restarted = bootID != 0 && storedBoot != 0 && bootID != storedBoot && storedHW > nodeHW
 	if restarted {
 		restartedFrom = storedHW
 		if _, err := tx.Exec(`UPDATE nodes SET node_seq_hw = ? WHERE id = ?`, nodeHW, nodeID); err != nil {
 			return 0, false, err
 		}
 	}
+	// boot_id is recorded on the PULL and not only on the push, so the detection
+	// above has a previous value to compare against even for a node that never
+	// pushes anything.
 	if _, err := tx.Exec(
-		`UPDATE nodes SET cursor_acked = ?, last_seen_ms = ? WHERE id = ?`,
-		cursor, now, nodeID); err != nil {
+		`UPDATE nodes SET cursor_acked = ?, boot_id = ?, last_seen_ms = ? WHERE id = ?`,
+		cursor, bootID, now, nodeID); err != nil {
 		return 0, false, err
 	}
 	return restartedFrom, restarted, tx.Commit()

@@ -104,14 +104,15 @@ func TestRebootedNodeIsNotMistakenForADuplicate(t *testing.T) {
 		t.Fatalf("first session hw = %d, want 40", hw)
 	}
 
-	// It reboots. BOTH numbers it declares go backwards — the cursor because the
-	// applied state was RAM, the watermark because the counter was too. That
-	// pair is what says "restart" rather than "the last ack was lost".
-	pull, _ = EncodePull("n1", 0, 1, 0)
+	// It reboots, and says so: the persisted boot counter steps 1 -> 2. That is
+	// what says "restart" rather than "the last ack was lost" — the cursor and
+	// watermark also go backwards, but so do they on a missed ack, which is why
+	// the boot counter and not that pair is the evidence (see Store.NoteCheckIn).
+	pull, _ = EncodePull("n1", 0, 2, 0)
 	if _, _, err := DecodeBatch(srv.Handle(pull)); err != nil {
 		t.Fatalf("pull after reboot: %v", err)
 	}
-	req, _ = EncodePush("n1", 1, []space.Entry{
+	req, _ = EncodePush("n1", 2, []space.Entry{
 		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(2))},
 	})
 	hw, err := DecodeAck(srv.Handle(req))
@@ -149,10 +150,10 @@ func TestRebootReusesSeqValues(t *testing.T) {
 	})
 	srv.Handle(first)
 
-	pull, _ = EncodePull("n1", 0, 1, 0) // rebooted: cursor AND hw back to 0
+	pull, _ = EncodePull("n1", 0, 2, 0) // rebooted: boot counter 1 -> 2
 	srv.Handle(pull)
 
-	second, _ := EncodePush("n1", 1, []space.Entry{
+	second, _ := EncodePush("n1", 2, []space.Entry{
 		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "boot2-a")},
 		{Seq: 2, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(22))},
 	})
@@ -186,10 +187,11 @@ func TestRebootReusesSeqValues(t *testing.T) {
 // deleted the dedupe: the bench integration test caught it within one leg —
 // "the gateway never logged a duplicate-skip" where it had logged 959 before.
 //
-// The signal that separates them is the CURSOR, and it is not a heuristic: the
-// cursor is advanced by the batch and the watermark by the ack, so a swallowed
-// ack cannot move the cursor. A cursor that went BACKWARDS can only mean the
-// node lost the RAM holding it.
+// The signal that separates them is `bootId`, the node's persisted per-boot
+// counter (RECORDS §3): a swallowed ack does not reboot the node, so the
+// counter does not move. Note that this test declares the SAME bootId either
+// side of the lost ack — that identity is the whole assertion, and it is why
+// this case stays correct under a mechanism built to catch the opposite one.
 func TestMissedAckIsNotMistakenForAReboot(t *testing.T) {
 	srv, st := testServer(t)
 	st.Write("n1", "goal/name", cval.KindCell, mustEnc(t, "alpha"), "david", "")
@@ -217,6 +219,107 @@ func TestMissedAckIsNotMistakenForAReboot(t *testing.T) {
 	}
 	if ins != 1 {
 		t.Fatalf("got %d inbound events, want 1 — a re-push after a swallowed ack was applied twice", ins)
+	}
+}
+
+// #162, THE WITNESS, and the reason the cursor heuristic was replaced rather
+// than extended. c6-bell had never been given a `goal/`, so its cursor was 0 in
+// both places and `cursor < storedCursor` was `0 < 0` — false. Its reboot carried
+// no signal, porta held a watermark of 3981 against a node whose counter had
+// restarted at 1, and for ten hours every push was discarded as already-applied
+// while both ends logged success. A night of telemetry went into the gap.
+//
+// The distinguishing feature of this test is what it does NOT do: no goal is ever
+// written. Under the old mechanism this test fails.
+func TestNodePortaHasNeverWrittenToStillDetectsAReboot(t *testing.T) {
+	srv, st := testServer(t)
+
+	// A long first boot. No goal is ever written to this node, so its cursor
+	// stays 0 for the whole of its life — exactly c6-bell's situation.
+	pull, _ := EncodePull("n1", 0, 1, 0)
+	srv.Handle(pull)
+	push, _ := EncodePush("n1", 1, []space.Entry{
+		{Seq: 3981, Path: "obs/build", Kind: cval.KindCell, Value: mustEnc(t, "old")},
+	})
+	if hw, _ := DecodeAck(srv.Handle(push)); hw != 3981 {
+		t.Fatalf("first boot hw = %d, want 3981", hw)
+	}
+
+	// Repower. The cursor is 0 and was 0 — no signal there, and never will be.
+	// The boot counter is the only thing that moved.
+	pull, _ = EncodePull("n1", 0, 2, 0)
+	srv.Handle(pull)
+	push, _ = EncodePush("n1", 2, []space.Entry{
+		{Seq: 1, Path: "obs/build", Kind: cval.KindCell, Value: mustEnc(t, "new")},
+	})
+	hw, err := DecodeAck(srv.Handle(push))
+	if err != nil {
+		t.Fatalf("DecodeAck: %v", err)
+	}
+	if hw != 1 {
+		t.Fatalf("hw after reboot = %d, want 1 — the ack handed back the previous boot's watermark, which is #162 exactly", hw)
+	}
+	tree, _ := st.Tree("n1", "obs/")
+	v, _ := cval.Decode(tree[0].Value)
+	if v != "new" {
+		t.Fatalf("obs/build = %v, want \"new\" — porta is still holding the previous boot's value", v)
+	}
+}
+
+// THE HOLE THE FIX ITSELF COULD OPEN. A check-in is a pull then a push, so the
+// pull normally detects the reboot. But datagrams are not guaranteed: lose the
+// first pull of a new boot and the PUSH becomes porta's first contact with it.
+// If only NoteCheckIn carried the boot test, Ingest would quietly adopt the new
+// boot_id while still holding the old watermark, discard every row, and leave the
+// next pull comparing two equal boot ids forever — #162 reproduced through the
+// fix for it. Hence the same test in both places.
+func TestLostPullStillRewindsOnThePush(t *testing.T) {
+	srv, st := testServer(t)
+	pull, _ := EncodePull("n1", 0, 1, 0)
+	srv.Handle(pull)
+	push, _ := EncodePush("n1", 1, []space.Entry{
+		{Seq: 500, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
+	})
+	srv.Handle(push)
+
+	// Reboot, and the new boot's pull never arrives. Its push is first contact.
+	push, _ = EncodePush("n1", 2, []space.Entry{
+		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(2))},
+	})
+	hw, err := DecodeAck(srv.Handle(push))
+	if err != nil {
+		t.Fatalf("DecodeAck: %v", err)
+	}
+	if hw != 1 {
+		t.Fatalf("hw = %d, want 1 — the push was discarded against the previous boot's watermark", hw)
+	}
+	tree, _ := st.Tree("n1", "obs/")
+	v, _ := cval.Decode(tree[0].Value)
+	if v != int64(2) {
+		t.Fatalf("obs/health = %v, want 2", v)
+	}
+}
+
+// bootId 0 means the node has NO persistent boot identity (no NVS backend, or a
+// failed write). porta must then NOT guess: with the same value on every boot
+// there is no evidence either way, and inventing some would rewind a watermark on
+// a node whose ack was merely lost — the one thing the dedupe cannot survive.
+// The node is unprotected, which the server says out loud on every check-in; it
+// must not also be actively corrupted.
+func TestNoPersistentBootIdentityDoesNotGuess(t *testing.T) {
+	srv, _ := testServer(t)
+	pull, _ := EncodePull("n1", 0, 0, 0)
+	srv.Handle(pull)
+	push, _ := EncodePush("n1", 0, []space.Entry{
+		{Seq: 7, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one")},
+	})
+	srv.Handle(push)
+
+	// A missed ack on a node with no boot identity. The watermark must hold.
+	pull, _ = EncodePull("n1", 0, 0, 0)
+	srv.Handle(pull)
+	if hw, _ := DecodeAck(srv.Handle(push)); hw != 7 {
+		t.Fatalf("hw = %d, want 7 — a bootId of 0 was treated as evidence of a reboot", hw)
 	}
 }
 

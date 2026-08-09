@@ -453,4 +453,29 @@
 #define PRIM_pf_otaStage          148
 #define PRIM_pf_otaConfirm        149
 #define PRIM_pf_otaActivate       150
+/* rete#162/#117: the node's per-boot identity. Appended after the entire OTA
+   group; no pre-existing id shifts. 151 was arrived at by COUNTING PRIM_NAMES
+   (150 entries before this append), not by 150+1 arithmetic, per the standing
+   lesson above. Platform-dispatched.
+
+   WHY THIS IS A PRIM AND NOT A SOURCE CONSTANT. `bootId` has ridden the pull and
+   push envelopes since the space-sync rung and has always answered 1, which made
+   RECORDS §3's `(bootId, monoMs)` session key degenerate and — the reason this
+   landed — left porta unable to tell a rebooted node from a node whose ack it
+   merely missed. That ambiguity cost c6-bell a night of telemetry (#162): both
+   ends reported success for ten hours while nothing was delivered.
+
+   PERSISTED, NOT RANDOM. The counter must be MONOTONIC, because RECORDS §3
+   claims `(bootId, monoMs)` totally ORDERS every observation a node ever makes —
+   a random per-boot nonce would distinguish boots without ordering them, and
+   would have forced that line to be weakened. Every Thread board already mounts
+   NVS (`CONFIG_NVS=y` + `CONFIG_SETTINGS_NVS=y` in prj_*_thread.conf) because
+   OpenThread persists its dataset there, so this costs no new subsystem — only a
+   key. That is also why it is not gated on a build flag: the storage is present
+   on every node that can reach porta at all.
+
+   ANSWERS AN SMI. Kept below 2^30 so it stays a SmallInteger on a 32-bit target
+   (oevm.h: SMI is intptr_t >> 1, i.e. 31-bit on the C6) — a LargeInteger here
+   would allocate on the check-in path and cost 9 CBOR bytes instead of 5. */
+#define PRIM_pf_bootId            151
 #endif /* OEVM_PRIM_IDS_H */

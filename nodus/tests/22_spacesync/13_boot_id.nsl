@@ -1,0 +1,39 @@
+(*
+rete#162 — the node's per-boot identity. `bootId` rode the pull and push envelopes
+as the source constant 1 from the space-sync rung until 2026-08-09, and that
+constant is what cost c6-bell a night of telemetry: porta cannot tell "the node
+rebooted, so its seq counter restarted" from "porta's ack went missing, so the node
+is re-offering rows it already sent", and those two need opposite responses.
+
+WHAT THIS TEST CAN AND CANNOT SEE. The real increment lives in NVS and only a power
+cycle exercises it, so this asserts the two properties a host CAN prove and that a
+board cannot prove cheaply:
+
+  1. It is a NUMBER the VM answers, not a literal the image carries. A regression
+     here is the seam being unwired, which is exactly how it would silently revert
+     to a constant.
+  2. It is CONSTANT WITHIN A BOOT. This is correctness, not thrift: porta uses a
+     CHANGE in this value as its sole evidence that the outbound sequence restarted,
+     so two different answers in one run would rewind porta's high-water mid-session
+     and re-deliver rows it had already committed.
+
+With TUVM_BOOTID_FILE unset — the default everywhere in this suite — the host
+backend answers the 0 sentinel, meaning "no persistent boot identity". That is a
+value to branch on and not an error: porta reads it as "restart detection is
+unavailable for this node" and says so on every check-in, which is the one thing
+the old constant could never do.
+expect:
+is integer true
+constant within a boot true
+sentinel when unpersisted 0
+*)
+class BootId packageUsing: manifest = () (
+  public main: platform args: args = (
+    | a b |
+    a:: platform bootId.
+    b:: platform bootId.
+    ('is integer ', (a isNil not and: [ (a + 0) = a ]) printString) println.
+    ('constant within a boot ', (a = b) printString) println.
+    ('sentinel when unpersisted ', a printString) println.
+    ^ self )
+)

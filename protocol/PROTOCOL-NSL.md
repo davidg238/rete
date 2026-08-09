@@ -327,28 +327,36 @@ a review of the #25 branch found the same shape on the write side:
   ack also leaves the node declaring a lower `hw`, and that case must not rewind: porta
   committed those rows and the node is legitimately re-offering them, so a rewind
   deletes the `seq <= hw` dedupe and manufactures the duplicate it was meant to prevent.
-  The cursor is what separates them, and not by heuristic — the cursor is advanced by
-  the **batch** and the watermark by the **ack**, so a swallowed ack cannot move the
-  cursor. Known gap: a node porta has never written to has a cursor of 0 on both sides,
-  so its restart carries no signal; closing that needs the per-boot identity `bootId`
-  was reserved for (#74), which this does not conflict with.
+  `bootId` is what separates them, and it is evidence rather than inference: it is a
+  counter the node increments once per boot and persists in NVS (RECORDS §3), so only a
+  reboot can change it and a swallowed ack cannot.
+
+  **This replaced a cursor heuristic on 2026-08-09 (rete#162).** That test — rewind when
+  the declared cursor *and* watermark both went backwards — was sound but incomplete: a
+  node porta has never written to has a cursor of 0 on both sides, so `0 < 0` was false
+  and its restart carried no signal at all. The gap was named in the code for four days
+  before a node fell into it. A node's own boot counter needs no `goal/` to have been
+  written, so the heuristic has no remaining case and was deleted rather than kept beside
+  the replacement.
 
   **That gap was witnessed in the field on 2026-08-06 and cost `c6-bell` ten hours of
   telemetry (#162).** The node had only ever written `obs/build` and `sys/metrics` — porta
   had never written to it — so its stored cursor was 0, `cursor < storedCursor` was
   `0 < 0`, and the rewind could not fire. It rebooted, pushed against a stale high-water of
   3981, had every row discarded, adopted 3981 from the ack, and then reported
-  `misses 0` on its console every 30 s while delivering nothing. **Until #74 lands, the
-  operational inoculation is one write per node, in the ordinary operator vocabulary:**
+  `misses 0` on its console every 30 s while delivering nothing.
 
-  ```
-  porta put <node> goal/name <node>
-  ```
+  **Closed 2026-08-09 by making `bootId` real.** The `porta put <node> goal/name <node>`
+  inoculation this section used to prescribe is no longer needed for new nodes: it worked
+  by making `storedCursor` nonzero, which was the precondition the *cursor* rewind was
+  missing, and that mechanism is gone. Two operational notes survive it:
 
-  Do it the first time a node appears. It is sufficient because it makes `storedCursor`
-  nonzero, which is the only precondition the rewind is missing. Note the node still needs
-  one power cycle afterwards to clear its own in-RAM `acked` — `applyAck:` raises that
-  value and never lowers it.
+  - A node that has been running since before this landed still needs **one power cycle**
+    to clear its in-RAM `acked` — `applyAck:` raises that value and never lowers it — and
+    a second one before porta has two different boot ids to compare.
+  - A node reporting `bootId 0` has **no persistent boot identity** and is not protected
+    by any of this. porta says so on every check-in; that line is the signal to check why
+    its settings/NVS backend is unavailable, not noise to filter.
 
   Found on hardware 2026-08-05 by the `bridge-health` target gate — hidden until then
   for as long as the C6 gate wiped porta's store before every run — and the `hw`-only
@@ -372,8 +380,10 @@ a review of the #25 branch found the same shape on the write side:
   per replay. porta's `Store.Write` pins no kind at all — D6 is unenforced on the gateway
   side, and that is **rete#180**, not this rule.
 
-Still owed, each filed rather than assumed: the cursor and `bootId` live in RAM (NVS is
-G7 work), the bridge holds the root space rather than a `goal`-write + `obs`-read pair
+Still owed, each filed rather than assumed: the **cursor** lives in RAM (`bootId` no
+longer does — rete#162, 2026-08-09; the cursor half of #117 is deliberately still open,
+because persisting it changes what a reboot MEANS and is entangled with replaying
+`goal/do/*`), the bridge holds the root space rather than a `goal`-write + `obs`-read pair
 (G5), cadence is a constant rather than §4.4's controller, and a stream entry written
 while the bridge is down is lost — bounded and honest for `tel/**`, which is lossy by
 policy, but **not** for `sys/panic`, which RECORDS marks must-deliver.

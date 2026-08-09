@@ -109,7 +109,7 @@ it is not to be foreclosed. It is a reader over the same log plus a driver, prov
 3. **The exchange itself is logged**, not only the writes — one row per check-in. This is
    *also* the heartbeat record, so it is not extra machinery, and without it the batch
    boundary a value arrived on is unrecoverable.
-4. **`(bootId, monoMs)` is the session key.** RECORDS §2.4 already defines it and rides
+4. **`(bootId, monoMs)` is the session key.** RECORDS §3 already defines it and rides
    `bootId` on the batch envelope. It makes "a captured session" one node run, rather than
    a time range someone eyeballs.
 5. **Paths are stored node-relative** — `goal/mode` in the path column with `node_id`
@@ -159,6 +159,13 @@ last-write seq exceeds the cursor.
 > its restart carries no signal here. Closing that needs the per-boot identity `bootId` was
 > reserved for (#74). The two mechanisms do not conflict, and this one makes the other
 > unnecessary for every node that has ever been given a goal.
+
+**SUPERSEDED 2026-08-09 (rete#162).** The gap above was witnessed in the field before it
+was closed — `c6-bell` fell into it and lost a night of telemetry. `bootId` is now a real
+counter persisted in NVS, and the cursor heuristic described here was **deleted**, not
+kept alongside it: a boot counter needs no `goal/` to have been written, so the heuristic
+had no remaining case. Current behaviour is `protocol/PROTOCOL-NSL.md` rule 5 and
+`Store.NoteCheckIn`; this section is the historical why.
 
 ### D6 — Kind is a property of the leaf, set by the first write.
 
@@ -266,7 +273,7 @@ CREATE TABLE nodes (
   first_seen_ms INTEGER,
   last_seen_ms  INTEGER,
   cadence_ms    INTEGER,   -- liveness floor; offline = k × cadence, k = 3 (v1's constant, kept)
-  boot_id       INTEGER,   -- current session (RECORDS §2.4)
+  boot_id       INTEGER,   -- current session (RECORDS §3)
   cursor_acked  INTEGER,   -- how far the node has consumed porta's outbound seq
   node_seq_hw   INTEGER,   -- high-water of the node's push sequence, for dedup
   last_addr     TEXT       -- peer address of the last datagram; successor to v1's

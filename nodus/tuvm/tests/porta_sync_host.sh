@@ -81,8 +81,17 @@ grep -q "serving the space" /tmp/porta_serve.log || {
 # The node's cadence runs on real time; the suite's default virtual clock never
 # advances on its own, so the timer would never fire (the same knob the http gate
 # needs, for the same reason).
+#
+# TUVM_BOOTID_FILE gives this node a REAL per-boot counter (rete#162). Without it
+# the host backend answers the 0 sentinel — "no persistent boot identity" — and
+# this gate, the only one that runs both halves against each other, would exercise
+# only the degraded path while every real node on a board runs the other one. The
+# file is removed first so the count starts from a known 1 rather than inheriting
+# whatever a previous run left.
 echo "[6/8] start the node"
-OEVM_TIMER_WALLCLOCK=1 /tmp/oevm_porta /tmp/porta_node.oimg >/tmp/porta_node.log 2>&1 &
+rm -f /tmp/porta_node_bootid
+OEVM_TIMER_WALLCLOCK=1 TUVM_BOOTID_FILE=/tmp/porta_node_bootid \
+  /tmp/oevm_porta /tmp/porta_node.oimg >/tmp/porta_node.log 2>&1 &
 NODE_PID=$!
 for _ in $(seq 1 50); do grep -q "PORTA NODE READY" /tmp/porta_node.log && break; sleep 0.1; done
 grep -q "PORTA NODE READY" /tmp/porta_node.log || {

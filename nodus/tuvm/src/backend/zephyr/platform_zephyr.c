@@ -7,6 +7,11 @@
    (no keeper on device yet). */
 #include "platform_backend.h"
 #include <stdio.h>
+#include <errno.h>
+#include <zephyr/kernel.h>
+#ifdef CONFIG_SETTINGS
+#include <zephyr/settings/settings.h>
+#endif
 
 /* The remote console (#56 §10). Weak so this TU still links for any Zephyr build
    that does not include zephyr/src/log_udp.c; the strong definition tees into a
@@ -66,3 +71,76 @@ int platform_debug_readline(char *buf, int cap) {
     (void)buf; (void)cap;
     return -1;   /* no interactive debug transport on this node */
 }
+
+/* rete#162 — the per-boot counter, in NVS under the settings key "tuvm/bootid".
+ *
+ * NO NEW SUBSYSTEM. Every board that can reach porta reaches it over Thread, and
+ * every prj_*_thread.conf already sets CONFIG_NVS=y / CONFIG_SETTINGS_NVS=y
+ * because OpenThread persists its own dataset there — prj_esp32c6_thread.conf
+ * says it outright ("the persisted NVS copy wins after"). The C6's
+ * storage_partition is 192 KB at 0x3B0000 from the vendor's default 4M table.
+ * So this is one key in storage that is already mounted and already proven to
+ * survive a power cycle on this exact board, not a capability being added.
+ *
+ * ONE FLASH WRITE PER BOOT, on the first call, latched thereafter — see
+ * platform_backend.h on why the latch is correctness and not thrift. The write
+ * is kept off the check-in path by kernel.nsl latching this at bridge
+ * construction: a flash erase/write inside `checkIn` would land in the middle of
+ * the very spans #161 exists to measure.
+ *
+ * WHY NOT A RANDOM NONCE. RECORDS §3 claims (bootId, monoMs) totally ORDERS
+ * every observation a node makes. A nonce distinguishes boots without ordering
+ * them, and would have meant weakening that line instead of finally making it
+ * true.
+ */
+#ifdef CONFIG_SETTINGS
+
+static uint32_t boot_id_stored;
+
+static int boot_id_set(const char *key, size_t len, settings_read_cb read_cb, void *cb_arg) {
+    if (!settings_name_steq(key, "bootid", NULL)) return -ENOENT;
+    if (len != sizeof(boot_id_stored)) return -EINVAL;
+    ssize_t n = read_cb(cb_arg, &boot_id_stored, sizeof(boot_id_stored));
+    return (n < 0) ? (int)n : 0;
+}
+
+SETTINGS_STATIC_HANDLER_DEFINE(tuvm_bootid, "tuvm", NULL, boot_id_set, NULL, NULL);
+
+long platform_backend_boot_id(void) {
+    static long latched = -1;
+    if (latched >= 0) return latched;
+
+    /* settings_subsys_init() is idempotent and guarded by its own static, so
+       OpenThread having already called it is expected rather than a conflict. */
+    int rc = settings_subsys_init();
+    if (rc == 0) {
+        boot_id_stored = 0;
+        (void)settings_load_subtree("tuvm");     /* absent key -> stays 0 */
+        uint32_t next = boot_id_stored + 1u;
+        if (next >= (1u << 30)) next = 1u;       /* stay an SMI on 32-bit */
+        rc = settings_save_one("tuvm/bootid", &next, sizeof next);
+        if (rc == 0) {
+            latched = (long)next;
+            return latched;
+        }
+    }
+    /* A node that cannot persist this has NO per-boot identity, and must not
+       answer a plausible-looking number: answering 1 here is precisely the old
+       source constant, which is what let c6-bell report healthy for ten hours
+       while delivering nothing. The 0 sentinel is the one value porta reads as
+       "restart detection is unavailable for this node", so the failure is
+       visible at both ends instead of at neither. */
+    printk("VM: bootId: settings/NVS unavailable (rc %d) — no persistent boot identity\n", rc);
+    latched = 0;
+    return latched;
+}
+
+#else
+
+/* No settings backend on this board. Reachable only for images that cannot talk
+   to porta at all (the non-Thread confs: prj_esp32c6.conf, prj_esp32s2.conf,
+   prj_esp32.conf, prj_dk.conf), since space-sync rides the mesh. Answers the
+   same 0 sentinel rather than pretending to an identity it has no storage for. */
+long platform_backend_boot_id(void) { return 0; }
+
+#endif /* CONFIG_SETTINGS */
