@@ -791,33 +791,49 @@ class Kernel usingPlatform: platform = () (
 
     (* Map -> major 5, keys in RFC 8949 §4.2 bytewise order over ENCODED key
        bytes. The Map iterates in valueCompare order, which is NOT bytewise (they
-       diverge when keys differ in encoded length), so re-sort at emit time:
-       encode each (key,value) into its own byte OrderedCollection, insertion-sort
-       the pairs bytewise by encoded key, then emit the count head + concatenated
-       pairs. *)
-    encodeMap: v into: acc depth: d = ( | keyEncs valEncs n |
+       diverge when keys differ in encoded length), so the order can only be known
+       after the keys are encoded.
+
+       ONLY THE KEYS ARE BUFFERED; THE VALUES ARE STREAMED (#163). The sort needs
+       encoded KEY bytes and nothing else — `sortPairsBytewise:` permutes the two
+       collections in lockstep and never inspects the second — so the second one
+       carries the value OBJECTS and each is encoded straight into `acc` at emit
+       time, in sorted order, at the depth it would have had anyway. Encoding is a
+       pure function of (value, depth), so the emitted bytes are identical to
+       encoding it earlier into a buffer and copying that buffer out.
+
+       This is the difference between buffering a Symbol (4-10 bytes) and
+       buffering a whole nested record. It was measured as ~21% of a real 425 B
+       push frame's activations in `appendColl:` alone, but the older and worse
+       cost is memory: holding an accumulator for every key AND every value
+       simultaneously is what took a WROOM-32 out with an uncatchable
+       `VM GC Error: Out of Memory -> abort()` on a 949-byte span push. Half of
+       that peak is now gone, and the surviving half is the small half.
+
+       A depth violation now raises with earlier entries already written into
+       `acc`, where before `acc` was untouched. Not observable: the raise
+       propagates out of `encode:` and `acc` is discarded either way. *)
+    encodeMap: v into: acc depth: d = ( | keyEncs vals n |
       keyEncs:: OrderedCollection new.
-      valEncs:: OrderedCollection new.
+      vals::    OrderedCollection new.
       v keysAndValuesDo: [ :k :val |
-        self encodeEntry: k value: val keys: keyEncs vals: valEncs depth: d ].
+        self encodeEntry: k value: val keys: keyEncs vals: vals depth: d ].
       n:: keyEncs size.
-      self sortPairsBytewise: keyEncs vals: valEncs.
+      self sortPairsBytewise: keyEncs vals: vals.
       self emitHead: 5 len: n into: acc.
       1 to: n do: [ :i |
         self appendColl: (keyEncs at: i) into: acc.
-        self appendColl: (valEncs at: i) into: acc ].
+        self encode: (vals at: i) into: acc depth: d + 1 ].
       ^ self )
 
-    (* One map entry -> its own encoded key/value byte OrderedCollections,
-       appended in lockstep to keyEncs/valEncs (the per-entry block-locals live
-       in this method frame, keeping the keysAndValuesDo: block a single send). *)
-    encodeEntry: k value: val keys: keyEncs vals: valEncs depth: d = ( | kb vb |
+    (* One map entry -> its encoded KEY bytes and its value UNENCODED, appended in
+       lockstep to keyEncs/vals (the per-entry block-local lives in this method
+       frame, keeping the keysAndValuesDo: block a single send). *)
+    encodeEntry: k value: val keys: keyEncs vals: vals depth: d = ( | kb |
       kb:: ByteBuilder new.
-      vb:: ByteBuilder new.
-      self encode: k   into: kb depth: d + 1.
-      self encode: val into: vb depth: d + 1.
+      self encode: k into: kb depth: d + 1.
       keyEncs add: kb.
-      valEncs add: vb.
+      vals add: val.
       ^ self )
 
     (* Record -> tag 27 (language object) wrapping a 2-element array [tag, fields]
@@ -831,19 +847,21 @@ class Kernel usingPlatform: platform = () (
 
     appendColl: src into: acc = ( src do: [ :b | acc add: b ]. ^ self )
 
-    (* Stable insertion sort of (keyEncs, valEncs) pairs in lockstep, keyed on the
-       encoded key bytes via compareBytes:with: — the RFC 8949 bytewise rule. *)
-    sortPairsBytewise: keyEncs vals: valEncs = ( | n j kk vv |
+    (* Stable insertion sort of (keyEncs, vals) pairs in lockstep, keyed on the
+       encoded key bytes via compareBytes:with: — the RFC 8949 bytewise rule.
+       `vals` is carried, never inspected: it holds value OBJECTS since #163, and
+       held their encodings before, and this method cannot tell the difference. *)
+    sortPairsBytewise: keyEncs vals: vals = ( | n j kk vv |
       n:: keyEncs size.
       2 to: n do: [ :ii |
-        kk:: keyEncs at: ii. vv:: valEncs at: ii.
+        kk:: keyEncs at: ii. vv:: vals at: ii.
         j:: ii - 1.
         [ j >= 1 and: [ (self compareBytes: (keyEncs at: j) with: kk) > 0 ] ] whileTrue: [
           keyEncs at: j + 1 put: (keyEncs at: j).
-          valEncs at: j + 1 put: (valEncs at: j).
+          vals at: j + 1 put: (vals at: j).
           j:: j - 1 ].
         keyEncs at: j + 1 put: kk.
-        valEncs at: j + 1 put: vv ].
+        vals at: j + 1 put: vv ].
       ^ self )
 
     (* Bytewise total order over two byte OrderedCollections: shared-prefix bytes

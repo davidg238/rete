@@ -14,6 +14,17 @@
 # OEVM_TIMER_WALLCLOCK=1 is REQUIRED: without it the host span clock is the
 # virtual clock scaled to microseconds, which advances only via advanceMillis:,
 # and every row would read 0 ns.
+#
+# EXTRA_CFLAGS is how the ALLOCATION arm is run. The `gc` column means nothing on
+# the 16 MB host default — 400 encodes barely reach a collection — so to see
+# allocation pressure, constrain the arena to what the device has and count
+# collections:
+#
+#   EXTRA_CFLAGS=-DOEVM_HEAP_SIZE=131072 OUT=/tmp/... ./run.sh   # the C6's 128 KB
+#
+# At a FIXED heap, GC cycles per encode are proportional to bytes allocated, which
+# is the question "does this reduce GC pressure" in the units the device cares
+# about. (Note OEVM_HEAP_SIZE=H really costs H + H/32 — the granule bitmap.)
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -40,7 +51,7 @@ gcc -Wall -std=c99 -Isrc -O2 \
     src/ota.c \
     src/backend/posix/*.c \
     src/oimg_loader.c src/kernel_boot.c oevm_image_main.c \
-    -o "$OUT/oevm_img" -DOEVM_METHOD_PROFILE -lm
+    -o "$OUT/oevm_img" -DOEVM_METHOD_PROFILE ${EXTRA_CFLAGS:-} -lm
 
 echo "== compile CborEncodeShape.nsl =="
 python3 "$REPO/nodus/nsl/tools/ns_compile_oevm.py" \

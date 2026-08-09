@@ -203,6 +203,55 @@ codec, whose activation mix happened to match the Hanoi average. It says the mod
 survive a change that removes a non-representative slice of activations, which is precisely
 what a fix does. **Any real number here needs the board**, the way #161 got one.
 
+## Step 3, same day: `encodeMap:` buffers only the keys and streams the values
+
+The sort needs encoded **key** bytes and nothing else — `sortPairsBytewise:` permutes two
+parallel collections in lockstep and never inspects the second — so the second one can
+carry value *objects* and each can be encoded straight into `acc` at emit time, in sorted
+order, at the depth it would have had anyway. Encoding is a pure function of
+(value, depth), so the bytes are identical. This is the difference between buffering a
+Symbol and buffering a whole nested record.
+
+| payload | baseline | step 1 | step 3 | total |
+|---|---:|---:|---:|---:|
+| `str256` | 2 322 | 274 | 274 | 8.5× |
+| `mapNest1` | 4 713 | 845 | **319** | 14.8× |
+| `mapNest4` | 12 036 | 2 618 | **454** | **26.5×** |
+| **`batch`** | **9 624** | **3 285** | **2 325** | **4.1×** |
+
+Same golden and size-guard evidence as step 1: emitted bytes unmoved.
+
+### The allocation arm — and it answers a different question than the speed arm
+
+The `gc` column is meaningless on the 16 MB host default. Re-run at a **fixed 256 KB
+arena** (`gc-arms.sh`), where GC cycles per 400 encodes are proportional to bytes
+allocated:
+
+| payload | baseline | step 1 | step 3 | total |
+|---|---:|---:|---:|---:|
+| `str256` | 8 | 7 | 7 | −13% |
+| `map8` | 29 | 26 | 18 | −38% |
+| `mapNest1` | 57 | 56 | **10** | **−82%** |
+| `mapNest4` | 215 | 210 | **20** | **−91%** |
+| **`batch`** | **198** | **183** | **89** | **−55%** |
+
+**The two changes do not overlap — they trade off against each other's blind spot.**
+Step 1 is a time fix and moves allocation by 8%: it deletes one small `ByteArray` wrapper
+object per buffer, but the buffer itself was always the bytes. Step 3 halves allocation on
+the real frame and cuts it by ~90% on nested maps, because it deletes the *per-value*
+buffer entirely.
+
+That is the direct answer to the failure `review/lib/cbor.md` records: a WROOM-32 died with
+an **uncatchable** `VM GC Error: Out of Memory -> abort()` on a 949-byte span push, because
+`encodeMap:` held an accumulator for every key **and** every value simultaneously. The
+value half — the big half — is now gone; what stays live is one buffer per key holding a
+4–10 byte Symbol.
+
+Caveats: this is the host allocator at 256 KB, not the C6's 128 KB. The bench does not boot
+at 128 KB, for a reason unrelated to the codec — a single boot-time allocation of the whole
+arena + 24 B, identical in all three arms and not chased here. Cycles at a fixed arena are
+proportional to bytes allocated, so the **ratios** transfer; the absolute counts do not.
+
 ## What this picks, in order
 
 Everything below is now sized rather than argued, which was the whole point of measuring
@@ -211,14 +260,17 @@ first. Step 1 is implemented (above); 2–4 are not.
 1. ~~**Stop paying four activations per byte.**~~ **DONE** — see the step-1 section above.
    `add:` now costs one activation instead of three, and `grow`/`frozenBytes` became prim
    loops. `str256` 8.5×, `batch` 2.9×.
-2. **Stop the map re-copy** (`encodeMap:`'s per-entry `ByteBuilder` + `appendColl:`).
-   Worth 2.0× on a map, 2.55× more per four levels of nesting, and 704 of `batch`'s
-   1 129 `add:` calls. It exists only to sort keys bytewise (RFC 8949 §4.2) at emit time;
-   a sort that compares without materialising both encodings, or that emits in place after
-   ordering, removes the whole term.
-3. **Size the accumulator instead of growing and then freezing it** — 66% of a flat encode
-   between them, ~22% of `batch` for the growth half alone. Note the two interact: fixing
-   (2) deletes most of the small per-entry builders that make (3) hard to size.
+2. ~~**Stop the map re-copy.**~~ **DONE** — see the step-3 section above. Only the keys
+   are materialised now; the values stream. `batch` 3 285 → 2 325 activations and −51%
+   allocation; nested maps −83% activations and −90% allocation.
+3. **A bulk byte-range copy (`copyFrom:to:`, already scoped as #28) — now RE-RANKED, and
+   worth less than it looked.** After steps 1 and 3, `batch`'s remaining 2 325 activations
+   are 683 `add:`, 284 `ByteBuilder>>at:` and 284 `OrderedCollection` sort operations
+   (all **key** work, which cannot be streamed — the RFC 8949 §4.2 order is only knowable
+   after the keys are encoded), 258 `appendColl:` block invocations for those key bytes,
+   and ~460 in the walk. A bulk copy takes the 258 and part of the 683, i.e. **the
+   remaining upside is roughly 25–30%, not the ~2× it would have been before step 3** —
+   against a new prim id. Measure before building.
 4. **#161's fix (1) is unaffected and still true.** Carrying `valueFits:`'s bytes into the
    row deletes a whole *extra* encode of every value; this measurement is about what one
    encode costs. The two multiply rather than overlap.
