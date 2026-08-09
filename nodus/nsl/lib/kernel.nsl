@@ -652,30 +652,47 @@ class Kernel usingPlatform: platform = () (
      for encodeMap:, which holds a separate accumulator for EVERY key and value
      simultaneously before sorting them.
 
+     `buf` IS THE RAW INDEXABLE (`platform basicNewBytes:`), NOT A ByteArray, AND THAT
+     IS LOAD-BEARING — do not "tidy" it back to the wrapper (#163). `ByteArray>>u8At:`
+     is `( ^ raw at: i )` and `u8At:put:` is `( raw at: i put: v. ^ v )`: one layer of
+     nsl method over a prim, so every byte moved through the wrapper costs a frame
+     push, a dispatch and a return that the prim underneath does not. That is not a
+     guess — a per-method profile of one 259-byte encode counted 1014
+     `ByteArray>>u8At:put:` activations and ZERO for the `at:put:` beneath it, which is
+     what says the wrapper is the whole cost and the prim is free.
+     Dropping the layer took a flat encode from 2322 activations to ~290 (8x) and the
+     real 425 B push frame from 9624 to ~3400, with the emitted bytes unchanged.
+     The wrapper's job is type discipline at the language surface; this buffer is
+     private to Cbor (three construction sites, all in encode:), never escapes except
+     through `frozenBytes`, and so has nothing to discipline.
+     Measured in `docs/results/2026-08-09-cbor-encode-shape.md`.
+
      Deliberately minimal: only the selectors the codec actually sends (`add:`,
      `size`, `at:`, `do:`) exist, so this is a drop-in for the OrderedCollection it
      replaces and nothing else can start depending on it. *)
-  class ByteBuilder = ( | buf ::= ByteArray new: 16. count ::= 0. | ) (
+  class ByteBuilder = ( | buf ::= platform basicNewBytes: 16. count ::= 0. | ) (
     public size = ( ^ count )
-    public at: i = ( ^ buf u8At: i )
+    public at: i = ( ^ buf at: i )
     public add: b = (
-      count = buf byteSize ifTrue: [ self grow ].
+      count = buf size ifTrue: [ self grow ].
       count:: count + 1.
-      buf u8At: count put: b.
+      buf at: count put: b.
       ^ b )
-    public do: aBlock = ( 1 to: count do: [ :i | aBlock value: (buf u8At: i) ]. ^ self )
+    public do: aBlock = ( 1 to: count do: [ :i | aBlock value: (buf at: i) ]. ^ self )
     grow = ( | bigger |
-      bigger:: ByteArray new: buf byteSize * 2.
-      1 to: count do: [ :i | bigger u8At: i put: (buf u8At: i) ].
+      bigger:: platform basicNewBytes: buf size * 2.
+      1 to: count do: [ :i | bigger at: i put: (buf at: i) ].
       buf:: bigger.
       ^ self )
     (* Exact-size immutable copy. `buf` normally carries slack from the last
        doubling, and freezing it directly would publish those trailing bytes as
-       part of the value. *)
+       part of the value. `Bytes overRaw: (platform freezeBytes: ...)` is exactly
+       what `ByteArray>>freeze` does; it is spelled out here because there is no
+       ByteArray in this class to send `freeze` to. *)
     public frozenBytes = ( | exact |
-      exact:: ByteArray new: count.
-      1 to: count do: [ :i | exact u8At: i put: (buf u8At: i) ].
-      ^ exact freeze )
+      exact:: platform basicNewBytes: count.
+      1 to: count do: [ :i | exact at: i put: (buf at: i) ].
+      ^ Bytes overRaw: (platform freezeBytes: exact) )
   ) : (
   )
 

@@ -17,7 +17,7 @@ done
 ==============================================================================
 ACTIVATION COUNTS PER ENCODE
 
-str16      bytes=17  activations=100  act/byte=5.88  methods=17  overflow=0  -> C6 predicted 1.2 ms
+str16      bytes=17  activations=100  act/byte=5.88  methods=17  overflow=0  host ns/act=103  -> C6 1.2 ms (uniform-cost model)
         34   34.0%  Kernel_ByteArray>>u8At:put:
         17   17.0%  Kernel_ByteArray>>byteSize
         17   17.0%  Kernel_ByteArray>>u8At:
@@ -31,7 +31,7 @@ str16      bytes=17  activations=100  act/byte=5.88  methods=17  overflow=0  -> 
          1    1.0%  Kernel>>profileStop
          1    1.0%  Kernel_Cbor>>encode:
 
-str64      bytes=66  activations=345  act/byte=5.23  methods=17  overflow=0  -> C6 predicted 4.1 ms
+str64      bytes=66  activations=345  act/byte=5.23  methods=17  overflow=0  host ns/act=69  -> C6 4.1 ms (uniform-cost model)
        132   38.3%  Kernel_ByteArray>>u8At:put:
         66   19.1%  Kernel_ByteArray>>byteSize
         66   19.1%  Kernel_ByteArray>>u8At:
@@ -45,7 +45,7 @@ str64      bytes=66  activations=345  act/byte=5.23  methods=17  overflow=0  -> 
          1    0.3%  Kernel>>profileStop
          1    0.3%  Kernel_Cbor>>encode:
 
-str256     bytes=259  activations=1310  act/byte=5.06  methods=17  overflow=0  -> C6 predicted 15.5 ms
+str256     bytes=259  activations=1310  act/byte=5.06  methods=17  overflow=0  host ns/act=67  -> C6 15.5 ms (uniform-cost model)
        518   39.5%  Kernel_ByteArray>>u8At:put:
        259   19.8%  Kernel_ByteArray>>byteSize
        259   19.8%  Kernel_ByteArray>>u8At:
@@ -59,7 +59,7 @@ str256     bytes=259  activations=1310  act/byte=5.06  methods=17  overflow=0  -
          1    0.1%  Kernel>>profileStop
          1    0.1%  Kernel_Cbor>>encode:
 
-ints64     bytes=66  activations=607  act/byte=9.20  methods=24  overflow=0  -> C6 predicted 7.2 ms
+ints64     bytes=66  activations=607  act/byte=9.20  methods=24  overflow=0  host ns/act=90  -> C6 7.2 ms (uniform-cost model)
        132   21.7%  Kernel_ByteArray>>u8At:put:
         66   10.9%  Kernel_ByteArray>>byteSize
         66   10.9%  Kernel_ByteArray>>u8At:
@@ -73,7 +73,7 @@ ints64     bytes=66  activations=607  act/byte=9.20  methods=24  overflow=0  -> 
          2    0.3%  Kernel_ByteArray>>init_new
          1    0.2%  Kernel_Cbor>>encodeList:into:depth:
 
-map8       bytes=41  activations=836  act/byte=20.39  methods=38  overflow=0  -> C6 predicted 9.9 ms
+map8       bytes=41  activations=836  act/byte=20.39  methods=38  overflow=0  host ns/act=75  -> C6 9.9 ms (uniform-cost model)
        137   16.4%  Kernel_ByteArray>>u8At:
        122   14.6%  Kernel_ByteArray>>u8At:put:
         81    9.7%  Kernel_ByteArray>>byteSize
@@ -87,7 +87,7 @@ map8       bytes=41  activations=836  act/byte=20.39  methods=38  overflow=0  ->
         17    2.0%  Kernel>>rankOf:
         17    2.0%  Kernel_ByteBuilder>>init_new
 
-listNest1  bytes=260  activations=1326  act/byte=5.10  methods=24  overflow=0  -> C6 predicted 15.7 ms
+listNest1  bytes=260  activations=1326  act/byte=5.10  methods=24  overflow=0  host ns/act=67  -> C6 15.7 ms (uniform-cost model)
        520   39.2%  Kernel_ByteArray>>u8At:put:
        260   19.6%  Kernel_ByteArray>>byteSize
        260   19.6%  Kernel_ByteArray>>u8At:
@@ -101,7 +101,7 @@ listNest1  bytes=260  activations=1326  act/byte=5.10  methods=24  overflow=0  -
          1    0.1%  Kernel_Cbor>>encodeList:into:depth:
          1    0.1%  Block_Kernel_Cbor_block33>>value:
 
-listNest4  bytes=263  activations=1374  act/byte=5.22  methods=24  overflow=0  -> C6 predicted 16.3 ms
+listNest4  bytes=263  activations=1374  act/byte=5.22  methods=24  overflow=0  host ns/act=67  -> C6 16.3 ms (uniform-cost model)
        526   38.3%  Kernel_ByteArray>>u8At:put:
        263   19.1%  Kernel_ByteArray>>byteSize
        263   19.1%  Kernel_ByteArray>>u8At:
@@ -115,7 +115,7 @@ listNest4  bytes=263  activations=1374  act/byte=5.22  methods=24  overflow=0  -
          4    0.3%  Kernel_Array>>do:
          4    0.3%  Kernel_List>>valueRank
 
-mapNest1   bytes=264  activations=2689  act/byte=10.19  methods=34  overflow=0  -> C6 predicted 31.8 ms
+mapNest1   bytes=264  activations=2689  act/byte=10.19  methods=34  overflow=0  host ns/act=62  -> C6 31.8 ms (uniform-cost model)
        791   29.4%  Kernel_ByteArray>>u8At:put:
        527   19.6%  Kernel_ByteArray>>byteSize
        527   19.6%  Kernel_ByteArray>>u8At:
@@ -129,7 +129,7 @@ mapNest1   bytes=264  activations=2689  act/byte=10.19  methods=34  overflow=0  
          3    0.1%  Kernel_ByteBuilder>>init_new
          3    0.1%  Kernel_Cbor>>encode:into:depth:
 
-mapNest4   bytes=279  activations=6976  act/byte=25.00  methods=34  overflow=0  -> C6 predicted 82.5 ms
+mapNest4   bytes=279  activations=6976  act/byte=25.00  methods=34  overflow=0  host ns/act=56  -> C6 82.5 ms (uniform-cost model)
       1640   23.5%  Kernel_ByteArray>>u8At:put:
       1361   19.5%  Kernel_ByteArray>>byteSize
       1361   19.5%  Kernel_ByteArray>>u8At:
@@ -143,7 +143,7 @@ mapNest4   bytes=279  activations=6976  act/byte=25.00  methods=34  overflow=0  
          9    0.1%  Kernel_ByteBuilder>>init_new
          9    0.1%  Kernel_Cbor>>encode:into:depth:
 
-batch      bytes=425  activations=7456  act/byte=17.54  methods=51  overflow=0  -> C6 predicted 88.2 ms
+batch      bytes=425  activations=7456  act/byte=17.54  methods=51  overflow=0  host ns/act=63  -> C6 88.2 ms (uniform-cost model)
       1554   20.8%  Kernel_ByteArray>>u8At:put:
       1413   19.0%  Kernel_ByteArray>>u8At:
       1129   15.1%  Kernel_ByteArray>>byteSize

@@ -159,15 +159,58 @@ delta going 1 → 2. What the arm establishes is the **size of the term**, which
 #163 asked for: ~22% of a real push frame is the accumulator growing, and it is recoverable
 by *some* policy that does not pay for it per map entry.
 
+## Step 1, implemented the same day: `ByteBuilder` holds the raw indexable
+
+`ByteArray>>u8At:` is `( ^ raw at: i )` and `u8At:put:` is `( raw at: i put: v. ^ v )` —
+**one layer of nsl method over a prim.** The profile is what proves the layer is the whole
+cost: `str256` counted 1 014 `ByteArray>>u8At:put:` activations and **zero** for the
+`at:put:` beneath it, so the prim underneath is free and the wrapper is not.
+
+`ByteBuilder` is private to `Cbor` (three construction sites, all inside `encode:`) and its
+buffer never escapes except through `frozenBytes`, so it has no type discipline to enforce.
+Holding `platform basicNewBytes:` directly instead of a `ByteArray` is **mechanism removal,
+not addition** — no new primitive, no new selector.
+
+| payload | before | after | |
+|---|---:|---:|---|
+| `str256` | 2 322 | **274** | **8.5×** |
+| `mapNest4` | 12 036 | 2 618 | 4.6× |
+| **`batch`** | **9 624** | **3 285** | **2.9×** |
+
+Emitted bytes are unchanged — `14_cbor/02_golden_hex`, `03_map_order`, the round-trips, and
+both encoded-size guards (`19_latency/05_record_size` = 140/195 B,
+`22_spacesync/09_batch_size` = 87/195/425 B) all pass untouched.
+
+### And this is where the uniform-cost model stops applying
+
+Activations fell **66%** on `batch`; host time fell **33%** (620 → 415 µs). The gap is the
+finding: the activations removed were *one-line accessors*, which cost well under an average
+activation. `host ns/act` — added to the report for exactly this reason — was a flat
+**67–68 across every payload** in the baseline and is **126 for `batch`** and **312 for
+`str256`** after. The mix has shifted, so `activations × 11.83 µs` is now a **floor**, not
+an estimate:
+
+- uniform-cost model (a floor): `pushEncode` 118.6 → **38.9 ms**
+- host-relative scaling (a ceiling): 118.6 × 0.669 → **79.3 ms**
+
+The truth is bracketed at **39–79 ms**, and the argument favours the lower half: #164 found
+the host could not resolve the mprof hook *at all* while the C6 resolved it to three
+significant figures, because an in-order core gives frame push/return no out-of-order shadow
+to hide in. Removing frame pushes should therefore pay *more* on the C6 than on this laptop.
+
+**This does not retract the 4% validation above** — that was measured on the unmodified
+codec, whose activation mix happened to match the Hanoi average. It says the model does not
+survive a change that removes a non-representative slice of activations, which is precisely
+what a fix does. **Any real number here needs the board**, the way #161 got one.
+
 ## What this picks, in order
 
 Everything below is now sized rather than argued, which was the whole point of measuring
-first. Nothing here is implemented.
+first. Step 1 is implemented (above); 2–4 are not.
 
-1. **Stop paying four activations per byte.** `ByteBuilder>>add:` + `ByteArray>>byteSize` +
-   `ByteArray>>u8At:put:` are 34% of a flat encode and the same three sends underlie the
-   grow and freeze terms too. A byte-append that is one activation — or a C leaf, the way
-   `cborEncodeInt:` already is — is the single largest lever and touches no CBOR semantics.
+1. ~~**Stop paying four activations per byte.**~~ **DONE** — see the step-1 section above.
+   `add:` now costs one activation instead of three, and `grow`/`frozenBytes` became prim
+   loops. `str256` 8.5×, `batch` 2.9×.
 2. **Stop the map re-copy** (`encodeMap:`'s per-entry `ByteBuilder` + `appendColl:`).
    Worth 2.0× on a map, 2.55× more per four levels of nesting, and 704 of `batch`'s
    1 129 `add:` calls. It exists only to sort keys bytewise (RFC 8949 §4.2) at emit time;

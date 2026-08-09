@@ -23,7 +23,18 @@ import mprof_resolve as MR
 # workload (docs/results/2026-08-06-method-call-counter-spike.md). It is what
 # turns a host activation count into a DEVICE prediction — counts are a property
 # of the program, only per-activation time needs the device.
+#
+# IT IS AN AVERAGE, AND THE `host ns/act` COLUMN BESIDE IT IS THERE TO SAY WHEN
+# THAT AVERAGE HAS STOPPED APPLYING. The model predicted the baseline codec's
+# measured `pushEncode` to 4%, but a change that removes a NON-representative
+# slice of activations breaks it: dropping ByteBuilder's ByteArray wrapper cut
+# 66% of the frame's activations and only 33% of its host time, because the
+# activations it removed were one-line accessors costing well under an average
+# one. When `host ns/act` moves between two runs, the mix has shifted and the
+# prediction is a bound, not an estimate — in that direction, a floor.
 C6_US_PER_ACTIVATION = 11.83
+
+TIMING_RE = re.compile(r"^(\S+) bytes=(\d+) ns/encode=(\d+)")
 
 
 def windows(stderr_text):
@@ -59,6 +70,14 @@ def main(stdout_path, stderr_path, sidecar_path):
     # Nth header names the Nth window.
     headers = [ln for ln in stdout_lines if ln.startswith("--- mprof ")]
 
+    # Payload -> host ns/encode, from the timing arm of the same run, so the two
+    # arms can be divided into ns-per-activation.
+    ns = {}
+    for line in stdout_lines:
+        m = TIMING_RE.match(line)
+        if m:
+            ns[m.group(1)] = int(m.group(3))
+
     if not chunks:
         print("\nNO mprof WINDOWS ON stderr.")
         print("The VM was built WITHOUT -DOEVM_METHOD_PROFILE, so profileStart/"
@@ -82,9 +101,11 @@ def main(stdout_path, stderr_path, sidecar_path):
 
         per_byte = f"{acts / nbytes:.2f}" if nbytes else "-"
         c6_ms = acts * C6_US_PER_ACTIVATION / 1000.0
+        host_ns_act = f"{ns[name] / acts:.0f}" if name in ns and acts else "-"
         print(f"\n{name:10s} bytes={nbytes}  activations={acts}  "
               f"act/byte={per_byte}  methods={hdr[1]}  overflow={overflow}"
-              f"  -> C6 predicted {c6_ms:.1f} ms")
+              f"  host ns/act={host_ns_act}"
+              f"  -> C6 {c6_ms:.1f} ms (uniform-cost model)")
         if overflow:
             print("  !! OVERFLOW NON-ZERO — the table filled and activations "
                   "were DROPPED. Every count below is a floor, not a count.")
