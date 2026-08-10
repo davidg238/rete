@@ -349,12 +349,12 @@ The gauge lands **first** and runs against the **known-leaky** build.
 
 Sub-projects are lettered by §, staged by number — the two orders differ, which is the point.
 
-| Step | What lands | The prediction that must hold |
-|---|---|---|
-| 1 | **A** — allocation seam + `sys/cheap` | On the unfixed build, `outBytes` **rises**, at a rate matching the measured 43 m / 10 h 41 m lifetimes. **If it does not rise, the gauge is blind and step 2 proves nothing.** |
-| 2 | **B** — inline Symbol bytes + serializer | On the same gauge, `outBytes` goes **flat** after boot. `fails` stays 0 across a run longer than 10 h 41 m. |
-| 3 | **D** — `gw/**` + sweep | Halting the bell by hand flips `gw/liveness` to `#silent` within 3 × cadence + 30 s, and one event row records the transition. |
-| 4 | **C** — panic note, reboot, loop breaker | A deliberate fault (there is already a `prj_esp32c6_faultgate.conf` build for exactly this) produces one `Panic` on `sys/panic` after the reboot, and three faults with no check-in between them halt the node — with step 3 already watching. |
+| Step | What lands | Board | The prediction that must hold |
+|---|---|---|---|
+| 1 | **A** — allocation seam + `sys/cheap` | **c6spare** | On the unfixed build, `outBytes` **rises**, and the rise extrapolates to heap exhaustion at c6spare's measured 43 m 54 s. **If it does not rise, the gauge is blind and step 2 proves nothing.** |
+| 2 | **B** — inline Symbol bytes + serializer | c6spare, then the bell | On the same gauge, `outBytes` goes **flat** after boot. `fails` stays 0 across a run longer than 10 h 41 m. |
+| 3 | **D** — `gw/**` + sweep | either | Halting a node by hand flips `gw/liveness` to `#silent` within 3 × cadence + 30 s, and one event row records the transition. |
+| 4 | **C** — panic note, reboot, loop breaker | c6spare | A deliberate fault (there is already a `prj_esp32c6_faultgate.conf` build for exactly this) produces one `Panic` on `sys/panic` after the reboot, and three faults with no check-in between them halt the node — with step 3 already watching. |
 
 Step 1 before step 2 is the whole point. Landing them together would leave a flat line that
 proves nothing — you would never have seen the instrument register the leak it was built to
@@ -364,6 +364,28 @@ The second pair is ordered by the same argument. **The sweep lands before the lo
 because the sweep must be provably working against a node halted by hand before the breaker
 is allowed to halt one on its own — otherwise the first node the breaker stops is also the
 first node nothing is watching.
+
+### Which board, and why the bell stays halted (David, 2026-08-10)
+
+**Step 1's leaky-build reading comes from c6spare at its 2 s cadence — 44 minutes to a
+result rather than ten and a half hours.** The 14.6× cadence agreement already established
+that the two boards are measuring the same phenomenon at different speeds, so c6spare is a
+sound proxy for the *instrument* question ("does the gauge see the leak?") even though it
+is a poor proxy for field conditions.
+
+**The bell stays halted through steps 1 and 2**, and comes back only on the fixed build. It
+is the only unattended, wallwart-powered, observe-only node on the bench — the closest thing
+to a field deployment — and its value is as a *clean* long-run witness for step 2's flat
+line. Running it deliberately leaky to re-observe a rise already measured twice would spend
+ten hours to learn nothing new and would contaminate the one board whose long record is
+worth keeping.
+
+This is what makes step 2's prediction meaningful: the bell's first post-fix run is a run
+against a board with a *known, measured* 10 h 41 m lifetime on the old build. Passing 10 h
+41 m with `outBytes` flat is a direct comparison, not an absence of evidence.
+
+`c6spare` is the attached disposable board and `TARGET_DEFAULT_BOARD`; resolve both through
+the collector env files rather than a table, and never by a ttyUSB number.
 
 ---
 
