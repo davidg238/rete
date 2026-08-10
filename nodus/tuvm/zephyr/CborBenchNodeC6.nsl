@@ -32,7 +32,7 @@ NEVER POINT THIS AT THE BELL — flashing it ends a multi-day soak. Since
 rete#185 run.sh refuses on its own, over BOTH of the bell's adapters and
 including an explicit ESPTOOL_PORT pin, so this is no longer only a matter of
 looking first. The hashes are deliberately NOT repeated here: they have one
-home, `nodus/tuvm/tools/bell-identity.sh`, and a copy in prose is a copy that
+home, `nodus/tuvm/tools/bench-identity.sh`, and a copy in prose is a copy that
 goes stale silently. `ls -l /dev/serial/by-id/` still tells you what is on the
 bench; c6spare is the disposable one.
 *)
