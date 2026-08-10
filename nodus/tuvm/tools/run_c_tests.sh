@@ -50,6 +50,8 @@ run test_coalesce "$ENG_A" -DOEVM_HEAP_SIZE=8192
 # G3/M2 (https://github.com/davidg238/nsl-tuvm/issues/3): heap telemetry counters (live_bytes/high_water/
 # largest_free_block/gc_cycles) — fragmentation early-warning API.
 run test_heap_stats "$ENG_A" -DOEVM_HEAP_SIZE=65536
+# rete#190 sub-project A: the C-allocation seam's counters (oevm_malloc/free/realloc).
+run test_cheap_stats "$ENG_A" -DOEVM_HEAP_SIZE=65536
 run test_method_cache "$ENG_A" -DOEVM_CACHE_STATS
 # Model-B-linked tests (test_int_compare's own header comment specifies the
 # Model-B link set — kernel_boot.c present, solidified_image.c absent — so it

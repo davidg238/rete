@@ -1223,7 +1223,7 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            never dereferenced across (or after) the allocation. */
         struct String *s = (struct String *)args[0];
         size_t len = s->length;
-        char *nm = malloc(len + 1);
+        char *nm = oevm_malloc(len + 1);
         if (len) memcpy(nm, s->bytes, len);
         nm[len] = 0;
         oop sym = gc_allocate(SymbolVtable, sizeof(struct Symbol));

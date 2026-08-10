@@ -1791,7 +1791,7 @@ oop primitive_compiled_method_set_instruction_at(oop receiver, int argc, oop *ar
     extern uintptr_t flash_rom_end;
     uintptr_t insts_addr = (uintptr_t)cm_instructions(cm);
     if (insts_addr >= flash_rom_start && insts_addr < flash_rom_end) {
-        uint32_t *heap_insts = malloc(cm->instruction_count * sizeof(uint32_t));
+        uint32_t *heap_insts = oevm_malloc(cm->instruction_count * sizeof(uint32_t));
         memcpy(heap_insts, cm_instructions(cm), cm->instruction_count * sizeof(uint32_t));
         cm->instructions = heap_insts;
     }

@@ -476,6 +476,27 @@ struct OevmHeapStats {
 };
 struct OevmHeapStats oevm_heap_stats(void);
 
+/* rete#190: the C-allocation seam. Every malloc/realloc/free the VM performs goes
+   through these three, so that (a) a NULL return is handled in ONE place instead of
+   six, and (b) bytes-outstanding is exact rather than inferred. The VM made six
+   allocations and exactly one free when this was written; the leak that motivated it
+   was one wire-Symbol buffer per decoded Symbol (platform.c asSymbol).
+   DELIBERATE BLIND SPOT: allocations made by lwIP, OpenThread or Zephyr itself are
+   invisible here. `fails` still catches a NULL from ANY cause, because whoever
+   exhausted the heap, the failing request is one the VM made. */
+struct OevmCHeapStats {
+    size_t out_bytes;   /* payload bytes currently outstanding (headers excluded) */
+    size_t out_high;    /* max of out_bytes ever observed (monotonic since boot) */
+    size_t allocs;      /* successful oevm_malloc + oevm_realloc calls since boot */
+    size_t frees;       /* oevm_free calls that released a block (NULL is not counted) */
+    size_t fails;       /* allocation attempts that returned NULL */
+};
+struct OevmCHeapStats oevm_cheap_stats(void);
+
+void *oevm_malloc(size_t n);
+void *oevm_realloc(void *p, size_t n);
+void  oevm_free(void *p);
+
 /* Fiber prims (fiberCreate:/fiberSwitch:value:) removed in Milestone A Task 5. */
 
 /*

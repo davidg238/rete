@@ -1630,9 +1630,9 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                         return make_string("false", 5);
                     /* genuine Symbol: '#' prefix */
                     size_t n = sy->length;
-                    char *tmp = (char *)malloc(n + 1);
+                    char *tmp = (char *)oevm_malloc(n + 1);
                     tmp[0] = '#'; memcpy(tmp + 1, symbol_name(sy), n);
-                    oop r = make_string(tmp, n + 1); free(tmp); return r;
+                    oop r = make_string(tmp, n + 1); oevm_free(tmp); return r;
                 } else if (receiver == NULL) {
                     snprintf(buf, sizeof(buf), "nil");
                 } else {
@@ -1666,7 +1666,7 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                 }
                 extern oop gc_allocate(oop vtable, size_t size);
                 oop sym_obj = gc_allocate(SymbolVtable, sizeof(struct Symbol));
-                char *new_str = malloc(strlen(buf) + 1);
+                char *new_str = oevm_malloc(strlen(buf) + 1);
                 strcpy(new_str, buf);
                 ((struct Symbol *)sym_obj)->name = new_str;
                 ((struct Symbol *)sym_obj)->length = strlen(buf);
