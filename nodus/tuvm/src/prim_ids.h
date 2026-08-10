@@ -485,4 +485,15 @@
    (oevm.h: SMI is intptr_t >> 1, i.e. 31-bit on the C6) — a LargeInteger here
    would allocate on the check-in path and cost 9 CBOR bytes instead of 5. */
 #define PRIM_pf_bootId            151
+/* rete#190 sub-project A: `platform cheapStats` — the C-allocation seam's
+   counters (src/gc.c oevm_cheap_stats), the C-heap twin of heapStats (104),
+   which reports the GC ARENA. Both exist because conflating them is what let
+   a per-decoded-Symbol leak run for a week against a gauge that could not
+   see it. Appended after bootId; no pre-existing id shifts. 152 was arrived
+   at by COUNTING PRIM_NAMES (151 entries before this append), not by 151+1
+   arithmetic, per the standing lesson above. Platform-dispatched (mirrored
+   here as 152). Returns a 5-slot Array [outBytes, outHigh, allocs, frees,
+   fails] snapshotting src/gc.c oevm_cheap_stats(); the nsl CHeapStats class
+   names the fields. */
+#define PRIM_pf_cheapStats        152
 #endif /* OEVM_PRIM_IDS_H */

@@ -851,6 +851,15 @@ enum {
     PRIM_pf_otaConfirm,
     PRIM_pf_otaActivate,
     PRIM_pf_bootId,
+    /* rete#190 sub-project A: `platform cheapStats` — the C-allocation seam's
+       counters (src/gc.c oevm_cheap_stats), the C-heap twin of heapStats (104),
+       which reports the GC ARENA. Both exist because conflating them is what let
+       a per-decoded-Symbol leak run for a week against a gauge that could not
+       see it. Appended after bootId; no pre-existing id shifts. 152 was arrived
+       at by COUNTING PRIM_NAMES (151 entries before this append), not by 151+1
+       arithmetic, per the standing lesson above. Platform-dispatched (mirrored
+       in prim_ids.h). */
+    PRIM_pf_cheapStats,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -920,6 +929,7 @@ static const char *const PRIM_NAMES[] = {
     "otaRunningHash", "otaIsRunning:", "otaTrial",
     "otaStage:sig:host:port:", "otaConfirm", "otaActivate:sig:",
     "bootId",
+    "cheapStats",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
@@ -930,7 +940,7 @@ static const char *const PRIM_NAMES[] = {
    — this catches it at build time instead. C99-safe (no _Static_assert under
    -std=c99): a false condition makes a negative-sized array, which is a hard
    compile error. ADVANCE THIS to the new last id whenever prims are appended. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_bootId) ? 1 : -1];
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_cheapStats) ? 1 : -1];
 
 /* Pointer-keyed cache mapping each interned selector symbol to its primitive id
    (PRIM_NONE if it is not an intercepted primitive). Selectors are interned, so

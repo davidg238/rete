@@ -1254,6 +1254,27 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         ((struct ObjectInstance *)r)->slots[5] = TAG_SMI((intptr_t)st.gc_cycles);
         *out = r; return 1;
     }
+    case PRIM_pf_cheapStats: {
+        /* rete#190: `platform cheapStats` — snapshot the C-allocation seam into a
+           5-slot Array of SMIs, field order [outBytes, outHigh, allocs, frees,
+           fails]. The nsl CHeapStats class names them. This is the C heap, NOT the
+           GC arena that heapStats (104) reports.
+           SMI range: outBytes/outHigh are bounded by the C heap (~200 KB on the C6)
+           and the counts are per-boot totals — a 30 s cadence reaches ~10^4/day, so
+           all five fit a 32-bit SMI on host and target alike.
+           GC-safety: the whole struct is copied into the C local `st` BEFORE the
+           single allocating call (indexable_new); the five stores are SMIs
+           (immediates, no allocation), so no heap oop is held across an allocation
+           and no gc_temp_root pin is required. args are ignored (0-arg selector). */
+        struct OevmCHeapStats st = oevm_cheap_stats();
+        oop r = indexable_new(5);
+        ((struct ObjectInstance *)r)->slots[1] = TAG_SMI((intptr_t)st.out_bytes);
+        ((struct ObjectInstance *)r)->slots[2] = TAG_SMI((intptr_t)st.out_high);
+        ((struct ObjectInstance *)r)->slots[3] = TAG_SMI((intptr_t)st.allocs);
+        ((struct ObjectInstance *)r)->slots[4] = TAG_SMI((intptr_t)st.frees);
+        ((struct ObjectInstance *)r)->slots[5] = TAG_SMI((intptr_t)st.fails);
+        *out = r; return 1;
+    }
     case PRIM_pf_profileStart: {
         /* #165 D1/D6: open a per-method capture window. No-op without the
            profiler built in — deliberately silent rather than an error, so one

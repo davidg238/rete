@@ -1100,6 +1100,28 @@ class Kernel usingPlatform: platform = () (
     public fromList: a = ( ^ self new setFromList: a )
   )
 
+  class CHeapStats = ( | outBytes outHigh allocs frees fails | ) (
+    (* rete#190: a read-only snapshot of C-allocation accounting (src/gc.c
+       oevm_cheap_stats), surfaced by the native `platform cheapStats` leaf
+       (prim 152) as a 5-element Array in field order. Construct via the
+       class-side `fromList:`. This is the C heap — the GC arena is HeapStats. *)
+    public outBytes = ( ^ outBytes )
+    public outHigh  = ( ^ outHigh )
+    public allocs   = ( ^ allocs )
+    public frees    = ( ^ frees )
+    public fails    = ( ^ fails )
+    setFromList: a = (
+      (* raw IndexableVtable Array, so basicAt: — the HeapStats precedent *)
+      outBytes:: a basicAt: 1. outHigh:: a basicAt: 2. allocs:: a basicAt: 3.
+      frees:: a basicAt: 4. fails:: a basicAt: 5. ^ self )
+    public printString = (
+      ^ 'out ', outBytes printString, ' / hw ', outHigh printString,
+        ' / a ', allocs printString, ' / f ', frees printString,
+        ' / fail ', fails printString )
+  ) : (
+    public fromList: a = ( ^ self new setFromList: a )
+  )
+
   class Spans = ( | names fails | ) (
     (* tuvm#61: named access to the C span slots (prims 118-121). The C side is
        NAMELESS — slots are integers 0..N-1 — exactly as the timer seam carries
@@ -3547,6 +3569,7 @@ class Kernel usingPlatform: platform = () (
      explicitly for exactly the reason the comment above gives. *)
   public SpanCapture       = ( ^ SpanCapture )
   public heapStats         = ( ^ HeapStats fromList: (platform heapStats) )
+  public cheapStats        = ( ^ CHeapStats fromList: (platform cheapStats) )
   (* #165: open and close a per-method profile window. The counter is a build
      option (OEVM_METHOD_PROFILE) and these are no-ops without it, so an app may
      send them unconditionally. The rows do NOT come back through here — they go
