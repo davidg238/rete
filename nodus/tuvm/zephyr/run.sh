@@ -30,9 +30,10 @@ case "$BOARD_ID" in esp32|esp32s2|esp32c6) ;; *) echo "--board must be esp32, es
 ZDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # zephyr/ — the app dir
 ROOT="$(cd "$ZDIR/.." && pwd)"                          # nodus/tuvm — the VM root, not the repo root
 NSL="$(git -C "$ZDIR" rev-parse --show-toplevel)/nodus/nsl/tools/ns_compile_oevm.py" # NOT ~/workspace/ns-oevm (stale)
-# The ship's bell's adapters and the predicate over them, shared with the target
-# harness so the hash has ONE home (rete#185). Policy is below, at the guard.
-. "$ROOT/tools/bell-identity.sh"
+# Who-is-who on this bench: the instance<->adapter mapping and the bell's
+# identities, shared with the target harness so there is ONE home for both
+# (rete#185, rete#170). Policy stays here, at each call site.
+. "$ROOT/tools/bench-identity.sh"
 ESPTOOL="$HOME/.espressif/python_env/idf5.4_py3.12_env/bin/esptool.py"
 
 # ---- board profiles -------------------------------------------------------
@@ -407,9 +408,9 @@ if [ "$DO_FLASH" = 1 ]; then
   # collector for the deploy window, and target::reset_board then drives RTS
   # afterwards so the boot banner is still captured (esptool resets the board on
   # completion, i.e. while there is no reader). The fix here is to move that pause
-  # into this script and have the harness stop doing it — blocked on rete#170,
-  # because the pause needs the real instance name and the block below still
-  # hardcodes `c6`.
+  # into this script and have the harness stop doing it. rete#170 unblocked it by
+  # giving this script the real instance name (below); what remains is moving the
+  # stop/start and the second reset over, and deleting the harness's copy.
   echo "[flash] esptool $ESPTOOL_CHIP @ $ESPTOOL_OFFSET -> $ESPTOOL_PORT"
   # NOT `west flash` — that would rebuild.
   "$ESPTOOL" --chip "$ESPTOOL_CHIP" --port "$ESPTOOL_PORT" --baud 921600 write_flash \
@@ -423,24 +424,58 @@ if [ "$DO_FLASH" = 1 ]; then
     # takes the .oimg.methods.json and .stmap sidecars into the same build-id
     # directory, so a profile taken today can be resolved after the board has
     # been reflashed twice.
-    "$ZDIR/tools/console/archive.sh" "$ZDIR/$BUILD_DIR" c6 "${OIMG:-}"
-    # The collector reads its port from its own env file. If that disagrees with
-    # the console port this bench actually resolves, the boot you just triggered
-    # is being logged from a different adapter — or not at all — and every
-    # symptom of that looks like "the board went quiet". Say so here, where the
-    # operator is already looking.
-    ENVF="$HOME/.config/rete/console-c6.env"
-    if [ -f "$ENVF" ]; then
-      want=$(sed -n 's/^RETE_CONSOLE_PORT=//p' "$ENVF")
-      if [ -n "$want" ] && [ "$want" != "$CONSOLE_PORT" ]; then
-        echo "[console] WARNING: collector is configured for" >&2
-        echo "[console]   $want" >&2
-        echo "[console] but this bench resolves the console to" >&2
-        echo "[console]   $CONSOLE_PORT" >&2
-        echo "[console] The boot you just triggered may not be in the log." >&2
+    # WHICH BOARD DID THIS ACTUALLY GO TO? rete#170: this used to be the literal
+    # `c6`, so every C6 flash archived under the ship's bell and checked the
+    # bell's env file whichever board was flashed. Resolved instead from the
+    # console port, through the same env files the collector itself reads.
+    if INSTANCE=$(bench::board_for_port "$CONSOLE_PORT"); then
+      "$ZDIR/tools/console/archive.sh" "$ZDIR/$BUILD_DIR" "$INSTANCE" "${OIMG:-}"
+
+      # The old check compared this port against `console-c6.env` and so was
+      # wrong on every board but one. Comparing it against the instance we just
+      # resolved FROM that file would be worse — tautological, a warning that can
+      # never fire. What can still be wrong, and is what the operator actually
+      # wants to know, is whether that instance's collector will capture the boot.
+      case "$(bench::collector_state "$INSTANCE")" in
+        active) : ;;
+        inactive)
+          echo "[console] WARNING: rete-console@$INSTANCE is not running." >&2
+          echo "[console] The boot you just triggered is not being logged." >&2 ;;
+        no-log)
+          echo "[console] WARNING: rete-console@$INSTANCE is running but has no log for today." >&2 ;;
+        port-down)
+          if [ "$INSTANCE" = c6 ]; then
+            echo "[console] note: rete-console@c6 reports port=down, which is NORMAL for the" >&2
+            echo "[console] ship's bell — its console goes over Thread, not this cable." >&2
+          else
+            echo "[console] WARNING: rete-console@$INSTANCE reports port=down — it is running" >&2
+            echo "[console] and reading nothing, so the boot you just triggered went nowhere." >&2
+          fi ;;
+      esac
+
+      # The one cross-board pairing this script can still detect. The flash port
+      # is the USB-JTAG node and no env file names it, so a general "did I flash
+      # one board and read another's console" check is not available here — but
+      # the case that costs a multi-day soak is, because the bell's JTAG identity
+      # is known. Exactly one of the two ports being the bell's means the pair
+      # straddles two boards.
+      if bell::is_bell_port "$ESPTOOL_PORT" && ! bell::is_bell_port "$CONSOLE_PORT"; then
+        echo "[console] WARNING: flashed the BELL's JTAG but the console resolves to '$INSTANCE'." >&2
+      elif ! bell::is_bell_port "$ESPTOOL_PORT" && bell::is_bell_port "$CONSOLE_PORT"; then
+        echo "[console] WARNING: console is the BELL's, but the flash went somewhere else." >&2
       fi
+    else
+      # Refusing to guess is the whole point: archiving under a name that is not
+      # this board is what rete#170 was, and `last-flashed-<board>` is the
+      # human-facing "what is on this board" note. The build-id directory is
+      # written either way, so nothing is lost by declining to name it.
+      echo "[console] WARNING: no collector instance owns $CONSOLE_PORT" >&2
+      echo "[console] (or more than one claims it), so this flash cannot be attributed" >&2
+      echo "[console] to a board. Archiving under 'unknown'; last-flashed-* is unchanged." >&2
+      "$ZDIR/tools/console/archive.sh" "$ZDIR/$BUILD_DIR" unknown "${OIMG:-}"
+      INSTANCE=unknown
     fi
-    echo "[console] $CONSOLE_PORT"
+    echo "[console] $INSTANCE $CONSOLE_PORT"
   fi
 fi
 

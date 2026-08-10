@@ -50,7 +50,7 @@ TARGET_DEFAULT_BOARD=${TARGET_DEFAULT_BOARD:-c6spare}
 # ended multi-day soak is not recoverable. If the bell genuinely must be
 # reflashed, that is a hand operation with zephyr/run.sh — not something a test
 # suite has a code path for.
-. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../tools" && pwd)/bell-identity.sh"
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../tools" && pwd)/bench-identity.sh"
 
 target::say()  { echo "  $*"; }
 target::warn() { echo "  ! $*" >&2; }
@@ -64,11 +64,9 @@ target::die()  { echo "FAIL: $*" >&2; exit 1; }
 # read the console of the other, and every symptom of that reads as "the board
 # went quiet".
 target::board_byid() {
-  local board=$1 envf port
-  envf="$HOME/.config/rete/console-$board.env"
-  [ -f "$envf" ] || target::die "no collector env at $envf — instance '$board' is not configured on this bench"
-  port=$(sed -n 's/^RETE_CONSOLE_PORT=//p' "$envf")
-  [ -n "$port" ] || target::die "$envf names no RETE_CONSOLE_PORT"
+  local board=$1 port
+  port=$(bench::port_for_board "$board") \
+    || target::die "no usable collector env at $(bench::env_file "$board") — instance '$board' is not configured on this bench, or the file names no RETE_CONSOLE_PORT"
   echo "$port"
 }
 
@@ -133,7 +131,7 @@ target::lock() {
 
 # target::logfile <board> — re-resolved on every poll, never cached: the
 # collector rolls its log at midnight and a long run can outlive the path.
-target::logfile() { echo "$TARGET_STORE/console-$1-$(date +%F).log"; }
+target::logfile() { BENCH_CONSOLE_STORE="$TARGET_STORE" bench::log_file "$1"; }
 
 # target::collector_ok <board>
 #

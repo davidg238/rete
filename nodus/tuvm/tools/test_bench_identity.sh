@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# nodus/tuvm/tools/test_bell_identity.sh — the bell interlock, falsified (rete#185).
+# nodus/tuvm/tools/test_bench_identity.sh — the bell interlock (rete#185) and the
+# instance<->adapter resolver (rete#170), both falsified.
 #
 # Pure host test: no board is touched and no flash is ever issued. Every port
 # this exercises is either a synthetic path under a temp dir or a read-only
@@ -13,7 +14,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUNSH="$HERE/../zephyr/run.sh"
-. "$HERE/bell-identity.sh"
+. "$HERE/bench-identity.sh"
 
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 pass=0; fail=0
@@ -105,6 +106,45 @@ if ! printf '%s' "$out" | grep -q "ship's bell"; then
 else
   bad "the guard refused a disposable board (rc=$rc)"; printf '%s\n' "$out" | tail -5 >&2
 fi
+
+echo "-- rete#170: the instance <-> adapter resolver, on a synthetic bench"
+# A private config dir, so this asserts the RESOLVER and not the bench's current
+# cabling — which changes within a session and would make this test flap.
+export BENCH_CONFIG_DIR="$TMP/config"
+mkdir -p "$BENCH_CONFIG_DIR"
+: > "$TMP/dev/ttyFAKE_bell"; : > "$TMP/dev/ttyFAKE_spare"
+printf 'RETE_CONSOLE_PORT=%s\n' "$TMP/dev/ttyFAKE_bell"  > "$BENCH_CONFIG_DIR/console-c6.env"
+printf 'RETE_CONSOLE_PORT=%s\n' "$TMP/dev/ttyFAKE_spare" > "$BENCH_CONFIG_DIR/console-c6spare.env"
+
+[ "$(bench::board_for_port "$TMP/dev/ttyFAKE_spare")" = c6spare ] \
+  && ok "port -> board (c6spare)" || bad "port -> board did not answer c6spare"
+[ "$(bench::port_for_board c6)" = "$TMP/dev/ttyFAKE_bell" ] \
+  && ok "board -> port (c6)" || bad "board -> port did not answer the bell's port"
+
+# THE #170 DEFECT ITSELF: a flash to c6spare must not resolve to c6.
+[ "$(bench::board_for_port "$TMP/dev/ttyFAKE_spare")" != c6 ] \
+  && ok "c6spare's port does NOT resolve to c6 (the bug this closes)" \
+  || bad "c6spare's port resolved to c6"
+
+# A symlink under another name must resolve, not merely string-match — run.sh
+# holds a by-id path where the env file may hold anything naming one adapter.
+ln -s "$TMP/dev/ttyFAKE_spare" "$TMP/dev/by-another-name"
+[ "$(bench::board_for_port "$TMP/dev/by-another-name")" = c6spare ] \
+  && ok "resolves through a differently-named symlink" || bad "did not resolve a symlink to the same device"
+
+# Refuse to guess rather than pick: two instances claiming one adapter is a
+# misconfigured bench, and picking one is how the wrong board gets named.
+printf 'RETE_CONSOLE_PORT=%s\n' "$TMP/dev/ttyFAKE_spare" > "$BENCH_CONFIG_DIR/console-dupe.env"
+bench::board_for_port "$TMP/dev/ttyFAKE_spare" >/dev/null 2>&1 \
+  && bad "resolved an ambiguous adapter instead of refusing" \
+  || ok "two instances claiming one adapter -> refuses, does not guess"
+rm -f "$BENCH_CONFIG_DIR/console-dupe.env"
+
+bench::board_for_port "$TMP/dev/ttyACM9" >/dev/null 2>&1 \
+  && bad "resolved a port no env file names" || ok "an unowned port -> refuses"
+bench::board_for_port "" >/dev/null 2>&1 \
+  && bad "resolved an empty port" || ok "an empty port -> refuses"
+unset BENCH_CONFIG_DIR
 
 echo
 echo "passed: $pass  failed: $fail"
