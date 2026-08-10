@@ -40,12 +40,17 @@ TARGET_LOCKDIR=${TARGET_LOCKDIR:-$HOME/.local/state/rete/target}
 # a list is a thing that goes stale pointing at hardware nobody has seen in weeks.
 TARGET_DEFAULT_BOARD=${TARGET_DEFAULT_BOARD:-c6spare}
 
-# The bell's adapter. Refused on the deploy path with NO override env, and that
+# The bell's adapters, and the predicate over them, live in ONE place shared
+# with zephyr/run.sh — the hand deploy path, which flashes the C6 over a
+# DIFFERENT adapter than this harness does and was therefore never covered by
+# the console hash that used to be hardcoded here (rete#185).
+#
+# What stays here is the POLICY: refused with NO override env, and that
 # asymmetry is deliberate: a mislabelled workload is a plausible mistake and an
 # ended multi-day soak is not recoverable. If the bell genuinely must be
 # reflashed, that is a hand operation with zephyr/run.sh — not something a test
 # suite has a code path for.
-TARGET_DENY_BYID_SUBSTR="4e5729ee"
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../tools" && pwd)/bell-identity.sh"
 
 target::say()  { echo "  $*"; }
 target::warn() { echo "  ! $*" >&2; }
@@ -81,10 +86,9 @@ target::board_byid() {
 target::assert_not_the_bell() {
   local board=$1 port
   port=$(target::board_byid "$board")
-  case "$port" in
-    *"$TARGET_DENY_BYID_SUBSTR"*)
-      target::die "refusing to deploy to '$board': $port is the ship's bell. Flashing it ends a soak that cannot be restarted, and its port=down is healthy (wallwart, console over Thread). Deploy by hand with zephyr/run.sh if you really mean to." ;;
-  esac
+  if bell::is_bell_port "$port"; then
+    target::die "refusing to deploy to '$board': $port is the ship's bell. Flashing it ends a soak that cannot be restarted, and its port=down is healthy (wallwart, console over Thread). Deploy by hand with zephyr/run.sh if you really mean to."
+  fi
 }
 
 # target::assert_deployable <board> <class>
@@ -110,10 +114,9 @@ target::assert_deployable() {
   # The backstop. Resolve the adapter this deploy would actually write to and
   # refuse the bell's, whatever the manifest claimed.
   port=$(target::board_byid "$board")
-  case "$port" in
-    *"$TARGET_DENY_BYID_SUBSTR"*)
-      target::die "refusing to deploy: $port is the ship's bell. Flashing it ends a soak that cannot be restarted. Do it by hand with zephyr/run.sh if you really mean to." ;;
-  esac
+  if bell::is_bell_port "$port"; then
+    target::die "refusing to deploy: $port is the ship's bell. Flashing it ends a soak that cannot be restarted. Do it by hand with zephyr/run.sh if you really mean to."
+  fi
 
   [ -e "$port" ] || target::die "adapter $port is not present — is '$board' attached?"
 }

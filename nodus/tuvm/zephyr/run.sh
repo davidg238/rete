@@ -30,6 +30,9 @@ case "$BOARD_ID" in esp32|esp32s2|esp32c6) ;; *) echo "--board must be esp32, es
 ZDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # zephyr/ — the app dir
 ROOT="$(cd "$ZDIR/.." && pwd)"                          # nodus/tuvm — the VM root, not the repo root
 NSL="$(git -C "$ZDIR" rev-parse --show-toplevel)/nodus/nsl/tools/ns_compile_oevm.py" # NOT ~/workspace/ns-oevm (stale)
+# The ship's bell's adapters and the predicate over them, shared with the target
+# harness so the hash has ONE home (rete#185). Policy is below, at the guard.
+. "$ROOT/tools/bell-identity.sh"
 ESPTOOL="$HOME/.espressif/python_env/idf5.4_py3.12_env/bin/esptool.py"
 
 # ---- board profiles -------------------------------------------------------
@@ -53,10 +56,52 @@ ESPTOOL="$HOME/.espressif/python_env/idf5.4_py3.12_env/bin/esptool.py"
 # one match ABORTS with every match named rather than guessing. An explicit
 # ESPTOOL_PORT always wins and skips detection (and the ambiguity check)
 # entirely.
+# bell_interlock — refuse a flash aimed at the ship's bell (rete#185).
+#
+# Called from pick_port, i.e. the moment the port is decided and BEFORE anything
+# else looks at the board. That ordering is the lesson target.sh already learned
+# by falsifying itself: with an identity check downstream, a deploy aimed at the
+# bell gets refused by some *other* check whose message is about something else,
+# and the operator acts on the wrong instruction.
+#
+# pick_port's zero/one/many discipline is about AMBIGUITY, not identity, so on
+# its own it protects the bell only as a side effect of a second board being
+# plugged in:
+#
+#   many  -> exits 2.                      safe
+#   one   -> uses it silently.             UNSAFE when the one is the bell
+#   zero  -> falls back to the hardcoded default.
+#
+# The danger window is "the bell is attached and the other board is not", and it
+# is opened by the OTHER board failing — precisely when nobody is thinking about
+# the bell. It was live for about five hours on 2026-08-09 when c6spare's
+# USB-JTAG cable died: one 303a:1001 on the bus, and it was the bell's.
+bell_interlock() {
+  [ "$DO_FLASH" = 1 ] || return 0
+  bell::is_bell_port "${ESPTOOL_PORT:-}" || return 0
+  if [ "${I_REALLY_MEAN_THE_BELL:-0}" = 1 ]; then
+    echo "[bell] I_REALLY_MEAN_THE_BELL=1 — flashing THE SHIP'S BELL on $ESPTOOL_PORT" >&2
+    echo "[bell] This ends the current soak. It cannot be restarted from here." >&2
+    return 0
+  fi
+  echo "ERROR: $ESPTOOL_PORT is the ship's bell." >&2
+  echo "Flashing it ends a multi-day soak that cannot be restarted." >&2
+  echo >&2
+  echo "If you are trying to flash a disposable board, plug it in and retry —" >&2
+  echo "this fired because the bell was the only match, not because you asked" >&2
+  echo "for it. If you genuinely mean the bell, say so and it will proceed —" >&2
+  echo "put I_REALLY_MEAN_THE_BELL=1 in front of the command you just ran." >&2
+  exit 2
+}
+
 pick_port() {
   local pattern="$1" fallback="$2" matches n
+  # An explicit ESPTOOL_PORT still wins and still skips detection — but it no
+  # longer skips the bell interlock at the bottom. rete#185's live case was an
+  # explicit pin, which used to be the one way past every check there was.
   if [ -n "${ESPTOOL_PORT:-}" ]; then
-    return 0   # explicit override always wins; no detection, no check
+    bell_interlock
+    return 0
   fi
   matches="$(ls $pattern 2>/dev/null || true)"
   n=0; [ -n "$matches" ] && n=$(printf '%s\n' "$matches" | wc -l)
@@ -72,6 +117,7 @@ pick_port() {
   else
     ESPTOOL_PORT="$fallback"
   fi
+  bell_interlock
 }
 case "$BOARD_ID" in
   esp32)
