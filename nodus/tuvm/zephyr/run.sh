@@ -389,6 +389,27 @@ echo "[build] -b $BOARD -d $BUILD_DIR ${PRISTINE_ARG[*]:-(incremental)}"
        "${EXTRA_CONF_ARG[@]}" )
 
 if [ "$DO_FLASH" = 1 ]; then
+  # KNOWN RACE, not yet closed here (rete#154, closed as recorded rather than
+  # fixed — this comment is the record). The #56 collector holds the CP2102N
+  # open permanently and a tty has no exclusive open, so on the boards where the
+  # flash and console channels are the SAME adapter, esptool and collect.py both
+  # read it and the ROM handshake bytes are split between them. Symptom:
+  #
+  #   A serial exception error occurred: device reports readiness to read but
+  #   returned no data (device disconnected or multiple access on port?)
+  #
+  # Intermittent, which is why it went unnoticed — whether a flash wins depends
+  # on where the collector is in its read loop. The C6 is NOT exposed (it flashes
+  # over the USB-JTAG node and consoles over the CP2102N, two physical channels),
+  # so this bites the esp32 and esp32s2 profiles above.
+  #
+  # Already closed for the target harness: target::collector_pause stops the
+  # collector for the deploy window, and target::reset_board then drives RTS
+  # afterwards so the boot banner is still captured (esptool resets the board on
+  # completion, i.e. while there is no reader). The fix here is to move that pause
+  # into this script and have the harness stop doing it — blocked on rete#170,
+  # because the pause needs the real instance name and the block below still
+  # hardcodes `c6`.
   echo "[flash] esptool $ESPTOOL_CHIP @ $ESPTOOL_OFFSET -> $ESPTOOL_PORT"
   # NOT `west flash` — that would rebuild.
   "$ESPTOOL" --chip "$ESPTOOL_CHIP" --port "$ESPTOOL_PORT" --baud 921600 write_flash \
