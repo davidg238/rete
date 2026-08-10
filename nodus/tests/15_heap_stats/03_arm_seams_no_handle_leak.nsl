@@ -1,0 +1,54 @@
+(*
+expect:
+true
+true
+false
+true
+true
+done
+*)
+(* rete#184: the two "arm a callback" seams pin the message oop in an M6 handle,
+   and neither used to give the previous one back. The handle table is 32 slots
+   (handles.h) and handle_new ABORTS the VM when it fills, so on the ship's bell —
+   one re-arm per half-hourly strike — slot 32 was taken ~15.5 h after boot: a hard
+   uptime ceiling by construction. Confirmed in the field by 3431 sys/metrics
+   samples (#153): handlesLive stepped +1 every thirty minutes, on the half hour,
+   with handlesLive == handlesHighWater in every sample.
+
+   Both leak paths are reachable HOST-side, which is what makes this a suite test
+   rather than a board observation:
+
+     - rtcAlarmAt:post:on: — the host has no DS3231 and REFUSES every arm (the host
+       rtc_alarm_arm answers -1 on purpose, so a node has to carry its fallback), so
+       the host exercises the FAILURE path, where the pin was leaked before it had
+       even been handed to a driver.
+     - sensorArmEventPost:on:threshold: — the host backend arms successfully, so the
+       host exercises the RE-ARM path, which is the one the bell walks.
+
+   Every assertion is a DELTA, never an absolute. What is wrong with a leak is that
+   the count grows with the number of arms, so the property is that 20 arms cost
+   exactly what 1 arm costs; an absolute would encode whatever else this suite
+   happens to have pinned and would go red for the wrong reason. *)
+class ArmSeamsHandleTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | base afterRefusals afterFirst afterMany |
+  base:: (platform metrics) at: #handlesLive ifAbsent: [ -1 ].
+
+  (* The refusal path. It answers nil, and it must cost nothing. *)
+  ((platform rtcAlarmAt: 3600 post: #alarm on: 'do/bell') == nil) printString println.
+  1 to: 20 do: [ :i | platform rtcAlarmAt: 3600 post: #alarm on: 'do/bell' ].
+  afterRefusals:: (platform metrics) at: #handlesLive ifAbsent: [ -1 ].
+  (afterRefusals = base) printString println.
+
+  (* The re-arm path. There is exactly one outstanding trigger per node, so an
+     armed seam costs exactly one pin however many times it is re-armed. *)
+  ((platform sensorArmEventPost: #hot on: 'obs/thermal' threshold: 3000) == nil) printString println.
+  afterFirst:: (platform metrics) at: #handlesLive ifAbsent: [ -1 ].
+  (afterFirst = (base + 1)) printString println.
+  1 to: 20 do: [ :i | platform sensorArmEventPost: #hot on: 'obs/thermal' threshold: 3000 ].
+  afterMany:: (platform metrics) at: #handlesLive ifAbsent: [ -1 ].
+  (afterMany = afterFirst) printString println.
+  'done' println.
+)
+) : (
+)

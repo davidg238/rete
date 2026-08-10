@@ -645,6 +645,23 @@ static const uint8_t *ota_leaf_bytes(oop v, size_t *len) {
     return (const uint8_t *)s->bytes;
 }
 
+/* rete#184: the one live M6 pin held by each of the two "arm a callback" seams.
+   Both pin the message oop across a boundary the GC cannot see (the DS3231
+   workqueue callback; a sensor trigger), and both are RE-ARMED — the bell arms a
+   fresh alarm on every strike. Without a place to name the outgoing pin there is
+   nothing to free, and the 32-slot handle table (handles.h) aborts the VM when it
+   fills: one slot per half-hourly strike is a ~15.5 h uptime ceiling by
+   construction, and the field data (#153, 3431 samples) shows handlesLive stepping
+   +1 every thirty minutes with nothing ever given back.
+   There is exactly ONE outstanding alarm and ONE outstanding sensor trigger per
+   node, so one int each is the whole state. -1 is the invalid sentinel handle_new
+   can never return (handles.h keeps the sign bit clear), and handle_free ignores
+   it, so no first-arm special case is needed. The timer seam
+   (backend/zephyr/timer_zephyr.c:43) and the GPIO seam (host_gpio_register above)
+   already reclaim theirs; these two were the outliers. */
+static int rtc_alarm_pin    = -1;
+static int sensor_event_pin = -1;
+
 int platform_dispatch(int pid, int argc, oop *args, oop *out) {
     (void)argc;
     switch (pid) {
@@ -1506,7 +1523,18 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         int chan_id = space_intern((const char *)p->bytes, p->length);
         int hidx = handle_new(args[0]);                 /* pin the message oop via M6 */
         int32_t thr = IS_SMI(args[2]) ? (int32_t)UNTAG_SMI(args[2]) : 0;
-        sensor_arm_event(chan_id, hidx, thr);
+        if (sensor_arm_event(chan_id, hidx, thr) != 0) {
+            handle_free(hidx);                          /* nothing holds this pin — do not leak it */
+            *out = NULL;                                /* nil — could not arm */
+            return 1;
+        }
+        /* Released after a confirmed arm, never before — see the longer note on
+           the ordering under PRIM_pf_rtcAlarmAt below. Answering NIL on a refused
+           arm is new with rete#184: this used to answer the platform either way,
+           i.e. report "armed" for a trigger that was not, which is the one thing
+           the neighbouring rtcAlarmAt: seam is careful not to do. */
+        handle_free(sensor_event_pin);                  /* release the superseded pin — no slot leak */
+        sensor_event_pin = hidx;
         *out = platform_object();
         return 1;
     }
@@ -1530,9 +1558,22 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         int chan_id = space_intern((const char *)p->bytes, p->length);
         int hidx = handle_new(args[1]);                 /* pin the message oop via M6 */
         if (rtc_alarm_arm((int)UNTAG_SMI(args[0]), chan_id, hidx) != 0) {
+            handle_free(hidx);                          /* nothing holds this pin — do not leak it */
             *out = NULL;                                /* nil — could not arm */
             return 1;
         }
+        /* The outgoing pin is released HERE — after a confirmed arm, never before
+           it. Freeing at the top would open a window in which the still-armed
+           previous alarm resolves NULL and its strike is silently dropped; freeing
+           here cannot, because by this point the driver has been repointed.
+           The cost is that a FAILED arm leaves the previous pin held with nothing
+           referencing it (zephyr/src/main.c:506 writes tuvm_alarm_handle before
+           either of its failure returns, so the driver is already pointing at the
+           handle freed above). That is bounded at exactly one slot and reclaimed by
+           the next successful arm — this variable holds one pin by construction, so
+           it can never accumulate, which is the whole difference from #184. */
+        handle_free(rtc_alarm_pin);                     /* release the superseded pin — no slot leak */
+        rtc_alarm_pin = hidx;
         *out = platform_object();
         return 1;
     }

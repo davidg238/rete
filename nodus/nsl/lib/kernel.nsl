@@ -3509,7 +3509,10 @@ class Kernel usingPlatform: platform = () (
      instance is just the capability the user's nsl code actually holds as
      `platform`. sensorFrame answers a raw 64-slot Array of centi-degC SMIs (or
      nil when the device is not ready) — read with basicAt:, the heapStats
-     precedent, not Array's at:. *)
+     precedent, not Array's at:. sensorArmEventPost:on:threshold: answers the
+     platform when the trigger is armed and NIL when the backend refuses, exactly
+     like rtcAlarmAt:post:on: — so a caller has to carry a fallback rather than
+     assume a trigger it never got (rete#184). *)
   public sensorFrame = ( ^ platform sensorFrame )
   public sensorArmEventPost: msg on: path threshold: centi = ( ^ platform sensorArmEventPost: msg on: path threshold: centi )
 

@@ -195,7 +195,14 @@
                                                     on the interned channel path
                                                     via pulse_post_isr. Same
                                                     String-path + handle_new shape
-                                                    as gpioPin:edge:post:on:. */
+                                                    as gpioPin:edge:post:on:, and
+                                                    the same answer as
+                                                    rtcAlarmAt:post:on: — the
+                                                    platform on success, NIL when
+                                                    the backend cannot arm (rete#184:
+                                                    it used to answer the platform
+                                                    either way, reporting "armed"
+                                                    for a trigger that was not). */
 #define PRIM_pf_sensorFrame     116
 #define PRIM_pf_sensorArmEvent  117
 /* Rung 3 Task 4: the out-of-range sentinel returned by cborIntFromMajor:arg:
