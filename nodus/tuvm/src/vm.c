@@ -1748,7 +1748,10 @@ oop primitive_vtable_bind(oop receiver, int argc, oop *args) {
     
     if (vt->size >= vt->capacity) {
         vt->capacity = vt->capacity == 0 ? 8 : vt->capacity * 2;
-        vt->bindings = realloc(vt->bindings, vt->capacity * sizeof(struct Binding));
+        /* Assumes vt->bindings is either NULL or oevm_malloc/oevm_realloc storage.
+           rete#191: hanoi_native.c:77 breaks that assumption for Vtable_HanoiNative
+           (static, not heap) — pre-existing hazard, left standing deliberately. */
+        vt->bindings = oevm_realloc(vt->bindings, vt->capacity * sizeof(struct Binding));
     }
     vt->bindings[vt->size].symbol = selector;
     vt->bindings[vt->size].method = method;
