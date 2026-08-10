@@ -128,6 +128,8 @@ run test_float_gc            "$ENG_A"
 # proving float_alloc reclaims-on-malloc-failure instead of aborting. Small cells so
 # the capped slabs are cheap; budget deliberately > the pool cap the test enforces.
 run test_float_oom           "$ENG_A" -DOEVM_FLOAT_ARENA_SLAB_CELLS=512 -DOEVM_FLOAT_ARENA_SLAB_BUDGET=8 -Wl,--wrap=malloc
+# rete#190: the seam counts a failed allocation and returns NULL rather than aborting.
+run test_cheap_oom "$ENG_A" -Wl,--wrap=malloc
 run test_gc_trigger          "$ENG_A" -DOEVM_HEAP_SIZE=65536
 
 # --- Task 10a: revived KEEP-subsystem tests for the vestigial access control

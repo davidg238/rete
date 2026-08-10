@@ -1747,11 +1747,26 @@ oop primitive_vtable_bind(oop receiver, int argc, oop *args) {
     }
     
     if (vt->size >= vt->capacity) {
-        vt->capacity = vt->capacity == 0 ? 8 : vt->capacity * 2;
+        size_t new_capacity = vt->capacity == 0 ? 8 : vt->capacity * 2;
         /* Assumes vt->bindings is either NULL or oevm_malloc/oevm_realloc storage.
            rete#191: hanoi_native.c:77 breaks that assumption for Vtable_HanoiNative
            (static, not heap) — pre-existing hazard, left standing deliberately. */
-        vt->bindings = oevm_realloc(vt->bindings, vt->capacity * sizeof(struct Binding));
+        struct Binding *grown = oevm_realloc(vt->bindings, new_capacity * sizeof(struct Binding));
+        /* rete#190: this primitive is reached only through the privileged mirror
+           capability (mirror.c vtable:bind:to:) and every other error path in this
+           function already aborts (non-vtable receiver, bad argc, immutable image).
+           There is no established "answer nil" convention here — bind:to: always
+           answers the receiver — so returning nil on OOM would read as a plausible
+           success and silently drop the binding. Abort loud, consistent with the
+           rest of this function, rather than invent a new failure channel. Failing
+           BEFORE reassigning vt->bindings/vt->capacity also keeps the original
+           (still-valid, per oevm_realloc's contract) storage and size intact. */
+        if (grown == NULL) {
+            fprintf(stderr, "VM Error: bind:to: could not grow vtable bindings (out of memory)\n");
+            abort();
+        }
+        vt->bindings = grown;
+        vt->capacity = new_capacity;
     }
     vt->bindings[vt->size].symbol = selector;
     vt->bindings[vt->size].method = method;
@@ -1795,6 +1810,18 @@ oop primitive_compiled_method_set_instruction_at(oop receiver, int argc, oop *ar
     uintptr_t insts_addr = (uintptr_t)cm_instructions(cm);
     if (insts_addr >= flash_rom_start && insts_addr < flash_rom_end) {
         uint32_t *heap_insts = oevm_malloc(cm->instruction_count * sizeof(uint32_t));
+        /* rete#190: same reasoning as bind:to: above — this primitive is reached
+           only through the privileged mirror capability (mirror.c
+           method:instructionAt:put:), every other error path in this function
+           already aborts (non-object receiver, bad args, OOB index, immutable
+           image), and instructionAt:put: has no "answer nil" convention to fall
+           back on: its job is to mutate a specific instruction word, and there is
+           no bounded, honest value to hand back short of doing that. Abort loud
+           rather than write through NULL or silently skip the requested mutation. */
+        if (heap_insts == NULL) {
+            fprintf(stderr, "VM Error: instructionAt:put: could not copy flash-ROM instructions (out of memory)\n");
+            abort();
+        }
         memcpy(heap_insts, cm_instructions(cm), cm->instruction_count * sizeof(uint32_t));
         cm->instructions = heap_insts;
     }

@@ -1631,6 +1631,10 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                     /* genuine Symbol: '#' prefix */
                     size_t n = sy->length;
                     char *tmp = (char *)oevm_malloc(n + 1);
+                    /* rete#190: THE CRASH SITE — tmp[0]='#' stored through a NULL
+                       that malloc(7) had just returned produced mcause 7 Store/AMO
+                       on three ESP32-C6 boards. A bounded truth beats a halt. */
+                    if (tmp == NULL) return make_string("#?", 2);
                     tmp[0] = '#'; memcpy(tmp + 1, symbol_name(sy), n);
                     oop r = make_string(tmp, n + 1); oevm_free(tmp); return r;
                 } else if (receiver == NULL) {
@@ -1667,6 +1671,9 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                 extern oop gc_allocate(oop vtable, size_t size);
                 oop sym_obj = gc_allocate(SymbolVtable, sizeof(struct Symbol));
                 char *new_str = oevm_malloc(strlen(buf) + 1);
+                /* rete#190: nil is a value nsl can test for; the caller sent
+                   asString and a failed allocation cannot honestly answer one. */
+                if (new_str == NULL) return NULL;
                 strcpy(new_str, buf);
                 ((struct Symbol *)sym_obj)->name = new_str;
                 ((struct Symbol *)sym_obj)->length = strlen(buf);

@@ -1224,6 +1224,9 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         struct String *s = (struct String *)args[0];
         size_t len = s->length;
         char *nm = oevm_malloc(len + 1);
+        /* rete#190: answers nil to the nsl caller rather than trusting the
+           pointer — asSymbol is not on a path where nil is unexpected. */
+        if (nm == NULL) { *out = NULL; return 1; }
         if (len) memcpy(nm, s->bytes, len);
         nm[len] = 0;
         oop sym = gc_allocate(SymbolVtable, sizeof(struct Symbol));

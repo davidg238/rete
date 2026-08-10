@@ -389,6 +389,15 @@ oop float_alloc(oop vtable) {
                 /* else: live set exceeds the cap — fall through and grow */
             }
             struct FloatSlab *slab = oevm_malloc(sizeof(struct FloatSlab));
+            /* rete#190: this NULL is already checked below — the tuvm#15 reclaim
+               path this `if (!slab)` guards was written before the oevm_malloc
+               seam existed but already treats a failed allocation as survivable
+               pressure, not a crash. Converting the raw malloc() to oevm_malloc()
+               (Task 1) changed nothing here: reclaim-then-retry, and only abort
+               (below) if the collection frees nothing — a vm.c:1751/:1794-style
+               fatal abort, but reached only after trying to make the request
+               succeed, because unlike those two sites this one has a cheap,
+               already-designed recovery. */
             if (!slab) {
                 /* tuvm#15: the pool is exhausted before we reached the slab budget
                    (small embedded newlib heap — the DK's 64 KB pool can't hold
