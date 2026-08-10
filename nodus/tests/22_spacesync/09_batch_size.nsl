@@ -2,6 +2,7 @@
 expect:
 health 91
 metrics 195
+cheap 75
 batch 429
 *)
 (* #56 design §9.1, landed as a REGRESSION GUARD. A measured size protects nothing if
@@ -67,6 +68,21 @@ class BatchSize packageUsing: manifest = () (
     pairs add: #pulseCoalesced -> 0.
     ^ platform Record tag: #Metrics fields: (platform Map fromPairs: pairs) )
 
+  (* rete#190: the five CHeapStats fields, in kernel.nsl's field order. Counts are
+     a 30-day node's plausible worst case (frequent alloc/free churn, matching the
+     `wakes` magnitude above), not a boot-time snapshot — the health/bootId
+     precedent above is why: measuring the easy case is how an estimate goes
+     wrong in the field. *)
+  cheap: platform = (
+    | pairs |
+    pairs:: platform OrderedCollection new.
+    pairs add: #outBytes -> 8192.
+    pairs add: #outHigh -> 12288.
+    pairs add: #allocs -> 1296000.
+    pairs add: #frees -> 1295998.
+    pairs add: #fails -> 2.
+    ^ platform Record tag: #CHeap fields: (platform Map fromPairs: pairs) )
+
   log: platform = (
     ^ platform Record tag: #Log with: #level -> #info
                               with: #text -> 'tick 1296000' )
@@ -79,6 +95,7 @@ public main: platform args: args = (
   cbor:: platform Cbor.
   ('health ' , (cbor encode: (self health: platform)) byteSize printString) println.
   ('metrics ' , (cbor encode: (self metrics: platform)) byteSize printString) println.
+  ('cheap ' , (cbor encode: (self cheap: platform)) byteSize printString) println.
 
   rows:: platform OrderedCollection new.
   rows add: (self row: platform seq: 1296000 path: 'obs/health' value: (self health: platform)).

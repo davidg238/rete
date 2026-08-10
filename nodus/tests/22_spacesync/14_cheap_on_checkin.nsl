@@ -1,0 +1,32 @@
+(*
+expect:
+true
+true
+true
+true
+true
+done
+*)
+(* rete#190 sub-project A: the sys/cheap story end-to-end — prim 152 (cheapStats)
+   + the kernel CHeap record (schema pinned in PROTOCOL-NSL-RECORDS.md §4.4) +
+   the sys/cheap CELL: a reader peeks current state by NAME, non-destructively.
+   Absolute values vary run-to-run, so this asserts structural invariants only
+   (the 15_heap_stats/02 precedent). Publishing is the app's act — this test IS
+   the publisher. Both-path A==B gate. *)
+class CheapOnCheckinTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | c cell got |
+  c:: platform cheap.
+  (c tag = #CHeap) printString println.
+  ((c at: #outHigh ifAbsent: [ -1 ]) >= (c at: #outBytes ifAbsent: [ 0 ])) printString println.
+  ((c at: #allocs ifAbsent: [ -1 ]) >= (c at: #frees ifAbsent: [ 0 ])) printString println.
+  ((c at: #fails ifAbsent: [ -1 ]) >= 0) printString println.
+
+  cell:: platform space channel: 'sys/cheap'.
+  cell put: '' value: c.
+  got:: cell peek: '' ifAbsent: [ nil ].
+  (got = c) printString println.
+  'done' println.
+)
+) : (
+)

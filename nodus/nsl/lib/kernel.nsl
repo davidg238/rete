@@ -2085,6 +2085,7 @@ class Kernel usingPlatform: platform = () (
          comment already records for obs/build, and now a second instance of it. *)
       self publishApps.
       self publishMetrics.
+      self publishCheap.
       spans end: sApplyIn.
       self pushOnce.
       (* AFTER the exchange, and outside all six spans — otaCheck is not exchange
@@ -2115,6 +2116,12 @@ class Kernel usingPlatform: platform = () (
        data D6 names as earning it back. *)
     publishMetrics = (
       space put: 'sys/metrics' value: outer metrics.
+      ^ self )
+
+    (* rete#190: the C-heap twin of publishMetrics. Same cadence, same rationale —
+       one record per check-in, no escalation logic, no invented constants. *)
+    publishCheap = (
+      space put: 'sys/cheap' value: outer cheap.
       ^ self )
 
     (* rete#25 — the observed half of the image pair. `goal/apps/main` is what
@@ -3725,6 +3732,24 @@ class Kernel usingPlatform: platform = () (
     pairs add: #pulseDrops -> (s basicAt: 5).
     pairs add: #pulseCoalesced -> (s basicAt: 6).
     ^ Record tag: #Metrics fields: (Map fromPairs: pairs) )
+  (* rete#190: the sys/cheap snapshot — prim 152 (cheapStats) as ONE flat immutable
+     Record, the sys/cheap cell's wire schema (pinned in
+     protocol/PROTOCOL-NSL-RECORDS.md §4.4). A SEPARATE record from Metrics, not
+     five more Metrics fields: RECORDS §4.4 already records that lesson against
+     LatencySpan — adding a concern adds a record, not a field, so this schema does
+     not grow the way Metrics has. Metrics is 195 B of the 256 B cap and keeps all
+     61 B of its headroom.
+     The kernel only BUILDS the record; publishing it onto a cell is the app's act
+     (G9), with the channel arriving as a capability. *)
+  public cheap = ( | c pairs |
+    c:: self cheapStats.
+    pairs:: OrderedCollection new.
+    pairs add: #outBytes -> c outBytes.
+    pairs add: #outHigh  -> c outHigh.
+    pairs add: #allocs   -> c allocs.
+    pairs add: #frees    -> c frees.
+    pairs add: #fails    -> c fails.
+    ^ Record tag: #CHeap fields: (Map fromPairs: pairs) )
   (* Milestone E Task 1: crash-Record factory reachable from ANY context. The
      error:/error:tag: raise prims cannot reach the sibling `Record` class from an
      app receiver (v1 BLOCKED finding), but they DO hold the captured Kernel
