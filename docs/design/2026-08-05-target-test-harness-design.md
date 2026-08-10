@@ -557,3 +557,67 @@ absence of a duplicate under a stale pull.
 **Promotion on close:** `review/tests/CLAIMS.md` gains the claim that the host suite is
 silent about the ISR/mailbox seam and which gate speaks to it;
 `docs/next-steps-overview.md` moves #56 to closed and #25's host slice to next.
+
+---
+
+## Addendum — 2026-08-09: D5's deny-list named one of the bell's TWO adapters
+
+**D5 as written is corrected, not merely extended.** The backstop it describes —
+"the by-id deny-list, no override" — was `TARGET_DENY_BYID_SUBSTR="4e5729ee"`, the bell's
+**CP2102N console** hash. That is the adapter *this harness* flashes over
+(`deploy_flash.sh:53` sets both ports from `target::board_byid`). But the hand path,
+`zephyr/run.sh`, flashes the C6 over the **native USB-JTAG** node
+(`20:6E:F1:19:54:38`) — a different physical channel.
+
+So the constant could not have protected the hand path even if it had been copied there,
+which is what rete#185 originally proposed. **A deny-list naming one adapter reads as
+protection of the board and is not.** The table in §6 ("A gate flashes the ship's bell")
+was true only for gates; it said nothing about the path an operator actually uses at the
+bench, and the danger window there — the bell attached while the disposable board is not —
+is opened by the *other* board failing, which is precisely when nobody is thinking about
+the bell. It was live for about five hours on 2026-08-09 when c6spare's USB-JTAG cable died.
+
+**What replaced it** (`c55668f`, `26af2fe`): `nodus/tuvm/tools/bench-identity.sh` is now the
+one home for who-is-who on this bench — both of the bell's identities with the
+`bell::is_bell_port` predicate over them, plus the instance↔adapter mapping in **both**
+directions. `target::board_byid` and `target::logfile` delegate to it rather than carrying
+a second copy of the env-file and log-path layout.
+
+Three decisions worth keeping, because each was reached by being wrong first:
+
+- **Policy lives at the call site, identity in the shared file.** `target.sh` refuses with
+  no override; `run.sh` refuses unless `I_REALLY_MEAN_THE_BELL=1`. Keeping the asymmetry
+  D5 argued for in the *callers* is what stops this harness from ever inheriting a door it
+  must not have.
+- **The identity check must run first.** Placed after `run.sh`'s board `case` block, the
+  refusal was pre-empted by the console-ambiguity check, whose message is about something
+  else entirely. That is the same lesson `target::assert_not_the_bell` learned by
+  falsifying itself on 2026-08-05 — recorded there, and then repeated one file away.
+- **A resolved deny beats a substring deny.** The live case in rete#185 is an explicitly
+  pinned `ESPTOOL_PORT`, and an explicit pin is usually `/dev/ttyACM0` — a name carrying no
+  identity. Both sides are resolved to their canonical device node before comparison.
+
+**On testing a safety interlock:** `nodus/tuvm/tools/test_bench_identity.sh` never touches a
+board and never issues a flash — its end-to-end cases aim at a port that does not exist, so
+a regressed guard fails to open a bogus path rather than writing to the bell. Its first
+draft was a **false green**: it built the bell's by-id path out of the constant under test,
+and passed cleanly with that constant replaced by a bogus string. A hash is only checked by
+being written down twice, by two hands.
+
+### §9 touches, resolved
+
+- **#154** — closed as *recorded rather than fixed*. The race is real; the analysis moved
+  into `run.sh` at the flash step, where whoever hits it is already looking. One correction
+  to it: the **C6 is not exposed** (it flashes over JTAG and consoles over the CP2102N), so
+  it bites the `esp32` and `esp32s2` profiles. Its remaining fix — moving
+  `target::collector_pause` and the second reset out of this harness — was blocked only on
+  `run.sh` not knowing the instance name, and is now unblocked.
+- **#155 / #170** — the same defect, fixed together. `run.sh` resolves the instance from the
+  console port instead of hardcoding `c6`. Filed as "small" because the build-id archive is
+  correct either way; the consequence was larger, because `last-flashed-c6` was overwritten
+  with another board's build id while the bell was mid-soak, and only porta's `obs/build`
+  still held the truth.
+- **Still open, recorded in #187:** the collector env files name only the console adapter,
+  so "flashed one board, read another's console" is undetectable in general. Only the bell's
+  half is caught, via its hardcoded JTAG identity — which must stay hardcoded, since a
+  backstop that depends on a file in `~/.config` is not one.
