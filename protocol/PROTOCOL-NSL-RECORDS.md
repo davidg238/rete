@@ -329,6 +329,36 @@ whole argument of `PROTOCOL-NSL.md` §1.
 the fragmentation signal — the number that tells you a years-long node is dying slowly
 (G3), which `heapFree` alone will not.
 
+**But no instantaneous heap gauge means anything on a collect-when-full VM**, and
+`heapLargest` is the one an operator is most likely to misread. `review/tests/CLAIMS.md`
+(row: strict live-bytes plateau) owns that finding and the numbers behind it — the short
+version is that the trough of the sawtooth reports *the size of the request that tipped the
+arena over*, not the state of the heap, so a single low reading is unfalsifiable. **The
+readable gauge is the per-GC-cycle envelope**: bucket by `gcCycles`, then take
+`max(largestFreeBlock)` and `min(liveBytes)` as post-sweep proxies.
+
+Three rules for computing that envelope, added 2026-08-09 (#153) and established by
+falsifying the instrument rather than by argument:
+
+- **Discard the first ~5 GC cycles.** They run on an arena that has never been swept
+  (`largestFreeBlock` starts at essentially the whole heap), so they are not comparable to
+  steady state and they dominate any trend fitted across them.
+- **Do not fit a `largestFreeBlock` trend to a window shorter than ~5 h.** It carries a slow
+  oscillation of period hours. Slicing a run that is *flat over 9.95 h* into 1.5 h windows
+  and re-running the same least-squares test yields alternating verdicts of "falling, 7.1σ"
+  and "rising, 8.5σ", swinging ±350–420 B/cycle — all of it artefact, and a second flat run
+  reproduces it independently. Treat σ from a short window as a measure of how well a line
+  was fitted, never as evidence that the trend is real.
+- **`min(largestFreeBlock)` is not a gauge at all** — it is the last-failed-request size, per
+  CLAIMS. Trending it looks respectable and is meaningless: it flips "rising 3.2σ" to
+  "falling 6.2σ" between adjacent 1.5 h slices of one boot. Report the ceiling and the live
+  floor; leave the trough alone.
+
+Finally, **cycles, not wall-clock, are the unit**: a node bridging at 2 s accumulates GC
+cycles ~14× faster than the bell at 30 s, so 45 minutes there is a longer test than ten
+hours on the bell — 542 flat cycles from `c6spare` on 2026-08-09 against 556 from a 9.95 h
+bell run. Book the fast node, not the long night. Tool: `tools/heap-envelope.py`.
+
 ### 4.3 `tel/**` — telemetry (event, node → porta)
 
 | path | kind | record |
