@@ -61,9 +61,15 @@ node whose every input is a timer, and would be a hang for one that also polls
 BUILD IT WITH THE NTP ADDRESS OR THE DAILY SYNC IS DEAD ON ARRIVAL:
 
   OEVM_NTP_SERVER6=fdc5:9109:9afe:97ea:9541:d963:f8d9:8567 \
-  TUVM_SOLENOID_CONSOLE=1 \
   ./run.sh --board esp32c6 --node ShipsBellNodeC6.nsl \
            --conf-extra prj_esp32c6_thread.conf --flash
+
+`TUVM_SOLENOID_CONSOLE=1` is ABSENT on purpose here too, and for the same reason as
+in `ShipsBellAlarmNodeC6.nsl` — read the note there (rete#182). It is not merely
+unnecessary on this node, it is wrong twice over: §19 took the solenoid off this
+device for good, so the ringer is the piezo and there is nothing for a console
+striker to strike; and the expect line below says "USB carrying only power", which
+is the undriven RX the design's rule is about.
 
 Without `OEVM_NTP_SERVER6` main.c falls back to `sntp_simple("pool.ntp.org")`, and
 the porta mesh is a ULA with no DNS64 and no `CONFIG_DNS_RESOLVER` — so it answers

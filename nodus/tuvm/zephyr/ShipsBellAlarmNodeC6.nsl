@@ -52,10 +52,21 @@ invisible underneath.
 BUILD IT WITH BOTH FRAGMENTS OR IT IS THE POLLING NODE WEARING THIS NAME:
 
   OEVM_NTP_SERVER6=fdc5:9109:9afe:97ea:9541:d963:f8d9:8567 \
-  TUVM_SOLENOID_CONSOLE=1 \
   ./run.sh --board esp32c6 --node ShipsBellAlarmNodeC6.nsl \
            --conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_rtcalarm.conf" \
            --pristine --flash
+
+`TUVM_SOLENOID_CONSOLE=1` is ABSENT on purpose and must not be helpfully re-added
+(rete#182). This is the unattended board, and the design's rule for it is
+categorical: `strike_console` reads the console UART, so pulling the cable does not
+make that input go quiet — it makes it go UNDRIVEN, and a floating RX is noise a
+strike parser will happily act on. The product strike path is the nsl gpio seam;
+the console striker is bench instrumentation that belongs on a bench. See
+`boards/shipsBells/2026-07-26-shipsbellsv3-design.md` §22, which also records the
+striker being suspected of a real chirping fault (#149) and cleared, and #178 —
+a console cable disappearing from a bell, which is exactly the floating-RX
+precondition. The failure it buys is not a build error: you get a working bell that
+can also be rung by line noise, which reads as a haunted bell.
 
 Without `prj_esp32c6_rtcalarm.conf` there is no `CONFIG_RTC_ALARM`, `rtcAlarm at:`
 answers false, and the node runs on its watchdog alone — correct behaviour, wrong
