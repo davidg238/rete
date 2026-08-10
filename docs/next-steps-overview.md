@@ -165,6 +165,24 @@ Shape it on `sensorArmEventPost:on:threshold:` — the established
 `pulse_post_isr(chan_id, handle_idx)` pattern, with both resolved in thread context by the
 caller. An ISR must never touch the VM.
 
+> **Copy the pattern as it stands AFTER rete#184 (2026-08-09), not as it was written.** Both
+> exemplars of this shape — `sensorArmEventPost:on:threshold:` and `rtcAlarmAt:post:on:` —
+> pinned the message oop with `handle_new` on every arm and **never freed the previous one**,
+> and no cancel API existed to call one. The handle table is 32 slots and `handle_new` aborts
+> the VM rather than degrading, so on the bell (one re-arm per half-hourly strike) slot 32 was
+> reached ~15.5 h after boot: a hard uptime ceiling by construction. So a NEW seam of this
+> shape needs three things the original pattern did not have:
+>
+> 1. a place to name the outstanding pin (one static per seam is enough — there is one
+>    outstanding trigger per node), freed **after a confirmed arm, never before it**;
+> 2. a `handle_free` on every failure path, since a pin nothing references is still a slot;
+> 3. an answer of **nil** when the backend refuses, so a caller has to carry a fallback
+>    instead of assuming a trigger it never got.
+>
+> The GPIO seam (`platform.c`'s `host_gpio_register`) and the timer seam
+> (`backend/zephyr/timer_zephyr.c:43`) already did this correctly and are the better models
+> to read. Regression test: `nodus/tests/15_heap_stats/03_arm_seams_no_handle_leak.nsl`.
+
 ### 1.5 Correct the clock
 
 It currently reads **+20 s against host**. That is the stale seed constant in
