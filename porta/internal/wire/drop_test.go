@@ -92,14 +92,16 @@ func dropHarness(t *testing.T, dropEvery int) (*Server, *space.Store, func(seq i
 // datagram that lands before the bind completes is silently lost. Re-sending
 // the same seq is safe — an already-ingested seq is deduped, which is the very
 // property this file exists to protect.
+//
+// The budget is denominated in TIME, not in attempts (rete#183). It used to be
+// 50 immediate retries with no delay, which is a budget that shrinks exactly
+// when the thing it waits for gets slower: under full-package load the whole
+// budget could be spent before ListenAndServe's bind completed, and `go test
+// ./...` — a gate — went red 3 runs in 10 with no code change involved. A poll
+// budget equal to its own cost reads as a real assertion and is not one.
 func waitForListener(t *testing.T, push func(int64, string) bool) {
 	t.Helper()
-	for i := 0; i < 50; i++ {
-		if push(1, "one") {
-			return
-		}
-	}
-	t.Fatal("the listener never answered")
+	waitForBind(t, func() bool { return push(1, "one") }, "the listener never answered")
 }
 
 // waitForListenerViaPull is waitForListener's counterpart for a harness where
@@ -108,12 +110,25 @@ func waitForListener(t *testing.T, push func(int64, string) bool) {
 // retrying a pull is the "the socket is up" probe instead.
 func waitForListenerViaPull(t *testing.T, pull func(int64) (int64, []space.Entry, bool)) {
 	t.Helper()
-	for i := 0; i < 50; i++ {
-		if _, _, ok := pull(0); ok {
+	waitForBind(t, func() bool { _, _, ok := pull(0); return ok }, "the listener never answered a pull")
+}
+
+// waitForBind is the one deadline loop both helpers above use — the probe differs,
+// the budget must not. Five seconds is far longer than a bind ever takes and is
+// there to be never reached: the point is that the budget cannot be exhausted by
+// the scheduler being busy, so a failure here means the listener is genuinely dead
+// rather than merely slow. The 10 ms sleep is what stops the loop from spending its
+// own budget spinning against the goroutine it is waiting for.
+func waitForBind(t *testing.T, probe func() bool, msg string) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if probe() {
 			return
 		}
+		time.Sleep(10 * time.Millisecond)
 	}
-	t.Fatal("the listener never answered a pull")
+	t.Fatal(msg)
 }
 
 // The fault injector the C6 hardware gate scores leg 4 with. What matters is not
