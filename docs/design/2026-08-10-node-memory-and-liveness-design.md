@@ -616,6 +616,52 @@ statement of this leak's lifetime must be in check-ins.
   nothing it pushed was being accepted — its tick period decaying 2.0 s → 6.2 s, before the
   arena filled. A backlog accumulating in the arena once acks stop fits that, and a decaying
   tick period is what a GC does as live data grows. **Untested; recorded as a hypothesis.**
+
+  > **ADDENDUM 2026-08-11 — CORROBORATED on hardware, by accident, and by a cleaner route
+  > than could have been designed on purpose (rete#199).** Bringing up rete#197 flashed
+  > `c6spare` with shortened wire labels while the gateway still ran the old binary, so every
+  > frame was refused (`malformed message: missing #bootId`) and `acked` never left 0. The
+  > node then died exactly as this paragraph predicts:
+  >
+  > | | here, 2026-08-10 | rete#199, 2026-08-11 |
+  > |---|---|---|
+  > | `acked` | frozen | frozen at 0 |
+  > | tick period | 2.0 s → 6.2 s | 2.0 s → **7.2 s**, monotonic |
+  > | fatal request | **4104 B** | **4104 B** |
+  > | arena at death | 131 064 / 131 072 | 127 680 / 131 072 |
+  >
+  > **Why it is stronger evidence than the event that prompted the hypothesis:** the acks
+  > froze for a reason with *no memory component whatsoever* — a gateway that did not
+  > recognise a field name — and the §11.5 leak was already fixed and gated on this same board
+  > (§11.7, 0 outstanding blocks across 677 check-ins). The original event could not separate
+  > "backlog" from "second leak" **because the leak is what froze the acks.** This one has no
+  > leak in it and the same thing happened.
+  >
+  > So arena OOM here is most likely **one mechanism with two triggers** — a backlog
+  > accumulating once acks stop — rather than two causes. The known triggers are the §11.5
+  > cliff (rows stop being *accepted*) and a wire mismatch (rows stop being *parsed*);
+  > anything else that freezes acks is a third.
+  >
+  > **This sharpens `c6-bell`'s soak rather than mooting it.** The bell is healthy and acking,
+  > so no backlog can be accumulating in it — **if the bell OOMs anyway, that is the second
+  > leak this section was worried about**, because the competing explanation now has an
+  > independent home and can no longer absorb the result.
+  >
+  > **Not established: what accumulates.** The fatal allocation is ~4 KB, the signature of a
+  > power-of-two collection doubling (`OrderedCollection>>grow` and the hashed collections
+  > both do `2 * contents size`; a slot array is one header word plus 4-byte slots on the C6).
+  > So the node dies on **one large allocation at a specific collection depth**, not of
+  > gradual pressure — which is why two events a day apart requested the identical 4104 B. The
+  > obvious candidate, `pending`, is probably wrong: one `tel/log` row per tick over 46 ticks
+  > is nowhere near a thousand entries, and that discrepancy is the live clue.
+  >
+  > **A host reproduction was attempted and is NOT usable — retracted on rete#199.** It
+  > reported the node surviving 2.6× the refused check-ins, then turned out to have run with
+  > the **16 MB host default arena**: `OEVM_HEAP_SIZE` is a compile-time macro (`gc.c:18-19`)
+  > and the run set it as an environment variable. Doing it properly is blocked by
+  > **rete#179** (the host image VM aborts at boot at the device's arena size), which is now
+  > a dependency of a P1 rather than a curiosity.
+
   The two runs WITH `publishCheap` stopped dead at the cliff instead and never got there,
   which is the part of the picture a single-run reading would have missed.
 - **A two-point read of `liveBytes` says nothing.** It sawtooths with every GC cycle, so two
