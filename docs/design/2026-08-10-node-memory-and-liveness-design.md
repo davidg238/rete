@@ -4,8 +4,11 @@
 - **Issue:** [#190](https://github.com/davidg238/rete/issues/190)
 - **Status:** design approved (David, 2026-08-10). **Stage 1 (sub-project A) IMPLEMENTED
   the same day on branch `190-alloc-seam` and NOT merged** — its hardware gate found that
-  `publishCheap` hangs a C6 deterministically. See §11 for what that changed in this
-  document. Stages 2–4 remain unplanned by design (D9). Plan:
+  `publishCheap` hangs a C6 deterministically. **Stage 2 (sub-project B, §4) IMPLEMENTED
+  the same day on the same branch**, all host gates green, hardware gate and bell soak
+  still owed; §4's own claims were corrected against the built code and the measurements
+  are in §11.7. See §11 throughout for what the hardware changed in this document. Stages
+  3–4 (sub-projects D and C) remain unplanned by design (D9). Plan:
   `docs/superpowers/plans/2026-08-10-alloc-seam-and-cheap-gauge.md`
 - **Supersedes:** nothing. Extends `PROTOCOL-NSL.md` §3 with a fifth path prefix and
   builds `PROTOCOL-NSL-RECORDS.md` §2.4's already-specified `Panic`.
@@ -198,7 +201,14 @@ This deletes the malloc, the indirection, and the ownership question, and adds n
 The payload must be NUL-terminated because `symbol_name()` returns `const char *` consumed
 by `strcmp` at more than twenty sites — hence `length + 1`.
 
-### Two consequences that are real work
+### Four consequences that are real work
+
+> Consequences 2–4 were **corrected after the work was built** (2026-08-10). The original
+> §4 said "two static Symbols" and "four dynamic assignment sites", and named no lifetime
+> rule and no image-version guard. Those claims are replaced below rather than annotated —
+> a decision record that miscounts the work by two orders of magnitude is exactly the kind
+> of half-claim a later session acts on.
+
 
 **1. `gc.c` needs a `SymbolVtable` leaf case in `trace_one`.** Symbol currently falls through
 to the generic word-count fallback, which today scans a `const char *` harmlessly. With
@@ -206,24 +216,72 @@ inline bytes that fallback would scan **raw symbol text as pointers**. `String` 
 `RawBytes` already carry exactly this guard (`gc.c:542-550`), for exactly this reason.
 This is a landmine, not a detail.
 
-**2. Two static Symbols cannot hold a flexible array member the ordinary way.**
-`true_sym_obj` / `false_sym_obj` (`dispatch.c:278-279`) are `const struct Symbol` whose
-*addresses* are the VM's `==` results, so they must stay statically allocated with stable
-addresses in flash. GCC accepts static initialisation of a flexible array member as a
-documented extension, and both toolchains here are GCC — **take the extension**. If it ever
-needs replacing, the fallback is a layout-compatible sized-storage struct behind a macro;
-record it in the plan, don't build it now.
+**2. Statically allocated Symbols need the GCC flexible-array-member extension — and there
+are nine hand-written plus hundreds generated, not two.**
 
-The four dynamic assignment sites (`vm.c:122`, `vm.c:719`, `vm.c:1620`, `dispatch.c:459`)
-that today point `name` at a C string literal become `gc_allocate` + `memcpy`, identical in
-shape to the two that currently malloc.
+A static `struct Symbol` must keep a stable address in flash, because for several of them
+the *address itself* is the VM's `==` result. The hand-written nine are:
+
+| File | Symbols |
+|---|---|
+| `src/dispatch.c:278-279` | `true_sym_obj`, `false_sym_obj` |
+| `src/kernel_boot.c:51-61` | `KSym__eq_eq`, `KSym_sender`, `KSym_value`, `KSym_accessViolation_`, `KSym_debug_`, `KSym_true`, `KSym_false` |
+
+Beside them stands a **generated wall**: every interned Symbol in the solidified Path-A
+image is emitted as a `const struct Symbol StaticSymbol_*` — **677 of them in the fixture
+currently tracked at `src/solidified_image.c`**, and the count is a property of whichever
+`.nsl` was baked, not of this change. They all come from **one line of Python**
+(`nodus/nsl/tools/solidify.py:132`), so the wall is one edit, not 677.
+
+**It is not optional.** `src/solidified_image.c` is still linked: `tools/run_c_tests.sh`
+builds most of the C gate against `ENG_A` (line 34), and `zephyr/CMakeLists.txt` exposes
+`-DTUVM_MODEL=A` as a supported board build. A design that treats Path A as dead would
+have sized this consequence at two.
+
+The extension was **verified on both toolchains before being used**, not assumed: host
+`gcc` and `riscv64-zephyr-elf-gcc` both accept static initialisation of a flexible array
+member, the statics land in `.srodata` (read-only, stable address, no RAM cost), and the
+only diagnostic is `-Wpedantic`-gated — which neither build enables. If it ever needs
+replacing, the fallback is a layout-compatible sized-storage struct behind a macro; record
+it, don't build it now.
+
+**3. Six dynamic assignment sites, not four — and the image format gets a version guard.**
+The sites that build a Symbol at run time are `vm.c:122`, `vm.c:720`, `vm.c:1622`,
+`dispatch.c:459`, `dispatch.c:1687` and `platform.c:1234`. Four pointed `name` at a C
+string literal; **two malloc'd** (`platform.c` — the leak — and `dispatch.c`'s
+`asString`). All six become `gc_allocate(SymbolVtable, sizeof(struct Symbol) + len + 1)`
+plus a `memcpy`, so the malloc'ing and the literal-pointing sites collapse into one shape.
+
+§4 originally accepted *"silently wrong, not loudly broken"* as the failure mode of a
+serializer and a VM that disagree, mitigated only by landing them in one commit. **That
+hole is now closed by a decision, not a discipline:** the `.oimg` `format_version` goes
+**8 → 9** (`nodus/nsl/tools/oimg_serialize.py:80`). The header layout is unchanged; what
+changed is the Symbol record, which no longer carries a `name` ref-word. The bump exists
+so a v8 image meeting a v9 VM is **rejected at load** instead of misreading a ref-word as
+inline text. One-commit landing is still right; it is no longer the only thing standing
+between a stale pairing and a silent misread.
+
+**4. Inline bytes end an accidental lifetime guarantee, so `symbol_name()` gains a rule.**
+The leak was, perversely, providing lifetime safety: nothing ever freed the malloc'd name,
+so a `const char *` from `symbol_name()` was **immortal** and no call site ever had to
+think about it. Inline bytes end that — the pointer now lives exactly as long as the
+Symbol object does.
+
+The GC is mark-sweep and **non-moving**, so a *live* Symbol's bytes never relocate: the
+hazard is collection, not compaction. All 30 `symbol_name()` call sites were audited
+before the change and none holds the pointer across an allocation. The rule now lives in
+the comment above `symbol_name()` in `src/oimg.h` — do not hold the pointer across an
+allocation, a VM send, or anything else that can reach `gc_collect`; copy the bytes into a
+local first.
 
 ### The image format changes with it
 
 `oimg_serialize.py` writes `Symbol.name` as a blob reference today
 (`_symbol_ref`, and the emit at L523-525). It must write inline bytes instead. **The
-serializer and the VM must land in the same commit** — an `.oimg` built by one and loaded by
-the other is silently wrong, not loudly broken.
+serializer and the VM land in the same commit**, and — per consequence 3 above — the
+`format_version` bump to 9 is what makes a stale pairing *loudly* broken rather than
+silently wrong. The original text of this paragraph accepted the silent failure; it no
+longer applies.
 
 ---
 
@@ -571,3 +629,86 @@ statement of this leak's lifetime must be in check-ins.
 advance with the last prim id or the build hard-fails on a negative array size. It is not in
 any of the nine enumerated source lists the project's lore warns about, so a file survey does
 not find it. Anyone appending a prim needs to know it exists.
+
+### 11.7 What stage 2 measured (2026-08-10)
+
+Stage 2 — inline Symbol bytes, §4 — is built and every host gate is green. This is what it
+measured. **Everything here is quoted in check-ins, never in minutes**: §11.5 established
+that the failure is driven by check-in count, so §7's "43 m 54 s" was right in substance and
+wrong in units, and a wall-clock figure only holds at the bench cadence it was taken at.
+
+#### The check-in path, end to end (host)
+
+Two runs of the real check-in path (`nodus/tuvm/tests/porta_sync_host.sh`'s harness — the
+same `PortaBridgeNode.nsl`, the same `porta serve`, a 2000 ms cadence), ticks 1 → 150, with
+143 labelled `sys/cheap` rows in each:
+
+| build | outstanding blocks (`allocs − frees`) | slope | `outBytes` |
+|---|---|---|---|
+| pre-fix `703547e` | 6 → 1 496 | **+10.000 blocks / check-in** | 34 → 7 186 (+48 B / check-in) |
+| post-fix | 0 → 0 | **+0.000** | 0 → 0, `outHigh` pinned at **17 B** |
+
+Two-point and least-squares over all 143 rows give the same number, **R² = 1.00000** — the
+pre-fix series is *exactly* linear in check-ins, not approximately. For scale, §11.5's board
+reading is ~8.6 blocks/check-in (5 878 outstanding at tick 589, 6 094 at tick 614): same
+phenomenon, same order, same unit.
+
+**The cross-check is stronger than either slope.** The two runs are step-for-step identical
+apart from the leak — at *every* tick, pre-fix `frees` == post-fix `allocs` == post-fix
+`frees`, and the two independently fitted alloc rates differ by exactly 10 (245 vs 235). The
+fix removed precisely the allocations that were never freed and changed nothing else about
+the workload. Post-fix the node still makes ~235 C-heap allocations per check-in and frees
+all 235.
+
+#### The prim in isolation (host)
+
+`nodus/tuvm/tests/test_symbol_inline.c`, 200 calls to `PRIM_pf_asSymbol`:
+
+| build | `allocs` | `outBytes` |
+|---|---|---|
+| pre-fix `703547e` | +200 | +2 890 |
+| post-fix | **+0** | **+0** |
+
+#### Three caveats that must travel with these numbers
+
+These are how the next reader avoids being fooled by them.
+
+- **`allocs − frees` is not universally "outstanding blocks".** `oevm_realloc` (`gc.c:98`)
+  bumps `allocs` and never `frees`, so every realloc inflates the difference by one with
+  nothing leaking. The only realloc site on this path is vtable binding growth
+  (`vm.c:1757`), quiescent by tick 21 — which is *why* post-fix reads a flat **zero** rather
+  than a flat small constant. A realloc-heavy workload would drift upward while perfectly
+  clean.
+- **`outBytes` counts payload only** — not the 8 B block header, not the allocator's own
+  per-chunk overhead. The real pre-fix cost was on the order of **160–320 B per check-in**,
+  not 48. **Quote the block count; treat bytes as a lower bound.**
+- **Mean leaked block is ~4.8 B on the check-in path and 14.45 B in the prim read.** Not a
+  contradiction — different symbol populations (wire symbols are short; the prim test drove
+  longer names). The **block count** is the quantity that matches across all three
+  measurements, host and board.
+
+#### What is still owed
+
+**The hardware gate and the bell soak have not run.** The result above is a statement about
+the posix path over 150 check-ins — it is not a claim about the board. §7 step 2's prediction
+stands unfalsified but unconfirmed: `outBytes` flat and `fails: 0` on `c6spare` past tick 614
+(the §11.5 cliff), and on the bell past its measured 10 h 41 m.
+
+#### Three findings that outlive this work
+
+- **`OEVM_GC_STRESS` is blind to use-after-sweep.** A root was deliberately removed from
+  `tests/test_cbor.c` and the stress gate still passed. The collector is non-moving and
+  sweeps *within its own arena* rather than calling `free`, so swept bytes stay physically
+  readable and the stale oop keeps working; ASan cannot see it either, for the same reason.
+  **"Green under `OEVM_GC_STRESS`" is not evidence that an oop was rooted.**
+- **`trace_one`'s leaf arms were unguarded.** With the new `SymbolVtable` arm short-circuited,
+  the entire pre-existing 33-test C gate passed — the guard §4 called "a landmine, not a
+  detail" was untested by everything already in the tree. `tests/test_symbol_inline.c` now
+  guards the Symbol arm with a decoy/trap object; **`StringVtable` and `RawBytesVtable`
+  remain unguarded** and the idiom is reusable verbatim.
+- **`run_tests_oevm.py` compiles Path A *into* `src/solidified_image.c`**, and `run-one.py`
+  does not restore it — so any `.nsl` bake sweep silently replaces the tracked fixture. It bit
+  this branch once: a sweep swapped the fixture's identity from `MethodCallTest` to
+  `SmiBoundaryConstantTest` and it was nearly committed. The fixture also carries **~10 715
+  lines of `.c` plus 6 948 of `.stmap` of pre-existing drift**, dating to before the
+  2026-07-18 `.ns` → `.nsl` rename — so `git diff` on it is not a reliable tripwire either.

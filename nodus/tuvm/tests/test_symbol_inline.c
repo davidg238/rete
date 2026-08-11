@@ -139,7 +139,9 @@ int main(void) {
         assert(sym->name[n] == 0 && "the prim must NUL-terminate: symbol_name() is fed to strcmp");
     }
     struct OevmCHeapStats b = oevm_cheap_stats();
-    /* Measured at 703547e (pre-fix): allocs 0 -> 200, out_bytes/out_high 0 -> 2690. */
+    /* Measured at 703547e (pre-fix): allocs 0 -> 200, out_bytes/out_high 0 -> 2890.
+       (2690 is the name-bytes subtotal alone; each malloc was len + 1, so the 200
+       NUL terminators bring it to 2890 — the figure the pre-fix run actually printed.) */
     assert(b.allocs == a.allocs
            && "asSymbol: must not cost one C-heap allocation — that malloc WAS the leak");
     assert(b.out_bytes == a.out_bytes
