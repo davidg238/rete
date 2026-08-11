@@ -75,7 +75,7 @@ Also worth knowing, and load-bearing for Task 4:
   `KIND_ORDER` loop, with the payload written at `structs["String"]["fields"]["bytes"]["offset"]`.
 - **`CHeap` has no "outstanding blocks" field.** Its five fields are
   `outBytes, outHigh, allocs, frees, fails`. The block count quoted throughout §11.5 is
-  **`allocs − frees`**, computed by the reader. Task 7 depends on this.
+  **`allocs − frees`**, computed by the reader. Tasks 5 and 6 depend on this.
 
 ---
 
