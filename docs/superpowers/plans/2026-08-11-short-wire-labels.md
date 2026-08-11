@@ -506,6 +506,40 @@ EOF
 The host proves the frame *fits*. Only a board proves the gauge *arrives*, and there is a live
 failure to close: `sys/cheap` has been absent from `c6-bench` for over an hour and a half.
 
+> ### ATTEMPTED 2026-08-11 15:38 AND BLOCKED — read this before retrying
+>
+> **This task is a CUTOVER, not a flash.** That was not obvious in advance and it cost a
+> panicked board to learn. `c6spare` was flashed with the new firmware while gw85224-01 was
+> still running the pre-#197 porta binary, and every frame was refused:
+> `malformed message: missing #bootId`. The rename is a **flag day**: node and gateway must
+> move together, and the gateway is a hand-started binary that this plan never mentions.
+>
+> **Worse, the refused node did not idle — it halted.** `VM GC Error: Out of Memory
+> (requested 4104, used 127680 of 131072)` after 46 ticks, 2 min 37 s, with `misses 0` on the
+> console throughout. Filed as **rete#199** (P1). Do not retry this task assuming a mismatched
+> node simply goes quiet; it has a ~3-minute fuse.
+>
+> **And the two boards cannot straddle the change.** `c6-bell` runs the pre-#197 firmware and
+> cannot be reflashed until its soak clears (19:15 on 2026-08-11); porta speaks exactly one
+> protocol. `c6spare` was therefore rolled back to `porta-v1-final-952-ge52a86e` — the commit
+> the bell runs — and is converged (`TAP bridge-health done pass=3 fail=0`).
+>
+> **The order for the retry, and it is the whole content of this task now:**
+> 1. Wait for the bell's soak to clear and **record its verdict first** — that experiment is
+>    the reason for the wait, and reflashing destroys it.
+> 2. Build and deploy the new `porta` binary to gw85224-01, restoring **the exact command line
+>    found running** (`./porta serve --db soak-2026-08-04.db`, read from `/proc/<pid>/cmdline`,
+>    not from memory — the db has changed at least once). The kill gets its **own** ssh
+>    invocation: `pkill -f` matches its own command line and leaves the gateway down.
+> 3. Flash both boards. Between steps 2 and 3 every node on the mesh is on a ~3-minute fuse
+>    per rete#199, so this window is not one to leave running unattended.
+>
+> **A prediction worth checking on the rolled-back board, because it costs nothing and would
+> confirm the width mechanism independently:** `c6-bench` is delivering `sys/cheap` 1:1 with
+> `sys/metrics` right now, because a freshly booted node's counters are narrow. On the
+> pre-#197 firmware that should **decay back to zero** as its uptime widens the encoded values.
+> If it does not, the width story in §2.2 is incomplete.
+
 - [ ] **Step 1: Record the pre-state, so the gate has a before**
 
 Read-only against the running gateway (do **not** restart it — it is the one shared gateway and
