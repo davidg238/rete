@@ -64,7 +64,7 @@ class BridgeKindMismatch packageUsing: manifest = () (
     ('cursor ' , bridge cursor printString) out.
     ('cell untouched ' , (space peek: 'goal/name')) out.
     log:: space take: 'tel/log' ifEmpty: [ nil ].
-    ('log level ' , (log at: #level ifAbsent: [ #NONE ]) printString) out.
+    ('log level ' , (log at: #lvl ifAbsent: [ #NONE ]) printString) out.
 
     (* The mirror: a CELL write onto a leaf pinned as a stream. *)
     bridge applyBatch: (self batch: platform hi: 8 seq: 8 path: 'goal/do/go' kind: 1 value: 'run').

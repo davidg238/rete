@@ -1868,14 +1868,23 @@ class Kernel usingPlatform: platform = () (
        pressure it is the FIRST thing dropped. This used to say sys/metrics;
        rete#190 put sys/cheap behind it and took over the last-written slot.
 
-       THE CAP NOW BINDS AT THIRTY-DAY WIDTHS — MEASURED 2026-08-11, rete#190.
-       The four-row steady-state frame (obs/health, sys/metrics, tel/log, sys/cheap)
-       encodes to 529 B against maxBatchBytes' 512, so on a long-uptime node that
-       also emits a tel/log row, sys/cheap is trimmed on EVERY check-in and the
-       C-heap gauge goes quiet on exactly the nodes it exists to watch. See
-       nodus/tests/22_spacesync/09_batch_size.nsl, which pins 529 and carries the
-       full reasoning. Shortening CHeap's field names was measured and does not
-       reach: one-character names — the floor — land at 503 B. #150 owns the fix.
+       THE CAP BOUND AT THIRTY-DAY WIDTHS FOR ONE DAY, AND IT BIT — measured
+       2026-08-11 (rete#190), witnessed the same day, fixed by rete#197. The
+       four-row steady-state frame (obs/health, sys/metrics, tel/log, sys/cheap)
+       encoded to 529 B against maxBatchBytes' 512, so on a long-uptime node also
+       emitting a tel/log row, sys/cheap was trimmed on EVERY check-in — and that is
+       exactly what a live node did: c6-bench stopped delivering sys/cheap entirely
+       while every other row kept arriving every 2 s. #197 shortened every label in
+       the frame and it now encodes to 378 B, 134 B under the cap. See
+       nodus/tests/22_spacesync/09_batch_size.nsl, which pins it and carries the
+       full reasoning, including why shortening CHeap's five names ALONE was
+       measured not to reach (one-character names, the floor, land at 503 B).
+
+       #150 IS STILL OPEN. This bought headroom; it did not change the trim rule.
+       sys/cheap still holds the highest seq and is still the first row dropped
+       whenever the cap does bind, so the structural answer below — reserve bytes
+       for sys/ before filling from obs/, or trim BY TYPE — is still the fix, and
+       still unfunded. Headroom postpones that question; it does not answer it.
 
        Why TAIL: porta acks one high-water mark and applyAck: sets `acked:: hw`,
        after which cells are re-scanned `changedSince: acked` — so a frame that
@@ -1898,11 +1907,15 @@ class Kernel usingPlatform: platform = () (
        from obs/, or to trim BY TYPE and protect the write-once and must-deliver
        paths — which is the same question already parked above for sys/panic, and is
        probably worth answering once for both. The 87 B of headroom this paragraph
-       used to claim (design §9.1, two cells and one tel/log row) is SPENT: three
-       cells and one tel/log row is 529 B, i.e. 17 B over. It no longer "cannot bite
-       today", and it did not wait for a node with many obs/ paths — one more sys/
-       cell was enough. Said out loud because a metrics record that silently loses
-       the race under load is exactly the observability that lies when it matters. *)
+       used to claim (design §9.1, two cells and one tel/log row) was SPENT and then
+       overdrawn: three cells and one tel/log row reached 529 B, 17 B over, and the
+       "cannot bite today" it rested on turned out to mean "has not bitten yet". It
+       did not wait for a node with many obs/ paths — ONE more sys/ cell was enough,
+       and the bite was silent. rete#197 bought the headroom back (134 B), which
+       resets the counter on this paragraph rather than retiring it: the next field
+       added to any record on this frame spends it again, at ~10 B a field. Said out
+       loud because a metrics record that silently loses the race under load is
+       exactly the observability that lies when it matters. *)
     (* THE THREE INNER SPANS (tuvm#161), nested inside `pushBuild`:
 
          pushCollect  collectOutbound — the pending walk, the three cell scans,
@@ -2305,7 +2318,7 @@ class Kernel usingPlatform: platform = () (
        RECORDS §4 for every writer, not for ota. *)
     telLog: level text: text = (
       space out: 'tel/log' value:
-        (Record tag: #Log with: #level -> level with: #text -> text).
+        (Record tag: #Log with: #lvl -> level with: #txt -> text).
       ^ self )
 
     (* The pure decision: given whatever sits at `goal/apps/main`, answer the
@@ -3733,23 +3746,23 @@ class Kernel usingPlatform: platform = () (
     h:: platform heapStats.
     s:: platform sysStats.
     pairs:: OrderedCollection new.
-    pairs add: #heapSize -> (h basicAt: 1).
-    pairs add: #liveBytes -> (h basicAt: 2).
-    pairs add: #heapHighWater -> (h basicAt: 3).
-    pairs add: #largestFreeBlock -> (h basicAt: 4).
-    pairs add: #gcCycles -> (h basicAt: 5).
-    pairs add: #handlesLive -> (s basicAt: 1).
-    pairs add: #handlesHighWater -> (s basicAt: 2).
-    pairs add: #queueHighWater -> (s basicAt: 3).
-    pairs add: #overruns -> (s basicAt: 4).
+    pairs add: #hsz -> (h basicAt: 1).
+    pairs add: #lb -> (h basicAt: 2).
+    pairs add: #hhw -> (h basicAt: 3).
+    pairs add: #lfb -> (h basicAt: 4).
+    pairs add: #gcc -> (h basicAt: 5).
+    pairs add: #hnl -> (s basicAt: 1).
+    pairs add: #hnhw -> (s basicAt: 2).
+    pairs add: #qhw -> (s basicAt: 3).
+    pairs add: #ovr -> (s basicAt: 4).
     (* tuvm#34: the ISR pulse seam's own counters, widening this record from 9
        fields to 11. That seam used to answer a full mailbox with k_oops, so there
        was nothing to publish; now that it SHEDS instead, a silent shed would be
        strictly worse than the crash it replaced. pulseDrops rising is the alarm —
        the reactor is not pumping fast enough; pulseCoalesced rising is the
        mechanism working, a repeating source folding into one pending wakeup. *)
-    pairs add: #pulseDrops -> (s basicAt: 5).
-    pairs add: #pulseCoalesced -> (s basicAt: 6).
+    pairs add: #pdr -> (s basicAt: 5).
+    pairs add: #pco -> (s basicAt: 6).
     ^ Record tag: #Metrics fields: (Map fromPairs: pairs) )
   (* rete#190: the sys/cheap snapshot — prim 152 (cheapStats) as ONE flat immutable
      Record, the sys/cheap cell's wire schema (pinned in
@@ -3777,11 +3790,11 @@ class Kernel usingPlatform: platform = () (
   public cheap = ( | c pairs |
     c:: platform cheapStats.
     pairs:: OrderedCollection new.
-    pairs add: #outBytes -> (c basicAt: 1).
-    pairs add: #outHigh  -> (c basicAt: 2).
-    pairs add: #allocs   -> (c basicAt: 3).
-    pairs add: #frees    -> (c basicAt: 4).
-    pairs add: #fails    -> (c basicAt: 5).
+    pairs add: #ob  -> (c basicAt: 1).
+    pairs add: #ohw -> (c basicAt: 2).
+    pairs add: #alc -> (c basicAt: 3).
+    pairs add: #fre -> (c basicAt: 4).
+    pairs add: #fal -> (c basicAt: 5).
     ^ Record tag: #CHeap fields: (Map fromPairs: pairs) )
   (* Milestone E Task 1: crash-Record factory reachable from ANY context. The
      error:/error:tag: raise prims cannot reach the sibling `Record` class from an

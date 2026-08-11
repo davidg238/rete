@@ -18,9 +18,9 @@ public main: platform args: args = (
   | c cell got |
   c:: platform cheap.
   (c tag = #CHeap) printString println.
-  ((c at: #outHigh ifAbsent: [ -1 ]) >= (c at: #outBytes ifAbsent: [ 0 ])) printString println.
-  ((c at: #allocs ifAbsent: [ -1 ]) >= (c at: #frees ifAbsent: [ 0 ])) printString println.
-  ((c at: #fails ifAbsent: [ -1 ]) >= 0) printString println.
+  ((c at: #ohw ifAbsent: [ -1 ]) >= (c at: #ob ifAbsent: [ 0 ])) printString println.
+  ((c at: #alc ifAbsent: [ -1 ]) >= (c at: #fre ifAbsent: [ 0 ])) printString println.
+  ((c at: #fal ifAbsent: [ -1 ]) >= 0) printString println.
 
   cell:: platform space channel: 'sys/cheap'.
   cell put: '' value: c.

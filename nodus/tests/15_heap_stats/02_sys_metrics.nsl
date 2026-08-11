@@ -24,20 +24,20 @@ public main: platform args: args = (
   | m cell got |
   m:: platform metrics.
   (m tag = #Metrics) printString println.
-  ((m at: #heapSize ifAbsent: [ -1 ]) > 0) printString println.
-  ((m at: #heapHighWater ifAbsent: [ -1 ]) >= (m at: #liveBytes ifAbsent: [ 0 ])) printString println.
-  ((m at: #handlesHighWater ifAbsent: [ -1 ]) >= (m at: #handlesLive ifAbsent: [ 0 ])) printString println.
-  ((m at: #overruns ifAbsent: [ -1 ]) = (platform spaceOverruns: '')) printString println.
+  ((m at: #hsz ifAbsent: [ -1 ]) > 0) printString println.
+  ((m at: #hhw ifAbsent: [ -1 ]) >= (m at: #lb ifAbsent: [ 0 ])) printString println.
+  ((m at: #hnhw ifAbsent: [ -1 ]) >= (m at: #hnl ifAbsent: [ 0 ])) printString println.
+  ((m at: #ovr ifAbsent: [ -1 ]) = (platform spaceOverruns: '')) printString println.
 
   cell:: platform space channel: 'sys/metrics'.
   cell put: '' value: m.
   got:: cell peek: '' ifAbsent: [ nil ].
   (got = m) printString println.
-  ((got at: #queueHighWater ifAbsent: [ -1 ]) >= 0) printString println.
+  ((got at: #qhw ifAbsent: [ -1 ]) >= 0) printString println.
 
   (* the put above enqueued a reaction event, so a FRESH snapshot must show
      the ring has been occupied at least once *)
-  ((platform metrics at: #queueHighWater ifAbsent: [ -1 ]) >= 1) printString println.
+  ((platform metrics at: #qhw ifAbsent: [ -1 ]) >= 1) printString println.
   'done' println.
 )
 ) : (

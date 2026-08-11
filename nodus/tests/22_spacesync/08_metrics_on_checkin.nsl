@@ -35,9 +35,9 @@ class MetricsOnCheckIn packageUsing: manifest = () (
 
     m:: (space channel: 'sys/metrics') peek: '' ifAbsent: [ nil ].
     ('tag ' , (m tag = #Metrics) printString) println.
-    ('heapSize positive ' , ((m at: #heapSize ifAbsent: [ -1 ]) > 0) printString) println.
-    ('queueHighWater present ' , ((m at: #queueHighWater ifAbsent: [ -1 ]) >= 0) printString) println.
-    ('pulseDrops present ' , ((m at: #pulseDrops ifAbsent: [ -1 ]) >= 0) printString) println.
+    ('heapSize positive ' , ((m at: #hsz ifAbsent: [ -1 ]) > 0) printString) println.
+    ('queueHighWater present ' , ((m at: #qhw ifAbsent: [ -1 ]) >= 0) printString) println.
+    ('pulseDrops present ' , ((m at: #pdr ifAbsent: [ -1 ]) >= 0) printString) println.
 
     (* The write must STAMP, or the cell exists locally and never rides a push:
        collectOutbound scans `changedSince: acked`, so an unstamped value is

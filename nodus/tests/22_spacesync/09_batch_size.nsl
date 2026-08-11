@@ -1,14 +1,16 @@
 (*
 expect:
-health 91
-metrics 195
-cheap 79
-batch 529
+health 61
+metrics 101
+cheap 62
+batch 385
 *)
 (* #56 design §9.1, landed as a REGRESSION GUARD.
 
-   *** 529 B IS OVER THE 512 B CAP. THAT IS THE MEASUREMENT, NOT A BUG IN THIS
-   *** FILE. The overflow is rete#150's to fix — see the bottom of this comment.
+   *** THE FRAME FITS AGAIN AS OF rete#197 (2026-08-11): 385 B against the 512 B
+   *** cap, 127 B of headroom, and 378 B once the envelope's own two labels
+   *** shorten. It was 529 B — SEVENTEEN OVER — for one day, and the gauge went
+   *** quiet on a live node for the whole of it (see below).
 
    TWO WAYS THIS GUARD WAS MEASURING A FRAME THE NODE NO LONGER SENDS, both found
    and fixed 2026-08-11 (rete#190 stage 2 review):
@@ -29,26 +31,42 @@ batch 529
    Was 425/87 B, then 429/83 B until 2026-08-09. The honest series is
    425 -> 429 (health bootId widened) -> 433 (envelope bootId widened, the 4 B the
    note above thought it had already counted) -> 529 (the sys/cheap row, 96 B: a
-   79 B record plus 17 B of seq, path and kind).
+   79 B record plus 17 B of seq, path and kind) -> 385 (rete#197, every record's
+   labels shortened) -> 378 (rete#197, the envelope's two as well).
 
-   WHY THIS IS PINNED RED-AT-WORST-CASE RATHER THAN FIXED HERE. Shortening the five
-   `CHeap` field names was the proposed fix; it was measured and it does not reach.
-   One-character names — the floor, where the names stop meaning anything — land the
-   frame at 503 B, and any legible scheme (`out`/`high`/`na`/`nf`/`fails`) lands ~514
-   and still overflows. The structural answer is the one `PortaBridge>>pushFrame`
-   already parks as rete#150: reserve bytes for `sys/` before filling from `obs/`, or
-   trim BY TYPE. It cannot be done by reordering, because porta acks ONE high-water
-   and `applyAck:` sets `acked:: hw` — a frame that omits a low seq while carrying a
-   high one loses the omitted entry permanently, which is precisely why the trim
-   takes the tail.
+   WHAT THE OVERFLOW COST, WITNESSED AND NOT MODELLED. This guard went red on
+   2026-08-11 as a prediction about long-uptime nodes. Within the day it was
+   confirmed in the field: `sys/cheap` stopped reaching porta from `c6-bench`
+   entirely — last delivered seq 70006 against a live 78839, a gap of ~8 800 —
+   while `obs/health`, `sys/metrics` and `tel/log` kept arriving every 2 s.
+   `publishCheap` writes the cell on EVERY check-in (kernel.nsl), so the node was
+   producing it and the frame was dropping it; earlier in the same window it was
+   arriving at 4-6 s gaps, i.e. trimmed on some check-ins and then on all of them
+   as the counters widened. The gauge went quiet on exactly the node it exists to
+   watch, which is what this file said would happen.
 
-   WHAT THE OVERFLOW COSTS TODAY, so the next reader does not over- or under-read it:
-   these are THIRTY-DAY values. At bench uptimes the frame fits, and the host
-   check-in path delivers 143 `sys/cheap` rows in 150 ticks (design §11.7). The bite
-   is a long-uptime node, where `sys/cheap` holds the highest seq — written last in
-   `checkIn` — and is therefore the FIRST row the tail-trim drops, on every check-in
-   that also carries a `tel/log` row. The gauge would go quiet on exactly the nodes
-   it exists to watch.
+   WHY ALL THE LABELS AND NOT JUST `CHeap`'s. Shortening the five `CHeap` field
+   names was the first proposal, and it was MEASURED NOT TO REACH — one-character
+   names, the floor where names stop meaning anything, land the frame at 503 B, and
+   any legible scheme (`out`/`high`/`na`/`nf`/`fails`) lands ~514 and still
+   overflows. That measurement is what forced one rule across every label rather
+   than a local patch. Numbered slots (`h1`, `m1`, ...) save 23 B more and were
+   rejected: they make meaning POSITIONAL, so a mismatched reader decodes `m7`
+   cleanly and silently means something else, where an unknown NAME is loud.
+
+   WHAT THIS DID NOT FIX. rete#150 is still open and still unfunded. This bought
+   127 B of headroom; it did not change the trim rule, which still takes the TAIL
+   and therefore still drops the freshest, highest-seq row first. The structural
+   answer `PortaBridge>>pushFrame` parks — reserve bytes for `sys/` before filling
+   from `obs/`, or trim BY TYPE — is unchanged, and it cannot be done by reordering,
+   because porta acks ONE high-water and `applyAck:` sets `acked:: hw`: a frame that
+   omits a low seq while carrying a high one loses the omitted entry permanently,
+   which is precisely why the trim takes the tail.
+
+   These are THIRTY-DAY values, and that is the whole point of the fixture: at bench
+   uptimes the frame fitted even at 529 B, and the host check-in path delivered 143
+   `sys/cheap` rows in 150 ticks (design §11.7) while a real node three weeks into
+   its uptime delivered none.
 
    NOT a sum of record sizes: the thing that must fit 512 B is the PUSH FRAME —
    envelope and rows included — so this builds the frame PortaBridge>>encodePush:
@@ -59,9 +77,11 @@ batch 529
    costs five bytes where one holding 12 costs one. Measuring the easy case is exactly
    how an estimate becomes wrong in the field.
 
-   `metrics 195` is the CONTROL. It is the value RECORDS §4.4 pinned on 2026-07-21
-   through a different test (19_latency/05_record_size), so if it moves, the failure
-   is not in this file and every other number here is suspect.
+   `metrics 101` is the CONTROL. It is the value RECORDS §4.4 pins through a
+   different test (19_latency/05_record_size), so if it moves, the failure is not in
+   this file and every other number here is suspect. It was 195 B under the long
+   labels, pinned 2026-07-21; both tests moved to 101 together on 2026-08-11, which
+   is what keeps the control a control.
 
    Note: `platform Cbor` answers an INSTANCE where `platform Spans` answers the CLASS
    — an asymmetry worth knowing before copying either line. *)
@@ -71,7 +91,7 @@ class BatchSize packageUsing: manifest = () (
   health: platform = (
     | pairs |
     pairs:: platform OrderedCollection new.
-    pairs add: #uptimeMs -> 2592000000.      (* 30 days *)
+    pairs add: #up -> 2592000000.      (* 30 days *)
     (* rete#162: the WORST LEGAL bootId, not a fresh node's. This was 1 while
        bootId was a source constant; it is now a counter persisted in NVS across
        the node's whole lifetime, and CBOR is shortest-form, so the value decides
@@ -80,10 +100,10 @@ class BatchSize packageUsing: manifest = () (
        band's ceiling (the VM keeps it inside an SMI on a 32-bit target). This is
        the same reasoning as the 30-day uptime beside it: measuring the easy case
        is exactly how an estimate becomes wrong in the field. *)
-    pairs add: #bootId -> 1073741823.
-    pairs add: #wakes -> 1296000.            (* 30 d at the 2 s cadence *)
-    pairs add: #pollTimeouts -> 431.
-    pairs add: #streamDropped -> 17.
+    pairs add: #bid -> 1073741823.
+    pairs add: #wak -> 1296000.            (* 30 d at the 2 s cadence *)
+    pairs add: #pto -> 431.
+    pairs add: #sdr -> 17.
     ^ platform Record tag: #Health fields: (platform Map fromPairs: pairs) )
 
   (* The eleven fields kernel.nsl builds, with the WROOM-32 values 05_record_size.nsl
@@ -91,17 +111,17 @@ class BatchSize packageUsing: manifest = () (
   metrics: platform = (
     | pairs |
     pairs:: platform OrderedCollection new.
-    pairs add: #heapSize -> 53248.
-    pairs add: #liveBytes -> 36196.
-    pairs add: #heapHighWater -> 53228.
-    pairs add: #largestFreeBlock -> 18608.
-    pairs add: #gcCycles -> 1523.
-    pairs add: #handlesLive -> 1.
-    pairs add: #handlesHighWater -> 1.
-    pairs add: #queueHighWater -> 2.
-    pairs add: #overruns -> 0.
-    pairs add: #pulseDrops -> 0.
-    pairs add: #pulseCoalesced -> 0.
+    pairs add: #hsz -> 53248.
+    pairs add: #lb -> 36196.
+    pairs add: #hhw -> 53228.
+    pairs add: #lfb -> 18608.
+    pairs add: #gcc -> 1523.
+    pairs add: #hnl -> 1.
+    pairs add: #hnhw -> 1.
+    pairs add: #qhw -> 2.
+    pairs add: #ovr -> 0.
+    pairs add: #pdr -> 0.
+    pairs add: #pco -> 0.
     ^ platform Record tag: #Metrics fields: (platform Map fromPairs: pairs) )
 
   (* rete#190: the five CHeapStats fields, in kernel.nsl's field order. Counts are
@@ -118,16 +138,16 @@ class BatchSize packageUsing: manifest = () (
   cheap: platform = (
     | pairs |
     pairs:: platform OrderedCollection new.
-    pairs add: #outBytes -> 131072.
-    pairs add: #outHigh -> 196608.
-    pairs add: #allocs -> 1296000.
-    pairs add: #frees -> 1295998.
-    pairs add: #fails -> 2.
+    pairs add: #ob -> 131072.
+    pairs add: #ohw -> 196608.
+    pairs add: #alc -> 1296000.
+    pairs add: #fre -> 1295998.
+    pairs add: #fal -> 2.
     ^ platform Record tag: #CHeap fields: (platform Map fromPairs: pairs) )
 
   log: platform = (
-    ^ platform Record tag: #Log with: #level -> #info
-                              with: #text -> 'tick 1296000' )
+    ^ platform Record tag: #Log with: #lvl -> #info
+                              with: #txt -> 'tick 1296000' )
 
   row: platform seq: s path: p value: v = (
     ^ platform List with: s with: p with: 2 with: v )

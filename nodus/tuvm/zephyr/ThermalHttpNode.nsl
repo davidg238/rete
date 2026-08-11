@@ -361,15 +361,15 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
       '<table style=''border-collapse:collapse;width:100%;max-width:44rem''>',
       '<thead><tr><th style=''text-align:left;border-bottom:2px solid #ccc;padding:.4rem''>metric</th>',
       '<th style=''text-align:right;border-bottom:2px solid #ccc;padding:.4rem;white-space:nowrap''>value</th></tr></thead><tbody>'.
-    self statRow: 'heap size (bytes)'        value: (m at: #heapSize         ifAbsent: [ -1 ]) toId: id on: platform.
-    self statRow: 'live bytes'               value: (m at: #liveBytes        ifAbsent: [ -1 ]) toId: id on: platform.
-    self statRow: 'heap high-water'          value: (m at: #heapHighWater    ifAbsent: [ -1 ]) toId: id on: platform.
-    self statRow: 'largest free block'       value: (m at: #largestFreeBlock ifAbsent: [ -1 ]) toId: id on: platform.
-    self statRow: 'gc cycles'                value: (m at: #gcCycles         ifAbsent: [ -1 ]) toId: id on: platform.
-    self statRow: 'handles live'             value: (m at: #handlesLive      ifAbsent: [ -1 ]) toId: id on: platform.
-    self statRow: 'handles high-water'       value: (m at: #handlesHighWater ifAbsent: [ -1 ]) toId: id on: platform.
-    self statRow: 'channel queue high-water' value: (m at: #queueHighWater   ifAbsent: [ -1 ]) toId: id on: platform.
-    self statRow: 'channel overruns'         value: (m at: #overruns         ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'heap size (bytes)'        value: (m at: #hsz   ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'live bytes'               value: (m at: #lb    ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'heap high-water'          value: (m at: #hhw   ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'largest free block'       value: (m at: #lfb   ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'gc cycles'                value: (m at: #gcc   ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'handles live'             value: (m at: #hnl   ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'handles high-water'       value: (m at: #hnhw  ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'channel queue high-water' value: (m at: #qhw   ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'channel overruns'         value: (m at: #ovr   ifAbsent: [ -1 ]) toId: id on: platform.
     (* tuvm#34: the ISR pulse seam's own counters. This node is the reason they
        exist — it is the first to run a periodic timer AND an HTTP listener, so a
        blocking render starves the pump and ticks pile up in the mailbox (tuvm#54).
@@ -377,8 +377,8 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
        hide the very condition that used to announce itself as a crash.
        pulse drops rising = the reactor is behind. pulse coalesced rising = the
        repeating timer folding into one pending wakeup, which is the fix working. *)
-    self statRow: 'pulse drops (ISR mailbox)' value: (m at: #pulseDrops       ifAbsent: [ -1 ]) toId: id on: platform.
-    self statRow: 'pulse coalesced'          value: (m at: #pulseCoalesced   ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'pulse drops (ISR mailbox)' value: (m at: #pdr   ifAbsent: [ -1 ]) toId: id on: platform.
+    self statRow: 'pulse coalesced'          value: (m at: #pco   ifAbsent: [ -1 ]) toId: id on: platform.
     platform httpChunkId: id data: '</tbody></table>'.
     self latencyTableOn: platform toId: id spans: spans.
     (* tuvm#72: the clean table. The one above is cumulative since boot and partly

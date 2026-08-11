@@ -8,7 +8,8 @@ This file is PortaBridgeNode.nsl with six differences and no others:
   3. `tick` prints one console line, because the gate must be able to tell a
      surviving drop from a drop that never fired — porta cannot witness the
      node's own `misses`, and a leg that passes either way is not a test (D8);
-  4. `report` also prints ` dropped N` — the bridge's counted `#streamDropped`,
+  4. `report` also prints ` dropped N` — the bridge's counted `#sdr` (rete#197;
+     `#streamDropped` until 2026-08-11),
      appended after ` acked N` so the existing `^tick ` and `misses [0-9]\+`
      greps still match.
   5. THE SELF-CHECK: it emits the `bridge-health` scenario's TAP-lite verdict
@@ -170,8 +171,8 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
     spans begin: sPublish.
     self publishHealth.
     space out: 'tel/log' value:
-      (platform Record tag: #Log with: #level -> #info
-                                 with: #text -> ('tick ' , ticks printString)).
+      (platform Record tag: #Log with: #lvl -> #info
+                                 with: #txt -> ('tick ' , ticks printString)).
     spans end: sPublish.
     self report.
     (* jobTick closes BEFORE checkVerdict, so the tick that ends the window is
@@ -250,11 +251,11 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
   publishHealth = (
     | pairs |
     pairs:: platform OrderedCollection new.
-    pairs add: #uptimeMs -> platform monotonicMillis.
-    pairs add: #bootId -> 1.
-    pairs add: #wakes -> ticks.
-    pairs add: #pollTimeouts -> bridge misses.
-    pairs add: #streamDropped -> bridge dropped.
+    pairs add: #up -> platform monotonicMillis.
+    pairs add: #bid -> 1.
+    pairs add: #wak -> ticks.
+    pairs add: #pto -> bridge misses.
+    pairs add: #sdr -> bridge dropped.
     space put: 'obs/health' value:
       (platform Record tag: #Health fields: (platform Map fromPairs: pairs)).
     ^ self

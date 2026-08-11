@@ -32,21 +32,21 @@ done
 class ArmSeamsHandleTest packageUsing: manifest = () (
 public main: platform args: args = (
   | base afterRefusals afterFirst afterMany |
-  base:: (platform metrics) at: #handlesLive ifAbsent: [ -1 ].
+  base:: (platform metrics) at: #hnl ifAbsent: [ -1 ].
 
   (* The refusal path. It answers nil, and it must cost nothing. *)
   ((platform rtcAlarmAt: 3600 post: #alarm on: 'do/bell') == nil) printString println.
   1 to: 20 do: [ :i | platform rtcAlarmAt: 3600 post: #alarm on: 'do/bell' ].
-  afterRefusals:: (platform metrics) at: #handlesLive ifAbsent: [ -1 ].
+  afterRefusals:: (platform metrics) at: #hnl ifAbsent: [ -1 ].
   (afterRefusals = base) printString println.
 
   (* The re-arm path. There is exactly one outstanding trigger per node, so an
      armed seam costs exactly one pin however many times it is re-armed. *)
   ((platform sensorArmEventPost: #hot on: 'obs/thermal' threshold: 3000) == nil) printString println.
-  afterFirst:: (platform metrics) at: #handlesLive ifAbsent: [ -1 ].
+  afterFirst:: (platform metrics) at: #hnl ifAbsent: [ -1 ].
   (afterFirst = (base + 1)) printString println.
   1 to: 20 do: [ :i | platform sensorArmEventPost: #hot on: 'obs/thermal' threshold: 3000 ].
-  afterMany:: (platform metrics) at: #handlesLive ifAbsent: [ -1 ].
+  afterMany:: (platform metrics) at: #hnl ifAbsent: [ -1 ].
   (afterMany = afterFirst) printString println.
   'done' println.
 )
