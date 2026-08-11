@@ -52,6 +52,11 @@ run test_coalesce "$ENG_A" -DOEVM_HEAP_SIZE=8192
 run test_heap_stats "$ENG_A" -DOEVM_HEAP_SIZE=65536
 # rete#190 sub-project A: the C-allocation seam's counters (oevm_malloc/free/realloc).
 run test_cheap_stats "$ENG_A" -DOEVM_HEAP_SIZE=65536
+# rete#190 stage 2: Symbol name bytes inline — 200 Symbols must cost the C heap
+# zero bytes (the leak that crashed three C6 boards), and the inline bytes must
+# be a GC LEAF. Verified falsifiable: with trace_one's SymbolVtable arm disabled
+# every other test in this file still passes and only this one fails.
+run test_symbol_inline "$ENG_A" -DOEVM_HEAP_SIZE=65536
 run test_method_cache "$ENG_A" -DOEVM_CACHE_STATS
 # Model-B-linked tests (test_int_compare's own header comment specifies the
 # Model-B link set — kernel_boot.c present, solidified_image.c absent — so it
