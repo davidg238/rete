@@ -551,6 +551,15 @@ statement of this leak's lifetime must be in check-ins.
   was written, on `VM GC Error: Out of Memory (requested 4104, used 131064 of 131072)` — the
   GC ARENA, on a build with no `publishCheap`. Board state recorded at close-out is a claim
   with a shelf life; re-read the console before trusting it.
+
+  That OOM is **probably downstream of the §11.5 cliff rather than a second leak**, and the
+  three runs line up to say why: all reach the wall at the same check-in count, but the
+  build without `publishCheap` then limped on for 56 further ticks with `acked` FROZEN —
+  nothing it pushed was being accepted — its tick period decaying 2.0 s → 6.2 s, before the
+  arena filled. A backlog accumulating in the arena once acks stop fits that, and a decaying
+  tick period is what a GC does as live data grows. **Untested; recorded as a hypothesis.**
+  The two runs WITH `publishCheap` stopped dead at the cliff instead and never got there,
+  which is the part of the picture a single-run reading would have missed.
 - **A two-point read of `liveBytes` says nothing.** It sawtooths with every GC cycle, so two
   samples at different phases yield any trend you like — including, in this session, a
   confident and entirely wrong prediction of imminent arena exhaustion. The arena is fine;
