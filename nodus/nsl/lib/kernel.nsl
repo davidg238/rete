@@ -3576,6 +3576,13 @@ class Kernel usingPlatform: platform = () (
      explicitly for exactly the reason the comment above gives. *)
   public SpanCapture       = ( ^ SpanCapture )
   public heapStats         = ( ^ HeapStats fromList: (platform heapStats) )
+  (* rete#192: DO NOT SEND THIS ON A PERIODIC PATH. Sending it once per check-in
+     hangs a C6 silently — proven on hardware 2026-08-10 against a build that
+     differed only in this send. The mechanism is unknown, and this accessor plus
+     the CHeapStats class are that bug's only reproducer, which is why they are
+     still here. `Kernel>>cheap` reads the raw prim Array instead; see its comment.
+     Its twin `heapStats` above is NOT known to be affected — it is exercised on
+     target by CborBenchNodeC6 and MeasureNodeDK and works. *)
   public cheapStats        = ( ^ CHeapStats fromList: (platform cheapStats) )
   (* #165: open and close a per-method profile window. The counter is a build
      option (OEVM_METHOD_PROFILE) and these are no-ops without it, so an app may
@@ -3740,15 +3747,29 @@ class Kernel usingPlatform: platform = () (
      not grow the way Metrics has. Metrics is 195 B of the 256 B cap and keeps all
      61 B of its headroom.
      The kernel only BUILDS the record; publishing it onto a cell is the app's act
-     (G9), with the channel arriving as a capability. *)
+     (G9), with the channel arriving as a capability.
+     READ WITH basicAt:, NOT THROUGH `self cheapStats`. Going through the
+     `CHeapStats fromList:` wrapper here HANGS A C6 — silently, no panic, no VM
+     error — on the first check-in after the bridge-health verdict. Established on
+     hardware 2026-08-10 by three builds differing in one thing each, same board and
+     command: the wrapper version died at tick 2-3 on three separate boots; a
+     constant record ran clean; and THIS body, which still executes prim 152 every
+     check-in, ran to tick 610-614 (where it meets the unrelated pre-existing cliff
+     below). So prim 152 is innocent — it is the four-line nsl wrapper that is fatal,
+     and the MECHANISM IS STILL UNKNOWN (rete#192). `Kernel>>cheapStats` and the
+     CHeapStats class survive as that bug's only reproducer; do not put either back
+     on the check-in path.
+     Reading the raw prim Array is also what `metrics` above has done with
+     `platform heapStats` every check-in for a rung, so this is the proven shape
+     rather than a special case — one fewer mechanism, not one more. *)
   public cheap = ( | c pairs |
-    c:: self cheapStats.
+    c:: platform cheapStats.
     pairs:: OrderedCollection new.
-    pairs add: #outBytes -> c outBytes.
-    pairs add: #outHigh  -> c outHigh.
-    pairs add: #allocs   -> c allocs.
-    pairs add: #frees    -> c frees.
-    pairs add: #fails    -> c fails.
+    pairs add: #outBytes -> (c basicAt: 1).
+    pairs add: #outHigh  -> (c basicAt: 2).
+    pairs add: #allocs   -> (c basicAt: 3).
+    pairs add: #frees    -> (c basicAt: 4).
+    pairs add: #fails    -> (c basicAt: 5).
     ^ Record tag: #CHeap fields: (Map fromPairs: pairs) )
   (* Milestone E Task 1: crash-Record factory reachable from ANY context. The
      error:/error:tag: raise prims cannot reach the sibling `Record` class from an

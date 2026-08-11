@@ -2,7 +2,11 @@
 
 - **Date:** 2026-08-10
 - **Issue:** [#190](https://github.com/davidg238/rete/issues/190)
-- **Status:** design approved (David, 2026-08-10); implementation not started
+- **Status:** design approved (David, 2026-08-10). **Stage 1 (sub-project A) IMPLEMENTED
+  the same day on branch `190-alloc-seam` and NOT merged** — its hardware gate found that
+  `publishCheap` hangs a C6 deterministically. See §11 for what that changed in this
+  document. Stages 2–4 remain unplanned by design (D9). Plan:
+  `docs/superpowers/plans/2026-08-10-alloc-seam-and-cheap-gauge.md`
 - **Supersedes:** nothing. Extends `PROTOCOL-NSL.md` §3 with a fifth path prefix and
   builds `PROTOCOL-NSL-RECORDS.md` §2.4's already-specified `Panic`.
 
@@ -431,3 +435,130 @@ knowledge goes to:
 | Silence detection, the sweep, the retired `cadence_ms` | `porta/docs/ARCHITECTURE.md` |
 | Symbol layout, the `trace_one` leaf rule, the `.oimg` format change | `review/lib/` VM doc + `review/tests/CLAIMS.md` |
 | Reboot-not-halt as node failure behaviour | `review/program-sequence.md` |
+
+---
+
+## 11. Addendum — what the stage 1 hardware gate changed (2026-08-10, same day)
+
+Stage 1 was implemented and run on hardware the day this design was written. Three things
+in the sections above need correcting or extending, recorded here rather than silently
+edited so the reasoning stays inspectable.
+
+### 11.1 §7's verdict table is INCOMPLETE — it has a fifth outcome
+
+All four rows assume the node runs. The outcome that actually occurred is not among them:
+
+| Reading | Verdict |
+|---|---|
+| **The instrumentation hangs the node** | **Not a reading at all.** Score nothing. A node that stops checking in produces no evidence about the leak, and the flat line it leaves behind is indistinguishable from row 3's "gauge is blind" |
+
+This is the failure mode a verdict table most needs and is least likely to contain, because
+a table is written by someone imagining the measurement working. **Any future gauge design
+in this program should carry this row.** The cost of omitting it is precisely the
+misdiagnosis §7 was written to prevent, arriving through a door the table left open.
+
+### 11.2 D9 (gauge first, then fix) is VINDICATED, and by a route it did not predict
+
+D9 argued the gauge must land first so the leak could be seen to rise. What it actually
+bought was different and larger: **the gauge validation run caught a target-only hang in
+the instrumentation itself, before the Symbol fix was ever planned on top of it.** Had both
+stages shipped together, the hang would have been attributed to the Symbol change — a
+strictly harder debugging problem, on the branch that matters most.
+
+The argument for D9 is therefore stronger than the one recorded in §7, and it generalises:
+*an instrument must be proven not to disturb its subject before its readings mean anything*,
+which is a separate claim from *an instrument must be proven to register the effect*.
+
+### 11.3 What §3's seam is now KNOWN to be, on hardware
+
+Bisect on a real C6 (five builds, same board and command, all `--pristine`) exonerated the
+entire C-level design of §3:
+
+- the seam (`oevm_malloc`/`oevm_realloc`/`oevm_free`) — clean
+- all six call-site conversions and the NULL handling of §3's "What it does on failure" — clean
+- **the 8-byte size header** — clean, tested by removing it and observing the hang persist.
+  Note that §3's justification for the `uint64_t` union (alignment faulting on target only)
+  was reasoning about a real hazard that turned out not to be this one.
+- prim 152 and the `PRIM_NAMES` append — clean **as to presence only.** The build that
+  carried prim 152 without `publishCheap` never CALLED it, so the bisect tested its linkage,
+  not its execution. It was exonerated properly a few hours later — see §11.5 — by a build
+  that executes it every check-in and runs. Recorded because "exonerated by bisect" was
+  written here first and is the kind of half-claim a later session acts on.
+
+The hang is in the nsl half — `Kernel>>cheap` / `publishCheap` — which §3 treated as the
+uninteresting part. **The C was the part everyone reviewed; the four lines of nsl that
+publish a cell every check-in were the part that broke a node.**
+
+`sys/cheap` itself is confirmed working end to end: it reaches porta from a real C6 over a
+real Thread mesh.
+
+### 11.5 The hang is `CHeapStats fromList:`, and the gauge's reading (2026-08-10 evening)
+
+Three builds, one variable each, same board (`c6spare`) and same command:
+
+| build | prim 152 executes | `CHeapStats` instantiated | result |
+|---|---|---|---|
+| `fcfb119`, 3 boots | yes | yes | **wedged at tick 2-3, 3-for-3** |
+| constant record | no | no | clean past the verdict |
+| raw prim + `basicAt:` | **yes** | no | clean to tick 610-614 |
+
+So **prim 152 is innocent and `CHeapStats fromList:` is fatal**; the mechanism is still
+unknown and is now rete#192, whose only reproducer is the class this branch keeps for that
+purpose. The fix makes `cheap` read the raw prim Array exactly as `metrics` reads
+`platform heapStats` — the wedge is closed by REMOVING a mechanism, not adding one.
+
+**The wedge is an event, not a duration.** All three `fcfb119` boots die on the first
+check-in after `TAP bridge-health done`, never a tick earlier or later. `emitVerdict` writes
+`diag/spans/ctl → #stopped`, which dumps 12 `LatencySpan` cells into the very next push;
+`pushFrame` then trims ~13 rows with a full frame re-encode per iteration. That is the
+load window, and reading it as "a few ticks in" is what made it look like a slow failure.
+
+**A second, unrelated failure lives at ~613 check-ins, and it predates this branch.** Three
+runs — including one with no `publishCheap` at all — stop at tick 610, 613 and 614. The
+bisect's master control never reached it: master was reflashed at tick 588, twenty-five ticks
+short, on a ~4-minute observation window. **Master is untested there, not exonerated.**
+
+**It is driven by check-in COUNT, not wall time,** which is the one measurement that tells a
+leak from a clock. Halving the cadence to 1000 ms halved the wall time and left the tick
+count alone:
+
+| cadence | died at tick | wall time |
+|---|---|---|
+| 2000 ms | 613, 614 | 20m 26s, 20m 31s |
+| **1000 ms** | **610** | **10m 20s** |
+
+The gauge agrees from the other side: outstanding blocks track ticks, not seconds
+(5 878 at tick 589 with a 1 s cadence; 6 094 at tick 614 with a 2 s cadence). At the cliff
+the C heap holds **~6 000 blocks averaging 4.8 bytes of payload** — 29 KB of payload that,
+with an 8 B header plus newlib's own per-chunk overhead and alignment, costs on the order of
+**140 KB of the C6's 190 KB**. `fails: 0` throughout: the VM's own allocations never failed,
+so whatever died first was an allocation OUTSIDE the seam (OpenThread or the net stack),
+which is also why the failure is silent.
+
+Thousands of ~5 byte blocks is the signature of the interned-Symbol-name leak stage 2
+targets. **§7's prediction is confirmed in substance and wrong in units:** it framed the
+death as 43m54s of wall time, but the mechanism is per-check-in, so the figure only holds at
+the 2 s bench cadence and says nothing about a field node on a slower one. Any future
+statement of this leak's lifetime must be in check-ins.
+
+### 11.6 Two more readings that were wrong, and one that was a measurement artifact
+
+- **`handlesLive: 0` / `handlesHighWater: 0` is NOT a wedge signature.** It was named the
+  best thread to pull. A demonstrably HEALTHY node on this build reports exactly those zeroes
+  while ticking; the healthy `c6-bell` 2 came from a different app and era. Chasing it would
+  have cost a session.
+- **`c6spare` was not left "clean and ticking".** It panicked 23 minutes after that sentence
+  was written, on `VM GC Error: Out of Memory (requested 4104, used 131064 of 131072)` — the
+  GC ARENA, on a build with no `publishCheap`. Board state recorded at close-out is a claim
+  with a shelf life; re-read the console before trusting it.
+- **A two-point read of `liveBytes` says nothing.** It sawtooths with every GC cycle, so two
+  samples at different phases yield any trend you like — including, in this session, a
+  confident and entirely wrong prediction of imminent arena exhaustion. The arena is fine;
+  only the 15:21 OOM above is real, and it is one observed event, not a trend.
+
+### 11.4 One undocumented mechanism the plan missed
+
+`dispatch.c` carries a compile-time parity guard (`prim_names_enum_parity_check`) that must
+advance with the last prim id or the build hard-fails on a negative array size. It is not in
+any of the nine enumerated source lists the project's lore warns about, so a file survey does
+not find it. Anyone appending a prim needs to know it exists.
