@@ -59,8 +59,7 @@ static inline oop obj_vtable(oop o) {
    the bytes into a local first. The GC is non-moving, so a LIVE Symbol's bytes
    never relocate; the hazard is collection, not compaction. */
 static inline const char *symbol_name(struct Symbol *s) {
-    return is_in_blob(s) ? (const char *)(oimg_blob_base + ((uintptr_t)s->name >> 2))
-                         : s->name;
+    return s->name;
 }
 static inline oop vtable_delegate(oop vt) {
     struct Vtable *v = (struct Vtable *)vt;

@@ -118,9 +118,10 @@ static oop vm_condition_text(oop condition) {
     extern int gc_temp_roots_count;
     int saved_roots = gc_temp_roots_count;
     gc_temp_root_push(condition);
-    oop textSym = gc_allocate(SymbolVtable, sizeof(struct Symbol));
-    ((struct Symbol *)textSym)->name = "text";
-    ((struct Symbol *)textSym)->length = 4;
+    static const char textName[] = "text";
+    oop textSym = gc_allocate(SymbolVtable, sizeof(struct Symbol) + sizeof textName);
+    ((struct Symbol *)textSym)->length = sizeof textName - 1;
+    memcpy(((struct Symbol *)textSym)->name, textName, sizeof textName);
     gc_temp_root_push(textSym);
     oop probe_args[2] = { textSym, NULL };   /* ifAbsent nil: key is always present */
     oop v = send(condition, atIfAbsentSel, 2, probe_args);
@@ -715,9 +716,10 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
         current_frame = NULL;
     }
     if (Symbol_value == NULL) {
-        Symbol_value = gc_allocate(SymbolVtable, sizeof(struct Symbol));
-        ((struct Symbol *)Symbol_value)->name = "value";
-        ((struct Symbol *)Symbol_value)->length = strlen("value");
+        static const char valueName[] = "value";
+        Symbol_value = gc_allocate(SymbolVtable, sizeof(struct Symbol) + sizeof valueName);
+        ((struct Symbol *)Symbol_value)->length = sizeof valueName - 1;
+        memcpy(((struct Symbol *)Symbol_value)->name, valueName, sizeof valueName);
     }
     struct Closure *cl = (struct Closure *)closure;
     struct CompiledMethod *method = (struct CompiledMethod *)closure_entry(cl);
@@ -1616,9 +1618,10 @@ oop primitive_register_debugger_hook(oop receiver, int argc, oop *args) {
     }
     debugger_hook = args[0];
     if (Symbol_debug_ == NULL) {
-        oop sym = gc_allocate(SymbolVtable, sizeof(struct Symbol));
-        ((struct Symbol *)sym)->name = "debug:";
-        ((struct Symbol *)sym)->length = 6;
+        static const char debugName[] = "debug:";
+        oop sym = gc_allocate(SymbolVtable, sizeof(struct Symbol) + sizeof debugName);
+        ((struct Symbol *)sym)->length = sizeof debugName - 1;
+        memcpy(((struct Symbol *)sym)->name, debugName, sizeof debugName);
         Symbol_debug_ = sym;
     }
     return receiver;

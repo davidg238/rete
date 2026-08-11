@@ -275,8 +275,8 @@ void method_cache_flush(void) {
 }
 
 extern const struct Vtable Vtable_SymbolVtable;
-const struct Symbol true_sym_obj = { { (oop)&Vtable_SymbolVtable }, "true", 4 };
-const struct Symbol false_sym_obj = { { (oop)&Vtable_SymbolVtable }, "false", 5 };
+const struct Symbol true_sym_obj  = { { (oop)&Vtable_SymbolVtable }, 4, "true" };
+const struct Symbol false_sym_obj = { { (oop)&Vtable_SymbolVtable }, 5, "false" };
 #define true_symbol ((oop)&true_sym_obj)
 #define false_symbol ((oop)&false_sym_obj)
 
@@ -455,9 +455,10 @@ static oop trigger_access_violation(oop receiver, oop selector, int argc, oop *a
     if (target_selector == NULL) {
         if (Symbol_accessViolation == NULL) {
             extern oop gc_allocate(oop vtable, size_t size);
-            oop sym_av = gc_allocate(SymbolVtable, sizeof(struct Symbol));
-            ((struct Symbol *)sym_av)->name = "accessViolation:";
-            ((struct Symbol *)sym_av)->length = 16;
+            static const char avName[] = "accessViolation:";
+            oop sym_av = gc_allocate(SymbolVtable, sizeof(struct Symbol) + sizeof avName);
+            ((struct Symbol *)sym_av)->length = sizeof avName - 1;
+            memcpy(((struct Symbol *)sym_av)->name, avName, sizeof avName);
             Symbol_accessViolation = sym_av;
         }
         target_selector = Symbol_accessViolation;
@@ -1679,14 +1680,13 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                     break;
                 }
                 extern oop gc_allocate(oop vtable, size_t size);
-                oop sym_obj = gc_allocate(SymbolVtable, sizeof(struct Symbol));
-                char *new_str = oevm_malloc(strlen(buf) + 1);
-                /* rete#190: nil is a value nsl can test for; the caller sent
-                   asString and a failed allocation cannot honestly answer one. */
-                if (new_str == NULL) return NULL;
-                strcpy(new_str, buf);
-                ((struct Symbol *)sym_obj)->name = new_str;
-                ((struct Symbol *)sym_obj)->length = strlen(buf);
+                size_t blen = strlen(buf);
+                /* rete#190 stage 2: the bytes are inline, so the separate
+                   oevm_malloc for `name` (and its NULL check) is gone — one
+                   allocation now, like every other Symbol-building site. */
+                oop sym_obj = gc_allocate(SymbolVtable, sizeof(struct Symbol) + blen + 1);
+                ((struct Symbol *)sym_obj)->length = blen;
+                memcpy(((struct Symbol *)sym_obj)->name, buf, blen + 1);
                 return sym_obj;
             }
             break;

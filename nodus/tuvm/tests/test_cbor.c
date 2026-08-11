@@ -188,20 +188,35 @@ static void test_cbor_decode_leaves(void) {
 
 /* Rung 3 Task 6: `asSymbol:` (prim 103) — String -> genuine (non-interned)
    Symbol. Build a String receiver, dispatch, assert the result is a Symbol whose
-   name bytes match. Runs green under OEVM_GC_STRESS=1: the String input is
-   consumed (its bytes copied into the Symbol's malloc'd name) before the single
-   gc_allocate, so no unrooted heap oop is held across a collection. */
+   name bytes match.
+   rete#190 stage 2: the Symbol's name bytes are now INLINE, so the prim copies
+   them out of the String AFTER its single gc_allocate. In the VM that is safe
+   because args live in a scanned VM-stack register; HERE the receiver is a C
+   local and the GC does not scan the C stack, so this test roots it itself.
+   Do NOT read the temp root as something the gate proves: removing it still
+   passes under OEVM_GC_STRESS=1 (measured), because the collector is
+   non-moving and a swept object's bytes stay readable in the arena — the
+   failure would be a silent read of dead memory, not a crash. The root is here
+   to make the invariant hold by construction, which is the only way it can be
+   established, and the previous version of this comment claimed the opposite
+   mechanism ("bytes copied into the Symbol's malloc'd name") for a malloc that
+   no longer exists. */
 static void test_cbor_as_symbol(void) {
     extern oop StringVtable, SymbolVtable;
     extern oop gc_allocate(oop vtable, size_t size);
+    extern void gc_temp_root_push(oop o);
+    extern int gc_temp_roots_count;
     const char *txt = "reading"; size_t n = strlen(txt);
     oop s = gc_allocate(StringVtable, sizeof(struct String) + n);
     ((struct String*)s)->length = n; memcpy(((struct String*)s)->bytes, txt, n);
+    int saved_roots = gc_temp_roots_count;
+    gc_temp_root_push(s);
     oop out = NULL;
     int ok = platform_dispatch(PRIM_pf_asSymbol, 1, &s, &out);
     assert(ok && out && obj_vtable(out) == SymbolVtable);
     struct Symbol *sym = (struct Symbol*)out;
     assert(sym->length == n && memcmp(sym->name, txt, n) == 0);
+    gc_temp_roots_count = saved_roots;
     printf("test_cbor_as_symbol OK\n");
 }
 

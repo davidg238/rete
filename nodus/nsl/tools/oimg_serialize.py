@@ -72,14 +72,19 @@ class OimgWriter:
         #
         # format_version 8 (Milestone A Task 9b compaction): ONE fixed layout.
         # When the Kernel descriptor is present the serial/supervisor/net groups
-        # are ALWAYS emitted (0 when the entry takes no such capability), so a v8
+        # are ALWAYS emitted (0 when the entry takes no such capability), so the
         # header always ends at the net word (A+12W, padded). The v7 tail word
         # (the retired concurrency capability ref at A+13W) is gone — fibers were
         # removed in Milestone A; v3-v7 headers are no longer written or loaded.
         #
+        # format_version 9 (rete#190 stage 2): the header layout is UNCHANGED;
+        # what changed is the Symbol record — its name bytes are now INLINE
+        # (no separate strbytes allocation, no `name` ref-word). Bumped so a v8
+        # image meets a v9 VM as a loud rejection rather than a silent misread.
+        #
         #   off  width  field
         #   0    4      magic "OIMG"
-        #   4    2      format_version (u16: 8 when Kernel descriptor present;
+        #   4    2      format_version (u16: 9 when Kernel descriptor present;
         #                1 for a kernel-less minimal blob — header ends at the
         #                entry descriptor; serializer unit tests only)
         #   6    2      flags (u16, =0)
@@ -130,9 +135,9 @@ class OimgWriter:
         # format is painful — decide the format early".
         if not kernel_vtable_ref and (serial_on_sel_ref or supervisor_vtable_ref
                                       or net_on_sel_ref):
-            raise ValueError("v8 header: serial/supervisor/net descriptors "
+            raise ValueError("v9 header: serial/supervisor/net descriptors "
                              "require the Kernel descriptor")
-        version = 8 if kernel_vtable_ref else self.version
+        version = 9 if kernel_vtable_ref else self.version
         h = self.MAGIC
         h += self.u16(version) + self.u16(0)               # flags = 0
         h += self.u32(self.registry_version)
@@ -185,10 +190,16 @@ class OimgWriter:
         return h
 
 
-# Object kinds, in cluster emit order.
-KIND_ORDER = ["SYMBOL", "VTABLE", "METHOD", "CLOSURE", "FLOAT", "LARGEINT", "INSTANCE", "BOXEDBINDING"]
+# Object kinds, in cluster emit order. SYMBOL is in NEITHER dict (rete#190
+# stage 2): Symbols are variable-size now (header + inline NUL-terminated
+# bytes), so they are reserved individually and emitted by name, exactly like
+# String — which has never appeared in either dict for the same reason. These
+# two dicts describe only the fixed-size-per-kind cluster loop; _put resolves
+# field offsets from the literal struct name it is handed, not through
+# KIND_STRUCT.
+KIND_ORDER = ["VTABLE", "METHOD", "CLOSURE", "FLOAT", "LARGEINT", "INSTANCE", "BOXEDBINDING"]
 KIND_STRUCT = {
-    "SYMBOL": "Symbol", "VTABLE": "Vtable", "METHOD": "CompiledMethod",
+    "VTABLE": "Vtable", "METHOD": "CompiledMethod",
     "CLOSURE": "Closure", "FLOAT": "Float", "LARGEINT": "LargeInteger",
     "INSTANCE": "ObjectInstance", "BOXEDBINDING": "BoxedBinding",
 }
@@ -434,8 +445,8 @@ class OimgSerializer:
             app_syms.add(supervisor_run_sel_name)
         self.app_syms = sorted(s for s in app_syms if s not in self.reg)
         self.app_strings = sorted(app_strings)
-        for name in self.app_syms:
-            objs["SYMBOL"].append(f"sym:{name}")
+        # rete#190 stage 2: no objs["SYMBOL"] bucket — sym: offsets are assigned
+        # by the variable-size reserve loop below, not the fixed-size KIND loop.
 
         for vt_name in graph.vtables:
             if vt_name not in self.reg:          # builtin vtables are firmware-owned
@@ -497,8 +508,14 @@ class OimgSerializer:
             self.offset[key] = cursor
             cursor += nbytes
 
+        # rete#190 stage 2: Symbols are VARIABLE-size (header + inline
+        # NUL-terminated bytes), so they cannot ride the fixed-size-per-kind
+        # reserve loop above — same treatment String has had since std-lib
+        # 3c-1. The separate `strbytes:` allocation is gone: the payload lives
+        # in the record itself, after `length`.
+        sym_hdr = self.structs["Symbol"]["size"]
         for name in self.app_syms:
-            reserve(f"strbytes:{name}", len(name) + 1)
+            reserve(f"sym:{name}", sym_hdr + len(name.encode("utf-8")) + 1)
         # std-lib 3c-1: String constants are VARIABLE-size (header + inline bytes),
         # so they cannot ride the fixed-size-per-kind reserve loop; reserve each
         # individually like a trailing array (bytes live inline after `length`).
@@ -518,14 +535,21 @@ class OimgSerializer:
         buf = bytearray(total)
 
         # 3. Emit records.
+        sym_bytes_off = self.structs["Symbol"]["fields"]["name"]["offset"]
         for name in self.app_syms:
             base = self.offset[f"sym:{name}"]
+            # `length` is a BYTE count, not a character count — it must share the
+            # UTF-8 basis with the reservation and the payload below, exactly as
+            # the String block does with its own len(raw). Symbol `=` is a
+            # length-then-byte compare (dispatch.c), so a non-ASCII symbol whose
+            # length was a character count would never equal the same symbol
+            # decoded through `platform asSymbol:`.
+            nb = name.encode("utf-8")
+            raw = nb + b"\x00"
             self._put(buf, base, "Symbol", "base.vtable", self.w.word(RefWord.builtin(self.reg["SymbolVtable"])))
-            self._put(buf, base, "Symbol", "name", self.w.word(self._aref(f"strbytes:{name}")))
-            self._put(buf, base, "Symbol", "length", self._scalar_bytes("length", len(name)))
-            sbase = self.offset[f"strbytes:{name}"]
-            raw = name.encode("utf-8") + b"\x00"
-            buf[sbase: sbase + len(raw)] = raw
+            self._put(buf, base, "Symbol", "length", self._scalar_bytes("length", len(nb)))
+            nbase = base + sym_bytes_off
+            buf[nbase: nbase + len(raw)] = raw
 
         # std-lib 3c-1: String constants — INLINE bytes (no separate strbytes
         # pointer; the payload lives in the record itself after `length`).

@@ -584,6 +584,7 @@ static void trace_one(oop ptr) {
     extern oop FloatVtable;
     extern oop StringVtable;
     extern oop RawBytesVtable;
+    extern oop SymbolVtable;
     extern oop StackVtable;
     extern oop ContextVtable;
     extern oop g_active_stack;
@@ -605,6 +606,13 @@ static void trace_one(oop ptr) {
            NOT oops and must not be scanned by the generic word-count
            fallback (trace_object), which would otherwise misinterpret raw
            byte content as pointers. */
+        mark(ptr->vtable);
+    } else if (SymbolVtable != NULL && ptr->vtable == SymbolVtable) {
+        /* rete#190 stage 2: same leaf reasoning as StringVtable/RawBytesVtable
+           above — the inline `name` bytes are NOT oops. Before the bytes moved
+           inline, Symbol fell through to the generic word-count fallback, which
+           scanned a single const char * harmlessly; with inline bytes that
+           fallback would misinterpret raw symbol text as pointers. */
         mark(ptr->vtable);
     } else if (FloatVtable != NULL && ptr->vtable == FloatVtable) {
         mark(ptr->vtable);

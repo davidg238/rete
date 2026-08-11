@@ -70,21 +70,25 @@ struct Object {
     oop vtable;
 };
 
-/*
- * Symbol: An interned, unique string token representing a message selector.
- * Since a Symbol is an Object, it starts with a struct Object base.
- */
+/* Symbol: an interned selector/name. std-lib 3c-1's String proved the shape:
+   the bytes are INLINE in the heap object — one allocation, no ownership
+   question, and identical in RAM and in an XIP image, which is why
+   symbol_name() needs no blob branch (rete#190 stage 2). NUL-terminated
+   because symbol_name() returns a const char * consumed by strcmp at more
+   than twenty sites — allocate length + 1. GC leaf: gc.c trace_one must not
+   scan `name` as oops. */
 struct Symbol {
     struct Object base;
-    const char *name;
     size_t length;
+    char name[];        /* inline, NUL-terminated: allocate length + 1 */
 };
 
 /*
  * String: an immutable, NON-interned, packed UTF-8 byte sequence (std-lib 3c-1).
- * Unlike Symbol (separate malloc'd `name`), the bytes are INLINE in the heap
- * object — one allocation, and a GC leaf (gc.c trace_one must not scan `bytes`
- * as oops). Byte-granularity protocol only; runes are deferred (issue #1).
+ * The bytes are INLINE in the heap object — one allocation, and a GC leaf
+ * (gc.c trace_one must not scan `bytes` as oops); Symbol takes the same shape
+ * since rete#190 stage 2. Byte-granularity protocol only; runes are deferred
+ * (issue #1).
  */
 struct String {
     struct Object base;     // vtable == StringVtable

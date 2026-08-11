@@ -37,9 +37,13 @@ const uint32_t BUILTIN_REGISTRY_VERSION = 5;
  * written by the serializer nor accepted here (images are regenerated
  * per-test; no compat needed).
  *
+ * format_version 9 (rete#190 stage 2): Symbol name bytes are INLINE in the
+ * record (no separate strbytes allocation, no `name` ref-word). Bumped so a
+ * v8 image meets a v9 VM as a loud rejection rather than a silent misread.
+ *
  *   off       width  field
  *   0         4      magic "OIMG"
- *   4         2      format_version (u16, = 8)
+ *   4         2      format_version (u16, = 9)
  *   6         2      flags (u16)
  *   8         4      registry_version (u32)
  *   12        4      blob_size (u32, = total file size)
@@ -120,8 +124,8 @@ int oimg_load_blob(const uint8_t *base, size_t size) {
     uint16_t format_version   = read_u16(base + 4);
     uint32_t registry_version = read_u32(base + 8);
     uint32_t blob_size        = read_u32(base + 12);
-    if (format_version != 8) {
-        fprintf(stderr, "oimg_load_blob: unsupported format_version %u (expected 8)\n", format_version);
+    if (format_version != 9) {
+        fprintf(stderr, "oimg_load_blob: unsupported format_version %u (expected 9)\n", format_version);
         return 1;
     }
     if (registry_version != BUILTIN_REGISTRY_VERSION) {

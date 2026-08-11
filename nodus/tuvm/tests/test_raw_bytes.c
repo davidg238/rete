@@ -60,12 +60,13 @@ extern void (*gc_additional_roots_hook)(void);
 
 /* Build a throwaway selector Symbol (mirrors tests/test_platform.c's sel()). */
 static oop sel(const char *name) {
-    static struct Symbol pool[64];
-    static int n = 0;
-    struct Symbol *s = &pool[n++];
+    /* rete#190 stage 2: inline name bytes, so this mallocs header + payload
+       (mirrors tests/test_platform.c's sel()). */
+    size_t n = strlen(name);
+    struct Symbol *s = malloc(sizeof(struct Symbol) + n + 1);
     s->base.vtable = SymbolVtable;
-    s->name = name;
-    s->length = strlen(name);
+    s->length = n;
+    memcpy(s->name, name, n + 1);
     return (oop)s;
 }
 
