@@ -687,12 +687,88 @@ These are how the next reader avoids being fooled by them.
   longer names). The **block count** is the quantity that matches across all three
   measurements, host and board.
 
-#### What is still owed
+#### The hardware gate — CONFIRMED on `c6spare` (2026-08-11)
 
-**The hardware gate and the bell soak have not run.** The result above is a statement about
-the posix path over 150 check-ins — it is not a claim about the board. §7 step 2's prediction
-stands unfalsified but unconfirmed: `outBytes` flat and `fails: 0` on `c6spare` past tick 614
-(the §11.5 cliff), and on the bell past its measured 10 h 41 m.
+§7 step 2's prediction is no longer unconfirmed. Commit **`e52a86e`**, flashed `--pristine`
+with the conf named explicitly, `PortaBridgeNodeC6.nsl` at the 2 s cadence — read from
+porta's own rows rather than from this document's recollection, because the leaky run's rows
+were still in `soak-2026-08-04.db`. **Both sides of this comparison are live data.**
+
+| reading | leaky build (2026-08-10) | fixed build `e52a86e` (2026-08-11) |
+|---|---|---|
+| outstanding blocks (`allocs − frees`) | 6 088 @ tick 610 | **0** |
+| slope | **+10.000 / check-in** | **+0.000**, across **677 consecutive rows** |
+| `outBytes` | 29 238 and rising | **0** |
+| `outHigh` | rising with it | pinned at **17 B** |
+| C-heap allocations per check-in | 245 | **235** |
+| alive past tick 614 | **no** — died 610 / 613 / 614, three runs | **yes** — reached **702** |
+| `fails` | 0 | 0 |
+
+**The strongest line is not the slope, it is `distinct: [0]`.** Outstanding blocks were 0 at
+*every one* of the 677 sampled check-ins — minimum 0, maximum 0, `allocs == frees` at every
+sample (270 871 each at the end of the run). §11.6 records how a two-point read of a
+sawtoothing counter yields any trend you like; this is not vulnerable to that, because there
+is no second value to sample. An earlier run of the same fix on the same board, before the
+build was made reproducible, gave the identical result over 744 rows.
+
+The board also reproduces the host's decomposition exactly: 245 → 235 allocations per
+check-in is the same pair the host fitted independently, and 29 238 / 6 088 = **4.80 B** mean
+block matches §11.5's "~6 000 blocks averaging 4.8 bytes". **The ten leaked allocations per
+check-in are gone and nothing else about the workload moved.**
+
+**The bell agrees, on a different app and a different cadence.** It was restored to service
+on the same commit at 08:34 — `ShipsBellAlarmNodeC6.nsl`, checking in as `c6-bell` every 30 s
+with the RTC alarm armed — and reports the same `distinct: [0]`, `outBytes 0`, `outHigh 17`,
+`fails 0` over its first 48 rows. That matters because it is not the same workload: the leak
+lived on the *decode* path, so a second app on a 15× slower cadence reproducing the flat line
+is evidence the fix is in the VM and not in one node's behaviour. Its >10 h 41 m run is still
+accumulating.
+
+#### The gate found a bug the host could not: a stale per-target layout
+
+The first flash of the fixed build **panicked within a second of Thread attaching**:
+
+    VM Error: Message 'undOuter:slotCount:' not understood by receiver 0x42800318
+    abort()  ->  ZEPHYR FATAL ERROR 4: Kernel panic on CPU 0
+
+The selector is `__boundOuter:slotCount:`; the VM read it **four bytes late** and lost
+exactly `__bo`. Model B bakes struct offsets ahead of time from a per-target layout JSON that
+is *captured from hardware* and checked in. §4's flip moved `Symbol`'s bytes inline and
+updated `tools/dump_layout.c` — but not the three artifacts that tool exists to produce.
+`zephyr/layout-esp32c6.json` still described a `name` **pointer at offset 4** while the VM
+read inline bytes at offset 8.
+
+Three properties made it invisible until a board ran it, and all three generalize:
+
+- **No host gate can see it.** The nsl suite rebuilds `dump_layout` and regenerates its
+  layout every run, so the host is self-consistent *by construction*. Only a cross-compiled
+  target reads a **stored** layout.
+- **The `format_version` 8 → 9 bump was added by this very stage for the hazard "an image
+  built by one and loaded by the other is silently wrong" — and it cannot catch this.** Both
+  ends agreed on 9. They disagreed about the **ABI**, not the format. A version guards the
+  shape of the envelope, never the meaning of the fields.
+- **The image loads, boots, joins the mesh and passes three bridge-health TAPs before dying**,
+  because the first Symbol read at the wrong offset is a send rather than the load.
+
+Fixed by regenerating the file the documented way (`zephyr/layoutdump/` flashed to the board,
+its console output *is* the file) and by a guard in `oimg_serialize.py` that refuses any
+layout whose inline payload claims to be a pointer or does not begin exactly at the end of
+its header. The guard was verified against the real artifact: it **rejects the exact
+`layout-esp32c6.json` that shipped the panic**, and it also rejects `layout-esp32.json` and
+`layout-esp32s2.json`, which are stale in the same way and cannot be regenerated without
+those boards.
+
+#### One more way a green build is not a reproducible build
+
+`c6spare`'s successful image got its Thread configuration from a **stale CMake cache**, not
+from the command line that produced it: `build-esp32c6-B` still held
+`EXTRA_CONF_FILE=prj_esp32c6_thread.conf;prj_esp32c6_thread_ftd.conf;prj_esp32c6_thread.local.conf`
+from an earlier session. The image was correct and the measurement above is valid — it really
+did join the real mesh and reach porta — but **re-running that command in a clean tree yields
+a radio-less image and a node that binds nothing**, which is exactly what happened to the bell
+when it was given a fresh build directory. Both boards were subsequently reflashed
+`--pristine` with the conf named explicitly. Same family as the layout bug: an artifact
+*outside the source tree* silently supplying correctness.
 
 #### Three findings that outlive this work
 
