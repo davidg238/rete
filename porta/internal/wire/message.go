@@ -70,7 +70,7 @@ func entriesToList(entries []space.Entry) (cval.List, error) {
 func listToEntries(v any) ([]space.Entry, error) {
 	l, ok := v.(cval.List)
 	if !ok {
-		return nil, fmt.Errorf("%w: #entries is not a list", errShape)
+		return nil, fmt.Errorf("%w: #ent is not a list", errShape)
 	}
 	out := make([]space.Entry, 0, len(l))
 	for _, item := range l {
@@ -97,7 +97,7 @@ func EncodePull(id string, cursor, bootID, hw int64) ([]byte, error) {
 	return cval.Encode(cval.Record{Tag: "pull", Fields: cval.Map{
 		{K: cval.Symbol("id"), V: id},
 		{K: cval.Symbol("cursor"), V: cursor},
-		{K: cval.Symbol("bootId"), V: bootID},
+		{K: cval.Symbol("bid"), V: bootID},
 		{K: cval.Symbol("hw"), V: hw},
 	}})
 }
@@ -109,8 +109,8 @@ func EncodePush(id string, bootID int64, entries []space.Entry) ([]byte, error) 
 	}
 	return cval.Encode(cval.Record{Tag: "push", Fields: cval.Map{
 		{K: cval.Symbol("id"), V: id},
-		{K: cval.Symbol("bootId"), V: bootID},
-		{K: cval.Symbol("entries"), V: l},
+		{K: cval.Symbol("bid"), V: bootID},
+		{K: cval.Symbol("ent"), V: l},
 	}})
 }
 
@@ -121,7 +121,7 @@ func encodeBatch(hi int64, entries []space.Entry) ([]byte, error) {
 	}
 	return cval.Encode(cval.Record{Tag: "batch", Fields: cval.Map{
 		{K: cval.Symbol("hi"), V: hi},
-		{K: cval.Symbol("entries"), V: l},
+		{K: cval.Symbol("ent"), V: l},
 	}})
 }
 
@@ -188,9 +188,9 @@ func DecodeBatch(b []byte) (int64, []space.Entry, error) {
 	if err != nil {
 		return 0, nil, err
 	}
-	ev, ok := field(r.Fields, "entries")
+	ev, ok := field(r.Fields, "ent")
 	if !ok {
-		return 0, nil, fmt.Errorf("%w: missing #entries", errShape)
+		return 0, nil, fmt.Errorf("%w: missing #ent", errShape)
 	}
 	entries, err := listToEntries(ev)
 	return hi, entries, err

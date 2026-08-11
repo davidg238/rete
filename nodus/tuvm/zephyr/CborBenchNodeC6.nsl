@@ -82,8 +82,8 @@ class CborBenchNodeC6 packageUsing: manifest = ( | platform cbor | ) (
     rows add: (self rowSeq: 1296002 path: 'tel/log'     value: self logRec).
     ^ platform Record tag: #push
         with: #id -> 'c6-bench'
-        with: #bootId -> 1
-        with: #entries -> (platform List fromCollection: rows) )
+        with: #bid -> 1
+        with: #ent -> (platform List fromCollection: rows) )
 
   map8 = ( | pairs |
     pairs:: platform OrderedCollection new.

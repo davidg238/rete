@@ -1773,7 +1773,7 @@ class Kernel usingPlatform: platform = () (
       ^ Cbor new encode: (Record tag: #pull
           with: #id -> nodeId
           with: #cursor -> cursor
-          with: #bootId -> self bootId
+          with: #bid -> self bootId
           with: #hw -> acked) )
 
     (* Apply one #batch; answer whether it WAS one. An #err reply, a malformed
@@ -1787,7 +1787,7 @@ class Kernel usingPlatform: platform = () (
       bad ifTrue: [ ^ false ].
       (outer rankOf: r) = 9 ifFalse: [ ^ false ].
       (r tag = #batch) ifFalse: [ ^ false ].
-      entries:: r at: #entries ifAbsent: [ nil ].
+      entries:: r at: #ent ifAbsent: [ nil ].
       (outer rankOf: entries) = 7 ifFalse: [ ^ false ].
       i:: 1.
       [ i <= entries size ] whileTrue: [
@@ -1962,8 +1962,8 @@ class Kernel usingPlatform: platform = () (
     encodePush: rows = (
       ^ Cbor new encode: (Record tag: #push
           with: #id -> nodeId
-          with: #bootId -> self bootId
-          with: #entries -> (List fromCollection: rows)) )
+          with: #bid -> self bootId
+          with: #ent -> (List fromCollection: rows)) )
 
     (* ALL THREE prefixes are the node's own authority (PROTOCOL-NSL §4.1 grants the
        bridge obs/**, tel/**, sys/**, dbg/resp and diag/** outbound); only the cell

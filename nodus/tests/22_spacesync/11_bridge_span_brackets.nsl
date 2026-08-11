@@ -123,7 +123,7 @@ class BridgeSpanBrackets packageUsing: manifest = () (
     batch:: platform Cbor encode:
       (platform Record tag: #batch
          with: #hi -> 7
-         with: #entries -> (platform List with:
+         with: #ent -> (platform List with:
             (platform List with: 7 with: 'goal/name' with: 2 with: 'bench'))).
     ack:: platform Cbor encode: (platform Record tag: #ack with: #hw -> 1).
 

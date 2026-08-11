@@ -3,14 +3,15 @@ expect:
 health 61
 metrics 101
 cheap 62
-batch 385
+batch 378
 *)
 (* #56 design §9.1, landed as a REGRESSION GUARD.
 
-   *** THE FRAME FITS AGAIN AS OF rete#197 (2026-08-11): 385 B against the 512 B
-   *** cap, 127 B of headroom, and 378 B once the envelope's own two labels
-   *** shorten. It was 529 B — SEVENTEEN OVER — for one day, and the gauge went
-   *** quiet on a live node for the whole of it (see below).
+   *** THE FRAME FITS AGAIN AS OF rete#197 (2026-08-11): 378 B against the 512 B
+   *** cap, 134 B of headroom — about 13 more fields at ~10 B each, against a
+   *** Metrics that has grown from 9 fields to 11 in its whole history. It was
+   *** 529 B — SEVENTEEN OVER — for one day, and the gauge went quiet on a live
+   *** node for the whole of it (see below).
 
    TWO WAYS THIS GUARD WAS MEASURING A FRAME THE NODE NO LONGER SENDS, both found
    and fixed 2026-08-11 (rete#190 stage 2 review):
@@ -55,7 +56,7 @@ batch 385
    cleanly and silently means something else, where an unknown NAME is loud.
 
    WHAT THIS DID NOT FIX. rete#150 is still open and still unfunded. This bought
-   127 B of headroom; it did not change the trim rule, which still takes the TAIL
+   134 B of headroom; it did not change the trim rule, which still takes the TAIL
    and therefore still drops the freshest, highest-seq row first. The structural
    answer `PortaBridge>>pushFrame` parks — reserve bytes for `sys/` before filling
    from `obs/`, or trim BY TYPE — is unchanged, and it cannot be done by reordering,
@@ -171,8 +172,8 @@ public main: platform args: args = (
       with: #id -> 'c6-bench'
       (* The ENVELOPE's bootId, which is a different field from Health's and was
          left at 1 until 2026-08-11. Worst legal value, same reasoning. *)
-      with: #bootId -> 1073741823
-      with: #entries -> (platform List fromCollection: rows))) byteSize printString) println.
+      with: #bid -> 1073741823
+      with: #ent -> (platform List fromCollection: rows))) byteSize printString) println.
 )
 ) : (
 )

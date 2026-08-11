@@ -92,12 +92,12 @@ class ReplyTagMatch packageUsing: manifest = () (
     realBatch:: platform Cbor encode:
       (platform Record tag: #batch
          with: #hi -> 7
-         with: #entries -> (platform List with:
+         with: #ent -> (platform List with:
             (platform List with: 7 with: 'goal/name' with: 2 with: 'bench'))).
     strayBatch:: platform Cbor encode:
       (platform Record tag: #batch
          with: #hi -> 99
-         with: #entries -> (platform List with:
+         with: #ent -> (platform List with:
             (platform List with: 99 with: 'goal/name' with: 2 with: 'leaked'))).
     realAck:: platform Cbor encode:
       (platform Record tag: #ack with: #hw -> hw).

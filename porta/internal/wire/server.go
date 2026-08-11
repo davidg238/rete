@@ -113,7 +113,7 @@ func (s *Server) handlePull(r cval.Record, peer string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	bootID, err := intField(r.Fields, "bootId")
+	bootID, err := intField(r.Fields, "bid")
 	if err != nil {
 		return nil, err
 	}
@@ -174,13 +174,13 @@ func (s *Server) handlePush(r cval.Record, peer string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	bootID, err := intField(r.Fields, "bootId")
+	bootID, err := intField(r.Fields, "bid")
 	if err != nil {
 		return nil, err
 	}
-	ev, ok := field(r.Fields, "entries")
+	ev, ok := field(r.Fields, "ent")
 	if !ok {
-		return nil, fmt.Errorf("%w: missing #entries", errShape)
+		return nil, fmt.Errorf("%w: missing #ent", errShape)
 	}
 	entries, err := listToEntries(ev)
 	if err != nil {

@@ -44,7 +44,7 @@ class BridgeKindMismatch packageUsing: manifest = () (
     ^ platform Cbor encode:
         (platform Record tag: #batch
            with: #hi -> hi
-           with: #entries -> (platform List
+           with: #ent -> (platform List
               with: (platform List with: seq with: path with: kind with: value))) )
 
   public main: platform args: args = (
