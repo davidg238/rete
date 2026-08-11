@@ -100,12 +100,34 @@ Also worth knowing, and load-bearing for Task 4:
 
 ---
 
-## Task 1: Prove the static flexible-array-member extension on both toolchains
+## Task 1: Prove the static flexible-array-member extension on both toolchains — **DONE, PASSED (2026-08-10)**
 
 The riskiest assumption in design §4 is one sentence: *"GCC accepts static initialisation of a
 flexible array member as a documented extension, and both toolchains here are GCC — take the
 extension."* If that is false on the `riscv32` esp-zephyr compiler, the whole shape changes and 275
 static Symbols have no home. Falsify it first, in ten minutes, before touching a line of the VM.
+
+**Verdict — all three questions answered yes. §4's extension call is sound; Task 3 may proceed.**
+
+| question | answer |
+|---|---|
+| Host gcc compiles and reads back correctly? | **Yes.** `FAM static init OK (sizeof=16)`, exit 0 |
+| C6 toolchain compiles? | **Yes.** `riscv64-zephyr-elf-gcc -std=c99 -Wall -Wextra -march=rv32imac_zicsr -mabi=ilp32`, exit 0, **zero warnings** |
+| Statics land read-only? | **Yes.** `.srodata`, nm type `r` — not `.data`, not `.bss` |
+
+Two details worth carrying into Task 3:
+
+- **The `-Wpedantic` warning is real but does not bite.** Host gcc emits
+  `warning: initialization of a flexible array member [-Wpedantic]` three times, and *only* under
+  `-pedantic`. `tools/run_c_tests.sh` builds with `STD="-std=c99 -Isrc"` — no `-Wall`, no `-Wextra`,
+  no `-pedantic` — and the C6 build was clean under `-Wall -Wextra`. **No `#pragma` and no `-Wno-`
+  is needed.** If a future build adds `-pedantic`, this is the flag to expect.
+- **The object sizes are the direct proof that the payload is inline**, and they size the win.
+  On the C6 (ilp32) `sizeof(struct Symbol)` is 8 (4 vtable + 4 length), and nm reports:
+  `s_true` 13 B = 8 + 4 + 1, `s_false` 14 B = 8 + 5 + 1, `s_colon` 25 B = 8 + 16 + 1. Against the
+  old shape — a 12 B heap object *plus* a `malloc` that, with the seam's 8 B header and newlib's own
+  per-chunk overhead, costs ~24 B of C heap and is never freed — a five-character Symbol goes from
+  12 heap + ~24 leaked C-heap bytes to **14 heap bytes and zero C heap**.
 
 **Files:**
 - Create: `/tmp/claude-1000/-home-david-workspace-rete/bc6eb6f1-cf2a-45e6-b898-186e0eff33b6/scratchpad/fam_spike.c` (throwaway — nothing is committed by this task)
@@ -115,7 +137,7 @@ static Symbols have no home. Falsify it first, in ten minutes, before touching a
 - Produces: a yes/no on the FAM extension for both compilers, and the exact `-W` flags needed to
   keep it quiet. Task 3 assumes "yes".
 
-- [ ] **Step 1: Write the spike**
+- [x] **Step 1: Write the spike**
 
 ```c
 /* rete#190 stage 2, Task 1: does a static const struct with a flexible array
@@ -150,7 +172,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 2: Run it on the host toolchain, with the project's warning posture**
+- [x] **Step 2: Run it on the host toolchain, with the project's warning posture**
 
 ```bash
 SP=/tmp/claude-1000/-home-david-workspace-rete/bc6eb6f1-cf2a-45e6-b898-186e0eff33b6/scratchpad
@@ -162,7 +184,7 @@ Expected: prints `FAM static init OK (sizeof=…)`. `-pedantic` is likely to emi
 decides whether Task 3 needs a `#pragma`/`-Wno-` or nothing at all. A warning is fine; a hard error
 is the finding.
 
-- [ ] **Step 3: Compile it with the C6's toolchain**
+- [x] **Step 3: Compile it with the C6's toolchain**
 
 The C6 build lives in the ESP32 west workspace (`~/zephyr-esp32`), and the Zephyr SDK ships the
 `riscv64-zephyr-elf` gcc that targets `rv32`. Find it and compile — no run, compilation is the
@@ -179,7 +201,7 @@ SP=/tmp/claude-1000/-home-david-workspace-rete/bc6eb6f1-cf2a-45e6-b898-186e0eff3
 
 Expected: `C6 TOOLCHAIN: COMPILES`.
 
-- [ ] **Step 4: Prove the statics landed in read-only memory, not `.data`**
+- [x] **Step 4: Prove the statics landed in read-only memory, not `.data`**
 
 This is the part a compile check misses. The VM's `mark()` skips these objects via
 `is_read_only()`; if the FAM form silently moved them into a writable section the GC's assumptions
@@ -195,7 +217,7 @@ Expected: each symbol's type letter is `r`/`R` (read-only data), **not** `d`/`D`
 the sizes — they must be `sizeof(struct Symbol) + length + 1` rounded to alignment, which is the
 first direct confirmation that the payload really is inline.
 
-- [ ] **Step 5: Record the verdict, commit nothing**
+- [x] **Step 5: Record the verdict, commit nothing**
 
 Write the three answers (host compiles? C6 compiles? section is `.rodata`?) into the task's
 report. **If any answer is "no", STOP and escalate** — §4's fallback is *"a layout-compatible
