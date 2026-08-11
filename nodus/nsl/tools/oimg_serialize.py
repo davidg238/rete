@@ -239,8 +239,63 @@ class OimgSerializer:
         self.layout = layout
         self.structs = layout["structs"]
         self.oop = layout["oop_size"]
+        self._check_inline_payloads()
         self.reg = registry
         self.w = OimgWriter(self.oop, version=1, registry_version=registry_version)
+
+    # The two variable-size records, and the field whose bytes ride INLINE after
+    # the header. Kept here rather than inline at the use sites so adding a third
+    # such record is one line, not a new check.
+    _INLINE_PAYLOADS = (("Symbol", "name"), ("String", "bytes"))
+
+    def _check_inline_payloads(self):
+        """Refuse a layout that disagrees with the structs it claims to describe.
+
+        rete#190 stage 2 moved Symbol's name bytes inline. The VM, dump_layout.c
+        and this serializer were all updated together — but the per-target layout
+        JSONs under zephyr/ are CAPTURED FROM HARDWARE and checked in, and they
+        were not. The C6 file went on saying `name` was a pointer at offset 4
+        while the VM read the inline bytes at offset 8, so the serializer wrote
+        every Symbol's text four bytes early. The image loaded, `format_version`
+        matched at 9 on both sides, and the first send died with
+
+            Message 'undOuter:slotCount:' not understood
+
+        i.e. `__boundOuter:slotCount:` missing exactly the four bytes of the
+        offset error. Silent, and only on a cross-compiled target: a host build
+        regenerates its layout from a freshly built dump_layout every time, so no
+        host gate can ever see it.
+
+        format_version guards the FORMAT and cannot catch this — both ends agreed
+        on 9; they disagreed about the ABI. This is that guard one level down.
+
+        The invariant is the one a flexible array member cannot violate: the
+        payload is not a pointer, and it begins exactly where the header ends.
+        """
+        for struct_name, field in self._INLINE_PAYLOADS:
+            s = self.structs.get(struct_name)
+            if s is None:
+                raise ValueError(
+                    f"layout has no `{struct_name}` struct — it is not a layout for this VM")
+            f = s["fields"].get(field)
+            if f is None:
+                raise ValueError(
+                    f"layout's `{struct_name}` has no `{field}` field — stale layout; "
+                    f"regenerate it (see below)")
+            if f.get("is_ptr") or f["offset"] != s["size"]:
+                raise ValueError(
+                    f"STALE LAYOUT: `{struct_name}.{field}` says "
+                    f"offset={f['offset']} is_ptr={bool(f.get('is_ptr'))} against "
+                    f"{struct_name} size={s['size']}.\n"
+                    f"  The bytes ride INLINE, so the payload must start exactly at the "
+                    f"end of the header (offset == size) and must not be a pointer.\n"
+                    f"  This layout describes a VM that no longer exists. Writing an "
+                    f"image against it produces text read at the wrong offset — an image "
+                    f"that loads, passes the format_version check, and then fails with a "
+                    f"garbled selector (rete#190 stage 2).\n"
+                    f"  Regenerate it: flash zephyr/layoutdump/ to the target board and "
+                    f"capture its console output — that output IS the file. See "
+                    f"zephyr/README.md, 'Where the layout JSON comes from'.")
 
     # ---- reference encoding -------------------------------------------------
     def _smi_fits(self, v):
