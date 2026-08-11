@@ -329,7 +329,9 @@ a review of the #25 branch found the same shape on the write side:
   deletes the `seq <= hw` dedupe and manufactures the duplicate it was meant to prevent.
   `bootId` is what separates them, and it is evidence rather than inference: it is a
   counter the node increments once per boot and persists in NVS (RECORDS §3), so only a
-  reboot can change it and a swallowed ack cannot.
+  reboot can change it and a swallowed ack cannot. **It rides the wire as `bid`** since
+  rete#197; this document says `bootId` where it means the mechanism and `bid` where it
+  means the field.
 
   **This replaced a cursor heuristic on 2026-08-09 (rete#162).** That test — rewind when
   the declared cursor *and* watermark both went backwards — was sound but incomplete: a
@@ -428,9 +430,9 @@ answer for that path specifically — the decision belongs with #114.
 | report `apps` | `obs/apps/<name>` | cell | observed `{crc:, runlevel:, lifecycle:, triggers:}` |
 | report `config` echo | `obs/config/<app>/<key>` | cell | scalar echo |
 | `node_config` echo | `obs/mode`, `obs/name`, `obs/forward` | cell | publish-on-change is what cells do; no echo-cadence rules |
-| `health` | `obs/health` | cell | `{uptimeMs:, bootId:, wakes:, pollTimeouts:, streamDropped:}` — liveness and delivery; VM internals are `sys/metrics` |
+| `health` | `obs/health` | cell | `{up:, bid:, wak:, pto:, sdr:}` — liveness and delivery; VM internals are `sys/metrics`. The labels were `uptimeMs`/`bootId`/`wakes`/`pollTimeouts`/`streamDropped` until rete#197 shortened every label on the frame (2026-08-11) |
 | `health.reset` (fault) | `sys/reset` | stream | `{category:, code:}` — v1's "data_log on first fault" is just an entry |
-| telemetry `print`/`log` | `tel/print`, `tel/log` | stream | `{text:}` / `{level:, text:}` |
+| telemetry `print`/`log` | `tel/print`, `tel/log` | stream | `{text:}` / `{lvl:, txt:}` (`{level:, text:}` until rete#197) |
 | telemetry `metric` | `tel/m/<name>` | stream | `{value:, ts:}` |
 | telemetry `panic` | `sys/panic` | stream, **must-deliver** | bounded inline summary + `BlobRef` (RECORDS §2.4) |
 | debug lines | `dbg/req` ↓ / `dbg/resp` ↑ | stream | `{line:}` — porta does not interpret or own the session (v1 §8); scope of that claim: RECORDS §4.5 |

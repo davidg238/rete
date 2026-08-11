@@ -132,8 +132,13 @@ suite will tell you — but it will tell you in a file you did not think you wer
 - Gate: `nodus/tuvm/tests/porta_sync_host.sh`
 
 **Task 3 — the documents of record and the one tool:**
-- Modify: `protocol/PROTOCOL-NSL.md` (:107-110, :127-139, :316),
-  `protocol/PROTOCOL-NSL-RECORDS.md` (:316, :426-427, :442-462)
+- Modify: `protocol/PROTOCOL-NSL-RECORDS.md` — §2.2's overflow passage (~:105-145), the
+  catalogue rows for `obs/health` / `sys/metrics` / `sys/cheap` / `sys/latency` (~:337,
+  :447-449), and the measured-headroom passage after the catalogue (~:462-475).
+  **Correction to an earlier draft of this plan:** those passages are in *RECORDS*, not in
+  `PROTOCOL-NSL.md` — the line numbers were transcribed from the wrong grep. `PROTOCOL-NSL.md`
+  needs a smaller, separate edit: the `health` and `tel/log` rows of its §-summary table, and
+  one clause where its `bootId` prose should name the wire label `bid`.
 - Modify: `review/tests/CLAIMS.md` — the rows quoting the moved figures (permission granted by
   David 2026-08-11; **additive/in-place only, nothing reordered or restructured**)
 - Modify: `tools/heap-envelope.py`

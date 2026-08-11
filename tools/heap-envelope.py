@@ -108,13 +108,32 @@ def dec(b, i=0, depth=0):
     raise ValueError('unsupported major type %d' % mt)
 
 
+# rete#197 (2026-08-11) shortened every label on the push frame, so a soak db that
+# spans that day holds BOTH vocabularies — the long names in its older rows and the
+# short ones after. This tool reads stored history rather than the wire, so it
+# normalizes onto the short scheme at the decode boundary and speaks one vocabulary
+# everywhere below. That is not a dual-read of the protocol (the wire has exactly one
+# encoding and no compatibility window); it is the cheapest way to keep a run that
+# straddles the change readable, and it costs one dict rather than re-encoding history.
+LONG_TO_SHORT = {
+    'heapSize': 'hsz', 'liveBytes': 'lb', 'heapHighWater': 'hhw',
+    'largestFreeBlock': 'lfb', 'gcCycles': 'gcc', 'handlesLive': 'hnl',
+    'handlesHighWater': 'hnhw', 'queueHighWater': 'qhw', 'overruns': 'ovr',
+    'pulseDrops': 'pdr', 'pulseCoalesced': 'pco',
+    'outBytes': 'ob', 'outHigh': 'ohw', 'allocs': 'alc', 'frees': 'fre',
+    'fails': 'fal',
+    'uptimeMs': 'up', 'bootId': 'bid', 'wakes': 'wak',
+    'pollTimeouts': 'pto', 'streamDropped': 'sdr',
+}
+
+
 def rec_fields(blob):
     v, n = dec(blob)
     if n != len(blob):
         raise ValueError('%d trailing bytes' % (len(blob) - n))
     if not isinstance(v, Rec):
         raise ValueError('value is not a Record')
-    return v.name, {str(k): val for k, val in v.fields}
+    return v.name, {LONG_TO_SHORT.get(str(k), str(k)): val for k, val in v.fields}
 
 
 def hhmm(ms):
@@ -153,7 +172,7 @@ def boots(rows):
     """Split on gcCycles going backwards — a reboot resets the counter."""
     segs, cur, prev = [], [], None
     for ts, f in rows:
-        g = f['gcCycles']
+        g = f['gcc']
         if prev is not None and g < prev:
             segs.append(cur); cur = []
         cur.append((ts, f)); prev = g
@@ -180,13 +199,13 @@ def lsq(xs, ys):
 def cycles(seg):
     by = {}
     for _, f in seg:
-        by.setdefault(f['gcCycles'], []).append(f)
+        by.setdefault(f['gcc'], []).append(f)
     return sorted(k for k in by if k >= WARMUP), by
 
 
-GAUGES = (('live floor (leak gauge)', 'liveBytes', min),
-          ('lfb ceiling (post-sweep)', 'largestFreeBlock', max),
-          ('lfb trough  (NOT a gauge)', 'largestFreeBlock', min))
+GAUGES = (('live floor (leak gauge)', 'lb', min),
+          ('lfb ceiling (post-sweep)', 'lfb', max),
+          ('lfb trough  (NOT a gauge)', 'lfb', min))
 
 
 def verdict(s, se):

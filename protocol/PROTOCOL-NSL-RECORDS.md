@@ -102,31 +102,42 @@ per-entry accounting: you cannot coalesce half a firmware image.
 | `MAX_VALUE_BYTES` | **256** | one encoded value (a single retained value, or one event). Fits comfortably inside one 6LoWPAN fragment with room for the batch envelope. |
 | `MAX_BATCH_BYTES` | **512** | one check-in datagram (many entries). ~6 fragments worst case; ~74% delivery on the *worst* bench node, ~97% on a healthy one. |
 
-**`MAX_BATCH_BYTES` is now BREACHED at thirty-day widths — MEASURED 2026-08-11 (rete#190).**
-The steady-state push frame is four rows since `publishCheap` joined `publishMetrics` on
-every check-in — `obs/health` 91 B, `sys/metrics` 195 B, `tel/log`, `sys/cheap` 79 B, plus
-17 B of seq/path/kind per row and the envelope — and it encodes to **529 B against 512**.
-The guard is `nodus/tests/22_spacesync/09_batch_size.nsl`, which pins 529 and carries the
-reasoning; the honest series is 425 → 429 → 433 → 529.
+**`MAX_BATCH_BYTES` WAS BREACHED at thirty-day widths for one day — measured 2026-08-11
+(rete#190), witnessed in the field the same day, and resolved by rete#197.** The steady-state
+push frame became four rows when `publishCheap` joined `publishMetrics` on every check-in —
+`obs/health` 91 B, `sys/metrics` 195 B, `tel/log`, `sys/cheap` 79 B, plus 17 B of
+seq/path/kind per row and the envelope — and encoded to **529 B against 512**. It now encodes
+to **378 B**. The guard is `nodus/tests/22_spacesync/09_batch_size.nsl`, which pins it and
+carries the reasoning; the honest series is 425 → 429 → 433 → 529 → 385 → 378.
 
-Two consequences worth reading together. **The victim is deterministic**: `pushFrame` trims
-from the tail, `sys/cheap` is written last in `checkIn`, so it holds the highest seq and is
-the first row dropped — on a long-uptime node that also emits a `tel/log` row, the C-heap
-gauge goes quiet on exactly the nodes it exists to watch. **The trim cannot simply be
-reordered**: porta acks one high-water and `applyAck:` sets `acked:: hw`, so a frame that
-omits a low seq while carrying a high one loses the omitted entry permanently. That is why
-the trim takes the tail, and why the fix is structural — reserve bytes for `sys/` before
-filling from `obs/`, or trim by type — which is **rete#150**, already parked in
-`PortaBridge>>pushFrame` for this and for `sys/panic`.
+**The breach was not hypothetical, and that is the part worth keeping.** While the overflow
+stood, `sys/cheap` stopped reaching porta from `c6-bench` altogether — last delivered seq
+70006 against a live 78839, a gap of ~8 800 — while `obs/health`, `sys/metrics` and `tel/log`
+kept arriving every 2 s. The node was writing the cell on every check-in; the frame was
+dropping it. Earlier in the same window it arrived at 4–6 s gaps, i.e. trimmed on some
+check-ins and then on all of them as the counters widened. **A record that overflows the cap
+does not fail loudly — it goes quiet, and the gauge that would have told you is the one that
+disappears.**
+
+Two consequences worth reading together, and **both survive the fix**. **The victim is
+deterministic**: `pushFrame` trims from the tail, `sys/cheap` is written last in `checkIn`, so
+it holds the highest seq and is the first row dropped whenever the cap binds. **The trim
+cannot simply be reordered**: porta acks one high-water and `applyAck:` sets `acked:: hw`, so
+a frame that omits a low seq while carrying a high one loses the omitted entry permanently.
+That is why the trim takes the tail, and why the real fix is structural — reserve bytes for
+`sys/` before filling from `obs/`, or trim by type — which is **rete#150**, already parked in
+`PortaBridge>>pushFrame` for this and for `sys/panic`. **rete#197 bought headroom; it did not
+close #150.** At ~10 B a field, the headroom below is roughly thirteen more fields, after
+which this paragraph applies again unchanged.
 
 Shortening `CHeap`'s five field names was proposed and **measured to be insufficient**:
 one-character names, the floor at which the names stop meaning anything, land the frame at
 503 B; any legible scheme lands ~514 and still overflows.
 
-**The resolution is rete#197: one naming rule applied to ALL the frame's labels.** MEASURED
-2026-08-11 through the real `Cbor>>encode:` path, not estimated — `Health` 91 → **61 B**,
-`Metrics` 195 → **101 B**, `CHeap` 79 → **62 B**, and the **frame 529 → 378 B**, i.e. 17 B
-over the cap becomes **134 B under it** (roughly 13 further fields at ~10 B each, against a
+**The resolution, LANDED 2026-08-11, is rete#197: one naming rule applied to ALL the frame's
+labels.** MEASURED through the real `Cbor>>encode:` path, not estimated — `Health` 91 →
+**61 B**, `Metrics` 195 → **101 B**, `CHeap` 79 → **62 B**, and the **frame 529 → 378 B**,
+i.e. 17 B over the cap becomes **134 B under it** (roughly 13 further fields at ~10 B each, against a
 `Metrics` that has grown from 9 fields to 11 in its entire history). The rule is *keep the
 noun, suffix the aspect* — `hw` always means high-water and never anything else — and keys
 are scoped per record, so reuse across records is free, exactly as `LatencySpan` below
@@ -140,6 +151,16 @@ under a hard 512 B constraint; `porta get` is the readable operator surface. For
 share one vocabulary is precisely why `pulseCoalesced` pays wire bytes to be legible in a
 place nobody reads it. D4.1 already says values are raw deterministic CBOR **decoded only for
 display**, so a porta-side display map is a follow-up that needs no further wire change.
+
+**One correction to how far that reaches, found by enumerating porta's sources rather than
+reasoning about them.** "porta needs no decode change" is true of **values** — `cval` reads
+payload maps generically, so `Metrics`/`CHeap`/`Health`/`Log` cost porta nothing — and false
+of the **envelope**. porta builds and parses the envelope's keys **by name**
+(`internal/wire/message.go`, `internal/wire/server.go`), so `bootId` → `bid` and `entries` →
+`ent` are a **both-sides, same-commit** change. The trap is that a half-applied rename leaves
+the nsl suite *and* `go test ./...` both green — each half is self-consistent — and only
+`nodus/tuvm/tests/porta_sync_host.sh`, which runs a real node against a real gateway, goes
+red. Any future change to an envelope key inherits that property.
 
 **Numbered slots (`h1`, `m1`, …) were considered and REJECTED** (2026-08-11). They save only
 23 B beyond the above (75 characters of name → 52), and they make meaning **positional**: a
@@ -313,7 +334,7 @@ construction. There is nothing to enforce.
 | `obs/apps/<name>` | R | `AppObs { image: BlobRef, runlevel: int, lifecycle: sym, triggers: [sym] }` |
 | `obs/config/<app>/<key>` | R | scalar echo |
 | `obs/mode` / `obs/name` / `obs/forward` | R | same shapes as their `goal/` twins |
-| `obs/health` | R | `Health { uptimeMs: int, bootId: int, wakes: int, pollTimeouts: int, streamDropped: int }` — liveness and delivery only; the VM internals live at `sys/metrics` (§4.4), which the bridge publishes on every check-in. `heapFree`/`heapLargest`/`overruns` were **removed** 2026-08-04 (#56 design D2) rather than duplicated. **91 B encoded, MEASURED 2026-08-09** (was 87 B; rete#162 made `bootId` a real persisted counter, and CBOR is shortest-form, so a saturated counter is five bytes where the old constant `1` was one — the guard in `nodus/tests/22_spacesync/09_batch_size.nsl` now pins the worst legal value rather than a fresh node's) |
+| `obs/health` | R | `Health { up: int, bid: int, wak: int, pto: int, sdr: int }` — liveness and delivery only; the VM internals live at `sys/metrics` (§4.4), which the bridge publishes on every check-in. `heapFree`/`heapLargest`/`overruns` were **removed** 2026-08-04 (#56 design D2) rather than duplicated. **61 B encoded, MEASURED 2026-08-11** (87 B → 91 B → 61 B: rete#162 made `bid` a real persisted counter, and CBOR is shortest-form, so a saturated counter is five bytes where the old constant `1` was one — the guard in `nodus/tests/22_spacesync/09_batch_size.nsl` pins the worst legal value rather than a fresh node's — then rete#197 shortened the five labels, which is the whole of the 91 → 61 B step) |
 | `obs/build` | R | `Build { chip: sym, build: str, sdk: str, image: bytes }` — see below |
 
 **`obs/apps/<name>` — the node currently writes image and lifecycle, and nothing else
@@ -423,9 +444,9 @@ the drop is counted (`Health.overruns`). Losing a log line to save a node is cor
 | `sys/reset` | E | `Reset { reason: sym, code: int, bootId: int }` — `code` is the SoC's raw reset cause; `reason` is the symbol derived from it. Both are carried because the derivation is lossy and one-way: v1 stored `last_reset` and `last_reset_code` side by side, and the numeric form is the one an agent can compare across SDK versions (added 2026-08-01 by the space-sync capability audit, design §4.2) |
 | `sys/overrun` | E | `Overrun { path: str, dropped: int }` — G2's counter |
 | `sys/panic` | E, **must-deliver** | `Panic { … }` — §2.4 |
-| `sys/metrics` | **C (cell)** | `Metrics { heapSize: int, liveBytes: int, heapHighWater: int, largestFreeBlock: int, gcCycles: int, handlesLive: int, handlesHighWater: int, queueHighWater: int, overruns: int, pulseDrops: int, pulseCoalesced: int }` — tuvm#24, widened 9→11 by tuvm#34; **195 B encoded, MEASURED 2026-07-21** (was estimated ~185–230 B), within §2.2's 256 B/value cap with 61 B of headroom |
-| `sys/cheap` | **C (cell)** | `CHeap { outBytes: int, outHigh: int, allocs: int, frees: int, fails: int }` — rete#190; **79 B encoded, MEASURED 2026-08-10** (values representative of the ~200 KB C6 C-heap ceiling, `outBytes`/`outHigh` above CBOR's 65536 5-byte-uint boundary — an earlier 75 B figure undercounted by measuring a sub-65536 case). The C heap, **not** the GC arena that `sys/metrics` reports — a leak ran for a week against a gauge that could only see the arena. A separate record rather than five more `Metrics` fields, per the `LatencySpan` lesson in this section |
-| `sys/latency` | **C (cell)** | `LatencySpan { span: sym, n: int, fails: int, minUs: int, maxUs: int, sumUsLo: int, sumUsHi: int, b0..b5: int }` — tuvm#61; **140 B encoded, MEASURED 2026-07-21**. **One record PER SPAN**, not one record with a field per span: adding an instrumented job therefore adds a *record*, never a field, so this schema does not grow the way `Metrics` has. Field names are deliberately short — thirteen fields here total 46 characters of name against `Metrics`'s ~120 |
+| `sys/metrics` | **C (cell)** | `Metrics { hsz: int, lb: int, hhw: int, lfb: int, gcc: int, hnl: int, hnhw: int, qhw: int, ovr: int, pdr: int, pco: int }` — the long names it carried until rete#197 were `heapSize`, `liveBytes`, `heapHighWater`, `largestFreeBlock`, `gcCycles`, `handlesLive`, `handlesHighWater`, `queueHighWater`, `overruns`, `pulseDrops`, `pulseCoalesced`, in that order — tuvm#24, widened 9→11 by tuvm#34; **101 B encoded, MEASURED 2026-08-11** (195 B under the long labels, pinned 2026-07-21, against an earlier ~185–230 B estimate), within §2.2's 256 B/value cap with **155 B** of headroom |
+| `sys/cheap` | **C (cell)** | `CHeap { ob: int, ohw: int, alc: int, fre: int, fal: int }` — `outBytes`, `outHigh`, `allocs`, `frees`, `fails` until rete#197 — rete#190; **62 B encoded, MEASURED 2026-08-11** (79 B under the long labels; values representative of the ~200 KB C6 C-heap ceiling, `ob`/`ohw` above CBOR's 65536 5-byte-uint boundary — an earlier 75 B figure undercounted by measuring a sub-65536 case). The C heap, **not** the GC arena that `sys/metrics` reports — a leak ran for a week against a gauge that could only see the arena. A separate record rather than five more `Metrics` fields, per the `LatencySpan` lesson in this section |
+| `sys/latency` | **C (cell)** | `LatencySpan { span: sym, n: int, fails: int, minUs: int, maxUs: int, sumUsLo: int, sumUsHi: int, b0..b5: int }` — tuvm#61; **140 B encoded, MEASURED 2026-07-21**. **One record PER SPAN**, not one record with a field per span: adding an instrumented job therefore adds a *record*, never a field, so this schema does not grow the way `Metrics` has. Field names are deliberately short — thirteen fields here total 46 characters of name against `Metrics`'s ~120 before rete#197. **This row is the precedent rete#197 generalized to the whole frame, and it is the one record the rename did not touch: its names were already at the rule.** 140 B is unchanged, which is the control that says the rename went where it was aimed |
 
 **Delivery class is a property of the channel, not a paragraph of prose.** `sys/panic`
 is must-deliver; `tel/print` is drop-first. That is the whole rule.
@@ -438,18 +459,26 @@ on a user-requested cadence (G9: no unrequested periodic work); as of tuvm#24
 no periodic publisher exists — the record is built by `kernel metrics` and
 published explicitly.
 
-**`Metrics` headroom — MEASURED 2026-07-21 (tuvm#61), superseding the estimate below.**
-`Metrics` encodes to **195 B** and `LatencySpan` to **140 B**, both through the real
+**`Metrics` headroom — MEASURED 2026-07-21 (tuvm#61), superseding the estimate below; re-measured
+2026-08-11 after rete#197 shortened the labels.**
+`Metrics` encodes to **101 B** (195 B under the long labels) and `LatencySpan` to **140 B**
+(unchanged — nothing in it was renamed), both through the real
 `Cbor>>encode:` path, witnessed by `nodus/tests/19_latency/05_record_size.nsl` (which also
 serves as the regression guard, since encoded size is what porta pays for on every
 uplink). The measurement used the values read off a WROOM-32 rather than round numbers:
 CBOR is shortest-form, so a field holding 7,820,873 costs five bytes where one holding
 52,746 costs three, and a size taken against placeholders is not the size the fleet sends.
 
-195 B lands inside the old ~185–230 B estimate, so the estimate was sound — but it was
-still an estimate, and this section said so about itself. **The headroom is now a
-number: 61 B under the 256 B cap.** That is roughly two more integer fields with names
-of the current average length, not five.
+195 B landed inside the old ~185–230 B estimate, so the estimate was sound — but it was
+still an estimate, and this section said so about itself. **The headroom is now a number:
+155 B under the 256 B cap**, where it was 61 B — roughly thirteen more integer fields at the
+current name lengths, where it was two.
+
+**The 61 B figure is worth remembering rather than deleting.** Two fields of headroom was
+already thin, and it was the *batch* cap and not this one that bound first: eleven fields at
+long names left `Metrics` inside its per-value cap while pushing the four-row frame 17 B over
+the 512 B batch cap. A per-value cap being comfortable says nothing about the frame, and
+rete#190 added one 79 B record to discover it.
 
 *The original note, kept because its reasoning is what prompted the measurement:*
 `pulseDrops`/`pulseCoalesced` — the ISR pulse seam's shed and coalesce counters, added
