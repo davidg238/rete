@@ -1863,8 +1863,19 @@ class Kernel usingPlatform: platform = () (
        lost on the mesh, which is strictly worse.
 
        Known and accepted for v1 — filed as #150 (P3): trimming from the tail drops the HIGHEST seq
-       first, and sys/metrics is written immediately before the push, so it always
-       holds the highest seq — under batch pressure it is the FIRST thing dropped.
+       first, and sys/cheap is written immediately before the push (publishCheap,
+       after publishMetrics), so it always holds the highest seq — under batch
+       pressure it is the FIRST thing dropped. This used to say sys/metrics;
+       rete#190 put sys/cheap behind it and took over the last-written slot.
+
+       THE CAP NOW BINDS AT THIRTY-DAY WIDTHS — MEASURED 2026-08-11, rete#190.
+       The four-row steady-state frame (obs/health, sys/metrics, tel/log, sys/cheap)
+       encodes to 529 B against maxBatchBytes' 512, so on a long-uptime node that
+       also emits a tel/log row, sys/cheap is trimmed on EVERY check-in and the
+       C-heap gauge goes quiet on exactly the nodes it exists to watch. See
+       nodus/tests/22_spacesync/09_batch_size.nsl, which pins 529 and carries the
+       full reasoning. Shortening CHeap's field names was measured and does not
+       reach: one-character names — the floor — land at 503 B. #150 owns the fix.
 
        Why TAIL: porta acks one high-water mark and applyAck: sets `acked:: hw`,
        after which cells are re-scanned `changedSince: acked` — so a frame that
@@ -1886,11 +1897,12 @@ class Kernel usingPlatform: platform = () (
        So if the cap binds, the answer is to RESERVE bytes for sys/ before filling
        from obs/, or to trim BY TYPE and protect the write-once and must-deliver
        paths — which is the same question already parked above for sys/panic, and is
-       probably worth answering once for both. Measured
-       headroom is 87 B of 512 with two cells and one tel/log row (design §9.1), so
-       this cannot bite today; it starts to when a node has many obs/ paths. Said out
-       loud because a metrics record that silently loses the race under load is
-       exactly the observability that lies when it matters. *)
+       probably worth answering once for both. The 87 B of headroom this paragraph
+       used to claim (design §9.1, two cells and one tel/log row) is SPENT: three
+       cells and one tel/log row is 529 B, i.e. 17 B over. It no longer "cannot bite
+       today", and it did not wait for a node with many obs/ paths — one more sys/
+       cell was enough. Said out loud because a metrics record that silently loses
+       the race under load is exactly the observability that lies when it matters. *)
     (* THE THREE INNER SPANS (tuvm#161), nested inside `pushBuild`:
 
          pushCollect  collectOutbound — the pending walk, the three cell scans,

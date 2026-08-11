@@ -3,16 +3,52 @@ expect:
 health 91
 metrics 195
 cheap 79
-batch 429
+batch 529
 *)
-(* #56 design §9.1, landed as a REGRESSION GUARD. A measured size protects nothing if
-   nothing re-checks it, and there are 83 B of headroom for one future field to eat
-   silently.
+(* #56 design §9.1, landed as a REGRESSION GUARD.
 
-   Was 425/87 B until 2026-08-09; rete#162 made `bootId` a real persisted counter
-   rather than the constant 1, and a saturated counter is five CBOR bytes where 1
-   is one. The 4 B is a real cost of the fix, paid once per batch envelope and not
-   per row — see the note on the bootId field below.
+   *** 529 B IS OVER THE 512 B CAP. THAT IS THE MEASUREMENT, NOT A BUG IN THIS
+   *** FILE. The overflow is rete#150's to fix — see the bottom of this comment.
+
+   TWO WAYS THIS GUARD WAS MEASURING A FRAME THE NODE NO LONGER SENDS, both found
+   and fixed 2026-08-11 (rete#190 stage 2 review):
+
+   1. It PRINTED `cheap 79` but never added the row. rete#190 made `publishCheap`
+      write `sys/cheap` on every check-in beside `sys/metrics`, so the steady-state
+      frame is FOUR rows; this file went on measuring three. A guard edited into
+      agreement with the code, against its own header, guards nothing — the whole
+      point of the 2026-08-09 note below is that a field can eat the headroom
+      silently, and that is exactly what happened.
+   2. The ENVELOPE's `bootId` was still the constant 1. The 2026-08-09 note claimed
+      the saturated-counter cost was "paid once per batch envelope and not per row",
+      but the value it actually changed was the one inside the Health record. The
+      envelope carries its own `bootId` and it was never widened, so the guard was
+      4 B light on top of everything else. It is 1073741823 here now, for the reason
+      the Health field gives: a guard must prove the frame fits for ANY legal value.
+
+   Was 425/87 B, then 429/83 B until 2026-08-09. The honest series is
+   425 -> 429 (health bootId widened) -> 433 (envelope bootId widened, the 4 B the
+   note above thought it had already counted) -> 529 (the sys/cheap row, 96 B: a
+   79 B record plus 17 B of seq, path and kind).
+
+   WHY THIS IS PINNED RED-AT-WORST-CASE RATHER THAN FIXED HERE. Shortening the five
+   `CHeap` field names was the proposed fix; it was measured and it does not reach.
+   One-character names — the floor, where the names stop meaning anything — land the
+   frame at 503 B, and any legible scheme (`out`/`high`/`na`/`nf`/`fails`) lands ~514
+   and still overflows. The structural answer is the one `PortaBridge>>pushFrame`
+   already parks as rete#150: reserve bytes for `sys/` before filling from `obs/`, or
+   trim BY TYPE. It cannot be done by reordering, because porta acks ONE high-water
+   and `applyAck:` sets `acked:: hw` — a frame that omits a low seq while carrying a
+   high one loses the omitted entry permanently, which is precisely why the trim
+   takes the tail.
+
+   WHAT THE OVERFLOW COSTS TODAY, so the next reader does not over- or under-read it:
+   these are THIRTY-DAY values. At bench uptimes the frame fits, and the host
+   check-in path delivers 143 `sys/cheap` rows in 150 ticks (design §11.7). The bite
+   is a long-uptime node, where `sys/cheap` holds the highest seq — written last in
+   `checkIn` — and is therefore the FIRST row the tail-trim drops, on every check-in
+   that also carries a `tel/log` row. The gauge would go quiet on exactly the nodes
+   it exists to watch.
 
    NOT a sum of record sizes: the thing that must fit 512 B is the PUSH FRAME —
    envelope and rows included — so this builds the frame PortaBridge>>encodePush:
@@ -107,9 +143,15 @@ public main: platform args: args = (
   rows add: (self row: platform seq: 1296000 path: 'obs/health' value: (self health: platform)).
   rows add: (self row: platform seq: 1296001 path: 'sys/metrics' value: (self metrics: platform)).
   rows add: (self row: platform seq: 1296002 path: 'tel/log' value: (self log: platform)).
+  (* rete#190: publishCheap writes this every check-in, immediately after
+     sys/metrics — so it carries the HIGHEST seq of the four and is the first row
+     pushFrame's tail-trim drops. It belongs in the frame the guard measures. *)
+  rows add: (self row: platform seq: 1296003 path: 'sys/cheap' value: (self cheap: platform)).
   ('batch ' , (cbor encode: (platform Record tag: #push
       with: #id -> 'c6-bench'
-      with: #bootId -> 1
+      (* The ENVELOPE's bootId, which is a different field from Health's and was
+         left at 1 until 2026-08-11. Worst legal value, same reasoning. *)
+      with: #bootId -> 1073741823
       with: #entries -> (platform List fromCollection: rows))) byteSize printString) println.
 )
 ) : (

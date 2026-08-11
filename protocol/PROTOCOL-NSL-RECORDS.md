@@ -102,6 +102,30 @@ per-entry accounting: you cannot coalesce half a firmware image.
 | `MAX_VALUE_BYTES` | **256** | one encoded value (a single retained value, or one event). Fits comfortably inside one 6LoWPAN fragment with room for the batch envelope. |
 | `MAX_BATCH_BYTES` | **512** | one check-in datagram (many entries). ~6 fragments worst case; ~74% delivery on the *worst* bench node, ~97% on a healthy one. |
 
+**`MAX_BATCH_BYTES` is now BREACHED at thirty-day widths — MEASURED 2026-08-11 (rete#190).**
+The steady-state push frame is four rows since `publishCheap` joined `publishMetrics` on
+every check-in — `obs/health` 91 B, `sys/metrics` 195 B, `tel/log`, `sys/cheap` 79 B, plus
+17 B of seq/path/kind per row and the envelope — and it encodes to **529 B against 512**.
+The guard is `nodus/tests/22_spacesync/09_batch_size.nsl`, which pins 529 and carries the
+reasoning; the honest series is 425 → 429 → 433 → 529.
+
+Two consequences worth reading together. **The victim is deterministic**: `pushFrame` trims
+from the tail, `sys/cheap` is written last in `checkIn`, so it holds the highest seq and is
+the first row dropped — on a long-uptime node that also emits a `tel/log` row, the C-heap
+gauge goes quiet on exactly the nodes it exists to watch. **The trim cannot simply be
+reordered**: porta acks one high-water and `applyAck:` sets `acked:: hw`, so a frame that
+omits a low seq while carrying a high one loses the omitted entry permanently. That is why
+the trim takes the tail, and why the fix is structural — reserve bytes for `sys/` before
+filling from `obs/`, or trim by type — which is **rete#150**, already parked in
+`PortaBridge>>pushFrame` for this and for `sys/panic`.
+
+Shortening `CHeap`'s five field names was proposed and **measured to be insufficient**:
+one-character names, the floor at which the names stop meaning anything, land the frame at
+503 B; any legible scheme lands ~514 and still overflows. A repo-wide 2–3 character naming
+scheme across all 26 fields of the frame (226 characters of name today) would save ~148 B
+and land near 381 B — the `LatencySpan` rule below, generalized — at the cost of making
+`porta get` unreadable without a name map. Recorded on #150, not taken.
+
 Both are enforced **at the bridge job**, on both legs:
 
 - **Outbound**: a value that encodes larger than `MAX_VALUE_BYTES` is a **programming
