@@ -121,10 +121,32 @@ filling from `obs/`, or trim by type — which is **rete#150**, already parked i
 
 Shortening `CHeap`'s five field names was proposed and **measured to be insufficient**:
 one-character names, the floor at which the names stop meaning anything, land the frame at
-503 B; any legible scheme lands ~514 and still overflows. A repo-wide 2–3 character naming
-scheme across all 26 fields of the frame (226 characters of name today) would save ~148 B
-and land near 381 B — the `LatencySpan` rule below, generalized — at the cost of making
-`porta get` unreadable without a name map. Recorded on #150, not taken.
+503 B; any legible scheme lands ~514 and still overflows.
+
+**The resolution is rete#197: one naming rule applied to ALL the frame's labels.** MEASURED
+2026-08-11 through the real `Cbor>>encode:` path, not estimated — `Health` 91 → **61 B**,
+`Metrics` 195 → **101 B**, `CHeap` 79 → **62 B**, and the **frame 529 → 378 B**, i.e. 17 B
+over the cap becomes **134 B under it** (roughly 13 further fields at ~10 B each, against a
+`Metrics` that has grown from 9 fields to 11 in its entire history). The rule is *keep the
+noun, suffix the aspect* — `hw` always means high-water and never anything else — and keys
+are scoped per record, so reuse across records is free, exactly as `LatencySpan` below
+already exploits with its bare `n`. It is **not** "chop to three characters":
+`handlesHighWater` → `hnhw` breaks that rule deliberately, because `hhw` is already
+`heapHighWater` and a collision inside one record is a silent wire bug.
+
+**This is legitimate rather than a hack, and the reason is a boundary this document should
+state once.** The push/pull frame is a **defined, private encoding** between porta and nodus
+under a hard 512 B constraint; `porta get` is the readable operator surface. Forcing both to
+share one vocabulary is precisely why `pulseCoalesced` pays wire bytes to be legible in a
+place nobody reads it. D4.1 already says values are raw deterministic CBOR **decoded only for
+display**, so a porta-side display map is a follow-up that needs no further wire change.
+
+**Numbered slots (`h1`, `m1`, …) were considered and REJECTED** (2026-08-11). They save only
+23 B beyond the above (75 characters of name → 52), and they make meaning **positional**: a
+mismatched reader decodes `m7` cleanly and silently means something else, where an unknown
+*name* is loud. That is the same failure shape as rete#190's stale-layout bug — an ABI whose
+meaning comes from position rather than from a name — and it adds a "never reuse a number"
+discipline that does not exist today. 23 B does not buy that.
 
 Both are enforced **at the bridge job**, on both legs:
 
