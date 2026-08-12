@@ -117,7 +117,13 @@ def resolve_alloc(mmap, text, top=0):
 def print_alloc(mmap, text, top=0):
     """The `--alloc` report. Kept beside resolve_alloc so the warnings that make
     the table honest cannot be lost by a caller that only wants the rows."""
-    arows = resolve_alloc(mmap, text, top=top)
+    # ALL rows, never the truncated view: both numbers below are properties of
+    # the WINDOW, not of what a caller asked to see. `--top 15` used to make
+    # "distinct allocating methods" print 15 — the D8 sizing input reading back
+    # the display flag — and shrank the no-frame denominator to the shown rows,
+    # which inflates the §8 risk metric in the direction that hides it.
+    all_rows = resolve_alloc(mmap, text)
+    arows = all_rows[:top] if top else all_rows
     hdr = None
     for m in ALLOC_HDR_RE.finditer(text):
         hdr = m.groups()
@@ -128,7 +134,7 @@ def print_alloc(mmap, text, top=0):
               "the build predates allocation attribution.")
     else:
         why, nfab, nfan, nfcb, nfcn, aovf = hdr
-        attributed = sum(ab + cb for _, ab, _, cb, _, _ in arows)
+        attributed = sum(ab + cb for _, ab, _, cb, _, _ in all_rows)
         nf = int(nfab) + int(nfcb)
         denom = attributed + nf or 1
         print(f"window={why} allocOverflow={aovf}")
@@ -150,7 +156,10 @@ def print_alloc(mmap, text, top=0):
           f"{'%':>6}  method")
     for name, ab, an, cb, cn, pct in arows:
         print(f"{ab:>10} {an:>8} {cb:>10} {cn:>8} {pct:>5.1f}%  {name}")
-    print(f"\ndistinct allocating methods: {len(arows)}   "
+    if top and len(all_rows) > top:
+        print(f"\nshowing top {top} of {len(all_rows)} allocating methods — "
+              f"percentages are of ALL attributed bytes, not of the shown rows.")
+    print(f"\ndistinct allocating methods: {len(all_rows)}   "
           f"(stage-2 sizing input, design D8)")
 
 

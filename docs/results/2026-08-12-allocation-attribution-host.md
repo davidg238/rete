@@ -105,10 +105,22 @@ Only **two** methods allocate on the C heap at all:
 | `Kernel>>valueCompare:with:` | 654 | 168 | **71%** |
 | `Kernel_Cbor>>encodeSymbol:into:` | 261 | 61 | 29% |
 
-Both are on the map-key path — CBOR keys are sorted by their **encoded** bytes
-(`nsl-cbor-wire-shapes`), so every key comparison encodes to compare. The C heap
-on this node is therefore not a general-purpose heap at all; it is scratch for
-one sort.
+Both are on the map-key path. The C heap on this node is therefore not a
+general-purpose heap at all; it is scratch for handling map keys.
+
+> **CORRECTED 2026-08-12 (see `2026-08-12-allocation-attribution-c6.md` §5.3).**
+> This paragraph originally read "CBOR keys are sorted by their **encoded** bytes,
+> so every key comparison encodes to compare", and that is wrong about
+> `valueCompare:with:`. There are **two** orders: the encoder sorts by encoded
+> bytes via `compareBytes:with:` (`kernel.nsl:854`), while `valueCompare:with:` is
+> the **Map's own** order — its construction sort (`kernel.nsl:439`) and its
+> binary-search key lookup (`kernel.nsl:393`), neither of which encodes anything.
+> What actually allocates is narrower and more fixable: rank 6 compares two
+> Symbols as `byteCompare: a printString with: b printString` (`kernel.nsl:3315`),
+> because `dispatch.c`'s `PRIM_at`/`PRIM_size` fast paths cover String and
+> RawBytes but not Symbol — **so every Symbol comparison materializes two Strings
+> to read their bytes.** #204 was filed against the original sentence; the
+> corrected reading is in its answer.
 
 That is a sharper target than "the C heap leaks" ever was, and it is exactly what
 #190 could not say: `sys/cheap` reported outstanding blocks climbing, and this
