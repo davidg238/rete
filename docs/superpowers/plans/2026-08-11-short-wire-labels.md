@@ -540,7 +540,7 @@ failure to close: `sys/cheap` has been absent from `c6-bench` for over an hour a
 > pre-#197 firmware that should **decay back to zero** as its uptime widens the encoded values.
 > If it does not, the width story in §2.2 is incomplete.
 
-- [ ] **Step 1: Record the pre-state, so the gate has a before**
+- [x] **Step 1: Record the pre-state, so the gate has a before**
 
 Read-only against the running gateway (do **not** restart it — it is the one shared gateway and
 a restart costs every node an outage):
@@ -553,7 +553,7 @@ Then read `cells` and `events` for `c6-bench` and record: the age of the last `s
 its seq, and the current `sys/metrics` seq. The pre-state as of 14:52 today was cheap seq 70006
 at 42 min stale against metrics seq 78839 — a ~8 800 seq gap.
 
-- [ ] **Step 2: Build and flash `c6spare` — pristine, everything named explicitly**
+- [x] **Step 2: Build and flash `c6spare` — pristine, everything named explicitly**
 
 `c6spare` is `TARGET_DEFAULT_BOARD` and checks in as `c6-bench`. **Flash `c6spare` only.**
 Resolve the board through the collector env files, never a port number — three CP210x boards
@@ -565,7 +565,7 @@ later gave the bell an image with **no radio at all**.
 `ESPTOOL_PORT` must be set explicitly for the C6 — its `run.sh` profile pins `*Espressif*` to
 `/dev/ttyACM0` (native USB-JTAG), which is not cabled; everything goes over the CP2102N.
 
-- [ ] **Step 3: The gate — cheap on every check-in, for a window long enough to mean it**
+- [x] **Step 3: The gate — cheap on every check-in, for a window long enough to mean it**
 
 Pass condition, all four:
 1. `sys/cheap` arrives on **every** check-in — no 4–6 s gaps, no silence. Compare the count of
@@ -581,7 +581,7 @@ check-in count, not wall time. A window that only covers bench-width values prov
 about the 30-day case the guard fixtures model; say so explicitly in the report rather than
 implying the field case was tested.
 
-- [ ] **Step 4: The bell — only after ~19:15 MST**
+- [x] **Step 4: The bell — only after ~19:15 MST**
 
 Do not touch `c6-bell` until its post-#190 soak clears 10 h 41 m. When it has: record the soak's
 verdict **first** (that experiment is what separates design §11.6's arena OOM from a second
@@ -589,7 +589,7 @@ leak, and it is the reason for the wait), then reflash it on the same commit and
 same four conditions on a different app at a 15× slower cadence. A second app reproducing the
 result is what says the fix is in the frame rather than in one node's shape.
 
-- [ ] **Step 5: Fold the result into §11 and close the issue**
+- [x] **Step 5: Fold the result into §11 and close the issue**
 
 Add the measured result to `docs/design/2026-08-10-node-memory-and-liveness-design.md` §11 as a
 new subsection — the design doc is where §11.7's hardware gate lives and where a reader looks
