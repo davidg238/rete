@@ -419,6 +419,34 @@ built and gated 2026-08-08; thread 2 above has the status.)**
    `platform buildId` names the running build, so the `.oimg.methods.json` sidecar the
    profiler's offsets are resolved against cannot be picked wrong.
 
+   **Allocation attribution rode the same table — stage 1 DONE 2026-08-12** (#190's row;
+   design `docs/design/2026-08-12-allocation-attribution-design.md`). The same mprof rows
+   now carry per-method *allocated bytes*, hooked at the single accounting choke point of
+   each heap, so "who allocates" is answerable by name rather than by bisecting builds.
+   The method key is *derived* from `current_frame->closure` at the allocation site, so
+   `gc.c` learns nothing about methods and `struct MethodContext` gains no field. Three
+   windows, all with `allocOverflow=0` and a **zero** no-frame bucket:
+
+   | window | distinct allocating methods | arena allocs per activation |
+   |---|---|---|
+   | host, full `porta_sync_host.sh` | 64 | 1 per 10 300 |
+   | C6 boot (`PortaBridgeNodeC6`) | **80** | 1 per 5.6 |
+   | C6 steady-state bridging, 60 s | 65 | 1 per 15.4 |
+
+   **The steady-state population is a strict subset of the boot population** (union 80), so
+   boot bounds this workload and 80 is stage 2's sizing input — a 128-slot always-on table
+   at 0.63 load. Two things the measurement refuted rather than confirmed: D4's "allocations
+   are two orders of magnitude rarer than activations" is wrong on target by two to three
+   orders (and the hook's actual runtime cost is **still unmeasured** — the one open item),
+   and #166 was cleared of the C6 hang along the way when a 1024-slot build hung
+   identically. What the rows say about the code: the CBOR codec is the entire steady-state
+   allocation story, `ByteBuilder`'s grow-then-freeze is 7–11% of a window for what #163
+   calls pure overhead, and **every Symbol-vs-Symbol comparison materializes two Strings**
+   (`valueCompare:with:` rank 6 goes through `printString` because `dispatch.c` has no
+   Symbol fast path for `at:`/`size`) — which is 71% of all C-heap allocation on the node
+   and is #204's real answer. Results:
+   `docs/results/2026-08-12-allocation-attribution-{host,c6}.md`. Stage 2 is **#203**.
+
 **One thing ran ahead of #25, on 2026-08-05, and it is finished.** The span capture that
 closed #107 left a check-in costing ~300 ms with no breakdown, and the breakdown was one
 reflash away. `PortaBridge>>checkIn` is now six spans (`pullSend` / `pullWait` / `applyIn` /

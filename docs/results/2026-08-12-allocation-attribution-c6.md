@@ -7,10 +7,12 @@
 both `OEVM_METHOD_PROFILE=1`, `PortaBridgeNodeC6.nsl` + Thread FTD
 **Design:** `docs/design/2026-08-12-allocation-attribution-design.md` (stage 1, D7)
 
-**Status: COMPLETE.** The boot window is §1. The steady-state window — the one D7
-actually specified, blocked for four hours by the incident in §3 — is **§5**, taken
-once that store corruption was repaired. §4 records what the boot window alone
-could and could not support, and is left standing because §5 answers it.
+**Status: the measurement D7 specified is TAKEN.** The boot window is §1; the
+steady-state window — blocked for four hours by the incident in §3 — is **§5**,
+taken once that store corruption was repaired. §4 records what the boot window
+alone could and could not support, and is left standing because §5 answers two of
+its three gaps. **One is still open and is not claimed anywhere in this document:
+the hook's runtime cost (§6).**
 
 ---
 
@@ -313,8 +315,26 @@ applies: allocation before `mprof_start()` is structurally invisible to a window
 ## 6. The one thing stage 1 still owes
 
 **The hook's runtime cost.** D4's 0.02% projection is refuted as a *projection*
-(§5.2) but nothing has replaced it with a measurement. The machinery exists and
-is unused: `OEVM_MPROF_RUNTIME_GATE` with `OEVM_MPROF_FLIP_AT`/`DUMP_AT` puts
-both the OFF and ON arms in one binary, because cross-binary timing cannot
-resolve a difference this small. That is one build, one flash and one soak on
-`c6spare`, and it is the last open item of stage 1 (#203).
+(§5.2) but nothing has replaced it with a measurement. Half the apparatus is
+ready and half is not, and the half that is missing is the one that matters:
+
+- **Ready:** `OEVM_MPROF_RUNTIME_GATE` with `OEVM_MPROF_FLIP_AT`/`DUMP_AT` puts
+  both the OFF and ON arms in **one binary, one boot, one cache state**, flipping
+  at a fixed activation count. That construction is not optional — a cross-binary
+  OFF/ON of the activation hook on host once put the ON build **4% faster**
+  (`MethodProfileNodeC6.nsl:10`), which is code-layout roulette, not a result.
+- **Missing: a workload.** `MethodProfileNodeC6.nsl` drives Hanoi, chosen because
+  it predicts its own activation count — and **Hanoi allocates essentially
+  nothing**, so it can time the *activation* hook (that is #164's 0.90%) and
+  cannot time this one. Pointing it at the allocation hook would measure a hook
+  that never fires. Whatever replaces it has to allocate the way the bridge
+  allocates, i.e. CBOR.
+
+The obvious candidate — and it is a proposal, not a result — is to put the
+runtime gate in `PortaBridgeNodeC6` itself and read the **existing spans** across
+the flip: `sPublish` and the `pushBuild` decomposition are VM-side and exclude
+the radio, so the mesh's variance does not sit in the middle of the comparison.
+One binary, one boot, N ticks OFF then N ticks ON, and the arms are already
+published to `sys/latency`. That also answers #166's complaint about the 0.90%
+being measured at load factor 0.008, because a bridging node runs the table at a
+realistic load. Deciding it is #203's remaining work.
