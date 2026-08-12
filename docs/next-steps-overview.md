@@ -35,6 +35,17 @@ a Zephyr output is still a floating input. Drawing:
 **not** mitigate #151 — it holds the base down only while the pin is undriven, and a solid
 tone is the pin being *driven*.
 
+**And R2 does not close the ROM downloader either (2026-08-12, #201).** The failed flash on
+2026-08-11 rang the bell for two minutes *with R2 already fitted*, so "fit a pull-down" —
+#201's first recommendation and §11.9's — is a remedy that was in place at the time of the
+failure. That makes the download-mode ring a **different fault from the reset-window ring
+R2 fixed**: with a high-Z pin R2 holds the base at 0 V, so GPIO18 must be driven high or
+weakly pulled up. R1/R2 = 10 k/47 k leave the base tracking 82% of the pin, which a ~45 kΩ
+internal pull-up is more than enough to defeat (base ≈ 1.5 V) where the solenoid rig's 10 kΩ
+was not (base ≈ 0.5 V). **Next bench action: park a board in `boot:0x66 DOWNLOAD`
+deliberately and meter GPIO18 and the 2N3904 base** — that state waits indefinitely, so it
+is the first time #105's localising test has had a target that holds still.
+
 **What is soaking now, and what it is worth watching for.** The bell runs a `PortaBridge`
 and reports `obs/build` + `sys/metrics` to porta every 30 s (#56 D8), carrying `pulseDrops`
 and `pulseCoalesced`. Three live stakes on that, all filed: **#153** (watch

@@ -1968,16 +1968,41 @@ threshold.
 while something is actively driving it that way.** The `gpioout` seam configured the strike pin
 inside `main()` — hundreds of milliseconds after reset, and *not at all* during esptool's
 download window, which is **seconds**. The coil was energised throughout. Moving configuration
-to `SYS_INIT(PRE_KERNEL_1, 50)` shrinks the firmware-side window and **cannot close it**; only a
-pull-down at the transistor makes the off-state a property of the circuit. The design's own 12 V
-schematic omits that resistor, and §11's instruction to verify a pull-down refers to a
-*different* candidate driver that has one — corrected in the design record at §17.3.
+to `SYS_INIT(PRE_KERNEL_1, 50)` shrinks the firmware-side window and **cannot close it**; a
+pull-down at the transistor is what makes the off-state a property of the circuit *for the
+undriven case*. The design's own 12 V schematic omits that resistor, and §11's instruction to
+verify a pull-down refers to a *different* candidate driver that has one — corrected in the
+design record at §17.3.
 
 **Still not witnessed:** a **~1 s energisation at boot** (#105) whose cause is unknown — the pin
 appears to be actively *driven* high, since a 10 kΩ base pull-down is fitted and measures ~0 V
 through reset. The localising test (drain node, coil disconnected, watched across a full flash
 cycle) has not been run. Deprioritised behind a piezo buzzer, and **blocking before any coil is
 reconnected**.
+
+> **CORRECTION, 2026-08-12 — the pull-down is not the answer, and the two paragraphs above
+> should not be read as saying it is (#201).** A pull-down IS fitted on the driver in service:
+> **R2, 47 kΩ base-to-GND, on the 3.3 V piezo since 2026-08-05.** It closes the reset case —
+> it is what stopped the buzzer sounding at power-up. It did **not** close the case that
+> matters: the #197 cutover's failed JTAG flash parked `c6-bell` in `boot:0x66 DOWNLOAD` and
+> **rang the bell continuously for two minutes at 23:01 on 2026-08-11**, six days after R2
+> went in. A remedy already implemented at the moment of the failure it was meant to prevent
+> is refuted, not pending.
+>
+> So the download-mode ring is a **different fault** from the reset-window ring R2 fixed. With
+> a genuinely high-Z pin R2 holds the base at 0 V and the piezo is silent; it wasn't. Either
+> GPIO18 is actively driven high — #105's hypothesis above, now at a two-minute scale — or it
+> is weakly pulled up and R2 is undersized, which the arithmetic favours: R1 = 10 kΩ makes the
+> base track **82% of the pin**, so a ~45 kΩ internal pull-up leaves the base at ~1.5 V (hard
+> on) where the 10 kΩ rig quoted above gives ~0.5 V (off). Same schematic role, 4.7× weaker —
+> and that retro-explains why the ~0 V base measurement above looked like proof of "driven".
+>
+> **And #105's unrun localising test finally has a target that holds still.** Its window was a
+> ~1 s transient, which is why it went unrun for a month; `boot:0x66 DOWNLOAD` is the same
+> fault held *indefinitely*. Park `c6spare` there deliberately and meter GPIO18 and the base.
+> #105 was closed 2026-08-05 on the symptom disappearing from a rig that no longer had a coil
+> — its own thread warns against exactly that — and this is evidence the fault outlived the
+> closure. Full write-up: shipsBellsV3 design §22.
 
 **Process note.** A suite run leaves the tracked `src/solidified_image.c`/`.stmap` fixture dirty
 (#106) — 16,301 lines that a `git add -A` would have committed into the fixture. `run.sh`

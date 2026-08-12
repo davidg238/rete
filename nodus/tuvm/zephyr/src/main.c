@@ -1420,10 +1420,14 @@ static void wire_gpio_outputs(void) {
  *
  * Calling this from main() — where it used to live, and still is, harmlessly — is
  * far too late for anything that can be damaged by being left on. The 12 V strike
- * driver has no base pull-down on its level-shifter, so its coil is energised for
- * every microsecond GPIO18 is not actively held low; main() runs after ALL init
- * levels, after kernel_boot() and after oimg_load_blob(), which on this board is
- * hundreds of milliseconds of coil.
+ * driver AS WIRED IN JULY 2026 had no base pull-down on its level-shifter, so its
+ * coil was energised for every microsecond GPIO18 was not actively held low;
+ * main() runs after ALL init levels, after kernel_boot() and after
+ * oimg_load_blob(), which on this board is hundreds of milliseconds of coil.
+ * (That rig is gone — the 12 V solenoid was retired for a 3.3 V piezo, and that
+ * driver DOES have a base pull-down. Read the paragraph below before acting on
+ * this one: the two rigs have been conflated twice and it cost a diagnosis both
+ * times.)
  *
  * PRE_KERNEL_1 at priority 50: CONFIG_GPIO_INIT_PRIORITY defaults to
  * KERNEL_INIT_PRIORITY_DEFAULT (40, drivers/gpio/Kconfig:48), so 50 is the first
@@ -1432,10 +1436,19 @@ static void wire_gpio_outputs(void) {
  *
  * THIS IS A MITIGATION, NOT A FIX, and the distinction matters enough to write
  * down. It cannot help during esptool's download mode, the ROM bootloader, a
- * brown-out, or a CPU that never reaches init at all — windows of SECONDS during
- * which the pin is whatever reset left it. Only a pull-down resistor at the
- * transistor makes the off-state a property of the circuit instead of a property
- * of software being alive. See zephyr/boards/shipsBells/2026-07-26-shipsbellsv3-design.md §8:
+ * brown-out, or a CPU that never reaches init at all — and the ROM downloader is
+ * not a window at all, it is a STABLE state that waits for a host forever
+ * (rete#201: two minutes of continuous bell at 11pm on 2026-08-11).
+ *
+ * A pull-down at the transistor is the right shape of answer, and IT IS ALREADY
+ * FITTED — R2, 47k base-to-GND, on the 3.3 V piezo driver since 2026-08-05. It
+ * closes the reset case and it did NOT close the download-mode case, so do not
+ * write "only a pull-down fixes this" here again. With a genuinely high-Z pin R2
+ * holds the base at 0 V; the bell rang anyway, so in download mode GPIO18 is
+ * either driven high or weakly pulled up — and against a ~45k pull-up R1/R2
+ * (10k/47k) leave the base at ~1.5 V, hard on. Unresolved, rete#105/#201; the
+ * settling measurement is a meter on GPIO18 with the board parked in
+ * boot:0x66 DOWNLOAD. See zephyr/boards/shipsBells/2026-07-26-shipsbellsv3-design.md §8:
  * "Never let a crashed VM be the only thing between a GPIO and a burnt coil."
  */
 static int gpio_outputs_early_init(void) {

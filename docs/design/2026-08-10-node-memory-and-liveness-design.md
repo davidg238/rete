@@ -990,6 +990,36 @@ comfortably inside 134 B but that is arithmetic, not a measurement.
   > there holds every actuator on until a human intervenes. No firmware mitigation can reach
   > that state by definition, which is why rete#201's first item is a pull-down at the
   > transistor rather than anything in this tree.
+  >
+  > > **SECOND CORRECTION, 2026-08-12 (David, at the bench): there IS a base pull-down, and
+  > > it was already fitted. The paragraph above is wrong about the remedy and therefore
+  > > wrong about the mechanism.** R2 = 47 kΩ base-to-GND went onto the 3.3 V piezo driver on
+  > > **2026-08-05** (schematic rev B), six days before this flash, and it demonstrably works
+  > > for the reset case — it is what stopped the buzzer sounding at power-up. So the bell
+  > > rang for two minutes *with the pull-down in place*, and "fit a pull-down" closes
+  > > nothing here because it is already done.
+  > >
+  > > **What that leaves is the real finding: in the ROM downloader, GPIO18 is not merely
+  > > undriven.** With a genuine high-Z pin, R2 holds the base at 0 V and the piezo is
+  > > silent; it was not silent. So either the pin is being actively driven high, or a weak
+  > > internal pull-up is on it and R2 is too weak to hold the base below V_BE. The second is
+  > > checkable on paper and R1 = 10 kΩ makes it likely — the base tracks 47/(10+47) = **82%
+  > > of the pin**, so against a ~45 kΩ pull-up the base sits at 3.3 × 47/102 = **1.52 V**,
+  > > hard on. The solenoid rig's 10 kΩ gives 3.3 × 10/65 = **0.51 V**, off. Same schematic
+  > > role, 4.7× weaker, opposite outcome — and it explains why rete#105 measured ~0 V at the
+  > > base on the 10 kΩ rig and inferred "actively driven" from it.
+  > >
+  > > Note 4 on `2026-08-03-shipsbells-3v3-piezo-driver.svg` sizes R2 for the pin-driven-high
+  > > case only, and note 1's "holds the base at 0 V whenever GPIO18 is undriven" is true for
+  > > high-Z and false for pulled-up. **Neither note is a measurement of download mode.**
+  > >
+  > > **The measurement that settles it, and why it is now easy.** rete#105's localising test
+  > > was never run because its window was a ~1 s transient. `boot:0x66 DOWNLOAD` is the same
+  > > fault held *indefinitely*: park the board there deliberately, then meter GPIO18 and the
+  > > 2N3904 base. A pin at ~3.3 V is "actively driven" (rete#105's hypothesis, and no
+  > > resistor fixes it); a pin near 1.2 V with the base near 1.5 V is the divider, and
+  > > dropping R2 to 10 kΩ — the value the schematic already names as the floor — fixes it.
+  > > Do this before writing any more remedy prose.
 - **rete#199's signature was captured live on the bell**, in its own console, during the
   ~3½-minute mismatch window: `check-in 1717 … 1720 misses 57 acked 7456` — `acked` frozen
   across four consecutive refused check-ins while `misses` never moved. It survived only
