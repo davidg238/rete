@@ -550,6 +550,35 @@ static void mprof_report(const char *why) {
             fprintf(stderr, "mprof: @%p %u\n", g_mprof_key[i], g_mprof_n[i]);
         }
     }
+
+    /* Allocation attribution (design 2026-08-12). A SEPARATE line prefix, never
+       extra columns on `mprof:` above: tools/mprof_resolve.py's DUMP_RE is
+       anchored at exactly two fields, so widening that line makes it match
+       NOTHING and report "no mprof: lines found" -- a silent false negative in
+       the only tool that reads this. */
+    fprintf(stderr, "mprofa[%s]: noframe_arena=%u/%u noframe_cheap=%u/%u allocOverflow=%u\n",
+            why, g_mprof_nf_bytes[MPROF_HEAP_ARENA], g_mprof_nf_cnt[MPROF_HEAP_ARENA],
+            g_mprof_nf_bytes[MPROF_HEAP_CHEAP], g_mprof_nf_cnt[MPROF_HEAP_CHEAP],
+            g_mprof_alloc_overflow);
+    for (i = 0; i < OEVM_MPROF_SLOTS; i++) {
+        if (!g_mprof_key[i]) continue;
+        /* Rows that never allocated are SKIPPED, and that is the measurement:
+           the count of mprofa: lines IS the distinct-allocating-method
+           population that sizes stage 2 (design D8). Emitting zeroes would bury
+           it inside the activation dump's 200-odd rows. */
+        if (g_mprof_bytes[MPROF_HEAP_ARENA][i] == 0 &&
+            g_mprof_bytes[MPROF_HEAP_CHEAP][i] == 0) continue;
+        if (is_in_blob(g_mprof_key[i])) {
+            fprintf(stderr, "mprofa: %lu %u %u %u %u\n",
+                    (unsigned long)((const uint8_t *)g_mprof_key[i] - oimg_blob_base),
+                    g_mprof_bytes[MPROF_HEAP_ARENA][i], g_mprof_acnt[MPROF_HEAP_ARENA][i],
+                    g_mprof_bytes[MPROF_HEAP_CHEAP][i], g_mprof_acnt[MPROF_HEAP_CHEAP][i]);
+        } else {
+            fprintf(stderr, "mprofa: @%p %u %u %u %u\n", g_mprof_key[i],
+                    g_mprof_bytes[MPROF_HEAP_ARENA][i], g_mprof_acnt[MPROF_HEAP_ARENA][i],
+                    g_mprof_bytes[MPROF_HEAP_CHEAP][i], g_mprof_acnt[MPROF_HEAP_CHEAP][i]);
+        }
+    }
 }
 
 /* #165 D1/D6 lifecycle. start = zero + enable; stop = disable + report. Zeroing
