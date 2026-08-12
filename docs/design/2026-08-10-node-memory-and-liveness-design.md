@@ -910,3 +910,65 @@ cadence, so it is a *narrow* node. Its `sys/cheap` was already arriving 1:1 with
 on the pre-#197 firmware — **1244 : 1244 across the whole soak, seq gap 1** — which means the
 bell never had the tail-trim starvation #197 exists to fix, and cannot demonstrate its
 removal. That is a property of the bell's frame, not evidence about `c6-bench`'s.
+
+---
+
+### 11.9 The #197 hardware gate — the gauge came back (2026-08-11)
+
+The cutover completed at 23:03 and the gate ran 23:04:33 → 23:24:57 (20 m 24 s) with both
+boards on `porta-v1-final-964-ga78cd03` and gw85224-01 on the matching porta binary.
+
+| | `c6-bench` (`PortaBridgeNodeC6`, 2 s) | `c6-bell` (`ShipsBellAlarmNodeC6`, 30 s) |
+|---|---|---|
+| check-ins in window | 607 | 41 |
+| `sys/metrics` : `sys/cheap` | **607 : 607** | **41 : 41** |
+| seq gap (cheap − metrics) | **1, constant** | **1, constant** |
+| outstanding blocks (`alc − fre`) | **0, flat** across +140 132 allocs | **0, flat** across +7 400 allocs |
+| `fails` / `outBytes` | 0 / 0 | 0 / 0 |
+| alive at window end | yes | yes |
+
+All four pass conditions hold. The pre-state was `sys/cheap` **42 minutes stale at seq 70 006
+against metrics 78 839 — a ~8 800 seq gap that was still growing**; it is now one.
+
+**Two apps, and only one of them is evidence for condition 1.** The bell reproduces
+conditions 3 and 4 on a second app at a 15× slower cadence, which is what says the C-heap
+result is not one node's shape. It is **not** evidence for condition 1: §11.8 records that
+the bell was already delivering `sys/cheap` 1:1 on the *pre*-#197 firmware (1244 : 1244 over
+its whole soak), because it publishes three paths and never had the tail-trim starvation.
+Only `c6-bench` had the failure, so only `c6-bench` can show its removal.
+
+#### Which conditions were tested at BENCH widths, said plainly
+
+This is the caveat the plan demanded, and it is not a formality: the #197 failure is driven
+by **encoded value width**, and CBOR is shortest-form, so a freshly booted node encodes
+narrower than a long-lived one. Both boards had ~25 minutes of uptime.
+
+| field | in this window | 30-day / worst legal | width delta |
+|---|---|---|---|
+| `bid` | 1 (1 B) | 1 073 741 823 (5 B) | **−4 B** |
+| `wak` | 775 (3 B) | 1 296 000 (5 B) | **−2 B** |
+| `gcc` | 351 (3 B) | > 65 535 (5 B) | **−2 B** |
+| `up` | 1 552 169 (5 B) | 2 592 000 000 (5 B) | same class |
+| `alc` / `fre` | 187 085 (5 B) | ~10⁸ (5 B) | same class |
+| `lb`/`hhw`/`lfb`/`hsz` | bounded by the 131 072 arena | same | same class |
+
+**So the frame this gate measured is about 8 B narrower than the 30-day worst case.** The
+field case is covered by the host guard fixture `22_spacesync/09_batch_size.nsl`, which models
+a 30-day node with a saturated `bid` and measures **378 B against the 512 B cap — 134 B of
+headroom** — and is green in the suite. It is not covered by this board run, and 8 B sits
+comfortably inside 134 B but that is arithmetic, not a measurement.
+
+#### Two operational findings from the cutover itself
+
+- **The bell would not flash over its USB-JTAG node.** `esptool` reset it into the ROM
+  downloader and then lost it (`The chip stopped responding`), leaving it in
+  `boot:0x66 DOWNLOAD` — recovered by stopping `rete-console@c6`, flashing over the CP2102N,
+  and restarting the collector. Task 4's note that everything goes over the CP2102N holds for
+  the bell even though the JTAG flashed `c6spare` fine minutes earlier. **The two C6 devkits
+  do not behave the same way on the same channel.**
+- **rete#199's signature was captured live on the bell**, in its own console, during the
+  ~3½-minute mismatch window: `check-in 1717 … 1720 misses 57 acked 7456` — `acked` frozen
+  across four consecutive refused check-ins while `misses` never moved. It survived only
+  because 30 s cadence stretches the fuse to ~27 minutes; `c6spare` at 2 s would not have.
+  That is the issue's central claim — a refused exchange and a successful one are
+  indistinguishable in every number the node reports — observed rather than modelled.
