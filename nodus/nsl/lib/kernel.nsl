@@ -1615,6 +1615,12 @@ class Kernel usingPlatform: platform = () (
     | socket space nodeId peerHost peerPort
       cursor ::= 0. acked ::= 0. rejected ::= 0. misses ::= 0. dropped ::= 0.
       crossed ::= 0.
+      (* rete#161/rete#199 — how many rows fitted the last push frame, so the next
+         one starts its search there instead of at "all of them". A HINT and never
+         a bound: `pushFrame` clamps it and corrects it in both directions, so a
+         stale value costs an encode and can never cost a row. Zero means "no push
+         yet"; per-boot and deliberately not persisted, like the cursor. *)
+      fitRows ::= 0.
       (* rete#25 — the whole of the image-push policy's state, four slots and no
          object. `otaStaged` is the one-tick delay between "the bytes are on
          flash" and "boot them" made explicit (see otaCheck); `otaConfirmed` is
@@ -1942,22 +1948,96 @@ class Kernel usingPlatform: platform = () (
        early return, which is the same unreachable-in-practice case `pushOnce`
        documents: publishMetrics writes sys/metrics every check-in, so there is
        always a row. *)
+    (* THE FRAME IS NEVER ENCODED LARGER THAN IT WILL BE SENT (rete#161/rete#199).
+
+       What it computes is unchanged: the LONGEST PREFIX of `rows` whose encoded
+       frame fits `maxBatchBytes`, keeping the lowest seqs and dropping the tail —
+       the rule rete#150 still owns and this does not touch.
+
+       WHAT CHANGED IS WHERE IT STARTS. The old walk encoded ALL the rows and then
+       dropped one and re-encoded until the result fit. Both of those are costs,
+       and MEASUREMENT SAYS THE FIRST ONE IS THE ONE THAT KILLS. A bisection was
+       tried first and gated: it cut the walk from ~80 full-frame encodes per
+       check-in to ~9 and bought a refused node 114 s -> 168 s of life, and it
+       still died — on a 3590 B request, from the exact-size copy `frozenBytes`
+       makes of that first oversized encode. Removing the walk was never enough,
+       because encoding seventy rows at all is the allocation.
+
+       So the search STARTS FROM WHAT FIT LAST TIME (`fitRows`) and climbs one row
+       at a time. It never encodes more than one row beyond the answer, so the
+       accumulator never grows past the batch cap by more than a row, and the
+       4 KB ByteBuilder rung that fragmented the arena is simply never reached.
+
+       THIS IS EXACT, NOT AN ESTIMATE, and the reason is a property of the codec
+       rather than an assumption about the data: `encodeList:` emits the array head
+       and then encodes each element INDEPENDENTLY (`encode:into:depth:` carries no
+       context but a depth counter). A row costs the same bytes alone as in place,
+       so adding a row can only lengthen the frame — the predicate is monotone, and
+       hill-climbing a monotone predicate from ANY starting point lands on the same
+       boundary the walk walked down to.
+
+       THE STEADY STATE IS ONE ENCODE, which is why this is not a trade. A healthy
+       node's rows all fit, so `fitRows` sits at the row count, the climb has
+       nowhere to go, and the cost is the single encode the walk also paid — the
+       control leg measures `pushTrim` at 2 microseconds. A refused node settles at
+       k rows and pays two: one at k, one at k+1 that fails.
+
+       STILL NOT THE WHOLE OF rete#161: fix (1), carrying the bytes `valueFits:`
+       already produced instead of discarding them, is untouched. It addresses
+       `pushCollect` and the surviving encode, which this leaves as they were. *)
     public pushFrame = (
-      | rows bytes |
+      | rows bytes probe n climbing |
       spans begin: sPushCollect.
       rows:: self collectOutbound.
       spans end: sPushCollect.
       rows isEmpty ifTrue: [ ^ nil ].
+
+      (* `fitRows` is 0 before the first push and can be stale in either direction
+         after any check-in, so it is a HINT and never a bound: clamped into range
+         here, and corrected by the climb below either way. A wrong hint costs
+         encodes, never rows. *)
+      n:: fitRows.
+      (n < 1) ifTrue: [ n:: rows size ].
+      (n > rows size) ifTrue: [ n:: rows size ].
+
       spans begin: sPushEncode.
-      bytes:: self encodePush: rows.
+      bytes:: self encodePush: (self firstRows: n of: rows).
       spans end: sPushEncode.
+
       spans begin: sPushTrim.
-      [ bytes byteSize > self maxBatchBytes and: [ rows size > 1 ] ] whileTrue: [
-        rows removeLast.
-        bytes:: self encodePush: rows ].
+      bytes byteSize > self maxBatchBytes
+        ifTrue: [
+          (* Too big: step down. `n > 1` is the floor the walk also refused to go
+             below — a one-row frame that still does not fit is left for the guard
+             at the end to drop, because a frame that omits a low seq while
+             carrying a high one loses the omitted entry permanently. *)
+          [ n > 1 and: [ bytes byteSize > self maxBatchBytes ] ] whileTrue: [
+            n:: n - 1.
+            bytes:: self encodePush: (self firstRows: n of: rows) ] ]
+        ifFalse: [
+          (* Fits: climb while there are rows left and the next one still fits.
+             `climbing` is the loop's own exit — nsl has no break, and folding the
+             test into the whileTrue: condition would re-encode the probe. *)
+          climbing:: true.
+          [ climbing and: [ n < rows size ] ] whileTrue: [
+            probe:: self encodePush: (self firstRows: n + 1 of: rows).
+            probe byteSize > self maxBatchBytes
+              ifTrue:  [ climbing:: false ]
+              ifFalse: [ n:: n + 1. bytes:: probe ] ] ].
+      fitRows:: n.
       spans end: sPushTrim.
+
       bytes byteSize > self maxBatchBytes ifTrue: [ ^ nil ].
       ^ bytes )
+
+    (* A prefix, not a mutation: the climb probes in both directions, so unlike the
+       walk it cannot consume `rows` as it goes. *)
+    firstRows: n of: rows = (
+      | out i |
+      out:: OrderedCollection new.
+      i:: 1.
+      [ i <= n ] whileTrue: [ out add: (rows at: i). i:: i + 1 ].
+      ^ out )
 
     encodePush: rows = (
       ^ Cbor new encode: (Record tag: #push

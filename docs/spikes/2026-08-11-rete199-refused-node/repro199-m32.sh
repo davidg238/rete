@@ -17,13 +17,26 @@
 # CONTROL: the same node against the MATCHING gateway. Without it, "the arena
 # grows" is a reading of one run and not a finding.
 set -uo pipefail
-ROOT=/home/david/workspace/rete
+# ROOT is DERIVED, not hard-coded. The point of a fix gate is to run against the
+# tree carrying the fix; a script that silently rebuilt the main checkout would
+# report the wrong tree's behaviour and read exactly like a passing gate.
+ROOT=$(git -C "$(dirname "$0")" rev-parse --show-toplevel)
 TUVM=$ROOT/nodus/tuvm
-OUT=$(cd "$(dirname "$0")" && pwd)
+# Artifacts land OUTSIDE the repo: this script builds a throwaway git worktree, and
+# putting that under docs/ leaves the tree dirty in a way that reads as source.
+OUT=${OUT:-$(mktemp -d "${TMPDIR:-/tmp}/repro199.XXXXXX")}
 NSL=$ROOT/nodus/nsl/tools/ns_compile_oevm.py
 HEAP=${HEAP:-131072}
 STACKW=${STACKW:-4096}
 RUN_S=${RUN_S:-900}
+LEGS=${LEGS:-AB}          # A = mismatched (the fix gate), B = matched control
+# The commit alone would LIE whenever the fix under test is still uncommitted, which
+# is the normal case for a fix gate — say so explicitly rather than printing a hash
+# that names a tree this run is not measuring.
+DIRTY=$(git -C "$ROOT" status --porcelain -- nodus porta protocol | head -c 1)
+echo "== tree under test: $ROOT ($(git -C "$ROOT" rev-parse --short HEAD)${DIRTY:+ + UNCOMMITTED CHANGES})"
+[ -n "$DIRTY" ] && git -C "$ROOT" status --short -- nodus porta protocol | sed 's/^/==   /'
+echo "== artifacts:       $OUT"
 
 echo "== [1] build the MISMATCHED gateway (porta @ e52a86e, pre-#197 labels)"
 WT=$OUT/porta-old-wt
@@ -100,10 +113,14 @@ leg() {
   return 0
 }
 
-echo "== [4] leg A: MISMATCHED gateway (every frame refused)"
-leg mismatch "$OUT/porta-old" 16969 "$OUT/m32a.db"
-echo "== [5] leg B: CONTROL, matched gateway"
-leg control  "$OUT/porta-new" 16969 "$OUT/m32b.db"
+case "$LEGS" in
+  *A*) echo "== [4] leg A: MISMATCHED gateway (every frame refused)"
+       leg mismatch "$OUT/porta-old" 16969 "$OUT/m32a.db" ;;
+esac
+case "$LEGS" in
+  *B*) echo "== [5] leg B: CONTROL, matched gateway"
+       leg control  "$OUT/porta-new" 16969 "$OUT/m32b.db" ;;
+esac
 
 git -C "$ROOT" worktree remove --force "$WT" 2>/dev/null
 echo "== done; logs in $OUT/m32-*.log"
