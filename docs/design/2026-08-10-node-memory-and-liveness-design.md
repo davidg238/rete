@@ -647,20 +647,53 @@ statement of this leak's lifetime must be in check-ins.
   > leak this section was worried about**, because the competing explanation now has an
   > independent home and can no longer absorb the result.
   >
-  > **Not established: what accumulates.** The fatal allocation is ~4 KB, the signature of a
-  > power-of-two collection doubling (`OrderedCollection>>grow` and the hashed collections
-  > both do `2 * contents size`; a slot array is one header word plus 4-byte slots on the C6).
-  > So the node dies on **one large allocation at a specific collection depth**, not of
-  > gradual pressure — which is why two events a day apart requested the identical 4104 B. The
-  > obvious candidate, `pending`, is probably wrong: one `tel/log` row per tick over 46 ticks
-  > is nowhere near a thousand entries, and that discrepancy is the live clue.
+  > **RESOLVED the same day, and the answer is NOT accumulation — see the correction below.**
+  > What stood here was a reading of the 4104 B as a *collection* doubling (`OrderedCollection`
+  > and the hashed collections both grow by `2 * contents size`), with `pending` noted as the
+  > obvious-but-probably-wrong candidate. The cap was the right clue and it pointed elsewhere.
   >
-  > **A host reproduction was attempted and is NOT usable — retracted on rete#199.** It
-  > reported the node surviving 2.6× the refused check-ins, then turned out to have run with
-  > the **16 MB host default arena**: `OEVM_HEAP_SIZE` is a compile-time macro (`gc.c:18-19`)
-  > and the run set it as an environment variable. Doing it properly is blocked by
-  > **rete#179** (the host image VM aborts at boot at the device's arena size), which is now
-  > a dependency of a P1 rather than a curiosity.
+  > **CORRECTION 2026-08-11, second pass — it is FRAGMENTATION, and the arena is two-thirds
+  > empty when the node dies.** Reproduced off hardware at the C6's exact memory
+  > configuration (`-m32`, arena 131 072, `VM_STACK_INIT_WORDS=4096`), with a matched-gateway
+  > control: the refused leg died at **114 s / ~55 check-ins**, the control ran **900 s / 450
+  > check-ins** and lived. Measured in the terminal OOM handler at the fatal allocation:
+  >
+  > ```
+  > request=4104   live=44396   largest_free=3976   gc_cycles=428   t=98 s
+  > ```
+  >
+  > **34% of the arena was live. ~87 KB was free. No 4 KB extent existed.** The healthy
+  > control held *more* live data (78 132 B) at a **19× lower collection rate** (0.23/s vs
+  > 4.4/s). So the dying node is not holding more — it is churning more.
+  >
+  > The 4104 B is `platform basicNewBytes: 4096` from **`ByteBuilder>>grow`**
+  > (`kernel.nsl:683`) — a flat byte buffer, not a slot array. It is therefore a **constant,
+  > not a boundary**, which is the real reason three independent events requested the
+  > identical figure. `pending` could never have been the answer: it is capped at 64 and
+  > `maxRows` caps each prefix scan at 8, so the row list tops out near 88.
+  >
+  > **The generator is `pushFrame`'s trim loop** (`kernel.nsl:1945`): it encodes the whole row
+  > set, then removes one row and **re-encodes**, repeatedly. With `acked` frozen the first
+  > encode is the full backlog (>2048 B, hence the 4096 B builder) and the trim then runs ~80
+  > more encodes, each climbing its own ladder of abandoned power-of-two buffers — ~80 ladders
+  > per check-in against a healthy node's one, twice a second. That, not accumulation, is what
+  > shatters the arena.
+  >
+  > **So the one-mechanism-two-triggers reading above survives, with its mechanism replaced:**
+  > the shared mechanism is *allocation churn from a frozen `acked`*, not *a backlog filling
+  > the arena*. Everything the table matches still matches. What changes is the fix — bounding
+  > a queue cannot help a node that dies with two-thirds of its arena free.
+  >
+  > **And the sharpened reading of `c6-bell` holds unchanged**, for the same reason: the bell
+  > is acking, so it never enters the trim-loop regime. If it OOMs anyway, that is still the
+  > second leak this section was worried about.
+  >
+  > **A first host reproduction was retracted** (it set `OEVM_HEAP_SIZE` as an environment
+  > variable, but that is a compile-time macro, `gc.c:18-19`, so it measured the 16 MB host
+  > default). **rete#179, which had blocked doing it properly, is closed**: the host could not
+  > boot at the device arena because `VM_STACK_INIT_WORDS` defaults to 16384 and a 64-bit word
+  > is 8 B — `16384 × 8 = 131072`, the C6's whole arena, by coincidence. See
+  > `docs/results/2026-08-11-host-arena-floor.md`.
 
   The two runs WITH `publishCheap` stopped dead at the cliff instead and never got there,
   which is the part of the picture a single-run reading would have missed.
