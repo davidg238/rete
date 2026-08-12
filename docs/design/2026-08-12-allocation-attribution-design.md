@@ -251,3 +251,73 @@ consumed**.
   apparent allocator — and allocations with **no** current frame need a defined bucket
   rather than a crash. Stage 1 must report that bucket's size; if it dominates, the
   attribution is not yet answering the question.
+
+---
+
+## 9. ADDENDUM (2026-08-12, same day) — what stage 1 measured, and what it refuted
+
+Stage 1 is built and gated (`814b99e`, `49c08c6`, `4fa7dd5`). Results:
+`docs/results/2026-08-12-allocation-attribution-host.md` and
+`docs/results/2026-08-12-allocation-attribution-c6.md`. Stage 2 is **#203**.
+**Stage 1 is NOT complete** — §9.3.
+
+### 9.1 D8's sizing input, and D7 vindicated
+
+| window | distinct allocating methods | overflow |
+|---|---|---|
+| host | **64** of 190 active | 0 |
+| C6 boot | **80** of 223 active | 0 |
+
+**The host figure was not the bound**, which is the whole argument for D7's staging:
+sizing stage 2 from the cheap measurement alone would have been 25% low. 80 of 740
+image methods still lands where D8 hoped — a 128-slot table, not a 1024-slot one.
+
+### 9.2 D4 is REFUTED as stated, and must not be carried forward
+
+D4 projected ~0.02% from "allocations are roughly two orders of magnitude rarer
+than activations". Measured arena allocations per activation:
+
+| window | ratio |
+|---|---|
+| host | 1 per **10 300** |
+| C6 boot | 1 per **5.6** |
+
+Three orders of magnitude apart. D4's *reasoning* was sound for the host window
+and simply does not generalise; the projection it produced is not a number anyone
+may quote. **No cost figure exists.** #165's `OEVM_MPROF_RUNTIME_GATE` OFF/ON
+machinery is the way to get one, and #203 carries it.
+
+D4 said "this is a projection, not a measurement" and named stage 1 as the thing
+that would settle it. It did — against the projection. That is the deferral
+working, not failing.
+
+### 9.3 What §6's gates could not see, and the one that mattered
+
+The suite gates all passed — 260/0, aux green, `mprof-tools-py` 12→19 — and the
+target run still could not complete, because the node wedged. §6's instinct that a
+**target** gate was required was right; what it did not anticipate is that the
+blocking failure would be in neither the host nor the binary.
+
+**The cause was #180: a `porta put` wrote `dbg/req` as a CELL onto a path
+established as a STREAM.** Four builds hung identically at the same tick,
+including one containing no profiling code at all, which is what put the cause in
+the store. Table capacity was the leading hypothesis and a 1024-slot build refuted
+it, clearing **#166** of any part in this.
+
+Two things this design should carry forward:
+
+- **A data-side cause cannot be found by a binary-side bisect.** Three A/B builds
+  were spent before the store was even a candidate. The decisive test was building
+  with the feature *absent* — see `hardware-gate-false-greens`.
+- **`OEVM_MPROF_SLOTS` is now build-settable** (`04df05c`), added for the capacity
+  experiment and kept because 256 is genuinely tight for this app (223 active).
+
+### 9.4 An unanticipated finding that outranks the sizing number
+
+Only **two** methods allocate on the C heap, on host and on target alike:
+`Kernel>>valueCompare:with:` and `Kernel_Cbor>>encodeSymbol:into:`, both on the
+map-key sort path. The C heap on a bridging node is scratch for one sort.
+
+That is the capability §2 promised — `sys/cheap` could say a leak existed, never
+who — demonstrated on the first real run, and it opened a question the design
+never asked: **why are the keys sorted at all?** Filed as **#204**.
