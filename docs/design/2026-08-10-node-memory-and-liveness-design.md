@@ -867,3 +867,46 @@ when it was given a fresh build directory. Both boards were subsequently reflash
   `SmiBoundaryConstantTest` and it was nearly committed. The fixture also carries **~10 715
   lines of `.c` plus 6 948 of `.stmap` of pre-existing drift**, dating to before the
   2026-07-18 `.ns` → `.nsl` rename — so `git diff` on it is not a reliable tripwire either.
+
+---
+
+### 11.8 The bell's soak — THE VERDICT: there is no second leak (2026-08-11)
+
+This is the experiment §11.6 was waiting for, and the reason `c6-bell` was left untouched
+through a whole cutover. §11.6 set the question precisely: the bell is healthy and acking, so
+no backlog can be accumulating in it — **if the bell OOMs anyway, that is the second leak.**
+
+It did not OOM. Recorded read-only off `soak-2026-08-04.db` on gw85224-01 **before** the
+#197 reflash destroyed it, via `tools/heap-envelope.py` (which buckets by GC cycle, because
+every field of `sys/metrics` is a sawtooth and two samples are two arbitrary phases of it):
+
+```
+boot 13   08-11 08:35 .. 19:19   10.73 h   518 GC cycles   1244 samples (96.5% delivered)
+  live floor (leak gauge)    mean 44700   slope  +2.40 B/cycle   +1241 B over run   0.5 sigma  FLAT
+  lfb ceiling (post-sweep)   mean 44384   slope  +4.71 B/cycle   +2433 B over run   1.1 sigma  FLAT
+  lfb trough  (NOT a gauge)  mean 10661   slope  -3.46 B/cycle   -1789 B over run   1.5 sigma  FLAT
+```
+
+**A flat live floor at 0.5 sigma over 518 cycles, and it is the longest clean window in the
+whole series** (boot 5's 9.95 h was flat at 1.6 sigma; boot 12's 10.68 h read *falling* at
+5.6 sigma). The C-heap agrees from the other side: `sys/cheap` at the end of the soak reads
+`allocs 243736, frees 243736, fails 0, outBytes 0` — **outstanding blocks flat at zero across
+a quarter of a million allocation pairs**, which is §11.7's host result reproduced on
+hardware over half a day.
+
+So the two arena-OOM events this document has been trying to separate are **one mechanism
+with one cause**, and it is not a leak: it is allocation churn from a frozen `acked`, closed
+by rete#161 (see the §11.6 addendum). The "second leak" branch of §11.6 is now closed by
+measurement rather than left open.
+
+**One sample would have said the opposite, and that is worth keeping.** The `sys/metrics`
+*cell* read at the same moment says `liveBytes 114488` of a 131072 arena — 87% — with
+`largestFreeBlock 7568`. Read alone it looks like a node about to die. It is the pre-collection
+phase of the sawtooth, and it is exactly the reading `heap-envelope.py` exists to refuse. The
+floor is 44 700.
+
+**What this soak does NOT establish, said plainly:** the bell publishes three paths at a 30 s
+cadence, so it is a *narrow* node. Its `sys/cheap` was already arriving 1:1 with `sys/metrics`
+on the pre-#197 firmware — **1244 : 1244 across the whole soak, seq gap 1** — which means the
+bell never had the tail-trim starvation #197 exists to fix, and cannot demonstrate its
+removal. That is a property of the bell's frame, not evidence about `c6-bench`'s.
