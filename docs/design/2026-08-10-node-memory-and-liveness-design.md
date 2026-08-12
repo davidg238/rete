@@ -966,6 +966,30 @@ comfortably inside 134 B but that is arithmetic, not a measurement.
   and restarting the collector. Task 4's note that everything goes over the CP2102N holds for
   the bell even though the JTAG flashed `c6spare` fine minutes earlier. **The two C6 devkits
   do not behave the same way on the same channel.**
+
+  > **CORRECTION, 2026-08-12 — this had a physical consequence, and the paragraph above was
+  > written not knowing it (rete#201).** The ROM downloader drives no GPIOs, and the bell's
+  > striker is off *only while actively driven*, so parking the chip there **rang the bell
+  > continuously from 23:01:41 until the app booted at 23:03:45** — about two minutes, at
+  > 11pm. It stopped because a person unplugged the cable.
+  >
+  > **And the line I read as collector contention was that person.** This, in the collector
+  > log, was reported above as evidence of two readers on one tty:
+  > ```
+  > 23:02:09 @@rete-console@@ port lost: device reports readiness to read but returned no data
+  > 23:02:19 @@rete-console@@ port reacquired
+  > ```
+  > It is a human unplugging and replugging a cable to stop a bell. The instrument said
+  > "multiple access on port?" and I took the hint it offered instead of the one the timing
+  > offered — the disconnect is 28 s after the failed flash, not near anything the collector
+  > was doing.
+  >
+  > The generalisation is worth more than the incident: **the undriven-GPIO window is not
+  > bounded by a reset pulse.** §3's known windows were milliseconds-to-seconds. The ROM
+  > loader is a *stable* state that waits indefinitely, so any failure that parks the chip
+  > there holds every actuator on until a human intervenes. No firmware mitigation can reach
+  > that state by definition, which is why rete#201's first item is a pull-down at the
+  > transistor rather than anything in this tree.
 - **rete#199's signature was captured live on the bell**, in its own console, during the
   ~3½-minute mismatch window: `check-in 1717 … 1720 misses 57 acked 7456` — `acked` frozen
   across four consecutive refused check-ins while `misses` never moved. It survived only
