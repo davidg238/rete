@@ -164,3 +164,28 @@ def test_alloc_report_flags_a_saturated_table(capsys):
     mprof_resolve.main([None, map_file, log_file, "--alloc"])
     captured = capsys.readouterr()
     assert "INCOMPLETE" in captured.out and "allocOverflow=7" in captured.out
+
+
+def test_top_does_not_shrink_the_distinct_count_or_the_noframe_denominator(capsys):
+    """`--top N` is a DISPLAY flag, and both numbers below are properties of the
+    window. It used to make "distinct allocating methods" print N — the D8
+    sizing input reading back the flag — and compute the no-frame share against
+    only the shown rows, which inflates the design's §8 risk metric in the
+    direction that hides it (a bigger denominator would have made it smaller,
+    but truncation drops rows from the denominator, so the printed share rises).
+    """
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        json.dump(MAP, f)
+        map_file = f.name
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.log', delete=False) as f:
+        f.write(ALLOC_DUMP)
+        log_file = f.name
+
+    mprof_resolve.main([None, map_file, log_file, "--alloc", "--top", "1"])
+    out = capsys.readouterr().out
+    # Two methods allocated; one is shown.
+    assert "distinct allocating methods: 2" in out
+    assert "showing top 1 of 2 allocating methods" in out
+    # 100 no-frame bytes over 900 attributed + 100 = 10.0%, NOT 100/(600+100).
+    assert "= 10.0% of all attributed bytes" in out
+    assert "Cbor>>encode:" not in out.split("--- allocation attribution ---")[1]
