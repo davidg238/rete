@@ -82,6 +82,7 @@ void *oevm_malloc(size_t n) {
     if (b == NULL) { cheap.fails++; return NULL; }
     b->size = n;
     cheap.allocs++;
+    MPROF_ALLOC(MPROF_HEAP_CHEAP, n);
     cheap.out_bytes += n;
     if (cheap.out_bytes > cheap.out_high) cheap.out_high = cheap.out_bytes;
     return (void *)(b + 1);
@@ -107,6 +108,9 @@ void *oevm_realloc(void *p, size_t n) {
     cheap.out_bytes = cheap.out_bytes - old + n;
     if (cheap.out_bytes > cheap.out_high) cheap.out_high = cheap.out_bytes;
     cheap.allocs++;
+    /* The NEW size, attributed as a fresh allocation: the column is cumulative
+       "bytes caused", not a live-set delta (design D2). */
+    MPROF_ALLOC(MPROF_HEAP_CHEAP, n);
     return (void *)(nb + 1);
 }
 
@@ -117,6 +121,10 @@ struct OevmCHeapStats oevm_cheap_stats(void) { return cheap; }
    that just became live. Two integer ops: the hot-path budget this brief
    requires. */
 static void heap_stats_on_alloc(size_t need) {
+    /* The arena's single accounting choke point, so it is also the single
+       attribution point (design 2026-08-12, D3). `need` includes the header and
+       the rounding, which is what the caller actually consumed. */
+    MPROF_ALLOC(MPROF_HEAP_ARENA, need);
     heap_live_bytes += need;
     if (heap_live_bytes > heap_high_water) heap_high_water = heap_live_bytes;
 }
