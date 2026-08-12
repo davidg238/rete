@@ -397,7 +397,20 @@ oop primitive_calls_reset(oop receiver, int argc, oop *args);
 void mprof_start(void);
 void mprof_stop(void);
 int  mprof_is_running(void);
+/* Allocation attribution, stage 1 (design docs/design/2026-08-12-allocation-attribution-design.md,
+   D1/D3). The allocating method is DERIVED from current_frame inside vm.c: gc.c
+   passes only a heap selector and a byte count, so the allocator never learns
+   what a method is, and MethodContext gains no field. */
+void mprof_alloc(unsigned heap, size_t bytes);
+#define MPROF_ALLOC(h, n) mprof_alloc((h), (n))
+#else
+#define MPROF_ALLOC(h, n) ((void)0)
 #endif
+/* Outside the #ifdef on purpose: gc.c names these at every call site whether or
+   not the flag is on. */
+#define MPROF_HEAP_ARENA 0u
+#define MPROF_HEAP_CHEAP 1u
+#define MPROF_HEAP_N     2u
 oop primitive_break_add(oop receiver, int argc, oop *args);
 oop primitive_break_remove(oop receiver, int argc, oop *args);
 oop primitive_method_of(oop receiver, int argc, oop *args);

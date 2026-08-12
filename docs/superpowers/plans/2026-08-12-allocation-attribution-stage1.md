@@ -18,6 +18,22 @@
 - **Do not extend the existing `mprof:` output line.** `nodus/tuvm/tools/mprof_resolve.py:27` is `re.compile(r"mprof:\s+(@?\S+)\s+(\d+)\s*$", re.M)` — anchored, exactly two fields. Appending columns makes it match zero lines and print "no 'mprof:' lines found". New rows get a new prefix.
 - Never run two nsl suites concurrently (#167); they share `/tmp` paths.
 - Read the suite's **aux gate line**, not just `Passed: N / Failed: 0` (#63).
+- **The host build line is NOT `gcc ... src/*.c`.** That was this plan's own first
+  defect, caught on execution: it fails to link (`undefined reference to udp_send`,
+  then `ota_stage_truncate`). The VM needs the whole posix backend, and three
+  `src/*.c` files must be *excluded* — `kernel_boot.c` (its static `Vtable_*` defs
+  clash with `solidified_image.c`), `oevm_main.c` and `hanoi_native.c` (own `main`
+  / opt-in). This is #63's seven-source-lists footgun in miniature. Every build
+  step below uses:
+
+  ```bash
+  SRCS=$(ls src/*.c | grep -vE 'kernel_boot\.c|oevm_main\.c|hanoi_native\.c')
+  gcc -Wall -std=c99 -Isrc $FLAGS $SRCS src/backend/posix/*.c $TEST -o $OUT -lm
+  ```
+
+  `-Wall` currently emits **5 pre-existing warnings, all in `src/platform.c`**
+  (one `-Wcomment`, four `-Wmisleading-indentation`). That is the baseline: a
+  sixth warning, or one naming any other file, is a real defect.
 
 ---
 
@@ -72,8 +88,9 @@ Append to `nodus/tuvm/tests/test_mprof_gate.c`, immediately before the final `pr
 - [ ] **Step 2: Run it and confirm it fails to build**
 
 ```bash
-cd nodus/tuvm && gcc -Wall -std=c99 -DOEVM_METHOD_PROFILE -Isrc \
-  src/*.c tests/test_mprof_gate.c -o /tmp/t1 -lm 2>&1 | head -5
+cd nodus/tuvm
+SRCS=$(ls src/*.c | grep -vE 'kernel_boot\.c|oevm_main\.c|hanoi_native\.c')
+gcc -Wall -std=c99 -DOEVM_METHOD_PROFILE -Isrc $SRCS src/backend/posix/*.c tests/test_mprof_gate.c -o /tmp/t1 -lm
 ```
 
 Expected: FAIL — `implicit declaration of function 'mprof_alloc'` and `MPROF_HEAP_ARENA undeclared`.
@@ -219,8 +236,9 @@ extern unsigned long mprof_noframe_bytes_for_test(unsigned heap);
 - [ ] **Step 7: Run the test**
 
 ```bash
-cd nodus/tuvm && gcc -Wall -std=c99 -DOEVM_METHOD_PROFILE -Isrc \
-  src/*.c tests/test_mprof_gate.c -o /tmp/t1 -lm && /tmp/t1
+cd nodus/tuvm
+SRCS=$(ls src/*.c | grep -vE 'kernel_boot\.c|oevm_main\.c|hanoi_native\.c')
+gcc -Wall -std=c99 -DOEVM_METHOD_PROFILE -Isrc $SRCS src/backend/posix/*.c tests/test_mprof_gate.c -o /tmp/t1 -lm && /tmp/t1
 ```
 
 Expected: `test_mprof_gate: PASSED`, and **no new warnings** — `-Wall` is on and an unused-variable or sign-compare warning here is a real defect.
@@ -318,8 +336,9 @@ Note the arena assertion is `> 0`, not `== 64`: `heap_stats_on_alloc` receives `
 - [ ] **Step 2: Run it to verify it fails**
 
 ```bash
-cd nodus/tuvm && gcc -Wall -std=c99 -DOEVM_METHOD_PROFILE -Isrc \
-  src/*.c tests/test_mprof_alloc.c -o /tmp/t3 -lm && /tmp/t3
+cd nodus/tuvm
+SRCS=$(ls src/*.c | grep -vE 'kernel_boot\.c|oevm_main\.c|hanoi_native\.c')
+gcc -Wall -std=c99 -DOEVM_METHOD_PROFILE -Isrc $SRCS src/backend/posix/*.c tests/test_mprof_alloc.c -o /tmp/t3 -lm && /tmp/t3
 ```
 
 Expected: FAIL on the first C-heap assertion — the hook does not exist yet, so the bucket stays 0.
@@ -349,8 +368,9 @@ Confirm `gc.c` includes `oevm.h` (it does — it uses `struct OevmCHeapStats`). 
 - [ ] **Step 4: Run the test**
 
 ```bash
-cd nodus/tuvm && gcc -Wall -std=c99 -DOEVM_METHOD_PROFILE -Isrc \
-  src/*.c tests/test_mprof_alloc.c -o /tmp/t3 -lm && /tmp/t3
+cd nodus/tuvm
+SRCS=$(ls src/*.c | grep -vE 'kernel_boot\.c|oevm_main\.c|hanoi_native\.c')
+gcc -Wall -std=c99 -DOEVM_METHOD_PROFILE -Isrc $SRCS src/backend/posix/*.c tests/test_mprof_alloc.c -o /tmp/t3 -lm && /tmp/t3
 ```
 
 Expected: `test_mprof_alloc: PASSED`.

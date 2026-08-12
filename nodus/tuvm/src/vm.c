@@ -394,6 +394,20 @@ static uint32_t    g_mprof_n[OEVM_MPROF_SLOTS];
 static uint32_t    g_mprof_overflow = 0;   /* activations dropped: table full */
 static uint32_t    g_mprof_used = 0;
 
+/* Allocation attribution (design 2026-08-12). Columns on the SAME rows as the
+   activation counter, so bytes-per-activation needs no join -- which is #163's
+   finding asked from the other side. Stage 1 only: these live inside
+   OEVM_METHOD_PROFILE and cost a production build nothing. */
+static uint32_t g_mprof_bytes[MPROF_HEAP_N][OEVM_MPROF_SLOTS];
+static uint32_t g_mprof_acnt[MPROF_HEAP_N][OEVM_MPROF_SLOTS];
+static uint32_t g_mprof_alloc_overflow = 0;   /* allocations dropped: table full */
+/* Allocations with no frame to attribute to -- boot, and prim contexts. Reported
+   separately rather than folded into a sentinel row: if this bucket dominates,
+   the attribution is not yet answering the question, and that must be VISIBLE
+   rather than averaged into a plausible-looking table. */
+static uint32_t g_mprof_nf_bytes[MPROF_HEAP_N];
+static uint32_t g_mprof_nf_cnt[MPROF_HEAP_N];
+
 /* #165 D1: the shipping control. The spike's OEVM_MPROF_RUNTIME_GATE flipped
    this on an activation countdown because Zephyr has no getenv and a count
    makes two measurement arms exactly reproducible. That seam stays below, opt
@@ -450,24 +464,58 @@ static void mprof_phase_advance(void) {
 }
 #endif
 
+/* Find or create the row for `m`. Returns the slot, or -1 when the table is full
+   -- the caller COUNTS that rather than absorbing it, per the rule above. The
+   interning is SHARED so an activation and an allocation for the same method can
+   never land in different rows.
+
+   Knuth multiplicative hash on the pointer, shifted past the alignment bits (a
+   CompiledMethod is pointer-aligned, so the low bits are always zero and would
+   collapse the table onto every eighth slot). */
+static OEVM_HOT int mprof_slot(const void *m) {
+    uint32_t h = (uint32_t)(((uintptr_t)m >> 4) * 2654435761u) & (OEVM_MPROF_SLOTS - 1);
+    uint32_t start = h;
+    for (;;) {
+        if (g_mprof_key[h] == m) return (int)h;
+        if (g_mprof_key[h] == NULL) { g_mprof_key[h] = m; g_mprof_used++; return (int)h; }
+        h = (h + 1) & (OEVM_MPROF_SLOTS - 1);
+        if (h == start) return -1;
+    }
+}
+
 static OEVM_HOT void mprof_bump(const void *m) {
 #ifdef OEVM_MPROF_RUNTIME_GATE
     if (--g_mprof_countdown == 0) mprof_phase_advance();
 #endif
     if (!g_mprof_enabled) return;
-    /* Knuth multiplicative hash on the pointer, shifted past the alignment bits
-       (a CompiledMethod is pointer-aligned, so the low bits are always zero and
-       would collapse the table onto every eighth slot). */
-    uint32_t h = (uint32_t)(((uintptr_t)m >> 4) * 2654435761u) & (OEVM_MPROF_SLOTS - 1);
-    uint32_t start = h;
-    for (;;) {
-        if (g_mprof_key[h] == m) { g_mprof_n[h]++; return; }
-        if (g_mprof_key[h] == NULL) {
-            g_mprof_key[h] = m; g_mprof_n[h] = 1; g_mprof_used++; return;
-        }
-        h = (h + 1) & (OEVM_MPROF_SLOTS - 1);
-        if (h == start) { g_mprof_overflow++; return; }
+    /* Behaviour-preserving against the pre-refactor code, which wrote n = 1 on
+       creation: mprof_slot creates the row with n still 0 and this increments
+       it. Holds because g_mprof_n is static (zero-init) and mprof_start() zeroes
+       it -- cases 1-4 of test_mprof_gate.c pin exactly that. */
+    int s = mprof_slot(m);
+    if (s < 0) { g_mprof_overflow++; return; }
+    g_mprof_n[s]++;
+}
+
+/* Neither static nor OEVM_HOT: gc.c calls this across a translation unit, so it
+   cannot inline. Acceptable for a stage-1 spike -- and the cost of that call is
+   one of the numbers this stage exists to measure (design D4). */
+void mprof_alloc(unsigned heap, size_t bytes) {
+    if (!g_mprof_enabled) return;
+    if (heap >= MPROF_HEAP_N) return;
+    struct MethodContext *ctx = current_frame;
+    if (ctx == NULL || ctx->closure == NULL) {
+        g_mprof_nf_bytes[heap] += (uint32_t)bytes;
+        g_mprof_nf_cnt[heap]++;
+        return;
     }
+    /* The SAME pointer push_frame keys on: closure_entry() resolves the blob
+       indirection, so a Model B image and a solidified one agree. */
+    const void *m = (const void *)closure_entry((struct Closure *)ctx->closure);
+    int s = mprof_slot(m);
+    if (s < 0) { g_mprof_alloc_overflow++; return; }
+    g_mprof_bytes[heap][s] += (uint32_t)bytes;
+    g_mprof_acnt[heap][s]++;
 }
 
 /* SPIKE-ONLY readback, and it exists because the real one is not reachable yet:
@@ -509,10 +557,16 @@ static void mprof_report(const char *why) {
    counts are cumulative by construction, so a second capture that inherited the
    first one's table would report a sum spanning both and no reader could tell. */
 void mprof_start(void) {
-    int i;
+    int i; unsigned h;
     for (i = 0; i < OEVM_MPROF_SLOTS; i++) { g_mprof_key[i] = NULL; g_mprof_n[i] = 0; }
+    for (h = 0; h < MPROF_HEAP_N; h++) {
+        for (i = 0; i < OEVM_MPROF_SLOTS; i++) { g_mprof_bytes[h][i] = 0; g_mprof_acnt[h][i] = 0; }
+        g_mprof_nf_bytes[h] = 0;
+        g_mprof_nf_cnt[h] = 0;
+    }
     g_mprof_used = 0;
     g_mprof_overflow = 0;
+    g_mprof_alloc_overflow = 0;
     g_mprof_enabled = 1;
 }
 
@@ -527,6 +581,15 @@ int mprof_is_running(void) { return g_mprof_enabled; }
    would put a non-inlinable call on the activation path. */
 void mprof_bump_for_test(const void *m) { mprof_bump(m); }
 unsigned mprof_used_for_test(void) { return g_mprof_used; }
+unsigned long mprof_bytes_for_test(unsigned heap) {
+    unsigned long t = 0; int i;
+    if (heap >= MPROF_HEAP_N) return 0;
+    for (i = 0; i < OEVM_MPROF_SLOTS; i++) t += g_mprof_bytes[heap][i];
+    return t;
+}
+unsigned long mprof_noframe_bytes_for_test(unsigned heap) {
+    return (heap < MPROF_HEAP_N) ? (unsigned long)g_mprof_nf_bytes[heap] : 0ul;
+}
 
 /* On a hosted run the process exits, so report there too. A destructor rather
    than an atexit registration keeps the hot path free of an init flag. Absent on
