@@ -688,6 +688,21 @@ statement of this leak's lifetime must be in check-ins.
   > is acking, so it never enters the trim-loop regime. If it OOMs anyway, that is still the
   > second leak this section was worried about.
   >
+  > **FIXED the same day (rete#161).** `pushFrame` no longer encodes the frame larger than it
+  > will be sent: it starts from what fit last time and climbs a row at a time, so the
+  > accumulator never exceeds the batch cap by more than a row and the 4 KB rung is never
+  > reached. The refused leg went from dying at ~55 check-ins to surviving 450 — the
+  > control's own count. **One attempt failed first and is worth more than the fix**: making
+  > the trim a bisection removed ~9 of every 10 encodes and bought only 114 s → 168 s, which
+  > is what proved the trim walk was never the cause. Every version of it encoded all ~70
+  > rows *first*, and that single allocation was the whole of it.
+  >
+  > **What the fix does NOT address, and it is the half this section cares about most:** a
+  > refused node is now indefinitely silent instead of dead in 2.5 minutes. `misses` still
+  > counts no-reply, so it still reads 0 under total refusal, and the `err` reply's `msg`
+  > is still discarded. The liveness question this document exists for is therefore *more*
+  > open than before, not less — rete#199 stays open on exactly that.
+  >
   > **A first host reproduction was retracted** (it set `OEVM_HEAP_SIZE` as an environment
   > variable, but that is a compile-time macro, `gc.c:18-19`, so it measured the 16 MB host
   > default). **rete#179, which had blocked doing it properly, is closed**: the host could not
