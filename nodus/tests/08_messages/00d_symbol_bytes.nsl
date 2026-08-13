@@ -1,0 +1,45 @@
+(*
+expect:
+3
+97
+98
+99
+4
+#a
+#ab
+#b
+*)
+(* rete#205 — a Symbol answers at:/size over its NAME bytes, so nothing has to
+   build a String to read them.
+
+   This is the gate for a PERFORMANCE fix, which is why it asserts SEMANTICS and
+   not a number: the win (71% of the node's C-heap allocation, one of only two
+   C-heap allocators there) is measured by an allocation window on hardware, but
+   what could silently break is the ORDER, and order is what every Map, every
+   value `=` and every encoded frame depends on.
+
+   Two properties, deliberately together:
+     1. at:/size read the name WITHOUT the '#' that printString prefixes — hence
+        `#abc size` = 3 while `#abc printString size` = 4. If a future change
+        routed this back through printString, `at: 1` would answer $# (35) for
+        every Symbol alike and this test would say so.
+     2. Symbol ordering is IDENTICAL to what comparing printStrings gave, which
+        is what a Map's canonical key order is built on. Both operands in the
+        rank-6 arm are Symbols, so the shared '#' cancelled — and #a/#ab is the
+        exact-prefix tie, the case where an off-by-one in the old '#'-skipping
+        would have hidden. *)
+class SymbolBytes packageUsing: manifest = () (
+public main: platform args: args = (
+  | M m |
+  #abc size printString out.
+  (#abc at: 1) printString out.
+  (#abc at: 2) printString out.
+  (#abc at: 3) printString out.
+  #abc printString size printString out.
+
+  M:: platform Map.
+  m:: M with: #b -> 1 with: #ab -> 2 with: #a -> 3.
+  m keysDo: [ :k | k printString out ].
+)
+) : (
+)

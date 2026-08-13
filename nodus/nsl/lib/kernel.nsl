@@ -773,15 +773,19 @@ class Kernel usingPlatform: platform = () (
       1 to: n do: [ :i | acc add: (v u8At: i) ].
       ^ self )
 
-    (* Symbol -> tag 39 (identifier) wrapping its UTF-8 text as major-3. A Symbol
-       has no at:/size fast path (dispatch.c), so its text is taken from
-       printString ('#' + name) with the leading '#' dropped. *)
-    encodeSymbol: v into: acc = ( | ps n |
+    (* Symbol -> tag 39 (identifier) wrapping its UTF-8 text as major-3. Read
+       straight off the Symbol via at:/size (rete#205). This used to go through
+       `printString` and drop the leading '#', because a Symbol had no at:/size
+       fast path in dispatch.c — which cost a C-heap malloc and a dead String per
+       encoded Symbol, one of only TWO C-heap allocators on the whole node
+       (docs/results/2026-08-12-allocation-attribution-c6.md §5.3). The emitted
+       bytes are unchanged: printString's payload was always '#' + name, and the
+       '#' was always skipped. *)
+    encodeSymbol: v into: acc = ( | n |
       self emitHead: 6 len: 39 into: acc.    (* tag 39 = 0xd827 *)
-      ps:: v printString.
-      n:: ps size - 1.
+      n:: v size.
       self emitHead: 3 len: n into: acc.
-      1 to: n do: [ :i | acc add: (ps at: i + 1) ].
+      1 to: n do: [ :i | acc add: (v at: i) ].
       ^ self )
 
     encodeList: v into: acc depth: d = (
@@ -1177,15 +1181,19 @@ class Kernel usingPlatform: platform = () (
     public nameAt: slot = ( ^ names at: slot + 1 )
 
     (* tuvm#107: the path segment for this slot's sibling cell at
-       diag/spans/<span>. A Symbol printStrings with a leading '#', which must not
-       appear in a path. The strip lives HERE, in one place, because SpanCapture
-       writes the cell and every reader derives the same string to find it — two
-       copies of this rule are two ways for them to disagree. *)
+       diag/spans/<span>. The conversion lives HERE, in one place, because
+       SpanCapture writes the cell and every reader derives the same string to
+       find it — two copies of this rule are two ways for them to disagree.
+
+       rete#205: this used to read the name out of `printString` and skip the
+       leading '#', which built a String and a C-heap block per call. A Symbol
+       now answers at:/size over its name directly, so there is no '#' to strip
+       and no scratch String to make. Same output. *)
     public pathAt: slot = (
       | s ws |
-      s:: (self nameAt: slot) printString.
+      s:: self nameAt: slot.
       ws:: WriteStream new.
-      2 to: s size do: [ :i | ws nextPut: (s at: i) ].
+      1 to: s size do: [ :i | ws nextPut: (s at: i) ].
       ^ ws contents )
 
     (* tuvm#72: which side STAMPS this span. DERIVED from the reserved pair rather
@@ -3293,13 +3301,21 @@ class Kernel usingPlatform: platform = () (
      4 String, 6 Symbol, 7 List. Rank compare always runs FIRST, so values of
      different ranks are never equal (Integer 1 is not Float 1.0 in this
      algebra) even though both ranks individually order via `<`. Boolean
-     order is a fixed, arbitrary choice: false < true. Symbol has no
-     `at:`/`size` fast path in dispatch.c (only String's PRIM_at/PRIM_size do
-     — confirmed by reading src/dispatch.c; a bare Symbol falls through to
-     does_not_understand on `at:`), so genuine Symbols (Booleans are already
-     peeled off as rank 1 before this arm) are compared byte-wise via their
-     `printString` (which renders as '#' + name for a real Symbol), reusing
-     the String byte-compare helper below. *)
+     order is a fixed, arbitrary choice: false < true. Genuine Symbols
+     (Booleans are already peeled off as rank 1 before this arm) are compared
+     byte-wise through the same String helper below, reading their name bytes
+     directly via at:/size.
+
+     UNTIL rete#205 that read went through `printString` ('#' + name), because
+     dispatch.c's PRIM_at/PRIM_size fast-pathed String and RawBytes but not
+     Symbol. It was not a cosmetic detour: printString's Symbol arm mallocs a
+     scratch buffer and builds a String, so ONE comparison cost two C-heap
+     mallocs and two immediately-dead Strings — and since this method is the
+     Map's own order, it runs on every construction sort AND every binary-search
+     key lookup. Measured at 71% of all C-heap allocation on a bridging node
+     (docs/results/2026-08-12-allocation-attribution-c6.md §5.3). The ORDER is
+     unchanged: both operands here are Symbols, so both printStrings carried the
+     same '#' prefix and comparing the names gives the identical answer. *)
   valueCompare: a with: b = (
     | ra rb |
     ra:: rankOf: a. rb:: rankOf: b.
@@ -3312,7 +3328,7 @@ class Kernel usingPlatform: platform = () (
       a < b ifTrue: [ ^ -1 ]. b < a ifTrue: [ ^ 1 ]. ^ 0 ].
     ra = 4 ifTrue: [ ^ byteCompare: a with: b ].                 (* String *)
     ra = 5 ifTrue: [ ^ bytesCompare: a with: b ].                (* Bytes *)
-    ra = 6 ifTrue: [ ^ byteCompare: a printString with: b printString ]. (* Symbol *)
+    ra = 6 ifTrue: [ ^ byteCompare: a with: b ].                 (* Symbol *)
     ra = 7 ifTrue: [ ^ listCompare: a with: b ].                 (* List *)
     ra = 8 ifTrue: [ ^ mapCompare: a with: b ].                  (* Map *)
     ra = 9 ifTrue: [ ^ recordCompare: a with: b ].                (* Record *)
@@ -3320,8 +3336,9 @@ class Kernel usingPlatform: platform = () (
   )
 
   (* Byte-wise total order over two Strings: shared-prefix bytes decide first;
-     an exact-prefix tie falls to shorter-is-less. Shared by the String (rank
-     4) and Symbol (rank 6, via printString) arms above. *)
+     an exact-prefix tie falls to shorter-is-less. Shared verbatim by the String
+     (rank 4) and Symbol (rank 6) arms above — since rete#205 both answer at:
+     and size, so neither needs converting to reach the other's helper. *)
   byteCompare: s with: t = (
     | n m lim |
     n:: s size. m:: t size. lim:: n < m ifTrue: [ n ] ifFalse: [ m ].

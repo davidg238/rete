@@ -1755,6 +1755,21 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                 if (receiver != NULL && !IS_SMI(receiver) && RawBytesVtable != NULL &&
                     obj_vtable(receiver) == RawBytesVtable)
                     return TAG_SMI((intptr_t)((struct String *)receiver)->length);
+                /* Symbol (rete#205): since rete#190 stage 2 a Symbol's name is
+                   INLINE, `{base, length, name[]}` — the same shape String and
+                   RawBytes already share here — so its bytes are readable in
+                   place and there is no reason left for it to be the one byte
+                   sequence that cannot be read. Its absence was not free:
+                   kernel.nsl had to reach a Symbol's text through printString at
+                   both `valueCompare:with:` rank 6 and `encodeSymbol:into:`, and
+                   printString's Symbol arm mallocs a '#'-prefixed scratch buffer
+                   and builds a String from it. That made a single Symbol-vs-Symbol
+                   comparison two C-heap mallocs and two immediately-dead Strings,
+                   which measured as 71% of ALL C-heap allocation on a bridging
+                   node (docs/results/2026-08-12-allocation-attribution-c6.md §5.3). */
+                if (receiver != NULL && !IS_SMI(receiver) && SymbolVtable != NULL &&
+                    obj_vtable(receiver) == SymbolVtable)
+                    return TAG_SMI((intptr_t)((struct Symbol *)receiver)->length);
             }
             break;
             case PRIM_at: {
@@ -1774,6 +1789,19 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                     intptr_t idx = IS_SMI(args[0]) ? UNTAG_SMI(args[0]) : 0;
                     if (idx < 1 || idx > (intptr_t)s->length) { fprintf(stderr, "index out of bounds\n"); abort(); }
                     return TAG_SMI((intptr_t)s->bytes[idx - 1]);   /* 1-based; returns 0..255 */
+                }
+                /* Symbol (rete#205): reads the NAME bytes, WITHOUT the '#' that
+                   printString prefixes — `#ab at: 1` is $a, not $#. That is the
+                   whole point: callers wanting the wire text no longer have to
+                   build a String and then skip its first byte. String's
+                   out-of-bounds message is copied rather than RawBytes' bare one
+                   because a Symbol is a text-like value, not a byte buffer. */
+                if (receiver != NULL && !IS_SMI(receiver) && SymbolVtable != NULL &&
+                    obj_vtable(receiver) == SymbolVtable) {
+                    struct Symbol *sy = (struct Symbol *)receiver;
+                    intptr_t idx = IS_SMI(args[0]) ? UNTAG_SMI(args[0]) : 0;
+                    if (idx < 1 || idx > (intptr_t)sy->length) { fprintf(stderr, "VM Error: Symbol at: %ld out of bounds (size %zu)\n", (long)idx, sy->length); abort(); }
+                    return TAG_SMI((intptr_t)(unsigned char)symbol_name(sy)[idx - 1]);
                 }
             }
             break;
