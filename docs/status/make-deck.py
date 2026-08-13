@@ -55,10 +55,10 @@ STALE = FETCH_DATE != PROSE_DATE
 # spends a whole slide on. Slide 17 states the same judgement as prose instead.
 
 def band(i):
-    for b in ("P1", "P2", "P3"):
+    for b in ("P0", "P1", "P2", "P3", "P4"):
         if b in i["l"]:
             return b
-    return "someday" if "someday" in i["l"] else "unlabelled"
+    return "unbanded"          # only the meta tracker, #26, should land here
 
 ERAS = [(60,  "VM &amp; milestones", "to June"),
         (110, "Boards &amp; bring-up", "July"),
@@ -80,7 +80,7 @@ TOTAL = len(issues)
 def rows(items):
     out = []
     for i in items:
-        extra = " ".join(l for l in i["l"] if l not in ("P1", "P2", "P3", "someday"))
+        extra = " ".join(l for l in i["l"] if l not in ("P0", "P1", "P2", "P3", "P4"))
         tag = f'<span class="tag">{html.escape(extra)}</span>' if extra else ""
         out.append(f'<tr><td class="num">#{i["n"]}</td>'
                    f'<td>{html.escape(i["t"])} {tag}</td></tr>')
@@ -130,12 +130,13 @@ The issue tables were fetched <b>{FETCH_DATE}</b>; every judgement in the prose 
 <b>{PROSE_DATE}</b> and has not been re-read since. Trust the tables; check the prose against the
 tree before acting on it.</div>""" if STALE else "")
 
+p0n = sum(1 for i in issues if i["band"] == "P0")
 p1n = sum(1 for i in issues if i["band"] == "P1")
 slide("shape", "rete", STALE_BAND + f"""
 <p class="lede">One repository. Two halves that never import each other. One wire between them.</p>
 <div class="titlefacts">
   <div><b>{PROSE_DATE}</b><span>branch <code>190-alloc-seam</code>, pushed</span></div>
-  <div><b>{TOTAL} open issues</b><span>{p1n} labelled P1 &mdash; three of them inherited</span></div>
+  <div><b>{TOTAL} open issues</b><span>{p0n} P0 and {p1n} P1 &mdash; every P0 is live on hardware</span></div>
   <div><b>3 boards live</b><span>one of them is a bell in a house</span></div>
 </div>
 <p class="note">The system works end to end today. What is unresolved is mostly <b>safety and
@@ -324,19 +325,23 @@ and mistaking one for another has cost whole mornings.</p>
 # ==========================================================================
 #  SECTION 3 — WHAT'S BROKEN
 # ==========================================================================
-slide("broken", "Before the issue list: the labels lie", """
-<p class="lede">This is most of why the tracker feels overwhelming. It is not 136 live problems.</p>
+slide("broken", "Before the issue list: what the labels are worth", f"""
+<p class="lede">The tracker was 85 unlabelled issues out of 137. On <b>2026-08-12</b> that was swept:
+15 closed against verified evidence, 85 banded, <code>someday</code> retired into <b>P4</b>. What is
+left is {TOTAL} open issues on one ladder &mdash; but two caveats survive the sweep.</p>
 <div class="two">
-  <div class="card"><h3>Three of the six P1s are inherited</h3>
+  <div class="card"><h3>Three P1s are still inherited</h3>
   <p><b>#12</b>, <b>#22</b> and <b>#31</b> were labelled in the VM-milestone era, months and one whole
-  rewrite ago. They have not been re-read against today&rsquo;s tree. They may be dead, live, or
-  irrelevant &mdash; nobody has checked.</p></div>
-  <div class="card"><h3>One P1 is an umbrella, largely done</h3>
+  rewrite ago. The sweep did not touch them, because it was scoped to the unlabelled. They may be
+  dead, live, or irrelevant &mdash; still nobody has checked.</p></div>
+  <div class="card"><h3>One P1 is an umbrella, done</h3>
   <p><b>#120</b> is the tracker for &ldquo;scrap the command model, channels win&rdquo;. All three plans under it
-  landed. It stays open as a heading, not as a defect &mdash; but it reads as a top-priority bug.</p></div>
+  landed and the C6 gate closed the rung 5/5. It is a heading, not a defect &mdash; but it reads as a
+  top-priority bug. Closing it is the next cheap move.</p></div>
 </div>
-<p class="note"><b>Two P1s are genuinely live and both are on this bench: #201 and #199.</b>
-They are the next two slides. Everything else in the tracker can wait for you to want it.</p>
+<p class="note"><b>The three P0s are the real reading order</b> &mdash; #190, #206, #192, all live on
+hardware. Of the P1s, #201 and #199 are the two on this bench. Everything else can wait for you to
+want it.</p>
 """, eyebrow="read this first")
 
 slide("broken", "RED &mdash; the bell can stick on", """
@@ -427,7 +432,7 @@ None is urgent today; all get expensive the moment a new feature needs room.</p>
 #  SECTION 4 — SHAPE OF THE BACKLOG
 # ==========================================================================
 era_order = ["VM &amp; milestones", "Boards &amp; bring-up", "porta rewrite", "Current work"]
-slide("backlog", "Where the 136 issues actually come from", f"""
+slide("backlog", f"Where the {TOTAL} issues actually come from", f"""
 <p class="lede">By the era that opened them &mdash; which is objective, since issue numbers only go up.</p>
 {bar(by_era, era_order, "var(--porta)")}
 <p class="note">Roughly <b>{by_era['VM &amp; milestones'] + by_era['Boards &amp; bring-up']} of {TOTAL}</b>
@@ -436,14 +441,14 @@ written against a system that has since been replaced, and almost none has been 
 """, eyebrow="by era")
 
 slide("backlog", "What you can safely leave alone", """
-<p class="lede">Deliberately not a chart. Keyword-grouping 136 titles gave answers that swung wildly
+<p class="lede">Deliberately not a chart. Keyword-grouping the titles gave answers that swung wildly
 with the order of the rules &mdash; a number that unstable is the kind of instrument this project has
 learned not to trust. So: a judgement, stated as one.</p>
 <div class="tree">
 <div class="trow"><code>per-device notes</code><span><b>Leave.</b> MagTag panels, S2 WiFi, nRF52840 pins, DAC quirks. They go quiet the moment you stop using that device, and several devices are already off the bench.</span></div>
 <div class="trow"><code>upstream patches</code><span><b>Leave.</b> Zephyr contributions. Real work, zero urgency, and one already merged.</span></div>
 <div class="trow"><code>pre-rewrite issues</code><span><b>Leave until touched.</b> Anything under #110 was written against a system that has since been replaced. Re-read one only when you are already in that code.</span></div>
-<div class="trow"><code>someday</code><span><b>Leave.</b> This band already did the triage &mdash; it is the only place &ldquo;not now&rdquo; was written down on purpose.</span></div>
+<div class="trow"><code>P4</code><span><b>Leave.</b> Hygiene and docs drift, batchable whenever. This band already did the triage &mdash; it is where &ldquo;not now&rdquo; was written down on purpose.</span></div>
 </div>
 <div class="tree" style="margin-top:20px">
 <div class="trow"><code>store hazards</code><span><b>Carry.</b> #180 and #206 arm themselves permanently and fire on a future reboot. They get harder to remember, not easier.</span></div>
@@ -488,30 +493,36 @@ the third is open-ended.</p>
 #  SECTION 5 — THE TABLE
 # ==========================================================================
 slide("table", "Every open issue, by priority", f"""
-<p class="lede">{TOTAL} open. The bands below are the labels as they stand &mdash; remember slide 10:
-three of the six P1s predate the current system.</p>
-{bar(by_band, ["P1","P2","P3","unlabelled","someday"], "var(--ink-2)")}
-<p class="note">The unlabelled majority is not a triage failure so much as a record of a project that
-moved faster than its own labels. Treat number order as rough age order.</p>
+<p class="lede">{TOTAL} open, and every one of them is banded &mdash; the 2026-08-12 sweep closed 15 and
+labelled the other 85. One ordered ladder, P0 to P4; the old <code>someday</code> label is retired.</p>
+{bar(by_band, ["P0","P1","P2","P3","P4"], "var(--ink-2)")}
+<p class="note">A band is a <b>proposal</b> until David ratifies it (the #26 convention: the filer
+proposes). Treat number order as rough age order.</p>
 """, eyebrow="reference")
 
-p1 = pick("P1"); p2 = pick("P2"); p3 = pick("P3")
-un = pick("unlabelled"); sd = pick("someday")
+p0 = pick("P0"); p1 = pick("P1"); p2 = pick("P2"); p3 = pick("P3"); p4 = pick("P4")
+un = pick("unbanded")
 
+slide("table", f"P0 &mdash; {len(p0)} issues", table(p0) +
+      '<p class="note">A node running unattended dies. All three are on real boards: <b>#190</b> is eight '
+      'fatal faults in seven days across three of them, the bell included.</p>',
+      eyebrow="blocker")
 slide("table", f"P1 &mdash; {len(p1)} issues", table(p1) +
       '<p class="note"><b>#199</b> and <b>#201</b> are live. <b>#120</b> is an umbrella whose work landed. '
-      '<b>#12</b>, <b>#22</b>, <b>#31</b> are from the VM era and unverified against today&rsquo;s tree.</p>',
-      eyebrow="highest label")
+      '<b>#12</b>, <b>#22</b>, <b>#31</b> are from the VM era and unverified against today&rsquo;s tree. '
+      'The eight added in that sweep are read against the current tree.</p>',
+      eyebrow="before a fleet")
 slide("table", f"P2 &mdash; {len(p2)} issues", table(p2), eyebrow="reference")
 for k, part in enumerate(chunk(p3, 11)):
     slide("table", f"P3 &mdash; {len(p3)} issues" + (f" ({k+1}/{len(chunk(p3,11))})" if len(p3) > 11 else ""),
           table(part), eyebrow="reference")
-for k, part in enumerate(chunk(un, 22)):
-    slide("table", f"Unlabelled &mdash; {len(un)} issues ({k+1}/{len(chunk(un,22))})",
-          table(part), eyebrow="reference", cls="dense")
-slide("table", f"someday &mdash; {len(sd)} issues", table(sd) +
-      '<p class="note">Explicitly parked. This band is doing its job &mdash; it is the only part of the '
-      'tracker where &ldquo;not now&rdquo; was written down on purpose.</p>', eyebrow="parked", cls="dense")
+slide("table", f"P4 &mdash; {len(p4)} issues", table(p4) +
+      '<p class="note">Hygiene and docs drift; no gate, batchable whenever. This band is doing its job '
+      '&mdash; it is where &ldquo;not now&rdquo; was written down on purpose.</p>', eyebrow="parked", cls="dense")
+if un:
+    slide("table", f"Unbanded &mdash; {len(un)} issue" + ("s" if len(un) != 1 else ""), table(un) +
+          '<p class="note">The tracker itself carries no band. Anything else appearing here is an '
+          'issue filed since the sweep and not yet triaged.</p>', eyebrow="reference")
 
 slide("table", "Where the truth lives", """
 <p class="lede">When this deck goes stale &mdash; and it will, quickly &mdash; these are the sources.</p>

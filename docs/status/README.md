@@ -1,14 +1,31 @@
 # docs/status — the orientation deck
 
 A dated snapshot answering *where is this project right now*: what works, what is
-broken, and every open issue by priority. Written 2026-08-12, when 136 open issues
-had stopped being navigable by reading them.
+broken, and every open issue by priority. First written 2026-08-12, when 136 open
+issues had stopped being navigable by reading them.
 
 ```
 docs/status/2026-08-12-where-we-are.html    the deck — open it in a browser
 docs/status/make-deck.py                    the generator
 docs/status/issues.json                     the last `gh issue list` dump (cache)
 ```
+
+The filename is `PROSE_DATE`, so a deck written on a new day lands beside the old
+one rather than overwriting it. Two runs on the same day revise one file — which is
+what the second 2026-08-12 pass did.
+
+**Revised later on 2026-08-12** — the unlabelled sweep (#26): 15 issues closed
+against verified evidence, 85 banded, and the `someday` label retired into a fifth
+band, **P4**. The ladder is now one ordered axis, P0..P4, and every open issue
+carries a band except the tracker itself.
+
+> **A date trap, since it already caused one wrong staleness band.** `PROSE_DATE` is
+> hand-typed and `FETCH_DATE` is `issues.json`'s mtime — **both local time**, and the
+> bench runs MST. An agent session stamped in UTC is up to a day ahead after 17:00
+> local, and typing that UTC date into `PROSE_DATE` makes the deck accuse itself of
+> being stale against data fetched seconds earlier. Use the local date (`date`), not
+> the session's. The sweep's GitHub comments read 2026-08-13 for the same reason —
+> GitHub stamps UTC — and that is the one place the two conventions differ.
 
 Rebuild:
 

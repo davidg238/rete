@@ -207,14 +207,14 @@ table.issues{border-collapse:collapse; width:100%; font-size:13.5px}
 <p class="lede">One repository. Two halves that never import each other. One wire between them.</p>
 <div class="titlefacts">
   <div><b>2026-08-12</b><span>branch <code>190-alloc-seam</code>, pushed</span></div>
-  <div><b>136 open issues</b><span>6 labelled P1 &mdash; three of them inherited</span></div>
+  <div><b>122 open issues</b><span>3 P0 and 14 P1 &mdash; every P0 is live on hardware</span></div>
   <div><b>3 boards live</b><span>one of them is a bell in a house</span></div>
 </div>
 <p class="note">The system works end to end today. What is unresolved is mostly <b>safety and
 observability</b>, not function. If you read four slides, read <b>05</b> (status), <b>10</b> (why the
 tracker misleads), <b>11</b> (the one thing that can hurt something) and <b>19</b> (what to do next).</p>
 </div>
-  <span class="pn">01<i>/30</i></span>
+  <span class="pn">01<i>/31</i></span>
 </section>
 <section class="slide " id="s2" data-sec="shape">
   <div class="inner"><p class="eyebrow">the map</p><h2>The whole system, once</h2>
@@ -268,7 +268,7 @@ tracker misleads), <b>11</b> (the one thing that can hurt something) and <b>19</
 accepts a push. Three real boards run this today; they are on slide 09.</figcaption>
 </figure>
 </div>
-  <span class="pn">02<i>/30</i></span>
+  <span class="pn">02<i>/31</i></span>
 </section>
 <section class="slide " id="s3" data-sec="shape">
   <div class="inner"><p class="eyebrow">the model</p><h2>The one idea worth holding</h2>
@@ -289,7 +289,7 @@ accepts a push. Three real boards run this today; they are on slide 09.</figcapt
 to a path; <code>porta get</code> is a tree read. Adding a feature adds a <b>path</b> &mdash; not a table,
 not an endpoint, not a command. That is the decision the whole rewrite turned on.</p>
 </div>
-  <span class="pn">03<i>/30</i></span>
+  <span class="pn">03<i>/31</i></span>
 </section>
 <section class="slide " id="s4" data-sec="shape">
   <div class="inner"><p class="eyebrow">the tree</p><h2>What is actually in the repo</h2>
@@ -305,11 +305,11 @@ not an endpoint, not a command. That is the decision the whole rewrite turned on
 <p class="note">Being in one repo does not couple the two halves: they are joined <b>only</b> over the wire.
 A change that makes one side compile against the other is a bug, not a convenience.</p>
 </div>
-  <span class="pn">04<i>/30</i></span>
+  <span class="pn">04<i>/31</i></span>
 </section>
 <section class="slide " id="s5" data-sec="shape">
   <div class="inner"><p class="eyebrow">one screen</p><h2>Status board</h2><div class="statusgrid"><div class="srow"><span class="dot green"></span><span class="sname">porta &mdash; store, wire, CLI</span><span class="sstate green">green</span><span class="snote">4 tables, pull/push, hand-rolled CBOR. Go tests all pass.</span></div><div class="srow"><span class="dot green"></span><span class="sname">The wire &mdash; space sync</span><span class="sstate green">green</span><span class="snote">Node-initiated pull/push, live on hardware for weeks.</span></div><div class="srow"><span class="dot green"></span><span class="sname">nodus &mdash; the VM</span><span class="sstate green">green</span><span class="snote">Runs; the malloc-halt class was fixed and re-measured this week.</span></div><div class="srow"><span class="dot green"></span><span class="sname">nodus &mdash; nsl + kernel</span><span class="sstate green">green</span><span class="snote">261 tests, 0 failed. The language is stable enough to build on.</span></div><div class="srow"><span class="dot green"></span><span class="sname">Thread mesh radio</span><span class="sstate green">green</span><span class="snote">Was the big blocker. Four driver bugs fixed; one merged upstream.</span></div><div class="srow"><span class="dot green"></span><span class="sname">Measurement &amp; profiling</span><span class="sstate green">green</span><span class="snote">Per-method call counts, allocation attribution, span latency. All measured, not projected.</span></div><div class="srow"><span class="dot amber"></span><span class="sname">Node liveness under stress</span><span class="sstate amber">amber</span><span class="snote">The known death is fixed on branch; #192 is still unexplained.</span></div><div class="srow"><span class="dot amber"></span><span class="sname">Observability honesty</span><span class="sstate amber">amber</span><span class="snote">Recurring theme: the instruments have lied more than the code has.</span></div><div class="srow"><span class="dot amber"></span><span class="sname">Gateway store as a hazard</span><span class="sstate amber">amber</span><span class="snote">Two ways a legal porta write silently bricks a node. Neither is fixed.</span></div><div class="srow"><span class="dot red"></span><span class="sname">Actuator safety</span><span class="sstate red">red</span><span class="snote">A failed flash can hold the bell&rsquo;s striker on, unbounded. Not fixed.</span></div><div class="srow"><span class="dot amber"></span><span class="sname">OTA / code push</span><span class="sstate amber">amber</span><span class="snote">Works; a stuck node refetches ~200 kB every 6 s.</span></div><div class="srow"><span class="dot grey"></span><span class="sname">Auth, multi-tenant, fleet ops</span><span class="sstate grey">grey</span><span class="snote">Deliberately not started.</span></div></div></div>
-  <span class="pn">05<i>/30</i></span>
+  <span class="pn">05<i>/31</i></span>
 </section>
 <section class="slide " id="s6" data-sec="shape">
   <div class="inner"><p class="eyebrow">evidence</p><h2>Verified today, not remembered</h2>
@@ -329,7 +329,7 @@ this PATH. And <code>target gates: NOT RUN BY THIS SUITE</code> &mdash; the host
 the pulse mailbox, so coalescing, shedding and stale handles are untested here and need a board.
 <b>A suite that announces its own blind spots is the whole reason to trust the rest of the line.</b></p>
 </div>
-  <span class="pn">06<i>/30</i></span>
+  <span class="pn">06<i>/31</i></span>
 </section>
 <section class="slide " id="s7" data-sec="halves">
   <div class="inner"><p class="eyebrow">north</p><h2>porta &mdash; the gateway half</h2>
@@ -351,7 +351,7 @@ the pulse mailbox, so coalescing, shedding and stale handles are untested here a
 <p class="note">Operationally: <code>porta.service</code> is <b>disabled</b>; v2 is hand-started from
 <code>~/porta-v2</code>. Restarting it costs every node an outage.</p>
 </div>
-  <span class="pn">07<i>/30</i></span>
+  <span class="pn">07<i>/31</i></span>
 </section>
 <section class="slide " id="s8" data-sec="halves">
   <div class="inner"><p class="eyebrow">south</p><h2>nodus &mdash; the device half</h2>
@@ -374,7 +374,7 @@ the pulse mailbox, so coalescing, shedding and stale handles are untested here a
 <code>ns/oevm</code> &rarr; <code>nsl/tuvm</code>. This system has been rewritten wholesale four times.
 Nothing here is built to last; it is built to teach.</p>
 </div>
-  <span class="pn">08<i>/30</i></span>
+  <span class="pn">08<i>/31</i></span>
 </section>
 <section class="slide " id="s9" data-sec="halves">
   <div class="inner"><p class="eyebrow">hardware</p><h2>The bench, right now</h2>
@@ -391,24 +391,28 @@ Nothing here is built to last; it is built to teach.</p>
 <p class="note">The three C6 devkits are physically identical. <b>Only the USB serial hash tells them apart</b>,
 and mistaking one for another has cost whole mornings.</p>
 </div>
-  <span class="pn">09<i>/30</i></span>
+  <span class="pn">09<i>/31</i></span>
 </section>
 <section class="slide " id="s10" data-sec="broken">
-  <div class="inner"><p class="eyebrow">read this first</p><h2>Before the issue list: the labels lie</h2>
-<p class="lede">This is most of why the tracker feels overwhelming. It is not 136 live problems.</p>
+  <div class="inner"><p class="eyebrow">read this first</p><h2>Before the issue list: what the labels are worth</h2>
+<p class="lede">The tracker was 85 unlabelled issues out of 137. On <b>2026-08-12</b> that was swept:
+15 closed against verified evidence, 85 banded, <code>someday</code> retired into <b>P4</b>. What is
+left is 122 open issues on one ladder &mdash; but two caveats survive the sweep.</p>
 <div class="two">
-  <div class="card"><h3>Three of the six P1s are inherited</h3>
+  <div class="card"><h3>Three P1s are still inherited</h3>
   <p><b>#12</b>, <b>#22</b> and <b>#31</b> were labelled in the VM-milestone era, months and one whole
-  rewrite ago. They have not been re-read against today&rsquo;s tree. They may be dead, live, or
-  irrelevant &mdash; nobody has checked.</p></div>
-  <div class="card"><h3>One P1 is an umbrella, largely done</h3>
+  rewrite ago. The sweep did not touch them, because it was scoped to the unlabelled. They may be
+  dead, live, or irrelevant &mdash; still nobody has checked.</p></div>
+  <div class="card"><h3>One P1 is an umbrella, done</h3>
   <p><b>#120</b> is the tracker for &ldquo;scrap the command model, channels win&rdquo;. All three plans under it
-  landed. It stays open as a heading, not as a defect &mdash; but it reads as a top-priority bug.</p></div>
+  landed and the C6 gate closed the rung 5/5. It is a heading, not a defect &mdash; but it reads as a
+  top-priority bug. Closing it is the next cheap move.</p></div>
 </div>
-<p class="note"><b>Two P1s are genuinely live and both are on this bench: #201 and #199.</b>
-They are the next two slides. Everything else in the tracker can wait for you to want it.</p>
+<p class="note"><b>The three P0s are the real reading order</b> &mdash; #190, #206, #192, all live on
+hardware. Of the P1s, #201 and #199 are the two on this bench. Everything else can wait for you to
+want it.</p>
 </div>
-  <span class="pn">10<i>/30</i></span>
+  <span class="pn">10<i>/31</i></span>
 </section>
 <section class="slide " id="s11" data-sec="broken">
   <div class="inner"><p class="eyebrow">#201 / #202 &middot; safety</p><h2>RED &mdash; the bell can stick on</h2>
@@ -430,7 +434,7 @@ They are the next two slides. Everything else in the tracker can wait for you to
 <p class="note">Your own priority correction, 12 Aug: <i>&ldquo;I don&rsquo;t care about 1 sec sound at flash,
 it&rsquo;s when it sticks on I care.&rdquo;</i> That is what #202 is scoped to.</p>
 </div>
-  <span class="pn">11<i>/30</i></span>
+  <span class="pn">11<i>/31</i></span>
 </section>
 <section class="slide " id="s12" data-sec="broken">
   <div class="inner"><p class="eyebrow">#199 &middot; liveness</p><h2>RED &mdash; a node can die while reporting itself healthy</h2>
@@ -451,7 +455,7 @@ it&rsquo;s when it sticks on I care.&rdquo;</i> That is what #202 is scoped to.<
 <p class="note">The general shape, and it recurs: <b>the instrument agreed with the happy case and had no
 opinion about the failing one.</b> That is the theme two slides on.</p>
 </div>
-  <span class="pn">12<i>/30</i></span>
+  <span class="pn">12<i>/31</i></span>
 </section>
 <section class="slide " id="s13" data-sec="broken">
   <div class="inner"><p class="eyebrow">#180 / #206 &middot; the store</p><h2>AMBER &mdash; the gateway store can brick a node</h2>
@@ -468,7 +472,7 @@ opinion about the failing one.</b> That is the theme two slides on.</p>
 so the hazard is permanent and arms itself on the next reset &mdash; long after whoever typed the command
 has forgotten. Driving a profile window is <i>itself</i> the thing that arms #206.</p>
 </div>
-  <span class="pn">13<i>/30</i></span>
+  <span class="pn">13<i>/31</i></span>
 </section>
 <section class="slide " id="s14" data-sec="broken">
   <div class="inner"><p class="eyebrow">the recurring theme</p><h2>AMBER &mdash; the instruments lie more than the code does</h2>
@@ -483,7 +487,7 @@ has forgotten. Driving a profile window is <i>itself</i> the thing that arms #20
 <p class="note">The working rule that came out of it: <b>gate on the failure reproducing, never on the metric
 improving</b> &mdash; a 9&times; win once still let the node die.</p>
 </div>
-  <span class="pn">14<i>/30</i></span>
+  <span class="pn">14<i>/31</i></span>
 </section>
 <section class="slide " id="s15" data-sec="broken">
   <div class="inner"><p class="eyebrow">capacity</p><h2>AMBER &mdash; the ceilings</h2>
@@ -502,35 +506,35 @@ improving</b> &mdash; a 9&times; win once still let the node die.</p>
 <p class="note">These share a shape: <b>a limit that is only visible when something is already against it</b>.
 None is urgent today; all get expensive the moment a new feature needs room.</p>
 </div>
-  <span class="pn">15<i>/30</i></span>
+  <span class="pn">15<i>/31</i></span>
 </section>
 <section class="slide " id="s16" data-sec="backlog">
-  <div class="inner"><p class="eyebrow">by era</p><h2>Where the 136 issues actually come from</h2>
+  <div class="inner"><p class="eyebrow">by era</p><h2>Where the 122 issues actually come from</h2>
 <p class="lede">By the era that opened them &mdash; which is objective, since issue numbers only go up.</p>
-<div class="bars"><div class="bar"><span class="bl">VM &amp; milestones</span><span class="bt"><i style="width:70.7%;background:var(--porta)"></i></span><span class="bv">29</span></div><div class="bar"><span class="bl">Boards &amp; bring-up</span><span class="bt"><i style="width:82.9%;background:var(--porta)"></i></span><span class="bv">34</span></div><div class="bar"><span class="bl">porta rewrite</span><span class="bt"><i style="width:100.0%;background:var(--porta)"></i></span><span class="bv">41</span></div><div class="bar"><span class="bl">Current work</span><span class="bt"><i style="width:78.0%;background:var(--porta)"></i></span><span class="bv">32</span></div></div>
-<p class="note">Roughly <b>63 of 136</b>
+<div class="bars"><div class="bar"><span class="bl">VM &amp; milestones</span><span class="bt"><i style="width:84.8%;background:var(--porta)"></i></span><span class="bv">28</span></div><div class="bar"><span class="bl">Boards &amp; bring-up</span><span class="bt"><i style="width:90.9%;background:var(--porta)"></i></span><span class="bv">30</span></div><div class="bar"><span class="bl">porta rewrite</span><span class="bt"><i style="width:93.9%;background:var(--porta)"></i></span><span class="bv">31</span></div><div class="bar"><span class="bl">Current work</span><span class="bt"><i style="width:100.0%;background:var(--porta)"></i></span><span class="bv">33</span></div></div>
+<p class="note">Roughly <b>58 of 122</b>
 were opened before the porta rewrite even started. They are not necessarily wrong &mdash; but they were
 written against a system that has since been replaced, and almost none has been re-read since.</p>
 </div>
-  <span class="pn">16<i>/30</i></span>
+  <span class="pn">16<i>/31</i></span>
 </section>
 <section class="slide " id="s17" data-sec="backlog">
   <div class="inner"><p class="eyebrow">the honest cut</p><h2>What you can safely leave alone</h2>
-<p class="lede">Deliberately not a chart. Keyword-grouping 136 titles gave answers that swung wildly
+<p class="lede">Deliberately not a chart. Keyword-grouping the titles gave answers that swung wildly
 with the order of the rules &mdash; a number that unstable is the kind of instrument this project has
 learned not to trust. So: a judgement, stated as one.</p>
 <div class="tree">
 <div class="trow"><code>per-device notes</code><span><b>Leave.</b> MagTag panels, S2 WiFi, nRF52840 pins, DAC quirks. They go quiet the moment you stop using that device, and several devices are already off the bench.</span></div>
 <div class="trow"><code>upstream patches</code><span><b>Leave.</b> Zephyr contributions. Real work, zero urgency, and one already merged.</span></div>
 <div class="trow"><code>pre-rewrite issues</code><span><b>Leave until touched.</b> Anything under #110 was written against a system that has since been replaced. Re-read one only when you are already in that code.</span></div>
-<div class="trow"><code>someday</code><span><b>Leave.</b> This band already did the triage &mdash; it is the only place &ldquo;not now&rdquo; was written down on purpose.</span></div>
+<div class="trow"><code>P4</code><span><b>Leave.</b> Hygiene and docs drift, batchable whenever. This band already did the triage &mdash; it is where &ldquo;not now&rdquo; was written down on purpose.</span></div>
 </div>
 <div class="tree" style="margin-top:20px">
 <div class="trow"><code>store hazards</code><span><b>Carry.</b> #180 and #206 arm themselves permanently and fire on a future reboot. They get harder to remember, not easier.</span></div>
 <div class="trow"><code>actuator safety</code><span><b>Carry.</b> #201, #202. Physical, and the only item with a deadline set by something other than you.</span></div>
 </div>
 </div>
-  <span class="pn">17<i>/30</i></span>
+  <span class="pn">17<i>/31</i></span>
 </section>
 <section class="slide " id="s18" data-sec="backlog">
   <div class="inner"><p class="eyebrow">the last two weeks</p><h2>What actually got finished recently</h2>
@@ -549,7 +553,7 @@ learned not to trust. So: a judgement, stated as one.</p>
   answer was 70% VM / 30% radio &mdash; the opposite of the expected culprit.</span></div>
 </div>
 </div>
-  <span class="pn">18<i>/30</i></span>
+  <span class="pn">18<i>/31</i></span>
 </section>
 <section class="slide " id="s19" data-sec="backlog">
   <div class="inner"><p class="eyebrow">pick one</p><h2>Three honest options for what&rsquo;s next</h2>
@@ -567,166 +571,151 @@ learned not to trust. So: a judgement, stated as one.</p>
 <p class="note">These are genuinely alternatives, not a sequence. The first is hours; the second is days;
 the third is open-ended.</p>
 </div>
-  <span class="pn">19<i>/30</i></span>
+  <span class="pn">19<i>/31</i></span>
 </section>
 <section class="slide " id="s20" data-sec="table">
   <div class="inner"><p class="eyebrow">reference</p><h2>Every open issue, by priority</h2>
-<p class="lede">136 open. The bands below are the labels as they stand &mdash; remember slide 10:
-three of the six P1s predate the current system.</p>
-<div class="bars"><div class="bar"><span class="bl">P1</span><span class="bt"><i style="width:7.1%;background:var(--ink-2)"></i></span><span class="bv">6</span></div><div class="bar"><span class="bl">P2</span><span class="bt"><i style="width:14.1%;background:var(--ink-2)"></i></span><span class="bv">12</span></div><div class="bar"><span class="bl">P3</span><span class="bt"><i style="width:22.4%;background:var(--ink-2)"></i></span><span class="bv">19</span></div><div class="bar"><span class="bl">unlabelled</span><span class="bt"><i style="width:100.0%;background:var(--ink-2)"></i></span><span class="bv">85</span></div><div class="bar"><span class="bl">someday</span><span class="bt"><i style="width:16.5%;background:var(--ink-2)"></i></span><span class="bv">14</span></div></div>
-<p class="note">The unlabelled majority is not a triage failure so much as a record of a project that
-moved faster than its own labels. Treat number order as rough age order.</p>
+<p class="lede">122 open, and every one of them is banded &mdash; the 2026-08-12 sweep closed 15 and
+labelled the other 85. One ordered ladder, P0 to P4; the old <code>someday</code> label is retired.</p>
+<div class="bars"><div class="bar"><span class="bl">P0</span><span class="bt"><i style="width:5.6%;background:var(--ink-2)"></i></span><span class="bv">3</span></div><div class="bar"><span class="bl">P1</span><span class="bt"><i style="width:25.9%;background:var(--ink-2)"></i></span><span class="bv">14</span></div><div class="bar"><span class="bl">P2</span><span class="bt"><i style="width:63.0%;background:var(--ink-2)"></i></span><span class="bv">34</span></div><div class="bar"><span class="bl">P3</span><span class="bt"><i style="width:100.0%;background:var(--ink-2)"></i></span><span class="bv">54</span></div><div class="bar"><span class="bl">P4</span><span class="bt"><i style="width:29.6%;background:var(--ink-2)"></i></span><span class="bv">16</span></div></div>
+<p class="note">A band is a <b>proposal</b> until David ratifies it (the #26 convention: the filer
+proposes). Treat number order as rough age order.</p>
 </div>
-  <span class="pn">20<i>/30</i></span>
+  <span class="pn">20<i>/31</i></span>
 </section>
 <section class="slide " id="s21" data-sec="table">
-  <div class="inner"><p class="eyebrow">highest label</p><h2>P1 &mdash; 6 issues</h2><div class="tw"><table class="issues"><tbody><tr><td class="num">#12</td><td>test_enclosures: latent uninitialized-memory abort under ASan / MALLOC_PERTURB_ </td></tr>
-<tr><td class="num">#22</td><td>shared heap: per-job byte attribution so supervisor/OOM policy can blame the hog, not the last allocator </td></tr>
-<tr><td class="num">#31</td><td>footprint gate SILENTLY SKIPS without the ARM toolchain — an unbanked +8B regression sat undetected for a day </td></tr>
-<tr><td class="num">#120</td><td>protocol rewrite: scrap the command model — channels win, and the node side is designed first <span class="tag">enhancement</span></td></tr>
-<tr><td class="num">#199</td><td>A node whose frames the gateway rejects exhausts its GC arena and halts in 2 min 37 s — and &#x27;misses 0&#x27; says it is healthy the whole way </td></tr>
-<tr><td class="num">#201</td><td>A failed flash leaves the bell&#x27;s striker ENERGIZED indefinitely — the ROM downloader drives no GPIOs </td></tr></tbody></table></div><p class="note"><b>#199</b> and <b>#201</b> are live. <b>#120</b> is an umbrella whose work landed. <b>#12</b>, <b>#22</b>, <b>#31</b> are from the VM era and unverified against today&rsquo;s tree.</p></div>
-  <span class="pn">21<i>/30</i></span>
+  <div class="inner"><p class="eyebrow">blocker</p><h2>P0 &mdash; 3 issues</h2><div class="tw"><table class="issues"><tbody><tr><td class="num">#190</td><td>VM halts on unchecked malloc — 8 fatal Store/AMO faults in 7 days on 3 boards; asSymbol leaks a malloc per decoded wire Symbol </td></tr>
+<tr><td class="num">#192</td><td>CHeapStats fromList: on the check-in path silently hangs a C6 (mechanism unknown) </td></tr>
+<tr><td class="num">#206</td><td>A second dbg/req profile request silently WEDGES the node when the window ends — the D6 restart path, fatal on target </td></tr></tbody></table></div><p class="note">A node running unattended dies. All three are on real boards: <b>#190</b> is eight fatal faults in seven days across three of them, the bell included.</p></div>
+  <span class="pn">21<i>/31</i></span>
 </section>
 <section class="slide " id="s22" data-sec="table">
-  <div class="inner"><p class="eyebrow">reference</p><h2>P2 &mdash; 12 issues</h2><div class="tw"><table class="issues"><tbody><tr><td class="num">#14</td><td>test_supervisor_grant gate: flaky 300s timeout under load (test itself runs ~4s) </td></tr>
+  <div class="inner"><p class="eyebrow">before a fleet</p><h2>P1 &mdash; 14 issues</h2><div class="tw"><table class="issues"><tbody><tr><td class="num">#12</td><td>test_enclosures: latent uninitialized-memory abort under ASan / MALLOC_PERTURB_ </td></tr>
+<tr><td class="num">#22</td><td>shared heap: per-job byte attribution so supervisor/OOM policy can blame the hog, not the last allocator </td></tr>
+<tr><td class="num">#31</td><td>footprint gate SILENTLY SKIPS without the ARM toolchain — an unbanked +8B regression sat undetected for a day </td></tr>
+<tr><td class="num">#75</td><td>VM: Symbol equality is identity — decoded (non-interned) symbols never `=` image literals </td></tr>
+<tr><td class="num">#81</td><td>timer_zephyr.c:71 k_oops()es on a load condition, justified by a claim about pulse_post_isr that is no longer true </td></tr>
+<tr><td class="num">#114</td><td>space-sync: a stream entry written while the bridge is down is lost — not acceptable for sys/panic </td></tr>
+<tr><td class="num">#117</td><td>space-sync: the node&#x27;s cursor and bootId live in RAM — a reboot re-pulls everything </td></tr>
+<tr><td class="num">#118</td><td>space-sync: node identity is a source constant in the first slice — decide the real scheme </td></tr>
+<tr><td class="num">#119</td><td>space-sync: a cold boot at cursor 0 must not re-execute old goal/do/* actions </td></tr>
+<tr><td class="num">#120</td><td>protocol rewrite: scrap the command model — channels win, and the node side is designed first <span class="tag">enhancement</span></td></tr>
+<tr><td class="num">#180</td><td>porta: Store.Write does not pin kind, so D6 is unenforced on the gateway side — the write that wedges a node (#174) is legal here </td></tr>
+<tr><td class="num">#199</td><td>A node whose frames the gateway rejects exhausts its GC arena and halts in 2 min 37 s — and &#x27;misses 0&#x27; says it is healthy the whole way </td></tr>
+<tr><td class="num">#201</td><td>A failed flash leaves the bell&#x27;s striker ENERGIZED indefinitely — the ROM downloader drives no GPIOs </td></tr>
+<tr><td class="num">#202</td><td>Actuator on-time must be bounded OUTSIDE the VM — AC-couple the drive so a stuck pin cannot hold the load on </td></tr></tbody></table></div><p class="note"><b>#199</b> and <b>#201</b> are live. <b>#120</b> is an umbrella whose work landed. <b>#12</b>, <b>#22</b>, <b>#31</b> are from the VM era and unverified against today&rsquo;s tree. The eight added in that sweep are read against the current tree.</p></div>
+  <span class="pn">22<i>/31</i></span>
+</section>
+<section class="slide " id="s23" data-sec="table">
+  <div class="inner"><p class="eyebrow">reference</p><h2>P2 &mdash; 34 issues</h2><div class="tw"><table class="issues"><tbody><tr><td class="num">#14</td><td>test_supervisor_grant gate: flaky 300s timeout under load (test itself runs ~4s) </td></tr>
 <tr><td class="num">#16</td><td>repo hygiene: committed src/solidified_image.c is stale vs a fresh regen </td></tr>
 <tr><td class="num">#28</td><td>L2 binary data: land u32/signed accessors, copyFrom:to:, and bitField: — the register-scripting surface </td></tr>
 <tr><td class="num">#29</td><td>L8 strings: no class String; and &#x27;valid UTF-8 by construction&#x27; is NOT enforced — a trap laid for Bytes&gt;&gt;asString </td></tr>
+<tr><td class="num">#35</td><td>diagnostic gcCollect prim — explicit collection entry (T-D.5 sampling, #19 idle-time trigger) </td></tr>
+<tr><td class="num">#37</td><td>perf: collections/blocks are the STIC gap — 26.6µs per block activation (collectionIterate 42× Toit) </td></tr>
+<tr><td class="num">#45</td><td>Phase 4: bespoke-AOT native hot-method substitution — go-signal proven (~119× Hanoi) </td></tr>
+<tr><td class="num">#60</td><td>gpio: debounce doorbell pins in C, and a separate counting API for pulse trains </td></tr>
+<tr><td class="num">#63</td><td>build footgun: adding one VM source file requires editing SEVEN enumerated source lists across two repos </td></tr>
 <tr><td class="num">#66</td><td>benchmark: &quot;surface in tokens&quot; — how much of a system can an agent hold at once? <span class="tag">enhancement</span></td></tr>
 <tr><td class="num">#67</td><td>measure: time-to-deployed-change (.oimg push) vs a flash cycle <span class="tag">enhancement revenue-gate</span></td></tr>
 <tr><td class="num">#71</td><td>guard: #65&#x27;s idle-connection reaper depends on CONFIG_NET_TCP_KEEPALIVE, and nothing enforces it <span class="tag">revenue-gate</span></td></tr>
 <tr><td class="num">#72</td><td>diag: bounded span-capture sessions on a diag/ channel family — stop the stats page measuring itself </td></tr>
+<tr><td class="num">#78</td><td>perf: value construction computes every element&#x27;s rank twice — one fused walk is ~20% off `publish` <span class="tag">enhancement</span></td></tr>
+<tr><td class="num">#97</td><td>nsl arithmetic: add modulo (and friends) — the `x - ((x // n) * n)` workaround keeps recurring </td></tr>
+<tr><td class="num">#98</td><td>Upstream: espressif simple-boot segment walk misclassifies RTC segments (fixed locally, bc47c6f) </td></tr>
+<tr><td class="num">#102</td><td>shipsBellsV3: clean-sheet ship&#x27;s-bell clock — nRF52840 + BLE + 2 ppm RTC, a run of five (design SEALED) </td></tr>
+<tr><td class="num">#144</td><td>upstream/espressif: a PT_NOTE segment over the DROM region produces a booting-but-garbled console on ESP32-C6 </td></tr>
+<tr><td class="num">#152</td><td>A UDP console sink cannot tell a dead node from a quiet one </td></tr>
+<tr><td class="num">#159</td><td>diag/spans/ctl is documented porta-&gt;node but porta may not write it — the authority model and RECORDS §4.6 disagree </td></tr>
+<tr><td class="num">#161</td><td>PortaBridge&gt;&gt;pushFrame is 62% of a check-in — the same value is CBOR-encoded three or more times </td></tr>
+<tr><td class="num">#163</td><td>Cbor&gt;&gt;encode: costs ~230 µs per byte on the C6 — the double encode is a 20% fix on top of it </td></tr>
+<tr><td class="num">#169</td><td>profiler: attribute cost to code, not to callees — inclusive counts (rung A) then call-site annotation (rung B) </td></tr>
+<tr><td class="num">#175</td><td>ota: a stuck node refetches the whole ~200 kB image every ~6 s, sustained — the D6 degenerate retry now has its measured cost </td></tr>
+<tr><td class="num">#176</td><td>porta serve exits if the blocks port (exchange+1) is taken — a port collision becomes a gateway outage </td></tr>
+<tr><td class="num">#177</td><td>T0.3: MCU ratchet unmeasured for the #25 ota seam (plausibly red), and footprint.sh measures neither ota.c nor span.c </td></tr>
+<tr><td class="num">#181</td><td>target harness: move the bench to gw85224-01 — build here, flash and observe there (D2&#x27;s remote seam, and the first half of the field path) </td></tr>
 <tr><td class="num">#193</td><td>OEVM_GC_STRESS is blind to use-after-sweep — a green stress run is not evidence that an oop was rooted </td></tr>
 <tr><td class="num">#194</td><td>gc.c trace_one: the StringVtable and RawBytesVtable leaf arms are guarded by no test </td></tr>
 <tr><td class="num">#198</td><td>Gatekeeper: the agent-facing query surface over porta — ratify D3, then run the five-question spike </td></tr>
-<tr><td class="num">#200</td><td>Wire versioning: mixed fleets are a reality, but the flag is the smaller half — relax FIELD closure, keep TAG closure, and name when the flag-day era ends </td></tr></tbody></table></div></div>
-  <span class="pn">22<i>/30</i></span>
+<tr><td class="num">#200</td><td>Wire versioning: mixed fleets are a reality, but the flag is the smaller half — relax FIELD closure, keep TAG closure, and name when the flag-day era ends </td></tr>
+<tr><td class="num">#203</td><td>Allocation attribution stage 2: the always-on table, sized at 80 allocating methods — and D4&#x27;s cost projection needs replacing with a measurement </td></tr>
+<tr><td class="num">#207</td><td>mprof: the allocation columns&#x27; own per-event price is unmeasurable while one flag gates both hooks </td></tr>
+<tr><td class="num">#208</td><td>log readers that key on a per-boot counter must segment on the boot banner — one fixed, the rest unaudited </td></tr></tbody></table></div></div>
+  <span class="pn">23<i>/31</i></span>
 </section>
-<section class="slide " id="s23" data-sec="table">
-  <div class="inner"><p class="eyebrow">reference</p><h2>P3 &mdash; 19 issues (1/2)</h2><div class="tw"><table class="issues"><tbody><tr><td class="num">#3</td><td>docs: footprint &#x27;excluding gc.o&#x27; RAM figure label precision </td></tr>
+<section class="slide " id="s24" data-sec="table">
+  <div class="inner"><p class="eyebrow">reference</p><h2>P3 &mdash; 54 issues (1/5)</h2><div class="tw"><table class="issues"><tbody><tr><td class="num">#3</td><td>docs: footprint &#x27;excluding gc.o&#x27; RAM figure label precision </td></tr>
 <tr><td class="num">#17</td><td>zephyr ram_report/rom_report: not top-level west targets + NCS python deps missing </td></tr>
 <tr><td class="num">#18</td><td>stale dispatch.c comment: udp receiver-gate &#x27;compiled-but-inert until Task 2&#x27; — net is wired + exercised </td></tr>
 <tr><td class="num">#30</td><td>L1: &#x27;1 to: n&#x27; sugar is not landable in nsl — integers have no reachable vtable; Interval ships with an explicit constructor </td></tr>
 <tr><td class="num">#33</td><td>space seam: peek:/put: do TWO find_channel scans per call — the kind guard doubles the lookup on a control loop&#x27;s hot path </td></tr>
-<tr><td class="num">#64</td><td>camera: Arducam Mega 5MP SPI as a second job-latency target — driver is on zephyr main, not 4.2, and the WROOM-32 has 288 B spare <span class="tag">enhancement</span></td></tr>
-<tr><td class="num">#68</td><td>measure: Model A vs Model B build time and peak RSS, recorded rather than remembered <span class="tag">enhancement</span></td></tr>
-<tr><td class="num">#69</td><td>tooling: assert the performance deck&#x27;s figures still match their witnesses in review/ <span class="tag">enhancement</span></td></tr>
-<tr><td class="num">#79</td><td>strategic: go-to-market — rollout, eyeballs, and whether there is any route to the silicon vendors <span class="tag">enhancement</span></td></tr>
-<tr><td class="num">#90</td><td>uc81xx: design an experiment for the back-buffer question — is the !auto_copy copy targeting the wrong bank? </td></tr>
-<tr><td class="num">#91</td><td>upstream: contribute the IL0373 uc81xx family member to Zephyr </td></tr></tbody></table></div></div>
-  <span class="pn">23<i>/30</i></span>
-</section>
-<section class="slide " id="s24" data-sec="table">
-  <div class="inner"><p class="eyebrow">reference</p><h2>P3 &mdash; 19 issues (2/2)</h2><div class="tw"><table class="issues"><tbody><tr><td class="num">#92</td><td>upstream: contribute cfb_framebuffer_finalize_area — CFB cannot express a bounded flush </td></tr>
-<tr><td class="num">#93</td><td>upstream: CFB&#x27;s draw_char_htmono ORs glyphs and ignores draw_bg — every caller must own a shadow grid </td></tr>
-<tr><td class="num">#95</td><td>upstream: dac_esp32.c treats clock_control_on&#x27;s -EALREADY as fatal — the ESP32 DAC never initialises </td></tr>
-<tr><td class="num">#103</td><td>upstream: DS3231 rtc_get_time never returns -ENODATA — an unset part answers 00:00:00 with rc=0 </td></tr>
-<tr><td class="num">#106</td><td>hygiene: the nsl suite leaves src/solidified_image.c dirty — a 16k-line junk commit waiting to happen </td></tr>
-<tr><td class="num">#150</td><td>Push trim starves sys/metrics: reserve bytes for the fresh record instead of reordering </td></tr>
-<tr><td class="num">#195</td><td>The tracked Path-A fixture has drifted ~10.7k lines from a fresh bake — so &#x27;git diff is clean&#x27; is not a tripwire </td></tr>
-<tr><td class="num">#196</td><td>layout-esp32.json and layout-esp32s2.json are stale — Model B for the WROOM-32 and MagTag now fails at bake </td></tr></tbody></table></div></div>
-  <span class="pn">24<i>/30</i></span>
-</section>
-<section class="slide dense" id="s25" data-sec="table">
-  <div class="inner"><p class="eyebrow">reference</p><h2>Unlabelled &mdash; 85 issues (1/4)</h2><div class="tw"><table class="issues"><tbody><tr><td class="num">#26</td><td>meta: priority tracker — P0..P3 ladder, together-groupings, release gates </td></tr>
-<tr><td class="num">#35</td><td>diagnostic gcCollect prim — explicit collection entry (T-D.5 sampling, #19 idle-time trigger) </td></tr>
-<tr><td class="num">#37</td><td>perf: collections/blocks are the STIC gap — 26.6µs per block activation (collectionIterate 42× Toit) </td></tr>
 <tr><td class="num">#41</td><td>cross-VM Richards/DeltaBlue device columns — Toit via jag (second WROOM-32), then CircuitPython </td></tr>
 <tr><td class="num">#42</td><td>Validate Model B (.oimg) device default on nRF52840-DK hardware </td></tr>
 <tr><td class="num">#43</td><td>zephyr/capture_coredump.py: fixed window truncates long runs; overlapping captures collide on port </td></tr>
 <tr><td class="num">#44</td><td>host image-VM link recipe omits src/backend/$TARGET/timer_$TARGET.c — test_load_run.sh fails to link </td></tr>
-<tr><td class="num">#45</td><td>Phase 4: bespoke-AOT native hot-method substitution — go-signal proven (~119× Hanoi) </td></tr>
 <tr><td class="num">#47</td><td>Decide: full internal oevm -&gt; tuvm symbol sweep (or keep the split) </td></tr>
-<tr><td class="num">#48</td><td>ESP32: zero-SDK-touch mechanism for picolibc setjmp/longjmp/ungetc (avoid vendored-SDK patch) </td></tr>
-<tr><td class="num">#49</td><td>VM: Record/Map checkValue: segfaults on a non-value (Block) field instead of raising &#x27;not a value&#x27; </td></tr>
+<tr><td class="num">#48</td><td>ESP32: zero-SDK-touch mechanism for picolibc setjmp/longjmp/ungetc (avoid vendored-SDK patch) </td></tr></tbody></table></div></div>
+  <span class="pn">24<i>/31</i></span>
+</section>
+<section class="slide " id="s25" data-sec="table">
+  <div class="inner"><p class="eyebrow">reference</p><h2>P3 &mdash; 54 issues (2/5)</h2><div class="tw"><table class="issues"><tbody><tr><td class="num">#49</td><td>VM: Record/Map checkValue: segfaults on a non-value (Block) field instead of raising &#x27;not a value&#x27; </td></tr>
 <tr><td class="num">#50</td><td>http render: eliminate per-rect printString + row concat to actually lower heap peak (streaming alone didn&#x27;t) </td></tr>
 <tr><td class="num">#52</td><td>Footgun: two independent millisecond clocks (oevm_millis vs timer_backend_millis) — document on the seam headers </td></tr>
 <tr><td class="num">#53</td><td>ESP32: dram0 at 99.58% (816 B spare) — hard ceiling, no headroom for any new static allocation </td></tr>
-<tr><td class="num">#57</td><td>Evaluate ESP32-C6-DevKitC-1 as the dev-loop target — dissolves the DRAM ceiling (#53) and unlocks the debug leg of #56 </td></tr>
 <tr><td class="num">#58</td><td>AMG8833 Task 9: phase-2 threshold trigger — deferred, likely blocked by the DRAM ceiling (#53) </td></tr>
-<tr><td class="num">#60</td><td>gpio: debounce doorbell pins in C, and a separate counting API for pulse trains </td></tr>
-<tr><td class="num">#62</td><td>test: the zephyr pulse backend&#x27;s shadow ring has no automated coverage </td></tr>
-<tr><td class="num">#63</td><td>build footgun: adding one VM source file requires editing SEVEN enumerated source lists across two repos </td></tr>
-<tr><td class="num">#75</td><td>VM: Symbol equality is identity — decoded (non-interned) symbols never `=` image literals </td></tr>
-<tr><td class="num">#76</td><td>gw: mirror.py send_ctl is AF_INET-only — profweb cannot drive an IPv6/Thread node </td></tr>
-<tr><td class="num">#77</td><td>profweb spike polish: persist Mirror._seq (silent data loss) + render the thermal frame </td></tr></tbody></table></div></div>
-  <span class="pn">25<i>/30</i></span>
-</section>
-<section class="slide dense" id="s26" data-sec="table">
-  <div class="inner"><p class="eyebrow">reference</p><h2>Unlabelled &mdash; 85 issues (2/4)</h2><div class="tw"><table class="issues"><tbody><tr><td class="num">#78</td><td>perf: value construction computes every element&#x27;s rank twice — one fused walk is ~20% off `publish` <span class="tag">enhancement</span></td></tr>
+<tr><td class="num">#64</td><td>camera: Arducam Mega 5MP SPI as a second job-latency target — driver is on zephyr main, not 4.2, and the WROOM-32 has 288 B spare <span class="tag">enhancement</span></td></tr>
+<tr><td class="num">#68</td><td>measure: Model A vs Model B build time and peak RSS, recorded rather than remembered <span class="tag">enhancement</span></td></tr>
+<tr><td class="num">#69</td><td>tooling: assert the performance deck&#x27;s figures still match their witnesses in review/ <span class="tag">enhancement</span></td></tr>
+<tr><td class="num">#79</td><td>strategic: go-to-market — rollout, eyeballs, and whether there is any route to the silicon vendors <span class="tag">enhancement</span></td></tr>
 <tr><td class="num">#80</td><td>nRF52840-DK/dongle: pulse GPIO now requests EDGE_BOTH — unverified on hardware </td></tr>
-<tr><td class="num">#81</td><td>timer_zephyr.c:71 k_oops()es on a load condition, justified by a claim about pulse_post_isr that is no longer true </td></tr>
-<tr><td class="num">#83</td><td>MagTag deep sleep: ext1 wake on button — designed, not built; Zephyr exposes no wake source </td></tr>
-<tr><td class="num">#85</td><td>MagTag ESP32-S2 WiFi: proven in a spike; usable only at a 32 KB VM arena without PSRAM </td></tr>
+<tr><td class="num">#83</td><td>MagTag deep sleep: ext1 wake on button — designed, not built; Zephyr exposes no wake source </td></tr></tbody></table></div></div>
+  <span class="pn">25<i>/31</i></span>
+</section>
+<section class="slide " id="s26" data-sec="table">
+  <div class="inner"><p class="eyebrow">reference</p><h2>P3 &mdash; 54 issues (3/5)</h2><div class="tw"><table class="issues"><tbody><tr><td class="num">#85</td><td>MagTag ESP32-S2 WiFi: proven in a spike; usable only at a 32 KB VM arena without PSRAM </td></tr>
 <tr><td class="num">#89</td><td>MagTag e-paper is portrait-only: the uc81xx family has no 90/270 rotation (180 is free, and ON) </td></tr>
-<tr><td class="num">#94</td><td>The ship&#x27;s-bell clock: WiFi/NTP + DAC + e-paper converge on one MagTag </td></tr>
-<tr><td class="num">#96</td><td>MagTag PSRAM: the 2 MB initialises and passes memtest, then the boot stops dead before Zephyr starts </td></tr>
-<tr><td class="num">#97</td><td>nsl arithmetic: add modulo (and friends) — the `x - ((x // n) * n)` workaround keeps recurring </td></tr>
-<tr><td class="num">#98</td><td>Upstream: espressif simple-boot segment walk misclassifies RTC segments (fixed locally, bc47c6f) </td></tr>
-<tr><td class="num">#99</td><td>Deep-sleep node: bring WiFi up only on watch-end wakes </td></tr>
+<tr><td class="num">#90</td><td>uc81xx: design an experiment for the back-buffer question — is the !auto_copy copy targeting the wrong bank? </td></tr>
+<tr><td class="num">#91</td><td>upstream: contribute the IL0373 uc81xx family member to Zephyr </td></tr>
+<tr><td class="num">#92</td><td>upstream: contribute cfb_framebuffer_finalize_area — CFB cannot express a bounded flush </td></tr>
+<tr><td class="num">#93</td><td>upstream: CFB&#x27;s draw_char_htmono ORs glyphs and ignores draw_bg — every caller must own a shadow grid </td></tr>
+<tr><td class="num">#95</td><td>upstream: dac_esp32.c treats clock_control_on&#x27;s -EALREADY as fatal — the ESP32 DAC never initialises </td></tr>
 <tr><td class="num">#100</td><td>MagTag clock: external DS3231 RTC over I2C as the timebase </td></tr>
 <tr><td class="num">#101</td><td>MagTag clock: the disciplining loop is a gain-1 integrator against a wandering plant — measured 1.67x worse than not correcting at all </td></tr>
-<tr><td class="num">#102</td><td>shipsBellsV3: clean-sheet ship&#x27;s-bell clock — nRF52840 + BLE + 2 ppm RTC, a run of five (design SEALED) </td></tr>
-<tr><td class="num">#112</td><td>Orphaned v1 node 192.168.0.241 polls porta&#x27;s :6969 with TFTP once a second, forever, and is rejected </td></tr>
-<tr><td class="num">#113</td><td>v1 LAN nodes at 192.168.0.240/.241 have no gateway since v2 took :6969 </td></tr>
-<tr><td class="num">#114</td><td>space-sync: a stream entry written while the bridge is down is lost — not acceptable for sys/panic </td></tr>
-<tr><td class="num">#115</td><td>space-sync: check-in cadence is a constant — §4.4&#x27;s adaptive controller is unbuilt </td></tr>
-<tr><td class="num">#116</td><td>space-sync: the bridge holds the ROOT space, not a goal-write + obs-read capability pair </td></tr>
-<tr><td class="num">#117</td><td>space-sync: the node&#x27;s cursor and bootId live in RAM — a reboot re-pulls everything </td></tr>
-<tr><td class="num">#118</td><td>space-sync: node identity is a source constant in the first slice — decide the real scheme </td></tr>
-<tr><td class="num">#119</td><td>space-sync: a cold boot at cursor 0 must not re-execute old goal/do/* actions </td></tr></tbody></table></div></div>
-  <span class="pn">26<i>/30</i></span>
+<tr><td class="num">#103</td><td>upstream: DS3231 rtc_get_time never returns -ENODATA — an unset part answers 00:00:00 with rc=0 </td></tr>
+<tr><td class="num">#106</td><td>hygiene: the nsl suite leaves src/solidified_image.c dirty — a 16k-line junk commit waiting to happen </td></tr></tbody></table></div></div>
+  <span class="pn">26<i>/31</i></span>
 </section>
-<section class="slide dense" id="s27" data-sec="table">
-  <div class="inner"><p class="eyebrow">reference</p><h2>Unlabelled &mdash; 85 issues (3/4)</h2><div class="tw"><table class="issues"><tbody><tr><td class="num">#121</td><td>space-sync: a node whose cursor falls behind tombstone retention is stranded forever — decide compaction policy before first implementation </td></tr>
-<tr><td class="num">#122</td><td>PROTOCOL-NSL: space-sync protocol for the nsl node kind — design direction landed, phase-3 implementation </td></tr>
-<tr><td class="num">#124</td><td>R3 debug API: minor cleanups (dead issuedBy param, whitespace-only send line) </td></tr>
-<tr><td class="num">#125</td><td>data_log safety cap — bound runaway print/log streams </td></tr>
-<tr><td class="num">#126</td><td>Node id ingest accepts any string — no length/charset/case gate at the handler chokepoint </td></tr>
-<tr><td class="num">#127</td><td>Validate node-reported `kind` against the protocol vocabulary at ingest </td></tr>
-<tr><td class="num">#128</td><td>Cleanup: rename internal stored cadence poll_interval_s → loop_sleep_s for naming consistency </td></tr>
+<section class="slide " id="s27" data-sec="table">
+  <div class="inner"><p class="eyebrow">reference</p><h2>P3 &mdash; 54 issues (4/5)</h2><div class="tw"><table class="issues"><tbody><tr><td class="num">#115</td><td>space-sync: check-in cadence is a constant — §4.4&#x27;s adaptive controller is unbuilt </td></tr>
+<tr><td class="num">#116</td><td>space-sync: the bridge holds the ROOT space, not a goal-write + obs-read capability pair </td></tr>
 <tr><td class="num">#129</td><td>Dialect divergence audit + strengthen NEWSPEAK_DIALECT.md </td></tr>
 <tr><td class="num">#130</td><td>run_tests_oevm.py: a failed per-test Path-A build silently reruns the STALE previous binary </td></tr>
-<tr><td class="num">#131</td><td>run_tests_oevm.py accepts no path/test filter — per-test verification forces the full ~10min suite </td></tr>
 <tr><td class="num">#132</td><td>Cbor codec: depth guard off-by-one — max-depth-32 scalar-terminated value fails to encode </td></tr>
 <tr><td class="num">#133</td><td>codegen: &#x27;Invalid receiver for LD_SLOT&#x27; when a block combines block-local temps + outer/self captures + self-sends </td></tr>
 <tr><td class="num">#134</td><td>Milestone D carry-forwards from the Milestone C final whole-branch review </td></tr>
 <tr><td class="num">#135</td><td>kernel: negative test for outer slot-0 helper isolation (app-side unreachability) </td></tr>
 <tr><td class="num">#136</td><td>kernel: signed byte accessors for the Bytes read protocol (s16BeAt: — TMP117 demo needs a signed BE 16-bit read) </td></tr>
 <tr><td class="num">#137</td><td>test_gen_builtins.py has stale pre-Milestone-B assertions — registry regen invariant unenforced </td></tr>
-<tr><td class="num">#138</td><td>Milestone D spec must adopt exceptions.md constraint 4: crash boundary as &#x27;unwind to a marked frame&#x27; </td></tr>
-<tr><td class="num">#139</td><td>CompileError diagnostics: carry source line numbers </td></tr>
-<tr><td class="num">#144</td><td>upstream/espressif: a PT_NOTE segment over the DROM region produces a booting-but-garbled console on ESP32-C6 </td></tr>
-<tr><td class="num">#152</td><td>A UDP console sink cannot tell a dead node from a quiet one </td></tr>
-<tr><td class="num">#153</td><td>shipsBells: watch largestFreeBlock now the bell runs a PortaBridge </td></tr>
-<tr><td class="num">#158</td><td>porta: TestDropAckEverySwallowsTheNthAckAfterTheCommit is flaky — the harness&#x27;s listen/close/re-listen window </td></tr></tbody></table></div></div>
-  <span class="pn">27<i>/30</i></span>
+<tr><td class="num">#138</td><td>Milestone D spec must adopt exceptions.md constraint 4: crash boundary as &#x27;unwind to a marked frame&#x27; </td></tr></tbody></table></div></div>
+  <span class="pn">27<i>/31</i></span>
 </section>
-<section class="slide dense" id="s28" data-sec="table">
-  <div class="inner"><p class="eyebrow">reference</p><h2>Unlabelled &mdash; 85 issues (4/4)</h2><div class="tw"><table class="issues"><tbody><tr><td class="num">#159</td><td>diag/spans/ctl is documented porta-&gt;node but porta may not write it — the authority model and RECORDS §4.6 disagree </td></tr>
+<section class="slide " id="s28" data-sec="table">
+  <div class="inner"><p class="eyebrow">reference</p><h2>P3 &mdash; 54 issues (5/5)</h2><div class="tw"><table class="issues"><tbody><tr><td class="num">#139</td><td>CompileError diagnostics: carry source line numbers </td></tr>
+<tr><td class="num">#150</td><td>Push trim starves sys/metrics: reserve bytes for the fresh record instead of reordering </td></tr>
+<tr><td class="num">#153</td><td>shipsBells: watch largestFreeBlock now the bell runs a PortaBridge </td></tr>
+<tr><td class="num">#158</td><td>porta: TestDropAckEverySwallowsTheNthAckAfterTheCommit is flaky — the harness&#x27;s listen/close/re-listen window </td></tr>
 <tr><td class="num">#160</td><td>ThermalDiagNode&#x27;s span bridge carries the summary only — a recorded regression from tuvm#107 </td></tr>
-<tr><td class="num">#161</td><td>PortaBridge&gt;&gt;pushFrame is 62% of a check-in — the same value is CBOR-encoded three or more times </td></tr>
-<tr><td class="num">#163</td><td>Cbor&gt;&gt;encode: costs ~230 µs per byte on the C6 — the double encode is a 20% fix on top of it </td></tr>
-<tr><td class="num">#166</td><td>mprof: the 0.90% cost was measured at load factor 0.008, and the real load is 0.875 </td></tr>
-<tr><td class="num">#169</td><td>profiler: attribute cost to code, not to callees — inclusive counts (rung A) then call-site annotation (rung B) </td></tr>
 <tr><td class="num">#173</td><td>mprof: scope a capture to one method (D10) — narrows the working set instead of growing the table </td></tr>
-<tr><td class="num">#175</td><td>ota: a stuck node refetches the whole ~200 kB image every ~6 s, sustained — the D6 degenerate retry now has its measured cost </td></tr>
-<tr><td class="num">#176</td><td>porta serve exits if the blocks port (exchange+1) is taken — a port collision becomes a gateway outage </td></tr>
-<tr><td class="num">#177</td><td>T0.3: MCU ratchet unmeasured for the #25 ota seam (plausibly red), and footprint.sh measures neither ota.c nor span.c </td></tr>
-<tr><td class="num">#180</td><td>porta: Store.Write does not pin kind, so D6 is unenforced on the gateway side — the write that wedges a node (#174) is legal here </td></tr>
-<tr><td class="num">#181</td><td>target harness: move the bench to gw85224-01 — build here, flash and observe there (D2&#x27;s remote seam, and the first half of the field path) </td></tr>
 <tr><td class="num">#189</td><td>upstream: we are now auto-nominated as reviewers on ieee802154_esp32.c, and zephyr#115317 merged without us </td></tr>
-<tr><td class="num">#190</td><td>VM halts on unchecked malloc — 8 fatal Store/AMO faults in 7 days on 3 boards; asSymbol leaks a malloc per decoded wire Symbol </td></tr>
 <tr><td class="num">#191</td><td>Vtable growth reallocs bindings that may be static storage (latent, opt-in build only) </td></tr>
-<tr><td class="num">#192</td><td>CHeapStats fromList: on the check-in path silently hangs a C6 (mechanism unknown) </td></tr>
-<tr><td class="num">#202</td><td>Actuator on-time must be bounded OUTSIDE the VM — AC-couple the drive so a stuck pin cannot hold the load on </td></tr>
-<tr><td class="num">#203</td><td>Allocation attribution stage 2: the always-on table, sized at 80 allocating methods — and D4&#x27;s cost projection needs replacing with a measurement </td></tr>
-<tr><td class="num">#206</td><td>A second dbg/req profile request silently WEDGES the node when the window ends — the D6 restart path, fatal on target </td></tr></tbody></table></div></div>
-  <span class="pn">28<i>/30</i></span>
+<tr><td class="num">#195</td><td>The tracked Path-A fixture has drifted ~10.7k lines from a fresh bake — so &#x27;git diff is clean&#x27; is not a tripwire </td></tr>
+<tr><td class="num">#196</td><td>layout-esp32.json and layout-esp32s2.json are stale — Model B for the WROOM-32 and MagTag now fails at bake </td></tr></tbody></table></div></div>
+  <span class="pn">28<i>/31</i></span>
 </section>
 <section class="slide dense" id="s29" data-sec="table">
-  <div class="inner"><p class="eyebrow">parked</p><h2>someday &mdash; 14 issues</h2><div class="tw"><table class="issues"><tbody><tr><td class="num">#140</td><td>protocol: the CBOR goldens are duplicated by hand in two test files, with no shared source </td></tr>
+  <div class="inner"><p class="eyebrow">parked</p><h2>P4 &mdash; 16 issues</h2><div class="tw"><table class="issues"><tbody><tr><td class="num">#76</td><td>gw: mirror.py send_ctl is AF_INET-only — profweb cannot drive an IPv6/Thread node </td></tr>
+<tr><td class="num">#77</td><td>profweb spike polish: persist Mirror._seq (silent data loss) + render the thermal frame </td></tr>
+<tr><td class="num">#140</td><td>protocol: the CBOR goldens are duplicated by hand in two test files, with no shared source </td></tr>
 <tr><td class="num">#141</td><td>Stale path citations in the historical record after the rete consolidation (#79) </td></tr>
 <tr><td class="num">#142</td><td>docmap.sh: the date column reads 2026-08-02 for 197 of 351 entries — the consolidation flattened it </td></tr>
 <tr><td class="num">#143</td><td>T0.3 footprint baselines are stale: MCU text +4566 B unbanked since 2026-07-18, and the host baseline predates space/handles/http entirely </td></tr>
@@ -739,10 +728,14 @@ moved faster than its own labels. Treat number order as rough age order.</p>
 <tr><td class="num">#172</td><td>PortaBridgeNodeC6.nsl claims five differences from its host twin; there are now six </td></tr>
 <tr><td class="num">#186</td><td>PortaBridgeNodeC6 hardcodes nodeId &#x27;c6-bench&#x27;, so the porta space is a SLOT and not a board </td></tr>
 <tr><td class="num">#187</td><td>Collector env files name only the console adapter, so &#x27;flashed one board, read another&#x27;s console&#x27; is undetectable </td></tr>
-<tr><td class="num">#188</td><td>c6-bell: a burst of 3 check-in misses at 19:08-19:09 on 2026-08-09, cause not separated </td></tr></tbody></table></div><p class="note">Explicitly parked. This band is doing its job &mdash; it is the only part of the tracker where &ldquo;not now&rdquo; was written down on purpose.</p></div>
-  <span class="pn">29<i>/30</i></span>
+<tr><td class="num">#188</td><td>c6-bell: a burst of 3 check-in misses at 19:08-19:09 on 2026-08-09, cause not separated </td></tr></tbody></table></div><p class="note">Hygiene and docs drift; no gate, batchable whenever. This band is doing its job &mdash; it is where &ldquo;not now&rdquo; was written down on purpose.</p></div>
+  <span class="pn">29<i>/31</i></span>
 </section>
 <section class="slide " id="s30" data-sec="table">
+  <div class="inner"><p class="eyebrow">reference</p><h2>Unbanded &mdash; 1 issue</h2><div class="tw"><table class="issues"><tbody><tr><td class="num">#26</td><td>meta: priority tracker — P0..P4 ladder, together-groupings, release gates </td></tr></tbody></table></div><p class="note">The tracker itself carries no band. Anything else appearing here is an issue filed since the sweep and not yet triaged.</p></div>
+  <span class="pn">30<i>/31</i></span>
+</section>
+<section class="slide " id="s31" data-sec="table">
   <div class="inner"><p class="eyebrow">after this deck</p><h2>Where the truth lives</h2>
 <p class="lede">When this deck goes stale &mdash; and it will, quickly &mdash; these are the sources.</p>
 <div class="tree">
@@ -756,7 +749,7 @@ moved faster than its own labels. Treat number order as rough age order.</p>
 <p class="note">One rule that keeps this navigable: <b>a rung is not closed until its durable knowledge has
 left the plan and landed in a mainline document.</b> The dated design stays behind as history.</p>
 </div>
-  <span class="pn">30<i>/30</i></span>
+  <span class="pn">31<i>/31</i></span>
 </section>
 </main>
 <script>
