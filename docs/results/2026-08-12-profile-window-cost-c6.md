@@ -22,7 +22,8 @@ the allocation columns, since one flag gates both — costs
 |---|---|
 | of the node's **local CPU** (the work the VM actually does per check-in) | **+1.88%** |
 | of **elapsed time** at the 2 s check-in cadence | **+0.13%** |
-| per hooked event (activation or allocation), derived — see §6 | **~0.30 µs** |
+| per **activation**, measured directly — §6a | **323 ns** |
+| per hooked event, derived before the Hanoi arm existed — §6 | ~0.30 µs (a floor, and low) |
 
 measured at a table load factor of **0.77** (196 methods in 256 slots), which is
 the load a real bridging node produces — not the 0.008 the quoted 0.90% came
@@ -169,7 +170,109 @@ it would be charged on a node that had other work.
 
 ---
 
+## 6a. The Hanoi arm — the activation hook priced directly, at the real load
+
+*Added in the second run of this rig (build `porta-v1-final-985-g63e12aa-…`,
+`hanoiDepth = 11`). §6 below is the first run's derivation and is superseded by
+this section wherever they differ.*
+
+A fixed-depth Hanoi burst rides the same arms in its own span, **inside** the
+bridge tick rather than instead of it. That siting is the whole point: `hanoiMove:`
+is interned into a table the bridge has already populated to **0.78** (199
+methods), which is the condition #166 asks about. Hanoi *alone* would reproduce
+exactly the 0.008-load mistake the issue was opened over.
+
+**Three properties, all checked rather than assumed:**
+
+- **The denominator is arithmetic.** `hanoiMove:` makes exactly 2ⁿ−1 activations.
+  Pinned against the dump: **67 551 = 2047 × 33**, every window, and
+  `hanoiBurst`/`hanoiDepth` 33 apiece — so the bracket holds (2¹¹+1) × 30 =
+  **61 470** activations per block, with nothing estimated.
+- **It allocates nothing.** None of the three methods appears in any `mprofa:`
+  row, in any window. Had one, its counts are in the same dump and the subtraction
+  would have used them.
+- **It has no radio in it**, and the data shows it: drift **0.089%**, against
+  0.58–1.5% on every bridge span.
+
+| round | off-a | **on** | off-b | on − off | on − off % | drift % |
+|---|---|---|---|---|---|---|
+| 1 | 836 987 | **857 368** | 837 967 | 19 891 | 2.375 | 0.117 |
+| 2 | 837 180 | **856 895** | 836 811 | 19 900 | 2.377 | 0.044 |
+| 3 | 836 956 | **857 454** | 839 947 | 19 002 | 2.266 | 0.357 |
+| 4 | 837 359 | **857 090** | 837 164 | 19 828 | 2.368 | 0.023 |
+| 5 | 837 369 | **856 848** | 837 151 | 19 588 | 2.340 | 0.026 |
+| 6 | 837 996 | **857 852** | 837 365 | 20 172 | 2.408 | 0.075 |
+| 7 | 837 398 | **857 345** | 836 985 | 20 154 | 2.407 | 0.049 |
+| 8 | 837 569 | **857 648** | 837 422 | 20 152 | 2.406 | 0.018 |
+
+**mean +2.369%, sd 0.045%, drift 0.089%, sign test 8/8.** Effect is **27× the
+drift** — the cleanest number in this document, and the reason to build a probe
+whose span contains no radio.
+
+### The answer to #166
+
+> **322.7 ns per activation at load 0.78** (per-round range 309 … 328), against
+> **106 ns at load 0.008** (#164) — **3.04×**.
+
+Same board family, same workload family, same within-binary OFF/ON discipline; the
+only material difference is the table load. **#166's suspicion is confirmed and
+quantified: the quoted 0.90% was understating the real-load cost.**
+
+On the same workload, expressed the way #164 expressed it, the counter goes
+**0.900% → 2.369%, i.e. 2.63×**. The two ratios differ because the interpreter
+baselines differ — 11.83 µs/activation there against **13.62** here (837 000 µs /
+61 470), this node running a Hanoi burst inside a live bridge rather than alone.
+**Quote 3.04× for the hook and 2.63× for the workload; they are answers to
+different questions.**
+
+#166 predicted ~4.5 probes unweighted while noting the activation-weighted figure
+could be near 1. The measured 3.04× sits between, nearer the pessimistic end.
+
+### What it says about the allocation columns
+
+With `c_act` known, the bridge's own delta decomposes — as far as it can:
+
+```
+Δ_LOCAL = c_act × A_LOCAL + c_alloc × N_LOCAL
+```
+
+`N_LOCAL` is 34 444 allocations per block. `A_LOCAL` — activations occurring
+*inside* the measured spans — is **not** knowable from this dump, which counts per
+method and not per span. Its ceiling is every non-poll, non-Hanoi activation:
+**218 962** per block, a figure that reproduced across both boots to 0.06%
+(240 859 ± 142 per window here, 240 695 ± 227 before).
+
+| | Δ_LOCAL | c_act × A_max | share | implied c_alloc |
+|---|---|---|---|---|
+| this boot, 7 rounds | 69 249 µs | 70 659 µs | 102% | ≥ −41 ns |
+| previous boot, n=8 | 75 516 µs | 70 659 µs | 94% | ≥ +141 ns |
+
+Because A_max is a **ceiling** on A_LOCAL, those c_alloc figures are **lower
+bounds**, not estimates. What the table does establish:
+
+- **The activation counter accounts for essentially the whole of the bridge's
+  +1.9%.** The allocation columns stage 1 added are the cheap half of the pair,
+  which is mechanically unsurprising — `mprof_alloc` runs the same hash probe but
+  fires 6.4× less often than `mprof_bump`.
+- **c_alloc is not pinned**, and this rig cannot pin it. It is bounded below near
+  zero and is consistent with being the same ~320 ns per event as the activation
+  hook.
+
+**What would settle it:** either per-span activation counts (a real feature — the
+mprof table would have to be bracketed the way spans are — not a spike), or a
+third arm whose activation-to-allocation ratio is ~1:1, where `c_alloc` follows
+from `c_act` by subtraction with no unknown denominator.
+
+---
+
 ## 6. Per event, and what it does and does not say about #166
+
+*Superseded by §6a above, which measures directly what this section derived.
+Retained because its bound was the honest statement before the Hanoi arm existed —
+and because that bound, ≤ 0.30 µs, turned out to be **wrong on the low side**: the
+activation hook alone measures 0.323 µs. The assumption that broke it is named in
+the paragraph below — "every non-poll activation falls inside a measured span" —
+and it broke in the direction the text predicted it would.*
 
 Per 30-tick block: **218 813** non-poll activations and **34 352** arena
 allocations. Against a 75 516 µs mean delta:
@@ -247,13 +350,34 @@ magnitude rarer than activations" is refuted here for the third time.
 
 ---
 
+## 7a. One way this measurement lied, and what caught it
+
+The first read of the Hanoi run reported **14 complete rounds** and a `LOCAL` mean
+of +1.356%. There were 8. The console collector's log is **per day**, the node's
+round counter **restarts at 1 on every reset**, and the bench had run three builds
+into that one file — so the reader silently paired one build's `off-a` with
+another build's `on` and printed a table that looked like data.
+
+**The tell was in the output already: a per-block miss delta of `-29`.** The
+bridge's `misses` counter is cumulative and monotonic, so a negative difference
+cannot happen inside one boot; it is a boot boundary wearing a data point.
+
+`profile_cost.py` now segments on `PROFILE COST NODE READY`, analyses the last boot
+by default, and takes `--boot N`. **Generalisation worth carrying: any per-run
+counter read out of a per-day log needs a boot boundary, and the cheapest detector
+is a monotonic counter going backwards.**
+
+---
+
 ## 8. What is NOT claimed
 
 - **The cost of the profiler being BUILT IN.** Both OFF arms still pay the
   load-and-branch in `mprof_bump` and the non-inlinable call into `mprof_alloc`
   from `gc.c`, because those are compiled in. That is a cross-binary question, and
   cross-binary is the comparison this rig exists not to make.
-- **A split between the two hooks.** §6.
+- **A full split between the two hooks.** The activation hook is measured (§6a);
+  the allocation columns' own per-event price is only bounded below, because
+  `A_LOCAL` is unknowable from a per-method dump.
 - **Anything about a table that overflows.** `overflow` and `allocOverflow` were 0
   in all eight windows at load 0.77. The cost of a saturated table is unmeasured.
 - **Anything at another cadence.** At 2 s the node is ~6.7% busy; the elapsed-time

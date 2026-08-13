@@ -46,6 +46,14 @@ still pay the load-and-branch and the non-inlinable call from gc.c, because thos
 are compiled in. That second number is a cross-binary question, and cross-binary
 is the comparison this file exists not to make.
 
+TWO PROBES, ONE PAIR OF ARMS. The bridge spans price BOTH hooks together — one
+flag gates the activation counter and the allocation columns, so no runtime A/B
+can separate them. A fixed-depth Hanoi burst rides the same arms in its own span
+(`hanoiBurst` below): it activates and allocates nothing, so its delta is the
+ACTIVATION hook alone, at a table the bridge has already populated to 0.77 — and
+the allocation hook follows by subtraction. That is rete#166's question, and it
+is answerable here only because the two workloads share a tick.
+
 NO `dbg/req` REACTION, DELIBERATELY — this is the one difference from
 PortaBridgeNodeC6 that is load-bearing rather than cosmetic. The gateway's store
 holds a replayable `dbg/req profile` row for this node id, and a cold boot serves
@@ -103,7 +111,7 @@ reaction block is a one-line self-send (the LD_SLOT gotcha, rete#133).
 *)
 class ProfileCostNodeC6 usingPlatform: platform net: net = (
   | space bridge timers ticks ::= 0.
-    spans sTick sCheckIn sPublish
+    spans sTick sCheckIn sPublish sHanoi
     (* the arm sequencer. phase 0 = settling, 1 = off-a, 2 = on, 3 = off-b,
        then round + 1 and back to 1. `round` is on every printed line, because
        a triple is only a triple if its three blocks can be paired back up. *)
@@ -153,6 +161,9 @@ class ProfileCostNodeC6 usingPlatform: platform net: net = (
     sTick::     spans register: #jobTick.
     sCheckIn::  spans register: #checkIn.
     sPublish::  spans register: #publish.
+    (* rete#166's arm. Slot 14 of OEVM_SPAN_SLOTS = 16 — ONE spare left, and a
+       15th registration would silently answer an index the C side ignores. *)
+    sHanoi::    spans register: #hanoi.
 
     space put: 'obs/build' value: (platform Record tag: #Build
       with: #chip -> self chip with: #build -> platform buildId).
@@ -189,8 +200,62 @@ class ProfileCostNodeC6 usingPlatform: platform net: net = (
     spans end: sPublish.
     self report.
     spans end: sTick.
+    (* OUTSIDE jobTick, deliberately: this burst is not the workload, it is a
+       second probe carried by the same arms, and folding it into the bridge's
+       spans would corrupt the very numbers §1 of the result reports. Before
+       `armStep`, so a block's last tick contributes its burst like every
+       other. *)
+    spans begin: sHanoi.
+    self hanoiBurst.
+    spans end: sHanoi.
     self armStep.
     ^ self
+  )
+
+  (* --- rete#166's arm: activations WITHOUT allocations ----------------------
+     The bridge spans price both hooks together, because one flag gates both and
+     no runtime A/B can split them. This burst splits them by ARITHMETIC instead:
+     it activates and (see below) allocates nothing, so its own OFF/ON delta is
+     the ACTIVATION hook's price alone — and the allocation hook's follows by
+     subtraction from the bridge spans.
+
+     WHY IT RUNS INSIDE THE BRIDGE AND NOT INSTEAD OF IT. #166's complaint about
+     the quoted 0.90% is that it was taken at a load factor of 0.008. Hanoi ALONE
+     would reproduce exactly that mistake. Run here, `hanoiMove:` is interned into
+     a table the bridge has already populated to 0.77 — which is the condition
+     #166 asks about, and it is only available because the two workloads share a
+     tick.
+
+     THE DENOMINATOR IS ARITHMETIC, NOT AN ESTIMATE. `hanoiMove:` makes exactly
+     2^n - 1 activations, so a block of 30 ticks at depth 11 is 30 * 2048
+     activations (the burst's own frame included) with nothing to read out of a
+     dump and nothing to assume. That is the whole reason this workload and not
+     another: it predicts its own activation count.
+
+     DEPTH 11 = 2047 activations ~ 37 ms, under 2% of the 2 s tick — small enough
+     that it cannot start costing check-ins, which would put radio back into the
+     one span that has none. Deeper buys nothing: the delta is a RATIO and is
+     scale-invariant, and the per-bracket overhead (~13 µs, tuvm#61) is already
+     four orders below the span.
+
+     "ALLOCATES NOTHING" IS CHECKED, NOT ASSUMED. If `hanoiMove:` allocates — a
+     reified block per `ifTrue:` would do it — it appears as an `mprofa:` row like
+     anything else, with its own byte and allocation counts, and the subtraction
+     uses them. The claim is falsifiable from the same dump that carries the
+     measurement, which is why it is safe to state. *)
+  hanoiDepth = ( ^ 11 )
+
+  hanoiBurst = ( ^ self hanoiMove: self hanoiDepth from: 1 to: 2 temp: 3 )
+
+  (* Body verbatim from MethodProfileNodeC6.nsl, which took it from
+     00_perf/performance.nsl. Kept identical on purpose: the two nodes' numbers
+     are comparable only while the workload is the same one. *)
+  hanoiMove: n from: src to: dst temp: tmp = (
+    n > 1 ifTrue: [
+      self hanoiMove: n - 1 from: src to: tmp temp: dst.
+      self hanoiMove: n - 1 from: tmp to: dst temp: src.
+    ].
+    ^ n
   )
 
   report = (

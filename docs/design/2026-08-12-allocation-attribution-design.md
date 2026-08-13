@@ -428,3 +428,41 @@ the split needs a non-allocating block (Hanoi) inside this same binary. The boun
 this run does give #166 is that the activation hook costs **at most 0.30 µs** at
 load 0.77 against 0.106 µs at load 0.008 — at most ~2.8×, where the unweighted
 linear-probing average predicted ~4.5×.
+
+### 9.9 ADDENDUM 4 — the Hanoi arm, and #166 answered
+
+The block §9.8 called for was built the same evening. **The activation hook costs
+322.7 ns per activation at a table load of 0.78, against 106 ns at 0.008 —
+3.04×.** `docs/results/2026-08-12-profile-window-cost-c6.md` §6a.
+
+**§9.8's own bound was wrong on the low side, and its stated assumption is why.**
+"≤ 0.30 µs per hooked event" rested on every non-poll activation falling inside a
+measured span; enough of them do not that the activation hook alone measures
+0.323 µs. The bound was written with that assumption named and with the direction
+of the error called out — so the correction is the deferral working, in exactly
+the way §9.2 was.
+
+**It rides INSIDE the bridge, not instead of it, and that is the load-bearing
+design choice.** #166's complaint about the quoted 0.90% is that it was taken at a
+load factor of 0.008. Hanoi *alone* reproduces that mistake precisely. Sharing a
+tick with the bridge is what puts `hanoiMove:` into a table already populated to
+0.78, and it is the only reason the number answers the question asked.
+
+**Why this probe and not a better-instrumented bridge:** its denominator is
+arithmetic. 2ⁿ−1 activations, pinned against the dump at 67 551 = 2047 × 33, so no
+estimate enters the division. And its span holds no radio — measured drift 0.089%
+against 0.58–1.5% on every bridge span, an effect-to-drift ratio of 27. **A probe
+whose count is predicted by its own structure beats a bigger sample of a workload
+whose count has to be read back.**
+
+**What it leaves open, and it is a real limit rather than a deferral:** the
+allocation columns' own per-event price. `Δ = c_act·A_LOCAL + c_alloc·N_LOCAL`, and
+`A_LOCAL` — activations *inside* the measured spans — cannot be recovered from a
+dump that counts per method. Using its ceiling gives c_act alone accounting for
+94–102% of the bridge delta, so the columns are the cheap half of the pair (they
+fire 6.4× less often), but c_alloc is bounded below near zero and not pinned.
+Settling it needs either per-span activation counts — bracketing the mprof table
+the way spans are, a feature and not a spike — or a third arm at a ~1:1
+activation-to-allocation ratio, where c_alloc follows from c_act with no unknown
+denominator. **Neither is earned yet: the number stage 2 needs is the pair's total,
+and that is measured.**

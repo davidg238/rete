@@ -54,15 +54,31 @@ LOCAL = ["pullSend", "applyIn", "pushBuild", "pushSend", "publish"]
 
 
 def parse(path):
-    """-> rounds[r][arm][span] = sum_us,
+    """-> a list of BOOTS, each (rounds, blocks, windows) where
+          rounds[r][arm][span] = sum_us,
           blocks[r][arm] = (ms, own_misses, own_drops),
-          windows[r] = dict of the ON arm's dump totals."""
-    rounds = defaultdict(lambda: defaultdict(dict))
-    blocks = defaultdict(dict)
-    windows = {}
+          windows[r] = the ON arm's dump totals.
+
+    SEGMENTED BY BOOT, and that is not tidiness. Round numbers restart at 1 every
+    reset, the collector's log is per DAY, and a bench day holds several builds --
+    so a flat parse silently pairs one build's `off-a` with another's `on`. It did:
+    the first run of this tool merged a 14-round boot with an 8-round one and
+    produced a table that read like data. The tell was a NEGATIVE per-block miss
+    delta, the bridge's cumulative counter having reset underneath it."""
+    boots = []
+
+    def new_boot():
+        boots.append((defaultdict(lambda: defaultdict(dict)), defaultdict(dict), {}))
+        return boots[-1]
+
+    rounds, blocks, windows = new_boot()
     prev = None           # (misses, dropped) of the previous block, for the diff
     open_win = None       # the round whose dump we are inside
     for line in open(path, errors="replace"):
+        if "PROFILE COST NODE READY" in line:
+            rounds, blocks, windows = new_boot()
+            prev, open_win = None, None
+            continue
         m = ROW.search(line)
         if m:
             r, arm, _armname, span, _n, lo, hi, _mn, _mx = m.groups()
@@ -96,7 +112,7 @@ def parse(path):
             w["cheap_bytes"] += cb
             w["cheap_allocs"] += cc
             w["rows"] += 1
-    return rounds, blocks, windows
+    return [b for b in boots if b[0]]
 
 
 def local_us(spans):
@@ -113,9 +129,36 @@ def main():
     ap.add_argument("--span", action="append", default=[],
                     help="report this span too (repeatable)")
     ap.add_argument("--min-round", type=int, default=1)
+    ap.add_argument("--boot", type=int,
+                    help="which boot in the log to read, 1-based (default: the "
+                         "last). Round numbers restart at 1 on every reset, so "
+                         "boots must never be pooled.")
+    ap.add_argument("--hanoi-depth", type=int,
+                    help="price the ACTIVATION hook alone off the `hanoi` span "
+                         "(rete#166). The bracket holds exactly 2^d + 1 "
+                         "activations per tick -- 2^d - 1 of `hanoiMove:` plus "
+                         "`hanoiBurst` plus its send of `hanoiDepth` -- so the "
+                         "denominator is arithmetic, not a dump reading. Pinned "
+                         "against the dump on 2026-08-12: 67551 = 2047 x 33 "
+                         "exactly, and hanoiDepth/hanoiBurst 33 apiece.")
+    ap.add_argument("--block-ticks", type=int, default=30,
+                    help="measured ticks per block; must match the node's "
+                         "blockTicks (default 30)")
     args = ap.parse_args()
+    if args.hanoi_depth and "hanoi" not in args.span:
+        args.span.append("hanoi")
 
-    rounds, blocks, windows = parse(args.log)
+    boots = parse(args.log)
+    if not boots:
+        sys.exit("no ProfileCostNode boot found in that log")
+    # The LAST boot by default: a bench log holds the whole day, and the run you
+    # just did is the one you mean.
+    idx = args.boot if args.boot is not None else len(boots)
+    if not 1 <= idx <= len(boots):
+        sys.exit(f"--boot {idx} out of range: the log holds {len(boots)}")
+    rounds, blocks, windows = boots[idx - 1]
+    print(f"boot {idx} of {len(boots)} in this log")
+
     complete = sorted(r for r in rounds
                       if r >= args.min_round and all(a in rounds[r] for a in (1, 2, 3)))
     if not complete:
@@ -196,6 +239,21 @@ def main():
         print(f"  mean |off-b - off-a| (drift): {sum(drifts)/len(drifts):.3f}%")
         print(f"  SIGN TEST: `on` is the peak of its own triple in "
               f"{peaks}/{n} rounds (null = 1/3)")
+
+        # rete#166. The hanoi span holds activations and (checked, not assumed --
+        # a `hanoiMove:` row in the mprofa dump would falsify it) no allocations,
+        # so its delta divided by an EXACTLY KNOWN activation count is the
+        # activation hook's own price at whatever load the bridge has produced.
+        if name == "hanoi" and args.hanoi_depth:
+            acts = ((2 ** args.hanoi_depth) + 1) * args.block_ticks
+            deltas = [x[4] for x in rows]
+            per = sum(deltas) / len(deltas) / acts
+            print(f"\n  activations per block: {acts:,} "
+                  f"((2^{args.hanoi_depth} + 1) x {args.block_ticks}, exact)")
+            print(f"  ACTIVATION HOOK: {per*1000:.1f} ns per activation")
+            lo = min(deltas) / acts * 1000
+            hi = max(deltas) / acts * 1000
+            print(f"  per-round range:  {lo:.1f} .. {hi:.1f} ns")
         print()
 
 

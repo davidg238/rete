@@ -454,10 +454,19 @@ built and gated 2026-08-08; thread 2 above has the status.)**
    the claim is a **sign test** (8 of 8, null 1/3) and not a mean, because the first
    two-arm run read +1.56% with drift a third of that. The same run discharged the
    post-#205 steady-state window that #206 was blocking (66 workload allocating methods
-   vs 65 before, i.e. #205 moved boot and not steady state) and bounded **#166** without
-   settling it: one flag gates both hooks, so ≤ 0.30 µs/activation at load 0.77 is a
-   ceiling, not the activation counter's own price.
+   vs 65 before, i.e. #205 moved boot and not steady state).
    `docs/results/2026-08-12-profile-window-cost-c6.md`, design §9.8.
+
+   **And #166 fell to the same rig, the same evening.** A fixed-depth Hanoi burst rides
+   the same arms in its own span — **inside** the bridge tick, which is the load-bearing
+   choice, because Hanoi alone reproduces exactly the 0.008 load factor #166 was opened
+   about. The activation hook alone: **322.7 ns/activation at load 0.78 against 106 ns at
+   0.008, i.e. 3.04×**, so the quoted 0.90% was understating real-load cost by 2.6× and
+   #166's suspicion is confirmed. The probe earns its place by predicting its own
+   denominator (2ⁿ−1 activations, pinned against the dump) and by holding no radio: drift
+   0.089% against 0.58–1.5% on the bridge spans. Still open and now a *feature*
+   question, not a spike: the allocation columns' own per-event price needs per-span
+   activation counts. Design §9.9.
 
 **One thing ran ahead of #25, on 2026-08-05, and it is finished.** The span capture that
 closed #107 left a check-in costing ~300 ms with no breakdown, and the breakdown was one
