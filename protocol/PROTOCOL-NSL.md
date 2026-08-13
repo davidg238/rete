@@ -168,29 +168,37 @@ Recorded because it tells us what to steal and what to leave:
   ┌──────────────────────────┐             ┌──────────────────────────┐
   │  per-node space mirror   │   check-in  │  the node's own space    │
   │                          │  exchange   │                          │
-  │  node/<id>/goal/**  ─────┼────────────▶│  goal/**   (cells in)    │
-  │  node/<id>/obs/**   ◀────┼─────────────│  obs/**    (cells out)   │
-  │  node/<id>/tel/**   ◀────┼─────────────│  tel/**    (streams out) │
-  │  node/<id>/sys/**   ◀────┼─────────────│  sys/**    (streams out) │
-  │  node/<id>/dbg/req  ─────┼────────────▶│  dbg/req   (stream in)   │
-  │  node/<id>/dbg/resp ◀────┼─────────────│  dbg/resp  (stream out)  │
+  │  node/<id>/goal/**  ─────┼────────────▶│  goal/**   (in)          │
+  │  node/<id>/obs/**   ◀────┼─────────────│  obs/**    (out)         │
+  │  node/<id>/tel/**   ◀────┼─────────────│  tel/**    (out)         │
+  │  node/<id>/sys/**   ◀────┼─────────────│  sys/**    (out)         │
+  │  node/<id>/diag/**  ◀────┼─────────────│  diag/**   (out)         │
+  │  node/<id>/dbg/req  ─────┼────────────▶│  dbg/req   (in)          │
+  │  node/<id>/dbg/resp ◀────┼─────────────│  dbg/resp  (out)         │
   └──────────────────────────┘             └──────────────────────────┘
        porta writes ONLY goal/** and dbg/req;    the bridge job holds the
        the node writes ONLY its own node/<id>/** radio capability + these grants
 ```
 
-Every name resolves to one of **two kinds**, fixed by its path prefix (this replaces
-v1's per-verb rules). The kind is declared by the *first write* and the wrong verb on
-an existing name is an ordinary, catchable error (enforced in nsl `Channel`, not in
-the C space — which is storage, not policy):
+**The picture carries direction and authority, not kind** — deliberately, because kind is
+not a property of the prefix.
+
+Every name resolves to one of **two kinds**, and **kind is a property of the leaf, set by
+its first write** (D6). This replaces v1's per-verb rules *and* an earlier draft of this
+document that fixed kind by path prefix — a rule the node's own families already refute:
+`dev/thermal0/sample` is a cell while `dev/thermal0/tick` is a stream under one prefix,
+and `sys/**` carries both `sys/panic` (stream) and `sys/metrics` (cell). The wrong verb on
+an existing name is an ordinary, catchable error (enforced in nsl `Channel`, not in the C
+space — which is storage, not policy):
 
 - **cell** — a pigeonhole that *holds* the latest letter. `put:value:` overwrites it;
-  `peek:ifAbsent:` reads it **without removing it**. State lives here (`goal/**`,
-  `obs/**`). Sync transfers cell *values* changed since a cursor.
+  `peek:ifAbsent:` reads it **without removing it**. State lives here (`goal/**` apart
+  from `goal/do/*`, `obs/**`, the `sys/` gauges, `diag/spans/**`). Sync transfers cell
+  *values* changed since a cursor.
 - **stream** — a pigeonhole you *empty* by reading. `out:value:` appends;
   `take:ifEmpty:` removes the oldest, once. Each letter is delivered once. Actions
-  and telemetry live here (`tel/**`, `sys/**`, `dbg/*`, `goal/do/*`). Sync transfers
-  entries once, in order, deduped by sequence number.
+  and telemetry live here (`tel/**`, the `sys/` events, `dbg/*`, `goal/do/*`). Sync
+  transfers entries once, in order, deduped by sequence number.
 
 **A party that does not own a name must ask its kind before it touches it**, and must
 not use the raising verb. Kind is pinned by the first write and re-created by replay,
