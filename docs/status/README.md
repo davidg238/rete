@@ -34,7 +34,24 @@ python3 docs/status/make-deck.py            # refetch issues, rebuild
 python3 docs/status/make-deck.py --offline  # rebuild from the cached dump
 ```
 
-Arrow keys, space, or scroll. It renders in light and dark.
+Arrow keys, space, or scroll.
+
+**The deck is dark, pinned — it does not follow the reader's browser** (David,
+2026-08-12). It used to: theming was a single `@media (prefers-color-scheme:dark)`
+block and nothing else, so the palette was whatever the viewer's browser reported
+that day, and the deck went from dark to white between two readings with its CSS
+byte-identical. A document that silently flips palette reads as a change to the
+document.
+
+The dark values now sit on bare `:root` with `color-scheme:dark` (so the scrollbar
+and form UI follow), and the media query is **deleted** rather than left beside them
+— two ways to say the same thing is how a palette drifts apart.
+`:root[data-theme="light"]` is the escape hatch; nothing sets it, so put
+`data-theme="light"` on `<html>` by hand if you ever want the light one back.
+
+Note the generated file is a **fragment** — no doctype, no `<html>`, no `<body>`;
+the browser synthesises them. That is why the theme is pinned in the cascade rather
+than as an attribute, and why there is no element to hang anything else on either.
 
 ## The one thing to understand before rerunning it
 
