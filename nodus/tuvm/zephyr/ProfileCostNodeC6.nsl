@@ -1,0 +1,309 @@
+(*
+ProfileCostNodeC6 — what does an OPEN allocation-attribution window cost, on a
+C6, under the real bridge workload? The measurement rete#203 (design
+2026-08-12 §9.7) still owes, and the one that must replace D4's refuted ~0.02%
+projection.
+
+WHY NOT MethodProfileNodeC6. That node drives Hanoi, which allocates nothing, so
+it would time a hook that never fires. The allocation hook only has a cost where
+there are allocations, and on this workload there is one arena allocation per 5.6
+activations (design §9.2) — three orders of magnitude denser than the host
+window, which is exactly why the projection could not be carried forward.
+
+WHY ONE BINARY, ONE BOOT. Non-negotiable, and not a preference: a cross-binary
+OFF/ON of the ACTIVATION hook once put the ON build 4% FASTER
+(MethodProfileNodeC6.nsl:10) — code-layout roulette, not a result. So both arms
+run here, back to back, in one image and one cache state, and the only thing that
+differs between them is `g_mprof_enabled`.
+
+THE THREE BLOCKS, AND WHY THE THIRD ONE EXISTS.
+
+  settle -> [ A1 (off) -> B (ON, dump at close) -> A2 (off) ] repeated forever
+
+A1-vs-B alone cannot tell the hook's cost from ordinary drift — mesh conditions,
+a retransmit, a GC that happened to land in one block. A2 is the CONTROL: it
+costs nothing to run (an OFF arm needs no prim call at all) and it is the only
+thing that makes the result falsifiable. If |A2 - A1| is the same size as
+|B - A1|, this run measured drift and says nothing about the hook, and the
+comparison must be read as refuted rather than as a small effect.
+
+The triple REPEATS, and that is what makes A2 worth having. The first run's single
+triple put the drift at a third of the effect — enough to believe the sign, not
+enough to publish a percentage. Repeating turns it into a sign test: B is either
+the peak of its own triple, round after round, or it is not.
+
+Arms could not simply be ALTERNATED at a finer grain, which would cancel drift
+better still: there is no "pause" — `profileStop` disables AND dumps, so every
+ON->OFF edge emits ~300 lines down the UART. Once per round the next block's
+lead-in absorbs that; once per tick it would be the dominant cost in the
+measurement. Anything finer needs a new prim, and the standing preference is
+fewer mechanisms.
+
+WHAT IS AND IS NOT BEING MEASURED. The delta here is the cost of a window being
+OPEN: the hash-probe-and-accumulate in `mprof_bump`/`mprof_alloc` that only runs
+when enabled. It is NOT the cost of the profiler being BUILT IN — the OFF arms
+still pay the load-and-branch and the non-inlinable call from gc.c, because those
+are compiled in. That second number is a cross-binary question, and cross-binary
+is the comparison this file exists not to make.
+
+NO `dbg/req` REACTION, DELIBERATELY — this is the one difference from
+PortaBridgeNodeC6 that is load-bearing rather than cosmetic. The gateway's store
+holds a replayable `dbg/req profile` row for this node id, and a cold boot serves
+it from cursor 0. Wiring the reaction would open a THIRD profile window, on
+someone else's schedule, underneath the arms below — and would re-arm rete#206,
+which wedges the node when that window ends. Nothing here writes to porta either,
+so no new replay row is created: the spans are read from the table and PRINTED,
+not published through SpanCapture.
+
+Otherwise the bridging body is PortaBridgeNodeC6's, unchanged, because the
+workload being measured has to be the workload. Dropped from that file: the
+TAP-lite self-check (this is a measurement, not a gate) and SpanCapture (see
+above). The arm sequencer keys off `bridge acked > 0`, which is the same signal
+the self-check's first assertion rests on.
+
+Build and flash (c6spare — never the bell; the interlock in run.sh will refuse
+the bell's JTAG, but pin the port anyway so the refusal is never the thing that
+decides). run.sh does NOT source the west env, and with two C6s and two CP2102Ns
+on the bench it refuses to guess either port — so all four lines are load-bearing:
+  source ~/zephyr-esp32/.venv/bin/activate
+  source ~/zephyr-esp32/zephyr/zephyr-env.sh
+  export ESPTOOL_PORT=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_40:4C:CA:44:6E:60-if00
+  export CONSOLE_PORT=/dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_d2e21074c7beed11a5935a4371c9e8b5-if00-port0
+  OEVM_METHOD_PROFILE=1 bash run.sh --board esp32c6 --node ProfileCostNodeC6.nsl --flash \
+    --conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_thread_ftd.conf"
+
+THE `--conf-extra` IS NOT OPTIONAL. `prj_esp32c6.conf` carries no OpenThread; the
+radio arrives only through that flag, and without it this node builds, boots,
+prints READY and never attaches — so every arm below measures a bridge talking to
+nobody. It cost the bench a night once already (plan 2026-08-06 step 2).
+
+`OEVM_METHOD_PROFILE=1` is the rest of it: `profileStart`/`profileStop` are
+no-ops without it and the arms would be indistinguishable — silently, since a
+no-op prim answers normally. No RUNTIME_GATE and no FLIP_AT: those flip on an
+activation COUNT, and this file flips on a block boundary it can name in the log.
+
+expect (console):
+PROFILE COST NODE READY
+tick 1 misses 0 acked 0 dropped 0
+...
+round 1 arm 1 off-a begin
+round 1 arm 1 off-a block ms 60000 ticks 30 misses 0 dropped 0
+round 1 arm 1 off-a span jobTick n 30 sumLo ... sumHi 0 min ... max ...
+...
+round 1 arm 2 on begin
+...
+mprof[window]: methods=... activations=... overflow=0 cap=256
+mprofa[window]: ...
+round 1 arm 3 off-b begin
+...
+round 2 arm 1 off-a begin
+
+Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
+reaction block is a one-line self-send (the LD_SLOT gotcha, rete#133).
+*)
+class ProfileCostNodeC6 usingPlatform: platform net: net = (
+  | space bridge timers ticks ::= 0.
+    spans sTick sCheckIn sPublish
+    (* the arm sequencer. phase 0 = settling, 1 = off-a, 2 = on, 3 = off-b,
+       then round + 1 and back to 1. `round` is on every printed line, because
+       a triple is only a triple if its three blocks can be paired back up. *)
+    phase ::= 0. round ::= 0. blockTick ::= 0. settleCount ::= 0. blockT0 ::= 0. |
+) (
+  nodeId    = ( ^ 'c6-bench' )
+  gwAddr    = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )
+  gwPort    = ( ^ 6969 )
+  localPort = ( ^ 16970 )
+  cadence   = ( ^ 2000 )   (* ms between check-ins — PortaBridgeNodeC6's, unchanged *)
+  chip      = ( ^ #esp32c6 )
+
+  (* Ticks of healthy bridging before the first arm opens. The mesh attach is
+     already behind us by then — `bridge acked > 0` is what starts this count —
+     so this is settling of the WORKLOAD, not of the radio: the first check-ins
+     after an attach carry the whole boot's backlog of cells and are not
+     representative of anything that follows. *)
+  settleTicks = ( ^ 10 )
+
+  (* Discarded at the head of EVERY block, including the first. Its real job is
+     at the head of block 3, where the ~300-line dump has just gone down the UART
+     and may have cost a check-in — but it is applied uniformly, because a
+     correction applied to one arm and not the others is a bias, not a fix. *)
+  leadTicks = ( ^ 3 )
+
+  (* 30 ticks at the 2 s cadence = 60 s of samples per arm, ~200 s for all three.
+     Chosen so `publish` — the local, allocation-heavy span, the one whose delta
+     should be visible — clears 30 samples rather than for any percentile: 200 is
+     Spans>>minSamplesForP95 and nothing here reports a percentile. *)
+  blockTicks = ( ^ 30 )
+
+  public main: platform2 args: args = (
+    | sock tickChan |
+    space:: platform space.
+    sock:: net udpBindPort: self localPort.
+    sock == nil ifTrue: [ ^ self fail: 'bind' ].
+    (* ONE Spans for this image, minted BEFORE the bridge, which registers its
+       own six slots at construction. Two instances would both allocate from 2
+       and silently share samples. *)
+    spans:: platform Spans new.
+    bridge:: platform PortaBridge
+      socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
+      spans: spans.
+    bridge subscribeStream: 'tel/log'.
+    bridge subscribeStream: 'sys/reset'.
+
+    sTick::     spans register: #jobTick.
+    sCheckIn::  spans register: #checkIn.
+    sPublish::  spans register: #publish.
+
+    space put: 'obs/build' value: (platform Record tag: #Build
+      with: #chip -> self chip with: #build -> platform buildId).
+
+    timers:: platform timers.     (* hold ONE instance — it owns the pending registry *)
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    tickChan:: space channel: 'sys/tick'.
+    tickChan whenever: '' do: [ :m | self tick ].
+    timers every: self cadence post: #go on: tickChan.
+
+    'PROFILE COST NODE READY' println.
+
+    [ true ] whileTrue: [
+      platform pumpEvents.        (* blocks until the cadence timer fires *)
+      space drain ].
+    ^ 0
+  )
+
+  (* PortaBridgeNodeC6's tick, with the verdict replaced by the arm sequencer.
+     `armStep` runs AFTER `spans end: sTick`, so the tick that closes a block is
+     itself counted in that block — otherwise the last sample would be the one
+     missing. *)
+  tick = (
+    ticks:: ticks + 1.
+    spans begin: sTick.
+    spans begin: sCheckIn.
+    bridge checkIn.
+    spans end: sCheckIn.
+    spans begin: sPublish.
+    self publishHealth.
+    space out: 'tel/log' value:
+      (platform Record tag: #Log with: #lvl -> #info
+                                 with: #txt -> ('tick ' , ticks printString)).
+    spans end: sPublish.
+    self report.
+    spans end: sTick.
+    self armStep.
+    ^ self
+  )
+
+  report = (
+    ('tick ' , ticks printString ,
+     ' misses ' , bridge misses printString ,
+     ' acked ' , bridge acked printString ,
+     ' dropped ' , bridge dropped printString) println.
+    ^ self
+  )
+
+  publishHealth = (
+    | pairs |
+    pairs:: platform OrderedCollection new.
+    pairs add: #up -> platform monotonicMillis.
+    pairs add: #bid -> 1.
+    pairs add: #wak -> ticks.
+    pairs add: #pto -> bridge misses.
+    pairs add: #sdr -> bridge dropped.
+    space put: 'obs/health' value:
+      (platform Record tag: #Health fields: (platform Map fromPairs: pairs)).
+    ^ self
+  )
+
+  fail: msg = ( msg println. ^ 1 )
+
+  (* --- the arm sequencer ---------------------------------------------------
+     Each of these is a self-send from `tick`, never inline work in a block. *)
+
+  armStep = (
+    phase = 0 ifTrue: [ ^ self settleStep ].
+    blockTick:: blockTick + 1.
+    (* The lead-in is thrown away by RE-zeroing the table, not by counting from a
+       later tick: the samples taken during it are the disturbed ones. *)
+    blockTick = self leadTicks ifTrue: [ ^ self openWindow ].
+    blockTick >= (self leadTicks + self blockTicks) ifTrue: [ ^ self endBlock ].
+    ^ self )
+
+  settleStep = (
+    bridge acked > 0 ifTrue: [ settleCount:: settleCount + 1 ].
+    settleCount >= self settleTicks ifTrue: [ ^ self beginBlock: 1 ].
+    ^ self )
+
+  (* profileStart ZEROES the mprof table and enables it, so it is the arm's own
+     start of window and must not be moved out of block 2. *)
+  beginBlock: n = (
+    phase:: n.
+    blockTick:: 0.
+    n = 1 ifTrue: [ round:: round + 1 ].
+    n = 2 ifTrue: [ platform profileStart ].
+    ('round ' , round printString ,
+     ' arm ' , n printString , ' ' , (self armName: n) , ' begin') println.
+    spans resetAll.
+    ^ self )
+
+  (* The lead-in is over: this is where the block's measured window actually
+     starts, for the spans. mprof's window started at beginBlock: and so covers
+     the lead-in too — deliberately, because zeroing it here would mean calling
+     profileStart twice and the second call is indistinguishable from the first
+     in the dump. The lead-in's allocations are three ticks out of thirty-three
+     and are not being compared to anything. *)
+  openWindow = (
+    blockT0:: 0 millis.
+    spans resetAll.
+    ^ self )
+
+  (* Rounds repeat FOREVER. One triple cannot separate the hook from drift: the
+     first run put |A2 - A1| at a third of |B - offMean|, which is a ratio, not a
+     result. Repeating gives a distribution of triples, and the claim that has to
+     survive is "B is the peak of its own triple" round after round — a sign
+     test that no single-round arithmetic can fake. Nothing accumulates across
+     rounds on the node; the pairing is done by the reader, off the log. *)
+  endBlock = (
+    | ms |
+    ms:: 0 millis - blockT0.
+    ('round ' , round printString ,
+     ' arm ' , phase printString , ' ' , (self armName: phase) ,
+     ' block ms ' , ms printString ,
+     ' ticks ' , self blockTicks printString ,
+     ' misses ' , bridge misses printString ,
+     ' dropped ' , bridge dropped printString) println.
+    self printSpans.
+    (* AFTER the rows are printed: the dump is ~300 lines and the next block's
+       lead-in is what absorbs it. *)
+    phase = 2 ifTrue: [ platform profileStop ].
+    phase < 3 ifTrue: [ ^ self beginBlock: phase + 1 ].
+    ^ self beginBlock: 1 )
+
+  armName: n = (
+    n = 1 ifTrue: [ ^ 'off-a' ].
+    n = 2 ifTrue: [ ^ 'on' ].
+    n = 3 ifTrue: [ ^ 'off-b' ].
+    ^ '?' )
+
+  (* Every slot, including one that took no samples — a slot silently skipped
+     reads as a slot that was not there, and the bridge's six inner spans are
+     exactly where an unexpected zero would matter. Fields are span.h's
+     SPAN_STAT_* order, 1-based through basicAt:; `sum` is split at 1e9 by the
+     prim (span.c:85) and is reassembled by the reader, not here. *)
+  printSpans = (
+    | i n s |
+    i:: 0. n:: spans slotCount.
+    [ i < n ] whileTrue: [
+      s:: spans statsAt: i.
+      ('round ' , round printString ,
+       ' arm ' , phase printString , ' ' , (self armName: phase) ,
+       ' span ' , (spans pathAt: i) ,
+       ' n ' , (s basicAt: 1) printString ,
+       ' sumLo ' , (s basicAt: 4) printString ,
+       ' sumHi ' , (s basicAt: 5) printString ,
+       ' min ' , (s basicAt: 2) printString ,
+       ' max ' , (s basicAt: 3) printString) println.
+      i:: i + 1 ].
+    ^ self )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

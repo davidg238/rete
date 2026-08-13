@@ -437,8 +437,7 @@ built and gated 2026-08-08; thread 2 above has the status.)**
    boot bounds this workload and 80 is stage 2's sizing input — a 128-slot always-on table
    at 0.63 load. Two things the measurement refuted rather than confirmed: D4's "allocations
    are two orders of magnitude rarer than activations" is wrong on target by two to three
-   orders (and the hook's actual runtime cost is **still unmeasured** — the one open item),
-   and #166 was cleared of the C6 hang along the way when a 1024-slot build hung
+   orders, and #166 was cleared of the C6 hang along the way when a 1024-slot build hung
    identically. What the rows say about the code: the CBOR codec is the entire steady-state
    allocation story, `ByteBuilder`'s grow-then-freeze is 7–11% of a window for what #163
    calls pure overhead, and **every Symbol-vs-Symbol comparison materializes two Strings**
@@ -446,6 +445,19 @@ built and gated 2026-08-08; thread 2 above has the status.)**
    Symbol fast path for `at:`/`size`) — which is 71% of all C-heap allocation on the node
    and is #204's real answer. Results:
    `docs/results/2026-08-12-allocation-attribution-{host,c6}.md`. Stage 2 is **#203**.
+
+   **The one open item — the hook's runtime cost — closed the same evening.** An open
+   window costs **+1.88% of the node's local CPU and +0.13% of elapsed time** at the 2 s
+   cadence (~0.30 µs per hooked event) at a table load of 0.77, so the always-on table D8
+   wants is affordable on this evidence and D5's invented knob is still not earned.
+   `ProfileCostNodeC6.nsl` runs `off | ON | off` eight times in one binary and one boot;
+   the claim is a **sign test** (8 of 8, null 1/3) and not a mean, because the first
+   two-arm run read +1.56% with drift a third of that. The same run discharged the
+   post-#205 steady-state window that #206 was blocking (66 workload allocating methods
+   vs 65 before, i.e. #205 moved boot and not steady state) and bounded **#166** without
+   settling it: one flag gates both hooks, so ≤ 0.30 µs/activation at load 0.77 is a
+   ceiling, not the activation counter's own price.
+   `docs/results/2026-08-12-profile-window-cost-c6.md`, design §9.8.
 
 **One thing ran ahead of #25, on 2026-08-05, and it is finished.** The span capture that
 closed #107 left a check-in costing ~300 ms with no breakdown, and the breakdown was one

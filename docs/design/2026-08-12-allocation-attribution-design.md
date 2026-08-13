@@ -381,3 +381,50 @@ with both arms back-to-back in **one binary, one boot, one cache state** (settle
 span capture with mprof OFF → publish → span capture with mprof ON → publish +
 dump). It needs no porta write, which also keeps it clear of **#206**, where a
 second replayed `dbg/req` request wedges the node at window end.
+
+### 9.8 ADDENDUM 3 (2026-08-12, later the same evening) — §9.7 is DISCHARGED
+
+**An open window costs +1.88% of the node's local CPU, +0.13% of elapsed time at
+the 2 s cadence, ~0.30 µs per hooked event, at a table load of 0.77.** Eight
+rounds on `c6spare`; full record in
+`docs/results/2026-08-12-profile-window-cost-c6.md`. **D4's ~0.02% is now not just
+refuted but replaced**, and stage 1 owes nothing.
+
+Two departures from the shape §9.7 decided, both recorded because the shape as
+written would have produced a number that should not have been published:
+
+1. **A third block, and the triple repeats.** `settle → A1 off → B ON → A2 off`,
+   eight times. §9.7's two-arm shape ran first and gave one triple at +1.56% with
+   drift a third of that — a ratio, not a result. The second OFF arm costs
+   *nothing* (an OFF arm needs no prim call) and turns the claim into a sign test:
+   `on` was the peak of its own triple in **8 of 8** rounds, where the null is 1/3,
+   so p ≈ 1.5 × 10⁻⁴. Measured drift settled at 0.58% against the 1.88% effect.
+   **The general lesson: when a within-binary A/B has a control arm available for
+   free, a single A/B is a choice to not know.**
+2. **Spans are PRINTED, not published.** §9.7 said "span capture … publish", i.e.
+   `SpanCapture` onto `diag/spans/**`. Publishing would have made the second
+   window overwrite the first's cells, and it would have put the measurement back
+   on the wire it is trying not to disturb. Printing also let the node drop the
+   `dbg/req` reaction entirely — which is what actually keeps this clear of #206,
+   more so than "needs no porta write" did.
+
+**One reading of §9.2 has to be corrected by this.** §9.2 said the C6 ratio (1
+alloc per 5.6 activations) was three orders of magnitude off the host's, and that
+is right — but "activations" there includes `Kernel_Socket>>receive`, the
+non-blocking poll, whose count is a measure of **radio latency** and swung 5×
+(46 k … 253 k) across eight otherwise identical windows. Everything else was
+constant to 0.09%. **Any ratio quoted per total activations on a bridging workload
+is partly a statement about the mesh that afternoon.** Quote it per non-poll
+activation, where steady state is 1 per 6.4.
+
+**What #203 stage 2 now knows that it did not:** the always-on table is affordable
+on this evidence — 0.13% of elapsed at 2 s — but the figure is *per event*, not per
+node, so a workload with a higher duty cycle pays proportionally. The knob D5 would
+have to invent is still not earned.
+
+**Still not separated, and it is #166's question, not this one's:** the activation
+counter's cost alone. One flag gates both hooks, so no runtime A/B can split them;
+the split needs a non-allocating block (Hanoi) inside this same binary. The bound
+this run does give #166 is that the activation hook costs **at most 0.30 µs** at
+load 0.77 against 0.106 µs at load 0.008 — at most ~2.8×, where the unweighted
+linear-probing average predicted ~4.5×.
