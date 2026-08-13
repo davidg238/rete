@@ -143,3 +143,35 @@ the design was built for, demonstrated on its first real run.**
 - **Nothing about outstanding bytes.** D2 is cumulative by construction: a method
   at the top of this table may free everything it allocates. Pairing it with
   `sys/cheap`'s aggregate is what makes a leak nameable.
+
+---
+
+## Re-measured after #205 — the C heap is now EMPTY
+
+Same command, same gate (`PORTA SYNC OK`), build `1c5c6d2` — the Symbol
+`at:`/`size` fast path that this document's own §2 finding pointed at:
+
+| | before (`870674e`) | after (`1c5c6d2`) |
+|---|---|---|
+| distinct allocating methods | 64 | **62** |
+| C-heap bytes / allocations | 915 / 229 | **0 / 0** |
+| arena bytes / allocations | 79 600 / 1 374 | 68 576 / 1 145 |
+
+**Both C-heap allocators are gone, and the two methods left the allocating
+population entirely** — `Kernel>>valueCompare:with:` and
+`Kernel_Cbor>>encodeSymbol:into:` still appear in the *activation* table (84 and
+61 calls) and no longer appear in the allocation table at all. That is the
+strongest form the confirmation could take: not "smaller", but absent.
+
+The arena fell too, by **11 024 bytes and 229 allocations** — 13.9% of the
+window's arena bytes. The allocation counts match exactly (229 C-heap
+allocations removed, 229 arena allocations removed), which is the fingerprint the
+diagnosis predicted: every `printString` was one malloc **and** one String, so
+killing it removes one of each.
+
+**What this does not establish:** the equivalent target number. The C6 window that
+measured 28 394 C-heap bytes across 7 101 allocations could not be re-taken —
+`c6spare` now wedges ~5 s after every boot on an unrelated defect found the same
+evening (**#206**, a second replayed `dbg/req` request killing the node at window
+end), so no window on that board completes. The host result stands on its own and
+the target re-measurement is owed.
