@@ -307,7 +307,7 @@ forward, `R` reads as "cell". Direction is from the node's point of view.
 | path | kind | record |
 |---|---|---|
 | `goal/apps/<name>` | R | `App { image: BlobRef, sig: bytes, triggers: [sym], runlevel: int, lifecycle: sym, arguments: {…} }` |
-| *(tombstone of above)* | R | delete = uninstall. The absence *is* the instruction. |
+| *(no tombstone row)* | — | Uninstall is `lifecycle` written to a stopped value, **not** a deletion — see `PROTOCOL-NSL.md` §"No `clear:`, no tombstone". Genuine removal is an action on a `do/` stream. |
 | `goal/mode` | R | `Mode { mode: sym, minAwakeS: int, maxAwakeS: int, maxAsleepS: int, loopSleepS: int }` |
 | `goal/name` | R | `str` |
 | `goal/forward` | R | `Forward { … }` — the whole policy, never a patch |
@@ -659,16 +659,16 @@ one level up — adding an instrumented job adds a record, never a field.
    fixed-point int + declared scale better for a sensor fleet?
 5. **Does `obs/**` push per-path or snapshot-batched?** (§6.6 of the parent doc.) The
    size law says: whichever fits 512 bytes; measure.
-6. **Tombstone retention at porta** — until the cursor passes, or time-boxed? **This is not a
-   shrug; it is a live hazard — now #121.** A delete is only visible as a tombstone in the
-   cursor stream, so a node that is away long enough for porta to reclaim tombstones past its
-   cursor comes back, asks for `seq > N`, and porta **silently answers a question it cannot
-   answer**: the node keeps running an app that was uninstalled, and nothing anywhere notices.
-   This is exactly etcd's compaction-vs-watch hazard, and their fix is cheap and should just be
-   taken: porta keeps a **compaction revision**, refuses an incremental sync from a cursor older
-   than it, and forces a **full resync from cursor 0** — a path §3.1 already requires for cold
-   boot and which therefore costs one comparison and one error code. Pin it in the §4.3 framing
-   *before* first implementation, not after.
+6. ~~**Tombstone retention at porta**~~ — **closed, and not by answering it.** This question
+   and the hazard it named (#121: a node whose cursor falls behind porta's retention point
+   silently keeps running an app that was uninstalled — etcd's compaction-vs-watch hazard)
+   were both premised on tombstones. `PROTOCOL-NSL.md` §"No `clear:`, no tombstone" deletes
+   that mechanism outright, so there is no delete to miss: a cell replay is served from the
+   **cell tree** rather than the log (bounded by tree size, always complete regardless of what
+   the log retains), and a `do/` stream entry older than the node's `bootId` is one #119
+   requires be discarded anyway. Compaction can therefore drop old log rows without any node
+   diverging. This item is retained struck-through rather than removed because the hazard is
+   real for any *future* design that reintroduces deletion as a property of a path.
 
 ---
 
