@@ -26,6 +26,18 @@ document adds no new encoding rules, it only *uses* them:
   only, map keys sorted bytewise over their *encoded* bytes. Two nodes encoding the
   same value produce byte-identical output — so a retained value can be compared, and
   a golden fixture can be pinned, by bytes.
+
+  > **Why *bytewise*, since a Map is already stored in a canonical order** (asked as
+  > #204, 2026-08-12). Emitting in the Map's stored order would also be
+  > deterministic — that order is canonical too, and the two differ only when keys
+  > differ in encoded length. The bytewise rule is kept for **interop, not
+  > determinism**: it is obeyable by an implementation that knows nothing about the
+  > nsl algebra, where matching the Map's order would require every peer to
+  > reimplement `valueCompare:with:`'s rank-first total order exactly. porta pays one
+  > `sort.SliceStable` (`internal/cval/encode.go:125`); a third implementation would
+  > pay the same. **Do not "optimise" this into the Map's order** — the encode-side
+  > sort is cheap and the portability is the point. (The expensive part was never the
+  > sort: it was `printString` in the Symbol comparison, deleted in #205.)
 - **Closed**: unknown tags and types are a decode *error*, not a pass-through. A
   hostile or mis-versioned peer cannot smuggle a value the node will faithfully relay.
 - **Depth-bounded at decode** (32). A hostile peer cannot blow the node's stack.
