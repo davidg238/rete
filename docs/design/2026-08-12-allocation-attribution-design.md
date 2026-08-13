@@ -321,3 +321,63 @@ map-key sort path. The C heap on a bridging node is scratch for one sort.
 That is the capability §2 promised — `sys/cheap` could say a leak existed, never
 who — demonstrated on the first real run, and it opened a question the design
 never asked: **why are the keys sorted at all?** Filed as **#204**.
+
+### 9.5 ADDENDUM 2 (2026-08-12, evening) — the steady-state window, and #204 answered by deleting a mechanism
+
+**D8's sizing input is now bounded, not merely sampled.** A 60 s window under real
+bridging on `c6spare` reports 65 distinct allocating methods, and **every one of
+them also appears in the boot window's 80** — the steady-state population is a
+strict subset, so boot *bounds* this workload rather than being the larger sample.
+Union 80, and after §9.6 below, 78. A 128-slot table stands at 0.61 load.
+
+The nesting is a claim about *this app*, not a law: a node doing work at runtime it
+never does at boot would break it. That is the argument for D7's insistence on
+measuring per workload rather than promoting a constant.
+
+**D4 is refuted a second time, and the refutation is now two-sided.** Steady state
+gives 1 arena allocation per 15.4 activations — or 1 per 5.35 once
+`Kernel_Socket>>receive`, the non-allocating poll that is 65% of the window's
+activations, is excluded. Against D4's assumed 1 in 100. The two target windows
+(boot 1-in-5.6, steady 1-in-5.35 excluding the poll) agree with each other; the
+host's 1-in-10 300 is the outlier of a long compute-bound suite.
+
+### 9.6 §9.4's question answered — and the answer removed the allocation, not the sort
+
+**#204 asked why map keys are sorted at all. They must be, and it was never the
+cost.** There are *two* orders and §9.4 conflated them:
+
+- `Kernel>>valueCompare:with:` is the **Map's own** order — its construction sort
+  and its binary-search key lookup. It is load-bearing for `Map>>=` (walks
+  index-wise) and `Map>>hash` (folds in stored order), i.e. for value semantics,
+  and it never encodes anything.
+- The encoder's separate bytewise-over-encoded-bytes order (`compareBytes:with:`)
+  is kept for **interop, not determinism**: emitting in Map order would also be
+  deterministic, but it would require every peer to reimplement the algebra's
+  rank-first total order to stay byte-compatible, where "sort the encoded bytes"
+  costs porta one `sort.SliceStable`.
+
+The C-heap bytes were `printString`: `dispatch.c` fast-pathed `at:`/`size` for
+String and RawBytes but not Symbol, so every Symbol comparison materialised two
+Strings and two C-heap blocks. Fixed in `1c5c6d2` (**#205**) by giving Symbol the
+fast path its inline `name[]` layout already supported since #190 stage 2.
+
+**Result: the node's C heap is now 0 bytes in 0 allocations**, host and target
+alike, and arena allocations fell by exactly the number of C-heap allocations
+removed (229 on host, 8 343 on the C6 boot window) — the one-malloc-one-String
+fingerprint, matching at two scales. Two methods left the allocating population,
+which is why D8's number moves 80 → 78.
+
+**This is the design's own thesis, discharged:** the instrument was built so that
+"who allocates" could be answered by name instead of by bisecting builds, and its
+first real finding was a mechanism that could be *deleted* rather than a knob that
+had to be tuned.
+
+### 9.7 What stage 1 still owes, and the shape decided for it
+
+The hook's runtime cost. `MethodProfileNodeC6.nsl` cannot supply it — it drives
+Hanoi, which allocates nothing, so it would time a hook that never fires. Decided
+shape: a measurement node, `ProfileCostNodeC6.nsl`, running the bridge workload
+with both arms back-to-back in **one binary, one boot, one cache state** (settle →
+span capture with mprof OFF → publish → span capture with mprof ON → publish +
+dump). It needs no porta write, which also keeps it clear of **#206**, where a
+second replayed `dbg/req` request wedges the node at window end.
