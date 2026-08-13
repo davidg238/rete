@@ -312,6 +312,30 @@ ordering semantics.
 design §8's third risk does not bite on any measured path. The same caveat still
 applies: allocation before `mprof_start()` is structurally invisible to a window.
 
+### 5.4 Re-measured after #205 — the target C heap is EMPTY too
+
+The boot window on build `1c5c6d2` (2026-08-12 18:35, after the store repair),
+against the same window from `870674e`:
+
+| boot window | before | after #205 |
+|---|---|---|
+| distinct allocating methods | 80 | **78** |
+| arena bytes / allocations | 2 429 488 / 72 677 | 2 213 304 / **64 334** |
+| C-heap bytes / allocations | 40 427 / 8 343 | **0 / 0** |
+
+**Arena allocations fell by exactly 8 343 — the number of C-heap allocations
+removed.** The host saw the same equality at its own scale (229 and 229), and it
+is the diagnosis' fingerprint: every `printString` was one malloc AND one String,
+so removing it removes one of each. Arena bytes fell 216 184 B, 8.9% of the
+window, on a node whose whole arena is 128 KB.
+
+Two of the 80 allocating methods left the population entirely, so **stage 2's
+sizing input moves from 80 to 78** — inside the same 128-slot table, and worth
+noting only because it is the first time the number has moved for a reason.
+
+The steady-state half is still owed: taking it needs a `dbg/req` write, and every
+such write re-arms **#206** on the next cold boot until #206 is fixed.
+
 ## 6. The one thing stage 1 still owes
 
 **The hook's runtime cost.** D4's 0.02% projection is refuted as a *projection*
