@@ -86,10 +86,14 @@ grep -q "serving the space" /tmp/porta_serve.log || {
 # the host backend answers the 0 sentinel — "no persistent boot identity" — and
 # this gate, the only one that runs both halves against each other, would exercise
 # only the degraded path while every real node on a board runs the other one. The
-# file is removed first so the count starts from a known 1 rather than inheriting
-# whatever a previous run left.
+# file is SEEDED rather than removed, and the value matters: starting from a
+# removed file the node latches boot 1, which is exactly the constant rete#211's
+# publishHealth used to hardcode — so a gate run at boot 1 could not tell a real
+# counter from the literal, and would have stayed green if anyone put it back.
+# Seeding 40 makes the node latch 41, a value nothing hardcodes.
 echo "[6/8] start the node"
-rm -f /tmp/porta_node_bootid
+echo 40 > /tmp/porta_node_bootid
+NODE_BOOT=41
 OEVM_TIMER_WALLCLOCK=1 TUVM_BOOTID_FILE=/tmp/porta_node_bootid \
   /tmp/oevm_porta /tmp/porta_node.oimg >/tmp/porta_node.log 2>&1 &
 NODE_PID=$!
@@ -105,6 +109,22 @@ done
 /tmp/porta get --db "$DB" "$NODE" obs | grep -q "obs/health" || {
   echo "FAIL: obs/health never reached porta"; /tmp/porta get --db "$DB" "$NODE"; cat /tmp/porta_serve.log; exit 1; }
 echo "  obs/health is in porta's cell tree"
+
+# rete#211: obs/health's own bid field must be the REAL boot id, not a literal.
+# It is the only place the boot id reaches a path — the envelope's copy is
+# transport and never lands — so a constant here made the space's answer to
+# "which boot is this node on?" wrong on every node, for every boot, while
+# PROTOCOL-NSL-RECORDS §4.4 claimed rete#162 had fixed it. Both halves are
+# checked: the RECORD field, and porta's own per-row boot (rete#210) that the
+# ENVELOPE carried. Asserting they agree is what makes a future divergence a
+# failure rather than a thing someone notices on a bench two months later.
+/tmp/porta get --db "$DB" "$NODE" obs/health | grep -q "#bid: $NODE_BOOT" || {
+  echo "FAIL: obs/health reports the wrong boot id — want #bid: $NODE_BOOT"
+  /tmp/porta get --db "$DB" "$NODE" obs/health; exit 1; }
+/tmp/porta get --db "$DB" "$NODE" obs/health | grep -q "boot=$NODE_BOOT" || {
+  echo "FAIL: the push envelope carried a different boot than the record"
+  /tmp/porta get --db "$DB" "$NODE" obs/health; exit 1; }
+echo "  obs/health's bid is the real boot ($NODE_BOOT), and the record agrees with the envelope"
 /tmp/porta get --db "$DB" "$NODE" obs | grep -q "obs/build" || { echo "FAIL: obs/build missing"; exit 1; }
 echo "  obs/build carries the node's provenance"
 

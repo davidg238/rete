@@ -270,7 +270,9 @@ class ProfileCostNodeC6 usingPlatform: platform net: net = (
     | pairs |
     pairs:: platform OrderedCollection new.
     pairs add: #up -> platform monotonicMillis.
-    pairs add: #bid -> 1.
+    (* The same latched value the push envelope carries (rete#211); see
+       PortaBridgeNode.nsl for why the literal was wrong. *)
+    pairs add: #bid -> bridge bootId.
     pairs add: #wak -> ticks.
     pairs add: #pto -> bridge misses.
     pairs add: #sdr -> bridge dropped.

@@ -206,7 +206,16 @@ class PortaBridgeNode usingPlatform: platform net: net = (
     | pairs |
     pairs:: platform OrderedCollection new.
     pairs add: #up -> platform monotonicMillis.
-    pairs add: #bid -> 1.
+    (* `bridge bootId` and NOT the literal 1, and not `platform bootId` either:
+       this is the same latched value the push envelope carries, so the record
+       and the envelope cannot disagree. They did — rete#211: #162 made bootId a
+       real persisted counter and moved the envelope over, but every app's
+       publishHealth kept the constant, so obs/health answered `bid 1` forever
+       while the envelope beside it said 38. obs/health is the ONLY place the
+       boot id reaches a path, so that constant was the whole of the space's
+       answer to "which boot is this?". 0 here is truthful, not a failure: the
+       posix backend has no persistent identity unless TUVM_BOOTID_FILE is set. *)
+    pairs add: #bid -> bridge bootId.
     pairs add: #wak -> ticks.
     pairs add: #pto -> bridge misses.
     pairs add: #sdr -> bridge dropped.
