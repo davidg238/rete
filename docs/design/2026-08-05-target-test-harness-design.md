@@ -621,3 +621,54 @@ being written down twice, by two hands.
   so "flashed one board, read another's console" is undetectable in general. Only the bell's
   half is caught, via its hardcoded JTAG identity — which must stay hardcoded, since a
   backstop that depends on a file in `~/.config` is not one.
+
+## Addendum — 2026-08-15: a cell read taken just after a deploy can blend two boots
+
+Found gating rete#161 on hardware (2026-08-14), and it nearly inverted the finding.
+
+> **Superseded as a rule, kept as the "why" (2026-08-15).** This began as a discipline — *after
+> a deploy, read published state from `porta log`, never `porta get`* — and that is no longer
+> the defence. `porta get` now marks any row that predates the node's current boot and prints a
+> `! MIXED READ` banner, because every stored row records the boot that published it. See
+> `porta/docs/design/2026-08-15-boot-anchored-cell-reads-design.md` and
+> `porta/docs/ARCHITECTURE.md` §3.4.
+>
+> The reason it did not stay a rule is worth more than the rule was: rete#210 named the
+> documented-discipline option and its own objection to it — it "relies on remembering, which
+> is what this project keeps learning does not hold." A harness whose correctness depends on
+> the operator having read this paragraph is not a harness.
+
+**What still holds for the harness.** The TAP verdict is unaffected either way — it comes off
+the console. Any figure read out of porta afterwards is the exposed part, and the guard is now
+in the tool rather than in the reader: a mixed read announces itself, and `porta log --boot N`
+is how a single boot is reconstructed when one is needed.
+
+**Why.** `cells` holds the latest value per `(node, path)`, and a rebooted node rewrites its
+whole tree over **several seconds**: in a measured run the sixteen `diag/spans/**` rows landed
+across an 11 s window (`09:10:31`–`09:10:41`), which begins *after* `collect::console` has
+already returned its verdict. A `porta get` taken inside that window answers with a **mixture**
+— this boot's values for the paths that have arrived, the previous boot's for the paths that
+have not — and nothing in a row says which boot it came from.
+
+`obs/build` cannot guard against this from inside the same snapshot, because `obs/build` is
+itself a cell subject to the same window. This is the D7 anchor problem one level out: the
+build id anchors the *console*, and it does not anchor a cell read.
+
+**What it cost.** Two builds one commit apart were flashed minutes apart to compare
+`pushTrim`. The control's read returned the previous boot's `pushTrim` (`188 / 51 923 µs`,
+byte-identical), which would have supported the conclusion that the change costs nothing at
+cold boot. Its real figure was `66 / 185 µs` — the opposite conclusion. It was caught only
+because two runs of *different binaries* producing identical microsecond timings is
+impossible; with two closer-behaving builds it would have passed as data.
+
+**How it was actually fixed, which is not what this addendum first proposed.** The freshness
+column sketched here — inferring staleness from the per-cell timestamp — was never needed. The
+node already sends a **persisted, monotonic `bootId`** on every envelope (`bid`, added for
+rete#162/#117), porta already stored it on `nodes` and `exchanges`, and `Ingest` already held
+it at the instant it wrote `cells` and `events`. It was being discarded for exactly the two
+tables an operator reads. Recording it makes the answer *exact* rather than inferred, and adds
+no concept the schema did not already contain.
+
+Worth carrying past this issue: the first design written after a scare tends to propose a new
+signal, when the one that was needed had already been on the wire for two rungs. Check what is
+already in hand before adding a mechanism to estimate it.

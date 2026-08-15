@@ -33,18 +33,74 @@ func newGetCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			boot, err := st.CurrentBoot(args[0])
+			if err != nil {
+				return err
+			}
+
+			// THE BANNER GOES FIRST AND IT GOES TO STDOUT. A rebooted node
+			// rewrites its whole tree over several seconds, so a read taken
+			// inside that window mixes this boot's values with the last boot's
+			// and nothing in a row says which is which (rete#210 — it nearly
+			// inverted a hardware finding on 2026-08-14). stdout rather than
+			// stderr because a warning a pipe eats is not a guard: the same
+			// mistake made a `tail -F | grep` monitor report three missed wakes
+			// as nothing happening.
+			stale := 0
 			for _, e := range rows {
+				if isStale(e, boot) {
+					stale++
+				}
+			}
+			if stale > 0 {
+				fmt.Fprintf(c.OutOrStdout(),
+					"! MIXED READ: %d of %d rows predate boot %d — see porta log --boot %d\n",
+					stale, len(rows), boot, boot)
+			}
+
+			for _, e := range rows {
+				mark, note := " ", ""
+				if isStale(e, boot) {
+					mark, note = "~", "  STALE"
+				}
 				v, err := cval.Decode(e.Value)
 				if err != nil {
 					// A stored value that will not decode is a real fault, not
 					// a display problem — say so rather than printing nothing.
-					fmt.Fprintf(c.OutOrStdout(), "%-32s seq=%-6d <undecodable: %v>\n", e.Path, e.Seq, err)
+					fmt.Fprintf(c.OutOrStdout(), "%s %-32s seq=%-6d %-9s <undecodable: %v>\n",
+						mark, e.Path, e.Seq, bootLabel(e), err)
 					continue
 				}
-				fmt.Fprintf(c.OutOrStdout(), "%-32s seq=%-6d %s\n", e.Path, e.Seq, cval.Format(v))
+				fmt.Fprintf(c.OutOrStdout(), "%s %-32s seq=%-6d %-9s %s%s\n",
+					mark, e.Path, e.Seq, bootLabel(e), cval.Format(v), note)
 			}
 			return nil
 		},
 	}
 	return cmd
+}
+
+// isStale is deliberately narrow, because every widening of it would be a way to
+// call a truthful row a lie:
+//
+//   - only inbound rows can be stale. An 'out' row is porta's own intent, which
+//     no node reboot invalidates.
+//   - a row with boot_id 0 is UNKNOWN, not stale — it is either a node with no
+//     persistent identity (posix without TUVM_BOOTID_FILE, a board without
+//     CONFIG_SETTINGS) or a row written before the column existed.
+//   - if the node's current boot is unknown there is nothing to compare against,
+//     so nothing is marked.
+func isStale(e space.Cell, currentBoot int64) bool {
+	return e.Direction == "in" && e.BootID != 0 && currentBoot != 0 && e.BootID != currentBoot
+}
+
+func bootLabel(e space.Cell) string {
+	switch {
+	case e.Direction == "out":
+		return "boot=-"
+	case e.BootID == 0:
+		return "boot=?"
+	default:
+		return fmt.Sprintf("boot=%d", e.BootID)
+	}
 }
