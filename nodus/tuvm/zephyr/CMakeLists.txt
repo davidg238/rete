@@ -259,6 +259,13 @@ endif()
 # timing cannot resolve a hook this small. Scaffolding, not a feature.
 if("$ENV{OEVM_METHOD_PROFILE}" STREQUAL "1")
   target_compile_definitions(app PRIVATE OEVM_METHOD_PROFILE=1)
+  # Table capacity, settable because 256 is NOT enough for every app. A steady
+  # bridging window on PortaBridgeNodeC6 reaches 223 methods of 256 (load 0.87)
+  # and saturates; at saturation every probe walks the whole table. See
+  # docs/results/2026-08-12-allocation-attribution-c6.md and rete#166.
+  if(NOT "$ENV{OEVM_MPROF_SLOTS}" STREQUAL "")
+    target_compile_definitions(app PRIVATE OEVM_MPROF_SLOTS=$ENV{OEVM_MPROF_SLOTS})
+  endif()
   if("$ENV{OEVM_MPROF_RUNTIME_GATE}" STREQUAL "1")
     target_compile_definitions(app PRIVATE OEVM_MPROF_RUNTIME_GATE=1)
     if(NOT "$ENV{OEVM_MPROF_FLIP_AT}" STREQUAL "")

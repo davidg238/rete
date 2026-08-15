@@ -2,19 +2,19 @@
   "oop_size": 4,
   "structs": {
     "Symbol": {
-      "size": 12,
+      "size": 8,
       "fields": {
         "base.vtable": {
           "offset": 0,
           "is_ref": true,
           "is_ptr": false
         },
-        "name": {
+        "length": {
           "offset": 4,
           "is_ref": false,
-          "is_ptr": true
+          "is_ptr": false
         },
-        "length": {
+        "name": {
           "offset": 8,
           "is_ref": false,
           "is_ptr": false

@@ -4,8 +4,8 @@ from oimg_serialize import OimgSerializer
 from builtins_registry import REGISTRY, VERSION
 
 LAYOUT = json.loads('''{"oop_size":8,"structs":{
- "Symbol":{"size":24,"fields":{"base.vtable":{"offset":0,"is_ref":true,"is_ptr":false},
-   "name":{"offset":8,"is_ref":false,"is_ptr":true},"length":{"offset":16,"is_ref":false,"is_ptr":false}}},
+ "Symbol":{"size":16,"fields":{"base.vtable":{"offset":0,"is_ref":true,"is_ptr":false},
+   "length":{"offset":8,"is_ref":false,"is_ptr":false},"name":{"offset":16,"is_ref":false,"is_ptr":false}}},
  "Vtable":{"size":48,"fields":{"base.vtable":{"offset":0,"is_ref":true,"is_ptr":false},
    "delegate":{"offset":8,"is_ref":true,"is_ptr":false},"bindings":{"offset":16,"is_ref":false,"is_ptr":true},
    "capacity":{"offset":24,"is_ref":false,"is_ptr":false},"size":{"offset":32,"is_ref":false,"is_ptr":false},
@@ -49,7 +49,9 @@ def test_header_and_root():
     assert struct.unpack_from("<I", blob, 8)[0] == VERSION    # registry_version
     blob_size = struct.unpack_from("<I", blob, 12)[0]
     cluster_count = struct.unpack_from("<I", blob, 16)[0]
-    assert cluster_count == 4   # SYMBOL, VTABLE, METHOD, CLOSURE
+    # rete#190 stage 2: SYMBOL left KIND_ORDER when Symbols became variable-size
+    # (inline name bytes), exactly as String has always been outside it.
+    assert cluster_count == 3   # VTABLE, METHOD, CLOSURE
     assert blob_size == len(blob)
 
 

@@ -118,9 +118,10 @@ static oop vm_condition_text(oop condition) {
     extern int gc_temp_roots_count;
     int saved_roots = gc_temp_roots_count;
     gc_temp_root_push(condition);
-    oop textSym = gc_allocate(SymbolVtable, sizeof(struct Symbol));
-    ((struct Symbol *)textSym)->name = "text";
-    ((struct Symbol *)textSym)->length = 4;
+    static const char textName[] = "text";
+    oop textSym = gc_allocate(SymbolVtable, sizeof(struct Symbol) + sizeof textName);
+    ((struct Symbol *)textSym)->length = sizeof textName - 1;
+    memcpy(((struct Symbol *)textSym)->name, textName, sizeof textName);
     gc_temp_root_push(textSym);
     oop probe_args[2] = { textSym, NULL };   /* ifAbsent nil: key is always present */
     oop v = send(condition, atIfAbsentSel, 2, probe_args);
@@ -393,6 +394,20 @@ static uint32_t    g_mprof_n[OEVM_MPROF_SLOTS];
 static uint32_t    g_mprof_overflow = 0;   /* activations dropped: table full */
 static uint32_t    g_mprof_used = 0;
 
+/* Allocation attribution (design 2026-08-12). Columns on the SAME rows as the
+   activation counter, so bytes-per-activation needs no join -- which is #163's
+   finding asked from the other side. Stage 1 only: these live inside
+   OEVM_METHOD_PROFILE and cost a production build nothing. */
+static uint32_t g_mprof_bytes[MPROF_HEAP_N][OEVM_MPROF_SLOTS];
+static uint32_t g_mprof_acnt[MPROF_HEAP_N][OEVM_MPROF_SLOTS];
+static uint32_t g_mprof_alloc_overflow = 0;   /* allocations dropped: table full */
+/* Allocations with no frame to attribute to -- boot, and prim contexts. Reported
+   separately rather than folded into a sentinel row: if this bucket dominates,
+   the attribution is not yet answering the question, and that must be VISIBLE
+   rather than averaged into a plausible-looking table. */
+static uint32_t g_mprof_nf_bytes[MPROF_HEAP_N];
+static uint32_t g_mprof_nf_cnt[MPROF_HEAP_N];
+
 /* #165 D1: the shipping control. The spike's OEVM_MPROF_RUNTIME_GATE flipped
    this on an activation countdown because Zephyr has no getenv and a count
    makes two measurement arms exactly reproducible. That seam stays below, opt
@@ -449,24 +464,58 @@ static void mprof_phase_advance(void) {
 }
 #endif
 
+/* Find or create the row for `m`. Returns the slot, or -1 when the table is full
+   -- the caller COUNTS that rather than absorbing it, per the rule above. The
+   interning is SHARED so an activation and an allocation for the same method can
+   never land in different rows.
+
+   Knuth multiplicative hash on the pointer, shifted past the alignment bits (a
+   CompiledMethod is pointer-aligned, so the low bits are always zero and would
+   collapse the table onto every eighth slot). */
+static OEVM_HOT int mprof_slot(const void *m) {
+    uint32_t h = (uint32_t)(((uintptr_t)m >> 4) * 2654435761u) & (OEVM_MPROF_SLOTS - 1);
+    uint32_t start = h;
+    for (;;) {
+        if (g_mprof_key[h] == m) return (int)h;
+        if (g_mprof_key[h] == NULL) { g_mprof_key[h] = m; g_mprof_used++; return (int)h; }
+        h = (h + 1) & (OEVM_MPROF_SLOTS - 1);
+        if (h == start) return -1;
+    }
+}
+
 static OEVM_HOT void mprof_bump(const void *m) {
 #ifdef OEVM_MPROF_RUNTIME_GATE
     if (--g_mprof_countdown == 0) mprof_phase_advance();
 #endif
     if (!g_mprof_enabled) return;
-    /* Knuth multiplicative hash on the pointer, shifted past the alignment bits
-       (a CompiledMethod is pointer-aligned, so the low bits are always zero and
-       would collapse the table onto every eighth slot). */
-    uint32_t h = (uint32_t)(((uintptr_t)m >> 4) * 2654435761u) & (OEVM_MPROF_SLOTS - 1);
-    uint32_t start = h;
-    for (;;) {
-        if (g_mprof_key[h] == m) { g_mprof_n[h]++; return; }
-        if (g_mprof_key[h] == NULL) {
-            g_mprof_key[h] = m; g_mprof_n[h] = 1; g_mprof_used++; return;
-        }
-        h = (h + 1) & (OEVM_MPROF_SLOTS - 1);
-        if (h == start) { g_mprof_overflow++; return; }
+    /* Behaviour-preserving against the pre-refactor code, which wrote n = 1 on
+       creation: mprof_slot creates the row with n still 0 and this increments
+       it. Holds because g_mprof_n is static (zero-init) and mprof_start() zeroes
+       it -- cases 1-4 of test_mprof_gate.c pin exactly that. */
+    int s = mprof_slot(m);
+    if (s < 0) { g_mprof_overflow++; return; }
+    g_mprof_n[s]++;
+}
+
+/* Neither static nor OEVM_HOT: gc.c calls this across a translation unit, so it
+   cannot inline. Acceptable for a stage-1 spike -- and the cost of that call is
+   one of the numbers this stage exists to measure (design D4). */
+void mprof_alloc(unsigned heap, size_t bytes) {
+    if (!g_mprof_enabled) return;
+    if (heap >= MPROF_HEAP_N) return;
+    struct MethodContext *ctx = current_frame;
+    if (ctx == NULL || ctx->closure == NULL) {
+        g_mprof_nf_bytes[heap] += (uint32_t)bytes;
+        g_mprof_nf_cnt[heap]++;
+        return;
     }
+    /* The SAME pointer push_frame keys on: closure_entry() resolves the blob
+       indirection, so a Model B image and a solidified one agree. */
+    const void *m = (const void *)closure_entry((struct Closure *)ctx->closure);
+    int s = mprof_slot(m);
+    if (s < 0) { g_mprof_alloc_overflow++; return; }
+    g_mprof_bytes[heap][s] += (uint32_t)bytes;
+    g_mprof_acnt[heap][s]++;
 }
 
 /* SPIKE-ONLY readback, and it exists because the real one is not reachable yet:
@@ -501,6 +550,35 @@ static void mprof_report(const char *why) {
             fprintf(stderr, "mprof: @%p %u\n", g_mprof_key[i], g_mprof_n[i]);
         }
     }
+
+    /* Allocation attribution (design 2026-08-12). A SEPARATE line prefix, never
+       extra columns on `mprof:` above: tools/mprof_resolve.py's DUMP_RE is
+       anchored at exactly two fields, so widening that line makes it match
+       NOTHING and report "no mprof: lines found" -- a silent false negative in
+       the only tool that reads this. */
+    fprintf(stderr, "mprofa[%s]: noframe_arena=%u/%u noframe_cheap=%u/%u allocOverflow=%u\n",
+            why, g_mprof_nf_bytes[MPROF_HEAP_ARENA], g_mprof_nf_cnt[MPROF_HEAP_ARENA],
+            g_mprof_nf_bytes[MPROF_HEAP_CHEAP], g_mprof_nf_cnt[MPROF_HEAP_CHEAP],
+            g_mprof_alloc_overflow);
+    for (i = 0; i < OEVM_MPROF_SLOTS; i++) {
+        if (!g_mprof_key[i]) continue;
+        /* Rows that never allocated are SKIPPED, and that is the measurement:
+           the count of mprofa: lines IS the distinct-allocating-method
+           population that sizes stage 2 (design D8). Emitting zeroes would bury
+           it inside the activation dump's 200-odd rows. */
+        if (g_mprof_bytes[MPROF_HEAP_ARENA][i] == 0 &&
+            g_mprof_bytes[MPROF_HEAP_CHEAP][i] == 0) continue;
+        if (is_in_blob(g_mprof_key[i])) {
+            fprintf(stderr, "mprofa: %lu %u %u %u %u\n",
+                    (unsigned long)((const uint8_t *)g_mprof_key[i] - oimg_blob_base),
+                    g_mprof_bytes[MPROF_HEAP_ARENA][i], g_mprof_acnt[MPROF_HEAP_ARENA][i],
+                    g_mprof_bytes[MPROF_HEAP_CHEAP][i], g_mprof_acnt[MPROF_HEAP_CHEAP][i]);
+        } else {
+            fprintf(stderr, "mprofa: @%p %u %u %u %u\n", g_mprof_key[i],
+                    g_mprof_bytes[MPROF_HEAP_ARENA][i], g_mprof_acnt[MPROF_HEAP_ARENA][i],
+                    g_mprof_bytes[MPROF_HEAP_CHEAP][i], g_mprof_acnt[MPROF_HEAP_CHEAP][i]);
+        }
+    }
 }
 
 /* #165 D1/D6 lifecycle. start = zero + enable; stop = disable + report. Zeroing
@@ -508,10 +586,16 @@ static void mprof_report(const char *why) {
    counts are cumulative by construction, so a second capture that inherited the
    first one's table would report a sum spanning both and no reader could tell. */
 void mprof_start(void) {
-    int i;
+    int i; unsigned h;
     for (i = 0; i < OEVM_MPROF_SLOTS; i++) { g_mprof_key[i] = NULL; g_mprof_n[i] = 0; }
+    for (h = 0; h < MPROF_HEAP_N; h++) {
+        for (i = 0; i < OEVM_MPROF_SLOTS; i++) { g_mprof_bytes[h][i] = 0; g_mprof_acnt[h][i] = 0; }
+        g_mprof_nf_bytes[h] = 0;
+        g_mprof_nf_cnt[h] = 0;
+    }
     g_mprof_used = 0;
     g_mprof_overflow = 0;
+    g_mprof_alloc_overflow = 0;
     g_mprof_enabled = 1;
 }
 
@@ -526,6 +610,15 @@ int mprof_is_running(void) { return g_mprof_enabled; }
    would put a non-inlinable call on the activation path. */
 void mprof_bump_for_test(const void *m) { mprof_bump(m); }
 unsigned mprof_used_for_test(void) { return g_mprof_used; }
+unsigned long mprof_bytes_for_test(unsigned heap) {
+    unsigned long t = 0; int i;
+    if (heap >= MPROF_HEAP_N) return 0;
+    for (i = 0; i < OEVM_MPROF_SLOTS; i++) t += g_mprof_bytes[heap][i];
+    return t;
+}
+unsigned long mprof_noframe_bytes_for_test(unsigned heap) {
+    return (heap < MPROF_HEAP_N) ? (unsigned long)g_mprof_nf_bytes[heap] : 0ul;
+}
 
 /* On a hosted run the process exits, so report there too. A destructor rather
    than an atexit registration keeps the hot path free of an init flag. Absent on
@@ -715,9 +808,10 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
         current_frame = NULL;
     }
     if (Symbol_value == NULL) {
-        Symbol_value = gc_allocate(SymbolVtable, sizeof(struct Symbol));
-        ((struct Symbol *)Symbol_value)->name = "value";
-        ((struct Symbol *)Symbol_value)->length = strlen("value");
+        static const char valueName[] = "value";
+        Symbol_value = gc_allocate(SymbolVtable, sizeof(struct Symbol) + sizeof valueName);
+        ((struct Symbol *)Symbol_value)->length = sizeof valueName - 1;
+        memcpy(((struct Symbol *)Symbol_value)->name, valueName, sizeof valueName);
     }
     struct Closure *cl = (struct Closure *)closure;
     struct CompiledMethod *method = (struct CompiledMethod *)closure_entry(cl);
@@ -1616,9 +1710,10 @@ oop primitive_register_debugger_hook(oop receiver, int argc, oop *args) {
     }
     debugger_hook = args[0];
     if (Symbol_debug_ == NULL) {
-        oop sym = gc_allocate(SymbolVtable, sizeof(struct Symbol));
-        ((struct Symbol *)sym)->name = "debug:";
-        ((struct Symbol *)sym)->length = 6;
+        static const char debugName[] = "debug:";
+        oop sym = gc_allocate(SymbolVtable, sizeof(struct Symbol) + sizeof debugName);
+        ((struct Symbol *)sym)->length = sizeof debugName - 1;
+        memcpy(((struct Symbol *)sym)->name, debugName, sizeof debugName);
         Symbol_debug_ = sym;
     }
     return receiver;
@@ -1747,8 +1842,26 @@ oop primitive_vtable_bind(oop receiver, int argc, oop *args) {
     }
     
     if (vt->size >= vt->capacity) {
-        vt->capacity = vt->capacity == 0 ? 8 : vt->capacity * 2;
-        vt->bindings = realloc(vt->bindings, vt->capacity * sizeof(struct Binding));
+        size_t new_capacity = vt->capacity == 0 ? 8 : vt->capacity * 2;
+        /* Assumes vt->bindings is either NULL or oevm_malloc/oevm_realloc storage.
+           rete#191: hanoi_native.c:77 breaks that assumption for Vtable_HanoiNative
+           (static, not heap) — pre-existing hazard, left standing deliberately. */
+        struct Binding *grown = oevm_realloc(vt->bindings, new_capacity * sizeof(struct Binding));
+        /* rete#190: this primitive is reached only through the privileged mirror
+           capability (mirror.c vtable:bind:to:) and every other error path in this
+           function already aborts (non-vtable receiver, bad argc, immutable image).
+           There is no established "answer nil" convention here — bind:to: always
+           answers the receiver — so returning nil on OOM would read as a plausible
+           success and silently drop the binding. Abort loud, consistent with the
+           rest of this function, rather than invent a new failure channel. Failing
+           BEFORE reassigning vt->bindings/vt->capacity also keeps the original
+           (still-valid, per oevm_realloc's contract) storage and size intact. */
+        if (grown == NULL) {
+            fprintf(stderr, "VM Error: bind:to: could not grow vtable bindings (out of memory)\n");
+            abort();
+        }
+        vt->bindings = grown;
+        vt->capacity = new_capacity;
     }
     vt->bindings[vt->size].symbol = selector;
     vt->bindings[vt->size].method = method;
@@ -1791,7 +1904,19 @@ oop primitive_compiled_method_set_instruction_at(oop receiver, int argc, oop *ar
     extern uintptr_t flash_rom_end;
     uintptr_t insts_addr = (uintptr_t)cm_instructions(cm);
     if (insts_addr >= flash_rom_start && insts_addr < flash_rom_end) {
-        uint32_t *heap_insts = malloc(cm->instruction_count * sizeof(uint32_t));
+        uint32_t *heap_insts = oevm_malloc(cm->instruction_count * sizeof(uint32_t));
+        /* rete#190: same reasoning as bind:to: above — this primitive is reached
+           only through the privileged mirror capability (mirror.c
+           method:instructionAt:put:), every other error path in this function
+           already aborts (non-object receiver, bad args, OOB index, immutable
+           image), and instructionAt:put: has no "answer nil" convention to fall
+           back on: its job is to mutate a specific instruction word, and there is
+           no bounded, honest value to hand back short of doing that. Abort loud
+           rather than write through NULL or silently skip the requested mutation. */
+        if (heap_insts == NULL) {
+            fprintf(stderr, "VM Error: instructionAt:put: could not copy flash-ROM instructions (out of memory)\n");
+            abort();
+        }
         memcpy(heap_insts, cm_instructions(cm), cm->instruction_count * sizeof(uint32_t));
         cm->instructions = heap_insts;
     }

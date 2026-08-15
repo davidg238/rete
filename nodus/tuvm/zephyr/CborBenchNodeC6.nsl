@@ -48,30 +48,30 @@ class CborBenchNodeC6 packageUsing: manifest = ( | platform cbor | ) (
 
   health = ( | pairs |
     pairs:: platform OrderedCollection new.
-    pairs add: #uptimeMs -> 2592000000.
-    pairs add: #bootId -> 1.
-    pairs add: #wakes -> 1296000.
-    pairs add: #pollTimeouts -> 431.
-    pairs add: #streamDropped -> 17.
+    pairs add: #up -> 2592000000.
+    pairs add: #bid -> 1.
+    pairs add: #wak -> 1296000.
+    pairs add: #pto -> 431.
+    pairs add: #sdr -> 17.
     ^ platform Record tag: #Health fields: (platform Map fromPairs: pairs) )
 
   metrics = ( | pairs |
     pairs:: platform OrderedCollection new.
-    pairs add: #heapSize -> 53248.
-    pairs add: #liveBytes -> 36196.
-    pairs add: #heapHighWater -> 53228.
-    pairs add: #largestFreeBlock -> 18608.
-    pairs add: #gcCycles -> 1523.
-    pairs add: #handlesLive -> 1.
-    pairs add: #handlesHighWater -> 1.
-    pairs add: #queueHighWater -> 2.
-    pairs add: #overruns -> 0.
-    pairs add: #pulseDrops -> 0.
-    pairs add: #pulseCoalesced -> 0.
+    pairs add: #hsz -> 53248.
+    pairs add: #lb -> 36196.
+    pairs add: #hhw -> 53228.
+    pairs add: #lfb -> 18608.
+    pairs add: #gcc -> 1523.
+    pairs add: #hnl -> 1.
+    pairs add: #hnhw -> 1.
+    pairs add: #qhw -> 2.
+    pairs add: #ovr -> 0.
+    pairs add: #pdr -> 0.
+    pairs add: #pco -> 0.
     ^ platform Record tag: #Metrics fields: (platform Map fromPairs: pairs) )
 
-  logRec = ( ^ platform Record tag: #Log with: #level -> #info
-                                         with: #text -> 'tick 1296000' )
+  logRec = ( ^ platform Record tag: #Log with: #lvl -> #info
+                                         with: #txt -> 'tick 1296000' )
 
   rowSeq: s path: p value: v = ( ^ platform List with: s with: p with: 2 with: v )
 
@@ -82,8 +82,8 @@ class CborBenchNodeC6 packageUsing: manifest = ( | platform cbor | ) (
     rows add: (self rowSeq: 1296002 path: 'tel/log'     value: self logRec).
     ^ platform Record tag: #push
         with: #id -> 'c6-bench'
-        with: #bootId -> 1
-        with: #entries -> (platform List fromCollection: rows) )
+        with: #bid -> 1
+        with: #ent -> (platform List fromCollection: rows) )
 
   map8 = ( | pairs |
     pairs:: platform OrderedCollection new.

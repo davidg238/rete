@@ -144,9 +144,12 @@ static void test_roots_callback(void) {
 }
 
 static oop create_symbol(const char *name) {
-    oop sym = gc_allocate(SymbolVtable, sizeof(struct Symbol));
-    ((struct Symbol *)sym)->name = name;
-    ((struct Symbol *)sym)->length = strlen(name);
+    /* rete#190 stage 2: the name bytes are inline, so size the allocation for
+       the payload and copy them in (NUL included). */
+    size_t n = strlen(name);
+    oop sym = gc_allocate(SymbolVtable, sizeof(struct Symbol) + n + 1);
+    ((struct Symbol *)sym)->length = n;
+    memcpy(((struct Symbol *)sym)->name, name, n + 1);
     return sym;
 }
 

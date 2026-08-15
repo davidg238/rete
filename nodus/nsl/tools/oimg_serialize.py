@@ -72,14 +72,19 @@ class OimgWriter:
         #
         # format_version 8 (Milestone A Task 9b compaction): ONE fixed layout.
         # When the Kernel descriptor is present the serial/supervisor/net groups
-        # are ALWAYS emitted (0 when the entry takes no such capability), so a v8
+        # are ALWAYS emitted (0 when the entry takes no such capability), so the
         # header always ends at the net word (A+12W, padded). The v7 tail word
         # (the retired concurrency capability ref at A+13W) is gone — fibers were
         # removed in Milestone A; v3-v7 headers are no longer written or loaded.
         #
+        # format_version 9 (rete#190 stage 2): the header layout is UNCHANGED;
+        # what changed is the Symbol record — its name bytes are now INLINE
+        # (no separate strbytes allocation, no `name` ref-word). Bumped so a v8
+        # image meets a v9 VM as a loud rejection rather than a silent misread.
+        #
         #   off  width  field
         #   0    4      magic "OIMG"
-        #   4    2      format_version (u16: 8 when Kernel descriptor present;
+        #   4    2      format_version (u16: 9 when Kernel descriptor present;
         #                1 for a kernel-less minimal blob — header ends at the
         #                entry descriptor; serializer unit tests only)
         #   6    2      flags (u16, =0)
@@ -130,9 +135,9 @@ class OimgWriter:
         # format is painful — decide the format early".
         if not kernel_vtable_ref and (serial_on_sel_ref or supervisor_vtable_ref
                                       or net_on_sel_ref):
-            raise ValueError("v8 header: serial/supervisor/net descriptors "
+            raise ValueError("v9 header: serial/supervisor/net descriptors "
                              "require the Kernel descriptor")
-        version = 8 if kernel_vtable_ref else self.version
+        version = 9 if kernel_vtable_ref else self.version
         h = self.MAGIC
         h += self.u16(version) + self.u16(0)               # flags = 0
         h += self.u32(self.registry_version)
@@ -185,10 +190,16 @@ class OimgWriter:
         return h
 
 
-# Object kinds, in cluster emit order.
-KIND_ORDER = ["SYMBOL", "VTABLE", "METHOD", "CLOSURE", "FLOAT", "LARGEINT", "INSTANCE", "BOXEDBINDING"]
+# Object kinds, in cluster emit order. SYMBOL is in NEITHER dict (rete#190
+# stage 2): Symbols are variable-size now (header + inline NUL-terminated
+# bytes), so they are reserved individually and emitted by name, exactly like
+# String — which has never appeared in either dict for the same reason. These
+# two dicts describe only the fixed-size-per-kind cluster loop; _put resolves
+# field offsets from the literal struct name it is handed, not through
+# KIND_STRUCT.
+KIND_ORDER = ["VTABLE", "METHOD", "CLOSURE", "FLOAT", "LARGEINT", "INSTANCE", "BOXEDBINDING"]
 KIND_STRUCT = {
-    "SYMBOL": "Symbol", "VTABLE": "Vtable", "METHOD": "CompiledMethod",
+    "VTABLE": "Vtable", "METHOD": "CompiledMethod",
     "CLOSURE": "Closure", "FLOAT": "Float", "LARGEINT": "LargeInteger",
     "INSTANCE": "ObjectInstance", "BOXEDBINDING": "BoxedBinding",
 }
@@ -228,8 +239,63 @@ class OimgSerializer:
         self.layout = layout
         self.structs = layout["structs"]
         self.oop = layout["oop_size"]
+        self._check_inline_payloads()
         self.reg = registry
         self.w = OimgWriter(self.oop, version=1, registry_version=registry_version)
+
+    # The two variable-size records, and the field whose bytes ride INLINE after
+    # the header. Kept here rather than inline at the use sites so adding a third
+    # such record is one line, not a new check.
+    _INLINE_PAYLOADS = (("Symbol", "name"), ("String", "bytes"))
+
+    def _check_inline_payloads(self):
+        """Refuse a layout that disagrees with the structs it claims to describe.
+
+        rete#190 stage 2 moved Symbol's name bytes inline. The VM, dump_layout.c
+        and this serializer were all updated together — but the per-target layout
+        JSONs under zephyr/ are CAPTURED FROM HARDWARE and checked in, and they
+        were not. The C6 file went on saying `name` was a pointer at offset 4
+        while the VM read the inline bytes at offset 8, so the serializer wrote
+        every Symbol's text four bytes early. The image loaded, `format_version`
+        matched at 9 on both sides, and the first send died with
+
+            Message 'undOuter:slotCount:' not understood
+
+        i.e. `__boundOuter:slotCount:` missing exactly the four bytes of the
+        offset error. Silent, and only on a cross-compiled target: a host build
+        regenerates its layout from a freshly built dump_layout every time, so no
+        host gate can ever see it.
+
+        format_version guards the FORMAT and cannot catch this — both ends agreed
+        on 9; they disagreed about the ABI. This is that guard one level down.
+
+        The invariant is the one a flexible array member cannot violate: the
+        payload is not a pointer, and it begins exactly where the header ends.
+        """
+        for struct_name, field in self._INLINE_PAYLOADS:
+            s = self.structs.get(struct_name)
+            if s is None:
+                raise ValueError(
+                    f"layout has no `{struct_name}` struct — it is not a layout for this VM")
+            f = s["fields"].get(field)
+            if f is None:
+                raise ValueError(
+                    f"layout's `{struct_name}` has no `{field}` field — stale layout; "
+                    f"regenerate it (see below)")
+            if f.get("is_ptr") or f["offset"] != s["size"]:
+                raise ValueError(
+                    f"STALE LAYOUT: `{struct_name}.{field}` says "
+                    f"offset={f['offset']} is_ptr={bool(f.get('is_ptr'))} against "
+                    f"{struct_name} size={s['size']}.\n"
+                    f"  The bytes ride INLINE, so the payload must start exactly at the "
+                    f"end of the header (offset == size) and must not be a pointer.\n"
+                    f"  This layout describes a VM that no longer exists. Writing an "
+                    f"image against it produces text read at the wrong offset — an image "
+                    f"that loads, passes the format_version check, and then fails with a "
+                    f"garbled selector (rete#190 stage 2).\n"
+                    f"  Regenerate it: flash zephyr/layoutdump/ to the target board and "
+                    f"capture its console output — that output IS the file. See "
+                    f"zephyr/README.md, 'Where the layout JSON comes from'.")
 
     # ---- reference encoding -------------------------------------------------
     def _smi_fits(self, v):
@@ -434,8 +500,8 @@ class OimgSerializer:
             app_syms.add(supervisor_run_sel_name)
         self.app_syms = sorted(s for s in app_syms if s not in self.reg)
         self.app_strings = sorted(app_strings)
-        for name in self.app_syms:
-            objs["SYMBOL"].append(f"sym:{name}")
+        # rete#190 stage 2: no objs["SYMBOL"] bucket — sym: offsets are assigned
+        # by the variable-size reserve loop below, not the fixed-size KIND loop.
 
         for vt_name in graph.vtables:
             if vt_name not in self.reg:          # builtin vtables are firmware-owned
@@ -497,8 +563,14 @@ class OimgSerializer:
             self.offset[key] = cursor
             cursor += nbytes
 
+        # rete#190 stage 2: Symbols are VARIABLE-size (header + inline
+        # NUL-terminated bytes), so they cannot ride the fixed-size-per-kind
+        # reserve loop above — same treatment String has had since std-lib
+        # 3c-1. The separate `strbytes:` allocation is gone: the payload lives
+        # in the record itself, after `length`.
+        sym_hdr = self.structs["Symbol"]["size"]
         for name in self.app_syms:
-            reserve(f"strbytes:{name}", len(name) + 1)
+            reserve(f"sym:{name}", sym_hdr + len(name.encode("utf-8")) + 1)
         # std-lib 3c-1: String constants are VARIABLE-size (header + inline bytes),
         # so they cannot ride the fixed-size-per-kind reserve loop; reserve each
         # individually like a trailing array (bytes live inline after `length`).
@@ -518,14 +590,21 @@ class OimgSerializer:
         buf = bytearray(total)
 
         # 3. Emit records.
+        sym_bytes_off = self.structs["Symbol"]["fields"]["name"]["offset"]
         for name in self.app_syms:
             base = self.offset[f"sym:{name}"]
+            # `length` is a BYTE count, not a character count — it must share the
+            # UTF-8 basis with the reservation and the payload below, exactly as
+            # the String block does with its own len(raw). Symbol `=` is a
+            # length-then-byte compare (dispatch.c), so a non-ASCII symbol whose
+            # length was a character count would never equal the same symbol
+            # decoded through `platform asSymbol:`.
+            nb = name.encode("utf-8")
+            raw = nb + b"\x00"
             self._put(buf, base, "Symbol", "base.vtable", self.w.word(RefWord.builtin(self.reg["SymbolVtable"])))
-            self._put(buf, base, "Symbol", "name", self.w.word(self._aref(f"strbytes:{name}")))
-            self._put(buf, base, "Symbol", "length", self._scalar_bytes("length", len(name)))
-            sbase = self.offset[f"strbytes:{name}"]
-            raw = name.encode("utf-8") + b"\x00"
-            buf[sbase: sbase + len(raw)] = raw
+            self._put(buf, base, "Symbol", "length", self._scalar_bytes("length", len(nb)))
+            nbase = base + sym_bytes_off
+            buf[nbase: nbase + len(raw)] = raw
 
         # std-lib 3c-1: String constants — INLINE bytes (no separate strbytes
         # pointer; the payload lives in the record itself after `length`).

@@ -2,7 +2,14 @@
 
 - **Date:** 2026-08-10
 - **Issue:** [#190](https://github.com/davidg238/rete/issues/190)
-- **Status:** design approved (David, 2026-08-10); implementation not started
+- **Status:** design approved (David, 2026-08-10). **Stage 1 (sub-project A) IMPLEMENTED
+  the same day on branch `190-alloc-seam` and NOT merged** — its hardware gate found that
+  `publishCheap` hangs a C6 deterministically. **Stage 2 (sub-project B, §4) IMPLEMENTED
+  the same day on the same branch**, all host gates green, hardware gate and bell soak
+  still owed; §4's own claims were corrected against the built code and the measurements
+  are in §11.7. See §11 throughout for what the hardware changed in this document. Stages
+  3–4 (sub-projects D and C) remain unplanned by design (D9). Plan:
+  `docs/superpowers/plans/2026-08-10-alloc-seam-and-cheap-gauge.md`
 - **Supersedes:** nothing. Extends `PROTOCOL-NSL.md` §3 with a fifth path prefix and
   builds `PROTOCOL-NSL-RECORDS.md` §2.4's already-specified `Panic`.
 
@@ -194,7 +201,14 @@ This deletes the malloc, the indirection, and the ownership question, and adds n
 The payload must be NUL-terminated because `symbol_name()` returns `const char *` consumed
 by `strcmp` at more than twenty sites — hence `length + 1`.
 
-### Two consequences that are real work
+### Four consequences that are real work
+
+> Consequences 2–4 were **corrected after the work was built** (2026-08-10). The original
+> §4 said "two static Symbols" and "four dynamic assignment sites", and named no lifetime
+> rule and no image-version guard. Those claims are replaced below rather than annotated —
+> a decision record that miscounts the work by two orders of magnitude is exactly the kind
+> of half-claim a later session acts on.
+
 
 **1. `gc.c` needs a `SymbolVtable` leaf case in `trace_one`.** Symbol currently falls through
 to the generic word-count fallback, which today scans a `const char *` harmlessly. With
@@ -202,24 +216,72 @@ inline bytes that fallback would scan **raw symbol text as pointers**. `String` 
 `RawBytes` already carry exactly this guard (`gc.c:542-550`), for exactly this reason.
 This is a landmine, not a detail.
 
-**2. Two static Symbols cannot hold a flexible array member the ordinary way.**
-`true_sym_obj` / `false_sym_obj` (`dispatch.c:278-279`) are `const struct Symbol` whose
-*addresses* are the VM's `==` results, so they must stay statically allocated with stable
-addresses in flash. GCC accepts static initialisation of a flexible array member as a
-documented extension, and both toolchains here are GCC — **take the extension**. If it ever
-needs replacing, the fallback is a layout-compatible sized-storage struct behind a macro;
-record it in the plan, don't build it now.
+**2. Statically allocated Symbols need the GCC flexible-array-member extension — and there
+are nine hand-written plus hundreds generated, not two.**
 
-The four dynamic assignment sites (`vm.c:122`, `vm.c:719`, `vm.c:1620`, `dispatch.c:459`)
-that today point `name` at a C string literal become `gc_allocate` + `memcpy`, identical in
-shape to the two that currently malloc.
+A static `struct Symbol` must keep a stable address in flash, because for several of them
+the *address itself* is the VM's `==` result. The hand-written nine are:
+
+| File | Symbols |
+|---|---|
+| `src/dispatch.c:278-279` | `true_sym_obj`, `false_sym_obj` |
+| `src/kernel_boot.c:51-61` | `KSym__eq_eq`, `KSym_sender`, `KSym_value`, `KSym_accessViolation_`, `KSym_debug_`, `KSym_true`, `KSym_false` |
+
+Beside them stands a **generated wall**: every interned Symbol in the solidified Path-A
+image is emitted as a `const struct Symbol StaticSymbol_*` — **677 of them in the fixture
+currently tracked at `src/solidified_image.c`**, and the count is a property of whichever
+`.nsl` was baked, not of this change. They all come from **one line of Python**
+(`nodus/nsl/tools/solidify.py:132`), so the wall is one edit, not 677.
+
+**It is not optional.** `src/solidified_image.c` is still linked: `tools/run_c_tests.sh`
+builds most of the C gate against `ENG_A` (line 34), and `zephyr/CMakeLists.txt` exposes
+`-DTUVM_MODEL=A` as a supported board build. A design that treats Path A as dead would
+have sized this consequence at two.
+
+The extension was **verified on both toolchains before being used**, not assumed: host
+`gcc` and `riscv64-zephyr-elf-gcc` both accept static initialisation of a flexible array
+member, the statics land in `.srodata` (read-only, stable address, no RAM cost), and the
+only diagnostic is `-Wpedantic`-gated — which neither build enables. If it ever needs
+replacing, the fallback is a layout-compatible sized-storage struct behind a macro; record
+it, don't build it now.
+
+**3. Six dynamic assignment sites, not four — and the image format gets a version guard.**
+The sites that build a Symbol at run time are `vm.c:122`, `vm.c:720`, `vm.c:1622`,
+`dispatch.c:459`, `dispatch.c:1687` and `platform.c:1234`. Four pointed `name` at a C
+string literal; **two malloc'd** (`platform.c` — the leak — and `dispatch.c`'s
+`asString`). All six become `gc_allocate(SymbolVtable, sizeof(struct Symbol) + len + 1)`
+plus a `memcpy`, so the malloc'ing and the literal-pointing sites collapse into one shape.
+
+§4 originally accepted *"silently wrong, not loudly broken"* as the failure mode of a
+serializer and a VM that disagree, mitigated only by landing them in one commit. **That
+hole is now closed by a decision, not a discipline:** the `.oimg` `format_version` goes
+**8 → 9** (`nodus/nsl/tools/oimg_serialize.py:80`). The header layout is unchanged; what
+changed is the Symbol record, which no longer carries a `name` ref-word. The bump exists
+so a v8 image meeting a v9 VM is **rejected at load** instead of misreading a ref-word as
+inline text. One-commit landing is still right; it is no longer the only thing standing
+between a stale pairing and a silent misread.
+
+**4. Inline bytes end an accidental lifetime guarantee, so `symbol_name()` gains a rule.**
+The leak was, perversely, providing lifetime safety: nothing ever freed the malloc'd name,
+so a `const char *` from `symbol_name()` was **immortal** and no call site ever had to
+think about it. Inline bytes end that — the pointer now lives exactly as long as the
+Symbol object does.
+
+The GC is mark-sweep and **non-moving**, so a *live* Symbol's bytes never relocate: the
+hazard is collection, not compaction. All 30 `symbol_name()` call sites were audited
+before the change and none holds the pointer across an allocation. The rule now lives in
+the comment above `symbol_name()` in `src/oimg.h` — do not hold the pointer across an
+allocation, a VM send, or anything else that can reach `gc_collect`; copy the bytes into a
+local first.
 
 ### The image format changes with it
 
 `oimg_serialize.py` writes `Symbol.name` as a blob reference today
 (`_symbol_ref`, and the emit at L523-525). It must write inline bytes instead. **The
-serializer and the VM must land in the same commit** — an `.oimg` built by one and loaded by
-the other is silently wrong, not loudly broken.
+serializer and the VM land in the same commit**, and — per consequence 3 above — the
+`format_version` bump to 9 is what makes a stale pairing *loudly* broken rather than
+silently wrong. The original text of this paragraph accepted the silent failure; it no
+longer applies.
 
 ---
 
@@ -431,3 +493,536 @@ knowledge goes to:
 | Silence detection, the sweep, the retired `cadence_ms` | `porta/docs/ARCHITECTURE.md` |
 | Symbol layout, the `trace_one` leaf rule, the `.oimg` format change | `review/lib/` VM doc + `review/tests/CLAIMS.md` |
 | Reboot-not-halt as node failure behaviour | `review/program-sequence.md` |
+
+---
+
+## 11. Addendum — what the stage 1 hardware gate changed (2026-08-10, same day)
+
+Stage 1 was implemented and run on hardware the day this design was written. Three things
+in the sections above need correcting or extending, recorded here rather than silently
+edited so the reasoning stays inspectable.
+
+### 11.1 §7's verdict table is INCOMPLETE — it has a fifth outcome
+
+All four rows assume the node runs. The outcome that actually occurred is not among them:
+
+| Reading | Verdict |
+|---|---|
+| **The instrumentation hangs the node** | **Not a reading at all.** Score nothing. A node that stops checking in produces no evidence about the leak, and the flat line it leaves behind is indistinguishable from row 3's "gauge is blind" |
+
+This is the failure mode a verdict table most needs and is least likely to contain, because
+a table is written by someone imagining the measurement working. **Any future gauge design
+in this program should carry this row.** The cost of omitting it is precisely the
+misdiagnosis §7 was written to prevent, arriving through a door the table left open.
+
+### 11.2 D9 (gauge first, then fix) is VINDICATED, and by a route it did not predict
+
+D9 argued the gauge must land first so the leak could be seen to rise. What it actually
+bought was different and larger: **the gauge validation run caught a target-only hang in
+the instrumentation itself, before the Symbol fix was ever planned on top of it.** Had both
+stages shipped together, the hang would have been attributed to the Symbol change — a
+strictly harder debugging problem, on the branch that matters most.
+
+The argument for D9 is therefore stronger than the one recorded in §7, and it generalises:
+*an instrument must be proven not to disturb its subject before its readings mean anything*,
+which is a separate claim from *an instrument must be proven to register the effect*.
+
+### 11.3 What §3's seam is now KNOWN to be, on hardware
+
+Bisect on a real C6 (five builds, same board and command, all `--pristine`) exonerated the
+entire C-level design of §3:
+
+- the seam (`oevm_malloc`/`oevm_realloc`/`oevm_free`) — clean
+- all six call-site conversions and the NULL handling of §3's "What it does on failure" — clean
+- **the 8-byte size header** — clean, tested by removing it and observing the hang persist.
+  Note that §3's justification for the `uint64_t` union (alignment faulting on target only)
+  was reasoning about a real hazard that turned out not to be this one.
+- prim 152 and the `PRIM_NAMES` append — clean **as to presence only.** The build that
+  carried prim 152 without `publishCheap` never CALLED it, so the bisect tested its linkage,
+  not its execution. It was exonerated properly a few hours later — see §11.5 — by a build
+  that executes it every check-in and runs. Recorded because "exonerated by bisect" was
+  written here first and is the kind of half-claim a later session acts on.
+
+The hang is in the nsl half — `Kernel>>cheap` / `publishCheap` — which §3 treated as the
+uninteresting part. **The C was the part everyone reviewed; the four lines of nsl that
+publish a cell every check-in were the part that broke a node.**
+
+`sys/cheap` itself is confirmed working end to end: it reaches porta from a real C6 over a
+real Thread mesh.
+
+### 11.5 The hang is `CHeapStats fromList:`, and the gauge's reading (2026-08-10 evening)
+
+Three builds, one variable each, same board (`c6spare`) and same command:
+
+| build | prim 152 executes | `CHeapStats` instantiated | result |
+|---|---|---|---|
+| `fcfb119`, 3 boots | yes | yes | **wedged at tick 2-3, 3-for-3** |
+| constant record | no | no | clean past the verdict |
+| raw prim + `basicAt:` | **yes** | no | clean to tick 610-614 |
+
+So **prim 152 is innocent and `CHeapStats fromList:` is fatal**; the mechanism is still
+unknown and is now rete#192, whose only reproducer is the class this branch keeps for that
+purpose. The fix makes `cheap` read the raw prim Array exactly as `metrics` reads
+`platform heapStats` — the wedge is closed by REMOVING a mechanism, not adding one.
+
+**The wedge is an event, not a duration.** All three `fcfb119` boots die on the first
+check-in after `TAP bridge-health done`, never a tick earlier or later. `emitVerdict` writes
+`diag/spans/ctl → #stopped`, which dumps 12 `LatencySpan` cells into the very next push;
+`pushFrame` then trims ~13 rows with a full frame re-encode per iteration. That is the
+load window, and reading it as "a few ticks in" is what made it look like a slow failure.
+
+**A second, unrelated failure lives at ~613 check-ins, and it predates this branch.** Three
+runs — including one with no `publishCheap` at all — stop at tick 610, 613 and 614. The
+bisect's master control never reached it: master was reflashed at tick 588, twenty-five ticks
+short, on a ~4-minute observation window. **Master is untested there, not exonerated.**
+
+**It is driven by check-in COUNT, not wall time,** which is the one measurement that tells a
+leak from a clock. Halving the cadence to 1000 ms halved the wall time and left the tick
+count alone:
+
+| cadence | died at tick | wall time |
+|---|---|---|
+| 2000 ms | 613, 614 | 20m 26s, 20m 31s |
+| **1000 ms** | **610** | **10m 20s** |
+
+The gauge agrees from the other side: outstanding blocks track ticks, not seconds
+(5 878 at tick 589 with a 1 s cadence; 6 094 at tick 614 with a 2 s cadence). At the cliff
+the C heap holds **~6 000 blocks averaging 4.8 bytes of payload** — 29 KB of payload that,
+with an 8 B header plus newlib's own per-chunk overhead and alignment, costs on the order of
+**140 KB of the C6's 190 KB**. `fails: 0` throughout: the VM's own allocations never failed,
+so whatever died first was an allocation OUTSIDE the seam (OpenThread or the net stack),
+which is also why the failure is silent.
+
+Thousands of ~5 byte blocks is the signature of the interned-Symbol-name leak stage 2
+targets. **§7's prediction is confirmed in substance and wrong in units:** it framed the
+death as 43m54s of wall time, but the mechanism is per-check-in, so the figure only holds at
+the 2 s bench cadence and says nothing about a field node on a slower one. Any future
+statement of this leak's lifetime must be in check-ins.
+
+### 11.6 Two more readings that were wrong, and one that was a measurement artifact
+
+- **`handlesLive: 0` / `handlesHighWater: 0` is NOT a wedge signature.** It was named the
+  best thread to pull. A demonstrably HEALTHY node on this build reports exactly those zeroes
+  while ticking; the healthy `c6-bell` 2 came from a different app and era. Chasing it would
+  have cost a session.
+- **`c6spare` was not left "clean and ticking".** It panicked 23 minutes after that sentence
+  was written, on `VM GC Error: Out of Memory (requested 4104, used 131064 of 131072)` — the
+  GC ARENA, on a build with no `publishCheap`. Board state recorded at close-out is a claim
+  with a shelf life; re-read the console before trusting it.
+
+  That OOM is **probably downstream of the §11.5 cliff rather than a second leak**, and the
+  three runs line up to say why: all reach the wall at the same check-in count, but the
+  build without `publishCheap` then limped on for 56 further ticks with `acked` FROZEN —
+  nothing it pushed was being accepted — its tick period decaying 2.0 s → 6.2 s, before the
+  arena filled. A backlog accumulating in the arena once acks stop fits that, and a decaying
+  tick period is what a GC does as live data grows. **Untested; recorded as a hypothesis.**
+
+  > **ADDENDUM 2026-08-11 — CORROBORATED on hardware, by accident, and by a cleaner route
+  > than could have been designed on purpose (rete#199).** Bringing up rete#197 flashed
+  > `c6spare` with shortened wire labels while the gateway still ran the old binary, so every
+  > frame was refused (`malformed message: missing #bootId`) and `acked` never left 0. The
+  > node then died exactly as this paragraph predicts:
+  >
+  > | | here, 2026-08-10 | rete#199, 2026-08-11 |
+  > |---|---|---|
+  > | `acked` | frozen | frozen at 0 |
+  > | tick period | 2.0 s → 6.2 s | 2.0 s → **7.2 s**, monotonic |
+  > | fatal request | **4104 B** | **4104 B** |
+  > | arena at death | 131 064 / 131 072 | 127 680 / 131 072 |
+  >
+  > **Why it is stronger evidence than the event that prompted the hypothesis:** the acks
+  > froze for a reason with *no memory component whatsoever* — a gateway that did not
+  > recognise a field name — and the §11.5 leak was already fixed and gated on this same board
+  > (§11.7, 0 outstanding blocks across 677 check-ins). The original event could not separate
+  > "backlog" from "second leak" **because the leak is what froze the acks.** This one has no
+  > leak in it and the same thing happened.
+  >
+  > So arena OOM here is most likely **one mechanism with two triggers** — a backlog
+  > accumulating once acks stop — rather than two causes. The known triggers are the §11.5
+  > cliff (rows stop being *accepted*) and a wire mismatch (rows stop being *parsed*);
+  > anything else that freezes acks is a third.
+  >
+  > **This sharpens `c6-bell`'s soak rather than mooting it.** The bell is healthy and acking,
+  > so no backlog can be accumulating in it — **if the bell OOMs anyway, that is the second
+  > leak this section was worried about**, because the competing explanation now has an
+  > independent home and can no longer absorb the result.
+  >
+  > **RESOLVED the same day, and the answer is NOT accumulation — see the correction below.**
+  > What stood here was a reading of the 4104 B as a *collection* doubling (`OrderedCollection`
+  > and the hashed collections both grow by `2 * contents size`), with `pending` noted as the
+  > obvious-but-probably-wrong candidate. The cap was the right clue and it pointed elsewhere.
+  >
+  > **CORRECTION 2026-08-11, second pass — it is FRAGMENTATION, and the arena is two-thirds
+  > empty when the node dies.** Reproduced off hardware at the C6's exact memory
+  > configuration (`-m32`, arena 131 072, `VM_STACK_INIT_WORDS=4096`), with a matched-gateway
+  > control: the refused leg died at **114 s / ~55 check-ins**, the control ran **900 s / 450
+  > check-ins** and lived. Measured in the terminal OOM handler at the fatal allocation:
+  >
+  > ```
+  > request=4104   live=44396   largest_free=3976   gc_cycles=428   t=98 s
+  > ```
+  >
+  > **34% of the arena was live. ~87 KB was free. No 4 KB extent existed.** The healthy
+  > control held *more* live data (78 132 B) at a **19× lower collection rate** (0.23/s vs
+  > 4.4/s). So the dying node is not holding more — it is churning more.
+  >
+  > The 4104 B is `platform basicNewBytes: 4096` from **`ByteBuilder>>grow`**
+  > (`kernel.nsl:683`) — a flat byte buffer, not a slot array. It is therefore a **constant,
+  > not a boundary**, which is the real reason three independent events requested the
+  > identical figure. `pending` could never have been the answer: it is capped at 64 and
+  > `maxRows` caps each prefix scan at 8, so the row list tops out near 88.
+  >
+  > **The generator is `pushFrame`'s trim loop** (`kernel.nsl:1945`): it encodes the whole row
+  > set, then removes one row and **re-encodes**, repeatedly. With `acked` frozen the first
+  > encode is the full backlog (>2048 B, hence the 4096 B builder) and the trim then runs ~80
+  > more encodes, each climbing its own ladder of abandoned power-of-two buffers — ~80 ladders
+  > per check-in against a healthy node's one, twice a second. That, not accumulation, is what
+  > shatters the arena.
+  >
+  > **So the one-mechanism-two-triggers reading above survives, with its mechanism replaced:**
+  > the shared mechanism is *allocation churn from a frozen `acked`*, not *a backlog filling
+  > the arena*. Everything the table matches still matches. What changes is the fix — bounding
+  > a queue cannot help a node that dies with two-thirds of its arena free.
+  >
+  > **And the sharpened reading of `c6-bell` holds unchanged**, for the same reason: the bell
+  > is acking, so it never enters the trim-loop regime. If it OOMs anyway, that is still the
+  > second leak this section was worried about.
+  >
+  > **A first host reproduction was retracted** (it set `OEVM_HEAP_SIZE` as an environment
+  > variable, but that is a compile-time macro, `gc.c:18-19`, so it measured the 16 MB host
+  > default). **rete#179, which had blocked doing it properly, is closed**: the host could not
+  > boot at the device arena because `VM_STACK_INIT_WORDS` defaults to 16384 and a 64-bit word
+  > is 8 B — `16384 × 8 = 131072`, the C6's whole arena, by coincidence. See
+  > `docs/results/2026-08-11-host-arena-floor.md`.
+
+  The two runs WITH `publishCheap` stopped dead at the cliff instead and never got there,
+  which is the part of the picture a single-run reading would have missed.
+- **A two-point read of `liveBytes` says nothing.** It sawtooths with every GC cycle, so two
+  samples at different phases yield any trend you like — including, in this session, a
+  confident and entirely wrong prediction of imminent arena exhaustion. The arena is fine;
+  only the 15:21 OOM above is real, and it is one observed event, not a trend.
+
+### 11.4 One undocumented mechanism the plan missed
+
+`dispatch.c` carries a compile-time parity guard (`prim_names_enum_parity_check`) that must
+advance with the last prim id or the build hard-fails on a negative array size. It is not in
+any of the nine enumerated source lists the project's lore warns about, so a file survey does
+not find it. Anyone appending a prim needs to know it exists.
+
+### 11.7 What stage 2 measured (2026-08-10)
+
+Stage 2 — inline Symbol bytes, §4 — is built and every host gate is green. This is what it
+measured. **Everything here is quoted in check-ins, never in minutes**: §11.5 established
+that the failure is driven by check-in count, so §7's "43 m 54 s" was right in substance and
+wrong in units, and a wall-clock figure only holds at the bench cadence it was taken at.
+
+#### The check-in path, end to end (host)
+
+Two runs of the real check-in path (`nodus/tuvm/tests/porta_sync_host.sh`'s harness — the
+same `PortaBridgeNode.nsl`, the same `porta serve`, a 2000 ms cadence), ticks 1 → 150, with
+143 labelled `sys/cheap` rows in each:
+
+| build | outstanding blocks (`allocs − frees`) | slope | `outBytes` |
+|---|---|---|---|
+| pre-fix `703547e` | 6 → 1 496 | **+10.000 blocks / check-in** | 34 → 7 186 (+48 B / check-in) |
+| post-fix | 0 → 0 | **+0.000** | 0 → 0, `outHigh` pinned at **17 B** |
+
+Two-point and least-squares over all 143 rows give the same number, **R² = 1.00000** — the
+pre-fix series is *exactly* linear in check-ins, not approximately. For scale, §11.5's board
+reading is ~8.6 blocks/check-in (5 878 outstanding at tick 589, 6 094 at tick 614): same
+phenomenon, same order, same unit.
+
+**The cross-check is stronger than either slope.** The two runs are step-for-step identical
+apart from the leak — at *every* tick, pre-fix `frees` == post-fix `allocs` == post-fix
+`frees`, and the two independently fitted alloc rates differ by exactly 10 (245 vs 235). The
+fix removed precisely the allocations that were never freed and changed nothing else about
+the workload. Post-fix the node still makes ~235 C-heap allocations per check-in and frees
+all 235.
+
+#### The prim in isolation (host)
+
+`nodus/tuvm/tests/test_symbol_inline.c`, 200 calls to `PRIM_pf_asSymbol`:
+
+| build | `allocs` | `outBytes` |
+|---|---|---|
+| pre-fix `703547e` | +200 | +2 890 |
+| post-fix | **+0** | **+0** |
+
+#### Three caveats that must travel with these numbers
+
+These are how the next reader avoids being fooled by them.
+
+- **`allocs − frees` is not universally "outstanding blocks".** `oevm_realloc` (`gc.c:98`)
+  bumps `allocs` and never `frees`, so every realloc inflates the difference by one with
+  nothing leaking. The only realloc site on this path is vtable binding growth
+  (`vm.c:1757`), quiescent by tick 21 — which is *why* post-fix reads a flat **zero** rather
+  than a flat small constant. A realloc-heavy workload would drift upward while perfectly
+  clean.
+- **`outBytes` counts payload only** — not the 8 B block header, not the allocator's own
+  per-chunk overhead. The real pre-fix cost was on the order of **160–320 B per check-in**,
+  not 48. **Quote the block count; treat bytes as a lower bound.**
+- **Mean leaked block is ~4.8 B on the check-in path and 14.45 B in the prim read.** Not a
+  contradiction — different symbol populations (wire symbols are short; the prim test drove
+  longer names). The **block count** is the quantity that matches across all three
+  measurements, host and board.
+
+#### The hardware gate — CONFIRMED on `c6spare` (2026-08-11)
+
+§7 step 2's prediction is no longer unconfirmed. Commit **`e52a86e`**, flashed `--pristine`
+with the conf named explicitly, `PortaBridgeNodeC6.nsl` at the 2 s cadence — read from
+porta's own rows rather than from this document's recollection, because the leaky run's rows
+were still in `soak-2026-08-04.db`. **Both sides of this comparison are live data.**
+
+| reading | leaky build (2026-08-10) | fixed build `e52a86e` (2026-08-11) |
+|---|---|---|
+| outstanding blocks (`allocs − frees`) | 6 088 @ tick 610 | **0** |
+| slope | **+10.000 / check-in** | **+0.000**, across **677 consecutive rows** |
+| `outBytes` | 29 238 and rising | **0** |
+| `outHigh` | rising with it | pinned at **17 B** |
+| C-heap allocations per check-in | 245 | **235** |
+| alive past tick 614 | **no** — died 610 / 613 / 614, three runs | **yes** — reached **702** |
+| `fails` | 0 | 0 |
+
+**The strongest line is not the slope, it is `distinct: [0]`.** Outstanding blocks were 0 at
+*every one* of the 677 sampled check-ins — minimum 0, maximum 0, `allocs == frees` at every
+sample (270 871 each at the end of the run). §11.6 records how a two-point read of a
+sawtoothing counter yields any trend you like; this is not vulnerable to that, because there
+is no second value to sample. An earlier run of the same fix on the same board, before the
+build was made reproducible, gave the identical result over 744 rows.
+
+The board also reproduces the host's decomposition exactly: 245 → 235 allocations per
+check-in is the same pair the host fitted independently, and 29 238 / 6 088 = **4.80 B** mean
+block matches §11.5's "~6 000 blocks averaging 4.8 bytes". **The ten leaked allocations per
+check-in are gone and nothing else about the workload moved.**
+
+**The bell agrees, on a different app and a different cadence.** It was restored to service
+on the same commit at 08:34 — `ShipsBellAlarmNodeC6.nsl`, checking in as `c6-bell` every 30 s
+with the RTC alarm armed — and reports the same `distinct: [0]`, `outBytes 0`, `outHigh 17`,
+`fails 0` over its first 48 rows. That matters because it is not the same workload: the leak
+lived on the *decode* path, so a second app on a 15× slower cadence reproducing the flat line
+is evidence the fix is in the VM and not in one node's behaviour. Its >10 h 41 m run is still
+accumulating.
+
+#### The gate found a bug the host could not: a stale per-target layout
+
+The first flash of the fixed build **panicked within a second of Thread attaching**:
+
+    VM Error: Message 'undOuter:slotCount:' not understood by receiver 0x42800318
+    abort()  ->  ZEPHYR FATAL ERROR 4: Kernel panic on CPU 0
+
+The selector is `__boundOuter:slotCount:`; the VM read it **four bytes late** and lost
+exactly `__bo`. Model B bakes struct offsets ahead of time from a per-target layout JSON that
+is *captured from hardware* and checked in. §4's flip moved `Symbol`'s bytes inline and
+updated `tools/dump_layout.c` — but not the three artifacts that tool exists to produce.
+`zephyr/layout-esp32c6.json` still described a `name` **pointer at offset 4** while the VM
+read inline bytes at offset 8.
+
+Three properties made it invisible until a board ran it, and all three generalize:
+
+- **No host gate can see it.** The nsl suite rebuilds `dump_layout` and regenerates its
+  layout every run, so the host is self-consistent *by construction*. Only a cross-compiled
+  target reads a **stored** layout.
+- **The `format_version` 8 → 9 bump was added by this very stage for the hazard "an image
+  built by one and loaded by the other is silently wrong" — and it cannot catch this.** Both
+  ends agreed on 9. They disagreed about the **ABI**, not the format. A version guards the
+  shape of the envelope, never the meaning of the fields.
+- **The image loads, boots, joins the mesh and passes three bridge-health TAPs before dying**,
+  because the first Symbol read at the wrong offset is a send rather than the load.
+
+Fixed by regenerating the file the documented way (`zephyr/layoutdump/` flashed to the board,
+its console output *is* the file) and by a guard in `oimg_serialize.py` that refuses any
+layout whose inline payload claims to be a pointer or does not begin exactly at the end of
+its header. The guard was verified against the real artifact: it **rejects the exact
+`layout-esp32c6.json` that shipped the panic**, and it also rejects `layout-esp32.json` and
+`layout-esp32s2.json`, which are stale in the same way and cannot be regenerated without
+those boards.
+
+#### One more way a green build is not a reproducible build
+
+`c6spare`'s successful image got its Thread configuration from a **stale CMake cache**, not
+from the command line that produced it: `build-esp32c6-B` still held
+`EXTRA_CONF_FILE=prj_esp32c6_thread.conf;prj_esp32c6_thread_ftd.conf;prj_esp32c6_thread.local.conf`
+from an earlier session. The image was correct and the measurement above is valid — it really
+did join the real mesh and reach porta — but **re-running that command in a clean tree yields
+a radio-less image and a node that binds nothing**, which is exactly what happened to the bell
+when it was given a fresh build directory. Both boards were subsequently reflashed
+`--pristine` with the conf named explicitly. Same family as the layout bug: an artifact
+*outside the source tree* silently supplying correctness.
+
+#### Three findings that outlive this work
+
+- **`OEVM_GC_STRESS` is blind to use-after-sweep.** A root was deliberately removed from
+  `tests/test_cbor.c` and the stress gate still passed. The collector is non-moving and
+  sweeps *within its own arena* rather than calling `free`, so swept bytes stay physically
+  readable and the stale oop keeps working; ASan cannot see it either, for the same reason.
+  **"Green under `OEVM_GC_STRESS`" is not evidence that an oop was rooted.**
+- **`trace_one`'s leaf arms were unguarded.** With the new `SymbolVtable` arm short-circuited,
+  the entire pre-existing 33-test C gate passed — the guard §4 called "a landmine, not a
+  detail" was untested by everything already in the tree. `tests/test_symbol_inline.c` now
+  guards the Symbol arm with a decoy/trap object; **`StringVtable` and `RawBytesVtable`
+  remain unguarded** and the idiom is reusable verbatim.
+- **`run_tests_oevm.py` compiles Path A *into* `src/solidified_image.c`**, and `run-one.py`
+  does not restore it — so any `.nsl` bake sweep silently replaces the tracked fixture. It bit
+  this branch once: a sweep swapped the fixture's identity from `MethodCallTest` to
+  `SmiBoundaryConstantTest` and it was nearly committed. The fixture also carries **~10 715
+  lines of `.c` plus 6 948 of `.stmap` of pre-existing drift**, dating to before the
+  2026-07-18 `.ns` → `.nsl` rename — so `git diff` on it is not a reliable tripwire either.
+
+---
+
+### 11.8 The bell's soak — THE VERDICT: there is no second leak (2026-08-11)
+
+This is the experiment §11.6 was waiting for, and the reason `c6-bell` was left untouched
+through a whole cutover. §11.6 set the question precisely: the bell is healthy and acking, so
+no backlog can be accumulating in it — **if the bell OOMs anyway, that is the second leak.**
+
+It did not OOM. Recorded read-only off `soak-2026-08-04.db` on gw85224-01 **before** the
+#197 reflash destroyed it, via `tools/heap-envelope.py` (which buckets by GC cycle, because
+every field of `sys/metrics` is a sawtooth and two samples are two arbitrary phases of it):
+
+```
+boot 13   08-11 08:35 .. 19:19   10.73 h   518 GC cycles   1244 samples (96.5% delivered)
+  live floor (leak gauge)    mean 44700   slope  +2.40 B/cycle   +1241 B over run   0.5 sigma  FLAT
+  lfb ceiling (post-sweep)   mean 44384   slope  +4.71 B/cycle   +2433 B over run   1.1 sigma  FLAT
+  lfb trough  (NOT a gauge)  mean 10661   slope  -3.46 B/cycle   -1789 B over run   1.5 sigma  FLAT
+```
+
+**A flat live floor at 0.5 sigma over 518 cycles, and it is the longest clean window in the
+whole series** (boot 5's 9.95 h was flat at 1.6 sigma; boot 12's 10.68 h read *falling* at
+5.6 sigma). The C-heap agrees from the other side: `sys/cheap` at the end of the soak reads
+`allocs 243736, frees 243736, fails 0, outBytes 0` — **outstanding blocks flat at zero across
+a quarter of a million allocation pairs**, which is §11.7's host result reproduced on
+hardware over half a day.
+
+So the two arena-OOM events this document has been trying to separate are **one mechanism
+with one cause**, and it is not a leak: it is allocation churn from a frozen `acked`, closed
+by rete#161 (see the §11.6 addendum). The "second leak" branch of §11.6 is now closed by
+measurement rather than left open.
+
+**One sample would have said the opposite, and that is worth keeping.** The `sys/metrics`
+*cell* read at the same moment says `liveBytes 114488` of a 131072 arena — 87% — with
+`largestFreeBlock 7568`. Read alone it looks like a node about to die. It is the pre-collection
+phase of the sawtooth, and it is exactly the reading `heap-envelope.py` exists to refuse. The
+floor is 44 700.
+
+**What this soak does NOT establish, said plainly:** the bell publishes three paths at a 30 s
+cadence, so it is a *narrow* node. Its `sys/cheap` was already arriving 1:1 with `sys/metrics`
+on the pre-#197 firmware — **1244 : 1244 across the whole soak, seq gap 1** — which means the
+bell never had the tail-trim starvation #197 exists to fix, and cannot demonstrate its
+removal. That is a property of the bell's frame, not evidence about `c6-bench`'s.
+
+---
+
+### 11.9 The #197 hardware gate — the gauge came back (2026-08-11)
+
+The cutover completed at 23:03 and the gate ran 23:04:33 → 23:24:57 (20 m 24 s) with both
+boards on `porta-v1-final-964-ga78cd03` and gw85224-01 on the matching porta binary.
+
+| | `c6-bench` (`PortaBridgeNodeC6`, 2 s) | `c6-bell` (`ShipsBellAlarmNodeC6`, 30 s) |
+|---|---|---|
+| check-ins in window | 607 | 41 |
+| `sys/metrics` : `sys/cheap` | **607 : 607** | **41 : 41** |
+| seq gap (cheap − metrics) | **1, constant** | **1, constant** |
+| outstanding blocks (`alc − fre`) | **0, flat** across +140 132 allocs | **0, flat** across +7 400 allocs |
+| `fails` / `outBytes` | 0 / 0 | 0 / 0 |
+| alive at window end | yes | yes |
+
+All four pass conditions hold. The pre-state was `sys/cheap` **42 minutes stale at seq 70 006
+against metrics 78 839 — a ~8 800 seq gap that was still growing**; it is now one.
+
+**Two apps, and only one of them is evidence for condition 1.** The bell reproduces
+conditions 3 and 4 on a second app at a 15× slower cadence, which is what says the C-heap
+result is not one node's shape. It is **not** evidence for condition 1: §11.8 records that
+the bell was already delivering `sys/cheap` 1:1 on the *pre*-#197 firmware (1244 : 1244 over
+its whole soak), because it publishes three paths and never had the tail-trim starvation.
+Only `c6-bench` had the failure, so only `c6-bench` can show its removal.
+
+#### Which conditions were tested at BENCH widths, said plainly
+
+This is the caveat the plan demanded, and it is not a formality: the #197 failure is driven
+by **encoded value width**, and CBOR is shortest-form, so a freshly booted node encodes
+narrower than a long-lived one. Both boards had ~25 minutes of uptime.
+
+| field | in this window | 30-day / worst legal | width delta |
+|---|---|---|---|
+| `bid` | 1 (1 B) | 1 073 741 823 (5 B) | **−4 B** |
+| `wak` | 775 (3 B) | 1 296 000 (5 B) | **−2 B** |
+| `gcc` | 351 (3 B) | > 65 535 (5 B) | **−2 B** |
+| `up` | 1 552 169 (5 B) | 2 592 000 000 (5 B) | same class |
+| `alc` / `fre` | 187 085 (5 B) | ~10⁸ (5 B) | same class |
+| `lb`/`hhw`/`lfb`/`hsz` | bounded by the 131 072 arena | same | same class |
+
+**So the frame this gate measured is about 8 B narrower than the 30-day worst case.** The
+field case is covered by the host guard fixture `22_spacesync/09_batch_size.nsl`, which models
+a 30-day node with a saturated `bid` and measures **378 B against the 512 B cap — 134 B of
+headroom** — and is green in the suite. It is not covered by this board run, and 8 B sits
+comfortably inside 134 B but that is arithmetic, not a measurement.
+
+#### Two operational findings from the cutover itself
+
+- **The bell would not flash over its USB-JTAG node.** `esptool` reset it into the ROM
+  downloader and then lost it (`The chip stopped responding`), leaving it in
+  `boot:0x66 DOWNLOAD` — recovered by stopping `rete-console@c6`, flashing over the CP2102N,
+  and restarting the collector. Task 4's note that everything goes over the CP2102N holds for
+  the bell even though the JTAG flashed `c6spare` fine minutes earlier. **The two C6 devkits
+  do not behave the same way on the same channel.**
+
+  > **CORRECTION, 2026-08-12 — this had a physical consequence, and the paragraph above was
+  > written not knowing it (rete#201).** The ROM downloader drives no GPIOs, and the bell's
+  > striker is off *only while actively driven*, so parking the chip there **rang the bell
+  > continuously from 23:01:41 until the app booted at 23:03:45** — about two minutes, at
+  > 11pm. It stopped because a person unplugged the cable.
+  >
+  > **And the line I read as collector contention was that person.** This, in the collector
+  > log, was reported above as evidence of two readers on one tty:
+  > ```
+  > 23:02:09 @@rete-console@@ port lost: device reports readiness to read but returned no data
+  > 23:02:19 @@rete-console@@ port reacquired
+  > ```
+  > It is a human unplugging and replugging a cable to stop a bell. The instrument said
+  > "multiple access on port?" and I took the hint it offered instead of the one the timing
+  > offered — the disconnect is 28 s after the failed flash, not near anything the collector
+  > was doing.
+  >
+  > The generalisation is worth more than the incident: **the undriven-GPIO window is not
+  > bounded by a reset pulse.** §3's known windows were milliseconds-to-seconds. The ROM
+  > loader is a *stable* state that waits indefinitely, so any failure that parks the chip
+  > there holds every actuator on until a human intervenes. No firmware mitigation can reach
+  > that state by definition, which is why rete#201's first item is a pull-down at the
+  > transistor rather than anything in this tree.
+  >
+  > > **SECOND CORRECTION, 2026-08-12 (David, at the bench): there IS a base pull-down, and
+  > > it was already fitted. The paragraph above is wrong about the remedy and therefore
+  > > wrong about the mechanism.** R2 = 47 kΩ base-to-GND went onto the 3.3 V piezo driver on
+  > > **2026-08-05** (schematic rev B), six days before this flash, and it demonstrably works
+  > > for the reset case — it is what stopped the buzzer sounding at power-up. So the bell
+  > > rang for two minutes *with the pull-down in place*, and "fit a pull-down" closes
+  > > nothing here because it is already done.
+  > >
+  > > **What that leaves is the real finding: in the ROM downloader, GPIO18 is not merely
+  > > undriven.** With a genuine high-Z pin, R2 holds the base at 0 V and the piezo is
+  > > silent; it was not silent. So either the pin is being actively driven high, or a weak
+  > > internal pull-up is on it and R2 is too weak to hold the base below V_BE. The second is
+  > > checkable on paper and R1 = 10 kΩ makes it likely — the base tracks 47/(10+47) = **82%
+  > > of the pin**, so against a ~45 kΩ pull-up the base sits at 3.3 × 47/102 = **1.52 V**,
+  > > hard on. The solenoid rig's 10 kΩ gives 3.3 × 10/65 = **0.51 V**, off. Same schematic
+  > > role, 4.7× weaker, opposite outcome — and it explains why rete#105 measured ~0 V at the
+  > > base on the 10 kΩ rig and inferred "actively driven" from it.
+  > >
+  > > Note 4 on `2026-08-03-shipsbells-3v3-piezo-driver.svg` sizes R2 for the pin-driven-high
+  > > case only, and note 1's "holds the base at 0 V whenever GPIO18 is undriven" is true for
+  > > high-Z and false for pulled-up. **Neither note is a measurement of download mode.**
+  > >
+  > > **The measurement that settles it, and why it is now easy.** rete#105's localising test
+  > > was never run because its window was a ~1 s transient. `boot:0x66 DOWNLOAD` is the same
+  > > fault held *indefinitely*: park the board there deliberately, then meter GPIO18 and the
+  > > 2N3904 base. A pin at ~3.3 V is "actively driven" (rete#105's hypothesis, and no
+  > > resistor fixes it); a pin near 1.2 V with the base near 1.5 V is the divider, and
+  > > dropping R2 to 10 kΩ — the value the schematic already names as the floor — fixes it.
+  > > Do this before writing any more remedy prose.
+- **rete#199's signature was captured live on the bell**, in its own console, during the
+  ~3½-minute mismatch window: `check-in 1717 … 1720 misses 57 acked 7456` — `acked` frozen
+  across four consecutive refused check-ins while `misses` never moved. It survived only
+  because 30 s cadence stretches the fuse to ~27 minutes; `c6spare` at 2 s would not have.
+  That is the issue's central claim — a refused exchange and a successful one are
+  indistinguishable in every number the node reports — observed rather than modelled.

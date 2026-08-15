@@ -63,11 +63,68 @@ static size_t heap_live_bytes = 0;   /* header+payload bytes live as of the last
 static size_t heap_high_water = 0;   /* max live_bytes ever observed (monotonic since boot) */
 static size_t heap_gc_cycles  = 0;   /* completed collections since boot */
 
+/* rete#190: C-heap accounting. NOT the GC arena — that is heap_live_bytes above.
+   The arena is statically sized and was never under pressure; the leak was here. */
+static struct OevmCHeapStats cheap;
+
+/* The size header. A union with uint64_t rather than a bare size_t: malloc returns
+   8-aligned storage, and on a 32-bit target (RV32, the C6) a 4-byte header would
+   hand back 4-aligned payloads. That misaligns every double stored through the
+   pointer and faults on the TARGET ONLY — invisible on the 64-bit host, which is
+   the worst possible failure shape. C99 has no max_align_t, hence uint64_t. */
+union CHeapBlock {
+    size_t   size;
+    uint64_t _align;
+};
+
+void *oevm_malloc(size_t n) {
+    union CHeapBlock *b = malloc(sizeof(union CHeapBlock) + n);
+    if (b == NULL) { cheap.fails++; return NULL; }
+    b->size = n;
+    cheap.allocs++;
+    MPROF_ALLOC(MPROF_HEAP_CHEAP, n);
+    cheap.out_bytes += n;
+    if (cheap.out_bytes > cheap.out_high) cheap.out_high = cheap.out_bytes;
+    return (void *)(b + 1);
+}
+
+void oevm_free(void *p) {
+    if (p == NULL) return;
+    union CHeapBlock *b = ((union CHeapBlock *)p) - 1;
+    cheap.out_bytes -= b->size;
+    cheap.frees++;
+    free(b);
+}
+
+void *oevm_realloc(void *p, size_t n) {
+    if (p == NULL) return oevm_malloc(n);
+    union CHeapBlock *b = ((union CHeapBlock *)p) - 1;
+    size_t old = b->size;
+    union CHeapBlock *nb = realloc(b, sizeof(union CHeapBlock) + n);
+    if (nb == NULL) { cheap.fails++; return NULL; }   /* `b` is still valid and still counted */
+    nb->size = n;
+    /* written as subtract-then-add, NOT `+= n - old`: the latter relies on size_t
+       wraparound when shrinking, which is correct but reads as a bug */
+    cheap.out_bytes = cheap.out_bytes - old + n;
+    if (cheap.out_bytes > cheap.out_high) cheap.out_high = cheap.out_bytes;
+    cheap.allocs++;
+    /* The NEW size, attributed as a fresh allocation: the column is cumulative
+       "bytes caused", not a live-set delta (design D2). */
+    MPROF_ALLOC(MPROF_HEAP_CHEAP, n);
+    return (void *)(nb + 1);
+}
+
+struct OevmCHeapStats oevm_cheap_stats(void) { return cheap; }
+
 /* Called from gc_allocate's two success paths (fresh bump, free-bin reuse)
    with `need` = sizeof(struct HeapHeader) + rounded payload — the exact bytes
    that just became live. Two integer ops: the hot-path budget this brief
    requires. */
 static void heap_stats_on_alloc(size_t need) {
+    /* The arena's single accounting choke point, so it is also the single
+       attribution point (design 2026-08-12, D3). `need` includes the header and
+       the rounding, which is what the caller actually consumed. */
+    MPROF_ALLOC(MPROF_HEAP_ARENA, need);
     heap_live_bytes += need;
     if (heap_live_bytes > heap_high_water) heap_high_water = heap_live_bytes;
 }
@@ -339,7 +396,16 @@ oop float_alloc(oop vtable) {
                 }
                 /* else: live set exceeds the cap — fall through and grow */
             }
-            struct FloatSlab *slab = malloc(sizeof(struct FloatSlab));
+            struct FloatSlab *slab = oevm_malloc(sizeof(struct FloatSlab));
+            /* rete#190: this NULL is already checked below — the tuvm#15 reclaim
+               path this `if (!slab)` guards was written before the oevm_malloc
+               seam existed but already treats a failed allocation as survivable
+               pressure, not a crash. Converting the raw malloc() to oevm_malloc()
+               (Task 1) changed nothing here: reclaim-then-retry, and only abort
+               (below) if the collection frees nothing — a vm.c:1751/:1794-style
+               fatal abort, but reached only after trying to make the request
+               succeed, because unlike those two sites this one has a cheap,
+               already-designed recovery. */
             if (!slab) {
                 /* tuvm#15: the pool is exhausted before we reached the slab budget
                    (small embedded newlib heap — the DK's 64 KB pool can't hold
@@ -526,6 +592,7 @@ static void trace_one(oop ptr) {
     extern oop FloatVtable;
     extern oop StringVtable;
     extern oop RawBytesVtable;
+    extern oop SymbolVtable;
     extern oop StackVtable;
     extern oop ContextVtable;
     extern oop g_active_stack;
@@ -547,6 +614,13 @@ static void trace_one(oop ptr) {
            NOT oops and must not be scanned by the generic word-count
            fallback (trace_object), which would otherwise misinterpret raw
            byte content as pointers. */
+        mark(ptr->vtable);
+    } else if (SymbolVtable != NULL && ptr->vtable == SymbolVtable) {
+        /* rete#190 stage 2: same leaf reasoning as StringVtable/RawBytesVtable
+           above — the inline `name` bytes are NOT oops. Before the bytes moved
+           inline, Symbol fell through to the generic word-count fallback, which
+           scanned a single const char * harmlessly; with inline bytes that
+           fallback would misinterpret raw symbol text as pointers. */
         mark(ptr->vtable);
     } else if (FloatVtable != NULL && ptr->vtable == FloatVtable) {
         mark(ptr->vtable);

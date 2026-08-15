@@ -50,6 +50,13 @@ run test_coalesce "$ENG_A" -DOEVM_HEAP_SIZE=8192
 # G3/M2 (https://github.com/davidg238/nsl-tuvm/issues/3): heap telemetry counters (live_bytes/high_water/
 # largest_free_block/gc_cycles) — fragmentation early-warning API.
 run test_heap_stats "$ENG_A" -DOEVM_HEAP_SIZE=65536
+# rete#190 sub-project A: the C-allocation seam's counters (oevm_malloc/free/realloc).
+run test_cheap_stats "$ENG_A" -DOEVM_HEAP_SIZE=65536
+# rete#190 stage 2: Symbol name bytes inline — 200 Symbols must cost the C heap
+# zero bytes (the leak that crashed three C6 boards), and the inline bytes must
+# be a GC LEAF. Verified falsifiable: with trace_one's SymbolVtable arm disabled
+# every other test in this file still passes and only this one fails.
+run test_symbol_inline "$ENG_A" -DOEVM_HEAP_SIZE=65536
 run test_method_cache "$ENG_A" -DOEVM_CACHE_STATS
 # Model-B-linked tests (test_int_compare's own header comment specifies the
 # Model-B link set — kernel_boot.c present, solidified_image.c absent — so it
@@ -126,6 +133,8 @@ run test_float_gc            "$ENG_A"
 # proving float_alloc reclaims-on-malloc-failure instead of aborting. Small cells so
 # the capped slabs are cheap; budget deliberately > the pool cap the test enforces.
 run test_float_oom           "$ENG_A" -DOEVM_FLOAT_ARENA_SLAB_CELLS=512 -DOEVM_FLOAT_ARENA_SLAB_BUDGET=8 -Wl,--wrap=malloc
+# rete#190: the seam counts a failed allocation and returns NULL rather than aborting.
+run test_cheap_oom "$ENG_A" -Wl,--wrap=malloc
 run test_gc_trigger          "$ENG_A" -DOEVM_HEAP_SIZE=65536
 
 # --- Task 10a: revived KEEP-subsystem tests for the vestigial access control

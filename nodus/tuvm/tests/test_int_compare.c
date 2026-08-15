@@ -26,10 +26,11 @@ extern int is_truthy(oop);
    pointer identity (real selectors are interned, one stable pointer per name),
    so a reused address would mis-cache one operator's id for another. */
 static oop cmp(intptr_t a, const char *sel, intptr_t b) {
-    struct Symbol *s = malloc(sizeof *s);
+    size_t n = strlen(sel);
+    struct Symbol *s = malloc(sizeof *s + n + 1);
     s->base.vtable = SymbolVtable;
-    s->name = sel;
-    s->length = strlen(sel);
+    s->length = n;
+    memcpy(s->name, sel, n + 1);
     oop arg = TAG_SMI(b);
     return send(TAG_SMI(a), (oop)s, 1, &arg);
 }

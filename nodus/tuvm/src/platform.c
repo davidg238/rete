@@ -1213,22 +1213,30 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
     case PRIM_pf_asSymbol: {
         /* Rung 3 Task 6: `platform asSymbol: aString` — build a genuine
            (non-interned) Symbol from a String's bytes, for CBOR tag-39 decode
-           (and transitively Record tags, which require `isSymbol`). Mirrors the
-           dispatch.c asString/asSymbol Symbol-build idiom (separate malloc'd
-           `name`, never freed — a known-minor matching that existing pattern).
-           Symbol equality is VALUE-based (printString byteCompare), so this
+           (and transitively Record tags, which require `isSymbol`). Symbol
+           equality is VALUE-based (printString byteCompare), so this
            non-interned Symbol `=` the image-literal #foo, giving round-trip.
-           GC-safety: the String receiver's length + bytes are copied into the
-           malloc'd `nm` BEFORE the single gc_allocate(Symbol), so args[0] is
-           never dereferenced across (or after) the allocation. */
+           rete#190 stage 2: the name bytes are INLINE, so this is now a single
+           allocation and there is nothing to leak — the malloc'd-and-never-freed
+           `name` this comment used to describe as "a known-minor matching that
+           existing pattern" was the C-heap leak that crashed three C6 boards.
+           GC-safety — the same standing argument as PRIM_pf_string and
+           PRIM_pf_freezeBytes above, which have this exact shape: args[0] IS
+           dereferenced after gc_allocate, and that is safe because (1) the GC
+           is non-moving, so a live object's bytes never relocate, and (2) a
+           prim's args live in a VM-stack register that scan_vm_stack marks, so
+           the receiver is rooted for the whole call. Both halves are load-
+           bearing: a C caller invoking platform_dispatch directly with a stack
+           local is NOT rooted (the GC does not scan the C stack) and must push
+           a temp root itself — see tests/test_cbor.c's test_cbor_as_symbol. */
         struct String *s = (struct String *)args[0];
         size_t len = s->length;
-        char *nm = malloc(len + 1);
-        if (len) memcpy(nm, s->bytes, len);
-        nm[len] = 0;
-        oop sym = gc_allocate(SymbolVtable, sizeof(struct Symbol));
-        ((struct Symbol *)sym)->name = nm;
-        ((struct Symbol *)sym)->length = len;
+        oop sym = gc_allocate(SymbolVtable, sizeof(struct Symbol) + len + 1);
+        if (sym == NULL) { *out = NULL; return 1; }
+        struct Symbol *sy = (struct Symbol *)sym;
+        sy->length = len;
+        if (len) memcpy(sy->name, ((struct String *)args[0])->bytes, len);
+        sy->name[len] = 0;
         *out = sym; return 1;
     }
     case PRIM_pf_heapStats: {
@@ -1249,6 +1257,27 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         ((struct ObjectInstance *)r)->slots[3] = TAG_SMI((intptr_t)st.high_water);
         ((struct ObjectInstance *)r)->slots[4] = TAG_SMI((intptr_t)st.largest_free_block);
         ((struct ObjectInstance *)r)->slots[5] = TAG_SMI((intptr_t)st.gc_cycles);
+        *out = r; return 1;
+    }
+    case PRIM_pf_cheapStats: {
+        /* rete#190: `platform cheapStats` — snapshot the C-allocation seam into a
+           5-slot Array of SMIs, field order [outBytes, outHigh, allocs, frees,
+           fails]. The nsl CHeapStats class names them. This is the C heap, NOT the
+           GC arena that heapStats (104) reports.
+           SMI range: outBytes/outHigh are bounded by the C heap (~200 KB on the C6)
+           and the counts are per-boot totals — a 30 s cadence reaches ~10^4/day, so
+           all five fit a 32-bit SMI on host and target alike.
+           GC-safety: the whole struct is copied into the C local `st` BEFORE the
+           single allocating call (indexable_new); the five stores are SMIs
+           (immediates, no allocation), so no heap oop is held across an allocation
+           and no gc_temp_root pin is required. args are ignored (0-arg selector). */
+        struct OevmCHeapStats st = oevm_cheap_stats();
+        oop r = indexable_new(5);
+        ((struct ObjectInstance *)r)->slots[1] = TAG_SMI((intptr_t)st.out_bytes);
+        ((struct ObjectInstance *)r)->slots[2] = TAG_SMI((intptr_t)st.out_high);
+        ((struct ObjectInstance *)r)->slots[3] = TAG_SMI((intptr_t)st.allocs);
+        ((struct ObjectInstance *)r)->slots[4] = TAG_SMI((intptr_t)st.frees);
+        ((struct ObjectInstance *)r)->slots[5] = TAG_SMI((intptr_t)st.fails);
         *out = r; return 1;
     }
     case PRIM_pf_profileStart: {

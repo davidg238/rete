@@ -48,17 +48,17 @@ const struct Vtable Vtable_ContextVtable;
  * Names + lengths mirror StaticSymbol_* from the old solidified image and the
  * Symbol_* globals the VM hardcodes.
  * ------------------------------------------------------------------ */
-static const struct Symbol KSym__eq_eq          = { { (oop)&Vtable_SymbolVtable }, "==", 2 };
-static const struct Symbol KSym_sender          = { { (oop)&Vtable_SymbolVtable }, "sender", 6 };
+static const struct Symbol KSym__eq_eq          = { { (oop)&Vtable_SymbolVtable }, 2,  "==" };
+static const struct Symbol KSym_sender          = { { (oop)&Vtable_SymbolVtable }, 6,  "sender" };
 /* KSym_executeCleanup / KSym_resumeWith_ / KSym_unwindTo_value_ removed (Task 9a):
  * NLR-only symbols retired in Task 3; their registry rows are gone. */
-static const struct Symbol KSym_value           = { { (oop)&Vtable_SymbolVtable }, "value", 5 };
-static const struct Symbol KSym_accessViolation_= { { (oop)&Vtable_SymbolVtable }, "accessViolation:", 16 };
-static const struct Symbol KSym_debug_          = { { (oop)&Vtable_SymbolVtable }, "debug:", 6 };
+static const struct Symbol KSym_value           = { { (oop)&Vtable_SymbolVtable }, 5,  "value" };
+static const struct Symbol KSym_accessViolation_= { { (oop)&Vtable_SymbolVtable }, 16, "accessViolation:" };
+static const struct Symbol KSym_debug_          = { { (oop)&Vtable_SymbolVtable }, 6,  "debug:" };
 
 /* Singleton true/false symbols (nil is the VM's NULL). */
-static const struct Symbol KSym_true            = { { (oop)&Vtable_SymbolVtable }, "true", 4 };
-static const struct Symbol KSym_false           = { { (oop)&Vtable_SymbolVtable }, "false", 5 };
+static const struct Symbol KSym_true            = { { (oop)&Vtable_SymbolVtable }, 4,  "true" };
+static const struct Symbol KSym_false           = { { (oop)&Vtable_SymbolVtable }, 5,  "false" };
 
 /* ------------------------------------------------------------------ *
  * Vtable definitions.

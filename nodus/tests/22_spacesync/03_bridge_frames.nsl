@@ -38,7 +38,7 @@ class BridgeFrames packageUsing: manifest = () (
     batch:: platform Cbor encode:
       (platform Record tag: #batch
          with: #hi -> 7
-         with: #entries -> (platform List with:
+         with: #ent -> (platform List with:
             (platform List with: 7 with: 'goal/name' with: 2 with: 'bench'))).
     ('applied ' , (bridge applyBatch: batch) printString) out.
     ('goal name ' , (space peek: 'goal/name')) out.
@@ -50,7 +50,7 @@ class BridgeFrames packageUsing: manifest = () (
     space out: 'tel/log' value: 'up'.
     space drain.                          (* the capture is an ordinary reaction *)
     push:: platform Cbor decode: bridge pushFrame ifInvalid: [ :m | nil ].
-    rows:: push at: #entries ifAbsent: [ nil ].
+    rows:: push at: #ent ifAbsent: [ nil ].
     ('push entries ' , rows size printString) out.
     ('push ascending ' , (((rows at: 1) at: 1) < ((rows at: 2) at: 1)) printString) out.
 

@@ -54,9 +54,13 @@ int main(void) {
     printf("Checking parametric oop-field-at-index*oop_size invariant (%zu-bit)...\n",
            oop_size * 8);
 
-    // Symbol: base.vtable at index 0, name (const char*) at index 1
+    // Symbol (rete#190 stage 2): base.vtable at index 0, length at index 1,
+    // and the INLINE NUL-terminated name bytes at index 2. `name` is a
+    // flexible array member, not an oop — the serializer writes raw bytes
+    // there, so its offset is part of the .oimg ABI just the same.
     assert(offsetof(struct Symbol, base.vtable) == 0 * oop_size);
-    assert(offsetof(struct Symbol, name)        == 1 * oop_size);
+    assert(offsetof(struct Symbol, length)      == 1 * oop_size);
+    assert(offsetof(struct Symbol, name)        == 2 * oop_size);
     // Vtable: base.vtable at index 0, delegate at index 1
     assert(offsetof(struct Vtable, base.vtable) == 0 * oop_size);
     assert(offsetof(struct Vtable, delegate)    == 1 * oop_size);

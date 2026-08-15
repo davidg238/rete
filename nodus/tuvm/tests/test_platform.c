@@ -8,6 +8,7 @@
 #include "../src/span.h"          /* tuvm#61: span_reset_all for the prim assertions */
 #include "../src/space.h"         /* porta space-sync: space_make_string_pub for path args */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
@@ -33,14 +34,17 @@ static void platform_roots(void) { mark_object(g_outer); }
    selectors by symbol_name() string, so a local Symbol works as long as its
    vtable is SymbolVtable. */
 static oop sel(const char *name) {
-    /* One pool slot per CALL SITE, not per distinct name — the pool was full at
-       31 when the space-sync prim block below was added, so it is 64 now. */
-    static struct Symbol pool[64];
-    static int n = 0;
-    struct Symbol *s = &pool[n++];
+    /* One allocation per CALL SITE, not per distinct name — every call still
+       gets a distinct Symbol pointer, which the primitive cache keys on.
+       rete#190 stage 2: `name` is now an inline flexible array member, so a
+       fixed `struct Symbol pool[]` can no longer hold the bytes; malloc the
+       header plus the payload instead (and the old pool-capacity hazard goes
+       with it). Never freed — this is a leaf test process. */
+    size_t n = strlen(name);
+    struct Symbol *s = malloc(sizeof(struct Symbol) + n + 1);
     s->base.vtable = SymbolVtable;
-    s->name = name;
-    s->length = strlen(name);
+    s->length = n;
+    memcpy(s->name, name, n + 1);
     return (oop)s;
 }
 

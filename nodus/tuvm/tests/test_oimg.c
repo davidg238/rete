@@ -2,6 +2,7 @@
 #include "../src/oevm.h"
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 /*
  * Stubs so gc.c links standalone (no image/VM required).
@@ -53,20 +54,28 @@ int main(void) {
     printf("test_oimg basic PASS\n");
     {
         /* Hand-lay a Symbol whose vtable field is a builtin ref (index 7=SymbolVtable)
-           and whose name is an app-offset to trailing bytes. */
+           and whose name bytes are INLINE.
+           rete#190 stage 2 (.oimg format_version 9): a Symbol record is
+           { base.vtable ref-word, size_t length, NUL-terminated bytes }, with
+           the payload at offsetof(struct Symbol, name) INSIDE the record. There
+           is no separate strbytes allocation and no `name` ref-word any more, so
+           this test writes the bytes where the serializer writes them
+           (oimg_serialize.py's Symbol emit block) rather than writing an
+           app-offset. That is also why symbol_name() no longer resolves: the
+           bytes are at a fixed offset in RAM and in the blob alike. */
         static uint8_t blob[64] = {0};
         oimg_blob_base = blob; oimg_blob_end = blob + sizeof(blob);
         struct Symbol *s = (struct Symbol *)blob;
         /* base.vtable = builtin(7) */
         *(uintptr_t*)((uint8_t*)s + offsetof(struct Symbol, base.vtable)) = ((uintptr_t)7 << 2) | OIMG_TAG_BUILTIN;
-        /* name = app-offset to byte 32 */
-        size_t name_off = 32; const char *txt = "hi";
-        blob[32] = 'h'; blob[33] = 'i'; blob[34] = 0;
-        *(uintptr_t*)((uint8_t*)s + offsetof(struct Symbol, name)) = ((uintptr_t)name_off << 2) | OIMG_TAG_APP;
+        /* length, then the inline NUL-terminated payload */
+        const char *txt = "hi"; size_t txtlen = 2;
+        *(size_t*)((uint8_t*)s + offsetof(struct Symbol, length)) = txtlen;
+        memcpy((uint8_t*)s + offsetof(struct Symbol, name), txt, txtlen + 1);
         extern oop builtin_registry[]; oop marker = (oop)0xABCD; builtin_registry[7] = marker;
         assert(obj_vtable((oop)s) == marker);
-        assert(symbol_name(s)[0] == 'h' && symbol_name(s)[1] == 'i');
-        (void)txt;
+        assert(s->length == txtlen);
+        assert(symbol_name(s)[0] == 'h' && symbol_name(s)[1] == 'i' && symbol_name(s)[2] == 0);
         printf("test_oimg accessors PASS\n");
     }
 

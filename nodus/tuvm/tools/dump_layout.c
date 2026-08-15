@@ -11,8 +11,8 @@
 #define FIELDS \
   S(Symbol) \
     F(Symbol, "base.vtable", 1, 0, offsetof(struct Symbol, base.vtable)) \
-    F(Symbol, "name",        0, 1, offsetof(struct Symbol, name)) \
     F(Symbol, "length",      0, 0, offsetof(struct Symbol, length)) \
+    F(Symbol, "name",        0, 0, offsetof(struct Symbol, name)) \
   S(Vtable) \
     F(Vtable, "base.vtable", 1, 0, offsetof(struct Vtable, base.vtable)) \
     F(Vtable, "delegate",    1, 0, offsetof(struct Vtable, delegate)) \

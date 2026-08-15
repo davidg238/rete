@@ -1,0 +1,50 @@
+(*
+expect:
+true
+true
+true
+true
+true
+true
+*)
+(* rete#190 sub-project A: C-heap accounting invariants. Absolute values vary
+   run-to-run, so this asserts only what holds on every run and on BOTH paths
+   (A solidified image, B .oimg): the high-water strictly exceeds what is
+   currently outstanding, frees never exceed allocs (and at least one has
+   happened), a failure count is a non-negative number, and something has in
+   fact been allocated by the time an image is running. Exercises prim 152 ->
+   the CHeapStats class end-to-end.
+   NOTE: this is the C heap, NOT the GC arena that 01_invariants covers. The
+   two being confused is what let a leak run for a week unseen.
+   `1 asString` below is a deliberate warm-up allocation. None of the seam's
+   six call sites (dispatch.c printString-on-genuine-Symbol/asString,
+   platform.c asSymbol, vm.c bind:to:/instructionAt:put:, gc.c float_alloc's
+   slab growth) fire during VM boot or from printing plain booleans, so
+   without it `allocs` stays 0 and `allocs > 0` below would be vacuously
+   false rather than actually exercised.
+   `#foo printString` is a SECOND, load-bearing warm-up: it is the only path
+   in the VM that calls oevm_free (dispatch.c:1635, the genuine-Symbol '#'
+   prefix build — booleans take the early-return branch just above it and
+   never reach the malloc). Without an alloc-THEN-free, out_bytes only ever
+   rises, so out_high == out_bytes exactly at read time and `outHigh >
+   outBytes` — or even `>=` — cannot distinguish a correct field order from
+   outBytes/outHigh transposed in platform.c's prim arm or setFromList:. Do
+   NOT simplify this away: the freed temp buffer is what makes outHigh
+   strictly exceed the outBytes left standing by the still-outstanding
+   `asString` allocation, and it is what makes `frees > 0` observable at
+   all. *)
+class CHeapInvariantsTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | s |
+  1 asString.
+  #foo printString.
+  s:: platform cheapStats.
+  (s outHigh > s outBytes) printString println.
+  (s allocs >= s frees) printString println.
+  (s frees > 0) printString println.
+  (s fails >= 0) printString println.
+  (s allocs > 0) printString println.
+  (s outBytes >= 0) printString println.
+)
+) : (
+)

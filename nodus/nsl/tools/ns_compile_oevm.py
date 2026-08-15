@@ -2367,8 +2367,15 @@ def main():
                 c_code += f"    UPDATE_LIMITS({mid}_consts, sizeof({mid}_consts));\n"
             c_code += f"    UPDATE_LIMITS(&{mid}_compiled, sizeof(struct CompiledMethod));\n"
             c_code += f"    UPDATE_LIMITS(&{mid}_closure, sizeof(struct Closure));\n"
-        for sym in compiler.solidify.symbols.values():
-            c_code += f"    UPDATE_LIMITS(&{sym}, sizeof(struct Symbol));\n"
+        # rete#190 stage 2: a Symbol's name bytes are INLINE, so its true extent
+        # is header + length + 1. sizeof(struct Symbol) stops at the header and
+        # sizeof({sym}) is no better — a flexible array member contributes
+        # nothing to sizeof — so the highest-addressed Symbol's payload would
+        # fall outside flash_rom_end. Emit the real extent, as the String line
+        # below already does.
+        for sym_name, sym in compiler.solidify.symbols.items():
+            sym_bytes = len(sym_name.encode("utf-8")) + 1
+            c_code += f"    UPDATE_LIMITS(&{sym}, sizeof(struct Symbol) + {sym_bytes});\n"
         # std-lib 3c-1: mark String literal constants read-only (data segment) so
         # GC's is_read_only skips them. sizeof(the anon struct) is exact.
         for sstr in compiler.solidify.string_consts.values():

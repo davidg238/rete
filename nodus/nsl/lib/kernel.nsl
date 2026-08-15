@@ -773,15 +773,19 @@ class Kernel usingPlatform: platform = () (
       1 to: n do: [ :i | acc add: (v u8At: i) ].
       ^ self )
 
-    (* Symbol -> tag 39 (identifier) wrapping its UTF-8 text as major-3. A Symbol
-       has no at:/size fast path (dispatch.c), so its text is taken from
-       printString ('#' + name) with the leading '#' dropped. *)
-    encodeSymbol: v into: acc = ( | ps n |
+    (* Symbol -> tag 39 (identifier) wrapping its UTF-8 text as major-3. Read
+       straight off the Symbol via at:/size (rete#205). This used to go through
+       `printString` and drop the leading '#', because a Symbol had no at:/size
+       fast path in dispatch.c — which cost a C-heap malloc and a dead String per
+       encoded Symbol, one of only TWO C-heap allocators on the whole node
+       (docs/results/2026-08-12-allocation-attribution-c6.md §5.3). The emitted
+       bytes are unchanged: printString's payload was always '#' + name, and the
+       '#' was always skipped. *)
+    encodeSymbol: v into: acc = ( | n |
       self emitHead: 6 len: 39 into: acc.    (* tag 39 = 0xd827 *)
-      ps:: v printString.
-      n:: ps size - 1.
+      n:: v size.
       self emitHead: 3 len: n into: acc.
-      1 to: n do: [ :i | acc add: (ps at: i + 1) ].
+      1 to: n do: [ :i | acc add: (v at: i) ].
       ^ self )
 
     encodeList: v into: acc depth: d = (
@@ -1100,6 +1104,28 @@ class Kernel usingPlatform: platform = () (
     public fromList: a = ( ^ self new setFromList: a )
   )
 
+  class CHeapStats = ( | outBytes outHigh allocs frees fails | ) (
+    (* rete#190: a read-only snapshot of C-allocation accounting (src/gc.c
+       oevm_cheap_stats), surfaced by the native `platform cheapStats` leaf
+       (prim 152) as a 5-element Array in field order. Construct via the
+       class-side `fromList:`. This is the C heap — the GC arena is HeapStats. *)
+    public outBytes = ( ^ outBytes )
+    public outHigh  = ( ^ outHigh )
+    public allocs   = ( ^ allocs )
+    public frees    = ( ^ frees )
+    public fails    = ( ^ fails )
+    setFromList: a = (
+      (* raw IndexableVtable Array, so basicAt: — the HeapStats precedent *)
+      outBytes:: a basicAt: 1. outHigh:: a basicAt: 2. allocs:: a basicAt: 3.
+      frees:: a basicAt: 4. fails:: a basicAt: 5. ^ self )
+    public printString = (
+      ^ 'out ', outBytes printString, ' / hw ', outHigh printString,
+        ' / a ', allocs printString, ' / f ', frees printString,
+        ' / fail ', fails printString )
+  ) : (
+    public fromList: a = ( ^ self new setFromList: a )
+  )
+
   class Spans = ( | names fails | ) (
     (* tuvm#61: named access to the C span slots (prims 118-121). The C side is
        NAMELESS — slots are integers 0..N-1 — exactly as the timer seam carries
@@ -1155,15 +1181,19 @@ class Kernel usingPlatform: platform = () (
     public nameAt: slot = ( ^ names at: slot + 1 )
 
     (* tuvm#107: the path segment for this slot's sibling cell at
-       diag/spans/<span>. A Symbol printStrings with a leading '#', which must not
-       appear in a path. The strip lives HERE, in one place, because SpanCapture
-       writes the cell and every reader derives the same string to find it — two
-       copies of this rule are two ways for them to disagree. *)
+       diag/spans/<span>. The conversion lives HERE, in one place, because
+       SpanCapture writes the cell and every reader derives the same string to
+       find it — two copies of this rule are two ways for them to disagree.
+
+       rete#205: this used to read the name out of `printString` and skip the
+       leading '#', which built a String and a C-heap block per call. A Symbol
+       now answers at:/size over its name directly, so there is no '#' to strip
+       and no scratch String to make. Same output. *)
     public pathAt: slot = (
       | s ws |
-      s:: (self nameAt: slot) printString.
+      s:: self nameAt: slot.
       ws:: WriteStream new.
-      2 to: s size do: [ :i | ws nextPut: (s at: i) ].
+      1 to: s size do: [ :i | ws nextPut: (s at: i) ].
       ^ ws contents )
 
     (* tuvm#72: which side STAMPS this span. DERIVED from the reserved pair rather
@@ -1751,7 +1781,7 @@ class Kernel usingPlatform: platform = () (
       ^ Cbor new encode: (Record tag: #pull
           with: #id -> nodeId
           with: #cursor -> cursor
-          with: #bootId -> self bootId
+          with: #bid -> self bootId
           with: #hw -> acked) )
 
     (* Apply one #batch; answer whether it WAS one. An #err reply, a malformed
@@ -1765,7 +1795,7 @@ class Kernel usingPlatform: platform = () (
       bad ifTrue: [ ^ false ].
       (outer rankOf: r) = 9 ifFalse: [ ^ false ].
       (r tag = #batch) ifFalse: [ ^ false ].
-      entries:: r at: #entries ifAbsent: [ nil ].
+      entries:: r at: #ent ifAbsent: [ nil ].
       (outer rankOf: entries) = 7 ifFalse: [ ^ false ].
       i:: 1.
       [ i <= entries size ] whileTrue: [
@@ -1841,8 +1871,28 @@ class Kernel usingPlatform: platform = () (
        lost on the mesh, which is strictly worse.
 
        Known and accepted for v1 — filed as #150 (P3): trimming from the tail drops the HIGHEST seq
-       first, and sys/metrics is written immediately before the push, so it always
-       holds the highest seq — under batch pressure it is the FIRST thing dropped.
+       first, and sys/cheap is written immediately before the push (publishCheap,
+       after publishMetrics), so it always holds the highest seq — under batch
+       pressure it is the FIRST thing dropped. This used to say sys/metrics;
+       rete#190 put sys/cheap behind it and took over the last-written slot.
+
+       THE CAP BOUND AT THIRTY-DAY WIDTHS FOR ONE DAY, AND IT BIT — measured
+       2026-08-11 (rete#190), witnessed the same day, fixed by rete#197. The
+       four-row steady-state frame (obs/health, sys/metrics, tel/log, sys/cheap)
+       encoded to 529 B against maxBatchBytes' 512, so on a long-uptime node also
+       emitting a tel/log row, sys/cheap was trimmed on EVERY check-in — and that is
+       exactly what a live node did: c6-bench stopped delivering sys/cheap entirely
+       while every other row kept arriving every 2 s. #197 shortened every label in
+       the frame and it now encodes to 378 B, 134 B under the cap. See
+       nodus/tests/22_spacesync/09_batch_size.nsl, which pins it and carries the
+       full reasoning, including why shortening CHeap's five names ALONE was
+       measured not to reach (one-character names, the floor, land at 503 B).
+
+       #150 IS STILL OPEN. This bought headroom; it did not change the trim rule.
+       sys/cheap still holds the highest seq and is still the first row dropped
+       whenever the cap does bind, so the structural answer below — reserve bytes
+       for sys/ before filling from obs/, or trim BY TYPE — is still the fix, and
+       still unfunded. Headroom postpones that question; it does not answer it.
 
        Why TAIL: porta acks one high-water mark and applyAck: sets `acked:: hw`,
        after which cells are re-scanned `changedSince: acked` — so a frame that
@@ -1864,9 +1914,14 @@ class Kernel usingPlatform: platform = () (
        So if the cap binds, the answer is to RESERVE bytes for sys/ before filling
        from obs/, or to trim BY TYPE and protect the write-once and must-deliver
        paths — which is the same question already parked above for sys/panic, and is
-       probably worth answering once for both. Measured
-       headroom is 87 B of 512 with two cells and one tel/log row (design §9.1), so
-       this cannot bite today; it starts to when a node has many obs/ paths. Said out
+       probably worth answering once for both. The 87 B of headroom this paragraph
+       used to claim (design §9.1, two cells and one tel/log row) was SPENT and then
+       overdrawn: three cells and one tel/log row reached 529 B, 17 B over, and the
+       "cannot bite today" it rested on turned out to mean "has not bitten yet". It
+       did not wait for a node with many obs/ paths — ONE more sys/ cell was enough,
+       and the bite was silent. rete#197 bought the headroom back (134 B), which
+       resets the counter on this paragraph rather than retiring it: the next field
+       added to any record on this frame spends it again, at ~10 B a field. Said out
        loud because a metrics record that silently loses the race under load is
        exactly the observability that lies when it matters. *)
     (* THE THREE INNER SPANS (tuvm#161), nested inside `pushBuild`:
@@ -1915,8 +1970,8 @@ class Kernel usingPlatform: platform = () (
     encodePush: rows = (
       ^ Cbor new encode: (Record tag: #push
           with: #id -> nodeId
-          with: #bootId -> self bootId
-          with: #entries -> (List fromCollection: rows)) )
+          with: #bid -> self bootId
+          with: #ent -> (List fromCollection: rows)) )
 
     (* ALL THREE prefixes are the node's own authority (PROTOCOL-NSL §4.1 grants the
        bridge obs/**, tel/**, sys/**, dbg/resp and diag/** outbound); only the cell
@@ -2063,6 +2118,7 @@ class Kernel usingPlatform: platform = () (
          comment already records for obs/build, and now a second instance of it. *)
       self publishApps.
       self publishMetrics.
+      self publishCheap.
       spans end: sApplyIn.
       self pushOnce.
       (* AFTER the exchange, and outside all six spans — otaCheck is not exchange
@@ -2093,6 +2149,12 @@ class Kernel usingPlatform: platform = () (
        data D6 names as earning it back. *)
     publishMetrics = (
       space put: 'sys/metrics' value: outer metrics.
+      ^ self )
+
+    (* rete#190: the C-heap twin of publishMetrics. Same cadence, same rationale —
+       one record per check-in, no escalation logic, no invented constants. *)
+    publishCheap = (
+      space put: 'sys/cheap' value: outer cheap.
       ^ self )
 
     (* rete#25 — the observed half of the image pair. `goal/apps/main` is what
@@ -2264,7 +2326,7 @@ class Kernel usingPlatform: platform = () (
        RECORDS §4 for every writer, not for ota. *)
     telLog: level text: text = (
       space out: 'tel/log' value:
-        (Record tag: #Log with: #level -> level with: #text -> text).
+        (Record tag: #Log with: #lvl -> level with: #txt -> text).
       ^ self )
 
     (* The pure decision: given whatever sits at `goal/apps/main`, answer the
@@ -3239,13 +3301,21 @@ class Kernel usingPlatform: platform = () (
      4 String, 6 Symbol, 7 List. Rank compare always runs FIRST, so values of
      different ranks are never equal (Integer 1 is not Float 1.0 in this
      algebra) even though both ranks individually order via `<`. Boolean
-     order is a fixed, arbitrary choice: false < true. Symbol has no
-     `at:`/`size` fast path in dispatch.c (only String's PRIM_at/PRIM_size do
-     — confirmed by reading src/dispatch.c; a bare Symbol falls through to
-     does_not_understand on `at:`), so genuine Symbols (Booleans are already
-     peeled off as rank 1 before this arm) are compared byte-wise via their
-     `printString` (which renders as '#' + name for a real Symbol), reusing
-     the String byte-compare helper below. *)
+     order is a fixed, arbitrary choice: false < true. Genuine Symbols
+     (Booleans are already peeled off as rank 1 before this arm) are compared
+     byte-wise through the same String helper below, reading their name bytes
+     directly via at:/size.
+
+     UNTIL rete#205 that read went through `printString` ('#' + name), because
+     dispatch.c's PRIM_at/PRIM_size fast-pathed String and RawBytes but not
+     Symbol. It was not a cosmetic detour: printString's Symbol arm mallocs a
+     scratch buffer and builds a String, so ONE comparison cost two C-heap
+     mallocs and two immediately-dead Strings — and since this method is the
+     Map's own order, it runs on every construction sort AND every binary-search
+     key lookup. Measured at 71% of all C-heap allocation on a bridging node
+     (docs/results/2026-08-12-allocation-attribution-c6.md §5.3). The ORDER is
+     unchanged: both operands here are Symbols, so both printStrings carried the
+     same '#' prefix and comparing the names gives the identical answer. *)
   valueCompare: a with: b = (
     | ra rb |
     ra:: rankOf: a. rb:: rankOf: b.
@@ -3258,7 +3328,7 @@ class Kernel usingPlatform: platform = () (
       a < b ifTrue: [ ^ -1 ]. b < a ifTrue: [ ^ 1 ]. ^ 0 ].
     ra = 4 ifTrue: [ ^ byteCompare: a with: b ].                 (* String *)
     ra = 5 ifTrue: [ ^ bytesCompare: a with: b ].                (* Bytes *)
-    ra = 6 ifTrue: [ ^ byteCompare: a printString with: b printString ]. (* Symbol *)
+    ra = 6 ifTrue: [ ^ byteCompare: a with: b ].                 (* Symbol *)
     ra = 7 ifTrue: [ ^ listCompare: a with: b ].                 (* List *)
     ra = 8 ifTrue: [ ^ mapCompare: a with: b ].                  (* Map *)
     ra = 9 ifTrue: [ ^ recordCompare: a with: b ].                (* Record *)
@@ -3266,8 +3336,9 @@ class Kernel usingPlatform: platform = () (
   )
 
   (* Byte-wise total order over two Strings: shared-prefix bytes decide first;
-     an exact-prefix tie falls to shorter-is-less. Shared by the String (rank
-     4) and Symbol (rank 6, via printString) arms above. *)
+     an exact-prefix tie falls to shorter-is-less. Shared verbatim by the String
+     (rank 4) and Symbol (rank 6) arms above — since rete#205 both answer at:
+     and size, so neither needs converting to reach the other's helper. *)
   byteCompare: s with: t = (
     | n m lim |
     n:: s size. m:: t size. lim:: n < m ifTrue: [ n ] ifFalse: [ m ].
@@ -3547,6 +3618,14 @@ class Kernel usingPlatform: platform = () (
      explicitly for exactly the reason the comment above gives. *)
   public SpanCapture       = ( ^ SpanCapture )
   public heapStats         = ( ^ HeapStats fromList: (platform heapStats) )
+  (* rete#192: DO NOT SEND THIS ON A PERIODIC PATH. Sending it once per check-in
+     hangs a C6 silently — proven on hardware 2026-08-10 against a build that
+     differed only in this send. The mechanism is unknown, and this accessor plus
+     the CHeapStats class are that bug's only reproducer, which is why they are
+     still here. `Kernel>>cheap` reads the raw prim Array instead; see its comment.
+     Its twin `heapStats` above is NOT known to be affected — it is exercised on
+     target by CborBenchNodeC6 and MeasureNodeDK and works. *)
+  public cheapStats        = ( ^ CHeapStats fromList: (platform cheapStats) )
   (* #165: open and close a per-method profile window. The counter is a build
      option (OEVM_METHOD_PROFILE) and these are no-ops without it, so an app may
      send them unconditionally. The rows do NOT come back through here — they go
@@ -3684,24 +3763,56 @@ class Kernel usingPlatform: platform = () (
     h:: platform heapStats.
     s:: platform sysStats.
     pairs:: OrderedCollection new.
-    pairs add: #heapSize -> (h basicAt: 1).
-    pairs add: #liveBytes -> (h basicAt: 2).
-    pairs add: #heapHighWater -> (h basicAt: 3).
-    pairs add: #largestFreeBlock -> (h basicAt: 4).
-    pairs add: #gcCycles -> (h basicAt: 5).
-    pairs add: #handlesLive -> (s basicAt: 1).
-    pairs add: #handlesHighWater -> (s basicAt: 2).
-    pairs add: #queueHighWater -> (s basicAt: 3).
-    pairs add: #overruns -> (s basicAt: 4).
+    pairs add: #hsz -> (h basicAt: 1).
+    pairs add: #lb -> (h basicAt: 2).
+    pairs add: #hhw -> (h basicAt: 3).
+    pairs add: #lfb -> (h basicAt: 4).
+    pairs add: #gcc -> (h basicAt: 5).
+    pairs add: #hnl -> (s basicAt: 1).
+    pairs add: #hnhw -> (s basicAt: 2).
+    pairs add: #qhw -> (s basicAt: 3).
+    pairs add: #ovr -> (s basicAt: 4).
     (* tuvm#34: the ISR pulse seam's own counters, widening this record from 9
        fields to 11. That seam used to answer a full mailbox with k_oops, so there
        was nothing to publish; now that it SHEDS instead, a silent shed would be
        strictly worse than the crash it replaced. pulseDrops rising is the alarm —
        the reactor is not pumping fast enough; pulseCoalesced rising is the
        mechanism working, a repeating source folding into one pending wakeup. *)
-    pairs add: #pulseDrops -> (s basicAt: 5).
-    pairs add: #pulseCoalesced -> (s basicAt: 6).
+    pairs add: #pdr -> (s basicAt: 5).
+    pairs add: #pco -> (s basicAt: 6).
     ^ Record tag: #Metrics fields: (Map fromPairs: pairs) )
+  (* rete#190: the sys/cheap snapshot — prim 152 (cheapStats) as ONE flat immutable
+     Record, the sys/cheap cell's wire schema (pinned in
+     protocol/PROTOCOL-NSL-RECORDS.md §4.4). A SEPARATE record from Metrics, not
+     five more Metrics fields: RECORDS §4.4 already records that lesson against
+     LatencySpan — adding a concern adds a record, not a field, so this schema does
+     not grow the way Metrics has. Metrics is 195 B of the 256 B cap and keeps all
+     61 B of its headroom.
+     The kernel only BUILDS the record; publishing it onto a cell is the app's act
+     (G9), with the channel arriving as a capability.
+     READ WITH basicAt:, NOT THROUGH `self cheapStats`. Going through the
+     `CHeapStats fromList:` wrapper here HANGS A C6 — silently, no panic, no VM
+     error — on the first check-in after the bridge-health verdict. Established on
+     hardware 2026-08-10 by three builds differing in one thing each, same board and
+     command: the wrapper version died at tick 2-3 on three separate boots; a
+     constant record ran clean; and THIS body, which still executes prim 152 every
+     check-in, ran to tick 610-614 (where it meets the unrelated pre-existing cliff
+     below). So prim 152 is innocent — it is the four-line nsl wrapper that is fatal,
+     and the MECHANISM IS STILL UNKNOWN (rete#192). `Kernel>>cheapStats` and the
+     CHeapStats class survive as that bug's only reproducer; do not put either back
+     on the check-in path.
+     Reading the raw prim Array is also what `metrics` above has done with
+     `platform heapStats` every check-in for a rung, so this is the proven shape
+     rather than a special case — one fewer mechanism, not one more. *)
+  public cheap = ( | c pairs |
+    c:: platform cheapStats.
+    pairs:: OrderedCollection new.
+    pairs add: #ob  -> (c basicAt: 1).
+    pairs add: #ohw -> (c basicAt: 2).
+    pairs add: #alc -> (c basicAt: 3).
+    pairs add: #fre -> (c basicAt: 4).
+    pairs add: #fal -> (c basicAt: 5).
+    ^ Record tag: #CHeap fields: (Map fromPairs: pairs) )
   (* Milestone E Task 1: crash-Record factory reachable from ANY context. The
      error:/error:tag: raise prims cannot reach the sibling `Record` class from an
      app receiver (v1 BLOCKED finding), but they DO hold the captured Kernel

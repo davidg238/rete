@@ -166,6 +166,21 @@ def run_c_unit_tests(oevm_dir):
         print("test_mprof_gate FAILED:\n" + run.stdout + run.stderr)
         return False
     print("C unit test test_mprof_gate: PASSED")
+
+    build = subprocess.run(
+        ["gcc", "-Wall", "-std=c99", "-DOEVM_METHOD_PROFILE", "-Isrc",
+         *common_srcs,
+         "tests/test_mprof_alloc.c", "-o", "/tmp/test_mprof_alloc", "-lm"],
+        cwd=str(oevm_dir), capture_output=True, text=True)
+    if build.returncode != 0:
+        print("test_mprof_alloc build FAILED:\n" + build.stderr)
+        return False
+    run = subprocess.run(["/tmp/test_mprof_alloc"], cwd=str(oevm_dir),
+                         capture_output=True, text=True)
+    if run.returncode != 0:
+        print("test_mprof_alloc FAILED:\n" + run.stdout + run.stderr)
+        return False
+    print("C unit test test_mprof_alloc: PASSED")
     return True
 
 

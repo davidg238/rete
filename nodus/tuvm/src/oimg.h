@@ -51,9 +51,15 @@ static inline oop obj_vtable(oop o) {
     struct Object *ob = (struct Object *)o;
     return is_in_blob(o) ? oimg_resolve((uintptr_t)ob->vtable) : ob->vtable;
 }
+/* rete#190 stage 2: the bytes are INLINE in the Symbol object, so the returned
+   pointer lives exactly as long as the Symbol does. Before this change `name`
+   was a leaked malloc and the pointer was immortal, which is why no call site
+   ever had to think about it. The rule now: do not hold this pointer across an
+   allocation, a VM send, or anything else that can trigger gc_collect — copy
+   the bytes into a local first. The GC is non-moving, so a LIVE Symbol's bytes
+   never relocate; the hazard is collection, not compaction. */
 static inline const char *symbol_name(struct Symbol *s) {
-    return is_in_blob(s) ? (const char *)(oimg_blob_base + ((uintptr_t)s->name >> 2))
-                         : s->name;
+    return s->name;
 }
 static inline oop vtable_delegate(oop vt) {
     struct Vtable *v = (struct Vtable *)vt;

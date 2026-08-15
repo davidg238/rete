@@ -95,7 +95,7 @@ How to make decisions here. These override the instinct to be thorough.
 ## Gates
 
 ```
-cd nodus/nsl && python3 tools/run_tests_oevm.py     # 258 passed, 0 failed
+cd nodus/nsl && python3 tools/run_tests_oevm.py     # 261 passed, 0 failed (2026-08-12)
 cd porta      && go test ./...
 cd nodus/tuvm && bash tests/porta_sync_host.sh      # PORTA SYNC OK
 ```
@@ -103,7 +103,11 @@ cd nodus/tuvm && bash tests/porta_sync_host.sh      # PORTA SYNC OK
 The nsl suite prints `Passed: N / Failed: 0` **and** a line of aux gates — read the aux
 line, because it can be red while the count reads zero failures.
 `footprint: SKIP (no arm-zephyr-eabi toolchain)` is pre-existing and expected. Never run
-two nsl suites concurrently; they share `/tmp` paths.
+two nsl suites concurrently; they share `/tmp` paths. **The count above drifts upward as
+tests land — treat a mismatch as staleness in this file, never as a missing test.** The
+suite also prints `target gates: NOT RUN BY THIS SUITE`: the posix timer backend bypasses
+the pulse mailbox, so coalescing, shedding and stale handles need `nodus/tuvm/tests/target/run.sh`
+and a board.
 
 ---
 

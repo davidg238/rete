@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 extern uint64_t (*oevm_millis)(void);
 extern oop SymbolVtable;
@@ -24,11 +25,14 @@ int main(void) {
 
     /* (2) `millis` dispatches via send() to a non-negative SmallInteger */
     kernel_boot();
-    struct Symbol s;
-    s.base.vtable = SymbolVtable;
-    s.name = "millis";
-    s.length = 6;
-    oop r = send(TAG_SMI(0), (oop)&s, 0, NULL);
+    /* rete#190 stage 2: `name` is an inline flexible array member, so the
+       Symbol cannot live on the stack as a plain struct — give it storage. */
+    static const char millisName[] = "millis";
+    union { struct Symbol sym; char storage[sizeof(struct Symbol) + sizeof millisName]; } u;
+    u.sym.base.vtable = SymbolVtable;
+    u.sym.length = sizeof millisName - 1;
+    memcpy(u.sym.name, millisName, sizeof millisName);
+    oop r = send(TAG_SMI(0), (oop)&u.sym, 0, NULL);
     assert(IS_SMI(r));
     assert(UNTAG_SMI(r) >= 0);
 

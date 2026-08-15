@@ -128,8 +128,11 @@ class SolidifyCompiler:
         # Generate Symbols
         c_code.append("/* Interned Symbols */")
         for sym_name, sym_var in self.symbols.items():
-            len_sym = len(sym_name)
-            c_code.append(f'const struct Symbol {sym_var} = {{ {{ (oop)&Vtable_SymbolVtable }}, "{sym_name}", {len_sym} }};')
+            # BYTE count, not character count — the C literal below is emitted as
+            # UTF-8 bytes, and Symbol `=` is a length-then-byte compare. Mirrors
+            # the String block's basis and oimg_serialize.py's Symbol emit.
+            len_sym = len(sym_name.encode("utf-8"))
+            c_code.append(f'const struct Symbol {sym_var} = {{ {{ (oop)&Vtable_SymbolVtable }}, {len_sym}, "{sym_name}" }};')
         c_code.append("")
 
         # std-lib 3c-1: String constants. Each is a fixed-layout struct matching

@@ -28,6 +28,16 @@ DUMP_RE = re.compile(r"mprof:\s+(@?\S+)\s+(\d+)\s*$", re.M)   # re.M: one match 
 HDR_RE = re.compile(r"mprof\[(\w+)\]:\s+methods=(\d+)\s+activations=(\d+)\s+"
                     r"overflow=(\d+)\s+cap=(\d+)")
 
+# Allocation attribution (design docs/design/2026-08-12-allocation-attribution-design.md).
+# A SEPARATE prefix, not extra fields on `mprof:` — DUMP_RE above is anchored at
+# exactly two fields, so widening that line would make it match NOTHING and
+# report "no mprof: lines found": a silent false negative in the only tool that
+# reads this output. test_the_activation_regex_still_matches_when_alloc_rows_are_present
+# is the guard.
+ALLOC_RE = re.compile(r"mprofa:\s+(@?\S+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$", re.M)
+ALLOC_HDR_RE = re.compile(r"mprofa\[(\w+)\]:\s+noframe_arena=(\d+)/(\d+)\s+"
+                          r"noframe_cheap=(\d+)/(\d+)\s+allocOverflow=(\d+)")
+
 
 def name_of(entry):
     if entry is None:
@@ -71,6 +81,88 @@ def resolve(mmap, text, top=0):
     return out[:top] if top else out
 
 
+def resolve_alloc(mmap, text, top=0):
+    """Join `mprofa:` rows against the sidecar map and return
+    [(name, arena_b, arena_n, cheap_b, cheap_n, pct), ...] sorted by total
+    bytes descending.
+
+    The denominator is the attributed bytes PLUS the no-frame bucket, so a run
+    whose allocations mostly happen outside any frame cannot read as "these few
+    methods account for everything". That bucket is boot and prim contexts; if
+    it is large the table is not yet answering the question, and main() says so
+    rather than leaving the reader to do the division.
+    """
+    rows = [(k, int(ab), int(an), int(cb), int(cn))
+            for k, ab, an, cb, cn in ALLOC_RE.findall(text)]
+
+    hdr = None
+    for m in ALLOC_HDR_RE.finditer(text):
+        hdr = m.groups()                       # last window wins
+    nf_bytes = (int(hdr[1]) + int(hdr[3])) if hdr else 0
+
+    total = sum(ab + cb for _, ab, _, cb, _ in rows) + nf_bytes or 1
+
+    out = []
+    for key, ab, an, cb, cn in sorted(rows, key=lambda r: -(r[1] + r[3])):
+        if key.startswith("@"):
+            name = f"UNKNOWN (not in the image blob: {key})"
+        else:
+            entry = mmap.get(key)
+            name = name_of(entry) if entry is not None else \
+                f"UNKNOWN (offset {key} absent from the map — wrong build?)"
+        out.append((name, ab, an, cb, cn, (ab + cb) / total * 100))
+    return out[:top] if top else out
+
+
+def print_alloc(mmap, text, top=0):
+    """The `--alloc` report. Kept beside resolve_alloc so the warnings that make
+    the table honest cannot be lost by a caller that only wants the rows."""
+    # ALL rows, never the truncated view: both numbers below are properties of
+    # the WINDOW, not of what a caller asked to see. `--top 15` used to make
+    # "distinct allocating methods" print 15 — the D8 sizing input reading back
+    # the display flag — and shrank the no-frame denominator to the shown rows,
+    # which inflates the §8 risk metric in the direction that hides it.
+    all_rows = resolve_alloc(mmap, text)
+    arows = all_rows[:top] if top else all_rows
+    hdr = None
+    for m in ALLOC_HDR_RE.finditer(text):
+        hdr = m.groups()
+
+    print("\n--- allocation attribution ---")
+    if hdr is None:
+        print("no 'mprofa[' summary line found — the window never reported, or "
+              "the build predates allocation attribution.")
+    else:
+        why, nfab, nfan, nfcb, nfcn, aovf = hdr
+        attributed = sum(ab + cb for _, ab, _, cb, _, _ in all_rows)
+        nf = int(nfab) + int(nfcb)
+        denom = attributed + nf or 1
+        print(f"window={why} allocOverflow={aovf}")
+        print(f"no-frame bytes: arena={nfab} ({nfan} allocs) "
+              f"cheap={nfcb} ({nfcn} allocs) = {nf / denom * 100:.1f}% of all "
+              f"attributed bytes")
+        if nf > attributed:
+            print("WARNING: the no-frame bucket EXCEEDS everything attributed to "
+                  "a method. Most allocation is happening outside any frame, so "
+                  "this table is not yet answering 'who allocates'.")
+        if int(aovf):
+            # Same reasoning as the activation table's overflow: the slotted
+            # counts stay EXACT, what is lost is completeness.
+            print(f"INCOMPLETE: allocOverflow={aovf} allocations were dropped — "
+                  f"the table saturated, so METHODS ARE MISSING. Counts below "
+                  f"are exact; percentages are lower bounds.")
+
+    print(f"\n{'arenaB':>10} {'arenaN':>8} {'cheapB':>10} {'cheapN':>8} "
+          f"{'%':>6}  method")
+    for name, ab, an, cb, cn, pct in arows:
+        print(f"{ab:>10} {an:>8} {cb:>10} {cn:>8} {pct:>5.1f}%  {name}")
+    if top and len(all_rows) > top:
+        print(f"\nshowing top {top} of {len(all_rows)} allocating methods — "
+              f"percentages are of ALL attributed bytes, not of the shown rows.")
+    print(f"\ndistinct allocating methods: {len(all_rows)}   "
+          f"(stage-2 sizing input, design D8)")
+
+
 def main(argv):
     if len(argv) < 2:
         print(__doc__.strip())
@@ -78,12 +170,14 @@ def main(argv):
     with open(argv[1]) as f:
         mmap = json.load(f)
 
-    # Filter out --top and its value from the file argument list
+    # Filter out flags (and --top's value) from the file argument list
     file_paths = []
     i = 2
     while i < len(argv):
         if argv[i] == "--top":
             i += 2  # skip the flag and its value
+        elif argv[i] == "--alloc":
+            i += 1
         else:
             file_paths.append(argv[i])
             i += 1
@@ -136,6 +230,9 @@ def main(argv):
     if unknown:
         print(f"\n{unknown} row(s) unresolved — a map from a DIFFERENT build "
               f"resolves nothing and looks identical to a quiet program.")
+
+    if "--alloc" in argv:
+        print_alloc(mmap, text, top=top)
     return 0
 
 

@@ -168,29 +168,37 @@ Recorded because it tells us what to steal and what to leave:
   ┌──────────────────────────┐             ┌──────────────────────────┐
   │  per-node space mirror   │   check-in  │  the node's own space    │
   │                          │  exchange   │                          │
-  │  node/<id>/goal/**  ─────┼────────────▶│  goal/**   (cells in)    │
-  │  node/<id>/obs/**   ◀────┼─────────────│  obs/**    (cells out)   │
-  │  node/<id>/tel/**   ◀────┼─────────────│  tel/**    (streams out) │
-  │  node/<id>/sys/**   ◀────┼─────────────│  sys/**    (streams out) │
-  │  node/<id>/dbg/req  ─────┼────────────▶│  dbg/req   (stream in)   │
-  │  node/<id>/dbg/resp ◀────┼─────────────│  dbg/resp  (stream out)  │
+  │  node/<id>/goal/**  ─────┼────────────▶│  goal/**   (in)          │
+  │  node/<id>/obs/**   ◀────┼─────────────│  obs/**    (out)         │
+  │  node/<id>/tel/**   ◀────┼─────────────│  tel/**    (out)         │
+  │  node/<id>/sys/**   ◀────┼─────────────│  sys/**    (out)         │
+  │  node/<id>/diag/**  ◀────┼─────────────│  diag/**   (out)         │
+  │  node/<id>/dbg/req  ─────┼────────────▶│  dbg/req   (in)          │
+  │  node/<id>/dbg/resp ◀────┼─────────────│  dbg/resp  (out)         │
   └──────────────────────────┘             └──────────────────────────┘
        porta writes ONLY goal/** and dbg/req;    the bridge job holds the
        the node writes ONLY its own node/<id>/** radio capability + these grants
 ```
 
-Every name resolves to one of **two kinds**, fixed by its path prefix (this replaces
-v1's per-verb rules). The kind is declared by the *first write* and the wrong verb on
-an existing name is an ordinary, catchable error (enforced in nsl `Channel`, not in
-the C space — which is storage, not policy):
+**The picture carries direction and authority, not kind** — deliberately, because kind is
+not a property of the prefix.
+
+Every name resolves to one of **two kinds**, and **kind is a property of the leaf, set by
+its first write** (D6). This replaces v1's per-verb rules *and* an earlier draft of this
+document that fixed kind by path prefix — a rule the node's own families already refute:
+`dev/thermal0/sample` is a cell while `dev/thermal0/tick` is a stream under one prefix,
+and `sys/**` carries both `sys/panic` (stream) and `sys/metrics` (cell). The wrong verb on
+an existing name is an ordinary, catchable error (enforced in nsl `Channel`, not in the C
+space — which is storage, not policy):
 
 - **cell** — a pigeonhole that *holds* the latest letter. `put:value:` overwrites it;
-  `peek:ifAbsent:` reads it **without removing it**. State lives here (`goal/**`,
-  `obs/**`). Sync transfers cell *values* changed since a cursor.
+  `peek:ifAbsent:` reads it **without removing it**. State lives here (`goal/**` apart
+  from `goal/do/*`, `obs/**`, the `sys/` gauges, `diag/spans/**`). Sync transfers cell
+  *values* changed since a cursor.
 - **stream** — a pigeonhole you *empty* by reading. `out:value:` appends;
   `take:ifEmpty:` removes the oldest, once. Each letter is delivered once. Actions
-  and telemetry live here (`tel/**`, `sys/**`, `dbg/*`, `goal/do/*`). Sync transfers
-  entries once, in order, deduped by sequence number.
+  and telemetry live here (`tel/**`, the `sys/` events, `dbg/*`, `goal/do/*`). Sync
+  transfers entries once, in order, deduped by sequence number.
 
 **A party that does not own a name must ask its kind before it touches it**, and must
 not use the raising verb. Kind is pinned by the first write and re-created by replay,
@@ -329,7 +337,9 @@ a review of the #25 branch found the same shape on the write side:
   deletes the `seq <= hw` dedupe and manufactures the duplicate it was meant to prevent.
   `bootId` is what separates them, and it is evidence rather than inference: it is a
   counter the node increments once per boot and persists in NVS (RECORDS §3), so only a
-  reboot can change it and a swallowed ack cannot.
+  reboot can change it and a swallowed ack cannot. **It rides the wire as `bid`** since
+  rete#197; this document says `bootId` where it means the mechanism and `bid` where it
+  means the field.
 
   **This replaced a cursor heuristic on 2026-08-09 (rete#162).** That test — rewind when
   the declared cursor *and* watermark both went backwards — was sound but incomplete: a
@@ -428,9 +438,9 @@ answer for that path specifically — the decision belongs with #114.
 | report `apps` | `obs/apps/<name>` | cell | observed `{crc:, runlevel:, lifecycle:, triggers:}` |
 | report `config` echo | `obs/config/<app>/<key>` | cell | scalar echo |
 | `node_config` echo | `obs/mode`, `obs/name`, `obs/forward` | cell | publish-on-change is what cells do; no echo-cadence rules |
-| `health` | `obs/health` | cell | `{uptimeMs:, bootId:, wakes:, pollTimeouts:, streamDropped:}` — liveness and delivery; VM internals are `sys/metrics` |
+| `health` | `obs/health` | cell | `{up:, bid:, wak:, pto:, sdr:}` — liveness and delivery; VM internals are `sys/metrics`. The labels were `uptimeMs`/`bootId`/`wakes`/`pollTimeouts`/`streamDropped` until rete#197 shortened every label on the frame (2026-08-11) |
 | `health.reset` (fault) | `sys/reset` | stream | `{category:, code:}` — v1's "data_log on first fault" is just an entry |
-| telemetry `print`/`log` | `tel/print`, `tel/log` | stream | `{text:}` / `{level:, text:}` |
+| telemetry `print`/`log` | `tel/print`, `tel/log` | stream | `{text:}` / `{lvl:, txt:}` (`{level:, text:}` until rete#197) |
 | telemetry `metric` | `tel/m/<name>` | stream | `{value:, ts:}` |
 | telemetry `panic` | `sys/panic` | stream, **must-deliver** | bounded inline summary + `BlobRef` (RECORDS §2.4) |
 | debug lines | `dbg/req` ↓ / `dbg/resp` ↑ | stream | `{line:}` — porta does not interpret or own the session (v1 §8); scope of that claim: RECORDS §4.5 |

@@ -275,8 +275,8 @@ void method_cache_flush(void) {
 }
 
 extern const struct Vtable Vtable_SymbolVtable;
-const struct Symbol true_sym_obj = { { (oop)&Vtable_SymbolVtable }, "true", 4 };
-const struct Symbol false_sym_obj = { { (oop)&Vtable_SymbolVtable }, "false", 5 };
+const struct Symbol true_sym_obj  = { { (oop)&Vtable_SymbolVtable }, 4, "true" };
+const struct Symbol false_sym_obj = { { (oop)&Vtable_SymbolVtable }, 5, "false" };
 #define true_symbol ((oop)&true_sym_obj)
 #define false_symbol ((oop)&false_sym_obj)
 
@@ -455,9 +455,10 @@ static oop trigger_access_violation(oop receiver, oop selector, int argc, oop *a
     if (target_selector == NULL) {
         if (Symbol_accessViolation == NULL) {
             extern oop gc_allocate(oop vtable, size_t size);
-            oop sym_av = gc_allocate(SymbolVtable, sizeof(struct Symbol));
-            ((struct Symbol *)sym_av)->name = "accessViolation:";
-            ((struct Symbol *)sym_av)->length = 16;
+            static const char avName[] = "accessViolation:";
+            oop sym_av = gc_allocate(SymbolVtable, sizeof(struct Symbol) + sizeof avName);
+            ((struct Symbol *)sym_av)->length = sizeof avName - 1;
+            memcpy(((struct Symbol *)sym_av)->name, avName, sizeof avName);
             Symbol_accessViolation = sym_av;
         }
         target_selector = Symbol_accessViolation;
@@ -851,6 +852,15 @@ enum {
     PRIM_pf_otaConfirm,
     PRIM_pf_otaActivate,
     PRIM_pf_bootId,
+    /* rete#190 sub-project A: `platform cheapStats` — the C-allocation seam's
+       counters (src/gc.c oevm_cheap_stats), the C-heap twin of heapStats (104),
+       which reports the GC ARENA. Both exist because conflating them is what let
+       a per-decoded-Symbol leak run for a week against a gauge that could not
+       see it. Appended after bootId; no pre-existing id shifts. 152 was arrived
+       at by COUNTING PRIM_NAMES (151 entries before this append), not by 151+1
+       arithmetic, per the standing lesson above. Platform-dispatched (mirrored
+       in prim_ids.h). */
+    PRIM_pf_cheapStats,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -920,6 +930,7 @@ static const char *const PRIM_NAMES[] = {
     "otaRunningHash", "otaIsRunning:", "otaTrial",
     "otaStage:sig:host:port:", "otaConfirm", "otaActivate:sig:",
     "bootId",
+    "cheapStats",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
@@ -930,7 +941,7 @@ static const char *const PRIM_NAMES[] = {
    — this catches it at build time instead. C99-safe (no _Static_assert under
    -std=c99): a false condition makes a negative-sized array, which is a hard
    compile error. ADVANCE THIS to the new last id whenever prims are appended. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_bootId) ? 1 : -1];
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_cheapStats) ? 1 : -1];
 
 /* Pointer-keyed cache mapping each interned selector symbol to its primitive id
    (PRIM_NONE if it is not an intercepted primitive). Selectors are interned, so
@@ -1630,9 +1641,13 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                         return make_string("false", 5);
                     /* genuine Symbol: '#' prefix */
                     size_t n = sy->length;
-                    char *tmp = (char *)malloc(n + 1);
+                    char *tmp = (char *)oevm_malloc(n + 1);
+                    /* rete#190: THE CRASH SITE — tmp[0]='#' stored through a NULL
+                       that malloc(7) had just returned produced mcause 7 Store/AMO
+                       on three ESP32-C6 boards. A bounded truth beats a halt. */
+                    if (tmp == NULL) return make_string("#?", 2);
                     tmp[0] = '#'; memcpy(tmp + 1, symbol_name(sy), n);
-                    oop r = make_string(tmp, n + 1); free(tmp); return r;
+                    oop r = make_string(tmp, n + 1); oevm_free(tmp); return r;
                 } else if (receiver == NULL) {
                     snprintf(buf, sizeof(buf), "nil");
                 } else {
@@ -1665,11 +1680,13 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                     break;
                 }
                 extern oop gc_allocate(oop vtable, size_t size);
-                oop sym_obj = gc_allocate(SymbolVtable, sizeof(struct Symbol));
-                char *new_str = malloc(strlen(buf) + 1);
-                strcpy(new_str, buf);
-                ((struct Symbol *)sym_obj)->name = new_str;
-                ((struct Symbol *)sym_obj)->length = strlen(buf);
+                size_t blen = strlen(buf);
+                /* rete#190 stage 2: the bytes are inline, so the separate
+                   oevm_malloc for `name` (and its NULL check) is gone — one
+                   allocation now, like every other Symbol-building site. */
+                oop sym_obj = gc_allocate(SymbolVtable, sizeof(struct Symbol) + blen + 1);
+                ((struct Symbol *)sym_obj)->length = blen;
+                memcpy(((struct Symbol *)sym_obj)->name, buf, blen + 1);
                 return sym_obj;
             }
             break;
@@ -1738,6 +1755,21 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                 if (receiver != NULL && !IS_SMI(receiver) && RawBytesVtable != NULL &&
                     obj_vtable(receiver) == RawBytesVtable)
                     return TAG_SMI((intptr_t)((struct String *)receiver)->length);
+                /* Symbol (rete#205): since rete#190 stage 2 a Symbol's name is
+                   INLINE, `{base, length, name[]}` — the same shape String and
+                   RawBytes already share here — so its bytes are readable in
+                   place and there is no reason left for it to be the one byte
+                   sequence that cannot be read. Its absence was not free:
+                   kernel.nsl had to reach a Symbol's text through printString at
+                   both `valueCompare:with:` rank 6 and `encodeSymbol:into:`, and
+                   printString's Symbol arm mallocs a '#'-prefixed scratch buffer
+                   and builds a String from it. That made a single Symbol-vs-Symbol
+                   comparison two C-heap mallocs and two immediately-dead Strings,
+                   which measured as 71% of ALL C-heap allocation on a bridging
+                   node (docs/results/2026-08-12-allocation-attribution-c6.md §5.3). */
+                if (receiver != NULL && !IS_SMI(receiver) && SymbolVtable != NULL &&
+                    obj_vtable(receiver) == SymbolVtable)
+                    return TAG_SMI((intptr_t)((struct Symbol *)receiver)->length);
             }
             break;
             case PRIM_at: {
@@ -1757,6 +1789,19 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                     intptr_t idx = IS_SMI(args[0]) ? UNTAG_SMI(args[0]) : 0;
                     if (idx < 1 || idx > (intptr_t)s->length) { fprintf(stderr, "index out of bounds\n"); abort(); }
                     return TAG_SMI((intptr_t)s->bytes[idx - 1]);   /* 1-based; returns 0..255 */
+                }
+                /* Symbol (rete#205): reads the NAME bytes, WITHOUT the '#' that
+                   printString prefixes — `#ab at: 1` is $a, not $#. That is the
+                   whole point: callers wanting the wire text no longer have to
+                   build a String and then skip its first byte. String's
+                   out-of-bounds message is copied rather than RawBytes' bare one
+                   because a Symbol is a text-like value, not a byte buffer. */
+                if (receiver != NULL && !IS_SMI(receiver) && SymbolVtable != NULL &&
+                    obj_vtable(receiver) == SymbolVtable) {
+                    struct Symbol *sy = (struct Symbol *)receiver;
+                    intptr_t idx = IS_SMI(args[0]) ? UNTAG_SMI(args[0]) : 0;
+                    if (idx < 1 || idx > (intptr_t)sy->length) { fprintf(stderr, "VM Error: Symbol at: %ld out of bounds (size %zu)\n", (long)idx, sy->length); abort(); }
+                    return TAG_SMI((intptr_t)(unsigned char)symbol_name(sy)[idx - 1]);
                 }
             }
             break;

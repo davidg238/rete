@@ -121,6 +121,20 @@ done
   /tmp/porta get --db "$DB" "$NODE"; cat /tmp/porta_serve.log; exit 1; }
 echo "  sys/metrics is in porta's cell tree"
 
+# sys/cheap — rete#190. Same hazard as sys/metrics just above: a cell can sit in the
+# node's own space forever without anyone noticing it never left, which is exactly
+# how sys/metrics stayed unpublished for a rung. This matters more than it looks for
+# rete#190's next task, the hardware leak measurement: if this gauge silently failed
+# to arrive, "the gauge shows nothing" would be indistinguishable from "the leak is
+# outside the VM's allocation sites", and the wrong conclusion would be drawn.
+for _ in $(seq 1 100); do
+  /tmp/porta get --db "$DB" "$NODE" sys 2>/dev/null | grep -q "sys/cheap" && break; sleep 0.2
+done
+/tmp/porta get --db "$DB" "$NODE" sys | grep -q "sys/cheap" || {
+  echo "FAIL: sys/cheap never reached porta — the cell scan is not covering sys/"
+  /tmp/porta get --db "$DB" "$NODE"; cat /tmp/porta_serve.log; exit 1; }
+echo "  sys/cheap is in porta's cell tree"
+
 # Leg 1: write the goal, wait for the node to echo it as obs.
 /tmp/porta put --db "$DB" "$NODE" goal/name bench >/dev/null
 for _ in $(seq 1 100); do

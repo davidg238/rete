@@ -1018,3 +1018,95 @@ pull the cable and the input does not go quiet, it goes UNDRIVEN, and a floating
 strike parser will happily act on. An unattended board must not have `TUVM_SOLENOID_CONSOLE`
 compiled in — the product strike path is the nsl gpio seam (§11.2, D3), and the console striker
 is bench instrumentation that belongs on a bench.
+
+## 22. ADDENDUM (2026-08-12) — R2 exists, so §17.3's remedy is spent and the fault is elsewhere
+
+**Correction to rete#201, to `docs/design/2026-08-10-node-memory-and-liveness-design.md`
+§11.9, and to the standing "only a pull-down fixes this" line in `zephyr/src/main.c`.** All
+three were written as if the base pull-down were still an open action item. It is not:
+**R2 = 47 kΩ base-to-GND has been on the 3.3 V piezo driver since 2026-08-05** (rev B,
+§18/#105's comment thread), and it works — it is what stopped the buzzer sounding at
+power-up.
+
+### 22.1 The two-minute bell happened WITH the pull-down fitted
+
+The rete#197 cutover's failed JTAG flash parked `c6-bell` in `boot:0x66 DOWNLOAD` and rang
+the bell continuously **23:01:41 → 23:03:45 on 2026-08-11**, six days after R2 went in. So:
+
+- **"Fit a pull-down at the transistor" is not the answer to #201.** It was already true at
+  the moment of the failure. A recommendation that was already implemented when the thing it
+  was meant to prevent happened is a refuted recommendation, not a pending one.
+- **The reset-window ring and the download-mode ring are two different faults.** R2 closed
+  the first (§18, witnessed). It did not touch the second.
+
+### 22.2 What the schematic notes actually claim, and where they stop
+
+Note 1 on `2026-08-03-shipsbells-3v3-piezo-driver.svg` says R2 "holds the base at 0 V
+whenever GPIO18 is undriven", and note 2 says "GPIO18 low OR UNDRIVEN → base held at 0 V →
+2N3904 off → silent". Both are true for a **genuinely high-Z** pin and neither was ever
+measured in download mode. Note 4 sizes R2 for the pin-driven-high case only.
+
+So the observation — bell on, R2 fitted — leaves exactly two candidates:
+
+1. **GPIO18 is actively driven high** in the ROM downloader. This is #105's standing
+   hypothesis, now at a two-minute scale instead of ~1 s. No resistor addresses it.
+2. **A weak internal pull-up is enabled on GPIO18 and R2 is too weak to hold the base
+   down.** Checkable on paper, and the arithmetic is not encouraging:
+
+   | R2 | V_base, pin high-Z behind a ~45 kΩ pull-up | 2N3904 |
+   |---|---|---|
+   | **47 kΩ** (piezo rig, today) | 3.3 × 47/(45+10+47) = **1.52 V** | **ON** |
+   | 10 kΩ (solenoid rig, §17.3) | 3.3 × 10/(45+10+10) = **0.51 V** | off |
+
+   R1 = 10 kΩ means the base tracks **47/57 = 82%** of the pin, so R2 at 47 kΩ attenuates
+   almost nothing. This also retro-explains #105: the 10 kΩ rig measured ~0 V at the base
+   through reset and concluded "something is actively driving the pin" — that conclusion was
+   drawn on a divider 4.7× stiffer than the one in service now.
+
+   Note 4's own guidance ("10 k for R2 also works … do not go below 10 k") means the fix in
+   this branch is a **value change to a sanctioned value**, not a new part.
+
+### 22.3 The hazard is also the fixture — run #105's test at last
+
+§17.6/#105's localising measurement has never been run because its window was a ~1 s
+transient. **`boot:0x66 DOWNLOAD` is that same fault held indefinitely**: a stable state
+that waits for a host that never comes.
+
+**Park a board there on purpose — `c6spare`, never the bell — and meter GPIO18 and the
+2N3904 base:**
+
+- GPIO18 at **~3.3 V** → candidate 1. Actively driven; R2's value is irrelevant and the
+  answer is a hardware interlock, not a resistor.
+- GPIO18 at **~1.2 V**, base at **~1.5 V** → candidate 2. Fit R2 = 10 kΩ and re-measure;
+  base should fall to ~0.5 V and the piezo should go silent in download mode.
+
+Either way the ambiguity that has stood since 2026-07-31 closes with one meter reading, and
+for the first time the target holds still while you read it.
+
+### 22.4 The process lesson
+
+**A remedy recorded as "the fix" is not the same as a remedy verified as fitted.** #201, and
+the two documents that quote it, each carried "a pull-down at the transistor is the only
+thing that closes this" forward — from a memory written on the *12 V solenoid* rig on
+2026-07-31 — into a *piezo* rig that had already had one for six days. The rig changed under
+the sentence and the sentence did not notice. #105's own comment thread warned about exactly
+this ("two rigs, two different faults, one shared symptom") and it happened again anyway.
+
+The check is cheap: **before recommending a hardware change, grep the schematic in service
+for the part.** `rg -i "pull-?down"` over this tree would have found R2 in one command.
+
+### 22.5 The priority, corrected — the transient is not the problem, the LATCH is
+
+**David, 2026-08-12: "I don't care about 1 sec sound at flash, it's when it sticks on I care."**
+That re-points everything above. #105's ~1 s energisation at boot is self-clearing and is not
+worth a rung; it stays closed. What matters is the load **staying** on, and there are two ways
+that happens — the chip not executing code (§22.1, R2's territory, still unverified in download
+mode) and the chip executing with the off-event lost (§18/#151's solid tone, which **no
+resistor can reach**).
+
+Note 9 on the piezo schematic already stated the requirement — *"bounding the on-time must live
+OUTSIDE the VM event loop"* — and it had never been filed. **It is now rete#202**, with AC
+coupling as the chosen direction: drive the load through a capacitor so it is energised only
+while the MCU is actively *toggling*, which makes a stuck-high pin, a stuck-low pin, a halted
+CPU and a ROM downloader all de-energise it. One part, both rows, no need to establish why the
+pin was high. Deferred, and blocking before any coil is reconnected.

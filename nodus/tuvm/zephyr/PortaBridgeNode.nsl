@@ -127,8 +127,8 @@ class PortaBridgeNode usingPlatform: platform net: net = (
     spans begin: sPublish.
     self publishHealth.
     space out: 'tel/log' value:
-      (platform Record tag: #Log with: #level -> #info
-                                 with: #text -> ('tick ' , ticks printString)).
+      (platform Record tag: #Log with: #lvl -> #info
+                                 with: #txt -> ('tick ' , ticks printString)).
     spans end: sPublish.
     (* jobTick closes BEFORE the window does, so the tick that ends the window is
        itself measured — otherwise the last sample would be the one missing. *)
@@ -205,11 +205,11 @@ class PortaBridgeNode usingPlatform: platform net: net = (
   publishHealth = (
     | pairs |
     pairs:: platform OrderedCollection new.
-    pairs add: #uptimeMs -> platform monotonicMillis.
-    pairs add: #bootId -> 1.
-    pairs add: #wakes -> ticks.
-    pairs add: #pollTimeouts -> bridge misses.
-    pairs add: #streamDropped -> bridge dropped.
+    pairs add: #up -> platform monotonicMillis.
+    pairs add: #bid -> 1.
+    pairs add: #wak -> ticks.
+    pairs add: #pto -> bridge misses.
+    pairs add: #sdr -> bridge dropped.
     space put: 'obs/health' value:
       (platform Record tag: #Health fields: (platform Map fromPairs: pairs)).
     ^ self

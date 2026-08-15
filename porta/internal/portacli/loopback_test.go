@@ -125,8 +125,8 @@ func TestLoopbackGate(t *testing.T) {
 
 	// 3. A cell pushed by the node reaches porta's tree.
 	node.push("obs/health", cval.KindCell, cval.Record{Tag: "Health", Fields: cval.Map{
-		{K: cval.Symbol("uptimeMs"), V: int64(12345)},
-		{K: cval.Symbol("bootId"), V: int64(1)},
+		{K: cval.Symbol("up"), V: int64(12345)},
+		{K: cval.Symbol("bid"), V: int64(1)},
 	}})
 	tree, _ := st.Tree("c6-01", "obs/")
 	if len(tree) != 1 || tree[0].Path != "obs/health" {

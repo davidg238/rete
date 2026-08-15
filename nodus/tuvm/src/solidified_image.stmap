@@ -1,5 +1,5 @@
 {
-  "source": "01_method_call.ns",
+  "source": "01_method_call.nsl",
   "functions": {
     "MethodCallTest>>main:args:": [
       [
@@ -22,3143 +22,8673 @@
     "Kernel>>serialOn:": [
       [
         0,
-        571
+        2407
       ]
     ],
     "Kernel>>netOn:": [
       [
         0,
-        572
+        2408
       ]
     ],
     "Kernel>>rankOf:": [
       [
         0,
-        582
+        3226
       ],
       [
         5,
-        582
+        3226
       ],
       [
         10,
-        582
+        3226
       ],
       [
         16,
-        582
+        3226
       ]
     ],
     "Kernel>>isValueObject:": [
       [
         0,
-        583
+        3227
       ]
     ],
     "Kernel>>depthOf:": [
       [
         0,
-        584
+        3228
       ],
       [
         8,
-        584
+        3228
       ],
       [
         14,
-        584
+        3228
       ]
     ],
     "Kernel>>checkValue:": [
       [
         0,
-        585
+        3229
       ],
       [
         11,
-        585
+        3229
       ]
     ],
     "Kernel>>checkDepth:": [
       [
         0,
-        586
+        3230
       ],
       [
         11,
-        586
+        3230
+      ]
+    ],
+    "Kernel>>checkPath:": [
+      [
+        0,
+        3248
+      ],
+      [
+        4,
+        3249
+      ],
+      [
+        9,
+        3249
+      ],
+      [
+        13,
+        3250
+      ],
+      [
+        37,
+        3251
+      ],
+      [
+        39,
+        3251
+      ],
+      [
+        41,
+        3251
+      ],
+      [
+        43,
+        3252
+      ],
+      [
+        48,
+        3253
+      ],
+      [
+        56,
+        3255
+      ],
+      [
+        74,
+        3256
+      ],
+      [
+        79,
+        3258
+      ],
+      [
+        103,
+        3261
+      ],
+      [
+        121,
+        3262
       ]
     ],
     "Kernel>>valueCompare:with:": [
       [
         0,
-        604
+        3280
       ],
       [
         5,
-        604
+        3280
       ],
       [
         10,
-        605
+        3281
       ],
       [
         17,
-        605
+        3281
       ],
       [
         26,
-        606
+        3282
       ],
       [
         31,
-        606
+        3282
       ],
       [
         35,
-        607
+        3283
       ],
       [
         40,
-        608
+        3284
       ],
       [
         45,
-        608
+        3284
       ],
       [
         49,
-        609
+        3285
       ],
       [
         57,
-        610
+        3286
       ],
       [
         69,
-        611
+        3287
       ],
       [
         74,
-        611
+        3287
       ],
       [
         78,
-        611
+        3287
       ],
       [
         83,
-        611
+        3287
       ],
       [
         87,
-        611
+        3287
       ],
       [
         91,
-        612
+        3288
       ],
       [
         96,
-        612
+        3288
       ],
       [
         104,
-        613
+        3289
       ],
       [
         109,
-        613
+        3289
       ],
       [
         117,
-        614
+        3290
       ],
       [
         122,
-        614
+        3290
       ],
       [
         134,
-        615
+        3291
       ],
       [
         139,
-        615
+        3291
       ],
       [
         147,
-        616
+        3292
       ],
       [
         152,
-        616
+        3292
       ],
       [
         160,
-        617
+        3293
       ],
       [
         165,
-        617
+        3293
       ],
       [
         173,
-        618
+        3294
       ]
     ],
     "Kernel>>byteCompare:with:": [
       [
         0,
-        626
+        3302
       ],
       [
         4,
-        626
+        3302
       ],
       [
         8,
-        626
+        3302
       ],
       [
         17,
-        627
+        3303
       ],
       [
         26,
-        628
+        3304
       ],
       [
         31,
-        628
+        3304
       ],
       [
         36,
-        629
+        3305
       ],
       [
         41,
-        629
+        3305
       ],
       [
         50,
-        630
+        3306
       ],
       [
         57,
-        631
+        3307
       ],
       [
         62,
-        631
+        3307
       ],
       [
         66,
-        631
+        3307
       ],
       [
         71,
-        631
+        3307
       ],
       [
         75,
-        631
+        3307
       ]
     ],
     "Kernel>>bytesCompare:with:": [
       [
         0,
-        641
+        3317
       ],
       [
         4,
-        641
+        3317
       ],
       [
         8,
-        641
+        3317
       ],
       [
         17,
-        642
+        3318
       ],
       [
         26,
-        643
+        3319
       ],
       [
         31,
-        643
+        3319
       ],
       [
         36,
-        644
+        3320
       ],
       [
         41,
-        644
+        3320
       ],
       [
         50,
-        645
+        3321
       ],
       [
         57,
-        646
+        3322
       ],
       [
         62,
-        646
+        3322
       ],
       [
         66,
-        646
+        3322
       ],
       [
         71,
-        646
+        3322
       ],
       [
         75,
-        646
+        3322
       ]
     ],
     "Kernel>>listCompare:with:": [
       [
         0,
-        654
+        3330
       ],
       [
         4,
-        654
+        3330
       ],
       [
         8,
-        654
+        3330
       ],
       [
         17,
-        655
+        3331
       ],
       [
         25,
-        656
+        3332
       ],
       [
         44,
-        657
+        3333
       ],
       [
         49,
-        658
+        3334
       ],
       [
         54,
-        658
+        3334
       ],
       [
         58,
-        658
+        3334
       ],
       [
         63,
-        658
+        3334
       ],
       [
         67,
-        658
+        3334
       ]
     ],
     "Kernel>>mapCompare:with:": [
       [
         0,
-        670
+        3346
       ],
       [
         4,
-        670
+        3346
       ],
       [
         8,
-        670
+        3346
       ],
       [
         17,
-        671
+        3347
       ],
       [
         24,
-        672
+        3348
       ],
       [
         36,
-        673
+        3349
       ],
       [
         43,
-        673
+        3349
       ],
       [
         45,
-        674
+        3350
       ],
       [
         64,
-        675
+        3351
       ],
       [
         69,
-        676
+        3352
       ],
       [
         74,
-        676
+        3352
       ],
       [
         78,
-        676
+        3352
       ],
       [
         83,
-        676
+        3352
       ],
       [
         87,
-        676
+        3352
       ]
     ],
     "Kernel>>recordCompare:with:": [
       [
         0,
-        688
+        3364
       ],
       [
         10,
-        689
+        3365
       ],
       [
         17,
-        689
+        3365
       ],
       [
         19,
-        690
+        3366
       ]
     ],
     "Kernel>>value:equals:": [
       [
         0,
-        693
+        3369
       ]
     ],
     "Kernel>>valueHashOf:": [
       [
         1,
-        711
+        3387
       ],
       [
         6,
-        712
+        3388
       ],
       [
         11,
-        713
+        3389
       ],
       [
         13,
-        714
+        3390
       ],
       [
         17,
-        715
+        3391
       ],
       [
         21,
-        716
+        3392
       ],
       [
         26,
-        717
+        3393
       ],
       [
         28,
-        718
+        3394
       ],
       [
         32,
-        721
+        3397
       ],
       [
         36,
-        722
+        3398
       ],
       [
         41,
-        723
+        3399
       ],
       [
         43,
-        724
+        3400
       ],
       [
         58,
-        725
+        3401
       ],
       [
         73,
-        726
+        3402
       ],
       [
         77,
-        727
+        3403
       ],
       [
         82,
-        731
+        3407
       ],
       [
         84,
-        732
+        3408
       ],
       [
         109,
-        733
+        3409
       ],
       [
         113,
-        734
+        3410
       ]
     ],
     "Kernel>>readLine": [
       [
         0,
-        737
+        3413
+      ]
+    ],
+    "Kernel>>protectedFire:value:": [
+      [
+        0,
+        3414
       ]
     ],
     "Kernel>>valueRank:": [
       [
         0,
-        738
+        3415
+      ]
+    ],
+    "Kernel>>spaceDropReactionsOwnedBy:": [
+      [
+        0,
+        3420
+      ]
+    ],
+    "Kernel>>spaceOverruns:": [
+      [
+        0,
+        3425
+      ]
+    ],
+    "Kernel>>sysStats": [
+      [
+        0,
+        3426
+      ]
+    ],
+    "Kernel>>timerAfter:token:": [
+      [
+        0,
+        3432
+      ]
+    ],
+    "Kernel>>timerEvery:token:": [
+      [
+        0,
+        3433
+      ]
+    ],
+    "Kernel>>timerCancel:": [
+      [
+        0,
+        3434
+      ]
+    ],
+    "Kernel>>monotonicMillis": [
+      [
+        0,
+        3435
+      ]
+    ],
+    "Kernel>>advanceMillis:": [
+      [
+        0,
+        3436
+      ]
+    ],
+    "Kernel>>gpioPin:edge:post:on:": [
+      [
+        0,
+        3442
+      ]
+    ],
+    "Kernel>>gpioFire:": [
+      [
+        0,
+        3443
+      ]
+    ],
+    "Kernel>>gpioSet:to:": [
+      [
+        0,
+        3448
+      ]
+    ],
+    "Kernel>>gpioLevel:": [
+      [
+        0,
+        3449
+      ]
+    ],
+    "Kernel>>displayClear": [
+      [
+        0,
+        3454
+      ]
+    ],
+    "Kernel>>displayAt:col:put:": [
+      [
+        0,
+        3455
+      ]
+    ],
+    "Kernel>>displayRefresh": [
+      [
+        0,
+        3456
+      ]
+    ],
+    "Kernel>>displayRefreshRow:": [
+      [
+        0,
+        3457
+      ]
+    ],
+    "Kernel>>bellStrike:": [
+      [
+        0,
+        3463
+      ]
+    ],
+    "Kernel>>ntpSyncTz:": [
+      [
+        0,
+        3473
+      ]
+    ],
+    "Kernel>>ntpDate": [
+      [
+        0,
+        3482
+      ]
+    ],
+    "Kernel>>rtcValid": [
+      [
+        0,
+        3488
+      ]
+    ],
+    "Kernel>>rtcGet:": [
+      [
+        0,
+        3489
+      ]
+    ],
+    "Kernel>>rtcPut:value:": [
+      [
+        0,
+        3490
+      ],
+      [
+        5,
+        3490
+      ]
+    ],
+    "Kernel>>deepSleep:": [
+      [
+        0,
+        3494
+      ]
+    ],
+    "Kernel>>wallClock": [
+      [
+        0,
+        3508
+      ]
+    ],
+    "Kernel>>wallClockSetDate:time:": [
+      [
+        0,
+        3515
+      ]
+    ],
+    "Kernel>>rtcAlarmAt:post:on:": [
+      [
+        0,
+        3522
+      ]
+    ],
+    "Kernel>>pumpEvents": [
+      [
+        0,
+        3523
+      ]
+    ],
+    "Kernel>>httpListen:": [
+      [
+        0,
+        3529
+      ]
+    ],
+    "Kernel>>httpRespondId:status:body:": [
+      [
+        0,
+        3530
+      ]
+    ],
+    "Kernel>>httpInject:path:": [
+      [
+        0,
+        3531
+      ]
+    ],
+    "Kernel>>httpBeginId:status:": [
+      [
+        0,
+        3532
+      ]
+    ],
+    "Kernel>>httpChunkId:data:": [
+      [
+        0,
+        3533
+      ]
+    ],
+    "Kernel>>httpEndId:": [
+      [
+        0,
+        3534
+      ]
+    ],
+    "Kernel>>sensorFrame": [
+      [
+        0,
+        3545
+      ]
+    ],
+    "Kernel>>sensorArmEventPost:on:threshold:": [
+      [
+        0,
+        3546
       ]
     ],
     "Kernel>>Object": [
       [
         0,
-        740
+        3548
       ]
     ],
     "Kernel>>Array": [
       [
         0,
-        741
+        3549
       ]
     ],
     "Kernel>>Collection": [
       [
         0,
-        742
+        3550
       ]
     ],
     "Kernel>>OrderedCollection": [
       [
         0,
-        743
+        3551
+      ]
+    ],
+    "Kernel>>Interval": [
+      [
+        0,
+        3552
       ]
     ],
     "Kernel>>Set": [
       [
         0,
-        744
+        3553
       ]
     ],
     "Kernel>>Dictionary": [
       [
         0,
-        745
+        3554
       ]
     ],
     "Kernel>>Association": [
       [
         0,
-        746
+        3555
       ]
     ],
     "Kernel>>List": [
       [
         0,
-        747
+        3556
       ]
     ],
     "Kernel>>Map": [
       [
         0,
-        748
+        3557
+      ]
+    ],
+    "Kernel>>Protocol": [
+      [
+        0,
+        3558
       ]
     ],
     "Kernel>>Record": [
       [
         0,
-        749
+        3559
+      ]
+    ],
+    "Kernel>>Cbor": [
+      [
+        0,
+        3566
+      ]
+    ],
+    "Kernel>>HeapStats": [
+      [
+        0,
+        3567
+      ]
+    ],
+    "Kernel>>Spans": [
+      [
+        0,
+        3572
+      ]
+    ],
+    "Kernel>>SpanCapture": [
+      [
+        0,
+        3577
+      ]
+    ],
+    "Kernel>>heapStats": [
+      [
+        0,
+        3578
+      ]
+    ],
+    "Kernel>>cheapStats": [
+      [
+        0,
+        3586
+      ]
+    ],
+    "Kernel>>profileStart": [
+      [
+        0,
+        3591
+      ],
+      [
+        3,
+        3591
+      ]
+    ],
+    "Kernel>>profileStop": [
+      [
+        0,
+        3592
+      ],
+      [
+        3,
+        3592
+      ]
+    ],
+    "Kernel>>buildId": [
+      [
+        0,
+        3594
+      ]
+    ],
+    "Kernel>>bootId": [
+      [
+        0,
+        3600
+      ]
+    ],
+    "Kernel>>otaRunningHash": [
+      [
+        0,
+        3615
+      ],
+      [
+        4,
+        3616
+      ],
+      [
+        9,
+        3616
+      ],
+      [
+        13,
+        3617
+      ]
+    ],
+    "Kernel>>otaIsRunning:": [
+      [
+        0,
+        3641
+      ],
+      [
+        6,
+        3641
+      ],
+      [
+        8,
+        3642
+      ]
+    ],
+    "Kernel>>otaTrial": [
+      [
+        0,
+        3643
+      ]
+    ],
+    "Kernel>>otaStage:sig:host:port:": [
+      [
+        0,
+        3649
+      ],
+      [
+        6,
+        3649
+      ],
+      [
+        8,
+        3650
+      ],
+      [
+        21,
+        3650
+      ],
+      [
+        23,
+        3651
+      ]
+    ],
+    "Kernel>>otaConfirm": [
+      [
+        0,
+        3655
+      ],
+      [
+        3,
+        3655
+      ]
+    ],
+    "Kernel>>otaActivate:sig:": [
+      [
+        0,
+        3660
+      ],
+      [
+        6,
+        3660
+      ],
+      [
+        8,
+        3661
+      ],
+      [
+        21,
+        3661
+      ],
+      [
+        23,
+        3662
+      ],
+      [
+        33,
+        3663
+      ]
+    ],
+    "Kernel>>otaRawOf:": [
+      [
+        0,
+        3682
+      ],
+      [
+        5,
+        3682
+      ],
+      [
+        9,
+        3683
+      ]
+    ],
+    "Kernel>>parseProfileMs:": [
+      [
+        0,
+        3696
+      ],
+      [
+        5,
+        3697
+      ],
+      [
+        10,
+        3698
+      ],
+      [
+        17,
+        3698
+      ],
+      [
+        19,
+        3699
+      ],
+      [
+        24,
+        3700
+      ],
+      [
+        29,
+        3700
+      ],
+      [
+        33,
+        3701
+      ],
+      [
+        40,
+        3701
+      ],
+      [
+        44,
+        3704
+      ],
+      [
+        46,
+        3705
+      ],
+      [
+        48,
+        3706
+      ],
+      [
+        55,
+        3707
+      ],
+      [
+        60,
+        3708
+      ],
+      [
+        72,
+        3708
+      ],
+      [
+        76,
+        3709
+      ],
+      [
+        90,
+        3711
+      ]
+    ],
+    "Kernel>>metrics": [
+      [
+        0,
+        3721
+      ],
+      [
+        4,
+        3722
+      ],
+      [
+        8,
+        3723
+      ],
+      [
+        13,
+        3724
+      ],
+      [
+        24,
+        3725
+      ],
+      [
+        35,
+        3726
+      ],
+      [
+        46,
+        3727
+      ],
+      [
+        57,
+        3728
+      ],
+      [
+        68,
+        3729
+      ],
+      [
+        79,
+        3730
+      ],
+      [
+        90,
+        3731
+      ],
+      [
+        101,
+        3732
+      ],
+      [
+        112,
+        3739
+      ],
+      [
+        123,
+        3740
+      ],
+      [
+        134,
+        3741
+      ]
+    ],
+    "Kernel>>cheap": [
+      [
+        0,
+        3766
+      ],
+      [
+        4,
+        3767
+      ],
+      [
+        9,
+        3768
+      ],
+      [
+        20,
+        3769
+      ],
+      [
+        31,
+        3770
+      ],
+      [
+        42,
+        3771
+      ],
+      [
+        53,
+        3772
+      ],
+      [
+        64,
+        3773
+      ]
+    ],
+    "Kernel>>crashRecordTag:text:": [
+      [
+        0,
+        3779
+      ]
+    ],
+    "Kernel>>crashRecordText:": [
+      [
+        0,
+        3785
       ]
     ],
     "Kernel>>ByteArray": [
       [
         0,
-        750
+        3786
+      ]
+    ],
+    "Kernel>>NetBridge": [
+      [
+        0,
+        3787
+      ]
+    ],
+    "Kernel>>PortaBridge": [
+      [
+        0,
+        3796
       ]
     ],
     "Kernel>>ReadStream": [
       [
         0,
-        751
+        3797
       ]
     ],
     "Kernel>>WriteStream": [
       [
         0,
-        752
+        3798
+      ]
+    ],
+    "Kernel>>space": [
+      [
+        0,
+        3804
+      ]
+    ],
+    "Kernel>>supervisor": [
+      [
+        0,
+        3810
+      ]
+    ],
+    "Kernel>>timers": [
+      [
+        0,
+        3818
+      ]
+    ],
+    "Kernel>>gpio": [
+      [
+        0,
+        3825
+      ]
+    ],
+    "Kernel>>display": [
+      [
+        0,
+        3830
+      ]
+    ],
+    "Kernel>>bell": [
+      [
+        0,
+        3835
+      ]
+    ],
+    "Kernel>>rtcAlarm": [
+      [
+        0,
+        3840
       ]
     ],
     "Kernel_Object>>isNil": [
       [
         0,
-        19
+        26
       ]
     ],
     "Kernel_Object>>notNil": [
       [
         0,
-        20
+        27
       ]
     ],
     "Kernel_Object>>ifNil:": [
       [
         0,
-        21
+        28
       ]
     ],
     "Kernel_Object>>ifNotNil:": [
       [
         0,
-        22
+        29
       ]
     ],
     "Kernel_Object>>=": [
       [
         0,
-        23
+        30
       ]
     ],
     "Kernel_Object>>printString": [
       [
         0,
-        24
+        31
       ]
     ],
     "Kernel_Object>>asString": [
       [
         0,
-        25
+        32
       ]
     ],
     "Kernel_Object>>hash": [
       [
         0,
-        26
+        33
       ]
     ],
     "Kernel_Object>>isValue": [
       [
         0,
-        27
+        34
       ]
     ],
     "Kernel_Object>>isSymbol": [
       [
         0,
-        28
+        35
       ]
     ],
     "Kernel_Object>>isList": [
       [
         0,
-        29
+        36
       ]
     ],
     "Kernel_Object>>isMap": [
       [
         0,
-        30
+        37
       ]
     ],
     "Kernel_Object>>isRecord": [
       [
         0,
-        31
+        38
       ]
     ],
     "Kernel_Object>>isBytes": [
       [
         0,
-        32
+        39
       ]
     ],
     "Kernel_Object>>valueRank": [
       [
         0,
-        33
+        40
       ]
     ],
     "Kernel_Object>>valueDepth": [
       [
         0,
-        34
+        41
       ]
     ],
     "Kernel_Array>>at:": [
       [
         0,
-        39
+        46
       ]
     ],
     "Kernel_Array>>at:put:": [
       [
         0,
-        40
+        47
       ],
       [
         5,
-        40
+        47
       ]
     ],
     "Kernel_Array>>size": [
       [
         0,
-        41
+        48
       ]
     ],
     "Kernel_Array>>do:": [
       [
         0,
-        42
+        49
       ],
       [
         19,
-        42
+        49
       ]
     ],
     "Meta_Kernel_Array>>new:": [
       [
         0,
-        44
+        51
       ]
     ],
     "Kernel_Collection>>do:": [
       [
         0,
-        48
+        55
       ]
     ],
     "Kernel_Collection>>size": [
       [
         0,
-        49
+        56
       ]
     ],
     "Kernel_Collection>>isEmpty": [
       [
         0,
-        50
+        57
       ]
     ],
     "Kernel_Collection>>inject:into:": [
       [
         2,
-        51
+        58
       ],
       [
         4,
-        51
+        58
       ],
       [
         8,
-        51
+        58
       ]
     ],
     "Kernel_Collection>>collect:": [
       [
         2,
-        52
+        59
       ],
       [
         9,
-        52
+        59
       ],
       [
         13,
-        52
+        59
       ]
     ],
     "Kernel_Collection>>select:": [
       [
         2,
-        53
+        60
       ],
       [
         9,
-        53
+        60
       ],
       [
         13,
-        53
+        60
       ]
     ],
     "Kernel_Collection>>reject:": [
       [
         2,
-        54
+        61
       ],
       [
         9,
-        54
+        61
       ],
       [
         13,
-        54
+        61
       ]
     ],
     "Kernel_Collection>>includes:": [
       [
         2,
-        55
+        62
       ]
     ],
     "Kernel_Collection>>asArray": [
       [
         1,
-        56
+        63
       ],
       [
         11,
-        56
+        63
       ],
       [
         13,
-        56
+        63
       ],
       [
         17,
-        56
+        63
       ]
     ],
     "Kernel_Collection>>detect:ifNone:": [
       [
         2,
-        59
+        66
       ],
       [
         4,
-        60
+        67
       ],
       [
         8,
-        62
+        69
       ],
       [
         10,
-        62
+        69
       ],
       [
         14,
-        63
+        70
       ]
     ],
     "Kernel_Collection>>detect:": [
       [
         0,
-        64
+        71
+      ]
+    ],
+    "Kernel_Collection>>anySatisfy:": [
+      [
+        2,
+        83
+      ],
+      [
+        4,
+        84
+      ],
+      [
+        8,
+        85
+      ]
+    ],
+    "Kernel_Collection>>allSatisfy:": [
+      [
+        2,
+        88
+      ],
+      [
+        4,
+        89
+      ],
+      [
+        8,
+        90
+      ]
+    ],
+    "Kernel_Collection>>noneSatisfy:": [
+      [
+        0,
+        91
+      ]
+    ],
+    "Kernel_Collection>>count:": [
+      [
+        2,
+        93
+      ]
+    ],
+    "Kernel_Collection>>do:separatedBy:": [
+      [
+        3,
+        96
+      ],
+      [
+        5,
+        97
+      ],
+      [
+        9,
+        100
+      ]
+    ],
+    "Kernel_Collection>>withIndexDo:": [
+      [
+        2,
+        103
+      ],
+      [
+        4,
+        104
+      ],
+      [
+        8,
+        105
+      ]
+    ],
+    "Kernel_Collection>>indexOf:ifAbsent:": [
+      [
+        2,
+        108
+      ],
+      [
+        4,
+        109
+      ],
+      [
+        8,
+        110
+      ],
+      [
+        13,
+        110
+      ],
+      [
+        19,
+        111
+      ]
+    ],
+    "Kernel_Collection>>indexOf:": [
+      [
+        0,
+        112
+      ]
+    ],
+    "Kernel_Collection>>detectMax:ifNone:": [
+      [
+        2,
+        116
+      ],
+      [
+        4,
+        117
+      ],
+      [
+        8,
+        120
+      ],
+      [
+        10,
+        120
+      ],
+      [
+        14,
+        121
+      ]
+    ],
+    "Kernel_Collection>>detectMin:ifNone:": [
+      [
+        2,
+        123
+      ]
+    ],
+    "Kernel_Collection>>detectMax:": [
+      [
+        0,
+        124
+      ]
+    ],
+    "Kernel_Collection>>detectMin:": [
+      [
+        0,
+        125
       ]
     ],
     "Kernel_OrderedCollection>>do:": [
       [
         0,
-        71
+        138
       ],
       [
         17,
-        71
+        138
       ]
     ],
     "Kernel_OrderedCollection>>size": [
       [
         0,
-        72
+        139
       ]
     ],
     "Kernel_OrderedCollection>>isEmpty": [
       [
         0,
-        73
+        140
       ]
     ],
     "Kernel_OrderedCollection>>add:": [
       [
         0,
-        74
+        141
       ],
       [
         3,
-        74
+        141
       ],
       [
         7,
-        74
+        141
       ],
       [
         12,
-        74
+        141
       ]
     ],
     "Kernel_OrderedCollection>>addLast:": [
       [
         0,
-        75
+        142
       ]
     ],
     "Kernel_OrderedCollection>>at:": [
       [
         0,
-        76
+        143
       ],
       [
         12,
-        76
+        143
       ],
       [
         19,
-        76
+        143
       ]
     ],
     "Kernel_OrderedCollection>>at:put:": [
       [
         0,
-        77
+        144
       ],
       [
         12,
-        77
+        144
       ],
       [
         19,
-        77
+        144
       ]
     ],
     "Kernel_OrderedCollection>>first": [
       [
         0,
-        78
+        145
       ]
     ],
     "Kernel_OrderedCollection>>last": [
       [
         0,
-        79
+        146
       ]
     ],
     "Kernel_OrderedCollection>>removeLast": [
       [
         0,
-        80
+        147
       ],
       [
         5,
-        80
+        147
       ],
       [
         9,
-        80
+        147
       ]
     ],
     "Kernel_OrderedCollection>>removeFirst": [
       [
         0,
-        81
+        148
       ],
       [
         5,
-        81
+        148
       ],
       [
         25,
-        81
+        148
       ],
       [
         29,
-        81
+        148
       ]
     ],
     "Kernel_OrderedCollection>>ensureCapacity": [
       [
         0,
-        82
+        149
       ],
       [
         12,
-        82
+        149
       ]
     ],
     "Kernel_OrderedCollection>>grow": [
       [
         0,
-        83
+        150
       ],
       [
         12,
-        83
+        150
       ],
       [
         30,
-        83
+        150
       ],
       [
         32,
-        83
+        150
+      ]
+    ],
+    "Kernel_OrderedCollection>>with:collect:": [
+      [
+        3,
+        160
+      ],
+      [
+        14,
+        160
+      ],
+      [
+        19,
+        161
+      ],
+      [
+        26,
+        162
+      ],
+      [
+        30,
+        163
+      ]
+    ],
+    "Kernel_OrderedCollection>>copyFrom:to:": [
+      [
+        0,
+        166
+      ],
+      [
+        14,
+        166
+      ],
+      [
+        21,
+        167
+      ],
+      [
+        28,
+        168
+      ],
+      [
+        45,
+        169
+      ]
+    ],
+    "Kernel_OrderedCollection>>reversed": [
+      [
+        0,
+        172
+      ],
+      [
+        7,
+        173
+      ],
+      [
+        11,
+        174
+      ],
+      [
+        32,
+        175
+      ]
+    ],
+    "Kernel_OrderedCollection>>first:": [
+      [
+        0,
+        176
+      ]
+    ],
+    "Kernel_OrderedCollection>>last:": [
+      [
+        0,
+        177
+      ]
+    ],
+    "Kernel_OrderedCollection>>,": [
+      [
+        1,
+        183
+      ],
+      [
+        8,
+        184
+      ],
+      [
+        12,
+        185
+      ],
+      [
+        16,
+        186
+      ]
+    ],
+    "Kernel_Interval>>do:": [
+      [
+        0,
+        205
+      ],
+      [
+        5,
+        206
+      ],
+      [
+        12,
+        206
+      ],
+      [
+        23,
+        207
+      ],
+      [
+        30,
+        207
+      ],
+      [
+        40,
+        208
+      ]
+    ],
+    "Kernel_Interval>>size": [
+      [
+        0,
+        210
+      ],
+      [
+        5,
+        211
+      ],
+      [
+        10,
+        211
+      ],
+      [
+        14,
+        211
+      ],
+      [
+        25,
+        212
+      ],
+      [
+        30,
+        212
+      ],
+      [
+        34,
+        213
+      ]
+    ],
+    "Kernel_Interval>>at:": [
+      [
+        0,
+        215
+      ],
+      [
+        14,
+        215
+      ],
+      [
+        21,
+        216
+      ]
+    ],
+    "Kernel_Interval>>first": [
+      [
+        0,
+        217
+      ]
+    ],
+    "Kernel_Interval>>last": [
+      [
+        0,
+        218
+      ]
+    ],
+    "Kernel_Interval>>setStart:stop:step:": [
+      [
+        0,
+        220
+      ],
+      [
+        5,
+        220
+      ],
+      [
+        12,
+        221
+      ],
+      [
+        14,
+        221
+      ],
+      [
+        16,
+        221
+      ],
+      [
+        18,
+        221
+      ]
+    ],
+    "Meta_Kernel_Interval>>from:to:": [
+      [
+        0,
+        223
+      ]
+    ],
+    "Meta_Kernel_Interval>>from:to:by:": [
+      [
+        0,
+        224
       ]
     ],
     "Kernel_HashedCollection>>capacity": [
       [
         0,
-        93
+        233
       ]
     ],
     "Kernel_HashedCollection>>size": [
       [
         0,
-        94
+        234
       ]
     ],
     "Kernel_HashedCollection>>isEmpty": [
       [
         0,
-        95
+        235
       ]
     ],
     "Kernel_HashedCollection>>indexFor:": [
       [
         0,
-        99
+        239
       ],
       [
         4,
-        99
+        239
       ],
       [
         8,
-        99
+        239
       ]
     ],
     "Kernel_HashedCollection>>slotFor:": [
       [
         0,
-        106
+        246
       ],
       [
         4,
-        106
+        246
       ],
       [
         9,
-        106
+        246
       ],
       [
         14,
-        107
+        247
       ],
       [
         30,
-        108
+        248
       ],
       [
         34,
-        108
+        248
       ],
       [
         50,
-        109
+        249
       ]
     ],
     "Kernel_HashedCollection>>containsKey:": [
       [
         0,
-        111
+        251
       ]
     ],
     "Kernel_HashedCollection>>atCapacity": [
       [
         0,
-        113
+        253
       ]
     ],
     "Kernel_HashedCollection>>growIfNeeded": [
       [
         0,
-        114
+        254
       ],
       [
         9,
-        114
+        254
       ]
     ],
     "Kernel_HashedCollection>>rehashFrom:": [
       [
         0,
-        120
+        260
       ],
       [
         4,
-        120
+        260
       ],
       [
         8,
-        120
+        260
       ],
       [
         17,
-        121
+        261
       ],
       [
         27,
-        122
+        262
       ],
       [
         31,
-        123
+        263
       ],
       [
         46,
-        124
+        264
       ]
     ],
     "Kernel_HashedCollection>>grow": [
       [
         0,
-        126
+        266
       ]
     ],
     "Kernel_HashedCollection>>reinsertEntryAt:": [
       [
         0,
-        127
+        267
       ]
     ],
     "Kernel_HashedCollection>>do:": [
       [
         0,
-        128
+        268
       ]
     ],
     "Kernel_Set>>add:": [
       [
         0,
-        133
+        273
       ],
       [
         5,
-        133
+        273
       ],
       [
         12,
-        133
+        273
       ],
       [
         16,
-        133
+        273
       ],
       [
         19,
-        133
+        273
       ]
     ],
     "Kernel_Set>>addAll:": [
       [
         0,
-        134
+        274
       ],
       [
         4,
-        134
+        274
       ]
     ],
     "Kernel_Set>>remove:": [
       [
         0,
-        135
+        275
       ]
     ],
     "Kernel_Set>>remove:ifAbsent:": [
       [
         0,
-        137
+        277
       ],
       [
         5,
-        138
+        278
       ],
       [
         13,
-        138
+        278
       ],
       [
         19,
-        139
+        279
       ],
       [
         24,
-        139
+        279
       ],
       [
         28,
-        139
+        279
       ],
       [
         32,
-        139
+        279
       ]
     ],
     "Kernel_Set>>includes:": [
       [
         0,
-        140
+        280
       ]
     ],
     "Kernel_Set>>do:": [
       [
         0,
-        141
+        281
       ],
       [
         10,
-        141
+        281
       ],
       [
         29,
-        141
+        281
       ]
     ],
     "Kernel_Set>>place:": [
       [
         0,
-        142
+        282
       ],
       [
         5,
-        142
+        282
       ],
       [
         13,
-        142
+        282
       ],
       [
         24,
-        142
+        282
       ]
     ],
     "Kernel_Set>>reinsertEntryAt:": [
       [
         0,
-        143
+        283
       ],
       [
         5,
-        143
+        283
       ],
       [
         10,
-        143
+        283
       ],
       [
         14,
-        143
+        283
       ],
       [
         18,
-        143
+        283
       ]
     ],
     "Kernel_Set>>grow": [
       [
         0,
-        144
+        284
       ],
       [
         2,
-        144
+        284
       ],
       [
         6,
-        144
+        284
       ],
       [
         16,
-        144
+        284
       ],
       [
         18,
-        144
+        284
       ],
       [
         26,
-        144
+        284
       ],
       [
         45,
-        144
+        284
       ]
     ],
     "Kernel_Dictionary>>at:put:": [
       [
         0,
-        149
+        289
       ],
       [
         5,
-        149
+        289
       ],
       [
         12,
-        149
+        289
       ],
       [
         17,
-        149
+        289
       ],
       [
         20,
-        149
+        289
       ]
     ],
     "Kernel_Dictionary>>at:ifAbsent:": [
       [
         0,
-        150
+        290
       ],
       [
         5,
-        150
+        290
       ],
       [
         13,
-        150
+        290
       ],
       [
         19,
-        150
+        290
       ]
     ],
     "Kernel_Dictionary>>at:": [
       [
         0,
-        151
+        291
       ]
     ],
     "Kernel_Dictionary>>at:ifAbsentPut:": [
       [
         0,
-        152
+        292
       ],
       [
         5,
-        152
+        292
       ],
       [
         15,
-        152
+        292
       ],
       [
         22,
-        152
+        292
       ]
     ],
     "Kernel_Dictionary>>includesKey:": [
       [
         0,
-        153
+        293
       ]
     ],
     "Kernel_Dictionary>>removeKey:": [
       [
         0,
-        154
+        294
       ]
     ],
     "Kernel_Dictionary>>removeKey:ifAbsent:": [
       [
         0,
-        156
+        296
       ],
       [
         5,
-        157
+        297
       ],
       [
         13,
-        157
+        297
       ],
       [
         19,
-        158
+        298
       ],
       [
         24,
-        158
+        298
       ],
       [
         29,
-        158
+        298
       ],
       [
         33,
-        158
+        298
       ],
       [
         37,
-        158
+        298
       ]
     ],
     "Kernel_Dictionary>>keys": [
       [
         0,
-        159
+        299
       ],
       [
         8,
-        159
+        299
       ],
       [
         10,
-        159
+        299
       ],
       [
         20,
-        159
+        299
       ],
       [
         32,
-        159
+        299
       ],
       [
         44,
-        159
+        299
       ]
     ],
     "Kernel_Dictionary>>values": [
       [
         0,
-        160
+        300
       ],
       [
         8,
-        160
+        300
       ],
       [
         10,
-        160
+        300
       ],
       [
         20,
-        160
+        300
       ],
       [
         32,
-        160
+        300
       ],
       [
         47,
-        160
+        300
       ]
     ],
     "Kernel_Dictionary>>keysAndValuesDo:": [
       [
         0,
-        161
+        301
       ],
       [
         10,
-        161
+        301
       ],
       [
         33,
-        161
+        301
       ]
     ],
     "Kernel_Dictionary>>do:": [
       [
         0,
-        162
+        302
       ],
       [
         10,
-        162
+        302
       ],
       [
         32,
-        162
+        302
       ]
     ],
     "Kernel_Dictionary>>place:value:": [
       [
         0,
-        163
+        303
       ],
       [
         5,
-        163
+        303
       ],
       [
         13,
-        163
+        303
       ],
       [
         24,
-        163
+        303
       ],
       [
         29,
-        163
+        303
       ]
     ],
     "Kernel_Dictionary>>reinsertEntryAt:": [
       [
         0,
-        164
+        304
       ],
       [
         5,
-        164
+        304
       ],
       [
         10,
-        164
+        304
       ],
       [
         15,
-        164
+        304
       ],
       [
         19,
-        164
+        304
       ],
       [
         24,
-        164
+        304
       ]
     ],
     "Kernel_Dictionary>>grow": [
       [
         0,
-        165
+        305
       ],
       [
         2,
-        165
+        305
       ],
       [
         4,
-        165
+        305
       ],
       [
         8,
-        165
+        305
       ],
       [
         18,
-        165
+        305
       ],
       [
         28,
-        165
+        305
       ],
       [
         30,
-        165
+        305
       ],
       [
         38,
-        165
+        305
       ],
       [
         61,
-        165
+        305
       ]
     ],
     "Kernel_Association>>setKey:value:": [
       [
         0,
-        170
+        310
       ],
       [
         2,
-        170
+        310
       ],
       [
         4,
-        170
+        310
       ]
     ],
     "Kernel_Association>>key": [
       [
         0,
-        171
+        311
       ]
     ],
     "Kernel_Association>>value": [
       [
         0,
-        172
+        312
       ]
     ],
     "Kernel_Association>>printString": [
       [
         0,
-        173
+        313
       ]
     ],
     "Meta_Kernel_Association>>key:value:": [
       [
         0,
-        175
+        315
       ]
     ],
     "Kernel_List>>size": [
       [
         0,
-        187
+        327
       ]
     ],
     "Kernel_List>>at:": [
       [
         0,
-        188
+        328
       ],
       [
         14,
-        188
+        328
       ],
       [
         21,
-        188
+        328
       ]
     ],
     "Kernel_List>>at:ifAbsent:": [
       [
         0,
-        189
+        329
       ],
       [
         14,
-        189
+        329
       ],
       [
         20,
-        189
+        329
       ]
     ],
     "Kernel_List>>do:": [
       [
         0,
-        190
+        330
       ],
       [
         4,
-        190
+        330
       ]
     ],
     "Kernel_List>>inject:into:": [
       [
         2,
-        191
+        331
       ],
       [
         4,
-        191
+        331
       ],
       [
         8,
-        191
+        331
       ]
     ],
     "Kernel_List>>anySatisfy:": [
       [
         2,
-        192
+        332
       ],
       [
         4,
-        192
+        332
       ],
       [
         8,
-        192
+        332
       ]
     ],
     "Kernel_List>>isList": [
       [
         0,
-        193
+        333
       ]
     ],
     "Kernel_List>>isValue": [
       [
         0,
-        194
+        334
       ]
     ],
     "Kernel_List>>valueRank": [
       [
         0,
-        195
+        335
       ]
     ],
     "Kernel_List>>valueDepth": [
       [
         0,
-        196
+        336
       ]
     ],
     "Kernel_List>>=": [
       [
         0,
-        207
+        347
       ],
       [
         7,
-        207
+        347
       ],
       [
         9,
-        208
+        348
       ]
     ],
     "Kernel_List>>hash": [
       [
         0,
-        210
+        350
       ]
     ],
     "Kernel_List>>setItems:": [
       [
         0,
-        213
+        353
       ],
       [
         2,
-        214
+        354
       ],
       [
         13,
-        215
+        355
       ],
       [
         18,
-        216
+        356
       ],
       [
         22,
-        217
+        357
       ],
       [
         39,
-        219
+        359
       ],
       [
         41,
-        220
+        360
       ],
       [
         48,
-        221
+        361
       ]
     ],
     "Meta_Kernel_List>>with:": [
       [
         0,
-        223
+        363
       ],
       [
         8,
-        223
+        363
       ],
       [
         13,
-        223
+        363
       ]
     ],
     "Meta_Kernel_List>>with:with:": [
       [
         0,
-        224
+        364
       ],
       [
         8,
-        224
+        364
       ],
       [
         13,
-        224
+        364
       ],
       [
         18,
-        224
+        364
       ]
     ],
     "Meta_Kernel_List>>with:with:with:": [
       [
         0,
-        225
+        365
       ],
       [
         8,
-        225
+        365
       ],
       [
         13,
-        225
+        365
       ],
       [
         18,
-        225
+        365
       ],
       [
         23,
-        225
+        365
       ]
     ],
     "Meta_Kernel_List>>with:with:with:with:": [
       [
         0,
-        226
+        366
       ],
       [
         8,
-        226
+        366
       ],
       [
         13,
-        226
+        366
       ],
       [
         18,
-        226
+        366
       ],
       [
         23,
-        226
+        366
       ],
       [
         28,
-        226
+        366
       ]
     ],
     "Meta_Kernel_List>>fromCollection:": [
       [
         1,
-        228
+        368
       ],
       [
         5,
-        229
+        369
       ],
       [
         13,
-        230
+        370
       ],
       [
         15,
-        231
+        371
       ],
       [
         19,
-        232
+        372
       ]
     ],
     "Kernel_Map>>size": [
       [
         0,
-        248
+        388
       ]
     ],
     "Kernel_Map>>at:ifAbsent:": [
       [
         0,
-        250
+        390
       ],
       [
         2,
-        250
+        390
       ],
       [
         6,
-        251
+        391
       ],
       [
         11,
-        252
+        392
       ],
       [
         18,
-        253
+        393
       ],
       [
         27,
-        254
+        394
       ],
       [
         32,
-        254
+        394
       ],
       [
         55,
-        256
+        396
       ]
     ],
     "Kernel_Map>>keysDo:": [
       [
         0,
-        257
+        397
       ],
       [
         4,
-        257
+        397
       ]
     ],
     "Kernel_Map>>do:": [
       [
         0,
-        258
+        398
       ],
       [
         4,
-        258
+        398
       ]
     ],
     "Kernel_Map>>keysAndValuesDo:": [
       [
         0,
-        259
+        399
       ],
       [
         23,
-        259
+        399
       ]
     ],
     "Kernel_Map>>keyAt:": [
       [
         0,
-        267
+        407
       ]
     ],
     "Kernel_Map>>valueAt:": [
       [
         0,
-        268
+        408
       ]
     ],
     "Kernel_Map>>isMap": [
       [
         0,
-        269
+        409
       ]
     ],
     "Kernel_Map>>isValue": [
       [
         0,
-        270
+        410
       ]
     ],
     "Kernel_Map>>valueRank": [
       [
         0,
-        271
+        411
       ]
     ],
     "Kernel_Map>>valueDepth": [
       [
         0,
-        272
+        412
       ]
     ],
     "Kernel_Map>>=": [
       [
         0,
-        278
+        418
       ],
       [
         7,
-        278
+        418
       ],
       [
         9,
-        279
+        419
       ]
     ],
     "Kernel_Map>>hash": [
       [
         0,
-        281
+        421
       ]
     ],
     "Kernel_Map>>setPairs:values:": [
       [
         0,
-        294
+        434
       ],
       [
         4,
-        295
+        435
       ],
       [
         11,
-        295
+        435
       ],
       [
         28,
-        296
+        436
       ],
       [
         35,
-        297
+        437
       ],
       [
         40,
-        297
+        437
       ],
       [
         45,
-        298
+        438
       ],
       [
         49,
-        299
+        439
       ],
       [
         68,
-        300
+        440
       ],
       [
         78,
-        301
+        441
       ],
       [
         94,
-        303
+        443
       ],
       [
         111,
-        305
+        445
       ],
       [
         113,
-        305
+        445
       ],
       [
         115,
-        306
+        446
       ],
       [
         120,
-        307
+        447
       ],
       [
         125,
-        307
+        447
       ],
       [
         130,
-        307
+        447
       ],
       [
         134,
-        308
+        448
       ],
       [
         153,
-        309
+        449
       ],
       [
         164,
-        310
+        450
       ],
       [
         168,
-        311
+        451
       ],
       [
         173,
-        312
+        452
       ],
       [
         182,
-        314
+        454
       ],
       [
         190,
-        315
+        455
       ],
       [
         198,
-        316
+        456
       ],
       [
         205,
-        316
+        456
       ],
       [
         224,
-        317
+        457
       ],
       [
         226,
-        318
+        458
       ],
       [
         233,
-        319
+        459
       ],
       [
         241,
-        319
+        459
       ],
       [
         250,
-        320
+        460
       ],
       [
         270,
-        321
+        461
       ],
       [
         277,
-        322
+        462
       ]
     ],
     "Meta_Kernel_Map>>with:": [
       [
         0,
-        325
+        465
       ],
       [
         8,
-        325
+        465
       ],
       [
         16,
-        326
+        466
       ],
       [
         23,
-        326
+        466
       ],
       [
         30,
-        327
+        467
       ]
     ],
     "Meta_Kernel_Map>>with:with:": [
       [
         0,
-        329
+        469
       ],
       [
         8,
-        329
+        469
       ],
       [
         16,
-        330
+        470
       ],
       [
         23,
-        330
+        470
       ],
       [
         30,
-        331
+        471
       ],
       [
         37,
-        331
+        471
       ],
       [
         44,
-        332
+        472
       ]
     ],
     "Meta_Kernel_Map>>with:with:with:": [
       [
         0,
-        334
-      ],
-      [
-        8,
-        334
-      ],
-      [
-        16,
-        335
-      ],
-      [
-        23,
-        335
-      ],
-      [
-        30,
-        336
-      ],
-      [
-        37,
-        336
-      ],
-      [
-        44,
-        337
-      ],
-      [
-        51,
-        337
-      ],
-      [
-        58,
-        338
-      ]
-    ],
-    "Meta_Kernel_Map>>with:with:with:with:": [
-      [
-        0,
-        340
-      ],
-      [
-        8,
-        340
-      ],
-      [
-        16,
-        341
-      ],
-      [
-        23,
-        341
-      ],
-      [
-        30,
-        342
-      ],
-      [
-        37,
-        342
-      ],
-      [
-        44,
-        343
-      ],
-      [
-        51,
-        343
-      ],
-      [
-        58,
-        344
-      ],
-      [
-        65,
-        344
-      ],
-      [
-        72,
-        345
-      ]
-    ],
-    "Meta_Kernel_Map>>fromPairs:": [
-      [
-        0,
-        352
-      ],
-      [
-        4,
-        353
-      ],
-      [
-        12,
-        354
-      ],
-      [
-        20,
-        355
-      ],
-      [
-        28,
-        356
-      ],
-      [
-        37,
-        358
-      ],
-      [
-        54,
-        359
-      ],
-      [
-        71,
-        360
-      ]
-    ],
-    "Kernel_Record>>tag": [
-      [
-        0,
-        376
-      ]
-    ],
-    "Kernel_Record>>fields": [
-      [
-        0,
-        377
-      ]
-    ],
-    "Kernel_Record>>at:ifAbsent:": [
-      [
-        0,
-        378
-      ]
-    ],
-    "Kernel_Record>>isRecord": [
-      [
-        0,
-        379
-      ]
-    ],
-    "Kernel_Record>>isValue": [
-      [
-        0,
-        380
-      ]
-    ],
-    "Kernel_Record>>valueRank": [
-      [
-        0,
-        381
-      ]
-    ],
-    "Kernel_Record>>valueDepth": [
-      [
-        0,
-        382
-      ]
-    ],
-    "Kernel_Record>>=": [
-      [
-        0,
-        389
-      ],
-      [
-        7,
-        389
-      ],
-      [
-        9,
-        390
-      ]
-    ],
-    "Kernel_Record>>hash": [
-      [
-        0,
-        392
-      ]
-    ],
-    "Kernel_Record>>setTag:fields:": [
-      [
-        0,
-        394
-      ],
-      [
-        6,
-        394
-      ],
-      [
-        11,
-        395
-      ],
-      [
-        17,
-        395
-      ],
-      [
-        22,
-        396
-      ],
-      [
-        24,
-        397
-      ],
-      [
-        26,
-        398
-      ],
-      [
-        35,
-        399
-      ]
-    ],
-    "Meta_Kernel_Record>>tag:fields:": [
-      [
-        0,
-        401
-      ]
-    ],
-    "Meta_Kernel_Record>>tag:with:": [
-      [
-        0,
-        402
-      ]
-    ],
-    "Meta_Kernel_Record>>tag:with:with:": [
-      [
-        0,
-        403
-      ]
-    ],
-    "Meta_Kernel_Record>>tag:with:with:with:": [
-      [
-        0,
-        404
-      ]
-    ],
-    "Meta_Kernel_Record>>tag:with:with:with:with:": [
-      [
-        0,
-        405
-      ]
-    ],
-    "Kernel_BytesReadProtocol>>u16At:": [
-      [
-        0,
-        412
-      ]
-    ],
-    "Kernel_BytesReadProtocol>>u16BeAt:": [
-      [
-        0,
-        413
-      ]
-    ],
-    "Kernel_ByteArray>>byteSize": [
-      [
-        0,
-        422
-      ]
-    ],
-    "Kernel_ByteArray>>u8At:": [
-      [
-        0,
-        423
-      ]
-    ],
-    "Kernel_ByteArray>>u8At:put:": [
-      [
-        0,
-        424
-      ],
-      [
-        5,
-        424
-      ]
-    ],
-    "Kernel_ByteArray>>u16At:put:": [
-      [
-        0,
-        425
-      ],
-      [
-        8,
-        425
-      ],
-      [
-        21,
-        425
-      ]
-    ],
-    "Kernel_ByteArray>>u16BeAt:put:": [
-      [
-        0,
-        426
-      ],
-      [
-        11,
-        426
-      ],
-      [
-        21,
-        426
-      ]
-    ],
-    "Kernel_ByteArray>>freeze": [
-      [
-        0,
-        427
-      ]
-    ],
-    "Kernel_ByteArray>>setRaw:": [
-      [
-        0,
-        428
-      ],
-      [
-        2,
-        428
-      ]
-    ],
-    "Meta_Kernel_ByteArray>>new:": [
-      [
-        0,
-        430
-      ]
-    ],
-    "Meta_Kernel_ByteArray>>fromList:": [
-      [
-        0,
-        431
-      ],
-      [
-        7,
-        431
-      ],
-      [
-        27,
-        431
-      ]
-    ],
-    "Kernel_Bytes>>byteSize": [
-      [
-        0,
-        441
-      ]
-    ],
-    "Kernel_Bytes>>u8At:": [
-      [
-        0,
-        442
-      ]
-    ],
-    "Kernel_Bytes>>freeze": [
-      [
-        0,
-        443
-      ]
-    ],
-    "Kernel_Bytes>>asByteArray": [
-      [
-        0,
-        444
-      ],
-      [
-        8,
-        444
-      ],
-      [
-        28,
-        444
-      ]
-    ],
-    "Kernel_Bytes>>isBytes": [
-      [
-        0,
-        445
-      ]
-    ],
-    "Kernel_Bytes>>isValue": [
-      [
-        0,
-        446
-      ]
-    ],
-    "Kernel_Bytes>>valueRank": [
-      [
-        0,
-        447
-      ]
-    ],
-    "Kernel_Bytes>>valueDepth": [
-      [
-        0,
-        448
-      ]
-    ],
-    "Kernel_Bytes>>=": [
-      [
-        0,
-        449
-      ],
-      [
-        7,
-        449
-      ],
-      [
-        9,
-        449
-      ]
-    ],
-    "Kernel_Bytes>>hash": [
-      [
-        0,
-        450
-      ]
-    ],
-    "Kernel_Bytes>>setRaw:": [
-      [
-        0,
-        451
-      ],
-      [
-        2,
-        451
-      ]
-    ],
-    "Meta_Kernel_Bytes>>overRaw:": [
-      [
-        0,
-        453
-      ]
-    ],
-    "Kernel_ReadStream>>next": [
-      [
-        0,
-        460
-      ],
-      [
-        4,
-        460
-      ],
-      [
-        11,
-        460
-      ],
-      [
-        15,
-        460
-      ]
-    ],
-    "Kernel_ReadStream>>peek": [
-      [
-        0,
-        461
-      ],
-      [
-        4,
-        461
-      ],
-      [
-        11,
-        461
-      ]
-    ],
-    "Kernel_ReadStream>>atEnd": [
-      [
-        0,
-        462
-      ]
-    ],
-    "Kernel_ReadStream>>skip:": [
-      [
-        0,
-        463
-      ],
-      [
-        4,
-        463
-      ]
-    ],
-    "Kernel_ReadStream>>position": [
-      [
-        0,
-        464
-      ]
-    ],
-    "Kernel_ReadStream>>reset": [
-      [
-        0,
-        465
-      ],
-      [
-        2,
-        465
-      ]
-    ],
-    "Kernel_ReadStream>>next:": [
-      [
-        0,
-        467
-      ],
-      [
-        9,
-        467
-      ],
-      [
-        16,
-        468
-      ],
-      [
-        24,
-        469
-      ],
-      [
-        44,
-        470
-      ],
-      [
-        48,
-        471
-      ]
-    ],
-    "Kernel_ReadStream>>upTo:": [
-      [
-        0,
-        473
-      ],
-      [
-        4,
-        473
+        474
       ],
       [
         8,
         474
       ],
       [
-        15,
+        16,
         475
       ],
       [
-        20,
+        23,
+        475
+      ],
+      [
+        30,
         476
       ],
       [
-        24,
+        37,
+        476
+      ],
+      [
+        44,
         477
       ],
       [
-        29,
+        51,
         477
       ],
       [
-        45,
-        479
+        58,
+        478
       ]
     ],
-    "Kernel_ReadStream>>nextLine": [
+    "Meta_Kernel_Map>>with:with:with:with:": [
       [
         0,
+        480
+      ],
+      [
+        8,
+        480
+      ],
+      [
+        16,
         481
-      ],
-      [
-        4,
-        481
-      ],
-      [
-        8,
-        482
-      ],
-      [
-        13,
-        483
-      ],
-      [
-        17,
-        484
-      ],
-      [
-        32,
-        484
-      ],
-      [
-        42,
-        485
-      ]
-    ],
-    "Kernel_ReadStream>>upToEnd": [
-      [
-        0,
-        487
-      ],
-      [
-        4,
-        487
-      ],
-      [
-        8,
-        488
-      ],
-      [
-        15,
-        489
-      ],
-      [
-        28,
-        490
-      ]
-    ],
-    "Kernel_ReadStream>>do:": [
-      [
-        0,
-        491
-      ],
-      [
-        13,
-        491
-      ]
-    ],
-    "Kernel_ReadStream>>prefixOf:upTo:": [
-      [
-        0,
-        492
-      ],
-      [
-        8,
-        492
-      ],
-      [
-        26,
-        492
-      ]
-    ],
-    "Kernel_ReadStream>>setSource:": [
-      [
-        0,
-        493
-      ],
-      [
-        2,
-        493
-      ],
-      [
-        4,
-        493
-      ]
-    ],
-    "Meta_Kernel_ReadStream>>on:": [
-      [
-        0,
-        495
-      ]
-    ],
-    "Kernel_WriteStream>>nextPut:": [
-      [
-        0,
-        501
-      ],
-      [
-        12,
-        501
-      ],
-      [
-        19,
-        501
       ],
       [
         23,
-        501
-      ]
-    ],
-    "Kernel_WriteStream>>nextPutAll:": [
-      [
-        0,
-        502
+        481
       ],
       [
-        19,
-        502
-      ]
-    ],
-    "Kernel_WriteStream>>print:": [
-      [
-        0,
-        503
-      ]
-    ],
-    "Kernel_WriteStream>>nextPutLine:": [
-      [
-        0,
-        504
+        30,
+        482
       ],
       [
-        4,
-        504
+        37,
+        482
       ],
       [
-        8,
-        504
-      ]
-    ],
-    "Kernel_WriteStream>>contents": [
-      [
-        0,
-        505
-      ]
-    ],
-    "Kernel_WriteStream>>size": [
-      [
-        0,
-        506
-      ]
-    ],
-    "Kernel_WriteStream>>reset": [
-      [
-        0,
-        507
+        44,
+        483
       ],
       [
-        7,
-        507
-      ]
-    ],
-    "Kernel_Serial>>setPort:": [
-      [
-        0,
-        515
+        51,
+        483
       ],
       [
-        2,
-        515
+        58,
+        484
+      ],
+      [
+        65,
+        484
+      ],
+      [
+        72,
+        485
       ]
     ],
-    "Kernel_Serial>>writeByte:": [
+    "Meta_Kernel_Map>>fromPairs:": [
       [
         0,
-        516
+        492
       ],
       [
         4,
+        493
+      ],
+      [
+        12,
+        494
+      ],
+      [
+        20,
+        495
+      ],
+      [
+        28,
+        496
+      ],
+      [
+        37,
+        498
+      ],
+      [
+        54,
+        499
+      ],
+      [
+        71,
+        500
+      ]
+    ],
+    "Kernel_Record>>tag": [
+      [
+        0,
         516
       ]
     ],
-    "Kernel_Serial>>write:": [
+    "Kernel_Record>>fields": [
       [
         0,
         517
-      ],
-      [
-        19,
-        517
       ]
     ],
-    "Kernel_Serial>>atEnd": [
+    "Kernel_Record>>at:ifAbsent:": [
       [
         0,
         518
       ]
     ],
-    "Kernel_Serial>>readByte": [
+    "Kernel_Record>>isRecord": [
       [
         0,
         519
+      ]
+    ],
+    "Kernel_Record>>isValue": [
+      [
+        0,
+        520
+      ]
+    ],
+    "Kernel_Record>>valueRank": [
+      [
+        0,
+        521
+      ]
+    ],
+    "Kernel_Record>>valueDepth": [
+      [
+        0,
+        522
+      ]
+    ],
+    "Kernel_Record>>=": [
+      [
+        0,
+        529
       ],
       [
-        4,
-        519
+        7,
+        529
+      ],
+      [
+        9,
+        530
+      ]
+    ],
+    "Kernel_Record>>hash": [
+      [
+        0,
+        532
+      ]
+    ],
+    "Kernel_Record>>setTag:fields:": [
+      [
+        0,
+        534
+      ],
+      [
+        6,
+        534
+      ],
+      [
+        11,
+        535
+      ],
+      [
+        17,
+        535
+      ],
+      [
+        22,
+        536
+      ],
+      [
+        24,
+        537
+      ],
+      [
+        26,
+        538
+      ],
+      [
+        35,
+        539
+      ]
+    ],
+    "Meta_Kernel_Record>>tag:fields:": [
+      [
+        0,
+        541
+      ]
+    ],
+    "Meta_Kernel_Record>>tag:with:": [
+      [
+        0,
+        542
+      ]
+    ],
+    "Meta_Kernel_Record>>tag:with:with:": [
+      [
+        0,
+        543
+      ]
+    ],
+    "Meta_Kernel_Record>>tag:with:with:with:": [
+      [
+        0,
+        544
+      ]
+    ],
+    "Meta_Kernel_Record>>tag:with:with:with:with:": [
+      [
+        0,
+        545
+      ]
+    ],
+    "Kernel_BytesReadProtocol>>u16At:": [
+      [
+        0,
+        552
+      ]
+    ],
+    "Kernel_BytesReadProtocol>>u16BeAt:": [
+      [
+        0,
+        553
+      ]
+    ],
+    "Kernel_ByteArray>>byteSize": [
+      [
+        0,
+        562
+      ]
+    ],
+    "Kernel_ByteArray>>u8At:": [
+      [
+        0,
+        563
+      ]
+    ],
+    "Kernel_ByteArray>>u8At:put:": [
+      [
+        0,
+        564
+      ],
+      [
+        5,
+        564
+      ]
+    ],
+    "Kernel_ByteArray>>u16At:put:": [
+      [
+        0,
+        565
       ],
       [
         8,
-        519
+        565
+      ],
+      [
+        21,
+        565
+      ]
+    ],
+    "Kernel_ByteArray>>u16BeAt:put:": [
+      [
+        0,
+        566
+      ],
+      [
+        11,
+        566
+      ],
+      [
+        21,
+        566
+      ]
+    ],
+    "Kernel_ByteArray>>freeze": [
+      [
+        0,
+        567
+      ]
+    ],
+    "Kernel_ByteArray>>setRaw:": [
+      [
+        0,
+        568
+      ],
+      [
+        2,
+        568
+      ]
+    ],
+    "Meta_Kernel_ByteArray>>new:": [
+      [
+        0,
+        570
+      ]
+    ],
+    "Meta_Kernel_ByteArray>>fromList:": [
+      [
+        0,
+        571
+      ],
+      [
+        7,
+        571
+      ],
+      [
+        27,
+        571
+      ]
+    ],
+    "Meta_Kernel_ByteArray>>fromHex:": [
+      [
+        0,
+        580
+      ],
+      [
+        4,
+        581
+      ],
+      [
+        16,
+        581
+      ],
+      [
+        23,
+        582
+      ],
+      [
+        28,
+        583
+      ],
+      [
+        33,
+        584
+      ],
+      [
+        70,
+        587
+      ]
+    ],
+    "Meta_Kernel_ByteArray>>hexDigit:": [
+      [
+        0,
+        591
+      ],
+      [
+        12,
+        591
+      ],
+      [
+        18,
+        592
+      ],
+      [
+        30,
+        592
+      ],
+      [
+        36,
+        593
+      ],
+      [
+        48,
+        593
+      ],
+      [
+        54,
+        594
+      ]
+    ],
+    "Kernel_Bytes>>byteSize": [
+      [
+        0,
+        604
+      ]
+    ],
+    "Kernel_Bytes>>u8At:": [
+      [
+        0,
+        605
+      ]
+    ],
+    "Kernel_Bytes>>freeze": [
+      [
+        0,
+        606
+      ]
+    ],
+    "Kernel_Bytes>>asByteArray": [
+      [
+        0,
+        607
+      ],
+      [
+        8,
+        607
+      ],
+      [
+        28,
+        607
+      ]
+    ],
+    "Kernel_Bytes>>isBytes": [
+      [
+        0,
+        608
+      ]
+    ],
+    "Kernel_Bytes>>isValue": [
+      [
+        0,
+        609
+      ]
+    ],
+    "Kernel_Bytes>>valueRank": [
+      [
+        0,
+        610
+      ]
+    ],
+    "Kernel_Bytes>>valueDepth": [
+      [
+        0,
+        611
+      ]
+    ],
+    "Kernel_Bytes>>=": [
+      [
+        0,
+        612
+      ],
+      [
+        7,
+        612
+      ],
+      [
+        9,
+        612
+      ]
+    ],
+    "Kernel_Bytes>>hash": [
+      [
+        0,
+        613
+      ]
+    ],
+    "Kernel_Bytes>>printHex": [
+      [
+        0,
+        619
+      ],
+      [
+        4,
+        620
+      ],
+      [
+        14,
+        621
+      ],
+      [
+        16,
+        622
+      ],
+      [
+        23,
+        623
+      ],
+      [
+        28,
+        624
+      ],
+      [
+        36,
+        625
+      ],
+      [
+        41,
+        626
+      ],
+      [
+        45,
+        626
+      ],
+      [
+        61,
+        627
+      ],
+      [
+        84,
+        628
+      ]
+    ],
+    "Kernel_Bytes>>setRaw:": [
+      [
+        0,
+        629
+      ],
+      [
+        2,
+        629
+      ]
+    ],
+    "Kernel_Bytes>>rawLeaf": [
+      [
+        0,
+        638
+      ]
+    ],
+    "Meta_Kernel_Bytes>>overRaw:": [
+      [
+        0,
+        640
+      ]
+    ],
+    "Kernel_ByteBuilder>>size": [
+      [
+        0,
+        674
+      ]
+    ],
+    "Kernel_ByteBuilder>>at:": [
+      [
+        0,
+        675
+      ]
+    ],
+    "Kernel_ByteBuilder>>add:": [
+      [
+        0,
+        677
+      ],
+      [
+        12,
+        678
+      ],
+      [
+        16,
+        679
+      ],
+      [
+        21,
+        680
+      ]
+    ],
+    "Kernel_ByteBuilder>>do:": [
+      [
+        0,
+        681
+      ],
+      [
+        17,
+        681
+      ]
+    ],
+    "Kernel_ByteBuilder>>grow": [
+      [
+        0,
+        683
+      ],
+      [
+        10,
+        684
+      ],
+      [
+        28,
+        685
+      ],
+      [
+        30,
+        686
+      ]
+    ],
+    "Kernel_ByteBuilder>>frozenBytes": [
+      [
+        0,
+        693
+      ],
+      [
+        6,
+        694
+      ],
+      [
+        24,
+        695
+      ]
+    ],
+    "Kernel_Cbor>>encode:": [
+      [
+        0,
+        721
+      ],
+      [
+        7,
+        722
+      ],
+      [
+        13,
+        723
+      ]
+    ],
+    "Kernel_Cbor>>encode:into:depth:": [
+      [
+        0,
+        726
+      ],
+      [
+        5,
+        726
+      ],
+      [
+        12,
+        727
+      ],
+      [
+        17,
+        727
+      ],
+      [
+        21,
+        727
+      ],
+      [
+        25,
+        728
+      ],
+      [
+        30,
+        728
+      ],
+      [
+        34,
+        728
+      ],
+      [
+        38,
+        729
+      ],
+      [
+        43,
+        729
+      ],
+      [
+        47,
+        729
+      ],
+      [
+        51,
+        730
+      ],
+      [
+        56,
+        731
+      ],
+      [
+        61,
+        731
+      ],
+      [
+        73,
+        732
+      ],
+      [
+        78,
+        732
+      ],
+      [
+        90,
+        733
+      ],
+      [
+        95,
+        733
+      ],
+      [
+        103,
+        734
+      ],
+      [
+        108,
+        734
+      ],
+      [
+        116,
+        735
+      ],
+      [
+        121,
+        735
+      ],
+      [
+        129,
+        736
+      ],
+      [
+        134,
+        736
+      ],
+      [
+        143,
+        737
+      ],
+      [
+        148,
+        737
+      ],
+      [
+        157,
+        738
+      ],
+      [
+        162,
+        738
+      ],
+      [
+        171,
+        739
+      ]
+    ],
+    "Kernel_Cbor>>emitHead:len:into:": [
+      [
+        0,
+        745
+      ],
+      [
+        4,
+        746
+      ],
+      [
+        9,
+        746
+      ],
+      [
+        15,
+        746
+      ],
+      [
+        19,
+        747
+      ],
+      [
+        24,
+        747
+      ],
+      [
+        30,
+        747
+      ],
+      [
+        34,
+        747
+      ],
+      [
+        38,
+        748
+      ],
+      [
+        43,
+        748
+      ],
+      [
+        49,
+        749
+      ],
+      [
+        59,
+        749
+      ],
+      [
+        66,
+        749
+      ],
+      [
+        70,
+        750
+      ],
+      [
+        75,
+        750
+      ],
+      [
+        81,
+        751
+      ],
+      [
+        91,
+        751
+      ],
+      [
+        101,
+        752
+      ],
+      [
+        111,
+        752
+      ],
+      [
+        118,
+        752
+      ],
+      [
+        122,
+        753
+      ],
+      [
+        128,
+        754
+      ],
+      [
+        138,
+        754
+      ],
+      [
+        148,
+        755
+      ],
+      [
+        158,
+        755
+      ],
+      [
+        168,
+        756
+      ],
+      [
+        178,
+        756
+      ],
+      [
+        188,
+        757
+      ],
+      [
+        198,
+        757
+      ],
+      [
+        205,
+        758
+      ]
+    ],
+    "Kernel_Cbor>>appendFrag:into:": [
+      [
+        0,
+        762
+      ],
+      [
+        19,
+        762
+      ]
+    ],
+    "Kernel_Cbor>>encodeString:into:": [
+      [
+        0,
+        765
+      ],
+      [
+        4,
+        766
+      ],
+      [
+        10,
+        767
+      ],
+      [
+        27,
+        768
+      ]
+    ],
+    "Kernel_Cbor>>encodeBytes:into:": [
+      [
+        0,
+        771
+      ],
+      [
+        4,
+        772
+      ],
+      [
+        10,
+        773
+      ],
+      [
+        27,
+        774
+      ]
+    ],
+    "Kernel_Cbor>>encodeSymbol:into:": [
+      [
+        0,
+        780
+      ],
+      [
+        6,
+        781
+      ],
+      [
+        10,
+        782
+      ],
+      [
+        16,
+        783
+      ],
+      [
+        22,
+        784
+      ],
+      [
+        41,
+        785
+      ]
+    ],
+    "Kernel_Cbor>>encodeList:into:depth:": [
+      [
+        3,
+        788
+      ],
+      [
+        11,
+        789
+      ],
+      [
+        15,
+        790
+      ]
+    ],
+    "Kernel_Cbor>>encodeMap:into:depth:": [
+      [
+        2,
+        817
+      ],
+      [
+        9,
+        818
+      ],
+      [
+        16,
+        819
+      ],
+      [
+        20,
+        821
+      ],
+      [
+        24,
+        822
+      ],
+      [
+        29,
+        823
+      ],
+      [
+        35,
+        824
+      ],
+      [
+        42,
+        825
+      ],
+      [
+        64,
+        827
+      ]
+    ],
+    "Kernel_Cbor>>encodeEntry:value:keys:vals:depth:": [
+      [
+        0,
+        833
+      ],
+      [
+        7,
+        834
+      ],
+      [
+        15,
+        835
+      ],
+      [
+        19,
+        836
+      ],
+      [
+        23,
+        837
+      ]
+    ],
+    "Kernel_Cbor>>encodeRecord:into:depth:": [
+      [
+        0,
+        842
+      ],
+      [
+        6,
+        843
+      ],
+      [
+        12,
+        844
+      ],
+      [
+        22,
+        845
+      ],
+      [
+        32,
+        846
+      ]
+    ],
+    "Kernel_Cbor>>appendColl:into:": [
+      [
+        2,
+        848
+      ],
+      [
+        6,
+        848
+      ]
+    ],
+    "Kernel_Cbor>>sortPairsBytewise:vals:": [
+      [
+        0,
+        855
+      ],
+      [
+        4,
+        856
+      ],
+      [
+        11,
+        857
+      ],
+      [
+        16,
+        857
+      ],
+      [
+        21,
+        858
+      ],
+      [
+        25,
+        859
+      ],
+      [
+        44,
+        860
+      ],
+      [
+        54,
+        861
+      ],
+      [
+        70,
+        863
+      ],
+      [
+        87,
+        865
+      ]
+    ],
+    "Kernel_Cbor>>compareBytes:with:": [
+      [
+        0,
+        870
+      ],
+      [
+        4,
+        870
+      ],
+      [
+        8,
+        870
+      ],
+      [
+        17,
+        871
+      ],
+      [
+        24,
+        872
+      ],
+      [
+        29,
+        872
+      ],
+      [
+        34,
+        873
+      ],
+      [
+        39,
+        873
+      ],
+      [
+        48,
+        874
+      ],
+      [
+        55,
+        875
+      ],
+      [
+        60,
+        875
+      ],
+      [
+        64,
+        875
+      ],
+      [
+        69,
+        875
+      ],
+      [
+        73,
+        875
+      ]
+    ],
+    "Kernel_Cbor>>decode:ifInvalid:": [
+      [
+        2,
+        906
+      ],
+      [
+        6,
+        907
+      ],
+      [
+        12,
+        908
+      ]
+    ],
+    "Kernel_Cbor>>rawBytesOf:size:": [
+      [
+        0,
+        918
+      ],
+      [
+        8,
+        919
+      ],
+      [
+        26,
+        920
+      ]
+    ],
+    "Kernel_Cbor>>failDecode:": [
+      [
+        0,
+        922
+      ]
+    ],
+    "Kernel_Cbor>>result:next:": [
+      [
+        0,
+        932
+      ],
+      [
+        8,
+        933
+      ],
+      [
+        13,
+        933
+      ],
+      [
+        18,
+        933
+      ]
+    ],
+    "Kernel_Cbor>>parse:at:depth:": [
+      [
+        0,
+        940
+      ],
+      [
+        5,
+        940
+      ],
+      [
+        12,
+        941
+      ],
+      [
+        19,
+        941
+      ],
+      [
+        26,
+        942
+      ],
+      [
+        33,
+        943
+      ],
+      [
+        38,
+        943
+      ],
+      [
+        48,
+        944
+      ],
+      [
+        53,
+        944
+      ],
+      [
+        63,
+        945
+      ],
+      [
+        68,
+        945
+      ],
+      [
+        78,
+        946
+      ],
+      [
+        83,
+        946
+      ],
+      [
+        90,
+        947
+      ],
+      [
+        109,
+        948
+      ],
+      [
+        117,
+        949
+      ],
+      [
+        124,
+        950
+      ],
+      [
+        129,
+        950
+      ],
+      [
+        136,
+        951
+      ],
+      [
+        141,
+        951
+      ],
+      [
+        146,
+        951
+      ],
+      [
+        151,
+        952
+      ],
+      [
+        156,
+        952
+      ],
+      [
+        168,
+        953
+      ],
+      [
+        173,
+        953
+      ],
+      [
+        185,
+        954
+      ],
+      [
+        190,
+        954
+      ],
+      [
+        199,
+        955
+      ],
+      [
+        204,
+        955
+      ],
+      [
+        213,
+        956
+      ],
+      [
+        218,
+        956
+      ],
+      [
+        228,
+        957
+      ],
+      [
+        233,
+        957
+      ],
+      [
+        243,
+        958
+      ],
+      [
+        248,
+        958
+      ],
+      [
+        258,
+        959
+      ]
+    ],
+    "Kernel_Cbor>>intFrom:arg:": [
+      [
+        0,
+        962
+      ],
+      [
+        7,
+        963
+      ],
+      [
+        12,
+        963
+      ],
+      [
+        19,
+        964
+      ]
+    ],
+    "Kernel_Cbor>>floatFrom:at:": [
+      [
+        0,
+        975
+      ],
+      [
+        7,
+        976
+      ],
+      [
+        12,
+        976
+      ],
+      [
+        19,
+        977
+      ],
+      [
+        24,
+        978
+      ],
+      [
+        35,
+        978
+      ],
+      [
+        40,
+        979
+      ]
+    ],
+    "Kernel_Cbor>>bytesFrom:at:len:": [
+      [
+        0,
+        985
+      ],
+      [
+        4,
+        986
+      ],
+      [
+        11,
+        986
+      ],
+      [
+        18,
+        987
+      ],
+      [
+        24,
+        988
+      ],
+      [
+        44,
+        989
+      ]
+    ],
+    "Kernel_Cbor>>stringFrom:at:len:": [
+      [
+        0,
+        993
+      ],
+      [
+        4,
+        994
+      ],
+      [
+        11,
+        994
+      ],
+      [
+        18,
+        995
+      ],
+      [
+        26,
+        996
+      ],
+      [
+        46,
+        997
+      ],
+      [
+        52,
+        998
+      ],
+      [
+        60,
+        998
+      ],
+      [
+        65,
+        999
+      ]
+    ],
+    "Kernel_Cbor>>listFrom:at:count:depth:": [
+      [
+        0,
+        1005
+      ],
+      [
+        7,
+        1006
+      ],
+      [
+        9,
+        1007
+      ],
+      [
+        16,
+        1008
+      ],
+      [
+        25,
+        1009
+      ],
+      [
+        40,
+        1011
+      ]
+    ],
+    "Kernel_Cbor>>mapFrom:at:count:depth:": [
+      [
+        0,
+        1018
+      ],
+      [
+        7,
+        1019
+      ],
+      [
+        14,
+        1020
+      ],
+      [
+        16,
+        1021
+      ],
+      [
+        23,
+        1022
+      ],
+      [
+        32,
+        1023
+      ],
+      [
+        37,
+        1023
+      ],
+      [
+        42,
+        1024
+      ],
+      [
+        47,
+        1025
+      ],
+      [
+        56,
+        1026
+      ],
+      [
+        61,
+        1026
+      ],
+      [
+        66,
+        1027
+      ],
+      [
+        77,
+        1028
+      ],
+      [
+        84,
+        1029
+      ],
+      [
+        111,
+        1030
+      ]
+    ],
+    "Kernel_Cbor>>checkNoDupKey:in:": [
+      [
+        0,
+        1035
+      ],
+      [
+        2,
+        1036
+      ],
+      [
+        32,
+        1037
+      ],
+      [
+        34,
+        1037
+      ],
+      [
+        41,
+        1038
+      ]
+    ],
+    "Kernel_Cbor>>tagFrom:at:tag:depth:": [
+      [
+        0,
+        1045
+      ],
+      [
+        5,
+        1045
+      ],
+      [
+        14,
+        1046
+      ],
+      [
+        19,
+        1046
+      ],
+      [
+        28,
+        1047
+      ],
+      [
+        40,
+        1047
+      ],
+      [
+        47,
+        1048
+      ]
+    ],
+    "Kernel_Cbor>>symbolTagFrom:at:depth:": [
+      [
+        0,
+        1055
+      ],
+      [
+        7,
+        1056
+      ],
+      [
+        12,
+        1057
+      ],
+      [
+        22,
+        1057
+      ],
+      [
+        27,
+        1058
+      ]
+    ],
+    "Kernel_Cbor>>recordTagFrom:at:depth:": [
+      [
+        0,
+        1065
+      ],
+      [
+        7,
+        1066
+      ],
+      [
+        12,
+        1066
+      ],
+      [
+        19,
+        1067
+      ],
+      [
+        29,
+        1067
+      ],
+      [
+        34,
+        1068
+      ],
+      [
+        44,
+        1068
+      ],
+      [
+        49,
+        1069
+      ],
+      [
+        54,
+        1070
+      ],
+      [
+        63,
+        1071
+      ],
+      [
+        68,
+        1071
+      ],
+      [
+        73,
+        1072
+      ],
+      [
+        83,
+        1072
+      ],
+      [
+        88,
+        1073
+      ],
+      [
+        97,
+        1074
+      ],
+      [
+        102,
+        1074
+      ],
+      [
+        107,
+        1075
+      ],
+      [
+        117,
+        1075
+      ],
+      [
+        122,
+        1076
+      ]
+    ],
+    "Kernel_HeapStats>>heapSize": [
+      [
+        0,
+        1084
+      ]
+    ],
+    "Kernel_HeapStats>>liveBytes": [
+      [
+        0,
+        1085
+      ]
+    ],
+    "Kernel_HeapStats>>highWater": [
+      [
+        0,
+        1086
+      ]
+    ],
+    "Kernel_HeapStats>>largestFreeBlock": [
+      [
+        0,
+        1087
+      ]
+    ],
+    "Kernel_HeapStats>>gcCycles": [
+      [
+        0,
+        1088
+      ]
+    ],
+    "Kernel_HeapStats>>setFromList:": [
+      [
+        0,
+        1093
+      ],
+      [
+        5,
+        1093
+      ],
+      [
+        10,
+        1093
+      ],
+      [
+        15,
+        1094
+      ],
+      [
+        20,
+        1094
+      ],
+      [
+        25,
+        1094
+      ]
+    ],
+    "Kernel_HeapStats>>printString": [
+      [
+        0,
+        1096
+      ]
+    ],
+    "Meta_Kernel_HeapStats>>fromList:": [
+      [
+        0,
+        1100
+      ]
+    ],
+    "Kernel_CHeapStats>>outBytes": [
+      [
+        0,
+        1108
+      ]
+    ],
+    "Kernel_CHeapStats>>outHigh": [
+      [
+        0,
+        1109
+      ]
+    ],
+    "Kernel_CHeapStats>>allocs": [
+      [
+        0,
+        1110
+      ]
+    ],
+    "Kernel_CHeapStats>>frees": [
+      [
+        0,
+        1111
+      ]
+    ],
+    "Kernel_CHeapStats>>fails": [
+      [
+        0,
+        1112
+      ]
+    ],
+    "Kernel_CHeapStats>>setFromList:": [
+      [
+        0,
+        1115
+      ],
+      [
+        5,
+        1115
+      ],
+      [
+        10,
+        1115
+      ],
+      [
+        15,
+        1116
+      ],
+      [
+        20,
+        1116
+      ],
+      [
+        25,
+        1116
+      ]
+    ],
+    "Kernel_CHeapStats>>printString": [
+      [
+        0,
+        1118
+      ]
+    ],
+    "Meta_Kernel_CHeapStats>>fromList:": [
+      [
+        0,
+        1122
+      ]
+    ],
+    "Kernel_Spans>>ensureTables": [
+      [
+        0,
+        1150
+      ],
+      [
+        4,
+        1151
+      ],
+      [
+        11,
+        1152
+      ],
+      [
+        18,
+        1153
+      ],
+      [
+        22,
+        1153
+      ],
+      [
+        26,
+        1154
+      ],
+      [
+        36,
+        1155
+      ]
+    ],
+    "Kernel_Spans>>httpQueueSlot": [
+      [
+        0,
+        1160
+      ],
+      [
+        3,
+        1160
+      ]
+    ],
+    "Kernel_Spans>>egressSlot": [
+      [
+        0,
+        1161
+      ],
+      [
+        3,
+        1161
+      ]
+    ],
+    "Kernel_Spans>>register:": [
+      [
+        0,
+        1165
+      ],
+      [
+        3,
+        1168
+      ],
+      [
+        5,
+        1168
+      ],
+      [
+        9,
+        1169
+      ],
+      [
+        14,
+        1170
+      ],
+      [
+        22,
+        1170
+      ],
+      [
+        34,
+        1172
+      ],
+      [
+        38,
+        1173
+      ],
+      [
+        42,
+        1174
+      ]
+    ],
+    "Kernel_Spans>>slotCount": [
+      [
+        0,
+        1176
+      ],
+      [
+        3,
+        1176
+      ]
+    ],
+    "Kernel_Spans>>nameAt:": [
+      [
+        0,
+        1177
+      ]
+    ],
+    "Kernel_Spans>>pathAt:": [
+      [
+        0,
+        1186
+      ],
+      [
+        7,
+        1187
+      ],
+      [
+        14,
+        1188
+      ],
+      [
+        33,
+        1189
+      ]
+    ],
+    "Kernel_Spans>>langAt:": [
+      [
+        0,
+        1198
+      ]
+    ],
+    "Kernel_Spans>>begin:": [
+      [
+        0,
+        1200
+      ],
+      [
+        5,
+        1200
+      ]
+    ],
+    "Kernel_Spans>>end:": [
+      [
+        0,
+        1201
+      ],
+      [
+        5,
+        1201
+      ]
+    ],
+    "Kernel_Spans>>recordSlot:us:": [
+      [
+        0,
+        1202
+      ],
+      [
+        6,
+        1202
+      ]
+    ],
+    "Kernel_Spans>>statsAt:": [
+      [
+        0,
+        1207
+      ]
+    ],
+    "Kernel_Spans>>noteFailure:": [
+      [
+        0,
+        1213
+      ],
+      [
+        14,
+        1213
+      ]
+    ],
+    "Kernel_Spans>>failuresAt:": [
+      [
+        0,
+        1214
+      ]
+    ],
+    "Kernel_Spans>>resetAll": [
+      [
+        0,
+        1225
+      ],
+      [
+        3,
+        1226
+      ],
+      [
+        7,
+        1227
+      ],
+      [
+        9,
+        1227
+      ],
+      [
+        13,
+        1228
+      ],
+      [
+        18,
+        1228
+      ],
+      [
+        29,
+        1229
+      ]
+    ],
+    "Kernel_Spans>>minSamplesForP95": [
+      [
+        0,
+        1236
+      ]
+    ],
+    "Kernel_Spans>>decadeName:": [
+      [
+        0,
+        1242
+      ],
+      [
+        5,
+        1242
+      ],
+      [
+        9,
+        1243
+      ],
+      [
+        14,
+        1243
+      ],
+      [
+        18,
+        1244
+      ],
+      [
+        23,
+        1244
+      ],
+      [
+        27,
+        1245
+      ],
+      [
+        32,
+        1245
+      ],
+      [
+        36,
+        1246
+      ],
+      [
+        41,
+        1246
+      ],
+      [
+        45,
+        1247
+      ]
+    ],
+    "Kernel_Spans>>decadeAt:percentile:": [
+      [
+        0,
+        1257
+      ],
+      [
+        5,
+        1258
+      ],
+      [
+        10,
+        1259
+      ],
+      [
+        17,
+        1259
+      ],
+      [
+        21,
+        1262
+      ],
+      [
+        30,
+        1263
+      ],
+      [
+        32,
+        1263
+      ],
+      [
+        34,
+        1264
+      ],
+      [
+        39,
+        1265
+      ],
+      [
+        48,
+        1266
+      ],
+      [
+        53,
+        1266
+      ],
+      [
+        66,
+        1268
+      ]
+    ],
+    "Kernel_Spans>>p50At:": [
+      [
+        0,
+        1270
+      ]
+    ],
+    "Kernel_Spans>>p95At:": [
+      [
+        0,
+        1271
+      ]
+    ],
+    "Kernel_Spans>>recordAt:": [
+      [
+        0,
+        1284
+      ],
+      [
+        5,
+        1285
+      ],
+      [
+        12,
+        1286
+      ],
+      [
+        24,
+        1287
+      ],
+      [
+        36,
+        1288
+      ],
+      [
+        48,
+        1289
+      ],
+      [
+        60,
+        1290
+      ],
+      [
+        72,
+        1291
+      ],
+      [
+        84,
+        1292
+      ],
+      [
+        96,
+        1293
+      ],
+      [
+        108,
+        1294
+      ],
+      [
+        120,
+        1295
+      ],
+      [
+        132,
+        1296
+      ],
+      [
+        144,
+        1297
+      ],
+      [
+        156,
+        1298
+      ],
+      [
+        168,
+        1299
+      ]
+    ],
+    "Kernel_SpanCapture>>onSpace:spans:": [
+      [
+        0,
+        1323
+      ],
+      [
+        2,
+        1324
+      ],
+      [
+        4,
+        1325
+      ],
+      [
+        6,
+        1326
+      ],
+      [
+        11,
+        1327
+      ],
+      [
+        16,
+        1328
+      ]
+    ],
+    "Kernel_SpanCapture>>start": [
+      [
+        0,
+        1332
+      ],
+      [
+        5,
+        1333
+      ],
+      [
+        8,
+        1334
+      ]
+    ],
+    "Kernel_SpanCapture>>normalise": [
+      [
+        0,
+        1343
+      ],
+      [
+        4,
+        1344
+      ],
+      [
+        8,
+        1344
+      ],
+      [
+        12,
+        1345
+      ],
+      [
+        38,
+        1347
+      ]
+    ],
+    "Kernel_SpanCapture>>apply:": [
+      [
+        0,
+        1351
+      ],
+      [
+        6,
+        1352
+      ],
+      [
+        11,
+        1352
+      ],
+      [
+        17,
+        1353
+      ],
+      [
+        22,
+        1353
+      ],
+      [
+        28,
+        1354
+      ]
+    ],
+    "Kernel_SpanCapture>>beginWindow": [
+      [
+        0,
+        1359
+      ],
+      [
+        4,
+        1360
+      ],
+      [
+        7,
+        1361
+      ],
+      [
+        9,
+        1362
+      ]
+    ],
+    "Kernel_SpanCapture>>endWindow": [
+      [
+        0,
+        1368
+      ],
+      [
+        4,
+        1368
+      ],
+      [
+        6,
+        1369
+      ],
+      [
+        12,
+        1373
+      ],
+      [
+        21,
+        1378
+      ],
+      [
+        32,
+        1379
+      ],
+      [
+        34,
+        1380
+      ]
+    ],
+    "Kernel_SpanCapture>>publishSlots": [
+      [
+        0,
+        1397
+      ],
+      [
+        2,
+        1398
+      ],
+      [
+        4,
+        1398
+      ],
+      [
+        8,
+        1399
+      ],
+      [
+        13,
+        1400
+      ],
+      [
+        30,
+        1402
+      ],
+      [
+        46,
+        1404
+      ]
+    ],
+    "Kernel_SpanCapture>>summaryMs:total:": [
+      [
+        0,
+        1412
+      ]
+    ],
+    "Meta_Kernel_SpanCapture>>onSpace:spans:": [
+      [
+        0,
+        1417
+      ]
+    ],
+    "Kernel_ReadStream>>next": [
+      [
+        0,
+        1424
+      ],
+      [
+        4,
+        1424
+      ],
+      [
+        11,
+        1424
+      ],
+      [
+        15,
+        1424
+      ]
+    ],
+    "Kernel_ReadStream>>peek": [
+      [
+        0,
+        1425
+      ],
+      [
+        4,
+        1425
+      ],
+      [
+        11,
+        1425
+      ]
+    ],
+    "Kernel_ReadStream>>atEnd": [
+      [
+        0,
+        1426
+      ]
+    ],
+    "Kernel_ReadStream>>skip:": [
+      [
+        0,
+        1427
+      ],
+      [
+        4,
+        1427
+      ]
+    ],
+    "Kernel_ReadStream>>position": [
+      [
+        0,
+        1428
+      ]
+    ],
+    "Kernel_ReadStream>>reset": [
+      [
+        0,
+        1429
+      ],
+      [
+        2,
+        1429
+      ]
+    ],
+    "Kernel_ReadStream>>next:": [
+      [
+        0,
+        1431
+      ],
+      [
+        9,
+        1431
+      ],
+      [
+        16,
+        1432
+      ],
+      [
+        24,
+        1433
+      ],
+      [
+        44,
+        1434
+      ],
+      [
+        48,
+        1435
+      ]
+    ],
+    "Kernel_ReadStream>>upTo:": [
+      [
+        0,
+        1437
+      ],
+      [
+        4,
+        1437
+      ],
+      [
+        8,
+        1438
+      ],
+      [
+        15,
+        1439
+      ],
+      [
+        20,
+        1440
+      ],
+      [
+        24,
+        1441
+      ],
+      [
+        29,
+        1441
+      ],
+      [
+        45,
+        1443
+      ]
+    ],
+    "Kernel_ReadStream>>nextLine": [
+      [
+        0,
+        1445
+      ],
+      [
+        4,
+        1445
+      ],
+      [
+        8,
+        1446
+      ],
+      [
+        13,
+        1447
+      ],
+      [
+        17,
+        1448
+      ],
+      [
+        32,
+        1448
+      ],
+      [
+        42,
+        1449
+      ]
+    ],
+    "Kernel_ReadStream>>upToEnd": [
+      [
+        0,
+        1451
+      ],
+      [
+        4,
+        1451
+      ],
+      [
+        8,
+        1452
+      ],
+      [
+        15,
+        1453
+      ],
+      [
+        28,
+        1454
+      ]
+    ],
+    "Kernel_ReadStream>>do:": [
+      [
+        0,
+        1455
+      ],
+      [
+        13,
+        1455
+      ]
+    ],
+    "Kernel_ReadStream>>prefixOf:upTo:": [
+      [
+        0,
+        1456
+      ],
+      [
+        8,
+        1456
+      ],
+      [
+        26,
+        1456
+      ]
+    ],
+    "Kernel_ReadStream>>setSource:": [
+      [
+        0,
+        1457
+      ],
+      [
+        2,
+        1457
+      ],
+      [
+        4,
+        1457
+      ]
+    ],
+    "Meta_Kernel_ReadStream>>on:": [
+      [
+        0,
+        1459
+      ]
+    ],
+    "Kernel_WriteStream>>nextPut:": [
+      [
+        0,
+        1465
+      ],
+      [
+        12,
+        1465
+      ],
+      [
+        19,
+        1465
+      ],
+      [
+        23,
+        1465
+      ]
+    ],
+    "Kernel_WriteStream>>nextPutAll:": [
+      [
+        0,
+        1466
+      ],
+      [
+        19,
+        1466
+      ]
+    ],
+    "Kernel_WriteStream>>print:": [
+      [
+        0,
+        1467
+      ]
+    ],
+    "Kernel_WriteStream>>nextPutLine:": [
+      [
+        0,
+        1468
+      ],
+      [
+        4,
+        1468
+      ],
+      [
+        8,
+        1468
+      ]
+    ],
+    "Kernel_WriteStream>>contents": [
+      [
+        0,
+        1469
+      ]
+    ],
+    "Kernel_WriteStream>>size": [
+      [
+        0,
+        1470
+      ]
+    ],
+    "Kernel_WriteStream>>reset": [
+      [
+        0,
+        1471
+      ],
+      [
+        7,
+        1471
+      ]
+    ],
+    "Kernel_Serial>>setPort:": [
+      [
+        0,
+        1479
+      ],
+      [
+        2,
+        1479
+      ]
+    ],
+    "Kernel_Serial>>writeByte:": [
+      [
+        0,
+        1480
+      ],
+      [
+        4,
+        1480
+      ]
+    ],
+    "Kernel_Serial>>write:": [
+      [
+        0,
+        1481
+      ],
+      [
+        19,
+        1481
+      ]
+    ],
+    "Kernel_Serial>>atEnd": [
+      [
+        0,
+        1482
+      ]
+    ],
+    "Kernel_Serial>>readByte": [
+      [
+        0,
+        1483
+      ],
+      [
+        4,
+        1483
+      ],
+      [
+        8,
+        1483
       ]
     ],
     "Kernel_Serial>>read:": [
       [
         0,
-        521
+        1485
       ],
       [
         7,
-        522
+        1486
       ],
       [
         30,
-        523
+        1487
       ]
     ],
     "Kernel_Serial>>readLine": [
       [
         0,
-        525
+        1489
       ],
       [
         4,
-        525
+        1489
       ],
       [
         8,
-        526
+        1490
       ],
       [
         15,
-        526
+        1490
       ],
       [
         17,
-        527
+        1491
       ],
       [
         29,
-        528
+        1492
       ],
       [
         47,
-        531
+        1495
       ],
       [
         71,
-        532
+        1496
       ]
     ],
     "Meta_Kernel_Serial>>onPort:": [
       [
         0,
-        534
+        1498
       ]
     ],
     "Kernel_Net>>setPort:": [
       [
         0,
-        539
+        1503
       ],
       [
         2,
-        539
+        1503
       ]
     ],
     "Kernel_Net>>udp": [
       [
         0,
-        540
+        1504
       ]
     ],
     "Kernel_Net>>udpBindPort:": [
       [
         0,
-        542
+        1506
       ],
       [
         5,
-        543
+        1507
       ],
       [
         10,
-        543
+        1507
       ],
       [
         14,
-        544
+        1508
       ]
     ],
     "Meta_Kernel_Net>>onPort:": [
       [
         0,
-        546
+        1510
       ]
     ],
     "Kernel_Socket>>setPort:handle:": [
       [
         0,
-        550
+        1514
       ],
       [
         2,
-        550
+        1514
       ],
       [
         4,
-        550
+        1514
       ]
     ],
     "Kernel_Socket>>sendTo:port:data:": [
       [
         0,
-        552
+        1516
       ],
       [
-        7,
-        552
+        9,
+        1516
       ]
     ],
     "Kernel_Socket>>receive": [
       [
         0,
-        554
+        1518
       ],
       [
         5,
-        555
+        1519
       ],
       [
         10,
-        555
+        1519
       ],
       [
         14,
-        556
+        1520
       ]
     ],
     "Kernel_Socket>>close": [
       [
         0,
-        557
+        1521
       ],
       [
         4,
-        557
+        1521
       ]
     ],
     "Meta_Kernel_Socket>>onPort:handle:": [
       [
         0,
-        559
+        1523
       ]
     ],
     "Kernel_Datagram>>setData:host:port:": [
       [
         0,
-        563
+        1527
       ],
       [
         2,
-        563
+        1527
       ],
       [
         4,
-        563
+        1527
       ],
       [
         6,
-        563
+        1527
       ]
     ],
     "Kernel_Datagram>>data": [
       [
         0,
-        564
+        1528
       ]
     ],
     "Kernel_Datagram>>senderHost": [
       [
         0,
-        565
+        1529
       ]
     ],
     "Kernel_Datagram>>senderPort": [
       [
         0,
-        566
+        1530
       ]
     ],
     "Meta_Kernel_Datagram>>data:senderHost:senderPort:": [
       [
         0,
-        568
+        1532
+      ]
+    ],
+    "Kernel_NetBridge>>setSocket:out:peerHost:peerPort:in:": [
+      [
+        0,
+        1545
+      ],
+      [
+        2,
+        1545
+      ],
+      [
+        4,
+        1545
+      ],
+      [
+        6,
+        1545
+      ],
+      [
+        8,
+        1545
+      ],
+      [
+        10,
+        1545
+      ]
+    ],
+    "Kernel_NetBridge>>encodeFor:": [
+      [
+        0,
+        1557
+      ]
+    ],
+    "Kernel_NetBridge>>start": [
+      [
+        0,
+        1559
+      ],
+      [
+        5,
+        1560
+      ]
+    ],
+    "Kernel_NetBridge>>pumpInbound": [
+      [
+        1,
+        1566
+      ],
+      [
+        5,
+        1567
+      ],
+      [
+        11,
+        1568
+      ],
+      [
+        13,
+        1569
+      ],
+      [
+        26,
+        1570
+      ],
+      [
+        41,
+        1572
+      ]
+    ],
+    "Meta_Kernel_NetBridge>>socket:out:peer:port:in:": [
+      [
+        0,
+        1575
+      ]
+    ],
+    "Kernel_PortaBridge>>setSocket:space:id:peer:port:spans:": [
+      [
+        0,
+        1659
+      ],
+      [
+        2,
+        1659
+      ],
+      [
+        4,
+        1659
+      ],
+      [
+        6,
+        1659
+      ],
+      [
+        8,
+        1659
+      ],
+      [
+        10,
+        1660
+      ],
+      [
+        12,
+        1664
+      ],
+      [
+        17,
+        1665
+      ],
+      [
+        22,
+        1666
+      ],
+      [
+        27,
+        1667
+      ],
+      [
+        32,
+        1668
+      ],
+      [
+        37,
+        1669
+      ],
+      [
+        42,
+        1670
+      ],
+      [
+        47,
+        1676
+      ],
+      [
+        52,
+        1677
+      ],
+      [
+        57,
+        1678
+      ],
+      [
+        62,
+        1679
+      ]
+    ],
+    "Kernel_PortaBridge>>bootId": [
+      [
+        0,
+        1706
+      ]
+    ],
+    "Kernel_PortaBridge>>maxBatchBytes": [
+      [
+        0,
+        1711
+      ]
+    ],
+    "Kernel_PortaBridge>>maxValueBytes": [
+      [
+        0,
+        1712
+      ]
+    ],
+    "Kernel_PortaBridge>>maxRows": [
+      [
+        0,
+        1713
+      ]
+    ],
+    "Kernel_PortaBridge>>replyBudget": [
+      [
+        0,
+        1714
+      ]
+    ],
+    "Kernel_PortaBridge>>maxPending": [
+      [
+        0,
+        1734
+      ]
+    ],
+    "Kernel_PortaBridge>>cursor": [
+      [
+        0,
+        1736
+      ]
+    ],
+    "Kernel_PortaBridge>>acked": [
+      [
+        0,
+        1737
+      ]
+    ],
+    "Kernel_PortaBridge>>rejected": [
+      [
+        0,
+        1738
+      ]
+    ],
+    "Kernel_PortaBridge>>misses": [
+      [
+        0,
+        1739
+      ]
+    ],
+    "Kernel_PortaBridge>>dropped": [
+      [
+        0,
+        1740
+      ]
+    ],
+    "Kernel_PortaBridge>>crossed": [
+      [
+        0,
+        1744
+      ]
+    ],
+    "Kernel_PortaBridge>>pendingSize": [
+      [
+        0,
+        1745
+      ]
+    ],
+    "Kernel_PortaBridge>>pendingRows": [
+      [
+        0,
+        1746
+      ]
+    ],
+    "Kernel_PortaBridge>>subscribeStream:": [
+      [
+        2,
+        1759
+      ],
+      [
+        10,
+        1760
+      ]
+    ],
+    "Kernel_PortaBridge>>capture:value:": [
+      [
+        0,
+        1762
+      ],
+      [
+        13,
+        1763
+      ],
+      [
+        22,
+        1764
+      ],
+      [
+        31,
+        1766
+      ]
+    ],
+    "Kernel_PortaBridge>>pullFrame": [
+      [
+        0,
+        1773
+      ]
+    ],
+    "Kernel_PortaBridge>>applyBatch:": [
+      [
+        1,
+        1785
+      ],
+      [
+        3,
+        1786
+      ],
+      [
+        14,
+        1787
+      ],
+      [
+        16,
+        1787
+      ],
+      [
+        20,
+        1788
+      ],
+      [
+        30,
+        1788
+      ],
+      [
+        32,
+        1789
+      ],
+      [
+        41,
+        1789
+      ],
+      [
+        43,
+        1790
+      ],
+      [
+        49,
+        1791
+      ],
+      [
+        59,
+        1791
+      ],
+      [
+        61,
+        1792
+      ],
+      [
+        63,
+        1793
+      ],
+      [
+        70,
+        1794
+      ],
+      [
+        83,
+        1796
+      ],
+      [
+        89,
+        1797
+      ],
+      [
+        108,
+        1798
+      ]
+    ],
+    "Kernel_PortaBridge>>applyEntry:": [
+      [
+        0,
+        1806
+      ],
+      [
+        10,
+        1806
+      ],
+      [
+        14,
+        1806
+      ],
+      [
+        16,
+        1807
+      ],
+      [
+        25,
+        1807
+      ],
+      [
+        29,
+        1807
+      ],
+      [
+        31,
+        1808
+      ],
+      [
+        36,
+        1809
+      ],
+      [
+        41,
+        1810
+      ],
+      [
+        46,
+        1811
+      ],
+      [
+        56,
+        1811
+      ],
+      [
+        60,
+        1811
+      ],
+      [
+        62,
+        1812
+      ],
+      [
+        69,
+        1812
+      ],
+      [
+        73,
+        1812
+      ],
+      [
+        75,
+        1813
+      ],
+      [
+        89,
+        1813
+      ],
+      [
+        93,
+        1813
+      ],
+      [
+        95,
+        1824
+      ],
+      [
+        100,
+        1825
+      ],
+      [
+        114,
+        1826
+      ],
+      [
+        118,
+        1827
+      ],
+      [
+        123,
+        1828
+      ],
+      [
+        125,
+        1829
+      ],
+      [
+        130,
+        1829
+      ],
+      [
+        135,
+        1829
+      ],
+      [
+        139,
+        1830
+      ],
+      [
+        144,
+        1831
+      ]
+    ],
+    "Kernel_PortaBridge>>mayApply:": [
+      [
+        0,
+        1838
+      ],
+      [
+        5,
+        1838
+      ],
+      [
+        9,
+        1839
+      ],
+      [
+        14,
+        1839
+      ],
+      [
+        18,
+        1840
+      ]
+    ],
+    "Kernel_PortaBridge>>path:startsWith:": [
+      [
+        0,
+        1847
+      ],
+      [
+        4,
+        1848
+      ],
+      [
+        11,
+        1848
+      ],
+      [
+        15,
+        1849
+      ],
+      [
+        17,
+        1850
+      ],
+      [
+        22,
+        1851
+      ],
+      [
+        35,
+        1851
+      ],
+      [
+        43,
+        1853
+      ]
+    ],
+    "Kernel_PortaBridge>>pushFrame": [
+      [
+        0,
+        1922
+      ],
+      [
+        4,
+        1923
+      ],
+      [
+        8,
+        1924
+      ],
+      [
+        12,
+        1925
+      ],
+      [
+        16,
+        1925
+      ],
+      [
+        20,
+        1926
+      ],
+      [
+        24,
+        1927
+      ],
+      [
+        29,
+        1928
+      ],
+      [
+        33,
+        1929
+      ],
+      [
+        37,
+        1930
+      ],
+      [
+        55,
+        1931
+      ],
+      [
+        65,
+        1933
+      ],
+      [
+        69,
+        1934
+      ],
+      [
+        78,
+        1934
+      ],
+      [
+        82,
+        1935
+      ]
+    ],
+    "Kernel_PortaBridge>>encodePush:": [
+      [
+        0,
+        1938
+      ]
+    ],
+    "Kernel_PortaBridge>>collectOutbound": [
+      [
+        0,
+        1963
+      ],
+      [
+        7,
+        1964
+      ],
+      [
+        9,
+        1965
+      ],
+      [
+        16,
+        1965
+      ],
+      [
+        29,
+        1966
+      ],
+      [
+        34,
+        1967
+      ],
+      [
+        39,
+        1968
+      ],
+      [
+        44,
+        1969
+      ]
+    ],
+    "Kernel_PortaBridge>>addCellsFrom:into:": [
+      [
+        0,
+        1973
+      ],
+      [
+        11,
+        1974
+      ],
+      [
+        13,
+        1975
+      ],
+      [
+        20,
+        1976
+      ],
+      [
+        25,
+        1977
+      ],
+      [
+        64,
+        1981
+      ]
+    ],
+    "Kernel_PortaBridge>>valueFits:": [
+      [
+        0,
+        1987
+      ]
+    ],
+    "Kernel_PortaBridge>>sortedBySeq:": [
+      [
+        0,
+        1991
+      ],
+      [
+        2,
+        1992
+      ],
+      [
+        9,
+        1993
+      ],
+      [
+        14,
+        1994
+      ],
+      [
+        18,
+        1995
+      ],
+      [
+        39,
+        1996
+      ],
+      [
+        55,
+        1998
+      ],
+      [
+        68,
+        2000
+      ]
+    ],
+    "Kernel_PortaBridge>>applyAck:": [
+      [
+        1,
+        2008
+      ],
+      [
+        3,
+        2009
+      ],
+      [
+        14,
+        2010
+      ],
+      [
+        16,
+        2010
+      ],
+      [
+        20,
+        2011
+      ],
+      [
+        30,
+        2011
+      ],
+      [
+        32,
+        2012
+      ],
+      [
+        41,
+        2012
+      ],
+      [
+        43,
+        2013
+      ],
+      [
+        49,
+        2014
+      ],
+      [
+        59,
+        2014
+      ],
+      [
+        61,
+        2015
+      ],
+      [
+        70,
+        2016
+      ],
+      [
+        77,
+        2017
+      ],
+      [
+        79,
+        2018
+      ],
+      [
+        86,
+        2019
+      ],
+      [
+        91,
+        2020
+      ],
+      [
+        111,
+        2022
+      ],
+      [
+        113,
+        2023
+      ]
+    ],
+    "Kernel_PortaBridge>>checkIn": [
+      [
+        0,
+        2063
+      ],
+      [
+        5,
+        2063
+      ],
+      [
+        9,
+        2064
+      ],
+      [
+        13,
+        2065
+      ],
+      [
+        17,
+        2066
+      ],
+      [
+        23,
+        2067
+      ],
+      [
+        27,
+        2068
+      ],
+      [
+        31,
+        2069
+      ],
+      [
+        36,
+        2070
+      ],
+      [
+        40,
+        2071
+      ],
+      [
+        44,
+        2072
+      ],
+      [
+        58,
+        2086
+      ],
+      [
+        61,
+        2087
+      ],
+      [
+        64,
+        2088
+      ],
+      [
+        67,
+        2089
+      ],
+      [
+        71,
+        2090
+      ],
+      [
+        74,
+        2100
+      ]
+    ],
+    "Kernel_PortaBridge>>publishMetrics": [
+      [
+        0,
+        2118
+      ],
+      [
+        7,
+        2119
+      ]
+    ],
+    "Kernel_PortaBridge>>publishCheap": [
+      [
+        0,
+        2124
+      ],
+      [
+        7,
+        2125
+      ]
+    ],
+    "Kernel_PortaBridge>>publishApps": [
+      [
+        0,
+        2159
+      ],
+      [
+        2,
+        2159
+      ],
+      [
+        6,
+        2160
+      ],
+      [
+        10,
+        2161
+      ],
+      [
+        15,
+        2161
+      ],
+      [
+        19,
+        2162
+      ],
+      [
+        50,
+        2165
+      ],
+      [
+        52,
+        2166
+      ]
+    ],
+    "Kernel_PortaBridge>>otaCheck": [
+      [
+        0,
+        2220
+      ],
+      [
+        17,
+        2221
+      ],
+      [
+        20,
+        2222
+      ],
+      [
+        29,
+        2224
+      ],
+      [
+        31,
+        2224
+      ],
+      [
+        39,
+        2250
+      ],
+      [
+        49,
+        2250
+      ],
+      [
+        53,
+        2260
+      ],
+      [
+        59,
+        2263
+      ],
+      [
+        64,
+        2263
+      ],
+      [
+        68,
+        2264
+      ],
+      [
+        73,
+        2265
+      ],
+      [
+        78,
+        2266
+      ],
+      [
+        83,
+        2267
+      ],
+      [
+        87,
+        2268
+      ],
+      [
+        92,
+        2269
+      ],
+      [
+        97,
+        2270
+      ],
+      [
+        102,
+        2270
+      ],
+      [
+        106,
+        2271
+      ],
+      [
+        116,
+        2273
+      ],
+      [
+        118,
+        2274
+      ],
+      [
+        120,
+        2275
+      ],
+      [
+        133,
+        2278
+      ]
+    ],
+    "Kernel_PortaBridge>>telLog:text:": [
+      [
+        0,
+        2295
+      ],
+      [
+        21,
+        2297
+      ]
+    ],
+    "Kernel_PortaBridge>>otaWantedFrom:": [
+      [
+        0,
+        2317
+      ],
+      [
+        10,
+        2317
+      ],
+      [
+        12,
+        2318
+      ],
+      [
+        21,
+        2318
+      ],
+      [
+        23,
+        2319
+      ],
+      [
+        29,
+        2320
+      ],
+      [
+        39,
+        2320
+      ],
+      [
+        41,
+        2321
+      ],
+      [
+        50,
+        2321
+      ],
+      [
+        52,
+        2322
+      ],
+      [
+        58,
+        2323
+      ],
+      [
+        64,
+        2323
+      ],
+      [
+        66,
+        2324
+      ],
+      [
+        72,
+        2325
+      ],
+      [
+        78,
+        2325
+      ],
+      [
+        80,
+        2326
+      ]
+    ],
+    "Kernel_PortaBridge>>pushOnce": [
+      [
+        0,
+        2330
+      ],
+      [
+        4,
+        2331
+      ],
+      [
+        8,
+        2332
+      ],
+      [
+        12,
+        2339
+      ],
+      [
+        17,
+        2339
+      ],
+      [
+        21,
+        2340
+      ],
+      [
+        25,
+        2341
+      ],
+      [
+        31,
+        2342
+      ],
+      [
+        35,
+        2343
+      ],
+      [
+        39,
+        2344
+      ],
+      [
+        44,
+        2345
+      ],
+      [
+        58,
+        2348
+      ],
+      [
+        62,
+        2349
+      ]
+    ],
+    "Kernel_PortaBridge>>awaitReply:": [
+      [
+        0,
+        2374
+      ],
+      [
+        9,
+        2375
+      ],
+      [
+        17,
+        2376
+      ],
+      [
+        44,
+        2380
+      ],
+      [
+        50,
+        2381
+      ]
+    ],
+    "Kernel_PortaBridge>>tagOf:": [
+      [
+        1,
+        2387
+      ],
+      [
+        3,
+        2388
+      ],
+      [
+        14,
+        2389
+      ],
+      [
+        16,
+        2389
+      ],
+      [
+        20,
+        2390
+      ],
+      [
+        30,
+        2390
+      ],
+      [
+        32,
+        2391
+      ]
+    ],
+    "Kernel_PortaBridge>>isCrossed:expecting:": [
+      [
+        0,
+        2397
+      ],
+      [
+        5,
+        2397
+      ],
+      [
+        9,
+        2398
+      ],
+      [
+        14,
+        2398
+      ],
+      [
+        18,
+        2399
+      ],
+      [
+        23,
+        2399
+      ],
+      [
+        27,
+        2400
+      ],
+      [
+        32,
+        2400
+      ],
+      [
+        36,
+        2401
+      ]
+    ],
+    "Meta_Kernel_PortaBridge>>socket:space:id:peer:port:spans:": [
+      [
+        0,
+        2404
+      ]
+    ],
+    "Kernel_Channel>>setRoot:": [
+      [
+        0,
+        2435
+      ],
+      [
+        2,
+        2435
+      ]
+    ],
+    "Kernel_Channel>>rootPath": [
+      [
+        0,
+        2441
+      ]
+    ],
+    "Kernel_Channel>>resolve:": [
+      [
+        0,
+        2450
+      ],
+      [
+        4,
+        2451
+      ],
+      [
+        9,
+        2451
+      ],
+      [
+        13,
+        2452
+      ],
+      [
+        18,
+        2452
+      ],
+      [
+        22,
+        2453
+      ]
+    ],
+    "Kernel_Channel>>channel:": [
+      [
+        0,
+        2454
+      ]
+    ],
+    "Kernel_Channel>>KIND_STREAM": [
+      [
+        0,
+        2475
+      ]
+    ],
+    "Kernel_Channel>>KIND_CELL": [
+      [
+        0,
+        2476
+      ]
+    ],
+    "Kernel_Channel>>kindAt:": [
+      [
+        0,
+        2488
+      ]
+    ],
+    "Kernel_Channel>>out:value:": [
+      [
+        0,
+        2492
+      ],
+      [
+        4,
+        2493
+      ],
+      [
+        9,
+        2494
+      ],
+      [
+        26,
+        2495
+      ],
+      [
+        32,
+        2496
+      ]
+    ],
+    "Kernel_Channel>>take:ifEmpty:": [
+      [
+        0,
+        2499
+      ],
+      [
+        5,
+        2500
+      ],
+      [
+        22,
+        2501
+      ],
+      [
+        28,
+        2502
+      ],
+      [
+        33,
+        2502
+      ],
+      [
+        39,
+        2503
+      ]
+    ],
+    "Kernel_Channel>>put:value:": [
+      [
+        0,
+        2512
+      ],
+      [
+        4,
+        2513
+      ],
+      [
+        9,
+        2514
+      ],
+      [
+        26,
+        2515
+      ],
+      [
+        32,
+        2516
+      ]
+    ],
+    "Kernel_Channel>>peek:ifAbsent:": [
+      [
+        0,
+        2526
+      ],
+      [
+        5,
+        2527
+      ],
+      [
+        11,
+        2528
+      ],
+      [
+        24,
+        2529
+      ],
+      [
+        29,
+        2529
+      ],
+      [
+        35,
+        2530
+      ]
+    ],
+    "Kernel_Channel>>peek": [
+      [
+        0,
+        2536
+      ]
+    ],
+    "Kernel_Channel>>peek:": [
+      [
+        0,
+        2537
+      ]
+    ],
+    "Kernel_Channel>>peekCell:ifStream:": [
+      [
+        0,
+        2568
+      ],
+      [
+        5,
+        2569
+      ],
+      [
+        11,
+        2570
+      ],
+      [
+        18,
+        2570
+      ],
+      [
+        24,
+        2571
+      ],
+      [
+        29,
+        2571
+      ],
+      [
+        33,
+        2572
+      ]
+    ],
+    "Kernel_Channel>>changedSince:max:": [
+      [
+        0,
+        2600
+      ],
+      [
+        8,
+        2601
+      ],
+      [
+        15,
+        2602
+      ],
+      [
+        17,
+        2603
+      ],
+      [
+        24,
+        2604
+      ],
+      [
+        40,
+        2606
+      ]
+    ],
+    "Kernel_Channel>>rowOf:": [
+      [
+        0,
+        2611
+      ]
+    ],
+    "Kernel_Channel>>whenever:do:": [
+      [
+        0,
+        2614
+      ],
+      [
+        10,
+        2615
+      ]
+    ],
+    "Kernel_Channel>>dropMyReactions": [
+      [
+        0,
+        2622
+      ],
+      [
+        5,
+        2623
+      ]
+    ],
+    "Kernel_Space>>drain": [
+      [
+        0,
+        2658
+      ],
+      [
+        0,
+        2658
+      ],
+      [
+        12,
+        2659
+      ],
+      [
+        17,
+        2660
+      ],
+      [
+        22,
+        2661
+      ],
+      [
+        27,
+        2662
+      ],
+      [
+        36,
+        2664
+      ],
+      [
+        46,
+        2665
+      ],
+      [
+        66,
+        2667
+      ]
+    ],
+    "Kernel_Space>>seq": [
+      [
+        0,
+        2681
+      ]
+    ],
+    "Kernel_Space>>stamp": [
+      [
+        0,
+        2682
+      ]
+    ],
+    "Kernel_Space>>postCrash:channel:": [
+      [
+        0,
+        2702
+      ],
+      [
+        49,
+        2709
+      ]
+    ],
+    "Kernel_Space>>isSysPath:": [
+      [
+        0,
+        2717
+      ],
+      [
+        5,
+        2717
+      ],
+      [
+        9,
+        2718
+      ]
+    ],
+    "Kernel_SupervisedJob>>rootCap": [
+      [
+        0,
+        2746
+      ]
+    ],
+    "Kernel_SupervisedJob>>rootPath": [
+      [
+        0,
+        2747
+      ]
+    ],
+    "Kernel_SupervisedJob>>restartThunk": [
+      [
+        0,
+        2748
+      ]
+    ],
+    "Kernel_SupervisedJob>>crashes": [
+      [
+        0,
+        2749
+      ]
+    ],
+    "Kernel_SupervisedJob>>quarantined": [
+      [
+        0,
+        2750
+      ]
+    ],
+    "Kernel_SupervisedJob>>bumpCrashes": [
+      [
+        0,
+        2751
+      ],
+      [
+        4,
+        2751
+      ]
+    ],
+    "Kernel_SupervisedJob>>noteProgress": [
+      [
+        0,
+        2752
+      ],
+      [
+        2,
+        2752
+      ]
+    ],
+    "Kernel_SupervisedJob>>markQuarantined": [
+      [
+        0,
+        2753
+      ],
+      [
+        2,
+        2753
+      ]
+    ],
+    "Kernel_SupervisedJob>>addresses:": [
+      [
+        0,
+        2756
+      ],
+      [
+        5,
+        2756
+      ],
+      [
+        9,
+        2757
+      ],
+      [
+        13,
+        2758
+      ],
+      [
+        17,
+        2759
+      ],
+      [
+        24,
+        2759
+      ],
+      [
+        26,
+        2760
+      ],
+      [
+        28,
+        2761
+      ],
+      [
+        33,
+        2762
+      ],
+      [
+        46,
+        2762
+      ],
+      [
+        54,
+        2764
+      ]
+    ],
+    "Kernel_SupervisedJob>>setRootCap:restart:": [
+      [
+        0,
+        2766
+      ],
+      [
+        2,
+        2766
+      ],
+      [
+        6,
+        2766
+      ],
+      [
+        8,
+        2766
+      ]
+    ],
+    "Meta_Kernel_SupervisedJob>>rootCap:restart:": [
+      [
+        0,
+        2768
+      ]
+    ],
+    "Kernel_Supervisor>>setSpace:": [
+      [
+        0,
+        2788
+      ],
+      [
+        2,
+        2788
+      ],
+      [
+        9,
+        2788
+      ]
+    ],
+    "Kernel_Supervisor>>timers:": [
+      [
+        0,
+        2794
+      ],
+      [
+        2,
+        2794
+      ]
+    ],
+    "Kernel_Supervisor>>register:restart:progress:": [
+      [
+        1,
+        2798
+      ],
+      [
+        8,
+        2799
+      ],
+      [
+        12,
+        2800
+      ],
+      [
+        17,
+        2801
+      ]
+    ],
+    "Kernel_Supervisor>>start": [
+      [
+        0,
+        2804
+      ],
+      [
+        8,
+        2805
+      ]
+    ],
+    "Kernel_Supervisor>>isQuarantined:": [
+      [
+        2,
+        2809
+      ],
+      [
+        8,
+        2810
+      ]
+    ],
+    "Kernel_Supervisor>>handleCrash:": [
+      [
+        0,
+        2814
+      ],
+      [
+        6,
+        2815
+      ],
+      [
+        11,
+        2816
+      ],
+      [
+        16,
+        2816
+      ],
+      [
+        20,
+        2817
+      ],
+      [
+        24,
+        2817
+      ],
+      [
+        28,
+        2818
+      ],
+      [
+        31,
+        2819
+      ],
+      [
+        47,
+        2822
+      ]
+    ],
+    "Kernel_Supervisor>>sweepJob:": [
+      [
+        0,
+        2833
+      ],
+      [
+        7,
+        2834
+      ],
+      [
+        20,
+        2835
+      ]
+    ],
+    "Kernel_Supervisor>>restart:": [
+      [
+        0,
+        2838
+      ],
+      [
+        4,
+        2839
+      ],
+      [
+        9,
+        2840
+      ]
+    ],
+    "Kernel_Supervisor>>quarantine:": [
+      [
+        0,
+        2843
+      ],
+      [
+        4,
+        2844
+      ],
+      [
+        7,
+        2845
+      ],
+      [
+        27,
+        2847
+      ]
+    ],
+    "Kernel_Supervisor>>jobAddressing:": [
+      [
+        2,
+        2850
+      ],
+      [
+        7,
+        2850
+      ],
+      [
+        11,
+        2851
+      ]
+    ],
+    "Kernel_Transition>>action": [
+      [
+        0,
+        2862
+      ]
+    ],
+    "Kernel_Transition>>target": [
+      [
+        0,
+        2863
+      ]
+    ],
+    "Kernel_Transition>>setAction:target:": [
+      [
+        0,
+        2864
+      ],
+      [
+        2,
+        2864
+      ],
+      [
+        4,
+        2864
+      ]
+    ],
+    "Meta_Kernel_Transition>>action:target:": [
+      [
+        0,
+        2866
+      ]
+    ],
+    "Kernel_Protocol>>state:on:do:then:": [
+      [
+        0,
+        2904
+      ],
+      [
+        6,
+        2905
+      ],
+      [
+        11,
+        2905
+      ],
+      [
+        25,
+        2906
+      ],
+      [
+        35,
+        2907
+      ]
+    ],
+    "Kernel_Protocol>>state:onEntry:": [
+      [
+        0,
+        2909
+      ],
+      [
+        5,
+        2909
+      ]
+    ],
+    "Kernel_Protocol>>onUnhandled:": [
+      [
+        0,
+        2910
+      ],
+      [
+        2,
+        2910
+      ]
+    ],
+    "Kernel_Protocol>>startIn:": [
+      [
+        0,
+        2911
+      ],
+      [
+        2,
+        2911
+      ],
+      [
+        7,
+        2911
+      ]
+    ],
+    "Kernel_Protocol>>trace:": [
+      [
+        0,
+        2912
+      ],
+      [
+        2,
+        2912
+      ]
+    ],
+    "Kernel_Protocol>>currentState": [
+      [
+        0,
+        2915
+      ]
+    ],
+    "Kernel_Protocol>>name": [
+      [
+        0,
+        2916
+      ]
+    ],
+    "Kernel_Protocol>>snapshot": [
+      [
+        0,
+        2921
+      ]
+    ],
+    "Kernel_Protocol>>restore:": [
+      [
+        0,
+        2922
+      ],
+      [
+        2,
+        2922
+      ]
+    ],
+    "Kernel_Protocol>>handle:": [
+      [
+        0,
+        2927
+      ],
+      [
+        5,
+        2928
+      ],
+      [
+        11,
+        2929
+      ],
+      [
+        13,
+        2930
+      ],
+      [
+        20,
+        2931
+      ],
+      [
+        33,
+        2933
+      ],
+      [
+        35,
+        2934
+      ],
+      [
+        70,
+        2935
+      ],
+      [
+        77,
+        2936
+      ],
+      [
+        86,
+        2938
+      ],
+      [
+        102,
+        2940
+      ]
+    ],
+    "Kernel_Protocol>>keyFor:": [
+      [
+        0,
+        2946
+      ],
+      [
+        4,
+        2946
+      ],
+      [
+        8,
+        2947
+      ],
+      [
+        12,
+        2947
+      ],
+      [
+        18,
+        2948
+      ]
+    ],
+    "Kernel_Protocol>>validate": [
+      [
+        0,
+        2955
+      ],
+      [
+        4,
+        2959
+      ]
+    ],
+    "Kernel_Protocol>>runEntry:with:": [
+      [
+        0,
+        2963
+      ],
+      [
+        6,
+        2964
+      ],
+      [
+        18,
+        2965
+      ]
+    ],
+    "Kernel_Protocol>>setName:": [
+      [
+        0,
+        2967
+      ],
+      [
+        2,
+        2967
+      ]
+    ],
+    "Meta_Kernel_Protocol>>named:": [
+      [
+        0,
+        2969
+      ]
+    ],
+    "Kernel_Pending>>chan": [
+      [
+        0,
+        2980
+      ]
+    ],
+    "Kernel_Pending>>msg": [
+      [
+        0,
+        2981
+      ]
+    ],
+    "Kernel_Pending>>repeating": [
+      [
+        0,
+        2982
+      ]
+    ],
+    "Kernel_Pending>>setChan:msg:repeating:": [
+      [
+        0,
+        2983
+      ],
+      [
+        2,
+        2983
+      ],
+      [
+        4,
+        2983
+      ],
+      [
+        6,
+        2983
+      ]
+    ],
+    "Meta_Kernel_Pending>>chan:msg:repeating:": [
+      [
+        0,
+        2985
+      ]
+    ],
+    "Kernel_Timers>>after:post:on:": [
+      [
+        0,
+        3015
+      ],
+      [
+        4,
+        3016
+      ],
+      [
+        15,
+        3017
+      ],
+      [
+        20,
+        3018
+      ]
+    ],
+    "Kernel_Timers>>every:post:on:": [
+      [
+        0,
+        3023
+      ],
+      [
+        4,
+        3024
+      ],
+      [
+        15,
+        3025
+      ],
+      [
+        20,
+        3026
+      ]
+    ],
+    "Kernel_Timers>>cancel:": [
+      [
+        0,
+        3031
+      ],
+      [
+        6,
+        3032
+      ],
+      [
+        13,
+        3033
+      ],
+      [
+        21,
+        3035
+      ]
+    ],
+    "Kernel_Timers>>pendingCount": [
+      [
+        0,
+        3038
+      ]
+    ],
+    "Kernel_Timers>>cancelAddressedBy:": [
+      [
+        0,
+        3056
+      ],
+      [
+        4,
+        3057
+      ],
+      [
+        15,
+        3058
+      ],
+      [
+        20,
+        3059
+      ],
+      [
+        52,
+        3062
+      ]
+    ],
+    "Kernel_Timers>>is:under:": [
+      [
+        0,
+        3072
+      ],
+      [
+        5,
+        3072
+      ],
+      [
+        9,
+        3073
+      ],
+      [
+        13,
+        3074
+      ],
+      [
+        17,
+        3075
+      ],
+      [
+        24,
+        3075
+      ],
+      [
+        26,
+        3076
+      ],
+      [
+        28,
+        3077
+      ],
+      [
+        33,
+        3078
+      ],
+      [
+        46,
+        3078
+      ],
+      [
+        54,
+        3080
+      ]
+    ],
+    "Kernel_Timers>>now": [
+      [
+        0,
+        3082
+      ]
+    ],
+    "Kernel_Timers>>dispatch:": [
+      [
+        0,
+        3091
+      ],
+      [
+        6,
+        3092
+      ],
+      [
+        13,
+        3093
+      ],
+      [
+        32,
+        3095
+      ]
+    ],
+    "Kernel_Timers>>allocateToken": [
+      [
+        0,
+        3098
+      ],
+      [
+        2,
+        3098
+      ],
+      [
+        6,
+        3098
+      ]
+    ],
+    "Kernel_Timers>>setSpace:seam:": [
+      [
+        0,
+        3099
+      ],
+      [
+        2,
+        3099
+      ],
+      [
+        4,
+        3099
+      ]
+    ],
+    "Meta_Kernel_Timers>>usingSpace:seam:": [
+      [
+        0,
+        3101
+      ]
+    ],
+    "Kernel_GpioPulse>>pin:edge:post:on:": [
+      [
+        0,
+        3110
+      ],
+      [
+        9,
+        3111
+      ]
+    ],
+    "Kernel_GpioPulse>>fire:": [
+      [
+        0,
+        3112
+      ],
+      [
+        4,
+        3112
+      ]
+    ],
+    "Kernel_GpioPulse>>set:to:": [
+      [
+        0,
+        3121
+      ],
+      [
+        9,
+        3122
+      ],
+      [
+        17,
+        3123
+      ]
+    ],
+    "Kernel_GpioPulse>>level:": [
+      [
+        0,
+        3126
+      ],
+      [
+        5,
+        3127
+      ],
+      [
+        10,
+        3127
+      ],
+      [
+        18,
+        3128
+      ]
+    ],
+    "Kernel_GpioPulse>>setSpace:seam:": [
+      [
+        0,
+        3129
+      ],
+      [
+        2,
+        3129
+      ],
+      [
+        4,
+        3129
+      ]
+    ],
+    "Meta_Kernel_GpioPulse>>usingSpace:seam:": [
+      [
+        0,
+        3131
+      ]
+    ],
+    "Kernel_Display>>clear": [
+      [
+        0,
+        3143
+      ]
+    ],
+    "Kernel_Display>>at:col:put:": [
+      [
+        0,
+        3144
+      ]
+    ],
+    "Kernel_Display>>refresh": [
+      [
+        0,
+        3145
+      ]
+    ],
+    "Kernel_Display>>refreshRow:": [
+      [
+        0,
+        3146
+      ]
+    ],
+    "Kernel_Display>>check:": [
+      [
+        0,
+        3148
+      ],
+      [
+        5,
+        3148
+      ],
+      [
+        13,
+        3149
+      ],
+      [
+        18,
+        3149
+      ],
+      [
+        26,
+        3150
+      ],
+      [
+        31,
+        3150
+      ],
+      [
+        39,
+        3151
+      ]
+    ],
+    "Kernel_Display>>setSeam:": [
+      [
+        0,
+        3152
+      ],
+      [
+        2,
+        3152
+      ]
+    ],
+    "Meta_Kernel_Display>>usingSeam:": [
+      [
+        0,
+        3154
+      ]
+    ],
+    "Kernel_Bell>>strike:": [
+      [
+        0,
+        3168
+      ],
+      [
+        12,
+        3169
+      ],
+      [
+        20,
+        3170
+      ]
+    ],
+    "Kernel_Bell>>bellsForHalfHour:": [
+      [
+        0,
+        3187
+      ],
+      [
+        9,
+        3188
+      ],
+      [
+        14,
+        3188
+      ],
+      [
+        18,
+        3189
+      ]
+    ],
+    "Kernel_Bell>>check:": [
+      [
+        0,
+        3191
+      ],
+      [
+        5,
+        3191
+      ],
+      [
+        13,
+        3192
+      ],
+      [
+        18,
+        3192
+      ],
+      [
+        26,
+        3193
+      ]
+    ],
+    "Kernel_Bell>>setSeam:": [
+      [
+        0,
+        3194
+      ],
+      [
+        2,
+        3194
+      ]
+    ],
+    "Meta_Kernel_Bell>>usingSeam:": [
+      [
+        0,
+        3196
+      ]
+    ],
+    "Kernel_RtcAlarm>>at:post:on:": [
+      [
+        0,
+        3211
+      ]
+    ],
+    "Kernel_RtcAlarm>>setSpace:seam:": [
+      [
+        0,
+        3213
+      ],
+      [
+        2,
+        3213
+      ],
+      [
+        4,
+        3213
+      ]
+    ],
+    "Meta_Kernel_RtcAlarm>>usingSpace:seam:": [
+      [
+        0,
+        3215
       ]
     ],
     "Supervisor>>run:platform:args:debug:": [
@@ -4058,25 +9588,91 @@
     "Kernel_block2>>value::": [
       [
         1,
-        719
+        3395
       ]
     ],
     "Kernel_Collection_block9>>value:": [
       [
         1,
-        56
+        63
       ]
     ],
     "Kernel_Collection_block10>>value:": [
       [
         12,
-        61
+        68
       ]
     ],
-    "Meta_Kernel_List_block18>>value:": [
+    "Kernel_Collection_block15>>value:": [
       [
         1,
-        231
+        98
+      ]
+    ],
+    "Kernel_Collection_block16>>value:": [
+      [
+        1,
+        104
+      ]
+    ],
+    "Kernel_Collection_block19>>value:": [
+      [
+        1,
+        118
+      ],
+      [
+        17,
+        119
+      ],
+      [
+        19,
+        119
+      ]
+    ],
+    "Meta_Kernel_List_block32>>value:": [
+      [
+        1,
+        371
+      ]
+    ],
+    "Kernel_Cbor_block36>>value": [
+      [
+        1,
+        909
+      ],
+      [
+        8,
+        910
+      ]
+    ],
+    "Kernel_NetBridge_block44>>value:": [
+      [
+        1,
+        1569
+      ]
+    ],
+    "Kernel_PortaBridge_block46>>value:": [
+      [
+        1,
+        1786
+      ]
+    ],
+    "Kernel_PortaBridge_block49>>value:": [
+      [
+        1,
+        2009
+      ]
+    ],
+    "Kernel_PortaBridge_block51>>value": [
+      [
+        1,
+        2261
+      ]
+    ],
+    "Kernel_PortaBridge_block55>>value:": [
+      [
+        1,
+        2388
       ]
     ]
   }

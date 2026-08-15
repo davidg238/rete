@@ -70,21 +70,25 @@ struct Object {
     oop vtable;
 };
 
-/*
- * Symbol: An interned, unique string token representing a message selector.
- * Since a Symbol is an Object, it starts with a struct Object base.
- */
+/* Symbol: an interned selector/name. std-lib 3c-1's String proved the shape:
+   the bytes are INLINE in the heap object — one allocation, no ownership
+   question, and identical in RAM and in an XIP image, which is why
+   symbol_name() needs no blob branch (rete#190 stage 2). NUL-terminated
+   because symbol_name() returns a const char * consumed by strcmp at more
+   than twenty sites — allocate length + 1. GC leaf: gc.c trace_one must not
+   scan `name` as oops. */
 struct Symbol {
     struct Object base;
-    const char *name;
     size_t length;
+    char name[];        /* inline, NUL-terminated: allocate length + 1 */
 };
 
 /*
  * String: an immutable, NON-interned, packed UTF-8 byte sequence (std-lib 3c-1).
- * Unlike Symbol (separate malloc'd `name`), the bytes are INLINE in the heap
- * object — one allocation, and a GC leaf (gc.c trace_one must not scan `bytes`
- * as oops). Byte-granularity protocol only; runes are deferred (issue #1).
+ * The bytes are INLINE in the heap object — one allocation, and a GC leaf
+ * (gc.c trace_one must not scan `bytes` as oops); Symbol takes the same shape
+ * since rete#190 stage 2. Byte-granularity protocol only; runes are deferred
+ * (issue #1).
  */
 struct String {
     struct Object base;     // vtable == StringVtable
@@ -393,7 +397,20 @@ oop primitive_calls_reset(oop receiver, int argc, oop *args);
 void mprof_start(void);
 void mprof_stop(void);
 int  mprof_is_running(void);
+/* Allocation attribution, stage 1 (design docs/design/2026-08-12-allocation-attribution-design.md,
+   D1/D3). The allocating method is DERIVED from current_frame inside vm.c: gc.c
+   passes only a heap selector and a byte count, so the allocator never learns
+   what a method is, and MethodContext gains no field. */
+void mprof_alloc(unsigned heap, size_t bytes);
+#define MPROF_ALLOC(h, n) mprof_alloc((h), (n))
+#else
+#define MPROF_ALLOC(h, n) ((void)0)
 #endif
+/* Outside the #ifdef on purpose: gc.c names these at every call site whether or
+   not the flag is on. */
+#define MPROF_HEAP_ARENA 0u
+#define MPROF_HEAP_CHEAP 1u
+#define MPROF_HEAP_N     2u
 oop primitive_break_add(oop receiver, int argc, oop *args);
 oop primitive_break_remove(oop receiver, int argc, oop *args);
 oop primitive_method_of(oop receiver, int argc, oop *args);
@@ -475,6 +492,27 @@ struct OevmHeapStats {
     size_t gc_cycles;           /* completed collections since boot */
 };
 struct OevmHeapStats oevm_heap_stats(void);
+
+/* rete#190: the C-allocation seam. Every malloc/realloc/free the VM performs goes
+   through these three, so that (a) a NULL return is handled in ONE place instead of
+   six, and (b) bytes-outstanding is exact rather than inferred. The VM made six
+   allocations and exactly one free when this was written; the leak that motivated it
+   was one wire-Symbol buffer per decoded Symbol (platform.c asSymbol).
+   DELIBERATE BLIND SPOT: allocations made by lwIP, OpenThread or Zephyr itself are
+   invisible here. `fails` still catches a NULL from ANY cause, because whoever
+   exhausted the heap, the failing request is one the VM made. */
+struct OevmCHeapStats {
+    size_t out_bytes;   /* payload bytes currently outstanding (headers excluded) */
+    size_t out_high;    /* max of out_bytes ever observed (monotonic since boot) */
+    size_t allocs;      /* successful oevm_malloc + oevm_realloc calls since boot */
+    size_t frees;       /* oevm_free calls that released a block (NULL is not counted) */
+    size_t fails;       /* allocation attempts that returned NULL */
+};
+struct OevmCHeapStats oevm_cheap_stats(void);
+
+void *oevm_malloc(size_t n);
+void *oevm_realloc(void *p, size_t n);
+void  oevm_free(void *p);
 
 /* Fiber prims (fiberCreate:/fiberSwitch:value:) removed in Milestone A Task 5. */
 

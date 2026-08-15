@@ -35,6 +35,17 @@ a Zephyr output is still a floating input. Drawing:
 **not** mitigate #151 — it holds the base down only while the pin is undriven, and a solid
 tone is the pin being *driven*.
 
+**And R2 does not close the ROM downloader either (2026-08-12, #201).** The failed flash on
+2026-08-11 rang the bell for two minutes *with R2 already fitted*, so "fit a pull-down" —
+#201's first recommendation and §11.9's — is a remedy that was in place at the time of the
+failure. That makes the download-mode ring a **different fault from the reset-window ring
+R2 fixed**: with a high-Z pin R2 holds the base at 0 V, so GPIO18 must be driven high or
+weakly pulled up. R1/R2 = 10 k/47 k leave the base tracking 82% of the pin, which a ~45 kΩ
+internal pull-up is more than enough to defeat (base ≈ 1.5 V) where the solenoid rig's 10 kΩ
+was not (base ≈ 0.5 V). **Next bench action: park a board in `boot:0x66 DOWNLOAD`
+deliberately and meter GPIO18 and the 2N3904 base** — that state waits indefinitely, so it
+is the first time #105's localising test has had a target that holds still.
+
 **What is soaking now, and what it is worth watching for.** The bell runs a `PortaBridge`
 and reports `obs/build` + `sys/metrics` to porta every 30 s (#56 D8), carrying `pulseDrops`
 and `pulseCoalesced`. Three live stakes on that, all filed: **#153** (watch
@@ -407,6 +418,55 @@ built and gated 2026-08-08; thread 2 above has the status.)**
    (`docs/design/2026-08-06-method-profile-over-porta-design.md` D9/D10). Also closed #74:
    `platform buildId` names the running build, so the `.oimg.methods.json` sidecar the
    profiler's offsets are resolved against cannot be picked wrong.
+
+   **Allocation attribution rode the same table — stage 1 DONE 2026-08-12** (#190's row;
+   design `docs/design/2026-08-12-allocation-attribution-design.md`). The same mprof rows
+   now carry per-method *allocated bytes*, hooked at the single accounting choke point of
+   each heap, so "who allocates" is answerable by name rather than by bisecting builds.
+   The method key is *derived* from `current_frame->closure` at the allocation site, so
+   `gc.c` learns nothing about methods and `struct MethodContext` gains no field. Three
+   windows, all with `allocOverflow=0` and a **zero** no-frame bucket:
+
+   | window | distinct allocating methods | arena allocs per activation |
+   |---|---|---|
+   | host, full `porta_sync_host.sh` | 64 | 1 per 10 300 |
+   | C6 boot (`PortaBridgeNodeC6`) | **80** | 1 per 5.6 |
+   | C6 steady-state bridging, 60 s | 65 | 1 per 15.4 |
+
+   **The steady-state population is a strict subset of the boot population** (union 80), so
+   boot bounds this workload and 80 is stage 2's sizing input — a 128-slot always-on table
+   at 0.63 load. Two things the measurement refuted rather than confirmed: D4's "allocations
+   are two orders of magnitude rarer than activations" is wrong on target by two to three
+   orders, and #166 was cleared of the C6 hang along the way when a 1024-slot build hung
+   identically. What the rows say about the code: the CBOR codec is the entire steady-state
+   allocation story, `ByteBuilder`'s grow-then-freeze is 7–11% of a window for what #163
+   calls pure overhead, and **every Symbol-vs-Symbol comparison materializes two Strings**
+   (`valueCompare:with:` rank 6 goes through `printString` because `dispatch.c` has no
+   Symbol fast path for `at:`/`size`) — which is 71% of all C-heap allocation on the node
+   and is #204's real answer. Results:
+   `docs/results/2026-08-12-allocation-attribution-{host,c6}.md`. Stage 2 is **#203**.
+
+   **The one open item — the hook's runtime cost — closed the same evening.** An open
+   window costs **+1.88% of the node's local CPU and +0.13% of elapsed time** at the 2 s
+   cadence (~0.30 µs per hooked event) at a table load of 0.77, so the always-on table D8
+   wants is affordable on this evidence and D5's invented knob is still not earned.
+   `ProfileCostNodeC6.nsl` runs `off | ON | off` eight times in one binary and one boot;
+   the claim is a **sign test** (8 of 8, null 1/3) and not a mean, because the first
+   two-arm run read +1.56% with drift a third of that. The same run discharged the
+   post-#205 steady-state window that #206 was blocking (66 workload allocating methods
+   vs 65 before, i.e. #205 moved boot and not steady state).
+   `docs/results/2026-08-12-profile-window-cost-c6.md`, design §9.8.
+
+   **And #166 fell to the same rig, the same evening.** A fixed-depth Hanoi burst rides
+   the same arms in its own span — **inside** the bridge tick, which is the load-bearing
+   choice, because Hanoi alone reproduces exactly the 0.008 load factor #166 was opened
+   about. The activation hook alone: **322.7 ns/activation at load 0.78 against 106 ns at
+   0.008, i.e. 3.04×**, so the quoted 0.90% was understating real-load cost by 2.6× and
+   #166's suspicion is confirmed. The probe earns its place by predicting its own
+   denominator (2ⁿ−1 activations, pinned against the dump) and by holding no radio: drift
+   0.089% against 0.58–1.5% on the bridge spans. Still open and now a *feature*
+   question, not a spike: the allocation columns' own per-event price needs per-span
+   activation counts. Design §9.9.
 
 **One thing ran ahead of #25, on 2026-08-05, and it is finished.** The span capture that
 closed #107 left a check-in costing ~300 ms with no breakdown, and the breakdown was one
