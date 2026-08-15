@@ -151,7 +151,7 @@ func TestIngestDedupesOnHighWater(t *testing.T) {
 	if hw, skipped, err = st.Ingest("n1", 7, batch); hw != 2 || skipped != 2 || err != nil {
 		t.Fatalf("replayed Ingest = %d, %d, %v; want 2, 2, nil", hw, skipped, err)
 	}
-	evs, _ := st.Events("n1", 100)
+	evs, _ := st.Events("n1", 100, 0)
 	if len(evs) != 2 {
 		t.Fatalf("got %d events after replay, want 2", len(evs))
 	}
@@ -161,7 +161,7 @@ func TestIngestDedupesOnHighWater(t *testing.T) {
 func TestEventsCarryProvenance(t *testing.T) {
 	st := testStore(t)
 	st.Write("n1", "goal/name", cval.KindCell, enc(t, "alpha"), "agent-7", "rollout")
-	evs, _ := st.Events("n1", 10)
+	evs, _ := st.Events("n1", 10, 0)
 	if len(evs) != 1 {
 		t.Fatalf("got %d events, want 1", len(evs))
 	}
@@ -180,7 +180,7 @@ func TestSupersededIntentSurvivesInTheLog(t *testing.T) {
 	if len(tree) != 1 {
 		t.Fatalf("tree has %d rows, want 1", len(tree))
 	}
-	evs, _ := st.Events("n1", 10)
+	evs, _ := st.Events("n1", 10, 0)
 	if len(evs) != 2 {
 		t.Fatalf("log has %d rows, want 2 (X must still be visible)", len(evs))
 	}
@@ -227,5 +227,133 @@ func TestEmptyPeerAddressDoesNotClobber(t *testing.T) {
 	st.RecordExchange("n1", 7, 3, 4, 0, 0, "")
 	if got, _ := st.NodeAddr("n1"); got != "fdde:ad00::1" {
 		t.Fatalf("NodeAddr = %q after an addr-less exchange, want the address kept", got)
+	}
+}
+
+// THE 2026-08-14 READING, REPRODUCED IN THE STORE. A rebooted node rewrites its
+// whole tree, but the rows arrive over several seconds — measured at 11 s for
+// sixteen diag/spans rows, which begins AFTER the target harness's console
+// verdict has returned. A read taken inside that window is a mixture of two
+// boots, and before boot_id nothing in a row could say which was which: it read
+// as a coherent answer and nearly inverted a hardware finding (rete#210/#161).
+func TestTreeReportsWhichBootPublishedEachCell(t *testing.T) {
+	st := testStore(t)
+	if _, _, err := st.Ingest("n1", 40, []Entry{
+		{Seq: 1, Path: "diag/spans/pushTrim", Kind: cval.KindCell, Value: enc(t, int64(51923))},
+		{Seq: 2, Path: "diag/spans/checkIn", Kind: cval.KindCell, Value: enc(t, int64(243307))},
+	}); err != nil {
+		t.Fatalf("boot 40 Ingest: %v", err)
+	}
+	// The node reboots and has republished only part of its tree so far.
+	if _, _, err := st.Ingest("n1", 41, []Entry{
+		{Seq: 1, Path: "diag/spans/checkIn", Kind: cval.KindCell, Value: enc(t, int64(235037))},
+	}); err != nil {
+		t.Fatalf("boot 41 Ingest: %v", err)
+	}
+	boot, err := st.CurrentBoot("n1")
+	if err != nil || boot != 41 {
+		t.Fatalf("CurrentBoot = %d, %v; want 41, nil", boot, err)
+	}
+	tree, err := st.Tree("n1", "diag/")
+	if err != nil {
+		t.Fatalf("Tree: %v", err)
+	}
+	got := map[string]int64{}
+	for _, c := range tree {
+		got[c.Path] = c.BootID
+	}
+	if got["diag/spans/checkIn"] != 41 {
+		t.Fatalf("checkIn boot = %d, want 41 (republished after the reboot)", got["diag/spans/checkIn"])
+	}
+	if got["diag/spans/pushTrim"] != 40 {
+		t.Fatalf("pushTrim boot = %d, want 40 — the previous boot's value, which is exactly the row that read as fresh", got["diag/spans/pushTrim"])
+	}
+}
+
+// The log can reconstruct one boot; the cell tree cannot, which is why --boot
+// lives here and not on get.
+func TestEventsFilterByBoot(t *testing.T) {
+	st := testStore(t)
+	st.Ingest("n1", 40, []Entry{{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: enc(t, "old")}})
+	st.Ingest("n1", 41, []Entry{{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: enc(t, "new")}})
+	all, _ := st.Events("n1", 100, 0)
+	if len(all) != 2 {
+		t.Fatalf("unfiltered log has %d rows, want 2", len(all))
+	}
+	one, _ := st.Events("n1", 100, 41)
+	if len(one) != 1 || one[0].BootID != 41 {
+		t.Fatalf("--boot 41 returned %+v, want exactly the boot-41 row", one)
+	}
+}
+
+// porta's own writes carry no node boot, and must never be reported as stale:
+// a node reboot does not invalidate the operator's intent.
+func TestOutboundRowsCarryNoBoot(t *testing.T) {
+	st := testStore(t)
+	st.Write("n1", "goal/name", cval.KindCell, enc(t, "alpha"), "david", "")
+	st.Ingest("n1", 41, []Entry{{Seq: 1, Path: "obs/name", Kind: cval.KindCell, Value: enc(t, "alpha")}})
+	tree, _ := st.Tree("n1", "")
+	for _, c := range tree {
+		switch c.Path {
+		case "goal/name":
+			if c.Direction != "out" || c.BootID != 0 {
+				t.Fatalf("goal/name = dir %q boot %d; want out, 0", c.Direction, c.BootID)
+			}
+		case "obs/name":
+			if c.Direction != "in" || c.BootID != 41 {
+				t.Fatalf("obs/name = dir %q boot %d; want in, 41", c.Direction, c.BootID)
+			}
+		}
+	}
+}
+
+// A node with no persistent identity pushes bid 0. That must read as UNKNOWN
+// and never as a boot number, or the guard would fabricate a distinction the
+// node never made (posix without TUVM_BOOTID_FILE; a board without
+// CONFIG_SETTINGS returns 0 from platform_backend_boot_id).
+func TestBootlessNodeStoresZeroRatherThanInventingOne(t *testing.T) {
+	st := testStore(t)
+	st.Ingest("n1", 0, []Entry{{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(1))}})
+	tree, _ := st.Tree("n1", "")
+	if len(tree) != 1 || tree[0].BootID != 0 {
+		t.Fatalf("tree = %+v, want one row with boot 0", tree)
+	}
+	boot, _ := st.CurrentBoot("n1")
+	if boot != 0 {
+		t.Fatalf("CurrentBoot = %d, want 0", boot)
+	}
+}
+
+// A store created before boot_id existed must gain the column on open, and a
+// second open must be a no-op. Without this the live soak store would have to
+// be rebuilt, costing the history rete#190's evidence rests on and forcing every
+// node through a full re-push.
+func TestOpenAddsBootIDToAPreExistingStore(t *testing.T) {
+	path := t.TempDir() + "/old.db"
+	st, err := Open(path, func() int64 { return 1000 })
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	// Recreate the pre-boot_id shape by dropping the columns back off.
+	for _, tbl := range []string{"cells", "events"} {
+		if _, err := st.DB().Exec("ALTER TABLE " + tbl + " DROP COLUMN boot_id"); err != nil {
+			t.Fatalf("drop %s.boot_id: %v", tbl, err)
+		}
+	}
+	st.Close()
+
+	st2, err := Open(path, func() int64 { return 2000 })
+	if err != nil {
+		t.Fatalf("reopen of a pre-boot_id store: %v", err)
+	}
+	defer st2.Close()
+	if _, _, err := st2.Ingest("n1", 41, []Entry{
+		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(7))},
+	}); err != nil {
+		t.Fatalf("Ingest after migration: %v", err)
+	}
+	tree, _ := st2.Tree("n1", "")
+	if len(tree) != 1 || tree[0].BootID != 41 {
+		t.Fatalf("tree = %+v, want the migrated column carrying boot 41", tree)
 	}
 }

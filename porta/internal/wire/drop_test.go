@@ -147,7 +147,7 @@ func TestDropAckEverySwallowsTheNthAckAfterTheCommit(t *testing.T) {
 		t.Fatal("the third ack should have been swallowed")
 	}
 
-	evs, err := st.Events("n1", 100)
+	evs, err := st.Events("n1", 100, 0)
 	if err != nil {
 		t.Fatalf("Events: %v", err)
 	}

@@ -18,6 +18,7 @@ import (
 // this log keeps it.
 func newLogCmd() *cobra.Command {
 	var limit int
+	var boot int64
 	cmd := &cobra.Command{
 		Use:   "log <node>",
 		Short: "Show the write log for a node, newest first",
@@ -28,7 +29,7 @@ func newLogCmd() *cobra.Command {
 				return err
 			}
 			defer st.Close()
-			rows, err := st.Events(args[0], limit)
+			rows, err := st.Events(args[0], limit, boot)
 			if err != nil {
 				return err
 			}
@@ -42,12 +43,29 @@ func newLogCmd() *cobra.Command {
 				if err == nil {
 					text = cval.Format(v)
 				}
-				fmt.Fprintf(c.OutOrStdout(), "%s %s %-28s seq=%-6d %-12s %s\n",
-					time.UnixMilli(e.TsMs).Format(time.RFC3339), dir, e.Path, e.Seq, e.Actor, text)
+				fmt.Fprintf(c.OutOrStdout(), "%s %s %-28s seq=%-6d %-9s %-12s %s\n",
+					time.UnixMilli(e.TsMs).Format(time.RFC3339), dir, e.Path, e.Seq,
+					eventBootLabel(e), e.Actor, text)
 			}
 			return nil
 		},
 	}
 	cmd.Flags().IntVar(&limit, "limit", 50, "maximum rows")
+	// Answerable on the log and nowhere else: it is append-only, so one boot is
+	// a filter over rows that each record their own. The cell tree keeps only
+	// the latest value per path and could never reconstruct a past boot, which
+	// is why `get` has no such flag (rete#210).
+	cmd.Flags().Int64Var(&boot, "boot", 0, "show only rows the node published during boot N")
 	return cmd
+}
+
+func eventBootLabel(e space.Event) string {
+	switch {
+	case e.Direction == "out":
+		return "boot=-"
+	case e.BootID == 0:
+		return "boot=?"
+	default:
+		return fmt.Sprintf("boot=%d", e.BootID)
+	}
 }

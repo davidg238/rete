@@ -33,6 +33,19 @@ type Event struct {
 	Direction string
 	Actor     string
 	Reason    string
+	BootID    int64
+}
+
+// Cell is a row of the operator's tree read. Entry is deliberately NOT extended
+// to carry BootID: Entry is what rides the radio, and a display field on the
+// wire type that the encoder must remember to ignore is a field added beside
+// what was there rather than instead of it. Event already follows this shape —
+// Entry plus what only the store knows — so Cell is the symmetric one.
+type Cell struct {
+	Entry
+	BootID    int64
+	Direction string
+	TsMs      int64
 }
 
 type Store struct {
@@ -48,6 +61,16 @@ func Open(path string, nowMs func() int64) (*Store, error) {
 	if _, err := db.Exec(schema); err != nil {
 		db.Close()
 		return nil, err
+	}
+	for _, stmt := range addColumns {
+		// Only "duplicate column name" is expected here — the column is already
+		// present, which is the steady state. Anything else is a real fault and
+		// must not be swallowed, or a store that failed to gain the column would
+		// serve unanchored reads while looking healthy.
+		if _, err := db.Exec(stmt); err != nil && !strings.Contains(err.Error(), "duplicate column name") {
+			db.Close()
+			return nil, fmt.Errorf("%s: %w", stmt, err)
+		}
 	}
 	return &Store{db: db, nowMs: nowMs}, nil
 }
@@ -73,23 +96,23 @@ func ensureNode(tx *sql.Tx, nodeID string, nowMs int64) error {
 // upsertCell writes the latest value for a path. direction records which side
 // produced it, which is what keeps porta's out_seq and the node's push seq
 // from being compared to each other (see schema.go).
-func upsertCell(tx *sql.Tx, nodeID, path string, seq int64, kind cval.Kind, value []byte, nowMs int64, direction string) error {
+func upsertCell(tx *sql.Tx, nodeID, path string, seq int64, kind cval.Kind, value []byte, nowMs int64, direction string, bootID int64) error {
 	_, err := tx.Exec(`
-		INSERT INTO cells (node_id, path, seq, kind, value_cbor, ts_ms, direction)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO cells (node_id, path, seq, kind, value_cbor, ts_ms, direction, boot_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(node_id, path) DO UPDATE SET
 		  seq = excluded.seq, kind = excluded.kind,
 		  value_cbor = excluded.value_cbor, ts_ms = excluded.ts_ms,
-		  direction = excluded.direction`,
-		nodeID, path, seq, int(kind), value, nowMs, direction)
+		  direction = excluded.direction, boot_id = excluded.boot_id`,
+		nodeID, path, seq, int(kind), value, nowMs, direction, bootID)
 	return err
 }
 
-func appendEvent(tx *sql.Tx, nodeID, path string, seq int64, kind cval.Kind, value []byte, nowMs int64, direction, actor, reason string) error {
+func appendEvent(tx *sql.Tx, nodeID, path string, seq int64, kind cval.Kind, value []byte, nowMs int64, direction, actor, reason string, bootID int64) error {
 	_, err := tx.Exec(`
-		INSERT INTO events (node_id, path, seq, kind, value_cbor, ts_ms, direction, actor, reason)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		nodeID, path, seq, int(kind), value, nowMs, direction, actor, reason)
+		INSERT INTO events (node_id, path, seq, kind, value_cbor, ts_ms, direction, actor, reason, boot_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		nodeID, path, seq, int(kind), value, nowMs, direction, actor, reason, bootID)
 	return err
 }
 
@@ -121,12 +144,15 @@ func (s *Store) Write(nodeID, path string, kind cval.Kind, value []byte, actor, 
 		nodeID).Scan(&seq); err != nil {
 		return 0, err
 	}
+	// boot_id 0 on an outbound row: porta's own intent has no node boot, and
+	// `direction` is what tells that apart from a node with no persistent
+	// identity. Neither is ever reported as stale.
 	if kind == cval.KindCell {
-		if err := upsertCell(tx, nodeID, path, seq, kind, value, now, "out"); err != nil {
+		if err := upsertCell(tx, nodeID, path, seq, kind, value, now, "out", 0); err != nil {
 			return 0, err
 		}
 	}
-	if err := appendEvent(tx, nodeID, path, seq, kind, value, now, "out", actor, reason); err != nil {
+	if err := appendEvent(tx, nodeID, path, seq, kind, value, now, "out", actor, reason, 0); err != nil {
 		return 0, err
 	}
 	return seq, tx.Commit()
@@ -241,12 +267,17 @@ func (s *Store) Ingest(nodeID string, bootID int64, entries []Entry) (hw int64, 
 		if err := cval.Validate(e.Value); err != nil {
 			return 0, 0, fmt.Errorf("node %s sent a malformed value at %s: %w", nodeID, e.Path, err)
 		}
+		// bootID is stamped on the row, not merely on the node: it is the only
+		// thing that can later say WHICH boot published this value, and a
+		// rebooted node's tree arrives over seconds, so a read taken mid-rewrite
+		// otherwise blends two boots and cannot be told from a coherent one
+		// (rete#210). The value costs nothing to carry — it is already in hand.
 		if e.Kind == cval.KindCell {
-			if err := upsertCell(tx, nodeID, e.Path, e.Seq, e.Kind, e.Value, now, "in"); err != nil {
+			if err := upsertCell(tx, nodeID, e.Path, e.Seq, e.Kind, e.Value, now, "in", bootID); err != nil {
 				return 0, 0, err
 			}
 		}
-		if err := appendEvent(tx, nodeID, e.Path, e.Seq, e.Kind, e.Value, now, "in", nodeID, ""); err != nil {
+		if err := appendEvent(tx, nodeID, e.Path, e.Seq, e.Kind, e.Value, now, "in", nodeID, "", bootID); err != nil {
 			return 0, 0, err
 		}
 		hw = e.Seq
@@ -383,34 +414,56 @@ func (s *Store) NodeAddr(nodeID string) (string, error) {
 // operator's view. goal/X vs obs/X is a diff over two of these, which is why
 // self-heal disappears as a separate mechanism. Both directions are included
 // deliberately: the diff is the whole point.
-func (s *Store) Tree(nodeID, prefix string) ([]Entry, error) {
+// Each row carries the boot that published it, so a caller can tell a coherent
+// read from one taken while a rebooted node was still rewriting its tree. See
+// CurrentBoot for the other half of that comparison.
+func (s *Store) Tree(nodeID, prefix string) ([]Cell, error) {
 	rows, err := s.db.Query(`
-		SELECT seq, path, kind, value_cbor FROM cells
+		SELECT seq, path, kind, value_cbor, boot_id, direction, ts_ms FROM cells
 		WHERE node_id = ? AND path LIKE ? ESCAPE '\' ORDER BY path`,
 		nodeID, escapeLike(prefix)+"%")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var out []Entry
+	var out []Cell
 	for rows.Next() {
-		var e Entry
+		var c Cell
 		var k int
-		if err := rows.Scan(&e.Seq, &e.Path, &k, &e.Value); err != nil {
+		if err := rows.Scan(&c.Seq, &c.Path, &k, &c.Value, &c.BootID, &c.Direction, &c.TsMs); err != nil {
 			return nil, err
 		}
-		e.Kind = cval.Kind(k)
-		out = append(out, e)
+		c.Kind = cval.Kind(k)
+		out = append(out, c)
 	}
 	return out, rows.Err()
 }
 
+// CurrentBoot is the boot the node is on now — the `bid` of its most recent
+// envelope. 0 means either that porta has never heard from it or that the node
+// has no persistent identity; both are answered as "unknown" rather than being
+// distinguished here, because a caller can do nothing different with them.
+func (s *Store) CurrentBoot(nodeID string) (int64, error) {
+	var boot sql.NullInt64
+	err := s.db.QueryRow(`SELECT boot_id FROM nodes WHERE id = ?`, nodeID).Scan(&boot)
+	if err == sql.ErrNoRows {
+		return 0, nil
+	}
+	return boot.Int64, err
+}
+
 // Events returns the most recent log rows, newest first — porta log.
-func (s *Store) Events(nodeID string, limit int) ([]Event, error) {
+//
+// boot > 0 restricts the read to one boot. That question is answerable HERE and
+// not on the cell tree: the log is append-only, so "what did the node publish
+// during boot N" is a filter, whereas cells holds only the latest value per path
+// and could answer at most "paths whose last write happened to fall in boot N".
+func (s *Store) Events(nodeID string, limit int, boot int64) ([]Event, error) {
 	rows, err := s.db.Query(`
-		SELECT seq, path, kind, value_cbor, ts_ms, direction, actor, reason
-		FROM events WHERE node_id = ? ORDER BY id DESC LIMIT ?`,
-		nodeID, limit)
+		SELECT seq, path, kind, value_cbor, ts_ms, direction, actor, reason, boot_id
+		FROM events WHERE node_id = ? AND (? = 0 OR boot_id = ?)
+		ORDER BY id DESC LIMIT ?`,
+		nodeID, boot, boot, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -419,7 +472,7 @@ func (s *Store) Events(nodeID string, limit int) ([]Event, error) {
 	for rows.Next() {
 		var e Event
 		var k int
-		if err := rows.Scan(&e.Seq, &e.Path, &k, &e.Value, &e.TsMs, &e.Direction, &e.Actor, &e.Reason); err != nil {
+		if err := rows.Scan(&e.Seq, &e.Path, &k, &e.Value, &e.TsMs, &e.Direction, &e.Actor, &e.Reason, &e.BootID); err != nil {
 			return nil, err
 		}
 		e.Kind = cval.Kind(k)
