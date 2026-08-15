@@ -175,6 +175,40 @@ node which never checks in), is in the rete root's
 `docs/design/2026-08-07-code-push-host-slice-design.md` §§2–5 — not `porta/docs/design/`,
 because that rung spans both halves.
 
+### 3.4 Every stored row records which boot published it (rete#210, recorded 2026-08-15)
+
+`cells` and `events` each carry a **`boot_id`**, and `porta get` marks any row that predates
+the node's current boot.
+
+The reason is a silent wrong answer, not a nicety. `cells` holds the latest value per
+`(node, path)`, and a rebooted node rewrites its whole tree **over several seconds** — sixteen
+`diag/spans/**` rows took 11 s in the run that exposed this, a window that begins *after* the
+target harness's console verdict has returned. A read taken inside it answers with a mixture:
+this boot's values for the paths that have arrived, the previous boot's for the rest. Before
+`boot_id`, nothing in a row said which, so the mixture was indistinguishable from a coherent
+answer, and it nearly inverted a hardware finding on 2026-08-14 (rete#161).
+
+The anchor was **not new information**. `bootId` is a persisted, monotonic, NVS-backed counter
+the node already sends as `bid` on every envelope (added for rete#162/#117); porta already
+stored it on `nodes` and `exchanges`, and `Ingest` already held it at the moment it wrote both
+tables. The fix was to stop discarding it.
+
+Four properties worth knowing before reading output:
+
+- **`boot=?` is unknown, never stale.** A node with no persistent identity (posix without
+  `TUVM_BOOTID_FILE`, a board without `CONFIG_SETTINGS`) genuinely reports 0, as do rows
+  written before the column existed. Neither is marked.
+- **`boot=-` is an outbound row** — your own `goal/**` write. Porta's intent has no node boot
+  and no reboot invalidates it.
+- **The `! MIXED READ` banner goes to stdout**, so a pipe cannot eat it.
+- **`--boot N` exists on `log` and deliberately not on `get`.** The log is append-only, so one
+  boot is a filter; the cell tree keeps only the latest value per path and could answer at most
+  "paths whose *last* write fell in boot N" — a new way to be misled under a flag name
+  promising otherwise.
+
+Existing stores gain the column on open via an idempotent `ALTER TABLE`; rows already present
+read unknown and each path acquires a real boot id the next time it is written.
+
 ---
 
 ## 4. Transports
