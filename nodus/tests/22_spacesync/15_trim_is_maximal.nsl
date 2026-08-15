@@ -1,0 +1,99 @@
+(*
+expect:
+one row 112
+overflowing rows 8
+frame fits true
+frame bytes 481
+frame entries 4
+dropped the tail true
+kept the lowest seqs true
+one more would not fit true
+*)
+(* rete#161 — the tail-trim keeps the LONGEST PREFIX that fits, and this pins that
+   as a property rather than as an implementation.
+
+   WHY IT EXISTS. `pushFrame`'s trim used to walk: drop the last row, re-encode the
+   whole frame, repeat. rete#161 measured that walk at 62% of a check-in; rete#199
+   measured what it does to a node whose pushes are being REFUSED, where `acked`
+   freezes and every check-in re-collects everything — ~80 full-frame encodes twice
+   a second, each abandoning a ladder of power-of-two ByteBuilder buffers, until the
+   arena could not find 4104 contiguous bytes and the node halted with 34% of it
+   live. The walk is now a bisection.
+
+   A BISECTION IS ONLY LEGAL IF THE PREDICATE IS MONOTONE, and it is — not by
+   assumption about the data but by construction of the codec: `Cbor>>encodeList:`
+   emits the array head and then encodes each element independently, so a row costs
+   the same bytes alone as in place, and adding a row can only lengthen the frame.
+   This file is the guard on that: it pins the trim's OUTPUT, so a future change to
+   either the codec or the trim that breaks the equivalence shows up as a number
+   moving rather than as a frame quietly losing rows.
+
+   THE NUMBERS ARE MEASURED, NOT DERIVED, and they were confirmed identical against
+   the pre-bisection walk before being pinned — which is what makes this a
+   refactor guard and not a restatement of whatever the code now does.
+
+   WHAT IT DELIBERATELY DOES NOT TEST. Which rows the trim drops is rete#150's
+   question and is unchanged here: it still takes the TAIL, so it still drops the
+   freshest, highest-seq row first. `dropped the tail` and `kept the lowest seqs`
+   below pin that rule so a bisection bug that inverted the prefix could not pass.
+
+   Eight obs cells is the ceiling `maxRows` allows from one prefix, and each value
+   is sized so the eight together overflow 512 B by enough that the trim must drop
+   more than one row — a one-row trim would pass under a walk and a bisection
+   alike, and prove nothing about either. *)
+class TrimIsMaximal packageUsing: manifest = () (
+
+  (* A value fat enough that eight rows overflow the 512 B cap by SEVERAL rows and
+     not by one. A frame that trims a single row is trimmed identically by a walk
+     and by a bisection, so it would pass either way and discriminate nothing;
+     dropping four is what makes the two algorithms disagree if the bisection's
+     bounds are wrong. Fixed content, so the byte counts below are stable, and
+     comfortably under the 256 B `maxValueBytes` cap that would reject it outright. *)
+  base = ( ^ 'abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmn' )
+  filler = ( ^ self base , self base )
+
+  public main: platform args: args = (
+    | space bridge spans frame ent i lo maxSeq minSeq |
+    space:: platform space.
+    spans:: platform Spans new.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans.
+
+    (* One row's cost, so the expectations below can be read rather than trusted. *)
+    ('one row ' , (platform Cbor encode:
+        (platform List with: 1 with: 'obs/c1' with: 2 with: self filler)) byteSize printString) out.
+
+    i:: 1.
+    [ i <= 8 ] whileTrue: [
+      space put: ('obs/c' , i printString) value: self filler.
+      i:: i + 1 ].
+
+    (* What the collector offers before the trim: maxRows per prefix, and obs is
+       the only prefix written here. *)
+    ('overflowing rows ' , ((space channel: 'obs') changedSince: 0 max: 8) size printString) out.
+
+    frame:: platform Cbor decode: bridge pushFrame ifInvalid: [ :m | nil ].
+    ent:: frame at: #ent ifAbsent: [ nil ].
+    ('frame fits ' , ((platform Cbor encode: frame) byteSize <= 512) printString) out.
+    ('frame bytes ' , (platform Cbor encode: frame) byteSize printString) out.
+    ('frame entries ' , ent size printString) out.
+
+    (* The tail rule (rete#150), pinned so an inverted prefix cannot pass. *)
+    minSeq:: (ent at: 1) at: 1.
+    maxSeq:: (ent at: ent size) at: 1.
+    ('dropped the tail ' , (ent size < 8) printString) out.
+    ('kept the lowest seqs ' , (minSeq < maxSeq) printString) out.
+
+    (* MAXIMALITY: the frame is the LONGEST fitting prefix, so one more row must
+       not fit. Rebuilt through the same envelope pushFrame uses. *)
+    lo:: platform OrderedCollection new.
+    i:: 1.
+    [ i <= (ent size + 1) ] whileTrue: [
+      lo add: (platform List with: i with: 'obs/c' , i printString with: 2 with: self filler).
+      i:: i + 1 ].
+    ('one more would not fit ' , ((platform Cbor encode: (platform Record tag: #push
+        with: #id -> 'n1'
+        with: #bid -> bridge bootId
+        with: #ent -> (platform List fromCollection: lo))) byteSize > 512) printString) out.
+  )
+) : (
+)
