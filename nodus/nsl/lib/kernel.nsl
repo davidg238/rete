@@ -696,6 +696,28 @@ class Kernel usingPlatform: platform = () (
   ) : (
   )
 
+  (* A SINK THAT COUNTS INSTEAD OF STORING — the `acc` of `Cbor>>sizeOf:` (rete#161).
+     Every encoder path reaches its accumulator through `add:` and nothing else, so
+     substituting this for a ByteBuilder answers the exact encoded length by running
+     the REAL encoder.
+
+     WHY NOT A SIZE-ONLY WALK. A second traversal that computed lengths arithmetically
+     would be faster still, and it would have to be kept in lockstep with
+     `encode:into:depth:` forever — the day the two drift, a frame is mis-sized in
+     silence, which is the one failure this must not have. Here agreement is not a
+     property to test but a property of the construction: one encoder, two sinks.
+
+     WHAT IT SAVES, stated honestly: the accumulator's doubling `grow` and the
+     exact-size copy in `frozenBytes`, which the profile puts at ~2/3 of an encode.
+     It does NOT save the per-byte `add:` activations, and `encodeMap:` still buffers
+     each KEY in a real ByteBuilder, so sizing a map is cheaper than encoding it but
+     is not allocation-free. *)
+  class ByteCounter = ( | count ::= 0. | ) (
+    public add: b = ( count:: count + 1. ^ b )
+    public size = ( ^ count )
+  ) : (
+  )
+
   (* Rung 3 Task 5: the CBOR value codec — encode half. A module sibling of
      List/Map/Record; the recursive descent lives here in nsl and drops to the
      C leaf byte-primitives (`platform cborEncodeInt:`/`cborEncodeFloat:`) only
@@ -721,6 +743,14 @@ class Kernel usingPlatform: platform = () (
       acc:: ByteBuilder new.
       self encode: v into: acc depth: 1.
       ^ acc frozenBytes )
+
+    (* How many bytes `encode:` would answer, without building them. Same walk,
+       counting sink — see ByteCounter for why this is not a second implementation.
+       Raises on the same values `encode:` raises on, and at the same depth. *)
+    public sizeOf: v = ( | acc |
+      acc:: ByteCounter new.
+      self encode: v into: acc depth: 1.
+      ^ acc size )
 
     encode: v into: acc depth: d = ( | rank |
       d > 32 ifTrue: [ ^ self error: 'message depth exceeded' ].
