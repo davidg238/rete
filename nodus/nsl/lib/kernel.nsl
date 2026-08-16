@@ -1963,19 +1963,26 @@ class Kernel usingPlatform: platform = () (
     (* THE THREE INNER SPANS (tuvm#161), nested inside `pushBuild`:
 
          pushCollect  collectOutbound — the pending walk, the three cell scans,
-                      and `valueFits:`, which CBOR-encodes every candidate value
-                      in full and throws the bytes away
-         pushEncode   the FIRST full-frame encode, re-encoding every one of those
-                      values a second time
-         pushTrim     the re-encode-per-dropped-row loop
+                      and `valueFits:`, which SIZES every candidate value without
+                      building its bytes (rete#161; it used to encode each one in
+                      full and throw the bytes away)
+         pushEncode   the FIRST full-frame encode
+         pushTrim     the climb around it
 
        This is the falsifiable precondition #161 names, and it is the whole point
-       of taking it before any fix: the source reading says a value is encoded
+       of taking it before any fix: the source reading said a value was encoded
        once to be measured, once to be sent, and once more per trim iteration, and
-       the two proposed fixes address DIFFERENT terms of that sum — carrying
-       `valueFits:`'s bytes into the row pays off in `pushCollect` + `pushEncode`,
-       sizing the frame incrementally pays off in `pushTrim`. Without this split,
-       "the trim loop is expensive" is a reading of the source, not a finding.
+       the fixes address DIFFERENT terms of that sum — sizing instead of encoding
+       pays off in `pushCollect`, sizing the frame incrementally pays off in
+       `pushTrim`. Without this split, "the trim loop is expensive" is a reading
+       of the source, not a finding.
+
+       THE FIRST TERM IS PAID (rete#161 fix (1), 2026-08-16). `valueFits:` asks
+       `Cbor>>sizeOf:` now, so the measure-encode is gone: the arena cost of
+       deciding a candidate no longer scales with the candidate. Measured on the
+       all-rejected path, where nothing else is in the window: 19624 B -> 3688 B
+       for eight 303 B cells, and 72104 B -> 3688 B for eight 2003 B cells.
+       22_spacesync/16 holds it there as an equality.
 
        THE THREE ARE UNCONDITIONAL, so they partition `pushBuild` the way the six
        partition `checkIn`. In particular `pushTrim` is entered on every push even
@@ -2020,9 +2027,15 @@ class Kernel usingPlatform: platform = () (
        control leg measures `pushTrim` at 2 microseconds. A refused node settles at
        k rows and pays two: one at k, one at k+1 that fails.
 
-       STILL NOT THE WHOLE OF rete#161: fix (1), carrying the bytes `valueFits:`
-       already produced instead of discarding them, is untouched. It addresses
-       `pushCollect` and the surviving encode, which this leaves as they were. *)
+       STILL NOT THE WHOLE OF rete#161. `pushCollect` is now cheap (see the span
+       note above), but this climb still ENCODES to size: every probe builds a
+       whole frame to learn its length. `Cbor>>sizeOf:` makes that arithmetic —
+       a row costs the same bytes alone as in place, which is the same monotonicity
+       this climb already rests on, so a prefix sum over per-row sizes finds the
+       longest fitting prefix without encoding anything, and the frame is then
+       encoded ONCE, at the answer. That deletes the climb, the step-down and the
+       `fitRows` slot together, which is why it is worth doing as one change rather
+       than bolted onto this one. *)
     public pushFrame = (
       | rows bytes probe n climbing |
       spans begin: sPushCollect.
@@ -2125,9 +2138,16 @@ class Kernel usingPlatform: platform = () (
 
     (* An oversize value is rejected by porta for the WHOLE push, so one bad cell
        would stall every good one behind it. Drop it here, count it, keep going. *)
-    (* `byteSize`, not `size`: an immutable Bytes has no `size` — the read
-       protocol is byteSize/u8At:. *)
-    valueFits: v = ( ^ (Cbor new encode: v) byteSize <= self maxValueBytes )
+    (* `sizeOf:`, NOT `encode:` (rete#161). The old form built the candidate's
+       bytes in a ByteBuilder, read the length off them and dropped them, so the
+       arena cost of deciding a value did not fit scaled with the value — 72 KB
+       per check-in for eight 2 KB cells, against a C6 arena of 53 KB, to conclude
+       that nothing could be sent. That is the shape rete#199 died of. `sizeOf:`
+       runs the SAME walk into a counting sink, so the answer is unchanged by
+       construction and the cost no longer depends on the size of what is being
+       rejected. 22_spacesync/16 pins that as an equality; 14_cbor/07 pins the
+       agreement the substitution rests on. *)
+    valueFits: v = ( ^ (Cbor new sizeOf: v) <= self maxValueBytes )
 
     sortedBySeq: rows = (
       | i j cur |

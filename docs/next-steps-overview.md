@@ -538,6 +538,53 @@ always the metrics record written immediately before the push. It turned
 `porta_sync_host.sh` red, which is how it was found; the gate now waits for the run-up
 instead of assuming a drain time, and no trim policy was invented.
 
+**ADDENDUM 2026-08-16 — "fix (2) is unearned by this data" is now REVERSED, and the two
+fixes have merged into one.** The sentence above is exactly right about the data it had, and
+finding (a) beside it names the reason it was wrong: the capture window is structurally blind
+to the trim loop. That blind spot has now been looked past, on hardware, and the loop is not
+139 µs.
+
+**Cold boot pays one full-frame re-encode inside `pushTrim`.** Boot 39 on c6spare measured
+`pushTrim` at **49 884 µs** against `pushEncode`'s 46 796 µs — the same frame, encoded twice —
+where the second check-in reads 183 µs and the host reads 2 µs. The mechanism is `fitRows`
+being 0 before the first push, so `pushFrame` starts at `rows size` (every candidate) and the
+**step-down** branch drops one row and re-encodes until it fits. That branch is the case the
+design's "never encodes more than one row beyond the answer" does not cover — that claim is
+true of the **climb**.
+
+So fix (2) is earned. But it is no longer a second fix: sizing the frame from per-row byte
+counts removes the trim loop *and* the duplicate encode, so #161's two open items are one
+change. The design (decided 2026-08-16, recorded in full on the issue) is **not** "cache the
+bytes" — appending cached bytes costs `acc add:` per byte, which this section already prices
+at four activations each, so re-appending costs about what re-encoding costs. It is
+**stop encoding in order to measure**: `Cbor>>sizeOf:` runs the existing encoder against a
+counting sink, `valueFits:` stops building and discarding a `ByteBuilder` per candidate, and
+the frame fit becomes a prefix sum — exact, because `encodeList:` encodes elements
+independently, so frame size is additive and not merely monotone. The climb, the step-down and
+the `fitRows` slot are deleted rather than tuned.
+
+`sizeOf:` and its 27-case boundary test landed 2026-08-16 (suite 263/0), and `valueFits:`
+followed the same day (suite 264/0). The **prefix-sum fit remains**. Note this does **not**
+touch the larger number: #163 is still what one encode costs, and deleting encodes cannot
+reach it.
+
+What `valueFits:` bought, measured on the all-rejected path — every candidate over
+`maxValueBytes`, so `pushFrame` returns nil before the frame encode and the arena delta over
+one push is the collect and the fit test and nothing else: **19624 B -> 3688 B** for eight
+303 B cells, and **72104 B -> 3688 B** for eight 2003 B cells. The second number is the point.
+It is more than a C6's whole 53 KB arena, spent per check-in, to decide that nothing could be
+sent — paid on rows the node was never going to transmit, which is precisely the state #199
+died in. `22_spacesync/16` holds it as an EQUALITY between the two legs rather than a
+threshold: `sizeOf:` allocates one counting sink per call whatever the value is, so the honest
+claim is exact and there is no tunable to invent.
+
+**One expectation to correct before the prefix-sum work prices itself.** The saving above is a
+string's. A **Record** saves far less — 17440 B -> 13856 B for eight candidates — because
+`encodeMap:` still buffers each KEY in a real ByteBuilder and `cborEncodeInt:` still allocates
+a fragment per integer. The rows that actually ride a steady-state frame (`obs/health`,
+`sys/metrics`, `sys/cheap`) are all records, so a prediction drawn from the string figure
+would overstate the frame case by about 4x.
+
 **One correction to carry into it, because the two bars are still easy to swap.** #56 is
 *not* the largest unlock to a public release of nsl-tuvm — by this document's own reasoning
 above, that gate is #79's "no entry point that does not start with 'read five repos'", and
