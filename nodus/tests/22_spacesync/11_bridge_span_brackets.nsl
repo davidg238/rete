@@ -23,11 +23,10 @@ And tuvm#161 splits `pushBuild` the same way, because it measured 62% of the
 check-in on c6-bench and the source says a value is CBOR-encoded three or more
 times per push:
 
-  pushCollect  collectOutbound — the scans and `valueFits:`, which SIZES every
-               candidate through `Cbor>>sizeOf:` (rete#161 fix (1), 2026-08-16;
-               it used to encode each one in full and discard the bytes)
-  pushEncode   the first full-frame encode
-  pushTrim     the climb around it
+  pushCollect  collectOutbound — the scans and `valueFits:`, which encodes every
+               candidate value in full and discards the bytes
+  pushEncode   the first full-frame encode, encoding those values again
+  pushTrim     the re-encode-per-dropped-row loop
 
 Why the SENDS are separated from the WAITS, which is the whole point: the pull
 frame is ~40 B and rides one 6LoWPAN fragment, while a push frame runs to the
