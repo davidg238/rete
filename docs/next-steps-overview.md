@@ -764,7 +764,11 @@ The addendum above ends with #213 carrying "the next experiment". It ran, on har
 
 **`38505d4` alone is healthy to tick 216** — `ByteCounter` and `Cbor>>sizeOf:` defined, nothing
 calling them, `bridge-health` PASS 3/3 then held on the board past the tick-6 death point, zero
-fault lines. So the larger fork is closed: **defining an unused nsl class in the kernel does not
+fault lines. **Read again 2026-08-17 16:38 MST: the same boot, `bid` still 43, at tick 45 695 and
+`up` 91 580 822 ms — 25.4 h unbroken, with `pdr` 0, `sdr` 0, `hnl` 0 and 16 639 GC cycles behind
+it.** Tick 216 was where the session stopped watching, not where the evidence ran out; the arm is
+now ~7 600x past the tick-6 death point rather than 36x, and no allocation on it has ever returned
+null. So the larger fork is closed: **defining an unused nsl class in the kernel does not
 hang the node**, and the solidified image, method table and class-index layout are exonerated.
 `d9a0d85` is the actor, and its executable delta is one line (the other ~50 changed lines of that
 commit are comment prose). **The mechanism is still unexplained.**
