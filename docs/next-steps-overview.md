@@ -538,6 +538,51 @@ always the metrics record written immediately before the push. It turned
 `porta_sync_host.sh` red, which is how it was found; the gate now waits for the run-up
 instead of assuming a drain time, and no trim policy was invented.
 
+**ADDENDUM 2026-08-16 — "fix (2) is unearned by this data" is now REVERSED, and the two
+fixes have merged into one.** The sentence above is exactly right about the data it had, and
+finding (a) beside it names the reason it was wrong: the capture window is structurally blind
+to the trim loop. That blind spot has now been looked past, on hardware, and the loop is not
+139 µs.
+
+**Cold boot pays one full-frame re-encode inside `pushTrim`.** Boot 39 on c6spare measured
+`pushTrim` at **49 884 µs** against `pushEncode`'s 46 796 µs — the same frame, encoded twice —
+where the second check-in reads 183 µs and the host reads 2 µs. The mechanism is `fitRows`
+being 0 before the first push, so `pushFrame` starts at `rows size` (every candidate) and the
+**step-down** branch drops one row and re-encodes until it fits. That branch is the case the
+design's "never encodes more than one row beyond the answer" does not cover — that claim is
+true of the **climb**.
+
+**BUT THE FIX THAT FOLLOWED WAS LANDED AND REVERTED THE SAME DAY (#213).** `Cbor>>sizeOf:`
+and `valueFits:` onto it passed every host gate — nsl 265/0, `PORTA SYNC OK`,
+`go test ./...` — and then hung a C6 after six check-ins: silent, no fatal, no OOM abort, no
+reboot banner. A three-arm bisect (054f110 healthy at tick 209; both commits hung at tick 6;
+both plus the prefix-sum spike hung identically) puts the fault in `kernel.nsl` and rules out
+the store, the backlog and the arena. **The mechanism is unexplained**, which is why the
+revert (a4e6bc2) was total rather than a patch — `14_cbor/07` had pinned `sizeOf:` against
+`encode:` across 27 boundary cases, so the byte count cannot be the fault. #213 carries the
+next experiment: flash `38505d4` alone and learn whether merely DEFINING an unused class
+hangs the node, which would be a far larger finding than the codec.
+
+**And the prefix-sum design's premise is falsified, independently of the hang.** Sizing is
+much cheaper than encoding only for FLAT values (680 vs 904 B on a 200 B string, constant in
+the value's size). For a **Record** it is 8344 vs 9120 — **91%** — because the cost lives in
+`encodeMap:`'s per-key ByteBuilder and a `cborEncodeInt:` fragment per integer, neither of
+which a counting sink avoids. Steady-state frames carry records, so a prefix sum pays ~2x the
+expensive machinery where the climb pays 1x: measured on the realistic 4-record frame,
+**43 192 B -> 65 032 B per push, a 1.51x regression** on the every-2-seconds path, for
+identical output. **fix (2) is therefore blocked behind #163** — making a record encode cheap
+is the only move that creates room, and both fit strategies are downstream of it.
+
+**What the prefix sum would still buy, and why the question is genuinely two-sided.** The old
+search's first encode is of ALL candidates, so its ByteBuilder rung scales with the backlog —
+2048 B at 8 rows, **4096 B at 16**, 8192 B at 24 — where the prefix sum is flat at 512 B.
+4096 plus a header is the **4104-byte request #199 died unable to satisfy**, and this is not
+historical: a 33-min window on boot 39 (999 samples, halves agreeing) reads **`lfb` MIN
+524 B**, `lb` max 130 296 of 131 072, 0.364 GC/check-in. So it is bounded peak versus lower
+total, on a heap with no headroom either way. **Note the arena is 128 KB on the C6**, not the
+53 KB the `09_batch_size` fixture uses — that figure is a WROOM-32 measurement and should not
+be quoted for this board.
+
 **One correction to carry into it, because the two bars are still easy to swap.** #56 is
 *not* the largest unlock to a public release of nsl-tuvm — by this document's own reasoning
 above, that gate is #79's "no entry point that does not start with 'read five repos'", and
@@ -710,3 +755,51 @@ flashing, and that texture disappears if only the total is reported.
 - **`ESPTOOL_PORT` must be set explicitly for the C6** — its `run.sh` profile pins
   `*Espressif*` → `/dev/ttyACM0` (native USB-JTAG), which is not cabled. Everything goes over
   the CP2102N. Three CP210x boards share the by-id glob, so identify by `esptool read_mac`.
+
+---
+
+## ADDENDUM 2026-08-16 (later) — the #161 hang narrowed, and what it exposed underneath
+
+The addendum above ends with #213 carrying "the next experiment". It ran, on hardware.
+
+**`38505d4` alone is healthy to tick 216** — `ByteCounter` and `Cbor>>sizeOf:` defined, nothing
+calling them, `bridge-health` PASS 3/3 then held on the board past the tick-6 death point, zero
+fault lines. So the larger fork is closed: **defining an unused nsl class in the kernel does not
+hang the node**, and the solidified image, method table and class-index layout are exonerated.
+`d9a0d85` is the actor, and its executable delta is one line (the other ~50 changed lines of that
+commit are comment prose). **The mechanism is still unexplained.**
+
+Two things were excluded with evidence, and one near-miss is worth carrying:
+
+- **VM stack exhaustion is out.** `stack_overflow_abort` prints to stderr then aborts and guards
+  both `push_frame` sites; VM stderr demonstrably reaches this console (#199's `VM GC Error: Out
+  of Memory` lines are in the logs); `Stack Overflow` has never appeared in any console log on
+  this bench. That also refutes #192's leading untested guess.
+- **The optimization works.** `pushCollect`, n=2 per arm from porta's own store, no overlap:
+  **-21.5%** with `sizeOf:`. This is not a fix that does nothing and breaks something.
+- **Near-miss.** Boots 40 and 43 are lockstep at seq 7 and diverge by 9072 B of `lb` by seq 15,
+  which reads as a clean inversion of the commit's premise. Boot 41 — the *other* hung arm —
+  reads *below* the healthy sample. `lb` at a fixed seq varies ~11 KB boot to boot. One extra
+  sample was the whole difference between a finding and an artifact.
+
+**What this exposed is bigger than #161.** The expensive part of #192 and #213 is not that they
+are hard; it is that **a node has no way to say it stopped.** `docs/design/2026-08-10-node-memory-
+and-liveness-design.md` §5 already designs the reporting path and RECORDS §2.4 already pins
+`Panic.reason: #watchdog` — but §5's seam is `k_sys_fatal_error_handler`, and a wedge raises no
+fatal error, so that symbol is unreachable. Detection is now designed
+(`docs/design/2026-08-16-vm-liveness-observer-design.md`, **#215**, awaiting review), with §12 of
+the 2026-08-10 doc amended to point at it.
+
+Three new items, in the order they gate each other:
+
+- **#214** — `pulse_pump` discards a stale-handle event with **no counter**. A lost wakeup is the
+  failure shape under investigation and `pdr` reads 0 either way. #215's dump is worth less until
+  this is counted.
+- **#216** — a target gate that passes at tick 2 and lets the node die at tick 6 is a false green.
+  `bridge-health` returned PASS 3/3 in 22 s this session against exactly that hazard.
+- **#215** — the detector. Carries an inherited constraint: 2026-08-10 §5.2's loop breaker is
+  "only safe because of sub-project D", and `gw/liveness` (§6) is unbuilt, so either it lands
+  alongside or the HALT arm does not ship.
+
+Bench: c6spare left soaking on `ga4e6bc2-dirty-20260816T151140` (the `38505d4`-only build),
+healthy — a usable long-run control. The bell was not touched.

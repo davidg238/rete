@@ -1041,3 +1041,40 @@ comfortably inside 134 B but that is arithmetic, not a measurement.
   because 30 s cadence stretches the fuse to ~27 minutes; `c6spare` at 2 s would not have.
   That is the issue's central claim — a refused exchange and a successful one are
   indistinguishable in every number the node reports — observed rather than modelled.
+
+---
+
+## 12. Addendum — §5's seam does not cover the failure it is most needed for (2026-08-16)
+
+**Sub-project C's entry point is `k_sys_fatal_error_handler` (§5.1). A wedged node never
+reaches it, because a wedge raises no fatal error.**
+
+Two changes on the check-in path — `CHeapStats fromList:` (#192) and one line of `valueFits:`
+(#213) — have each killed a C6 within six check-ins with no panic, no coredump, no `VM Error`,
+no `VM GC Error`, no reboot banner, console `port=up`. §5 would report neither. The gap is
+visible in this document's own vocabulary: RECORDS §2.4 enumerates `Panic.reason: #watchdog`,
+and **nothing in the tree can produce that symbol**, because nothing detects a wedge.
+
+Three of this document's decisions are unaffected and are adopted verbatim by the follow-on
+design — they were right, they were simply never given a second trigger:
+
+- §5.1's `RebootNote` in `RTC_NOINIT_ATTR` over `CONFIG_RETAINED_MEM`. Since strengthened: the
+  C6 already has a second in-tree user of `.rtc_noinit` (`g_rtc`, `zephyr/src/main.c:285`).
+- §5.2's loop breaker, including *a successful check-in is the reset* — which remains the best
+  available definition precisely because it invents no interval.
+- §8's discipline of tabling a chosen constant with its standing.
+
+**§5.2's safety constraint now binds a second piece of work.** "This is only safe because of
+sub-project D" applies unchanged to watchdog-triggered reboots: without `gw/liveness` a halted
+node is an invisible corpse. §6 remains unbuilt — nothing in `porta/` mentions `gw/liveness` —
+so either it lands alongside the detector or the breaker's HALT arm does not ship.
+
+Detection is designed in `docs/design/2026-08-16-vm-liveness-observer-design.md` and tracked
+as #215. **That document governs detection only; this one continues to govern the reporting
+path**, and where they could be read as disagreeing, this one wins on reporting.
+
+One correction to §9's out-of-scope list while here: it rules out "NVS-backed panic history"
+on the grounds that "delivered `Panic` records already carry the history to porta for every
+case that is not a loop." That reasoning silently assumed every death produces a `Panic`.
+Until #215 lands, a wedge produces none — so the history has a hole that is not the loop case,
+and the exclusion is sound only once detection exists.
