@@ -4,9 +4,12 @@
 package space
 
 import (
+	"database/sql"
+	"strings"
 	"testing"
 
 	"github.com/davidg238/porta/internal/cval"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func testStore(t *testing.T) *Store {
@@ -355,5 +358,123 @@ func TestOpenAddsBootIDToAPreExistingStore(t *testing.T) {
 	tree, _ := st2.Tree("n1", "")
 	if len(tree) != 1 || tree[0].BootID != 41 {
 		t.Fatalf("tree = %+v, want the migrated column carrying boot 41", tree)
+	}
+}
+
+// legacyDDL is the pre-gw shape, copied verbatim from the schema as it stood
+// before this rung. It is spelled out here rather than derived, because a test
+// that builds the old store from the NEW schema text proves nothing about the
+// store actually running on gw85224-01.
+const legacyCellsDDL = `
+CREATE TABLE IF NOT EXISTS cells (
+  node_id    TEXT NOT NULL,
+  path       TEXT NOT NULL,
+  seq        INTEGER NOT NULL,
+  kind       INTEGER NOT NULL,
+  value_cbor BLOB NOT NULL,
+  ts_ms      INTEGER NOT NULL,
+  direction  TEXT NOT NULL CHECK (direction IN ('in','out')),
+  boot_id    INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (node_id, path)
+);`
+
+const legacyEventsDDL = `
+CREATE TABLE IF NOT EXISTS events (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  node_id    TEXT NOT NULL,
+  path       TEXT NOT NULL,
+  seq        INTEGER NOT NULL,
+  kind       INTEGER NOT NULL,
+  value_cbor BLOB NOT NULL,
+  ts_ms      INTEGER NOT NULL,
+  direction  TEXT NOT NULL CHECK (direction IN ('in','out')),
+  actor      TEXT NOT NULL DEFAULT '',
+  reason     TEXT NOT NULL DEFAULT '',
+  boot_id    INTEGER NOT NULL DEFAULT 0
+);`
+
+// A store created before gw/** existed must GAIN the third direction on open,
+// keeping every row it already held. The live soak store on gw85224-01 is such
+// a store, and it carries the history rete#190's evidence rests on — rebuilding
+// it is not an option, so the migration is the deliverable, not a convenience.
+func TestOpenMigratesTheDirectionCheckOnAPreExistingStore(t *testing.T) {
+	path := t.TempDir() + "/legacy.db"
+	db, err := sql.Open("sqlite3", path)
+	if err != nil {
+		t.Fatalf("sql.Open: %v", err)
+	}
+	for _, stmt := range []string{legacyCellsDDL, legacyEventsDDL} {
+		if _, err := db.Exec(stmt); err != nil {
+			t.Fatalf("legacy DDL: %v", err)
+		}
+	}
+	// One row of each, so the migration has something to lose.
+	if _, err := db.Exec(`INSERT INTO cells VALUES ('n1','obs/health',7,2,x'01',1000,'in',41)`); err != nil {
+		t.Fatalf("seed cell: %v", err)
+	}
+	if _, err := db.Exec(`INSERT INTO events (node_id,path,seq,kind,value_cbor,ts_ms,direction,actor,reason,boot_id)
+		VALUES ('n1','obs/health',7,2,x'01',1000,'in','n1','',41)`); err != nil {
+		t.Fatalf("seed event: %v", err)
+	}
+	db.Close()
+
+	st, err := Open(path, func() int64 { return 2000 })
+	if err != nil {
+		t.Fatalf("reopen of a pre-gw store: %v", err)
+	}
+	defer st.Close()
+
+	// The rows survived.
+	var n int
+	if err := st.DB().QueryRow(`SELECT COUNT(*) FROM cells WHERE node_id='n1' AND boot_id=41`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("cells after migration: n=%d err=%v, want the seeded row intact", n, err)
+	}
+	if err := st.DB().QueryRow(`SELECT COUNT(*) FROM events WHERE node_id='n1' AND boot_id=41`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("events after migration: n=%d err=%v, want the seeded row intact", n, err)
+	}
+	// The index the rebuild dropped with the old table is back.
+	if err := st.DB().QueryRow(
+		`SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='idx_cells_seq'`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("idx_cells_seq after migration: n=%d err=%v, want 1", n, err)
+	}
+	// And the third direction is now legal in both tables.
+	if _, err := st.DB().Exec(
+		`INSERT INTO cells VALUES ('n1','gw/liveness',0,2,x'02',2000,'gw',41)`); err != nil {
+		t.Fatalf("gw cell after migration: %v", err)
+	}
+	if _, err := st.DB().Exec(`INSERT INTO events (node_id,path,seq,kind,value_cbor,ts_ms,direction,actor,reason,boot_id)
+		VALUES ('n1','gw/liveness',0,2,x'02',2000,'gw','porta','',41)`); err != nil {
+		t.Fatalf("gw event after migration: %v", err)
+	}
+}
+
+// The second open must be a no-op: the migration is detected by the table's own
+// DDL, not by a version row, so re-running it would rebuild the table on every
+// start of the gateway.
+func TestDirectionMigrationIsANoOpOnASecondOpen(t *testing.T) {
+	path := t.TempDir() + "/twice.db"
+	st, err := Open(path, func() int64 { return 1000 })
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	st.Ingest("n1", 41, []Entry{{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(1))}})
+	st.Close()
+
+	st2, err := Open(path, func() int64 { return 2000 })
+	if err != nil {
+		t.Fatalf("second Open: %v", err)
+	}
+	defer st2.Close()
+	var ddl string
+	if err := st2.DB().QueryRow(
+		`SELECT sql FROM sqlite_master WHERE type='table' AND name='cells'`).Scan(&ddl); err != nil {
+		t.Fatalf("read cells DDL: %v", err)
+	}
+	if strings.Count(ddl, "'gw'") != 1 {
+		t.Fatalf("cells DDL carries %d 'gw' mentions, want exactly 1:\n%s", strings.Count(ddl, "'gw'"), ddl)
+	}
+	tree, _ := st2.Tree("n1", "")
+	if len(tree) != 1 {
+		t.Fatalf("tree = %+v, want the row from before the second open", tree)
 	}
 }

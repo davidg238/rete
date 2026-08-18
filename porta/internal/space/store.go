@@ -72,6 +72,19 @@ func Open(path string, nowMs func() int64) (*Store, error) {
 			return nil, fmt.Errorf("%s: %w", stmt, err)
 		}
 	}
+	// AFTER addColumns, never before: a store predating boot_id gains the column
+	// first, so the rebuild below copies it like any other.
+	if err := migrateDirectionAcceptsGw(db); err != nil {
+		db.Close()
+		return nil, err
+	}
+	// The rebuild drops the old table and its indexes with it. schema is
+	// idempotent (every statement is IF NOT EXISTS), so re-running it restores
+	// them and does nothing else.
+	if _, err := db.Exec(schema); err != nil {
+		db.Close()
+		return nil, err
+	}
 	return &Store{db: db, nowMs: nowMs}, nil
 }
 
