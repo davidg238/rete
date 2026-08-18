@@ -794,16 +794,50 @@ fatal error, so that symbol is unreachable. Detection is now designed
 (`docs/design/2026-08-16-vm-liveness-observer-design.md`, **#215**, awaiting review), with §12 of
 the 2026-08-10 doc amended to point at it.
 
-Three new items, in the order they gate each other:
+Three new items, in the order they gate each other. **The first two CLOSED on 2026-08-17 and
+the third is approved and next** — kept here in order because the order is the argument:
 
-- **#214** — `pulse_pump` discards a stale-handle event with **no counter**. A lost wakeup is the
-  failure shape under investigation and `pdr` reads 0 either way. #215's dump is worth less until
-  this is counted.
-- **#216** — a target gate that passes at tick 2 and lets the node die at tick 6 is a false green.
-  `bridge-health` returned PASS 3/3 in 22 s this session against exactly that hazard.
-- **#215** — the detector. Carries an inherited constraint: 2026-08-10 §5.2's loop breaker is
-  "only safe because of sub-project D", and `gw/liveness` (§6) is unbuilt, so either it lands
-  alongside or the HALT arm does not ship.
+- **#214 — DONE (80fc57a).** `pulse_pump` discarded a stale-handle event with **no counter**;
+  a lost wakeup is the failure shape under investigation and `pdr` read 0 either way. Now
+  counted and published as `Metrics.pst`, **verified on hardware** — `#pst: 0` from c6spare
+  boot 44, with `#pco: 1` beside it proving the seam was live rather than unreached. The
+  zero is the deliverable: "a timer cannot take that branch since #151" was unfalsifiable
+  while the branch was uninstrumented, and is now measured. `Metrics` 101 → 108 B, frame
+  378 → 385 B, 127 B of headroom left.
+- **#216 — DONE (071b319, fix 2537992).** A gate that passes at tick 2 and lets the node die
+  at tick 6 is a false green. A scenario is now watched past its own verdict on two
+  independent signals — a POSITIVE progress predicate (the silent deaths match no fault
+  grep) and a fault scan — with both manifest keys mandatory. **TARGET 3/3 PASS**, the
+  predicate live across 18 consecutive polls, no false STALL on a healthy node. Its own
+  first hardware run caught it claiming "still progressing" for the two scenarios that
+  declare `none`; the six hostless tests missed that because every one asserted exit status
+  and the FAILURE text and **none read the success message**.
+- **#215 — APPROVED 2026-08-17, and the next rung.** The detector. Both its blockers above
+  are closed. The inherited constraint is unchanged and still binding: 2026-08-10 §5.2's
+  loop breaker is "only safe because of sub-project D", and `gw/liveness` (§6) was unbuilt —
+  nothing in `porta/` mentions it. **RESOLVED 2026-08-17 (David): `gw/liveness` lands
+  ALONGSIDE, filed as #217.** Start at §8's first row, `RebootNote` surviving a watchdog
+  reset, because it fails by reading zero and that is indistinguishable from "no wedge ever
+  happened".
+- **#217 — the gateway half, queued with #215.** `gw/**` + the silence sweep: a fourth
+  goroutine in `porta serve` that infers each node's cadence from its own exchange history
+  and writes `gw/liveness` **on transition only**. Designed a week ago in 2026-08-10 §6 and
+  tracked nowhere until now. It is not adjacent to #215 but underneath it — §7's staging
+  gates the panic-note/reboot/loop-breaker step on this one already watching, because "three
+  faults halt the node" is unobservable from the gateway if a halted node is invisible.
+  Note the shared principle: the sweep's deadline comes from the node's OWN measured cadence,
+  never a configured constant — the same rule #215 §3 settles on for the detector.
 
-Bench: c6spare left soaking on `ga4e6bc2-dirty-20260816T151140` (the `38505d4`-only build),
-healthy — a usable long-run control. The bell was not touched.
+Bench: c6spare was left soaking on `ga4e6bc2-dirty-20260816T151140` (the `38505d4`-only
+build) and reached **~25.4 h / tick 45 695 on one unbroken boot**, `pdr`/`sdr` 0 and no
+allocation ever returning null across 16 639 collections. **That control was then SPENT on
+2026-08-17**: the board was reflashed for the target gates, and it now carries
+`StaleHandleProbeC6` from the last scenario of that run. Hours 26+ bought nothing for the
+question it served — 25 h is ~7 600x past the longest death it controlled for, and its build
+had fallen behind HEAD. `c6-bell` remains the long-duration board. The bell was not touched.
+
+**One field name worth pinning, because it was misread inside this session.** In `Metrics`,
+**`hnl` is `handlesLive` and `hnhw` is `handlesHighWater`** (RECORDS §4.4 gives the long
+names in order). The bell's steady `hnl: 1, hnhw: 2` is one live M6 handle and a high water
+of two — entirely ordinary, and NOT a null allocation or any #190 signal. The C-heap
+failure counters live in the separate `CHeap` record as `fal`.
