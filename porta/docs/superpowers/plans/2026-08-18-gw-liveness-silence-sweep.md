@@ -774,6 +774,7 @@ package space
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/davidg238/porta/internal/cval"
@@ -1003,6 +1004,45 @@ func TestSweepRecordsTheInferredCadenceOnTheNodeRow(t *testing.T) {
 	}
 }
 
+// One node's failure must never cost another node its verdict. A trigger is the
+// honest injection here: it makes WriteGateway fail for exactly one node, in the
+// store, the way a real constraint violation would — no fake and no seam. The
+// failing node sorts in the MIDDLE of `ORDER BY n.id`, because a failing LAST
+// node would pass even against a sweep that aborts.
+func TestSweepIsNotStoppedByOneNodesFailure(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	for _, id := range []string{"aaa", "mmm", "zzz"} {
+		st.RecordExchange(id, 41, 0, 0, 0, 0, "")
+	}
+	for i := 0; i < 4; i++ {
+		clock += 2_000
+		for _, id := range []string{"aaa", "mmm", "zzz"} {
+			st.RecordExchange(id, 41, 0, 0, 0, 0, "")
+		}
+	}
+	if _, err := st.DB().Exec(`CREATE TRIGGER fail_mmm BEFORE INSERT ON cells
+		WHEN NEW.node_id = 'mmm' BEGIN SELECT RAISE(ABORT, 'injected'); END`); err != nil {
+		t.Fatalf("install trigger: %v", err)
+	}
+	clock += 20_000
+	changes, err := st.Sweep()
+	if err == nil || !strings.Contains(err.Error(), "mmm") {
+		t.Fatalf("err = %v, want one naming mmm", err)
+	}
+	if len(changes) != 2 {
+		t.Fatalf("changes = %+v, want the two healthy nodes", changes)
+	}
+	for _, id := range []string{"aaa", "zzz"} {
+		if got := livenessOf(t, st, id); got != "silent" {
+			t.Errorf("%s verdict = %q, want silent — one node's failure blinded the sweep", id, got)
+		}
+	}
+	if got := livenessOf(t, st, "mmm"); got != "" {
+		t.Errorf("mmm verdict = %q, want it unwritten", got)
+	}
+}
+
 // The transition test compares ENCODED BYTES. Values in the store are raw
 // deterministic CBOR and are decoded only for display (D4.1); a decode here
 // would break that rule for no gain, so this pins the two encodings.
@@ -1038,6 +1078,7 @@ package space
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"time"
 
@@ -1086,6 +1127,13 @@ type LivenessChange struct {
 //
 // A node with no cadence yet (fewer than MinExchanges arrivals) is SKIPPED, not
 // defaulted — gw/liveness stays unwritten rather than carrying a guess.
+//
+// ONE NODE'S FAILURE NEVER COSTS ANOTHER NODE ITS VERDICT. Errors inside the
+// loop are collected and the sweep continues, so the changes returned are the
+// ones actually committed and the error names every node that failed. An
+// aborting sweep would park every node ordered after the failing one, tick
+// after tick — a gap in observation that looks exactly like a healthy fleet,
+// which is the failure this whole mechanism exists to make visible.
 func (s *Store) Sweep() ([]LivenessChange, error) {
 	now := s.nowMs()
 	rows, err := s.db.Query(`
@@ -1116,16 +1164,19 @@ func (s *Store) Sweep() ([]LivenessChange, error) {
 	}
 
 	var changes []LivenessChange
+	var errs []error
 	for _, n := range nodes {
 		cadence, ok, err := s.CadenceMs(n.id)
 		if err != nil {
-			return changes, err
+			errs = append(errs, fmt.Errorf("node %s: cadence: %w", n.id, err))
+			continue
 		}
 		if !ok {
 			continue
 		}
 		if err := s.recordCadence(n.id, cadence); err != nil {
-			return changes, err
+			errs = append(errs, fmt.Errorf("node %s: record cadence: %w", n.id, err))
+			continue
 		}
 		since := now - n.lastSeen
 		silent := since > SilenceFactor*cadence
@@ -1139,13 +1190,16 @@ func (s *Store) Sweep() ([]LivenessChange, error) {
 		}
 		reason := fmt.Sprintf("%s: %d ms since last exchange, cadence %d ms", verdict, since, cadence)
 		if err := s.WriteGateway(n.id, PathLiveness, want, reason); err != nil {
-			return changes, err
+			errs = append(errs, fmt.Errorf("node %s: write verdict: %w", n.id, err))
+			continue
 		}
 		changes = append(changes, LivenessChange{
 			NodeID: n.id, Silent: silent, CadenceMs: cadence, SinceMs: since,
 		})
 	}
-	return changes, nil
+	// The query and its rows.Err() above still return immediately: those are not
+	// per-node, and nothing can proceed without them.
+	return changes, errors.Join(errs...)
 }
 
 // recordCadence writes the inferred rate back to the column that has been in the
@@ -1473,8 +1527,11 @@ func sweepLiveness(ctx context.Context, st *space.Store, tick time.Duration, log
 		case <-t.C:
 			changes, err := st.Sweep()
 			if err != nil {
+				// Log it, but do NOT discard `changes`. Sweep isolates per
+				// node, so an error for one node arrives ALONGSIDE verdicts
+				// that were really committed for others; dropping them here
+				// would lose transitions the store already holds.
 				logf("porta: liveness sweep: %v", err)
-				continue
 			}
 			for _, c := range changes {
 				verdict := "live"
