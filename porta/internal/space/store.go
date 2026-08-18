@@ -6,6 +6,7 @@ package space
 import (
 	"database/sql"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/davidg238/porta/internal/cval"
@@ -458,6 +459,71 @@ func (s *Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushe
 		return err
 	}
 	return tx.Commit()
+}
+
+// The sweep's numbers. Each is chosen rather than derived, and each is recorded
+// with its standing in 2026-08-10 §8 — a deferral written down is falsifiable,
+// one left in the code is not.
+const (
+	// CadenceWindow is how many inter-arrival gaps the median is taken over:
+	// robust to one missed check-in, short enough to track a cadence change.
+	CadenceWindow = 10
+	// MinExchanges is the fewest arrivals that yield a verdict. Two arrivals is
+	// one gap, which is a sample and not a cadence.
+	MinExchanges = 3
+	// SilenceFactor is v1's k, kept: silent when nothing has arrived for
+	// k x the node's own cadence.
+	SilenceFactor = 3
+)
+
+// CadenceMs infers how often a node checks in FROM THAT NODE'S OWN history —
+// the median of its last CadenceWindow inter-arrival gaps.
+//
+// It is inferred and never configured, which is the same rule the node-side
+// detector settles on (2026-08-16 §3): the deadline comes from what the node
+// declared or did, never from a constant the observer picked. A ten-minute node
+// and a two-second node are each judged against themselves.
+//
+// ok is false when the node has fewer than MinExchanges exchanges. That is not
+// an error — it is a node porta has no cadence for yet, and the honest answer is
+// no verdict rather than a guess.
+func (s *Store) CadenceMs(nodeID string) (int64, bool, error) {
+	rows, err := s.db.Query(
+		`SELECT ts_ms FROM exchanges WHERE node_id = ? ORDER BY ts_ms DESC LIMIT ?`,
+		nodeID, CadenceWindow+1)
+	if err != nil {
+		return 0, false, err
+	}
+	defer rows.Close()
+	var ts []int64
+	for rows.Next() {
+		var t int64
+		if err := rows.Scan(&t); err != nil {
+			return 0, false, err
+		}
+		ts = append(ts, t)
+	}
+	if err := rows.Err(); err != nil {
+		return 0, false, err
+	}
+	if len(ts) < MinExchanges {
+		return 0, false, nil
+	}
+	gaps := make([]int64, 0, len(ts)-1)
+	for i := 0; i+1 < len(ts); i++ {
+		gaps = append(gaps, ts[i]-ts[i+1]) // ts is newest-first, so this is positive
+	}
+	return medianMs(gaps), true, nil
+}
+
+// medianMs sorts in place; the caller owns a scratch slice.
+func medianMs(v []int64) int64 {
+	sort.Slice(v, func(i, j int) bool { return v[i] < v[j] })
+	n := len(v)
+	if n%2 == 1 {
+		return v[n/2]
+	}
+	return (v[n/2-1] + v[n/2]) / 2
 }
 
 // NodeAddr returns the peer address of the node's last datagram, or "" if it

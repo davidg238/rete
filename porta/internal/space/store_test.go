@@ -607,3 +607,95 @@ func TestGatewayWriteDoesNotConsumeTheOutboundSeq(t *testing.T) {
 		t.Fatalf("first goal write got seq %d, want 1 — the gw row consumed one", seq)
 	}
 }
+
+// storeAtClock hands the test the pen. *clock IS the store's now, so a silence
+// is produced by moving time rather than by sleeping — a sweep test that slept
+// would be measuring the test runner.
+func storeAtClock(t *testing.T, clock *int64) *Store {
+	t.Helper()
+	st, err := Open(t.TempDir()+"/t.db", func() int64 { return *clock })
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	t.Cleanup(func() { st.Close() })
+	return st
+}
+
+// checkIn advances the clock by gap ms and records one exchange, the way a
+// node's check-in does.
+func checkIn(t *testing.T, st *Store, clock *int64, node string, gap int64) {
+	t.Helper()
+	*clock += gap
+	if err := st.RecordExchange(node, 41, 0, 0, 0, 0, ""); err != nil {
+		t.Fatalf("RecordExchange: %v", err)
+	}
+}
+
+func TestCadenceIsTheMedianOfTheNodesOwnGaps(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	st.RecordExchange("n1", 41, 0, 0, 0, 0, "") // the first arrival: no gap yet
+	for i := 0; i < 5; i++ {
+		checkIn(t, st, &clock, "n1", 2_000)
+	}
+	cadence, ok, err := st.CadenceMs("n1")
+	if err != nil || !ok {
+		t.Fatalf("CadenceMs = %d, %v, %v; want a verdict", cadence, ok, err)
+	}
+	if cadence != 2_000 {
+		t.Fatalf("cadence = %d ms, want 2000", cadence)
+	}
+}
+
+// The reason the window is a MEDIAN and not a mean: one missed check-in doubles
+// a single gap, and a mean would move the deadline for the next ten minutes.
+func TestOneMissedCheckInDoesNotMoveTheCadence(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
+	for i := 0; i < 4; i++ {
+		checkIn(t, st, &clock, "n1", 2_000)
+	}
+	checkIn(t, st, &clock, "n1", 60_000) // one long gap: a missed check-in
+	for i := 0; i < 4; i++ {
+		checkIn(t, st, &clock, "n1", 2_000)
+	}
+	cadence, ok, _ := st.CadenceMs("n1")
+	if !ok || cadence != 2_000 {
+		t.Fatalf("cadence = %d, ok = %v; want 2000 — the outlier moved the median", cadence, ok)
+	}
+}
+
+// Fewer than three exchanges is fewer than two gaps. There is nothing to infer,
+// and a guess would be a verdict porta cannot support.
+func TestNoCadenceForANodeWithTooFewExchanges(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
+	checkIn(t, st, &clock, "n1", 2_000)
+	if _, ok, err := st.CadenceMs("n1"); ok || err != nil {
+		t.Fatalf("CadenceMs ok = %v err = %v after 2 exchanges; want no verdict", ok, err)
+	}
+	checkIn(t, st, &clock, "n1", 2_000)
+	if _, ok, err := st.CadenceMs("n1"); !ok || err != nil {
+		t.Fatalf("CadenceMs ok = %v err = %v after 3 exchanges; want a verdict", ok, err)
+	}
+}
+
+// A node whose cadence CHANGED must be judged against what it does now, not
+// against its whole history — which is what bounds the window at 10 gaps.
+func TestCadenceTracksAChangedRate(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
+	for i := 0; i < 12; i++ {
+		checkIn(t, st, &clock, "n1", 30_000)
+	}
+	for i := 0; i < 12; i++ {
+		checkIn(t, st, &clock, "n1", 2_000)
+	}
+	cadence, ok, _ := st.CadenceMs("n1")
+	if !ok || cadence != 2_000 {
+		t.Fatalf("cadence = %d, want 2000 — the window still holds the old rate", cadence)
+	}
+}
