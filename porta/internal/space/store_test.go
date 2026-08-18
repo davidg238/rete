@@ -545,6 +545,21 @@ func TestGatewayVerdictNeverRidesTheWire(t *testing.T) {
 	if len(entries) != 0 {
 		t.Fatalf("outbound = %+v, want nothing (the node has no goal writes)", entries)
 	}
+
+	// The CELLS query is `direction='out' AND seq > cursor`. With cursor=0 above,
+	// seq=0 fails the `seq > 0` check — so the gw row is excluded by seq, not by
+	// direction. Prove direction is the actual guard by calling with cursor=-1,
+	// which makes `seq > -1` TRUE. The gw row still must not ride; direction='gw'
+	// is the only remaining explanation for its absence.
+	entries, _, err = st.OutboundSince("n1", -1, MaxBatchBytes)
+	if err != nil {
+		t.Fatalf("OutboundSince with cursor -1: %v", err)
+	}
+	for _, e := range entries {
+		if e.Path == PathLiveness {
+			t.Fatalf("gw/liveness was delivered to the node (cursor -1): %+v; direction filter is not the guard", e)
+		}
+	}
 }
 
 // The verdict is about a node ON A BOOT. Stamping the node's current boot costs
