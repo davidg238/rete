@@ -1,17 +1,24 @@
 (*
 expect:
 health 61
-metrics 101
+metrics 108
 cheap 62
-batch 378
+batch 385
 *)
 (* #56 design §9.1, landed as a REGRESSION GUARD.
 
-   *** THE FRAME FITS AGAIN AS OF rete#197 (2026-08-11): 378 B against the 512 B
-   *** cap, 134 B of headroom — about 13 more fields at ~10 B each, against a
-   *** Metrics that has grown from 9 fields to 11 in its whole history. It was
-   *** 529 B — SEVENTEEN OVER — for one day, and the gauge went quiet on a live
-   *** node for the whole of it (see below).
+   *** THE FRAME FITS AS OF rete#197 (2026-08-11): 385 B against the 512 B cap,
+   *** 127 B of headroom — about 12 more fields at ~10 B each, against a Metrics
+   *** that has grown from 9 fields to 12 in its whole history. It was 529 B —
+   *** SEVENTEEN OVER — for one day, and the gauge went quiet on a live node for
+   *** the whole of it (see below).
+   ***
+   *** rete#214 spent 7 of the 134 B that rename bought, and it is worth naming
+   *** what that trade was: #pst makes a DESTROYED WAKEUP visible, where before
+   *** the frame could read entirely healthy while the seam threw events away.
+   *** The rename earned room for exactly this — a field that answers a question
+   *** the record could not answer — and #56's growth argument stands unchanged:
+   *** a new CONCERN still gets a record, not a Metrics field.
 
    TWO WAYS THIS GUARD WAS MEASURING A FRAME THE NODE NO LONGER SENDS, both found
    and fixed 2026-08-11 (rete#190 stage 2 review):
@@ -33,7 +40,9 @@ batch 378
    425 -> 429 (health bootId widened) -> 433 (envelope bootId widened, the 4 B the
    note above thought it had already counted) -> 529 (the sys/cheap row, 96 B: a
    79 B record plus 17 B of seq, path and kind) -> 385 (rete#197, every record's
-   labels shortened) -> 378 (rete#197, the envelope's two as well).
+   labels shortened) -> 378 (rete#197, the envelope's two as well) -> 385
+   (rete#214, Metrics gains #pst). Note 385 appears TWICE in that series and the
+   two are unrelated: the first is the frame mid-rename, the second is today's.
 
    WHAT THE OVERFLOW COST, WITNESSED AND NOT MODELLED. This guard went red on
    2026-08-11 as a prediction about long-uptime nodes. Within the day it was
@@ -56,7 +65,7 @@ batch 378
    cleanly and silently means something else, where an unknown NAME is loud.
 
    WHAT THIS DID NOT FIX. rete#150 is still open and still unfunded. This bought
-   134 B of headroom; it did not change the trim rule, which still takes the TAIL
+   134 B of headroom (127 B after rete#214); it did not change the trim rule, which still takes the TAIL
    and therefore still drops the freshest, highest-seq row first. The structural
    answer `PortaBridge>>pushFrame` parks — reserve bytes for `sys/` before filling
    from `obs/`, or trim BY TYPE — is unchanged, and it cannot be done by reordering,
@@ -78,11 +87,12 @@ batch 378
    costs five bytes where one holding 12 costs one. Measuring the easy case is exactly
    how an estimate becomes wrong in the field.
 
-   `metrics 101` is the CONTROL. It is the value RECORDS §4.4 pins through a
+   `metrics 108` is the CONTROL. It is the value RECORDS §4.4 pins through a
    different test (19_latency/05_record_size), so if it moves, the failure is not in
    this file and every other number here is suspect. It was 195 B under the long
-   labels, pinned 2026-07-21; both tests moved to 101 together on 2026-08-11, which
-   is what keeps the control a control.
+   labels, pinned 2026-07-21; both tests moved to 101 together on 2026-08-11 and to
+   108 together on 2026-08-17 (rete#214's #pst: tag-39 head 2 + text head 1 + 'pst' 3
+   + value 1), which is what keeps the control a control.
 
    Note: `platform Cbor` answers an INSTANCE where `platform Spans` answers the CLASS
    — an asymmetry worth knowing before copying either line. *)
@@ -123,6 +133,7 @@ class BatchSize packageUsing: manifest = () (
     pairs add: #ovr -> 0.
     pairs add: #pdr -> 0.
     pairs add: #pco -> 0.
+    pairs add: #pst -> 0.
     ^ platform Record tag: #Metrics fields: (platform Map fromPairs: pairs) )
 
   (* rete#190: the five CHeapStats fields, in kernel.nsl's field order. Counts are

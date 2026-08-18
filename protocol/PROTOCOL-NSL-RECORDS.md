@@ -150,7 +150,12 @@ one-character names, the floor at which the names stop meaning anything, land th
 labels.** MEASURED through the real `Cbor>>encode:` path, not estimated — `Health` 91 →
 **61 B**, `Metrics` 195 → **101 B**, `CHeap` 79 → **62 B**, and the **frame 529 → 378 B**,
 i.e. 17 B over the cap becomes **134 B under it** (roughly 13 further fields at ~10 B each, against a
-`Metrics` that has grown from 9 fields to 11 in its entire history). The rule is *keep the
+`Metrics` that has grown from 9 fields to 12 in its entire history). **rete#214 then spent
+7 of those bytes on `Metrics.pst`: `Metrics` 101 → 108 B and the frame 378 → 385 B, leaving
+127 B.** That is the trade this headroom was bought for — `pst` makes a destroyed wakeup
+visible where the frame could previously read healthy while the pulse seam threw events
+away — and it does not weaken the growth rule below: a new *concern* still earns a record,
+never a `Metrics` field. The rule is *keep the
 noun, suffix the aspect* — `hw` always means high-water and never anything else — and keys
 are scoped per record, so reuse across records is free, exactly as `LatencySpan` below
 already exploits with its bare `n`. It is **not** "chop to three characters":
@@ -456,7 +461,7 @@ the drop is counted (`Health.overruns`). Losing a log line to save a node is cor
 | `sys/reset` | E | `Reset { reason: sym, code: int, bootId: int }` — `code` is the SoC's raw reset cause; `reason` is the symbol derived from it. Both are carried because the derivation is lossy and one-way: v1 stored `last_reset` and `last_reset_code` side by side, and the numeric form is the one an agent can compare across SDK versions (added 2026-08-01 by the space-sync capability audit, design §4.2) |
 | `sys/overrun` | E | `Overrun { path: str, dropped: int }` — G2's counter |
 | `sys/panic` | E, **must-deliver** | `Panic { … }` — §2.4 |
-| `sys/metrics` | **C (cell)** | `Metrics { hsz: int, lb: int, hhw: int, lfb: int, gcc: int, hnl: int, hnhw: int, qhw: int, ovr: int, pdr: int, pco: int }` — the long names it carried until rete#197 were `heapSize`, `liveBytes`, `heapHighWater`, `largestFreeBlock`, `gcCycles`, `handlesLive`, `handlesHighWater`, `queueHighWater`, `overruns`, `pulseDrops`, `pulseCoalesced`, in that order — tuvm#24, widened 9→11 by tuvm#34; **101 B encoded, MEASURED 2026-08-11** (195 B under the long labels, pinned 2026-07-21, against an earlier ~185–230 B estimate), within §2.2's 256 B/value cap with **155 B** of headroom |
+| `sys/metrics` | **C (cell)** | `Metrics { hsz: int, lb: int, hhw: int, lfb: int, gcc: int, hnl: int, hnhw: int, qhw: int, ovr: int, pdr: int, pco: int, pst: int }` — the long names it carried until rete#197 were `heapSize`, `liveBytes`, `heapHighWater`, `largestFreeBlock`, `gcCycles`, `handlesLive`, `handlesHighWater`, `queueHighWater`, `overruns`, `pulseDrops`, `pulseCoalesced`, in that order — tuvm#24, widened 9→11 by tuvm#34 and 11→12 by rete#214, whose `pst` counts events DISCARDED by tuvm#13's stale-handle guard (uncounted until then, and `pdr` reads 0 through such a loss — so the record could report a healthy seam that was destroying wakeups; an immediate payload resolves without a lookup since #151 and cannot raise it, so a non-zero `pst` names the HANDLE path); **108 B encoded, MEASURED 2026-08-17** (101 B at 11 fields on 2026-08-11; 195 B under the long labels, pinned 2026-07-21, against an earlier ~185–230 B estimate), within §2.2's 256 B/value cap with **148 B** of headroom |
 | `sys/cheap` | **C (cell)** | `CHeap { ob: int, ohw: int, alc: int, fre: int, fal: int }` — `outBytes`, `outHigh`, `allocs`, `frees`, `fails` until rete#197 — rete#190; **62 B encoded, MEASURED 2026-08-11** (79 B under the long labels; values representative of the ~200 KB C6 C-heap ceiling, `ob`/`ohw` above CBOR's 65536 5-byte-uint boundary — an earlier 75 B figure undercounted by measuring a sub-65536 case). The C heap, **not** the GC arena that `sys/metrics` reports — a leak ran for a week against a gauge that could only see the arena. A separate record rather than five more `Metrics` fields, per the `LatencySpan` lesson in this section |
 | `sys/latency` | **C (cell)** | `LatencySpan { span: sym, n: int, fails: int, minUs: int, maxUs: int, sumUsLo: int, sumUsHi: int, b0..b5: int }` — tuvm#61; **140 B encoded, MEASURED 2026-07-21**. **One record PER SPAN**, not one record with a field per span: adding an instrumented job therefore adds a *record*, never a field, so this schema does not grow the way `Metrics` has. Field names are deliberately short — thirteen fields here total 46 characters of name against `Metrics`'s ~120 before rete#197. **This row is the precedent rete#197 generalized to the whole frame, and it is the one record the rename did not touch: its names were already at the rule.** 140 B is unchanged, which is the control that says the rename went where it was aimed |
 
@@ -472,8 +477,9 @@ no periodic publisher exists — the record is built by `kernel metrics` and
 published explicitly.
 
 **`Metrics` headroom — MEASURED 2026-07-21 (tuvm#61), superseding the estimate below; re-measured
-2026-08-11 after rete#197 shortened the labels.**
-`Metrics` encodes to **101 B** (195 B under the long labels) and `LatencySpan` to **140 B**
+2026-08-11 after rete#197 shortened the labels, and again 2026-08-17 for rete#214's twelfth
+field.**
+`Metrics` encodes to **108 B** (101 B at eleven fields, 195 B under the long labels) and `LatencySpan` to **140 B**
 (unchanged — nothing in it was renamed), both through the real
 `Cbor>>encode:` path, witnessed by `nodus/tests/19_latency/05_record_size.nsl` (which also
 serves as the regression guard, since encoded size is what porta pays for on every
@@ -506,9 +512,11 @@ pending re-measurement on the G10 fleet-sim**, not a frozen protocol constant �
 **crash at the bridge, not a silent truncation**, so it cannot corrupt data undetected.
 
 Still worth acting on: `Metrics` is the one record that grows every time a subsystem gains
-a counter, and it is the closest to the cap. It has now been measured, so the standing
-instruction is discharged for field 12 — **but re-measure before field 13**, and note that
-counter magnitudes move the figure as well as field count.
+a counter, and it is the closest to the cap. Field 12 (`pst`, rete#214) has now landed AND
+been measured rather than projected — 108 B, and the +7 is fully accounted for as tag-39
+head (2) + text head (1) + `pst` (3) + value (1), which is what makes it a checked delta
+and not a number read off a run. **Re-measure before field 13**, and note that counter
+magnitudes move the figure as well as field count.
 
 The forecast in this paragraph held. It said that if per-job latency histograms ever
 wanted publishing (tuvm#61, where bucket counts are many fields at once) that should be

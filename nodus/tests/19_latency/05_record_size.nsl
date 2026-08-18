@@ -3,7 +3,7 @@ expect:
 n 310
 sumUsLo 7820873
 LatencySpan 140
-Metrics 101
+Metrics 108
 done
 *)
 (* tuvm#61 design 4.4, and the measurement it flags as OWED. PROTOCOL-NSL-RECORDS
@@ -42,10 +42,13 @@ class RecordSizeTest packageUsing: manifest = () (
     spans recordSlot: slot us: 25280.
     ^ self )
 
-  (* #Metrics as kernel.nsl builds it, populated with the eleven values read off
+  (* #Metrics as kernel.nsl builds it, populated with the twelve values read off
      the device rather than the host's own — a 16 MB host heap encodes wider than
      the board's 53248. Field names and order are copied from Kernel>>metrics; if
-     that drifts, this test is measuring a fiction. *)
+     that drifts, this test is measuring a fiction.
+     rete#214 added #pst and moved the measurement 101 -> 108 B. The +7 is fully
+     accounted for — tag-39 head (2) + text head (1) + 'pst' (3) + a zero value (1) —
+     so this is an explained delta and not a number pasted in from a run. *)
   deviceMetrics: platform = (
     | pairs |
     pairs:: OrderedCollection new.
@@ -60,6 +63,7 @@ class RecordSizeTest packageUsing: manifest = () (
     pairs add: #ovr -> 0.
     pairs add: #pdr -> 0.
     pairs add: #pco -> 0.
+    pairs add: #pst -> 0.
     ^ platform Record tag: #Metrics fields: (platform Map fromPairs: pairs) )
 
 public main: platform args: args = (

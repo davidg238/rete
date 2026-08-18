@@ -99,6 +99,42 @@ int main(void) {
         printf("test_pulse: repeat_source_coalesces_and_does_not_starve PASS\n");
     }
 
+    /* rete#214: the seam's OTHER loss path. tuvm#13's ABA guard resolves a handle
+       that was freed and reused between post and pump to NULL and DISCARDS the event
+       — correctly, since delivering the slot's new occupant would be a mis-delivery.
+       But that discard was uncounted, and `drained` is not incremented either, so the
+       return value could not separate "the mailbox was empty" from "a wakeup was
+       destroyed". A lost wakeup is the failure shape #192/#213 are being chased for,
+       and `pdr` reads 0 through it. The counter does not stop the loss; it makes the
+       claim "this cannot happen on the timer path since #151's PULSE_BY_VALUE"
+       falsifiable instead of merely plausible. */
+    {
+        int cst = space_intern("sys/stale", 9);
+        int hst = handle_new(TAG_SMI(77));
+        uint32_t sbefore = pulse_stale();
+        pulse_post_isr(cst, hst);
+        handle_free(hst);          /* the ABA window, opened deliberately */
+        assert(pulse_pump() == 0 && "a stale event is not delivered");
+        assert(pulse_stale() - sbefore == 1 && "the discarded event is COUNTED");
+        assert(space_take("sys/stale", 9, NULL) == NULL
+               && "and the slot's next occupant was not posted in its place");
+        printf("test_pulse: stale_handle_drop_is_counted PASS\n");
+    }
+
+    /* An immediate rides in the item and is resolved without a lookup (#151), so it
+       can never stale. Proving that here is what stops pulse_stale from quietly
+       becoming a count of ordinary timer traffic — the number is only worth reading
+       if the healthy path cannot raise it. */
+    {
+        int cim = space_intern("sys/imm", 7);
+        uint32_t sbefore = pulse_stale();
+        pulse_post_isr_value(cim, TAG_SMI(88));
+        assert(pulse_pump() == 1 && "an immediate delivers");
+        assert(space_take("sys/imm", 7, NULL) == TAG_SMI(88) && "with its value intact");
+        assert(pulse_stale() == sbefore && "and never touches the stale counter");
+        printf("test_pulse: immediate_payload_never_stales PASS\n");
+    }
+
     /* tuvm#34 never-silent law: shedding that nobody can observe is how this class of
        bug hides — the crash at least announced itself. prim 109 `sysStats` carries the
        two counters so Kernel>>metrics can publish them on the sys/metrics cell beside
@@ -111,10 +147,12 @@ int main(void) {
         assert(platform_dispatch(PRIM_pf_sysStats, 0, stat_args, &out) == 1
                && "sysStats dispatched");
         struct ObjectInstance *a = (struct ObjectInstance *)out;
-        assert(a->slots[0] == TAG_SMI(6) && "sysStats widened to 6 fields");
-        assert(pulse_drops() > 0 && pulse_coalesced() > 0 && "counters are non-zero here");
+        assert(a->slots[0] == TAG_SMI(7) && "sysStats widened to 7 fields");
+        assert(pulse_drops() > 0 && pulse_coalesced() > 0 && pulse_stale() > 0
+               && "all three counters are non-zero here");
         assert(a->slots[5] == TAG_SMI((intptr_t)pulse_drops()) && "field 5 is pulseDrops");
         assert(a->slots[6] == TAG_SMI((intptr_t)pulse_coalesced()) && "field 6 is pulseCoalesced");
+        assert(a->slots[7] == TAG_SMI((intptr_t)pulse_stale()) && "field 7 is pulseStale");
         printf("test_pulse: sysStats_surfaces_pulse_counters PASS\n");
     }
 

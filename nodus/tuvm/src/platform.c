@@ -1417,9 +1417,10 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
     }
     case PRIM_pf_sysStats: {
         /* tuvm#24: `platform sysStats` — snapshot handle/ring/overrun telemetry
-           into a 4-slot Array of SMIs, in field order [handlesLive,
-           handlesHighWater, queueHighWater, totalOverruns]. Same GC-safety
-           shape as heapStats above: all four scalars are copied into C locals
+           into a 7-slot Array of SMIs, in field order [handlesLive,
+           handlesHighWater, queueHighWater, totalOverruns, pulseDrops,
+           pulseCoalesced, pulseStale]. Same GC-safety
+           shape as heapStats above: every scalar is copied into C locals
            BEFORE the single allocating call (indexable_new); the stores are
            SMIs (immediates, no allocation), so no heap oop is held across an
            allocation and no gc_temp_root pin is required. Every value is far
@@ -1437,13 +1438,19 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            working (a repeating source folding into one pending wakeup). */
         uint32_t pd = pulse_drops();
         uint32_t pc = pulse_coalesced();
-        oop r = indexable_new(6);
+        /* rete#214: the seam's other loss path, widening this to 7. A stale-handle
+           discard increments neither `drained` nor pulseDrops, so before this field
+           the whole record could read healthy while wakeups were being destroyed —
+           and a lost wakeup is exactly the shape #192/#213 present. */
+        uint32_t ps = pulse_stale();
+        oop r = indexable_new(7);
         ((struct ObjectInstance *)r)->slots[1] = TAG_SMI((intptr_t)hl);
         ((struct ObjectInstance *)r)->slots[2] = TAG_SMI((intptr_t)hh);
         ((struct ObjectInstance *)r)->slots[3] = TAG_SMI((intptr_t)qh);
         ((struct ObjectInstance *)r)->slots[4] = TAG_SMI((intptr_t)ov);
         ((struct ObjectInstance *)r)->slots[5] = TAG_SMI((intptr_t)pd);
         ((struct ObjectInstance *)r)->slots[6] = TAG_SMI((intptr_t)pc);
+        ((struct ObjectInstance *)r)->slots[7] = TAG_SMI((intptr_t)ps);
         *out = r; return 1;
     }
     case PRIM_pf_pumpEvents: {

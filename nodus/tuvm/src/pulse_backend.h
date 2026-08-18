@@ -54,6 +54,16 @@ uint32_t pulse_drops(void);
    the mechanism working. */
 uint32_t pulse_coalesced(void);
 
+/* rete#214 telemetry: monotonic count of queued events DISCARDED because their
+   handle resolved NULL at pump time — tuvm#13's ABA guard, where the pinned slot was
+   freed and reused between post and pump. Preferring the loss to a mis-delivery is
+   right; leaving it uncounted was not, because the item is dropped without
+   incrementing `drained`, so even the pump's return value cannot separate "the
+   mailbox was empty" from "a wakeup was destroyed". An immediate payload (#151) is
+   resolved without a lookup and can never raise this, so a non-zero value names the
+   HANDLE path specifically. */
+uint32_t pulse_stale(void);
+
 /* Thread context, at the run-to-completion safe point. Drains every queued item
    (posix: returns 0 at once when empty; zephyr: blocks for the first item, then
    drains all) and for each calls space_post_id(chan_id, handle_get(handle_idx)).

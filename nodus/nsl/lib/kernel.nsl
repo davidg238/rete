@@ -3860,6 +3860,14 @@ class Kernel usingPlatform: platform = () (
        mechanism working, a repeating source folding into one pending wakeup. *)
     pairs add: #pdr -> (s basicAt: 5).
     pairs add: #pco -> (s basicAt: 6).
+    (* rete#214: the seam's OTHER loss path, widening this to 12. A queued event whose
+       handle resolved NULL at pump time is discarded by tuvm#13's ABA guard — right,
+       since the slot's new occupant is not what was posted — but it incremented
+       nothing, so a destroyed wakeup left #pdr reading 0 and the record reading
+       healthy. A lost wakeup is the failure shape #192/#213 present. Since #151 a
+       timer rides BY VALUE and cannot take that branch, so a non-zero #pst names the
+       handle path specifically — and that claim was unfalsifiable until this field. *)
+    pairs add: #pst -> (s basicAt: 7).
     ^ Record tag: #Metrics fields: (Map fromPairs: pairs) )
   (* rete#190: the sys/cheap snapshot — prim 152 (cheapStats) as ONE flat immutable
      Record, the sys/cheap cell's wire schema (pinned in

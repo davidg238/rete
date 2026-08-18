@@ -21,6 +21,7 @@ tag true
 heapSize positive true
 queueHighWater present true
 pulseDrops present true
+pulseStale present true
 seq advanced true
 *)
 class MetricsOnCheckIn packageUsing: manifest = () (
@@ -38,6 +39,11 @@ class MetricsOnCheckIn packageUsing: manifest = () (
     ('heapSize positive ' , ((m at: #hsz ifAbsent: [ -1 ]) > 0) printString) println.
     ('queueHighWater present ' , ((m at: #qhw ifAbsent: [ -1 ]) >= 0) printString) println.
     ('pulseDrops present ' , ((m at: #pdr ifAbsent: [ -1 ]) >= 0) printString) println.
+    (* rete#214: prim slot 7 has to reach the published cell, not merely exist in C.
+       This is the whole wiring — sysStats -> Kernel>>metrics -> the sys/metrics cell
+       -> the push frame — and an absent field answers -1 here, so presence is what
+       is being asserted rather than a value that happens to be zero. *)
+    ('pulseStale present ' , ((m at: #pst ifAbsent: [ -1 ]) >= 0) printString) println.
 
     (* The write must STAMP, or the cell exists locally and never rides a push:
        collectOutbound scans `changedSince: acked`, so an unstamped value is

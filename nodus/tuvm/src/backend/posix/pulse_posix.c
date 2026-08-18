@@ -17,7 +17,7 @@
 struct PulseItem { int chan_id; int handle_idx; oop value; };
 static struct PulseItem mailbox[OEVM_PULSE_MAILBOX_DEPTH];
 static int mb_head = 0, mb_count = 0;
-static uint32_t mb_drops = 0, mb_coalesced = 0;
+static uint32_t mb_drops = 0, mb_coalesced = 0, mb_stale = 0;
 
 static void pulse_enqueue(int chan_id, int handle_idx, oop value) {
     /* tuvm#34: shed, never abort. A full mailbox is a load condition (the reactor
@@ -66,7 +66,7 @@ int pulse_pump(void) {
            NULL means the pinned slot was freed and reused between post and pump (a
            stale generation) — drop it rather than post the new occupant. */
         oop o = (it.handle_idx == PULSE_BY_VALUE) ? it.value : handle_get(it.handle_idx);
-        if (o) { space_post_id(it.chan_id, o); drained++; }
+        if (o) { space_post_id(it.chan_id, o); drained++; } else mb_stale++;   /* rete#214 */
     }
     return drained;
 }
@@ -77,3 +77,5 @@ int pulse_pump_nb(void) { return pulse_pump(); }
 uint32_t pulse_drops(void) { return mb_drops; }
 
 uint32_t pulse_coalesced(void) { return mb_coalesced; }
+
+uint32_t pulse_stale(void) { return mb_stale; }
