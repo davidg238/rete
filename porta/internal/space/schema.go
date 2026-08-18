@@ -100,8 +100,15 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE INDEX IF NOT EXISTS idx_events_node ON events(node_id, id);
 CREATE INDEX IF NOT EXISTS idx_events_out ON events(node_id, direction, seq);
 
--- One row per check-in: the heartbeat AND the replay index (design D4.3).
--- Without it the batch boundary a value arrived on is unrecoverable.
+-- One row per REQUEST, not per check-in: a check-in is a pull followed by a
+-- push, and handlePull/handlePush (internal/wire/server.go) each call
+-- RecordExchange once, so every check-in leaves TWO rows here. The leg
+-- column (added via addColumns, see below) says which: 'pull' or 'push'.
+-- The pull is the heartbeat CadenceMs infers from — the node always sends
+-- one, whereas a push can early-return on an empty frame — so a query that
+-- does not filter on leg counts both halves of every check-in and infers a
+-- cadence exactly half the node's real one (rete#217 C1). The replay index
+-- this table also serves (design D4.3) is unaffected either way.
 CREATE TABLE IF NOT EXISTS exchanges (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   node_id    TEXT NOT NULL,
@@ -110,7 +117,8 @@ CREATE TABLE IF NOT EXISTS exchanges (
   cursor_in  INTEGER NOT NULL,
   cursor_out INTEGER NOT NULL,
   pushed_lo  INTEGER NOT NULL,
-  pushed_hi  INTEGER NOT NULL
+  pushed_hi  INTEGER NOT NULL,
+  leg        TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_exchanges_node ON exchanges(node_id, ts_ms);
 `
@@ -130,6 +138,13 @@ CREATE INDEX IF NOT EXISTS idx_exchanges_node ON exchanges(node_id, ts_ms);
 var addColumns = []string{
 	`ALTER TABLE cells  ADD COLUMN boot_id INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE events ADD COLUMN boot_id INTEGER NOT NULL DEFAULT 0`,
+	// rete#217 C1: pre-existing rows gain '' rather than being backfilled to
+	// 'pull' or 'push' — nobody recorded at the time which request produced
+	// them, and guessing would manufacture evidence. '' is EXCLUDED from
+	// CadenceMs's `leg = 'pull'` filter, not mislabelled, so a node's cadence
+	// reads as unknown (no verdict) until it has accrued 3 fresh pull rows —
+	// exactly the same healing rule boot_id followed above.
+	`ALTER TABLE exchanges ADD COLUMN leg TEXT NOT NULL DEFAULT ''`,
 }
 
 // DirectionGateway is the third value of the direction column: a row porta
@@ -197,6 +212,30 @@ func migrateDirectionAcceptsGw(db *sql.DB) error {
 		}
 		if err := tx.Commit(); err != nil {
 			return fmt.Errorf("migrate %s: commit: %w", tbl, err)
+		}
+	}
+	return nil
+}
+
+// assertDirectionAcceptsGw is the check migrateDirectionAcceptsGw's own
+// comment warns is missing: that function SKIPS any DDL shape it does not
+// recognise (a defensive read, not a defensive write), so a store whose
+// stored DDL drifted from either shape this code knows would fall through
+// unmigrated and unmigrated-looking IDENTICAL to a healthy store — a dead
+// instrument that presents as a live one, right up until the first gw/ write
+// hits the old two-value CHECK and the gateway's own liveness sweep starts
+// failing with no clue why. Called once, right after the migration, so the
+// failure surfaces at Open — loudly, at startup — rather than three sweeps
+// later on a production box.
+func assertDirectionAcceptsGw(db *sql.DB) error {
+	for _, tbl := range []string{"cells", "events"} {
+		var ddl string
+		if err := db.QueryRow(
+			`SELECT sql FROM sqlite_master WHERE type='table' AND name=?`, tbl).Scan(&ddl); err != nil {
+			return fmt.Errorf("read %s DDL: %w", tbl, err)
+		}
+		if !strings.Contains(ddl, "'gw'") {
+			return fmt.Errorf("%s.direction does not accept 'gw' after migration — DDL:\n%s", tbl, ddl)
 		}
 	}
 	return nil

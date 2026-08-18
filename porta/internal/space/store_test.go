@@ -199,7 +199,7 @@ func TestOversizeValueRejected(t *testing.T) {
 
 func TestExchangeRowRecorded(t *testing.T) {
 	st := testStore(t)
-	if err := st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1"); err != nil {
+	if err := st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1", "pull"); err != nil {
 		t.Fatalf("RecordExchange: %v", err)
 	}
 	if n, _ := st.CountNodes(); n != 1 {
@@ -213,7 +213,7 @@ func TestExchangeRowRecorded(t *testing.T) {
 // display field.
 func TestExchangeRecordsPeerAddress(t *testing.T) {
 	st := testStore(t)
-	st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1")
+	st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1", "pull")
 	got, err := st.NodeAddr("n1")
 	if err != nil {
 		t.Fatalf("NodeAddr: %v", err)
@@ -226,8 +226,8 @@ func TestExchangeRecordsPeerAddress(t *testing.T) {
 // An exchange recorded without a peer address must not erase a known one.
 func TestEmptyPeerAddressDoesNotClobber(t *testing.T) {
 	st := testStore(t)
-	st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1")
-	st.RecordExchange("n1", 7, 3, 4, 0, 0, "")
+	st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1", "pull")
+	st.RecordExchange("n1", 7, 3, 4, 0, 0, "", "push")
 	if got, _ := st.NodeAddr("n1"); got != "fdde:ad00::1" {
 		t.Fatalf("NodeAddr = %q after an addr-less exchange, want the address kept", got)
 	}
@@ -621,20 +621,26 @@ func storeAtClock(t *testing.T, clock *int64) *Store {
 	return st
 }
 
-// checkIn advances the clock by gap ms and records one exchange, the way a
-// node's check-in does.
+// checkIn advances the clock by gap ms and records ONE CHECK-IN, the way a
+// real node's does: a pull followed by a push (internal/wire/server.go calls
+// RecordExchange once from each handler). Recording only the pull, as this
+// helper did before rete#217 C1, modelled a protocol the gateway does not
+// implement — that mismatch is exactly why the bug survived here.
 func checkIn(t *testing.T, st *Store, clock *int64, node string, gap int64) {
 	t.Helper()
 	*clock += gap
-	if err := st.RecordExchange(node, 41, 0, 0, 0, 0, ""); err != nil {
-		t.Fatalf("RecordExchange: %v", err)
+	if err := st.RecordExchange(node, 41, 0, 0, 0, 0, "", "pull"); err != nil {
+		t.Fatalf("RecordExchange pull: %v", err)
+	}
+	if err := st.RecordExchange(node, 41, 0, 0, 0, 0, "", "push"); err != nil {
+		t.Fatalf("RecordExchange push: %v", err)
 	}
 }
 
 func TestCadenceIsTheMedianOfTheNodesOwnGaps(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
-	st.RecordExchange("n1", 41, 0, 0, 0, 0, "") // the first arrival: no gap yet
+	checkIn(t, st, &clock, "n1", 0) // the first arrival: no gap yet
 	for i := 0; i < 5; i++ {
 		checkIn(t, st, &clock, "n1", 2_000)
 	}
@@ -652,7 +658,7 @@ func TestCadenceIsTheMedianOfTheNodesOwnGaps(t *testing.T) {
 func TestOneMissedCheckInDoesNotMoveTheCadence(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
-	st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
+	checkIn(t, st, &clock, "n1", 0)
 	for i := 0; i < 4; i++ {
 		checkIn(t, st, &clock, "n1", 2_000)
 	}
@@ -671,7 +677,7 @@ func TestOneMissedCheckInDoesNotMoveTheCadence(t *testing.T) {
 func TestNoCadenceForANodeWithTooFewExchanges(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
-	st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
+	checkIn(t, st, &clock, "n1", 0)
 	checkIn(t, st, &clock, "n1", 2_000)
 	if _, ok, err := st.CadenceMs("n1"); ok || err != nil {
 		t.Fatalf("CadenceMs ok = %v err = %v after 2 exchanges; want no verdict", ok, err)
@@ -687,7 +693,7 @@ func TestNoCadenceForANodeWithTooFewExchanges(t *testing.T) {
 func TestCadenceTracksAChangedRate(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
-	st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
+	checkIn(t, st, &clock, "n1", 0)
 	for i := 0; i < 12; i++ {
 		checkIn(t, st, &clock, "n1", 30_000)
 	}
@@ -697,5 +703,52 @@ func TestCadenceTracksAChangedRate(t *testing.T) {
 	cadence, ok, _ := st.CadenceMs("n1")
 	if !ok || cadence != 2_000 {
 		t.Fatalf("cadence = %d, want 2000 — the window still holds the old rate", cadence)
+	}
+}
+
+// rete#217 I2: a cadence of 0 is not a cadence. Left unrejected, `since >
+// 3*0` is true 1 ms after any arrival and the node flips silent/live forever.
+// Rejected the same way and for the same reason as too few exchanges: no
+// verdict, not a number nothing can act on.
+func TestCadenceMsRejectsAZeroCadence(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	for i := 0; i < 3; i++ {
+		checkIn(t, st, &clock, "n1", 0) // every pull lands in the same millisecond
+	}
+	if _, ok, err := st.CadenceMs("n1"); ok || err != nil {
+		t.Fatalf("CadenceMs ok = %v err = %v for a zero-gap node; want no verdict", ok, err)
+	}
+}
+
+// medianMs's even-count branch averages the two middle values. Every OTHER
+// even-count test in this file happens to use two IDENTICAL middle values, so
+// v[n/2] alone (the C1 bug: no /2 or averaging at all is a different failure,
+// but a half-hearted median that dropped the averaging would still pass every
+// existing case) would pass them too. This is the one that would not.
+func TestMedianMsAveragesTwoDistinctMiddleValues(t *testing.T) {
+	got := medianMs([]int64{10, 20, 30, 40})
+	if got != 25 {
+		t.Fatalf("medianMs([10,20,30,40]) = %d, want 25 (avg of the two middle values 20 and 30)", got)
+	}
+}
+
+// rete#217 I3: gw/** is gateway-authored (WriteGateway) and must never be
+// reachable through Store.Write, which is the path a node write actually
+// takes (OutboundSince delivers everything stamped direction='out'). Without
+// this rejection, `porta put <node> gw/liveness live` reaches the node — the
+// one thing the third `direction` value exists to make structurally
+// impossible.
+func TestWriteRejectsTheGwPrefix(t *testing.T) {
+	st := testStore(t)
+	_, err := st.Write("n1", "gw/liveness", cval.KindCell, enc(t, cval.Symbol("live")), "operator", "")
+	if err == nil {
+		t.Fatal("Write accepted a gw/ path; a node write must never reach gateway-authored state")
+	}
+	// Nothing must have been written or staged: a rejected write costs the
+	// node no outbound seq and leaves no half-applied row behind.
+	tree, _ := st.Tree("n1", "")
+	if len(tree) != 0 {
+		t.Fatalf("tree = %+v after a rejected gw/ write, want nothing written", tree)
 	}
 }

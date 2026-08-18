@@ -13,7 +13,9 @@ import (
 )
 
 // SweepTick is how often the verdict is re-formed. It is a floor on detection
-// latency and sits below the shortest cadence in use.
+// latency, and it is COARSER than the fastest node's cadence — nodes on this
+// bench check in every 2 s, well under 30 s — so detection for such a node is
+// 3 x cadence rounded UP to the next tick, not 3 x cadence itself.
 const SweepTick = 30 * time.Second
 
 // The two verdicts, pre-encoded once. The transition test compares these bytes
@@ -60,6 +62,31 @@ type LivenessChange struct {
 // committed, and the returned error (via errors.Join) names every node that
 // failed. Only a failure in the query that lists the nodes themselves — not
 // per-node — aborts the sweep outright, because nothing can proceed without it.
+//
+// TWO ACCEPTED FALSE-REPORT MODES (rete#217 I4/I5). This instrument reports
+// something false under both, and neither is a bug to fix — they are recorded
+// here because a future reader must not mistake either for a surprise:
+//
+//   - I4 — A GATEWAY OUTAGE READS AS NODE SILENCE. `since` is `now -
+//     nodes.last_seen_ms`, which includes time porta itself was down.
+//     Restarting porta after an outage longer than 3 x cadence makes the
+//     first tick write #silent for every affected node, then #live as each
+//     checks back in — a burst that is byte-identical in `porta log` to a
+//     genuine fleet-wide failure. It is self-correcting within one cadence,
+//     and restarting porta is a routine scheduled act here, so this WILL
+//     happen. Do not read a startup silent/live burst as a fleet incident
+//     without first checking whether porta itself just restarted.
+//
+//   - I5 — A SICK NODE'S INFERRED CADENCE INFLATES, DELAYING DETECTION. A
+//     node whose reboot loop is faster than its check-in cadence produces
+//     mostly long gaps, so CadenceMs infers its boot-cycle length as the
+//     cadence, and #silent then arrives 3 x THAT — not 3 x the node's
+//     healthy period. "3 x cadence + 30 s" in the design means INFERRED
+//     cadence. No cap or tunable is added for this: there is no data yet to
+//     choose one from (design posture: don't invent tunables before there is
+//     data to choose them). What would earn one — record it here when found,
+//     don't defer it vaguely: a real node observed cycling in this state,
+//     with its measured boot-cycle length and the resulting detection delay.
 func (s *Store) Sweep() ([]LivenessChange, error) {
 	now := s.nowMs()
 	rows, err := s.db.Query(`

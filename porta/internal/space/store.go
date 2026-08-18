@@ -79,6 +79,14 @@ func Open(path string, nowMs func() int64) (*Store, error) {
 		db.Close()
 		return nil, err
 	}
+	// migrateDirectionAcceptsGw silently no-ops on any DDL shape it does not
+	// recognise (see its comment) — a store that fell through unrebuilt would
+	// otherwise look identical to a healthy one until a gw/ write hit the
+	// CHECK constraint. Assert what it promised rather than trust it silently.
+	if err := assertDirectionAcceptsGw(db); err != nil {
+		db.Close()
+		return nil, err
+	}
 	// The rebuild drops the old table and its indexes with it. schema is
 	// idempotent (every statement is IF NOT EXISTS), so re-running it restores
 	// them and does nothing else.
@@ -134,6 +142,15 @@ func appendEvent(tx *sql.Tx, nodeID, path string, seq int64, kind cval.Kind, val
 // outbound seq. A cell write also updates the cell tree; a stream write only
 // appends. Returns the assigned seq.
 func (s *Store) Write(nodeID, path string, kind cval.Kind, value []byte, actor, reason string) (int64, error) {
+	// gw/** is gateway-authored (WriteGateway) and porta may only write
+	// goal/** and dbg/req TO a node. Without this, `porta put <node>
+	// gw/liveness live` reaches this method, gets stamped direction='out',
+	// and OutboundSince — which filters on direction, not on path — hands it
+	// straight to the node: the one thing the third `direction` value exists
+	// to make structurally impossible (rete#217 I3).
+	if strings.HasPrefix(path, "gw/") {
+		return 0, fmt.Errorf("path %q is under gw/, which is gateway-authored and may not be written to a node", path)
+	}
 	if len(value) > MaxValueBytes {
 		return 0, fmt.Errorf("value is %d bytes, over the %d byte cap", len(value), MaxValueBytes)
 	}
@@ -432,12 +449,16 @@ func (s *Store) NoteCheckIn(nodeID string, cursor, nodeHW, bootID int64) (restar
 	return restartedFrom, restarted, tx.Commit()
 }
 
-// RecordExchange logs one check-in. addr is the peer address the datagram
-// arrived from; an EMPTY addr never clobbers a known one, which is v1's own
-// COALESCE discipline (v1 store.go:267) kept deliberately — a caller that does
-// not know the peer (the pure Handle path, a replayed session) must not erase
-// what the UDP loop learned.
-func (s *Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushedLo, pushedHi int64, addr string) error {
+// RecordExchange logs one REQUEST — not one check-in; a check-in is a pull
+// followed by a push, and the two call sites in internal/wire/server.go each
+// call this once. leg says which: "pull" or "push" (see schema.go's comment
+// on the exchanges table for why that distinction matters to CadenceMs).
+// addr is the peer address the datagram arrived from; an EMPTY addr never
+// clobbers a known one, which is v1's own COALESCE discipline (v1
+// store.go:267) kept deliberately — a caller that does not know the peer
+// (the pure Handle path, a replayed session) must not erase what the UDP
+// loop learned.
+func (s *Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushedLo, pushedHi int64, addr, leg string) error {
 	now := s.nowMs()
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -448,9 +469,9 @@ func (s *Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushe
 		return err
 	}
 	if _, err := tx.Exec(`
-		INSERT INTO exchanges (node_id, ts_ms, boot_id, cursor_in, cursor_out, pushed_lo, pushed_hi)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		nodeID, now, bootID, cursorIn, cursorOut, pushedLo, pushedHi); err != nil {
+		INSERT INTO exchanges (node_id, ts_ms, boot_id, cursor_in, cursor_out, pushed_lo, pushed_hi, leg)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		nodeID, now, bootID, cursorIn, cursorOut, pushedLo, pushedHi, leg); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(
@@ -484,12 +505,21 @@ const (
 // declared or did, never from a constant the observer picked. A ten-minute node
 // and a two-second node are each judged against themselves.
 //
-// ok is false when the node has fewer than MinExchanges exchanges. That is not
-// an error — it is a node porta has no cadence for yet, and the honest answer is
-// no verdict rather than a guess.
+// ok is false when the node has fewer than MinExchanges PULL exchanges. That
+// is not an error — it is a node porta has no cadence for yet, and the honest
+// answer is no verdict rather than a guess.
+//
+// Filtered to leg = 'pull': a check-in is a pull followed by a push, and
+// RecordExchange logs one row per REQUEST, so an unfiltered read counts both
+// halves of every check-in and infers a cadence exactly half the node's real
+// one (rete#217 C1). The pull is the heartbeat to infer from because the node
+// always sends it, whereas a push can early-return on an empty frame. Rows
+// written before the leg column existed carry an empty leg and are excluded
+// by this same filter, which is deliberate healing rather than a gap: see
+// the addColumns comment in schema.go.
 func (s *Store) CadenceMs(nodeID string) (int64, bool, error) {
 	rows, err := s.db.Query(
-		`SELECT ts_ms FROM exchanges WHERE node_id = ? ORDER BY ts_ms DESC LIMIT ?`,
+		`SELECT ts_ms FROM exchanges WHERE node_id = ? AND leg = 'pull' ORDER BY ts_ms DESC, id DESC LIMIT ?`,
 		nodeID, CadenceWindow+1)
 	if err != nil {
 		return 0, false, err
@@ -513,7 +543,15 @@ func (s *Store) CadenceMs(nodeID string) (int64, bool, error) {
 	for i := 0; i+1 < len(ts); i++ {
 		gaps = append(gaps, ts[i]-ts[i+1]) // ts is newest-first, so this is positive
 	}
-	return medianMs(gaps), true, nil
+	cadence := medianMs(gaps)
+	// A cadence of 0 is not a cadence (rete#217 I2): `since > 3*0` is true 1 ms
+	// after any arrival, which flips the node silent/live forever. Rejected the
+	// same way and for the same reason as MinExchanges — no verdict, not a
+	// number that cannot be acted on.
+	if cadence <= 0 {
+		return 0, false, nil
+	}
+	return cadence, true, nil
 }
 
 // medianMs sorts in place; the caller owns a scratch slice.

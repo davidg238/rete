@@ -216,6 +216,15 @@ func awaitServeExit(ctx context.Context, udpErr, blocksErr, sweepErr, httpErr <-
 		return err
 	case err := <-httpErr:
 		if err == nil {
+			// The same priority check as above, and for the same reason: without
+			// it, a ctx cancel that races a listener's already-buffered value can
+			// let the listener's case win this select too, skipping the drain of
+			// the others just as it could in the outer one.
+			select {
+			case <-ctx.Done():
+				return drain()
+			default:
+			}
 			select {
 			case err := <-udpErr:
 				return err

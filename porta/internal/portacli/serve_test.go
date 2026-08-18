@@ -237,10 +237,12 @@ func TestSweepLivenessLogsOnlyTransitions(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer st.Close()
-	st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
+	st.RecordExchange("n1", 41, 0, 0, 0, 0, "", "pull")
+	st.RecordExchange("n1", 41, 0, 0, 0, 0, "", "push")
 	for i := 0; i < 4; i++ {
 		clock += 2_000
-		st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
+		st.RecordExchange("n1", 41, 0, 0, 0, 0, "", "pull")
+		st.RecordExchange("n1", 41, 0, 0, 0, 0, "", "push")
 	}
 	clock += 20_000
 

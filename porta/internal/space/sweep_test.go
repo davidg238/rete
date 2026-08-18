@@ -44,12 +44,14 @@ func livenessRows(t *testing.T, st *Store, node string) int {
 	return n
 }
 
-// A node checking in every 2 s and then stopping is silent once 3 x cadence has
-// passed — and not one tick before.
+// A node checking in every 2 s and then stopping is still live one cadence
+// after its last exchange, and silent once well past 3 x cadence. The exact
+// boundary — silent at exactly 3x vs one ms past it — is not probed here; see
+// TestSweepBoundaryIsExactlyThreeCadencesNotOneTickBefore for that.
 func TestSweepDeclaresANodeSilentAfterThreeCadences(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
-	st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
+	checkIn(t, st, &clock, "n1", 0)
 	for i := 0; i < 4; i++ {
 		checkIn(t, st, &clock, "n1", 2_000)
 	}
@@ -84,13 +86,51 @@ func TestSweepDeclaresANodeSilentAfterThreeCadences(t *testing.T) {
 	}
 }
 
+// THE EXACT BOUNDARY. `silent := since > SilenceFactor*cadence` is a strict
+// inequality: AT exactly 3 x cadence the node is still live, and it takes one
+// more millisecond to flip. Nothing before this test checked the boundary
+// itself, only points comfortably on either side of it.
+func TestSweepBoundaryIsExactlyThreeCadencesNotOneTickBefore(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	checkIn(t, st, &clock, "n1", 0)
+	for i := 0; i < 4; i++ {
+		checkIn(t, st, &clock, "n1", 2_000)
+	}
+	lastSeen := clock
+
+	clock = lastSeen + 3*2_000 // exactly the boundary: since == 3 x cadence
+	changes, err := st.Sweep()
+	if err != nil {
+		t.Fatalf("Sweep at the boundary: %v", err)
+	}
+	if len(changes) != 1 || changes[0].Silent {
+		t.Fatalf("at exactly 3 x cadence: changes = %+v, want a #live verdict", changes)
+	}
+	if got := livenessOf(t, st, "n1"); got != "live" {
+		t.Fatalf("verdict at exactly 3 x cadence = %q, want live", got)
+	}
+
+	clock++ // one ms past the boundary
+	changes, err = st.Sweep()
+	if err != nil {
+		t.Fatalf("Sweep one ms past the boundary: %v", err)
+	}
+	if len(changes) != 1 || !changes[0].Silent {
+		t.Fatalf("one ms past 3 x cadence: changes = %+v, want a #silent verdict", changes)
+	}
+	if got := livenessOf(t, st, "n1"); got != "silent" {
+		t.Fatalf("verdict one ms past 3 x cadence = %q, want silent", got)
+	}
+}
+
 // Writing only on transition is what makes `porta log` a list of the times the
 // fleet went quiet rather than a row every 30 s. A sweep that re-wrote the same
 // verdict would bury the transition it exists to record.
 func TestSweepWritesOnlyOnTransition(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
-	st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
+	checkIn(t, st, &clock, "n1", 0)
 	for i := 0; i < 4; i++ {
 		checkIn(t, st, &clock, "n1", 2_000)
 	}
@@ -117,7 +157,7 @@ func TestSweepWritesOnlyOnTransition(t *testing.T) {
 func TestSweepRecordsTheReturnToLife(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
-	st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
+	checkIn(t, st, &clock, "n1", 0)
 	for i := 0; i < 4; i++ {
 		checkIn(t, st, &clock, "n1", 2_000)
 	}
@@ -144,7 +184,7 @@ func TestSweepRecordsTheReturnToLife(t *testing.T) {
 func TestSweepGivesNoVerdictToANodeItCannotJudge(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
-	st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
+	checkIn(t, st, &clock, "n1", 0)
 	checkIn(t, st, &clock, "n1", 2_000)
 	clock += 600_000
 	changes, err := st.Sweep()
@@ -188,10 +228,9 @@ func TestSweepVerdictSurvivesARestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
-	st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
+	checkIn(t, st, &clock, "n1", 0)
 	for i := 0; i < 4; i++ {
-		clock += 2_000
-		st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
+		checkIn(t, st, &clock, "n1", 2_000)
 	}
 	clock += 20_000
 	st.Sweep()
@@ -221,7 +260,7 @@ func TestSweepVerdictSurvivesARestart(t *testing.T) {
 func TestSweepRecordsTheInferredCadenceOnTheNodeRow(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
-	st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
+	checkIn(t, st, &clock, "n1", 0)
 	for i := 0; i < 4; i++ {
 		checkIn(t, st, &clock, "n1", 2_000)
 	}
@@ -245,12 +284,14 @@ func TestSweepIsNotStoppedByOneNodesFailure(t *testing.T) {
 	// ids chosen so the failing one sorts in the MIDDLE of ORDER BY n.id — a
 	// failing LAST node would pass even under the old code.
 	for _, id := range []string{"aaa", "mmm", "zzz"} {
-		st.RecordExchange(id, 41, 0, 0, 0, 0, "")
+		st.RecordExchange(id, 41, 0, 0, 0, 0, "", "pull")
+		st.RecordExchange(id, 41, 0, 0, 0, 0, "", "push")
 	}
 	for i := 0; i < 4; i++ {
 		clock += 2_000
 		for _, id := range []string{"aaa", "mmm", "zzz"} {
-			st.RecordExchange(id, 41, 0, 0, 0, 0, "")
+			st.RecordExchange(id, 41, 0, 0, 0, 0, "", "pull")
+			st.RecordExchange(id, 41, 0, 0, 0, 0, "", "push")
 		}
 	}
 
