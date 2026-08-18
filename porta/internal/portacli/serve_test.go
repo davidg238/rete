@@ -194,6 +194,96 @@ func TestServeRegistersTestDropAckFlagDefaultingToOff(t *testing.T) {
 	}
 }
 
+// sequencedDoneCtx is a context.Context whose Done() answers an OPEN
+// (never-closed) channel for its first two calls and a CLOSED channel from
+// the third call on. awaitServeExit's inner path calls ctx.Done() exactly
+// three times before it can reach the bug this reproduces: once in the
+// outer pre-check, once as a case operand in the main select, and once in
+// the inner pre-check reached only after the main select has already
+// consumed httpErr. Sequencing Done() this way drives that exact
+// interleaving deterministically, without a real ctx cancel racing the
+// channel sends.
+type sequencedDoneCtx struct {
+	context.Context
+	mu     sync.Mutex
+	calls  int
+	open   chan struct{} // never closed: Done() "not ready"
+	closed chan struct{} // closed at construction: Done() "ready"
+}
+
+func newSequencedDoneCtx() *sequencedDoneCtx {
+	c := &sequencedDoneCtx{
+		Context: context.Background(),
+		open:    make(chan struct{}),
+		closed:  make(chan struct{}),
+	}
+	close(c.closed)
+	return c
+}
+
+func (c *sequencedDoneCtx) Done() <-chan struct{} {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.calls++
+	if c.calls <= 2 {
+		return c.open
+	}
+	return c.closed
+}
+
+// TestAwaitServeExitDoesNotDeadlockOnAlreadyConsumedHTTPErr is the regression
+// guard for the deadlock this fix closes: on the inner ctx-cancel path
+// (reached after a clean HTTP exit, httpErr delivering nil, has already been
+// consumed by the main select), draining must NOT touch httpErr again — it
+// is a cap-1 channel the HTTP goroutine writes to exactly once and never
+// closes, so a second receive blocks forever.
+//
+// We send httpErr's one value and start awaitServeExit BEFORE sending
+// anything on udpErr/blocksErr/sweepErr. Until we send those, httpErr is the
+// only channel ready (ctx.Done() is "not ready" for its first two calls, per
+// sequencedDoneCtx), so the main select deterministically picks the httpErr
+// case — no other case can race it. Only once we've confirmed (the 50ms
+// window used elsewhere in this file) that awaitServeExit has NOT returned
+// early do we send the other three, which moves it into the inner
+// ctx.Done()-ready branch (the third Done() call). The buggy code calls
+// drain() there, which drains udpErr/blocksErr/sweepErr fine and then blocks
+// forever on the already-consumed httpErr — so this test times out and fails
+// against the pre-fix code, and returns promptly against the fix.
+func TestAwaitServeExitDoesNotDeadlockOnAlreadyConsumedHTTPErr(t *testing.T) {
+	udpErr := make(chan error, 1)
+	blocksErr := make(chan error, 1)
+	sweepErr := make(chan error, 1)
+	httpErr := make(chan error, 1)
+	httpErr <- nil // clean HTTP exit
+
+	ctx := newSequencedDoneCtx()
+
+	done := make(chan error, 1)
+	go func() { done <- awaitServeExit(ctx, udpErr, blocksErr, sweepErr, httpErr) }()
+
+	// Must not return before the other three listeners have anything to
+	// report — proves we are past the main select (httpErr consumed) and
+	// sitting in the inner branch, not that awaitServeExit short-circuited.
+	select {
+	case <-done:
+		t.Fatal("returned before udpErr/blocksErr/sweepErr were ever sent")
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	udpErr <- nil
+	blocksErr <- nil
+	sweepErr <- nil
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Errorf("got %v, want nil", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("awaitServeExit deadlocked draining an already-consumed httpErr (regression)")
+	}
+}
+
 // The sweep is a listener in the same class as udp and blocks: it returns only
 // on ctx cancel, and the drain is what keeps an in-flight Sweep from racing the
 // store's deferred Close.

@@ -106,9 +106,11 @@ it is not to be foreclosed. It is a reader over the same log plus a driver, prov
 2. **Millisecond timestamps.** v1 is epoch-seconds throughout (`DefaultPollIntervalS = 30`).
    Replay needs inter-arrival timing; second granularity cannot reconstruct a control loop.
    Cheap now, impossible to backfill.
-3. **The exchange itself is logged**, not only the writes — one row per check-in. This is
-   *also* the heartbeat record, so it is not extra machinery, and without it the batch
-   boundary a value arrived on is unrecoverable.
+3. **The exchange itself is logged**, not only the writes — one row per request, two per
+   check-in (a `pull` and a `push`, tagged by a `leg` column). The pull leg is *also* the
+   heartbeat record, since a node always sends it while a push can early-return on an empty
+   frame, so it is not extra machinery, and without it the batch boundary a value arrived on
+   is unrecoverable.
 4. **`(bootId, monoMs)` is the session key.** RECORDS §3 already defines it and rides
    `bootId` on the batch envelope. It makes "a captured session" one node run, rather than
    a time range someone eyeballs.
@@ -293,10 +295,13 @@ CREATE TABLE events (         -- append-only, both directions, with provenance (
   actor TEXT, reason TEXT
 );
 
-CREATE TABLE exchanges (      -- one row per check-in; the heartbeat AND the replay index (D4.3)
+CREATE TABLE exchanges (      -- one row per request; two per check-in (pull + push, D4.3)
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   node_id TEXT, ts_ms INTEGER, boot_id INTEGER,
-  cursor_in INTEGER, cursor_out INTEGER, pushed_lo INTEGER, pushed_hi INTEGER
+  cursor_in INTEGER, cursor_out INTEGER, pushed_lo INTEGER, pushed_hi INTEGER,
+  leg TEXT NOT NULL DEFAULT ''   -- 'pull' | 'push'; the pull leg is the heartbeat and
+                                 -- replay index — a node always sends it, a push can
+                                 -- early-return on an empty frame
 );
 ```
 

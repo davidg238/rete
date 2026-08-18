@@ -220,9 +220,27 @@ func awaitServeExit(ctx context.Context, udpErr, blocksErr, sweepErr, httpErr <-
 			// it, a ctx cancel that races a listener's already-buffered value can
 			// let the listener's case win this select too, skipping the drain of
 			// the others just as it could in the outer one.
+			//
+			// NOT drain() here, unlike the OUTER pre-check: by construction we
+			// only reach this branch after the main select's `case err :=
+			// <-httpErr` has already received httpErr's one and only value (the
+			// sender writes once and never closes the channel), so drain()'s
+			// `<-httpErr` would block forever. udpErr, blocksErr and sweepErr are
+			// still outstanding, so those are what must be drained. The outer
+			// pre-check has consumed nothing yet, so it correctly keeps using
+			// drain() — do not "unify" the two.
 			select {
 			case <-ctx.Done():
-				return drain()
+				if udpErr != nil {
+					<-udpErr
+				}
+				if blocksErr != nil {
+					<-blocksErr
+				}
+				if sweepErr != nil {
+					<-sweepErr
+				}
+				return nil
 			default:
 			}
 			select {
