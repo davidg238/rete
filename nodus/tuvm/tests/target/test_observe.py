@@ -152,3 +152,19 @@ def test_the_boot_banner_before_the_window_is_not_read_as_a_reboot():
             + "TAP stale-handle done pass=3 fail=0\n")
         r = observe(log, "none", 2)
         assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_a_none_scenario_does_not_claim_progress_it_never_checked():
+    """Found by running the gate on hardware, 2026-08-17. Both probes declare
+    `none` and both printed "still progressing, no fault" — a positive claim
+    about liveness that was never asserted, in a harness whose entire purpose is
+    that a gate must not report what it did not test. The fault half IS real for
+    these scenarios; the progress half is not, and the line must say which."""
+    with tempfile.TemporaryDirectory() as d:
+        log = Path(d) / "console.log"
+        log.write_text(BANNER + "\nTAP stale-handle done pass=3 fail=0\n")
+        r = observe(log, "none", 2)
+        assert r.returncode == 0, r.stdout + r.stderr
+        assert "progressing" not in r.stdout, (
+            "a none-progress scenario must not report progress it never checked:\n" + r.stdout)
+        assert "no fault" in r.stdout, r.stdout

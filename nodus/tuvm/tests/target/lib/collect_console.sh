@@ -140,6 +140,15 @@ collect::observe() {
     mark=$total
   done
 
-  target::say "observed ${window_s}s past the verdict: still progressing, no fault"
+  # Say only what was actually asserted. Running this on hardware on 2026-08-17
+  # printed "still progressing" for both probes that declare `none` — a positive
+  # claim about liveness nothing had checked, in the harness built to stop
+  # exactly that. The fault half is real for those scenarios; the progress half
+  # is not, and a reader six months from now has only this line to go on.
+  if [ "$progress_re" = none ]; then
+    target::say "observed ${window_s}s past the verdict: no fault (this scenario declares no progress line, so nothing here asserts it stayed alive)"
+  else
+    target::say "observed ${window_s}s past the verdict: still progressing, no fault"
+  fi
   return 0
 }
