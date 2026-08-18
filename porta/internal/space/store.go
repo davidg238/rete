@@ -171,6 +171,54 @@ func (s *Store) Write(nodeID, path string, kind cval.Kind, value []byte, actor, 
 	return seq, tx.Commit()
 }
 
+// PathLiveness is the one gw/** path today: porta's verdict on whether a node
+// is still talking. #live or #silent, as a Symbol.
+const PathLiveness = "gw/liveness"
+
+// WriteGateway records a verdict porta formed ABOUT a node — the third
+// direction, gateway-authored and never on the wire.
+//
+// It is deliberately NOT a variant of Write with a flag. Write allocates the
+// node's next outbound seq, because everything it writes is destined for the
+// node's cursor; a gw row is destined for nothing, so it takes seq 0 and leaves
+// that counter alone. `seq` is only meaningful inside a sequence space and gw
+// has none — porta's out_seq is one space, the node's push counter the other.
+// The log's own `id` orders these rows.
+//
+// It writes a CELL and only a cell: a verdict is the current state of porta's
+// opinion, and there is no gw stream. When one is needed, it is added then.
+func (s *Store) WriteGateway(nodeID, path string, value []byte, reason string) error {
+	if len(value) > MaxValueBytes {
+		return fmt.Errorf("value is %d bytes, over the %d byte cap", len(value), MaxValueBytes)
+	}
+	if err := cval.Validate(value); err != nil {
+		return fmt.Errorf("value is not a well-formed algebra value: %w", err)
+	}
+	now := s.nowMs()
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err := ensureNode(tx, nodeID, now); err != nil {
+		return err
+	}
+	// The boot the verdict is ABOUT. 0 means porta has never heard from the node
+	// or the node has no persistent identity — both read as unknown, and neither
+	// is invented into a number.
+	var boot int64
+	if err := tx.QueryRow(`SELECT COALESCE(boot_id, 0) FROM nodes WHERE id = ?`, nodeID).Scan(&boot); err != nil {
+		return err
+	}
+	if err := upsertCell(tx, nodeID, path, 0, cval.KindCell, value, now, DirectionGateway, boot); err != nil {
+		return err
+	}
+	if err := appendEvent(tx, nodeID, path, 0, cval.KindCell, value, now, DirectionGateway, "porta", reason, boot); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
 // OutboundSince returns entries the node has not yet consumed, oldest first,
 // stopping before the batch would exceed maxBytes.
 //

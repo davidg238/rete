@@ -522,3 +522,73 @@ func TestDirectionMigrationIsANoOpOnASecondOpen(t *testing.T) {
 		t.Fatalf("tree = %+v, want the row from before the second open", tree)
 	}
 }
+
+// The property the whole storage choice exists for: a verdict porta formed
+// about a node is never handed to that node. If this ever fails, a node is
+// being told what porta thinks of it — over a namespace §4.1 says only the
+// node may author.
+func TestGatewayVerdictNeverRidesTheWire(t *testing.T) {
+	st := testStore(t)
+	st.Ingest("n1", 41, []Entry{{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(1))}})
+	if err := st.WriteGateway("n1", PathLiveness, enc(t, cval.Symbol("silent")), "test"); err != nil {
+		t.Fatalf("WriteGateway: %v", err)
+	}
+	entries, hi, err := st.OutboundSince("n1", 0, MaxBatchBytes)
+	if err != nil {
+		t.Fatalf("OutboundSince: %v", err)
+	}
+	for _, e := range entries {
+		if e.Path == PathLiveness {
+			t.Fatalf("gw/liveness was delivered to the node: %+v (cursor now %d)", e, hi)
+		}
+	}
+	if len(entries) != 0 {
+		t.Fatalf("outbound = %+v, want nothing (the node has no goal writes)", entries)
+	}
+}
+
+// The verdict is about a node ON A BOOT. Stamping the node's current boot costs
+// nothing — the value is already in hand — and it is what lets `porta log`
+// answer "which boot was porta calling silent" (rete#210's argument, applied to
+// a row porta wrote itself).
+func TestGatewayVerdictCarriesTheNodesCurrentBoot(t *testing.T) {
+	st := testStore(t)
+	st.Ingest("n1", 44, []Entry{{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(1))}})
+	if err := st.WriteGateway("n1", PathLiveness, enc(t, cval.Symbol("silent")), "no exchange"); err != nil {
+		t.Fatalf("WriteGateway: %v", err)
+	}
+	tree, _ := st.Tree("n1", PathLiveness)
+	if len(tree) != 1 {
+		t.Fatalf("tree = %+v, want the gw row", tree)
+	}
+	if tree[0].Direction != DirectionGateway || tree[0].BootID != 44 || tree[0].Seq != 0 {
+		t.Fatalf("gw row = %+v, want direction=gw boot=44 seq=0", tree[0])
+	}
+	events, _ := st.Events("n1", 10, 0)
+	var found *Event
+	for i := range events {
+		if events[i].Path == PathLiveness {
+			found = &events[i]
+		}
+	}
+	if found == nil {
+		t.Fatal("no event row for the verdict; a transition that leaves no log line is not a record")
+	}
+	if found.Direction != DirectionGateway || found.Actor != "porta" || found.Reason != "no exchange" {
+		t.Fatalf("event = %+v, want direction=gw actor=porta reason='no exchange'", *found)
+	}
+}
+
+// porta's own outbound counter is the node's cursor space. Burning a seq on a
+// row the node can never receive would put a permanent hole in that cursor.
+func TestGatewayWriteDoesNotConsumeTheOutboundSeq(t *testing.T) {
+	st := testStore(t)
+	st.WriteGateway("n1", PathLiveness, enc(t, cval.Symbol("live")), "test")
+	seq, err := st.Write("n1", "goal/name", cval.KindCell, enc(t, "alpha"), "david", "")
+	if err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	if seq != 1 {
+		t.Fatalf("first goal write got seq %d, want 1 — the gw row consumed one", seq)
+	}
+}
