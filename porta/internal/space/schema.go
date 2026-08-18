@@ -155,10 +155,10 @@ const (
 // Detection is the DDL itself and not a version row: a store that already
 // carries 'gw' is skipped, which is what makes a second Open a no-op.
 //
-// SPIKED 2026-08-18 before this plan was handed over, on both shapes: a fresh
-// store (DDL still reads `CREATE TABLE IF NOT EXISTS cells (`) and a store whose
-// boot_id was appended by ALTER (sqlite has rewritten the DDL, dropping the
-// IF NOT EXISTS and putting boot_id on the direction line). Both migrate, keep
+// SPIKED 2026-08-18 before this plan was handed over, on both shapes: sqlite
+// strips `IF NOT EXISTS` from the STORED DDL text immediately on any
+// `CREATE TABLE IF NOT EXISTS`, so both a fresh store and a store whose
+// boot_id was appended by ALTER have the clause already gone. Both migrate, keep
 // their rows, and accept 'gw' afterwards. Two findings from that run are baked
 // in above: the DROP TABLE IF EXISTS, and the fact that after the rename the
 // stored DDL reads `CREATE TABLE "cells" (` — QUOTED — which is harmless only

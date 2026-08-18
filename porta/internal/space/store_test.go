@@ -446,6 +446,50 @@ func TestOpenMigratesTheDirectionCheckOnAPreExistingStore(t *testing.T) {
 		VALUES ('n1','gw/liveness',0,2,x'02',2000,'gw','porta','',41)`); err != nil {
 		t.Fatalf("gw event after migration: %v", err)
 	}
+
+	// The live gateway restarts, so a second open must be a true no-op: rows
+	// survive, indexes are present, and the migration does not run again.
+	st.Close()
+
+	st2, err := Open(path, func() int64 { return 3000 })
+	if err != nil {
+		t.Fatalf("second open of migrated store: %v", err)
+	}
+	defer st2.Close()
+
+	// The seeded rows from the legacy schema survived the migration and the close/reopen.
+	if err := st2.DB().QueryRow(`SELECT COUNT(*) FROM cells WHERE node_id='n1' AND boot_id=41 AND path='obs/health'`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("seeded cell after reopen: n=%d err=%v, want the original row intact", n, err)
+	}
+	if err := st2.DB().QueryRow(`SELECT COUNT(*) FROM events WHERE node_id='n1' AND boot_id=41 AND path='obs/health'`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("seeded event after reopen: n=%d err=%v, want the original row intact", n, err)
+	}
+
+	// The rows added after the first migration survived the close/reopen.
+	if err := st2.DB().QueryRow(`SELECT COUNT(*) FROM cells WHERE node_id='n1' AND direction='gw' AND path='gw/liveness'`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("gw cell after reopen: n=%d err=%v, want the post-migration row intact", n, err)
+	}
+	if err := st2.DB().QueryRow(`SELECT COUNT(*) FROM events WHERE node_id='n1' AND direction='gw' AND path='gw/liveness'`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("gw event after reopen: n=%d err=%v, want the post-migration row intact", n, err)
+	}
+
+	// The second open did not rebuild: the DDL still has exactly one 'gw' mention
+	// (in the CHECK constraint), not multiple rebuilds' worth.
+	var ddl string
+	if err := st2.DB().QueryRow(
+		`SELECT sql FROM sqlite_master WHERE type='table' AND name='cells'`).Scan(&ddl); err != nil {
+		t.Fatalf("read cells DDL after reopen: %v", err)
+	}
+	if strings.Count(ddl, "'gw'") != 1 {
+		t.Fatalf("cells DDL after reopen carries %d 'gw' mentions, want exactly 1 (no rebuild):\n%s",
+			strings.Count(ddl, "'gw'"), ddl)
+	}
+
+	// And the third direction still works.
+	if _, err := st2.DB().Exec(
+		`INSERT INTO cells VALUES ('n1','gw/verdict',0,2,x'03',3000,'gw',41)`); err != nil {
+		t.Fatalf("another gw cell after reopen: %v", err)
+	}
 }
 
 // The second open must be a no-op: the migration is detected by the table's own
