@@ -5,6 +5,7 @@ package space
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"time"
 
@@ -53,6 +54,12 @@ type LivenessChange struct {
 //
 // A node with no cadence yet (fewer than MinExchanges arrivals) is SKIPPED, not
 // defaulted — gw/liveness stays unwritten rather than carrying a guess.
+//
+// One node's failure never costs another node its verdict: each node is
+// evaluated independently, the changes returned are only the ones actually
+// committed, and the returned error (via errors.Join) names every node that
+// failed. Only a failure in the query that lists the nodes themselves — not
+// per-node — aborts the sweep outright, because nothing can proceed without it.
 func (s *Store) Sweep() ([]LivenessChange, error) {
 	now := s.nowMs()
 	rows, err := s.db.Query(`
@@ -83,16 +90,19 @@ func (s *Store) Sweep() ([]LivenessChange, error) {
 	}
 
 	var changes []LivenessChange
+	var errs []error
 	for _, n := range nodes {
 		cadence, ok, err := s.CadenceMs(n.id)
 		if err != nil {
-			return changes, err
+			errs = append(errs, fmt.Errorf("node %s: cadence: %w", n.id, err))
+			continue
 		}
 		if !ok {
 			continue
 		}
 		if err := s.recordCadence(n.id, cadence); err != nil {
-			return changes, err
+			errs = append(errs, fmt.Errorf("node %s: record cadence: %w", n.id, err))
+			continue
 		}
 		since := now - n.lastSeen
 		silent := since > SilenceFactor*cadence
@@ -106,13 +116,14 @@ func (s *Store) Sweep() ([]LivenessChange, error) {
 		}
 		reason := fmt.Sprintf("%s: %d ms since last exchange, cadence %d ms", verdict, since, cadence)
 		if err := s.WriteGateway(n.id, PathLiveness, want, reason); err != nil {
-			return changes, err
+			errs = append(errs, fmt.Errorf("node %s: write verdict: %w", n.id, err))
+			continue
 		}
 		changes = append(changes, LivenessChange{
 			NodeID: n.id, Silent: silent, CadenceMs: cadence, SinceMs: since,
 		})
 	}
-	return changes, nil
+	return changes, errors.Join(errs...)
 }
 
 // recordCadence writes the inferred rate back to the column that has been in the

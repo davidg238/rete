@@ -5,6 +5,8 @@ package space
 
 import (
 	"bytes"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/davidg238/porta/internal/cval"
@@ -231,6 +233,56 @@ func TestSweepRecordsTheInferredCadenceOnTheNodeRow(t *testing.T) {
 	}
 	if cadence != 2_000 {
 		t.Fatalf("nodes.cadence_ms = %d, want 2000", cadence)
+	}
+}
+
+// One node's failure must never cost another node its verdict. A trigger is
+// the honest injection here: it makes WriteGateway fail for exactly one node,
+// in the store, the way a real constraint violation would — no fake, no seam.
+func TestSweepIsNotStoppedByOneNodesFailure(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	// ids chosen so the failing one sorts in the MIDDLE of ORDER BY n.id — a
+	// failing LAST node would pass even under the old code.
+	for _, id := range []string{"aaa", "mmm", "zzz"} {
+		st.RecordExchange(id, 41, 0, 0, 0, 0, "")
+	}
+	for i := 0; i < 4; i++ {
+		clock += 2_000
+		for _, id := range []string{"aaa", "mmm", "zzz"} {
+			st.RecordExchange(id, 41, 0, 0, 0, 0, "")
+		}
+	}
+
+	if _, err := st.DB().Exec(`CREATE TRIGGER fail_mmm BEFORE INSERT ON cells
+		WHEN NEW.node_id = 'mmm' BEGIN SELECT RAISE(ABORT, 'injected'); END`); err != nil {
+		t.Fatalf("install trigger: %v", err)
+	}
+
+	clock += 7_000 // past 3 x 2000 ms cadence
+	changes, err := st.Sweep()
+	if err == nil || !strings.Contains(err.Error(), "mmm") {
+		t.Fatalf("err = %v, want an error naming node mmm", err)
+	}
+	if len(changes) != 2 {
+		t.Fatalf("changes = %+v, want exactly the two healthy nodes", changes)
+	}
+	var got []string
+	for _, c := range changes {
+		got = append(got, c.NodeID)
+	}
+	sort.Strings(got)
+	if got[0] != "aaa" || got[1] != "zzz" {
+		t.Fatalf("changed nodes = %v, want [aaa zzz]", got)
+	}
+	if v := livenessOf(t, st, "aaa"); v != "silent" {
+		t.Fatalf("aaa verdict = %q, want silent", v)
+	}
+	if v := livenessOf(t, st, "zzz"); v != "silent" {
+		t.Fatalf("zzz verdict = %q, want silent", v)
+	}
+	if v := livenessOf(t, st, "mmm"); v != "" {
+		t.Fatalf("mmm verdict = %q, want unwritten", v)
 	}
 }
 
