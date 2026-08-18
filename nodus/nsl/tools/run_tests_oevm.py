@@ -794,11 +794,20 @@ def main():
     # /tmp path, so they are safe here; they were run by NOTHING until now.
     mprof_py = run_pytest_gate("mprof-tools-py", "nodus/tuvm/tools")
     console_py = run_pytest_gate("console-py", "nodus/tuvm/zephyr/tools/console")
+    # #216: the target harness's OBSERVATION WINDOW — the assertion that a
+    # scenario keeps being watched after its TAPs pass. The window needs no board:
+    # it is logic over the collector's log, so it is falsifiable here, and the
+    # board is then spent only on what genuinely needs one. This is the first
+    # thing under tests/target/ that this suite can run, and it is exactly the
+    # piece whose absence let a gate score PASS 3/3 against a node that died four
+    # ticks later (#213).
+    observe_py = run_pytest_gate("target-observe-py", "nodus/tuvm/tests/target")
 
     suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok
                 and portability != "FAIL" and boot_gc_ok
                 and footprint != "FAIL" and deepsleep_ok
-                and mprof_py != "FAIL" and console_py != "FAIL")
+                and mprof_py != "FAIL" and console_py != "FAIL"
+                and observe_py != "FAIL")
     print(f"\n{COLOR_GREEN if suite_ok else COLOR_RED}Test Execution Summary:{COLOR_RESET}")
     print(f"  Passed:  {passed}")
     print(f"  Failed:  {failed}")
@@ -820,7 +829,8 @@ def main():
           f"deepsleep: {_mark('PASS' if deepsleep_ok else 'FAIL')}  "
           f"footprint(T0.3): {_mark(footprint)}\n"
           f"  mprof-tools-py: {_mark(mprof_py)}  "
-          f"console-py: {_mark(console_py)}")
+          f"console-py: {_mark(console_py)}  "
+          f"target-observe-py: {_mark(observe_py)}")
 
     # NOT a skip, and deliberately not coloured like one: a skip names a cause it
     # has not verified, and this names one that IS verified. timer_zephyr.c posts
@@ -837,6 +847,7 @@ def main():
     print(f"  target gates: {COLOR_YELLOW}NOT RUN BY THIS SUITE{COLOR_RESET} — the posix timer "
           f"backend bypasses the pulse\n"
           f"    mailbox, so coalescing, shedding and stale handles are UNTESTED here.\n"
+          f"    (target-observe-py above is the harness's OWN logic, not the seams — #216.)\n"
           f"    Run: nodus/tuvm/tests/target/run.sh   ({n_scen} scenarios, needs a board)")
 
     if not suite_ok:

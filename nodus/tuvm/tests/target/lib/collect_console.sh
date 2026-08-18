@@ -56,3 +56,90 @@ collect::console() {
   fi
   return 1
 }
+
+# collect::observe <build_id> <scenario> <progress_re> <window_s> [board]
+#
+# rete#216 — THE WINDOW AFTER THE VERDICT.
+#
+# `collect::console` above returns as soon as the workload's `done` line lands,
+# and the runner then scores the TAPs and releases the board. On 2026-08-16
+# `bridge-health` returned PASS 3/3 in 22 s against a build that was dead four
+# ticks later (#213): the gate scores at tick 2, the node dies at tick 6, and
+# nothing is watching. A target gate that passes and then lets the node die is a
+# false green — and it is invisible in precisely the case a target gate exists
+# to catch, a change that survives the host suite and kills real hardware.
+#
+# So the verdict is provisional until the node has been watched for a while
+# longer. Two independent questions, because the deaths on this bench come in
+# both shapes:
+#
+#   PROGRESS — did the scenario's own output keep arriving? #213 and #192 die
+#     SILENTLY: no fault, no panic, no reboot banner, console still `port=up`.
+#     No grep for a fault signature will ever match them. The failure IS the
+#     absence, so only a positive progress predicate can see it.
+#   FAULT — did a death that IS loud appear? Cheap, and it catches the
+#     complementary set.
+#
+# WHY THIS IS NOT `TIMEOUT_S`. The manifests describe TIMEOUT_S as "the outer
+# bound on a workload that has already decided, never the thing that decides".
+# Lengthening it would make a slow attach and a post-verdict death the same
+# event. This runs AFTER the decision and reports its own distinct cause.
+#
+# WHY IT READS ONLY WHAT ARRIVES AFTER THE VERDICT, not from the anchor. The
+# anchor IS a boot banner, and a C6 prints two of them — so a fault scan rooted
+# at the anchor would match `rst:0x` on every healthy run. Marking the log's end
+# at window start makes a `rst:0x` inside the window mean what it says: the node
+# rebooted after passing.
+#
+# `progress_re` is the SCENARIO's line, not a harness constant, and `none` is a
+# legal value for a one-shot probe that emits its TAPs and stops. The fault half
+# still applies to those.
+collect::observe() {
+  local build_id=$1 scenario=$2 progress_re=$3 window_s=$4 board=${5:-$TARGET_DEFAULT_BOARD}
+  local poll=${OBSERVE_POLL_S:-10}
+  local faults='FATAL|Out of Memory|Stack Overflow|Guru Meditation|CORRUPT|abort\(\)|rst:0x'
+  local logfile mark now total new deadline
+
+  logfile=$(target::logfile "$board")
+  if [ ! -f "$logfile" ]; then
+    echo "OBSERVE: no console log at $logfile — nothing can be observed" >&2
+    return 1
+  fi
+  mark=$(wc -l < "$logfile")
+  deadline=$(( $(date +%s) + window_s ))
+
+  target::say "observing ${window_s}s past the verdict (progress: ${progress_re}, anchor $build_id)"
+
+  while [ "$(date +%s)" -lt "$deadline" ]; do
+    sleep "$poll"
+    logfile=$(target::logfile "$board")          # re-resolved: the log rolls at midnight
+    total=$(wc -l < "$logfile" 2>/dev/null || echo 0)
+    # A roll (or a truncation) makes the old offset meaningless. Start again from
+    # the top of the new file rather than reading a negative window as silence,
+    # which would report a stall the node never had.
+    if [ "$total" -lt "$mark" ]; then
+      target::say "console log rolled mid-window; re-anchoring at its start"
+      mark=0
+      continue
+    fi
+    new=$(tail -n +$(( mark + 1 )) "$logfile")
+
+    if echo "$new" | grep -Eq "$faults"; then
+      echo "OBSERVE FAULT: '$scenario' passed its TAPs and then faulted inside the ${window_s}s window:" >&2
+      echo "$new" | grep -E "$faults" | head -3 >&2
+      return 1
+    fi
+
+    if [ "$progress_re" != none ]; then
+      if ! echo "$new" | grep -Eq "$progress_re"; then
+        echo "OBSERVE STALL: '$scenario' passed its TAPs and then stopped — no line matching '$progress_re' in ${poll}s, with no fault, no panic and no reboot. This is #213's signature and the reason this window exists." >&2
+        return 1
+      fi
+    fi
+
+    mark=$total
+  done
+
+  target::say "observed ${window_s}s past the verdict: still progressing, no fault"
+  return 0
+}

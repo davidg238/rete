@@ -7,6 +7,13 @@
 #   ./run.sh --no-deploy --build-id <id> stale-handle
 #                                assert against an image already running
 #
+# A scenario's TAPs passing is not the verdict. Each manifest declares
+# OBSERVE_S and OBSERVE_PROGRESS, and the runner keeps watching that long past
+# the done line: a gate that passes and then lets the node die is a false green
+# (rete#216, found by #213). The window's own logic is falsifiable WITHOUT a
+# board — `python3 -m pytest tests/target/test_observe.py`, which the nsl suite
+# now runs.
+#
 # WHY THIS IS NOT PART OF THE NSL SUITE. It needs hardware, it costs a flash
 # cycle per scenario, and a boardless run would have to degrade to a SKIP — which
 # on this bench is how a gate reports success for a run that never happened. The
@@ -41,7 +48,7 @@ while [ $# -gt 0 ]; do
     --no-deploy)  DO_DEPLOY=0; shift ;;
     --build-id)   GIVEN_BUILD_ID=$2; shift 2 ;;
     --timeout)    OVERRIDE_TIMEOUT=$2; shift 2 ;;
-    -h|--help)    sed -n '2,12p' "$0"; exit 0 ;;
+    -h|--help)    sed -n '2,15p' "$0"; exit 0 ;;
     -*)           target::die "unknown flag $1" ;;
     *)            WANTED+=("$1"); shift ;;
   esac
@@ -83,11 +90,19 @@ for name in "${WANTED[@]}"; do
   # rather than inheriting the previous scenario's values — a manifest that omits
   # CONF_EXTRA must not silently pick up the last one's.
   SCENARIO=""; NODE=""; BOARD_ID=""; CONF_EXTRA=""; CLASS=""; TIMEOUT_S=""
+  OBSERVE_S=""; OBSERVE_PROGRESS=""
   # shellcheck disable=SC1090
   source "$manifest"
   [ -n "$SCENARIO" ] || target::die "$manifest sets no SCENARIO"
   [ -n "$NODE" ]     || target::die "$manifest sets no NODE"
   [ -n "$CLASS" ]    || target::die "$manifest sets no CLASS (observe or disruptive)"
+  # rete#216. Both are MANDATORY, for the same reason CLASS is: the default that
+  # would be applied silently is the one that produced the false green. A new
+  # scenario must state how long it is watched past its verdict and what its
+  # progress looks like — `none` being a legal, and visible, answer for a
+  # workload that stops by design.
+  [ -n "$OBSERVE_S" ] || target::die "$manifest sets no OBSERVE_S (rete#216: how long to keep watching AFTER the TAPs pass)"
+  [ -n "$OBSERVE_PROGRESS" ] || target::die "$manifest sets no OBSERVE_PROGRESS (a progress regex, or 'none' if the workload halts by design)"
   [ -f "$ZDIR/$NODE" ] || target::die "workload $ZDIR/$NODE not found"
 
   target::assert_deployable "$BOARD" "$CLASS"
@@ -108,6 +123,19 @@ for name in "${WANTED[@]}"; do
   else
     verdict="FAIL 0/0 no TAP output (see the TIMEOUT line above)"
   fi
+
+  # rete#216 — the verdict above is PROVISIONAL. `bridge-health` returned PASS
+  # 3/3 in 22 s on 2026-08-16 against a build that was dead four ticks later
+  # (#213): it scores at tick 2 and the node dies at tick 6. Only a PASS is
+  # observed — a scenario that already failed has nothing left to protect, and
+  # spending the window on it would just make a red run slower.
+  case "$verdict" in
+    PASS*)
+      if ! collect::observe "$build_id" "$SCENARIO" "$OBSERVE_PROGRESS" "$OBSERVE_S" "$BOARD"; then
+        verdict="FAIL ${verdict#PASS } — died inside the ${OBSERVE_S}s observation window (see OBSERVE line above)"
+      fi
+      ;;
+  esac
 
   elapsed=$(( SECONDS - started ))
   target::say "$verdict"

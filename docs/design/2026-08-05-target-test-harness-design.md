@@ -465,6 +465,9 @@ closes, and each must fail **for the stated reason**:
 4. Mark `stale-handle` as `observe` and target the bell's by-id → refused twice, once by
    class and once by the deny-list.
 5. Flip one probe's expected value → that scenario FAILs and the run exits nonzero.
+6. **(rete#216)** Point a scenario at a log whose progress line stops after the done
+   line → FAIL naming the STALL, not a PASS. Falsifiable without a board, and run by
+   the nsl suite: `python3 -m pytest nodus/tuvm/tests/target/test_observe.py`.
 
 ### Run 2026-08-05 — all five, and two of them found real defects
 
@@ -672,3 +675,64 @@ no concept the schema did not already contain.
 Worth carrying past this issue: the first design written after a scare tends to propose a new
 signal, when the one that was needed had already been on the wire for two rungs. Check what is
 already in hand before adding a mechanism to estimate it.
+
+
+---
+
+## Addendum — 2026-08-17 (rete#216): the verdict was taken and nothing watched after
+
+**A scenario's TAPs passing was the whole verdict, and that is a false green.** On
+2026-08-16 `bridge-health` returned **PASS 3/3 in 22 s** against a build that hung four
+ticks later (#213): the gate scores at tick 2, the node dies at tick 6, the board is
+released. The same PASS would have been issued for the two boots that died — the healthy
+arm's PASS was correct only by luck of which build was under it.
+
+This is the failure mode the whole directory exists to prevent, in the harness itself. D7
+already refuses to score against firmware it did not write; nothing refused to score
+against firmware that was about to stop.
+
+### What changed
+
+`collect::observe` (`lib/collect_console.sh`) runs **after** a PASS and can turn it into a
+FAIL. Two independent questions, because this bench's deaths come in both shapes:
+
+- **PROGRESS** — did the scenario's own output keep arriving? #213 and #192 die *silently*:
+  no fault, no panic, no reboot banner, console still `port=up`. No fault grep will ever
+  match them, so only a positive predicate can see it. The predicate is the scenario's, not
+  the harness's — `bridge-health` watches `tick N misses …`, and `none` is a legal,
+  *visible* declaration for a one-shot probe that stops by design.
+- **FAULT** — did a loud death appear? Cheap, and it covers the complementary set,
+  including for the probes that have no progress line.
+
+`OBSERVE_S` and `OBSERVE_PROGRESS` are **mandatory** in every manifest, exactly as `CLASS`
+is. The default that would otherwise be applied silently is the one that produced the false
+green, and a new scenario must state its answer rather than inherit one.
+
+### Three decisions worth keeping
+
+- **Not `TIMEOUT_S`.** The manifests describe that as "the outer bound on a workload that
+  has already decided, never the thing that decides". Lengthening it would make a slow
+  attach and a post-verdict death the same event, reported with the same cause.
+- **The window reads only what arrives after the verdict, not from the anchor.** The anchor
+  *is* a boot banner and a C6 prints two — a fault scan rooted there would match `rst:0x`
+  on every healthy run. Marking the log's end at window start makes a `rst:0x` inside the
+  window mean what it says.
+- **180 s, and where the number came from.** Every death this bench has recorded lands
+  inside it: #192 at tick 2–3 (~6 s), #213 at tick 6 (~12 s), #199 at 2 min 37 s (~157 s,
+  the longest). The healthy controls ran to tick 209 and tick 1799, so the separation is
+  not subtle. This is a measured window, not a chosen one, and it is re-opened when a death
+  outlives it. The two probes carry the same 180 s: no post-verdict death has been recorded
+  for either, which is an absence of evidence and not evidence for a smaller number.
+
+### What this cost, and what it bought
+
+Each scenario grows by its window — the three-scenario run goes from roughly 7 minutes to
+roughly 16. That is the price of the gate meaning what it says, and it is named here rather
+than discovered at the bench.
+
+**And the window is falsifiable without hardware.** It is logic over the collector's log, so
+`tests/target/test_observe.py` drives the real bash function against synthetic logs — six
+cases including the stall, the fault, the halting probe, and the double boot banner — and
+the nsl suite runs it as `target-observe-py`. §8's list above gains it as item 6. The board
+is now spent only on what genuinely needs one, which is the first time anything under
+`tests/target/` has been exercisable by the host suite.
