@@ -1583,7 +1583,34 @@ Then widen `awaitServeExit`:
 //     returns and its deferred Close calls fire (#7). Draining the sweep is not
 //     cosmetic: it holds the store, and Close under an in-flight Sweep is a race.
 //     A nil channel's select arm blocks forever and the nil guard skips draining it.
+// The ctx-Done check runs in its OWN non-blocking select before the main one.
+// Putting all five cases in a single select would race: once ctx is cancelled,
+// a listener that has already buffered a value makes its case just as "ready"
+// as ctx.Done(), and Go picks uniformly among ready cases — so a listener's
+// case can win and return early, skipping the drain of the others entirely.
+// That is not just a test artifact: it is the same store-Close race this
+// drain exists to prevent, so ctx cancellation must take priority outright.
 func awaitServeExit(ctx context.Context, udpErr, blocksErr, sweepErr, httpErr <-chan error) error {
+	drain := func() error {
+		if udpErr != nil {
+			<-udpErr
+		}
+		if blocksErr != nil {
+			<-blocksErr
+		}
+		if sweepErr != nil {
+			<-sweepErr
+		}
+		if httpErr != nil {
+			<-httpErr
+		}
+		return nil
+	}
+	select {
+	case <-ctx.Done():
+		return drain()
+	default:
+	}
 	select {
 	case err := <-udpErr:
 		return err
@@ -1604,19 +1631,7 @@ func awaitServeExit(ctx context.Context, udpErr, blocksErr, sweepErr, httpErr <-
 		}
 		return err
 	case <-ctx.Done():
-		if udpErr != nil {
-			<-udpErr
-		}
-		if blocksErr != nil {
-			<-blocksErr
-		}
-		if sweepErr != nil {
-			<-sweepErr
-		}
-		if httpErr != nil {
-			<-httpErr
-		}
-		return nil
+		return drain()
 	}
 }
 ```
