@@ -285,6 +285,8 @@ CREATE TABLE nodes (
 
 CREATE TABLE cells (          -- latest value per path
   node_id    TEXT, path TEXT, seq INTEGER, value_cbor BLOB, kind INTEGER, ts_ms INTEGER,
+  direction  TEXT,         -- 'in' | 'out' | 'gw'  (see events; #217)
+  boot_id    INTEGER,
   PRIMARY KEY (node_id, path)
 );
 
@@ -292,6 +294,7 @@ CREATE TABLE events (         -- append-only, both directions, with provenance (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   node_id TEXT, path TEXT, seq INTEGER, value_cbor BLOB, kind INTEGER,
   ts_ms INTEGER, direction TEXT,   -- 'in' (node→porta) | 'out' (porta→node)
+                                   -- | 'gw' (porta ABOUT the node; #217)
   actor TEXT, reason TEXT
 );
 
@@ -304,6 +307,13 @@ CREATE TABLE exchanges (      -- one row per request; two per check-in (pull + p
                                  -- early-return on an empty frame
 );
 ```
+
+A **`gw` row is porta's own verdict about the node** — `gw/liveness`, written by the silence
+sweep (#217; design `docs/design/2026-08-10-node-memory-and-liveness-design.md` §6). It is
+gateway-authored and never goes on the wire, and it is excluded from `OutboundSince` **by
+construction** rather than by a filter someone must remember, because that query already
+selects `direction = 'out'`. This is D2 holding under pressure: a third *value* in an existing
+column, not a fifth table. **There is still no fifth table.**
 
 There is **no tombstone column** — `PROTOCOL-NSL.md` §3's rule holds: stopped state is
 written explicitly as a value, and genuine removal is an action on a `do/` stream.

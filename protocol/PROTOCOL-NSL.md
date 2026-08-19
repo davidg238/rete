@@ -175,9 +175,13 @@ Recorded because it tells us what to steal and what to leave:
   │  node/<id>/diag/**  ◀────┼─────────────│  diag/**   (out)         │
   │  node/<id>/dbg/req  ─────┼────────────▶│  dbg/req   (in)          │
   │  node/<id>/dbg/resp ◀────┼─────────────│  dbg/resp  (out)         │
+  │  node/<id>/gw/**         │   (never)   │  — not present —         │
   └──────────────────────────┘             └──────────────────────────┘
        porta writes ONLY goal/** and dbg/req;    the bridge job holds the
        the node writes ONLY its own node/<id>/** radio capability + these grants
+       gw/** is porta's own verdict ABOUT a node: gateway-authored, never on
+       the wire, and excluded from the exchange by the store's direction
+       column rather than by a filter (design 2026-08-10 §6.1)
 ```
 
 **The picture carries direction and authority, not kind** — deliberately, because kind is

@@ -79,7 +79,7 @@ between two tables built from the same DDL text is order-correct by construction
 - Produces: `space.DirectionGateway = "gw"` (exported string const); a store whose `cells`
   and `events` tables accept `direction = 'gw'`. Task 2 writes through it.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `porta/internal/space/store_test.go`:
 
@@ -207,12 +207,12 @@ Add `"database/sql"` and `"strings"` to the test file's imports, and keep the bl
 `_ "github.com/mattn/go-sqlite3"` driver import available (it is already imported by the
 package under test, so the test file needs only `database/sql`).
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `cd porta && go test ./internal/space/ -run 'Migrat|NoOpOnASecond' -v`
 Expected: FAIL — the first test fails on `gw cell after migration: CHECK constraint failed`.
 
-- [ ] **Step 3: Add the third direction to the schema**
+- [x] **Step 3: Add the third direction to the schema**
 
 In `porta/internal/space/schema.go`, change **both** CHECK clauses (in `cells` and in
 `events`) from:
@@ -242,7 +242,7 @@ unparseable) with:
 -- the four wire namespaces.
 ```
 
-- [ ] **Step 4: Add the migration**
+- [x] **Step 4: Add the migration**
 
 Append to `porta/internal/space/schema.go`:
 
@@ -321,7 +321,7 @@ func migrateDirectionAcceptsGw(db *sql.DB) error {
 Add `"database/sql"`, `"fmt"` and `"strings"` to `schema.go`'s imports (it has none today,
 so add an import block below the package comment).
 
-- [ ] **Step 5: Run it from `Open`**
+- [x] **Step 5: Run it from `Open`**
 
 In `porta/internal/space/store.go`, inside `Open`, **after** the `addColumns` loop and
 **before** the `return`:
@@ -342,12 +342,12 @@ In `porta/internal/space/store.go`, inside `Open`, **after** the `addColumns` lo
 	}
 ```
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [x] **Step 6: Run the tests to verify they pass**
 
 Run: `cd porta && go test ./internal/space/ -v`
 Expected: PASS, including the pre-existing `TestOpenAddsBootIDToAPreExistingStore`.
 
-- [ ] **Step 7: Full gate and commit**
+- [x] **Step 7: Full gate and commit**
 
 ```bash
 cd porta && gofmt -l . && go test ./...
@@ -383,7 +383,7 @@ Refs #217."
     — writes the cell **and** one event row, `direction = "gw"`, `actor = "porta"`,
     `seq = 0`, `boot_id` = the node's current boot. Task 4 calls it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `porta/internal/space/store_test.go`:
 
@@ -459,12 +459,12 @@ func TestGatewayWriteDoesNotConsumeTheOutboundSeq(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `cd porta && go test ./internal/space/ -run Gateway -v`
 Expected: FAIL — `st.WriteGateway undefined`.
 
-- [ ] **Step 3: Implement `WriteGateway`**
+- [x] **Step 3: Implement `WriteGateway`**
 
 In `porta/internal/space/store.go`, immediately after `Write`:
 
@@ -518,12 +518,12 @@ func (s *Store) WriteGateway(nodeID, path string, value []byte, reason string) e
 }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `cd porta && go test ./internal/space/ -v`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd porta && gofmt -l . && go test ./...
@@ -554,7 +554,7 @@ Refs #217."
   - `func (s *Store) CadenceMs(nodeID string) (cadence int64, ok bool, err error)` — Task 4
     calls it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `porta/internal/space/store_test.go`:
 
@@ -652,12 +652,12 @@ func TestCadenceTracksAChangedRate(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `cd porta && go test ./internal/space/ -run Cadence -v`
 Expected: FAIL — `st.CadenceMs undefined`.
 
-- [ ] **Step 3: Implement `CadenceMs`**
+- [x] **Step 3: Implement `CadenceMs`**
 
 In `porta/internal/space/store.go`, after `RecordExchange`. Add `"sort"` to the imports.
 
@@ -728,12 +728,12 @@ func medianMs(v []int64) int64 {
 }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `cd porta && go test ./internal/space/ -v`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd porta && gofmt -l . && go test ./...
@@ -762,7 +762,7 @@ Refs #217."
   - `func (s *Store) Sweep() ([]LivenessChange, error)` — Task 6's goroutine calls it.
   - `const SweepTick = 30 * time.Second`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `porta/internal/space/sweep_test.go`:
 
@@ -1061,12 +1061,12 @@ func TestVerdictEncodingsAreTheAlgebrasSymbols(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `cd porta && go test ./internal/space/ -run Sweep -v`
 Expected: FAIL — `st.Sweep undefined`.
 
-- [ ] **Step 3: Implement the sweep**
+- [x] **Step 3: Implement the sweep**
 
 Create `porta/internal/space/sweep.go`:
 
@@ -1213,12 +1213,12 @@ func (s *Store) recordCadence(nodeID string, cadence int64) error {
 }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `cd porta && go test ./internal/space/ -v`
 Expected: PASS, all sweep tests included.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd porta && gofmt -l . && go test ./...
@@ -1254,7 +1254,7 @@ node. That is a lie about authority in the one place an operator reads authority
   `isStale` already refuses to mark anything but an inbound row. Both are pinned by tests
   here so a later edit cannot quietly widen them.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `porta/internal/portacli/get_test.go`:
 
@@ -1332,13 +1332,13 @@ func TestGetNeverCallsAGatewayVerdictStale(t *testing.T) {
 
 Add the `"strings"` import to `get_test.go` if it is not already present (it is).
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `cd porta && go test ./internal/portacli/ -run 'GatewayVerdict|NeverCallsAGateway' -v`
 Expected: FAIL on the arrow assertion (`gw line carries a wire arrow`). The `get` test
 should already pass — a passing test here is the pin, not a gap.
 
-- [ ] **Step 3: Teach the log the third direction**
+- [x] **Step 3: Teach the log the third direction**
 
 In `porta/internal/portacli/log.go`, replace:
 
@@ -1364,12 +1364,12 @@ with:
 				}
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `cd porta && go test ./internal/portacli/ -v`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd porta && gofmt -l . && go test ./...
@@ -1399,7 +1399,7 @@ Refs #217."
   - `awaitServeExit(ctx, udpErr, blocksErr, sweepErr, httpErr)` — one more channel, in the
     same class as udp/blocks (returns only on ctx cancel).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `porta/internal/portacli/serve_test.go`:
 
@@ -1501,12 +1501,12 @@ func TestSweepLivenessLogsOnlyTransitions(t *testing.T) {
 Add `"fmt"`, `"strings"`, `"sync"` and `"github.com/davidg238/porta/internal/space"` to
 `serve_test.go`'s imports.
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `cd porta && go test ./internal/portacli/ -run 'DrainsTheSweep|SweepLiveness' -v`
 Expected: FAIL — `sweepLiveness undefined`, and `awaitServeExit` takes 4 arguments not 5.
 
-- [ ] **Step 3: Add the goroutine and widen `awaitServeExit`**
+- [x] **Step 3: Add the goroutine and widen `awaitServeExit`**
 
 In `porta/internal/portacli/serve.go`, add after `newServeCmd`:
 
@@ -1636,7 +1636,7 @@ func awaitServeExit(ctx context.Context, udpErr, blocksErr, sweepErr, httpErr <-
 }
 ```
 
-- [ ] **Step 4: Update the three existing `awaitServeExit` call sites in the tests**
+- [x] **Step 4: Update the three existing `awaitServeExit` call sites in the tests**
 
 In `porta/internal/portacli/serve_test.go`:
 
@@ -1658,12 +1658,12 @@ In `porta/internal/portacli/serve_test.go`:
 	}
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `cd porta && go test ./internal/portacli/ -v`
 Expected: PASS.
 
-- [ ] **Step 6: Run the whole gate, including the node interop gate**
+- [x] **Step 6: Run the whole gate, including the node interop gate**
 
 ```bash
 cd porta && gofmt -l . && go test ./...
@@ -1672,7 +1672,7 @@ cd ../nodus/tuvm && bash tests/porta_sync_host.sh
 Expected: `ok` for every porta package and `PORTA SYNC OK`. **Never run this concurrently
 with an nsl suite** — they share `/tmp` paths.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add porta/internal/portacli/serve.go porta/internal/portacli/serve_test.go
@@ -1708,7 +1708,7 @@ is deliberate and scheduled, not incidental.
 - Produces: the verified prediction, and the actual numbers (cadence, detection latency) for
   the close-out.
 
-- [ ] **Step 1: Find the live gateway before touching anything**
+- [x] **Step 1: Find the live gateway before touching anything**
 
 ```bash
 ssh gw85224-01 'ps aux | grep -c "[p]orta"; ls -la ~/porta-v2; df -h ~; ls -la ~/porta-v2/*.db*'
@@ -1718,7 +1718,7 @@ migration copies both `cells` and `events` inside one transaction**, so the WAL 
 headroom on the order of the events table. If free space is less than 3× the db size, stop
 and report rather than migrating.
 
-- [ ] **Step 2: Back the store up, with the gateway still running**
+- [x] **Step 2: Back the store up, with the gateway still running**
 
 ```bash
 ssh gw85224-01 'cd ~/porta-v2 && sqlite3 porta.db ".backup porta.db.pre-gw-$(date +%Y%m%dT%H%M%S)" && ls -la porta.db*'
@@ -1726,7 +1726,7 @@ ssh gw85224-01 'cd ~/porta-v2 && sqlite3 porta.db ".backup porta.db.pre-gw-$(dat
 (`.backup` is WAL-safe on a live db; a plain `cp` is not.) Adjust the db filename to what
 step 1 reported.
 
-- [ ] **Step 3: Build for the gateway and copy it up**
+- [x] **Step 3: Build for the gateway and copy it up**
 
 ```bash
 cd /home/david/workspace/rete/porta
@@ -1735,7 +1735,7 @@ GOOS=linux GOARCH=<arch from above> go build -o /tmp/porta ./cmd/porta
 scp /tmp/porta gw85224-01:~/porta-v2/porta.new
 ```
 
-- [ ] **Step 4: Restart the gateway and confirm the migration ran**
+- [x] **Step 4: Restart the gateway and confirm the migration ran**
 
 Announce the outage first — every node loses its exchange until porta is back.
 
@@ -1747,7 +1747,7 @@ ssh gw85224-01 'cd ~/porta-v2 && sqlite3 porta.db "SELECT sql FROM sqlite_master
 Expected: `2` — both tables carry the third direction. If it reads 0, the migration did not
 run and nothing below means anything.
 
-- [ ] **Step 5: Watch one live node acquire a verdict**
+- [x] **Step 5: Watch one live node acquire a verdict**
 
 ```bash
 ssh gw85224-01 'cd ~/porta-v2 && sqlite3 porta.db "SELECT id, cadence_ms, last_seen_ms FROM nodes;"'
@@ -1759,7 +1759,7 @@ each node and check it against what that node actually does (the bell publishes 
 c6spare's bridge is faster). **A cadence that disagrees with the node's known period is the
 finding**, not a rounding detail.
 
-- [ ] **Step 6: Halt a node by hand and time the transition**
+- [x] **Step 6: Halt a node by hand and time the transition**
 
 Use **c6spare**, the attached disposable board — `TARGET_DEFAULT_BOARD`, resolved through
 the collector env files and never by a ttyUSB number. **Do not touch c6-bell**: it is the
@@ -1777,7 +1777,7 @@ latency and compare it to the bound. A transition that arrives LATE is a finding
 sweep; one that arrives EARLY means the cadence was inferred too short, which is the same
 finding wearing the other costume.
 
-- [ ] **Step 7: Confirm exactly one row records it, and only one**
+- [x] **Step 7: Confirm exactly one row records it, and only one**
 
 ```bash
 ssh gw85224-01 'cd ~/porta-v2 && ./porta log c6spare --limit 20'
@@ -1787,12 +1787,12 @@ no wire arrow. Then leave it silent for at least five more sweep ticks (2.5 min)
 still exactly one row. **A second row is the transition-only rule failing**, and it is the
 failure that would make `porta log` unreadable in a week.
 
-- [ ] **Step 8: Power the node back and confirm the return**
+- [x] **Step 8: Power the node back and confirm the return**
 
 Expected: one further row, `#live`, within one sweep tick of its first exchange. Record the
 latency.
 
-- [ ] **Step 9: Record the readings on the issue**
+- [x] **Step 9: Record the readings on the issue**
 
 Post to #217: the inferred cadence per node, the observed silent-detection latency against
 the `3 × cadence + 30 s` bound, the row counts from steps 7 and 8, and the db size before
@@ -1816,7 +1816,7 @@ behind as the historical "why", and the mainline documents carry what is now tru
 - Modify: `review/program-sequence.md` (the rung)
 - Modify: `docs/next-steps-overview.md` (the three-item ladder entry for #217)
 
-- [ ] **Step 1: `protocol/PROTOCOL-NSL.md` §3 gains the fifth row**
+- [x] **Step 1: `protocol/PROTOCOL-NSL.md` §3 gains the fifth row**
 
 The picture at line ~165 gains a row that crosses no boundary, and the caption below it
 gains the authority line. Add inside the porta box, after `node/<id>/dbg/resp`:
@@ -1837,7 +1837,7 @@ and extend the caption:
 
 Keep the ASCII box aligned — check the rendered width after editing.
 
-- [ ] **Step 2: 2026-08-10 §6 records what was BUILT, and §8 gains the rows**
+- [x] **Step 2: 2026-08-10 §6 records what was BUILT, and §8 gains the rows**
 
 In `docs/design/2026-08-10-node-memory-and-liveness-design.md`:
 
@@ -1854,7 +1854,7 @@ In `docs/design/2026-08-10-node-memory-and-liveness-design.md`:
 - In §7's staging table, mark step 3 **DONE** with the observed detection latency from
   Task 7, and note that step 4's gate — the HALT arm — is now unblocked.
 
-- [ ] **Step 3: the rewrite design's store schema gains the third direction**
+- [x] **Step 3: the rewrite design's store schema gains the third direction**
 
 In `porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md`, wherever the `cells`
 and `events` schemas are given, update `direction` to `'in' | 'out' | 'gw'` and add one
@@ -1862,12 +1862,12 @@ sentence: a `gw` row is porta's verdict about the node, excluded from `OutboundS
 construction. Do not add a new table to the four-table story — **there is still no fifth
 table**, which is the point.
 
-- [ ] **Step 4: `porta/docs/ARCHITECTURE.md` gains the fourth goroutine**
+- [x] **Step 4: `porta/docs/ARCHITECTURE.md` gains the fourth goroutine**
 
 Add the sweep to whatever list of `serve`'s listeners exists (the file is stale in parts —
 fix only what this rung touches; do not sweep it).
 
-- [ ] **Step 5: `review/tests/CLAIMS.md` gains one row**
+- [x] **Step 5: `review/tests/CLAIMS.md` gains one row**
 
 Append **one** row in the existing format — do not reorder, retitle or tidy anything else in
 `review/`. The criterion is roughly: *"A node that stops talking becomes an event porta
@@ -1875,18 +1875,18 @@ recorded, not an absence an operator has to notice"*, proven by the named tests 
 1–6 plus the Task 7 bench reading, and enforced by `porta/internal/space/sweep.go` +
 `schema.go`'s third direction. Include the design reference.
 
-- [ ] **Step 6: `review/program-sequence.md` gains the rung**
+- [x] **Step 6: `review/program-sequence.md` gains the rung**
 
 Follow the file's existing entry format exactly. One entry for #217, naming what it
 unblocks: 2026-08-10 §7 step 4, the HALT arm of #215's loop breaker.
 
-- [ ] **Step 7: `docs/next-steps-overview.md`**
+- [x] **Step 7: `docs/next-steps-overview.md`**
 
 Update the `#217` bullet from "queued with #215" to DONE with the observed numbers, and
 strike the "either it lands alongside or the HALT arm does not ship" constraint from #215's
 bullet — it is discharged. Keep the ordering paragraph: the order was the argument.
 
-- [ ] **Step 8: Final gate and close-out commit**
+- [x] **Step 8: Final gate and close-out commit**
 
 ```bash
 cd /home/david/workspace/rete/porta && gofmt -l . && go test ./...
@@ -1910,7 +1910,7 @@ verdict is about a node on a boot.
 Closes #217. Refs #215."
 ```
 
-- [ ] **Step 9: Close #217 with the verification detail**
+- [x] **Step 9: Close #217 with the verification detail**
 
 Post the close-out comment on #217 — the readings, the deviations from what this plan
 proposed, and anything the bench run refuted. Then say on **#215** that its inherited
