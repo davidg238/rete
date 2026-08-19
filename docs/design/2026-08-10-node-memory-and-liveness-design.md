@@ -403,6 +403,63 @@ A lazy view cannot do this job even setting aside that it produces no row. The f
 must catch is *porta hearing nothing*, and a system that only evaluates when read is silent
 exactly when everything is. The ticker is not a convenience.
 
+### 6.4 Addendum — what building it settled, and what it corrected (2026-08-18, #217)
+
+**Built on branch `217-gw-liveness`, host-green, NOT yet verified on hardware.** §7 step 3's
+falsification is unrun; until it is, everything below is a decision record and not a result.
+
+**Three things §6 left open, decided here:**
+
+- **A `gw` row takes `seq` 0.** `seq` is only meaningful inside a sequence space and `gw` has
+  none — porta's `out_seq` is the node's cursor space and the node's push counter is the other.
+  Burning an outbound seq on a row the node can never receive would leave a permanent hole in
+  a cursor for a row that is not coming. `events.id` already orders the log.
+- **A `gw` row carries the node's current `boot_id`.** The verdict is about a node *on a boot*,
+  which is #210's argument applied to a row porta wrote itself. `0` (never heard from, or no
+  persistent identity) stays 0 and is never invented into a number.
+- **`MinExchanges = 3`** joins §8's table. **Chosen.** Two arrivals is one gap, which is a
+  sample and not a cadence. Earns revision from the first fleet with a node whose first verdict
+  matters sooner than its third check-in.
+
+**§6.2's pseudocode was wrong, and the error was inherited from `schema.go`.** It reads
+`gaps = last 10 inter-arrival gaps from exchanges`, which assumes an exchange row is an arrival.
+It is not: a check-in is a pull **and** a push, and `handlePull` and `handlePush` each write a
+row (`porta/internal/wire/server.go:166` and `:206`). The gap series therefore alternates
+`[ε, C−ε, …]`, and the even-count median averages the two middle values to exactly **half** the
+node's real period, independent of ε. Left standing, `k = 3` would have run as **1.5** — one
+missed check-in enough to call a healthy node silent — and `nodes.cadence_ms`, a number
+operators read, would have been 2× wrong on every node.
+
+`schema.go` claimed *"One row per check-in"* and the wire server had disagreed with it since the
+rewrite; this design trusted the comment. **Corrected**: `exchanges` gains a `leg` column
+(`'pull'`/`'push'`), cadence is inferred from the **pull** leg only — the node always sends it,
+whereas a push can early-return on an empty frame — and pre-existing rows keep `leg = ''` and are
+excluded rather than mislabelled, so the store heals one check-in at a time as `boot_id` did.
+The same false sentence was corrected in `CLAUDE.md` and in
+`porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md`. A node that was already dead
+when this shipped never accrues a pull row and so is never judged — filed as #219.
+
+**Two accepted false-report modes**, now in `Sweep`'s doc comment because an instrument's lies
+have to be written down where they are read:
+
+- **A gateway outage reads as node silence.** `since` is `now − last_seen_ms`, which includes
+  time porta itself was down, so a restart after an outage longer than `3 × cadence` writes
+  `#silent` for every affected node and `#live` as each returns. In `porta log` that burst is
+  byte-identical to a genuine fleet-wide failure. Self-correcting within one cadence, and
+  restarting porta is routine here.
+- **A sick node's inferred cadence inflates.** A node whose reboot loop outpaces its check-in
+  cadence produces a majority of long gaps, so its inferred cadence becomes its boot-cycle
+  length and `#silent` arrives `3 ×` that — delaying exactly the detection §5.2's loop breaker
+  depends on. **§7 step 3's bound therefore means INFERRED cadence, not the node's healthy
+  period.** No cap and no tunable: what would earn one is a real node observed in that state,
+  with its boot-cycle length and the resulting detection delay.
+
+**One claim in §6.1 is now true rather than conventional.** "Excluded from the wire by
+construction" held only for rows written through `WriteGateway`; `porta put <node> gw/liveness …`
+went through `Store.Write`, which validated no namespace and stamped `direction='out'`, and the
+row *would* have been delivered. `Write` now rejects a `gw/` path. The mirror case — a node
+pushing `gw/liveness` over its own verdict — is still open and filed as #218.
+
 ---
 
 ## 7. Staging, and how each step is falsified
