@@ -3546,6 +3546,12 @@ class Kernel usingPlatform: platform = () (
      same shape as spaceDropReactionsOwnedBy: above. *)
   public spaceOverruns: p = ( ^ platform spaceOverruns: p )
   public sysStats = ( ^ platform sysStats )
+  (* rete#215: the retained panic note. Thin forwarders, the sysStats shape above.
+     A wedge raises no fatal error, so nothing in this tree could ever produce
+     Panic reason #watchdog before now — RECORDS §2.4 pinned the symbol and the
+     record, and both were aspirational. *)
+  public panicNote = ( ^ platform panicNote )
+  public panicNoteAck: bootId = ( ^ platform panicNoteAck: bootId )
   (* Milestone D Task 6: the host virtual-clock timer seam. Thin forwarders,
      same shape as spaceDropReactionsOwnedBy: above — the `Timers` class
      (below) is the only intended caller (it holds `platform` as its
@@ -3901,6 +3907,40 @@ class Kernel usingPlatform: platform = () (
     pairs add: #fre -> (c basicAt: 4).
     pairs add: #fal -> (c basicAt: 5).
     ^ Record tag: #CHeap fields: (Map fromPairs: pairs) )
+  (* rete#215: the sys/panic report — prim 153 as the Panic record RECORDS §2.4 pins.
+     The kernel only BUILDS it; publishing onto a channel is the app's act with the
+     channel arriving as a capability, exactly as metrics and cheap are handled —
+     the kernel never conjures space access.
+
+     READ WITH basicAt:, NOT through a wrapper class. `CHeapStats fromList:` on the
+     check-in path silently HANGS a C6 (rete#192, mechanism still unknown), and this
+     record is built at boot on every node. One fewer mechanism, and the one that is
+     known to be survivable.
+
+     `core` is nil and stays nil: blobs are off the space (RECORDS §2.4), and a node
+     that just died is the last node that should be asked to retain one. *)
+  public panic = ( | n pairs |
+    n:: platform panicNote.
+    n isNil ifTrue: [ ^ nil ].
+    pairs:: OrderedCollection new.
+    pairs add: #reason -> (self panicReasonFor: (n basicAt: 1)).
+    pairs add: #bootId -> (n basicAt: 2).
+    pairs add: #monoMs -> (n basicAt: 3).
+    pairs add: #detail -> (n basicAt: 4).
+    pairs add: #core   -> nil.
+    ^ Record tag: #Panic fields: (Map fromPairs: pairs) )
+
+  (* The C side writes a small int because a fatal handler may not allocate; the symbol
+     belongs here, where the record is built. The mapping is RN_REASON_* in
+     nodus/tuvm/src/reboot_note.h and it is APPEND-ONLY. An unrecognised code answers
+     #hardFault rather than a sixth symbol: RECORDS §2.4 pins the enumeration, and a
+     reason the gateway cannot name is worth less than an imprecise one it can. *)
+  panicReasonFor: code = (
+    code = 1 ifTrue: [ ^ #watchdog ].
+    code = 3 ifTrue: [ ^ #assert ].
+    code = 4 ifTrue: [ ^ #stackOverflow ].
+    code = 5 ifTrue: [ ^ #oom ].
+    ^ #hardFault )
   (* Milestone E Task 1: crash-Record factory reachable from ANY context. The
      error:/error:tag: raise prims cannot reach the sibling `Record` class from an
      app receiver (v1 BLOCKED finding), but they DO hold the captured Kernel
