@@ -27,6 +27,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "oevm.h"
+#include "reboot_note.h"  /* rete#215: the retained panic note (this file owns the storage) */
+void observer_start(void);   /* zephyr/src/observer.c (rete#215) */
 #include "oimg.h"
 #include "thread_bringup.h"
 #include "log_udp.h"
@@ -1815,6 +1817,23 @@ int main(void) {
        sleep exists. printk, not printf: the fault path gags newlib stdio. */
     printk("tuvm: build-id %s\n", tuvm_build_id);
 
+    /* rete#215: validate the retained note before anything can read it, and before the
+       remote console starts — a note that was going to be reported must not be lost to a
+       crash during mesh bring-up, and a note that is GARBAGE must not survive to be
+       reported as a death that never happened. After the build-id line so the boot that
+       reports a note is attributable to the binary that reports it. */
+    reboot_note_init();
+    if (reboot_note_consecutive() > 0) {
+        struct RebootNote rn;
+        if (reboot_note_read(&rn)) {
+            printk("tuvm: reboot-note reason=%u mcause=0x%08x mepc=0x%08x ra=0x%08x "
+                   "boot=%u up=%ums consec=%u\n",
+                   (unsigned)rn.reason, (unsigned)rn.mcause, (unsigned)rn.mepc,
+                   (unsigned)rn.ra, (unsigned)rn.boot_id, (unsigned)rn.mono_ms,
+                   (unsigned)rn.consecutive);
+        }
+    }
+
     /* The remote console, installed HERE — immediately after the build-id and
        before the mesh comes up. Everything printed from now on is buffered and
        goes out once there is a route, so the boot the remote log shows starts at
@@ -1837,6 +1856,12 @@ int main(void) {
 
     gc_additional_roots_hook = oevm_roots_callback;
     oevm_millis = zephyr_millis;
+
+    /* rete#215: arm the wedge detector before the VM runs, and AFTER the radio — a node
+       that wedges during OpenThread bring-up has not yet declared any timer, so the
+       detector answers COND_NONE and cannot trip on it. Arming earlier would buy nothing
+       and would put the first reboot inside a path that has no note to write about it. */
+    observer_start();
 
 #ifdef TUVM_MODEL_B
     kernel_boot();   /* ONCE, before load/bootstrap — the order src/oevm_image_main.c uses */

@@ -26,6 +26,15 @@ set(TUVM_SRC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_sources(app PRIVATE
   src/main.c
   src/log_udp.c
+  # rete#215: the retained panic note (.rtc_noinit) + the k_sys_fatal_error_handler
+  # override. App-side, not an engine file: platform.c externs the five seam symbols the
+  # way it already externs bell/ntp/rtc, so none of the nine engine source lists (#63)
+  # changes.
+  src/reboot_note.c
+  # rete#215: the wedge detector. App-side beside reboot_note.c for the same reason — it
+  # is reached only from main.c, and placing it in src/backend/zephyr/ would cost a posix
+  # stub in nine source lists (#63) that nothing on the host would call.
+  src/observer.c
   ${TUVM_SRC}/src/vm.c ${TUVM_SRC}/src/gc.c ${TUVM_SRC}/src/dispatch.c
   ${TUVM_SRC}/src/platform.c ${TUVM_SRC}/src/space.c ${TUVM_SRC}/src/handles.c
   ${TUVM_SRC}/src/span.c

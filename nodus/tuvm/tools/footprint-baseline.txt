@@ -1,19 +1,40 @@
+# T0.3 footprint baseline — re-banked 2026-08-19 for rete#215 (the wedge detector).
+#
+# WHAT THIS RE-BANK ABSORBS, separated because the two halves have different owners:
+#   +887 B  drift accumulated since the previous bank (2026-08-08) by work that never
+#           re-banked. It fitted inside the +2% band (1188 B) and so was never charged
+#           for; it had eaten 75% of the band before this rung touched anything.
+#   +725 B  rete#215 itself: platform.o +701 (the RebootNote host seam and the two
+#           panicNote prims, whose `detail` string formatting is most of it) and
+#           dispatch.o +24 (two PRIM_NAMES entries).
+#   = 61049 total host text, vs 59437 banked + 2% = 60625. Over by 424 B.
+#
+# The 725 B buys a node the ability to say that it stopped — the failure #192 and #213
+# both present, which until now produced no evidence at all. It is NOT shrinkable
+# without deleting the capability: the register triple must be formatted as text
+# because mcause does not fit an SMI (prim_ids.h:503), and the host seam exists so the
+# validity rule is unit-testable rather than only provable on a board.
+#
+# NOTE FOR THE NEXT RE-BANK: the mcu half of this ratchet has been SKIPping for want of
+# an arm-zephyr-eabi toolchain, so the number below is the HOST PROXY only. The figure
+# that actually constrains a C6 is the one in the Zephyr build's memory report
+# (sram0_0_seg 72.28% at this commit), and no gate reads it.
    text	   data	    bss	    dec	    hex	filename
-  12715	     20	   1160	  13895	   3647	vm.o
-  15666	   1256	 196928	 213850	  3435a	dispatch.o
-   4206	     24	17048416	17052646	10433e6	gc.o
-    656	   1040	      4	   1700	    6a4	kernel_boot.o
-  11844	     16	    960	  12820	   3214	platform.o
-    538	      0	     88	    626	    272	serial.o
-    969	      0	     88	   1057	    421	udp.o
+  12847	     20	   1160	  14027	   36cb	vm.o
+  15713	   1285	 196928	 213926	  343a6	dispatch.o
+   4594	     24	17048448	17053066	104358a	gc.o
+    605	   1072	      4	   1681	    691	kernel_boot.o
+  12586	     20	   1024	  13630	   353e	platform.o
+    510	      0	     88	    598	    256	serial.o
+    939	      0	     88	   1027	    403	udp.o
     474	      0	      0	    474	    1da	http.o
    2703	      4	    400	   3107	    c23	http_core.o
-   1759	      0	     88	   1847	    737	mirror.o
+   1731	      0	     88	   1819	    71b	mirror.o
    1929	      0	    304	   2233	    8b9	oimg_loader.o
    3203	      0	   9024	  12227	   2fc3	space.o
-    245	      0	      0	    245	     f5	platform_posix.o
+    685	      8	      0	    693	    2b5	platform_posix.o
     336	      0	   4128	   4464	   1170	serial_posix.o
    1135	      0	      0	   1135	    46f	udp_posix.o
    1059	      4	      0	   1063	    427	http_posix.o
-  59437	   2364	17261588	17323389	108557d	(TOTALS)
-data+bss (host proxy for MCU static RAM): 17263952
+  61049	   2437	17261684	17325170	1085c72	(TOTALS)
+data+bss (host proxy for MCU static RAM): 17264121

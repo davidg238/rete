@@ -42,4 +42,25 @@ config TUVM_FAULT_TRIGGER
 	  by the next real incident. If this is set in a build you did not
 	  deliberately configure, that build is wrong.
 
+# rete#215 §8 row 1. Default n so it is not merely unreachable in a normal build but
+# ABSENT from it — the same shape as TUVM_FAULT_TRIGGER above, and turned on only by
+# prj_esp32c6_wedgegate.conf. It exists so "the note survives a watchdog reset" is proven
+# by a scripted gate rather than by the next real wedge.
+#
+# This is NOT the Kconfig bench/field split design §9 rules out: the DETECTOR ships
+# always-on and unchanged. What this gates is a synthetic wedge, and a gate needs one
+# because a real wedge cannot be summoned on demand.
+config TUVM_WEDGE_TRIGGER
+	bool "Wedge on purpose after TUVM_WEDGE_TRIGGER_S seconds (rete#215)"
+	default n
+	help
+	  Stops the reactor draining the pulse mailbox, which the observer must then
+	  detect as COND_PULSE_UNDRAINED. If this is set in a build you did not
+	  deliberately configure, that build is wrong.
+
+config TUVM_WEDGE_TRIGGER_S
+	int "Seconds after boot before the synthetic wedge"
+	default 15
+	depends on TUVM_WEDGE_TRIGGER
+
 source "Kconfig.zephyr"

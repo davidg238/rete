@@ -861,6 +861,10 @@ enum {
        arithmetic, per the standing lesson above. Platform-dispatched (mirrored
        in prim_ids.h). */
     PRIM_pf_cheapStats,
+    /* rete#215: the retained panic note — the 153rd/154th PRIM_NAMES entries (counted,
+       not computed). Platform-dispatched (mirrored in prim_ids.h). */
+    PRIM_pf_panicNote,
+    PRIM_pf_panicNoteAck,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1). */
@@ -931,6 +935,7 @@ static const char *const PRIM_NAMES[] = {
     "otaStage:sig:host:port:", "otaConfirm", "otaActivate:sig:",
     "bootId",
     "cheapStats",
+    "panicNote", "panicNoteAck:",
 };
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
@@ -941,7 +946,7 @@ static const char *const PRIM_NAMES[] = {
    — this catches it at build time instead. C99-safe (no _Static_assert under
    -std=c99): a false condition makes a negative-sized array, which is a hard
    compile error. ADVANCE THIS to the new last id whenever prims are appended. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_cheapStats) ? 1 : -1];
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_panicNoteAck) ? 1 : -1];
 
 /* Pointer-keyed cache mapping each interned selector symbol to its primitive id
    (PRIM_NONE if it is not an intercepted primitive). Selectors are interned, so

@@ -52,6 +52,10 @@ run test_coalesce "$ENG_A" -DOEVM_HEAP_SIZE=8192
 run test_heap_stats "$ENG_A" -DOEVM_HEAP_SIZE=65536
 # rete#190 sub-project A: the C-allocation seam's counters (oevm_malloc/free/realloc).
 run test_cheap_stats "$ENG_A" -DOEVM_HEAP_SIZE=65536
+# rete#215: the retained panic note's validity rule. A block of garbage must not decode
+# as a report — inventing a death is worse than missing one, because the gateway cannot
+# falsify it. Retention itself is a TARGET property and is gated in tests/target/.
+run test_reboot_note "$ENG_A" -DOEVM_HEAP_SIZE=65536
 # rete#190 stage 2: Symbol name bytes inline — 200 Symbols must cost the C heap
 # zero bytes (the leak that crashed three C6 boards), and the inline bytes must
 # be a GC LEAF. Verified falsifiable: with trace_one's SymbolVtable arm disabled
