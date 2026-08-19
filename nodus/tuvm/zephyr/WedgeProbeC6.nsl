@@ -44,7 +44,9 @@ class WedgeProbeC6 packageUsing: manifest = (
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
 
     note:: plat panicNote.
-    note isNil
+    (* `== nil`, NOT `isNil` — a prim-built indexable answers basicAt: and nothing
+       else. See Kernel>>panic for what sending isNil here cost. *)
+    (note == nil)
       ifTrue:  [ 'wedge-probe: no note — this boot is the one that dies' out ]
       ifFalse: [ self reportNote: note ].
 

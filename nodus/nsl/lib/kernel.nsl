@@ -3921,7 +3921,14 @@ class Kernel usingPlatform: platform = () (
      that just died is the last node that should be asked to retain one. *)
   public panic = ( | n pairs |
     n:: platform panicNote.
-    n isNil ifTrue: [ ^ nil ].
+    (* `== nil`, NOT `isNil`. A prim-built indexable answers basicAt:/basicSize and
+       nothing else — it is not an instance of a class carrying Object's protocol — so
+       `isNil` is a doesNotUnderstand on it. Found on a C6 on 2026-08-19: the send
+       aborted the VM on the boot that was trying to REPORT the previous wedge, and
+       three of those in a row halted the node. `sensorFrame`'s callers already use
+       `(f == nil)` for exactly this reason (ThermalDiagNode.nsl:53); metrics and cheap
+       never hit it because they only ever send basicAt:. *)
+    (n == nil) ifTrue: [ ^ nil ].
     pairs:: OrderedCollection new.
     pairs add: #reason -> (self panicReasonFor: (n basicAt: 1)).
     pairs add: #bootId -> (n basicAt: 2).

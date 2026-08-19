@@ -213,7 +213,10 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
     panicAcked ifTrue: [ ^ self ].
     bridge misses = missesAtTickStart ifFalse: [ ^ self ].
     p:: platform panic.
-    p isNil ifFalse: [ space out: 'sys/panic' value: p ].
+    (* `== nil` here too. `p` is a Record and WOULD understand isNil, but one idiom
+       across every nil-able answer is worth more than the two characters saved, and
+       this exact send aborted a C6 one call deeper. *)
+    (p == nil) ifFalse: [ space out: 'sys/panic' value: p ].
     platform panicNoteAck: bridge bootId.
     panicAcked:: true.
     ^ self )
