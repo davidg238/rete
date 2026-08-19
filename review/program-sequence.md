@@ -2436,7 +2436,7 @@ replayed on every cold boot by the cursor-0 rule — stalled the node for 10.7 s
 writing a spurious `#silent`/`#live` pair for a node that never stopped running. **The
 gateway's own debug request made a healthy node look dead.** The design had recorded the
 opposite failure (a sick node's cadence *inflates*, delaying detection); this is the same rule
-biting from the other side, and it is filed as I6 rather than fixed, because one node on one
+biting from the other side, and it is filed as I6 (#220) rather than fixed, because one node on one
 bench is a measurement and not a distribution. The candidate knob — a floor at one sweep tick —
 would have suppressed the pair actually observed and would *not* have covered the 33 s stall in
 the same burst, which is precisely why it has not been invented yet.

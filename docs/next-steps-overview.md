@@ -828,8 +828,9 @@ the third is approved and next** — kept here in order because the order is the
   cadence query was reading **half** every node's real period (a check-in writes two
   `exchanges` rows and `schema.go`'s comment said one), and a *fast* node's `3 × cadence`
   deadline is tight enough that porta's own replayed `dbg/req profile` stalled a healthy node
-  past it — recorded as I6, not fixed. Follow-ons filed: **#218** (a node pushing over its own
-  verdict) and **#219** (a node already dead at migration time is never judged). It is not
+  past it — recorded as I6 and filed as **#220**, not fixed. Other follow-ons: **#218** (a node
+  pushing over its own verdict) and **#219** (a node already dead at migration time is never
+  judged). It is not
   adjacent to #215 but underneath it — §7's staging
   gates the panic-note/reboot/loop-breaker step on this one already watching, because "three
   faults halt the node" is unobservable from the gateway if a halted node is invisible.

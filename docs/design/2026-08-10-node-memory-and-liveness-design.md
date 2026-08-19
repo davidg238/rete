@@ -489,7 +489,7 @@ on real data, exactly as §6.4 predicted from the code.
 of its historical exchange rows carry the empty pre-migration `leg`, so it accrued no pull row,
 earned no cadence, and was skipped — permanently. The migration cannot retro-diagnose a corpse.
 
-**I6 — a fast, regular node gets a deadline so tight that routine work trips it.** The mirror of
+**I6 (#220) — a fast, regular node gets a deadline so tight that routine work trips it.** The mirror of
 §6.4's second accepted mode, and it was NOT predicted. `c6-bench`'s pull-leg gaps are a steady
 2000 ms with one burst:
 
