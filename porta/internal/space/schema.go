@@ -6,6 +6,12 @@
 // because the unit of extension is now a path, not a table.
 package space
 
+import (
+	"database/sql"
+	"fmt"
+	"strings"
+)
+
 const schema = `
 PRAGMA journal_mode=WAL;
 
@@ -42,6 +48,15 @@ CREATE TABLE IF NOT EXISTS nodes (
 -- own intent has no node boot; direction separates that from the other 0,
 -- which is a node with no persistent identity (posix without TUVM_BOOTID_FILE,
 -- or a board without CONFIG_SETTINGS) and reads as UNKNOWN, never as stale.
+--
+-- 'gw' is a verdict porta formed ABOUT the node — gateway-authored, never on
+-- the wire (design 2026-08-10 §6.1). It is a third direction rather than a
+-- fifth table because the unit of extension is a path (D2), and it is carried
+-- by THIS column because OutboundSince already filters direction = 'out': the
+-- exclusion from the radio is then structural, not a filter someone must
+-- remember to write. porta writes ONLY goal/** and dbg/req to a node, and a
+-- 'gw' row is neither node-authored nor deliverable to it, so it fits none of
+-- the four wire namespaces.
 CREATE TABLE IF NOT EXISTS cells (
   node_id    TEXT NOT NULL,
   path       TEXT NOT NULL,
@@ -49,7 +64,7 @@ CREATE TABLE IF NOT EXISTS cells (
   kind       INTEGER NOT NULL,
   value_cbor BLOB NOT NULL,
   ts_ms      INTEGER NOT NULL,
-  direction  TEXT NOT NULL CHECK (direction IN ('in','out')),
+  direction  TEXT NOT NULL CHECK (direction IN ('in','out','gw')),
   boot_id    INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (node_id, path)
 );
@@ -77,7 +92,7 @@ CREATE TABLE IF NOT EXISTS events (
   kind       INTEGER NOT NULL,
   value_cbor BLOB NOT NULL,
   ts_ms      INTEGER NOT NULL,
-  direction  TEXT NOT NULL CHECK (direction IN ('in','out')),
+  direction  TEXT NOT NULL CHECK (direction IN ('in','out','gw')),
   actor      TEXT NOT NULL DEFAULT '',
   reason     TEXT NOT NULL DEFAULT '',
   boot_id    INTEGER NOT NULL DEFAULT 0
@@ -85,8 +100,15 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE INDEX IF NOT EXISTS idx_events_node ON events(node_id, id);
 CREATE INDEX IF NOT EXISTS idx_events_out ON events(node_id, direction, seq);
 
--- One row per check-in: the heartbeat AND the replay index (design D4.3).
--- Without it the batch boundary a value arrived on is unrecoverable.
+-- One row per REQUEST, not per check-in: a check-in is a pull followed by a
+-- push, and handlePull/handlePush (internal/wire/server.go) each call
+-- RecordExchange once, so every check-in leaves TWO rows here. The leg
+-- column (added via addColumns, see below) says which: 'pull' or 'push'.
+-- The pull is the heartbeat CadenceMs infers from — the node always sends
+-- one, whereas a push can early-return on an empty frame — so a query that
+-- does not filter on leg counts both halves of every check-in and infers a
+-- cadence exactly half the node's real one (rete#217 C1). The replay index
+-- this table also serves (design D4.3) is unaffected either way.
 CREATE TABLE IF NOT EXISTS exchanges (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   node_id    TEXT NOT NULL,
@@ -95,7 +117,8 @@ CREATE TABLE IF NOT EXISTS exchanges (
   cursor_in  INTEGER NOT NULL,
   cursor_out INTEGER NOT NULL,
   pushed_lo  INTEGER NOT NULL,
-  pushed_hi  INTEGER NOT NULL
+  pushed_hi  INTEGER NOT NULL,
+  leg        TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_exchanges_node ON exchanges(node_id, ts_ms);
 `
@@ -115,4 +138,105 @@ CREATE INDEX IF NOT EXISTS idx_exchanges_node ON exchanges(node_id, ts_ms);
 var addColumns = []string{
 	`ALTER TABLE cells  ADD COLUMN boot_id INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE events ADD COLUMN boot_id INTEGER NOT NULL DEFAULT 0`,
+	// rete#217 C1: pre-existing rows gain '' rather than being backfilled to
+	// 'pull' or 'push' — nobody recorded at the time which request produced
+	// them, and guessing would manufacture evidence. '' is EXCLUDED from
+	// CadenceMs's `leg = 'pull'` filter, not mislabelled, so a node's cadence
+	// reads as unknown (no verdict) until it has accrued 3 fresh pull rows —
+	// exactly the same healing rule boot_id followed above.
+	`ALTER TABLE exchanges ADD COLUMN leg TEXT NOT NULL DEFAULT ''`,
+}
+
+// DirectionGateway is the third value of the direction column: a row porta
+// wrote ABOUT a node rather than TO it. The two wire directions are 'in'
+// (the node's own authority) and 'out' (porta's intent).
+const DirectionGateway = "gw"
+
+const (
+	oldDirectionCheck = `CHECK (direction IN ('in','out'))`
+	newDirectionCheck = `CHECK (direction IN ('in','out','gw'))`
+)
+
+// migrateDirectionAcceptsGw rebuilds cells and events when they still carry the
+// two-value CHECK. sqlite cannot alter a CHECK in place, so the table must be
+// copied — and the replacement DDL is derived from the table's OWN stored DDL
+// rather than from the schema const above. That is the whole trick: a store
+// that gained boot_id by ALTER has its columns in a different ORDER from a
+// fresh store, and a hand-written column list would silently mis-copy it.
+// Both tables are built from identical text, so `INSERT INTO tmp SELECT *` is
+// order-correct by construction; the events copy carries the AUTOINCREMENT id
+// verbatim, because `porta log` orders by it.
+//
+// Detection is the DDL itself and not a version row: a store that already
+// carries 'gw' is skipped, which is what makes a second Open a no-op.
+//
+// SPIKED 2026-08-18 before this plan was handed over, on both shapes: sqlite
+// strips `IF NOT EXISTS` from the STORED DDL text immediately on any
+// `CREATE TABLE IF NOT EXISTS`, so both a fresh store and a store whose
+// boot_id was appended by ALTER have the clause already gone. Both migrate, keep
+// their rows, and accept 'gw' afterwards. Two findings from that run are baked
+// in above: the DROP TABLE IF EXISTS, and the fact that after the rename the
+// stored DDL reads `CREATE TABLE "cells" (` — QUOTED — which is harmless only
+// because detection keys on the CHECK text and not on the table name.
+func migrateDirectionAcceptsGw(db *sql.DB) error {
+	for _, tbl := range []string{"cells", "events"} {
+		var ddl string
+		if err := db.QueryRow(
+			`SELECT sql FROM sqlite_master WHERE type='table' AND name=?`, tbl).Scan(&ddl); err != nil {
+			return fmt.Errorf("read %s DDL: %w", tbl, err)
+		}
+		if !strings.Contains(ddl, oldDirectionCheck) {
+			continue // already migrated, or a shape this code did not write
+		}
+		tmp := tbl + "_migrating"
+		newDDL := strings.Replace(ddl, oldDirectionCheck, newDirectionCheck, 1)
+		newDDL = strings.Replace(newDDL, tbl+" (", tmp+" (", 1)
+		tx, err := db.Begin()
+		if err != nil {
+			return err
+		}
+		for _, stmt := range []string{
+			// A crash between the copy and the rename leaves the tmp table
+			// behind, and its DDL carries IF NOT EXISTS — so the next attempt
+			// would silently ADOPT the stale table and its rows. Drop it first.
+			fmt.Sprintf(`DROP TABLE IF EXISTS %s`, tmp),
+			newDDL,
+			fmt.Sprintf(`INSERT INTO %s SELECT * FROM %s`, tmp, tbl),
+			fmt.Sprintf(`DROP TABLE %s`, tbl),
+			fmt.Sprintf(`ALTER TABLE %s RENAME TO %s`, tmp, tbl),
+		} {
+			if _, err := tx.Exec(stmt); err != nil {
+				tx.Rollback()
+				return fmt.Errorf("migrate %s: %s: %w", tbl, stmt, err)
+			}
+		}
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("migrate %s: commit: %w", tbl, err)
+		}
+	}
+	return nil
+}
+
+// assertDirectionAcceptsGw is the check migrateDirectionAcceptsGw's own
+// comment warns is missing: that function SKIPS any DDL shape it does not
+// recognise (a defensive read, not a defensive write), so a store whose
+// stored DDL drifted from either shape this code knows would fall through
+// unmigrated and unmigrated-looking IDENTICAL to a healthy store — a dead
+// instrument that presents as a live one, right up until the first gw/ write
+// hits the old two-value CHECK and the gateway's own liveness sweep starts
+// failing with no clue why. Called once, right after the migration, so the
+// failure surfaces at Open — loudly, at startup — rather than three sweeps
+// later on a production box.
+func assertDirectionAcceptsGw(db *sql.DB) error {
+	for _, tbl := range []string{"cells", "events"} {
+		var ddl string
+		if err := db.QueryRow(
+			`SELECT sql FROM sqlite_master WHERE type='table' AND name=?`, tbl).Scan(&ddl); err != nil {
+			return fmt.Errorf("read %s DDL: %w", tbl, err)
+		}
+		if !strings.Contains(ddl, "'gw'") {
+			return fmt.Errorf("%s.direction does not accept 'gw' after migration — DDL:\n%s", tbl, ddl)
+		}
+	}
+	return nil
 }

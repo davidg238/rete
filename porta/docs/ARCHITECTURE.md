@@ -31,6 +31,7 @@ Where this document and the code/contracts disagree, the contracts
                                │                                        │
                                │  • HTTP: control API + htmx UI + /mcp  │  :6970
                                │  • UDP/TFTP listener                   │  :6969
+                               │  • silence sweep → gw/liveness         │  30 s
                                │  • sqlite store: nodes · command_queue │
                                │    · payloads · reports · data_log     │
                                │  • command audit + config self-heal    │
@@ -208,6 +209,37 @@ Four properties worth knowing before reading output:
 
 Existing stores gain the column on open via an idempotent `ALTER TABLE`; rows already present
 read unknown and each path acquires a real boot id the next time it is written.
+
+---
+
+### 3.5 A fourth goroutine watches for silence (rete#217, recorded 2026-08-18)
+
+`porta serve` runs **four** loops, not three: the UDP exchange, the block server, the HTTP
+listener, and a **silence sweep** that ticks every 30 s. `awaitServeExit` composes all four.
+
+The sweep forms one liveness verdict per node and writes `gw/liveness` **only when the verdict
+changes**, so `porta log` is a list of the times the fleet went quiet rather than a row every
+30 s. It is a ticker and not a lazy read-time view on purpose: the failure it must catch is
+porta hearing *nothing*, and a system that evaluates only when read is silent exactly when
+everything is.
+
+Three properties worth knowing before reading its output:
+
+- **The deadline comes from the node, never from a constant.** Cadence is the median of that
+  node's last ten **pull-leg** inter-arrival gaps, written back to `nodes.cadence_ms`; a node is
+  silent when `now − last_seen_ms > 3 × cadence`. A ten-minute node and a two-second node are
+  each judged against themselves. Filtering to the pull leg is load-bearing — a check-in writes
+  *two* `exchanges` rows, so an unfiltered median reads exactly half the node's real period.
+- **Fewer than three exchanges gets no verdict**, not a default. `gw/liveness` stays unwritten
+  rather than carrying a guess — which also means a node that was already dead before this
+  shipped never accrues a pull row and is never judged (rete#219).
+- **`gw` is a third value of `direction`, not a fifth table.** That is what keeps the verdict off
+  the wire: `OutboundSince` already selects `direction = 'out'`, so a `gw` row is excluded **by
+  construction** rather than by a filter someone must remember.
+
+The instrument's own lies are written down in `Sweep`'s doc comment, where they are read —
+including that a gateway restart after a long outage writes `#silent` for every affected node
+and then `#live` as each returns, a burst byte-identical to a real fleet failure.
 
 ---
 

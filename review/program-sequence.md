@@ -2390,6 +2390,64 @@ Measured cost, since a persisted counter is up to five CBOR bytes where `1` was 
 the *worst legal* boot id rather than a fresh node's, on that test's own principle that
 measuring the easy case is how an estimate becomes wrong in the field.
 
+## A silence becomes an event — 2026-08-18, #217, the sweep on gw85224-01
+
+**porta now forms a verdict about every node it hears from, and records it where the node
+cannot read it.** `gw/liveness` reads `#live` or `#silent`, and a node that stops talking
+stops being an absence an operator has to notice. That is the precondition #215's loop breaker
+was gated on: a halted node reports nothing, so without this the breaker would trade a noisy
+zombie for an invisible corpse.
+
+**The whole mechanism is a third value in a column.** `direction` gains `'gw'`, and because
+`OutboundSince` already selects `direction = 'out'`, a gateway verdict is excluded from the
+wire **by construction** rather than by a filter someone has to remember. No fifth table, no
+endpoint, no verb — the unit of extension stayed a path, which is what D2 asks for. The one
+place the claim leaked was `porta put`, which reached `Store.Write` and would have stamped
+`direction='out'` on a `gw/` path and delivered it; `Write` now refuses. The mirror case, a
+node pushing its own `gw/liveness`, is open as #218.
+
+**The deadline is inferred from the node, never configured** — the median of that node's last
+ten inter-arrival gaps, `3 × cadence`. A thirty-second node and a two-second node are each
+judged against themselves, which is the same rule the node-side detector settles on.
+
+**The bug worth keeping is that the design trusted a comment.** §6.2's pseudocode said *"the
+last 10 inter-arrival gaps from `exchanges`"*, and `schema.go` said *"one row per check-in"* —
+but the wire server had written **two** rows per check-in since the rewrite, a pull and a push.
+The gap series therefore alternates `[ε, C−ε, …]`, and an even-count median averages the two
+middle values to exactly **half** the node's real period, independent of ε. `k = 3` would have
+run as 1.5 — one missed check-in enough to call a healthy node silent — and `nodes.cadence_ms`,
+a number operators read, would have been 2× wrong on every node in the fleet. It survived six
+reviews because the false sentence was in the schema's own comment, which is the most credible
+place for one to hide. `exchanges` gained a `leg` column; cadence reads the pull leg only,
+because a node always sends it while a push can early-return on an empty frame.
+
+**The bench then confirmed the fix against live data rather than against its own test.**
+`c6-bell`'s raw spacing alternates `123 ms, 29877 ms, 123, 29869, …`; unfiltered, the median
+lands at ≈15 s, and filtered it lands at **30000 ms exactly** — the bell's real period. The
+bridge node came out at **2000 ms exactly**. A node halted by hand flipped to `#silent` in
+**25.9 s against the 3 × cadence + 30 s = 36 s bound**, in exactly one row, held across seven
+sweep ticks, and returned `#live` about ten seconds after its first exchange. The prediction
+in 2026-08-10 §7 step 3 held.
+
+**And the bench found what the design had not predicted.** A *fast, regular* node gets a
+deadline so tight that ordinary blocking work crosses it: at a 2 s cadence the deadline is 6 s,
+and a replayed `dbg/req = "profile 10000"` — permanent, because there is no tombstone, and
+replayed on every cold boot by the cursor-0 rule — stalled the node for 10.7 s and then 33 s,
+writing a spurious `#silent`/`#live` pair for a node that never stopped running. **The
+gateway's own debug request made a healthy node look dead.** The design had recorded the
+opposite failure (a sick node's cadence *inflates*, delaying detection); this is the same rule
+biting from the other side, and it is filed as I6 (#220) rather than fixed, because one node on one
+bench is a measurement and not a distribution. The candidate knob — a floor at one sweep tick —
+would have suppressed the pair actually observed and would *not* have covered the 33 s stall in
+the same burst, which is precisely why it has not been invented yet.
+
+**Two things a live store taught that no host test could.** A node already dead when the
+migration ran is never judged at all: all 585 006 of its historical exchange rows carry the
+empty pre-migration `leg`, so it accrues no pull row, earns no cadence, and is skipped forever
+(#219). And `porta get` defaults to `porta.db` while the live store is `soak-2026-08-04.db` —
+so the plan's own verification command returned nothing, exited 0, and read exactly like *"no
+verdict yet"*. An empty tree read is a false green with no banner on it.
+
 ## Known stale docs (do not treat as current)
 
 `docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),

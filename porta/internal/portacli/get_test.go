@@ -183,3 +183,73 @@ func TestIsStaleMarksOnlyASupersededNodeObservation(t *testing.T) {
 		}
 	}
 }
+
+// A gateway verdict crosses no boundary. Printing it with the outbound arrow
+// would tell the operator porta sent this to the node, in the one column that
+// carries authority.
+func TestLogRendersAGatewayVerdictAsCrossingNoBoundary(t *testing.T) {
+	path := getTestDB(t)
+	st, err := space.Open(path, func() int64 { return 1000 })
+	if err != nil {
+		t.Fatal(err)
+	}
+	st.Ingest("c6spare", 44, []space.Entry{
+		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
+	})
+	if err := st.WriteGateway("c6spare", space.PathLiveness,
+		mustEnc(t, cval.Symbol("silent")), "silent: 7100 ms since last exchange, cadence 2000 ms"); err != nil {
+		t.Fatal(err)
+	}
+	st.Close()
+
+	out, _ := runSplit(t, "--db", path, "log", "c6spare")
+	var line string
+	for _, l := range strings.Split(out, "\n") {
+		if strings.Contains(l, space.PathLiveness) {
+			line = l
+		}
+	}
+	if line == "" {
+		t.Fatalf("no gw/liveness line in:\n%s", out)
+	}
+	if strings.Contains(line, "→") || strings.Contains(line, "←") {
+		t.Errorf("gw line carries a wire arrow, which claims a boundary was crossed: %q", line)
+	}
+	if !strings.Contains(line, "porta") {
+		t.Errorf("gw line does not name porta as the actor: %q", line)
+	}
+	if !strings.Contains(line, "boot=44") {
+		t.Errorf("gw line does not say which boot the verdict was about: %q", line)
+	}
+	if !strings.Contains(line, "#silent") {
+		t.Errorf("gw line does not carry the verdict: %q", line)
+	}
+}
+
+// A gw row is porta's opinion, not the node's observation: no node reboot makes
+// it stale, and `porta get` must not mark it or count it into the mixed-read
+// banner.
+func TestGetNeverCallsAGatewayVerdictStale(t *testing.T) {
+	path := getTestDB(t)
+	st, err := space.Open(path, func() int64 { return 1000 })
+	if err != nil {
+		t.Fatal(err)
+	}
+	st.Ingest("c6spare", 44, []space.Entry{
+		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
+	})
+	st.WriteGateway("c6spare", space.PathLiveness, mustEnc(t, cval.Symbol("silent")), "test")
+	// The node reboots and republishes nothing yet: boot 45 is current, and the
+	// gw row still carries 44.
+	st.Ingest("c6spare", 45, []space.Entry{
+		{Seq: 1, Path: "obs/build", Kind: cval.KindCell, Value: mustEnc(t, "gdeadbeef")},
+	})
+	st.Close()
+
+	out, _ := runSplit(t, "--db", path, "get", "c6spare")
+	for _, l := range strings.Split(out, "\n") {
+		if strings.Contains(l, space.PathLiveness) && strings.Contains(l, "STALE") {
+			t.Errorf("gw row marked STALE: %q", l)
+		}
+	}
+}

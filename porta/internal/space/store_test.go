@@ -4,9 +4,12 @@
 package space
 
 import (
+	"database/sql"
+	"strings"
 	"testing"
 
 	"github.com/davidg238/porta/internal/cval"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func testStore(t *testing.T) *Store {
@@ -196,7 +199,7 @@ func TestOversizeValueRejected(t *testing.T) {
 
 func TestExchangeRowRecorded(t *testing.T) {
 	st := testStore(t)
-	if err := st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1"); err != nil {
+	if err := st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1", "pull"); err != nil {
 		t.Fatalf("RecordExchange: %v", err)
 	}
 	if n, _ := st.CountNodes(); n != 1 {
@@ -210,7 +213,7 @@ func TestExchangeRowRecorded(t *testing.T) {
 // display field.
 func TestExchangeRecordsPeerAddress(t *testing.T) {
 	st := testStore(t)
-	st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1")
+	st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1", "pull")
 	got, err := st.NodeAddr("n1")
 	if err != nil {
 		t.Fatalf("NodeAddr: %v", err)
@@ -223,8 +226,8 @@ func TestExchangeRecordsPeerAddress(t *testing.T) {
 // An exchange recorded without a peer address must not erase a known one.
 func TestEmptyPeerAddressDoesNotClobber(t *testing.T) {
 	st := testStore(t)
-	st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1")
-	st.RecordExchange("n1", 7, 3, 4, 0, 0, "")
+	st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1", "pull")
+	st.RecordExchange("n1", 7, 3, 4, 0, 0, "", "push")
 	if got, _ := st.NodeAddr("n1"); got != "fdde:ad00::1" {
 		t.Fatalf("NodeAddr = %q after an addr-less exchange, want the address kept", got)
 	}
@@ -355,5 +358,397 @@ func TestOpenAddsBootIDToAPreExistingStore(t *testing.T) {
 	tree, _ := st2.Tree("n1", "")
 	if len(tree) != 1 || tree[0].BootID != 41 {
 		t.Fatalf("tree = %+v, want the migrated column carrying boot 41", tree)
+	}
+}
+
+// legacyDDL is the pre-gw shape, copied verbatim from the schema as it stood
+// before this rung. It is spelled out here rather than derived, because a test
+// that builds the old store from the NEW schema text proves nothing about the
+// store actually running on gw85224-01.
+const legacyCellsDDL = `
+CREATE TABLE IF NOT EXISTS cells (
+  node_id    TEXT NOT NULL,
+  path       TEXT NOT NULL,
+  seq        INTEGER NOT NULL,
+  kind       INTEGER NOT NULL,
+  value_cbor BLOB NOT NULL,
+  ts_ms      INTEGER NOT NULL,
+  direction  TEXT NOT NULL CHECK (direction IN ('in','out')),
+  boot_id    INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (node_id, path)
+);`
+
+const legacyEventsDDL = `
+CREATE TABLE IF NOT EXISTS events (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  node_id    TEXT NOT NULL,
+  path       TEXT NOT NULL,
+  seq        INTEGER NOT NULL,
+  kind       INTEGER NOT NULL,
+  value_cbor BLOB NOT NULL,
+  ts_ms      INTEGER NOT NULL,
+  direction  TEXT NOT NULL CHECK (direction IN ('in','out')),
+  actor      TEXT NOT NULL DEFAULT '',
+  reason     TEXT NOT NULL DEFAULT '',
+  boot_id    INTEGER NOT NULL DEFAULT 0
+);`
+
+// A store created before gw/** existed must GAIN the third direction on open,
+// keeping every row it already held. The live soak store on gw85224-01 is such
+// a store, and it carries the history rete#190's evidence rests on — rebuilding
+// it is not an option, so the migration is the deliverable, not a convenience.
+func TestOpenMigratesTheDirectionCheckOnAPreExistingStore(t *testing.T) {
+	path := t.TempDir() + "/legacy.db"
+	db, err := sql.Open("sqlite3", path)
+	if err != nil {
+		t.Fatalf("sql.Open: %v", err)
+	}
+	for _, stmt := range []string{legacyCellsDDL, legacyEventsDDL} {
+		if _, err := db.Exec(stmt); err != nil {
+			t.Fatalf("legacy DDL: %v", err)
+		}
+	}
+	// One row of each, so the migration has something to lose.
+	if _, err := db.Exec(`INSERT INTO cells VALUES ('n1','obs/health',7,2,x'01',1000,'in',41)`); err != nil {
+		t.Fatalf("seed cell: %v", err)
+	}
+	if _, err := db.Exec(`INSERT INTO events (node_id,path,seq,kind,value_cbor,ts_ms,direction,actor,reason,boot_id)
+		VALUES ('n1','obs/health',7,2,x'01',1000,'in','n1','',41)`); err != nil {
+		t.Fatalf("seed event: %v", err)
+	}
+	db.Close()
+
+	st, err := Open(path, func() int64 { return 2000 })
+	if err != nil {
+		t.Fatalf("reopen of a pre-gw store: %v", err)
+	}
+	defer st.Close()
+
+	// The rows survived.
+	var n int
+	if err := st.DB().QueryRow(`SELECT COUNT(*) FROM cells WHERE node_id='n1' AND boot_id=41`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("cells after migration: n=%d err=%v, want the seeded row intact", n, err)
+	}
+	if err := st.DB().QueryRow(`SELECT COUNT(*) FROM events WHERE node_id='n1' AND boot_id=41`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("events after migration: n=%d err=%v, want the seeded row intact", n, err)
+	}
+	// The index the rebuild dropped with the old table is back.
+	if err := st.DB().QueryRow(
+		`SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='idx_cells_seq'`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("idx_cells_seq after migration: n=%d err=%v, want 1", n, err)
+	}
+	// And the third direction is now legal in both tables.
+	if _, err := st.DB().Exec(
+		`INSERT INTO cells VALUES ('n1','gw/liveness',0,2,x'02',2000,'gw',41)`); err != nil {
+		t.Fatalf("gw cell after migration: %v", err)
+	}
+	if _, err := st.DB().Exec(`INSERT INTO events (node_id,path,seq,kind,value_cbor,ts_ms,direction,actor,reason,boot_id)
+		VALUES ('n1','gw/liveness',0,2,x'02',2000,'gw','porta','',41)`); err != nil {
+		t.Fatalf("gw event after migration: %v", err)
+	}
+
+	// The live gateway restarts, so a second open must be a true no-op: rows
+	// survive, indexes are present, and the migration does not run again.
+	st.Close()
+
+	st2, err := Open(path, func() int64 { return 3000 })
+	if err != nil {
+		t.Fatalf("second open of migrated store: %v", err)
+	}
+	defer st2.Close()
+
+	// The seeded rows from the legacy schema survived the migration and the close/reopen.
+	if err := st2.DB().QueryRow(`SELECT COUNT(*) FROM cells WHERE node_id='n1' AND boot_id=41 AND path='obs/health'`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("seeded cell after reopen: n=%d err=%v, want the original row intact", n, err)
+	}
+	if err := st2.DB().QueryRow(`SELECT COUNT(*) FROM events WHERE node_id='n1' AND boot_id=41 AND path='obs/health'`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("seeded event after reopen: n=%d err=%v, want the original row intact", n, err)
+	}
+
+	// The rows added after the first migration survived the close/reopen.
+	if err := st2.DB().QueryRow(`SELECT COUNT(*) FROM cells WHERE node_id='n1' AND direction='gw' AND path='gw/liveness'`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("gw cell after reopen: n=%d err=%v, want the post-migration row intact", n, err)
+	}
+	if err := st2.DB().QueryRow(`SELECT COUNT(*) FROM events WHERE node_id='n1' AND direction='gw' AND path='gw/liveness'`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("gw event after reopen: n=%d err=%v, want the post-migration row intact", n, err)
+	}
+
+	// The second open did not rebuild: the DDL still has exactly one 'gw' mention
+	// (in the CHECK constraint), not multiple rebuilds' worth.
+	var ddl string
+	if err := st2.DB().QueryRow(
+		`SELECT sql FROM sqlite_master WHERE type='table' AND name='cells'`).Scan(&ddl); err != nil {
+		t.Fatalf("read cells DDL after reopen: %v", err)
+	}
+	if strings.Count(ddl, "'gw'") != 1 {
+		t.Fatalf("cells DDL after reopen carries %d 'gw' mentions, want exactly 1 (no rebuild):\n%s",
+			strings.Count(ddl, "'gw'"), ddl)
+	}
+
+	// And the third direction still works.
+	if _, err := st2.DB().Exec(
+		`INSERT INTO cells VALUES ('n1','gw/verdict',0,2,x'03',3000,'gw',41)`); err != nil {
+		t.Fatalf("another gw cell after reopen: %v", err)
+	}
+}
+
+// The second open must be a no-op: the migration is detected by the table's own
+// DDL, not by a version row, so re-running it would rebuild the table on every
+// start of the gateway.
+func TestDirectionMigrationIsANoOpOnASecondOpen(t *testing.T) {
+	path := t.TempDir() + "/twice.db"
+	st, err := Open(path, func() int64 { return 1000 })
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	st.Ingest("n1", 41, []Entry{{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(1))}})
+	st.Close()
+
+	st2, err := Open(path, func() int64 { return 2000 })
+	if err != nil {
+		t.Fatalf("second Open: %v", err)
+	}
+	defer st2.Close()
+	var ddl string
+	if err := st2.DB().QueryRow(
+		`SELECT sql FROM sqlite_master WHERE type='table' AND name='cells'`).Scan(&ddl); err != nil {
+		t.Fatalf("read cells DDL: %v", err)
+	}
+	if strings.Count(ddl, "'gw'") != 1 {
+		t.Fatalf("cells DDL carries %d 'gw' mentions, want exactly 1:\n%s", strings.Count(ddl, "'gw'"), ddl)
+	}
+	tree, _ := st2.Tree("n1", "")
+	if len(tree) != 1 {
+		t.Fatalf("tree = %+v, want the row from before the second open", tree)
+	}
+}
+
+// The property the whole storage choice exists for: a verdict porta formed
+// about a node is never handed to that node. If this ever fails, a node is
+// being told what porta thinks of it — over a namespace §4.1 says only the
+// node may author.
+func TestGatewayVerdictNeverRidesTheWire(t *testing.T) {
+	st := testStore(t)
+	st.Ingest("n1", 41, []Entry{{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(1))}})
+	if err := st.WriteGateway("n1", PathLiveness, enc(t, cval.Symbol("silent")), "test"); err != nil {
+		t.Fatalf("WriteGateway: %v", err)
+	}
+	entries, hi, err := st.OutboundSince("n1", 0, MaxBatchBytes)
+	if err != nil {
+		t.Fatalf("OutboundSince: %v", err)
+	}
+	for _, e := range entries {
+		if e.Path == PathLiveness {
+			t.Fatalf("gw/liveness was delivered to the node: %+v (cursor now %d)", e, hi)
+		}
+	}
+	if len(entries) != 0 {
+		t.Fatalf("outbound = %+v, want nothing (the node has no goal writes)", entries)
+	}
+
+	// The CELLS query is `direction='out' AND seq > cursor`. With cursor=0 above,
+	// seq=0 fails the `seq > 0` check — so the gw row is excluded by seq, not by
+	// direction. Prove direction is the actual guard by calling with cursor=-1,
+	// which makes `seq > -1` TRUE. The gw row still must not ride; direction='gw'
+	// is the only remaining explanation for its absence.
+	entries, _, err = st.OutboundSince("n1", -1, MaxBatchBytes)
+	if err != nil {
+		t.Fatalf("OutboundSince with cursor -1: %v", err)
+	}
+	for _, e := range entries {
+		if e.Path == PathLiveness {
+			t.Fatalf("gw/liveness was delivered to the node (cursor -1): %+v; direction filter is not the guard", e)
+		}
+	}
+}
+
+// The verdict is about a node ON A BOOT. Stamping the node's current boot costs
+// nothing — the value is already in hand — and it is what lets `porta log`
+// answer "which boot was porta calling silent" (rete#210's argument, applied to
+// a row porta wrote itself).
+func TestGatewayVerdictCarriesTheNodesCurrentBoot(t *testing.T) {
+	st := testStore(t)
+	st.Ingest("n1", 44, []Entry{{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: enc(t, int64(1))}})
+	if err := st.WriteGateway("n1", PathLiveness, enc(t, cval.Symbol("silent")), "no exchange"); err != nil {
+		t.Fatalf("WriteGateway: %v", err)
+	}
+	tree, _ := st.Tree("n1", PathLiveness)
+	if len(tree) != 1 {
+		t.Fatalf("tree = %+v, want the gw row", tree)
+	}
+	if tree[0].Direction != DirectionGateway || tree[0].BootID != 44 || tree[0].Seq != 0 {
+		t.Fatalf("gw row = %+v, want direction=gw boot=44 seq=0", tree[0])
+	}
+	events, _ := st.Events("n1", 10, 0)
+	var found *Event
+	for i := range events {
+		if events[i].Path == PathLiveness {
+			found = &events[i]
+		}
+	}
+	if found == nil {
+		t.Fatal("no event row for the verdict; a transition that leaves no log line is not a record")
+	}
+	if found.Direction != DirectionGateway || found.Actor != "porta" || found.Reason != "no exchange" {
+		t.Fatalf("event = %+v, want direction=gw actor=porta reason='no exchange'", *found)
+	}
+}
+
+// porta's own outbound counter is the node's cursor space. Burning a seq on a
+// row the node can never receive would put a permanent hole in that cursor.
+func TestGatewayWriteDoesNotConsumeTheOutboundSeq(t *testing.T) {
+	st := testStore(t)
+	st.WriteGateway("n1", PathLiveness, enc(t, cval.Symbol("live")), "test")
+	seq, err := st.Write("n1", "goal/name", cval.KindCell, enc(t, "alpha"), "david", "")
+	if err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	if seq != 1 {
+		t.Fatalf("first goal write got seq %d, want 1 — the gw row consumed one", seq)
+	}
+}
+
+// storeAtClock hands the test the pen. *clock IS the store's now, so a silence
+// is produced by moving time rather than by sleeping — a sweep test that slept
+// would be measuring the test runner.
+func storeAtClock(t *testing.T, clock *int64) *Store {
+	t.Helper()
+	st, err := Open(t.TempDir()+"/t.db", func() int64 { return *clock })
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	t.Cleanup(func() { st.Close() })
+	return st
+}
+
+// checkIn advances the clock by gap ms and records ONE CHECK-IN, the way a
+// real node's does: a pull followed by a push (internal/wire/server.go calls
+// RecordExchange once from each handler). Recording only the pull, as this
+// helper did before rete#217 C1, modelled a protocol the gateway does not
+// implement — that mismatch is exactly why the bug survived here.
+func checkIn(t *testing.T, st *Store, clock *int64, node string, gap int64) {
+	t.Helper()
+	*clock += gap
+	if err := st.RecordExchange(node, 41, 0, 0, 0, 0, "", "pull"); err != nil {
+		t.Fatalf("RecordExchange pull: %v", err)
+	}
+	if err := st.RecordExchange(node, 41, 0, 0, 0, 0, "", "push"); err != nil {
+		t.Fatalf("RecordExchange push: %v", err)
+	}
+}
+
+func TestCadenceIsTheMedianOfTheNodesOwnGaps(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	checkIn(t, st, &clock, "n1", 0) // the first arrival: no gap yet
+	for i := 0; i < 5; i++ {
+		checkIn(t, st, &clock, "n1", 2_000)
+	}
+	cadence, ok, err := st.CadenceMs("n1")
+	if err != nil || !ok {
+		t.Fatalf("CadenceMs = %d, %v, %v; want a verdict", cadence, ok, err)
+	}
+	if cadence != 2_000 {
+		t.Fatalf("cadence = %d ms, want 2000", cadence)
+	}
+}
+
+// The reason the window is a MEDIAN and not a mean: one missed check-in doubles
+// a single gap, and a mean would move the deadline for the next ten minutes.
+func TestOneMissedCheckInDoesNotMoveTheCadence(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	checkIn(t, st, &clock, "n1", 0)
+	for i := 0; i < 4; i++ {
+		checkIn(t, st, &clock, "n1", 2_000)
+	}
+	checkIn(t, st, &clock, "n1", 60_000) // one long gap: a missed check-in
+	for i := 0; i < 4; i++ {
+		checkIn(t, st, &clock, "n1", 2_000)
+	}
+	cadence, ok, _ := st.CadenceMs("n1")
+	if !ok || cadence != 2_000 {
+		t.Fatalf("cadence = %d, ok = %v; want 2000 — the outlier moved the median", cadence, ok)
+	}
+}
+
+// Fewer than three exchanges is fewer than two gaps. There is nothing to infer,
+// and a guess would be a verdict porta cannot support.
+func TestNoCadenceForANodeWithTooFewExchanges(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	checkIn(t, st, &clock, "n1", 0)
+	checkIn(t, st, &clock, "n1", 2_000)
+	if _, ok, err := st.CadenceMs("n1"); ok || err != nil {
+		t.Fatalf("CadenceMs ok = %v err = %v after 2 exchanges; want no verdict", ok, err)
+	}
+	checkIn(t, st, &clock, "n1", 2_000)
+	if _, ok, err := st.CadenceMs("n1"); !ok || err != nil {
+		t.Fatalf("CadenceMs ok = %v err = %v after 3 exchanges; want a verdict", ok, err)
+	}
+}
+
+// A node whose cadence CHANGED must be judged against what it does now, not
+// against its whole history — which is what bounds the window at 10 gaps.
+func TestCadenceTracksAChangedRate(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	checkIn(t, st, &clock, "n1", 0)
+	for i := 0; i < 12; i++ {
+		checkIn(t, st, &clock, "n1", 30_000)
+	}
+	for i := 0; i < 12; i++ {
+		checkIn(t, st, &clock, "n1", 2_000)
+	}
+	cadence, ok, _ := st.CadenceMs("n1")
+	if !ok || cadence != 2_000 {
+		t.Fatalf("cadence = %d, want 2000 — the window still holds the old rate", cadence)
+	}
+}
+
+// rete#217 I2: a cadence of 0 is not a cadence. Left unrejected, `since >
+// 3*0` is true 1 ms after any arrival and the node flips silent/live forever.
+// Rejected the same way and for the same reason as too few exchanges: no
+// verdict, not a number nothing can act on.
+func TestCadenceMsRejectsAZeroCadence(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	for i := 0; i < 3; i++ {
+		checkIn(t, st, &clock, "n1", 0) // every pull lands in the same millisecond
+	}
+	if _, ok, err := st.CadenceMs("n1"); ok || err != nil {
+		t.Fatalf("CadenceMs ok = %v err = %v for a zero-gap node; want no verdict", ok, err)
+	}
+}
+
+// medianMs's even-count branch averages the two middle values. Every OTHER
+// even-count test in this file happens to use two IDENTICAL middle values, so
+// v[n/2] alone (the C1 bug: no /2 or averaging at all is a different failure,
+// but a half-hearted median that dropped the averaging would still pass every
+// existing case) would pass them too. This is the one that would not.
+func TestMedianMsAveragesTwoDistinctMiddleValues(t *testing.T) {
+	got := medianMs([]int64{10, 20, 30, 40})
+	if got != 25 {
+		t.Fatalf("medianMs([10,20,30,40]) = %d, want 25 (avg of the two middle values 20 and 30)", got)
+	}
+}
+
+// rete#217 I3: gw/** is gateway-authored (WriteGateway) and must never be
+// reachable through Store.Write, which is the path a node write actually
+// takes (OutboundSince delivers everything stamped direction='out'). Without
+// this rejection, `porta put <node> gw/liveness live` reaches the node — the
+// one thing the third `direction` value exists to make structurally
+// impossible.
+func TestWriteRejectsTheGwPrefix(t *testing.T) {
+	st := testStore(t)
+	_, err := st.Write("n1", "gw/liveness", cval.KindCell, enc(t, cval.Symbol("live")), "operator", "")
+	if err == nil {
+		t.Fatal("Write accepted a gw/ path; a node write must never reach gateway-authored state")
+	}
+	// Nothing must have been written or staged: a rejected write costs the
+	// node no outbound seq and leaves no half-applied row behind.
+	tree, _ := st.Tree("n1", "")
+	if len(tree) != 0 {
+		t.Fatalf("tree = %+v after a rejected gw/ write, want nothing written", tree)
 	}
 }

@@ -812,17 +812,26 @@ the third is approved and next** — kept here in order because the order is the
   first hardware run caught it claiming "still progressing" for the two scenarios that
   declare `none`; the six hostless tests missed that because every one asserted exit status
   and the FAILURE text and **none read the success message**.
-- **#215 — APPROVED 2026-08-17, and the next rung.** The detector. Both its blockers above
-  are closed. The inherited constraint is unchanged and still binding: 2026-08-10 §5.2's
-  loop breaker is "only safe because of sub-project D", and `gw/liveness` (§6) was unbuilt —
-  nothing in `porta/` mentions it. **RESOLVED 2026-08-17 (David): `gw/liveness` lands
-  ALONGSIDE, filed as #217.** Start at §8's first row, `RebootNote` surviving a watchdog
+- **#215 — APPROVED 2026-08-17, and the next rung. Its inherited constraint is now
+  DISCHARGED.** The detector. Both its blockers above are closed, and so is the third:
+  2026-08-10 §5.2's loop breaker is "only safe because of sub-project D", and `gw/liveness`
+  (§6) is **built and verified on the bench** as of 2026-08-18 (#217, below). **The HALT arm
+  may ship** — §7 step 4 is unblocked, and step 3 is already watching. Start at §8's first row, `RebootNote` surviving a watchdog
   reset, because it fails by reading zero and that is indistinguishable from "no wedge ever
   happened".
-- **#217 — the gateway half, queued with #215.** `gw/**` + the silence sweep: a fourth
-  goroutine in `porta serve` that infers each node's cadence from its own exchange history
-  and writes `gw/liveness` **on transition only**. Designed a week ago in 2026-08-10 §6 and
-  tracked nowhere until now. It is not adjacent to #215 but underneath it — §7's staging
+- **#217 — the gateway half. DONE 2026-08-18, verified on gw85224-01.** `gw/**` + the
+  silence sweep: a fourth goroutine in `porta serve` that infers each node's cadence from its
+  own exchange history and writes `gw/liveness` **on transition only**. Cadence came out
+  **exact** on both live nodes — 30000 ms for the bell, 2000 ms for the bridge — and a node
+  halted by hand flipped to `#silent` in **25.9 s against the 36 s bound**, in exactly one row
+  held across seven sweep ticks. Two findings the host suite could not have produced: the
+  cadence query was reading **half** every node's real period (a check-in writes two
+  `exchanges` rows and `schema.go`'s comment said one), and a *fast* node's `3 × cadence`
+  deadline is tight enough that porta's own replayed `dbg/req profile` stalled a healthy node
+  past it — recorded as I6 and filed as **#220**, not fixed. Other follow-ons: **#218** (a node
+  pushing over its own verdict) and **#219** (a node already dead at migration time is never
+  judged). It is not
+  adjacent to #215 but underneath it — §7's staging
   gates the panic-note/reboot/loop-breaker step on this one already watching, because "three
   faults halt the node" is unobservable from the gateway if a halted node is invisible.
   Note the shared principle: the sweep's deadline comes from the node's OWN measured cadence,
@@ -831,8 +840,11 @@ the third is approved and next** — kept here in order because the order is the
 Bench: c6spare was left soaking on `ga4e6bc2-dirty-20260816T151140` (the `38505d4`-only
 build) and reached **~25.4 h / tick 45 695 on one unbroken boot**, `pdr`/`sdr` 0 and no
 allocation ever returning null across 16 639 collections. **That control was then SPENT on
-2026-08-17**: the board was reflashed for the target gates, and it now carries
-`StaleHandleProbeC6` from the last scenario of that run. Hours 26+ bought nothing for the
+2026-08-17**: the board was reflashed for the target gates, and it then carried
+`StaleHandleProbeC6` from the last scenario of that run. **As of 2026-08-18 it carries
+`PortaBridgeNodeC6` again** (build `porta-v1-final-1026-gb8157ea-20260818T184600`), reflashed
+to give #217's falsification a disposable node to halt; it is live in the space as `c6-bench`
+at a 2 s cadence. Hours 26+ bought nothing for the
 question it served — 25 h is ~7 600x past the longest death it controlled for, and its build
 had fallen behind HEAD. `c6-bell` remains the long-duration board. The bell was not touched.
 

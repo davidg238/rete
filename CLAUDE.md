@@ -169,8 +169,10 @@ next.
   not the RFC; the encoder is golden-tested against the node's own output.
 - `porta/internal/space/` — the store: `nodes`, `cells` (latest value per path), `events`
   (append-only, both directions, with `actor`/`reason` provenance), `exchanges` (one row
-  per check-in — the heartbeat *and* the replay index). Four tables where v1 had nine,
-  because the unit of extension is now a path: a new feature adds rows, not tables.
+  per request — two per check-in, a `pull` and a `push`, tagged by a `leg` column; the pull
+  leg is the heartbeat and the replay index, since a node always sends it while a push can
+  early-return on an empty frame). Four tables where v1 had nine, because the unit of
+  extension is now a path: a new feature adds rows, not tables.
 - `porta/internal/wire/` — pull/push framing as a pure `Handle([]byte) []byte`, wrapped by
   a thin UDP loop.
 - `porta/internal/httpsrv/`, `porta/internal/serverstat/` — survived the demolition

@@ -34,9 +34,15 @@ func newLogCmd() *cobra.Command {
 				return err
 			}
 			for _, e := range rows {
+				// The arrow is an authority claim, so a gateway verdict gets
+				// neither: gw/** is written ABOUT the node and crosses no
+				// boundary (design 2026-08-10 §6.1).
 				dir := "→"
-				if e.Direction == "in" {
+				switch e.Direction {
+				case "in":
 					dir = "←"
+				case space.DirectionGateway:
+					dir = "◆"
 				}
 				v, err := cval.Decode(e.Value)
 				text := "<undecodable>"

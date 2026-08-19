@@ -163,7 +163,7 @@ func (s *Server) handlePull(r cval.Record, peer string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := s.st.RecordExchange(id, bootID, cursor, deliveredHi, 0, 0, peer); err != nil {
+	if err := s.st.RecordExchange(id, bootID, cursor, deliveredHi, 0, 0, peer, "pull"); err != nil {
 		return nil, err
 	}
 	return resp, nil
@@ -203,7 +203,7 @@ func (s *Server) handlePush(r cval.Record, peer string) ([]byte, error) {
 		s.logf("porta: push from %s skipped %d already-applied row(s) (high-water %d)",
 			id, skipped, hw)
 	}
-	if err := s.st.RecordExchange(id, bootID, 0, 0, lo, hw, peer); err != nil {
+	if err := s.st.RecordExchange(id, bootID, 0, 0, lo, hw, peer, "push"); err != nil {
 		return nil, err
 	}
 	return encodeAck(hw)

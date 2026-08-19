@@ -360,6 +360,10 @@ power-cycling the board clears it. That is the semantic we want and it costs not
 
 ## 6. Sub-project D — `gw/**` and the silence sweep
 
+**BUILT 2026-08-18 (#217), commits `bbb422d..b8157ea` on branch `217-gw-liveness`, and
+verified on the bench — see §6.5 for the readings.** §7 step 3 is discharged, which is what
+step 4's HALT arm was gated on.
+
 ### 6.1 The namespace
 
 `PROTOCOL-NSL.md` §3: *"porta writes ONLY `goal/**` and `dbg/req`."* §4.1 makes an accepted
@@ -403,6 +407,114 @@ A lazy view cannot do this job even setting aside that it produces no row. The f
 must catch is *porta hearing nothing*, and a system that only evaluates when read is silent
 exactly when everything is. The ticker is not a convenience.
 
+### 6.4 Addendum — what building it settled, and what it corrected (2026-08-18, #217)
+
+**Built on branch `217-gw-liveness`, host-green.** This subsection is the decision record
+written before the hardware run; §6.5 carries what the bench then said. Nothing here was
+refuted by it.
+
+**Three things §6 left open, decided here:**
+
+- **A `gw` row takes `seq` 0.** `seq` is only meaningful inside a sequence space and `gw` has
+  none — porta's `out_seq` is the node's cursor space and the node's push counter is the other.
+  Burning an outbound seq on a row the node can never receive would leave a permanent hole in
+  a cursor for a row that is not coming. `events.id` already orders the log.
+- **A `gw` row carries the node's current `boot_id`.** The verdict is about a node *on a boot*,
+  which is #210's argument applied to a row porta wrote itself. `0` (never heard from, or no
+  persistent identity) stays 0 and is never invented into a number.
+- **`MinExchanges = 3`** joins §8's table. **Chosen.** Two arrivals is one gap, which is a
+  sample and not a cadence. Earns revision from the first fleet with a node whose first verdict
+  matters sooner than its third check-in.
+
+**§6.2's pseudocode was wrong, and the error was inherited from `schema.go`.** It reads
+`gaps = last 10 inter-arrival gaps from exchanges`, which assumes an exchange row is an arrival.
+It is not: a check-in is a pull **and** a push, and `handlePull` and `handlePush` each write a
+row (`porta/internal/wire/server.go:166` and `:206`). The gap series therefore alternates
+`[ε, C−ε, …]`, and the even-count median averages the two middle values to exactly **half** the
+node's real period, independent of ε. Left standing, `k = 3` would have run as **1.5** — one
+missed check-in enough to call a healthy node silent — and `nodes.cadence_ms`, a number
+operators read, would have been 2× wrong on every node.
+
+`schema.go` claimed *"One row per check-in"* and the wire server had disagreed with it since the
+rewrite; this design trusted the comment. **Corrected**: `exchanges` gains a `leg` column
+(`'pull'`/`'push'`), cadence is inferred from the **pull** leg only — the node always sends it,
+whereas a push can early-return on an empty frame — and pre-existing rows keep `leg = ''` and are
+excluded rather than mislabelled, so the store heals one check-in at a time as `boot_id` did.
+The same false sentence was corrected in `CLAUDE.md` and in
+`porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md`. A node that was already dead
+when this shipped never accrues a pull row and so is never judged — filed as #219.
+
+**Two accepted false-report modes**, now in `Sweep`'s doc comment because an instrument's lies
+have to be written down where they are read:
+
+- **A gateway outage reads as node silence.** `since` is `now − last_seen_ms`, which includes
+  time porta itself was down, so a restart after an outage longer than `3 × cadence` writes
+  `#silent` for every affected node and `#live` as each returns. In `porta log` that burst is
+  byte-identical to a genuine fleet-wide failure. Self-correcting within one cadence, and
+  restarting porta is routine here.
+- **A sick node's inferred cadence inflates.** A node whose reboot loop outpaces its check-in
+  cadence produces a majority of long gaps, so its inferred cadence becomes its boot-cycle
+  length and `#silent` arrives `3 ×` that — delaying exactly the detection §5.2's loop breaker
+  depends on. **§7 step 3's bound therefore means INFERRED cadence, not the node's healthy
+  period.** No cap and no tunable: what would earn one is a real node observed in that state,
+  with its boot-cycle length and the resulting detection delay.
+
+**One claim in §6.1 is now true rather than conventional.** "Excluded from the wire by
+construction" held only for rows written through `WriteGateway`; `porta put <node> gw/liveness …`
+went through `Store.Write`, which validated no namespace and stamped `direction='out'`, and the
+row *would* have been delivered. `Write` now rejects a `gw/` path. The mirror case — a node
+pushing `gw/liveness` over its own verdict — is still open and filed as #218.
+
+### 6.5 Addendum — what the bench said (2026-08-18, #217, §7 step 3)
+
+**The prediction held.** Deployed to `gw85224-01` over a 33 s outage; the migration rebuilt
+`cells` and `events` in 5 s across 1.19 M rows, and the store went 248 MB → 400 MB with a
+transient 152 MB WAL.
+
+| Reading | Value |
+|---|---|
+| `c6-bell` inferred cadence | **30000 ms** (its real publish period is 30 s) |
+| `c6-bench` inferred cadence | **2000 ms** (its real check-in period is 2 s) |
+| detection latency, halted node | **25.9 s** against the `3 × cadence + 30 s` = 36 s bound |
+| rows recording the halt | **1**, held 7+ sweep ticks |
+| return to `#live` | ~10 s after the first exchange, **1** row |
+
+**§6.4's `leg` correction is confirmed by the live store, independently of its unit test.**
+`c6-bell`'s raw exchange spacing alternates `123 ms, 29877 ms, 123, 29869, …` — pull, then push
+123 ms later, then the next pull 30 s on. An unfiltered median over that window lands at ≈15 s;
+filtered to the pull leg it lands at 30000 ms exactly. The pre-fix code was reading exactly half,
+on real data, exactly as §6.4 predicted from the code.
+
+**#219 confirmed in the field.** `c6-bench` had been silent 21.2 h at migration time. All 585 006
+of its historical exchange rows carry the empty pre-migration `leg`, so it accrued no pull row,
+earned no cadence, and was skipped — permanently. The migration cannot retro-diagnose a corpse.
+
+**I6 (#220) — a fast, regular node gets a deadline so tight that routine work trips it.** The mirror of
+§6.4's second accepted mode, and it was NOT predicted. `c6-bench`'s pull-leg gaps are a steady
+2000 ms with one burst:
+
+```
+…2000, 2000, 2010, 4564, 1437, 2172, 10677, 1146, 1995, 10326, 2263, 33006, 2587, 2257, 1561, 2000…
+```
+
+That burst is a replayed `dbg/req = "profile 10000"` — an `out` row written 2026-08-06 for #165,
+permanent because there is no tombstone, and replayed on every cold boot by §8-of-the-rewrite's
+cursor-0 rule. At a 2 s cadence the deadline is `3 × 2000` = **6 s**, so a 9937 ms stall crossed
+it and wrote a spurious `#silent`/`#live` pair for a node that never stopped running.
+
+So the gateway's own debug request made a healthy node look dead. §6.4's second mode says a
+**sick** node's cadence inflates and *delays* detection; I6 is the same rule biting from the
+other side — a **healthy fast** node's cadence is tight enough that ordinary blocking work
+crosses it.
+
+**This is the data §8 said would earn a knob**, and it is recorded rather than spent. The
+candidate is a floor, `deadline = max(3 × cadence, sweep tick)`. It *would* have suppressed the
+pair actually observed, since the flip fired at `since = 9937 ms` and the floor would be 30 s —
+but the 33 006 ms gap in the same burst sits above that floor, so 30 s is not a comfortable
+margin, and this is one node on one bench rather than a distribution. **Not implemented.** What
+would settle it: the gap distribution of two or more nodes at different cadences across a run
+long enough to include their worst ordinary stall.
+
 ---
 
 ## 7. Staging, and how each step is falsified
@@ -415,8 +527,8 @@ Sub-projects are lettered by §, staged by number — the two orders differ, whi
 |---|---|---|---|
 | 1 | **A** — allocation seam + `sys/cheap` | **c6spare** | On the unfixed build, `outBytes` **rises**, and the rise extrapolates to heap exhaustion at c6spare's measured 43 m 54 s. **If it does not rise, the gauge is blind and step 2 proves nothing.** |
 | 2 | **B** — inline Symbol bytes + serializer | c6spare, then the bell | On the same gauge, `outBytes` goes **flat** after boot. `fails` stays 0 across a run longer than 10 h 41 m. |
-| 3 | **D** — `gw/**` + sweep | either | Halting a node by hand flips `gw/liveness` to `#silent` within 3 × cadence + 30 s, and one event row records the transition. |
-| 4 | **C** — panic note, reboot, loop breaker | c6spare | A deliberate fault (there is already a `prj_esp32c6_faultgate.conf` build for exactly this) produces one `Panic` on `sys/panic` after the reboot, and three faults with no check-in between them halt the node — with step 3 already watching. |
+| 3 | **D** — `gw/**` + sweep | c6spare | **DONE 2026-08-18 (#217).** Halting a node by hand flips `gw/liveness` to `#silent` within 3 × cadence + 30 s, and one event row records the transition. **Observed: 25.9 s against a 36 s bound, exactly one row, held 7+ ticks** (§6.5). |
+| 4 | **C** — panic note, reboot, loop breaker | c6spare | **UNBLOCKED 2026-08-18** — step 3 is discharged, so the HALT arm may ship (§5.2). A deliberate fault (there is already a `prj_esp32c6_faultgate.conf` build for exactly this) produces one `Panic` on `sys/panic` after the reboot, and three faults with no check-in between them halt the node — with step 3 already watching. |
 
 Step 1 before step 2 is the whole point. Landing them together would leave a flat line that
 proves nothing — you would never have seen the instrument register the leak it was built to
@@ -459,7 +571,8 @@ Recorded here so the deferral is falsifiable rather than vague.
 |---|---|---|
 | offline window `k` | 3 × cadence | **Inherited.** The rewrite design records it at line 275 as *"offline = k × cadence, k = 3 (v1's constant, kept)"* |
 | cadence inference window | last 10 gaps | **Chosen.** Robust to one missed check-in, short enough to track a cadence change. Earns revision from the first fleet with a node whose cadence changes |
-| sweep tick | 30 s | **Chosen.** A floor on detection latency, below the shortest cadence in use. Earns revision if it ever costs measurable CPU |
+| minimum exchanges for a verdict | 3 | **Chosen.** Two arrivals is one gap, which is a sample and not a cadence. Earns revision if a real fleet has a node whose first verdict matters sooner than its third check-in |
+| sweep tick | 30 s | **Chosen, and CORRECTED 2026-08-18.** A floor on detection latency. This row used to read *"below the shortest cadence in use"*, which the bench refuted: the bridge node's cadence is **2 s**, so the tick is 15× COARSER than the shortest cadence, not finer. Detection for such a node is `3 × cadence` rounded up to the next tick — measured at 25.9 s against a 36 s bound (§6.5). `sweep.go`'s own comment had this right; this table did not. Earns revision if it ever costs measurable CPU |
 | loop-breaker threshold | 3 panics | **Chosen** (David, 2026-08-10). Earns revision from the first real reboot loop, whose shape will say whether 3 was too eager |
 
 ---
