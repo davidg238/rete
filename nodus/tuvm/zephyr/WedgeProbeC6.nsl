@@ -1,0 +1,132 @@
+(*
+expect:
+TAP wedge done
+*)
+(* rete#215 — the probe for a failure that has no signature.
+
+   IT EMITS NOTHING ON THE BOOT THAT DIES. That is deliberate and it is what makes the
+   gate readable: the runner's collector anchors on the FIRST build-id line and greps
+   every `TAP <scenario>` line after it (tests/target/lib/collect_console.sh:41), so a
+   plan line emitted on both boots would arrive twice and tap_verify would fail it for
+   duplication. Boot 1 has nothing to say; boot 2 is the report.
+
+   IT WEDGES ONLY IF IT WAS NOT ALREADY REPORTING. `platform panicNote` answering
+   non-nil means the last boot died, so this boot's job is to testify and then keep
+   ticking — not to die again inside the observation window rete#216 added.
+
+   THE WEDGE IS REAL, NOT SIMULATED. It stops returning from a reaction, so pumpEvents
+   is never called again and the pulse mailbox fills behind a live 1 s repeater. That is
+   COND_PULSE_UNDRAINED, and it is the shape #192/#213 present: no fault, no panic, no
+   banner, console still up.
+
+   Holds ONE Timers instance — `platform timers` answers a FRESH one per send, and a
+   second instance means dispatch: silently drops every event. Dialect: `[ ... ]
+   whileTrue:`, no modulo.
+
+   SERVES TWO SCENARIOS. wedge-note layers prj_esp32c6_wedgegate.conf, whose synthetic
+   trigger fires at 15 s — before this probe's own 30 s wedge — so that gate isolates
+   RETENTION from detection. wedge-detect uses the default build and lets the real wedge
+   below do the work. The 15 < 30 ordering is what keeps them different tests. *)
+class WedgeProbeC6 packageUsing: manifest = (
+  | plat space timers tickCh ticks ::= 0. wedging ::= false.
+    tapPass ::= 0. tapFail ::= 0. |
+) (
+
+  wedgeAtTick = ( ^ 30 )   (* 30 s at the 1 s period below — comfortably past boot, and
+                              3.75x the 8 s deadline the same period implies, so the trip
+                              is unambiguous *)
+
+  public main: platform args: args = (
+    | note |
+    plat:: platform.
+    space:: plat space.
+    timers:: plat timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+
+    note:: plat panicNote.
+    note isNil
+      ifTrue:  [ 'wedge-probe: no note — this boot is the one that dies' out ]
+      ifFalse: [ self reportNote: note ].
+
+    tickCh:: space channel: 'probe/tick'.
+    tickCh whenever: '' do: [ :m | self tick ].
+    timers every: 1000 post: #t on: tickCh.
+
+    [ true ] whileTrue: [ plat pumpEvents. space drain ].
+    ^ self )
+
+  (* The report, and the ONLY boot that emits TAP. Two results, planned before either
+     is taken — a probe that dies between them then emits one against a promised two,
+     and the runner fails it instead of reading a single green as a pass. *)
+  reportNote: note = (
+    | reason |
+    (* FIRST, before anything can fail: this boot does not wedge. A boot that is
+       reporting the last wedge must not become the next one — it would reboot inside
+       the observation window and the gate would read a death it caused itself. *)
+    wedging:: true.
+    self tapPlan: 2.
+    self tap: 1 named: 'note survived the reset' ok: true
+         detail: ('detail=' , (note basicAt: 4)).
+    (* Read through the RECORD, not the raw prim array, so this asserts the whole path
+       the gateway will see: prim 153 -> Kernel>>panicReasonFor: -> Panic.reason. A
+       Record exposes `tag` and `fields` and no per-field accessor, and Map answers
+       at:ifAbsent: and not a bare at:, so #none is the honest miss rather than a
+       'key not found' error inside a TAP line. *)
+    reason:: (plat panic fields) at: #reason ifAbsent: [ #none ].
+    self tap: 2 named: 'reason is watchdog' ok: (reason = #watchdog)
+         detail: ('reason=' , reason printString).
+    self tapDone.
+    (* Ack AFTER the report, never before: the ack clears the note, and a clear that
+       ran first would leave the gate reading a green against nothing (§5.1). bootId 0
+       — this probe has no porta identity and 0 means unknown, which is never invented
+       into a number (#217 §6.4). *)
+    plat panicNoteAck: 0.
+    ^ self )
+
+  tick = (
+    ticks:: ticks + 1.
+    ('wedge-probe tick ' , ticks printString) out.
+    (wedging not and: [ ticks >= self wedgeAtTick ]) ifTrue: [
+      wedging:: true.
+      'wedge-probe: entering the wedge — nothing below this line is expected' out.
+      [ true ] whileTrue: [ ] ].
+    ^ self )
+
+  (* --- TAP-lite (design D3) -------------------------------------------------
+     A declared plan, then one line per result, then a done line the runner
+     reconciles against both. The runner FAILS — not times out — when fewer
+     results arrive than were promised, which is what stops a truncated run and
+     a passing run from looking alike.
+
+     Every line carries the scenario name, so two workloads sharing a log, or a
+     log holding an earlier run, cannot be misattributed to each other.
+
+     THE NAME IS `wedge`, NOT THE SCENARIO'S. This one node serves two scenarios that
+     differ only in how the BUILD is configured, and an .nsl file cannot see Kconfig, so
+     it cannot name which one it is running as. Both manifests therefore set TAP_NAME=wedge
+     (rete#215 added that override to tests/target/run.sh; it defaults to $SCENARIO, so no
+     existing manifest changed). *)
+
+  scenarioName = ( ^ 'wedge' )
+
+  tapPlan: n = (
+    ('TAP ' , self scenarioName , ' plan=' , n printString) out.
+    ^ self )
+
+  tap: idx named: nm ok: passed detail: d = (
+    passed
+      ifTrue:  [ tapPass:: tapPass + 1.
+                 ('TAP ' , self scenarioName , ' ok ' , idx printString ,
+                   ' ' , nm , ' ' , d) out ]
+      ifFalse: [ tapFail:: tapFail + 1.
+                 ('TAP ' , self scenarioName , ' not ok ' , idx printString ,
+                   ' ' , nm , ' ' , d) out ].
+    ^ self )
+
+  tapDone = (
+    ('TAP ' , self scenarioName , ' done pass=' , tapPass printString ,
+      ' fail=' , tapFail printString) out.
+    ^ self )
+
+) : (
+)
