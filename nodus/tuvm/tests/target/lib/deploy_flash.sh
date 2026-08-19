@@ -55,6 +55,50 @@ deploy::flash() {
   local args=(--board "${BOARD_ID:-esp32c6}" --node "$NODE" --flash)
   [ -n "${CONF_EXTRA:-}" ] && args+=(--conf-extra "$CONF_EXTRA")
 
+  # rete#215 — A WARM BUILD DIR CARRIES THE PREVIOUS SCENARIO'S KCONFIG, and it
+  # produces a gate that passes while testing the wrong thing.
+  #
+  # Caught 2026-08-19. `wedge-note` builds with prj_esp32c6_wedgegate.conf; `wedge-detect`
+  # declares NO CONF_EXTRA and must run the default build, because the whole difference
+  # between those two scenarios is that one wedges synthetically and the other wedges for
+  # real. Run back to back they share build-esp32c6-B, and CMake keeps
+  # `EXTRA_CONF_FILE:UNINITIALIZED=…` in its cache when the variable is not re-specified —
+  # so wedge-detect ran with CONFIG_TUVM_WEDGE_TRIGGER=y, rebooted at the synthetic 15 s
+  # instead of its own 30 s wedge, and reported PASS 2/2. It tested wedge-note twice. The
+  # console said so (`SYNTHETIC WEDGE TRIGGER is compiled in` in a build that asks for no
+  # overlay) and the verdict could not.
+  #
+  # THE CMAKE CACHE IS ASKED DIRECTLY rather than a stamp file being kept beside it: the
+  # cache is what actually decides the build, a stamp is a claim about it, and --pristine
+  # deletes the build directory — so a stamp living inside it would vanish on every
+  # pristine build and force the next one to be pristine too, forever.
+  #
+  # Two conservative rules, because run.sh APPENDS overlays of its own (the gitignored
+  # thread dataset) and an equality test would therefore fire on every radio build:
+  #   - manifest wants none, cache has some  -> pristine. This is the direction that bit.
+  #   - manifest wants some, cache is missing any of them -> pristine.
+  # Anything else builds incrementally, so the cost falls on the run that would have lied.
+  local cache="$zdir/build-${BOARD_ID:-esp32c6}-B/CMakeCache.txt"
+  local cached="" need_pristine=0
+  [ -f "$cache" ] && cached=$(sed -n 's/^EXTRA_CONF_FILE:[A-Z]*=//p' "$cache" | head -1)
+  if [ -z "${CONF_EXTRA:-}" ]; then
+    [ -n "$cached" ] && need_pristine=1
+  else
+    local one
+    IFS=';' read -ra _want <<< "$CONF_EXTRA"
+    for one in "${_want[@]}"; do
+      case ";$cached;" in *";$one;"*) ;; *) need_pristine=1 ;; esac
+    done
+  fi
+  if [ "$need_pristine" = 1 ]; then
+    # target::warn, NOT target::say: this function returns the build id on STDOUT and
+    # the runner captures it. A say() here lands inside the anchor string, and an anchor
+    # that is really a sentence matches no log line — which reads exactly like a board
+    # that never booted. Cost: one confusing red run, 2026-08-19.
+    target::warn "build dir was configured for '${cached:-<none>}', this scenario wants '${CONF_EXTRA:-<none>}' — forcing --pristine"
+    args+=(--pristine)
+  fi
+
   # The collector must let go of the tty for the duration, or it and esptool
   # split the ROM handshake between them. See target::collector_pause.
   target::collector_pause "$board"
