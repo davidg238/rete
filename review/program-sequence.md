@@ -2446,7 +2446,11 @@ migration ran is never judged at all: all 585 006 of its historical exchange row
 empty pre-migration `leg`, so it accrues no pull row, earns no cadence, and is skipped forever
 (#219). And `porta get` defaults to `porta.db` while the live store is `soak-2026-08-04.db` —
 so the plan's own verification command returned nothing, exited 0, and read exactly like *"no
-verdict yet"*. An empty tree read is a false green with no banner on it.
+verdict yet"* at a moment when the verdict had in fact been written. An empty tree read is a
+false green with no banner on it. **It is worse than a wrong read: `space.Open` runs
+`db.Exec(schema)` and sqlite creates on open, so the command MANUFACTURED a fully-schema'd
+empty store and answered from that**, leaving a decoy `porta.db` beside the real one — the same
+way the stale `space.db` got there. Filed as #221; the stray file was removed.
 
 ## Known stale docs (do not treat as current)
 
