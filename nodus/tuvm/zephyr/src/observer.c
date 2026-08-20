@@ -143,6 +143,162 @@ static int observer_verdict(void) {
     return COND_NONE;
 }
 
+#ifdef CONFIG_TUVM_WEDGE_FORENSICS
+/* rete#222/#192/#213 — WHERE IS THE REACTOR? Evidence only; this decides nothing and
+   reboots nothing.
+
+   The dump above says a wedge happened and the pulse counters say the mailbox is filling.
+   What none of it says is what the VM thread is DOING, and the three open wedges have been
+   chased for weeks without that fact. Two readings answer it, and both are free:
+
+   `pending=1` ALREADY REFUTES THE STANDING ASSUMPTION. This file's own header, #192 and
+   #213 all say the node is parked in `pumpEvents`'s K_FOREVER. It cannot be: a thread
+   waiting in k_msgq_get is handed a put directly and the queue depth stays 0, so a depth
+   that sits at 1 for sixteen seconds means NOBODY IS WAITING. The reactor is somewhere
+   else — inside the tick it took, or blocked on something that is not this mailbox.
+
+   So: sample the VM's own cursors twice, 100 ms apart. `vm_stack_ptr` and `current_frame`
+   move on essentially every send, so two identical readings mean the interpreter is not
+   advancing (BLOCKED or DEAD), and two different ones mean it is running and will not stop
+   (SPINNING). Those are different bugs with different fixes, and nothing in the tree has
+   been able to tell them apart. The thread walk then names what it is blocked ON, and
+   carries the reactor's Zephyr stack headroom — which is #192's untested VM-stack guess,
+   asked at the level that can answer it. */
+#include "oevm.h"
+#include "oimg.h"
+#include "frame_abi.h"
+extern oop *vm_stack;
+extern size_t vm_stack_ptr;
+extern struct MethodContext *current_frame;
+extern oop g_active_stack;
+
+/* WHICH THREAD IS BURNING THE CPU. "main is queued, and the VM is not advancing" is
+   consistent with two different bugs — the reactor spinning inside a C call that never
+   touches the VM cursors, and the reactor being STARVED by something else that never
+   yields — and a state string cannot separate them. Cycles can: sample every thread's
+   execution_cycles across the same 100 ms window, and exactly one line will have moved. */
+#define OBS_MAX_THREADS 16
+static const struct k_thread *g_thr[OBS_MAX_THREADS];
+static uint64_t g_cyc[OBS_MAX_THREADS];
+static int g_thr_n;
+static bool g_second_pass;
+
+static void obs_thread_line(const struct k_thread *t, void *ud) {
+    ARG_UNUSED(ud);
+    k_tid_t tid = (k_tid_t)t;
+    k_thread_runtime_stats_t rt;
+    uint64_t cyc = (k_thread_runtime_stats_get(tid, &rt) == 0) ? rt.execution_cycles : 0;
+
+    if (!g_second_pass) {
+        if (g_thr_n < OBS_MAX_THREADS) { g_thr[g_thr_n] = t; g_cyc[g_thr_n] = cyc; g_thr_n++; }
+        return;
+    }
+
+    uint64_t before = 0;
+    for (int i = 0; i < g_thr_n; i++) if (g_thr[i] == t) { before = g_cyc[i]; break; }
+
+    char st[16] = { 0 };
+    size_t unused = 0;
+    const char *nm = k_thread_name_get(tid);
+    if (k_thread_stack_space_get(t, &unused) != 0) unused = 0;
+    printk("tuvm:   thr %-14s state=%-10s stack_free=%-6u cycles+=%u\n",
+           (nm && nm[0]) ? nm : "?",
+           k_thread_state_str(tid, st, sizeof st), (unsigned)unused,
+           (unsigned)(cyc - before));
+}
+
+/* THE FROZEN CALL STACK, in mprof's own currency. A CompiledMethod carries no name, so
+   this prints the BLOB-RELATIVE OFFSET vm.c:530 already established as the portable key —
+   `tools/mprof_resolve.py <image>.oimg.methods.json` names it, and the pc index joins the
+   .stmap to reach the nsl line. Walked ONLY when the cursors are not advancing: reading a
+   live frame chain from another thread would be a race, and a garbage answer here would
+   look exactly like a real one. */
+static void obs_dump_frames(void) {
+    struct MethodContext *f = current_frame;
+    for (int depth = 0; f != NULL && depth < 12; depth++) {
+        const void *m = f->closure ? (const void *)closure_entry((struct Closure *)f->closure)
+                                   : NULL;
+        long pc = -1;
+        if (m != NULL) {
+            const struct CompiledMethod *cm = (const struct CompiledMethod *)m;
+            if (f->saved_pc != NULL && cm->instructions != NULL)
+                pc = (long)(f->saved_pc - cm->instructions);
+        }
+        if (m != NULL && is_in_blob(m))
+            printk("tuvm:   frame %2d method=%u pc=%ld\n", depth,
+                   (unsigned)((const uint8_t *)m - oimg_blob_base), pc);
+        else
+            printk("tuvm:   frame %2d method=@%p pc=%ld\n", depth, m, pc);
+        f = frame_link_decode(vm_stack, f->prev_frame);
+    }
+}
+
+/* A SAMPLING PROFILE OF A WEDGED VM, and a look inside the collector.
+
+   READS SCALARS AND DEREFERENCES NOTHING, deliberately. The first version of this resolved
+   each sample's method through `f->closure` and it KILLED THE OBSERVER THREAD: between
+   samples the reactor is live, so the oop is torn out from under the walk — and losing the
+   observer loses the reboot with it, which cost a boot to the 30 s task_wdt backstop. Two
+   scalars are enough: a VM that completes even ONE send moves both `vm_stack_ptr` and the
+   `current_frame` pointer, so if neither moves across 24 ms at 100% CPU, no send is
+   completing at all and the reactor is below the interpreter, in C.
+
+   `gc_forensics` then asks the one C loop that could plausibly be the culprit whether it
+   is running. An unterminating mark phase and an interpreter loop are indistinguishable
+   from outside — same 100% CPU, same frozen frame, same silence. */
+extern void gc_forensics(int *in_progress, unsigned *msp, int *overflowed);
+extern void prim_cache_forensics(unsigned *used, unsigned *cap, uint32_t *evictions);
+#define OBS_SAMPLES 24
+static void obs_sample_top(void) {
+    unsigned sp[OBS_SAMPLES];
+    void *fr[OBS_SAMPLES];
+    int gc_in = 0, gc_ovf = 0;
+    unsigned gc_msp = 0;
+    for (int i = 0; i < OBS_SAMPLES; i++) {
+        sp[i] = (unsigned)vm_stack_ptr;
+        fr[i] = (void *)current_frame;
+        k_msleep(1);
+    }
+    unsigned moved_sp = 0, moved_fr = 0;
+    for (int i = 1; i < OBS_SAMPLES; i++) {
+        if (sp[i] != sp[0]) moved_sp++;
+        if (fr[i] != fr[0]) moved_fr++;
+    }
+    gc_forensics(&gc_in, &gc_msp, &gc_ovf);
+    unsigned pc_used = 0, pc_cap = 0;
+    uint32_t pc_evict = 0;
+    prim_cache_forensics(&pc_used, &pc_cap, &pc_evict);
+    printk("tuvm:   sampled %dx1ms sp_differs=%u frame_differs=%u | gc_in_progress=%d "
+           "mark_sp=%u mark_overflowed=%d | prim_cache=%u/%u evictions=%u\n",
+           OBS_SAMPLES, moved_sp, moved_fr, gc_in, gc_msp, gc_ovf, pc_used, pc_cap,
+           (unsigned)pc_evict);
+}
+
+static void observer_forensics(void) {
+    size_t sp1 = vm_stack_ptr;
+    void *cf1  = (void *)current_frame;
+    g_thr_n = 0; g_second_pass = false;
+    k_thread_foreach_unlocked(obs_thread_line, NULL);   /* pass 1: cycles at t0 */
+    k_sleep(K_MSEC(100));
+    size_t sp2 = vm_stack_ptr;
+    void *cf2  = (void *)current_frame;
+    size_t cap = g_active_stack ? ((struct Stack *)g_active_stack)->capacity : 0;
+    /* NOT proof on its own: a tight loop could return to the same frame at the same depth
+       between samples. It is the thread state below that makes it conclusive — a thread
+       that is `pending` is not looping, and one that is `ready`/`running` is not blocked. */
+    bool frozen = (sp1 == sp2 && cf1 == cf2);
+    printk("tuvm: FORENSICS reactor=%s vm_sp=%u->%u cap=%u frame=%p->%p\n",
+           frozen ? "NOT-ADVANCING" : "ADVANCING",
+           (unsigned)sp1, (unsigned)sp2, (unsigned)cap, cf1, cf2);
+    g_second_pass = true;
+    k_thread_foreach_unlocked(obs_thread_line, NULL);
+    if (frozen) obs_dump_frames();
+    obs_sample_top();
+}
+#else
+static void observer_forensics(void) { }
+#endif
+
 /* The crime scene. It goes to the console, which the collector already persists — so the
    evidence survives the reboot in ~/.local/state/rete/console/ AND the node still
    recovers. That was the deciding property: the field-correct behaviour is also the one
@@ -207,6 +363,7 @@ static void observer_thread_fn(void *a, void *b, void *c) {
             if (g_wdt_channel >= 0) (void)task_wdt_feed(g_wdt_channel);
         } else {
             observer_dump(cond);
+            observer_forensics();   /* rete#222: evidence, before the reboot destroys it */
             reboot_note_write(RN_REASON_WATCHDOG, 0, 0, 0, k_uptime_get_32());
             if (reboot_note_consecutive() >= 3) observer_halt();   /* does not return */
             sys_reboot(SYS_REBOOT_COLD);                           /* does not return */

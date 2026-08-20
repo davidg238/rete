@@ -63,4 +63,22 @@ config TUVM_WEDGE_TRIGGER_S
 	default 15
 	depends on TUVM_WEDGE_TRIGGER
 
+config TUVM_WEDGE_FORENSICS
+	bool "Dump reactor/thread state when the wedge detector fires (rete#222)"
+	default n
+	select THREAD_MONITOR
+	select THREAD_NAME
+	select THREAD_STACK_INFO
+	select INIT_STACKS
+	select THREAD_RUNTIME_STATS   # SCHED_THREAD_USAGE defaults y underneath it
+	help
+	  EVIDENCE ONLY — it changes no verdict and reboots nothing. On a wedge the
+	  observer additionally prints whether the VM's own cursors are still advancing,
+	  and walks every thread for its state and stack headroom. That separates a
+	  reactor stuck in the interpreter from one blocked on something that is not the
+	  pulse mailbox, which is the fact #222, #192 and #213 have all lacked.
+
+	  Not default-on: the selects cost SRAM (INIT_STACKS paints every stack) and the
+	  T0.3 footprint ratchet is 75% spent. Turn it on for a hunt, not for a ship.
+
 source "Kconfig.zephyr"

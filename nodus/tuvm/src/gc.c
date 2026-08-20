@@ -672,6 +672,18 @@ static void trace_one(oop ptr) {
     }
 }
 
+/* rete#222 — the collector's own state, for the wedge detector's forensics dump. The
+   reactor spinning at 100% CPU with no send completing is exactly what an unterminating
+   mark phase would look like from outside, and nothing else in the tree can tell that
+   apart from an interpreter loop. Three statics, read-only, no lock: a torn read of a
+   wedged collector is still the answer, and taking a lock from the observer thread to
+   read them would be a new way to hang. */
+void gc_forensics(int *in_progress, unsigned *msp, int *overflowed) {
+    if (in_progress) *in_progress = gc_in_progress;
+    if (msp)         *msp = (unsigned)mark_sp;
+    if (overflowed)  *overflowed = mark_overflowed;
+}
+
 /* Pop-and-trace until the worklist drains. */
 static void drain_mark_stack(void) {
     while (mark_sp > 0) {
