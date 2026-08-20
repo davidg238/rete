@@ -1282,12 +1282,10 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            a temp root itself — see tests/test_cbor.c's test_cbor_as_symbol. */
         struct String *s = (struct String *)args[0];
         size_t len = s->length;
-        oop sym = gc_allocate(SymbolVtable, sizeof(struct Symbol) + len + 1);
+        /* rete#226: symbol_new classifies it, so a selector arriving over the wire and
+           reaching a `perform:` is intercepted the same as an image literal of that name. */
+        oop sym = symbol_new((const char *)((struct String *)args[0])->bytes, len);
         if (sym == NULL) { *out = NULL; return 1; }
-        struct Symbol *sy = (struct Symbol *)sym;
-        sy->length = len;
-        if (len) memcpy(sy->name, ((struct String *)args[0])->bytes, len);
-        sy->name[len] = 0;
         *out = sym; return 1;
     }
     case PRIM_pf_heapStats: {

@@ -1,3 +1,4 @@
+from prim_ids import PRIM_IDS   # rete#226: the single source, tuvm/src/prim_names.def
 import os
 import sys
 
@@ -132,7 +133,17 @@ class SolidifyCompiler:
             # UTF-8 bytes, and Symbol `=` is a length-then-byte compare. Mirrors
             # the String block's basis and oimg_serialize.py's Symbol emit.
             len_sym = len(sym_name.encode("utf-8"))
-            c_code.append(f'const struct Symbol {sym_var} = {{ {{ (oop)&Vtable_SymbolVtable }}, {len_sym}, "{sym_name}" }};')
+            # rete#226 — bake the primitive id. Classification is a pure function of the
+            # NAME and every Symbol is made once, so Model A decides it here rather than
+            # leaving the VM to look it up per send (the cache that was #222/#192/#213).
+            # DESIGNATED initializers: prim_id sits between length and the inline name, so
+            # the old positional form would assign the string to it. The id comes from
+            # tuvm/src/prim_names.def, the same file dispatch.c builds PRIM_NAMES from —
+            # a list this load-bearing must not exist twice.
+            pid = PRIM_IDS.get(sym_name, 0)
+            c_code.append(
+                f'const struct Symbol {sym_var} = {{ .base = {{ (oop)&Vtable_SymbolVtable }}, '
+                f'.length = {len_sym}, .prim_id = {pid}, .name = "{sym_name}" }};')
         c_code.append("")
 
         # std-lib 3c-1: String constants. Each is a fixed-layout struct matching

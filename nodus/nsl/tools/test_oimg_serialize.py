@@ -115,3 +115,35 @@ def test_smi_rejects_gap_band_values():
         ser._smi(over_hi)
     with pytest.raises(ValueError):
         ser._smi(under_lo)
+
+
+def test_a_layout_captured_before_prim_id_is_refused_by_name():
+    """rete#226. Primitive classification moved onto the Symbol, paid for by narrowing
+    `length` — which left the struct size and every offset UNCHANGED, so no image grew and
+    the existing offset==size guard cannot see the change at all.
+
+    A layout captured before that change would bake no prim ids and would write `length` a
+    full word wide, straight over the field. The image would load, pass its format_version
+    and run with EVERY primitive unintercepted. Since the layout files are regenerated only
+    by flashing a board, a build against a stale one must be refused BY NAME rather than
+    left to fail somewhere downstream."""
+    import pytest
+    from oimg_serialize import OimgSerializer
+
+    stale = {"Symbol": {"size": 8, "fields": {
+                 "base.vtable": {"offset": 0},
+                 "length": {"offset": 4},
+                 "name": {"offset": 8}}},
+             "String": {"size": 8, "fields": {
+                 "base.vtable": {"offset": 0},
+                 "length": {"offset": 4},
+                 "bytes": {"offset": 8}}}}
+    # The refusal fires during construction — the serializer validates the layout before
+    # it will write a byte, which is the right moment: nothing downstream should have to
+    # cope with a layout describing a VM that no longer exists.
+    with pytest.raises(ValueError) as e:
+        OimgSerializer({"oop_size": 4, "structs": stale}, {}, registry_version=1)
+    assert "prim_id" in str(e.value), str(e.value)
+    assert "layoutdump" in str(e.value), (
+        "the refusal must say how to regenerate it, not just that it is wrong:\n"
+        + str(e.value))

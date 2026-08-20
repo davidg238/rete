@@ -255,9 +255,11 @@ static void obs_dump_frames(void) {
 
    `gc_forensics` then asks the one C loop that could plausibly be the culprit whether it
    is running. An unterminating mark phase and an interpreter loop are indistinguishable
-   from outside — same 100% CPU, same frozen frame, same silence. */
+   from outside — same 100% CPU, same frozen frame, same silence.
+
+   The selector-cache occupancy this also used to print is gone with the cache itself
+   (rete#226): a Symbol now carries its own prim id, so there is no table to be full. */
 extern void gc_forensics(int *in_progress, unsigned *msp, int *overflowed);
-extern void prim_cache_forensics(unsigned *used, unsigned *cap, uint32_t *evictions);
 #define OBS_SAMPLES 24
 static void obs_sample_top(void) {
     unsigned sp[OBS_SAMPLES];
@@ -275,13 +277,9 @@ static void obs_sample_top(void) {
         if (fr[i] != fr[0]) moved_fr++;
     }
     gc_forensics(&gc_in, &gc_msp, &gc_ovf);
-    unsigned pc_used = 0, pc_cap = 0;
-    uint32_t pc_evict = 0;
-    prim_cache_forensics(&pc_used, &pc_cap, &pc_evict);
     printk("tuvm:   sampled %dx1ms sp_differs=%u frame_differs=%u | gc_in_progress=%d "
-           "mark_sp=%u mark_overflowed=%d | prim_cache=%u/%u evictions=%u\n",
-           OBS_SAMPLES, moved_sp, moved_fr, gc_in, gc_msp, gc_ovf, pc_used, pc_cap,
-           (unsigned)pc_evict);
+           "mark_sp=%u mark_overflowed=%d\n",
+           OBS_SAMPLES, moved_sp, moved_fr, gc_in, gc_msp, gc_ovf);
 }
 
 static void observer_forensics(void) {

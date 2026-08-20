@@ -167,29 +167,26 @@ def run_c_unit_tests(oevm_dir):
         return False
     print("C unit test test_mprof_gate: PASSED")
 
-    # rete#222/#192/#213 — the selector prim-id cache must not spin at capacity.
-    # -DPRIM_CACHE_SIZE=8 is the whole point: the host default is 4096 and NO SUITE HAS
-    # EVER FILLED IT, which is exactly why three C6 deaths looked target-only for weeks.
-    # timeout= is load-bearing: the regression HANGS, so expiry is the failure signal.
+    # rete#226 — a Symbol carries its own prim id, so nothing looks one up. This replaced
+    # the #222 cache gate: there is no table to fill, so the -DPRIM_CACHE_SIZE=8 that made
+    # the old hang reachable on the host has nothing to shrink. What is asserted now is the
+    # invariant that made the cache unnecessary — every Symbol the VM creates knows its id
+    # before anyone asks, and a Symbol that reaches a send undecided would present as a
+    # primitive silently ceasing to be intercepted.
     build = subprocess.run(
-        ["gcc", "-Wall", "-std=c99", "-DPRIM_CACHE_SIZE=8", "-Isrc",
+        ["gcc", "-Wall", "-std=c99", "-Isrc",
          *common_srcs,
-         "tests/test_prim_cache.c", "-o", "/tmp/test_prim_cache", "-lm"],
+         "tests/test_symbol_prim_id.c", "-o", "/tmp/test_symbol_prim_id", "-lm"],
         cwd=str(oevm_dir), capture_output=True, text=True)
     if build.returncode != 0:
-        print("test_prim_cache build FAILED:\n" + build.stderr)
+        print("test_symbol_prim_id build FAILED:\n" + build.stderr)
         return False
-    try:
-        run = subprocess.run(["/tmp/test_prim_cache"], cwd=str(oevm_dir),
-                             capture_output=True, text=True, timeout=30)
-    except subprocess.TimeoutExpired:
-        print("test_prim_cache FAILED: timed out — the prim cache is spinning at capacity "
-              "(rete#222). Do not raise this timeout; the bug is an unbounded probe.")
-        return False
+    run = subprocess.run(["/tmp/test_symbol_prim_id"], cwd=str(oevm_dir),
+                         capture_output=True, text=True, timeout=60)
     if run.returncode != 0:
-        print("test_prim_cache FAILED:\n" + run.stdout + run.stderr)
+        print("test_symbol_prim_id FAILED:\n" + run.stdout + run.stderr)
         return False
-    print("C unit test test_prim_cache: PASSED")
+    print("C unit test test_symbol_prim_id: PASSED")
 
     build = subprocess.run(
         ["gcc", "-Wall", "-std=c99", "-DOEVM_METHOD_PROFILE", "-Isrc",

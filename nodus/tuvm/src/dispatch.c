@@ -275,8 +275,14 @@ void method_cache_flush(void) {
 }
 
 extern const struct Vtable Vtable_SymbolVtable;
-const struct Symbol true_sym_obj  = { { (oop)&Vtable_SymbolVtable }, 4, "true" };
-const struct Symbol false_sym_obj = { { (oop)&Vtable_SymbolVtable }, 5, "false" };
+/* rete#226: DESIGNATED, because a Symbol carries a prim_id now and a positional
+   initializer would drop the name into it. Neither of these two names a primitive, so
+   prim_id is left 0 (PRIM_NONE) by omission — and the .name form is what the image
+   builders emit for the same reason. */
+const struct Symbol true_sym_obj  = { .base = { (oop)&Vtable_SymbolVtable },
+                                      .length = 4, .name = "true" };
+const struct Symbol false_sym_obj = { .base = { (oop)&Vtable_SymbolVtable },
+                                      .length = 5, .name = "false" };
 #define true_symbol ((oop)&true_sym_obj)
 #define false_symbol ((oop)&false_sym_obj)
 
@@ -456,9 +462,7 @@ static oop trigger_access_violation(oop receiver, oop selector, int argc, oop *a
         if (Symbol_accessViolation == NULL) {
             extern oop gc_allocate(oop vtable, size_t size);
             static const char avName[] = "accessViolation:";
-            oop sym_av = gc_allocate(SymbolVtable, sizeof(struct Symbol) + sizeof avName);
-            ((struct Symbol *)sym_av)->length = sizeof avName - 1;
-            memcpy(((struct Symbol *)sym_av)->name, avName, sizeof avName);
+            oop sym_av = symbol_new(avName, sizeof avName - 1);   /* rete#226 */
             Symbol_accessViolation = sym_av;
         }
         target_selector = Symbol_accessViolation;
@@ -867,76 +871,17 @@ enum {
     PRIM_pf_panicNoteAck,
 };
 
-/* Must stay parallel to the enum above (index i -> id i+1). */
+/* Must stay parallel to the enum above (index i -> id i+1).
+
+   rete#226: the names themselves live in src/prim_names.def, because the image builders
+   now bake each Symbol's prim id and they read the SAME file. A list this load-bearing
+   must not exist twice — the parity check below guards it against the enum, and nothing
+   could have guarded a Python copy against either. */
+#define PRIM_NAME(s) s,
 static const char *const PRIM_NAMES[] = {
-    "Array", "new:", "at:", "at:put:", "size", "selector", "vtable", "delegate",
-    "bindings", "sender", "pc", "home", "==",
-    "outer", /* executeCleanup/resumeWith:/fiberCreate:/fiberSwitch:value:/currentFiber removed (Task 9a) */
-    "registerDebuggerHook:",
-    "regAt:", "regAt:put:", "singleStep:", "bind:to:", "instructionAt:put:",
-    "createClosure:", "to:do:", "to:by:do:", "&", "|", "isNil", "notNil",
-    "error:", "<", ">", "<=", ">=", "=", "ifTrue:ifFalse:", "ifTrue:",
-    "ifFalse:", "and:", "or:", "not", "println", "printString", "asString",
-    "out", "do:", "//", "bitXor:", "<<", "asFloat", "sqrt",
-    "bitAnd:", "bitOr:", ">>",
-    "__boundOuter:slotCount:", ",", "timesRepeat:", "millis",
-    "hash", "identityHash",
-    "array:", "basicAt:", "basicAt:put:", "basicSize",
-    "object:identicalTo:", "objHashcode:", "print:", "printNewline:",
-    "basicNew:indexable:",
-    "string:",
-    "readLine",
-    "basicNewBytes:",
-    "freezeBytes:",
-    "valueRank:",
-    "isValue", "isSymbol", "isList", "isMap", "isRecord", "isBytes",
-    "spacePost:value:", "spaceRegister:block:owner:", "spaceTake:", "spaceDequeue",
-    "protectedFire:value:",
-    "spaceDropReactionsOwnedBy:",
-    "timerAfter:token:", "timerEvery:token:", "timerCancel:",
-    "monotonicMillis", "advanceMillis:",
-    "raise",
-    "error:tag:",
-    "on:do:",
-    "ensure:",
-    "gpioPin:edge:post:on:",
-    "gpioFire:",
-    "pumpEvents",
-    "cborEncodeInt:",
-    "cborEncodeFloat:",
-    "cborReadHead:at:",
-    "cborIntFromMajor:arg:",
-    "cborReadFloat:at:",
-    "utf8Valid:",
-    "asSymbol:",
-    "heapStats",
-    "spaceKind:", "spacePeek:", "spacePut:value:",
-    "spaceOverruns:",
-    "sysStats",
-    "httpListen:", "httpRespondId:status:body:", "httpInject:path:",
-    "httpBeginId:status:", "httpChunkId:data:", "httpEndId:",
-    "sensorFrame", "sensorArmEventPost:on:threshold:",
-    "spanBegin:", "spanEnd:", "spanStats:", "spanRecord:us:",
-    "spanReset",
-    "gpioSet:to:", "gpioLevel:",
-    "displayClear", "displayAt:col:put:", "displayRefresh", "displayRefreshRow:",
-    "bellStrike:",
-    "ntpSyncTz:",
-    "rtcValid", "rtcGet:", "rtcPut:value:",
-    "deepSleep:",
-    "wallClock",
-    "wallClockSetDate:time:",
-    "ntpDate",
-    "spaceSeq", "spaceStamp", "spaceChangedSince:under:max:",
-    "rtcAlarmAt:post:on:",
-    "profileStart", "profileStop",
-    "buildId",
-    "otaRunningHash", "otaIsRunning:", "otaTrial",
-    "otaStage:sig:host:port:", "otaConfirm", "otaActivate:sig:",
-    "bootId",
-    "cheapStats",
-    "panicNote", "panicNoteAck:",
+#include "prim_names.def"
 };
+#undef PRIM_NAME
 #define N_PRIM_NAMES (sizeof(PRIM_NAMES) / sizeof(PRIM_NAMES[0]))
 
 /* Compile-time parity guard for the load-bearing prim triple: PRIM_NAMES must
@@ -948,78 +893,54 @@ static const char *const PRIM_NAMES[] = {
    compile error. ADVANCE THIS to the new last id whenever prims are appended. */
 typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_panicNoteAck) ? 1 : -1];
 
-/* Pointer-keyed cache mapping each interned selector symbol to its primitive id
-   (PRIM_NONE if it is not an intercepted primitive). Selectors are interned, so
-   each unique name is one stable pointer; we strcmp-classify it once and
-   remember the id. Open-addressed, power-of-two size, single-threaded
-   (cooperative fibers) so no locking.
+/* rete#226 — CLASSIFICATION HAPPENS ONCE, WHERE THE SYMBOL IS MADE.
 
-   THE PROBE IS BOUNDED, AND THAT BOUND IS THE WHOLE OF rete#222/#192/#213. This table
-   never evicts and never grows, so it fills — and the probe used to be
-   `while (slot != NULL)` with nothing to stop it. On a full table the next UNCACHED
-   selector found no NULL and the reactor span forever in C, below the interpreter, at
-   100% CPU: no fault, no panic, no console line, and the pulse mailbox filling behind
-   it. That is one bug wearing three issue numbers, and it is why three unrelated,
-   innocuous edits each killed a C6 within six check-ins while every host gate stayed
-   green — the host table is 4096 entries and the C6's is 256, so only the board ever
-   reached capacity. Measured on the bench 2026-08-20: `prim_cache=256/256` at the
-   moment of the wedge.
+   This was a pointer-keyed, open-addressed cache: 4096 slots on the host, 256 on the C6,
+   never evicting and never growing. Its probe had no bound, so once every slot was full
+   the next uncached selector spun forever in C below the interpreter — #222, and with it
+   #192 and #213, all three of which read as "target-only, mechanism unknown" for weeks
+   because no host suite ever filled 4096 while a real node filled 256 in seventeen
+   seconds. Bounding the probe (#222) stopped the hang and left the node running
+   permanently degraded, paying a linear scan of all 154 names per miss.
 
-   A CACHE IS ALLOWED TO FORGET, so when the table is full the home slot is overwritten
-   and the entry it held is simply re-classified next time it is asked for. What a cache
-   is NOT allowed to do is fail to answer. The degraded regime is announced once (below)
-   rather than inferred, and its cost is a full scan of PRIM_NAMES per miss — measurable,
-   and the thing that would earn a bigger table if it turns out to matter. */
-#ifndef PRIM_CACHE_SIZE
-#define PRIM_CACHE_SIZE 4096   /* power of two; host default, -D lower for embedded */
-#endif
-static struct { oop sym; int pid; } prim_cache[PRIM_CACHE_SIZE];
+   A cache was never the right shape. Whether a selector names a primitive is a pure
+   function of its NAME, fixed for the life of the Symbol, and every Symbol is made
+   exactly once — so the answer is decided there and read as a field afterwards. What
+   that deletes: the table, PRIM_CACHE_SIZE, the host/target size divergence that hid
+   three bugs, the probe, the eviction policy, the "cache full" warning, and the
+   forensics accessor that existed to catch it filling.
 
-static uint32_t prim_cache_evictions;   /* rete#222: 0 == the table has never been full */
-
-int selector_prim_id(struct Symbol *sym) {   /* rete#222: non-static so tests/test_prim_cache.c can drive it directly */
-    const uintptr_t home = ((uintptr_t)sym >> 4) & (PRIM_CACHE_SIZE - 1);
-    uintptr_t h = home;
-    unsigned probes = 0;
-    /* PRIM_CACHE_SIZE probes visit every slot exactly once, so exhausting them means the
-       table holds no NULL and no match — the state the unbounded version could not leave. */
-    while (probes < (unsigned)PRIM_CACHE_SIZE && prim_cache[h].sym != NULL) {
-        if (prim_cache[h].sym == (oop)sym) return prim_cache[h].pid;
-        h = (h + 1) & (PRIM_CACHE_SIZE - 1);
-        probes++;
-    }
-    int pid = PRIM_NONE;
-    for (size_t i = 0; i < N_PRIM_NAMES; i++) {
-        if (strcmp(symbol_name(sym), PRIM_NAMES[i]) == 0) { pid = (int)i + 1; break; }
-    }
-    if (probes == (unsigned)PRIM_CACHE_SIZE) {
-        /* Loud ONCE, and not fatal — the node is slower, not broken, and a degradation
-           nobody is told about is how this cost three issues and six weeks. stderr is the
-           right sink: it reaches the C6 console the collector already persists. */
-        if (prim_cache_evictions == 0)
-            fprintf(stderr, "VM Warning: prim cache full (%d slots) — every uncached "
-                            "selector now costs a full name scan (rete#222)\n",
-                    (int)PRIM_CACHE_SIZE);
-        prim_cache_evictions++;
-        h = home;
-    }
-    prim_cache[h].sym = (oop)sym;
-    prim_cache[h].pid = pid;
-    return pid;
+   The scan below is all that remains, and it now runs once per Symbol instead of once
+   per uncached send. */
+static int classify_selector_name(const char *name) {
+    for (size_t i = 0; i < N_PRIM_NAMES; i++)
+        if (strcmp(name, PRIM_NAMES[i]) == 0) return (int)i + 1;
+    return PRIM_NONE;
 }
 
-/* rete#222 — how full is this table, right now. The probe above is unbounded and this
-   array never evicts and never grows, so "full" is not a load condition, it is a hang: the
-   next lookup of a selector that is not already cached walks every slot, finds no NULL,
-   and never leaves. Read from the observer thread at wedge time, because the count is the
-   difference between that theory and a proof. */
-void prim_cache_forensics(unsigned *used, unsigned *cap, uint32_t *evictions) {
-    unsigned n = 0;
-    for (unsigned i = 0; i < (unsigned)PRIM_CACHE_SIZE; i++) if (prim_cache[i].sym) n++;
-    if (used)      *used = n;
-    if (cap)       *cap  = (unsigned)PRIM_CACHE_SIZE;
-    if (evictions) *evictions = prim_cache_evictions;
+/* The one Symbol constructor (declared in oevm.h). Six call sites used to open-code this
+   allocate/copy/terminate sequence; making it one function is what makes "a Symbol knows
+   its prim id" an invariant rather than six things to remember. */
+oop symbol_new(const char *bytes, size_t len) {
+    extern oop gc_allocate(oop vtable, size_t size);
+    oop s = gc_allocate(SymbolVtable, sizeof(struct Symbol) + len + 1);
+    if (s == NULL) return NULL;
+    struct Symbol *sy = (struct Symbol *)s;
+    sy->length = (uint16_t)len;
+    sy->_pad0 = 0;
+    if (len) memcpy(sy->name, bytes, len);
+    sy->name[len] = 0;
+    sy->prim_id = (uint8_t)classify_selector_name(sy->name);
+    return s;
 }
+
+/* Baked by the image builders for every symbol they emit, and by symbol_new for every one
+   made at run time, so this is a load. Kept as a function rather than folded into the
+   send path because tests drive it directly. */
+int selector_prim_id(struct Symbol *sym) {
+    return sym->prim_id;
+}
+
 
 /* Shared helper: allocate a BytecodeClosure capturing the running frame.
    Used by both PRIM_createClosure (reflective message path, still reachable)
@@ -1737,9 +1658,7 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                 /* rete#190 stage 2: the bytes are inline, so the separate
                    oevm_malloc for `name` (and its NULL check) is gone — one
                    allocation now, like every other Symbol-building site. */
-                oop sym_obj = gc_allocate(SymbolVtable, sizeof(struct Symbol) + blen + 1);
-                ((struct Symbol *)sym_obj)->length = blen;
-                memcpy(((struct Symbol *)sym_obj)->name, buf, blen + 1);
+                oop sym_obj = symbol_new(buf, blen);   /* rete#226 */
                 return sym_obj;
             }
             break;
@@ -1853,7 +1772,7 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                     obj_vtable(receiver) == SymbolVtable) {
                     struct Symbol *sy = (struct Symbol *)receiver;
                     intptr_t idx = IS_SMI(args[0]) ? UNTAG_SMI(args[0]) : 0;
-                    if (idx < 1 || idx > (intptr_t)sy->length) { fprintf(stderr, "VM Error: Symbol at: %ld out of bounds (size %zu)\n", (long)idx, sy->length); abort(); }
+                    if (idx < 1 || idx > (intptr_t)sy->length) { fprintf(stderr, "VM Error: Symbol at: %ld out of bounds (size %u)\n", (long)idx, (unsigned)sy->length); abort(); }
                     return TAG_SMI((intptr_t)(unsigned char)symbol_name(sy)[idx - 1]);
                 }
             }
