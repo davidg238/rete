@@ -952,25 +952,73 @@ typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_panicNoteAck)
    (PRIM_NONE if it is not an intercepted primitive). Selectors are interned, so
    each unique name is one stable pointer; we strcmp-classify it once and
    remember the id. Open-addressed, power-of-two size, single-threaded
-   (cooperative fibers) so no locking. */
+   (cooperative fibers) so no locking.
+
+   THE PROBE IS BOUNDED, AND THAT BOUND IS THE WHOLE OF rete#222/#192/#213. This table
+   never evicts and never grows, so it fills — and the probe used to be
+   `while (slot != NULL)` with nothing to stop it. On a full table the next UNCACHED
+   selector found no NULL and the reactor span forever in C, below the interpreter, at
+   100% CPU: no fault, no panic, no console line, and the pulse mailbox filling behind
+   it. That is one bug wearing three issue numbers, and it is why three unrelated,
+   innocuous edits each killed a C6 within six check-ins while every host gate stayed
+   green — the host table is 4096 entries and the C6's is 256, so only the board ever
+   reached capacity. Measured on the bench 2026-08-20: `prim_cache=256/256` at the
+   moment of the wedge.
+
+   A CACHE IS ALLOWED TO FORGET, so when the table is full the home slot is overwritten
+   and the entry it held is simply re-classified next time it is asked for. What a cache
+   is NOT allowed to do is fail to answer. The degraded regime is announced once (below)
+   rather than inferred, and its cost is a full scan of PRIM_NAMES per miss — measurable,
+   and the thing that would earn a bigger table if it turns out to matter. */
 #ifndef PRIM_CACHE_SIZE
 #define PRIM_CACHE_SIZE 4096   /* power of two; host default, -D lower for embedded */
 #endif
 static struct { oop sym; int pid; } prim_cache[PRIM_CACHE_SIZE];
 
-static int selector_prim_id(struct Symbol *sym) {
-    uintptr_t h = ((uintptr_t)sym >> 4) & (PRIM_CACHE_SIZE - 1);
-    while (prim_cache[h].sym != NULL) {
+static uint32_t prim_cache_evictions;   /* rete#222: 0 == the table has never been full */
+
+int selector_prim_id(struct Symbol *sym) {   /* rete#222: non-static so tests/test_prim_cache.c can drive it directly */
+    const uintptr_t home = ((uintptr_t)sym >> 4) & (PRIM_CACHE_SIZE - 1);
+    uintptr_t h = home;
+    unsigned probes = 0;
+    /* PRIM_CACHE_SIZE probes visit every slot exactly once, so exhausting them means the
+       table holds no NULL and no match — the state the unbounded version could not leave. */
+    while (probes < (unsigned)PRIM_CACHE_SIZE && prim_cache[h].sym != NULL) {
         if (prim_cache[h].sym == (oop)sym) return prim_cache[h].pid;
         h = (h + 1) & (PRIM_CACHE_SIZE - 1);
+        probes++;
     }
     int pid = PRIM_NONE;
     for (size_t i = 0; i < N_PRIM_NAMES; i++) {
         if (strcmp(symbol_name(sym), PRIM_NAMES[i]) == 0) { pid = (int)i + 1; break; }
     }
+    if (probes == (unsigned)PRIM_CACHE_SIZE) {
+        /* Loud ONCE, and not fatal — the node is slower, not broken, and a degradation
+           nobody is told about is how this cost three issues and six weeks. stderr is the
+           right sink: it reaches the C6 console the collector already persists. */
+        if (prim_cache_evictions == 0)
+            fprintf(stderr, "VM Warning: prim cache full (%d slots) — every uncached "
+                            "selector now costs a full name scan (rete#222)\n",
+                    (int)PRIM_CACHE_SIZE);
+        prim_cache_evictions++;
+        h = home;
+    }
     prim_cache[h].sym = (oop)sym;
     prim_cache[h].pid = pid;
     return pid;
+}
+
+/* rete#222 — how full is this table, right now. The probe above is unbounded and this
+   array never evicts and never grows, so "full" is not a load condition, it is a hang: the
+   next lookup of a selector that is not already cached walks every slot, finds no NULL,
+   and never leaves. Read from the observer thread at wedge time, because the count is the
+   difference between that theory and a proof. */
+void prim_cache_forensics(unsigned *used, unsigned *cap, uint32_t *evictions) {
+    unsigned n = 0;
+    for (unsigned i = 0; i < (unsigned)PRIM_CACHE_SIZE; i++) if (prim_cache[i].sym) n++;
+    if (used)      *used = n;
+    if (cap)       *cap  = (unsigned)PRIM_CACHE_SIZE;
+    if (evictions) *evictions = prim_cache_evictions;
 }
 
 /* Shared helper: allocate a BytecodeClosure capturing the running frame.

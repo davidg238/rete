@@ -167,6 +167,30 @@ def run_c_unit_tests(oevm_dir):
         return False
     print("C unit test test_mprof_gate: PASSED")
 
+    # rete#222/#192/#213 — the selector prim-id cache must not spin at capacity.
+    # -DPRIM_CACHE_SIZE=8 is the whole point: the host default is 4096 and NO SUITE HAS
+    # EVER FILLED IT, which is exactly why three C6 deaths looked target-only for weeks.
+    # timeout= is load-bearing: the regression HANGS, so expiry is the failure signal.
+    build = subprocess.run(
+        ["gcc", "-Wall", "-std=c99", "-DPRIM_CACHE_SIZE=8", "-Isrc",
+         *common_srcs,
+         "tests/test_prim_cache.c", "-o", "/tmp/test_prim_cache", "-lm"],
+        cwd=str(oevm_dir), capture_output=True, text=True)
+    if build.returncode != 0:
+        print("test_prim_cache build FAILED:\n" + build.stderr)
+        return False
+    try:
+        run = subprocess.run(["/tmp/test_prim_cache"], cwd=str(oevm_dir),
+                             capture_output=True, text=True, timeout=30)
+    except subprocess.TimeoutExpired:
+        print("test_prim_cache FAILED: timed out — the prim cache is spinning at capacity "
+              "(rete#222). Do not raise this timeout; the bug is an unbounded probe.")
+        return False
+    if run.returncode != 0:
+        print("test_prim_cache FAILED:\n" + run.stdout + run.stderr)
+        return False
+    print("C unit test test_prim_cache: PASSED")
+
     build = subprocess.run(
         ["gcc", "-Wall", "-std=c99", "-DOEVM_METHOD_PROFILE", "-Isrc",
          *common_srcs,
