@@ -812,13 +812,40 @@ the third is approved and next** — kept here in order because the order is the
   first hardware run caught it claiming "still progressing" for the two scenarios that
   declare `none`; the six hostless tests missed that because every one asserted exit status
   and the FAILURE text and **none read the success message**.
-- **#215 — APPROVED 2026-08-17, and the next rung. Its inherited constraint is now
-  DISCHARGED.** The detector. Both its blockers above are closed, and so is the third:
-  2026-08-10 §5.2's loop breaker is "only safe because of sub-project D", and `gw/liveness`
-  (§6) is **built and verified on the bench** as of 2026-08-18 (#217, below). **The HALT arm
-  may ship** — §7 step 4 is unblocked, and step 3 is already watching. Start at §8's first row, `RebootNote` surviving a watchdog
-  reset, because it fails by reading zero and that is indistinguishable from "no wedge ever
-  happened".
+- **#215 — BUILT 2026-08-19, three of five falsification rows green on hardware, and now
+  BLOCKED BY #222.** The detector. Branch `215-vm-liveness-observer`, commits
+  `722cd34..e997fc9`; plan `docs/superpowers/plans/2026-08-19-vm-liveness-observer.md`;
+  what the bench said is §11 of the design doc.
+
+  **The number that matters is `deadline`, because §2's whole argument is that it must not
+  be a constant:** the detector fired at **8000 ms** against a probe's declared 1 s timer
+  and at **16000 ms** against the bridge's 2 s cadence — 8 x the app's OWN period both
+  times — catching each 8 ms and 16 ms past it, on the very next observer tick. `wedge-note`
+  2/2 (the note crossed a reset with `up` unchanged), `wedge-detect` 2/2, `wedge-quiet` 1/1
+  twice (a 10-minute timer fired at 599.99 s with zero trips). Rows 2 and 4 — the armed
+  soak — are what #222 blocks.
+
+  **Three things the tree forced that the approved design could not have known, all since
+  confirmed on silicon**: `task_wdt_feed()` cannot run in ISR context and `CONFIG_ASSERT`
+  is off so it would have failed silently, so the supervisor is a cooperative-priority
+  THREAD and `task_wdt` sits behind it; `struct arch_esf` on this SoC has no `mcause` and
+  it comes from the CSR instead; and **a HALT that leaves the hardware watchdog armed is a
+  reboot loop wearing a halt's costume** — the node held halted 4 min, ~22x the 11 s
+  window, only because `observer_halt()` disables it first.
+
+  **#222 is the open one and it is a regression in this rung, not #213.** The armed bridge
+  wedges at ~31 s on every boot where the pre-#215 build ran **21.4 h clean on the same
+  board**; stopping at tick 6 matches #213's signature and that resemblance is a
+  coincidence to bisect, not evidence. The decisive one-line A/B is in the issue. Other
+  follow-ons: **#223** (the observe window's 10 s stall poll is shorter than the 16 s wedge
+  deadline, so the harness beats the detector to the verdict and its message says "no
+  fault, no reboot" 18 s before the dump lands) and **#224** (`monoMs`/`obs/health #up` are
+  SMIs, so uptime wraps silently at ~12.4 days — pre-existing).
+
+  The branch also **re-banks the T0.3 footprint ratchet**, absorbing +725 B for this rung
+  and **+887 B of drift since the 2026-08-08 bank** that had already spent 75% of the 2%
+  band; the split is in `nodus/tuvm/tools/footprint-baseline.txt`'s own header. No engine
+  `.c` file was added, so none of #63's nine source lists changed.
 - **#217 — the gateway half. DONE 2026-08-18, verified on gw85224-01.** `gw/**` + the
   silence sweep: a fourth goroutine in `porta serve` that infers each node's cadence from its
   own exchange history and writes `gw/liveness` **on transition only**. Cadence came out
