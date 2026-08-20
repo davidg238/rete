@@ -321,6 +321,17 @@ file was added at all.
 
 Rows 2 and 4 (the armed soak) are **blocked by #222** — see below.
 
+Row 5 then grew a 10-hour version by accident, and it is worth banking because it is the
+only long armed run this rung has. The 2026-08-19 22:28 power failure rebooted the
+`wedge-quiet` board mid-soak and it came back on the same image; the collector was down
+from 22:33 to 07:23, so the console is blind across most of it. **The tick counter closes
+that blind window without needing the console**: `slow-node tick 60` landed at 08:28:18 and
+every tick is 10 min apart, which puts tick 1 at 22:38 and the boot at 22:28 — a reboot
+anywhere in the gap would have restarted the count at 1. So 60 consecutive 10-minute timer
+firings, **10 h on one unbroken boot, zero `WEDGE` lines and zero resets**, against a
+detector whose largest plausible fixed deadline is 30 s. Row 5's 600 s number was chosen to
+beat a 5-minute constant; this beats a 10-hour one.
+
 The whole reporting path is proven end to end by row 1's TAP:
 `TAP wedge ok 2 reason is watchdog reason=#watchdog`, i.e. prim 153 ->
 `Kernel>>panicReasonFor:` -> `Panic.reason`, with `detail` carrying the register triple.
