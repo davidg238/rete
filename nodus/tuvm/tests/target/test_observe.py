@@ -168,3 +168,95 @@ def test_a_none_scenario_does_not_claim_progress_it_never_checked():
         assert "progressing" not in r.stdout, (
             "a none-progress scenario must not report progress it never checked:\n" + r.stdout)
         assert "no fault" in r.stdout, r.stdout
+
+
+def test_a_wedge_the_detector_caught_is_named_as_such_not_as_213s_signature():
+    """rete#223. The window used to reach its verdict BEFORE the evidence arrived: the
+    stall poll was 10 s and the #215 detector's deadline for the bridge is 8 x 2000 ms,
+    so on 2026-08-19 the harness printed "no fault, no panic and no reboot" eighteen
+    seconds before the dump that named the condition landed in the same log.
+
+    FAIL is still the right verdict — a node that wedged and rebooted inside an
+    `observe` window has died. It is the REASON that was wrong, and the reason is the
+    part a human acts on: #213's signature means "unexplained silent death, go hunt",
+    while a `tuvm: WEDGE` line means "the detector did its job, read the dump"."""
+    with tempfile.TemporaryDirectory() as d:
+        log = Path(d) / "console.log"
+        log.write_text(BANNER + "\n" + "".join(
+            f"2026-08-17T10:00:0{i} tick {i} misses 0 cursor 2 acked {i*7} dropped 0\n"
+            for i in range(1, 7)))
+
+        def late_wedge():
+            time.sleep(0.5)
+            with open(log, "a") as f:
+                f.write("2026-08-17T10:00:31 tuvm: WEDGE cond=pulse-undrained "
+                        "overdue=16ms deadline=16000ms up=31424ms pending=1 pdr=0 "
+                        "pco=8 pst=0 consec=1\n")
+                f.write("2026-08-17T10:00:31 rst:0xc (SW_CPU),boot:0x4c\n")
+        t = threading.Thread(target=late_wedge, daemon=True)
+        t.start()
+        try:
+            r = observe(log, r"^.*tick [0-9]+", 6, poll_s=3)
+        finally:
+            t.join(timeout=5)
+
+        out = r.stdout + r.stderr
+        assert r.returncode != 0, out
+        assert "pulse-undrained" in out, (
+            "the failure must name the condition the detector reported:\n" + out)
+        assert "no fault, no panic and no reboot" not in out, (
+            "the window must not claim an absence it can see is false:\n" + out)
+        assert "This is #213's signature" not in out, (
+            "a wedge the detector CAUGHT must not be reported as #213's unexplained "
+            "silence — that sends the reader hunting for a mechanism the dump already "
+            "names:\n" + out)
+
+
+def test_a_stall_does_not_claim_an_absence_it_cannot_yet_know():
+    """rete#223, the other half. When the harness reaches its verdict FIRST — its poll is
+    shorter than the node's own wedge deadline, which for the bridge is 8 x 2000 ms — it
+    cannot know whether a detector dump is still in flight. It used to say "with no fault,
+    no panic and no reboot" anyway, and on 2026-08-19 that sentence was refuted eighteen
+    seconds later by a dump in the same log.
+
+    Same rule the `none`-progress scenarios already follow: say what was checked, not what
+    is merely absent so far."""
+    with tempfile.TemporaryDirectory() as d:
+        log = Path(d) / "console.log"
+        log.write_text(BANNER + "\n" + "".join(
+            f"2026-08-17T10:00:0{i} tick {i} misses 0 cursor 2 acked {i*7} dropped 0\n"
+            for i in range(1, 7)))
+        r = observe(log, r"^.*tick [0-9]+", 3)
+        out = r.stdout + r.stderr
+        assert r.returncode != 0, out
+        assert "stall" in out.lower(), out
+        assert "no fault, no panic and no reboot" not in out, (
+            "the window polls faster than a node's wedge deadline, so at this instant it "
+            "does not know that:\n" + out)
+
+
+def test_no_manifest_key_can_leak_into_the_next_scenario():
+    """rete#223. `run.sh` sources each manifest into the SAME shell, so a key one scenario
+    sets is still set when the next one — which omits it — is sourced. That has already
+    happened once: TAP_NAME got an explicit `unset` after the fact. The hazard is not the
+    key, it is that adding a key means remembering a second place, so this asserts the
+    invariant over EVERY key any manifest declares rather than over a list someone
+    maintains by hand."""
+    run_sh = (HERE / "run.sh").read_text()
+    reset = run_sh.split('source "$manifest"')[0]
+
+    keys = set()
+    for env in HERE.glob("*.env"):
+        for line in env.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                name = line.split("=", 1)[0].strip()
+                if name.isupper() and name.replace("_", "").isalnum():
+                    keys.add(name)
+
+    assert keys, "no manifest keys found — the glob or the parse is wrong"
+    missing = sorted(k for k in keys if k not in reset)
+    assert not missing, (
+        "these manifest keys are never cleared before the next manifest is sourced, so a "
+        "scenario that omits them silently inherits the previous scenario's values: "
+        + ", ".join(missing))

@@ -91,6 +91,10 @@ for name in "${WANTED[@]}"; do
   # CONF_EXTRA must not silently pick up the last one's.
   SCENARIO=""; NODE=""; BOARD_ID=""; CONF_EXTRA=""; CLASS=""; TIMEOUT_S=""
   OBSERVE_S=""; OBSERVE_PROGRESS=""
+  unset OBSERVE_POLL_S   # rete#223: a per-manifest silence budget, so it must not leak
+                         # into a scenario that declares none. tests/target/test_observe.py
+                         # asserts this over EVERY key any manifest sets, because the
+                         # hazard is remembering the second place, not the key itself.
   # shellcheck disable=SC1090
   unset TAP_NAME   # rete#215: never inherit the previous manifest's override
   source "$manifest"
