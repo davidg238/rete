@@ -833,10 +833,20 @@ the third is approved and next** — kept here in order because the order is the
   reboot loop wearing a halt's costume** — the node held halted 4 min, ~22x the 11 s
   window, only because `observer_halt()` disables it first.
 
-  **#222 is the open one and it is a regression in this rung, not #213.** The armed bridge
-  wedges at ~31 s on every boot where the pre-#215 build ran **21.4 h clean on the same
-  board**; stopping at tick 6 matches #213's signature and that resemblance is a
-  coincidence to bisect, not evidence. The decisive one-line A/B is in the issue. Other
+  **#222 is the open one, and the 2026-08-20 A/B says it is NOT the wire — it is the #192
+  family.** The armed bridge wedges at ~31 s on every boot where the pre-#215 build ran
+  **21.4 h clean on the same board**. Eight arms on c6spare that morning (full results in
+  the issue) exonerate the `sys/panic` publish, porta's closed decoder and
+  `panicNoteAck:` — the node dies with all three commented out, calling nothing but prim
+  153 — and refute the issue's own predicted branch, which was unfalsifiable because
+  removing `self reportPanicOnce.` removes the C-side READ along with the publish. It is
+  also not the arena: `gcc: 0` and 59 KB of contiguous free space at the moment of death.
+  Two minimal arms pass and the two that restore the ordinary nsl on top of them fail, so
+  the shape is a **threshold in how much of the report path runs at tick 1**, not one bad
+  line. That is #192's shape (a small nsl wrapper on the check-in path, hanging a C6 at
+  tick 2-3, mechanism unknown) and #213's signature, and the resemblance is now evidence
+  rather than coincidence: **work #222, #192 and #213 as one bug**, at the `pulse-undrained`
+  seam (`pending=1`, `pdr=0` — a wakeup the VM never came back for). Other
   follow-ons: **#223** (the observe window's 10 s stall poll is shorter than the 16 s wedge
   deadline, so the harness beats the detector to the verdict and its message says "no
   fault, no reboot" 18 s before the dump lands) and **#224** (`monoMs`/`obs/health #up` are
@@ -858,7 +868,11 @@ the third is approved and next** — kept here in order because the order is the
   past it — recorded as I6 and filed as **#220**, not fixed. Other follow-ons: **#218** (a node
   pushing over its own verdict), **#219** (a node already dead at migration time is never
   judged) and **#221** (`porta get`/`log`/`put` CREATE an empty store on a wrong `--db` and
-  answer from it, so an empty tree read cannot be told from a wrong database). It is not
+  answer from it, so an empty tree read cannot be told from a wrong database) and **#225**
+  (the sweep cannot record its OWN absence — the 2026-08-19 power failure took the gateway
+  down for 10 h 6 min while `gw/liveness` went on reading `#live` for a node whose every
+  check-in was missing, because a verdict written on transition only freezes when the
+  gateway that writes it is dead). It is not
   adjacent to #215 but underneath it — §7's staging
   gates the panic-note/reboot/loop-breaker step on this one already watching, because "three
   faults halt the node" is unobservable from the gateway if a halted node is invisible.
