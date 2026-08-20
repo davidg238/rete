@@ -3,14 +3,24 @@
    WHY THIS EXISTS. Two changes on the check-in path — CHeapStats fromList: (#192) and one
    line of valueFits: (#213) — have each killed a C6 within six check-ins. Both passed
    every host gate. Both die the same way: no panic, no coredump, no VM Error, no reboot
-   banner, console port=up, obs/health frozen. Neither mechanism is understood and this
-   file does not try to explain them. It closes the gap that makes them so expensive to
-   chase: the node has no way to say that it stopped.
+   banner, console port=up, obs/health frozen. It closes the gap that makes them so
+   expensive to chase: the node has no way to say that it stopped.
+
+   BOTH MECHANISMS ARE NOW KNOWN, AND THEY ARE THE SAME ONE (rete#222, 2026-08-20): an
+   unbounded probe in dispatch.c's selector→prim-id cache, which spins in C once the table
+   is full. This detector found it — by being switched on and then asked WHERE, under
+   CONFIG_TUVM_WEDGE_FORENSICS below. The paragraph after this one was written believing
+   the reactor was parked in the mailbox, and the measurement refuted that; the reasoning it
+   draws about DEADLINES is unaffected and still load-bearing, which is why it stays.
 
    WHY THE OBVIOUS DETECTOR IS WRONG. pumpEvents blocks on k_msgq_get(K_FOREVER)
    (pulse_zephyr.c:94). That single call is BOTH the healthy idle state — the node has
-   nothing to do and is sleeping efficiently, which is the point of the design — AND the
-   wedged state. "Has the VM pumped recently?" cannot separate them. It works today only
+   nothing to do and is sleeping efficiently, which is the point of the design — AND one
+   wedged state. (It was NOT the state #192/#213/#222 were in: a thread waiting in
+   k_msgq_get is handed a put directly and the depth stays 0, so the pending>0 those
+   wedges report proves nobody was waiting. The argument below still holds — a detector
+   that assumes a wake rate would falsely reboot a legitimately slow node — it simply is
+   not the case that these three were asleep.) "Has the VM pumped recently?" cannot separate them. It works today only
    because the bridge happens to hold a 2 s timer, and it would falsely reboot the first
    node whose app legitimately sleeps for ten minutes. So THE DETECTOR CARRIES NO IDEA OF
    HOW OFTEN A NODE SHOULD WAKE. It asks the app, through timer_target_snapshot().

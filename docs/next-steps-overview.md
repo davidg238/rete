@@ -833,8 +833,28 @@ the third is approved and next** — kept here in order because the order is the
   reboot loop wearing a halt's costume** — the node held halted 4 min, ~22x the 11 s
   window, only because `observer_halt()` disables it first.
 
-  **#222 is the open one, and the 2026-08-20 A/B says it is NOT the wire — it is the #192
-  family.** The armed bridge wedges at ~31 s on every boot where the pre-#215 build ran
+  **#222 IS FIXED (2026-08-20), and it was #192 and #213 all along — one bug, three issue
+  numbers.** Root cause: `selector_prim_id()` in `nodus/tuvm/src/dispatch.c`, an
+  open-addressed selector→prim-id cache consulted on EVERY send whose selector is a Symbol,
+  which never evicts, never grows and probed `while (slot != NULL)` **with no bound**. Full
+  table -> no NULL to stop at -> the next uncached selector spins forever in C, below the
+  interpreter, at 100% CPU, with no fault and no output while the pulse mailbox fills. That
+  is the `cond=pulse-undrained pending=1` signature exactly. **`PRIM_CACHE_SIZE` is 256 on
+  the C6 and 4096 on the host, and that one number is why every one of these deaths was
+  target-only while the nsl suite read 265/0** — no host suite has ever filled the table.
+  Proved on c6spare by a forensics dump (`prim_cache=256/256`, main `queued` not `pending`,
+  1.61M cycles in 100 ms against every other thread's 0, and zero sends completing across 24
+  samples). Fixed in `2461d42` by bounding the probe; `tests/test_prim_cache.c` reproduces
+  the hang on the HOST for the first time via `-DPRIM_CACHE_SIZE=8`. Two refuted beliefs
+  worth keeping: the reactor is NOT parked in `pumpEvents`'s K_FOREVER (#192, #213 and
+  observer.c's own header all said so — a thread waiting in `k_msgq_get` is handed a put
+  directly, so `pending=1` means nobody is waiting), and #192's VM-stack-exhaustion guess is
+  refuted at `vm_sp=142` of `cap=4096`. Follow-on: **#226** — the table is still too small
+  (full ~17 s into every boot), so a node now runs permanently in the degraded regime; size
+  it from a real count, not another guess. **Rows 2 and 4 of #215's §8 are unblocked.**
+
+  The A/B that got there is below, kept because its first reading was wrong. *(Superseded
+  history:* The armed bridge wedges at ~31 s on every boot where the pre-#215 build ran
   **21.4 h clean on the same board**. Eight arms on c6spare that morning (full results in
   the issue) exonerate the `sys/panic` publish, porta's closed decoder and
   `panicNoteAck:` — the node dies with all three commented out, calling nothing but prim
@@ -846,7 +866,7 @@ the third is approved and next** — kept here in order because the order is the
   line. That is #192's shape (a small nsl wrapper on the check-in path, hanging a C6 at
   tick 2-3, mechanism unknown) and #213's signature, and the resemblance is now evidence
   rather than coincidence: **work #222, #192 and #213 as one bug**, at the `pulse-undrained`
-  seam (`pending=1`, `pdr=0` — a wakeup the VM never came back for). Other
+  seam (`pending=1`, `pdr=0` — a wakeup the VM never came back for).*) Other
   follow-ons: **#223** (the observe window's 10 s stall poll is shorter than the 16 s wedge
   deadline, so the harness beats the detector to the verdict and its message says "no
   fault, no reboot" 18 s before the dump lands) and **#224** (`monoMs`/`obs/health #up` are
