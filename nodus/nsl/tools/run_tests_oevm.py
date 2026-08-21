@@ -349,6 +349,48 @@ def run_integration_gate(label: str, script_name: str) -> bool:
     return True
 
 
+def run_cmake_parse_gate() -> str:
+    """Gate the BUILD FILES, which until rete#226 nothing on the host read at all.
+
+    #226 deleted both PRIM_CACHE_SIZE blocks from zephyr/CMakeLists.txt by removing each
+    `if(...)` and its body but not the `endif()`. The file stopped parsing — and stayed
+    broken for a day while this suite printed 262/0 with every gate above PASS, because a
+    CMakeLists is code that only a target build compiles, and a target build needs a board.
+
+    nodus/tuvm/tests/cmake_gate.sh parses every tracked listfile inside an `if(FALSE)`
+    wrapper, so the body is parsed and never executed: no toolchain, no west venv, no
+    ZEPHYR_BASE, ~12 ms a file. It runs its own canary first (a file with an orphan endif()
+    MUST be reported broken) so a gate that has gone blind fails instead of clearing
+    everything.
+
+    It is a PARSE check and nothing more — an unknown Kconfig symbol, a target_sources
+    naming a missing file, or a dependency Zephyr discards silently still need a real
+    configure. Returns "PASS", "SKIP" (exit 77 — no cmake on this host) or "FAIL"."""
+    script = OEVM_DIR / "tests" / "cmake_gate.sh"
+    if not script.exists():
+        # An in-repo gate that cannot be found is a FAIL, never a SKIP (same rule as
+        # footprint above): a missing gate must not read as a passing one.
+        print(f"{COLOR_RED}cmake-parse: FAIL{COLOR_RESET} (gate script not found at {script})")
+        return "FAIL"
+    try:
+        proc = subprocess.run(["bash", str(script)],
+                              cwd=str(OEVM_DIR), capture_output=True, text=True, timeout=120)
+    except Exception as e:
+        print(f"{COLOR_RED}cmake-parse: FAIL{COLOR_RESET} (runner error: {e})")
+        return "FAIL"
+    out = ((proc.stdout or "") + (proc.stderr or "")).strip()
+    if proc.returncode == 77:
+        print(f"cmake-parse: {COLOR_YELLOW}SKIP{COLOR_RESET} (no cmake on this host)")
+        return "SKIP"
+    if proc.returncode != 0:
+        print(f"{COLOR_RED}cmake-parse: FAIL{COLOR_RESET}")
+        print("  " + "\n  ".join(out.splitlines()[-30:]))
+        return "FAIL"
+    print(f"{COLOR_GREEN}{out.splitlines()[-1]}{COLOR_RESET}" if out else
+          f"{COLOR_GREEN}cmake-parse: PASSED{COLOR_RESET}")
+    return "PASS"
+
+
 def run_portability_gate() -> str:
     """Gate the 32-bit (-m32) serialize+load+run path (oevm/tests/test_portability_32.sh).
 
@@ -804,6 +846,7 @@ def main():
         capture_output=True, text=True)
 
     portability = run_portability_gate()   # "PASS" | "SKIP" | "FAIL"
+    cmake_parse = run_cmake_parse_gate()    # "PASS" | "SKIP" | "FAIL"
     boot_gc_ok = run_boot_gc_asan_gate()
     # tuvm#94 stage 5: the deep-sleep node harness drives the REAL MagTagDeepSleepNode
     # across simulated sleeps via OEVM_RTC_FILE. It uses absolute paths + its own
@@ -828,7 +871,7 @@ def main():
                 and portability != "FAIL" and boot_gc_ok
                 and footprint != "FAIL" and deepsleep_ok
                 and mprof_py != "FAIL" and console_py != "FAIL"
-                and observe_py != "FAIL")
+                and observe_py != "FAIL" and cmake_parse != "FAIL")
     print(f"\n{COLOR_GREEN if suite_ok else COLOR_RED}Test Execution Summary:{COLOR_RESET}")
     print(f"  Passed:  {passed}")
     print(f"  Failed:  {failed}")
@@ -851,7 +894,8 @@ def main():
           f"footprint(T0.3): {_mark(footprint)}\n"
           f"  mprof-tools-py: {_mark(mprof_py)}  "
           f"console-py: {_mark(console_py)}  "
-          f"target-observe-py: {_mark(observe_py)}")
+          f"target-observe-py: {_mark(observe_py)}  "
+          f"cmake-parse: {_mark(cmake_parse)}")
 
     # NOT a skip, and deliberately not coloured like one: a skip names a cause it
     # has not verified, and this names one that IS verified. timer_zephyr.c posts

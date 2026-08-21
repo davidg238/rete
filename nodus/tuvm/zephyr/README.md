@@ -436,6 +436,30 @@ Both scripts pin ports by `/dev/serial/by-id/*` glob rather than `ttyUSB0`/`ttyA
 (allocation-order names that have previously collided with an unrelated board on the same
 bench — see #57); `ESPTOOL_PORT` always overrides the default.
 
+## The CMakeLists have a gate now, and it needs no board
+
+`nodus/tuvm/tests/cmake_gate.sh` parses every tracked CMake listfile in the repo and is run
+by the nsl suite as the `cmake-parse` aux gate. It takes about 12 ms a file: no toolchain,
+no west venv, no `ZEPHYR_BASE`, no board.
+
+It exists because rete#226 deleted both `PRIM_CACHE_SIZE` blocks from this directory's
+`CMakeLists.txt` — each `if(...)` and its body, but not its `endif()` — and the file stopped
+parsing (`Flow control statements are not properly nested`). It stayed broken for a day under
+a suite reading **262/0 with every aux gate PASS and PORTA SYNC OK**, because a CMakeLists is
+code that only a target build compiles and a target build needs hardware.
+
+How it parses without running anything: `cmake -P` parses a whole listfile before executing
+any of it, so each file is checked wrapped in `if(FALSE)` / `endif()` — the body is parsed and
+never executed, and the nesting is preserved exactly (an extra `endif()` orphans the wrapper's;
+a missing one orphans the last). A canary with a deliberate orphan `endif()` runs first and
+must be reported broken, so a check that has gone blind FAILS instead of clearing everything.
+
+**What it does not catch, said positively:** an unknown Kconfig symbol, a `target_sources`
+naming a file that does not exist, a wrong board, or an option whose `depends on` is unmet —
+which Zephyr discards silently (see BOARD_PORTS.md's nRF52840 note). Those need a real
+configure with the west venv and the SDK, and today the first place they are caught is a
+target build.
+
 ## Where the layout JSON comes from
 
 Model B (`.oimg`) bakes struct offsets ahead of time, so it needs an ABI-accurate
