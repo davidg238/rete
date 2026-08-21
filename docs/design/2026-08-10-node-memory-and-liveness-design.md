@@ -296,15 +296,45 @@ to store twenty-odd bytes. The C6 already has `.rtc_noinit`
 and it is the same mechanism the MagTag deep-sleep bell counter already uses.
 
 ```c
-struct RebootNote {          /* RTC_NOINIT_ATTR on ESP32; .noinit elsewhere */
+/* AS SHIPPED (src/reboot_note.h, #215). Field-for-field what this section specified;
+   the two corrections are in the comments, not the layout. */
+struct RebootNote {          /* RTC_NOINIT_ATTR on ESP32; a plain static on the host */
     uint32_t magic;          /* else uninitialised RAM reads as a panic report */
     uint32_t sum;            /* checksum — garbage must not become a report */
-    uint32_t reason;         /* maps to Panic.reason */
-    uint32_t mcause, mepc, ra;
-    uint32_t bootId, monoMs;
+    uint32_t reason;         /* RN_REASON_*; maps to Panic.reason */
+    uint32_t mcause;         /* csr_read(mcause) — NOT esf->mcause; see below */
+    uint32_t mepc;
+    uint32_t ra;
+    uint32_t boot_id;        /* the boot this node was RUNNING under; 0 means unknown */
+    uint32_t mono_ms;
     uint32_t consecutive;    /* §5.2 */
 };
 ```
+
+**`mcause` does not come from the exception frame.** `struct arch_esf` on this SoC carries no
+`mcause` field — it sits behind `CONFIG_CLIC_SUPPORT_INTERRUPT_LEVEL`, which is unset — so the
+handler reads the CSR directly. Verified against the kernel's own dump: the note's
+`mcause=0x0000000b` matched `E: mcause: 11` exactly.
+
+**`boot_id` is the boot the node was *running* under, not the boot that reports the death** —
+otherwise every panic would be attributed to the boot that recovered from it. It is deposited
+by the ack (below) and carried forward by the next write; `0` means unknown and is never
+invented into a number, which is #217 §6.4's convention.
+
+**One call, not two.** §5.1's report-once clear and §5.2's loop-breaker reset are the same
+moment — "I got far enough to report" — so they are one entry point, `reboot_note_ack()`.
+Reading never clears: a read that clears loses the report to whichever transient reads it
+first, and the app may need more than one attempt to publish.
+
+**Validity is magic *and* checksum.** Uninitialised RTC RAM is whatever the last program left
+there, and a block that happens to open with the magic word would be reported as a panic that
+never happened. Inventing a death is worse than missing one, because it is unfalsifiable from
+the gateway.
+
+**The logic lives in the header and the storage does not.** Retention differs per side
+(`RTC_NOINIT_ATTR` on target, a plain static on the host); the validity *rule* must not, and a
+rule written twice is a rule that will diverge invisibly until a real death. Header-only also
+means neither the nine engine source lists (#63) nor the posix backend gained a file.
 
 The seam is `k_sys_fatal_error_handler` (`kernel/fatal.c:37`, `__weak`), which Zephyr already
 provides for override and which tuvm does not touch today — so nothing is being replaced. It
@@ -528,7 +558,7 @@ Sub-projects are lettered by §, staged by number — the two orders differ, whi
 | 1 | **A** — allocation seam + `sys/cheap` | **c6spare** | On the unfixed build, `outBytes` **rises**, and the rise extrapolates to heap exhaustion at c6spare's measured 43 m 54 s. **If it does not rise, the gauge is blind and step 2 proves nothing.** |
 | 2 | **B** — inline Symbol bytes + serializer | c6spare, then the bell | On the same gauge, `outBytes` goes **flat** after boot. `fails` stays 0 across a run longer than 10 h 41 m. |
 | 3 | **D** — `gw/**` + sweep | c6spare | **DONE 2026-08-18 (#217).** Halting a node by hand flips `gw/liveness` to `#silent` within 3 × cadence + 30 s, and one event row records the transition. **Observed: 25.9 s against a 36 s bound, exactly one row, held 7+ ticks** (§6.5). |
-| 4 | **C** — panic note, reboot, loop breaker | c6spare | **UNBLOCKED 2026-08-18** — step 3 is discharged, so the HALT arm may ship (§5.2). A deliberate fault (there is already a `prj_esp32c6_faultgate.conf` build for exactly this) produces one `Panic` on `sys/panic` after the reboot, and three faults with no check-in between them halt the node — with step 3 already watching. |
+| 4 | **C** — panic note, reboot, loop breaker | c6spare | **DONE 2026-08-21 (#215).** The prediction held, and the loop breaker ran itself rather than being staged: an `isNil` sent to a prim-built Array landed on the boot that was *reporting* the previous wedge, walking §5.2 unasked — wedge → `consec=1` → reboot, abort → `consec=2` → reboot, abort → `consec=3` → HALT. `Panic { reason: #watchdog }` arrived on `sys/panic` end to end (`TAP wedge ok 2 reason is watchdog reason=#watchdog`), the note crossed a reset with `up` unchanged, and the HALT held **4 minutes, ~22× the 11 s window**, zero boot banners. §7 is complete. |
 
 Step 1 before step 2 is the whole point. Landing them together would leave a flat line that
 proves nothing — you would never have seen the instrument register the leak it was built to
@@ -574,6 +604,9 @@ Recorded here so the deferral is falsifiable rather than vague.
 | minimum exchanges for a verdict | 3 | **Chosen.** Two arrivals is one gap, which is a sample and not a cadence. Earns revision if a real fleet has a node whose first verdict matters sooner than its third check-in |
 | sweep tick | 30 s | **Chosen, and CORRECTED 2026-08-18.** A floor on detection latency. This row used to read *"below the shortest cadence in use"*, which the bench refuted: the bridge node's cadence is **2 s**, so the tick is 15× COARSER than the shortest cadence, not finer. Detection for such a node is `3 × cadence` rounded up to the next tick — measured at 25.9 s against a 36 s bound (§6.5). `sweep.go`'s own comment had this right; this table did not. Earns revision if it ever costs measurable CPU |
 | loop-breaker threshold | 3 panics | **Chosen** (David, 2026-08-10). Earns revision from the first real reboot loop, whose shape will say whether 3 was too eager |
+| wedge slack | 8 × the app's own period | **Chosen, and now MEASURED (#215, 2026-08-21).** The rung's one invented constant. Not a global deadline: it multiplies whichever declared timer period is in play, so the instrument needs no number of its own — 8000 ms against the probe's 1 s timer, 16000 ms against the bridge's 2 s cadence. Generous on purpose, because a false reboot costs far more than a slow detection, and the measured worst-case `pushBuild` is 132 ms against a 2 s period. Falsifiable **by construction**: a wrong value trips and the dump names the condition and the overdue margin. Bench says it is not too tight — 22 h 23 min armed on one unbroken boot with zero `WEDGE` lines. Earns revision from the first false trip, which will arrive carrying its own margin |
+| observer tick | 1000 ms | **Chosen** (#215). A sampling resolution, **not** a deadline — it must sit far below the shortest deadline in play, and the shortest this bench can produce is the bridge's 8 × 2000 ms, which this samples 16 times. Measured: both wedges were caught on the very next tick, 8 ms and 16 ms past their deadlines. Earns revision only if a node declares a period short enough that 1 s stops being fine-grained against 8 × it — i.e. below ~250 ms |
+| observer backstop | 30000 ms | **Chosen** (#215). The `task_wdt` timeout for the observer **thread itself** dying, and nothing else; 30× the tick so it can never become the operative deadline. If this number ever decides anything the dump says so, because the wedge path prints a condition and this path prints none. Earns revision if a reboot is ever seen with no `WEDGE` line before it |
 
 ---
 
@@ -1181,6 +1214,12 @@ design — they were right, they were simply never given a second trigger:
 sub-project D" applies unchanged to watchdog-triggered reboots: without `gw/liveness` a halted
 node is an invisible corpse. §6 remains unbuilt — nothing in `porta/` mentions `gw/liveness` —
 so either it lands alongside the detector or the breaker's HALT arm does not ship.
+
+> **Discharged 2026-08-18 (#217), and the HALT arm shipped 2026-08-21 (#215).** §6 is built —
+> §6.4/§6.5 record it, and a node halted by hand flipped `gw/liveness` to `#silent` in 25.9 s
+> against a 36 s bound. The paragraph above stands as the constraint; it is no longer an open
+> one. `observer_halt()` additionally disables the hardware watchdog first, because a HALT that
+> leaves it armed is a reboot loop wearing a halt's costume.
 
 Detection is designed in `docs/design/2026-08-16-vm-liveness-observer-design.md` and tracked
 as #215. **That document governs detection only; this one continues to govern the reporting

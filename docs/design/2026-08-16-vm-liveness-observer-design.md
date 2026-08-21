@@ -186,6 +186,13 @@ acceptable in a field build, and this document does not get to leave that unstat
 
 ## 6. Boundary and the host
 
+> **SUPERSEDED by D-P4 (§11.2). There is no `src/backend/zephyr/observer.c` and there is no
+> posix stub — do not go looking for either.** The detector shipped app-side at
+> `nodus/tuvm/zephyr/src/observer.c`, and no engine `.c` file was added, so none of #63's nine
+> source lists changed. What survives of this section is its *requirement* — two readers, one
+> source of truth — which is met by calling the `pulse_backend.h` accessors directly. The rest
+> is the original text.
+
 One module, `src/backend/zephyr/observer.c`, owns the detector, the counters and the
 callback. Two readers, one source of truth:
 
@@ -269,7 +276,13 @@ Built on branch `215-vm-liveness-observer`. Plan:
 `docs/superpowers/plans/2026-08-19-vm-liveness-observer.md`, which carries the full
 argument for each decision below.
 
-### 11.1 Three things §4 could not have known, all forced by the tree
+> **The plan's decisions are D-P1 … D-P6**, and the plan is scaffolding, so they live here now.
+> §11.1 is **D-P1** (the supervisor is a thread), **D-P3** (`mcause` from the CSR) and **D-P5**
+> (HALT disarms the hardware watchdog). §11.2 is **D-P4** (no engine `.c` file). §11.3 is
+> **D-P2** (two more invented constants). **D-P6** is §11.7, below. All six survived the build
+> and the bench; none was rejected.
+
+### 11.1 D-P1, D-P3, D-P5 — three things §4 could not have known, all forced by the tree
 
 - **`task_wdt` cannot be the detector.** `task_wdt_feed()` calls `k_sched_lock()`
   (`subsys/task_wdt/task_wdt.c:240`), which asserts `!arch_is_in_isr()`
@@ -293,7 +306,7 @@ argument for each decision below.
   **Confirmed on hardware: the node stayed halted for 4 minutes, ~22x the 11 s window,
   with zero boot banners.**
 
-### 11.2 §6's module location is superseded
+### 11.2 D-P4 — §6's module location is superseded
 
 The detector lives at **`nodus/tuvm/zephyr/src/observer.c`**, app-side beside `main.c`,
 not at `src/backend/zephyr/observer.c`. §6's posix stub does not exist and is not needed.
@@ -304,7 +317,7 @@ the same source `PRIM_pf_sysStats` already reads. The note's logic is a header
 (`src/reboot_note.h`) and its storage follows the `rtc_target_*` split, so no engine `.c`
 file was added at all.
 
-### 11.3 §3.3 undercounted the invented constants by two
+### 11.3 D-P2 — §3.3 undercounted the invented constants by two
 
 | Constant | Value | Standing |
 |---|---|---|
@@ -383,3 +396,37 @@ count. By §5.2's definition ("a reboot loop is a node that cannot get far enoug
 report") this node is not looping — while in fact it reboots every 31 s forever. A node
 that reports and *then* wedges is a noisy zombie the breaker will never stop. It is at
 least a visible one now.
+
+### 11.7 D-P6 — one clearing prim, not two, and it carries the boot id
+
+2026-08-10 §5.2 wants `consecutive = 0` on the first successful check-in; §5.1 wants the note
+cleared once it has been reported. **Those are the same moment** — "I got far enough to
+report" — so they are one call, `panicNoteAck: bootId`, and not two prims that could disagree
+about when it happened.
+
+The ack also **deposits this boot's id in the note**, so a death later in this boot already
+carries the id it died under; the C side has no other way to know it. A report written before
+any ack carries `bootId = 0`, and **0 means unknown and is never invented into a number** —
+the convention #217 §6.4 set for a `gw` row.
+
+The complement rule is that **reading never clears** (`reboot_note_read`). A read that cleared
+would lose the report to whichever transient read it first, and the app may need more than one
+attempt to publish.
+
+### 11.8 §11.6's regression is closed — it was the selector prim-id cache (#226)
+
+**#222 was #192 and #213.** One bug, and the reason six weeks of green host gates said nothing
+about it: the selector→prim-id cache probed a full table with no bound, and the table is **256
+slots on the C6 against 4096 on the host** — so the host could not reach the condition. #226
+closes all three by **deleting the cache** rather than sizing it; a `Symbol` now carries its own
+`prim_id`, so nothing looks one up.
+
+The verification is §11.4's own soak: the build that ran 22 h 23 min on one unbroken boot is
+the bridge that had wedged at tick 6 on eight consecutive boots the morning before. The 220 s
+gate that first went green was evidence; 22.4 h is proof.
+
+**§11.6's finding about `consecutive` stands and is independent of the cause.** A node that
+acks on its first clean check-in and *then* wedges reads `consecutive = 1` at every boot, so by
+2026-08-10 §5.2's definition it is not looping — while in fact it reboots forever. The loop
+breaker will never stop a noisy zombie of that shape. It is at least a visible one now, which
+is what this rung was for.

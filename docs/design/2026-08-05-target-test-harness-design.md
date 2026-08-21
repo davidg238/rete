@@ -736,3 +736,87 @@ cases including the stall, the fault, the halting probe, and the double boot ban
 the nsl suite runs it as `target-observe-py`. §8's list above gains it as item 6. The board
 is now spent only on what genuinely needs one, which is the first time anything under
 `tests/target/` has been exercisable by the host suite.
+
+---
+
+## Addendum — 2026-08-20 (rete#223): the window reached its verdict before the evidence arrived
+
+The #216 window above is right about *when* to stop watching and was wrong about *what it
+could claim*. Its stall poll is `OBSERVE_POLL_S`, default **10 s**; the #215 detector's
+deadline is derived from the app's own cadence, which for `bridge-health` is `8 × 2000 ms` =
+**16 s** plus up to a second of observer tick. On 2026-08-19 that ordering printed
+
+> *"no line matching … **with no fault, no panic and no reboot.** This is #213's signature"*
+
+**eighteen seconds before** `tuvm: WEDGE cond=pulse-undrained overdue=16ms deadline=16000ms`
+landed in the same log. The verdict was correct — a node that wedged and rebooted inside an
+observe window has died — but **the reason is the part a human acts on**, and this one sent
+the reader after #213's unexplained mechanism when the dump naming the condition was three
+lines further down. It is the same defect as a green message claiming something it never
+checked, wearing red.
+
+Three changes, in the order they depend on each other:
+
+- **The detector's own dump is asked first**, before the generic fault scan. `rst:0x` says
+  something died; `cond=pulse-undrained overdue=16ms` says which condition fired and by how
+  much, and they are different next steps.
+- **The stall message stops asserting an absence it cannot yet know.** It says "no fault
+  signature *so far*", names the deadline it may be racing, and points the reader further down
+  the log — the rule the `none`-progress scenarios already followed, applied to the branch that
+  was still claiming more than it had checked.
+- **`OBSERVE_POLL_S` becomes a manifest key**, and `bridge-health` declares **30**, *derived*
+  from the node's own `8 × 2000 ms` rather than picked. The manifest says to re-derive it if
+  the cadence changes, because it is a multiple and not a constant — the same rule §2 of the
+  liveness design applies to the detector itself. A scenario whose node declares a slower
+  cadence must raise it, or the window can never observe the detector doing its job.
+
+**The general rule this rung leaves behind: a window that can out-race the instrument it is
+watching must either wait for it or decline to describe what it did not see.**
+
+One method note worth keeping. The new key had to be cleared between scenarios — the same
+hazard `TAP_NAME` hit once. Rather than add a second hand-maintained list, the host test
+asserts the invariant over **every** key any manifest declares, and it was watched failing the
+moment `OBSERVE_POLL_S` was introduced. Watching a guard fail is the only way to know it
+guards. All of it is falsifiable without a board (10 host tests), which is #216's split doing
+its job: the board stayed on its soak.
+
+---
+
+## Addendum — 2026-08-21 (rete#230): a workload that ends must withdraw what it declared
+
+The first full seven-scenario run after #215's detector landed came back **6/7**, and the red
+was not a VM defect. `stale-handle` passed both TAPs, printed its done line, and was then
+reported dead:
+
+```
+tuvm: WEDGE cond=pulse-undrained overdue=801ms deadline=200ms up=4030ms pending=1 … consec=2
+tuvm: WEDGE cond=pulse-undrained overdue=801ms deadline=200ms up=4030ms pending=1 … consec=3
+```
+
+The probe arms a **25 ms repeater** as a heartbeat — necessarily, since `pumpEvents` blocks
+`K_FOREVER` on an empty mailbox and without a standing wake source its control arm parks and
+proves nothing — and never cancels it. `main:` returns, nothing drains the mailbox again, and
+`8 × 25 ms` is the `deadline=200ms` in the dump. **The detector is right.** `every: 25` is a
+statement by the app that it expects to be woken every 25 ms; a node holding a live repeater it
+no longer drains is wedged, however deliberately it got there. Wedge → reboot → the probe runs
+again → wedge → `consec=3` → **HALT**, so a probe finishing correctly was reported as a death
+three times and left the board parked.
+
+Fixed in the probe, in two lines: `timers cancel:` the heartbeat after `tapDone`. That leaves
+the node with **no declared repeating timer**, which is the liveness design's §2 blind spot and
+exactly where a finished probe belongs — it is no longer asking to be woken, so there is
+nothing to be overdue. Not fixed with a manifest key declaring "a post-verdict wedge is
+expected here": that is #223's mistake in a new costume, and the window would stop meaning what
+it says.
+
+> **The rule, and it binds every scenario written from here: a workload that ends must first
+> withdraw every expectation it declared.** A repeating timer is a promise about how often this
+> node will be woken. A node that stops keeping a promise it never withdrew is
+> indistinguishable — correctly — from one that has failed to keep it.
+
+**This is the third time the instrument and the harness have disagreed about what a stopped
+node means**, and the three are worth reading together: #216 (the verdict was taken and nothing
+watched after), #223 (the window reached its verdict before the evidence arrived), #230 (the
+workload stopped without withdrawing its expectations). Each was found by hardware, and none of
+them could have been. The remaining gap is that **nothing asserts the rule** — the other four
+probes comply today by luck of how they were written, not by a check.

@@ -242,9 +242,12 @@ what makes the data plane trustworthy without putting auth on the control plane.
 | **panic cores** | **blob** — see below. |
 | sensor readings, health counters, config scalars, log lines | values. Bounded and small. |
 
-**`sys/panic` is the one place `PROTOCOL-NSL.md` contradicts itself,** and this is the
-proposed resolution. §3.2 gives `sys/panic` the shape `{blob: bytes}` and marks it
-*must-deliver*, while §3.3 says bulk never rides a channel. Both cannot hold.
+**`sys/panic` was the one place `PROTOCOL-NSL.md` contradicted itself:** it gave the path the
+shape `{blob: bytes}` and marked it *must-deliver*, while saying elsewhere that bulk never
+rides a channel. Both could not hold. **The resolution below is now the settled reading and
+`PROTOCOL-NSL.md` carries it** (§4.2's path map and §4.3's "one apparent exception, and it is
+not one"); the `{blob: bytes}` shape is gone from that document. Recorded here because the
+resolution is this section's, not because the contradiction is still live.
 
 Resolution: **`sys/panic` carries a bounded summary inline, and a `BlobRef` for the
 rest.** The summary is the part you need at 3am and the part that must survive a node
@@ -266,6 +269,32 @@ Note what this buys: a node that dies of OOM can still *report* that it died of 
 because the report is 60 bytes and does not require allocating a buffer. Compare the
 silent boot-OOM that shipped a dead dongle through rungs 7–8 — the failure there was
 precisely that the node had no bounded way to say what happened.
+
+**BUILT on the C6, rete#215 (2026-08-21).** `Panic` is no longer specified-but-unbuilt, and
+`#watchdog` is no longer aspirational. What produces each reason, and what the fields carry:
+
+| `reason` | produced by |
+|---|---|
+| `#watchdog` | **the wedge detector** (`nodus/tuvm/zephyr/src/observer.c`) — a 1000 ms observer that judges the reactor against the app's OWN declared timer periods, 8 × the shortest live one, so it carries no global idea of how often a node should wake. Two OR'd conditions: an overdue armed timer, and a pulse posted-but-not-consumed. A wedge raises no fatal error, which is why this detector had to exist before the symbol could |
+| `#assert` | `K_ERR_KERNEL_OOPS` / `K_ERR_KERNEL_PANIC` in the fatal handler |
+| `#stackOverflow` | `K_ERR_STACK_CHK_FAIL` |
+| `#hardFault` | `K_ERR_CPU_EXCEPTION`, **and every unrecognised code**. A reason the gateway cannot name is worth less than an imprecise one it can, so the mapping never invents a sixth symbol |
+| `#oom` | **reserved; no producer yet.** The allocation seam reports through `sys/cheap` instead |
+
+- The C side writes a small int (`RN_REASON_*`, `nodus/tuvm/src/reboot_note.h`, **append-only**)
+  because a fatal handler may not allocate; the symbol is attached in nsl, where the record is
+  built (`Kernel>>panicReasonFor:`).
+- `detail` carries the **register triple** — `mcause`/`mepc`/`ra`, preformatted — for a fault,
+  or **the condition and the overdue margin** for a wedge (`cond=pulse-undrained overdue=8ms
+  deadline=8000ms …`). It is the one place truncation is legal, as above.
+- `core` is `nil` and stays `nil`. Blobs are off the space, and a node that just died is the
+  last node that should be asked to retain one.
+- `bootId` is **the boot the node was running under when it died**, not the boot that reports
+  it — otherwise every panic would be attributed to its own recovery. `0` still means unknown
+  (§3) and is never invented into a number.
+- The report survives the reboot that recovers the node, in a checksummed `RebootNote` in
+  `.rtc_noinit` (2026-08-10 §5.1). Delivery is the ordinary must-deliver path on the next
+  boot; nothing new rides the wire.
 
 ---
 

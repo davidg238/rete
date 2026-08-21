@@ -791,8 +791,9 @@ are hard; it is that **a node has no way to say it stopped.** `docs/design/2026-
 and-liveness-design.md` §5 already designs the reporting path and RECORDS §2.4 already pins
 `Panic.reason: #watchdog` — but §5's seam is `k_sys_fatal_error_handler`, and a wedge raises no
 fatal error, so that symbol is unreachable. Detection is now designed
-(`docs/design/2026-08-16-vm-liveness-observer-design.md`, **#215**, awaiting review), with §12 of
-the 2026-08-10 doc amended to point at it.
+(`docs/design/2026-08-16-vm-liveness-observer-design.md`, **#215**), with §12 of
+the 2026-08-10 doc amended to point at it. **Built, and green on hardware 2026-08-21** — see
+the #215 entry below; §11 of that design is what the bench said.
 
 Three new items, in the order they gate each other. **The first two CLOSED on 2026-08-17 and
 the third is approved and next** — kept here in order because the order is the argument:
@@ -812,8 +813,12 @@ the third is approved and next** — kept here in order because the order is the
   first hardware run caught it claiming "still progressing" for the two scenarios that
   declare `none`; the six hostless tests missed that because every one asserted exit status
   and the FAILURE text and **none read the success message**.
-- **#215 — 5/5 ON HARDWARE as of 2026-08-21. The rung's technical work is done; only the
-  §10 promotion into `review/` remains.** The detector. Branch `215-vm-liveness-observer`, commits
+- **#215 — DONE 2026-08-21, 5/5 on hardware, and the §10 promotion is landed** — the design
+  docs, RECORDS §2.4 and the CLAUDE.md gate note all carry it, so
+  `docs/superpowers/plans/2026-08-19-vm-liveness-observer.md` is scaffolding from here.
+  **The one thing outstanding is David's**: the ladder entry in `review/program-sequence.md`
+  and the three `wedge-*` rows in `review/tests/CLAIMS.md`, both drafted on #215.
+  **2026-08-10 §7's staging is now complete — step 4 was the last one open.** The detector. Branch `215-vm-liveness-observer`, commits
   `722cd34..e997fc9`; plan `docs/superpowers/plans/2026-08-19-vm-liveness-observer.md`;
   what the bench said is §11 of the design doc.
 
@@ -869,8 +874,32 @@ the third is approved and next** — kept here in order because the order is the
   host suite read 262/0 green (fixed, `208f28d`). Branch is ready to merge; #222/#192/#213
   close with it.
 
-  Also **#223 DONE** (`8167463`: the observe window no longer reaches its verdict 18 s before
-  the evidence, and a wedge the detector caught is reported as such), and two findings filed:
+  **The close-out landed 2026-08-21.** §8's constants table gained `wedge slack` / `observer
+  tick` / `observer backstop` with their standing; §7's step 4 reads DONE; §5.1's `RebootNote`
+  matches what shipped; D-P1…D-P6 moved out of the plan into §11 of the 2026-08-16 design, with
+  §6 flagged superseded so nobody goes looking for `src/backend/zephyr/observer.c`; RECORDS §2.4
+  names what produces `#watchdog`; and CLAUDE.md now lists all seven target scenarios with their
+  class and cost. **Still David's to place:** the ladder entry and the `wedge-*` CLAIMS rows,
+  both drafted on #215.
+
+  **The close-out's own gate found one thing, which is why it was run rather than waved
+  through: `TARGET 6/7`, and the red was not a VM defect (#230).** `stale-handle` passed both
+  TAPs, printed its done line, and was then reported dead — it arms a 25 ms heartbeat repeater
+  it never cancels, so `main:` returning leaves a live repeater nobody drains, and `8 × 25 ms`
+  is the `deadline=200ms` in the dump. The detector is right; the probe was not. Wedge →
+  reboot → wedge → `consec=3` → HALT, so a probe finishing correctly was reported as a death
+  three times and parked the board. Fixed in two lines (`timers cancel:` the heartbeat), and
+  **stale-handle is now PASS 2/2 with the detector armed** — the run stands at **7/7**. The
+  rule it leaves behind is in the harness design doc: *a workload that ends must first withdraw
+  every expectation it declared.* **That is the third time the instrument and the harness have
+  disagreed about what a stopped node means** (#216, #223, #230), and nothing yet asserts the
+  rule — the other four probes comply by luck of how they were written.
+
+  Also **#223 DONE and promoted** (`8167463`: the observe window no longer reaches its verdict
+  18 s before the evidence, and a wedge the detector caught is reported as such; the rule —
+  *a window that can out-race the instrument it is watching must either wait for it or decline
+  to describe what it did not see* — is now an addendum on
+  `docs/design/2026-08-05-target-test-harness-design.md`), and two findings filed:
   **#227** (the Xtensa layout describes a VM that no longer exists and no board here can
   regenerate it) and **#228** (`test_oimg_serialize.py` is red at HEAD and no gate runs it).
   **Rows 2 and 4 of #215's §8 are closed — see above.**

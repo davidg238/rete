@@ -109,6 +109,25 @@ suite also prints `target gates: NOT RUN BY THIS SUITE`: the posix timer backend
 the pulse mailbox, so coalescing, shedding and stale handles need `nodus/tuvm/tests/target/run.sh`
 and a board.
 
+**What `tests/target/run.sh` actually runs — seven scenarios, and a full pass is ~35–50 min of
+board time**, so budget it rather than discovering it. `CLASS=disruptive` means the scenario
+deliberately wedges, burns or reboots the node: **a disposable board only** (`c6spare`, which
+is `TARGET_DEFAULT_BOARD` — resolve boards through the collector env files, never a table).
+
+| scenario | class | what it gates |
+|---|---|---|
+| `bridge-health` | observe | the node half of the porta gate — obs acked, `goal/name` converged, nothing evicted (#streamDropped 0) |
+| `bridge-forensics` | observe | the same workload under the forensics overlay (#222) |
+| `pulse-coalesce` | disruptive | the coalescer does not destroy logical timer events (#151) |
+| `stale-handle` | disruptive | a timer event survives a later unrelated registration (#151) |
+| `wedge-note` | disruptive | the `RebootNote` survives a watchdog reset (#215, row 1) |
+| `wedge-detect` | disruptive | the detector fires on a real wedge, dumps the condition, reboots, reports `#watchdog` (#215, row 3) |
+| `wedge-quiet` | disruptive | **no false trip on a legitimately slow node** — one 10-minute timer, and the 600 s observation is why this run is long (#215, row 5) |
+
+A scenario passing its TAPs is **not** the verdict: every one carries an observation window
+that watches past it, because a gate that scores at tick 2 against a node that dies at tick 6
+is a false green (#216).
+
 ---
 
 # porta — the gateway half
