@@ -319,7 +319,16 @@ file was added at all.
 | 3 — the detector fires on a real wedge | **PASS 2/2** (`wedge-detect`). Wedged at tick 30; caught 9.0 s later, `cond=pulse-undrained overdue=8ms deadline=8000ms pending=1 pco=8 pdr=0`. **`deadline` is 8 x the app's OWN declared 1000 ms period.** `pdr=0` says the detector is faster than the shed rate |
 | 5 — no false trip on a slow node | **PASS 1/1, twice** (`wedge-quiet`, 600 s and 621 s). One 10-minute timer, `slow-node tick` at **599.99 s**, zero `WEDGE` lines, one boot banner |
 
-Rows 2 and 4 (the armed soak) are **blocked by #222** — see below.
+**Rows 2 and 4 closed 2026-08-21 — §8 is 5/5.** The armed soak ran on c6spare for
+**22 h 23 min on one unbroken boot**: tick 40 284 (which agrees independently at 2 s a tick),
+ONE `build-id` line and ONE `rst:0x` in the whole window — the POWERON from the flash that
+started it — and **zero `WEDGE` lines** with the detector armed throughout. `misses 254` of
+282 008 acked, `dropped 0`. That is row 4 (no false trip on a healthy node) and row 2
+(`task_wdt` + the hardware WDT do not collide with the Thread stack over a soak).
+
+The build under it was the one that fixed #222, so the same run is that fix's real
+verification: this is the bridge that wedged at tick 6 on eight consecutive boots the
+previous morning.
 
 Row 5 then grew a 10-hour version by accident, and it is worth banking because it is the
 only long armed run this rung has. The 2026-08-19 22:28 power failure rebooted the
