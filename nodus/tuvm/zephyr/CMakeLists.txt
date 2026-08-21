@@ -157,7 +157,6 @@ endif()
 if(DEFINED ENV{METHOD_CACHE_SIZE})
   target_compile_definitions(app PRIVATE METHOD_CACHE_SIZE=$ENV{METHOD_CACHE_SIZE})
 endif()
-endif()
 
 # The boxed-Float arena (gc.c) mallocs slabs of OEVM_FLOAT_ARENA_SLAB_CELLS floats
 # (default 4096 ≈ 64 KB/slab — sized for a host's big libc heap). On the DK the
@@ -310,7 +309,6 @@ if(CONFIG_SOC_NRF52840)
   endif()
   if(NOT DEFINED ENV{METHOD_CACHE_SIZE})
     target_compile_definitions(app PRIVATE METHOD_CACHE_SIZE=256)
-  endif()
   endif()
   if(NOT DEFINED ENV{VM_STACK_INIT_WORDS})
     target_compile_definitions(app PRIVATE VM_STACK_INIT_WORDS=4096)
