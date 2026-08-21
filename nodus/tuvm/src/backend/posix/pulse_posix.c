@@ -75,6 +75,11 @@ int pulse_pump(void) {
 int pulse_pump_nb(void) { return pulse_pump(); }
 
 uint32_t pulse_drops(void) { return mb_drops; }
+/* rete#215. Exists so the seam LINKS on the host and answers honestly, not so the host can
+   simulate a wedge: there is no ISR here, so at any safe point where nsl could ask, the
+   ring has already been drained and this reads 0. The condition it feeds is target-only
+   by construction, which is what tests/target/ is for. */
+uint32_t pulse_pending(void) { return (uint32_t)mb_count; }
 
 uint32_t pulse_coalesced(void) { return mb_coalesced; }
 

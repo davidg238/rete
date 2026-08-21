@@ -496,4 +496,20 @@
    fails] snapshotting src/gc.c oevm_cheap_stats(); the nsl CHeapStats class
    names the fields. */
 #define PRIM_pf_cheapStats        152
+/* rete#215: the retained panic note. Appended after cheapStats — no pre-existing id
+   shifts. 153/154 were arrived at by COUNTING PRIM_NAMES (152 string literals before this
+   append, cross-checked against the compile-time parity guard), not by 152+1 arithmetic,
+   per the standing lesson above.
+     panicNote        -> 4-slot Array [reason, bootId, monoMs, detail] or nil. The
+                         register triple is FORMATTED TEXT in slot 4, not numbers: mcause
+                         does not fit an SMI on a 32-bit target (the same 2^30 limit
+                         rtc_target_put's comment records), and RECORDS §2.4 already pins
+                         Panic.detail as text and names it the one place truncation is
+                         legal.
+     panicNoteAck: id -> clears the report AND the loop-breaker count, and deposits this
+                         boot's id for the next death to carry. One call because §5.1's
+                         report-once clear and §5.2's "reset on a successful check-in" are
+                         the same moment. */
+#define PRIM_pf_panicNote         153
+#define PRIM_pf_panicNoteAck      154
 #endif /* OEVM_PRIM_IDS_H */

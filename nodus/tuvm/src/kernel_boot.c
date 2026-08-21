@@ -47,18 +47,21 @@ const struct Vtable Vtable_ContextVtable;
  * Kernel-owned interned symbols (firmware static storage).
  * Names + lengths mirror StaticSymbol_* from the old solidified image and the
  * Symbol_* globals the VM hardcodes.
+ * rete#226: DESIGNATED initializers, and each carries its baked prim id — a Symbol
+ * decides once whether it names a primitive, so nothing looks one up per send. The ids
+ * come from src/prim_names.def, the same list dispatch.c builds PRIM_NAMES from.
  * ------------------------------------------------------------------ */
-static const struct Symbol KSym__eq_eq          = { { (oop)&Vtable_SymbolVtable }, 2,  "==" };
-static const struct Symbol KSym_sender          = { { (oop)&Vtable_SymbolVtable }, 6,  "sender" };
+static const struct Symbol KSym__eq_eq          = { .base = { (oop)&Vtable_SymbolVtable }, .length = 2, .prim_id = 13, .name = "==" };
+static const struct Symbol KSym_sender          = { .base = { (oop)&Vtable_SymbolVtable }, .length = 6, .prim_id = 10, .name = "sender" };
 /* KSym_executeCleanup / KSym_resumeWith_ / KSym_unwindTo_value_ removed (Task 9a):
  * NLR-only symbols retired in Task 3; their registry rows are gone. */
-static const struct Symbol KSym_value           = { { (oop)&Vtable_SymbolVtable }, 5,  "value" };
-static const struct Symbol KSym_accessViolation_= { { (oop)&Vtable_SymbolVtable }, 16, "accessViolation:" };
-static const struct Symbol KSym_debug_          = { { (oop)&Vtable_SymbolVtable }, 6,  "debug:" };
+static const struct Symbol KSym_value           = { .base = { (oop)&Vtable_SymbolVtable }, .length = 5, .prim_id = 0, .name = "value" };
+static const struct Symbol KSym_accessViolation_= { .base = { (oop)&Vtable_SymbolVtable }, .length = 16, .prim_id = 0, .name = "accessViolation:" };
+static const struct Symbol KSym_debug_          = { .base = { (oop)&Vtable_SymbolVtable }, .length = 6, .prim_id = 0, .name = "debug:" };
 
 /* Singleton true/false symbols (nil is the VM's NULL). */
-static const struct Symbol KSym_true            = { { (oop)&Vtable_SymbolVtable }, 4,  "true" };
-static const struct Symbol KSym_false           = { { (oop)&Vtable_SymbolVtable }, 5,  "false" };
+static const struct Symbol KSym_true            = { .base = { (oop)&Vtable_SymbolVtable }, .length = 4, .prim_id = 0, .name = "true" };
+static const struct Symbol KSym_false           = { .base = { (oop)&Vtable_SymbolVtable }, .length = 5, .prim_id = 0, .name = "false" };
 
 /* ------------------------------------------------------------------ *
  * Vtable definitions.

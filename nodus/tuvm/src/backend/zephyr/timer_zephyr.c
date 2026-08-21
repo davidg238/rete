@@ -32,6 +32,13 @@ struct TargetTimer {
     int chan_id;
     int repeating;
     int live;
+    /* rete#215: a repeating timer's period is the app's own statement of how often it
+       expects to be woken, and it is the ONLY deadline the wedge detector is allowed to
+       judge this node against (design §2 — a battery sensor waking every ten minutes is
+       the ordinary case, not a hypothetical). Both are 32-bit stores made from ISR
+       context, which is the discipline `live = 0` already relies on. */
+    uint32_t period_ms;
+    uint32_t last_fire_ms;   /* k_uptime_get_32(); see the wrap note on the query below */
 };
 static struct TargetTimer target_timers[OEVM_MAX_TARGET_TIMERS];
 
@@ -51,6 +58,7 @@ static struct TargetTimer target_timers[OEVM_MAX_TARGET_TIMERS];
 static void timer_expiry(struct k_timer *t) {
     struct TargetTimer *e = CONTAINER_OF(t, struct TargetTimer, t);
     if (!e->live) return;
+    e->last_fire_ms = k_uptime_get_32();   /* rete#215: what the detector judges against */
     pulse_post_isr_value(e->chan_id, TAG_SMI(e->token));
     if (!e->repeating) e->live = 0;   /* the slot is reusable; the post is self-contained */
 }
@@ -63,6 +71,12 @@ static void timer_start(int token, uint64_t ms, int repeating) {
             e->chan_id    = space_intern("sys/timer", 9);   /* the reserved channel */
             e->repeating  = repeating;
             e->live       = 1;
+            e->period_ms    = (uint32_t)ms;
+            e->last_fire_ms = k_uptime_get_32();   /* rete#215: the deadline runs from
+                                                      ARMING, not from the first fire —
+                                                      else a timer that never fires at all
+                                                      is judged against a zero epoch and
+                                                      trips at once */
             k_timer_init(&e->t, timer_expiry, NULL);
             k_timer_start(&e->t, K_MSEC(ms), repeating ? K_MSEC(ms) : K_NO_WAIT);
             return;
@@ -95,3 +109,28 @@ int timer_backend_advance(uint64_t ms) { (void)ms; return 0; }
    the pulse mailbox, which pulse_pump drains onto sys/timer. Exists only so pumpEvents
    can call it unconditionally across both backends. */
 int timer_backend_poll(void) { return 0; }
+
+/* rete#215: what the app declared, for the wedge detector (zephyr/src/observer.c). Data
+   only — no SLACK, no verdict, no policy. That division is timer_backend.h's own: "The C
+   side carries DATA ONLY (a token, a millisecond count)."
+
+   ONE-SHOTS ARE EXCLUDED. A repeating period is a statement about cadence; a one-shot is
+   a statement about a single future moment, and a node with only one-shots has declared
+   nothing to be judged against.
+
+   THE SUBTRACTION HAPPENS IN THE UNIT IT WRAPS IN. k_uptime_get_32() wraps at ~49.7 days;
+   `now - last` in uint32 is correct across that wrap for any interval shorter than the
+   wrap period, which is why this function — and not its caller — owns the subtraction.
+   span_backend.h carries the same lesson for the same reason (tuvm#61). */
+int timer_target_snapshot(uint32_t *period_ms, uint32_t *since_ms, int max) {
+    uint32_t now = k_uptime_get_32();
+    int n = 0;
+    for (int i = 0; i < OEVM_MAX_TARGET_TIMERS && n < max; i++) {
+        struct TargetTimer *e = &target_timers[i];
+        if (!e->live || !e->repeating) continue;
+        period_ms[n] = e->period_ms;
+        since_ms[n]  = now - e->last_fire_ms;
+        n++;
+    }
+    return n;
+}

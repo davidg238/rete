@@ -88,11 +88,11 @@ static void roots_hook(void) {
 }
 
 static oop make_symbol(const char *text, size_t len) {
-    oop s = gc_allocate(SymbolVtable, sizeof(struct Symbol) + len + 1);
+    /* rete#226: through symbol_new, like every other Symbol in the VM. Hand-building one
+       leaves prim_id unset, which is how tests/test_debugger.c briefly lost `readLine` —
+       the selector classified as "not a primitive" and fell through to doesNotUnderstand. */
+    oop s = symbol_new(text, len);
     assert(s != NULL);
-    ((struct Symbol *)s)->length = len;
-    memcpy(((struct Symbol *)s)->name, text, len);
-    ((struct Symbol *)s)->name[len] = 0;
     return s;
 }
 

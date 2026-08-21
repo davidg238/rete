@@ -1,0 +1,75 @@
+(*
+expect:
+TAP wedge-quiet done
+*)
+(* rete#215 — the node the detector must NOT reboot.
+
+   ONE repeating timer, at ten minutes, and nothing else. Between ticks this node sits in
+   pulse_pump's K_FOREVER with an empty mailbox and no armed deadline in sight — which is
+   BYTE-IDENTICAL, from the kernel's point of view, to the wedged node in wedge-detect.
+   The only thing that separates them is what the app DECLARED, which is why the detector
+   reads timer_target_snapshot() and owns no idea of its own about how often a node should
+   wake (design §2/§3.1).
+
+   THE ASSERTION IS AN ABSENCE. The TAP below says only that the node armed what it said
+   it would; the gate is the 600 s observation window in which no reset may appear. That
+   is why this file is short — there is nothing for it to do, and doing nothing is the
+   test.
+
+   Holds ONE Timers instance, for the reason every node in this directory does. *)
+class SlowTimerNodeC6 packageUsing: manifest = (
+  | plat space timers tickCh ticks ::= 0. tapPass ::= 0. tapFail ::= 0. |
+) (
+
+  public main: platform args: args = (
+    plat:: platform.
+    space:: plat space.
+    timers:: plat timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+
+    tickCh:: space channel: 'probe/tick'.
+    tickCh whenever: '' do: [ :m | self tick ].
+    (* TEN MINUTES. Against SLACK=8 that is an 80-minute deadline, so a node this slow
+       cannot be judged by any window this gate can afford to sit through — which is the
+       point. What the gate proves is that the node is judged against 600000 ms rather
+       than against a constant, and the evidence is that it is still on its first boot
+       after a window many times longer than any FIXED deadline the detector could
+       plausibly have carried. *)
+    timers every: 600000 post: #t on: tickCh.
+
+    self tapPlan: 1.
+    self tap: 1 named: 'armed one 10-minute timer and nothing else' ok: true
+         detail: 'period=600000'.
+    self tapDone.
+    'slow-node alive' out.
+
+    [ true ] whileTrue: [ plat pumpEvents. space drain ].
+    ^ self )
+
+  tick = ( ticks:: ticks + 1. ('slow-node tick ' , ticks printString) out. ^ self )
+
+  (* --- TAP-lite (design D3) — see StaleHandleProbeC6.nsl for the full rationale. *)
+
+  scenarioName = ( ^ 'wedge-quiet' )
+
+  tapPlan: n = (
+    ('TAP ' , self scenarioName , ' plan=' , n printString) out.
+    ^ self )
+
+  tap: idx named: nm ok: passed detail: d = (
+    passed
+      ifTrue:  [ tapPass:: tapPass + 1.
+                 ('TAP ' , self scenarioName , ' ok ' , idx printString ,
+                   ' ' , nm , ' ' , d) out ]
+      ifFalse: [ tapFail:: tapFail + 1.
+                 ('TAP ' , self scenarioName , ' not ok ' , idx printString ,
+                   ' ' , nm , ' ' , d) out ].
+    ^ self )
+
+  tapDone = (
+    ('TAP ' , self scenarioName , ' done pass=' , tapPass printString ,
+      ' fail=' , tapFail printString) out.
+    ^ self )
+
+) : (
+)

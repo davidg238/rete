@@ -119,9 +119,7 @@ static oop vm_condition_text(oop condition) {
     int saved_roots = gc_temp_roots_count;
     gc_temp_root_push(condition);
     static const char textName[] = "text";
-    oop textSym = gc_allocate(SymbolVtable, sizeof(struct Symbol) + sizeof textName);
-    ((struct Symbol *)textSym)->length = sizeof textName - 1;
-    memcpy(((struct Symbol *)textSym)->name, textName, sizeof textName);
+    oop textSym = symbol_new(textName, sizeof textName - 1);   /* rete#226 */
     gc_temp_root_push(textSym);
     oop probe_args[2] = { textSym, NULL };   /* ifAbsent nil: key is always present */
     oop v = send(condition, atIfAbsentSel, 2, probe_args);
@@ -809,9 +807,7 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
     }
     if (Symbol_value == NULL) {
         static const char valueName[] = "value";
-        Symbol_value = gc_allocate(SymbolVtable, sizeof(struct Symbol) + sizeof valueName);
-        ((struct Symbol *)Symbol_value)->length = sizeof valueName - 1;
-        memcpy(((struct Symbol *)Symbol_value)->name, valueName, sizeof valueName);
+        Symbol_value = symbol_new(valueName, sizeof valueName - 1);   /* rete#226 */
     }
     struct Closure *cl = (struct Closure *)closure;
     struct CompiledMethod *method = (struct CompiledMethod *)closure_entry(cl);
@@ -1711,9 +1707,7 @@ oop primitive_register_debugger_hook(oop receiver, int argc, oop *args) {
     debugger_hook = args[0];
     if (Symbol_debug_ == NULL) {
         static const char debugName[] = "debug:";
-        oop sym = gc_allocate(SymbolVtable, sizeof(struct Symbol) + sizeof debugName);
-        ((struct Symbol *)sym)->length = sizeof debugName - 1;
-        memcpy(((struct Symbol *)sym)->name, debugName, sizeof debugName);
+        oop sym = symbol_new(debugName, sizeof debugName - 1);   /* rete#226 */
         Symbol_debug_ = sym;
     }
     return receiver;

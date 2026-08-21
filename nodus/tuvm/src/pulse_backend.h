@@ -64,6 +64,15 @@ uint32_t pulse_coalesced(void);
    HANDLE path specifically. */
 uint32_t pulse_stale(void);
 
+/* rete#215: how many posts are queued and not yet drained, RIGHT NOW. Not a counter —
+   an instantaneous depth, and the only value in this seam that can go down. The wedge
+   detector's second condition is this reading staying above zero for longer than the
+   app's own shortest declared timer period allows (design §3.2): the ISR is firing and
+   the mailbox is filling, but the VM is not draining it. Distinct from pulse_drops(),
+   which counts what a FULL mailbox threw away — a node can be wedged with a mailbox one
+   deep and never shed anything. */
+uint32_t pulse_pending(void);
+
 /* Thread context, at the run-to-completion safe point. Drains every queued item
    (posix: returns 0 at once when empty; zephyr: blocks for the first item, then
    drains all) and for each calls space_post_id(chan_id, handle_get(handle_idx)).

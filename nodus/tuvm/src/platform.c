@@ -11,6 +11,7 @@
 #include "sensor_backend.h"  /* AMG8833 thermal rung: the Tier-1 sensor seam */
 #include "span.h"            /* tuvm#61: job-latency span slots */
 #include "ota.h"             /* rete#25: the image-push seam, prims 145-150 */
+#include "reboot_note.h"    /* rete#215: the retained panic note, prims 153-154 */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -420,6 +421,46 @@ int rtc_target_valid(void) { rtc_load_once(); return ((uint32_t)g_rtc[0] == OEVM
 int rtc_target_get(int i) { rtc_load_once(); if (i < 0 || i >= OEVM_RTC_FIELDS) return 0; return g_rtc[i]; }
 void rtc_target_put(int i, int v) { rtc_load_once(); if (i < 0 || i >= OEVM_RTC_FIELDS) return; g_rtc[i] = v; rtc_store(); }
 
+/* rete#215: the retained panic note, host side. There is no RTC RAM here and no reboot,
+   so the block is a plain static: a fresh process is a cold power-on, which is exactly
+   the semantic the target gets from a power cycle. That makes the host able to test the
+   VALIDITY RULE and the ratchet — the parts that are logic — while leaving RETENTION,
+   the part that is hardware, to the target gate that can actually falsify it (design §6:
+   the host suite must COMPILE against this seam, never simulate it). */
+static struct RebootNote g_note;
+
+void reboot_note_init(void) {
+    if (!reboot_note_is_valid(&g_note)) memset(&g_note, 0, sizeof g_note);
+}
+int reboot_note_read(struct RebootNote *out) {
+    if (!reboot_note_is_valid(&g_note)) return 0;
+    *out = g_note;
+    return 1;
+}
+void reboot_note_write(uint32_t reason, uint32_t mcause,
+                       uint32_t mepc, uint32_t ra, uint32_t mono_ms) {
+    uint32_t prev = reboot_note_is_valid(&g_note) ? g_note.consecutive : 0;
+    /* boot_id is read UNGUARDED, and that is deliberate. reboot_note_ack() clears the
+       magic while keeping the id, so the block is legitimately "no report, known
+       identity" — a validity-guarded read would take 0 there and every post-ack death
+       would report an unknown boot. reboot_note_init() zeroing the whole block on garbage
+       is what makes an unguarded read safe. */
+    uint32_t boot = g_note.boot_id;
+    g_note.magic = RN_MAGIC;
+    g_note.reason = reason; g_note.mcause = mcause;
+    g_note.mepc = mepc;     g_note.ra = ra;
+    g_note.boot_id = boot;  g_note.mono_ms = mono_ms;
+    g_note.consecutive = prev + 1;
+    g_note.sum = reboot_note_checksum(&g_note);
+}
+void reboot_note_ack(uint32_t boot_id) {
+    memset(&g_note, 0, sizeof g_note);
+    g_note.boot_id = boot_id;    /* kept: the note is cleared, the identity is not */
+}
+uint32_t reboot_note_consecutive(void) {
+    return reboot_note_is_valid(&g_note) ? g_note.consecutive : 0;
+}
+
 /* tuvm#94 stage 5: host deepSleep: — no real sleep exists, so log the commanded
    duration and exit(0). This makes a host node run TERMINATE (not hang) at its idle
    point, and — with OEVM_RTC_FILE set — leaves the retained state on disk for the
@@ -452,6 +493,16 @@ extern int ntp_target_date(void);
 extern int rtc_target_valid(void);
 extern int rtc_target_get(int i);
 extern void rtc_target_put(int i, int v);
+/* rete#215: the panic note's leaves live in zephyr/src/reboot_note.c, beside the RTC
+   retention block they share a section with. Same rule as bell/ntp/rtc above — the
+   symbols must link on EVERY Zephyr board, so that file guards bodies, never
+   definitions. */
+extern void     reboot_note_init(void);
+extern int      reboot_note_read(struct RebootNote *out);
+extern void     reboot_note_write(uint32_t reason, uint32_t mcause,
+                                  uint32_t mepc, uint32_t ra, uint32_t mono_ms);
+extern void     reboot_note_ack(uint32_t boot_id);
+extern uint32_t reboot_note_consecutive(void);
 /* tuvm#94 stage 5: deepSleep: device leaf deferred to a later task (zephyr/src/main.c
    not yet touched); the extern must exist now so this shared translation unit links. */
 extern void deep_sleep_target(int seconds);
@@ -1231,12 +1282,10 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            a temp root itself — see tests/test_cbor.c's test_cbor_as_symbol. */
         struct String *s = (struct String *)args[0];
         size_t len = s->length;
-        oop sym = gc_allocate(SymbolVtable, sizeof(struct Symbol) + len + 1);
+        /* rete#226: symbol_new classifies it, so a selector arriving over the wire and
+           reaching a `perform:` is intercepted the same as an image literal of that name. */
+        oop sym = symbol_new((const char *)((struct String *)args[0])->bytes, len);
         if (sym == NULL) { *out = NULL; return 1; }
-        struct Symbol *sy = (struct Symbol *)sym;
-        sy->length = len;
-        if (len) memcpy(sy->name, ((struct String *)args[0])->bytes, len);
-        sy->name[len] = 0;
         *out = sym; return 1;
     }
     case PRIM_pf_heapStats: {
@@ -1279,6 +1328,54 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         ((struct ObjectInstance *)r)->slots[4] = TAG_SMI((intptr_t)st.frees);
         ((struct ObjectInstance *)r)->slots[5] = TAG_SMI((intptr_t)st.fails);
         *out = r; return 1;
+    }
+    case PRIM_pf_panicNote: {
+        /* rete#215 — `platform panicNote`: the pending death, or nil.
+
+           THE REGISTER TRIPLE RIDES AS TEXT, NOT AS NUMBERS. mcause is routinely
+           0xdeadbeef-shaped and an SMI holds only 2^30-1 on a 32-bit target — the same
+           limit rtc_target_put's comment records — so returning it as an SMI would
+           silently mangle exactly the value a crash report exists to carry. RECORDS §2.4
+           already pins Panic.detail as text and names it the ONE place truncation is
+           legal, so formatting here puts the loss where the protocol sanctions it.
+
+           GC-safety follows the spaceChangedSince precedent above rather than the
+           sysStats one, because this prim allocates TWICE: the String must be built while
+           the Array is rooted, or a GC inside space_make_string_pub moves an Array that
+           only a C local names. args are ignored (0-arg selector). */
+        struct RebootNote rn;
+        if (!reboot_note_read(&rn)) { *out = NULL; return 1; }   /* no report -> nil */
+
+        char detail[96];
+        int dn = snprintf(detail, sizeof detail,
+                          "mcause=0x%08x mepc=0x%08x ra=0x%08x consec=%u",
+                          (unsigned)rn.mcause, (unsigned)rn.mepc,
+                          (unsigned)rn.ra, (unsigned)rn.consecutive);
+        if (dn < 0) dn = 0;
+        if (dn > (int)sizeof detail - 1) dn = (int)sizeof detail - 1;
+
+        extern void gc_temp_root_push(oop o);
+        extern int gc_temp_roots_count;
+        int saved = gc_temp_roots_count;
+
+        oop r = indexable_new(4);
+        gc_temp_root_push(r);
+        ((struct ObjectInstance *)r)->slots[1] = TAG_SMI((intptr_t)rn.reason);
+        ((struct ObjectInstance *)r)->slots[2] = TAG_SMI((intptr_t)rn.boot_id);
+        ((struct ObjectInstance *)r)->slots[3] = TAG_SMI((intptr_t)rn.mono_ms);
+        ((struct ObjectInstance *)r)->slots[4] = space_make_string_pub(detail, (size_t)dn);
+        gc_temp_roots_count = saved;
+        *out = r; return 1;
+    }
+    case PRIM_pf_panicNoteAck: {
+        /* `platform panicNoteAck: bootId` — the app's "I got far enough to report"
+           signal. Clears the pending report (§5.1's report-once) AND the loop-breaker
+           count (§5.2's "reset on a successful check-in"), and deposits this boot's id so
+           a later death in this boot carries the id it died under — the C side has no
+           other way to learn it. Answers platform, the shape timerAfter:/timerEvery: use
+           for a prim whose result is the act and not a value. */
+        reboot_note_ack((uint32_t)UNTAG_SMI(args[0]));
+        *out = platform_object(); return 1;
     }
     case PRIM_pf_profileStart: {
         /* #165 D1/D6: open a per-method capture window. No-op without the

@@ -260,3 +260,126 @@ harness regardless of this work.
 - `protocol/PROTOCOL-NSL-RECORDS.md` §2.4 — `#watchdog` ceases to be aspirational; note what
   produces it.
 - The owning doc under `review/lib/` for the pulse seam — §7's second loss path.
+
+---
+
+## 11. Addendum — what building it settled, and what the bench said (2026-08-19)
+
+Built on branch `215-vm-liveness-observer`. Plan:
+`docs/superpowers/plans/2026-08-19-vm-liveness-observer.md`, which carries the full
+argument for each decision below.
+
+### 11.1 Three things §4 could not have known, all forced by the tree
+
+- **`task_wdt` cannot be the detector.** `task_wdt_feed()` calls `k_sched_lock()`
+  (`subsys/task_wdt/task_wdt.c:240`), which asserts `!arch_is_in_isr()`
+  (`kernel/sched.c:774`) — and **`CONFIG_ASSERT` is not set in the C6 build**, so an
+  ISR-context feed would not fail loudly, it would decrement the interrupted thread's
+  `sched_locked`. The feed must happen in thread context, and the only thread that could
+  otherwise do it is the reactor, which is the thing that wedges. So the supervisor is a
+  **cooperative-priority thread**, and `task_wdt` sits **behind** it as the backstop for
+  the supervisor itself dying, with the hardware WDT behind that. Cooperative priority is
+  load-bearing: at a preemptible priority the trip would come from a missed feed against a
+  fixed channel period, which is exactly the global constant §2 forbids.
+- **`struct arch_esf` on this SoC carries no `mcause`** — it is behind
+  `CONFIG_CLIC_SUPPORT_INTERRUPT_LEVEL`, unset, and `CONFIG_RISCV_SOC_HAS_ISR_STACKING` is
+  unset too. 2026-08-10 §5.1's field stays and is filled from `csr_read(mcause)`. Verified
+  on hardware: the note's `mcause=0x0000000b` matched the fatal handler's own register
+  dump line `E: mcause: 11` exactly.
+- **A HALT that leaves the hardware watchdog armed is a reboot loop wearing a halt's
+  costume.** `task_wdt_init()` installs a hardware timeout with `WDT_FLAG_RESET_SOC`
+  (`task_wdt.c:135-138`); a halted node feeds nothing, so the SoC resets ~11 s later and
+  the HALT line prints either way. `observer_halt()` calls `wdt_disable()` first.
+  **Confirmed on hardware: the node stayed halted for 4 minutes, ~22x the 11 s window,
+  with zero boot banners.**
+
+### 11.2 §6's module location is superseded
+
+The detector lives at **`nodus/tuvm/zephyr/src/observer.c`**, app-side beside `main.c`,
+not at `src/backend/zephyr/observer.c`. §6's posix stub does not exist and is not needed.
+Placing it in the engine backend would have cost nine source-list edits (#63) to carry a
+stub nothing on the host calls. §6's actual requirement — one source of truth for the
+counters — is met by calling `pulse_drops()`/`pulse_coalesced()`/`pulse_stale()` directly,
+the same source `PRIM_pf_sysStats` already reads. The note's logic is a header
+(`src/reboot_note.h`) and its storage follows the `rtc_target_*` split, so no engine `.c`
+file was added at all.
+
+### 11.3 §3.3 undercounted the invented constants by two
+
+| Constant | Value | Standing |
+|---|---|---|
+| `OBSERVER_TICK_MS` | 1000 | **Derived.** A sampling resolution, which must sit far below the shortest deadline in play. Measured: it caught an 8000 ms deadline **8 ms** past it and a 16000 ms deadline **16 ms** past it — i.e. on the very next tick both times |
+| `OBSERVER_WDT_MS` | 30000 | **Chosen, deliberately generous.** The backstop for the supervisor thread itself dying, and nothing else. It has never fired |
+
+### 11.4 What the bench said — §8's rows 1, 3 and 5
+
+| Row | Result |
+|---|---|
+| 1 — the note survives a watchdog reset | **PASS 2/2** (`wedge-note`). Trip at 15037 ms, `rst:0xc (SW_CPU)`, boot 2 read the note back with `reason=1` and `up=15037ms` unchanged |
+| 3 — the detector fires on a real wedge | **PASS 2/2** (`wedge-detect`). Wedged at tick 30; caught 9.0 s later, `cond=pulse-undrained overdue=8ms deadline=8000ms pending=1 pco=8 pdr=0`. **`deadline` is 8 x the app's OWN declared 1000 ms period.** `pdr=0` says the detector is faster than the shed rate |
+| 5 — no false trip on a slow node | **PASS 1/1, twice** (`wedge-quiet`, 600 s and 621 s). One 10-minute timer, `slow-node tick` at **599.99 s**, zero `WEDGE` lines, one boot banner |
+
+**Rows 2 and 4 closed 2026-08-21 — §8 is 5/5.** The armed soak ran on c6spare for
+**22 h 23 min on one unbroken boot**: tick 40 284 (which agrees independently at 2 s a tick),
+ONE `build-id` line and ONE `rst:0x` in the whole window — the POWERON from the flash that
+started it — and **zero `WEDGE` lines** with the detector armed throughout. `misses 254` of
+282 008 acked, `dropped 0`. That is row 4 (no false trip on a healthy node) and row 2
+(`task_wdt` + the hardware WDT do not collide with the Thread stack over a soak).
+
+The build under it was the one that fixed #222, so the same run is that fix's real
+verification: this is the bridge that wedged at tick 6 on eight consecutive boots the
+previous morning.
+
+Row 5 then grew a 10-hour version by accident, and it is worth banking because it is the
+only long armed run this rung has. The 2026-08-19 22:28 power failure rebooted the
+`wedge-quiet` board mid-soak and it came back on the same image; the collector was down
+from 22:33 to 07:23, so the console is blind across most of it. **The tick counter closes
+that blind window without needing the console**: `slow-node tick 60` landed at 08:28:18 and
+every tick is 10 min apart, which puts tick 1 at 22:38 and the boot at 22:28 — a reboot
+anywhere in the gap would have restarted the count at 1. So 60 consecutive 10-minute timer
+firings, **10 h on one unbroken boot, zero `WEDGE` lines and zero resets**, against a
+detector whose largest plausible fixed deadline is 30 s. Row 5's 600 s number was chosen to
+beat a 5-minute constant; this beats a 10-hour one.
+
+The whole reporting path is proven end to end by row 1's TAP:
+`TAP wedge ok 2 reason is watchdog reason=#watchdog`, i.e. prim 153 ->
+`Kernel>>panicReasonFor:` -> `Panic.reason`, with `detail` carrying the register triple.
+
+### 11.5 The loop breaker ran itself, by accident, and every part of it worked
+
+`platform panicNote` answers a prim-built indexable that carries `basicAt:` and **not**
+Object's protocol, so an `isNil` send to it is a doesNotUnderstand. The bug landed on the
+boot that was trying to *report* the previous wedge, which walked the whole of 2026-08-10
+§5.2 on hardware without being asked to:
+
+```
+wedge  -> note reason=1, consec=1, reboot
+abort  -> note reason=3, consec=2, reboot     (mcause=0xb, mepc/ra real)
+abort  -> consec=3 -> HALT, and it HELD
+```
+
+confirming the fatal handler runs, `K_ERR_KERNEL_PANIC` maps to `#assert`, `consecutive`
+ratchets across cold reboots, the breaker trips at three, and §11.1's `wdt_disable()`
+claim. Fixed by `== nil` at all three sites, which is what `sensorFrame`'s callers already
+do (`ThermalDiagNode.nsl:53`).
+
+### 11.6 The open regression — #222
+
+**The armed bridge wedges at ~31 s on every boot.** The same board ran the pre-#215
+bridge for **21.4 h** on one boot with zero faults (boot 46, `#up: 77002062`, `#sdr: 0`),
+so this is new, not #213 — even though stopping at **tick 6** is #213's recorded signature
+exactly. That resemblance is a coincidence to be bisected, not evidence.
+
+`sys/panic` never reaches porta despite a valid note at every boot and a demonstrably
+running ack. The decisive one-line A/B is in #222.
+
+**Two things this does not put in doubt.** The detector caught this wedge, classified it,
+dumped it and recovered the node — the same event on the pre-#215 build produced no
+evidence whatsoever. And §8's three testable rows are green.
+
+**One finding for 2026-08-10 §5.2 regardless of #222's cause:** `consecutive` reads 1 on
+every boot here, because the bridge acks on its first clean check-in and the ack resets the
+count. By §5.2's definition ("a reboot loop is a node that cannot get far enough to
+report") this node is not looping — while in fact it reboots every 31 s forever. A node
+that reports and *then* wedges is a noisy zombie the breaker will never stop. It is at
+least a visible one now.

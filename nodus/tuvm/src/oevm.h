@@ -79,9 +79,38 @@ struct Object {
    scan `name` as oops. */
 struct Symbol {
     struct Object base;
-    size_t length;
+    /* rete#226 — THE PRIM ID RIDES HERE, IN SPACE `length` WAS ALREADY WASTING.
+       Classification is a pure property of the selector NAME, so it is decided once where
+       the Symbol is made (symbol_new, or the image builders for baked symbols) and read as
+       a field on every send. That is what retired the selector->prim-id CACHE whose
+       unbounded probe was #222/#192/#213 and whose 256 target slots filled ~17 s into
+       every boot (#226).
+
+       `length` was a size_t holding a value under 256. Narrowing it to 16 bits pays for
+       prim_id with NO growth: the header stays one word past the vtable on a 32-bit
+       target, so sizeof and every offset are unchanged and no image gets bigger — which
+       matters with the T0.3 ratchet 75% spent.
+
+       THE PADDING IS LOAD-BEARING, not tidiness. The inline name must start exactly at
+       sizeof(struct Symbol) — oimg_serialize.py refuses a layout where it does not, having
+       been taught by rete#190 stage 2 that reading text four bytes early produces an image
+       that loads, passes format_version, and then hands back a garbled selector. A
+       flexible array member does not round sizeof up for us, so a 64-bit host needs the
+       second pad word to keep offsetof(name) == sizeof. */
+    uint16_t length;
+    uint8_t  prim_id;   /* PRIM_NONE (0) == not an intercepted primitive; see dispatch.c */
+    uint8_t  _pad0;
+#if UINTPTR_MAX > 0xFFFFFFFFu
+    uint32_t _pad1;
+#endif
     char name[];        /* inline, NUL-terminated: allocate length + 1 */
 };
+
+/* The ONLY way to make a Symbol, so that "a Symbol knows its prim id" is true by
+   construction rather than by six call sites remembering. Allocates, copies the name,
+   NUL-terminates and classifies. Can GC: the caller roots what it must, exactly as it did
+   around the gc_allocate this replaced. */
+oop symbol_new(const char *bytes, size_t len);
 
 /*
  * String: an immutable, NON-interned, packed UTF-8 byte sequence (std-lib 3c-1).

@@ -9,6 +9,8 @@ Reference encoding (low 2 bits = tag):
 """
 import struct
 
+from prim_ids import PRIM_IDS   # rete#226: tuvm/src/prim_names.def, the single source
+
 TAG_APP, TAG_BUILTIN, TAG_SMI, TAG_SINGLETON = 0b00, 0b01, 0b10, 0b11
 
 
@@ -272,6 +274,22 @@ class OimgSerializer:
         The invariant is the one a flexible array member cannot violate: the
         payload is not a pointer, and it begins exactly where the header ends.
         """
+        # rete#226 — REFUSE A LAYOUT THAT PREDATES `Symbol.prim_id`, BY NAME.
+        # Narrowing Symbol.length to pay for prim_id left the struct size and every offset
+        # unchanged, which is what kept images from growing — and is exactly why the
+        # offset==size check below cannot see the change. A layout without prim_id would
+        # bake ids nowhere and write `length` a word wide over the field, producing an
+        # image that loads, passes format_version, and runs with EVERY primitive
+        # unintercepted. Regenerate it: flash zephyr/layoutdump/ to the board and capture
+        # its console. See zephyr/README.md, "Where the layout JSON comes from".
+        if "Symbol" in self.structs and "prim_id" not in self.structs["Symbol"]["fields"]:
+            raise ValueError(
+                "STALE LAYOUT: Symbol has no `prim_id` field. This layout was captured "
+                "before rete#226 moved primitive classification onto the Symbol, so it "
+                "describes a VM that no longer exists. Regenerate it by flashing "
+                "zephyr/layoutdump/ to the target board and capturing its console output "
+                "— that output IS the file (zephyr/README.md).")
+
         for struct_name, field in self._INLINE_PAYLOADS:
             s = self.structs.get(struct_name)
             if s is None:
@@ -412,6 +430,29 @@ class OimgSerializer:
         if fname in WIDTH8_UNSIGNED:  # LargeInteger.mag (uint64), fixed width
             return struct.pack("<Q", value)
         return (value & ((1 << (self.oop * 8)) - 1)).to_bytes(self.oop, "little")
+
+    def _field_width(self, struct_name, fname):
+        """Byte width of a scalar field, DERIVED from the captured offsets.
+
+        rete#226. The layout records offsets and the struct size, never widths, so a
+        width restated here would be a second copy of the ABI — the exact thing
+        layout-$BOARD.json exists to stop. The distance to the next field is the width,
+        and for the last one it is the distance to the end of the header. This is what
+        lets Symbol.length narrow from a word to 16 bits without a line changing here.
+        """
+        fields = self.structs[struct_name]["fields"]
+        off = fields[fname]["offset"]
+        later = sorted(f["offset"] for f in fields.values() if f["offset"] > off)
+        end = later[0] if later else self.structs[struct_name]["size"]
+        return end - off
+
+    def _put_scalar(self, buf, base, struct_name, fname, value):
+        w = self._field_width(struct_name, fname)
+        if value >= (1 << (w * 8)):
+            raise ValueError(
+                f"{struct_name}.{fname} = {value} does not fit the {w} byte(s) the "
+                f"captured layout gives it.")
+        self._put(buf, base, struct_name, fname, value.to_bytes(w, "little"))
 
     def _put(self, buf, base, struct_name, fname, raw):
         foff = self.structs[struct_name]["fields"][fname]["offset"]
@@ -602,7 +643,14 @@ class OimgSerializer:
             nb = name.encode("utf-8")
             raw = nb + b"\x00"
             self._put(buf, base, "Symbol", "base.vtable", self.w.word(RefWord.builtin(self.reg["SymbolVtable"])))
-            self._put(buf, base, "Symbol", "length", self._scalar_bytes("length", len(nb)))
+            self._put_scalar(buf, base, "Symbol", "length", len(nb))
+            # rete#226 — BAKE THE PRIMITIVE ID. Whether a selector names a primitive is a
+            # pure function of its name and fixed for the life of the Symbol, so it is
+            # decided here, once, instead of by a runtime cache whose unbounded probe was
+            # #222/#192/#213 and whose 256 target slots filled seventeen seconds into every
+            # boot. The map comes from tuvm/src/prim_names.def — the same file dispatch.c
+            # builds PRIM_NAMES from, so the list is not restated in Python.
+            self._put_scalar(buf, base, "Symbol", "prim_id", PRIM_IDS.get(name, 0))
             nbase = base + sym_bytes_off
             buf[nbase: nbase + len(raw)] = raw
 

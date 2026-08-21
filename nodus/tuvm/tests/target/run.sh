@@ -91,9 +91,20 @@ for name in "${WANTED[@]}"; do
   # CONF_EXTRA must not silently pick up the last one's.
   SCENARIO=""; NODE=""; BOARD_ID=""; CONF_EXTRA=""; CLASS=""; TIMEOUT_S=""
   OBSERVE_S=""; OBSERVE_PROGRESS=""
+  unset OBSERVE_POLL_S   # rete#223: a per-manifest silence budget, so it must not leak
+                         # into a scenario that declares none. tests/target/test_observe.py
+                         # asserts this over EVERY key any manifest sets, because the
+                         # hazard is remembering the second place, not the key itself.
   # shellcheck disable=SC1090
+  unset TAP_NAME   # rete#215: never inherit the previous manifest's override
   source "$manifest"
   [ -n "$SCENARIO" ] || target::die "$manifest sets no SCENARIO"
+  # rete#215: the name the WORKLOAD stamps on its TAP lines, which is not always the
+  # scenario's own. One node can serve two scenarios that differ only in how the build is
+  # configured — WedgeProbeC6 is wedge-note with the synthetic trigger layered on and
+  # wedge-detect without it — and an .nsl file cannot see Kconfig, so it cannot name which
+  # one it is running as. Defaulting to $SCENARIO leaves every existing manifest unchanged.
+  TAP_NAME=${TAP_NAME:-$SCENARIO}
   [ -n "$NODE" ]     || target::die "$manifest sets no NODE"
   [ -n "$CLASS" ]    || target::die "$manifest sets no CLASS (observe or disruptive)"
   # rete#216. Both are MANDATORY, for the same reason CLASS is: the default that
@@ -118,8 +129,8 @@ for name in "${WANTED[@]}"; do
   fi
   target::say "build $build_id"
 
-  if tap=$(collect::console "$build_id" "$SCENARIO" "${OVERRIDE_TIMEOUT:-${TIMEOUT_S:-120}}" "$BOARD"); then
-    verdict=$(echo "$tap" | target::tap_verify "$SCENARIO") || true
+  if tap=$(collect::console "$build_id" "$TAP_NAME" "${OVERRIDE_TIMEOUT:-${TIMEOUT_S:-120}}" "$BOARD"); then
+    verdict=$(echo "$tap" | target::tap_verify "$TAP_NAME") || true
   else
     verdict="FAIL 0/0 no TAP output (see the TIMEOUT line above)"
   fi

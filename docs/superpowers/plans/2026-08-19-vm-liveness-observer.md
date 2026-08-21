@@ -2,6 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **STATUS 2026-08-19 — EXECUTED THROUGH TASK 10, then blocked.** Tasks 1-10 are done on
+> branch `215-vm-liveness-observer` (`722cd34..e997fc9`). Tasks 11-13 are blocked by
+> **#222**: the armed bridge wedges at ~31 s where the pre-#215 build ran 21.4 h clean on
+> the same board. What the bench actually said — including the three plan predictions that
+> hardware confirmed and the two false greens caught along the way — is §11 of the design
+> doc, which is the durable record; this file is scaffolding. Corrections found while
+> executing: `run.sh --board` takes a board ID (`esp32c6`) and not a bench board name, it
+> builds by default and flashes only with `--flash`, and the target harness needed a
+> `TAP_NAME` override plus a pristine-on-config-change guard before two scenarios could
+> share one workload. New follow-ons: **#222**, **#223**, **#224**.
+
 **Goal:** Give a wedged node a way to say that it stopped — detect the silence that raises no
 fault, dump the crime scene to a console the collector already persists, and report it as one
 `Panic { reason: #watchdog, … }` on `sys/panic` after the reboot.

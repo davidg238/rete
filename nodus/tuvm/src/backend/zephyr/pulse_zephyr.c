@@ -86,6 +86,10 @@ static void shadow_pop(void) {
 uint32_t pulse_drops(void)     { return mb_drops; }
 uint32_t pulse_coalesced(void) { return mb_coalesced; }
 uint32_t pulse_stale(void)     { return mb_stale; }
+/* rete#215. k_msgq already keeps this; it was simply unreachable, pulse_q being static
+   here. No shadow bookkeeping is involved — the shadow mirrors pulse_q exactly, so either
+   would answer, and asking the queue itself cannot drift from it. */
+uint32_t pulse_pending(void)   { return (uint32_t)k_msgq_num_used_get(&pulse_q); }
 
 int pulse_pump(void) {
     struct PulseItem it;

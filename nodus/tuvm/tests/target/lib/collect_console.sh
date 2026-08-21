@@ -124,6 +124,20 @@ collect::observe() {
     fi
     new=$(tail -n +$(( mark + 1 )) "$logfile")
 
+    # rete#223 — THE DETECTOR'S OWN DUMP IS ASKED FIRST, because it is the most
+    # specific thing that can be in this window and it changes what the reader does
+    # next. A `tuvm: WEDGE` line means the node stopped AND #215 caught it, named the
+    # condition and rebooted: the evidence is three lines further down the same log.
+    # Reported through the generic fault branch it came out as a bare `rst:0x`, and
+    # reported through the stall branch it came out as "no fault, no panic and no
+    # reboot" — which on 2026-08-19 was printed eighteen seconds before the dump that
+    # refuted it (#223). Neither of those sends the reader to the dump.
+    if echo "$new" | grep -q "tuvm: WEDGE"; then
+      echo "OBSERVE WEDGE: '$scenario' stopped inside the ${window_s}s window and the #215 detector caught it. This is a DETECTED wedge with a dump, not #213's unexplained silence:" >&2
+      echo "$new" | grep "tuvm: WEDGE" | head -2 >&2
+      return 1
+    fi
+
     if echo "$new" | grep -Eq "$faults"; then
       echo "OBSERVE FAULT: '$scenario' passed its TAPs and then faulted inside the ${window_s}s window:" >&2
       echo "$new" | grep -E "$faults" | head -3 >&2
@@ -132,7 +146,7 @@ collect::observe() {
 
     if [ "$progress_re" != none ]; then
       if ! echo "$new" | grep -Eq "$progress_re"; then
-        echo "OBSERVE STALL: '$scenario' passed its TAPs and then stopped — no line matching '$progress_re' in ${poll}s, with no fault, no panic and no reboot. This is #213's signature and the reason this window exists." >&2
+        echo "OBSERVE STALL: '$scenario' passed its TAPs and then stopped — no line matching '$progress_re' in ${poll}s, and no fault signature SO FAR. If this node carries the #215 detector, its deadline is 8x the app's own shortest declared period (16 s for the bridge's 2 s cadence) and its dump may still be in flight — read past this line in the console log before treating it as #213's unexplained silence, and raise this scenario's OBSERVE_POLL_S above that deadline if you want the window to wait for it (rete#223)." >&2
         return 1
       fi
     fi
