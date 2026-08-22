@@ -1,0 +1,50 @@
+(*
+porta space-sync — the node DECLARES how long its silence may last (rete#231 D2).
+
+The record is built and written by the BRIDGE, not by each app, for the reason
+publishMetrics gives: every bridged app inherits the declaration without
+re-implementing it, and obs/health's three mutually inconsistent definitions are
+what happens when it is left to the apps.
+
+WRITTEN ONCE PER BOOT, on obs/apps/main's precedent (#25): the value cannot change
+without an app declaration or a goal arriving, and `put:` refreshes the cell's seq
+unconditionally — so a per-check-in write would re-send this row on EVERY push
+forever, against measured headroom, and pushFrame trims from the TAIL.
+
+The socket is nil, so no I/O is attempted; publishLiveness is the seam under test.
+expect:
+tag true
+cad 30000
+bud 240000
+published once true
+seq advanced true
+*)
+class LivenessDeclared packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space bridge before rec seqAfterFirst |
+    space:: platform space.
+    (* `space seq` READS the counter; `space stamp` BUMPS it (prim 138 vs 139),
+       so an assertion written against `stamp` advances whether or not anything
+       was written and cannot fail. Every seq read here is `seq`. *)
+    before:: space seq.
+    bridge:: platform PortaBridge socket: nil space: space id: 'test' peer: '::1' port: 1
+      spans: platform Spans new.
+
+    bridge publishLiveness.
+    rec:: (space channel: 'obs/liveness') peek: '' ifAbsent: [ nil ].
+    ('tag ' , (rec tag = #Liveness) printString) println.
+    ('cad ' , (rec at: #cad ifAbsent: [ -1 ]) printString) println.
+    ('bud ' , (rec at: #bud ifAbsent: [ -1 ]) printString) println.
+
+    (* ONCE PER BOOT: a second send must not re-stamp the cell, or the row rides
+       every push for the life of the node. *)
+    seqAfterFirst:: space seq.
+    bridge publishLiveness.
+    ('published once ' , (space seq = seqAfterFirst) printString) println.
+
+    (* The write must STAMP, or the cell exists locally and never rides a push:
+       collectOutbound scans `changedSince: acked`. *)
+    ('seq advanced ' , (seqAfterFirst > before) printString) println.
+  )
+) : (
+)

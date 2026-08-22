@@ -1663,6 +1663,27 @@ class Kernel usingPlatform: platform = () (
          to the same story from the other end: obs/apps/main is written once per
          boot because the running hash cannot change without one. *)
       otaStaged ::= false. otaConfirmed ::= false. appsPublished ::= false.
+      (* rete#231 D2 — the liveness contract. `cad` is how often this node INTENDS
+         to speak; `bud` is the longest silence that is still healthy, and it is the
+         ONLY number the gateway judges against (`now - last_seen > bud`). The gap
+         between them is this node's own allowance for missed datagrams — c6-bell
+         misses roughly half its check-ins to ordinary mesh loss, and the node is the
+         only party that knows its own loss rate.
+
+         The defaults are compiled in so that a node which has never heard from porta
+         still has a budget, which is what makes a never-seen node judgeable at all.
+         30 s is the slowest cadence on this bench; declaring a cadence SLOWER than
+         the node keeps is always safe, because porta judges `bud` and speaking more
+         often than declared violates nothing. `8 x` is #215's measured wedge slack,
+         reused rather than a second multiplier invented — and note this is the node
+         multiplying its OWN number, not the gateway multiplying someone else's,
+         which is precisely the k=3 that rete#231 D4 deletes.
+
+         `livenessPublished` is the obs/apps/main rule (#25): written once per boot,
+         because a cell that never changes must not be allowed to crowd out the one
+         that does under pushFrame's tail-trim. A declaration or an accepted goal
+         clears it, which is the only way the value can move. *)
+      cadMs ::= 30000. budMs ::= 240000. livenessPublished ::= false.
       pending ::= OrderedCollection new.
       (* tuvm#107 follow-on: the six spans that decompose `checkIn`. See the
          bracket comment on checkIn for what each one covers and why the sends are
@@ -2277,8 +2298,12 @@ class Kernel usingPlatform: platform = () (
          a sample; obs/apps/main is written ONCE per boot (see publishApps), so
          losing its one push would leave the node's answer to "what are you
          running" permanently absent — the write-once trim hazard the pushFrame
-         comment already records for obs/build, and now a second instance of it. *)
+         comment already records for obs/build, and now a second instance of it.
+         obs/liveness joins that group and for the same reason — it is written once
+         per boot, so it must be ahead of the per-check-in rows that can afford to
+         lose a sample. *)
       self publishApps.
+      self publishLiveness.
       self publishMetrics.
       self publishCheap.
       spans end: sApplyIn.
@@ -2358,6 +2383,25 @@ class Kernel usingPlatform: platform = () (
         with: #image -> (Record tag: #BlobRef with: #hash -> h)
         with: #lifecycle -> #running).
       appsPublished:: true.
+      ^ self )
+
+    public cadMs = ( ^ cadMs )
+    public budMs = ( ^ budMs )
+
+    (* rete#231 D2 — the node's own authority, on the node's own path. porta writing
+       obs/** would be a lie (2026-08-10 D7), so the operator gets goal/liveness and
+       a tree diff instead (Task 6); the node always wins.
+
+       Written once per boot for the reason publishApps gives at length: `put:` does
+       not compare values, so a per-check-in write would re-send an unchanging ~30 B
+       row on every push forever, and the row pushFrame's tail-trim starts dropping
+       is whatever was written last. *)
+    public publishLiveness = (
+      livenessPublished ifTrue: [ ^ self ].
+      space put: 'obs/liveness' value: (Record tag: #Liveness
+        with: #cad -> cadMs
+        with: #bud -> budMs).
+      livenessPublished:: true.
       ^ self )
 
     (* rete#25 — the ENTIRE image-update policy, run once per check-in from the
