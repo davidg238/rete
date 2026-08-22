@@ -71,8 +71,21 @@ class TimerlessNodeC6 usingPlatform: platform net: net = (
 
     sock:: net udpBindPort: self localPort.
     spans:: plat Spans new.
+    (* A BIND FAILURE MAKES THIS NODE INVISIBLE, AND IT MUST SAY SO IN ONE LINE.
+       This branch used to read "wedging anyway, the detector is the test", which was
+       false in the one shape that matters: the wedge is driven by `tick`, `tick` is
+       driven by the base tick, and the base tick is registered BY THE BRIDGE below —
+       which is never constructed when the bind fails. So a bind failure yields a node
+       that ticks nothing, wedges never, and puts no deadline in `timer_target_snapshot`
+       (observer.c returns COND_NONE at n == 0). It is then indistinguishable from a
+       healthy idle node, because `pulse_pump` blocks on K_FOREVER either way.
+
+       That is not hypothetical: 2026-08-22 10:49 this node was built with no radio
+       layer, sat silent for the full 300 s, and the run cost a board cycle to read.
+       The manifest carries the CONF_EXTRA that prevents it; this line is what makes the
+       next occurrence legible in one grep instead of one cycle. *)
     sock == nil
-      ifTrue:  [ 'timerless: bind FAILED — wedging anyway, the detector is the test' out ]
+      ifTrue:  [ 'timerless: bind FAILED — no bridge, so NO base tick is registered: this node will not tick, will not wedge, and the detector has no deadline for it. Check the image has a radio layer (CONF_EXTRA prj_esp32c6_thread.conf).' out ]
       ifFalse: [
         bridge:: plat PortaBridge
           socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort

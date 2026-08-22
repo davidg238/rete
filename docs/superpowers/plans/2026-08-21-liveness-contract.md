@@ -2147,7 +2147,7 @@ three board-only falsifications:
 `OBSERVE_S` must outlast the verdict: a scenario's TAPs passing is not the verdict (#216), and a
 window that reaches its verdict before the evidence arrives is #223's exact defect.
 
-- [ ] **Step 5: Run it on the board**
+- [x] **Step 5: Run it on the board**
 
 ```bash
 cd /home/david/workspace/rete/nodus/tuvm/tests/target && ./run.sh liveness-heartbeat
@@ -2157,12 +2157,25 @@ Then run the two scenarios most likely to regress from a kernel-owned timer — 
 (the false-trip gate) and `bridge-health` — before claiming the rung. Paste the actual console
 evidence into the issue; a summary of a board run is not a board run.
 
+
+**RUN 2026-08-22, and the first attempt failed for a reason worth keeping.** The manifest was
+written with no `CONF_EXTRA`, so the image had no radio L2; `net udpBindPort:` answered nil, no
+bridge was constructed, and the bridge-registered base tick — the only timer in the image —
+never existed. The node printed READY and nothing else for 300 s, i.e. the build had put it
+back in the exact `n == 0` blind spot this task exists to abolish. Fixed by giving the manifest
+bridge-health's Thread pair. Second run: **PASS 2/2**, `deadline=16000ms`, 18.03 s of total
+console silence between the wedge and the reset, boot 2 `pass=2 fail=0`, clean through the
+180 s window. Regressions checked: `bridge-health` 3/3, `wedge-quiet` 1/1. Host gates after the
+node edit: nsl **269/0** aux clean, `go test ./...` ok, `gofmt` silent, `PORTA SYNC OK`.
+`zephyr/run.sh` had warned about the missing radio and `deploy_flash.sh` discarded the warning
+because the build succeeded — filed as **#236**.
+
 - [x] **Step 6: Record the scenario in `CLAUDE.md`**
 
 Add the row to the target-scenario table, with its class and what it gates. That table is what
 the next session budgets board time from.
 
-- [ ] **Step 7: Commit and close #231**
+- [x] **Step 7: Commit and close #231**
 
 ```bash
 cd /home/david/workspace/rete

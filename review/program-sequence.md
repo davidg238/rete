@@ -2452,6 +2452,79 @@ false green with no banner on it. **It is worse than a wrong read: `space.Open` 
 empty store and answered from that**, leaving a decoy `porta.db` beside the real one — the same
 way the stale `space.db` got there. Filed as #221; the stray file was removed.
 
+## The node declares its own silence, and the kernel makes the silence mean something — 2026-08-22, #231
+
+**porta stopped inferring how long a node may go quiet, and the node started saying.** The
+whole gateway rule is now `now - last_seen > bud`, one line with no constants in it, against a
+budget the node published at `obs/liveness`. Deleted with the inference: `CadenceMs`, the
+ten-gap median, `MinExchanges`, `SilenceFactor` (`k = 3`), `nodes.cadence_ms` and the `leg`
+column the rung above had just added — migrated in place with `dropColumns` so the soak store
+on gw85224-01 was not rebuilt. **#220 closes with it**: the fast-node false positive that rung
+filed as I6 was not a knob waiting to be tuned, it was the inference being the wrong shape. The
+node is the only party that knows its own loss rate — `c6-bell` misses roughly half its 30 s
+check-ins to ordinary mesh loss — so a gateway judging it against a cadence calls a healthy
+node silent forever.
+
+**A declaration the node cannot honour is snapped and published, never refused.**
+`goal/liveness` is a request; the node adopts it through the same clamp its own declaration
+goes through and republishes what it actually took. Ask 45 s of a 2 s node and `obs/liveness`
+answers 46 000. The `goal`/`obs` divergence IS the answer, so nothing needs to know the legal
+values in advance and there is no accept/reject protocol to get wrong.
+
+**The gateway also learned to say when it was not listening.** `Sweep` runs inside `porta
+serve`, so a gateway that is down writes nothing and every verdict freezes at whatever it last
+was: on 2026-08-19 `gw/liveness` read `#live` for **ten hours and six minutes** while `c6-bell`
+missed every check-in. Not missing — positively wrong, and unfalsifiable from the store alone.
+`gw_runs` records the intervals porta was actually up, and a window those runs do not cover
+reads `#unknown` (#225). Two verdicts became four, because `#live`, `#silent`, `#neverSeen` and
+`#unknown` are four different operator actions.
+
+**Then the last rung's own lesson repeated one level down.** D1 said the kernel should own the
+base tick, and the reason was never cost. `observer_verdict()` opens
+`if (n == 0) return COND_NONE` over `timer_target_snapshot()`, so a node whose *app* declared
+no repeating timer had never been judged at all — not judged healthy, **unjudgeable**. That is
+the ordinary shape for a reactive sensor, and it is invisible in the worst way, because
+`pulse_pump` is `K_FOREVER`-blocking on Zephyr and healthy-idle is byte-identical to wedged.
+One kernel-owned `timers every:` fixes both halves and adds **no C**: `timer_target_snapshot`
+already reports it to #215's observer, so the same timer drives the check-in and supplies the
+deadline. It rides the reactor rather than a C thread deliberately — **a heartbeat a wedged
+node can still emit is `port=up`, the exact lie #152 is about.**
+
+**The board said so, and it is the first run of that scenario ever.** `liveness-heartbeat` on
+`c6spare`: `TimerlessNodeC6` declares no timer, so the kernel's 2000 ms tick was the only one
+in the image. It wedged on purpose at tick 15 and the observer fired
+`WEDGE cond=pulse-undrained overdue=16ms deadline=16000ms up=50606ms` — a deadline that exists
+only because the kernel registered that tick. Between `entering the wedge` and the reset:
+**18.03 s and zero console lines of any kind.** The heartbeat did not outlive the wedge. Boot 2
+reported `pass=2 fail=0` and ran clean through the 180 s window; `bridge-health` (3/3) and
+`wedge-quiet` (1/1) confirmed no regression from moving the tick into the kernel. porta holds
+the other end: `c6-timerless` declared `#Liveness{#bud: 16000, #cad: 2000}` over the radio and
+reached `#silent` when it stopped.
+
+**The bug worth keeping is that the manifest paired a networked node with a radio-less build.**
+`liveness-heartbeat.env` was written with no `CONF_EXTRA`, citing a design §9 that says no such
+thing — the no-overlay convention belongs to `wedge-note`'s synthetic-trigger split and was
+never about the radio. `prj.conf` alone carries `NETWORKING/IPV6/UDP/SOCKETS` but **no L2**, so
+`net udpBindPort:` answered nil, no `PortaBridge` was constructed, and
+`bridge == nil ifFalse: [ bridge startTicking: … ]` — the only timer registration in the whole
+image — never ran. The node printed READY and then nothing for 300 s: it had accidentally been
+returned to exactly the `n == 0` state the rung exists to abolish, by way of the build rather
+than the mechanism. **Whatever registers the base tick must not be downstream of anything that
+can fail at boot** — the sharpest thing this rung learned, and it came from the failure.
+
+`zephyr/run.sh` had already printed the warning that names this exact cause, and had already
+recorded the same shape from #165. Nobody saw it: `deploy_flash.sh` captures the build output
+and echoes it **only when the build fails**, and this build succeeded. Filed as **#236** — a
+false red whose cause was withheld, which is the same family as the false greens and cost one
+full board cycle.
+
+**Still ungated, and named rather than left to be found.** D3's coalescing claim — two
+obligations at different multiples of one base tick costing fewer radio wakes than the sum of
+independent periods — needs a second obligation and a wake counter, and the node that proved
+everything else has one obligation and no counter. And `goal/liveness`'s cadence half is
+accepted but not honoured: the kernel owns the period, but nothing re-arms the timer when an
+adopted cadence moves, so a requested cadence still shows only as a `goal`/`obs` divergence.
+
 ## Known stale docs (do not treat as current)
 
 `docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),

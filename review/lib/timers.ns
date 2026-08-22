@@ -93,3 +93,68 @@ class TimersStaging usingPlatform: platform = () (
     public usingSpace: s seam: c = ( ^ self new setSpace: s seam: c )
   )
 ) : ( )
+
+(* ─────────────────────────────────────────────────────────────────────────────
+   WHO OWNS THE BASE TICK — rete#231 D1, added 2026-08-22 after the board run.
+
+   Everything above describes timers an APP registers. One timer is not the app's:
+   the kernel registers a repeating base tick of its own, and that changes what the
+   absence of a heartbeat is allowed to mean.
+
+   THE ARGUMENT, and it is not about cost. A heartbeat that a wedged node can still
+   emit is `port=up` with better manners — the exact lie rete#152 is about. So the
+   heartbeat must ride THIS module's reactor dispatch rather than a C thread of its
+   own: if the VM is stuck in the interpreter, the tick stops, and the stopping is
+   the signal. Put the heartbeat on a separate C thread and it keeps beating over a
+   dead reactor, which is worse than no heartbeat because it is believed.
+
+   It also adds NO C. `timer_target_snapshot()` already reports every live repeating
+   timer to the rete#215 observer, so one kernel-owned `timers every:` feeds both
+   consumers at once: it drives the check-in AND it puts a deadline in the snapshot.
+
+   WHY THAT SECOND HALF MATTERS. `observer_verdict()` opens with
+
+       int n = timer_target_snapshot(period, since, OBS_MAX_TIMERS);
+       if (n == 0) return COND_NONE;   /* nothing to judge it against */
+
+   so before this rung a node whose app declared no repeating timer was UNJUDGEABLE.
+   Not "judged healthy" — never judged at all. That is the ordinary shape for a
+   purely reactive sensor (GPIO, inbound radio), and it is invisible in the worst
+   way, because `pulse_pump` is K_FOREVER-blocking on Zephyr and therefore looks
+   identical whether the node is healthily idle or wedged solid. With the kernel's
+   tick always present, `n` is never 0 and the deadline always exists.
+
+   THE INSTANCE RULE IS LOAD-BEARING, and it is the one way to get this wrong.
+   `platform timers` answers a FRESH Timers instance on every send, while the C
+   registry underneath is keyed globally. A kernel that minted its own instance
+   would register a token the app's `dispatch:` never heard of, and every tick would
+   be dropped in silence. So the bridge is HANDED the app's one instance:
+
+       bridge startTicking: timers on: tickCh
+
+   Corollary worth stating, because it bit on the first board run: the tick is
+   registered BY the bridge, and the bridge needs a socket. A node that fails its
+   UDP bind constructs no bridge, registers no tick, and lands back in the n == 0
+   hole — silent, unwedgeable and unjudgeable. Whatever registers the base tick must
+   not be downstream of anything that can fail at boot.
+
+   MEASURED ON HARDWARE, 2026-08-22 (`liveness-heartbeat`, c6spare, esp32c6):
+   TimerlessNodeC6 declares no timer at all; the kernel's 2000 ms tick was the only
+   one in the image. The node wedged deliberately at tick 15 and the observer fired
+   with `deadline=16000ms` — `shortest_period × WEDGE_SLACK` = 2000 × 8, a number
+   that exists ONLY because the kernel registered that tick. Between the wedge and
+   the reset there were 18.03 s and ZERO console lines of any kind: the heartbeat did
+   not outlive the wedge, which is the whole claim. Boot 2 reported `pass=2 fail=0`
+   and ran on clean through the 180 s observation window.
+
+   CAUTION — TWO EIGHTS THAT ARE NOT THE SAME EIGHT. The observer's deadline is
+   `shortest_period × WEDGE_SLACK` (slack 8, in observer.c). The budget the node
+   PUBLISHES to porta at `obs/liveness` is `cadence × 8`, chosen by the app. Both
+   came to 16000 ms here and neither is derived from the other. Change one and the
+   other does not follow.
+
+   NOT GATED BY ANY OF THE ABOVE: D3's coalescing claim — that two obligations at
+   different multiples of one base tick cost fewer radio wakes than the sum of
+   independent periods — needs a second obligation and a wake counter, and the node
+   that proved the rest has one obligation and no counter.
+   ───────────────────────────────────────────────────────────────────────────── *)

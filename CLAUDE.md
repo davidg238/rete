@@ -110,10 +110,21 @@ the pulse mailbox, so coalescing, shedding and stale handles need `nodus/tuvm/te
 and a board.
 
 **What `tests/target/run.sh` actually runs — eight scenarios, and a full pass is ~40–60 min of
-board time** (`liveness-heartbeat` is the eighth, written 2026-08-22 and never yet run;
-budget its 300 s timeout plus 180 s of observation), so budget it rather than discovering it. `CLASS=disruptive` means the scenario
+board time** (`liveness-heartbeat` is the eighth; budget its 300 s timeout plus 180 s of
+observation), so budget it rather than discovering it. `CLASS=disruptive` means the scenario
 deliberately wedges, burns or reboots the node: **a disposable board only** (`c6spare`, which
 is `TARGET_DEFAULT_BOARD` — resolve boards through the collector env files, never a table).
+
+**A scenario whose node opens a socket needs `CONF_EXTRA` naming the radio, and only two nodes
+do.** `prj.conf` alone has `NETWORKING/IPV6/UDP/SOCKETS` but **no L2**, so a C6 built without
+`prj_esp32c6_thread.conf` has no interface and `net udpBindPort:` answers nil. The wedge probes
+never notice — `WedgeProbeC6`, `SlowTimerNodeC6`, `PulseCoalesceProbeC6` and `StaleHandleProbeC6`
+arm `timers every:` directly and open nothing. `PortaBridgeNodeC6` and `TimerlessNodeC6` bind, and
+for `TimerlessNodeC6` the bind is load-bearing: the base tick is registered by the **bridge**, so
+no socket means no timer, no wedge, and no deadline for the detector. The "no `CONF_EXTRA`"
+convention is about `wedge-note`'s synthetic-trigger Kconfig split and **was never about the
+radio** — conflating the two cost a board cycle on 2026-08-22 (#236, and `zephyr/run.sh`'s #165
+comment records the same shape from before).
 
 | scenario | class | what it gates |
 |---|---|---|
@@ -124,7 +135,7 @@ is `TARGET_DEFAULT_BOARD` — resolve boards through the collector env files, ne
 | `wedge-note` | disruptive | the `RebootNote` survives a watchdog reset (#215, row 1) |
 | `wedge-detect` | disruptive | the detector fires on a real wedge, dumps the condition, reboots, reports `#watchdog` (#215, row 3) |
 | `wedge-quiet` | disruptive | **no false trip on a legitimately slow node** — one 10-minute timer, and the 600 s observation is why this run is long (#215, row 5) |
-| `liveness-heartbeat` | disruptive | **the detector can see a node with NO app timer** — the kernel owns the base tick, so the deadline exists and nothing speaks between the wedge and the reboot (#231 D1). **WRITTEN 2026-08-22, NEVER RUN ON A BOARD** — it gates nothing until it has |
+| `liveness-heartbeat` | disruptive | **the detector can see a node with NO app timer** — the kernel owns the base tick, so the deadline exists and nothing speaks between the wedge and the reboot (#231 D1). Needs the Thread `CONF_EXTRA`: its node binds. **GREEN ON A BOARD 2026-08-22** — `deadline=16000ms` (the kernel's 2000 ms tick × slack 8, the only timer in the image), 18.03 s of total console silence between the wedge and the reset, `pass=2 fail=0` on boot 2 |
 
 A scenario passing its TAPs is **not** the verdict: every one carries an observation window
 that watches past it, because a gate that scores at tick 2 against a node that dies at tick 6
