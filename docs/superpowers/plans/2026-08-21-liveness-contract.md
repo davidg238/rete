@@ -114,7 +114,7 @@ anything depends on the number, for the same reason the gauge landed before the 
   `PortaBridge>>publishLiveness` → self (called from `checkIn`), and the cell
   `obs/liveness` holding `Liveness { cad: int, bud: int }`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `nodus/tests/22_spacesync/17_liveness_declared.nsl`:
 
@@ -168,7 +168,7 @@ class LivenessDeclared packageUsing: manifest = () (
 )
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 ```bash
 cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/17_liveness_declared.nsl B
@@ -178,7 +178,7 @@ Expected: FAIL — `publishLiveness` does not exist (a `doesNotUnderstand`-class
 literal `B`; the default bakes Path A **over the tracked fixture**. A CRASH discards every line
 already printed, so an empty diff here is the expected failure and not a runner problem.
 
-- [ ] **Step 3: Add the slots**
+- [x] **Step 3: Add the slots**
 
 In `nodus/nsl/lib/kernel.nsl`, class `PortaBridge`'s slot list (beside `otaStaged ::= false.`),
 add:
@@ -207,7 +207,7 @@ add:
       cadMs ::= 30000. budMs ::= 240000. livenessPublished ::= false.
 ```
 
-- [ ] **Step 4: Add `publishLiveness` and the accessors**
+- [x] **Step 4: Add `publishLiveness` and the accessors**
 
 Immediately after `publishApps` in class `PortaBridge`:
 
@@ -232,7 +232,7 @@ Immediately after `publishApps` in class `PortaBridge`:
       ^ self )
 ```
 
-- [ ] **Step 5: Call it from `checkIn`**
+- [x] **Step 5: Call it from `checkIn`**
 
 In `PortaBridge>>checkIn`, in the publish group, immediately **after** `self publishApps.` and
 **before** `self publishMetrics.`:
@@ -250,7 +250,7 @@ Add to the ordering comment already there (the one that explains `publishApps` b
          lose a sample.
 ```
 
-- [ ] **Step 6: Run the test and watch it pass**
+- [x] **Step 6: Run the test and watch it pass**
 
 ```bash
 cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/17_liveness_declared.nsl B
@@ -258,7 +258,7 @@ cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_
 
 Expected: PASS, all five lines matching the `expect:` block.
 
-- [ ] **Step 7: Run the full suite**
+- [x] **Step 7: Run the full suite**
 
 ```bash
 cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py
@@ -266,7 +266,7 @@ cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py
 
 Expected: `Failed: 0`, one more test than before, and the aux-gate line free of new red.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 cd /home/david/workspace/rete
@@ -297,7 +297,7 @@ a `goal`/`obs` divergence rather than as a silent refusal).
 - Produces: `PortaBridge>>liveness: aCadMs budget: aBudMs` → self (idempotent; re-publishes only
   when the adopted pair actually changes), and `PortaBridge>>livenessCeilingMs` → `86400000`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `nodus/tests/22_spacesync/18_liveness_grid.nsl`:
 
@@ -374,7 +374,7 @@ class LivenessGrid packageUsing: manifest = () (
 )
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 ```bash
 cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/18_liveness_grid.nsl B
@@ -382,7 +382,7 @@ cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_
 
 Expected: FAIL — `liveness:budget:` does not exist.
 
-- [ ] **Step 3: Implement the declaration and the grid**
+- [x] **Step 3: Implement the declaration and the grid**
 
 In `nodus/nsl/lib/kernel.nsl`, class `PortaBridge`, immediately before `publishLiveness`:
 
@@ -432,7 +432,7 @@ In `nodus/nsl/lib/kernel.nsl`, class `PortaBridge`, immediately before `publishL
     public liveness: aCadMs budget: aBudMs = ( ^ self adoptCad: aCadMs bud: aBudMs )
 ```
 
-- [ ] **Step 4: Run the test and watch it pass**
+- [x] **Step 4: Run the test and watch it pass**
 
 ```bash
 cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/18_liveness_grid.nsl B
@@ -440,7 +440,7 @@ cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_
 
 Expected: PASS, six lines matching.
 
-- [ ] **Step 5: Every bridged app declares its own period**
+- [x] **Step 5: Every bridged app declares its own period**
 
 Five apps construct a `PortaBridge`. Each one that drives `bridge checkIn` from a timer declares
 that timer's period; one that never checks in keeps the default. Add immediately after the
@@ -462,7 +462,7 @@ that timer's period; one that never checks in keeps the default. Add immediately
   `grep -n 'bridge checkIn' nodus/tuvm/zephyr/ShipsBellNodeC6.nsl`. If it never checks in, add
   nothing and say so in the commit message; the compiled-in default stands and is honest.
 
-- [ ] **Step 6: Run the full suite**
+- [x] **Step 6: Run the full suite**
 
 ```bash
 cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py
@@ -472,7 +472,7 @@ Expected: `Failed: 0`. The apps under `nodus/tuvm/zephyr/` are not compiled by t
 also confirm the host twin still builds by running the host gate at Task 5; a typo there is
 otherwise invisible until then.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 cd /home/david/workspace/rete
@@ -500,7 +500,7 @@ porta's request would be a grid the operator cannot learn by asking."
 - Consumes: the `Liveness` record shape from Task 1.
 - Produces: the measured byte count, in a test's `expect:` block and in both protocol documents.
 
-- [ ] **Step 1: Write the measuring test**
+- [x] **Step 1: Write the measuring test**
 
 Create `nodus/tests/22_spacesync/20_liveness_size.nsl`. The `expect:` values below are
 **placeholders** — Step 2 replaces them with what the encoder actually answers:
@@ -536,7 +536,7 @@ class LivenessSize packageUsing: manifest = () (
 )
 ```
 
-- [ ] **Step 2: Run it, read the number, pin it**
+- [x] **Step 2: Run it, read the number, pin it**
 
 ```bash
 cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/20_liveness_size.nsl B
@@ -547,7 +547,7 @@ re-run to PASS. Record the number here in the plan as you go — Steps 3 and 4 q
 
 > measured `Liveness` size at worst legal values: **37 B** (2026-08-21; 2 tag + 1 array + 11 symbol `#Liveness` + 1 map + 2 x (6 key + 5 value))
 
-- [ ] **Step 3: Add the row to `protocol/PROTOCOL-NSL-RECORDS.md` §4.2**
+- [x] **Step 3: Add the row to `protocol/PROTOCOL-NSL-RECORDS.md` §4.2**
 
 In the `obs/**` table, after the `obs/health` row:
 
@@ -569,7 +569,7 @@ declaration did not exist*; it does now, and it arrives from the only party enti
 `exchanges.leg` were all deleted with it.
 ```
 
-- [ ] **Step 4: Add the row to `protocol/PROTOCOL-NSL.md` §4.2**
+- [x] **Step 4: Add the row to `protocol/PROTOCOL-NSL.md` §4.2**
 
 Beside the `health` row in the path table:
 
@@ -578,7 +578,7 @@ Beside the `health` row in the path table:
 | `liveness` (request) | `goal/liveness` | cell | `{cad:, bud:}` — the operator **requests**; the node snaps to its grid, clamps to 24 h and publishes what it adopted. The `goal`/`obs` diff is the answer, so nothing needs to know the legal values in advance |
 ```
 
-- [ ] **Step 5: Suite, then commit**
+- [x] **Step 5: Suite, then commit**
 
 ```bash
 cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py
@@ -608,7 +608,7 @@ Design §7 step 2, first half. A pure read, added before anything depends on it.
   `func (s *Store) DeclaredBudget(nodeID string) (int64, bool, error)` — `ok` is false when the
   node has published no declaration, or has published one porta cannot read.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `porta/internal/space/store_test.go`:
 
@@ -682,7 +682,7 @@ cd /home/david/workspace/rete/porta && grep -n "func (s \*Store) Ingest" interna
 Adjust the two `Ingest` calls (and any `storeAtClock` helper name) to match what is actually
 there; the rest of the test stands.
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 ```bash
 cd /home/david/workspace/rete/porta && go test ./internal/space/ -run DeclaredBudget -v
@@ -690,7 +690,7 @@ cd /home/david/workspace/rete/porta && go test ./internal/space/ -run DeclaredBu
 
 Expected: FAIL to compile — `st.DeclaredBudget` undefined.
 
-- [ ] **Step 3: Implement it**
+- [x] **Step 3: Implement it**
 
 In `porta/internal/space/store.go`, beside `PathLiveness`:
 
@@ -754,7 +754,7 @@ func (s *Store) DeclaredBudget(nodeID string) (int64, bool, error) {
 }
 ```
 
-- [ ] **Step 4: Run the tests and watch them pass**
+- [x] **Step 4: Run the tests and watch them pass**
 
 ```bash
 cd /home/david/workspace/rete/porta && go test ./internal/space/ -run DeclaredBudget -v
@@ -762,7 +762,7 @@ cd /home/david/workspace/rete/porta && go test ./internal/space/ -run DeclaredBu
 
 Expected: PASS, both tests and all five sub-tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 cd /home/david/workspace/rete/porta && gofmt -l . && go test ./...
@@ -801,7 +801,7 @@ and its paragraph goes.
   `unknown`. `func (s *Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut,
   pushedLo, pushedHi int64, addr string) error` — the `leg string` parameter is gone.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace the cadence-era tests in `porta/internal/space/sweep_test.go`. Keep `livenessOf` and
 `livenessRows` as they are. The new set:
@@ -962,7 +962,7 @@ Delete outright: `TestSweepDeclaresANodeSilentAfterThreeCadences`,
 every remaining cadence-inference test — they test a mechanism that no longer exists, and one
 left behind is a compile error that reads like a regression.
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 ```bash
 cd /home/david/workspace/rete/porta && go test ./internal/space/ -run Sweep -v
@@ -971,7 +971,7 @@ cd /home/david/workspace/rete/porta && go test ./internal/space/ -run Sweep -v
 Expected: FAIL to compile — `changes[0].Verdict` and `st.EnsureNode` (check the real name with
 `grep -n "func (s \*Store) Ensure" internal/space/store.go`) do not exist yet.
 
-- [ ] **Step 3: Rewrite `Sweep`**
+- [x] **Step 3: Rewrite `Sweep`**
 
 Replace `porta/internal/space/sweep.go`'s constants, `LivenessChange` and `Sweep` with:
 
@@ -1122,7 +1122,7 @@ Delete `recordCadence` entirely. Add `"database/sql"` to the imports; drop any t
 Task 8 inserts the deaf test into `verdictFor` between the budget comparison and the `#silent`
 return — leave the shape as written so that edit is one block.
 
-- [ ] **Step 4: Delete the inference from `store.go`**
+- [x] **Step 4: Delete the inference from `store.go`**
 
 Delete `CadenceMs`, `medianMs`, and the whole `const ( CadenceWindow … MinExchanges …
 SilenceFactor … )` block with its comment. Delete the `"sort"` import if nothing else uses it.
@@ -1166,7 +1166,7 @@ test in the next step decides it. Run both a fresh-store and a migrated-store op
 existing migration test (`porta/internal/space/store_test.go:342` is the precedent) and confirm
 the second `Open` is a no-op.
 
-- [ ] **Step 5: Update the serve log line**
+- [x] **Step 5: Update the serve log line**
 
 `porta/internal/portacli/serve.go`, in `sweepLiveness`:
 
@@ -1179,7 +1179,7 @@ the second `Open` is a no-op.
 
 Delete the `verdict := "live"; if c.Silent {…}` block above it.
 
-- [ ] **Step 6: Rewrite the two accepted false-report modes**
+- [x] **Step 6: Rewrite the two accepted false-report modes**
 
 In `sweep.go`'s doc comment, replace the I4/I5 block with:
 
@@ -1203,7 +1203,7 @@ In `sweep.go`'s doc comment, replace the I4/I5 block with:
 //     missing. Do not read #silent as "crashed".
 ```
 
-- [ ] **Step 7: Run everything**
+- [x] **Step 7: Run everything**
 
 ```bash
 cd /home/david/workspace/rete/porta && gofmt -l . && go test ./...
@@ -1212,7 +1212,7 @@ cd /home/david/workspace/rete/porta && gofmt -l . && go test ./...
 Expected: PASS. `grep -rn "CadenceMs\|SilenceFactor\|MinExchanges\|cadence_ms" porta/` must
 return nothing outside `docs/`.
 
-- [ ] **Step 8: The host gate, then commit**
+- [x] **Step 8: The host gate, then commit**
 
 ```bash
 cd /home/david/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
@@ -1252,7 +1252,7 @@ only kind of test that catches a protocol misreading.
 - Consumes: the node's `obs/liveness` (Tasks 1–2) and porta's verdict (Task 5).
 - Produces: two new legs in the gate's output, and the `PORTA SYNC OK` line unchanged.
 
-- [ ] **Step 1: Add the leg, and watch it fail first**
+- [x] **Step 1: Add the leg, and watch it fail first**
 
 Before adding the assertion, run the gate as-is and confirm it is green; a leg added to a red
 gate cannot be told from the thing that was already red.
@@ -1286,7 +1286,7 @@ cd /home/david/workspace/rete/porta && grep -n "Symbol" internal/cval/format.go
 
 Adjust both greps to whatever `Format` actually prints.
 
-- [ ] **Step 2: Add the verdict leg**
+- [x] **Step 2: Add the verdict leg**
 
 The sweep ticks every 30 s, which is longer than this gate's whole run — so drive one tick
 directly rather than waiting, and say why:
@@ -1309,7 +1309,7 @@ a minute, prefer adding `porta serve --sweep-tick <dur>` (a test knob, exactly l
 `--test-drop-ack`) and pass `--sweep-tick 1s` from this script. Take that option if the sleep
 lands badly; record which you chose in the commit message.
 
-- [ ] **Step 3: Run the gate**
+- [x] **Step 3: Run the gate**
 
 ```bash
 cd /home/david/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
@@ -1317,7 +1317,7 @@ cd /home/david/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
 
 Expected: `PORTA SYNC OK`, with the two new lines printed.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 cd /home/david/workspace/rete
@@ -1354,7 +1354,7 @@ without ever being published.
 - Consumes: `adoptCad:bud:` from Task 2, `peekCell:ifStream:` from the kernel.
 - Produces: `PortaBridge>>applyLivenessGoal` → self, called from `checkIn` after `applyBatch:`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `nodus/tests/22_spacesync/19_liveness_goal.nsl`:
 
@@ -1431,7 +1431,7 @@ and whether the third case needs a fresh `platform space` per sub-case — the s
 across this test's four blocks, and a leaf pinned as a stream in case 3 stays pinned for case 4.
 If it does, give each sub-case its own path or reorder so the stream case runs last.
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 ```bash
 cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/19_liveness_goal.nsl B
@@ -1439,7 +1439,7 @@ cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_
 
 Expected: FAIL — `applyLivenessGoal` does not exist.
 
-- [ ] **Step 3: Implement it**
+- [x] **Step 3: Implement it**
 
 In `nodus/nsl/lib/kernel.nsl`, class `PortaBridge`, after `liveness:budget:`:
 
@@ -1490,7 +1490,7 @@ arriving on this tick is published on this tick rather than the next:
       self applyLivenessGoal.
 ```
 
-- [ ] **Step 4: Run the test and watch it pass**
+- [x] **Step 4: Run the test and watch it pass**
 
 ```bash
 cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/19_liveness_goal.nsl B
@@ -1499,7 +1499,7 @@ cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py
 
 Expected: both PASS, `Failed: 0`.
 
-- [ ] **Step 5: Pin the gate's raw CBOR with a Go golden**
+- [x] **Step 5: Pin the gate's raw CBOR with a Go golden**
 
 `porta put` takes scalars or `--raw <hex>`; a Record needs the hex, and a hex nobody checks is a
 constant that rots silently. Add to `porta/internal/cval/encode_test.go`:
@@ -1527,7 +1527,7 @@ func TestGoalLivenessGoldenForTheHostGate(t *testing.T) {
 
 Run it, read the real hex from the failure, and put it in both `want` and the gate script.
 
-- [ ] **Step 6: Add the convergence leg to the host gate**
+- [x] **Step 6: Add the convergence leg to the host gate**
 
 ```bash
 # rete#231 D2, and this is the leg that proves the operator half. 45 s is not a
@@ -1558,7 +1558,7 @@ echo "  goal/liveness 45 s -> obs/liveness 46 s: the node snapped, and the diff 
 The second assertion is not decoration: `obs/**` is the node's authority and `goal/**` is
 porta's, and a node that "converged" by rewriting the goal would pass the first check alone.
 
-- [ ] **Step 7: Run the gate, then commit**
+- [x] **Step 7: Run the gate, then commit**
 
 ```bash
 cd /home/david/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
@@ -1611,7 +1611,7 @@ size from. A per-tick row in `events` needs a `node_id` and would write 2 880 ro
 log `porta log` exists to keep readable. One row per porta *run* is the smallest honest record,
 and it answers a second question nothing else can: when was this gateway up.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `porta/internal/space/runs_test.go`:
 
@@ -1723,7 +1723,7 @@ func TestSweepAcrossAGatewayOutageIsUnknownAndNotSilent(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 ```bash
 cd /home/david/workspace/rete/porta && go test ./internal/space/ -run "WasDeaf|Outage" -v
@@ -1731,7 +1731,7 @@ cd /home/david/workspace/rete/porta && go test ./internal/space/ -run "WasDeaf|O
 
 Expected: FAIL to compile — `StartRun`, `MarkAlive`, `WasDeaf` undefined.
 
-- [ ] **Step 3: Add the table**
+- [x] **Step 3: Add the table**
 
 In `porta/internal/space/schema.go`, at the end of the `schema` const:
 
@@ -1762,7 +1762,7 @@ CREATE TABLE IF NOT EXISTS gw_runs (
 CREATE INDEX IF NOT EXISTS idx_gw_runs_started ON gw_runs(started_ms);
 ```
 
-- [ ] **Step 4: Implement `runs.go`**
+- [x] **Step 4: Implement `runs.go`**
 
 ```go
 // Copyright (c) 2026 Ekorau LLC
@@ -1856,7 +1856,7 @@ Add the field to `Store` in `store.go`:
 	runID int64
 ```
 
-- [ ] **Step 5: Teach `verdictFor` the deaf test**
+- [x] **Step 5: Teach `verdictFor` the deaf test**
 
 In `sweep.go`, between the `since <= bud` return and the `#silent` return:
 
@@ -1877,7 +1877,7 @@ In `sweep.go`, between the `since <= bud` return and the `#silent` return:
 	}
 ```
 
-- [ ] **Step 6: Wire it into `serve`**
+- [x] **Step 6: Wire it into `serve`**
 
 In `porta/internal/portacli/serve.go`, after `space.Open` succeeds:
 
@@ -1903,7 +1903,7 @@ And in `sweepLiveness`, as the first statement of the `case <-t.C:` arm:
 			}
 ```
 
-- [ ] **Step 7: Run everything**
+- [x] **Step 7: Run everything**
 
 ```bash
 cd /home/david/workspace/rete/porta && gofmt -l . && go test ./...
@@ -1912,7 +1912,7 @@ cd /home/david/workspace/rete/nodus/tuvm && bash tests/porta_sync_host.sh
 
 Expected: PASS, and `PORTA SYNC OK`.
 
-- [ ] **Step 8: Falsify it by hand, the way #225 happened by accident**
+- [x] **Step 8: Falsify it by hand, the way #225 happened by accident**
 
 The design names this scenario explicitly, and it has already happened once for real:
 
@@ -1931,7 +1931,7 @@ Record the observed output in the commit message. If the node is inconvenient to
 same shape is provable with `porta put --raw` writing an `obs/liveness` and a hand-stamped
 `last_seen_ms`; say which you did.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 cd /home/david/workspace/rete
@@ -1967,7 +1967,7 @@ is in a mainline document of record. The design's §8 names each destination.
 - Consumes: everything Tasks 1–8 landed.
 - Produces: no code.
 
-- [ ] **Step 1: The dated correction to 2026-08-10 §8**
+- [x] **Step 1: The dated correction to 2026-08-10 §8**
 
 Do not edit the old table's rows in place — mark them. Append to §8:
 
@@ -1991,7 +1991,7 @@ deaf intervals, and **I5** (a sick node's inferred cadence inflating) cannot occ
 inference to inflate.
 ```
 
-- [ ] **Step 2: `porta/docs/ARCHITECTURE.md`**
+- [x] **Step 2: `porta/docs/ARCHITECTURE.md`**
 
 Find the section describing liveness (`grep -n -i "liveness\|silent\|cadence"
 porta/docs/ARCHITECTURE.md`) and replace its mechanism description with:
@@ -2022,13 +2022,13 @@ nothing on the gateway side can change that. What the budget buys is knowing whe
 worrying.
 ```
 
-- [ ] **Step 3: `docs/next-steps-overview.md`**
+- [x] **Step 3: `docs/next-steps-overview.md`**
 
 Replace the `#231` paragraph's "PLAN IS THE NEXT ACTION" opening with what actually landed, what
 is host-proven, and the one thing that is not: **Task 10 needs a board, and until it runs, D1's
 kernel heartbeat and D3's coalescing are designed and unbuilt.** Name the plan file.
 
-- [ ] **Step 4: Close the issues, with evidence and with the deviations named**
+- [x] **Step 4: Close the issues, with evidence and with the deviations named**
 
 ```bash
 cd /home/david/workspace/rete
@@ -2046,7 +2046,7 @@ would be the very lie D1 refuses.
 
 Do **not** close #231 itself: Task 10 is part of it.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/ porta/docs/ARCHITECTURE.md
@@ -2061,7 +2061,10 @@ say so where the next reader will look."
 
 ## Task 10: the kernel owns the base tick and the heartbeat — **needs a board**
 
-Design §7 step 4, D1 and D3. Staged last on purpose. Budget **35–50 minutes of board time** for a
+Design §7 step 4, D1 and D3. Staged last on purpose. **HOST HALF LANDED 2026-08-22 (`b728260`):**
+steps 2, 3, 4 and 6 are done and green on the host; **steps 5 and 7 need a board and are the
+whole of what is left in #231.** Coalescing (D3) is NOT gated by what landed — it needs a second
+obligation and a wake counter, and is named as out of scope in the manifest's own header. Budget **35–50 minutes of board time** for a
 full target run and schedule it in daylight if the bell is involved: flashing an actuator node is
 a physical act.
 
@@ -2096,7 +2099,7 @@ exists *and* drives the check-in. A node with no app timer stops being invisible
 - A `whenever:do:` block cannot resolve its outer chain (#133): the reaction body is one
   self-send.
 
-- [ ] **Step 1: Ask what is actually on the bench**
+- [x] **Step 1: Ask what is actually on the bench**
 
 The bench changes between sessions. Confirm which boards are attached and which is
 `TARGET_DEFAULT_BOARD` **through the collector env files**, never from a table:
@@ -2108,7 +2111,7 @@ grep -rn "TARGET_DEFAULT_BOARD" /home/david/workspace/rete/nodus/tuvm/tests/targ
 
 `CLASS=disruptive` means a disposable board only. Do not point this at the bell.
 
-- [ ] **Step 2: Move the tick into the kernel, host-first**
+- [x] **Step 2: Move the tick into the kernel, host-first**
 
 Add to `PortaBridge` a method that registers the base tick and reacts by checking in, and change
 each app from "own a timer, call `bridge checkIn`" to "hand the bridge its timers and channel".
@@ -2119,7 +2122,7 @@ Write the failing test first — `nodus/tests/22_spacesync/21_kernel_tick.nsl`, 
 bridge handed a `timers` registers exactly one repeating timer at `cadMs` and that a second
 `startTicking:` does not register a second one.
 
-- [ ] **Step 3: The timerless node**
+- [x] **Step 3: The timerless node**
 
 Create `nodus/tuvm/zephyr/TimerlessNodeC6.nsl`: a node whose app declares **no** repeating timer
 at all (GPIO-driven or purely reactive), constructs a bridge, and can be made to wedge on demand
@@ -2127,7 +2130,7 @@ at all (GPIO-driven or purely reactive), constructs a bridge, and can be made to
 #215 detector has no deadline for such a node and never fires; after it, the kernel's own base
 tick is the deadline and the dump must name it.
 
-- [ ] **Step 4: The scenario**
+- [x] **Step 4: The scenario**
 
 Create `nodus/tuvm/tests/target/liveness-heartbeat.env` in `wedge-quiet.env`'s form — a header
 that says what it gates and what it CANNOT see, then the variables. It must witness the design's
@@ -2154,7 +2157,7 @@ Then run the two scenarios most likely to regress from a kernel-owned timer — 
 (the false-trip gate) and `bridge-health` — before claiming the rung. Paste the actual console
 evidence into the issue; a summary of a board run is not a board run.
 
-- [ ] **Step 6: Record the scenario in `CLAUDE.md`**
+- [x] **Step 6: Record the scenario in `CLAUDE.md`**
 
 Add the row to the target-scenario table, with its class and what it gates. That table is what
 the next session budgets board time from.

@@ -953,12 +953,20 @@ the third is approved and next** — kept here in order because the order is the
   `PORTA SYNC OK` — and the host suite has been wrong before (a pure codec change once passed
   265/0 and hung a C6 in six check-ins).
 
-  **What is NOT built: D1's kernel-owned heartbeat and D3's coalescing (Task 10).** Until that
-  runs on a board, the app still owns the timer, `goal/liveness`'s *cadence* half is accepted but
-  deliberately not honoured (publishing a cadence the node does not keep is `port=up` with better
-  manners), and the two compiled-in defaults are still in the story. Task 10 also carries the one
-  scenario nothing else can reach — a node with **no** repeating app timer, which the #215
-  detector cannot see today — and it is ~35-50 min of board time.
+  **Task 10's host half also landed (`b728260`): the kernel owns the base tick.**
+  `PortaBridge>>startTicking:on:` registers the period once per boot on the Timers instance it is
+  handed, the four bridged apps hand theirs over, and `TimerlessNodeC6.nsl` — a node whose app
+  declares **no** repeating timer, the shape #215's detector could not see at all — drives the new
+  `liveness-heartbeat` target scenario. `run.sh` discovers it without a registration edit; the nsl
+  suite footer now says **8 scenarios** by itself.
+
+  **What is NOT built, and it is all board work.** `liveness-heartbeat` has **never been run** —
+  it gates nothing yet, and CLAUDE.md's row says so in those words. D3's **coalescing** is not
+  gated by anything (it needs a second obligation and a wake counter). `goal/liveness`'s *cadence*
+  half is still not honoured: the kernel owns the period, but nothing re-arms the timer when an
+  adopted cadence moves, and a re-arm's only interesting failure is at the pulse mailbox, which no
+  host run reaches. **#231 closes when the board runs** `liveness-heartbeat` plus `wedge-quiet`
+  and `bridge-health` as regression — ~40-60 min on `c6spare`.
 
   Also **#223 DONE and promoted** (`8167463`: the observe window no longer reaches its verdict
   18 s before the evidence, and a wedge the detector caught is reported as such; the rule —
