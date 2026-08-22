@@ -1,0 +1,49 @@
+(*
+porta space-sync — THE KERNEL OWNS THE BASE TICK (rete#231 D1).
+
+Why the kernel and not each app, and why nsl and not C: a heartbeat a wedged node
+can still emit is a lie — it is `port=up` exactly, which is the failure #152 is
+about. So the tick rides the reactor. It also costs NO new C: `timer_target_snapshot`
+already reports every live repeating timer to #215's observer, so one kernel-owned
+`timers every:` gives the detector a deadline that always exists AND drives the
+check-in. A node whose app declares no timer at all stops being invisible.
+
+THE BRIDGE IS HANDED THE APP'S ONE `timers`, never mints its own: `platform timers`
+answers a FRESH instance every send and the C timer registry is keyed globally, so
+two instances alias each other's tokens and misfire silently. `pendingCount` on the
+instance the APP holds is what proves the bridge used that one.
+
+ONCE. A second startTicking: must not register a second timer — two timers at the
+same period is two check-ins per tick forever, and the second one is invisible until
+someone counts radio wakeups.
+
+expect:
+before 0
+after 1
+handed instance 1
+idempotent 1
+*)
+class KernelTick packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space timers bridge tickChan |
+    space:: platform space.
+    timers:: platform timers.
+    tickChan:: space channel: 'sys/tick'.
+    bridge:: platform PortaBridge socket: nil space: space id: 'test' peer: '::1' port: 1
+      spans: platform Spans new.
+    bridge liveness: 2000 budget: 16000.
+
+    ('before ' , timers pendingCount printString) println.
+    bridge startTicking: timers on: tickChan.
+    ('after ' , timers pendingCount printString) println.
+
+    (* The registration landed on the instance the APP holds, which is the whole
+       point: a bridge that sent `platform timers` for itself would leave this at
+       0 and dispatch would silently drop every tick. *)
+    ('handed instance ' , timers pendingCount printString) println.
+
+    bridge startTicking: timers on: tickChan.
+    ('idempotent ' , timers pendingCount printString) println.
+  )
+) : (
+)

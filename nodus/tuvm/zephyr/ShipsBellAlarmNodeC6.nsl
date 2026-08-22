@@ -156,7 +156,12 @@ class ShipsBellAlarmNodeC6 usingPlatform: platform net: net = (
           (plat Record tag: #Build with: #chip -> self chip with: #build -> plat buildId).
         beatCh:: space channel: 'sys/tick'.
         beatCh whenever: '' do: [ :m | self checkIn ].
-        timers every: self cadence post: #beat on: beatCh.
+        (* rete#231 D1: the KERNEL owns the period. This node's beat IS its
+           check-in, and the registration moving into the bridge is what puts it
+           in timer_target_snapshot as the bridge's own deadline — a bell that
+           wedges between strokes now stops emitting a heartbeat instead of
+           emitting one from a node that is not ringing. *)
+        bridge startTicking: timers on: beatCh.
         ('porta: check-in every ' , (self cadence // 1000) printString ,
           ' s as ' , self nodeId) out ].
 

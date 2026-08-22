@@ -109,8 +109,9 @@ suite also prints `target gates: NOT RUN BY THIS SUITE`: the posix timer backend
 the pulse mailbox, so coalescing, shedding and stale handles need `nodus/tuvm/tests/target/run.sh`
 and a board.
 
-**What `tests/target/run.sh` actually runs — seven scenarios, and a full pass is ~35–50 min of
-board time**, so budget it rather than discovering it. `CLASS=disruptive` means the scenario
+**What `tests/target/run.sh` actually runs — eight scenarios, and a full pass is ~40–60 min of
+board time** (`liveness-heartbeat` is the eighth, written 2026-08-22 and never yet run;
+budget its 300 s timeout plus 180 s of observation), so budget it rather than discovering it. `CLASS=disruptive` means the scenario
 deliberately wedges, burns or reboots the node: **a disposable board only** (`c6spare`, which
 is `TARGET_DEFAULT_BOARD` — resolve boards through the collector env files, never a table).
 
@@ -123,6 +124,7 @@ is `TARGET_DEFAULT_BOARD` — resolve boards through the collector env files, ne
 | `wedge-note` | disruptive | the `RebootNote` survives a watchdog reset (#215, row 1) |
 | `wedge-detect` | disruptive | the detector fires on a real wedge, dumps the condition, reboots, reports `#watchdog` (#215, row 3) |
 | `wedge-quiet` | disruptive | **no false trip on a legitimately slow node** — one 10-minute timer, and the 600 s observation is why this run is long (#215, row 5) |
+| `liveness-heartbeat` | disruptive | **the detector can see a node with NO app timer** — the kernel owns the base tick, so the deadline exists and nothing speaks between the wedge and the reboot (#231 D1). **WRITTEN 2026-08-22, NEVER RUN ON A BOARD** — it gates nothing until it has |
 
 A scenario passing its TAPs is **not** the verdict: every one carries an observation window
 that watches past it, because a gate that scores at tick 2 against a node that dies at tick 6

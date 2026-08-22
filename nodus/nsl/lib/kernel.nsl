@@ -1684,6 +1684,14 @@ class Kernel usingPlatform: platform = () (
          that does under pushFrame's tail-trim. A declaration or an accepted goal
          clears it, which is the only way the value can move. *)
       cadMs ::= 30000. budMs ::= 240000. livenessPublished ::= false.
+      (* rete#231 D1 — the base tick the KERNEL owns. `tickTimers` is the app's
+         ONE Timers instance, handed in and never minted here: `platform timers`
+         answers a fresh instance every send and the C registry is keyed
+         globally, so a second instance aliases the first's tokens and drops
+         every dispatch silently. `tickToken` is what makes the registration
+         once-per-boot observable, and it is what a re-arm would cancel when the
+         cadence half of goal/liveness starts being honoured. *)
+      tickTimers ::= nil. tickChannel ::= nil. tickToken ::= nil.
       pending ::= OrderedCollection new.
       (* tuvm#107 follow-on: the six spans that decompose `checkIn`. See the
          bracket comment on checkIn for what each one covers and why the sends are
@@ -2435,6 +2443,35 @@ class Kernel usingPlatform: platform = () (
        cadence half of this call goes away, and a sixth keyword at thirteen
        construction sites would have to go with it. *)
     public liveness: aCadMs budget: aBudMs = ( ^ self adoptCad: aCadMs bud: aBudMs )
+
+    (* rete#231 D1 — the heartbeat, owned by the kernel and riding the reactor.
+
+       NOT C ON ITS OWN THREAD, and the reason is not cost: a heartbeat a wedged
+       node can still emit is `port=up` with better manners, which is the exact
+       lie #152 is about. On the reactor, a wedged node stops emitting it, so its
+       absence means something. It also adds no C at all — `timer_target_snapshot`
+       already reports every live repeating timer to the #215 observer, so this one
+       registration gives the detector a deadline that always exists AND drives the
+       check-in. A node whose app declares no repeating timer of its own stops
+       being invisible to the detector, which is the case nothing could see before.
+
+       THE TIMERS INSTANCE IS HANDED IN. `platform timers` answers a FRESH instance
+       on every send while the C registry is keyed globally, so a bridge that minted
+       its own would register a token the app's dispatcher has never heard of and
+       every tick would be dropped in silence.
+
+       ONCE PER BOOT. Two timers at one period is two check-ins per tick forever,
+       and the second is invisible until someone counts radio wakeups.
+
+       The app still owns what a tick DOES — it keeps its own reaction on the
+       channel. What moves here is the period and the fact that a period exists at
+       all, which is the half the detector needs and the half an app can forget. *)
+    public startTicking: aTimers on: aChannel = (
+      tickToken == nil ifFalse: [ ^ self ].
+      tickTimers:: aTimers.
+      tickChannel:: aChannel.
+      tickToken:: aTimers every: cadMs post: #go on: aChannel.
+      ^ self )
 
     (* rete#231 D2 — porta's REQUEST, read once per check-in from the tail of the
        apply step. No timer, no reaction: the cadence is the check-in's, and a

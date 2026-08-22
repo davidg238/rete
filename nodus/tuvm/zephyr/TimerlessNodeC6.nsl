@@ -1,0 +1,152 @@
+(*
+expect:
+TAP timerless done
+*)
+(* rete#231 D1 — THE NODE THE DETECTOR COULD NOT SEE.
+
+   Every other probe on this bench arms a repeating timer of its own, so #215's observer
+   always had a deadline to judge against: `timer_target_snapshot` reports the live
+   repeaters, and the shortest one bounds how long silence may last. A node whose app
+   declares NO repeating timer gave it nothing, and `pulse_pump` is K_FOREVER-blocking
+   on Zephyr — which is BOTH healthy-idle and wedged. There was no deadline, so nothing
+   fired, so a wedge in this shape produced no evidence at all. That is not a
+   hypothetical shape: a purely reactive node (GPIO, inbound radio) is the ordinary case
+   for a sensor.
+
+   THIS NODE DECLARES NO TIMER. It constructs a bridge and hands it the app's one Timers
+   instance; the KERNEL registers the base tick (`PortaBridge>>startTicking:on:`), and
+   that registration is what puts a deadline in the snapshot. The heartbeat therefore
+   rides the reactor rather than a C thread, which is the whole of D1: a heartbeat a
+   wedged node can still emit is `port=up` with better manners — the exact lie #152 is
+   about — so its absence has to mean something.
+
+   WHAT THE BOARD MUST WITNESS, and what no host run can (the posix timer backend
+   bypasses the pulse mailbox entirely):
+     1. the detector fires at all on a node with no app timer, and its dump names the
+        kernel base tick as the deadline it used;
+     2. NO check-in is emitted between the wedge and the reboot — a check-in appearing
+        there would prove the heartbeat outlives the wedge, i.e. the C design was chosen
+        after all, and the whole argument for nsl-on-the-reactor is wrong;
+     3. the wakeups coalesce: two obligations at different multiples of one base tick
+        cost fewer radio wakes than the sum of independent periods.
+
+   Modelled on WedgeProbeC6.nsl and it keeps that file's hard-won rules: ONE Timers
+   instance (`platform timers` answers a fresh one per send, and a second instance makes
+   `dispatch:` drop every event); `== nil` and never `isNil` on a prim-built indexable;
+   TAP only on the boot that REPORTS, because the collector greps every `TAP <name>` line
+   after the first build-id line and a plan emitted twice fails for duplication; and the
+   reporting boot must not wedge again inside rete#216's observation window. *)
+class TimerlessNodeC6 usingPlatform: platform net: net = (
+  | plat space timers bridge spans tickCh
+    ticks ::= 0. wedging ::= false. tapPass ::= 0. tapFail ::= 0. |
+) (
+
+  nodeId    = ( ^ 'c6-timerless' )
+  gwAddr    = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )
+  gwPort    = ( ^ 6969 )
+  localPort = ( ^ 16972 )
+  chip      = ( ^ #esp32c6 )
+  cadence   = ( ^ 2000 )   (* the KERNEL's period — this app registers none *)
+
+  (* Comfortably past boot, and well past the 16 s budget this node declares, so the
+     trip is unambiguous. *)
+  wedgeAtTick = ( ^ 15 )   (* 15 ticks x 2 s = 30 s, WedgeProbeC6's wall-clock wedge
+                              point, which is what keeps the wedge-note build's 15 s
+                              synthetic trigger strictly earlier and the two tests
+                              distinct *)
+
+  (* `platform2` shadows the class parameter deliberately, as PortaBridgeNodeC6 does:
+     the class-level `platform` is the one every method here reaches through. *)
+  public main: platform2 args: args = (
+    | note sock |
+    plat:: platform.
+    space:: plat space.
+    timers:: plat timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+
+    note:: plat panicNote.
+    (note == nil)
+      ifTrue:  [ 'timerless: no note — this boot is the one that dies' out ]
+      ifFalse: [ self reportNote: note ].
+
+    sock:: net udpBindPort: self localPort.
+    spans:: plat Spans new.
+    sock == nil
+      ifTrue:  [ 'timerless: bind FAILED — wedging anyway, the detector is the test' out ]
+      ifFalse: [
+        bridge:: plat PortaBridge
+          socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
+          spans: spans.
+        bridge subscribeStream: 'tel/log'.
+        space put: 'obs/build' value:
+          (plat Record tag: #Build with: #chip -> self chip with: #build -> plat buildId).
+        (* rete#231 D2: this node's promise about its radio, 8 x the base tick. *)
+        bridge liveness: self cadence budget: self cadence * 8 ].
+
+    (* THE ONLY REPEATING TIMER IN THIS IMAGE, and the app does not register it: the
+       bridge does, from the cadence adopted above. Take the channel away and there is
+       no deadline anywhere in `timer_target_snapshot` — which is the state every
+       purely reactive node was in before this rung. *)
+    tickCh:: space channel: 'sys/tick'.
+    tickCh whenever: '' do: [ :m | self tick ].
+    bridge == nil ifFalse: [ bridge startTicking: timers on: tickCh ].
+
+    'TIMERLESS NODE READY' out.
+    [ true ] whileTrue: [ plat pumpEvents. space drain ].
+    ^ self )
+
+  (* The report, and the ONLY boot that emits TAP. Two results planned before either is
+     taken, so a probe that dies between them is FAILED rather than read as one green. *)
+  reportNote: note = (
+    | reason |
+    (* FIRST: this boot does not wedge. A boot reporting the last wedge must not become
+       the next one — it would reboot inside the observation window and the gate would
+       read a death it caused itself. *)
+    wedging:: true.
+    self tapPlan: 2.
+    self tap: 1 named: 'the detector fired on a node with no app timer' ok: true
+         detail: ('detail=' , (note basicAt: 4)).
+    reason:: (plat panic fields) at: #reason ifAbsent: [ #none ].
+    self tap: 2 named: 'reason is watchdog' ok: (reason = #watchdog)
+         detail: ('reason=' , reason printString).
+    self tapDone.
+    (* Ack AFTER the report: the ack clears the note, and a clear that ran first would
+       leave the gate reading a green against nothing. *)
+    plat panicNoteAck: 0.
+    ^ self )
+
+  tick = (
+    ticks:: ticks + 1.
+    ('timerless tick ' , ticks printString) out.
+    bridge == nil ifFalse: [ bridge checkIn ].
+    (wedging not and: [ ticks >= self wedgeAtTick ]) ifTrue: [
+      wedging:: true.
+      'timerless: entering the wedge — nothing below this line is expected' out.
+      [ true ] whileTrue: [ ] ].
+    ^ self )
+
+  (* --- TAP-lite, WedgeProbeC6's form ---------------------------------------- *)
+  scenarioName = ( ^ 'timerless' )
+
+  tapPlan: n = (
+    ('TAP ' , self scenarioName , ' plan=' , n printString) out.
+    ^ self )
+
+  tap: idx named: nm ok: passed detail: d = (
+    passed
+      ifTrue:  [ tapPass:: tapPass + 1.
+                 ('TAP ' , self scenarioName , ' ok ' , idx printString ,
+                   ' ' , nm , ' ' , d) out ]
+      ifFalse: [ tapFail:: tapFail + 1.
+                 ('TAP ' , self scenarioName , ' not ok ' , idx printString ,
+                   ' ' , nm , ' ' , d) out ].
+    ^ self )
+
+  tapDone = (
+    ('TAP ' , self scenarioName , ' done pass=' , tapPass printString ,
+      ' fail=' , tapFail printString) out.
+    ^ self )
+
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

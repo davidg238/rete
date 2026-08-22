@@ -177,7 +177,14 @@ class ProfileCostNodeC6 usingPlatform: platform net: net = (
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
     tickChan:: space channel: 'sys/tick'.
     tickChan whenever: '' do: [ :m | self tick ].
-    timers every: self cadence post: #go on: tickChan.
+    (* rete#231 D1: the KERNEL owns the period now. The app still owns what a tick
+       DOES — its reaction on this channel is unchanged — but the registration is
+       the bridge's, so the deadline #215's observer reads from
+       timer_target_snapshot exists even for an app that declares no timer of its
+       own, and a heartbeat this node stops emitting when it wedges is a heartbeat
+       whose absence means something. The bridge is HANDED this instance: two
+       Timers alias each other's tokens and drop every dispatch silently. *)
+    bridge startTicking: timers on: tickChan.
 
     'PROFILE COST NODE READY' println.
 
