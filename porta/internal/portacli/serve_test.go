@@ -328,6 +328,13 @@ func TestSweepLivenessLogsOnlyTransitions(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer st.Close()
+	// The gateway records its own presence before it judges anyone (rete#231
+	// D6). Without a run, every window is uncovered and the verdict is
+	// #unknown — which is what `porta serve` itself would report if StartRun
+	// were ever dropped from it.
+	if err := st.StartRun(); err != nil {
+		t.Fatal(err)
+	}
 	st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
 	st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
 	for i := 0; i < 4; i++ {

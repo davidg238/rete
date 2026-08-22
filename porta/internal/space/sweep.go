@@ -99,6 +99,17 @@ type LivenessChange struct {
 //     missing. Do not read #silent as "crashed".
 func (s *Store) Sweep() ([]LivenessChange, error) {
 	now := s.nowMs()
+	// The gateway's own presence, stamped BEFORE any verdict is formed — see
+	// MarkAlive: a verdict formed at `now` against a run whose alive_ms is one
+	// tick behind would find its own window uncovered and report #unknown about
+	// a gateway that was plainly awake. It lives HERE rather than in serve's
+	// sweep loop because this method IS the tick: a caller that forgot the call
+	// would get a fleet of #unknown with nothing to say why, and there is no
+	// second caller for whom that would be right. A store nobody is serving
+	// from (every read-only CLI path) has no open run and this is a no-op.
+	if err := s.MarkAlive(); err != nil {
+		return nil, fmt.Errorf("marking the gateway alive: %w", err)
+	}
 	rows, err := s.db.Query(`
 		SELECT n.id, n.last_seen_ms, COALESCE(c.value_cbor, x'')
 		FROM nodes n
@@ -174,6 +185,20 @@ func (s *Store) verdictFor(nodeID string, lastSeen sql.NullInt64, now int64) (wa
 	if since <= bud {
 		return livenessLive, "live", since, bud,
 			fmt.Sprintf("live: %d ms since the last exchange, budget %d ms", since, bud), nil
+	}
+	// D6: absence is only evidence when porta was listening. A window that
+	// touches an interval porta was down yields #unknown — never #silent,
+	// because the gateway has no evidence in either direction, and never
+	// #live, because it has none of that either. Note the position: this is
+	// BELOW the `since <= bud` test, because speech is positive evidence and
+	// outranks the gateway's own absence.
+	deaf, err := s.WasDeaf(now-since, now)
+	if err != nil {
+		return nil, "", 0, 0, "", fmt.Errorf("deaf intervals: %w", err)
+	}
+	if deaf {
+		return livenessUnknown, "unknown", since, bud,
+			fmt.Sprintf("unknown: %d ms since the last exchange, budget %d ms, and porta was not listening for part of it", since, bud), nil
 	}
 	return livenessSilent, "silent", since, bud,
 		fmt.Sprintf("silent: %d ms since the last exchange, budget %d ms", since, bud), nil

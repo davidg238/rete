@@ -120,6 +120,31 @@ CREATE TABLE IF NOT EXISTS exchanges (
   pushed_hi  INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_exchanges_node ON exchanges(node_id, ts_ms);
+
+-- One row per porta RUN: when this process started serving, and the last moment
+-- it was known to be doing so (rete#231 D6). It is the gateway's record of its
+-- own presence, and it exists because Store.Sweep runs INSIDE porta serve — so a
+-- gateway that is down writes nothing and every node's verdict freezes at
+-- whatever it last was. On 2026-08-19 that meant gw/liveness read #live for ten
+-- hours and six minutes while c6-bell missed every single check-in (rete#225).
+--
+-- A TABLE AND NOT A PATH, which is the one exception to "a feature adds rows,
+-- not tables" (D2): D2 governs per-NODE data, whose unit is a path, and this is
+-- not about a node. A reserved node id would put a fake node in nodes, which
+-- is what httpsrv's NodeCounter reports the fleet size from; a per-tick row in
+-- events needs a node_id and would write 2880 rows a day into the log that
+-- exists to stay readable.
+--
+-- alive_ms is stamped by the sweep on every tick, so a crash loses at most one
+-- SweepTick of the gateway's life to the deaf interval that follows. That is the
+-- conservative direction: it can only turn a confident verdict into #unknown,
+-- never the reverse.
+CREATE TABLE IF NOT EXISTS gw_runs (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  started_ms INTEGER NOT NULL,
+  alive_ms   INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_gw_runs_started ON gw_runs(started_ms);
 `
 
 // addColumns are run after schema on every Open. CREATE TABLE IF NOT EXISTS

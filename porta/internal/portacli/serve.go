@@ -88,6 +88,17 @@ func newServeCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			// rete#231 D6: this process's own presence, recorded so that a
+			// verdict formed across an outage can read #unknown instead of
+			// asserting the last thing porta heard. A failure here is fatal
+			// and not logged-and-continued: a gateway that cannot record
+			// whether it was listening will produce confident verdicts it
+			// cannot support, which is worse than not starting. The per-tick
+			// stamp is inside Store.Sweep, not in the loop below — see the
+			// comment there for why the tick owns it.
+			if err := st.StartRun(); err != nil {
+				return err
+			}
 			defer st.Close()
 
 			// Process-lifetime stats shared by the HTTP surface.

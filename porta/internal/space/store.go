@@ -51,6 +51,9 @@ type Cell struct {
 type Store struct {
 	db    *sql.DB
 	nowMs func() int64
+	// The open gw_runs row, or 0 for a store nobody is serving from (every
+	// read-only CLI path). See runs.go.
+	runID int64
 }
 
 func Open(path string, nowMs func() int64) (*Store, error) {

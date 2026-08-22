@@ -44,6 +44,17 @@ func livenessRows(t *testing.T, st *Store, node string) int {
 	return n
 }
 
+// listening opens a gw_runs row, which is what `porta serve` does before its
+// first tick. Without one every window is uncovered and every verdict past the
+// budget is #unknown — correctly, since a store with no recorded run cannot
+// testify that anyone was listening (rete#231 D6).
+func listening(t *testing.T, st *Store) {
+	t.Helper()
+	if err := st.StartRun(); err != nil {
+		t.Fatalf("StartRun: %v", err)
+	}
+}
+
 // declare writes what a node would have pushed at obs/liveness. It goes through
 // Ingest and not a raw INSERT, so the test exercises the same path a real push
 // takes — including the kind pin.
@@ -68,6 +79,7 @@ func declare(t *testing.T, st *Store, node string, cadMs, budMs int64) {
 func TestSweepJudgesAgainstTheDeclaredBudget(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
+	listening(t, st)
 	checkIn(t, st, &clock, "n1", 0)
 	declare(t, st, "n1", 2_000, 16_000)
 	lastSeen := clock
@@ -112,6 +124,7 @@ func TestSweepJudgesAgainstTheDeclaredBudget(t *testing.T) {
 func TestSweepDoesNotCallAFastNodeSilentForOrdinaryBlockingWork(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
+	listening(t, st)
 	for i := 0; i < 5; i++ {
 		checkIn(t, st, &clock, "n1", 2_000)
 	}
@@ -184,6 +197,7 @@ func TestSweepWithoutADeclarationIsUnknownAndNotSilent(t *testing.T) {
 func TestSweepWritesOnlyOnTransition(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
+	listening(t, st)
 	checkIn(t, st, &clock, "n1", 0)
 	declare(t, st, "n1", 2_000, 16_000)
 	for i := 0; i < 4; i++ {
@@ -203,6 +217,7 @@ func TestSweepWritesOnlyOnTransition(t *testing.T) {
 func TestSweepRecordsTheReturnToLife(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
+	listening(t, st)
 	checkIn(t, st, &clock, "n1", 0)
 	declare(t, st, "n1", 2_000, 16_000)
 	clock += 20_000
@@ -267,6 +282,7 @@ func TestSweepVerdictSurvivesARestart(t *testing.T) {
 func TestSweepIsNotStoppedByOneNodesFailure(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
+	listening(t, st)
 	// ids chosen so the failing one sorts in the MIDDLE of ORDER BY n.id — a
 	// failing LAST node would pass even under the old code.
 	for _, id := range []string{"aaa", "mmm", "zzz"} {
