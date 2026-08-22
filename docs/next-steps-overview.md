@@ -931,11 +931,34 @@ the third is approved and next** — kept here in order because the order is the
   **#219 and #220 close with them**; #152 and the gateway half of #225 are answered by D6. Two
   paths, no tables, no verbs. Staging puts the board-dependent kernel heartbeat **last**, behind
   three host-testable steps. **The plan is
-  `docs/superpowers/plans/2026-08-21-liveness-contract.md` (`5ab67a3`), ten tasks, to be run
-  subagent-driven.** Writing it forced three decisions the design had left open — two compiled-in
+  `docs/superpowers/plans/2026-08-21-liveness-contract.md` (`5ab67a3`), ten tasks.** Writing it
+  forced three decisions the design had left open — two compiled-in
   node defaults (`cad` 30 s, `bud` 8 x cad), `goal/liveness`'s cadence half deferred to the
   kernel-tick task rather than published unhonoured, and `gw_runs` as an argued exception to
   "a feature adds rows, not tables". All three are §9 of the design record and open to reversal.
+
+  **What landed (Tasks 1-9, `2cce318`..`2a8a91f`).** The node declares `obs/liveness` once per
+  boot — 37 B measured at the worst legal values, pinned in the record catalogue — from an app
+  declaration snapped onto its own grid and clamped to 24 h; four bridged apps declare their tick
+  period and `ShipsBellNodeC6` declares nothing because it builds no bridge at all. porta reads
+  the declaration and judges `now - last_seen > bud`, one line with no constants in it; the whole
+  inference is deleted (`CadenceMs`, the 10-gap window, the min-3 rule, `k = 3`,
+  `nodes.cadence_ms`, `exchanges.leg`, and `internal/wire/cadence_test.go` with them), migrated
+  in place so the soak store survives. Four verdicts, not two. `goal/liveness` is a *request*:
+  ask 45 s of a 2 s node and 46 s comes back, and the host gate witnesses exactly that alongside
+  the declaration and the verdict — all three legs falsified before being trusted. **#225's
+  gateway half is fixed and hand-proven with a real node**: porta records one row per run in
+  `gw_runs`, and a 20 s outage against a 16 s budget now reads `#unknown` where 2026-08-19 read
+  `#live` for ten hours. Host evidence only — 268/0 on the nsl suite, `go test ./...` green,
+  `PORTA SYNC OK` — and the host suite has been wrong before (a pure codec change once passed
+  265/0 and hung a C6 in six check-ins).
+
+  **What is NOT built: D1's kernel-owned heartbeat and D3's coalescing (Task 10).** Until that
+  runs on a board, the app still owns the timer, `goal/liveness`'s *cadence* half is accepted but
+  deliberately not honoured (publishing a cadence the node does not keep is `port=up` with better
+  manners), and the two compiled-in defaults are still in the story. Task 10 also carries the one
+  scenario nothing else can reach — a node with **no** repeating app timer, which the #215
+  detector cannot see today — and it is ~35-50 min of board time.
 
   Also **#223 DONE and promoted** (`8167463`: the observe window no longer reaches its verdict
   18 s before the evidence, and a wedge the detector caught is reported as such; the rule —

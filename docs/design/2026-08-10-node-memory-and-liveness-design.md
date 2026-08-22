@@ -1230,3 +1230,23 @@ on the grounds that "delivered `Panic` records already carry the history to port
 case that is not a loop." That reasoning silently assumed every death produces a `Panic`.
 Until #215 lands, a wedge produces none — so the history has a hole that is not the loop case,
 and the exclusion is sound only once detection exists.
+
+---
+
+### Correction, 2026-08-21 (rete#231 D4): four of these constants are deleted, not tuned
+
+`k = 3`, the 10-gap cadence-inference window, the minimum-3-exchanges rule and `CadenceMs`
+itself are **gone**, along with `nodes.cadence_ms` and the `exchanges.leg` column that existed
+only to make the inference correct (#217 C1).
+
+D8 above chose inference over declaration, and its stated reason was that `nodes.cadence_ms`
+*"was found to be a dead column — declared and never written or read anywhere in the Go tree."*
+**Inference was never argued to be better than declaration; it was chosen because the
+declaration did not exist.** It does now — `obs/liveness`, written by the only party that knows
+its own radio conditions — and the gateway's rule is one line with no constants in it:
+`now - last_seen > bud`.
+
+See `docs/design/2026-08-21-liveness-contract-design.md`. The two false-report modes this
+document accepted are resolved: **I4** (a gateway outage read as node silence) is fixed by D6's
+deaf intervals, and **I5** (a sick node's inferred cadence inflating) cannot occur without an
+inference to inflate.

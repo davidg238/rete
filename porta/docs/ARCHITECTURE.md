@@ -223,23 +223,53 @@ changes**, so `porta log` is a list of the times the fleet went quiet rather tha
 porta hearing *nothing*, and a system that evaluates only when read is silent exactly when
 everything is.
 
-Three properties worth knowing before reading its output:
+**Liveness — porta judges nodes against the number they declared, and infers nothing**
+(rete#231, 2026-08-21). Every node publishes `obs/liveness` = `Liveness { cad, bud }`: how often
+it intends to speak, and the longest silence that is still healthy. `bud` is the only number the
+gateway uses, and the rule is `now - last_seen > bud`. The node is the only party that knows its
+own loss rate — `c6-bell` misses roughly half its 30 s check-ins to ordinary mesh loss — so a
+gateway judging it against a cadence would call a healthy node silent constantly.
 
-- **The deadline comes from the node, never from a constant.** Cadence is the median of that
-  node's last ten **pull-leg** inter-arrival gaps, written back to `nodes.cadence_ms`; a node is
-  silent when `now − last_seen_ms > 3 × cadence`. A ten-minute node and a two-second node are
-  each judged against themselves. Filtering to the pull leg is load-bearing — a check-in writes
-  *two* `exchanges` rows, so an unfiltered median reads exactly half the node's real period.
-- **Fewer than three exchanges gets no verdict**, not a default. `gw/liveness` stays unwritten
-  rather than carrying a guess — which also means a node that was already dead before this
-  shipped never accrues a pull row and is never judged (rete#219).
+Four verdicts at `gw/liveness`, because they are four different operator actions:
+
+| verdict | means | do |
+|---|---|---|
+| `#live` | heard from inside its budget | nothing |
+| `#silent` | it spoke, then stopped, past its own budget | go find out why |
+| `#neverSeen` | porta has never had an exchange from it | commissioning failure — go plug it in |
+| `#unknown` | porta will not answer: the node declared no budget, or porta was not listening for part of the window (see `gw_runs`) | read the row's `reason` |
+
+`#unknown` is the one that took an incident to earn. `Store.Sweep` runs inside `porta serve`, so
+a gateway that is down writes nothing and every verdict freezes: on 2026-08-19 `gw/liveness` read
+`#live` for ten hours and six minutes while the node it described missed every check-in. porta
+now records one row per run in `gw_runs`, and a verdict whose window that record does not fully
+cover reads `#unknown`. **A powered-off node is still indistinguishable from a wedged one** —
+nothing on the gateway side can change that. What the budget buys is knowing when to start
+worrying.
+
+Two more properties worth knowing before reading its output:
+
+- **The operator may request a budget, and never set one.** `goal/liveness` is a *request*: the
+  node snaps it to its own grid, clamps it to 24 h and publishes what it adopted, so the ordinary
+  `goal`/`obs` tree diff answers "did the node accept?". Ask 45 s of a 2 s node and 46 s comes
+  back. Nothing has to know the legal values in advance, and porta never writes `obs/**`.
 - **`gw` is a third value of `direction`, not a fifth table.** That is what keeps the verdict off
   the wire: `OutboundSince` already selects `direction = 'out'`, so a `gw` row is excluded **by
-  construction** rather than by a filter someone must remember.
+  construction** rather than by a filter someone must remember. `gw_runs` is the one table this
+  rung added, and it is argued as an exception rather than a precedent: it is not per-node data
+  and has no path, so the "a feature adds rows, not tables" rule (D2) does not reach it.
 
-The instrument's own lies are written down in `Sweep`'s doc comment, where they are read —
-including that a gateway restart after a long outage writes `#silent` for every affected node
-and then `#live` as each returns, a burst byte-identical to a real fleet failure.
+What replaced what: cadence used to be the median of a node's last ten pull-leg gaps, written
+back to `nodes.cadence_ms`, with silence at `3 × cadence` and no verdict at all under three
+exchanges. All of it is deleted — `CadenceMs`, the window, the minimum, `k = 3`,
+`nodes.cadence_ms`, and the `exchanges.leg` column that existed only to keep the median honest.
+A node dead before the gateway shipped is now `#neverSeen` on its first sweep (rete#219), and a
+fast node doing routine blocking work is no longer called silent for exceeding a number it never
+chose (rete#220).
+
+The instrument's own remaining lie is written down in `Sweep`'s doc comment, where it is read:
+a powered-off node and a wedged-and-halted one are indistinguishable from here, and always will
+be.
 
 ---
 
