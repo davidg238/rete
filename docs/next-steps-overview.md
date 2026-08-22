@@ -963,13 +963,32 @@ the third is approved and next** — kept here in order because the order is the
   `liveness-heartbeat` target scenario. `run.sh` discovers it without a registration edit; the nsl
   suite footer now says **8 scenarios** by itself.
 
-  **What is NOT built, and it is all board work.** `liveness-heartbeat` has **never been run** —
-  it gates nothing yet, and CLAUDE.md's row says so in those words. D3's **coalescing** is not
-  gated by anything (it needs a second obligation and a wake counter). `goal/liveness`'s *cadence*
-  half is still not honoured: the kernel owns the period, but nothing re-arms the timer when an
-  adopted cadence moves, and a re-arm's only interesting failure is at the pulse mailbox, which no
-  host run reaches. **#231 closes when the board runs** `liveness-heartbeat` plus `wedge-quiet`
-  and `bridge-health` as regression — ~40-60 min on `c6spare`.
+  **THE BOARD WORK IS DONE, 2026-08-22 on `c6spare` at HEAD.** All three scenarios #231 named
+  as its closing condition passed, each watched past its own verdict:
+
+  | scenario | verdict | time | build |
+  |---|---|---|---|
+  | `liveness-heartbeat` | PASS 2/2 | 267 s | `porta-v1-final-1073-gb193e08` |
+  | `wedge-quiet` | PASS 1/1 | 623 s | `porta-v1-final-1073-gb193e08` |
+  | `bridge-health` | PASS 3/3 | 221 s | `porta-v1-final-1076-g4a7526b` |
+
+  `stale-handle` PASS 2/2 (203 s) was run after them as an unrelated #151 regression and is
+  also green. The two build ids differ because host-side commits landed between runs; neither
+  touched VM or kernel source, so the images differ only in their baked id — said plainly
+  rather than rounded to "at HEAD", because a gate table that blurs which image it scored is
+  the shape #216 is about.
+
+  **And the bell now runs this code too.** `ShipsBellAlarmNodeC6`'s kernel-owned tick had been
+  compiled but never executed on hardware, because the bell could not be reflashed mid-soak.
+  It was reflashed to HEAD on 2026-08-22 and declares `obs/liveness{bud: 240000, cad: 30000}`
+  on the wire — its own 30 s cadence times the slack of 8 — with the observer armed
+  (`slack=8 tick=1000ms backstop=30000ms hw=yes`). That was the last item in this rung
+  carrying risk.
+
+  **What is still NOT built.** D3's **coalescing** is not gated by anything (it needs a second
+  obligation and a wake counter). `goal/liveness`'s *cadence* half is still not honoured: the
+  kernel owns the period, but nothing re-arms the timer when an adopted cadence moves, and a
+  re-arm's only interesting failure is at the pulse mailbox, which no host run reaches.
 
   Also **#223 DONE and promoted** (`8167463`: the observe window no longer reaches its verdict
   18 s before the evidence, and a wedge the detector caught is reported as such; the rule —
@@ -1025,6 +1044,36 @@ the third is approved and next** — kept here in order because the order is the
   faults halt the node" is unobservable from the gateway if a halted node is invisible.
   Note the shared principle: the sweep's deadline comes from the node's OWN measured cadence,
   never a configured constant — the same rule #215 §3 settles on for the detector.
+
+**BENCH STATE, 2026-08-22 — all three boards are on HEAD-or-current, and the cabling changed.**
+
+- **`c6` (the bell)** was reflashed to `porta-v1-final-1073-gb193e08` after 54 h on boot 7. The
+  build it replaced was `g054f110` from 2026-08-16 — **72 commits behind**, and older than the
+  fix for the bug that killed C6 boards (`2461d42`, the unbounded selector-prim-cache probe that
+  was #222/#192/#213). A 54 h clean run of a VM that no longer exists was measuring the wrong
+  thing; the same reasoning spent c6spare's 25 h control on 2026-08-17.
+- **`c6spare`** carries `StaleHandleProbeC6` from the last scenario of the 2026-08-22 gate run.
+  It remains `TARGET_DEFAULT_BOARD`.
+- **`c6bench` is no longer on this workstation.** It was moved to **gw85224-01** and plugged in
+  there at 15:09, which is the physical half of #181. Its collector env file moved *with* the
+  hardware — the same adapter hash, so the registry rule holds: a file follows its board, it is
+  never repointed at a different one. The local `rete-console@c6bench` unit is stopped and
+  disabled. esptool 5.3.1 is installed on the gateway (`~/esptool-venv`) and the collector runs
+  there from `~/rete-bench/console/`. **It is blocked on one thing: `david` is not in `dialout`
+  on gw85224-01**, so the collector honestly reports `port=down` and nothing can flash it.
+
+**The JTAG cables are unplugged, and that is now the convention.** Each C6 devkit enumerates
+*two* host adapters — a CP2102N and the SoC's USB-Serial-JTAG — and the bench had been spending
+two ports per board. **The target harness only ever needed one**: `deploy_flash.sh:53` sets
+`ESPTOOL_PORT` *and* `CONSOLE_PORT` to the single CP2102N resolved from the collector env, and
+`flash-bell.sh` pins the same one deliberately ("The CP2102N, not the USB-JTAG. The JTAG path is
+the one that failed and parked the bell in 2026-08-11"). Only the hand-driven `zephyr/run.sh`
+used the JTAG node. So the fix for port scarcity was one port per board, not OTA and not a hub.
+
+**CONSEQUENCE, not yet addressed:** `zephyr/run.sh`'s own C6 flash path resolves
+`/dev/serial/by-id/*Espressif*`, which now matches nothing. `flash-bell.sh` is unaffected because
+it pins `ESPTOOL_PORT` explicitly, and the harness is unaffected for the same reason — but a bare
+hand-driven `run.sh --board esp32c6 --flash` can no longer find a port on this bench.
 
 Bench: c6spare was left soaking on `ga4e6bc2-dirty-20260816T151140` (the `38505d4`-only
 build) and reached **~25.4 h / tick 45 695 on one unbroken boot**, `pdr`/`sdr` 0 and no
