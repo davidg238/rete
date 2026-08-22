@@ -101,17 +101,61 @@ deploy::flash() {
 
   # The collector must let go of the tty for the duration, or it and esptool
   # split the ROM handshake between them. See target::collector_pause.
+  #
+  # EXPECTED CONSEQUENCE, now that rete#236 lets run.sh's stderr through: run.sh
+  # checks whether the instance's collector is running and prints
+  #
+  #   [console] WARNING: rete-console@<board> is not running.
+  #   [console] The boot you just triggered is not being logged.
+  #
+  # on EVERY harness run, because we just stopped it on purpose. It is correct about
+  # the esptool-triggered boot and it does not matter: collector_resume plus the
+  # target::reset_board below produce a second boot that IS logged, which is what the
+  # run is anchored on. Do not chase it, and do not silence it from run.sh's side —
+  # the same warning is the real thing on the hand-deploy path, where nobody is going
+  # to reset the board again. Filed as rete#237: a warning that is benign on one path
+  # and load-bearing on another needs the CALLER to say which path it is on, and that
+  # is a decision, not a patch.
   target::collector_pause "$board"
   # `set +u` for the activate script, which reads unset variables; scoped to the
   # subshell so the runner keeps its own -u.
+  #
+  # rete#236 — THE BUILD'S STDERR IS NOT CAPTURED, and that is the whole fix.
+  #
+  # This used to end `2>&1`, folding the build's diagnostics into `$out` — which is
+  # echoed ONLY on failure and otherwise read for one line, the `[archive]` build id.
+  # A build that succeeded therefore discarded every warning it had emitted.
+  #
+  # `zephyr/run.sh` prints "[thread] radio layer not requested — dataset overlay NOT
+  # applied" for a C6 built with no OpenThread, and its own rete#165 comment records
+  # what that costs: "shipped an image with no radio: PortaBridgeNodeC6 failed its UDP
+  # bind at boot and sat dead for over an hour". On 2026-08-22 it fired for
+  # liveness-heartbeat, was swallowed here because the build exited 0, and the node sat
+  # silent for 300 s while this harness reported only `TIMEOUT … never reached its done
+  # line` — true, and naming nothing. One board cycle to rediscover what had already
+  # been printed.
+  #
+  # NOT A GREP FOR KNOWN WARNINGS, deliberately. A pattern list is a thing that goes
+  # stale pointing at the warnings someone thought of, and the next one to matter is by
+  # definition the one nobody wrote a pattern for. Letting stderr through costs no list
+  # and covers warnings that do not exist yet.
+  #
+  # It is also just this file's OWN stated contract, applied to the process it runs:
+  # "prints the build id, and NOTHING else, on stdout / everything diagnostic goes to
+  # stderr". run.sh already obeys it — `[archive] <id> -> <path>` is stdout
+  # (tools/console/archive.sh:48), the `[thread] !` lines are stderr. `2>&1` was the one
+  # place the harness broke its own rule, and removing it is a mechanism deleted rather
+  # than one added.
   out=$( set +u
          # shellcheck disable=SC1091
          source "$TARGET_WEST_VENV/bin/activate"
          export ZEPHYR_BASE="$TARGET_ZEPHYR_BASE" \
                 ZEPHYR_SDK_INSTALL_DIR="$TARGET_ZEPHYR_SDK" \
                 ZEPHYR_TOOLCHAIN_VARIANT=zephyr
-         bash "$zdir/run.sh" "${args[@]}" 2>&1 ) || {
+         bash "$zdir/run.sh" "${args[@]}" ) || {
     target::collector_resume
+    # The build's own error already streamed to stderr above; this adds the stdout tail,
+    # which carries the progress lines that say how far it got.
     echo "$out" | tail -20 >&2
     target::die "run.sh failed for $NODE"
   }
