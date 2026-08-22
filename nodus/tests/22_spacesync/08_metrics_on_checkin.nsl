@@ -29,7 +29,7 @@ class MetricsOnCheckIn packageUsing: manifest = () (
     | space bridge before m spans |
     space:: platform space.
     spans:: platform Spans new.
-    before:: space stamp.
+    before:: space seq.
 
     bridge:: platform PortaBridge socket: nil space: space id: 'test' peer: '::1' port: 1 spans: spans.
     bridge publishMetrics.
@@ -47,8 +47,13 @@ class MetricsOnCheckIn packageUsing: manifest = () (
 
     (* The write must STAMP, or the cell exists locally and never rides a push:
        collectOutbound scans `changedSince: acked`, so an unstamped value is
-       invisible to the very thing this record is for. *)
-    ('seq advanced ' , (space stamp > before) printString) println.
+       invisible to the very thing this record is for.
+
+       rete#234: BOTH READS ARE `space seq` (prim 138), NOT `space stamp` (prim 139).
+       `stamp` answers the counter INCREMENTED, so the original pair asserted that
+       reading the counter twice increments it — true with publishMetrics deleted,
+       which is the one thing this line exists to catch. *)
+    ('seq advanced ' , (space seq > before) printString) println.
   )
 ) : (
 )
