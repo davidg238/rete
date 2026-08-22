@@ -545,7 +545,7 @@ cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_
 It will FAIL with a diff naming the real byte count. Put that number in the `expect:` block and
 re-run to PASS. Record the number here in the plan as you go — Steps 3 and 4 quote it:
 
-> measured `Liveness` size at worst legal values: **____ B**
+> measured `Liveness` size at worst legal values: **37 B** (2026-08-21; 2 tag + 1 array + 11 symbol `#Liveness` + 1 map + 2 x (6 key + 5 value))
 
 - [ ] **Step 3: Add the row to `protocol/PROTOCOL-NSL-RECORDS.md` §4.2**
 

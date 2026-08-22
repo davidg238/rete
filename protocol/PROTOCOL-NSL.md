@@ -443,6 +443,8 @@ answer for that path specifically — the decision belongs with #114.
 | report `config` echo | `obs/config/<app>/<key>` | cell | scalar echo |
 | `node_config` echo | `obs/mode`, `obs/name`, `obs/forward` | cell | publish-on-change is what cells do; no echo-cadence rules |
 | `health` | `obs/health` | cell | `{up:, bid:, wak:, pto:, sdr:, ref:}` — liveness and delivery; `ref` counts REFUSALS (`#err` replies) distinctly from `pto`'s timeouts, because a refused node is answered on every exchange and would otherwise read as perfectly healthy (rete#199); VM internals are `sys/metrics`. The labels were `uptimeMs`/`bootId`/`wakes`/`pollTimeouts`/`streamDropped` until rete#197 shortened every label on the frame (2026-08-11) |
+| `liveness` (declare) | `obs/liveness` | cell | `{cad:, bud:}` — the node's own statement of how long it may be silent; porta judges `now - last_seen > bud` and infers nothing (rete#231) |
+| `liveness` (request) | `goal/liveness` | cell | `{cad:, bud:}` — the operator **requests**; the node snaps to its grid, clamps to 24 h and publishes what it adopted. The `goal`/`obs` diff is the answer, so nothing needs to know the legal values in advance |
 | `health.reset` (fault) | `sys/reset` | stream | `{category:, code:}` — v1's "data_log on first fault" is just an entry |
 | telemetry `print`/`log` | `tel/print`, `tel/log` | stream | `{text:}` / `{lvl:, txt:}` (`{level:, text:}` until rete#197) |
 | telemetry `metric` | `tel/m/<name>` | stream | `{value:, ts:}` |

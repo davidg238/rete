@@ -385,6 +385,7 @@ construction. There is nothing to enforce.
 | `obs/mode` / `obs/name` / `obs/forward` | R | same shapes as their `goal/` twins |
 | `obs/health` | R | `Health { up: int, bid: int, wak: int, pto: int, sdr: int, ref: int }` — liveness and delivery only; **`ref` is the count of exchanges porta REFUSED** (an `#err` reply), added by rete#199 and deliberately not folded into `pto`: a refused node gets a reply to every exchange, so `pto` reads 0 for a node that has been rejected since boot, and the two are different problems with different fixes — the node cannot say which is happening to it without both. A non-zero `ref` also means this node's data is not reaching the gateway at all, whatever `pto` says; the VM internals live at `sys/metrics` (§4.4), which the bridge publishes on every check-in. `heapFree`/`heapLargest`/`overruns` were **removed** 2026-08-04 (#56 design D2) rather than duplicated. **72 B encoded, MEASURED 2026-08-21** (61 B at five fields; rete#199's `ref` costs 11 B at its worst legal value, which is the count a node refused since boot carries) (87 B → 91 B → 61 B: rete#162 made `bid` a real persisted counter, and CBOR is shortest-form, so a saturated counter is five bytes where the old constant `1` was one — the guard in `nodus/tests/22_spacesync/09_batch_size.nsl` pins the worst legal value rather than a fresh node's — then rete#197 shortened the five labels, which is the whole of the 91 → 61 B step). **`bid` only became a real counter *in this record* on 2026-08-15 (rete#211)** — rete#162 moved the push ENVELOPE over and every app's `publishHealth` kept the literal `1`, so for three rungs this table asserted a property no node had, and `obs/health` — the only place a boot id reaches a path — answered `1` on every node, for every boot. The size figure was never wrong, because the guard in `nodus/tests/22_spacesync/09_batch_size.nsl` pins the saturated value rather than a fresh node's; real frames were merely smaller than the worst case. The agreement between this field and the envelope is now gated in `nodus/tuvm/tests/porta_sync_host.sh`, which seeds the node's boot counter to 41 precisely so a reintroduced `1` cannot pass |
 | `obs/build` | R | `Build { chip: sym, build: str, sdk: str, image: bytes }` — see below |
+| `obs/liveness` | R | `Liveness { cad: int, bud: int }` — **the node's declaration of how long its silence may last** (rete#231 D2). `cad` is how often it intends to speak; `bud` is the longest silence that is still healthy, and `bud` is the **only** number porta judges against: `now - last_seen > bud → #silent`, one line with no constants in it. Two numbers and not one because the bench proved one is not enough — `c6-bell` runs a 30 s cadence and misses roughly half its check-ins to ordinary mesh loss, so judging it against its cadence calls a healthy node silent constantly; the gap between `cad` and `bud` is the node's own allowance for that loss, and the node is the only party that knows its rate. `bud` is an integer multiple of `cad` (D3) and is **clamped** to 24 h (D7) — clamped and published, never rejected, so an app asking for a week appears as a `goal`/`obs` divergence instead of a silent refusal. Written **once per boot**, on `obs/apps/<name>`'s precedent, and again only when the adopted pair moves. **37 B encoded, MEASURED 2026-08-21** at the worst legal values — a 24 h budget is five CBOR bytes where a 16 s one is three, and the two `d8 27` symbol keys are 12 of the 37 (`nodus/tests/22_spacesync/20_liveness_size.nsl`) |
 
 **`obs/apps/<name>` — the node currently writes image and lifecycle, and nothing else
 (rete#25, 2026-08-08).** `PortaBridge>>publishApps` writes
@@ -397,6 +398,16 @@ one image and one world), and `size`/`alg` are porta's facts about a blob porta 
 not something the node observes. The four fields stay pinned, because this record is what
 `goal/apps/<name>` is diffed against — a field the node learns to answer later is then a
 write, not a schema edit.
+
+**`obs/liveness` replaced an inference, and that is the whole point (rete#231 D4).** porta
+used to infer each node's cadence from the median of its last ten inter-arrival gaps and
+declare it silent at `3 × cadence`. Both terms were invented: `k = 3` was inherited from v1,
+and the cadence came from history a node that never spoke cannot supply — which is why a node
+already dead when the gateway shipped was never judged at all (#219), and why a fast node doing
+routine blocking work was called silent (#220). 2026-08-10 D8 chose inference *because the
+declaration did not exist*; it does now, and it arrives from the only party entitled to make it.
+`CadenceMs`, the 10-gap window, the minimum-3-exchanges rule, `k`, `nodes.cadence_ms` and
+`exchanges.leg` were all deleted with it.
 
 **`obs/build` — build provenance, pinned 2026-08-01, `build` added by #74 (2026-08-07).**
 Added by the space-sync rewrite (`design/2026-08-01-porta-space-sync-rewrite-design.md`
