@@ -1045,22 +1045,37 @@ the third is approved and next** — kept here in order because the order is the
   Note the shared principle: the sweep's deadline comes from the node's OWN measured cadence,
   never a configured constant — the same rule #215 §3 settles on for the detector.
 
-**BENCH STATE, 2026-08-22 — all three boards are on HEAD-or-current, and the cabling changed.**
+**BENCH STATE, 2026-08-22 — all three boards on ONE build, each in its OWN porta space.**
 
-- **`c6` (the bell)** was reflashed to `porta-v1-final-1073-gb193e08` after 54 h on boot 7. The
-  build it replaced was `g054f110` from 2026-08-16 — **72 commits behind**, and older than the
-  fix for the bug that killed C6 boards (`2461d42`, the unbounded selector-prim-cache probe that
-  was #222/#192/#213). A 54 h clean run of a VM that no longer exists was measuring the wrong
-  thing; the same reasoning spent c6spare's 25 h control on 2026-08-17.
-- **`c6spare`** carries `StaleHandleProbeC6` from the last scenario of the 2026-08-22 gate run.
-  It remains `TARGET_DEFAULT_BOARD`.
-- **`c6bench` is no longer on this workstation.** It was moved to **gw85224-01** and plugged in
-  there at 15:09, which is the physical half of #181. Its collector env file moved *with* the
-  hardware — the same adapter hash, so the registry rule holds: a file follows its board, it is
-  never repointed at a different one. The local `rete-console@c6bench` unit is stopped and
-  disabled. esptool 5.3.1 is installed on the gateway (`~/esptool-venv`) and the collector runs
-  there from `~/rete-bench/console/`. **It is blocked on one thing: `david` is not in `dialout`
-  on gw85224-01**, so the collector honestly reports `port=down` and nothing can flash it.
+```
+board     porta space   build
+c6 (bell) c6            porta-v1-final-1081-gd5b5545-20260822T163623   #live
+c6spare   c6spare       porta-v1-final-1081-gd5b5545-20260822T164025   #live
+c6bench   c6bench       porta-v1-final-1081-gd5b5545-20260822T164608   #live
+```
+
+That is the first time the three have shared a build **and** been separable in the record.
+Until #186 landed the same afternoon, `PortaBridgeNodeC6` answered the literal `'c6-bench'`
+and `ProfileCostNodeC6` answered it too, so a space held two boards and two apps at once.
+
+- **`c6` (the bell)** was reflashed TWICE on 2026-08-22: first to `gb193e08` (retiring a build
+  72 commits behind that predated `2461d42`, the selector-prim-cache fix), then to
+  `gd5b5545` to pick up #186. It checks in as **`c6`** now, not `c6-bell`.
+- **`c6spare`** carries `PortaBridgeNodeC6` from a `bridge-health` run that passed 3/3.
+  Still `TARGET_DEFAULT_BOARD`.
+- **`c6bench` lives on gw85224-01** and is flashed from here over ssh (build local, `scp
+  zephyr.bin`, `esptool write-flash … 0x0`, hash verified) — #181's remote deploy path
+  working by hand.
+
+**THE OLD SPACES ARE HISTORY, NOT MIGRATED.** `c6-bell` and `c6-bench` stop receiving
+writes as of 2026-08-22. Their rows are intact and still readable; nothing was re-keyed,
+because #186 warns that repointing a space holding five days of history makes the old rows
+unattributable in a *different* direction. There is no back-compat requirement, so this is
+a cut-over with a date, and the date is the thing to search on.
+
+**Every node needs a `goal/name`** — written 2026-08-22 for `c6`, `c6spare` and `c6bench`.
+`bridge-health` asserts convergence of `goal/name` -> `obs/name`, and its `.env` no longer
+names a literal board.
 
 **The JTAG cables are unplugged, and that is now the convention.** Each C6 devkit enumerates
 *two* host adapters — a CP2102N and the SoC's USB-Serial-JTAG — and the bench had been spending
