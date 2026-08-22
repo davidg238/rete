@@ -320,7 +320,10 @@ Zephyr rung transcribes it rather than inventing it. Design:
 - **The zephyr OTA backend.** `nodus/tuvm/src/backend/zephyr/ota_zephyr.c` exists and is deliberately
   **inert** — it keeps the link and the seam shape identical everywhere while refusing to
   invent a flash layout there is no board to measure. The real one lands with the real
-  flash map, next rung.
+  flash map, and that rung is now **#233** (filed 2026-08-22; until then a C6 CANNOT be
+  flashed OTA, and **#175 should land first** — the degenerate retry's measured cost, a stuck
+  node refetching ~200 kB every ~6 s, was measured on localhost and would saturate a
+  6LoWPAN mesh).
 - **Boot-loop containment / safe mode (G11).** Its own decision at Zephyr bring-up.
 
 **And one number the rung was supposed to come back with.** D6 chose the degenerate retry
