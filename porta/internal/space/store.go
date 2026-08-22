@@ -193,6 +193,13 @@ func (s *Store) Write(nodeID, path string, kind cval.Kind, value []byte, actor, 
 // is still talking. #live or #silent, as a Symbol.
 const PathLiveness = "gw/liveness"
 
+// PathDeclared is where a node states how long its silence may last (rete#231
+// D2). It is an obs/** path because it is an observation the node makes about
+// ITSELF — battery, duty cycle and radio conditions are its own — and porta
+// writing there would be a lie (2026-08-10 D7). The operator's half is
+// goal/liveness, which is a REQUEST; the node always wins.
+const PathDeclared = "obs/liveness"
+
 // WriteGateway records a verdict porta formed ABOUT a node — the third
 // direction, gateway-authored and never on the wire.
 //
@@ -480,6 +487,53 @@ func (s *Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushe
 		return err
 	}
 	return tx.Commit()
+}
+
+// DeclaredBudget answers the silence budget a node has declared for itself, in
+// milliseconds.
+//
+// This is the one place in the store that DECODES a value rather than moving
+// bytes (D4.1 says decode only for display; this decodes for judgement, which
+// is the narrow exception this path buys). Everything downstream — the verdict
+// comparison in Sweep — is still byte-wise against pre-encoded symbols.
+//
+// ok is false for a node that has never declared, AND for a declaration porta
+// cannot read: a wrong tag, a missing or non-positive `bud`, or bytes that are
+// not a closed cval encoding at all. None of those is returned as an error,
+// because the caller is a sweep over every node and one garbled record must not
+// cost the fleet its verdicts. No verdict is the honest answer for that node;
+// a default would be porta inventing the number this whole design exists to
+// stop inventing.
+func (s *Store) DeclaredBudget(nodeID string) (int64, bool, error) {
+	var raw []byte
+	err := s.db.QueryRow(
+		`SELECT value_cbor FROM cells WHERE node_id = ? AND path = ?`,
+		nodeID, PathDeclared).Scan(&raw)
+	if err == sql.ErrNoRows {
+		return 0, false, nil
+	}
+	if err != nil {
+		return 0, false, err
+	}
+	v, err := cval.Decode(raw)
+	if err != nil {
+		return 0, false, nil
+	}
+	rec, ok := v.(cval.Record)
+	if !ok || rec.Tag != "Liveness" {
+		return 0, false, nil
+	}
+	for _, p := range rec.Fields {
+		if k, ok := p.K.(cval.Symbol); !ok || k != "bud" {
+			continue
+		}
+		bud, ok := p.V.(int64)
+		if !ok || bud <= 0 {
+			return 0, false, nil
+		}
+		return bud, true, nil
+	}
+	return 0, false, nil
 }
 
 // The sweep's numbers. Each is chosen rather than derived, and each is recorded

@@ -752,3 +752,70 @@ func TestWriteRejectsTheGwPrefix(t *testing.T) {
 		t.Fatalf("tree = %+v after a rejected gw/ write, want nothing written", tree)
 	}
 }
+
+// The budget porta judges against comes from the NODE, and a node that has not
+// declared one yields no budget rather than a guess — the same shape CadenceMs's
+// `ok` had, for the opposite reason: there is nothing to infer from.
+func TestDeclaredBudgetReadsTheNodesOwnRecord(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+
+	if _, ok, err := st.DeclaredBudget("n1"); err != nil || ok {
+		t.Fatalf("no declaration: ok = %v, err = %v, want false, nil", ok, err)
+	}
+
+	rec, err := cval.Encode(cval.Record{Tag: "Liveness", Fields: cval.Map{
+		{K: cval.Symbol("cad"), V: int64(2_000)},
+		{K: cval.Symbol("bud"), V: int64(16_000)},
+	}})
+	if err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+	if _, _, err := st.Ingest("n1", 1, []Entry{
+		{Seq: 1, Path: PathDeclared, Kind: cval.KindCell, Value: rec},
+	}); err != nil {
+		t.Fatalf("Ingest: %v", err)
+	}
+	bud, ok, err := st.DeclaredBudget("n1")
+	if err != nil || !ok || bud != 16_000 {
+		t.Fatalf("DeclaredBudget = (%d, %v, %v), want (16000, true, nil)", bud, ok, err)
+	}
+}
+
+// A record porta cannot read is NOT an error that stops the sweep: it is one node
+// with no budget, and the honest answer is no verdict for that node. A gateway an
+// unreadable value can take down is worse than no gateway.
+func TestDeclaredBudgetSurvivesAGarbledDeclaration(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	for i, tc := range []struct {
+		name string
+		v    any
+	}{
+		{"not a record", cval.Symbol("live")},
+		{"wrong tag", cval.Record{Tag: "Health", Fields: cval.Map{{K: cval.Symbol("bud"), V: int64(1)}}}},
+		{"no bud field", cval.Record{Tag: "Liveness", Fields: cval.Map{{K: cval.Symbol("cad"), V: int64(2_000)}}}},
+		{"bud is not an int", cval.Record{Tag: "Liveness", Fields: cval.Map{{K: cval.Symbol("bud"), V: "soon"}}}},
+		{"bud is not positive", cval.Record{Tag: "Liveness", Fields: cval.Map{{K: cval.Symbol("bud"), V: int64(0)}}}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			b, err := cval.Encode(tc.v)
+			if err != nil {
+				t.Fatalf("encode: %v", err)
+			}
+			// Ascending seq per case: Ingest skips at-or-below the high-water,
+			// so a fixed seq would silently test the FIRST case five times —
+			// and every case expects the same answer, so the skip would be
+			// invisible. `skipped` is asserted for exactly that reason.
+			_, skipped, err := st.Ingest("n1", 1, []Entry{
+				{Seq: int64(i + 1), Path: PathDeclared, Kind: cval.KindCell, Value: b},
+			})
+			if err != nil || skipped != 0 {
+				t.Fatalf("Ingest: skipped = %d, err = %v; this case never reached the store", skipped, err)
+			}
+			if _, ok, err := st.DeclaredBudget("n1"); err != nil || ok {
+				t.Fatalf("ok = %v, err = %v, want false, nil", ok, err)
+			}
+		})
+	}
+}
