@@ -820,3 +820,59 @@ watched after), #223 (the window reached its verdict before the evidence arrived
 workload stopped without withdrawing its expectations). Each was found by hardware, and none of
 them could have been. The remaining gap is that **nothing asserts the rule** — the other four
 probes comply today by luck of how they were written, not by a check.
+
+---
+
+## Addendum, 2026-08-22 (rete#236) — the harness's output contract, and what it cost to break
+
+`deploy_flash.sh`'s header has always stated the rule:
+
+> `deploy::flash` -> prints the build id, and NOTHING else, on stdout.
+> Everything diagnostic goes to stderr, because the caller captures stdout.
+
+**The file broke its own rule in one place.** The build ran as `out=$( … 2>&1 )`, folding the
+build's stderr into the captured stdout; `$out` was echoed only when the build *failed*, and
+otherwise read for exactly one line, the `[archive]` build id. So a build that succeeded
+discarded every warning it had emitted.
+
+`zephyr/run.sh` prints `[thread] radio layer not requested — dataset overlay NOT applied` for an
+esp32c6 built with no OpenThread, and its own #165 comment records what that costs: *"shipped an
+image with no radio: PortaBridgeNodeC6 failed its UDP bind at boot and sat dead for over an
+hour."* On 2026-08-22 it fired for `liveness-heartbeat`, was swallowed here, and the node sat
+silent for 300 s while the harness reported only `TIMEOUT … never reached its done line` — true,
+and naming nothing. One board cycle to rediscover what had already been printed.
+
+**Decision: the merge is removed, and nothing is added.** `run.sh` already routes correctly —
+`[archive] <id> -> <path>` is stdout (`tools/console/archive.sh:48`), the `[thread] !` lines are
+stderr — and the runner already captures stdout only (`build_id=$(deploy::flash …)`). Deleting
+`2>&1` restores the contract end to end.
+
+**Rejected: grepping the build output for known warnings.** A pattern list goes stale pointing at
+the warnings someone thought of, and the next warning to matter is by definition the one nobody
+wrote a pattern for. Same reason there is no table of board hashes in `target.sh`.
+
+**Rejected: asserting the built `.config` against the manifest.** It sounds stronger and it would
+**not have caught this** — the `.config` matched what the manifest asked for, and the manifest
+asked for no radio. The manifest was the wrong thing. Worth revisiting for *silent* mismatches,
+but it is a different defect. **Check a candidate guard against the actual failure, not against
+the class of failure.**
+
+**Cost, measured before choosing.** A full pristine C6 build writes **1041 lines to stdout**
+(still captured, still hidden) and **3 to stderr**, all benign CMake info. Three lines a build.
+
+**Gated by `tests/target/test_deploy_output.py`**, which drives the real bash function against a
+stub `run.sh` — the warning case failed first with `stderr was: ''`. It also pins the contract's
+other half so it cannot be traded away: the build id is still the only thing on stdout. The suite
+discovers the file with no registration (`target-observe-py` 10 → 14 tests).
+
+### The consequence, and why it is filed rather than patched
+
+Restoring the channel immediately put a benign warning on **every** run — the collector this
+harness pauses deliberately, which `run.sh` correctly reports as "not running" before the flash.
+It is not silenced: the same warning is load-bearing on the hand-deploy path, where nobody resets
+the board again. The caller knows the pause was intentional and the callee cannot, so the fix is
+about who declares it — a decision, filed as **#237**.
+
+**The general rule this leaves behind: a signal restored is not a signal heard.** After "can it be
+seen?" comes "does seeing it still mean something?", and a warning that always means nothing
+devalues every warning that travels beside it.

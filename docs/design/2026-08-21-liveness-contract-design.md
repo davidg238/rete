@@ -331,3 +331,53 @@ answers "deaf" for every window before its first run. That is exactly true of it
 possible, and it means verdicts about pre-upgrade windows read `#unknown` rather than `#silent`.
 The failure direction is the safe one — it can only turn a confident verdict into an honest
 refusal, never the reverse.
+
+---
+
+## Addendum, 2026-08-22 — D1 is board-proven, and the build nearly disproved it by accident
+
+**D1 held on hardware.** `liveness-heartbeat` on `c6spare` (first run of that scenario ever):
+`TimerlessNodeC6` declares no app timer, so the kernel's 2000 ms base tick was the only timer in
+the image. It wedged deliberately at tick 15, and the observer fired
+
+```
+tuvm: WEDGE cond=pulse-undrained overdue=16ms deadline=16000ms up=50606ms pending=1 …
+```
+
+Between `entering the wedge` and the reset there were **18.03 s and zero console lines of any
+kind** — verified by grep over the window, not read off the TAP. The heartbeat did not outlive
+the wedge, which is the entire reason D1 chose nsl-on-the-reactor over a C thread. Boot 2
+reported `pass=2 fail=0` and ran clean through the 180 s observation window. `bridge-health`
+(3/3) and `wedge-quiet` (1/1) showed no regression from moving the tick into the kernel. porta
+holds the other end: `c6-timerless` published `#Liveness{#bud: 16000, #cad: 2000}` over the radio
+and reached `#silent` when it stopped.
+
+### Correction to §5 — two constants that look like one
+
+`deadline=16000ms` equals the node's declared budget, and **that is a coincidence of constants,
+not a derivation.** The observer computes `shortest_period × WEDGE_SLACK` from
+`timer_target_snapshot()`, with `WEDGE_SLACK = 8` in `observer.c`; the published budget is
+`cadence × 8`, the app's own multiplier from §9 A. Neither reads the other. Change one and the
+other will not follow, and the agreement that makes this run legible will silently disappear.
+
+### What the failed first run added to D1
+
+The scenario was authored with no `CONF_EXTRA`, so the image had `NETWORKING/IPV6/UDP/SOCKETS`
+but no L2. `net udpBindPort:` answered nil, no `PortaBridge` was constructed, and
+`bridge == nil ifFalse: [ bridge startTicking: … ]` — the only timer registration in the image —
+never ran. The node printed READY and nothing else for 300 s.
+
+**It had been returned to exactly the `n == 0` state D1 exists to abolish, by way of the build
+rather than the mechanism.** `observer_verdict()` opens `if (n == 0) return COND_NONE`, so it was
+not judged unhealthy or healthy — it was unjudgeable, and `pulse_pump`'s `K_FOREVER` makes that
+indistinguishable from healthy idle.
+
+**The rule this earns, and it belongs with D1 rather than with the scenario:** *whatever registers
+the base tick must not be downstream of anything that can fail at boot.* D1 put the tick behind
+the bridge because the bridge owns the cadence; that also put it behind the radio. The current
+shape is acceptable — a node with no network has no one to report to — but the coupling is now
+deliberate rather than accidental, and if a future node must be judgeable without a gateway, this
+is the line that has to move.
+
+Promoted to `review/lib/timers.ns`, `review/program-sequence.md` and `review/tests/CLAIMS.md`
+(commit `abc6c4f`).
