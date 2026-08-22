@@ -192,6 +192,31 @@ done
   echo "FAIL: goal/name never converged to obs/name"; /tmp/porta get --db "$DB" "$NODE"; exit 1; }
 echo "  goal/name converged to obs/name — the diff IS the view"
 
+# rete#231 D2, and this is the leg that proves the operator half. 45 s is not a
+# whole number of the node's 2 s cadence, so the node must publish 46 000 and the
+# two paths must DISAGREE — that disagreement is the answer, not a failure, and a
+# gate that asserted agreement here would be asserting that the node's grid does
+# not exist.
+#
+# `porta put` takes scalars or --raw hex, and a Record needs the hex. This
+# constant is Liveness { cad: 2000, bud: 45000 } and it is pinned by
+# TestGoalLivenessGoldenForTheHostGate in porta/internal/cval — a hex nobody
+# checks is a constant that rots silently, and it would rot into a record the
+# node logs as bad while this gate went on passing.
+GOAL_LIVENESS_HEX=d81b82d827684c6976656e657373a2d8276362756419afc8d827636361641907d0
+# --raw is a BOOLEAN flag: the hex is the positional VALUE, not the flag's argument.
+/tmp/porta put --db "$DB" --raw "$NODE" goal/liveness "$GOAL_LIVENESS_HEX" >/dev/null
+for _ in $(seq 1 100); do
+  /tmp/porta get --db "$DB" "$NODE" obs/liveness 2>/dev/null | grep -q "46000" && break; sleep 0.2
+done
+/tmp/porta get --db "$DB" "$NODE" obs/liveness | grep -q "46000" || {
+  echo "FAIL: the node did not snap a 45 s request onto its 2 s grid"
+  /tmp/porta get --db "$DB" "$NODE" obs/liveness; exit 1; }
+/tmp/porta get --db "$DB" "$NODE" goal/liveness | grep -q "45000" || {
+  echo "FAIL: goal/liveness no longer holds what the operator asked for — the node overwrote a goal/ path"
+  /tmp/porta get --db "$DB" "$NODE" goal/liveness; exit 1; }
+echo "  goal/liveness 45 s -> obs/liveness 46 s: the node snapped, and the diff IS the answer"
+
 # Leg 3: exactly once, which is THREE claims and not one.
 #   no duplicates  -> rows == distinct ticks
 #   no gaps        -> the distinct ticks run contiguously

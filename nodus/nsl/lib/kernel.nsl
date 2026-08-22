@@ -2303,6 +2303,10 @@ class Kernel usingPlatform: platform = () (
          per boot, so it must be ahead of the per-check-in rows that can afford to
          lose a sample. *)
       self publishApps.
+      (* BEFORE publishLiveness, so a request arriving on this tick is answered on
+         this tick rather than the next: adoptCad:bud: clears livenessPublished
+         and the publish below is what carries the answer back. *)
+      self applyLivenessGoal.
       self publishLiveness.
       self publishMetrics.
       self publishCheap.
@@ -2431,6 +2435,44 @@ class Kernel usingPlatform: platform = () (
        cadence half of this call goes away, and a sixth keyword at thirteen
        construction sites would have to go with it. *)
     public liveness: aCadMs budget: aBudMs = ( ^ self adoptCad: aCadMs bud: aBudMs )
+
+    (* rete#231 D2 — porta's REQUEST, read once per check-in from the tail of the
+       apply step. No timer, no reaction: the cadence is the check-in's, and a
+       `whenever:` on this path would also have to be a bare self-send anyway
+       (#133, a reified block cannot resolve its outer chain on this VM).
+
+       THE NODE ALWAYS WINS, and it wins by publishing rather than by refusing.
+       Every request is adopted through the same `adoptCad:bud:` the app's own
+       declaration goes through, so the grid and the ceiling apply identically —
+       an operator asks for 45 s on a 2 s node, `obs/liveness` answers 46 s, and
+       the divergence is the whole answer. Nothing had to know the legal values.
+
+       THE CADENCE HALF IS NOT HONOURED YET, deliberately. The app owns the timer
+       until the kernel base tick lands (rete#231 D1, plan Task 10); adopting a
+       requested cadence the node does not actually keep would publish a number
+       the node is not honouring, which is the `port=up` lie this design exists to
+       refuse. `cadMs` is therefore re-asserted from what the node really does,
+       and the request's cadence shows as a goal/obs divergence until Task 10.
+
+       `peekCell:ifStream:` and never `peek:` — see otaCheck's comment at length:
+       a gateway can legally create this leaf as a STREAM, and a raise here would
+       be caught by `protectedFire:`, abandoning the rest of the reaction that
+       drives the tick. obs/health and tel/log would stop, permanently, with
+       nothing logged. *)
+    public applyLivenessGoal = (
+      | rec bud |
+      rec:: space peekCell: 'goal/liveness' ifStream: [
+        self telLog: #error text: 'liveness bad record'.
+        nil ].
+      rec == nil ifTrue: [ ^ self ].
+      rec tag = #Liveness ifFalse: [
+        self telLog: #error text: 'liveness bad record'.
+        ^ self ].
+      bud:: rec at: #bud ifAbsent: [ nil ].
+      bud == nil ifTrue: [
+        self telLog: #error text: 'liveness bad record'.
+        ^ self ].
+      ^ self adoptCad: cadMs bud: bud )
 
     (* rete#231 D2 — the node's own authority, on the node's own path. porta writing
        obs/** would be a lie (2026-08-10 D7), so the operator gets goal/liveness and

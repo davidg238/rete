@@ -112,3 +112,22 @@ func TestIntegerBandEdges(t *testing.T) {
 		}
 	}
 }
+
+// The hex nodus/tuvm/tests/porta_sync_host.sh writes to goal/liveness. A gate
+// that pastes a constant nothing checks is a gate that keeps passing after the
+// record's shape changes underneath it, so the constant is pinned HERE, where a
+// shape change breaks a test instead of quietly writing a record the node will
+// log as bad.
+func TestGoalLivenessGoldenForTheHostGate(t *testing.T) {
+	b, err := Encode(Record{Tag: "Liveness", Fields: Map{
+		{K: Symbol("cad"), V: int64(2_000)},
+		{K: Symbol("bud"), V: int64(45_000)},
+	}})
+	if err != nil {
+		t.Fatalf("Encode: %v", err)
+	}
+	const want = "d81b82d827684c6976656e657373a2d8276362756419afc8d827636361641907d0"
+	if got := hex.EncodeToString(b); got != want {
+		t.Fatalf("goal/liveness golden = %s, want %s\n(if the record's shape changed on purpose, update BOTH this constant and the hex in nodus/tuvm/tests/porta_sync_host.sh)", got, want)
+	}
+}

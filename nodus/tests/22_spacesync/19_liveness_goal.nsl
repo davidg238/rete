@@ -1,0 +1,54 @@
+(*
+porta space-sync — the operator REQUESTS a budget and the node answers (rete#231 D2).
+
+porta may not write obs/**, so it writes goal/liveness and the node publishes what it
+actually adopted. There is no accept/reject protocol and no error path: the goal/obs
+diff IS the answer, which is the convergence view this system already has. An operator
+asking for 45 s on a 2 s node sees 46 s come back, and learns the grid without anyone
+publishing it.
+
+THE ABSENT CASE RUNS FIRST, and the wrongly-kinded case is a SEPARATE test
+(21_liveness_goal_stream.nsl): one image is one space, kind is pinned by the first
+write, and `out:` raises 'not a stream' on a leaf a `put:` already pinned as a cell.
+Both cases in one file would be testing the kind pin, not the goal.
+
+expect:
+absent leaves it alone true
+adopted 2000 46000
+clamped 2000 86400000
+*)
+class LivenessGoal packageUsing: manifest = () (
+  bridgeOn: platform = (
+    | b |
+    b:: platform PortaBridge socket: nil space: platform space id: 'test' peer: '::1' port: 1
+        spans: platform Spans new.
+    b liveness: 2000 budget: 16000.
+    ^ b )
+
+  goal: platform bud: ms = (
+    (platform space channel: 'goal/liveness')
+      put: '' value: (platform Record tag: #Liveness with: #cad -> 2000 with: #bud -> ms).
+    ^ self )
+
+  public main: platform args: args = (
+    | b before |
+    (* The common case, and it must cost one cell peek: no goal at all. *)
+    b:: self bridgeOn: platform.
+    before:: b budMs.
+    b applyLivenessGoal.
+    ('absent leaves it alone ' , (b budMs = before) printString) println.
+
+    (* 45 s is not a whole number of 2 s cadences: adopted as 46 s. *)
+    b:: self bridgeOn: platform.
+    self goal: platform bud: 45000.
+    b applyLivenessGoal.
+    ('adopted ' , b cadMs printString , ' ' , b budMs printString) println.
+
+    (* A week is clamped to the ceiling and PUBLISHED (D7), never refused. *)
+    b:: self bridgeOn: platform.
+    self goal: platform bud: 604800000.
+    b applyLivenessGoal.
+    ('clamped ' , b cadMs printString , ' ' , b budMs printString) println.
+  )
+) : (
+)

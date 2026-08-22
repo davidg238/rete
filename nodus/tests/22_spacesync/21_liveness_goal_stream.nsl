@@ -1,0 +1,33 @@
+(*
+porta space-sync — A WRONGLY KINDED goal/liveness IS A LOG LINE, NOT A CRASH
+(rete#231 D2), and `peekCell:ifStream:` is why.
+
+`porta put --raw --kind stream` is a legal write, kind is pinned by the first write
+and re-created by replay, and a bare `peek:` would raise 'not a cell' here on EVERY
+tick forever — a raise that protectedFire: catches by ABANDONING the rest of the
+reaction, so obs/health and tel/log would silently stop while the exchange kept
+working. #180 and #206 are this same failure at a different path, and each one hung
+a node at every boot until the row was found by hand.
+
+Its own file because one image is one space: 19_liveness_goal.nsl pins this leaf as
+a CELL, and `out:` raises on a cell.
+
+expect:
+stream is a log line true
+node kept its own budget true
+*)
+class LivenessGoalStream packageUsing: manifest = () (
+  public main: platform args: args = (
+    | b |
+    b:: platform PortaBridge socket: nil space: platform space id: 'test' peer: '::1' port: 1
+        spans: platform Spans new.
+    b liveness: 2000 budget: 16000.
+    (platform space channel: 'goal/liveness') out: '' value: 'nonsense'.
+    b applyLivenessGoal.
+    ('stream is a log line ' , (b budMs = 16000) printString) println.
+    (* And the node is still running: the send returned, nothing was abandoned. *)
+    b applyLivenessGoal.
+    ('node kept its own budget ' , (b budMs = 16000) printString) println.
+  )
+) : (
+)
