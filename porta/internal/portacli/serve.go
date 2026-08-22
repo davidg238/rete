@@ -74,6 +74,11 @@ func newServeCmd() *cobra.Command {
 	var udpAddr, httpBind string
 	var httpPort, testDropAck int
 	var httpAllowCIDR []string
+	// TEST ONLY, on --test-drop-ack's precedent: the sweep's own period. The
+	// host gate asserts a verdict and the default 30 s tick outlasts the whole
+	// gate, so the alternative is a 31 s sleep in a script that otherwise runs
+	// in seconds — a mystery interval that would also be racing the tick.
+	var sweepTick time.Duration
 	cmd := &cobra.Command{
 		Use:   "serve",
 		Short: "Run the porta gateway: UDP space listener + operator HTTP surface",
@@ -124,8 +129,12 @@ func newServeCmd() *cobra.Command {
 			// evaluates only when read is silent exactly when everything is
 			// (design 2026-08-10 §6.3).
 			sweepErr := make(chan error, 1)
-			go func() { sweepErr <- sweepLiveness(ctx, st, space.SweepTick, log.Printf) }()
-			log.Printf("porta: sweeping for silent nodes every %s", space.SweepTick)
+			tick := space.SweepTick
+			if sweepTick > 0 {
+				tick = sweepTick
+			}
+			go func() { sweepErr <- sweepLiveness(ctx, st, tick, log.Printf) }()
+			log.Printf("porta: sweeping for silent nodes every %s", tick)
 
 			// When --http-port 0, httpErr stays nil so the select arm blocks
 			// forever and UDP keeps serving until ctx cancel. (A closed
@@ -158,6 +167,8 @@ func newServeCmd() *cobra.Command {
 		"CIDR ranges allowed to reach the operator HTTP listener (repeatable; empty = serve any peer)")
 	cmd.Flags().IntVar(&testDropAck, "test-drop-ack", 0,
 		"TEST ONLY: swallow every Nth outbound #ack AFTER the push is committed (0 = off)")
+	cmd.Flags().DurationVar(&sweepTick, "sweep-tick", 0,
+		"TEST ONLY: how often to re-form liveness verdicts (0 = space.SweepTick, 30s)")
 	return cmd
 }
 

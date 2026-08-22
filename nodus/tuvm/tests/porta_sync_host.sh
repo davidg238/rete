@@ -70,7 +70,7 @@ gcc -Wall -std=c99 -DOEVM_METHOD_PROFILE -Isrc \
 
 echo "[5/8] start porta serve on udp 127.0.0.1:16969"
 rm -f "$DB"
-/tmp/porta serve --db "$DB" --udp 127.0.0.1:16969 --http-port 0 >/tmp/porta_serve.log 2>&1 &
+/tmp/porta serve --db "$DB" --udp 127.0.0.1:16969 --http-port 0 --sweep-tick 1s >/tmp/porta_serve.log 2>&1 &
 PORTA_PID=$!
 NODE_PID=""
 trap 'kill $PORTA_PID ${NODE_PID:-} 2>/dev/null || true' EXIT
@@ -127,6 +127,34 @@ echo "  obs/health is in porta's cell tree"
 echo "  obs/health's bid is the real boot ($NODE_BOOT), and the record agrees with the envelope"
 /tmp/porta get --db "$DB" "$NODE" obs | grep -q "obs/build" || { echo "FAIL: obs/build missing"; exit 1; }
 echo "  obs/build carries the node's provenance"
+
+# rete#231: the node's own declaration of how long its silence may last. This is
+# the leg that proves the record survives the wire — the node builds it with its
+# Cbor class and porta decodes it with a hand-rolled codec that was written from
+# the record catalogue, so a shape either side got wrong shows up HERE and not on
+# a board six weeks later.
+for _ in $(seq 1 100); do
+  /tmp/porta get --db "$DB" "$NODE" obs 2>/dev/null | grep -q "obs/liveness" && break; sleep 0.2
+done
+/tmp/porta get --db "$DB" "$NODE" obs/liveness | grep -q "#cad: 2000" || {
+  echo "FAIL: obs/liveness does not carry the node's declared 2 s cadence"
+  /tmp/porta get --db "$DB" "$NODE" obs/liveness; exit 1; }
+/tmp/porta get --db "$DB" "$NODE" obs/liveness | grep -q "#bud: 16000" || {
+  echo "FAIL: obs/liveness does not carry the declared 16 s budget (8 x cadence)"
+  /tmp/porta get --db "$DB" "$NODE" obs/liveness; exit 1; }
+echo "  obs/liveness carries the node's declared cadence and budget"
+
+# rete#231: porta's verdict, formed from the number the node declared. The sweep's
+# default period (space.SweepTick, 30 s) outlasts this whole gate, so serve is
+# started with --sweep-tick 1s above rather than the script sleeping 31 s for a
+# tick it would also be racing.
+for _ in $(seq 1 100); do
+  /tmp/porta get --db "$DB" "$NODE" gw 2>/dev/null | grep -q "gw/liveness" && break; sleep 0.2
+done
+/tmp/porta get --db "$DB" "$NODE" gw/liveness | grep -q "#live" || {
+  echo "FAIL: porta did not judge a node checking in every 2 s as #live"
+  /tmp/porta get --db "$DB" "$NODE" gw; cat /tmp/porta_serve.log; exit 1; }
+echo "  gw/liveness reads #live, formed from the declared 16 s budget"
 
 # sys/metrics — #56 capability (3). RECORDS §4.4 has pinned this as a CELL since
 # 2026-07-21, and it was UNSENDABLE until the cell scan reached sys/ (design D1):
