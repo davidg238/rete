@@ -1,2 +1,27 @@
-text 34488
-data_bss 69048
+# T0.3 footprint baseline — MCU config (arm-zephyr-eabi, cortex-m4).
+# Re-banked 2026-08-22 for rete#177 items 1 and 2.
+#
+# FIRST MCU RE-BANK TAKEN FROM A REAL CROSS-COMPILE SINCE THE #79 CONSOLIDATION.
+# The previous bank's own header said the mcu half "has been SKIPping for want of an
+# arm-zephyr-eabi toolchain", and CLAUDE.md recorded that SKIP as expected. Both were
+# wrong: the compiler ships inside the Zephyr SDK at
+# ~/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin and has been there the whole time. What was
+# actually broken was footprint.sh's un-SKIP instruction, which named
+# `ns-zephyr/tools/env.sh` — a path DELETED by the consolidation. A SKIP whose remedy
+# cannot be followed is a deleted gate that still prints a reassuring line.
+#
+# THE SPLIT (34488 banked -> 38872 measured, +4384):
+#   +3108 B  ENROLMENT, not growth (rete#177 item 2): ota.o 2708 + span.o 400. The
+#            #25 ota seam was never inside the ratchet meant to bound it. #177
+#            predicted "~3 KB of SHA-256 + block client that no gate weighs"; the
+#            measured figure is 3108 B.
+#   +1276 B  REAL DRIFT, measured on the OLD TU set today (34488 banked -> 35764).
+#            This is the number rete#190's close-out could not bank because it would
+#            have been banked against an under-measured engine. It now has a ruler.
+#   = 38872 total mcu text.
+#
+# data+bss went DOWN, 69048 -> 67796 (-1252), while span.o ADDED 772 B of bss — so
+# ~2 KB left elsewhere. That is rete#226 deleting the selector prim cache; this
+# script was still passing the dead -DPRIM_CACHE_SIZE=256 until today.
+text 38872
+data_bss 67796
