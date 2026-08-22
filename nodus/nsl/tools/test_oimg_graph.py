@@ -5,7 +5,9 @@ from builtins_registry import REGISTRY, VERSION
 
 LAYOUT = json.loads('''{"oop_size":8,"structs":{
  "Symbol":{"size":16,"fields":{"base.vtable":{"offset":0,"is_ref":true,"is_ptr":false},
-   "length":{"offset":8,"is_ref":false,"is_ptr":false},"name":{"offset":16,"is_ref":false,"is_ptr":false}}},
+   "length":{"offset":8,"is_ref":false,"is_ptr":false},
+   "prim_id":{"offset":10,"is_ref":false,"is_ptr":false},
+   "name":{"offset":16,"is_ref":false,"is_ptr":false}}},
  "Vtable":{"size":48,"fields":{"base.vtable":{"offset":0,"is_ref":true,"is_ptr":false},
    "delegate":{"offset":8,"is_ref":true,"is_ptr":false},"bindings":{"offset":16,"is_ref":false,"is_ptr":true},
    "capacity":{"offset":24,"is_ref":false,"is_ptr":false},"size":{"offset":32,"is_ref":false,"is_ptr":false},

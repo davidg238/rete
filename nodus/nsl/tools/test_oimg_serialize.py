@@ -95,8 +95,32 @@ def test_descriptor_block_is_dense_word_strided(W):
 # ---------------------------------------------------------------------------
 
 def _minimal_serializer(oop=8):
-    # _smi()/_smi_fits() only need oop_size; structs/registry are irrelevant here.
-    return OimgSerializer({"oop_size": oop, "structs": {}}, {}, registry_version=1)
+    # _smi()/_smi_fits() only need oop_size — but the CONSTRUCTOR does not, and that
+    # is the whole point of rete#228: this helper passed `structs: {}` on the stated
+    # ground that "structs/registry are irrelevant here", which stopped being true the
+    # day _check_inline_payloads began validating the layout before writing a byte.
+    # The tests were not updated, and nothing noticed for weeks because NOTHING RUNS
+    # THIS FILE (see the run_pytest_gate call the suite now makes for nodus/nsl/tools).
+    #
+    # So: the smallest layout the validator will accept, rather than none. Both
+    # payloads ride INLINE, so each must start exactly at the end of its own header
+    # (offset == size) and must not be a pointer — and Symbol carries prim_id since
+    # rete#226. The offsets scale with `oop` because that is the only thing these
+    # tests actually vary.
+    header = 2 * oop
+    return OimgSerializer(
+        {"oop_size": oop,
+         "structs": {
+             "Symbol": {"size": header, "fields": {
+                 "base.vtable": {"offset": 0, "is_ref": True, "is_ptr": False},
+                 "length": {"offset": oop, "is_ref": False, "is_ptr": False},
+                 "prim_id": {"offset": oop + 2, "is_ref": False, "is_ptr": False},
+                 "name": {"offset": header, "is_ref": False, "is_ptr": False}}},
+             "String": {"size": header, "fields": {
+                 "base.vtable": {"offset": 0, "is_ref": True, "is_ptr": False},
+                 "length": {"offset": oop, "is_ref": False, "is_ptr": False},
+                 "bytes": {"offset": header, "is_ref": False, "is_ptr": False}}}}},
+        {}, registry_version=1)
 
 
 def test_smi_accepts_true_capacity_boundary_values():
