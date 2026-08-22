@@ -1,7 +1,10 @@
 # The liveness contract — a node declares how long its silence may last
 
-**Design record, 2026-08-21.** Decisions taken with David in session; approaches were offered
-and chosen inline, and the chosen ones are recorded here as D1–D7.
+**Design record, 2026-08-21. APPROVED by David 2026-08-21** — D7's 24 h ceiling ("think fair")
+and §7's staging, which deliberately puts the board-dependent kernel heartbeat last behind three
+host-testable steps ("yep"). Decisions were offered and chosen inline; the chosen ones are
+recorded here as D1–D7. **Next step: the implementation plan** (`writing-plans`), queued for the
+next session — nothing here is built.
 
 Related: #215 (the wedge detector, whose principle this generalises), #217 (`gw/liveness` and
 the sweep), #219, #220, #225, #152, #224.
@@ -220,7 +223,7 @@ Recorded so the deferral is falsifiable rather than vague — the discipline 202
 
 | Constant | Value | Standing |
 |---|---|---|
-| maximum declarable budget | 24 h | **Chosen** (David, 2026-08-21). A managed fleet means no node makes itself unjudgeable, and a day is the coarsest granularity at which a fleet is still a fleet. Earns revision from the first real deployment whose duty cycle cannot afford a daily radio wake — a battery budget, not an opinion |
+| maximum declarable budget | 24 h | **Chosen and APPROVED** (David, 2026-08-21: "think fair"). A managed fleet means no node makes itself unjudgeable, and a day is the coarsest granularity at which a fleet is still a fleet. Earns revision from the first real deployment whose duty cycle cannot afford a daily radio wake — a battery budget, not an opinion |
 | wedge slack | 8 × (unchanged) | **Inherited from #215**, where it is measured and 5/5 on hardware. This design gives it a period to multiply on a node that had none; it does not touch the number |
 
 **Deleted rather than added:** `k = 3`, the 10-gap inference window, and the minimum-3-exchanges

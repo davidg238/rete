@@ -895,6 +895,43 @@ the third is approved and next** — kept here in order because the order is the
   disagreed about what a stopped node means** (#216, #223, #230), and nothing yet asserts the
   rule — the other four probes comply by luck of how they were written.
 
+  **#199 — HALF FIXED 2026-08-21 (`196ff1c`), and the issue stays open on purpose.** A refused
+  node exhausted its arena in 2 min 37 s while `misses 0` read healthy the whole way. **The
+  issue's own hypothesis was wrong**: nothing accumulates. Reproduced on the host with the arena
+  pinned to the C6's 131 072 B and porta answering `#err` to everything — live bytes SAWTOOTH in
+  both arms (77 KB → 123 KB → 77 KB) and the push frame is a constant 493 B, so the trim holds.
+  What differs is the allocation **rate**: with `acked` pinned at 0, `collectOutbound` re-scans
+  and `valueFits:` re-encodes every candidate every tick, giving **1.82 GC cycles/tick against a
+  healthy node's 0.88** and collapsing the largest free block from ~16.8 KB to ~2.9 KB. The C6
+  died on a 4 104 B request; a refused node cannot satisfy that on **74% of its ticks** against a
+  healthy node's 10%. Not unlucky. Fixed by keeping the frame the gateway did not accept —
+  `checkIn`'s own comment already promised it "re-pushes the same entries" and simply rebuilt
+  them from scratch to keep the promise — with `acked` advancing as the whole invalidation rule.
+  **1.82 → 0.42 GC cycles/tick**, below even the control. A refusal is also finally sayable:
+  counted, published as `obs/health #ref` (live in the gateway's store beside `#pto: 0`), and the
+  gateway's own message printed ONCE per reason. Health 61 → 72 B, frame 385 → 396 B, 116 B
+  headroom. **What is NOT fixed: the fragmentation** — still under 4 104 B on 72% of ticks — and
+  **the host cannot answer whether the C6 still dies**, because it never reproduced the death
+  (300 s clean where the board died in 157 s). **#232** is the gate that can: a C6 against a
+  refusing gateway, watched past 157 s. Improvement is not a fix.
+
+  **#231 — the liveness contract, design APPROVED 2026-08-21, PLAN IS THE NEXT ACTION.**
+  `docs/design/2026-08-21-liveness-contract-design.md` (`3804c62`). Six open problems are one
+  defect: **something in this system judges a node against a number the node never declared.**
+  #215 solved that for the reactor by not estimating; this extends it across the wire — a node
+  declares a **silence budget** and both its own detector and the gateway's sweep judge against
+  that one number. Four decisions: the **kernel owns the heartbeat and it rides the reactor**
+  (not C — a heartbeat a wedged node can still emit is a lie, and #215's observer already
+  supplies the deadline from `target_timers[]`, so one `timers every:` feeds both consumers with
+  **no new C**); the node declares `obs/liveness` and the operator **requests** `goal/liveness`,
+  so the convergence view already answers "did it accept?"; **one base tick, all periods integer
+  multiples**, so the radio starts and stops once; and a **24 h ceiling on the declaration**.
+  **It deletes more than it adds** — D4 reverses 2026-08-10 D8, removing `k = 3`, the 10-gap
+  inference window, the min-3-exchanges rule, `CadenceMs` and #217's `leg` bookkeeping, and
+  **#219 and #220 close with them**; #152 and the gateway half of #225 are answered by D6. Two
+  paths, no tables, no verbs. Staging puts the board-dependent kernel heartbeat **last**, behind
+  three host-testable steps.
+
   Also **#223 DONE and promoted** (`8167463`: the observe window no longer reaches its verdict
   18 s before the evidence, and a wedge the detector caught is reported as such; the rule —
   *a window that can out-race the instrument it is watching must either wait for it or decline
