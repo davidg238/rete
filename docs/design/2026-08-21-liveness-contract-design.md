@@ -3,8 +3,9 @@
 **Design record, 2026-08-21. APPROVED by David 2026-08-21** — D7's 24 h ceiling ("think fair")
 and §7's staging, which deliberately puts the board-dependent kernel heartbeat last behind three
 host-testable steps ("yep"). Decisions were offered and chosen inline; the chosen ones are
-recorded here as D1–D7. **Next step: the implementation plan** (`writing-plans`), queued for the
-next session — nothing here is built.
+recorded here as D1–D7. **The implementation plan landed 2026-08-21**:
+`docs/superpowers/plans/2026-08-21-liveness-contract.md` (`5ab67a3`), ten tasks in §7's order,
+and §9 below records the three decisions writing it forced. **Nothing here is built yet.**
 
 Related: #215 (the wedge detector, whose principle this generalises), #217 (`gw/liveness` and
 the sweep), #219, #220, #225, #152, #224.
@@ -273,3 +274,60 @@ number nothing reads is a number nobody has checked.
 | D4's reversal of 2026-08-10 D8, and the four constants deleted | `docs/design/2026-08-10-node-memory-and-liveness-design.md` §8, as a dated correction |
 | Silence detection, the two verdicts, the deaf intervals | `porta/docs/ARCHITECTURE.md` |
 | The kernel-owned heartbeat, and why it is nsl rather than C | `review/lib/` VM doc + the rung in `review/program-sequence.md` |
+
+---
+
+## 9. Addendum, 2026-08-21 — three decisions the plan had to make
+
+The implementation plan is `docs/superpowers/plans/2026-08-21-liveness-contract.md` (`5ab67a3`),
+and writing it forced three choices this record had left open. They are recorded here rather than
+only in the plan, because a plan is execution scaffolding and goes historical when the work
+closes, while these are decisions. **All three are open to reversal by David; none has been
+built.**
+
+### A. Two compiled-in defaults, added to §5's table
+
+D2 requires that *"a node that has never heard from porta still has a budget — its compiled-in
+default"*, which is the property that dissolves the never-seen case. §5 tabled the ceiling and
+the slack but not the default itself.
+
+| Constant | Value | Standing |
+|---|---|---|
+| default `cad` for an app that declares nothing | **30 000 ms** | **Chosen by the plan.** The slowest real cadence on this bench (`c6-bell`). Declaring a *slower* cadence than the node keeps is always safe — porta judges `bud`, and speaking more often than declared violates nothing — so the conservative default cannot manufacture a `#silent`. Earns revision the moment a node exists whose real cadence is slower than 30 s and which declares nothing, because then the default is wrong in the dangerous direction |
+| default `bud` | **`8 × cad`** | **Chosen by the plan**, reusing #215's measured slack rather than inventing a second multiplier |
+
+**Why `8 ×` here is not the `k = 3` that D4 deletes**, since it looks like it and is not: `k` was
+the **gateway** multiplying someone else's declaration by a number the gateway picked. This is
+the **node** multiplying its own, with its own loss rate in hand, and what arrives at porta is
+one number with no multiplication left in it. Both constants leave the story when the kernel base
+tick lands and `cad` becomes the tick itself.
+
+### B. `goal/liveness`'s cadence half is accepted but not honoured until D1 lands
+
+§7 orders the operator half (step 3) **before** the kernel-owned tick (step 4), so for the
+duration of that gap the app still owns the timer. A requested `cad` is therefore adopted through
+the same grid and ceiling as any other, but the node re-asserts the cadence it actually keeps and
+publishes that — because publishing a cadence it is not honouring is `port=up` with better
+manners, which is the lie D1 exists to refuse.
+
+Nothing in §6 is lost: the falsification *"the operator's request converges, or visibly does
+not"* runs on `bud`, which converges fully and carries the snap. Ask 45 s of a 2 s node, get
+46 s, and the divergence is the answer — the design's own example, unchanged.
+
+### C. D6's deaf intervals need a table, and it is argued rather than assumed
+
+`gw_runs`: one row per `porta serve` run, holding when it started and the last moment the sweep
+stamped it alive. This is the one exception to the rewrite's D2 (*"a new feature adds rows, not
+tables"*), and the exception is narrow: **D2 governs per-node data, whose unit of extension is a
+path.** The gateway's record of its own presence is not about a node and has no path.
+
+The two path-shaped alternatives are worse in kind, which is what makes this a decision rather
+than a lapse. A reserved node id would put a fake node in `nodes` — the table `httpsrv`'s
+`NodeCounter` reports the fleet size from. A per-tick row in `events` needs a `node_id` and would
+write 2 880 rows a day into the log that exists to stay readable.
+
+**One consequence, stated now rather than discovered later:** a store that predates the table
+answers "deaf" for every window before its first run. That is exactly true of it, no backfill is
+possible, and it means verdicts about pre-upgrade windows read `#unknown` rather than `#silent`.
+The failure direction is the safe one — it can only turn a confident verdict into an honest
+refusal, never the reverse.

@@ -915,7 +915,7 @@ the third is approved and next** — kept here in order because the order is the
   (300 s clean where the board died in 157 s). **#232** is the gate that can: a C6 against a
   refusing gateway, watched past 157 s. Improvement is not a fix.
 
-  **#231 — the liveness contract, design APPROVED 2026-08-21, PLAN IS THE NEXT ACTION.**
+  **#231 — the liveness contract, design APPROVED and PLANNED 2026-08-21; EXECUTION IS NEXT.**
   `docs/design/2026-08-21-liveness-contract-design.md` (`3804c62`). Six open problems are one
   defect: **something in this system judges a node against a number the node never declared.**
   #215 solved that for the reactor by not estimating; this extends it across the wire — a node
@@ -930,7 +930,12 @@ the third is approved and next** — kept here in order because the order is the
   inference window, the min-3-exchanges rule, `CadenceMs` and #217's `leg` bookkeeping, and
   **#219 and #220 close with them**; #152 and the gateway half of #225 are answered by D6. Two
   paths, no tables, no verbs. Staging puts the board-dependent kernel heartbeat **last**, behind
-  three host-testable steps.
+  three host-testable steps. **The plan is
+  `docs/superpowers/plans/2026-08-21-liveness-contract.md` (`5ab67a3`), ten tasks, to be run
+  subagent-driven.** Writing it forced three decisions the design had left open — two compiled-in
+  node defaults (`cad` 30 s, `bud` 8 x cad), `goal/liveness`'s cadence half deferred to the
+  kernel-tick task rather than published unhonoured, and `gw_runs` as an argued exception to
+  "a feature adds rows, not tables". All three are §9 of the design record and open to reversal.
 
   Also **#223 DONE and promoted** (`8167463`: the observe window no longer reaches its verdict
   18 s before the evidence, and a wedge the detector caught is reported as such; the rule —
