@@ -2388,6 +2388,50 @@ class Kernel usingPlatform: platform = () (
     public cadMs = ( ^ cadMs )
     public budMs = ( ^ budMs )
 
+    (* rete#231 D7 — the one invented constant in the design, and it is a ceiling on
+       the DECLARATION rather than a cadence: a node speaking once a month is free to
+       try, it simply cannot promise a month of silence and still be considered
+       healthy. 24 h is the coarsest granularity at which a fleet is still a fleet. *)
+    livenessCeilingMs = ( ^ 86400000 )
+
+    (* rete#231 D2/D3/D7 — the ONE place a liveness pair is adopted, whether it came
+       from the app (here) or from porta (applyLivenessGoal). Two entry points and
+       one rule, because a snap that differs between them is a grid the operator
+       cannot learn by asking.
+
+       CLAMPED, NEVER REJECTED. Every path out of this method adopts something and
+       publishes it, so `goal/liveness` versus `obs/liveness` always answers "did the
+       node accept?" — a silent refusal would read exactly like acceptance.
+
+       NSL HAS NO MODULO, so "round up to a whole number of cadences" is spelled
+       ((n + m - 1) // m) * m. *)
+    adoptCad: aCadMs bud: aBudMs = (
+      | cad bud ceiling |
+      ceiling:: self livenessCeilingMs.
+      cad:: aCadMs.
+      cad < 1 ifTrue: [ cad:: 30000 ].
+      cad > ceiling ifTrue: [ cad:: ceiling ].
+      bud:: aBudMs.
+      bud < cad ifTrue: [ bud:: cad ].
+      bud:: ((bud + cad - 1) // cad) * cad.
+      (* The clamp comes AFTER the snap and lands back on the grid: a ceiling that
+         is not a whole number of cadences would publish a value the node's own rule
+         says is illegal. `cad <= ceiling` above is what keeps this >= cad. *)
+      bud > ceiling ifTrue: [ bud:: (ceiling // cad) * cad ].
+      (cad = cadMs and: [ bud = budMs ]) ifTrue: [ ^ self ].
+      cadMs:: cad.
+      budMs:: bud.
+      (* The pair moved, so the published cell is stale. Clearing the flag is the
+         whole of the re-publish mechanism — no second path, no dirty list. *)
+      livenessPublished:: false.
+      ^ self )
+
+    (* The app's declaration. It is a SETTER and not a constructor argument on
+       purpose: Task 10 moves the base tick into the kernel, at which point the
+       cadence half of this call goes away, and a sixth keyword at thirteen
+       construction sites would have to go with it. *)
+    public liveness: aCadMs budget: aBudMs = ( ^ self adoptCad: aCadMs bud: aBudMs )
+
     (* rete#231 D2 — the node's own authority, on the node's own path. porta writing
        obs/** would be a lie (2026-08-10 D7), so the operator gets goal/liveness and
        a tree diff instead (Task 6); the node always wins.
