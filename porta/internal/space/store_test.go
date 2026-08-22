@@ -199,7 +199,7 @@ func TestOversizeValueRejected(t *testing.T) {
 
 func TestExchangeRowRecorded(t *testing.T) {
 	st := testStore(t)
-	if err := st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1", "pull"); err != nil {
+	if err := st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1"); err != nil {
 		t.Fatalf("RecordExchange: %v", err)
 	}
 	if n, _ := st.CountNodes(); n != 1 {
@@ -213,7 +213,7 @@ func TestExchangeRowRecorded(t *testing.T) {
 // display field.
 func TestExchangeRecordsPeerAddress(t *testing.T) {
 	st := testStore(t)
-	st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1", "pull")
+	st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1")
 	got, err := st.NodeAddr("n1")
 	if err != nil {
 		t.Fatalf("NodeAddr: %v", err)
@@ -226,8 +226,8 @@ func TestExchangeRecordsPeerAddress(t *testing.T) {
 // An exchange recorded without a peer address must not erase a known one.
 func TestEmptyPeerAddressDoesNotClobber(t *testing.T) {
 	st := testStore(t)
-	st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1", "pull")
-	st.RecordExchange("n1", 7, 3, 4, 0, 0, "", "push")
+	st.RecordExchange("n1", 7, 0, 3, 1, 2, "fdde:ad00::1")
+	st.RecordExchange("n1", 7, 3, 4, 0, 0, "")
 	if got, _ := st.NodeAddr("n1"); got != "fdde:ad00::1" {
 		t.Fatalf("NodeAddr = %q after an addr-less exchange, want the address kept", got)
 	}
@@ -392,6 +392,104 @@ CREATE TABLE IF NOT EXISTS events (
   reason     TEXT NOT NULL DEFAULT '',
   boot_id    INTEGER NOT NULL DEFAULT 0
 );`
+
+// legacyNodesDDL and legacyExchangesDDL are the shapes as they stood before
+// rete#231 D4 deleted the cadence inference — nodes.cadence_ms and exchanges.leg
+// existed and were written on every sweep and every request. The nodes DDL is
+// copied verbatim INCLUDING its interior comment, because that comment is the
+// hazard: sqlite implements DROP COLUMN by re-parsing the stored DDL text, and
+// the events table already carries a warning about exactly this. A test that
+// spelled the old table without the comment would prove the migration works on
+// a store nobody has.
+const legacyNodesDDL = `
+CREATE TABLE IF NOT EXISTS nodes (
+  id            TEXT PRIMARY KEY,
+  name          TEXT,
+  first_seen_ms INTEGER,
+  last_seen_ms  INTEGER,
+  cadence_ms    INTEGER,
+  boot_id       INTEGER,
+  cursor_acked  INTEGER NOT NULL DEFAULT 0,
+  node_seq_hw   INTEGER NOT NULL DEFAULT 0,
+  out_seq       INTEGER NOT NULL DEFAULT 0,
+  -- Successor to v1's nodes.source_addr, which the capability audit (design
+  -- §4.2) caught with no home. It is not merely a display field: serverstat
+  -- .TransportOf() reads it to produce the wifi-vs-Thread fleet breakdown.
+  last_addr     TEXT
+);`
+
+const legacyExchangesDDL = `
+CREATE TABLE IF NOT EXISTS exchanges (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  node_id    TEXT NOT NULL,
+  ts_ms      INTEGER NOT NULL,
+  boot_id    INTEGER NOT NULL,
+  cursor_in  INTEGER NOT NULL,
+  cursor_out INTEGER NOT NULL,
+  pushed_lo  INTEGER NOT NULL,
+  pushed_hi  INTEGER NOT NULL,
+  leg        TEXT NOT NULL DEFAULT ''
+);`
+
+// The two dead columns are DROPPED from a store that already has them, and the
+// rows they sat beside survive. The live soak store on gw85224-01 is such a
+// store; it cannot be rebuilt, so this migration is the deliverable.
+//
+// The second Open must be a no-op — the columns are gone, sqlite says "no such
+// column", and Open tolerates exactly that and nothing else.
+func TestOpenDropsTheCadenceColumnsFromAPreExistingStore(t *testing.T) {
+	path := t.TempDir() + "/cadence.db"
+	db, err := sql.Open("sqlite3", path)
+	if err != nil {
+		t.Fatalf("sql.Open: %v", err)
+	}
+	for _, stmt := range []string{legacyNodesDDL, legacyExchangesDDL} {
+		if _, err := db.Exec(stmt); err != nil {
+			t.Fatalf("legacy DDL: %v", err)
+		}
+	}
+	if _, err := db.Exec(`INSERT INTO nodes (id, first_seen_ms, last_seen_ms, cadence_ms, last_addr)
+		VALUES ('n1', 1000, 2000, 2000, 'fdde:ad00::1')`); err != nil {
+		t.Fatalf("seed node: %v", err)
+	}
+	if _, err := db.Exec(`INSERT INTO exchanges (node_id, ts_ms, boot_id, cursor_in, cursor_out, pushed_lo, pushed_hi, leg)
+		VALUES ('n1', 2000, 41, 0, 0, 0, 0, 'pull')`); err != nil {
+		t.Fatalf("seed exchange: %v", err)
+	}
+	db.Close()
+
+	for _, pass := range []string{"first", "second"} {
+		st, err := Open(path, func() int64 { return 3000 })
+		if err != nil {
+			t.Fatalf("%s Open of a pre-rete#231 store: %v", pass, err)
+		}
+		for _, q := range []string{
+			`SELECT cadence_ms FROM nodes`,
+			`SELECT leg FROM exchanges`,
+		} {
+			if _, err := st.DB().Exec(q); err == nil {
+				t.Fatalf("%s open: %q still works, want the column dropped", pass, q)
+			}
+		}
+		// What sat beside the dropped columns is still there.
+		var addr string
+		var lastSeen int64
+		if err := st.DB().QueryRow(`SELECT last_addr, last_seen_ms FROM nodes WHERE id='n1'`).Scan(&addr, &lastSeen); err != nil {
+			t.Fatalf("%s open: read node row: %v", pass, err)
+		}
+		if addr != "fdde:ad00::1" || lastSeen != 2000 {
+			t.Fatalf("%s open: node row = (%q, %d), want the seeded values", pass, addr, lastSeen)
+		}
+		var n int
+		if err := st.DB().QueryRow(`SELECT COUNT(*) FROM exchanges WHERE node_id='n1'`).Scan(&n); err != nil {
+			t.Fatalf("%s open: count exchanges: %v", pass, err)
+		}
+		if n != 1 {
+			t.Fatalf("%s open: %d exchange rows, want the seeded one", pass, n)
+		}
+		st.Close()
+	}
+}
 
 // A store created before gw/** existed must GAIN the third direction on open,
 // keeping every row it already held. The live soak store on gw85224-01 is such
@@ -623,113 +721,18 @@ func storeAtClock(t *testing.T, clock *int64) *Store {
 
 // checkIn advances the clock by gap ms and records ONE CHECK-IN, the way a
 // real node's does: a pull followed by a push (internal/wire/server.go calls
-// RecordExchange once from each handler). Recording only the pull, as this
-// helper did before rete#217 C1, modelled a protocol the gateway does not
-// implement — that mismatch is exactly why the bug survived here.
+// RecordExchange once from each handler). Still two rows and not one after
+// rete#231 D4 deleted the leg column — the count is what a real check-in
+// leaves, and a helper that models a protocol the gateway does not implement
+// is how #217 C1 survived here in the first place.
 func checkIn(t *testing.T, st *Store, clock *int64, node string, gap int64) {
 	t.Helper()
 	*clock += gap
-	if err := st.RecordExchange(node, 41, 0, 0, 0, 0, "", "pull"); err != nil {
+	if err := st.RecordExchange(node, 41, 0, 0, 0, 0, ""); err != nil {
 		t.Fatalf("RecordExchange pull: %v", err)
 	}
-	if err := st.RecordExchange(node, 41, 0, 0, 0, 0, "", "push"); err != nil {
+	if err := st.RecordExchange(node, 41, 0, 0, 0, 0, ""); err != nil {
 		t.Fatalf("RecordExchange push: %v", err)
-	}
-}
-
-func TestCadenceIsTheMedianOfTheNodesOwnGaps(t *testing.T) {
-	var clock int64 = 10_000
-	st := storeAtClock(t, &clock)
-	checkIn(t, st, &clock, "n1", 0) // the first arrival: no gap yet
-	for i := 0; i < 5; i++ {
-		checkIn(t, st, &clock, "n1", 2_000)
-	}
-	cadence, ok, err := st.CadenceMs("n1")
-	if err != nil || !ok {
-		t.Fatalf("CadenceMs = %d, %v, %v; want a verdict", cadence, ok, err)
-	}
-	if cadence != 2_000 {
-		t.Fatalf("cadence = %d ms, want 2000", cadence)
-	}
-}
-
-// The reason the window is a MEDIAN and not a mean: one missed check-in doubles
-// a single gap, and a mean would move the deadline for the next ten minutes.
-func TestOneMissedCheckInDoesNotMoveTheCadence(t *testing.T) {
-	var clock int64 = 10_000
-	st := storeAtClock(t, &clock)
-	checkIn(t, st, &clock, "n1", 0)
-	for i := 0; i < 4; i++ {
-		checkIn(t, st, &clock, "n1", 2_000)
-	}
-	checkIn(t, st, &clock, "n1", 60_000) // one long gap: a missed check-in
-	for i := 0; i < 4; i++ {
-		checkIn(t, st, &clock, "n1", 2_000)
-	}
-	cadence, ok, _ := st.CadenceMs("n1")
-	if !ok || cadence != 2_000 {
-		t.Fatalf("cadence = %d, ok = %v; want 2000 — the outlier moved the median", cadence, ok)
-	}
-}
-
-// Fewer than three exchanges is fewer than two gaps. There is nothing to infer,
-// and a guess would be a verdict porta cannot support.
-func TestNoCadenceForANodeWithTooFewExchanges(t *testing.T) {
-	var clock int64 = 10_000
-	st := storeAtClock(t, &clock)
-	checkIn(t, st, &clock, "n1", 0)
-	checkIn(t, st, &clock, "n1", 2_000)
-	if _, ok, err := st.CadenceMs("n1"); ok || err != nil {
-		t.Fatalf("CadenceMs ok = %v err = %v after 2 exchanges; want no verdict", ok, err)
-	}
-	checkIn(t, st, &clock, "n1", 2_000)
-	if _, ok, err := st.CadenceMs("n1"); !ok || err != nil {
-		t.Fatalf("CadenceMs ok = %v err = %v after 3 exchanges; want a verdict", ok, err)
-	}
-}
-
-// A node whose cadence CHANGED must be judged against what it does now, not
-// against its whole history — which is what bounds the window at 10 gaps.
-func TestCadenceTracksAChangedRate(t *testing.T) {
-	var clock int64 = 10_000
-	st := storeAtClock(t, &clock)
-	checkIn(t, st, &clock, "n1", 0)
-	for i := 0; i < 12; i++ {
-		checkIn(t, st, &clock, "n1", 30_000)
-	}
-	for i := 0; i < 12; i++ {
-		checkIn(t, st, &clock, "n1", 2_000)
-	}
-	cadence, ok, _ := st.CadenceMs("n1")
-	if !ok || cadence != 2_000 {
-		t.Fatalf("cadence = %d, want 2000 — the window still holds the old rate", cadence)
-	}
-}
-
-// rete#217 I2: a cadence of 0 is not a cadence. Left unrejected, `since >
-// 3*0` is true 1 ms after any arrival and the node flips silent/live forever.
-// Rejected the same way and for the same reason as too few exchanges: no
-// verdict, not a number nothing can act on.
-func TestCadenceMsRejectsAZeroCadence(t *testing.T) {
-	var clock int64 = 10_000
-	st := storeAtClock(t, &clock)
-	for i := 0; i < 3; i++ {
-		checkIn(t, st, &clock, "n1", 0) // every pull lands in the same millisecond
-	}
-	if _, ok, err := st.CadenceMs("n1"); ok || err != nil {
-		t.Fatalf("CadenceMs ok = %v err = %v for a zero-gap node; want no verdict", ok, err)
-	}
-}
-
-// medianMs's even-count branch averages the two middle values. Every OTHER
-// even-count test in this file happens to use two IDENTICAL middle values, so
-// v[n/2] alone (the C1 bug: no /2 or averaging at all is a different failure,
-// but a half-hearted median that dropped the averaging would still pass every
-// existing case) would pass them too. This is the one that would not.
-func TestMedianMsAveragesTwoDistinctMiddleValues(t *testing.T) {
-	got := medianMs([]int64{10, 20, 30, 40})
-	if got != 25 {
-		t.Fatalf("medianMs([10,20,30,40]) = %d, want 25 (avg of the two middle values 20 and 30)", got)
 	}
 }
 
@@ -754,8 +757,9 @@ func TestWriteRejectsTheGwPrefix(t *testing.T) {
 }
 
 // The budget porta judges against comes from the NODE, and a node that has not
-// declared one yields no budget rather than a guess — the same shape CadenceMs's
-// `ok` had, for the opposite reason: there is nothing to infer from.
+// declared one yields no budget rather than a guess. It is the same `ok` shape
+// the deleted CadenceMs had, for the opposite reason: there is now nothing to
+// infer from, and nothing that wants to.
 func TestDeclaredBudgetReadsTheNodesOwnRecord(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)

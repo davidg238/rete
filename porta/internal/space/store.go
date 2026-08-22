@@ -6,7 +6,6 @@ package space
 import (
 	"database/sql"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/davidg238/porta/internal/cval"
@@ -69,6 +68,17 @@ func Open(path string, nowMs func() int64) (*Store, error) {
 		// must not be swallowed, or a store that failed to gain the column would
 		// serve unanchored reads while looking healthy.
 		if _, err := db.Exec(stmt); err != nil && !strings.Contains(err.Error(), "duplicate column name") {
+			db.Close()
+			return nil, fmt.Errorf("%s: %w", stmt, err)
+		}
+	}
+	for _, stmt := range dropColumns {
+		// Only "no such column" is expected — on a fresh store the column was
+		// never created, which is the steady state. Anything else is a real
+		// fault and is NOT swallowed: a live store whose DROP failed would keep
+		// a column nothing reads while every fresh store lacks it, and the two
+		// would then disagree about their own shape with nothing to say so.
+		if _, err := db.Exec(stmt); err != nil && !strings.Contains(err.Error(), "no such column") {
 			db.Close()
 			return nil, fmt.Errorf("%s: %w", stmt, err)
 		}
@@ -458,14 +468,18 @@ func (s *Store) NoteCheckIn(nodeID string, cursor, nodeHW, bootID int64) (restar
 
 // RecordExchange logs one REQUEST — not one check-in; a check-in is a pull
 // followed by a push, and the two call sites in internal/wire/server.go each
-// call this once. leg says which: "pull" or "push" (see schema.go's comment
-// on the exchanges table for why that distinction matters to CadenceMs).
+// call this once, so every check-in leaves two rows. Which leg a row came from
+// was recorded until rete#231 D4 and is not any more: its ONLY reader was the
+// cadence inference, which needed the pull alone to avoid inferring a period
+// half the node's real one (#217 C1). Nothing infers a period now — the node
+// declares its budget — and what remains of this table is the replay index and
+// the last_seen heartbeat, both of which want every request, not one leg.
 // addr is the peer address the datagram arrived from; an EMPTY addr never
 // clobbers a known one, which is v1's own COALESCE discipline (v1
 // store.go:267) kept deliberately — a caller that does not know the peer
 // (the pure Handle path, a replayed session) must not erase what the UDP
 // loop learned.
-func (s *Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushedLo, pushedHi int64, addr, leg string) error {
+func (s *Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushedLo, pushedHi int64, addr string) error {
 	now := s.nowMs()
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -476,9 +490,9 @@ func (s *Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushe
 		return err
 	}
 	if _, err := tx.Exec(`
-		INSERT INTO exchanges (node_id, ts_ms, boot_id, cursor_in, cursor_out, pushed_lo, pushed_hi, leg)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		nodeID, now, bootID, cursorIn, cursorOut, pushedLo, pushedHi, leg); err != nil {
+		INSERT INTO exchanges (node_id, ts_ms, boot_id, cursor_in, cursor_out, pushed_lo, pushed_hi)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		nodeID, now, bootID, cursorIn, cursorOut, pushedLo, pushedHi); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(
@@ -534,88 +548,6 @@ func (s *Store) DeclaredBudget(nodeID string) (int64, bool, error) {
 		return bud, true, nil
 	}
 	return 0, false, nil
-}
-
-// The sweep's numbers. Each is chosen rather than derived, and each is recorded
-// with its standing in 2026-08-10 §8 — a deferral written down is falsifiable,
-// one left in the code is not.
-const (
-	// CadenceWindow is how many inter-arrival gaps the median is taken over:
-	// robust to one missed check-in, short enough to track a cadence change.
-	CadenceWindow = 10
-	// MinExchanges is the fewest arrivals that yield a verdict. Two arrivals is
-	// one gap, which is a sample and not a cadence.
-	MinExchanges = 3
-	// SilenceFactor is v1's k, kept: silent when nothing has arrived for
-	// k x the node's own cadence.
-	SilenceFactor = 3
-)
-
-// CadenceMs infers how often a node checks in FROM THAT NODE'S OWN history —
-// the median of its last CadenceWindow inter-arrival gaps.
-//
-// It is inferred and never configured, which is the same rule the node-side
-// detector settles on (2026-08-16 §3): the deadline comes from what the node
-// declared or did, never from a constant the observer picked. A ten-minute node
-// and a two-second node are each judged against themselves.
-//
-// ok is false when the node has fewer than MinExchanges PULL exchanges. That
-// is not an error — it is a node porta has no cadence for yet, and the honest
-// answer is no verdict rather than a guess.
-//
-// Filtered to leg = 'pull': a check-in is a pull followed by a push, and
-// RecordExchange logs one row per REQUEST, so an unfiltered read counts both
-// halves of every check-in and infers a cadence exactly half the node's real
-// one (rete#217 C1). The pull is the heartbeat to infer from because the node
-// always sends it, whereas a push can early-return on an empty frame. Rows
-// written before the leg column existed carry an empty leg and are excluded
-// by this same filter, which is deliberate healing rather than a gap: see
-// the addColumns comment in schema.go.
-func (s *Store) CadenceMs(nodeID string) (int64, bool, error) {
-	rows, err := s.db.Query(
-		`SELECT ts_ms FROM exchanges WHERE node_id = ? AND leg = 'pull' ORDER BY ts_ms DESC, id DESC LIMIT ?`,
-		nodeID, CadenceWindow+1)
-	if err != nil {
-		return 0, false, err
-	}
-	defer rows.Close()
-	var ts []int64
-	for rows.Next() {
-		var t int64
-		if err := rows.Scan(&t); err != nil {
-			return 0, false, err
-		}
-		ts = append(ts, t)
-	}
-	if err := rows.Err(); err != nil {
-		return 0, false, err
-	}
-	if len(ts) < MinExchanges {
-		return 0, false, nil
-	}
-	gaps := make([]int64, 0, len(ts)-1)
-	for i := 0; i+1 < len(ts); i++ {
-		gaps = append(gaps, ts[i]-ts[i+1]) // ts is newest-first, so this is positive
-	}
-	cadence := medianMs(gaps)
-	// A cadence of 0 is not a cadence (rete#217 I2): `since > 3*0` is true 1 ms
-	// after any arrival, which flips the node silent/live forever. Rejected the
-	// same way and for the same reason as MinExchanges — no verdict, not a
-	// number that cannot be acted on.
-	if cadence <= 0 {
-		return 0, false, nil
-	}
-	return cadence, true, nil
-}
-
-// medianMs sorts in place; the caller owns a scratch slice.
-func medianMs(v []int64) int64 {
-	sort.Slice(v, func(i, j int) bool { return v[i] < v[j] })
-	n := len(v)
-	if n%2 == 1 {
-		return v[n/2]
-	}
-	return (v[n/2-1] + v[n/2]) / 2
 }
 
 // NodeAddr returns the peer address of the node's last datagram, or "" if it

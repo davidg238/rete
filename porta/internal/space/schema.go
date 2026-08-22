@@ -20,7 +20,6 @@ CREATE TABLE IF NOT EXISTS nodes (
   name          TEXT,
   first_seen_ms INTEGER,
   last_seen_ms  INTEGER,
-  cadence_ms    INTEGER,
   boot_id       INTEGER,
   cursor_acked  INTEGER NOT NULL DEFAULT 0,
   node_seq_hw   INTEGER NOT NULL DEFAULT 0,
@@ -102,13 +101,14 @@ CREATE INDEX IF NOT EXISTS idx_events_out ON events(node_id, direction, seq);
 
 -- One row per REQUEST, not per check-in: a check-in is a pull followed by a
 -- push, and handlePull/handlePush (internal/wire/server.go) each call
--- RecordExchange once, so every check-in leaves TWO rows here. The leg
--- column (added via addColumns, see below) says which: 'pull' or 'push'.
--- The pull is the heartbeat CadenceMs infers from — the node always sends
--- one, whereas a push can early-return on an empty frame — so a query that
--- does not filter on leg counts both halves of every check-in and infers a
--- cadence exactly half the node's real one (rete#217 C1). The replay index
--- this table also serves (design D4.3) is unaffected either way.
+-- RecordExchange once, so every check-in leaves TWO rows here. What the table
+-- is for, now that rete#231 D4 has deleted the cadence inference: it is the
+-- REPLAY INDEX (design D4.3) and the LAST_SEEN HEARTBEAT — a node's cursor and
+-- boot id at each request, and the arrival that nodes.last_seen_ms is stamped
+-- from. Both want every request; neither cares which leg produced it, which is
+-- why the leg column is gone (see dropColumns). The only reader that ever
+-- needed the distinction was the inference, which had to count pulls alone or
+-- infer a period exactly half the node's real one (#217 C1).
 CREATE TABLE IF NOT EXISTS exchanges (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   node_id    TEXT NOT NULL,
@@ -117,8 +117,7 @@ CREATE TABLE IF NOT EXISTS exchanges (
   cursor_in  INTEGER NOT NULL,
   cursor_out INTEGER NOT NULL,
   pushed_lo  INTEGER NOT NULL,
-  pushed_hi  INTEGER NOT NULL,
-  leg        TEXT NOT NULL DEFAULT ''
+  pushed_hi  INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_exchanges_node ON exchanges(node_id, ts_ms);
 `
@@ -138,13 +137,22 @@ CREATE INDEX IF NOT EXISTS idx_exchanges_node ON exchanges(node_id, ts_ms);
 var addColumns = []string{
 	`ALTER TABLE cells  ADD COLUMN boot_id INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE events ADD COLUMN boot_id INTEGER NOT NULL DEFAULT 0`,
-	// rete#217 C1: pre-existing rows gain '' rather than being backfilled to
-	// 'pull' or 'push' — nobody recorded at the time which request produced
-	// them, and guessing would manufacture evidence. '' is EXCLUDED from
-	// CadenceMs's `leg = 'pull'` filter, not mislabelled, so a node's cadence
-	// reads as unknown (no verdict) until it has accrued 3 fresh pull rows —
-	// exactly the same healing rule boot_id followed above.
-	`ALTER TABLE exchanges ADD COLUMN leg TEXT NOT NULL DEFAULT ''`,
+}
+
+// dropColumns are run after addColumns on every Open, and their errors are
+// discarded exactly as addColumns' are: on a fresh store the column is already
+// absent and sqlite says so. Both entries are columns whose ONLY reader was the
+// cadence inference rete#231 D4 deleted, and a column nobody reads is precisely
+// what that decision mocked — nodes.cadence_ms was chosen over a declaration in
+// 2026-08-10 D8 because it "was found to be a dead column", and leaving it dead
+// a second time would be the same mistake with the reasons reversed.
+//
+// KEEP THE `nodes` AND `exchanges` COLUMN COMMENTS ABOVE THE STATEMENT, NEVER
+// INSIDE THE PARENTHESES: sqlite implements DROP COLUMN by editing the stored
+// DDL text, and an interior comment makes the rewritten statement unparseable.
+var dropColumns = []string{
+	`ALTER TABLE nodes DROP COLUMN cadence_ms`,
+	`ALTER TABLE exchanges DROP COLUMN leg`,
 }
 
 // DirectionGateway is the third value of the direction column: a row porta

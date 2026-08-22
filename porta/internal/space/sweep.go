@@ -5,6 +5,7 @@ package space
 
 import (
 	"bytes"
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -13,18 +14,27 @@ import (
 )
 
 // SweepTick is how often the verdict is re-formed. It is a floor on detection
-// latency, and it is COARSER than the fastest node's cadence — nodes on this
-// bench check in every 2 s, well under 30 s — so detection for such a node is
-// 3 x cadence rounded UP to the next tick, not 3 x cadence itself.
+// latency: a node whose budget is shorter than one tick is detected at the next
+// tick, not at its budget. It is also, as of rete#231, the resolution of the
+// gateway's own liveness record (runs.go).
 const SweepTick = 30 * time.Second
 
-// The two verdicts, pre-encoded once. The transition test compares these bytes
-// against what is stored: values in the store are raw deterministic CBOR and
-// are decoded only for display (D4.1), so decoding here to compare two symbols
-// would break that rule for nothing.
+// The four verdicts, pre-encoded once. The transition test compares these bytes
+// against what is stored: values in the store are raw deterministic CBOR and are
+// decoded only for display (D4.1), so decoding here to compare two symbols would
+// break that rule for nothing.
+//
+// FOUR AND NOT TWO, because they are four different operator actions (rete#231
+// D5/D6). #neverSeen is a commissioning failure — go plug it in. #silent is a
+// liveness failure — go find out why it stopped. #unknown is porta declining to
+// answer, and it has two causes, told apart by the row's `reason`: the node has
+// declared no budget, or the window falls inside an interval porta was not
+// listening. The store must not keep asserting the last thing it heard.
 var (
-	livenessLive   = mustEncode(cval.Symbol("live"))
-	livenessSilent = mustEncode(cval.Symbol("silent"))
+	livenessLive      = mustEncode(cval.Symbol("live"))
+	livenessSilent    = mustEncode(cval.Symbol("silent"))
+	livenessNeverSeen = mustEncode(cval.Symbol("neverSeen"))
+	livenessUnknown   = mustEncode(cval.Symbol("unknown"))
 )
 
 func mustEncode(v any) []byte {
@@ -38,24 +48,31 @@ func mustEncode(v any) []byte {
 // LivenessChange is one transition, returned so the caller can log it. A sweep
 // that changed nothing returns an empty slice — which is the normal case.
 type LivenessChange struct {
-	NodeID    string
-	Silent    bool
-	CadenceMs int64
-	SinceMs   int64 // how long since the node was last heard from, at the verdict
+	NodeID   string
+	Verdict  string // live | silent | neverSeen | unknown
+	SinceMs  int64  // how long since the node was last heard from, at the verdict
+	BudgetMs int64  // the budget the NODE declared; 0 when it declared none
 }
 
 // Sweep forms one liveness verdict per node and writes gw/liveness ONLY where
 // the verdict differs from the one already stored.
 //
-// Why a ticker and not a lazy read-time view (design §6.3): the failure this
+// THE RULE IS ONE LINE AND THERE ARE NO CONSTANTS IN IT: now - last_seen > bud,
+// where bud is the budget the NODE declared at obs/liveness. porta infers
+// nothing (rete#231 D4). What that deleted, and why it is a deletion rather
+// than a replacement: cadence used to be the median of the last ten
+// inter-arrival gaps, silence was 3 x that, and both the 10 and the 3 were
+// numbers porta picked. A node that had never spoken supplied no gaps and was
+// therefore never judged at all (#219); a fast node doing routine blocking work
+// was judged against 3 x 2 s and called silent (#220). 2026-08-10 D8 chose
+// inference because the declaration did not exist. It does now.
+//
+// Why a ticker and not a lazy read-time view (2026-08-10 §6.3): the failure this
 // must catch is porta hearing NOTHING, and a system that evaluates only when
 // read is silent exactly when everything is. The ticker is not a convenience.
 //
 // Why transition-only: it makes `porta log` a list of the times the fleet went
 // quiet. A row every 30 s would bury the one moment that matters.
-//
-// A node with no cadence yet (fewer than MinExchanges arrivals) is SKIPPED, not
-// defaulted — gw/liveness stays unwritten rather than carrying a guess.
 //
 // One node's failure never costs another node its verdict: each node is
 // evaluated independently, the changes returned are only the ones actually
@@ -63,34 +80,27 @@ type LivenessChange struct {
 // failed. Only a failure in the query that lists the nodes themselves — not
 // per-node — aborts the sweep outright, because nothing can proceed without it.
 //
-// TWO ACCEPTED FALSE-REPORT MODES (rete#217 I4/I5). This instrument reports
-// something false under both, and neither is a bug to fix — they are recorded
-// here because a future reader must not mistake either for a surprise:
+// ONE ACCEPTED FALSE-REPORT MODE, and one that is now FIXED:
 //
-//   - I4 — A GATEWAY OUTAGE READS AS NODE SILENCE. `since` is `now -
-//     nodes.last_seen_ms`, which includes time porta itself was down.
-//     Restarting porta after an outage longer than 3 x cadence makes the
-//     first tick write #silent for every affected node, then #live as each
-//     checks back in — a burst that is byte-identical in `porta log` to a
-//     genuine fleet-wide failure. It is self-correcting within one cadence,
-//     and restarting porta is a routine scheduled act here, so this WILL
-//     happen. Do not read a startup silent/live burst as a fleet incident
-//     without first checking whether porta itself just restarted.
+//   - I4 — A GATEWAY OUTAGE READ AS NODE SILENCE. FIXED by rete#231 D6: porta
+//     records the intervals it was actually listening (runs.go), and a verdict
+//     whose window falls inside a gap reads #unknown. Before that fix,
+//     restarting porta after an outage longer than a node's budget wrote
+//     #silent for every affected node and then #live as each checked back in —
+//     a burst byte-identical in `porta log` to a genuine fleet-wide failure.
 //
-//   - I5 — A SICK NODE'S INFERRED CADENCE INFLATES, DELAYING DETECTION. A
-//     node whose reboot loop is faster than its check-in cadence produces
-//     mostly long gaps, so CadenceMs infers its boot-cycle length as the
-//     cadence, and #silent then arrives 3 x THAT — not 3 x the node's
-//     healthy period. "3 x cadence + 30 s" in the design means INFERRED
-//     cadence. No cap or tunable is added for this: there is no data yet to
-//     choose one from (design posture: don't invent tunables before there is
-//     data to choose them). What would earn one — record it here when found,
-//     don't defer it vaguely: a real node observed cycling in this state,
-//     with its measured boot-cycle length and the resulting detection delay.
+//   - I5 — A SICK NODE'S INFERRED CADENCE INFLATED, DELAYING DETECTION. GONE
+//     with the inference itself: there is no cadence to inflate, and a node in
+//     a reboot loop is judged against the budget it declared before it got sick.
+//
+//   - I7 — A POWERED-OFF NODE IS INDISTINGUISHABLE FROM A WEDGED-AND-HALTED
+//     ONE, and nothing on the gateway side can change that (design §4). What
+//     the budget buys is knowing WHEN TO START WORRYING, which is what was
+//     missing. Do not read #silent as "crashed".
 func (s *Store) Sweep() ([]LivenessChange, error) {
 	now := s.nowMs()
 	rows, err := s.db.Query(`
-		SELECT n.id, COALESCE(n.last_seen_ms, 0), COALESCE(c.value_cbor, x'')
+		SELECT n.id, n.last_seen_ms, COALESCE(c.value_cbor, x'')
 		FROM nodes n
 		LEFT JOIN cells c ON c.node_id = n.id AND c.path = ?
 		ORDER BY n.id`, PathLiveness)
@@ -99,7 +109,7 @@ func (s *Store) Sweep() ([]LivenessChange, error) {
 	}
 	type row struct {
 		id       string
-		lastSeen int64
+		lastSeen sql.NullInt64
 		stored   []byte
 	}
 	var nodes []row
@@ -119,46 +129,52 @@ func (s *Store) Sweep() ([]LivenessChange, error) {
 	var changes []LivenessChange
 	var errs []error
 	for _, n := range nodes {
-		cadence, ok, err := s.CadenceMs(n.id)
+		want, verdict, since, bud, reason, err := s.verdictFor(n.id, n.lastSeen, now)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("node %s: cadence: %w", n.id, err))
+			errs = append(errs, fmt.Errorf("node %s: %w", n.id, err))
 			continue
-		}
-		if !ok {
-			continue
-		}
-		if err := s.recordCadence(n.id, cadence); err != nil {
-			errs = append(errs, fmt.Errorf("node %s: record cadence: %w", n.id, err))
-			continue
-		}
-		since := now - n.lastSeen
-		silent := since > SilenceFactor*cadence
-		want := livenessLive
-		verdict := "live"
-		if silent {
-			want, verdict = livenessSilent, "silent"
 		}
 		if bytes.Equal(n.stored, want) {
 			continue
 		}
-		reason := fmt.Sprintf("%s: %d ms since last exchange, cadence %d ms", verdict, since, cadence)
 		if err := s.WriteGateway(n.id, PathLiveness, want, reason); err != nil {
 			errs = append(errs, fmt.Errorf("node %s: write verdict: %w", n.id, err))
 			continue
 		}
 		changes = append(changes, LivenessChange{
-			NodeID: n.id, Silent: silent, CadenceMs: cadence, SinceMs: since,
+			NodeID: n.id, Verdict: verdict, SinceMs: since, BudgetMs: bud,
 		})
 	}
 	return changes, errors.Join(errs...)
 }
 
-// recordCadence writes the inferred rate back to the column that has been in the
-// schema, unused, since the rewrite. It is written on every sweep and not only
-// on a transition: it is a measurement, not a verdict.
-func (s *Store) recordCadence(nodeID string, cadence int64) error {
-	// An UPDATE that matches nothing is not an error here: the node row came
-	// from the sweep's own query one statement ago.
-	_, err := s.db.Exec(`UPDATE nodes SET cadence_ms = ? WHERE id = ?`, cadence, nodeID)
-	return err
+// verdictFor is the whole decision, in the order the evidence allows.
+//
+// The ORDER is load-bearing. Speech is positive evidence and outranks
+// everything: a node heard from inside its budget is #live even if porta was
+// deaf for the ten hours before that. Absence is only ever evidence when porta
+// was listening, which is why the deaf test sits between "past the budget" and
+// "silent" rather than at the top.
+func (s *Store) verdictFor(nodeID string, lastSeen sql.NullInt64, now int64) (want []byte, verdict string, since, bud int64, reason string, err error) {
+	if !lastSeen.Valid {
+		// D5: never heard from. Judgeable immediately and WITHOUT a budget,
+		// because the question "has this node ever spoken" needs no number.
+		return livenessNeverSeen, "neverSeen", 0, 0,
+			"neverSeen: no exchange has ever arrived from this node", nil
+	}
+	since = now - lastSeen.Int64
+	bud, ok, err := s.DeclaredBudget(nodeID)
+	if err != nil {
+		return nil, "", 0, 0, "", fmt.Errorf("declared budget: %w", err)
+	}
+	if !ok {
+		return livenessUnknown, "unknown", since, 0,
+			fmt.Sprintf("unknown: %d ms since the last exchange, and this node has declared no budget", since), nil
+	}
+	if since <= bud {
+		return livenessLive, "live", since, bud,
+			fmt.Sprintf("live: %d ms since the last exchange, budget %d ms", since, bud), nil
+	}
+	return livenessSilent, "silent", since, bud,
+		fmt.Sprintf("silent: %d ms since the last exchange, budget %d ms", since, bud), nil
 }

@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/davidg238/porta/internal/cval"
 	"github.com/davidg238/porta/internal/space"
 )
 
@@ -327,12 +328,27 @@ func TestSweepLivenessLogsOnlyTransitions(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer st.Close()
-	st.RecordExchange("n1", 41, 0, 0, 0, 0, "", "pull")
-	st.RecordExchange("n1", 41, 0, 0, 0, 0, "", "push")
+	st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
+	st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
 	for i := 0; i < 4; i++ {
 		clock += 2_000
-		st.RecordExchange("n1", 41, 0, 0, 0, 0, "", "pull")
-		st.RecordExchange("n1", 41, 0, 0, 0, 0, "", "push")
+		st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
+		st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
+	}
+	// The node declares its own budget: nothing infers one any more (rete#231
+	// D4), so without this the verdict is #unknown and the test would be
+	// asserting the log line of a node porta cannot judge.
+	rec, err := cval.Encode(cval.Record{Tag: "Liveness", Fields: cval.Map{
+		{K: cval.Symbol("cad"), V: int64(2_000)},
+		{K: cval.Symbol("bud"), V: int64(16_000)},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := st.Ingest("n1", 41, []space.Entry{
+		{Seq: 1, Path: space.PathDeclared, Kind: cval.KindCell, Value: rec},
+	}); err != nil {
+		t.Fatal(err)
 	}
 	clock += 20_000
 
