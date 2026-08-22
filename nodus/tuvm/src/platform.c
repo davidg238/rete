@@ -53,7 +53,60 @@ extern const char tuvm_node_id[];
        because these differ.
    (2) It is the same word gen_node_id.cmake bakes for a target build nobody named, so
        there is one vocabulary for "nothing told me which board I am" rather than two. */
-#define OEVM_NODE_ID "unnamed"
+/* A HOST VM NAMES ITSELF `<host>-NNNN` (David, 2026-08-22): the machine it runs on,
+   plus four digits that separate concurrent VMs on that machine. Boards do NOT use
+   this — they carry the bench instance name baked above — and that split is the whole
+   point: the host part says WHERE, the digits say WHICH INSTANCE.
+
+   IT IS THE SAME BUG AS rete#186, one layer over. tests/host_ota/run.sh templates its
+   node ids as `node-1`/`node-2`/`node-3`, which are per-run SLOTS: two concurrent runs,
+   or a fleet sim beside a live host node, write into each other's porta space exactly
+   the way two devkits shared `c6-bench`.
+
+   TUVM_NODE_ID WINS when set, mirroring the target's explicit override in
+   zephyr/run.sh, and it is how a caller supplies the true tailscale name if it ever
+   diverges from the hostname. On this bench they are the same string (`msi-7d43`,
+   `gw85224-01`) because tailscale defaults its machine name to the hostname — so the
+   hostname is read here rather than shelling out to `tailscale`, which would put a
+   subprocess on the VM's start path to learn something it almost always already knows.
+
+   THE FOUR DIGITS ARE NOT srand/rand. Seeding the global RNG from inside the VM would
+   perturb any other consumer of it, so they are mixed from the clock and the address of
+   a static (which ASLR varies per process). Unique in practice per concurrent process,
+   not guaranteed unique — a collision costs two VMs one shared space, which is strictly
+   better than today's guaranteed collision.
+
+   Cached in a static: the id must not change between two reads within one process, or
+   a node would rename itself mid-run. */
+#include <time.h>
+static const char *oevm_host_node_id(void) {
+    static char id[96];
+    if (id[0] != '\0') return id;
+
+    const char *env = getenv("TUVM_NODE_ID");
+    if (env != NULL && env[0] != '\0') {
+        snprintf(id, sizeof id, "%s", env);
+        return id;
+    }
+
+    char host[64];
+    host[0] = '\0';
+    FILE *f = fopen("/etc/hostname", "r");
+    if (f != NULL) {
+        if (fgets(host, (int)sizeof host, f) == NULL) host[0] = '\0';
+        fclose(f);
+    }
+    for (size_t i = 0; host[i] != '\0'; i++) {          /* trim the newline */
+        if (host[i] == '\n' || host[i] == '\r') { host[i] = '\0'; break; }
+    }
+    if (host[0] == '\0') snprintf(host, sizeof host, "unnamed");
+
+    unsigned long mix = (unsigned long)time(NULL) * 2654435761UL
+                      ^ (unsigned long)(uintptr_t)&id[0];
+    snprintf(id, sizeof id, "%s-%04lu", host, mix % 10000UL);
+    return id;
+}
+#define OEVM_NODE_ID oevm_host_node_id()
 #endif
 
 /* The host virtual-clock timer facility that used to live here was lifted in rung 8

@@ -1,27 +1,27 @@
-# T0.3 footprint baseline — HOST config. Re-banked 2026-08-22 for rete#186.
+# T0.3 footprint baseline — HOST config. Re-banked 2026-08-22 for rete#186 (host half).
 #
-#   +33 B  rete#186: the `platform nodeId` prim (one PRIM_NAMES entry, one
-#          platform.c case, one dispatch-list entry). This is what board identity
-#          costs, and it is the whole price of retiring the source constant that
-#          let two boards and two apps share one porta space.
-#   = 67694 total host text, from 67661 banked earlier today.
+#   +442 B  the host VM's self-naming: `<hostname>-NNNN`, so concurrent VMs on one
+#           machine stop sharing a porta space the way two devkits shared `c6-bench`.
+#           HOST ONLY — the mcu figure is unchanged at 38899, because this whole
+#           branch sits under `#else` to `#ifdef __ZEPHYR__` and a board never
+#           compiles it. A board carries the baked bench instance name instead.
+#    +33 B  earlier today: the `platform nodeId` prim itself (rete#186).
+#   = 68136 total host text.
 #
-# Re-banked although +33 B fits inside the +2% band and the gate would NOT have
-# failed. That is deliberate: drift that fits is exactly how the previous baseline
-# quietly spent 75% of its tolerance before anything was charged for it (see the
-# 2026-08-19 header this replaces). Growth gets named when it happens or it gets
-# discovered later as an unattributable lump.
+# The host number is a PROXY and always has been (gc.o's host arena dwarfs the real
+# MCU heap). What constrains a C6 is the mcu baseline beside this file, and this
+# change costs it nothing.
 #
-# The 2026-08-22 rete#177 enrolment header this supersedes: four TUs the gate had
-# never weighed (ota.c, span.c, handles.c, and timer_posix.o which was compiled and
-# then omitted from its own `size -t` line) were added, moving the number 61049 ->
-# 67661 with only +8 B of that being real drift.
+# Superseded headers, kept because their findings outlive them: the 2026-08-22
+# rete#177 enrolment moved this 61049 -> 67661 by adding four TUs the gate had never
+# weighed (ota.c, span.c, handles.c, and timer_posix.o — which was compiled and then
+# omitted from its own `size -t` line), of which only +8 B was real drift.
    text	   data	    bss	    dec	    hex	filename
   12763	     20	   1160	  13943	   3677	vm.o
   15784	   1293	 131360	 148437	  243d5	dispatch.o
    4663	     24	17048448	17053135	10435cf	gc.o
     605	   1072	      4	   1681	    691	kernel_boot.o
-  12571	     20	   1024	  13615	   352f	platform.o
+  13013	     20	   1120	  14153	   3749	platform.o
     510	      0	     88	    598	    256	serial.o
     939	      0	     88	   1027	    403	udp.o
     474	      0	      0	    474	    1da	http.o
@@ -37,4 +37,4 @@
    1135	      0	      0	   1135	    46f	udp_posix.o
    1059	      4	      0	   1063	    427	http_posix.o
    1141	      4	   1056	   2201	    899	timer_posix.o
-  67694	   2449	17198516	17268659	1077fb3	(TOTALS)
+  68136	   2449	17198612	17269197	10781cd	(TOTALS)

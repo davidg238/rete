@@ -406,10 +406,14 @@ if [ -n "${TUVM_NODE_ID:-}" ]; then
   # Deliberately NOT a silent fallback: it is announced, and it takes precedence
   # rather than filling in, so "I said c6bench and it built c6spare" cannot happen.
   NODE_ID_ARG=(-DTUVM_NODE_ID="$TUVM_NODE_ID")
-  echo "[node] id '$TUVM_NODE_ID' (explicit, overriding port resolution)"
+  # STDERR, not stdout: deploy_flash.sh captures run.sh's stdout and echoes it only on
+  # failure (rete#236), so this line would be invisible on exactly the runs it describes.
+  # Which porta space a run writes into is not an optional detail — rete#186 is what it
+  # costs to not know.
+  echo "[node] id '$TUVM_NODE_ID' (explicit, overriding port resolution)" >&2
 elif [ -n "${CONSOLE_PORT:-}" ] && NODE_ID=$(bench::board_for_port "$CONSOLE_PORT" 2>/dev/null); then
   NODE_ID_ARG=(-DTUVM_NODE_ID="$NODE_ID")
-  echo "[node] id '$NODE_ID' (from the collector env for $CONSOLE_PORT)"
+  echo "[node] id '$NODE_ID' (from the collector env for $CONSOLE_PORT)" >&2
 else
   echo "[node] WARNING: no collector env names $CONSOLE_PORT — falling back to this" >&2
   echo "[node] HOST's tailscale name (see cmake/gen_node_id.cmake). The node will write" >&2

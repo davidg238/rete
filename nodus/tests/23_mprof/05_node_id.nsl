@@ -1,6 +1,6 @@
 (* expect:
 nodeId is non-empty: true
-nodeId on host is unnamed: true
+nodeId carries a host suffix: true
 nodeId is not the buildId: true
 *)
 (* rete#186: the node names its own BOARD. Sibling of 03_build_id.nsl beside it —
@@ -11,10 +11,11 @@ nodeId is not the buildId: true
    different apps, with nothing in the store able to say which. A porta space keyed
    on a slot cannot answer "what did THIS board do".
 
-   Asserts the HOST answer specifically, because that is the only one a host test can
-   know. On target the value is baked by zephyr/cmake/gen_node_id.cmake from the
-   bench instance name, so it differs per board and pinning it here would be pinning
-   the bench into the suite.
+   Asserts SHAPE on host, because the host answer is `<hostname>-NNNN` — the machine
+   plus four digits separating concurrent VMs on it (David, 2026-08-22). It therefore
+   differs per machine and per process. On target the value is baked by
+   zephyr/cmake/gen_node_id.cmake from the bench instance name, so it differs per board.
+   Neither is pinnable; both have a checkable shape.
 
    The third line is the one worth having: `platform nodeId` and `platform buildId`
    are adjacent prims built by the same String idiom, and transposing the two cases
@@ -26,7 +27,12 @@ class NodeIdTest = () (
     n:: platform nodeId.
     b:: platform buildId.
     ('nodeId is non-empty: ', (n size > 0) printString) println.
-    ('nodeId on host is unnamed: ', (n = 'unnamed') printString) println.
+    (* SHAPE, not value: a host VM answers `<host>-NNNN`, so the value differs per
+       machine AND per process and pinning it would pin this bench into the suite.
+       What is assertable is the shape the id promises — a '-' separating the host
+       from four digits, with something on both sides. *)
+    ('nodeId carries a host suffix: ',
+       ((n size > 5) and: [ (n at: (n size - 4)) = 45 ]) printString) println.
     ('nodeId is not the buildId: ', (n = b) not printString) println.
     ^ 0 )
 ) : ()
