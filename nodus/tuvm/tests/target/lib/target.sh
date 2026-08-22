@@ -180,6 +180,18 @@ target::collector_ok() {
 # AGAIN, deliberately, once the collector is back and reading.
 target::collector_pause() {
   TARGET_PAUSED_BOARD=$1
+  # rete#237: EXPORTED, so zephyr/run.sh can tell "nobody is collecting this board"
+  # from "I stopped the collector myself, ten milliseconds ago, and will start it
+  # again and reset the board once esptool is done".
+  #
+  # No new knob: this variable already existed and already held exactly that fact —
+  # it was simply not visible to the child. That is why it is the right carrier. It
+  # is set and cleared by this pair alone, so it cannot drift out of step with the
+  # actual state, and it names the BOARD rather than saying `1`: run.sh compares it
+  # against the instance it resolved for itself, so a paused c6spare does NOT quieten
+  # a warning about c6. A knob that must match something the callee derives
+  # independently is a knob that fails closed when it is set wrongly.
+  export TARGET_PAUSED_BOARD
   trap 'target::collector_resume' EXIT
   systemctl --user stop "rete-console@$TARGET_PAUSED_BOARD"
 }
@@ -193,6 +205,7 @@ target::collector_resume() {
     sleep 1
   done
   TARGET_PAUSED_BOARD=""
+  export TARGET_PAUSED_BOARD          # rete#237: cleared, so the window is exactly the pause
 }
 
 # target::reset_board <board> — pulse RTS (EN) to reboot, leaving DTR (IO0) high

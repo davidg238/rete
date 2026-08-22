@@ -439,8 +439,28 @@ if [ "$DO_FLASH" = 1 ]; then
       case "$(bench::collector_state "$INSTANCE")" in
         active) : ;;
         inactive)
-          echo "[console] WARNING: rete-console@$INSTANCE is not running." >&2
-          echo "[console] The boot you just triggered is not being logged." >&2 ;;
+          # rete#237: the same fact means two different things, and only the CALLER
+          # knows which. On the hand path nobody resets the board again, so an
+          # uncollected boot is the operator's problem and this is a real warning.
+          # Under the target harness the collector was stopped on purpose moments
+          # ago (esptool and the collector otherwise split the ROM handshake), and
+          # deploy_flash resumes it and resets the board again — so the run's anchor
+          # boot IS captured and the warning is noise. A warning that fires on every
+          # run and always means nothing is training to ignore warnings, which is the
+          # failure rete#236 had just cost a board cycle to fix.
+          #
+          # The board name must match: target::collector_pause exports the instance
+          # IT stopped, and $INSTANCE is resolved here independently from the console
+          # port. If they disagree, some OTHER board's collector is down and that is
+          # worth shouting about, so this fails closed.
+          if [ "${TARGET_PAUSED_BOARD:-}" = "$INSTANCE" ]; then
+            echo "[console] note: rete-console@$INSTANCE was stopped by the caller for this" >&2
+            echo "[console] flash, so this boot is not logged — the caller resets the board" >&2
+            echo "[console] again with the collector back up, and that boot is the anchor." >&2
+          else
+            echo "[console] WARNING: rete-console@$INSTANCE is not running." >&2
+            echo "[console] The boot you just triggered is not being logged." >&2
+          fi ;;
         no-log)
           echo "[console] WARNING: rete-console@$INSTANCE is running but has no log for today." >&2 ;;
         port-down)
