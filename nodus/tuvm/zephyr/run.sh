@@ -385,9 +385,41 @@ if [ "$ROM_PATCH" = 1 ]; then
 fi
 
 echo "[build] -b $BOARD -d $BUILD_DIR ${PRISTINE_ARG[*]:-(incremental)}"
+# rete#186 — THE NODE ID IS THE BOARD, and it is resolved from the SAME place the
+# console reader resolves it: bench::board_for_port over the collector env files. That
+# is the point. `nodeId` used to be a source constant (`'c6-bench'`), so whichever
+# devkit carried the bridge wrote into the c6-bench space — 36,153 events from at least
+# two boards and two different apps, with nothing in the store saying which.
+#
+# Resolved HERE, before the build, rather than reusing the INSTANCE computed after it:
+# that one is for archiving the ELF and runs too late to reach the compiler.
+#
+# Fails to "unnamed" rather than guessing. A board this bench cannot name must not
+# inherit a name, because inheriting one is the bug.
+NODE_ID_ARG=()
+if [ -n "${TUVM_NODE_ID:-}" ]; then
+  # rete#186/#181: an EXPLICIT id wins over port resolution, because a board that is
+  # not on this host has no local port to resolve through. That is the remote-bench
+  # case (#181: build here, flash and observe on gw85224-01) and it is the only way
+  # to build an image for a board this workstation cannot see.
+  #
+  # Deliberately NOT a silent fallback: it is announced, and it takes precedence
+  # rather than filling in, so "I said c6bench and it built c6spare" cannot happen.
+  NODE_ID_ARG=(-DTUVM_NODE_ID="$TUVM_NODE_ID")
+  echo "[node] id '$TUVM_NODE_ID' (explicit, overriding port resolution)"
+elif [ -n "${CONSOLE_PORT:-}" ] && NODE_ID=$(bench::board_for_port "$CONSOLE_PORT" 2>/dev/null); then
+  NODE_ID_ARG=(-DTUVM_NODE_ID="$NODE_ID")
+  echo "[node] id '$NODE_ID' (from the collector env for $CONSOLE_PORT)"
+else
+  echo "[node] WARNING: no collector env names $CONSOLE_PORT — falling back to this" >&2
+  echo "[node] HOST's tailscale name (see cmake/gen_node_id.cmake). The node will write" >&2
+  echo "[node] to a space named for the machine that built it, not for a board — which" >&2
+  echo "[node] separates hosts but NOT two unnamed boards on this one. Name the board." >&2
+fi
+
 ( cd "$ZDIR" && west build -b "$BOARD" "${PRISTINE_ARG[@]}" -d "$BUILD_DIR" . \
     -- -DCONF_FILE="$CONF_FILE" -DTUVM_MODEL="$MODEL" "${BLOB_ARG[@]}" \
-       "${EXTRA_CONF_ARG[@]}" )
+       "${EXTRA_CONF_ARG[@]}" "${NODE_ID_ARG[@]}" )
 
 if [ "$DO_FLASH" = 1 ]; then
   # KNOWN RACE, not yet closed here (rete#154, closed as recorded rather than

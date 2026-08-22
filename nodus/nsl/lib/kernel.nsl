@@ -3969,6 +3969,9 @@ class Kernel usingPlatform: platform = () (
   public profileStop       = ( platform profileStop. ^ self )
   (* #74: the build actually running, so a reader can pick the matching sidecar. *)
   public buildId           = ( ^ platform buildId )
+  (* rete#186: which BOARD this is, baked at build time. buildId names the image,
+     bootId names the run, this names the hardware. *)
+  public nodeId            = ( ^ platform nodeId )
   (* rete#162: the RUN of that build — a counter incremented once per boot and
      persisted in NVS (RECORDS §3). Sibling of buildId above and forwarded here
      for the same reason: an app's `platform` is the kernel instance, so without

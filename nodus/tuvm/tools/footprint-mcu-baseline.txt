@@ -1,27 +1,21 @@
 # T0.3 footprint baseline — MCU config (arm-zephyr-eabi, cortex-m4).
-# Re-banked 2026-08-22 for rete#177 items 1 and 2.
+# Re-banked 2026-08-22 for rete#186.
 #
-# FIRST MCU RE-BANK TAKEN FROM A REAL CROSS-COMPILE SINCE THE #79 CONSOLIDATION.
-# The previous bank's own header said the mcu half "has been SKIPping for want of an
-# arm-zephyr-eabi toolchain", and CLAUDE.md recorded that SKIP as expected. Both were
-# wrong: the compiler ships inside the Zephyr SDK at
-# ~/zephyr-sdk-0.17.4/arm-zephyr-eabi/bin and has been there the whole time. What was
-# actually broken was footprint.sh's un-SKIP instruction, which named
-# `ns-zephyr/tools/env.sh` — a path DELETED by the consolidation. A SKIP whose remedy
-# cannot be followed is a deleted gate that still prints a reassuring line.
+#   +27 B  rete#186: the `platform nodeId` prim. Twenty-seven bytes of target text
+#          is what it costs a node to know which BOARD it is — against a source
+#          constant that produced 36,153 events in one porta space from at least
+#          two boards and two apps, unattributable after the fact.
+#   +0 B   data+bss, unchanged at 67796.
+#   = 38899 total mcu text, from 38872 banked earlier today.
 #
-# THE SPLIT (34488 banked -> 38872 measured, +4384):
-#   +3108 B  ENROLMENT, not growth (rete#177 item 2): ota.o 2708 + span.o 400. The
-#            #25 ota seam was never inside the ratchet meant to bound it. #177
-#            predicted "~3 KB of SHA-256 + block client that no gate weighs"; the
-#            measured figure is 3108 B.
-#   +1276 B  REAL DRIFT, measured on the OLD TU set today (34488 banked -> 35764).
-#            This is the number rete#190's close-out could not bank because it would
-#            have been banked against an under-measured engine. It now has a ruler.
-#   = 38872 total mcu text.
+# Re-banked although it fits inside the +2% band; see the host baseline's header for
+# why growth that fits still gets named.
 #
-# data+bss went DOWN, 69048 -> 67796 (-1252), while span.o ADDED 772 B of bss — so
-# ~2 KB left elsewhere. That is rete#226 deleting the selector prim cache; this
-# script was still passing the dead -DPRIM_CACHE_SIZE=256 until today.
-text 38872
+# Superseded header (2026-08-22, rete#177), kept because its finding outlives it:
+# this was the first MCU re-bank from a real cross-compile since the #79
+# consolidation. The mcu half had been SKIPping, CLAUDE.md called that expected, and
+# the compiler was in the SDK the whole time — what was broken was footprint.sh's
+# un-SKIP instruction, which named a path the consolidation deleted. That bank split
+# 34488 -> 38872 into +3108 B of enrolment (ota.c + span.c) and +1276 B of real drift.
+text 38899
 data_bss 67796

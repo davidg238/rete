@@ -24,6 +24,13 @@ class PortaBridgeNode usingPlatform: platform net: net = (
     (* tuvm#107: the span table. ONE window per boot — see `main:args:`. *)
     spans capture sTick sCheckIn sPublish capturing ::= false. |
 ) (
+  (* rete#186 DELIBERATELY KEEPS A LITERAL, where the four C6 apps now answer
+     `platform nodeId`. The rule is "the id is the board" and this node has no board:
+     it is the HOST twin, and on host `platform nodeId` answers "host", which would be
+     the same slot-shaped answer for every host node at once — the exact defect #186 is
+     about, moved rather than fixed. `tests/porta_sync_host.sh` also pins NODE=bench-node.
+     If a second host node ever needs an identity, give it one here; do not reach for
+     the board seam, which has nothing to answer with. *)
   nodeId    = ( ^ 'bench-node' )
   gwAddr    = ( ^ '127.0.0.1' )
   gwPort    = ( ^ 16969 )

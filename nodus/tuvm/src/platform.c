@@ -35,6 +35,27 @@ extern const char tuvm_build_id[];
 #define OEVM_BUILD_ID "host"
 #endif
 
+/* rete#186: WHICH BOARD this is, baked by zephyr/cmake/gen_node_id.cmake from
+   -DTUVM_NODE_ID, which zephyr/run.sh fills from the SAME collector env file the
+   console reader resolves through (bench::board_for_port). One source of truth for
+   "who is this", so the flash, the console and the porta space cannot disagree —
+   they disagreed before, and #170 is what that costs. Same #define split as
+   OEVM_BUILD_ID above, for the same stated reason. */
+#ifdef __ZEPHYR__
+extern const char tuvm_node_id[];
+#define OEVM_NODE_ID tuvm_node_id
+#else
+/* "unnamed", NOT "host", and the difference is load-bearing twice over.
+   (1) OEVM_BUILD_ID is already "host" on this side, so a nodeId of "host" would make
+       the two adjacent, identically-built prims answer the SAME STRING on the only
+       platform the suite exercises routinely — transposing the two cases below would
+       then pass every host assertion. tests/23_mprof/05_node_id.nsl catches it only
+       because these differ.
+   (2) It is the same word gen_node_id.cmake bakes for a target build nobody named, so
+       there is one vocabulary for "nothing told me which board I am" rather than two. */
+#define OEVM_NODE_ID "unnamed"
+#endif
+
 /* The host virtual-clock timer facility that used to live here was lifted in rung 8
    into the timer seam: src/timer_backend.h + src/backend/posix/timer_posix.c (the
    virtual clock, verbatim) and src/backend/zephyr/timer_zephyr.c (a real k_timer).
@@ -1405,6 +1426,13 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            allocation happens before OEVM_BUILD_ID's bytes are read, so there is
            nothing to root). */
         *out = space_make_string_pub(OEVM_BUILD_ID, strlen(OEVM_BUILD_ID));
+        return 1;
+    }
+    case PRIM_pf_nodeId: {
+        /* rete#186. Same String-build idiom and the same GC-safety argument as
+           buildId above: no allocation happens before OEVM_NODE_ID's bytes are
+           read, so there is nothing to root. */
+        *out = space_make_string_pub(OEVM_NODE_ID, strlen(OEVM_NODE_ID));
         return 1;
     }
     case PRIM_pf_bootId:

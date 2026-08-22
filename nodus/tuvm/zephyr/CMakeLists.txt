@@ -86,6 +86,17 @@ add_custom_target(tuvm_build_id_gen DEPENDS ${TUVM_BUILD_ID_C})
 target_sources(app PRIVATE ${TUVM_BUILD_ID_C})
 add_dependencies(app tuvm_build_id_gen)
 
+# rete#186 — WHICH BOARD this image is for. Sibling of the build id above; see
+# cmake/gen_node_id.cmake for why it is configure-time where that one is build-time,
+# and why an unset id bakes "unnamed" rather than a guess.
+set(TUVM_NODE_ID_C ${CMAKE_CURRENT_BINARY_DIR}/tuvm_node_id.c)
+execute_process(COMMAND ${CMAKE_COMMAND}
+                -DNODE_ID=${TUVM_NODE_ID}
+                -DOUT_C=${TUVM_NODE_ID_C}
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/gen_node_id.cmake)
+target_sources(app PRIVATE ${TUVM_NODE_ID_C})
+message(STATUS "tuvm node id: ${TUVM_NODE_ID}")
+
 # OpenThread bring-up TU (tuvm_thread_bringup). Gated on OPENTHREAD so the WROOM
 # (WiFi, no Thread) compiles it away. ONE shared impl: nRF (NCS) and C6 (upstream
 # 4.2) expose the same no-arg OT API, so the earlier board split was redundant

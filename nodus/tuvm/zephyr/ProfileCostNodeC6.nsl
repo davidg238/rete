@@ -117,7 +117,17 @@ class ProfileCostNodeC6 usingPlatform: platform net: net = (
        a triple is only a triple if its three blocks can be paired back up. *)
     phase ::= 0. round ::= 0. blockTick ::= 0. settleCount ::= 0. blockT0 ::= 0. |
 ) (
-  nodeId    = ( ^ 'c6-bench' )
+  (* rete#186: THE ID IS THE BOARD, and it is baked at build time rather than written
+     here. This method used to answer a string literal, and the literal was the bug:
+     whatever devkit was flashed with this app wrote into that one space, so `c6-bench`
+     accumulated 36,153 events across 19 `obs/build` entries from at least two boards
+     AND two different apps, with nothing in the store saying which. `platform nodeId`
+     answers the bench instance the image was built for (zephyr/run.sh fills it from the
+     same collector env file the console reader resolves through), so the flash, the
+     console and the porta space cannot disagree about who this is.
+     The ROLE is not gone, it just lives where it always belonged: porta writes
+     `goal/name` and this node converges `obs/name` onto it. *)
+  nodeId    = ( ^ platform nodeId )
   gwAddr    = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )
   gwPort    = ( ^ 6969 )
   localPort = ( ^ 16970 )
