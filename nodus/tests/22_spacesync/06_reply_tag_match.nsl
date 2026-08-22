@@ -42,7 +42,10 @@ cursor 7
 acked applied true
 crossed 2
 misses 0
+porta refused this node: malformed
 err is not skipped true
+err counted as a refusal 1
+err is not a miss 0
 *)
 class ReplyTagMatch packageUsing: manifest = () (
 
@@ -120,6 +123,20 @@ class ReplyTagMatch packageUsing: manifest = () (
     errBridge:: platform PortaBridge socket: errSock space: space id: 'n2' peer: '::1' port: 6969 spans: spans.
     errBridge checkIn.
     ('err is not skipped ' , (errBridge crossed = 0) printString) out.
+
+    (* rete#199 — and it is COUNTED, which is the half that was missing. An #err
+       incremented neither `misses` nor `acked`, so a node being uniformly refused
+       reported the same numbers as a healthy one: `misses 0` all the way to the
+       arena death that made this a two-hour diagnosis. The message above prints
+       ONCE per reason, not once per tick.
+
+       ONE per check-in, not one per datagram: both legs are refused here, and only
+       the push leg's `applyAck:` counts. That keeps `ref` directly comparable with
+       `wak` and `pto`, which are also per-check-in. A gateway that refused only the
+       PULL leg would read 0 here — no such refusal has been produced, and naming
+       it is cheaper than guarding against it. *)
+    ('err counted as a refusal ' , errBridge refused printString) out.
+    ('err is not a miss ' , errBridge misses printString) out.
     ^ 0
   )
 ) : (

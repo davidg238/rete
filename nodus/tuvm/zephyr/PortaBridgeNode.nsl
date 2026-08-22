@@ -219,6 +219,13 @@ class PortaBridgeNode usingPlatform: platform net: net = (
     pairs add: #wak -> ticks.
     pairs add: #pto -> bridge misses.
     pairs add: #sdr -> bridge dropped.
+    (* rete#199 — REFUSED, and it is not `pto`. A node the gateway is uniformly
+       rejecting gets a reply to every exchange, so `pto` reads 0 the whole way to
+       its death; without this field the record is identical for a healthy node and
+       for one that has been shouting into a closed door since boot. This is the
+       one number that separates "the gateway is unreachable" from "the gateway
+       refuses me", and they are different problems with different fixes. *)
+    pairs add: #ref -> bridge refused.
     space put: 'obs/health' value:
       (platform Record tag: #Health fields: (platform Map fromPairs: pairs)).
     ^ self

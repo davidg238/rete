@@ -1,14 +1,14 @@
 (*
 expect:
-health 61
+health 72
 metrics 108
 cheap 62
-batch 385
+batch 396
 *)
 (* #56 design §9.1, landed as a REGRESSION GUARD.
 
-   *** THE FRAME FITS AS OF rete#197 (2026-08-11): 385 B against the 512 B cap,
-   *** 127 B of headroom — about 12 more fields at ~10 B each, against a Metrics
+   *** THE FRAME FITS AS OF rete#199 (2026-08-21): 396 B against the 512 B cap,
+   *** 116 B of headroom — about 11 more fields at ~10 B each, against a Metrics
    *** that has grown from 9 fields to 12 in its whole history. It was 529 B —
    *** SEVENTEEN OVER — for one day, and the gauge went quiet on a live node for
    *** the whole of it (see below).
@@ -41,8 +41,11 @@ batch 385
    note above thought it had already counted) -> 529 (the sys/cheap row, 96 B: a
    79 B record plus 17 B of seq, path and kind) -> 385 (rete#197, every record's
    labels shortened) -> 378 (rete#197, the envelope's two as well) -> 385
-   (rete#214, Metrics gains #pst). Note 385 appears TWICE in that series and the
-   two are unrelated: the first is the frame mid-rename, the second is today's.
+   (rete#214, Metrics gains #pst) -> 396 (rete#199, Health gains #ref, +11 B: a
+   3 B label-and-key plus a saturated count, since the worst legal `ref` is as
+   large as the wake count of a node refused since boot). Note 385 appears TWICE
+   in that series and the two are unrelated: the first is the frame mid-rename,
+   the second is the one #199 grew from.
 
    WHAT THE OVERFLOW COST, WITNESSED AND NOT MODELLED. This guard went red on
    2026-08-11 as a prediction about long-uptime nodes. Within the day it was
@@ -98,7 +101,8 @@ batch 385
    — an asymmetry worth knowing before copying either line. *)
 class BatchSize packageUsing: manifest = () (
 
-  (* obs/health as design D2 slimmed it: liveness and delivery, five fields. *)
+  (* obs/health as design D2 slimmed it: liveness and delivery — five fields, six
+     since rete#199 added `ref`. *)
   health: platform = (
     | pairs |
     pairs:: platform OrderedCollection new.
@@ -115,6 +119,14 @@ class BatchSize packageUsing: manifest = () (
     pairs add: #wak -> 1296000.            (* 30 d at the 2 s cadence *)
     pairs add: #pto -> 431.
     pairs add: #sdr -> 17.
+    (* rete#199 — refusals, and the WORST LEGAL value for the same reason `bid`
+       carries one: a node refused on every exchange since boot has a `ref` as
+       large as its wake count, so the guard must prove the frame fits for the node
+       that has been rejected for thirty days rather than for one that has never
+       been rejected at all. That is exactly the node this field exists to make
+       visible, so measuring it at 0 would be measuring the case that never
+       mattered. *)
+    pairs add: #ref -> 1296000.
     ^ platform Record tag: #Health fields: (platform Map fromPairs: pairs) )
 
   (* The eleven fields kernel.nsl builds, with the WROOM-32 values 05_record_size.nsl

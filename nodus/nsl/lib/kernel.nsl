@@ -1629,6 +1629,27 @@ class Kernel usingPlatform: platform = () (
          stale value costs an encode and can never cost a row. Zero means "no push
          yet"; per-boot and deliberately not persisted, like the cursor. *)
       fitRows ::= 0.
+      (* rete#199 — the frame the gateway has NOT accepted yet, kept rather than
+         rebuilt. `checkIn`'s own comment already promised that the next check-in
+         "re-pushes the same entries"; it simply rebuilt them from scratch to keep
+         the promise, and rebuilding is `collectOutbound` plus a `valueFits:`
+         encode of every candidate plus a full frame encode, EVERY tick, forever,
+         for a node that is getting nowhere. Measured on the host against a porta
+         answering #err to everything: 2.1x the GC cycles of a healthy node, and
+         the largest free block collapsed from ~16.8 KB to ~2.9 KB — so a refused
+         node could not satisfy the 4104-byte allocation that killed a C6 on 74%
+         of its ticks against a healthy node's 10%. It was never a leak; nothing
+         accumulated. It was the allocation RATE, and the arena fragmented under
+         it. `framesBuilt` is the observable that makes the reuse falsifiable. *)
+      lastFrame ::= nil. lastFrameAcked ::= 0. framesBuilt ::= 0.
+      (* rete#199 — a REFUSAL is not a timeout, and until this counter existed the
+         node could not say which was happening to it: an #err incremented neither
+         `misses` nor `acked`, so `obs/health` read identically for a node being
+         uniformly rejected and one being answered. That is the whole reason the
+         original diagnosis took two hours — the console said `misses 0` the whole
+         way to the panic. `lastErrMsg` makes the message itself reportable ONCE
+         rather than once per tick. *)
+      refused ::= 0. lastErrMsg ::= nil.
       (* rete#25 — the whole of the image-push policy's state, four slots and no
          object. `otaStaged` is the one-tick delay between "the bytes are on
          flash" and "boot them" made explicit (see otaCheck); `otaConfirmed` is
@@ -1751,6 +1772,8 @@ class Kernel usingPlatform: platform = () (
     public acked = ( ^ acked )
     public rejected = ( ^ rejected )
     public misses = ( ^ misses )
+    public refused = ( ^ refused )
+    public framesBuilt = ( ^ framesBuilt )
     public dropped = ( ^ dropped )
     (* Replies that arrived in the OTHER leg's wait and were walked past. Counted
        rather than merely handled: a silent skip makes "the window never opened"
@@ -1993,8 +2016,37 @@ class Kernel usingPlatform: platform = () (
        STILL NOT THE WHOLE OF rete#161: fix (1), carrying the bytes `valueFits:`
        already produced instead of discarding them, is untouched. It addresses
        `pushCollect` and the surviving encode, which this leaves as they were. *)
+    (* rete#199 — THE CACHE, and why `acked` is the whole of its invalidation rule.
+
+       A push is idempotent by construction and porta dedupes on `seq <= hw`, so
+       re-sending the frame the gateway did not accept is exactly what the protocol
+       already expects — `checkIn` says so in as many words. `acked` advancing is
+       the ONE signal that the node made progress and therefore has something
+       different to say; a miss and a refusal both leave it where it was, and both
+       are cases where rebuilding produces the same rows at the cost of the
+       collect, one `valueFits:` encode per candidate, and a full frame encode.
+
+       A HEALTHY NODE IS UNAFFECTED: it acks every tick, so it rebuilds every tick
+       and pays exactly what it paid before. The saving lands entirely on the node
+       that is getting nowhere, which is the node that can least afford it.
+
+       NOT DEFERRED SILENTLY: there is no forced rebuild after N refused ticks, so
+       a node refused for content rather than for shape re-sends the same rejected
+       frame forever. It stays alive and `refused` climbs, which is strictly better
+       than the arena death this replaces, and N is exactly the invented tunable
+       CLAUDE.md says not to reach for before there is data. What would earn it: a
+       refusal that a LATER frame would have satisfied — i.e. porta rejecting one
+       row rather than the envelope. Nothing has produced that yet. *)
     public pushFrame = (
+      (lastFrame == nil) ifFalse: [
+        (acked = lastFrameAcked) ifTrue: [ ^ lastFrame ] ].
+      lastFrame:: self buildFrame.
+      lastFrameAcked:: acked.
+      ^ lastFrame )
+
+    buildFrame = (
       | rows bytes probe n climbing |
+      framesBuilt:: framesBuilt + 1.
       spans begin: sPushCollect.
       rows:: self collectOutbound.
       spans end: sPushCollect.
@@ -2122,6 +2174,11 @@ class Kernel usingPlatform: platform = () (
       r:: Cbor new decode: aBytes ifInvalid: [ :m | bad:: true. nil ].
       bad ifTrue: [ ^ false ].
       (outer rankOf: r) = 9 ifFalse: [ ^ false ].
+      (* rete#199 — an #err is porta's REAL terminal answer, and it is a different
+         fact from a timeout. Counted here rather than in `pushOnce` because this
+         is the one place the reply is decoded, and because it makes the property
+         testable with no socket in sight (22_spacesync/16). *)
+      (r tag = #err) ifTrue: [ ^ self noteRefused: r ].
       (r tag = #ack) ifFalse: [ ^ false ].
       hw:: r at: #hw ifAbsent: [ nil ].
       (outer rankOf: hw) = 2 ifFalse: [ ^ false ].
@@ -2134,6 +2191,31 @@ class Kernel usingPlatform: platform = () (
         i:: i + 1 ].
       pending:: keep.
       ^ true )
+
+    (* Answers FALSE like every other non-ack path: the caller's question is "did
+       this advance the watermark", and a refusal did not.
+
+       ONCE, NOT ONCE PER TICK. A refused node checks in forever, and a message
+       repeated every cadence is a message nobody reads — while the FIRST one is
+       the line that would have turned rete#199's two-hour diagnosis into a glance.
+       A CHANGED message prints again, because the reason changing is itself news.
+
+       Garbage is deliberately NOT counted here: an undecodable datagram is a
+       datagram we could not read, and folding it into `refused` would blur the one
+       number that separates "the gateway refuses me" from "the gateway is not
+       answering" — which is the distinction this counter exists to make. *)
+    noteRefused: r = (
+      | msg |
+      refused:: refused + 1.
+      msg:: r at: #msg ifAbsent: [ '' ].
+      (self errMsgIsNew: msg) ifTrue: [
+        lastErrMsg:: msg.
+        ('porta refused this node: ' , msg) out ].
+      ^ false )
+
+    errMsgIsNew: msg = (
+      lastErrMsg == nil ifTrue: [ ^ true ].
+      ^ (lastErrMsg = msg) not )
 
     (* ---- one check-in ----------------------------------------------------- *)
     (* PULL, apply, PUSH, ack. Each leg waits a bounded time and then GIVES UP,

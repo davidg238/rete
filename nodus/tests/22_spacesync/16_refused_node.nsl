@@ -1,0 +1,94 @@
+(*
+rete#199 — a node whose frames the gateway REFUSES must not do more work than one
+whose frames are accepted.
+
+The spike that motivated this measured a refused node at 2.1x the GC cycles of a
+healthy one, with its largest free block collapsed from ~16.8 KB to ~2.9 KB — so it
+could not satisfy the 4104-byte allocation that killed a C6 on 74% of its ticks. The
+cause was not a leak: nothing accumulated. It was that `collectOutbound` re-scanned
+and `valueFits:` re-encoded EVERY candidate on EVERY tick, forever, because `acked`
+never advanced.
+
+`checkIn`'s own comment already said "the next check-in re-pushes the same entries".
+It just rebuilt them from scratch to do it. Two properties here:
+
+  1. A frame nobody acked is REUSED, not rebuilt. `framesBuilt` is the observable.
+  2. A refusal is COUNTED and distinguished from a timeout. Before this, an #err
+     incremented neither `misses` nor `acked`, so a refused exchange and a healthy
+     one were identical in every number the node reports about itself — `misses 0`
+     all the way to the panic.
+
+An #err is fed to `applyAck:` directly rather than through a socket, which is the
+same bytes-in shape 03_bridge_frames uses: the whole exchange is testable on the
+host without a network.
+expect:
+frames built 1
+reused identical true
+frames built after second push 1
+porta refused this node: malformed message: missing #bootId
+refused 1
+still not a miss 0
+acked after err 0
+frames built after ack 2
+refused after second err 2
+garbage is not a refusal 2
+porta refused this node: unknown message #shrug
+refused after a NEW reason 3
+*)
+class RefusedNode packageUsing: manifest = () (
+  public main: platform args: args = (
+    | space bridge spans f1 f2 f3 err err2 ack junk |
+    space:: platform space.
+    spans:: platform Spans new.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans.
+
+    (* Something to say, so the frame is not the empty early return. *)
+    space put: 'obs/name' value: 'bench'.
+    space put: 'obs/build' value: 'test'.
+
+    f1:: bridge pushFrame.
+    ('frames built ' , bridge framesBuilt printString) out.
+
+    (* THE PROPERTY. Nothing has been acked, so the second call must hand back the
+       SAME frame rather than re-collecting and re-encoding it. *)
+    f2:: bridge pushFrame.
+    ('reused identical ' , (f1 == f2) printString) out.
+    ('frames built after second push ' , bridge framesBuilt printString) out.
+
+    (* A refusal is porta's real terminal answer, and it is not a timeout. *)
+    err:: platform Cbor encode:
+      (platform Record tag: #err with: #msg -> 'malformed message: missing #bootId').
+    bridge applyAck: err.
+    ('refused ' , bridge refused printString) out.
+    ('still not a miss ' , bridge misses printString) out.
+    ('acked after err ' , bridge acked printString) out.
+
+    (* An ACK is what earns a rebuild — the node has made progress, so the next
+       frame should carry what comes after it. *)
+    ack:: platform Cbor encode: (platform Record tag: #ack with: #hw -> 1).
+    bridge applyAck: ack.
+    f3:: bridge pushFrame.
+    ('frames built after ack ' , bridge framesBuilt printString) out.
+
+    bridge applyAck: err.
+    ('refused after second err ' , bridge refused printString) out.
+
+    (* Garbage is neither an ack nor a refusal: it is a datagram we could not read,
+       and counting it as "the gateway refuses me" would make the one number that
+       separates the two causes lie. *)
+    junk:: platform Cbor encode: (platform Record tag: #batch with: #hi -> 3).
+    bridge applyAck: junk.
+    ('garbage is not a refusal ' , bridge refused printString) out.
+
+    (* ONCE means once per REASON, not once per node. The second identical #err
+       above printed nothing — that absence is asserted by this line's position in
+       the expect block, since an extra line would fail the match. A reason that
+       CHANGES is news and prints again. *)
+    err2:: platform Cbor encode:
+      (platform Record tag: #err with: #msg -> 'unknown message #shrug').
+    bridge applyAck: err2.
+    ('refused after a NEW reason ' , bridge refused printString) out.
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)
