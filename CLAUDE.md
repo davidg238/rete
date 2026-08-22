@@ -102,7 +102,11 @@ cd nodus/tuvm && bash tests/porta_sync_host.sh      # PORTA SYNC OK
 
 The nsl suite prints `Passed: N / Failed: 0` **and** a line of aux gates — read the aux
 line, because it can be red while the count reads zero failures.
-`footprint: SKIP (no arm-zephyr-eabi toolchain)` is pre-existing and expected. Never run
+**`footprint: SKIP` is NO LONGER expected, and it never should have been** (#177, fixed
+2026-08-22): arm-zephyr-eabi-gcc ships inside `~/zephyr-sdk-0.17.4` and always did. What was
+broken was the gate's own un-SKIP instruction, which named a path the #79 consolidation
+deleted — so the SKIP was unfollowable, and this file recorded it as normal. `footprint.sh`
+now finds the SDK itself. **A SKIP line here is a finding now, not a fixture.** Never run
 two nsl suites concurrently; they share `/tmp` paths. **The count above drifts upward as
 tests land — treat a mismatch as staleness in this file, never as a missing test.** The
 suite also prints `target gates: NOT RUN BY THIS SUITE`: the posix timer backend bypasses
