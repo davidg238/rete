@@ -478,6 +478,43 @@ Named so they are not silently dropped:
 - **Node identity.** A constant in the node's source for this slice; hardware-derived
   identity is a follow-on (relates tuvm#74, a node cannot name its own build).
 
+  > **RESOLVED 2026-08-22 (rete#186), and NOT the way this line anticipated.** The
+  > follow-on landed as a **build-time** identity, not a hardware-derived one, because the
+  > constant had already done its damage and the cheapest correct fix did not need silicon.
+  >
+  > `PortaBridgeNodeC6.nsl` answered the literal `'c6-bench'` with no seam, so whatever
+  > devkit carried the bridge wrote into that one space: **36,153 events across 19 distinct
+  > `obs/build` entries from at least two boards** — and auditing it found a second sharer,
+  > `ProfileCostNodeC6.nsl`, hardcoding the same string. The space was neither one board nor
+  > one app deep. A porta space keyed on a slot cannot answer "what did THIS board do",
+  > which is the only question it exists for.
+  >
+  > **The decision (David, 2026-08-22): the id is the BOARD, not the role.** The role
+  > already had a home — porta writes `goal/name`, the node converges `obs/name` — so
+  > spending the space key on a role spent it on the half that was already represented.
+  >
+  > The mechanism is `platform nodeId` (prim 155), a sibling of `buildId` (144, names the
+  > IMAGE) and `bootId` (151, names the RUN). A board answers the **bench instance name**,
+  > resolved by `zephyr/run.sh` through `bench::board_for_port` — *the same collector env
+  > file the console reader resolves through*, so the flash, the console and the porta space
+  > cannot disagree. A host VM answers `<hostname>-NNNN`, the machine plus four digits
+  > separating concurrent VMs on it.
+  >
+  > **Why build-time rather than hardware-derived, stated so it is not re-litigated.** A
+  > hardware id (the SoC base MAC is available and was used to confirm a board's identity
+  > this session) is unique and survives reflash, but it is not human-readable and it needs
+  > a new prim plus a platform implementation on every backend. The bench already has
+  > exactly one name per board, shared by `--board`, the collector env files and the ELF
+  > archive; any other value would have added a mapping table, and a table that disagrees
+  > with the collector's is precisely rete#170. Revisit if nodes are ever provisioned
+  > outside this bench, where no build-time name exists to bake.
+  >
+  > **Cut-over, not migration.** `c6-bell` and `c6-bench` stop receiving writes on
+  > 2026-08-22 and their rows stay intact. Repointing a space holding days of history makes
+  > the old rows unattributable in a *different* direction, so analysis crossing that date
+  > must read both spaces. There is no back-compat requirement; a dated cut-over beats an
+  > undated rename.
+
 ### 7.1 Resolved — profiler spans land at `diag/spans/**` (https://github.com/davidg238/porta/issues/28, closed)
 
 Filed as an open question, then answered by reading the node instead of the documents. The
