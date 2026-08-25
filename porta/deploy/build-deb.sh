@@ -32,6 +32,10 @@ LDFLAGS="-s -w -X github.com/davidg238/porta/internal/portacli.version=$VERSION 
 echo "==> Max glibc symbol the binary needs (must be <= target's glibc):"
 objdump -T "$STAGE/usr/bin/porta" 2>/dev/null | grep -oE 'GLIBC_[0-9.]+' | sort -V | tail -1 || true
 
+echo "==> Staging the wire contract (rete#258: a packaged install arms the gate by default)"
+mkdir -p "$STAGE/usr/share/porta"
+install -m 0644 "$REPO/../protocol/MANIFEST.cddl" "$STAGE/usr/share/porta/MANIFEST.cddl"
+
 echo "==> Staging control + maintainer scripts + unit"
 sed "s/__VERSION__/$VERSION/" "$HERE/debian/control" > "$STAGE/DEBIAN/control"
 install -m 0755 "$HERE/debian/postinst" "$STAGE/DEBIAN/postinst"

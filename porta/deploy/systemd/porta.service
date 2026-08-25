@@ -16,7 +16,9 @@ Type=simple
 # unprivileged, so no capabilities are needed.
 DynamicUser=yes
 StateDirectory=porta
-ExecStart=/usr/bin/porta serve --db /var/lib/porta/porta.db
+# --manifest arms the rete#243 kind+schema gate; the deb ships the contract
+# beside the binary (rete#258), so a packaged install gates by default.
+ExecStart=/usr/bin/porta serve --db /var/lib/porta/porta.db --manifest /usr/share/porta/MANIFEST.cddl
 Restart=on-failure
 RestartSec=3
 
