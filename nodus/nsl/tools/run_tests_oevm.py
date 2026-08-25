@@ -279,7 +279,7 @@ def run_boot_gc_asan_gate() -> bool:
                 pass
 
 
-def run_pytest_gate(label: str, rel_dir: str) -> str:
+def run_pytest_gate(label: str, rel_dir: str, ignore=()) -> str:
     """Run a pytest suite living outside nodus/nsl as a subprocess gate.
 
     #165: `nodus/oevm/tools/test_mprof_resolve.py` and the seven suites under
@@ -303,7 +303,13 @@ def run_pytest_gate(label: str, rel_dir: str) -> str:
     if d.is_file():
         cwd, target = d.parent, [d.name]
     elif d.is_dir():
-        cwd, target = d, []
+        # rete#228: `ignore` names files pytest must NOT collect from a dir
+        # target — for suites whose heavy members are run by their own gate
+        # (the nsl/tools integration harnesses) and would otherwise run twice.
+        # A dir target with ignores beats an explicit file list because a NEW
+        # test file is then collected the day it lands, instead of joining the
+        # orphans this gate exists to abolish.
+        cwd, target = d, [f"--ignore={name}" for name in ignore]
     else:
         print(f"{COLOR_RED}{label}: FAIL{COLOR_RESET} (no such path: {d})")
         return "FAIL"
@@ -924,23 +930,35 @@ def main():
     # piece whose absence let a gate score PASS 3/3 against a node that died four
     # ticks later (#213).
     observe_py = run_pytest_gate("target-observe-py", "nodus/oevm/tests/target")
-    # #252: the single-file mode's own contract tests. A FILE target, not the
-    # directory — the integration gates above live in the same directory and
-    # must not be collected twice. The tests isolate via OEVM_BUILD_DIR, so
-    # their harness subprocesses cannot race this run's /tmp artifacts.
-    single_py = run_pytest_gate("single-file-py", "nodus/nsl/tools/test_single_file_mode.py")
-    # rete#243: the node's encoder answers to protocol/MANIFEST.cddl — every
-    # golden the fixture pins zcbor-validates against the declared contract,
-    # and the manifest itself lints clean. First run bootstraps a cached venv
-    # (~/.cache/rete-manifest-venv), which needs network ONCE.
-    manifest_py = run_pytest_gate("manifest-py", "nodus/nsl/tools/test_manifest_gate.py")
+    # rete#228: the WHOLE nsl/tools directory, so a new test file there is
+    # collected the day it lands instead of joining the orphans (eight files
+    # sat unrun; two were red at HEAD, two more silently SKIPped on a path the
+    # #79 consolidation deleted). The ignores are the three integration
+    # harnesses run_integration_gate already owns above — they bake images and
+    # clobber the tracked solidified_image.c, so collecting them here would run
+    # them twice. This gate SUBSUMES the former single-file-py (#252) and
+    # manifest-py (#243) file gates: their files are ordinary members of the
+    # collect now (the manifest tests still bootstrap the cached zcbor venv,
+    # ~/.cache/rete-manifest-venv, which needs network ONCE).
+    nsl_tools_py = run_pytest_gate("nsl-tools-py", "nodus/nsl/tools",
+                                   ignore=("test_supervisor_grant.py",
+                                           "test_debugger_integration.py",
+                                           "test_deepsleep_node.py"))
+    # rete#228: the protocol's own tool tests (manifestlib, the linter, the pin
+    # tool) were wired to nothing — the contract's parsers gated only by hand.
+    protocol_py = run_pytest_gate("protocol-py", "protocol/tools")
+    # rete#257: gwprofiler's suites could not even collect (cbor2, absent on
+    # the bench where the tool runs). codec.py is stdlib-only now, pinned
+    # against node-generated goldens, so this collects everywhere.
+    gwprof_py = run_pytest_gate("gwprofiler-py", "nodus/oevm/zephyr/tools/gwprofiler")
 
     suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok
                 and portability != "FAIL" and boot_gc_ok
                 and footprint != "FAIL" and deepsleep_ok
                 and mprof_py != "FAIL" and console_py != "FAIL"
                 and observe_py != "FAIL" and cmake_parse != "FAIL"
-                and single_py != "FAIL" and manifest_py != "FAIL")
+                and nsl_tools_py != "FAIL" and protocol_py != "FAIL"
+                and gwprof_py != "FAIL")
     print(f"\n{COLOR_GREEN if suite_ok else COLOR_RED}Test Execution Summary:{COLOR_RESET}")
     print(f"  Passed:  {passed}")
     print(f"  Failed:  {failed}")
@@ -965,8 +983,9 @@ def main():
           f"console-py: {_mark(console_py)}  "
           f"target-observe-py: {_mark(observe_py)}  "
           f"cmake-parse: {_mark(cmake_parse)}  "
-          f"single-file-py: {_mark(single_py)}  "
-          f"manifest-py: {_mark(manifest_py)}")
+          f"nsl-tools-py: {_mark(nsl_tools_py)}  "
+          f"protocol-py: {_mark(protocol_py)}  "
+          f"gwprofiler-py: {_mark(gwprof_py)}")
 
     # NOT a skip, and deliberately not coloured like one: a skip names a cause it
     # has not verified, and this names one that IS verified. timer_zephyr.c posts

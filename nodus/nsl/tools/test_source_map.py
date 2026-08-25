@@ -9,7 +9,9 @@ TOOLS = Path(__file__).resolve().parent
 GRAMMAR = TOOLS.parent / "grammar" / "ns-parse.js"
 sys.path.insert(0, str(TOOLS))
 
-NS_TESTS = TOOLS.parent.parent / "ns-tests"
+# nodus/tests since the #79 consolidation — the "sibling ns-tests repo" these
+# skips guarded on was folded in, so the guard could never un-skip (rete#228).
+NS_TESTS = TOOLS.parent.parent / "tests"
 
 
 def _parse(src_text, tmp_path):
@@ -54,9 +56,9 @@ def test_compiler_collects_per_method_source_maps(tmp_path):
     assert {2, 3} <= all_lines
 
 
-@pytest.mark.skipif(not NS_TESTS.exists(), reason="sibling ns-tests repo not present")
+@pytest.mark.skipif(not NS_TESTS.exists(), reason="nodus/tests not present (broken checkout)")
 def test_stmap_sidecar_written_path_a(tmp_path):
-    src = NS_TESTS / "04_somns_basic" / "01_method_call.ns"
+    src = NS_TESTS / "04_somns_basic" / "01_method_call.nsl"
     out = tmp_path / "img.c"
     r = subprocess.run(
         [sys.executable, str(TOOLS / "ns_compile_oevm.py"), str(src), str(out)],
@@ -66,7 +68,7 @@ def test_stmap_sidecar_written_path_a(tmp_path):
     stmap = tmp_path / "img.stmap"
     assert stmap.exists(), "expected a .stmap sidecar next to the image"
     doc = json.loads(stmap.read_text())
-    assert doc["source"] == "01_method_call.ns"
+    assert doc["source"] == "01_method_call.nsl"
     assert isinstance(doc["functions"], dict) and doc["functions"]
     # Every function maps to a list of [offset, line] pairs.
     for name, pairs in doc["functions"].items():
@@ -78,11 +80,11 @@ def test_stmap_sidecar_written_path_a(tmp_path):
     assert any(k.endswith(">>test") for k in doc["functions"])
 
 
-@pytest.mark.skipif(not NS_TESTS.exists(), reason="sibling ns-tests repo not present")
+@pytest.mark.skipif(not NS_TESTS.exists(), reason="nodus/tests not present (broken checkout)")
 def test_factory_body_initializers_are_mapped(tmp_path):
     """Regression test for Fix 1: compile_initializer must register source maps
     for initializers that have a factory body (initBody statements)."""
-    src = NS_TESTS / "04_somns_basic" / "13_factory_body.ns"
+    src = NS_TESTS / "04_somns_basic" / "13_factory_body.nsl"
     out = tmp_path / "img.c"
     r = subprocess.run(
         [sys.executable, str(TOOLS / "ns_compile_oevm.py"), str(src), str(out)],

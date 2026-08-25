@@ -4,16 +4,30 @@ from pathlib import Path
 TOOLS = Path(__file__).resolve().parent
 
 
-def load_registry():
-    spec = importlib.util.spec_from_file_location("builtins_registry", TOOLS / "builtins_registry.py")
+def load_registry(path):
+    spec = importlib.util.spec_from_file_location("builtins_registry_under_test", path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
 
 
-def test_generator_produces_stable_indices():
-    subprocess.run([sys.executable, str(TOOLS / "gen_builtins.py")], check=True)
-    reg = load_registry()
+def test_generator_produces_stable_indices(tmp_path):
+    # rete#239: generate into a TMPDIR, never the tracked tree. This test used
+    # to rewrite the tracked builtins_registry.py as a side effect — byte-
+    # identical on a good day, a silent tracked-file edit on a bad one, and the
+    # regeneration's mtime bump is what let a stale __pycache__ serve a VERSION
+    # the source no longer contained. The tracked file is now ASSERTED against
+    # instead of overwritten: if it drifts from what the generator produces
+    # (hand edit, or a generator change nobody re-ran), that is a failure here,
+    # not a quiet fix-up.
+    gen = tmp_path / "builtins_registry.py"
+    subprocess.run([sys.executable, str(TOOLS / "gen_builtins.py"), str(gen)], check=True)
+    tracked = TOOLS / "builtins_registry.py"
+    assert tracked.read_text() == gen.read_text(), (
+        "tracked builtins_registry.py differs from what gen_builtins.py "
+        "generates — regenerate it (or the generator changed and the tracked "
+        "file was never refreshed)")
+    reg = load_registry(gen)
     assert reg.REGISTRY["IntegerVtable"] == 3
     assert reg.REGISTRY["FloatVtable"] == 4
     assert reg.REGISTRY["nil"] == 0

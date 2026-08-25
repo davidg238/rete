@@ -4,7 +4,9 @@ from pathlib import Path
 
 TOOLS = Path(__file__).resolve().parent
 OEVM = TOOLS.parent.parent / "oevm"
-NS_TESTS = TOOLS.parent.parent / "ns-tests"
+# nodus/tests since the #79 consolidation (this file said ns-tests, a path the
+# restructure deleted, and sat unrun while it rotted — rete#228's audit).
+NS_TESTS = TOOLS.parent.parent / "tests"
 
 
 def test_compile_method_call_to_oimg(tmp_path):
@@ -14,7 +16,7 @@ def test_compile_method_call_to_oimg(tmp_path):
     layout = tmp_path / "layout.json"
     layout.write_bytes(subprocess.run([str(tmp_path / "dl")], capture_output=True, check=True).stdout)
 
-    src = NS_TESTS / "04_somns_basic" / "01_method_call.ns"  # known-good minimal class+send
+    src = NS_TESTS / "04_somns_basic" / "01_method_call.nsl"  # known-good minimal class+send
     out = tmp_path / "app.oimg"
     r = subprocess.run([sys.executable, str(TOOLS / "ns_compile_oevm.py"), str(src), str(out),
                         "--format=oimg", f"--layout={layout}"],

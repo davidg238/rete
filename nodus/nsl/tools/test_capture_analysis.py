@@ -61,9 +61,16 @@ def test_uncaptured_locals_stay_registers(tmp_path):
 
 
 # Two sequential `to:do:` loops: the inlined-block induction vars `i` and `j`
-# BOTH reuse the same register (3), so the capture-slot sort ties on register.
-# The (register, name) total-order tie-break must give a stable mapping every
-# run (a plain-register key would fall back to hash-randomized set order).
+# BOTH reuse the same register (3), and each is captured by a nested real
+# block. Under the Task 4 option-b contract (see the capture_slot assignment
+# comment in ns_compile_oevm.py) these are NOT Context-homed: an inlined-loop
+# induction var lives in an inlined-block child Scope, not the frame's
+# local_vars, and the loop codegen reads/writes it via a plain register —
+# Context-homing it would rewrite the loop's OWN same-frame reads to a slot
+# nobody writes -> nil. So they appear in captured_locals (the analysis) but
+# are EXCLUDED from capture_slot (the homing), staying register+home_ctx-homed.
+# This test used to pin the pre-Task-4 contract ({"i": 0, "j": 1}) and sat in
+# an unrun file while the contract changed under it (rete#228's audit).
 SRC_TIED_REGS = (
     'class T = () ( m = ( | n | '
     '1 to: 3 do: [ :i | [ i ] value ]. '
@@ -71,17 +78,19 @@ SRC_TIED_REGS = (
 )
 
 
-def test_tied_register_capture_slots_are_deterministic(tmp_path):
-    # Compile twice in-process; the mapping must be identical and exact.
+def test_tied_register_inlined_captures_stay_register_homed(tmp_path):
+    # Compile twice in-process; the analysis and the homing must be identical.
     m1 = compile_source(SRC_TIED_REGS, tmp_path).method_compilers["T>>m"]
     m2 = compile_source(SRC_TIED_REGS, tmp_path).method_compilers["T>>m"]
 
     assert m1.captured_locals == {"i", "j"}
-    # `i` and `j` share the same original register -> tie broken by name.
+    # `i` and `j` share the same original register — the tie the old slot sort
+    # broke by name; still asserted so a register-allocator change that stops
+    # the sharing shows up here rather than silently weakening the test.
     assert m1._capture_regs["i"] == m1._capture_regs["j"]
-    # Exact, stable slot assignment (i before j by name tie-break).
-    assert m1.capture_slot == {"i": 0, "j": 1}
-    assert m1.capture_slot == m2.capture_slot
+    # The current contract: induction vars are excluded from Context homing.
+    assert m1.capture_slot == {}
+    assert m2.capture_slot == {}
 
 
 def test_inlined_block_local_not_captured(tmp_path):

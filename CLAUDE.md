@@ -227,7 +227,7 @@ next.
   path, plus the size law (§2.1/§2.2).
 - `protocol/MANIFEST.cddl` — **the machine-normative half of the catalogue** (#243,
   2026-08-25): path → kind + class + dir + shape, enforced by the nsl suite's
-  `manifest-py` aux gate, porta's store (all three write doors), and the seam gate.
+  `nsl-tools-py` aux gate (formerly `manifest-py`), porta's store (all three write doors), and the seam gate.
   Editing it has hard zcbor rules — see the `manifest-cddl-editing-rules` memory or the
   file's own header.
 - `porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md` — the rewrite's decision
