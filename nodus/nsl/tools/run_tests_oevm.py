@@ -929,13 +929,18 @@ def main():
     # must not be collected twice. The tests isolate via OEVM_BUILD_DIR, so
     # their harness subprocesses cannot race this run's /tmp artifacts.
     single_py = run_pytest_gate("single-file-py", "nodus/nsl/tools/test_single_file_mode.py")
+    # rete#243: the node's encoder answers to protocol/MANIFEST.cddl — every
+    # golden the fixture pins zcbor-validates against the declared contract,
+    # and the manifest itself lints clean. First run bootstraps a cached venv
+    # (~/.cache/rete-manifest-venv), which needs network ONCE.
+    manifest_py = run_pytest_gate("manifest-py", "nodus/nsl/tools/test_manifest_gate.py")
 
     suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok
                 and portability != "FAIL" and boot_gc_ok
                 and footprint != "FAIL" and deepsleep_ok
                 and mprof_py != "FAIL" and console_py != "FAIL"
                 and observe_py != "FAIL" and cmake_parse != "FAIL"
-                and single_py != "FAIL")
+                and single_py != "FAIL" and manifest_py != "FAIL")
     print(f"\n{COLOR_GREEN if suite_ok else COLOR_RED}Test Execution Summary:{COLOR_RESET}")
     print(f"  Passed:  {passed}")
     print(f"  Failed:  {failed}")
@@ -960,7 +965,8 @@ def main():
           f"console-py: {_mark(console_py)}  "
           f"target-observe-py: {_mark(observe_py)}  "
           f"cmake-parse: {_mark(cmake_parse)}  "
-          f"single-file-py: {_mark(single_py)}")
+          f"single-file-py: {_mark(single_py)}  "
+          f"manifest-py: {_mark(manifest_py)}")
 
     # NOT a skip, and deliberately not coloured like one: a skip names a cause it
     # has not verified, and this names one that IS verified. timer_zephyr.c posts

@@ -152,7 +152,10 @@ app = #6.27([sym-App, {
     sym-sig       => bstr,     ; REQUIRED — the bridge refuses an App without it (#25)
     sym-image     => blobref,
   ? sym-runlevel  => uint,
-  ? sym-triggers  => [* anysym],
+  ? sym-triggers  => any,      ; wire truth is [* anysym]: a list of symbols. zcbor
+                               ; 0.9.1 StopIterations on ANY quantified tagged
+                               ; element ([* anysym], [+ ...], [0*4 ...] — probed
+                               ; 2026-08-25), so this stays opaque until zcbor can.
   ? sym-arguments => { * anysym => scalar },
   ? sym-lifecycle => anysym,
 }])
@@ -206,7 +209,7 @@ dbg-req = #6.27([sym-DbgReq, {
 app-obs = #6.27([sym-AppObs, {
     sym-image     => blobref,
   ? sym-runlevel  => uint,
-  ? sym-triggers  => [* anysym],
+  ? sym-triggers  => any,      ; same zcbor 0.9.1 limitation as `app` above
   ? sym-lifecycle => anysym,
 }])
 

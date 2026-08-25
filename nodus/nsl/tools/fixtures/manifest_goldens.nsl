@@ -1,0 +1,181 @@
+(*
+expect:
+GOLDEN goal/name 6462656c6c
+GOLDEN goal/apps/main d81b82d82763417070a6d8276373696742616bd82765696d616765d81b82d82767426c6f62526566a3d82763616c67d82766736861323536d827646861736842616bd8276473697a6504d8276872756e6c6576656c01d82768747269676765727381d82764626f6f74d82769617267756d656e7473a1d827647261746502d827696c6966656379636c65d8276772756e6e696e67
+GOLDEN goal/apps/main d81b82d82763417070a2d8276373696742616bd82765696d616765d81b82d82767426c6f62526566a1d827646861736842616b
+GOLDEN goal/mode d81b82d827644d6f6465a5d827646d6f6465d827666e6f726d616cd827696d61784177616b6553183cd827696d696e4177616b655305d8276a6c6f6f70536c6565705301d8276a6d617841736c6565705319012c
+GOLDEN goal/config/main/rate 182a
+GOLDEN obs/config/main/rate 6466617374
+GOLDEN goal/debug/main d81b82d827654465627567a1d82766616374696f6ed82766617474616368
+GOLDEN goal/profile/main d81b82d8276750726f66696c65a3d82766616374696f6ed827657374617274d827696475726174696f6e531903e8d8276a636f6e74696e756f7573f4
+GOLDEN goal/liveness d81b82d827684c6976656e657373a2d82763627564193e80d827636361641907d0
+GOLDEN goal/do/reboot d81b82d827665265626f6f74a0
+GOLDEN dbg/req d81b82d82766446267526571a1d827646c696e656c70726f66696c652031303030
+GOLDEN obs/name 6462656c6c
+GOLDEN obs/apps/main d81b82d827664170704f6273a2d82765696d616765d81b82d82767426c6f62526566a1d827646861736842616bd827696c6966656379636c65d8276772756e6e696e67
+GOLDEN obs/health d81b82d827664865616c7468a6d82762757001d827636269641829d8276370746f02d8276372656603d8276373647204d8276377616b05
+GOLDEN obs/build d81b82d827654275696c64a2d8276463686970d8276765737033326336d827656275696c6469686f73742d74657374
+GOLDEN obs/build d81b82d827654275696c64a5d827636d616e42616bd8276373646b687a65706879722d34d8276463686970d8276765737033326336d827656275696c6469686f73742d74657374d82765696d61676542616b
+GOLDEN obs/liveness d81b82d827684c6976656e657373a2d82763627564193e80d827636361641907d0
+GOLDEN obs/mode d81b82d827644d6f6465a5d827646d6f6465d827666e6f726d616cd827696d61784177616b6553183cd827696d696e4177616b655305d8276a6c6f6f70536c6565705301d8276a6d617841736c6565705319012c
+GOLDEN tel/print d81b82d827655072696e74a1d8276474657874626869
+GOLDEN tel/log d81b82d827634c6f67a2d8276474657874667469636b2031d827656c6576656cd82764696e666f
+GOLDEN tel/m/temp d81b82d827664d6574726963a2d8276576616c756515d827666d6f6e6f4d7305
+GOLDEN sys/reset d81b82d827655265736574a3d82764636f646503d82766626f6f7449641829d82766726561736f6ed82767706f7765724f6e
+GOLDEN sys/overrun d81b82d827674f76657272756ea2d82764706174686774656c2f6c6f67d8276764726f7070656402
+GOLDEN sys/panic d81b82d8276550616e6963a5d82764636f7265f6d82766626f6f7449641829d8276664657461696c74636f6e643d70756c73652d756e647261696e6564d827666d6f6e6f4d7309d82766726561736f6ed827687761746368646f67
+GOLDEN sys/metrics d81b82d827674d657472696373acd827626c6201d8276367636302d8276368687703d82763686e6c04d8276368737a05d827636c666206d827636f767207d8276370636f08d8276370647209d827637073740ad827637168770bd82764686e68770c
+GOLDEN sys/cheap d81b82d827654348656170a5d827626f6201d82763616c6302d8276366616c03d8276366726504d827636f687705
+GOLDEN sys/latency d81b82d8276b4c6174656e63795370616eadd827616e07d82762623001d82762623102d82762623203d82762623304d82762623405d82762623506d827647370616ed8276870756c6c53656e64d827656661696c7300d827656d61785573190384d827656d696e55731864d8276773756d5573486900d8276773756d55734c6f190dac
+GOLDEN dbg/resp d81b82d8276744626752657370a1d827646c696e65626f6b
+GOLDEN diag/spans/ctl d81b82d827675370616e43746ca1d827657374617465d8276772756e6e696e67
+GOLDEN diag/spans/result d81b82d8276b5370616e43617074757265a2d827616e07d827626d731864
+GOLDEN diag/spans/pullSend d81b82d8276b4c6174656e63795370616eadd827616e07d82762623001d82762623102d82762623203d82762623304d82762623405d82762623506d827647370616ed8276870756c6c53656e64d827656661696c7300d827656d61785573190384d827656d696e55731864d8276773756d5573486900d8276773756d55734c6f190dac
+GOLDEN gw/liveness d827646c697665
+*)
+(* rete#243: one instance of every annotated rule in protocol/MANIFEST.cddl,
+   encoded by the node's OWN Cbor and printed as `GOLDEN <path> <hex>` lines.
+
+   Consumed by nodus/nsl/tools/test_manifest_gate.py, which zcbor-validates
+   each line against the manifest — so the node's encoder answers to the
+   declared contract, not merely to porta's twin. The expect block above pins
+   the hex, so encoder BYTE drift is a harness FAIL (a golden) while
+   shape-vs-manifest drift is the zcbor gate's FAIL: two failures, two names.
+
+   Values are small and deterministic, not representative — size law
+   measurements live in 22_spacesync, not here. Bytes values are minted by
+   round-tripping through the encoder (`Cbor encode:` answers a Bytes), the
+   one way test code can hold a Bytes at all. *)
+class ManifestGoldens packageUsing: manifest = () (
+
+  emit: path value: v using: p = (
+    ('GOLDEN ' , path , ' ' , (p Cbor encode: v) printHex) println.
+  )
+
+  public main: platform args: args = (
+    | R M L OC bytes blob blobFull oc |
+    R:: platform Record.
+    M:: platform Map.
+    L:: platform List.
+    OC:: platform OrderedCollection.
+    bytes:: platform Cbor encode: 'k'.
+
+    blob:: R tag: #BlobRef with: #hash -> bytes.
+    blobFull:: R tag: #BlobRef with: #alg -> #sha256 with: #hash -> bytes with: #size -> 4.
+
+    (* --- goal/** --- *)
+    self emit: 'goal/name' value: 'bell' using: platform.
+
+    oc:: OC new.
+    oc add: #sig -> bytes.
+    oc add: #image -> blobFull.
+    oc add: #runlevel -> 1.
+    oc add: #triggers -> (L with: #boot).
+    oc add: #arguments -> (M with: #rate -> 2).
+    oc add: #lifecycle -> #running.
+    self emit: 'goal/apps/main' value: (R tag: #App fields: (M fromPairs: oc)) using: platform.
+    (* minimal App: only the required fields *)
+    self emit: 'goal/apps/main' value: (R tag: #App with: #sig -> bytes with: #image -> blob) using: platform.
+
+    oc:: OC new.
+    oc add: #mode -> #normal.
+    oc add: #maxAwakeS -> 60.
+    oc add: #minAwakeS -> 5.
+    oc add: #loopSleepS -> 1.
+    oc add: #maxAsleepS -> 300.
+    self emit: 'goal/mode' value: (R tag: #Mode fields: (M fromPairs: oc)) using: platform.
+
+    self emit: 'goal/config/main/rate' value: 42 using: platform.
+    self emit: 'obs/config/main/rate' value: 'fast' using: platform.
+    self emit: 'goal/debug/main' value: (R tag: #Debug with: #action -> #attach) using: platform.
+    self emit: 'goal/profile/main'
+         value: (R tag: #Profile with: #action -> #start with: #durationS -> 1000 with: #continuous -> false)
+         using: platform.
+    self emit: 'goal/liveness' value: (R tag: #Liveness with: #cad -> 2000 with: #bud -> 16000) using: platform.
+    self emit: 'goal/do/reboot' value: (R tag: #Reboot fields: (M fromPairs: OC new)) using: platform.
+    self emit: 'dbg/req' value: (R tag: #DbgReq with: #line -> 'profile 1000') using: platform.
+
+    (* --- obs/** --- *)
+    self emit: 'obs/name' value: 'bell' using: platform.
+    self emit: 'obs/apps/main'
+         value: (R tag: #AppObs with: #image -> blob with: #lifecycle -> #running)
+         using: platform.
+
+    oc:: OC new.
+    oc add: #up -> 1.
+    oc add: #bid -> 41.
+    oc add: #pto -> 2.
+    oc add: #ref -> 3.
+    oc add: #sdr -> 4.
+    oc add: #wak -> 5.
+    self emit: 'obs/health' value: (R tag: #Health fields: (M fromPairs: oc)) using: platform.
+
+    (* build WITHOUT the pin (a pre-manifest image) and WITH it (#243 D4) *)
+    self emit: 'obs/build' value: (R tag: #Build with: #chip -> #esp32c6 with: #build -> 'host-test') using: platform.
+    oc:: OC new.
+    oc add: #man -> bytes.
+    oc add: #sdk -> 'zephyr-4'.
+    oc add: #chip -> #esp32c6.
+    oc add: #build -> 'host-test'.
+    oc add: #image -> bytes.
+    self emit: 'obs/build' value: (R tag: #Build fields: (M fromPairs: oc)) using: platform.
+
+    self emit: 'obs/liveness' value: (R tag: #Liveness with: #cad -> 2000 with: #bud -> 16000) using: platform.
+    oc:: OC new.
+    oc add: #mode -> #normal.
+    oc add: #maxAwakeS -> 60.
+    oc add: #minAwakeS -> 5.
+    oc add: #loopSleepS -> 1.
+    oc add: #maxAsleepS -> 300.
+    self emit: 'obs/mode' value: (R tag: #Mode fields: (M fromPairs: oc)) using: platform.
+
+    (* --- tel/** --- *)
+    self emit: 'tel/print' value: (R tag: #Print with: #text -> 'hi') using: platform.
+    self emit: 'tel/log' value: (R tag: #Log with: #level -> #info with: #text -> 'tick 1') using: platform.
+    self emit: 'tel/m/temp' value: (R tag: #Metric with: #value -> 21 with: #monoMs -> 5) using: platform.
+
+    (* --- sys/** --- *)
+    self emit: 'sys/reset'
+         value: (R tag: #Reset with: #reason -> #powerOn with: #code -> 3 with: #bootId -> 41)
+         using: platform.
+    self emit: 'sys/overrun' value: (R tag: #Overrun with: #path -> 'tel/log' with: #dropped -> 2) using: platform.
+
+    oc:: OC new.
+    oc add: #core -> nil.
+    oc add: #bootId -> 41.
+    oc add: #detail -> 'cond=pulse-undrained'.
+    oc add: #monoMs -> 9.
+    oc add: #reason -> #watchdog.
+    self emit: 'sys/panic' value: (R tag: #Panic fields: (M fromPairs: oc)) using: platform.
+
+    oc:: OC new.
+    oc add: #lb -> 1.  oc add: #gcc -> 2.  oc add: #hhw -> 3.  oc add: #hnl -> 4.
+    oc add: #hsz -> 5. oc add: #lfb -> 6.  oc add: #ovr -> 7.  oc add: #pco -> 8.
+    oc add: #pdr -> 9. oc add: #pst -> 10. oc add: #qhw -> 11. oc add: #hnhw -> 12.
+    self emit: 'sys/metrics' value: (R tag: #Metrics fields: (M fromPairs: oc)) using: platform.
+
+    oc:: OC new.
+    oc add: #ob -> 1. oc add: #alc -> 2. oc add: #fal -> 3. oc add: #fre -> 4. oc add: #ohw -> 5.
+    self emit: 'sys/cheap' value: (R tag: #CHeap fields: (M fromPairs: oc)) using: platform.
+
+    oc:: OC new.
+    oc add: #n -> 7.   oc add: #b0 -> 1. oc add: #b1 -> 2. oc add: #b2 -> 3.
+    oc add: #b3 -> 4.  oc add: #b4 -> 5. oc add: #b5 -> 6. oc add: #span -> #pullSend.
+    oc add: #fails -> 0. oc add: #maxUs -> 900. oc add: #minUs -> 100.
+    oc add: #sumUsHi -> 0. oc add: #sumUsLo -> 3500.
+    self emit: 'sys/latency' value: (R tag: #LatencySpan fields: (M fromPairs: oc)) using: platform.
+
+    (* --- dbg / diag / gw --- *)
+    self emit: 'dbg/resp' value: (R tag: #DbgResp with: #line -> 'ok') using: platform.
+    self emit: 'diag/spans/ctl' value: (R tag: #SpanCtl with: #state -> #running) using: platform.
+    self emit: 'diag/spans/result' value: (R tag: #SpanCapture with: #n -> 7 with: #ms -> 100) using: platform.
+    oc:: OC new.
+    oc add: #n -> 7.   oc add: #b0 -> 1. oc add: #b1 -> 2. oc add: #b2 -> 3.
+    oc add: #b3 -> 4.  oc add: #b4 -> 5. oc add: #b5 -> 6. oc add: #span -> #pullSend.
+    oc add: #fails -> 0. oc add: #maxUs -> 900. oc add: #minUs -> 100.
+    oc add: #sumUsHi -> 0. oc add: #sumUsLo -> 3500.
+    self emit: 'diag/spans/pullSend' value: (R tag: #LatencySpan fields: (M fromPairs: oc)) using: platform.
+    self emit: 'gw/liveness' value: #live using: platform.
+  )
+) : (
+)
