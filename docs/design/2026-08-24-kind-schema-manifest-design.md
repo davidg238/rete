@@ -327,6 +327,52 @@ the repo file is the authored source, pushed to porta at deploy (input 2).
   green with the manifest loaded, and a deliberately mis-kinded write must appear as an
   `actor=gate` event row.
 
+## Addendum — where implementation refined this design (2026-08-25)
+
+Recorded per the doc-agreement posture: the design said one thing, the code or the
+tools said another, and these are the resolutions. None reverses a ratified decision;
+each narrows one.
+
+1. **The gate's seat is a shared `Check`, not `Store.Write`.** The inbound door was
+   never `Write` — node pushes land in `Store.Ingest` — so D6's "one seat" is one
+   checker (`internal/manifest`) called from `Write`, `WriteGateway` and `Ingest`.
+2. **`dir` gained `gw`.** The store has a third, gateway-authored direction
+   (`WriteGateway`, `gw/liveness`) the design never mentioned; a closed manifest must
+   name it or refuse porta's own liveness verdicts. There is no `both`: `dbg/req` is
+   down, `dbg/resp` is up.
+3. **Literal-shadows-wildcard was earned immediately.** §8 deferred precedence until "a
+   genuine literal-under-wildcard specialization"; the existing catalogue already
+   contains one — `diag/spans/ctl` and `diag/spans/result` under `diag/spans/<span>`.
+   A literal entry shadows a wildcard entry; two overlapping *wildcards* remain a lint
+   error, so no general precedence rule exists.
+4. **Annotations stack.** `obs/X` reuses `goal/X`'s shape by design (and `LatencySpan`
+   rides two paths), so several `;#` lines may bind one rule — §2.2's "exactly one
+   annotation" became "at least one".
+5. **Key order is wire order.** zcbor 0.9.1 validates map keys in CDDL-listed order
+   (probed), and the wire sorts bytewise — so the manifest lists every record's keys
+   exactly as they appear in the byte stream. A constraint that became a feature: the
+   file now mirrors the bytes.
+6. **zcbor cannot quantify a tagged list element** (`[* #6.39(tstr)]` → StopIteration,
+   every quantifier form probed). `App.triggers`/`AppObs.triggers` stay `any` with the
+   probe cited inline; tighten when zcbor can. The wildcard-keyed `arguments` map,
+   flagged as the risk, validates fine.
+7. **The manifest persists in the store** (a `meta` table; `serve --manifest` writes
+   it, every `Open` re-arms from it). D6's gate must hold for `porta put --db` — a
+   separate process, and the door both #180 and #206 came through — which in-process
+   arming cannot reach. `PathLiveness`-style CLI reads of manifest-less stores are
+   unchanged: no row, no gate.
+8. **The gate's first real catch: `dbg/*` carries a bare line.** RECORDS §4.5's
+   `DbgReq{line}`/`DbgResp{line}` records never rode the wire — the node parses the
+   raw value as a string and the CLI writes one. The manifest says `dbg-line = tstr`
+   and the catalogue now records the correction. One session-neighbouring find rode
+   along: the seam script's `porta get | grep -q` under pipefail turns an early match
+   into a SIGPIPE failure — a latent false-RED the slightly slower store `Open`
+   exposed.
+
+Two items remain **board-unverified** (the first C6 flash witnesses both): the
+`gen_manifest_pin.cmake` hook inside a real `west build`, and prim 156 answering the
+baked pin (host answers nil by design, so no host gate can see the non-nil arm).
+
 ## Close-out promotion
 
 This rung is not closed until: the manifest and its lint are the source of truth in

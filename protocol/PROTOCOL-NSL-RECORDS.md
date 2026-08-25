@@ -334,6 +334,19 @@ batch. Individual records carry only `monoMs` where they need a stamp.
 
 ## 4. The record catalogue
 
+> **The machine-readable half of this catalogue is `protocol/MANIFEST.cddl`, and it is
+> the NORMATIVE one for path, kind, delivery class, direction and shape** (rete#243,
+> `docs/design/2026-08-24-kind-schema-manifest-design.md`). Both gates enforce it: the
+> nsl suite's `manifest-py` aux gate zcbor-validates the node encoder's goldens against
+> it, and porta's store refuses a write that disagrees with it at all three doors.
+> When a table below and the manifest disagree, that is a finding — resolve it, and the
+> manifest's facts win, because they are the ones the gates enforce. Each row's rule
+> name in the manifest is the record name lower-cased (`health`, `build`, `metrics`,
+> `latency-span`, …); the shared-shape rules are `name-cell` (`goal/name`/`obs/name`),
+> `config-cell`, `liveness`, `mode`, `dbg-line` (§4.5) and `gw-verdict` (`gw/liveness`).
+> `goal/forward`/`obs/forward` have **no manifest rule**: `Forward {…}` has no pinned
+> shape, and writing it first requires pinning it there.
+
 Kind is `R` (retained — path holds a latest value), `E` (event — append-only queue),
 or `C` (cell — the post-tuvm#32 name for a path that holds the latest value; a stream
 you empty is `E`, a cell holds). The `R` rows predate the tuvm#32 ruling; going
@@ -433,6 +446,17 @@ running makes a mismatched sidecar indistinguishable from a quiet program.
   identifies a build against a known set, it does not authenticate one. Authentication is
   the signing story and rides the bulk plane. Still **omitted**, for the same reason as
   `sdk`.
+- `man` — **the manifest pin** (rete#243 D4, 2026-08-25): the first 8 bytes of the
+  SHA-256 of the `MANIFEST.cddl` this image was compiled against, baked beside the
+  build id by `zephyr/cmake/gen_manifest_pin.cmake` and answered by `platform
+  manifestPin` (prim 156). Truncated on `image`'s precedent — identifies, never
+  authenticates. **Omitted when the build carries no pin** (host builds, pre-manifest
+  images) — absence means "the node cannot say". The full hash lives in the #256
+  archive entry (`manifest.sha256`, with `manifest.source` recording porta-vs-repo);
+  the provision gate (`protocol/tools/check_provision.py`) compares that archived pin
+  against the hash porta currently serves at `GET /manifest`. The in-image copy is the
+  provenance that survives a broken pipeline, and node-pin vs archive-pin vs
+  served-hash disagreement localizes a fault to image, archive, or deployment.
 
 **82 B encoded, MEASURED 2026-08-07** — `chip: #esp32c6` plus the 43-character
 `porta-v1-final-862-g8410661-20260806T223944` this bench's C6 build actually produced,
@@ -572,8 +596,17 @@ with the heap.
 
 | path | kind | record |
 |---|---|---|
-| `dbg/req` | E, ↓ | `DbgReq { line: str }` |
-| `dbg/resp` | E, ↑ | `DbgResp { line: str }` |
+| `dbg/req` | E, ↓ | **a bare `str`** — the request line itself, no record wrapper |
+| `dbg/resp` | E, ↑ | **a bare `str`** — the reply line itself, no record wrapper |
+
+**These rows said `DbgReq { line: str }` / `DbgResp { line: str }` until 2026-08-25,
+and that shape never rode the wire.** The node's reader parses the raw value as a
+string (`parseProfileMs:` takes the line directly), the CLI writes one, and the whole
+session worked — so the record wrapper was prose fiction, found the first time the
+manifest-armed seam gate refused porta's own `dbg/req` write. Resolved in favor of the
+system that exists (`dbg-line = tstr` in the manifest): porta relays lines, and the
+session IS lines, both ways — a wrapper carrying exactly one string field bought
+nothing but eleven bytes per request.
 
 **Porta does not interpret or own the `dbg/req` / `dbg/resp` session** (unchanged from v1
 §8): it relays whatever line arrives, and the debug session itself — parsing the line,
@@ -679,20 +712,35 @@ one level up — adding an instrumented job adds a record, never a field.
 
 ---
 
-## 5. Evolution (G8 — fleet version skew)
+## 5. Evolution — rewritten for the manifest, 2026-08-25 (rete#243)
 
-1. **Additive only.** New state = a new path, or a new *optional* field on an existing
-   record. Never a changed field type, never a removed field, never a re-purposed name.
-2. **The record name is the contract.** A breaking change gets a **new record name at a
-   new path** — old and new nodes then simply do not overlap, instead of misreading each
-   other. This is why there is no version field: a version integer only tells you that
-   you cannot understand the value, which is exactly what an unknown path already tells
-   you, with no extra mechanism.
-3. **Consumers ignore unknown fields.** (The *codec* is closed to unknown tags and types;
-   a record's field map is open to unknown keys. These are different layers, and
-   conflating them is the easiest way to break rolling upgrades.)
-4. **Consumers must not require fields added after their release.** Every field added
-   post-hoc needs a defined absent-behaviour, per L5 rule 1 (`at:ifAbsent:`).
+**A field exists when `MANIFEST.cddl` says so.** The gates validate **closed** — an
+undeclared field is a build/test error, never a value in flight — so no field ships
+before the manifest declares it, and no manifest entry outlives its record. Evolution
+is therefore: **edit the manifest (and this catalogue's narrative in the same commit),
+reflash both ends.** Additive-vs-breaking becomes a manifest-diff question, not a
+consumer-tolerance one.
+
+What survives from the old rules:
+
+1. **The record name is still the contract.** A breaking change still gets a new record
+   name at a new path, and there is still no version field — the manifest pin
+   (`obs/build.man`) is the version, and it names the whole contract at once.
+2. **Optional fields keep their meaning.** `?` in the manifest, absence = "the node
+   cannot say" (`at:ifAbsent:` remains L5 rule 1). A field the node learns to answer
+   later is a write, not a schema edit — `obs/build.sdk` is still the worked example.
+
+What is retired, with the date and the why:
+
+3. ~~Consumers ignore unknown fields~~ and ~~consumers must not require fields added
+   after their release~~ — **retired 2026-08-25.** Both rules existed for rolling
+   upgrades across a version-skewed fleet, and this fleet is zero-compat by ratified
+   posture: both ends are reflashed together, so there is no moment when a consumer
+   legitimately meets a field its manifest does not know. Runtime readers MAY stay
+   tolerant (tolerance at read time costs nothing and `at:ifAbsent:` already provides
+   it); the *gates* refuse, and the gates are what the contract means now. A future
+   that reintroduces rolling upgrades must reopen this section — the old rules were
+   correct for that world, and this paragraph is where they are filed.
 
 ---
 

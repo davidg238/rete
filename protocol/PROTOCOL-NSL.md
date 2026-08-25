@@ -9,6 +9,11 @@ porta half (bridge job, store, wire) is unbuilt and lands with the phase-3 rungs
 
 **Companions:**
 - Record schemas per path prefix + the radio size law: [`PROTOCOL-NSL-RECORDS.md`](PROTOCOL-NSL-RECORDS.md).
+- **The machine-readable contract: [`MANIFEST.cddl`](MANIFEST.cddl)** (rete#243,
+  2026-08-25) — NORMATIVE for path → kind, delivery class, direction and record shape,
+  enforced at the build/test gates (zcbor) and at porta's store (all three write
+  doors). This document holds the *model*; the manifest holds the machine facts; the
+  RECORDS catalogue holds the why.
 - The Toit-node (v1) protocol this one sits beside: [`PROTOCOL.md`](PROTOCOL.md).
 - Background / derivation: `review/WHY.md` (§"The model, named", §"Paths extend across the network").
 - How this doc reached its current form: [`PROTOCOL-NSL-draft-2026-07-11.md`](PROTOCOL-NSL-draft-2026-07-11.md) — the superseded genesis draft, kept as the reasoning trail.

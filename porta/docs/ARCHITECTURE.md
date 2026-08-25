@@ -454,6 +454,31 @@ is exactly the point of letting the gateway own it.
 
 ---
 
+## 8a. The manifest gate (rete#243, 2026-08-25 — current where §§4–6 are v1-stale)
+
+The kind+schema contract is `protocol/MANIFEST.cddl` (machine-normative; see
+`protocol/PROTOCOL-NSL-RECORDS.md` §4's header). porta's half of its enforcement:
+
+- **`porta serve --manifest <path>`** loads the file and **persists its bytes into the
+  store** (`meta` table, key `manifest`). Persistence is the point: every later `Open`
+  of that db — including `porta put --db`, a separate process — arms the same gate,
+  and the CLI door is where both historical node-bricking kind writes (#180, #206)
+  came from. A flagless serve over a db that already holds a manifest still gates.
+- **All three store write doors check** (`internal/space`, gate seated around
+  `internal/manifest`'s ~100-line table): known path (closed set, literal shadows
+  wildcard), agreeing kind, agreeing head bytes (record rows: the deterministic
+  encoding's constant tag-27/name prefix; scalar rows: a first-byte class), agreeing
+  direction (`up`/`down`/`gw`). No value is decoded — the store stays opaque (D4.1).
+- **Failure surface**: the operator door (`Write`, `WriteGateway`) refuses loudly and
+  immediately with the named check. The wire door (`Ingest`) **refuses-but-keeps**:
+  the entry is not applied, its seq IS acked so the node advances instead of wedging,
+  and the bytes are retained as an `events` row with `actor=gate` and the failed check
+  as `reason` — `porta log` finds them; a refusal count is a query, not a mechanism.
+- **`GET /manifest`** on the operator HTTP surface serves the loaded file with its
+  SHA-256 in `X-Manifest-SHA256` — the fetch-and-pin source for dev builds
+  (`protocol/tools/pin_manifest.py`) and the provision gate's served-hash side
+  (`protocol/tools/check_provision.py`).
+
 ## 9. See also
 
 - `docs/PROTOCOL.md` — the southbound wire contract (commands, report, TFTP, CRC32).
