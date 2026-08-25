@@ -86,6 +86,25 @@ add_custom_target(oevm_build_id_gen DEPENDS ${OEVM_BUILD_ID_C})
 target_sources(app PRIVATE ${OEVM_BUILD_ID_C})
 add_dependencies(app oevm_build_id_gen)
 
+# rete#243 — the manifest pin, baked beside the build id and re-made every
+# build for the same reason: the pin names the contract this exact image was
+# built against. cmake/gen_manifest_pin.cmake wraps
+# protocol/tools/pin_manifest.py (fetch-from-porta with loud repo fallback);
+# archive.sh copies the pinned file + hash + source into the build-id entry.
+set(OEVM_MANIFEST_PIN_C   ${CMAKE_CURRENT_BINARY_DIR}/oevm_manifest_pin.c)
+set(OEVM_MANIFEST_PIN_TXT ${CMAKE_CURRENT_BINARY_DIR}/oevm_manifest_pin.txt)
+add_custom_command(
+  OUTPUT ${OEVM_MANIFEST_PIN_C} ${OEVM_MANIFEST_PIN_TXT} ${CMAKE_CURRENT_BINARY_DIR}/manifest_pin.always
+  COMMAND ${CMAKE_COMMAND}
+          -DSRC=${CMAKE_CURRENT_SOURCE_DIR}
+          -DBUILD=${CMAKE_CURRENT_BINARY_DIR}
+          -DOUT_C=${OEVM_MANIFEST_PIN_C}
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/gen_manifest_pin.cmake
+  COMMENT "Baking manifest pin")
+add_custom_target(oevm_manifest_pin_gen DEPENDS ${OEVM_MANIFEST_PIN_C})
+target_sources(app PRIVATE ${OEVM_MANIFEST_PIN_C})
+add_dependencies(app oevm_manifest_pin_gen)
+
 # rete#186 — WHICH BOARD this image is for. Sibling of the build id above; see
 # cmake/gen_node_id.cmake for why it is configure-time where that one is build-time,
 # and why an unset id bakes "unnamed" rather than a guess.

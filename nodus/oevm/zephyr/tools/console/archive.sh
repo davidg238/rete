@@ -30,6 +30,21 @@ mkdir -p "$DEST"
 cp "$BUILD_DIR/zephyr/zephyr.elf" "$DEST/zephyr.elf"
 sha256sum "$BUILD_DIR/zephyr/zephyr.bin" | awk '{print $1}' > "$DEST/zephyr.bin.sha256"
 
+# rete#243: the manifest pin rides the same build-id entry as the ELF, so the
+# provision gate can answer "what contract was this build made against" by
+# build id alone. Absent pin artifacts = a pre-manifest build dir: visible,
+# not fatal, while those still exist.
+PIN_TXT="$(find "$BUILD_DIR" -name oevm_manifest_pin.txt -print -quit)"
+if [ -n "$PIN_TXT" ]; then
+  PIN_DIR="$(dirname "$PIN_TXT")"
+  cp "$PIN_DIR/MANIFEST.pinned.cddl" "$DEST/MANIFEST.pinned.cddl"
+  sed -n 1p "$PIN_TXT" > "$DEST/manifest.sha256"
+  sed -n 's/^source=//p' "$PIN_TXT" > "$DEST/manifest.source"
+  echo "[archive] manifest pin: $(cut -c1-12 "$DEST/manifest.sha256")… (source=$(cat "$DEST/manifest.source"))"
+else
+  echo "[archive] no manifest pin in this build"
+fi
+
 if [ -n "$OIMG" ]; then
   METHODS="$OIMG.methods.json"
   STMAP="${OIMG%.oimg}.stmap"
