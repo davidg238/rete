@@ -53,6 +53,13 @@ OEVM_BACKEND = [f"src/backend/{OEVM_TARGET}/platform_{OEVM_TARGET}.c",
 # Pure observation — does NOT change pass/fail logic or lowering. Cheap when unset.
 OEVM_DUMP_DIR = os.environ.get("OEVM_DUMP_DIR")
 
+# OEVM_BUILD_DIR (#252): where Path B artifacts (dump_layout, layout.json, the
+# image VM, per-test .oimg files) are written. Default stays /tmp — the paths
+# the "run SOLO" rule guards; point it elsewhere and a scratch iterate loop can
+# never collide with a concurrent suite run.
+OEVM_BUILD_DIR = Path(os.environ.get("OEVM_BUILD_DIR") or "/tmp")
+OEVM_BUILD_DIR.mkdir(parents=True, exist_ok=True)
+
 # Module-level cache for Path B one-time builds.
 # None = not yet attempted; True = success; False = failed (hard error)
 _pathb_layout_built = None   # None | True
@@ -76,7 +83,7 @@ def _build_pathb_once():
     # Step 1: build dump_layout tool and produce layout.json
     if not _pathb_layout_built:
         proc = subprocess.run(
-            ["gcc", "-std=c99", "-Isrc", "tools/dump_layout.c", "-o", "/tmp/oevm_dump_layout"],
+            ["gcc", "-std=c99", "-Isrc", "tools/dump_layout.c", "-o", str(OEVM_BUILD_DIR / "oevm_dump_layout")],
             cwd=oevm_dir, capture_output=True, text=True
         )
         if proc.returncode != 0:
@@ -84,14 +91,14 @@ def _build_pathb_once():
             return False, _pathb_build_error
 
         proc2 = subprocess.run(
-            ["/tmp/oevm_dump_layout"],
+            [str(OEVM_BUILD_DIR / "oevm_dump_layout")],
             capture_output=True, text=True
         )
         if proc2.returncode != 0:
             _pathb_build_error = f"Path B: dump_layout failed:\n{proc2.stderr or proc2.stdout}"
             return False, _pathb_build_error
 
-        with open("/tmp/oevm_layout.json", "w") as f:
+        with open(OEVM_BUILD_DIR / "oevm_layout.json", "w") as f:
             f.write(proc2.stdout)
 
         _pathb_layout_built = True
@@ -107,7 +114,7 @@ def _build_pathb_once():
                 *OEVM_BACKEND,
                 "src/oimg_loader.c", "src/kernel_boot.c",
                 "oevm_image_main.c",
-                "-o", "/tmp/oevm_img",
+                "-o", str(OEVM_BUILD_DIR / "oevm_img"),
                 *OEVM_EXTRA_CFLAGS,
                 "-lm",
             ],
@@ -289,13 +296,21 @@ def run_pytest_gate(label: str, rel_dir: str) -> str:
     Returns "PASS", "SKIP" (pytest is not installed — a real environment gap,
     coloured like every other skip so it cannot read as a pass) or "FAIL"."""
     d = REPO_ROOT / rel_dir
-    if not d.is_dir():
-        print(f"{COLOR_RED}{label}: FAIL{COLOR_RESET} (no such directory: {d})")
+    # #252: a single test FILE is a legal target — cwd stays its directory (so
+    # sibling bare-name imports keep working) and pytest collects only it. Used
+    # for nodus/nsl/tools, where a directory-wide collect would re-run the
+    # heavy integration gates (grant, debugger, deepsleep) a second time.
+    if d.is_file():
+        cwd, target = d.parent, [d.name]
+    elif d.is_dir():
+        cwd, target = d, []
+    else:
+        print(f"{COLOR_RED}{label}: FAIL{COLOR_RESET} (no such path: {d})")
         return "FAIL"
     try:
         proc = subprocess.run(
-            [sys.executable, "-m", "pytest", "-q", "--no-header"],
-            cwd=str(d), capture_output=True, text=True, timeout=600)
+            [sys.executable, "-m", "pytest", "-q", "--no-header", *target],
+            cwd=str(cwd), capture_output=True, text=True, timeout=600)
     except Exception as e:
         print(f"{COLOR_RED}{label}: FAIL{COLOR_RESET} (runner error: {e})")
         return "FAIL"
@@ -686,7 +701,7 @@ def run_test_file_oimg(src_path: Path) -> tuple[str, str]:
     # collisions when two tests in different directories share the same stem).
     safe_stem = re.sub(r"[^A-Za-z0-9_.-]", "_", src_path.stem)
     safe_parent = re.sub(r"[^A-Za-z0-9_.-]", "_", src_path.parent.name)
-    oimg_path = f"/tmp/{safe_parent}__{safe_stem}.oimg"
+    oimg_path = str(OEVM_BUILD_DIR / f"{safe_parent}__{safe_stem}.oimg")
 
     # 1. Compile .nsl to .oimg
     compiler_script = Path(__file__).parent / "ns_compile_oevm.py"
@@ -695,7 +710,7 @@ def run_test_file_oimg(src_path: Path) -> tuple[str, str]:
             sys.executable, str(compiler_script),
             str(src_path), oimg_path,
             "--format=oimg",
-            "--layout=/tmp/oevm_layout.json",
+            f"--layout={OEVM_BUILD_DIR / 'oevm_layout.json'}",
         ],
         capture_output=True, text=True
     )
@@ -715,7 +730,7 @@ def run_test_file_oimg(src_path: Path) -> tuple[str, str]:
     # 2. Run image VM (30s timeout)
     try:
         proc_run = subprocess.run(
-            ["/tmp/oevm_img", oimg_path],
+            [str(OEVM_BUILD_DIR / "oevm_img"), oimg_path],
             capture_output=True, text=True, timeout=30,
             env={**os.environ, **metadata.get("env", {})}
         )
@@ -748,7 +763,50 @@ def run_test_file_oimg(src_path: Path) -> tuple[str, str]:
     return "PASS", "Output matches expectations."
 
 
+def run_named_files(args):
+    """#252 — single-file mode: run only the named .nsl files under the harness
+    contract, skipping suite discovery and the aux gates. Files may live
+    anywhere (a scratch program outside nodus/tests gets the same treatment).
+    Path B only unless OEVM_PATH says otherwise — Path B is the seconds-long
+    iterate loop this mode exists for. Returns the process exit code."""
+    mode = os.environ.get("OEVM_PATH") or "B"
+    files = []
+    for a in args:
+        p = Path(a).resolve()
+        if not p.is_file():
+            print(f"Error: no such file: {a}")
+            return 2
+        files.append(p)
+
+    passed = failed = skipped = 0
+    for f in files:
+        print(f"Running {str(f):50} ... ", end="", flush=True)
+        status_a, msg_a = ("PASS", "Path A skipped") if "A" not in mode \
+            else run_test_file(f)
+        status_b, msg_b = ("PASS", "Path B skipped") if "B" not in mode \
+            else run_test_file_oimg(f)
+        if "SKIP" in (status_a, status_b):
+            skipped += 1
+            print(f"{COLOR_YELLOW}SKIP{COLOR_RESET} ({msg_a if status_a == 'SKIP' else msg_b})")
+        elif status_a == "PASS" and status_b == "PASS":
+            passed += 1
+            print(f"{COLOR_GREEN}PASS{COLOR_RESET}")
+        else:
+            failed += 1
+            print(f"{COLOR_RED}FAIL{COLOR_RESET}")
+            if status_a == "FAIL":
+                print(f"  A:FAIL — {msg_a}")
+            if status_b == "FAIL":
+                print(f"  B:FAIL — {msg_b}")
+
+    print(f"\n  Passed: {passed}  Failed: {failed}  Skipped: {skipped}"
+          f"   (single-file mode: no suite gates ran)")
+    return 1 if failed else 0
+
+
 def main():
+    if len(sys.argv) > 1:
+        sys.exit(run_named_files(sys.argv[1:]))
     test_dir = Path(__file__).parent.parent.parent / "tests"
     if not test_dir.exists():
         print(f"Error: tests directory not found at {test_dir}")
@@ -866,12 +924,18 @@ def main():
     # piece whose absence let a gate score PASS 3/3 against a node that died four
     # ticks later (#213).
     observe_py = run_pytest_gate("target-observe-py", "nodus/oevm/tests/target")
+    # #252: the single-file mode's own contract tests. A FILE target, not the
+    # directory — the integration gates above live in the same directory and
+    # must not be collected twice. The tests isolate via OEVM_BUILD_DIR, so
+    # their harness subprocesses cannot race this run's /tmp artifacts.
+    single_py = run_pytest_gate("single-file-py", "nodus/nsl/tools/test_single_file_mode.py")
 
     suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok
                 and portability != "FAIL" and boot_gc_ok
                 and footprint != "FAIL" and deepsleep_ok
                 and mprof_py != "FAIL" and console_py != "FAIL"
-                and observe_py != "FAIL" and cmake_parse != "FAIL")
+                and observe_py != "FAIL" and cmake_parse != "FAIL"
+                and single_py != "FAIL")
     print(f"\n{COLOR_GREEN if suite_ok else COLOR_RED}Test Execution Summary:{COLOR_RESET}")
     print(f"  Passed:  {passed}")
     print(f"  Failed:  {failed}")
@@ -895,7 +959,8 @@ def main():
           f"  mprof-tools-py: {_mark(mprof_py)}  "
           f"console-py: {_mark(console_py)}  "
           f"target-observe-py: {_mark(observe_py)}  "
-          f"cmake-parse: {_mark(cmake_parse)}")
+          f"cmake-parse: {_mark(cmake_parse)}  "
+          f"single-file-py: {_mark(single_py)}")
 
     # NOT a skip, and deliberately not coloured like one: a skip names a cause it
     # has not verified, and this names one that IS verified. timer_zephyr.c posts
