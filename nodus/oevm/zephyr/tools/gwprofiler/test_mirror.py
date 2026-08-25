@@ -1,13 +1,13 @@
 from store import Store
 from mirror import Mirror
-import codec, cbor2
+from codec import Sym, record
+
+# Fixtures are built through codec.record (rete#257): codec's own bytes are
+# pinned against node-generated goldens in test_codec.py, so these are not
+# self-referential.
 
 def _result_bytes(n):
-    rec = cbor2.CBORTag(27, [cbor2.CBORTag(39, "SpanCapture"),
-                             {cbor2.CBORTag(39, "n"): n,
-                              cbor2.CBORTag(39, "ms"): 1000,
-                              cbor2.CBORTag(39, "slots"): []}])
-    return cbor2.dumps(rec, canonical=True)
+    return record("SpanCapture", {Sym("n"): n, Sym("ms"): 1000, Sym("slots"): []})
 
 def test_datagram_lands_as_cell_and_event(tmp_path):
     s = Store(str(tmp_path / "p.db"))
@@ -30,11 +30,7 @@ def test_truncated_cbor_is_dropped_not_raised(tmp_path):
 
 
 def _row_bytes(span, n):
-    rec = cbor2.CBORTag(27, [cbor2.CBORTag(39, "LatencySpan"),
-                             {cbor2.CBORTag(39, "span"): cbor2.CBORTag(39, span),
-                              cbor2.CBORTag(39, "n"): n,
-                              cbor2.CBORTag(39, "minUs"): 100}])
-    return cbor2.dumps(rec, canonical=True)
+    return record("LatencySpan", {Sym("span"): Sym(span), Sym("n"): n, Sym("minUs"): 100})
 
 
 def test_latency_span_lands_at_its_own_sibling_cell(tmp_path):
@@ -50,7 +46,6 @@ def test_latency_span_without_a_name_is_dropped(tmp_path):
     # one slot's numbers to another, which is worse than losing the datagram.
     s = Store(str(tmp_path / "p.db"))
     m = Mirror(s, bind_port=0)
-    rec = cbor2.CBORTag(27, [cbor2.CBORTag(39, "LatencySpan"),
-                             {cbor2.CBORTag(39, "n"): 3}])
-    m.handle_datagram(cbor2.dumps(rec, canonical=True), ("192.168.0.240", 54371), ts=100.0)
+    raw = record("LatencySpan", {Sym("n"): 3})
+    m.handle_datagram(raw, ("192.168.0.240", 54371), ts=100.0)
     assert s.event_count("192.168.0.240") == 0
