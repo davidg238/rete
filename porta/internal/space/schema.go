@@ -145,6 +145,17 @@ CREATE TABLE IF NOT EXISTS gw_runs (
   alive_ms   INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_gw_runs_started ON gw_runs(started_ms);
+
+-- Store-level facts about the deployment itself, one row per key. Exists for
+-- exactly one key today: 'manifest', the MANIFEST.cddl bytes this store is
+-- gated by (rete#243). Persisted IN the store because the gate must hold for
+-- every process that opens the db — "porta put --db" is its own process, and
+-- the CLI door is where both node-bricking kind writes (#180, #206) came
+-- from; a gate armed only in the serve process would miss it.
+CREATE TABLE IF NOT EXISTS meta (
+  key   TEXT PRIMARY KEY,
+  value BLOB NOT NULL
+);
 `
 
 // addColumns are run after schema on every Open. CREATE TABLE IF NOT EXISTS

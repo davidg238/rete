@@ -116,6 +116,32 @@ func TestManifestGateGateway(t *testing.T) {
 	}
 }
 
+func TestStoredManifestArmsEveryOpen(t *testing.T) {
+	// The persistence contract: StoreManifest in one Store, and a SECOND
+	// process's Open of the same db is gated — the CLI-door case that an
+	// in-memory-only arm would miss (#180/#206 both came through `put`).
+	dir := t.TempDir()
+	path := dir + "/t.db"
+	st, err := Open(path, func() int64 { return 1000 })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.StoreManifest(loadRealManifest(t).Raw); err != nil {
+		t.Fatal(err)
+	}
+	st.Close()
+	st2, err := Open(path, func() int64 { return 2000 })
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st2.Close()
+	v := enc(t, "bell")
+	if _, err := st2.Write("n1", "goal/name", cval.KindStream, v, "op", "t"); err == nil ||
+		!strings.HasPrefix(err.Error(), "manifest:kind") {
+		t.Fatalf("reopened store not gated: %v", err)
+	}
+}
+
 func TestNoManifestNoGate(t *testing.T) {
 	s := testStore(t) // no SetManifest: every pre-manifest caller keeps working
 	v := enc(t, "x")

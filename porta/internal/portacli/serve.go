@@ -7,17 +7,34 @@ import (
 	"context"
 	"log"
 	"net"
+	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/davidg238/porta/internal/blob"
 	"github.com/davidg238/porta/internal/blockserv"
 	"github.com/davidg238/porta/internal/httpsrv"
+	"github.com/davidg238/porta/internal/manifest"
 	"github.com/davidg238/porta/internal/serverstat"
 	"github.com/davidg238/porta/internal/space"
 	"github.com/davidg238/porta/internal/wire"
 	"github.com/spf13/cobra"
 )
+
+// manifestHandler serves the manifest porta enforces — the dev tools'
+// fetch-and-pin source (rete#243 D5/D11). The hash rides a header so a
+// fetcher can refuse an endpoint that lies about its own bytes.
+func manifestHandler(tbl *manifest.Table) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if tbl == nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Header().Set("X-Manifest-SHA256", tbl.SHA256)
+		w.Write(tbl.Raw)
+	}
+}
 
 // defaultAllowCIDR returns the RFC1918 + loopback + Tailscale set, as a fresh
 // slice per invocation (cobra StringSliceVar shares the backing slice across
@@ -71,7 +88,7 @@ func sweepLiveness(ctx context.Context, st *space.Store, tick time.Duration, log
 // operator HTTP surface. The two are independent — a node keeps checking in
 // with --http-port 0, and the health endpoint stays up if the mesh is quiet.
 func newServeCmd() *cobra.Command {
-	var udpAddr, httpBind string
+	var udpAddr, httpBind, manifestPath string
 	var httpPort, testDropAck int
 	var httpAllowCIDR []string
 	// TEST ONLY, on --test-drop-ack's precedent: the sweep's own period. The
@@ -100,6 +117,27 @@ func newServeCmd() *cobra.Command {
 				return err
 			}
 			defer st.Close()
+
+			// rete#243: the kind+schema gate. Loading is fatal on error — a
+			// half-read contract must not gate — but an ABSENT flag only
+			// warns: the gate lands on running gateways one deploy at a time,
+			// and the warning is what keeps the off state from being quiet.
+			var tbl *manifest.Table
+			if manifestPath != "" {
+				tbl, err = manifest.Load(manifestPath)
+				if err != nil {
+					return err
+				}
+				// Persisted, not merely armed: the CLI doors are their own
+				// processes over the same db, and #180/#206 both came through
+				// them. From here on every Open of this store gates.
+				if err := st.StoreManifest(tbl.Raw); err != nil {
+					return err
+				}
+				log.Printf("porta: manifest gate ON (%s, sha256 %s…) — persisted to the store", manifestPath, tbl.SHA256[:8])
+			} else {
+				log.Printf("porta: MANIFEST GATE OFF for this flagless serve — no --manifest given; a manifest already stored in the db still gates (rete#243)")
+			}
 
 			// Process-lifetime stats shared by the HTTP surface.
 			stats := serverstat.New(version, commit, nowSec)
@@ -162,6 +200,7 @@ func newServeCmd() *cobra.Command {
 					return err
 				}
 				srv.SetStats(stats)
+				srv.Mux.HandleFunc("/manifest", manifestHandler(tbl))
 				httpErr = make(chan error, 1)
 				go func() { httpErr <- srv.Run(ctx) }()
 				log.Printf("porta: serving HTTP on %s:%d", httpBind, httpPort)
@@ -180,6 +219,8 @@ func newServeCmd() *cobra.Command {
 		"TEST ONLY: swallow every Nth outbound #ack AFTER the push is committed (0 = off)")
 	cmd.Flags().DurationVar(&sweepTick, "sweep-tick", 0,
 		"TEST ONLY: how often to re-form liveness verdicts (0 = space.SweepTick, 30s)")
+	cmd.Flags().StringVar(&manifestPath, "manifest", "",
+		"path to MANIFEST.cddl — arms the kind+schema gate and serves GET /manifest (empty = gate OFF, loudly)")
 	return cmd
 }
 

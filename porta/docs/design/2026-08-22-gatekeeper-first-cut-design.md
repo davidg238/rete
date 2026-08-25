@@ -115,13 +115,15 @@ SQL, so this is a live concern rather than a theoretical one.
 | binding | source | contents | why |
 |---|---|---|---|
 | `snap` | immutable snapshot | `events` (1.7 M), decoded record tables, all history | unbounded; must not touch the live store |
-| `live` | live store, `mode=ro`, bounded tables only | `cells` (89 rows), `nodes` (6), recent `exchanges` | "stale **right now**" must not be answered from a file |
+| `live` | live store, `mode=ro`, bounded tables only | `cells` (89 rows), `nodes` (6), `exchanges` **capped at the last 24 h per node** | "stale **right now**" must not be answered from a file |
 
 The split is from the data, not from taste. It is also not hypothetical caution: rete#225 is
 the failure where `gw/liveness` read `#live` for ten hours and six minutes while `c6-bell`
 missed every check-in. A staleness answer computed from yesterday's snapshot reproduces that
 bug by construction. The `live` binding exposes only bounded tables, so no query written
-against it can scan 1.7 M rows — the boundedness is structural, as in §2.2.
+against it can scan 1.7 M rows — the boundedness is structural, as in §2.2. `exchanges` is
+the only unbounded table on this binding, so it is materialized with a hard 24 h/node cap
+rather than exposed whole; a query needing more history belongs on `snap`.
 
 ---
 

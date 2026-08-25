@@ -112,7 +112,45 @@ func Open(path string, nowMs func() int64) (*Store, error) {
 		db.Close()
 		return nil, err
 	}
-	return &Store{db: db, nowMs: nowMs}, nil
+	s := &Store{db: db, nowMs: nowMs}
+	// A stored manifest arms the gate for EVERY process that opens this store
+	// (rete#243) — the CLI doors included, which is the point: #180 and #206
+	// both bricked nodes through `porta put`, not through the wire. A corrupt
+	// stored manifest is fatal at Open, loudly, not a quiet gate-off.
+	var raw []byte
+	err = db.QueryRow(`SELECT value FROM meta WHERE key = 'manifest'`).Scan(&raw)
+	switch {
+	case err == sql.ErrNoRows:
+		// no manifest stored: gate off, exactly the pre-#243 store
+	case err != nil:
+		db.Close()
+		return nil, err
+	default:
+		tbl, perr := manifest.Parse(raw)
+		if perr != nil {
+			db.Close()
+			return nil, fmt.Errorf("stored manifest is corrupt: %w", perr)
+		}
+		s.manifest = tbl
+	}
+	return s, nil
+}
+
+// StoreManifest persists the manifest bytes into the store and arms the gate
+// in this process. Serve calls it at startup with the --manifest file, which
+// is how the gate reaches every LATER Open of the same store (CLI included).
+func (s *Store) StoreManifest(raw []byte) error {
+	tbl, err := manifest.Parse(raw)
+	if err != nil {
+		return err
+	}
+	if _, err := s.db.Exec(
+		`INSERT INTO meta (key, value) VALUES ('manifest', ?)
+		 ON CONFLICT(key) DO UPDATE SET value = excluded.value`, raw); err != nil {
+		return err
+	}
+	s.manifest = tbl
+	return nil
 }
 
 func (s *Store) Close() error { return s.db.Close() }
