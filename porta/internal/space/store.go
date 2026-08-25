@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/davidg238/porta/internal/cval"
+	"github.com/davidg238/porta/internal/manifest"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -51,6 +52,10 @@ type Cell struct {
 type Store struct {
 	db    *sql.DB
 	nowMs func() int64
+	// The compiled kind+schema manifest (rete#243), or nil for gate-off —
+	// a nil table checks nothing, so every pre-manifest caller (and every
+	// test that never calls SetManifest) behaves exactly as before.
+	manifest *manifest.Table
 	// The open gw_runs row, or 0 for a store nobody is serving from (every
 	// read-only CLI path). See runs.go.
 	runID int64
@@ -111,6 +116,10 @@ func Open(path string, nowMs func() int64) (*Store, error) {
 }
 
 func (s *Store) Close() error { return s.db.Close() }
+
+// SetManifest arms the rete#243 kind+schema gate on all three write doors
+// (Write, WriteGateway, Ingest). Call before serving; never mid-flight.
+func (s *Store) SetManifest(t *manifest.Table) { s.manifest = t }
 
 func (s *Store) CountNodes() (int, error) {
 	var n int
@@ -173,6 +182,11 @@ func (s *Store) Write(nodeID, path string, kind cval.Kind, value []byte, actor, 
 	if kind != cval.KindCell && kind != cval.KindStream {
 		return 0, fmt.Errorf("kind %d is neither cell nor stream", kind)
 	}
+	// The operator door of the rete#243 gate: refused loudly and immediately —
+	// the operator is at a keyboard, and the error is the fix's first line.
+	if err := s.manifest.Check(path, kind, manifest.DirDown, value); err != nil {
+		return 0, err
+	}
 	now := s.nowMs()
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -231,6 +245,11 @@ func (s *Store) WriteGateway(nodeID, path string, value []byte, reason string) e
 	}
 	if err := cval.Validate(value); err != nil {
 		return fmt.Errorf("value is not a well-formed algebra value: %w", err)
+	}
+	// The gateway door of the rete#243 gate: gw/** rows are cells by
+	// construction (see the method comment), so the kind is pinned here.
+	if err := s.manifest.Check(path, cval.KindCell, manifest.DirGw, value); err != nil {
+		return err
 	}
 	now := s.nowMs()
 	tx, err := s.db.Begin()
@@ -365,6 +384,19 @@ func (s *Store) Ingest(nodeID string, bootID int64, entries []Entry) (hw int64, 
 		}
 		if err := cval.Validate(e.Value); err != nil {
 			return 0, 0, fmt.Errorf("node %s sent a malformed value at %s: %w", nodeID, e.Path, err)
+		}
+		// The wire door of the rete#243 gate: refused-but-kept (design D7).
+		// The entry is not applied, its seq IS acked so the node advances
+		// instead of wedging in a retry loop, and the bytes are retained
+		// under actor=gate with the failed check named — a manifest mismatch
+		// is a build error to fix at the bench, not a runtime condition to
+		// negotiate with.
+		if err := s.manifest.Check(e.Path, e.Kind, manifest.DirUp, e.Value); err != nil {
+			if aerr := appendEvent(tx, nodeID, e.Path, e.Seq, e.Kind, e.Value, now, "in", "gate", err.Error(), bootID); aerr != nil {
+				return 0, 0, aerr
+			}
+			hw = e.Seq
+			continue
 		}
 		// bootID is stamped on the row, not merely on the node: it is the only
 		// thing that can later say WHICH boot published this value, and a
