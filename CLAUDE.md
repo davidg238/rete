@@ -95,7 +95,7 @@ How to make decisions here. These override the instinct to be thorough.
 ## Gates
 
 ```
-cd nodus/nsl && python3 tools/run_tests_oevm.py     # 270 passed, 0 failed (2026-08-22)
+cd nodus/nsl && python3 tools/run_tests_oevm.py     # 271 passed, 0 failed (2026-08-25)
 cd porta      && go test ./...
 cd nodus/oevm && bash tests/porta_sync_host.sh      # PORTA SYNC OK
 ```
@@ -225,6 +225,11 @@ next.
   cells vs streams, the exchange. **§§1–4 are the conformance target.**
 - `protocol/PROTOCOL-NSL-RECORDS.md` — the record catalogue: what shape rides at each pinned
   path, plus the size law (§2.1/§2.2).
+- `protocol/MANIFEST.cddl` — **the machine-normative half of the catalogue** (#243,
+  2026-08-25): path → kind + class + dir + shape, enforced by the nsl suite's
+  `manifest-py` aux gate, porta's store (all three write doors), and the seam gate.
+  Editing it has hard zcbor rules — see the `manifest-cddl-editing-rules` memory or the
+  file's own header.
 - `porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md` — the rewrite's decision
   record (D1–D8), the store schema, the wire shapes, and the §4.2 capability audit.
 - `porta/docs/ARCHITECTURE.md` — system architecture. **Stale in parts**: written for v1's
