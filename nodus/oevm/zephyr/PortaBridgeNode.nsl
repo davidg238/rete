@@ -111,14 +111,9 @@ class PortaBridgeNode usingPlatform: platform net: net = (
     profChan:: space channel: 'sys/profileEnd'.
     profChan whenever: '' do: [ :m | self profileWindowEnd ].
 
-    (* rete#243: #man is the manifest pin when this image carries one; a pinless
-       build (host, pre-manifest) omits the field — absence means "cannot say". *)
-    (platform manifestPin == nil)
-      ifTrue: [ space put: 'obs/build' value: (platform Record tag: #Build
-          with: #chip -> self chip with: #build -> platform buildId) ]
-      ifFalse: [ space put: 'obs/build' value: (platform Record tag: #Build
-          with: #chip -> self chip with: #build -> platform buildId
-          with: #man -> platform manifestPin) ].
+    (* rete#259: the bridge owns obs/build; #man rides iff the image carries a
+       manifest pin (rete#243). *)
+    bridge publishBuild: self chip.
 
     timers:: platform timers.     (* hold ONE instance — it owns the pending registry *)
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].

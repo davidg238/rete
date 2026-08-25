@@ -2386,6 +2386,24 @@ class Kernel usingPlatform: platform = () (
        on the tick a rollout activates, is the `ota staged` log line that is the
        only record the node leaves behind before it exits. A cell that never
        changes must not be allowed to crowd out the one that does. *)
+    (* rete#259: obs/build in ONE place. rete#243 added the conditional #man
+       field and had to edit five app files identically — the divergence-by-copy
+       smell the manifest exists to catch downstream, removed at the source. An
+       app supplies only its chip symbol; called once from app setup, so it
+       needs no once-per-boot guard the way publishApps does. #man rides iff the
+       image carries a pin (rete#243) — a pinless build (host, pre-manifest)
+       omits the field, absence meaning "cannot say". *)
+    public publishBuild: chipSym = (
+      | pin |
+      pin:: outer manifestPin.
+      pin == nil
+        ifTrue: [ space put: 'obs/build' value: (Record tag: #Build
+            with: #chip -> chipSym with: #build -> outer buildId) ]
+        ifFalse: [ space put: 'obs/build' value: (Record tag: #Build
+            with: #chip -> chipSym with: #build -> outer buildId
+            with: #man -> pin) ].
+      ^ self )
+
     publishApps = (
       | h |
       appsPublished ifTrue: [ ^ self ].
