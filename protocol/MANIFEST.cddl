@@ -36,8 +36,6 @@ sym-AppObs      = #6.39("AppObs")
 sym-BlobRef     = #6.39("BlobRef")
 sym-Build       = #6.39("Build")
 sym-CHeap       = #6.39("CHeap")
-sym-DbgReq      = #6.39("DbgReq")
-sym-DbgResp     = #6.39("DbgResp")
 sym-Debug       = #6.39("Debug")
 sym-Health      = #6.39("Health")
 sym-LatencySpan = #6.39("LatencySpan")
@@ -92,7 +90,6 @@ sym-lb          = #6.39("lb")
 sym-level       = #6.39("level")
 sym-lfb         = #6.39("lfb")
 sym-lifecycle   = #6.39("lifecycle")
-sym-line        = #6.39("line")
 sym-loopSleepS  = #6.39("loopSleepS")
 sym-man         = #6.39("man")
 sym-maxAsleepS  = #6.39("maxAsleepS")
@@ -197,9 +194,13 @@ liveness = #6.27([sym-Liveness, {
 reboot = #6.27([sym-Reboot, {}])
 
 ;# path=dbg/req  kind=stream  class=routine  dir=down
-dbg-req = #6.27([sym-DbgReq, {
-  sym-line => tstr,
-}])
+;# path=dbg/resp  kind=stream  class=routine  dir=up
+; A BARE line, not the DbgReq{line}/DbgResp{line} records RECORDS §4.5 wrote:
+; the node's reader parses the raw value as a string (parseProfileMs:) and the
+; CLI writes one, so the record shape was prose that never rode the wire —
+; found by this gate's first seam run, 2026-08-25, and resolved in favor of
+; the system that exists. porta relays lines; the session IS lines, both ways.
+dbg-line = tstr
 
 ; =====================================================================
 ; obs/** — what the node observes (dir=up; twins of goal/** are above)
@@ -326,11 +327,6 @@ latency-span = #6.27([sym-LatencySpan, {
 ; =====================================================================
 ; dbg/resp + diag/** (dir=up; dbg/req is with the down rows above)
 ; =====================================================================
-
-;# path=dbg/resp  kind=stream  class=routine  dir=up
-dbg-resp = #6.27([sym-DbgResp, {
-  sym-line => tstr,
-}])
 
 ;# path=diag/spans/ctl  kind=cell  class=routine  dir=up
 span-ctl = #6.27([sym-SpanCtl, {

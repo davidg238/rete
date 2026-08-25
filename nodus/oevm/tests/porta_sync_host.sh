@@ -70,7 +70,11 @@ gcc -Wall -std=c99 -DOEVM_METHOD_PROFILE -Isrc \
 
 echo "[5/8] start porta serve on udp 127.0.0.1:16969"
 rm -f "$DB"
-/tmp/porta serve --db "$DB" --udp 127.0.0.1:16969 --http-port 0 --sweep-tick 1s >/tmp/porta_serve.log 2>&1 &
+# --manifest arms the rete#243 kind+schema gate for the WHOLE run: every path
+# the real node pushes below must clear the closed manifest, so a green run is
+# also the completeness proof for protocol/MANIFEST.cddl's row table.
+MANIFEST="$(git rev-parse --show-toplevel)/protocol/MANIFEST.cddl"
+/tmp/porta serve --db "$DB" --udp 127.0.0.1:16969 --http-port 0 --sweep-tick 1s --manifest "$MANIFEST" >/tmp/porta_serve.log 2>&1 &
 PORTA_PID=$!
 NODE_PID=""
 trap 'kill $PORTA_PID ${NODE_PID:-} 2>/dev/null || true' EXIT
@@ -184,6 +188,16 @@ done
 echo "  sys/cheap is in porta's cell tree"
 
 # Leg 1: write the goal, wait for the node to echo it as obs.
+# The gate's negative control at the seam (rete#243): a mis-kinded operator
+# write must be refused BY NAME. A validation gate that has never been seen
+# red is the false-green shape this bench keeps re-learning.
+if /tmp/porta put --db "$DB" "$NODE" goal/name bench --kind stream 2>/tmp/porta_put_refused.log; then
+  echo "FAIL: mis-kinded goal/name was accepted — the manifest gate is not armed"; exit 1
+fi
+grep -q "manifest:kind" /tmp/porta_put_refused.log || {
+  echo "FAIL: mis-kinded put refused, but not by the manifest gate:"; cat /tmp/porta_put_refused.log; exit 1; }
+echo "      manifest gate refusal witnessed: $(grep -o 'manifest:kind[^"]*' /tmp/porta_put_refused.log | head -1)"
+
 /tmp/porta put --db "$DB" "$NODE" goal/name bench >/dev/null
 for _ in $(seq 1 100); do
   /tmp/porta get --db "$DB" "$NODE" obs/name 2>/dev/null | grep -q "bench" && break; sleep 0.2
@@ -288,19 +302,25 @@ echo "  sys/metrics accumulates in the event log: $METRICS_ROWS rows — the run
 #
 # The node closes its one window on the first tick where the gateway has acked, so this
 # waits rather than assuming a tick count.
+# NOT `grep -q`: this script runs under pipefail, and -q exits at the first
+# match — the still-writing `porta get` then dies of SIGPIPE and pipefail
+# turns a SUCCESSFUL match into a failure. diag/spans/checkIn matches on row
+# 2 of a 16-row dump, so it had maximum exposure; the redirect makes grep
+# consume the whole stream. Found 2026-08-25 when rete#243's slightly slower
+# store Open shifted the scheduling enough to trip it three runs out of three.
 for _ in $(seq 1 60); do
-  /tmp/porta get --db "$DB" "$NODE" diag 2>/dev/null | grep -q "diag/spans/result" && break; sleep 0.4
+  /tmp/porta get --db "$DB" "$NODE" diag 2>/dev/null | grep "diag/spans/result" >/dev/null && break; sleep 0.4
 done
-/tmp/porta get --db "$DB" "$NODE" diag | grep -q "diag/spans/result" || {
+/tmp/porta get --db "$DB" "$NODE" diag | grep "diag/spans/result" >/dev/null || {
   echo "FAIL: diag/spans/result never reached porta (tuvm#107 / diag outbound grant)"
   /tmp/porta get --db "$DB" "$NODE"; cat /tmp/porta_serve.log; exit 1; }
 
 # The summary alone would pass while every row was silently dropped at the value cap —
 # which is the failure this whole change exists to remove. Assert a ROW, by name.
 for _ in $(seq 1 60); do
-  /tmp/porta get --db "$DB" "$NODE" diag 2>/dev/null | grep -q "diag/spans/checkIn" && break; sleep 0.4
+  /tmp/porta get --db "$DB" "$NODE" diag 2>/dev/null | grep "diag/spans/checkIn" >/dev/null && break; sleep 0.4
 done
-/tmp/porta get --db "$DB" "$NODE" diag | grep -q "diag/spans/checkIn" || {
+/tmp/porta get --db "$DB" "$NODE" diag | grep "diag/spans/checkIn" >/dev/null || {
   echo "FAIL: no per-slot span cell reached porta — only the summary did"
   /tmp/porta get --db "$DB" "$NODE" diag; exit 1; }
 SPAN_ROWS=$(/tmp/porta get --db "$DB" "$NODE" diag | grep -c "diag/spans/")

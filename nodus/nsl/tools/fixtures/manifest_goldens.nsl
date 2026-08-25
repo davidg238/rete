@@ -10,7 +10,7 @@ GOLDEN goal/debug/main d81b82d827654465627567a1d82766616374696f6ed82766617474616
 GOLDEN goal/profile/main d81b82d8276750726f66696c65a3d82766616374696f6ed827657374617274d827696475726174696f6e531903e8d8276a636f6e74696e756f7573f4
 GOLDEN goal/liveness d81b82d827684c6976656e657373a2d82763627564193e80d827636361641907d0
 GOLDEN goal/do/reboot d81b82d827665265626f6f74a0
-GOLDEN dbg/req d81b82d82766446267526571a1d827646c696e656c70726f66696c652031303030
+GOLDEN dbg/req 6c70726f66696c652031303030
 GOLDEN obs/name 6462656c6c
 GOLDEN obs/apps/main d81b82d827664170704f6273a2d82765696d616765d81b82d82767426c6f62526566a1d827646861736842616bd827696c6966656379636c65d8276772756e6e696e67
 GOLDEN obs/health d81b82d827664865616c7468a6d82762757001d827636269641829d8276370746f02d8276372656603d8276373647204d8276377616b05
@@ -27,7 +27,7 @@ GOLDEN sys/panic d81b82d8276550616e6963a5d82764636f7265f6d82766626f6f7449641829d
 GOLDEN sys/metrics d81b82d827674d657472696373acd827626c6201d8276367636302d8276368687703d82763686e6c04d8276368737a05d827636c666206d827636f767207d8276370636f08d8276370647209d827637073740ad827637168770bd82764686e68770c
 GOLDEN sys/cheap d81b82d827654348656170a5d827626f6201d82763616c6302d8276366616c03d8276366726504d827636f687705
 GOLDEN sys/latency d81b82d8276b4c6174656e63795370616eadd827616e07d82762623001d82762623102d82762623203d82762623304d82762623405d82762623506d827647370616ed8276870756c6c53656e64d827656661696c7300d827656d61785573190384d827656d696e55731864d8276773756d5573486900d8276773756d55734c6f190dac
-GOLDEN dbg/resp d81b82d8276744626752657370a1d827646c696e65626f6b
+GOLDEN dbg/resp 626f6b
 GOLDEN diag/spans/ctl d81b82d827675370616e43746ca1d827657374617465d8276772756e6e696e67
 GOLDEN diag/spans/result d81b82d8276b5370616e43617074757265a2d827616e07d827626d731864
 GOLDEN diag/spans/pullSend d81b82d8276b4c6174656e63795370616eadd827616e07d82762623001d82762623102d82762623203d82762623304d82762623405d82762623506d827647370616ed8276870756c6c53656e64d827656661696c7300d827656d61785573190384d827656d696e55731864d8276773756d5573486900d8276773756d55734c6f190dac
@@ -93,7 +93,9 @@ class ManifestGoldens packageUsing: manifest = () (
          using: platform.
     self emit: 'goal/liveness' value: (R tag: #Liveness with: #cad -> 2000 with: #bud -> 16000) using: platform.
     self emit: 'goal/do/reboot' value: (R tag: #Reboot fields: (M fromPairs: OC new)) using: platform.
-    self emit: 'dbg/req' value: (R tag: #DbgReq with: #line -> 'profile 1000') using: platform.
+    (* dbg/req is a BARE line by the node's own reader (parseProfileMs:) —
+       the DbgReq record was catalogue prose that never rode the wire. *)
+    self emit: 'dbg/req' value: 'profile 1000' using: platform.
 
     (* --- obs/** --- *)
     self emit: 'obs/name' value: 'bell' using: platform.
@@ -166,7 +168,7 @@ class ManifestGoldens packageUsing: manifest = () (
     self emit: 'sys/latency' value: (R tag: #LatencySpan fields: (M fromPairs: oc)) using: platform.
 
     (* --- dbg / diag / gw --- *)
-    self emit: 'dbg/resp' value: (R tag: #DbgResp with: #line -> 'ok') using: platform.
+    self emit: 'dbg/resp' value: 'ok' using: platform.
     self emit: 'diag/spans/ctl' value: (R tag: #SpanCtl with: #state -> #running) using: platform.
     self emit: 'diag/spans/result' value: (R tag: #SpanCapture with: #n -> 7 with: #ms -> 100) using: platform.
     oc:: OC new.
