@@ -1,0 +1,348 @@
+; protocol/MANIFEST.cddl — the machine-readable half of PROTOCOL-NSL-RECORDS.md.
+; MACHINE-NORMATIVE for path/kind/class/dir/shape (rete#243, design
+; docs/design/2026-08-24-kind-schema-manifest-design.md, ratified 2026-08-24).
+; The catalogue keeps the why — sizes, measurements, history — and names these
+; rules; when the two disagree, that is a finding, and these facts win.
+;
+; 100% stock CDDL (RFC 8610). The ;# lines are the path binding:
+;   ;# path=<pattern>  kind=cell|stream  class=routine|must-deliver|drop-first  dir=up|down|gw
+; <var> matches exactly one path segment; a literal entry shadows a wildcard
+; entry; two overlapping wildcard entries are a lint error
+; (protocol/tools/manifest_lint.py). dir is who writes the path: up = the
+; node, down = porta, gw = porta's own verdicts about a node (never on the
+; wire). Several ;# lines may stack above one rule (obs/X reuses goal/X's
+; shape by design).
+;
+; FULL-WIRE SPELLING: rules describe the exact bytes — records are tag 27,
+; symbols tag 39, and every symbol key is a named sym-* rule (zcbor 0.9.1
+; cannot parse a tagged literal inline as a map key; probed 2026-08-24).
+; KEY ORDER IS WIRE ORDER: zcbor validates map keys in CDDL-listed order
+; (probed 2026-08-25), and the wire sorts keys bytewise over their encoded
+; bytes (RECORDS §1) — shorter names first, then lexicographic — so each
+; rule below lists its keys exactly as they appear in the byte stream.
+; Optional fields are `?` and absence keeps its catalogue meaning: "the
+; node cannot say".
+;
+; Enum-valued fields pin their symbol choice ONLY where the catalogue
+; enumerates the set; everything else is an open symbol (#6.39(tstr)).
+;
+; goal/forward and obs/forward have NO rule here: Forward{...} has no pinned
+; shape, and writing it first requires pinning it (the catalogue carries the
+; same note).
+
+; --- record names ---
+sym-App         = #6.39("App")
+sym-AppObs      = #6.39("AppObs")
+sym-BlobRef     = #6.39("BlobRef")
+sym-Build       = #6.39("Build")
+sym-CHeap       = #6.39("CHeap")
+sym-DbgReq      = #6.39("DbgReq")
+sym-DbgResp     = #6.39("DbgResp")
+sym-Debug       = #6.39("Debug")
+sym-Health      = #6.39("Health")
+sym-LatencySpan = #6.39("LatencySpan")
+sym-Liveness    = #6.39("Liveness")
+sym-Log         = #6.39("Log")
+sym-Metric      = #6.39("Metric")
+sym-Metrics     = #6.39("Metrics")
+sym-Mode        = #6.39("Mode")
+sym-Overrun     = #6.39("Overrun")
+sym-Panic       = #6.39("Panic")
+sym-Print       = #6.39("Print")
+sym-Profile     = #6.39("Profile")
+sym-Reboot      = #6.39("Reboot")
+sym-Reset       = #6.39("Reset")
+sym-SpanCapture = #6.39("SpanCapture")
+sym-SpanCtl     = #6.39("SpanCtl")
+
+; --- field keys (shared across records; scoped per record on the wire) ---
+sym-action      = #6.39("action")
+sym-alc         = #6.39("alc")
+sym-alg         = #6.39("alg")
+sym-arguments   = #6.39("arguments")
+sym-b0          = #6.39("b0")
+sym-b1          = #6.39("b1")
+sym-b2          = #6.39("b2")
+sym-b3          = #6.39("b3")
+sym-b4          = #6.39("b4")
+sym-b5          = #6.39("b5")
+sym-bid         = #6.39("bid")
+sym-bootId      = #6.39("bootId")
+sym-bud         = #6.39("bud")
+sym-build       = #6.39("build")
+sym-cad         = #6.39("cad")
+sym-chip        = #6.39("chip")
+sym-code        = #6.39("code")
+sym-continuous  = #6.39("continuous")
+sym-core        = #6.39("core")
+sym-detail      = #6.39("detail")
+sym-dropped     = #6.39("dropped")
+sym-durationS   = #6.39("durationS")
+sym-fails       = #6.39("fails")
+sym-fal         = #6.39("fal")
+sym-fre         = #6.39("fre")
+sym-gcc         = #6.39("gcc")
+sym-hash        = #6.39("hash")
+sym-hhw         = #6.39("hhw")
+sym-hnhw        = #6.39("hnhw")
+sym-hnl         = #6.39("hnl")
+sym-hsz         = #6.39("hsz")
+sym-image       = #6.39("image")
+sym-lb          = #6.39("lb")
+sym-level       = #6.39("level")
+sym-lfb         = #6.39("lfb")
+sym-lifecycle   = #6.39("lifecycle")
+sym-line        = #6.39("line")
+sym-loopSleepS  = #6.39("loopSleepS")
+sym-man         = #6.39("man")
+sym-maxAsleepS  = #6.39("maxAsleepS")
+sym-maxAwakeS   = #6.39("maxAwakeS")
+sym-maxUs       = #6.39("maxUs")
+sym-minAwakeS   = #6.39("minAwakeS")
+sym-minUs       = #6.39("minUs")
+sym-mode        = #6.39("mode")
+sym-monoMs      = #6.39("monoMs")
+sym-ms          = #6.39("ms")
+sym-n           = #6.39("n")
+sym-ob          = #6.39("ob")
+sym-ohw         = #6.39("ohw")
+sym-ovr         = #6.39("ovr")
+sym-path        = #6.39("path")
+sym-pco         = #6.39("pco")
+sym-pdr         = #6.39("pdr")
+sym-pst         = #6.39("pst")
+sym-pto         = #6.39("pto")
+sym-qhw         = #6.39("qhw")
+sym-reason      = #6.39("reason")
+sym-ref         = #6.39("ref")
+sym-runlevel    = #6.39("runlevel")
+sym-sdk         = #6.39("sdk")
+sym-sdr         = #6.39("sdr")
+sym-sig         = #6.39("sig")
+sym-size        = #6.39("size")
+sym-span        = #6.39("span")
+sym-state       = #6.39("state")
+sym-sumUsHi     = #6.39("sumUsHi")
+sym-sumUsLo     = #6.39("sumUsLo")
+sym-text        = #6.39("text")
+sym-triggers    = #6.39("triggers")
+sym-up          = #6.39("up")
+sym-value       = #6.39("value")
+sym-wak         = #6.39("wak")
+
+; --- common shapes ---
+anysym  = #6.39(tstr)
+scalar  = int / tstr / bool / anysym
+blobref = #6.27([sym-BlobRef, {
+  ? sym-alg  => anysym,       ; absence means #sha256 (RECORDS §2.3)
+    sym-hash => bstr,
+  ? sym-size => uint,
+}])
+
+; =====================================================================
+; goal/** — what porta wants (dir=down)
+; =====================================================================
+
+;# path=goal/name  kind=cell  class=routine  dir=down
+;# path=obs/name  kind=cell  class=routine  dir=up
+name-cell = tstr
+
+;# path=goal/apps/<name>  kind=cell  class=routine  dir=down
+app = #6.27([sym-App, {
+    sym-sig       => bstr,     ; REQUIRED — the bridge refuses an App without it (#25)
+    sym-image     => blobref,
+  ? sym-runlevel  => uint,
+  ? sym-triggers  => [* anysym],
+  ? sym-arguments => { * anysym => scalar },
+  ? sym-lifecycle => anysym,
+}])
+
+;# path=goal/mode  kind=cell  class=routine  dir=down
+;# path=obs/mode  kind=cell  class=routine  dir=up
+mode = #6.27([sym-Mode, {
+  sym-mode      => anysym,
+  sym-maxAwakeS => uint,
+  sym-minAwakeS => uint,
+  sym-loopSleepS => uint,
+  sym-maxAsleepS => uint,
+}])
+
+;# path=goal/config/<app>/<key>  kind=cell  class=routine  dir=down
+;# path=obs/config/<app>/<key>  kind=cell  class=routine  dir=up
+config-cell = scalar
+
+;# path=goal/debug/<app>  kind=cell  class=routine  dir=down
+debug = #6.27([sym-Debug, {
+  sym-action => #6.39("attach") / #6.39("detach"),
+}])
+
+;# path=goal/profile/<app>  kind=cell  class=routine  dir=down
+profile = #6.27([sym-Profile, {
+  sym-action    => anysym,
+  sym-durationS => uint,
+  sym-continuous => bool,
+}])
+
+;# path=goal/liveness  kind=cell  class=routine  dir=down
+;# path=obs/liveness  kind=cell  class=routine  dir=up
+liveness = #6.27([sym-Liveness, {
+  sym-bud => uint,
+  sym-cad => uint,
+}])
+
+;# path=goal/do/reboot  kind=stream  class=routine  dir=down
+reboot = #6.27([sym-Reboot, {}])
+
+;# path=dbg/req  kind=stream  class=routine  dir=down
+dbg-req = #6.27([sym-DbgReq, {
+  sym-line => tstr,
+}])
+
+; =====================================================================
+; obs/** — what the node observes (dir=up; twins of goal/** are above)
+; =====================================================================
+
+;# path=obs/apps/<name>  kind=cell  class=routine  dir=up
+app-obs = #6.27([sym-AppObs, {
+    sym-image     => blobref,
+  ? sym-runlevel  => uint,
+  ? sym-triggers  => [* anysym],
+  ? sym-lifecycle => anysym,
+}])
+
+;# path=obs/health  kind=cell  class=routine  dir=up
+health = #6.27([sym-Health, {
+  sym-up  => uint,
+  sym-bid => uint,
+  sym-pto => uint,
+  sym-ref => uint,
+  sym-sdr => uint,
+  sym-wak => uint,
+}])
+
+;# path=obs/build  kind=cell  class=routine  dir=up
+build = #6.27([sym-Build, {
+  ? sym-man   => bstr,         ; truncated 8-byte manifest pin (#243 D4)
+  ? sym-sdk   => tstr,
+    sym-chip  => anysym,
+    sym-build => tstr,
+  ? sym-image => bstr,
+}])
+
+; =====================================================================
+; tel/** — telemetry (dir=up, drop-first by policy)
+; =====================================================================
+
+;# path=tel/print  kind=stream  class=drop-first  dir=up
+print = #6.27([sym-Print, {
+  sym-text => tstr,
+}])
+
+;# path=tel/log  kind=stream  class=drop-first  dir=up
+log = #6.27([sym-Log, {
+  sym-text  => tstr,
+  sym-level => #6.39("debug") / #6.39("info") / #6.39("warn") / #6.39("error"),
+}])
+
+;# path=tel/m/<name>  kind=stream  class=drop-first  dir=up
+metric = #6.27([sym-Metric, {
+  sym-value  => int / float,
+  sym-monoMs => uint,
+}])
+
+; =====================================================================
+; sys/** — the node's own faults and gauges (dir=up)
+; =====================================================================
+
+;# path=sys/reset  kind=stream  class=routine  dir=up
+reset = #6.27([sym-Reset, {
+  sym-code   => int,           ; the SoC's raw cause; the derivation is lossy
+  sym-bootId => uint,
+  sym-reason => anysym,
+}])
+
+;# path=sys/overrun  kind=stream  class=routine  dir=up
+overrun = #6.27([sym-Overrun, {
+  sym-path    => tstr,
+  sym-dropped => uint,
+}])
+
+;# path=sys/panic  kind=stream  class=must-deliver  dir=up
+panic = #6.27([sym-Panic, {
+  sym-core   => blobref / nil,
+  sym-bootId => uint,
+  sym-detail => tstr,
+  sym-monoMs => uint,
+  sym-reason => #6.39("oom") / #6.39("hardFault") / #6.39("watchdog")
+              / #6.39("assert") / #6.39("stackOverflow"),
+}])
+
+;# path=sys/metrics  kind=cell  class=routine  dir=up
+metrics = #6.27([sym-Metrics, {
+  sym-lb   => uint,
+  sym-gcc  => uint,
+  sym-hhw  => uint,
+  sym-hnl  => uint,
+  sym-hsz  => uint,
+  sym-lfb  => uint,
+  sym-ovr  => uint,
+  sym-pco  => uint,
+  sym-pdr  => uint,
+  sym-pst  => uint,
+  sym-qhw  => uint,
+  sym-hnhw => uint,
+}])
+
+;# path=sys/cheap  kind=cell  class=routine  dir=up
+cheap = #6.27([sym-CHeap, {
+  sym-ob  => uint,
+  sym-alc => uint,
+  sym-fal => uint,
+  sym-fre => uint,
+  sym-ohw => uint,
+}])
+
+;# path=sys/latency  kind=cell  class=routine  dir=up
+;# path=diag/spans/<span>  kind=cell  class=routine  dir=up
+latency-span = #6.27([sym-LatencySpan, {
+  sym-n       => uint,
+  sym-b0      => uint,
+  sym-b1      => uint,
+  sym-b2      => uint,
+  sym-b3      => uint,
+  sym-b4      => uint,
+  sym-b5      => uint,
+  sym-span    => anysym,
+  sym-fails   => uint,
+  sym-maxUs   => uint,
+  sym-minUs   => uint,
+  sym-sumUsHi => uint,
+  sym-sumUsLo => uint,
+}])
+
+; =====================================================================
+; dbg/resp + diag/** (dir=up; dbg/req is with the down rows above)
+; =====================================================================
+
+;# path=dbg/resp  kind=stream  class=routine  dir=up
+dbg-resp = #6.27([sym-DbgResp, {
+  sym-line => tstr,
+}])
+
+;# path=diag/spans/ctl  kind=cell  class=routine  dir=up
+span-ctl = #6.27([sym-SpanCtl, {
+  sym-state => #6.39("running") / #6.39("stopped"),
+}])
+
+;# path=diag/spans/result  kind=cell  class=routine  dir=up
+span-capture = #6.27([sym-SpanCapture, {
+  sym-n  => uint,
+  sym-ms => int,               ; -1 when the millis counter wrapped
+}])
+
+; =====================================================================
+; gw/** — gateway-authored verdicts (dir=gw; never on the wire)
+; =====================================================================
+
+;# path=gw/liveness  kind=cell  class=routine  dir=gw
+gw-verdict = #6.39("live") / #6.39("silent")
