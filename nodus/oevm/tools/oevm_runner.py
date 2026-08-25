@@ -81,6 +81,7 @@ class NodeDir:
         self.ready_path = os.path.join(self.stage_dir, "ready.json")
         self.confirm_path = os.path.join(self.root, "confirm")
         self.pub_path = os.path.join(self.root, "pub.key")
+        self.bootid_path = os.path.join(self.root, "bootid")
         os.makedirs(os.path.join(self.root, "slots"), exist_ok=True)
         os.makedirs(self.stage_dir, exist_ok=True)
 
@@ -211,6 +212,12 @@ class Runner:
         env["OEVM_OTA_STAGE"] = self.nd.slot_path(other(active))
         env["OEVM_OTA_READY"] = self.nd.ready_path
         env["OEVM_OTA_CONFIRM"] = self.nd.confirm_path
+        # rete#261: the runner stands in for NVS as well as MCUboot, so it owns
+        # the per-boot counter the way it owns the slots. Without this every
+        # boot declares the 0 sentinel, porta's restart detection (rete#162) is
+        # off by design, and the reboot this runner exists to exercise leaves
+        # the node's fresh rows discarded as already-applied — forever.
+        env["OEVM_BOOTID_FILE"] = self.nd.bootid_path
         if m["trial"]:
             env["OEVM_OTA_TRIAL"] = "1"
         else:
