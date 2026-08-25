@@ -36,7 +36,9 @@ echo "--- program output ---"; echo "$OUT"; echo "----------------------"
 ok=1
 for n in 16 20; do
   want=$(( (1 << n) - 1 ))
-  if echo "$OUT" | grep -q "hanoi-moves ${n}: ${want}"; then
+  # grep consumes the stream (no -q): pipefail + a first-match exit SIGPIPEs the
+  # writer and scores a successful match as a miss (rete#260).
+  if echo "$OUT" | grep "hanoi-moves ${n}: ${want}" >/dev/null; then
     echo "PASS moves n=$n == $want"
   else
     echo "FAIL moves n=$n (want $want)"; ok=0

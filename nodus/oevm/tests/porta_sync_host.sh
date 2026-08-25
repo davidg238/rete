@@ -106,11 +106,18 @@ grep -q "PORTA NODE READY" /tmp/porta_node.log || {
   echo "FAIL: node did not start"; cat /tmp/porta_node.log; exit 1; }
 
 echo "[7/8] drive it"
+# Every piped grep below is `grep X >/dev/null`, never `grep -q`: this script
+# runs under pipefail, and -q exits at the first match — the still-writing
+# `porta get` then dies of SIGPIPE and pipefail scores a SUCCESSFUL match as a
+# failure. Exposure scales with how early the match sits in how large a dump,
+# so it strikes the healthiest-looking checks first (rete#260; the discovery
+# story is on the diag/spans leg below). Plain `grep -q pattern file` is fine —
+# no pipe, no writer to kill.
 # Leg 2 first: it needs no operator write at all.
 for _ in $(seq 1 100); do
-  /tmp/porta get --db "$DB" "$NODE" obs 2>/dev/null | grep -q "obs/health" && break; sleep 0.2
+  /tmp/porta get --db "$DB" "$NODE" obs 2>/dev/null | grep "obs/health" >/dev/null && break; sleep 0.2
 done
-/tmp/porta get --db "$DB" "$NODE" obs | grep -q "obs/health" || {
+/tmp/porta get --db "$DB" "$NODE" obs | grep "obs/health" >/dev/null || {
   echo "FAIL: obs/health never reached porta"; /tmp/porta get --db "$DB" "$NODE"; cat /tmp/porta_serve.log; exit 1; }
 echo "  obs/health is in porta's cell tree"
 
@@ -122,14 +129,14 @@ echo "  obs/health is in porta's cell tree"
 # checked: the RECORD field, and porta's own per-row boot (rete#210) that the
 # ENVELOPE carried. Asserting they agree is what makes a future divergence a
 # failure rather than a thing someone notices on a bench two months later.
-/tmp/porta get --db "$DB" "$NODE" obs/health | grep -q "#bid: $NODE_BOOT" || {
+/tmp/porta get --db "$DB" "$NODE" obs/health | grep "#bid: $NODE_BOOT" >/dev/null || {
   echo "FAIL: obs/health reports the wrong boot id — want #bid: $NODE_BOOT"
   /tmp/porta get --db "$DB" "$NODE" obs/health; exit 1; }
-/tmp/porta get --db "$DB" "$NODE" obs/health | grep -q "boot=$NODE_BOOT" || {
+/tmp/porta get --db "$DB" "$NODE" obs/health | grep "boot=$NODE_BOOT" >/dev/null || {
   echo "FAIL: the push envelope carried a different boot than the record"
   /tmp/porta get --db "$DB" "$NODE" obs/health; exit 1; }
 echo "  obs/health's bid is the real boot ($NODE_BOOT), and the record agrees with the envelope"
-/tmp/porta get --db "$DB" "$NODE" obs | grep -q "obs/build" || { echo "FAIL: obs/build missing"; exit 1; }
+/tmp/porta get --db "$DB" "$NODE" obs | grep "obs/build" >/dev/null || { echo "FAIL: obs/build missing"; exit 1; }
 echo "  obs/build carries the node's provenance"
 
 # rete#231: the node's own declaration of how long its silence may last. This is
@@ -138,12 +145,12 @@ echo "  obs/build carries the node's provenance"
 # the record catalogue, so a shape either side got wrong shows up HERE and not on
 # a board six weeks later.
 for _ in $(seq 1 100); do
-  /tmp/porta get --db "$DB" "$NODE" obs 2>/dev/null | grep -q "obs/liveness" && break; sleep 0.2
+  /tmp/porta get --db "$DB" "$NODE" obs 2>/dev/null | grep "obs/liveness" >/dev/null && break; sleep 0.2
 done
-/tmp/porta get --db "$DB" "$NODE" obs/liveness | grep -q "#cad: 2000" || {
+/tmp/porta get --db "$DB" "$NODE" obs/liveness | grep "#cad: 2000" >/dev/null || {
   echo "FAIL: obs/liveness does not carry the node's declared 2 s cadence"
   /tmp/porta get --db "$DB" "$NODE" obs/liveness; exit 1; }
-/tmp/porta get --db "$DB" "$NODE" obs/liveness | grep -q "#bud: 16000" || {
+/tmp/porta get --db "$DB" "$NODE" obs/liveness | grep "#bud: 16000" >/dev/null || {
   echo "FAIL: obs/liveness does not carry the declared 16 s budget (8 x cadence)"
   /tmp/porta get --db "$DB" "$NODE" obs/liveness; exit 1; }
 echo "  obs/liveness carries the node's declared cadence and budget"
@@ -153,9 +160,9 @@ echo "  obs/liveness carries the node's declared cadence and budget"
 # started with --sweep-tick 1s above rather than the script sleeping 31 s for a
 # tick it would also be racing.
 for _ in $(seq 1 100); do
-  /tmp/porta get --db "$DB" "$NODE" gw 2>/dev/null | grep -q "gw/liveness" && break; sleep 0.2
+  /tmp/porta get --db "$DB" "$NODE" gw 2>/dev/null | grep "gw/liveness" >/dev/null && break; sleep 0.2
 done
-/tmp/porta get --db "$DB" "$NODE" gw/liveness | grep -q "#live" || {
+/tmp/porta get --db "$DB" "$NODE" gw/liveness | grep "#live" >/dev/null || {
   echo "FAIL: porta did not judge a node checking in every 2 s as #live"
   /tmp/porta get --db "$DB" "$NODE" gw; cat /tmp/porta_serve.log; exit 1; }
 echo "  gw/liveness reads #live, formed from the declared 16 s budget"
@@ -166,9 +173,9 @@ echo "  gw/liveness reads #live, formed from the declared 16 s budget"
 # forever and no app ever bothered to publish it. Assert the path is PRESENT — an
 # assertion that merely checks nothing errored would pass with the feature removed.
 for _ in $(seq 1 100); do
-  /tmp/porta get --db "$DB" "$NODE" sys 2>/dev/null | grep -q "sys/metrics" && break; sleep 0.2
+  /tmp/porta get --db "$DB" "$NODE" sys 2>/dev/null | grep "sys/metrics" >/dev/null && break; sleep 0.2
 done
-/tmp/porta get --db "$DB" "$NODE" sys | grep -q "sys/metrics" || {
+/tmp/porta get --db "$DB" "$NODE" sys | grep "sys/metrics" >/dev/null || {
   echo "FAIL: sys/metrics never reached porta — the cell scan is not covering sys/"
   /tmp/porta get --db "$DB" "$NODE"; cat /tmp/porta_serve.log; exit 1; }
 echo "  sys/metrics is in porta's cell tree"
@@ -180,9 +187,9 @@ echo "  sys/metrics is in porta's cell tree"
 # to arrive, "the gauge shows nothing" would be indistinguishable from "the leak is
 # outside the VM's allocation sites", and the wrong conclusion would be drawn.
 for _ in $(seq 1 100); do
-  /tmp/porta get --db "$DB" "$NODE" sys 2>/dev/null | grep -q "sys/cheap" && break; sleep 0.2
+  /tmp/porta get --db "$DB" "$NODE" sys 2>/dev/null | grep "sys/cheap" >/dev/null && break; sleep 0.2
 done
-/tmp/porta get --db "$DB" "$NODE" sys | grep -q "sys/cheap" || {
+/tmp/porta get --db "$DB" "$NODE" sys | grep "sys/cheap" >/dev/null || {
   echo "FAIL: sys/cheap never reached porta — the cell scan is not covering sys/"
   /tmp/porta get --db "$DB" "$NODE"; cat /tmp/porta_serve.log; exit 1; }
 echo "  sys/cheap is in porta's cell tree"
@@ -200,9 +207,9 @@ echo "      manifest gate refusal witnessed: $(grep -o 'manifest:kind[^"]*' /tmp
 
 /tmp/porta put --db "$DB" "$NODE" goal/name bench >/dev/null
 for _ in $(seq 1 100); do
-  /tmp/porta get --db "$DB" "$NODE" obs/name 2>/dev/null | grep -q "bench" && break; sleep 0.2
+  /tmp/porta get --db "$DB" "$NODE" obs/name 2>/dev/null | grep "bench" >/dev/null && break; sleep 0.2
 done
-/tmp/porta get --db "$DB" "$NODE" obs/name | grep -q "bench" || {
+/tmp/porta get --db "$DB" "$NODE" obs/name | grep "bench" >/dev/null || {
   echo "FAIL: goal/name never converged to obs/name"; /tmp/porta get --db "$DB" "$NODE"; exit 1; }
 echo "  goal/name converged to obs/name — the diff IS the view"
 
@@ -221,12 +228,12 @@ GOAL_LIVENESS_HEX=d81b82d827684c6976656e657373a2d8276362756419afc8d8276363616419
 # --raw is a BOOLEAN flag: the hex is the positional VALUE, not the flag's argument.
 /tmp/porta put --db "$DB" --raw "$NODE" goal/liveness "$GOAL_LIVENESS_HEX" >/dev/null
 for _ in $(seq 1 100); do
-  /tmp/porta get --db "$DB" "$NODE" obs/liveness 2>/dev/null | grep -q "46000" && break; sleep 0.2
+  /tmp/porta get --db "$DB" "$NODE" obs/liveness 2>/dev/null | grep "46000" >/dev/null && break; sleep 0.2
 done
-/tmp/porta get --db "$DB" "$NODE" obs/liveness | grep -q "46000" || {
+/tmp/porta get --db "$DB" "$NODE" obs/liveness | grep "46000" >/dev/null || {
   echo "FAIL: the node did not snap a 45 s request onto its 2 s grid"
   /tmp/porta get --db "$DB" "$NODE" obs/liveness; exit 1; }
-/tmp/porta get --db "$DB" "$NODE" goal/liveness | grep -q "45000" || {
+/tmp/porta get --db "$DB" "$NODE" goal/liveness | grep "45000" >/dev/null || {
   echo "FAIL: goal/liveness no longer holds what the operator asked for — the node overwrote a goal/ path"
   /tmp/porta get --db "$DB" "$NODE" goal/liveness; exit 1; }
 echo "  goal/liveness 45 s -> obs/liveness 46 s: the node snapped, and the diff IS the answer"
@@ -302,12 +309,10 @@ echo "  sys/metrics accumulates in the event log: $METRICS_ROWS rows — the run
 #
 # The node closes its one window on the first tick where the gateway has acked, so this
 # waits rather than assuming a tick count.
-# NOT `grep -q`: this script runs under pipefail, and -q exits at the first
-# match — the still-writing `porta get` then dies of SIGPIPE and pipefail
-# turns a SUCCESSFUL match into a failure. diag/spans/checkIn matches on row
-# 2 of a 16-row dump, so it had maximum exposure; the redirect makes grep
-# consume the whole stream. Found 2026-08-25 when rete#243's slightly slower
-# store Open shifted the scheduling enough to trip it three runs out of three.
+# This leg is where the pipefail/SIGPIPE class (see [7/8] above) was found:
+# diag/spans/checkIn matches on row 2 of a 16-row dump, maximum exposure, and
+# rete#243's slightly slower store Open shifted the scheduling enough to trip
+# it three runs out of three on 2026-08-25. rete#260 swept the rest.
 for _ in $(seq 1 60); do
   /tmp/porta get --db "$DB" "$NODE" diag 2>/dev/null | grep "diag/spans/result" >/dev/null && break; sleep 0.4
 done

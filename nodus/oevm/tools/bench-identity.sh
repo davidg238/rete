@@ -149,7 +149,8 @@ bench::collector_state() {
   systemctl --user is-active --quiet "rete-console@$board" || { echo inactive; return 0; }
   logfile=$(bench::log_file "$board")
   [ -f "$logfile" ] || { echo no-log; return 0; }
-  if tail -3 "$logfile" | grep -q "port=down"; then echo port-down; return 0; fi
+  # grep consumes the stream (no -q): zephyr/run.sh sources this under pipefail (rete#260).
+  if tail -3 "$logfile" | grep "port=down" >/dev/null; then echo port-down; return 0; fi
   echo active
 }
 

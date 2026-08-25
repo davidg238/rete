@@ -112,9 +112,13 @@ wait_line() {
 }
 
 # Same match, one shot, no waiting — for "this must NOT have happened".
+# grep consumes the stream (no -q) here and in porta_has: under pipefail, -q
+# exiting at the first match kills the still-writing left side with SIGPIPE and
+# the pipeline adopts 141 — for THIS "must NOT have happened" check that reads
+# as "didn't happen", a false green (rete#260).
 seen_since() {
   local f=$1 start=$2 pat=$3
-  tail -n +"$start" "$f" 2>/dev/null | grep -qE "$pat"
+  tail -n +"$start" "$f" 2>/dev/null | grep -E "$pat" >/dev/null
 }
 
 lines_in() { wc -l < "$1" 2>/dev/null || echo 0; }
@@ -131,7 +135,7 @@ poll_cmd() {
 }
 
 porta_has() {   # porta_has <node> <prefix> <ere>
-  "$PORTA" get --db "$DB" "$1" "$2" 2>/dev/null | grep -qE "$3"
+  "$PORTA" get --db "$DB" "$1" "$2" 2>/dev/null | grep -E "$3" >/dev/null
 }
 
 # "Still checking in", which is a stronger claim than "still has an obs/health

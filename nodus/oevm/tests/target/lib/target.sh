@@ -149,7 +149,9 @@ target::collector_ok() {
   # say only what has been VERIFIED — the earlier wording named two candidate
   # causes it had not checked, which is the same defect as a skip whose message
   # names an unverified cause.
-  if tail -3 "$logfile" | grep -q "port=down"; then
+  # grep consumes the stream (no -q): run.sh sources this under pipefail, and a
+  # first-match exit SIGPIPEs the writer into a bogus pipeline failure (rete#260).
+  if tail -3 "$logfile" | grep "port=down" >/dev/null; then
     target::die "collector rete-console@$board reports port=down: it is running and reading nothing, so every assertion here would time out with a misleading cause. (On the ship's bell this state is normal — its console goes over Thread, not this cable.)"
   fi
 }

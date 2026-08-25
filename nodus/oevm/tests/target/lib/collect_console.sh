@@ -37,7 +37,10 @@ collect::console() {
     logfile=$(target::logfile "$board")     # re-resolved: the log rolls at midnight
     if [ -f "$logfile" ]; then
       tail_from=$(awk -v id="$build_id" 'index($0, id) { found = 1 } found' "$logfile")
-      if echo "$tail_from" | grep -q "^.*TAP $scenario done"; then
+      # grep consumes the stream (no -q) here and at the WEDGE check below:
+      # run.sh sources this under pipefail, and -q's first-match exit SIGPIPEs
+      # the echo — here a false timeout, there a HIDDEN detected wedge (rete#260).
+      if echo "$tail_from" | grep "^.*TAP $scenario done" >/dev/null; then
         echo "$tail_from" | grep "TAP $scenario "
         return 0
       fi
@@ -132,7 +135,7 @@ collect::observe() {
     # reported through the stall branch it came out as "no fault, no panic and no
     # reboot" — which on 2026-08-19 was printed eighteen seconds before the dump that
     # refuted it (#223). Neither of those sends the reader to the dump.
-    if echo "$new" | grep -qE "(tuvm|oevm): WEDGE"; then
+    if echo "$new" | grep -E "(tuvm|oevm): WEDGE" >/dev/null; then
       echo "OBSERVE WEDGE: '$scenario' stopped inside the ${window_s}s window and the #215 detector caught it. This is a DETECTED wedge with a dump, not #213's unexplained silence:" >&2
       echo "$new" | grep -E "(tuvm|oevm): WEDGE" | head -2 >&2
       return 1

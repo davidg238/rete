@@ -53,7 +53,9 @@ done
 # legitimately renders 'no frame'. Poll for a rendered grid instead of sleeping a fixed
 # amount — no arbitrary constant, and it fails loudly if the cadence is genuinely dead.
 for _ in $(seq 1 100); do
-  if curl -s "http://127.0.0.1:$PORT/thermal" 2>/dev/null | grep -q "rgb("; then break; fi
+  # grep consumes the stream (no -q): -q's first-match exit would SIGPIPE the
+  # still-writing curl, and pipefail scores the successful probe as a miss (rete#260).
+  if curl -s "http://127.0.0.1:$PORT/thermal" 2>/dev/null | grep "rgb(" >/dev/null; then break; fi
   sleep 0.1
 done
 

@@ -76,12 +76,15 @@ fi
 echo "-- end to end through zephyr/run.sh (aimed at a port that does not exist)"
 GHOST="$TMP/dev/serial/by-id/ghost-$BELL_JTAG"     # matches by substring; no device behind it
 out=$(ESPTOOL_PORT="$GHOST" bash "$RUNSH" --board esp32c6 --flash --node TimerNode.nsl 2>&1); rc=$?
-if [ "$rc" = 2 ] && printf '%s' "$out" | grep -q "is the ship's bell"; then
+# All piped greps consume the stream (no -q): under pipefail a first-match exit
+# SIGPIPEs the writer and 141 flips the check — including the NEGATED one below,
+# where it reads as a false green (rete#260).
+if [ "$rc" = 2 ] && printf '%s' "$out" | grep "is the ship's bell" >/dev/null; then
   ok "run.sh --flash with the bell pinned explicitly: refused, exit 2"
 else
   bad "run.sh did NOT refuse an explicit bell pin (rc=$rc)"; printf '%s\n' "$out" | tail -5 >&2
 fi
-if printf '%s' "$out" | grep -q "west build"; then
+if printf '%s' "$out" | grep "west build" >/dev/null; then
   bad "run.sh built before refusing — the guard is downstream of the build"
 else
   ok "refused before the build, not beside the flash"
@@ -92,8 +95,8 @@ out=$(I_REALLY_MEAN_THE_BELL=1 ESPTOOL_PORT="$GHOST" bash "$RUNSH" \
 # Asserts the door opens and NOT what happens after it: everything downstream is
 # bench-dependent (how many CP2102Ns are plugged in), and pinning that here would
 # make this test go red for a reason that has nothing to do with the interlock.
-if printf '%s' "$out" | grep -q "flashing THE SHIP'S BELL" \
-   && ! printf '%s' "$out" | grep -q "ERROR: .* is the ship's bell"; then
+if printf '%s' "$out" | grep "flashing THE SHIP'S BELL" >/dev/null \
+   && ! printf '%s' "$out" | grep "ERROR: .* is the ship's bell" >/dev/null; then
   ok "the deliberate door opens under I_REALLY_MEAN_THE_BELL=1"
 else
   bad "I_REALLY_MEAN_THE_BELL=1 did not open the door (rc=$rc)"; printf '%s\n' "$out" | tail -5 >&2
@@ -101,7 +104,7 @@ fi
 
 out=$(ESPTOOL_PORT="$TMP/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_40:4C:CA:44:6E:60-if00" \
         bash "$RUNSH" --board esp32c6 --flash --node NoSuchNode.nsl 2>&1); rc=$?
-if ! printf '%s' "$out" | grep -q "ship's bell"; then
+if ! printf '%s' "$out" | grep "ship's bell" >/dev/null; then
   ok "a disposable board is not refused (the guard is not a blanket no)"
 else
   bad "the guard refused a disposable board (rc=$rc)"; printf '%s\n' "$out" | tail -5 >&2

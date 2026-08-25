@@ -19,7 +19,9 @@ done
 # NOTE: KSym_sender legitimately remains in kernel_boot.c (Symbol definition + builtin_registry).
 # We scope the check to ONLY the Method_unwindTo_value__consts[] array block.
 uw_consts=$(awk '/Method_unwindTo_value__consts\[\]/,/};/' ../oevm/src/kernel_boot.c)
-if echo "$uw_consts" | grep -q "KSym_sender"; then
+# grep consumes the stream (no -q) in both checks: under pipefail a first-match
+# exit SIGPIPEs the echo and 141 reads as "no match" — hiding a violation (rete#260).
+if echo "$uw_consts" | grep "KSym_sender" >/dev/null; then
   echo "FAIL: Path B Method_unwindTo_value__consts[] still references KSym_sender"
   fail=1
 fi
@@ -28,7 +30,7 @@ fi
 # "sender" may legitimately appear elsewhere in ns_compile_oevm.py (prim registration etc.).
 # We scope the check to ONLY the selector="unwindTo:value:" add_method block (~25 lines).
 uw_block=$(awk '/selector="unwindTo:value:"/{found=1} found{print; if (/^\s*\]$/ && printed++) exit; printed++}' tools/ns_compile_oevm.py)
-if echo "$uw_block" | grep -q '"sender"'; then
+if echo "$uw_block" | grep '"sender"' >/dev/null; then
   echo "FAIL: Path A ns_compile_oevm.py unwindTo:value: add_method block still contains \"sender\" in constants"
   fail=1
 fi
