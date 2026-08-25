@@ -261,3 +261,19 @@ survives a prune that would otherwise evict it.
 It does not put assets on the space, add a verb, add a table, or add anything to porta's Go
 surface. It does not attempt reproducible builds. It does not version any format: both ends
 are reflashed together, so a shape change here is an edit and a rebuild.
+
+---
+
+## Addendum 2026-08-24 — D8's debuginfod deferral superseded (#256)
+
+David's direction, 2026-08-24: dev tooling is declared Linux-only, and the archive
+SHOULD be served over the debuginfod protocol now rather than when a non-ssh consumer
+appears — the bench's gdb 15.1 is already a native client. Two ordered pieces, filed
+as #256: (1) stamp `NT_GNU_BUILD_ID` into the Zephyr link (`-Wl,--build-id=sha1`) and
+record both ids in the per-build manifest FIRST — every build archived without the
+note is stock-invisible forever; (2) serve `/buildid/<id>/{debuginfo,executable}` +
+`/source/<path>` — stock elfutils debuginfod over the archive directory, or three
+routes on porta's httpsrv, whichever Rung 2's colocation makes cheaper. The nsl
+sidecars stay custom by design (no industry server speaks them); they ride the same
+build-id key per D2. Context: the porta separation-of-concerns ruling recorded on
+rete#243 (porta owns what must outlive any node, build, or developer machine).
