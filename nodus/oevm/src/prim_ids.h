@@ -540,4 +540,18 @@
    failure this exists to prevent. Host tests pass `id:` to PortaBridge directly
    and never read this. */
 #define PRIM_pf_nodeId            155
+/* rete#243: `manifestPin` — the truncated (8-byte) SHA-256 of the MANIFEST.cddl
+   this image was compiled against, baked by zephyr/cmake/gen_manifest_pin.cmake
+   beside the build id. Appended after nodeId; no pre-existing id shifts. 156 was
+   arrived at by COUNTING PRIM_NAMES (155 entries before this append, and the
+   dispatch.c parity guard was advanced in the same commit), not by 155+1
+   arithmetic, per the standing lesson above.
+   Platform-dispatched. Fourth sibling of the provenance triple: buildId names
+   the IMAGE, bootId the RUN, nodeId the BOARD — this names the CONTRACT the
+   image answers to. Answers a RawBytes leaf (the kernel accessor wraps it, on
+   otaRunningHash's precedent) or nil on a build with no pin — a host build, or
+   any pre-manifest image — which reads as "the node cannot say" at obs/build,
+   exactly the absence rule that record already carries. Identifies a manifest
+   against a known set; it does not authenticate one (obs/build.image's rule). */
+#define PRIM_pf_manifestPin       156
 #endif /* OEVM_PRIM_IDS_H */

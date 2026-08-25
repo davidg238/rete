@@ -180,8 +180,14 @@ class ProfileCostNodeC6 usingPlatform: platform net: net = (
        15th registration would silently answer an index the C side ignores. *)
     sHanoi::    spans register: #hanoi.
 
-    space put: 'obs/build' value: (platform Record tag: #Build
-      with: #chip -> self chip with: #build -> platform buildId).
+    (* rete#243: #man is the manifest pin when this image carries one; a pinless
+       build (host, pre-manifest) omits the field — absence means "cannot say". *)
+    (platform manifestPin == nil)
+      ifTrue: [ space put: 'obs/build' value: (platform Record tag: #Build
+          with: #chip -> self chip with: #build -> platform buildId) ]
+      ifFalse: [ space put: 'obs/build' value: (platform Record tag: #Build
+          with: #chip -> self chip with: #build -> platform buildId
+          with: #man -> platform manifestPin) ].
 
     timers:: platform timers.     (* hold ONE instance — it owns the pending registry *)
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].

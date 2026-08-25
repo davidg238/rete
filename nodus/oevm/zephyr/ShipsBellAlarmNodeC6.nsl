@@ -162,8 +162,14 @@ class ShipsBellAlarmNodeC6 usingPlatform: platform net: net = (
            than by the gateway, because the node is the only party that knows its
            own loss rate. 30 s is this node's beat, and the check-in rides it. *)
         bridge liveness: self cadence budget: self cadence * 8.
-        space put: 'obs/build' value:
-          (plat Record tag: #Build with: #chip -> self chip with: #build -> plat buildId).
+        (* rete#243: #man is the manifest pin when the image carries one; a
+           pinless build omits the field — absence means "cannot say". *)
+        (plat manifestPin == nil)
+          ifTrue: [ space put: 'obs/build' value:
+            (plat Record tag: #Build with: #chip -> self chip with: #build -> plat buildId) ]
+          ifFalse: [ space put: 'obs/build' value:
+            (plat Record tag: #Build with: #chip -> self chip with: #build -> plat buildId
+              with: #man -> plat manifestPin) ].
         beatCh:: space channel: 'sys/tick'.
         beatCh whenever: '' do: [ :m | self checkIn ].
         (* rete#231 D1: the KERNEL owns the period. This node's beat IS its

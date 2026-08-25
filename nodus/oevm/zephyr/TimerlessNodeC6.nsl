@@ -101,8 +101,14 @@ class TimerlessNodeC6 usingPlatform: platform net: net = (
           socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
           spans: spans.
         bridge subscribeStream: 'tel/log'.
-        space put: 'obs/build' value:
-          (plat Record tag: #Build with: #chip -> self chip with: #build -> plat buildId).
+        (* rete#243: #man is the manifest pin when the image carries one; a
+           pinless build omits the field — absence means "cannot say". *)
+        (plat manifestPin == nil)
+          ifTrue: [ space put: 'obs/build' value:
+            (plat Record tag: #Build with: #chip -> self chip with: #build -> plat buildId) ]
+          ifFalse: [ space put: 'obs/build' value:
+            (plat Record tag: #Build with: #chip -> self chip with: #build -> plat buildId
+              with: #man -> plat manifestPin) ].
         (* rete#231 D2: this node's promise about its radio, 8 x the base tick. *)
         bridge liveness: self cadence budget: self cadence * 8 ].
 

@@ -3978,6 +3978,17 @@ class Kernel usingPlatform: platform = () (
      this line no app could name its own boot. Answers 0 on a node with no
      persistent storage, which is a value to branch on and not an error. *)
   public bootId            = ( ^ platform bootId )
+  (* rete#243: the CONTRACT the image was built against — 8 bytes of the pinned
+     MANIFEST.cddl's SHA-256, baked beside buildId. Fourth provenance sibling
+     (image / run / board / contract). nil on a pinless build (host, or any
+     pre-manifest image) — obs/build omits #man then, absence meaning "the node
+     cannot say". The prim answers a RawBytes LEAF; the wrap here is
+     otaRunningHash's precedent, and `== nil` not isNil for the same prim-built
+     reason. *)
+  public manifestPin = ( | r |
+    r:: platform manifestPin.
+    r == nil ifTrue: [ ^ nil ].
+    ^ Bytes overRaw: r )
   (* rete#25: the image-push seam (prims 145-150, src/ota.h). Six accessors, no
      policy — an app decides WHICH hash it wants and WHEN to confirm; C owns the
      bytes, because a staged image must never enter the VM heap (design G3).

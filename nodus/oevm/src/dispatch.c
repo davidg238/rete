@@ -873,6 +873,12 @@ enum {
        computed). Appended after panicNoteAck; no pre-existing id shifts.
        Platform-dispatched (mirrored in prim_ids.h). Unconditional, like buildId. */
     PRIM_pf_nodeId,
+    /* rete#243: `platform manifestPin` — the 156th PRIM_NAMES entry (counted, not
+       computed). Appended after nodeId; no pre-existing id shifts.
+       Platform-dispatched (mirrored in prim_ids.h). Fourth provenance sibling:
+       image / run / board / CONTRACT. Answers a RawBytes leaf or nil on a
+       pinless build (host, pre-manifest). */
+    PRIM_pf_manifestPin,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1).
@@ -895,7 +901,7 @@ static const char *const PRIM_NAMES[] = {
    — this catches it at build time instead. C99-safe (no _Static_assert under
    -std=c99): a false condition makes a negative-sized array, which is a hard
    compile error. ADVANCE THIS to the new last id whenever prims are appended. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_nodeId) ? 1 : -1];
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_manifestPin) ? 1 : -1];
 
 /* rete#226 — CLASSIFICATION HAPPENS ONCE, WHERE THE SYMBOL IS MADE.
 

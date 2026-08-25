@@ -1,0 +1,40 @@
+(*
+expect:
+host pin nil true
+bare has man false
+pinned has man true
+pinned man hex 67736576656e6368
+done
+*)
+(* rete#243: `platform manifestPin` and the obs/build #man field.
+
+   On HOST the pin is nil by the #define split in platform.c — a host build has
+   no gen_manifest_pin.cmake TU — so the publisher's conditional must omit #man
+   entirely (absence means "the node cannot say", obs/build's standing rule).
+   The pinned arm is exercised with a stand-in Bytes (minted by round-tripping
+   through the encoder, the one way test code holds a Bytes), because the prim
+   cannot answer bytes here: proving the RECORD shape is this test's half, and
+   proving the baked pin reaches the prim is the board's half (first C6 flash).
+   `== nil`, never isNil: the prim answers a raw leaf. *)
+class BuildManTest packageUsing: manifest = () (
+public main: platform args: args = (
+  | R pin bare pinned m8 |
+  R:: platform Record.
+  pin:: platform manifestPin.
+  ('host pin nil ' , (pin == nil) printString) println.
+
+  bare:: R tag: #Build with: #chip -> #host with: #build -> platform buildId.
+  ('bare has man ' , ((bare at: #man ifAbsent: [ nil ]) == nil) not printString) println.
+
+  (* an 8-byte stand-in: encode a 7-char string -> 1 head byte + 7 = 8 bytes *)
+  m8:: platform Cbor encode: 'sevench'.
+  pinned:: R tag: #Build with: #chip -> #host with: #build -> platform buildId
+             with: #man -> m8.
+  ('pinned has man ' , ((pinned at: #man ifAbsent: [ nil ]) == nil) not printString) println.
+  (* 8 bytes exactly: 0x67 ('sevench''s text head) + the 7 chars. printHex, not
+     size — the Bytes leaf answers printHex; size is not part of its protocol. *)
+  ('pinned man hex ' , (pinned at: #man ifAbsent: [ nil ]) printHex) println.
+  'done' println.
+)
+) : (
+)
