@@ -1,7 +1,12 @@
 # Gatekeeper, and the introspectable space — design note (2026-08-11)
 
-**Status:** decision record, opened. D1 and D2 are David's calls, taken. D3 is the open fork
-this note exists to frame and carries a recommendation, not a ruling. D4–D6 follow from D1.
+**Status: CLOSED 2026-08-22. Superseded on every open fork by
+`porta/docs/design/2026-08-22-gatekeeper-first-cut-design.md`.** This note is kept as the
+*why* — the reasoning that produced the questions. It is no longer the *what*; where the two
+disagree, the successor wins. Dispositions are marked inline below (§5, §6, §9, §10).
+
+When opened, this was: a decision record with D1 and D2 taken, D3 the open fork it existed
+to frame, and D4–D6 following from D1.
 
 **Not a plan.** Nothing here is scheduled. The last section names the cheapest thing that
 would replace the guesswork with fact, and that is deliberately the only next step proposed.
@@ -142,7 +147,10 @@ cheap. Recording that here so the deferral is falsifiable rather than vague: *th
 (c) is a real query, over a real month of a real node's history, that (b) cannot answer
 inside an interactive latency budget.* No such query has been run.
 
-**This decision is David's to ratify. It is written as a recommendation.**
+**RATIFIED (David, 2026-08-22): (b), with (c) held in reserve and (a) rejected.** The
+measurement the reserve was conditioned on has since been run — 404,790 `sys/metrics` records
+decode in **419 ms**, 1.16 s including I/O, against the worst slice that exists. (c) is not
+needed. Successor §7.
 
 ## 6. D4 — the payload is the READING RULES, not the schema
 
@@ -186,6 +194,12 @@ instantaneous sample."*
 **This knowledge exists today and is unreachable**, living in issue comments, `CLAIMS.md`
 rows and design addenda. Making it addressable is most of the value of the whole idea.
 
+**UNDERSTATED, corrected 2026-08-22.** The fourth rule above says "a node id is a slot, not a
+board". The store demonstrates the converse as well — **a board is not one id**: boot counters
+prove `c6-bench` → `c6-timerless` → `c6spare` are one device, and `c6-bell` → `c6` another. An
+aggregate keyed on a node id is wrong in *both* directions, and the fix is a derived lineage
+rather than a segmentation rule. Successor §5.
+
 ## 7. D5 — schema and rules are per-BUILD, held northbound, generated not written
 
 - **Per-build, not per-node.** Every node on a given build has the same record shapes. porta
@@ -215,16 +229,27 @@ Build the substrate. The agent is then whatever asks it, and needs no privileged
 
 ## 9. What this note does NOT decide
 
+**All five were decided on 2026-08-22. Dispositions in brackets.**
+
 - Whether gatekeeper is a porta subsystem or a separate process that reads porta. (Instinct:
   separate, because D1's whole point is that porta is sheltered and gatekeeper is exposed —
   but that is an instinct, not a decision.)
+  **[Separate process, same Go module so it shares `cval`. The instinct was right.]**
 - The porta↔gatekeeper interface shape.
+  **[A snapshot FILE, not a database handle — `porta snapshot` + `immutable=1`. This also
+  dissolves the sheltered/exposed tension, because a file can live anywhere. Successor §2.]**
 - Whether "agent-first" means the compact machine surface is primary and the human view is
   derived from it. **If yes, it settles rete#197's display question in the same stroke** —
   short keys are the surface, and the annotated human view is a rendering of the descriptor
   table rather than a separate concern.
+  **[Yes. rete#197 is settled: the keys are the surface, the human view is a rendering.]**
 - Retention: how much history porta keeps, which bounds every aggregate query.
+  **[Retain until there is a reason to delete. No bound, so §7's arithmetic is what keeps
+  unbounded aggregates honest.]**
 - Anything about identity mechanism, transport or deployment.
+  **[Identity partly decided: device is `platform nodeId`, ROLE is `goal/name` and optional,
+  lineage is derived. Whether the device id becomes hardware-rooted is rete#242. Auth (G5)
+  and deployment remain undecided.]**
 
 ## 10. The only next step proposed: five questions against the store as it stands
 
@@ -236,6 +261,10 @@ try to answer them against today's store:
 3. Did any node's GC arena grow over its last soak.
 4. What changed between build A and build B on the same node.
 5. Which nodes are stale, and why — never checked in, checked in and rejected, or wedged.
+
+**RUN 2026-08-22.** The five questions became the successor's acceptance tests (§10 there),
+and the prediction below is recorded as a test expectation rather than as prose — so it fails
+loudly if it was wrong.
 
 **What blocks each one is the design input.** The prediction, recorded so it can be wrong:
 (2) and (5) are already answerable by tree/exchange queries; (1) and (3) need value

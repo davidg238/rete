@@ -1,0 +1,459 @@
+# Gatekeeper — the first cut (design, 2026-08-22)
+
+**Status:** decision record, closed on every fork it opens. Successor to
+`2026-08-11-gatekeeper-and-the-introspectable-space-design.md`, which is now history: its
+D3 is ratified, its §9 "does not decide" list is decided, and one of its five reading
+rules turned out to be understated. Read that note for the *why*; read this one for the
+*what*.
+
+**This is a design, not a plan.** The implementation plan follows separately.
+
+---
+
+## 1. What was ratified (David, 2026-08-22)
+
+| ref | decision |
+|---|---|
+| D1 | porta is OPERATIONS; gatekeeper is the query and authority surface. **Taken 2026-08-11.** |
+| D2 | the meta level is answered by the same read as the object level. **Taken 2026-08-11.** |
+| D3 | **(b)** — the query layer decodes; the store stays opaque. (c) held in reserve, (a) rejected. |
+| D4 | the payload is the READING RULES, not the schema. |
+| D5 | schema and rules are per-BUILD, held northbound, generated not written. |
+| D6 | the agent is the client, not the help desk. |
+| §9.1 | gatekeeper is a **separate process**. |
+| §9.3 | **the compact machine surface is primary**; the human view is a rendering of the descriptor table. This settles rete#197's display question. |
+| §9.4 | **retention: retain until there is a reason to delete.** No retention bound, so every aggregate is unbounded and §7's measurements are what keep that honest. |
+
+Two things the 2026-08-11 note got wrong, corrected here rather than preserved alongside:
+
+- **D5's "generated not written" cannot cover the reading rules.** The field *skeleton* is
+  genuinely generatable — `Kernel>>metrics` in `nodus/nsl/lib/kernel.nsl` lists the wire
+  symbols in wire order, and that is the authority, not the prose. But *meaning*, *unit*,
+  *validity* and *segmentation* exist only as narrative. §4 below replaces "generated" with
+  **generated skeleton + authored rules + a completeness gate**, which is stronger than
+  either half: a wire field with no descriptor entry fails the build.
+- **§6's fourth reading rule is understated.** It says "a node id is a slot, not a board".
+  The store now also demonstrates the converse — *a board is not one id*. See §5.
+
+---
+
+## 2. Topology: the interface is a snapshot file
+
+**The porta↔gatekeeper interface is a file, not a database handle.** This is the load-bearing
+piece the 2026-08-11 note flagged and declined to settle.
+
+- `porta snapshot --out snap-<ts>.db` — porta owns the store, so producing a consistent
+  point-in-time copy is porta's job and an operations job (D1). `VACUUM INTO` yields a
+  compacted, self-contained file off a live WAL database without blocking the writer.
+- gatekeeper opens that snapshot with **`immutable=1`**, which is *true* of a snapshot and
+  false of a live store. The file needs no `-shm` write, so it can be `chmod a-w` or owned
+  by another user.
+
+### 2.1 Why not simply open porta's store read-only
+
+Measured 2026-08-22, and the result is why this section exists at all:
+
+| test | result |
+|---|---|
+| `mode=ro` on a WAL db, directory writable | reads fine — **and creates `-shm` and `-wal`** |
+| OS-level read-only (`chmod a-w` on file *and* directory) | `attempt to write a readonly database` — **cannot read at all** |
+| same, plus `immutable=1` | reads, and writes nothing |
+
+So: **SQLite's `mode=ro` is a promise SQLite keeps, not a capability the process lacks** —
+the process still holds write permission on the file. A genuine OS-level boundary cannot
+read a live WAL store, because a WAL reader must write `-shm`. And `immutable=1` buys the
+boundary by asserting something false about a live store, which yields silently wrong reads
+rather than errors.
+
+A snapshot dissolves all three: the assertion is true, the boundary is real, and the file
+can live anywhere. **Gatekeeper therefore does not have to run on the gateway** — which
+removes the tension between D1's "porta sheltered, gatekeeper exposed" and any design where
+the exposed process needs a handle on the sheltered one.
+
+Two further hazards a read-only handle would not have addressed:
+
+- **Contention.** A long scan holds a read snapshot, which blocks WAL checkpointing. The
+  live store's WAL is already 152 MB against a 400 MB database. An unbounded historical
+  query against the operational store is an operational hazard *caused by reading*.
+- **Availability.** `select * from events a, events b` is 2.8 × 10¹² rows, entirely legal
+  and entirely read-only. Read-only is no guard here whatsoever.
+
+### 2.2 Three connections, and why "delete all" is unreachable rather than blocked
+
+| conn | target | mode | who writes statements |
+|---|---|---|---|
+| **R** | snapshot (or, for `live`, porta's store) | `immutable=1` / `mode=ro` | gatekeeper's materializer only |
+| **W** | scratch db, fresh per query, **on disk** | read-write, private | gatekeeper's materializer only |
+| **Q** | the same scratch db | `_query_only` + authorizer | **the user / the agent** |
+
+The load-bearing guard is the topology: the only database reachable from a query anyone
+types is a scratch db built for that one query and discarded after it. `DELETE FROM events`
+is not denied — there is no `events` on that connection, and no path from Q to any store.
+
+On top of the topology, the authorizer on Q permits only `SQLITE_READ`, `SQLITE_SELECT` and
+`SQLITE_FUNCTION`. `ATTACH`, `DETACH`, `PRAGMA` and `load_extension` are denied by action
+code; `ATTACH` is the one that would otherwise reach back out to the filesystem, and it is
+why the authorizer is not optional even given the topology.
+
+Scratch goes **on disk, never `:memory:`**: gw85224-01 has 3.7 GB of RAM with 182 MB free
+and 1.7 TB of disk. OOMing the box that runs the fleet is a worse outcome than a slow query.
+
+### 2.3 Resource guards, which read-only never provided
+
+- a wall-clock deadline per query → `sqlite3_interrupt`
+- `SetLimit` on expression depth, compound-select and VDBE ops; `hard_heap_limit` on Q
+- a row cap on results and a byte cap on the scratch file
+- the materializer's table and column names come **only from the descriptor table, never
+  from query text** — W is read-write by design, and it is the one place injection matters
+
+`tel/log` text is node-authored and rides into result sets. It is data, never instruction,
+and gatekeeper labels it as such on the way out — the MCP front means an agent writes the
+SQL, so this is a live concern rather than a theoretical one.
+
+### 2.4 Two bindings
+
+| binding | source | contents | why |
+|---|---|---|---|
+| `snap` | immutable snapshot | `events` (1.7 M), decoded record tables, all history | unbounded; must not touch the live store |
+| `live` | live store, `mode=ro`, bounded tables only | `cells` (89 rows), `nodes` (6), recent `exchanges` | "stale **right now**" must not be answered from a file |
+
+The split is from the data, not from taste. It is also not hypothetical caution: rete#225 is
+the failure where `gw/liveness` read `#live` for ten hours and six minutes while `c6-bell`
+missed every check-in. A staleness answer computed from yesterday's snapshot reproduces that
+bug by construction. The `live` binding exposes only bounded tables, so no query written
+against it can scan 1.7 M rows — the boundedness is structural, as in §2.2.
+
+---
+
+## 3. The query pipeline: the authorizer is also the planner
+
+D3(b) means gatekeeper must decode before it can aggregate, and a general SQL surface means
+it does not know *what* to decode until the query is parsed. That is circular — except
+SQLite already solves it. The authorizer fires during `prepare` and reports every
+`(table, column)` a statement reads.
+
+1. **Build a schema-only scratch db** — every logical table, empty, columns generated from
+   the descriptor table. This step *is* §4's completeness gate.
+2. **Prepare the user's SQL against it**, authorizer recording. Two jobs at once: it rejects
+   anything that is not a read, and it yields the exact table/column set the query needs.
+3. **Materialize only those**, scanning and decoding from R.
+4. **Re-prepare and run.**
+
+**No predicate pushdown in the first cut.** Materialize the whole referenced slice and
+measure it (§7). Pushdown is earned by a measurement, not assumed.
+
+### 3.1 Every answer carries its reading rules
+
+Because step 2 knows exactly which columns a result touched, **every answer returns the
+descriptor notes for every column it touched** — not a lookup the caller must remember, not
+a heuristic refusal, but riding with the data:
+
+```
+{ "binding": "snap", "snapshot_ms": 1787446515059,
+  "columns": [...], "rows": [...],
+  "notes": [ { "column": "lfb",
+               "validity": "invalid as a point sample; use max() per gcc bucket, discard the first ~5 cycles",
+               "segment":  ["obs/build"],
+               "refs":     ["rete#153"] } ],
+  "truncated": false }
+```
+
+This is D4's whole payload delivered structurally. `select median(lfb) …` returns the median
+*and* the reason the median is not the gauge. A help desk that returns data without the rule
+for reading it industrialises error at machine speed; this is the cheapest thing that does
+not.
+
+The dictionary is queryable by the same read as everything else —
+`select * from descriptors where key = 'lfb'` — which is **D2 landing rather than being
+asserted**.
+
+---
+
+## 4. Tables, views and descriptors
+
+### 4.1 Structural tables
+
+`events`, `cells`, `exchanges`, `nodes`, `gw_runs` pass through near-verbatim. `cells` gains
+a **`stale` column** computed exactly as `porta get`'s `isStale` does, so the rete#210
+mixed-read hazard is a column rather than a banner a pipe can eat.
+
+### 4.2 Decoded record tables
+
+One per record-bearing path, columns generated from descriptors:
+
+```
+sys_metrics (node_id, ts_ms, boot_id, seq, hsz lb hhw lfb gcc hnl hnhw qhw ovr pdr pco pst)
+sys_cheap   (node_id, ts_ms, boot_id, seq, ob ohw alc fre fal)
+obs_health  (node_id, ts_ms, boot_id, seq, up bid wak pto sdr ref)
+obs_build   (node_id, ts_ms, boot_id, chip build sdk image)
+obs_liveness(node_id, ts_ms, boot_id, cad bud)
+sys_reset   (node_id, ts_ms, boot_id, reason code bootId)
+tel_log     (node_id, ts_ms, level, text)
+sys_latency (node_id, ts_ms, boot_id, span n fails minUs maxUs sumUsLo sumUsHi b0..b5)
+```
+
+### 4.3 Views — §6's payload made executable rather than quotable
+
+- **`gc_cycle` / `gc_envelope`** — group by `(node, build, gcc)`, `max(lfb)`, `min(lb)`;
+  `gc_envelope` additionally discards the first ~5 cycles per boot. rete#153's three rules
+  as SQL nobody can forget to apply.
+- **`boot`** — `(node_id, boot_id, first_ms, last_ms, build, reset_reason)`. The
+  segmentation unit, and rete#208's lesson made structural.
+- **`device`** — the identity lineage, §5. **Derived, not authored.**
+- **`role`** — `(role, node_id, from_ms, to_ms, actor, reason)`, derived from `goal/name`
+  events. §5.
+- **`convergence`** (`live`) — `goal/X` vs `obs/X`, which is already a tree diff.
+- **`staleness`** (`live`) — with `why` separating *never checked in* / *refused* / *wedged*.
+  The discriminator is `obs_health.ref`, because rete#199 established that `misses` counts
+  no-reply, so a uniformly refused node reads `misses 0` all the way to its death.
+- **`device_conflict`** — §6.
+
+`alc − fre` gets no view. It gets a **validity rule** on both columns, because
+`oevm_realloc` bumps `allocs` and never `frees`, so the subtraction is inflated rather than
+wrong in a way a view could fix.
+
+### 4.4 The descriptor table
+
+Authored at **`protocol/descriptors/records.yaml`** — beside the catalogue it annotates,
+because adjacency is what keeps the drift gate obvious. (A judgement call; the file is
+northbound-only, which argues for `porta/`, and it describes wire records, which argues for
+`protocol/`. Reversible.)
+
+```yaml
+lfb:
+  record:   Metrics
+  path:     sys/metrics
+  name:     largestFreeBlock
+  meaning:  largest contiguous free block in the GC arena
+  unit:     bytes
+  kind:     instantaneous
+  validity: >
+    INVALID as a point sample. The GC fires only on arena exhaustion, so the sample
+    before a collection reports what the FAILING allocation left behind. Use max()
+    per gcc bucket; discard the first ~5 cycles of a boot; do not fit a trend to a
+    window shorter than ~5 h. min(lfb) is not a gauge at all.
+  segment:  [obs/build]
+  refs:     [rete#153, "review/tests/CLAIMS.md"]
+```
+
+**The completeness gate is a Go test**, not a new script: it parses the record builders in
+`nodus/nsl/lib/kernel.nsl`, extracts the field symbols in wire order, and fails if any lacks
+a descriptor entry or if the order disagrees. It runs under `go test ./...`, which is already
+a gate — no new gate to remember, which is the whole point.
+
+This is what makes D5 honest: the skeleton is generated and cannot drift; the rules are
+authored once, in one place, and cannot be silently incomplete.
+
+---
+
+## 5. Identity: device, role, lineage
+
+### 5.1 The finding
+
+**The pre-#186 ids were roles.** `c6-bench` is "the bench soak node", `c6-bell` is "the ships
+bell", `c6-timerless` is a liveness scenario. #186 replaced a role-shaped id with a
+device-shaped one, which is why the history split on 2026-08-22. The two-level model was not
+missing; the system had level one and traded it for level two.
+
+And `goal/name` — porta-authored, node-echoed at `obs/name`, append-only in `events`, already
+carrying `actor` and `reason` — is level one's path, currently set to a copy of the id and
+therefore carrying no information at all.
+
+### 5.2 The mechanism: role is `goal/name`, and it is optional
+
+- **Device id** stays `platform nodeId`, build-time, self-asserted (#186). A developer
+  flashes a board and it appears with a space. **Commissioning cannot get in the way of
+  bring-up because it is not on the path** — the answer is not to add a step, it is to make
+  the step optional.
+- **Commissioning is one write:** `porta put c6bench goal/name "bathroom-1"`. Whether it took
+  is `goal/name` vs `obs/name` — the convergence diff that already exists.
+- **Uncommissioned is a legal, honest state.** Absent `goal/name` means "this device has no
+  role", the same posture as `obs/build`'s omitted `sdk`: absence means the system cannot
+  say. Dev boards live there permanently and nothing complains.
+- **Role history is the `goal/name` rows in `events`.** A board dies, the role is written to
+  its replacement, and the log records when and by whom. **No new table, no new path, no new
+  mechanism** — which is what #186 ruled out ("a table that disagrees with the collector's is
+  #170").
+
+Roles are also the right **federation key**: `bathroom-1` means something across gateways;
+`c6bench` does not.
+
+**Uniqueness** — two devices holding one role is a commissioning error, detected by a
+`role_conflict` view rather than enforced at write. Enforcing means porta learning that one
+path is special, which is what D2 forbids. Revisit if a conflict ever produces a wrong answer.
+
+### 5.3 The lineage is derived, and here is the evidence
+
+The persisted per-board boot counter is a **device fingerprint**. Merging `exchanges.boot_id`
+by arrival time over `soak-2026-08-04.db`:
+
+```
+118 c6-bench      121 c6-bench      124 c6-bench      125 c6spare
+119 c6-timerless  122 c6-timerless                    126 c6spare
+120 c6-timerless  123 c6-timerless
+```
+
+118 → 126 is **gapless, interleaved across three node ids, and never overlapping in time**.
+Likewise `c6-bell` boot 8 (last 17:36 MST) → `c6` boot 9 (first 17:37). And `c6bench` runs
+boots 1/2/3 *concurrently* with `c6spare`'s 125/126.
+
+| board | ids it has answered to |
+|---|---|
+| A | `c6-bench` → `c6-timerless` → `c6spare` |
+| B | `c6-bell` → `c6` |
+| C | `c6bench` (fresh counter, no prior history) |
+
+Three boards, matching the three on the bench. **The invariant: merged sequence gapless and
+non-overlapping ⇒ one device; overlapping ⇒ two.**
+
+Because this is derived, the `device` view is computed rather than curated, and #186's
+no-mapping-table rule holds with no exception.
+
+---
+
+## 6. Duplicate device detection
+
+Because the id is baked from `--board`, flashing one board's image onto another makes it
+announce the same id — which is #186's own damage ("36,153 events in one space from at least
+two boards").
+
+**`device_conflict` is a view, and it ships in this rung.** Its rule is §5.3's invariant run
+in the other direction: a node id whose merged boot sequence *overlaps in time* is two
+devices. Corroborated by `obs/build` and `last_addr` alternating within a window. It costs
+nothing, it catches duplicates regardless of who flashed — including ones predating porta —
+and it is what found #186's damage in the first place.
+
+**Flash-time prevention is a later layer, never a replacement.** When porta orchestrates
+flashing it will know which baked id went to which USB `by-id` serial, and a second flash of
+one id to a different serial is catchable. But it only sees flashes porta performed; a
+hand-flashed board or one already in service is invisible to it. Shipping only that produces
+a green light that is not warranted.
+
+**A hardware-rooted id would make duplicates impossible rather than detected**, and §5.2
+removed #186's main objection to one. That is **rete#242**, filed as its own decision because
+it is a wire change. This rung does not depend on its outcome: detection ships either way.
+
+---
+
+## 7. Measurements
+
+All taken 2026-08-22 against the live `soak-2026-08-04.db` (400 MB, 1,696,916 events,
+897,490 exchanges, 89 cells, 6 nodes) on gw85224-01.
+
+| step | cost |
+|---|---|
+| `VACUUM INTO` snapshot | **5.6 s**, 400 MB → 352 MB, source WAL untouched |
+| open snapshot `immutable=1` under `chmod a-w` | reads; **wrote nothing** |
+| scan worst slice (`c6-bench` / `sys/metrics`, 404,790 rows) | **0.83 s** |
+| fetch all 404,790 blobs (47.9 MB) | **1.27 s** on the gateway, 745 ms on the workstation |
+| **decode 404,790 records through `cval`** | **419 ms** — 1.035 µs/record, 4,567,955 fields |
+| **fetch + decode, end to end** | **1.16 s** |
+| copy the 352 MB snapshot gateway → workstation | 8.5 s (~41 MB/s over Tailscale) |
+
+The decode run was executed **on the workstation, against a copied snapshot file**, which is
+the end-to-end confirmation of §2.1's claim that gatekeeper does not have to run on the
+gateway.
+
+**A snapshot is a background chore, not a query cost.** Hourly is trivial; on demand is fine.
+
+**D3(b) holds and (c) stays unbuilt.** The 2026-08-11 note recorded the trigger for (c) as
+"a real query, over a real month of a real node's history, that (b) cannot answer inside an
+interactive latency budget". That query has now been run against the worst slice that exists,
+and the answer is **1.16 s** — decode is 419 ms of it, so decode was never the cost the note
+worried it might be. The reserve is not needed and the deferral was correct.
+
+**Decode is 36% of the cost and I/O is 64%**, which also says where pushdown would pay if it
+is ever earned: narrowing the scan, not speeding the codec.
+
+**The scaling trigger, quantified.** 404,790 rows is `c6-bench` at a **2 s developer
+cadence**, not a deployment one. Fifty nodes at the bell's 30 s cadence is ~4.3 M rows per
+record-path per month per gateway — about 10× today, and the first point at which predicate
+pushdown or D3(c) is earned. It is synthesizable now, so that trigger is measurable rather
+than vague. Not built.
+
+---
+
+## 8. Federation
+
+A gateway serves a cluster of <50 nodes and produces snapshot files. Gatekeeper federates by
+reading N snapshots, or by fanning out to N gatekeepers and merging. **Aggregation and
+federation, not a godzilla-sized database in the sky** (David, 2026-08-22).
+
+The snapshot interface is what makes this possible rather than aspirational: a snapshot is a
+file, so a federation member is an argument, not an integration. It also gives attenuation
+its shape — an attenuated capability is a **narrower snapshot**, not a filter applied at read
+time.
+
+Not built in this rung. Named so the first cut does not foreclose it.
+
+---
+
+## 9. Surface
+
+One query core; two thin fronts; **separate process** (§9.1), **same Go module**
+(`porta/cmd/gatekeeper` + `porta/internal/gate`) so it shares `cval`. A second CBOR codec
+here would be a defect, not a convenience — the algebra's map keys are tagged values and the
+decode is deliberately closed.
+
+```
+gate sql "<query>" [--binding snap|live] [--snapshot PATH]
+gate describe <key|record>          # sugar over: select * from descriptors
+gate tables                         # the logical schema
+gate mcp                            # serve MCP over stdio
+```
+
+MCP tools, three: `space_sql`, `space_tables`, `space_describe`. Stdio only, so there is no
+network surface and **G5/auth stays deferred honestly rather than half-built**. When it
+lands it lands here, per D1, and the nsl capability model — rooted path prefixes that can
+only be attenuated — is the shape to reuse.
+
+Per §9.3 the compact keys are the surface. `gate describe` renders the human view *from the
+descriptor table*, which is what makes rete#197's rename a display concern rather than a wire
+concern.
+
+---
+
+## 10. Acceptance
+
+The five questions from the 2026-08-11 note §10, each a test against a small committed
+fixture snapshot **and** a recorded run against the real store:
+
+1. Median free memory for node XYZ over the last month → must return the `gc_envelope`
+   gauge, and must carry `lfb`'s validity note.
+2. Which nodes disagree with their `goal/` tree right now → `live` binding, `convergence`.
+3. Did any node's GC arena grow over its last soak → `gc_envelope`, segmented by `boot` and
+   `obs/build`, and must refuse to fit a trend to a window under ~5 h.
+4. What changed between build A and build B on the same node → `boot` × `obs_build`.
+5. Which nodes are stale, and why → `live`, `staleness`, with `why` distinguishing the three.
+
+**The note's prediction was that (2) and (5) were already answerable, (1) and (3) needed
+projection plus the reading rules, and (4) needed build segmentation.** That prediction is
+recorded as a test expectation, not as prose: if it fails, this design is wrong and not
+merely incomplete.
+
+Tests first, per the project's TDD posture. The completeness gate (§4.4) and the
+`device_conflict` invariant (§6) each get their own test, because both are instruments and
+an untested instrument reads green while dead.
+
+---
+
+## 11. What this does not decide
+
+- **Auth (G5).** It has a home (§9) and a model to reuse, and no implementation.
+- **Whether the device id becomes hardware-rooted** — rete#242.
+- **Predicate pushdown and D3(c).** Triggers quantified in §7; neither built.
+- **Federation mechanics** — §8 names the shape, nothing more.
+- **Whether `protocol/descriptors/` is the right home** for the descriptor file (§4.4).
+- **Retention.** Ratified as "retain until there is a reason to delete", so there is no
+  mechanism here — and §7's arithmetic is what will eventually supply the reason.
+
+---
+
+**Refs:** `porta/docs/design/2026-08-11-gatekeeper-and-the-introspectable-space-design.md`
+(the opened note this closes), rete#198 (the tracking issue), rete#242 (hardware-rooted id),
+rete#186 (build-time id, and the cut-over), rete#197 (wire labels; §9.3 settles its display
+question), rete#153 (`largestFreeBlock`), rete#199 (`ref` vs `misses`), rete#208 (per-boot
+segmentation), rete#210 (mixed reads), rete#225 (a frozen liveness verdict), rete#170 (a
+table that disagrees with the collector's),
+`porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md` (D2, D4.1, D4.5, D8),
+`protocol/PROTOCOL-NSL-RECORDS.md` §4.
