@@ -27,7 +27,7 @@ NSROOT = os.path.dirname(HERE)
 # Honor OEVM_DIR (as run_tests_oevm.py does) so branch worktrees gate against
 # their OWN VM — compiler and VM must come from the same branch or lowering
 # changes run new bytecode on an old VM ("unknown opcode").
-OEVM = os.environ.get("OEVM_DIR") or os.path.join(NSROOT, "..", "tuvm")
+OEVM = os.environ.get("OEVM_DIR") or os.path.join(NSROOT, "..", "oevm")
 APP = os.path.join(NSROOT, "..", "tests", "04_somns_basic", "46_debug_target.nsl")
 BINARY_A = "/tmp/oevm_debugger"
 BINARY_B = "/tmp/oevm_img"

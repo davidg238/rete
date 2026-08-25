@@ -1,0 +1,256 @@
+(*
+PortaBridgeNode — the space-sync check-in loop, minimal. Binds a UDP socket, holds
+ONE PortaBridge, and on each tick: check in with the gateway, then publish what this
+node observes. Nothing else is on this node on purpose — the gate is the protocol,
+and a second concern would make a failure ambiguous. A fresh minimal node and NOT
+the shipsBells rig, which is entangled with the DS3231, the strike driver and #105's
+boot-energise defect.
+
+The convergence demo is one line and it is the whole argument: `goal/name` arrives
+from porta, `obs/name` is written back, and `porta get` shows the two agree. There is
+no reconcile mechanism anywhere in this file — the diff IS the view.
+
+Cadence is a fixed 2 s here. The adaptive controller (freshness and request-latency
+pull up, fleet load pulls down, liveness sets the floor) is node POLICY and lands
+with the mode record; a constant is the honest placeholder.
+
+Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
+reaction block is a one-line self-send (the LD_SLOT gotcha).
+expect (console):
+PORTA NODE READY
+*)
+class PortaBridgeNode usingPlatform: platform net: net = (
+  | space bridge timers profChan ticks ::= 0. profTok ::= nil.
+    (* tuvm#107: the span table. ONE window per boot — see `main:args:`. *)
+    spans capture sTick sCheckIn sPublish capturing ::= false. |
+) (
+  (* rete#186 DELIBERATELY KEEPS A LITERAL, where the four C6 apps now answer
+     `platform nodeId`. The rule is "the id is the board" and this node has no board:
+     it is the HOST twin, and on host `platform nodeId` answers "host", which would be
+     the same slot-shaped answer for every host node at once — the exact defect #186 is
+     about, moved rather than fixed. `tests/porta_sync_host.sh` also pins NODE=bench-node.
+     If a second host node ever needs an identity, give it one here; do not reach for
+     the board seam, which has nothing to answer with. *)
+  nodeId    = ( ^ 'bench-node' )
+  gwAddr    = ( ^ '127.0.0.1' )
+  gwPort    = ( ^ 16969 )
+  (* NOT 16970, which is gwPort+1 and therefore porta's BLOCK plane (#25 design
+     §2: the bulk listener sits one port above the exchange). On the C6 that is
+     porta's host and not the node's, so PortaBridgeNodeC6 keeps 16970 — but
+     this is the HOST twin and porta_sync_host.sh runs both ends on loopback,
+     where the two ports are the same port. Before #25's block server existed,
+     the node won that bind; after it, `porta serve` takes it first and the node
+     dies with `bind` at [6/8]. Anything the node binds must stay clear of
+     porta's exchange..exchange+1 band. *)
+  localPort = ( ^ 16979 )
+  cadence   = ( ^ 2000 )   (* ms between check-ins *)
+  (* Build provenance, so an agent can tell which code is on which node. `chip`
+     is a source constant because it is a build fact; `build` (obs/build, below)
+     carries the string #74 gave the node to name its own build — "host" here,
+     since this is the host twin of the C6 bridge and platform buildId answers
+     the host #define, not a git describe. `sdk` and `image` are still OMITTED
+     — #74 covers only the build id, not those — and absence means "the node
+     cannot say", which is honest and is not a default. *)
+  chip      = ( ^ #host )
+
+  public main: platform2 args: args = (
+    | sock tickChan |
+    space:: platform space.
+    sock:: net udpBindPort: self localPort.
+    sock == nil ifTrue: [ ^ self fail: 'bind' ].
+    (* The ONE Spans for this image, minted BEFORE the bridge because the bridge
+       registers its own six slots at construction. Two instances would both
+       allocate from 2 and silently share samples. *)
+    spans:: platform Spans new.
+    bridge:: platform PortaBridge
+      socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
+      spans: spans.
+    bridge subscribeStream: 'tel/log'.
+    bridge subscribeStream: 'sys/reset'.
+
+    (* rete#231 D2: this node's own promise about its radio. The budget is 8 x the
+       cadence — #215's measured slack, chosen HERE by the node rather than by the
+       gateway, because the node is the only party that knows its own loss rate. *)
+    bridge liveness: self cadence budget: self cadence * 8.
+
+    (* tuvm#107 landed, so the span cells fit the 256 B cap and `diag/**` is in the
+       bridge's outbound cell scan. No subscribeStream: here — these are CELLS.
+
+       ONE window per boot, closed by an event this node can name for itself: the
+       first tick on which the gateway has ACKED something (`bridge acked > 0`), so
+       the window is exactly "boot until the round trip is proven". No period, no
+       tunable — a repeating window would need one, and there is no data yet to
+       choose it from. After the window the cells stop changing, `changedSince:`
+       stops returning them, and the steady-state wire cost is zero.
+
+       Remote control of the window is a different question, blocked on tuvm#159:
+       porta may write only goal/** and dbg/req, so it cannot drive diag/spans/ctl. *)
+    (* `spans` was minted above, with the bridge, which holds slots 2-7 for its own
+       six-way decomposition of checkIn; these three land at 8-10. *)
+    sTick::     spans register: #jobTick.     (* the whole timer -> publish job *)
+    sCheckIn::  spans register: #checkIn.     (* pull + push, the network round trip *)
+    sPublish::  spans register: #publish.     (* the health and log writes *)
+    capture::   platform SpanCapture onSpace: space spans: spans.
+    capture start.
+    capturing:: true.
+    (space channel: 'diag/spans/ctl')
+      put: '' value: (platform Record tag: #SpanCtl with: #state -> #running).
+
+    (* porta's writes land as ordinary cell writes, so the echo is an ordinary
+       reaction — there is no protocol handler anywhere in this node. *)
+    (space channel: 'goal/name') whenever: '' do: [ :v | self nameChanged: v ].
+
+    (* #165 D2: react to porta's dbg/req. The kernel already accepts this path
+       (mayApply:) and already delivers it as a stream (space out:), so nothing
+       inbound changes — this is just a reader, exactly like the goal/name
+       reaction above. *)
+    (space channel: 'dbg/req') whenever: '' do: [ :v | self dbgReq: v ].
+
+    (* D6: the end-of-window signal. Timers post a MESSAGE to a CHANNEL — there
+       is no after:do: — so the window's end is an ordinary channel event. *)
+    profChan:: space channel: 'sys/profileEnd'.
+    profChan whenever: '' do: [ :m | self profileWindowEnd ].
+
+    space put: 'obs/build' value: (platform Record tag: #Build
+      with: #chip -> self chip with: #build -> platform buildId).
+
+    timers:: platform timers.     (* hold ONE instance — it owns the pending registry *)
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    tickChan:: space channel: 'sys/tick'.
+    tickChan whenever: '' do: [ :m | self tick ].
+    (* rete#231 D1: the KERNEL owns the period now. The app still owns what a tick
+       DOES — its reaction on this channel is unchanged — but the registration is
+       the bridge's, so the deadline #215's observer reads from
+       timer_target_snapshot exists even for an app that declares no timer of its
+       own, and a heartbeat this node stops emitting when it wedges is a heartbeat
+       whose absence means something. The bridge is HANDED this instance: two
+       Timers alias each other's tokens and drop every dispatch silently. *)
+    bridge startTicking: timers on: tickChan.
+
+    'PORTA NODE READY' println.
+    [ true ] whileTrue: [
+      platform pumpEvents.        (* blocks until the cadence timer fires *)
+      space drain ].
+    ^ 0
+  )
+
+  (* One check-in, then one report. In that order: applying goal/** first means the
+     health this node publishes describes the state porta just asked for, not the
+     one before it. *)
+  tick = (
+    ticks:: ticks + 1.
+    spans begin: sTick.
+    spans begin: sCheckIn.
+    bridge checkIn.
+    spans end: sCheckIn.
+    spans begin: sPublish.
+    self publishHealth.
+    space out: 'tel/log' value:
+      (platform Record tag: #Log with: #lvl -> #info
+                                 with: #txt -> ('tick ' , ticks printString)).
+    spans end: sPublish.
+    (* jobTick closes BEFORE the window does, so the tick that ends the window is
+       itself measured — otherwise the last sample would be the one missing. *)
+    spans end: sTick.
+    self closeWindowIfAcked.
+    ^ self
+  )
+
+  (* tuvm#107: writing #stopped is what makes SpanCapture publish the per-slot cells
+     and the { n, ms } summary; they ride the NEXT check-in's push. Guarded by
+     `capturing` because #stopped while already stopped is ignored by SpanCapture,
+     but the cell write itself is not free and this runs every tick forever. *)
+  closeWindowIfAcked = (
+    capturing ifFalse: [ ^ self ].
+    bridge acked > 0 ifFalse: [ ^ self ].
+    capturing:: false.
+    (space channel: 'diag/spans/ctl')
+      put: '' value: (platform Record tag: #SpanCtl with: #state -> #stopped).
+    ^ self
+  )
+
+  nameChanged: v = ( space put: 'obs/name' value: v. ^ self )
+
+  (* Each of these is a SELF-SEND from inside the whenever: block above, not
+     inline work. A cross-class call inside a reified block cannot resolve its
+     outer chain (rete#133), so the block must do nothing but send to self. *)
+  dbgReq: line = (
+    | ms |
+    ms:: platform parseProfileMs: line.
+    ms > 0 ifTrue: [ self profileWindowStart: ms ].
+    ^ self )
+
+  (* SELF-LIMITING (D6). The node stops on its own, so a node that never hears
+     from porta again still stops counting and still reports. An explicit stop
+     message would leave a field node paying the counter's cost forever the
+     first time one was lost, with nobody aware.
+
+     `timers` is the app's ONE instance (see `main:args:`). Do NOT mint a
+     second: token allocation is per-instance but the C timer registry is keyed
+     globally, so a second instance would alias this one's tokens and misfire
+     silently.
+
+     A START ARRIVING WHILE A WINDOW IS OPEN RESTARTS IT (D6), and cancelling
+     the pending end-timer is what makes that sentence true. Without the cancel
+     the first timer still fires and closes the SECOND window early — and since
+     `dbg/req` is a stream, a cold boot replays every request porta ever wrote
+     from cursor 0, arming one end-timer per replayed line with only the last
+     one ever cancelled. `profTok` is nil exactly when no window is open. *)
+  profileWindowStart: ms = (
+    profTok == nil ifFalse: [ timers cancel: profTok ].
+    profTok:: nil.
+    platform profileStart.
+    profTok:: timers after: ms post: #profileEnd on: profChan.
+    ^ self )
+
+  profileWindowEnd = (
+    profTok:: nil.
+    platform profileStop.
+    ^ self )
+
+  (* LIVENESS AND DELIVERY ONLY (design D2, 2026-08-04). heapFree/heapLargest/overruns
+     left this record — not duplicated elsewhere, DELETED from here, because every one
+     of them already lives at sys/metrics (RECORDS §4.4), which the bridge now
+     publishes on every check-in. Two overlapping health records is how obs/health
+     came to have three mutually inconsistent definitions: 3 fields in the conformance
+     target, 7 in RECORDS, 8 actually on the wire.
+
+     wakes/pollTimeouts carry the tick count and the bridge's missed replies until the
+     mode record gives them a stricter meaning.
+
+     streamDropped STAYS. It counts information lost on the way OUT, which is the
+     number that says the observability itself is lying — a delivery fact about this
+     node's reporting, not a VM internal. *)
+  publishHealth = (
+    | pairs |
+    pairs:: platform OrderedCollection new.
+    pairs add: #up -> platform monotonicMillis.
+    (* `bridge bootId` and NOT the literal 1, and not `platform bootId` either:
+       this is the same latched value the push envelope carries, so the record
+       and the envelope cannot disagree. They did — rete#211: #162 made bootId a
+       real persisted counter and moved the envelope over, but every app's
+       publishHealth kept the constant, so obs/health answered `bid 1` forever
+       while the envelope beside it said 38. obs/health is the ONLY place the
+       boot id reaches a path, so that constant was the whole of the space's
+       answer to "which boot is this?". 0 here is truthful, not a failure: the
+       posix backend has no persistent identity unless OEVM_BOOTID_FILE is set. *)
+    pairs add: #bid -> bridge bootId.
+    pairs add: #wak -> ticks.
+    pairs add: #pto -> bridge misses.
+    pairs add: #sdr -> bridge dropped.
+    (* rete#199 — REFUSED, and it is not `pto`. A node the gateway is uniformly
+       rejecting gets a reply to every exchange, so `pto` reads 0 the whole way to
+       its death; without this field the record is identical for a healthy node and
+       for one that has been shouting into a closed door since boot. This is the
+       one number that separates "the gateway is unreachable" from "the gateway
+       refuses me", and they are different problems with different fixes. *)
+    pairs add: #ref -> bridge refused.
+    space put: 'obs/health' value:
+      (platform Record tag: #Health fields: (platform Map fromPairs: pairs)).
+    ^ self
+  )
+
+  fail: msg = ( msg println. ^ 1 )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

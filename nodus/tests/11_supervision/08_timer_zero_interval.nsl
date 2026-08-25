@@ -4,7 +4,7 @@ fired 3
 done
 *)
 (* T-D.6 timer defect regression — code review Critical fix for a hang in
-   `host_advance` (tuvm/src/platform.c). A REPEATING timer registered with a
+   `host_advance` (oevm/src/platform.c). A REPEATING timer registered with a
    0ms interval (`every: 0`) used to leave `due_ms` pinned at-or-behind
    `host_clock_ms` forever: the fire loop's `t->due_ms += t->interval_ms`
    added 0 each iteration, so `t->due_ms <= host_clock_ms` never went false

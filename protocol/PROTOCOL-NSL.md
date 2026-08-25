@@ -1,7 +1,7 @@
 # Porta ↔ nsl node protocol — the space-sync model
 
 **Status: design direction — *ratified* 2026-07-14, pre-implementation on the porta
-side.** The node/VM half of the model shipped as tuvm **rung 9** (tuvm#32 closed,
+side.** The node/VM half of the model shipped as oevm **rung 9** (tuvm#32 closed,
 option A: the node's space owns the value-holding channel kind — see §3.1); the
 porta half (bridge job, store, wire) is unbuilt and lands with the phase-3 rungs in
 `review/program-sequence.md`. This document is the conformance spec for
@@ -608,7 +608,7 @@ the fleet-sim (RECORDS "the size law").
 
 - Porta serves v1 and this protocol side by side, selected by node `kind`. No Toit
   node changes.
-- **First implementation target: the G10 host fleet-sim** (N host tuvm VMs + porta
+- **First implementation target: the G10 host fleet-sim** (N host oevm VMs + porta
   over localhost UDP) — prove the exchange, cursor resync, and kill-mid-transfer
   recovery there before any radio is involved.
 - The nsl node's conformance doc is this file; the bridge job + C seam land with the

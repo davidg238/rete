@@ -86,7 +86,7 @@ func newGetCmd() *cobra.Command {
 //   - only inbound rows can be stale. An 'out' row is porta's own intent, which
 //     no node reboot invalidates.
 //   - a row with boot_id 0 is UNKNOWN, not stale — it is either a node with no
-//     persistent identity (posix without TUVM_BOOTID_FILE, a board without
+//     persistent identity (posix without OEVM_BOOTID_FILE, a board without
 //     CONFIG_SETTINGS) or a row written before the column existed.
 //   - if the node's current boot is unknown there is nothing to compare against,
 //     so nothing is marked.

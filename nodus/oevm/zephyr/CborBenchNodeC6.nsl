@@ -1,0 +1,149 @@
+(*
+CborBenchNodeC6 — #163 on the metal: what does `Cbor>>encode:` actually cost on a
+C6, before and after the encode rework?
+
+WHY THIS EXISTS. The host measurement predicted the device with
+`activations x 11.83 us/activation` and landed within 4% of the `pushEncode` span
+#163 measured on a bridged C6 — but that model BROKE once the rework started.
+Dropping ByteBuilder's ByteArray wrapper cut 66% of the frame's activations and
+only 33% of its host time, because the activations it removed were one-line
+accessors costing well under an average one. That leaves the answer bracketed
+between a uniform-cost floor (39 ms) and host-relative scaling (79 ms), and only
+the board can close it.
+
+NO BRIDGE, NO THREAD, NO GATEWAY. This encodes fixed in-memory payloads and
+self-times with `millis`, the MethodProfileNodeC6 shape. A bridged node was how
+#161/#163 were measured, and it made the frame's exact size unknowable ("at most
+512 B"); here `batch` is the 425 B frame from 22_spacesync/09_batch_size.nsl,
+measured and printed, so the µs/byte has a real denominator.
+
+CROSS-BINARY, DELIBERATELY, AND THAT IS FINE HERE. The benchmark discipline says
+within-binary deltas only, because #164's 0.9% hook measured 4% FASTER across two
+builds — code-layout roulette. That rule protects small effects. The effect here
+is expected to be ~4x, which no cache-line alignment produces. Run the two arms
+by checking out the two kernels, and say so in the result.
+
+  git show 216a38b~1:nodus/nsl/lib/kernel.nsl > nodus/nsl/lib/kernel.nsl   # before
+  ./run.sh --board esp32c6 --node CborBenchNodeC6.nsl --flash
+  git checkout nodus/nsl/lib/kernel.nsl                                    # after
+  ./run.sh --board esp32c6 --node CborBenchNodeC6.nsl --flash
+
+NEVER POINT THIS AT THE BELL — flashing it ends a multi-day soak. Since
+rete#185 run.sh refuses on its own, over BOTH of the bell's adapters and
+including an explicit ESPTOOL_PORT pin, so this is no longer only a matter of
+looking first. The hashes are deliberately NOT repeated here: they have one
+home, `nodus/oevm/tools/bench-identity.sh`, and a copy in prose is a copy that
+goes stale silently. `ls -l /dev/serial/by-id/` still tells you what is on the
+bench; c6spare is the disposable one.
+*)
+class CborBenchNodeC6 packageUsing: manifest = ( | platform cbor | ) (
+
+  (* Encodes per timed run. `batch` cost ~118 ms per encode before the rework, so
+     20 is ~2.4 s there and still ~0.6 s after — comfortably above the 1 ms clock
+     either way, without making a cold arm take all afternoon. *)
+  reps = ( ^ 20 )
+
+  (* --- payloads: the same ones the host bench uses, so the two are comparable
+         row for row (docs/spikes/2026-08-09-cbor-encode-shape/). --- *)
+
+  health = ( | pairs |
+    pairs:: platform OrderedCollection new.
+    pairs add: #up -> 2592000000.
+    pairs add: #bid -> 1.
+    pairs add: #wak -> 1296000.
+    pairs add: #pto -> 431.
+    pairs add: #sdr -> 17.
+    ^ platform Record tag: #Health fields: (platform Map fromPairs: pairs) )
+
+  metrics = ( | pairs |
+    pairs:: platform OrderedCollection new.
+    pairs add: #hsz -> 53248.
+    pairs add: #lb -> 36196.
+    pairs add: #hhw -> 53228.
+    pairs add: #lfb -> 18608.
+    pairs add: #gcc -> 1523.
+    pairs add: #hnl -> 1.
+    pairs add: #hnhw -> 1.
+    pairs add: #qhw -> 2.
+    pairs add: #ovr -> 0.
+    pairs add: #pdr -> 0.
+    pairs add: #pco -> 0.
+    ^ platform Record tag: #Metrics fields: (platform Map fromPairs: pairs) )
+
+  logRec = ( ^ platform Record tag: #Log with: #lvl -> #info
+                                         with: #txt -> 'tick 1296000' )
+
+  rowSeq: s path: p value: v = ( ^ platform List with: s with: p with: 2 with: v )
+
+  batch = ( | rows |
+    rows:: platform OrderedCollection new.
+    rows add: (self rowSeq: 1296000 path: 'obs/health'  value: self health).
+    rows add: (self rowSeq: 1296001 path: 'sys/metrics' value: self metrics).
+    rows add: (self rowSeq: 1296002 path: 'tel/log'     value: self logRec).
+    ^ platform Record tag: #push
+        with: #id -> 'c6-bench'
+        with: #bid -> 1
+        with: #ent -> (platform List fromCollection: rows) )
+
+  map8 = ( | pairs |
+    pairs:: platform OrderedCollection new.
+    pairs add: #a -> 1. pairs add: #b -> 2. pairs add: #c -> 3. pairs add: #d -> 4.
+    pairs add: #e -> 5. pairs add: #f -> 6. pairs add: #g -> 7. pairs add: #h -> 8.
+    ^ platform Map fromPairs: pairs )
+
+  (* --- the measurement --- *)
+
+  (* One row per payload: encoded size (measured, so µs/byte has a denominator),
+     total ms for `reps` encodes, and µs per encode. Heap is sampled around the
+     run because on a 128 KB C6 arena the allocation half of this matters as much
+     as the time half (#153 watches largestFreeBlock on the bell). *)
+  time: name of: v = ( | t0 t1 bytes total us g0 g1 |
+    bytes:: (cbor encode: v) byteSize.
+    g0:: platform heapStats gcCycles.
+    t0:: 0 millis.
+    self encodeTimes: v.
+    t1:: 0 millis.
+    g1:: platform heapStats gcCycles.
+    total:: t1 - t0.
+    us:: total * 1000 // self reps.
+    ('cborbench ' , name , ' bytes=' , bytes printString ,
+     ' reps=' , self reps printString ,
+     ' totalms=' , total printString ,
+     ' us/encode=' , us printString ,
+     ' ns/byte=' , (us * 1000 // bytes) printString ,
+     ' gc=' , (g1 - g0) printString) out.
+    ^ self )
+
+  (* Hoisted so the timed region is one self-send and a whileTrue: — nothing
+     between the clock reads but the encoder. *)
+  encodeTimes: v = ( | i n |
+    i:: 1. n:: self reps.
+    [ i <= n ] whileTrue: [ cbor encode: v. i:: i + 1 ].
+    ^ self )
+
+  (* The parameter is `p`, not `platform`: `->` is compile-time sugar rewriting to
+     `Association key:value:`, and that bare capitalised varRef resolves through
+     `platform Association`, so every method writing `#k -> v` needs `platform` in
+     its own scope — which is why the seam lives in an instance slot of that name,
+     and why naming the parameter the same would shadow it. *)
+  public main: p args: args = ( | s16 s64 s256 mapNest4 |
+    platform:: p.
+    cbor:: platform Cbor.
+
+    s16::  '0123456789abcdef'.
+    s64::  s16, s16, s16, s16.
+    s256:: s64, s64, s64, s64.
+    mapNest4:: platform Map with: #v -> (platform Map with: #v ->
+                 (platform Map with: #v -> (platform Map with: #v -> s256))).
+
+    ('cborbench start build=' , platform buildId) out.
+    ('cborbench heap ' , platform heapStats printString) out.
+    self time: 'str256'   of: s256.
+    self time: 'map8'     of: map8.
+    self time: 'mapNest4' of: mapNest4.
+    self time: 'batch'    of: self batch.
+    ('cborbench heap ' , platform heapStats printString) out.
+    ('cborbench done') out.
+    ^ 0 )
+) : (
+)

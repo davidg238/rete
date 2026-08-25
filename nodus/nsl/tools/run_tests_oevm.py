@@ -11,7 +11,7 @@ COLOR_YELLOW = "\033[93m"
 COLOR_RESET = "\033[0m"
 
 # The oevm VM (the "bedrock") lives in a sibling repo. Override with $OEVM_DIR.
-OEVM_DIR = Path(os.environ.get("OEVM_DIR") or (Path(__file__).resolve().parent.parent.parent / "tuvm"))
+OEVM_DIR = Path(os.environ.get("OEVM_DIR") or (Path(__file__).resolve().parent.parent.parent / "oevm"))
 
 # Repo root, for gates that live outside nodus/ (review/tests/t0-gates/). Derived from
 # THIS file's location, not from OEVM_DIR — OEVM_DIR may be pointed at another tree.
@@ -275,8 +275,8 @@ def run_boot_gc_asan_gate() -> bool:
 def run_pytest_gate(label: str, rel_dir: str) -> str:
     """Run a pytest suite living outside nodus/nsl as a subprocess gate.
 
-    #165: `nodus/tuvm/tools/test_mprof_resolve.py` and the seven suites under
-    `nodus/tuvm/zephyr/tools/console/` were referenced by nothing — no gate, no
+    #165: `nodus/oevm/tools/test_mprof_resolve.py` and the seven suites under
+    `nodus/oevm/zephyr/tools/console/` were referenced by nothing — no gate, no
     CI, no script. `mprof_resolve.py` could break, and the profile view with it,
     with all three CLAUDE.md gates green. A test that is never run is worse than
     no test, because the suite still reads green and the coverage is now
@@ -327,7 +327,7 @@ def run_integration_gate(label: str, script_name: str) -> bool:
     """Run a tools/<script_name> integration harness as a subprocess gate.
 
     These scripts assume cwd == the ns-oevm ROOT (this tools/ dir's parent), and
-    they clobber ../tuvm/src/solidified_image.c during their builds (the caller is
+    they clobber ../oevm/src/solidified_image.c during their builds (the caller is
     responsible for restoring it afterward). A non-zero exit OR an exception marks
     the gate FAILED without crashing the suite runner; on failure we print enough
     captured output to diagnose."""
@@ -357,7 +357,7 @@ def run_cmake_parse_gate() -> str:
     broken for a day while this suite printed 262/0 with every gate above PASS, because a
     CMakeLists is code that only a target build compiles, and a target build needs a board.
 
-    nodus/tuvm/tests/cmake_gate.sh parses every tracked listfile inside an `if(FALSE)`
+    nodus/oevm/tests/cmake_gate.sh parses every tracked listfile inside an `if(FALSE)`
     wrapper, so the body is parsed and never executed: no toolchain, no west venv, no
     ZEPHYR_BASE, ~12 ms a file. It runs its own canary first (a file with an orphan endif()
     MUST be reported broken) so a gate that has gone blind fails instead of clearing
@@ -441,7 +441,7 @@ def run_footprint_gate() -> str:
             cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=600,
             # ratchet.sh resolves the tree it measures from its own location; honour
             # an OEVM_DIR override so a branch worktree still measures itself.
-            env={**os.environ, "TUVM_DIR": str(OEVM_DIR)})
+            env={**os.environ, "OEVM_DIR": str(OEVM_DIR)})
     except Exception as e:
         print(f"{COLOR_RED}footprint(T0.3): FAIL{COLOR_RESET} (runner error: {e})")
         return "FAIL"
@@ -833,10 +833,10 @@ def main():
     c_units_ok = run_c_unit_tests(OEVM_DIR)
 
     # Integration gates: the supervisor-grant proof and the in-image debugger
-    # harness. Both build the target app and CLOBBER ../tuvm/src/solidified_image.c
+    # harness. Both build the target app and CLOBBER ../oevm/src/solidified_image.c
     # (+ .stmap). test_debugger_integration self-restores via try/finally, but
     # test_supervisor_grant does NOT — so we restore the committed image again
-    # after BOTH run, leaving ../tuvm a clean tree.
+    # after BOTH run, leaving ../oevm a clean tree.
     print()
     grant_ok = run_integration_gate("test_supervisor_grant", "test_supervisor_grant.py")
     dbg_int_ok = run_integration_gate("test_debugger_integration", "test_debugger_integration.py")
@@ -850,14 +850,14 @@ def main():
     boot_gc_ok = run_boot_gc_asan_gate()
     # tuvm#94 stage 5: the deep-sleep node harness drives the REAL MagTagDeepSleepNode
     # across simulated sleeps via OEVM_RTC_FILE. It uses absolute paths + its own
-    # _build_pathb_once(), so it does NOT clobber ../tuvm/src/solidified_image.c the way
+    # _build_pathb_once(), so it does NOT clobber ../oevm/src/solidified_image.c the way
     # the grant/debugger gates do — safe here, after the checkout restore.
     deepsleep_ok = run_integration_gate("test_deepsleep_node", "test_deepsleep_node.py")
     footprint = run_footprint_gate()   # "PASS" | "SKIP" | "FAIL"
     # #165: the host-tool Python suites. They build nothing and touch no shared
     # /tmp path, so they are safe here; they were run by NOTHING until now.
-    mprof_py = run_pytest_gate("mprof-tools-py", "nodus/tuvm/tools")
-    console_py = run_pytest_gate("console-py", "nodus/tuvm/zephyr/tools/console")
+    mprof_py = run_pytest_gate("mprof-tools-py", "nodus/oevm/tools")
+    console_py = run_pytest_gate("console-py", "nodus/oevm/zephyr/tools/console")
     # #216: the target harness's OBSERVATION WINDOW — the assertion that a
     # scenario keeps being watched after its TAPs pass. The window needs no board:
     # it is logic over the collector's log, so it is falsifiable here, and the
@@ -865,7 +865,7 @@ def main():
     # thing under tests/target/ that this suite can run, and it is exactly the
     # piece whose absence let a gate score PASS 3/3 against a node that died four
     # ticks later (#213).
-    observe_py = run_pytest_gate("target-observe-py", "nodus/tuvm/tests/target")
+    observe_py = run_pytest_gate("target-observe-py", "nodus/oevm/tests/target")
 
     suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok
                 and portability != "FAIL" and boot_gc_ok
@@ -907,13 +907,13 @@ def main():
     # The reader most likely to be misled by "N passed, 0 failed" is the one who
     # never opens review/tests/CLAIMS.md, and that reader is often an agent
     # reading this line and nothing else. So the line says it here.
-    target_dir = Path(__file__).resolve().parents[2] / "tuvm" / "tests" / "target"
+    target_dir = Path(__file__).resolve().parents[2] / "oevm" / "tests" / "target"
     n_scen = len(list(target_dir.glob("*.env"))) if target_dir.is_dir() else 0
     print(f"  target gates: {COLOR_YELLOW}NOT RUN BY THIS SUITE{COLOR_RESET} — the posix timer "
           f"backend bypasses the pulse\n"
           f"    mailbox, so coalescing, shedding and stale handles are UNTESTED here.\n"
           f"    (target-observe-py above is the harness's OWN logic, not the seams — #216.)\n"
-          f"    Run: nodus/tuvm/tests/target/run.sh   ({n_scen} scenarios, needs a board)")
+          f"    Run: nodus/oevm/tests/target/run.sh   ({n_scen} scenarios, needs a board)")
 
     if not suite_ok:
         sys.exit(1)

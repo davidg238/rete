@@ -4,7 +4,7 @@ clear 0
 put 0
 oob 1
 display:
-  0: TUVM
+  0: OEVM
   2: BELL 4
 refresh 0
 display row 2: BELL 4
@@ -26,7 +26,7 @@ finished
 class DisplayGrid packageUsing: manifest = () (
   public main: platform args: args = (
     ('clear ' , (platform displayClear) printString) out.
-    ('put ' , (platform displayAt: 0 col: 0 put: 'TUVM') printString) out.
+    ('put ' , (platform displayAt: 0 col: 0 put: 'OEVM') printString) out.
     platform displayAt: 2 col: 0 put: 'BELL 4'.
     ('oob ' , (platform displayAt: 99 col: 0 put: 'X') printString) out.
     ('refresh ' , (platform displayRefresh) printString) out.

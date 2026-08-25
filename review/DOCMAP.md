@@ -77,7 +77,7 @@ and `~/workspaceToit/nodus/docs/`:
 
 <!-- BEGIN GENERATED INVENTORY — do not edit below; rerun tools/docmap.sh -->
 
-_Regenerated 2026-08-09 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
+_Regenerated 2026-08-24 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
 
 ### review
 
@@ -101,14 +101,14 @@ _Regenerated 2026-08-09 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `review/metrics-spec.md` — Node health metrics — the long-term profile (G4/G9 companion) _(record, 2026-07-21)_
 - `review/model-capability-findings.md` — Model-capability findings — coordination-model spike series _(record, 2026-08-02)_
 - `review/performance_slides.html` — nsl-tuvm — optimize the right thing _(record, 2026-07-22)_
-- `review/program-sequence.md` — nsl-tuvm — program sequence (the overarching order of work) _(record, 2026-08-07)_
+- `review/program-sequence.md` — nsl-tuvm — program sequence (the overarching order of work) _(record, 2026-08-22)_
 - `review/reliability-gaps.md` — Reliability gaps — the questions not yet asked (2026-07-03) _(record, 2026-08-02)_
 - `review/retained-channels-v2.html` — Names, and what answers to them — v2 _(record, 2026-07-13)_
 - `review/retained-channels.html` — Retained channels, and where remoteness lives _(record, 2026-08-02)_
 - `review/revisit.md` — REVISIT — things learned in passing that are not yet anyone's work item _(record, 2026-08-02)_
 - `review/slides.html` — nsl-tuvm — script Zephyr, don't replace it _(record, 2026-07-12)_
 - `review/test-suites-spec.md` — nsl-tests — verification suites for the first step (proposed) _(record, 2026-08-02)_
-- `review/tests/CLAIMS.md` — CLAIMS — first-step spec §7 success criteria → proving tests _(record, 2026-08-08)_
+- `review/tests/CLAIMS.md` — CLAIMS — first-step spec §7 success criteria → proving tests _(record, 2026-08-22)_
 - `review/tests/README.md` — review/tests — staged verification suites (T0, T-A…T-D) _(record, 2026-08-02)_
 - `review/tests/t0-gates/sanitizers.md` — T0.1 — sanitizer gate (the highest-value single item in the whole test plan) _(record, 2026-08-02)_
 - `review/zephyr-driver-exposure.md` — Exposing Zephyr drivers to nsl — a sketch _(record, 2026-07-23)_
@@ -167,13 +167,18 @@ _Regenerated 2026-08-09 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/design/2026-08-03-c6-shipsbell-always-on-node-design.md` — The C6 ship's bell as an always-on node — design _(design, 2026-08-04)_
 - `docs/design/2026-08-03-device-console-collector-design.md` — Device console collector and offline symbolizer — design _(design, 2026-08-05)_
 - `docs/design/2026-08-03-t0.3-gate-ownership-decision.md` — T0.3 gate ownership: one script measures, one script decides _(design, 2026-08-03)_
-- `docs/design/2026-08-04-metrics-over-porta-design.md` — Node metrics over porta — the run-up, not the dying breath _(design, 2026-08-04)_
-- `docs/design/2026-08-05-target-test-harness-design.md` — A diagnostic is a workload, not a test framework — the target harness _(design, 2026-08-05)_
+- `docs/design/2026-08-04-metrics-over-porta-design.md` — Node metrics over porta — the run-up, not the dying breath _(design, 2026-08-09)_
+- `docs/design/2026-08-05-target-test-harness-design.md` — A diagnostic is a workload, not a test framework — the target harness _(design, 2026-08-22)_
 - `docs/design/2026-08-05-timer-token-by-value-design.md` — The timer token rides by value, and the handle goes _(design, 2026-08-05)_
 - `docs/design/2026-08-06-method-profile-over-porta-design.md` — Per-method profiling, surfaced over porta _(design, 2026-08-07)_
 - `docs/design/2026-08-07-build-asset-archive-design.md` — Build-asset archive — keyed by build id, retained by intent, eventually at porta _(design, 2026-08-07)_
 - `docs/design/2026-08-07-code-push-host-slice-design.md` — Code-push, the host-only vertical slice (#25) — design _(design, 2026-08-08)_
 - `docs/design/2026-08-07-inclusive-attribution-design.md` — Attributing profile cost to code, not to callees _(design, 2026-08-07)_
+- `docs/design/2026-08-10-node-memory-and-liveness-design.md` — Node memory accounting and fleet liveness — design _(design, 2026-08-22)_
+- `docs/design/2026-08-12-allocation-attribution-design.md` — Allocation attribution — the profiler's question, asked about bytes _(design, 2026-08-12)_
+- `docs/design/2026-08-16-vm-liveness-observer-design.md` — A wedged node never faults — detecting the silence that raises no error _(design, 2026-08-21)_
+- `docs/design/2026-08-20-prim-id-on-symbol-design.md` — Primitive classification belongs to the Symbol, not to a cache _(design, 2026-08-21)_
+- `docs/design/2026-08-21-liveness-contract-design.md` — The liveness contract — a node declares how long its silence may last _(design, 2026-08-22)_
 - `docs/dev_process/phase1_walkthrough.md` — Walkthrough - Core C Structures for OEVM _(record, 2026-07-03)_
 - `docs/dev_process/phase2_walkthrough.md` — Walkthrough - Phase 2: Instruction Set Expansion & XIP Solidification _(record, 2026-07-03)_
 - `docs/dev_process/phase3_walkthrough.md` — Walkthrough - Phase 3: Introspection & Newspeak Mirrors _(record, 2026-07-03)_
@@ -186,7 +191,7 @@ _Regenerated 2026-08-09 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/fiber_l1_implementation_plan.md` — L1 — First-class Stack + relative dynamic links + precise GC: Implementation Plan _(record, 2026-07-03)_
 - `docs/fiber_l1_stack_context_design.md` — L1 — Stack object & lexical environment (Context / indirect temp-vectors) _(record, 2026-07-03)_
 - `docs/implementation_plan.md` — Implementation Plan: Phases 5 - 8 Roadmap & Phase 5 Specification _(record, 2026-07-14)_
-- `docs/next-steps-overview.md` — Next steps — overview _(record, 2026-08-09)_
+- `docs/next-steps-overview.md` — Next steps — overview _(record, 2026-08-22)_
 - `docs/op_send_implicit.md` — OP_SEND_IMPLICIT: Lexical Implicit-Receiver Message Sends _(record, 2026-07-03)_
 - `docs/optimizations.md` — OEVM interpreter optimization log _(record, 2026-07-14)_
 - `docs/results/2026-07-20-c6-heap-ceiling.md` — ESP32-C6 heap-ceiling bisect — Task 3 _(record, 2026-07-20)_
@@ -198,8 +203,15 @@ _Regenerated 2026-08-09 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/results/2026-08-06-pushbuild-three-way.md` — `pushBuild` is three spans — and it is one thing done twice, not three things _(record, 2026-08-06)_
 - `docs/results/2026-08-09-cbor-encode-shape.md` — `Cbor>>encode:` — what shape is the cost? (#163) _(record, 2026-08-09)_
 - `docs/results/2026-08-09-checkin-after-the-codec-fix.md` — The check-in after the codec fix — `pushBuild` is still the top span, and it is no longer the story _(record, 2026-08-09)_
+- `docs/results/2026-08-11-host-arena-floor.md` — Host arena floor — the smallest `OEVM_HEAP_SIZE` that boots, and why 131072 did not _(record, 2026-08-11)_
+- `docs/results/2026-08-12-allocation-attribution-c6.md` — Allocation attribution on the C6 — the boot window, the steady-state window, and an incident _(record, 2026-08-12)_
+- `docs/results/2026-08-12-allocation-attribution-host.md` — Allocation attribution — the host measurement _(record, 2026-08-12)_
+- `docs/results/2026-08-12-profile-window-cost-c6.md` — What an open attribution window costs on a C6 — +1.9% of local CPU, +0.13% of elapsed _(record, 2026-08-12)_
 - `docs/spec.md` — Architectural Specification: Open, Lazy-Reified Virtual Machine _(record, 2026-07-03)_
 - `docs/spikes/2026-07-17-oeom-native-hanoi/README.md` — Spike archive: OEOM native-substitution (Hanoi AOT ceiling) — 2026-07-17 _(record, 2026-07-17)_
+- `docs/spikes/2026-08-11-rete199-refused-node/README.md` — rete#199 — a node whose frames the gateway refuses, reproduced off hardware _(record, 2026-08-11)_
+- `docs/status/2026-08-12-where-we-are.html` — rete &mdash; where we are _(record, 2026-08-12)_
+- `docs/status/README.md` — docs/status — the orientation deck _(record, 2026-08-13)_
 - `docs/superpowers/notes/2026-06-18-w1-rooting-audit.md` — W1 Rooting Audit — Runtime `gc_allocate` / `float_alloc` Sites _(note, 2026-07-03)_
 - `docs/superpowers/plans/2026-06-17-decoupled-xip-image.md` — Decoupled Image + Execute-In-Place Format — Implementation Plan _(plan, 2026-07-14)_
 - `docs/superpowers/plans/2026-06-17-global-method-cache.md` — Global Method Lookup Cache Implementation Plan _(plan, 2026-07-03)_
@@ -234,12 +246,18 @@ _Regenerated 2026-08-09 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/superpowers/plans/2026-08-04-sys-metrics-over-porta.md` — sys/metrics over porta — v1 Implementation Plan _(plan, 2026-08-04)_
 - `docs/superpowers/plans/2026-08-06-method-profile-over-porta.md` — Per-method profiling over porta — Implementation Plan _(plan, 2026-08-06)_
 - `docs/superpowers/plans/2026-08-07-code-push-host-slice.md` — Code-Push Host Slice (#25) Implementation Plan _(plan, 2026-08-07)_
+- `docs/superpowers/plans/2026-08-10-alloc-seam-and-cheap-gauge.md` — Allocation seam and the `sys/cheap` gauge — implementation plan _(plan, 2026-08-10)_
+- `docs/superpowers/plans/2026-08-10-inline-symbol-bytes.md` — Inline Symbol bytes — implementation plan (rete#190 stage 2, design §4 / sub-project B) _(plan, 2026-08-10)_
+- `docs/superpowers/plans/2026-08-11-short-wire-labels.md` — Short wire labels — implementation plan (rete#197) _(plan, 2026-08-11)_
+- `docs/superpowers/plans/2026-08-12-allocation-attribution-stage1.md` — Allocation Attribution — Stage 1 Implementation Plan _(plan, 2026-08-12)_
+- `docs/superpowers/plans/2026-08-19-vm-liveness-observer.md` — VM Liveness Observer Implementation Plan (#215) _(plan, 2026-08-19)_
+- `docs/superpowers/plans/2026-08-21-liveness-contract.md` — The liveness contract — implementation plan (#231) _(plan, 2026-08-22)_
 - `docs/topics.md` — Design topics _(record, 2026-07-14)_
 
 ### protocol
 
-- `protocol/PROTOCOL-NSL-RECORDS.md` — Porta ↔ nsl — the record schemas _(record, 2026-08-08)_
-- `protocol/PROTOCOL-NSL.md` — Porta ↔ nsl node protocol — the space-sync model _(record, 2026-08-08)_
+- `protocol/PROTOCOL-NSL-RECORDS.md` — Porta ↔ nsl — the record schemas _(record, 2026-08-22)_
+- `protocol/PROTOCOL-NSL.md` — Porta ↔ nsl node protocol — the space-sync model _(record, 2026-08-22)_
 - `protocol/v1/PROTOCOL-NSL-draft-2026-07-11.md` — Porta ↔ nsl node protocol — the space-sync model (genesis draft) _(record, 2026-08-02)_
 - `protocol/v1/PROTOCOL.md` — Porta wire protocol _(record, 2026-08-02)_
 
@@ -339,16 +357,16 @@ _Regenerated 2026-08-09 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `nodus/nsl/docs/superpowers/plans/milestone-a-footprint-delta.md` — Milestone A footprint delta (Task 10c) _(plan, 2026-08-02)_
 - `nodus/nsl/docs/superpowers/plans/pared-conformance-subset.md` — Pared conformance subset (Milestone A) _(plan, 2026-08-02)_
 
-### nodus/tuvm/zephyr/docs
+### nodus/oevm/zephyr/docs
 
-- `nodus/tuvm/zephyr/docs/BOARD_PORTS.md` — tuvm on Zephyr — board ports _(record, 2026-08-02)_
-- `nodus/tuvm/zephyr/docs/ZEPHYR_LESSONS.md` — Zephyr / NCS + OpenThread + USB — hard-won lessons (nRF52840) _(record, 2026-08-02)_
-- `nodus/tuvm/zephyr/docs/results.md` — tuvm on-device results — ESP32-WROOM-32 (Xtensa) _(record, 2026-08-02)_
-- `nodus/tuvm/zephyr/docs/stic-README-snapshot-2026-07-17.md` — STIC Smalltalk benchmark _(record, 2026-08-02)_
+- `nodus/oevm/zephyr/docs/BOARD_PORTS.md` — oevm on Zephyr — board ports _(record)_
+- `nodus/oevm/zephyr/docs/ZEPHYR_LESSONS.md` — Zephyr / NCS + OpenThread + USB — hard-won lessons (nRF52840) _(record)_
+- `nodus/oevm/zephyr/docs/results.md` — tuvm on-device results — ESP32-WROOM-32 (Xtensa) _(record)_
+- `nodus/oevm/zephyr/docs/stic-README-snapshot-2026-07-17.md` — STIC Smalltalk benchmark _(record)_
 
 ### porta/docs
 
-- `porta/docs/ARCHITECTURE.md` — Porta system architecture _(record, 2026-08-08)_
+- `porta/docs/ARCHITECTURE.md` — Porta system architecture _(record, 2026-08-22)_
 - `porta/docs/CLI.md` — porta CLI reference _(record, 2026-08-05)_
 - `porta/docs/DEVSDK.md` — porta dev-SDK (`devsdk/`) — the northbound contract _(record, 2026-08-02)_
 - `porta/docs/GETTING-STARTED.md` — Getting started with porta _(record, 2026-08-05)_
@@ -357,7 +375,10 @@ _Regenerated 2026-08-09 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `porta/docs/design/2026-06-06-web-telemetry-console-panels-design.md` — Web telemetry: per-node console panels + telemetry node filter — Design _(design, 2026-08-02)_
 - `porta/docs/design/2026-06-07-panic-decode-link-design.md` — Panic decode link (porta → nodus) — design _(design, 2026-08-02)_
 - `porta/docs/design/2026-06-26-profile-verb-design.md` — `profile` verb — remote target-execution profiling — design _(design, 2026-08-02)_
-- `porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md` — porta → channels: the space-sync rewrite (v1 deleted) _(design, 2026-08-05)_
+- `porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md` — porta → channels: the space-sync rewrite (v1 deleted) _(design, 2026-08-22)_
+- `porta/docs/design/2026-08-11-gatekeeper-and-the-introspectable-space-design.md` — Gatekeeper, and the introspectable space — design note (2026-08-11) _(design, 2026-08-11)_
+- `porta/docs/design/2026-08-15-boot-anchored-cell-reads-design.md` — Boot-anchored cell reads — `porta get` can no longer blend two boots _(design, 2026-08-15)_
+- `porta/docs/design/2026-08-22-gatekeeper-first-cut-design.md` — Gatekeeper — the first cut (design, 2026-08-22) _(design)_
 - `porta/docs/plans/2026-05-23-gateway-b1-tftp-free-core.md` — Gateway B1 — TFTP-free core Implementation Plan _(record, 2026-08-02)_
 - `porta/docs/plans/2026-05-23-gateway-b2-wire-device-hardware.md` — Gateway B2 — wire + device + hardware Implementation Plan _(record, 2026-08-02)_
 - `porta/docs/plans/2026-05-23-tftp-engine-transport-handler-split.md` — TFTP engine / transport / handler split — Implementation Plan _(record, 2026-08-02)_
@@ -412,6 +433,7 @@ _Regenerated 2026-08-09 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `porta/docs/superpowers/plans/2026-06-07-panic-decode-link.md` — Panic Decode Link Implementation Plan _(plan, 2026-08-02)_
 - `porta/docs/superpowers/plans/2026-06-26-profile-verb.md` — `profile` verb — remote target-execution profiling — Implementation Plan _(plan, 2026-08-02)_
 - `porta/docs/superpowers/plans/2026-08-01-porta-space-sync-core.md` — porta space-sync core — Implementation Plan (plan 1 of 3) _(plan, 2026-08-02)_
+- `porta/docs/superpowers/plans/2026-08-18-gw-liveness-silence-sweep.md` — `gw/**` and the silence sweep — implementation plan (#217) _(plan, 2026-08-18)_
 
 ### ~/workspaceToit/nodus/docs
 

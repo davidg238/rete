@@ -179,7 +179,7 @@ of the **envelope**. porta builds and parses the envelope's keys **by name**
 (`internal/wire/message.go`, `internal/wire/server.go`), so `bootId` → `bid` and `entries` →
 `ent` are a **both-sides, same-commit** change. The trap is that a half-applied rename leaves
 the nsl suite *and* `go test ./...` both green — each half is self-consistent — and only
-`nodus/tuvm/tests/porta_sync_host.sh`, which runs a real node against a real gateway, goes
+`nodus/oevm/tests/porta_sync_host.sh`, which runs a real node against a real gateway, goes
 red. Any future change to an envelope key inherits that property.
 
 **Numbered slots (`h1`, `m1`, …) were considered and REJECTED** (2026-08-11). They save only
@@ -278,13 +278,13 @@ precisely that the node had no bounded way to say what happened.
 
 | `reason` | produced by |
 |---|---|
-| `#watchdog` | **the wedge detector** (`nodus/tuvm/zephyr/src/observer.c`) — a 1000 ms observer that judges the reactor against the app's OWN declared timer periods, 8 × the shortest live one, so it carries no global idea of how often a node should wake. Two OR'd conditions: an overdue armed timer, and a pulse posted-but-not-consumed. A wedge raises no fatal error, which is why this detector had to exist before the symbol could |
+| `#watchdog` | **the wedge detector** (`nodus/oevm/zephyr/src/observer.c`) — a 1000 ms observer that judges the reactor against the app's OWN declared timer periods, 8 × the shortest live one, so it carries no global idea of how often a node should wake. Two OR'd conditions: an overdue armed timer, and a pulse posted-but-not-consumed. A wedge raises no fatal error, which is why this detector had to exist before the symbol could |
 | `#assert` | `K_ERR_KERNEL_OOPS` / `K_ERR_KERNEL_PANIC` in the fatal handler |
 | `#stackOverflow` | `K_ERR_STACK_CHK_FAIL` |
 | `#hardFault` | `K_ERR_CPU_EXCEPTION`, **and every unrecognised code**. A reason the gateway cannot name is worth less than an imprecise one it can, so the mapping never invents a sixth symbol |
 | `#oom` | **reserved; no producer yet.** The allocation seam reports through `sys/cheap` instead |
 
-- The C side writes a small int (`RN_REASON_*`, `nodus/tuvm/src/reboot_note.h`, **append-only**)
+- The C side writes a small int (`RN_REASON_*`, `nodus/oevm/src/reboot_note.h`, **append-only**)
   because a fatal handler may not allocate; the symbol is attached in nsl, where the record is
   built (`Kernel>>panicReasonFor:`).
 - `detail` carries the **register triple** — `mcause`/`mepc`/`ra`, preformatted — for a fault,
@@ -311,7 +311,7 @@ monotonic-only; porta maps it to wall-clock at ingest using porta's own clock.
   since 2026-08-09** (rete#162). It was the source constant `1` from the space-sync rung
   until then, which made the ordering claim below degenerate; the storage was never the
   obstacle, since every `prj_*_thread.conf` already mounts NVS for OpenThread's own
-  dataset, so this cost one settings key (`tuvm/bootid`) and no new subsystem.
+  dataset, so this cost one settings key (`oevm/bootid`) and no new subsystem.
 
 The pair `(bootId, monoMs)` totally orders every observation a node ever makes, across
 reboots, **without a clock**. A node that reboots does not emit timestamps that appear
@@ -367,7 +367,7 @@ it judges. The field is **required, and the bridge refuses an `App` without it**
 staged rather than something being staged with its provenance quietly missing. Absent is
 not "unsigned, carry on".
 
-**This slice reads and writes exactly `apps/main`** (#25 design D5). tuvm has one image,
+**This slice reads and writes exactly `apps/main`** (#25 design D5). oevm has one image,
 one heap and one world; the per-`<name>` shape is kept because multi-app later adds
 per-name slots and per-name checks — rows, not mechanisms — but no node today answers for
 a second name.
@@ -383,7 +383,7 @@ construction. There is nothing to enforce.
 | `obs/apps/<name>` | R | `AppObs { image: BlobRef, runlevel: int, lifecycle: sym, triggers: [sym] }` |
 | `obs/config/<app>/<key>` | R | scalar echo |
 | `obs/mode` / `obs/name` / `obs/forward` | R | same shapes as their `goal/` twins |
-| `obs/health` | R | `Health { up: int, bid: int, wak: int, pto: int, sdr: int, ref: int }` — liveness and delivery only; **`ref` is the count of exchanges porta REFUSED** (an `#err` reply), added by rete#199 and deliberately not folded into `pto`: a refused node gets a reply to every exchange, so `pto` reads 0 for a node that has been rejected since boot, and the two are different problems with different fixes — the node cannot say which is happening to it without both. A non-zero `ref` also means this node's data is not reaching the gateway at all, whatever `pto` says; the VM internals live at `sys/metrics` (§4.4), which the bridge publishes on every check-in. `heapFree`/`heapLargest`/`overruns` were **removed** 2026-08-04 (#56 design D2) rather than duplicated. **72 B encoded, MEASURED 2026-08-21** (61 B at five fields; rete#199's `ref` costs 11 B at its worst legal value, which is the count a node refused since boot carries) (87 B → 91 B → 61 B: rete#162 made `bid` a real persisted counter, and CBOR is shortest-form, so a saturated counter is five bytes where the old constant `1` was one — the guard in `nodus/tests/22_spacesync/09_batch_size.nsl` pins the worst legal value rather than a fresh node's — then rete#197 shortened the five labels, which is the whole of the 91 → 61 B step). **`bid` only became a real counter *in this record* on 2026-08-15 (rete#211)** — rete#162 moved the push ENVELOPE over and every app's `publishHealth` kept the literal `1`, so for three rungs this table asserted a property no node had, and `obs/health` — the only place a boot id reaches a path — answered `1` on every node, for every boot. The size figure was never wrong, because the guard in `nodus/tests/22_spacesync/09_batch_size.nsl` pins the saturated value rather than a fresh node's; real frames were merely smaller than the worst case. The agreement between this field and the envelope is now gated in `nodus/tuvm/tests/porta_sync_host.sh`, which seeds the node's boot counter to 41 precisely so a reintroduced `1` cannot pass |
+| `obs/health` | R | `Health { up: int, bid: int, wak: int, pto: int, sdr: int, ref: int }` — liveness and delivery only; **`ref` is the count of exchanges porta REFUSED** (an `#err` reply), added by rete#199 and deliberately not folded into `pto`: a refused node gets a reply to every exchange, so `pto` reads 0 for a node that has been rejected since boot, and the two are different problems with different fixes — the node cannot say which is happening to it without both. A non-zero `ref` also means this node's data is not reaching the gateway at all, whatever `pto` says; the VM internals live at `sys/metrics` (§4.4), which the bridge publishes on every check-in. `heapFree`/`heapLargest`/`overruns` were **removed** 2026-08-04 (#56 design D2) rather than duplicated. **72 B encoded, MEASURED 2026-08-21** (61 B at five fields; rete#199's `ref` costs 11 B at its worst legal value, which is the count a node refused since boot carries) (87 B → 91 B → 61 B: rete#162 made `bid` a real persisted counter, and CBOR is shortest-form, so a saturated counter is five bytes where the old constant `1` was one — the guard in `nodus/tests/22_spacesync/09_batch_size.nsl` pins the worst legal value rather than a fresh node's — then rete#197 shortened the five labels, which is the whole of the 91 → 61 B step). **`bid` only became a real counter *in this record* on 2026-08-15 (rete#211)** — rete#162 moved the push ENVELOPE over and every app's `publishHealth` kept the literal `1`, so for three rungs this table asserted a property no node had, and `obs/health` — the only place a boot id reaches a path — answered `1` on every node, for every boot. The size figure was never wrong, because the guard in `nodus/tests/22_spacesync/09_batch_size.nsl` pins the saturated value rather than a fresh node's; real frames were merely smaller than the worst case. The agreement between this field and the envelope is now gated in `nodus/oevm/tests/porta_sync_host.sh`, which seeds the node's boot counter to 41 precisely so a reintroduced `1` cannot pass |
 | `obs/build` | R | `Build { chip: sym, build: str, sdk: str, image: bytes }` — see below |
 | `obs/liveness` | R | `Liveness { cad: int, bud: int }` — **the node's declaration of how long its silence may last** (rete#231 D2). `cad` is how often it intends to speak; `bud` is the longest silence that is still healthy, and `bud` is the **only** number porta judges against: `now - last_seen > bud → #silent`, one line with no constants in it. Two numbers and not one because the bench proved one is not enough — `c6-bell` runs a 30 s cadence and misses roughly half its check-ins to ordinary mesh loss, so judging it against its cadence calls a healthy node silent constantly; the gap between `cad` and `bud` is the node's own allowance for that loss, and the node is the only party that knows its rate. `bud` is an integer multiple of `cad` (D3) and is **clamped** to 24 h (D7) — clamped and published, never rejected, so an app asking for a week appears as a `goal`/`obs` divergence instead of a silent refusal. Written **once per boot**, on `obs/apps/<name>`'s precedent, and again only when the adopted pair moves. **37 B encoded, MEASURED 2026-08-21** at the worst legal values — a 24 h budget is five CBOR bytes where a 16 s one is three, and the two `d8 27` symbol keys are 12 of the 37 (`nodus/tests/22_spacesync/20_liveness_size.nsl`) |
 
@@ -422,7 +422,7 @@ running makes a mismatched sidecar indistinguishable from a quiet program.
 - `build` — the build actually running: `platform buildId`, which on Zephyr is
   `git describe --always --dirty` plus a build timestamp
   (`<describe>-<YYYYmmddTHHMMSS>`, baked in fresh on every build — see
-  `nodus/tuvm/zephyr/cmake/gen_build_id.cmake`) and on host is the literal `"host"`.
+  `nodus/oevm/zephyr/cmake/gen_build_id.cmake`) and on host is the literal `"host"`.
   Deliberately **one opaque string**, not `sdk`/`image`/`builtAt` as separate fields:
   the timestamp it already carries is what `builtAt` would have answered, and a reader
   picks a sidecar by matching this string whole, not by comparing fields piecewise.
@@ -584,7 +584,7 @@ serial console anyway.
 **This is a claim about the session on this path, not about developer-facing assets.**
 Console history, `.oimg` archives and symbol sidecars are not the `dbg/` session and are not
 bound by this rule; they live off the space entirely, as host-side dev tooling
-(`nodus/tuvm/zephyr/tools/console/`), by the same rule that keeps profiler blobs off the
+(`nodus/oevm/zephyr/tools/console/`), by the same rule that keeps profiler blobs off the
 space at all (§2.4). Conflating the two readings would make porta holding console history,
 or a view built on that tooling, look like a violation of "stateless relay" when it is not
 (`docs/design/2026-08-06-method-profile-over-porta-design.md` D7).

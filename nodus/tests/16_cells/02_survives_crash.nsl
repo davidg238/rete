@@ -20,7 +20,7 @@ done
      3. there is no request/reply — the restarted job cannot ASK anyone to re-send.
 
    Under option C (the cell in the bridge's private Map) this test cannot be written at
-   all: the job has nothing to peek and nobody to ask. See tuvm/review/cells-sketch.ns.
+   all: the job has nothing to peek and nobody to ask. See oevm/review/cells-sketch.ns.
 
    VM gotcha (#133, recurred in rungs 3 and 6): the `restart:` block is a genuine
    REIFIED BlockClosure (the supervisor stores it), and a direct cross-class call written

@@ -33,7 +33,7 @@ class GcRoot packageUsing: manifest = () (
 
   (* The write happens HERE, in a method whose frame is POPPED before the collection.
      That is not a stylistic choice — it is the third thing needed to make this a real
-     gate. `scan_vm_stack` (tuvm/src/gc.c) marks EVERY REGISTER of every live frame up
+     gate. `scan_vm_stack` (oevm/src/gc.c) marks EVERY REGISTER of every live frame up
      to `vm_stack_ptr`, and registers are not cleared after a send. So the register that
      held this record while it was being passed to `put:value:` would keep it alive for
      the whole of `main:args:` — the value would survive with the mark line deleted, and

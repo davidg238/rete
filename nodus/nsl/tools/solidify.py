@@ -1,4 +1,4 @@
-from prim_ids import PRIM_IDS   # rete#226: the single source, tuvm/src/prim_names.def
+from prim_ids import PRIM_IDS   # rete#226: the single source, oevm/src/prim_names.def
 import os
 import sys
 
@@ -138,7 +138,7 @@ class SolidifyCompiler:
             # leaving the VM to look it up per send (the cache that was #222/#192/#213).
             # DESIGNATED initializers: prim_id sits between length and the inline name, so
             # the old positional form would assign the string to it. The id comes from
-            # tuvm/src/prim_names.def, the same file dispatch.c builds PRIM_NAMES from —
+            # oevm/src/prim_names.def, the same file dispatch.c builds PRIM_NAMES from —
             # a list this load-bearing must not exist twice.
             pid = PRIM_IDS.get(sym_name, 0)
             c_code.append(

@@ -9,7 +9,7 @@ Reference encoding (low 2 bits = tag):
 """
 import struct
 
-from prim_ids import PRIM_IDS   # rete#226: tuvm/src/prim_names.def, the single source
+from prim_ids import PRIM_IDS   # rete#226: oevm/src/prim_names.def, the single source
 
 TAG_APP, TAG_BUILTIN, TAG_SMI, TAG_SINGLETON = 0b00, 0b01, 0b10, 0b11
 
@@ -648,7 +648,7 @@ class OimgSerializer:
             # pure function of its name and fixed for the life of the Symbol, so it is
             # decided here, once, instead of by a runtime cache whose unbounded probe was
             # #222/#192/#213 and whose 256 target slots filled seventeen seconds into every
-            # boot. The map comes from tuvm/src/prim_names.def — the same file dispatch.c
+            # boot. The map comes from oevm/src/prim_names.def — the same file dispatch.c
             # builds PRIM_NAMES from, so the list is not restated in Python.
             self._put_scalar(buf, base, "Symbol", "prim_id", PRIM_IDS.get(name, 0))
             nbase = base + sym_bytes_off

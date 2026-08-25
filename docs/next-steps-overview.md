@@ -31,7 +31,7 @@ the part's real ppm), and neither has been started.**
 GPIO18 → 2N3904 → piezo, with **R2, a 47 kΩ base pull-down** added 2026-08-05 so the
 transistor's base is held down through the seconds *before* `wire_gpio_outputs()` runs, when
 a Zephyr output is still a floating input. Drawing:
-`nodus/tuvm/zephyr/boards/shipsBells/2026-08-03-shipsbells-3v3-piezo-driver.svg`. R2 does
+`nodus/oevm/zephyr/boards/shipsBells/2026-08-03-shipsbells-3v3-piezo-driver.svg`. R2 does
 **not** mitigate #151 — it holds the base down only while the pin is undriven, and a solid
 tone is the pin being *driven*.
 
@@ -62,11 +62,11 @@ event went unexplained for most of a day).
 **Do this first, and do it with the board unpowered.**
 
 The module is the common ZS-042 layout. The photo in
-`nodus/tuvm/zephyr/boards/shipsBells/board.png` shows a small red glass diode and a `201` (200 Ω)
+`nodus/oevm/zephyr/boards/shipsBells/board.png` shows a small red glass diode and a `201` (200 Ω)
 resistor beside the SCL pad — that board's well-documented **LIR2032 trickle-charge path
 from VCC to VBAT**. The cell fitted is a **CR2032, which is not rechargeable**.
 
-`nodus/tuvm/zephyr/boards/shipsBells/rtc-schematic.png` shows no such circuit and a plain
+`nodus/oevm/zephyr/boards/shipsBells/rtc-schematic.png` shows no such circuit and a plain
 "Battery1 +3V", so **it cannot be used to rule this out** — it is not a schematic of this
 module.
 
@@ -83,7 +83,7 @@ a CR2032 on a charger.
 ### 1.2 Wire INT/SQW → GPIO11 — DONE (the pin below is wrong; corrected 2026-08-04)
 
 **Done at the bench.** The devicetree half was already in place and is verified here:
-`nodus/tuvm/zephyr/boards/esp32c6_devkitc_esp32c6_hpcore.overlay:78` carries
+`nodus/oevm/zephyr/boards/esp32c6_devkitc_esp32c6_hpcore.overlay:78` carries
 `isw-gpios = <&gpio0 10 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>`. Kept for the record.
 
 The pin is labelled **`SQW`** on the module's 6-pin header (`32K, SQW, SCL, SDA, VCC, GND`).
@@ -116,7 +116,7 @@ Two standing rules for this module:
 
 **Done 2026-08-05, and the instruction below was superseded rather than followed.** The
 base conf stays `CONFIG_RTC_ALARM=n`; `y` lives in an opt-in overlay,
-`nodus/tuvm/zephyr/prj_esp32c6_rtcalarm.conf`, selected per build:
+`nodus/oevm/zephyr/prj_esp32c6_rtcalarm.conf`, selected per build:
 
 ```
 west build … --conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_rtcalarm.conf"
@@ -154,7 +154,7 @@ mask is what shipped. Two things the design did not anticipate, both now in the 
   watchdog), and registering the alarm + watchdog *reaped* the 10 ms stroke one-shot still
   queued in the pulse mailbox — a timer event destroyed by the next, unrelated registration.
   Fixed by carrying the token by value (#151, closed 2026-08-05); target gate
-  `nodus/tuvm/tests/target/run.sh stale-handle`.
+  `nodus/oevm/tests/target/run.sh stale-handle`.
 
 Kept below as the design record:
 
@@ -197,7 +197,7 @@ caller. An ISR must never touch the VM.
 ### 1.5 Correct the clock
 
 It currently reads **+20 s against host**. That is the stale seed constant in
-`nodus/tuvm/zephyr/WallClockNode.nsl` (baked at authoring, written ~40 s later), not drift. `seedIfUnset:`
+`nodus/oevm/zephyr/WallClockNode.nsl` (baked at authoring, written ~40 s later), not drift. `seedIfUnset:`
 deliberately refuses to overwrite a clock that already reads a valid time, so a re-flash
 will not fix it — set it through a real path, or bump the constant and clear the RTC first.
 
@@ -227,9 +227,9 @@ this running, and can I tell what it is doing.* Conflating the two costs months.
 
 That is the gate. Everything below is roadmap.
 
-**Half of it landed 2026-08-02: the restructure.** `tuvm`, `nsl-tuvm`, `nsl-tests` and
-`porta` are one repository, `rete` — `porta/` + `nodus/{tuvm,nsl,tests}` + `protocol/`,
-built by restructuring `tuvm` in place so every issue number and every `#NN` citation still
+**Half of it landed 2026-08-02: the restructure.** `oevm`, `nsl-tuvm`, `nsl-tests` and
+`porta` are one repository, `rete` — `porta/` + `nodus/{oevm,nsl,tests}` + `protocol/`,
+built by restructuring `oevm` in place so every issue number and every `#NN` citation still
 resolves. Plan:
 `~/workspace/rete/docs/superpowers/plans/2026-08-02-rete-repo-consolidation.md`; design
 `~/workspace/rete/docs/design/2026-08-02-rete-repo-consolidation-design.md`.
@@ -259,12 +259,12 @@ Design 2026-08-01; plan 1 (porta side) and plan 2 (node side) are both built and
   DONE** (demolition → `cval` → `space` → `wire` → loopback gate).
 - `~/workspace/rete/docs/superpowers/plans/2026-08-02-porta-space-sync-node.md` — **plan 2,
   DONE 2026-08-02**: the space's monotonic seq + `changedSince:` (prims 138–140),
-  `class PortaBridge` in `nodus/nsl/lib/kernel.nsl`, `nodus/tuvm/zephyr/PortaBridgeNode.nsl`, and
-  `nodus/tuvm/tests/porta_sync_host.sh` — the nsl node against a real `porta serve` over UDP
+  `class PortaBridge` in `nodus/nsl/lib/kernel.nsl`, `nodus/oevm/zephyr/PortaBridgeNode.nsl`, and
+  `nodus/oevm/tests/porta_sync_host.sh` — the nsl node against a real `porta serve` over UDP
   loopback, green on the first protocol run (`obs/health` reaches porta, `goal/name`
   converges to `obs/name`, `tel/log` exactly once).
 - **Plan 3 — the C6 hardware gate — closed the rung, green 5/5.**
-  `~/workspace/rete/nodus/tuvm/tests/porta_sync_c6.sh` — the same three legs witnessed over a real
+  `~/workspace/rete/nodus/oevm/tests/porta_sync_c6.sh` — the same three legs witnessed over a real
   Thread mesh, including a deliberate post-commit ack drop, re-runnable on demand. Every
   run is a cold re-flash: leg 3 `rows=13 distinct=13, 1..13`; leg 4 `rows=26 distinct=26,
   1..26` across 4 swallowed acks. Hardware found what loopback could not: an unacked
@@ -301,7 +301,7 @@ MCUboot + A/B + NVS *up front*. The point is not to ship OTA before release — 
 flash map becomes a transcription of proven host behaviour instead of a guess. Cheap:
 localhost UDP, no hardware. The call was: do the slice, defer real OTA.
 
-**That is now done.** `cd nodus/tuvm && bash tests/host_ota/run.sh` prints **HOST OTA OK**
+**That is now done.** `cd nodus/oevm && bash tests/host_ota/run.sh` prints **HOST OTA OK**
 on a plan of four scenarios against three runner-wrapped VMs and a real `porta serve` over
 localhost UDP: a signed deploy converges on all three nodes; a SIGKILL mid-transfer resumes
 from the staged length rather than refetching; a corrupted signature is refused **outside**
@@ -317,7 +317,7 @@ Zephyr rung transcribes it rather than inventing it. Design:
   check-in stall on a target-class transfer (D7).
 - **Multi-app.** Exactly `apps/main` is read and written (D5). Separately compiled images
   sharing one VM is a VM feature for its own rung, if a fleet ever earns it.
-- **The zephyr OTA backend.** `nodus/tuvm/src/backend/zephyr/ota_zephyr.c` exists and is deliberately
+- **The zephyr OTA backend.** `nodus/oevm/src/backend/zephyr/ota_zephyr.c` exists and is deliberately
   **inert** — it keeps the link and the seam shape identical everywhere while refusing to
   invent a flash layout there is no board to measure. The real one lands with the real
   flash map, and that rung is now **#233** (filed 2026-08-22; until then a C6 CANNOT be
@@ -354,7 +354,7 @@ knob has a price tag instead of an argument.
 4. **Device test harness — DONE 2026-08-05. `TARGET 3/3 PASS` on c6bench**
    (`bridge-health` 3/3, `pulse-coalesce` 3/3, `stale-handle` 2/2). #56 calls it "the real
    unlock; (1) and (3) are what make it possible", and it is now
-   `nodus/tuvm/tests/target/run.sh`. Design:
+   `nodus/oevm/tests/target/run.sh`. Design:
    `docs/design/2026-08-05-target-test-harness-design.md`.
 
    The shape, decided by one requirement — diagnostics must eventually run on FIELD
@@ -380,17 +380,17 @@ knob has a price tag instead of an argument.
    `protocol/PROTOCOL-NSL.md`.
 
 **The first instance of step 4 already exists and was not called that.**
-`nodus/tuvm/tests/stale_handle_c6.sh` (#151) was exactly `reset → scenario → assert →
+`nodus/oevm/tests/stale_handle_c6.sh` (#151) was exactly `reset → scenario → assert →
 report`: one command, flashes, drives, asserts **both** arms positively, anchors every
 assertion on the build id `run.sh` archives for *that* flash, and reads the #56 collector's
 log rather than opening the port (on the C6 the collector holds the CP2102N permanently and
 two readers split the stream). Every preflight **fails rather than skips**, because a skip
 whose message names an unverified cause is how a gate reports success for a run that never
 happened. Generalising that script is a shorter step than designing a harness from scratch —
-and `nodus/tuvm/tests/porta_sync_c6.sh` is a second worked example.
+and `nodus/oevm/tests/porta_sync_c6.sh` is a second worked example.
 
 **Why this is more urgent than it looks.** #151 established that
-`nodus/tuvm/src/backend/zephyr/timer_zephyr.c` posts through the pulse mailbox while
+`nodus/oevm/src/backend/zephyr/timer_zephyr.c` posts through the pulse mailbox while
 `timer_posix.c` posts straight into the space via `space_post`. The host path has no
 mailbox, so **on host a timer event can be neither coalesced nor dropped nor staled — and
 all 243 suite tests run there.** Every claim about coalescing, shedding and stale handles
@@ -398,7 +398,7 @@ needs a *target* gate or it is untested, and porting one to host deletes what it
 Today there are two such gates and no framework holding them.
 Highest narrative value of the four — it *is* the agent story, not a supporting feature. And
 it just got cheaper: #57 said the C6 unlocks the debug leg of #56, and as of 2026-07-31 the
-C6 is proven and running tuvm with 44% of SRAM spare. It was third *only* by sequencing,
+C6 is proven and running oevm with 44% of SRAM spare. It was third *only* by sequencing,
 because it should ride on the new protocol — **and that constraint dissolved when the
 protocol landed green on hardware.** Nothing now argues for doing #25's host slice first
 except foreclosure, and foreclosure only bites at the moment a flash map is committed, which
@@ -702,7 +702,7 @@ ST alone has 127 board directories in-tree — the deepest bench available, and 
 
 ### The non-obvious one: nsl uses doubles
 
-`nodus/tuvm/src/oevm.h:187` — `struct Float { double value; }`.
+`nodus/oevm/src/oevm.h:187` — `struct Float { double value; }`.
 
 Every Cortex-M4F/M33 has a **single**-precision FPU, so nsl floats have been
 software-emulated on the nRF52840 all along. Two consequences:
@@ -713,7 +713,7 @@ software-emulated on the nRF52840 all along. Two consequences:
   would run in *hardware*. Against the existing STIC/Perfstex numbers that is a genuinely
   novel data point, on a ~$12 board.
 
-(Unrelated: `nodus/tuvm/zephyr/prj_dongle_softfloat.conf` was about matching Nordic's MPSL radio-library ABI,
+(Unrelated: `nodus/oevm/zephyr/prj_dongle_softfloat.conf` was about matching Nordic's MPSL radio-library ABI,
 not about nsl.)
 
 ### Picks
@@ -843,7 +843,7 @@ the third is approved and next** — kept here in order because the order is the
   window, only because `observer_halt()` disables it first.
 
   **#222 IS FIXED (2026-08-20), and it was #192 and #213 all along — one bug, three issue
-  numbers.** Root cause: `selector_prim_id()` in `nodus/tuvm/src/dispatch.c`, an
+  numbers.** Root cause: `selector_prim_id()` in `nodus/oevm/src/dispatch.c`, an
   open-addressed selector→prim-id cache consulted on EVERY send whose selector is a Symbol,
   which never evicts, never grows and probed `while (slot != NULL)` **with no bound**. Full
   table -> no NULL to stop at -> the next uncached selector spins forever in C, below the
@@ -1020,7 +1020,7 @@ the third is approved and next** — kept here in order because the order is the
 
   The branch also **re-banks the T0.3 footprint ratchet**, absorbing +725 B for this rung
   and **+887 B of drift since the 2026-08-08 bank** that had already spent 75% of the 2%
-  band; the split is in `nodus/tuvm/tools/footprint-baseline.txt`'s own header. No engine
+  band; the split is in `nodus/oevm/tools/footprint-baseline.txt`'s own header. No engine
   `.c` file was added, so none of #63's nine source lists changed.
 - **#217 — the gateway half. DONE 2026-08-18, verified on gw85224-01.** `gw/**` + the
   silence sweep: a fourth goroutine in `porta serve` that infers each node's cadence from its

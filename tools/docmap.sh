@@ -19,7 +19,7 @@ MARKER='<!-- BEGIN GENERATED INVENTORY — do not edit below; rerun tools/docmap
 # outside rete on purpose (design D12): a harness that measures rete against
 # other VMs does not belong inside rete.
 #
-# NOT listed: $ROOT/nodus/tuvm/docs. It does not exist — Task 1 left the VM's
+# NOT listed: $ROOT/nodus/oevm/docs. It does not exist — Task 1 left the VM's
 # own documents at the repo root, so $ROOT/docs already covers them. A
 # nonexistent root would make this script's inventory silently short.
 ROOTS=(
@@ -27,7 +27,7 @@ ROOTS=(
   "$ROOT/docs"
   "$ROOT/protocol"
   "$ROOT/nodus/nsl/docs"
-  "$ROOT/nodus/tuvm/zephyr/docs"
+  "$ROOT/nodus/oevm/zephyr/docs"
   "$ROOT/porta/docs"
   "$HOME/workspaceToit/nodus/docs"
   "$HOME/workspaceToit/stic"

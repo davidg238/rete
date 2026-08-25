@@ -1,14 +1,14 @@
 # Programming with nsl
 
 A task-oriented guide to writing device programs in **nsl** — the no-NLR, no-fibers,
-capability-secure Newspeak dialect that runs on tuvm.
+capability-secure Newspeak dialect that runs on oevm.
 
 This is the *how do I write a program* document. It does not replace:
 
 - **[`NEWSPEAK_DIALECT.md`](./NEWSPEAK_DIALECT.md)** — the syntax/dialect reference (what the language *is*).
-- **`tuvm/review/language-and-library-spec.md`** and the milestone design specs under
+- **`oevm/review/language-and-library-spec.md`** and the milestone design specs under
   `docs/design/` — the authoritative, frozen decisions.
-- **`tuvm/review/WHY.md`** — the pitch and rationale.
+- **`oevm/review/WHY.md`** — the pitch and rationale.
 
 Where those documents own a fact, this guide **links** to them rather than restating it, so
 the two never drift. Every chapter is anchored to a runnable test in the **`nsl-tests`** repo —
@@ -39,9 +39,9 @@ if the guide says the program prints `tick 1`, there is a file you can run that 
 
 ## 1. The mental model
 
-> _Outline — to be expanded. Authoritative sources: `tuvm/review/WHY.md`,
-> the addendum A3 note in `tuvm/review/2026-07-03-first-step-design-addendum.md`,
-> and `tuvm/review/lib/exceptions.md`._
+> _Outline — to be expanded. Authoritative sources: `oevm/review/WHY.md`,
+> the addendum A3 note in `oevm/review/2026-07-03-first-step-design-addendum.md`,
+> and `oevm/review/lib/exceptions.md`._
 
 nsl is deliberately missing three things you may expect from a Smalltalk/Newspeak:
 
@@ -65,7 +65,7 @@ guide bit-for-bit deterministic.
 
 **To expand here:** the "let it crash" philosophy vs. defensive programming; why a
 capability (a `Channel`) is the unit of authority; the error tiers from
-`tuvm/review/lib/errors.md` (Tier-1 programmer bug, Tier-2 expected-and-supervised).
+`oevm/review/lib/errors.md` (Tier-1 programmer bug, Tier-2 expected-and-supervised).
 
 ---
 
@@ -120,7 +120,7 @@ only; cascades; the `outer` slot-0 mechanism for kernel-internal helpers.
 
 ## 3. Data and values
 
-> _Outline — to be expanded. Authoritative sources: `tuvm/review/lib/integers.md`,
+> _Outline — to be expanded. Authoritative sources: `oevm/review/lib/integers.md`,
 > `messages.md`, `cbor.md`. Anchored tests: `nsl-tests/08_messages`._
 
 nsl distinguishes **value objects** (immutable, structurally compared) from **heap objects**
@@ -318,7 +318,7 @@ layers.
 
 ### Layer 1 — the C seam (virtual clock)
 
-There is one clock variable and one thing that moves it (`tuvm/src/platform.c`):
+There is one clock variable and one thing that moves it (`oevm/src/platform.c`):
 
 ```c
 static uint64_t host_clock_ms = 0;
@@ -422,7 +422,7 @@ it, a first-class crash record, and a `Supervisor` that decides what to do.
 ### The crash boundary contains a reaction
 
 `Space>>drain` fires every reaction through a C setjmp boundary (`vm_protected_fire` /
-`vm_raise` in `tuvm/src/vm.c`). A reaction that calls `self error:` is unwound and **abandoned
+`vm_raise` in `oevm/src/vm.c`). A reaction that calls `self error:` is unwound and **abandoned
 mid-body** — its remaining statements never run — but the process survives and drain moves on:
 
 ```smalltalk
@@ -576,9 +576,9 @@ to unwind**.
 
 ## 9. Not here yet
 
-> _Outline — the phase-2 roadmap. Authoritative sources: `tuvm/review/reliability-gaps.md`
-> (G1–G11), `tuvm/review/lib/exceptions.md`, the milestone specs under `docs/design/`,
-> and the open GitHub issues on `davidg238/{tuvm,nsl-tuvm}`._
+> _Outline — the phase-2 roadmap. Authoritative sources: `oevm/review/reliability-gaps.md`
+> (G1–G11), `oevm/review/lib/exceptions.md`, the milestone specs under `docs/design/`,
+> and the open GitHub issues on `davidg238/{oevm,nsl-tuvm}`._
 
 Phase 1 proves the model on the host. Phase 2 targets real hardware. Known gaps, to be written
 up as they land:
@@ -608,11 +608,11 @@ Full-suite run (sequential, > 2 min — **not** concurrency-safe, one at a time)
 
 ```bash
 cd nsl-tests
-OEVM_DIR=<abs>/tuvm OEVM_PATH=AB python3 <abs>/nsl-tuvm/tools/run_tests_oevm.py
+OEVM_DIR=<abs>/oevm OEVM_PATH=AB python3 <abs>/nsl-tuvm/tools/run_tests_oevm.py
 ```
 
 The authoritative harness is **`nsl-tuvm/tools/run_tests_oevm.py`** (not the stale copy under
-`tuvm/tools/`). Each test file is a class with `expect:` at the top; the harness compiles it down
+`oevm/tools/`). Each test file is a class with `expect:` at the top; the harness compiles it down
 both paths, runs it, and compares stdout to `expect:` verbatim. That is the whole contract — the
 programs in this guide are exactly these files, and their expected output is what you see quoted
 throughout.

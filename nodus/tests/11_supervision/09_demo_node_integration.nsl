@@ -18,7 +18,7 @@ done
    Task 5), real timers (Task 6) arming/cancelling a watchdog, the protected reactor's
    crash containment (Task 2), and the `Supervisor`'s restart/quarantine/progress-reset
    policy (Task 5) — driving a `resume:`-rehydrated job through healthy and silent
-   sample cycles. Modeled on `tuvm/review/demo-node.ns`'s `TempNode`, REDUCED per the
+   sample cycles. Modeled on `oevm/review/demo-node.ns`'s `TempNode`, REDUCED per the
    Task 7 brief: no i2c, no `onAlertPost:` (phase-2 concerns) — `startConversion` only
    arms the timeout timer, `readMilliC` answers a fixed mock constant, and the "sensor"
    is driven directly by the test: a healthy cycle posts `#done` on the job's own

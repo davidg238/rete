@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS nodes (
 -- like a coherent one (rete#210). The value is not new — it is the "bid" the
 -- node already sends on every envelope. For 'out' rows it is 0, because porta's
 -- own intent has no node boot; direction separates that from the other 0,
--- which is a node with no persistent identity (posix without TUVM_BOOTID_FILE,
+-- which is a node with no persistent identity (posix without OEVM_BOOTID_FILE,
 -- or a board without CONFIG_SETTINGS) and reads as UNKNOWN, never as stale.
 --
 -- 'gw' is a verdict porta formed ABOUT the node — gateway-authored, never on

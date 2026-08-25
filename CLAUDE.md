@@ -11,7 +11,7 @@ preserved the issue numbers and the `#NN` references the program navigates by
 ```
 porta/       the orchestrator (Go) — the northbound half
 nodus/       the device end
-  tuvm/      the VM (C) + the Zephyr board ports
+  oevm/      the VM (C) + the Zephyr board ports
   nsl/       the dialect, its compiler and the kernel
   tests/     the nsl suite
 protocol/    the wire contract both sides answer to (v1 frozen under protocol/v1/)
@@ -71,7 +71,7 @@ How to make decisions here. These override the instinct to be thorough.
   from** — if a design needs N invented constants before it can run once, ship the
   degenerate case whose cost can be measured, and let the measurement earn the knobs
   back. Record what would earn them, so the deferral is falsifiable rather than vague.
-- **Remember the lineage: `st/berry` → `ns/berry` → `ns/oevm` → `nsl/tuvm`.** This system
+- **Remember the lineage: `st/berry` → `ns/berry` → `ns/oevm` → `nsl/tuvm` (now `rete`, the VM at `nodus/oevm`).** This system
   has been rewritten wholesale four times to get here. Nothing is built to last; it is
   built to teach. Design accordingly.
 
@@ -97,7 +97,7 @@ How to make decisions here. These override the instinct to be thorough.
 ```
 cd nodus/nsl && python3 tools/run_tests_oevm.py     # 270 passed, 0 failed (2026-08-22)
 cd porta      && go test ./...
-cd nodus/tuvm && bash tests/porta_sync_host.sh      # PORTA SYNC OK
+cd nodus/oevm && bash tests/porta_sync_host.sh      # PORTA SYNC OK
 ```
 
 The nsl suite prints `Passed: N / Failed: 0` **and** a line of aux gates — read the aux
@@ -110,7 +110,7 @@ now finds the SDK itself. **A SKIP line here is a finding now, not a fixture.** 
 two nsl suites concurrently; they share `/tmp` paths. **The count above drifts upward as
 tests land — treat a mismatch as staleness in this file, never as a missing test.** The
 suite also prints `target gates: NOT RUN BY THIS SUITE`: the posix timer backend bypasses
-the pulse mailbox, so coalescing, shedding and stale handles need `nodus/tuvm/tests/target/run.sh`
+the pulse mailbox, so coalescing, shedding and stale handles need `nodus/oevm/tests/target/run.sh`
 and a board.
 
 **What `tests/target/run.sh` actually runs — eight scenarios, and a full pass is ~40–60 min of
@@ -246,7 +246,7 @@ next.
   re-pointed at a different node.
 - **One monotonic seq per space per side** (D5). Kind is a property of the leaf, set by the
   first write (D6); `KindStream = 1`, `KindCell = 2`, matching `SPACE_KIND_*` in
-  `nodus/tuvm/src/space.h` — shared with the VM, do not renumber.
+  `nodus/oevm/src/space.h` — shared with the VM, do not renumber.
 - **The integer band is ±(2^64−1)**, which exceeds `int64`. Represent out-of-range values
   exactly; never silently clamp.
 - **There is no tombstone.** Stopped state is written explicitly as a value; genuine removal

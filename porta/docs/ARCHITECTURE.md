@@ -197,7 +197,7 @@ tables. The fix was to stop discarding it.
 Four properties worth knowing before reading output:
 
 - **`boot=?` is unknown, never stale.** A node with no persistent identity (posix without
-  `TUVM_BOOTID_FILE`, a board without `CONFIG_SETTINGS`) genuinely reports 0, as do rows
+  `OEVM_BOOTID_FILE`, a board without `CONFIG_SETTINGS`) genuinely reports 0, as do rows
   written before the column existed. Neither is marked.
 - **`boot=-` is an outbound row** — your own `goal/**` write. Porta's intent has no node boot
   and no reboot invalidates it.

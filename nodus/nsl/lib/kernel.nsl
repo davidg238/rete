@@ -642,7 +642,7 @@ class Kernel usingPlatform: platform = () (
 
   (* tuvm#72: a PACKED byte accumulator for the CBOR encoder. The encoder used to
      accumulate into an OrderedCollection of byte SMIs, which costs FOUR bytes per
-     byte (mutable Array slots — the RAM trap tuvm-vm-memory-model warns about) and
+     byte (mutable Array slots — the RAM trap oevm-vm-memory-model warns about) and
      doubles its backing Array as it fills. On a WROOM-32 (49 KB arena) encoding a
      span-capture push, that doubling asked for a 1024-slot Array and killed the
      node outright:
@@ -3049,7 +3049,7 @@ class Kernel usingPlatform: platform = () (
        new crash record would itself land on sys/crash, re-firing the very
        reaction that just crashed), so it is reported via `out` (this
        dialect has no dedicated stderr selector — grep-confirmed: kernel.nsl
-       and tuvm/src/dispatch.c's PRIM_NAMES have no `outError`/`startsWith:`
+       and oevm/src/dispatch.c's PRIM_NAMES have no `outError`/`startsWith:`
        primitive) and dropped instead. `self out: 'sys/crash' value: ...`
        uses the existing `Channel>>out:value:` — `drain` runs on the root
        `Space`, whose root is `''`, so `resolve: 'sys/crash'` answers
@@ -3214,7 +3214,7 @@ class Kernel usingPlatform: platform = () (
   ) : (
   )
 
-  (* A single `state:on:do:then:` wire — landed from staged `tuvm/review/lib/
+  (* A single `state:on:do:then:` wire — landed from staged `oevm/review/lib/
      fsm.ns` (Milestone C Task 5). Kernel-module sibling of Protocol (staged
      nested it as `Protocol class Transition`; flattened to a top-level
      sibling here, matching this module's exclusively-flat class shape — no
@@ -3232,7 +3232,7 @@ class Kernel usingPlatform: platform = () (
      replacement, addendum A3 mechanism #1). One object per device protocol;
      events in, actions out; current state explicit, inspectable, and
      trivially persistable via `snapshot`/`restore:`. Landed from the staged
-     `tuvm/review/lib/fsm.ns` (PLAN-DRAFT CAUTION — see task report for the
+     `oevm/review/lib/fsm.ns` (PLAN-DRAFT CAUTION — see task report for the
      staged-vs-landed divergence). Depends on Dictionary (per-machine mutable
      transition/entry tables: `states` maps state -> Dictionary of
      eventKey -> Transition, `entryActions` maps state -> block — Map is the
@@ -3331,7 +3331,7 @@ class Kernel usingPlatform: platform = () (
     public named: n = ( ^ self new setName: n )
   )
 
-  (* A pending timer registration — landed from staged `tuvm/review/lib/
+  (* A pending timer registration — landed from staged `oevm/review/lib/
      timers.ns` (Milestone D Task 6). Kernel-module sibling of Transition
      above (staged nested it as `Timers class Pending`; flattened to a
      top-level sibling here, matching this module's exclusively-flat class
@@ -3348,7 +3348,7 @@ class Kernel usingPlatform: platform = () (
   )
 
   (* L3 — timers as channel events (Milestone D Task 6; design doc's
-     event-source seam). Landed from the staged `tuvm/review/lib/timers.ns`,
+     event-source seam). Landed from the staged `oevm/review/lib/timers.ns`,
      Kernel-module sibling of Space/Supervisor/Protocol above — same flat
      shape (see Pending's comment just above for why `class Pending` was
      flattened out of it). No new VM semantics: a timer is an ordinary event
@@ -4191,7 +4191,7 @@ class Kernel usingPlatform: platform = () (
 
   (* The C side writes a small int because a fatal handler may not allocate; the symbol
      belongs here, where the record is built. The mapping is RN_REASON_* in
-     nodus/tuvm/src/reboot_note.h and it is APPEND-ONLY. An unrecognised code answers
+     nodus/oevm/src/reboot_note.h and it is APPEND-ONLY. An unrecognised code answers
      #hardFault rather than a sixth symbol: RECORDS §2.4 pins the enumeration, and a
      reason the gateway cannot name is worth less than an imprecise one it can. *)
   panicReasonFor: code = (

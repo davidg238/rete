@@ -17,7 +17,7 @@ board cannot prove cheaply:
      so two different answers in one run would rewind porta's high-water mid-session
      and re-deliver rows it had already committed.
 
-With TUVM_BOOTID_FILE unset — the default everywhere in this suite — the host
+With OEVM_BOOTID_FILE unset — the default everywhere in this suite — the host
 backend answers the 0 sentinel, meaning "no persistent boot identity". That is a
 value to branch on and not an error: porta reads it as "restart detection is
 unavailable for this node" and says so on every check-in, which is the one thing

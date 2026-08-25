@@ -1,0 +1,224 @@
+(* tuvm#94 stage 4 — HOST RAM PROBE for the clock node's working set.
+
+   WHY THIS EXISTS. Stage 4 links at a 16 KB arena, and whether the node's working
+   set FITS there at runtime has never been tested — 16 KB is below what #85 judged
+   adequate for this class of node, and the stage-3 hardware run ended with live
+   bytes at 44 KB and `gc 0`, i.e. before the first collection, so it produced no
+   post-GC figure at all. On a bench where the board must be put into download mode
+   by hand, finding this out by flashing costs the one run available; finding it out
+   here costs a second.
+
+   WHAT IT MEASURES, AND THE ASYMMETRY THAT MAKES IT USEFUL. The host VM is 64-bit,
+   so every object header and slot is WIDER than on the 32-bit Xtensa target. A
+   working set that fits a 16 KB arena HERE therefore fits it on the device with room
+   to spare — a pass is strong evidence. A failure here is weak evidence, because the
+   host is the harder case. The inference only runs one way, and this comment exists
+   so nobody reads a host failure as a device verdict.
+
+   The framebuffer is deliberately NOT the subject: it lives in a C arena (design
+   G3), never the VM heap. What this measures is the per-paint STRING CHURN — ten
+   rows built by `,` concatenation every strike — which is the node's real allocation
+   load and the thing a small arena has to absorb.
+
+   MIRROR, NOT THE NODE. The per-tick body below is copied from
+   MagTagClockNode.nsl rather than shared, because an app node file is single-class
+   and the shipped node must not carry host-simulation code into the very build whose
+   RAM is in question. If the node's paint path changes, this file must change with
+   it or it silently measures the wrong thing.
+
+   Simulated time: the posix timer seam is driven by `advanceMillis:`
+   (timer_posix.c), so the loop advances it in 30 s steps — small enough that the
+   30 s boot-retry timer is exercised at its real cadence rather than coalesced. *)
+class MagTagClockHostRam packageUsing: manifest = (
+  | plat timers halfHours ::= 0. bootTicks ::= 0. lastBells ::= 8. hasDisplay ::= false.
+    tick phaseCh ntpCh strikeTok phaseTok ntpTok.
+    synced ::= false. lastCorr ::= 0. corrMin ::= 0. corrMax ::= 0. haveCorr ::= false.
+    syncCount ::= 0. steps ::= 0. | ) (
+
+  public main: platform args: args = (
+    | space |
+    plat:: platform.
+    space:: plat space.
+
+    [ plat display clear. hasDisplay:: true ]
+      on: [ :e | e tag = #displayUnavailable ]
+      do: [ :e | 'no display; running headless' out ].
+
+    timers:: plat timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    tick:: space channel: 'clock/tick'.
+    tick whenever: '' do: [ :m | self advanceAndStrike ].
+    strikeTok:: timers every: self tickMillis post: #tick on: tick.
+
+    phaseCh:: space channel: 'clock/phase'.
+    phaseCh whenever: '' do: [ :m | self onPhaseBoundary ].
+
+    ntpCh:: space channel: 'clock/ntp'.
+    ntpCh whenever: '' do: [ :m | self trySync ].
+    ntpTok:: timers every: self bootRetryMillis post: #ntp on: ntpCh.
+
+    self paintStats.
+    self trySync.
+
+    (* 1200 steps of 30 s = 10 hours of simulated clock time = 20 strikes and 20
+       syncs. Long enough to cross the arena several times over and so to show
+       whether live bytes PLATEAU after collection or climb without bound — the
+       plateau is the answer being sought, not any single reading. *)
+    [ steps < 1200 ] whileTrue: [
+      steps:: steps + 1.
+      plat advanceMillis: 30000.
+      plat pumpEvents.
+      space drain ].
+
+    self report: 'final'.
+    'PROBE DONE' out.
+    ^ 0
+  )
+
+  report: tag = (
+    | hs |
+    hs:: plat heapStats.
+    (tag , ' live=' , hs liveBytes printString ,
+       ' size=' , hs heapSize printString ,
+       ' gc='   , hs gcCycles printString) out.
+    ^ self )
+
+  (* --- everything below is copied from MagTagClockNode.nsl ----------------- *)
+
+  trySync = (
+    | secs |
+    secs:: plat ntpSyncTz: self tzOffset.
+    secs == nil ifTrue: [ 'ntp miss' out. ^ self ].
+    self applySync: secs.
+    ^ self )
+
+  applySync: secs = (
+    | newHalf into msToBoundary |
+    newHalf:: secs // 1800.
+    into:: secs - (newHalf * 1800).
+    msToBoundary:: 1800000 - (into * 1000).
+    synced ifTrue: [ self recordCorrection: (self correctionTo: newHalf) ].
+    halfHours:: newHalf.
+    ('ntp sync -> ' , (self timeString: halfHours) , ', boundary in ' , msToBoundary printString , ' ms') out.
+    self rephaseStrike: msToBoundary.
+    synced ifFalse: [
+      synced:: true.
+      ntpTok == nil ifFalse: [ timers cancel: ntpTok ].
+      ntpTok:: timers every: 1800000 post: #ntp on: ntpCh ].
+    ^ self )
+
+  correctionTo: newHalf = (
+    | d |
+    d:: halfHours - newHalf.
+    d > 24 ifTrue: [ d:: d - 48 ].
+    d < -24 ifTrue: [ d:: d + 48 ].
+    ^ d * 1800 )
+
+  rephaseStrike: msToBoundary = (
+    strikeTok == nil ifFalse: [ timers cancel: strikeTok. strikeTok:: nil ].
+    phaseTok == nil ifFalse: [ timers cancel: phaseTok. phaseTok:: nil ].
+    phaseTok:: timers after: msToBoundary post: #tick on: phaseCh.
+    ^ self )
+
+  onPhaseBoundary = (
+    phaseTok:: nil.
+    self advanceAndStrike.
+    strikeTok == nil ifTrue: [
+      strikeTok:: timers every: self tickMillis post: #tick on: tick ].
+    ^ self )
+
+  recordCorrection: corr = (
+    lastCorr:: corr.
+    syncCount:: syncCount + 1.
+    syncCount >= 48 ifTrue: [ syncCount:: 0. haveCorr:: false ].
+    haveCorr ifFalse: [ corrMin:: corr. corrMax:: corr. haveCorr:: true. ^ self ].
+    corr < corrMin ifTrue: [ corrMin:: corr ].
+    corr > corrMax ifTrue: [ corrMax:: corr ].
+    ^ self )
+
+  advanceAndStrike = (
+    halfHours:: halfHours + 1.
+    halfHours = 48 ifTrue: [ halfHours:: 0 ].
+    bootTicks:: bootTicks + 1.
+    lastBells:: (plat bell) bellsForHalfHour: halfHours.
+    ((self timeString: halfHours) , ' strike ' , lastBells printString) out.
+    (plat bell) strike: lastBells.
+    'struck' out.
+    self paintStats.
+    (* THE MEASUREMENT: one reading per strike, so the series shows the shape. *)
+    self report: 'tick'.
+    ^ self )
+
+  paintStats = (
+    hasDisplay ifFalse: [ ^ self ].
+    [ | disp hs |
+      disp:: plat display.
+      hs:: plat heapStats.
+      disp clear.
+      self put: (self line: 'oevm'  val: ((self timeString: halfHours) , '+')) row: 0 on: disp.
+      self put: '----------'                                           row: 1 on: disp.
+      self put: (self line: 'heap'  val: (self heapField: hs))         row: 2 on: disp.
+      self put: (self line: 'gc'    val: hs gcCycles printString)      row: 3 on: disp.
+      self put: (self line: 'up'    val: self upField)                 row: 4 on: disp.
+      self put: (self line: 'bells' val: self bellsField)              row: 5 on: disp.
+      self put: '----------'                                           row: 6 on: disp.
+      self put: (self line: 'ntp'   val: self ntpField)                row: 7 on: disp.
+      self put: (self line: '24h'   val: (haveCorr ifTrue: [ self corrField: corrMax ] ifFalse: [ '--' ])) row: 8 on: disp.
+      self put: (self line: ''      val: (haveCorr ifTrue: [ self corrField: corrMin ] ifFalse: [ '' ]))   row: 9 on: disp.
+      disp refresh ]
+    on: [ :e | (e tag = #displayUnavailable) or: [ (e tag = #displayFault) or: [ e tag = #displayBounds ] ] ]
+    do: [ :e | ('paint skipped: ' , e tag printString) out ].
+    ^ self )
+
+  put: s row: r on: disp = (
+    disp at: r col: 0 put: s.
+    ('| ' , s) out.
+    ^ self )
+
+  heapField: hs = (
+    ^ (self kRound: hs liveBytes) , '/' , (hs heapSize // 1024) printString , 'K' )
+
+  upField = (
+    | mins d r h m |
+    mins:: bootTicks * (self tickMillis // 60000).
+    d:: mins // 1440.
+    r:: mins - (d * 1440).
+    h:: r // 60.
+    m:: r - (h * 60).
+    ^ d printString , 'd' , (self pad: h) , ':' , (self pad: m) )
+
+  bellsField = ( bootTicks = 0 ifTrue: [ ^ '--' ]. ^ lastBells printString )
+
+  ntpField = (
+    haveCorr ifTrue: [ ^ (self corrField: lastCorr) , 's' ].
+    synced ifTrue: [ ^ 'sync' ].
+    ^ '--' )
+
+  corrField: sec = (
+    | s a |
+    s:: sec < 0 ifTrue: [ '-' ] ifFalse: [ '+' ].
+    a:: sec < 0 ifTrue: [ 0 - sec ] ifFalse: [ sec ].
+    ^ s , a printString , '.0' )
+
+  line: label val: v = (
+    | pad |
+    pad:: 12 - label size - v size.
+    pad < 0 ifTrue: [ pad:: 0 ].
+    ^ label , (self spaces: pad) , v )
+
+  spaces: n = ( | s | s:: ''. n timesRepeat: [ s:: s , ' ' ]. ^ s )
+
+  kRound: bytes = ( ^ ((bytes + 512) // 1024) printString )
+
+  timeString: i = (
+    | h |
+    h:: i // 2.
+    ^ (self pad: h) , (((i - (h * 2)) = 0) ifTrue: [ ':00' ] ifFalse: [ ':30' ]) )
+
+  pad: n = ( (n < 10) ifTrue: [ ^ '0' , n printString ]. ^ n printString )
+
+  tickMillis = ( ^ 1800000 )
+  tzOffset = ( ^ -25200 )
+  bootRetryMillis = ( ^ 30000 )
+) : (
+)

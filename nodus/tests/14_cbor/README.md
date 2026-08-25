@@ -86,6 +86,6 @@ for f in ['02_golden_hex.ns','03_map_order.ns']:
 PY
 ```
 
-Path A regenerates `tuvm/src/solidified_image.c` + `.stmap` from `kernel.ns`;
-restore them (`git -C ../tuvm checkout -- src/solidified_image.c
-src/solidified_image.stmap`) before committing tuvm.
+Path A regenerates `oevm/src/solidified_image.c` + `.stmap` from `kernel.ns`;
+restore them (`git -C ../oevm checkout -- src/solidified_image.c
+src/solidified_image.stmap`) before committing oevm.

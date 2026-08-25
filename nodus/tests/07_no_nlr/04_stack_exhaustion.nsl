@@ -11,7 +11,7 @@ expect-runtime-fail: stack
    was printed and that the diagnostic contains the header substring (Task 10b
    harness extension to expect-runtime-fail:, see run_tests_oevm.py). This is
    the test that justifies keeping the flat O(1)-C-stack loop. Also run under
-   the ASAN config (see tuvm's sanitizer build docs, t0-gates/sanitizers.md in
+   the ASAN config (see oevm's sanitizer build docs, t0-gates/sanitizers.md in
    the review kit): a bounds bug at the stack cap is exactly what this test +
    ASAN exists to catch. *)
 class StackExhaustion packageUsing: manifest = () (

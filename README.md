@@ -5,7 +5,7 @@ An embedded fleet system: **nodus** (the device end of a protocol) and **porta**
 
     porta/       the orchestrator (Go)
     nodus/       the device end
-      tuvm/      the VM (C) + Zephyr board ports
+      oevm/      the VM (C) + Zephyr board ports
       nsl/       the dialect, compiler and kernel
       tests/     the nsl suite
     protocol/    the wire contract
@@ -17,6 +17,6 @@ Gates:
 
     cd nodus/nsl && python3 tools/run_tests_oevm.py     # 255 passed, 0 failed
     cd porta && go test ./...
-    cd nodus/tuvm && bash tests/porta_sync_host.sh      # PORTA SYNC OK
+    cd nodus/oevm && bash tests/porta_sync_host.sh      # PORTA SYNC OK
 
 This is not a quickstart yet — see #79.

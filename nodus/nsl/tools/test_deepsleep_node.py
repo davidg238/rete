@@ -10,7 +10,7 @@ TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
 import run_tests_oevm as R   # reuse the Path-B compile + host-oevm invocation
 
-NODE = Path(__file__).resolve().parent.parent.parent / "tuvm" / "zephyr" / "MagTagDeepSleepNode.nsl"
+NODE = Path(__file__).resolve().parent.parent.parent / "oevm" / "zephyr" / "MagTagDeepSleepNode.nsl"
 RTC_MAGIC = 348000704   # 0x14BE11C0 — must fit a 32-bit SMI (|v| < 2^30); the old
                         # 0x94BE11C0 only round-tripped on the 64-bit host
 
@@ -173,7 +173,7 @@ def test_watch_end_panel():
         painted = [l for l in out.splitlines() if l.startswith("| ")]
         assert len(painted) == 9, painted               # 10 rows minus the host-skipped heap row
         assert out.count("| ----------") == 2, out       # BOTH separator rows render
-        for row in ("| tuvm", "| ppm", "| up", "| ntp", "| 24h", "| sync"):
+        for row in ("| oevm", "| ppm", "| up", "| ntp", "| 24h", "| sync"):
             assert row in out, (row, out)
         # row 8 = the unlabeled 24h-min continuation row (distinct from the 24h max row)
         assert any(l.strip("| ").strip() == "-3" for l in painted), painted

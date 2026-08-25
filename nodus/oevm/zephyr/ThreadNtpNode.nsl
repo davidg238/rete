@@ -1,0 +1,99 @@
+(*
+ThreadNtpNode — tuvm#94 stage 4 over Thread, and §10's drift measurement.
+
+Proves the shipsBellsV3 correction loop end to end on the C6: an already-attached
+mesh (oevm_thread_bringup blocks until role=CHILD or ROUTER before the VM starts),
+an SNTP request over IPv6 to a LITERAL address (no DNS — the porta OMR prefix is a
+ULA with no global IPv6 and no DNS64), and the DS3231 read beside it.
+
+The delta between the two IS the measurement §10 asks for. Both prims answer in
+the same shape by design (seconds since local midnight, or nil), which is what
+makes subtracting them meaningful rather than a units bug waiting to happen.
+
+Then it CORRECTS the part: ntpDate supplies the yyyymmdd that wallClockSetDate:
+time: needs, from the same response, and the node reads the clock back afterwards
+— a write that answered 0 is not evidence the part holds the time.
+
+The bell itself never reads the date; ship's bells are a function of time-of-day
+alone. The date is here only because the RTC will not accept a time without one.
+
+Intended cadence (mains-powered, 2026-08-01): ONE sync a day, a few minutes after
+midnight. At the DS3231M's +/-5 ppm that is 0.43 s of drift to correct, so nothing
+about the schedule needs to be clever — and a daily run notices a dead or cleared
+RTC within a day, which is the only reason to do it more often than drift demands.
+
+Dialect: `[ ... ] whileTrue:`, never `repeat`. No modulo in nsl.
+
+expect (C6 console, after boot + attach):
+NTP OK
+*)
+class ThreadNtpNode packageUsing: manifest = ( | rtc ::= nil. ntp ::= nil. date ::= nil. rc ::= nil. back ::= nil. | ) (
+  (* US/Arizona: UTC-7 and no DST, so a constant is honest here in a way it would
+     not be anywhere that observes summer time. *)
+  tzOffset = ( ^ -25200 )
+
+  public main: platform args: args = (
+    rtc:: platform wallClock.
+    ntp:: platform ntpSyncTz: self tzOffset.
+
+    rtc == nil
+      ifTrue:  [ 'rtc  nil (no DS3231, or never set)' out ]
+      ifFalse: [ ('rtc  ' , (self hms: rtc) , '  sod ' , rtc printString) out ].
+
+    ntp == nil
+      ifTrue:  [ 'ntp  nil (no route, no server, or timeout)' out ]
+      ifFalse: [ ('ntp  ' , (self hms: ntp) , '  sod ' , ntp printString) out ].
+
+    ntp == nil ifTrue: [ ^ self fail: 'no ntp' ].
+
+    rtc == nil
+      ifFalse: [ ('delta ' , (self skew: rtc - ntp) printString , ' s  (+ means the rtc is ahead)') out ].
+
+    (* CORRECT the part. The date comes from ntpDate, which reads the sync's own
+       response — one request, both halves. *)
+    date:: platform ntpDate.
+    date == nil ifTrue: [ ^ self fail: 'no ntp date' ].
+
+    rc:: platform wallClockSetDate: date time: ntp.
+    rc == nil ifTrue: [ ^ self fail: 'rtc write refused' ].
+    ('set  ' , date printString , ' ' , (self hms: ntp)) out.
+
+    (* Read back. A write that answered 0 is not evidence the part holds the time —
+       same reason the striker prints on=1 and still needs someone to listen. *)
+    back:: platform wallClock.
+    back == nil
+      ifTrue:  [ ^ self fail: 'readback nil' ]
+      ifFalse: [ ('back ' , (self hms: back) , '  skew ' , (self skew: back - ntp) printString , ' s') out ].
+
+    'NTP OK' out.
+    ^ 0
+  )
+
+  fail: msg = ( 'FAIL' out. msg out. ^ 1 )
+
+  (* Subtracting two seconds-of-day is WRONG across midnight, and wrong in a way
+     that flatters itself: a clock 10 s slow at 00:00:05 reads as 86390 s FAST.
+     The first run of this node made exactly that error and reported a 13h43m lead
+     for a clock that was in fact 10h16m behind. Fold the difference into the
+     half-day either side of zero, which is the only reading that can be a skew.
+     Two comparisons, no modulo — nsl has none. *)
+  skew: d = (
+    d >  43200 ifTrue: [ ^ d - 86400 ].
+    d < -43200 ifTrue: [ ^ d + 86400 ].
+    ^ d
+  )
+
+  (* seconds-since-midnight -> 'HH:MM:SS', zero-padded so the columns line up in a
+     serial log. No modulo in nsl: each field is a division and a subtraction. *)
+  hms: secs = (
+    | h rem m s |
+    h::   secs // 3600.
+    rem:: secs - (h * 3600).
+    m::   rem // 60.
+    s::   rem - (m * 60).
+    ^ (self pad: h) , ':' , (self pad: m) , ':' , (self pad: s)
+  )
+
+  pad: n = ( ^ n < 10 ifTrue: [ '0' , n printString ] ifFalse: [ n printString ] )
+) : (
+)

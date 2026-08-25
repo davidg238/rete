@@ -21,7 +21,7 @@ done
    deleting the wiring from either bridge file leaves this test GREEN. It
    guards the PATTERN — that a cancel-then-arm chain behaves — not the fact
    that either bridge carries it. The gate for that is leg 8 of
-   `nodus/tuvm/tests/porta_sync_host.sh`, which drives a real `porta put` of
+   `nodus/oevm/tests/porta_sync_host.sh`, which drives a real `porta put` of
    `dbg/req` over UDP and asserts an `mprof[window]` header comes back; revert
    the wiring and that leg goes red. Named here because a test whose name says
    `dbg_req_chain` reads like the regression gate for the chain, and is not.

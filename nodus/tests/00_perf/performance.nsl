@@ -4,7 +4,7 @@ performance.nsl — OEVM/Newspeak port of the STIC benchmark.
 Ported to earn an nsl column beside Toit / uLisp / CircuitPython in the published
 ESP32 table (~/workspaceToit/stic/README.md, ekorau.com/some-numbers).
 
-THREE SOURCES, deliberately split (see tuvm/docs/design/2026-07-16-performance-nsl-
+THREE SOURCES, deliberately split (see oevm/docs/design/2026-07-16-performance-nsl-
 stic-column-design.md):
   - structure  <- st-zephyr/samples/benchmark/performance.st (Smalltalk sibling)
   - COUNTS     <- ~/workspaceToit/stic/performance.toit's ITER_10K/100K/300K/1000K.

@@ -1,0 +1,18 @@
+/*
+ * oevm/zephyr — Rung 7 dongle port. Expose the nRF52840 dongle's on-board button
+ * (button0 = SW1, P1.06, GPIO_PULL_UP | GPIO_ACTIVE_LOW, defined in the board
+ * DTS) as the physical edge source for the pulse seam — the same `pulsegpio`
+ * alias the DK overlay uses (each board's DTS defines its own button0, so the
+ * alias + the ISR in ../src/main.c are board-portable). On each press the GPIO
+ * callback calls gpio_target_fire(13), the SAME logical pin the baked node
+ * registers via `gpio pin: 13 ...`.
+ *
+ * Console: the dongle board DTS already includes cdc_acm_serial.dtsi, so the
+ * chosen console is the SoC USB-CDC (cdc_acm_uart0) by default — no override
+ * needed here (prj_dongle_thread.conf enables the USB stack + line-ctrl).
+ */
+/ {
+	aliases {
+		pulsegpio = &button0;
+	};
+};

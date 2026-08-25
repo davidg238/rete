@@ -4,9 +4,9 @@
 # Deliberate growth = re-bank the baseline IN THE SAME COMMIT, with rationale.
 #
 # Baselines (banked, committed):
-#   nodus/tuvm/tools/footprint-baseline.txt      — host build, `size` TOTALS row
-#   nodus/tuvm/tools/footprint-mcu-baseline.txt  — MCU-shaped build, `text N` / `data_bss M`
-# Usage: ratchet.sh   (from anywhere; TUVM_DIR overridable)
+#   nodus/oevm/tools/footprint-baseline.txt      — host build, `size` TOTALS row
+#   nodus/oevm/tools/footprint-mcu-baseline.txt  — MCU-shaped build, `text N` / `data_bss M`
+# Usage: ratchet.sh   (from anywhere; OEVM_DIR overridable)
 # Exit: 0 = all gates ran and passed, 1 = a ratchet failed, 77 = the MCU half could
 #       not run (no cross toolchain) — that is NOT a pass (tuvm#31).
 set -eu
@@ -14,7 +14,7 @@ set -eu
 # Repo root, independent of cwd: this script lives at review/tests/t0-gates/,
 # four levels below the root, regardless of where it is invoked from.
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && git rev-parse --show-toplevel)"
-TUVM_DIR=${TUVM_DIR:-$REPO_ROOT/nodus/tuvm}
+OEVM_DIR=${OEVM_DIR:-$REPO_ROOT/nodus/oevm}
 TOL_PCT=2
 
 # footprint.sh's two configs print DIFFERENT shapes, and conflating them is how the MCU
@@ -25,14 +25,14 @@ TOL_PCT=2
 # `data+bss (host proxy for MCU static RAM): N` since the A2 addendum, so `END` picked up
 # the string "data+bss" and every run printed "ratchet ok: host text = data+bss".
 current_host () { # -> "text data bss"
-  FOOTPRINT_CONFIG=host "$TUVM_DIR/tools/footprint.sh" | awk '/\(TOTALS\)/ { print $1, $2, $3 }'
+  FOOTPRINT_CONFIG=host "$OEVM_DIR/tools/footprint.sh" | awk '/\(TOTALS\)/ { print $1, $2, $3 }'
 }
 # -> "text data_bss". Returns 77 when the cross toolchain is absent (footprint.sh's own
 # SKIP code); footprint.sh's exit 1 for ITS ratchet is ignored here — this gate applies
 # its own +TOL_PCT% tolerance to the same figures, so only the numbers are wanted.
 current_mcu () {
   local out rc=0
-  out=$(FOOTPRINT_CONFIG=mcu "$TUVM_DIR/tools/footprint.sh" 2>&1) || rc=$?
+  out=$(FOOTPRINT_CONFIG=mcu "$OEVM_DIR/tools/footprint.sh" 2>&1) || rc=$?
   [ "$rc" -eq 77 ] && return 77
   printf '%s\n' "$out" |
     sed -n 's/^footprint(mcu): text=\([0-9][0-9]*\) data+bss=\([0-9][0-9]*\).*$/\1 \2/p'
@@ -73,13 +73,13 @@ check () { # $1=label $2=current-val $3=banked-val
 FAIL=0
 SKIPPED=0
 read -r ct cd cb <<<"$(current_host)"
-read -r bt bd bb <<<"$(banked_host "$TUVM_DIR/tools/footprint-baseline.txt")"
+read -r bt bd bb <<<"$(banked_host "$OEVM_DIR/tools/footprint-baseline.txt")"
 check "host text" "$ct" "$bt" || FAIL=1
 
-MCU_BASELINE="$TUVM_DIR/tools/footprint-mcu-baseline.txt"
+MCU_BASELINE="$OEVM_DIR/tools/footprint-mcu-baseline.txt"
 if [ ! -f "$MCU_BASELINE" ]; then
   echo "note: no MCU baseline at $MCU_BASELINE — RAM ratchet inactive." \
-       "Bank one: FOOTPRINT_CONFIG=mcu FOOTPRINT_UPDATE_BASELINE=1 nodus/tuvm/tools/footprint.sh" >&2
+       "Bank one: FOOTPRINT_CONFIG=mcu FOOTPRINT_UPDATE_BASELINE=1 nodus/oevm/tools/footprint.sh" >&2
 else
   MCU_RC=0
   MCU_OUT=$(current_mcu) || MCU_RC=$?

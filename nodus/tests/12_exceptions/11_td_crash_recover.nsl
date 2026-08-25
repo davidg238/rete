@@ -11,7 +11,7 @@ reading 240
 bus released
 node alive
 *)
-(* A REDUCED demo-node-shaped Tier-2 recovery cycle (modeled on tuvm/review td-crash/04, NOT a
+(* A REDUCED demo-node-shaped Tier-2 recovery cycle (modeled on oevm/review td-crash/04, NOT a
    copy; 12_exceptions style — a plain driver object, no supervisor). The driver acquires the bus,
    samples the sensor, and RELEASES the bus via `ensure:` on every path. A silent sensor raises
    #timeout inside the protected body; `ensure:` still releases the bus during the unwind, and the

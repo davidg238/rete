@@ -11,7 +11,7 @@ package cval
 
 import "errors"
 
-// Kind mirrors SPACE_KIND_* in tuvm/src/space.h. The numbers are shared with
+// Kind mirrors SPACE_KIND_* in oevm/src/space.h. The numbers are shared with
 // the VM and travel on the wire; do not renumber them.
 type Kind int
 

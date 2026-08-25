@@ -29,7 +29,7 @@ def test_generator_produces_stable_indices():
     # mismatch — so a hand-maintained "keep in lockstep" comment was the only thing
     # standing between a one-line edit and a VM that loads nothing.
     import re
-    c_src = (TOOLS.parent.parent / "tuvm" / "src" / "oimg_loader.c").read_text()
+    c_src = (TOOLS.parent.parent / "oevm" / "src" / "oimg_loader.c").read_text()
     m = re.search(r"BUILTIN_REGISTRY_VERSION\s*=\s*(\d+)", c_src)
     assert m, "oimg_loader.c no longer declares BUILTIN_REGISTRY_VERSION"
     assert reg.VERSION == int(m.group(1)), (

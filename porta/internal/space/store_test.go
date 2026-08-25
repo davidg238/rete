@@ -312,7 +312,7 @@ func TestOutboundRowsCarryNoBoot(t *testing.T) {
 
 // A node with no persistent identity pushes bid 0. That must read as UNKNOWN
 // and never as a boot number, or the guard would fabricate a distinction the
-// node never made (posix without TUVM_BOOTID_FILE; a board without
+// node never made (posix without OEVM_BOOTID_FILE; a board without
 // CONFIG_SETTINGS returns 0 from platform_backend_boot_id).
 func TestBootlessNodeStoresZeroRatherThanInventingOne(t *testing.T) {
 	st := testStore(t)

@@ -1,6 +1,6 @@
 """rete#226 — the primitive selector ids, read from the ONE copy of the list.
 
-`nodus/tuvm/src/prim_names.def` is the single source: dispatch.c builds PRIM_NAMES from it
+`nodus/oevm/src/prim_names.def` is the single source: dispatch.c builds PRIM_NAMES from it
 (index i -> id i+1) and the image builders bake each Symbol's id from it. Before #226 the
 list lived only in C, so baking ids at image build would have meant a second copy in
 Python — and the C side already carries a compile-time parity guard against the enum
@@ -14,7 +14,7 @@ empty map: baking zeros would leave every image with no primitives intercepted a
 import re
 from pathlib import Path
 
-_DEF = Path(__file__).resolve().parents[2] / "tuvm" / "src" / "prim_names.def"
+_DEF = Path(__file__).resolve().parents[2] / "oevm" / "src" / "prim_names.def"
 
 
 def load_prim_ids(path=None):
