@@ -548,6 +548,8 @@ belongs in the path space, not in a list inside one value.**
   bricked in the field. Replay-from-0 must mean *latest value per cell path*, and for `do/`
   streams only entries written after the node's current `bootId`. Adjacent to #121 and
   not previously written down. **To be filed as an issue, not built in this slice.**
+  (Filed as #119; ANSWERED 2026-08-26 — `2026-08-26-space-sync-durability-trio-design.md`
+  D1/D2 built the guard as an acked high-water, superseding the bootId wording here.)
 - **#121 — cursor vs retention.** A node whose cursor falls behind porta's retention
   point is silently stranded (etcd's compaction scar). Still unanswered; the `events` table
   is append-only with no compaction in this rung, which defers rather than solves it.

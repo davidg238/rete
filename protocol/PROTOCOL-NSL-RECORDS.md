@@ -535,6 +535,15 @@ the drop is counted (`Health.overruns`). Losing a log line to save a node is cor
 **Delivery class is a property of the channel, not a paragraph of prose.** `sys/panic`
 is must-deliver; `tel/print` is drop-first. That is the whole rule.
 
+**Must-deliver MEANS re-offered until acked from a durable source** (design
+2026-08-26 D4). A `whenever:` capture cannot provide it — a captured-but-unacked
+entry dies with the bridge job, and the bounded pending queue may evict it under
+long disconnection. For `sys/panic` the durable source is the rete#215
+RebootNote: C state that survives both a bridge crash and the reboot itself,
+cleared only by `panicNoteAck:` once porta's ACK covers the published entry, and
+(re-)published each check-in while unacked. A duplicate panic row in the
+append-only log is acceptable; a lost one is not. No journal, no cell rerouting.
+
 **Kind C is a cell** (tuvm#32 option A, rung 9): the pigeonhole holds the latest
 letter. A reader — porta, an agent, a second job — `peek:`s current state *by
 name*, non-destructively, without draining a stream some other consumer is

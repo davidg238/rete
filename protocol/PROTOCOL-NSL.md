@@ -57,8 +57,11 @@ superseded by this document for the Zephyr node class.
   partitioned. The protocol *replicates* state and reconciles on reconnect; it never
   fetches on demand.
 - **Full-state resync by construction.** A reflashed or amnesiac node resyncs from
-  cursor 0 with no special rules — cold boot replays the whole `goal/**` tree. v1's
-  boot-echo drift-healing dissolves.
+  cursor 0 with no special rules — cold boot replays the whole `goal/**` CELL tree.
+  Streams are exempt by the replay guard (§ "seq, cursors, and changedSince:"):
+  an entry the node has already acked as applied is never served again, so a
+  resync cannot re-execute old `goal/do/*` actions. v1's boot-echo drift-healing
+  dissolves.
 - **Convergence is a query, not a mechanism.** `goal/X` versus `obs/X` is a tree
   diff; the UI's desired-vs-observed view and the self-heal loop are the *same*
   query. There is no separate self-heal engine.
@@ -239,9 +242,20 @@ button and a separate stop button, and stop always wins.*
 
 Replication needs three things the raw event queue never had, and rung 9 gave the
 space: a latest-value slot per cell, a monotonic per-path `seq`, and a
-changed-since-cursor query. A node persists its cursor (NVS) only *after* applying a
-batch, so a crash mid-apply re-pulls rather than skips. Cold boot = cursor 0 = full
-replay.
+changed-since-cursor query. The node's cursor is RAM, deliberately (design
+2026-08-26 D3): persistence would buy only a bounded boot-time re-pull and
+would cost a stranding mode after a gateway store reset. Cold boot = cursor 0,
+and what replay-from-0 MEANS is per kind (design 2026-08-26 D1):
+
+- **cells** — the latest value per path, read from the cell tree, so the replay
+  is bounded by tree size and idempotent by construction;
+- **streams** — only entries above the node's acked high-water. The gateway
+  keeps, per node, the maximum cursor the node has ever declared applied
+  (`cursor_hw`, monotonic, clamped to the gateway's own out-seq), and never
+  serves a stream row at or below it — to any boot, on any path, uniformly.
+  An applied `goal/do/*` action therefore cannot re-execute across reboots;
+  an UNAPPLIED entry is served until acked, so at-least-once within a boot
+  and delivery of rows written during an outage are both unchanged.
 
 **A cell's `seq` is not a liveness signal across a reboot.** The counter is RAM state and
 restarts at 0 on every boot — porta logs the restart and adopts the node's declared
@@ -539,7 +553,8 @@ config-desired projection, debug_response, …):
 Convergence is **structural**: `goal/X` vs `obs/X` is a tree diff — the UI's
 desired-vs-observed view and the self-heal loop are the same query. Self-heal as a
 *mechanism* disappears: a node whose `obs` diverges simply hasn't applied the `goal`
-seq yet (visible), and a node that lost state resyncs from cursor 0 (automatic).
+seq yet (visible), and a node that lost state resyncs from cursor 0 (automatic —
+cells; applied stream actions are never re-served, per §3's replay guard).
 
 ### 5.2 Operator surface
 
