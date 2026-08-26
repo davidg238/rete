@@ -1,0 +1,109 @@
+(*
+ProfileRestartProbeC6 — rete#206's board repro, with the store taken out of it.
+
+The five deaths on 2026-08-12 all rode one shape: a cold boot REPLAYS two or
+more `dbg/req profile` rows, the D6 restart cancels every end-timer but the
+last, and the node dies silently at the surviving window's end. The host arm
+of the same sequence (restart + real -DOEVM_METHOD_PROFILE dump + wallclock)
+SURVIVES — so the defect lives in the target-only layer, and this probe drives
+the identical sequence from source, no porta, no socket, no replay: if it dies
+here, the store and the mesh are eliminated in one boot.
+
+Opens nothing, so no CONF_EXTRA — same class as WedgeProbeC6: `timers` armed
+directly. Holds ONE Timers instance (`platform timers` answers a FRESH one per
+send). Dialect: `[ ... ] whileTrue:`, self-sends from reaction blocks (#133).
+
+The prints BRACKET the death point:
+  - beats stop with no `wend enter`  -> wedged between k_timer fire and dispatch
+  - `wend enter`, no mprof dump      -> wedged inside profileStop
+  - dump, no `wend exit`             -> wedged after the report
+  - all three plus beats past 25 s   -> the sequence is NOT the trigger alone
+Boot after a watchdog reboot testifies: panicNote is printed and the sequence
+is NOT re-run (a store-less probe re-arming every boot would loop the reboot).
+
+expect (console, healthy):
+PROFILE RESTART PROBE READY
+wend enter
+wend exit
+TAP profile-restart ok 1 survived
+*)
+class ProfileRestartProbeC6 packageUsing: manifest = (
+  | plat space timers profChan hbChan profTok ::= nil.
+    beats ::= 0. ends ::= 0. reported ::= false. |
+) (
+  (* the cancelled deadline is 20 s, the surviving one 6 s; 25 beats watches
+     past BOTH before scoring (#216: score inside the window and a node that
+     dies at the cancelled deadline reads as a pass). *)
+  scoreAtBeat = ( ^ 25 )
+
+  public main: platform args: args = (
+    | note |
+    plat:: platform.
+    space:: plat space.
+    timers:: plat timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    profChan:: space channel: 'sys/profileEnd'.
+    profChan whenever: '' do: [ :m | self windowEnd ].
+    hbChan:: space channel: 'sys/hb'.
+    hbChan whenever: '' do: [ :m | self beat ].
+    timers every: 1000 post: #hb on: hbChan.
+
+    note:: plat panicNote.
+    (* `== nil`, NOT `isNil` — a prim-built indexable answers basicAt: only. *)
+    (note == nil)
+      ifTrue: [
+        (* Variant 2 (the top-level variant SURVIVED on 2026-08-25, TAP ok):
+           the burst now fires from INSIDE a timer dispatch — see `beat` — the
+           way the real replay arrives (dbg/req reactions run inside the tick's
+           checkIn). Three starts, mirroring the 3-row death. *)
+        'will arm at beat 2' println ]
+      ifFalse: [
+        (* the previous boot died and the reset note survived: testify, do not
+           re-arm — this boot's job is to keep ticking so the death is legible. *)
+        'TAP profile-restart fail note' println.
+        note println ].
+
+    'PROFILE RESTART PROBE READY' println.
+    [ true ] whileTrue: [
+      plat pumpEvents.
+      space drain ].
+    ^ 0 )
+
+  windowStart: ms = (
+    profTok == nil ifFalse: [ timers cancel: profTok ].
+    profTok:: nil.
+    plat profileStart.
+    profTok:: timers after: ms post: #profileEnd on: profChan.
+    ^ self )
+
+  windowEnd = (
+    profTok:: nil.
+    'wend enter' println.
+    plat profileStop.
+    'wend exit' println.
+    ends:: ends + 1.
+    ^ self )
+
+  beat = (
+    beats:: beats + 1.
+    ('beat ' , beats printString , ' ends ' , ends printString) println.
+    (beats = 2) ifTrue: [
+      (* the replay burst, inside this dispatch: arm, restart, restart. The
+         surviving end is 4 s out; the two cancelled deadlines (9 s, 15 s) and
+         the score beat both sit past it. *)
+      self windowStart: 15000.
+      self windowStart: 9000.
+      self windowStart: 4000.
+      'burst armed 15000/9000/4000' println ].
+    (beats = self scoreAtBeat) ifTrue: [ self score ].
+    ^ self )
+
+  score = (
+    reported ifTrue: [ ^ self ].
+    reported:: true.
+    (ends = 1)
+      ifTrue:  [ 'TAP profile-restart ok 1 survived' println ]
+      ifFalse: [ ('TAP profile-restart fail ends=' , ends printString) println ].
+    ^ self )
+) : (
+)
