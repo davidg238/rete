@@ -1,0 +1,19 @@
+(*
+expect-compile-fail: '->' needs `platform` in scope
+*)
+(* rete#245: `a -> b` lowers to `Association key: a value: b`, and `Association`
+   resolves as `platform Association` — a name lookup. With the grant parameter
+   named anything else, the lowering used to fall through to an implicit SELF-
+   send of `Association` and die at runtime as a DNU naming a hex vtable and a
+   class the author never wrote, far from the cause. The failure must be at
+   COMPILE time, at the arrow, naming the fix. The capability substitution
+   (an attenuated grant in a slot literally named `platform`) stays a feature —
+   01_association.nsl is the positive control. *)
+class ArrowNoPlatformTest packageUsing: manifest = () (
+public main: p args: args = (
+  | a |
+  a:: 1 -> 2.
+  a value printString out.
+)
+) : (
+)

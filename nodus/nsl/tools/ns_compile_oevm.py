@@ -1059,6 +1059,23 @@ class MethodCompiler:
             # then the original right operand, each exactly once, matching the
             # normal send/keyword-args compilation below.
             if selector == "->" and len(args) == 1:
+                # rete#245: the rewrite below only works when `platform` is in
+                # lexical scope — otherwise the synthetic `Association` falls
+                # through resolve_name to an implicit SELF-send and dies at
+                # runtime as a DNU naming a hex vtable and a class the author
+                # never wrote. The author also never wrote `Association`, so
+                # that failure is doubly far from its cause: refuse HERE, at
+                # the arrow, naming the fix. (resolve_name's capture marking is
+                # set-idempotent, and the rewritten send re-resolves `platform`
+                # anyway, so this probe changes nothing on the success path.)
+                plat = self.resolve_name("platform")
+                if plat[0] not in ("local", "lexical", "slot"):
+                    raise CompileError(
+                        "'->' needs `platform` in scope: it lowers to "
+                        "`Association key:value:`, resolved through the handed "
+                        "platform capability. Name the grant slot or parameter "
+                        "`platform` (an attenuated grant substitutes cleanly), "
+                        "or construct the pair without the sugar.")
                 rewritten = {
                     "type": "send",
                     "receiver": {"type": "varRef", "name": "Association", "span": expr.get("span")},
