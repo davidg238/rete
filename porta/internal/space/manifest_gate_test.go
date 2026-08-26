@@ -149,3 +149,49 @@ func TestNoManifestNoGate(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// rete#218, closed by the #243 gate rather than a second namespace check: a
+// node pushing gw/liveness must NOT overwrite the gateway's own verdict.
+// gw/** is dir=gw in the manifest, the wire door checks every push as dir=up,
+// so the forged entry is refused-but-kept (acked, actor=gate) and the sweep's
+// cell survives with its direction intact. The residue — an UNGATED store
+// still applies the forgery — is the flagless-serve deferral recorded on #258,
+// and TestNoManifestNoGate above is honest about that world.
+func TestIngestRefusesAForgedGatewayVerdict(t *testing.T) {
+	s := testStore(t)
+	s.SetManifest(loadRealManifest(t))
+	silent := enc(t, cval.Symbol("silent"))
+	forged := enc(t, cval.Symbol("live"))
+	if err := s.WriteGateway("n1", PathLiveness, silent, "silence sweep"); err != nil {
+		t.Fatal(err)
+	}
+	hw, _, err := s.Ingest("n1", 9, []Entry{
+		{Seq: 1, Path: PathLiveness, Kind: cval.KindCell, Value: forged}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hw != 1 {
+		t.Fatalf("refused forgery must still ack so the node advances: hw=%d", hw)
+	}
+	cells, err := s.Tree("n1", "gw/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cells) != 1 || string(cells[0].Value) != string(silent) ||
+		cells[0].Direction != DirectionGateway {
+		t.Fatalf("the node overwrote the gateway's verdict: %+v", cells)
+	}
+	evs, err := s.Events("n1", 10, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var gate int
+	for _, e := range evs {
+		if e.Actor == "gate" && strings.HasPrefix(e.Reason, "manifest:dir") {
+			gate++
+		}
+	}
+	if gate != 1 {
+		t.Fatalf("want one actor=gate manifest:dir row for the forgery, got %d", gate)
+	}
+}
