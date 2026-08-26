@@ -340,14 +340,22 @@ func (s *Store) WriteGateway(nodeID, path string, value []byte, reason string) e
 // unfiltered read would hand the node its own state back stamped with numbers
 // from the wrong sequence space — corrupting the cursor in the same reply.
 func (s *Store) OutboundSince(nodeID string, cursor int64, maxBytes int) ([]Entry, int64, error) {
+	// The stream half carries the replay guard (design 2026-08-26 D1): a row
+	// the node has ever acked as applied — seq <= cursor_hw — is never served
+	// again, to any boot, on any path. Cells are deliberately unguarded: the
+	// tree read already serves latest-value-per-path, idempotent by
+	// construction. COALESCE covers a node with no row yet: a bare `seq >
+	// NULL` is NULL, which would silently filter EVERY stream row for a node
+	// porta has never seen check in.
 	rows, err := s.db.Query(`
 		SELECT seq, path, kind, value_cbor FROM cells
 		  WHERE node_id = ? AND direction = 'out' AND seq > ?
 		UNION ALL
 		SELECT seq, path, kind, value_cbor FROM events
 		  WHERE node_id = ? AND direction = 'out' AND kind = ? AND seq > ?
+		    AND seq > COALESCE((SELECT cursor_hw FROM nodes WHERE id = ?), 0)
 		ORDER BY seq`,
-		nodeID, cursor, nodeID, int(cval.KindStream), cursor)
+		nodeID, cursor, nodeID, int(cval.KindStream), cursor, nodeID)
 	if err != nil {
 		return nil, cursor, err
 	}

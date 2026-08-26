@@ -960,3 +960,92 @@ func TestOpenAddsCursorHwToAPreExistingStore(t *testing.T) {
 		t.Fatalf("cursor_hw column absent after reopen: %v", err)
 	}
 }
+
+// THE REPLAY GUARD (design 2026-08-26 D1). A cursor-0 pull after a reboot
+// re-serves cells (latest value, idempotent) but never a stream row the node
+// has already acked as applied — replaying goal/do/reboot reboots the node
+// again (#119), and #262's dbg/req rows re-ran a 60 s profile window on every
+// boot, forever, until this rule existed.
+func TestAckedStreamRowsAreNeverReServed(t *testing.T) {
+	st := testStore(t)
+	st.Write("n1", "goal/name", cval.KindCell, enc(t, "bell"), "david", "")     // seq 1
+	st.Write("n1", "dbg/req", cval.KindStream, enc(t, "profile"), "david", "")  // seq 2
+	st.Write("n1", "dbg/req", cval.KindStream, enc(t, "profile2"), "david", "") // seq 3
+	if _, _, err := st.NoteCheckIn("n1", 3, 0, 7); err != nil {                 // node applied all three
+		t.Fatalf("NoteCheckIn: %v", err)
+	}
+
+	got, hi, err := st.OutboundSince("n1", 0, MaxBatchBytes) // reboot: cursor 0
+	if err != nil {
+		t.Fatalf("OutboundSince: %v", err)
+	}
+	if len(got) != 1 || got[0].Path != "goal/name" {
+		t.Fatalf("cursor-0 replay after full ack = %+v, want the cell alone", got)
+	}
+	if hi != 1 {
+		t.Fatalf("hi = %d, want 1 (the one delivered row)", hi)
+	}
+}
+
+// At-least-once WITHIN a boot is untouched: a lost BATCH never advanced the
+// cursor, so it never advanced cursor_hw, and the re-pull re-serves. The
+// exchange's no-retransmit posture rests on this.
+func TestUnackedStreamRowsSurviveALostBatch(t *testing.T) {
+	st := testStore(t)
+	st.Write("n1", "dbg/req", cval.KindStream, enc(t, "profile"), "david", "") // seq 1
+	if _, _, err := st.NoteCheckIn("n1", 0, 0, 7); err != nil {                // pull sent, batch LOST
+		t.Fatalf("NoteCheckIn: %v", err)
+	}
+	got, _, err := st.OutboundSince("n1", 0, MaxBatchBytes)
+	if err != nil {
+		t.Fatalf("OutboundSince: %v", err)
+	}
+	if len(got) != 1 || got[0].Path != "dbg/req" {
+		t.Fatalf("unacked stream row after a lost batch = %+v, want it re-served", got)
+	}
+}
+
+// Delivered-while-down still delivers: a row written during an outage has
+// seq > cursor_hw and reaches the NEXT boot exactly once.
+func TestOutageWrittenStreamRowDeliversAcrossAReboot(t *testing.T) {
+	st := testStore(t)
+	st.Write("n1", "dbg/req", cval.KindStream, enc(t, "old"), "david", "") // seq 1
+	if _, _, err := st.NoteCheckIn("n1", 1, 0, 7); err != nil {            // applied
+		t.Fatalf("NoteCheckIn: %v", err)
+	}
+	st.Write("n1", "dbg/req", cval.KindStream, enc(t, "new"), "david", "") // seq 2, node down
+
+	got, _, err := st.OutboundSince("n1", 0, MaxBatchBytes) // next boot, cursor 0
+	if err != nil {
+		t.Fatalf("OutboundSince: %v", err)
+	}
+	if len(got) != 1 || got[0].Seq != 2 {
+		t.Fatalf("post-outage cursor-0 replay = %+v, want only the unapplied seq-2 row", got)
+	}
+	v, _ := cval.Decode(got[0].Value)
+	if v != "new" {
+		t.Fatalf("delivered value = %v, want the outage-written one", v)
+	}
+}
+
+// The D2 clamp seen from the reader's side: after a store reset under a
+// running node (an impossible cursor recorded, clamped), the fresh store's
+// NEW rows must still serve. Without the clamp this test wedges — cursor_hw
+// would be 500 and the guard would eat rows 1..500 of a store that has no
+// history at all.
+func TestFreshStoreRowsServeAfterAnImpossibleCursor(t *testing.T) {
+	st := testStore(t)
+	if _, _, err := st.NoteCheckIn("n1", 500, 0, 7); err != nil { // running node, reset store
+		t.Fatalf("NoteCheckIn: %v", err)
+	}
+	st.Write("n1", "goal/name", cval.KindCell, enc(t, "bell"), "david", "")    // seq 1
+	st.Write("n1", "dbg/req", cval.KindStream, enc(t, "profile"), "david", "") // seq 2
+
+	got, _, err := st.OutboundSince("n1", 0, MaxBatchBytes) // node's next reboot
+	if err != nil {
+		t.Fatalf("OutboundSince: %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("fresh store serves %+v, want both rows — the guard ate the store's future", got)
+	}
+}
