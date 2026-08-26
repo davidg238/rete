@@ -4,8 +4,8 @@ expect-runtime-fail: not understood by receiver a String
 (* rete#247 part 2 (builtin half) — the DNU diagnostic names a BUILTIN
    receiver's kind instead of a bare oop: dispatch.c already holds the builtin
    vtable globals by name, so 'abc' failing a send reads "receiver a String".
-   App-class receivers still print the oop/vtable pair — naming those needs a
-   vtable-name design (image-format cost) tracked on #247 itself. *)
+   App-class receivers are named from the .oimg classnames section — see
+   66_dnu_app_class_named.nsl. *)
 class DnuReceiverNamed packageUsing: manifest = () (
 public main: platform args: args = (
   'abc' collect: [ :c | c ].

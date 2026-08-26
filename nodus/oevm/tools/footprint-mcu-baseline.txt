@@ -8,12 +8,15 @@
 #           distance over the receiver's own vtable chain) and builtin receiver
 #           kind naming. This is the flash price of "'strkeOn' not understood
 #           ... -- nearest: 'strikeOn'" on a device console — the elmbed
-#           review's bet, and it lives on the abort path only. (App-class
-#           receivers still print hex; naming them needs the vtable-name
-#           design tracked on #247.)
-#   +0 B   data+bss, unchanged at 67796 — the RAM ratchet (the scarce axis, #53)
-#          is untouched.
-#   = 39972 total mcu text, from 38899 banked 2026-08-22.
+#           review's bet, and it lives on the abort path only.
+#   +257 B  rete#247 (app-class half): the .oimg v10 classnames section — the
+#           loader's descriptor reads + bounds check, and oimg_vtable_name's
+#           linear lookup on the DNU abort path. Buys "receiver a
+#           ShipsBellNodeC6" instead of an oop/vtable hex pair.
+#   +8 B   data+bss, 67796 -> 67804 — the loader's two classnames descriptor
+#          statics. The RAM ratchet (the scarce axis, #53) is otherwise
+#          untouched.
+#   = 40229 total mcu text, from 38899 banked 2026-08-22.
 #
 # Superseded header (2026-08-22, rete#186): +27 B for the `platform nodeId` prim,
 # 38872 -> 38899 — what it costs a node to know which BOARD it is, against a source
@@ -24,5 +27,5 @@
 # what was broken was footprint.sh's un-SKIP instruction, which named a deleted
 # path. That bank split 34488 -> 38872 into +3108 B of enrolment (ota.c + span.c)
 # and +1276 B of real drift.
-text 39972
-data_bss 67796
+text 40229
+data_bss 67804

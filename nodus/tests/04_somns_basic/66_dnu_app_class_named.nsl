@@ -1,0 +1,13 @@
+(*
+expect-runtime-fail: not understood by receiver a DnuAppClassNamed
+*)
+(* rete#247 part 2 (app-class half) — the DNU diagnostic names an APP-CLASS
+   receiver's class instead of a bare oop/vtable pair. The .oimg carries a
+   classnames section (vtable offset -> name symbol, format v10); the abort
+   path looks the receiver's vtable up there. *)
+class DnuAppClassNamed packageUsing: manifest = () (
+public main: platform args: args = (
+  self strkeOn.
+)
+) : (
+)

@@ -9,9 +9,13 @@
 #           kind naming. Diagnostics are the product feature the elmbed review
 #           named: an operator that is an agent is exactly as good as the error
 #           line it is fed, and this text lives on the abort path only.
-#   +0 B    data+bss, both configs — the RAM ratchet (the axis #53 says is scarce)
-#           is untouched.
-#   = 69540 total host text, from 68136 banked 2026-08-22.
+#   +399 B  rete#247 (app-class half): the .oimg v10 classnames section —
+#           oimg_loader.o +275 (descriptor reads + bounds check +
+#           oimg_vtable_name lookup), dispatch.o +124 (the DNU branch). Buys
+#           "receiver a ShipsBellNodeC6" instead of an oop/vtable hex pair.
+#   +8 B    data+bss (mcu config; here it is inside gc.o's host-arena noise) —
+#           the loader's two classnames descriptor statics.
+#   = 69939 total host text, from 68136 banked 2026-08-22.
 #
 # The host number is a PROXY and always has been (gc.o's host arena dwarfs the real
 # MCU heap). What constrains a C6 is the mcu baseline beside this file.
@@ -24,7 +28,7 @@
 # `size -t` line), of which only +8 B was real drift.
    text	   data	    bss	    dec	    hex	filename
   12763	     20	   1160	  13943	   3677	vm.o
-  17184	   1309	 131360	 149853	  2495d	dispatch.o
+  17308	   1309	 131360	 149977	  249d9	dispatch.o
    4663	     24	17048448	17053135	10435cf	gc.o
     605	   1072	      4	   1681	    691	kernel_boot.o
   13017	     20	   1120	  14157	   374d	platform.o
@@ -33,7 +37,7 @@
     474	      0	      0	    474	    1da	http.o
    2703	      4	    400	   3107	    c23	http_core.o
    1731	      0	     88	   1819	    71b	mirror.o
-   1929	      0	    304	   2233	    8b9	oimg_loader.o
+   2204	      0	    320	   2524	    9dc	oimg_loader.o
    3203	      0	   9024	  12227	   2fc3	space.o
     602	      0	    544	   1146	    47a	handles.o
    4248	      0	      0	   4248	   1098	ota.o
@@ -43,4 +47,4 @@
    1135	      0	      0	   1135	    46f	udp_posix.o
    1059	      4	      0	   1063	    427	http_posix.o
    1141	      4	   1056	   2201	    899	timer_posix.o
-  69540	   2465	17198612	17270617	1078759	(TOTALS)
+  69939	   2465	17198628	17271032	10788f8	(TOTALS)

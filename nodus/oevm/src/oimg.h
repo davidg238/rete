@@ -14,6 +14,10 @@ extern oop oimg_singleton[3];
    own `base`. oimg_load(path) is a mmap wrapper over this (desktop only). */
 int oimg_load_blob(const uint8_t *base, size_t size);
 
+/* rete#247: the name of a blob (app-class) vtable from the image's v10
+   classnames section, or NULL. Used by the DNU abort path. */
+const char *oimg_vtable_name(oop vt);
+
 /* BUILTIN_COUNT: derived from builtins.def via X-macro counter so it stays
  * in lockstep automatically when new rows are appended to the .def file.
  * Defined as an enum constant so it can be used as a C array size. */

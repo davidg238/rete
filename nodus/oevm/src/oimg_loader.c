@@ -41,9 +41,15 @@ const uint32_t BUILTIN_REGISTRY_VERSION = 5;
  * record (no separate strbytes allocation, no `name` ref-word). Bumped so a
  * v8 image meets a v9 VM as a loud rejection rather than a silent misread.
  *
+ * format_version 10 (rete#247): a classnames section rides at the header
+ * tail — classnames_ref (app ref-word) at A+13W pointing at a table of
+ * (vtable ref-word, name-symbol ref-word) pairs, one per blob vtable, and
+ * classnames_count (u16) at A+14W. Read only by oimg_vtable_name() on the
+ * DNU abort path, to name an app-class receiver.
+ *
  *   off       width  field
  *   0         4      magic "OIMG"
- *   4         2      format_version (u16, = 9)
+ *   4         2      format_version (u16, = 10)
  *   6         2      flags (u16)
  *   8         4      registry_version (u32)
  *   12        4      blob_size (u32, = total file size)
@@ -69,6 +75,10 @@ const uint32_t BUILTIN_REGISTRY_VERSION = 5;
  *   (header padded to 8 again)
  *   A+12W     W      net_on_sel_ref   (ref to Kernel>>netOn:,
  *                                      0 when entry takes no net capability)
+ *   (header padded to 8 again)
+ *   A+13W     W      classnames_ref   (app ref-word to the classnames table,
+ *                                      0 when the image has no blob vtables)
+ *   A+14W     2      classnames_count (u16)
  *   (header padded to 8 again)
  * For W==8: A=24, init@32, main@40, init_argc@48, entry_nslots@50,
  *           kernel_vtable_ref@56, kernel_init_sel_ref@64, kernel_nslots@72,
@@ -100,6 +110,9 @@ static uintptr_t img_supervisor_run_sel_ref  = 0;
 static uint16_t  img_supervisor_nslots       = 0;
 /* R4: UDP capability. 0 when the entry takes no net. */
 static uintptr_t img_net_on_sel_ref          = 0;
+/* rete#247: classnames section — names app-class receivers on the DNU line. */
+static uintptr_t img_classnames_ref          = 0;
+static uint16_t  img_classnames_count        = 0;
 
 static uintptr_t read_word(const uint8_t *p) {
     uintptr_t w = 0;
@@ -124,8 +137,8 @@ int oimg_load_blob(const uint8_t *base, size_t size) {
     uint16_t format_version   = read_u16(base + 4);
     uint32_t registry_version = read_u32(base + 8);
     uint32_t blob_size        = read_u32(base + 12);
-    if (format_version != 9) {
-        fprintf(stderr, "oimg_load_blob: unsupported format_version %u (expected 9)\n", format_version);
+    if (format_version != 10) {
+        fprintf(stderr, "oimg_load_blob: unsupported format_version %u (expected 10)\n", format_version);
         return 1;
     }
     if (registry_version != BUILTIN_REGISTRY_VERSION) {
@@ -156,10 +169,40 @@ int oimg_load_blob(const uint8_t *base, size_t size) {
     img_supervisor_run_sel_ref  = read_word(base + a + 10 * W);
     img_supervisor_nslots       = read_u16 (base + a + 11 * W);
     img_net_on_sel_ref          = read_word(base + a + 12 * W);
+    img_classnames_ref          = read_word(base + a + 13 * W);
+    img_classnames_count        = read_u16 (base + a + 14 * W);
+    /* Closed decoding: a classnames table that points outside the blob is a
+       malformed image, not a degraded diagnostic. */
+    if (img_classnames_count != 0) {
+        size_t off = (size_t)(img_classnames_ref >> 2);
+        if (img_classnames_ref == 0 ||
+            off + (size_t)img_classnames_count * 2 * W > blob_size) {
+            fprintf(stderr, "oimg_load_blob: classnames table out of bounds\n");
+            return 1;
+        }
+    }
 
     oimg_blob_base = base;
     oimg_blob_end  = base + blob_size;
     return 0;
+}
+
+/* rete#247: name an app-class vtable from the image's classnames section.
+   NULL when `vt` is not a blob vtable or the table has no row for it — the
+   DNU printer then falls back to the oop/vtable hex pair. Abort-path only;
+   a linear scan over tens of rows is fine. */
+const char *oimg_vtable_name(oop vt) {
+    if (vt == NULL || oimg_blob_base == NULL || !is_in_blob(vt)) return NULL;
+    size_t W = sizeof(oop);
+    const uint8_t *tab = oimg_blob_base + (img_classnames_ref >> 2);
+    for (uint16_t i = 0; i < img_classnames_count; i++) {
+        if (oimg_resolve(read_word(tab + (size_t)2 * i * W)) == vt) {
+            struct Symbol *s =
+                (struct Symbol *)oimg_resolve(read_word(tab + ((size_t)2 * i + 1) * W));
+            return s ? symbol_name(s) : NULL;
+        }
+    }
+    return NULL;
 }
 
 #ifndef OEVM_NO_FILE_IO

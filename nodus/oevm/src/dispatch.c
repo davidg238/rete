@@ -454,8 +454,9 @@ static const char *dnu_nearest_selector(oop receiver, const char *sel) {
 }
 
 /* rete#247: name a BUILTIN receiver's kind for the DNU line. App-class
-   receivers answer NULL and keep the oop/vtable pair — naming those needs a
-   per-vtable name the image format does not carry yet (tracked on #247). */
+   receivers answer NULL here and are named from the image's classnames
+   section instead (oimg_vtable_name); a receiver neither builtin nor in the
+   blob keeps the oop/vtable pair. */
 static const char *dnu_receiver_kind(oop receiver) {
     if (receiver == NULL) return "nil";
     if (IS_SMI(receiver)) return "an Integer";
@@ -509,10 +510,14 @@ static oop does_not_understand(oop receiver, oop selector, int argc, oop *args) 
        kind and the did-you-mean are the enrichment after it. */
     const char *sel_name = sym ? symbol_name(sym) : "?";
     const char *kind = dnu_receiver_kind(receiver);
+    const char *cname = (kind == NULL) ? oimg_vtable_name(obj_vtable(receiver)) : NULL;
     const char *near = sym ? dnu_nearest_selector(receiver, sel_name) : NULL;
     if (kind != NULL) {
         fprintf(stderr, "VM Error: Message '%s' not understood by receiver %s (%p)",
                 sel_name, kind, receiver);
+    } else if (cname != NULL) {
+        fprintf(stderr, "VM Error: Message '%s' not understood by receiver a %s (%p)",
+                sel_name, cname, receiver);
     } else {
         fprintf(stderr, "VM Error: Message '%s' not understood by receiver %p (vtable: %p)",
                 sel_name, receiver, receiver ? obj_vtable(receiver) : NULL);

@@ -17,6 +17,10 @@ const uint8_t *oimg_blob_end  = NULL;
 oop builtin_registry[BUILTIN_COUNT] = {0};
 oop oimg_singleton[3]    = {0};
 
+/* rete#247: no blob means no classnames section — an app-class DNU keeps the
+ * oop/vtable hex pair in the appliance build. */
+const char *oimg_vtable_name(oop vt) { (void)vt; return NULL; }
+
 extern void init_solidified_vtables(void);
 extern void init_reflection_symbols(void);
 extern oop run_solidified_entry_point(void);
