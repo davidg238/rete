@@ -516,6 +516,12 @@ def parse_test_metadata(file_path: Path):
             rest = line[len("expect:"):].strip()
             if rest:
                 metadata["expect"].append(rest)
+        elif line.startswith("expect-compile-fail-line:"):
+            # rete#139: pin WHICH line the compiler blames, now that rete#247
+            # made CompileError carry file:line:col. Optional beside the
+            # substring header; asserted as ".nsl:<N>:" in the diagnostic.
+            metadata["expect_compile_fail_line"] = int(
+                line[len("expect-compile-fail-line:"):].strip())
         elif line.startswith("expect-compile-fail:"):
             in_expect = False
             metadata["expect_compile_fail"] = line[len("expect-compile-fail:"):].strip()
@@ -581,6 +587,10 @@ def _check_compile_fail(metadata: dict, err_msg: str) -> tuple[bool, str]:
     if expected_substr not in err_msg:
         return False, (f"Compilation failed as expected, but diagnostic did not contain "
                         f"'{expected_substr}':\n{err_msg}")
+    expected_line = metadata.get("expect_compile_fail_line")
+    if expected_line is not None and f".nsl:{expected_line}:" not in err_msg:
+        return False, (f"Compilation failed with the expected diagnostic, but it did not "
+                        f"blame line {expected_line} (want '.nsl:{expected_line}:'):\n{err_msg}")
     return True, f"Expected compilation failure: {err_msg.strip()}"
 
 

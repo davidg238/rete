@@ -1,9 +1,10 @@
 (*
 expect-compile-fail: non-local return
+expect-compile-fail-line: 18
 *)
 (* T-A.1 — `^` inside an ESCAPING closure (stored/passed to a non-inlined selector) is
    a compile error, and the diagnostic is API: it names the rule (substring above) and
-   is raised while compiling the block itself. The `^ x * 2` below (line 17) is the
+   is raised while compiling the block itself. The `^ x * 2` below (line 18) is the
    violation; nothing here may compile.
 
    Companion cases (same expectation, split into their own files so each diagnostic's

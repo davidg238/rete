@@ -1,8 +1,9 @@
 (*
 expect-compile-fail: non-local return
+expect-compile-fail-line: 12
 *)
 (* T-A.1c — companion to 01: `^` nested two deep inside an escaping block (an
-   inlined ifTrue: arm nested inside the escaping block, line 11) is still
+   inlined ifTrue: arm nested inside the escaping block, line 12) is still
    rejected — inlining the ifTrue: does not change the enclosing block's
    escaping status. *)
 class NlrEscapeNested packageUsing: manifest = () (
