@@ -651,20 +651,22 @@ down here; the entry below documents it rather than proposing it.
 
 | path | kind | record |
 |---|---|---|
-| `diag/spans/ctl` | **C (cell)**, ↓ | `SpanCtl { state: sym }` — `#running` / `#stopped`. Writing `#running` while already running RESTARTS the window; a write is a statement of intent |
+| `diag/spans/ctl` | **C (cell)**, ↑ | `SpanCtl { state: sym }` — `#running` / `#stopped`. Writing `#running` while already running RESTARTS the window; a write is a statement of intent |
 | `diag/spans/<span>` | **C (cell)**, ↑ | `LatencySpan { … }` — the §4.4 record, **one cell per span slot**, 140 B each. `<span>` is the slot's nsl name with its leading `#` stripped |
 | `diag/spans/result` | **C (cell)**, ↑ | `SpanCapture { n: int, ms: int }` — the window summary ONLY: total samples across slots, and the window's elapsed ms (`-1` when the millis counter wrapped, published rather than a plausible wrong number) |
 
-**`diag/spans/ctl` is marked ↓ and porta cannot write it.** §3's inbound authority is
-exactly two paths wide — porta may write `goal/**` and `dbg/req`, and the node DROPS an
-entry at any other path. `diag/spans/ctl` is neither, so the downward arrow in this table
-describes an intent no gateway can currently exercise; the only writers today are the
-node's own `/stats` page links. This is a genuine contradiction between two documents of
-record, resolved here by naming it rather than by quietly widening the authority model —
-that model is the one rule the whole direction argument rests on, and it should be widened
-on purpose or not at all. **Filed as tuvm#159.** Until it is settled, a node that wants
-span data published runs a FREE-RUNNING capture on its own cadence, which needs no inbound
-path at all, and whose cost is measurable rather than argued about.
+**`diag/spans/ctl` is ↑ because only the node writes it** — the row above used to say ↓,
+an intent no gateway could exercise: §3's inbound authority is exactly two paths wide
+(porta may write `goal/**` and `dbg/req`, and the node DROPS an entry at any other path),
+and `MANIFEST.cddl` — the machine-normative half since rete#243, enforced by all three of
+porta's write doors and the seam gate — pins `dir=up` here. The contradiction was filed as
+tuvm#159 and resolved 2026-08-26 by making this table agree with what is enforced, not by
+widening the authority model — that model is the one rule the whole direction argument
+rests on, and it should be widened on purpose or not at all. Remote window control stays
+unbuilt, deliberately: a node that wants span data published runs a FREE-RUNNING capture
+on its own cadence, which needs no inbound path at all. What would earn an inbound `ctl`
+back (rete#159's close-out): field data from free-running captures showing someone
+actually wanting a *different* window often enough to justify a third inbound path.
 
 **Eight of the span names are not the app's to choose, and every bridged node publishes
 them.** Two are C-owned (`httpQueue`, `egress` — `src/span.h` pins the slots so a node
