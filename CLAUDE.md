@@ -95,7 +95,7 @@ How to make decisions here. These override the instinct to be thorough.
 ## Gates
 
 ```
-cd nodus/nsl && python3 tools/run_tests_oevm.py     # 272 passed, 0 failed (2026-08-25)
+cd nodus/nsl && python3 tools/run_tests_oevm.py     # 273 passed, 0 failed (2026-08-26)
 cd porta      && go test ./...
 cd nodus/oevm && bash tests/porta_sync_host.sh      # PORTA SYNC OK
 ```
