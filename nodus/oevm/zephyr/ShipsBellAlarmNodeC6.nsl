@@ -76,8 +76,8 @@ absent from a build and the node correctly, quietly, carrying on without it.
 
 Dialect: `[ ... ] whileTrue:`, never `repeat`. No modulo in nsl — every one is
 spelled `n - ((n // d) * d)`. State lives in instance slots. ONE `Timers` instance,
-held in a slot: `platform timers` answers a fresh one per call and `dispatch:`
-silently drops a token it does not know.
+held in a slot — tidiness since rete#244 made the accessor a singleton, though
+`dispatch:` still silently drops a token it does not know.
 
 expect (C6 console, wall-powered):
 shipsbell(alarm) ready, slot 1800 s, lead 5 s, watchdog +2 s, 10/500/1600 ms

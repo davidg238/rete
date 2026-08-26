@@ -14,7 +14,11 @@ NB: inside this module NEVER write `Array new: n` (it compiles to a fixed-slot
 OP_NEW, not an indexable). Allocate indexables via `platform basicNew: Array
 indexable: n` (Array as an argument is a slot read of the class object).
 *)
-class Kernel usingPlatform: platform = () (
+class Kernel usingPlatform: platform = (
+  (* rete#244: the ONE Timers this kernel instance answers. Lazy because the
+     accessor below is the only reader, nil until first asked. *)
+  | timersOne ::= nil. |
+) (
   class Object = () (
     (* Milestone E Task 1: the in-flight error value is a crash Record (#tag/#text),
        not a bare String. `self error: text` and `text error: tag` are BOTH C prims
@@ -1685,10 +1689,11 @@ class Kernel usingPlatform: platform = () (
          clears it, which is the only way the value can move. *)
       cadMs ::= 30000. budMs ::= 240000. livenessPublished ::= false.
       (* rete#231 D1 — the base tick the KERNEL owns. `tickTimers` is the app's
-         ONE Timers instance, handed in and never minted here: `platform timers`
-         answers a fresh instance every send and the C registry is keyed
-         globally, so a second instance aliases the first's tokens and drops
-         every dispatch silently. `tickToken` is what makes the registration
+         Timers instance, handed in and never minted here. Since rete#244
+         `platform timers` answers the per-kernel singleton, so handing it is
+         convention rather than load-bearing — but an explicitly-constructed
+         private registry (Timers usingSpace:seam:) still aliases the global
+         C registry, so the handed-in shape stays. `tickToken` is what makes the registration
          once-per-boot observable, and it is what a re-arm would cancel when the
          cadence half of goal/liveness starts being honoured. *)
       tickTimers ::= nil. tickChannel ::= nil. tickToken ::= nil.
@@ -1712,10 +1717,11 @@ class Kernel usingPlatform: platform = () (
        IT MUST BE THE APP'S ONE Spans. Each Spans instance owns its own name<->slot
        table and hands out indices sequentially from 2, so two instances in one
        image both allocate slot 2 and then silently accumulate into each other's
-       samples — the same one-instance rule `platform timers` already lives under.
-       The constructor cannot enforce this (a freshly minted Spans is accepted and
-       collides); making `platform Spans` answer a memoized instance would, and is
-       the right follow-on. Registration happens HERE, at construction, so the slot
+       samples — the one-instance rule `platform timers` lived under until
+       rete#244 memoized it. The constructor cannot enforce this (a freshly
+       minted Spans is accepted and collides); making `platform Spans` answer a
+       memoized instance would, and is the right follow-on — #244 is now the
+       precedent shape. Registration happens HERE, at construction, so the slot
        table is complete before any capture window opens: SpanCapture publishes one
        cell per slot, and a table that grew mid-window would publish a different set
        of cells at stop than existed at start. *)
@@ -2473,10 +2479,12 @@ class Kernel usingPlatform: platform = () (
        check-in. A node whose app declares no repeating timer of its own stops
        being invisible to the detector, which is the case nothing could see before.
 
-       THE TIMERS INSTANCE IS HANDED IN. `platform timers` answers a FRESH instance
-       on every send while the C registry is keyed globally, so a bridge that minted
-       its own would register a token the app's dispatcher has never heard of and
-       every tick would be dropped in silence.
+       THE TIMERS INSTANCE IS HANDED IN. Before rete#244 `platform timers`
+       answered a FRESH instance per send, and a bridge that minted its own
+       registered tokens the app's dispatcher had never heard of — every tick
+       dropped in silence. The accessor answers the singleton now, so the
+       hazard is an explicitly-constructed second registry; handing the
+       instance keeps the wiring visible either way.
 
        ONCE PER BOOT. Two timers at one period is two check-ins per tick forever,
        and the second is invisible until someone counts radio wakeups.
@@ -4249,8 +4257,9 @@ class Kernel usingPlatform: platform = () (
      silently NEWs the class and drops the message (the `Cbor new` note above).
      THE NODE MUST HOLD THE ONE INSTANCE IT GETS: the cursor, the ack high-water
      and the pending capture queue all live on it, so re-fetching this accessor
-     would silently start a second, empty bridge — the `platform timers` lesson,
-     which cost a 9h23m run and every bell in it. *)
+     would silently start a second, empty bridge — the pre-#244 `platform
+     timers` lesson, which cost a 9h23m run and every bell in it (that
+     accessor answers a singleton now; this one still cannot). *)
   public PortaBridge       = ( ^ PortaBridge )
   public ReadStream        = ( ^ ReadStream )
   public WriteStream       = ( ^ WriteStream )
@@ -4266,14 +4275,22 @@ class Kernel usingPlatform: platform = () (
      callers keep the one answered by `platform supervisor` rather than
      re-fetching it. *)
   public supervisor        = ( ^ Supervisor new setSpace: self space )
-  (* Milestone D Task 6: a fresh Timers instance wired to a fresh root Space
-     and this Kernel instance as seam, same "always fresh, same underlying
-     substrate" shape as `space`/`supervisor` above. Callers that need a
-     SINGLE shared registry (the common case — see the two 11_supervision
-     timer tests) construct their own `Timers usingSpace:seam:` once instead
-     of re-fetching this accessor, exactly as `05_restart_quarantine.nsl`
-     keeps the one `Supervisor` it got from `platform supervisor`. *)
-  public timers            = ( ^ Timers usingSpace: self space seam: self )
+  (* rete#244: THE per-kernel Timers singleton, minted on first ask. This
+     accessor used to answer a fresh instance per send, and that was the
+     documented landmine at four call sites and the silent 0-of-19-bells
+     overnight failure (tuvm#94): each fresh instance owned its own `pending`
+     registry AND handed out colliding tokens from `nextToken 1`, so a timer
+     registered through one fetch and dispatched through another fired in C
+     and was dropped without a sound. Unlike `space`/`gpio`/`display`, whose
+     instances are stateless views over substrate C owns, Timers keeps its
+     registry in nsl — the one accessor where "always fresh" and "same
+     underlying substrate" were never both true. A test that needs a private
+     registry constructs it explicitly: `Timers usingSpace:seam:` is
+     unchanged. See 11_supervision/12_timers_instance_identity.nsl, which
+     pins both the identity and the cross-fetch delivery. *)
+  public timers            = (
+    timersOne == nil ifTrue: [ timersOne:: Timers usingSpace: self space seam: self ].
+    ^ timersOne )
   (* Zephyr rung-2 sub-project 1: a fresh GpioPulse instance wired to a fresh
      root Space and this Kernel instance as seam, same "always fresh, same
      underlying substrate" shape as `timers` above. Callers register pulses

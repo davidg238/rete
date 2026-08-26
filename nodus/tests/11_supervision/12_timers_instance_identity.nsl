@@ -1,49 +1,48 @@
 (*
 expect:
-foreign ticks 0
+same true
+cross ticks 10
 done
 *)
-(* THE TIMER FOOTGUN THAT COST A NIGHT (2026-07-23/24, tuvm#94).
+(* rete#244 INVERTED this file (2026-08-25). Its previous life pinned the
+   footgun that cost a night (tuvm#94): `platform timers` answered a FRESH
+   Timers per call, each with its own `pending` registry and its own colliding
+   token counter, so a timer registered through one fetch and dispatched
+   through another was armed in C, fired correctly — and was dropped silently.
+   A MagTag clock ran 9h23m overnight and struck ZERO of ~19 bells that way.
+   The old text here ended: "If a future change makes a foreign registration
+   deliverable, this test is the one that must be revisited." This is that
+   revisit.
 
-   `platform timers` answers a **fresh Timers instance on every call**, and each
-   instance owns its own `pending` registry (token -> chan/msg). `Timers>>dispatch:`
-   does `pending at: tokenEvent ifAbsent: [nil]` and, finding nothing, **silently
-   returns** — no raise, no log, no crash.
+   The accessor now answers THE per-kernel singleton, so the two fetches ARE
+   one instance and the cross-fetch registration delivers. Both halves are
+   pinned: identity (`same true` — two sends of the accessor answer one
+   object) and behaviour (a repeater armed via fetch `b`, dispatched via fetch
+   `a`, delivers every fire). The clock is stepped in ten explicit 30 ms
+   advances rather than one 300 ms leap, so the expected count does not
+   depend on how a large advance coalesces a repeater.
 
-   So a node that registers its timer on one instance and dispatches `sys/timer` on
-   another gets a timer that is armed in C, fires correctly, posts correctly — and is
-   then dropped on the floor. The observable is TOTAL SILENCE, which is
-   indistinguishable from a hung board. A MagTag clock ran 9h23m overnight and struck
-   ZERO of ~19 expected bells this way; the bug was in the node, not the timer.
-
-   This test pins the negative: `good` is the dispatching instance and registers
-   NOTHING, so its `pending` is empty; a timer registered on a *foreign* instance
-   fires in C and delivers nothing. If a future change makes a foreign registration
-   deliverable (or makes the drop loud), this test is the one that must be revisited.
-
-   The positive case — one held instance, register and dispatch on it — is
-   `06_timers.nsl`, which is why this file only needs the negative. Determinism via
-   the host virtual clock (`advanceMillis:`), never wall time.
-
-   Note also, for anyone tempted to "just use two instances": each fresh Timers starts
-   `nextToken ::= 1`, so two instances hand out COLLIDING tokens. Even if dispatch
-   found an entry it could be the wrong one. One instance per registry is the only
-   coherent rule. *)
+   Explicit construction (`Timers usingSpace:seam:`) still mints fresh
+   instances for tests that need a private registry — the class-side door is
+   unchanged; only the accessor stopped lying about being one. *)
 class TimersInstanceIdentity packageUsing: manifest = ( | ticks ::= 0. | ) (
   public main: platform args: args = (
-    | space good ping |
+    | space a b ping |
     space:: platform space.
-    (* `good` is the DISPATCHER, and deliberately registers nothing. *)
-    good:: platform timers.
-    space whenever: 'sys/timer' do: [ :e | good dispatch: e ].
+    a:: platform timers.
+    b:: platform timers.
+    ('same ' , (a == b) printString) out.
+
+    (* dispatch through fetch `a`, register through fetch `b` — the exact
+       shape that used to drop every event. *)
+    space whenever: 'sys/timer' do: [ :e | a dispatch: e ].
     ping:: space channel: 'ping'.
     ping whenever: '' do: [ :m | ticks:: ticks + 1 ].
+    b every: 30 post: #o on: ping.
 
-    (* FOREIGN registration — a different Timers instance owns this token. *)
-    (platform timers) every: 30 post: #o on: ping.
-
-    platform advanceMillis: 300. space drain.
-    ('foreign ticks ' , ticks printString) out.
+    1 to: 10 do: [ :i |
+      platform advanceMillis: 30. space drain ].
+    ('cross ticks ' , ticks printString) out.
     'done' out.
   )
 ) : (

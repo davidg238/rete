@@ -79,7 +79,8 @@ class MagTagClockNode packageUsing: manifest = (
 
     (* HOLD ONE Timers INSTANCE — this is load-bearing, and getting it wrong is
        why the 30-minute timer never fired for an entire night (2026-07-23/24).
-       `plat timers` answers a FRESH Timers on EVERY call, and each instance owns
+       `plat timers` answered a FRESH Timers on EVERY call (fixed by rete#244 —
+       the accessor is a singleton now), and each instance owned
        its own `pending` registry (token -> chan/msg). `dispatch:` does
        `pending at: tokenEvent ifAbsent: [nil]` and then SILENTLY DOES NOTHING when
        absent. So registering on one instance and dispatching on another means the

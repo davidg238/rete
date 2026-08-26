@@ -31,7 +31,7 @@ TAP timerless done
         cost fewer radio wakes than the sum of independent periods.
 
    Modelled on WedgeProbeC6.nsl and it keeps that file's hard-won rules: ONE Timers
-   instance (`platform timers` answers a fresh one per send, and a second instance makes
+   instance (pre-#244 `platform timers` answered a fresh one per send, and a second instance makes
    `dispatch:` drop every event); `== nil` and never `isNil` on a prim-built indexable;
    TAP only on the boot that REPORTS, because the collector greps every `TAP <name>` line
    after the first build-id line and a plan emitted twice fails for duplication; and the

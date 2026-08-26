@@ -41,7 +41,8 @@ probe done
    if `strokes` stops climbing the chain has STALLED, which is the solid tone.
 
    Node shape is TimerNode's. Holds ONE Timers instance (it owns the nsl-side
-   pending registry — `platform timers` answers a fresh one per call). Blocks
+   pending registry — since rete#244 `platform timers` answers the singleton,
+   so holding it is tidiness rather than survival). Blocks
    forever draining in each phase rather than returning, so it can never leak a
    live repeater the way TimerNode documents. Dialect: `[ ... ] whileTrue:`, never
    `repeat`; no modulo. *)

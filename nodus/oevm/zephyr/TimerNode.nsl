@@ -17,7 +17,7 @@ OpenThread thread.
 
 Node shape is PulseNode's (`packageUsing: manifest`, platform arriving as the `main:`
 argument) — this node grants no capability, so it needs no `net:` header.
-Dialect: `[ ... ] whileTrue:`, never `repeat`. `platform timers` answers a FRESH Timers
+Dialect: `[ ... ] whileTrue:`, never `repeat`. Until rete#244 `platform timers` answered a FRESH Timers
 each call (it owns the nsl-side pending registry), so hold ONE instance.
 expect:
 TIMER OK
