@@ -479,6 +479,17 @@ The kind+schema contract is `protocol/MANIFEST.cddl` (machine-normative; see
   (`protocol/tools/pin_manifest.py`) and the provision gate's served-hash side
   (`protocol/tools/check_provision.py`).
 
+## 8b. Store open doors (rete#221, 2026-08-25)
+
+sqlite creates a database file on open, so the store has two doors: `serve` opens
+create-on-open (`space.Open`) and is the only initialiser; the operator verbs
+`get`/`log`/`put` open existing-only (`space.OpenExisting`) and refuse a missing
+path by naming it. Before this split, a wrong `--db` on a read **manufactured a
+fresh empty store and answered from it** — output byte-identical to "no rows
+yet", plus a decoy file deposited beside the real one (found on the gateway,
+2026-08-18). `get` and `log` also print `# store <abspath>` on stderr, so a
+correct-looking empty answer still says what it read.
+
 ## 9. See also
 
 - `docs/PROTOCOL.md` — the southbound wire contract (commands, report, TFTP, CRC32).

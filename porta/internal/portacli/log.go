@@ -24,11 +24,12 @@ func newLogCmd() *cobra.Command {
 		Short: "Show the write log for a node, newest first",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(c *cobra.Command, args []string) error {
-			st, err := space.Open(dbPath, nowMs)
+			st, err := space.OpenExisting(dbPath, nowMs)
 			if err != nil {
 				return err
 			}
 			defer st.Close()
+			announceStore(c)
 			rows, err := st.Events(args[0], limit, boot)
 			if err != nil {
 				return err

@@ -15,8 +15,10 @@ package portacli
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -45,6 +47,18 @@ func versionString() string {
 		return version + " (" + commit + ")"
 	}
 	return version
+}
+
+// announceStore names the store a read answered from, on stderr where it
+// cannot pollute output a gate parses (rete#221): a correct-looking empty
+// answer must still say what it read, because "no rows yet" and "wrong
+// database" print identically on stdout.
+func announceStore(c *cobra.Command) {
+	path := dbPath
+	if abs, err := filepath.Abs(path); err == nil {
+		path = abs
+	}
+	fmt.Fprintf(c.ErrOrStderr(), "# store %s\n", path)
 }
 
 // NewRootCmd builds the porta command tree.

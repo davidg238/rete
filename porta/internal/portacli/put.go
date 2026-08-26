@@ -52,7 +52,7 @@ func newPutCmd() *cobra.Command {
 			if who == "" {
 				who = currentActor()
 			}
-			st, err := space.Open(dbPath, nowMs)
+			st, err := space.OpenExisting(dbPath, nowMs)
 			if err != nil {
 				return err
 			}

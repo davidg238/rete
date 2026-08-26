@@ -24,11 +24,12 @@ func newGetCmd() *cobra.Command {
 			if len(args) == 2 {
 				prefix = args[1]
 			}
-			st, err := space.Open(dbPath, nowMs)
+			st, err := space.OpenExisting(dbPath, nowMs)
 			if err != nil {
 				return err
 			}
 			defer st.Close()
+			announceStore(c)
 			rows, err := st.Tree(args[0], prefix)
 			if err != nil {
 				return err

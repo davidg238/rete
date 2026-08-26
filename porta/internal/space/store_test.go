@@ -5,6 +5,7 @@ package space
 
 import (
 	"database/sql"
+	"os"
 	"strings"
 	"testing"
 
@@ -821,5 +822,46 @@ func TestDeclaredBudgetSurvivesAGarbledDeclaration(t *testing.T) {
 				t.Fatalf("ok = %v, err = %v, want false, nil", ok, err)
 			}
 		})
+	}
+}
+
+// OpenExisting is the operator-verb door (rete#221): sqlite creates on open,
+// so a wrong path handed to Open answers from a fresh empty store — output
+// byte-identical to "no rows yet". The read door must refuse instead, naming
+// the path, and must leave no decoy file behind.
+func TestOpenExistingRefusesAMissingStore(t *testing.T) {
+	missing := t.TempDir() + "/nope.db"
+	st, err := OpenExisting(missing, func() int64 { return 1000 })
+	if err == nil {
+		st.Close()
+		t.Fatal("OpenExisting on a missing path succeeded")
+	}
+	if !strings.Contains(err.Error(), missing) {
+		t.Errorf("error does not name the path: %v", err)
+	}
+	if _, statErr := os.Stat(missing); !os.IsNotExist(statErr) {
+		t.Errorf("a decoy store was created at %s", missing)
+	}
+}
+
+func TestOpenExistingOpensAStoreServeCreated(t *testing.T) {
+	path := t.TempDir() + "/t.db"
+	st, err := Open(path, func() int64 { return 1000 })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.Write("n1", "goal/name", cval.KindCell, enc(t, "alpha"), "david", ""); err != nil {
+		t.Fatal(err)
+	}
+	st.Close()
+
+	st2, err := OpenExisting(path, func() int64 { return 2000 })
+	if err != nil {
+		t.Fatalf("OpenExisting on a real store: %v", err)
+	}
+	defer st2.Close()
+	rows, err := st2.Tree("n1", "")
+	if err != nil || len(rows) != 1 {
+		t.Fatalf("Tree = %v rows, err %v; want the row serve wrote", len(rows), err)
 	}
 }

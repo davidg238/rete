@@ -6,6 +6,7 @@ package space
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/davidg238/porta/internal/cval"
@@ -59,6 +60,18 @@ type Store struct {
 	// The open gw_runs row, or 0 for a store nobody is serving from (every
 	// read-only CLI path). See runs.go.
 	runID int64
+}
+
+// OpenExisting is the operator-verb door (rete#221). sqlite creates a database
+// on open, so `get`/`log`/`put` handed a wrong --db would otherwise manufacture
+// a fresh empty store and answer from it — output byte-identical to "no rows
+// yet", plus a decoy file deposited beside the real one. Only serve, which
+// legitimately initialises a store, goes through Open.
+func OpenExisting(path string, nowMs func() int64) (*Store, error) {
+	if _, err := os.Stat(path); err != nil {
+		return nil, fmt.Errorf("no store at %s (porta serve creates one; pass --db naming the live store)", path)
+	}
+	return Open(path, nowMs)
 }
 
 func Open(path string, nowMs func() int64) (*Store, error) {
