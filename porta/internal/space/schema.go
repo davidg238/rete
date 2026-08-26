@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS nodes (
   boot_id       INTEGER,
   cursor_acked  INTEGER NOT NULL DEFAULT 0,
   node_seq_hw   INTEGER NOT NULL DEFAULT 0,
+  cursor_hw     INTEGER NOT NULL DEFAULT 0,
   out_seq       INTEGER NOT NULL DEFAULT 0,
   -- Successor to v1's nodes.source_addr, which the capability audit (design
   -- §4.2) caught with no home. It is not merely a display field: serverstat
@@ -173,6 +174,11 @@ CREATE TABLE IF NOT EXISTS meta (
 var addColumns = []string{
 	`ALTER TABLE cells  ADD COLUMN boot_id INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE events ADD COLUMN boot_id INTEGER NOT NULL DEFAULT 0`,
+	// The replay guard's state (design 2026-08-26 D1): the max cursor this
+	// node has ever acked as applied. Distinct from cursor_acked, which is
+	// the LATEST declared cursor and rewinds to 0 on every reboot — this one
+	// never rewinds, which is the whole guard.
+	`ALTER TABLE nodes  ADD COLUMN cursor_hw INTEGER NOT NULL DEFAULT 0`,
 }
 
 // dropColumns are run after addColumns on every Open, and their errors are

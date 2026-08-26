@@ -544,9 +544,17 @@ func (s *Store) NoteCheckIn(nodeID string, cursor, nodeHW, bootID int64) (restar
 	// boot_id is recorded on the PULL and not only on the push, so the detection
 	// above has a previous value to compare against even for a node that never
 	// pushes anything.
+	//
+	// cursor_hw is the replay guard (design 2026-08-26 D1/D2): the max cursor
+	// ever acked as applied, monotonic. The MIN against out_seq is load-bearing,
+	// not defensive — cursor > out_seq happens exactly when this store was reset
+	// under a still-running node, and recording the impossible cursor into a
+	// monotonic column would suppress the fresh store's stream rows forever.
 	if _, err := tx.Exec(
-		`UPDATE nodes SET cursor_acked = ?, boot_id = ?, last_seen_ms = ? WHERE id = ?`,
-		cursor, bootID, now, nodeID); err != nil {
+		`UPDATE nodes SET cursor_acked = ?, boot_id = ?, last_seen_ms = ?,
+		        cursor_hw = MAX(cursor_hw, MIN(?, out_seq))
+		  WHERE id = ?`,
+		cursor, bootID, now, cursor, nodeID); err != nil {
 		return 0, false, err
 	}
 	return restartedFrom, restarted, tx.Commit()

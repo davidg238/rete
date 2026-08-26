@@ -865,3 +865,98 @@ func TestOpenExistingOpensAStoreServeCreated(t *testing.T) {
 		t.Fatalf("Tree = %v rows, err %v; want the row serve wrote", len(rows), err)
 	}
 }
+
+// The replay guard's state (design 2026-08-26 D1): the maximum cursor the node
+// has ever acked as APPLIED. Monotonic — a stale or reordered pull with an old
+// low cursor must not lower it.
+func TestCheckInAdvancesCursorHighWaterMonotonically(t *testing.T) {
+	st := testStore(t)
+	st.Write("n1", "goal/a", cval.KindCell, enc(t, "one"), "david", "")
+	st.Write("n1", "goal/b", cval.KindCell, enc(t, "two"), "david", "")
+	st.Write("n1", "goal/c", cval.KindCell, enc(t, "three"), "david", "")
+
+	hw := func() int64 {
+		t.Helper()
+		var v int64
+		if err := st.DB().QueryRow(
+			`SELECT cursor_hw FROM nodes WHERE id = 'n1'`).Scan(&v); err != nil {
+			t.Fatalf("read cursor_hw: %v", err)
+		}
+		return v
+	}
+
+	if _, _, err := st.NoteCheckIn("n1", 2, 0, 7); err != nil {
+		t.Fatalf("NoteCheckIn: %v", err)
+	}
+	if hw() != 2 {
+		t.Fatalf("cursor_hw = %d after acking 2, want 2", hw())
+	}
+	// A stale datagram declaring an OLDER cursor must not rewind the guard.
+	if _, _, err := st.NoteCheckIn("n1", 1, 0, 7); err != nil {
+		t.Fatalf("NoteCheckIn: %v", err)
+	}
+	if hw() != 2 {
+		t.Fatalf("cursor_hw = %d after a stale cursor 1, want 2", hw())
+	}
+	if _, _, err := st.NoteCheckIn("n1", 3, 0, 7); err != nil {
+		t.Fatalf("NoteCheckIn: %v", err)
+	}
+	if hw() != 3 {
+		t.Fatalf("cursor_hw = %d after acking 3, want 3", hw())
+	}
+}
+
+// The D2 clamp. cursor > out_seq happens exactly when porta's store was reset
+// under a still-running node. Recording the impossible cursor into a monotonic
+// column would make the guard suppress the fresh store's rows 1..cursor —
+// rows the node has never seen — forever. Clamped, the fresh store simply has
+// no memory, which is the truth.
+func TestCheckInClampsAnImpossibleCursor(t *testing.T) {
+	st := testStore(t)
+	st.Write("n1", "goal/a", cval.KindCell, enc(t, "one"), "david", "")
+	if _, _, err := st.NoteCheckIn("n1", 500, 0, 7); err != nil {
+		t.Fatalf("NoteCheckIn: %v", err)
+	}
+	var v int64
+	if err := st.DB().QueryRow(
+		`SELECT cursor_hw FROM nodes WHERE id = 'n1'`).Scan(&v); err != nil {
+		t.Fatalf("read cursor_hw: %v", err)
+	}
+	if v != 1 {
+		t.Fatalf("cursor_hw = %d after cursor 500 against out_seq 1, want clamped to 1", v)
+	}
+}
+
+// A store predating cursor_hw must gain the column on open — the same
+// contract TestOpenAddsBootIDToAPreExistingStore pins for boot_id.
+func TestOpenAddsCursorHwToAPreExistingStore(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/t.db"
+	var clock int64 = 1_000
+	now := func() int64 { clock += 10; return clock }
+
+	st, err := Open(path, now)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	if _, err := st.DB().Exec(`ALTER TABLE nodes DROP COLUMN cursor_hw`); err != nil {
+		t.Fatalf("drop nodes.cursor_hw: %v", err)
+	}
+	st.Close()
+
+	st, err = Open(path, now)
+	if err != nil {
+		t.Fatalf("reopen of a pre-cursor_hw store: %v", err)
+	}
+	defer st.Close()
+	var v int64
+	if err := st.DB().QueryRow(
+		`SELECT COALESCE(cursor_hw, -1) FROM nodes LIMIT 1`).Scan(&v); err != nil && err != sql.ErrNoRows {
+		t.Fatalf("cursor_hw not readable after reopen: %v", err)
+	}
+	// An empty nodes table is fine — the column existing is what is under test.
+	if _, err := st.DB().Exec(
+		`INSERT INTO nodes (id, cursor_hw) VALUES ('probe', 0)`); err != nil {
+		t.Fatalf("cursor_hw column absent after reopen: %v", err)
+	}
+}
