@@ -42,6 +42,14 @@ VM="$WORK/oevm_ota"
 EXCH_PORT=26969                     # blocks ride EXCH_PORT+1, chosen by porta
 WATCHDOG=10                         # seconds a trial boot has to confirm
 
+# rete#241: per-RUN node ids, not per-run slots. The nodes answer `platform
+# nodeId`; this gate hands each VM its id through OEVM_NODE_ID (repeatable
+# --env below, applied on every re-exec), so a run beside another run — or
+# beside a live host node — cannot write into the same three porta slots the
+# way `node-1/2/3` always did. Human-facing messages keep saying node-1/2/3:
+# that names the ROLE in this run, which is still true.
+NID="ota$$"
+
 echo "plan 4"
 
 # --------------------------------------------------------------------------
@@ -168,7 +176,7 @@ compile_node() {  # compile_node <n> <version> <out.oimg>
   local src="$WORK/src-node$n-v$v.nsl"   # a separate `local`: bash expands all of
                                          # one local's words BEFORE assigning any
                                          # of them, so $v would be unset here
-  sed -e "s/@NODE_ID@/node-$n/g" -e "s/@LOCAL_PORT@/2697$n/g" -e "s/@VERSION@/$v/g" \
+  sed -e "s/@LOCAL_PORT@/2697$n/g" -e "s/@VERSION@/$v/g" \
       zephyr/OtaBridgeNode.nsl.tmpl > "$src"
   if grep -qE '@(NODE_ID|LOCAL_PORT|VERSION)@' "$src"; then
     fail "OtaBridgeNode.nsl.tmpl still holds a placeholder after sed — the template gained one this gate does not fill"
@@ -264,6 +272,7 @@ for n in 1 2 3; do
   python3 tools/oevm_runner.py \
       --node-dir "$WORK/node$n" --vm "$VM" \
       --watchdog-secs "$WATCHDOG" --env OEVM_TIMER_WALLCLOCK=1 \
+      --env "OEVM_NODE_ID=$NID-$n" \
       >"$WORK/runner$n.log" 2>&1 &
   RUNNER_PIDS+=($!)
 done
@@ -281,7 +290,7 @@ echo "  three nodes up on v1"
 # --------------------------------------------------------------------------
 echo "[6/9] scenario 1: clean deploy, three nodes v1 -> v2"
 for n in 1 2 3; do
-  poll_cmd 150 0.2 porta_has "node-$n" obs/apps/main "0x${V1H[$n]}" ||
+  poll_cmd 150 0.2 porta_has "$NID-$n" obs/apps/main "0x${V1H[$n]}" ||
     fail "node-$n never published obs/apps/main at its v1 hash — the running-hash seam is dark"
 done
 echo "  all three published obs/apps/main at v1"
@@ -292,7 +301,7 @@ for n in 1 2 3; do
   compile_node "$n" 2 "$WORK/n$n-v2.oimg"
   blob_put "$WORK/n$n-v2.oimg"
   V2H[$n]=$BP_HASH
-  "$PORTA" put --db "$DB" "node-$n" goal/apps/main --raw "$BP_RAW" >/dev/null
+  "$PORTA" put --db "$DB" "$NID-$n" goal/apps/main --raw "$BP_RAW" >/dev/null
   echo "  node-$n goal/apps/main -> v2 ${BP_HASH:0:12}…"
 done
 
@@ -313,7 +322,7 @@ done
 # second: the whole chain back through the push, or a node could be running v2
 # with porta still believing v1.
 for n in 1 2 3; do
-  poll_cmd 150 0.2 porta_has "node-$n" obs/apps/main "0x${V2H[$n]}" ||
+  poll_cmd 150 0.2 porta_has "$NID-$n" obs/apps/main "0x${V2H[$n]}" ||
     fail "porta's tree never showed node-$n's obs/apps/main at the v2 hash"
 done
 echo "ok 1 - clean deploy converged"
@@ -346,7 +355,7 @@ VMPID=$(vm_pid 1)
 # with nothing yet transferred.
 PRESZ=$(stat -c %s "$SLOT" 2>/dev/null || echo 0)
 M1=$(( $(lines_in "$WORK/runner1.log") + 1 ))
-"$PORTA" put --db "$DB" node-1 goal/apps/main --raw "$BP_RAW" >/dev/null
+"$PORTA" put --db "$DB" "$NID-1" goal/apps/main --raw "$BP_RAW" >/dev/null
 echo "  node-1 goal/apps/main -> v3 ${V3H:0:12}… (staging into ${SLOT##*/}, $TOTAL B, slot was $PRESZ B)"
 
 KILLED_AT=0
@@ -411,7 +420,7 @@ if seen_since "$WORK/runner1.log" "$MKILL" 'not on a block boundary'; then
   fail "node-1 restarted the fetch after the kill instead of resuming: ota.c reported an off-boundary slot"
 fi
 echo "  and it resumed at the block boundary the kill left, not from zero"
-poll_cmd 150 0.2 porta_has node-1 obs/apps/main "0x$V3H" ||
+poll_cmd 150 0.2 porta_has "$NID-1" obs/apps/main "0x$V3H" ||
   fail "porta's tree never showed node-1 at the v3 hash"
 echo "ok 2 - kill mid-transfer resumed"
 
@@ -438,10 +447,10 @@ BADSIG="${BP_SIG:0:$OFF}$BADBYTE${BP_SIG:$((OFF + 2))}"
 BADRAW="${BP_RAW/$BP_SIG/$BADSIG}"
 [ "$BADRAW" != "$BP_RAW" ] || fail "the signature hex was not found inside the encoded App record"
 
-HS_BEFORE=$(health_rows node-2)
+HS_BEFORE=$(health_rows "$NID-2")
 [ "${HS_BEFORE:-0}" -gt 0 ] || fail "node-2 has no obs/health rows at porta before the bad push"
 M2=$(( $(lines_in "$WORK/runner2.log") + 1 ))
-"$PORTA" put --db "$DB" node-2 goal/apps/main --raw "$BADRAW" >/dev/null ||
+"$PORTA" put --db "$DB" "$NID-2" goal/apps/main --raw "$BADRAW" >/dev/null ||
   fail "porta refused the corrupted record — it should be legal CBOR, only the signature is wrong"
 echo "  node-2 goal/apps/main -> v4 ${V4H:0:12}… with sig byte 32 flipped (porta accepted it)"
 
@@ -457,14 +466,14 @@ if seen_since "$WORK/runner2.log" "$M2" 'runner: trial [ab]'; then
 fi
 wait_line "$WORK/runner2.log" "$((L + 1))" "runner: exec [ab] hash=${V2H[2]}" 200 >/dev/null ||
   fail "node-2 did not go straight back to the image it was already running"
-porta_has node-2 obs/apps/main "0x${V2H[2]}" ||
+porta_has "$NID-2" obs/apps/main "0x${V2H[2]}" ||
   fail "porta's tree no longer shows node-2 on v2 after the refusal"
 
 # Alive, not merely un-upgraded: every check-in appends another obs/health row to
 # porta's event log, so a node that had wedged would leave this count where it was.
-poll_cmd 150 0.2 health_advanced node-2 "$HS_BEFORE" ||
+poll_cmd 150 0.2 health_advanced "$NID-2" "$HS_BEFORE" ||
   fail "node-2's obs/health stopped arriving after the refusal (still $HS_BEFORE rows in the event log)"
-echo "  node-2 still on v2 and still checking in (obs/health rows $HS_BEFORE -> $(health_rows node-2))"
+echo "  node-2 still on v2 and still checking in (obs/health rows $HS_BEFORE -> $(health_rows "$NID-2"))"
 echo "ok 3 - bad signature refused, node alive"
 
 # --------------------------------------------------------------------------
@@ -476,7 +485,7 @@ python3 "$NSL" tests/host_ota/never_bridges.nsl "$WORK/never_bridges.oimg" \
 blob_put "$WORK/never_bridges.oimg"
 NBH=$BP_HASH
 M3=$(( $(lines_in "$WORK/runner3.log") + 1 ))
-"$PORTA" put --db "$DB" node-3 goal/apps/main --raw "$BP_RAW" >/dev/null
+"$PORTA" put --db "$DB" "$NID-3" goal/apps/main --raw "$BP_RAW" >/dev/null
 echo "  node-3 goal/apps/main -> never_bridges ${NBH:0:12}… (correctly signed)"
 
 L=$(wait_line "$WORK/runner3.log" "$M3" 'runner: staged-ok' 500) ||
@@ -491,7 +500,7 @@ L=$(wait_line "$WORK/runner3.log" "$((L + 1))" 'SILENT NODE READY' 200) ||
 # v2 boot managed to publish. obs/apps/main cannot serve here: never_bridges
 # publishes nothing, so porta's copy still reads v2 throughout and an assertion
 # on it would pass with the revert deleted.
-HS3_BEFORE=$(health_rows node-3)
+HS3_BEFORE=$(health_rows "$NID-3")
 [ "${HS3_BEFORE:-0}" -gt 0 ] || fail "node-3 has no obs/health rows at porta"
 echo "  never_bridges booted; nothing will confirm it"
 
@@ -521,7 +530,7 @@ if seen_since "$WORK/runner3.log" "$M3" 'runner: confirmed'; then
 fi
 wait_line "$WORK/runner3.log" "$((L + 1))" "runner: exec [ab] hash=${V2H[3]}" 200 >/dev/null ||
   fail "node-3 did not land back on its previous image after the revert"
-poll_cmd 200 0.2 health_advanced node-3 "$HS3_BEFORE" ||
+poll_cmd 200 0.2 health_advanced "$NID-3" "$HS3_BEFORE" ||
   fail "node-3 came back on v2 but never checked in again (still $HS3_BEFORE obs/health rows)"
 echo "  reverted after ${ELAPSED}s, re-exec'd v2 and resumed checking in"
 echo "ok 4 - no-check-in reverted"

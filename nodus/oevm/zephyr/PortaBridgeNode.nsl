@@ -24,14 +24,14 @@ class PortaBridgeNode usingPlatform: platform net: net = (
     (* tuvm#107: the span table. ONE window per boot — see `main:args:`. *)
     spans capture sTick sCheckIn sPublish capturing ::= false. |
 ) (
-  (* rete#186 DELIBERATELY KEEPS A LITERAL, where the four C6 apps now answer
-     `platform nodeId`. The rule is "the id is the board" and this node has no board:
-     it is the HOST twin, and on host `platform nodeId` answers "host", which would be
-     the same slot-shaped answer for every host node at once — the exact defect #186 is
-     about, moved rather than fixed. `tests/porta_sync_host.sh` also pins NODE=bench-node.
-     If a second host node ever needs an identity, give it one here; do not reach for
-     the board seam, which has nothing to answer with. *)
-  nodeId    = ( ^ 'bench-node' )
+  (* rete#241: `platform nodeId`, same one-liner as the C6 twin. #186 kept a literal
+     here because host answered the slot-shaped "host" for every VM at once; d5b5545
+     fixed that — a host VM now names itself `<hostname>-NNNN`, and OEVM_NODE_ID wins
+     when set, mirroring the target's explicit override in zephyr/run.sh. The gate
+     (`tests/porta_sync_host.sh`) supplies a per-run id through that door, so two
+     concurrent runs no longer write into one porta space the way two devkits shared
+     `c6-bench`. *)
+  nodeId    = ( ^ platform nodeId )
   gwAddr    = ( ^ '127.0.0.1' )
   gwPort    = ( ^ 16969 )
   (* NOT 16970, which is gwPort+1 and therefore porta's BLOCK plane (#25 design

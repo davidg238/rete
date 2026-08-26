@@ -30,7 +30,12 @@ PORTA_DIR="${PORTA_DIR:-$(git rev-parse --show-toplevel)/porta}"
 NSL="$(git rev-parse --show-toplevel)/nodus/nsl/tools/ns_compile_oevm.py"
 TARGET="${OEVM_TARGET:-posix}"
 DB=/tmp/porta_sync_gate.db
-NODE=bench-node
+# rete#241: a per-run id, handed to the node through OEVM_NODE_ID (the same
+# explicit-override door zephyr/run.sh uses on boards). The node answers
+# `platform nodeId`, so nothing here is a slot two concurrent runs would share
+# — the gate knows the id in advance because it chose it, not because the node
+# hardcodes it.
+NODE="bench-node-$$"
 
 if [ ! -d "$PORTA_DIR" ]; then
   echo "FAIL: no porta at $PORTA_DIR"; exit 1
@@ -98,7 +103,7 @@ grep -q "serving the space" /tmp/porta_serve.log || {
 echo "[6/8] start the node"
 echo 40 > /tmp/porta_node_bootid
 NODE_BOOT=41
-OEVM_TIMER_WALLCLOCK=1 OEVM_BOOTID_FILE=/tmp/porta_node_bootid \
+OEVM_TIMER_WALLCLOCK=1 OEVM_BOOTID_FILE=/tmp/porta_node_bootid OEVM_NODE_ID="$NODE" \
   /tmp/oevm_porta /tmp/porta_node.oimg >/tmp/porta_node.log 2>&1 &
 NODE_PID=$!
 for _ in $(seq 1 50); do grep -q "PORTA NODE READY" /tmp/porta_node.log && break; sleep 0.1; done

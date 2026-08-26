@@ -1,12 +1,17 @@
 (*
 OtaBridgeNode — a TEMPLATE, not a compilable file. `tests/host_ota/run.sh` seds
-three placeholders and compiles the result:
+two placeholders and compiles the result:
 
-    @NODE_ID@     the node's id, quoted    ('node-1')
     @LOCAL_PORT@  the UDP port it binds    (26971 / 26972 / 26973)
     @VERSION@     an integer, 1..4         — the ONLY thing that differs between
                   two builds of the same node, and the reason two builds hash
                   differently
+
+The node's ID is NOT a placeholder (rete#241): it answers `platform nodeId`,
+and the gate hands each VM a per-run id through OEVM_NODE_ID — env survives the
+runner's every re-exec, where a baked id would pin two concurrent runs onto the
+same three porta slots (`node-1/2/3` were per-run SLOTS, the host replay of the
+two-devkits-one-space defect #186 fixed on boards).
 
 The `.tmpl` extension is load-bearing: `.nsl` means "a source file the suite may
 pick up and run", and this one cannot compile until the placeholders are gone
@@ -39,7 +44,7 @@ OTA NODE READY v@VERSION@
 class OtaBridgeNode usingPlatform: platform net: net = (
   | space bridge timers spans ticks ::= 0. |
 ) (
-  nodeId    = ( ^ '@NODE_ID@' )
+  nodeId    = ( ^ platform nodeId )
   gwAddr    = ( ^ '127.0.0.1' )
   gwPort    = ( ^ 26969 )
   localPort = ( ^ @LOCAL_PORT@ )
