@@ -843,7 +843,13 @@ the third is approved and next** — kept here in order because the order is the
   window, only because `observer_halt()` disables it first.
 
   **#222 IS FIXED (2026-08-20), and it was #192 and #213 all along — one bug, three issue
-  numbers.** Root cause: `selector_prim_id()` in `nodus/oevm/src/dispatch.c`, an
+  numbers.** *(Addendum 2026-08-25: the family has a FOURTH face — #206's replayed-`dbg/req`
+  deaths, closed by faithfully rebuilding the 2026-08-12 store condition against a scratch
+  porta and watching two boots sail through the exact tick-31 death coordinates on a current
+  build. `profileWindowEnd` is a bundle of first-time selector sends, so a window ending
+  after the ~17 s cache fill hit the unbounded probe and one ending before it did not —
+  which is why 10 s survived and 60 s died. Probably #180's ~5 s face too; both issues carry
+  the caveats. The replay-re-runs-the-window residue is #262.)* Root cause: `selector_prim_id()` in `nodus/oevm/src/dispatch.c`, an
   open-addressed selector→prim-id cache consulted on EVERY send whose selector is a Symbol,
   which never evicts, never grows and probed `while (slot != NULL)` **with no bound**. Full
   table -> no NULL to stop at -> the next uncached selector spins forever in C, below the
