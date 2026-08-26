@@ -169,3 +169,34 @@ func TestAllowlistMiddlewareMalformedRemoteAddrRejected(t *testing.T) {
 		t.Errorf("got %d, want 403 (defense)", w.Code)
 	}
 }
+
+func TestDefaultAllowCIDRHasRFC1918LoopbackAndTailscale(t *testing.T) {
+	got := DefaultAllowCIDR()
+	want := []string{
+		"10.0.0.0/8",
+		"172.16.0.0/12",
+		"192.168.0.0/16",
+		"100.64.0.0/10",
+		"127.0.0.0/8",
+		"::1/128",
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got %d entries, want %d", len(got), len(want))
+	}
+	for i, w := range want {
+		if got[i] != w {
+			t.Errorf("entry %d = %q, want %q", i, got[i], w)
+		}
+	}
+}
+
+func TestDefaultAllowCIDRReturnsFreshSlice(t *testing.T) {
+	a := DefaultAllowCIDR()
+	b := DefaultAllowCIDR()
+	// Mutating one must not affect the other (cobra StringSliceVar
+	// shares the backing slice across resets).
+	a[0] = "mutated"
+	if b[0] == "mutated" {
+		t.Error("DefaultAllowCIDR returned a shared slice; must return a fresh copy")
+	}
+}

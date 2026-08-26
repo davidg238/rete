@@ -15,6 +15,25 @@ import (
 	"strings"
 )
 
+// DefaultAllowCIDR returns the RFC1918 + loopback + Tailscale set, as a fresh
+// slice per invocation (cobra StringSliceVar shares the backing slice across
+// resets — see TestDefaultAllowCIDRReturnsFreshSlice).
+//
+// 100.64.0.0/10 is the CGNAT range Tailscale assigns to tailnet peers, so the
+// operator surface is reachable from the operator's phone/laptop over Tailscale
+// out of the box (e.g. while away from the office LAN). Shared by porta's
+// operator listener and gatekeeper so the two surfaces cannot drift.
+func DefaultAllowCIDR() []string {
+	return []string{
+		"10.0.0.0/8",
+		"172.16.0.0/12",
+		"192.168.0.0/16",
+		"100.64.0.0/10",
+		"127.0.0.0/8",
+		"::1/128",
+	}
+}
+
 // AllowCIDR parses raw CIDR strings into *net.IPNet, filtering
 // empty/whitespace-only entries (so `--http-allow-cidr=""` from cobra,
 // which arrives as []string{""}, cleanly disables the allowlist). All-empty

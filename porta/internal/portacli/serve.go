@@ -36,24 +36,6 @@ func manifestHandler(tbl *manifest.Table) http.HandlerFunc {
 	}
 }
 
-// defaultAllowCIDR returns the RFC1918 + loopback + Tailscale set, as a fresh
-// slice per invocation (cobra StringSliceVar shares the backing slice across
-// resets — see TestDefaultAllowCIDRReturnsFreshSlice).
-//
-// 100.64.0.0/10 is the CGNAT range Tailscale assigns to tailnet peers, so the
-// operator surface is reachable from the operator's phone/laptop over Tailscale
-// out of the box (e.g. while away from the office LAN).
-func defaultAllowCIDR() []string {
-	return []string{
-		"10.0.0.0/8",
-		"172.16.0.0/12",
-		"192.168.0.0/16",
-		"100.64.0.0/10",
-		"127.0.0.0/8",
-		"::1/128",
-	}
-}
-
 // sweepLiveness runs the silence sweep until ctx is cancelled — the fourth
 // listener goroutine, alongside UDP, blocks and HTTP.
 //
@@ -88,7 +70,7 @@ func sweepLiveness(ctx context.Context, st *space.Store, tick time.Duration, log
 // operator HTTP surface. The two are independent — a node keeps checking in
 // with --http-port 0, and the health endpoint stays up if the mesh is quiet.
 func newServeCmd() *cobra.Command {
-	var udpAddr, httpBind, manifestPath, devDocs string
+	var udpAddr, httpBind, manifestPath string
 	var httpPort, testDropAck int
 	var httpAllowCIDR []string
 	// TEST ONLY, on --test-drop-ack's precedent: the sweep's own period. The
@@ -198,10 +180,6 @@ func newServeCmd() *cobra.Command {
 				}
 				srv.SetStats(stats)
 				srv.Mux.HandleFunc("/manifest", manifestHandler(tbl))
-				if devDocs != "" {
-					registerDevDocs(srv.Mux, devDocs)
-					log.Printf("porta: dev status surface ON — /dev serves %s", devDocs)
-				}
 				httpErr = make(chan error, 1)
 				go func() { httpErr <- srv.Run(ctx) }()
 				log.Printf("porta: serving HTTP on %s:%d", httpBind, httpPort)
@@ -214,7 +192,7 @@ func newServeCmd() *cobra.Command {
 	cmd.Flags().IntVar(&httpPort, "http-port", 6970, "operator HTTP port (0 = disabled)")
 	cmd.Flags().StringVar(&httpBind, "http-bind", "0.0.0.0", "operator HTTP bind address")
 	cmd.Flags().StringSliceVar(&httpAllowCIDR, "http-allow-cidr",
-		defaultAllowCIDR(),
+		httpsrv.DefaultAllowCIDR(),
 		"CIDR ranges allowed to reach the operator HTTP listener (repeatable; empty = serve any peer)")
 	cmd.Flags().IntVar(&testDropAck, "test-drop-ack", 0,
 		"TEST ONLY: swallow every Nth outbound #ack AFTER the push is committed (0 = off)")
@@ -222,8 +200,6 @@ func newServeCmd() *cobra.Command {
 		"TEST ONLY: how often to re-form liveness verdicts (0 = space.SweepTick, 30s)")
 	cmd.Flags().StringVar(&manifestPath, "manifest", "",
 		"path to MANIFEST.cddl — arms the kind+schema gate and serves GET /manifest (empty = gate OFF, loudly)")
-	cmd.Flags().StringVar(&devDocs, "dev-docs", "",
-		"path to the repo's docs/ tree — serves the dev status surface at /dev (empty = off)")
 	return cmd
 }
 
