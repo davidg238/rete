@@ -992,9 +992,15 @@ the third is approved and next** — kept here in order because the order is the
   carrying risk.
 
   **What is still NOT built.** D3's **coalescing** is not gated by anything (it needs a second
-  obligation and a wake counter). `goal/liveness`'s *cadence* half is still not honoured: the
-  kernel owns the period, but nothing re-arms the timer when an adopted cadence moves, and a
-  re-arm's only interesting failure is at the pulse mailbox, which no host run reaches.
+  obligation and a wake counter — #240 item 1, still open). `goal/liveness`'s *cadence* half
+  IS honoured since 2026-08-26 (#240 item 2): `adoptCad:bud:` — the one adoption point —
+  re-arms the kernel tick when the cadence moves, `applyLivenessGoal` reads the record's
+  `cad` like its `bud`, and the re-arm's mailbox seam (the failure no host run reaches) is
+  gated by the NINTH target scenario, `cad-rearm` (`RearmProbeC6.nsl`): the probe adopts
+  5000 ms from INSIDE the 2000 ms tick's own reaction — the real shape, since
+  applyLivenessGoal runs inside the tick's reaction chain — and certifies the old
+  registration dead, one registration throughout, and three kept new-period gaps. Host twin:
+  `22_spacesync/23_liveness_cad_rearm.nsl`.
 
   Also **#223 DONE and promoted** (`8167463`: the observe window no longer reaches its verdict
   18 s before the evidence, and a wedge the detector caught is reported as such; the rule —

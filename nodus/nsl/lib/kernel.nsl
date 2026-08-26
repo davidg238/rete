@@ -1694,8 +1694,8 @@ class Kernel usingPlatform: platform = (
          convention rather than load-bearing — but an explicitly-constructed
          private registry (Timers usingSpace:seam:) still aliases the global
          C registry, so the handed-in shape stays. `tickToken` is what makes the registration
-         once-per-boot observable, and it is what a re-arm would cancel when the
-         cadence half of goal/liveness starts being honoured. *)
+         once-per-boot observable, and it is what adoptCad:bud:'s re-arm cancels
+         now that the cadence half of goal/liveness is honoured (rete#240.2). *)
       tickTimers ::= nil. tickChannel ::= nil. tickToken ::= nil.
       pending ::= OrderedCollection new.
       (* tuvm#107 follow-on: the six spans that decompose `checkIn`. See the
@@ -2441,7 +2441,7 @@ class Kernel usingPlatform: platform = (
 
        "Round up to a whole number of cadences" is ((n + m - 1) // m) * m. *)
     adoptCad: aCadMs bud: aBudMs = (
-      | cad bud ceiling |
+      | cad bud ceiling cadMoved |
       ceiling:: self livenessCeilingMs.
       cad:: aCadMs.
       cad < 1 ifTrue: [ cad:: 30000 ].
@@ -2454,8 +2454,17 @@ class Kernel usingPlatform: platform = (
          says is illegal. `cad <= ceiling` above is what keeps this >= cad. *)
       bud > ceiling ifTrue: [ bud:: (ceiling // cad) * cad ].
       (cad = cadMs and: [ bud = budMs ]) ifTrue: [ ^ self ].
+      cadMoved:: (cad = cadMs) not.
       cadMs:: cad.
       budMs:: bud.
+      (* rete#240.2 — an adopted cadence is a KEPT cadence. The base tick is the
+         kernel's (D1), so the one adoption point re-arms it: cancel the old
+         registration, register at the new period. Guarded on tickToken so a
+         pre-startTicking: declaration (the app's constructor-time liveness:)
+         just sets the period startTicking: will use. *)
+      (cadMoved and: [ (tickToken == nil) not ]) ifTrue: [
+        tickTimers cancel: tickToken.
+        tickToken:: tickTimers every: cadMs post: #go on: tickChannel ].
       (* The pair moved, so the published cell is stale. Clearing the flag is the
          whole of the re-publish mechanism — no second path, no dirty list. *)
       livenessPublished:: false.
@@ -2509,12 +2518,13 @@ class Kernel usingPlatform: platform = (
        an operator asks for 45 s on a 2 s node, `obs/liveness` answers 46 s, and
        the divergence is the whole answer. Nothing had to know the legal values.
 
-       THE CADENCE HALF IS NOT HONOURED YET, deliberately. The app owns the timer
-       until the kernel base tick lands (rete#231 D1, plan Task 10); adopting a
-       requested cadence the node does not actually keep would publish a number
-       the node is not honouring, which is the `port=up` lie this design exists to
-       refuse. `cadMs` is therefore re-asserted from what the node really does,
-       and the request's cadence shows as a goal/obs divergence until Task 10.
+       THE CADENCE HALF IS HONOURED since rete#240.2 — Task 10 landed the kernel
+       base tick, so an adopted cadence is now a kept one: adoptCad:bud: re-arms
+       the tick when the cadence moves. The record's cad is read like its bud,
+       and a request missing either is the same bad record. (Until Task 10 the
+       cad was deliberately re-asserted from what the node really did, because
+       adopting a cadence the app's own timer did not keep would have published
+       the `port=up` lie this design exists to refuse.)
 
        `peekCell:ifStream:` and never `peek:` — see otaCheck's comment at length:
        a gateway can legally create this leaf as a STREAM, and a raise here would
@@ -2522,7 +2532,7 @@ class Kernel usingPlatform: platform = (
        drives the tick. obs/health and tel/log would stop, permanently, with
        nothing logged. *)
     public applyLivenessGoal = (
-      | rec bud |
+      | rec bud cad |
       rec:: space peekCell: 'goal/liveness' ifStream: [
         self telLog: #error text: 'liveness bad record'.
         nil ].
@@ -2534,7 +2544,11 @@ class Kernel usingPlatform: platform = (
       bud == nil ifTrue: [
         self telLog: #error text: 'liveness bad record'.
         ^ self ].
-      ^ self adoptCad: cadMs bud: bud )
+      cad:: rec at: #cad ifAbsent: [ nil ].
+      cad == nil ifTrue: [
+        self telLog: #error text: 'liveness bad record'.
+        ^ self ].
+      ^ self adoptCad: cad bud: bud )
 
     (* rete#231 D2 — the node's own authority, on the node's own path. porta writing
        obs/** would be a lie (2026-08-10 D7), so the operator gets goal/liveness and

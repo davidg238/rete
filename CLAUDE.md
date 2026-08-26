@@ -95,7 +95,7 @@ How to make decisions here. These override the instinct to be thorough.
 ## Gates
 
 ```
-cd nodus/nsl && python3 tools/run_tests_oevm.py     # 275 passed, 0 failed (2026-08-26)
+cd nodus/nsl && python3 tools/run_tests_oevm.py     # 276 passed, 0 failed (2026-08-26)
 cd porta      && go test ./...
 cd nodus/oevm && bash tests/porta_sync_host.sh      # PORTA SYNC OK
 ```
@@ -113,9 +113,9 @@ suite also prints `target gates: NOT RUN BY THIS SUITE`: the posix timer backend
 the pulse mailbox, so coalescing, shedding and stale handles need `nodus/oevm/tests/target/run.sh`
 and a board.
 
-**What `tests/target/run.sh` actually runs — eight scenarios, and a full pass is ~40–60 min of
-board time** (`liveness-heartbeat` is the eighth; budget its 300 s timeout plus 180 s of
-observation), so budget it rather than discovering it. `CLASS=disruptive` means the scenario
+**What `tests/target/run.sh` actually runs — nine scenarios, and a full pass is ~45–70 min of
+board time** (`liveness-heartbeat` alone budgets a 300 s timeout plus 180 s of observation;
+`cad-rearm` is the ninth, added 2026-08-26 for #240.2), so budget it rather than discovering it. `CLASS=disruptive` means the scenario
 deliberately wedges, burns or reboots the node: **a disposable board only** (`c6spare`, which
 is `TARGET_DEFAULT_BOARD` — resolve boards through the collector env files, never a table).
 
@@ -133,6 +133,7 @@ comment records the same shape from before).
 | scenario | class | what it gates |
 |---|---|---|
 | `bridge-health` | observe | the node half of the porta gate — obs acked, `goal/name` converged, nothing evicted (#streamDropped 0) |
+| `cad-rearm` | observe | an adopted cadence is a KEPT cadence (#240.2) — the re-arm from inside the old tick's own reaction kills the old registration over the real pulse mailbox, keeps ONE registration, and holds the new period. No radio: `PortaBridge socket:nil` |
 | `bridge-forensics` | observe | the same workload under the forensics overlay (#222) |
 | `pulse-coalesce` | disruptive | the coalescer does not destroy logical timer events (#151) |
 | `stale-handle` | disruptive | a timer event survives a later unrelated registration (#151) |

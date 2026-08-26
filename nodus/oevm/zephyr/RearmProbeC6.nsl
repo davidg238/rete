@@ -1,0 +1,124 @@
+(*
+expect:
+TAP cad-rearm done
+*)
+(* rete#240.2 — the re-arm's board gate: an ADOPTED cadence is a KEPT cadence,
+   proven over the pulse mailbox the host suite cannot reach.
+
+   The probe drives the SAME adoption point porta's goal/liveness goes through
+   (`liveness:budget:` -> adoptCad:bud:), from INSIDE a tick reaction — which is
+   the real shape: on a bridged node applyLivenessGoal runs at the tail of the
+   apply step, itself inside the tick's reaction chain. The kernel-owned base
+   tick starts at 2000 ms; at tick 3 the probe adopts 5000 ms. What must then be
+   true, and what only a board can falsify:
+
+     - the OLD registration is dead: no tick ~2000 ms after the re-arm, and no
+       stale mailbox event for the cancelled token ever dispatches (#151's
+       discipline, exercised by a CANCEL inside the very reaction the old timer
+       fired);
+     - the NEW period is kept: three consecutive gaps at ~5000 ms;
+     - ONE registration throughout (pendingCount 1) — a re-arm that leaks its
+       old repeater is two check-ins per tick forever, invisible until someone
+       counts radio wakeups (#231's warning, verbatim).
+
+   No socket: PortaBridge socket:nil, so no CONF_EXTRA and no radio — the seam
+   under test is timer_zephyr.c's mailbox, not the mesh. class=observe: nothing
+   here wedges, latches or reboots. Host twin: 22_spacesync/23_liveness_cad_rearm.
+   Holds ONE Timers instance, for the reason every node in this directory does. *)
+class RearmProbeC6 packageUsing: manifest = (
+  | plat space timers bridge tickCh
+    ticks ::= 0. lastMs ::= 0. rearmMs ::= 0.
+    oldGapsOk ::= 0. newGapsOk ::= 0. badGap ::= -1.
+    tapPass ::= 0. tapFail ::= 0. reported ::= false. |
+) (
+
+  public main: platform args: args = (
+    plat:: platform.
+    space:: plat space.
+    timers:: plat timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+
+    tickCh:: space channel: 'probe/tick'.
+    tickCh whenever: '' do: [ :m | self tick ].
+
+    bridge:: plat PortaBridge socket: nil space: space id: 'rearm' peer: '::1' port: 1
+      spans: plat Spans new.
+    bridge liveness: 2000 budget: 16000.
+    lastMs:: 0 millis.
+    bridge startTicking: timers on: tickCh.
+    'rearm-probe armed 2000' out.
+
+    [ true ] whileTrue: [ plat pumpEvents. space drain ].
+    ^ self )
+
+  tick = (
+    | now gap |
+    now:: 0 millis.
+    gap:: now - lastMs.
+    lastMs:: now.
+    ticks:: ticks + 1.
+    ('rearm tick ' , ticks printString , ' gap ' , gap printString) out.
+
+    ticks <= 3 ifTrue: [
+      (gap >= 1500 and: [ gap <= 2500 ]) ifTrue: [ oldGapsOk:: oldGapsOk + 1 ]
+                                         ifFalse: [ badGap:: gap ] ].
+    ticks = 3 ifTrue: [
+      (* THE ACT UNDER TEST: adopt a new cadence from inside the old timer's own
+         reaction. The cancelled registration may already have an event queued in
+         the mailbox behind this one; it must never dispatch. *)
+      bridge liveness: 5000 budget: 40000.
+      rearmMs:: 0 millis.
+      ('rearm adopted cad=' , bridge cadMs printString ,
+        ' bud=' , bridge budMs printString ,
+        ' pending=' , timers pendingCount printString) out ].
+    (ticks >= 4 and: [ ticks <= 6 ]) ifTrue: [
+      (gap >= 4500 and: [ gap <= 5500 ]) ifTrue: [ newGapsOk:: newGapsOk + 1 ]
+                                         ifFalse: [ badGap:: gap ] ].
+    ticks = 6 ifTrue: [ self report ].
+    ^ self )
+
+  report = (
+    reported ifTrue: [ ^ self ].
+    reported:: true.
+    self tapPlan: 4.
+    self tap: 1 named: 'three ticks at the declared 2000 ms cadence' ok: oldGapsOk = 3
+         detail: ('okGaps=' , oldGapsOk printString , ' badGap=' , badGap printString).
+    self tap: 2 named: 'adoption moved the pair and kept ONE registration'
+         ok: (bridge cadMs = 5000 and: [ bridge budMs = 40000 and: [ timers pendingCount = 1 ] ])
+         detail: ('cad=' , bridge cadMs printString , ' bud=' , bridge budMs printString ,
+                  ' pending=' , timers pendingCount printString).
+    (* Tick 4 is the first AFTER the re-arm: a surviving old registration (or a
+       stale mailbox event for its token) lands ~2000 ms after tick 3 and makes
+       this gap read ~2000, not ~5000. *)
+    self tap: 3 named: 'no tick at the old period after the re-arm' ok: newGapsOk >= 1
+         detail: ('firstNewGapOk=' , (newGapsOk >= 1) printString).
+    self tap: 4 named: 'three consecutive gaps at the adopted 5000 ms cadence' ok: newGapsOk = 3
+         detail: ('okGaps=' , newGapsOk printString , ' badGap=' , badGap printString).
+    self tapDone.
+    ^ self )
+
+  (* --- TAP-lite (design D3) — see StaleHandleProbeC6.nsl for the full rationale. *)
+
+  scenarioName = ( ^ 'cad-rearm' )
+
+  tapPlan: n = (
+    ('TAP ' , self scenarioName , ' plan=' , n printString) out.
+    ^ self )
+
+  tap: idx named: nm ok: passed detail: d = (
+    passed
+      ifTrue:  [ tapPass:: tapPass + 1.
+                 ('TAP ' , self scenarioName , ' ok ' , idx printString ,
+                   ' ' , nm , ' ' , d) out ]
+      ifFalse: [ tapFail:: tapFail + 1.
+                 ('TAP ' , self scenarioName , ' not ok ' , idx printString ,
+                   ' ' , nm , ' ' , d) out ].
+    ^ self )
+
+  tapDone = (
+    ('TAP ' , self scenarioName , ' done pass=' , tapPass printString ,
+      ' fail=' , tapFail printString) out.
+    ^ self )
+
+) : (
+)
