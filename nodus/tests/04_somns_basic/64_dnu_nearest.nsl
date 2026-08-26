@@ -1,0 +1,15 @@
+(*
+expect-runtime-fail: nearest: 'add:'
+*)
+(* rete#247 part 3 — the DNU diagnostic runs a did-you-mean pass over the
+   receiver's own vtable chain (no new mechanism: the bindings already hold
+   every selector). `ad:` is one edit from OrderedCollection's `add:`, so the
+   frozen "not understood by receiver" line gains "— nearest: 'add:'". *)
+class DnuNearest packageUsing: manifest = () (
+public main: platform args: args = (
+  | c |
+  c:: platform OrderedCollection new.
+  c ad: 1.
+)
+) : (
+)

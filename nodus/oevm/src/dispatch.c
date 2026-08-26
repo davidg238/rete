@@ -407,6 +407,68 @@ static oop make_message(oop selector) {
     return msg;
 }
 
+/* rete#247: bounded Levenshtein distance for the DNU did-you-mean pass. The
+   caps make the cost trivial, and this only ever runs on the abort path. */
+static int dnu_edit_distance(const char *a, const char *b) {
+    size_t la = strlen(a), lb = strlen(b);
+    if (la > 48 || lb > 48) return 99;
+    int prev[49], curr[49];
+    for (size_t j = 0; j <= lb; j++) prev[j] = (int)j;
+    for (size_t i = 1; i <= la; i++) {
+        curr[0] = (int)i;
+        for (size_t j = 1; j <= lb; j++) {
+            int d = prev[j] + 1;
+            if (curr[j - 1] + 1 < d) d = curr[j - 1] + 1;
+            int sub = prev[j - 1] + ((a[i - 1] == b[j - 1]) ? 0 : 1);
+            if (sub < d) d = sub;
+            curr[j] = d;
+        }
+        memcpy(prev, curr, sizeof(int) * (lb + 1));
+    }
+    return prev[lb];
+}
+
+/* rete#247: nearest selector to `sel` in the receiver's own vtable chain — the
+   bindings already hold every selector, so this needs no new mechanism. NULL
+   when nothing is close enough to be a plausible typo (threshold scales with
+   the selector's length, floor 2). */
+static const char *dnu_nearest_selector(oop receiver, const char *sel) {
+    const char *best = NULL;
+    int best_d = 99;
+    int cap = (int)(strlen(sel) / 3);
+    if (cap < 2) cap = 2;
+    oop curr = IS_SMI(receiver) ? IntegerVtable : (receiver ? obj_vtable(receiver) : NULL);
+    while (curr != NULL && !IS_SMI(curr)) {
+        struct Vtable *vt = (struct Vtable *)curr;
+        struct Binding *bs = vtable_bindings(curr);
+        for (size_t i = 0; i < vt->size; i++) {
+            struct Symbol *s = (struct Symbol *)binding_symbol(&bs[i]);
+            if (s == NULL || obj_vtable((oop)s) != SymbolVtable) continue;
+            const char *name = symbol_name(s);
+            int d = dnu_edit_distance(sel, name);
+            if (d < best_d) { best_d = d; best = name; }
+        }
+        curr = vtable_delegate(curr);
+    }
+    return (best_d <= cap) ? best : NULL;
+}
+
+/* rete#247: name a BUILTIN receiver's kind for the DNU line. App-class
+   receivers answer NULL and keep the oop/vtable pair — naming those needs a
+   per-vtable name the image format does not carry yet (tracked on #247). */
+static const char *dnu_receiver_kind(oop receiver) {
+    if (receiver == NULL) return "nil";
+    if (IS_SMI(receiver)) return "an Integer";
+    oop vt = obj_vtable(receiver);
+    if (vt == IntegerVtable || vt == LargeIntegerVtable) return "an Integer";
+    if (vt == FloatVtable)            return "a Float";
+    if (vt == StringVtable)           return "a String";
+    if (vt == SymbolVtable)           return "a Symbol";
+    if (vt == RawBytesVtable)         return "a Bytes";
+    if (vt == PrimitiveClosureVtable || vt == BytecodeClosureVtable) return "a Block";
+    return NULL;
+}
+
 /* Fallback handler when a selector is not found in the Vtable chain.
    If the receiver defines `doesNotUnderstand:`, reify the message and invoke
    the handler directly (bypassing access control, as this is a VM-internal
@@ -443,8 +505,20 @@ static oop does_not_understand(oop receiver, oop selector, int argc, oop *args) 
     }
 
     struct Symbol *sym = (struct Symbol *)selector;
-    fprintf(stderr, "VM Error: Message '%s' not understood by receiver %p (vtable: %p)\n",
-            sym ? symbol_name(sym) : "?", receiver, receiver ? obj_vtable(receiver) : NULL);
+    /* rete#247: 'not understood by receiver' stays the frozen substring; the
+       kind and the did-you-mean are the enrichment after it. */
+    const char *sel_name = sym ? symbol_name(sym) : "?";
+    const char *kind = dnu_receiver_kind(receiver);
+    const char *near = sym ? dnu_nearest_selector(receiver, sel_name) : NULL;
+    if (kind != NULL) {
+        fprintf(stderr, "VM Error: Message '%s' not understood by receiver %s (%p)",
+                sel_name, kind, receiver);
+    } else {
+        fprintf(stderr, "VM Error: Message '%s' not understood by receiver %p (vtable: %p)",
+                sel_name, receiver, receiver ? obj_vtable(receiver) : NULL);
+    }
+    if (near != NULL) fprintf(stderr, " -- nearest: '%s'", near);
+    fprintf(stderr, "\n");
     abort();
     return NULL;
 }

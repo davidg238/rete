@@ -791,6 +791,14 @@ class MethodCompiler:
         span = node.get("span") if isinstance(node, dict) else None
         if span and "startLine" in span:
             self.source_map.append((len(self.instructions), span["startLine"]))
+            self.note_position(span)
+
+    def note_position(self, span):
+        # rete#247: push the position up to the shared OevmCompiler so a
+        # CompileError raised anywhere below can be located. self.parent is the
+        # OevmCompiler for method and block frames alike.
+        self.parent.last_span = span
+        self.parent.last_method = f"{self.name}>>{self.selector}"
 
     def compile_statement(self, stmt):
         self.record_line(stmt)
@@ -818,6 +826,9 @@ class MethodCompiler:
 
     def compile_expr(self, expr, target_reg):
         et = expr["type"]
+        span = expr.get("span")
+        if span and "startLine" in span:
+            self.note_position(span)   # rete#247: sub-statement precision
         if et == "literal":
             val = expr["value"]
             kind = expr["litKind"]
@@ -1439,6 +1450,14 @@ class OevmCompiler:
         # layout["oop_size"] in from main() (https://github.com/davidg238/nsl-tuvm/issues/4: compile_expr's
         # SMI/LARGEINT split must agree with the ref-word's true capacity).
         self.oop_bytes = oop_bytes
+        # rete#247: where compilation currently is, for CompileError reporting.
+        # current_file comes from the top-level node's "file" tag; last_span /
+        # last_method are pushed up by every MethodCompiler as it walks (blocks
+        # share this parent, so the innermost frame's span wins — which is the
+        # one the error is about).
+        self.current_file = None
+        self.last_span = None
+        self.last_method = None
         self.solidify = SolidifyCompiler()
         # Per-method source maps, keyed "Vtable>>selector". Collected during
         # compile(); serialized to a .stmap sidecar by main().
@@ -1790,6 +1809,8 @@ class OevmCompiler:
 
     def compile_class(self, node):
         qname = node["qname"]
+        # Nested classes carry no "file" tag; they inherit the enclosing one.
+        self.current_file = node.get("file", self.current_file)
         self.class_stack.append(qname)
         vt = self.vt_id(qname)
 
@@ -2148,7 +2169,12 @@ def main():
         sys.exit(1)
         
     ast = json.loads(proc.stdout)
-    
+    # rete#247: every top-level node remembers which file it came from, so a
+    # CompileError can say file:line:col instead of the message alone. Spans in
+    # the AST are per-file, so the file tag is what makes them resolvable.
+    for _node in ast.get("body", []):
+        _node["file"] = src_ns
+
     # Check if this is a script or a module
     is_script = True
     if ast["type"] == "program":
@@ -2202,6 +2228,8 @@ def main():
         print(kproc.stderr or kproc.stdout)
         sys.exit(1)
     kernel_ast = json.loads(kproc.stdout)
+    for _node in kernel_ast.get("body", []):
+        _node["file"] = os.path.normpath(kernel_path)
     ast["body"].extend(kernel_ast["body"])
 
     # in-image debugger step 1: compile the Supervisor module in as a top-level
@@ -2214,6 +2242,8 @@ def main():
         print(sproc.stderr or sproc.stdout)
         sys.exit(1)
     supervisor_ast = json.loads(sproc.stdout)
+    for _node in supervisor_ast.get("body", []):
+        _node["file"] = os.path.normpath(supervisor_path)
     ast["body"].extend(supervisor_ast["body"])
 
     # Determine the target oop width BEFORE compiling: Path A (--format=c, no
@@ -2235,7 +2265,21 @@ def main():
     try:
         compiler.compile()
     except CompileError as e:
-        print(f"Compile error: {e}")
+        # rete#247: position first, message after, offending line under it.
+        # 'Compile error: ' stays the frozen prefix; the enrichment is the rest.
+        f, sp, meth = compiler.current_file, compiler.last_span, compiler.last_method
+        loc = ""
+        if f and sp:
+            loc = f"{f}:{sp['startLine']}:{sp.get('startCol', 0)}: "
+        print(f"Compile error: {loc}{e}")
+        if meth:
+            print(f"  in {meth}")
+        if f and sp:
+            try:
+                text = open(f, encoding="utf-8").read().splitlines()[sp["startLine"] - 1]
+                print(f"  {sp['startLine']} | {text}")
+            except (OSError, IndexError):
+                pass
         sys.exit(1)
 
     # Emit the source-map sidecar (.stmap) next to the image, for both the

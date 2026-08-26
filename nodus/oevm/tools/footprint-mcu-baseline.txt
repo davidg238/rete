@@ -1,21 +1,28 @@
 # T0.3 footprint baseline — MCU config (arm-zephyr-eabi, cortex-m4).
-# Re-banked 2026-08-22 for rete#186.
+# Re-banked 2026-08-26 for rete#246 + #247.
 #
-#   +27 B  rete#186: the `platform nodeId` prim. Twenty-seven bytes of target text
-#          is what it costs a node to know which BOARD it is — against a source
-#          constant that produced 36,153 events in one porta space from at least
-#          two boards and two apps, unattributable after the fact.
-#   +0 B   data+bss, unchanged at 67796.
-#   = 38899 total mcu text, from 38872 banked earlier today.
+#   +353 B  rete#246: the `\\` floored-modulo prim. Bought back at every call
+#           site — the three-op hand-spelling became one prim send, including
+#           Dictionary>>indexFor: on the lookup hot path.
+#   +720 B  rete#247: the DNU diagnostic's did-you-mean pass (bounded edit
+#           distance over the receiver's own vtable chain) and builtin receiver
+#           kind naming. This is the flash price of "'strkeOn' not understood
+#           ... -- nearest: 'strikeOn'" on a device console — the elmbed
+#           review's bet, and it lives on the abort path only. (App-class
+#           receivers still print hex; naming them needs the vtable-name
+#           design tracked on #247.)
+#   +0 B   data+bss, unchanged at 67796 — the RAM ratchet (the scarce axis, #53)
+#          is untouched.
+#   = 39972 total mcu text, from 38899 banked 2026-08-22.
 #
-# Re-banked although it fits inside the +2% band; see the host baseline's header for
-# why growth that fits still gets named.
-#
-# Superseded header (2026-08-22, rete#177), kept because its finding outlives it:
-# this was the first MCU re-bank from a real cross-compile since the #79
-# consolidation. The mcu half had been SKIPping, CLAUDE.md called that expected, and
-# the compiler was in the SDK the whole time — what was broken was footprint.sh's
-# un-SKIP instruction, which named a path the consolidation deleted. That bank split
-# 34488 -> 38872 into +3108 B of enrolment (ota.c + span.c) and +1276 B of real drift.
-text 38899
+# Superseded header (2026-08-22, rete#186): +27 B for the `platform nodeId` prim,
+# 38872 -> 38899 — what it costs a node to know which BOARD it is, against a source
+# constant that produced 36,153 unattributable events. Before that (2026-08-22,
+# rete#177, kept because its finding outlives it): the first MCU re-bank from a real
+# cross-compile since the #79 consolidation — the mcu half had been SKIPping,
+# CLAUDE.md called that expected, and the compiler was in the SDK the whole time;
+# what was broken was footprint.sh's un-SKIP instruction, which named a deleted
+# path. That bank split 34488 -> 38872 into +3108 B of enrolment (ota.c + span.c)
+# and +1276 B of real drift.
+text 39972
 data_bss 67796
