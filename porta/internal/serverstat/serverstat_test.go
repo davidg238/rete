@@ -60,3 +60,17 @@ func TestVersionAndUptime(t *testing.T) {
 		t.Errorf("uptime = %d, want 42", snap.UptimeSeconds)
 	}
 }
+
+// rete#176: a blocks-plane bind failure degrades the daemon instead of killing
+// it, and the degradation must be READABLE — a log line scrolls away, the
+// snapshot does not.
+func TestBlocksPlaneDownSurfacesInSnapshot(t *testing.T) {
+	s := New("1.0.0", "abc", nil)
+	if got := s.Snapshot().BlocksPlaneDown; got != "" {
+		t.Fatalf("fresh stats: BlocksPlaneDown=%q, want empty (plane up)", got)
+	}
+	s.BlocksPlaneDown("bind udp :6970: address already in use")
+	if got := s.Snapshot().BlocksPlaneDown; got != "bind udp :6970: address already in use" {
+		t.Fatalf("BlocksPlaneDown=%q, want the bind error", got)
+	}
+}

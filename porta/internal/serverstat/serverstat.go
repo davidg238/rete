@@ -38,6 +38,11 @@ type Stats struct {
 
 	reportsOK       atomic.Int64
 	reportsRejected atomic.Int64
+
+	// rete#176: why the bulk plane is not serving ("" = it is). Set once at
+	// startup when the blocks bind fails and serve degrades instead of dying;
+	// /health carries it so the degradation outlives the log scrollback.
+	blocksPlaneDown atomic.Value // string
 }
 
 // New builds a Stats stamped with the build identity. now defaults to wall-clock
@@ -70,6 +75,9 @@ func (s *Stats) Packet(t Transport, n int) {
 func (s *Stats) ReportOK()       { s.reportsOK.Add(1) }
 func (s *Stats) ReportRejected() { s.reportsRejected.Add(1) }
 
+// BlocksPlaneDown records why the bulk plane is not serving (rete#176).
+func (s *Stats) BlocksPlaneDown(reason string) { s.blocksPlaneDown.Store(reason) }
+
 // UptimeSeconds is now - start.
 func (s *Stats) UptimeSeconds() int64 { return s.now() - s.start }
 
@@ -82,6 +90,7 @@ type Snapshot struct {
 	Bytes           map[Transport]int64
 	ReportsOK       int64
 	ReportsRejected int64
+	BlocksPlaneDown string // rete#176: "" = bulk plane serving
 }
 
 // Snapshot reads all counters into a plain value.
@@ -94,6 +103,9 @@ func (s *Stats) Snapshot() Snapshot {
 		Bytes:           map[Transport]int64{},
 		ReportsOK:       s.reportsOK.Load(),
 		ReportsRejected: s.reportsRejected.Load(),
+	}
+	if v, ok := s.blocksPlaneDown.Load().(string); ok {
+		snap.BlocksPlaneDown = v
 	}
 	for _, t := range Transports {
 		snap.Packets[t] = s.pkts[t].Load()

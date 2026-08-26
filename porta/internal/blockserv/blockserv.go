@@ -58,6 +58,14 @@ func (s *Server) ListenAndServe(ctx context.Context, addr string) error {
 	if err != nil {
 		return err
 	}
+	return s.Serve(ctx, pc)
+}
+
+// Serve runs the loop on an already-bound socket. Split from ListenAndServe
+// for rete#176: serve needs to bind BEFORE spawning the goroutine, so a bind
+// failure can degrade the plane instead of killing the daemon later through
+// the listener error channel. Takes ownership of pc.
+func (s *Server) Serve(ctx context.Context, pc net.PacketConn) error {
 	defer pc.Close()
 	go func() { <-ctx.Done(); pc.Close() }()
 

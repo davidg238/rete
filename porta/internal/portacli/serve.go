@@ -167,10 +167,7 @@ func newServeCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			blocksSrv := blockserv.New(bst)
-			blocksErr := make(chan error, 1)
-			go func() { blocksErr <- blocksSrv.ListenAndServe(ctx, blocksAddr) }()
-			log.Printf("porta: serving blobs on udp %s", blocksAddr)
+			blocksErr := startBlocksPlane(ctx, blockserv.New(bst), blocksAddr, stats, log.Printf)
 
 			// The fourth goroutine: porta's own verdict on which nodes are still
 			// talking. It is a ticker and not a read-time view because the
@@ -224,9 +221,36 @@ func newServeCmd() *cobra.Command {
 	return cmd
 }
 
+// startBlocksPlane binds and runs the bulk-plane listener — or degrades
+// (rete#176). The exchange is the fleet's lifeline and the bulk plane is
+// secondary, so a BIND failure (a squatter on exchange+1 at restart) must not
+// take the daemon down: it answers a nil channel, an unmissable log line, and
+// the reason in stats so /health carries it past the log scrollback. A bind
+// SUCCESS keeps today's semantics — a runtime listener death still propagates
+// through the returned channel and fells the daemon, because a plane that
+// bound and then died is a fault, not a collision.
+func startBlocksPlane(ctx context.Context, srv *blockserv.Server, addr string,
+	stats *serverstat.Stats, logf func(string, ...any)) <-chan error {
+	pc, err := net.ListenPacket("udp", addr)
+	if err != nil {
+		logf("porta: BLOCKS PLANE DOWN — cannot bind udp %s: %v — serving the "+
+			"exchange WITHOUT the bulk plane; blob fetches and deploys will fail "+
+			"until porta restarts with the port free", addr, err)
+		if stats != nil {
+			stats.BlocksPlaneDown(err.Error())
+		}
+		return nil
+	}
+	ch := make(chan error, 1)
+	go func() { ch <- srv.Serve(ctx, pc) }()
+	logf("porta: serving blobs on udp %s", addr)
+	return ch
+}
+
 // awaitServeExit blocks until a listener goroutine exits or ctx is cancelled.
-// It is transport-agnostic — four error channels; only httpErr may be nil (udp,
-// blocks and the liveness sweep are unconditional).
+// It is transport-agnostic — four error channels; httpErr may be nil (no HTTP
+// listener) and blocksErr may be nil (rete#176: the bulk plane degraded at
+// bind); udp and the liveness sweep are unconditional.
 //
 //   - A listener error (non-nil udpErr, blocksErr, sweepErr or httpErr)
 //     propagates verbatim.

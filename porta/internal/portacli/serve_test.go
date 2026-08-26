@@ -7,12 +7,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/davidg238/porta/internal/blockserv"
 	"github.com/davidg238/porta/internal/cval"
+	"github.com/davidg238/porta/internal/serverstat"
 	"github.com/davidg238/porta/internal/space"
 )
 
@@ -399,5 +402,61 @@ func TestSweepLivenessLogsOnlyTransitions(t *testing.T) {
 	}
 	if !strings.Contains(lines[0], "n1") || !strings.Contains(lines[0], "silent") {
 		t.Fatalf("line = %q, want it to name the node and the verdict", lines[0])
+	}
+}
+
+// rete#176: a squatter on exchange+1 must NOT take the daemon down — the
+// exchange is the fleet's lifeline and the bulk plane is secondary. A bind
+// failure degrades: nil error channel (the plane never runs), the reason in
+// stats, and an unmissable log line. A bind SUCCESS keeps today's fail-fast
+// semantics for runtime listener deaths.
+func TestStartBlocksPlaneDegradesWhenPortTaken(t *testing.T) {
+	squatter, err := net.ListenPacket("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("squatter bind: %v", err)
+	}
+	defer squatter.Close()
+
+	stats := serverstat.New("t", "t", nil)
+	var logged []string
+	logf := func(format string, args ...any) {
+		logged = append(logged, fmt.Sprintf(format, args...))
+	}
+
+	ch := startBlocksPlane(context.Background(), blockserv.New(nil),
+		squatter.LocalAddr().String(), stats, logf)
+	if ch != nil {
+		t.Fatalf("bind onto a taken port: want nil channel (degraded), got a live plane")
+	}
+	if got := stats.Snapshot().BlocksPlaneDown; got == "" {
+		t.Fatalf("degraded plane left no trace in stats")
+	}
+	found := false
+	for _, l := range logged {
+		if strings.Contains(l, "BLOCKS PLANE DOWN") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("no unmissable log line, logged=%v", logged)
+	}
+}
+
+func TestStartBlocksPlaneServesWhenPortFree(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	stats := serverstat.New("t", "t", nil)
+	ch := startBlocksPlane(ctx, blockserv.New(nil), "127.0.0.1:0", stats,
+		func(string, ...any) {})
+	if ch == nil {
+		t.Fatalf("free port: want a live error channel, got degraded nil")
+	}
+	if got := stats.Snapshot().BlocksPlaneDown; got != "" {
+		t.Fatalf("healthy bind marked degraded: %q", got)
+	}
+	cancel()
+	select {
+	case <-ch:
+	case <-time.After(5 * time.Second):
+		t.Fatalf("blocks plane did not exit on ctx cancel")
 	}
 }

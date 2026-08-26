@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/davidg238/porta/internal/serverstat"
 )
 
 // fakeNodes stands in for whatever store is current. httpsrv depends on the
@@ -96,5 +98,28 @@ func TestHealthHandlerToleratesNilCounter(t *testing.T) {
 	}
 	if body["nodes"] != float64(-1) {
 		t.Errorf("nodes=%v, want -1", body["nodes"])
+	}
+}
+
+// rete#176: when the bulk plane could not bind, /health carries the reason.
+// The status stays "ok" — the exchange (what /health probes) IS serving; the
+// field is the loud part. Absent when the plane is up, so probes keying on
+// body shape see nothing new in the healthy case.
+func TestHealthHandlerReportsBlocksPlaneDown(t *testing.T) {
+	s := serverstat.New("1.0.0", "abc", nil)
+	statsFn := func() *serverstat.Stats { return s }
+
+	_, body := decodeHealth(t, healthHandler(testNodes(t), statsFn))
+	if _, present := body["blocks_plane_down"]; present {
+		t.Fatalf("plane up: blocks_plane_down should be absent, body=%v", body)
+	}
+
+	s.BlocksPlaneDown("address already in use")
+	code, body := decodeHealth(t, healthHandler(testNodes(t), statsFn))
+	if code != http.StatusOK {
+		t.Fatalf("degraded /health = %d, want 200 (the exchange is serving)", code)
+	}
+	if got, _ := body["blocks_plane_down"].(string); got != "address already in use" {
+		t.Fatalf("blocks_plane_down=%q, want the bind error, body=%v", got, body)
 	}
 }
