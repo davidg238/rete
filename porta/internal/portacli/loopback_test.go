@@ -85,13 +85,15 @@ func TestLoopbackGate(t *testing.T) {
 	// Bind the real listener on port 0 and read the address back from it, so
 	// the socket is never closed and re-opened — a listen/close/re-listen
 	// dance can lose the port to another process between the two calls.
+	// (rete#158: this comment used to describe an intent the API could not
+	// honor — the code below closed pc and re-listened anyway. Serve takes
+	// the live socket now.)
 	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
 	addr := pc.LocalAddr().String()
-	pc.Close()
-	go srv.ListenAndServe(ctx, addr)
+	go srv.Serve(ctx, pc)
 
 	conn, err := net.Dial("udp", addr)
 	if err != nil {

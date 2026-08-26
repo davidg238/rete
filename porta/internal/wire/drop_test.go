@@ -22,18 +22,19 @@ func dropHarness(t *testing.T, dropEvery int) (*Server, *space.Store, func(seq i
 	srv, st := testServer(t)
 	srv.SetDropAckEvery(dropEvery)
 
-	// Bind on port 0 and read the address back, then close: the listen/close/
-	// re-listen window is small and the alternative (a guessed port) is worse.
+	// rete#158: bind on port 0 and hand the LIVE socket to the server. The old
+	// listen/close/re-listen dance had an unbound window that could outlast
+	// waitForBind's whole retry budget on a loaded machine — the one recorded
+	// flake of this harness.
 	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
 	addr := pc.LocalAddr().String()
-	pc.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	go srv.ListenAndServe(ctx, addr)
+	go srv.Serve(ctx, pc)
 
 	conn, err := net.Dial("udp", addr)
 	if err != nil {
