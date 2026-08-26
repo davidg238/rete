@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>rete dev status</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1a1a; --muted: #6a6a6a; --rule: #e2e2e2;
+    --accent: #0a5dc2; --card: #f7f7f7; --warn: #9a3b00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16181c; --fg: #e6e6e6; --muted: #9a9a9a; --rule: #2e3238;
+      --accent: #6fb1ff; --card: #1e2126; --warn: #ffb27a;
+    }
+  }
+  body {
+    margin: 0 auto; max-width: 46rem; padding: 2rem 1.25rem 4rem;
+    background: var(--bg); color: var(--fg);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+  h2 { font-size: 1.1rem; margin: 2rem 0 .5rem; border-bottom: 1px solid var(--rule); padding-bottom: .3rem; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .stamp { color: var(--muted); font-size: .85rem; margin-bottom: 1.5rem; }
+  .headline { background: var(--card); border-left: 3px solid var(--accent);
+              padding: .75rem 1rem; border-radius: 0 6px 6px 0; }
+  ul { padding-left: 1.25rem; }
+  li { margin: .5rem 0; }
+  .defer { color: var(--warn); }
+  .links { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; padding: 0; list-style: none; }
+  .links li { margin: 0; }
+  code { background: var(--card); padding: .05rem .3rem; border-radius: 4px; font-size: .9em; }
+</style>
+</head>
+<body>
+
+<h1>rete — dev status</h1>
+<p class="stamp">Generated 2026-08-26 by the working session, at
+<a href="https://github.com/davidg238/rete/commit/1394c9f">1394c9f</a>.
+This page is a <em>view</em>, refreshed at session close-outs — the records of
+direction are <a href="/dev/next-steps-overview.md">next-steps-overview.md</a>
+and <a href="https://github.com/davidg238/rete/issues">the tracker</a>.
+If the date above is old, trust those, not this.</p>
+
+<ul class="links">
+  <li><a href="https://github.com/davidg238/rete/issues">tracker</a></li>
+  <li><a href="/dev/next-steps-overview.md">next-steps-overview.md</a></li>
+  <li><a href="/dev/">docs tree</a></li>
+  <li><a href="/health">/health</a></li>
+  <li><a href="/manifest">/manifest</a></li>
+</ul>
+
+<h2>Where we are</h2>
+<p>95 open issues, but the genuine bug load is much smaller than the number
+suggests; a lot of it is deferred hardware exploration (MagTag / e-paper /
+upstream Zephyr) and P3/P4 hygiene.</p>
+
+<p class="headline"><strong>The headline: liveness is won, durability is
+not.</strong> Last week's board campaign closed out the whole wedge/watchdog
+family — <a href="https://github.com/davidg238/rete/issues/215">#215</a>'s
+rows, <a href="https://github.com/davidg238/rete/issues/231">#231</a>'s
+liveness-heartbeat (green on a board 2026-08-22), and
+<a href="https://github.com/davidg238/rete/issues/240">#240</a>.2's cad-rearm
+landed 2026-08-25 as the ninth target scenario. What's left at P1 is a
+different genus: data loss and replay safety, not hangs.</p>
+
+<h2>The P1 bugs, grouped</h2>
+<ul>
+  <li><strong>Space-sync durability trio —
+    <a href="https://github.com/davidg238/rete/issues/114">#114</a>,
+    <a href="https://github.com/davidg238/rete/issues/117">#117</a>,
+    <a href="https://github.com/davidg238/rete/issues/119">#119</a>.</strong>
+    A stream entry written while the bridge is down is lost (unacceptable for
+    <code>sys/panic</code>); cursor and bootId live in RAM so every reboot
+    re-pulls everything; and a cold boot at cursor 0 can re-execute historical
+    <code>goal/do/*</code> actions.
+    <a href="https://github.com/davidg238/rete/issues/262">#262</a> is the live
+    instance of that last one — every <code>dbg/req</code> profile row re-runs
+    its window each boot. These three are one coherent rung of work, and NVS
+    is already mounted, so persistence costs a settings key, not a
+    subsystem.</li>
+  <li><strong>Death by refusing gateway —
+    <a href="https://github.com/davidg238/rete/issues/199">#199</a></strong>
+    (+<a href="https://github.com/davidg238/rete/issues/232">#232</a>, its
+    target scenario). A node whose frames the gateway rejects exhausts its
+    arena and halts in ~157&nbsp;s while <code>misses 0</code> reports it
+    healthy. #232 is the queued board-time item precisely because the host
+    cannot answer the death question.</li>
+  <li class="defer"><strong>Actuator safety —
+    <a href="https://github.com/davidg238/rete/issues/201">#201</a>/<a
+    href="https://github.com/davidg238/rete/issues/202">#202</a>:
+    DEFERRED</strong> (David, 2026-08-26). The bell is still on the piezo
+    striker, so a stuck-on pin is noise, not a held load. Re-arms the moment
+    an inductive striker returns.</li>
+  <li><strong>VM semantic traps —
+    <a href="https://github.com/davidg238/rete/issues/75">#75</a> and
+    <a href="https://github.com/davidg238/rete/issues/81">#81</a>.</strong>
+    Decoded symbols never <code>=</code> image literals (identity equality,
+    and <code>printString</code> masks it); and <code>timer_zephyr.c</code>
+    <code>k_oops()</code>es on a load condition justified by a claim that is
+    no longer true.</li>
+  <li><strong><a href="https://github.com/davidg238/rete/issues/247">#247</a>
+    — CLOSED 2026-08-26.</strong> Diagnostics as a product feature: compiler
+    errors carry file:line:col + the source line; the DNU line names builtin
+    kinds, app-class receivers (the .oimg v10 classnames section), and a
+    did-you-mean. Remainder split to
+    <a href="https://github.com/davidg238/rete/issues/265">#265</a> (other
+    frozen runtime errors, and runtime source lines via the G4
+    line-table).</li>
+</ul>
+
+<h2>Notable non-P1 bugs with teeth</h2>
+<ul>
+  <li><a href="https://github.com/davidg238/rete/issues/224">#224</a> —
+    reported uptime wraps at ~12.4 days; will eventually confuse a
+    dashboard.</li>
+  <li><a href="https://github.com/davidg238/rete/issues/263">#263</a> — new:
+    c6spare's settings-init error at boot may mean bootid persistence is
+    limping. Worth a look while it's the board on the desk.</li>
+  <li><a href="https://github.com/davidg238/rete/issues/264">#264</a> — a
+    never-matching observe regex reads as node death; filed after it bit
+    us.</li>
+  <li><a href="https://github.com/davidg238/rete/issues/161">#161</a>/<a
+    href="https://github.com/davidg238/rete/issues/163">#163</a> — the codec
+    cost pair: a check-in spends 62% in <code>pushFrame</code> re-encoding the
+    same values.</li>
+</ul>
+
+<h2>Staleness worth flagging</h2>
+<ul>
+  <li><a href="https://github.com/davidg238/rete/issues/118">#118</a> (node
+    identity) looks overtaken by
+    <a href="https://github.com/davidg238/rete/issues/186">#186</a>'s
+    resolution (the id is the board, prim 155) and is partly re-litigated by
+    <a href="https://github.com/davidg238/rete/issues/242">#242</a>.</li>
+  <li><a href="https://github.com/davidg238/rete/issues/97">#97</a> (add
+    modulo) is at least half-done since
+    <a href="https://github.com/davidg238/rete/issues/246">#246</a> landed
+    <code>\\</code>.</li>
+  <li>Both could probably close or shrink on a pass through them.</li>
+</ul>
+
+<h2>Priority opinion</h2>
+<p>The space-sync durability trio is the highest-value coherent bundle —
+three P1s, one mechanism (NVS-backed cursor/bootId + replay guard), and it
+de-fangs <a href="https://github.com/davidg238/rete/issues/262">#262</a> as a
+side effect. <a href="https://github.com/davidg238/rete/issues/232">#232</a>
+is the right next board-time item.</p>
+
+</body>
+</html>

@@ -88,7 +88,7 @@ func sweepLiveness(ctx context.Context, st *space.Store, tick time.Duration, log
 // operator HTTP surface. The two are independent — a node keeps checking in
 // with --http-port 0, and the health endpoint stays up if the mesh is quiet.
 func newServeCmd() *cobra.Command {
-	var udpAddr, httpBind, manifestPath string
+	var udpAddr, httpBind, manifestPath, devDocs string
 	var httpPort, testDropAck int
 	var httpAllowCIDR []string
 	// TEST ONLY, on --test-drop-ack's precedent: the sweep's own period. The
@@ -198,6 +198,10 @@ func newServeCmd() *cobra.Command {
 				}
 				srv.SetStats(stats)
 				srv.Mux.HandleFunc("/manifest", manifestHandler(tbl))
+				if devDocs != "" {
+					registerDevDocs(srv.Mux, devDocs)
+					log.Printf("porta: dev status surface ON — /dev serves %s", devDocs)
+				}
 				httpErr = make(chan error, 1)
 				go func() { httpErr <- srv.Run(ctx) }()
 				log.Printf("porta: serving HTTP on %s:%d", httpBind, httpPort)
@@ -218,6 +222,8 @@ func newServeCmd() *cobra.Command {
 		"TEST ONLY: how often to re-form liveness verdicts (0 = space.SweepTick, 30s)")
 	cmd.Flags().StringVar(&manifestPath, "manifest", "",
 		"path to MANIFEST.cddl — arms the kind+schema gate and serves GET /manifest (empty = gate OFF, loudly)")
+	cmd.Flags().StringVar(&devDocs, "dev-docs", "",
+		"path to the repo's docs/ tree — serves the dev status surface at /dev (empty = off)")
 	return cmd
 }
 
