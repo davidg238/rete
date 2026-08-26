@@ -37,16 +37,8 @@ func TestPacketCountsAndBytesPerTransport(t *testing.T) {
 	}
 }
 
-func TestReportOutcomeCounters(t *testing.T) {
-	s := New("v", "c", nil)
-	s.ReportOK()
-	s.ReportOK()
-	s.ReportRejected()
-	snap := s.Snapshot()
-	if snap.ReportsOK != 2 || snap.ReportsRejected != 1 {
-		t.Errorf("reports ok=%d rejected=%d, want 2/1", snap.ReportsOK, snap.ReportsRejected)
-	}
-}
+// TestReportOutcomeCounters was deleted for rete#171 along with the counters
+// it pinned: v1's report ingest is gone and nothing fed them.
 
 func TestVersionAndUptime(t *testing.T) {
 	now := int64(1000)

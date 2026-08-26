@@ -38,7 +38,6 @@ func healthHandler(nodes NodeCounter, statsFn func() *serverstat.Stats) http.Han
 				snap := s.Snapshot()
 				out["version"] = snap.Version
 				out["uptime_s"] = snap.UptimeSeconds
-				out["reports_rejected"] = snap.ReportsRejected
 				// rete#176: present only when degraded — probes keying on the
 				// healthy body shape see nothing new. status stays "ok": the
 				// exchange (what this endpoint probes) IS serving.
