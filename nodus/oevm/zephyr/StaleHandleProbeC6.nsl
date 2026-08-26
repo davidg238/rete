@@ -32,7 +32,7 @@ stale-handle probe done
    invalid, not the theory.
 
    Holds ONE Timers instance. Never returns from a phase with a live repeater —
-   there are none here, only one-shots. Dialect: `[ ... ] whileTrue:`, no modulo. *)
+   there are none here, only one-shots. Dialect: `[ ... ] whileTrue:`. *)
 class StaleHandleProbeC6 packageUsing: manifest = (
   | plat space timers lostCh kickCh beatCh beatTok beats ::= 0.
     delivered ::= 0. kicks ::= 0. armDecoy ::= false.

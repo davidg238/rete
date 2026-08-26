@@ -20,8 +20,7 @@ Until rete#244 `platform timers` answered a FRESH Timers each call — each owni
 registry — so register and dispatch MUST share ONE instance or every timer event
 is silently dropped. Hold it in a local, never re-ask.
 
-nsl has no modulo, so the h:m:s split is spelled with `//` and subtraction
-throughout (the `x - ((x // n) * n)` form, tuvm#97).
+Modulo is `\\` (rete#246), floored like `//`.
 
 expect:
 finished
@@ -83,13 +82,13 @@ class WallClockNode packageUsing: manifest = ( | reads ::= 0. prev ::= nil. | ) 
   )
 
   (* seconds-since-midnight -> 'HH:MM:SS', zero-padded so the columns line up in a
-     serial log. No modulo in nsl: each field is a division and a subtraction. *)
+     serial log. *)
   hms: secs = (
     | h rem m s |
     h::   secs // 3600.
-    rem:: secs - (h * 3600).
+    rem:: secs \\ 3600.
     m::   rem // 60.
-    s::   rem - (m * 60).
+    s::   rem \\ 60.
     ^ (self pad: h) , ':' , (self pad: m) , ':' , (self pad: s)
   )
 

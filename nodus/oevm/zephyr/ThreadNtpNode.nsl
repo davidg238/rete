@@ -22,7 +22,7 @@ midnight. At the DS3231M's +/-5 ppm that is 0.43 s of drift to correct, so nothi
 about the schedule needs to be clever — and a daily run notices a dead or cleared
 RTC within a day, which is the only reason to do it more often than drift demands.
 
-Dialect: `[ ... ] whileTrue:`, never `repeat`. No modulo in nsl.
+Dialect: `[ ... ] whileTrue:`, never `repeat`. Modulo is `\\` (rete#246).
 
 expect (C6 console, after boot + attach):
 NTP OK
@@ -76,7 +76,7 @@ class ThreadNtpNode packageUsing: manifest = ( | rtc ::= nil. ntp ::= nil. date 
      The first run of this node made exactly that error and reported a 13h43m lead
      for a clock that was in fact 10h16m behind. Fold the difference into the
      half-day either side of zero, which is the only reading that can be a skew.
-     Two comparisons, no modulo — nsl has none. *)
+     Two comparisons fold it. *)
   skew: d = (
     d >  43200 ifTrue: [ ^ d - 86400 ].
     d < -43200 ifTrue: [ ^ d + 86400 ].
@@ -84,13 +84,13 @@ class ThreadNtpNode packageUsing: manifest = ( | rtc ::= nil. ntp ::= nil. date 
   )
 
   (* seconds-since-midnight -> 'HH:MM:SS', zero-padded so the columns line up in a
-     serial log. No modulo in nsl: each field is a division and a subtraction. *)
+     serial log. *)
   hms: secs = (
     | h rem m s |
     h::   secs // 3600.
-    rem:: secs - (h * 3600).
+    rem:: secs \\ 3600.
     m::   rem // 60.
-    s::   rem - (m * 60).
+    s::   rem \\ 60.
     ^ (self pad: h) , ':' , (self pad: m) , ':' , (self pad: s)
   )
 

@@ -79,8 +79,8 @@ outage. Read the printk to tell them apart: `sntp_simple_addr(` means the addres
 was compiled in, bare `sntp_simple` means it was not. The env var is read at CMake
 CONFIGURE time, so adding it needs `--pristine` (2026-08-04).
 
-Dialect: `[ ... ] whileTrue:`, never `repeat`. No modulo in nsl — every one is
-spelled `n - ((n // d) * d)`. State lives in instance slots.
+Dialect: `[ ... ] whileTrue:`, never `repeat`. Modulo is `\\` (rete#246), floored
+like `//`. State lives in instance slots.
 
 expect (C6 console, wall-powered, USB carrying only power):
 shipsbell ready, slot 1800 s, 10/500/1600 ms
@@ -188,7 +188,7 @@ class ShipsBellNodeC6 packageUsing: manifest = (
   (* Liveness in the collector without a line a second: 86400 of those a day would
      bury the ~48 that carry the product. *)
   heartbeat: secs = (
-    (ticks - ((ticks // self printEveryTicks) * self printEveryTicks)) = 0
+    (ticks \\ self printEveryTicks) = 0
       ifTrue: [ ('tick ' , (self hms: secs) , ' slot ' , lastSlot printString) out ].
     ^ self )
 
@@ -234,9 +234,9 @@ class ShipsBellNodeC6 packageUsing: manifest = (
     timers after: (self gapAfter: strokeIndex) post: #stroke on: bellCh.
     ^ self )
 
-  (* No modulo in nsl. Odd index -> within a pair; even -> between pairs. *)
+  (* Odd index -> within a pair; even -> between pairs. *)
   gapAfter: i = (
-    (i - ((i // 2) * 2)) = 1 ifTrue: [ ^ self pairGapMillis ].
+    (i \\ 2) = 1 ifTrue: [ ^ self pairGapMillis ].
     ^ self setGapMillis )
 
   (* D6: the daily sync is an EVENT — "after the midnight bells" — rather than a
@@ -290,14 +290,13 @@ class ShipsBellNodeC6 packageUsing: manifest = (
                    (secs // self slotSeconds) printString) out ].
     ^ self )
 
-  (* seconds-since-midnight -> 'HH:MM:SS', zero-padded so a serial log lines up.
-     No modulo: each field is a division and a subtraction. *)
+  (* seconds-since-midnight -> 'HH:MM:SS', zero-padded so a serial log lines up. *)
   hms: secs = (
     | h rem m s |
     h::   secs // 3600.
-    rem:: secs - (h * 3600).
+    rem:: secs \\ 3600.
     m::   rem // 60.
-    s::   rem - (m * 60).
+    s::   rem \\ 60.
     ^ (self pad: h) , ':' , (self pad: m) , ':' , (self pad: s) )
 
   pad: n = ( ^ n < 10 ifTrue: [ '0' , n printString ] ifFalse: [ n printString ] )

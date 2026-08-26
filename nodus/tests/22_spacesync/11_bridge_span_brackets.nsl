@@ -78,8 +78,7 @@ class BridgeSpanBrackets packageUsing: manifest = () (
 
   (* Alternates the two replies rather than stepping a fixed list of slots: the
      legs ask in a strict batch/ack order, so a toggle serves any number of
-     check-ins and no wait ever times out. A flag, not `n // 2` — this dialect has
-     no modulo. *)
+     check-ins and no wait ever times out. A flag, not `n \\ 2`. *)
   public class FakeSocket = ( | batch ack wantAck | ) (
     public setBatch: b ack: a = ( batch:: b. ack:: a. wantAck:: false. ^ self )
     public sendTo: host port: p data: bytes = ( ^ self )

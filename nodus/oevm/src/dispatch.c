@@ -201,6 +201,19 @@ oop oevm_int_floordiv(oop a, oop b) {
     return sm_to_int(sign, q);
 }
 
+oop oevm_int_mod(oop a, oop b) {
+    int sa, sb; uint64_t ma, mb;
+    int_to_sm(a, &sa, &ma); int_to_sm(b, &sb, &mb);
+    if (mb == 0) {
+        fprintf(stderr, "VM Error: Modulo by zero\n");
+        abort();
+    }
+    uint64_t r = ma % mb;
+    if (r == 0) return sm_to_int(1, 0);
+    if (sa != sb) r = mb - r;   /* floored: a non-zero result takes the divisor's sign */
+    return sm_to_int(sb, r);
+}
+
 double oevm_int_to_double(oop x) {
     int s; uint64_t m;
     int_to_sm(x, &s, &m);
@@ -879,6 +892,9 @@ enum {
        image / run / board / CONTRACT. Answers a RawBytes leaf or nil on a
        pinless build (host, pre-manifest). */
     PRIM_pf_manifestPin,
+    /* rete#246: `\\` — floored modulo, the pair of PRIM_intDiv. Appended last
+       so no pre-existing id shifts. */
+    PRIM_intMod,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1).
@@ -901,7 +917,7 @@ static const char *const PRIM_NAMES[] = {
    — this catches it at build time instead. C99-safe (no _Static_assert under
    -std=c99): a false condition makes a negative-sized array, which is a hard
    compile error. ADVANCE THIS to the new last id whenever prims are appended. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_manifestPin) ? 1 : -1];
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_intMod) ? 1 : -1];
 
 /* rete#226 — CLASSIFICATION HAPPENS ONCE, WHERE THE SYMBOL IS MADE.
 
@@ -1298,6 +1314,16 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                 // LargeInteger operands uniformly.
                 if (oevm_is_integer(receiver) && oevm_is_integer(args[0])) {
                     return oevm_int_floordiv(receiver, args[0]);
+                }
+                return TAG_SMI(0);
+            }
+            break;
+            case PRIM_intMod: {
+                // SmallInteger>>\\ : floored modulo (rete#246). Sign of a
+                // non-zero result follows the divisor, so
+                // (a // b) * b + (a \\ b) = a for every sign combination.
+                if (oevm_is_integer(receiver) && oevm_is_integer(args[0])) {
+                    return oevm_int_mod(receiver, args[0]);
                 }
                 return TAG_SMI(0);
             }

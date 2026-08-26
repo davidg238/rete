@@ -102,7 +102,7 @@ NsLite {
   identifierPart  = letter | digit | "_"
 
   binaryOp   = binaryChar+
-  binaryChar = "+" | "-" | "*" | "/" | "~" | "<" | ">" | "=" | "&" | "|" | "@" | "%" | "," | "?" | "!"
+  binaryChar = "+" | "-" | "*" | "/" | "\\" | "~" | "<" | ">" | "=" | "&" | "|" | "@" | "%" | "," | "?" | "!"
 
   space    += comment
   comment   = "(*" (~"*)" any)* "*)"

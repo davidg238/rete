@@ -17,8 +17,8 @@ finished
 *)
 (* tuvm#94 stage 5 — the run-once state machine's PURE arithmetic, host, no seam and
    no wall clock. Each formula is spelled EXACTLY as the node (Tasks 4-6) spells it, so
-   this test and the node cannot silently diverge. nsl has no modulo (tuvm#97): `x mod n`
-   is `x - ((x // n) * n)` throughout. *)
+   this test and the node cannot silently diverge. Modulo is `\\` (rete#246),
+   floored like `//`. *)
 class BellMath packageUsing: manifest = () (
   public main: platform args: args = (
     (* seconds to the NEXT half-hour boundary, in SECONDS (design §3). A boundary-exact
@@ -48,7 +48,7 @@ class BellMath packageUsing: manifest = () (
     'finished' out.
   )
 
-  secondsToNextBoundary: sec = ( ^ 1800 - (sec - ((sec // 1800) * 1800)) )
+  secondsToNextBoundary: sec = ( ^ 1800 - (sec \\ 1800) )
 
   showRatchetTrue: trueHalf last: lastHalf = (
     | newHalf struck |

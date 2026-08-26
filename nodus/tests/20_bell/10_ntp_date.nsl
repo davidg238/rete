@@ -24,8 +24,8 @@ finished
    still looks plausible (20260801 // 100 = 202608, not 8). Spelling out all three
    fields pins the packing rather than the one number.
 
-   nsl has no modulo, so each field is a division and a subtraction — the same
-   spelling wallClockSetDate:time:'s callers use. *)
+   Each field is a division and a subtraction — the same spelling
+   wallClockSetDate:time:'s callers use. *)
 class NtpDate packageUsing: manifest = () (
   public main: platform args: args = (
     | secs date yyyy rest mm dd |

@@ -631,9 +631,7 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
      exposed; concatenation is fine here only because these strings are a dozen
      characters and this page is off the measured path.
 
-     nsl has integer division but NO modulo operator, hence the
-     `v - ((v // 1000) * 1000)` spelling. pad3: matters: without it 1000007
-     renders as "1,7" instead of "1,000,007". *)
+     pad3: matters: without it 1000007 renders as "1,7" instead of "1,000,007". *)
   groupDigits: anInteger = (
     | v res grp neg |
     v:: anInteger.
@@ -642,7 +640,7 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
     v < 1000 ifTrue: [ ^ anInteger printString ].
     res:: ''.
     [ v >= 1000 ] whileTrue: [
-      grp:: v - ((v // 1000) * 1000).
+      grp:: v \\ 1000.
       res:: ',' , (self pad3: grp) , res.
       v:: v // 1000 ].
     res:: v printString , res.

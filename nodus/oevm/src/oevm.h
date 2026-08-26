@@ -246,6 +246,7 @@ oop  oevm_int_add(oop a, oop b);
 oop  oevm_int_sub(oop a, oop b);
 oop  oevm_int_mul(oop a, oop b);
 oop  oevm_int_floordiv(oop a, oop b);
+oop  oevm_int_mod(oop a, oop b);
 oop  int_from_intptr(intptr_t v);   /* normalise a raw result to SMI or LargeInteger */
 oop  oevm_int_demote(oop v);        /* canonicalize a boxed int constant to SMI if it fits (https://github.com/davidg238/nsl-tuvm/issues/4) */
 double oevm_int_to_double(oop x);

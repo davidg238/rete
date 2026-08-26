@@ -45,7 +45,7 @@ probe done
    so holding it is tidiness rather than survival). Blocks
    forever draining in each phase rather than returning, so it can never leak a
    live repeater the way TimerNode documents. Dialect: `[ ... ] whileTrue:`, never
-   `repeat`; no modulo. *)
+   `repeat`. *)
 class PulseCoalesceProbeC6 packageUsing: manifest = (
   | plat space timers
     strokeCh tickCh

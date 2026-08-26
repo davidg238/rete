@@ -25,8 +25,8 @@
 
    STATE LIVES IN .rtc.data (design §3), reached through rtcGet:/rtcPut:value:, because
    RAM does not survive the sleep. Field indices are the constants below and are
-   identical to the C struct order in zephyr/src/main.c. nsl has no modulo (tuvm#97), so
-   `x mod n` is `x - ((x // n) * n)` throughout. *)
+   identical to the C struct order in zephyr/src/main.c. Modulo is `\\` (rete#246),
+   floored like `//`. *)
 class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk basisMillis | ) (
 
   public main: platform args: args = (
@@ -166,7 +166,7 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk basis
     | d |
     d:: ((lastHalf + 1) * self slotSec) - predicted.
     d < 0 ifTrue: [ d:: d + 86400 ].
-    d:: d - ((d // 86400) * 86400).      (* d >= 0 here, so // is unambiguous *)
+    d:: d \\ 86400.
     d < 1 ifTrue: [ d:: 1 ].             (* boundary already reached: wake at once *)
     ^ d )
 
@@ -308,7 +308,7 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk basis
     b:: basisMillis.
     b == nil ifTrue: [ b:: 0 ].
     p:: (self predictedNow: plat) + (b // 1000).
-    ^ p - ((p // 86400) * 86400) )
+    ^ p \\ 86400 )
 
   (* A NEVER-SYNCED BOARD HAS NO RATCHET TO PROTECT, so its first good sync ADOPTS true
      time whatever the modular distance says. This is the one case where a large forward
@@ -478,7 +478,7 @@ class MagTagDeepSleepNode packageUsing: manifest = ( | lastDriftSec syncOk basis
   predictedNow: plat = (
     | now |
     now:: (plat rtcGet: self rtcAnchorSec) + (plat rtcGet: self rtcElapsedSec).
-    ^ now - ((now // 86400) * 86400) )    (* mod 86400 — nsl has no modulo (tuvm#97) *)
+    ^ now \\ 86400 )
 
   (* THE CADENCE. One slot = one bell tick; a "watch" is 8 slots; the day is
      86400//slotSec slots. SHIPPING is 1800 (the real ship's-bell half-hour). A demo

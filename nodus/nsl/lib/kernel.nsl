@@ -238,9 +238,9 @@ class Kernel usingPlatform: platform = (
     public size = ( ^ count )
     public isEmpty = ( ^ count = 0 )
 
-    (* 1-based home bucket for aKey. Floored `//` gives a correct non-negative
-       modulo for any sign of hash; the value protocol supplies `hash`. *)
-    indexFor: aKey = ( | h c | h:: aKey hash. c:: self capacity. ^ (h - (h // c * c)) + 1 )
+    (* 1-based home bucket for aKey. Floored `\\` answers non-negative for any
+       sign of hash; the value protocol supplies `hash`. *)
+    indexFor: aKey = ( | h c | h:: aKey hash. c:: self capacity. ^ (h \\ c) + 1 )
 
     (* Linear probe from the home bucket (wrapping) to the slot holding aKey OR
        the first empty (nil) slot. Load factor < 1 guarantees an empty slot, so
@@ -582,7 +582,7 @@ class Kernel usingPlatform: platform = (
        would corrupt a reject fixture). *)
     public fromHex: aString = ( | len n ba |
       len:: aString size.
-      ((len // 2) * 2) = len ifFalse: [ ^ self error: 'odd-length hex' ].
+      (len \\ 2) = 0 ifFalse: [ ^ self error: 'odd-length hex' ].
       n:: len // 2.
       ba:: self new: n.
       1 to: n do: [ :i |
@@ -2439,8 +2439,7 @@ class Kernel usingPlatform: platform = (
        publishes it, so `goal/liveness` versus `obs/liveness` always answers "did the
        node accept?" — a silent refusal would read exactly like acceptance.
 
-       NSL HAS NO MODULO, so "round up to a whole number of cadences" is spelled
-       ((n + m - 1) // m) * m. *)
+       "Round up to a whole number of cadences" is ((n + m - 1) // m) * m. *)
     adoptCad: aCadMs bud: aBudMs = (
       | cad bud ceiling |
       ceiling:: self livenessCeilingMs.
@@ -3565,14 +3564,11 @@ class Kernel usingPlatform: platform = (
        Bells run 1-8 over a four-hour watch and reset, so the count is i modulo 8
        with 0 reading as 8 (the full end-of-watch eight, not silence). Checks out
        against the three anchors the design names: 00:30 -> 1, 18:30 -> 5,
-       12:00 -> 8.
-       NSL HAS NO MODULO, so it is spelled with `//`. Defined for i >= 0 only;
-       the caller is a counter, and a negative would answer nonsense rather than
-       raise — deliberately not guarded, because unlike `strike:` this answers a
-       number rather than reaching hardware. *)
+       12:00 -> 8. Floored `\\` (rete#246) answers non-negative for any i, so the
+       old "defined for i >= 0 only" caveat is gone with the hand-spelling. *)
     public bellsForHalfHour: i = (
       | m |
-      m:: i - ((i // 8) * 8).
+      m:: i \\ 8.
       m = 0 ifTrue: [ ^ 8 ].
       ^ m )
     check: rc = (

@@ -36,7 +36,7 @@ finished
    zephyr/ShipsBellNodeC6.nsl spells them, the same bargain 09_bell_math.nsl makes
    with the deep-sleep node: this test and the node cannot silently diverge.
 
-   nsl has no modulo (tuvm#97): `x mod n` is `x - ((x // n) * n)` throughout.
+   Modulo is `\\` (rete#246), floored like `//`.
 
    The COUNT is deliberately NOT re-implemented here. It comes from the real
    `Bell>>bellsForHalfHour:` through the platform, because D3's whole point is that
@@ -115,7 +115,7 @@ class ShipsBellSchedule packageUsing: manifest = () (
     ^ 'ring' )
 
   gapAfter: i = (
-    (i - ((i // 2) * 2)) = 1 ifTrue: [ ^ 500 ].
+    (i \\ 2) = 1 ifTrue: [ ^ 500 ].
     ^ 1600 )
 ) : (
 )

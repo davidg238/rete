@@ -31,9 +31,9 @@ finished
    0 -- the one place an off-by-one in `//` would show up as a clock that strikes
    midnight in the wrong slot.
 
-   nsl has no modulo, so `into` is spelled `n - ((n // 1800) * 1800)` throughout --
-   the same spelling the node uses, which is the point: this test pins the exact
-   expression, not an equivalent one. *)
+   `into` is spelled `n \\ 1800` (rete#246) -- the same spelling the node uses,
+   which is the point: this test pins the exact expression, not an equivalent
+   one. *)
 class NtpCatchup packageUsing: manifest = () (
   public main: platform args: args = (
     | secs |
@@ -52,7 +52,7 @@ class NtpCatchup packageUsing: manifest = () (
   )
 
   (* seconds into the current half-hour *)
-  into: secs = ( ^ secs - ((secs // 1800) * 1800) )
+  into: secs = ( ^ secs \\ 1800 )
 
   (* ms from `secs` to the NEXT half-hour boundary. At a boundary this is a full
      interval, never 0 -- see the header. *)

@@ -19,9 +19,9 @@ TAP wedge done
    COND_PULSE_UNDRAINED, and it is the shape #192/#213 present: no fault, no panic, no
    banner, console still up.
 
-   Holds ONE Timers instance — `platform timers` answers a FRESH one per send, and a
-   second instance means dispatch: silently drops every event. Dialect: `[ ... ]
-   whileTrue:`, no modulo.
+   Holds ONE Timers instance — tidiness since rete#244 made `platform timers` a
+   singleton (pre-#244 it answered a fresh one per send, and a second instance
+   means dispatch: silently drops every event). Dialect: `[ ... ] whileTrue:`.
 
    SERVES TWO SCENARIOS. wedge-note layers prj_esp32c6_wedgegate.conf, whose synthetic
    trigger fires at 15 s — before this probe's own 30 s wedge — so that gate isolates

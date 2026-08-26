@@ -74,8 +74,8 @@ node. So it PRINTS ITS TRIGGER at boot and names what is missing. That line exis
 because this bench lost twenty minutes on 2026-08-04 to `OEVM_NTP_SERVER6` being
 absent from a build and the node correctly, quietly, carrying on without it.
 
-Dialect: `[ ... ] whileTrue:`, never `repeat`. No modulo in nsl — every one is
-spelled `n - ((n // d) * d)`. State lives in instance slots. ONE `Timers` instance,
+Dialect: `[ ... ] whileTrue:`, never `repeat`. Modulo is `\\` (rete#246), floored
+like `//`. State lives in instance slots. ONE `Timers` instance,
 held in a slot — tidiness since rete#244 made the accessor a singleton, though
 `dispatch:` still silently drops a token it does not know.
 
@@ -322,7 +322,7 @@ class ShipsBellAlarmNodeC6 usingPlatform: platform net: net = (
      never 0 — the same edge 05_ntp_catchup.nsl pins, and for the same reason: 0
      would arm a one-shot that fires immediately and strikes the slot twice. *)
   secondsToBoundary: secs = (
-    ^ self slotSeconds - (secs - ((secs // self slotSeconds) * self slotSeconds)) )
+    ^ self slotSeconds - (secs \\ self slotSeconds) )
 
   wrapDay: secs = (
     secs < 0     ifTrue: [ ^ secs + 86400 ].
@@ -372,7 +372,7 @@ class ShipsBellAlarmNodeC6 usingPlatform: platform net: net = (
     ^ self )
 
   gapAfter: i = (
-    (i - ((i // 2) * 2)) = 1 ifTrue: [ ^ self pairGapMillis ].
+    (i \\ 2) = 1 ifTrue: [ ^ self pairGapMillis ].
     ^ self setGapMillis )
 
   afterPattern = (

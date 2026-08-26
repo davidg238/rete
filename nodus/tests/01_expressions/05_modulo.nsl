@@ -1,0 +1,32 @@
+(*
+expect:
+1
+2
+-2
+-1
+0
+0
+true
+2
+5
+0
+*)
+(* rete#246: `\\` is floored modulo, the pair of floored `//`. The sign of a
+   non-zero result follows the DIVISOR, so the invariant (a // b) * b + (a \\ b) = a
+   holds for every sign combination. Binary precedence is ordinary left-to-right,
+   and the LargeInteger band (beyond int64) goes through the same prim. *)
+class ModuloTest packageUsing: manifest = () (
+public main: platform args: args = (
+  (7 \\ 3) println.                                (* 1 *)
+  (-7 \\ 3) println.                               (* 2  — floored, not truncated (-1) *)
+  (7 \\ -3) println.                               (* -2 — sign follows divisor *)
+  (-7 \\ -3) println.                              (* -1 *)
+  (6 \\ 3) println.                                (* 0  — exact division *)
+  (-6 \\ 3) println.                               (* 0  — and no negative zero *)
+  (((-7 // 3) * 3) + (-7 \\ 3) = -7) println.      (* true — the invariant *)
+  (2305843009213693952 \\ 7) println.              (* 2  — 2^61, gap-band SMI *)
+  (18446744073709551615 \\ 10) println.            (* 5  — 2^64-1, LargeInteger *)
+  (7 + 8 \\ 3) println.                            (* 0  — left-to-right: (7+8) \\ 3 *)
+)
+) : (
+)

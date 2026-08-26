@@ -29,7 +29,11 @@ def load_prim_ids(path=None):
     for line in p.read_text().splitlines():
         m = re.match(r'\s*PRIM_NAME\("((?:[^"\\]|\\.)*)"\)\s*$', line)
         if m:
-            names.append(m.group(1))
+            # The .def is C source, so a name is a C string literal: unescape it
+            # the way the C compiler does, or a selector like `\\` (rete#246,
+            # spelled "\\\\" there) bakes as four characters and its prim is
+            # silently never intercepted.
+            names.append(re.sub(r'\\(.)', r'\1', m.group(1)))
     if not names:
         raise ValueError(f"rete#226: {p} parsed to zero names — the format changed?")
     if len(names) != len(set(names)):
