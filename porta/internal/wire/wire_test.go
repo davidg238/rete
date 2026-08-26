@@ -531,3 +531,44 @@ func TestTrimmedBatchesStillConverge(t *testing.T) {
 		t.Fatalf("converged on %d/%d paths: %v", len(seen), len(paths), seen)
 	}
 }
+
+// #262 REPRODUCED AND KILLED, at the wire. The field shape: porta wrote
+// dbg/req profile requests (streams) and a goal cell; the node applied them
+// all; every later cold boot pulled from cursor 0 and re-ran the profile
+// window — 60 s of tax and a 228-method dump per boot, forever. With the
+// replay guard the cursor-0 pull of a NEW boot carries the cell alone.
+func TestColdBootDoesNotReExecuteAckedStreams(t *testing.T) {
+	srv, st := testServer(t)
+	st.Write("c6", "goal/name", cval.KindCell, mustEnc(t, "bell"), "david", "")      // seq 1
+	st.Write("c6", "dbg/req", cval.KindStream, mustEnc(t, "profile-1"), "david", "") // seq 2
+	st.Write("c6", "dbg/req", cval.KindStream, mustEnc(t, "profile-2"), "david", "") // seq 3
+
+	// Boot 41: first pull delivers all three.
+	req, _ := EncodePull("c6", 0, 41, 0)
+	hi, entries, err := DecodeBatch(srv.Handle(req))
+	if err != nil {
+		t.Fatalf("boot 41 pull: %v", err)
+	}
+	if hi != 3 || len(entries) != 3 {
+		t.Fatalf("boot 41: hi=%d entries=%d, want 3 and 3", hi, len(entries))
+	}
+	// The node applies the batch and its next pull declares cursor 3 — that
+	// declaration is the application receipt the guard is built on.
+	req, _ = EncodePull("c6", 3, 41, 0)
+	if _, entries, err = DecodeBatch(srv.Handle(req)); err != nil || len(entries) != 0 {
+		t.Fatalf("boot 41 idle pull: err=%v entries=%d, want empty", err, len(entries))
+	}
+
+	// Boot 42: cold boot, RAM cursor gone, cursor 0 — the #262 moment.
+	req, _ = EncodePull("c6", 0, 42, 0)
+	hi, entries, err = DecodeBatch(srv.Handle(req))
+	if err != nil {
+		t.Fatalf("boot 42 pull: %v", err)
+	}
+	if len(entries) != 1 || entries[0].Path != "goal/name" {
+		t.Fatalf("boot 42 cursor-0 replay = %+v, want the goal cell alone — a dbg/req here is #262 back from the dead", entries)
+	}
+	if hi != 1 {
+		t.Fatalf("boot 42: hi=%d, want 1", hi)
+	}
+}
