@@ -122,6 +122,53 @@ Toit / Zephyr-C baselines:
 
 If those numbers don't materialize, this page is wrong and should say so.
 
+## The four capabilities — the agent-operator surface (added 2026-08-26)
+
+*Recorded from the uLisp/doit discussion (rete#266), on David's direction. This section
+names the frame the sections above were converging on; two of its legs appear earlier
+in this page under older names, resolved here onto today's issue numbers.*
+
+An agent operator is a **hypothesis engine**, and its quality is bounded by the
+experiments the system lets it run. Read as a set, the platform is assembling the four
+capabilities that loop needs — and the differentiating claim is the *combination on one
+substrate*, not any single leg:
+
+1. **Observe** — the space mirror: the present as a diffable tree. Built; the
+   goal-vs-obs diff is the self-heal loop and the health view in one query.
+2. **Probe** — the **doit** (rete#266): experiments on the *present*. Host-compiled
+   nsl fragments executed on-node under an attenuated grant, request and result as
+   records on a path — structured eval, not a prompt. This is the section above
+   called "Remote eval (R3 debug arc)". Not a REPL, not a second language: uLisp's
+   lesson (people love a live surface on a tiny chip) with the mechanism this
+   platform can uniquely make safe.
+3. **Replay** — rete#251: experiments on the *past*. This page's "letter-log replay",
+   now concrete as re-running a node's recorded event-log inputs against the host VM
+   under the virtual clock. Rarer than it looks: metrics say *that* something
+   happened; a deterministically re-executable log says *why*, and lets an agent test
+   a fix against the actual history that broke it.
+4. **Bounded act** — capabilities as rooted paths going in, actor/reason provenance
+   on the event log coming out. This is what makes legs 1–3 deployable with an agent
+   in the loop: every intervention is attenuated before it runs and auditable after.
+
+**The honest comparator check** (recorded because risk labels get acted on): the
+closest ancestor is Erlang/OTP — live introspection, tracing, hot code on a managed
+runtime — but it never came down to MCU-class hardware and has no attenuation story
+for the operator itself. Observability vendors (Memfault-class) do forensics, not
+interaction. uLisp and friends do interaction, not safety or history. Rust does
+safety, not liveness. No stack we know offers the combination on constrained devices.
+
+What is *vital for an agentic system* is not any single leg but that all four share
+**one substrate** — the space — so the agent's whole world is one vocabulary of
+paths, values, and grants (the #66 surface-in-tokens claim, restated). The design
+consequence: probe and replay must stay path-and-record mechanisms and never grow
+their own protocols; gatekeeper (#198) is the front door to all four, not a fifth
+mechanism.
+
+**Sequencing consequence:** the durability trio (#114/#117/#119) is not plumbing —
+it is the foundation of two of the four legs. Cold-boot replay safety (#119) gates
+the doit outright (an eval path is the most dangerous possible thing to replay from
+cursor 0), and durable streams (#114) are what make the replayed history complete.
+
 ## Open rider — fleet-protocol implications
 
 One brainstorm should ride along with the bridge rung rather than after it: the
