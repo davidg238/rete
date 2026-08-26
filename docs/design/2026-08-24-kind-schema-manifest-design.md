@@ -380,3 +380,33 @@ This rung is not closed until: the manifest and its lint are the source of truth
 durable rules are absorbed by `protocol/PROTOCOL-NSL.md` (the pointer),
 `protocol/PROTOCOL-NSL-RECORDS.md` (the rewritten §5) and `porta/docs/ARCHITECTURE.md`
 (the ingest gate and `GET /manifest`). This dated design stays behind as the why.
+
+## Addendum, 2026-08-25 evening — board-verified, fleet-armed, and the one deferral
+
+**The two board tails closed on c6bench** (#243 closed): a from-clean `west build` bakes
+the pin (`gen_manifest_pin.cmake` artifacts + archive stamp, `source=repo`), and porta's
+tree reads `obs/build … #man: 0xae9ab3d351d09418` — prim 156 → kernel wrap → publisher →
+wire → decode, one chain, and the 8 bytes equal the repo manifest's SHA-256 head. The
+publisher is now ONE kernel method, `PortaBridge>>publishBuild:` (#259), so the five-copy
+divergence risk §2 worried about is gone at the source.
+
+**The fence is standing where the fleet lives** (#258 closed): gw85224-01 serves with
+`--manifest`, the gate persisted into the soak store's meta row, and `GET /manifest`
+answers the same sha the board's pin names. Pre-flight after arming: all three live nodes
+`#live`, zero `actor=gate` rows — the closed manifest admits the fleet's current pushes,
+including pre-#243 images (`#man` optional; absence means "cannot say"). The deb ships
+`MANIFEST.cddl` at `/usr/share/porta/` and its unit passes `--manifest`, so a packaged
+install arms by default.
+
+**Deferred, with its earning condition: flagless `serve` staying a warning.** With the
+bench armed and the deb arming by default, a flagless serve is reachable only by hand.
+Graduating the warning to a refusal forces `--manifest` (or an explicit opt-out) onto
+every host gate that starts its own serve — host_ota's is flagless today. Ship it with
+whichever change next touches those gates; what would earn it sooner is one real
+`actor=gate`-shaped incident traced to a hand-started flagless serve.
+
+**One recorded discontinuity:** #254 renamed the NVS settings key `tuvm/bootid` →
+`oevm/bootid`, so each board's first post-rename flash restarts its boot counter at 1.
+Benign by design — the `!=` restart test absorbs it — but a reader of boot-stamped rows
+crossing that flash should know the counter reset (c6bench did 2026-08-25; c6spare and
+the bell will, once each, on their next flashes).
