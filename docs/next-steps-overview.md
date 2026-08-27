@@ -1155,3 +1155,23 @@ the new porta binary migrates the live store (adds `cursor_hw`/`served_hw`) on f
 a restart costs nodes an outage, so ship it at a deliberate moment; a node that was down
 across the upgrade replays its old streams ONCE more on its first cold boot before the
 guard latches (expected, not a failed fix).
+
+**2026-08-26 session close (third session — the #232 board session).** **#232, #199 and
+#114 are CLOSED.** The `porta-refuse` scenario exists (tenth target scenario, injector =
+`porta serve --test-refuse-all`, supported) and is GREEN on c6spare with the full 240 s
+window: tick 150, `misses 0 ref 150`, 300 s of continuous refusal against the 157 s death
+record, no fault — #199's fix is verified, not inferred, and corroborated from the
+injector's own log (313 refusals). Also .oimg v10's first on-hardware boot. #114 landed as
+`PortaBridge>>offerPanic` (ack on porta's receipt, never on hope) — and moving it found
+that **nothing had ever subscribed sys/panic: must-deliver had never once delivered**;
+the bridge now owns the subscription, and `porta_sync_host.sh` leg 9 (new) asserts a
+planted note ARRIVES as a porta row. Both riders landed: the PortaBridge header wording,
+and `obs/health.rej` (a counted inbound drop is permanent under the replay guard, so it is
+visible now — manifest/goldens/batch-guard updated, Health 83 B, frame 407 B). **The
+pending gateway deploy happened**: the durability-trio + refuse + rej binary is live on
+gw85224-01 (`porta.pre232` beside it, manifest sha `7556b7fa` re-armed, ~45 s outage,
+nodes recovered; old 6-field Health from un-reflashed nodes is accepted). Host gates at
+close: nsl 278/0 all aux green, go test green, PORTA SYNC OK 9/9. c6spare left running
+bridge-health's image against the live gateway. **Queued next: #265 (frozen runtime
+errors + G4 line-table) or the #198 gatekeeper five-question spike — both unblocked;
+board time owes nothing.**

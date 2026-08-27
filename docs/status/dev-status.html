@@ -38,8 +38,8 @@
 <body>
 
 <h1>rete — dev status</h1>
-<p class="stamp">Generated 2026-08-26 (refreshed at second-session close) by the working session, at
-<a href="https://github.com/davidg238/rete/commit/4ebcdda">4ebcdda</a>.
+<p class="stamp">Generated 2026-08-26 (refreshed at third-session close) by the working session, at
+<a href="https://github.com/davidg238/rete/commit/5fd0517">5fd0517</a>.
 Served live by <strong>gatekeeper</strong> (gw85224-01:6971) since the same day.
 This page is a <em>view</em>, refreshed at session close-outs — the records of
 direction are <a href="/dev/next-steps-overview.md">next-steps-overview.md</a>
@@ -55,7 +55,7 @@ If the date above is old, trust those, not this.</p>
 </ul>
 
 <h2>Where we are</h2>
-<p>130 open issues, but the genuine bug load is much smaller than the number
+<p>127 open issues, but the genuine bug load is much smaller than the number
 suggests; a lot of it is deferred hardware exploration (MagTag / e-paper /
 upstream Zephyr) and P3/P4 hygiene.</p>
 
@@ -71,34 +71,45 @@ half: <a href="https://github.com/davidg238/rete/issues/117">#117</a>,
 (porta-side stream guard: <code>cursor_hw</code> bounded by
 <code>served_hw</code>, plus a pull door that refuses an impossible cursor;
 the node's cursor stays RAM by design — the guard is what makes cursor-0
-safe). <a href="https://github.com/davidg238/rete/issues/114">#114</a>
-(must-deliver) is DECIDED, not closed — its implementation rides
-<a href="https://github.com/davidg238/rete/issues/232">#232</a>. Design
-record: <code>porta/docs/design/2026-08-26-space-sync-durability-trio-design.md</code>.</p>
+safe). The evening board session then closed
+<a href="https://github.com/davidg238/rete/issues/114">#114</a>,
+<a href="https://github.com/davidg238/rete/issues/232">#232</a> and
+<a href="https://github.com/davidg238/rete/issues/199">#199</a> — the whole
+durability-and-refusal genus is done, and the new binary (with
+<code>obs/health.rej</code> in the manifest) is deployed on the live
+gateway. Design record:
+<code>porta/docs/design/2026-08-26-space-sync-durability-trio-design.md</code>
+(with the board-session addendum).</p>
 
 <h2>The P1 bugs, grouped</h2>
 <ul>
-  <li><strong>Space-sync durability trio — mostly CLOSED 2026-08-26.</strong>
-    <a href="https://github.com/davidg238/rete/issues/117">#117</a> and
-    <a href="https://github.com/davidg238/rete/issues/119">#119</a> closed
-    (with <a href="https://github.com/davidg238/rete/issues/262">#262</a>, the
-    live re-execution instance): porta never re-serves a stream row the node
-    has acked as applied, so <code>goal/do/*</code> cannot re-run across
-    reboots, and cells replay as latest-value (idempotent). What remains is
-    <a href="https://github.com/davidg238/rete/issues/114">#114</a>
-    (must-deliver = re-offered-until-acked from a durable source;
-    <code>sys/panic</code>'s source is the RebootNote) — decided, riding
-    <a href="https://github.com/davidg238/rete/issues/232">#232</a>.
-    <strong>Deploy note:</strong> the new porta binary migrates the live store
-    on first open; a restart costs nodes an outage, so ship it at a deliberate
-    moment.</li>
+  <li><strong>Space-sync durability trio — ALL CLOSED 2026-08-26.</strong>
+    <a href="https://github.com/davidg238/rete/issues/117">#117</a>,
+    <a href="https://github.com/davidg238/rete/issues/119">#119</a>,
+    <a href="https://github.com/davidg238/rete/issues/262">#262</a>: porta
+    never re-serves a stream row the node has acked as applied, so
+    <code>goal/do/*</code> cannot re-run across reboots; cells replay as
+    latest-value. <a href="https://github.com/davidg238/rete/issues/114">#114</a>
+    closed in the evening session: <code>sys/panic</code> is re-offered from
+    the RebootNote until porta's ACK covers it — and the move exposed that
+    nothing had ever subscribed the path (must-deliver had never delivered
+    once). The deliberate deploy happened: the new binary migrated the live
+    store and re-armed the manifest; nodes recovered within their
+    cadence.</li>
   <li><strong>Death by refusing gateway —
-    <a href="https://github.com/davidg238/rete/issues/199">#199</a></strong>
-    (+<a href="https://github.com/davidg238/rete/issues/232">#232</a>, its
-    target scenario). A node whose frames the gateway rejects exhausts its
-    arena and halts in ~157&nbsp;s while <code>misses 0</code> reports it
-    healthy. #232 is the queued board-time item precisely because the host
-    cannot answer the death question.</li>
+    <a href="https://github.com/davidg238/rete/issues/199">#199</a> and
+    <a href="https://github.com/davidg238/rete/issues/232">#232</a>: CLOSED
+    2026-08-26 (evening board session).</strong> The <code>porta-refuse</code>
+    scenario (tenth target scenario, supported
+    <code>--test-refuse-all</code> injector) held a C6 under continuous
+    refusal for 300&nbsp;s — <code>misses 0 ref 150</code>, no fault — nearly
+    double the 157&nbsp;s death record. The fix is verified on hardware, not
+    inferred. <a href="https://github.com/davidg238/rete/issues/114">#114</a>
+    closed the same session: <code>sys/panic</code> is re-offered until
+    porta's ACK covers it — and moving the publication found that nothing had
+    ever subscribed the path, so must-deliver had never once delivered. The
+    bridge owns both halves now, and the seam gate's new leg&nbsp;9 watches a
+    row actually arrive.</li>
   <li class="defer"><strong>Actuator safety —
     <a href="https://github.com/davidg238/rete/issues/201">#201</a>/<a
     href="https://github.com/davidg238/rete/issues/202">#202</a>:
@@ -154,19 +165,17 @@ record: <code>porta/docs/design/2026-08-26-space-sync-durability-trio-design.md<
 </ul>
 
 <h2>Priority opinion</h2>
-<p><strong>Queued next: <a
-href="https://github.com/davidg238/rete/issues/232">#232</a>, the next board
-session.</strong> It carries <a
-href="https://github.com/davidg238/rete/issues/114">#114</a>'s
-implementation plus two node-side riders, doubles as .oimg format v10's
-first on-hardware boot, and is the death-question scenario the host cannot
-answer (<a href="https://github.com/davidg238/rete/issues/199">#199</a>).
-The trio's close also releases the hard gate on the doit
-(<a href="https://github.com/davidg238/rete/issues/266">#266</a>, gated on
-<a href="https://github.com/davidg238/rete/issues/119">#119</a>) and lays
-the foundation of safe replay
-(<a href="https://github.com/davidg238/rete/issues/251">#251</a>) per the
-four-capability frame (WHY-AGENTS, 2026-08-26).</p>
+<p><strong>Board time owes nothing; the queue is open.</strong> The natural
+candidates, both unblocked: the doit
+(<a href="https://github.com/davidg238/rete/issues/266">#266</a> — its hard
+gate on <a href="https://github.com/davidg238/rete/issues/119">#119</a> is
+released and the four-capability foundation is in), the
+<a href="https://github.com/davidg238/rete/issues/198">#198</a> gatekeeper
+five-question spike (D3 ratified, blocked on nothing), or
+<a href="https://github.com/davidg238/rete/issues/265">#265</a> (frozen
+runtime errors + the G4 line-table). Safe replay
+(<a href="https://github.com/davidg238/rete/issues/251">#251</a>) now rests
+on a delivered foundation.</p>
 
 </body>
 </html>
