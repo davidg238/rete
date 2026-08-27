@@ -574,3 +574,27 @@ The descriptor table (`protocol/descriptors/records.yaml`), the completeness gat
 materializer/authorizer pipeline, the views, and the five-question acceptance remain — a
 clean next session with the schema authority (A1), the field sets (A2), and the mechanism
 realities (A4/A5) now pinned, and A3 sequenced first.
+
+## Addendum 2026-08-27 — A3 resolved; the network-health view is a gatekeeper client (a §9 note)
+
+**A3 is closed**: rete#267 landed at `555922e`, ahead of the descriptor table as sequenced.
+`MANIFEST.cddl`, the manifest golden and RECORDS §4.3 now carry the wire truth
+(`lvl`/`txt`), and the golden gate was proven red-then-green against the drift — so the
+descriptor table can be built from the manifest without the caveat A3 recorded.
+
+**Where network health lives, decided while updating the landing page.** David asked
+whether the network-health view (v1's web `/status` with the wifi-vs-Thread transport
+breakdown; §4.2 audit fate "deferred → operator surface") should return on porta or on
+gatekeeper. D1's one-door rule answers it: **a gatekeeper page, fed from porta snapshots
+through this design's query surface — never porta HTML.** Porta stays sheltered and
+schema-blind (the same reason the `--dev-docs` flag was removed before it deployed). The
+per-node last-seen / transport / convergence view therefore waits on the descriptor table
+and query pipeline, which is what makes it correct rather than another bespoke door.
+
+The degenerate case shipped the same day (`fd3bfb1`, deployed live, no restart): the
+landing page at :6971 carries a client-side `/health` stats strip (status, nodes, version,
+uptime, `blocks_plane_down` when present, loud unreachable fallback) and a
+documents-of-record index. Zero new server mechanisms — a static file plus the proxy the
+shell already had. What earns the fuller page back: the descriptor table landing, at which
+point the strip's own limits (no per-node rows, no transport, no goal/obs diff) name the
+first three queries it should serve.
