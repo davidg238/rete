@@ -630,8 +630,10 @@ nothing in this tree builds or consumes.** (`sys/reset` is the sharpest case: ev
 `Reset`, so the channel is drained and never fed.) An agent querying those paths gets
 silence, and silence at a path is otherwise indistinguishable from a dead node.
 
-So each record carries `status`. `live` means something builds it today; `specified` means
-the shape is catalogued and the silence is expected. This is authored, not derived — a
+**Filed as rete#268**, because some of the eight are deferred design (`Mode`) and some are
+gaps (`Reset` has a wired delivery path and no source), and the catalogue does not
+distinguish the two. So each record carries `status`. `live` means something builds it
+today; `specified` means the shape is catalogued and the silence is expected. This is authored, not derived — a
 producer scan across nsl and Go would be a second parser over source, which is exactly what
 A1 rejected. It is checked only for vocabulary; it goes stale the day a producer lands, and
 the cost of that staleness is a query surface that under-promises.
@@ -645,7 +647,8 @@ a 2^32 split. `nodus/oevm/src/span.c:85` writes `sum % 1000000000` to `sumUsLo` 
 every mean (`total / n`) derived from it is wrong with it. Neither `PROTOCOL-NSL-RECORDS.md`
 §4.4 nor `MANIFEST.cddl` says which, because neither is in the business of saying — this is
 precisely the class of fact D4 exists to carry, found by authoring the rule rather than by
-anyone hitting the bug.
+anyone hitting the bug. `PROTOCOL-NSL-RECORDS.md` §4.4's `sys/latency` row now carries the
+catalogue half of it.
 
 ### What the gate now checks, and what witnessed it red
 
