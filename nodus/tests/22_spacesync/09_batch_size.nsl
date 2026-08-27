@@ -1,9 +1,9 @@
 (*
 expect:
-health 72
+health 83
 metrics 108
 cheap 62
-batch 396
+batch 407
 *)
 (* #56 design §9.1, landed as a REGRESSION GUARD.
 
@@ -43,7 +43,9 @@ batch 396
    labels shortened) -> 378 (rete#197, the envelope's two as well) -> 385
    (rete#214, Metrics gains #pst) -> 396 (rete#199, Health gains #ref, +11 B: a
    3 B label-and-key plus a saturated count, since the worst legal `ref` is as
-   large as the wake count of a node refused since boot). Note 385 appears TWICE
+   large as the wake count of a node refused since boot) -> 407 (rete#232 rider,
+   Health gains #rej for the same 11 B and the same worst-legal reasoning —
+   105 B of headroom remain). Note 385 appears TWICE
    in that series and the two are unrelated: the first is the frame mid-rename,
    the second is the one #199 grew from.
 
@@ -102,7 +104,7 @@ batch 396
 class BatchSize packageUsing: manifest = () (
 
   (* obs/health as design D2 slimmed it: liveness and delivery — five fields, six
-     since rete#199 added `ref`. *)
+     since rete#199 added `ref`, seven since the rete#232 rider added `rej`. *)
   health: platform = (
     | pairs |
     pairs:: platform OrderedCollection new.
@@ -127,6 +129,11 @@ class BatchSize packageUsing: manifest = () (
        visible, so measuring it at 0 would be measuring the case that never
        mattered. *)
     pairs add: #ref -> 1296000.
+    (* rete#232 rider — rejected inbound entries, worst legal for the same
+       reason: a node whose every pulled entry is counted-and-dropped (a
+       mis-keyed goal tree, a kind war) rejects at most one entry per pull per
+       row, bounded by the same 30-day tick count. *)
+    pairs add: #rej -> 1296000.
     ^ platform Record tag: #Health fields: (platform Map fromPairs: pairs) )
 
   (* The eleven fields kernel.nsl builds, with the WROOM-32 values 05_record_size.nsl

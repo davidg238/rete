@@ -297,6 +297,14 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
        one number that separates "the gateway is unreachable" from "the gateway
        refuses me", and they are different problems with different fixes. *)
     pairs add: #ref -> bridge refused.
+    (* rete#232 rider — REJECTED inbound entries, and it is not `ref`. The
+       bridge counts-and-drops a malformed, out-of-authority or kind-mismatched
+       entry and the cursor advances past it — and under porta's replay guard
+       (2026-08-26 D1) that entry is now gone for good, not replayed next boot.
+       A permanent loss nobody can see is a silent divergence between what the
+       operator wrote and what the node runs; this field is the whole of the
+       "surface the drop" decision. *)
+    pairs add: #rej -> bridge rejected.
     space put: 'obs/health' value:
       (platform Record tag: #Health fields: (platform Map fromPairs: pairs)).
     ^ self

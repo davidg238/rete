@@ -112,6 +112,7 @@ sym-pto         = #6.39("pto")
 sym-qhw         = #6.39("qhw")
 sym-reason      = #6.39("reason")
 sym-ref         = #6.39("ref")
+sym-rej         = #6.39("rej")
 sym-runlevel    = #6.39("runlevel")
 sym-sdk         = #6.39("sdk")
 sym-sdr         = #6.39("sdr")
@@ -220,6 +221,10 @@ health = #6.27([sym-Health, {
   sym-bid => uint,
   sym-pto => uint,
   sym-ref => uint,
+  sym-rej => uint,   ; rete#232 rider: inbound entries counted-and-dropped — the
+                     ; cursor advances past them and the replay guard makes that
+                     ; loss permanent, so it must be visible ("ref" < "rej":
+                     ; f < j bytewise, hence this listed order)
   sym-sdr => uint,
   sym-wak => uint,
 }])

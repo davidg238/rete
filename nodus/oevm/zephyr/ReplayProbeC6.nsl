@@ -300,6 +300,10 @@ class ReplayProbeC6 usingPlatform: platform net: net = (
        one number that separates "the gateway is unreachable" from "the gateway
        refuses me", and they are different problems with different fixes. *)
     pairs add: #ref -> bridge refused.
+    (* rete#232 rider — see PortaBridgeNodeC6: a counted-and-dropped inbound
+       entry is a PERMANENT loss under porta's replay guard, so it must be
+       visible. *)
+    pairs add: #rej -> bridge rejected.
     space put: 'obs/health' value:
       (platform Record tag: #Health fields: (platform Map fromPairs: pairs)).
     ^ self
