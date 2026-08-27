@@ -23,6 +23,9 @@ type Server struct {
 	// node's drops and vice versa. Fine for what this exists to test.
 	dropAckEvery int
 	acks         int
+
+	// TEST-ONLY fault injection — see SetRefuseAll.
+	refuseAll bool
 }
 
 func NewServer(st *space.Store, logf func(string, ...any)) *Server {
@@ -48,6 +51,22 @@ func NewServer(st *space.Store, logf func(string, ...any)) *Server {
 // goroutine and the setter is called before it starts.
 func (s *Server) SetDropAckEvery(n int) { s.dropAckEvery = n }
 
+// SetRefuseAll makes every datagram answer #err at the DOOR — before handle(),
+// so nothing is decoded, nothing is ingested and no exchange row is written.
+// TEST ONLY; false (the zero value) disables it, so a production gateway is
+// unaffected by the field's existence.
+//
+// This is rete#232's injector: the supported form of the throwaway env-gated
+// early return the #199 spike used. Refusing at the door rather than after
+// ingest is load-bearing — the scenario reproduces a node whose frames are
+// REJECTED (a mis-versioned peer, a malformed message), and #199's witnessed
+// death was a reject-at-decode: the node got an #err to every exchange while
+// `misses` read 0 the whole way. The reply is never silence: a node that gets
+// no reply cannot distinguish rejection from loss (Handle's own contract).
+//
+// Not concurrency-safe, and does not need to be: set before the loop starts.
+func (s *Server) SetRefuseAll(on bool) { s.refuseAll = on }
+
 // swallowAck counts outbound acks and answers whether this one is the Nth. A
 // #batch or an #err is never swallowed: starving the pull half stalls the
 // node's cursor, which is a different failure from the one being injected.
@@ -72,6 +91,10 @@ func (s *Server) Handle(req []byte) []byte { return s.HandleFrom(req, "") }
 // the exchange so the fleet keeps the transport breakdown v1 read out of
 // nodes.source_addr (design §4.2). An empty peer is legal and never clobbers.
 func (s *Server) HandleFrom(req []byte, peer string) []byte {
+	if s.refuseAll {
+		s.logf("porta: TEST-REFUSE: refusing datagram from %s (%d bytes)", peer, len(req))
+		return encodeErr("refused by TEST-REFUSE (--test-refuse-all)")
+	}
 	resp, err := s.handle(req, peer)
 	if err != nil {
 		// Name the sender and show the bytes. A bare "rejecting datagram:
