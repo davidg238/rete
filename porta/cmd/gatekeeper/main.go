@@ -3,8 +3,9 @@
 // gatekeeper — the system entry point (design D1, 2026-08-11; rete#198).
 // The shell of the exposed agent-facing surface: /dev serves the dev status
 // page and the repo docs tree; /health and /manifest are proxied to porta's
-// sheltered operator listener. The query surface lands here after D3 is
-// ratified and the five-question spike runs — never in porta.
+// sheltered operator listener. The query surface is the 2026-08-22 first-cut
+// design's build (D3 ratified as (b); stdio-MCP-first, internal/gate) — it
+// lands here, never in porta.
 package main
 
 import (

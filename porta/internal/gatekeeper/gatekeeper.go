@@ -5,8 +5,9 @@
 // and schema-blind; gatekeeper is the query and authority surface). This is
 // the SHELL of that surface: it serves the dev status page and the repo docs
 // tree at /dev, and fronts porta's operator routes (/health, /manifest) by
-// proxy. The query surface itself waits on D3's ratification and the
-// five-question spike (rete#198) — nothing here decodes a value.
+// proxy. The query surface itself is the first-cut design's build
+// (2026-08-22 note: D3 ratified as (b), stdio-MCP-first, internal/gate) —
+// nothing here decodes a value.
 //
 // A separate process on purpose: gatekeeper can be restarted and iterated on
 // freely, while a porta restart costs every node an outage. Refreshing the

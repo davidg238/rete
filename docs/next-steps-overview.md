@@ -1118,3 +1118,40 @@ had fallen behind HEAD. `c6-bell` remains the long-duration board. The bell was 
 names in order). The bell's steady `hnl: 1, hnhw: 2` is one live M6 handle and a high water
 of two — entirely ordinary, and NOT a null allocation or any #190 signal. The C-heap
 failure counters live in the separate `CHeap` record as `fal`.
+
+---
+
+**2026-08-26 session close.** #247 closed at `1394c9f` (compiler positions, DNU naming incl.
+app classes via the .oimg v10 classnames section; remainder → #265). Gatekeeper exists as a
+process (`4e1469d`, gw85224-01:6971): the dev status page + docs tree at `/dev`, `/health` +
+`/manifest` proxied to porta — the shell only; the query surface is the 2026-08-22 first-cut
+design's build, and **that note ratified D3=(b) on 2026-08-22** — #198's "ratify D3 first"
+body is stale, corrected by comment. The doit is filed (#266, hard-gated on #119); the
+four-capability frame (observe/probe/replay/bounded-act) is recorded in
+`review/WHY-AGENTS.md`. #201/#202 deferred while the bell is piezo. **Queued next: the
+space-sync durability trio #114/#117/#119** — one rung, NVS-backed cursor/bootId + replay
+guard, design record first; then #232 as the next board session (also .oimg v10's first
+on-hardware boot). Live status view: `http://gw85224-01:6971/` (refresh = re-scp
+`docs/status/dev-status.html`, never a restart).
+
+**2026-08-26 session close (second session).** The durability trio landed and pushed
+(`b8ab562..4ebcdda`, ten commits incl. the design record `5a9e33d`): **#117, #119 and #262
+are CLOSED.** What the rung actually was: bootId NVS had already landed (#162/#215) and the
+cell half of replay was already latest-value, so the build reduced to the porta-side stream
+guard — `nodes.cursor_hw`, an acked-as-applied high-water bounded by `served_hw` (what porta
+actually delivered), plus a pull door that REFUSES a cursor beyond the store's out-seq
+(`#err`, visible in `obs/health.ref`). The node's cursor is **deliberately RAM** (design D3;
+the NVS-key half of the queue line was dropped on purpose — persistence costs a stranding
+mode, and the guard makes cursor-0 safe). The rung's final review caught the approved D2
+clamp CREEPING (out_seq-bounded receipts marked never-served rows applied); D2 is corrected
+in the design record, and PROTOCOL-NSL §1/§3/§4.1/§5.1/§7 + RECORDS §4.4/§4.5 + CLAUDE.md
+now all agree. Design record:
+`porta/docs/design/2026-08-26-space-sync-durability-trio-design.md`. **#114 is DECIDED, not
+closed** (must-deliver = re-offered-until-acked from a durable source; sys/panic's source is
+the RebootNote) — its implementation plus two node-side riders (stale PortaBridge header
+wording; shed/counted-drop entries are covered by the receipt without executing) ride
+**#232, still the next board session**. #266's hard gate is now released. **Deploy note:**
+the new porta binary migrates the live store (adds `cursor_hw`/`served_hw`) on first open —
+a restart costs nodes an outage, so ship it at a deliberate moment; a node that was down
+across the upgrade replays its old streams ONCE more on its first cold boot before the
+guard latches (expected, not a failed fix).

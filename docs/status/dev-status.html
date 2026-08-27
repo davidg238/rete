@@ -38,8 +38,9 @@
 <body>
 
 <h1>rete — dev status</h1>
-<p class="stamp">Generated 2026-08-26 by the working session, at
-<a href="https://github.com/davidg238/rete/commit/1394c9f">1394c9f</a>.
+<p class="stamp">Generated 2026-08-26 (refreshed at second-session close) by the working session, at
+<a href="https://github.com/davidg238/rete/commit/4ebcdda">4ebcdda</a>.
+Served live by <strong>gatekeeper</strong> (gw85224-01:6971) since the same day.
 This page is a <em>view</em>, refreshed at session close-outs — the records of
 direction are <a href="/dev/next-steps-overview.md">next-steps-overview.md</a>
 and <a href="https://github.com/davidg238/rete/issues">the tracker</a>.
@@ -54,34 +55,43 @@ If the date above is old, trust those, not this.</p>
 </ul>
 
 <h2>Where we are</h2>
-<p>95 open issues, but the genuine bug load is much smaller than the number
+<p>130 open issues, but the genuine bug load is much smaller than the number
 suggests; a lot of it is deferred hardware exploration (MagTag / e-paper /
 upstream Zephyr) and P3/P4 hygiene.</p>
 
-<p class="headline"><strong>The headline: liveness is won, durability is
-not.</strong> Last week's board campaign closed out the whole wedge/watchdog
-family — <a href="https://github.com/davidg238/rete/issues/215">#215</a>'s
-rows, <a href="https://github.com/davidg238/rete/issues/231">#231</a>'s
-liveness-heartbeat (green on a board 2026-08-22), and
-<a href="https://github.com/davidg238/rete/issues/240">#240</a>.2's cad-rearm
-landed 2026-08-25 as the ninth target scenario. What's left at P1 is a
-different genus: data loss and replay safety, not hangs.</p>
+<p class="headline"><strong>The headline: liveness is won, and replay safety
+landed today.</strong> Last week's board campaign closed the wedge/watchdog
+family (<a href="https://github.com/davidg238/rete/issues/215">#215</a>,
+<a href="https://github.com/davidg238/rete/issues/231">#231</a>,
+<a href="https://github.com/davidg238/rete/issues/240">#240</a>.2), and the
+second session of 2026-08-26 closed the space-sync durability trio's replay
+half: <a href="https://github.com/davidg238/rete/issues/117">#117</a>,
+<a href="https://github.com/davidg238/rete/issues/119">#119</a> and
+<a href="https://github.com/davidg238/rete/issues/262">#262</a> are CLOSED
+(porta-side stream guard: <code>cursor_hw</code> bounded by
+<code>served_hw</code>, plus a pull door that refuses an impossible cursor;
+the node's cursor stays RAM by design — the guard is what makes cursor-0
+safe). <a href="https://github.com/davidg238/rete/issues/114">#114</a>
+(must-deliver) is DECIDED, not closed — its implementation rides
+<a href="https://github.com/davidg238/rete/issues/232">#232</a>. Design
+record: <code>porta/docs/design/2026-08-26-space-sync-durability-trio-design.md</code>.</p>
 
 <h2>The P1 bugs, grouped</h2>
 <ul>
-  <li><strong>Space-sync durability trio —
-    <a href="https://github.com/davidg238/rete/issues/114">#114</a>,
-    <a href="https://github.com/davidg238/rete/issues/117">#117</a>,
-    <a href="https://github.com/davidg238/rete/issues/119">#119</a>.</strong>
-    A stream entry written while the bridge is down is lost (unacceptable for
-    <code>sys/panic</code>); cursor and bootId live in RAM so every reboot
-    re-pulls everything; and a cold boot at cursor 0 can re-execute historical
-    <code>goal/do/*</code> actions.
-    <a href="https://github.com/davidg238/rete/issues/262">#262</a> is the live
-    instance of that last one — every <code>dbg/req</code> profile row re-runs
-    its window each boot. These three are one coherent rung of work, and NVS
-    is already mounted, so persistence costs a settings key, not a
-    subsystem.</li>
+  <li><strong>Space-sync durability trio — mostly CLOSED 2026-08-26.</strong>
+    <a href="https://github.com/davidg238/rete/issues/117">#117</a> and
+    <a href="https://github.com/davidg238/rete/issues/119">#119</a> closed
+    (with <a href="https://github.com/davidg238/rete/issues/262">#262</a>, the
+    live re-execution instance): porta never re-serves a stream row the node
+    has acked as applied, so <code>goal/do/*</code> cannot re-run across
+    reboots, and cells replay as latest-value (idempotent). What remains is
+    <a href="https://github.com/davidg238/rete/issues/114">#114</a>
+    (must-deliver = re-offered-until-acked from a durable source;
+    <code>sys/panic</code>'s source is the RebootNote) — decided, riding
+    <a href="https://github.com/davidg238/rete/issues/232">#232</a>.
+    <strong>Deploy note:</strong> the new porta binary migrates the live store
+    on first open; a restart costs nodes an outage, so ship it at a deliberate
+    moment.</li>
   <li><strong>Death by refusing gateway —
     <a href="https://github.com/davidg238/rete/issues/199">#199</a></strong>
     (+<a href="https://github.com/davidg238/rete/issues/232">#232</a>, its
@@ -144,11 +154,19 @@ different genus: data loss and replay safety, not hangs.</p>
 </ul>
 
 <h2>Priority opinion</h2>
-<p>The space-sync durability trio is the highest-value coherent bundle —
-three P1s, one mechanism (NVS-backed cursor/bootId + replay guard), and it
-de-fangs <a href="https://github.com/davidg238/rete/issues/262">#262</a> as a
-side effect. <a href="https://github.com/davidg238/rete/issues/232">#232</a>
-is the right next board-time item.</p>
+<p><strong>Queued next: <a
+href="https://github.com/davidg238/rete/issues/232">#232</a>, the next board
+session.</strong> It carries <a
+href="https://github.com/davidg238/rete/issues/114">#114</a>'s
+implementation plus two node-side riders, doubles as .oimg format v10's
+first on-hardware boot, and is the death-question scenario the host cannot
+answer (<a href="https://github.com/davidg238/rete/issues/199">#199</a>).
+The trio's close also releases the hard gate on the doit
+(<a href="https://github.com/davidg238/rete/issues/266">#266</a>, gated on
+<a href="https://github.com/davidg238/rete/issues/119">#119</a>) and lays
+the foundation of safe replay
+(<a href="https://github.com/davidg238/rete/issues/251">#251</a>) per the
+four-capability frame (WHY-AGENTS, 2026-08-26).</p>
 
 </body>
 </html>

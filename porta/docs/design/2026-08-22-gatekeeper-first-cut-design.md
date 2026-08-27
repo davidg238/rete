@@ -459,3 +459,32 @@ segmentation), rete#210 (mixed reads), rete#225 (a frozen liveness verdict), ret
 table that disagrees with the collector's),
 `porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md` (D2, D4.1, D4.5, D8),
 `protocol/PROTOCOL-NSL-RECORDS.md` §4.
+
+---
+
+## Addendum 2026-08-26 — the process shell exists, with a network surface for DOCS only
+
+**What happened:** David directed (2026-08-26) that the dev status surface built that
+morning belonged to gatekeeper, not porta, and that gatekeeper should stand up as a process
+now. It did (`4e1469d`): `porta/cmd/gatekeeper` runs on gw85224-01:**6971**, serving the
+repo docs tree at `/dev` (the dev status page at `/`) and **proxying** `/health` and
+`/manifest` to porta's sheltered :6970. Deployed the same day — a separate process (§9.1)
+restarts freely, so it did not wait on a porta restart.
+
+**What this does and does not change about §9:**
+
+- §9's "no network surface" sentence is about the QUERY surface, and it stands: the shell
+  decodes nothing, reads no store, and exposes no query. The network routes are static docs
+  plus a proxy of two routes porta already exposed on :6970 behind the same allowlist
+  (`httpsrv.DefaultAllowCIDR`, now shared so the two surfaces cannot drift). G5 stays
+  honestly deferred: when the query surface lands, it lands stdio-MCP-first per §9, and any
+  future network query route waits for G5.
+- **Naming:** the shell landed as `porta/internal/gatekeeper` (the process: listener,
+  docs, proxy). §9's `porta/internal/gate` remains the name for the QUERY core (pipeline,
+  authorizer, descriptors) when it is built — two packages, one boundary: `gate` answers,
+  `gatekeeper` fronts.
+
+**Status correction propagated:** rete#198's body still reads "ratify D3, then run the
+five-question spike" — it predates this note, which ratified D3=(b) on 2026-08-22. The
+five-question spike is therefore §10's acceptance work, blocked on nothing. A correcting
+comment was posted on #198 the same day as this addendum.
