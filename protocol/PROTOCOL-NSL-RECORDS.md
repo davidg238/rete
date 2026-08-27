@@ -515,7 +515,7 @@ bell run. Book the fast node, not the long night. Tool: `tools/heap-envelope.py`
 | path | kind | record |
 |---|---|---|
 | `tel/print` | E | `Print { text: str }` |
-| `tel/log` | E | `Log { level: sym, text: str }` — `#debug`/`#info`/`#warn`/`#error` |
+| `tel/log` | E | `Log { lvl: sym, txt: str }` — `#debug`/`#info`/`#warn`/`#error` (was `level`/`text` in the docs only, never on the wire — rete#267) |
 | `tel/m/<name>` | E | `Metric { value: int \| float, monoMs: int }` |
 
 Lossy by policy: `tel/**` is the *first* thing dropped under G2 overflow pressure, and

@@ -87,10 +87,10 @@ sym-hnl         = #6.39("hnl")
 sym-hsz         = #6.39("hsz")
 sym-image       = #6.39("image")
 sym-lb          = #6.39("lb")
-sym-level       = #6.39("level")
 sym-lfb         = #6.39("lfb")
 sym-lifecycle   = #6.39("lifecycle")
 sym-loopSleepS  = #6.39("loopSleepS")
+sym-lvl         = #6.39("lvl")
 sym-man         = #6.39("man")
 sym-maxAsleepS  = #6.39("maxAsleepS")
 sym-maxAwakeS   = #6.39("maxAwakeS")
@@ -124,6 +124,7 @@ sym-sumUsHi     = #6.39("sumUsHi")
 sym-sumUsLo     = #6.39("sumUsLo")
 sym-text        = #6.39("text")
 sym-triggers    = #6.39("triggers")
+sym-txt         = #6.39("txt")
 sym-up          = #6.39("up")
 sym-value       = #6.39("value")
 sym-wak         = #6.39("wak")
@@ -249,8 +250,8 @@ print = #6.27([sym-Print, {
 
 ;# path=tel/log  kind=stream  class=drop-first  dir=up
 log = #6.27([sym-Log, {
-  sym-text  => tstr,
-  sym-level => #6.39("debug") / #6.39("info") / #6.39("warn") / #6.39("error"),
+  sym-lvl => #6.39("debug") / #6.39("info") / #6.39("warn") / #6.39("error"),
+  sym-txt => tstr,
 }])
 
 ;# path=tel/m/<name>  kind=stream  class=drop-first  dir=up

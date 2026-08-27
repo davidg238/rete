@@ -19,7 +19,7 @@ GOLDEN obs/build d81b82d827654275696c64a5d827636d616e42616bd8276373646b687a65706
 GOLDEN obs/liveness d81b82d827684c6976656e657373a2d82763627564193e80d827636361641907d0
 GOLDEN obs/mode d81b82d827644d6f6465a5d827646d6f6465d827666e6f726d616cd827696d61784177616b6553183cd827696d696e4177616b655305d8276a6c6f6f70536c6565705301d8276a6d617841736c6565705319012c
 GOLDEN tel/print d81b82d827655072696e74a1d8276474657874626869
-GOLDEN tel/log d81b82d827634c6f67a2d8276474657874667469636b2031d827656c6576656cd82764696e666f
+GOLDEN tel/log d81b82d827634c6f67a2d827636c766cd82764696e666fd82763747874667469636b2031
 GOLDEN tel/m/temp d81b82d827664d6574726963a2d8276576616c756515d827666d6f6e6f4d7305
 GOLDEN sys/reset d81b82d827655265736574a3d82764636f646503d82766626f6f7449641829d82766726561736f6ed82767706f7765724f6e
 GOLDEN sys/overrun d81b82d827674f76657272756ea2d82764706174686774656c2f6c6f67d8276764726f7070656402
@@ -134,7 +134,7 @@ class ManifestGoldens packageUsing: manifest = () (
 
     (* --- tel/** --- *)
     self emit: 'tel/print' value: (R tag: #Print with: #text -> 'hi') using: platform.
-    self emit: 'tel/log' value: (R tag: #Log with: #level -> #info with: #text -> 'tick 1') using: platform.
+    self emit: 'tel/log' value: (R tag: #Log with: #lvl -> #info with: #txt -> 'tick 1') using: platform.
     self emit: 'tel/m/temp' value: (R tag: #Metric with: #value -> 21 with: #monoMs -> 5) using: platform.
 
     (* --- sys/** --- *)
