@@ -572,3 +572,27 @@ func TestColdBootDoesNotReExecuteAckedStreams(t *testing.T) {
 		t.Fatalf("boot 42: hi=%d, want 1", hi)
 	}
 }
+
+// A cursor this store never issued is refused at the door, not recorded: the
+// node is synced to a different store's history (a reset, a restore), and the
+// #err reply is what its rete#199 refused/lastErrMsg machinery surfaces. A
+// reboot (RAM cursor -> 0) then resyncs cleanly — pinned by the second pull.
+func TestImpossibleCursorIsRefusedNotRecorded(t *testing.T) {
+	srv, st := testServer(t)
+	st.Write("c6", "goal/name", cval.KindCell, mustEnc(t, "bell"), "david", "")    // seq 1
+	st.Write("c6", "dbg/req", cval.KindStream, mustEnc(t, "profile"), "david", "") // seq 2
+
+	req, _ := EncodePull("c6", 500, 41, 0)
+	if _, _, err := DecodeBatch(srv.Handle(req)); err == nil {
+		t.Fatal("a cursor beyond the store's out-seq was answered with a batch, want #err")
+	}
+
+	req, _ = EncodePull("c6", 0, 42, 0) // the reboot that resyncs
+	hi, entries, err := DecodeBatch(srv.Handle(req))
+	if err != nil {
+		t.Fatalf("post-reboot pull: %v", err)
+	}
+	if len(entries) != 2 || hi != 2 {
+		t.Fatalf("post-reboot replay hi=%d entries=%+v, want both rows — the refused exchange must have recorded nothing", hi, entries)
+	}
+}

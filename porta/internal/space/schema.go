@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS nodes (
   cursor_acked  INTEGER NOT NULL DEFAULT 0,
   node_seq_hw   INTEGER NOT NULL DEFAULT 0,
   cursor_hw     INTEGER NOT NULL DEFAULT 0,
+  served_hw     INTEGER NOT NULL DEFAULT 0,
   out_seq       INTEGER NOT NULL DEFAULT 0,
   -- Successor to v1's nodes.source_addr, which the capability audit (design
   -- §4.2) caught with no home. It is not merely a display field: serverstat
@@ -179,6 +180,13 @@ var addColumns = []string{
 	// the LATEST declared cursor and rewinds to 0 on every reboot — this one
 	// never rewinds, which is the whole guard.
 	`ALTER TABLE nodes  ADD COLUMN cursor_hw INTEGER NOT NULL DEFAULT 0`,
+	// The bound the replay guard's receipt is clamped to (final review of the
+	// 2026-08-26 rung): the max seq actually DELIVERED to this node in a capped
+	// batch. A node cannot have applied what porta never served, so cursor_hw
+	// may never exceed this — clamping to out_seq instead was proven to creep:
+	// a stale impossible cursor re-evaluated against a growing out_seq marks
+	// never-served rows as applied.
+	`ALTER TABLE nodes  ADD COLUMN served_hw INTEGER NOT NULL DEFAULT 0`,
 }
 
 // dropColumns are run after addColumns on every Open, and their errors are

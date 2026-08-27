@@ -874,6 +874,9 @@ func TestCheckInAdvancesCursorHighWaterMonotonically(t *testing.T) {
 	st.Write("n1", "goal/a", cval.KindCell, enc(t, "one"), "david", "")
 	st.Write("n1", "goal/b", cval.KindCell, enc(t, "two"), "david", "")
 	st.Write("n1", "goal/c", cval.KindCell, enc(t, "three"), "david", "")
+	if err := st.NoteServed("n1", 3); err != nil {
+		t.Fatalf("NoteServed: %v", err)
+	}
 
 	hw := func() int64 {
 		t.Helper()
@@ -906,12 +909,11 @@ func TestCheckInAdvancesCursorHighWaterMonotonically(t *testing.T) {
 	}
 }
 
-// The D2 clamp. cursor > out_seq happens exactly when porta's store was reset
-// under a still-running node. Recording the impossible cursor into a monotonic
-// column would make the guard suppress the fresh store's rows 1..cursor —
-// rows the node has never seen — forever. Clamped, the fresh store simply has
-// no memory, which is the truth.
-func TestCheckInClampsAnImpossibleCursor(t *testing.T) {
+// The receipt is bounded by what was SERVED, not by out_seq. Clamping to
+// out_seq was proven to creep (final review): a stale impossible cursor,
+// re-evaluated every check-in against a growing out_seq, marks never-served
+// rows as applied. With nothing served, no declared cursor can mark anything.
+func TestCheckInReceiptNeverExceedsServed(t *testing.T) {
 	st := testStore(t)
 	st.Write("n1", "goal/a", cval.KindCell, enc(t, "one"), "david", "")
 	if _, _, err := st.NoteCheckIn("n1", 500, 0, 7); err != nil {
@@ -922,14 +924,64 @@ func TestCheckInClampsAnImpossibleCursor(t *testing.T) {
 		`SELECT cursor_hw FROM nodes WHERE id = 'n1'`).Scan(&v); err != nil {
 		t.Fatalf("read cursor_hw: %v", err)
 	}
-	if v != 1 {
-		t.Fatalf("cursor_hw = %d after cursor 500 against out_seq 1, want clamped to 1", v)
+	if v != 0 {
+		t.Fatalf("cursor_hw = %d with nothing served, want 0", v)
 	}
 }
 
-// A store predating cursor_hw must gain the column on open — the same
-// contract TestOpenAddsBootIDToAPreExistingStore pins for boot_id.
-func TestOpenAddsCursorHwToAPreExistingStore(t *testing.T) {
+// THE CREEP, pinned. Store reset under a running node: the stale cursor keeps
+// arriving while the operator writes new rows. Under the old out_seq clamp the
+// second check-in marked rows 1-2 applied and a later reboot lost them; under
+// the served_hw clamp nothing was served, so nothing is marked, and the reboot
+// replays everything.
+func TestStaleCursorNeverMarksUnservedRowsApplied(t *testing.T) {
+	st := testStore(t)
+	if _, _, err := st.NoteCheckIn("n1", 500, 0, 7); err != nil { // reset store, first contact
+		t.Fatalf("NoteCheckIn: %v", err)
+	}
+	st.Write("n1", "goal/name", cval.KindCell, enc(t, "bell"), "david", "")    // seq 1
+	st.Write("n1", "dbg/req", cval.KindStream, enc(t, "profile"), "david", "") // seq 2
+	if _, _, err := st.NoteCheckIn("n1", 500, 0, 7); err != nil {              // stale cursor again
+		t.Fatalf("NoteCheckIn: %v", err)
+	}
+	got, _, err := st.OutboundSince("n1", 0, MaxBatchBytes) // node reboots
+	if err != nil {
+		t.Fatalf("OutboundSince: %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("cursor-0 replay after the stale-cursor window = %+v, want both rows", got)
+	}
+}
+
+// served_hw only moves on actual delivery, and only forward.
+func TestNoteServedIsMonotonic(t *testing.T) {
+	st := testStore(t)
+	hw := func() int64 {
+		t.Helper()
+		var v int64
+		if err := st.DB().QueryRow(
+			`SELECT served_hw FROM nodes WHERE id = 'n1'`).Scan(&v); err != nil {
+			t.Fatalf("read served_hw: %v", err)
+		}
+		return v
+	}
+	if err := st.NoteServed("n1", 5); err != nil {
+		t.Fatalf("NoteServed: %v", err)
+	}
+	if hw() != 5 {
+		t.Fatalf("served_hw = %d, want 5", hw())
+	}
+	if err := st.NoteServed("n1", 3); err != nil {
+		t.Fatalf("NoteServed: %v", err)
+	}
+	if hw() != 5 {
+		t.Fatalf("served_hw = %d after a lower note, want 5", hw())
+	}
+}
+
+// A store predating cursor_hw/served_hw must gain the columns on open — the
+// same contract TestOpenAddsBootIDToAPreExistingStore pins for boot_id.
+func TestOpenAddsGuardColumnsToAPreExistingStore(t *testing.T) {
 	dir := t.TempDir()
 	path := dir + "/t.db"
 	var clock int64 = 1_000
@@ -941,6 +993,9 @@ func TestOpenAddsCursorHwToAPreExistingStore(t *testing.T) {
 	}
 	if _, err := st.DB().Exec(`ALTER TABLE nodes DROP COLUMN cursor_hw`); err != nil {
 		t.Fatalf("drop nodes.cursor_hw: %v", err)
+	}
+	if _, err := st.DB().Exec(`ALTER TABLE nodes DROP COLUMN served_hw`); err != nil {
+		t.Fatalf("drop nodes.served_hw: %v", err)
 	}
 	st.Close()
 
@@ -956,8 +1011,8 @@ func TestOpenAddsCursorHwToAPreExistingStore(t *testing.T) {
 	}
 	// An empty nodes table is fine — the column existing is what is under test.
 	if _, err := st.DB().Exec(
-		`INSERT INTO nodes (id, cursor_hw) VALUES ('probe', 0)`); err != nil {
-		t.Fatalf("cursor_hw column absent after reopen: %v", err)
+		`INSERT INTO nodes (id, cursor_hw, served_hw) VALUES ('probe', 0, 0)`); err != nil {
+		t.Fatalf("cursor_hw/served_hw column absent after reopen: %v", err)
 	}
 }
 
@@ -971,7 +1026,10 @@ func TestAckedStreamRowsAreNeverReServed(t *testing.T) {
 	st.Write("n1", "goal/name", cval.KindCell, enc(t, "bell"), "david", "")     // seq 1
 	st.Write("n1", "dbg/req", cval.KindStream, enc(t, "profile"), "david", "")  // seq 2
 	st.Write("n1", "dbg/req", cval.KindStream, enc(t, "profile2"), "david", "") // seq 3
-	if _, _, err := st.NoteCheckIn("n1", 3, 0, 7); err != nil {                 // node applied all three
+	if err := st.NoteServed("n1", 3); err != nil {                              // porta served the batch...
+		t.Fatalf("NoteServed: %v", err)
+	}
+	if _, _, err := st.NoteCheckIn("n1", 3, 0, 7); err != nil { // ...and the node applied it
 		t.Fatalf("NoteCheckIn: %v", err)
 	}
 
@@ -1010,7 +1068,10 @@ func TestUnackedStreamRowsSurviveALostBatch(t *testing.T) {
 func TestOutageWrittenStreamRowDeliversAcrossAReboot(t *testing.T) {
 	st := testStore(t)
 	st.Write("n1", "dbg/req", cval.KindStream, enc(t, "old"), "david", "") // seq 1
-	if _, _, err := st.NoteCheckIn("n1", 1, 0, 7); err != nil {            // applied
+	if err := st.NoteServed("n1", 1); err != nil {                         // served, then applied
+		t.Fatalf("NoteServed: %v", err)
+	}
+	if _, _, err := st.NoteCheckIn("n1", 1, 0, 7); err != nil {
 		t.Fatalf("NoteCheckIn: %v", err)
 	}
 	st.Write("n1", "dbg/req", cval.KindStream, enc(t, "new"), "david", "") // seq 2, node down

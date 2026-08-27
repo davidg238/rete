@@ -553,19 +553,56 @@ func (s *Store) NoteCheckIn(nodeID string, cursor, nodeHW, bootID int64) (restar
 	// above has a previous value to compare against even for a node that never
 	// pushes anything.
 	//
-	// cursor_hw is the replay guard (design 2026-08-26 D1/D2): the max cursor
-	// ever acked as applied, monotonic. The MIN against out_seq is load-bearing,
-	// not defensive — cursor > out_seq happens exactly when this store was reset
-	// under a still-running node, and recording the impossible cursor into a
-	// monotonic column would suppress the fresh store's stream rows forever.
+	// cursor_hw is the replay guard (design 2026-08-26 D1/D2 as corrected by
+	// the rung's final review): the max cursor ever acked as applied,
+	// monotonic. The MIN against served_hw is load-bearing — a node cannot
+	// have applied what porta never served it, and the earlier clamp against
+	// out_seq was proven to creep (a stale impossible cursor, re-evaluated
+	// every check-in against a growing out_seq, marks never-served rows as
+	// applied and suppresses them forever). An impossible cursor never even
+	// reaches this statement: the pull door refuses it (OutSeq).
 	if _, err := tx.Exec(
 		`UPDATE nodes SET cursor_acked = ?, boot_id = ?, last_seen_ms = ?,
-		        cursor_hw = MAX(cursor_hw, MIN(?, out_seq))
+		        cursor_hw = MAX(cursor_hw, MIN(?, served_hw))
 		  WHERE id = ?`,
 		cursor, bootID, now, cursor, nodeID); err != nil {
 		return 0, false, err
 	}
 	return restartedFrom, restarted, tx.Commit()
+}
+
+// NoteServed records the highest seq actually delivered to the node in a
+// batch — post-capping, so a trimmed tail is not counted as served. It is the
+// bound NoteCheckIn clamps the application receipt to: a node cannot have
+// applied what was never served. Monotonic for the same reason cursor_hw is.
+func (s *Store) NoteServed(nodeID string, servedHi int64) error {
+	now := s.nowMs()
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err := ensureNode(tx, nodeID, now); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(
+		`UPDATE nodes SET served_hw = MAX(served_hw, ?) WHERE id = ?`,
+		servedHi, nodeID); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// OutSeq answers porta's outbound high-water for the node — what a declared
+// cursor is checked against at the pull door. A cursor above it is not a
+// number this store ever issued: the node is speaking about a different
+// store's history (a reset, a restore), and recording or serving against it
+// would poison the replay guard. 0 for a node porta has never written to.
+func (s *Store) OutSeq(nodeID string) (int64, error) {
+	var v int64
+	err := s.db.QueryRow(
+		`SELECT COALESCE((SELECT out_seq FROM nodes WHERE id = ?), 0)`, nodeID).Scan(&v)
+	return v, err
 }
 
 // RecordExchange logs one REQUEST — not one check-in; a check-in is a pull

@@ -130,6 +130,21 @@ func (s *Server) handlePull(r cval.Record, peer string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	// A cursor this store never issued is refused, not recorded (the same
+	// closed-decoding posture as an unknown tag): it means the node is synced
+	// to a DIFFERENT store's history — a reset or a restore — and both
+	// recording it (poisons the replay guard's receipt) and serving against
+	// it (hands rows to a peer whose cursor means something else) are guesses.
+	// The reply is the ordinary #err, which the node counts in `refused` and
+	// surfaces via lastErrMsg (rete#199); its RAM cursor means the next
+	// reboot resyncs from 0 cleanly.
+	outSeq, err := s.st.OutSeq(id)
+	if err != nil {
+		return nil, err
+	}
+	if cursor > outSeq {
+		return nil, fmt.Errorf("cursor %d is beyond this store's out-seq %d — node and store disagree about history; a node reboot resyncs from 0", cursor, outSeq)
+	}
 	was, restarted, err := s.st.NoteCheckIn(id, cursor, nodeHW, bootID)
 	if err != nil {
 		return nil, err
@@ -159,9 +174,16 @@ func (s *Server) handlePull(r cval.Record, peer string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	deliveredHi, _, err := DecodeBatch(resp)
+	deliveredHi, delivered, err := DecodeBatch(resp)
 	if err != nil {
 		return nil, err
+	}
+	// Post-capping, and only when something rode the batch: an empty batch's
+	// hi is the node's own cursor echoed back, not a delivery.
+	if len(delivered) > 0 {
+		if err := s.st.NoteServed(id, deliveredHi); err != nil {
+			return nil, err
+		}
 	}
 	if err := s.st.RecordExchange(id, bootID, cursor, deliveredHi, 0, 0, peer); err != nil {
 		return nil, err
