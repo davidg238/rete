@@ -23,6 +23,7 @@ const char *oimg_vtable_name(oop vt) { (void)vt; return NULL; }
 
 extern void init_solidified_vtables(void);
 extern void init_reflection_symbols(void);
+extern void reboot_note_init(void);
 extern oop run_solidified_entry_point(void);
 extern void (*gc_additional_roots_hook)(void);
 
@@ -34,6 +35,11 @@ static void oevm_roots_callback(void) {
 int main(void) {
     /* Set roots callback */
     gc_additional_roots_hook = oevm_roots_callback;
+
+    /* rete#114: same boot order as zephyr/src/main.c and oevm_image_main.c —
+       the retained note is validated (or planted, host seam) before the VM
+       can read it. */
+    reboot_note_init();
 
     /* Boot solidified image */
     init_solidified_vtables();

@@ -13,11 +13,16 @@ oop oimg_bootstrap(oop entry_vtable);
 
 extern void kernel_boot(void);
 extern void (*gc_additional_roots_hook)(void);
+extern void reboot_note_init(void);
 static void roots_cb(void) {}
 
 int main(int argc, char **argv) {
     if (argc < 2) { fprintf(stderr, "usage: %s <image.oimg>\n", argv[0]); return 2; }
     gc_additional_roots_hook = roots_cb;
+    /* rete#114: mirror zephyr/src/main.c's boot order — validate (or, via the
+       host-only OEVM_TEST_PANIC_NOTE seam, plant) the retained note before the
+       VM can read it. On the host this is what makes the seam live at all. */
+    reboot_note_init();
     kernel_boot();                       /* ONCE, before load/bootstrap */
     if (oimg_load(argv[1]) != 0) { fprintf(stderr, "failed to load %s\n", argv[1]); return 1; }
 

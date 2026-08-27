@@ -1,0 +1,96 @@
+(*
+rete#114 — sys/panic is must-deliver: the bridge re-offers the Panic record until
+porta's ACK covers the offered entry, and only then acks the retained note.
+
+What this replaces: the app-side reportPanicOnce published once and acked the note
+on a HOPE (a clean check-in), not on porta's receipt — and, worse, nothing ever
+subscribed sys/panic, so the published record died undelivered at drain, every
+time. Must-deliver was never delivered. The bridge now owns both halves: it
+subscribes sys/panic at construction, and offerPanic runs the D4 state machine
+(porta/docs/design/2026-08-26-space-sync-durability-trio-design.md):
+
+  - a standing offer (the row still in pending) is left alone — no duplicate;
+  - an offer evicted by the bounded queue before it was acked is re-published,
+    which is what "re-offered until acked" buys under long disconnection;
+  - the note is acked ONLY when `acked` (porta's high-water) covers the offered
+    seq — never on a guess.
+
+The note is planted by the host-only OEVM_TEST_PANIC_NOTE seam (reason 1 =
+watchdog); acks are fed to applyAck: directly, the 16_refused_node shape — the
+whole loop is testable with no socket and no fatal handler.
+
+env: OEVM_TEST_PANIC_NOTE=1
+expect:
+panic nil at boot false
+offered rows 1
+panic nil after offer false
+second offer rows 1
+reoffered after evict 1
+panic nil after low ack false
+panic nil after covering ack true
+rows after ack 0
+*)
+class PanicReoffer packageUsing: manifest = () (
+  countPanicRows: bridge = (
+    | rows n |
+    rows:: bridge pendingRows.
+    n:: 0.
+    1 to: rows size do: [ :i |
+      ((rows at: i) at: 2) = 'sys/panic' ifTrue: [ n:: n + 1 ] ].
+    ^ n )
+  panicSeqIn: bridge = (
+    | rows s |
+    rows:: bridge pendingRows.
+    s:: 0.
+    1 to: rows size do: [ :i |
+      ((rows at: i) at: 2) = 'sys/panic' ifTrue: [ s:: (rows at: i) at: 1 ] ].
+    ^ s )
+  public main: platform args: args = (
+    | space bridge spans seq ack |
+    space:: platform space.
+    spans:: platform Spans new.
+    bridge:: platform PortaBridge socket: nil space: space id: 'n1' peer: '::1' port: 6969 spans: spans.
+    bridge subscribeStream: 'tel/log'.
+
+    ('panic nil at boot ' , (platform panic == nil) printString) out.
+
+    (* First offer: publish, captured at drain by the bridge's OWN sys/panic
+       subscription — the test deliberately does not subscribe it. *)
+    bridge offerPanic. space drain.
+    ('offered rows ' , (self countPanicRows: bridge) printString) out.
+    ('panic nil after offer ' , (platform panic == nil) printString) out.
+
+    (* A standing offer is not re-published. *)
+    bridge offerPanic. space drain.
+    ('second offer rows ' , (self countPanicRows: bridge) printString) out.
+
+    (* Evict the offer with a flood of newer captures (cap is 64, oldest-first),
+       then offer again: the note is unacked, so it must be re-published. *)
+    1 to: 70 do: [ :i | space out: 'tel/log' value: i. space drain ].
+    bridge offerPanic. space drain.
+    ('reoffered after evict ' , (self countPanicRows: bridge) printString) out.
+
+    (* An ack BELOW the offered seq retires the flood but not the offer — and
+       must not ack the note. offerPanic first, so panicSeq tracks the live row. *)
+    bridge offerPanic. space drain.
+    seq:: self panicSeqIn: bridge.
+    ack:: platform Cbor encode: (platform Record tag: #ack with: #hw -> (seq - 1)).
+    bridge applyAck: ack.
+    bridge offerPanic. space drain.
+    ('panic nil after low ack ' , (platform panic == nil) printString) out.
+
+    (* The covering ack retires the row; the NEXT offer pass sees acked >= seq
+       and acks the note — receipt, not hope. *)
+    ack:: platform Cbor encode: (platform Record tag: #ack with: #hw -> seq).
+    bridge applyAck: ack.
+    bridge offerPanic. space drain.
+    ('panic nil after covering ack ' , (platform panic == nil) printString) out.
+
+    (* And with the note gone, offering is a no-op forever. *)
+    bridge offerPanic. space drain.
+    ('rows after ack ' , (self countPanicRows: bridge) printString) out.
+    ^ 0
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

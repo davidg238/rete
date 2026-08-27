@@ -1654,6 +1654,13 @@ class Kernel usingPlatform: platform = (
          accumulated. It was the allocation RATE, and the arena fragmented under
          it. `framesBuilt` is the observable that makes the reuse falsifiable. *)
       lastFrame ::= nil. lastFrameAcked ::= 0. framesBuilt ::= 0.
+      (* rete#114 — the seq of the sys/panic entry currently on offer, 0 when
+         none is. Latched from `pending` (never at publish time — capture is
+         deferred to `space drain`, so the stamp does not exist yet when
+         offerPanic writes). Cleared by capture:'s eviction, which is what
+         keeps an evicted, never-pushed offer from being mistaken for a
+         delivered one when `acked` later sweeps past its seq. *)
+      panicSeq ::= 0.
       (* rete#199 — a REFUSAL is not a timeout, and until this counter existed the
          node could not say which was happening to it: an #err incremented neither
          `misses` nor `acked`, so `obs/health` read identically for a node being
@@ -1754,6 +1761,14 @@ class Kernel usingPlatform: platform = (
       sPushCollect:: sn register: #pushCollect.
       sPushEncode::  sn register: #pushEncode.
       sPushTrim::    sn register: #pushTrim.
+      (* rete#114 — the bridge owns must-deliver, so it owns the capture too.
+         Before this line NOTHING subscribed sys/panic: every publication since
+         rete#215 died undelivered at the drain (a stream write with no
+         reaction is killed on delivery), so the must-deliver row had never
+         once reached porta. Subscribing at construction, beside the slot
+         registrations, for the same reason they live here: the bridge must
+         not be constructible in a shape that silently cannot deliver. *)
+      self subscribeStream: 'sys/panic'.
       ^ self )
 
     (* bootId rides the batch envelope, not every record — it is constant for
@@ -1839,9 +1854,16 @@ class Kernel usingPlatform: platform = (
       (space channel: absolutePath) whenever: '' do: [ :v | self capture: absolutePath value: v ].
       ^ self )
     capture: absolutePath value: v = (
+      | evicted |
       pending add: (List with: space stamp with: absolutePath with: 1 with: v).
       [ pending size > self maxPending ] whileTrue: [
-        pending removeFirst.
+        evicted:: pending removeFirst.
+        (* rete#114: an evicted OFFER must not read as a delivered one. With
+           panicSeq cleared, offerPanic re-publishes; left set, a later ack
+           sweeping past the evicted seq would ack the note for an entry that
+           was never pushed — a false receipt, the exact failure class the
+           re-offer exists to close. *)
+        ((evicted at: 2) = 'sys/panic') ifTrue: [ panicSeq:: 0 ].
         dropped:: dropped + 1 ].
       ^ self )
 
@@ -2325,6 +2347,7 @@ class Kernel usingPlatform: platform = (
          per boot, so it must be ahead of the per-check-in rows that can afford to
          lose a sample. *)
       self publishApps.
+      self offerPanic.
       (* BEFORE publishLiveness, so a request arriving on this tick is answered on
          this tick rather than the next: adoptCad:bud: clears livenessPublished
          and the publish below is what carries the answer back. *)
@@ -2362,6 +2385,47 @@ class Kernel usingPlatform: platform = (
        data D6 names as earning it back. *)
     publishMetrics = (
       space put: 'sys/metrics' value: outer metrics.
+      ^ self )
+
+    (* rete#114 — sys/panic is MUST-DELIVER (RECORDS §4.4, design D4 of
+       porta/docs/design/2026-08-26-space-sync-durability-trio-design.md):
+       re-offered until porta's ACK covers the offered entry, from the durable
+       source that is the #215 RebootNote. Run once per check-in. Three states:
+
+         - a STANDING offer (its captured row still in `pending`) is left
+           alone — no duplicate rides while the last is in flight. The seq is
+           (re)latched from the row here because capture is DEFERRED: `out:`
+           only enqueues on the space ring and the bridge's own subscription
+           stamps the row at the app's next `space drain`, so at publish time
+           the stamp does not exist yet.
+         - a VANISHED offer whose seq `acked` covers is the receipt: ack the
+           note. This replaces the app-side reportPanicOnce's clean-check-in
+           GUESS — the note now clears on porta's high-water covering the
+           entry, never on hope — and §5.2's loop-breaker reset rides it
+           exactly as before, just later and honestly.
+         - a VANISHED offer NOT covered was evicted by the bounded queue
+           (capture: clears panicSeq as it evicts): re-publish. This arm is
+           what D4's "re-offered per check-in" buys — a long disconnection
+           must not turn must-deliver into dropped-once.
+
+       Duplicates in an append-only log are acceptable; loss is not. Public
+       for the same reason pushFrame and applyAck: are — the whole loop is
+       host-testable with no socket (22_spacesync/24). *)
+    public offerPanic = (
+      | i p |
+      i:: 1.
+      [ i <= pending size ] whileTrue: [
+        (((pending at: i) at: 2) = 'sys/panic') ifTrue: [
+          panicSeq:: (pending at: i) at: 1.
+          ^ self ].
+        i:: i + 1 ].
+      (panicSeq > 0 and: [ acked >= panicSeq ]) ifTrue: [
+        outer panicNoteAck: bootId.
+        panicSeq:: 0.
+        ^ self ].
+      p:: outer panic.
+      (p == nil) ifTrue: [ ^ self ].
+      space out: 'sys/panic' value: p.
       ^ self )
 
     (* rete#190: the C-heap twin of publishMetrics. Same cadence, same rationale —

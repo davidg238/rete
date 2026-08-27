@@ -523,6 +523,12 @@ static struct RebootNote g_note;
 
 void reboot_note_init(void) {
     if (!reboot_note_is_valid(&g_note)) memset(&g_note, 0, sizeof g_note);
+    /* TEST SEAM (rete#114/#232, the OEVM_NO_DISPLAY shape): plant a note so the
+       bridge's re-offer-until-acked loop is testable on the host, where no fatal
+       handler ever runs. Value = RN_REASON_* code. Host-only by construction:
+       the target's init lives in zephyr/src/reboot_note.c and has no getenv. */
+    const char *tp = getenv("OEVM_TEST_PANIC_NOTE");
+    if (tp != NULL) reboot_note_write((uint32_t)atoi(tp), 0, 0, 0, 0);
 }
 int reboot_note_read(struct RebootNote *out) {
     if (!reboot_note_is_valid(&g_note)) return 0;

@@ -45,10 +45,6 @@ reaction block is a one-line self-send (the LD_SLOT gotcha).
 *)
 class PortaBridgeNodeC6 usingPlatform: platform net: net = (
   | space bridge timers profChan ticks ::= 0. profTok ::= nil.
-    (* rete#215: the panic report is published and acked exactly ONCE per boot.
-       `missesAtTickStart` latches the count at the top of the tick so the ack can
-       be guarded on THIS check-in having reached porta, not on a hope. *)
-    panicAcked ::= false. missesAtTickStart ::= 0.
     (* difference 5 — the bridge-health self-check. `obsCap` is held rather than
        re-derived per tick for the same reason `timers` is: one instance, minted
        once. *)
@@ -185,12 +181,10 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
      one before it. *)
   tick = (
     ticks:: ticks + 1.
-    missesAtTickStart:: bridge misses.
     spans begin: sTick.
     spans begin: sCheckIn.
     bridge checkIn.
     spans end: sCheckIn.
-    self reportPanicOnce.
     (* MEASURED HERE, between the check-in and the next health write, and nowhere
        else: `publishHealth` below immediately makes obs/ unacked again, so a
        reading taken after it would never be 0 and the assertion would be
@@ -211,38 +205,12 @@ class PortaBridgeNodeC6 usingPlatform: platform net: net = (
     ^ self
   )
 
-  (* rete#215. TWO ACTS IN ONE PLACE, and the ORDER is the whole point.
-
-     First: if the last boot left a note, publish it — before the ack, or the report
-     is lost to the very clear that is supposed to follow it. sys/panic is a
-     must-deliver STREAM (RECORDS §2.4), so this is `out:`, not `put:`.
-
-     Then: ack. That is §5.2's loop-breaker reset — "consecutive = 0 on the first
-     successful check-in" — and it invents no interval. It is also the honest
-     definition of a reboot loop: a node that cannot get far enough to report. This
-     node checks in hundreds of times per boot, so it can never trip the breaker
-     while it is working; a node that dies before its first check-in halts on the
-     third try, which is exactly the dongle that shipped dead through rungs 7-8.
-
-     GUARDED ON A CLEAN CHECK-IN. `bridge misses` not having moved this tick is what
-     makes this a REPORT and not a hope: acking after a check-in that never reached
-     porta would clear the breaker for a node that is failing exactly the way the
-     breaker exists to catch.
-
-     The bootId deposited is THIS boot's, so a death later in this boot carries the id
-     it died under — the C side has no other way to learn it. *)
-  reportPanicOnce = (
-    | p |
-    panicAcked ifTrue: [ ^ self ].
-    bridge misses = missesAtTickStart ifFalse: [ ^ self ].
-    p:: platform panic.
-    (* `== nil` here too. `p` is a Record and WOULD understand isNil, but one idiom
-       across every nil-able answer is worth more than the two characters saved, and
-       this exact send aborted a C6 one call deeper. *)
-    (p == nil) ifFalse: [ space out: 'sys/panic' value: p ].
-    platform panicNoteAck: bridge bootId.
-    panicAcked:: true.
-    ^ self )
+  (* rete#215's reportPanicOnce lived here until rete#114: it published once and
+     acked the note on a clean-CHECK-IN guess — and nothing subscribed sys/panic,
+     so the publication died undelivered at drain, every boot. The bridge owns
+     both halves now: PortaBridge>>offerPanic re-offers until porta's ACK covers
+     the entry, and the constructor subscribes the path. §5.2's loop-breaker
+     reset rides the real receipt. *)
 
   (* The console half of the gate. `misses` is the load-bearing number: leg 4
      fails if it never moves, because an injector that silently did nothing
