@@ -9,7 +9,7 @@ recorded run against the real store (`soak-2026-08-04.db`, gw85224-01).
 (3) need value projection **and** the reading rules; (4) needs build segmentation. If the
 prediction fails, the design is wrong, not merely incomplete.
 
-## Progress (2026-08-27 — Task 1 landed; the pipeline is the next session)
+## Progress (2026-08-27 — Tasks 1-3 landed; the pipeline (Task 4) is next)
 
 The survey that opened this work produced five build-input corrections, recorded in the
 design's 2026-08-26 addendum (A1–A5): the completeness-gate authority is **MANIFEST.cddl,
@@ -80,11 +80,30 @@ split, which a binary reading gets wrong by orders of magnitude.
   off the live WAL without blocking the writer (§2). Test: snapshot a synthesized store,
   reopen `immutable=1`, assert it reads and writes nothing.
 
-### Task 3: gate bindings + the three-connection topology (§2.2)
-- `gate.Open(snapshotPath)` / `gate.OpenLive(storePath)` — R (immutable=1 / mode=ro), W
-  (scratch, on disk, fresh per query), Q (_query_only + authorizer). The `snap` binding
-  (unbounded, all history) and `live` binding (bounded tables only: cells, nodes,
-  exchanges capped 24h/node).
+### Task 3: gate bindings + the three-connection topology (§2.2) — **DONE 2026-08-27**
+- `porta/internal/gate/bindings.go` — `gate.Open(snapshotPath, desc)` /
+  `gate.OpenLive(storePath, desc)`; R (immutable=1 / mode=ro), and a per-query `scratch`
+  holding W (on disk, fresh, read-write) and Q (`_query_only` + authorizer). The `snap`
+  binding offers `cells events exchanges gw_runs nodes` uncapped; `live` offers
+  `cells exchanges nodes` with `exchanges` capped at 24 h/node and NO `events`, so the
+  boundedness is structural rather than a rule a query could be written around.
+- The authorizer is built here because it is part of constructing Q, and it is already the
+  planner half: it permits `SQLITE_READ`/`SELECT`/`FUNCTION`, denies everything else BY
+  ACTION CODE, and records the `(table, column)` read set Task 4 materializes from. Q gets
+  its own `sqlite3.SQLiteDriver` instance through a `driver.Connector` rather than a
+  registered driver name, so the hook closes over one scratch's authorizer and two
+  concurrent queries cannot see each other's plan.
+- **Added beyond the design, and it closes a silent failure:** `Open` REFUSES a path with a
+  `-wal`/`-shm` sibling. §2.1 records that `immutable=1` on a live store asserts something
+  false and yields silently wrong reads rather than errors — so the one input that produces
+  that outcome is rejected by name instead of trusted.
+- **Every guard proven separately, because a passing test over two stacked guards cannot say
+  which one acted:** store tables are unreachable from Q (`no such table`, the topology
+  talking, not the authorizer); eleven non-read statements denied by action code including
+  `ATTACH` of the snapshot's own path; `_query_only` alone refuses a write with no
+  authorizer present — **and `_query_only` alone ALLOWS `ATTACH`, demonstrated by attaching a
+  second db and reading it**, which is exactly §2.2's stated reason the authorizer is not
+  optional given the topology; the scratch directory does not survive `Close`.
 
 ### Task 4: the authorizer-as-planner pipeline (§3)
 - Build schema-only scratch (every logical table empty; columns from descriptors — this
