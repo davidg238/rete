@@ -24,8 +24,9 @@ type Server struct {
 	dropAckEvery int
 	acks         int
 
-	// TEST-ONLY fault injection — see SetRefuseAll.
+	// TEST-ONLY fault injection — see SetRefuseAll and SetDropAll.
 	refuseAll bool
+	dropAll   bool
 }
 
 func NewServer(st *space.Store, logf func(string, ...any)) *Server {
@@ -66,6 +67,32 @@ func (s *Server) SetDropAckEvery(n int) { s.dropAckEvery = n }
 //
 // Not concurrency-safe, and does not need to be: set before the loop starts.
 func (s *Server) SetRefuseAll(on bool) { s.refuseAll = on }
+
+// SetDropAll makes the UDP loop discard every datagram at the DOOR and answer
+// NOTHING. TEST ONLY; false (the zero value) disables it, so a production
+// gateway is unaffected by the field's existence.
+//
+// This is rete#269's injector, and it is SetRefuseAll's mirror: same position
+// (the door — nothing is decoded, nothing is ingested, no exchange row is
+// written), opposite reply. Refusal answers #err; this answers silence.
+//
+// The distinction is the whole point, and this package already named it before
+// there was a gate for it: Handle's contract is that it NEVER returns nil,
+// because "a node that gets no reply cannot distinguish a rejection from a lost
+// datagram". #199's death and #232's gate are both the REFUSED path — `ref`
+// climbing, `misses` at 0. On 2026-08-27 c6spare died the same death 204 s after
+// its uplink went silent against a LIVE gateway two other nodes were reaching:
+// `ref 0`, `rej 0`, `misses` climbing 2/tick. That path had no injector.
+//
+// It lives HERE, in the loop, and not in Handle, precisely so Handle's never-nil
+// contract stays true: silence is a property of the wire, not of the protocol.
+// It drops BEFORE handle rather than after (which is where swallowAck sits, for
+// its own good reason) because the witnessed failure ingested nothing — porta
+// held no exchange row for c6spare after 10:40:09, so a drop that committed
+// first would reproduce a lost ACK and not a lost UPLINK.
+//
+// Not concurrency-safe, and does not need to be: set before the loop starts.
+func (s *Server) SetDropAll(on bool) { s.dropAll = on }
 
 // swallowAck counts outbound acks and answers whether this one is the Nth. A
 // #batch or an #err is never swallowed: starving the pull half stalls the
@@ -285,6 +312,13 @@ func (s *Server) Serve(ctx context.Context, pc net.PacketConn) error {
 		}
 		req := make([]byte, n)
 		copy(req, buf[:n])
+		if s.dropAll {
+			// rete#269: the uplink is gone. Nothing decoded, nothing ingested,
+			// no reply — which is what a node sees when its datagrams stop
+			// arriving at a gateway that is otherwise perfectly healthy.
+			s.logf("porta: TEST-SILENT: dropping datagram from %s (%d bytes) — no reply, nothing ingested (rete#269)", peer, n)
+			continue
+		}
 		resp := s.HandleFrom(req, peer.String())
 		if s.swallowAck(resp) {
 			s.logf("porta: TEST-DROP: ack %d to %s swallowed after commit", s.acks, peer)

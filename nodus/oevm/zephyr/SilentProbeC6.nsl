@@ -1,0 +1,223 @@
+(*
+SilentProbeC6 — rete#269: PortaBridgeNodeC6's workload pointed at a porta that
+DROPS every datagram and answers nothing, so the porta-silent scenario can watch
+a node whose uplink is gone past the longest recorded death on this bench.
+
+THIS IS THE MIRROR OF RefusedProbeC6 (#232), AND THE DIFFERENCE IS THE WHOLE
+POINT. #232's injector refuses: the node gets an #err to every exchange, `ref`
+climbs and `misses` reads 0 the whole way. This injector is silent: the node gets
+NOTHING, `misses` climbs 2 per tick (both legs) and `ref` stays 0. Those are two
+paths to one frozen `acked`, and until this file only the refused one had a
+scenario.
+
+The death this exists to catch, witnessed 2026-08-27 on c6spare:
+
+  10:40:03  acked freezes at 190596; misses +2/tick; ref 0, rej 0
+  10:43:27  WEDGE cond=pulse-undrained ... consec=1   -> reboot   (204 s)
+  10:46:23  WEDGE ... consec=2                        -> reboot   (140 s)
+  10:47:33  WEDGE ... consec=3                        -> HALT     (68 s)
+
+porta was UP throughout (gw_runs: 19:04:18 -> 11:24:18) and two other nodes
+exchanged with it across the entire window. The board had been healthy for 15.3 h
+and carried `196ff1c fix(#199)`. So the fix and its gate are both the refused
+path, and this node was never refused.
+
+This file is PortaBridgeNodeC6 with the certification cut out and the workload
+kept — same cadence, same per-tick writes, same bridge publishes, same liveness
+declaration — for RefusedProbeC6's reason: the death is a REAL bridge node's
+allocation pressure, so the probe must do the real node's work rather than a
+slimmed version that never fragments.
+
+TAP plan=2, scored when `misses` reaches missesFloor or at the tick deadline:
+  1. uplink-silent — the injector provably dropped us, and dropped us rather
+     than refusing us. `misses` climbing with `ref` at 0 is the property.
+     misses 0 means somebody ANSWERED (wrong port, or the real gateway, or an
+     injector started with --test-refuse-all by mistake); ref climbing means it
+     is the REFUSING injector and this run is #232 wearing the wrong name. Both
+     mean the precondition failed, and neither may score a survived run.
+  2. still-alive — trivially true at scoring time; the real liveness verdict is
+     the runner's observation window (rete#216), which watches the tick line for
+     OBSERVE_S AFTER this passes. A node still ticking is the PASS; silence is
+     the FAIL.
+
+expect (console, once attached):
+PORTA NODE READY
+TAP porta-silent plan=2
+tick 1 misses 2 ref 0 cursor 0 acked 0 dropped 0
+...
+TAP porta-silent done pass=2 fail=0
+
+Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
+reaction block is a one-line self-send (the LD_SLOT gotcha).
+*)
+class SilentProbeC6 usingPlatform: platform net: net = (
+  | space bridge timers ticks ::= 0.
+    verdictDone ::= false. tapPass ::= 0. tapFail ::= 0.
+    spans sTick sCheckIn sPublish |
+) (
+  nodeId    = ( ^ platform nodeId )
+  (* gw85224-01's mesh-local EID — the SAME literal as PortaBridgeNodeC6; the
+     silent instance lives beside the real gateway. *)
+  gwAddr    = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )
+  (* THE FAULT INJECTION, all of it. :16973 is started with --test-drop-all
+     (rete#269) and a throwaway db — see tests/target/porta-silent.env. It is a
+     DIFFERENT port from #232's refusing :16971 on purpose: the two injectors
+     answer differently, and a run must never be able to reach the wrong one and
+     score. TAP 1 catches it if it does. *)
+  gwPort    = ( ^ 16973 )
+  localPort = ( ^ 16972 )
+  cadence   = ( ^ 2000 )   (* ms — the donor's, because the death rate is paced by it *)
+  chip      = ( ^ #esp32c6 )
+
+  (* Scored the moment the silence is PROVEN, not at a fixed tick: attach can eat
+     up to 90 s of the run, and the observation window only starts at TAP-done,
+     so an early verdict buys window coverage rather than risking it.
+     30 misses is 15 ticks at 2 legs per tick — the same ~30 s #232 spends
+     reaching refusedFloor 15, so the two scenarios score at the same point in
+     their runs and their windows are comparable. *)
+  missesFloor  = ( ^ 30 )
+  (* 240 s of ticking (attach included) — past this, the injector precondition
+     has failed and the verdict says so rather than timing out silently. *)
+  verdictTicks = ( ^ 120 )
+
+  public main: platform2 args: args = (
+    | sock tickChan |
+    space:: platform space.
+    sock:: net udpBindPort: self localPort.
+    sock == nil ifTrue: [ ^ self fail: 'bind' ].
+    spans:: platform Spans new.
+    bridge:: platform PortaBridge
+      socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
+      spans: spans.
+    bridge subscribeStream: 'tel/log'.
+    bridge subscribeStream: 'sys/reset'.
+    bridge liveness: self cadence budget: self cadence * 8.
+
+    sTick::     spans register: #jobTick.
+    sCheckIn::  spans register: #checkIn.
+    sPublish::  spans register: #publish.
+
+    bridge publishBuild: self chip.
+
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    tickChan:: space channel: 'sys/tick'.
+    tickChan whenever: '' do: [ :m | self tick ].
+    bridge startTicking: timers on: tickChan.
+
+    'PORTA NODE READY' println.
+    self tapPlan: 2.
+
+    [ true ] whileTrue: [
+      platform pumpEvents.
+      space drain ].
+    ^ 0
+  )
+
+  tick = (
+    ticks:: ticks + 1.
+    spans begin: sTick.
+    spans begin: sCheckIn.
+    bridge checkIn.
+    spans end: sCheckIn.
+    spans begin: sPublish.
+    self publishHealth.
+    space out: 'tel/log' value:
+      (platform Record tag: #Log with: #lvl -> #info
+                                 with: #txt -> ('tick ' , ticks printString)).
+    spans end: sPublish.
+    self report.
+    spans end: sTick.
+    self checkVerdict.
+    ^ self
+  )
+
+  (* Identical in shape to RefusedProbeC6's so the runner's progress regex and a
+     human's eye read both the same way. Here `misses` is the number the scenario
+     is about and `ref` is the control that must stay 0. *)
+  report = (
+    ('tick ' , ticks printString ,
+     ' misses ' , bridge misses printString ,
+     ' ref ' , bridge refused printString ,
+     ' cursor ' , bridge cursor printString ,
+     ' acked ' , bridge acked printString ,
+     ' dropped ' , bridge dropped printString) println.
+    ^ self
+  )
+
+  (* The donor's record verbatim (see PortaBridgeNodeC6 for the field notes) —
+     the workload must write what the real node writes. None of it will arrive:
+     that is the condition under test, and the WRITING is the allocation
+     pressure that matters, not the delivery. *)
+  publishHealth = (
+    | pairs |
+    pairs:: platform OrderedCollection new.
+    pairs add: #up -> platform monotonicMillis.
+    pairs add: #bid -> bridge bootId.
+    pairs add: #wak -> ticks.
+    pairs add: #pto -> bridge misses.
+    pairs add: #sdr -> bridge dropped.
+    pairs add: #ref -> bridge refused.
+    pairs add: #rej -> bridge rejected.
+    space put: 'obs/health' value:
+      (platform Record tag: #Health fields: (platform Map fromPairs: pairs)).
+    ^ self
+  )
+
+  fail: msg = ( msg println. ^ 1 )
+
+  checkVerdict = (
+    verdictDone ifTrue: [ ^ self ].
+    bridge misses >= self missesFloor ifTrue: [ ^ self emitVerdict ].
+    ticks < self verdictTicks ifTrue: [ ^ self ].
+    ^ self emitVerdict )
+
+  (* TAP 1 is a CONJUNCTION, and both halves are load-bearing: misses climbing
+     says somebody stopped answering, ref at 0 says it was silence and not
+     refusal. Either alone would let a #232 run score as a #269 run. *)
+  emitVerdict = (
+    verdictDone:: true.
+    self tap: 1 named: 'uplink-silent'
+                ok: ((bridge misses >= self missesFloor) and: [ bridge refused = 0 ])
+                detail: ('misses=' , bridge misses printString ,
+                         ' ref=' , bridge refused printString ,
+                         ' acked=' , bridge acked printString ,
+                         ' ticks=' , ticks printString ,
+                         (bridge misses < self missesFloor
+                            ifTrue:  [ ' SOMETHING ANSWERED US — is the porta at :16973 running with --test-drop-all?' ]
+                            ifFalse: [ '' ]) ,
+                         (bridge refused > 0
+                            ifTrue:  [ ' THIS IS THE REFUSING INJECTOR (#232), NOT THE SILENT ONE — wrong port?' ]
+                            ifFalse: [ '' ])).
+    self tap: 2 named: 'still-alive'
+                ok: true
+                detail: ('scored at tick ' , ticks printString ,
+                         ' — the observation window is the liveness verdict').
+    self tapDone.
+    ^ self )
+
+  (* --- TAP-lite (design D3): the standing per-workload copy. -------------- *)
+
+  scenarioName = ( ^ 'porta-silent' )
+
+  tapPlan: n = (
+    ('TAP ' , self scenarioName , ' plan=' , n printString) out.
+    ^ self )
+
+  tap: idx named: nm ok: passed detail: d = (
+    passed
+      ifTrue:  [ tapPass:: tapPass + 1.
+                 ('TAP ' , self scenarioName , ' ok ' , idx printString ,
+                   ' ' , nm , ' ' , d) out ]
+      ifFalse: [ tapFail:: tapFail + 1.
+                 ('TAP ' , self scenarioName , ' not ok ' , idx printString ,
+                   ' ' , nm , ' ' , d) out ].
+    ^ self )
+
+  tapDone = (
+    ('TAP ' , self scenarioName , ' done pass=' , tapPass printString ,
+      ' fail=' , tapFail printString) out.
+    ^ self )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

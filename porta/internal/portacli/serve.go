@@ -72,7 +72,7 @@ func sweepLiveness(ctx context.Context, st *space.Store, tick time.Duration, log
 func newServeCmd() *cobra.Command {
 	var udpAddr, httpBind, manifestPath string
 	var httpPort, testDropAck int
-	var testRefuseAll bool
+	var testRefuseAll, testDropAll bool
 	var httpAllowCIDR []string
 	// TEST ONLY, on --test-drop-ack's precedent: the sweep's own period. The
 	// host gate asserts a verdict and the default 30 s tick outlasts the whole
@@ -133,6 +133,10 @@ func newServeCmd() *cobra.Command {
 			if testRefuseAll {
 				srv.SetRefuseAll(true)
 				log.Printf("porta: TEST-REFUSE ACTIVE — every datagram is answered #err at the door (rete#232)")
+			}
+			if testDropAll {
+				srv.SetDropAll(true)
+				log.Printf("porta: TEST-SILENT ACTIVE — every datagram is DROPPED at the door, no reply, nothing ingested (rete#269)")
 			}
 			udpErr := make(chan error, 1)
 			go func() { udpErr <- srv.ListenAndServe(ctx, udpAddr) }()
@@ -203,6 +207,8 @@ func newServeCmd() *cobra.Command {
 		"TEST ONLY: swallow every Nth outbound #ack AFTER the push is committed (0 = off)")
 	cmd.Flags().BoolVar(&testRefuseAll, "test-refuse-all", false,
 		"TEST ONLY: answer every datagram #err at the door, ingesting nothing (rete#232's refusing gateway)")
+	cmd.Flags().BoolVar(&testDropAll, "test-drop-all", false,
+		"TEST ONLY: DROP every datagram at the door — no reply at all, nothing ingested (rete#269's silent gateway)")
 	cmd.Flags().DurationVar(&sweepTick, "sweep-tick", 0,
 		"TEST ONLY: how often to re-form liveness verdicts (0 = space.SweepTick, 30s)")
 	cmd.Flags().StringVar(&manifestPath, "manifest", "",
