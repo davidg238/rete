@@ -645,8 +645,10 @@ the fleet-sim (RECORDS "the size law").
 
 ## 7. Open questions (for the phase-3 design doc)
 
-1. **Cursor persistence granularity** on the node (NVS write per check-in vs
-   per-batch; flash-wear budget, G7 discipline).
+1. **Cursor persistence granularity** — ANSWERED 2026-08-26 (design D3): the cursor
+   is deliberately not persisted at all; the question of write granularity dissolves
+   with it. What would reopen it (a measured boot re-pull cost) is recorded in the
+   design record.
 2. **Porta retention window + the compaction-vs-cursor hazard** (#121, *still
    unanswered*): how long porta keeps cell history, and what happens to a node whose
    cursor falls behind that point — etcd's compaction scar, ours too (§2). This is the
