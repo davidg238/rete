@@ -1,0 +1,201 @@
+(*
+RefusedProbeC6 — rete#232: PortaBridgeNodeC6's workload pointed at a porta that
+answers #err to every datagram, so the porta-refuse scenario can watch a refused
+node past the longest recorded death on this bench (#199: 157 s from first
+check-in, arena exhaustion, `misses 0` the whole way).
+
+This file is PortaBridgeNodeC6 with the certification cut out and the workload
+kept: same cadence, same per-tick writes (obs/health, tel/log), same bridge
+publishes (sys/metrics, sys/cheap, obs/build), same liveness declaration — the
+death was a REAL bridge node's allocation pressure under refusal, so the probe
+must do the real node's work, not a slimmed version that never fragments. What
+is cut: the bridge-health convergence TAPs (a refused node converges nothing),
+the span-capture window, and the dbg/req profiling (porta's writes never
+arrive here).
+
+The gateway address is the SAME mesh-local EID as the real gateway — the
+refusing porta is a second instance on the same host, one UDP port up
+(:16971, --test-refuse-all, throwaway --db). Only the port differs from the
+donor file, and it is the whole of the fault injection on this side.
+
+TAP plan=2, scored when `ref` reaches refusedFloor or at the tick deadline:
+  1. refused-climbing — the injector provably refused us. An injector that
+     silently does nothing (wrong port, refusing porta not started, mesh never
+     attached) must not score a survived run; the detail carries `misses` so a
+     red says WHICH: ref 0 with misses climbing is "nobody answered", ref 0
+     with misses 0 is "answered normally" — both mean the precondition failed.
+  2. still-alive — trivially true at scoring time; the real liveness verdict is
+     the runner's observation window (rete#216), which watches the tick line
+     for 240 s AFTER this passes. `ref` climbing is the PASS; silence is the
+     FAIL (#232).
+
+expect (console, once attached):
+PORTA NODE READY
+TAP porta-refuse plan=2
+tick 1 misses 0 ref 0 cursor 0 acked 0 dropped 0
+...
+porta refused this node: refused by TEST-REFUSE (--test-refuse-all)
+...
+TAP porta-refuse done pass=2 fail=0
+
+Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
+reaction block is a one-line self-send (the LD_SLOT gotcha).
+*)
+class RefusedProbeC6 usingPlatform: platform net: net = (
+  | space bridge timers ticks ::= 0.
+    verdictDone ::= false. tapPass ::= 0. tapFail ::= 0.
+    spans sTick sCheckIn sPublish |
+) (
+  nodeId    = ( ^ platform nodeId )
+  (* gw85224-01's mesh-local EID — the SAME literal as PortaBridgeNodeC6; the
+     refusing instance lives beside the real gateway. *)
+  gwAddr    = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )
+  (* THE FAULT INJECTION, all of it: one port up from the real gateway's 6969.
+     The porta at :16971 is started with --test-refuse-all (rete#232) and a
+     throwaway db — see tests/target/porta-refuse.env for the start recipe. *)
+  gwPort    = ( ^ 16971 )
+  localPort = ( ^ 16970 )
+  cadence   = ( ^ 2000 )   (* ms — the donor's, because the death rate is paced by it *)
+  chip      = ( ^ #esp32c6 )
+
+  (* Scored the moment refusal is PROVEN, not at a fixed tick: attach can eat up
+     to 90 s of the run, and the observation window only starts at TAP-done, so
+     an early verdict buys window coverage rather than risking it. *)
+  refusedFloor = ( ^ 15 )
+  (* 240 s of ticking (attach included) — past this, the injector precondition
+     has failed and the verdict says so rather than timing out silently. *)
+  verdictTicks = ( ^ 120 )
+
+  public main: platform2 args: args = (
+    | sock tickChan |
+    space:: platform space.
+    sock:: net udpBindPort: self localPort.
+    sock == nil ifTrue: [ ^ self fail: 'bind' ].
+    spans:: platform Spans new.
+    bridge:: platform PortaBridge
+      socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
+      spans: spans.
+    bridge subscribeStream: 'tel/log'.
+    bridge subscribeStream: 'sys/reset'.
+    bridge liveness: self cadence budget: self cadence * 8.
+
+    sTick::     spans register: #jobTick.
+    sCheckIn::  spans register: #checkIn.
+    sPublish::  spans register: #publish.
+
+    bridge publishBuild: self chip.
+
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    tickChan:: space channel: 'sys/tick'.
+    tickChan whenever: '' do: [ :m | self tick ].
+    bridge startTicking: timers on: tickChan.
+
+    'PORTA NODE READY' println.
+    self tapPlan: 2.
+
+    [ true ] whileTrue: [
+      platform pumpEvents.
+      space drain ].
+    ^ 0
+  )
+
+  tick = (
+    ticks:: ticks + 1.
+    spans begin: sTick.
+    spans begin: sCheckIn.
+    bridge checkIn.
+    spans end: sCheckIn.
+    spans begin: sPublish.
+    self publishHealth.
+    space out: 'tel/log' value:
+      (platform Record tag: #Log with: #lvl -> #info
+                                 with: #txt -> ('tick ' , ticks printString)).
+    spans end: sPublish.
+    self report.
+    spans end: sTick.
+    self checkVerdict.
+    ^ self
+  )
+
+  (* The donor's line plus ` ref N` after misses — the one number this scenario
+     is about, on every tick, so the log shows refusal climbing while the node
+     stays alive. The `^tick [0-9]+ misses` prefix survives for the runner's
+     progress regex. *)
+  report = (
+    ('tick ' , ticks printString ,
+     ' misses ' , bridge misses printString ,
+     ' ref ' , bridge refused printString ,
+     ' cursor ' , bridge cursor printString ,
+     ' acked ' , bridge acked printString ,
+     ' dropped ' , bridge dropped printString) println.
+    ^ self
+  )
+
+  (* The donor's record verbatim (see PortaBridgeNodeC6 for the field notes) —
+     the workload must write what the real node writes. *)
+  publishHealth = (
+    | pairs |
+    pairs:: platform OrderedCollection new.
+    pairs add: #up -> platform monotonicMillis.
+    pairs add: #bid -> bridge bootId.
+    pairs add: #wak -> ticks.
+    pairs add: #pto -> bridge misses.
+    pairs add: #sdr -> bridge dropped.
+    pairs add: #ref -> bridge refused.
+    pairs add: #rej -> bridge rejected.
+    space put: 'obs/health' value:
+      (platform Record tag: #Health fields: (platform Map fromPairs: pairs)).
+    ^ self
+  )
+
+  fail: msg = ( msg println. ^ 1 )
+
+  checkVerdict = (
+    verdictDone ifTrue: [ ^ self ].
+    bridge refused >= self refusedFloor ifTrue: [ ^ self emitVerdict ].
+    ticks < self verdictTicks ifTrue: [ ^ self ].
+    ^ self emitVerdict )
+
+  emitVerdict = (
+    verdictDone:: true.
+    self tap: 1 named: 'refused-climbing'
+                ok: bridge refused >= self refusedFloor
+                detail: ('ref=' , bridge refused printString ,
+                         ' misses=' , bridge misses printString ,
+                         ' ticks=' , ticks printString ,
+                         (bridge refused = 0
+                            ifTrue:  [ ' INJECTOR NEVER REFUSED US — is the porta at :16971 running with --test-refuse-all?' ]
+                            ifFalse: [ '' ])).
+    self tap: 2 named: 'still-alive'
+                ok: true
+                detail: ('scored at tick ' , ticks printString ,
+                         ' — the observation window is the liveness verdict').
+    self tapDone.
+    ^ self )
+
+  (* --- TAP-lite (design D3): the standing per-workload copy. -------------- *)
+
+  scenarioName = ( ^ 'porta-refuse' )
+
+  tapPlan: n = (
+    ('TAP ' , self scenarioName , ' plan=' , n printString) out.
+    ^ self )
+
+  tap: idx named: nm ok: passed detail: d = (
+    passed
+      ifTrue:  [ tapPass:: tapPass + 1.
+                 ('TAP ' , self scenarioName , ' ok ' , idx printString ,
+                   ' ' , nm , ' ' , d) out ]
+      ifFalse: [ tapFail:: tapFail + 1.
+                 ('TAP ' , self scenarioName , ' not ok ' , idx printString ,
+                   ' ' , nm , ' ' , d) out ].
+    ^ self )
+
+  tapDone = (
+    ('TAP ' , self scenarioName , ' done pass=' , tapPass printString ,
+      ' fail=' , tapFail printString) out.
+    ^ self )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)
