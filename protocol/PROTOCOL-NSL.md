@@ -297,8 +297,10 @@ On each check-in (cadence per `obs/mode`, exactly as v1 derives liveness):
    both the `cursor` applied so far and the `hw` the node believes porta has accepted
    from it (see the fifth rule below); apply each
    to the local space (cell paths become local cell values via `put:value:`;
-   `goal/do/*` stream entries are `out:`ed once); persist the new cursor (NVS) only
-   after apply.
+   `goal/do/*` stream entries are `out:`ed once); advance the RAM cursor only after
+   apply (the cursor is deliberately not persisted — §3 and design 2026-08-26 D3;
+   a crash mid-apply therefore re-pulls rather than skips, and the gateway's
+   acked high-water keeps the re-pull from re-executing applied stream entries).
 2. **Push** — send cell `obs/**`, `sys/**` **and `diag/**`** values changed since the
    last acked push, plus queued `tel/**` / `sys/**` / `dbg/resp` stream entries, each
    batch tagged with a node-side sequence for gateway dedup. All three cell prefixes
