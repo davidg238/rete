@@ -105,7 +105,16 @@ split, which a binary reading gets wrong by orders of magnitude.
   second db and reading it**, which is exactly §2.2's stated reason the authorizer is not
   optional given the topology; the scratch directory does not survive `Close`.
 
-### Task 4: the authorizer-as-planner pipeline (§3)
+### Task 4: the authorizer-as-planner pipeline (§3) — **DONE 2026-08-27** (`9fd84a2`)
+- Landed as `porta/internal/gate/pipeline.go` + `pipeline_test.go`; `go test ./...` ok.
+- Three corrections recorded in the design's 2026-08-27 addendum (C1–C3): the uniform
+  identity prefix and the `Overrun.path` collision that makes it `src_path`; decoded-table
+  PROVENANCE (`snap` = full history from events, `live` = latest-value-per-path) riding out
+  in `Result.Sources`; and `hard_heap_limit` deferred because it is process-global in SQLite
+  and unexposed by go-sqlite3.
+- Beyond the design: `Result.Sources` carries rows+elapsed per table, so §7's measurement
+  needs no new code, and each decoded record's `status`, so B2's producerless shapes explain
+  their own empty tables.
 - Build schema-only scratch (every logical table empty; columns from descriptors — this
   step IS the completeness gate at runtime).
 - Prepare user SQL, authorizer records (table,column) reads and REJECTS non-reads

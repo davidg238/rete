@@ -1175,3 +1175,45 @@ close: nsl 278/0 all aux green, go test green, PORTA SYNC OK 9/9. c6spare left r
 bridge-health's image against the live gateway. **Queued next: #265 (frozen runtime
 errors + G4 line-table) or the #198 gatekeeper five-question spike — both unblocked;
 board time owes nothing.**
+
+---
+
+## ADDENDUM 2026-08-27 — a node dies ~112 s after losing its uplink to a LIVE gateway (rete#269)
+
+**The bench's standing belief was wrong, and the correction is a number.** "Absence a node
+survives indefinitely; refusal kills it" was drawn from two true observations — the bell rode a
+10 h gateway outage, #199's refused node died in 157 s — and the generalisation does not hold.
+It was a statement about **cadence**.
+
+`Kernel>>awaitReply:` busy-spins `replyBudget = 2000` ms and `checkIn` has two legs, so under
+silence a tick costs up to **4000 ms of spin**; a refused node returns on the first datagram
+and pays ~0. So a node holds its declared cadence under a silent uplink only if
+**`cad > 2 x replyBudget`** (4 s today). `c6-bell` is `cad: 30000` — 13% duty, fine for 10 h.
+`c6spare` and **`c6bench`** are `cad: 2000` — saturated the moment nothing answers.
+
+**Witnessed 2026-08-27**: c6spare died 204 s after its uplink went silent, against a porta that
+was UP throughout (`gw_runs` 08-26 19:04 → 08-27 11:24) and that c6bench and c6 were reaching
+normally across the entire window. `ref 0, rej 0, misses +2/tick`, on a build carrying
+`196ff1c fix(#199)`.
+
+**Reproduced the same day**, `porta-silent` RED first run: tick spacing **4.007 s from tick 1**,
+`WEDGE cond=pulse-undrained up=111734ms` at tick 26 — **111.7 s cold, faster than #199's
+refused death**. Three wedges then the designed HALT, the unplanned sequence exactly.
+
+**This is a THIRD failure under "gateway unreachable"**, not a recurrence: the unbounded
+pending queue (64-row cap) and #199's rebuild churn (`196ff1c` frame reuse) are both still
+working. The terminal event is #215's detector, not an OOM, and the empty poll allocates
+nothing (`udp.c:83`) — a wall-clock failure, not an arena one. **Each earlier fix was gated by
+a refusal test or a host test; none was ever gated by an actually-unreachable gateway.**
+
+Landed: `--test-drop-all` (SetRefuseAll's mirror), `SilentProbeC6.nsl`, `porta-silent.env`
+(`5274c90`), and the measured result (`f55deb3`). Design record: the 2026-08-27 addendum to
+`docs/design/2026-08-21-liveness-contract-design.md`.
+
+**Next, in order:** (1) the control run at `cad: 30000` to nail the threshold and supply the
+second point; (2) the fix — `replyBudget` derived from the declared cadence, whose divisor is
+deliberately NOT invented ahead of that data; (3) restore c6spare to `PortaBridgeNodeC6`.
+**Time-to-death varies ~40% boot to boot, so a green needs several runs or one long one.**
+
+Bench note that cost this session's forensics: the `RebootNote` is in `.rtc_noinit`
+(`reboot_note.c:29`) — it survives a **reset**, NOT a power cycle.

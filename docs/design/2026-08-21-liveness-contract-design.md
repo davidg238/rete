@@ -381,3 +381,52 @@ is the line that has to move.
 
 Promoted to `review/lib/timers.ns`, `review/program-sequence.md` and `review/tests/CLAIMS.md`
 (commit `abc6c4f`).
+
+---
+
+## Addendum 2026-08-27 — a declared cadence the node cannot hold under silence (rete#269)
+
+D2 makes the node the authority on how long its silence may last: it publishes
+`obs/liveness = Liveness { cad, bud }` and the gateway judges that number and no other. This
+addendum records a defect **in the node's ability to honour its own declaration**, found when
+c6spare died 204 s after losing its uplink to a porta that was up the whole time and that two
+other nodes were reaching normally.
+
+**The declaration is not achievable at every cadence.** `Kernel>>awaitReply:` busy-spins
+`replyBudget = 2000` ms (`kernel.nsl:1807`, `:2845`) and `checkIn` has two legs, so when
+nothing answers a tick costs up to **4000 ms of spin**. A refused node pays ~0, because an
+`#err` fails `isCrossed:` and returns on the first datagram. Therefore:
+
+> **A node can hold its declared cadence under a silent uplink only if
+> `cad > 2 x replyBudget`** — 4 s with today's constant.
+
+`c6spare` declares `cad: 2000`: its tick period is shorter than a *single* leg's budget, so
+under silence it saturates completely. `c6-bell` declares `cad: 30000` and rode a 10 h gateway
+outage fine at a 13% duty cycle. Both facts were on the bench and the general claim drawn from
+them ("absence is survivable, refusal kills") was wrong — it was a statement about cadence.
+
+**Measured, `porta-silent` first run, 2026-08-27:** tick spacing **4.007 s from tick 1** (the
+tick period simply becomes the spin cost), `misses` +2/tick, `ref 0`, `acked 0`, and
+`WEDGE cond=pulse-undrained ... up=111734ms` at tick 26 — **111.7 s from a cold boot, against
+#199's refused death at 157 s.** Three wedges then the designed HALT, reproducing the
+unplanned death exactly. Time-to-death varies ~40% boot to boot (111.7 / 157.8 / 157.8 s)
+while the saturation is present on every tick, so a green needs several runs or one long one.
+
+**This is a THIRD failure under "gateway unreachable"**, not a recurrence of the first two: the
+unbounded pending queue (fixed by the 64-row cap) and #199's rebuild churn (fixed by
+`196ff1c`'s frame reuse) are both still doing their jobs. The terminal event here is #215's
+detector, not an OOM — no GC error line, no fatal allocation size — and the empty poll
+allocates nothing (`udp.c:83` returns before `udp_make_bytes`), so this is a **wall-clock**
+failure and not an arena one. Each of the first two was gated by a refusal test or a host
+test; none was ever gated by an actually-unreachable gateway. `porta-silent` is that gate.
+
+**Not decided here:** the fix. Deriving `replyBudget` from the declared cadence
+(`min(2000, cad/N)`) is the smallest candidate and uses a value the node already declares, but
+`N` trades duty-cycle headroom against misses on a lossy mesh — the bell "misses roughly half
+its check-ins to ordinary mesh loss" (`kernel.nsl:1689`). Per CLAUDE.md, the knob is not
+invented before the data: `porta-silent` at `cad: 2000` is the saturated arm and the same
+probe at a slower cadence is the control. Two runs pick `N`.
+
+Also worth carrying, because it cost this session's forensics: the `RebootNote` lives in
+`.rtc_noinit` (`zephyr/src/reboot_note.c:29`), so it survives a **reset** and NOT a power
+cycle. A halted node holding a note must be reset, never power-cycled, if the note is wanted.

@@ -669,3 +669,49 @@ order == wire order; `TestDescriptorOrderIsWireOrder` re-derives the bytewise so
 `cval.Encode` and checks the authored order against it. Without it, a mis-authored CDDL hands
 the completeness gate a wrong order and is agreed with — two documents consistent with each
 other and both wrong, which is the failure mode this whole rung exists to close.
+
+## Addendum 2026-08-27 — three corrections from building the pipeline (§3, §4.2)
+
+Task 4 landed at `9fd84a2` (`porta/internal/gate/pipeline.go`). §3's loop is as designed and
+needed no change. Three things the design got wrong or left open, found by building it:
+
+### C1 — the decoded tables' identity prefix is uniform, and it is `src_path` not `path`
+
+§4.2 lists a different identity prefix per table (`tel_log` has no `boot_id`/`seq`,
+`obs_build` no `seq`). That variation is shorthand rather than design: one prefix for every
+decoded table is the smaller mechanism, and the descriptor table is already the authority for
+the rest of the columns. So every decoded table is
+`(node_id, src_path, ts_ms, boot_id, seq)` + the record's fields in wire order.
+
+**`src_path`, not `path`, because `Overrun.path` is a real wire field** meaning *the path whose
+entries were dropped* — not the path the row was stored at. A natural `path` column would
+silently mean two things in one table. `checkIdentityCollisions` closes the CLASS rather than
+this instance: any future descriptor field colliding with an identity column fails at schema
+build, naming it. Proven red against a doctored table.
+
+### C2 — a decoded table's PROVENANCE changes what its rows mean, so it rides out with them
+
+§2.4 splits the bindings by which structural tables they expose and does not say what that
+does to the decoded ones. It is load-bearing: `snap` offers `events`, so a decoded table is the
+**full history**; `live` does not, so it is **latest-value-per-path and nothing more**. Same
+table name, same columns, different meaning. `Result.Sources[].From` carries `events` or
+`cells` out with every answer, and both halves are tested so the difference is measured rather
+than being one binding's quirk.
+
+### C3 — `hard_heap_limit` is deferred, and here is the reason
+
+§2.3 lists it beside `SetLimit`. It cannot be done as specified: `sqlite3_hard_heap_limit64`
+is **process-global**, and go-sqlite3 does not expose it at all. Scoping it to Q is not
+possible, and setting it process-wide would silently bound porta's own store the day `gate` is
+linked in-process rather than run as `gatekeeper`. The other three guards land as designed
+(wall-clock deadline through context -> `sqlite3_interrupt`, tested against an unbounded
+recursive CTE; a row cap that sets `Truncated` rather than returning a silent prefix; a scratch
+byte cap checked after each table). What would earn it back: a measured OOM under a real query.
+
+### One thing added beyond the design
+
+`Result.Sources` carries **rows and elapsed per materialized table**, so §7's "materialize the
+whole referenced slice and measure it" needs no new code and pushdown stays unearned until a
+number earns it. It also carries each decoded record's `status`, so B2's eight producerless
+shapes explain their own empty tables — silence at a path is otherwise indistinguishable from
+a dead node.
