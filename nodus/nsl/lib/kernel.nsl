@@ -1608,10 +1608,18 @@ class Kernel usingPlatform: platform = (
                   reports obs/** + tel/** + sys/**, and one object addressing both
                   is simpler than two until the grant machinery (G5) can express
                   the pair. Authority is enforced below, in `mayApply:`.
-       `cursor` — porta's OUT-sequence: the last seq this node has APPLIED. RAM
-                  only in this slice; cold boot = cursor 0 = full replay is the
-                  DESIGNED behaviour, and the cell scan bounds that replay by
-                  tree size rather than by history length.
+       `cursor` — porta's OUT-sequence: the last seq DELIVERED AND OFFERED to
+                  this node. Not "executed": applyEntry:'s counted drops and a
+                  kind-mismatch advance past entries that never ran, which is
+                  why obs/health carries `rej` — under porta's replay guard
+                  that loss is permanent, so it must be visible. RAM by
+                  DECISION, not by slice (2026-08-26 design D3: persistence
+                  buys a stranding mode, and the guard is what makes cursor 0
+                  safe). Cold boot = cursor 0 replays PER KIND: cells as
+                  latest-value bounded by tree size, streams only above the
+                  acked high-water porta keeps (`nodes.cursor_hw`) — see
+                  porta/docs/design/2026-08-26-space-sync-durability-trio-design.md
+                  D1/D3.
        `acked`  — the high-water the gateway has ACCEPTED from us, in the LOCAL
                   space's seq (one counter per space per side). Cells newer than
                   this are re-scanned every check-in; pending entries at or below
