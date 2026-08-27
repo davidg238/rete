@@ -226,3 +226,56 @@ does not bite and no board time is spent:
   behaviour unchanged by construction). An on-board re-run of the `ReplayProbeC6` recipe
   (commit `0d70b12`) piggybacks on the #232 session as confirmation, not as this rung's
   close condition.
+
+---
+
+## Addendum 2026-08-26 (the #232 board session) — D4 implemented, the riders landed, and what moving the publication uncovered
+
+**D4 is implemented** (`dac90bb`): the pattern lives in `PortaBridge>>offerPanic`
+(kernel.nsl), run once per check-in — a STANDING offer (its captured row still in
+`pending`) is left alone; a VANISHED offer covered by `acked` is the receipt
+(`panicNoteAck:`, and §5.2's loop-breaker reset rides it); a vanished offer NOT covered
+was evicted by the bounded queue and is re-published. `capture:` clears `panicSeq` when it
+evicts a sys/panic row, which is what keeps a later ack sweeping past the evicted seq from
+forging a receipt for an entry that was never pushed — an edge the D4 prose did not name.
+The seq is latched from `pending` a tick after publication, never at publish time: capture
+is deferred to `space drain`, so the stamp does not exist yet when `offerPanic` writes.
+
+**What moving the publication uncovered: must-deliver had never once delivered.** Nothing
+ever subscribed `sys/panic` — the app-side `reportPanicOnce` published onto a channel with
+no reaction, so the record died undelivered at every drain since #215, and no gate noticed
+because no gate ever watched a sys/panic row *arrive*. Both halves are fixed structurally:
+the bridge subscribes the path at construction (it owns must-deliver, so it owns the
+capture), and `porta_sync_host.sh` gained leg 9 — a planted note (host seam
+`OEVM_TEST_PANIC_NOTE`, host mains now call `reboot_note_init()` like zephyr's) must land
+in porta's log as `sys/panic #watchdog` over the real wire, under the armed manifest.
+The state machine's arms are host-tested in `22_spacesync/24_panic_reoffer.nsl`. This
+finding retro-explains #114's second witnessed case (the bell's 2026-08-06 night death
+left no sys/panic row) without needing the bridge-down window: there was no delivery path
+to lose.
+
+**Rider 1** (`e4adfca`): the PortaBridge header now carries D1/D3's wording — the cursor
+is delivered-and-offered, RAM by decision, replay-from-0 per kind.
+
+**Rider 2** (`c1c1736`): `obs/health` gained `rej` (the bridge's counted inbound drops)
+beside `ref`, across all three `publishHealth` sites, `MANIFEST.cddl` (listed in wire
+order: "ref" < "rej" bytewise), the goldens, and the batch guard (Health 72 → 83 B,
+frame 396 → 407 B at worst legal values, 105 B headroom). PROTOCOL-NSL §3 and RECORDS §4
+carry the reason: under D1's guard a rejected entry is a permanent loss, so it must be
+visible.
+
+**The #232 scenario is green on a board** (build
+`porta-v1-final-1143-g92439fc-20260826T191942`, c6spare, 2026-08-26): `porta-refuse`
+PASS 2/2 plus the full 240 s observation window. The refusing porta is the supported
+`--test-refuse-all` knob (`1d0432c`, refuse-at-the-door beside `SetDropAckEvery`);
+the node ran to tick 150 — `misses 0 ref 150`, refused on every exchange for 300 s of
+continuous refusal, nearly double #199's 157 s death record — with the bounded queue
+shedding (dropped 85) and no fault. The injector's own log counts 313 refusals from the
+node's mesh address, so the green is corroborated from both ends. #199's fix is no longer
+an inference from a metric. This was also .oimg format v10's first on-hardware boot.
+
+**Deployed the same evening:** the durability-trio binary reached the live gateway
+(`porta.pre232` kept beside it; store migrated `cursor_hw`/`served_hw` on first open;
+manifest with `rej` re-armed, sha `7556b7fa`; ~45 s outage, nodes recovered within their
+cadence, and the old 6-field Health from un-reflashed nodes is accepted — the door does
+not refuse a missing field).

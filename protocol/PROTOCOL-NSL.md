@@ -259,8 +259,10 @@ and what replay-from-0 MEANS is per kind (design 2026-08-26 D1):
   UNAPPLIED entry is served until acked, so at-least-once within a boot and
   delivery of rows written during an outage are both unchanged. Two honest
   edges: the receipt attests DELIVERED-AND-OFFERED, not executed — a node
-  that sheds or counts-and-drops an entry still advances its cursor past it
-  (surfacing that drop is node-side work, tracked on #232) — and a pull
+  that sheds or counts-and-drops an entry still advances its cursor past it,
+  and since the #232 rider that count is visible as `obs/health.rej`
+  (RECORDS §4): a rejected entry is a PERMANENT loss under this guard, so it
+  must be seen, not merely counted — and a pull
   declaring a cursor beyond the store's own out-seq is REFUSED (`#err`,
   visible in `obs/health.ref`) rather than recorded: that node is synced to
   a different store's history, and its next reboot resyncs from 0.

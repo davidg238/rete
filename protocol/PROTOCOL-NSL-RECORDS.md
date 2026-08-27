@@ -544,6 +544,14 @@ cleared only by `panicNoteAck:` once porta's ACK covers the published entry, and
 (re-)published each check-in while unacked. A duplicate panic row in the
 append-only log is acceptable; a lost one is not. No journal, no cell rerouting.
 
+**Implemented 2026-08-26 (#114): the pattern lives in `PortaBridge>>offerPanic`**
+(kernel.nsl) — the bridge subscribes `sys/panic` at construction and runs the
+offer/receipt/re-publish state machine once per check-in. Before that landed,
+NOTHING subscribed the path: every publication since #215 died undelivered at
+the drain, so must-deliver had never once delivered — found only when the
+publication moved. The wire-delivery proof is `porta_sync_host.sh` leg 9; the
+state machine's arms are `nodus/tests/22_spacesync/24_panic_reoffer.nsl`.
+
 **Kind C is a cell** (tuvm#32 option A, rung 9): the pigeonhole holds the latest
 letter. A reader — porta, an agent, a second job — `peek:`s current state *by
 name*, non-destructively, without draining a stream some other consumer is
