@@ -641,16 +641,14 @@ console already teed to the collector (#56), never over `dbg/resp`, which keeps 
 table off the same plane the size law keeps every other blob off (§2.4) rather than testing
 `MAX_VALUE_BYTES`'s pagination story against it.
 
-**`dbg/req` is a STREAM, so it carries the cursor-0 replay hazard.** The node's cursor is
-RAM-only, so cold boot = cursor 0 = full replay — safe for cells, which are idempotent by
-construction, and dangerous for streams, which are actions
-(`porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md` §8, whose example is
-`goal/do/reboot` rebooting the node again). `dbg/req` is the second such path: after a
-reboot the node re-receives every `profile <ms>` porta ever wrote and starts counting
-unbidden. Bounded rather than fixed — the windows are self-limiting and only one end-timer
-is outstanding at a time — and recorded rather than mechanised, because every fix is a
-tunable no measurement has earned yet
-(`docs/design/2026-08-06-method-profile-over-porta-design.md` D6).
+**`dbg/req` is a STREAM, and the cursor-0 replay hazard it carried is CLOSED** (#262,
+fixed 2026-08-26). The node's cursor is RAM-only, so cold boot = cursor 0 — but the
+gateway's replay guard (`PROTOCOL-NSL.md` §3) never re-serves a stream row the node has
+already acked as applied, so a reboot no longer re-receives the `profile <ms>` history
+and re-runs it unbidden (which it did, on every boot, until this rung — #262 has the
+field data). The rows stay permanent in the append-only log; they are simply served once
+per application, ever. The historical hazard statement lives in
+`porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md` §8.
 
 ### 4.6 `diag/**` — bounded diagnostic capture (both ways)
 

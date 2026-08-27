@@ -31,8 +31,10 @@ Porta keeps, per node, the maximum out-seq the node has ever **acked as applied*
 `nodes.cursor_hw`, monotonic. The pull path never serves a stream row with
 `seq <= cursor_hw`. Cells are untouched (already latest-value). The node's pull cursor is
 documented load-bearing on the node as "the last seq already APPLIED"
-(`kernel.nsl`, PortaBridge header), so the high-water is an application receipt, not a
-delivery guess.
+(`kernel.nsl`, PortaBridge header) — with one honest qualifier the final review added:
+the node advances its cursor past an entry it counted-and-dropped or shed under
+pressure, so the receipt attests delivered-and-offered rather than executed. Surfacing
+those drops is node-side work, tracked on #232 alongside #114's implementation.
 
 The invariants, stated so they can be falsified:
 
@@ -60,16 +62,33 @@ deliberately not part of the guard predicate.
 every path; there is no known beneficiary of the distinction, so the manifest's class axis
 is not consulted and no new class value is minted (#262 sketched one; this is simpler).
 
-### D2 — The clamp: `cursor_hw = max(cursor_hw, min(cursor_in, out_seq))`.
+### D2 — The clamp: `cursor_hw = max(cursor_hw, min(cursor_in, served_hw))`, and the door refuses what it cannot clamp. (CORRECTED at the rung's final review)
 
-The `min` against `out_seq` is load-bearing, not defensive. With RAM cursors,
-`cursor_in > out_seq` occurs exactly when porta's store was reset under a still-running
-node. Recording that impossible cursor into a monotonic column would make the guard itself
-suppress the fresh store's stream rows `1..cursor_in` — rows the node has never seen —
-forever. Clamped, the fresh store simply has no memory, which is the truth. The node-side
-view of the same event (a running node pulling nothing until `out_seq` passes its cursor)
-is pre-existing behaviour, unchanged here, and self-heals on the node's next reboot
-precisely because the cursor is RAM (D3).
+As first approved, the clamp was `min(cursor_in, out_seq)` — and the final review proved
+that version CREEPS: re-evaluated on every check-in against a growing `out_seq`, a stale
+impossible cursor (porta store reset under a still-running node) gradually marks
+never-served rows as applied — check-in at cursor 500 against `out_seq` 0 records 0, the
+operator writes two rows, the next check-in at cursor 500 records 2, and the node's
+eventual reboot silently never receives them. The exact inversion of what this decision
+existed to prevent.
+
+The correction is two parts, both from the same principle — porta only ever records what
+it can vouch for:
+
+1. **The receipt is bounded by what was SERVED.** `served_hw` is the highest seq actually
+   delivered to the node in a capped batch (`NoteServed`, from the pull door, post-capping,
+   only when entries rode the batch — an empty batch's `hi` is the node's cursor echoed,
+   not a delivery). A node cannot have applied what was never served, so
+   `cursor_hw <= served_hw` always.
+2. **An impossible cursor is refused, not recorded.** A pull declaring
+   `cursor_in > out_seq` names a history this store never issued — the node is synced to
+   a different store (a reset, a restore). The door answers `#err` (the node's rete#199
+   `refused`/`lastErrMsg` machinery makes it operator-visible) and records nothing; the
+   node's next reboot resyncs from 0. Refuse-don't-guess is the same posture as closed
+   decoding. This also closes the second-order case the served-bound alone leaves open:
+   without the refusal, once `out_seq` outgrows the stale cursor, rows above it would be
+   served and acked, and the monotonic watermark would then blanket the never-served rows
+   below it.
 
 ### D3 — The node's cursor stays RAM, deliberately.
 
@@ -147,6 +166,9 @@ counter, a log line, or a class knob waits for a demonstrated need.
 | lost BATCH within a boot | cursor and hw both unmoved; full re-serve; at-least-once holds |
 | row written while node is down | `seq > cursor_hw`; delivered exactly once to the next boot |
 | push-direction restart (#162) | untouched; different sequence space, different column |
+| stale cursor persists across new writes (the creep) | refused at the door (D2 pt 2); nothing recorded, nothing served, `obs/health.ref` rises |
+| restore from an older backup | the store forgot acks it once held; those streams re-serve and re-execute — no watermark survives a store's own amnesia. Documented, not mechanised |
+| node down across the upgrade that adds the guard | its first cold boot replays old streams ONCE more (served_hw/cursor_hw backfill 0, guard latches from the next ack) — expected, not a failed fix |
 
 ## 5. Documents of record and issue fates
 

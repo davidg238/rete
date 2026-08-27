@@ -260,9 +260,12 @@ next.
 - **A rewrite may delete a mechanism, but it may not silently delete a capability** (D8).
   Anything the old system could answer that the new one cannot is a regression wearing the
   costume of a simplification. This is why demolition was preceded by an audit.
-- **Replay-from-0 is designed behaviour, and it is dangerous for streams.** Cold boot =
-  cursor 0 = full replay is safe for cells (idempotent by construction) but replaying
-  `goal/do/reboot` reboots the node again. See design §8.
+- **Replay-from-0 is designed behaviour, and since 2026-08-26 it is safe per kind.** Cold
+  boot = cursor 0 replays cells as latest-value (idempotent); streams are guarded — porta
+  never re-serves a row the node has acked as applied (`nodes.cursor_hw`, bounded by
+  `served_hw`), so `goal/do/*` cannot re-execute across reboots. See
+  `porta/docs/design/2026-08-26-space-sync-durability-trio-design.md` and
+  `PROTOCOL-NSL.md` §3.
 - Bulk transfer (images, profiler blobs) is **deliberately off the space** and deferred to a
   CoAP blockwise plane; auth (G5) is out of this rung.
 - Go 1.26, sqlite via `github.com/mattn/go-sqlite3`, cobra. Copyright header

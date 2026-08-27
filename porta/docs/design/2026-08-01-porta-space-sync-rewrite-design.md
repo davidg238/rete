@@ -459,7 +459,10 @@ Landing in `~/workspace/tuvm` and `~/workspace/nsl-tuvm`, conforming to this doc
   which is entangled with the DS3231, the strike driver and #105's boot-energise defect.
 - **The cursor lives in RAM for this slice.** Cold boot = cursor 0 = full replay is the
   *designed* behaviour (`PROTOCOL-NSL.md` §3), so NVS persistence is a later optimisation
-  and not a prerequisite. The flash-wear question stays open (§7.1 of that document).
+  and not a prerequisite. (2026-08-26: "for this slice" became a decision — the cursor is
+  deliberately RAM, D3 of `2026-08-26-space-sync-durability-trio-design.md`, and §3's
+  replay guard is what makes cursor-0 safe for streams. The flash-wear question dissolved
+  with it.)
 
 ---
 

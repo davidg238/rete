@@ -251,11 +251,19 @@ and what replay-from-0 MEANS is per kind (design 2026-08-26 D1):
   is bounded by tree size and idempotent by construction;
 - **streams** — only entries above the node's acked high-water. The gateway
   keeps, per node, the maximum cursor the node has ever declared applied
-  (`cursor_hw`, monotonic, clamped to the gateway's own out-seq), and never
-  serves a stream row at or below it — to any boot, on any path, uniformly.
-  An applied `goal/do/*` action therefore cannot re-execute across reboots;
-  an UNAPPLIED entry is served until acked, so at-least-once within a boot
-  and delivery of rows written during an outage are both unchanged.
+  (`cursor_hw`, monotonic, clamped to what the gateway has actually SERVED —
+  `served_hw`, the highest seq delivered in a capped batch — because a node
+  cannot have applied what was never served), and never serves a stream row
+  at or below it — to any boot, on any path, uniformly. An applied
+  `goal/do/*` action therefore cannot re-execute across reboots; an
+  UNAPPLIED entry is served until acked, so at-least-once within a boot and
+  delivery of rows written during an outage are both unchanged. Two honest
+  edges: the receipt attests DELIVERED-AND-OFFERED, not executed — a node
+  that sheds or counts-and-drops an entry still advances its cursor past it
+  (surfacing that drop is node-side work, tracked on #232) — and a pull
+  declaring a cursor beyond the store's own out-seq is REFUSED (`#err`,
+  visible in `obs/health.ref`) rather than recorded: that node is synced to
+  a different store's history, and its next reboot resyncs from 0.
 
 **A cell's `seq` is not a liveness signal across a reboot.** The counter is RAM state and
 restarts at 0 on every boot — porta logs the restart and adopts the node's declared
