@@ -44,17 +44,17 @@ if ! command -v go >/dev/null 2>&1; then
   echo "SKIP: go is not on PATH — cannot build the porta counterparty"; exit 0
 fi
 
-echo "[1/8] build porta"
+echo "[1/9] build porta"
 ( cd "$PORTA_DIR" && go build -o /tmp/porta ./cmd/porta )
 
-echo "[2/8] host-ABI layout descriptor"
+echo "[2/9] host-ABI layout descriptor"
 gcc -std=c99 -Isrc tools/dump_layout.c -o /tmp/dl
 /tmp/dl > /tmp/layout.json
 
-echo "[3/8] compile PortaBridgeNode.nsl -> .oimg"
+echo "[3/9] compile PortaBridgeNode.nsl -> .oimg"
 python3 "$NSL" zephyr/PortaBridgeNode.nsl /tmp/porta_node.oimg --format=oimg --layout=/tmp/layout.json
 
-echo "[4/8] build the image VM"
+echo "[4/9] build the image VM"
 # -DOEVM_METHOD_PROFILE: leg 8 below drives a real dbg/req profile window end
 # to end. Without the define `profileStart`/`profileStop` are silent no-ops
 # (platform.c:1217), so the leg would pass on a node that never counted — the
@@ -73,7 +73,7 @@ gcc -Wall -std=c99 -DOEVM_METHOD_PROFILE -Isrc \
     src/mirror.c \
     src/oimg_loader.c src/kernel_boot.c oevm_image_main.c -o /tmp/oevm_porta -lm
 
-echo "[5/8] start porta serve on udp 127.0.0.1:16969"
+echo "[5/9] start porta serve on udp 127.0.0.1:16969"
 rm -f "$DB"
 # --manifest arms the rete#243 kind+schema gate for the WHOLE run: every path
 # the real node pushes below must clear the closed manifest, so a green run is
@@ -100,7 +100,7 @@ grep -q "serving the space" /tmp/porta_serve.log || {
 # publishHealth used to hardcode — so a gate run at boot 1 could not tell a real
 # counter from the literal, and would have stayed green if anyone put it back.
 # Seeding 40 makes the node latch 41, a value nothing hardcodes.
-echo "[6/8] start the node"
+echo "[6/9] start the node"
 echo 40 > /tmp/porta_node_bootid
 NODE_BOOT=41
 OEVM_TIMER_WALLCLOCK=1 OEVM_BOOTID_FILE=/tmp/porta_node_bootid OEVM_NODE_ID="$NODE" \
@@ -110,7 +110,7 @@ for _ in $(seq 1 50); do grep -q "PORTA NODE READY" /tmp/porta_node.log && break
 grep -q "PORTA NODE READY" /tmp/porta_node.log || {
   echo "FAIL: node did not start"; cat /tmp/porta_node.log; exit 1; }
 
-echo "[7/8] drive it"
+echo "[7/9] drive it"
 # Every piped grep below is `grep X >/dev/null`, never `grep -q`: this script
 # runs under pipefail, and -q exits at the first match — the still-writing
 # `porta get` then dies of SIGPIPE and pipefail scores a SUCCESSFUL match as a
@@ -314,7 +314,7 @@ echo "  sys/metrics accumulates in the event log: $METRICS_ROWS rows — the run
 #
 # The node closes its one window on the first tick where the gateway has acked, so this
 # waits rather than assuming a tick count.
-# This leg is where the pipefail/SIGPIPE class (see [7/8] above) was found:
+# This leg is where the pipefail/SIGPIPE class (see [7/9] above) was found:
 # diag/spans/checkIn matches on row 2 of a 16-row dump, maximum exposure, and
 # rete#243's slightly slower store Open shifted the scheduling enough to trip
 # it three runs out of three on 2026-08-25. rete#260 swept the rest.
@@ -352,7 +352,7 @@ echo "  diag/spans: $SPAN_ROWS cells in porta's tree, rows and summary (tuvm#107
 # `mprof[exit]` (vm.c's destructor, gated on OEVM_MPROF_DUMP) and `mprof[flip]`
 # / `mprof[dump]` under the old countdown seam, and a grep for the bare prefix
 # would score any of them as a window that closed.
-echo "[8/8] dbg/req opens and closes a profile window"
+echo "[8/9] dbg/req opens and closes a profile window"
 /tmp/porta put --db "$DB" "$NODE" dbg/req "profile 3000" --kind stream >/dev/null
 for _ in $(seq 1 100); do
   grep -q 'mprof\[window\]' /tmp/porta_node.log && break; sleep 0.4
@@ -363,5 +363,35 @@ grep -q 'mprof\[window\]' /tmp/porta_node.log || {
   echo "      parseProfileMs: -> timers after: -> sys/profileEnd -> profileStop."
   tail -40 /tmp/porta_node.log; exit 1; }
 echo "  the window closed itself and dumped — porta never sent a stop"
+
+# rete#114 — the leg NO gate had: a sys/panic row actually ARRIVING at porta.
+# Before #114 nothing subscribed the path, so the app-side publication died
+# undelivered at the drain on every boot, and this gate — the only one that runs
+# both halves against each other — never noticed, because it never looked. The
+# node is restarted (a reboot is exactly the scenario: the note is read at
+# boot) with the host-only OEVM_TEST_PANIC_NOTE seam planting a watchdog note;
+# the bridge's offerPanic must carry it over the real wire. The re-offer state
+# machine's arms are proven in 22_spacesync/24; THIS asserts delivery.
+echo "[9/9] rete#114: a planted RebootNote reaches porta as sys/panic"
+kill $NODE_PID 2>/dev/null || true
+sleep 0.3
+OEVM_TIMER_WALLCLOCK=1 OEVM_BOOTID_FILE=/tmp/porta_node_bootid OEVM_NODE_ID="$NODE" \
+  OEVM_TEST_PANIC_NOTE=1 \
+  /tmp/oevm_porta /tmp/porta_node.oimg >/tmp/porta_node2.log 2>&1 &
+NODE_PID=$!
+for _ in $(seq 1 100); do
+  /tmp/porta log --db "$DB" "$NODE" --limit 60 2>/dev/null | grep "sys/panic" >/dev/null && break
+  sleep 0.3
+done
+/tmp/porta log --db "$DB" "$NODE" --limit 60 2>/dev/null | grep "sys/panic" >/dev/null || {
+  echo "FAIL: the planted note never arrived as a sys/panic row. The chain is"
+  echo "      reboot_note_init (OEVM_TEST_PANIC_NOTE seam) -> platform panic ->"
+  echo "      PortaBridge offerPanic -> the bridge's own sys/panic capture -> push."
+  tail -30 /tmp/porta_node2.log; exit 1; }
+/tmp/porta log --db "$DB" "$NODE" --limit 60 2>/dev/null | grep "sys/panic" | grep "watchdog" >/dev/null || {
+  echo "FAIL: a sys/panic row arrived but its reason is not #watchdog — the planted"
+  echo "      note carried RN_REASON_WATCHDOG, so the record was built wrong."
+  /tmp/porta log --db "$DB" "$NODE" --limit 10; exit 1; }
+echo "  sys/panic arrived over the wire with reason #watchdog — must-deliver, delivered"
 
 echo "PORTA SYNC OK"
