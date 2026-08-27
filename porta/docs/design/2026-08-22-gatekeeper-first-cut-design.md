@@ -598,3 +598,71 @@ documents-of-record index. Zero new server mechanisms — a static file plus the
 shell already had. What earns the fuller page back: the descriptor table landing, at which
 point the strip's own limits (no per-node rows, no transport, no goal/obs diff) name the
 first three queries it should serve.
+
+## Addendum 2026-08-27 — three corrections from authoring the descriptor table (§4.4)
+
+Task 1 landed: `protocol/descriptors/records.yaml` (20 record shapes, 81 fields, 4 scalar
+rows), `porta/internal/gate/descriptors.go`, and the completeness gate as a Go test under
+`go test ./...`. Three things the design got wrong or did not know, corrected here rather
+than papered over in the code.
+
+### B1 — the descriptor table is keyed by RECORD SHAPE, not by field name (corrects §4.4)
+
+§4.4's exemplar is a flat map keyed on the bare field: `lfb:` at the top level, with
+`record` and `path` as attributes inside. **That key collides.** `bootId` rides in both
+`Panic` and `Reset`; `image` in `App`, `AppObs` and `Build`; `n` in `LatencySpan` and
+`SpanCapture`; `monoMs` in `Panic` and `Metric`; `mode`, `triggers`, `lifecycle` and
+`runlevel` each in two shapes. A flat table silently keeps one and loses the other.
+
+**Resolution:** the table is keyed by CDDL rule — the shape — and `paths` is a list, because
+one shape legitimately rides several paths (`goal/mode` + `obs/mode`; `sys/latency` +
+`diag/spans/<span>`). Field entries live in an ordered list under the shape. This also makes
+§4.2's per-path tables fall out cleanly: the table name is *derived* from the path
+(`TableName`, never authored, so it cannot drift from the path it holds) and its columns
+come from the shape's descriptors.
+
+### B2 — `status: live | specified`, because eight of twenty shapes have no producer
+
+Authoring against MANIFEST surfaced something no document said: **`Mode`, `Debug`,
+`Profile`, `Reboot`, `Overrun`, `Print`, `Metric` and `Reset` are catalogued shapes that
+nothing in this tree builds or consumes.** (`sys/reset` is the sharpest case: every bridge
+`subscribeStream:`s it, so the delivery path is wired — and no code anywhere constructs a
+`Reset`, so the channel is drained and never fed.) An agent querying those paths gets
+silence, and silence at a path is otherwise indistinguishable from a dead node.
+
+So each record carries `status`. `live` means something builds it today; `specified` means
+the shape is catalogued and the silence is expected. This is authored, not derived — a
+producer scan across nsl and Go would be a second parser over source, which is exactly what
+A1 rejected. It is checked only for vocabulary; it goes stale the day a producer lands, and
+the cost of that staleness is a query surface that under-promises.
+
+### B3 — `sumUsHi`/`sumUsLo` split DECIMALLY, and nothing said so
+
+`LatencySpan` carries the window's total microseconds across two fields. Every instinct says
+a 2^32 split. `nodus/oevm/src/span.c:85` writes `sum % 1000000000` to `sumUsLo` and
+`sum / 1000000000` to `sumUsHi` — **decimal**, so the total is
+`sumUsHi * 1e9 + sumUsLo`. A reader assuming binary is wrong by orders of magnitude, and
+every mean (`total / n`) derived from it is wrong with it. Neither `PROTOCOL-NSL-RECORDS.md`
+§4.4 nor `MANIFEST.cddl` says which, because neither is in the business of saying — this is
+precisely the class of fact D4 exists to carry, found by authoring the rule rather than by
+anyone hitting the bug.
+
+### What the gate now checks, and what witnessed it red
+
+`CheckCompleteness(manifest.Table, *Descriptors)` fails on: a wire field with no descriptor,
+a descriptor for a field not on the wire, a transposed pair, a manifest path no descriptor
+claims, a descriptor claiming a path the manifest lacks, an orphan rule, and a descriptor
+naming the wrong record tag (checked against the manifest's pinned encoded head). The
+loader separately refuses an unknown `unit`/`kind`/`status`, an empty `meaning`, a duplicate
+field, two shapes claiming one path, and — via `KnownFields` — a misspelt attribute.
+
+**Green on the first run is the shape of a false green**, so the red was witnessed before the
+green was believed: eight in-memory drift cases as permanent negative controls, plus one
+end-to-end run with a field genuinely added to `Health` in `MANIFEST.cddl` (caught by name,
+manifest then restored to its deployed md5).
+
+One property was added that the design did not ask for. The manifest's header *asserts* key
+order == wire order; `TestDescriptorOrderIsWireOrder` re-derives the bytewise sort from
+`cval.Encode` and checks the authored order against it. Without it, a mis-authored CDDL hands
+the completeness gate a wrong order and is agreed with — two documents consistent with each
+other and both wrong, which is the failure mode this whole rung exists to close.

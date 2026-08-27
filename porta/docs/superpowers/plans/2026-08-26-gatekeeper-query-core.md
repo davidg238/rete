@@ -9,7 +9,7 @@ recorded run against the real store (`soak-2026-08-04.db`, gw85224-01).
 (3) need value projection **and** the reading rules; (4) needs build segmentation. If the
 prediction fails, the design is wrong, not merely incomplete.
 
-## Progress (2026-08-26 — the foundation landed; query core is the next session)
+## Progress (2026-08-27 — Task 1 landed; the pipeline is the next session)
 
 The survey that opened this work produced five build-input corrections, recorded in the
 design's 2026-08-26 addendum (A1–A5): the completeness-gate authority is **MANIFEST.cddl,
@@ -24,10 +24,18 @@ policy (loud error, no field reaches the band today); the authorizer's 3-string 
 - Task 1 infra — **`manifest.Entry.Fields`** wire-ordered field retention + `Entries()` /
   `Path()`, so the completeness gate reuses the machine-normative parser (A1's resolution).
 
-**Deliberately deferred to keep tonight correct:** the descriptor table (`records.yaml`) and
-the completeness gate are NOT built yet — they must hold the wire truth, so **rete#267
-(tel/log lvl/txt) lands first**, then the descriptor is authored against corrected MANIFEST.
-Building on `text`/`level` now would enshrine a known-false pair the decoder cannot use.
+**That deferral is now closed.** The descriptor table and the completeness gate were held
+back until rete#267 (tel/log `lvl`/`txt`) landed, so the table would hold the wire truth
+rather than enshrining a known-false pair; #267 landed at `555922e` and Task 1 followed at
+`fd3bfb1`+.
+
+**Landed 2026-08-27 (Task 1):** `protocol/descriptors/records.yaml`,
+`porta/internal/gate/descriptors.go` and the completeness gate, with `gopkg.in/yaml.v3` as
+the one new dependency (pure Go, no transitive deps; a hand-rolled YAML subset would have
+been the larger mechanism). Three findings came out of authoring it and are recorded in the
+design's 2026-08-27 addendum: the per-rule keying correction, `status: live | specified`
+(eight of twenty shapes have no producer in this tree), and the `sumUsHi`/`sumUsLo` DECIMAL
+split, which a binary reading gets wrong by orders of magnitude.
 
 ## Global constraints
 
@@ -44,15 +52,28 @@ Building on `text`/`level` now would enshrine a known-false pair the decoder can
 
 ## Tasks
 
-### Task 1: the descriptor table + completeness gate
-- `protocol/descriptors/records.yaml` — one entry per wire field: record, path, name,
-  meaning, unit, kind, validity, segment, refs (design §4.4 shows the `lfb` exemplar).
-  Authored from the record field order in `nodus/nsl/lib/kernel.nsl`.
-- `porta/internal/gate/descriptors.go` — load YAML → schema (record→ordered columns),
-  notes lookup by key.
-- **Completeness gate (Go test, runs under `go test ./...`):** parse the record builders in
-  `kernel.nsl`, extract field symbols in wire order, fail if any wire field lacks a
-  descriptor entry OR the order disagrees. This is D5 made honest.
+### Task 1: the descriptor table + completeness gate — **DONE 2026-08-27**
+- `protocol/descriptors/records.yaml` — 20 record shapes (81 fields) + 4 scalar rows, each
+  field carrying name, meaning, unit, kind, and — where there is a real trap — validity,
+  segment and refs (design §4.4 shows the `lfb` exemplar).
+  **Keyed by CDDL RULE, not by bare field name** (the §4.4 exemplar's flat key collides:
+  `bootId` is in Panic and Reset, `image` in App/AppObs/Build, `n` in LatencySpan and
+  SpanCapture) and **authored from `protocol/MANIFEST.cddl`, not from `kernel.nsl`** —
+  addendum A1's resolution, which the bullets here predated.
+- `porta/internal/gate/descriptors.go` — load YAML → schema (`Columns(rule)` in wire order),
+  `Note(rule, key)` for the reading rule, `TableName(path)` derived and never authored.
+  Closed vocabularies for `unit`/`kind`/`status`, and required non-empty `meaning`, so a
+  descriptor cannot exist and say nothing.
+- **Completeness gate (Go test, runs under `go test ./...`):** `CheckCompleteness` walks
+  `manifest.Table.Entries()` — the machine-normative wire-order authority — and fails on a
+  missing field, an extra field, a transposed pair, an unclaimed path, an invented path, an
+  orphan rule, or a descriptor naming the wrong record tag. This is D5 made honest.
+- **Proven RED before green**, eight in-memory drift cases plus one end-to-end run against a
+  deliberately-drifted `MANIFEST.cddl` (a field added to `Health`: caught, named, restored).
+- Extra, not planned: `TestDescriptorOrderIsWireOrder` re-derives the bytewise sort from
+  `cval.Encode` and checks it against the authored order, so the manifest header's
+  "key order == wire order" is now a checked property rather than an assertion two documents
+  could agree on and both be wrong about.
 
 ### Task 2: `porta snapshot --out`
 - Subcommand in `porta/internal/portacli/` — `VACUUM INTO` a consistent point-in-time copy
