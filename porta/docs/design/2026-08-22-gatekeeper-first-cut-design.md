@@ -488,3 +488,89 @@ restarts freely, so it did not wait on a porta restart.
 five-question spike" — it predates this note, which ratified D3=(b) on 2026-08-22. The
 five-question spike is therefore §10's acceptance work, blocked on nothing. A correcting
 comment was posted on #198 the same day as this addendum.
+
+---
+
+## Addendum 2026-08-26 — build-input corrections found while opening the query core
+
+Building `porta/internal/gate` began with a full survey of the surfaces §2–§5 name. Five
+findings correct this design **before** the query core is built to it — recorded here so the
+"resolve contradictions, don't route around them" rule (CLAUDE.md) is honoured at the design
+level rather than papered over in code.
+
+### A1 — the completeness-gate authority is `MANIFEST.cddl`, not the nsl builders (corrects §4.4)
+
+§4.4 says the completeness gate "parses the record builders in `nodus/nsl/lib/kernel.nsl`,
+extracts the field symbols **in wire order**". **Builder order is not wire order.**
+`cval.Encode` sorts a record's map keys **bytewise over their encoded bytes**
+(`porta/internal/cval/encode.go`, "This is NOT the Map's own iteration order") — shorter
+names first, then lexicographic. `Kernel>>metrics` is authored `hsz lb hhw lfb gcc …`; the
+wire carries `lb gcc hhw hnl hsz lfb …`. A gate keyed on builder order fails on every
+multi-length-key record. Worse, three of the eight records (`Health`, `Reset`, and the
+per-app `Health` copies) are not built in `kernel.nsl` at all.
+
+**Resolution:** the authority is `protocol/MANIFEST.cddl` — it postdates this design (#243,
+2026-08-24), declares itself **machine-normative for path/kind/class/dir/shape**, and its
+header states **key order == wire order**. `porta/internal/manifest` already parses it; it
+now also retains the ordered field-key list per record row (`manifest.Entry.Fields`,
+`Entries()`, `Path()` — landed 2026-08-26). The completeness gate is a reuse of that parser,
+not a second parser over nsl source.
+
+### A2 — three catalogue drifts in §4.2's column lists
+
+§4.2 predates the MANIFEST pin and is wrong on three records. The corrected wire-order fields
+(from MANIFEST, hand-verified against the bytewise-sort rule):
+
+- **`obs_health` has SEVEN fields, not six:** `up bid pto ref rej sdr wak`. §4.2 omits
+  **`rej`** (the #232 rider — a counted-and-dropped inbound entry, permanent under the replay
+  guard, so it must be visible).
+- **`obs_build` needs `man` and does not need `sdk`/`image` from any live builder:** the
+  shipping `publishBuild:` writes `chip`, `build`, and `man` (the #243 truncated manifest
+  pin) when pinned; `sdk`/`image` are optional and unwritten today. §4.2 lists
+  `chip build sdk image` and omits `man`.
+- **`sys_metrics` wire order is** `lb gcc hhw hnl hsz lfb ovr pco pdr pst qhw hnhw` (§4.2's
+  authored order `hsz lb hhw lfb gcc …` is builder order — see A1).
+
+### A3 — `tel/log`'s field names are a genuine WIRE-CONTRACT BUG, filed separately
+
+Every shipping producer writes `#lvl`/`#txt` (`kernel.nsl:2769` `telLog:`, and all six
+per-app bridges), and the node's own tests read `at: #lvl`. But `MANIFEST.cddl`'s `log` rule,
+the golden generator (`manifest_goldens.nsl`), `PROTOCOL-NSL-RECORDS.md` §4, and this design
+§4.2 all say `text`/`level`. **No gate catches it:** porta's manifest gate checks only the
+record *head* bytes (tag + map header), never the field keys, and the golden validates
+against the CDDL it agrees with — not against the producer. This is **rete#267**
+(a wire-contract fix with zcbor + golden-regeneration steps), and the descriptor table and
+`tel_log` materializer should land **after** it, so they hold the wire truth (`lvl`/`txt`)
+rather than enshrining the documented-but-false pair.
+
+### A4 — the ±(2^64−1) band has no SQLite representation (a materializer policy, §3)
+
+`cval.Decode` yields `cval.Uint` / `cval.NegUint` for integers outside `int64`
+(`value.go`). SQLite's INTEGER is `int64`, so the materializer cannot round-trip the band
+into a scratch column silently. **Today no catalogue field reaches the band** (every metric
+is a small `uint`), so the cheap correct policy is a **loud error on an out-of-band value**,
+never a truncation — recorded here so the materializer is written that way from the start.
+
+### A5 — the authorizer callback drops SQLite's 4th string (a §3 mechanism note)
+
+`go-sqlite3 v1.14.40`'s `RegisterAuthorizer(func(op int, arg1, arg2, arg3 string) int)`
+forwards **three** strings, not the four the pipeline sketch assumed: `arg3` is the database
+name and the trigger/view-name is dropped. For `SQLITE_READ` this is exactly `(table,
+column, dbname)` — sufficient for §3 step 2's referenced-column recording. It only bites if
+the authorizer ever needs to reason about view/trigger provenance, which the first cut does
+not. Reached via a **named** `ConnectHook` driver so porta's plain `"sqlite3"` is untouched;
+the wall-clock deadline is `context.WithTimeout`+`QueryContext` (no exported `Interrupt()`),
+backstopped by `SQLITE_LIMIT_VDBE_OP`.
+
+### Landed 2026-08-26 (the foundation, ahead of the query core)
+
+- **`porta snapshot --out`** (`Store.SnapshotInto`, `VACUUM INTO`, refuses an existing dest)
+  — the §2 interface primitive; tested to open `immutable=1` under an OS-level `chmod a-w`
+  boundary, leave the source writable, and write no `-wal`/`-shm` sidecar.
+- **`manifest.Entry.Fields`** — wire-ordered field retention (A1's resolution), with
+  `Entries()` and `Path()` accessors.
+
+The descriptor table (`protocol/descriptors/records.yaml`), the completeness gate, the
+materializer/authorizer pipeline, the views, and the five-question acceptance remain — a
+clean next session with the schema authority (A1), the field sets (A2), and the mechanism
+realities (A4/A5) now pinned, and A3 sequenced first.

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/davidg238/porta/internal/cval"
@@ -66,8 +67,9 @@ type Entry struct {
 	Class   string
 	Dir     Dir
 	Rule    string
-	Head    []byte // record rows: required value prefix; nil for scalar rows
-	scalars int    // scalar rows: allowed first-byte class mask
+	Head    []byte   // record rows: required value prefix; nil for scalar rows
+	Fields  []string // record rows: field key literals IN WIRE ORDER (excludes the tag); nil for scalar rows
+	scalars int      // scalar rows: allowed first-byte class mask
 }
 
 // Table is the compiled manifest. A nil *Table gates nothing — every check
@@ -77,6 +79,31 @@ type Table struct {
 	SHA256  string
 	literal map[string]*Entry
 	wild    []*Entry
+}
+
+// Path renders an entry's pattern back to a path string (wildcard segments kept
+// as written, e.g. "obs/apps/<name>"). The gatekeeper descriptor table keys on
+// this.
+func (e *Entry) Path() string { return strings.Join(e.Pattern, "/") }
+
+// Entries returns every compiled row (literal paths, then wildcard patterns) in a
+// deterministic order. The gatekeeper query core walks these to build its schema
+// and to gate descriptor completeness against the wire-order authority.
+func (t *Table) Entries() []*Entry {
+	if t == nil {
+		return nil
+	}
+	keys := make([]string, 0, len(t.literal))
+	for k := range t.literal {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	out := make([]*Entry, 0, len(t.literal)+len(t.wild))
+	for _, k := range keys {
+		out = append(out, t.literal[k])
+	}
+	out = append(out, t.wild...)
+	return out
 }
 
 var (
@@ -143,6 +170,30 @@ func recordHead(name string) ([]byte, error) {
 		return nil, fmt.Errorf("record head derivation broke: %x", enc)
 	}
 	return enc[:len(enc)-1], nil
+}
+
+// fieldKeyRe finds the map-key symbol references in a record body: `sym-X =>`.
+// It matches only keys (left of `=>`), so a `=> anysym` value type is never
+// mistaken for a field. The tag sym (before the `{`) has no `=>` and is excluded
+// by construction.
+var fieldKeyRe = regexp.MustCompile(`(sym-[A-Za-z0-9-]+)\s*=>`)
+
+// recordFields returns a record body's field key literals IN WIRE ORDER — which,
+// because the wire sorts map keys bytewise (cval.Encode), is exactly the order
+// MANIFEST.cddl lists them (its header declares key order == wire order). The
+// tag is excluded. This makes the manifest the single wire-order authority the
+// gatekeeper descriptor table checks against — NOT the nsl record builders,
+// whose source order is not wire order.
+func recordFields(body string, syms map[string]string) ([]string, error) {
+	var out []string
+	for _, m := range fieldKeyRe.FindAllStringSubmatch(body, -1) {
+		lit, ok := syms[m[1]]
+		if !ok {
+			return nil, fmt.Errorf("references undefined %s", m[1])
+		}
+		out = append(out, lit)
+	}
+	return out, nil
 }
 
 // scalarMask resolves a scalar-choice rule body ("int / tstr / anysym") to a
@@ -282,6 +333,7 @@ func Parse(raw []byte) (*Table, error) {
 	for _, pr := range ruleAnnots {
 		body := rules[pr.name]
 		var head []byte
+		var fields []string
 		mask := 0
 		if m := recRe.FindStringSubmatch(body); m != nil {
 			lit, ok := syms[m[1]]
@@ -293,6 +345,11 @@ func Parse(raw []byte) (*Table, error) {
 				return nil, err
 			}
 			head = h
+			f, err := recordFields(body, syms)
+			if err != nil {
+				return nil, fmt.Errorf("rule %s: %w", pr.name, err)
+			}
+			fields = f
 		} else {
 			m, err := scalarMask(body, rules, 0)
 			if err != nil {
@@ -302,7 +359,7 @@ func Parse(raw []byte) (*Table, error) {
 		}
 		for _, a := range pr.annots {
 			e := &Entry{Pattern: strings.Split(a.path, "/"), Kind: a.kind,
-				Class: a.class, Dir: a.dir, Rule: pr.name, Head: head, scalars: mask}
+				Class: a.class, Dir: a.dir, Rule: pr.name, Head: head, Fields: fields, scalars: mask}
 			if strings.Contains(a.path, "<") {
 				t.wild = append(t.wild, e)
 			} else {

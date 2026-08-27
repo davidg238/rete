@@ -5,6 +5,7 @@ package space
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -779,3 +780,24 @@ func escapeLike(s string) string {
 // DB exposes the handle for tests and for the operator surface's ad-hoc
 // queries. Not part of the protocol path.
 func (s *Store) DB() *sql.DB { return s.db }
+
+// SnapshotInto writes a consistent, compacted, self-contained copy of the store
+// to dest via `VACUUM INTO`. It runs against the live WAL database without
+// blocking the writer and does not disturb the source (gatekeeper first-cut
+// design §2). dest must not already exist — SQLite refuses to overwrite, which
+// is the safe default for a named artifact. The destination path is bound as a
+// parameter, never interpolated, so an operator-supplied path is data.
+func (s *Store) SnapshotInto(dest string) error {
+	// Refuse an existing destination explicitly: SQLite's VACUUM INTO tolerates
+	// some pre-existing files rather than erroring, and a named artifact must
+	// never be silently overwritten.
+	if _, err := os.Stat(dest); err == nil {
+		return fmt.Errorf("snapshot into %q: destination already exists", dest)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("snapshot into %q: %w", dest, err)
+	}
+	if _, err := s.db.Exec("VACUUM INTO ?", dest); err != nil {
+		return fmt.Errorf("snapshot into %q: %w", dest, err)
+	}
+	return nil
+}
