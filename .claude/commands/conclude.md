@@ -19,7 +19,7 @@ This extends the global base at `~/.claude/commands/conclude.md`. Same order: **
    - verify: `ssh gw85224-01 md5sum porta-v2/docs/status/dev-status.html` matches the local file
    If the page cannot be published, say so in the handoff — do not skip silently.
 
-4. **Git**: report branch, uncommitted files, unpushed commits. **Never commit or push — David directs both.**
+4. **Git**: commit everything the session touched (`refs #N`, ≤5-line body) and `git push -u origin HEAD` — every session (David, 2026-08-28: the session end is the milestone and the backup). Ask first only for secrets, binaries, or files that were dirty before the session began. Never force-push.
 
 5. **Memories**: preferences and gotchas ONLY. Anything about *state* (what is done, what is next, how to publish something) goes in this file, `CLAUDE.md`, or a doc — never memory. A memory that says "remember to X at close-out" is a bug: move X into this file.
 
