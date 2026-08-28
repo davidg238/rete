@@ -1209,7 +1209,7 @@ alive under the condition that killed it at 111.7 s, zero WEDGE lines) and `wedg
 **Dropped:** the `replyBudget` derivation. It targeted a mechanism that does not exist.
 **Kept, as a smaller real defect:** a node under silence delivers 4.007 s while declaring
 `cad: 2000`, so `obs/liveness` misreports it to porta's `gw/liveness` verdict — an honesty
-bug against D2, wanting its own issue. **Kept as data:** the control arm at `cad: 30000` held
+bug against D2, tracked as rete#271. **Kept as data:** the control arm at `cad: 30000` held
 **mean 30.000 s, sd 0.089, n=34** over 1050 s against the same silent injector.
 
 **Opened: rete#270.** Because `pending` is uninformative, every reboot attributed to a node
@@ -1218,8 +1218,8 @@ a log that also carries an OOM. Not affected: #199 (a real arena death, `request
 logs with no wedge) and #232's refusing path (returns on the first datagram, never
 saturates).
 
-**Next, in order:** (1) rete#270's sweep of the 58 events; (2) the cadence-honesty issue
-above; (3) whether `wedge-quiet`'s premise needs strengthening — it gates a node with a slow
+**Next, in order:** (1) rete#270's sweep of the 58 events; (2) rete#271, the cadence-honesty
+defect; (3) whether `wedge-quiet`'s premise needs strengthening — it gates a node with a slow
 *declared* period and never covered one whose *delivered* period drifts, which is the case
 that bit.
 

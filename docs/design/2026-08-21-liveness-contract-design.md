@@ -450,7 +450,7 @@ it was aimed at a mechanism that does not exist, and `N` never needed choosing.
 Survives, and is smaller: **a node under silence does not deliver its declared cadence.**
 `c6spare` declares `cad: 2000` and ticks at 4.007 s, so `obs/liveness` misreports it to
 porta's `gw/liveness` verdict. That is an honesty defect against D2, not a fatal one, and it
-wants its own issue rather than a ride on this fix.
+is tracked separately as rete#271 rather than riding this fix.
 
 Also measured and worth keeping: the control arm at `cad: 30000` held **mean 30.000 s,
 sd 0.089, n=34** over 1050 s against the same silent injector — when the spin fits inside the

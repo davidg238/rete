@@ -153,6 +153,37 @@ class TimersStaging usingPlatform: platform = () (
    came to 16000 ms here and neither is derived from the other. Change one and the
    other does not follow.
 
+   CAUTION — THE DEADLINE WAS SOUND; THE CONDITION IT GATED WAS NOT (rete#269,
+   2026-08-27, fixed in `d5bddaf`). Everything above about `shortest_period ×
+   WEDGE_SLACK` still holds. What did not hold is what `pulse-undrained` DID with it:
+   until that fix it asked `pulse_pending() == 0` — the mailbox's DEPTH AT A SAMPLING
+   INSTANT — and that is a point sample of a transient, so it aliases against the
+   workload. A node whose tick costs ~4 s under a silent uplink drains one coalesced
+   pulse per 4.007 s while the ISR posts every 2 s; the mailbox empties for ~1 s inside
+   every tick, but the observer samples every 1001 ms, four samples span 4004 ms
+   against a 4007 ms cycle, and that 3 ms beat walks the one sample that catches the
+   empty window out of it. The detector then rebooted a node that was still draining
+   and still printing ticks, at exactly `8 × cad`.
+
+   SO: `deadline=16000ms` IN A DUMP IS NOT BY ITSELF EVIDENCE OF A WEDGE. It is the
+   detector's own round number, and a death that lands on it is a reason to suspect
+   the instrument. `pending` cannot help — coalescing pins it at 1 for a stuck VM and
+   a merely-slow one alike, which is why no dump taken before the fix can separate
+   them. 58 `deadline=16000ms` events sit in the console archive and none of them is
+   in a log that also carries an OOM; rete#270 is the sweep.
+
+   WHY THE 2026-08-22 RUN ABOVE STILL STANDS, and it is the distinction to carry: its
+   evidence is not that the detector fired. Its evidence is **18.03 s and ZERO console
+   lines of any kind** between the wedge and the reset — the node was independently
+   observed to be silent, which no aliasing artefact can produce. A wedge claim needs
+   evidence the node STOPPED, not merely that the observer said so.
+
+   Since the fix the condition asks for PROGRESS instead of depth: `pulse_drained()`,
+   a monotonic count of items the pump delivered, resets the timer whenever it moves.
+   A counter integrates across the sampling interval and cannot alias; a VM genuinely
+   stuck in the interpreter never moves it. The deadline arithmetic is untouched, and
+   WEDGE_SLACK remains the one invented constant.
+
    NOT GATED BY ANY OF THE ABOVE: D3's coalescing claim — that two obligations at
    different multiples of one base tick cost fewer radio wakes than the sum of
    independent periods — needs a second obligation and a wake counter, and the node
