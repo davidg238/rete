@@ -44,6 +44,7 @@
 #include <zephyr/device.h>
 #include <stdbool.h>
 #include "reboot_note.h"
+#include "observer_core.h"
 #include "pulse_backend.h"
 
 #ifdef CONFIG_TASK_WDT
@@ -56,15 +57,13 @@
    src/backend/zephyr/timer_zephyr.c. */
 int timer_target_snapshot(uint32_t *period_ms, uint32_t *since_ms, int max);
 
-#define OBS_MAX_TIMERS 8    /* == OEVM_MAX_TARGET_TIMERS */
-
-/* The ONE invented constant of the design (§3.3), shipped at 8. Deliberately generous:
-   the cost of a false reboot is far higher than the cost of a slow detection, and the
-   measured worst-case pushBuild is 132 ms against a 2 s period. It is falsifiable BY
-   CONSTRUCTION — a wrong SLACK produces a reboot whose dump says exactly how overdue it
-   thought the node was, and a constant that announces its own error when wrong is worth
-   more than one argued to be right in advance. */
-#define WEDGE_SLACK 8u
+/* rete#269 — OBS_MAX_TIMERS, OBS_WEDGE_SLACK, OBS_MAX_JUDGEABLE_MS, the OBS_COND_*
+   enum and the VERDICT ITSELF now live in src/observer_core.h, which is portable C and
+   is therefore reachable by tests/test_observer_core.c on the host. This file no longer
+   holds a copy of any of them: a decision that exists twice is one that can drift, and
+   the drift would be invisible exactly here, since no host gate compiles this TU
+   (footprint.sh excludes every source that #includes <zephyr/...>). What stays below is
+   everything that ACTS — the thread, the watchdogs, the dump, the reboot. */
 
 /* A sampling resolution, not a deadline. It must sit far below the shortest deadline in
    play; the shortest this bench can produce is the bridge's 8 x 2000 ms, which this
@@ -76,22 +75,14 @@ int timer_target_snapshot(uint32_t *period_ms, uint32_t *since_ms, int max);
    dump will say so, because the wedge path prints a condition and this path prints none. */
 #define OBSERVER_WDT_MS 30000
 
-/* A deadline longer than this cannot be judged at all: `since_ms` comes from
-   k_uptime_get_32(), which wraps at ~49.7 days, so a comparison against a larger number is
-   not merely imprecise, it is unsound — and it would fail toward a FALSE TRIP, the one
-   failure mode §8 says would make this instrument worse than nothing. Such a timer is
-   skipped and said to be skipped. */
-#define OBS_MAX_JUDGEABLE_MS 0x7FFFFFFFull
-
-enum { COND_NONE = 0, COND_TIMER_OVERDUE, COND_PULSE_UNDRAINED };
-
 static const struct device *g_hw_wdt;
 static int g_wdt_channel = -1;
 
-/* Kept so the dump can name the margin rather than merely the condition — "which one
-   fired, and by how much" is the first fact anyone chasing the next wedge will want. */
-static uint32_t g_margin_ms;
-static uint32_t g_deadline_ms;
+/* The verdict's state, carried between samples, plus what the dump names afterwards
+   (`margin_ms`/`deadline_ms`) — "which one fired, and by how much" is the first fact
+   anyone chasing the next wedge will want. Zero at boot, and nothing outside
+   observer_core_verdict() writes it. */
+static struct ObsCore g_core;
 
 /* rete#269 — a ring of what each observer sample actually saw, printed in the dump
    beside the evidence #222 already preserves. It exists because the reboot destroys the
@@ -105,15 +96,13 @@ static uint32_t g_deadline_ms;
 struct ObsTrace { uint32_t up, pend, drn, since; };
 static struct ObsTrace g_trace[OBS_TRACE_N];
 static uint32_t g_trace_w;                /* monotonic write count; index is w % N */
-static uint32_t undrained_since_ms;       /* 0 == not currently undrained (was function-static) */
-static uint32_t last_drained_seen;        /* rete#269: pulse_drained() at the previous sample */
 
 static void obs_trace_record(void) {
     struct ObsTrace *e = &g_trace[g_trace_w % OBS_TRACE_N];
     e->up    = k_uptime_get_32();
     e->pend  = pulse_pending();
     e->drn   = pulse_drained();
-    e->since = undrained_since_ms;
+    e->since = g_core.undrained_since_ms;
     g_trace_w++;
 }
 
@@ -140,70 +129,20 @@ static void obs_trace_dump(void) {
 static bool g_trigger_armed;
 #endif
 
-/* Answers COND_* and fills g_margin_ms / g_deadline_ms. Both conditions derive their
-   deadline from state the app already declared; nothing global is assumed.
+/* Gathers one observation and hands it to the portable decision in
+   src/observer_core.h. THE RULE ITSELF IS NOT HERE, deliberately (rete#269) — it is
+   pure, so it belongs where tests/test_observer_core.c can sweep it on the host
+   instead of where only a board can reach it.
 
-   They are kept as TWO NAMED CONDITIONS rather than one merged predicate because the dump
-   reports which one fired. Neither alone covers both wedge shapes. */
+   What remains here is the seam: three target reads — the app's declared cadences,
+   the mailbox depth, and the monotonic drain counter — and the clock. */
 static int observer_verdict(void) {
-    uint32_t period[OBS_MAX_TIMERS], since[OBS_MAX_TIMERS];
-    int n = timer_target_snapshot(period, since, OBS_MAX_TIMERS);
-    if (n == 0) return COND_NONE;   /* the app declared no cadence: nothing to judge it
-                                       against, and guessing one is what §2 forbids */
-
-    /* §3.1 — an armed repeating timer is overdue against ITS OWN period. Catches the
-       timer subsystem itself stopping: the ISR no longer firing at all. A node with a
-       ten-minute timer is judged against ten minutes; one with a 2 s timer against 2 s. */
-    uint32_t shortest = 0;
-    for (int i = 0; i < n; i++) {
-        uint64_t deadline = (uint64_t)period[i] * WEDGE_SLACK;
-        if (deadline > OBS_MAX_JUDGEABLE_MS) continue;   /* unjudgeable; see the note above */
-        if (shortest == 0 || period[i] < shortest) shortest = period[i];
-        if (since[i] > (uint32_t)deadline) {
-            g_deadline_ms = (uint32_t)deadline;
-            g_margin_ms   = since[i] - (uint32_t)deadline;
-            return COND_TIMER_OVERDUE;
-        }
-    }
-    if (shortest == 0) return COND_NONE;   /* every declared timer was unjudgeable */
-
-    /* §3.2 — the ISR is firing and the mailbox is filling, but the VM is not draining it:
-       a VM stuck in the interpreter rather than blocked at the mailbox. Judged against the
-       SHORTEST declared period, because that is the fastest cadence the app claims to
-       service. */
-    {
-        uint32_t deadline = shortest * WEDGE_SLACK;
-        uint32_t now = k_uptime_get_32();
-        /* rete#269 — PROGRESS, NOT DEPTH. `pulse_pending() == 0` alone is a point sample
-           of a transient: at cad 2000 under silence the mailbox empties for ~1 s inside
-           every 4.007 s tick, and this thread samples every 1001 ms, so four samples span
-           4004 ms against a 4007 ms cycle. That 3 ms beat slowly walks the one sample that
-           catches the empty window straight out of it — and once no sample lands inside,
-           `held` runs free and reboots a node that is draining normally. Measured on
-           c6spare 2026-08-27: ticks 34-38 printed and `drained` climbed 35 -> 39 during the
-           very 16 s this called undrained, firing at exactly 16016 ms. Three earlier deaths
-           at the same deadline were the same false trip, not three wedges.
-
-           `pulse_drained()` cannot alias, because a monotonic counter integrates over the
-           whole interval instead of sampling an instant: if it moved, the VM ran the pump
-           between these two samples, whatever the mailbox happens to read right now. A VM
-           genuinely stuck in the interpreter never moves it, so wedge-detect is unaffected. */
-        uint32_t drained_now = pulse_drained();
-        bool progressed = (drained_now != last_drained_seen);
-        last_drained_seen = drained_now;
-        if (pulse_pending() == 0 || progressed) {
-            undrained_since_ms = 0;
-        } else {
-            if (undrained_since_ms == 0) undrained_since_ms = now ? now : 1u;
-            uint32_t held = now - undrained_since_ms;
-            if (held > deadline) {
-                g_deadline_ms = deadline;
-                g_margin_ms   = held - deadline;
-                return COND_PULSE_UNDRAINED;
-            }
-        }
-    }
-    return COND_NONE;
+    struct ObsSample s;
+    s.n = timer_target_snapshot(s.period_ms, s.since_ms, OBS_MAX_TIMERS);
+    s.now_ms  = k_uptime_get_32();
+    s.pending = pulse_pending();
+    s.drained = pulse_drained();
+    return observer_core_verdict(&g_core, &s);
 }
 
 #ifdef CONFIG_OEVM_WEDGE_FORENSICS
@@ -371,8 +310,8 @@ static void observer_forensics(void) { }
 static void observer_dump(int cond) {
     printk("oevm: WEDGE cond=%s overdue=%ums deadline=%ums up=%ums "
            "pending=%u pdr=%u pco=%u pst=%u consec=%u\n",
-           cond == COND_TIMER_OVERDUE ? "timer-overdue" : "pulse-undrained",
-           (unsigned)g_margin_ms, (unsigned)g_deadline_ms, (unsigned)k_uptime_get_32(),
+           cond == OBS_COND_TIMER_OVERDUE ? "timer-overdue" : "pulse-undrained",
+           (unsigned)g_core.margin_ms, (unsigned)g_core.deadline_ms, (unsigned)k_uptime_get_32(),
            (unsigned)pulse_pending(), (unsigned)pulse_drops(),
            (unsigned)pulse_coalesced(), (unsigned)pulse_stale(),
            (unsigned)reboot_note_consecutive() + 1u);
@@ -407,14 +346,14 @@ static void observer_thread_fn(void *a, void *b, void *c) {
 
     for (;;) {
 #ifdef CONFIG_OEVM_WEDGE_TRIGGER
-        /* The synthetic wedge: after the configured delay, stop answering COND_NONE. It
+        /* The synthetic wedge: after the configured delay, stop answering OBS_COND_NONE. It
            forces the VERDICT rather than faking the mailbox — faking the mailbox would
            test the trigger and not the path the verdict takes. */
         if (g_trigger_armed &&
             k_uptime_get_32() > (uint32_t)CONFIG_OEVM_WEDGE_TRIGGER_S * 1000u) {
             g_trigger_armed = false;
-            g_deadline_ms = 0; g_margin_ms = 0;
-            observer_dump(COND_PULSE_UNDRAINED);
+            g_core.deadline_ms = 0; g_core.margin_ms = 0;
+            observer_dump(OBS_COND_PULSE_UNDRAINED);
             reboot_note_write(RN_REASON_WATCHDOG, 0, 0, 0, k_uptime_get_32());
             if (reboot_note_consecutive() >= 3) observer_halt();
             sys_reboot(SYS_REBOOT_COLD);
@@ -422,7 +361,7 @@ static void observer_thread_fn(void *a, void *b, void *c) {
 #endif
         obs_trace_record();   /* rete#269: before the verdict reads the same state */
         int cond = observer_verdict();
-        if (cond == COND_NONE) {
+        if (cond == OBS_COND_NONE) {
             if (g_wdt_channel >= 0) (void)task_wdt_feed(g_wdt_channel);
         } else {
             observer_dump(cond);
@@ -468,7 +407,7 @@ void observer_start(void) {
            g_trigger_armed ? "armed" : "disarmed (a note is already pending)");
 #endif
     printk("oevm: observer armed (slack=%u tick=%ums backstop=%ums hw=%s)\n",
-           (unsigned)WEDGE_SLACK, (unsigned)OBSERVER_TICK_MS, (unsigned)OBSERVER_WDT_MS,
+           (unsigned)OBS_WEDGE_SLACK, (unsigned)OBSERVER_TICK_MS, (unsigned)OBSERVER_WDT_MS,
            g_hw_wdt ? "yes" : "no");
     k_thread_create(&observer_thread, observer_stack,
                     K_THREAD_STACK_SIZEOF(observer_stack),

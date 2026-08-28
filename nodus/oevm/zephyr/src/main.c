@@ -1859,7 +1859,7 @@ int main(void) {
 
     /* rete#215: arm the wedge detector before the VM runs, and AFTER the radio — a node
        that wedges during OpenThread bring-up has not yet declared any timer, so the
-       detector answers COND_NONE and cannot trip on it. Arming earlier would buy nothing
+       detector answers OBS_COND_NONE and cannot trip on it. Arming earlier would buy nothing
        and would put the first reboot inside a path that has no note to write about it. */
     observer_start();
 

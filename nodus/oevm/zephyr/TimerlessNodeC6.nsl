@@ -87,7 +87,7 @@ class TimerlessNodeC6 usingPlatform: platform net: net = (
        driven by the base tick, and the base tick is registered BY THE BRIDGE below —
        which is never constructed when the bind fails. So a bind failure yields a node
        that ticks nothing, wedges never, and puts no deadline in `timer_target_snapshot`
-       (observer.c returns COND_NONE at n == 0). It is then indistinguishable from a
+       (observer_core.h returns OBS_COND_NONE at n == 0). It is then indistinguishable from a
        healthy idle node, because `pulse_pump` blocks on K_FOREVER either way.
 
        That is not hypothetical: 2026-08-22 10:49 this node was built with no radio

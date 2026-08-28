@@ -56,6 +56,18 @@ run test_cheap_stats "$ENG_A" -DOEVM_HEAP_SIZE=65536
 # as a report — inventing a death is worse than missing one, because the gateway cannot
 # falsify it. Retention itself is a TARGET property and is gated in tests/target/.
 run test_reboot_note "$ENG_A" -DOEVM_HEAP_SIZE=65536
+# rete#215/#269: the WEDGE VERDICT itself (src/observer_core.h). Header-only, no
+# link set — same idiom as test_frame_abi/test_layout below. This is the decision
+# that lived only in zephyr/src/observer.c and had therefore NEVER been compiled on
+# the host: #269 found it rebooting a healthy node, and it cost a board cycle, as
+# every bug in it had. It sweeps 30 015 (delivered tick, empty window, sampler)
+# triples in ~70 ms and requires zero false trips while the drain counter advances.
+# The test carries the pre-#269 predicate in-file and requires IT to false-fire, so
+# a green here is a gate with teeth rather than a tautology.
+printf '%-28s ' test_observer_core
+if $CC $STD tests/test_observer_core.c -o $OUT 2>/tmp/oevm_ctest.log && $OUT >/tmp/oevm_ctest.out 2>&1; then
+  echo PASS
+else echo FAIL; sed 's/^/    /' /tmp/oevm_ctest.log /tmp/oevm_ctest.out; fail=1; fi
 # rete#190 stage 2: Symbol name bytes inline — 200 Symbols must cost the C heap
 # zero bytes (the leak that crashed three C6 boards), and the inline bytes must
 # be a GC LEAF. Verified falsifiable: with trace_one's SymbolVtable arm disabled

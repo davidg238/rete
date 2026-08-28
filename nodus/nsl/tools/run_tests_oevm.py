@@ -195,6 +195,28 @@ def run_c_unit_tests(oevm_dir):
         return False
     print("C unit test test_symbol_prim_id: PASSED")
 
+    # rete#215/#269 — THE WEDGE VERDICT, on the host for the first time. The decision
+    # lived only in zephyr/src/observer.c, which no host gate compiles (footprint.sh
+    # excludes every TU that #includes <zephyr/...>), so #269 found it rebooting a
+    # HEALTHY node from a board and every earlier bug in it cost a board cycle too.
+    # Header-only: src/observer_core.h needs no link set. It sweeps 30 015 (delivered
+    # tick, empty window, sampler) triples for aliasing and carries the pre-#269
+    # predicate in-file, requiring THAT to false-fire — so this gate has teeth rather
+    # than being a tautology written after the fix.
+    build = subprocess.run(
+        ["gcc", "-Wall", "-Wextra", "-std=c99", "-Isrc",
+         "tests/test_observer_core.c", "-o", "/tmp/test_observer_core"],
+        cwd=str(oevm_dir), capture_output=True, text=True)
+    if build.returncode != 0:
+        print("test_observer_core build FAILED:\n" + build.stderr)
+        return False
+    run = subprocess.run(["/tmp/test_observer_core"], cwd=str(oevm_dir),
+                         capture_output=True, text=True, timeout=60)
+    if run.returncode != 0:
+        print("test_observer_core FAILED:\n" + run.stdout + run.stderr)
+        return False
+    print("C unit test test_observer_core: PASSED")
+
     build = subprocess.run(
         ["gcc", "-Wall", "-std=c99", "-DOEVM_METHOD_PROFILE", "-Isrc",
          *common_srcs,
