@@ -1,0 +1,262 @@
+' rete — the liveness picture, end to end.
+' Every number below is read from source, not remembered:
+'   nodus/oevm/zephyr/src/observer.c        WEDGE_SLACK 8, OBSERVER_TICK_MS 1000, OBSERVER_WDT_MS 30000
+'   nodus/nsl/lib/kernel.nsl:1807           replyBudget = 2000   (per leg, SPIN-POLLED)
+'   nodus/nsl/lib/kernel.nsl:1705,2503      cadMs 30000 / budMs 240000 defaults, ceiling 86400000
+'   nodus/oevm/zephyr/PortaBridgeNodeC6.nsl:73,100   cadence 2000, budget = cadence * 8 = 16000
+'   porta/internal/space/sweep.go:17        SweepTick = 30 * time.Second
+'   porta/internal/space/sweep.go:169..204  verdictFor — the whole decision
+
+@startuml liveness-1-healthy
+title One check-in that works — every timeout in play
+skinparam backgroundColor #FDFDFD
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 8
+skinparam BoxPadding 10
+
+box "nodus — one C6" #F2F7FF
+  participant "timer ISR\n(Zephyr)" as ISR
+  participant "pulse\nmailbox" as MB
+  participant "observer thread\n(C)" as OBS
+  participant "VM reactor\noevm + PortaBridge" as VM
+end box
+box "porta — gw85224-01" #FFF6F0
+  participant "UDP loop\nwire.Handle" as PW
+  participant "store\nexchanges / cells" as ST
+  participant "liveness sweep\n(ticker)" as SW
+end box
+
+note over ISR, VM #E8F0FE
+  **cadMs = 2000** — the base tick, registered by the KERNEL (#231 D1),
+  so the deadline exists even for an app that declares no timer.
+end note
+
+ISR -> MB : ~#go   //every cadMs//
+VM -> MB : pumpEvents  //(K_FOREVER)//
+MB -> VM : ~#go        <b>pulse_drained()++</b>
+
+activate VM
+VM -> PW : **pull** { nodeId, bootId, cursor }\n//~40 B — one 6LoWPAN fragment//
+activate VM #FFD98A
+note right of VM #FFD98A
+  <b>awaitReply: replyBudget = 2000 ms</b>
+  A SPIN, not a block: it polls
+  `socket receive` until the deadline.
+end note
+PW -> ST : stamp exchanges(ts_ms, **boot_id**)
+note right of ST : one row per REQUEST — and **both** legs\nstamp nodes.last_seen_ms via RecordExchange.\nNo `leg` column since #231 D4 deleted its only reader.
+PW --> VM : **#batch**  //<= 512 B//
+deactivate VM
+
+VM -> VM : applyBatch → publishApps →\napplyLivenessGoal → publishLiveness →\npublishMetrics → publishCheap
+VM -> PW : **push** { entries }\n//<= 512 B — 5-6 fragments, all must survive//
+activate VM #FFD98A
+note right of VM #FFD98A : <b>awaitReply: 2000 ms again</b>\nSecond leg, second budget.
+PW --> VM : **#ack**
+deactivate VM
+deactivate VM
+
+== meanwhile, on its own thread ==
+OBS -> MB : //every **1000 ms**//: pulse_pending(), pulse_drained()
+note right of OBS #E6F4EA
+  <b>wedge deadline = shortest declared period x WEDGE_SLACK(8) = 16000 ms</b>
+  Since rete#269 it fires on **frozen progress**, not on mailbox depth.
+  Backstop for this thread dying: task_wdt 30000 ms → hw reset.
+end note
+
+== and, on porta's own clock ==
+SW -> ST : //every **SweepTick = 30000 ms**//\n`now - last_seen > bud` ?
+note right of SW #E6F4EA
+  bud is the number the **NODE** declared (#231 D4).
+  Bench node: cadence 2000, budget cadence x 8 = **16000**.
+  Order: neverSeen → no-budget:unknown → live → deaf:unknown → silent.
+end note
+@enduml
+
+
+@startuml liveness-2-silent
+title The same node with its uplink gone — where the numbers stop agreeing
+skinparam backgroundColor #FDFDFD
+skinparam ParticipantPadding 8
+skinparam BoxPadding 10
+
+box "nodus — one C6" #F2F7FF
+  participant "pulse\nmailbox" as MB
+  participant "observer thread\n(C, 1000 ms)" as OBS
+  participant "VM reactor" as VM
+end box
+box "porta" #FFF6F0
+  participant "UDP loop" as PW
+  participant "store" as ST
+  participant "liveness sweep" as SW
+end box
+
+MB -> VM : ~#go  //(cad 2000)//
+activate VM
+VM -> PW : pull
+activate VM #FFB3B3
+VM -> VM : ...spins the full **2000 ms**...
+note right of VM #FFB3B3 : nothing arrives → **misses++**
+deactivate VM
+VM -> PW : push
+activate VM #FFB3B3
+VM -> VM : ...spins the full **2000 ms**...
+note right of VM #FFB3B3 : nothing arrives → **misses++**
+deactivate VM
+deactivate VM
+
+note over MB, VM #FFF3CD
+  <b>The tick now costs ~4.007 s against a DECLARED cadence of 2000 ms.</b>
+  Measured on c6spare 2026-08-27. Nothing anywhere re-derives from the
+  delivered period — every deadline downstream still comes from the 2000.
+end note
+
+OBS -> MB : sample #1 .. #16 (1001 ms apart)
+note right of OBS #FFB3B3
+  <b>rete#269, now fixed:</b> this used to judge mailbox DEPTH at
+  an instant. 4 samples span 4004 ms against a 4007 ms cycle, so a
+  3 ms beat walked the one sample that saw the empty window out of it,
+  and the detector rebooted a HEALTHY node at exactly 8 x cad.
+  Judging `pulse_drained()` — progress — cannot alias.
+end note
+
+... the node keeps ticking, `misses` climbs 2 per tick ...
+
+SW -> ST : now - last_seen > bud(16000) ?
+ST --> SW : yes → **#silent**
+note right of SW #FFF3CD
+  But only at the NEXT 30 s sweep. The node declared 16 s;
+  porta cannot form a verdict faster than 30 s.
+end note
+@enduml
+
+
+@startuml liveness-3-ladder
+title The deadline ladder — every timeout on one axis (seconds)
+skinparam backgroundColor #FDFDFD
+scale 1 as 30 pixels
+
+concise "observer sample" as OS
+concise "declared cadence  cad" as CAD
+concise "reply budget, per leg x2" as RB
+concise "DELIVERED tick, silent uplink" as DEL
+concise "wedge deadline  cad x 8" as WD
+concise "node budget  bud = cad x 8" as BUD
+concise "observer thread backstop" as BS
+concise "porta sweep tick" as SW
+concise "porta worst-case detection" as DET
+
+@0
+OS  is "1 s"
+CAD is "2 s"
+RB  is "2 + 2 s"
+DEL is "4.007 s  <- NOT 2 s"
+WD  is "16 s"
+BUD is "16 s"
+BS  is "30 s"
+SW  is "30 s"
+DET is "bud + sweep — up to 46 s"
+
+@1
+OS is {-}
+@2
+CAD is {-}
+@4
+RB is {-}
+DEL is {-}
+@16
+WD is {-}
+BUD is {-}
+@30
+BS is {-}
+SW is {-}
+@46
+DET is {-}
+
+caption The node declares 2 s and 16 s. porta cannot form a verdict faster than 30 s, so bud is capped by a constant on the other side of the wire (H2). Under a silent uplink the node delivers 4.007 s while every deadline above is still derived from the declared 2 s (H1).
+@enduml
+
+
+@startuml liveness-4-holes
+title Where the holes are — liveness, both halves
+skinparam backgroundColor #FDFDFD
+skinparam componentStyle rectangle
+skinparam ArrowColor #444
+left to right direction
+
+package "nodus — the node" #F2F7FF {
+  component "kernel base tick\n**cad** declared by the app\n(kernel.nsl:2579)" as CAD
+  component "checkIn: pull then push\n**awaitReply spins 2000 ms per leg**\n(kernel.nsl:1807, 2845)" as CHK
+  component "misses counter\npublished in sys/metrics\n(kernel.nsl:2333)" as MIS
+  component "observer thread, C\nsamples 1000 ms\ndeadline = shortest x **8**\n(observer.c:67,159)" as OBS
+}
+
+package "porta — the gateway" #FFF6F0 {
+  component "exchanges row per check-in\nts_ms + **boot_id**\n(schema.go:118)" as EXC
+  component "liveness sweep\n**SweepTick = 30 s**\n(sweep.go:17)" as SWP
+  component "verdictFor\nnow - last_seen > **bud**\n(sweep.go:169)" as VER
+}
+
+CAD --> CHK
+CHK --> EXC : pull / push  (UDP+CBOR)
+CHK --> MIS
+EXC --> SWP
+SWP --> VER
+
+note bottom of CHK #FFD5D5
+  <b>H1 — the declared cadence is a promise nothing checks.</b>
+  Delivered period = cad + 2 x replyBudget. At cad 2000 under a
+  silent uplink that is 4.007 s, twice the declaration. Every
+  deadline downstream still derives from the declared 2 s.
+  This is what rete#269 aliased on; the fix made the DETECTOR
+  immune, not the MODEL.
+end note
+
+note bottom of MIS #FFD5D5
+  <b>H5 — misses is unreportable exactly when it matters.</b>
+  It rides sys/metrics on the PUSH leg — the leg that is failing.
+  2026-08-27: misses reached 1281 and porta learned nothing.
+
+  <b>H7 — the node never acts on its own silence.</b>
+  No backoff, no escalation, no local reboot after N misses.
+  The only actor that can decide is the one it cannot reach.
+end note
+
+note bottom of OBS #FFD5D5
+  <b>H4 — two independent eights that happen to agree.</b>
+  WEDGE_SLACK=8 in C; the published budget is cadence x 8 in nsl.
+  CLAIMS.md: "neither derives from the other". Both read 16000
+  today — move one and they diverge in silence.
+
+  <b>H6 — no timer, no judgement.</b>
+  observer_verdict returns COND_NONE when zero timers are declared.
+  The kernel base tick closes that — but startTicking: sits
+  downstream of the socket bind, so a boot whose bind fails has
+  no timer, no deadline, and no detector.
+end note
+
+note bottom of SWP #FFD5D5
+  <b>H2 — porta cannot honour a budget shorter than its own sweep.</b>
+  SweepTick 30 s vs the bench node's declared bud 16 s. #231 D4 says
+  "porta infers nothing" — but detection latency is capped by a
+  porta-side constant for every node on this bench. Worst case
+  bud + 30 s = 46 s.
+end note
+
+note bottom of VER #FFD5D5
+  <b>H3 — the verdict cannot see a reboot loop.</b>
+  verdictFor consults last_seen and bud only — ARRIVAL TIMES, never
+  boot_id, which is NOT NULL on every exchanges row. A node that
+  wedges, reboots and speaks again forever reads #live for as long as
+  its loop period stays under bud: PERMANENTLY at the kernel default
+  (bud 240 s, kernel.nsl:1705), and intermittently at the bench node's
+  16 s, where the verdict flickers on the beat between the ~21 s
+  silence gap and the 30 s sweep rather than on the node's health.
+  One join on boot_id would settle it.
+
+  <b>H8 — porta's deafness is modelled, the node's is not.</b>
+  WasDeaf yields #unknown when PORTA was not listening. There is no
+  mirror: a node wedged for most of the window still reads #live off
+  one late check-in, because speech outranks everything.
+end note
+@enduml
