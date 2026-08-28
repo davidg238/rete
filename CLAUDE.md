@@ -95,7 +95,7 @@ How to make decisions here. These override the instinct to be thorough.
 ## Gates
 
 ```
-cd nodus/nsl && python3 tools/run_tests_oevm.py     # 276 passed, 0 failed (2026-08-26)
+cd nodus/nsl && python3 tools/run_tests_oevm.py     # 278 passed, 0 failed (2026-08-27)
 cd porta      && go test ./...
 cd nodus/oevm && bash tests/porta_sync_host.sh      # PORTA SYNC OK
 ```
@@ -140,7 +140,7 @@ comment records the same shape from before).
 | `cad-rearm` | observe | an adopted cadence is a KEPT cadence (#240.2) — the re-arm from inside the old tick's own reaction kills the old registration over the real pulse mailbox, keeps ONE registration, and holds the new period. No radio: `PortaBridge socket:nil` |
 | `bridge-forensics` | observe | the same workload under the forensics overlay (#222) |
 | `porta-refuse` | disruptive | **a refused node survives past the 157 s death record** (#232, gating #199) — a C6 against a second porta instance answering `#err` to everything (`--test-refuse-all`, gw85224-01:16971, started by hand per the env), watched 240 s past the TAPs. `ref` climbing is the PASS; silence is the FAIL. The host cannot answer this: it never reproduced the death |
-| `porta-silent` | disruptive | **a node whose UPLINK is gone survives it** (#269) — porta-refuse's mirror, and the gate porta-refuse could not be. A C6 against a second porta instance that DROPS every datagram and answers nothing (`--test-drop-all`, gw85224-01:16973, started by hand per the env — and it must be `./porta-269`, since the long-running `./porta` there predates the flag), watched 300 s past the TAPs. **`misses` climbing with the node ALIVE is the PASS**; the node going quiet is the FAIL — and TAP 1 is a conjunction (`misses >= 30` AND `ref = 0`), so a run that reaches #232's refusing injector by mistake fails loudly instead of scoring. **This gate caught something it was not built for**: it reproduced a node wedging at 111.7 s under a silent uplink, and the node was HEALTHY — `observer.c` judged the pulse mailbox's depth at a sampling instant, which aliases against a 4.007 s tick sampled every 1001 ms, so the detector was rebooting a node that was still draining and still printing ticks. Fixed by judging PROGRESS (`pulse_drained()`) not depth; GREEN since, 357 s under the condition that had killed it, with `wedge-detect` still firing. rete#270 tracks the 58 archived `deadline=16000ms` wedges this leaves unverified |
+| `porta-silent` | disruptive | **a node whose UPLINK is gone survives it** (#269) — porta-refuse's mirror, and the gate porta-refuse could not be. A C6 against a second porta instance that DROPS every datagram and answers nothing (`--test-drop-all`, gw85224-01:16973, started by hand per the env — and it must be `./porta-269`, since the long-running `./porta` there predates the flag), watched 300 s past the TAPs. **`misses` climbing with the node ALIVE is the PASS**; the node going quiet is the FAIL — and TAP 1 is a conjunction (`misses >= 30` AND `ref = 0`), so a run that reaches #232's refusing injector by mistake fails loudly instead of scoring. **This gate caught something it was not built for**: it reproduced a node wedging at 111.7 s under a silent uplink, and the node was HEALTHY — `observer.c` judged the pulse mailbox's depth at a sampling instant, which aliases against a 4.007 s tick sampled every 1001 ms, so the detector was rebooting a node that was still draining and still printing ticks. Fixed by judging PROGRESS (`pulse_drained()`) not depth; GREEN since, 357 s under the condition that had killed it, with `wedge-detect` still firing. The archive was then swept (#270, 2026-08-27) and **the false trips are confined to that one session**: of the 58 archived `deadline=16000ms` events, 49 are REAL wedges on 08-19/20 — boot, ticks 1-6, then 18.2 s of silence against a 2 s cadence, and 35 of those also read `reactor=NOT-ADVANCING` with vm_sp frozen, which is the #222 prim-cache spin and does not depend on depth at all — 2 are `liveness-heartbeat`'s deliberate ones (#231 D1), and 7 are this session's. No attribution was overturned |
 | `pulse-coalesce` | disruptive | the coalescer does not destroy logical timer events (#151) |
 | `stale-handle` | disruptive | a timer event survives a later unrelated registration (#151) |
 | `wedge-note` | disruptive | the `RebootNote` survives a watchdog reset (#215, row 1) |
@@ -212,9 +212,12 @@ next.
   not the RFC; the encoder is golden-tested against the node's own output.
 - `porta/internal/space/` — the store: `nodes`, `cells` (latest value per path), `events`
   (append-only, both directions, with `actor`/`reason` provenance), `exchanges` (one row
-  per request — two per check-in, a `pull` and a `push`, tagged by a `leg` column; the pull
-  leg is the heartbeat and the replay index, since a node always sends it while a push can
-  early-return on an empty frame). Four tables where v1 had nine, because the unit of
+  per request — two per check-in, a `pull` and a `push`. **There is no `leg` column**: it
+  was dropped with the cadence inference rete#231 D4 deleted, which was its only reader
+  (and which had to count pulls alone or infer a period half the node's real one, #217
+  C1). What the table is for now — the replay index and the `last_seen` heartbeat — wants
+  every request rather than one leg, and **both** legs stamp `nodes.last_seen_ms` via
+  `RecordExchange`). Four tables where v1 had nine, because the unit of
   extension is now a path: a new feature adds rows, not tables.
 - `porta/internal/wire/` — pull/push framing as a pure `Handle([]byte) []byte`, wrapped by
   a thin UDP loop.
