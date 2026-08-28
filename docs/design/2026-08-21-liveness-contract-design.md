@@ -516,3 +516,109 @@ tick is periodic and its posts coalesce, so the delivered period is **`max(cad, 
 Also worth carrying, because it cost this session's forensics: the `RebootNote` lives in
 `.rtc_noinit` (`zephyr/src/reboot_note.c:29`), so it survives a **reset** and NOT a power
 cycle. A halted node holding a note must be reset, never power-cycled, if the note is wanted.
+
+## Addendum 2026-08-28 — the #272 fix, tried in the model, and the relation #273 needs
+
+rete#272's stated next action was "change `DoSweep` to require that `wak` advanced, and
+re-run". Doing it (`fac6403`, `docs/spikes/2026-08-27-liveness-model/`) found that the
+sentence has **two readings, and they do not agree**.
+
+- **As a between-sweeps DELTA — insufficient, and it fails the way #269 failed.**
+  `bench-delta.cfg` violates `NeverStaleLive` at the same depth as `bench.cfg`: the counter
+  *did* advance — four ticks early in a 30 s window whose last 7 steps the node spent
+  wedged. **Comparing two samples 30 s apart says the node progressed somewhere in that
+  interval, not that it is progressing now**, which is this document's own aliasing argument
+  one level further up. A delta over the wrong window is another point sample wearing a
+  monotonic counter's clothes.
+- **As an AGE — the right signal.** `now - last_progress <= bud`, where `last_progress`
+  advances only when the *stored* `wak` increases, is the exact analogue of `pulse_drained()`.
+  `bench-age.cfg` / `slow-age.cfg` still violate, but the residue is no longer a wrong
+  variable: it is one inequality between four numbers, and it is entirely #273.
+- **The inequality has a solution, and it is the first green this model has produced.**
+
+```
+      Bud + Sweep <= (the deadline the node's own detector enforces)
+```
+
+  `sound.cfg` — the bench node and detector with `Bud` 8 s and `Sweep` 8 s against a 16 s
+  deadline — completes over 3 167 616 distinct states with no violation. It is checked for
+  vacuity (`sound-vacuity.cfg` proves `live` is reachable there) and at three counter caps,
+  because a green invariant is precisely the false result this program keeps meeting.
+  **Today's numbers are `16000 + 30000 = 46000` against a `16000 ms` deadline — off by
+  2.9x**, and that is the arithmetic reason the verdict can read `#live` about a node its
+  own detector is about to reboot.
+
+The reboot loop falls out of the age rule for free and **without reading `boot_id`**: `wak`
+is per-boot, so a rebooted node returns *below* the value porta holds, the stored value
+never increases, and the age never clears. One residual hole the model does surface: the
+comparison is on raw counter values, so a boot that climbs past the last stored sample
+before the next sweep does clear the age — bounded by the same `Bud + Sweep` sum.
+
+### What the four numbers measure — they are not four of a kind
+
+The four are on **three clocks**, measure **three different start events**, and are enforced
+by **three parties**. That is why nothing relates them.
+
+| number | value here | clock / start event | enforced by | triggers |
+|---|---|---|---|---|
+| `cad` | 2000 ms (`PortaBridgeNodeC6.nsl:73`) | node — interval between check-in *attempts* | the app | nothing; it is the only **input** |
+| wedge deadline | shortest declared timer period x 8 (`observer_core.h:43,121`) | node uptime — since the VM last **drained** the mailbox | the observer thread | watchdog **reboot** |
+| `bud` | `cad x 8` = 16 s (defaults `kernel.nsl:1705`) | porta's wall clock — since a datagram last **arrived** | `verdictFor` | `gw/liveness` = `#silent` |
+| `SweepTick` | 30 s (`sweep.go:17`) | porta — how often the verdict is **re-formed** | the sweeper | nothing |
+
+Three facts that were not written down anywhere before:
+
+1. **`SweepTick` is not the same kind of number as the other three.** They are deadlines; it
+   is a sample rate, and it enters the contract only as latency added to whatever deadline
+   it samples. Listing it beside them is part of why the set looks arbitrary.
+2. **The wedge deadline is not derived from `cad`.** It is `shortest declared timer period
+   x SLACK`. On this node the shortest timer *is* the base tick, so the 16 s agreement is a
+   coincidence of configuration: register a 500 ms timer anywhere in the app and the node's
+   deadline silently becomes 4 s while `bud` stays 16 s. **Nobody declares that number to
+   porta**, so porta cannot check the inequality above even if it wanted to.
+3. **The two eights are unrelated.** `OBS_WEDGE_SLACK = 8` is #215's measured slack, in C.
+   `cad x 8` is that number re-used by hand in nsl (`PortaBridgeNodeC6.nsl:100`). Neither
+   derives from the other and nothing announces their divergence — §5's "constants, chosen
+   not derived" now has a cost attached to it.
+
+### The framing that makes the numbers legible: which failure does each one guard?
+
+`gw/liveness` collapses **two different questions** into one word, off one signal:
+
+- **A — is the VM running?** Owned by the node. Evidence: **progress**.
+- **B — is the link working?** Owned by porta. Evidence: **arrival**.
+
+Arrival answers B and is read as if it answered A. That is #272 in one sentence, and it is
+why the verdict cannot separate the two failures whose operator actions are opposite.
+
+| failure | who can see it | signal | today | |
+|---|---|---|---|---|
+| healthy | both | `drained` advancing; exchanges arriving | `#live` | ok |
+| **node wedged** | **node only** | `pending > 0` and `drained` static | observer reboots; porta infers it from the silence afterwards | ok |
+| **node OOM** | nobody | `largestFreeBlock` on `sys/metrics` | **nothing reads it.** If OOM stops the reactor it looks like a wedge; if allocation fails while the loop still ticks, `wak` advances and it reads `#live` | gap, #153 |
+| **comms to node lost** | porta | arrival stops; node's `misses` climbs | `#silent` after `bud` — correct. The node itself does nothing (H7) | ok / H7 |
+| **comms to gw lost** | node | *identical to the row above from the node's side* | the node cannot separate "my radio died" from "porta died" | ambiguous by construction |
+| **gw unresponsive** | porta's own restarts only | `WasDeaf` intervals | `#unknown`, but only for downtime porta knows about — a porta that is up with a broken uplink says `#silent` about every node | gap |
+| **gw bad response** | node | `ref` / `rej` (#232) | arrival is fresh, so `#live`. The node *is* alive — but nothing forms a verdict on "the gateway is refusing everything" | gap |
+
+### The proposal — NOT yet decided; #273 is David's call
+
+1. **The node publishes the deadline it actually enforces**, on `obs/liveness`, instead of
+   porta re-deriving one from `cad`. There is no compatibility cost; both ends reflash
+   together. Without it, fact 2 above means the inequality is uncheckable.
+2. **`bud + SweepTick <= that deadline`** — the model's green line, which makes `SweepTick`
+   a participant in the contract rather than an unexamined constant.
+3. **Judge progress as an AGE** — not arrival, and not a between-sweeps delta (#272).
+4. **One new verdict, `#stalled`**: arriving but not progressing. One symbol, no new path,
+   no `boot_id` join, and it is what names the reboot loop — "it is talking but it is not
+   getting anywhere", an operator action distinct from both `#live` and `#silent`. This is
+   consistent with D5/D6's own reason for having more than two verdicts.
+5. **Scope the per-node / global mismatch the cheap way first.** The deadline is per-node;
+   `SweepTick` is global. Rather than build per-node sweep scheduling, have porta **refuse
+   to promise what it cannot deliver**: on ingesting a declaration where
+   `bud + SweepTick > deadline`, write `#unknown` with a reason naming the three numbers.
+   That converts a silent disagreement into a visible one and produces the data that would
+   earn per-node scheduling later.
+
+On OOM specifically: no `largestFreeBlock` threshold is proposed here. That would be a
+tunable invented before the measurement that chooses it, which #153 is already filed to make.
