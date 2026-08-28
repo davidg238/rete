@@ -48,8 +48,8 @@
 <body>
 
 <h1>rete — dev status</h1>
-<p class="stamp">Status synthesized <strong>2026-08-28</strong> (liveness-hardening close) at
-<a href="https://github.com/davidg238/rete/commit/962dfe5">962dfe5</a>.
+<p class="stamp">Status synthesized <strong>2026-08-28</strong> (liveness contract modelled) at
+<a href="https://github.com/davidg238/rete/commit/7463f59">7463f59</a>.
 Served live by <strong>gatekeeper</strong> (gw85224-01:6971).
 This page is a <em>view</em>, refreshed at session close-outs — the records of
 direction are <a href="/dev/next-steps-overview.md">next-steps-overview.md</a>
@@ -165,7 +165,10 @@ detector was found rebooting healthy nodes (<a href="https://github.com/davidg23
 fixed), the archive was swept to check what that invalidated
 (<a href="https://github.com/davidg238/rete/issues/270">#270</a>, closed — nothing), and the
 contract was then modelled end to end, which turned eight suspected holes into
-<strong>three defects</strong>. Two of the three are unstarted design calls.</p>
+<strong>three defects</strong>. The model has now been run against <a href="https://github.com/davidg238/rete/issues/272">#272</a>'s
+proposed fix and produced <strong>the first relation under which the contract holds</strong> —
+which turns <a href="https://github.com/davidg238/rete/issues/273">#273</a> from an open
+question into one inequality awaiting a decision.</p>
 </div>
 
 <ol>
@@ -181,20 +184,34 @@ contract was then modelled end to end, which turned eight suspected holes into
     exactly the way mailbox depth was a proxy for progress. <strong>The progress counter is
     already on the wire</strong> — <code>obs/health.wak</code> is the bridge's tick count,
     published every check-in and stored in <code>cells</code>. The fix adds no field and no
-    mechanism. <em>Next action, minutes:</em> change <code>DoSweep</code> in the model to
-    require that <code>wak</code> advanced and re-run — before any Go is written.</li>
+    mechanism. <strong>Modelled 2026-08-28 (<code>fac6403</code>): "advanced" has two
+    readings and only one works.</strong> As a between-sweeps <em>delta</em> it still fails —
+    the counter advanced early in a window the node spent wedged, which is #269's aliasing one
+    level up. As an <em>age</em> (<code>now - last_progress ≤ bud</code>) it is the right
+    signal, and the reboot loop falls out of it with no <code>boot_id</code> join.
+    <em>Next action:</em> adopt the age rule in <code>verdictFor</code> — but not before #273
+    is decided, because the age rule's staleness bound is <code>bud + SweepTick</code>.</li>
 
   <li><strong><a href="https://github.com/davidg238/rete/issues/273">#273</a> — four
     deadline numbers that nothing derives from each other.</strong> <code>cad</code>, the
     wedge deadline (<code>WEDGE_SLACK</code>, in C), <code>bud</code>
     (<code>cadence × 8</code>, in nsl) and <code>SweepTick</code> (a constant, 30 s). They
-    happen to agree today and nothing announces it when they stop.
-    <strong>A design call, and it is David's:</strong> which number is the source of truth.</li>
+    happen to agree today and nothing announces it when they stop — and the agreement is a
+    <em>coincidence of configuration</em>: the wedge deadline derives from the <strong>shortest
+    declared timer period</strong>, not from <code>cad</code>, and porta is never told it.
+    <strong>The model now names the relation:</strong> <code>bud + SweepTick ≤ the deadline the
+    node enforces</code> — green over 3.17M states, non-vacuous. Today that reads
+    <code>16000 + 30000 = 46000</code> against <code>16000 ms</code>, off by 2.9×.
+    <strong>A design call, and it is David's:</strong> which number is the source of truth.
+    A five-point proposal is recorded in the
+    <a href="/dev/docs/design/2026-08-21-liveness-contract-design.md">liveness design doc</a>
+    (addendum 2026-08-28).</li>
 </ol>
 
 <p>Behind those three: <a href="https://github.com/davidg238/rete/issues/271">#271</a> (the
 node publishes a cadence it does not meet under silence — has data, needs a direction
-chosen), <a href="https://github.com/davidg238/rete/issues/275">#275</a> (the C test runner
+chosen), <a href="https://github.com/davidg238/rete/issues/275">#276</a> (gateway-side failure has no verdict — a deaf porta reads <code>#silent</code>
+fleet-wide), <a href="https://github.com/davidg238/rete/issues/275">#275</a> (the C test runner
 is red and no suite invokes it — cheap, decide: wire it in or delete it), and
 <a href="https://github.com/davidg238/rete/issues/274">#274</a> (a failed socket bind leaves
 a node with no detector — small, do it when the bridge boot path is next open).</p>
