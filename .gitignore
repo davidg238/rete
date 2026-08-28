@@ -139,3 +139,9 @@ _*.stmap
 /porta/porta-soak.log
 /nodus/oevm/oevm_bench
 /nodus/oevm/oevm_runner
+
+# hooks/commands are part of the repo; local overrides and worktrees are not
+!.claude/
+.claude/*
+!.claude/settings.json
+!.claude/commands/

@@ -6,6 +6,26 @@ wire contract between them. It was consolidated on 2026-08-02 from four repos �
 preserved the issue numbers and the `#NN` references the program navigates by
 (#79; design `docs/design/2026-08-02-rete-repo-consolidation-design.md`).
 
+## Current focus
+
+<!-- Rewritten by /conclude every session. One issue, one first action. -->
+- **Focus issue:** #272 (H3/H5/H7/H8 arrival vs progress — the liveness contract).
+- **First concrete action:** run `bridge-health` on a board; nothing stacks on the refactored `observer.c` until a detector is confirmed. Then `DoSweep` requiring `wak` advanced, re-run `bench.cfg` and `slow.cfg`.
+- **Awaiting David:** push the 5 commits on `master`; the #273 design call (which deadline number is the source of truth).
+- **Not before 2026-09-01:** David is on NEMT until then.
+
+## Where truth lives (do not duplicate across channels)
+
+| Kind | Home | Never in |
+|---|---|---|
+| Open work / status / bugs | GitHub issues, bands `P0`–`P4`, pinned tracker **#26** | memory, chat |
+| What is top of mind right now | `## Current focus` above + `docs/status/dev-status.html` (live at `http://gw85224-01:6971/dev/status/dev-status.html`; refresh = edit + scp, recipe in `.claude/commands/conclude.md`) | memory |
+| Direction | `docs/next-steps-overview.md`, `review/program-sequence.md` | dated design docs |
+| Design decisions | `docs/design/` (porta: `porta/docs/design/`) | memory, chat |
+| Session-to-session state | git + GitHub + this block; sessions end with `/conclude` | memory |
+
+Memory store = David's working preferences and gotchas ONLY. "Save this for next session" means: update the issue, the doc, or the block above. **Session shape:** one focus issue per session; anything else found is filed P3 `found-during #N` and left for the weekly review.
+
 ## Tree map
 
 ```

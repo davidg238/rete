@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go test ./...)",
+      "Bash(gofmt -l *)",
+      "Bash(./porta get *)",
+      "Bash(./porta log *)",
+      "mcp__claude-in-chrome__read_console_messages"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash tools/session-start.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
