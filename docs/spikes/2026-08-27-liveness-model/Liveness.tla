@@ -28,7 +28,14 @@ CONSTANTS
     Sweep,        \* porta's liveness sweep period (SweepTick)
     Slack,        \* WEDGE_SLACK — the observer's deadline is Cad * Slack
     Cap,          \* ages saturate here; keeps the state space finite
-    MaxBoots      \* stop counting reboots here, for the same reason
+    MaxBoots,     \* stop counting reboots here, for the same reason
+    Rule          \* WHICH VERDICT RULE porta applies. Three, and the point of the
+                  \* constant is that all three live in one spec so the shipped one
+                  \* stays runnable beside its replacement (rete#272):
+                  \*   "arrival"     now - last_seen <= bud     — what ships today
+                  \*   "sweepDelta"  ... AND wak advanced between the last two sweeps
+                  \*   "progressAge" now - last_PROGRESS <= bud  — the pulse_drained()
+                  \*                 shape, one layer up
 
 VARIABLES
     state,          \* "running" | "wedged"   — the GROUND TRUTH, which porta never sees
@@ -38,9 +45,18 @@ VARIABLES
     sweepIn,        \* countdown to porta's next sweep
     sinceSeen,      \* porta's age since the last arrival — `now - last_seen`
     verdict,        \* "neverSeen" | "live" | "silent"
-    boots           \* how many times the detector has rebooted this node
+    boots,          \* how many times the detector has rebooted this node
+    wak,            \* the node's own progress counter — obs/health.wak, the bridge's
+                    \* `ticks`. Monotonic WITHIN a boot and RESET BY ONE, which is the
+                    \* whole reason a reboot loop cannot hide inside it.
+    seenWak,        \* the last wak porta has stored in `cells` — learned only when a
+                    \* push leg actually lands
+    sweepWak,       \* what seenWak read at the PREVIOUS sweep; the delta is the evidence
+    sinceStoredProgress \* porta's age since the STORED wak last increased — the exact
+                        \* analogue of the node's own pulse_drained() deadline
 
-vars == <<state, sinceProgress, sinceWedge, tickIn, sweepIn, sinceSeen, verdict, boots>>
+vars == <<state, sinceProgress, sinceWedge, tickIn, sweepIn, sinceSeen, verdict, boots,
+          wak, seenWak, sweepWak, sinceStoredProgress>>
 
 Inc(x) == IF x < Cap THEN x + 1 ELSE Cap
 Min2(a, b) == IF a < b THEN a ELSE b
@@ -57,6 +73,10 @@ Init ==
     /\ sinceSeen     = Cap          \* never heard from
     /\ verdict       = "neverSeen"
     /\ boots         = 0
+    /\ wak           = 0
+    /\ seenWak       = 0
+    /\ sweepWak      = 0
+    /\ sinceStoredProgress = Cap
 
 (***************************************************************************)
 (* The node's check-in. Two legs, and the whole of H1 is in `tickIn'`:      *)
@@ -76,8 +96,17 @@ CheckIn ==
             6 s delivered tick under a silent uplink; c6spare measured 4.007 s,
             which is max(2000, 2 x 2000). *)
          /\ tickIn'    = IF delivered THEN Cad ELSE Max2(Cad, 2 * ReplyBudget)
+         (* obs/health rides the PUSH leg, so porta learns the counter only on a
+            check-in that lands — H5 in the same line as H3. *)
+         /\ seenWak'   = IF delivered THEN Inc(wak) ELSE seenWak
+         (* The age resets only on a sample that is GREATER. A reboot restarts the
+            counter, so the post-reboot sample does not clear it — which is how the
+            reboot loop is caught without ever reading boot_id. *)
+         /\ sinceStoredProgress' = IF delivered /\ Inc(wak) > seenWak
+                                     THEN 0 ELSE sinceStoredProgress
     /\ sinceProgress' = 0           \* the reactor ran: pulse_drained() moved
-    /\ UNCHANGED <<state, sinceWedge, sweepIn, verdict, boots>>
+    /\ wak'           = Inc(wak)
+    /\ UNCHANGED <<state, sinceWedge, sweepIn, verdict, boots, sweepWak>>
 
 (***************************************************************************)
 (* The ISR keeps firing into a mailbox nobody drains. This is what makes    *)
@@ -88,13 +117,15 @@ WedgedTick ==
     /\ state = "wedged"
     /\ tickIn = 0
     /\ tickIn' = Cad
-    /\ UNCHANGED <<state, sinceProgress, sinceWedge, sweepIn, sinceSeen, verdict, boots>>
+    /\ UNCHANGED <<state, sinceProgress, sinceWedge, sweepIn, sinceSeen, verdict, boots,
+                   wak, seenWak, sweepWak, sinceStoredProgress>>
 
 Wedge ==
     /\ state = "running"
     /\ state' = "wedged"
     /\ sinceWedge' = 0
-    /\ UNCHANGED <<sinceProgress, tickIn, sweepIn, sinceSeen, verdict, boots>>
+    /\ UNCHANGED <<sinceProgress, tickIn, sweepIn, sinceSeen, verdict, boots,
+                   wak, seenWak, sweepWak, sinceStoredProgress>>
 
 (***************************************************************************)
 (* The detector. It judges the node against the node's OWN declared period, *)
@@ -109,20 +140,32 @@ Detector ==
     /\ sinceWedge'    = 0
     /\ sinceProgress' = 0
     /\ tickIn'        = Cad
-    /\ UNCHANGED <<sweepIn, sinceSeen, verdict>>
+    (* THE RESET IS THE POINT. `ticks` is a per-boot counter, so a node that
+       wedges and reboots comes back BELOW the value porta is holding — and a
+       test for "did it advance" fails on it without ever reading boot_id. *)
+    /\ wak'           = 0
+    /\ UNCHANGED <<sweepIn, sinceSeen, verdict, seenWak, sweepWak, sinceStoredProgress>>
 
 (***************************************************************************)
 (* porta. THE RULE IS ONE LINE AND THERE ARE NO CONSTANTS IN IT:            *)
 (* now - last_seen > bud. Note what it does not consult: boot_id, which is  *)
 (* NOT NULL on every exchanges row.                                        *)
 (***************************************************************************)
+(* The three rules, side by side. Only `arrival` is what porta ships. *)
+IsLive ==
+    CASE Rule = "arrival"     -> sinceSeen <= Bud
+      [] Rule = "sweepDelta"  -> sinceSeen <= Bud /\ seenWak > sweepWak
+      [] Rule = "progressAge" -> sinceStoredProgress <= Bud
+
 DoSweep ==
     /\ sweepIn = 0
     /\ sweepIn' = Sweep
     /\ verdict' = IF sinceSeen = Cap /\ verdict = "neverSeen"
                     THEN "neverSeen"
-                    ELSE IF sinceSeen <= Bud THEN "live" ELSE "silent"
-    /\ UNCHANGED <<state, sinceProgress, sinceWedge, tickIn, sinceSeen, boots>>
+                    ELSE IF IsLive THEN "live" ELSE "silent"
+    /\ sweepWak' = seenWak
+    /\ UNCHANGED <<state, sinceProgress, sinceWedge, tickIn, sinceSeen, boots,
+                   wak, seenWak, sinceStoredProgress>>
 
 Tock ==
     /\ tickIn  > 0
@@ -133,7 +176,8 @@ Tock ==
     /\ sinceProgress' = Inc(sinceProgress)
     /\ sinceSeen'     = Inc(sinceSeen)
     /\ sinceWedge'    = IF state = "wedged" THEN Inc(sinceWedge) ELSE 0
-    /\ UNCHANGED <<state, verdict, boots>>
+    /\ sinceStoredProgress' = Inc(sinceStoredProgress)   \* Tock is the only clock
+    /\ UNCHANGED <<state, verdict, boots, wak, seenWak, sweepWak>>
 
 Next == CheckIn \/ WedgedTick \/ Wedge \/ Detector \/ DoSweep \/ Tock
 
@@ -145,6 +189,11 @@ TypeOK ==
     /\ sinceProgress \in 0..Cap
     /\ sinceSeen     \in 0..Cap
     /\ boots         \in 0..MaxBoots
+    /\ wak           \in 0..Cap
+    /\ seenWak       \in 0..Cap
+    /\ sweepWak      \in 0..Cap
+    /\ sinceStoredProgress \in 0..Cap
+    /\ Rule \in {"arrival", "sweepDelta", "progressAge"}
 
 (***************************************************************************)
 (* THE PROPERTY THAT MATTERS (rete H3).                                     *)
@@ -166,6 +215,14 @@ NeverStaleLive == (verdict = "live") => (sinceProgress <= WedgeDeadline)
 (* every downstream deadline was derived from.                              *)
 (***************************************************************************)
 DeliveredMatchesDeclared == tickIn <= Cad
+
+(***************************************************************************)
+(* VACUITY. A green run over a space where porta never says `live` would    *)
+(* prove nothing at all, and that is exactly the false green this program   *)
+(* keeps meeting. Checked as an invariant EXPECTED TO FAIL: a violation is  *)
+(* the proof that `live` is reachable in the config being run.              *)
+(***************************************************************************)
+LiveIsReachable == verdict # "live"
 
 (***************************************************************************)
 (* H2: porta cannot form a verdict faster than its own sweep, so a budget   *)

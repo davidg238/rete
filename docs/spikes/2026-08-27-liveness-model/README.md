@@ -5,12 +5,24 @@ find the holes the two halves cannot see in each other. Companion to the diagram
 `docs/spikes/2026-08-27-liveness-*.png` and to rete#269 / #270.
 
 ```
-TLA_JAR=/tmp/tla2tools.jar ./run.sh      # three configs, three questions
+TLA_JAR=/tmp/tla2tools.jar ./run.sh      # nine configs, each naming the answer it expects
 ```
 
-**All three configs are expected to report a violation.** Each one is a hole and the
-trace is the evidence; a green run means something upstream changed, so read the trace
-before believing it.
+**Every config names the answer it expects and the runner compares** — a mismatch in
+EITHER direction is the finding. Eight are expected to report a violation; `sound.cfg`
+is expected to complete, and it is the only set of numbers found so far under which the
+contract holds. (This file previously said "all three are expected to violate". That was
+true of the three configs that existed and became false the moment a rule that holds was
+found — the runner now carries the expectation, so it cannot go stale silently again.)
+
+The `Rule` constant picks which verdict porta applies, and all three live in one spec so
+the shipped rule stays runnable beside its replacement:
+
+| `Rule` | the test | whose |
+|---|---|---|
+| `"arrival"` | `now - last_seen <= bud` | what porta ships (`sweep.go:185`) |
+| `"sweepDelta"` | that, AND `wak` advanced between the last two sweeps | rete#272, read as a delta |
+| `"progressAge"` | `now - last_PROGRESS <= bud` | rete#272, read as an age |
 
 Units are scaled: one model step = 2 s of wall clock, so the bench node's 2 s cadence is
 `Cad = 1`. Every constant names its wall-clock original in the `.cfg`.
@@ -38,7 +50,63 @@ counter is already on the wire (`obs/health.wak` = the bridge's `ticks`). H1/H2/
 thing — four deadlines chosen independently that nothing derives from each other. H6 is a
 small ordering bug and stands alone.
 
-## What it found
+## What the rete#272 change found (2026-08-28)
+
+The issue's next action was "change `DoSweep` to require that `wak` advanced". There are
+**two readings of "advanced"**, and the model separates them — which is the whole reason
+to run it before writing Go.
+
+### 1. As a between-sweeps DELTA — insufficient, and it fails the same way rete#269 did
+
+`bench-delta.cfg` still violates `NeverStaleLive`, at the same depth as `bench.cfg`:
+
+```
+State 30: DoSweep   state = "wedged"  sinceProgress = 8   seenWak = 4  sweepWak = 0  -> verdict = "live"
+State 31: Tock      state = "wedged"  sinceProgress = 9                                verdict = "live"
+```
+
+The counter DID advance — four ticks in, early in a 30 s window the node spent its last
+7 steps wedged. **Comparing two samples 30 s apart says the node progressed somewhere in
+that interval, not that it is progressing now**, which is rete#269's aliasing argument one
+more level up: a delta over the wrong window is another point sample wearing a monotonic
+counter's clothes.
+
+### 2. As an AGE — the right signal, and the residue is arithmetic, not signal choice
+
+`progressAge` (`now - last_progress <= bud`, where `last_progress` moves only when the
+stored `wak` INCREASES) is the exact analogue of the node's own `pulse_drained()` deadline.
+`bench-age.cfg` and `slow-age.cfg` still violate — but the residue is now a pure
+inequality between four numbers rather than a wrong variable, and it is entirely rete#273:
+porta's worst-case verdict age is `Bud` plus one `Sweep` of sampling latency, and nothing
+requires that sum to fit inside the deadline the node enforces on itself.
+
+### 3. The relation that makes it hold — `sound.cfg` is GREEN
+
+```
+Bud + Sweep <= Cad * Slack
+```
+
+`sound.cfg` is `bench.cfg`'s node and detector with `Bud = 4` (8 s) and `Sweep = 4` (8 s)
+against `Cad * Slack = 8` (16 s). **3 167 616 distinct states, no violation.** Today's
+numbers are `16000 + 30000 = 46000` against a 16000 ms deadline — off by 2.9x, which is
+why the verdict can read `#live` about a node its own detector is about to reboot.
+
+Two checks on that green, because a green invariant is exactly the false result this
+program keeps meeting:
+
+- **Not vacuous.** `sound-vacuity.cfg` runs `LiveIsReachable == verdict # "live"` and it
+  IS violated — porta really does say `live` in that state space.
+- **Not a saturation artifact.** The counters saturate at `Cap`, which can only suppress
+  `live` and so could hide a violation. Green at `Cap` = 12, 24 and 40.
+
+**The reboot loop falls out of the age rule for free**, and without reading `boot_id`:
+`wak` is per-boot, so a rebooted node comes back BELOW the value porta holds, the stored
+value never increases, and the age keeps climbing. One caveat the model does surface: the
+comparison is on raw counter values, so a boot that climbs past the last stored sample
+before the next sweep does clear the age. That is a real hole in the raw-`wak` test, and
+it is bounded by the same `Bud + Sweep` sum.
+
+## What the original run found
 
 ### 1. The model was wrong first, and the board corrected it
 
