@@ -26,6 +26,7 @@ K_MSGQ_DEFINE(pulse_q, sizeof(struct PulseItem), OEVM_PULSE_MAILBOX_DEPTH, 4);
 static struct PulseItem shadow[OEVM_PULSE_MAILBOX_DEPTH];
 static int sh_head = 0, sh_count = 0;
 static uint32_t mb_drops = 0, mb_coalesced = 0, mb_stale = 0;
+static uint32_t mb_drained = 0;   /* rete#269: what the wedge detector judges progress by */
 
 static void pulse_enqueue(int chan_id, int handle_idx, oop value) {
     struct PulseItem it = { chan_id, handle_idx, value };
@@ -84,6 +85,7 @@ static void shadow_pop(void) {
 }
 
 uint32_t pulse_drops(void)     { return mb_drops; }
+uint32_t pulse_drained(void)   { return mb_drained; }
 uint32_t pulse_coalesced(void) { return mb_coalesced; }
 uint32_t pulse_stale(void)     { return mb_stale; }
 /* rete#215. k_msgq already keeps this; it was simply unreachable, pulse_q being static
@@ -105,6 +107,7 @@ int pulse_pump(void) {
             if (o) { space_post_id(it.chan_id, o); drained++; } else mb_stale++;
         }
     }
+    mb_drained += (uint32_t)drained;
     return drained;
 }
 
@@ -121,5 +124,6 @@ int pulse_pump_nb(void) {
         oop o = pulse_payload(&it);
         if (o) { space_post_id(it.chan_id, o); drained++; } else mb_stale++;   /* rete#214 */
     }
+    mb_drained += (uint32_t)drained;
     return drained;
 }

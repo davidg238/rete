@@ -1,44 +1,42 @@
 (*
 SilentProbeC6 — rete#269: PortaBridgeNodeC6's workload pointed at a porta that
-DROPS every datagram and answers nothing, so the porta-silent scenario can watch
-a node whose uplink is gone past the longest recorded death on this bench.
+DROPS every datagram and answers nothing, so the porta-silent scenario can watch a
+node whose uplink is gone.
 
-THIS IS THE MIRROR OF RefusedProbeC6 (#232), AND THE DIFFERENCE IS THE WHOLE
-POINT. #232's injector refuses: the node gets an #err to every exchange, `ref`
-climbs and `misses` reads 0 the whole way. This injector is silent: the node gets
-NOTHING, `misses` climbs 2 per tick (both legs) and `ref` stays 0. Those are two
-paths to one frozen `acked`, and until this file only the refused one had a
-scenario.
+THIS IS THE MIRROR OF RefusedProbeC6 (#232), AND THE DIFFERENCE IS THE WHOLE POINT.
+#232's injector refuses: `ref` climbs and `misses` reads 0. This injector is silent:
+the node gets NOTHING, `misses` climbs 2 per tick (both legs) and `ref` stays 0.
 
-The death this exists to catch, witnessed 2026-08-27 on c6spare:
+WHAT THIS PROBE CAUGHT was not the failure it was written to catch. It reproduced a
+node wedging at 111.7 s under a silent uplink — and the node turned out to be
+healthy. The wedge detector judged the pulse mailbox's DEPTH AT A SAMPLING INSTANT,
+which aliases: at this cadence the tick costs ~4 s of awaitReply spin, so the
+mailbox empties for ~1 s inside every 4.007 s tick, while the observer samples every
+1001 ms — four samples span 4004 ms against a 4007 ms cycle, and the 3 ms beat walks
+the one sample that catches the empty window out of it. The dump's trace ring showed
+`drained` climbing 35 -> 39 and the console printing ticks 34-38 across the very 16 s
+called undrained. Fixed by judging PROGRESS (`pulse_drained()`) instead of depth;
+this probe then ran 357 s under the same condition with no wedge at all.
 
-  10:40:03  acked freezes at 190596; misses +2/tick; ref 0, rej 0
-  10:43:27  WEDGE cond=pulse-undrained ... consec=1   -> reboot   (204 s)
-  10:46:23  WEDGE ... consec=2                        -> reboot   (140 s)
-  10:47:33  WEDGE ... consec=3                        -> HALT     (68 s)
+Design record: the 2026-08-27 addendum to
+docs/design/2026-08-21-liveness-contract-design.md. Open population: rete#270.
 
-porta was UP throughout (gw_runs: 19:04:18 -> 11:24:18) and two other nodes
-exchanged with it across the entire window. The board had been healthy for 15.3 h
-and carried `196ff1c fix(#199)`. So the fix and its gate are both the refused
-path, and this node was never refused.
-
-This file is PortaBridgeNodeC6 with the certification cut out and the workload
-kept — same cadence, same per-tick writes, same bridge publishes, same liveness
-declaration — for RefusedProbeC6's reason: the death is a REAL bridge node's
-allocation pressure, so the probe must do the real node's work rather than a
-slimmed version that never fragments.
+This file is PortaBridgeNodeC6 with the certification cut out and the workload kept
+— same cadence, same per-tick writes, same bridge publishes, same liveness
+declaration — for RefusedProbeC6's reason: the behaviour under test is a REAL bridge
+node's, so the probe must do the real node's work rather than a slimmed version.
+The 2 s cadence is load-bearing now for a second reason: it is the ratio of spin to
+period that made the detector alias, so a slower probe would not exercise it.
 
 TAP plan=2, scored when `misses` reaches missesFloor or at the tick deadline:
-  1. uplink-silent — the injector provably dropped us, and dropped us rather
-     than refusing us. `misses` climbing with `ref` at 0 is the property.
-     misses 0 means somebody ANSWERED (wrong port, or the real gateway, or an
-     injector started with --test-refuse-all by mistake); ref climbing means it
-     is the REFUSING injector and this run is #232 wearing the wrong name. Both
-     mean the precondition failed, and neither may score a survived run.
-  2. still-alive — trivially true at scoring time; the real liveness verdict is
-     the runner's observation window (rete#216), which watches the tick line for
-     OBSERVE_S AFTER this passes. A node still ticking is the PASS; silence is
-     the FAIL.
+  1. uplink-silent — the injector provably dropped us, and dropped us rather than
+     refusing us. `misses` climbing with `ref` at 0 is the property. misses 0 means
+     somebody ANSWERED (wrong port, the real gateway, or an injector started with
+     --test-refuse-all by mistake); ref climbing means it is the REFUSING injector
+     and this run is #232 wearing the wrong name. Neither may score a survived run.
+  2. still-alive — trivially true at scoring time; the real liveness verdict is the
+     runner's observation window (rete#216), which watches the tick line for
+     OBSERVE_S AFTER this passes. A node still ticking is the PASS.
 
 expect (console, once attached):
 PORTA NODE READY
@@ -66,7 +64,8 @@ class SilentProbeC6 usingPlatform: platform net: net = (
      score. TAP 1 catches it if it does. *)
   gwPort    = ( ^ 16973 )
   localPort = ( ^ 16972 )
-  cadence   = ( ^ 2000 )   (* ms — the donor's, because the death rate is paced by it *)
+  cadence   = ( ^ 2000 )   (* ms — the donor's, and load-bearing: this is the cadence
+                              whose spin/period ratio made the detector alias (#269) *)
   chip      = ( ^ #esp32c6 )
 
   (* Scored the moment the silence is PROVEN, not at a fixed tick: attach can eat

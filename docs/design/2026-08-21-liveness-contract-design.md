@@ -384,48 +384,86 @@ Promoted to `review/lib/timers.ns`, `review/program-sequence.md` and `review/tes
 
 ---
 
-## Addendum 2026-08-27 — a declared cadence the node cannot hold under silence (rete#269)
+## Addendum 2026-08-27 — the wedge detector was rebooting a healthy node (rete#269)
 
-D2 makes the node the authority on how long its silence may last: it publishes
-`obs/liveness = Liveness { cad, bud }` and the gateway judges that number and no other. This
-addendum records a defect **in the node's ability to honour its own declaration**, found when
-c6spare died 204 s after losing its uplink to a porta that was up the whole time and that two
-other nodes were reaching normally.
+**This addendum replaces an earlier one written the same day, whose mechanism was wrong.**
+That version said a node "cannot hold its declared cadence under silence" and stated a law,
+`cad > 2 x replyBudget`, with the fix left as `replyBudget = min(2000, cad/N)` pending a
+control run. The control ran, and it refuted the premise rather than picking `N`. It is
+corrected here rather than left standing beside the correction, because a record grows
+wrong exactly by accretion.
 
-**The declaration is not achievable at every cadence.** `Kernel>>awaitReply:` busy-spins
-`replyBudget = 2000` ms (`kernel.nsl:1807`, `:2845`) and `checkIn` has two legs, so when
-nothing answers a tick costs up to **4000 ms of spin**. A refused node pays ~0, because an
-`#err` fails `isCrossed:` and returns on the first datagram. Therefore:
+**The node was never wedged. The instrument was.**
 
-> **A node can hold its declared cadence under a silent uplink only if
-> `cad > 2 x replyBudget`** — 4 s with today's constant.
+`observer.c`'s `pulse-undrained` condition tested the mailbox's **depth at a sampling
+instant** — `pulse_pending() == 0` resets `undrained_since_ms`, anything else accumulates.
+That is a point sample of a transient, and it aliases against the workload.
 
-`c6spare` declares `cad: 2000`: its tick period is shorter than a *single* leg's budget, so
-under silence it saturates completely. `c6-bell` declares `cad: 30000` and rode a 10 h gateway
-outage fine at a 13% duty cycle. Both facts were on the bench and the general claim drawn from
-them ("absence is survivable, refusal kills") was wrong — it was a statement about cadence.
+At `cad: 2000` under a silent uplink the tick reaction costs ~4 s (`awaitReply` busy-spins
+`replyBudget = 2000` ms and `checkIn` has two legs), so the VM consumes one coalesced pulse
+per 4.007 s while the ISR posts every 2 s. The mailbox therefore **does** empty — for ~1 s
+inside every tick, right after `pumpEvents` drains it. But the observer samples every
+1001 ms, and four samples span 4004 ms against a 4007 ms cycle. That 3 ms beat slowly walks
+the single sample that catches the empty window straight out of it. Once none lands inside,
+`held` runs free and fires at exactly `8 x cad`.
 
-**Measured, `porta-silent` first run, 2026-08-27:** tick spacing **4.007 s from tick 1** (the
-tick period simply becomes the spin cost), `misses` +2/tick, `ref 0`, `acked 0`, and
-`WEDGE cond=pulse-undrained ... up=111734ms` at tick 26 — **111.7 s from a cold boot, against
-#199's refused death at 157 s.** Three wedges then the designed HALT, reproducing the
-unplanned death exactly. Time-to-death varies ~40% boot to boot (111.7 / 157.8 / 157.8 s)
-while the saturation is present on every tick, so a green needs several runs or one long one.
+**Measured, c6spare 2026-08-27, from the trace ring this work added to the dump:**
 
-**This is a THIRD failure under "gateway unreachable"**, not a recurrence of the first two: the
-unbounded pending queue (fixed by the 64-row cap) and #199's rebuild churn (fixed by
-`196ff1c`'s frame reuse) are both still doing their jobs. The terminal event here is #215's
-detector, not an OOM — no GC error line, no fatal allocation size — and the empty poll
-allocates nothing (`udp.c:83` returns before `udp_make_bytes`), so this is a **wall-clock**
-failure and not an arena one. Each of the first two was gated by a refusal test or a host
-test; none was ever gated by an actually-unreachable gateway. `porta-silent` is that gate.
+```
+up_ms   pending drained undrained_since
+140778     0      35       137775     last sample to catch the empty window
+141779     1      35            0     reset
+144782     1      35       141779     zeros stop being caught
+145783     1      36       141779     drained CLIMBING throughout
+157795     1      39       141779     fires: overdue=16ms deadline=16000ms
+```
 
-**Not decided here:** the fix. Deriving `replyBudget` from the declared cadence
-(`min(2000, cad/N)`) is the smallest candidate and uses a value the node already declares, but
-`N` trades duty-cycle headroom against misses on a lossy mesh — the bell "misses roughly half
-its check-ins to ordinary mesh loss" (`kernel.nsl:1689`). Per CLAUDE.md, the knob is not
-invented before the data: `porta-silent` at `cad: 2000` is the saturated arm and the same
-probe at a slower cadence is the control. Two runs pick `N`.
+`drained` went **35 -> 39** and the console printed **ticks 34-38** during the very 16 s the
+detector called undrained. Contrast a real wedge the same session (`wedge-detect`): `drained`
+**frozen at 30** for the full 8 s. The `pending` column reads `1` in both — it was never the
+column carrying the signal, which is why no dump ever taken can tell the two apart.
+
+This also explains the ~40% boot-to-boot variance in time-to-death, which no allocation
+story ever accounted for: it depends on where the beat happens to start.
+
+### The fix — progress, not depth
+
+`pulse_drained()`, a monotonic count of items the pump delivered, added to the seam and both
+backends. The observer resets when the mailbox is empty **or** that counter moved since the
+last sample. A counter integrates across the interval instead of sampling an instant, so it
+cannot alias; a VM genuinely stuck in the interpreter never moves it. **No new tunable** —
+`WEDGE_SLACK` remains this design's single invented constant, and nothing is derived from
+the declared cadence.
+
+Board-verified in both directions: `porta-silent` **PASS 2/2** (357 s alive under the exact
+condition that killed it at 111.7 s and 157.8 s, zero WEDGE lines) and `wedge-detect`
+**PASS 2/2**, still firing on a real wedge with its historical signature
+(`overdue=8ms deadline=8000ms pending=1 pco=8`). Host: nsl 278/0 all aux green, `go test`
+green, `PORTA SYNC OK` 9/9.
+
+### What is refuted, and what survives
+
+Refuted: "the mailbox never empties" (it empties every 4 s, all the way to the reboot);
+`cad > 2 x replyBudget` as a survival law; and `replyBudget = min(2000, cad/N)` as the fix —
+it was aimed at a mechanism that does not exist, and `N` never needed choosing.
+
+Survives, and is smaller: **a node under silence does not deliver its declared cadence.**
+`c6spare` declares `cad: 2000` and ticks at 4.007 s, so `obs/liveness` misreports it to
+porta's `gw/liveness` verdict. That is an honesty defect against D2, not a fatal one, and it
+wants its own issue rather than a ride on this fix.
+
+Also measured and worth keeping: the control arm at `cad: 30000` held **mean 30.000 s,
+sd 0.089, n=34** over 1050 s against the same silent injector — when the spin fits inside the
+period the declaration is kept exactly, which is why `c6-bell` rode a 10 h outage. That is a
+fact about cadence; it was simply never the reason the fast nodes died.
+
+### The population this leaves open
+
+The `pending` column being uninformative means **every reboot attributed to a node wedge
+since #215 is unverified**. The archive holds 58 `deadline=16000ms` events and zero of them
+sit in a log that also carries an OOM. Tracked as rete#270. Not affected: #199 (a real arena
+death, `VM GC Error ... requested 4104`, in logs with no wedge at all) and #232's refusing
+path (a refused node returns on the first datagram, never saturates, and cannot alias).
 
 Also worth carrying, because it cost this session's forensics: the `RebootNote` lives in
 `.rtc_noinit` (`zephyr/src/reboot_note.c:29`), so it survives a **reset** and NOT a power

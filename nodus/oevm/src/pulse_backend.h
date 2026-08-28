@@ -73,6 +73,13 @@ uint32_t pulse_stale(void);
    deep and never shed anything. */
 uint32_t pulse_pending(void);
 
+/* rete#269 — monotonic count of items actually DELIVERED to space_post_id by the
+   pump, across every call. pulse_pending() is a depth and cannot distinguish "the VM
+   never drained" from "the VM drained and the ISR refilled between two samples"; this
+   can, because it only ever moves when the pump ran. The wedge detector's second
+   condition rests on exactly that distinction and has never been able to make it. */
+uint32_t pulse_drained(void);
+
 /* Thread context, at the run-to-completion safe point. Drains every queued item
    (posix: returns 0 at once when empty; zephyr: blocks for the first item, then
    drains all) and for each calls space_post_id(chan_id, handle_get(handle_idx)).

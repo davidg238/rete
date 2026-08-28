@@ -93,6 +93,43 @@ static int g_wdt_channel = -1;
 static uint32_t g_margin_ms;
 static uint32_t g_deadline_ms;
 
+/* rete#269 — a ring of what each observer sample actually saw, printed in the dump
+   beside the evidence #222 already preserves. It exists because the reboot destroys the
+   only data that can distinguish a wedge from a false trip, and reading the sources could
+   not: the depth column and the drained column disagreed, and that disagreement WAS the
+   bug. Kept rather than removed — this is the instrument that found the detector was
+   rebooting a healthy node, and the next such question will look exactly like this one.
+   `undrained_since` is recorded BEFORE the verdict runs, so a reset shows on the sample
+   AFTER the one that saw an empty mailbox. */
+#define OBS_TRACE_N 32
+struct ObsTrace { uint32_t up, pend, drn, since; };
+static struct ObsTrace g_trace[OBS_TRACE_N];
+static uint32_t g_trace_w;                /* monotonic write count; index is w % N */
+static uint32_t undrained_since_ms;       /* 0 == not currently undrained (was function-static) */
+static uint32_t last_drained_seen;        /* rete#269: pulse_drained() at the previous sample */
+
+static void obs_trace_record(void) {
+    struct ObsTrace *e = &g_trace[g_trace_w % OBS_TRACE_N];
+    e->up    = k_uptime_get_32();
+    e->pend  = pulse_pending();
+    e->drn   = pulse_drained();
+    e->since = undrained_since_ms;
+    g_trace_w++;
+}
+
+static void obs_trace_dump(void) {
+    uint32_t n     = g_trace_w < OBS_TRACE_N ? g_trace_w : OBS_TRACE_N;
+    uint32_t start = g_trace_w - n;
+    printk("oevm: TRACE %u samples, oldest first: up_ms pending drained undrained_since\n",
+           (unsigned)n);
+    for (uint32_t i = 0; i < n; i++) {
+        struct ObsTrace *e = &g_trace[(start + i) % OBS_TRACE_N];
+        printk("oevm: T %u %u %u %u\n",
+               (unsigned)e->up, (unsigned)e->pend, (unsigned)e->drn, (unsigned)e->since);
+    }
+    k_busy_wait(30000);   /* the UART FIFO, before anything reboots */
+}
+
 #ifdef CONFIG_OEVM_WEDGE_TRIGGER
 /* Latched at observer_start(), never recomputed. A trigger that re-armed on the boot that
    REPORTS the previous wedge would reboot the node again mid-report, and the gate would
@@ -135,10 +172,26 @@ static int observer_verdict(void) {
        SHORTEST declared period, because that is the fastest cadence the app claims to
        service. */
     {
-        static uint32_t undrained_since_ms;   /* 0 == not currently undrained */
         uint32_t deadline = shortest * WEDGE_SLACK;
         uint32_t now = k_uptime_get_32();
-        if (pulse_pending() == 0) {
+        /* rete#269 — PROGRESS, NOT DEPTH. `pulse_pending() == 0` alone is a point sample
+           of a transient: at cad 2000 under silence the mailbox empties for ~1 s inside
+           every 4.007 s tick, and this thread samples every 1001 ms, so four samples span
+           4004 ms against a 4007 ms cycle. That 3 ms beat slowly walks the one sample that
+           catches the empty window straight out of it — and once no sample lands inside,
+           `held` runs free and reboots a node that is draining normally. Measured on
+           c6spare 2026-08-27: ticks 34-38 printed and `drained` climbed 35 -> 39 during the
+           very 16 s this called undrained, firing at exactly 16016 ms. Three earlier deaths
+           at the same deadline were the same false trip, not three wedges.
+
+           `pulse_drained()` cannot alias, because a monotonic counter integrates over the
+           whole interval instead of sampling an instant: if it moved, the VM ran the pump
+           between these two samples, whatever the mailbox happens to read right now. A VM
+           genuinely stuck in the interpreter never moves it, so wedge-detect is unaffected. */
+        uint32_t drained_now = pulse_drained();
+        bool progressed = (drained_now != last_drained_seen);
+        last_drained_seen = drained_now;
+        if (pulse_pending() == 0 || progressed) {
             undrained_since_ms = 0;
         } else {
             if (undrained_since_ms == 0) undrained_since_ms = now ? now : 1u;
@@ -323,6 +376,7 @@ static void observer_dump(int cond) {
            (unsigned)pulse_pending(), (unsigned)pulse_drops(),
            (unsigned)pulse_coalesced(), (unsigned)pulse_stale(),
            (unsigned)reboot_note_consecutive() + 1u);
+    obs_trace_dump();   /* rete#269 */
 }
 
 /* §5.2's HALT arm. THE HARDWARE WATCHDOG MUST BE DISABLED FIRST, and this is not in either
@@ -366,6 +420,7 @@ static void observer_thread_fn(void *a, void *b, void *c) {
             sys_reboot(SYS_REBOOT_COLD);
         }
 #endif
+        obs_trace_record();   /* rete#269: before the verdict reads the same state */
         int cond = observer_verdict();
         if (cond == COND_NONE) {
             if (g_wdt_channel >= 0) (void)task_wdt_feed(g_wdt_channel);

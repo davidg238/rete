@@ -18,6 +18,7 @@ struct PulseItem { int chan_id; int handle_idx; oop value; };
 static struct PulseItem mailbox[OEVM_PULSE_MAILBOX_DEPTH];
 static int mb_head = 0, mb_count = 0;
 static uint32_t mb_drops = 0, mb_coalesced = 0, mb_stale = 0;
+static uint32_t mb_drained = 0;   /* rete#269: what the wedge detector judges progress by */
 
 static void pulse_enqueue(int chan_id, int handle_idx, oop value) {
     /* tuvm#34: shed, never abort. A full mailbox is a load condition (the reactor
@@ -68,13 +69,15 @@ int pulse_pump(void) {
         oop o = (it.handle_idx == PULSE_BY_VALUE) ? it.value : handle_get(it.handle_idx);
         if (o) { space_post_id(it.chan_id, o); drained++; } else mb_stale++;   /* rete#214 */
     }
+    mb_drained += (uint32_t)drained;
     return drained;
 }
 
 /* Posix pulse_pump is already non-blocking, so the nb variant is identical. */
 int pulse_pump_nb(void) { return pulse_pump(); }
 
-uint32_t pulse_drops(void) { return mb_drops; }
+uint32_t pulse_drops(void)     { return mb_drops; }
+uint32_t pulse_drained(void)   { return mb_drained; }
 /* rete#215. Exists so the seam LINKS on the host and answers honestly, not so the host can
    simulate a wedge: there is no ISR here, so at any safe point where nsl could ask, the
    ring has already been drained and this reads 0. The condition it feeds is target-only

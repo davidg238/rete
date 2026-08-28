@@ -1178,42 +1178,50 @@ board time owes nothing.**
 
 ---
 
-## ADDENDUM 2026-08-27 — a node dies ~112 s after losing its uplink to a LIVE gateway (rete#269)
+## ADDENDUM 2026-08-27 — the wedge detector was rebooting a healthy node (rete#269)
 
-**The bench's standing belief was wrong, and the correction is a number.** "Absence a node
-survives indefinitely; refusal kills it" was drawn from two true observations — the bell rode a
-10 h gateway outage, #199's refused node died in 157 s — and the generalisation does not hold.
-It was a statement about **cadence**.
-
-`Kernel>>awaitReply:` busy-spins `replyBudget = 2000` ms and `checkIn` has two legs, so under
-silence a tick costs up to **4000 ms of spin**; a refused node returns on the first datagram
-and pays ~0. So a node holds its declared cadence under a silent uplink only if
-**`cad > 2 x replyBudget`** (4 s today). `c6-bell` is `cad: 30000` — 13% duty, fine for 10 h.
-`c6spare` and **`c6bench`** are `cad: 2000` — saturated the moment nothing answers.
-
-**Witnessed 2026-08-27**: c6spare died 204 s after its uplink went silent, against a porta that
-was UP throughout (`gw_runs` 08-26 19:04 → 08-27 11:24) and that c6bench and c6 were reaching
-normally across the entire window. `ref 0, rej 0, misses +2/tick`, on a build carrying
-`196ff1c fix(#199)`.
-
-**Reproduced the same day**, `porta-silent` RED first run: tick spacing **4.007 s from tick 1**,
-`WEDGE cond=pulse-undrained up=111734ms` at tick 26 — **111.7 s cold, faster than #199's
-refused death**. Three wedges then the designed HALT, the unplanned sequence exactly.
-
-**This is a THIRD failure under "gateway unreachable"**, not a recurrence: the unbounded
-pending queue (64-row cap) and #199's rebuild churn (`196ff1c` frame reuse) are both still
-working. The terminal event is #215's detector, not an OOM, and the empty poll allocates
-nothing (`udp.c:83`) — a wall-clock failure, not an arena one. **Each earlier fix was gated by
-a refusal test or a host test; none was ever gated by an actually-unreachable gateway.**
-
-Landed: `--test-drop-all` (SetRefuseAll's mirror), `SilentProbeC6.nsl`, `porta-silent.env`
-(`5274c90`), and the measured result (`f55deb3`). Design record: the 2026-08-27 addendum to
+**Supersedes an earlier addendum of the same date**, which said a node could not hold its
+declared cadence under silence and named `cad > 2 x replyBudget` as the law. The control run
+refuted that premise instead of completing it. Corrected here rather than left beside the
+correction. Full record: the 2026-08-27 addendum to
 `docs/design/2026-08-21-liveness-contract-design.md`.
 
-**Next, in order:** (1) the control run at `cad: 30000` to nail the threshold and supply the
-second point; (2) the fix — `replyBudget` derived from the declared cadence, whose divisor is
-deliberately NOT invented ahead of that data; (3) restore c6spare to `PortaBridgeNodeC6`.
-**Time-to-death varies ~40% boot to boot, so a green needs several runs or one long one.**
+**No node was failing.** `observer.c`'s `pulse-undrained` condition judged the mailbox's
+**depth at a sampling instant**, which aliases. At `cad: 2000` under silence the tick costs
+~4 s of `awaitReply` spin, so the mailbox empties for ~1 s inside every 4.007 s tick — but
+the observer samples every 1001 ms, four samples span 4004 ms against a 4007 ms cycle, and
+that 3 ms beat walks the one sample that catches the empty window out of it. `held` then runs
+free to exactly `8 x cad`. It also explains the ~40% variance in time-to-death that no
+allocation story ever accounted for: it depends where the beat starts.
+
+**Proven both ways on c6spare.** Through the 16 s the detector called undrained, `drained`
+climbed **35 -> 39** and the console printed **ticks 34-38**. Through a real wedge
+(`wedge-detect`), `drained` sat **frozen at 30**. `pending` reads `1` in both, so no dump
+ever taken can separate them on its own evidence.
+
+**Fix: progress, not depth.** `pulse_drained()` — a monotonic count of items the pump
+delivered — added to the seam and both backends; the observer resets when the mailbox is
+empty **or** that counter moved. A counter integrates across the interval, so it cannot
+alias, and a stuck VM never moves it. No new tunable. `porta-silent` **PASS 2/2** (357 s
+alive under the condition that killed it at 111.7 s, zero WEDGE lines) and `wedge-detect`
+**PASS 2/2** still firing. Host: nsl 278/0 all aux green, `go test` green, `PORTA SYNC OK`.
+
+**Dropped:** the `replyBudget` derivation. It targeted a mechanism that does not exist.
+**Kept, as a smaller real defect:** a node under silence delivers 4.007 s while declaring
+`cad: 2000`, so `obs/liveness` misreports it to porta's `gw/liveness` verdict — an honesty
+bug against D2, wanting its own issue. **Kept as data:** the control arm at `cad: 30000` held
+**mean 30.000 s, sd 0.089, n=34** over 1050 s against the same silent injector.
+
+**Opened: rete#270.** Because `pending` is uninformative, every reboot attributed to a node
+wedge since #215 is unverified — 58 `deadline=16000ms` events in the console archive, none in
+a log that also carries an OOM. Not affected: #199 (a real arena death, `requested 4104`, in
+logs with no wedge) and #232's refusing path (returns on the first datagram, never
+saturates).
+
+**Next, in order:** (1) rete#270's sweep of the 58 events; (2) the cadence-honesty issue
+above; (3) whether `wedge-quiet`'s premise needs strengthening — it gates a node with a slow
+*declared* period and never covered one whose *delivered* period drifts, which is the case
+that bit.
 
 Bench note that cost this session's forensics: the `RebootNote` is in `.rtc_noinit`
 (`reboot_note.c:29`) — it survives a **reset**, NOT a power cycle.
