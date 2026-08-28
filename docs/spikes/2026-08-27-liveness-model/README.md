@@ -15,6 +15,29 @@ before believing it.
 Units are scaled: one model step = 2 s of wall clock, so the bench node's 2 s cadence is
 `Cad = 1`. Every constant names its wall-clock original in the `.cfg`.
 
+## The H-labels, and where each one now lives
+
+`H1`..`H8` were coined in this review and appear in `2026-08-27-liveness-4-holes.png`, in
+this README, and in the commit messages. **They are not a numbering scheme with any
+standing of its own** — every one now resolves to an issue, and the issue is the record:
+
+| label | the hole | issue |
+|---|---|---|
+| H1 | the declared cadence is a promise nothing checks — 4.007 s delivered against 2000 declared | [#271](https://github.com/davidg238/rete/issues/271) |
+| H2 | porta cannot honour a budget shorter than its own 30 s sweep | [#273](https://github.com/davidg238/rete/issues/273) |
+| H3 | the verdict cannot see a reboot loop — it reads arrival, never `boot_id` | [#272](https://github.com/davidg238/rete/issues/272) |
+| H4 | two independent eights that happen to agree | [#273](https://github.com/davidg238/rete/issues/273) |
+| H5 | `misses` rides the push leg — the leg that is failing | [#272](https://github.com/davidg238/rete/issues/272) |
+| H6 | `startTicking:` is downstream of the socket bind, so a failed bind leaves no detector | [#274](https://github.com/davidg238/rete/issues/274) |
+| H7 | the node never acts on its own silence | [#272](https://github.com/davidg238/rete/issues/272) |
+| H8 | porta's deafness is modelled, the node's is not | [#272](https://github.com/davidg238/rete/issues/272) |
+
+**Eight labels, three defects.** H3/H5/H7/H8 are one thing — porta judges ARRIVAL where
+the node judges PROGRESS, which is rete#269's own defect one layer up, and the progress
+counter is already on the wire (`obs/health.wak` = the bridge's `ticks`). H1/H2/H4 are one
+thing — four deadlines chosen independently that nothing derives from each other. H6 is a
+small ordering bug and stands alone.
+
 ## What it found
 
 ### 1. The model was wrong first, and the board corrected it

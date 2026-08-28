@@ -457,13 +457,61 @@ sd 0.089, n=34** over 1050 s against the same silent injector — when the spin 
 period the declaration is kept exactly, which is why `c6-bell` rode a 10 h outage. That is a
 fact about cadence; it was simply never the reason the fast nodes died.
 
-### The population this leaves open
+### The population this left open — ANSWERED 2026-08-27 (rete#270, closed)
 
-The `pending` column being uninformative means **every reboot attributed to a node wedge
-since #215 is unverified**. The archive holds 58 `deadline=16000ms` events and zero of them
-sit in a log that also carries an OOM. Tracked as rete#270. Not affected: #199 (a real arena
-death, `VM GC Error ... requested 4104`, in logs with no wedge at all) and #232's refusing
-path (a refused node returns on the first datagram, never saturates, and cannot alias).
+The `pending` column being uninformative meant no archived dump could settle its own case,
+so every reboot attributed to a node wedge since #215 was unverified: 58 `deadline=16000ms`
+events, zero in a log that also carries an OOM.
+
+**Swept, and the false trips are confined to the one session that found them.** Settled from
+the console *around* each dump rather than the dump itself — a wedged node goes silent, a
+healthy one keeps printing:
+
+- **49 real wedges** (08-19/20). Every one identical: boot, ticks 1-6 at a 2.04 s cadence,
+  then 18.2 s of silence against a 2 s cadence, which is nine missed ticks. **35 of them
+  also carry the #222 forensics probe reading `reactor=NOT-ADVANCING`** with `vm_sp` and
+  `frame` frozen — evidence that does not depend on mailbox depth at all. They are the
+  selector prim-cache spin (#222/#192/#213, fixed in `2461d42`), whose own commit already
+  named the tick-6 signature as "where each app crosses 256", and whose cure is the proof:
+  the same bridge went from wedging on eight consecutive boots to `PASS 3/3` at tick 99.
+- **2 deliberate** — `liveness-heartbeat`'s synthetic wedges (D1 above).
+- **7 false trips**, all 2026-08-27, all on the 4.007 s delivered tick.
+
+**No attribution was overturned; before 2026-08-27 the detector was right every time.**
+Not affected: #199 (a real arena death, `VM GC Error ... requested 4104`, in logs with no
+wedge at all) and #232's refusing path (a refused node returns on the first datagram, never
+saturates, and cannot alias).
+
+### What the sweep left standing, and what a review of the whole contract then found
+
+The sharpest observation in #270 survives its own answer: **`pending` reads 1 for a wedge
+and for a false trip alike, so the dump could not distinguish them.** What settled it was
+the console around the dump. The trace ring added by #269 is what makes the next such
+question answerable from the dump alone.
+
+The contract was then reviewed end to end and modelled in TLA+
+(`docs/spikes/2026-08-27-liveness-model/`, diagrams at `docs/spikes/2026-08-27-liveness-*.png`).
+Eight holes were labelled H1-H8; they are **three defects**, and each label resolves to an
+issue in that README's mapping table:
+
+1. **porta judges ARRIVAL where the node judges PROGRESS** (H3/H5/H7/H8, rete#272) — this
+   design's own #269 defect one layer up. `verdictFor` tests `now - last_seen`, a proxy for
+   health in exactly the way mailbox depth was a proxy for progress. The progress counter is
+   **already on the wire**: `obs/health.wak` is the bridge's `ticks`, published every
+   check-in and stored in `cells`, alongside `bid`. The fix reads a value porta already has.
+2. **Four deadlines chosen independently that nothing derives from each other** (H1/H2/H4,
+   rete#271 + rete#273): `cad`, the wedge deadline (`WEDGE_SLACK` in C), `bud` (`cadence x 8`
+   in nsl) and `SweepTick` (a constant). D4's "porta infers nothing" is silently capped by
+   the 30 s sweep for every node on this bench, and the two eights are not the same eight.
+3. **A failed socket bind leaves a node with no detector** (H6, rete#274), because
+   `startTicking:` is downstream of the bind.
+
+One correction to the mechanism in this document, forced by the model and settled by the
+board: a check-in that overruns its own period does **not** push the next tick out. The base
+tick is periodic and its posts coalesce, so the delivered period is **`max(cad, work)`, not
+`cad + work`** — which predicts both of rete#271's measured rows (4.007 s at cad 2000,
+30.000 s at cad 30000) and gives the exact condition under which a node misdescribes itself:
+**`2 x replyBudget > cad`**, i.e. `cad < 4000 ms` at today's budget.
 
 Also worth carrying, because it cost this session's forensics: the `RebootNote` lives in
 `.rtc_noinit` (`zephyr/src/reboot_note.c:29`), so it survives a **reset** and NOT a power
