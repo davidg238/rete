@@ -552,6 +552,57 @@ def run_tutorial_gate(page_name: str, label: str, needs: tuple = ()) -> str:
     return "PASS"
 
 
+def run_tutorial_board_gate(page_name: str = "02-board.md",
+                            label: str = "tutorial-board") -> str:
+    """Gate the ONE checkable fact on the board tutorial (#79).
+
+    docs/tutorials/02-board.md is prose and says so in its own banner: its walkthrough needs
+    a devkit, a Zephyr toolchain and a mesh, so unlike 01-host.md and 03-porta.md it carries
+    no ```bash gate blocks and cannot. A gate that degraded to a SKIP without hardware is how
+    a gate reports success for a run that never happened, which is why tests/target/run.sh
+    refuses to be part of this suite either.
+
+    But ONE claim on that page is a fact about this repository rather than about a board:
+    §7's table of target scenarios. It is also the claim most likely to go stale, and to do
+    it silently — a twelfth .env lands and the page goes on confidently listing eleven. This
+    suite already derives the scenario COUNT from that same glob for its `target gates:`
+    line, so without this check the page can contradict the suite's own output and nobody
+    finds out.
+
+    NAMES ONLY, deliberately. Not the descriptions: a stale description is a judgement call,
+    a missing scenario is a bug, and a gate that tries to score prose is a gate that gets
+    disabled. This does not make the page executed and does not soften its banner.
+
+    A row counts only when its first cell is entirely one code span, so the page's other
+    tables cannot contribute. If the table is renamed or reformatted the parse yields the
+    empty set and this FAILS naming every scenario as undocumented — vacancy must not read
+    as agreement (#216's shape). Returns "PASS" or "FAIL"; a missing page is a FAILURE."""
+    root = OEVM_DIR.parent.parent
+    page = root / "docs" / "tutorials" / page_name
+    target_dir = OEVM_DIR / "tests" / "target"
+    if not page.exists() or not target_dir.is_dir():
+        missing = page if not page.exists() else target_dir
+        print(f"{COLOR_RED}{label}: FAIL{COLOR_RESET} (missing {missing})")
+        return "FAIL"
+
+    on_disk = {f.stem for f in target_dir.glob("*.env")}
+    documented = {m.group(1) for line in page.read_text().splitlines()
+                  if (m := re.match(r"^\|\s*`([a-z0-9-]+)`\s*\|", line))}
+
+    undocumented = sorted(on_disk - documented)
+    phantom = sorted(documented - on_disk)
+    if undocumented or phantom:
+        print(f"{COLOR_RED}{label}: FAIL{COLOR_RESET} "
+              f"({page_name} \u00a77 disagrees with {target_dir.name}/*.env)")
+        for name in undocumented:
+            print(f"  scenario on disk but NOT on the page: {name}")
+        for name in phantom:
+            print(f"  named on the page but NO manifest:    {name}")
+        return "FAIL"
+    print(f"{COLOR_GREEN}{label}: PASSED{COLOR_RESET} ({len(on_disk)} scenarios)")
+    return "PASS"
+
+
 def run_cmake_parse_gate() -> str:
     """Gate the BUILD FILES, which until rete#226 nothing on the host read at all.
 
@@ -1153,6 +1204,9 @@ def main():
     # same pair. That gate is standalone, so nothing here collides; two concurrent nsl
     # suites would, and were already forbidden for sharing /tmp paths.
     tutorial_porta = run_tutorial_gate("03-porta.md", "tutorial-porta", needs=("go",))
+    # 02-board.md is PROSE — no bash blocks, and its banner says why. Only its scenario
+    # table is checkable on a host, and only by name. See run_tutorial_board_gate.
+    tutorial_board = run_tutorial_board_gate()
 
     suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok
                 and portability != "FAIL" and boot_gc_ok
@@ -1161,7 +1215,7 @@ def main():
                 and observe_py != "FAIL" and cmake_parse != "FAIL"
                 and nsl_tools_py != "FAIL" and protocol_py != "FAIL"
                 and gwprof_py != "FAIL" and tutorial != "FAIL"
-                and tutorial_porta != "FAIL")
+                and tutorial_porta != "FAIL" and tutorial_board != "FAIL")
     print(f"\n{COLOR_GREEN if suite_ok else COLOR_RED}Test Execution Summary:{COLOR_RESET}")
     print(f"  Passed:  {passed}")
     print(f"  Failed:  {failed}")
@@ -1195,7 +1249,8 @@ def main():
           f"protocol-py: {_mark(protocol_py)}  "
           f"gwprofiler-py: {_mark(gwprof_py)}  "
           f"tutorial-host: {_mark(tutorial)}  "
-          f"tutorial-porta: {_mark(tutorial_porta)}")
+          f"tutorial-porta: {_mark(tutorial_porta)}  "
+          f"tutorial-board: {_mark(tutorial_board)}")
 
     # NOT a skip, and deliberately not coloured like one: a skip names a cause it
     # has not verified, and this names one that IS verified. timer_zephyr.c posts

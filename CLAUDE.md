@@ -145,7 +145,7 @@ Every C test is now registered individually in `nodus/nsl/tools/run_tests_oevm.p
 `OEVM_BUILD=asan|ubsan` knob. Adding a C test is one row in one file; a test registered in
 two places is one that gets forgotten in one of them. The registry runs every test and
 reports every failure rather than stopping at the first.
-**`tutorial-host` and `tutorial-porta` close that aux line** (#79, 2026-08-29):
+**`tutorial-host`, `tutorial-porta` and `tutorial-board` close that aux line** (#79, 2026-08-29):
 `docs/tutorials/gate.sh` extracts every `bash gate` block from a page and runs them in a
 fresh directory, canary first. A tutorial is the one document nobody who knows the system
 re-reads, so it is executed instead — edit the page and the gate follows; a new tutorial is
@@ -157,6 +157,13 @@ runs both halves of the repo against each other**: a real `porta serve` and a re
 so the suite does not collide; two concurrent suites would). It is the ONE gate here that
 needs a Go toolchain, and `needs=("go",)` makes an absent `go` a named SKIP rather than a
 hard failure, because a missing Go must not couple the nsl suite to the gateway half.
+**`tutorial-board` is the odd one and deliberately so**: `docs/tutorials/02-board.md` is PROSE
+— its walkthrough needs a devkit, a toolchain and a mesh, so it carries no `bash gate` blocks
+and its banner says why. The gate checks the ONE claim on it that is a fact about this repo
+rather than about a board: §7's scenario NAMES against `nodus/oevm/tests/target/*.env`. Names
+only — a missing scenario is a bug, a stale description is a judgement call, and a gate that
+scores prose is one that gets disabled. An unparseable table yields the empty set and FAILS,
+because vacancy must not read as agreement.
 **`footprint: SKIP` is NO LONGER expected, and it never should have been** (#177, fixed
 2026-08-22): arm-zephyr-eabi-gcc ships inside `~/zephyr-sdk-0.17.4` and always did. What was
 broken was the gate's own un-SKIP instruction, which named a path the #79 consolidation

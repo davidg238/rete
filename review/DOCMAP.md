@@ -188,7 +188,7 @@ _Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/results/2026-08-12-allocation-attribution-c6.md` — Allocation attribution on the C6 — the boot window, the steady-state window, and an incident _(record, 2026-08-12)_
 - `docs/results/2026-08-12-allocation-attribution-host.md` — Allocation attribution — the host measurement _(record, 2026-08-12)_
 - `docs/results/2026-08-12-profile-window-cost-c6.md` — What an open attribution window costs on a C6 — +1.9% of local CPU, +0.13% of elapsed _(record, 2026-08-12)_
-- `docs/results/2026-08-29-thread-echo-soak.md` — A 48-day Thread echo soak nobody was reading — 720,878 round trips, and one unattributable day _(record)_
+- `docs/results/2026-08-29-thread-echo-soak.md` — A 48-day Thread echo soak nobody was reading — 720,878 round trips, and one unattributable day _(record, 2026-08-29)_
 - `docs/spikes/2026-07-17-oeom-native-hanoi/README.md` — Spike archive: OEOM native-substitution (Hanoi AOT ceiling) — 2026-07-17 _(record, 2026-07-17)_
 - `docs/spikes/2026-08-11-rete199-refused-node/README.md` — rete#199 — a node whose frames the gateway refuses, reproduced off hardware _(record, 2026-08-11)_
 - `docs/spikes/2026-08-27-liveness-model/README.md` — The liveness contract, model-checked (2026-08-27) _(record, 2026-08-28)_

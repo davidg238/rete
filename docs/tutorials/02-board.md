@@ -15,7 +15,9 @@ them, and what a full sweep of the target gates actually costs in wall-clock tim
 > a USB cable, a Zephyr toolchain, and — from §5 on — a Thread mesh and a running gateway.
 > A gate that degraded to a SKIP without hardware would be a gate reporting success for a
 > run that never happened, which is the failure `nodus/oevm/tests/target/run.sh` refuses in
-> its own header and the reason it is not part of the nsl suite.
+> its own header and the reason it is not part of the nsl suite. (One claim here *is* checked
+> — §7's list of scenario names is a fact about this repository rather than about a board, so
+> the suite compares it against the manifests. Nothing else on this page is.)
 >
 > So the page's honesty is its own gate, and here is how it is kept: **every transcript
 > below is copied out of a bench log, and carries the date it was recorded.** Nothing here
@@ -357,10 +359,12 @@ cd nodus/oevm/tests/target
 ./run.sh --no-deploy --build-id <id> stale-handle
 ```
 
-The runner globs `*.env`, so a new scenario joins the sweep the moment its manifest lands
-— and the nsl suite counts that same glob when it prints the line in §1, so the number
-*there* cannot go stale. **The table below can**, because it is prose. As of 2026-08-29 there
-are eleven, and a full pass is 60–90 minutes of board time. Budget
+The runner globs `*.env`, so a new scenario joins the sweep the moment its manifest lands.
+The nsl suite counts that same glob for the line in §1 — and **it also checks the names in
+the table below against it**, as the `tutorial-board` aux gate, so a twelfth manifest turns
+this page red rather than leaving it quietly wrong. Names only: a missing scenario is a bug,
+a stale *description* is a judgement call, and a gate that scores prose gets disabled. As of
+2026-08-29 there are eleven, and a full pass is 60–90 minutes of board time. Budget
 that rather than discovering it — `wedge-quiet` alone observes for 600 s because the thing it
 must not do is false-trip on a legitimately slow node, and `liveness-heartbeat` budgets a
 300 s timeout plus 180 s of observation.
