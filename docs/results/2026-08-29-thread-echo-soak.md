@@ -175,9 +175,10 @@ unchanged.**
 | `c145:d47b:5430:db9b` | 2026-08-18 19:30:29 | 2026-08-29 15:04:43 | **10 d 19 h 34 m** |
 | `2867:4291:e295:1e9f` | 2026-08-18 19:28:11 | 2026-08-29 15:05:55 | **10 d 19 h 38 m** |
 
-An unchanged ML-EID after eleven days without power means the OpenThread settings survived
-in NVS: same firmware, same credentials, same identity. Nothing was reflashed and nothing
-needed to be. **§3's reading is confirmed — the 2026-08-18 event was power, not firmware.**
+An unchanged ML-EID after eleven days means the OpenThread settings survived in NVS: same
+firmware, same credentials, same identity. Nothing was reflashed and nothing needed to be.
+**Firmware is ruled out.** What replaced it was "it was power" — and that claim was wrong;
+see §9.
 
 `1e62` was not interrupted by the re-power (97 consecutive echoes across the window, no gap
 over 60 s), so its run is unbroken and continues past 48.6 days.
@@ -240,11 +241,9 @@ reliability are not ordered together here at all. And `LQ In` is 3 — the maxim
 node including the weakest: −72 dBm is roughly 28 dB above 802.15.4 receiver sensitivity, so
 none of these links is marginal.
 
-What the 2026-08-18 event does look like is **shared power**. It took `92c2` and `4ec0` down
-2 m 18 s apart and left `7adf` running, and `4ec0` had the best record of the three — so
-whatever hit them was indifferent to both link quality and board health. Whether those two
-share an outlet or strip while `7adf` is on another is a question for the bench, not the
-logs, and it is not yet answered.
+Whatever hit the two boards on 2026-08-18 was therefore indifferent to link quality *and*
+to board health — `4ec0` had the best record of the three. That pointed at shared power,
+which §9 then ruled out too.
 
 ### `92c2` — flagged, not convicted
 
@@ -261,3 +260,48 @@ fault.
 So §8's verdict stands as written — the 2026-08-18 event was power — and `92c2`'s history is
 recorded here as **the thing to watch first** if a node misbehaves again, not as a diagnosis.
 
+## 9. Retraction: it was not power, and the cause is not known
+
+§8 said the 2026-08-18 event was power. **That is withdrawn.** It rested on a shared-outlet
+assumption that the bench refutes: the three nRFs are in **three different places, 15–40 ft
+from the gateway, on different circuits** (David, 2026-08-29). There is no strip to blame.
+
+Once that goes, the evidence reads differently, and mostly the other way:
+
+- **A 21-minute spread is not a mains event.** 19:28:11 → 19:30:29 → 19:49:10, in three rooms.
+  A brownout does not arrive twenty minutes apart in three places.
+- **`7adf` resumed 3 minutes after the gateway rebooted**, having been silent 26.7 h
+  (08-19 22:28:43 boot, 22:29:45 echo server, 22:31:21 first echo). If that node had lost
+  power, the coincidence with a reboot a day later is unexplained. If the **gateway side**
+  was broken, the node was fine throughout, retrying, and reconnected the moment there was
+  something to connect to. The second explanation costs nothing extra.
+- **The recovery of the other two on power-cycle proves less than §8 claimed.** A node stuck
+  detached — settings intact, unable to rejoin, cleared by a restart — behaves identically
+  to one that had no power. Today's recovery cannot distinguish them, and §8 treated it as
+  if it could.
+- **Nothing gateway-side is recorded, and the log that would record it is gone.** gw's system
+  journal for 2026-08-18 19:00–20:15 holds only cron and tailscale. The OTBR runs in docker
+  and that container started `2026-08-20T05:29:48Z` with `restarts=0` — its logs begin
+  *after* the event. The single place a border-router or RCP fault would have appeared no
+  longer exists.
+
+**Verdict: cause unknown, gateway side the leading candidate.** Firmware is ruled out (§8),
+credentials are ruled out (the dataset never rotated), distance and link quality are ruled
+out (RSSI, above), and shared power is ruled out (this section). What is left is unproven.
+
+### What would settle it next time
+
+The instrument has to be able to implicate itself. Three cheap additions, in order of value:
+
+1. **A heartbeat line from the echo server** every minute whether or not a node speaks —
+   exactly the `@@rete-console@@ heartbeat port=up` line the console collector already
+   emits. It separates "no node spoke" from "the server stopped listening", which is the
+   distinction this whole section founders on.
+2. **Persist the OTBR's logs** outside the container, so a border-router fault survives the
+   reboot that clears it. Today the reboot destroyed its own best evidence.
+3. **Get the nodes into porta** (rete#281). A node in the space is watched by `gw/liveness`,
+   which forms a verdict on a ticker rather than at read time — the one mechanism here that
+   is designed to notice silence.
+
+This section is the argument for #281 in a sentence: **a channel nothing reads cannot tell
+you why it went quiet.**
