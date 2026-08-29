@@ -1,5 +1,11 @@
 # Deployment model: resident VM + OTA'd image (Model B)
 
+> **Status note, 2026-08-29.** The decisions below stand and Model B is what ships. Details
+> that moved on since: the `.oimg` header is at format version **10** (`nodus/oevm/src/oimg_loader.c`);
+> the keeper is no longer `nodus-st` on Berry but the nsl kernel on oevm itself; and porta
+> delivers nothing over TFTP — images ride the bulk plane (`porta blob put`) and the space
+> (`goal/apps`). Current architecture in one page: `vm.md`.
+
 Status: **BUILT & SHIPPED**, updated 2026-06-25 (decisions recorded 2026-06-17).
 Model B is now the **primary, default** deployment path: the resident VM loads a
 clustered `.oimg` at runtime and runs it execute-in-place. The full conformance

@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-17
 **Status:** Approved (design); staged implementation.
-**Roadmap item:** P0 — Unboxed / tagged floats (`docs/ROADMAP.md`).
+**Roadmap item:** P0 — Unboxed / tagged floats (`docs/archive/ROADMAP.md`).
 **Related:** GitHub issue #3 (GC never triggered at runtime).
 
 ## Problem

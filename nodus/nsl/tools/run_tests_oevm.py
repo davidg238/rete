@@ -264,7 +264,7 @@ C_UNIT_TESTS = [
     ("test_solidified",       ENG_A, [],
      "stale per-test fixture: hard-codes CounterVtable/Symbol_increment from an old "
      "per-test fixture the current generated image no longer provides; tracked in "
-     "docs/ROADMAP.md P2 for a dedicated fixture"),
+     "docs/archive/ROADMAP.md P2 for a dedicated fixture"),
     ("test_oimg",             ENG_A, [],
      "needs stub globals for gc.c's grown trace surface: designed to link gc.c "
      "standalone via its own stub globals, but gc.c now also requires StringVtable/"

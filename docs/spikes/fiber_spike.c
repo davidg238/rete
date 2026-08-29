@@ -2,7 +2,7 @@
  * fiber_spike.c — L0 frame-ABI validation spike (throwaway).
  *
  * Validates, on a self-contained toy bytecode VM that depends on NOTHING in oevm,
- * the three properties the de-recursify rewrite rests on (docs/fiber_implementation.md §10):
+ * the three properties the de-recursify rewrite rests on (docs/archive/fiber_implementation.md §10):
  *
  *   1. Non-recursive CALL/RET — the interpreter is ONE flat C loop. A bytecode call
  *      pushes a frame on the heap stack and `goto`s (here: reassigns pc); RET pops and

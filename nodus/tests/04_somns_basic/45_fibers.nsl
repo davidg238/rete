@@ -8,7 +8,7 @@ regression for the old Zephyr-hijack activation-reuse bug. The old recursive
 engine + single-shared-C-stack hijack reused one run_interpreter activation
 across fibers and produced the WRONG interleave, deterministically
 'ABBBAA' (confirmed both on native_sim and via a -D__ZEPHYR__ host repro —
-see oevm/docs/fiber_implementation.md section 1-2). The flat non-recursive
+see docs/archive/fiber_implementation.md section 1-2). The flat non-recursive
 engine (swap-Stack fiber switch, one mechanism on every target, no
 __ZEPHYR__-conditional switch code left in vm.c/gc.c/dispatch.c) must
 produce the strictly-alternating 'ABABAB' below. A single accumulated

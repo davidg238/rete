@@ -4,7 +4,7 @@
 `nodus-st`). It is the northbound counterpart to `docs/PROTOCOL.md` (the
 southbound wire contract). **Dependencies point one way:** node repos import
 `github.com/davidg238/porta/devsdk/...`; **porta never imports a node repo.**
-See `docs/specs/2026-06-03-porta-devsdk-nodus-flash-design.md` for the full
+See `docs/archive/specs/2026-06-03-porta-devsdk-nodus-flash-design.md` for the full
 architecture.
 
 ## Packages

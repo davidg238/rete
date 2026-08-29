@@ -465,7 +465,7 @@ Proves the RSS goal (bounded slab count under sustained churn), runs the full co
 
 **Files:**
 - Test: `tests/test_float_gc.c` (extend with the acceptance test)
-- Modify: `docs/optimizations.md` (W2 row), `docs/ROADMAP.md` (W2a → done, W2b next)
+- Modify: `docs/optimizations.md` (W2 row), `docs/archive/ROADMAP.md` (W2a → done, W2b next)
 
 **Interfaces:**
 - Consumes: everything from Tasks 1–2.
@@ -543,7 +543,7 @@ Expected: `Passed: 47`, `Failed: 0`, `Skipped: 1`.
 
 In the weakness table, update the **W2** row to reflect that the float arena is now reclaimable: change its status to note "arena reclaim DONE (W2a): per-slab mark bitmaps + cell free-list, swept from `gc_collect`; bounded slab count under sustained churn; unboxing (W2b/Opt #6) still pending." Keep the W2b/unboxing item as the remaining work.
 
-- [ ] **Step 6: Update `docs/ROADMAP.md`**
+- [ ] **Step 6: Update `docs/archive/ROADMAP.md`**
 
 Mark **W2a (float-arena reclaim) complete** and set **W2b (float unboxing)** as the next GP0 step.
 
@@ -552,7 +552,7 @@ Mark **W2a (float-arena reclaim) complete** and set **W2b (float unboxing)** as 
 ```bash
 cd /home/david/workspace/oevm
 git restore src/solidified_image.c 2>/dev/null
-git add tests/test_float_gc.c docs/optimizations.md docs/ROADMAP.md
+git add tests/test_float_gc.c docs/optimizations.md docs/archive/ROADMAP.md
 git commit -m "test+docs(gp0): W2a float-arena reclaim done; bounded under sustained churn (W2a step 3)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"

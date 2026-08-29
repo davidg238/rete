@@ -4,7 +4,7 @@
 
 **Goal:** Introduce a single `OP_BLOCK_INVOKE` bytecode, route every block invocation (explicit `value`/`value:`/… and the non-literal combinator fallbacks) through it, and delete the recursive block-invoking combinator primitives — while the C engine STAYS recursive and the suite stays green on both image paths.
 
-**Architecture:** This is Phase 1 of the "core de-recursify" design (`oevm/docs/fiber_derecursify_core_design.md`, approved 2026-06-30). The design's key insight: the flat-dispatch flip (Phase 2) is only *clean* if no C primitive invokes a block by recursively re-entering `run_interpreter`. So Phase 1 makes every block invoke route through one uniform bytecode (`OP_BLOCK_INVOKE`) — executed for now by a still-recursive `run_interpreter` call — and lowers the non-literal `ifTrue:`/`and:`/`to:do:`/`whileTrue:` fallbacks (which today hit recursive C primitives) to bytecode that drives `OP_BLOCK_INVOKE`. The dead C primitives are then deleted. No hybrid: after Phase 1, every block invoke is one mechanism.
+**Architecture:** This is Phase 1 of the "core de-recursify" design (`oevm/docs/archive/fiber_derecursify_core_design.md`, approved 2026-06-30). The design's key insight: the flat-dispatch flip (Phase 2) is only *clean* if no C primitive invokes a block by recursively re-entering `run_interpreter`. So Phase 1 makes every block invoke route through one uniform bytecode (`OP_BLOCK_INVOKE`) — executed for now by a still-recursive `run_interpreter` call — and lowers the non-literal `ifTrue:`/`and:`/`to:do:`/`whileTrue:` fallbacks (which today hit recursive C primitives) to bytecode that drives `OP_BLOCK_INVOKE`. The dead C primitives are then deleted. No hybrid: after Phase 1, every block invoke is one mechanism.
 
 **Tech Stack:** C99 (oevm VM: `src/vm.c`, `src/oevm.h`, `src/dispatch.c`), Python 3 (compiler `ns-oevm/tools/ns_compile_oevm.py`; image generators `tools/solidify.py` Path A, `tools/oimg_serialize.py` Path B), Newspeak `.ns` (ns-tests suite).
 
@@ -462,7 +462,7 @@ Expected: baseline + all four new tests, no new failures, both paths.
 ### Task 5: Full regression gate, dialect/doc update, and Phase-2 handoff note
 
 **Files:**
-- Modify: `/home/david/workspace/oevm/docs/fiber_derecursify_core_design.md` (mark Phase 1 DONE; record what Phase 2 inherits)
+- Modify: `/home/david/workspace/oevm/docs/archive/fiber_derecursify_core_design.md` (mark Phase 1 DONE; record what Phase 2 inherits)
 - Modify: `/home/david/workspace/ns-oevm/docs/NEWSPEAK_DIALECT.md` (if a new dialect row is warranted — see Step 4)
 
 - [ ] **Step 1: Full suite, both paths**
@@ -481,7 +481,7 @@ cd /home/david/workspace/oevm
 grep -rniE 'fibers-gc-stress|portability_32|GC_STRESS|asan' Makefile* tests/ tools/ 2>/dev/null | head
 ```
 
-Expected: locate and run `test_portability_32.sh`, the fibers-gc-stress build, and an `OEVM_GC_STRESS=1` / ASan run; all green. (These caught real bugs in L1 — do not skip. If a recipe is unclear, consult `docs/fiber_implementation.md` and the L1 commits `b0f111e..f808d50` for the exact invocations.)
+Expected: locate and run `test_portability_32.sh`, the fibers-gc-stress build, and an `OEVM_GC_STRESS=1` / ASan run; all green. (These caught real bugs in L1 — do not skip. If a recipe is unclear, consult `docs/archive/fiber_implementation.md` and the L1 commits `b0f111e..f808d50` for the exact invocations.)
 
 - [ ] **Step 3: Confirm the recursive primitives are gone**
 
@@ -494,7 +494,7 @@ Phase 1 is an internal lowering with NO source-visible semantic change (behavior
 
 - [ ] **Step 5: Mark Phase 1 done + record the Phase-2 inheritance**
 
-In `oevm/docs/fiber_derecursify_core_design.md`, update the Phase 1 bullet in §5 to DONE and add a short "Phase 1 delivered / Phase 2 inherits" note capturing:
+In `oevm/docs/archive/fiber_derecursify_core_design.md`, update the Phase 1 bullet in §5 to DONE and add a short "Phase 1 delivered / Phase 2 inherits" note capturing:
 - `OP_BLOCK_INVOKE = 0x16` exists; every compiled block invoke (explicit `value*` and all combinator fallbacks) routes through it or through inlined bytecode.
 - Deleted: `PRIM_to_do`, `PRIM_to_by_do`, `PRIM_ifTrue`, `PRIM_ifFalse`, `PRIM_ifTrueIfFalse`, and the `whileTrue:`/`whileFalse:` closure intercept.
 - **Deferred to Phase 2** (NOT block-invoking C primitives, but part of the send()/flat-loop rework): the `value`-prefix branch of the `dispatch.c` `BytecodeClosureVtable` intercept (reflective `perform: #value`), and `valueWithArguments:`. When Phase 2 removes `send()`'s recursion, both convert to the flat mechanism together.
@@ -502,7 +502,7 @@ In `oevm/docs/fiber_derecursify_core_design.md`, update the Phase 1 bullet in §
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/oevm && git add docs/fiber_derecursify_core_design.md && \
+cd /home/david/workspace/oevm && git add docs/archive/fiber_derecursify_core_design.md && \
   git commit -m $'docs(derecursify): Phase 1 (finish lowering) complete; Phase 2 handoff\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>'
 # plus ns-oevm docs/NEWSPEAK_DIALECT.md only if Step 4 added a row.
 ```

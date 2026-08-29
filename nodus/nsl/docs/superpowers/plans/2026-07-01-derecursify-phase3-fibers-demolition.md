@@ -29,7 +29,7 @@
 - `oevm/src/dispatch.c` — `primitive_method_context_execute_cleanup` (deleted) + its registration.
 - `oevm/tests/test_fibers.c` — C-level fiber unit test; extend with the `ABBBAA→ABABAB` assertion if not already present.
 - `ns-tests/04_somns_basic/45_fibers.ns` — `.ns` interleave conformance test; strengthen ordering assertion.
-- `oevm/docs/fiber_derecursify_core_design.md` — mark Phase 3 DONE (§5).
+- `oevm/docs/archive/fiber_derecursify_core_design.md` — mark Phase 3 DONE (§5).
 - `ns-oevm/docs/NEWSPEAK_DIALECT.md` — no new dialect row expected (no language change); confirm and note.
 
 ---
@@ -469,7 +469,7 @@ cd /home/david/workspace/oevm && python3 tools/run_tests_oevm.py 2>&1 | grep -i 
 ```
 Then the Path-B run. Expected: the interleave test PASSes both paths with the `ABABAB`-style order. If it produces `ABBBAA`-style output, the mechanism is wrong — STOP and debug ([[superpowers:systematic-debugging]]) before proceeding.
 
-- [ ] **Step 3: Prove it on the `-D__ZEPHYR__` host build.** Build the host `.oimg` image runner with the Zephyr flag and run the fiber image (per `oevm/docs/fiber_implementation.md:30`, `gcc -D__ZEPHYR__ … oevm_image_main.c`):
+- [ ] **Step 3: Prove it on the `-D__ZEPHYR__` host build.** Build the host `.oimg` image runner with the Zephyr flag and run the fiber image (per `oevm/docs/archive/fiber_implementation.md:30`, `gcc -D__ZEPHYR__ … oevm_image_main.c`):
 ```bash
 cd /home/david/workspace/oevm && \
 gcc -D__ZEPHYR__ -Wall -Wextra -std=c99 src/vm.c src/gc.c src/dispatch.c src/platform.c oevm_image_main.c -o /tmp/oevm_zephyr_host 2>&1 | tail -5
@@ -507,7 +507,7 @@ Claude-Session: https://claude.ai/code/session_014BtRk5kkx9rVwbPB8N3VnK"
 Run the complete per-phase gate matrix, refresh the design doc and roadmap, confirm no dialect change, update oevm#25, and record the phase in memory. Deliverable: a green matrix and accurate docs.
 
 **Files:**
-- Modify: `oevm/docs/fiber_derecursify_core_design.md` (§5 mark Phase 3 DONE; move Phase-3-inherited items to resolved), `ns-oevm/docs/superpowers/plans/2026-06-25-ns-zephyr-capability-node-roadmap.md` (Phase 3 status), `ns-oevm/docs/NEWSPEAK_DIALECT.md` (confirm/annotate no new row)
+- Modify: `oevm/docs/archive/fiber_derecursify_core_design.md` (§5 mark Phase 3 DONE; move Phase-3-inherited items to resolved), `ns-oevm/docs/superpowers/plans/2026-06-25-ns-zephyr-capability-node-roadmap.md` (Phase 3 status), `ns-oevm/docs/NEWSPEAK_DIALECT.md` (confirm/annotate no new row)
 
 - [ ] **Step 1: Run the full gate matrix serially (both paths).** Per design doc §6:
   - Full suite `OEVM_PATH=AB` (expect ≥ 81/0/6; the 2 new fiber tests raise the pass count).
@@ -520,7 +520,7 @@ Run the complete per-phase gate matrix, refresh the design doc and roadmap, conf
 
 - [ ] **Step 2: Perf gate (optional but recommended).** Run Perfstex (`ns-zephyr`) or `oevm/bench.sh` and confirm no regression vs the Phase-2 baseline (flat dispatch + no swapcontext should be neutral-to-better on fiber-heavy loops). Record numbers.
 
-- [ ] **Step 3: Update the design doc.** In `oevm/docs/fiber_derecursify_core_design.md` §5, mark **Phase 3 DONE**; note the resolved inheritances: (a) the 4 reload blocks are now universal (not `#ifdef __ZEPHYR__`); (b) `cleanup_cl`/`ensure:` dead path **deleted** (oevm#25 remains for real impl); (c) conservative scan **deleted**; (d) `valueWithArguments:` still an ordinary send (unchanged, still deferred). State the `ABBBAA→ABABAB` proof result.
+- [ ] **Step 3: Update the design doc.** In `oevm/docs/archive/fiber_derecursify_core_design.md` §5, mark **Phase 3 DONE**; note the resolved inheritances: (a) the 4 reload blocks are now universal (not `#ifdef __ZEPHYR__`); (b) `cleanup_cl`/`ensure:` dead path **deleted** (oevm#25 remains for real impl); (c) conservative scan **deleted**; (d) `valueWithArguments:` still an ordinary send (unchanged, still deferred). State the `ABBBAA→ABABAB` proof result.
 
 - [ ] **Step 4: Confirm no dialect change.** No language/bytecode/facade change ⇒ no new `NEWSPEAK_DIALECT.md` row. Add a one-line note in the dialect doc's changelog that Phase 3 was a C-mechanism swap with no dialect impact (so the absence is intentional, not an omission).
 

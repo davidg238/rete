@@ -1,81 +1,40 @@
-# ns-oevm — Newspeak on the Open Extensible VM
+# nsl — the dialect, its compiler and the kernel
 
-The Newspeak language frontend targeting **oevm** (Ian Piumarta's Open Extensible
-Object Model, realised as a small register VM). This is the *way forward* for
-running Newspeak on oevm; it supersedes the Newspeak→Berry path in `ns-berry`
-(now legacy).
+nsl is a Newspeak-derived language for the oevm VM (`../oevm/`): keyword messages,
+blocks, nested classes with implicit-receiver sends, modules as objects. Source files end
+in `.nsl`. It compiles **on the host** to an `.oimg` object-graph image that the flashed
+VM loads and executes in place — there is no compiler on the device.
 
-## The four repos
-
-| Repo | Role |
-|---|---|
-| **oevm** | The bedrock: the C VM (dispatch, GC, object model). |
-| **ns-oevm** | *(this)* Newspeak frontend → solidified C image for oevm. |
-| **ns-berry** | Legacy Newspeak→Berry compiler. Source of the shared grammar. |
-| **ns-tests** | Black-box conformance + benchmark suite (ported from SOMns). |
-
-`ns-oevm` carries its **own copy** of the Ohm grammar (`grammar/`, copied out of
-ns-berry) so it does not depend on the legacy repo. At runtime it expects
-`oevm` and `ns-tests` as sibling checkouts:
-
-```
-workspace/
-  oevm/        # the VM (built by the test runner)
-  ns-oevm/     # this repo
-  ns-tests/    # the .ns conformance suite
-```
+What the language does **not** have, on purpose: non-local return (`^` out of an escaping
+closure is a compile error), fibers, growable stacks. Execution is run-to-completion over
+a reactor; see `../../docs/vm.md`.
 
 ## Layout
 
-```
-grammar/   Ohm grammar (ns.ohm) + AST builder (ns-parse.js) + node tests
-tools/     ns_compile_oevm.py  — .ns → oevm solidified C image
-           run_tests_oevm.py   — black-box harness over ../ns-tests
-           solidify.py         — image solidification helpers
-```
+    grammar/   the Ohm grammar (ns.ohm) and AST builder (ns-parse.js), with node tests
+    lib/       kernel.nsl — the kernel IS nsl: space, channels, timers, CBOR, the porta bridge
+               supervisor.nsl — the let-it-crash supervisor
+    tools/     ns_compile_oevm.py   .nsl → .oimg (+ .stmap source map)
+               run_tests_oevm.py   THE gate: the whole suite, the C unit tests, the aux gates
+               run-one.py          one test file: run-one.py <file.nsl> B
+               oimg_serialize.py, gen_builtins.py, stmap.py, and their test_*.py
 
-## Usage
+The suite itself lives in `../tests/`, one directory per area. A test is a `.nsl` file
+with its expected output inline at the top (`(* expect: … *)`), a class with
+`main:platform args:`, and `println`.
 
-```bash
-# one-time: install the grammar's node deps
-cd grammar && npm install && cd ..
+## Running
 
-# compile one .ns file into the oevm image and run the suite
-python3 tools/run_tests_oevm.py          # uses ../oevm and ../ns-tests
-OEVM_DIR=/path/to/oevm python3 tools/run_tests_oevm.py   # explicit VM location
+    cd grammar && npm install && cd ..          # once
+    python3 tools/run_tests_oevm.py             # builds the VM, runs everything
+    python3 tools/run-one.py ../tests/<dir>/<file>.nsl B
 
-# grammar regression gate
-cd grammar && node --test test/
-```
+Read the last lines: `Passed: N / Failed: 0` **and** the aux-gate line after it. The aux
+line can be red while the count reads zero failures. `B` means the `.oimg` path, which is
+the one that ships; the solidify-to-C path (`A`) is the appliance build and rewrites a
+tracked fixture if you run it by accident.
 
-## Status (2026-06-19)
-
-Against `ns-tests`: **47 / 47 passing** (1 skipped — `scratch_class.ns`, no
-expectations). The suite runs on **both execution paths** by default
-(`OEVM_PATH=AB`): Path A (solidified-C image) and Path B (`.oimg` native-layout
-image-VM).
-
-- ✅ expressions (4/4), control flow (3/3), blocks (4/4)
-- ✅ SOMns basics — all 23, incl. `super_sends`, `outer_sends`, class-side
-  methods, float literals, nested-class slot init, grandparent init
-- ✅ benchmarks — all 7: `queens`, `sieve`, `towers`, `mandelbrot`, `nbody`,
-  `richards`, `deltablue`
-- ✅ limit tests — all 5, incl. `integer_overflow` (bignum) and `gc_stress`
-
-Every gap the earlier status listed as blocking is closed: implicit/`super`
-sends, nested-class outer-sends, class-body initializer statements, class-side
-method sections, `Array>>do:`, the full block-inlining stack (if-family,
-`and:`/`or:`, loops), the `towers`/`mandelbrot` runtime bugs, and bignum /
-integer-overflow semantics.
-
-The compute core (OEOM dispatch, closures, NLR, inline caching, field layout) is
-working and produces correct results on both image paths.
-
-The block-inlining track is complete (Phases A–E all landed; see
-`docs/superpowers/plans/block-inlining-status.md`).
-
-### Remaining work
-
-- **Closure representation** (tracked as `oevm#1`) — replace the reflective
-  `home`/`regAt:` outer-variable access for non-inlined blocks with a direct
-  outer-frame pointer + indexed access, on top of the scope/frame model.
+An app's `platform` is the kernel instance, not the VM — most VM builtins are reachable
+only through it. The gotchas that cost sessions are collected in the Claude memory
+namespace for this repo and in `../../CLAUDE.md`; the grammar's own answer to "is this
+legal?" is `grammar/test/`.

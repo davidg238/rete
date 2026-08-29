@@ -106,6 +106,14 @@ How to make decisions here. These override the instinct to be thorough.
 - **Implementation plans** stay in `docs/superpowers/plans/` (porta's in
   `porta/docs/superpowers/plans/`) — they are execution scaffolding, historical once the
   work closes.
+- **A document leaves the mainline by move + banner, never by deletion and never by a bare
+  move** (2026-08-29, #79). Superseded documents go to `docs/archive/` (porta's to
+  `porta/docs/archive/`) with a `> **HISTORICAL — archived DATE.**` first line naming what
+  replaced them and what was deleted since; then rewrite the in-tree citations to the new
+  path (`review/` excepted — list those for David) and rerun `tools/docmap.sh`. Kept rather
+  than deleted so that `#NN` issues and commits still resolve by path; the banner is what
+  stops an archived spec being read as current, which is how `spec.md` described NLR for
+  seven weeks after Milestone A deleted it. `docs/README.md` is the map of `docs/`.
 - **Promotion rule — part of every close-out.** An issue / rung / milestone is not closed
   until its durable knowledge is promoted to a mainline document of record: the ladder
   (`review/program-sequence.md`), `review/tests/CLAIMS.md`, the owning doc under

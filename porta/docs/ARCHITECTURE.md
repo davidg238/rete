@@ -1,5 +1,13 @@
 # Porta system architecture
 
+> **Stale in parts (noted 2026-08-29).** Written for porta **v1** — the command protocol, the
+> TFTP transport and the `:6970` control-plane API in the diagrams below were all deleted on
+> 2026-08-01 (tag `porta-v1-final`). The boundaries, the one-way dependency rule and the
+> whole-system properties still hold; the mechanisms do not. `docs/PROTOCOL.md` no longer
+> exists: the live contract is `../../protocol/PROTOCOL-NSL.md`, the v1 one is frozen at
+> `../../protocol/v1/PROTOCOL.md`. The v2 decision record is
+> `design/2026-08-01-porta-space-sync-rewrite-design.md`.
+
 This is the **canonical system-architecture document** for porta and the fleet it
 controls. porta owns the *system architecture* the same way it owns the *wire
 protocol*: `docs/PROTOCOL.md` is the southbound wire contract, `docs/DEVSDK.md` is
@@ -496,4 +504,4 @@ correct-looking empty answer still says what it read.
 - `docs/DEVSDK.md` — the northbound dev-SDK contract (`apiclient`/`exec`/`provision`,
   the `firmware.config["porta"]` provisioning shape).
 - `CLAUDE.md` — repo layout and current build/sub-project state.
-- `docs/specs/` — the dated design records behind the decisions above.
+- `docs/archive/specs/` — the dated design records behind the decisions above.

@@ -2,7 +2,7 @@
 
 > **Status:** roadmap (decided 2026-06-25, reshaped same evening by four steers — see below). Each rung
 > is its own sub-project (spec → plan → implement). This captures the *decomposition and ordering*.
-> Landscape/context: `oevm/docs/ECOSYSTEM.md`; deployment: `oevm/docs/deployment-model.md`.
+> Landscape/context: `oevm/docs/archive/ECOSYSTEM.md`; deployment: `oevm/docs/deployment-model.md`.
 
 ## Decision
 
@@ -66,7 +66,7 @@ all targets (the `#ifdef __ZEPHYR__` hijack + its POSIX ucontext twin both delet
 not merely unified); conservative C-stack GC scan deleted in favor of fully precise
 rooting; `ABBBAA→ABABAB` proven architecturally impossible to regress (host
 `-D__ZEPHYR__` repro). Suite 82/0/6 both paths + all 5 gates + structural
-demolition greps clean. Design: `oevm/docs/fiber_derecursify_core_design.md` §5.
+demolition greps clean. Design: `oevm/docs/archive/fiber_derecursify_core_design.md` §5.
 
 Classlib grows **as required** by the active rung — not its own step. Per the decomposition (oevm#10),
 R0/R4/R5 (loader, capability prims, backend) are **language-neutral** — a future `st-oevm` inherits them.

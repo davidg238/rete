@@ -176,7 +176,7 @@ Repo layout: `cmd/porta/` is the entrypoint; `internal/` holds the gateway
 (`store`, `command`, `handler`, `tftp`, `apisrv`, `web`, `mcpsrv`, `portacli`);
 `devsdk/` is the public Go surface for node-repo tooling. Design docs live in
 `docs/` (`ARCHITECTURE`, `PROTOCOL`, `DEVSDK`) with approved designs in
-`docs/specs/` and implementation plans in `docs/plans/`.
+`docs/archive/specs/` and implementation plans in `docs/archive/plans/`.
 
 The wire protocol ([`PROTOCOL.md`](PROTOCOL.md)) is the one fixed point every
 node conforms to — change it deliberately.

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
-> **⚠️ APPROVAL GATE:** This plan rewrites the interpreter core (`run_interpreter`) — the hottest, most invariant-laden function in the VM. It is Phase 2 ("the flip") of the de-recursify design (`oevm/docs/fiber_derecursify_core_design.md`). **Do not begin execution until David has reviewed the "Findings & decisions requiring sign-off" section below.** Two items were discovered during grounding that change scope, and the flip's decomposition strategy is a genuine fork.
+> **⚠️ APPROVAL GATE:** This plan rewrites the interpreter core (`run_interpreter`) — the hottest, most invariant-laden function in the VM. It is Phase 2 ("the flip") of the de-recursify design (`oevm/docs/archive/fiber_derecursify_core_design.md`). **Do not begin execution until David has reviewed the "Findings & decisions requiring sign-off" section below.** Two items were discovered during grounding that change scope, and the flip's decomposition strategy is a genuine fork.
 
 **Goal:** Replace the recursive C `run_interpreter` (where a method/block invoke re-enters `run_interpreter` via a nested C call) with a single flat non-recursive loop where every invoke PUSHES a frame in the loop and `OP_RETURN` pops it — so a fiber is one C activation and a fiber switch is just swapping the heap `Stack`.
 
@@ -400,7 +400,7 @@ case OP_RET: {
 
 - [ ] **Step 1: Full regression** — suite both paths + all 5 gates + `OEVM_GC_STRESS=1` + ASan + `-D__ZEPHYR__` syntax. Add a Perfstex comparison note if available (the flip + Phase-1 lowering should not regress hot loops; the design predicts improvement).
 - [ ] **Step 2: Confirm no C recursion remains on the hot send path** — `grep -n run_interpreter oevm/src/vm.c oevm/src/dispatch.c` and verify every remaining caller is one of the F4 sanctioned bounded/cold sites (debugger hook, `does_not_understand` bytecode handler, `run_method_on` init) or the top-level entry (`main`/fiber trampoline). NO caller on the `OP_SEND`/`OP_BLOCK_INVOKE` path.
-- [ ] **Step 3: Update the design doc** — mark Phase 2 DONE in `oevm/docs/fiber_derecursify_core_design.md` §5; record what Phase 3 inherits (ucontext/hijack/registry/conservative-scan still present, to be demolished; swap-Stack `fiberSwitch:value:` is the Phase 3 mechanism).
+- [ ] **Step 3: Update the design doc** — mark Phase 2 DONE in `oevm/docs/archive/fiber_derecursify_core_design.md` §5; record what Phase 3 inherits (ucontext/hijack/registry/conservative-scan still present, to be demolished; swap-Stack `fiberSwitch:value:` is the Phase 3 mechanism).
 - [ ] **Step 4: Dialect** — the flip is behavior-equivalent (no observable change), so NO new dialect row is expected. Confirm via green suite with unchanged expected outputs; if an unavoidable observable difference appears, escalate to David (per the standing rule) before recording.
 - [ ] **Step 5: Final whole-branch review (opus)** — the flip is the highest-risk change in the whole rewrite; run a broad adversarial review focused on: `OP_RET` src2-decode correctness for all four send opcodes (esp. `OP_SEND_SUPER`'s `regs[c]` vs `src2`), unwind correctness across `ensure:`/`ifCurtailed:`/nested-NLR, `home_ctx`-absolute safety on fixed stacks, GC precision over the flat frames, and fiber-switch return correctness.
 

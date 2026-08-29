@@ -392,7 +392,7 @@ Proves the overflow path (the issue's required unit test) and runs the conforman
 
 **Files:**
 - Modify: `tests/test_gc_mark_iterative.c` (add the overflow-recovery case)
-- Modify: `docs/optimizations.md` (W1 row GH#4 note), `docs/ROADMAP.md` (GP0 step 5)
+- Modify: `docs/optimizations.md` (W1 row GH#4 note), `docs/archive/ROADMAP.md` (GP0 step 5)
 
 **Interfaces:**
 - Consumes: the iterative mark + `OEVM_MARK_STACK_SIZE` from Task 1; `gc_allocate`, `gc_collect`, `gc_is_live`, `mark_object`, `gc_additional_roots_hook`, `vm_c_stack_base`.
@@ -503,7 +503,7 @@ Expected: `Passed: 47`, `Failed: 0`, `Skipped: 1`.
 
 In the weakness table, update the **W1** row: the recursive-mark follow-up it flagged is now resolved — note that the mark phase is iterative (explicit `OEVM_MARK_STACK_SIZE` worklist in `src/gc.c` with overflow→heap-rescan recovery), so mark-phase C-stack use is O(1) in graph depth (Zephyr-safe), GH#4 closed. Remove/curtail the "Known follow-up (pre-Zephyr): convert to iterative mark" wording so the row no longer lists it as open.
 
-- [ ] **Step 8: Update `docs/ROADMAP.md`**
+- [ ] **Step 8: Update `docs/archive/ROADMAP.md`**
 
 Mark GP0 **step 5 (Iterative mark, GH#4) DONE** with the result (deep 500k-chain survives a 256 KB thread stack; overflow-recovery unit test passes at `-DOEVM_MARK_STACK_SIZE=4`; conformance 47/0/1 A+B+m32; gc_stress bounded @64 KB). Set the next GP0 step to **W2b (float unboxing) — deferred** (sub-second speed ceiling; revisit only if profiling justifies), i.e. the remaining pre-Zephyr GC follow-ups are closed.
 
@@ -512,7 +512,7 @@ Mark GP0 **step 5 (Iterative mark, GH#4) DONE** with the result (deep 500k-chain
 ```bash
 cd /home/david/workspace/oevm
 git restore src/solidified_image.c 2>/dev/null
-git add tests/test_gc_mark_iterative.c docs/optimizations.md docs/ROADMAP.md
+git add tests/test_gc_mark_iterative.c docs/optimizations.md docs/archive/ROADMAP.md
 git commit -m "test+docs(gp0): GH#4 overflow-recovery test + iterative-mark done
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"

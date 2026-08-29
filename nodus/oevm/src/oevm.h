@@ -267,7 +267,7 @@ oop float_alloc(oop vtable);
 /*
  * Stack: a first-class heap object holding a contiguous region of
  * MethodContext frames (the de-recursify rewrite's language stack as heap
- * data — see docs/fiber_l0_frame_abi.md). LIVE (Task 6): the Stack IS the
+ * data — see docs/archive/fiber_l0_frame_abi.md). LIVE (Task 6): the Stack IS the
  * execution context — g_active_stack is a GC-root Stack heap object backing
  * the running engine's vm_stack/current_frame.
  */

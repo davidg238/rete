@@ -149,7 +149,7 @@ So the concrete, high-leverage debug-story work in ns-oevm is:
 | Debug-first design for the OEVM rail | st-oevm design spec | `st-oevm/docs/.../2026-06-15-st-oevm-design.md` |
 | LLM-agent-first debugger architecture | st-zephyr remote-debug | `st-zephyr/docs/.../2026-04-10-remote-debug-design.md` |
 | Agent-facing debug interface | `jast` MCP tools | live in this session |
-| VM debug hook + stack inspect + hot-swap | oevm `debugger_hook`, Phase 8 | `oevm/src/vm.c`, `oevm/docs/ROADMAP.md` |
+| VM debug hook + stack inspect + hot-swap | oevm `debugger_hook`, Phase 8 | `oevm/src/vm.c`, `oevm/docs/archive/ROADMAP.md` |
 | Per-node source spans | ns-parse.js `span()` | `grammar/ns-parse.js:16` |
 | Std-lib seam (injected platform) | st-oevm §3/§7 | design spec |
 | Std-lib content/models | st-berry `lib/std.st`, SOMns core | sibling repos |
@@ -182,5 +182,5 @@ items above and argues for a minimal primitive/library line.
 - `st-oevm/docs/design/2026-06-15-st-oevm-design.md` — the template.
 - `st-zephyr/docs/design/2026-04-10-remote-debug-design.md` — agent-first debugger.
 - `st-zephyr/docs/superpowers/plans/2026-06-09-remote-debug-dap.md` — DAP layer.
-- `oevm/docs/ROADMAP.md` — VM debug/hot-swap substrate (Phase 8, debugger primitives).
+- `oevm/docs/archive/ROADMAP.md` — VM debug/hot-swap substrate (Phase 8, debugger primitives).
 - `docs/superpowers/plans/block-inlining-status.md` — the now-complete prior track.

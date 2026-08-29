@@ -77,7 +77,7 @@ and `~/workspaceToit/nodus/docs/`:
 
 <!-- BEGIN GENERATED INVENTORY — do not edit below; rerun tools/docmap.sh -->
 
-_Regenerated 2026-08-24 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
+_Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
 
 ### review
 
@@ -85,9 +85,9 @@ _Regenerated 2026-08-24 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `review/2026-07-04-context-decision.md` — Task 8 design question: keep the deferred-lift heap Context? _(record, 2026-07-04)_
 - `review/2026-07-04-pre-fiber-baseline.md` — Pre-fiber baseline commits in oevm / ns-oevm _(record, 2026-08-02)_
 - `review/2026-07-21-issue-65-http-load-wedge/README.md` — tuvm#65 — evidence folder (2026-07-21) _(record, 2026-08-02)_
-- `review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-08-09)_
+- `review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-08-24)_
 - `review/ISSUE-dongle-usb-openthread.md` — DRAFT ISSUE (post to davidg238/tuvm — created from a session without gh permission) _(record, 2026-07-12)_
-- `review/WHY-AGENTS.md` — Why agents — nodus + porta as an agent-first platform _(record, 2026-07-14)_
+- `review/WHY-AGENTS.md` — Why agents — nodus + porta as an agent-first platform _(record, 2026-08-26)_
 - `review/WHY-OEOM.md` — Why OEOM — the kernel that survived the graveyard _(record, 2026-07-12)_
 - `review/WHY.md` — Why nsl-tuvm _(record, 2026-08-02)_
 - `review/cells-and-streams-v3.html` — Letters and pigeonholes — v3 _(record, 2026-08-07)_
@@ -115,12 +115,26 @@ _Regenerated 2026-08-24 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 
 ### docs
 
-- `docs/ECOSYSTEM.md` — Ecosystem map — the language/VM/fleet constellation _(record, 2026-07-03)_
 - `docs/MILESTONE_A.md` — Milestone A — provenance and validation note _(record, 2026-07-04)_
 - `docs/MILESTONE_D.md` — Milestone D — provenance and validation note _(record, 2026-08-02)_
 - `docs/MILESTONE_E.md` — Milestone E — provenance and validation note _(record, 2026-07-07)_
-- `docs/ROADMAP.md` — OEVM Roadmap _(record, 2026-07-14)_
-- `docs/concept.md` — OEVM Concept & Genesis: From LLM-Driven Titelang to Custom Micro-Kernel VM _(record, 2026-07-03)_
+- `docs/README.md` — docs/ — the VM's own documents _(record)_
+- `docs/archive/ECOSYSTEM.md` — Ecosystem map — the language/VM/fleet constellation _(record)_
+- `docs/archive/ROADMAP.md` — OEVM Roadmap _(record)_
+- `docs/archive/concept.md` — OEVM Concept & Genesis: From LLM-Driven Titelang to Custom Micro-Kernel VM _(record)_
+- `docs/archive/dev_process/phase1_walkthrough.md` — Walkthrough - Core C Structures for OEVM _(record)_
+- `docs/archive/dev_process/phase2_walkthrough.md` — Walkthrough - Phase 2: Instruction Set Expansion & XIP Solidification _(record)_
+- `docs/archive/dev_process/phase3_walkthrough.md` — Walkthrough - Phase 3: Introspection & Newspeak Mirrors _(record)_
+- `docs/archive/dev_process/phase4_walkthrough.md` — Walkthrough - Phase 4: Fiber Scheduling Architecture _(record)_
+- `docs/archive/dev_process/phase5_walkthrough.md` — Walkthrough: Phase 5 - Stack Reification & Bytecode-Driven Non-Local Returns _(record)_
+- `docs/archive/dev_process/phase6_walkthrough.md` — Walkthrough - Phase 6: Nested Classes & Lexical Enclosures _(record)_
+- `docs/archive/fiber_derecursify_core_design.md` — De-recursify core — flat non-recursive dispatch (design) _(record)_
+- `docs/archive/fiber_implementation.md` — Fiber implementation — de-recursifying the oevm interpreter (the Toit model) _(record)_
+- `docs/archive/fiber_l0_frame_abi.md` — L0 — Frame / bytecode ABI contract (the de-recursify foundation) _(record)_
+- `docs/archive/fiber_l1_implementation_plan.md` — L1 — First-class Stack + relative dynamic links + precise GC: Implementation Plan _(record)_
+- `docs/archive/fiber_l1_stack_context_design.md` — L1 — Stack object & lexical environment (Context / indirect temp-vectors) _(record)_
+- `docs/archive/implementation_plan.md` — Implementation Plan: Phases 5 - 8 Roadmap & Phase 5 Specification _(record)_
+- `docs/archive/spec.md` — Architectural Specification: Open, Lazy-Reified Virtual Machine _(record)_
 - `docs/deployment-model.md` — Deployment model: resident VM + OTA'd image (Model B) _(record, 2026-07-03)_
 - `docs/design/2026-06-17-clustered-image-xip-design.md` — Design: Decoupled image + execute-in-place clustered format _(design, 2026-07-14)_
 - `docs/design/2026-06-17-global-method-cache-design.md` — Global Method Lookup Cache — Design _(design, 2026-07-14)_
@@ -171,27 +185,16 @@ _Regenerated 2026-08-24 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/design/2026-08-05-target-test-harness-design.md` — A diagnostic is a workload, not a test framework — the target harness _(design, 2026-08-22)_
 - `docs/design/2026-08-05-timer-token-by-value-design.md` — The timer token rides by value, and the handle goes _(design, 2026-08-05)_
 - `docs/design/2026-08-06-method-profile-over-porta-design.md` — Per-method profiling, surfaced over porta _(design, 2026-08-07)_
-- `docs/design/2026-08-07-build-asset-archive-design.md` — Build-asset archive — keyed by build id, retained by intent, eventually at porta _(design, 2026-08-07)_
+- `docs/design/2026-08-07-build-asset-archive-design.md` — Build-asset archive — keyed by build id, retained by intent, eventually at porta _(design, 2026-08-24)_
 - `docs/design/2026-08-07-code-push-host-slice-design.md` — Code-push, the host-only vertical slice (#25) — design _(design, 2026-08-08)_
 - `docs/design/2026-08-07-inclusive-attribution-design.md` — Attributing profile cost to code, not to callees _(design, 2026-08-07)_
 - `docs/design/2026-08-10-node-memory-and-liveness-design.md` — Node memory accounting and fleet liveness — design _(design, 2026-08-22)_
 - `docs/design/2026-08-12-allocation-attribution-design.md` — Allocation attribution — the profiler's question, asked about bytes _(design, 2026-08-12)_
 - `docs/design/2026-08-16-vm-liveness-observer-design.md` — A wedged node never faults — detecting the silence that raises no error _(design, 2026-08-21)_
 - `docs/design/2026-08-20-prim-id-on-symbol-design.md` — Primitive classification belongs to the Symbol, not to a cache _(design, 2026-08-21)_
-- `docs/design/2026-08-21-liveness-contract-design.md` — The liveness contract — a node declares how long its silence may last _(design, 2026-08-22)_
-- `docs/dev_process/phase1_walkthrough.md` — Walkthrough - Core C Structures for OEVM _(record, 2026-07-03)_
-- `docs/dev_process/phase2_walkthrough.md` — Walkthrough - Phase 2: Instruction Set Expansion & XIP Solidification _(record, 2026-07-03)_
-- `docs/dev_process/phase3_walkthrough.md` — Walkthrough - Phase 3: Introspection & Newspeak Mirrors _(record, 2026-07-03)_
-- `docs/dev_process/phase4_walkthrough.md` — Walkthrough - Phase 4: Fiber Scheduling Architecture _(record, 2026-07-03)_
-- `docs/dev_process/phase5_walkthrough.md` — Walkthrough: Phase 5 - Stack Reification & Bytecode-Driven Non-Local Returns _(record, 2026-07-03)_
-- `docs/dev_process/phase6_walkthrough.md` — Walkthrough - Phase 6: Nested Classes & Lexical Enclosures _(record, 2026-07-03)_
-- `docs/fiber_derecursify_core_design.md` — De-recursify core — flat non-recursive dispatch (design) _(record, 2026-07-14)_
-- `docs/fiber_implementation.md` — Fiber implementation — de-recursifying the oevm interpreter (the Toit model) _(record, 2026-07-03)_
-- `docs/fiber_l0_frame_abi.md` — L0 — Frame / bytecode ABI contract (the de-recursify foundation) _(record, 2026-07-03)_
-- `docs/fiber_l1_implementation_plan.md` — L1 — First-class Stack + relative dynamic links + precise GC: Implementation Plan _(record, 2026-07-03)_
-- `docs/fiber_l1_stack_context_design.md` — L1 — Stack object & lexical environment (Context / indirect temp-vectors) _(record, 2026-07-03)_
-- `docs/implementation_plan.md` — Implementation Plan: Phases 5 - 8 Roadmap & Phase 5 Specification _(record, 2026-07-14)_
-- `docs/next-steps-overview.md` — Next steps — overview _(record, 2026-08-22)_
+- `docs/design/2026-08-21-liveness-contract-design.md` — The liveness contract — a node declares how long its silence may last _(design, 2026-08-28)_
+- `docs/design/2026-08-24-kind-schema-manifest-design.md` — The kind+schema manifest — design (#243, 2026-08-24) _(design, 2026-08-25)_
+- `docs/next-steps-overview.md` — Next steps — overview _(record, 2026-08-27)_
 - `docs/op_send_implicit.md` — OP_SEND_IMPLICIT: Lexical Implicit-Receiver Message Sends _(record, 2026-07-03)_
 - `docs/optimizations.md` — OEVM interpreter optimization log _(record, 2026-07-14)_
 - `docs/results/2026-07-20-c6-heap-ceiling.md` — ESP32-C6 heap-ceiling bisect — Task 3 _(record, 2026-07-20)_
@@ -207,11 +210,12 @@ _Regenerated 2026-08-24 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/results/2026-08-12-allocation-attribution-c6.md` — Allocation attribution on the C6 — the boot window, the steady-state window, and an incident _(record, 2026-08-12)_
 - `docs/results/2026-08-12-allocation-attribution-host.md` — Allocation attribution — the host measurement _(record, 2026-08-12)_
 - `docs/results/2026-08-12-profile-window-cost-c6.md` — What an open attribution window costs on a C6 — +1.9% of local CPU, +0.13% of elapsed _(record, 2026-08-12)_
-- `docs/spec.md` — Architectural Specification: Open, Lazy-Reified Virtual Machine _(record, 2026-07-03)_
 - `docs/spikes/2026-07-17-oeom-native-hanoi/README.md` — Spike archive: OEOM native-substitution (Hanoi AOT ceiling) — 2026-07-17 _(record, 2026-07-17)_
 - `docs/spikes/2026-08-11-rete199-refused-node/README.md` — rete#199 — a node whose frames the gateway refuses, reproduced off hardware _(record, 2026-08-11)_
+- `docs/spikes/2026-08-27-liveness-model/README.md` — The liveness contract, model-checked (2026-08-27) _(record, 2026-08-28)_
 - `docs/status/2026-08-12-where-we-are.html` — rete &mdash; where we are _(record, 2026-08-12)_
 - `docs/status/README.md` — docs/status — the orientation deck _(record, 2026-08-13)_
+- `docs/status/dev-status.html` — rete dev status _(record, 2026-08-29)_
 - `docs/superpowers/notes/2026-06-18-w1-rooting-audit.md` — W1 Rooting Audit — Runtime `gc_allocate` / `float_alloc` Sites _(note, 2026-07-03)_
 - `docs/superpowers/plans/2026-06-17-decoupled-xip-image.md` — Decoupled Image + Execute-In-Place Format — Implementation Plan _(plan, 2026-07-14)_
 - `docs/superpowers/plans/2026-06-17-global-method-cache.md` — Global Method Lookup Cache Implementation Plan _(plan, 2026-07-03)_
@@ -252,18 +256,22 @@ _Regenerated 2026-08-24 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/superpowers/plans/2026-08-12-allocation-attribution-stage1.md` — Allocation Attribution — Stage 1 Implementation Plan _(plan, 2026-08-12)_
 - `docs/superpowers/plans/2026-08-19-vm-liveness-observer.md` — VM Liveness Observer Implementation Plan (#215) _(plan, 2026-08-19)_
 - `docs/superpowers/plans/2026-08-21-liveness-contract.md` — The liveness contract — implementation plan (#231) _(plan, 2026-08-22)_
+- `docs/superpowers/plans/2026-08-25-kind-schema-manifest.md` — Kind+Schema Manifest (#243) Implementation Plan _(plan, 2026-08-25)_
+- `docs/superpowers/plans/2026-08-26-porta-refuse-board-session.md` — #232 Board Session Implementation Plan — porta-refuse scenario, #114 must-deliver, two riders _(plan, 2026-08-26)_
 - `docs/topics.md` — Design topics _(record, 2026-07-14)_
+- `docs/vm.md` — oevm — what the VM is, as of 2026-08-29 _(record)_
 
 ### protocol
 
-- `protocol/PROTOCOL-NSL-RECORDS.md` — Porta ↔ nsl — the record schemas _(record, 2026-08-22)_
-- `protocol/PROTOCOL-NSL.md` — Porta ↔ nsl node protocol — the space-sync model _(record, 2026-08-22)_
+- `protocol/PROTOCOL-NSL-RECORDS.md` — Porta ↔ nsl — the record schemas _(record, 2026-08-27)_
+- `protocol/PROTOCOL-NSL.md` — Porta ↔ nsl node protocol — the space-sync model _(record, 2026-08-26)_
+- `protocol/tools/.pytest_cache/README.md` — pytest cache directory # _(record)_
 - `protocol/v1/PROTOCOL-NSL-draft-2026-07-11.md` — Porta ↔ nsl node protocol — the space-sync model (genesis draft) _(record, 2026-08-02)_
 - `protocol/v1/PROTOCOL.md` — Porta wire protocol _(record, 2026-08-02)_
 
 ### nodus/nsl/docs
 
-- `nodus/nsl/docs/NEWSPEAK_DIALECT.md` — ns-oevm — a Newspeak dialect (intentional differences from full Newspeak) _(record, 2026-08-02)_
+- `nodus/nsl/docs/NEWSPEAK_DIALECT.md` — ns-oevm — a Newspeak dialect (intentional differences from full Newspeak) _(record, 2026-08-26)_
 - `nodus/nsl/docs/compiler.md` — ns-oevm compiler _(record, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-06-16-block-inlining-design.md` — Block inlining via a scope/frame model _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-06-19-next-phase-stdlib-and-debug.md` — ns-oevm — next phase: standard library + debug story _(design, 2026-08-02)_
@@ -304,7 +312,7 @@ _Regenerated 2026-08-24 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `nodus/nsl/docs/design/2026-07-14-tuvm23-crash-timer-sweep-design.md` — tuvm#23 — the crash sweep must cancel timers, not just reactions (design) _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-07-14-tuvm24-sys-metrics-design.md` — tuvm#24 — the sys/metrics story: heap + handles + queue telemetry as a cell _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-07-15-tuvm21-take-nil-vs-empty-design.md` — tuvm#21 — a posted `nil` must be distinguishable from an empty stream at `take:` _(design, 2026-08-02)_
-- `nodus/nsl/docs/programming_with_nsl.md` — Programming with nsl _(record, 2026-08-02)_
+- `nodus/nsl/docs/programming_with_nsl.md` — Programming with nsl _(record, 2026-08-24)_
 - `nodus/nsl/docs/superpowers/findings/2026-07-04-oimg-large-smi-constant-corruption.md` — FINDING (2026-07-04): oimg backend corrupts large SMI integer constants _(note, 2026-08-02)_
 - `nodus/nsl/docs/superpowers/plans/2026-06-16-block-inlining-phase-a.md` — Block Inlining — Phase A (Foundation) Implementation Plan _(plan, 2026-08-02)_
 - `nodus/nsl/docs/superpowers/plans/2026-06-16-block-inlining-phase-b.md` — Block Inlining — Phase B (if-family inlining) Implementation Plan _(plan, 2026-08-02)_
@@ -359,81 +367,85 @@ _Regenerated 2026-08-24 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 
 ### nodus/oevm/zephyr/docs
 
-- `nodus/oevm/zephyr/docs/BOARD_PORTS.md` — oevm on Zephyr — board ports _(record)_
-- `nodus/oevm/zephyr/docs/ZEPHYR_LESSONS.md` — Zephyr / NCS + OpenThread + USB — hard-won lessons (nRF52840) _(record)_
-- `nodus/oevm/zephyr/docs/results.md` — tuvm on-device results — ESP32-WROOM-32 (Xtensa) _(record)_
-- `nodus/oevm/zephyr/docs/stic-README-snapshot-2026-07-17.md` — STIC Smalltalk benchmark _(record)_
+- `nodus/oevm/zephyr/docs/BOARD_PORTS.md` — oevm on Zephyr — board ports _(record, 2026-08-24)_
+- `nodus/oevm/zephyr/docs/ZEPHYR_LESSONS.md` — Zephyr / NCS + OpenThread + USB — hard-won lessons (nRF52840) _(record, 2026-08-24)_
+- `nodus/oevm/zephyr/docs/results.md` — tuvm on-device results — ESP32-WROOM-32 (Xtensa) _(record, 2026-08-29)_
+- `nodus/oevm/zephyr/docs/stic-README-snapshot-2026-07-17.md` — STIC Smalltalk benchmark _(record, 2026-08-24)_
 
 ### porta/docs
 
-- `porta/docs/ARCHITECTURE.md` — Porta system architecture _(record, 2026-08-22)_
+- `porta/docs/ARCHITECTURE.md` — Porta system architecture _(record, 2026-08-25)_
 - `porta/docs/CLI.md` — porta CLI reference _(record, 2026-08-05)_
 - `porta/docs/DEVSDK.md` — porta dev-SDK (`devsdk/`) — the northbound contract _(record, 2026-08-02)_
 - `porta/docs/GETTING-STARTED.md` — Getting started with porta _(record, 2026-08-05)_
+- `porta/docs/README.md` — porta/docs — the gateway's documents _(record)_
+- `porta/docs/archive/plans/2026-05-23-gateway-b1-tftp-free-core.md` — Gateway B1 — TFTP-free core Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-05-23-gateway-b2-wire-device-hardware.md` — Gateway B2 — wire + device + hardware Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-05-23-tftp-engine-transport-handler-split.md` — TFTP engine / transport / handler split — Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-05-24-config-self-heal.md` — Config Self-Heal Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-05-24-d5-observed-config-echo.md` — D5 — Observed-Config Echo Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-05-24-m2-2-down-path-config.md` — M2.2 Down-Path (Config / Setpoints) Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-05-24-m2-telemetry.md` — M2 Telemetry (up-path) Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-05-26-porta-nodus-split.md` — porta → porta/nodus Split Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-05-27-go-mainline-restructure.md` — Go-Mainline Restructure (sub-project A) — Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-05-27-porta-go-config-plane.md` — porta Go Core — B2 Config Plane Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-05-27-porta-go-core-data-plane.md` — porta Go core data plane (B1) Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-05-28-porta-b4a-multi-listener.md` — porta Go Core — B4a Multi-Listener Serve Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-05-28-porta-b4b-mcp-read-surface.md` — porta B4b — MCP read surface Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-05-28-porta-b4c-htmx-operator-ui.md` — porta B4c — htmx Operator UI Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-05-28-porta-go-telemetry-plane.md` — porta Go Core — B3 Telemetry Plane Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-05-31-command-lifecycle-ui.md` — Command Lifecycle Badges + Operator-UI Reorg — Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-06-02-cli-api-client-s2.md` — CLI-as-API-client (S2) Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-06-02-control-plane-api-s1.md` — Control-plane HTTP API (S1) Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-06-02-monitor-over-api-s5.md` — S5 — `porta monitor` over the control-plane API — Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-06-02-porta-run-over-api-s3.md` — `porta run` over the API (S3) — Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-06-02-tools-toit-phase1.md` — `/tools/toit` Phase 1 — `porta run` + node identity (Implementation Plan) _(record)_
+- `porta/docs/archive/plans/2026-06-02-web-node-identity-s4.md` — Web node identity (chip/SDK) visibility (S4) — Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-06-03-panic-decode-s6.md` — Panic Decode (S6) — porta side — Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-06-03-porta-devsdk-c1.md` — porta devsdk carve (C1) Implementation Plan _(record)_
+- `porta/docs/archive/plans/2026-06-04-reset-reason.md` — Reset Reason Implementation Plan _(record)_
+- `porta/docs/archive/specs/2026-05-23-porta-toit-gateway-design.md` — Design: Porta Toit gateway (command-queue control plane + sqlite) _(record)_
+- `porta/docs/archive/specs/2026-05-23-tftp-engine-transport-handler-split-design.md` — Spec A: TFTP engine / transport / handler split _(record)_
+- `porta/docs/archive/specs/2026-05-24-config-self-heal-design.md` — Config Self-Heal Design _(record)_
+- `porta/docs/archive/specs/2026-05-24-d5-observed-config-echo-design.md` — D5 — Observed-Config Echo Design _(record)_
+- `porta/docs/archive/specs/2026-05-24-m2-telemetry-design.md` — Design: Porta M2 — telemetry (`data_log`) + `gateway monitor` _(record)_
+- `porta/docs/archive/specs/2026-05-24-security-transport-evolution-design.md` — Design note: Security posture & transport evolution _(record)_
+- `porta/docs/archive/specs/2026-05-26-porta-nodus-split-design.md` — Splitting porta into `porta` (gateway) + `nodus` (node) — design _(record)_
+- `porta/docs/archive/specs/2026-05-27-porta-go-config-plane-design.md` — porta Go core — B2 config plane (design) _(record)_
+- `porta/docs/archive/specs/2026-05-27-porta-go-core-data-plane-design.md` — porta Go core data plane (sub-project B1) — design _(record)_
+- `porta/docs/archive/specs/2026-05-27-porta-go-mainline-restructure-design.md` — porta → Go-mainline restructure (sub-project A) _(record)_
+- `porta/docs/archive/specs/2026-05-28-porta-b4a-multi-listener-design.md` — porta Go core — B4a multi-listener serve (design) _(record)_
+- `porta/docs/archive/specs/2026-05-28-porta-b4b-mcp-read-surface-design.md` — porta B4b — MCP read surface: design _(record)_
+- `porta/docs/archive/specs/2026-05-28-porta-b4c-htmx-operator-ui-design.md` — porta B4c — htmx operator UI: design _(record)_
+- `porta/docs/archive/specs/2026-05-28-porta-go-telemetry-plane-design.md` — porta Go core — B3 telemetry plane (design) _(record)_
+- `porta/docs/archive/specs/2026-05-31-command-lifecycle-ui-design.md` — Command lifecycle badges + operator-UI reorg — design _(record)_
+- `porta/docs/archive/specs/2026-06-02-cli-api-client-s2-design.md` — CLI becomes an API client (S2) — writes over HTTP _(record)_
+- `porta/docs/archive/specs/2026-06-02-control-plane-api-design.md` — Control-plane HTTP API (S1) — server-as-workhorse, CLI-as-client _(record)_
+- `porta/docs/archive/specs/2026-06-02-monitor-over-api-s5-design.md` — S5 — `porta monitor` over the control-plane API — design _(record)_
+- `porta/docs/archive/specs/2026-06-02-porta-run-over-api-s3-design.md` — S3 — `porta run` over the control-plane API (Design) _(record)_
+- `porta/docs/archive/specs/2026-06-02-tools-toit-design.md` — `/tools/toit` — trainer-wheels toolchain for porta nodes _(record)_
+- `porta/docs/archive/specs/2026-06-02-web-node-identity-s4-design.md` — S4 — Web node identity (chip/SDK) visibility (Design) _(record)_
+- `porta/docs/archive/specs/2026-06-03-panic-decode-s6-design.md` — S6 — Client-side panic decode (design) _(record)_
+- `porta/docs/archive/specs/2026-06-03-porta-devsdk-nodus-flash-design.md` — porta dev-SDK + `nodus flash` toolchain — design _(record)_
+- `porta/docs/archive/specs/2026-06-04-reset-reason-design.md` — Neutral `reset` reason in the report, surfaced by porta _(record)_
 - `porta/docs/demo/porta-show-and-tell-script.md` — porta — show-and-tell narration script _(record, 2026-08-02)_
 - `porta/docs/demo/show-and-tell-template.md` — Show-and-tell walkthrough template _(record, 2026-08-02)_
 - `porta/docs/design/2026-06-06-web-telemetry-console-panels-design.md` — Web telemetry: per-node console panels + telemetry node filter — Design _(design, 2026-08-02)_
 - `porta/docs/design/2026-06-07-panic-decode-link-design.md` — Panic decode link (porta → nodus) — design _(design, 2026-08-02)_
 - `porta/docs/design/2026-06-26-profile-verb-design.md` — `profile` verb — remote target-execution profiling — design _(design, 2026-08-02)_
-- `porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md` — porta → channels: the space-sync rewrite (v1 deleted) _(design, 2026-08-22)_
-- `porta/docs/design/2026-08-11-gatekeeper-and-the-introspectable-space-design.md` — Gatekeeper, and the introspectable space — design note (2026-08-11) _(design, 2026-08-11)_
+- `porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md` — porta → channels: the space-sync rewrite (v1 deleted) _(design, 2026-08-26)_
+- `porta/docs/design/2026-08-11-gatekeeper-and-the-introspectable-space-design.md` — Gatekeeper, and the introspectable space — design note (2026-08-11) _(design, 2026-08-25)_
 - `porta/docs/design/2026-08-15-boot-anchored-cell-reads-design.md` — Boot-anchored cell reads — `porta get` can no longer blend two boots _(design, 2026-08-15)_
-- `porta/docs/design/2026-08-22-gatekeeper-first-cut-design.md` — Gatekeeper — the first cut (design, 2026-08-22) _(design)_
-- `porta/docs/plans/2026-05-23-gateway-b1-tftp-free-core.md` — Gateway B1 — TFTP-free core Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-05-23-gateway-b2-wire-device-hardware.md` — Gateway B2 — wire + device + hardware Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-05-23-tftp-engine-transport-handler-split.md` — TFTP engine / transport / handler split — Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-05-24-config-self-heal.md` — Config Self-Heal Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-05-24-d5-observed-config-echo.md` — D5 — Observed-Config Echo Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-05-24-m2-2-down-path-config.md` — M2.2 Down-Path (Config / Setpoints) Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-05-24-m2-telemetry.md` — M2 Telemetry (up-path) Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-05-26-porta-nodus-split.md` — porta → porta/nodus Split Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-05-27-go-mainline-restructure.md` — Go-Mainline Restructure (sub-project A) — Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-05-27-porta-go-config-plane.md` — porta Go Core — B2 Config Plane Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-05-27-porta-go-core-data-plane.md` — porta Go core data plane (B1) Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-05-28-porta-b4a-multi-listener.md` — porta Go Core — B4a Multi-Listener Serve Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-05-28-porta-b4b-mcp-read-surface.md` — porta B4b — MCP read surface Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-05-28-porta-b4c-htmx-operator-ui.md` — porta B4c — htmx Operator UI Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-05-28-porta-go-telemetry-plane.md` — porta Go Core — B3 Telemetry Plane Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-05-31-command-lifecycle-ui.md` — Command Lifecycle Badges + Operator-UI Reorg — Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-06-02-cli-api-client-s2.md` — CLI-as-API-client (S2) Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-06-02-control-plane-api-s1.md` — Control-plane HTTP API (S1) Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-06-02-monitor-over-api-s5.md` — S5 — `porta monitor` over the control-plane API — Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-06-02-porta-run-over-api-s3.md` — `porta run` over the API (S3) — Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-06-02-tools-toit-phase1.md` — `/tools/toit` Phase 1 — `porta run` + node identity (Implementation Plan) _(record, 2026-08-02)_
-- `porta/docs/plans/2026-06-02-web-node-identity-s4.md` — Web node identity (chip/SDK) visibility (S4) — Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-06-03-panic-decode-s6.md` — Panic Decode (S6) — porta side — Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-06-03-porta-devsdk-c1.md` — porta devsdk carve (C1) Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/plans/2026-06-04-reset-reason.md` — Reset Reason Implementation Plan _(record, 2026-08-02)_
-- `porta/docs/specs/2026-05-23-porta-toit-gateway-design.md` — Design: Porta Toit gateway (command-queue control plane + sqlite) _(record, 2026-08-02)_
-- `porta/docs/specs/2026-05-23-tftp-engine-transport-handler-split-design.md` — Spec A: TFTP engine / transport / handler split _(record, 2026-08-02)_
-- `porta/docs/specs/2026-05-24-config-self-heal-design.md` — Config Self-Heal Design _(record, 2026-08-02)_
-- `porta/docs/specs/2026-05-24-d5-observed-config-echo-design.md` — D5 — Observed-Config Echo Design _(record, 2026-08-02)_
-- `porta/docs/specs/2026-05-24-m2-telemetry-design.md` — Design: Porta M2 — telemetry (`data_log`) + `gateway monitor` _(record, 2026-08-02)_
-- `porta/docs/specs/2026-05-24-security-transport-evolution-design.md` — Design note: Security posture & transport evolution _(record, 2026-08-02)_
-- `porta/docs/specs/2026-05-26-porta-nodus-split-design.md` — Splitting porta into `porta` (gateway) + `nodus` (node) — design _(record, 2026-08-02)_
-- `porta/docs/specs/2026-05-27-porta-go-config-plane-design.md` — porta Go core — B2 config plane (design) _(record, 2026-08-02)_
-- `porta/docs/specs/2026-05-27-porta-go-core-data-plane-design.md` — porta Go core data plane (sub-project B1) — design _(record, 2026-08-02)_
-- `porta/docs/specs/2026-05-27-porta-go-mainline-restructure-design.md` — porta → Go-mainline restructure (sub-project A) _(record, 2026-08-02)_
-- `porta/docs/specs/2026-05-28-porta-b4a-multi-listener-design.md` — porta Go core — B4a multi-listener serve (design) _(record, 2026-08-02)_
-- `porta/docs/specs/2026-05-28-porta-b4b-mcp-read-surface-design.md` — porta B4b — MCP read surface: design _(record, 2026-08-02)_
-- `porta/docs/specs/2026-05-28-porta-b4c-htmx-operator-ui-design.md` — porta B4c — htmx operator UI: design _(record, 2026-08-02)_
-- `porta/docs/specs/2026-05-28-porta-go-telemetry-plane-design.md` — porta Go core — B3 telemetry plane (design) _(record, 2026-08-02)_
-- `porta/docs/specs/2026-05-31-command-lifecycle-ui-design.md` — Command lifecycle badges + operator-UI reorg — design _(record, 2026-08-02)_
-- `porta/docs/specs/2026-06-02-cli-api-client-s2-design.md` — CLI becomes an API client (S2) — writes over HTTP _(record, 2026-08-02)_
-- `porta/docs/specs/2026-06-02-control-plane-api-design.md` — Control-plane HTTP API (S1) — server-as-workhorse, CLI-as-client _(record, 2026-08-02)_
-- `porta/docs/specs/2026-06-02-monitor-over-api-s5-design.md` — S5 — `porta monitor` over the control-plane API — design _(record, 2026-08-02)_
-- `porta/docs/specs/2026-06-02-porta-run-over-api-s3-design.md` — S3 — `porta run` over the control-plane API (Design) _(record, 2026-08-02)_
-- `porta/docs/specs/2026-06-02-tools-toit-design.md` — `/tools/toit` — trainer-wheels toolchain for porta nodes _(record, 2026-08-02)_
-- `porta/docs/specs/2026-06-02-web-node-identity-s4-design.md` — S4 — Web node identity (chip/SDK) visibility (Design) _(record, 2026-08-02)_
-- `porta/docs/specs/2026-06-03-panic-decode-s6-design.md` — S6 — Client-side panic decode (design) _(record, 2026-08-02)_
-- `porta/docs/specs/2026-06-03-porta-devsdk-nodus-flash-design.md` — porta dev-SDK + `nodus flash` toolchain — design _(record, 2026-08-02)_
-- `porta/docs/specs/2026-06-04-reset-reason-design.md` — Neutral `reset` reason in the report, surfaced by porta _(record, 2026-08-02)_
+- `porta/docs/design/2026-08-22-gatekeeper-first-cut-design.md` — Gatekeeper — the first cut (design, 2026-08-22) _(design, 2026-08-27)_
+- `porta/docs/design/2026-08-26-space-sync-durability-trio-design.md` — The space-sync durability trio: the replay guard, the RAM cursor, and what must-deliver means _(design, 2026-08-26)_
 - `porta/docs/superpowers/plans/2026-06-06-set-forward-verb.md` — set-forward verb + enriched telemetry entries (porta side) Implementation Plan _(plan, 2026-08-02)_
 - `porta/docs/superpowers/plans/2026-06-06-web-telemetry-console-panels.md` — Web telemetry console panels + node filter Implementation Plan _(plan, 2026-08-02)_
 - `porta/docs/superpowers/plans/2026-06-07-panic-decode-link.md` — Panic Decode Link Implementation Plan _(plan, 2026-08-02)_
 - `porta/docs/superpowers/plans/2026-06-26-profile-verb.md` — `profile` verb — remote target-execution profiling — Implementation Plan _(plan, 2026-08-02)_
 - `porta/docs/superpowers/plans/2026-08-01-porta-space-sync-core.md` — porta space-sync core — Implementation Plan (plan 1 of 3) _(plan, 2026-08-02)_
 - `porta/docs/superpowers/plans/2026-08-18-gw-liveness-silence-sweep.md` — `gw/**` and the silence sweep — implementation plan (#217) _(plan, 2026-08-18)_
+- `porta/docs/superpowers/plans/2026-08-26-gatekeeper-query-core.md` — Gatekeeper query core (#198) — implementation plan _(plan, 2026-08-27)_
+- `porta/docs/superpowers/plans/2026-08-26-space-sync-durability-trio.md` — Space-Sync Durability Trio Implementation Plan _(plan, 2026-08-26)_
 
 ### ~/workspaceToit/nodus/docs
 

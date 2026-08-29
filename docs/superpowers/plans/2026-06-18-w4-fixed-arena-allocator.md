@@ -26,7 +26,7 @@
 - `src/gc.c` — **modified**. Add arena buffer, bitmap, bins, helpers, `heap_init`, overridable OOM handler; rewrite `gc_allocate`, `is_valid_heap_object`, and the mark-reset/sweep loops in `gc_collect`. Remove `heap_list`. `float_alloc`, `mark`, `trace_object`, `scan_vm_stack` unchanged (except `mark` keeps calling the new `is_valid_heap_object`).
 - `tests/test_arena.c` — **new**. Unit tests for bump alloc, bitmap membership precision, exhaustion via overridable handler, and (Task 2) free-list reuse.
 - `ns-oevm/tools/run_tests_oevm.py` — **modified** (Task 3). Append `OEVM_EXTRA_CFLAGS` env var to both gcc invocations so the 16 KB acceptance build is runnable.
-- `docs/ROADMAP.md`, `docs/optimizations.md` — **modified** (Task 3). Mark W4 done; record the validated embedded ceiling.
+- `docs/archive/ROADMAP.md`, `docs/optimizations.md` — **modified** (Task 3). Mark W4 done; record the validated embedded ceiling.
 
 ---
 
@@ -469,7 +469,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 
 **Files:**
 - Modify: `ns-oevm/tools/run_tests_oevm.py` (append `OEVM_EXTRA_CFLAGS` to both gcc commands)
-- Modify: `oevm/docs/ROADMAP.md`, `oevm/docs/optimizations.md`
+- Modify: `oevm/docs/archive/ROADMAP.md`, `oevm/docs/optimizations.md`
 
 **Interfaces:**
 - Consumes: the arena from Tasks 1–2; `OEVM_HEAP_SIZE` compile-time macro.
@@ -514,7 +514,7 @@ Expected (target): `47 pass / 0 fail / 1 skip`.
 - [ ] **Step 4: Record the validated ceiling in docs**
 
 In `oevm/docs/optimizations.md`, update the W4 row of the weakness table to "DONE", noting the validated ceiling (e.g. "general-object heap fits in 16 KB; conformance 47/0/1 under `-DOEVM_HEAP_SIZE=16384`").
-In `oevm/docs/ROADMAP.md` GP0 section, mark step 1 (W4) done and point at the smallest passing cap. Keep W1/W2a/W2b as next.
+In `oevm/docs/archive/ROADMAP.md` GP0 section, mark step 1 (W4) done and point at the smallest passing cap. Keep W1/W2a/W2b as next.
 
 - [ ] **Step 5: Commit (both repos)**
 
@@ -530,7 +530,7 @@ validate the embedded general-object ceiling.
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 # oevm
 cd /home/david/workspace/oevm
-git add docs/ROADMAP.md docs/optimizations.md
+git add docs/archive/ROADMAP.md docs/optimizations.md
 git commit -m "docs(gp0): W4 fixed-arena allocator done; record embedded heap ceiling
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"

@@ -552,7 +552,7 @@ cd ns-oevm && git add tools/oimg_serialize.py && git commit -m "chore(derecursif
 
 - [ ] **Step 1: Update the design doc** `oevm/docs/design/2026-07-01-derecursify-deferred-lift-growable-stacks-upward-closures-design.md` — mark Phase 1 DONE with the consolidated gate result (pass counts, sub-gates, ASan/stress, Zephyr syntax).
 
-- [ ] **Step 2: Update `oevm/docs/fiber_derecursify_core_design.md`** "Deferred" line to point at this phase's completion and the deferred-lift spec.
+- [ ] **Step 2: Update `oevm/docs/archive/fiber_derecursify_core_design.md`** "Deferred" line to point at this phase's completion and the deferred-lift spec.
 
 - [ ] **Step 3: Dialect check** — confirm NO observable behavior changed (behavior-equivalent phase). If nothing changed, add NO dialect row; note "no dialect change" in the design doc. If anything observable did change, STOP and escalate to David (it should not).
 

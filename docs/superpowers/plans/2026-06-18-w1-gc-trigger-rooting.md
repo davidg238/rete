@@ -528,7 +528,7 @@ the capped-heap figure as the start of the nRF52840 RAM-ceiling number.
 
 **Files:**
 - Modify: `docs/optimizations.md` (flip the W1 row; record the cap figure)
-- Modify: `docs/ROADMAP.md` (mark W1 done; W2a next)
+- Modify: `docs/archive/ROADMAP.md` (mark W1 done; W2a next)
 
 **Interfaces:** none (verification + docs).
 
@@ -589,14 +589,14 @@ Expected: both print `ALL TESTS PASSED` / their success lines.
 In `docs/optimizations.md`, flip the W1 weakness row to DONE and record: "GC
 trigger wired (exhaustion collect-and-retry); conservative C-stack rooting;
 `05_gc_stress.ns` runs to completion under a `<cap>` managed-arena cap". In
-`docs/ROADMAP.md`, mark W1 complete and W2a (float-arena reclaim) as next.
+`docs/archive/ROADMAP.md`, mark W1 complete and W2a (float-arena reclaim) as next.
 Use the smallest passing cap from Step 2 as `<cap>`.
 
 - [ ] **Step 7: Commit**
 
 ```bash
 cd /home/david/workspace/oevm
-git add docs/optimizations.md docs/ROADMAP.md
+git add docs/optimizations.md docs/archive/ROADMAP.md
 git commit -m "docs(gp0): W1 GC trigger + rooting done; gc_stress bounded under capped heap"
 ```
 
