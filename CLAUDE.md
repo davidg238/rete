@@ -9,9 +9,10 @@ preserved the issue numbers and the `#NN` references the program navigates by
 ## Current focus
 
 <!-- Rewritten by /conclude every session. One issue, one first action. -->
-- **Focus issue:** #272 (H3/H5/H7/H8 arrival vs progress — the liveness contract).
-- **First concrete action:** run `bridge-health` on a board; nothing stacks on the refactored `observer.c` until a detector is confirmed. Then `DoSweep` requiring `wak` advanced, re-run `bench.cfg` and `slow.cfg`.
-- **Awaiting David:** push the 5 commits on `master`; the #273 design call (which deadline number is the source of truth).
+- **Focus issue:** #274 (H6 — `startTicking:` sits downstream of the socket bind, so a failed bind leaves the node with no detector at all).
+- **First concrete action:** `git show abc6c4f` (#231, "the base tick must not be downstream of anything that can fail at boot") and trace `startTicking:` against the bind in the bridge boot path — the issue's own suspicion is that commit covered only part of the path.
+- **Done 2026-08-29, do not redo:** the detector refactor is confirmed on a board in BOTH directions — `bridge-health` PASS 3/3 (no false trip) and `wedge-detect` PASS 2/2 (`pdr=0`, fires on a real wedge), same `observer.c`. Nothing in the liveness thread is board-owed. The `DoSweep`/`wak` model work landed 2026-08-28 (`fac6403`, `7463f59`): delta insufficient, age correct, `sound.cfg` green.
+- **Awaiting David:** the #273 design call (which deadline number is the source of truth) — it is the ONLY thing blocking #272's age rule in `verdictFor`, since `bud + SweepTick` = 46 s against a 16 s deadline. Also #277 (three `review/` files cite the deleted `run_c_tests.sh`; `review/` is not swept by me).
 - **Not before 2026-09-01:** David is on NEMT until then.
 
 ## Where truth lives (do not duplicate across channels)
@@ -122,6 +123,14 @@ cd nodus/oevm && bash tests/porta_sync_host.sh      # PORTA SYNC OK
 
 The nsl suite prints `Passed: N / Failed: 0` **and** a line of aux gates — read the aux
 line, because it can be red while the count reads zero failures.
+**`c-units` leads that aux line and covers ALL 43 C unit tests** (#275, 2026-08-29):
+`nodus/oevm/tools/run_c_tests.sh` is DELETED — it was a second aggregate runner nothing
+invoked, so it sat red (four aborts) without anyone learning it, which is #261's shape.
+Every C test is now registered individually in `nodus/nsl/tools/run_tests_oevm.py`'s
+`C_UNIT_TESTS` table, which also owns the `ENG_A`/`ENG_B` link sets and the
+`OEVM_BUILD=asan|ubsan` knob. Adding a C test is one row in one file; a test registered in
+two places is one that gets forgotten in one of them. The registry runs every test and
+reports every failure rather than stopping at the first.
 **`footprint: SKIP` is NO LONGER expected, and it never should have been** (#177, fixed
 2026-08-22): arm-zephyr-eabi-gcc ships inside `~/zephyr-sdk-0.17.4` and always did. What was
 broken was the gate's own un-SKIP instruction, which named a path the #79 consolidation

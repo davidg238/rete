@@ -48,8 +48,8 @@
 <body>
 
 <h1>rete — dev status</h1>
-<p class="stamp">Status synthesized <strong>2026-08-28</strong> (liveness contract modelled) at
-<a href="https://github.com/davidg238/rete/commit/7463f59">7463f59</a>.
+<p class="stamp">Status synthesized <strong>2026-08-29</strong> (detector confirmed on a board; C gate consolidated) at
+<a href="https://github.com/davidg238/rete/commit/b1b8001">b1b8001</a>.
 Served live by <strong>gatekeeper</strong> (gw85224-01:6971).
 This page is a <em>view</em>, refreshed at session close-outs — the records of
 direction are <a href="/dev/next-steps-overview.md">next-steps-overview.md</a>
@@ -169,13 +169,26 @@ contract was then modelled end to end, which turned eight suspected holes into
 proposed fix and produced <strong>the first relation under which the contract holds</strong> —
 which turns <a href="https://github.com/davidg238/rete/issues/273">#273</a> from an open
 question into one inequality awaiting a decision.</p>
+<p><strong>2026-08-29 — the detector is now confirmed on a board, in both directions,
+against a committed tree.</strong> <code>bridge-health</code> PASS 3/3 (no false trip on a
+healthy 2 s-cadence node, 180 s observed past the verdict) and <code>wedge-detect</code>
+PASS 2/2 (fires on a real wedge: 9.0 s of silence, <code>cond=pulse-undrained pdr=0</code>,
+note retained, <code>reason=#watchdog</code>). <code>observer.c</code> is byte-identical
+across the two runs. <strong>Nothing in this thread is board-owed any more</strong> — what
+remains is <a href="https://github.com/davidg238/rete/issues/273">#273</a>'s design call,
+which is David's.</p>
 </div>
 
 <ol>
-  <li><strong>Run <code>bridge-health</code> on a board.</strong> The wedge verdict was
-    refactored onto the host (<code>a501b1f</code>) and is <em>compile-verified only</em> —
-    no board has executed it. Nothing else in this thread should stack on an unconfirmed
-    detector. Cost: one scenario, already in the sweep.</li>
+  <li><strong><a href="https://github.com/davidg238/rete/issues/274">#274</a> —
+    <code>startTicking:</code> sits downstream of the socket bind, so a failed bind leaves
+    the node with <em>no detector at all</em>.</strong> The unblocked next action: small,
+    concrete, needs neither a board nor a design call, and it is the last of the three
+    liveness defects that can move while <a href="https://github.com/davidg238/rete/issues/273">#273</a>
+    waits. First step is to check whether <code>abc6c4f</code> (#231, "the base tick must
+    not be downstream of anything that can fail at boot") already covers part of the path.
+    <br><em>Done 2026-08-29:</em> <code>bridge-health</code> and <code>wedge-detect</code>
+    both PASS on <code>c6spare</code> — the detector refactor is no longer board-owed.</li>
 
   <li><strong><a href="https://github.com/davidg238/rete/issues/272">#272</a> — porta judges
     ARRIVAL where the node judges PROGRESS.</strong> The widest gap, and it is
@@ -287,11 +300,13 @@ or independent of it.</p>
 </ul>
 
 <h2>Priority opinion</h2>
-<p><strong>Finish the liveness thread before opening another.</strong> It is the only thread
-with an unconfirmed change sitting in it (the detector refactor, board-owed) and two design
-calls waiting on David — <a href="https://github.com/davidg238/rete/issues/272">#272</a>'s
+<p><strong>Finish the liveness thread before opening another.</strong> The board debt is
+now cleared (2026-08-29: detector confirmed both directions), so what is left in this thread
+is <em>entirely</em> design calls waiting on David — <a href="https://github.com/davidg238/rete/issues/272">#272</a>'s
 shape and <a href="https://github.com/davidg238/rete/issues/273">#273</a>'s source-of-truth
 number. Both are cheap to decide and neither needs board time to decide.
+<a href="https://github.com/davidg238/rete/issues/274">#274</a> is the one piece that can
+move without them.
 <a href="https://github.com/davidg238/rete/issues/272">#272</a> in particular reads a value
 porta already stores, so the implementation is small once the shape is settled.</p>
 
