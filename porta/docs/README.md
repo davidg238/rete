@@ -8,6 +8,10 @@ image delivery, the report schema — was deleted in one commit; its last tree i
 ## Current
 
 - `../README.md` — what porta is now, the CLI verbs, the license.
+- `ARCHITECTURE.md` — **the system picture**: the three planes, the two transports, what
+  porta is and is not, modes and app lifecycle as paths, the manifest gate, the store's
+  two open doors, and the repo topology. Rewritten for v2 2026-08-29 (#279); §7 records
+  the Toit lineage rather than describing it as current.
 - `CLI.md` — **the v2 command reference**: `serve`, `put`, `get`, `log`, `key gen`,
   `blob put`, `snapshot`, every flag, and what each of v1's deleted verbs became.
   Rewritten 2026-08-29 and checked against the binary's own `--help` by the nsl suite's
@@ -27,9 +31,6 @@ image delivery, the report schema — was deleted in one commit; its last tree i
 
 ## Stale in parts — banners say which
 
-- `ARCHITECTURE.md` — the system picture. Written for v1's command protocol and TFTP
-  transport; the boundaries and the properties still hold, the mechanisms in the
-  diagrams do not.
 - `GETTING-STARTED.md` — corrected against the code on 2026-08-05; §3–§4's verb
   walkthrough is v1 and no longer exists (#279). §1–§2 and §5 — the `.deb`, the systemd
   unit, `/health`, and the operator-surface story — are current.

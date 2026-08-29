@@ -1,125 +1,129 @@
-# Porta system architecture
-
-> **Stale in parts (noted 2026-08-29).** Written for porta **v1** — the command protocol, the
-> TFTP transport and the `:6970` control-plane API in the diagrams below were all deleted on
-> 2026-08-01 (tag `porta-v1-final`). The boundaries, the one-way dependency rule and the
-> whole-system properties still hold; the mechanisms do not. `docs/PROTOCOL.md` no longer
-> exists: the live contract is `../../protocol/PROTOCOL-NSL.md`, the v1 one is frozen at
-> `../../protocol/v1/PROTOCOL.md`. The v2 decision record is
-> `design/2026-08-01-porta-space-sync-rewrite-design.md`.
+# porta system architecture
 
 This is the **canonical system-architecture document** for porta and the fleet it
-controls. porta owns the *system architecture* the same way it owns the *wire
-protocol*: `docs/PROTOCOL.md` is the southbound wire contract, `docs/DEVSDK.md` is
-the northbound tooling contract, and **this** document is the picture they sit
-inside — what the pieces are, why the boundaries fall where they do, and which
-properties hold across the whole system.
+controls: what the pieces are, why the boundaries fall where they do, and which
+properties hold across the whole system. The contracts it sits inside are
+`../../protocol/PROTOCOL-NSL.md` (the wire), `../../protocol/MANIFEST.cddl` (the
+machine-normative kind+schema catalogue) and `DEVSDK.md` (the northbound tooling
+contract).
 
-Where this document and the code/contracts disagree, the contracts
-(`PROTOCOL.md`, `DEVSDK.md`) and then the code win; this document is the bug.
+Where this document and the code or the contracts disagree, **the contracts win, then
+the code; this document is the bug.** Rewritten for v2 on 2026-08-29 (#279) — porta v1's
+command vocabulary, command queue, TFTP delivery and report schema were deleted in one
+commit on 2026-08-01 and the last v1 tree is tagged `porta-v1-final`. Nothing below
+describes them; §7 says where they went.
 
 ---
 
 ## 1. The system at a glance
 
 ```
-                       DEV MACHINE  (has source + jag + SDK + USB)
-              ┌──────────────────────────────────────────────────────┐
-              │   nodus tool          nodus-st tool                    │
-              │   run / flash /        run / flash / …                 │
-              │   decode               (Smalltalk)                     │
-              │        └──────────┬───────────┘                        │
-              │        imports github.com/davidg238/porta/devsdk (Go)  │
-              └───────────────────┼────────────────────────────────────┘
-                                  │  control-plane HTTP API  (:6970)
-                                  ▼
-  operator ── HTTP / htmx ──►  ┌──────────────────────────────────────┐
-  (browser · porta CLI ·       │             PORTA GATEWAY              │
-   read-only MCP)              │  `porta serve`  — the single writer    │
-                               │                                        │
-                               │  • HTTP: control API + htmx UI + /mcp  │  :6970
-                               │  • UDP/TFTP listener                   │  :6969
-                               │  • silence sweep → gw/liveness         │  30 s
-                               │  • sqlite store: nodes · command_queue │
-                               │    · payloads · reports · data_log     │
-                               │  • command audit + config self-heal    │
-                               └──────────────────┬─────────────────────┘
-                                                  │  TFTP RRQ/WRQ over UDP
-                                                  │  (node = client, gateway = server)
-            ┌─────────────────────────┬───────────┴───────────┐ · · · · · · · · · · · · ·┐
-            ▼                          ▼                        ▼                          ▼
-      ┌───────────┐            ┌───────────┐            ┌───────────┐            ┌───────────┐
-      │   nodus   │            │   nodus   │            │   nodus    │   ...      │ nodus-st  │
-      │   Toit    │            │   Toit    │            │   Toit     │            │ Smalltalk │
-      │  ESP32    │            │ ESP32-S3  │            │  ESP32-C6  │            │ nRF52840  │
-      │ deep-sleep│            │ always-on │            │ deep-sleep │            │  Zephyr   │
-      └───────────┘            └───────────┘            └───────────┘            └───────────┘
-       └──── Toit nodes · WiFi · IPv4 (UDP) ───────────────────┘       Thread · IPv6 (proven) ┘
-            └────────── heterogeneous fleet — coupled to porta ONLY over the wire ───────────┘
-                  (every node conforms to docs/PROTOCOL.md — same RRQ/WRQ surface, any link)
+                 DEV MACHINE   (source · nsl compiler · Zephyr SDK · USB)
+        ┌──────────────────────────────────────────────────────────────┐
+        │  ns_compile_oevm.py --format=oimg  →  app.oimg               │
+        │  west build / flash / console                                │
+        │  node-repo tooling imports porta/devsdk  (exec, provision)   │
+        └────────────────────────────┬─────────────────────────────────┘
+                                     │  app.oimg carried to the gateway host
+                                     ▼
+   agent ·  ── HTTP :6971 ──►  ┌───────────────┐
+   browser                     │  GATEKEEPER   │  /dev docs + status page;
+                               │  (own binary) │  proxies /health, /manifest
+                               └───────┬───────┘
+                                       │ 127.0.0.1
+   operator ── porta CLI ────►  ┌──────▼──────────────────────────────────┐
+   (opens the sqlite file       │              PORTA GATEWAY              │
+    DIRECTLY, on this host —    │   `porta serve` — four loops:           │
+    never a network client)     │     • exchange   udp :6969   pull/push  │
+                                │     • blocks     udp :6970   image bytes│
+                                │     • http       tcp :6970   /health    │
+                                │     • sweep      every 30 s  → gw/**    │
+                                │   store: nodes · cells · events ·       │
+                                │          exchanges   (+ gw_runs · meta) │
+                                │   blobs/<sha256> · porta.key · porta.pub│
+                                └──────────────────┬──────────────────────┘
+                                                   │  plain UDP carrying CBOR
+        ┌────────────────────────┬─────────────────┴──────────┐ · · · · · · · ·┐
+        ▼                        ▼                            ▼                ▼
+  ┌────────────┐          ┌────────────┐              ┌────────────┐    ┌────────────┐
+  │  ESP32-C6  │          │  ESP32-C6  │              │  nRF52840  │    │  posix     │
+  │ oevm + nsl │          │ oevm + nsl │    ...       │ oevm + nsl │    │ host node  │
+  │ WiFi· IPv4 │          │Thread·IPv6 │              │Thread·IPv6 │    │ loopback   │
+  └────────────┘          └────────────┘              └────────────┘    └────────────┘
+    └────── every node owns a SPACE — a tree of paths — and porta holds a mirror ─────┘
+         conformance target: protocol/PROTOCOL-NSL.md §§1–4 + MANIFEST.cddl
 ```
 
-Three planes, three contracts:
+Three planes, three contracts — and note that only one of them is a network protocol:
 
 | Plane | Who talks | Contract | Transport |
 |-------|-----------|----------|-----------|
-| **Southbound** (gateway ↔ node) | porta ↔ any node | `docs/PROTOCOL.md` | TFTP/UDP |
-| **Northbound** (dev tool → gateway) | node-repo dev tools → porta | `docs/DEVSDK.md` + the HTTP API | HTTP |
-| **Operator** (human/agent → gateway) | browser, CLI, MCP → porta | the HTTP API | HTTP |
+| **Southbound** (gateway ↔ node) | porta ↔ any conforming node | `protocol/PROTOCOL-NSL.md` §§1–4 + `MANIFEST.cddl` | plain UDP + CBOR (the exchange); a binary block plane for bulk bytes |
+| **Northbound** (dev tool → gateway) | node-repo tooling → porta | `porta/devsdk` (`exec`, `provision`) | a Go import. **No network path** — v1's `apiclient` went with v1's HTTP API |
+| **Operator** (human/agent → gateway) | CLI → the store; browser/agent → gatekeeper | the path namespaces themselves; `GET /health`, `GET /manifest` | a local sqlite open (§3.1); HTTP for the two routes |
 
 ---
 
 ## 2. A heterogeneous fleet with one fixed point
 
-porta commands a fleet of **heterogeneous** nodes: different languages (Toit, and
-Smalltalk via `nodus-st`), different chips (classic ESP32, -S3, -C6 on WiFi; nRF52840
-on Thread), different power profiles, different jobs. They share **nothing** but the
-wire.
+porta serves a **heterogeneous** fleet: different chips (ESP32-C6 on WiFi and on
+Thread, nRF52840 on Thread, a posix host node on loopback), different power profiles,
+different jobs. They share **nothing** but the wire.
 
-The one fixed point is `docs/PROTOCOL.md`. A node is "conforming" if it speaks that
-protocol — command vocabulary, report schema, TFTP resource surface, CRC32-IEEE
-image verification — and **any node MUST be implementable from that document alone,
-without reading another node's source.** This is why the gateway, not any node,
-owns the protocol: the wire contract outlives any single node codebase.
+The one fixed point is `protocol/PROTOCOL-NSL.md`, whose §§1–4 are the conformance
+target, with `MANIFEST.cddl` as the machine-readable half. A node is conforming if it
+speaks the space model — the two idempotent node-initiated messages, the path
+namespaces, the size law — and **any node MUST be implementable from those documents
+alone, without reading another node's source.** That is why the gateway rather than any
+node owns the contract: it outlives any single node codebase, and it has already
+outlived one (v1's Toit nodes, §7).
 
 Consequences of "coupled only over the wire":
 
-- porta **never imports node code**; nodes **never import porta code** at the
-  firmware level. (The *dev tools* import porta's `devsdk` — that is the northbound
-  plane, not the firmware.)
-- Adding a new node kind (a new chip, a new language) is a wire-conformance
-  exercise, not a gateway change. The gateway shows a node's `kind` as a label; it
-  branches on no language.
-- The fleet can be genuinely mixed: a deep-sleep Toit air-quality sensor and an
-  always-on Toit keyboard and a Smalltalk `nodus-st` node all check in against the
-  same gateway, queue, and audit trail.
+- porta **never imports node code**; nodes **never import porta code**. Both halves now
+  live in one repository (§8) and that has not changed: a change that makes one side
+  compile against the other is a bug, not a convenience.
+- **A second implementation must hand-roll its codec.** The algebra's map keys are
+  themselves tagged values, a Record's *name* is a Symbol rather than a text string, and
+  decoding must be closed. porta's `internal/cval` is that second implementation, and it
+  is golden-tested against the node's own output — the node's `Cbor` class in
+  `nodus/nsl/lib/kernel.nsl` is the authority, not the RFC.
+- Adding a node kind is a wire-conformance exercise, not a gateway change. porta branches
+  on no language and no chip; `obs/build` carries `chip`/`sdk` as data.
 
 ---
 
-## 3. The role of porta — a neutral, always-on LAN node manager
+## 3. The role of porta — a neutral, always-on LAN gateway
 
-porta has exactly two jobs: **(1) be always on, (2) manage a LAN fleet.** It
+porta has exactly two jobs: **(1) be always on, (2) hold the fleet's mirror.** It
 implements **zero** language- or hardware-specific function. Everything that needs
-source, a compiler, a chip toolchain, or a USB cable lives off the gateway, on the
-dev machine, in node-repo tooling (see §6).
+source, a compiler, a chip toolchain or a USB cable lives off the gateway, on the dev
+machine (§7).
 
 What the gateway *is*:
 
-- **The single writer.** All fleet state lives in one sqlite store, mutated only by
-  `porta serve`. Operators and dev tools do not open the store; they go through the
-  HTTP control-plane API, which serializes every write and records it. This is what
-  makes the audit trail (§5) trustworthy and lets multiple clients (CLI, browser,
-  MCP, remote dev tools) act without stepping on each other.
-- **The command authority.** It owns the command vocabulary and queues commands per
-  node; nodes pull and apply them.
-- **The image courier.** It stores container images and hands them out over TFTP,
-  verified by length + CRC32 (§7).
-- **The telemetry sink.** It ingests typed telemetry and panics into `data_log`.
-- **The operator surface.** `porta serve` exposes an HTTP control API, an htmx
-  operator console, and a read-only MCP endpoint — all on the same listener.
+- **The mirror.** Every node owns a tree of paths; porta holds a copy. Operators write
+  intent under `goal/**`; the node writes what it sees under `obs/**`, `tel/**` and
+  `sys/**`; porta writes its own verdicts under `gw/**`. **Convergence is not a
+  mechanism** — `goal/X` against `obs/X` is a tree diff, so the desired-versus-observed
+  view and the self-heal loop are the same query.
+- **The only *network* writer.** `porta serve` is the single process that ingests from
+  the wire, and it serializes every write and records it in an append-only log with
+  `actor`/`reason` provenance. It is **not** the only writer at all: the CLI opens the
+  same sqlite file directly, by design (§3.1), which is the one place a reader's
+  intuition about "single writer" will mislead them.
+- **The bulk courier.** Image bytes are content-addressed under `blobs/<sha256>` and
+  served by a separate stateless listener (§3.2, §3.3). They are deliberately **off the
+  space**: a 512 B batch and a 256 B value are radio constraints, not preferences.
+- **The judge of silence.** A ticking sweep forms one liveness verdict per node against
+  the budget the node itself declared (§3.5).
+- **The operator surface.** Two HTTP routes, `GET /health` and `GET /manifest`, and
+  nothing else. v1's dashboard, JSON API and MCP server are deferred → operator surface
+  in the capability audit, not silently dropped; the exposed agent-facing front door is
+  the separate `gatekeeper` binary.
 
 What the gateway is **not**: a compiler, a flasher, a relocator, a panic decoder, a
-fleet-wide pod builder. Those are node-repo concerns (§6).
+fleet-wide image builder. Those are node-repo concerns (§7).
 
 ### 3.1 The CLI is a local sqlite writer, not a client (recorded 2026-08-07)
 
@@ -279,190 +283,7 @@ The instrument's own remaining lie is written down in `Sweep`'s doc comment, whe
 a powered-off node and a wedged-and-halted one are indistinguishable from here, and always will
 be.
 
----
-
-## 4. Transports
-
-> **v1 — SUPERSEDED (marked 2026-08-08). Everything below describes the deleted TFTP
-> surface and no longer names a live transport.** porta speaks two today, both plain UDP:
-> the **exchange** (node-initiated pull/push carrying CBOR, `:6969` by default,
-> `internal/wire`), and the **block plane** for bulk image bytes on exchange port + 1
-> (§3.3, `internal/blockserv`). There is no TFTP listener left in the binary — `--port`
-> went with it, and a test asserts the flag stays gone. The current contract is
-> `protocol/PROTOCOL-NSL.md` §§1–4 at the rete root, not `PROTOCOL.md`. Kept below
-> because the Toit v1 nodes still speak it, and because §4's link-agnosticism argument
-> (the resource surface, not the link, is the contract) is the reasoning the space model
-> inherited.
-
-Today the only transport is **TFTP over UDP** (`:6969`): the node is the TFTP
-**client**, the gateway is the **server**, and the node identifies itself with a
-`?id=<hex-id>` suffix (opaque lowercase hex, 12–16 digits) on every resource it
-touches. WiFi is the only physical link in use. Full framing, resource names, and
-the drain-to-empty-body semantics are in `PROTOCOL.md §1`.
-
-Why TFTP/UDP: it is tiny enough to implement on a constrained node, connectionless
-(no session state to keep across a node's deep-sleep/reboot cycle), and the
-RRQ/WRQ resource surface is a clean abstraction boundary.
-
-**The resource surface — not the link — is the contract.** A conforming node MAY
-implement any transport that presents the same RRQ/WRQ resources (`commands`,
-`payload`, `report`, `data`, each keyed by `?id=`). The Toit nodes in use today run
-over **WiFi (IPv4)**.
-
-This link-agnosticism is **not just theoretical: the RRQ/WRQ interface has been
-proven over Thread (6LoWPAN/IPv6) to Zephyr devices running `nodus-st`** — Smalltalk
-nodes on an **nRF52840**. Those nodes reach the gateway over **IPv6** rather than the
-Toit nodes' IPv4, but still as plain TFTP clients touching the same `?id=`-keyed
-resources, with no change to the command model, the store, or the audit trail. The
-gateway does not care how the bytes arrive, nor over which IP version. **ESP-NOW** and
-**BT-mesh** remain planned behind the same interface, so a future low-power or meshed
-node can join the same fleet on the same terms.
-
----
-
-## 5. Node power modes and container lifecycle
-
-A node has **two independent dimensions**, both node-owned and echoed back in the
-report's `node_config` block (`PROTOCOL.md §2.3, §2.7, §3.2`):
-
-**Power mode** (`set-mode`, atomic, per node):
-
-- **`deep-sleep`** (default): the node wakes, polls the gateway (drains commands,
-  reconciles, reports, ships telemetry), then deep-sleeps for its poll interval,
-  waking via a **full reboot**. This is the battery/duty-cycle profile.
-- **`always-on`**: the node never sleeps; it keeps long-lived daemons alive between
-  reports. This is the mains-powered profile.
-
-**Container lifecycle** (`lifecycle` on each `run`, per app):
-
-- **`run-once`** (default): the container is expected to **return**. The supervisor
-  may `wait` on it (with a cap) before sleeping. The natural fit for a deep-sleep
-  node — wake, take a reading, return, sleep.
-- **`run-loop`**: the container **never returns** (a daemon). The supervisor starts
-  it and must not block on it.
-
-The dimensions interact: a `run-loop` daemon on a `deep-sleep` node is **killed by
-each sleep**, so a long-lived daemon requires `always-on`. The halting behaviour of
-a container cannot be inferred, which is why `lifecycle` is *declared* at install
-rather than guessed. Together these cover the real fleet: deep-sleep + run-once for
-a sensor that samples every few minutes; always-on + run-loop for a daemon that must
-stay live.
-
-Wake/run conditions are expressed as **triggers** (`boot`, `interval`,
-`gpio-high/low/touch:<pin>`, `install`) attached to each app — see `PROTOCOL.md §4`.
-
----
-
-## 6. Command protocol and audit trail
-
-**Declarative and absolute.** Every command is a single JSON object with a `verb`
-and flattened args. Applying one is idempotent, and a later command for the same
-target wins — so redelivery is always safe. The verbs (`run`, `stop`, `set-mode`,
-`set-name`, `set-forward`, `set`, `reboot`) and their schemas are in `PROTOCOL.md §2`;
-`set-mode` is atomic (whole-or-reject).
-
-**The queue + delivery accounting.** Commands sit in `command_queue` per node. A
-node drains by repeated `commands?id=` RRQ until it gets a zero-byte body. A real
-command is marked **delivered only on the TFTP transfer-complete event with
-`ok=true`** — a failed or drain transfer marks nothing. So "delivered" means the
-bytes actually reached the node, not merely that they were dequeued.
-
-**The audit trail.** Because the gateway is the single writer, the command log is a
-complete, ordered record of intent: who asked for what, when it was queued, when it
-was delivered. `porta log` (and the operator UI's command timeline) replays it. The
-derived lifecycle of a command — queued → delivered → (for `set`) converged /
-pending / drift, or expired — is computed from this log plus the node's reports.
-
-**Two state planes, reconciled.** The **goal plane** (which apps run, at what
-triggers/runlevel/lifecycle) and the **config plane** (`set`: per-app scalar config)
-are separate. The node echoes both its observed apps and its applied `config` in
-every report (`PROTOCOL.md §3`). After each report the gateway runs **config
-self-heal**: it diffs desired config (projected from delivered `set` commands)
-against the reported `config` and re-enqueues any delivered-but-divergent `set`
-(tagged `gateway-reconcile`). Desired-vs-observed convergence is a first-class,
-visible property — the node does nothing special beyond echoing what it applied.
-
----
-
-## 7. Compatibility with the existing Toit toolchain
-
-porta is deliberately *not* a reinvention of the Toit container format or the chip
-toolchain — it rides on them, so that today's Toit nodes (and the `jag` workflow
-operators already know) keep working.
-
-**Image format = relocated Toit container, jag-aligned.** What porta stores and
-delivers as a `payload` is the **raw bytes of a relocated container image** — the
-same artifact `jag` produces and deploys. There is **no porta-specific framing**:
-size and CRC ride in the `run` command, and the `payload` resource is raw image
-bytes (`PROTOCOL.md §5`). The integrity check is **CRC32-IEEE with the exact same
-parameters jag uses** for its `X-Jaguar-CRC32` (`PROTOCOL.md §5`), so an image built
-through the jag toolchain verifies bit-for-bit on the node.
-
-**Firmware is jag/standard-Toit firmware.** Nodes are flashed with the normal Toit
-toolchain (jag, or the nodus flasher wrapping `jag flash`). porta delivers and runs
-*containers* onto already-flashed firmware; it does not replace the firmware flow.
-The SDK/chip coupling that matters — an image must be relocated for the node's chip
-and match the firmware's SDK version — is enforced by the node-repo dev tool
-(`nodus run` checks the node's reported `chip`/`sdk` before deploying), not by the
-gateway. Use the *same* jag/SDK to flash a device and to build the image it runs.
-
-**Relationship to Artemis.** porta is an **independent control plane** that operates
-at the container-image level, coexisting with the existing Toit tooling rather than
-consuming Artemis fleet artifacts. The shared substrate is the relocated image +
-jag CRC, so images flow from the same build toolchain.
-
-To work toward future compatibility with Artemis, porta's command vocabulary
-deliberately mirrors the **container triggers Artemis supports**, so a container's
-run conditions mean the same thing on either control plane (`PROTOCOL.md §4`):
-
-| Trigger | porta value | Meaning |
-|---------|-------------|---------|
-| `boot` | `1` | Run on (cold) boot. |
-| `install` | int | Run on the Nth install generation. |
-| `interval` | int (seconds) | Periodic wake. |
-| `gpio-high:<pin>` | `<pin>` (int) | Wake/run on GPIO `<pin>` high (ext1). |
-| `gpio-low:<pin>` | `<pin>` (int) | Wake/run on GPIO `<pin>` low. |
-| `gpio-touch:<pin>` | `<pin>` (int) | Wake/run on touch pin `<pin>`. |
-
-Where the two diverge today is the **unit of deployment**. Artemis synchronises a
-fleet against a `.pod` — a self-contained, versioned firmware *archive* that bundles
-the Toit SDK envelope, every container image, and the per-container trigger/runlevel
-config into one artifact flashed/OTA'd as a whole. porta does not consume `.pod`
-bundles: it delivers and runs **individual relocated container images** (`run`/`stop`,
-`PROTOCOL.md §2`) onto already-flashed firmware, with triggers/runlevel/lifecycle
-declared per-command rather than baked into a pod. Ingesting `.pod` bundles — reading
-their container set and trigger config to drive porta's command queue — is **not
-implemented** and is a candidate direction, not a current capability.
-
-**Where the toolchain physically lives.** Compile, relocate, flash, and panic-decode
-need source + jag + SDK + a USB cable, which a headless gateway does not have. They
-live on the dev machine in node-repo tools built on porta's `devsdk` (Go): `devsdk/
-apiclient` (talk to the control API), `devsdk/exec` (narrating runner for `toit`/
-`jag`/`esptool`), `devsdk/provision` (the `firmware.config["porta"]` gateway-address
-contract). See `docs/DEVSDK.md`. porta itself ships none of this — `porta` the
-binary hosts zero language/hardware toolchain.
-
----
-
-## 8. Repo topology
-
-The system spans several repos, each owning one end of one boundary; dependencies
-point **one way** (node-side → porta), and porta imports nothing from any of them.
-
-| Repo | Role | Couples to porta via |
-|------|------|----------------------|
-| **porta** (`github.com/davidg238/porta`) | the neutral Go gateway + the two contracts (`PROTOCOL.md`, `DEVSDK.md`) + the public `devsdk/` | — (owns the contracts) |
-| **nodus** (`github.com/davidg238/nodus`) | the Toit node — firmware (southbound, conforms to `PROTOCOL.md`) **and** its dev tool (northbound, imports `devsdk`) | wire + `devsdk` |
-| **nodus-st** (`github.com/davidg238/nodus-st`) | the Smalltalk node + tooling — Zephyr on nRF52840 over Thread (same pattern) | wire + `devsdk` |
-| **gateway** (`github.com/davidg238/gateway`) | a full **Toit** implementation of the gateway — an alternative to porta itself, conforming to the same `PROTOCOL.md` | implements the wire |
-
-Note `gateway` is a *gateway* (another implementation of porta's role), not a node;
-`nodus`/`nodus-st` are *nodes*. Both kinds conform to the same wire protocol — which
-is exactly the point of letting the gateway own it.
-
----
-
-## 8a. The manifest gate (rete#243, 2026-08-25 — current where §§4–6 are v1-stale)
+### 3.6 The manifest gate (rete#243, recorded 2026-08-25)
 
 The kind+schema contract is `protocol/MANIFEST.cddl` (machine-normative; see
 `protocol/PROTOCOL-NSL-RECORDS.md` §4's header). porta's half of its enforcement:
@@ -487,7 +308,7 @@ The kind+schema contract is `protocol/MANIFEST.cddl` (machine-normative; see
   (`protocol/tools/pin_manifest.py`) and the provision gate's served-hash side
   (`protocol/tools/check_provision.py`).
 
-## 8b. Store open doors (rete#221, 2026-08-25)
+### 3.7 Store open doors (rete#221, recorded 2026-08-25)
 
 sqlite creates a database file on open, so the store has two doors: `serve` opens
 create-on-open (`space.Open`) and is the only initialiser; the operator verbs
@@ -498,10 +319,187 @@ yet", plus a decoy file deposited beside the real one (found on the gateway,
 2026-08-18). `get` and `log` also print `# store <abspath>` on stderr, so a
 correct-looking empty answer still says what it read.
 
+---
+
+## 4. Transports
+
+porta speaks **two** transports, both plain UDP, and neither is a session:
+
+- **The exchange** (`:6969` by default, `internal/wire`). Two node-initiated,
+  idempotent messages carrying CBOR: a **`pull`** that fetches the writes porta holds
+  for the node, and a **`push`** that delivers the node's entries. Framing is a pure
+  `Handle([]byte) []byte` under a thin UDP loop, so the protocol is testable without a
+  socket. Both bounded by a **512 B batch and a 256 B value** — 6LoWPAN fragments above
+  ~102 B and a datagram survives only if every fragment does, so these are radio
+  constraints and not preferences.
+- **The block plane** (exchange port **+ 1**, `internal/blockserv`), for bulk image
+  bytes. Stateless, resumable from any block number (§3.3).
+
+Node-initiated in both directions is the load-bearing choice: a node that deep-sleeps,
+reboots or lives behind a mesh border router has no stable address to be called back on,
+and there is no session for a reboot to invalidate.
+
+**The space — not the link — is the contract.** A conforming node MAY reach the gateway
+over any link that carries a datagram. This is not theoretical:
+
+- **WiFi / IPv4** and **Thread / IPv6 (6LoWPAN)** are both in service today, against the
+  same gateway, the same store and the same log, with no branch anywhere in porta.
+- The Thread nodes reach the gateway at a **mesh-local EID**; the mesh has no global IPv6
+  and no DNS64, so an address is a literal.
+- The UDP backend is `AF_INET6`; a v4 node needs dual-stack at both ends, and a
+  v4-mapped destination is accepted and then silently discarded.
+
+**There is no TFTP listener in the binary.** v1's `--port` flag went with it, and a test
+asserts the flag stays gone. The v1 wire is frozen at `../../protocol/v1/PROTOCOL.md`,
+which is what the retired Toit nodes still speak.
+
+---
+
+## 5. Node modes and app lifecycle — declared at a path, not commanded
+
+A node has **two independent dimensions**. In v1 each was a verb; both are now paths,
+and each has a `goal/` half porta writes and an `obs/` half the node publishes, so the
+diff between them is the answer to "did the node accept?".
+
+**Power mode** — `goal/mode` / `obs/mode`, a `Mode { mode, maxAwakeS, minAwakeS,
+loopSleepS, maxAsleepS }`:
+
+- **deep-sleep**: the node wakes, exchanges with the gateway, then sleeps for its
+  interval, waking via a **full reboot**. The battery profile — and the reason `seq` is
+  not a liveness signal across a reboot, and the reason every stored row records the boot
+  that published it (§3.4).
+- **always-on**: the node never sleeps and keeps long-lived work alive between
+  exchanges. The mains profile.
+
+**App lifecycle** — `goal/apps/<name>` / `obs/apps/<name>`, an
+`App { image: BlobRef{hash,size}, sig, runlevel, triggers, lifecycle }`:
+
+- **run-once**: the app is expected to return. The natural fit for a deep-sleep node —
+  wake, take a reading, return, sleep.
+- **run-loop**: the app never returns. The supervisor starts it and must not block on it.
+
+The dimensions interact exactly as they did: **a `run-loop` daemon on a `deep-sleep`
+node is killed by each sleep**, so a long-lived daemon requires `always-on`. Halting
+behaviour cannot be inferred, which is why `lifecycle` is *declared* rather than guessed.
+
+**There is no tombstone.** Stopping an app is writing its lifecycle to stopped — a value,
+not a deletion. Genuine removal is an action on a `do/` stream, and `goal/do/reboot` is
+the only one pinned today.
+
+**Liveness is declared the same way.** `obs/liveness` = `Liveness { cad, bud }` is the
+node's own statement of how often it intends to speak and how long its silence may last;
+`goal/liveness` is a *request* the node snaps to its grid, clamps to 24 h and publishes
+back. porta judges `now - last_seen > bud` and infers nothing (§3.5).
+
+---
+
+## 6. The exchange, the log, and what makes replay safe
+
+**Two messages, both idempotent, both node-initiated.** A check-in is one `pull` and one
+`push` — two rows in `exchanges`, and **both** stamp `nodes.last_seen_ms`. There is no
+`leg` column: it existed only to feed a cadence inference that #231 deleted.
+
+**One monotonic `seq` per space per side.** Kind is a property of the leaf, set by its
+first write and pinned by the manifest; `KindStream = 1`, `KindCell = 2`, shared with the
+VM's `space.h` and not renumbered.
+
+**Replay from cursor 0 is designed behaviour, and safe per kind.** A cold-booted node
+asks from 0 and porta replays: cells are latest-value and therefore idempotent, while
+**streams are guarded** — porta never re-serves a row the node has acked as applied
+(`nodes.cursor_hw`, bounded by `served_hw`), so `goal/do/*` cannot re-execute across
+reboots.
+
+**The log is the audit trail, and it is strictly more than v1's queue could offer.**
+`events` is append-only in both directions, carrying `actor` and `reason` on every row.
+A drained command queue lost superseded intent; this keeps it. `porta log` replays it,
+`--boot N` filters it to one node boot, and the arrow encodes authority: `→` porta's
+intent, `←` the node's report, `◆` a gateway verdict that crossed no boundary.
+
+**A refused entry is kept, not dropped silently.** At the wire door the manifest gate
+refuses-but-acks: the entry is not applied, its `seq` IS acked so the node advances
+instead of wedging, and the bytes are retained as an `events` row with `actor=gate` and
+the failed check as `reason` (§3.6). The node counts the same event as `rej` in
+`obs/health` — because the cursor advances past it and the replay guard makes that loss
+permanent, so a write the node refused must be visible or `goal` and `obs` diverge
+silently forever.
+
+---
+
+## 7. Where the toolchain lives, and the Toit lineage
+
+**Nothing that needs a toolchain runs on the gateway.** Compiling, flashing and reading
+a console need source, a compiler, an SDK and a USB cable, which a headless gateway does
+not have. They live on the dev machine, in node-repo tooling built on porta's **`devsdk`**
+(Go, MIT-licensed so tooling in any language can import it without copyleft):
+`devsdk/exec` (a narrating runner for build and flash commands) and `devsdk/provision`
+(the gateway-address contract a node is flashed with). **`devsdk/apiclient` was deleted**
+with v1's HTTP surface — there is no network path from a dev tool to porta, which is why
+`porta blob put` runs on the gateway host.
+
+porta itself hosts **zero** language or hardware toolchain, and that is the property to
+preserve: it is what let the node side be replaced wholesale without touching the
+gateway's shape.
+
+**The lineage, because it explains what a reader will find in the older documents.** The
+fleet's first nodes were **Toit** containers deployed with the `jag` workflow: images
+were relocated Toit containers verified with jag's CRC32-IEEE, delivered over TFTP, and
+driven by a command vocabulary with a report schema. All of it is gone. Today a node runs
+the **oevm** VM executing an **`.oimg`** built by the nsl compiler, fetched over the block
+plane, content-addressed by **SHA-256** and **ed25519-signed at push time** — the node's
+runner holds only porta's public half. The frozen Toit v1 implementation lives in the
+`nodus-v1` repository and still speaks `../../protocol/v1/PROTOCOL.md`.
+
+The **capability audit** in `design/2026-08-01-porta-space-sync-rewrite-design.md` §4.2
+gives every v1 verb, route, MCP tool and `nodes` column a fate — `absorbed`, `deferred`
+or `regression` — because **a rewrite may delete a mechanism but may not silently delete
+a capability** (D8). Three of v1's fourteen `nodes` columns turned out to have no
+successor until they were enumerated; all three were closed before demolition. Read that
+section rather than guessing where a v1 feature went, and `CLI.md`'s closing table for
+the operator-facing short version.
+
+---
+
+## 8. Repo topology
+
+**The system is one repository.** `rete` was consolidated on 2026-08-02 from four —
+`tuvm`, `nsl-tuvm`, `nsl-tests` and `porta` — by restructuring in place, which is what
+preserved the issue numbers the program navigates by.
+
+| Tree | Role | Couples to the other half via |
+|---|---|---|
+| `porta/` | the gateway: the store, the exchange, the bulk plane, the CLI, `devsdk/` | the wire, and nothing else |
+| `nodus/oevm/` | the VM (C) and its Zephyr board ports | the wire |
+| `nodus/nsl/` | the dialect, its compiler, the kernel | — |
+| `nodus/tests/` | the nsl conformance suite | — |
+| `protocol/` | **the whole of the contract**; v1 frozen under `protocol/v1/` | it *is* the coupling |
+| `review/`, `docs/`, `tools/` | the program ladder and claims ledger; documents of record; repo-wide scripts | — |
+
+**Being in one repo does not couple the two halves.** porta and the nodes are coupled
+**only** over the wire; they never import each other's code, and a change that makes one
+side compile against the other is a bug rather than a convenience. The place this is
+actively defended is the gates: the nsl suite's two porta-facing gates (`tutorial-porta`,
+`porta-cli`) answer a **named SKIP** when there is no Go toolchain rather than failing,
+precisely so a missing `go` cannot make the node suite depend on the gateway half.
+
+An implementation of the *gateway* role is as legitimate as an implementation of the
+*node* role: both conform to `protocol/`, which is exactly the point of letting the
+contract live in neither half.
+
+---
+
 ## 9. See also
 
-- `docs/PROTOCOL.md` — the southbound wire contract (commands, report, TFTP, CRC32).
-- `docs/DEVSDK.md` — the northbound dev-SDK contract (`apiclient`/`exec`/`provision`,
-  the `firmware.config["porta"]` provisioning shape).
-- `CLAUDE.md` — repo layout and current build/sub-project state.
-- `docs/archive/specs/` — the dated design records behind the decisions above.
+- `../../protocol/PROTOCOL-NSL.md` — the wire contract; **§§1–4 are the conformance
+  target**. `../../protocol/PROTOCOL-NSL-RECORDS.md` is the record catalogue and the size
+  law; `../../protocol/MANIFEST.cddl` is its machine-normative half.
+- `../../docs/tutorials/03-porta.md` — the executed introduction: a gateway and a real
+  node on loopback, every command block run by the nsl suite.
+- `CLI.md` — the command reference, gated against the binary's own `--help`.
+- `design/2026-08-01-porta-space-sync-rewrite-design.md` — the v2 decision record (D1–D8),
+  the store schema, the wire shapes, and the §4.2 capability audit.
+- `design/2026-08-26-space-sync-durability-trio-design.md` — the replay guard, and why
+  cursor-0 replay is safe per kind.
+- `DEVSDK.md` — the northbound tooling contract.
+- `../../protocol/v1/PROTOCOL.md` — **v1, historical only.** Read it to understand what
+  `porta-v1-final` did; do not implement from it.
+- `README.md` — the map of this directory.

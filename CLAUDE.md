@@ -313,8 +313,10 @@ next.
   file's own header.
 - `porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md` — the rewrite's decision
   record (D1–D8), the store schema, the wire shapes, and the §4.2 capability audit.
-- `porta/docs/ARCHITECTURE.md` — system architecture. **Stale in parts**: written for v1's
-  command protocol and TFTP transport.
+- `porta/docs/ARCHITECTURE.md` — system architecture. **Rewritten for v2 2026-08-29**
+  (#279) and current: the three planes, both UDP transports, modes and app lifecycle as
+  paths, the manifest gate, the store's two open doors, one-repo topology. §7 records the
+  Toit lineage as history.
 - `protocol/v1/PROTOCOL.md` — **v1. Deleted, historical only.** It describes the command
   verbs, JSON args and CRC32 payload delivery that no longer exist. Do not implement from
   it; read it only to understand what `porta-v1-final` did, and it is what the frozen Toit
