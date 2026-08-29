@@ -48,8 +48,8 @@
 <body>
 
 <h1>rete — dev status</h1>
-<p class="stamp">Status synthesized <strong>2026-08-29</strong> (docs go-to-public pass 3: tutorial 3 written and executed by the suite as <code>tutorial-porta</code>) at
-<a href="https://github.com/davidg238/rete/commit/d606209">d606209</a>.
+<p class="stamp">Status synthesized <strong>2026-08-29</strong> (docs go-to-public pass 4: the tutorial ladder is complete — tutorial 2 written as prose and gated by <code>tutorial-board</code>) at
+<a href="https://github.com/davidg238/rete/commit/fdae4de">fdae4de</a>.
 Served live by <strong>gatekeeper</strong> (gw85224-01:6971).
 This page is a <em>view</em>, refreshed at session close-outs — the records of
 direction are <a href="/dev/next-steps-overview.md">next-steps-overview.md</a>
@@ -205,13 +205,45 @@ way: tutorial 1 advertised <code>Skipped: 0</code> where the real count is <stro
 (perf benchmarks, plus the fibers/NLR tests Milestone A deleted), and
 <code>porta/docs/GETTING-STARTED.md</code>'s banner redirected readers to
 <code>CLI.md</code> — one v1-era page pointing at another. Both fixed.
-<strong>What first:</strong> tutorial 2 (board) — <em>prose only, and the page must say
-so</em>, because a board walkthrough cannot be gated on a host; then the v2 rewrites in
-<a href="https://github.com/davidg238/rete/issues/279">#279</a>.
 <a href="https://github.com/davidg238/rete/issues/274">#274</a> is traced (fix shape on the
 issue: construct the bridge with <code>socket: nil</code> and tick unconditionally) and
-waits its turn. New this session: <a href="https://github.com/davidg238/rete/issues/280">#280</a>
+waits its turn. Also filed: <a href="https://github.com/davidg238/rete/issues/280">#280</a>
 — <code>porta put --reason</code> is stored on every event row and printed by nothing.</p>
+
+<p><strong>2026-08-29, evening — the tutorial ladder is complete, and a 48-day soak
+surfaced that nothing was reading
+(<a href="https://github.com/davidg238/rete/issues/79">#79</a>).</strong>
+<code>docs/tutorials/02-board.md</code> is the board page: <em>prose, and its banner says
+why</em> — the walkthrough needs a devkit, a toolchain and a mesh, and a gate that degraded
+to a SKIP without them is how a gate reports success for a run that never happened. What
+replaces the gate is a rule: <strong>every transcript is copied from a dated bench log</strong>,
+including a real <code>bridge-health</code> run on <code>c6bench</code> with its full 180 s
+observation window. The rule bit twice inside the session — the split-bench example went
+stale in twenty minutes and the "seven days, still running" line became past tense when the
+board was reflashed. One claim <em>is</em> checked: <strong><code>tutorial-board</code></strong>
+compares §7's eleven scenario names against <code>tests/target/*.env</code>, falsified three
+ways before commit including the vacancy case. Suite: <code>278 passed, 0 failed</code>, all
+three tutorial gates PASS, no SKIPs.</p>
+
+<p><strong>And the thing nobody was watching.</strong> Three nRF52840s have been
+round-tripping UDP over Thread to the gateway since 2026-07-11 — <strong>720,878
+exchanges</strong>, two of them for 37.3 and 34.4 consecutive days with no gap over ten
+minutes. It is the longest mesh-reliability evidence this program has and it existed
+<em>only</em> in a systemd journal on gw85224-01. Now banked as
+<code>docs/results/2026-08-29-thread-echo-soak.md</code>. Two of the three died on
+2026-08-18 and were recovered today by re-powering; all three are now
+<strong>physically labelled</strong> (<code>7adf</code>, <code>4ec0</code>,
+<code>92c2</code>) for the first time. Four hypotheses for the failure are closed with
+evidence — firmware, credentials, distance/RSSI, shared power — and <strong>the cause is
+recorded as unknown</strong>, gateway side leading, including a retraction of this session's
+own earlier "it was power". The reason it cannot be settled is the finding:
+<a href="https://github.com/davidg238/rete/issues/281">#281</a> (P1 — the nodes produce
+zero rows in porta, so <code>gw/liveness</code> never sees them) and
+<a href="https://github.com/davidg238/rete/issues/282">#282</a> (P3 — <code>porta</code>
+has no systemd unit, and the OTBR logs die with the container that the fixing reboot
+recreated). <em>A channel nothing reads cannot tell you why it went quiet.</em>
+<strong>What first:</strong> the v2 rewrites in
+<a href="https://github.com/davidg238/rete/issues/279">#279</a>.</p>
 </div>
 
 <ol>

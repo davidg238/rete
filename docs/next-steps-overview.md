@@ -1047,10 +1047,15 @@ the third is approved and next** — kept here in order because the order is the
   pushing over its own verdict), **#219** (a node already dead at migration time is never
   judged) and **#221** (`porta get`/`log`/`put` CREATE an empty store on a wrong `--db` and
   answer from it, so an empty tree read cannot be told from a wrong database) and **#225**
-  (the sweep cannot record its OWN absence — the 2026-08-19 power failure took the gateway
-  down for 10 h 6 min while `gw/liveness` went on reading `#live` for a node whose every
-  check-in was missing, because a verdict written on transition only freezes when the
-  gateway that writes it is dead). It is not
+  (the sweep cannot record its OWN absence — the 2026-08-19 outage left the gateway down for
+  10 h 6 min while `gw/liveness` went on reading `#live` for a node whose every check-in was
+  missing, because a verdict written on transition only freezes when the gateway that writes
+  it is dead. **Corrected 2026-08-29:** that was the *service*, not the machine. The host's
+  own boot record — `journalctl --list-boots`, boot −1 ended 22:24:01 and boot 0 began
+  22:28:43 — puts the reboot at **4 min 42 s**; `porta` is hand-started with no systemd unit,
+  and the other ten hours are how long it stayed down afterwards. #225's point is untouched
+  and if anything sharper, but the fix implied by "power failure" is a UPS and the fix implied
+  by the real cause is a unit file — filed as **#282**). It is not
   adjacent to #215 but underneath it — §7's staging
   gates the panic-note/reboot/loop-breaker step on this one already watching, because "three
   faults halt the node" is unobservable from the gateway if a halted node is invisible.
