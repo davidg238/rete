@@ -8,11 +8,10 @@ preserved the issue numbers and the `#NN` references the program navigates by
 
 ## Current focus
 
-<!-- Rewritten by /conclude every session. One issue, one first action. -->
-- **Focus issue:** #274 (H6 — `startTicking:` sits downstream of the socket bind, so a failed bind leaves the node with no detector at all).
-- **First concrete action:** `git show abc6c4f` (#231, "the base tick must not be downstream of anything that can fail at boot") and trace `startTicking:` against the bind in the bridge boot path — the issue's own suspicion is that commit covered only part of the path.
-- **Done 2026-08-29, do not redo:** the detector refactor is confirmed on a board in BOTH directions — `bridge-health` PASS 3/3 (no false trip) and `wedge-detect` PASS 2/2 (`pdr=0`, fires on a real wedge), same `observer.c`. Nothing in the liveness thread is board-owed. The `DoSweep`/`wak` model work landed 2026-08-28 (`fac6403`, `7463f59`): delta insufficient, age correct, `sound.cfg` green.
-- **Awaiting David:** the #273 design call (which deadline number is the source of truth) — it is the ONLY thing blocking #272's age rule in `verdictFor`, since `bud + SweepTick` = 46 s against a 16 s deadline. Also #277 (three `review/` files cite the deleted `run_c_tests.sh`; `review/` is not swept by me).
+- **Focus issue:** #79 (go-to-public) — the docs are now approachable; the next rung is **tutorial 3 (porta)**: `docs/tutorials/03-porta.md` in the shape of `01-host.md`, `serve`/`put`/`get`/`log` against a host porta, every `bash gate` block executed by `docs/tutorials/gate.sh` (one more call in `run_tutorial_gate()`). Then tutorial 2 (board — prose only, says so), then the v2 rewrites in #279.
+- **First concrete action:** read `porta/README.md` and `porta/internal/portacli/serve.go` for the flags a host `porta serve` needs (db path, port), and `nodus/oevm/tests/porta_sync_host.sh` for how the host sync gate already starts one — the tutorial should reuse that recipe, not invent a second.
+- **Done 2026-08-29, do not redo:** docs pass 1+2 (`ab097fc`, `10255ac`, `df7912a`): archive + banner, `vm.md`, READMEs, tutorial 1 executed (`tutorial-host`, 12 s), the consolidation's docs split finished (rule in §Docs convention). #274 is TRACED, not fixed — the fix shape is on the issue (construct the bridge with `socket: nil`, `liveness:` + `startTicking:` unconditionally; same in `ShipsBellAlarmNodeC6`; update `observer_core.h:92-96`); board-owed after: `liveness-heartbeat` once WITHOUT `CONF_EXTRA`. The detector refactor is board-confirmed both directions; nothing in the liveness thread is board-owed.
+- **Awaiting David:** the #273 design call (which deadline number is the source of truth) — the only thing blocking #272's age rule in `verdictFor`. #277 (three `review/` files cite the deleted `run_c_tests.sh`; `review/` is not swept by me).
 - **Not before 2026-09-01:** David is on NEMT until then.
 
 ## Where truth lives (do not duplicate across channels)

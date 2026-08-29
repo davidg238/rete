@@ -48,8 +48,8 @@
 <body>
 
 <h1>rete — dev status</h1>
-<p class="stamp">Status synthesized <strong>2026-08-29</strong> (detector confirmed on a board; C gate consolidated) at
-<a href="https://github.com/davidg238/rete/commit/b1b8001">b1b8001</a>.
+<p class="stamp">Status synthesized <strong>2026-08-29</strong> (docs go-to-public pass: archive + banner, vm.md, tutorial 1 executed by the suite, the docs split finished) at
+<a href="https://github.com/davidg238/rete/commit/df7912a">df7912a</a>.
 Served live by <strong>gatekeeper</strong> (gw85224-01:6971).
 This page is a <em>view</em>, refreshed at session close-outs — the records of
 direction are <a href="/dev/next-steps-overview.md">next-steps-overview.md</a>
@@ -177,6 +177,21 @@ note retained, <code>reason=#watchdog</code>). <code>observer.c</code> is byte-i
 across the two runs. <strong>Nothing in this thread is board-owed any more</strong> — what
 remains is <a href="https://github.com/davidg238/rete/issues/273">#273</a>'s design call,
 which is David's.</p>
+<p><strong>2026-08-29, afternoon — the documentation became approachable
+(<a href="https://github.com/davidg238/rete/issues/79">#79</a>).</strong> The doc root
+could not say whether oevm was a register or a stack VM, and five <code>fiber_*</code> files
+sat beside a <code>spec.md</code> that still described NLR seven weeks after Milestone A
+deleted it. Now: superseded documents are in <code>nodus/oevm/docs/archive/</code> and
+<code>porta/docs/archive/</code> with <code>HISTORICAL</code> banners (citations intact);
+<code>nodus/oevm/docs/vm.md</code> is the one-page answer; <code>README.md</code> is the
+start-here; <code>docs/tutorials/01-host.md</code> is <strong>executed by the suite</strong>
+(<code>tutorial-host</code> on the aux line) so it cannot rot; and the consolidation's
+decided-but-skipped docs split is done — reference docs live with their subsystem, dated
+records at the program level. <strong>What first:</strong> tutorial 3 (porta, gateable
+against a host porta), then tutorial 2 (board, prose), then the v2 rewrites in
+<a href="https://github.com/davidg238/rete/issues/279">#279</a>. <a href="https://github.com/davidg238/rete/issues/274">#274</a>
+is traced (fix shape on the issue: construct the bridge with <code>socket: nil</code>
+and tick unconditionally) and waits its turn.</p>
 </div>
 
 <ol>
