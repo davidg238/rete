@@ -11,7 +11,7 @@ at milestone boundaries, not per task.
 keeper on the porta fleet plane — nRF52840-class (~256 KB) + OpenThread. What the 2026-07-03
 pivot changed is the concurrency pillar: **no fibers, no NLR** — a reactive, run-to-completion
 model (channels + reactor + supervisor) replaces them. The Zephyr gate remains **memory, not
-speed** (old `docs/ROADMAP.md` prime directive; still true).
+speed** (old `docs/archive/ROADMAP.md` prime directive; still true).
 
 ---
 
@@ -2527,7 +2527,7 @@ adopted cadence moves, so a requested cadence still shows only as a `goal`/`obs`
 
 ## Known stale docs (do not treat as current)
 
-`docs/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
+`docs/archive/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
 `fiber_*.md`, `2026-06-29-r7-fibers-design.md` and the derecursify plans (historical record of
 the dead pillar), `topics.md`/`optimizations.md` (pre-pivot snapshots). `ECOSYSTEM.md` and
 `deployment-model.md` remain valid for the fleet/keeper layers until phase 3 revisits them.

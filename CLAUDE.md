@@ -139,6 +139,11 @@ Every C test is now registered individually in `nodus/nsl/tools/run_tests_oevm.p
 `OEVM_BUILD=asan|ubsan` knob. Adding a C test is one row in one file; a test registered in
 two places is one that gets forgotten in one of them. The registry runs every test and
 reports every failure rather than stopping at the first.
+**`tutorial-host` closes that aux line** (#79, 2026-08-29): `docs/tutorials/gate.sh` extracts
+every `bash gate` block from `docs/tutorials/01-host.md` and runs them in a fresh directory,
+canary first. A tutorial is the one document nobody who knows the system re-reads, so it is
+executed instead — edit the page and the gate follows; a new tutorial is one more call in
+`run_tutorial_gate()`.
 **`footprint: SKIP` is NO LONGER expected, and it never should have been** (#177, fixed
 2026-08-22): arm-zephyr-eabi-gcc ships inside `~/zephyr-sdk-0.17.4` and always did. What was
 broken was the gate's own un-SKIP instruction, which named a path the #79 consolidation

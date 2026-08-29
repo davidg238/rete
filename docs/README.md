@@ -10,6 +10,13 @@ decision or a measurement and stays as written; the living documents are named a
 - `status/` — the orientation deck (`dev-status.html`, live at gw85224-01:6971) and its
   generator. What is top of mind right now, by issue band.
 
+## Tutorials — executed, not trusted
+
+- `tutorials/01-host.md` — build the VM, run the suite, ten lines of nsl, the compiler
+  by hand, the no-NLR refusal. **Every `bash gate` block on the page is run by the nsl
+  suite** (`tutorials/gate.sh`, the `tutorial-host` aux gate), so a stale step reads red.
+  Board and porta tutorials are owed under #79 and will take the same shape.
+
 ## Current reference
 
 - `vm.md` — **what oevm is**: register VM, run-to-completion, no fibers / no NLR, precise

@@ -55,10 +55,11 @@ green aux-gate line (C unit tests, footprint, manifest). Board gates are in
 | every document, indexed | `review/DOCMAP.md` |
 | the standing rules for working here | `CLAUDE.md` |
 
-**There is no tutorial yet.** Building the VM, running ten lines of nsl on the host, and
-flashing a board are the three walkthroughs #79 owes an outsider; until they exist, the
-suite runner (`nodus/nsl/tools/run_tests_oevm.py`) and `nodus/oevm/zephyr/run.sh` are
-the executable documentation.
+**Start with `docs/tutorials/01-host.md`** — build the VM, run the suite, write ten lines
+of nsl, compile one by hand, and watch the compiler refuse a non-local return. Its
+command blocks are executed by the suite (`tutorial-host` on the aux line), so it cannot
+rot silently. The board and porta walkthroughs are not written yet (#79); until they are,
+`nodus/oevm/zephyr/run.sh` and `porta/README.md` are the executable documentation.
 
 ## Lineage
 

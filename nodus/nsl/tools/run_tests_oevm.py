@@ -506,6 +506,37 @@ def run_integration_gate(label: str, script_name: str) -> bool:
     return True
 
 
+def run_tutorial_gate() -> str:
+    """Gate the TUTORIAL (#79): docs/tutorials/01-host.md is executed, not trusted.
+
+    porta/docs/GETTING-STARTED.md walked an outsider through verbs that had been deleted
+    for weeks, and nothing said so — a tutorial is the one document nobody who knows the
+    system re-reads, so it rots first and silently. docs/tutorials/gate.sh extracts every
+    ```bash gate block from the page and runs them in order in a fresh directory (its own
+    canary first: a failing block must fail). It uses run-one.py on Path B only, so it
+    shares this run's OEVM_BUILD_DIR artefacts and clobbers nothing tracked.
+    Returns "PASS" or "FAIL" — never SKIP: a missing tutorial is a failure."""
+    root = OEVM_DIR.parent.parent
+    script = root / "docs" / "tutorials" / "gate.sh"
+    page = root / "docs" / "tutorials" / "01-host.md"
+    if not script.exists() or not page.exists():
+        print(f"{COLOR_RED}tutorial-host: FAIL{COLOR_RESET} (missing {script if not script.exists() else page})")
+        return "FAIL"
+    try:
+        proc = subprocess.run(["bash", str(script), str(page)],
+                              cwd=str(root), capture_output=True, text=True, timeout=600)
+    except Exception as e:
+        print(f"{COLOR_RED}tutorial-host: FAIL{COLOR_RESET} (runner error: {e})")
+        return "FAIL"
+    out = ((proc.stdout or "") + (proc.stderr or "")).strip()
+    if proc.returncode != 0:
+        print(f"{COLOR_RED}tutorial-host: FAIL{COLOR_RESET}")
+        print("  " + "\n  ".join(out.splitlines()[-30:]))
+        return "FAIL"
+    print(f"{COLOR_GREEN}tutorial-host: PASSED{COLOR_RESET}")
+    return "PASS"
+
+
 def run_cmake_parse_gate() -> str:
     """Gate the BUILD FILES, which until rete#226 nothing on the host read at all.
 
@@ -1097,6 +1128,10 @@ def main():
     # the bench where the tool runs). codec.py is stdlib-only now, pinned
     # against node-generated goldens, so this collects everywhere.
     gwprof_py = run_pytest_gate("gwprofiler-py", "nodus/oevm/zephyr/tools/gwprofiler")
+    # rete#79: the host tutorial is EXECUTED by this suite, so it cannot rot silently the
+    # way porta/docs/GETTING-STARTED.md did. Last, because it reuses this run's Path B
+    # build in OEVM_BUILD_DIR.
+    tutorial = run_tutorial_gate()   # "PASS" | "FAIL"
 
     suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok
                 and portability != "FAIL" and boot_gc_ok
@@ -1104,7 +1139,7 @@ def main():
                 and mprof_py != "FAIL" and console_py != "FAIL"
                 and observe_py != "FAIL" and cmake_parse != "FAIL"
                 and nsl_tools_py != "FAIL" and protocol_py != "FAIL"
-                and gwprof_py != "FAIL")
+                and gwprof_py != "FAIL" and tutorial != "FAIL")
     print(f"\n{COLOR_GREEN if suite_ok else COLOR_RED}Test Execution Summary:{COLOR_RESET}")
     print(f"  Passed:  {passed}")
     print(f"  Failed:  {failed}")
@@ -1136,7 +1171,8 @@ def main():
           f"cmake-parse: {_mark(cmake_parse)}  "
           f"nsl-tools-py: {_mark(nsl_tools_py)}  "
           f"protocol-py: {_mark(protocol_py)}  "
-          f"gwprofiler-py: {_mark(gwprof_py)}")
+          f"gwprofiler-py: {_mark(gwprof_py)}  "
+          f"tutorial-host: {_mark(tutorial)}")
 
     # NOT a skip, and deliberately not coloured like one: a skip names a cause it
     # has not verified, and this names one that IS verified. timer_zephyr.c posts
