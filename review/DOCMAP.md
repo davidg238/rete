@@ -383,7 +383,7 @@ _Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 ### porta/docs
 
 - `porta/docs/ARCHITECTURE.md` — Porta system architecture _(record, 2026-08-29)_
-- `porta/docs/CLI.md` — porta CLI reference _(record, 2026-08-05)_
+- `porta/docs/CLI.md` — porta CLI reference _(record, 2026-08-29)_
 - `porta/docs/DEVSDK.md` — porta dev-SDK (`devsdk/`) — the northbound contract _(record, 2026-08-29)_
 - `porta/docs/GETTING-STARTED.md` — Getting started with porta _(record, 2026-08-29)_
 - `porta/docs/README.md` — porta/docs — the gateway's documents _(record, 2026-08-29)_
