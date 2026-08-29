@@ -196,6 +196,8 @@ what lets a reaction on a board be judged alive or wedged by whether it finished
   `whenever:do:`, the porta bridge.
 - `docs/tutorials/03-porta.md` — tutorial 3: the gateway half. A `porta serve` and a real
   node talking to each other over loopback UDP, and what "convergence is a tree diff"
-  actually looks like at a prompt. Tutorial 2 (a board) is not written yet; until it is,
-  `nodus/oevm/zephyr/run.sh` and `nodus/oevm/tests/target/` are the executable
-  documentation.
+  actually looks like at a prompt.
+- `docs/tutorials/02-board.md` — tutorial 2: a real ESP32-C6. Which of the board's two
+  cables does what, the radio overlay whose absence is silent, what a healthy boot prints,
+  and the eleven target gates that test the seam this page's host suite is blind to. Alone
+  of the three it is **prose rather than executed**, and it says so at the top.

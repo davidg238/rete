@@ -328,6 +328,8 @@ kill $NODE_PID $PORTA_PID
   gateway, would be most of this page's runtime.
 - `porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md` — why the store has
   four tables where v1 had nine, and the audit that gave every deleted v1 verb a fate.
-- Tutorial 1 is the VM on your host; tutorial 2 (a board, a radio and a mesh) is not
-  written yet — `nodus/oevm/zephyr/run.sh` and `nodus/oevm/tests/target/` are the
-  executable documentation until it is.
+- Tutorial 1 is the VM on your host. `docs/tutorials/02-board.md` is tutorial 2 — the same
+  bridge node, but on a real ESP32-C6 over a real 802.15.4 radio: the board's two adapters,
+  the Thread overlay whose absence is silent, and the eleven target gates that cover the
+  timer seam neither this page nor tutorial 1 can reach. It is **prose, not executed**, and
+  says so at the top; `nodus/oevm/tests/target/` is the executable half.

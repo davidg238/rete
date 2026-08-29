@@ -19,16 +19,24 @@ wrote down (`design/2026-08-02-rete-repo-consolidation-design.md`, fate table ro
 **Tutorials — executed, not trusted**
 - `tutorials/01-host.md` — build the VM, run the suite, ten lines of nsl, the compiler by
   hand, the no-NLR refusal.
+- `tutorials/02-board.md` — a real ESP32-C6: the board's two adapters and which one the
+  harness uses, the always-on console collector, the Thread overlay whose absence is silent,
+  a hand flash, an annotated healthy boot, and the eleven target gates (~60–90 min, not
+  unattended). **Prose, not executed** — the only one of the three, and the page says so in
+  its own banner: a board tutorial cannot be gated on a host, so every transcript on it is
+  copied from a dated bench log rather than written to look plausible.
 - `tutorials/03-porta.md` — a `porta serve` and a real node on loopback: operator intent
   for a node that has never spoken, the check-in, `goal/` converging to `obs/` as a tree
   diff, the write log in both directions, and the manifest gate refusing a mis-kinded
   write. Needs a Go toolchain; it binds udp 16969/16970, so it cannot run beside
   `nodus/oevm/tests/porta_sync_host.sh`.
 
-  **Every `bash gate` block on both pages is run by the nsl suite** (`tutorials/gate.sh`,
+  **Every `bash gate` block on pages 1 and 3 is run by the nsl suite** (`tutorials/gate.sh`,
   the `tutorial-host` and `tutorial-porta` aux gates), so a stale step reads red. A new
-  tutorial is one more call to `run_tutorial_gate()`. The board tutorial is owed under #79
-  and will take the same shape.
+  gated tutorial is one more call to `run_tutorial_gate()`. Page 2 has no such blocks and
+  cannot: it needs a devkit, a toolchain and a mesh, and a gate that degraded to a SKIP
+  without them would report success for a run that never happened — which is exactly what
+  `nodus/oevm/tests/target/run.sh` refuses, and why it is not in the suite either.
 
 **Living (edit, don't append)**
 - `next-steps-overview.md` — what gates a public release and what is on the bench.

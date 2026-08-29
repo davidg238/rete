@@ -61,9 +61,10 @@ of nsl, compile one by hand, and watch the compiler refuse a non-local return. T
 `docs/tutorials/03-porta.md`, which runs both halves of this repository against each other
 on loopback: a gateway, a real node, and the tree diff that is the whole convergence
 model. The command blocks on both pages are executed by the suite (`tutorial-host` and
-`tutorial-porta` on the aux line), so they cannot rot silently. The board walkthrough is
-not written yet (#79); until it is, `nodus/oevm/zephyr/run.sh` and
-`nodus/oevm/tests/target/` are the executable documentation.
+`tutorial-porta` on the aux line), so they cannot rot silently. `docs/tutorials/02-board.md`
+is the board walkthrough — a real ESP32-C6, the two cables, the radio split, and the eleven
+target gates. It is **prose, not executed**, and says so at the top: a board tutorial cannot
+be gated on a host, so every transcript on it is copied from a dated bench log instead.
 
 ## Lineage
 
