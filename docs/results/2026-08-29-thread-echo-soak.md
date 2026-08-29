@@ -198,8 +198,41 @@ For contrast, the two C6s on the same mesh: `ea8479ad07358744` is the bell and
 router's own RCP on gw85224-01 — it is the mesh leader and is **not** a soak node; power-
 cycling it drops every row in this file.
 
-### What is still not known
+### The boards are now physically labelled
 
-Which physical board on which wallwart corresponds to which extended address. Nothing in
-the record answers it, and the only way to find out is to power one and watch which address
-disappears. Worth doing once, and worth writing on the boards.
+Done 2026-08-29 ~15:22, and it is the durable half of this whole exercise. Each board now
+carries the first four hex of its Thread extended address in marker: **`7adf`**, **`4ec0`**,
+**`92c2`**.
+
+The method, because it is reusable and cost nothing: unplug one board, watch which address
+leaves the child table and stops echoing, label it, plug it back in. `92c2` and `4ec0` were
+each confirmed directly that way — a 98 s gap in `4ec0`'s stream at 15:20:27 is the label
+being written. **`7adf` was then taken by elimination and never unplugged**, which is why
+its 48.6-day run is still unbroken.
+
+Use the extended address, **not the sticker MAC**. The sticker carries the factory 48-bit
+address (`ec:34:e5:…` on one of them — a real OUI, U/L bit clear); OpenThread's 64-bit
+extended address is generated randomly and has the U/L bit *set* on all three (`7a`, `4e`,
+`92` — bit 1 high in each). They are unrelated and cannot be correlated without reading the
+node over a wire. The generated address is also what every diagnostic in this file and in
+`ot-ctl` actually prints.
+
+One caveat on the labels: a full-erase reflash regenerates the extended address, so treat
+the marker as *current identity*, not a permanent serial. The sticker MAC remains the
+immutable backstop.
+
+### `92c2` — flagged, not convicted
+
+It is the only node with a bad record: the sole gap cluster in the entire dataset (six gaps
+in 27 h on 2026-08-08/09), a 6.62 h gap the morning of the day it died, and — on its first
+re-attach today — a self-inflicted drop after 2 m 45 s of running.
+
+That drop looked like a second, board-specific cause for the 2026-08-18 event, and this file
+nearly said so. It should not: after a clean power cycle the node ran **6 m 41 s and
+onward** at a steady 15 s cadence, in the child table throughout, indistinguishable from the
+two healthy boards. One drop immediately after eleven days dark is re-attach settling, not a
+fault.
+
+So §8's verdict stands as written — the 2026-08-18 event was power — and `92c2`'s history is
+recorded here as **the thing to watch first** if a node misbehaves again, not as a diagnosis.
+
