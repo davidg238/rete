@@ -57,10 +57,13 @@ green aux-gate line (C unit tests, footprint, manifest). Board gates are in
 | the standing rules for working here | `CLAUDE.md` |
 
 **Start with `docs/tutorials/01-host.md`** — build the VM, run the suite, write ten lines
-of nsl, compile one by hand, and watch the compiler refuse a non-local return. Its
-command blocks are executed by the suite (`tutorial-host` on the aux line), so it cannot
-rot silently. The board and porta walkthroughs are not written yet (#79); until they are,
-`nodus/oevm/zephyr/run.sh` and `porta/README.md` are the executable documentation.
+of nsl, compile one by hand, and watch the compiler refuse a non-local return. Then
+`docs/tutorials/03-porta.md`, which runs both halves of this repository against each other
+on loopback: a gateway, a real node, and the tree diff that is the whole convergence
+model. The command blocks on both pages are executed by the suite (`tutorial-host` and
+`tutorial-porta` on the aux line), so they cannot rot silently. The board walkthrough is
+not written yet (#79); until it is, `nodus/oevm/zephyr/run.sh` and
+`nodus/oevm/tests/target/` are the executable documentation.
 
 ## Lineage
 

@@ -8,9 +8,9 @@ preserved the issue numbers and the `#NN` references the program navigates by
 
 ## Current focus
 
-- **Focus issue:** #79 (go-to-public) — the docs are now approachable; the next rung is **tutorial 3 (porta)**: `docs/tutorials/03-porta.md` in the shape of `01-host.md`, `serve`/`put`/`get`/`log` against a host porta, every `bash gate` block executed by `docs/tutorials/gate.sh` (one more call in `run_tutorial_gate()`). Then tutorial 2 (board — prose only, says so), then the v2 rewrites in #279.
-- **First concrete action:** read `porta/README.md` and `porta/internal/portacli/serve.go` for the flags a host `porta serve` needs (db path, port), and `nodus/oevm/tests/porta_sync_host.sh` for how the host sync gate already starts one — the tutorial should reuse that recipe, not invent a second.
-- **Done 2026-08-29, do not redo:** docs pass 1+2 (`ab097fc`, `10255ac`, `df7912a`): archive + banner, `vm.md`, READMEs, tutorial 1 executed (`tutorial-host`, 12 s), the consolidation's docs split finished (rule in §Docs convention). #274 is TRACED, not fixed — the fix shape is on the issue (construct the bridge with `socket: nil`, `liveness:` + `startTicking:` unconditionally; same in `ShipsBellAlarmNodeC6`; update `observer_core.h:92-96`); board-owed after: `liveness-heartbeat` once WITHOUT `CONF_EXTRA`. The detector refactor is board-confirmed both directions; nothing in the liveness thread is board-owed.
+- **Focus issue:** #79 (go-to-public) — tutorials 1 and 3 are written AND executed by the suite; the next rung is **tutorial 2 (board)**: `docs/tutorials/02-board.md`, prose only and it must SAY so — a board tutorial cannot be gated on a host, so the page's honesty is its own gate. Then the v2 rewrites in #279.
+- **First concrete action:** read `docs/tutorials/03-porta.md` for the shape to copy, then `nodus/oevm/zephyr/run.sh` and `nodus/oevm/tests/target/*.env` for what a board bring-up actually costs (flash, console, the `CONF_EXTRA` radio split). Tutorial 2 names the ELEVEN target scenarios and the ~60–90 min sweep rather than pretending a board is a host.
+- **Done 2026-08-29, do not redo:** docs pass 1+2+3 (`ab097fc`, `10255ac`, `df7912a`, + this session): archive + banner, `vm.md`, READMEs, tutorial 1 executed (`tutorial-host`, 12 s), the consolidation's docs split finished (rule in §Docs convention), and **tutorial 3 (`docs/tutorials/03-porta.md`) written and executed** (`tutorial-porta`, 12 s — a real `porta serve` + a real node on loopback; `run_tutorial_gate()` is now parameterized `(page, label, needs=)`). Found on the way and FILED, not fixed: **#280** (`porta put --reason` is stored on every event and printed by nothing — `porta log` drops it, so the gateway's own sweep and manifest-refusal rows show no reason at all). #274 is TRACED, not fixed — the fix shape is on the issue (construct the bridge with `socket: nil`, `liveness:` + `startTicking:` unconditionally; same in `ShipsBellAlarmNodeC6`; update `observer_core.h:92-96`); board-owed after: `liveness-heartbeat` once WITHOUT `CONF_EXTRA`. The detector refactor is board-confirmed both directions; nothing in the liveness thread is board-owed.
 - **Awaiting David:** the #273 design call (which deadline number is the source of truth) — the only thing blocking #272's age rule in `verdictFor`. #277 (three `review/` files cite the deleted `run_c_tests.sh`; `review/` is not swept by me).
 - **Not before 2026-09-01:** David is on NEMT until then.
 
@@ -145,11 +145,18 @@ Every C test is now registered individually in `nodus/nsl/tools/run_tests_oevm.p
 `OEVM_BUILD=asan|ubsan` knob. Adding a C test is one row in one file; a test registered in
 two places is one that gets forgotten in one of them. The registry runs every test and
 reports every failure rather than stopping at the first.
-**`tutorial-host` closes that aux line** (#79, 2026-08-29): `docs/tutorials/gate.sh` extracts
-every `bash gate` block from `docs/tutorials/01-host.md` and runs them in a fresh directory,
-canary first. A tutorial is the one document nobody who knows the system re-reads, so it is
-executed instead — edit the page and the gate follows; a new tutorial is one more call in
-`run_tutorial_gate()`.
+**`tutorial-host` and `tutorial-porta` close that aux line** (#79, 2026-08-29):
+`docs/tutorials/gate.sh` extracts every `bash gate` block from a page and runs them in a
+fresh directory, canary first. A tutorial is the one document nobody who knows the system
+re-reads, so it is executed instead — edit the page and the gate follows; a new tutorial is
+one more call to `run_tutorial_gate(page, label)`. **`tutorial-porta` (03-porta.md, ~12 s)
+runs both halves of the repo against each other**: a real `porta serve` and a real
+`PortaBridgeNode` image on loopback. It therefore binds **udp 16969/16970** — the node's
+`gwPort` is a source constant — so it must never run beside
+`nodus/oevm/tests/porta_sync_host.sh`, which claims the same pair (that gate is standalone,
+so the suite does not collide; two concurrent suites would). It is the ONE gate here that
+needs a Go toolchain, and `needs=("go",)` makes an absent `go` a named SKIP rather than a
+hard failure, because a missing Go must not couple the nsl suite to the gateway half.
 **`footprint: SKIP` is NO LONGER expected, and it never should have been** (#177, fixed
 2026-08-22): arm-zephyr-eabi-gcc ships inside `~/zephyr-sdk-0.17.4` and always did. What was
 broken was the gate's own un-SKIP instruction, which named a path the #79 consolidation

@@ -34,14 +34,19 @@ About four minutes. The last lines are what you read:
 Test Execution Summary:
   Passed:  278
   Failed:  0
-  Skipped: 0
+  Skipped: 14
   c-units: PASS  grant: PASS  debugger-integration: PASS  portability-32: PASS  ...
-  mprof-tools-py: PASS  ...  tutorial-host: PASS
+  mprof-tools-py: PASS  ...  tutorial-host: PASS  tutorial-porta: PASS
 ```
 
 Two things matter: `Failed: 0`, **and the aux line under it** — it can be red while the
 count reads zero, and it is where the C unit tests, the footprint ratchet and this very
 page are scored. The `Passed` number only ever drifts upward as tests land.
+
+The skips are structural, not a to-do list: the benchmarks under `tests/00_perf/` declare
+no expected output because they are timed rather than asserted, and the rest are marked
+`skip-oevm` because they exercise fibers, growable stacks and non-local return — three
+features this VM had, measured, and deleted (§5).
 
 ## 2. Ten lines of nsl
 
@@ -189,5 +194,8 @@ what lets a reaction on a board be judged alive or wedged by whether it finished
   of step 2. When the guide and a test disagree, the test is right.
 - `nodus/nsl/lib/kernel.nsl` — what `platform` can do: `space`, `timers`,
   `whenever:do:`, the porta bridge.
-- Tutorial 2 (a board) and tutorial 3 (porta) are not written yet; until they are,
-  `nodus/oevm/zephyr/run.sh` and `porta/README.md` are the executable documentation.
+- `docs/tutorials/03-porta.md` — tutorial 3: the gateway half. A `porta serve` and a real
+  node talking to each other over loopback UDP, and what "convergence is a tree diff"
+  actually looks like at a prompt. Tutorial 2 (a board) is not written yet; until it is,
+  `nodus/oevm/zephyr/run.sh` and `nodus/oevm/tests/target/` are the executable
+  documentation.

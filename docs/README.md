@@ -18,9 +18,17 @@ wrote down (`design/2026-08-02-rete-repo-consolidation-design.md`, fate table ro
 
 **Tutorials — executed, not trusted**
 - `tutorials/01-host.md` — build the VM, run the suite, ten lines of nsl, the compiler by
-  hand, the no-NLR refusal. **Every `bash gate` block on the page is run by the nsl
-  suite** (`tutorials/gate.sh`, the `tutorial-host` aux gate), so a stale step reads red.
-  Board and porta tutorials are owed under #79 and will take the same shape.
+  hand, the no-NLR refusal.
+- `tutorials/03-porta.md` — a `porta serve` and a real node on loopback: operator intent
+  for a node that has never spoken, the check-in, `goal/` converging to `obs/` as a tree
+  diff, the write log in both directions, and the manifest gate refusing a mis-kinded
+  write. Needs a Go toolchain; it binds udp 16969/16970, so it cannot run beside
+  `nodus/oevm/tests/porta_sync_host.sh`.
+
+  **Every `bash gate` block on both pages is run by the nsl suite** (`tutorials/gate.sh`,
+  the `tutorial-host` and `tutorial-porta` aux gates), so a stale step reads red. A new
+  tutorial is one more call to `run_tutorial_gate()`. The board tutorial is owed under #79
+  and will take the same shape.
 
 **Living (edit, don't append)**
 - `next-steps-overview.md` — what gates a public release and what is on the bench.

@@ -1,6 +1,7 @@
 import os
 import sys
 import re
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -506,34 +507,48 @@ def run_integration_gate(label: str, script_name: str) -> bool:
     return True
 
 
-def run_tutorial_gate() -> str:
-    """Gate the TUTORIAL (#79): docs/tutorials/01-host.md is executed, not trusted.
+def run_tutorial_gate(page_name: str, label: str, needs: tuple = ()) -> str:
+    """Gate a TUTORIAL (#79): docs/tutorials/<page> is executed, not trusted.
 
     porta/docs/GETTING-STARTED.md walked an outsider through verbs that had been deleted
     for weeks, and nothing said so — a tutorial is the one document nobody who knows the
     system re-reads, so it rots first and silently. docs/tutorials/gate.sh extracts every
     ```bash gate block from the page and runs them in order in a fresh directory (its own
-    canary first: a failing block must fail). It uses run-one.py on Path B only, so it
-    shares this run's OEVM_BUILD_DIR artefacts and clobbers nothing tracked.
-    Returns "PASS" or "FAIL" — never SKIP: a missing tutorial is a failure."""
+    canary first: a failing block must fail). Pages use run-one.py on Path B only, so they
+    share this run's OEVM_BUILD_DIR artefacts and clobber nothing tracked.
+
+    A new tutorial is one more call to this function. Returns "PASS" or "FAIL" — a missing
+    page is a FAILURE, never a skip.
+
+    `needs` is the NARROW exception: executables the page cannot run without, checked by
+    name so the skip states its own cause. Only 03-porta.md uses it, for `go`. Making the
+    nsl suite hard-fail without a Go toolchain would couple the two halves of this repo at
+    the gate — porta and the nodes are coupled over the wire and nowhere else — and
+    tests/porta_sync_host.sh set the precedent for this exact dependency. It stays narrow
+    on purpose: a SKIP here is a finding, not a fixture (#177)."""
     root = OEVM_DIR.parent.parent
     script = root / "docs" / "tutorials" / "gate.sh"
-    page = root / "docs" / "tutorials" / "01-host.md"
+    page = root / "docs" / "tutorials" / page_name
     if not script.exists() or not page.exists():
-        print(f"{COLOR_RED}tutorial-host: FAIL{COLOR_RESET} (missing {script if not script.exists() else page})")
+        print(f"{COLOR_RED}{label}: FAIL{COLOR_RESET} (missing {script if not script.exists() else page})")
         return "FAIL"
+    for tool in needs:
+        if shutil.which(tool) is None:
+            print(f"{COLOR_YELLOW}{label}: SKIP{COLOR_RESET} ({tool} is not on PATH — "
+                  f"{page_name} builds the porta counterparty)")
+            return "SKIP"
     try:
         proc = subprocess.run(["bash", str(script), str(page)],
                               cwd=str(root), capture_output=True, text=True, timeout=600)
     except Exception as e:
-        print(f"{COLOR_RED}tutorial-host: FAIL{COLOR_RESET} (runner error: {e})")
+        print(f"{COLOR_RED}{label}: FAIL{COLOR_RESET} (runner error: {e})")
         return "FAIL"
     out = ((proc.stdout or "") + (proc.stderr or "")).strip()
     if proc.returncode != 0:
-        print(f"{COLOR_RED}tutorial-host: FAIL{COLOR_RESET}")
+        print(f"{COLOR_RED}{label}: FAIL{COLOR_RESET}")
         print("  " + "\n  ".join(out.splitlines()[-30:]))
         return "FAIL"
-    print(f"{COLOR_GREEN}tutorial-host: PASSED{COLOR_RESET}")
+    print(f"{COLOR_GREEN}{label}: PASSED{COLOR_RESET}")
     return "PASS"
 
 
@@ -1128,10 +1143,16 @@ def main():
     # the bench where the tool runs). codec.py is stdlib-only now, pinned
     # against node-generated goldens, so this collects everywhere.
     gwprof_py = run_pytest_gate("gwprofiler-py", "nodus/oevm/zephyr/tools/gwprofiler")
-    # rete#79: the host tutorial is EXECUTED by this suite, so it cannot rot silently the
-    # way porta/docs/GETTING-STARTED.md did. Last, because it reuses this run's Path B
+    # rete#79: the tutorials are EXECUTED by this suite, so they cannot rot silently the
+    # way porta/docs/GETTING-STARTED.md did. Last, because they reuse this run's Path B
     # build in OEVM_BUILD_DIR.
-    tutorial = run_tutorial_gate()   # "PASS" | "FAIL"
+    tutorial = run_tutorial_gate("01-host.md", "tutorial-host")            # "PASS" | "FAIL"
+    # 03-porta.md runs BOTH halves of the repo against each other on loopback — a real
+    # `porta serve` and a real node image — so it binds udp 16969/16970 and must not run
+    # beside tests/porta_sync_host.sh, which the node's source-constant gwPort pins to the
+    # same pair. That gate is standalone, so nothing here collides; two concurrent nsl
+    # suites would, and were already forbidden for sharing /tmp paths.
+    tutorial_porta = run_tutorial_gate("03-porta.md", "tutorial-porta", needs=("go",))
 
     suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok
                 and portability != "FAIL" and boot_gc_ok
@@ -1139,7 +1160,8 @@ def main():
                 and mprof_py != "FAIL" and console_py != "FAIL"
                 and observe_py != "FAIL" and cmake_parse != "FAIL"
                 and nsl_tools_py != "FAIL" and protocol_py != "FAIL"
-                and gwprof_py != "FAIL" and tutorial != "FAIL")
+                and gwprof_py != "FAIL" and tutorial != "FAIL"
+                and tutorial_porta != "FAIL")
     print(f"\n{COLOR_GREEN if suite_ok else COLOR_RED}Test Execution Summary:{COLOR_RESET}")
     print(f"  Passed:  {passed}")
     print(f"  Failed:  {failed}")
@@ -1172,7 +1194,8 @@ def main():
           f"nsl-tools-py: {_mark(nsl_tools_py)}  "
           f"protocol-py: {_mark(protocol_py)}  "
           f"gwprofiler-py: {_mark(gwprof_py)}  "
-          f"tutorial-host: {_mark(tutorial)}")
+          f"tutorial-host: {_mark(tutorial)}  "
+          f"tutorial-porta: {_mark(tutorial_porta)}")
 
     # NOT a skip, and deliberately not coloured like one: a skip names a cause it
     # has not verified, and this names one that IS verified. timer_zephyr.c posts

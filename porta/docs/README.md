@@ -8,6 +8,10 @@ image delivery, the report schema — was deleted in one commit; its last tree i
 ## Current
 
 - `../README.md` — what porta is now, the CLI verbs, the license.
+- `../../docs/tutorials/03-porta.md` — **the executable introduction**: `serve`,
+  `put`, `get` and `log` driven against a real node on loopback, with every command
+  block run by the nsl suite (`tutorial-porta`). Where GETTING-STARTED.md used to be
+  read, and it cannot rot the way that page did.
 - `design/2026-08-01-porta-space-sync-rewrite-design.md` — **the v2 decision record**
   (D1–D8), the store schema, the wire shapes, and the §4.2 capability audit that gave
   every v1 feature a fate.

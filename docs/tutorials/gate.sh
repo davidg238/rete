@@ -4,7 +4,8 @@
 #   ./gate.sh <tutorial.md>      extract every ```bash gate block, run them in order
 #   ./gate.sh --list <tutorial.md>   print the blocks it would run and exit
 #
-# Exit 0 = PASS, 1 = FAIL. Run by the nsl suite as the `tutorial-host` aux gate.
+# Exit 0 = PASS, 1 = FAIL. Run by the nsl suite once per page, as the `tutorial-host` and
+# `tutorial-porta` aux gates. A new tutorial is one more call to run_tutorial_gate().
 #
 # WHY THIS EXISTS. porta/docs/GETTING-STARTED.md walked an outsider through a command
 # vocabulary that had been deleted for weeks; nothing said so until someone read it.

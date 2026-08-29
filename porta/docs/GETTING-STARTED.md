@@ -6,8 +6,13 @@
 > queue, TFTP image delivery and the report schema — was deleted in one commit;
 > the last v1 tree is tagged `porta-v1-final`. The v2 vocabulary is
 > `porta serve | get | put | log`, all of it sugar over path writes and tree
-> reads. See [`CLI.md`](CLI.md), and
-> [`../../protocol/PROTOCOL-NSL.md`](../../protocol/PROTOCOL-NSL.md) for the wire.
+> reads.
+>
+> **Start at [`../../docs/tutorials/03-porta.md`](../../docs/tutorials/03-porta.md)
+> instead** — the v2 walkthrough, and every command block on it is executed by the
+> nsl suite (`tutorial-porta`), so it cannot go stale the way this page did.
+> [`CLI.md`](CLI.md) is v1-era too (#279); the wire itself is
+> [`../../protocol/PROTOCOL-NSL.md`](../../protocol/PROTOCOL-NSL.md).
 
 porta is a self-hosted, language-neutral LAN gateway for a fleet of nodes. Each
 node owns a tree of paths and porta holds a mirror of it: operators write intent
