@@ -121,8 +121,9 @@ than they are.
   one. Nothing in the record says what the intended cadence is.
 - **No node identity is recorded.** These are ML-EIDs, not names. The mapping to physical
   boards is by elimination against porta's `nodes.last_addr` (which identified `24c0` as
-  `c6bench` and cleared the two C6s), and for the nRFs it is unresolved — three addresses,
-  three boards, no correspondence.
+  `c6bench` and cleared the two C6s). §8 pins each nRF to a stable extended address, which
+  is the best identifier available — but which *physical* board is which is still unknown,
+  because nothing on a wallwart announces itself.
 - **Nothing records the server's own liveness**, which is precisely why §3 ends in a
   question. A heartbeat line every minute, whether or not a node spoke, would have settled
   it — cf. the `@@rete-console@@ heartbeat port=up` line the console collector already
@@ -162,3 +163,43 @@ evidence on this bench is invisible to every instrument the program actually rea
 gateway, `gw/liveness`, the status deck and the claims ledger. That is **rete#281** (P1),
 which also carries the two smaller findings above: the echo server cannot record its own
 deafness (§3), and `porta` has no systemd unit on gw (§5).
+
+## 8. Resolved 2026-08-29: it was power
+
+The two dead boards were re-powered by hand at ~15:04 on 2026-08-29. **Both rejoined the
+mesh within seconds and resumed echoing, with their original mesh-local addresses
+unchanged.**
+
+| node | dead since | back at | time off |
+|---|---|---|---|
+| `c145:d47b:5430:db9b` | 2026-08-18 19:30:29 | 2026-08-29 15:04:43 | **10 d 19 h 34 m** |
+| `2867:4291:e295:1e9f` | 2026-08-18 19:28:11 | 2026-08-29 15:05:55 | **10 d 19 h 38 m** |
+
+An unchanged ML-EID after eleven days without power means the OpenThread settings survived
+in NVS: same firmware, same credentials, same identity. Nothing was reflashed and nothing
+needed to be. **§3's reading is confirmed — the 2026-08-18 event was power, not firmware.**
+
+`1e62` was not interrupted by the re-power (97 consecutive echoes across the window, no gap
+over 60 s), so its run is unbroken and continues past 48.6 days.
+
+### The identity map, which did not exist before
+
+Re-attaching gave each board a fresh RLOC16 but kept its extended address, so the two can
+finally be paired. This is the table to use, and the extended address is the stable half:
+
+| extended address | ML-EID | RLOC16 (2026-08-29) | history |
+|---|---|---|---|
+| `7adfea8b3ee2b7b8` | `1e62:99b1:7766:5fd2` | `0x2011` | never stopped; one unattributed 26.7 h gap (§3) |
+| `4ec0a41289155d57` | `c145:d47b:5430:db9b` | `0x2019` | cleanest of the three — two gaps in 37 days |
+| `92c25962249ad23b` | `2867:4291:e295:1e9f` | `0x201a` | six gaps on 08-08/09, then 6.6 h on the day it died |
+
+For contrast, the two C6s on the same mesh: `ea8479ad07358744` is the bell and
+`2a6d68fecc1974ea` is `c6bench`. A fourth nRF52840, `f4ce36271f782f13`, is the border
+router's own RCP on gw85224-01 — it is the mesh leader and is **not** a soak node; power-
+cycling it drops every row in this file.
+
+### What is still not known
+
+Which physical board on which wallwart corresponds to which extended address. Nothing in
+the record answers it, and the only way to find out is to power one and watch which address
+disappears. Worth doing once, and worth writing on the boards.
