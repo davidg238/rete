@@ -11,15 +11,16 @@
 > **Start at [`../../docs/tutorials/03-porta.md`](../../docs/tutorials/03-porta.md)
 > instead** — the v2 walkthrough, and every command block on it is executed by the
 > nsl suite (`tutorial-porta`), so it cannot go stale the way this page did.
-> [`CLI.md`](CLI.md) is v1-era too (#279); the wire itself is
-> [`../../protocol/PROTOCOL-NSL.md`](../../protocol/PROTOCOL-NSL.md).
+> [`CLI.md`](CLI.md) is the v2 reference and is current — rewritten 2026-08-29 and
+> checked against the binary's own `--help` by the `porta-cli` gate (#279). The wire
+> itself is [`../../protocol/PROTOCOL-NSL.md`](../../protocol/PROTOCOL-NSL.md).
 
 porta is a self-hosted, language-neutral LAN gateway for a fleet of nodes. Each
 node owns a tree of paths and porta holds a mirror of it: operators write intent
 under `goal/**`, the node writes what it sees under `obs/**`, `tel/**` and
 `sys/**`, and convergence is the diff between them. This guide gets a gateway
-running, then points at the [CLI reference](CLI.md). For the big picture first,
-read [`ARCHITECTURE.md`](ARCHITECTURE.md) — itself stale in parts.
+running, then points at the [CLI reference](CLI.md) — current, and gated. For the big
+picture first, read [`ARCHITECTURE.md`](ARCHITECTURE.md) — itself stale in parts.
 
 porta is one process with two listeners:
 
@@ -143,7 +144,8 @@ porta container install -d vin sampler ./sampler.bin --trigger boot --lifecycle 
 porta container list -d vin
 ```
 
-Full command details: [CLI reference](CLI.md).
+The v2 forms of every command above are in the [CLI reference](CLI.md), which is current;
+the v1 spellings in this section are not.
 
 ---
 

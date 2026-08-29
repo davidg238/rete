@@ -166,6 +166,13 @@ rather than about a board: §7's scenario NAMES against `nodus/oevm/tests/target
 only — a missing scenario is a bug, a stale description is a judgement call, and a gate that
 scores prose is one that gets disabled. An unparseable table yields the empty set and FAILS,
 because vacancy must not read as agreement.
+**`porta-cli` closes it after them** (#279, 2026-08-29): `porta/docs/cli-gate.sh` builds
+porta, walks its `--help` tree, and fails if `porta/docs/CLI.md` names a command or flag the
+binary does not have, or omits one it does. The tutorial answer — execute the page — is not
+available to a REFERENCE, whose claims nobody runs; cobra's own account of itself is. Names
+only, both directions, transcripts included; it falsifies itself on an empty page and on an
+invented flag before it clears anything. Needs Go, so `needs`-style SKIP applies for
+tutorial-porta's reason.
 **`footprint: SKIP` is NO LONGER expected, and it never should have been** (#177, fixed
 2026-08-22): arm-zephyr-eabi-gcc ships inside `~/zephyr-sdk-0.17.4` and always did. What was
 broken was the gate's own un-SKIP instruction, which named a path the #79 consolidation
@@ -312,8 +319,13 @@ next.
   verbs, JSON args and CRC32 payload delivery that no longer exist. Do not implement from
   it; read it only to understand what `porta-v1-final` did, and it is what the frozen Toit
   nodes still speak.
-- `porta/docs/CLI.md`, `porta/docs/DEVSDK.md`, `porta/docs/GETTING-STARTED.md` — **stale**,
-  written against v1's verb set.
+- `porta/docs/CLI.md` — **the v2 command reference and current** (rewritten 2026-08-29,
+  #279). Gated: `porta/docs/cli-gate.sh` walks the binary's own `--help` and fails if a
+  command or flag named on the page does not exist, or if one that exists is unnamed.
+  Names only — it does not score the prose, and the transcripts on it are dated evidence.
+- `porta/docs/DEVSDK.md`, `porta/docs/GETTING-STARTED.md` — **stale in parts**, written
+  against v1's verb set. GETTING-STARTED §1–§2/§5 (the `.deb`, the unit, `/health`) are
+  current; §3–§4 are not.
 
 ## Key decisions & constraints (don't re-litigate)
 

@@ -174,7 +174,7 @@ _Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/design/2026-08-20-prim-id-on-symbol-design.md` — Primitive classification belongs to the Symbol, not to a cache _(design, 2026-08-21)_
 - `docs/design/2026-08-21-liveness-contract-design.md` — The liveness contract — a node declares how long its silence may last _(design, 2026-08-28)_
 - `docs/design/2026-08-24-kind-schema-manifest-design.md` — The kind+schema manifest — design (#243, 2026-08-24) _(design, 2026-08-25)_
-- `docs/next-steps-overview.md` — Next steps — overview _(record, 2026-08-27)_
+- `docs/next-steps-overview.md` — Next steps — overview _(record, 2026-08-29)_
 - `docs/results/2026-07-20-c6-heap-ceiling.md` — ESP32-C6 heap-ceiling bisect — Task 3 _(record, 2026-07-20)_
 - `docs/results/2026-08-05-c6-checkin-decomposition.md` — Where the 300 ms goes — c6-bench, 2026-08-05 _(record, 2026-08-05)_
 - `docs/results/2026-08-05-c6-span-capture-first.md` — First span capture off a real node — c6-bench, 2026-08-05 _(record, 2026-08-05)_

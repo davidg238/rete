@@ -8,6 +8,10 @@ image delivery, the report schema — was deleted in one commit; its last tree i
 ## Current
 
 - `../README.md` — what porta is now, the CLI verbs, the license.
+- `CLI.md` — **the v2 command reference**: `serve`, `put`, `get`, `log`, `key gen`,
+  `blob put`, `snapshot`, every flag, and what each of v1's deleted verbs became.
+  Rewritten 2026-08-29 and checked against the binary's own `--help` by the nsl suite's
+  `porta-cli` gate, so a command or flag can no longer disappear from under it (#279).
 - `../../docs/tutorials/03-porta.md` — **the executable introduction**: `serve`,
   `put`, `get` and `log` driven against a real node on loopback, with every command
   block run by the nsl suite (`tutorial-porta`). Where GETTING-STARTED.md used to be
@@ -26,8 +30,9 @@ image delivery, the report schema — was deleted in one commit; its last tree i
 - `ARCHITECTURE.md` — the system picture. Written for v1's command protocol and TFTP
   transport; the boundaries and the properties still hold, the mechanisms in the
   diagrams do not.
-- `CLI.md`, `GETTING-STARTED.md` — corrected against the code on 2026-08-05; the verb
-  walkthroughs are v1 and no longer exist. The v2 verbs are in `../README.md`.
+- `GETTING-STARTED.md` — corrected against the code on 2026-08-05; §3–§4's verb
+  walkthrough is v1 and no longer exists (#279). §1–§2 and §5 — the `.deb`, the systemd
+  unit, `/health`, and the operator-surface story — are current.
 - `DEVSDK.md` — the `devsdk/` contract; `exec` and `provision` survive, `apiclient` went
   with v1's HTTP surface.
 - `demo/` — a show-and-tell script for the v1 gateway (2026-06). A presentation, dated;

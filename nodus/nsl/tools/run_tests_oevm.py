@@ -603,6 +603,52 @@ def run_tutorial_board_gate(page_name: str = "02-board.md",
     return "PASS"
 
 
+def run_porta_cli_gate() -> str:
+    """Gate porta's CLI REFERENCE against the binary's own account of itself (#279).
+
+    porta/docs/CLI.md documented `scan`, `ping`, `device set` and `container install` for
+    four weeks after the commit that deleted them. A reference page rots the way a tutorial
+    does — read by outsiders, re-read by nobody — but its claims are not commands anyone
+    runs, so gate.sh's answer (execute the page) is not available here. cobra's is: the
+    binary already knows every command and every flag it has.
+
+    porta/docs/cli-gate.sh builds porta, walks `--help` recursively, and compares NAMES in
+    both directions: a command or flag the binary declares must be on the page, and a
+    `--flag` the page shows anywhere — transcripts included — must exist. Not the prose: a
+    stale sentence is a judgement call and a gate that grades English gets disabled. It
+    falsifies itself twice before clearing anything (an empty page must FAIL, and the real
+    page plus one invented flag must FAIL), because vacancy must not read as agreement.
+
+    Needs Go, and answers SKIP without it (exit 77) for tutorial-porta's reason: making the
+    nsl suite hard-fail without a Go toolchain would couple the two halves of this repo at
+    the gate, and they are coupled over the wire and nowhere else. A SKIP here is still a
+    finding, not a fixture (#177). Returns "PASS", "SKIP" or "FAIL"; a missing script is a
+    FAILURE, never a skip."""
+    root = OEVM_DIR.parent.parent
+    script = root / "porta" / "docs" / "cli-gate.sh"
+    if not script.exists():
+        print(f"{COLOR_RED}porta-cli: FAIL{COLOR_RESET} (gate script not found at {script})")
+        return "FAIL"
+    try:
+        proc = subprocess.run(["bash", str(script)],
+                              cwd=str(root), capture_output=True, text=True, timeout=300)
+    except Exception as e:
+        print(f"{COLOR_RED}porta-cli: FAIL{COLOR_RESET} (runner error: {e})")
+        return "FAIL"
+    out = ((proc.stdout or "") + (proc.stderr or "")).strip()
+    if proc.returncode == 77:
+        print(f"porta-cli: {COLOR_YELLOW}SKIP{COLOR_RESET} (no go toolchain — "
+              f"CLI.md is checked against a binary this host cannot build)")
+        return "SKIP"
+    if proc.returncode != 0:
+        print(f"{COLOR_RED}porta-cli: FAIL{COLOR_RESET}")
+        print("  " + "\n  ".join(out.splitlines()[-30:]))
+        return "FAIL"
+    detail = out.splitlines()[-1].replace("porta-cli: PASS", "").strip() if out else ""
+    print(f"{COLOR_GREEN}porta-cli: PASSED{COLOR_RESET} {detail}")
+    return "PASS"
+
+
 def run_cmake_parse_gate() -> str:
     """Gate the BUILD FILES, which until rete#226 nothing on the host read at all.
 
@@ -1207,6 +1253,9 @@ def main():
     # 02-board.md is PROSE — no bash blocks, and its banner says why. Only its scenario
     # table is checkable on a host, and only by name. See run_tutorial_board_gate.
     tutorial_board = run_tutorial_board_gate()
+    # #279: the same rot, one document over. CLI.md is a REFERENCE, so it cannot be
+    # executed the way a tutorial can — it is checked against the binary's own --help.
+    porta_cli = run_porta_cli_gate()
 
     suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok
                 and portability != "FAIL" and boot_gc_ok
@@ -1215,7 +1264,8 @@ def main():
                 and observe_py != "FAIL" and cmake_parse != "FAIL"
                 and nsl_tools_py != "FAIL" and protocol_py != "FAIL"
                 and gwprof_py != "FAIL" and tutorial != "FAIL"
-                and tutorial_porta != "FAIL" and tutorial_board != "FAIL")
+                and tutorial_porta != "FAIL" and tutorial_board != "FAIL"
+                and porta_cli != "FAIL")
     print(f"\n{COLOR_GREEN if suite_ok else COLOR_RED}Test Execution Summary:{COLOR_RESET}")
     print(f"  Passed:  {passed}")
     print(f"  Failed:  {failed}")
@@ -1250,7 +1300,8 @@ def main():
           f"gwprofiler-py: {_mark(gwprof_py)}  "
           f"tutorial-host: {_mark(tutorial)}  "
           f"tutorial-porta: {_mark(tutorial_porta)}  "
-          f"tutorial-board: {_mark(tutorial_board)}")
+          f"tutorial-board: {_mark(tutorial_board)}  "
+          f"porta-cli: {_mark(porta_cli)}")
 
     # NOT a skip, and deliberately not coloured like one: a skip names a cause it
     # has not verified, and this names one that IS verified. timer_zephyr.c posts
