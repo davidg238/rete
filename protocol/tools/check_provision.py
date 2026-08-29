@@ -8,7 +8,7 @@ Exit 0 = the pin matches. Exit 1 with named reasons otherwise — a MISSING
 archive entry refuses the same way, because a build whose provenance the
 archive cannot answer for must not be provisioned on faith.
 
-Gatekeeper's own plan absorbs this check when that process exists; until then
+Custos's own plan absorbs this check when that process exists; until then
 this is the flash flow's pre-step.
 """
 import argparse

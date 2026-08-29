@@ -783,7 +783,7 @@ func (s *Store) DB() *sql.DB { return s.db }
 
 // SnapshotInto writes a consistent, compacted, self-contained copy of the store
 // to dest via `VACUUM INTO`. It runs against the live WAL database without
-// blocking the writer and does not disturb the source (gatekeeper first-cut
+// blocking the writer and does not disturb the source (2026-08-22 first-cut
 // design §2). dest must not already exist — SQLite refuses to overwrite, which
 // is the safe default for a named artifact. The destination path is bound as a
 // parameter, never interpolated, so an operator-supplied path is data.

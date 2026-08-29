@@ -263,7 +263,7 @@ func (c *hookedConnector) Driver() driver.Driver { return &sqlite3.SQLiteDriver{
 // authorizer is both guard and planner (design §3): it refuses anything that is
 // not a read, and in doing so it reports the exact (table, column) set the
 // statement needs — which is what makes "decode only what the query touches"
-// possible without gatekeeper parsing SQL itself.
+// possible without custos parsing SQL itself.
 type authorizer struct {
 	mu     sync.Mutex
 	reads  map[string]map[string]bool // table -> columns

@@ -82,12 +82,12 @@ type Table struct {
 }
 
 // Path renders an entry's pattern back to a path string (wildcard segments kept
-// as written, e.g. "obs/apps/<name>"). The gatekeeper descriptor table keys on
+// as written, e.g. "obs/apps/<name>"). The custos descriptor table keys on
 // this.
 func (e *Entry) Path() string { return strings.Join(e.Pattern, "/") }
 
 // Entries returns every compiled row (literal paths, then wildcard patterns) in a
-// deterministic order. The gatekeeper query core walks these to build its schema
+// deterministic order. The custos query core walks these to build its schema
 // and to gate descriptor completeness against the wire-order authority.
 func (t *Table) Entries() []*Entry {
 	if t == nil {
@@ -182,7 +182,7 @@ var fieldKeyRe = regexp.MustCompile(`(sym-[A-Za-z0-9-]+)\s*=>`)
 // because the wire sorts map keys bytewise (cval.Encode), is exactly the order
 // MANIFEST.cddl lists them (its header declares key order == wire order). The
 // tag is excluded. This makes the manifest the single wire-order authority the
-// gatekeeper descriptor table checks against — NOT the nsl record builders,
+// custos descriptor table checks against — NOT the nsl record builders,
 // whose source order is not wire order.
 func recordFields(body string, syms map[string]string) ([]string, error) {
 	var out []string

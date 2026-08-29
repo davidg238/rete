@@ -161,7 +161,7 @@ What is *vital for an agentic system* is not any single leg but that all four sh
 **one substrate** — the space — so the agent's whole world is one vocabulary of
 paths, values, and grants (the #66 surface-in-tokens claim, restated). The design
 consequence: probe and replay must stay path-and-record mechanisms and never grow
-their own protocols; gatekeeper (#198) is the front door to all four, not a fifth
+their own protocols; custos (#198) is the front door to all four, not a fifth
 mechanism.
 
 **Sequencing consequence:** the durability trio (#114/#117/#119) is not plumbing —

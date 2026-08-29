@@ -22,7 +22,7 @@ import (
 // 100.64.0.0/10 is the CGNAT range Tailscale assigns to tailnet peers, so the
 // operator surface is reachable from the operator's phone/laptop over Tailscale
 // out of the box (e.g. while away from the office LAN). Shared by porta's
-// operator listener and gatekeeper so the two surfaces cannot drift.
+// operator listener and custos so the two surfaces cannot drift.
 func DefaultAllowCIDR() []string {
 	return []string{
 		"10.0.0.0/8",

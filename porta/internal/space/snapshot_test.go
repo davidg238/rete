@@ -11,7 +11,7 @@ import (
 	"github.com/davidg238/porta/internal/cval"
 )
 
-// A snapshot is the porta↔gatekeeper interface (first-cut design §2): it must be
+// A snapshot is the porta↔custos interface (first-cut design §2): it must be
 // a consistent copy that opens immutable=1 (writing nothing), and it must not
 // disturb the live source.
 func TestSnapshotIntoOpensImmutableAndLeavesSourceIntact(t *testing.T) {

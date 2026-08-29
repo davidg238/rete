@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Ekorau LLC
 
-// Package gate is the gatekeeper query core: schema-aware where porta is
+// Package gate is the custos query core: schema-aware where porta is
 // schema-blind (design D3(b)). Everything that decodes a record lives here.
 //
 // descriptors.go loads protocol/descriptors/records.yaml — the reading rules for

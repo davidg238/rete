@@ -11,10 +11,10 @@ import (
 )
 
 // newSnapshotCmd produces a consistent, self-contained point-in-time copy of the
-// store — the porta↔gatekeeper interface (gatekeeper first-cut design §2). porta
+// store — the porta↔custos interface (docs/design/2026-08-22-gatekeeper-first-cut-design.md §2). porta
 // owns the store, so producing the snapshot is porta's job and an OPERATIONS job
 // (D1). `VACUUM INTO` yields a compacted single file off a live WAL database
-// WITHOUT blocking the writer, and the result is genuinely immutable: gatekeeper
+// WITHOUT blocking the writer, and the result is genuinely immutable: custos
 // opens it with immutable=1 (true of a snapshot, false of a live store), so the
 // boundary is real rather than a promise SQLite keeps. See the design §2.1 for
 // why a read-only handle on the live store is not a substitute.

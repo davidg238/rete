@@ -27,7 +27,7 @@ describes them; §7 says where they went.
                                      │  app.oimg carried to the gateway host
                                      ▼
    agent ·  ── HTTP :6971 ──►  ┌───────────────┐
-   browser                     │  GATEKEEPER   │  /dev docs + status page;
+   browser                     │  CUSTOS   │  /dev docs + status page;
                                │  (own binary) │  proxies /health, /manifest
                                └───────┬───────┘
                                        │ 127.0.0.1
@@ -60,7 +60,7 @@ Three planes, three contracts — and note that only one of them is a network pr
 |-------|-----------|----------|-----------|
 | **Southbound** (gateway ↔ node) | porta ↔ any conforming node | `protocol/PROTOCOL-NSL.md` §§1–4 + `MANIFEST.cddl` | plain UDP + CBOR (the exchange); a binary block plane for bulk bytes |
 | **Northbound** (dev tool → gateway) | node-repo tooling → porta | `porta/devsdk` (`exec`, `provision`) | a Go import. **No network path** — v1's `apiclient` went with v1's HTTP API |
-| **Operator** (human/agent → gateway) | CLI → the store; browser/agent → gatekeeper | the path namespaces themselves; `GET /health`, `GET /manifest` | a local sqlite open (§3.1); HTTP for the two routes |
+| **Operator** (human/agent → gateway) | CLI → the store; browser/agent → custos | the path namespaces themselves; `GET /health`, `GET /manifest` | a local sqlite open (§3.1); HTTP for the two routes |
 
 ---
 
@@ -120,7 +120,7 @@ What the gateway *is*:
 - **The operator surface.** Two HTTP routes, `GET /health` and `GET /manifest`, and
   nothing else. v1's dashboard, JSON API and MCP server are deferred → operator surface
   in the capability audit, not silently dropped; the exposed agent-facing front door is
-  the separate `gatekeeper` binary.
+  the separate `custos` binary.
 
 What the gateway is **not**: a compiler, a flasher, a relocator, a panic decoder, a
 fleet-wide image builder. Those are node-repo concerns (§7).

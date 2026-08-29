@@ -384,9 +384,9 @@ $ porta snapshot --db ./porta.db --out snap.db
 snapshot written: snap.db
 ```
 
-This is the porta↔gatekeeper interface. `VACUUM INTO` yields a compacted single file off a
+This is the porta↔custos interface. `VACUUM INTO` yields a compacted single file off a
 live WAL database **without blocking the writer**, and the result is genuinely immutable:
-gatekeeper opens it with `immutable=1`, which is true of a snapshot and false of a live
+custos opens it with `immutable=1`, which is true of a snapshot and false of a live
 store, so the boundary is enforced by SQLite rather than promised by convention. porta
 owns the store, so producing the snapshot is porta's job.
 
@@ -415,7 +415,7 @@ delete a capability** (design D8), so every one of those verbs has a recorded fa
 
 ## The other binary
 
-`cmd/gatekeeper` is the exposed, agent-facing front door and a separate program: it serves
+`cmd/custos` is the exposed, agent-facing front door and a separate program: it serves
 the dev status page and the repo docs tree at `/dev`, and proxies `/health` and
 `/manifest` to porta's sheltered operator listener. Default port `6971`; flags are
 `-bind`, `-port`, `-docs`, `-porta-http`, `-allow-cidr` (Go `flag`, single dash). The

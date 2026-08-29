@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Ekorau LLC
 
-package gatekeeper
+package custos
 
 import (
 	"io"
@@ -67,7 +67,7 @@ func TestMarkdownServesAsReadableText(t *testing.T) {
 
 // The entry point FRONTS porta's operator surfaces: /health and /manifest are
 // proxied to the sheltered porta HTTP listener, so the status page's relative
-// links keep working when read through gatekeeper.
+// links keep working when read through custos.
 func TestHealthAndManifestProxyToPorta(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("porta says " + r.URL.Path))

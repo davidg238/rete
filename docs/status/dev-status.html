@@ -50,7 +50,7 @@
 <h1>rete — dev status</h1>
 <p class="stamp">Status synthesized <strong>2026-08-29</strong> (docs go-to-public pass 4: the tutorial ladder is complete — tutorial 2 written as prose and gated by <code>tutorial-board</code>) at
 <a href="https://github.com/davidg238/rete/commit/fdae4de">fdae4de</a>.
-Served live by <strong>gatekeeper</strong> (gw85224-01:6971).
+Served live by <strong>custos</strong> (gw85224-01:6971).
 This page is a <em>view</em>, refreshed at session close-outs — the records of
 direction are <a href="/dev/next-steps-overview.md">next-steps-overview.md</a>
 and <a href="https://github.com/davidg238/rete/issues">the tracker</a>.
@@ -84,7 +84,7 @@ If the date above is old, trust those, not this.</p>
     el.innerHTML = parts.join(' <span class="k">·</span> ');
   }).catch(function (e) {
     el.innerHTML = '<span class="warn">porta unreachable from this page</span> ' +
-      '<span class="k">(' + e.message + " — live only when served by gatekeeper)</span>";
+      '<span class="k">(' + e.message + " — live only when served by custos)</span>";
   });
 })();
 </script>
@@ -120,7 +120,7 @@ until then the strip above is what porta exposes.</p>
 <ul>
   <li><a href="https://github.com/davidg238/rete/blob/master/porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md">space-sync rewrite design</a>
     — D1–D8 and the §4.2 capability audit</li>
-  <li><a href="https://github.com/davidg238/rete/blob/master/porta/docs/design/2026-08-22-gatekeeper-first-cut-design.md">gatekeeper first-cut design</a>
+  <li><a href="https://github.com/davidg238/rete/blob/master/porta/docs/design/2026-08-22-gatekeeper-first-cut-design.md">custos first-cut design</a>
     — the query surface this server grows into (#198)</li>
   <li><a href="https://github.com/davidg238/rete/blob/master/porta/docs/ARCHITECTURE.md">ARCHITECTURE.md</a>
     <span class="note">— stale in parts (written for v1's command protocol)</span></li>
@@ -334,7 +334,7 @@ or independent of it.</p>
   <li><a href="https://github.com/davidg238/rete/issues/266">#266</a> — the doit
     (capability-scoped interactive eval); its hard gate on
     <a href="https://github.com/davidg238/rete/issues/119">#119</a> is released.</li>
-  <li><a href="https://github.com/davidg238/rete/issues/198">#198</a> — the gatekeeper
+  <li><a href="https://github.com/davidg238/rete/issues/198">#198</a> — the custos
     five-question query surface (D3 ratified). <em>This page's own successor:</em> the
     network-health view lives there, not in porta HTML.</li>
   <li><a href="https://github.com/davidg238/rete/issues/265">#265</a> — frozen runtime errors

@@ -1,5 +1,12 @@
 # Gatekeeper, and the introspectable space — design note (2026-08-11)
 
+> **RENAMED 2026-08-29: `gatekeeper` is now `custos`** (Latin *guardian*, to sit with
+> *porta*, the gate). The package is `porta/internal/custos`, the binary
+> `porta/cmd/custos`. This document keeps the old name throughout because it is a
+> dated record and the issues and commits that cite it resolve by that name; read
+> "gatekeeper" below as "custos". The current picture is
+> `porta/docs/ARCHITECTURE.md`.
+
 **Status: CLOSED 2026-08-22. Superseded on every open fork by
 `porta/docs/design/2026-08-22-gatekeeper-first-cut-design.md`.** This note is kept as the
 *why* — the reasoning that produced the questions. It is no longer the *what*; where the two

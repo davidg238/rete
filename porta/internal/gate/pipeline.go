@@ -4,7 +4,7 @@ package gate
 
 // pipeline.go — design §3: the authorizer is also the planner.
 //
-// D3(b) means gatekeeper must decode before it can aggregate, and a general SQL
+// D3(b) means custos must decode before it can aggregate, and a general SQL
 // surface means it does not know WHAT to decode until the query is parsed. That
 // is circular, except SQLite already solves it: the authorizer fires during
 // prepare and reports every (table, column) a statement reads. So:

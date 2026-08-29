@@ -1127,7 +1127,7 @@ failure counters live in the separate `CHeap` record as `fal`.
 ---
 
 **2026-08-26 session close.** #247 closed at `1394c9f` (compiler positions, DNU naming incl.
-app classes via the .oimg v10 classnames section; remainder → #265). Gatekeeper exists as a
+app classes via the .oimg v10 classnames section; remainder → #265). Custos exists as a
 process (`4e1469d`, gw85224-01:6971): the dev status page + docs tree at `/dev`, `/health` +
 `/manifest` proxied to porta — the shell only; the query surface is the 2026-08-22 first-cut
 design's build, and **that note ratified D3=(b) on 2026-08-22** — #198's "ratify D3 first"
@@ -1178,7 +1178,7 @@ gw85224-01 (`porta.pre232` beside it, manifest sha `7556b7fa` re-armed, ~45 s ou
 nodes recovered; old 6-field Health from un-reflashed nodes is accepted). Host gates at
 close: nsl 278/0 all aux green, go test green, PORTA SYNC OK 9/9. c6spare left running
 bridge-health's image against the live gateway. **Queued next: #265 (frozen runtime
-errors + G4 line-table) or the #198 gatekeeper five-question spike — both unblocked;
+errors + G4 line-table) or the #198 custos five-question spike — both unblocked;
 board time owes nothing.**
 
 ---

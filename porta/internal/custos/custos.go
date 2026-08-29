@@ -1,18 +1,18 @@
 // Copyright (c) 2026 Ekorau LLC
 
-// Package gatekeeper is the system entry point — the exposed, agent-facing
+// Package custos is the system entry point — the exposed, agent-facing
 // surface over porta (design D1, 2026-08-11: porta is OPERATIONS, sheltered
-// and schema-blind; gatekeeper is the query and authority surface). This is
+// and schema-blind; custos is the query and authority surface). This is
 // the SHELL of that surface: it serves the dev status page and the repo docs
 // tree at /dev, and fronts porta's operator routes (/health, /manifest) by
 // proxy. The query surface itself is the first-cut design's build
 // (2026-08-22 note: D3 ratified as (b), stdio-MCP-first, internal/gate) —
 // nothing here decodes a value.
 //
-// A separate process on purpose: gatekeeper can be restarted and iterated on
+// A separate process on purpose: custos can be restarted and iterated on
 // freely, while a porta restart costs every node an outage. Refreshing the
 // status page is an edit to the docs directory — never a restart of anything.
-package gatekeeper
+package custos
 
 import (
 	"context"
@@ -35,7 +35,7 @@ type Config struct {
 	AllowCIDR []string // peer allowlist, same semantics as porta's --http-allow-cidr
 }
 
-// Handler builds the gatekeeper mux: / and /dev land on the status page,
+// Handler builds the custos mux: / and /dev land on the status page,
 // /dev/ serves the docs tree read-only (markdown as text/plain so a browser
 // displays the documents of record), and /health + /manifest proxy to porta.
 func Handler(cfg Config) (http.Handler, error) {
@@ -70,7 +70,7 @@ func Handler(cfg Config) (http.Handler, error) {
 func portaProxy(base string) (http.Handler, error) {
 	if base == "" {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			http.Error(w, "gatekeeper: no porta backend configured (--porta-http)", http.StatusBadGateway)
+			http.Error(w, "custos: no porta backend configured (--porta-http)", http.StatusBadGateway)
 		}), nil
 	}
 	u, err := url.Parse(base)
@@ -96,7 +96,7 @@ func Run(ctx context.Context, cfg Config, logf func(string, ...any)) error {
 	}
 	errc := make(chan error, 1)
 	go func() { errc <- srv.ListenAndServe() }()
-	logf("gatekeeper: serving on %s (docs=%s, porta=%s)", srv.Addr, cfg.Docs, cfg.PortaHTTP)
+	logf("custos: serving on %s (docs=%s, porta=%s)", srv.Addr, cfg.Docs, cfg.PortaHTTP)
 	select {
 	case <-ctx.Done():
 		shctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)

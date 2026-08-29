@@ -25,7 +25,7 @@ the operator vocabulary is CLI sugar over path writes and tree reads.
 - `internal/space/` — the store: four sqlite tables (`nodes`, `cells`, `events`,
   `exchanges`); a new feature adds rows, not tables
 - `internal/wire/` — pull/push framing as a pure `Handle([]byte) []byte` under a thin UDP loop
-- `internal/gatekeeper/`, `internal/blob*/` — the query surface and the bulk plane
+- `internal/custos/`, `internal/blob*/` — the query surface and the bulk plane
 - `devsdk/` — the public Go SDK node-repo tooling imports; porta imports no node code
 
 **Start here:** `../docs/tutorials/03-porta.md` — a gateway and a real node on

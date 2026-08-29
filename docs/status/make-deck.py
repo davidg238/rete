@@ -482,7 +482,7 @@ slide("backlog", "Three honest options for what&rsquo;s next", """
   <p>#199&rsquo;s observability half, #180 and #206. The pattern that has cost the most time. Nothing new
   gets built on a base that reports itself healthy while dying.</p></div>
   <div class="opt"><span class="porta">reach</span><h3>Push the story outward</h3>
-  <p>#198 gatekeeper (agent-facing queries), #181 (move the bench to the gateway host), #79 (is there a
+  <p>#198 custos (agent-facing queries), #181 (move the bench to the gateway host), #79 (is there a
   route to market at all). Everything here is optional and none of it is blocked.</p></div>
 </div>
 <p class="note">These are genuinely alternatives, not a sequence. The first is hours; the second is days;

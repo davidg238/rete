@@ -3,8 +3,8 @@
 # The catalogue (PROTOCOL-NSL-RECORDS.md) says what rides where; MANIFEST.cddl is
 # machine-normative for path/kind/class/dir/shape. Neither says how to READ a number,
 # and a help desk that returns data without the rule for reading it industrialises
-# error at machine speed (gatekeeper design D4). This file is that missing half, and
-# it is the ONLY authored input to the gatekeeper query core's schema.
+# error at machine speed (custos design D4). This file is that missing half, and
+# it is the ONLY authored input to the custos query core's schema.
 #
 # AUTHORITY AND ORDER — read before editing:
 #

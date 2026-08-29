@@ -23,7 +23,7 @@ image delivery, the report schema — was deleted in one commit; its last tree i
 - `design/2026-08-01-porta-space-sync-rewrite-design.md` — **the v2 decision record**
   (D1–D8), the store schema, the wire shapes, and the §4.2 capability audit that gave
   every v1 feature a fate.
-- `design/` (2026-08 onward) — the rungs since: gatekeeper, boot-anchored reads, the
+- `design/` (2026-08 onward) — the rungs since: custos, boot-anchored reads, the
   durability trio.
 - `../../protocol/PROTOCOL-NSL.md`, `PROTOCOL-NSL-RECORDS.md`, `MANIFEST.cddl` — the
   wire contract. Not in this directory on purpose: both halves answer to it.
