@@ -252,10 +252,11 @@ in 27 h on 2026-08-08/09), a 6.62 h gap the morning of the day it died, and — 
 re-attach today — a self-inflicted drop after 2 m 45 s of running.
 
 That drop looked like a second, board-specific cause for the 2026-08-18 event, and this file
-nearly said so. It should not: after a clean power cycle the node ran **6 m 41 s and
-onward** at a steady 15 s cadence, in the child table throughout, indistinguishable from the
-two healthy boards. One drop immediately after eleven days dark is re-attach settling, not a
-fault.
+nearly said so on that one data point. It should not have: after a clean power cycle the
+node was watched for **twelve unbroken minutes** (15:18:43 → 15:29:46, five echoes per 70 s,
+in the child table at every check, `dropped=0`) — indistinguishable from the two healthy
+boards, and more than four times the life of the run that failed. One drop immediately after
+eleven days dark is re-attach settling, not a fault.
 
 So §8's verdict stands as written — the 2026-08-18 event was power — and `92c2`'s history is
 recorded here as **the thing to watch first** if a node misbehaves again, not as a diagnosis.
