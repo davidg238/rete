@@ -280,7 +280,8 @@ _Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 ### nodus/nsl/docs
 
 - `nodus/nsl/docs/NEWSPEAK_DIALECT.md` — ns-oevm — a Newspeak dialect (intentional differences from full Newspeak) _(record, 2026-08-26)_
-- `nodus/nsl/docs/compiler.md` — ns-oevm compiler _(record, 2026-08-29)_
+- `nodus/nsl/docs/README.md` — nodus/nsl/docs — the dialect's documents _(record)_
+- `nodus/nsl/docs/compiler.md` — The nsl compiler _(record, 2026-08-29)_
 - `nodus/nsl/docs/design/2026-06-16-block-inlining-design.md` — Block inlining via a scope/frame model _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-06-19-next-phase-stdlib-and-debug.md` — ns-oevm — next phase: standard library + debug story _(design, 2026-08-29)_
 - `nodus/nsl/docs/design/2026-06-20-ns-oevm-stdlib-design.md` — ns-oevm — standard library: the capability-pure primitive/library line _(design, 2026-08-02)_

@@ -1,45 +1,77 @@
-# ns-oevm compiler
+# The nsl compiler
 
-> **Stale in parts (noted 2026-08-29).** Written when the source extension was `.ns` (it is
-> `.nsl` since 2026-07-18), when the only output was the solidified C image (the shipping
-> pipeline is now `--format=oimg`, an `.oimg` the resident VM loads — see
-> `nodus/oevm/docs/deployment-model.md`), and when `OP_NLR` existed (deleted in Milestone A,
-> 2026-07-04; the opcode table in `nodus/oevm/src/oevm.h` is the authority). The pipeline
-> shape and the map to the code are still right. Task-oriented guide: `programming_with_nsl.md`.
+The nsl compiler turns Newspeak/SOMns-derived source (`.nsl`) into something the OEVM
+interpreter can run — either a **solidified C image** fused into the VM binary, or an
+**`.oimg`** the resident VM loads at boot. This doc is the map to the code; the durable
+*rationale* lives in `nodus/oevm/docs/topics.md`, the perf and conformance log in
+`nodus/oevm/docs/optimizations.md`, and the task-oriented guide is
+`programming_with_nsl.md`. Deployment — which backend ships and why — is
+`nodus/oevm/docs/deployment-model.md`.
 
-The ns-oevm compiler turns Newspeak/SOMns source (`.ns`) into a C image
-(`solidified_image.c`) that links against the OEVM interpreter. This doc is the
-map to the code that lives in this repo; the durable *rationale* (why things are
-the way they are) lives in the OEVM repo's `nodus/oevm/docs/topics.md` and the perf/
-conformance log in `nodus/oevm/docs/optimizations.md` — linked by anchor below rather than
-duplicated here.
+**The extension is `.nsl`** (since 2026-07-18). A bare `.ns` in this tree means a frozen
+oracle, an archived file or a generated one — never live source.
 
 ## Pipeline
 
-`.ns` source → **Ohm parse** → JSON AST → **compile** → bytecode + constants →
-**solidify** → `src/solidified_image.c` → (gcc) → runnable image.
+`.nsl` source → **Ohm parse** → JSON AST → **+ kernel + supervisor** → **compile** →
+bytecode + constants → **emit** → either `src/solidified_image.c` (→ gcc → fused binary)
+or `<name>.oimg` (loaded by the resident VM). A `.stmap` sidecar is written either way.
 
 1. **Parse** — `grammar/ns.ohm` (Ohm grammar, `NsLite`) + `grammar/ns-parse.js`
    (the AST builder, run via `node`). `ns_compile_oevm.py main()` shells out to
-   `node ns-parse.js <src>` and reads a JSON AST from stdout. A top-level script
-   (no `module`) is wrapped in a synthetic `ScriptApp` module; a `^` inside a
-   top-level script block is rejected (no home method to return from).
-2. **Compile** — `tools/ns_compile_oevm.py`. `Compiler` walks the AST
-   (`map_classes`/`map_nested`), computes per-class slot layouts
-   (`collect_slots`), then emits bytecode per method/block/initializer via a
-   `MethodCompiler`.
-3. **Solidify** — `tools/solidify.py` renders vtables, interned symbols,
-   compiled methods (instruction + constant arrays), and globals into C.
+   `node ns-parse.js <src>` and reads a JSON AST from stdout. Every top-level node is
+   tagged with the file it came from, which is what lets a `CompileError` report
+   `file:line:col` and print the offending line (#247). A top-level script (no `module`)
+   is wrapped in a synthetic `ScriptApp` module whose `main:args:` holds the statements —
+   so a `^` in a script is handled exactly as in any other method.
+2. **Concatenate the library** — `lib/kernel.nsl` and then `lib/supervisor.nsl` are parsed
+   and appended **after** the app, as top-level siblings rather than nested classes. Order
+   matters: the entry class is the first declared class, so the app must come first. Being
+   siblings is why `resolve_class_ref` never resolves a kernel class in app scope — **an
+   app reaches the kernel only through its `platform` argument**, which is a Kernel
+   instance, and that is the seam that keeps most builtins out of an app's reach.
+3. **Compile** — `tools/ns_compile_oevm.py`. `OevmCompiler` walks the AST
+   (`map_classes`/`map_nested`), computes per-class slot layouts (`collect_slots`), then
+   emits bytecode per method/block/initializer via a `MethodCompiler`.
+4. **Emit** — `tools/solidify.py`'s `SolidifyCompiler` renders vtables, interned symbols,
+   compiled methods (instruction + constant arrays) and globals into C; or, for
+   `--format=oimg`, `tools/oimg_serialize.py`'s `OimgSerializer` serializes the same graph
+   to a blob with an entry descriptor that mirrors the C path's
+   `run_solidified_entry_point` exactly — so both backends agree on the init selector,
+   argc and slot count.
 
-`main(src, [out])` defaults `out` to `src/solidified_image.c`. Note that file is
-a **generated build artifact**: the test runner overwrites it on every compile,
-so never commit its churn — the committed copy is a canonical placeholder.
+## The two backends
+
+```
+python3 tools/ns_compile_oevm.py <src.nsl> [out]            # Path A — C, the default
+python3 tools/ns_compile_oevm.py <src.nsl> out.oimg \
+        --format=oimg --layout=<layout.json>                # Path B — the shipping form
+```
+
+| | Path A (`--format=c`) | Path B (`--format=oimg`) |
+|---|---|---|
+| output | `src/solidified_image.c`, compiled into the VM | an `.oimg` blob the resident VM loads |
+| oop width | the host's, 8 bytes | `layout["oop_size"]` — the **target's** |
+| `--layout` | ignored | **required** |
+
+`--layout` is not a convenience: it is loaded *before* compilation because the
+SMI/LARGEINT split in `compile_expr` depends on the target's oop width, so a Path B image
+built without it would misclassify integer literals. The layout JSON is a captured target
+ABI that no host gate can see go stale — check its provenance before trusting a build.
+
+**Two standing traps on Path A.** `out` defaults to the literal `src/solidified_image.c`,
+relative to the cwd — run from `nodus/oevm` that is
+**`nodus/oevm/src/solidified_image.c`, a tracked file**. Any bake with no output argument
+overwrites it, and the committed copy is a canonical placeholder rather than anyone's
+build. And the suite runs **Path B only** (`OEVM_PATH` defaults to `B`), so pass `B`
+explicitly to `run-one.py` — its own default is `AB`, which bakes Path A over that same
+fixture.
 
 ## Key structures (`ns_compile_oevm.py`)
 
-- **`Compiler`** — top level. Owns `all_classes`, `class_slots`,
+- **`OevmCompiler`** — top level. Owns `all_classes`, `class_slots`,
   `nested_classes`/`nested_classes_flat`, the `class_stack` (lexical scope during
-  compilation), and the `Solidify` instance. `resolve_class_ref(name)` resolves a
+  compilation), and the `SolidifyCompiler` instance. `resolve_class_ref(name)` resolves a
   bare class name against the lexical stack and returns
   `(qname, hops, container_qname)` where **`hops`** = how many lexical levels up
   from the current class the defining container is (the count of `outer` walks
@@ -61,10 +93,19 @@ outer hops), `nested_class`, or `implicit_send` (fallback: `self name`).
 
 ## Bytecode
 
-Opcodes are defined at the top of `ns_compile_oevm.py` (`OP_LD_CONST=0`,
-`OP_LD_REG=1`, `OP_SEND=2`, `OP_RET=4`, `OP_NLR=5`, arithmetic 6–9, `OP_JMP=10`,
-`OP_JMP_IF_FALSE=11`, `OP_LD_SLOT=12`, `OP_ST_SLOT=13`, `OP_NEW=14`,
-`OP_SEND_IMPLICIT=15`). Each instruction is one `uint32`:
+**The opcode numbers are not reproduced here.** They live in exactly two places —
+`enum Opcode` in `nodus/oevm/src/oevm.h` (the VM decodes it) and the `OP_*` constants at
+the top of `tools/ns_compile_oevm.py` (the compiler emits it) — and the two are mirrored by
+hand, so a third copy in prose is a copy that goes wrong silently. Read one of those. This
+page had `OP_RET=4` and an `OP_NLR=5` for weeks after Milestone A deleted non-local return
+and renumbered everything below it; anyone decoding a dump against that table would have
+misread every instruction in it.
+
+**There is no `OP_NLR`.** A `^` inside an *inlined* control-flow block compiles to
+`OP_RET`; inside an *escaping* closure it is a `CompileError` at the emit site. That is the
+no-NLR model (spec §2), not a missing feature.
+
+Each instruction is one `uint32`:
 
 ```
 op = inst & 0xFF;  A = (inst>>8)&0xFF;  B = (inst>>16)&0xFF;  C = (inst>>24)&0xFF
@@ -80,7 +121,7 @@ Operand conventions worth memorizing when reading a dump:
 | `LD_SLOT` | A=dest, B=slot index, C=object reg |
 | `ST_SLOT` | A=value reg, B=slot index, C=object reg |
 | `SEND` / `SEND_IMPLICIT` | A=argc, B=selector const, C=receiver reg (result lands back in C) |
-| `NEW` | A=dest, B=vtable-const reg, C=#slots |
+| `NEW` | A=dest, B=register holding the vtable, C=slot count |
 
 Jump offset encoding (verified against the VM decoder): offset =
 `target-(idx+1)`; `JMP (off<<8)|op`, `JMP_IF_FALSE (off<<16)|(cond<<8)|op`.
@@ -140,8 +181,8 @@ compiled methods (closures). See `topics.md#block-inlining` and
 ## Source maps (.stmap)
 
 The compiler emits a **sidecar source-map file** (`.stmap` JSON) alongside each
-compiled image (`solidified_image.c`), written to
-`<image-base>.stmap` (e.g., `foo.c` → `foo.stmap`). This map ties bytecode
+compiled image, written to `<image-base>.stmap` (e.g. `foo.c` → `foo.stmap`,
+`foo.oimg` → `foo.stmap`) — **on both backends**. This map ties bytecode
 offsets to source lines, enabling **debug-aware tools** (such as `jast-gw`) to
 display source during inspection.
 
@@ -150,7 +191,7 @@ display source during inspection.
 
 ```json
 {
-  "source": "<basename.ns>",
+  "source": "<basename.nsl>",
   "functions": {
     "<Vtable>>selector>": [[offset, line], ...]
   }
@@ -167,13 +208,19 @@ are intentionally omitted; empty maps are dropped.
 **Implementation:** `tools/stmap.py::build_stmap(source_filename, source_maps)`
 serializes the collected per-method line maps to JSON. Maps are threaded through
 the compiler via `compile_statement` and registered per qualified name
-(`register_source_map`), then emitted to disk via `Solidify`.
+(`register_source_map`), then emitted to disk beside the image.
 
 ## Tooling
 
-- `tools/run_tests_oevm.py` — the conformance gate: compiles each
-  `ns-tests/**/*.ns`, builds the runner (`-O2`), runs it (30s timeout), compares
-  stdout to the `(* expect: ... *)` block.
+- `tools/run_tests_oevm.py` — the conformance gate, run from `nodus/nsl`. Compiles each
+  `nodus/tests/**/*.nsl` to an `.oimg` (Path B), runs it, and compares stdout to the
+  inline `(* expect: ... *)` block at the top of the file. It also owns the aux gates,
+  and since #275 the `C_UNIT_TESTS` registry — every C unit test is one row in that one
+  table, plus the `ENG_A`/`ENG_B` link sets and the `OEVM_BUILD=asan|ubsan` knob. **Read
+  the aux line, not just the pass count**: it can be red while `Failed: 0` reads green.
+- `tools/run-one.py <file.nsl> B` — the fast inner loop for one test, on the same code
+  paths as the suite. Pass `B`; the default is `AB`, and Path A bakes over the tracked
+  `src/solidified_image.c`.
 - `tools/snapshot_images.py <outdir>` — compiles every test to a per-test C
   image; `diff -rq` two snapshots (before/after a change, e.g. via `git stash`)
   to **prove a change is a no-op** or bound its blast radius. This is the
@@ -183,7 +230,11 @@ the compiler via `compile_statement` and registered per qualified name
 ## Where the rationale lives
 
 - `../../oevm/docs/topics.md` — durable design rationale (scope vs frame, calling
-  convention, dispatch caching, no-op-first rollout, …).
+  convention, dispatch caching, no-op-first rollout, …). Start at
+  `../../oevm/docs/vm.md`.
 - `../../oevm/docs/optimizations.md` — chronological perf + conformance log.
-- `docs/design/` and `docs/superpowers/plans/` — feature specs/plans
-  (block inlining).
+- `../../oevm/docs/deployment-model.md` — which backend ships, and why.
+- `NEWSPEAK_DIALECT.md` — what the dialect is and is not; `programming_with_nsl.md` — the
+  task-oriented guide.
+- the program-level `docs/design/` and `docs/superpowers/plans/` — dated decision records
+  and execution plans.
