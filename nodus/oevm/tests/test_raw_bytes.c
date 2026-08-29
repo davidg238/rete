@@ -58,16 +58,30 @@ extern int  gc_is_live(oop ptr);
 extern void mark_object(oop ptr);
 extern void (*gc_additional_roots_hook)(void);
 
-/* Build a throwaway selector Symbol (mirrors tests/test_platform.c's sel()). */
+/* Build (and INTERN) a selector Symbol (mirrors tests/test_platform.c's sel()).
+
+   rete#226/#275: symbol_new is THE Symbol constructor — it bakes prim_id from the
+   name, and the send path reads that field rather than looking the name up. A
+   hand-built Symbol carries an uninitialised prim_id and is never recognised as a
+   primitive, which is how this test aborted with "Message 'basicNewBytes:' not
+   understood". Never open-code a Symbol.
+
+   The constructor allocates on the GC heap (the old malloc'd Symbols were
+   off-heap and so could never be swept), and the collector has no C-stack scan,
+   so every selector is interned into g_sels and marked by raw_bytes_roots below.
+   mark() ignores NULL and off-heap pointers, so this is safe before the first
+   intern. */
+#define SEL_MAX 32
+static oop g_sels[SEL_MAX];
+static int g_nsels = 0;
 static oop sel(const char *name) {
-    /* rete#190 stage 2: inline name bytes, so this mallocs header + payload
-       (mirrors tests/test_platform.c's sel()). */
-    size_t n = strlen(name);
-    struct Symbol *s = malloc(sizeof(struct Symbol) + n + 1);
-    s->base.vtable = SymbolVtable;
-    s->length = n;
-    memcpy(s->name, name, n + 1);
-    return (oop)s;
+    for (int i = 0; i < g_nsels; i++)
+        if (strcmp(((struct Symbol *)g_sels[i])->name, name) == 0) return g_sels[i];
+    assert(g_nsels < SEL_MAX);
+    oop s = symbol_new(name, strlen(name));
+    assert(s != NULL);
+    g_sels[g_nsels++] = s;
+    return s;
 }
 
 /* ---- fork-and-expect-abort harness --------------------------------------
@@ -130,11 +144,16 @@ static oop g_frozen = NULL;
 static void raw_bytes_roots(void) {
     mark_object(g_raw);
     mark_object(g_frozen);
+    /* rete#275: selectors are heap objects now and must survive the collection. */
+    for (int i = 0; i < g_nsels; i++) mark_object(g_sels[i]);
 }
 
 int main(void) {
     heap_init();
     kernel_boot();
+    /* rete#275: installed for the WHOLE test, not just the Task 8 GC block —
+       selectors are heap objects and must be rooted at every send. */
+    gc_additional_roots_hook = raw_bytes_roots;
 
     oop pf = platform_object();
     assert(pf != NULL);
@@ -257,7 +276,6 @@ int main(void) {
        oops). --- */
     g_raw = raw;
     g_frozen = frozen;
-    gc_additional_roots_hook = raw_bytes_roots;
     gc_collect();
     assert(gc_is_live(g_raw));
     assert(gc_is_live(g_frozen));
@@ -267,7 +285,6 @@ int main(void) {
     assert(IS_SMI(post_b1) && UNTAG_SMI(post_b1) == 99);
     oop post_fb1 = send(g_frozen, sel("at:"), 1, &idx1b);
     assert(IS_SMI(post_fb1) && UNTAG_SMI(post_fb1) == 171);
-    gc_additional_roots_hook = NULL;
     printf("test_raw_bytes: property 8 (GC leaf-tracing survives collection) PASS\n");
 
     printf("test_raw_bytes: OK\n");

@@ -19,23 +19,25 @@
 #include <string.h>
 
 extern oop SymbolVtable;
+extern void heap_init(void);
 extern oop send(oop receiver, oop selector, int argc, oop *args);
 extern int is_truthy(oop);
 
-/* Each call gets a fresh selector pointer: the primitive cache keys on symbol
-   pointer identity (real selectors are interned, one stable pointer per name),
-   so a reused address would mis-cache one operator's id for another. */
+/* rete#226/#275: symbol_new is THE Symbol constructor — it bakes prim_id from the
+   name, and the send path reads that field. A hand-built Symbol carries an
+   uninitialised prim_id and is never recognised as a primitive, which is how this
+   test aborted with "Message '<' not understood". Never open-code a Symbol.
+   (This comment used to justify the open-coding by the pointer-keyed primitive
+   CACHE. That cache was deleted by #226; classification is a field now.) */
 static oop cmp(intptr_t a, const char *sel, intptr_t b) {
-    size_t n = strlen(sel);
-    struct Symbol *s = malloc(sizeof *s + n + 1);
-    s->base.vtable = SymbolVtable;
-    s->length = n;
-    memcpy(s->name, sel, n + 1);
+    oop s = symbol_new(sel, strlen(sel));
+    assert(s != NULL);
     oop arg = TAG_SMI(b);
-    return send(TAG_SMI(a), (oop)s, 1, &arg);
+    return send(TAG_SMI(a), s, 1, &arg);
 }
 
 int main(void) {
+    heap_init();
     kernel_boot();
 
     /* Small values: still correct. The `5 < 5` case is exactly the loop-exit

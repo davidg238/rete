@@ -26,31 +26,53 @@ extern int  gc_is_live(oop ptr);
 extern void mark_object(oop ptr);
 extern void (*gc_additional_roots_hook)(void);
 
-/* Root the outer indexable across a collection (mirrors tests/test_arena.c). */
+/* Root the outer indexable across a collection (mirrors tests/test_arena.c),
+   AND every interned selector — see sel() below. */
 static oop g_outer = NULL;
-static void platform_roots(void) { mark_object(g_outer); }
+#define SEL_MAX 32
+static oop g_sels[SEL_MAX];
+static int g_nsels = 0;
+static void platform_roots(void) {
+    mark_object(g_outer);
+    for (int i = 0; i < g_nsels; i++) mark_object(g_sels[i]);
+}
 
-/* Build a throwaway selector Symbol with the given name. send() classifies
-   selectors by symbol_name() string, so a local Symbol works as long as its
-   vtable is SymbolVtable. */
+/* Build (and INTERN) a selector Symbol.
+
+   rete#226/#275: symbol_new is THE Symbol constructor — it bakes prim_id from the
+   name, and the send path reads that field rather than looking the name up. A
+   hand-built Symbol carries an uninitialised prim_id and is never recognised as a
+   primitive, which is how this test aborted with "Message 'basicSize' not
+   understood". Never open-code a Symbol.
+
+   Two consequences of using the real constructor, both handled here:
+     - it allocates ON THE GC HEAP (the old malloc'd Symbols were off-heap and so
+       could never be swept). The collector has no C-stack scan — roots come from
+       gc_additional_roots_hook — so every selector is kept in g_sels and marked
+       by platform_roots, or a collection inside a send could sweep the selector
+       being sent. mark() ignores NULL and off-heap pointers, so this is safe
+       before the first intern.
+     - interning is now CORRECT rather than a hazard. The old comment here kept
+       one allocation per call site because the pointer-keyed primitive CACHE
+       would otherwise mis-key one operator's id onto another. #226 deleted that
+       cache; real selectors are interned, one stable pointer per name, and this
+       now matches them. */
 static oop sel(const char *name) {
-    /* One allocation per CALL SITE, not per distinct name — every call still
-       gets a distinct Symbol pointer, which the primitive cache keys on.
-       rete#190 stage 2: `name` is now an inline flexible array member, so a
-       fixed `struct Symbol pool[]` can no longer hold the bytes; malloc the
-       header plus the payload instead (and the old pool-capacity hazard goes
-       with it). Never freed — this is a leaf test process. */
-    size_t n = strlen(name);
-    struct Symbol *s = malloc(sizeof(struct Symbol) + n + 1);
-    s->base.vtable = SymbolVtable;
-    s->length = n;
-    memcpy(s->name, name, n + 1);
-    return (oop)s;
+    for (int i = 0; i < g_nsels; i++)
+        if (strcmp(((struct Symbol *)g_sels[i])->name, name) == 0) return g_sels[i];
+    assert(g_nsels < SEL_MAX);
+    oop s = symbol_new(name, strlen(name));
+    assert(s != NULL);
+    g_sels[g_nsels++] = s;
+    return s;
 }
 
 int main(void) {
     heap_init();
     kernel_boot();
+    /* rete#275: installed for the WHOLE test now, not just the Task 3 GC block —
+       selectors are heap objects and must be rooted at every send. */
+    gc_additional_roots_hook = platform_roots;
 
     /* Allocate a 3-element indexable directly. */
     oop arr = indexable_new(3);
@@ -106,8 +128,6 @@ int main(void) {
     send(pf, sel("printNewline:"), 0, NULL);
 
     /* --- Task 3: GC correctness --- */
-    gc_additional_roots_hook = platform_roots;
-
     /* Outer indexable holds an inner indexable in slot 1. Only the outer is
        rooted; the inner must survive because the outer's slot is traced. */
     oop two = TAG_SMI(2);
@@ -128,8 +148,6 @@ int main(void) {
     oop idx1b = TAG_SMI(1);
     oop fetched = send(g_outer, sel("basicAt:"), 1, &idx1b);
     assert(fetched == inner);
-
-    gc_additional_roots_hook = NULL;
 
     /* --- tuvm#61: the span prims (118-121) through the FULL send path.
        Deliberately routed via send()+sel() rather than platform_dispatch(): that

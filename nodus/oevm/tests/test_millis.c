@@ -13,6 +13,7 @@
 
 extern uint64_t (*oevm_millis)(void);
 extern oop SymbolVtable;
+extern void heap_init(void);
 extern oop send(oop receiver, oop selector, int argc, oop *args);
 
 int main(void) {
@@ -24,15 +25,17 @@ int main(void) {
     assert(b >= a);
 
     /* (2) `millis` dispatches via send() to a non-negative SmallInteger */
+    heap_init();
     kernel_boot();
-    /* rete#190 stage 2: `name` is an inline flexible array member, so the
-       Symbol cannot live on the stack as a plain struct — give it storage. */
+    /* rete#226/#275: symbol_new is THE Symbol constructor — it bakes prim_id from
+       the name, and the send path reads that field instead of looking the name up.
+       A hand-built Symbol carries an uninitialised prim_id and is therefore never
+       recognised as a primitive, which is how this test aborted with
+       "Message 'millis' not understood". Never open-code a Symbol. */
     static const char millisName[] = "millis";
-    union { struct Symbol sym; char storage[sizeof(struct Symbol) + sizeof millisName]; } u;
-    u.sym.base.vtable = SymbolVtable;
-    u.sym.length = sizeof millisName - 1;
-    memcpy(u.sym.name, millisName, sizeof millisName);
-    oop r = send(TAG_SMI(0), (oop)&u.sym, 0, NULL);
+    oop sym = symbol_new(millisName, sizeof millisName - 1);
+    assert(sym != NULL);
+    oop r = send(TAG_SMI(0), sym, 0, NULL);
     assert(IS_SMI(r));
     assert(UNTAG_SMI(r) >= 0);
 
