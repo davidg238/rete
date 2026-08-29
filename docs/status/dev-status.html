@@ -48,8 +48,8 @@
 <body>
 
 <h1>rete — dev status</h1>
-<p class="stamp">Status synthesized <strong>2026-08-29</strong> (docs go-to-public pass: archive + banner, vm.md, tutorial 1 executed by the suite, the docs split finished) at
-<a href="https://github.com/davidg238/rete/commit/df7912a">df7912a</a>.
+<p class="stamp">Status synthesized <strong>2026-08-29</strong> (docs go-to-public pass 3: tutorial 3 written and executed by the suite as <code>tutorial-porta</code>) at
+<a href="https://github.com/davidg238/rete/commit/d606209">d606209</a>.
 Served live by <strong>gatekeeper</strong> (gw85224-01:6971).
 This page is a <em>view</em>, refreshed at session close-outs — the records of
 direction are <a href="/dev/next-steps-overview.md">next-steps-overview.md</a>
@@ -187,11 +187,31 @@ deleted it. Now: superseded documents are in <code>nodus/oevm/docs/archive/</cod
 start-here; <code>docs/tutorials/01-host.md</code> is <strong>executed by the suite</strong>
 (<code>tutorial-host</code> on the aux line) so it cannot rot; and the consolidation's
 decided-but-skipped docs split is done — reference docs live with their subsystem, dated
-records at the program level. <strong>What first:</strong> tutorial 3 (porta, gateable
-against a host porta), then tutorial 2 (board, prose), then the v2 rewrites in
-<a href="https://github.com/davidg238/rete/issues/279">#279</a>. <a href="https://github.com/davidg238/rete/issues/274">#274</a>
-is traced (fix shape on the issue: construct the bridge with <code>socket: nil</code>
-and tick unconditionally) and waits its turn.</p>
+records at the program level.</p>
+
+<p><strong>2026-08-29, late — tutorial 3 is written, and it is a gate
+(<a href="https://github.com/davidg238/rete/issues/79">#79</a>).</strong>
+<code>docs/tutorials/03-porta.md</code> runs <em>both halves of the repository against
+each other</em> on loopback — a real <code>porta serve</code> and a real
+<code>PortaBridgeNode</code> image — covering <code>serve</code>/<code>put</code>/<code>get</code>/<code>log</code>,
+the check-in, <code>goal/name</code> converging to <code>obs/name</code>, cells vs streams,
+and the <code>MANIFEST.cddl</code> gate refusing a mis-kinded write. Ten command blocks,
+~12 s, scored as <strong><code>tutorial-porta</code></strong> on the aux line, and
+<em>falsified two ways before it was trusted</em> (break the convergence assertion → FAIL;
+drop <code>--manifest</code> → FAIL by the intended message). It reuses
+<code>porta_sync_host.sh</code>'s recipe rather than inventing a second. Full suite after:
+<code>278 passed, 0 failed</code>, every aux gate PASS. Two things the pass caught on the
+way: tutorial 1 advertised <code>Skipped: 0</code> where the real count is <strong>14</strong>
+(perf benchmarks, plus the fibers/NLR tests Milestone A deleted), and
+<code>porta/docs/GETTING-STARTED.md</code>'s banner redirected readers to
+<code>CLI.md</code> — one v1-era page pointing at another. Both fixed.
+<strong>What first:</strong> tutorial 2 (board) — <em>prose only, and the page must say
+so</em>, because a board walkthrough cannot be gated on a host; then the v2 rewrites in
+<a href="https://github.com/davidg238/rete/issues/279">#279</a>.
+<a href="https://github.com/davidg238/rete/issues/274">#274</a> is traced (fix shape on the
+issue: construct the bridge with <code>socket: nil</code> and tick unconditionally) and
+waits its turn. New this session: <a href="https://github.com/davidg238/rete/issues/280">#280</a>
+— <code>porta put --reason</code> is stored on every event row and printed by nothing.</p>
 </div>
 
 <ol>

@@ -94,7 +94,7 @@ _Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `review/language-and-library-spec.md` — nsl-tuvm — language sufficiency & library roadmap (proposed) _(record, 2026-08-02)_
 - `review/lib/README.md` — review/lib — designed library surface (pre-implementation staging) _(record, 2026-08-02)_
 - `review/lib/cbor.md` — L6 — CBOR wire codec (the TISON-analog decision; design frozen, now implemented) _(record, 2026-08-02)_
-- `review/lib/errors.md` — L5 — Error convention (adopt before the stdlib grows) _(record, 2026-08-02)_
+- `review/lib/errors.md` — L5 — Error convention (adopt before the stdlib grows) _(record, 2026-08-29)_
 - `review/lib/exceptions.md` — Exceptions (`on:do:` / `ensure:`) — why NOT detailing it now is safe, and the _(record, 2026-07-07)_
 - `review/lib/integers.md` — L7 — Integer semantics across 32/64-bit platforms (VM design) _(record, 2026-08-02)_
 - `review/lib/messages.md` — Milestone B — nsl-facing message algebra API (proposed surface) _(record, 2026-07-03)_
@@ -109,21 +109,21 @@ _Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `review/slides.html` — nsl-tuvm — script Zephyr, don't replace it _(record, 2026-07-12)_
 - `review/test-suites-spec.md` — nsl-tests — verification suites for the first step (proposed) _(record, 2026-08-02)_
 - `review/tests/CLAIMS.md` — CLAIMS — first-step spec §7 success criteria → proving tests _(record, 2026-08-22)_
-- `review/tests/README.md` — review/tests — staged verification suites (T0, T-A…T-D) _(record, 2026-08-02)_
+- `review/tests/README.md` — review/tests — staged verification suites (T0, T-A…T-D) _(record, 2026-08-29)_
 - `review/tests/t0-gates/sanitizers.md` — T0.1 — sanitizer gate (the highest-value single item in the whole test plan) _(record, 2026-08-02)_
 - `review/zephyr-driver-exposure.md` — Exposing Zephyr drivers to nsl — a sketch _(record, 2026-07-23)_
 
 ### docs
 
 - `docs/README.md` — docs/ — the program's documents _(record, 2026-08-29)_
-- `docs/design/2026-06-17-clustered-image-xip-design.md` — Design: Decoupled image + execute-in-place clustered format _(design, 2026-07-14)_
+- `docs/design/2026-06-17-clustered-image-xip-design.md` — Design: Decoupled image + execute-in-place clustered format _(design, 2026-08-29)_
 - `docs/design/2026-06-17-global-method-cache-design.md` — Global Method Lookup Cache — Design _(design, 2026-07-14)_
 - `docs/design/2026-06-17-unboxed-floats-design.md` — Unboxed Floats (P0) — Design _(design, 2026-08-29)_
 - `docs/design/2026-06-18-gc-embedded-memory-design.md` — GC & Embedded Memory Management — Design Scope (GH #3) _(design, 2026-07-14)_
 - `docs/design/2026-06-18-nested-class-access-design.md` — Explicit Nested-Class Access + Outer-Sends — Design _(design, 2026-07-14)_
 - `docs/design/2026-06-18-w1-gc-trigger-rooting-design.md` — W1 — GC Trigger + Safe-Points / Rooting — Design _(design, 2026-07-14)_
 - `docs/design/2026-06-18-w4-fixed-arena-allocator-design.md` — W4 — Fixed-Arena Allocator Foundation — Design _(design, 2026-07-14)_
-- `docs/design/2026-06-19-gh4-iterative-mark-design.md` — GH#4 — Iterative Mark (worklist) Design _(design, 2026-07-14)_
+- `docs/design/2026-06-19-gh4-iterative-mark-design.md` — GH#4 — Iterative Mark (worklist) Design _(design, 2026-08-29)_
 - `docs/design/2026-06-19-w2a-float-arena-reclaim-design.md` — W2a — Float-Arena Reclaim (design) _(design, 2026-07-14)_
 - `docs/design/2026-06-19-w2a1-float-arena-trigger-design.md` — W2a.1 — Float-Arena GC Trigger (design) _(design, 2026-07-14)_
 - `docs/design/2026-07-01-derecursify-deferred-lift-growable-stacks-upward-closures-design.md` — De-recursify deferred lift — growable stacks + upward closures (design) _(design, 2026-08-29)_
@@ -195,7 +195,7 @@ _Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/status/README.md` — docs/status — the orientation deck _(record, 2026-08-13)_
 - `docs/status/dev-status.html` — rete dev status _(record, 2026-08-29)_
 - `docs/superpowers/notes/2026-06-18-w1-rooting-audit.md` — W1 Rooting Audit — Runtime `gc_allocate` / `float_alloc` Sites _(note, 2026-07-03)_
-- `docs/superpowers/plans/2026-06-17-decoupled-xip-image.md` — Decoupled Image + Execute-In-Place Format — Implementation Plan _(plan, 2026-07-14)_
+- `docs/superpowers/plans/2026-06-17-decoupled-xip-image.md` — Decoupled Image + Execute-In-Place Format — Implementation Plan _(plan, 2026-08-29)_
 - `docs/superpowers/plans/2026-06-17-global-method-cache.md` — Global Method Lookup Cache Implementation Plan _(plan, 2026-07-03)_
 - `docs/superpowers/plans/2026-06-18-w1-gc-trigger-rooting.md` — W1 — GC Trigger + Safe-Points / Rooting Implementation Plan _(plan, 2026-08-29)_
 - `docs/superpowers/plans/2026-06-18-w4-fixed-arena-allocator.md` — W4 Fixed-Arena Allocator Implementation Plan _(plan, 2026-08-29)_
@@ -237,34 +237,35 @@ _Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/superpowers/plans/2026-08-25-kind-schema-manifest.md` — Kind+Schema Manifest (#243) Implementation Plan _(plan, 2026-08-25)_
 - `docs/superpowers/plans/2026-08-26-porta-refuse-board-session.md` — #232 Board Session Implementation Plan — porta-refuse scenario, #114 must-deliver, two riders _(plan, 2026-08-26)_
 - `docs/tutorials/01-host.md` — Tutorial 1 — the VM on your host: build it, run the suite, write ten lines of nsl _(record, 2026-08-29)_
+- `docs/tutorials/03-porta.md` — Tutorial 3 — porta on your host: a gateway, a node, and the diff between them _(record, 2026-08-29)_
 
 ### nodus/oevm/docs
 
-- `nodus/oevm/docs/MILESTONE_A.md` — Milestone A — provenance and validation note _(record)_
-- `nodus/oevm/docs/MILESTONE_D.md` — Milestone D — provenance and validation note _(record)_
-- `nodus/oevm/docs/MILESTONE_E.md` — Milestone E — provenance and validation note _(record)_
-- `nodus/oevm/docs/README.md` — nodus/oevm/docs — the VM's documents _(record)_
-- `nodus/oevm/docs/archive/ECOSYSTEM.md` — Ecosystem map — the language/VM/fleet constellation _(record)_
-- `nodus/oevm/docs/archive/ROADMAP.md` — OEVM Roadmap _(record)_
-- `nodus/oevm/docs/archive/concept.md` — OEVM Concept & Genesis: From LLM-Driven Titelang to Custom Micro-Kernel VM _(record)_
-- `nodus/oevm/docs/archive/dev_process/phase1_walkthrough.md` — Walkthrough - Core C Structures for OEVM _(record)_
-- `nodus/oevm/docs/archive/dev_process/phase2_walkthrough.md` — Walkthrough - Phase 2: Instruction Set Expansion & XIP Solidification _(record)_
-- `nodus/oevm/docs/archive/dev_process/phase3_walkthrough.md` — Walkthrough - Phase 3: Introspection & Newspeak Mirrors _(record)_
-- `nodus/oevm/docs/archive/dev_process/phase4_walkthrough.md` — Walkthrough - Phase 4: Fiber Scheduling Architecture _(record)_
-- `nodus/oevm/docs/archive/dev_process/phase5_walkthrough.md` — Walkthrough: Phase 5 - Stack Reification & Bytecode-Driven Non-Local Returns _(record)_
-- `nodus/oevm/docs/archive/dev_process/phase6_walkthrough.md` — Walkthrough - Phase 6: Nested Classes & Lexical Enclosures _(record)_
-- `nodus/oevm/docs/archive/fiber_derecursify_core_design.md` — De-recursify core — flat non-recursive dispatch (design) _(record)_
-- `nodus/oevm/docs/archive/fiber_implementation.md` — Fiber implementation — de-recursifying the oevm interpreter (the Toit model) _(record)_
-- `nodus/oevm/docs/archive/fiber_l0_frame_abi.md` — L0 — Frame / bytecode ABI contract (the de-recursify foundation) _(record)_
-- `nodus/oevm/docs/archive/fiber_l1_implementation_plan.md` — L1 — First-class Stack + relative dynamic links + precise GC: Implementation Plan _(record)_
-- `nodus/oevm/docs/archive/fiber_l1_stack_context_design.md` — L1 — Stack object & lexical environment (Context / indirect temp-vectors) _(record)_
-- `nodus/oevm/docs/archive/implementation_plan.md` — Implementation Plan: Phases 5 - 8 Roadmap & Phase 5 Specification _(record)_
-- `nodus/oevm/docs/archive/spec.md` — Architectural Specification: Open, Lazy-Reified Virtual Machine _(record)_
-- `nodus/oevm/docs/deployment-model.md` — Deployment model: resident VM + OTA'd image (Model B) _(record)_
-- `nodus/oevm/docs/op_send_implicit.md` — OP_SEND_IMPLICIT: Lexical Implicit-Receiver Message Sends _(record)_
-- `nodus/oevm/docs/optimizations.md` — OEVM interpreter optimization log _(record)_
-- `nodus/oevm/docs/topics.md` — Design topics _(record)_
-- `nodus/oevm/docs/vm.md` — oevm — what the VM is, as of 2026-08-29 _(record)_
+- `nodus/oevm/docs/MILESTONE_A.md` — Milestone A — provenance and validation note _(record, 2026-08-29)_
+- `nodus/oevm/docs/MILESTONE_D.md` — Milestone D — provenance and validation note _(record, 2026-08-29)_
+- `nodus/oevm/docs/MILESTONE_E.md` — Milestone E — provenance and validation note _(record, 2026-08-29)_
+- `nodus/oevm/docs/README.md` — nodus/oevm/docs — the VM's documents _(record, 2026-08-29)_
+- `nodus/oevm/docs/archive/ECOSYSTEM.md` — Ecosystem map — the language/VM/fleet constellation _(record, 2026-08-29)_
+- `nodus/oevm/docs/archive/ROADMAP.md` — OEVM Roadmap _(record, 2026-08-29)_
+- `nodus/oevm/docs/archive/concept.md` — OEVM Concept & Genesis: From LLM-Driven Titelang to Custom Micro-Kernel VM _(record, 2026-08-29)_
+- `nodus/oevm/docs/archive/dev_process/phase1_walkthrough.md` — Walkthrough - Core C Structures for OEVM _(record, 2026-08-29)_
+- `nodus/oevm/docs/archive/dev_process/phase2_walkthrough.md` — Walkthrough - Phase 2: Instruction Set Expansion & XIP Solidification _(record, 2026-08-29)_
+- `nodus/oevm/docs/archive/dev_process/phase3_walkthrough.md` — Walkthrough - Phase 3: Introspection & Newspeak Mirrors _(record, 2026-08-29)_
+- `nodus/oevm/docs/archive/dev_process/phase4_walkthrough.md` — Walkthrough - Phase 4: Fiber Scheduling Architecture _(record, 2026-08-29)_
+- `nodus/oevm/docs/archive/dev_process/phase5_walkthrough.md` — Walkthrough: Phase 5 - Stack Reification & Bytecode-Driven Non-Local Returns _(record, 2026-08-29)_
+- `nodus/oevm/docs/archive/dev_process/phase6_walkthrough.md` — Walkthrough - Phase 6: Nested Classes & Lexical Enclosures _(record, 2026-08-29)_
+- `nodus/oevm/docs/archive/fiber_derecursify_core_design.md` — De-recursify core — flat non-recursive dispatch (design) _(record, 2026-08-29)_
+- `nodus/oevm/docs/archive/fiber_implementation.md` — Fiber implementation — de-recursifying the oevm interpreter (the Toit model) _(record, 2026-08-29)_
+- `nodus/oevm/docs/archive/fiber_l0_frame_abi.md` — L0 — Frame / bytecode ABI contract (the de-recursify foundation) _(record, 2026-08-29)_
+- `nodus/oevm/docs/archive/fiber_l1_implementation_plan.md` — L1 — First-class Stack + relative dynamic links + precise GC: Implementation Plan _(record, 2026-08-29)_
+- `nodus/oevm/docs/archive/fiber_l1_stack_context_design.md` — L1 — Stack object & lexical environment (Context / indirect temp-vectors) _(record, 2026-08-29)_
+- `nodus/oevm/docs/archive/implementation_plan.md` — Implementation Plan: Phases 5 - 8 Roadmap & Phase 5 Specification _(record, 2026-08-29)_
+- `nodus/oevm/docs/archive/spec.md` — Architectural Specification: Open, Lazy-Reified Virtual Machine _(record, 2026-08-29)_
+- `nodus/oevm/docs/deployment-model.md` — Deployment model: resident VM + OTA'd image (Model B) _(record, 2026-08-29)_
+- `nodus/oevm/docs/op_send_implicit.md` — OP_SEND_IMPLICIT: Lexical Implicit-Receiver Message Sends _(record, 2026-08-29)_
+- `nodus/oevm/docs/optimizations.md` — OEVM interpreter optimization log _(record, 2026-08-29)_
+- `nodus/oevm/docs/topics.md` — Design topics _(record, 2026-08-29)_
+- `nodus/oevm/docs/vm.md` — oevm — what the VM is, as of 2026-08-29 _(record, 2026-08-29)_
 
 ### protocol
 
@@ -277,7 +278,7 @@ _Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 ### nodus/nsl/docs
 
 - `nodus/nsl/docs/NEWSPEAK_DIALECT.md` — ns-oevm — a Newspeak dialect (intentional differences from full Newspeak) _(record, 2026-08-26)_
-- `nodus/nsl/docs/compiler.md` — ns-oevm compiler _(record, 2026-08-02)_
+- `nodus/nsl/docs/compiler.md` — ns-oevm compiler _(record, 2026-08-29)_
 - `nodus/nsl/docs/design/2026-06-16-block-inlining-design.md` — Block inlining via a scope/frame model _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-06-19-next-phase-stdlib-and-debug.md` — ns-oevm — next phase: standard library + debug story _(design, 2026-08-29)_
 - `nodus/nsl/docs/design/2026-06-20-ns-oevm-stdlib-design.md` — ns-oevm — standard library: the capability-pure primitive/library line _(design, 2026-08-02)_
@@ -319,10 +320,10 @@ _Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `nodus/nsl/docs/design/2026-07-15-tuvm21-take-nil-vs-empty-design.md` — tuvm#21 — a posted `nil` must be distinguishable from an empty stream at `take:` _(design, 2026-08-02)_
 - `nodus/nsl/docs/programming_with_nsl.md` — Programming with nsl _(record, 2026-08-24)_
 - `nodus/nsl/docs/superpowers/findings/2026-07-04-oimg-large-smi-constant-corruption.md` — FINDING (2026-07-04): oimg backend corrupts large SMI integer constants _(note, 2026-08-02)_
-- `nodus/nsl/docs/superpowers/plans/2026-06-16-block-inlining-phase-a.md` — Block Inlining — Phase A (Foundation) Implementation Plan _(plan, 2026-08-02)_
-- `nodus/nsl/docs/superpowers/plans/2026-06-16-block-inlining-phase-b.md` — Block Inlining — Phase B (if-family inlining) Implementation Plan _(plan, 2026-08-02)_
-- `nodus/nsl/docs/superpowers/plans/2026-06-16-block-inlining-phase-c.md` — Block Inlining — Phase C (`and:` / `or:` short-circuit inlining) Implementation Plan _(plan, 2026-08-02)_
-- `nodus/nsl/docs/superpowers/plans/2026-06-16-block-inlining-phase-d.md` — Block Inlining Phase D — Loop Inlining Implementation Plan _(plan, 2026-08-02)_
+- `nodus/nsl/docs/superpowers/plans/2026-06-16-block-inlining-phase-a.md` — Block Inlining — Phase A (Foundation) Implementation Plan _(plan, 2026-08-29)_
+- `nodus/nsl/docs/superpowers/plans/2026-06-16-block-inlining-phase-b.md` — Block Inlining — Phase B (if-family inlining) Implementation Plan _(plan, 2026-08-29)_
+- `nodus/nsl/docs/superpowers/plans/2026-06-16-block-inlining-phase-c.md` — Block Inlining — Phase C (`and:` / `or:` short-circuit inlining) Implementation Plan _(plan, 2026-08-29)_
+- `nodus/nsl/docs/superpowers/plans/2026-06-16-block-inlining-phase-d.md` — Block Inlining Phase D — Loop Inlining Implementation Plan _(plan, 2026-08-29)_
 - `nodus/nsl/docs/superpowers/plans/2026-06-19-source-map-emission.md` — Source-Map Emission Implementation Plan _(plan, 2026-08-02)_
 - `nodus/nsl/docs/superpowers/plans/2026-06-20-stdlib-step1-indexable-platform.md` — Std-lib Step 1: Real Indexable Representation + `platform` Capability Object — Implementation Plan _(plan, 2026-08-02)_
 - `nodus/nsl/docs/superpowers/plans/2026-06-20-stdlib-step2-compiler-platform-wiring.md` — Std-lib Step 2 — Compiler Platform Wiring Implementation Plan _(plan, 2026-08-02)_
