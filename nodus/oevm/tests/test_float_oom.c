@@ -18,7 +18,7 @@
  * aborts; post-fix it completes with the arena bounded to the pool and a small
  * live set intact (proving reclaim is precise, not a blanket wipe).
  *
- * Build (see tools/run_c_tests.sh):
+ * Build (see nodus/nsl/tools/run_tests_oevm.py (C_UNIT_TESTS)):
  *   -DOEVM_FLOAT_ARENA_SLAB_CELLS=512 -DOEVM_FLOAT_ARENA_SLAB_BUDGET=8
  *   -Wl,--wrap=malloc  + the Model-A engine link set.
  */

@@ -129,109 +129,223 @@ def _build_pathb_once():
     return True, None
 
 
+# ---- The C unit test registry (rete#275) -----------------------------------
+#
+# EVERY C unit test is registered below, individually, and this suite is the ONLY
+# thing that runs them. `nodus/oevm/tools/run_c_tests.sh` — a second aggregate
+# runner that carried its own copy of these link sets — was DELETED on 2026-08-29.
+# It had sat red because nothing invoked it (four tests aborting on rete#226's
+# prim_id, undetected), which is rete#261's shape exactly; and a test registered
+# in TWO places is a test that gets forgotten in one of them (test_observer_core
+# had to be added to both).
+#
+# THE LINK SETS, moved here from that script. They are mutually exclusive in
+# exactly one file — solidified_image.c XOR kernel_boot.c, whose static Vtable_*
+# definitions overlap in 13 symbols. oimg_loader.c belongs to both. The same
+# split is the OEVM_MODEL knob in nodus/oevm/zephyr/CMakeLists.txt.
+_ENG_COMMON = ["src/platform.c", "src/serial.c", "src/udp.c", "src/http.c",
+               "src/http_core.c", "src/mirror.c", "src/space.c", "src/handles.c",
+               "src/ota.c", "src/span.c", *OEVM_BACKEND]
+_ENG_CORE = ["src/vm.c", "src/gc.c", "src/dispatch.c", "src/oimg_loader.c"]
+ENG_A = [*_ENG_CORE, *_ENG_COMMON, "src/solidified_image.c"]
+ENG_B = [*_ENG_CORE, *_ENG_COMMON, "src/kernel_boot.c"]
+
+# Backend-only link sets: these tests stub their own seams and must NOT drag in
+# the VM (see each test's own header for why).
+_BE = f"src/backend/{OEVM_TARGET}"
+
+# name, link set, extra cflags, skip reason (None = run it).
+# A row with a skip reason still PRINTS, because a test that silently stopped
+# running is the failure mode this registry exists to prevent.
+C_UNIT_TESTS = [
+    # --- Model A (solidified_image.c) ---
+    ("test_arena",            ENG_A, [], None),
+    ("test_float_arena",      ENG_A, [], None),
+    ("test_coalesce",         ENG_A, ["-DOEVM_HEAP_SIZE=8192"], None),
+    # G3/M2: heap telemetry counters (live_bytes/high_water/largest_free_block/
+    # gc_cycles) — the fragmentation early-warning API.
+    ("test_heap_stats",       ENG_A, ["-DOEVM_HEAP_SIZE=65536"], None),
+    # rete#190 sub-project A: the C-allocation seam's counters.
+    ("test_cheap_stats",      ENG_A, ["-DOEVM_HEAP_SIZE=65536"], None),
+    # rete#215: the retained panic note's validity rule — a block of garbage must
+    # not decode as a report. Retention itself is a TARGET property (tests/target/).
+    ("test_reboot_note",      ENG_A, ["-DOEVM_HEAP_SIZE=65536"], None),
+    # rete#190 stage 2: Symbol name bytes inline — 200 Symbols must cost the C heap
+    # zero bytes (the leak that crashed three C6 boards), and the bytes must be a GC LEAF.
+    ("test_symbol_inline",    ENG_A, ["-DOEVM_HEAP_SIZE=65536"], None),
+    ("test_method_cache",     ENG_A, ["-DOEVM_CACHE_STATS"], None),
+    # oevm#14 regression proof.
+    ("test_debugger",         ENG_A, [], None),
+    # rete#165: the method-profile gate.
+    ("test_mprof_gate",       ENG_A, ["-DOEVM_METHOD_PROFILE"], None),
+    ("test_mprof_alloc",      ENG_A, ["-DOEVM_METHOD_PROFILE"], None),
+    # rete#226 — a Symbol carries its own prim id, so nothing looks one up. This
+    # replaced the #222 cache gate: there is no table to fill. What is asserted is
+    # the invariant that made the cache unnecessary — every Symbol knows its id
+    # before anyone asks, and one that reached a send undecided would present as a
+    # primitive silently ceasing to be intercepted. rete#275 is that hazard biting
+    # four tests that open-coded a Symbol instead of calling symbol_new.
+    ("test_symbol_prim_id",   ENG_A, [], None),
+    # de-recursify deferred-lift Phase 1: heap Contexts for escaping captures.
+    # rete#275: LIVE tests that no runner had EVER invoked — neither this suite nor
+    # the deleted script. Both pass.
+    ("test_context",          ENG_A, [], None),
+    ("test_ctx_ops",          ENG_A, [], None),
+    ("test_oevm",             ENG_A, [], None),
+    ("test_gc_mark_iterative", ENG_A, ["-DOEVM_HEAP_SIZE=33554432", "-lpthread"], None),
+    ("test_float_gc",         ENG_A, [], None),
+    # tuvm#15: float-arena OOM under a small embedded malloc pool. --wrap=malloc caps
+    # slab allocations below the BUDGET (so the budget trigger never fires), proving
+    # float_alloc reclaims-on-malloc-failure instead of aborting.
+    ("test_float_oom",        ENG_A, ["-DOEVM_FLOAT_ARENA_SLAB_CELLS=512",
+                                      "-DOEVM_FLOAT_ARENA_SLAB_BUDGET=8",
+                                      "-Wl,--wrap=malloc"], None),
+    # rete#190: the seam counts a failed allocation and returns NULL, never aborts.
+    ("test_cheap_oom",        ENG_A, ["-Wl,--wrap=malloc"], None),
+    ("test_gc_trigger",       ENG_A, ["-DOEVM_HEAP_SIZE=65536"], None),
+    # oevm#36: the vestigial access-control subsystem.
+    ("test_access",           ENG_A, [], None),
+    ("test_enclosures",       ENG_A, [], None),
+    # perf/op-cmp-at: hand-assembled fast-path opcodes (OP_LT..OP_GE, OP_AT/OP_AT_PUT).
+    ("test_op_fast",          ENG_A, [], None),
+
+    # --- Model B (kernel_boot.c) ---
+    ("test_int_compare",      ENG_B, [], None),
+    ("test_millis",           ENG_B, [], None),
+    ("test_platform",         ENG_B, [], None),
+    # Milestone B Task 3: RawBytes leaf storage.
+    ("test_raw_bytes",        ENG_B, [], None),
+    # Milestone C Task 1: the channel-space C substrate. Small capacity overrides
+    # make the boundary-fill/overflow properties fast and deterministic.
+    ("test_space",            ENG_B, ["-DOEVM_SPACE_MAX_CHANNELS=8",
+                                      "-DOEVM_SPACE_QUEUE_DEPTH=4"], None),
+    # porta space-sync (plan 2): the per-space monotonic counter (design D5), the
+    # per-channel last_seq, and the prefix-scoped changed-since scan.
+    ("test_space_seq",        ENG_B, ["-DOEVM_SPACE_MAX_CHANNELS=16",
+                                      "-DOEVM_SPACE_QUEUE_DEPTH=8"], None),
+    # M6 C-boundary handle table: JNI-global-ref-style GC roots for C code.
+    ("test_handles",          ENG_B, ["-DOEVM_HANDLE_TABLE_MAX=4"], None),
+    # The ISR->channel pulse seam, end-to-end through the handle table and the
+    # space queue. NOTE: this is the POSIX ring — the target seam is not covered
+    # here, which is what tests/target/ exists for.
+    ("test_pulse",            ENG_B, ["-DOEVM_PULSE_MAILBOX_DEPTH=4"], None),
+    # Rung 3 Task 2: the CBOR integer leaf primitive `cborEncodeInt:` (prim 97).
+    ("test_cbor",             ENG_B, [], None),
+    ("test_kernel_boot",      ENG_B, [], None),
+
+    # --- Backend-only: link ONLY the posix seam file, per each test's header ---
+    ("test_serial",           [f"{_BE}/serial_{OEVM_TARGET}.c"], [], None),
+    ("test_udp",              [f"{_BE}/udp_{OEVM_TARGET}.c"], [], None),
+    # tuvm#61: http_core.c stamps the two C-owned spans, so span.c + the posix
+    # microsecond clock join the link set. The test supplies its own
+    # timer_backend_millis stub.
+    ("test_http",             ["src/http_core.c", f"{_BE}/http_{OEVM_TARGET}.c",
+                               "src/span.c", f"{_BE}/span_{OEVM_TARGET}.c"], [], None),
+    # tuvm#61: job-latency span slots. span.c has no VM dependencies at all, which
+    # is the point — any context may bump a slot.
+    ("test_span",             ["src/span.c", f"{_BE}/span_{OEVM_TARGET}.c"], [], None),
+    # rete#25: the C ota seam. ota.c depends on nothing but its two seams, BOTH
+    # stubbed in-file, so the block-fetch loop, the resume arithmetic and the
+    # file-local SHA-256 are proven without a socket, a filesystem or a porta.
+    ("ota_seam_test",         ["src/ota.c", f"{_BE}/platform_{OEVM_TARGET}.c"], [], None),
+
+    # --- Header-only: no link set at all (offsetof / pure-decision asserts) ---
+    ("test_frame_abi",        [], [], None),
+    ("test_layout",           [], [], None),
+    # rete#215/#269 — THE WEDGE VERDICT, on the host. The decision lived only in
+    # zephyr/src/observer.c, which no host gate compiles, so #269 found it rebooting
+    # a HEALTHY node from a board and every earlier bug in it cost a board cycle too.
+    # It sweeps 30 015 (delivered tick, empty window, sampler) triples for aliasing
+    # and carries the pre-#269 predicate in-file, requiring THAT to false-fire — so
+    # this gate has teeth rather than being a tautology written after the fix.
+    ("test_observer_core",    [], ["-Wextra"], None),
+
+    # --- Pre-existing breakage, excluded rather than silently dropped ---
+    ("test_solidified",       ENG_A, [],
+     "stale per-test fixture: hard-codes CounterVtable/Symbol_increment from an old "
+     "per-test fixture the current generated image no longer provides; tracked in "
+     "docs/ROADMAP.md P2 for a dedicated fixture"),
+    ("test_oimg",             ENG_A, [],
+     "needs stub globals for gc.c's grown trace surface: designed to link gc.c "
+     "standalone via its own stub globals, but gc.c now also requires StringVtable/"
+     "StackVtable/ContextVtable/g_active_stack/debugger_hook/method_cache_flush/"
+     "g_boot_inflight_receiver, which the test's stub block predates"),
+]
+
+
 def run_c_unit_tests(oevm_dir):
-    """Build + run standalone C unit tests — oevm#14 proof, extended by #165 for
-    the method-profile gate.
+    """Build + run every C unit test in C_UNIT_TESTS.
 
-    Links against src/oimg_loader.c (provides oimg_blob_base/end, builtin_registry,
-    oimg_singleton) + src/solidified_image.c (provides init_solidified_vtables) —
-    NOT kernel_boot.c, whose static Vtable_* defs would clash with solidified_image.c.
+    rete#275 — THIS IS THE ONLY C UNIT TEST RUNNER. It replaced
+    nodus/oevm/tools/run_c_tests.sh, which nothing invoked and which was therefore
+    red without anyone learning it (rete#261's shape). Adding a C test is now one
+    row above, in one file.
+
+    EVERY test runs and every failure is reported: this deliberately does NOT stop
+    at the first one. The old shell script's `fail=1` accumulator did the same, and
+    the four aborts rete#275 fixed were only visible because of it — a short-circuit
+    would have shown one and hidden three.
     """
-    common_srcs = [
-        "src/vm.c", "src/gc.c", "src/dispatch.c", "src/platform.c", "src/space.c", "src/handles.c", "src/span.c",
-        "src/serial.c",
-        "src/udp.c", "src/http.c", "src/http_core.c", "src/mirror.c", "src/ota.c", *OEVM_BACKEND,
-        "src/oimg_loader.c", "src/solidified_image.c",
-    ]
+    # OEVM_BUILD=asan|ubsan — sanitizer coverage for the ISR-adjacent C (mailbox
+    # ring, handle table). Carried over VERBATIM from the deleted run_c_tests.sh,
+    # because review/tests/t0-gates/sanitizers.md makes it standing policy: "the C
+    # unit tests run under the same two configs". Deleting the script was allowed
+    # to remove a MECHANISM; it was not allowed to remove this CAPABILITY (D8).
+    # NOTE the flags are the script's own, not sanitizers.md's: that doc says
+    # -fno-sanitize-recover=all where the script always passed =undefined. The
+    # behaviour that actually ran is preserved here; the discrepancy is left for
+    # whoever owns that doc rather than silently resolved.
+    sanitize = os.environ.get("OEVM_BUILD", "")
+    if sanitize == "asan":
+        san_flags = ["-fsanitize=address", "-fno-omit-frame-pointer", "-g"]
+    elif sanitize == "ubsan":
+        san_flags = ["-fsanitize=undefined", "-fno-sanitize-recover=undefined", "-g"]
+    elif sanitize == "":
+        san_flags = []
+    else:
+        print(f"{COLOR_RED}C unit tests: unknown OEVM_BUILD={sanitize!r} "
+              f"(want asan|ubsan){COLOR_RESET}")
+        return False
 
-    build = subprocess.run(
-        ["gcc", "-Wall", "-std=c99", "-Isrc",
-         *common_srcs,
-         "tests/test_debugger.c", "-o", "/tmp/test_debugger", "-lm"],
-        cwd=str(oevm_dir), capture_output=True, text=True)
-    if build.returncode != 0:
-        print("test_debugger build FAILED:\n" + build.stderr)
-        return False
-    run = subprocess.run(["/tmp/test_debugger"], cwd=str(oevm_dir),
-                         capture_output=True, text=True)
-    if run.returncode != 0:
-        print("test_debugger FAILED:\n" + run.stdout + run.stderr)
-        return False
-    print("C unit test test_debugger: PASSED")
-
-    build = subprocess.run(
-        ["gcc", "-Wall", "-std=c99", "-DOEVM_METHOD_PROFILE", "-Isrc",
-         *common_srcs,
-         "tests/test_mprof_gate.c", "-o", "/tmp/test_mprof_gate", "-lm"],
-        cwd=str(oevm_dir), capture_output=True, text=True)
-    if build.returncode != 0:
-        print("test_mprof_gate build FAILED:\n" + build.stderr)
-        return False
-    run = subprocess.run(["/tmp/test_mprof_gate"], cwd=str(oevm_dir),
-                         capture_output=True, text=True)
-    if run.returncode != 0:
-        print("test_mprof_gate FAILED:\n" + run.stdout + run.stderr)
-        return False
-    print("C unit test test_mprof_gate: PASSED")
-
-    # rete#226 — a Symbol carries its own prim id, so nothing looks one up. This replaced
-    # the #222 cache gate: there is no table to fill, so the -DPRIM_CACHE_SIZE=8 that made
-    # the old hang reachable on the host has nothing to shrink. What is asserted now is the
-    # invariant that made the cache unnecessary — every Symbol the VM creates knows its id
-    # before anyone asks, and a Symbol that reaches a send undecided would present as a
-    # primitive silently ceasing to be intercepted.
-    build = subprocess.run(
-        ["gcc", "-Wall", "-std=c99", "-Isrc",
-         *common_srcs,
-         "tests/test_symbol_prim_id.c", "-o", "/tmp/test_symbol_prim_id", "-lm"],
-        cwd=str(oevm_dir), capture_output=True, text=True)
-    if build.returncode != 0:
-        print("test_symbol_prim_id build FAILED:\n" + build.stderr)
-        return False
-    run = subprocess.run(["/tmp/test_symbol_prim_id"], cwd=str(oevm_dir),
-                         capture_output=True, text=True, timeout=60)
-    if run.returncode != 0:
-        print("test_symbol_prim_id FAILED:\n" + run.stdout + run.stderr)
-        return False
-    print("C unit test test_symbol_prim_id: PASSED")
-
-    # rete#215/#269 — THE WEDGE VERDICT, on the host for the first time. The decision
-    # lived only in zephyr/src/observer.c, which no host gate compiles (footprint.sh
-    # excludes every TU that #includes <zephyr/...>), so #269 found it rebooting a
-    # HEALTHY node from a board and every earlier bug in it cost a board cycle too.
-    # Header-only: src/observer_core.h needs no link set. It sweeps 30 015 (delivered
-    # tick, empty window, sampler) triples for aliasing and carries the pre-#269
-    # predicate in-file, requiring THAT to false-fire — so this gate has teeth rather
-    # than being a tautology written after the fix.
-    build = subprocess.run(
-        ["gcc", "-Wall", "-Wextra", "-std=c99", "-Isrc",
-         "tests/test_observer_core.c", "-o", "/tmp/test_observer_core"],
-        cwd=str(oevm_dir), capture_output=True, text=True)
-    if build.returncode != 0:
-        print("test_observer_core build FAILED:\n" + build.stderr)
-        return False
-    run = subprocess.run(["/tmp/test_observer_core"], cwd=str(oevm_dir),
-                         capture_output=True, text=True, timeout=60)
-    if run.returncode != 0:
-        print("test_observer_core FAILED:\n" + run.stdout + run.stderr)
-        return False
-    print("C unit test test_observer_core: PASSED")
-
-    build = subprocess.run(
-        ["gcc", "-Wall", "-std=c99", "-DOEVM_METHOD_PROFILE", "-Isrc",
-         *common_srcs,
-         "tests/test_mprof_alloc.c", "-o", "/tmp/test_mprof_alloc", "-lm"],
-        cwd=str(oevm_dir), capture_output=True, text=True)
-    if build.returncode != 0:
-        print("test_mprof_alloc build FAILED:\n" + build.stderr)
-        return False
-    run = subprocess.run(["/tmp/test_mprof_alloc"], cwd=str(oevm_dir),
-                         capture_output=True, text=True)
-    if run.returncode != 0:
-        print("test_mprof_alloc FAILED:\n" + run.stdout + run.stderr)
-        return False
-    print("C unit test test_mprof_alloc: PASSED")
-    return True
+    failures, skips, passes = [], [], 0
+    for name, link, cflags, skip in C_UNIT_TESTS:
+        if skip:
+            print(f"{COLOR_YELLOW}C unit test {name}: SKIP{COLOR_RESET} (pre-existing: {skip})")
+            skips.append(name)
+            continue
+        out = f"/tmp/oevm_ct_{name}"
+        # Order mirrors the link line in each test's own header: the test TU first,
+        # then its link set, then per-test flags (so -Wl,--wrap lands after the
+        # objects it rewrites), then -lm for anything that pulled in the VM.
+        cmd = ["gcc", "-Wall", "-std=c99", *san_flags, "-Isrc",
+               f"tests/{name}.c", *link, *cflags]
+        if link:
+            cmd.append("-lm")
+        cmd += ["-o", out]
+        build = subprocess.run(cmd, cwd=str(oevm_dir), capture_output=True, text=True)
+        if build.returncode != 0:
+            print(f"{COLOR_RED}C unit test {name}: BUILD FAILED{COLOR_RESET}\n" + build.stderr)
+            failures.append(name)
+            continue
+        try:
+            run = subprocess.run([out], cwd=str(oevm_dir), capture_output=True,
+                                 text=True, timeout=300)
+        except subprocess.TimeoutExpired:
+            print(f"{COLOR_RED}C unit test {name}: TIMEOUT (300s){COLOR_RESET}")
+            failures.append(name)
+            continue
+        if run.returncode != 0:
+            print(f"{COLOR_RED}C unit test {name}: FAILED{COLOR_RESET}\n" + run.stdout + run.stderr)
+            failures.append(name)
+            continue
+        passes += 1
+    if failures:
+        print(f"{COLOR_RED}C unit tests: {len(failures)} FAILED{COLOR_RESET} "
+              f"({', '.join(failures)}) — {passes} passed, {len(skips)} skipped")
+    else:
+        print(f"{COLOR_GREEN}C unit tests: {passes} passed{COLOR_RESET}, "
+              f"{len(skips)} skipped, 0 failed")
+    return not failures
 
 
 def run_boot_gc_asan_gate() -> bool:
@@ -1005,7 +1119,12 @@ def main():
             return f"{COLOR_RED}FAIL{COLOR_RESET}"
         return status
 
-    print(f"  grant: {_mark('PASS' if grant_ok else 'FAIL')}  "
+    # rete#275: c-units leads the aux line. It already gated suite_ok, but it was
+    # not NAMED here — and this line is the one CLAUDE.md tells the reader to check,
+    # because it can be red while "Failed: 0" reads green (#63). An unnamed gate is
+    # how run_c_tests.sh stayed red for an extended period without anyone learning it.
+    print(f"  c-units: {_mark('PASS' if c_units_ok else 'FAIL')}  "
+          f"grant: {_mark('PASS' if grant_ok else 'FAIL')}  "
           f"debugger-integration: {_mark('PASS' if dbg_int_ok else 'FAIL')}  "
           f"portability-32: {_mark(portability)}  "
           f"boot-gc-asan: {_mark('PASS' if boot_gc_ok else 'FAIL')}  "

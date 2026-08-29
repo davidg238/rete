@@ -1,7 +1,7 @@
 /* Copyright (c) 2026 Ekorau LLC */
 /* rete#25 — the C `ota` seam, tested through its two seams and nothing else.
  *
- * Link set (see tools/run_c_tests.sh): src/ota.c + the posix console backend
+ * Link set (see nodus/nsl/tools/run_tests_oevm.py (C_UNIT_TESTS)): src/ota.c + the posix console backend
  * ONLY. Both of ota.c's dependencies — the file/env/exit half (ota_backend.h)
  * and the UDP half (udp_backend.h) — are stubbed IN THIS FILE, which is the
  * point: the fetch loop, the resume arithmetic and the SHA-256 verify are pure

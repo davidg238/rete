@@ -57,7 +57,7 @@ Log: `esp32-debug-artifacts/tuvm-esp32-GREEN-both-fixes.log`.
 Same node, same output, via the **Model B** path: a generic VM (`oimg_loader.c` +
 `kernel_boot.c`) plus the program as a `.oimg` blob `.incbin`'d into flash `.rodata`
 (`zephyr/blob.S`), with **no `src/solidified_image.c` in the link**. This is the
-`ENG_A`/`ENG_B` split `tools/run_c_tests.sh:28-29` has always run on the host, ported to
+`ENG_A`/`ENG_B` split the host C unit gate has always run (`nodus/nsl/tools/run_tests_oevm.py (C_UNIT_TESTS)`), ported to
 Zephyr behind `-DTUVM_MODEL=A|B`.
 
 Verified in the ELF: `tuvm_blob_start=0x3f400884`, `tuvm_blob_end=0x3f41b31c`, span

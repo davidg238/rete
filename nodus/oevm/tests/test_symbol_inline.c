@@ -4,8 +4,8 @@
    Three passing gates prove only that nothing broke; this proves the intended
    thing happened, and guards the landmine the change introduced.
 
-   Build (Model A link set — ENG_A in tools/run_c_tests.sh):
-     bash tools/run_c_tests.sh   # runs this as test_symbol_inline
+   Build (Model A link set — ENG_A in nodus/nsl/tools/run_tests_oevm.py (C_UNIT_TESTS)):
+     cd nodus/nsl && python3 tools/run_tests_oevm.py   # runs this as test_symbol_inline
 
    Verifies:
      1. THE LEAK IS GONE, measured at the site that leaked. The test drives the
@@ -53,7 +53,7 @@
         bytes after a collection proves nothing about reachability, which is
         also why OEVM_GC_STRESS is blind to this whole class of bug.
         Falsified by hand: short-circuiting trace_one's SymbolVtable arm makes
-        property 2 abort, while every other test in run_c_tests.sh stays green. */
+        property 2 abort, while every other C unit test stays green. */
 #include "../src/oevm.h"
 #include "../src/oimg.h"
 #include "../src/platform.h"

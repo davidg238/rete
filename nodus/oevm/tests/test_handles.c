@@ -1,7 +1,8 @@
 /* Unit test for the M6 C-boundary handle table (src/handles.c). Proves: a handle
    keeps its object alive across a forced GC; get resolves; free releases; and an
    over-full table aborts with the FROZEN string "handle table full".
-   Built with a tiny capacity via -DOEVM_HANDLE_TABLE_MAX=4 by run_c_tests.sh. */
+   Built with a tiny capacity via -DOEVM_HANDLE_TABLE_MAX=4 by the registry in
+   nodus/nsl/tools/run_tests_oevm.py (C_UNIT_TESTS). */
 #define _POSIX_C_SOURCE 200112L
 #include "../src/oevm.h"
 #include "../src/handles.h"

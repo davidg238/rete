@@ -9,7 +9,7 @@
    the VM.
 
    Build (Model-B link set + small capacity overrides for determinism — see
-   tools/run_c_tests.sh):
+   nodus/nsl/tools/run_tests_oevm.py (C_UNIT_TESTS)):
      gcc -std=c99 -Isrc -DOEVM_SPACE_MAX_CHANNELS=16 -DOEVM_SPACE_QUEUE_DEPTH=8 \
          tests/test_space_seq.c <ENG_B> -lm -o /tmp/tss && /tmp/tss
 

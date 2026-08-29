@@ -12,12 +12,16 @@ project(oevm_pulse)
 # Vtable_IntegerVtable, ...) that solidified_image.c also bakes for THIS program
 # — verified, the overlap is exactly those 13. src/oimg_loader.c does NOT clash
 # and is linked under BOTH models: it shares no symbol with solidified_image.c,
-# and the host has always linked the two together — tools/run_c_tests.sh:28
-# (ENG_A = oimg_loader.c + solidified_image.c) vs :29 (ENG_B = oimg_loader.c +
-# kernel_boot.c). The OEVM_MODEL knob below is that same ENG_A/ENG_B split.
-# (An earlier revision of this comment blamed oimg_loader.c too, and cited a
-# run_c_unit_tests() in tools/run_tests_oevm.py that does not exist — the real
-# link sets are in run_c_tests.sh.) src/serial.c and src/udp.c are linked even
+# and the host has always linked the two together — see ENG_A / ENG_B in
+# nodus/nsl/tools/run_tests_oevm.py (ENG_A = oimg_loader.c + solidified_image.c,
+# ENG_B = oimg_loader.c + kernel_boot.c). The OEVM_MODEL knob below is that same
+# ENG_A/ENG_B split.
+# (This citation has now been wrong in BOTH directions. An earlier revision cited
+# a run_c_unit_tests() in tools/run_tests_oevm.py that did not exist, and was
+# corrected to name tools/run_c_tests.sh; rete#275 then DELETED that script — it
+# was a second, unrun runner — and moved the link sets into run_c_unit_tests(),
+# which is where they are now. Check the file before trusting the line.)
+# src/serial.c and src/udp.c are linked even
 # though this gate's node grants no serial/net capability: src/dispatch.c's
 # send() fast path unconditionally calls serial_object()/udp_object() to test
 # receiver identity, so both — and the zephyr backend files that back them —
@@ -129,7 +133,8 @@ endif()
 # B: a generic VM + a .oimg blob .incbin'd into flash .rodata.
 # The link sets are MUTUALLY EXCLUSIVE: solidified_image.c XOR kernel_boot.c —
 # see the 13-symbol Vtable_* overlap explained at the top of this file. This is
-# the ENG_A/ENG_B split tools/run_c_tests.sh has always used on the host.
+# the ENG_A/ENG_B split the host C unit gate has always used
+# (nodus/nsl/tools/run_tests_oevm.py, C_UNIT_TESTS).
 #
 # Model A links no oimg_loader.c: zephyr/src/main.c stubs the four globals it
 # would own (oimg_blob_base/_end, builtin_registry, oimg_singleton), and

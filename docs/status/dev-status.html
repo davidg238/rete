@@ -266,9 +266,15 @@ or independent of it.</p>
 <h2>Staleness worth flagging</h2>
 <ul>
   <li><strong><a href="https://github.com/davidg238/rete/issues/275">#275</a> —
-    <code>run_c_tests.sh</code> is red at HEAD (four aborts) and <em>no suite invokes it</em>.
-    Same shape as <a href="https://github.com/davidg238/rete/issues/261">#261</a>: a script
-    that looks like the C gate, is cited as one in plans, and is neither run nor green.</li>
+    RESOLVED 2026-08-29.</strong> The four aborts were rete#226's <code>prim_id</code>
+    biting four tests that open-coded a <code>Symbol</code> instead of calling
+    <code>symbol_new</code>, so the send path never intercepted the primitive. Fixed at
+    root cause. <code>run_c_tests.sh</code> — a second runner nothing invoked, which is why
+    it stayed red, the <a href="https://github.com/davidg238/rete/issues/261">#261</a>
+    shape — was <strong>deleted</strong>; all 43 C tests are now registered individually in
+    <code>nodus/nsl/tools/run_tests_oevm.py</code> (<code>C_UNIT_TESTS</code>), the one
+    runner the suite invokes. 41 pass, 2 pre-existing SKIPs, and the gate was falsified
+    against the original defect.</li>
   <li><a href="https://github.com/davidg238/rete/issues/118">#118</a> (node identity) looks
     overtaken by <a href="https://github.com/davidg238/rete/issues/186">#186</a>'s resolution
     (the id is the board, prim 155) and is partly re-litigated by

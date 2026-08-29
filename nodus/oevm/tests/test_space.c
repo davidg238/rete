@@ -11,7 +11,7 @@
 
    Build (Model-B link set + space.c; small capacity overrides make the
    boundary-fill/overflow properties fast and deterministic — see
-   tools/run_c_tests.sh):
+   nodus/nsl/tools/run_tests_oevm.py (C_UNIT_TESTS)):
      gcc -std=c99 -Isrc -DOEVM_SPACE_MAX_CHANNELS=8 -DOEVM_SPACE_QUEUE_DEPTH=4 \
          tests/test_space.c \
          src/vm.c src/gc.c src/dispatch.c src/oimg_loader.c \
