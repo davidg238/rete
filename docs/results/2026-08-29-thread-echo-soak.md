@@ -221,6 +221,31 @@ One caveat on the labels: a full-erase reflash regenerates the extended address,
 the marker as *current identity*, not a permanent serial. The sticker MAC remains the
 immutable backstop.
 
+### Distance from the gateway is not the explanation
+
+`92c2` is physically the furthest board from the gateway, which makes weak-link the obvious
+hypothesis. The neighbour table refutes it (2026-08-29 15:25, all five nodes attached):
+
+| RLOC16 | label | avg RSSI | LQ In |
+|---|---|---:|---:|
+| `0x200d` | `c6bench` | −51 dBm | 3 |
+| `0x2013` | the bell | −58 dBm | 3 |
+| `0x2019` | `4ec0` | −66 dBm | 3 |
+| `0x201b` | `92c2` | −70 dBm | 3 |
+| `0x2011` | `7adf` | **−72 dBm** | 3 |
+
+**The weakest link belongs to `7adf` — the node with the 48.6-day unbroken run.** `4ec0`,
+which has the cleanest record of the three, sits between the two. Link strength and
+reliability are not ordered together here at all. And `LQ In` is 3 — the maximum — for every
+node including the weakest: −72 dBm is roughly 28 dB above 802.15.4 receiver sensitivity, so
+none of these links is marginal.
+
+What the 2026-08-18 event does look like is **shared power**. It took `92c2` and `4ec0` down
+2 m 18 s apart and left `7adf` running, and `4ec0` had the best record of the three — so
+whatever hit them was indifferent to both link quality and board health. Whether those two
+share an outlet or strip while `7adf` is on another is a question for the bench, not the
+logs, and it is not yet answered.
+
 ### `92c2` — flagged, not convicted
 
 It is the only node with a bad record: the sole gap cluster in the entire dataset (six gaps
