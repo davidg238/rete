@@ -11,7 +11,7 @@ at milestone boundaries, not per task.
 keeper on the porta fleet plane — nRF52840-class (~256 KB) + OpenThread. What the 2026-07-03
 pivot changed is the concurrency pillar: **no fibers, no NLR** — a reactive, run-to-completion
 model (channels + reactor + supervisor) replaces them. The Zephyr gate remains **memory, not
-speed** (old `docs/archive/ROADMAP.md` prime directive; still true).
+speed** (old `nodus/oevm/docs/archive/ROADMAP.md` prime directive; still true).
 
 ---
 
@@ -41,7 +41,7 @@ Owner doc: `nodus/nsl/docs/design/2026-07-03-nsl-tuvm-first-step-design.md` §4
 with the balloon gone.
 
 - **A — Seed + delete. DONE 2026-07-04.** Merged to master all 3 repos; 88/0/12 both paths;
-  text −10.02% banked; deletion machine-proven (07_no_nlr + diff oracle). `docs/MILESTONE_A.md`.
+  text −10.02% banked; deletion machine-proven (07_no_nlr + diff oracle). `nodus/oevm/docs/MILESTONE_A.md`.
 - **B — Immutable message algebra. DONE.** Merged to master all 3 repos (12 tasks landed,
   reviewed, gates green). Standing decisions absorbed: L7 signed-64-bit integers,
   `->` as compile-time rewrite (no builtin→kernel-Object delegation exists — Task 2 finding).
@@ -55,7 +55,7 @@ with the balloon gone.
   frame, per `review/lib/exceptions.md` constraint 4; `Supervisor`/`SupervisedJob`
   restart+quarantine; owner-tag identity sweep; host virtual-clock timers; the soak/leak
   test D.5; the demo-node-shaped integration test D.7; carry-forwards #138 and
-  #9.1/#9.2/#9.3 all closed). `docs/MILESTONE_D.md`.
+  #9.1/#9.2/#9.3 all closed). `nodus/oevm/docs/MILESTONE_D.md`.
 
 **Phase 1 (host proof) is now COMPLETE — Milestones A through D all landed and green.**
 Phase 2 (below) is entered next.
@@ -74,7 +74,7 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
    **DONE 2026-07-07 (Milestone E).** `vm_on_do`/`vm_ensure` built beside D's `vm_protected_fire`
    (prims 90-93: `raise`/`error:tag:`/`on:do:`/`ensure:`); Record-valued raise; `^`-in-handler
    rejected; C5 no-cross-dispatch pinned; `nodus/tests/12_exceptions/01..14`. Whole-milestone gate
-   green both paths; whole-branch review Ready (F1 interned-`#error` fix landed). `docs/MILESTONE_E.md`.
+   green both paths; whole-branch review Ready (F1 interned-`#error` fix landed). `nodus/oevm/docs/MILESTONE_E.md`.
 2. **Zephyr bring-up** of the backend seam (`backend/<target>/`). Precursors that can land
    during phase 1: FOOTPRINT_CONFIG=mcu true-target RAM line (tuvm#5 — ideally before B Task 12
    banks RAM numbers); OEVM_BUILD=asan|ubsan harness knob. First work order: the **ISR→channel
@@ -2527,7 +2527,7 @@ adopted cadence moves, so a requested cadence still shows only as a `goal`/`obs`
 
 ## Known stale docs (do not treat as current)
 
-`docs/archive/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
+`nodus/oevm/docs/archive/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
 `fiber_*.md`, `2026-06-29-r7-fibers-design.md` and the derecursify plans (historical record of
 the dead pillar), `topics.md`/`optimizations.md` (pre-pivot snapshots). `ECOSYSTEM.md` and
 `deployment-model.md` remain valid for the fleet/keeper layers until phase 3 revisits them.

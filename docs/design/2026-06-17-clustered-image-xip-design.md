@@ -1,7 +1,7 @@
 # Design: Decoupled image + execute-in-place clustered format
 
 Status: **approved design**, 2026-06-17. Implements the "next architectural
-step" from `docs/deployment-model.md` (Model B): decouple the image from the VM
+step" from `nodus/oevm/docs/deployment-model.md` (Model B): decouple the image from the VM
 build, define an oevm-native clustered image format, and give the VM an
 on-device loader. Supersedes nothing; the existing solidify-to-C path (Model A)
 is retained as an opt-in appliance build.

@@ -21,7 +21,7 @@ benchmark exercise confirmed throughput is already in budget (steady-state
 A/Soup 1.84×, B/Soup 2.07× — within the 2–3× win zone) but the heap grows
 **unbounded** (mandelbrot peak RSS 4.5 GB; GC never triggers, GH #3) — fatal on
 device. **Memory, not speed, is the blocker.** Priority order (= weaknesses
-W1+W4 → W2 → W3 → W6, see `docs/optimizations.md` snapshot 2026-06-18):
+W1+W4 → W2 → W3 → W6, see `nodus/oevm/docs/optimizations.md` snapshot 2026-06-18):
 GC trigger + embedded allocator → float unboxing → inline cache → reflection.
 (User decision, 2026-06-18.)
 
@@ -108,7 +108,7 @@ bump-allocates `struct Float` cells from slabs. **nbody @250000 1.53×, mandelbr
 @750 1.89×** (Model A -O2, best of 5); 36/5/1 on Model A+B and `-m32` hold; covered
 by `tests/test_float_arena.c`. NaN-boxing was rejected — it needs a 64-bit `Value`
 everywhere, breaking the pointer-sized `oop`, the `-m32` gate, and the `.oimg`
-serializer. See `docs/optimizations.md` Opt #5.
+serializer. See `nodus/oevm/docs/optimizations.md` Opt #5.
 
 **Phase 2 — unboxed temporaries (Opt #6): DEFERRED** (user decision 2026-06-17,
 after Phase 1 shipped). The original "compiler proves which floats don't escape"
@@ -122,7 +122,7 @@ and non-number DNU. Deferred because the arena already captured the large bite a
 the fusion correctness surface (fast/slow path) is sizeable; revisit if perf
 demands it. Its own spec + plan when picked up.
 
-- **Refs:** `docs/optimizations.md` (Opt #5), the design doc above,
+- **Refs:** `nodus/oevm/docs/optimizations.md` (Opt #5), the design doc above,
   `../ns-tests/00_perf/RESULTS.md`.
 
 ---
@@ -154,7 +154,7 @@ are the finer-grained net — and two of them are currently dark.
 
 - **GitHub issue #2:** `does_not_understand` segfaults on a SMI (tagged-integer)
   receiver — dereferences `receiver->vtable` without a SMI guard
-  (`src/dispatch.c`, ~line 130). Latent; noted in `docs/optimizations.md`.
+  (`src/dispatch.c`, ~line 130). Latent; noted in `nodus/oevm/docs/optimizations.md`.
 - **Revive the two dark behavioral unit tests** (correctness-net hole, not feature
   backlog). `tests/test_mirrors.c` (frame + vtable introspection via
   `primitive_inspect_stack`) and `tests/test_solidified.c` fail to link: they
@@ -172,7 +172,7 @@ are the finer-grained net — and two of them are currently dark.
 - **Global method cache tuning.** The 4096-entry direct-mapped table saturates on
   richards (~97k collisions, still 1.20×). Resize (8192) or go 2-way
   set-associative; the `collisions` counter measures the win.
-  → `docs/optimizations.md` Opt #4.
+  → `nodus/oevm/docs/optimizations.md` Opt #4.
 - **Measure Model B perf.** `bench.sh` only measures Model A (-O2, gcc-optimized
   static image — where the cache helps *least*). The cache exists for Model B
   (read-only image, unoptimized walk); its real shipping benefit is unmeasured.
@@ -223,7 +223,7 @@ them is a **P2 correctness item** (see above), not feature work.
 Make oevm the VM the nodus / nodus-st supervisor runs (replacing Berry): the
 C-keeper ↔ VM seam, OTA container-image versioning, isolation. **Blocked by
 decision:** the NS (Newspeak) language must be fully working and benchmarked
-first. → `docs/deployment-model.md`.
+first. → `nodus/oevm/docs/deployment-model.md`.
 
 ---
 
@@ -231,9 +231,9 @@ first. → `docs/deployment-model.md`.
 
 | Area | Document |
 |------|----------|
-| Perf work + deferred levers | `docs/optimizations.md`; rationale in `docs/topics.md` |
+| Perf work + deferred levers | `nodus/oevm/docs/optimizations.md`; rationale in `nodus/oevm/docs/topics.md` |
 | Conformance gaps | `../ns-tests/benchmark_comparison.md`, `../ns-tests/00_perf/RESULTS.md` |
 | Open bugs / structural items | GitHub issues #1, #2 (`gh issue list`) |
 | Image format (Model B) | `docs/design/2026-06-17-clustered-image-xip-design.md` |
-| Deployment / nodus | `docs/deployment-model.md` |
+| Deployment / nodus | `nodus/oevm/docs/deployment-model.md` |
 | Historical phased build plan | `docs/implementation_plan.md` (not a live backlog) |

@@ -1,4 +1,4 @@
-> **HISTORICAL — archived 2026-08-29.** Already superseded by `ROADMAP.md` on 2026-06-18 (banner below), which is itself archived beside this file. Phases 4–5 (fibers, NLR) were later DELETED in Milestone A (`docs/MILESTONE_A.md`).
+> **HISTORICAL — archived 2026-08-29.** Already superseded by `ROADMAP.md` on 2026-06-18 (banner below), which is itself archived beside this file. Phases 4–5 (fibers, NLR) were later DELETED in Milestone A (`nodus/oevm/docs/MILESTONE_A.md`).
 
 # Implementation Plan: Phases 5 - 8 Roadmap & Phase 5 Specification
 

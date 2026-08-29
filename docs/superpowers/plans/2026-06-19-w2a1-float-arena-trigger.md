@@ -204,7 +204,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 Proves the real goal end-to-end (mandelbrot RSS bounded), runs the conformance + portability gates, records the result.
 
 **Files:**
-- Modify: `docs/optimizations.md` (W2 row / GH note), `docs/archive/ROADMAP.md` (GP0 step)
+- Modify: `nodus/oevm/docs/optimizations.md` (W2 row / GH note), `nodus/oevm/docs/archive/ROADMAP.md` (GP0 step)
 
 **Interfaces:**
 - Consumes: the trigger from Task 1.
@@ -262,11 +262,11 @@ OEVM_PATH=AB python3 tools/run_tests_oevm.py 2>&1 | grep -E "Passed|Failed|Skipp
 ```
 Expected: `Passed: 47`, `Failed: 0`, `Skipped: 1`.
 
-- [ ] **Step 6: Update `docs/optimizations.md`**
+- [ ] **Step 6: Update `nodus/oevm/docs/optimizations.md`**
 
 In the weakness table, update the **W1** and/or **W2** rows (whichever records GH #3) to note the float-arena trigger: the float arena now participates in the GC trigger (collect-at-cap in `float_alloc`), so float-dominated workloads are bounded too — record the mandelbrot@750 @256 KB figure (2.35 GB → the measured single-digit-MB value from Step 1) and reference GH #5. Keep the W2b/unboxing item as still-deferred (small measured speed ceiling).
 
-- [ ] **Step 7: Update `docs/archive/ROADMAP.md`**
+- [ ] **Step 7: Update `nodus/oevm/docs/archive/ROADMAP.md`**
 
 Mark **W2a.1 (float-arena GC trigger) complete** with the mandelbrot RSS result, and record that **W2b (float unboxing) remains deferred** (measured speed ceiling sub-second; revisit only if profiling justifies it). Set the next GP0 step to the pre-Zephyr **GH #4 (iterative-mark conversion)** unless re-prioritized.
 
@@ -275,7 +275,7 @@ Mark **W2a.1 (float-arena GC trigger) complete** with the mandelbrot RSS result,
 ```bash
 cd /home/david/workspace/oevm
 git restore src/solidified_image.c 2>/dev/null
-git add docs/optimizations.md docs/archive/ROADMAP.md
+git add nodus/oevm/docs/optimizations.md nodus/oevm/docs/archive/ROADMAP.md
 git commit -m "docs(gp0): W2a.1 done — float arena bounded under cap (mandelbrot 2.35GB -> bounded, GH#5)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"

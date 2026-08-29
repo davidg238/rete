@@ -3,7 +3,7 @@
 The one-page answer to "what kind of VM is this?". Everything here is true of the code
 today; where a mechanism was tried and removed, the removal is named so an older document
 cannot be mistaken for the present. The historical genesis documents are in
-`docs/archive/` with banners saying what changed.
+`nodus/oevm/docs/archive/` with banners saying what changed.
 
 ## In one paragraph
 
@@ -22,7 +22,7 @@ boards (ESP32-C6 is the bench board) and a POSIX host for the suite.
 
 - **32-bit fixed-length instructions** in the Lua/Berry family (iABC / iABx layouts),
   operating on a per-frame register window `regs[]`. The choice of register over stack
-  bytecode is a decision record: `docs/deployment-model.md` §Decisions (fewer dispatches per
+  bytecode is a decision record: `nodus/oevm/docs/deployment-model.md` §Decisions (fewer dispatches per
   method, which is why Lua/Dalvik/Berry are register VMs).
 - **31 opcodes, densely numbered `0x00`–`0x1E`** (`nodus/oevm/src/oevm.h`, `enum Opcode`).
   Loads, `SEND` / `SEND_IMPLICIT` / `SEND_SUPER` / `BLOCK_INVOKE`, `RET`, arithmetic and
@@ -30,14 +30,14 @@ boards (ESP32-C6 is the bench board) and a POSIX host for the suite.
   lexical access, `CLOSURE`, and the heap-`Context` trio `MK_CONTEXT` / `LD_CTX` / `ST_CTX`.
 - **`OP_SEND_IMPLICIT`** is Newspeak's implicit-receiver send — it walks the lexical
   enclosure chain before the inheritance chain — and is what makes nested classes and
-  module-as-object work: `docs/op_send_implicit.md`.
+  module-as-object work: `nodus/oevm/docs/op_send_implicit.md`.
 - Selectors are **Symbols that carry their primitive id** (rete#226): a send whose selector
   names a primitive is intercepted by id, which is why a Symbol must never be hand-built
   (`nodus/oevm/src/prim_ids.h`, 142 ids).
 
 ## Execution model — what is NOT here, and why
 
-Milestone A (2026-07-04, `docs/MILESTONE_A.md`) deleted, deliberately and measured:
+Milestone A (2026-07-04, `nodus/oevm/docs/MILESTONE_A.md`) deleted, deliberately and measured:
 
 | removed | replaced by |
 |---|---|
@@ -51,9 +51,9 @@ lets a block outlive the frame that made it — `whenever: chan do: [:e | …]` 
 temp from a frame that has since popped, and that is the whole reactive model.
 
 Above that boundary: **exceptions** — `on:do:` with predicate filtering and `ensure:` —
-land over a `setjmp` crash boundary (Milestone E, `docs/MILESTONE_E.md`), and a
+land over a `setjmp` crash boundary (Milestone E, `nodus/oevm/docs/MILESTONE_E.md`), and a
 **supervisor** contains a crashing handler, keeps the heap and reactor alive, and
-restarts or quarantines the job (Milestone D, `docs/MILESTONE_D.md`).
+restarts or quarantines the job (Milestone D, `nodus/oevm/docs/MILESTONE_D.md`).
 
 ## Memory
 
@@ -75,7 +75,7 @@ restarts or quarantines the job (Milestone D, `docs/MILESTONE_D.md`).
   timers, the CBOR codec and the porta bridge; `supervisor.nsl` the supervisor. An app
   sees the kernel instance as its `platform`.
 - **Model A** — solidify the image to C and link it into the binary — survives as an
-  opt-in appliance build (`OEVM_APPLIANCE`). Decision record: `docs/deployment-model.md`.
+  opt-in appliance build (`OEVM_APPLIANCE`). Decision record: `nodus/oevm/docs/deployment-model.md`.
 
 ## The reactor, the space and the wire
 
@@ -101,8 +101,8 @@ lessons in `nodus/oevm/zephyr/docs/`. POSIX host for the suite and the porta syn
 
 ## Where the numbers are
 
-Footprint and the Milestone-A delta: `docs/MILESTONE_A.md` §8 and
+Footprint and the Milestone-A delta: `nodus/oevm/docs/MILESTONE_A.md` §8 and
 `nodus/oevm/tools/footprint.sh` (an aux gate of the suite). Interpreter performance work:
-`docs/optimizations.md` (the log) and `docs/topics.md` (the why). Board measurements:
+`nodus/oevm/docs/optimizations.md` (the log) and `nodus/oevm/docs/topics.md` (the why). Board measurements:
 `docs/results/`. Cross-VM benchmarks: `~/workspaceToit/stic/README.md`, outside this repo
 on purpose.

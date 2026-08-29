@@ -414,7 +414,7 @@ inlining).
 
 ```bash
 cd /home/david/workspace/oevm
-git add docs/optimizations.md
+git add nodus/oevm/docs/optimizations.md
 git commit -m "docs: record block-inlining Phase A (foundation, no-op)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"

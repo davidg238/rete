@@ -4,7 +4,7 @@ Durable rationale behind the OEVM/ns-oevm performance and compiler work — the
 "why" that gets lost from commit messages and code. Other docs link here by
 anchor (e.g. `topics.md#scope-vs-frame`) instead of repeating the reasoning.
 
-Cross-references: `docs/optimizations.md` (perf log),
+Cross-references: `nodus/oevm/docs/optimizations.md` (perf log),
 `ns-oevm/docs/design/` (feature specs), GitHub `oevm#1`.
 
 ---
@@ -86,7 +86,7 @@ benchmark-specific hack — which is the bar this project holds itself to.
 
 ### Phases A–C (if-family, and:/or:)
 
-See `docs/optimizations.md` Phase A–C entries for the incremental rollout:
+See `nodus/oevm/docs/optimizations.md` Phase A–C entries for the incremental rollout:
 Phase A was a behaviour-preserving no-op (Scope model + jump helpers); Phase B
 inlined the four `if` variants; Phase C added `and:`/`or:` short-circuit
 inlining. All share the same `compile_inlined_block` primitive: compile a block
@@ -162,7 +162,7 @@ of bounds. The compiler fix (`ns-oevm/tools/ns_compile_oevm.py`) has two parts:
 
 **Limitations (by design, documented in compiler):** parent must appear before
 child in source order (silent skip otherwise); single-level inheritance only —
-grandparent chains are not walked. See `docs/optimizations.md` Phase D for the
+grandparent chains are not walked. See `nodus/oevm/docs/optimizations.md` Phase D for the
 symptom that revealed the bug and the conformance evidence.
 
 ---
@@ -171,7 +171,7 @@ symptom that revealed the bug and the conformance evidence.
 
 Two register/layout invariants the codegen must preserve. Both were violated by
 latent bugs that only surfaced under the SOMns benchmarks (see
-`docs/optimizations.md` "Conformance correctness fixes").
+`nodus/oevm/docs/optimizations.md` "Conformance correctness fixes").
 
 **Send arguments occupy *contiguous* registers immediately above the receiver.**
 `OP_SEND`/`OP_SEND_IMPLICIT` and the class-init send read `argc` operands from
@@ -237,5 +237,5 @@ interception can be a cached integer-id lookup instead of a `strcmp` gauntlet.**
 `send()` formerly ran up to 47 `strcmp`s on every message before vtable lookup.
 A pointer-keyed cache classifies each symbol once into a primitive id
 (`PRIM_NONE` for the common non-primitive case); dispatch then skips the gauntlet
-or jumps through a `switch` jump table. See `docs/optimizations.md` Opt #1/#2 for
+or jumps through a `switch` jump table. See `nodus/oevm/docs/optimizations.md` Opt #1/#2 for
 measurements.

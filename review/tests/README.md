@@ -149,7 +149,7 @@ jobs by `#channel`, never the tag). A bare `self error:` uses the image-**intern
 default tag, so `[:e| e tag = #error]` matches (F1 fix). Landed suite:
 `nodus/tests/12_exceptions/01..14`; the driver-shaped Tier-2 recovery `11_td_crash_recover.ns`
 realizes `td-crash/04`'s once-`policy TBD` cycle (that staged stub was already superseded by
-`11_supervision/05_restart_quarantine.ns` at D's close). See `docs/MILESTONE_E.md`.
+`11_supervision/05_restart_quarantine.ns` at D's close). See `nodus/oevm/docs/MILESTONE_E.md`.
 
 **Error strings** are API, from `../lib/errors.md` (`outside capability root`,
 `immutable`, `not a value`, `message depth exceeded`, `bad channel path` [landed

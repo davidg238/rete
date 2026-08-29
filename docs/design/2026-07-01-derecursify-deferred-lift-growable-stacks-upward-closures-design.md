@@ -5,7 +5,7 @@ brainstormed with David.
 
 **Predecessors:** the de-recursify **core rewrite is COMPLETE** (Phase 1 lowering,
 Phase 2 the flip, Phase 3 fibers+demolition — all shipped 2026-07-01; see
-`docs/archive/fiber_derecursify_core_design.md`). That core explicitly deferred two coupled
+`nodus/oevm/docs/archive/fiber_derecursify_core_design.md`). That core explicitly deferred two coupled
 capabilities, marked "Deferred (NOT this lift): growth + heap-closure/temp-vector
 rework." **This is that deferred lift.**
 

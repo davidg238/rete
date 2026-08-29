@@ -1086,7 +1086,7 @@ Expected: both build; appliance run matches Model A output.
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /home/david/workspace/oevm && git add src/oevm_main.c docs/deployment-model.md
+cd /home/david/workspace/oevm && git add src/oevm_main.c nodus/oevm/docs/deployment-model.md
 git commit -m "feat(oimg): decouple default build; Model A behind OEVM_APPLIANCE"
 ```
 

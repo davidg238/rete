@@ -7,7 +7,7 @@ VM loads and executes in place — there is no compiler on the device.
 
 What the language does **not** have, on purpose: non-local return (`^` out of an escaping
 closure is a compile error), fibers, growable stacks. Execution is run-to-completion over
-a reactor; see `../../docs/vm.md`.
+a reactor; see `../oevm/docs/vm.md`.
 
 ## Layout
 

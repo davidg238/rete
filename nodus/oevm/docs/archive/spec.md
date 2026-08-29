@@ -1,4 +1,4 @@
-> **HISTORICAL — archived 2026-08-29.** The genesis spec (pre-git). §2–3 describe Non-Local Return via lazy stack reification; NLR was DELETED in Milestone A (2026-07-04, `docs/MILESTONE_A.md` §1) and `^` out of an escaping closure is now a compile error. §1 (the three-object universe, bytecodes as sends) and the MIC idea still describe the VM. Current architecture: `docs/vm.md`.
+> **HISTORICAL — archived 2026-08-29.** The genesis spec (pre-git). §2–3 describe Non-Local Return via lazy stack reification; NLR was DELETED in Milestone A (2026-07-04, `nodus/oevm/docs/MILESTONE_A.md` §1) and `^` out of an escaping closure is now a compile error. §1 (the three-object universe, bytecodes as sends) and the MIC idea still describe the VM. Current architecture: `nodus/oevm/docs/vm.md`.
 
 # Architectural Specification: Open, Lazy-Reified Virtual Machine
 **Target Architecture:** Berry VM Compatible (32-bit fixed-length iABC/iABx/iAsBx instruction set)

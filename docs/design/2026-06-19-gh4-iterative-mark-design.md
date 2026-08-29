@@ -2,7 +2,7 @@
 
 **Issue:** GH#4 — *GC mark/trace_object recurse with no depth bound — convert to iterative worklist before Zephyr bring-up.*
 
-**Status:** design — supersedes the W1 follow-up note in `docs/optimizations.md` (W1 row) and `docs/superpowers/notes/2026-06-18-w1-rooting-audit.md`.
+**Status:** design — supersedes the W1 follow-up note in `nodus/oevm/docs/optimizations.md` (W1 row) and `docs/superpowers/notes/2026-06-18-w1-rooting-audit.md`.
 
 ## Problem
 

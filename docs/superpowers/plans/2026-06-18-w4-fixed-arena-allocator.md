@@ -26,7 +26,7 @@
 - `src/gc.c` — **modified**. Add arena buffer, bitmap, bins, helpers, `heap_init`, overridable OOM handler; rewrite `gc_allocate`, `is_valid_heap_object`, and the mark-reset/sweep loops in `gc_collect`. Remove `heap_list`. `float_alloc`, `mark`, `trace_object`, `scan_vm_stack` unchanged (except `mark` keeps calling the new `is_valid_heap_object`).
 - `tests/test_arena.c` — **new**. Unit tests for bump alloc, bitmap membership precision, exhaustion via overridable handler, and (Task 2) free-list reuse.
 - `ns-oevm/tools/run_tests_oevm.py` — **modified** (Task 3). Append `OEVM_EXTRA_CFLAGS` env var to both gcc invocations so the 16 KB acceptance build is runnable.
-- `docs/archive/ROADMAP.md`, `docs/optimizations.md` — **modified** (Task 3). Mark W4 done; record the validated embedded ceiling.
+- `nodus/oevm/docs/archive/ROADMAP.md`, `nodus/oevm/docs/optimizations.md` — **modified** (Task 3). Mark W4 done; record the validated embedded ceiling.
 
 ---
 
@@ -530,7 +530,7 @@ validate the embedded general-object ceiling.
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 # oevm
 cd /home/david/workspace/oevm
-git add docs/archive/ROADMAP.md docs/optimizations.md
+git add nodus/oevm/docs/archive/ROADMAP.md nodus/oevm/docs/optimizations.md
 git commit -m "docs(gp0): W4 fixed-arena allocator done; record embedded heap ceiling
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"

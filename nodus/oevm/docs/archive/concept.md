@@ -1,4 +1,4 @@
-> **HISTORICAL — archived 2026-08-29.** The genesis concept note. Part 1 §2A (NLR) and §2C (fibers) describe mechanisms DELETED in Milestone A (2026-07-04, `docs/MILESTONE_A.md` §1); the rest of Part 1 still holds and Part 2 (why keyword syntax suits LLM generation) is the rationale that started the program. Current architecture: `docs/vm.md`.
+> **HISTORICAL — archived 2026-08-29.** The genesis concept note. Part 1 §2A (NLR) and §2C (fibers) describe mechanisms DELETED in Milestone A (2026-07-04, `nodus/oevm/docs/MILESTONE_A.md` §1); the rest of Part 1 still holds and Part 2 (why keyword syntax suits LLM generation) is the rationale that started the program. Current architecture: `nodus/oevm/docs/vm.md`.
 
 # OEVM Concept & Genesis: From LLM-Driven Titelang to Custom Micro-Kernel VM
 

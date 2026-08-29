@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-17
 **Status:** Approved (design); staged implementation.
-**Roadmap item:** P0 — Unboxed / tagged floats (`docs/archive/ROADMAP.md`).
+**Roadmap item:** P0 — Unboxed / tagged floats (`nodus/oevm/docs/archive/ROADMAP.md`).
 **Related:** GitHub issue #3 (GC never triggered at runtime).
 
 ## Problem
@@ -88,7 +88,7 @@ cheap; Phase 2 removes the *non-escaping* ones entirely.
   - mandelbrot at `size = 750` (checksum at `04_mandelbrot.ns:24`).
   - Regression sanity: fib(34), richards (non-float, must not regress).
 - Best-of-5 wall time (`bench.sh` convention).
-- **Record** before/after in `docs/optimizations.md` as Opt #5 (arena) and Opt
+- **Record** before/after in `nodus/oevm/docs/optimizations.md` as Opt #5 (arena) and Opt
   #6 (unboxing): timings, ratio to Soup, and an honest read of the gain.
 - **Gate:** conformance must hold **36 pass / 5 fail / 1 skip** on Model A *and*
   Model B, plus the `-m32` portability test, after each phase.

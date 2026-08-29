@@ -4,7 +4,7 @@ Tracks performance work on the OEVM interpreter core (`src/dispatch.c`, `src/vm.
 with before/after measurements and the commit that landed each change so
 improvements are traceable.
 
-**Design rationale** for the decisions referenced here lives in `docs/topics.md`:
+**Design rationale** for the decisions referenced here lives in `nodus/oevm/docs/topics.md`:
 [selector-dispatch-caching](topics.md#selector-dispatch-caching) (Opt #1/#2),
 [reflective-frame-access](topics.md#reflective-frame-access) (the post-#2
 bottleneck), [block-inlining](topics.md#block-inlining) and

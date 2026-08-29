@@ -527,8 +527,8 @@ cap with no OOM) and that conformance is unchanged on all three configs. Record
 the capped-heap figure as the start of the nRF52840 RAM-ceiling number.
 
 **Files:**
-- Modify: `docs/optimizations.md` (flip the W1 row; record the cap figure)
-- Modify: `docs/archive/ROADMAP.md` (mark W1 done; W2a next)
+- Modify: `nodus/oevm/docs/optimizations.md` (flip the W1 row; record the cap figure)
+- Modify: `nodus/oevm/docs/archive/ROADMAP.md` (mark W1 done; W2a next)
 
 **Interfaces:** none (verification + docs).
 
@@ -586,17 +586,17 @@ Expected: both print `ALL TESTS PASSED` / their success lines.
 
 - [ ] **Step 6: Update docs with the result**
 
-In `docs/optimizations.md`, flip the W1 weakness row to DONE and record: "GC
+In `nodus/oevm/docs/optimizations.md`, flip the W1 weakness row to DONE and record: "GC
 trigger wired (exhaustion collect-and-retry); conservative C-stack rooting;
 `05_gc_stress.ns` runs to completion under a `<cap>` managed-arena cap". In
-`docs/archive/ROADMAP.md`, mark W1 complete and W2a (float-arena reclaim) as next.
+`nodus/oevm/docs/archive/ROADMAP.md`, mark W1 complete and W2a (float-arena reclaim) as next.
 Use the smallest passing cap from Step 2 as `<cap>`.
 
 - [ ] **Step 7: Commit**
 
 ```bash
 cd /home/david/workspace/oevm
-git add docs/optimizations.md docs/archive/ROADMAP.md
+git add nodus/oevm/docs/optimizations.md nodus/oevm/docs/archive/ROADMAP.md
 git commit -m "docs(gp0): W1 GC trigger + rooting done; gc_stress bounded under capped heap"
 ```
 

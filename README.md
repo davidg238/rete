@@ -19,7 +19,7 @@ The two halves are coupled **only over the wire**; they never import each other'
 - A node's state is a **space** that porta mirrors over UDP + CBOR; operators write
   `goal/**`, nodes write `obs/**`, and convergence is a tree diff.
 
-The one-page version is `docs/vm.md`.
+The one-page version is `nodus/oevm/docs/vm.md`.
 
 ## Tree
 
@@ -30,7 +30,8 @@ The one-page version is `docs/vm.md`.
       tests/     the nsl suite
     protocol/    the wire contract (v1 frozen under protocol/v1/)
     review/      the program ladder and the claims ledger
-    docs/        the VM's documents — start at docs/README.md
+    docs/        the program's documents: tutorials, status, the dated records — docs/README.md
+                 (each subsystem keeps its own reference docs: nodus/oevm/docs, nodus/nsl/docs, porta/docs)
     tools/       repo-wide scripts
 
 ## Gates
@@ -47,7 +48,7 @@ green aux-gate line (C unit tests, footprint, manifest). Board gates are in
 
 | you want | read |
 |---|---|
-| what the VM is and is not | `docs/vm.md`, then `docs/MILESTONE_A.md` |
+| what the VM is and is not | `nodus/oevm/docs/vm.md`, then `nodus/oevm/docs/MILESTONE_A.md` |
 | the language and the kernel | `nodus/nsl/README.md`, `nodus/nsl/lib/kernel.nsl` |
 | the gateway | `porta/README.md`, `porta/docs/ARCHITECTURE.md` |
 | the wire | `protocol/PROTOCOL-NSL.md`, `protocol/MANIFEST.cddl` |

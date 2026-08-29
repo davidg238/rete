@@ -162,7 +162,7 @@ than by "HEAD".
 ## 9. Cross-validation against the pre-fiber design (CV-1..CV-6)
 
 Controller-run 2026-07-04, after Task 10 (plan §"Cross-validation"). Reference:
-the pre-fiber *design record* (`docs/archive/dev_process/phase{1,2,3}_walkthrough.md`),
+the pre-fiber *design record* (`nodus/oevm/docs/archive/dev_process/phase{1,2,3}_walkthrough.md`),
 since no pre-fiber commit exists (§7).
 
 - **CV-1 struct inventory — PASS.** All Phase-1 structs present in the stripped

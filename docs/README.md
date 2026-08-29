@@ -1,64 +1,48 @@
-# docs/ — the VM's own documents
+# docs/ — the program's documents
 
-Start with `vm.md`. Then the three milestone notes. Everything dated is a record of a
-decision or a measurement and stays as written; the living documents are named as such.
+This directory holds what spans the whole system. Each subsystem keeps its own
+reference documents beside its code — that is the rule the 2026-08-02 consolidation
+wrote down (`design/2026-08-02-rete-repo-consolidation-design.md`, fate table row
+"tuvm docs") and 2026-08-29 finished executing:
 
-## Living (edit, don't append)
+| subsystem | its documents |
+|---|---|
+| the VM | `../nodus/oevm/docs/` — start at `vm.md`; the milestone notes; the archive |
+| the board ports | `../nodus/oevm/zephyr/docs/` — `BOARD_PORTS.md`, `ZEPHYR_LESSONS.md` |
+| the language | `../nodus/nsl/docs/` — `NEWSPEAK_DIALECT.md`, `programming_with_nsl.md` |
+| the gateway | `../porta/docs/` — start at its `README.md` |
+| the wire | `../protocol/` — `PROTOCOL-NSL.md`, `MANIFEST.cddl` |
+| the ladder | `../review/` — `program-sequence.md`, `tests/CLAIMS.md`, `DOCMAP.md` |
 
-- `next-steps-overview.md` — what gates a public release and what is on the bench.
-  Re-read at the start of a session and edit it.
-- `status/` — the orientation deck (`dev-status.html`, live at gw85224-01:6971) and its
-  generator. What is top of mind right now, by issue band.
+## Here: the program level
 
-## Tutorials — executed, not trusted
-
-- `tutorials/01-host.md` — build the VM, run the suite, ten lines of nsl, the compiler
-  by hand, the no-NLR refusal. **Every `bash gate` block on the page is run by the nsl
+**Tutorials — executed, not trusted**
+- `tutorials/01-host.md` — build the VM, run the suite, ten lines of nsl, the compiler by
+  hand, the no-NLR refusal. **Every `bash gate` block on the page is run by the nsl
   suite** (`tutorials/gate.sh`, the `tutorial-host` aux gate), so a stale step reads red.
   Board and porta tutorials are owed under #79 and will take the same shape.
 
-## Current reference
+**Living (edit, don't append)**
+- `next-steps-overview.md` — what gates a public release and what is on the bench.
+- `status/` — the orientation deck (`dev-status.html`, live at gw85224-01:6971) and its
+  generator: what is top of mind right now, by issue band.
 
-- `vm.md` — **what oevm is**: register VM, run-to-completion, no fibers / no NLR, precise
-  GC, `.oimg` execute-in-place. One page.
-- `deployment-model.md` — the Model B decision record (resident VM + pushed image), with
-  a 2026-08-29 status note; the decisions stand.
-- `op_send_implicit.md` — Newspeak implicit-receiver sends, the opcode that makes nested
-  classes work.
-- `MILESTONE_A.md` — provenance note: the fiber/NLR/growable-stack deletion and what was
-  kept. **Read this before any 2026-06 document.**
-- `MILESTONE_D.md` — supervisor, let-it-crash, the host job.
-- `MILESTONE_E.md` — `on:do:` / `ensure:` above the crash boundary.
-- `optimizations.md` — interpreter performance log with measurements per commit.
-- `topics.md` — the durable rationale the log links to by anchor.
-
-## Records
-
-- `design/` — **decision records**, dated. The "why" behind every rung; superseded ones
-  say so at the top. A design is closed only when its knowledge has been promoted to a
-  mainline document (`review/program-sequence.md`, `review/tests/CLAIMS.md`,
-  `protocol/`, `porta/docs/ARCHITECTURE.md`) — see `CLAUDE.md` §Docs convention.
-- `results/` — dated board and host measurements, one file per experiment.
+**Dated records — they stay here, under their date, because that is where the
+citations point.** A decision record is program-time evidence, not a subsystem's
+property; a liveness design touches the VM, the kernel and porta at once.
+- `design/` — the decision records. Superseded ones say so at the top. A design is closed
+  only when its knowledge has been promoted to a mainline document — `CLAUDE.md`
+  §Docs convention.
+- `results/` — board and host measurements, one file per experiment.
 - `spikes/` — throwaway code and images that earned a number; kept for the number.
 - `superpowers/plans/` — execution scaffolding for the designs; historical once the work
   closes, never a document of record.
 
-## Archive — read the banner first
+## The archive rule
 
-`archive/` holds documents that were true once and are now superseded: the genesis spec
-and concept notes, the five fiber/de-recursify designs, the phase walkthroughs, the
-oevm-era roadmap and the four-repo ecosystem map. **Every file there opens with a
-`HISTORICAL` banner naming what replaced it and what was deleted since.** They are
-archived rather than deleted so that the `#NN` issues and commits that cite them by path
-still resolve — and the banner is what makes that safe.
-
-The rule (CLAUDE.md §Docs convention): a document leaves the mainline by **move + banner**,
-never by deletion and never by a bare move.
-
-## Elsewhere
-
-- `../README.md` — start here for the whole repo.
-- `../review/DOCMAP.md` — the generated inventory of every document across the program,
-  plus the curated documents-of-record list.
-- `../protocol/` — the wire contract. `../porta/docs/` — the gateway's documents.
-- `../nodus/oevm/zephyr/docs/` — board ports and Zephyr lessons.
+A document leaves the mainline by **move + banner**, never by deletion and never by a
+bare move: it goes to the `archive/` of the subsystem that owns it
+(`../nodus/oevm/docs/archive/`, `../porta/docs/archive/`; a program-level one would go to
+`archive/` here) with a `HISTORICAL — archived DATE` first line naming what replaced it
+and what was deleted since. Kept so that `#NN` issues and commits still resolve by path;
+the banner is what stops an archived spec being read as current.

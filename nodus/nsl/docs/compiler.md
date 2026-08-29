@@ -1,10 +1,17 @@
 # ns-oevm compiler
 
+> **Stale in parts (noted 2026-08-29).** Written when the source extension was `.ns` (it is
+> `.nsl` since 2026-07-18), when the only output was the solidified C image (the shipping
+> pipeline is now `--format=oimg`, an `.oimg` the resident VM loads — see
+> `nodus/oevm/docs/deployment-model.md`), and when `OP_NLR` existed (deleted in Milestone A,
+> 2026-07-04; the opcode table in `nodus/oevm/src/oevm.h` is the authority). The pipeline
+> shape and the map to the code are still right. Task-oriented guide: `programming_with_nsl.md`.
+
 The ns-oevm compiler turns Newspeak/SOMns source (`.ns`) into a C image
 (`solidified_image.c`) that links against the OEVM interpreter. This doc is the
 map to the code that lives in this repo; the durable *rationale* (why things are
-the way they are) lives in the OEVM repo's `docs/topics.md` and the perf/
-conformance log in `docs/optimizations.md` — linked by anchor below rather than
+the way they are) lives in the OEVM repo's `nodus/oevm/docs/topics.md` and the perf/
+conformance log in `nodus/oevm/docs/optimizations.md` — linked by anchor below rather than
 duplicated here.
 
 ## Pipeline
@@ -120,7 +127,7 @@ instantiates the enclosing class with the outer slot left nil. Classes with no
 class-side methods keep `meta=None` (header = `VtableVtable`), so their codegen
 is byte-identical. **Known limitation:** an inherited class-side `self new`
 instantiates the DEFINING class, not the receiver class (no metaclass-`self`
-polymorphism). See `docs/optimizations.md` (richards, 2026-06-17).
+polymorphism). See `nodus/oevm/docs/optimizations.md` (richards, 2026-06-17).
 
 ## Block inlining
 
@@ -128,7 +135,7 @@ Control-flow blocks (`ifTrue:`/`ifFalse:`/`and:`/`or:`/`whileTrue:`/`to:do:` …
 with literal block arguments compile *inline* into the enclosing frame (direct
 registers, no closure, no `home`/`regAt:`). Non-inlined blocks become separate
 compiled methods (closures). See `topics.md#block-inlining` and
-`docs/optimizations.md` Phases A–E for the full account.
+`nodus/oevm/docs/optimizations.md` Phases A–E for the full account.
 
 ## Source maps (.stmap)
 
@@ -175,8 +182,8 @@ the compiler via `compile_statement` and registered per qualified name
 
 ## Where the rationale lives
 
-- `../oevm/docs/topics.md` — durable design rationale (scope vs frame, calling
+- `../../oevm/docs/topics.md` — durable design rationale (scope vs frame, calling
   convention, dispatch caching, no-op-first rollout, …).
-- `../oevm/docs/optimizations.md` — chronological perf + conformance log.
+- `../../oevm/docs/optimizations.md` — chronological perf + conformance log.
 - `docs/design/` and `docs/superpowers/plans/` — feature specs/plans
   (block inlining).

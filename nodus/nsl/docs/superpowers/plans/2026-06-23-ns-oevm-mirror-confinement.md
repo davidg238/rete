@@ -473,7 +473,7 @@ Claude-Session: https://claude.ai/code/session_01AK6gyZpVqgoWnzDG6CvHz4"
 **Interfaces:**
 - Consumes: `mirror_object()` (via `#include "../src/mirror.h"`), the mirror protocol selectors from Task 2.
 
-> **Scope note:** `docs/archive/ROADMAP.md:214` records that `test_mirrors.c` / `test_solidified.c` "don't link" today (pre-existing, unrelated to this change). These C tests are **manual** (not in the conformance runner). Goal here: convert the receiver-side reflective sends to mirror-mediated and confirm they build+pass against the documented link line **augmented with `src/mirror.c` + `src/platform.c` + `src/serial.c` + the posix backend**. If the test is pre-broken for reasons unrelated to confinement (e.g. missing solidified symbols), file/append to a tracking issue (`oevm`) and rely on the negative pin (Task 5) + the conformance suite as the shipped proof — do not rabbit-hole reviving unrelated breakage.
+> **Scope note:** `nodus/oevm/docs/archive/ROADMAP.md:214` records that `test_mirrors.c` / `test_solidified.c` "don't link" today (pre-existing, unrelated to this change). These C tests are **manual** (not in the conformance runner). Goal here: convert the receiver-side reflective sends to mirror-mediated and confirm they build+pass against the documented link line **augmented with `src/mirror.c` + `src/platform.c` + `src/serial.c` + the posix backend**. If the test is pre-broken for reasons unrelated to confinement (e.g. missing solidified symbols), file/append to a tracking issue (`oevm`) and rely on the negative pin (Task 5) + the conformance suite as the shipped proof — do not rabbit-hole reviving unrelated breakage.
 
 - [ ] **Step 1: Rewrite `test_mirrors.c` reflective sends to mirror-mediated**
 

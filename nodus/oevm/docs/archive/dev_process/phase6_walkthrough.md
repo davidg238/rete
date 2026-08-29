@@ -1,4 +1,4 @@
-> **HISTORICAL — archived 2026-08-29.** A pre-git phase walkthrough of the original oevm build-up (2026-06). Phases 4 (fibers) and 5 (NLR) were DELETED in Milestone A (2026-07-04, `docs/MILESTONE_A.md`). Current architecture: `docs/vm.md`.
+> **HISTORICAL — archived 2026-08-29.** A pre-git phase walkthrough of the original oevm build-up (2026-06). Phases 4 (fibers) and 5 (NLR) were DELETED in Milestone A (2026-07-04, `nodus/oevm/docs/MILESTONE_A.md`). Current architecture: `nodus/oevm/docs/vm.md`.
 
 # Walkthrough - Phase 6: Nested Classes & Lexical Enclosures
 

@@ -616,7 +616,7 @@ In `oevm/docs/topics.md`, under the existing `block-inlining` topic, document th
 
 ```bash
 cd /home/david/workspace/oevm
-git add docs/optimizations.md docs/topics.md
+git add nodus/oevm/docs/optimizations.md nodus/oevm/docs/topics.md
 git commit -m "docs: record block-inlining Phase D (loop inlining)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"

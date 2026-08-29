@@ -481,7 +481,7 @@ cd /home/david/workspace/oevm
 grep -rniE 'fibers-gc-stress|portability_32|GC_STRESS|asan' Makefile* tests/ tools/ 2>/dev/null | head
 ```
 
-Expected: locate and run `test_portability_32.sh`, the fibers-gc-stress build, and an `OEVM_GC_STRESS=1` / ASan run; all green. (These caught real bugs in L1 — do not skip. If a recipe is unclear, consult `docs/archive/fiber_implementation.md` and the L1 commits `b0f111e..f808d50` for the exact invocations.)
+Expected: locate and run `test_portability_32.sh`, the fibers-gc-stress build, and an `OEVM_GC_STRESS=1` / ASan run; all green. (These caught real bugs in L1 — do not skip. If a recipe is unclear, consult `nodus/oevm/docs/archive/fiber_implementation.md` and the L1 commits `b0f111e..f808d50` for the exact invocations.)
 
 - [ ] **Step 3: Confirm the recursive primitives are gone**
 
@@ -502,7 +502,7 @@ In `oevm/docs/archive/fiber_derecursify_core_design.md`, update the Phase 1 bull
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /home/david/workspace/oevm && git add docs/archive/fiber_derecursify_core_design.md && \
+cd /home/david/workspace/oevm && git add nodus/oevm/docs/archive/fiber_derecursify_core_design.md && \
   git commit -m $'docs(derecursify): Phase 1 (finish lowering) complete; Phase 2 handoff\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>'
 # plus ns-oevm docs/NEWSPEAK_DIALECT.md only if Step 4 added a row.
 ```

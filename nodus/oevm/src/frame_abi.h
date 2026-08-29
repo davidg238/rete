@@ -7,7 +7,7 @@
  *        / §6.1) — NULL (no lexical home) | relative SMI (on-stack, current
  *        fiber).
  *
- * Contract: docs/archive/fiber_l0_frame_abi.md.  STATUS: L0 contract, LIVE. The dynamic
+ * Contract: nodus/oevm/docs/archive/fiber_l0_frame_abi.md.  STATUS: L0 contract, LIVE. The dynamic
  * link (prev_frame) has been relative since L1; the lexical link (home_ctx) is
  * relative as of de-recursify Phase 2 (self-migration + flip): every home_ctx
  * encode site uses home_link_encode_relative and every read routes through

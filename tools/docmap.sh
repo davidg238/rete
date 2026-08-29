@@ -19,12 +19,15 @@ MARKER='<!-- BEGIN GENERATED INVENTORY — do not edit below; rerun tools/docmap
 # outside rete on purpose (design D12): a harness that measures rete against
 # other VMs does not belong inside rete.
 #
-# NOT listed: $ROOT/nodus/oevm/docs. It does not exist — Task 1 left the VM's
-# own documents at the repo root, so $ROOT/docs already covers them. A
-# nonexistent root would make this script's inventory silently short.
+# $ROOT/nodus/oevm/docs exists since 2026-08-29 (#79): the consolidation design
+# (2026-08-02, fate table row "tuvm docs") called for VM-specific documents to
+# live with the VM and program-level ones at the root, and Task 1 had left them
+# all at the root. Reference docs live with their subsystem; dated records
+# (design/, results/, plans) stay at the program level where the citations point.
 ROOTS=(
   "$ROOT/review"
   "$ROOT/docs"
+  "$ROOT/nodus/oevm/docs"
   "$ROOT/protocol"
   "$ROOT/nodus/nsl/docs"
   "$ROOT/nodus/oevm/zephyr/docs"

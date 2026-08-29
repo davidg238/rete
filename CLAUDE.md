@@ -107,13 +107,20 @@ How to make decisions here. These override the instinct to be thorough.
   `porta/docs/superpowers/plans/`) — they are execution scaffolding, historical once the
   work closes.
 - **A document leaves the mainline by move + banner, never by deletion and never by a bare
-  move** (2026-08-29, #79). Superseded documents go to `docs/archive/` (porta's to
-  `porta/docs/archive/`) with a `> **HISTORICAL — archived DATE.**` first line naming what
-  replaced them and what was deleted since; then rewrite the in-tree citations to the new
-  path (`review/` excepted — list those for David) and rerun `tools/docmap.sh`. Kept rather
-  than deleted so that `#NN` issues and commits still resolve by path; the banner is what
-  stops an archived spec being read as current, which is how `spec.md` described NLR for
-  seven weeks after Milestone A deleted it. `docs/README.md` is the map of `docs/`.
+  move** (2026-08-29, #79). Superseded documents go to the `archive/` of the subsystem that
+  owns them (`nodus/oevm/docs/archive/`, `porta/docs/archive/`) with a
+  `> **HISTORICAL — archived DATE.**` first line naming what replaced them and what was
+  deleted since; then rewrite the in-tree citations to the new path (`review/` excepted —
+  list those for David) and rerun `tools/docmap.sh`. Kept rather than deleted so that `#NN`
+  issues and commits still resolve by path; the banner is what stops an archived spec being
+  read as current, which is how `spec.md` described NLR for seven weeks after Milestone A
+  deleted it.
+- **Reference docs live with their subsystem; dated records live at the program level**
+  (the 2026-08-02 consolidation's rule, executed 2026-08-29): `nodus/oevm/docs/` (start at
+  `vm.md`), `nodus/nsl/docs/`, `porta/docs/`, each with a `README.md` map; the root `docs/`
+  holds tutorials, status, `next-steps-overview.md`, and the dated `design/`, `results/`,
+  `spikes/`, `superpowers/plans/` — which stay under their date because that is where the
+  issue citations point. `docs/README.md` is the map of the whole.
 - **Promotion rule — part of every close-out.** An issue / rung / milestone is not closed
   until its durable knowledge is promoted to a mainline document of record: the ladder
   (`review/program-sequence.md`), `review/tests/CLAIMS.md`, the owning doc under

@@ -1,4 +1,4 @@
-> **HISTORICAL — archived 2026-08-29.** Fibers, NLR and growable stacks were DELETED in Milestone A (2026-07-04, `docs/MILESTONE_A.md` §1); the VM is run-to-completion. What this document built and which SURVIVED is the flat non-recursive interpreter and the heap `Context` layer (`MILESTONE_A.md` §2). Read it for how the interpreter got flat, not for what the VM does. Current architecture: `docs/vm.md`.
+> **HISTORICAL — archived 2026-08-29.** Fibers, NLR and growable stacks were DELETED in Milestone A (2026-07-04, `nodus/oevm/docs/MILESTONE_A.md` §1); the VM is run-to-completion. What this document built and which SURVIVED is the flat non-recursive interpreter and the heap `Context` layer (`MILESTONE_A.md` §2). Read it for how the interpreter got flat, not for what the VM does. Current architecture: `nodus/oevm/docs/vm.md`.
 
 # L1 — First-class Stack + relative dynamic links + precise GC: Implementation Plan
 

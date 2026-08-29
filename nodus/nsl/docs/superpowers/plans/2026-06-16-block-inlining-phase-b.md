@@ -313,7 +313,7 @@ No previously-passing test regressed. Next: Phase C (`and:`/`or:` short-circuit)
 
 ```bash
 cd /home/david/workspace/oevm
-git add docs/optimizations.md
+git add nodus/oevm/docs/optimizations.md
 git commit -m "docs: record block-inlining Phase B (if-family inlining)
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"

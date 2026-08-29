@@ -1,5 +1,5 @@
 /*
- * test_frame_abi.c — L0 acceptance proof (docs/archive/fiber_l0_frame_abi.md §7e).
+ * test_frame_abi.c — L0 acceptance proof (nodus/oevm/docs/archive/fiber_l0_frame_abi.md §7e).
  *
  * Asserts the FROZEN link encoding (src/frame_abi.h) against the REAL
  * struct MethodContext: the dynamic link is a base-relative offset that survives

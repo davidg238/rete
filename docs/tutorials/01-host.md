@@ -176,14 +176,17 @@ allowed (no-NLR model). Use a collection combinator or a sentinel-and-return.
 ```
 
 The VM had NLR, and fibers, and growable stacks; all three were built, measured and
-deleted (`docs/MILESTONE_A.md`). What is left runs every block to completion, which is
+deleted (`nodus/oevm/docs/MILESTONE_A.md`). What is left runs every block to completion, which is
 what lets a reaction on a board be judged alive or wedged by whether it finished.
-`docs/vm.md` is the one-page account.
+`nodus/oevm/docs/vm.md` is the one-page account.
 
 ## Where next
 
+- `nodus/nsl/docs/programming_with_nsl.md` — the task-oriented guide: the mental model,
+  state machines as the fiber replacement, channels, capabilities.
+  `nodus/nsl/docs/NEWSPEAK_DIALECT.md` — every place nsl diverges from Newspeak, and why.
 - `nodus/tests/` — the suite, one directory per language area, every file in the shape
-  of step 2. It is the language reference until a better one exists.
+  of step 2. When the guide and a test disagree, the test is right.
 - `nodus/nsl/lib/kernel.nsl` — what `platform` can do: `space`, `timers`,
   `whenever:do:`, the porta bridge.
 - Tutorial 2 (a board) and tutorial 3 (porta) are not written yet; until they are,
