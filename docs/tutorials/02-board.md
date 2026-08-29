@@ -100,23 +100,31 @@ between:
 ls -l /dev/serial/by-id/
 ```
 
-Here is that command's real output on the two machines of this bench, on 2026-08-29, and it
-is instructive because the bench was in a **split state** that day:
+Here is that command's real output on the two machines of this bench at 14:08 on 2026-08-29.
+It is worth walking through, because the answer it gives is not the obvious one:
 
 ```
-# the workstation
-usb-Espressif_USB_JTAG_serial_debug_unit_40:4C:CA:44:6E:60-if00 -> ../../ttyACM0
+# the workstation — the machine with the toolchain
+usb-Espressif_USB_JTAG_serial_debug_unit_40:4C:CA:44:6E:60-if00  -> ../../ttyACM0
 
-# gw85224-01
-usb-Silicon_Labs_CP2102N_..._ac2dce6f529ced118f43fd6be259fb3e-if00-port0 -> ../../ttyUSB0
+# gw85224-01 — the machine with no toolchain
+usb-Silicon_Labs_CP2102N_..._ac2dce6f...-if00-port0              -> ../../ttyUSB0
 ```
 
-Two different boards, one cable each, and **neither of them can run a target scenario**: the
-workstation has `c6spare`'s JTAG node but not its CP2102N, so that board can be flashed by
-hand and never read; `gw85224-01` has `c6bench`'s CP2102N but no toolchain, so that board can
-be read and never flashed. The harness needs one adapter that does both. Two boards, two
-cables, zero runnable gates — which is exactly the sort of thing you find out by looking
-rather than by assuming.
+Two different boards, one cable each, and neither could run a target scenario: the workstation
+had `c6spare`'s JTAG node but not its CP2102N, so that board could be flashed and never read;
+`gw85224-01` had `c6bench`'s CP2102N but no toolchain, so that board could be read and never
+flashed.
+
+A second cable went onto the gw board twenty minutes later, giving `c6bench` **both**
+channels — and the gates still could not run, because the missing piece was never a cable.
+`run.sh` and `deploy_flash.sh` build and flash in one process on one host, and the host with
+the toolchain now had no board on it at all. What closes that gap on this bench is the hand
+path in §5 plus `OEVM_NODE_ID`, the one door `run.sh` opens for a board it cannot see (#181).
+
+The general shape, and the reason it is in a tutorial rather than a bench note: **counting
+adapters answers a different question than "can I run a gate."** Enumerate what is attached,
+*and* read the code that will open it, on the host that will open it.
 
 **A board exists for the harness exactly when its collector env file does.** There is no
 table of hashes anywhere in the tree; both deploy paths resolve a board name through
@@ -326,17 +334,19 @@ Read it in five parts:
   exchanges the gateway did not answer; `dropped` counts entries the bridge shed rather than
   send. A node that is fine and a mesh that is lossy look different here, which is the point.
 
-For contrast, here is `c6bench` on **2026-08-29 14:09**, still running the build flashed on
-2026-08-22 — seven days and about 172,000 ticks without a reboot:
+For contrast, here are the **last three lines of a seven-day run** — `c6bench` carrying the
+build flashed on 2026-08-22, at 14:39:51 on 2026-08-29, a minute before it was deliberately
+reflashed for §7:
 
 ```
-tick 172411 misses 2242 cursor 1 acked 1206888 dropped 0
-tick 172412 misses 2242 cursor 1 acked 1206902 dropped 0
-tick 172413 misses 2242 cursor 1 acked 1206909 dropped 0
+tick 173333 misses 2267 cursor 1 acked 1213349 dropped 0
+tick 173334 misses 2267 cursor 1 acked 1213356 dropped 0
+tick 173335 misses 2267 cursor 1 acked 1213363 dropped 0
 ```
 
-`misses 2242` against 1.2 M acked entries is a real lossy radio over a week, and `dropped 0`
-is the claim that matters: the bounded pending queue never evicted anything.
+Seven days, 173,335 ticks, one boot. `misses 2267` against 1.21 M acked entries is a real
+lossy radio over a week — about one exchange in 500 — and `dropped 0` is the claim that
+matters: the bounded pending queue never evicted anything across the whole run.
 
 ## 7. The gates
 
@@ -397,6 +407,53 @@ suite as the `target-observe-py` aux gate — the one thing under `tests/target/
 execute — so the part of the harness that decides whether a node stayed alive is itself
 tested. What it does *not* touch is the seams, which is why the suite says so on the same
 line.
+
+### What one of them actually looks like
+
+`bridge-health` on `c6bench`, **2026-08-29 14:40**, run for this page. The workload is
+`PortaBridgeNodeC6` with both Thread overlays; every assertion is the node's own:
+
+```
+oevm: build-id porta-v1-final-1177-g9462ca4-20260829T143912
+oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+thread: run=0 net_if_up=-120, joining...
+thread: attached role=2
+PORTA NODE READY
+TAP bridge-health plan=3
+tick 1 misses 1 cursor 1 acked 0 dropped 0
+tick 2 misses 1 cursor 1 acked 8 dropped 0
+tick 3 misses 1 cursor 1 acked 23 dropped 0
+TAP bridge-health ok 1 obs-acked health=present hw=23 seq=26 unacked=0
+TAP bridge-health ok 2 goal-converged obs/name=c6bench goal/name=c6bench
+TAP bridge-health ok 3 no-stream-drops streamDropped=0 misses=1
+TAP bridge-health done pass=3 fail=0
+```
+
+Six seconds from reset to `pass=3 fail=0` — **and that is not the verdict.** The manifest
+declares `OBSERVE_S=180`, so nothing is scored until the node has gone on ticking for three
+more minutes. It did: **90 tick lines between 14:40:13 and 14:43:13, and nothing else in the
+window** but the collector's own `port=up` heartbeat. No reboot, no wedge dump, no silence.
+*That* is the pass.
+
+Three honest notes about this particular run.
+
+**It was not driven by `./run.sh`.** On this bench the toolchain and the board are on
+different machines (§2), so it went the hand way of §5: built here with `OEVM_NODE_ID=c6bench`,
+`scp`, then `esptool write-flash 0x0` over ssh with the sha256 checked at both ends. It was
+flashed over the **JTAG** node so the collector kept the CP2102N and caught the boot — which
+is why there is a banner above at all, and why no second reset was needed.
+
+**`OEVM_NODE_ID` is what makes that legal rather than a guess.** Without it the image takes
+its space name from the machine that built it, so `TAP ok 2` would have been comparing the
+wrong tree entirely. That is #186: `nodeId` was once a source constant, and 36,153 events
+from at least two boards and two different apps landed in one space with nothing recording
+which was which.
+
+**`misses 1` at tick 1 is real and is reported rather than hidden.** It is one exchange lost
+while the mesh re-attached; it climbed to 14 over the first forty ticks and then stayed flat
+at 14 for the rest of the window. TAP 3 prints the number and passes anyway, because the
+assertion is about *drops*, not about a perfect radio — a gate that demanded a clean radio
+would be a gate that fails for reasons the node cannot control.
 
 ## 8. Two failure signatures worth recognising
 
