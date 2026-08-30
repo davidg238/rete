@@ -7,8 +7,9 @@ channel 14). Briefly `c6bench` too, before it became a porta bridge.
 gw85224-01:7777 on a ~15 s cadence. The server logs one line per **successful round
 trip**; that log is the entire instrument.
 **Instrument:** `journalctl -u udp-echo6` on gw85224-01 — and **nothing else**. This
-predates the space protocol, so none of it reaches porta, `docs/results/`, the tracker
-or `review/tests/CLAIMS.md`.
+predates the space protocol, so none of it reaches porta or the tracker. It reaches
+`docs/results/` and `review/tests/CLAIMS.md` only because it was extracted by hand on
+2026-08-29; nothing keeps either current.
 **Issues:** rete#281 (P1 — the porta blindness this file documents), found during rete#79.
 
 ---
@@ -160,7 +161,11 @@ was used.
 The soak produces zero rows in porta, because there is no `PortaBridgeNodeDK.nsl` — the
 nRF nodes predate the space protocol and speak only to `udp_echo6`. So the longest-running
 evidence on this bench is invisible to every instrument the program actually reads: the
-gateway, `gw/liveness`, the status deck and the claims ledger. That is **rete#281** (P1),
+gateway, `gw/liveness` and the status deck. **The claims ledger is no longer one of them:**
+`review/tests/CLAIMS.md` absorbed this file on 2026-08-29 (David's call), marked
+`FIELD EVIDENCE — NOT A GATE` — because the evidence is real and falsifiable while the
+instrument is a journal on one host that no suite reads. It becomes an ordinary row when
+#281 lands. That is **rete#281** (P1),
 which also carries the two smaller findings above: the echo server cannot record its own
 deafness (§3), and `porta` has no systemd unit on gw (§5).
 
