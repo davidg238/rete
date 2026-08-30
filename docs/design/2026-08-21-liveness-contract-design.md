@@ -622,3 +622,51 @@ why the verdict cannot separate the two failures whose operator actions are oppo
 
 On OOM specifically: no `largestFreeBlock` threshold is proposed here. That would be a
 tunable invented before the measurement that chooses it, which #153 is already filed to make.
+
+## Addendum 2026-08-29 — D1's deadline was still downstream of a socket (rete#274, closed)
+
+D1 says the **kernel** owns the base tick, so a deadline exists for a node whose app declares
+no timer. That was true of the design and not yet true of two images. `PortaBridge>>startTicking:`
+is what registers the tick, the bridge was constructed inside the `ifFalse:` branch of the
+socket bind, and `prj.conf` carries no L2 — so a C6 built without the OpenThread overlay had no
+interface, no bridge, no timer, and `observer_core_verdict()` answered `OBS_COND_NONE`, which is
+indistinguishable from health. The node was not judged well; it was **unjudgeable**, and nothing
+said so. `abc6c4f` had already applied this reasoning once ("the base tick must not be downstream
+of anything that can fail at boot") and reached the manifest and the message but not the path
+that registers the timer.
+
+Fixed in `336b12b`: `TimerlessNodeC6` and `ShipsBellAlarmNodeC6` construct the bridge with
+whatever `udpBindPort:` answered — socket or `nil` — and call `liveness:` + `startTicking:`
+unconditionally. `socket: nil` costs no mechanism (`RearmProbeC6` and `22_kernel_tick` already
+use it, and `checkIn` returns at its first line on it). The other seven `startTicking:` nodes
+`^ self fail: 'bind'`, which is a loud exit rather than a silent unjudgeable one, so those two
+were the whole population.
+
+`observer_core.h`'s `OBS_COND_NONE` branch **stays**, and `test_observer_core.c` property 6 keeps
+asserting it: it is the honest answer for an empty snapshot, and an app registering no timer is
+still legal C-side. What is gone is the path by which a shipping node reached it by accident.
+
+### The finding worth more than the fix: a gate whose claim went vacuous
+
+`liveness-heartbeat.env` justified its `CONF_EXTRA` by naming the very line this fix deletes.
+Correcting that header surfaced the real reason that row needs a radio, and it is a stronger
+one. The row's central claim is that **nothing speaks between the wedge and the reboot** — the
+evidence that the heartbeat rides the reactor rather than a C thread, which is the whole of D1.
+On a node with no radio that claim is **vacuous**: a node that *cannot* check in trivially emits
+no check-in, so the window reads clean while proving nothing.
+
+Post-#274 that became a live hazard rather than a hypothetical, because a radio-less node now
+ticks and wedges normally — the row would have gone green having tested nothing. This is the
+"a passing invariant is vacuous unless the interesting state is proven reachable" shape, met
+here by a change that made an *unreachable* state reachable and so quietly emptied an assertion.
+
+The no-radio condition now has its own row, **`liveness-noradio`** (`d45136e`), which asserts
+what `liveness-heartbeat` may now take for granted: that a deadline exists at all when the bind
+fails. The two manifests differ by exactly one variable and that variable is the whole test.
+Both headers now state what makes their own evidence real. GREEN on c6spare 2026-08-29:
+`deadline=16000ms` from the kernel base tick alone, 18.03 s of silence, `pass=2 fail=0`, then
+106 ticks on boot 2 with no second wedge — under a build the runner forced `--pristine` and
+which announced `radio layer not requested`, so it is not a warm-cache green.
+
+**Nothing here touches #272 or #273.** The four numbers and which of them is the source of
+truth remain exactly as the 2026-08-28 addendum left them: David's call, unmade.

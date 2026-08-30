@@ -48,8 +48,8 @@
 <body>
 
 <h1>rete — dev status</h1>
-<p class="stamp">Status synthesized <strong>2026-08-29</strong> (docs pass 5: the four v1-era reference pages are rewritten and <code>#279</code> is closed; <code>gatekeeper</code> is now <strong>custos</strong>) at
-<a href="https://github.com/davidg238/rete/commit/3f87494">3f87494</a>.
+<p class="stamp">Status synthesized <strong>2026-08-29</strong> (<code>#274</code> closed on a board — the base tick no longer sits downstream of the socket bind, and <code>liveness-noradio</code> is the gate that keeps it that way; the thread now waits on <strong>David's <code>#273</code> call</strong>) at
+<a href="https://github.com/davidg238/rete/commit/8b7acfe">8b7acfe</a>.
 Served live by <strong>custos</strong> (gw85224-01:6971).
 This page is a <em>view</em>, refreshed at session close-outs — the records of
 direction are <a href="/dev/next-steps-overview.md">next-steps-overview.md</a>
@@ -243,7 +243,8 @@ zero rows in porta, so <code>gw/liveness</code> never sees them) and
 has no systemd unit, and the OTBR logs die with the container that the fixing reboot
 recreated). <em>A channel nothing reads cannot tell you why it went quiet.</em>
 <strong>What first:</strong> the v2 rewrites in
-<a href="https://github.com/davidg238/rete/issues/279">#279</a>.</p>
+<a href="https://github.com/davidg238/rete/issues/279">#279</a>. <em>(Done — #279 closed
+2026-08-29; see the entries below.)</em></p>
 <p><strong>2026-08-29, night — the last v1-era documents are gone, and one of them is now
 a gate (<a href="https://github.com/davidg238/rete/issues/279">#279</a>, closed).</strong>
 Four pages rewritten, each with a different answer to <em>how does this stay true?</em>
@@ -271,6 +272,28 @@ because a record that gets rewritten stops being a record. Suite after:
 <a href="https://github.com/davidg238/rete/issues/284">#284</a>,
 <a href="https://github.com/davidg238/rete/issues/285">#285</a>;
 <a href="https://github.com/davidg238/rete/issues/277">#277</a> closed.</p>
+
+<p><strong>2026-08-29, late — <a href="https://github.com/davidg238/rete/issues/274">#274</a>
+closed on a board, and the liveness thread is now blocked on one decision only.</strong>
+D1 says the kernel owns the base tick so a deadline always exists; that was true of the design
+and not of two images. <code>startTicking:</code> sat inside the <code>ifFalse:</code> branch of
+the socket bind, so a C6 built with no radio had no interface, no bridge, no timer, and
+<code>observer_core_verdict()</code> answered <code>OBS_COND_NONE</code> — which is
+<em>indistinguishable from health</em>. The node was not judged well, it was <strong>unjudgeable</strong>.
+Fixed by constructing the bridge with <code>socket: nil</code> and ticking unconditionally.
+<strong>The finding was worth more than the fix:</strong> correcting
+<code>liveness-heartbeat.env</code>'s header showed that <em>its</em> claim — nothing speaks
+between the wedge and the reboot — is <strong>vacuous</strong> on a node that cannot check in at
+all, and #274 had just made that state reachable. It would have gone green testing nothing. The
+no-radio case got its own row, <code>liveness-noradio</code>, GREEN on <code>c6spare</code>:
+<code>deadline=16000ms</code> from the kernel tick alone, 18.03&nbsp;s of silence,
+<code>pass=2 fail=0</code>, under a build the runner forced <code>--pristine</code>.
+<strong>What first:</strong> <a href="https://github.com/davidg238/rete/issues/273">#273</a> —
+open <code>docs/spikes/2026-08-27-liveness-3-ladder.png</code>, whose caption already states the
+fork (H1: every deadline derived from the node's declared 2&nbsp;s · H2: <code>bud</code> capped
+by a constant on porta's side). It is the only thing blocking
+<a href="https://github.com/davidg238/rete/issues/272">#272</a>, and both want a decision rather
+than more evidence.</p>
 </div>
 
 <ol>
