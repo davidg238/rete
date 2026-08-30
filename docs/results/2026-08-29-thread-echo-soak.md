@@ -24,12 +24,19 @@ evidence this program has, and until this file it existed only in a systemd jour
 | node (ML-EID suffix) | echoes | span | mean interval | longest clean stretch | ended |
 |---|---:|---:|---:|---:|---|
 | `1e62:99b1:7766:5fd2` | 292,283 | 48.61 d | 14.37 s | **37.28 d** | still running |
-| `c145:d47b:5430:db9b` | 213,516 | 37.28 d | 15.09 s | **34.45 d** | 2026-08-18 19:30:29 |
-| `2867:4291:e295:1e9f` | 210,055 | 37.30 d | 15.34 s | 27.33 d | 2026-08-18 19:28:11 |
+| `c145:d47b:5430:db9b` *(`4ec0`)* | 213,516 | 37.28 d | 15.09 s | **34.45 d** | stopped 2026-08-18 19:30:29, **running again since 08-29 15:04 (§8)** |
+| `2867:4291:e295:1e9f` *(`92c2`)* | 210,055 | 37.30 d | 15.34 s | 27.33 d | stopped 2026-08-18 19:28:11, **running again since 08-29 15:05 (§8)** |
 | `24c0:a5b7:5ba0:0bd1` *(c6bench)* | 2,849 | 1.81 d | 55.05 s | — | 2026-07-22 15:50 |
 | `408c:16cb:f977:8626` | 2,175 | 0.51 d | 20.17 s | — | 2026-07-12 02:38 |
 
 Counts as of 2026-08-29 15:00; the first row is live and still climbing.
+
+**Read §8 before quoting this table.** Its `ended` column was written at 15:00 and the two
+stopped boards were re-powered four minutes later, so for the length of one extraction this
+file said "dead" about two nodes that were about to come back. All three have been echoing
+continuously since; re-confirmed 2026-08-30 12:53 (rete#281), when `4ec0` was unplugged for
+82 s to re-verify §8's identity map and came straight back. That the summary and §8 had to
+be reconciled by hand is the argument for §9's third addition.
 
 "Clean stretch" means **no gap over 600 s**. Gaps under that are not counted because the
 instrument cannot distinguish a lost datagram from a slow one (§4).
