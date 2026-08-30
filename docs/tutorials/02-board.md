@@ -67,7 +67,7 @@ its own aux line:
   target gates: NOT RUN BY THIS SUITE — the posix timer backend bypasses the pulse
     mailbox, so coalescing, shedding and stale handles are UNTESTED here.
     (target-observe-py above is the harness's OWN logic, not the seams — #216.)
-    Run: nodus/oevm/tests/target/run.sh   (11 scenarios, needs a board)
+    Run: nodus/oevm/tests/target/run.sh   (12 scenarios, needs a board)
 ```
 
 rather than a green SKIP. It is deliberately not coloured like one either: a skip names a
@@ -380,6 +380,7 @@ must not do is false-trip on a legitimately slow node, and `liveness-heartbeat` 
 | `wedge-detect` | disruptive | the detector fires on a *real* wedge, dumps the condition, reboots, reports `#watchdog` |
 | `wedge-quiet` | disruptive | **no false trip** on a legitimately slow node — one 10-minute timer, watched 600 s |
 | `liveness-heartbeat` | disruptive | the detector can see a node with **no application timer** (#231) |
+| `liveness-noradio` | disruptive | the same node with **no radio at all** — the base tick is registered upstream of the socket bind, so a failed bind still leaves a deadline (#274) |
 | `porta-refuse` | disruptive | a node **refused** by its gateway survives past the 157 s death record (#232) |
 | `porta-silent` | disruptive | a node whose **uplink is gone** survives it (#269) |
 

@@ -13,7 +13,7 @@ preserved the issue numbers and the `#NN` references the program navigates by
 - **Done 2026-08-29, do not redo:** docs passes 1–5. Pass 5 (#279, `86ad461` `8bbc22c` `adbd04c` `6b3b0ef`) rewrote **`porta/docs/CLI.md`, `nodus/nsl/docs/compiler.md`, `porta/docs/ARCHITECTURE.md`, `porta/docs/GETTING-STARTED.md`**, each with a different way of staying true: CLI.md is **gated** (`porta-cli` walks the binary's `--help`; falsified five ways plus two self-canaries), compiler.md **deleted** its wrong opcode table rather than fixing it (two authorities, no third copy), ARCHITECTURE.md was **restructured** so corrections replace text instead of accreting, and GETTING-STARTED says it is prose and **not** gated. New: `nodus/nsl/docs/README.md`. Also `5419d9a` closed **#277** (review/ bannered with the exact `nodus/tuvm/`→`nodus/oevm/` mapping — 56 of 62 paths rewrite straight across, six do not; the ubsan runner moved to `-fno-sanitize-recover=all`, measured a no-op first) and `3f87494` put the Thread soak into `review/tests/CLAIMS.md`, marked **FIELD EVIDENCE — NOT A GATE**.
 - **`gatekeeper` is now `custos`** (`f6edd32`, David's call — Latin, to sit with *porta*). Package `porta/internal/custos`, binary `porta/cmd/custos`, **deployed and serving on gw85224-01:6971** (`/dev/status`, `/health`, `/manifest` all 200). The three dated design records keep the old name in their bodies **and filenames** under a rename banner, so `#NN` citations still resolve.
 - **Corrected 2026-08-29, do not re-inherit:** **#118 is NOT overtaken by #186.** `platform nodeId` reads the build-time define `OEVM_NODE_ID` (`platform.c:1508`); #186 settled *slot-vs-board* only, two boards flashed from one image still share one identity, and a node id is a name and not a credential. Both the memory and the status page said otherwise; both are fixed, and #118's own body is stale in the same direction.
-- **Bench state:** `c6spare` is still **UNPOWERED** (its cable went to gw85224-01 on 2026-08-29) — it is `TARGET_DEFAULT_BOARD`, so **no `class=disruptive` scenario can run until it is back**, #274's board verification included. `c6bench` on gw85224-01 has both cables and carries a `PortaBridgeNodeC6` build (`g9462ca4`). The three nRFs are healthy, labelled `7adf` / `4ec0` / `92c2`, and `7adf`'s run is past 48.6 days unbroken.
+- **Bench state:** `c6spare` is **BACK on the workstation with both cables** (2026-08-29 evening) and its collector is live — so `class=disruptive` scenarios run again, and #274's board verification is DONE. Its cabling follows #181's bench note: **CP2102N direct to the motherboard** (`1-3`, off the root hub) and the harness-unused **JTAG on the hub** (`1-1.4.4`), because the CP2102N carries flash AND console (`ESPTOOL_PORT` comes from `RETE_CONSOLE_PORT`) and is the adapter that has failed on this bench before (#178). Through a two-tier hub it had not enumerated at all, silently. `c6bench` on gw85224-01 has both cables and carries a `PortaBridgeNodeC6` build (`g9462ca4`). The three nRFs are healthy, labelled `7adf` / `4ec0` / `92c2`, and `7adf`'s run is past 48.6 days unbroken.
 - **Awaiting David:** the **#273** design call (which deadline number is the source of truth) — the only thing blocking **#272**'s age rule in `verdictFor`. **#285** is a one-line `MANIFEST.cddl` fix that is deliberately *not* landed alone: editing the manifest moves its SHA-256, which is the `obs/build` pin and `check_provision.py`'s served-hash side, so it wants sequencing with a gateway deploy.
 - **Open finds not worked on (weekly review):** #280, #281 (P1), #282, #283, #284, #285.
 - **Not before 2026-09-01:** David is on NEMT until then.
@@ -186,11 +186,12 @@ suite also prints `target gates: NOT RUN BY THIS SUITE`: the posix timer backend
 the pulse mailbox, so coalescing, shedding and stale handles need `nodus/oevm/tests/target/run.sh`
 and a board.
 
-**What `tests/target/run.sh` actually runs — eleven scenarios, and a full pass is ~60–90 min
+**What `tests/target/run.sh` actually runs — twelve scenarios, and a full pass is ~65–95 min
 of board time** (`liveness-heartbeat` alone budgets a 300 s timeout plus 180 s of observation;
-`cad-rearm` was added 2026-08-26 for #240.2, `porta-refuse` the same day for #232, and
-`porta-silent` on 2026-08-27 for #269 — and **both porta-* scenarios need their injector porta
-started by hand**, so a full sweep is not unattended; see their envs). The runner globs
+`cad-rearm` was added 2026-08-26 for #240.2, `porta-refuse` the same day for #232,
+`porta-silent` on 2026-08-27 for #269, and `liveness-noradio` on 2026-08-29 for #274 — and
+**both porta-* scenarios need their injector porta started by hand**, so a full sweep is not
+unattended; see their envs). The runner globs
 `*.env`, so a new manifest joins the sweep the moment it lands. Budget the time rather than
 discovering it. `CLASS=disruptive` means the scenario
 deliberately wedges, burns or reboots the node: **a disposable board only** (`c6spare`, which
@@ -200,12 +201,17 @@ is `TARGET_DEFAULT_BOARD` — resolve boards through the collector env files, ne
 do.** `prj.conf` alone has `NETWORKING/IPV6/UDP/SOCKETS` but **no L2**, so a C6 built without
 `prj_esp32c6_thread.conf` has no interface and `net udpBindPort:` answers nil. The wedge probes
 never notice — `WedgeProbeC6`, `SlowTimerNodeC6`, `PulseCoalesceProbeC6` and `StaleHandleProbeC6`
-arm `timers every:` directly and open nothing. `PortaBridgeNodeC6` and `TimerlessNodeC6` bind, and
-for `TimerlessNodeC6` the bind is load-bearing: the base tick is registered by the **bridge**, so
-no socket means no timer, no wedge, and no deadline for the detector. The "no `CONF_EXTRA`"
-convention is about `wedge-note`'s synthetic-trigger Kconfig split and **was never about the
-radio** — conflating the two cost a board cycle on 2026-08-22 (#236, and `zephyr/run.sh`'s #165
-comment records the same shape from before).
+arm `timers every:` directly and open nothing. `PortaBridgeNodeC6` and `TimerlessNodeC6` bind. **The bind is
+no longer load-bearing for `TimerlessNodeC6`** (#274, 2026-08-29): the bridge is now constructed
+with `socket: nil` and `startTicking:` runs unconditionally, so a failed bind costs the node its
+reporting and not its base tick, its wedge or its deadline. `liveness-noradio` is the gate that
+holds that — the same node with no `CONF_EXTRA` at all, verified on a board 2026-08-29
+(`deadline=16000ms`, 18.03 s of silence, `pass=2 fail=0`). What a radio still buys is EVIDENCE:
+`liveness-heartbeat` keeps its `CONF_EXTRA` because its claim is that nothing speaks between the
+wedge and the reboot, and on a node that cannot check in at all that claim is vacuous. The "no
+`CONF_EXTRA`" convention is about `wedge-note`'s synthetic-trigger Kconfig split and **was never
+about the radio** — conflating the two cost a board cycle on 2026-08-22 (#236, and
+`zephyr/run.sh`'s #165 comment records the same shape from before).
 
 | scenario | class | what it gates |
 |---|---|---|
@@ -220,6 +226,7 @@ comment records the same shape from before).
 | `wedge-detect` | disruptive | the detector fires on a real wedge, dumps the condition, reboots, reports `#watchdog` (#215, row 3) |
 | `wedge-quiet` | disruptive | **no false trip on a legitimately slow node** — one 10-minute timer, and the 600 s observation is why this run is long (#215, row 5) |
 | `liveness-heartbeat` | disruptive | **the detector can see a node with NO app timer** — the kernel owns the base tick, so the deadline exists and nothing speaks between the wedge and the reboot (#231 D1). Needs the Thread `CONF_EXTRA`: its node binds. **GREEN ON A BOARD 2026-08-22** — `deadline=16000ms` (the kernel's 2000 ms tick × slack 8, the only timer in the image), 18.03 s of total console silence between the wedge and the reset, `pass=2 fail=0` on boot 2 |
+| `liveness-noradio` | disruptive | **#274's regression gate: a deadline exists even when the bind fails.** The same node as above with NO `CONF_EXTRA` — the exact condition that gave 300 s of total silence on 2026-08-22. GREEN ON A BOARD 2026-08-29: bind fails, `timerless tick` climbs at 2 s (there were none before the fix), wedge at tick 15, `deadline=16000ms` from the kernel base tick alone, 18.03 s of silence, reboot, `pass=2 fail=0`, then 106 ticks with no second wedge. The red it is shaped to catch is SILENCE, which is what made the defect invisible |
 
 A scenario passing its TAPs is **not** the verdict: every one carries an observation window
 that watches past it, because a gate that scores at tick 2 against a node that dies at tick 6
