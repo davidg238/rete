@@ -145,3 +145,8 @@ _*.stmap
 .claude/*
 !.claude/settings.json
 !.claude/commands/
+
+# Local MCP wiring. Not tracked for the same reason .claude/settings.local.json is not:
+# it names one host (`msi-7d43` over the tailnet) and one daemon on it, which is a property
+# of a workstation and not of this repo.
+.mcp.json
