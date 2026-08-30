@@ -1,6 +1,14 @@
 (*
-PortaBridgeNodeDK — PortaBridgeNode, on the nRF52840-DK, over the same real Thread
-mesh the echo soak has been running on since 2026-07-11. rete#281: three DKs have
+PortaBridgeNodeNrf — PortaBridgeNode, on the nRF52840, over the same real Thread
+mesh the echo soak has been running on since 2026-07-11.
+
+ONE FILE FOR BOTH nRF BOARDS, and that is a fact about the hardware rather than a
+convenience: the DK and the PCA10059 dongle differ in console (uart0/VCOM vs SoC
+USB-CDC), trigger pin (BUTTON1 P0.11 vs SW1 P1.06) and flash method (J-Link vs nRF
+Util DFU) — every one of which is Kconfig or devicetree, NONE of which is nsl. This
+file was briefly called ...NodeDK before the board on the bench turned out to be a
+dongle; the name was the only thing that had to change. See
+docs/BOARD_PORTS.md for the per-board table. rete#281: three DKs have
 round-tripped 720,878 datagrams to `udp-echo6` on gw85224-01 and NONE of it reaches
 porta, because nothing on nRF ever spoke the space protocol. This file is the item
 that fixes that; items 2-5 of #281 (layout json, run.sh profile, collector env, heap
@@ -45,7 +53,7 @@ expect (console /dev/ttyACM0 @115200, once attached):
 PORTA NODE READY
 tick 1 misses 0 acked 0
 *)
-class PortaBridgeNodeDK usingPlatform: platform net: net = (
+class PortaBridgeNodeNrf usingPlatform: platform net: net = (
   | space bridge timers profChan ticks ::= 0. profTok ::= nil.
     (* tuvm#107: the span table. ONE window per boot — see `main:args:`. *)
     spans capture sTick sCheckIn sPublish capturing ::= false. |

@@ -25,7 +25,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 case "$MODEL" in A|B) ;; *) echo "--model must be A or B" >&2; exit 2 ;; esac
-case "$BOARD_ID" in esp32|esp32s2|esp32c6|nrf52840dk) ;; *) echo "--board must be esp32, esp32s2, esp32c6 or nrf52840dk" >&2; exit 2 ;; esac
+case "$BOARD_ID" in esp32|esp32s2|esp32c6|nrf52840dk|nrf52840dongle) ;; *) echo "--board must be esp32, esp32s2, esp32c6, nrf52840dk or nrf52840dongle" >&2; exit 2 ;; esac
 
 ZDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # zephyr/ — the app dir
 ROOT="$(cd "$ZDIR/.." && pwd)"                          # nodus/oevm — the VM root, not the repo root
@@ -43,12 +43,12 @@ NSL="$(git -C "$ZDIR" rev-parse --show-toplevel)/nodus/nsl/tools/ns_compile_oevm
 # which has none of their dependencies. That failure would appear at --capture time,
 # long after the build it came from.
 ncs_env() {
-  [ "$BOARD_ID" = nrf52840dk ] || return 0
+  case "$BOARD_ID" in nrf52840dk|nrf52840dongle) ;; *) return 0 ;; esac
   local tc
   tc=$(ls -d "$HOME"/ncs/toolchains/*/ 2>/dev/null | head -1)
   tc="${tc%/}"
   if [ -z "$tc" ] || [ ! -x "$tc/usr/local/bin/west" ]; then
-    echo "no NCS toolchain under ~/ncs/toolchains — cannot build for the DK" >&2
+    echo "no NCS toolchain under ~/ncs/toolchains — cannot build for $BOARD_ID" >&2
     return 1
   fi
   export PATH="$tc/bin:$tc/usr/bin:$tc/usr/local/bin:$tc/opt/bin:$tc/nrfutil/bin:$tc/opt/zephyr-sdk/arm-zephyr-eabi/bin:$PATH"
@@ -336,12 +336,52 @@ case "$BOARD_ID" in
       fi
     fi
     ;;
+  nrf52840dongle)
+    # The PCA10059 dongle. SAME SoC and same 256 KB as the DK, and the same node
+    # source — the differences are all Kconfig/devicetree (docs/BOARD_PORTS.md):
+    # console on the SoC USB-CDC because the dongle HAS NO on-board debugger, SW1 on
+    # P1.06 instead of BUTTON1 on P0.11, picolibc instead of newlib, and DFU instead
+    # of J-Link. This profile exists because the boards on the wallwarts turned out
+    # to be dongles, not DKs (rete#281, 2026-08-30) — the soak has been running on
+    # them since 2026-07-11 and every doc that named the hardware said "DK".
+    BOARD="nrf52840dongle/nrf52840"
+    CONF_FILE="prj_dongle_thread.conf"
+    LAYOUT_JSON=""
+    ROM_PATCH=0
+    # MEASURED for THIS config, and it is not the DK's number even though the part is
+    # identical: 114688 links at RAM 257948/262144 = 98.40%, FLASH 42.39%. That is
+    # 4196 B of spare RAM — against the DK's 8220 B — because the USB device stack and
+    # picolibc cost what uart0 and newlib did not. FOUR KILOBYTES IS THE WHOLE MARGIN:
+    # the next Kconfig line anyone adds here is as likely as not to fail the link, and
+    # it will fail with `region RAM overflowed`, not with anything about this comment.
+    : "${OEVM_HEAP_SIZE:=114688}"
+    : "${BUILD_DIR:=build-nrf52840dongle-$MODEL}"
+    # The dongle presents the APPLICATION's USB-CDC (2fe3:0004 "Zephyr Project CDC ACM
+    # serial backend"), not a debugger — so there is no *SEGGER* to glob for, and the
+    # console port only exists while firmware that opens one is running. In DFU mode it
+    # re-enumerates as 1915:521f and has no console at all.
+    if [ -z "${CONSOLE_PORT:-}" ]; then
+      cmatches=$(ls /dev/serial/by-id/*Zephyr*CDC_ACM* 2>/dev/null || true)
+      cn=$(printf '%s' "$cmatches" | grep -c . || true)
+      if [ "$cn" -gt 1 ]; then
+        echo "more than one Zephyr CDC-ACM console candidate:" >&2
+        printf '%s\n' "$cmatches" >&2
+        echo "Set CONSOLE_PORT explicitly and retry." >&2
+        exit 2
+      elif [ "$cn" -eq 1 ]; then
+        CONSOLE_PORT="$cmatches"
+      else
+        CONSOLE_PORT=/dev/ttyACM0
+      fi
+    fi
+    ;;
 esac
 
 # Model B needs a captured object layout and the nRF has none (#281 item 2). Refused
 # by NAME here so the reason is the real one.
-if [ "$BOARD_ID" = nrf52840dk ] && [ "$MODEL" != A ]; then
-  echo "--board nrf52840dk supports --model A only: there is no layout-nrf52840.json" >&2
+case "$BOARD_ID" in nrf52840dk|nrf52840dongle) NRF=1 ;; *) NRF=0 ;; esac
+if [ "$NRF" = 1 ] && [ "$MODEL" != A ]; then
+  echo "--board $BOARD_ID supports --model A only: there is no layout-nrf52840.json" >&2
   echo "(rete#281 item 2 — a layoutdump run on a DK is owed before Model B works here)" >&2
   exit 2
 fi
@@ -528,7 +568,22 @@ if [ "$DO_FLASH" = 1 ]; then
   # into this script and have the harness stop doing it. rete#170 unblocked it by
   # giving this script the real instance name (below); what remains is moving the
   # stop/start and the second reset over, and deleting the harness's copy.
-  if [ "$BOARD_ID" = nrf52840dk ]; then
+  if [ "$BOARD_ID" = nrf52840dongle ]; then
+    # DFU, because the dongle has no debugger. It only accepts a flash while in DFU
+    # mode, which is a PHYSICAL act: hold RESET while inserting, and it re-enumerates
+    # as 1915:521f. Checked here rather than left to `west flash` — nrfutil's own
+    # failure for "not in DFU mode" is a timeout, which reads like a broken cable.
+    # The recipe is docs/BOARD_PORTS.md's; this is the executable copy of it.
+    if ! lsusb 2>/dev/null | grep -q 1915:521f; then
+      echo "[flash] the dongle is NOT in DFU mode (no 1915:521f on USB)." >&2
+      echo "[flash] Hold the dongle's RESET button while inserting it, then re-run" >&2
+      echo "[flash] with --flash. Its app console (2fe3:0004) disappears in DFU mode," >&2
+      echo "[flash] so seeing no console port is expected and not a fault." >&2
+      exit 2
+    fi
+    echo "[flash] west flash --runner nrfutil -d $BUILD_DIR (DFU)"
+    ( ncs_env && cd "$ZDIR" && west flash --skip-rebuild --runner nrfutil -d "$BUILD_DIR" )
+  elif [ "$BOARD_ID" = nrf52840dk ]; then
     # The DK has no ROM serial loader in this path: it flashes over its on-board
     # SEGGER J-Link. --skip-rebuild for the SAME reason the esptool branch does not
     # call `west flash` bare — a rebuild here would run under a different resolved
