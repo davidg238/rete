@@ -89,11 +89,22 @@ struct ObsCore {
  * period is what `undrained_since_ms` is measured in. */
 static inline int observer_core_verdict(struct ObsCore *st, const struct ObsSample *s) {
     /* The app declared no cadence: nothing to judge it against, and guessing one
-     * is what the design forbids. NOTE THE HOLE THIS LEAVES (and it is a real
-     * one): a node whose app declares no repeating timer is not judged healthy,
-     * it is UNJUDGEABLE. rete#231 D1 closes that by having the kernel own a base
-     * tick — but only once startTicking: has run, which on a bridge node sits
-     * downstream of the socket bind. */
+     * is what the design forbids. Note what this answer MEANS, because it is not
+     * health: a node with no repeating timer is not judged healthy, it is
+     * UNJUDGEABLE, and the two are indistinguishable from here.
+     *
+     * Nothing that ships reaches it any more. rete#231 D1 gave the kernel a base
+     * tick, and rete#274 moved the registration upstream of the socket bind on the
+     * two nodes that had left it downstream (TimerlessNodeC6, ShipsBellAlarmNodeC6):
+     * the bridge is now constructed with `socket: nil` when the bind fails, so
+     * `startTicking:` runs on every boot and a deadline always exists. Every other
+     * bridge node leaves main: on a failed bind, which is a loud failure rather than
+     * a silent unjudgeable one.
+     *
+     * The branch stays, and test_observer_core.c property 6 keeps asserting it: it
+     * is the honest answer for an EMPTY snapshot, and an app that registers no timer
+     * at all is still legal C-side. What is gone is the path by which a shipping node
+     * arrived here by accident. */
     if (s->n == 0) return OBS_COND_NONE;
 
     /* §3.1 — an armed repeating timer is overdue against ITS OWN period. Catches

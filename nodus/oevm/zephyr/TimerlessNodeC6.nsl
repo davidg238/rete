@@ -81,31 +81,36 @@ class TimerlessNodeC6 usingPlatform: platform net: net = (
 
     sock:: net udpBindPort: self localPort.
     spans:: plat Spans new.
-    (* A BIND FAILURE MAKES THIS NODE INVISIBLE, AND IT MUST SAY SO IN ONE LINE.
-       This branch used to read "wedging anyway, the detector is the test", which was
-       false in the one shape that matters: the wedge is driven by `tick`, `tick` is
-       driven by the base tick, and the base tick is registered BY THE BRIDGE below —
-       which is never constructed when the bind fails. So a bind failure yields a node
-       that ticks nothing, wedges never, and puts no deadline in `timer_target_snapshot`
-       (observer_core.h returns OBS_COND_NONE at n == 0). It is then indistinguishable from a
-       healthy idle node, because `pulse_pump` blocks on K_FOREVER either way.
+    (* THE BIND IS NOT UPSTREAM OF THE BASE TICK, AND THAT IS THE WHOLE OF rete#274.
+       The bridge is constructed with whatever `net udpBindPort:` answered — a socket
+       or nil — and `liveness:` + `startTicking:` run either way, because the base tick
+       must not sit downstream of anything that can fail at boot. That is the reasoning
+       `abc6c4f` (rete#231) already applied once; it fixed the manifest and the message
+       and left this path, which is the half that actually registers the timer.
 
-       That is not hypothetical: 2026-08-22 10:49 this node was built with no radio
-       layer, sat silent for the full 300 s, and the run cost a board cycle to read.
-       The manifest carries the CONF_EXTRA that prevents it; this line is what makes the
-       next occurrence legible in one grep instead of one cycle. *)
-    sock == nil
-      ifTrue:  [ 'timerless: bind FAILED — no bridge, so NO base tick is registered: this node will not tick, will not wedge, and the detector has no deadline for it. Check the image has a radio layer (CONF_EXTRA prj_esp32c6_thread.conf).' out ]
-      ifFalse: [
-        bridge:: plat PortaBridge
-          socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
-          spans: spans.
-        bridge subscribeStream: 'tel/log'.
-        (* rete#259: the bridge owns obs/build; #man rides iff the image
-           carries a manifest pin (rete#243). *)
-        bridge publishBuild: self chip.
-        (* rete#231 D2: this node's promise about its radio, 8 x the base tick. *)
-        bridge liveness: self cadence budget: self cadence * 8 ].
+       `socket: nil` costs no mechanism: it is an already-supported construction
+       (RearmProbeC6, 22_kernel_tick) and `checkIn` returns at its first line when the
+       socket is nil. So a radio-less node ticks, wedges, and carries a deadline in
+       `timer_target_snapshot` exactly as a bridged one does — it simply reports to
+       nobody.
+
+       Before this, a bind failure yielded a node that ticked nothing, wedged never and
+       put no deadline anywhere, which is indistinguishable from a healthy idle node
+       because `pulse_pump` blocks on K_FOREVER either way. Not hypothetical: 2026-08-22
+       10:49 this node was built with no radio layer, sat silent for the full 300 s, and
+       the run cost a board cycle to read. The line below survives that episode, but it
+       now reports a loss of REACHABILITY and no longer a loss of judgeability. *)
+    sock == nil ifTrue: [
+      'timerless: bind FAILED — still ticking and still judgeable, but reporting to nobody. Check the image has a radio layer (CONF_EXTRA prj_esp32c6_thread.conf).' out ].
+    bridge:: plat PortaBridge
+      socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
+      spans: spans.
+    bridge subscribeStream: 'tel/log'.
+    (* rete#259: the bridge owns obs/build; #man rides iff the image
+       carries a manifest pin (rete#243). *)
+    bridge publishBuild: self chip.
+    (* rete#231 D2: this node's promise about its radio, 8 x the base tick. *)
+    bridge liveness: self cadence budget: self cadence * 8.
 
     (* THE ONLY REPEATING TIMER IN THIS IMAGE, and the app does not register it: the
        bridge does, from the cadence adopted above. Take the channel away and there is
@@ -113,7 +118,7 @@ class TimerlessNodeC6 usingPlatform: platform net: net = (
        purely reactive node was in before this rung. *)
     tickCh:: space channel: 'sys/tick'.
     tickCh whenever: '' do: [ :m | self tick ].
-    bridge == nil ifFalse: [ bridge startTicking: timers on: tickCh ].
+    bridge startTicking: timers on: tickCh.
 
     'TIMERLESS NODE READY' out.
     [ true ] whileTrue: [ plat pumpEvents. space drain ].

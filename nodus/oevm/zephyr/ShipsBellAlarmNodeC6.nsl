@@ -141,40 +141,49 @@ class ShipsBellAlarmNodeC6 usingPlatform: platform net: net = (
     bellCh:: space channel: 'bell/stroke'.
     bellCh whenever: '' do: [ :m | self strokeStep ].
 
-    (* The bridge. A bind failure is NOT fatal here, unlike on the gate node: this
-       node's job is to ring on time, and it must keep ringing with no gateway,
-       no mesh and no report. Silence about itself is a degradation; a bell that
-       stops for want of a socket is a regression. *)
+    (* The bridge, and it is now built whether or not the bind succeeded (rete#274).
+       A bind failure is NOT fatal here, unlike on the gate node: this node's job is to
+       ring on time, and it must keep ringing with no gateway, no mesh and no report.
+       Silence about itself is a degradation; a bell that stops for want of a socket is
+       a regression.
+
+       What used to sit inside the ifFalse: branch alongside the socket was
+       `startTicking:`, and that put the node's BASE TICK downstream of the bind as
+       well: a bell that came up without a radio had no repeating timer, so
+       `timer_target_snapshot` was empty, the verdict was OBS_COND_NONE, and the
+       detector went blind to the one node on this bench that is expensive to lose.
+       `socket: nil` is a supported construction and `checkIn` returns at its first line
+       on it, so the bridge ticks and carries its deadline regardless; the check-in is
+       simply a no-op until there is a radio to carry it. *)
     sock:: net udpBindPort: self localPort.
-    sock == nil
-      ifTrue:  [ 'porta: bind FAILED — ringing on, reporting nothing' out ]
-      ifFalse: [
-        (* The bridge registers six span slots of its own at construction and so
-           needs a Spans. This node takes no app-level spans, so the instance
-           exists only to hold the bridge's name<->slot table — but it must be ONE
-           instance, and it must be this one. *)
-        spans:: plat Spans new.
-        bridge:: plat PortaBridge
-          socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
-          spans: spans.
-        (* rete#231 D2: this node's own promise about its radio. The budget is
-           8 x the cadence — #215's measured slack, chosen HERE by the node rather
-           than by the gateway, because the node is the only party that knows its
-           own loss rate. 30 s is this node's beat, and the check-in rides it. *)
-        bridge liveness: self cadence budget: self cadence * 8.
-        (* rete#259: the bridge owns obs/build; #man rides iff the image
-           carries a manifest pin (rete#243). *)
-        bridge publishBuild: self chip.
-        beatCh:: space channel: 'sys/tick'.
-        beatCh whenever: '' do: [ :m | self checkIn ].
-        (* rete#231 D1: the KERNEL owns the period. This node's beat IS its
-           check-in, and the registration moving into the bridge is what puts it
-           in timer_target_snapshot as the bridge's own deadline — a bell that
-           wedges between strokes now stops emitting a heartbeat instead of
-           emitting one from a node that is not ringing. *)
-        bridge startTicking: timers on: beatCh.
-        ('porta: check-in every ' , (self cadence // 1000) printString ,
-          ' s as ' , self nodeId) out ].
+    sock == nil ifTrue: [
+      'porta: bind FAILED — ringing on, ticking on, reporting nothing' out ].
+    (* The bridge registers six span slots of its own at construction and so
+       needs a Spans. This node takes no app-level spans, so the instance
+       exists only to hold the bridge's name<->slot table — but it must be ONE
+       instance, and it must be this one. *)
+    spans:: plat Spans new.
+    bridge:: plat PortaBridge
+      socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
+      spans: spans.
+    (* rete#231 D2: this node's own promise about its radio. The budget is
+       8 x the cadence — #215's measured slack, chosen HERE by the node rather
+       than by the gateway, because the node is the only party that knows its
+       own loss rate. 30 s is this node's beat, and the check-in rides it. *)
+    bridge liveness: self cadence budget: self cadence * 8.
+    (* rete#259: the bridge owns obs/build; #man rides iff the image
+       carries a manifest pin (rete#243). *)
+    bridge publishBuild: self chip.
+    beatCh:: space channel: 'sys/tick'.
+    beatCh whenever: '' do: [ :m | self checkIn ].
+    (* rete#231 D1: the KERNEL owns the period. This node's beat IS its
+       check-in, and the registration moving into the bridge is what puts it
+       in timer_target_snapshot as the bridge's own deadline — a bell that
+       wedges between strokes now stops emitting a heartbeat instead of
+       emitting one from a node that is not ringing. *)
+    bridge startTicking: timers on: beatCh.
+    ('porta: check-in every ' , (self cadence // 1000) printString ,
+      ' s as ' , self nodeId) out.
 
     ('shipsbell(alarm) ready, slot ' , self slotSeconds printString ,
       ' s, lead ' , self leadSeconds printString ,
@@ -202,7 +211,10 @@ class ShipsBellAlarmNodeC6 usingPlatform: platform net: net = (
      A raised checkIn must not take the node down either: the bell outranks its
      own telemetry, so the failure is counted-and-carried rather than propagated. *)
   checkIn = (
-    bridge == nil ifTrue: [ ^ self ].
+    (* No `bridge == nil` guard: since rete#274 the bridge is constructed on every
+       boot, socket or none, and a nil check here would imply an object that can no
+       longer be absent. A radio-less boot is handled one level down — `checkIn`
+       returns at its first line when the socket is nil. *)
     striking ifTrue: [ ^ self ].
     [ bridge checkIn. checkIns:: checkIns + 1 ]
       on: [ :e | true ]
