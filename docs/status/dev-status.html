@@ -48,8 +48,8 @@
 <body>
 
 <h1>rete — dev status</h1>
-<p class="stamp">Status synthesized <strong>2026-08-29</strong> (docs go-to-public pass 4: the tutorial ladder is complete — tutorial 2 written as prose and gated by <code>tutorial-board</code>) at
-<a href="https://github.com/davidg238/rete/commit/fdae4de">fdae4de</a>.
+<p class="stamp">Status synthesized <strong>2026-08-29</strong> (docs pass 5: the four v1-era reference pages are rewritten and <code>#279</code> is closed; <code>gatekeeper</code> is now <strong>custos</strong>) at
+<a href="https://github.com/davidg238/rete/commit/3f87494">3f87494</a>.
 Served live by <strong>custos</strong> (gw85224-01:6971).
 This page is a <em>view</em>, refreshed at session close-outs — the records of
 direction are <a href="/dev/next-steps-overview.md">next-steps-overview.md</a>
@@ -123,7 +123,7 @@ until then the strip above is what porta exposes.</p>
   <li><a href="https://github.com/davidg238/rete/blob/master/porta/docs/design/2026-08-22-gatekeeper-first-cut-design.md">custos first-cut design</a>
     — the query surface this server grows into (#198)</li>
   <li><a href="https://github.com/davidg238/rete/blob/master/porta/docs/ARCHITECTURE.md">ARCHITECTURE.md</a>
-    <span class="note">— stale in parts (written for v1's command protocol)</span></li>
+    <span class="note">— the system picture, rewritten for v2 2026-08-29</span></li>
 </ul>
 
 <h3>Program</h3>
@@ -244,6 +244,33 @@ has no systemd unit, and the OTBR logs die with the container that the fixing re
 recreated). <em>A channel nothing reads cannot tell you why it went quiet.</em>
 <strong>What first:</strong> the v2 rewrites in
 <a href="https://github.com/davidg238/rete/issues/279">#279</a>.</p>
+<p><strong>2026-08-29, night — the last v1-era documents are gone, and one of them is now
+a gate (<a href="https://github.com/davidg238/rete/issues/279">#279</a>, closed).</strong>
+Four pages rewritten, each with a different answer to <em>how does this stay true?</em>
+<code>porta/docs/CLI.md</code> is <strong>executed against the binary</strong> —
+<code>porta-cli</code> on the aux line builds porta, walks its <code>--help</code> tree and
+fails if the page names a flag that does not exist or omits one that does. A reference page
+cannot be run the way a tutorial can, but cobra already knows every command it has. It caught
+two dead flags in its own draft, and <em>falsifying it found a real defect in the gate</em>
+(a substring match passed a page whose flag had been typo'd).
+<code>nodus/nsl/docs/compiler.md</code> had <code>OP_RET=4</code> and an <code>OP_NLR=5</code>
+against a table where RET is 3 and NLR does not exist — anyone decoding a dump against it
+misread every instruction. The numbers are <em>deleted</em>, not corrected: they live in two
+places that are mirrored by hand, and a third copy in prose goes wrong silently.
+<code>porta/docs/ARCHITECTURE.md</code> was the clearest case of the failure the design
+posture names — every correction added <em>beside</em> what was there, so a reader met the v1
+picture first and the fixes seven sections later; the current sections were kept verbatim and
+the v1 ones replaced. And <code>GETTING-STARTED.md</code> was rewritten rather than trimmed,
+on David's word, so it now says how a node is actually pointed at a gateway (two baked-in
+constants, and <a href="https://github.com/davidg238/rete/issues/118">#118</a> still open).
+<strong><code>gatekeeper</code> is <code>custos</code></strong> — package, binary, docs, and
+this server — with the three dated design records keeping the old name under a rename banner,
+because a record that gets rewritten stops being a record. Suite after:
+<code>278 passed, 0 failed</code>, every aux gate PASS, no SKIPs. Filed on the way:
+<a href="https://github.com/davidg238/rete/issues/283">#283</a>,
+<a href="https://github.com/davidg238/rete/issues/284">#284</a>,
+<a href="https://github.com/davidg238/rete/issues/285">#285</a>;
+<a href="https://github.com/davidg238/rete/issues/277">#277</a> closed.</p>
 </div>
 
 <ol>
@@ -355,15 +382,18 @@ or independent of it.</p>
     <code>nodus/nsl/tools/run_tests_oevm.py</code> (<code>C_UNIT_TESTS</code>), the one
     runner the suite invokes. 41 pass, 2 pre-existing SKIPs, and the gate was falsified
     against the original defect.</li>
-  <li><a href="https://github.com/davidg238/rete/issues/118">#118</a> (node identity) looks
-    overtaken by <a href="https://github.com/davidg238/rete/issues/186">#186</a>'s resolution
-    (the id is the board, prim 155) and is partly re-litigated by
-    <a href="https://github.com/davidg238/rete/issues/242">#242</a>.</li>
+  <li><a href="https://github.com/davidg238/rete/issues/118">#118</a> (node identity) is
+    <strong>NOT</strong> overtaken by <a href="https://github.com/davidg238/rete/issues/186">#186</a>
+    — checked 2026-08-29 against <code>platform.c:1508</code>. <code>platform nodeId</code> reads
+    the build-time define <code>OEVM_NODE_ID</code>: #186 settled <em>slot-vs-board</em>, not where
+    identity comes from, and two boards flashed from one image still share one. #118's own body is
+    stale in the same direction and now says so.</li>
   <li><a href="https://github.com/davidg238/rete/issues/97">#97</a> (add modulo) is at least
     half-done since <a href="https://github.com/davidg238/rete/issues/246">#246</a> landed
     <code>\\</code>. Both could close or shrink on a pass.</li>
-  <li><code>porta/docs/ARCHITECTURE.md</code> is stale in parts — written for v1's command
-    protocol and TFTP transport.</li>
+  <li><s><code>porta/docs/ARCHITECTURE.md</code> is stale in parts</s> — rewritten for v2 on
+    2026-08-29 (<a href="https://github.com/davidg238/rete/issues/279">#279</a>), along with
+    <code>CLI.md</code>, <code>GETTING-STARTED.md</code> and <code>nodus/nsl/docs/compiler.md</code>.</li>
 </ul>
 
 <h2>Priority opinion</h2>

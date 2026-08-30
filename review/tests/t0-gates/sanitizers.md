@@ -40,7 +40,12 @@ Notes specific to this VM:
   appear at the crash boundary, that is a real finding about the recovery path.
 - **LSAN + let-it-crash:** leaks *within the VM heap* are the GC's business (T-D.5
   covers creep); LSAN watches *C-level* allocations (image loader, seam buffers).
-- UBSAN's `-fno-sanitize-recover=all` makes any UB a hard failure — intended.
+- UBSAN's `-fno-sanitize-recover=all` makes any UB a hard failure — intended, and
+  **the runner passes exactly this as of 2026-08-29 (rete#277)**. It had passed
+  `=undefined` since the deleted script; measured before changing it, the two are
+  identical while `-fsanitize=undefined` is the only enabled sanitizer, and they
+  diverge only once one outside that group is added — which is when a silently
+  recovering check would be worst. The code moved to match this doc, not the reverse.
 
 ## Policy
 
