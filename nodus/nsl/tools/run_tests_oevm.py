@@ -292,15 +292,21 @@ def run_c_unit_tests(oevm_dir):
     # because review/tests/t0-gates/sanitizers.md makes it standing policy: "the C
     # unit tests run under the same two configs". Deleting the script was allowed
     # to remove a MECHANISM; it was not allowed to remove this CAPABILITY (D8).
-    # NOTE the flags are the script's own, not sanitizers.md's: that doc says
-    # -fno-sanitize-recover=all where the script always passed =undefined. The
-    # behaviour that actually ran is preserved here; the discrepancy is left for
-    # whoever owns that doc rather than silently resolved.
+    # RESOLVED 2026-08-29 (rete#277) in favour of the DOC. sanitizers.md said
+    # -fno-sanitize-recover=all; the deleted script always passed =undefined, and
+    # this registry preserved the script. Measured before changing it: with
+    # -fsanitize=undefined as the only enabled sanitizer the two spellings are
+    # IDENTICAL (a signed-overflow probe exits 1 under both, 0 with recovery), so
+    # this is a no-op today. It is =all now because that is the behaviour the
+    # policy asks for -- "any UB is a hard failure" -- and the two only diverge the
+    # day someone enables a sanitizer outside the `undefined` group, which is
+    # exactly when a silently recovering check would be worst. Two documents of
+    # record disagreed; they agree now, and the one that moved was the code.
     sanitize = os.environ.get("OEVM_BUILD", "")
     if sanitize == "asan":
         san_flags = ["-fsanitize=address", "-fno-omit-frame-pointer", "-g"]
     elif sanitize == "ubsan":
-        san_flags = ["-fsanitize=undefined", "-fno-sanitize-recover=undefined", "-g"]
+        san_flags = ["-fsanitize=undefined", "-fno-sanitize-recover=all", "-g"]
     elif sanitize == "":
         san_flags = []
     else:

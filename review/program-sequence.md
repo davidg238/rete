@@ -1,5 +1,26 @@
 # nsl-tuvm — program sequence (the overarching order of work)
 
+> ## ⚠ STALE PATHS — READ BEFORE FOLLOWING ANY FILE REFERENCE (2026-08-29, rete#277)
+>
+> **The claims and the ordering in this file are current. The PATHS are not.** Every
+> `nodus/tuvm/...` reference below predates the 2026-08-02 consolidation and the #79
+> rename; the tree is **`nodus/oevm/`**. Checked path by path on 2026-08-29: of the 62
+> distinct `nodus/tuvm/` paths across `review/`, 56 rewrite straight across, and these
+> six do not —
+>
+> | cited | actually |
+> |---|---|
+> | `tools/run_c_tests.sh` | **DELETED** by rete#275. Every C test is now one row in `C_UNIT_TESTS` in `nodus/nsl/tools/run_tests_oevm.py`, which also owns `ENG_A`/`ENG_B` and `OEVM_BUILD=asan\|ubsan` |
+> | `zephyr/NetBridgeNode.ns`, `NetNode.ns`, `ThreadEchoNodeDK.ns`, `TimerNode.ns` | `.nsl` — the extension changed 2026-07-18 |
+> | `tools/profile_cost.py` | `nodus/oevm/zephyr/tools/profile_cost.py` |
+>
+> **Line-number citations (`file.py:158`) are not to be trusted at all** — several have
+> already moved. Grep for the symbol. A pinned line number is a citation that rots at the
+> next edit, which is how this file got here.
+>
+> Not swept, deliberately: `review/` is David's tree, and rewriting 117 references is his
+> call, not a tidy-up. The rewrite is verified safe if he wants it (rete#277).
+
 **Status:** drafted 2026-07-04 (mid-Milestone-B). This is the ONE document that sequences
 the whole program. It is an *index with ordering*: every line points at the document that
 owns the detail — decisions live in `nodus/nsl/docs/design/`, execution state in
@@ -188,10 +209,17 @@ green — **met 2026-07-07** (see phase-1 entry above); phase 2 starts now.
      `oimg_loader.c` shares **no** symbol with `solidified_image.c` and links under both
      models.
    - That comment (and the plan, which inherited it) cited *"`run_c_unit_tests()` in
-     `tools/run_tests_oevm.py`"*. **No such function exists.** The real evidence is
-     `tools/run_c_tests.sh:28-29`, which has run this exact split on the host all along:
-     `ENG_A` = `oimg_loader.c` + `solidified_image.c`, `ENG_B` = `oimg_loader.c` +
-     `kernel_boot.c`. The knob is that ENG_A/ENG_B split ported to Zephyr — not a new idea.
+     `tools/run_tests_oevm.py`"*. **No such function existed** *when this was written*; the
+     evidence was `tools/run_c_tests.sh:28-29`, which had run this exact split on the host
+     all along: `ENG_A` = `oimg_loader.c` + `solidified_image.c`, `ENG_B` = `oimg_loader.c`
+     + `kernel_boot.c`. The knob is that ENG_A/ENG_B split ported to Zephyr — not a new idea.
+     > **This correction has since INVERTED, and the finding survives it (2026-08-29,
+     > rete#275/#277).** `run_c_unit_tests()` now DOES exist — `nodus/nsl/tools/run_tests_oevm.py`
+     > — and `run_c_tests.sh` is the thing that is gone, along with `ENG_A`/`ENG_B`, which moved
+     > into that same file. The finding that still holds is the one underneath: the comment
+     > named a symbol nobody had checked, and the reason it was wrong for weeks is that
+     > **nothing ran the script it should have named**. That is #261's shape, and #275 is
+     > what fixed it — one registry, every C test in it, reported on the aux line.
    - `oimg_load_blob()` already existed for exactly this (no-POSIX byte-array loader, S0/R6);
      Model B needed no new loader, only `OEVM_NO_FILE_IO` to drop its `mmap` sibling.
 
