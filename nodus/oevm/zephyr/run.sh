@@ -25,11 +25,41 @@ while [ $# -gt 0 ]; do
   esac
 done
 case "$MODEL" in A|B) ;; *) echo "--model must be A or B" >&2; exit 2 ;; esac
-case "$BOARD_ID" in esp32|esp32s2|esp32c6) ;; *) echo "--board must be esp32, esp32s2 or esp32c6" >&2; exit 2 ;; esac
+case "$BOARD_ID" in esp32|esp32s2|esp32c6|nrf52840dk) ;; *) echo "--board must be esp32, esp32s2, esp32c6 or nrf52840dk" >&2; exit 2 ;; esac
 
 ZDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # zephyr/ — the app dir
 ROOT="$(cd "$ZDIR/.." && pwd)"                          # nodus/oevm — the VM root, not the repo root
 NSL="$(git -C "$ZDIR" rev-parse --show-toplevel)/nodus/nsl/tools/ns_compile_oevm.py" # NOT ~/workspace/ns-oevm (stale)
+
+# The nRF port lives in a SEPARATE west workspace (~/ncs) with its own bundled
+# toolchain AND ITS OWN PYTHON. The ESP32 profiles inherit an ambient environment;
+# this one has to construct it, because the two workspaces cannot both be sourced
+# into one shell. Values are read from the toolchain's own environment.json rather
+# than remembered — that file is what `nrfutil toolchain-manager env` prints.
+#
+# CALLED ONLY INSIDE THE SUBSHELLS THAT RUN west, never exported globally: it sets
+# PYTHONHOME/PYTHONPATH, and leaking those would send this script's OWN later python
+# calls (tools/console/logread.py, capture_coredump.py) to the toolchain interpreter,
+# which has none of their dependencies. That failure would appear at --capture time,
+# long after the build it came from.
+ncs_env() {
+  [ "$BOARD_ID" = nrf52840dk ] || return 0
+  local tc
+  tc=$(ls -d "$HOME"/ncs/toolchains/*/ 2>/dev/null | head -1)
+  tc="${tc%/}"
+  if [ -z "$tc" ] || [ ! -x "$tc/usr/local/bin/west" ]; then
+    echo "no NCS toolchain under ~/ncs/toolchains — cannot build for the DK" >&2
+    return 1
+  fi
+  export PATH="$tc/bin:$tc/usr/bin:$tc/usr/local/bin:$tc/opt/bin:$tc/nrfutil/bin:$tc/opt/zephyr-sdk/arm-zephyr-eabi/bin:$PATH"
+  export LD_LIBRARY_PATH="$tc/lib:$tc/lib/x86_64-linux-gnu:$tc/usr/local/lib:${LD_LIBRARY_PATH:-}"
+  export PYTHONHOME="$tc/usr/local"
+  export PYTHONPATH="$tc/usr/local/lib/python3.12:$tc/usr/local/lib/python3.12/site-packages"
+  export ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+  export ZEPHYR_SDK_INSTALL_DIR="$tc/opt/zephyr-sdk"
+  export ZEPHYR_BASE="$HOME/ncs/zephyr"
+  export NRFUTIL_HOME="$tc/nrfutil/home"
+}
 # Who-is-who on this bench: the instance<->adapter mapping and the bell's
 # identities, shared with the target harness so there is ONE home for both
 # (rete#185, rete#170). Policy stays here, at each call site.
@@ -266,7 +296,55 @@ case "$BOARD_ID" in
       fi
     fi
     ;;
+  nrf52840dk)
+    # rete#281. The nRF port predates the space protocol: three DKs have echoed to
+    # gw85224-01 since 2026-07-11 and none of it reaches porta. This profile is what
+    # lets PortaBridgeNodeDK.nsl be built the same way every other board's node is,
+    # instead of by a hand-typed west line in a README (which is how it was, and the
+    # README's paths are pre-consolidation and no longer resolve).
+    BOARD="nrf52840dk/nrf52840"
+    CONF_FILE="prj_dk_thread.conf"
+    # There is no layout-nrf52840.json: this port predates Model B (#281 item 2), so
+    # Model A only. Empty here and refused explicitly below — NOT left to fail inside
+    # the bake with a message about running layoutdump on a board nobody has flashed.
+    LAYOUT_JSON=""
+    ROM_PATCH=0
+    # 114688 (112 KB) is MEASURED, not chosen. At the C6's 131072 this image does not
+    # LINK: `region RAM overflowed by 8676 bytes`. At 114688 it fits with 8220 B spare
+    # (RAM 253924/262144 = 96.86%, FLASH 41.76%). The DK cannot spend the C6's 128 KB
+    # because OT/mbedTLS/the 802.15.4 driver and the 32 KB system heap are static here
+    # too, and on this part VM_STACK_INIT_WORDS (4096 words = 16 KB) sits INSIDE the
+    # arena. Re-measure if any of those move; do not carry this number to another node.
+    : "${OEVM_HEAP_SIZE:=114688}"
+    : "${BUILD_DIR:=build-nrf52840dk-$MODEL}"
+    # ONE cable, unlike the C6: the DK's on-board SEGGER J-Link carries both the flash
+    # channel (west flash --runner jlink) and the console VCOM. Same zero/one/many
+    # discipline as the ESP32 profiles, for the same reason — this bench has had more
+    # than one of a given adapter, and guessing between them is what clobbered a board.
+    if [ -z "${CONSOLE_PORT:-}" ]; then
+      cmatches=$(ls /dev/serial/by-id/*SEGGER* 2>/dev/null || true)
+      cn=$(printf '%s' "$cmatches" | grep -c . || true)
+      if [ "$cn" -gt 1 ]; then
+        echo "more than one SEGGER console candidate:" >&2
+        printf '%s\n' "$cmatches" >&2
+        echo "Set CONSOLE_PORT explicitly and retry." >&2
+        exit 2
+      elif [ "$cn" -eq 1 ]; then
+        CONSOLE_PORT="$cmatches"
+      else
+        CONSOLE_PORT=/dev/ttyACM0
+      fi
+    fi
+    ;;
 esac
+
+# Model B needs a captured object layout and the nRF has none (#281 item 2). Refused
+# by NAME here so the reason is the real one.
+if [ "$BOARD_ID" = nrf52840dk ] && [ "$MODEL" != A ]; then
+  echo "--board nrf52840dk supports --model A only: there is no layout-nrf52840.json" >&2
+  echo "(rete#281 item 2 — a layoutdump run on a DK is owed before Model B works here)" >&2
+  exit 2
+fi
 
 [ -f "$ZDIR/$NODE" ] || { echo "no such node: $ZDIR/$NODE" >&2; exit 2; }
 [ -f "$NSL" ]        || { echo "compiler not found: $NSL" >&2; exit 2; }
@@ -285,9 +363,12 @@ export OEVM_HEAP_SIZE METHOD_CACHE_SIZE=256 PRIM_CACHE_SIZE=256 \
 # both; only the export was missing.
 export OEVM_FLOAT_ARENA_SLAB_CELLS=512 OEVM_FLOAT_ARENA_SLAB_BUDGET=4
 # OEVM_IRAM_HOT is Xtensa-only: zephyr/CMakeLists.txt:141-145 gates it on
-# CONFIG_XTENSA and FATAL_ERRORs if it is set on a non-Xtensa target. Never
-# export it for esp32c6 — unset any inherited value.
-[ "$BOARD_ID" = esp32c6 ] && unset OEVM_IRAM_HOT
+# CONFIG_XTENSA and FATAL_ERRORs if it is set on a non-Xtensa target. Stated as an
+# ALLOWLIST of the Xtensa parts rather than a list of the boards to unset it for:
+# the deny-list shape meant every new non-Xtensa board (esp32c6, now nrf52840dk)
+# had to remember to add itself, and the failure mode is a FATAL_ERROR at configure
+# time on a board nobody has built yet.
+case "$BOARD_ID" in esp32|esp32s2) ;; *) unset OEVM_IRAM_HOT ;; esac
 
 # src/solidified_image.c is TRACKED (the MethodCallTest fixture). A Model A bake
 # dirties it; restore on exit so it is never committed by accident. The compiler
@@ -421,7 +502,7 @@ else
   echo "[node] separates hosts but NOT two unnamed boards on this one. Name the board." >&2
 fi
 
-( cd "$ZDIR" && west build -b "$BOARD" "${PRISTINE_ARG[@]}" -d "$BUILD_DIR" . \
+( ncs_env && cd "$ZDIR" && west build -b "$BOARD" "${PRISTINE_ARG[@]}" -d "$BUILD_DIR" . \
     -- -DCONF_FILE="$CONF_FILE" -DOEVM_MODEL="$MODEL" "${BLOB_ARG[@]}" \
        "${EXTRA_CONF_ARG[@]}" "${NODE_ID_ARG[@]}" )
 
@@ -447,11 +528,20 @@ if [ "$DO_FLASH" = 1 ]; then
   # into this script and have the harness stop doing it. rete#170 unblocked it by
   # giving this script the real instance name (below); what remains is moving the
   # stop/start and the second reset over, and deleting the harness's copy.
+  if [ "$BOARD_ID" = nrf52840dk ]; then
+    # The DK has no ROM serial loader in this path: it flashes over its on-board
+    # SEGGER J-Link. --skip-rebuild for the SAME reason the esptool branch does not
+    # call `west flash` bare — a rebuild here would run under a different resolved
+    # environment than the one that produced the artifact just built.
+    echo "[flash] west flash --runner jlink -d $BUILD_DIR"
+    ( ncs_env && cd "$ZDIR" && west flash --skip-rebuild --runner jlink -d "$BUILD_DIR" )
+  else
   echo "[flash] esptool $ESPTOOL_CHIP @ $ESPTOOL_OFFSET -> $ESPTOOL_PORT"
   # NOT `west flash` — that would rebuild.
   "$ESPTOOL" --chip "$ESPTOOL_CHIP" --port "$ESPTOOL_PORT" --baud 921600 write_flash \
     --flash_mode dio --flash_freq 40m --flash_size "$ESPTOOL_FLASH_SIZE" \
     "$ESPTOOL_OFFSET" "$ZDIR/$BUILD_DIR/zephyr/zephyr.bin"
+  fi
   # Part of flashing, not a step to remember afterwards (#56 §5.3). Keyed by the
   # build id the firmware itself prints, read from oevm_build_id.txt so host and
   # device cannot disagree about the string.
