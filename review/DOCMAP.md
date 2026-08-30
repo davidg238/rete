@@ -87,7 +87,7 @@ _Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `review/2026-07-21-issue-65-http-load-wedge/README.md` — tuvm#65 — evidence folder (2026-07-21) _(record, 2026-08-02)_
 - `review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-08-29)_
 - `review/ISSUE-dongle-usb-openthread.md` — DRAFT ISSUE (post to davidg238/tuvm — created from a session without gh permission) _(record, 2026-07-12)_
-- `review/WHY-AGENTS.md` — Why agents — nodus + porta as an agent-first platform _(record, 2026-08-26)_
+- `review/WHY-AGENTS.md` — Why agents — nodus + porta as an agent-first platform _(record, 2026-08-29)_
 - `review/WHY-OEOM.md` — Why OEOM — the kernel that survived the graveyard _(record, 2026-07-12)_
 - `review/WHY.md` — Why nsl-tuvm _(record, 2026-08-02)_
 - `review/cells-and-streams-v3.html` — Letters and pigeonholes — v3 _(record, 2026-08-07)_
@@ -443,9 +443,9 @@ _Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `porta/docs/design/2026-06-07-panic-decode-link-design.md` — Panic decode link (porta → nodus) — design _(design, 2026-08-02)_
 - `porta/docs/design/2026-06-26-profile-verb-design.md` — `profile` verb — remote target-execution profiling — design _(design, 2026-08-02)_
 - `porta/docs/design/2026-08-01-porta-space-sync-rewrite-design.md` — porta → channels: the space-sync rewrite (v1 deleted) _(design, 2026-08-26)_
-- `porta/docs/design/2026-08-11-gatekeeper-and-the-introspectable-space-design.md` — Gatekeeper, and the introspectable space — design note (2026-08-11) _(design, 2026-08-25)_
+- `porta/docs/design/2026-08-11-gatekeeper-and-the-introspectable-space-design.md` — Gatekeeper, and the introspectable space — design note (2026-08-11) _(design, 2026-08-29)_
 - `porta/docs/design/2026-08-15-boot-anchored-cell-reads-design.md` — Boot-anchored cell reads — `porta get` can no longer blend two boots _(design, 2026-08-15)_
-- `porta/docs/design/2026-08-22-gatekeeper-first-cut-design.md` — Gatekeeper — the first cut (design, 2026-08-22) _(design, 2026-08-27)_
+- `porta/docs/design/2026-08-22-gatekeeper-first-cut-design.md` — Gatekeeper — the first cut (design, 2026-08-22) _(design, 2026-08-29)_
 - `porta/docs/design/2026-08-26-space-sync-durability-trio-design.md` — The space-sync durability trio: the replay guard, the RAM cursor, and what must-deliver means _(design, 2026-08-26)_
 - `porta/docs/superpowers/plans/2026-06-06-set-forward-verb.md` — set-forward verb + enriched telemetry entries (porta side) Implementation Plan _(plan, 2026-08-02)_
 - `porta/docs/superpowers/plans/2026-06-06-web-telemetry-console-panels.md` — Web telemetry console panels + node filter Implementation Plan _(plan, 2026-08-02)_
@@ -453,7 +453,7 @@ _Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `porta/docs/superpowers/plans/2026-06-26-profile-verb.md` — `profile` verb — remote target-execution profiling — Implementation Plan _(plan, 2026-08-02)_
 - `porta/docs/superpowers/plans/2026-08-01-porta-space-sync-core.md` — porta space-sync core — Implementation Plan (plan 1 of 3) _(plan, 2026-08-02)_
 - `porta/docs/superpowers/plans/2026-08-18-gw-liveness-silence-sweep.md` — `gw/**` and the silence sweep — implementation plan (#217) _(plan, 2026-08-18)_
-- `porta/docs/superpowers/plans/2026-08-26-gatekeeper-query-core.md` — Gatekeeper query core (#198) — implementation plan _(plan, 2026-08-27)_
+- `porta/docs/superpowers/plans/2026-08-26-gatekeeper-query-core.md` — Gatekeeper query core (#198) — implementation plan _(plan, 2026-08-29)_
 - `porta/docs/superpowers/plans/2026-08-26-space-sync-durability-trio.md` — Space-Sync Durability Trio Implementation Plan _(plan, 2026-08-26)_
 
 ### ~/workspaceToit/nodus/docs

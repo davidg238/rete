@@ -12,6 +12,11 @@ image delivery, the report schema — was deleted in one commit; its last tree i
   porta is and is not, modes and app lifecycle as paths, the manifest gate, the store's
   two open doors, and the repo topology. Rewritten for v2 2026-08-29 (#279); §7 records
   the Toit lineage rather than describing it as current.
+- `GETTING-STARTED.md` — **install and operate a gateway**: the `.deb` and the systemd
+  unit, `/health` and `/manifest`, how a node is pointed at the gateway (and what rete#118
+  has yet to decide about that), the first operations, and `custos` — the front door.
+  Rewritten end to end 2026-08-29 (#279). Prose, not gated: where it disagrees with
+  `CLI.md` or tutorial 3, those are right.
 - `CLI.md` — **the v2 command reference**: `serve`, `put`, `get`, `log`, `key gen`,
   `blob put`, `snapshot`, every flag, and what each of v1's deleted verbs became.
   Rewritten 2026-08-29 and checked against the binary's own `--help` by the nsl suite's
@@ -30,10 +35,6 @@ image delivery, the report schema — was deleted in one commit; its last tree i
 - `superpowers/plans/` — execution scaffolding; the 2026-08 ones are v2.
 
 ## Stale in parts — banners say which
-
-- `GETTING-STARTED.md` — corrected against the code on 2026-08-05; §3–§4's verb
-  walkthrough is v1 and no longer exists (#279). §1–§2 and §5 — the `.deb`, the systemd
-  unit, `/health`, and the operator-surface story — are current.
 - `DEVSDK.md` — the `devsdk/` contract; `exec` and `provision` survive, `apiclient` went
   with v1's HTTP surface.
 - `demo/` — a show-and-tell script for the v1 gateway (2026-06). A presentation, dated;

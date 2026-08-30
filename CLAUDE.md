@@ -325,9 +325,13 @@ next.
   #279). Gated: `porta/docs/cli-gate.sh` walks the binary's own `--help` and fails if a
   command or flag named on the page does not exist, or if one that exists is unnamed.
   Names only — it does not score the prose, and the transcripts on it are dated evidence.
-- `porta/docs/DEVSDK.md`, `porta/docs/GETTING-STARTED.md` — **stale in parts**, written
-  against v1's verb set. GETTING-STARTED §1–§2/§5 (the `.deb`, the unit, `/health`) are
-  current; §3–§4 are not.
+- `porta/docs/GETTING-STARTED.md` — **rewritten end to end 2026-08-29** (#279) and
+  current: install, confirm, point a node at it, first operations, and `custos`. Prose
+  and NOT gated — it says so itself and defers to `CLI.md` and tutorial 3 on any
+  disagreement.
+- `porta/docs/DEVSDK.md` — **stale in parts**, written against v1's verb set. `exec` and
+  `provision` survive; `apiclient` went with v1's HTTP surface, and `provision`'s
+  `firmware.config["porta"]` shape is Toit-era.
 
 ## Key decisions & constraints (don't re-litigate)
 
