@@ -9,4 +9,7 @@ project(oevm_layoutdump)
 # oevm.h's struct declarations to compute sizeof/offsetof. Sizes and offsets do not
 # depend on the heap/cache tunables, so a bare compile yields the same layout.
 target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../tools/dump_layout.c)
+# Beside dump_layout.c, never inside it: that file is shared with the host gate.
+# src/console_prep.c unbuffers stdout and prints a printk marker — see its header.
+target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/console_prep.c)
 target_include_directories(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../src)

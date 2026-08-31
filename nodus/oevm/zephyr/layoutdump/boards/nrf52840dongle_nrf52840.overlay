@@ -1,0 +1,31 @@
+/*
+ * oevm/zephyr/layoutdump — nRF52840 dongle: make the console LOSSLESS.
+ *
+ * The capture is ~3.5 KB emitted in one burst by dump_layout.c, and the dongle's
+ * console is the SoC USB-CDC. Without this property the second capture attempt
+ * came back TRUNCATED AND INTERLEAVED — 2176 of ~3500 bytes, whole runs missing
+ * from the middle — which reads like a corrupt dump rather than a dropped one.
+ *
+ * zephyr/subsys/usb/device_next/class/usbd_cdc_acm.c:1004 is the mechanism:
+ *
+ *     if (k_is_in_isr() || !data->flow_ctrl) {
+ *             LOG_WRN_ONCE("Ring buffer full, discard data");
+ *             break;          <- the byte is DISCARDED
+ *     }
+ *     k_msleep(1);            <- with flow_ctrl: wait for the host to drain
+ *
+ * and .flow_ctrl comes from this devicetree property (same file, :1368). So the
+ * choice is between a console that drops under burst and one that blocks — and
+ * for a throwaway capture app that must emit an exact artifact, blocking is the
+ * only correct answer.
+ *
+ * DO NOT copy this to the NODE image without thinking. prj_dongle_thread.conf's
+ * console block warns that platform_console_write() must never be able to wedge
+ * the VM on a board whose console has no reader — and a BLOCKING poll_out on an
+ * unattended dongle is precisely that wedge. Dropping is the safer default there;
+ * losslessness is worth its cost only here, where a host is attached by
+ * construction and the app's whole purpose is the bytes.
+ */
+&board_cdc_acm_uart {
+	hw-flow-control;
+};
