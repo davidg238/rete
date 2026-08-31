@@ -66,6 +66,13 @@ ncs_env() {
 . "$ROOT/tools/bench-identity.sh"
 ESPTOOL="$HOME/.espressif/python_env/idf5.4_py3.12_env/bin/esptool.py"
 
+# PM_STATIC_ARG is set by the profiles below and MUST be initialised above them.
+# It was initialised *after* them once, on 2026-08-30, which silently emptied what
+# the dongle profile had put in it — and that is not a style point: the dropped flag
+# let the partition manager place settings_storage at 0xfe000, on top of the dongle's
+# Open Bootloader, which is the exact outcome pm_static_dongle.yml exists to prevent.
+PM_STATIC_ARG=()
+
 # ---- board profiles -------------------------------------------------------
 # Each profile owns EVERY board-coupled wrong-by-default together: the board
 # target, Kconfig, build dir, layout JSON, the esptool triple, the port, and
@@ -304,10 +311,12 @@ case "$BOARD_ID" in
     # README's paths are pre-consolidation and no longer resolve).
     BOARD="nrf52840dk/nrf52840"
     CONF_FILE="prj_dk_thread.conf"
-    # There is no layout-nrf52840.json: this port predates Model B (#281 item 2), so
-    # Model A only. Empty here and refused explicitly below — NOT left to fail inside
-    # the bake with a message about running layoutdump on a board nobody has flashed.
-    LAYOUT_JSON=""
+    # ONE layout serves both nRF boards: same part, same ABI, same toolchain — the
+    # DK/dongle differences are console, trigger pin and flash method, none of which
+    # can move a struct offset. Captured on the DONGLE 2026-08-30 (#281 item 2) and
+    # byte-identical to layout-esp32c6.json, which is a measured outcome and not a
+    # rule: you dump per target because you cannot know it matches until you look.
+    LAYOUT_JSON="$ZDIR/layout-nrf52840.json"
     ROM_PATCH=0
     # 114688 (112 KB) is MEASURED, not chosen. At the C6's 131072 this image does not
     # LINK: `region RAM overflowed by 8676 bytes`. At 114688 it fits with 8220 B spare
@@ -346,7 +355,11 @@ case "$BOARD_ID" in
     # them since 2026-07-11 and every doc that named the hardware said "DK".
     BOARD="nrf52840dongle/nrf52840"
     CONF_FILE="prj_dongle_thread.conf"
-    LAYOUT_JSON=""
+    LAYOUT_JSON="$ZDIR/layout-nrf52840.json"
+    # Dongle builds ONLY (ZEPHYR_LESSONS.md §1): without this the partition manager
+    # puts settings_storage — which OpenThread's SETTINGS→NVS mounts at boot — on top
+    # of the Open Bootloader's pages at 0xfe000, and the board bricks its own DFU.
+    PM_STATIC_ARG=(-DPM_STATIC_YML_FILE=pm_static_dongle.yml)
     ROM_PATCH=0
     # MEASURED for THIS config, and it is not the DK's number even though the part is
     # identical: 114688 links at RAM 257948/262144 = 98.40%, FLASH 42.39%. That is
@@ -377,14 +390,12 @@ case "$BOARD_ID" in
     ;;
 esac
 
-# Model B needs a captured object layout and the nRF has none (#281 item 2). Refused
-# by NAME here so the reason is the real one.
+# Model B works on nRF as of 2026-08-30 (#281 item 2): layout-nrf52840.json was
+# captured from a real layoutdump flash on the dongle `4ec0`. The refusal that stood
+# here is DELETED rather than inverted — with a layout present there is nothing left
+# to refuse, and Model A on this part is the ~4.9 GB / ~50 min cc1 bake that has
+# OOM-killed the workstation (see the bake step below).
 case "$BOARD_ID" in nrf52840dk|nrf52840dongle) NRF=1 ;; *) NRF=0 ;; esac
-if [ "$NRF" = 1 ] && [ "$MODEL" != A ]; then
-  echo "--board $BOARD_ID supports --model A only: there is no layout-nrf52840.json" >&2
-  echo "(rete#281 item 2 — a layoutdump run on a DK is owed before Model B works here)" >&2
-  exit 2
-fi
 
 [ -f "$ZDIR/$NODE" ] || { echo "no such node: $ZDIR/$NODE" >&2; exit 2; }
 [ -f "$NSL" ]        || { echo "compiler not found: $NSL" >&2; exit 2; }
@@ -471,13 +482,41 @@ fi
 # bind at boot and sat dead for over an hour while the log said the credentials
 # were in. Credentials follow the radio, so there is ONE condition rather than
 # two independent ones that can disagree.
-THREAD_LOCAL="$ZDIR/prj_esp32c6_thread.local.conf"
-case ";$CONF_EXTRA;" in
-  *prj_esp32c6_thread.conf*) WANTS_THREAD=1 ;;
-  *)                         WANTS_THREAD=0 ;;
+# WHICH dataset overlay, and whether this image wants one at all, is a per-board
+# fact — so it is decided per board (rete#281, 2026-08-30). It used to be C6-only,
+# which meant the nRF profiles silently shipped prj_dongle_thread.conf's PLACEHOLDER
+# dataset: the exact "builds, boots and attaches to nothing" failure #165 records
+# below, one board family over.
+#
+# The C6 keys on the RADIO LAYER being requested rather than on the board, because
+# there the radio is an optional --conf-extra layer and Kconfig SILENTLY DISCARDS the
+# five CONFIG_OPENTHREAD_* symbols without it. On the nRFs the radio is not optional:
+# it is in prj_dk_thread.conf / prj_dongle_thread.conf, which is the CONF_FILE. Same
+# rule, different answer — credentials follow the radio, so there is ONE condition
+# rather than two that can disagree.
+case "$BOARD_ID" in
+  esp32c6)
+    THREAD_LOCAL="$ZDIR/prj_esp32c6_thread.local.conf"
+    case ";$CONF_EXTRA;" in
+      *prj_esp32c6_thread.conf*) WANTS_THREAD=1 ;;
+      *)                         WANTS_THREAD=0 ;;
+    esac
+    ;;
+  nrf52840dk)
+    THREAD_LOCAL="$ZDIR/prj_dk_thread_local.conf"
+    WANTS_THREAD=1
+    ;;
+  nrf52840dongle)
+    THREAD_LOCAL="$ZDIR/prj_dongle_thread_local.conf"
+    WANTS_THREAD=1
+    ;;
+  *)
+    THREAD_LOCAL=""
+    WANTS_THREAD=0
+    ;;
 esac
-if [ "$WANTS_THREAD" = 1 ] && [ -f "$THREAD_LOCAL" ]; then
-  EXTRA_CONF_FILES+=(prj_esp32c6_thread.local.conf)
+if [ "$WANTS_THREAD" = 1 ] && [ -n "$THREAD_LOCAL" ] && [ -f "$THREAD_LOCAL" ]; then
+  EXTRA_CONF_FILES+=("$(basename "$THREAD_LOCAL")")
   echo "[thread] dataset overlay found -> $THREAD_LOCAL"
 elif [ "$WANTS_THREAD" = 1 ]; then
   # Loud, because the mirror failure is just as quiet: the node builds, boots and
@@ -485,7 +524,7 @@ elif [ "$WANTS_THREAD" = 1 ]; then
   echo "[thread] ! NO dataset overlay at $THREAD_LOCAL — this image gets the" >&2
   echo "[thread] ! PLACEHOLDER dataset and will NOT join the porta mesh." >&2
   echo "[thread] ! Read the live one: ssh gw85224-01 docker exec otbr ot-ctl dataset active" >&2
-elif [ "$BOARD_ID" = esp32c6 ] && [ -f "$THREAD_LOCAL" ]; then
+elif [ "$BOARD_ID" = esp32c6 ] && [ -n "$THREAD_LOCAL" ] && [ -f "$THREAD_LOCAL" ]; then
   echo "[thread] radio layer not requested — dataset overlay NOT applied. This" >&2
   echo "[thread] image has no OpenThread. Add:" >&2
   echo "[thread]   --conf-extra \"prj_esp32c6_thread.conf;prj_esp32c6_thread_ftd.conf\"" >&2
@@ -542,9 +581,122 @@ else
   echo "[node] separates hosts but NOT two unnamed boards on this one. Name the board." >&2
 fi
 
+# SYSBUILD SCOPING, AND IT IS LOAD-BEARING (rete#281, 2026-08-30).
+#
+# The nRF targets build under sysbuild; the ESP32 targets are single-image. Under
+# sysbuild a bare `-DFOO=bar` after `--` lands in the SYSBUILD cache, not the image's,
+# so every variable this script passes that Zephyr does not itself forward is silently
+# dropped. Zephyr forwards the well-known ones (CONF_FILE, EXTRA_CONF_FILE), which is
+# exactly why this was invisible: the config was right, so the build looked right.
+#
+# What was lost was OEVM_MODEL, OEVM_BLOB and OEVM_NODE_ID — the three that select
+# WHICH PROGRAM the image contains. Every fallback looks like success: OEVM_MODEL
+# defaults to "B", OEVM_BLOB to the committed TimerNode.oimg "so it just works", and
+# OEVM_NODE_ID to nothing. So `--node PortaBridgeNodeNrf.nsl` baked the right .oimg,
+# printed every right line, and built TimerNode with no node id. A dongle flashed that
+# way goes dark: no mesh, no console, nothing to see.
+#
+# `-Dzephyr_OEVM_BLOB=...` (image-scoped, the main image being `zephyr`) WAS TRIED AND
+# DOES NOT WORK: measured 2026-08-30, it reaches zephyr_sysbuild_cache.txt and leaves
+# the image's own cache untouched. ENV is the mechanism zephyr/CMakeLists.txt already
+# uses for five other variables and it adds none — the three below now read env there
+# too. Exported inside the subshell only, next to ncs_env's other exports.
+export OEVM_MODEL="$MODEL"
+[ -n "${OIMG:-}" ] && export OEVM_BLOB="$OIMG"
+[ ${#NODE_ID_ARG[@]} -gt 0 ] && export OEVM_NODE_ID="${NODE_ID_ARG[0]#-DOEVM_NODE_ID=}"
+
 ( ncs_env && cd "$ZDIR" && west build -b "$BOARD" "${PRISTINE_ARG[@]}" -d "$BUILD_DIR" . \
-    -- -DCONF_FILE="$CONF_FILE" -DOEVM_MODEL="$MODEL" "${BLOB_ARG[@]}" \
-       "${EXTRA_CONF_ARG[@]}" "${NODE_ID_ARG[@]}" )
+    -- -DCONF_FILE="$CONF_FILE" "${EXTRA_CONF_ARG[@]}" "${PM_STATIC_ARG[@]}" )
+BUILD_RC=$?
+
+# WHAT THIS BUILD ACTUALLY CONTAINS, read from the build itself rather than from what
+# was asked for. The two disagreed silently and cost a board flash plus an afternoon.
+#
+# THE MODEL CHECK ALONE IS NOT ENOUGH, and believing it was cost a second cycle: B is
+# CMakeLists.txt's default, so a fully dropped variable still yields a Model B link —
+# bound to TimerNode.oimg. "model B confirmed" was printed over exactly that. The blob
+# path is the check that can actually fail, so it is the one that matters here.
+if [ "$BUILD_RC" = 0 ]; then
+  if find "$ZDIR/$BUILD_DIR" -name 'solidified_image*.obj' -print -quit | grep -q . ; then
+    ACTUAL_MODEL=A
+  elif find "$ZDIR/$BUILD_DIR" -name 'oimg_loader*.obj' -print -quit | grep -q . ; then
+    ACTUAL_MODEL=B
+  else
+    ACTUAL_MODEL="?"
+  fi
+  if [ "$ACTUAL_MODEL" != "$MODEL" ]; then
+    echo "[build] FATAL: asked for model $MODEL, the link set says $ACTUAL_MODEL." >&2
+    echo "[build] The image does NOT contain $NODE. Under sysbuild this is what a" >&2
+    echo "[build] dropped variable looks like; see the SYSBUILD SCOPING note above." >&2
+    exit 3
+  fi
+
+  if [ "$MODEL" = B ]; then
+    # The .incbin'd path, straight out of the generated ninja file — the blob this
+    # image carries, not the blob this script baked.
+    ACTUAL_BLOB=$(grep -ho 'OEVM_BLOB_FILE=[^ ]*' "$ZDIR/$BUILD_DIR"/build.ninja \
+                    "$ZDIR/$BUILD_DIR"/*/build.ninja 2>/dev/null |
+                  head -1 | sed 's/^OEVM_BLOB_FILE=//; s/\\\?"//g')
+    if [ -z "$ACTUAL_BLOB" ]; then
+      echo "[build] FATAL: no OEVM_BLOB_FILE in the generated build — cannot tell which" >&2
+      echo "[build] program this image contains, which is the failure this check exists for." >&2
+      exit 3
+    fi
+    if [ "$ACTUAL_BLOB" != "$OIMG" ]; then
+      echo "[build] FATAL: the image carries a DIFFERENT program than the one baked." >&2
+      echo "[build]   baked:  $OIMG" >&2
+      echo "[build]   image:  $ACTUAL_BLOB" >&2
+      echo "[build] TimerNode.oimg here means OEVM_BLOB never reached the image (the" >&2
+      echo "[build] CMakeLists.txt fallback), and the flash would be silently wrong." >&2
+      exit 3
+    fi
+    echo "[build] model B confirmed, blob $(basename "$ACTUAL_BLOB")"
+  else
+    echo "[build] model A confirmed from the link set"
+  fi
+
+  # WHERE THIS IMAGE PUT ITS SETTINGS PARTITION — a dongle-only check, and it is here
+  # because the assertions above would have passed the image that went dark on
+  # 2026-08-30. They verify WHICH PROGRAM the image contains; nothing verified where
+  # its flash landed, and a correct program at the wrong offsets is still a board you
+  # cannot talk to.
+  #
+  # Without pm_static_dongle.yml the partition manager treats the whole 1 MB as the
+  # app's and places settings_storage "before: end" at 0xfe000-0x100000 — the Open
+  # Bootloader's MBR-params and bootloader-settings pages. OpenThread selects
+  # SETTINGS->NVS, so the node mounts NVS on top of its own bootloader at boot. The
+  # static file exists solely to prevent that, so this asserts the OUTCOME rather than
+  # trusting that the flag reached the build: the flag was silently emptied once, by an
+  # array initialised after the profile that set it, and the flag being passed is not
+  # the property anyone cares about.
+  if [ "$BOARD_ID" = nrf52840dongle ] && [ -f "$ZDIR/$BUILD_DIR/partitions.yml" ]; then
+    SS_ADDR=$(awk '/^settings_storage:/{f=1;next} f&&/^  address:/{print $2;exit} /^[a-z]/{f=0}' \
+                "$ZDIR/$BUILD_DIR/partitions.yml")
+    if [ -n "$SS_ADDR" ] && [ $((SS_ADDR)) -ge $((0xdc000)) ]; then
+      echo "[build] FATAL: settings_storage is at $SS_ADDR, inside the Open Bootloader" >&2
+      echo "[build] (0xdc000+). This image would mount NVS over its own bootloader at" >&2
+      echo "[build] boot. pm_static_dongle.yml did not reach the build — see PM_STATIC_ARG." >&2
+      exit 3
+    fi
+    echo "[build] settings_storage ${SS_ADDR:-none} — clear of the bootloader"
+  fi
+
+  # The node id is baked at CONFIGURE time into oevm_node_id.c, so the generated file
+  # is the evidence. An unnamed board is a warning, not a failure: run.sh allows an
+  # unset id (it bakes "unnamed"), and #186's point is that this is a choice made
+  # loudly rather than a default arrived at silently.
+  if [ ${#NODE_ID_ARG[@]} -gt 0 ]; then
+    WANT_ID="${NODE_ID_ARG[0]#-DOEVM_NODE_ID=}"
+    if ! grep -qs "\"$WANT_ID\"" "$ZDIR/$BUILD_DIR"/*/oevm_node_id.c \
+                                  "$ZDIR/$BUILD_DIR"/oevm_node_id.c 2>/dev/null; then
+      echo "[build] FATAL: node id '$WANT_ID' is not in the generated oevm_node_id.c." >&2
+      echo "[build] The image would answer a different name than the board it is for." >&2
+      exit 3
+    fi
+    echo "[build] node id $WANT_ID confirmed in the generated source"
+  fi
+fi
+[ "$BUILD_RC" = 0 ] || exit "$BUILD_RC"
 
 if [ "$DO_FLASH" = 1 ]; then
   # KNOWN RACE, not yet closed here (rete#154, closed as recorded rather than
@@ -581,8 +733,35 @@ if [ "$DO_FLASH" = 1 ]; then
       echo "[flash] so seeing no console port is expected and not a fault." >&2
       exit 2
     fi
-    echo "[flash] west flash --runner nrfutil -d $BUILD_DIR (DFU)"
-    ( ncs_env && cd "$ZDIR" && west flash --skip-rebuild --runner nrfutil -d "$BUILD_DIR" )
+    # NOT `west flash --runner nrfutil`. That runner hunts for device traits over a
+    # debugger and answers `FATAL ERROR: Unable to find a board` at a dongle sitting in
+    # DFU mode two inches away — measured 2026-08-30, and it is the same J-Link-shaped
+    # assumption fbb2e56 removed from the CONF_FILE and the board target but left here.
+    #
+    # The real path is the Open Bootloader's: package the hex, then push it over the
+    # bootloader's own serial port. `pkg generate` lives in nrf5sdk-tools, which is NOT
+    # in the NCS bundle and cannot be added to it (the bundle's nrfutil home is locked
+    # on purpose), so it comes from a separate NRFUTIL_HOME — #48, zero SDK touch.
+    NRFUTIL_RETE="$HOME/.nrfutil-rete/bin/nrfutil"
+    if [ ! -x "$NRFUTIL_RETE" ]; then
+      echo "[flash] no nrfutil at $NRFUTIL_RETE — install nrf5sdk-tools into a" >&2
+      echo "[flash] separate NRFUTIL_HOME: NRFUTIL_HOME=~/.nrfutil-rete nrfutil install nrf5sdk-tools" >&2
+      exit 2
+    fi
+    DFU_PORT=$(ls /dev/serial/by-id/*Open_DFU_Bootloader* 2>/dev/null | head -1)
+    if [ -z "$DFU_PORT" ]; then
+      echo "[flash] 1915:521f is on USB but no Open_DFU_Bootloader serial port appeared." >&2
+      exit 2
+    fi
+    DFU_ZIP="$ZDIR/$BUILD_DIR/dfu-app.zip"
+    rm -f "$DFU_ZIP"
+    echo "[flash] nrfutil pkg generate -> $DFU_ZIP"
+    NRFUTIL_HOME="$HOME/.nrfutil-rete" "$NRFUTIL_RETE" nrf5sdk-tools pkg generate \
+      --hw-version 52 --sd-req 0x00 --application-version 1 \
+      --application "$ZDIR/$BUILD_DIR/merged.hex" "$DFU_ZIP" >/dev/null || exit 2
+    echo "[flash] nrfutil dfu usb-serial -> $(readlink -f "$DFU_PORT")"
+    NRFUTIL_HOME="$HOME/.nrfutil-rete" "$NRFUTIL_RETE" nrf5sdk-tools dfu usb-serial \
+      -pkg "$DFU_ZIP" -p "$(readlink -f "$DFU_PORT")" || exit 2
   elif [ "$BOARD_ID" = nrf52840dk ]; then
     # The DK has no ROM serial loader in this path: it flashes over its on-board
     # SEGGER J-Link. --skip-rebuild for the SAME reason the esptool branch does not

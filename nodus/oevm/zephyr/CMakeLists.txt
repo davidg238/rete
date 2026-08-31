@@ -109,6 +109,28 @@ add_custom_target(oevm_manifest_pin_gen DEPENDS ${OEVM_MANIFEST_PIN_C})
 target_sources(app PRIVATE ${OEVM_MANIFEST_PIN_C})
 add_dependencies(app oevm_manifest_pin_gen)
 
+# THE SAME ENV-NOT-`-D` RULE THE TUNABLES BELOW ALREADY FOLLOW, applied to the three
+# variables that select WHICH PROGRAM this image contains (rete#281, 2026-08-30).
+#
+# It was applied to the tunables and not to these, and that asymmetry is the whole
+# defect: under NCS sysbuild a bare `-DOEVM_BLOB=...` after `--` lands in the SYSBUILD
+# cache and never reaches this image. The four consequences all look like success —
+# OEVM_MODEL falls back to the "B" default, OEVM_BLOB to the committed TimerNode.oimg
+# "so it just works", OEVM_NODE_ID to nothing — so `run.sh --node PortaBridgeNodeNrf.nsl`
+# baked the right .oimg, printed the right lines, and then built TimerNode with no node
+# id. A dongle flashed that way goes dark: no mesh, no console, nothing to see.
+#
+# Image-scoped `-Dzephyr_OEVM_BLOB=...` was tried first and DOES NOT WORK: it reaches
+# zephyr_sysbuild_cache.txt and still leaves the image's own cache untouched (measured,
+# same day). Env is the mechanism that already works here for five other variables, so
+# this adds none.
+if(DEFINED ENV{OEVM_BLOB})
+  set(OEVM_BLOB $ENV{OEVM_BLOB})
+endif()
+if(DEFINED ENV{OEVM_NODE_ID})
+  set(OEVM_NODE_ID $ENV{OEVM_NODE_ID})
+endif()
+
 # rete#186 — WHICH BOARD this image is for. Sibling of the build id above; see
 # cmake/gen_node_id.cmake for why it is configure-time where that one is build-time,
 # and why an unset id bakes "unnamed" rather than a guess.
@@ -142,6 +164,15 @@ endif()
 # accessor paths are never taken.
 set(OEVM_MODEL "B" CACHE STRING "oevm image model: A (solidified) or B (.oimg blob)")
 set_property(CACHE OEVM_MODEL PROPERTY STRINGS A B)
+# OEVM_MODEL's env override belongs HERE, not with the other two above: it has to
+# follow its own `set(... CACHE ...)` line. A normal variable set before the cache
+# declaration and a cache entry created after it is the CMP0126 shadowing question,
+# whose answer depends on a policy setting rather than on this file — and "which of
+# two same-named variables wins" is precisely the class of silence this whole change
+# exists to remove.
+if(DEFINED ENV{OEVM_MODEL})
+  set(OEVM_MODEL $ENV{OEVM_MODEL})
+endif()
 
 if(OEVM_MODEL STREQUAL "A")
   target_sources(app PRIVATE ${OEVM_SRC}/src/solidified_image.c)
