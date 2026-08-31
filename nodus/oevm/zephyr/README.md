@@ -464,17 +464,38 @@ target build.
 
 Model B (`.oimg`) bakes struct offsets ahead of time, so it needs an ABI-accurate
 `layout-$BOARD.json` for whichever target it's building — `zephyr/layout-esp32.json`
-(Xtensa) and `zephyr/layout-esp32c6.json` (RV32 ilp32) are checked in, generated, not
-hand-written. Each comes from flashing the `zephyr/layoutdump/` app (which computes every
+(Xtensa), `zephyr/layout-esp32c6.json` (RV32 ilp32) and `zephyr/layout-nrf52840.json`
+(Cortex-M4F, arm-zephyr-eabi — captured 2026-08-30, rete#281) are checked in, generated,
+not hand-written. **ONE nRF file serves both the DK and the dongle**: same part, same
+ABI, same toolchain, and the differences `run.sh` encodes between those boards (console,
+trigger pin, flash method) are Kconfig and devicetree, none of which can move a struct
+offset. Each comes from flashing the `zephyr/layoutdump/` app (which computes every
 struct size/offset via `sizeof`/`offsetof` against the real `struct` definitions in
 `src/oevm.h`, compiled for that target) onto real hardware and capturing its console
 output. A new architecture needs its own layoutdump run before Model B works on it at all
 — `run.sh` fails loudly (`missing .../layout-$BOARD.json — run the layoutdump app`) rather
-than silently reusing another target's file. For the two targets measured so far the
+than silently reusing another target's file. For the three targets measured so far the
 captured layouts are byte-identical (verified independently of the capture itself — see
-the ladder's C6 entry) — a coincidence of this particular struct set having no field type
-whose natural alignment diverges between the two 32-bit ABIs, not a reason to assume a
-future target's layout will match without generating it.
+the ladder's C6 entry), Cortex-M4F included — a coincidence of this particular struct set
+having no field type whose natural alignment diverges between these 32-bit ABIs, not a
+reason to assume a future target's layout will match without generating it.
+
+**Capturing on a board whose console is its own USB (the dongle) takes three things that
+a UART target does not need**, all of them in `layoutdump/prj_dongle.conf` and
+`layoutdump/src/console_prep.c`, and each one was learned from a capture that came back
+empty or corrupt (rete#281):
+
+1. `CONFIG_BOOT_DELAY` — `dump_layout.c` prints once from `main()` and returns, and the
+   console does not exist until USB enumerates after the DFU reset. Without the delay the
+   dump is emitted into a console with no host, seconds before a reader can attach.
+2. `setvbuf(stdout, NULL, _IONBF, 0)` — `main()` returning never flushes, so picolibc
+   holds the whole dump. It goes in a `SYS_INIT` **beside** `tools/dump_layout.c`, never
+   inside it: that file is shared with the host gate, which regenerates the host layout on
+   every nsl suite run.
+3. `hw-flow-control` on the cdc-acm node — without it a full ring buffer **discards**
+   (`usbd_cdc_acm.c:1004`), which truncates the JSON mid-object and reads like a corrupt
+   dump rather than a dropped one. **Do not copy this to a node image**: a blocking
+   `poll_out` on an unattended dongle wedges the VM (rete#286).
 
 ## C6 `OEVM_HEAP_SIZE` — no recommended default yet
 

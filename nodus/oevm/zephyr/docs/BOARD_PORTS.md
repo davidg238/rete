@@ -58,8 +58,31 @@ west build -b nrf52840dk/nrf52840     --build-dir build-dk     . -- -DCONF_FILE=
 west build -b nrf52840dongle/nrf52840 --build-dir build-dongle . -- -DCONF_FILE=prj_dongle_thread.conf -DEXTRA_CONF_FILE=prj_dongle_thread_local.conf \
   -DPM_STATIC_YML_FILE=pm_static_dongle.yml                                                                                                            # dongle
 ```
-After any dongle build, sanity-check `<build-dir>/partitions.yml` (settings at 0xd8000,
+**Prefer `zephyr/run.sh --board nrf52840dongle` to the hand-typed line above** (rete#281,
+2026-08-30). It owns every board-coupled default here, and it now ASSERTS the three
+things this section tells you to check by hand — because a check nobody runs is not a
+check, and each of these had already failed silently:
+
+- `settings_storage` below `0xdc000`. The hand-check below was in this document the whole
+  time and was still skipped, and the resulting image mounted NVS over the Open
+  Bootloader and took the board dark — **no USB at all, app or DFU**. The bootloader
+  survived and DFU recovered it, but nothing on the console said so, because a dongle
+  has no console until its app publishes one.
+- the **blob path** actually `.incbin`'d, not just the model. Model B is the CMakeLists
+  default, so a dropped `OEVM_BLOB` still links Model B — bound to `TimerNode.oimg`.
+- the node id, read back from the generated `oevm_node_id.c`.
+
+It also flashes the dongle correctly: `west flash --runner nrfutil` hunts for debugger
+traits and answers `Unable to find a board` at a dongle in DFU. The working path is
+`nrfutil nrf5sdk-tools pkg generate` + `dfu usb-serial`, under the separate
+`NRFUTIL_HOME=~/.nrfutil-rete` that holds `nrf5sdk-tools` (the NCS bundle's home is
+locked; #48, zero SDK touch).
+
+If you do build by hand, sanity-check `<build-dir>/partitions.yml` (settings at 0xd8000,
 `open_bootloader_gap` present) and `compile_commands.json` for the five `-D` knobs.
+Note that a bare `-D` after `--` reaches the SYSBUILD cache and **not** the image, which
+is why `OEVM_MODEL` / `OEVM_BLOB` / `OEVM_NODE_ID` travel by environment variable now —
+`-Dzephyr_OEVM_BLOB=` (image-scoped) was tried and does not work either.
 For a silently-dead board, stack `prj_dongle_diag.conf` as an extra conf
 (`-DEXTRA_CONF_FILE="prj_dongle_thread_local.conf;prj_dongle_diag.conf"`) — minimal-mode
 logging makes ARM fault dumps print via printk instead of dying invisibly.

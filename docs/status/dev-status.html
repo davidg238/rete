@@ -48,8 +48,8 @@
 <body>
 
 <h1>rete — dev status</h1>
-<p class="stamp">Status synthesized <strong>2026-08-29</strong> (<code>#274</code> closed on a board — the base tick no longer sits downstream of the socket bind, and <code>liveness-noradio</code> is the gate that keeps it that way; the thread now waits on <strong>David's <code>#273</code> call</strong>) at
-<a href="https://github.com/davidg238/rete/commit/4756592">4756592</a>.
+<p class="stamp">Status synthesized <strong>2026-08-30</strong> (<code>#281</code> item 2 closed — <code>layout-nrf52840.json</code> is captured, so nRF builds Model B and the 4.9&nbsp;GB Model&nbsp;A bake is off that board family; <code>4ec0</code> now runs <code>PortaBridgeNodeNrf</code> but <strong>will not attach to the mesh</strong>, with an <code>ot</code>-shell image built and waiting on a DFU insert. <code>#273</code> is still David's call) at
+<a href="https://github.com/davidg238/rete/commit/b7f16ce">b7f16ce</a>.
 Served live by <strong>custos</strong> (gw85224-01:6971).
 This page is a <em>view</em>, refreshed at session close-outs — the records of
 direction are <a href="/dev/next-steps-overview.md">next-steps-overview.md</a>
@@ -288,12 +288,19 @@ all, and #274 had just made that state reachable. It would have gone green testi
 no-radio case got its own row, <code>liveness-noradio</code>, GREEN on <code>c6spare</code>:
 <code>deadline=16000ms</code> from the kernel tick alone, 18.03&nbsp;s of silence,
 <code>pass=2 fail=0</code>, under a build the runner forced <code>--pristine</code>.
-<strong>What first:</strong> <a href="https://github.com/davidg238/rete/issues/273">#273</a> —
-open <code>docs/spikes/2026-08-27-liveness-3-ladder.png</code>, whose caption already states the
-fork (H1: every deadline derived from the node's declared 2&nbsp;s · H2: <code>bud</code> capped
-by a constant on porta's side). It is the only thing blocking
-<a href="https://github.com/davidg238/rete/issues/272">#272</a>, and both want a decision rather
-than more evidence.</p>
+<strong>What first:</strong> put <code>4ec0</code> into DFU (hold RESET while inserting) and run
+<code>flash-shell.sh</code> — the <a href="https://github.com/davidg238/rete/issues/281">#281</a>
+node boots, ticks and never attaches, and three hypotheses (persisted NVS dataset,
+credentials, gateway address) are already refuted at one board cycle each. The image with
+<code>CONFIG_OPENTHREAD_SHELL</code> is built; <code>ot scan</code> is the discriminator —
+<code>thread_bringup.c</code>'s header records that on the C6 this same symptom, role DETACHED
+with a provably correct dataset, was a <em>radio driver</em> bug. Still awaiting David
+independently: <a href="https://github.com/davidg238/rete/issues/273">#273</a> — open
+<code>docs/spikes/2026-08-27-liveness-3-ladder.png</code>, whose caption states the fork
+(H1: deadlines derived from the node's declared 2&nbsp;s · H2: <code>bud</code> capped by a
+constant on porta's side). It is the only thing blocking
+<a href="https://github.com/davidg238/rete/issues/272">#272</a>, and both want a decision
+rather than more evidence.</p>
 </div>
 
 <ol>
