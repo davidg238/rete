@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Every Clock in the Liveness Path</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+  :root{
+    --ground:#F6F7F9; --raise:#FFFFFF; --ink:#15181E; --muted:#586074;
+    --faint:#878FA0; --rule:#DCE0E7; --rule-soft:#EAEDF1;
+    --accent:#1B5FA6; --accent-soft:#E5EEF7; --accent-line:#B4CDE5;
+    --warn:#A8431C; --warn-soft:#F8EBE4; --warn-line:#E2C2AF;
+    --ok:#17705A; --ok-soft:#E3F0EC; --ok-line:#B5D7CB;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#12151A; --raise:#191D24; --ink:#E4E7EC; --muted:#98A1B2;
+      --faint:#6B7484; --rule:#2A303A; --rule-soft:#212630;
+      --accent:#6BA9E6; --accent-soft:#152634; --accent-line:#2B4A66;
+      --warn:#E0895F; --warn-soft:#2E1E17; --warn-line:#57392A;
+      --ok:#57BFA0; --ok-soft:#122C25; --ok-line:#25493E;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#12151A; --raise:#191D24; --ink:#E4E7EC; --muted:#98A1B2;
+    --faint:#6B7484; --rule:#2A303A; --rule-soft:#212630;
+    --accent:#6BA9E6; --accent-soft:#152634; --accent-line:#2B4A66;
+    --warn:#E0895F; --warn-soft:#2E1E17; --warn-line:#57392A;
+    --ok:#57BFA0; --ok-soft:#122C25; --ok-line:#25493E;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--ground); color:var(--ink);
+    font-family:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+    font-size:16.5px; line-height:1.6; margin:0;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:60rem; margin:0 auto; padding:0 1.5rem 6rem}
+  .narrow{max-width:44rem}
+  @media (max-width:640px){ body{font-size:16px} .wrap{padding:0 1.1rem 4rem} }
+
+  a{color:var(--accent); text-underline-offset:2px}
+  a:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:2px}
+
+  code,.c{
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:.86em;
+    background:var(--rule-soft); padding:.1em .35em; border-radius:3px;
+    overflow-wrap:break-word;
+  }
+  .num{font-family:"IBM Plex Mono",ui-monospace,monospace; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap}
+  .src{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:.78rem; color:var(--muted); white-space:nowrap}
+
+  header.top{padding:4rem 0 2rem; border-bottom:1px solid var(--rule)}
+  .kicker{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:.72rem;
+    letter-spacing:.13em; text-transform:uppercase; color:var(--accent); margin:0 0 1.3rem}
+  h1{font-family:"IBM Plex Serif",Georgia,serif; font-weight:600;
+    font-size:clamp(2.3rem,7vw,3.4rem); line-height:1.05; letter-spacing:-.02em;
+    margin:0 0 .9rem; text-wrap:balance}
+  .standfirst{font-family:"IBM Plex Serif",Georgia,serif; font-size:1.22rem;
+    line-height:1.45; color:var(--muted); margin:0 0 1.8rem; max-width:44rem; text-wrap:balance}
+  .meta{display:flex; flex-wrap:wrap; gap:.45rem 1.4rem;
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:.72rem;
+    letter-spacing:.04em; color:var(--faint); text-transform:uppercase}
+
+  section{padding-top:3.5rem}
+  .snum{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:.72rem;
+    letter-spacing:.13em; color:var(--faint); display:block; margin-bottom:.45rem}
+  h2{font-family:"IBM Plex Serif",Georgia,serif; font-weight:600;
+    font-size:clamp(1.5rem,4vw,2rem); line-height:1.15; letter-spacing:-.012em;
+    margin:0 0 1rem; text-wrap:balance}
+  h3{font-weight:600; font-size:1.02rem; margin:2rem 0 .55rem}
+  p{margin:0 0 1rem; max-width:44rem}
+  ul,ol{margin:0 0 1rem; padding-left:1.3rem; max-width:44rem}
+  li{margin-bottom:.45rem}
+  li::marker{color:var(--faint)}
+
+  .tablewrap{overflow-x:auto; margin:1.4rem 0; border:1px solid var(--rule); border-radius:6px; background:var(--raise)}
+  table{border-collapse:collapse; width:100%; min-width:46rem; font-size:.9rem}
+  th,td{text-align:left; padding:.7rem .8rem; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+  thead th{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:.68rem;
+    letter-spacing:.09em; text-transform:uppercase; color:var(--muted);
+    background:var(--rule-soft); border-bottom:1px solid var(--rule)}
+  tbody tr:last-child td{border-bottom:none}
+  td.v{white-space:nowrap}
+
+  .callout{border-left:3px solid var(--accent); background:var(--accent-soft);
+    padding:1rem 1.15rem; margin:1.5rem 0; border-radius:0 5px 5px 0; max-width:44rem}
+  .callout p{margin:0}
+  .callout p + p{margin-top:.7rem}
+  .callout.warn{border-left-color:var(--warn); background:var(--warn-soft)}
+  .callout.ok{border-left-color:var(--ok); background:var(--ok-soft)}
+  .lbl{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:.67rem;
+    letter-spacing:.11em; text-transform:uppercase; font-weight:600;
+    display:block; margin-bottom:.4rem; color:var(--accent)}
+  .callout.warn .lbl{color:var(--warn)}
+  .callout.ok .lbl{color:var(--ok)}
+
+  figure{margin:2rem 0; padding:0}
+  figure svg{display:block; width:100%; max-width:100%; height:auto;
+    background:var(--raise); border:1px solid var(--rule); border-radius:6px}
+  figcaption{font-size:.88rem; color:var(--muted); margin-top:.75rem; max-width:44rem}
+  /* the SVG's one meaningful hue, taken from the theme so it reads on both grounds */
+  figure svg .w{fill:var(--warn)}
+  figure svg .ws{stroke:var(--warn); fill:none}
+
+  .linkgrid{display:grid; gap:.9rem; grid-template-columns:repeat(auto-fit,minmax(17rem,1fr)); margin:1.4rem 0}
+  .lk{display:block; border:1px solid var(--rule); border-radius:6px; padding:.9rem 1rem;
+    background:var(--raise); text-decoration:none; color:var(--ink)}
+  .lk:hover{border-color:var(--accent-line); background:var(--accent-soft)}
+  .lk b{display:block; font-size:.96rem; margin-bottom:.2rem}
+  .lk span{display:block; font-size:.83rem; color:var(--muted); line-height:1.45}
+  .lk .p{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:.72rem; color:var(--faint); margin-top:.35rem; word-break:break-all}
+
+  footer{margin-top:4rem; padding-top:1.4rem; border-top:1px solid var(--rule);
+    font-size:.85rem; color:var(--faint); max-width:44rem}
+  footer p{margin:0 0 .55rem}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header class="top">
+  <p class="kicker">rete · design note · input to <a href="https://github.com/davidg238/rete/issues/273">#273</a></p>
+  <h1>Every Clock in the Liveness Path</h1>
+  <p class="standfirst">Ten constants across three tiers — nine on the node, one on the gateway, none in custos. What each guards against, which derive from each other, and the one that derives from nothing.</p>
+  <div class="meta">
+    <span>31 August 2026</span>
+    <span>Constants re-read from source</span>
+    <span>Verified at ce51b85</span>
+  </div>
+</header>
+
+<div class="callout ok">
+  <span class="lbl">The one rule this page follows</span>
+  <p><strong>Every number below was read from source on 2026-08-31, not carried forward.</strong> Each row cites <span class="c">file:line</span>; check any of them. The <a href="../spikes/2026-08-27-liveness-timing.puml">2026-08-27 timing diagram</a> made the same promise, and re-reading confirmed <em>every one of its constants still holds</em> — <a href="https://github.com/davidg238/rete/issues/274">#274</a> moved where the base tick is registered but changed no value.</p>
+</div>
+
+<section id="crux" class="narrow">
+  <span class="snum">§ 1</span>
+  <h2>The short version</h2>
+  <p>One number is declared by the node — <span class="num">cadence = 2000 ms</span>. From it, <strong>two different deadlines of <span class="num">16 000 ms</span> are computed independently on opposite sides of the wire</strong>, by two multiplications by 8 that were chosen separately and happen to match.</p>
+  <p>Then porta, which is the side that must act on the second one, <strong>can only re-form a verdict every <span class="num">30 000 ms</span></strong>. Its clock is coarser than the budget it is judging against.</p>
+  <div class="callout warn">
+    <span class="lbl">That is #273, in one line</span>
+    <p>The deadlines are four independently chosen numbers that agree by arithmetic coincidence, not by derivation. <strong>Which one is the source of truth?</strong> This page lays out the mechanism; it does not answer that — the answer is David's.</p>
+  </div>
+</section>
+
+<section id="diagram">
+  <span class="snum">§ 2</span>
+  <h2>Where each number comes from</h2>
+
+  <figure>
+    <svg viewBox="0 0 880 600" role="img" aria-label="One declared cadence of 2000 ms is multiplied by eight twice, independently, producing two 16000 ms deadlines — one inside the node's observer, one published to porta as the node's budget. Porta then judges against that budget but re-forms its verdict only every 30000 ms, a clock coarser than the budget it reads.">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+        </marker>
+        <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" class="w"/>
+        </marker>
+      </defs>
+
+      <!-- lane labels -->
+      <text x="24" y="34" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="currentColor" opacity=".55">NODUS — one C6</text>
+      <text x="24" y="404" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="currentColor" opacity=".55">PORTA — gw85224-01</text>
+
+      <!-- source -->
+      <rect x="310" y="52" width="260" height="58" rx="5" fill="none" stroke="currentColor" stroke-width="2"/>
+      <text x="440" y="76" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" fill="currentColor">declared cadence</text>
+      <text x="440" y="97" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="15" font-weight="600" fill="currentColor">2000 ms</text>
+
+      <!-- split lines -->
+      <polyline points="440,110 440,138 175,138 175,168" fill="none" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+      <polyline points="440,110 440,138 705,138 705,168" fill="none" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+      <text x="300" y="132" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5" fill="currentColor">× OBS_WEDGE_SLACK (8)</text>
+      <text x="592" y="132" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5" fill="currentColor">× 8</text>
+
+      <!-- left: wedge deadline -->
+      <rect x="45" y="170" width="260" height="70" rx="5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <text x="175" y="193" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="currentColor">observer wedge deadline</text>
+      <text x="175" y="214" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="15" font-weight="600" fill="currentColor">16 000 ms</text>
+      <text x="175" y="231" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity=".65">observer_core.h:43</text>
+
+      <!-- right: declared budget -->
+      <rect x="575" y="170" width="260" height="70" rx="5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <text x="705" y="193" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="currentColor">declared budget</text>
+      <text x="705" y="214" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="15" font-weight="600" fill="currentColor">16 000 ms</text>
+      <text x="705" y="231" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity=".65">PortaBridgeNodeC6.nsl:100</text>
+
+      <!-- left continues to reboot -->
+      <line x1="175" y1="240" x2="175" y2="280" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+      <rect x="45" y="282" width="260" height="52" rx="5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="175" y="303" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="currentColor">reboots the node itself</text>
+      <text x="175" y="321" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="11.5" fill="currentColor" opacity=".7">acts alone — asks nobody</text>
+
+      <!-- right crosses the wire -->
+      <line x1="705" y1="240" x2="705" y2="416" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+      <text x="716" y="290" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">published at</text>
+      <text x="716" y="305" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">obs/liveness</text>
+
+      <!-- the wire -->
+      <line x1="24" y1="366" x2="856" y2="366" stroke="currentColor" stroke-width="1" stroke-dasharray="6 5" opacity=".45"/>
+      <text x="24" y="359" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor" opacity=".6">— — the wire: plain UDP carrying CBOR, ≤ 512 B a batch — —</text>
+
+      <!-- porta verdict -->
+      <rect x="575" y="418" width="260" height="72" rx="5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <text x="705" y="441" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="currentColor">verdictFor — the whole rule</text>
+      <text x="705" y="462" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12.5" font-weight="600" fill="currentColor">now − last_seen &gt; bud</text>
+      <text x="705" y="480" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity=".65">sweep.go:169 — no constants in it</text>
+
+      <!-- sweep tick -->
+      <line x1="470" y1="454" x2="573" y2="454" class="ws" stroke-width="2" marker-end="url(#arw)"/>
+      <text x="521" y="446" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" class="w">runs it</text>
+      <rect x="185" y="418" width="285" height="72" rx="5" class="ws" stroke-width="2"/>
+      <text x="327" y="441" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12.5" class="w">re-formed only every</text>
+      <text x="327" y="462" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="15" font-weight="600" class="w">SweepTick = 30 000 ms</text>
+      <text x="327" y="480" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" class="w" opacity=".8">sweep.go:20</text>
+
+      <!-- the conflict -->
+      <text x="327" y="524" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600" class="w">30 000 &gt; 16 000</text>
+      <text x="327" y="544" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" class="w">the clock that reads the budget is coarser than the budget</text>
+      <text x="327" y="562" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" class="w">— so a node is judged late by up to 14 s, every time</text>
+    </svg>
+    <figcaption><strong>One declared number, two independent multiplications by 8, and a reader whose clock is coarser than what it reads.</strong> The left arm never crosses the wire — the node reboots itself on its own deadline. The right arm is published, and porta's rule contains no constants at all; every number in it came from the node. The mismatch at the bottom is the whole of <a href="https://github.com/davidg238/rete/issues/273">#273</a>.</figcaption>
+  </figure>
+</section>
+
+<section id="nodus">
+  <span class="snum">§ 3</span>
+  <h2>nodus — the node</h2>
+  <p><strong>Nine of the ten constants in this path live here</strong>, which is the point: the node owns its own judgement. Only one of the nine is ever told to anyone else — and three of them are bounds and multipliers rather than clocks, which is worth reading precisely.</p>
+
+  <div class="tablewrap"><table>
+    <thead><tr><th>Timer</th><th>Value</th><th>Source</th><th>What it guards against</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>base tick</strong> <span class="c">cadMs</span></td>
+        <td class="v"><span class="num">2000 ms</span><br><span class="src">default 30 000</span></td>
+        <td><span class="src">PortaBridgeNodeC6.nsl:73<br>kernel.nsl:1705</span></td>
+        <td><strong>That a deadline exists at all.</strong> The <em>kernel</em> registers it (#231 D1), so an app declaring no timer of its own is still judgeable. #274 moved the registration upstream of the socket bind, so a failed bind now costs reporting, not the tick.</td>
+      </tr>
+      <tr>
+        <td><strong>declared budget</strong> <span class="c">budMs</span></td>
+        <td class="v"><span class="num">16 000 ms</span><br><span class="src">= cadence × 8<br>default 240 000</span></td>
+        <td><span class="src">PortaBridgeNodeC6.nsl:100<br>kernel.nsl:1705</span></td>
+        <td><strong>Nothing, locally.</strong> This is the node's promise <em>about its own radio</em>, chosen by the node rather than by the gateway (#231 D2), published at <span class="c">obs/liveness</span>. It is the only one of these numbers porta ever sees.</td>
+      </tr>
+      <tr>
+        <td><strong>liveness ceiling</strong></td>
+        <td class="v"><span class="num">86 400 000 ms</span><br><span class="src">24 h</span></td>
+        <td><span class="src">kernel.nsl:2503</span></td>
+        <td>A nonsense cadence arriving over the wire silently disabling judgement. An adopted cadence is clamped; <span class="c">cad &lt; 1</span> falls back to 30 000 (<span class="c">kernel.nsl:2519</span>).</td>
+      </tr>
+      <tr>
+        <td><strong>reply budget</strong></td>
+        <td class="v"><span class="num">2000 ms</span><br><span class="src">per leg</span></td>
+        <td><span class="src">kernel.nsl:1807, 2847</span></td>
+        <td>A lost datagram stalling the reactor forever. <strong>It is a spin, not a block</strong> — it polls <span class="c">socket receive</span> until the deadline. Two legs per check-in (pull, push), so <strong>a check-in can spend 4000 ms waiting against a 2000 ms cadence.</strong></td>
+      </tr>
+      <tr>
+        <td><strong>observer tick</strong></td>
+        <td class="v"><span class="num">1000 ms</span></td>
+        <td><span class="src">observer.c:71</span></td>
+        <td>Nothing directly — it is the <em>sampling period</em>, and the unit <span class="c">undrained_since_ms</span> is measured in. Its own hazard is aliasing: sampling a 4.007 s tick every 1001 ms is what made #269's detector reboot a healthy node.</td>
+      </tr>
+      <tr>
+        <td><strong>wedge slack</strong> <span class="c">OBS_WEDGE_SLACK</span></td>
+        <td class="v"><span class="num">× 8</span></td>
+        <td><span class="src">observer_core.h:43</span></td>
+        <td>False trips on a legitimately slow node. Multiplies <em>the app's own declared period</em>, so a node with a ten-minute timer is judged against ten minutes. #215's measured slack.</td>
+      </tr>
+      <tr>
+        <td><strong>judgeable ceiling</strong></td>
+        <td class="v"><span class="num">0x7FFFFFFF ms</span></td>
+        <td><span class="src">observer_core.h:50</span></td>
+        <td>A period so long that <span class="c">period × 8</span> overflows being <em>mis</em>judged. Such a timer is skipped, not scored — vacancy must not read as health.</td>
+      </tr>
+      <tr>
+        <td><strong>task watchdog</strong></td>
+        <td class="v"><span class="num">30 000 ms</span></td>
+        <td><span class="src">observer.c:76, 341</span></td>
+        <td><strong>The observer thread itself dying.</strong> The detector needs a detector; this is it, and it is the only timer here that outranks the VM entirely.</td>
+      </tr>
+      <tr>
+        <td><span class="c">verdictTicks</span> <span class="src">(gate only)</span></td>
+        <td class="v"><span class="num">90 ticks</span><br><span class="src">= 180 s @ 2 s</span></td>
+        <td><span class="src">PortaBridgeNodeC6.nsl:332</span></td>
+        <td>A bench gate hanging on a mesh that never comes up. It is an <strong>attach</strong> budget, not a convergence one, and reaching it emits the verdict as it stands — a FAIL naming which property is false, never a silence the runner must guess at.</td>
+      </tr>
+    </tbody>
+  </table></div>
+
+  <h3>The two wedge conditions, and why they are two</h3>
+  <p>Both derive their deadline from state the app already declared; nothing global is assumed. They stay <strong>two named conditions rather than one merged predicate</strong>, because the dump reports which fired and neither alone covers both shapes (<span class="c">observer_core.h:110-150</span>).</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Condition</th><th>Deadline</th><th>The failure it catches</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="c">OBS_COND_TIMER_OVERDUE</span><br><span class="src">§3.1</span></td>
+        <td class="v"><span class="num">period × 8</span><br><span class="src">per timer, its own</span></td>
+        <td><strong>The ISR stopped firing.</strong> An armed repeating timer is overdue against <em>its own</em> period — the timer subsystem itself has stopped.</td>
+      </tr>
+      <tr>
+        <td><span class="c">OBS_COND_PULSE_UNDRAINED</span><br><span class="src">§3.2</span></td>
+        <td class="v"><span class="num">shortest × 8</span></td>
+        <td><strong>The VM is stuck in the interpreter.</strong> The ISR fires and the mailbox fills, but nothing drains it. Judged against the shortest declared period — the fastest cadence the app claims to service.</td>
+      </tr>
+    </tbody>
+  </table></div>
+  <div class="callout warn">
+    <span class="lbl">The subtlety that cost a healthy node a reboot</span>
+    <p>§3.2 judges <strong>progress, not depth.</strong> It compares <span class="c">drained</span> against the last value it saw, and only starts the clock when the mailbox is non-empty <em>and</em> the counter has not moved. The original version sampled mailbox <em>depth</em> at an instant, which aliases against the workload — and rebooted a node that was still draining and still printing ticks (#269). <span class="c">pending == 1</span> means nothing; <span class="c">pulse_drained()</span> moving is the discriminator.</p>
+  </div>
+</section>
+
+<section id="comms">
+  <span class="snum">§ 4</span>
+  <h2>comms — the wire</h2>
+  <p><strong>The wire has no timers of its own.</strong> It has <em>sizes</em>, and the sizes are why the node's reply budget is the number it is.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Bound</th><th>Value</th><th>Why it constrains a timer</th></tr></thead>
+    <tbody>
+      <tr><td>batch</td><td class="v"><span class="num">512 B</span></td><td>A push is 5–6 6LoWPAN fragments and <strong>the datagram survives only if every fragment does</strong>. That is what a 2000 ms reply budget is waiting through.</td></tr>
+      <tr><td>value</td><td class="v"><span class="num">256 B</span></td><td>Radio constraint, not preference — 6LoWPAN fragments above ~102 B.</td></tr>
+      <tr><td>legs per check-in</td><td class="v"><span class="num">2</span></td><td>A <span class="c">pull</span> and a <span class="c">push</span>, each node-initiated, each idempotent, <strong>each with its own full reply budget</strong>. Both stamp <span class="c">nodes.last_seen_ms</span>.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout">
+    <span class="lbl">The consequence worth staring at</span>
+    <p>Two legs × <span class="num">2000 ms</span> = <strong><span class="num">4000 ms</span> of reply budget against a <span class="num">2000 ms</span> cadence.</strong> A check-in whose replies are slow overruns its own period — and measured under a silent uplink the node delivers a <span class="num">4.007 s</span> effective tick while every deadline above it is still computed from the declared 2000. That measurement is the H1 evidence in §6.</p>
+  </div>
+</section>
+
+<section id="porta">
+  <span class="snum">§ 5</span>
+  <h2>porta — the gateway</h2>
+  <p>porta has <strong>exactly one liveness timer</strong>, and its decision rule has <strong>no constants in it at all</strong> — every number in the verdict came from the node.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Timer</th><th>Value</th><th>Source</th><th>What it guards against</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="c">SweepTick</span></td>
+        <td class="v"><span class="num">30 000 ms</span></td>
+        <td><span class="src">sweep.go:20</span></td>
+        <td>Unbounded CPU spent re-forming verdicts. Its own comment names the cost honestly: <strong>it is a floor on detection latency</strong> — a node whose budget is shorter than one tick is detected at the next tick, not at its budget.</td>
+      </tr>
+    </tbody>
+  </table></div>
+
+  <h3>The rule, and the four verdicts it can reach</h3>
+  <p><span class="c">now − last_seen &gt; bud</span>, where <span class="c">bud</span> is the budget <em>the node declared</em>. Order matters as much as the test does:</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Verdict</th><th>Reached when</th><th>The design point</th></tr></thead>
+    <tbody>
+      <tr><td><span class="c">neverSeen</span></td><td>no exchange has ever arrived</td><td>Judgeable immediately and <strong>without a budget</strong> — "has this node ever spoken" needs no number (D5).</td></tr>
+      <tr><td><span class="c">unknown</span></td><td>the node declared no budget</td><td>No number, no judgement. Silence is not scored as death.</td></tr>
+      <tr><td><span class="c">live</span></td><td><span class="c">since ≤ bud</span></td><td>Tested <em>before</em> the deafness check, because <strong>speech is positive evidence and outranks the gateway's own absence.</strong></td></tr>
+      <tr><td><span class="c">unknown</span></td><td>the window touches an interval porta was down</td><td>D6 — absence is only evidence when porta was listening. Never <span class="c">silent</span> (no evidence of death) and never <span class="c">live</span> (none of that either).</td></tr>
+      <tr><td><span class="c">silent</span></td><td>past budget, and porta was listening throughout</td><td>The only verdict that asserts something went wrong.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="custos" class="narrow">
+  <span class="snum">§ 6</span>
+  <h2>custos — no liveness timer at all</h2>
+  <p>Worth stating as a finding rather than an omission. <strong>custos holds exactly one timer, a <span class="num">3000 ms</span> graceful-shutdown deadline</strong> (<span class="c">custos.go:102</span>), and it is not part of this path.</p>
+  <p>That is correct and should stay that way: custos is a <em>view</em>. It serves <span class="c">/dev/status</span> and proxies <span class="c">/health</span> and <span class="c">/manifest</span>. A timer here would be a second opinion about liveness formed by something that holds no evidence — a fourth number to reconcile, guarding nothing.</p>
+</section>
+
+<section id="deps" class="narrow">
+  <span class="snum">§ 7</span>
+  <h2>What derives from what</h2>
+  <p>Only three real dependencies exist. Everything else in the tables above is independent, which is itself the finding.</p>
+  <ol>
+    <li><strong>budget ← cadence × 8</strong>, at <span class="c">PortaBridgeNodeC6.nsl:100</span>. Written by the node, about itself.</li>
+    <li><strong>wedge deadline ← the app's own period × 8</strong>, at <span class="c">observer_core.h:43</span>. Computed in C, on the node, from state the app declared.</li>
+    <li><strong>porta's <span class="c">bud</span> ← the node's published budget</strong>, read from <span class="c">obs/liveness</span>. porta contributes no number of its own to the verdict.</li>
+  </ol>
+  <div class="callout warn">
+    <span class="lbl">And the one that is NOT a dependency</span>
+    <p><span class="c">SweepTick = 30 000</span> is related to nothing above it. It is not derived from the cadence, not from the budget, and not from any measurement of the mesh. <strong>It is a constant on the other side of the wire that silently becomes the effective deadline whenever it exceeds the declared budget</strong> — which, at the shipping cadence, it always does: 30 000 against 16 000.</p>
+    <p>The two <span class="num">× 8</span> multipliers are also not a dependency on each other. They were chosen separately — one as #215's measured slack, one as #231 D2's promise — and they agree by coincidence. <strong>Change the cadence and both move together; change either multiplier and they silently diverge with nothing to catch it.</strong></p>
+  </div>
+</section>
+
+<section id="fork" class="narrow">
+  <span class="snum">§ 8</span>
+  <h2>The fork — #273, stated but not answered</h2>
+  <p>The fork is already drawn, in <a href="../spikes/2026-08-27-liveness-3-ladder.png">the ladder diagram</a>, and its caption puts it in one sentence:</p>
+  <div class="callout">
+    <p><em>"The node declares 2 s and 16 s. porta cannot form a verdict faster than 30 s, so <span class="c">bud</span> is capped by a constant on the other side of the wire (H2). Under a silent uplink the node delivers 4.007 s while every deadline above is still derived from the declared 2 s (H1)."</em></p>
+  </div>
+  <ul>
+    <li><strong>H1 — the declared cadence is the truth.</strong> Everything derives from what the node says about itself. Then the node's <em>measured</em> 4.007 s under a silent uplink means the declared 2000 is already wrong, and the deadlines above it inherit the error.</li>
+    <li><strong>H2 — porta's clock is the truth.</strong> Then <span class="c">bud</span> is effectively floored at <span class="num">30 000</span> whatever the node declares, and the node's carefully-chosen 16 000 is decoration on the gateway side — still real for the node's own watchdog, but not for the verdict.</li>
+  </ul>
+  <p><strong>H1 versus H2 is the decision</strong>, and it is the only thing blocking <a href="https://github.com/davidg238/rete/issues/272">#272</a>'s age rule in <span class="c">verdictFor</span>. Neither can be worked around; it wants a decision, not more evidence.</p>
+</section>
+
+<section id="links">
+  <span class="snum">§ 9</span>
+  <h2>The rest of the liveness record</h2>
+  <p>Everything already authored on this, with what each is for. The four diagrams and the model are browsable at <span class="c">http://localhost:8088/</span> (filter <span class="c">liveness-</span>).</p>
+
+  <div class="linkgrid">
+    <a class="lk" href="../spikes/2026-08-27-liveness-3-ladder.png">
+      <b>The ladder — start here</b>
+      <span>The fork itself, drawn. Its caption is #273 in one sentence.</span>
+      <span class="p">docs/spikes/2026-08-27-liveness-3-ladder.png</span>
+    </a>
+    <a class="lk" href="../spikes/2026-08-27-liveness-1-healthy.png">
+      <b>One check-in that works</b>
+      <span>Every timeout in play on a healthy exchange, both legs.</span>
+      <span class="p">docs/spikes/2026-08-27-liveness-1-healthy.png</span>
+    </a>
+    <a class="lk" href="../spikes/2026-08-27-liveness-2-silent.png">
+      <b>Under a silent uplink</b>
+      <span>What the node does when the datagrams stop arriving — #269's condition.</span>
+      <span class="p">docs/spikes/2026-08-27-liveness-2-silent.png</span>
+    </a>
+    <a class="lk" href="../spikes/2026-08-27-liveness-4-holes.png">
+      <b>The holes</b>
+      <span>Where the deadlines fail to cover each other.</span>
+      <span class="p">docs/spikes/2026-08-27-liveness-4-holes.png</span>
+    </a>
+    <a class="lk" href="../spikes/2026-08-27-liveness-timing.puml">
+      <b>The timing source</b>
+      <span>The PlantUML the diagrams are generated from — its header lists every constant, read from source. All nine re-verified 2026-08-31.</span>
+      <span class="p">docs/spikes/2026-08-27-liveness-timing.puml</span>
+    </a>
+    <a class="lk" href="../spikes/2026-08-27-liveness-model/Liveness.tla">
+      <b>The TLA+ model</b>
+      <span>The formal model, with configs for the bench and slow cases, H1, soundness and vacuity.</span>
+      <span class="p">docs/spikes/2026-08-27-liveness-model/</span>
+    </a>
+  </div>
+
+  <h3>Where the code is</h3>
+  <ul>
+    <li><span class="c">nodus/oevm/src/observer_core.h</span> — the pure decision: both conditions, the slack, the ceilings. Host-testable.</li>
+    <li><span class="c">nodus/oevm/zephyr/src/observer.c</span> — the thread, the sampling tick, the task watchdog.</li>
+    <li><span class="c">nodus/nsl/lib/kernel.nsl</span> — the base tick, the reply budget, the adoption clamp.</li>
+    <li><span class="c">nodus/oevm/zephyr/PortaBridgeNodeC6.nsl</span> — the shipping node's own cadence and budget.</li>
+    <li><span class="c">porta/internal/space/sweep.go</span> — <span class="c">SweepTick</span> and the whole of <span class="c">verdictFor</span>.</li>
+  </ul>
+
+  <h3>The gates that hold this behaviour</h3>
+  <ul>
+    <li><span class="c">liveness-heartbeat</span> — the detector sees a node with no app timer. Needs the Thread <span class="c">CONF_EXTRA</span>: its claim is that nothing speaks between wedge and reboot, which is vacuous on a node that cannot check in at all.</li>
+    <li><span class="c">liveness-noradio</span> — #274's regression gate. The same node with <em>no</em> radio config: the bind fails and a deadline still exists. The red it is shaped to catch is <strong>silence</strong>, which is what made the defect invisible.</li>
+    <li><span class="c">porta-silent</span> — a node whose uplink is gone survives it. The gate that caught #269's false trip, which it was not built for.</li>
+  </ul>
+</section>
+
+<footer>
+  <p>Every constant on this page was re-read from source on 2026-08-31 at <span class="c">ce51b85</span>, and none had moved since the 2026-08-27 diagram. If this page and the source disagree, the source wins and this page is the bug.</p>
+  <p>This is a reference and a statement of the fork — <strong>not a decision record</strong>. When #273 is decided, the decision belongs in a dated <span class="c">docs/design/</span> record of its own, and this page should be corrected to match it.</p>
+</footer>
+
+</div>
+
+</body>
+</html>

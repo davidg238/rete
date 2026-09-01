@@ -48,7 +48,12 @@ citations point.** A decision record is program-time evidence, not a subsystem's
 property; a liveness design touches the VM, the kernel and porta at once.
 - `design/` — the decision records. Superseded ones say so at the top. A design is closed
   only when its knowledge has been promoted to a mainline document — `CLAUDE.md`
-  §Docs convention.
+  §Docs convention. One page here is **not** a decision record and says so:
+  `design/2026-08-31-liveness-timers.html` is a standalone reference (open it directly, no
+  build step) mapping every constant in the liveness path — nine on the node, one on the
+  gateway, none in custos — with `file:line` for each, and stating **#273's fork without
+  answering it**. When #273 is decided, the decision gets its own dated record and this page
+  is corrected to match.
 - `results/` — board and host measurements, one file per experiment.
 - `spikes/` — throwaway code and images that earned a number; kept for the number.
 - `superpowers/plans/` — execution scaffolding for the designs; historical once the work
