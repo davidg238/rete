@@ -18,7 +18,7 @@ preserved the issue numbers and the `#NN` references the program navigates by
 - **Corrected 2026-08-29, do not re-inherit:** **#118 is NOT overtaken by #186.** `platform nodeId` reads the build-time define `OEVM_NODE_ID` (`platform.c:1508`); #186 settled *slot-vs-board* only, two boards flashed from one image still share one identity, and a node id is a name and not a credential. Both the memory and the status page said otherwise; both are fixed, and #118's own body is stale in the same direction.
 - **Bench state:** `c6spare` is **BACK on the workstation with both cables** (2026-08-29 evening) and its collector is live — so `class=disruptive` scenarios run again, and #274's board verification is DONE. Its cabling follows #181's bench note: **CP2102N direct to the motherboard** (`1-3`, off the root hub) and the harness-unused **JTAG on the hub** (`1-1.4.4`), because the CP2102N carries flash AND console (`ESPTOOL_PORT` comes from `RETE_CONSOLE_PORT`) and is the adapter that has failed on this bench before (#178). Through a two-tier hub it had not enumerated at all, silently. `c6bench` on gw85224-01 has both cables and carries a `PortaBridgeNodeC6` build (`g9462ca4`). The three nRFs are labelled `7adf` / `4ec0` / `92c2`; **`4ec0` left the echo soak permanently on 2026-08-30** (it now carries `PortaBridgeNodeNrf`), `7adf` and `92c2` are still echoing and `7adf`'s run is past 48.6 days unbroken. **A dongle is flashed by DFU only** — hold RESET while inserting, then `run.sh --flash`; `west flash --runner nrfutil` cannot do it.
 - **Awaiting David:** the **#273** design call (which deadline number is the source of truth) — the only thing blocking **#272**'s age rule in `verdictFor`. **#285** is a one-line `MANIFEST.cddl` fix that is deliberately *not* landed alone: editing the manifest moves its SHA-256, which is the `obs/build` pin and `check_provision.py`'s served-hash side, so it wants sequencing with a gateway deploy.
-- **Open finds not worked on (weekly review):** #280, #282, #283, #284, #285, **#286** (P3, `found-during #281` — the dongle console DISCARDS bytes under burst, and the fix can wedge the VM; the discard turns out to be load-bearing).
+- **Open finds not worked on (weekly review):** #280, #282, #283, #284, #285, **#286** (P3, `found-during #281` — the dongle console DISCARDS bytes under burst, and the fix can wedge the VM; the discard turns out to be load-bearing), **#287** (P3, an ASIDE David raised off-shift — cooperating agents over the space; the document landed in `cabot`, not here, and its close-out comment records four claims the `cabot`/`vsa` measurements refuted).
 - **Not before 2026-09-01:** David is on NEMT until then.
 
 ## Where truth lives (do not duplicate across channels)
@@ -65,6 +65,13 @@ convenience.
   (e.g. `~/workspace/rete/review/program-sequence.md`, never a bare `review/`) — the
   program still spans two workspace roots, because `~/workspaceToit/stic` (the cross-VM
   benchmark harness) stays outside `rete` on purpose.
+- **Two sibling repos are David's, adjacent, and NOT part of `rete`:**
+  `~/workspace/vsa` (does hyperdimensional computing actually work? — Phases 0/1a/2a/2b/2c
+  complete, and the answer so far is a series of clean negatives) and `~/workspace/cabot`
+  (the wheeled house-pet robot: CAD, floor survey, the E-0..E-10 falsification plan, and
+  VSA measurements at house-pet scale). Both are **private, Python, and worked on the
+  z170** — a local clone here goes stale silently, so `git fetch` before citing any number
+  from either. They are read as evidence, never imported; nothing in `rete` depends on them.
 - Cross-repo document map: `review/DOCMAP.md` (regenerate with `tools/docmap.sh`).
 - Content search across the program:
 

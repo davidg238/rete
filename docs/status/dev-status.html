@@ -48,8 +48,8 @@
 <body>
 
 <h1>rete — dev status</h1>
-<p class="stamp">Status synthesized <strong>2026-08-30</strong> (<code>#281</code> item 2 closed — <code>layout-nrf52840.json</code> is captured, so nRF builds Model B and the 4.9&nbsp;GB Model&nbsp;A bake is off that board family; <code>4ec0</code> now runs <code>PortaBridgeNodeNrf</code> but <strong>will not attach to the mesh</strong>, with an <code>ot</code>-shell image built and waiting on a DFU insert. <code>#273</code> is still David's call) at
-<a href="https://github.com/davidg238/rete/commit/b7f16ce">b7f16ce</a>.
+<p class="stamp">Status synthesized <strong>2026-08-31</strong> — <strong>no rete code moved this session</strong>; it was an aside, filed as <a href="https://github.com/davidg238/rete/issues/287">#287</a> and landed in the <code>cabot</code> repo. The bench position is unchanged from 2026-08-30: <code>#281</code> item 2 closed — <code>layout-nrf52840.json</code> is captured, so nRF builds Model B and the 4.9&nbsp;GB Model&nbsp;A bake is off that board family; <code>4ec0</code> runs <code>PortaBridgeNodeNrf</code> but <strong>will not attach to the mesh</strong>, with an <code>ot</code>-shell image built and waiting on a DFU insert. <code>#273</code> is still David's call. Tree at
+<a href="https://github.com/davidg238/rete/commit/364c625">364c625</a>.
 Served live by <strong>custos</strong> (gw85224-01:6971).
 This page is a <em>view</em>, refreshed at session close-outs — the records of
 direction are <a href="/dev/next-steps-overview.md">next-steps-overview.md</a>
@@ -426,14 +426,34 @@ or independent of it.</p>
     <code>CLI.md</code>, <code>GETTING-STARTED.md</code> and <code>nodus/nsl/docs/compiler.md</code>.</li>
 </ul>
 
+<p><strong>2026-08-31 — an aside, filed and not worked: cooperating agents
+(<a href="https://github.com/davidg238/rete/issues/287">#287</a>, P3).</strong>
+Raised by David off-shift and explicitly not a priority change; <code>#281</code> remains the
+focus and was not advanced. Three findings are worth carrying because they were established
+by reading rete source rather than estimated. <strong>The VM is a process, not an object</strong>
+— <code>vm_stack</code>, <code>heap_base</code> and <code>builtin_registry</code> are
+file-scope globals and there is no <code>vm_new()</code>, so one VM per OS process.
+<strong><code>OEVM_HEAP_SIZE</code> is compile-time only</strong>
+(<code>nodus/oevm/src/gc.c:18</code>), so a small agent is a rebuild, not a flag. And the
+ceiling on any many-agent scheme is <strong>not RAM but porta's serial UDP loop</strong>
+(<code>porta/internal/wire/server.go:300-329</code>): one goroutine, read →
+synchronous sqlite write → reply, no worker pool — orders of magnitude below the RAM
+ceiling, and <em>correct</em> for a real mesh where the radio is the bottleneck. The
+argument itself went to <code>cabot@5436fc6</code>
+(<code>docs/wheels-not-legs.md</code>), which is where the robot and its measurements live.
+<strong>Four of its claims did not survive contact with those measurements</strong>, and the
+corrections are recorded on <a href="https://github.com/davidg238/rete/issues/287">#287</a>
+rather than edited away.</p>
+
 <h2>Priority opinion</h2>
 <p><strong>Finish the liveness thread before opening another.</strong> The board debt is
 now cleared (2026-08-29: detector confirmed both directions), so what is left in this thread
 is <em>entirely</em> design calls waiting on David — <a href="https://github.com/davidg238/rete/issues/272">#272</a>'s
 shape and <a href="https://github.com/davidg238/rete/issues/273">#273</a>'s source-of-truth
 number. Both are cheap to decide and neither needs board time to decide.
-<a href="https://github.com/davidg238/rete/issues/274">#274</a> is the one piece that can
-move without them.
+<a href="https://github.com/davidg238/rete/issues/274">#274</a> was the one piece that could
+move without them, and it is <strong>closed</strong> (2026-08-29) — so nothing in this thread
+now moves without David.
 <a href="https://github.com/davidg238/rete/issues/272">#272</a> in particular reads a value
 porta already stores, so the implementation is small once the shape is settled.</p>
 
