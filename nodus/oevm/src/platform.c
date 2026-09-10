@@ -1180,10 +1180,17 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = platform_object();
         return 1;
     case PRIM_pf_monotonicMillis:
-        *out = TAG_SMI((long)timer_backend_millis());
+        /* rete#224: the clock is a uint64 and the SMI payload is 30 bits on the
+           C6 — TAG_SMI((long)ms) shifted bit 30 into the sign bit at 12 d 10 h,
+           and the (long) cast wrapped the whole thing at 49.7 d. Box what does
+           not fit; the wire band is +/-(2^64-1) and the encoder already takes a
+           LargeInteger, so nothing downstream changes. No args, so no rooting. */
+        *out = int_from_uint64(timer_backend_millis());
         return 1;
     case PRIM_pf_advanceMillis:
-        *out = TAG_SMI(timer_backend_advance((uint64_t)UNTAG_SMI(args[0])));
+        /* Same band fix as monotonicMillis above. args[0] is an SMI (host-only
+           prim, read before the allocation), so there is nothing to root. */
+        *out = int_from_uint64(timer_backend_advance((uint64_t)UNTAG_SMI(args[0])));
         return 1;
     /* --- Zephyr rung-2 sub-project 1 Task 3: host GPIO prims + pumpEvents.
        gpioPin:edge:post:on: registers a host GPIO slot; args mirror the

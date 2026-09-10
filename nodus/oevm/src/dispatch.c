@@ -142,6 +142,13 @@ oop oevm_int_demote(oop v) {
     return v;
 }
 
+/* Normalise a raw uint64_t (a clock, a counter) -> SMI when it fits, else a
+   LargeInteger. rete#224: TAG_SMI on a value above the SMI payload shifts into
+   the SIGN bit, so a millisecond uptime went negative at 2^30 ms on the C6. */
+oop int_from_uint64(uint64_t v) {
+    return sm_to_int(1, v);
+}
+
 /* Normalise a raw intptr_t result (may exceed the SMI range -> LargeInteger). */
 oop int_from_intptr(intptr_t v) {
     if (v < 0) return sm_to_int(-1, -(uint64_t)v);
