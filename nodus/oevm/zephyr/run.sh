@@ -519,11 +519,17 @@ if [ "$WANTS_THREAD" = 1 ] && [ -n "$THREAD_LOCAL" ] && [ -f "$THREAD_LOCAL" ]; 
   EXTRA_CONF_FILES+=("$(basename "$THREAD_LOCAL")")
   echo "[thread] dataset overlay found -> $THREAD_LOCAL"
 elif [ "$WANTS_THREAD" = 1 ]; then
-  # Loud, because the mirror failure is just as quiet: the node builds, boots and
-  # attaches to nothing, using the placeholder dataset committed in the .conf.
-  echo "[thread] ! NO dataset overlay at $THREAD_LOCAL — this image gets the" >&2
-  echo "[thread] ! PLACEHOLDER dataset and will NOT join the porta mesh." >&2
+  # A REFUSAL, not a warning (rete#288, 2026-09-10). The placeholder dataset in the
+  # tracked .conf is the stock Zephyr/OpenThread sample set, so an image built
+  # without the overlay does not attach to NOTHING — it attaches to any stock demo
+  # mesh in range, which is the opposite of the intended failure. Until 2026-09-10
+  # this branch warned and built; the warning was correct and the image it let
+  # through was still wrong.
+  echo "[thread] ! NO dataset overlay at $THREAD_LOCAL — refusing to build." >&2
+  echo "[thread] ! Without it this image would carry the STOCK SAMPLE dataset and" >&2
+  echo "[thread] ! join any Zephyr demo mesh in range, not the porta mesh." >&2
   echo "[thread] ! Read the live one: ssh gw85224-01 docker exec otbr ot-ctl dataset active" >&2
+  exit 2
 elif [ "$BOARD_ID" = esp32c6 ] && [ -n "$THREAD_LOCAL" ] && [ -f "$THREAD_LOCAL" ]; then
   echo "[thread] radio layer not requested — dataset overlay NOT applied. This" >&2
   echo "[thread] image has no OpenThread. Add:" >&2
