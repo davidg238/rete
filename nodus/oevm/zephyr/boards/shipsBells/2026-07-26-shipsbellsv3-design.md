@@ -1110,3 +1110,24 @@ coupling as the chosen direction: drive the load through a capacitor so it is en
 while the MCU is actively *toggling*, which makes a stuck-high pin, a stuck-low pin, a halted
 CPU and a ROM downloader all de-energise it. One part, both rows, no need to establish why the
 pin was high. Deferred, and blocking before any coil is reconnected.
+
+### 22.6 DECIDED (2026-09-10) — the on-time bound is a capacitor in the drive, enforced in hardware
+
+**David, 2026-09-10, by phone: "needs a cap on the gate drive, to ensure transient drive
+enforced in hardware."** That closes the direction #202 recorded as his 2026-08-12 lean and
+makes it the decision: the transistor's drive goes through a **series capacitor**, so the
+load is energised only while the MCU is actively toggling. A stuck-high pin, a stuck-low
+pin, a halted CPU, a ROM downloader and a crashed VM all de-energise it, and no firmware
+on-time cap counts toward the requirement — the bound must hold with the chip not
+executing code at all.
+
+What that fixes and what it costs are as #202 states them: the strike API changes shape
+from a level to a toggle, the piezo needs only the cap plus a restore, and the solenoid
+needs a rectified hold whose decay must outlast a ~10 ms strike and undercut the 160/600 ms
+pattern gaps — **measured against those numbers, not guessed.** The #201 meter reading in
+`boot:0x66 DOWNLOAD` (does 10 kΩ R2 close the two-minute ring?) is still worth one board
+cycle as a *localising* measurement, but it no longer gates anything: the cap closes that
+row whichever way the reading comes out.
+
+**Still deferred, still blocking before any coil is reconnected.** The bell is on the piezo
+striker, where a stuck-on drive is noise; the rung lands with the solenoid's return (#102).
