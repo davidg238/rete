@@ -1,6 +1,6 @@
 # Node identity is the factory link address
 
-**Decision record — 2026-09-10.** Closes the question #118 asked and #242 reopened.
+**Decision record — 2026-09-11.** Closes the question #118 asked and #242 reopened.
 Decided by David, over the phone, on the facts below. **Not yet built**: it is a wire
 change that wants a rebuild of every node, so it lands as its own rung. Until it lands,
 `platform nodeId` still answers the build-time define `OEVM_NODE_ID` (`platform.c:1508`)

@@ -519,10 +519,10 @@ if [ "$WANTS_THREAD" = 1 ] && [ -n "$THREAD_LOCAL" ] && [ -f "$THREAD_LOCAL" ]; 
   EXTRA_CONF_FILES+=("$(basename "$THREAD_LOCAL")")
   echo "[thread] dataset overlay found -> $THREAD_LOCAL"
 elif [ "$WANTS_THREAD" = 1 ]; then
-  # A REFUSAL, not a warning (rete#288, 2026-09-10). The placeholder dataset in the
+  # A REFUSAL, not a warning (rete#288, 2026-09-11). The placeholder dataset in the
   # tracked .conf is the stock Zephyr/OpenThread sample set, so an image built
   # without the overlay does not attach to NOTHING — it attaches to any stock demo
-  # mesh in range, which is the opposite of the intended failure. Until 2026-09-10
+  # mesh in range, which is the opposite of the intended failure. Until 2026-09-11
   # this branch warned and built; the warning was correct and the image it let
   # through was still wrong.
   echo "[thread] ! NO dataset overlay at $THREAD_LOCAL — refusing to build." >&2

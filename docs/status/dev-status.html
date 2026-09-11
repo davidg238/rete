@@ -48,13 +48,7 @@
 <body>
 
 <h1>rete — dev status</h1>
-<p class="stamp">Status synthesized <strong>2026-08-31</strong> — <strong>no rete code moved this session</strong>; it was an aside, filed as <a href="https://github.com/davidg238/rete/issues/287">#287</a> and landed in the <code>cabot</code> repo. The bench position is unchanged from 2026-08-30: <code>#281</code> item 2 closed — <code>layout-nrf52840.json</code> is captured, so nRF builds Model B and the 4.9&nbsp;GB Model&nbsp;A bake is off that board family; <code>4ec0</code> runs <code>PortaBridgeNodeNrf</code> but <strong>will not attach to the mesh</strong>, with an <code>ot</code>-shell image built and waiting on a DFU insert. <code>#273</code> is still David's call. Tree at
-<a href="https://github.com/davidg238/rete/commit/364c625">364c625</a>.
-Served live by <strong>custos</strong> (gw85224-01:6971).
-This page is a <em>view</em>, refreshed at session close-outs — the records of
-direction are <a href="/dev/next-steps-overview.md">next-steps-overview.md</a>
-and <a href="https://github.com/davidg238/rete/issues">the tracker</a>.
-If the date above is old, trust those, not this.</p>
+<p class="stamp">Status synthesized <strong>2026-09-11</strong> — a phone session that worked the <strong>decision-shaped</strong> issues one at a time while David was out: <a href="https://github.com/davidg238/rete/issues/118">#118</a>/<a href="https://github.com/davidg238/rete/issues/242">#242</a> <strong>decided</strong> (node id = the factory link address; not built), <a href="https://github.com/davidg238/rete/issues/288">#288</a> <strong>refuted</strong> (the mesh was never on stock credentials — the real dataset is a gitignored overlay) and its build hole closed, <a href="https://github.com/davidg238/rete/issues/289">#289</a> filed (no onboarding past the house), <a href="https://github.com/davidg238/rete/issues/202">#202</a>/<a href="https://github.com/davidg238/rete/issues/201">#201</a> <strong>decided</strong> (a capacitor in the drive, hardware-enforced), and <a href="https://github.com/davidg238/rete/issues/224">#224</a> <strong>fixed and closed</strong> — the uptime clock went <em>negative</em> at 12.4 d and a reply deadline across that flip was never reached. <code>#281</code> did not move; <code>#273</code> gained David's <code>appCad</code>/<code>telCad</code> framing and resumes next. Tree at <code>b235839</code>.</p>
 
 
 <div class="stats" id="porta-stats">
@@ -288,13 +282,7 @@ all, and #274 had just made that state reachable. It would have gone green testi
 no-radio case got its own row, <code>liveness-noradio</code>, GREEN on <code>c6spare</code>:
 <code>deadline=16000ms</code> from the kernel tick alone, 18.03&nbsp;s of silence,
 <code>pass=2 fail=0</code>, under a build the runner forced <code>--pristine</code>.
-<strong>What first:</strong> put <code>4ec0</code> into DFU (hold RESET while inserting) and run
-<code>flash-shell.sh</code> — the <a href="https://github.com/davidg238/rete/issues/281">#281</a>
-node boots, ticks and never attaches, and three hypotheses (persisted NVS dataset,
-credentials, gateway address) are already refuted at one board cycle each. The image with
-<code>CONFIG_OPENTHREAD_SHELL</code> is built; <code>ot scan</code> is the discriminator —
-<code>thread_bringup.c</code>'s header records that on the C6 this same symptom, role DETACHED
-with a provably correct dataset, was a <em>radio driver</em> bug. Still awaiting David
+<strong>What first:</strong> finish the mailbox-node walkthrough for <a href="https://github.com/davidg238/rete/issues/273">#273</a> with the diagrams open — David's <code>appCad</code> (app liveness: a watchdog fed from app code every &lt;5 s inside a 10 s wake window) versus <code>telCad</code> (telemetry liveness: one check-in per hour, budget 2–3 h). The finding to settle: the app-liveness number is <em>inferred</em> today (shortest timer × 8) and that inference is wrong in both directions — too short for a fast-poll app, <em>absent</em> for a run-once deep-sleep node. Then #200/#253 (the flag-day era and the frozen 1.0 surface), the next two decision-shaped issues on the list. The bench focus after that is unchanged: put <code>4ec0</code> into DFU and run <code>flash-shell.sh</code> for <a href="https://github.com/davidg238/rete/issues/281">#281</a>. Still awaiting David
 independently: <a href="https://github.com/davidg238/rete/issues/273">#273</a> — open
 <code>docs/spikes/2026-08-27-liveness-3-ladder.png</code>, whose caption states the fork
 (H1: deadlines derived from the node's declared 2&nbsp;s · H2: <code>bud</code> capped by a

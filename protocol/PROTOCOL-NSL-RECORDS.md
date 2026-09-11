@@ -306,7 +306,11 @@ precisely that the node had no bounded way to say what happened.
 **Nodes have no clock, and never pretend to.** Every timestamp on the wire is
 monotonic-only; porta maps it to wall-clock at ingest using porta's own clock.
 
-- `monoMs` — milliseconds since boot (`monotonicMillis`, real on target since rung 8).
+- `monoMs` — milliseconds since boot (`monotonicMillis`, real on target since rung 8). A full
+  64-bit value: the primitive boxes what does not fit the VM's tagged-integer band
+  (rete#224, `0e2cc2a`), so it never wraps — until then it went **negative at 2^30 ms**
+  (12 d 10 h) on a 32-bit target, and a reply deadline computed across that flip was
+  never reached. Consumers may assume it is monotonic for the life of the boot.
 - `bootId` — a counter incremented once per boot and persisted (NVS), **real on target
   since 2026-08-09** (rete#162). It was the source constant `1` from the space-sync rung
   until then, which made the ordering claim below degenerate; the storage was never the

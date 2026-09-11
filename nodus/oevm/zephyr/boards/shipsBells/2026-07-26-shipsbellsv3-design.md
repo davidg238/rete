@@ -1111,9 +1111,9 @@ while the MCU is actively *toggling*, which makes a stuck-high pin, a stuck-low 
 CPU and a ROM downloader all de-energise it. One part, both rows, no need to establish why the
 pin was high. Deferred, and blocking before any coil is reconnected.
 
-### 22.6 DECIDED (2026-09-10) — the on-time bound is a capacitor in the drive, enforced in hardware
+### 22.6 DECIDED (2026-09-11) — the on-time bound is a capacitor in the drive, enforced in hardware
 
-**David, 2026-09-10, by phone: "needs a cap on the gate drive, to ensure transient drive
+**David, 2026-09-11, by phone: "needs a cap on the gate drive, to ensure transient drive
 enforced in hardware."** That closes the direction #202 recorded as his 2026-08-12 lean and
 makes it the decision: the transistor's drive goes through a **series capacitor**, so the
 load is energised only while the MCU is actively toggling. A stuck-high pin, a stuck-low
