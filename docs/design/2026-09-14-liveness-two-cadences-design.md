@@ -2,7 +2,8 @@
 
 > **Decision record.** Decided by David 2026-09-11 (by phone, framing) and 2026-09-14
 > (at the desk, with `docs/design/2026-08-31-liveness-timers.html` and
-> `docs/spikes/2026-08-27-liveness-3-ladder.png` open). **Decided, NOT built.**
+> `docs/spikes/2026-08-27-liveness-3-ladder.png` open — D1/D2 in the first round, then
+> **`misses: 8`** and **D3 `#stalled`** in a second round the same day). **Decided, NOT built.**
 > Closes the fork #273 states; unblocks #272's age rule in `verdictFor`.
 >
 > Supersedes the proposal in #273's 2026-08-28 comment and the addendum §604 of
@@ -137,10 +138,76 @@ its own measured loss rate, and the node is the only party that knows it.
 
 **Therefore the phone framing's "budget 2–3 h on a 1 h `telCad`" is `misses: 2` or `3`,
 which on a mesh like `c6-bell`'s would false-trip.** At ~50 % per-exchange loss, two
-consecutive misses is a routine event, not evidence. The shipped `× 8` default exists for
-that measured reason. The mechanism is decided; **the mailbox node's own value wants its
-measured loss rate before it is set**, and until there is one, `8` is the honest default
-and `2` is a claim the bench does not support.
+consecutive misses is a routine event, not evidence.
+
+**DECIDED 2026-09-14 (second round): one default, `misses: 8`, at every period.** A split
+by period was considered (`× 4` long / `× 8` short) and **rejected**, for three reasons in
+descending order of force:
+
+1. **The multiplier is set by loss probability, not by period.** The false-trip rate is
+   roughly `p^misses`; the period cancels out. At the one rate measured — `c6-bell`, ~50 %
+   per check-in — `misses: 4` false-trips about **6 %** of windows against **0.4 %** for
+   `misses: 8`. Bursty loss makes both worse and preserves the ranking.
+2. **If a split existed it would go the other way.** A deep-sleep node re-attaches the
+   radio on every wake, so its dominant loss mode is not a dropped datagram but an *attach
+   failure*, which is **correlated** — a mesh that is down stays down for minutes. `4ec0`'s
+   `thread: attach timed out` (#281) is that mode on the bench now. Correlated misses break
+   the `p^k` independence in the direction that needs *more* slack at long periods, not less.
+3. **Two multipliers plus a threshold for "long" is three invented constants where one
+   default does**, and nothing yet acts on the verdict (#290), so the detection latency the
+   split would buy currently costs nothing while a false `#silent` costs the instrument's
+   credibility.
+
+**The lever for faster detection at long periods is `p`, not `misses`.** A ~10 s wake
+window against a ~4 s two-leg reply budget affords **two check-in attempts per wake**,
+possibly three. That drops per-*wake* loss to `p²`–`p³`, at which point `misses: 2` gives a
+*better* false-trip rate than `misses: 8` does today, with a 2 h budget instead of 8 h. That
+is how the mailbox node earns a short budget honestly: measure `p`, drive it down inside the
+wake, then declare against the measurement. Recorded here so the deferral is falsifiable —
+**what would earn a `misses` below 8 is a measured per-wake loss rate, not a preference.**
+
+## D3 — `#stalled` is a fifth verdict, and it means "behind the declared cadence"
+
+Decided 2026-09-14 in the same sitting; the issue is #272, and this **absorbs #271**.
+
+**The correction that makes it real.** #272 proposes judging `wak` (the bridge's reactor-wake
+count) as "`pulse_drained()`'s equivalent at the app layer". On this node that does not hold:
+the check-in runs from the app's *own* tick reaction — `tickChan whenever: '' do: [ :m | self
+tick ]` (`PortaBridgeNodeC6.nsl:156`) and `tick` calls `bridge checkIn` (`:186`) — so **an
+arrival implies a tick, which implies `wak` advanced.** `wak` is a re-encoding of arrival, not
+independent evidence of progress, which is precisely the proxy trap #269 was about. A verdict
+asking "did `wak` move" is **vacuous**. It is also actively wrong per-exchange: two exchanges
+ride one check-in (pull + push, same tick), so a per-exchange comparison sees a frozen `wak`
+on **every push leg** and would false-`#stalled` a healthy node.
+
+**What `wak` does answer, and it is two of #272's four labels:**
+
+- **H3, the reboot loop.** `ticks` resets to 0 on boot, so `wak` moving *backwards* is direct
+  evidence of a reboot loop — and better than the `boot_id` join #272 explicitly rules out.
+- **H8, the node's own deafness.** Not *did* it move but **did it move at the declared rate**:
+  expected `Δwak ≈ elapsed / telCad`. A node that ticked once across eight windows moved its
+  counter and is still broken. An age, not a delta — #269's lesson again.
+
+**So `#stalled` = arriving, but behind the cadence it declared.** Reachable and already
+**measured**: 4.007 s delivered against a declared 2 s under a silent uplink (§4 of the timers
+page; #271's table). That is why it is a verdict and the miss ladder (D2.2) is only a reason —
+**this corrects a false green**, where a node not meeting its own declaration reads `#live`
+today, and a wrong statement is worth fixing before it has a reader; a gradient is not.
+
+**Its gate must prove reachability before it proves health** (the vacuity rule): a probe whose
+reactor ticks at half its declared rate, showing `#stalled` *fires*, before any run is trusted
+to show that it does not.
+
+### D3.1 — This refutes #271's preferred direction
+
+#271 direction 1 is "publish the **delivered** cadence — makes the declaration true by
+construction." Under D3 that is **mutually exclusive with the verdict**: a node that
+re-publishes its delivered cadence renames its failure as its intention, and destroys the only
+evidence porta has that anything is wrong. Direction 3 (accept it, document the ceiling) plus
+this verdict is the resolution: **the declaration stays the node's promise, and the gateway
+reports the divergence.** #271's directions 2 (stop `awaitReply` burning the full budget) stays
+live as a *cause* fix — D3 absorbs #271's **detection**, not its cause, and the spin still
+halves the check-in rate under silence.
 
 ## 2. What this deletes
 
@@ -150,8 +217,12 @@ and `2` is a claim the bench does not support.
   (structurally impossible under D2).
 - The proposal to publish the node's wedge deadline to porta (#273's 2026-08-28 item 1),
   refused by D1: `appCad` is not porta's business.
+- #271's direction 1 (publish the *delivered* cadence), refused by D3.1: it would make the
+  declaration true by construction and destroy the evidence the verdict rests on.
 
-Nothing is added to the wire: the record stays two `uint` fields.
+Nothing is added to the wire: the record stays two `uint` fields, and D3 adds no field
+either — `wak` is already published on every check-in and already stored in `cells`; what
+changes is which stored value the verdict tests, and against what rate.
 
 ## 3. Scope, and the three gaps left open deliberately
 
@@ -185,9 +256,14 @@ to hold today's behaviour while deleting the inference:
 - **NEW `liveness-runonce`** — a node with no repeating timer at all is judged. Today's
   build scores nothing; vacancy must not read as agreement, so the gate asserts a
   *deadline was formed*, not merely that no reboot happened.
-- porta-side unit tests: the derived `bud`, the miss count in the reason, and D2.1's
-  refusal. `sweep_test.go:79`'s `declare(t, st, "n1", 2_000, 16_000)` becomes
-  `(telCad, misses)` and is the natural home for the refusal case.
+- **NEW `liveness-stalled`** — D3's reachability gate: a probe whose reactor ticks at half
+  its declared rate. It must show `#stalled` **firing** before any run is trusted to show it
+  not firing, because a passing invariant is vacuous until the interesting state is proven
+  reachable.
+- porta-side unit tests: the derived `bud`, the miss count in the reason, D2.1's refusal, and
+  D3's rate rule — including the push-leg case, which must **not** read `#stalled` (two
+  exchanges, one tick, one `wak`). `sweep_test.go:79`'s `declare(t, st, "n1", 2_000, 16_000)`
+  becomes `(telCad, misses)` and is the natural home for the refusal case.
 
 ## 5. Sequencing — this moves the manifest hash
 
@@ -208,8 +284,10 @@ and no compatibility window (design posture).
 - `docs/design/2026-08-21-liveness-contract-design.md` — D2/D3/D7 restated; §604's
   proposal marked superseded by this record.
 - `porta/docs/ARCHITECTURE.md` — the verdict rule and D2.1's refusal.
-- `review/tests/CLAIMS.md` — the four gates of §4, with `liveness-fastpoll`'s
-  reproduce-first shape named.
+- `review/tests/CLAIMS.md` — the five gates of §4, with `liveness-fastpoll`'s and
+  `liveness-stalled`'s reproduce-first shape named.
+- `protocol/PROTOCOL-NSL.md` — the fifth verdict and the rate rule, alongside the four
+  `verdictFor` already answers.
 - `docs/design/2026-08-31-liveness-timers.html` — §8 corrected from a stated fork to a
   decided one, and §7's derivation list rewritten. That page says of itself: *"When #273
   is decided, the decision belongs in a dated `docs/design/` record of its own, and this
