@@ -77,7 +77,7 @@ and `~/workspaceToit/nodus/docs/`:
 
 <!-- BEGIN GENERATED INVENTORY — do not edit below; rerun tools/docmap.sh -->
 
-_Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
+_Regenerated 2026-09-14 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
 
 ### review
 
@@ -108,14 +108,14 @@ _Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `review/revisit.md` — REVISIT — things learned in passing that are not yet anyone's work item _(record, 2026-08-02)_
 - `review/slides.html` — nsl-tuvm — script Zephyr, don't replace it _(record, 2026-07-12)_
 - `review/test-suites-spec.md` — nsl-tests — verification suites for the first step (proposed) _(record, 2026-08-02)_
-- `review/tests/CLAIMS.md` — CLAIMS — first-step spec §7 success criteria → proving tests _(record, 2026-08-22)_
+- `review/tests/CLAIMS.md` — CLAIMS — first-step spec §7 success criteria → proving tests _(record, 2026-08-29)_
 - `review/tests/README.md` — review/tests — staged verification suites (T0, T-A…T-D) _(record, 2026-08-29)_
-- `review/tests/t0-gates/sanitizers.md` — T0.1 — sanitizer gate (the highest-value single item in the whole test plan) _(record, 2026-08-02)_
+- `review/tests/t0-gates/sanitizers.md` — T0.1 — sanitizer gate (the highest-value single item in the whole test plan) _(record, 2026-08-29)_
 - `review/zephyr-driver-exposure.md` — Exposing Zephyr drivers to nsl — a sketch _(record, 2026-07-23)_
 
 ### docs
 
-- `docs/README.md` — docs/ — the program's documents _(record, 2026-08-29)_
+- `docs/README.md` — docs/ — the program's documents _(record, 2026-08-31)_
 - `docs/design/2026-06-17-clustered-image-xip-design.md` — Design: Decoupled image + execute-in-place clustered format _(design, 2026-08-29)_
 - `docs/design/2026-06-17-global-method-cache-design.md` — Global Method Lookup Cache — Design _(design, 2026-07-14)_
 - `docs/design/2026-06-17-unboxed-floats-design.md` — Unboxed Floats (P0) — Design _(design, 2026-08-29)_
@@ -172,8 +172,11 @@ _Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/design/2026-08-12-allocation-attribution-design.md` — Allocation attribution — the profiler's question, asked about bytes _(design, 2026-08-12)_
 - `docs/design/2026-08-16-vm-liveness-observer-design.md` — A wedged node never faults — detecting the silence that raises no error _(design, 2026-08-21)_
 - `docs/design/2026-08-20-prim-id-on-symbol-design.md` — Primitive classification belongs to the Symbol, not to a cache _(design, 2026-08-21)_
-- `docs/design/2026-08-21-liveness-contract-design.md` — The liveness contract — a node declares how long its silence may last _(design, 2026-08-28)_
+- `docs/design/2026-08-21-liveness-contract-design.md` — The liveness contract — a node declares how long its silence may last _(design, 2026-08-29)_
 - `docs/design/2026-08-24-kind-schema-manifest-design.md` — The kind+schema manifest — design (#243, 2026-08-24) _(design, 2026-08-25)_
+- `docs/design/2026-08-31-liveness-timers.html` — Every Clock in the Liveness Path _(design, 2026-09-14)_
+- `docs/design/2026-09-11-node-identity-hardware-rooted-design.md` — Node identity is the factory link address _(design, 2026-09-11)_
+- `docs/design/2026-09-14-liveness-two-cadences-design.md` — Two liveness cadences, both declared — the #273 decision _(design, 2026-09-14)_
 - `docs/next-steps-overview.md` — Next steps — overview _(record, 2026-08-29)_
 - `docs/results/2026-07-20-c6-heap-ceiling.md` — ESP32-C6 heap-ceiling bisect — Task 3 _(record, 2026-07-20)_
 - `docs/results/2026-08-05-c6-checkin-decomposition.md` — Where the 300 ms goes — c6-bench, 2026-08-05 _(record, 2026-08-05)_
@@ -188,13 +191,13 @@ _Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/results/2026-08-12-allocation-attribution-c6.md` — Allocation attribution on the C6 — the boot window, the steady-state window, and an incident _(record, 2026-08-12)_
 - `docs/results/2026-08-12-allocation-attribution-host.md` — Allocation attribution — the host measurement _(record, 2026-08-12)_
 - `docs/results/2026-08-12-profile-window-cost-c6.md` — What an open attribution window costs on a C6 — +1.9% of local CPU, +0.13% of elapsed _(record, 2026-08-12)_
-- `docs/results/2026-08-29-thread-echo-soak.md` — A 48-day Thread echo soak nobody was reading — 720,878 round trips, and one unattributable day _(record, 2026-08-29)_
+- `docs/results/2026-08-29-thread-echo-soak.md` — A 48-day Thread echo soak nobody was reading — 720,878 round trips, and one unattributable day _(record, 2026-08-30)_
 - `docs/spikes/2026-07-17-oeom-native-hanoi/README.md` — Spike archive: OEOM native-substitution (Hanoi AOT ceiling) — 2026-07-17 _(record, 2026-07-17)_
 - `docs/spikes/2026-08-11-rete199-refused-node/README.md` — rete#199 — a node whose frames the gateway refuses, reproduced off hardware _(record, 2026-08-11)_
 - `docs/spikes/2026-08-27-liveness-model/README.md` — The liveness contract, model-checked (2026-08-27) _(record, 2026-08-28)_
 - `docs/status/2026-08-12-where-we-are.html` — rete &mdash; where we are _(record, 2026-08-12)_
 - `docs/status/README.md` — docs/status — the orientation deck _(record, 2026-08-13)_
-- `docs/status/dev-status.html` — rete dev status _(record, 2026-08-29)_
+- `docs/status/dev-status.html` — rete dev status _(record, 2026-09-11)_
 - `docs/superpowers/notes/2026-06-18-w1-rooting-audit.md` — W1 Rooting Audit — Runtime `gc_allocate` / `float_alloc` Sites _(note, 2026-07-03)_
 - `docs/superpowers/plans/2026-06-17-decoupled-xip-image.md` — Decoupled Image + Execute-In-Place Format — Implementation Plan _(plan, 2026-08-29)_
 - `docs/superpowers/plans/2026-06-17-global-method-cache.md` — Global Method Lookup Cache Implementation Plan _(plan, 2026-07-03)_
@@ -271,7 +274,7 @@ _Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 
 ### protocol
 
-- `protocol/PROTOCOL-NSL-RECORDS.md` — Porta ↔ nsl — the record schemas _(record, 2026-08-27)_
+- `protocol/PROTOCOL-NSL-RECORDS.md` — Porta ↔ nsl — the record schemas _(record, 2026-09-11)_
 - `protocol/PROTOCOL-NSL.md` — Porta ↔ nsl node protocol — the space-sync model _(record, 2026-08-26)_
 - `protocol/tools/.pytest_cache/README.md` — pytest cache directory # _(record)_
 - `protocol/v1/PROTOCOL-NSL-draft-2026-07-11.md` — Porta ↔ nsl node protocol — the space-sync model (genesis draft) _(record, 2026-08-02)_
@@ -376,7 +379,7 @@ _Regenerated 2026-08-29 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 
 ### nodus/oevm/zephyr/docs
 
-- `nodus/oevm/zephyr/docs/BOARD_PORTS.md` — oevm on Zephyr — board ports _(record, 2026-08-24)_
+- `nodus/oevm/zephyr/docs/BOARD_PORTS.md` — oevm on Zephyr — board ports _(record, 2026-08-30)_
 - `nodus/oevm/zephyr/docs/ZEPHYR_LESSONS.md` — Zephyr / NCS + OpenThread + USB — hard-won lessons (nRF52840) _(record, 2026-08-24)_
 - `nodus/oevm/zephyr/docs/results.md` — tuvm on-device results — ESP32-WROOM-32 (Xtensa) _(record, 2026-08-29)_
 - `nodus/oevm/zephyr/docs/stic-README-snapshot-2026-07-17.md` — STIC Smalltalk benchmark _(record, 2026-08-24)_
