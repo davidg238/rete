@@ -145,7 +145,7 @@
   <p>Then porta, which is the side that must act on the second one, <strong>can only re-form a verdict every <span class="num">30 000 ms</span></strong>. Its clock is coarser than the budget it is judging against.</p>
   <div class="callout warn">
     <span class="lbl">That is #273, in one line</span>
-    <p>The deadlines are four independently chosen numbers that agree by arithmetic coincidence, not by derivation. <strong>Which one is the source of truth?</strong> This page lays out the mechanism; it does not answer that — the answer is David's.</p>
+    <p>The deadlines are four independently chosen numbers that agree by arithmetic coincidence, not by derivation. <strong>Which one is the source of truth?</strong> This page lays out the mechanism as it stands; the answer was decided 2026-09-14 &mdash; see &sect;&nbsp;8 and the <a href="2026-09-14-liveness-two-cadences-design.md">decision record</a>.</p>
   </div>
 </section>
 
@@ -390,16 +390,20 @@
 
 <section id="fork" class="narrow">
   <span class="snum">§ 8</span>
-  <h2>The fork — #273, stated but not answered</h2>
-  <p>The fork is already drawn, in <a href="../spikes/2026-08-27-liveness-3-ladder.png">the ladder diagram</a>, and its caption puts it in one sentence:</p>
+  <h2>The fork — #273, DECIDED 2026-09-14</h2>
+  <div class="callout">
+    <span class="lbl">Decided — H1, and the conflation underneath it</span>
+    <p>The answer is <strong>H1</strong>: the node's declaration is the source of truth and porta contributes no number to the verdict. But the walkthrough found the fork rested on a conflation — <span class="c">cad</span> was doing two unrelated jobs — so the decision splits it into two declared numbers, <span class="c">appCad</span> (node-side, never on the wire) and <span class="c">telCad</span> (published, with a tolerated-miss count from which porta derives the budget). <strong>Decided, not built.</strong> The record is <a href="2026-09-14-liveness-two-cadences-design.md">docs/design/2026-09-14-liveness-two-cadences-design.md</a>; the sections below describe the system <em>as it is today</em>, which is what this page is for.</p>
+  </div>
+  <p>The fork as it stood is drawn in <a href="../spikes/2026-08-27-liveness-3-ladder.png">the ladder diagram</a>, and its caption put it in one sentence:</p>
   <div class="callout">
     <p><em>"The node declares 2 s and 16 s. porta cannot form a verdict faster than 30 s, so <span class="c">bud</span> is capped by a constant on the other side of the wire (H2). Under a silent uplink the node delivers 4.007 s while every deadline above is still derived from the declared 2 s (H1)."</em></p>
   </div>
   <ul>
     <li><strong>H1 — the declared cadence is the truth.</strong> Everything derives from what the node says about itself. Then the node's <em>measured</em> 4.007 s under a silent uplink means the declared 2000 is already wrong, and the deadlines above it inherit the error.</li>
-    <li><strong>H2 — porta's clock is the truth.</strong> Then <span class="c">bud</span> is effectively floored at <span class="num">30 000</span> whatever the node declares, and the node's carefully-chosen 16 000 is decoration on the gateway side — still real for the node's own watchdog, but not for the verdict.</li>
+    <li><strong>H2 — porta's clock is the truth.</strong> Then <span class="c">bud</span> is effectively floored at <span class="num">30 000</span> whatever the node declares, and the node's carefully-chosen 16 000 is decoration on the gateway side — still real for the node's own watchdog, but not for the verdict. <strong>Rejected:</strong> a gateway-side constant deciding the deadline is the defect #273 names, so H2 cannot be the cure for it. What porta does instead is <em>refuse</em> — where the declared budget is shorter than one sweep, the verdict is <span class="c">#unknown</span> naming all three numbers, rather than a silent 30 s cap.</li>
   </ul>
-  <p><strong>H1 versus H2 is the decision</strong>, and it is the only thing blocking <a href="https://github.com/davidg238/rete/issues/272">#272</a>'s age rule in <span class="c">verdictFor</span>. Neither can be worked around; it wants a decision, not more evidence.</p>
+  <p><strong>H1 is the decision</strong>, and it unblocks <a href="https://github.com/davidg238/rete/issues/272">#272</a>'s age rule in <span class="c">verdictFor</span>. Two things the decision adds that neither H1 nor H2 contained, because the fork as drawn could not see them: the app-liveness deadline is <em>inferred</em> today (shortest declared period &times; 8) and that inference is wrong in both directions — too short for a fast-poll app, and <em>absent</em> for a run-once node, which declares no repeating timer and is therefore judged by nothing at all.</p>
 </section>
 
 <section id="links">
@@ -459,7 +463,7 @@
 
 <footer>
   <p>Every constant on this page was re-read from source on 2026-08-31 at <span class="c">ce51b85</span>, and none had moved since the 2026-08-27 diagram. If this page and the source disagree, the source wins and this page is the bug.</p>
-  <p>This is a reference and a statement of the fork — <strong>not a decision record</strong>. When #273 is decided, the decision belongs in a dated <span class="c">docs/design/</span> record of its own, and this page should be corrected to match it.</p>
+  <p>This is a reference and a statement of the fork — <strong>not a decision record</strong>. #273 was decided on <strong>2026-09-14</strong> and the decision lives in <a href="2026-09-14-liveness-two-cadences-design.md">its own dated record</a>, as this page said it should; &sect;&nbsp;1 and &sect;&nbsp;8 are corrected to point at it. <strong>Everything else here still describes the system as it is today</strong>, because the decision is not yet built — when it lands, every constant on this page must be re-read from source again, and the two &times;&nbsp;8 multipliers and the &sect;&nbsp;3.2 inference are the ones that move.</p>
 </footer>
 
 </div>
