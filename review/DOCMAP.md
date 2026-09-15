@@ -177,6 +177,7 @@ _Regenerated 2026-09-14 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/design/2026-08-31-liveness-timers.html` — Every Clock in the Liveness Path _(design, 2026-09-14)_
 - `docs/design/2026-09-11-node-identity-hardware-rooted-design.md` — Node identity is the factory link address _(design, 2026-09-11)_
 - `docs/design/2026-09-14-liveness-two-cadences-design.md` — Two liveness cadences, both declared — the #273 decision _(design, 2026-09-14)_
+- `docs/design/2026-09-14-porta-federation-and-transports-design.md` — porta beyond the LAN: federation, and the transports a public deployment would use _(design)_
 - `docs/next-steps-overview.md` — Next steps — overview _(record, 2026-08-29)_
 - `docs/results/2026-07-20-c6-heap-ceiling.md` — ESP32-C6 heap-ceiling bisect — Task 3 _(record, 2026-07-20)_
 - `docs/results/2026-08-05-c6-checkin-decomposition.md` — Where the 300 ms goes — c6-bench, 2026-08-05 _(record, 2026-08-05)_
@@ -197,7 +198,7 @@ _Regenerated 2026-09-14 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/spikes/2026-08-27-liveness-model/README.md` — The liveness contract, model-checked (2026-08-27) _(record, 2026-08-28)_
 - `docs/status/2026-08-12-where-we-are.html` — rete &mdash; where we are _(record, 2026-08-12)_
 - `docs/status/README.md` — docs/status — the orientation deck _(record, 2026-08-13)_
-- `docs/status/dev-status.html` — rete dev status _(record, 2026-09-11)_
+- `docs/status/dev-status.html` — rete dev status _(record, 2026-09-14)_
 - `docs/superpowers/notes/2026-06-18-w1-rooting-audit.md` — W1 Rooting Audit — Runtime `gc_allocate` / `float_alloc` Sites _(note, 2026-07-03)_
 - `docs/superpowers/plans/2026-06-17-decoupled-xip-image.md` — Decoupled Image + Execute-In-Place Format — Implementation Plan _(plan, 2026-08-29)_
 - `docs/superpowers/plans/2026-06-17-global-method-cache.md` — Global Method Lookup Cache Implementation Plan _(plan, 2026-07-03)_
@@ -274,7 +275,7 @@ _Regenerated 2026-09-14 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 
 ### protocol
 
-- `protocol/PROTOCOL-NSL-RECORDS.md` — Porta ↔ nsl — the record schemas _(record, 2026-09-11)_
+- `protocol/PROTOCOL-NSL-RECORDS.md` — Porta ↔ nsl — the record schemas _(record, 2026-09-14)_
 - `protocol/PROTOCOL-NSL.md` — Porta ↔ nsl node protocol — the space-sync model _(record, 2026-08-26)_
 - `protocol/tools/.pytest_cache/README.md` — pytest cache directory # _(record)_
 - `protocol/v1/PROTOCOL-NSL-draft-2026-07-11.md` — Porta ↔ nsl node protocol — the space-sync model (genesis draft) _(record, 2026-08-02)_
