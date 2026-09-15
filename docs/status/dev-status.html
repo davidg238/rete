@@ -48,7 +48,7 @@
 <body>
 
 <h1>rete — dev status</h1>
-<p class="stamp">Status synthesized <strong>2026-09-11</strong> — a phone session that worked the <strong>decision-shaped</strong> issues one at a time while David was out: <a href="https://github.com/davidg238/rete/issues/118">#118</a>/<a href="https://github.com/davidg238/rete/issues/242">#242</a> <strong>decided</strong> (node id = the factory link address; not built), <a href="https://github.com/davidg238/rete/issues/288">#288</a> <strong>refuted</strong> (the mesh was never on stock credentials — the real dataset is a gitignored overlay) and its build hole closed, <a href="https://github.com/davidg238/rete/issues/289">#289</a> filed (no onboarding past the house), <a href="https://github.com/davidg238/rete/issues/202">#202</a>/<a href="https://github.com/davidg238/rete/issues/201">#201</a> <strong>decided</strong> (a capacitor in the drive, hardware-enforced), and <a href="https://github.com/davidg238/rete/issues/224">#224</a> <strong>fixed and closed</strong> — the uptime clock went <em>negative</em> at 12.4 d and a reply deadline across that flip was never reached. <code>#281</code> did not move; <code>#273</code> gained David's <code>appCad</code>/<code>telCad</code> framing and resumes next. Tree at <code>ed8379c</code>.</p>
+<p class="stamp">Status synthesized <strong>2026-09-14</strong> — a desk session that closed the liveness thread's decision backlog. <a href="https://github.com/davidg238/rete/issues/273">#273</a> <strong>DECIDED</strong> (H1, and the conflation underneath it: <code>cad</code> was doing two unrelated jobs, so it splits into <code>appCad</code> node-side and <code>telCad</code> on the wire), <a href="https://github.com/davidg238/rete/issues/272">#272</a> <strong>decided</strong> (<code>#stalled</code> is a fifth verdict — and its <code>wak</code> premise was corrected: <code>wak</code> rides the check-in, so "did it move" would have been vacuous), <a href="https://github.com/davidg238/rete/issues/271">#271</a> <strong>absorbed</strong> for detection and its preferred direction refuted, <a href="https://github.com/davidg238/rete/issues/290">#290</a> filed (<code>gw/liveness</code> is recorded but never actioned). All decided, <strong>none built</strong>. <code>#281</code> did not move. Tree at <code>943b150</code>.</p>
 
 
 <div class="stats" id="porta-stats">
@@ -161,8 +161,8 @@ fixed), the archive was swept to check what that invalidated
 contract was then modelled end to end, which turned eight suspected holes into
 <strong>three defects</strong>. The model has now been run against <a href="https://github.com/davidg238/rete/issues/272">#272</a>'s
 proposed fix and produced <strong>the first relation under which the contract holds</strong> —
-which turns <a href="https://github.com/davidg238/rete/issues/273">#273</a> from an open
-question into one inequality awaiting a decision.</p>
+which turned <a href="https://github.com/davidg238/rete/issues/273">#273</a> from an open
+question into one inequality awaiting a decision — <strong>and that decision was taken 2026-09-14</strong>. Nothing in this thread is now waiting on David.</p>
 <p><strong>2026-08-29 — the detector is now confirmed on a board, in both directions,
 against a committed tree.</strong> <code>bridge-health</code> PASS 3/3 (no false trip on a
 healthy 2 s-cadence node, 180 s observed past the verdict) and <code>wedge-detect</code>
@@ -170,7 +170,7 @@ PASS 2/2 (fires on a real wedge: 9.0 s of silence, <code>cond=pulse-undrained pd
 note retained, <code>reason=#watchdog</code>). <code>observer.c</code> is byte-identical
 across the two runs. <strong>Nothing in this thread is board-owed any more</strong> — what
 remains is <a href="https://github.com/davidg238/rete/issues/273">#273</a>'s design call,
-which is David's.</p>
+which is David's. <strong>Taken 2026-09-14</strong> — see the decision record, <code>docs/design/2026-09-14-liveness-two-cadences-design.md</code>.</p>
 <p><strong>2026-08-29, afternoon — the documentation became approachable
 (<a href="https://github.com/davidg238/rete/issues/79">#79</a>).</strong> The doc root
 could not say whether oevm was a register or a stack VM, and five <code>fiber_*</code> files
@@ -236,59 +236,7 @@ zero rows in porta, so <code>gw/liveness</code> never sees them) and
 <a href="https://github.com/davidg238/rete/issues/282">#282</a> (P3 — <code>porta</code>
 has no systemd unit, and the OTBR logs die with the container that the fixing reboot
 recreated). <em>A channel nothing reads cannot tell you why it went quiet.</em>
-<strong>What first:</strong> the v2 rewrites in
-<a href="https://github.com/davidg238/rete/issues/279">#279</a>. <em>(Done — #279 closed
-2026-08-29; see the entries below.)</em></p>
-<p><strong>2026-08-29, night — the last v1-era documents are gone, and one of them is now
-a gate (<a href="https://github.com/davidg238/rete/issues/279">#279</a>, closed).</strong>
-Four pages rewritten, each with a different answer to <em>how does this stay true?</em>
-<code>porta/docs/CLI.md</code> is <strong>executed against the binary</strong> —
-<code>porta-cli</code> on the aux line builds porta, walks its <code>--help</code> tree and
-fails if the page names a flag that does not exist or omits one that does. A reference page
-cannot be run the way a tutorial can, but cobra already knows every command it has. It caught
-two dead flags in its own draft, and <em>falsifying it found a real defect in the gate</em>
-(a substring match passed a page whose flag had been typo'd).
-<code>nodus/nsl/docs/compiler.md</code> had <code>OP_RET=4</code> and an <code>OP_NLR=5</code>
-against a table where RET is 3 and NLR does not exist — anyone decoding a dump against it
-misread every instruction. The numbers are <em>deleted</em>, not corrected: they live in two
-places that are mirrored by hand, and a third copy in prose goes wrong silently.
-<code>porta/docs/ARCHITECTURE.md</code> was the clearest case of the failure the design
-posture names — every correction added <em>beside</em> what was there, so a reader met the v1
-picture first and the fixes seven sections later; the current sections were kept verbatim and
-the v1 ones replaced. And <code>GETTING-STARTED.md</code> was rewritten rather than trimmed,
-on David's word, so it now says how a node is actually pointed at a gateway (two baked-in
-constants, and <a href="https://github.com/davidg238/rete/issues/118">#118</a> still open).
-<strong><code>gatekeeper</code> is <code>custos</code></strong> — package, binary, docs, and
-this server — with the three dated design records keeping the old name under a rename banner,
-because a record that gets rewritten stops being a record. Suite after:
-<code>278 passed, 0 failed</code>, every aux gate PASS, no SKIPs. Filed on the way:
-<a href="https://github.com/davidg238/rete/issues/283">#283</a>,
-<a href="https://github.com/davidg238/rete/issues/284">#284</a>,
-<a href="https://github.com/davidg238/rete/issues/285">#285</a>;
-<a href="https://github.com/davidg238/rete/issues/277">#277</a> closed.</p>
-
-<p><strong>2026-08-29, late — <a href="https://github.com/davidg238/rete/issues/274">#274</a>
-closed on a board, and the liveness thread is now blocked on one decision only.</strong>
-D1 says the kernel owns the base tick so a deadline always exists; that was true of the design
-and not of two images. <code>startTicking:</code> sat inside the <code>ifFalse:</code> branch of
-the socket bind, so a C6 built with no radio had no interface, no bridge, no timer, and
-<code>observer_core_verdict()</code> answered <code>OBS_COND_NONE</code> — which is
-<em>indistinguishable from health</em>. The node was not judged well, it was <strong>unjudgeable</strong>.
-Fixed by constructing the bridge with <code>socket: nil</code> and ticking unconditionally.
-<strong>The finding was worth more than the fix:</strong> correcting
-<code>liveness-heartbeat.env</code>'s header showed that <em>its</em> claim — nothing speaks
-between the wedge and the reboot — is <strong>vacuous</strong> on a node that cannot check in at
-all, and #274 had just made that state reachable. It would have gone green testing nothing. The
-no-radio case got its own row, <code>liveness-noradio</code>, GREEN on <code>c6spare</code>:
-<code>deadline=16000ms</code> from the kernel tick alone, 18.03&nbsp;s of silence,
-<code>pass=2 fail=0</code>, under a build the runner forced <code>--pristine</code>.
-<strong>What first:</strong> finish the mailbox-node walkthrough for <a href="https://github.com/davidg238/rete/issues/273">#273</a> with the diagrams open — David's <code>appCad</code> (app liveness: a watchdog fed from app code every &lt;5 s inside a 10 s wake window) versus <code>telCad</code> (telemetry liveness: one check-in per hour, budget 2–3 h). The finding to settle: the app-liveness number is <em>inferred</em> today (shortest timer × 8) and that inference is wrong in both directions — too short for a fast-poll app, <em>absent</em> for a run-once deep-sleep node. Then #200/#253 (the flag-day era and the frozen 1.0 surface), the next two decision-shaped issues on the list. The bench focus after that is unchanged: put <code>4ec0</code> into DFU and run <code>flash-shell.sh</code> for <a href="https://github.com/davidg238/rete/issues/281">#281</a>. Still awaiting David
-independently: <a href="https://github.com/davidg238/rete/issues/273">#273</a> — open
-<code>docs/spikes/2026-08-27-liveness-3-ladder.png</code>, whose caption states the fork
-(H1: deadlines derived from the node's declared 2&nbsp;s · H2: <code>bud</code> capped by a
-constant on porta's side). It is the only thing blocking
-<a href="https://github.com/davidg238/rete/issues/272">#272</a>, and both want a decision
-rather than more evidence.</p>
+<strong>What first:</strong> <a href="https://github.com/davidg238/rete/issues/200">#200</a>/<a href="https://github.com/davidg238/rete/issues/253">#253</a> — the flag-day era and the frozen 1.0 surface, the next decision-shaped pair and the only item on the list workable from the desk. The bench focus after that is unchanged: put <code>4ec0</code> into DFU and run <code>flash-shell.sh</code> for <a href="https://github.com/davidg238/rete/issues/281">#281</a>. <strong>The liveness thread needs nothing from David.</strong> What it needs is building, and it is sequenced behind <a href="https://github.com/davidg238/rete/issues/285">#285</a>: the key rename moves <code>MANIFEST.cddl</code>'s SHA-256, which is the <code>obs/build</code> pin. <a href="https://github.com/davidg238/rete/issues/272">#272</a>'s own cheapest next move is the one its body names — require <code>&Delta;wak</code> <em>at the declared rate</em> in <code>Liveness.tla</code>'s <code>DoSweep</code> (not merely non-zero, which passes vacuously) and re-run <code>bench.cfg</code> / <code>slow.cfg</code> before any Go is written.</p>
 </div>
 
 <ol>
@@ -314,8 +262,18 @@ rather than more evidence.</p>
     the counter advanced early in a window the node spent wedged, which is #269's aliasing one
     level up. As an <em>age</em> (<code>now - last_progress ≤ bud</code>) it is the right
     signal, and the reboot loop falls out of it with no <code>boot_id</code> join.
-    <em>Next action:</em> adopt the age rule in <code>verdictFor</code> — but not before #273
-    is decided, because the age rule's staleness bound is <code>bud + SweepTick</code>.</li>
+    <strong>CORRECTED 2026-09-14, and the correction is the load-bearing part:</strong>
+    <code>wak</code> is <em>not</em> independent progress evidence. The check-in runs from the
+    app's own tick reaction (<code>PortaBridgeNodeC6.nsl:156</code>, <code>:186</code>), so an
+    arrival implies a tick implies <code>wak</code> advanced — "did <code>wak</code> move" is
+    <strong>vacuous</strong>, and per-<em>exchange</em> it reads a frozen counter on every push
+    leg (two exchanges, one tick). What it answers honestly is the declared <em>rate</em>
+    (<code>&Delta;wak</code> vs <code>elapsed / telCad</code>) and, going backwards, the reboot
+    loop. <strong>DECIDED:</strong> <code>#stalled</code> is a fifth verdict meaning
+    <em>arriving but behind the declared cadence</em> — already measured, at 4.007 s against a
+    declared 2 s. <em>Next action:</em> require <code>&Delta;wak</code> at the declared rate in
+    <code>Liveness.tla</code>'s <code>DoSweep</code> and re-run <code>bench.cfg</code> /
+    <code>slow.cfg</code>, before any Go.</li>
 
   <li><strong><a href="https://github.com/davidg238/rete/issues/273">#273</a> — four
     deadline numbers that nothing derives from each other.</strong> <code>cad</code>, the
@@ -327,7 +285,14 @@ rather than more evidence.</p>
     <strong>The model now names the relation:</strong> <code>bud + SweepTick ≤ the deadline the
     node enforces</code> — green over 3.17M states, non-vacuous. Today that reads
     <code>16000 + 30000 = 46000</code> against <code>16000 ms</code>, off by 2.9×.
-    <strong>A design call, and it is David's:</strong> which number is the source of truth.
+    <strong>DECIDED 2026-09-14 — H1</strong>, and the fork rested on a conflation: <code>cad</code>
+    was both the telemetry cadence <em>and</em>, through the kernel base tick, the sole source of
+    the app-liveness deadline the observer infers. Split into <code>appCad</code> (declared,
+    app-fed, never on the wire) and <code>telCad</code> + <code>misses</code> (published; porta
+    derives <code>bud</code>, and refuses with <code>#unknown</code> where it cannot honour it).
+    <code>misses: 8</code> at every period — a <code>&times;4</code>/<code>&times;8</code> split
+    was rejected, because the multiplier follows loss probability and not period. The record is
+    <code>docs/design/2026-09-14-liveness-two-cadences-design.md</code>. Formerly:
     A five-point proposal is recorded in the
     <a href="/dev/docs/design/2026-08-21-liveness-contract-design.md">liveness design doc</a>
     (addendum 2026-08-28).</li>
@@ -434,14 +399,17 @@ corrections are recorded on <a href="https://github.com/davidg238/rete/issues/28
 rather than edited away.</p>
 
 <h2>Priority opinion</h2>
-<p><strong>Finish the liveness thread before opening another.</strong> The board debt is
-now cleared (2026-08-29: detector confirmed both directions), so what is left in this thread
-is <em>entirely</em> design calls waiting on David — <a href="https://github.com/davidg238/rete/issues/272">#272</a>'s
-shape and <a href="https://github.com/davidg238/rete/issues/273">#273</a>'s source-of-truth
-number. Both are cheap to decide and neither needs board time to decide.
-<a href="https://github.com/davidg238/rete/issues/274">#274</a> was the one piece that could
-move without them, and it is <strong>closed</strong> (2026-08-29) — so nothing in this thread
-now moves without David.
+<p><strong>Finish the liveness thread before opening another.</strong> The board debt was
+cleared 2026-08-29 (detector confirmed both directions) and the <strong>design debt was cleared
+2026-09-14</strong>: <a href="https://github.com/davidg238/rete/issues/273">#273</a>,
+<a href="https://github.com/davidg238/rete/issues/272">#272</a> and
+<a href="https://github.com/davidg238/rete/issues/271">#271</a> are all decided, and
+<a href="https://github.com/davidg238/rete/issues/274">#274</a> is closed. <strong>Nothing in
+this thread waits on David and nothing waits on a board.</strong> What is left is building it,
+and that is sequenced behind <a href="https://github.com/davidg238/rete/issues/285">#285</a>,
+because the key rename moves <code>MANIFEST.cddl</code>'s SHA-256 — which is the
+<code>obs/build</code> pin. The cheapest first step needs no code at all: re-run the TLA+ model
+with the rate rule.
 <a href="https://github.com/davidg238/rete/issues/272">#272</a> in particular reads a value
 porta already stores, so the implementation is small once the shape is settled.</p>
 

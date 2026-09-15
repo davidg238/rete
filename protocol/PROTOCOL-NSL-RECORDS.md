@@ -426,6 +426,20 @@ declaration did not exist*; it does now, and it arrives from the only party enti
 `CadenceMs`, the 10-gap window, the minimum-3-exchanges rule, `k`, `nodes.cadence_ms` and
 `exchanges.leg` were all deleted with it.
 
+**`wak` is a RATE signal, not an independent progress signal — corrected 2026-09-14
+(rete#272, and D3 of `docs/design/2026-09-14-liveness-two-cadences-design.md`).** `wak` is the
+app's `ticks` (`PortaBridgeNodeC6.nsl:290`, `wak -> ticks`), incremented at the top of `tick`
+(`:183`) — and `tick` is what calls `bridge checkIn` (`:186`), because the check-in runs from
+the app's own reaction to the base tick (`:156`). Every node that publishes `wak` has this
+shape. So **an arriving exchange always carries an advanced `wak`**: the signal rides the very
+event whose occurrence arrival already proves, and a test of the form "did `wak` move" is
+vacuous by construction. Two further consequences worth pinning here, because both were
+proposed and both are wrong: `wak` is identical across the **two exchanges of one check-in**
+(pull and push ride the same tick), so a per-*exchange* comparison reads a frozen counter on
+every push leg; and `wak` **resets to 0 on boot**, which makes it go backwards — useless as a
+monotonic progress counter, but the cleanest evidence of a reboot loop there is. What `wak`
+answers honestly is *rate*: `Δwak` against `elapsed / cad`, an age rather than a delta.
+
 **`obs/build` — build provenance, pinned 2026-08-01, `build` added by #74 (2026-08-07).**
 Added by the space-sync rewrite (`design/2026-08-01-porta-space-sync-rewrite-design.md`
 D8) because v1's `nodes.chip` / `nodes.sdk` columns had no successor path, and deleting
