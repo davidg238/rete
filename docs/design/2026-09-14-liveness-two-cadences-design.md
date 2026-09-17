@@ -22,14 +22,14 @@ that `observer_core.h:131` infers. On the bench they coincide because `cad` happ
 
 | | the question | judged by | the evidence | on the wire? |
 |---|---|---|---|---|
-| **`appCad`** | is this node's app advancing? | the node, about itself | its own feed counter | **never** |
+| **`appCad`** | are nsl and the VM alive on this node? | the node, about itself | its own feed counter | **never** |
 | **`telCad`** | can this node be heard? | porta, about the node | datagram arrival time | yes |
 
 Everything #273 called a coincidence follows from conflating them. Splitting them is a
 net *subtraction* of mechanism, which is why this is the answer rather than a fourth
 constant reconciling the first three.
 
-## D1 — `appCad` is declared by the app, fed from app code, judged by the observer
+## D1 — `appCad` is declared by the app, fed from the kernel's event dispatch, judged by the observer
 
 `platform liveness app: ms` declares it; `platform liveness feed` bumps a counter the
 observer reads beside `pulse_drained()`. `observer_core.h` §3.2 becomes *feed age >
@@ -51,13 +51,21 @@ direction is a tuning error:
   mailbox node tomorrow. The 30 s task watchdog (`observer.c:76`) guards the observer
   *thread*, not the VM, and is 3× the wake window besides.
 
-**Why the feed must come from app code.** The current mechanism catches an nsl wedge and
-a VM wedge alike, because draining a pulse requires the interpreter to advance — but the
-drain is issued by *kernel* code, so it misses a third shape: an app stuck in its own
-state machine (a window loop waiting on a door event that never comes) while the kernel
-keeps draining the base tick. Only an app-issued feed catches that. It cannot tell an
-nsl wedge from a VM wedge (the dump can) and cannot catch a livelock that keeps feeding;
-both limits are inherent and accepted.
+**What the feed proves, and where it is issued — amended 2026-09-17.** The feed is
+issued by the *kernel*, from its event dispatch, and it proves exactly one sentence: *the
+VM executed this node's nsl event dispatch within `appCad`.* That is "nsl and the VM are
+alive", and nothing more. The first draft of this section had the feed issued from app
+code, on the claim that it would also catch "an app stuck in its own state machine while
+the kernel keeps draining". That claim is only true when the app puts the feed inside its
+real work path, so it is the app's claim and not the mechanism's, and it was the kind of
+exaggerated expectation this design is meant to shed (David, 2026-09-17: *"is the node
+alive and can we talk to it … simple hopefully equals robust, without exaggerated
+expectations or claims"*). Whether an application is making progress is out of scope
+here and stays out. One feed, one caller, no app-side call. What `appCad` still declares
+is the app's longest legitimate blocking reaction, because a slow reaction blocks the
+dispatch that feeds. The mechanism cannot tell an nsl wedge from a VM wedge (the dump
+can) and cannot catch a livelock that keeps dispatching; both limits are inherent and
+accepted.
 
 **Why the observer and not a bare hardware watchdog.** The observer *already* sits on the
 hardware watchdog (`g_hw_wdt`, `observer.c:78`). "Arm a raw hw wdt at boot" is not a
