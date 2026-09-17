@@ -3,7 +3,7 @@
 > **Decision record.** Decided by David 2026-09-11 (by phone, framing) and 2026-09-14
 > (at the desk, with `docs/design/2026-08-31-liveness-timers.html` and
 > `docs/spikes/2026-08-27-liveness-3-ladder.png` open — D1/D2 in the first round, then
-> **`misses: 8`** and **D3 `#stalled`** in a second round the same day). **Decided, NOT built.**
+> **`misses: 8`** and **D3 `#stalled`** in a second round the same day). **Decided; BUILD STARTED 2026-09-17** — D1 amended (`bb26b32`), the observer rule (`1315e1e`) and prim 158 (`00c1470`) landed; the kernel, wire, porta, gates and deploy halves are Tasks 3–10 of `docs/superpowers/plans/2026-09-17-liveness-two-cadences.md`. D3 is still decided-not-built.
 > Closes the fork #273 states; unblocks #272's age rule in `verdictFor`.
 >
 > Supersedes the proposal in #273's 2026-08-28 comment and the addendum §604 of
