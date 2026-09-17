@@ -36,20 +36,27 @@
  *   4. The timer-overdue condition fires against its own declared period.
  *   5. A period too large to judge soundly is SKIPPED, not guessed at.
  *   6. A node that declares no timer is unjudgeable — the rete#231 D1 hole,
- *      written down as an executable fact rather than a comment. */
+ *      written down as an executable fact rather than a comment.
+ *
+ * rete#273 D1 (2026-09-17): §3.2 now judges FEED AGE against a DECLARED
+ * `app_cad_ms`; the shortest-period inference is gone. `legacy_verdict` below is
+ * the harness's own copy of BOTH old rules and is what lets property 8 show the
+ * fast-poll false trip before the fix. */
 
 #include "../src/observer_core.h"
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
 
-/* ------------------------------------------------------------------ *
- * The PRE-rete#269 predicate. Depth only: it resets on an empty mailbox
- * and has no idea whether the VM made progress. Reproduced here so the
- * harness can be shown to catch the bug it was written for. Do not use
- * it for anything else, and do not move it into the header.
- * ------------------------------------------------------------------ */
-static int legacy_verdict(struct ObsCore *st, const struct ObsSample *s) {
+/* The pre-#273 §3.2 (as shipped 2026-08-27 .. 2026-09-17): the SHORTEST declared
+ * period × slack, judged as "held undrained while pending". Kept verbatim so the
+ * fast-poll false trip (property 8) is DEMONSTRATED, not asserted from memory. */
+enum { LEGACY_COND_PULSE_UNDRAINED = 99 };
+struct LegacyCore { uint32_t undrained_since_ms, last_drained_seen, margin_ms, deadline_ms; };
+struct LegacySample { uint32_t now_ms; int n; uint32_t period_ms[OBS_MAX_TIMERS];
+                      uint32_t since_ms[OBS_MAX_TIMERS]; uint32_t pending, drained; };
+
+static int legacy_verdict(struct LegacyCore *st, const struct LegacySample *s) {
     if (s->n == 0) return OBS_COND_NONE;
     uint32_t shortest = 0;
     for (int i = 0; i < s->n; i++) {
@@ -63,69 +70,80 @@ static int legacy_verdict(struct ObsCore *st, const struct ObsSample *s) {
         }
     }
     if (shortest == 0) return OBS_COND_NONE;
-    uint32_t deadline = shortest * OBS_WEDGE_SLACK;
-    if (s->pending == 0) {                      /* <-- the whole bug, one clause */
+    uint32_t deadline    = shortest * OBS_WEDGE_SLACK;
+    uint32_t now         = s->now_ms;
+    int      progressed  = (s->drained != st->last_drained_seen);
+    st->last_drained_seen = s->drained;
+    if (s->pending == 0 || progressed) {
         st->undrained_since_ms = 0;
     } else {
-        if (st->undrained_since_ms == 0)
-            st->undrained_since_ms = s->now_ms ? s->now_ms : 1u;
-        uint32_t held = s->now_ms - st->undrained_since_ms;
+        if (st->undrained_since_ms == 0) st->undrained_since_ms = now ? now : 1u;
+        uint32_t held = now - st->undrained_since_ms;
         if (held > deadline) {
             st->deadline_ms = deadline;
             st->margin_ms   = held - deadline;
-            return OBS_COND_PULSE_UNDRAINED;
+            return LEGACY_COND_PULSE_UNDRAINED;
         }
     }
     return OBS_COND_NONE;
 }
 
-/* ------------------------------------------------------------------ *
- * The workload model.
- *
- * `tick_ms` is the DELIVERED period, which is not the declared one: under a
- * silent uplink a 2 s check-in costs cad + 2 x replyBudget ~= 4.007 s, and
- * that gap is what rete#269 aliased on. `empty_ms` is how long the mailbox
- * actually sits empty inside each delivered tick. `drains` is the whole
- * difference between a healthy node and a wedged one.
- * ------------------------------------------------------------------ */
+/* A workload: the VM drains one pulse every tick_ms (or never, when drains == 0),
+ * and a reaction BLOCKS for block_ms of every tick — during which `drained` does
+ * not move. empty_ms is how long the mailbox reads empty inside each tick. */
 struct Workload {
     uint32_t tick_ms;
     uint32_t empty_ms;
+    uint32_t block_ms;
     int      drains;
 };
 
 static uint32_t pending_at(const struct Workload *w, uint32_t t) {
-    if (!w->drains) return 1;                 /* wedged: it fills and never empties */
+    if (!w->drains) return 1;
     uint32_t phase = t % w->tick_ms;
     return phase >= (w->tick_ms - w->empty_ms) ? 0u : 1u;
 }
 
 static uint32_t drained_at(const struct Workload *w, uint32_t t) {
-    return w->drains ? (t / w->tick_ms) : 30u;   /* frozen at 30, as wedge-detect saw */
+    if (!w->drains) return 30u;                      /* frozen, as wedge-detect saw */
+    uint32_t phase = t % w->tick_ms;
+    /* the drain lands at the END of the blocking reaction */
+    return (t / w->tick_ms) + (phase >= w->block_ms ? 1u : 0u);
 }
 
-/* Runs one timeline and answers the time of the first pulse-undrained verdict,
- * or 0 for none. `margin` and `deadline` report what that verdict carried. */
-static uint32_t run_timeline(int (*verdict)(struct ObsCore *, const struct ObsSample *),
-                             const struct Workload *w, uint32_t declared_period_ms,
-                             uint32_t sampler_ms, uint32_t horizon_ms,
-                             uint32_t *margin, uint32_t *deadline) {
-    struct ObsCore st;
-    memset(&st, 0, sizeof st);
-    /* Starts at the FIRST sample, not at t=0 — see property 7 for why t=0 is a
-     * degenerate input the board can never present. */
+/* Runs the NEW rule. period_ms is the one declared timer (0 = no timer at all,
+ * the run-once shape); app_cad_ms is the declaration (0 = undeclared). Answers the
+ * time of the first OBS_COND_APP_STALE, or 0. */
+static uint32_t run_timeline(const struct Workload *w, uint32_t period_ms,
+                             uint32_t app_cad_ms, uint32_t sampler_ms,
+                             uint32_t horizon_ms, uint32_t *margin, uint32_t *deadline) {
+    struct ObsCore st; memset(&st, 0, sizeof st);
     for (uint32_t t = sampler_ms; t <= horizon_ms; t += sampler_ms) {
-        struct ObsSample s;
-        memset(&s, 0, sizeof s);
-        s.now_ms       = t;
-        s.n            = 1;
-        s.period_ms[0] = declared_period_ms;
-        /* The ISR IS firing throughout — that is the premise of the pulse
-         * condition, and it keeps the timer-overdue arm out of the way. */
-        s.since_ms[0]  = t % declared_period_ms;
-        s.pending      = pending_at(w, t);
-        s.drained      = drained_at(w, t);
-        if (verdict(&st, &s) == OBS_COND_PULSE_UNDRAINED) {
+        struct ObsSample s; memset(&s, 0, sizeof s);
+        s.now_ms = t;
+        if (period_ms) { s.n = 1; s.period_ms[0] = period_ms; s.since_ms[0] = t % period_ms; }
+        s.drained    = drained_at(w, t);
+        s.app_cad_ms = app_cad_ms;
+        if (observer_core_verdict(&st, &s) == OBS_COND_APP_STALE) {
+            if (margin)   *margin   = st.margin_ms;
+            if (deadline) *deadline = st.deadline_ms;
+            return t ? t : 1u;
+        }
+    }
+    return 0;
+}
+
+/* Runs the LEGACY rule against the same workload. */
+static uint32_t run_legacy(const struct Workload *w, uint32_t period_ms, uint32_t sampler_ms,
+                           uint32_t horizon_ms, uint32_t *margin, uint32_t *deadline) {
+    struct LegacyCore st; memset(&st, 0, sizeof st);
+    for (uint32_t t = sampler_ms; t <= horizon_ms; t += sampler_ms) {
+        struct LegacySample s; memset(&s, 0, sizeof s);
+        s.now_ms = t;
+        if (period_ms) { s.n = 1; s.period_ms[0] = period_ms; s.since_ms[0] = t % period_ms; }
+        s.pending = pending_at(w, t);
+        s.drained = drained_at(w, t);
+        if (legacy_verdict(&st, &s) == LEGACY_COND_PULSE_UNDRAINED) {
             if (margin)   *margin   = st.margin_ms;
             if (deadline) *deadline = st.deadline_ms;
             return t ? t : 1u;
@@ -135,152 +153,133 @@ static uint32_t run_timeline(int (*verdict)(struct ObsCore *, const struct ObsSa
 }
 
 int main(void) {
-    /* ---- 1. the rete#269 false trip -------------------------------------- *
-     * The observed trace: `pending` read 1 at every sample for 16 s while
-     * `drained` climbed 35 -> 39 and the console printed ticks 34-38. Modelled
-     * as empty_ms = 0 — the mailbox is never caught empty AT A SAMPLE INSTANT,
-     * which is precisely what the beat between 1001 ms and 4007 ms produces. */
+    /* ---- 1. the rete#269 silent-uplink workload stays quiet ------------- *
+     * 4.007 s delivered ticks against a 2 s declaration, appCad at the bridge
+     * default (2000 × 8). The feed moves every 4 s, well inside 16 s. */
     {
-        struct Workload silent = { .tick_ms = 4007, .empty_ms = 0, .drains = 1 };
-        uint32_t margin = 0, deadline = 0;
-
-        uint32_t old_fire = run_timeline(legacy_verdict, &silent, 2000, 1001, 600000,
-                                         &margin, &deadline);
-        assert(old_fire != 0);                 /* the harness can see the bug */
-        assert(deadline == 2000u * OBS_WEDGE_SLACK);
-        assert(margin < 1001u);                /* caught within one sampler period */
-        printf("test_observer_core: property 1a (the old predicate false-fires at "
-               "%u ms, deadline=%u overdue=%u) OK\n", old_fire, deadline, margin);
-
-        uint32_t new_fire = run_timeline(observer_core_verdict, &silent, 2000, 1001,
-                                         600000, NULL, NULL);
-        assert(new_fire == 0);                 /* 600 s and never a word */
-        printf("test_observer_core: property 1b (progress, not depth: no false trip "
-               "in 600 s) OK\n");
+        struct Workload silent = { .tick_ms = 4007, .empty_ms = 0, .block_ms = 0, .drains = 1 };
+        assert(run_timeline(&silent, 2000, 16000, 1001, 600000, NULL, NULL) == 0);
+        printf("test_observer_core: property 1 (silent uplink, feed every 4 s against "
+               "appCad 16 s: no trip in 600 s) OK\n");
     }
 
-    /* ---- 2. a real wedge still fires ------------------------------------- */
+    /* ---- 2. a real wedge fires against the DECLARED number --------------- */
     {
-        struct Workload wedged = { .tick_ms = 1000, .empty_ms = 0, .drains = 0 };
+        struct Workload wedged = { .tick_ms = 1000, .empty_ms = 0, .block_ms = 0, .drains = 0 };
         uint32_t margin = 0, deadline = 0;
-        uint32_t fire = run_timeline(observer_core_verdict, &wedged, 1000, 1001, 60000,
-                                     &margin, &deadline);
+        uint32_t fire = run_timeline(&wedged, 1000, 8000, 1001, 60000, &margin, &deadline);
         assert(fire != 0);
-        assert(deadline == 1000u * OBS_WEDGE_SLACK);   /* 8000, as wedge-detect reports */
+        assert(deadline == 8000u);                /* the declaration, not period × slack */
+        assert(fire > 8000u && fire <= 8000u + 2u * 1001u);   /* latch + one sampler */
         assert(margin < 1001u);
-        printf("test_observer_core: property 2 (a real wedge fires at %u ms, "
-               "deadline=%u overdue=%u) OK\n", fire, deadline, margin);
+        printf("test_observer_core: property 2 (a real wedge fires at %u ms against the "
+               "declared appCad=%u, overdue=%u) OK\n", fire, deadline, margin);
     }
 
-    /* ---- 3. the aliasing sweep ------------------------------------------- *
-     * Every (delivered tick, empty window, sampler period) triple in the band
-     * the bench can actually produce. The assertion is one-sided on purpose:
-     * the new predicate must NEVER fire while `drained` advances. How often the
-     * old one did is reported as data, not asserted — it is a property of the
-     * beat, and pinning it would make this test brittle for no gain. */
+    /* ---- 3. the aliasing sweep: never a trip while the feed moves -------- */
     {
-        unsigned long triples = 0, legacy_fires = 0;
+        unsigned long triples = 0;
         static const uint32_t samplers[] = { 997, 999, 1001, 1003, 1005 };
         static const uint32_t empties[]  = { 600, 1000, 1400 };
         for (uint32_t tick = 3000; tick <= 5000; tick++) {
             for (unsigned si = 0; si < sizeof samplers / sizeof samplers[0]; si++) {
                 for (unsigned ei = 0; ei < sizeof empties / sizeof empties[0]; ei++) {
                     struct Workload w = { .tick_ms = tick, .empty_ms = empties[ei],
-                                          .drains = 1 };
+                                          .block_ms = 0, .drains = 1 };
                     triples++;
-                    if (run_timeline(observer_core_verdict, &w, 2000, samplers[si],
-                                     120000, NULL, NULL) != 0) {
-                        printf("test_observer_core: FALSE TRIP at tick=%u empty=%u "
-                               "sampler=%u\n", tick, empties[ei], samplers[si]);
-                        assert(0 && "the new predicate fired while drained advanced");
+                    if (run_timeline(&w, 2000, 16000, samplers[si], 120000, NULL, NULL) != 0) {
+                        printf("test_observer_core: FALSE TRIP at tick=%u empty=%u sampler=%u\n",
+                               tick, empties[ei], samplers[si]);
+                        assert(0 && "fired while the feed advanced");
                     }
-                    if (run_timeline(legacy_verdict, &w, 2000, samplers[si], 120000,
-                                     NULL, NULL) != 0)
-                        legacy_fires++;
                 }
             }
         }
-        printf("test_observer_core: property 3 (%lu triples swept, 0 false trips; "
-               "the pre-#269 predicate false-fires on %lu of them) OK\n",
-               triples, legacy_fires);
+        printf("test_observer_core: property 3 (%lu triples swept, 0 false trips) OK\n", triples);
     }
 
-    /* ---- 4. the timer-overdue arm ---------------------------------------- */
+    /* ---- 4. the timer-overdue arm is UNCHANGED --------------------------- */
     {
         struct ObsCore st; memset(&st, 0, sizeof st);
         struct ObsSample s; memset(&s, 0, sizeof s);
         s.now_ms = 100000; s.n = 1;
         s.period_ms[0] = 2000;
-        s.since_ms[0]  = 2000u * OBS_WEDGE_SLACK + 5u;   /* 5 ms past its own deadline */
-        s.pending = 0; s.drained = 7;
+        s.since_ms[0]  = 2000u * OBS_WEDGE_SLACK + 5u;
+        s.drained = 7; s.app_cad_ms = 16000;
         assert(observer_core_verdict(&st, &s) == OBS_COND_TIMER_OVERDUE);
         assert(st.deadline_ms == 16000u && st.margin_ms == 5u);
         printf("test_observer_core: property 4 (timer-overdue fires against its own "
                "period, deadline=%u overdue=%u) OK\n", st.deadline_ms, st.margin_ms);
     }
 
-    /* ---- 5. an unjudgeable period is skipped, not guessed ----------------- *
-     * period x 8 must exceed INT32_MAX for this to bite: k_uptime_get_32()
-     * wraps, so judging it would fail toward a FALSE TRIP. */
+    /* ---- 5. an unjudgeable period is skipped; an unjudgeable appCad too -- */
     {
         struct ObsCore st; memset(&st, 0, sizeof st);
         struct ObsSample s; memset(&s, 0, sizeof s);
         s.now_ms = 500000; s.n = 1;
-        s.period_ms[0] = 300000000u;                 /* x8 overflows the judgeable band */
-        s.since_ms[0]  = 400000000u;
-        s.pending = 1; s.drained = 0;
+        s.period_ms[0] = 300000000u; s.since_ms[0] = 400000000u;
+        s.drained = 0; s.app_cad_ms = 0;
         assert(observer_core_verdict(&st, &s) == OBS_COND_NONE);
-
-        /* and with a judgeable timer beside it, the judgeable one is operative */
-        s.n = 2;
-        s.period_ms[1] = 1000; s.since_ms[1] = 10;
-        s.pending = 1; s.drained = 0;
-        st.undrained_since_ms = 1;                   /* held far past 1000 x 8 */
-        st.last_drained_seen  = 0;
-        s.now_ms = 500000;
-        assert(observer_core_verdict(&st, &s) == OBS_COND_PULSE_UNDRAINED);
-        assert(st.deadline_ms == 8000u);
-        printf("test_observer_core: property 5 (an unjudgeable period is skipped; a "
-               "judgeable one beside it still decides) OK\n");
+        s.app_cad_ms = 0x80000000u;               /* past OBS_MAX_JUDGEABLE_MS */
+        assert(observer_core_verdict(&st, &s) == OBS_COND_NONE);
+        printf("test_observer_core: property 5 (an unjudgeable period or appCad is "
+               "skipped, not guessed) OK\n");
     }
 
-    /* ---- 6. no declared timer means UNJUDGEABLE --------------------------- *
-     * Not healthy — unjudgeable. This is the hole rete#231 D1 closes by having
-     * the kernel own a base tick, and it is worth an executable fact because a
-     * node in this state is invisible in the worst way: the detector returns the
-     * same answer it returns for a node that is fine. */
+    /* ---- 6. undeclared appCad means §3.2 is NOT judged ------------------- *
+     * With no declaration the feed is not judged at all, whatever the timers say.
+     * This is the inference's deletion made executable: a frozen feed beside a
+     * live 2 s timer answers NONE — and that is why every bridge declares. */
     {
+        struct Workload wedged = { .tick_ms = 2000, .empty_ms = 0, .block_ms = 0, .drains = 0 };
+        assert(run_timeline(&wedged, 2000, 0, 1001, 120000, NULL, NULL) == 0);
         struct ObsCore st; memset(&st, 0, sizeof st);
         struct ObsSample s; memset(&s, 0, sizeof s);
-        s.now_ms = 900000; s.n = 0; s.pending = 1; s.drained = 0;
+        s.now_ms = 900000; s.n = 0; s.drained = 0; s.app_cad_ms = 0;
         assert(observer_core_verdict(&st, &s) == OBS_COND_NONE);
-        printf("test_observer_core: property 6 (no declared timer => unjudgeable, "
-               "not healthy) OK\n");
+        printf("test_observer_core: property 6 (no declaration => §3.2 unjudged; "
+               "no timer and no declaration => NONE) OK\n");
     }
 
-    /* ---- 7. the now == 0 degenerate input -------------------------------- *
-     * FOUND BY THIS TEST, on its first run. `undrained_since_ms` uses 0 as its
-     * "not currently undrained" sentinel, so the store guards with
-     * `now ? now : 1u` — and at now == 0 that stores 1, after which
-     * `held = now - undrained_since_ms` is 0 - 1, which underflows to
-     * 0xFFFFFFFF and trips instantly.
-     *
-     * IT IS NOT REACHABLE ON A BOARD and this test does not pretend otherwise:
-     * the observer thread starts after the kernel is up and its first sample
-     * lands ~1000 ms in, so k_uptime_get_32() is never 0 at a verdict. It is
-     * recorded here rather than quietly avoided, because the sentinel-vs-value
-     * collision is exactly the shape that produced rete#269, and the next
-     * caller of this header will not know the guard exists. */
+    /* ---- 7. the now == 0 degenerate input -------------------------------- */
     {
         struct ObsCore st; memset(&st, 0, sizeof st);
         struct ObsSample s; memset(&s, 0, sizeof s);
         s.now_ms = 0; s.n = 1; s.period_ms[0] = 2000; s.since_ms[0] = 0;
-        s.pending = 1; s.drained = 0;
-        /* first sample: nothing has moved, so it merely latches */
-        assert(observer_core_verdict(&st, &s) == OBS_COND_PULSE_UNDRAINED);
-        assert(st.undrained_since_ms == 1u);
-        printf("test_observer_core: property 7 (now==0 underflows the held-time "
-               "guard — unreachable on a board, recorded not fixed) OK\n");
+        s.drained = 0; s.app_cad_ms = 16000;
+        assert(observer_core_verdict(&st, &s) == OBS_COND_NONE);   /* first sample latches */
+        assert(st.fed_at_ms == 1u);
+        printf("test_observer_core: property 7 (now==0 latches 1, no underflow) OK\n");
+    }
+
+    /* ---- 8. THE FAST-POLL FALSE TRIP (rete#273 D1, the defect) ----------- *
+     * A 100 ms timer beside a 1.5 s blocking reaction. The legacy rule judges
+     * 100 × 8 = 800 ms and reboots a healthy node; the declared rule, told the
+     * app's longest reaction is inside 4 s, does not. Reproduce FIRST. */
+    {
+        struct Workload fastpoll = { .tick_ms = 2000, .empty_ms = 0, .block_ms = 1500, .drains = 1 };
+        uint32_t margin = 0, deadline = 0;
+        uint32_t legacy_fire = run_legacy(&fastpoll, 100, 101, 60000, &margin, &deadline);
+        assert(legacy_fire != 0);
+        assert(deadline == 800u);
+        assert(run_timeline(&fastpoll, 100, 4000, 101, 60000, NULL, NULL) == 0);
+        printf("test_observer_core: property 8 (fast-poll: legacy false-trips at %u ms on "
+               "deadline=%u; declared appCad=4000 never trips in 60 s) OK\n",
+               legacy_fire, deadline);
+    }
+
+    /* ---- 9. RUN-ONCE: no repeating timer, a declaration, a wedge ---------- *
+     * n == 0 used to mean unjudgeable. With a declaration the feed is judged
+     * anyway, so a node that registers nothing and then stops dispatching is
+     * caught at ITS number. Today's rule answers NONE forever here. */
+    {
+        struct Workload stuck = { .tick_ms = 1000, .empty_ms = 0, .block_ms = 0, .drains = 0 };
+        uint32_t margin = 0, deadline = 0;
+        uint32_t fire = run_timeline(&stuck, 0, 4000, 1001, 60000, &margin, &deadline);
+        assert(fire != 0 && deadline == 4000u);
+        assert(run_legacy(&stuck, 0, 1001, 60000, NULL, NULL) == 0);
+        printf("test_observer_core: property 9 (run-once: declared 4000 with NO timer "
+               "fires at %u ms; the legacy rule never judges it) OK\n", fire);
     }
 
     printf("test_observer_core: all properties OK\n");

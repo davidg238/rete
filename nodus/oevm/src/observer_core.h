@@ -10,8 +10,8 @@
  * (it #includes <zephyr/...>). So the function that rete#269 found rebooting a
  * HEALTHY node had never been compiled on the host, let alone executed there,
  * and every bug it ever had cost a board cycle to find. The decision is pure —
- * a function of (declared periods, time since each fired, mailbox depth,
- * drain counter, now) — so it belongs where a host test can reach it. This is
+ * a function of (declared periods, time since each fired, the drain
+ * counter, the declared app cadence, now) — so it belongs where a host test can reach it. This is
  * the same split reboot_note.h already makes: the portable rule in a header
  * under src/, the target placement left in zephyr/src/.
  *
@@ -19,16 +19,12 @@
  * the trace ring and the forensics. Those are Zephyr and they stay in
  * observer.c. This header decides; it never acts.
  *
- * THE ONE THING A READER MUST NOT MISS (rete#269): the pulse condition judges
- * PROGRESS, not DEPTH. `pending` is a point sample of a transient and it
- * ALIASES against the workload — at cad 2000 under a silent uplink the mailbox
- * empties for ~1 s inside every 4.007 s tick while the observer samples every
- * 1001 ms, and a 3 ms beat walks the one sample that catches the empty window
- * out of it. `drained` is monotonic, so it integrates over the whole interval
- * instead of sampling an instant: if it moved, the VM ran the pump between
- * these two samples, whatever the mailbox happens to read right now. A VM
- * genuinely stuck in the interpreter never moves it. tests/test_observer_core.c
- * holds both halves of that as executable properties. */
+ * THE ONE THING A READER MUST NOT MISS (rete#269, rete#273): §3.2 judges the
+ * AGE OF THE FEED against a DECLARED number. `drained` is monotonic and moves
+ * only when the interpreter runs the pump, so it integrates over the whole
+ * interval rather than sampling an instant; mailbox DEPTH is not read here at
+ * all any more, because a depth sample aliases against the workload (the
+ * 2026-08-27 false trip). tests/test_observer_core.c holds the properties. */
 
 #include <stdint.h>
 
@@ -52,27 +48,26 @@
 enum {
     OBS_COND_NONE = 0,
     OBS_COND_TIMER_OVERDUE,
-    OBS_COND_PULSE_UNDRAINED
+    OBS_COND_APP_STALE
 };
 
-/* One observation. Every field is something the caller already had: the two
- * arrays come from timer_target_snapshot(), the counters from pulse_backend.h,
- * `now_ms` from the platform clock. */
+/* One observation. The two arrays come from timer_target_snapshot(), `drained`
+ * from pulse_backend.h, `now_ms` from the platform clock, and `app_cad_ms` from
+ * the app's declaration through PRIM_pf_appLiveness (0 = undeclared). */
 struct ObsSample {
     uint32_t now_ms;
     int      n;                          /* timers declared; 0 is legal and meaningful */
     uint32_t period_ms[OBS_MAX_TIMERS];
     uint32_t since_ms[OBS_MAX_TIMERS];
-    uint32_t pending;                    /* pulse_pending() */
-    uint32_t drained;                    /* pulse_drained() — MONOTONIC */
+    uint32_t drained;                    /* pulse_drained() — MONOTONIC. THE FEED. */
+    uint32_t app_cad_ms;                 /* rete#273 D1: the declared app cadence */
 };
 
 /* Everything the verdict carries between samples, plus what the dump wants to
  * name afterwards. Zero-initialise it once and never touch it from outside;
- * `undrained_since_ms` is read by observer.c's trace ring, which is why it is
- * not private. */
+ * `fed_at_ms` is read by observer.c's trace ring, which is why it is not private. */
 struct ObsCore {
-    uint32_t undrained_since_ms;   /* 0 == not currently undrained */
+    uint32_t fed_at_ms;            /* when `drained` last moved; 0 == not yet armed */
     uint32_t last_drained_seen;
     uint32_t margin_ms;            /* out: how far past the deadline */
     uint32_t deadline_ms;          /* out: which deadline was operative */
@@ -80,71 +75,54 @@ struct ObsCore {
 
 /* Answers OBS_COND_* and fills st->margin_ms / st->deadline_ms.
  *
- * Both conditions derive their deadline from state the app already declared;
- * nothing global is assumed. They are kept as TWO NAMED CONDITIONS rather than
- * one merged predicate because the dump reports which one fired, and neither
- * alone covers both wedge shapes.
+ * TWO NAMED CONDITIONS, because the dump reports which one fired and neither
+ * alone covers both wedge shapes:
+ *
+ *   §3.1 TIMER_OVERDUE — an armed repeating timer is overdue against ITS OWN
+ *        period × OBS_WEDGE_SLACK. The ISR stopped. Unchanged by rete#273.
+ *
+ *   §3.2 APP_STALE — the FEED has not moved for longer than the app DECLARED it
+ *        may go without dispatching (rete#273 D1, amended 2026-09-17). The feed
+ *        is pulse_drained(): it moves only when the interpreter runs the pump, so
+ *        it proves exactly one sentence — "the VM executed this node's nsl event
+ *        dispatch within appCad" — and claims nothing about application progress.
+ *        The old rule here inferred a deadline from the SHORTEST declared timer
+ *        period × slack, which reboots a healthy node running a 100 ms sensor
+ *        poll beside a 1.5 s e-paper refresh (800 ms deadline against a 1500 ms
+ *        reaction), and judged nothing at all on a node with no repeating timer.
+ *        Both are the same defect: a number nobody declared. UNDECLARED (0) means
+ *        §3.2 IS NOT JUDGED — not "judged against a default" — which is why the
+ *        bridge always declares (cad × 8 unless the app says otherwise).
  *
  * MUST be called at a regular cadence — it is a sampler, and the caller's
- * period is what `undrained_since_ms` is measured in. */
+ * period is the resolution `fed_at_ms` is measured in. */
 static inline int observer_core_verdict(struct ObsCore *st, const struct ObsSample *s) {
-    /* The app declared no cadence: nothing to judge it against, and guessing one
-     * is what the design forbids. Note what this answer MEANS, because it is not
-     * health: a node with no repeating timer is not judged healthy, it is
-     * UNJUDGEABLE, and the two are indistinguishable from here.
-     *
-     * Nothing that ships reaches it any more. rete#231 D1 gave the kernel a base
-     * tick, and rete#274 moved the registration upstream of the socket bind on the
-     * two nodes that had left it downstream (TimerlessNodeC6, ShipsBellAlarmNodeC6):
-     * the bridge is now constructed with `socket: nil` when the bind fails, so
-     * `startTicking:` runs on every boot and a deadline always exists. Every other
-     * bridge node leaves main: on a failed bind, which is a loud failure rather than
-     * a silent unjudgeable one.
-     *
-     * The branch stays, and test_observer_core.c property 6 keeps asserting it: it
-     * is the honest answer for an EMPTY snapshot, and an app that registers no timer
-     * at all is still legal C-side. What is gone is the path by which a shipping node
-     * arrived here by accident. */
-    if (s->n == 0) return OBS_COND_NONE;
-
-    /* §3.1 — an armed repeating timer is overdue against ITS OWN period. Catches
-     * the timer subsystem itself stopping: the ISR no longer firing at all. A
-     * node with a ten-minute timer is judged against ten minutes; one with a 2 s
-     * timer against 2 s. */
-    uint32_t shortest = 0;
+    /* §3.1 */
     for (int i = 0; i < s->n; i++) {
         uint64_t deadline = (uint64_t)s->period_ms[i] * OBS_WEDGE_SLACK;
         if (deadline > OBS_MAX_JUDGEABLE_MS) continue;   /* unjudgeable; see above */
-        if (shortest == 0 || s->period_ms[i] < shortest) shortest = s->period_ms[i];
         if (s->since_ms[i] > (uint32_t)deadline) {
             st->deadline_ms = (uint32_t)deadline;
             st->margin_ms   = s->since_ms[i] - (uint32_t)deadline;
             return OBS_COND_TIMER_OVERDUE;
         }
     }
-    if (shortest == 0) return OBS_COND_NONE;   /* every declared timer was unjudgeable */
 
-    /* §3.2 — the ISR is firing and the mailbox is filling, but the VM is not
-     * draining it: a VM stuck in the interpreter rather than blocked at the
-     * mailbox. Judged against the SHORTEST declared period, because that is the
-     * fastest cadence the app claims to service. */
+    /* §3.2 */
+    if (s->app_cad_ms == 0 || s->app_cad_ms > OBS_MAX_JUDGEABLE_MS) return OBS_COND_NONE;
     {
-        uint32_t deadline    = shortest * OBS_WEDGE_SLACK;
-        uint32_t now         = s->now_ms;
-        uint32_t drained_now = s->drained;
-        int      progressed  = (drained_now != st->last_drained_seen);
-        st->last_drained_seen = drained_now;
-
-        if (s->pending == 0 || progressed) {
-            st->undrained_since_ms = 0;
-        } else {
-            if (st->undrained_since_ms == 0) st->undrained_since_ms = now ? now : 1u;
-            uint32_t held = now - st->undrained_since_ms;
-            if (held > deadline) {
-                st->deadline_ms = deadline;
-                st->margin_ms   = held - deadline;
-                return OBS_COND_PULSE_UNDRAINED;
-            }
+        uint32_t now        = s->now_ms ? s->now_ms : 1u;   /* 0 is the sentinel */
+        int      progressed = (s->drained != st->last_drained_seen);
+        st->last_drained_seen = s->drained;
+        if (progressed || st->fed_at_ms == 0) {
+            st->fed_at_ms = now;
+            return OBS_COND_NONE;
+        }
+        uint32_t held = now - st->fed_at_ms;
+        if (held > s->app_cad_ms) {
+            st->deadline_ms = s->app_cad_ms;
+            st->margin_ms   = held - s->app_cad_ms;
+            return OBS_COND_APP_STALE;
         }
     }
     return OBS_COND_NONE;
