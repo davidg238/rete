@@ -57,6 +57,9 @@
    src/backend/zephyr/timer_zephyr.c. */
 int timer_target_snapshot(uint32_t *period_ms, uint32_t *since_ms, int max);
 
+/* rete#273 D1: the app's declared cadence, defined in src/platform.c beside the prim. */
+uint32_t platform_app_cad_ms(void);
+
 /* rete#269 — OBS_MAX_TIMERS, OBS_WEDGE_SLACK, OBS_MAX_JUDGEABLE_MS, the OBS_COND_*
    enum and the VERDICT ITSELF now live in src/observer_core.h, which is portable C and
    is therefore reachable by tests/test_observer_core.c on the host. This file no longer
@@ -90,7 +93,7 @@ static struct ObsCore g_core;
    not: the depth column and the drained column disagreed, and that disagreement WAS the
    bug. Kept rather than removed — this is the instrument that found the detector was
    rebooting a healthy node, and the next such question will look exactly like this one.
-   `undrained_since` is recorded BEFORE the verdict runs, so a reset shows on the sample
+   `fed_at` is recorded BEFORE the verdict runs, so a latch shows on the sample
    AFTER the one that saw an empty mailbox. */
 #define OBS_TRACE_N 32
 struct ObsTrace { uint32_t up, pend, drn, since; };
@@ -102,14 +105,14 @@ static void obs_trace_record(void) {
     e->up    = k_uptime_get_32();
     e->pend  = pulse_pending();
     e->drn   = pulse_drained();
-    e->since = g_core.undrained_since_ms;
+    e->since = g_core.fed_at_ms;
     g_trace_w++;
 }
 
 static void obs_trace_dump(void) {
     uint32_t n     = g_trace_w < OBS_TRACE_N ? g_trace_w : OBS_TRACE_N;
     uint32_t start = g_trace_w - n;
-    printk("oevm: TRACE %u samples, oldest first: up_ms pending drained undrained_since\n",
+    printk("oevm: TRACE %u samples, oldest first: up_ms pending drained fed_at\n",
            (unsigned)n);
     for (uint32_t i = 0; i < n; i++) {
         struct ObsTrace *e = &g_trace[(start + i) % OBS_TRACE_N];
@@ -134,14 +137,15 @@ static bool g_trigger_armed;
    pure, so it belongs where tests/test_observer_core.c can sweep it on the host
    instead of where only a board can reach it.
 
-   What remains here is the seam: three target reads — the app's declared cadences,
-   the mailbox depth, and the monotonic drain counter — and the clock. */
+   What remains here is the seam: three target reads — the app's declared timer
+   periods, the monotonic drain counter, and the declared app cadence — and the
+   clock. */
 static int observer_verdict(void) {
     struct ObsSample s;
     s.n = timer_target_snapshot(s.period_ms, s.since_ms, OBS_MAX_TIMERS);
-    s.now_ms  = k_uptime_get_32();
-    s.pending = pulse_pending();
-    s.drained = pulse_drained();
+    s.now_ms     = k_uptime_get_32();
+    s.drained    = pulse_drained();
+    s.app_cad_ms = platform_app_cad_ms();
     return observer_core_verdict(&g_core, &s);
 }
 
@@ -308,10 +312,11 @@ static void observer_forensics(void) { }
    PRIM_pf_sysStats reads (platform.c:1439-1445), so the console dump and sys/metrics can
    never disagree about pdr/pco/pst. */
 static void observer_dump(int cond) {
-    printk("oevm: WEDGE cond=%s overdue=%ums deadline=%ums up=%ums "
+    printk("oevm: WEDGE cond=%s overdue=%ums deadline=%ums appCad=%ums up=%ums "
            "pending=%u pdr=%u pco=%u pst=%u consec=%u\n",
-           cond == OBS_COND_TIMER_OVERDUE ? "timer-overdue" : "pulse-undrained",
-           (unsigned)g_core.margin_ms, (unsigned)g_core.deadline_ms, (unsigned)k_uptime_get_32(),
+           cond == OBS_COND_TIMER_OVERDUE ? "timer-overdue" : "app-stale",
+           (unsigned)g_core.margin_ms, (unsigned)g_core.deadline_ms,
+           (unsigned)platform_app_cad_ms(), (unsigned)k_uptime_get_32(),
            (unsigned)pulse_pending(), (unsigned)pulse_drops(),
            (unsigned)pulse_coalesced(), (unsigned)pulse_stale(),
            (unsigned)reboot_note_consecutive() + 1u);
@@ -353,7 +358,7 @@ static void observer_thread_fn(void *a, void *b, void *c) {
             k_uptime_get_32() > (uint32_t)CONFIG_OEVM_WEDGE_TRIGGER_S * 1000u) {
             g_trigger_armed = false;
             g_core.deadline_ms = 0; g_core.margin_ms = 0;
-            observer_dump(OBS_COND_PULSE_UNDRAINED);
+            observer_dump(OBS_COND_APP_STALE);
             reboot_note_write(RN_REASON_WATCHDOG, 0, 0, 0, k_uptime_get_32());
             if (reboot_note_consecutive() >= 3) observer_halt();
             sys_reboot(SYS_REBOOT_COLD);

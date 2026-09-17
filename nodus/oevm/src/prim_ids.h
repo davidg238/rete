@@ -554,4 +554,12 @@
    exactly the absence rule that record already carries. Identifies a manifest
    against a known set; it does not authenticate one (obs/build.image's rule). */
 #define PRIM_pf_manifestPin       156
+/* rete#273 D1: `appLiveness:` — the app's DECLARED cadence for the observer's §3.2
+   (feed age > appCad). Appended after manifestPin AND after dispatch.c's PRIM_intMod
+   (157, not platform-dispatched, so not mirrored here); 158 was arrived at by
+   COUNTING PRIM_NAMES (157 entries before this append), not by arithmetic.
+   Platform-dispatched. Stores a uint32 the observer thread reads through
+   platform_app_cad_ms(); 0 = undeclared = §3.2 not judged. Answers the stored
+   value, so a caller can see what a clamp did. */
+#define PRIM_pf_appLiveness       158
 #endif /* OEVM_PRIM_IDS_H */

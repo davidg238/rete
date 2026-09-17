@@ -981,6 +981,11 @@ enum {
     /* rete#246: `\\` — floored modulo, the pair of PRIM_intDiv. Appended last
        so no pre-existing id shifts. */
     PRIM_intMod,
+    /* rete#273 D1: `platform appLiveness: ms` — the 158th PRIM_NAMES entry (counted,
+       not computed). Appended after intMod; no pre-existing id shifts.
+       Platform-dispatched (mirrored in prim_ids.h). The app's declared cadence for
+       the observer's §3.2; 0 withdraws it. */
+    PRIM_pf_appLiveness,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1).
@@ -1003,7 +1008,7 @@ static const char *const PRIM_NAMES[] = {
    — this catches it at build time instead. C99-safe (no _Static_assert under
    -std=c99): a false condition makes a negative-sized array, which is a hard
    compile error. ADVANCE THIS to the new last id whenever prims are appended. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_intMod) ? 1 : -1];
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_appLiveness) ? 1 : -1];
 
 /* rete#226 — CLASSIFICATION HAPPENS ONCE, WHERE THE SYMBOL IS MADE.
 

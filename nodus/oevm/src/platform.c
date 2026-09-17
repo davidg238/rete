@@ -10,6 +10,12 @@
 #include "http_backend.h"
 #include "sensor_backend.h"  /* AMG8833 thermal rung: the Tier-1 sensor seam */
 #include "span.h"            /* tuvm#61: job-latency span slots */
+
+/* rete#273 D1: the app's declared cadence for the observer (PRIM_pf_appLiveness).
+   Read from the observer THREAD on Zephyr; a uint32 store/load is atomic on every
+   target this runs on, and a torn read would only ever mis-time one sample. */
+static uint32_t s_app_cad_ms = 0;
+uint32_t platform_app_cad_ms(void) { return s_app_cad_ms; }
 #include "ota.h"             /* rete#25: the image-push seam, prims 145-150 */
 #include "reboot_note.h"    /* rete#215: the retained panic note, prims 153-154 */
 #include <stdio.h>
@@ -1517,6 +1523,19 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            buildId above: no allocation happens before OEVM_NODE_ID's bytes are
            read, so there is nothing to root. */
         *out = space_make_string_pub(OEVM_NODE_ID, strlen(OEVM_NODE_ID));
+        return 1;
+    }
+    case PRIM_pf_appLiveness: {
+        /* rete#273 D1 — `platform appLiveness: ms`. One SMI in, stored for the
+           observer thread (zephyr/src/observer.c reads it every sample through
+           platform_app_cad_ms()). Non-SMI or negative reads as 0 = undeclared;
+           anything past OBS_MAX_JUDGEABLE_MS is also 0, because a deadline the
+           32-bit uptime clock cannot compare against would fail toward a false
+           trip. No allocation. */
+        intptr_t n = IS_SMI(args[0]) ? UNTAG_SMI(args[0]) : 0;
+        if (n < 0 || n > 0x7FFFFFFF) n = 0;
+        s_app_cad_ms = (uint32_t)n;
+        *out = TAG_SMI((intptr_t)s_app_cad_ms);
         return 1;
     }
     case PRIM_pf_manifestPin: {
