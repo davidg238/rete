@@ -232,14 +232,18 @@ Not transports. Found while walking the seams above; each has a home or gets one
   a node* to the upstream — which means porta-as-node gives gateway health the same
   verdict machinery nodes have, for free. That is an argument for §2 that was not in the
   question.
-- **Event time is arrival time.** `cells.ts_ms` and the event log are stamped by porta
-  at arrival; nodes have no wall clock and do not need one. On a store-and-forward
-  transport (satellite, a Meshtastic store-and-forward relay) arrival can lag the event by
-  hours, and `last_seen_ms` — which the liveness sweep judges on
-  (`porta/internal/space/sweep.go:60`) — measures the transport, not the node. The node's
-  own monotonic counters (`wak`, `bid`) are the order; the sweep's `bud = telCad × misses`
-  absorbs the lag only if the declared `telCad` includes it. Recorded, not fixed: it is
-  only wrong on transports this document does not propose.
+- **Event time is arrival time — and worse than this first said: #293.** No time rides
+  the push at all (`{ id, bid, ent: [[seq, path, kind, value]…] }`,
+  `porta/internal/wire/message.go:105-113`); porta stamps `cells.ts_ms` and the event
+  log with its own `nowMs` at arrival (`store.go:195-207`). So every entry in one push
+  gets the same stamp, an entry deferred past the 512 B cap is stamped a whole cadence
+  late, and the log cannot say *when* the node saw anything — **today, on Thread**, not
+  only on a store-and-forward transport where the error is unbounded. `last_seen_ms`,
+  which the sweep judges on (`sweep.go:60`), measures the transport. David, 2026-09-16:
+  "this seems very wrong." Filed as **#293** with the mechanism-minimal fix: the node
+  stamps each entry with its monotonic ms (`at`), the envelope carries its monotonic
+  `now`, porta computes `event_ms = arrival − (now − at)`; `bid` segments reboots; no
+  wall clock. A wire shape → on #253's pre-freeze list.
 - **No `LICENSE` file in the tree.** Not architecture; a publication gate all the same.
 - **Hardware compliance if boards ship** — no hobbyist exemption, a certified module does
   not cover a different antenna, USB or mains adds a conducted test. Out of scope here;

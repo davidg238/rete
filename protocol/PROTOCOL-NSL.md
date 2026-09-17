@@ -709,3 +709,18 @@ Decisions folded into this edition (full reasoning trail in
   [liveness floor ≤ cadence ≤ battery ceiling], pulled up by freshness/request-latency
   and down by fleet load. Dissolves the "always-on nodes stuck on a slow poll" worry
   without a new mechanism; node-alive stays coupled to the sync heartbeat.
+- **(2026-09-16) Wire versioning, #200 ratified as amended: the two closures are
+  already separate, the catalogue already has a version, and the envelope joins the
+  manifest.** Field closure is relaxed and tag/type closure kept on BOTH ends today, by
+  construction and unstated — porta looks envelope fields up by name
+  (`porta/internal/wire/message.go:22`), the store's manifest gate is a first-byte check
+  with deep validation at the build-time zcbor gates, and the node builds
+  `Record tag:fields:` from whatever map arrives (`kernel.nsl:1068`). What lands under
+  #253 is the statement (RECORDS §1) and a gate on each end (extra key tolerated, unknown
+  tag refused). The catalogue's version is the MANIFEST.cddl hash pinned per node at
+  `obs/build.man` (#243 D4); **the five envelope shapes go into `MANIFEST.cddl`** so that
+  one hash covers the whole wire (David, (b) over a `v` field). The flag-day era ends at
+  #253's freeze line, which IS that hash published as 1.0 — not at #197. A `v` in the
+  envelope stays deferred on #200's trigger: the first rollout that cannot complete inside
+  one maintenance window. #199 (a refused node halts) is closed, so "reject" is useless
+  for a staged rollout rather than destructive.
