@@ -1,0 +1,98 @@
+(*
+expect:
+TAP fastpoll done
+*)
+(* rete#273 D1 — THE FAST-POLL FALSE TRIP, and the gate that must go red before
+   the fix and green after it.
+
+   A 100 ms timer beside a reaction that blocks 3 s once every 4 s. Every tick
+   of the fast timer is serviced; the slow reaction is ordinary work (an e-paper
+   refresh, a sensor conversion) at 75 % duty. Under the pre-#273 §3.2 the
+   observer judged the SHORTEST declared period x 8 = 800 ms of "undrained" time
+   and rebooted this healthy node inside its first blocking reaction. Under the
+   declared rule the app says its dispatch may go 6 s without running, and
+   nothing fires.
+
+   WHY 3 s AND NOT 1.5 s: the old rule is a sampler at 1000 ms and needs TWO
+   consecutive samples with no drain progress before `held > 800` can be true,
+   so a block shorter than ~2 s never spans them and the false trip cannot be
+   reproduced (a 1.5 s block passed on the pre-fix VM, 2026-09-17). 3 s puts two
+   samples inside every block with margin for sampling phase.
+
+   BOOT 1 IS THE TEST. If it survives 20 slow ticks (~80 s, i.e. past twenty of
+   the old rule's 800 ms deadlines) with NO panic note pending, it reports
+   pass=2. If the observer fired, boot 2 finds the note and reports not ok —
+   which is exactly what today's build must do. *)
+class FastPollProbeC6 packageUsing: manifest = (
+  | plat space timers fastCh slowCh fast ::= 0. slow ::= 0.
+    tapPass ::= 0. tapFail ::= 0. |
+) (
+
+  slowTicksToPass = ( ^ 20 )
+  blockMs         = ( ^ 3000 )
+
+  public main: platform args: args = (
+    | note |
+    plat:: platform.
+    space:: plat space.
+    timers:: plat timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+
+    note:: plat panicNote.
+    (note == nil) ifFalse: [ self reportFalseTrip: note ].
+
+    fastCh:: space channel: 'probe/fast'.
+    slowCh:: space channel: 'probe/slow'.
+    fastCh whenever: '' do: [ :m | fast:: fast + 1 ].
+    slowCh whenever: '' do: [ :m | self slowTick ].
+    timers every: 100 post: #f on: fastCh.
+    timers every: 4000 post: #s on: slowCh.
+    (* rete#273 D1: the app's longest legitimate blocking reaction is blockMs; twice
+       that is comfortably past it and comfortably under the 16 s a bridge would
+       default to. This ONE line is the difference between the red and the green. *)
+    plat appLiveness: self blockMs * 2.
+
+    [ true ] whileTrue: [ plat pumpEvents. space drain ].
+    ^ self )
+
+  (* Blocks the reactor for blockMs — the feed does not move while this runs. *)
+  slowTick = (
+    | until |
+    slow:: slow + 1.
+    until:: plat monotonicMillis + self blockMs.
+    [ plat monotonicMillis < until ] whileTrue: [ ].
+    ('fastpoll tick ' , slow printString , ' fast ' , fast printString) out.
+    (slow = self slowTicksToPass) ifTrue: [ self reportSurvived ].
+    ^ self )
+
+  reportSurvived = (
+    self tapPlan: 2.
+    self tap: 1 named: 'no reboot note' ok: true detail: 'boot 1 reached tick 20'.
+    self tap: 2 named: 'fast timer serviced' ok: (fast > 20)
+         detail: ('fast=' , fast printString).
+    self tapDone.
+    ^ self )
+
+  reportFalseTrip: note = (
+    self tapPlan: 2.
+    self tap: 1 named: 'no reboot note' ok: false
+         detail: ('THE OBSERVER FIRED ON A HEALTHY NODE: ' , (note basicAt: 4)).
+    self tap: 2 named: 'fast timer serviced' ok: false detail: 'boot 2'.
+    self tapDone.
+    plat panicNoteAck: 0.
+    ^ self )
+
+  scenarioName = ( ^ 'fastpoll' )
+  tapPlan: n = ( ('TAP ' , self scenarioName , ' plan=' , n printString) out. ^ self )
+  tap: idx named: nm ok: passed detail: d = (
+    passed
+      ifTrue:  [ tapPass:: tapPass + 1.
+                 ('TAP ' , self scenarioName , ' ok ' , idx printString , ' ' , nm , ' ' , d) out ]
+      ifFalse: [ tapFail:: tapFail + 1.
+                 ('TAP ' , self scenarioName , ' not ok ' , idx printString , ' ' , nm , ' ' , d) out ].
+    ^ self )
+  tapDone = (
+    ('TAP ' , self scenarioName , ' done pass=' , tapPass printString , ' fail=' , tapFail printString) out.
+    ^ self )
+) : (
+)

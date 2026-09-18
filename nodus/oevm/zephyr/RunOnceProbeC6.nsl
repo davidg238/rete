@@ -1,0 +1,65 @@
+(*
+expect:
+TAP runonce done
+*)
+(* rete#273 D1 — A NODE WITH NO REPEATING TIMER IS JUDGED, at its own number.
+
+   Before #273, `timer_target_snapshot` reporting n == 0 meant OBS_COND_NONE
+   forever: a run-once node (MagTagDeepSleepNode's shape) that wedged inside its
+   wake window burned its battery with nothing watching. Now the app declares
+   appCad and the feed is judged whether or not a timer exists.
+
+   BOOT 1 declares 4000 ms, prints one line, and then never returns to the pump
+   — the wedge-inside-the-wake-window. The observer must fire at ~4 s with
+   cond=app-stale deadline=4000ms (read it in the archive), write the note and
+   reboot. BOOT 2 finds the note, reports, and idles WITHOUT declaring — an idle
+   node that declared 4 s and then dispatched nothing would be rebooted again,
+   and correctly so. The vacuous outcome on today's build is TIMEOUT: no deadline
+   is ever formed, so nothing reboots and no TAP arrives. *)
+class RunOnceProbeC6 packageUsing: manifest = (
+  | plat space tapPass ::= 0. tapFail ::= 0. |
+) (
+
+  public main: platform args: args = (
+    | note |
+    plat:: platform.
+    space:: plat space.
+    note:: plat panicNote.
+    (note == nil)
+      ifTrue:  [ self work ]
+      ifFalse: [ self reportNote: note ].
+    [ true ] whileTrue: [ plat pumpEvents. space drain ].
+    ^ self )
+
+  work = (
+    plat appLiveness: 4000.
+    'runonce: declared 4000 ms, now working forever — nothing below this line is expected' out.
+    [ true ] whileTrue: [ ].
+    ^ self )
+
+  reportNote: note = (
+    | reason |
+    self tapPlan: 2.
+    self tap: 1 named: 'a deadline was formed with no timer' ok: true
+         detail: ('detail=' , (note basicAt: 4)).
+    reason:: (plat panic fields) at: #reason ifAbsent: [ #none ].
+    self tap: 2 named: 'reason is watchdog' ok: (reason = #watchdog)
+         detail: ('reason=' , reason printString).
+    self tapDone.
+    plat panicNoteAck: 0.
+    ^ self )
+
+  scenarioName = ( ^ 'runonce' )
+  tapPlan: n = ( ('TAP ' , self scenarioName , ' plan=' , n printString) out. ^ self )
+  tap: idx named: nm ok: passed detail: d = (
+    passed
+      ifTrue:  [ tapPass:: tapPass + 1.
+                 ('TAP ' , self scenarioName , ' ok ' , idx printString , ' ' , nm , ' ' , d) out ]
+      ifFalse: [ tapFail:: tapFail + 1.
+                 ('TAP ' , self scenarioName , ' not ok ' , idx printString , ' ' , nm , ' ' , d) out ].
+    ^ self )
+  tapDone = (
+    ('TAP ' , self scenarioName , ' done pass=' , tapPass printString , ' fail=' , tapFail printString) out.
+    ^ self )
+) : (
+)

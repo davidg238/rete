@@ -48,7 +48,7 @@ them, and what a full sweep of the target gates actually costs in wall-clock tim
   can reach. `~/workspace/rete/docs/tutorials/03-porta.md` is the gateway half, on loopback,
   with no board at all — read it first if you have not.
 - **Time.** A build-and-flash cycle is about two minutes. One target scenario is 2–12
-  minutes. A full sweep of all eleven is **60–90 minutes and is not unattended** (§7).
+  minutes. A full sweep of all fourteen is **70–100 minutes and is not unattended** (§7).
 
 ## 1. What a board tests that a host cannot
 
@@ -199,9 +199,10 @@ nil because there is no interface to bind to. Nothing errors. It took being diag
 scratch twice.
 
 **Most scenarios correctly have no `CONF_EXTRA`, and that is not a claim about the radio.**
-Of the eleven target scenarios, five name no overlay, because their workloads open nothing:
-`WedgeProbeC6`, `SlowTimerNodeC6`, `PulseCoalesceProbeC6`, `StaleHandleProbeC6` and
-`RearmProbeC6` all arm `timers every:` directly and never touch a socket. Only two nodes
+Of the fourteen target scenarios, seven name no overlay, because their workloads open nothing:
+`WedgeProbeC6`, `SlowTimerNodeC6`, `PulseCoalesceProbeC6`, `StaleHandleProbeC6`,
+`RearmProbeC6`, `FastPollProbeC6` and `RunOnceProbeC6` all arm `timers every:` directly (or,
+for `RunOnceProbeC6`, nothing at all) and never touch a socket. Only two nodes
 bind — `PortaBridgeNodeC6` and `TimerlessNodeC6`.
 
 The trap is that there is a *second*, unrelated "no `CONF_EXTRA`" convention in this tree:
@@ -361,10 +362,10 @@ cd nodus/oevm/tests/target
 
 The runner globs `*.env`, so a new scenario joins the sweep the moment its manifest lands.
 The nsl suite counts that same glob for the line in §1 — and **it also checks the names in
-the table below against it**, as the `tutorial-board` aux gate, so a twelfth manifest turns
+the table below against it**, as the `tutorial-board` aux gate, so a fifteenth manifest turns
 this page red rather than leaving it quietly wrong. Names only: a missing scenario is a bug,
 a stale *description* is a judgement call, and a gate that scores prose gets disabled. As of
-2026-08-29 there are eleven, and a full pass is 60–90 minutes of board time. Budget
+2026-09-17 there are fourteen, and a full pass is 70–100 minutes of board time. Budget
 that rather than discovering it — `wedge-quiet` alone observes for 600 s because the thing it
 must not do is false-trip on a legitimately slow node, and `liveness-heartbeat` budgets a
 300 s timeout plus 180 s of observation.
@@ -381,6 +382,8 @@ must not do is false-trip on a legitimately slow node, and `liveness-heartbeat` 
 | `wedge-quiet` | disruptive | **no false trip** on a legitimately slow node — one 10-minute timer, watched 600 s |
 | `liveness-heartbeat` | disruptive | the detector can see a node with **no application timer** (#231) |
 | `liveness-noradio` | disruptive | the same node with **no radio at all** — the base tick is registered upstream of the socket bind, so a failed bind still leaves a deadline (#274) |
+| `liveness-fastpoll` | disruptive | **no false trip on a fast timer beside a blocking reaction** — the observer judges the app's *declared* cadence, not the shortest timer × 8 (#273 D1); red on the pre-#273 build, green after |
+| `liveness-runonce` | disruptive | a node with **no repeating timer at all** is still judged, at its declared number (#273 D1) |
 | `porta-refuse` | disruptive | a node **refused** by its gateway survives past the 157 s death record (#232) |
 | `porta-silent` | disruptive | a node whose **uplink is gone** survives it (#269) |
 
