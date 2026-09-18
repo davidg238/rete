@@ -8,7 +8,7 @@
 
 **Tech Stack:** C99 (`nodus/oevm/src`, host-testable header), Zephyr C (`nodus/oevm/zephyr/src`), nsl (`nodus/nsl/lib/kernel.nsl` + node apps), Go 1.26 (`porta`), CDDL/zcbor (`protocol/MANIFEST.cddl`), bash target harness (`nodus/oevm/tests/target`).
 
-**Progress (2026-09-17):** Tasks 1–3 DONE and committed (`1315e1e`, `00c1470`, `365f8f9`); nsl suite 280/0, `c-units` PASS, `tutorial-porta` RED as expected until Task 6. Task 4 is next.
+**Progress (2026-09-17):** Tasks 1–7 DONE and committed (`1315e1e`, `00c1470`, `365f8f9`, `47633bb`, `9b6332a`, `3b4331c`); whole tree green — nsl 280/0 with every aux gate PASS incl. `tutorial-porta`, `go test ./...` ok, `PORTA SYNC OK`. Task 8 (the board) is next.
 
 **Spec:** `docs/design/2026-09-14-liveness-two-cadences-design.md` (D1 as amended 2026-09-17 in commit `bb26b32`; D2, D2.1, D2.2, D2.3; §2 deletions; §4 falsification; §5 sequencing; §6 promotion). **D3 (`#stalled`) is NOT in this plan** — it needs the TLA+ `DoSweep` correction first and is its own plan.
 
@@ -792,7 +792,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: the twelve `liveness: … budget: …` sites listed by `rg -n "liveness: .*budget:" nodus --glob '*.nsl'` (nine `self cadence * 8` sites, `RearmProbeC6.nsl:46,69`)
 - Modify: `nodus/oevm/zephyr/WedgeProbeC6.nsl:62` (declare)
 
-- [ ] **Step 1: List them, then edit each.**
+- [x] **Step 1: List them, then edit each.**
 
 ```bash
 cd /home/david/workspace/rete && rg -n "liveness: .*budget:" nodus --glob '*.nsl' | grep -v "^nodus/tests/"
@@ -817,21 +817,21 @@ Expected: eleven lines (nine `self cadence * 8` + RearmProbe's two). Edit:
     ```
     and in the header comment replace `That is COND_PULSE_UNDRAINED` with `That is OBS_COND_APP_STALE (rete#273: the feed stops moving past the declared 8 s)`.
 
-- [ ] **Step 2: Nothing left behind.**
+- [x] **Step 2: Nothing left behind.**
 
 ```bash
 cd /home/david/workspace/rete && rg -n "budget:|cadence \* 8|budMs|PULSE_UNDRAINED|pulse-undrained" nodus --glob '!*.md' --glob '!nodus/oevm/tests/target/test_observe.py' | grep -v "kernel.nsl.*public budMs\|tests/22_spacesync"
 ```
 Expected: no output. (`test_observe.py:192,205` keeps `pulse-undrained` — it is a synthetic log of a 2026-08-17 event and the assertion is that the runner NAMES the condition it finds.)
 
-- [ ] **Step 3: Host node compiles.** The host `PortaBridgeNode.nsl` is what `porta_sync_host.sh` and the tutorial build; a quick bake proves the sites parse:
+- [x] **Step 3: Host node compiles.** The host `PortaBridgeNode.nsl` is what `porta_sync_host.sh` and the tutorial build; a quick bake proves the sites parse:
 
 ```bash
 cd /home/david/workspace/rete/nodus/oevm && bash tests/porta_sync_host.sh 2>&1 | tail -5
 ```
 Expected: FAIL at the `obs/liveness` grep (the script still greps `#cad: 2000`) — but AFTER a successful bake and boot. A failure before the node boots is a parse error in a site: read it.
 
-- [ ] **Step 4: Commit.**
+- [x] **Step 4: Commit.**
 
 ```bash
 cd /home/david/workspace/rete && git add nodus/oevm/zephyr/*.nsl && git commit -m "refactor(#273): every node declares liveness: telCad misses:; the wedge probe declares its app cadence
@@ -849,7 +849,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 **Files:**
 - Modify: `protocol/MANIFEST.cddl:56-101` (field syms), `:188-193` (liveness rule), `:352-353` (gw-verdict)
 
-- [ ] **Step 1: Edit.** In the field-key block (sorted alphabetically): delete `sym-bud` (line 69) and `sym-cad` (line 71) IF nothing else uses them — check first:
+- [x] **Step 1: Edit.** In the field-key block (sorted alphabetically): delete `sym-bud` (line 69) and `sym-cad` (line 71) IF nothing else uses them — check first:
 
 ```bash
 cd /home/david/workspace/rete && grep -n "sym-bud\|sym-cad\b" protocol/MANIFEST.cddl
@@ -871,21 +871,21 @@ Replace line 353 with (#285):
 gw-verdict = #6.39("live") / #6.39("silent") / #6.39("neverSeen") / #6.39("unknown")
 ```
 
-- [ ] **Step 2: Lint and gate.**
+- [x] **Step 2: Lint and gate.**
 
 ```bash
 cd /home/david/workspace/rete && python3 protocol/tools/manifest_lint.py protocol/MANIFEST.cddl && cd nodus/nsl && python3 -m pytest -q tools/test_manifest_gate.py ../../protocol/tools 2>&1 | tail -3
 ```
 Expected: lint clean; pytest green. `test_pin_manifest.py` computes the hash from the file, so it follows the edit.
 
-- [ ] **Step 3: Record the new hash** (it is the `obs/build.man` pin every node built from here on carries, and the served-hash side on the gateway):
+- [x] **Step 3: Record the new hash** (it is the `obs/build.man` pin every node built from here on carries, and the served-hash side on the gateway):
 
 ```bash
 cd /home/david/workspace/rete && sha256sum protocol/MANIFEST.cddl
 ```
 Write the first 16 hex chars into the commit message.
 
-- [ ] **Step 4: Commit.**
+- [x] **Step 4: Commit.**
 
 ```bash
 cd /home/david/workspace/rete && git add protocol/MANIFEST.cddl && git commit -m "protocol(#273 #285): Liveness { misses, telCad }; gw-verdict names all four verdicts
@@ -911,7 +911,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 **Interfaces:**
 - Produces: `type Declaration struct { TelCadMs, Misses int64 }`, `func (d Declaration) BudgetMs() int64`, `func (s *Store) DeclaredLiveness(nodeID string) (Declaration, bool, error)`; `LivenessChange{NodeID, Verdict, SinceMs, BudgetMs, TelCadMs, Misses}`.
 
-- [ ] **Step 1: Tests first — the store reader.** In `store_test.go` rename `TestDeclaredBudgetReadsTheNodesOwnRecord` → `TestDeclaredLivenessReadsTheNodesOwnRecord`, encode `{misses: 8, telCad: 2000}` (keys in that order), and assert:
+- [x] **Step 1: Tests first — the store reader.** In `store_test.go` rename `TestDeclaredBudgetReadsTheNodesOwnRecord` → `TestDeclaredLivenessReadsTheNodesOwnRecord`, encode `{misses: 8, telCad: 2000}` (keys in that order), and assert:
 ```go
 	d, ok, err := st.DeclaredLiveness("n1")
 	if err != nil || !ok || d.TelCadMs != 2_000 || d.Misses != 8 || d.BudgetMs() != 16_000 {
@@ -929,7 +929,7 @@ In `TestDeclaredBudgetSurvivesAGarbledDeclaration` (rename `…Liveness…`) the
 ```
 and the call `st.DeclaredBudget("n1")` → `st.DeclaredLiveness("n1")`.
 
-- [ ] **Step 2: Tests first — the sweep.** In `sweep_test.go` the helper becomes:
+- [x] **Step 2: Tests first — the sweep.** In `sweep_test.go` the helper becomes:
 ```go
 // declare writes what a node would have pushed at obs/liveness: its telCad and
 // the number of consecutive misses it tolerates (rete#273 D2). porta derives
@@ -1011,13 +1011,13 @@ func lastReason(t *testing.T, st *Store, node string) string {
 
 `cval_test.go:116-134`: the golden becomes `{misses: 604800, telCad: 2000}` (the host gate's clamp case, Step 6); set `want` to `""` for now — Step 4 prints the real bytes.
 
-- [ ] **Step 3: Run; expect compile failures naming `DeclaredLiveness`, `TelCadMs`, `Misses`.**
+- [x] **Step 3: Run; expect compile failures naming `DeclaredLiveness`, `TelCadMs`, `Misses`.**
 
 ```bash
 cd /home/david/workspace/rete/porta && go test ./internal/space/ ./internal/portacli/ ./internal/cval/ 2>&1 | head -20
 ```
 
-- [ ] **Step 4: Implement.** In `store.go` replace `DeclaredBudget` (and its comment) with:
+- [x] **Step 4: Implement.** In `store.go` replace `DeclaredBudget` (and its comment) with:
 
 ```go
 // Declaration is what a node published at obs/liveness (rete#231 D2, shape per
@@ -1148,14 +1148,14 @@ Update the `Sweep` doc comment's "THE RULE IS ONE LINE" paragraph: `bud` is now 
 ```
 Any other reader of `DeclaredBudget` or `BudgetMs` in `porta/`: `rg -n "DeclaredBudget|\.BudgetMs\b" porta` and fix.
 
-- [ ] **Step 5: Run; pin the golden.**
+- [x] **Step 5: Run; pin the golden.**
 
 ```bash
 cd /home/david/workspace/rete/porta && gofmt -l . ; go test ./... 2>&1 | tail -15
 ```
 Expected: everything green except `TestGoalLivenessGoldenForTheHostGate`, whose failure prints `goal/liveness golden = <hex>`. Paste that hex into `want` AND into `GOAL_LIVENESS_HEX` in `porta_sync_host.sh`. Re-run: all green.
 
-- [ ] **Step 6: The host gate and the tutorial page.** In `nodus/oevm/tests/porta_sync_host.sh`:
+- [x] **Step 6: The host gate and the tutorial page.** In `nodus/oevm/tests/porta_sync_host.sh`:
   - line 155 grep `"#cad: 2000"` → `"#telCad: 2000"`; line 158 grep `"#bud: 16000"` → `"#misses: 16"` and its message → `"obs/liveness does not carry the declared 16-miss allowance"`.
   - lines 226–244: the comment becomes `# constant is Liveness { misses: 604800, telCad: 2000 } — a week of misses, which the node CLAMPS to the 24 h ceiling (43200 x 2 s) and publishes; the goal keeps 604800. The diff IS the answer.`; the two `grep "46000"` → `grep "#misses: 43200"`; `grep "45000"` → `grep "604800"`; the echo → `"  goal/liveness misses 604800 -> obs/liveness misses 43200: the node clamped, and the diff IS the answer"`.
   - `docs/tutorials/03-porta.md:196` → `  obs/liveness   seq=6   boot=1  #Liveness{#misses: 16, #telCad: 2000}` and read the surrounding prose for `bud`/`budget`/`16 s`: rewrite to say the node declares its cadence and a miss allowance and porta derives the 32 s budget.
@@ -1165,7 +1165,7 @@ cd /home/david/workspace/rete/nodus/oevm && bash tests/porta_sync_host.sh 2>&1 |
 ```
 Expected: `PORTA SYNC OK`.
 
-- [ ] **Step 7: Commit.**
+- [x] **Step 7: Commit.**
 
 ```bash
 cd /home/david/workspace/rete && gofmt -l porta && git add porta nodus/oevm/tests/porta_sync_host.sh docs/tutorials/03-porta.md && git commit -m "feat(#273): porta derives bud = telCad x misses, refuses below its tick (D2.1), counts misses in the reason (D2.2)
@@ -1177,7 +1177,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 ### Task 7: The whole tree green
 
-- [ ] **Step 1: The three gates, in this order (never two nsl suites at once; porta_sync_host is standalone).**
+- [x] **Step 1: The three gates, in this order (never two nsl suites at once; porta_sync_host is standalone).**
 
 ```bash
 cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py 2>&1 | tail -6
@@ -1186,9 +1186,9 @@ cd /home/david/workspace/rete/nodus/oevm && bash tests/porta_sync_host.sh 2>&1 |
 ```
 Expected: `Passed: 280 / Failed: 0` with EVERY aux entry green including `tutorial-porta` and `porta-cli`; `ok` for every Go package; `PORTA SYNC OK`. A SKIP on the aux line is a finding — read it.
 
-- [ ] **Step 2: CLAUDE.md gate count.** Update the `279 passed` line under `## Gates` to the new count and date.
+- [x] **Step 2: CLAUDE.md gate count.** Update the `279 passed` line under `## Gates` to the new count and date.
 
-- [ ] **Step 3: Commit.**
+- [x] **Step 3: Commit.**
 
 ```bash
 cd /home/david/workspace/rete && git add CLAUDE.md && git commit -m "docs: gate count after #273's tests
