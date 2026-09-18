@@ -4,8 +4,9 @@ porta space-sync — the operator REQUESTS a budget and the node answers (rete#2
 porta may not write obs/**, so it writes goal/liveness and the node publishes what it
 actually adopted. There is no accept/reject protocol and no error path: the goal/obs
 diff IS the answer, which is the convergence view this system already has. An operator
-asking for 45 s on a 2 s node sees 46 s come back, and learns the grid without anyone
-publishing it.
+asking for 23 misses on a 2 s node sees 46 s come back as the budget; since
+rete#273 D2 the request names misses and the budget is telCad x misses by
+construction, so there is no grid to learn.
 
 THE ABSENT CASE RUNS FIRST, and the wrongly-kinded case is a SEPARATE test
 (21_liveness_goal_stream.nsl): one image is one space, kind is pinned by the first
@@ -14,20 +15,20 @@ Both cases in one file would be testing the kind pin, not the goal.
 
 expect:
 absent leaves it alone true
-adopted 2000 46000
-clamped 2000 86400000
+adopted 2000 23 46000
+clamped 2000 43200 86400000
 *)
 class LivenessGoal packageUsing: manifest = () (
   bridgeOn: platform = (
     | b |
     b:: platform PortaBridge socket: nil space: platform space id: 'test' peer: '::1' port: 1
         spans: platform Spans new.
-    b liveness: 2000 budget: 16000.
+    b liveness: 2000 misses: 8.
     ^ b )
 
-  goal: platform bud: ms = (
+  goal: platform misses: n = (
     (platform space channel: 'goal/liveness')
-      put: '' value: (platform Record tag: #Liveness with: #cad -> 2000 with: #bud -> ms).
+      put: '' value: (platform Record tag: #Liveness with: #misses -> n with: #telCad -> 2000).
     ^ self )
 
   public main: platform args: args = (
@@ -38,17 +39,17 @@ class LivenessGoal packageUsing: manifest = () (
     b applyLivenessGoal.
     ('absent leaves it alone ' , (b budMs = before) printString) println.
 
-    (* 45 s is not a whole number of 2 s cadences: adopted as 46 s. *)
+    (* 23 misses on a 2 s cadence: adopted as asked, budget 46 s by construction. *)
     b:: self bridgeOn: platform.
-    self goal: platform bud: 45000.
+    self goal: platform misses: 23.
     b applyLivenessGoal.
-    ('adopted ' , b cadMs printString , ' ' , b budMs printString) println.
+    ('adopted ' , b cadMs printString , ' ' , b missBudget printString , ' ' , b budMs printString) println.
 
     (* A week is clamped to the ceiling and PUBLISHED (D7), never refused. *)
     b:: self bridgeOn: platform.
-    self goal: platform bud: 604800000.
+    self goal: platform misses: 604800.
     b applyLivenessGoal.
-    ('clamped ' , b cadMs printString , ' ' , b budMs printString) println.
+    ('clamped ' , b cadMs printString , ' ' , b missBudget printString , ' ' , b budMs printString) println.
   )
 ) : (
 )

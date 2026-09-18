@@ -31,7 +31,7 @@ class KernelTick packageUsing: manifest = () (
     tickChan:: space channel: 'sys/tick'.
     bridge:: platform PortaBridge socket: nil space: space id: 'test' peer: '::1' port: 1
       spans: platform Spans new.
-    bridge liveness: 2000 budget: 16000.
+    bridge liveness: 2000 misses: 8.
 
     ('before ' , timers pendingCount printString) println.
     bridge startTicking: timers on: tickChan.

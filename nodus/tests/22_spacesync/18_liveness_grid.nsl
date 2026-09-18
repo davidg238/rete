@@ -3,24 +3,25 @@ porta space-sync — what the node ADOPTS is not always what it was asked for
 (rete#231 D3/D7), and the divergence is the answer rather than an error.
 
 Three rules, each of which the gateway must never have to know in advance:
-  bud >= cad          — a budget shorter than the cadence promises a silence the
-                        node cannot keep even when perfectly healthy
-  bud on the grid      — every period is an integer multiple of the base (D3), so
-                        obligations land on the same radio wakeup by construction
-  bud <= 24 h          — CLAMPED and published, never rejected (D7): a managed
-                        fleet means no node can make itself unjudgeable, and a
-                        silent refusal would be indistinguishable from acceptance
+  misses >= 1          — a budget below one cadence promises a silence the node
+                         cannot keep even when perfectly healthy
+  bud = telCad x misses — STRUCTURAL since rete#273 D2: there is no bud on the
+                         wire to snap, so the grid cannot be violated
+  bud <= 24 h          — CLAMPED on misses and published, never rejected (D7): a
+                         managed fleet means no node can make itself unjudgeable,
+                         and a silent refusal would be indistinguishable from
+                         acceptance
 
 `space seq` READS the counter; `space stamp` BUMPS it (prim 138 vs 139), so the
 republish assertions below are written against `seq` — against `stamp` the
 idempotent case cannot pass and the republished case cannot fail.
 
-The socket is nil; `liveness:budget:` is the seam under test.
+The socket is nil; `liveness:misses:` is the seam under test.
 expect:
-plain 2000 16000
-floor 2000 2000
-grid 2000 46000
-ceiling 30000 86400000
+plain 2000 8 16000
+floor 2000 1 2000
+ceiling 30000 2880 86400000
+cadceiling 86400000 1 86400000
 republished true
 idempotent true
 *)
@@ -30,43 +31,41 @@ class LivenessGrid packageUsing: manifest = () (
         spans: platform Spans new )
 
   show: label bridge: b = (
-    (label , ' ' , b cadMs printString , ' ' , b budMs printString) println.
+    (label , ' ' , b cadMs printString , ' ' , b missBudget printString , ' ' , b budMs printString) println.
     ^ self )
 
   public main: platform args: args = (
     | b seqBefore |
-    (* An ordinary declaration passes through untouched: 8 x 2 s is already a
-       whole number of cadences. *)
+    (* An ordinary declaration passes through untouched; the budget is derived. *)
     b:: self bridgeOn: platform.
-    b liveness: 2000 budget: 16000.
+    b liveness: 2000 misses: 8.
     self show: 'plain' bridge: b.
 
-    (* A budget SHORTER than the cadence is raised to it. *)
+    (* Zero misses is raised to one: the budget is never below the cadence. *)
     b:: self bridgeOn: platform.
-    b liveness: 2000 budget: 500.
+    b liveness: 2000 misses: 0.
     self show: 'floor' bridge: b.
 
-    (* 45 s is not a whole number of 2 s cadences: the node snaps UP to 46 s and
-       publishes that. Nothing had to know the legal values in advance. *)
+    (* A week of misses is clamped to the ceiling ON MISSES: 2880 x 30 s = 24 h. *)
     b:: self bridgeOn: platform.
-    b liveness: 2000 budget: 45000.
-    self show: 'grid' bridge: b.
-
-    (* A week is clamped to the ceiling, on the grid: 86400000 is 2880 x 30 s. *)
-    b:: self bridgeOn: platform.
-    b liveness: 30000 budget: 604800000.
+    b liveness: 30000 misses: 604800000.
     self show: 'ceiling' bridge: b.
+
+    (* A cadence past the ceiling is clamped to it, and then only ONE miss fits. *)
+    b:: self bridgeOn: platform.
+    b liveness: 999999999 misses: 8.
+    self show: 'cadceiling' bridge: b.
 
     (* A declaration that MOVES the pair must re-publish; one that repeats it
        must not, or the row rides every push forever. *)
     b:: self bridgeOn: platform.
     b publishLiveness.
     seqBefore:: platform space seq.
-    b liveness: 2000 budget: 16000.
+    b liveness: 2000 misses: 8.
     b publishLiveness.
     ('republished ' , (platform space seq > seqBefore) printString) println.
     seqBefore:: platform space seq.
-    b liveness: 2000 budget: 16000.
+    b liveness: 2000 misses: 8.
     b publishLiveness.
     ('idempotent ' , (platform space seq = seqBefore) printString) println.
   )

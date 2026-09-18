@@ -1,0 +1,35 @@
+(*
+rete#273 D1 — appCad is DECLARED by the app, defaults to telCad x 8, and is clamped.
+The observer reads it through prim 158; on the host nothing judges it, so what this
+proves is the kernel's half: the default, the override, the clamp, and that the
+declaration survives a cadence re-arm.
+expect:
+default 16000
+declared 4000
+clamped 86400000
+withdrawn 16000
+rearmed 40000
+*)
+class LivenessAppCad packageUsing: manifest = () (
+  bridgeOn: platform = (
+    | b |
+    b:: platform PortaBridge socket: nil space: platform space id: 'test' peer: '::1' port: 1
+        spans: platform Spans new.
+    b liveness: 2000 misses: 8.
+    ^ b )
+
+  public main: platform args: args = (
+    | b |
+    b:: self bridgeOn: platform.
+    ('default ' , b appCadMs printString) println.
+    b appLiveness: 4000.
+    ('declared ' , b appCadMs printString) println.
+    b appLiveness: 999999999.
+    ('clamped ' , b appCadMs printString) println.
+    b appLiveness: 0.
+    ('withdrawn ' , b appCadMs printString) println.
+    b liveness: 5000 misses: 8.
+    ('rearmed ' , b appCadMs printString) println.
+  )
+) : (
+)

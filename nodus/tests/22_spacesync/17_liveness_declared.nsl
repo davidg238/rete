@@ -14,8 +14,8 @@ forever, against measured headroom, and pushFrame trims from the TAIL.
 The socket is nil, so no I/O is attempted; publishLiveness is the seam under test.
 expect:
 tag true
-cad 30000
-bud 240000
+telCad 30000
+misses 8
 published once true
 seq advanced true
 *)
@@ -33,8 +33,8 @@ class LivenessDeclared packageUsing: manifest = () (
     bridge publishLiveness.
     rec:: (space channel: 'obs/liveness') peek: '' ifAbsent: [ nil ].
     ('tag ' , (rec tag = #Liveness) printString) println.
-    ('cad ' , (rec at: #cad ifAbsent: [ -1 ]) printString) println.
-    ('bud ' , (rec at: #bud ifAbsent: [ -1 ]) printString) println.
+    ('telCad ' , (rec at: #telCad ifAbsent: [ -1 ]) printString) println.
+    ('misses ' , (rec at: #misses ifAbsent: [ -1 ]) printString) println.
 
     (* ONCE PER BOOT: a second send must not re-stamp the cell, or the row rides
        every push for the life of the node. *)

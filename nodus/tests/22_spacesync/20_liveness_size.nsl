@@ -5,23 +5,24 @@ document's size law was once replaced with a reassurance in the same edit that d
 the record.
 
 WORST LEGAL VALUES, not a fresh node's. CBOR is shortest-form, so the value decides the
-field width; the widest legal pair is a 24 h budget (86400000, five bytes) on the
-coarsest cadence the ceiling permits. Measuring the easy case is exactly how an estimate
+field width; the widest legal pair (rete#273 D2) is the coarsest telCad the ceiling
+permits (86400000, five bytes) beside the most misses a 1 ms telCad permits (86400000
+again) — the pair is not jointly legal, and that is the point: the width bound is. Measuring the easy case is exactly how an estimate
 becomes wrong in the field.
 
 obs/liveness is written ONCE PER BOOT, so it does not join 09_batch_size's steady-state
 frame — it rides one push, alongside obs/build and obs/apps/main. What matters here is
 that one row plus its ~17 B of seq/path/kind fits the headroom that file measures.
 expect:
-liveness 37
+liveness 43
 *)
 class LivenessSize packageUsing: manifest = () (
   public main: platform args: args = (
     | cbor rec |
     cbor:: platform Cbor.
     rec:: platform Record tag: #Liveness
-      with: #cad -> 86400000
-      with: #bud -> 86400000.
+      with: #misses -> 86400000
+      with: #telCad -> 86400000.
     ('liveness ' , (cbor encode: rec) byteSize printString) println.
   )
 ) : (

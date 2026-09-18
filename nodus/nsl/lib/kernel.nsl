@@ -1682,34 +1682,39 @@ class Kernel usingPlatform: platform = (
          to the same story from the other end: obs/apps/main is written once per
          boot because the running hash cannot change without one. *)
       otaStaged ::= false. otaConfirmed ::= false. appsPublished ::= false.
-      (* rete#231 D2 — the liveness contract. `cad` is how often this node INTENDS
-         to speak; `bud` is the longest silence that is still healthy, and it is the
-         ONLY number the gateway judges against (`now - last_seen > bud`). The gap
-         between them is this node's own allowance for missed datagrams — c6-bell
-         misses roughly half its check-ins to ordinary mesh loss, and the node is the
-         only party that knows its own loss rate.
+      (* rete#231 D2 / rete#273 D2 — the liveness contract. `cadMs` is telCad: how
+         often this node INTENDS to speak. `missBudget` is how many consecutive
+         check-ins it tolerates losing to ordinary mesh loss before its silence
+         means anything — c6-bell misses roughly half of its at 30 s, and the node
+         is the only party that knows its own loss rate. porta derives the budget
+         as telCad x misses; there is no `bud` on the wire and so no grid to snap
+         (D2: an incoherent declaration is unrepresentable). 8 is the one default at
+         every period (D2.3): the false-trip rate is ~p^misses and the period cancels.
 
          The defaults are compiled in so that a node which has never heard from porta
          still has a budget, which is what makes a never-seen node judgeable at all.
          30 s is the slowest cadence on this bench; declaring a cadence SLOWER than
-         the node keeps is always safe, because porta judges `bud` and speaking more
-         often than declared violates nothing. `8 x` is #215's measured wedge slack,
-         reused rather than a second multiplier invented — and note this is the node
-         multiplying its OWN number, not the gateway multiplying someone else's,
-         which is precisely the k=3 that rete#231 D4 deletes.
+         the node keeps is always safe, because speaking more often than declared
+         violates nothing.
+
+         `appCadDeclared` is rete#273 D1's other number — how long the app's event
+         dispatch may go without running before the OBSERVER reboots it. 0 means
+         the app declared nothing and the bridge declares cadMs x 8 on its behalf
+         (the same 16 s every gate already reads at cad 2000). It NEVER crosses
+         the wire.
 
          `livenessPublished` is the obs/apps/main rule (#25): written once per boot,
          because a cell that never changes must not be allowed to crowd out the one
          that does under pushFrame's tail-trim. A declaration or an accepted goal
          clears it, which is the only way the value can move. *)
-      cadMs ::= 30000. budMs ::= 240000. livenessPublished ::= false.
+      cadMs ::= 30000. missBudget ::= 8. appCadDeclared ::= 0. livenessPublished ::= false.
       (* rete#231 D1 — the base tick the KERNEL owns. `tickTimers` is the app's
          Timers instance, handed in and never minted here. Since rete#244
          `platform timers` answers the per-kernel singleton, so handing it is
          convention rather than load-bearing — but an explicitly-constructed
          private registry (Timers usingSpace:seam:) still aliases the global
          C registry, so the handed-in shape stays. `tickToken` is what makes the registration
-         once-per-boot observable, and it is what adoptCad:bud:'s re-arm cancels
+         once-per-boot observable, and it is what adoptCad:misses:'s re-arm cancels
          now that the cadence half of goal/liveness is honoured (rete#240.2). *)
       tickTimers ::= nil. tickChannel ::= nil. tickToken ::= nil.
       pending ::= OrderedCollection new.
@@ -2349,7 +2354,7 @@ class Kernel usingPlatform: platform = (
       self publishApps.
       self offerPanic.
       (* BEFORE publishLiveness, so a request arriving on this tick is answered on
-         this tick rather than the next: adoptCad:bud: clears livenessPublished
+         this tick rather than the next: adoptCad:misses: clears livenessPublished
          and the publish below is what carries the answer back. *)
       self applyLivenessGoal.
       self publishLiveness.
@@ -2493,60 +2498,80 @@ class Kernel usingPlatform: platform = (
       appsPublished:: true.
       ^ self )
 
-    public cadMs = ( ^ cadMs )
-    public budMs = ( ^ budMs )
+    public cadMs      = ( ^ cadMs )
+    public missBudget = ( ^ missBudget )
+    (* DERIVED, never stored and never on the wire (rete#273 D2). *)
+    public budMs      = ( ^ cadMs * missBudget )
+    (* rete#273 D1: the EFFECTIVE app cadence — the declaration, or the bridge's
+       default of telCad x 8 when the app said nothing. This is the number the
+       observer holds. *)
+    public appCadMs   = ( appCadDeclared = 0 ifTrue: [ ^ cadMs * 8 ]. ^ appCadDeclared )
 
     (* rete#231 D7 — the one invented constant in the design, and it is a ceiling on
        the DECLARATION rather than a cadence: a node speaking once a month is free to
        try, it simply cannot promise a month of silence and still be considered
-       healthy. 24 h is the coarsest granularity at which a fleet is still a fleet. *)
+       healthy. 24 h is the coarsest granularity at which a fleet is still a fleet.
+       Since rete#273 D2 it bounds the PRODUCT telCad x misses, clamped on misses. *)
     livenessCeilingMs = ( ^ 86400000 )
 
-    (* rete#231 D2/D3/D7 — the ONE place a liveness pair is adopted, whether it came
-       from the app (here) or from porta (applyLivenessGoal). Two entry points and
-       one rule, because a snap that differs between them is a grid the operator
-       cannot learn by asking.
+    (* rete#231 D2/D7, rete#273 D2 — the ONE place a liveness pair is adopted,
+       whether it came from the app (here) or from porta (applyLivenessGoal).
 
        CLAMPED, NEVER REJECTED. Every path out of this method adopts something and
        publishes it, so `goal/liveness` versus `obs/liveness` always answers "did the
-       node accept?" — a silent refusal would read exactly like acceptance.
-
-       "Round up to a whole number of cadences" is ((n + m - 1) // m) * m. *)
-    adoptCad: aCadMs bud: aBudMs = (
-      | cad bud ceiling cadMoved |
+       node accept?" — a silent refusal would read exactly like acceptance. *)
+    adoptCad: aCadMs misses: aMisses = (
+      | cad n ceiling cadMoved |
       ceiling:: self livenessCeilingMs.
       cad:: aCadMs.
       cad < 1 ifTrue: [ cad:: 30000 ].
       cad > ceiling ifTrue: [ cad:: ceiling ].
-      bud:: aBudMs.
-      bud < cad ifTrue: [ bud:: cad ].
-      bud:: ((bud + cad - 1) // cad) * cad.
-      (* The clamp comes AFTER the snap and lands back on the grid: a ceiling that
-         is not a whole number of cadences would publish a value the node's own rule
-         says is illegal. `cad <= ceiling` above is what keeps this >= cad. *)
-      bud > ceiling ifTrue: [ bud:: (ceiling // cad) * cad ].
-      (cad = cadMs and: [ bud = budMs ]) ifTrue: [ ^ self ].
+      n:: aMisses.
+      n < 1 ifTrue: [ n:: 1 ].
+      n > (ceiling // cad) ifTrue: [ n:: ceiling // cad ].
+      (cad = cadMs and: [ n = missBudget ]) ifTrue: [ ^ self ].
       cadMoved:: (cad = cadMs) not.
       cadMs:: cad.
-      budMs:: bud.
-      (* rete#240.2 — an adopted cadence is a KEPT cadence. The base tick is the
-         kernel's (D1), so the one adoption point re-arms it: cancel the old
-         registration, register at the new period. Guarded on tickToken so a
-         pre-startTicking: declaration (the app's constructor-time liveness:)
-         just sets the period startTicking: will use. *)
+      missBudget:: n.
+      (* rete#240.2 — an adopted cadence is a KEPT cadence: re-arm the base tick
+         at the new period, and re-declare the app cadence, whose default rides
+         on it. Guarded on tickToken so a pre-startTicking: declaration just sets
+         the period startTicking: will use. *)
       (cadMoved and: [ (tickToken == nil) not ]) ifTrue: [
         tickTimers cancel: tickToken.
-        tickToken:: tickTimers every: cadMs post: #go on: tickChannel ].
+        tickToken:: tickTimers every: cadMs post: #go on: tickChannel.
+        self declareAppCad ].
       (* The pair moved, so the published cell is stale. Clearing the flag is the
          whole of the re-publish mechanism — no second path, no dirty list. *)
       livenessPublished:: false.
       ^ self )
 
-    (* The app's declaration. It is a SETTER and not a constructor argument on
-       purpose: Task 10 moves the base tick into the kernel, at which point the
-       cadence half of this call goes away, and a sixth keyword at thirteen
-       construction sites would have to go with it. *)
-    public liveness: aCadMs budget: aBudMs = ( ^ self adoptCad: aCadMs bud: aBudMs )
+    (* The app's declaration of how often it will speak and how many misses it
+       tolerates. A SETTER and not a constructor argument, on purpose (see
+       startTicking:). *)
+    public liveness: aCadMs misses: aMisses = ( ^ self adoptCad: aCadMs misses: aMisses )
+
+    (* rete#273 D1 — the app's declaration of how long its event dispatch may go
+       without running. 0 withdraws it and the bridge's default (telCad x 8) is
+       back in force. Clamped to the same 24 h ceiling, published to the OBSERVER
+       only — this number never rides the wire. Takes effect at once if the tick
+       is already armed, otherwise at startTicking:. *)
+    public appLiveness: aMs = (
+      | ms |
+      ms:: aMs.
+      ms < 0 ifTrue: [ ms:: 0 ].
+      ms > self livenessCeilingMs ifTrue: [ ms:: self livenessCeilingMs ].
+      appCadDeclared:: ms.
+      (tickToken == nil) ifFalse: [ self declareAppCad ].
+      ^ self )
+
+    (* The one send that reaches the observer: the EFFECTIVE number, prim 158.
+       The observer sees a number and not its provenance — only this class knows
+       whether the app chose it or the default stood in (rete#273 D1.1's dump
+       question is answered from here, not from the sample). *)
+    declareAppCad = (
+      platform appLiveness: self appCadMs.
+      ^ self )
 
     (* rete#231 D1 — the heartbeat, owned by the kernel and riding the reactor.
 
@@ -2577,6 +2602,7 @@ class Kernel usingPlatform: platform = (
       tickTimers:: aTimers.
       tickChannel:: aChannel.
       tickToken:: aTimers every: cadMs post: #go on: aChannel.
+      self declareAppCad.
       ^ self )
 
     (* rete#231 D2 — porta's REQUEST, read once per check-in from the tail of the
@@ -2585,15 +2611,16 @@ class Kernel usingPlatform: platform = (
        (#133, a reified block cannot resolve its outer chain on this VM).
 
        THE NODE ALWAYS WINS, and it wins by publishing rather than by refusing.
-       Every request is adopted through the same `adoptCad:bud:` the app's own
-       declaration goes through, so the grid and the ceiling apply identically —
-       an operator asks for 45 s on a 2 s node, `obs/liveness` answers 46 s, and
-       the divergence is the whole answer. Nothing had to know the legal values.
+       Every request is adopted through the same `adoptCad:misses:` the app's own
+       declaration goes through, so the clamp applies identically — an operator
+       asks for 604800 misses on a 2 s node, `obs/liveness` answers 43200, and
+       the divergence is the whole answer. Since rete#273 D2 the request names
+       `misses` and `telCad`; the budget is their product and is never sent.
 
        THE CADENCE HALF IS HONOURED since rete#240.2 — Task 10 landed the kernel
-       base tick, so an adopted cadence is now a kept one: adoptCad:bud: re-arms
-       the tick when the cadence moves. The record's cad is read like its bud,
-       and a request missing either is the same bad record. (Until Task 10 the
+       base tick, so an adopted cadence is now a kept one: adoptCad:misses: re-arms
+       the tick when the cadence moves. The record's telCad is read like its
+       misses, and a request missing either is the same bad record. (Until Task 10 the
        cad was deliberately re-asserted from what the node really did, because
        adopting a cadence the app's own timer did not keep would have published
        the `port=up` lie this design exists to refuse.)
@@ -2604,7 +2631,7 @@ class Kernel usingPlatform: platform = (
        drives the tick. obs/health and tel/log would stop, permanently, with
        nothing logged. *)
     public applyLivenessGoal = (
-      | rec bud cad |
+      | rec n cad |
       rec:: space peekCell: 'goal/liveness' ifStream: [
         self telLog: #error text: 'liveness bad record'.
         nil ].
@@ -2612,15 +2639,15 @@ class Kernel usingPlatform: platform = (
       rec tag = #Liveness ifFalse: [
         self telLog: #error text: 'liveness bad record'.
         ^ self ].
-      bud:: rec at: #bud ifAbsent: [ nil ].
-      bud == nil ifTrue: [
+      n:: rec at: #misses ifAbsent: [ nil ].
+      n == nil ifTrue: [
         self telLog: #error text: 'liveness bad record'.
         ^ self ].
-      cad:: rec at: #cad ifAbsent: [ nil ].
+      cad:: rec at: #telCad ifAbsent: [ nil ].
       cad == nil ifTrue: [
         self telLog: #error text: 'liveness bad record'.
         ^ self ].
-      ^ self adoptCad: cad bud: bud )
+      ^ self adoptCad: cad misses: n )
 
     (* rete#231 D2 — the node's own authority, on the node's own path. porta writing
        obs/** would be a lie (2026-08-10 D7), so the operator gets goal/liveness and
@@ -2633,8 +2660,8 @@ class Kernel usingPlatform: platform = (
     public publishLiveness = (
       livenessPublished ifTrue: [ ^ self ].
       space put: 'obs/liveness' value: (Record tag: #Liveness
-        with: #cad -> cadMs
-        with: #bud -> budMs).
+        with: #misses -> missBudget
+        with: #telCad -> cadMs).
       livenessPublished:: true.
       ^ self )
 
@@ -4080,6 +4107,10 @@ class Kernel usingPlatform: platform = (
   (* rete#186: which BOARD this is, baked at build time. buildId names the image,
      bootId names the run, this names the hardware. *)
   public nodeId            = ( ^ platform nodeId )
+  (* rete#273 D1: an app WITHOUT a bridge (the wedge probes) declares its own
+     app cadence straight to the observer. Bridged apps go through
+     PortaBridge>>appLiveness:, which also owns the default. *)
+  public appLiveness: aMs  = ( platform appLiveness: aMs. ^ self )
   (* rete#162: the RUN of that build — a counter incremented once per boot and
      persisted in NVS (RECORDS §3). Sibling of buildId above and forwarded here
      for the same reason: an app's `platform` is the kernel instance, so without

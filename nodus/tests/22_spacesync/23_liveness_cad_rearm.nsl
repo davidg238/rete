@@ -9,11 +9,11 @@ tick 2
 done
 *)
 (* rete#240.2 — goal/liveness's cadence half is HONOURED. Adopting a new cad
-   re-arms the kernel base tick at the one adoption point (adoptCad:bud:),
+   re-arms the kernel base tick at the one adoption point (adoptCad:misses:),
    cancelling the old registration: pendingCount stays 1, the OLD period's due
    time passes silently (clock 4000 below), and the next tick lands one NEW
-   period after the re-arm (clock 7000). Budget re-snaps to the new grid:
-   12000 on a 5000 grid adopts as 15000. Host virtual clock; the pulse-mailbox
+   period after the re-arm (clock 7000). The budget is telCad x misses by
+   construction: 5000 x 3 = 15000. Host virtual clock; the pulse-mailbox
    half of this seam is target work (nodus/oevm/tests/target). *)
 class LivenessCadRearm packageUsing: manifest = ( | ticks ::= 0. | ) (
   public main: platform args: args = (
@@ -25,14 +25,14 @@ class LivenessCadRearm packageUsing: manifest = ( | ticks ::= 0. | ) (
     tickChan whenever: '' do: [ :m | ticks:: ticks + 1. ('tick ' , ticks printString) out ].
     bridge:: platform PortaBridge socket: nil space: space id: 'test' peer: '::1' port: 1
       spans: platform Spans new.
-    bridge liveness: 2000 budget: 16000.
+    bridge liveness: 2000 misses: 8.
     bridge startTicking: timers on: tickChan.
     ('armed ' , timers pendingCount printString) out.
 
     platform advanceMillis: 2000. space drain.        (* tick 1 at clock 2000 *)
 
     (space channel: 'goal/liveness')
-      put: '' value: (platform Record tag: #Liveness with: #cad -> 5000 with: #bud -> 12000).
+      put: '' value: (platform Record tag: #Liveness with: #misses -> 3 with: #telCad -> 5000).
     space drain.
     bridge applyLivenessGoal.
     ('adopted ' , bridge cadMs printString , ' ' , bridge budMs printString) out.
