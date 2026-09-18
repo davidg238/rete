@@ -8,7 +8,7 @@
 
 **Tech Stack:** C99 (`nodus/oevm/src`, host-testable header), Zephyr C (`nodus/oevm/zephyr/src`), nsl (`nodus/nsl/lib/kernel.nsl` + node apps), Go 1.26 (`porta`), CDDL/zcbor (`protocol/MANIFEST.cddl`), bash target harness (`nodus/oevm/tests/target`).
 
-**Progress (2026-09-17):** Tasks 1 and 2 DONE and committed (`1315e1e`, `00c1470`); nsl suite green with `c-units` PASS. Task 3 is next.
+**Progress (2026-09-17):** Tasks 1–3 DONE and committed (`1315e1e`, `00c1470`, `365f8f9`); nsl suite 280/0, `c-units` PASS, `tutorial-porta` RED as expected until Task 6. Task 4 is next.
 
 **Spec:** `docs/design/2026-09-14-liveness-two-cadences-design.md` (D1 as amended 2026-09-17 in commit `bb26b32`; D2, D2.1, D2.2, D2.3; §2 deletions; §4 falsification; §5 sequencing; §6 promotion). **D3 (`#stalled`) is NOT in this plan** — it needs the TLA+ `DoSweep` correction first and is its own plan.
 
@@ -543,7 +543,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Produces (PortaBridge): `liveness: aCadMs misses: aMisses`, `appLiveness: aMs`, accessors `cadMs`, `missBudget`, `budMs` (= `cadMs * missBudget`, derived), `appCadMs` (effective: the declaration, or `cadMs * 8`). Wire record `Liveness { misses, telCad }`. Kernel: `appLiveness: aMs` forwarder.
 - Consumes: `platform appLiveness:` from Task 2.
 
-- [ ] **Step 1: Rewrite the tests first.** 
+- [x] **Step 1: Rewrite the tests first.** 
 
 `17_liveness_declared.nsl` — expect block becomes:
 ```
@@ -630,14 +630,14 @@ class LivenessAppCad packageUsing: manifest = () (
 )
 ```
 
-- [ ] **Step 2: Run 17 and 24 to see them fail.**
+- [x] **Step 2: Run 17 and 24 to see them fail.**
 
 ```bash
 cd /home/david/workspace/rete/nodus/nsl && python3 tools/run-one.py ../tests/22_spacesync/17_liveness_declared.nsl B; python3 tools/run-one.py ../tests/22_spacesync/24_liveness_app_cad.nsl B
 ```
 Expected: 17 prints `telCad -1`; 24 fails on `liveness:misses:` (does not understand).
 
-- [ ] **Step 3: The kernel edits.** In `nodus/nsl/lib/kernel.nsl`:
+- [x] **Step 3: The kernel edits.** In `nodus/nsl/lib/kernel.nsl`:
 
   1. Line 1705: `cadMs ::= 30000. budMs ::= 240000. livenessPublished ::= false.` → 
      ```
@@ -757,21 +757,21 @@ Expected: 17 prints `telCad -1`; 24 fails on `liveness:misses:` (does not unders
      ```
   7. Grep the kernel for every other reader of `budMs`/`bud`/`#bud`/`#cad` and fix each: `rg -n "budMs|#bud|#cad\b|adoptCad: |liveness:.*budget:" nodus/nsl/lib/kernel.nsl`. Expected after the edit: only the lines written above.
 
-- [ ] **Step 4: Run the seven tests one by one; then measure 20.**
+- [x] **Step 4: Run the seven tests one by one; then measure 20.**
 
 ```bash
 cd /home/david/workspace/rete/nodus/nsl && for t in 17_liveness_declared 18_liveness_grid 19_liveness_goal 21_liveness_goal_stream 22_kernel_tick 23_liveness_cad_rearm 24_liveness_app_cad; do python3 tools/run-one.py ../tests/22_spacesync/$t.nsl B 2>&1 | tail -2; done; python3 tools/run-one.py ../tests/22_spacesync/20_liveness_size.nsl B 2>&1 | grep -i "liveness"
 ```
 Expected: six PASS lines; 20 prints `liveness <N>` where N is the measured size. Pin N in 20's expect block AND note it for Task 9 (RECORDS). N should be near 43 (two 6-char keys at 9 B each, two 5-byte uints, 11 B tag+name, 3 B framing); if it is far from that, the record is malformed — look before pinning.
 
-- [ ] **Step 5: Full nsl suite.**
+- [x] **Step 5: Full nsl suite.**
 
 ```bash
 cd /home/david/workspace/rete/nodus/nsl && python3 tools/run_tests_oevm.py 2>&1 | tail -6
 ```
 Expected: `Passed: 280 / Failed: 0` (279 + test 24) and a green aux line EXCEPT `tutorial-porta`, which is expected RED until Task 6 changes porta and the tutorial page — note the failing line and move on.
 
-- [ ] **Step 6: Commit.**
+- [x] **Step 6: Commit.**
 
 ```bash
 cd /home/david/workspace/rete && git add nodus/nsl/lib/kernel.nsl nodus/tests/22_spacesync/ && git commit -m "feat(#273): the bridge declares telCad+misses on the wire and appCad to the observer
