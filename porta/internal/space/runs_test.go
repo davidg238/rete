@@ -65,7 +65,7 @@ func TestSweepAcrossAGatewayOutageIsUnknownAndNotSilent(t *testing.T) {
 		t.Fatalf("StartRun: %v", err)
 	}
 	checkIn(t, st, &clock, "bell", 0)
-	declare(t, st, "bell", 30_000, 240_000)
+	declare(t, st, "bell", 30_000, 8)
 	if err := st.MarkAlive(); err != nil {
 		t.Fatalf("MarkAlive: %v", err)
 	}

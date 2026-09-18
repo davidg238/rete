@@ -51,15 +51,21 @@ type LivenessChange struct {
 	NodeID   string
 	Verdict  string // live | silent | neverSeen | unknown
 	SinceMs  int64  // how long since the node was last heard from, at the verdict
-	BudgetMs int64  // the budget the NODE declared; 0 when it declared none
+	BudgetMs int64  // telCad x misses, both from the NODE; 0 when it declared none
+	TelCadMs int64  // the cadence the node declared; 0 when it declared none
+	Misses   int64  // the consecutive misses it tolerates; 0 when it declared none
 }
 
 // Sweep forms one liveness verdict per node and writes gw/liveness ONLY where
 // the verdict differs from the one already stored.
 //
 // THE RULE IS ONE LINE AND THERE ARE NO CONSTANTS IN IT: now - last_seen > bud,
-// where bud is the budget the NODE declared at obs/liveness. porta infers
-// nothing (rete#231 D4). What that deleted, and why it is a deletion rather
+// where bud = telCad x misses, both declared by the NODE at obs/liveness
+// (rete#273 D2 — there is no bud on the wire, so an incoherent pair is
+// unrepresentable). porta infers nothing (rete#231 D4) and contributes no
+// number; the ONE case it declines is a product below its own SweepTick
+// (D2.1), which it says out loud as #unknown rather than judging at 30 s
+// while claiming 16. What that deleted, and why it is a deletion rather
 // than a replacement: cadence used to be the median of the last ten
 // inter-arrival gaps, silence was 3 x that, and both the 10 and the 3 were
 // numbers porta picked. A node that had never spoken supplied no gaps and was
@@ -140,7 +146,7 @@ func (s *Store) Sweep() ([]LivenessChange, error) {
 	var changes []LivenessChange
 	var errs []error
 	for _, n := range nodes {
-		want, verdict, since, bud, reason, err := s.verdictFor(n.id, n.lastSeen, now)
+		want, verdict, since, d, reason, err := s.verdictFor(n.id, n.lastSeen, now)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("node %s: %w", n.id, err))
 			continue
@@ -153,7 +159,8 @@ func (s *Store) Sweep() ([]LivenessChange, error) {
 			continue
 		}
 		changes = append(changes, LivenessChange{
-			NodeID: n.id, Verdict: verdict, SinceMs: since, BudgetMs: bud,
+			NodeID: n.id, Verdict: verdict, SinceMs: since,
+			BudgetMs: d.BudgetMs(), TelCadMs: d.TelCadMs, Misses: d.Misses,
 		})
 	}
 	return changes, errors.Join(errs...)
@@ -166,25 +173,36 @@ func (s *Store) Sweep() ([]LivenessChange, error) {
 // deaf for the ten hours before that. Absence is only ever evidence when porta
 // was listening, which is why the deaf test sits between "past the budget" and
 // "silent" rather than at the top.
-func (s *Store) verdictFor(nodeID string, lastSeen sql.NullInt64, now int64) (want []byte, verdict string, since, bud int64, reason string, err error) {
+func (s *Store) verdictFor(nodeID string, lastSeen sql.NullInt64, now int64) (want []byte, verdict string, since int64, d Declaration, reason string, err error) {
 	if !lastSeen.Valid {
 		// D5: never heard from. Judgeable immediately and WITHOUT a budget,
 		// because the question "has this node ever spoken" needs no number.
-		return livenessNeverSeen, "neverSeen", 0, 0,
+		return livenessNeverSeen, "neverSeen", 0, Declaration{},
 			"neverSeen: no exchange has ever arrived from this node", nil
 	}
 	since = now - lastSeen.Int64
-	bud, ok, err := s.DeclaredBudget(nodeID)
+	d, ok, err := s.DeclaredLiveness(nodeID)
 	if err != nil {
-		return nil, "", 0, 0, "", fmt.Errorf("declared budget: %w", err)
+		return nil, "", 0, Declaration{}, "", fmt.Errorf("declared liveness: %w", err)
 	}
 	if !ok {
-		return livenessUnknown, "unknown", since, 0,
-			fmt.Sprintf("unknown: %d ms since the last exchange, and this node has declared no budget", since), nil
+		return livenessUnknown, "unknown", since, Declaration{},
+			fmt.Sprintf("unknown: %d ms since the last exchange, and this node has declared no cadence", since), nil
 	}
+	bud := d.BudgetMs()
+	// rete#273 D2.1: porta refuses to promise what its sweep cannot deliver.
+	// A budget below one tick would be detected at the tick, not at the
+	// budget; saying so is worth more than quietly enforcing 30 s.
+	if tick := SweepTick.Milliseconds(); bud < tick {
+		return livenessUnknown, "unknown", since, d,
+			fmt.Sprintf("unknown: telCad %d ms x misses %d = %d ms is below the sweep tick %d ms; porta cannot judge at that resolution — raise misses or telCad", d.TelCadMs, d.Misses, bud, tick), nil
+	}
+	// rete#273 D2.2: the miss count is a REASON, not a verdict — the ladder
+	// an operator reads, never a fifth state.
+	missed := float64(since) / float64(d.TelCadMs)
 	if since <= bud {
-		return livenessLive, "live", since, bud,
-			fmt.Sprintf("live: %d ms since the last exchange, budget %d ms", since, bud), nil
+		return livenessLive, "live", since, d,
+			fmt.Sprintf("live: %d ms since the last exchange, %.1f missed check-ins of %d ms, %d tolerated", since, missed, d.TelCadMs, d.Misses), nil
 	}
 	// D6: absence is only evidence when porta was listening. A window that
 	// touches an interval porta was down yields #unknown — never #silent,
@@ -194,12 +212,12 @@ func (s *Store) verdictFor(nodeID string, lastSeen sql.NullInt64, now int64) (wa
 	// outranks the gateway's own absence.
 	deaf, err := s.WasDeaf(now-since, now)
 	if err != nil {
-		return nil, "", 0, 0, "", fmt.Errorf("deaf intervals: %w", err)
+		return nil, "", 0, Declaration{}, "", fmt.Errorf("deaf intervals: %w", err)
 	}
 	if deaf {
-		return livenessUnknown, "unknown", since, bud,
+		return livenessUnknown, "unknown", since, d,
 			fmt.Sprintf("unknown: %d ms since the last exchange, budget %d ms, and porta was not listening for part of it", since, bud), nil
 	}
-	return livenessSilent, "silent", since, bud,
-		fmt.Sprintf("silent: %d ms since the last exchange, budget %d ms", since, bud), nil
+	return livenessSilent, "silent", since, d,
+		fmt.Sprintf("silent: %d ms since the last exchange — %.1f missed check-ins of %d ms, %d tolerated", since, missed, d.TelCadMs, d.Misses), nil
 }

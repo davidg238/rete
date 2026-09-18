@@ -589,32 +589,37 @@ records:
     paths: [goal/liveness, obs/liveness]
     status: live
     summary: >
-      The node's own declaration of how long its silence may last, which replaced
-      porta's inference of both terms. Written once per boot, and again only when
-      the adopted pair moves.
+      The node's own declaration of how often it will speak and how many consecutive
+      misses it tolerates, which replaced porta's inference of both terms (rete#231)
+      and then the node's own published budget (rete#273 D2). The budget porta judges
+      against is DERIVED, telCad x misses, and never rides the wire. Written once per
+      boot, and again only when the adopted pair moves.
     fields:
-      - key: bud
-        name: budget
+      - key: misses
+        name: miss allowance
+        unit: count
+        kind: config
+        meaning: consecutive missed check-ins the node tolerates before its silence means anything
+        validity: >
+          The node's own allowance for ordinary mesh loss — c6-bell misses roughly
+          half its 30 s check-ins, and the node is the only party that knows its rate.
+          8 at every period is the fleet default (D2.3): the false-trip rate is about
+          p^misses and the period cancels. Clamped so telCad x misses <= 24 h and
+          PUBLISHED, never rejected, so an app asking for a week shows up as a
+          goal/obs divergence rather than a silent refusal. porta declines to judge a
+          product below its 30 s sweep tick and says so as #unknown (D2.1).
+        refs: [rete#273, rete#231]
+      - key: telCad
+        name: telemetry cadence
         unit: ms
         kind: config
-        meaning: the longest silence that is still healthy
+        meaning: how often the node intends to check in
         validity: >
-          The ONLY number porta judges against — now - last_seen > bud means #silent,
-          one line with no constants in it. Clamped to 24 h and PUBLISHED, never
-          rejected, so an app asking for a week shows up as a goal/obs divergence
-          rather than a silent refusal. An integer multiple of cad.
-        refs: [rete#231]
-      - key: cad
-        name: cadence
-        unit: ms
-        kind: config
-        meaning: how often the node intends to speak
-        validity: >
-          NOT the staleness threshold. c6-bell misses roughly half its 30 s check-ins
-          to ordinary mesh loss, so judging a node against its cadence calls a healthy
-          node silent constantly; the gap between cad and bud is the node's own
-          allowance for that loss, and the node is the only party that knows its rate.
-        refs: [rete#231, rete#240]
+          NOT the staleness threshold, and NOT the app-liveness cadence: that one
+          (appCad, rete#273 D1) is judged on the node by the observer and never crosses
+          the wire. Judging a node against telCad alone calls a healthy node silent
+          constantly; the budget is telCad x misses.
+        refs: [rete#273, rete#231, rete#240]
 
   app-obs:
     record: AppObs
@@ -939,9 +944,11 @@ scalars:
     paths: [gw/liveness]
     unit: symbol
     meaning: >
-      #live or #silent — porta's own judgement, written by the gateway and NEVER on
-      the wire (dir=gw). It is one line with no constants in it: now - last_seen >
-      obs/liveness.bud.
+      #live, #silent, #neverSeen or #unknown — porta's own judgement, written by
+      the gateway and NEVER on the wire (dir=gw). It is one line with no constants
+      in it: now - last_seen > obs/liveness.telCad x obs/liveness.misses. #unknown
+      carries its cause in the row's reason: no declaration, a gateway outage
+      across the window, or a budget below porta's own sweep tick (rete#273 D2.1).
     validity: >
       A verdict about SILENCE, not about health. A node uniformly refused by porta
       reads #live right up to its death, because it is exchanging — read obs/health

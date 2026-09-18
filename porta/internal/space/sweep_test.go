@@ -55,14 +55,16 @@ func listening(t *testing.T, st *Store) {
 	}
 }
 
-// declare writes what a node would have pushed at obs/liveness. It goes through
-// Ingest and not a raw INSERT, so the test exercises the same path a real push
-// takes — including the kind pin.
-func declare(t *testing.T, st *Store, node string, cadMs, budMs int64) {
+// declare writes what a node would have pushed at obs/liveness: its telCad and
+// the number of consecutive misses it tolerates (rete#273 D2). porta derives
+// the budget; nothing here says 16000. It goes through Ingest and not a raw
+// INSERT, so the test exercises the same path a real push takes — including
+// the kind pin.
+func declare(t *testing.T, st *Store, node string, telCadMs, misses int64) {
 	t.Helper()
 	rec, err := cval.Encode(cval.Record{Tag: "Liveness", Fields: cval.Map{
-		{K: cval.Symbol("cad"), V: cadMs},
-		{K: cval.Symbol("bud"), V: budMs},
+		{K: cval.Symbol("misses"), V: misses},
+		{K: cval.Symbol("telCad"), V: telCadMs},
 	}})
 	if err != nil {
 		t.Fatalf("encode: %v", err)
@@ -75,13 +77,15 @@ func declare(t *testing.T, st *Store, node string, cadMs, budMs int64) {
 }
 
 // A node is judged against the budget IT declared, and against nothing else. The
-// rule is one line with no constants in it: now - last_seen > bud.
+// rule is one line with no constants in it: now - last_seen > telCad x misses.
+// 16 misses and not 8 because 2 s x 8 = 16 s is below the 30 s sweep tick and
+// porta declines to judge it (D2.1, its own test below).
 func TestSweepJudgesAgainstTheDeclaredBudget(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
 	listening(t, st)
 	checkIn(t, st, &clock, "n1", 0)
-	declare(t, st, "n1", 2_000, 16_000)
+	declare(t, st, "n1", 2_000, 16)
 	lastSeen := clock
 
 	// Well inside the budget.
@@ -93,13 +97,13 @@ func TestSweepJudgesAgainstTheDeclaredBudget(t *testing.T) {
 	if len(changes) != 1 || changes[0].Verdict != "live" {
 		t.Fatalf("changes = %+v, want one #live", changes)
 	}
-	if changes[0].BudgetMs != 16_000 {
-		t.Fatalf("change carries budget %d, want 16000", changes[0].BudgetMs)
+	if changes[0].BudgetMs != 32_000 || changes[0].TelCadMs != 2_000 || changes[0].Misses != 16 {
+		t.Fatalf("change = %+v, want budget 32000 = telCad 2000 x misses 16", changes[0])
 	}
 
 	// EXACTLY at the budget is still live: the inequality is strict, so the
 	// declaration is honoured to its last millisecond.
-	clock = lastSeen + 16_000
+	clock = lastSeen + 32_000
 	if changes, err = st.Sweep(); err != nil {
 		t.Fatalf("Sweep at the boundary: %v", err)
 	} else if len(changes) != 0 {
@@ -117,10 +121,10 @@ func TestSweepJudgesAgainstTheDeclaredBudget(t *testing.T) {
 	}
 }
 
-// #220: a node checking in every 2 s that declares a 16 s budget is NOT silent
+// #220: a node checking in every 2 s that tolerates 16 misses is NOT silent
 // after 6 s of routine blocking work. Under the inference this was 3 x 2 s and
 // the verdict was wrong; the node's own declaration is what makes it right, and
-// the gateway multiplies nothing.
+// the gateway multiplies nothing of its own.
 func TestSweepDoesNotCallAFastNodeSilentForOrdinaryBlockingWork(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
@@ -128,7 +132,7 @@ func TestSweepDoesNotCallAFastNodeSilentForOrdinaryBlockingWork(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		checkIn(t, st, &clock, "n1", 2_000)
 	}
-	declare(t, st, "n1", 2_000, 16_000)
+	declare(t, st, "n1", 2_000, 16)
 
 	clock += 6_500 // three missed check-ins
 	changes, err := st.Sweep()
@@ -136,7 +140,7 @@ func TestSweepDoesNotCallAFastNodeSilentForOrdinaryBlockingWork(t *testing.T) {
 		t.Fatalf("Sweep: %v", err)
 	}
 	if len(changes) != 1 || changes[0].Verdict != "live" {
-		t.Fatalf("changes = %+v, want #live — 6.5 s is inside a declared 16 s budget", changes)
+		t.Fatalf("changes = %+v, want #live — 6.5 s is inside a declared 32 s budget", changes)
 	}
 }
 
@@ -199,7 +203,7 @@ func TestSweepWritesOnlyOnTransition(t *testing.T) {
 	st := storeAtClock(t, &clock)
 	listening(t, st)
 	checkIn(t, st, &clock, "n1", 0)
-	declare(t, st, "n1", 2_000, 16_000)
+	declare(t, st, "n1", 2_000, 16)
 	for i := 0; i < 4; i++ {
 		clock += 1_000
 		if _, err := st.Sweep(); err != nil {
@@ -219,8 +223,8 @@ func TestSweepRecordsTheReturnToLife(t *testing.T) {
 	st := storeAtClock(t, &clock)
 	listening(t, st)
 	checkIn(t, st, &clock, "n1", 0)
-	declare(t, st, "n1", 2_000, 16_000)
-	clock += 20_000
+	declare(t, st, "n1", 2_000, 16)
+	clock += 40_000
 	if _, err := st.Sweep(); err != nil {
 		t.Fatalf("Sweep: %v", err)
 	}
@@ -300,7 +304,7 @@ func TestSweepIsNotStoppedByOneNodesFailure(t *testing.T) {
 	// Declared BEFORE the trigger, or the declaration for mmm would be the
 	// insert that fails and the test would be injecting the wrong fault.
 	for _, id := range []string{"aaa", "mmm", "zzz"} {
-		declare(t, st, id, 2_000, 16_000)
+		declare(t, st, id, 2_000, 16)
 	}
 
 	if _, err := st.DB().Exec(`CREATE TRIGGER fail_mmm BEFORE INSERT ON cells
@@ -308,7 +312,7 @@ func TestSweepIsNotStoppedByOneNodesFailure(t *testing.T) {
 		t.Fatalf("install trigger: %v", err)
 	}
 
-	clock += 20_000 // past the declared 16 s budget
+	clock += 40_000 // past the declared 32 s budget
 	changes, err := st.Sweep()
 	if err == nil || !strings.Contains(err.Error(), "mmm") {
 		t.Fatalf("err = %v, want an error naming node mmm", err)
@@ -349,5 +353,63 @@ func TestVerdictEncodingsAreTheAlgebrasSymbols(t *testing.T) {
 	}
 	if !bytes.Equal(live, livenessLive) || !bytes.Equal(silent, livenessSilent) {
 		t.Fatalf("pre-encoded verdicts drifted from cval.Encode")
+	}
+}
+
+// lastReason reads the reason porta wrote with the node's most recent verdict.
+func lastReason(t *testing.T, st *Store, node string) string {
+	t.Helper()
+	var r string
+	if err := st.DB().QueryRow(
+		`SELECT reason FROM events WHERE node_id = ? AND path = ? ORDER BY id DESC LIMIT 1`,
+		node, PathLiveness).Scan(&r); err != nil {
+		t.Fatalf("last reason: %v", err)
+	}
+	return r
+}
+
+// D2.1: porta refuses to promise what its sweep cannot deliver. A budget below
+// SweepTick is #unknown with a reason naming all three numbers, not a quiet 30 s.
+func TestSweepRefusesABudgetBelowItsOwnTick(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	checkIn(t, st, &clock, "n1", 0)
+	declare(t, st, "n1", 2_000, 8) // 16 s < 30 s
+	clock += 1_000
+	changes, err := st.Sweep()
+	if err != nil {
+		t.Fatalf("Sweep: %v", err)
+	}
+	if len(changes) != 1 || changes[0].Verdict != "unknown" {
+		t.Fatalf("changes = %+v, want one #unknown", changes)
+	}
+	if changes[0].TelCadMs != 2_000 || changes[0].Misses != 8 || changes[0].BudgetMs != 16_000 {
+		t.Fatalf("change = %+v, want telCad 2000 misses 8 budget 16000", changes[0])
+	}
+	reason := lastReason(t, st, "n1")
+	for _, want := range []string{"2000", "8", "16000", "30000", "sweep tick"} {
+		if !strings.Contains(reason, want) {
+			t.Fatalf("reason %q does not name %q", reason, want)
+		}
+	}
+}
+
+// D2.2: the miss count rides the REASON, not a verdict.
+func TestSweepReasonCountsTheMisses(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	checkIn(t, st, &clock, "n1", 0)
+	declare(t, st, "n1", 10_000, 4) // 40 s budget
+	clock += 45_000
+	if _, err := st.Sweep(); err != nil {
+		t.Fatalf("Sweep: %v", err)
+	}
+	if got := livenessOf(t, st, "n1"); got != "silent" {
+		t.Fatalf("verdict = %q, want silent", got)
+	}
+	if reason := lastReason(t, st, "n1"); !strings.Contains(reason, "4.5 missed check-ins of 10000 ms, 4 tolerated") {
+		t.Fatalf("reason = %q", reason)
 	}
 }

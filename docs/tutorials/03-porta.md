@@ -193,7 +193,7 @@ await obs/health
 ```
   obs/build      seq=2   boot=1  #Build{#chip: #host, #build: "host"}
   obs/health     seq=9   boot=1  #Health{#up: 2002, #bid: 1, #pto: 0, #ref: 0, #rej: 0, #sdr: 0, #wak: 1}
-  obs/liveness   seq=6   boot=1  #Liveness{#bud: 16000, #cad: 2000}
+  obs/liveness   seq=6   boot=1  #Liveness{#misses: 16, #telCad: 2000}
   obs/name       seq=12  boot=1  "bench"
 ```
 
@@ -206,10 +206,13 @@ authority, and `sdr` entries the bridge dropped rather than send. `ref` and `pto
 deliberately not one counter: a gateway refusing everything still replies to every
 exchange, so `pto` reads 0 for a node whose data is not landing at all.
 
-`obs/liveness` is the node's own promise about its silence: a 2 s cadence and a 16 s
-budget, which is eight times the cadence. **The node picks both numbers**, because the
-node is the only party that knows its own loss rate — and porta forms its verdict from
-what the node declared rather than from a constant of its own.
+`obs/liveness` is the node's own promise about its silence: a 2 s cadence (`telCad`)
+and how many consecutive check-ins it tolerates losing (`misses`). **The node picks both
+numbers**, because the node is the only party that knows its own loss rate — and porta
+derives the budget, 2 s × 16 = 32 s, from what the node declared rather than from a
+constant of its own. There is no budget field on the wire, so a budget shorter than the
+cadence cannot be declared at all. (16 rather than the fleet default of 8 because porta
+sweeps every 30 s and declines to judge a 16 s budget at that resolution.)
 
 Those `#Health{…}` values are records, not strings. They rode as deterministic CBOR built
 by the node's own codec and decoded here by a hand-rolled one written from the record
@@ -314,14 +317,14 @@ kill $NODE_PID $PORTA_PID
   same ports.
 - **What silence looks like** is the one thing this page skips. porta sweeps for quiet
   nodes every 30 s and writes its own verdict to `gw/liveness` — `#live`, `#silent`,
-  `#neverSeen` or `#unknown`. The verdict is formed from the budget the node declared in
-  `obs/liveness` and from no constant of porta's own: `now - last_seen > bud → #silent`,
-  one line with no numbers in it. Kill the node, wait out its 16 s budget and the next
-  sweep, and `porta get --db tut.db tut-node gw` turns over:
+  `#neverSeen` or `#unknown`. The verdict is formed from the cadence and miss allowance the node declared in
+  `obs/liveness` and from no constant of porta's own: `now - last_seen > telCad × misses
+  → #silent`, one line with no numbers in it. Kill the node, wait out its 32 s budget and
+  the next sweep, and `porta get --db tut.db tut-node gw` turns over:
 
   ```
-  porta: tut-node is #live   —   947 ms since its last exchange, declared budget 16000 ms
-  porta: tut-node is #silent — 16946 ms since its last exchange, declared budget 16000 ms
+  porta: tut-node is #live   —   947 ms since its last exchange, budget 32000 ms (telCad 2000 x misses 16)
+  porta: tut-node is #silent — 32946 ms since its last exchange, budget 32000 ms (telCad 2000 x misses 16)
   ```
 
   Worth doing once by hand. It is not a gate block here because the waiting, not the

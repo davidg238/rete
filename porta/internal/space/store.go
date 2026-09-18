@@ -643,8 +643,19 @@ func (s *Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushe
 	return tx.Commit()
 }
 
-// DeclaredBudget answers the silence budget a node has declared for itself, in
-// milliseconds.
+// Declaration is what a node published at obs/liveness (rete#231 D2, shape per
+// rete#273 D2): how often it intends to speak and how many consecutive misses
+// it tolerates. The budget is DERIVED, never declared — a node cannot publish a
+// budget shorter than its own cadence because there is no field to put it in.
+type Declaration struct {
+	TelCadMs int64
+	Misses   int64
+}
+
+// BudgetMs is the longest silence the node called healthy.
+func (d Declaration) BudgetMs() int64 { return d.TelCadMs * d.Misses }
+
+// DeclaredLiveness reads the node's own record.
 //
 // This is the one place in the store that DECODES a value rather than moving
 // bytes (D4.1 says decode only for display; this decodes for judgement, which
@@ -652,42 +663,55 @@ func (s *Store) RecordExchange(nodeID string, bootID, cursorIn, cursorOut, pushe
 // comparison in Sweep — is still byte-wise against pre-encoded symbols.
 //
 // ok is false for a node that has never declared, AND for a declaration porta
-// cannot read: a wrong tag, a missing or non-positive `bud`, or bytes that are
+// cannot read: a wrong tag, a missing or non-positive field, or bytes that are
 // not a closed cval encoding at all. None of those is returned as an error,
 // because the caller is a sweep over every node and one garbled record must not
 // cost the fleet its verdicts. No verdict is the honest answer for that node;
 // a default would be porta inventing the number this whole design exists to
 // stop inventing.
-func (s *Store) DeclaredBudget(nodeID string) (int64, bool, error) {
+func (s *Store) DeclaredLiveness(nodeID string) (Declaration, bool, error) {
 	var raw []byte
 	err := s.db.QueryRow(
 		`SELECT value_cbor FROM cells WHERE node_id = ? AND path = ?`,
 		nodeID, PathDeclared).Scan(&raw)
 	if err == sql.ErrNoRows {
-		return 0, false, nil
+		return Declaration{}, false, nil
 	}
 	if err != nil {
-		return 0, false, err
+		return Declaration{}, false, err
 	}
 	v, err := cval.Decode(raw)
 	if err != nil {
-		return 0, false, nil
+		return Declaration{}, false, nil
 	}
 	rec, ok := v.(cval.Record)
 	if !ok || rec.Tag != "Liveness" {
-		return 0, false, nil
+		return Declaration{}, false, nil
 	}
+	var d Declaration
 	for _, p := range rec.Fields {
-		if k, ok := p.K.(cval.Symbol); !ok || k != "bud" {
+		k, ok := p.K.(cval.Symbol)
+		if !ok {
 			continue
 		}
-		bud, ok := p.V.(int64)
-		if !ok || bud <= 0 {
-			return 0, false, nil
+		n, isInt := p.V.(int64)
+		switch k {
+		case "telCad":
+			if !isInt || n <= 0 {
+				return Declaration{}, false, nil
+			}
+			d.TelCadMs = n
+		case "misses":
+			if !isInt || n <= 0 {
+				return Declaration{}, false, nil
+			}
+			d.Misses = n
 		}
-		return bud, true, nil
 	}
-	return 0, false, nil
+	if d.TelCadMs == 0 || d.Misses == 0 {
+		return Declaration{}, false, nil
+	}
+	return d, true, nil
 }
 
 // NodeAddr returns the peer address of the node's last datagram, or "" if it

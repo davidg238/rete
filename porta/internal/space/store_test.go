@@ -757,21 +757,22 @@ func TestWriteRejectsTheGwPrefix(t *testing.T) {
 	}
 }
 
-// The budget porta judges against comes from the NODE, and a node that has not
-// declared one yields no budget rather than a guess. It is the same `ok` shape
-// the deleted CadenceMs had, for the opposite reason: there is now nothing to
-// infer from, and nothing that wants to.
-func TestDeclaredBudgetReadsTheNodesOwnRecord(t *testing.T) {
+// The numbers porta judges against come from the NODE — its cadence and the
+// misses it tolerates (rete#273 D2) — and a node that has not declared them
+// yields no budget rather than a guess. It is the same `ok` shape the deleted
+// CadenceMs had, for the opposite reason: there is now nothing to infer from,
+// and nothing that wants to. The budget is DERIVED: telCad x misses.
+func TestDeclaredLivenessReadsTheNodesOwnRecord(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
 
-	if _, ok, err := st.DeclaredBudget("n1"); err != nil || ok {
+	if _, ok, err := st.DeclaredLiveness("n1"); err != nil || ok {
 		t.Fatalf("no declaration: ok = %v, err = %v, want false, nil", ok, err)
 	}
 
 	rec, err := cval.Encode(cval.Record{Tag: "Liveness", Fields: cval.Map{
-		{K: cval.Symbol("cad"), V: int64(2_000)},
-		{K: cval.Symbol("bud"), V: int64(16_000)},
+		{K: cval.Symbol("misses"), V: int64(8)},
+		{K: cval.Symbol("telCad"), V: int64(2_000)},
 	}})
 	if err != nil {
 		t.Fatalf("encode: %v", err)
@@ -781,16 +782,16 @@ func TestDeclaredBudgetReadsTheNodesOwnRecord(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("Ingest: %v", err)
 	}
-	bud, ok, err := st.DeclaredBudget("n1")
-	if err != nil || !ok || bud != 16_000 {
-		t.Fatalf("DeclaredBudget = (%d, %v, %v), want (16000, true, nil)", bud, ok, err)
+	d, ok, err := st.DeclaredLiveness("n1")
+	if err != nil || !ok || d.TelCadMs != 2_000 || d.Misses != 8 || d.BudgetMs() != 16_000 {
+		t.Fatalf("DeclaredLiveness = (%+v, %v, %v), want ({2000 8}, true, nil)", d, ok, err)
 	}
 }
 
 // A record porta cannot read is NOT an error that stops the sweep: it is one node
 // with no budget, and the honest answer is no verdict for that node. A gateway an
 // unreadable value can take down is worse than no gateway.
-func TestDeclaredBudgetSurvivesAGarbledDeclaration(t *testing.T) {
+func TestDeclaredLivenessSurvivesAGarbledDeclaration(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
 	for i, tc := range []struct {
@@ -798,10 +799,11 @@ func TestDeclaredBudgetSurvivesAGarbledDeclaration(t *testing.T) {
 		v    any
 	}{
 		{"not a record", cval.Symbol("live")},
-		{"wrong tag", cval.Record{Tag: "Health", Fields: cval.Map{{K: cval.Symbol("bud"), V: int64(1)}}}},
-		{"no bud field", cval.Record{Tag: "Liveness", Fields: cval.Map{{K: cval.Symbol("cad"), V: int64(2_000)}}}},
-		{"bud is not an int", cval.Record{Tag: "Liveness", Fields: cval.Map{{K: cval.Symbol("bud"), V: "soon"}}}},
-		{"bud is not positive", cval.Record{Tag: "Liveness", Fields: cval.Map{{K: cval.Symbol("bud"), V: int64(0)}}}},
+		{"wrong tag", cval.Record{Tag: "Health", Fields: cval.Map{{K: cval.Symbol("misses"), V: int64(1)}, {K: cval.Symbol("telCad"), V: int64(1)}}}},
+		{"no misses", cval.Record{Tag: "Liveness", Fields: cval.Map{{K: cval.Symbol("telCad"), V: int64(2_000)}}}},
+		{"no telCad", cval.Record{Tag: "Liveness", Fields: cval.Map{{K: cval.Symbol("misses"), V: int64(8)}}}},
+		{"telCad not an int", cval.Record{Tag: "Liveness", Fields: cval.Map{{K: cval.Symbol("misses"), V: int64(8)}, {K: cval.Symbol("telCad"), V: "soon"}}}},
+		{"misses not positive", cval.Record{Tag: "Liveness", Fields: cval.Map{{K: cval.Symbol("misses"), V: int64(0)}, {K: cval.Symbol("telCad"), V: int64(2_000)}}}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			b, err := cval.Encode(tc.v)
@@ -818,7 +820,7 @@ func TestDeclaredBudgetSurvivesAGarbledDeclaration(t *testing.T) {
 			if err != nil || skipped != 0 {
 				t.Fatalf("Ingest: skipped = %d, err = %v; this case never reached the store", skipped, err)
 			}
-			if _, ok, err := st.DeclaredBudget("n1"); err != nil || ok {
+			if _, ok, err := st.DeclaredLiveness("n1"); err != nil || ok {
 				t.Fatalf("ok = %v, err = %v, want false, nil", ok, err)
 			}
 		})

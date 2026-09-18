@@ -152,13 +152,13 @@ echo "  obs/build carries the node's provenance"
 for _ in $(seq 1 100); do
   /tmp/porta get --db "$DB" "$NODE" obs 2>/dev/null | grep "obs/liveness" >/dev/null && break; sleep 0.2
 done
-/tmp/porta get --db "$DB" "$NODE" obs/liveness | grep "#cad: 2000" >/dev/null || {
+/tmp/porta get --db "$DB" "$NODE" obs/liveness | grep "#telCad: 2000" >/dev/null || {
   echo "FAIL: obs/liveness does not carry the node's declared 2 s cadence"
   /tmp/porta get --db "$DB" "$NODE" obs/liveness; exit 1; }
-/tmp/porta get --db "$DB" "$NODE" obs/liveness | grep "#bud: 16000" >/dev/null || {
-  echo "FAIL: obs/liveness does not carry the declared 16 s budget (8 x cadence)"
+/tmp/porta get --db "$DB" "$NODE" obs/liveness | grep "#misses: 16" >/dev/null || {
+  echo "FAIL: obs/liveness does not carry the declared 16-miss allowance"
   /tmp/porta get --db "$DB" "$NODE" obs/liveness; exit 1; }
-echo "  obs/liveness carries the node's declared cadence and budget"
+echo "  obs/liveness carries the node's declared cadence and miss allowance (rete#273 D2)"
 
 # rete#231: porta's verdict, formed from the number the node declared. The sweep's
 # default period (space.SweepTick, 30 s) outlasts this whole gate, so serve is
@@ -170,7 +170,7 @@ done
 /tmp/porta get --db "$DB" "$NODE" gw/liveness | grep "#live" >/dev/null || {
   echo "FAIL: porta did not judge a node checking in every 2 s as #live"
   /tmp/porta get --db "$DB" "$NODE" gw; cat /tmp/porta_serve.log; exit 1; }
-echo "  gw/liveness reads #live, formed from the declared 16 s budget"
+echo "  gw/liveness reads #live, formed from the derived 32 s budget (2 s x 16)"
 
 # sys/metrics — #56 capability (3). RECORDS §4.4 has pinned this as a CELL since
 # 2026-07-21, and it was UNSENDABLE until the cell scan reached sys/ (design D1):
@@ -218,30 +218,30 @@ done
   echo "FAIL: goal/name never converged to obs/name"; /tmp/porta get --db "$DB" "$NODE"; exit 1; }
 echo "  goal/name converged to obs/name — the diff IS the view"
 
-# rete#231 D2, and this is the leg that proves the operator half. 45 s is not a
-# whole number of the node's 2 s cadence, so the node must publish 46 000 and the
-# two paths must DISAGREE — that disagreement is the answer, not a failure, and a
-# gate that asserted agreement here would be asserting that the node's grid does
-# not exist.
+# rete#231 D2 / rete#273 D2, and this is the leg that proves the operator half.
+# A week of misses on a 2 s cadence is past the 24 h ceiling, so the node must
+# CLAMP to 43 200 (43200 x 2 s = 24 h), publish that, and the two paths must
+# DISAGREE — that disagreement is the answer, not a failure, and a gate that
+# asserted agreement here would be asserting that the ceiling does not exist.
 #
 # `porta put` takes scalars or --raw hex, and a Record needs the hex. This
-# constant is Liveness { cad: 2000, bud: 45000 } and it is pinned by
+# constant is Liveness { misses: 604800, telCad: 2000 } and it is pinned by
 # TestGoalLivenessGoldenForTheHostGate in porta/internal/cval — a hex nobody
 # checks is a constant that rots silently, and it would rot into a record the
 # node logs as bad while this gate went on passing.
-GOAL_LIVENESS_HEX=d81b82d827684c6976656e657373a2d8276362756419afc8d827636361641907d0
+GOAL_LIVENESS_HEX=d81b82d827684c6976656e657373a2d827666d69737365731a00093a80d8276674656c4361641907d0
 # --raw is a BOOLEAN flag: the hex is the positional VALUE, not the flag's argument.
 /tmp/porta put --db "$DB" --raw "$NODE" goal/liveness "$GOAL_LIVENESS_HEX" >/dev/null
 for _ in $(seq 1 100); do
-  /tmp/porta get --db "$DB" "$NODE" obs/liveness 2>/dev/null | grep "46000" >/dev/null && break; sleep 0.2
+  /tmp/porta get --db "$DB" "$NODE" obs/liveness 2>/dev/null | grep "#misses: 43200" >/dev/null && break; sleep 0.2
 done
-/tmp/porta get --db "$DB" "$NODE" obs/liveness | grep "46000" >/dev/null || {
+/tmp/porta get --db "$DB" "$NODE" obs/liveness | grep "#misses: 43200" >/dev/null || {
   echo "FAIL: the node did not snap a 45 s request onto its 2 s grid"
   /tmp/porta get --db "$DB" "$NODE" obs/liveness; exit 1; }
-/tmp/porta get --db "$DB" "$NODE" goal/liveness | grep "45000" >/dev/null || {
+/tmp/porta get --db "$DB" "$NODE" goal/liveness | grep "604800" >/dev/null || {
   echo "FAIL: goal/liveness no longer holds what the operator asked for — the node overwrote a goal/ path"
   /tmp/porta get --db "$DB" "$NODE" goal/liveness; exit 1; }
-echo "  goal/liveness 45 s -> obs/liveness 46 s: the node snapped, and the diff IS the answer"
+echo "  goal/liveness misses 604800 -> obs/liveness misses 43200: the node clamped, and the diff IS the answer"
 
 # Leg 3: exactly once, which is THREE claims and not one.
 #   no duplicates  -> rows == distinct ticks

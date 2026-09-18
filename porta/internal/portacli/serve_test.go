@@ -314,12 +314,13 @@ func TestSweepLivenessLogsOnlyTransitions(t *testing.T) {
 		st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
 		st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
 	}
-	// The node declares its own budget: nothing infers one any more (rete#231
-	// D4), so without this the verdict is #unknown and the test would be
-	// asserting the log line of a node porta cannot judge.
+	// The node declares its own cadence and miss allowance: nothing infers a
+	// budget any more (rete#231 D4), so without this the verdict is #unknown
+	// and the test would be asserting the log line of a node porta cannot
+	// judge. 16 misses, because 2 s x 8 is below the sweep tick (rete#273 D2.1).
 	rec, err := cval.Encode(cval.Record{Tag: "Liveness", Fields: cval.Map{
-		{K: cval.Symbol("cad"), V: int64(2_000)},
-		{K: cval.Symbol("bud"), V: int64(16_000)},
+		{K: cval.Symbol("misses"), V: int64(16)},
+		{K: cval.Symbol("telCad"), V: int64(2_000)},
 	}})
 	if err != nil {
 		t.Fatal(err)
@@ -329,7 +330,7 @@ func TestSweepLivenessLogsOnlyTransitions(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	clock += 20_000
+	clock += 40_000 // past the 32 s budget
 
 	var mu sync.Mutex
 	var lines []string

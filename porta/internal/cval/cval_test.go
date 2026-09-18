@@ -120,13 +120,13 @@ func TestIntegerBandEdges(t *testing.T) {
 // log as bad.
 func TestGoalLivenessGoldenForTheHostGate(t *testing.T) {
 	b, err := Encode(Record{Tag: "Liveness", Fields: Map{
-		{K: Symbol("cad"), V: int64(2_000)},
-		{K: Symbol("bud"), V: int64(45_000)},
+		{K: Symbol("misses"), V: int64(604_800)},
+		{K: Symbol("telCad"), V: int64(2_000)},
 	}})
 	if err != nil {
 		t.Fatalf("Encode: %v", err)
 	}
-	const want = "d81b82d827684c6976656e657373a2d8276362756419afc8d827636361641907d0"
+	const want = "d81b82d827684c6976656e657373a2d827666d69737365731a00093a80d8276674656c4361641907d0"
 	if got := hex.EncodeToString(b); got != want {
 		t.Fatalf("goal/liveness golden = %s, want %s\n(if the record's shape changed on purpose, update BOTH this constant and the hex in nodus/oevm/tests/porta_sync_host.sh)", got, want)
 	}
