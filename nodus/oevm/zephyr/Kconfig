@@ -55,7 +55,8 @@ config OEVM_WEDGE_TRIGGER
 	default n
 	help
 	  Stops the reactor draining the pulse mailbox, which the observer must then
-	  detect as COND_PULSE_UNDRAINED. If this is set in a build you did not
+	  detect as OBS_COND_APP_STALE (rete#273: the feed stops moving past the
+	  declared app cadence). If this is set in a build you did not
 	  deliberately configure, that build is wrong.
 
 config OEVM_WEDGE_TRIGGER_S

@@ -168,10 +168,8 @@ class ProfileCostNodeC6 usingPlatform: platform net: net = (
     bridge subscribeStream: 'tel/log'.
     bridge subscribeStream: 'sys/reset'.
 
-    (* rete#231 D2: this node's own promise about its radio. The budget is 8 x the
-       cadence — #215's measured slack, chosen HERE by the node rather than by the
-       gateway, because the node is the only party that knows its own loss rate. *)
-    bridge liveness: self cadence budget: self cadence * 8.
+    (* rete#273 D2: telCad and the fleet-default miss allowance. *)
+    bridge liveness: self cadence misses: 8.
 
     sTick::     spans register: #jobTick.
     sCheckIn::  spans register: #checkIn.

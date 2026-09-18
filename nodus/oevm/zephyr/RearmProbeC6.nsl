@@ -6,7 +6,7 @@ TAP cad-rearm done
    proven over the pulse mailbox the host suite cannot reach.
 
    The probe drives the SAME adoption point porta's goal/liveness goes through
-   (`liveness:budget:` -> adoptCad:bud:), from INSIDE a tick reaction — which is
+   (`liveness:misses:` -> adoptCad:misses:), from INSIDE a tick reaction — which is
    the real shape: on a bridged node applyLivenessGoal runs at the tail of the
    apply step, itself inside the tick's reaction chain. The kernel-owned base
    tick starts at 2000 ms; at tick 3 the probe adopts 5000 ms. What must then be
@@ -43,7 +43,7 @@ class RearmProbeC6 packageUsing: manifest = (
 
     bridge:: plat PortaBridge socket: nil space: space id: 'rearm' peer: '::1' port: 1
       spans: plat Spans new.
-    bridge liveness: 2000 budget: 16000.
+    bridge liveness: 2000 misses: 8.
     lastMs:: 0 millis.
     bridge startTicking: timers on: tickCh.
     'rearm-probe armed 2000' out.
@@ -66,7 +66,7 @@ class RearmProbeC6 packageUsing: manifest = (
       (* THE ACT UNDER TEST: adopt a new cadence from inside the old timer's own
          reaction. The cancelled registration may already have an event queued in
          the mailbox behind this one; it must never dispatch. *)
-      bridge liveness: 5000 budget: 40000.
+      bridge liveness: 5000 misses: 8.
       rearmMs:: 0 millis.
       ('rearm adopted cad=' , bridge cadMs printString ,
         ' bud=' , bridge budMs printString ,

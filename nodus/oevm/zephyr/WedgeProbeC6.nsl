@@ -16,7 +16,7 @@ TAP wedge done
 
    THE WEDGE IS REAL, NOT SIMULATED. It stops returning from a reaction, so pumpEvents
    is never called again and the pulse mailbox fills behind a live 1 s repeater. That is
-   COND_PULSE_UNDRAINED, and it is the shape #192/#213 present: no fault, no panic, no
+   OBS_COND_APP_STALE (rete#273: the feed stops moving past the declared 8 s), and it is the shape #192/#213 present: no fault, no panic, no
    banner, console still up.
 
    Holds ONE Timers instance — tidiness since rete#244 made `platform timers` a
@@ -53,6 +53,10 @@ class WedgeProbeC6 packageUsing: manifest = (
     tickCh:: space channel: 'probe/tick'.
     tickCh whenever: '' do: [ :m | self tick ].
     timers every: 1000 post: #t on: tickCh.
+    (* rete#273 D1: no bridge here, so the probe declares its own app cadence —
+       1000 x 8, the same 8 s deadline wedge-detect has always reported. Without
+       this the §3.2 rule is not judged at all and the wedge below is invisible. *)
+    plat appLiveness: 8000.
 
     [ true ] whileTrue: [ plat pumpEvents. space drain ].
     ^ self )

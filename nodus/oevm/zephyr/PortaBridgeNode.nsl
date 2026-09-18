@@ -68,10 +68,12 @@ class PortaBridgeNode usingPlatform: platform net: net = (
     bridge subscribeStream: 'tel/log'.
     bridge subscribeStream: 'sys/reset'.
 
-    (* rete#231 D2: this node's own promise about its radio. The budget is 8 x the
-       cadence — #215's measured slack, chosen HERE by the node rather than by the
-       gateway, because the node is the only party that knows its own loss rate. *)
-    bridge liveness: self cadence budget: self cadence * 8.
+    (* rete#273 D2: this node's own promise about its radio — telCad and how many
+       consecutive misses it tolerates. 16 and not the fleet default of 8 because
+       porta refuses to judge a budget below its own 30 s sweep tick (D2.1), and
+       2 s x 8 = 16 s is; 2 s x 16 = 32 s is judged. The 2 s is bench turnaround,
+       not a claim about the radio. appCad stays at the bridge default (x 8). *)
+    bridge liveness: self cadence misses: 16.
 
     (* tuvm#107 landed, so the span cells fit the 256 B cap and `diag/**` is in the
        bridge's outbound cell scan. No subscribeStream: here — these are CELLS.

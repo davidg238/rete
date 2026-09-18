@@ -109,8 +109,8 @@ class TimerlessNodeC6 usingPlatform: platform net: net = (
     (* rete#259: the bridge owns obs/build; #man rides iff the image
        carries a manifest pin (rete#243). *)
     bridge publishBuild: self chip.
-    (* rete#231 D2: this node's promise about its radio, 8 x the base tick. *)
-    bridge liveness: self cadence budget: self cadence * 8.
+    (* rete#273 D2: telCad and the fleet-default miss allowance. *)
+    bridge liveness: self cadence misses: 8.
 
     (* THE ONLY REPEATING TIMER IN THIS IMAGE, and the app does not register it: the
        bridge does, from the cadence adopted above. Take the channel away and there is

@@ -77,7 +77,8 @@ class RefusedProbeC6 usingPlatform: platform net: net = (
       spans: spans.
     bridge subscribeStream: 'tel/log'.
     bridge subscribeStream: 'sys/reset'.
-    bridge liveness: self cadence budget: self cadence * 8.
+    (* rete#273 D2: telCad and the fleet-default miss allowance. *)
+    bridge liveness: self cadence misses: 8.
 
     sTick::     spans register: #jobTick.
     sCheckIn::  spans register: #checkIn.
