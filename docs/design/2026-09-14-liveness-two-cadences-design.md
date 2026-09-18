@@ -3,7 +3,7 @@
 > **Decision record.** Decided by David 2026-09-11 (by phone, framing) and 2026-09-14
 > (at the desk, with `docs/design/2026-08-31-liveness-timers.html` and
 > `docs/spikes/2026-08-27-liveness-3-ladder.png` open — D1/D2 in the first round, then
-> **`misses: 8`** and **D3 `#stalled`** in a second round the same day). **Decided; BUILD STARTED 2026-09-17** — D1 amended (`bb26b32`), the observer rule (`1315e1e`) and prim 158 (`00c1470`) landed; the kernel, wire, porta, gates and deploy halves are Tasks 3–10 of `docs/superpowers/plans/2026-09-17-liveness-two-cadences.md`. D3 is still decided-not-built.
+> **`misses: 8`** and **D3 `#stalled`** in a second round the same day). **D1 and D2 BUILT 2026-09-17** (`1315e1e` observer rule, `00c1470` prim 158, `365f8f9` kernel, `47633bb` node sites, `9b6332a` manifest — sha256 `844ba659…` — `3b4331c` porta, `888500f` board: five gates green on `c6spare`, `liveness-fastpoll` RED on the pre-fix VM sources first; plan `docs/superpowers/plans/2026-09-17-liveness-two-cadences.md`). **Not yet landed on the gateway** — Task 10 is with David. **D3 (`#stalled`) is decided and NOT built** and has its own plan after the TLA `DoSweep` correction.
 > Closes the fork #273 states; unblocks #272's age rule in `verdictFor`.
 >
 > Supersedes the proposal in #273's 2026-08-28 comment and the addendum §604 of
@@ -61,7 +61,10 @@ real work path, so it is the app's claim and not the mechanism's, and it was the
 exaggerated expectation this design is meant to shed (David, 2026-09-17: *"is the node
 alive and can we talk to it … simple hopefully equals robust, without exaggerated
 expectations or claims"*). Whether an application is making progress is out of scope
-here and stays out. One feed, one caller, no app-side call. What `appCad` still declares
+here and stays out. One feed, one caller, no app-side call. *In the build the feed IS
+`pulse_drained()` — no new counter was added; the prim carries only the declaration, and
+the observer sees a number, not whether the app chose it or the bridge defaulted it (only
+the bridge knows; a deliberate simplification of D1.1).* What `appCad` still declares
 is the app's longest legitimate blocking reaction, because a slow reaction blocks the
 dispatch that feeds. The mechanism cannot tell an nsl wedge from a VM wedge (the dump
 can) and cannot catch a livelock that keeps dispatching; both limits are inherent and

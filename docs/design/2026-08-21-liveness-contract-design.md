@@ -603,6 +603,17 @@ why the verdict cannot separate the two failures whose operator actions are oppo
 
 ### The proposal — NOT yet decided; #273 is David's call
 
+> **SUPERSEDED 2026-09-14 by `2026-09-14-liveness-two-cadences-design.md` D1 — the wedge
+> deadline is never published; built 2026-09-17.** The fork rested on a conflation: `cad`
+> was both the telemetry cadence and, through the base tick, the sole source of the
+> inferred app-liveness deadline. The build split them — `appCad` is declared to the
+> observer through one primitive and never crosses the wire; `telCad` and `misses` ride
+> `obs/liveness` and porta derives the budget. Proposal 1 below (publish the enforced
+> deadline) was therefore REJECTED, not deferred: "fact 2" above is dissolved rather than
+> made checkable, because the inference it describes no longer exists (`observer_core.h`
+> §3.2 judges `feed age > appCad`). The table above stays as the record of what was
+> conflated.
+
 1. **The node publishes the deadline it actually enforces**, on `obs/liveness`, instead of
    porta re-deriving one from `cad`. There is no compatibility cost; both ends reflash
    together. Without it, fact 2 above means the inequality is uncheckable.

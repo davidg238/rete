@@ -236,11 +236,13 @@ porta hearing *nothing*, and a system that evaluates only when read is silent ex
 everything is.
 
 **Liveness — porta judges nodes against the number they declared, and infers nothing**
-(rete#231, 2026-08-21). Every node publishes `obs/liveness` = `Liveness { cad, bud }`: how often
-it intends to speak, and the longest silence that is still healthy. `bud` is the only number the
-gateway uses, and the rule is `now - last_seen > bud`. The node is the only party that knows its
-own loss rate — `c6-bell` misses roughly half its 30 s check-ins to ordinary mesh loss — so a
-gateway judging it against a cadence would call a healthy node silent constantly.
+(rete#231, 2026-08-21; shape per rete#273 D2, 2026-09-17). Every node publishes `obs/liveness` =
+`Liveness { misses, telCad }`: how often it intends to speak, and how many consecutive misses it
+tolerates. The budget is **derived**, `telCad × misses`, and the rule is `now - last_seen >
+budget`. The node is the only party that knows its own loss rate — `c6-bell` misses roughly half
+its 30 s check-ins to ordinary mesh loss — so a gateway judging it against a cadence would call a
+healthy node silent constantly, and a node cannot publish a budget shorter than its cadence
+because there is no field to put it in.
 
 Four verdicts at `gw/liveness`, because they are four different operator actions:
 
@@ -249,7 +251,15 @@ Four verdicts at `gw/liveness`, because they are four different operator actions
 | `#live` | heard from inside its budget | nothing |
 | `#silent` | it spoke, then stopped, past its own budget | go find out why |
 | `#neverSeen` | porta has never had an exchange from it | commissioning failure — go plug it in |
-| `#unknown` | porta will not answer: the node declared no budget, or porta was not listening for part of the window (see `gw_runs`) | read the row's `reason` |
+| `#unknown` | porta will not answer: the node declared no cadence, its declared budget is below the sweep tick (rete#273 D2.1), or porta was not listening for part of the window (see `gw_runs`) | read the row's `reason` |
+
+The budget is `telCad × misses`, both declared by the node at `obs/liveness` (rete#273 D2);
+porta contributes no number. Two consequences an operator will meet: **a budget below the
+30 s sweep tick reads `#unknown`** with a reason naming all three numbers (D2.1 — porta will
+not promise a resolution it cannot deliver; raise `misses` or `telCad`), and **`#silent`'s
+reason counts the misses** (`4.5 missed check-ins of 10000 ms, 4 tolerated`, D2.2) — a
+ladder in the reason, deliberately not a fifth verdict until an operator is shown to act
+differently on the first miss than on the fifth.
 
 `#unknown` is the one that took an incident to earn. `Store.Sweep` runs inside `porta serve`, so
 a gateway that is down writes nothing and every verdict freezes: on 2026-08-19 `gw/liveness` read

@@ -305,9 +305,9 @@
         <td><strong>The ISR stopped firing.</strong> An armed repeating timer is overdue against <em>its own</em> period — the timer subsystem itself has stopped.</td>
       </tr>
       <tr>
-        <td><span class="c">OBS_COND_PULSE_UNDRAINED</span><br><span class="src">§3.2</span></td>
-        <td class="v"><span class="num">shortest × 8</span></td>
-        <td><strong>The VM is stuck in the interpreter.</strong> The ISR fires and the mailbox fills, but nothing drains it. Judged against the shortest declared period — the fastest cadence the app claims to service.</td>
+        <td><span class="c">OBS_COND_APP_STALE</span><br><span class="src">§3.2 — <s>OBS_COND_PULSE_UNDRAINED</s>, rewritten 2026-09-17 (#273 D1)</span></td>
+        <td class="v"><span class="num">appCad</span><br><span class="src">declared; bridge default cad × 8</span></td>
+        <td><strong>The VM is stuck in the interpreter.</strong> The feed (<span class="c">pulse_drained()</span>) has not moved for longer than the app DECLARED it may. <s>Judged against the shortest declared period</s> — that inference was the defect #273 named (a 100 ms poll beside a 1.5 s reaction rebooted a healthy node, <span class="c">liveness-fastpoll</span>) and is DELETED; <span class="c">OBS_WEDGE_SLACK</span> survives only in §3.1.</td>
       </tr>
     </tbody>
   </table></div>
@@ -377,9 +377,9 @@
   <h2>What derives from what</h2>
   <p>Only three real dependencies exist. Everything else in the tables above is independent, which is itself the finding.</p>
   <ol>
-    <li><strong>budget ← cadence × 8</strong>, at <span class="c">PortaBridgeNodeC6.nsl:100</span>. Written by the node, about itself.</li>
-    <li><strong>wedge deadline ← the app's own period × 8</strong>, at <span class="c">observer_core.h:43</span>. Computed in C, on the node, from state the app declared.</li>
-    <li><strong>porta's <span class="c">bud</span> ← the node's published budget</strong>, read from <span class="c">obs/liveness</span>. porta contributes no number of its own to the verdict.</li>
+    <li><strong>budget ← telCad × misses</strong>, derived by porta from the two numbers the node publishes at <span class="c">obs/liveness</span> (#273 D2, built 2026-09-17). <s>cadence × 8 at PortaBridgeNodeC6.nsl:100</s> — the ten hand-written sites are gone; the node declares <span class="c">liveness: cad misses: 8</span> (bench bridge nodes 16, so a 2 s telCad clears porta's 30 s tick — D2.1).</li>
+    <li><strong>app-liveness deadline ← appCad, DECLARED</strong> through <span class="c">platform appLiveness:</span> (prim 158); the bridge declares cad × 8 by default, an app overrides. <s>wedge deadline ← the app's own shortest period × 8 at observer_core.h</s> — DELETED 2026-09-17; that inference is what #273 named.</li>
+    <li><strong>porta's <span class="c">bud</span> ← telCad × misses</strong>, read from <span class="c">obs/liveness</span>. porta contributes no number of its own to the verdict, and declines (<span class="c">#unknown</span>, naming all three numbers) when the product is below its own sweep tick rather than judging at 30 s while claiming 16.</li>
   </ol>
   <div class="callout warn">
     <span class="lbl">And the one that is NOT a dependency</span>
@@ -390,7 +390,11 @@
 
 <section id="fork" class="narrow">
   <span class="snum">§ 8</span>
-  <h2>The fork — #273, DECIDED 2026-09-14</h2>
+  <h2>The fork — #273, DECIDED 2026-09-14, BUILT 2026-09-17</h2>
+  <div class="callout">
+    <span class="lbl">Built</span>
+    <p>D1 and D2 landed 2026-09-17 on <span class="c">281-nrf-porta-bridge</span> (<span class="c">1315e1e</span> … <span class="c">888500f</span>): the observer rule, prim 158, the kernel's <span class="c">liveness:misses:</span> and <span class="c">appLiveness:</span>, <span class="c">Liveness { misses, telCad }</span> on the wire and in <span class="c">MANIFEST.cddl</span> (sha256 <span class="c">844ba659…</span>), porta's derived budget with D2.1's refusal and D2.2's miss ladder, and five board gates green on <span class="c">c6spare</span> — <span class="c">liveness-fastpoll</span> RED on the pre-fix VM sources first. The decision record is <a href="2026-09-14-liveness-two-cadences-design.md">2026-09-14-liveness-two-cadences-design.md</a>; D3 (<span class="c">#stalled</span>) is decided and not built. The rest of this section is the fork as it stood.</p>
+  </div>
   <div class="callout">
     <span class="lbl">Decided — H1, and the conflation underneath it</span>
     <p>The answer is <strong>H1</strong>: the node's declaration is the source of truth and porta contributes no number to the verdict. But the walkthrough found the fork rested on a conflation — <span class="c">cad</span> was doing two unrelated jobs — so the decision splits it into two declared numbers, <span class="c">appCad</span> (node-side, never on the wire) and <span class="c">telCad</span> (published, with a tolerated-miss count from which porta derives the budget). <strong>Decided, not built.</strong> The record is <a href="2026-09-14-liveness-two-cadences-design.md">docs/design/2026-09-14-liveness-two-cadences-design.md</a>; the sections below describe the system <em>as it is today</em>, which is what this page is for.</p>
@@ -462,7 +466,7 @@
 </section>
 
 <footer>
-  <p>Every constant on this page was re-read from source on 2026-08-31 at <span class="c">ce51b85</span>, and none had moved since the 2026-08-27 diagram. If this page and the source disagree, the source wins and this page is the bug.</p>
+  <p>Every constant on this page was re-read from source on 2026-08-31 at <span class="c">ce51b85</span>, and none had moved since the 2026-08-27 diagram. <strong>On 2026-09-17 #273 D1+D2 were built</strong> and the constants that moved are struck through in place (§3.2's rule, §7's three derivations, the <span class="c">obs/liveness</span> shape); everything else is unverified against the post-build tree until the next re-read. If this page and the source disagree, the source wins and this page is the bug.</p>
   <p>This is a reference and a statement of the fork — <strong>not a decision record</strong>. #273 was decided on <strong>2026-09-14</strong> and the decision lives in <a href="2026-09-14-liveness-two-cadences-design.md">its own dated record</a>, as this page said it should; &sect;&nbsp;1 and &sect;&nbsp;8 are corrected to point at it. <strong>Everything else here still describes the system as it is today</strong>, because the decision is not yet built — when it lands, every constant on this page must be re-read from source again, and the two &times;&nbsp;8 multipliers and the &sect;&nbsp;3.2 inference are the ones that move.</p>
 </footer>
 

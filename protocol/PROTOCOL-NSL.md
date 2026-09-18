@@ -474,8 +474,8 @@ answer for that path specifically — the decision belongs with #114.
 | report `config` echo | `obs/config/<app>/<key>` | cell | scalar echo |
 | `node_config` echo | `obs/mode`, `obs/name`, `obs/forward` | cell | publish-on-change is what cells do; no echo-cadence rules |
 | `health` | `obs/health` | cell | `{up:, bid:, wak:, pto:, sdr:, ref:}` — liveness and delivery; `ref` counts REFUSALS (`#err` replies) distinctly from `pto`'s timeouts, because a refused node is answered on every exchange and would otherwise read as perfectly healthy (rete#199); VM internals are `sys/metrics`. The labels were `uptimeMs`/`bootId`/`wakes`/`pollTimeouts`/`streamDropped` until rete#197 shortened every label on the frame (2026-08-11) |
-| `liveness` (declare) | `obs/liveness` | cell | `{cad:, bud:}` — the node's own statement of how long it may be silent; porta judges `now - last_seen > bud` and infers nothing (rete#231) |
-| `liveness` (request) | `goal/liveness` | cell | `{cad:, bud:}` — the operator **requests**; the node snaps to its grid, clamps to 24 h and publishes what it adopted. The `goal`/`obs` diff is the answer, so nothing needs to know the legal values in advance |
+| `liveness` (declare) | `obs/liveness` | cell | `{misses:, telCad:}` — the node's own cadence and miss allowance; porta judges `now - last_seen > telCad × misses` and infers nothing (rete#231, rete#273 D2). The app-liveness deadline `appCad` is declared to the on-node observer and never crosses the wire (D1) |
+| `liveness` (request) | `goal/liveness` | cell | `{misses:, telCad:}` — the operator **requests**; the node clamps `telCad × misses` to 24 h on `misses` and publishes what it adopted. The `goal`/`obs` diff is the answer; there is no grid to learn, because a budget shorter than a cadence is unrepresentable |
 | `health.reset` (fault) | `sys/reset` | stream | `{category:, code:}` — v1's "data_log on first fault" is just an entry |
 | telemetry `print`/`log` | `tel/print`, `tel/log` | stream | `{text:}` / `{lvl:, txt:}` (`{level:, text:}` until rete#197) |
 | telemetry `metric` | `tel/m/<name>` | stream | `{value:, ts:}` |
@@ -724,3 +724,9 @@ Decisions folded into this edition (full reasoning trail in
   envelope stays deferred on #200's trigger: the first rollout that cannot complete inside
   one maintenance window. #199 (a refused node halts) is closed, so "reject" is useless
   for a staged rollout rather than destructive.
+- **(2026-09-17) rete#273 BUILT.** `Liveness { cad, bud }` → `{ misses, telCad }`; the budget
+  is derived, `bud = telCad × misses`, so the grid snap and the `bud < cad` guard are deleted
+  rather than replaced. `gw/liveness` may read `#neverSeen` and `#unknown` (rete#285 — the
+  manifest now says so). The node's app-liveness deadline (`appCad`) is declared to the
+  observer through one primitive and never crosses the wire. Manifest sha256
+  `844ba659b3a9a3b0…`; every node built from here pins it (`obs/build.man`).

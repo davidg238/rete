@@ -8,7 +8,7 @@
 
 **Tech Stack:** C99 (`nodus/oevm/src`, host-testable header), Zephyr C (`nodus/oevm/zephyr/src`), nsl (`nodus/nsl/lib/kernel.nsl` + node apps), Go 1.26 (`porta`), CDDL/zcbor (`protocol/MANIFEST.cddl`), bash target harness (`nodus/oevm/tests/target`).
 
-**Progress (2026-09-17):** Tasks 1–7 DONE and committed (`1315e1e`, `00c1470`, `365f8f9`, `47633bb`, `9b6332a`, `3b4331c`); whole tree green — nsl 280/0 with every aux gate PASS incl. `tutorial-porta`, `go test ./...` ok, `PORTA SYNC OK`. Task 8 (the board) is next.
+**Progress (2026-09-17):** Tasks 1–9 DONE and committed (`1315e1e`, `00c1470`, `365f8f9`, `47633bb`, `9b6332a`, `3b4331c`, `1e6f921`, `888500f`, + the promotion commit); whole tree green, five board gates green on `c6spare` with `liveness-fastpoll` RED on the pre-fix VM first. **Task 10 (the gateway landing) is WITH DAVID.** Deviations recorded in the commits: fastpoll's block is 3 s / 4 s (1.5 s did not reproduce the red) and it declares 2 × blockMs = 6000; `run.sh`'s C6 flash was broken since `151643f` and is fixed in `52eaedc`; the custos descriptor table was a reader the plan missed.
 
 **Spec:** `docs/design/2026-09-14-liveness-two-cadences-design.md` (D1 as amended 2026-09-17 in commit `bb26b32`; D2, D2.1, D2.2, D2.3; §2 deletions; §4 falsification; §5 sequencing; §6 promotion). **D3 (`#stalled`) is NOT in this plan** — it needs the TLA+ `DoSweep` correction first and is its own plan.
 
@@ -1206,7 +1206,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 **Ordering note.** The fast-poll probe must be RUN ON TODAY'S VM FIRST so the false trip is evidence, not memory. Today's VM does not know `appLiveness:`, so Step 1 writes the probe WITHOUT its declaration line, runs it against the pre-Task-1 commit, and records the red; Step 4 adds the line and runs it on the new build.
 
-- [ ] **Step 1: The fast-poll probe (no declaration yet).** Create `nodus/oevm/zephyr/FastPollProbeC6.nsl`:
+- [x] **Step 1: The fast-poll probe (no declaration yet).** Create `nodus/oevm/zephyr/FastPollProbeC6.nsl`:
 
 ```
 (*
@@ -1325,7 +1325,7 @@ OBSERVE_S=120
 OBSERVE_PROGRESS='^.*fastpoll tick [0-9]+'
 ```
 
-- [ ] **Step 2: Run it on TODAY'S VM.** Check out the pre-Task-1 VM sources into the working tree for the build only:
+- [x] **Step 2: Run it on TODAY'S VM.** Check out the pre-Task-1 VM sources into the working tree for the build only:
 
 ```bash
 cd /home/david/workspace/rete && git stash -u -q 2>/dev/null; PRE=$(git log --format=%h --grep='fix(#273): §3.2' -1)^; echo "pre-fix commit: $PRE"; git checkout -q $PRE -- nodus/oevm/src nodus/oevm/zephyr/src nodus/nsl/lib/kernel.nsl && git stash pop -q 2>/dev/null; git status --short | head
@@ -1339,7 +1339,7 @@ Expected: **FAIL** — the archive shows `oevm: WEDGE cond=pulse-undrained ... d
 
 Restore the tree: `cd /home/david/workspace/rete && git checkout -q HEAD -- nodus/oevm/src nodus/oevm/zephyr/src nodus/nsl/lib/kernel.nsl && git status --short` (expected: only the two new files).
 
-- [ ] **Step 3: The run-once probe.** Create `nodus/oevm/zephyr/RunOnceProbeC6.nsl`:
+- [x] **Step 3: The run-once probe.** Create `nodus/oevm/zephyr/RunOnceProbeC6.nsl`:
 
 ```
 (*
@@ -1434,7 +1434,7 @@ OBSERVE_S=60
 OBSERVE_PROGRESS=none
 ```
 
-- [ ] **Step 4: Declare in the fast-poll probe.** Replace `(* DECLARATION GOES HERE in Step 4. *)` with:
+- [x] **Step 4: Declare in the fast-poll probe.** Replace `(* DECLARATION GOES HERE in Step 4. *)` with:
 ```
     (* rete#273 D1: the app's longest legitimate blocking reaction is blockMs; 4 s
        is comfortably past it and comfortably under the 16 s a bridge would default
@@ -1442,7 +1442,7 @@ OBSERVE_PROGRESS=none
     plat appLiveness: 4000.
 ```
 
-- [ ] **Step 5: Run the five scenarios on the new build** (~25 min of board time; `run.sh` takes names):
+- [x] **Step 5: Run the five scenarios on the new build** (~25 min of board time; `run.sh` takes names):
 
 ```bash
 cd /home/david/workspace/rete/nodus/oevm/tests/target && for s in liveness-fastpoll liveness-runonce liveness-heartbeat liveness-noradio wedge-detect; do echo "=== $s"; ./run.sh $s 2>&1 | tail -8; done
@@ -1454,7 +1454,7 @@ Expected, per scenario:
   - `wedge-detect`: PASS, `deadline=8000ms appCad=8000ms`, `reason=#watchdog`.
 Any red: STOP, read the archive, do not edit the gate to fit.
 
-- [ ] **Step 6: Record the evidence in the env headers** (the fast-poll red's archive path and date, the run-once dump line) and in `CLAUDE.md`'s scenario table — two new rows after `liveness-noradio`:
+- [x] **Step 6: Record the evidence in the env headers** (the fast-poll red's archive path and date, the run-once dump line) and in `CLAUDE.md`'s scenario table — two new rows after `liveness-noradio`:
 
 ```
 | `liveness-fastpoll` | disruptive | **#273 D1's reproduce-first gate: a 100 ms timer beside a 1.5 s blocking reaction.** RED on the pre-#273 build (deadline=800ms, false reboot inside the first slow tick — archived <date>), GREEN with the declared appCad 4000 |
@@ -1462,7 +1462,7 @@ Any red: STOP, read the archive, do not edit the gate to fit.
 ```
 and update the `liveness-heartbeat` / `liveness-noradio` / `wedge-detect` rows' `deadline=` phrases to say the number now comes from the declared appCad (bridge default cad × 8; the probe declares 8000).
 
-- [ ] **Step 7: Commit.**
+- [x] **Step 7: Commit.**
 
 ```bash
 cd /home/david/workspace/rete && git add nodus/oevm/zephyr/FastPollProbeC6.nsl nodus/oevm/zephyr/RunOnceProbeC6.nsl nodus/oevm/tests/target/liveness-fastpoll.env nodus/oevm/tests/target/liveness-runonce.env CLAUDE.md && git commit -m "test(#273): liveness-fastpoll (red before, green after) and liveness-runonce on a board
@@ -1488,7 +1488,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `docs/design/2026-09-14-liveness-two-cadences-design.md` (close-out: "BUILT <date>", D1 notes the feed IS `pulse_drained()`)
 - Modify: `CLAUDE.md` focus block
 
-- [ ] **Step 1: RECORDS.** Replace row 405 with:
+- [x] **Step 1: RECORDS.** Replace row 405 with:
 
 ```
 | `obs/liveness` | R | `Liveness { misses: int, telCad: int }` — **the node's declaration of how often it will speak and how many consecutive misses it tolerates** (rete#231 D2, shape per rete#273 D2). porta derives the budget `telCad × misses` and judges `now - last_seen > budget`, one line with no constants in it. Two numbers and not one because the bench proved one is not enough — `c6-bell` runs a 30 s cadence and misses roughly half its check-ins to ordinary mesh loss, so `misses` is the node's allowance for its own measured loss rate, and the node is the only party that knows it; **8 at every period** (the false-trip rate is ~p^misses and the period cancels — D2.3). A budget shorter than the cadence is **unrepresentable**, which is what deleted the grid snap. Clamped to 24 h on `misses`, published, never rejected. porta writes `#unknown` naming all three numbers when `telCad × misses` is below its 30 s sweep tick (D2.1) — bench nodes at 2 s declare `misses: 16` for that reason. Written **once per boot**. **<N> B encoded, MEASURED <date>** at the worst legal values (`nodus/tests/22_spacesync/20_liveness_size.nsl`). The node's OTHER liveness number, `appCad`, never rides the wire (rete#273 D1) |
@@ -1499,12 +1499,12 @@ and add, in the gateway-authored rows (find the table that holds `gw/**` paths; 
 ```
 Also fix the paragraph at ~419 (`obs/liveness replaced an inference`) if it names `bud`.
 
-- [ ] **Step 2: PROTOCOL-NSL.** Row 477 → `` | `liveness` (declare) | `obs/liveness` | cell | `{misses:, telCad:}` — the node's own cadence and miss allowance; porta judges `now - last_seen > telCad × misses` and infers nothing (rete#231, rete#273 D2) | ``. Append to the §8 log:
+- [x] **Step 2: PROTOCOL-NSL.** Row 477 → `` | `liveness` (declare) | `obs/liveness` | cell | `{misses:, telCad:}` — the node's own cadence and miss allowance; porta judges `now - last_seen > telCad × misses` and infers nothing (rete#231, rete#273 D2) | ``. Append to the §8 log:
 ```
 - **2026-09-17 — rete#273 BUILT.** `Liveness { cad, bud }` → `{ misses, telCad }`; the budget is derived. `gw/liveness` may read `#neverSeen` and `#unknown` (rete#285 — the manifest now says so). The node's app-liveness deadline (`appCad`) is declared to the observer and never crosses the wire. Manifest sha256 <first16>….
 ```
 
-- [ ] **Step 3: ARCHITECTURE §3.5.** Add after the four-verdict table:
+- [x] **Step 3: ARCHITECTURE §3.5.** Add after the four-verdict table:
 ```
 The budget is `telCad × misses`, both declared by the node at `obs/liveness` (rete#273 D2);
 porta contributes no number. Two consequences an operator will meet: **a budget below the
@@ -1515,15 +1515,15 @@ ladder in the reason, deliberately not a fifth verdict until an operator is show
 differently on the first miss than on the fifth.
 ```
 
-- [ ] **Step 4: CLAIMS.md** — two rows in the target-gate table, in the style of the `liveness-noradio` row already there: `liveness-fastpoll` (claim: a 100 ms timer beside a 1.5 s reaction is not a wedge; evidence: red on the pre-#273 build, green after; archive path) and `liveness-runonce` (claim: a node with no repeating timer is judged at its declared number; evidence: `deadline=4000ms` with n == 0).
+- [x] **Step 4: CLAIMS.md** — two rows in the target-gate table, in the style of the `liveness-noradio` row already there: `liveness-fastpoll` (claim: a 100 ms timer beside a 1.5 s reaction is not a wedge; evidence: red on the pre-#273 build, green after; archive path) and `liveness-runonce` (claim: a node with no repeating timer is judged at its declared number; evidence: `deadline=4000ms` with n == 0).
 
-- [ ] **Step 5: The two older records.** In `2026-08-21-liveness-contract-design.md` find the §604 addendum (grep `wedge deadline`) and put above it: `> **SUPERSEDED 2026-09-14 by \`2026-09-14-liveness-two-cadences-design.md\` D1 — the wedge deadline is never published; built 2026-09-17.**`. In `2026-08-31-liveness-timers.html` §8, replace the "fork" framing with one sentence pointing at the decision record and "BUILT 2026-09-17", and in §7's derivation list mark `observer_core.h:131 (shortest × 8)` as DELETED and add `appCad (declared; bridge default cad × 8)`. Render check: `python3 -m http.server 8088 --directory docs/design` is already how the page is browsed; open it and confirm §7/§8 read.
+- [x] **Step 5: The two older records.** In `2026-08-21-liveness-contract-design.md` find the §604 addendum (grep `wedge deadline`) and put above it: `> **SUPERSEDED 2026-09-14 by \`2026-09-14-liveness-two-cadences-design.md\` D1 — the wedge deadline is never published; built 2026-09-17.**`. In `2026-08-31-liveness-timers.html` §8, replace the "fork" framing with one sentence pointing at the decision record and "BUILT 2026-09-17", and in §7's derivation list mark `observer_core.h:131 (shortest × 8)` as DELETED and add `appCad (declared; bridge default cad × 8)`. Render check: `python3 -m http.server 8088 --directory docs/design` is already how the page is browsed; open it and confirm §7/§8 read.
 
-- [ ] **Step 6: The decision record's close-out.** Under the title block of `2026-09-14-liveness-two-cadences-design.md` change `**Decided, NOT built.**` to `**D1 and D2 BUILT 2026-09-17 (commits <a>..<b>); D3 (#stalled) is still decided-not-built and has its own plan.**`. In D1 add one sentence after "One feed, one caller, no app-side call.": *"In the build the feed IS `pulse_drained()` — no new counter was added; the prim carries only the declaration."*
+- [x] **Step 6: The decision record's close-out.** Under the title block of `2026-09-14-liveness-two-cadences-design.md` change `**Decided, NOT built.**` to `**D1 and D2 BUILT 2026-09-17 (commits <a>..<b>); D3 (#stalled) is still decided-not-built and has its own plan.**`. In D1 add one sentence after "One feed, one caller, no app-side call.": *"In the build the feed IS `pulse_drained()` — no new counter was added; the prim carries only the declaration."*
 
-- [ ] **Step 7: CLAUDE.md focus block.** Rewrite the `Decided 2026-09-14 … NOT built` bullet's opening to `**BUILT 2026-09-17 (D1+D2), do not re-litigate:**`, delete the "NOT built" phrasing, and add the bench truth from this session: `c6bench` on the gateway runs `TimerlessNodeC6` (18.7 days, boot 2026-08-30 01:42Z) and is silent to porta by construction, not by fault; `c6spare` has both cables again.
+- [x] **Step 7: CLAUDE.md focus block.** Rewrite the `Decided 2026-09-14 … NOT built` bullet's opening to `**BUILT 2026-09-17 (D1+D2), do not re-litigate:**`, delete the "NOT built" phrasing, and add the bench truth from this session: `c6bench` on the gateway runs `TimerlessNodeC6` (18.7 days, boot 2026-08-30 01:42Z) and is silent to porta by construction, not by fault; `c6spare` has both cables again.
 
-- [ ] **Step 8: Docmap and commit.**
+- [x] **Step 8: Docmap and commit.**
 
 ```bash
 cd /home/david/workspace/rete && tools/docmap.sh >/dev/null 2>&1; git add -A protocol/*.md porta/docs/ARCHITECTURE.md review/tests/CLAIMS.md docs/design CLAUDE.md review/DOCMAP.md && git commit -m "docs(#273): promote D1/D2 to RECORDS, PROTOCOL-NSL, ARCHITECTURE, CLAIMS; the older records banner-superseded
