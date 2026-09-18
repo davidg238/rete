@@ -66,9 +66,7 @@ sym-b4          = #6.39("b4")
 sym-b5          = #6.39("b5")
 sym-bid         = #6.39("bid")
 sym-bootId      = #6.39("bootId")
-sym-bud         = #6.39("bud")
 sym-build       = #6.39("build")
-sym-cad         = #6.39("cad")
 sym-chip        = #6.39("chip")
 sym-code        = #6.39("code")
 sym-continuous  = #6.39("continuous")
@@ -97,6 +95,7 @@ sym-maxAwakeS   = #6.39("maxAwakeS")
 sym-maxUs       = #6.39("maxUs")
 sym-minAwakeS   = #6.39("minAwakeS")
 sym-minUs       = #6.39("minUs")
+sym-misses      = #6.39("misses")
 sym-mode        = #6.39("mode")
 sym-monoMs      = #6.39("monoMs")
 sym-ms          = #6.39("ms")
@@ -122,6 +121,7 @@ sym-span        = #6.39("span")
 sym-state       = #6.39("state")
 sym-sumUsHi     = #6.39("sumUsHi")
 sym-sumUsLo     = #6.39("sumUsLo")
+sym-telCad      = #6.39("telCad")
 sym-text        = #6.39("text")
 sym-triggers    = #6.39("triggers")
 sym-txt         = #6.39("txt")
@@ -188,8 +188,8 @@ profile = #6.27([sym-Profile, {
 ;# path=goal/liveness  kind=cell  class=routine  dir=down
 ;# path=obs/liveness  kind=cell  class=routine  dir=up
 liveness = #6.27([sym-Liveness, {
-  sym-bud => uint,
-  sym-cad => uint,
+  sym-misses => uint,
+  sym-telCad => uint,
 }])
 
 ;# path=goal/do/reboot  kind=stream  class=routine  dir=down
@@ -350,4 +350,4 @@ span-capture = #6.27([sym-SpanCapture, {
 ; =====================================================================
 
 ;# path=gw/liveness  kind=cell  class=routine  dir=gw
-gw-verdict = #6.39("live") / #6.39("silent")
+gw-verdict = #6.39("live") / #6.39("silent") / #6.39("neverSeen") / #6.39("unknown")

@@ -8,7 +8,7 @@ GOLDEN goal/config/main/rate 182a
 GOLDEN obs/config/main/rate 6466617374
 GOLDEN goal/debug/main d81b82d827654465627567a1d82766616374696f6ed82766617474616368
 GOLDEN goal/profile/main d81b82d8276750726f66696c65a3d82766616374696f6ed827657374617274d827696475726174696f6e531903e8d8276a636f6e74696e756f7573f4
-GOLDEN goal/liveness d81b82d827684c6976656e657373a2d82763627564193e80d827636361641907d0
+GOLDEN goal/liveness d81b82d827684c6976656e657373a2d827666d697373657308d8276674656c4361641907d0
 GOLDEN goal/do/reboot d81b82d827665265626f6f74a0
 GOLDEN dbg/req 6c70726f66696c652031303030
 GOLDEN obs/name 6462656c6c
@@ -16,7 +16,7 @@ GOLDEN obs/apps/main d81b82d827664170704f6273a2d82765696d616765d81b82d82767426c6
 GOLDEN obs/health d81b82d827664865616c7468a7d82762757001d827636269641829d8276370746f02d8276372656603d8276372656a06d8276373647204d8276377616b05
 GOLDEN obs/build d81b82d827654275696c64a2d8276463686970d8276765737033326336d827656275696c6469686f73742d74657374
 GOLDEN obs/build d81b82d827654275696c64a5d827636d616e42616bd8276373646b687a65706879722d34d8276463686970d8276765737033326336d827656275696c6469686f73742d74657374d82765696d61676542616b
-GOLDEN obs/liveness d81b82d827684c6976656e657373a2d82763627564193e80d827636361641907d0
+GOLDEN obs/liveness d81b82d827684c6976656e657373a2d827666d697373657308d8276674656c4361641907d0
 GOLDEN obs/mode d81b82d827644d6f6465a5d827646d6f6465d827666e6f726d616cd827696d61784177616b6553183cd827696d696e4177616b655305d8276a6c6f6f70536c6565705301d8276a6d617841736c6565705319012c
 GOLDEN tel/print d81b82d827655072696e74a1d8276474657874626869
 GOLDEN tel/log d81b82d827634c6f67a2d827636c766cd82764696e666fd82763747874667469636b2031
@@ -91,7 +91,7 @@ class ManifestGoldens packageUsing: manifest = () (
     self emit: 'goal/profile/main'
          value: (R tag: #Profile with: #action -> #start with: #durationS -> 1000 with: #continuous -> false)
          using: platform.
-    self emit: 'goal/liveness' value: (R tag: #Liveness with: #cad -> 2000 with: #bud -> 16000) using: platform.
+    self emit: 'goal/liveness' value: (R tag: #Liveness with: #misses -> 8 with: #telCad -> 2000) using: platform.
     self emit: 'goal/do/reboot' value: (R tag: #Reboot fields: (M fromPairs: OC new)) using: platform.
     (* dbg/req is a BARE line by the node's own reader (parseProfileMs:) —
        the DbgReq record was catalogue prose that never rode the wire. *)
@@ -123,7 +123,7 @@ class ManifestGoldens packageUsing: manifest = () (
     oc add: #image -> bytes.
     self emit: 'obs/build' value: (R tag: #Build fields: (M fromPairs: oc)) using: platform.
 
-    self emit: 'obs/liveness' value: (R tag: #Liveness with: #cad -> 2000 with: #bud -> 16000) using: platform.
+    self emit: 'obs/liveness' value: (R tag: #Liveness with: #misses -> 8 with: #telCad -> 2000) using: platform.
     oc:: OC new.
     oc add: #mode -> #normal.
     oc add: #maxAwakeS -> 60.
