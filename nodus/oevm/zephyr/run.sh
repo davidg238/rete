@@ -640,8 +640,13 @@ if [ "$BUILD_RC" = 0 ]; then
   if [ "$MODEL" = B ]; then
     # The .incbin'd path, straight out of the generated ninja file — the blob this
     # image carries, not the blob this script baked.
-    ACTUAL_BLOB=$(grep -ho 'OEVM_BLOB_FILE=[^ ]*' "$ZDIR/$BUILD_DIR"/build.ninja \
-                    "$ZDIR/$BUILD_DIR"/*/build.ninja 2>/dev/null |
+    # `*/build.ninja` exists only under NCS sysbuild (the nRF family). On a C6 the
+    # glob matches nothing, grep exits 2 on the missing path, and under
+    # `set -euo pipefail` that killed every C6 flash from 151643f (2026-08-30)
+    # until 2026-09-17 — silently, after "Successfully created esp32c6 image".
+    # The `|| true` keeps the pipeline's verdict with the EMPTY check below.
+    ACTUAL_BLOB=$({ grep -ho 'OEVM_BLOB_FILE=[^ ]*' "$ZDIR/$BUILD_DIR"/build.ninja \
+                      "$ZDIR/$BUILD_DIR"/*/build.ninja 2>/dev/null || true; } |
                   head -1 | sed 's/^OEVM_BLOB_FILE=//; s/\\\?"//g')
     if [ -z "$ACTUAL_BLOB" ]; then
       echo "[build] FATAL: no OEVM_BLOB_FILE in the generated build — cannot tell which" >&2
