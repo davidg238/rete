@@ -303,3 +303,33 @@ and no compatibility window (design posture).
   decided one, and §7's derivation list rewritten. That page says of itself: *"When #273
   is decided, the decision belongs in a dated `docs/design/` record of its own, and this
   page should be corrected to match it."*
+
+## 7. Close-out — D1 and D2 landed on the running system, 2026-09-17/18
+
+The plan (`docs/superpowers/plans/2026-09-17-liveness-two-cadences.md`) ran Tasks 1–9 on
+2026-09-17 and Task 10, the gateway landing, across 2026-09-17 23:01 → 2026-09-18 18:19
+local. §4's falsification plan is discharged on `c6spare` (the five gates) and now on the
+running system:
+
+- **Gateway**: porta `2488c2e`, manifest `844ba659…` persisted to the store; ~35 s outage
+  by the three-call restart (kill by PID). **Not predicted here or in the plan**: the first
+  sweep after the restart moved every un-reflashed node (`c6bench`, `nrf4ec0`) from its old
+  verdict to `#unknown` — *"declared no cadence"* — because the old `{bud, cad}` row is no
+  declaration under the new shape. That is D2.1's refusal doing its job on a trailing node;
+  a reflash clears it. It is the visible cost of §5's "both ends reflash together".
+- **First real node**: `c6bench` reflashed from the gateway with `PortaBridgeNodeC6` +
+  the Thread FTD overlay (`g2488c2e`). `obs/liveness` = `{misses: 16, telCad: 2000}`,
+  `obs/build.man` = `0x844ba659b3a9a3b0`, `gw/liveness` `#live` within 30 s of boot
+  (`live: 269 ms since the last exchange, 0.1 missed check-ins of 2000 ms, 16 tolerated`).
+  Overnight: 17 k ticks, 132 cumulative misses (~0.8 % loss), `dropped 0`.
+- **The physical falsification**: USB pulled 08:42:20 → `#silent` at 08:43:01, reason
+  `silent: 42121 ms since the last exchange — 21.1 missed check-ins of 2000 ms, 16
+  tolerated` — 41 s after the pull, inside the predicted 32–62 s window (`bud` 32 s + a
+  sweep tick), the reason counting ≥16. Replugged 18:19 → boot 4, `#live` at the next
+  sweep (24 s). No constant on the gateway took part in either verdict: the numbers in
+  both reasons are the node's own declaration.
+
+**Absorbed by** (§6, done in the promotion commit `1aa8eec`): RECORDS §4.2, PROTOCOL-NSL
+§4/§8, ARCHITECTURE §3.5, CLAIMS (two rows). D3 (`#stalled`) is NOT landed — it waits on the
+TLA `DoSweep` correction (#272) and is a plan of its own. Found-during: #300 (custos is
+location-free except for the `live` binding).
