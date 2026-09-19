@@ -83,6 +83,18 @@ If you do build by hand, sanity-check `<build-dir>/partitions.yml` (settings at 
 Note that a bare `-D` after `--` reaches the SYSBUILD cache and **not** the image, which
 is why `OEVM_MODEL` / `OEVM_BLOB` / `OEVM_NODE_ID` travel by environment variable now —
 `-Dzephyr_OEVM_BLOB=` (image-scoped) was tried and does not work either.
+**Where a running dongle lives is part of the port (rete#281, 2026-09-19): never in the
+working host's USB hub.** `4ec0` ran `PortaBridgeNodeNrf` for 17.4 days in the desk hub
+(`1-1.3`, beside a 5 Gbps SuperSpeed link) and could attach to the mesh **only while the
+workstation was asleep or off** — eight windows matching `journalctl --list-boots` /
+`PM: suspend` to the second, deaf within seconds of every resume, so every bench
+observation of "does not attach" was made inside the failure. On a wall USB charger it
+attached in under a minute with the host awake. Flash on a motherboard port (DFU needs the
+data link), then move it to a charger or a port with no USB 3 neighbour; the console is lost
+by that, and it is lossy there anyway (#286) — the gateway store is the instrument. Conducted
+(the data link) vs radiated (the hub's 2.4 GHz noise at the antenna) is deliberately not
+separated.
+
 For a silently-dead board, stack `prj_dongle_diag.conf` as an extra conf
 (`-DEXTRA_CONF_FILE="prj_dongle_thread_local.conf;prj_dongle_diag.conf"`) — minimal-mode
 logging makes ARM fault dumps print via printk instead of dying invisibly.

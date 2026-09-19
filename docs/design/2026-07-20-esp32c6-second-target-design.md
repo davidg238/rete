@@ -316,3 +316,13 @@ OpenThread APIs diverge enough (`openthread_start`/`openthread_api_mutex_*` are
 largely absent) that a `#if` straddling both would be more fragile than two honest mains.
 Reuse is deferred, looked for later. This supersedes design section B's earlier lean
 toward a version-conditional bringup inside the shared `main.c`.
+
+---
+
+**Addendum 2026-09-19 — a fourth target is requested on this rung's pattern: #302,
+`rpi_pico2` (RP2350, Cortex-M33).** Asked by cabot's Q32 and answered in #301: the C6 has one
+GP-SPI and Zephyr's ESP32 SPI driver has no slave mode (nor does the RP2350's PL022 driver —
+the Pi link goes to UART on both counts). #302 copies this rung's shape minus the five
+Xtensa/radio hazards above, and its first deliverable is the M33's µs/activation against the
+C6's 11.83 µs, which is what cabot's board move is gated on. This document stays the reference
+for what a second-target rung contains.
