@@ -25,7 +25,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 case "$MODEL" in A|B) ;; *) echo "--model must be A or B" >&2; exit 2 ;; esac
-case "$BOARD_ID" in esp32|esp32s2|esp32c6|nrf52840dk|nrf52840dongle) ;; *) echo "--board must be esp32, esp32s2, esp32c6, nrf52840dk or nrf52840dongle" >&2; exit 2 ;; esac
+case "$BOARD_ID" in esp32|esp32s2|esp32c6|nrf52840dk|nrf52840dongle|rpi_pico2) ;; *) echo "--board must be esp32, esp32s2, esp32c6, nrf52840dk, nrf52840dongle or rpi_pico2" >&2; exit 2 ;; esac
 
 ZDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # zephyr/ — the app dir
 ROOT="$(cd "$ZDIR/.." && pwd)"                          # nodus/oevm — the VM root, not the repo root
@@ -387,6 +387,40 @@ case "$BOARD_ID" in
         CONSOLE_PORT=/dev/ttyACM0
       fi
     fi
+    ;;
+  rpi_pico2)
+    # rete#302 — the RP2350 (Raspberry Pi Pico 2), oevm's fourth Zephyr target, cut
+    # to the C6 rung's pattern (#57). Built in the C6's west workspace (~/zephyr-esp32)
+    # with the arm-zephyr-eabi toolchain the nRF path already uses from the shared SDK:
+    # no new toolchain, no new workspace, no sysbuild (so the bare `-D` forms work here
+    # the way they do on the C6 — the env route is kept anyway, since it costs nothing).
+    # cabot's board move (M28) is gated on this profile's µs/activation number.
+    BOARD="rpi_pico2/rp2350a/m33"
+    CONF_FILE="prj_rpi_pico2.conf"
+    # Captured from a board, never borrowed: the nRF's came out byte-identical to the
+    # C6's (#281) and this M33 build uses the nRF's toolchain, so identical is the
+    # EXPECTED outcome — and the bake still refuses without this target's own file.
+    LAYOUT_JSON="$ZDIR/layout-rp2350.json"
+    ROM_PATCH=0
+    # No CONSOLE_PORT glob: the Pico 2 has NO on-board USB-UART bridge. Its uart0 (GP0
+    # TX / GP1 RX) rides whatever adapter is wired to those pins, and this bench has more
+    # than one of every adapter it owns, so guessing between them is the 2026-07-16
+    # mistake. The ONE home for instance<->adapter is the collector env file
+    # (tools/bench-identity.sh); the instance is `pico2`, and an explicit CONSOLE_PORT
+    # still wins. A build without either proceeds — the node id then falls back with
+    # the warning below — and --flash needs no console (it goes by USB BOOTSEL), but
+    # --capture refuses to read a log it cannot attribute to this board.
+    if [ -z "${CONSOLE_PORT:-}" ]; then
+      CONSOLE_PORT=$(bench::port_for_board pico2 2>/dev/null || true)
+    fi
+    # The C6's 131072 (128 KB) arena, because the point of this rung is a number on the
+    # SAME footing as the C6's 11.83 µs/activation, and the heap is one of the things
+    # that must match for the comparison to hold. It is NOT this part's ceiling: the
+    # trial link (2026-09-19, TimerNode) sat at RAM 198924/532480 = 37.4%, so ~320 KB
+    # is unspent. #302 Task 5's heap-ceiling cell is what turns that into a number; a
+    # caller can already override toward it:  OEVM_HEAP_SIZE=262144 ...
+    : "${OEVM_HEAP_SIZE:=131072}"
+    : "${BUILD_DIR:=build-rpi_pico2-$MODEL}"
     ;;
 esac
 
@@ -773,6 +807,25 @@ if [ "$DO_FLASH" = 1 ]; then
     echo "[flash] nrfutil dfu usb-serial -> $(readlink -f "$DFU_PORT")"
     NRFUTIL_HOME="$HOME/.nrfutil-rete" "$NRFUTIL_RETE" nrf5sdk-tools dfu usb-serial \
       -pkg "$DFU_ZIP" -p "$(readlink -f "$DFU_PORT")" || exit 2
+  elif [ "$BOARD_ID" = rpi_pico2 ]; then
+    # UF2 over BOOTSEL mass storage — the bench path (#302 Task 4). Like the dongle's
+    # DFU it is a PHYSICAL act: hold BOOTSEL while plugging the board in and the RP2350
+    # ROM enumerates as 2e8a:000f, a USB disk named RP2350 with an INFO_UF2.TXT on it.
+    # Checked here rather than left to the runner, whose own failure ("No matching UF2
+    # partitions found") reads like a missing package rather than an unpressed button.
+    # SWD via `openocd` + the debug probe is the second path and cabot's OTA path (#233);
+    # it is not wired here until a probe is on the desk.
+    if ! lsusb 2>/dev/null | grep -q 2e8a:000f; then
+      echo "[flash] the Pico 2 is NOT in BOOTSEL mode (no 2e8a:000f on USB)." >&2
+      echo "[flash] Hold BOOTSEL while plugging the board in, then re-run with --flash." >&2
+      echo "[flash] Its uart0 console adapter is a separate device and is unaffected." >&2
+      exit 2
+    fi
+    # The runner finds the mount by INFO_UF2.TXT's Board-ID (board.cmake pins RP2350),
+    # so a desktop that does not auto-mount removable media fails there with the
+    # message above. `udisksctl mount -b /dev/disk/by-label/RP2350` is the hand fix.
+    echo "[flash] west flash --runner uf2 -d $BUILD_DIR"
+    ( cd "$ZDIR" && west flash --skip-rebuild --runner uf2 -d "$BUILD_DIR" )
   elif [ "$BOARD_ID" = nrf52840dk ]; then
     # The DK has no ROM serial loader in this path: it flashes over its on-board
     # SEGGER J-Link. --skip-rebuild for the SAME reason the esptool branch does not
@@ -871,7 +924,19 @@ if [ "$DO_FLASH" = 1 ]; then
 fi
 
 if [ "${CAPTURE:-0}" != 0 ]; then
-  if [ "$BOARD_ID" = esp32c6 ]; then
+  if [ "$BOARD_ID" = rpi_pico2 ]; then
+    # Same D6 shape as the C6 below — the collector owns the port — but the board is
+    # NAMED: logread.py's --board defaults to `c6`, the ship's bell, and this board is
+    # not on that log. Resolved from the console port through the env files, and it
+    # refuses rather than reads the wrong board's log when nothing names the port.
+    if ! PICO_INSTANCE=$(bench::board_for_port "${CONSOLE_PORT:-}"); then
+      echo "[watch] no collector env names '${CONSOLE_PORT:-<unset>}' — set CONSOLE_PORT" >&2
+      echo "[watch] or write ~/.config/rete/console-pico2.env (tools/console/README.md)." >&2
+      exit 2
+    fi
+    echo "[watch] last ${CAPTURE}s from the collector log for $PICO_INSTANCE"
+    python3 "$ZDIR/tools/console/logread.py" --board "$PICO_INSTANCE" since -- "-${CAPTURE}s"
+  elif [ "$BOARD_ID" = esp32c6 ]; then
     # D6: the collector owns the port, so --capture is a READ of what it already
     # has. This gains rather than loses — it shows the boot you just triggered
     # even if it fired before you asked, which is the exact failure that lost
