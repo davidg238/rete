@@ -727,6 +727,14 @@ widely owned board in the world, so the number needs no explanation to any audie
 architecture family (M33, and RP2350 carries RISC-V cores too). Cheap enough to buy five and
 brick one.
 
+> **Taken 2026-09-19 as #302 (P1), gating cabot's M28.** Profile, conf and layoutdump all
+> build in the C6's workspace — no new toolchain. Two gaps found by building, both recorded in
+> `nodus/oevm/zephyr/prj_rpi_pico2.conf`: **Zephyr v4.2 has no flash driver for the RP2350**
+> (`flash_rpi_pico.c` is RP2040-only, so no NVS/bootId until a QMI driver exists) and no
+> entropy driver. While the boards were in the post an **Adafruit Feather RP2040** became the
+> rehearsal target (out-of-tree port under `nodus/oevm/zephyr/boards/adafruit/`, README has the
+> hookup); it can prove NVS on RP2 flash, and it cannot give the M33 number.
+
 **Second: WeAct mini_stm32h743.** ~$12–15, 512 KB, double-precision FPU, and ST is the
 largest Cortex-M vendor — the "professional standard" leg the bench lacks entirely.
 

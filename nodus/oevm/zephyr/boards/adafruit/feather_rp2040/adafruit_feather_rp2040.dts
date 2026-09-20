@@ -11,6 +11,9 @@
  * What it rehearses that the RP2350 cannot yet: NVS on the RP2 flash (the RP2040
  * HAS a Zephyr flash driver; the RP2350 does not — prj_rpi_pico2.conf), so the
  * storage partition below is the thing this board exists to prove.
+ *
+ * Hookup (3.3 V cable only, TX<->RX, GND, no VCC), BOOTSEL and the bench sequence:
+ * README.md beside this file.
  */
 
 /dts-v1/;
