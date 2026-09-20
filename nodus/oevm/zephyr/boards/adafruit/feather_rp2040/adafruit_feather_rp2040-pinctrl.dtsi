@@ -1,0 +1,54 @@
+/*
+ * Copyright (c) 2026 Ekorau LLC
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Pin defaults from the pico-sdk board header adafruit_feather_rp2040.h.
+ */
+
+#include <dt-bindings/pinctrl/rpi-pico-rp2040-pinctrl.h>
+
+&pinctrl {
+	/* The TX/RX pads on the Feather's edge: GP0/GP1, the SAME pair the Pico 2's
+	 * uart0 uses, so one adapter wiring serves both boards (rete#302). */
+	uart0_default: uart0_default {
+		group1 {
+			pinmux = <UART0_TX_P0>;
+		};
+		group2 {
+			pinmux = <UART0_RX_P1>;
+			input-enable;
+		};
+	};
+
+	/* STEMMA QT connector: SDA GP2 / SCL GP3 on i2c1. */
+	i2c1_default: i2c1_default {
+		group1 {
+			pinmux = <I2C1_SDA_P2>;
+			input-enable;
+		};
+		group2 {
+			pinmux = <I2C1_SCL_P3>;
+			input-enable;
+		};
+	};
+
+	spi0_default: spi0_default {
+		group1 {
+			pinmux = <SPI0_TX_P19>;
+		};
+		group2 {
+			pinmux = <SPI0_RX_P20>;
+			input-enable;
+		};
+		group3 {
+			pinmux = <SPI0_SCK_P18>;
+		};
+	};
+
+	adc_default: adc_default {
+		group1 {
+			pinmux = <ADC_CH0_P26>, <ADC_CH1_P27>, <ADC_CH2_P28>, <ADC_CH3_P29>;
+			input-enable;
+		};
+	};
+};

@@ -1,0 +1,117 @@
+/*
+ * Copyright (c) 2026 Ekorau LLC
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Adafruit Feather RP2040 — an out-of-tree board under oevm's BOARD_ROOT
+ * (nodus/oevm/zephyr), written 2026-09-19 for rete#302 as the REHEARSAL board
+ * while the Pico 2s were in the post: this tree (Zephyr v4.2.0) has
+ * adafruit_qt_py_rp2040 and macropad_rp2040 but not this one. Shape copied from
+ * qt_py_rp2040; pins from the pico-sdk board header adafruit_feather_rp2040.h.
+ *
+ * What it rehearses that the RP2350 cannot yet: NVS on the RP2 flash (the RP2040
+ * HAS a Zephyr flash driver; the RP2350 does not — prj_rpi_pico2.conf), so the
+ * storage partition below is the thing this board exists to prove.
+ */
+
+/dts-v1/;
+
+#include <raspberrypi/rpi_pico/rp2040.dtsi>
+#include "adafruit_feather_rp2040-pinctrl.dtsi"
+#include <freq.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+/ {
+	chosen {
+		zephyr,sram = &sram0;
+		zephyr,flash = &flash0;
+		zephyr,flash-controller = &ssi;
+		zephyr,console = &uart0;
+		zephyr,shell-uart = &uart0;
+		zephyr,code-partition = &code_partition;
+	};
+
+	aliases {
+		watchdog0 = &wdt0;
+		led0 = &led;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		led: led_0 {
+			gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;
+			label = "red LED (D13)";
+		};
+	};
+};
+
+&flash0 {
+	reg = <0x10000000 DT_SIZE_M(8)>;
+
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		/* Reserved memory for the second stage bootloader */
+		second_stage_bootloader: partition@0 {
+			label = "second_stage_bootloader";
+			reg = <0x00000000 0x100>;
+			read-only;
+		};
+
+		/* Code: 0x100 to 64 KB short of the end. */
+		code_partition: partition@100 {
+			label = "code-partition";
+			reg = <0x100 (DT_SIZE_M(8) - 0x100 - DT_SIZE_K(64))>;
+			read-only;
+		};
+
+		/* The last 64 KB (16 sectors of 4 KB) for settings/NVS — the
+		 * "oevm/bootid" key (platform_zephyr.c) and nothing else on this
+		 * board. Nodelabel storage_partition is what CONFIG_SETTINGS_NVS's
+		 * FIXED_PARTITION_ID(storage_partition) looks for. */
+		storage_partition: partition@7f0000 {
+			label = "storage";
+			reg = <0x7f0000 DT_SIZE_K(64)>;
+		};
+	};
+};
+
+&uart0 {
+	current-speed = <115200>;
+	status = "okay";
+	pinctrl-0 = <&uart0_default>;
+	pinctrl-names = "default";
+};
+
+&gpio0 {
+	status = "okay";
+};
+
+zephyr_i2c: &i2c1 {
+	status = "okay";
+	pinctrl-0 = <&i2c1_default>;
+	pinctrl-names = "default";
+	clock-frequency = <I2C_BITRATE_FAST>;
+};
+
+&spi0 {
+	clock-frequency = <DT_FREQ_M(8)>;
+	status = "okay";
+	pinctrl-0 = <&spi0_default>;
+	pinctrl-names = "default";
+};
+
+&timer {
+	status = "okay";
+};
+
+&wdt0 {
+	status = "okay";
+};
+
+&adc {
+	status = "okay";
+	pinctrl-0 = <&adc_default>;
+	pinctrl-names = "default";
+};

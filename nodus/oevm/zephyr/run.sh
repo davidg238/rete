@@ -25,7 +25,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 case "$MODEL" in A|B) ;; *) echo "--model must be A or B" >&2; exit 2 ;; esac
-case "$BOARD_ID" in esp32|esp32s2|esp32c6|nrf52840dk|nrf52840dongle|rpi_pico2) ;; *) echo "--board must be esp32, esp32s2, esp32c6, nrf52840dk, nrf52840dongle or rpi_pico2" >&2; exit 2 ;; esac
+case "$BOARD_ID" in esp32|esp32s2|esp32c6|nrf52840dk|nrf52840dongle|rpi_pico2|feather_rp2040) ;; *) echo "--board must be esp32, esp32s2, esp32c6, nrf52840dk, nrf52840dongle, rpi_pico2 or feather_rp2040" >&2; exit 2 ;; esac
 
 ZDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # zephyr/ — the app dir
 ROOT="$(cd "$ZDIR/.." && pwd)"                          # nodus/oevm — the VM root, not the repo root
@@ -422,6 +422,29 @@ case "$BOARD_ID" in
     : "${OEVM_HEAP_SIZE:=131072}"
     : "${BUILD_DIR:=build-rpi_pico2-$MODEL}"
     ;;
+  feather_rp2040)
+    # rete#302's REHEARSAL board (2026-09-19): an Adafruit Feather RP2040 that was on
+    # the desk while the Pico 2s were in the post. Out-of-tree board under
+    # zephyr/boards/adafruit/feather_rp2040/ (BOARD_ROOT is set in CMakeLists.txt).
+    # Same RP2 loop as the Pico 2 — BOOTSEL/UF2, uart0 on GP0/GP1 through an adapter,
+    # the layout capture — and the one thing the RP2350 cannot do here: NVS on the
+    # RP2 flash. NOT the source of #302's number; prj_feather_rp2040.conf says why.
+    BOARD="adafruit_feather_rp2040"
+    CONF_FILE="prj_feather_rp2040.conf"
+    LAYOUT_JSON="$ZDIR/layout-rp2040.json"
+    ROM_PATCH=0
+    # Same instance<->adapter rule as the Pico 2, same instance name: the Feather's
+    # TX/RX pads are GP0/GP1 too, so it is the SAME adapter wiring moved between two
+    # boards, and one env file names it. An explicit CONSOLE_PORT still wins.
+    if [ -z "${CONSOLE_PORT:-}" ]; then
+      CONSOLE_PORT=$(bench::port_for_board pico2 2>/dev/null || true)
+    fi
+    # 264 KB SRAM, not 520. The C6's 128 KB arena is kept so a TimerNode here is the
+    # same image shape as the Pico 2's; the trial link says whether it fits and by
+    # how much — read the RAM line, do not carry this number to the RP2350.
+    : "${OEVM_HEAP_SIZE:=131072}"
+    : "${BUILD_DIR:=build-feather_rp2040-$MODEL}"
+    ;;
 esac
 
 # Model B works on nRF as of 2026-08-30 (#281 item 2): layout-nrf52840.json was
@@ -807,23 +830,25 @@ if [ "$DO_FLASH" = 1 ]; then
     echo "[flash] nrfutil dfu usb-serial -> $(readlink -f "$DFU_PORT")"
     NRFUTIL_HOME="$HOME/.nrfutil-rete" "$NRFUTIL_RETE" nrf5sdk-tools dfu usb-serial \
       -pkg "$DFU_ZIP" -p "$(readlink -f "$DFU_PORT")" || exit 2
-  elif [ "$BOARD_ID" = rpi_pico2 ]; then
+  elif [ "$BOARD_ID" = rpi_pico2 ] || [ "$BOARD_ID" = feather_rp2040 ]; then
     # UF2 over BOOTSEL mass storage — the bench path (#302 Task 4). Like the dongle's
-    # DFU it is a PHYSICAL act: hold BOOTSEL while plugging the board in and the RP2350
-    # ROM enumerates as 2e8a:000f, a USB disk named RP2350 with an INFO_UF2.TXT on it.
-    # Checked here rather than left to the runner, whose own failure ("No matching UF2
-    # partitions found") reads like a missing package rather than an unpressed button.
-    # SWD via `openocd` + the debug probe is the second path and cabot's OTA path (#233);
-    # it is not wired here until a probe is on the desk.
-    if ! lsusb 2>/dev/null | grep -q 2e8a:000f; then
-      echo "[flash] the Pico 2 is NOT in BOOTSEL mode (no 2e8a:000f on USB)." >&2
+    # DFU it is a PHYSICAL act: hold BOOTSEL while plugging the board in (the Feather:
+    # hold BOOTSEL, tap RESET) and the ROM enumerates as a USB disk with an
+    # INFO_UF2.TXT on it — 2e8a:000f / volume RP2350 for the Pico 2, 2e8a:0003 /
+    # volume RPI-RP2 for the RP2040. Checked here rather than left to the runner, whose
+    # own failure ("No matching UF2 partitions found") reads like a missing package
+    # rather than an unpressed button. SWD via `openocd` + the debug probe is the
+    # second path and cabot's OTA path (#233); not wired until a probe is on the desk.
+    case "$BOARD_ID" in rpi_pico2) ROM_USB=2e8a:000f ROM_VOL=RP2350 ;; *) ROM_USB=2e8a:0003 ROM_VOL=RPI-RP2 ;; esac
+    if ! lsusb 2>/dev/null | grep -q "$ROM_USB"; then
+      echo "[flash] the board is NOT in BOOTSEL mode (no $ROM_USB on USB)." >&2
       echo "[flash] Hold BOOTSEL while plugging the board in, then re-run with --flash." >&2
       echo "[flash] Its uart0 console adapter is a separate device and is unaffected." >&2
       exit 2
     fi
-    # The runner finds the mount by INFO_UF2.TXT's Board-ID (board.cmake pins RP2350),
-    # so a desktop that does not auto-mount removable media fails there with the
-    # message above. `udisksctl mount -b /dev/disk/by-label/RP2350` is the hand fix.
+    # The runner finds the mount by INFO_UF2.TXT's Board-ID (board.cmake pins it), so
+    # a desktop that does not auto-mount removable media fails there with the message
+    # above. `udisksctl mount -b /dev/disk/by-label/$ROM_VOL` is the hand fix.
     echo "[flash] west flash --runner uf2 -d $BUILD_DIR"
     ( cd "$ZDIR" && west flash --skip-rebuild --runner uf2 -d "$BUILD_DIR" )
   elif [ "$BOARD_ID" = nrf52840dk ]; then
@@ -924,7 +949,7 @@ if [ "$DO_FLASH" = 1 ]; then
 fi
 
 if [ "${CAPTURE:-0}" != 0 ]; then
-  if [ "$BOARD_ID" = rpi_pico2 ]; then
+  if [ "$BOARD_ID" = rpi_pico2 ] || [ "$BOARD_ID" = feather_rp2040 ]; then
     # Same D6 shape as the C6 below — the collector owns the port — but the board is
     # NAMED: logread.py's --board defaults to `c6`, the ship's bell, and this board is
     # not on that log. Resolved from the console port through the env files, and it

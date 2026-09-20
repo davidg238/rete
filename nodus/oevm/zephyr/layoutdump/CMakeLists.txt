@@ -1,4 +1,9 @@
 cmake_minimum_required(VERSION 3.20.0)
+# Out-of-tree boards under zephyr/boards/<vendor>/<board>/ — the Adafruit Feather
+# RP2040 (rete#302's rehearsal board, absent from Zephyr v4.2). Must precede
+# find_package(Zephyr); the same directory keeps holding the per-board .overlay
+# files, which Zephyr discovers by a different rule.
+list(APPEND BOARD_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(oevm_layoutdump)
 # tools/dump_layout.c is `int main(void)` and links nothing — it only prints

@@ -1,0 +1,11 @@
+# Copyright (c) 2026 Ekorau LLC
+# SPDX-License-Identifier: Apache-2.0
+
+# GENERIC_03H, not the QT Py's W25Q080: the pico-sdk's own board header for this
+# part (src/boards/include/boards/adafruit_feather_rp2040.h) says
+# PICO_BOOT_STAGE2_CHOOSE_GENERIC_03H. The boot2 is the first code the ROM runs
+# from flash, and a second stage that speaks quad-read to a chip that does not
+# is a board that never prints anything — so this follows the vendor, not the
+# nearest Zephyr sibling.
+config BOARD_ADAFRUIT_FEATHER_RP2040
+	select RP2_FLASH_GENERIC_03H
