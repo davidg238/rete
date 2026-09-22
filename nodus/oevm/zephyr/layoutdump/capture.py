@@ -42,7 +42,10 @@ while time.time() - t0 < a.seconds:
         sys.stderr.write(d.decode("utf-8", "replace"))
 s.close()
 
-text = buf.decode("utf-8", "replace")
+# Zephyr's console emits \r\n (UART and CDC alike); the marker is matched on the
+# bare form so the search cannot depend on which console the bytes came through.
+# Found 2026-09-21: the first RP2350 USB-CDC capture was COMPLETE and refused here.
+text = buf.decode("utf-8", "replace").replace("\r\n", "\n")
 start = text.find('{\n  "oop_size"')
 if start < 0:
     sys.exit(f"\ncapture: no layout JSON in {len(buf)} bytes from {a.port} — "

@@ -1,0 +1,28 @@
+/*
+ * oevm/zephyr/layoutdump/usb-console.overlay — console on the SoC's own USB.
+ *
+ * Passed explicitly (-DEXTRA_DTC_OVERLAY_FILE=usb-console.overlay) with
+ * prj_rpi_pico2_usb.conf, and deliberately NOT named after a board: a file in
+ * boards/<board>.overlay is applied to EVERY build for that board, which would
+ * silently move the UART capture's console onto USB too. The dongle's overlay
+ * lives under boards/ because the dongle has no other console; the RP2350 has two.
+ *
+ * hw-flow-control is the dongle's finding (boards/nrf52840dongle_nrf52840.overlay):
+ * usbd_cdc_acm.c DISCARDS bytes when its ring buffer is full unless flow_ctrl is
+ * set, in which case it sleeps 1 ms and retries. The dump is one ~3.5 KB burst.
+ * DO NOT copy this to a node image — a blocking console on an unattended board
+ * is a VM wedge; here a host is attached by construction.
+ */
+/ {
+	chosen {
+		zephyr,console = &usb_console_uart;
+		zephyr,shell-uart = &usb_console_uart;
+	};
+};
+
+&zephyr_udc0 {
+	usb_console_uart: usb_console_uart {
+		compatible = "zephyr,cdc-acm-uart";
+		hw-flow-control;
+	};
+};

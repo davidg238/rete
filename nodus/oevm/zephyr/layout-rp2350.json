@@ -1,0 +1,230 @@
+{
+  "oop_size": 4,
+  "structs": {
+    "Symbol": {
+      "size": 8,
+      "fields": {
+        "base.vtable": {
+          "offset": 0,
+          "is_ref": true,
+          "is_ptr": false
+        },
+        "length": {
+          "offset": 4,
+          "is_ref": false,
+          "is_ptr": false
+        },
+        "prim_id": {
+          "offset": 6,
+          "is_ref": false,
+          "is_ptr": false
+        },
+        "name": {
+          "offset": 8,
+          "is_ref": false,
+          "is_ptr": false
+        }
+      }
+    },
+    "Vtable": {
+      "size": 24,
+      "fields": {
+        "base.vtable": {
+          "offset": 0,
+          "is_ref": true,
+          "is_ptr": false
+        },
+        "delegate": {
+          "offset": 4,
+          "is_ref": true,
+          "is_ptr": false
+        },
+        "bindings": {
+          "offset": 8,
+          "is_ref": false,
+          "is_ptr": true
+        },
+        "capacity": {
+          "offset": 12,
+          "is_ref": false,
+          "is_ptr": false
+        },
+        "size": {
+          "offset": 16,
+          "is_ref": false,
+          "is_ptr": false
+        },
+        "is_nested": {
+          "offset": 20,
+          "is_ref": false,
+          "is_ptr": false
+        }
+      }
+    },
+    "Binding": {
+      "size": 8,
+      "fields": {
+        "symbol": {
+          "offset": 0,
+          "is_ref": true,
+          "is_ptr": false
+        },
+        "method": {
+          "offset": 4,
+          "is_ref": true,
+          "is_ptr": false
+        }
+      }
+    },
+    "CompiledMethod": {
+      "size": 28,
+      "fields": {
+        "instructions": {
+          "offset": 0,
+          "is_ref": false,
+          "is_ptr": true
+        },
+        "instruction_count": {
+          "offset": 4,
+          "is_ref": false,
+          "is_ptr": false
+        },
+        "num_registers": {
+          "offset": 8,
+          "is_ref": false,
+          "is_ptr": false
+        },
+        "num_arguments": {
+          "offset": 12,
+          "is_ref": false,
+          "is_ptr": false
+        },
+        "constants": {
+          "offset": 16,
+          "is_ref": false,
+          "is_ptr": true
+        },
+        "constant_count": {
+          "offset": 20,
+          "is_ref": false,
+          "is_ptr": false
+        },
+        "access_modifier": {
+          "offset": 24,
+          "is_ref": false,
+          "is_ptr": false
+        }
+      }
+    },
+    "Closure": {
+      "size": 24,
+      "fields": {
+        "base.vtable": {
+          "offset": 0,
+          "is_ref": true,
+          "is_ptr": false
+        },
+        "home_ctx": {
+          "offset": 4,
+          "is_ref": true,
+          "is_ptr": false
+        },
+        "home_generation": {
+          "offset": 8,
+          "is_ref": false,
+          "is_ptr": false
+        },
+        "entry_point": {
+          "offset": 12,
+          "is_ref": false,
+          "is_ptr": true
+        }
+      }
+    },
+    "Float": {
+      "size": 16,
+      "fields": {
+        "base.vtable": {
+          "offset": 0,
+          "is_ref": true,
+          "is_ptr": false
+        },
+        "value": {
+          "offset": 8,
+          "is_ref": false,
+          "is_ptr": false
+        }
+      }
+    },
+    "LargeInteger": {
+      "size": 24,
+      "fields": {
+        "base.vtable": {
+          "offset": 0,
+          "is_ref": true,
+          "is_ptr": false
+        },
+        "sign": {
+          "offset": 8,
+          "is_ref": false,
+          "is_ptr": false
+        },
+        "mag": {
+          "offset": 16,
+          "is_ref": false,
+          "is_ptr": false
+        }
+      }
+    },
+    "String": {
+      "size": 8,
+      "fields": {
+        "base.vtable": {
+          "offset": 0,
+          "is_ref": true,
+          "is_ptr": false
+        },
+        "length": {
+          "offset": 4,
+          "is_ref": false,
+          "is_ptr": false
+        },
+        "bytes": {
+          "offset": 8,
+          "is_ref": false,
+          "is_ptr": false
+        }
+      }
+    },
+    "ObjectInstance": {
+      "size": 4,
+      "fields": {
+        "base.vtable": {
+          "offset": 0,
+          "is_ref": true,
+          "is_ptr": false
+        }
+      }
+    },
+    "BoxedBinding": {
+      "size": 12,
+      "fields": {
+        "base.vtable": {
+          "offset": 0,
+          "is_ref": true,
+          "is_ptr": false
+        },
+        "symbol": {
+          "offset": 4,
+          "is_ref": true,
+          "is_ptr": false
+        },
+        "method": {
+          "offset": 8,
+          "is_ref": true,
+          "is_ptr": false
+        }
+      }
+    }
+  }
+}

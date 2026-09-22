@@ -1,0 +1,22 @@
+/*
+ * oevm/zephyr/usb-console.overlay — NODE console on the SoC's own USB (RP2350).
+ * Passed explicitly via EXTRA_DTC_OVERLAY_FILE with prj_rpi_pico2_usb.conf; not
+ * under boards/, where it would silently apply to every rpi_pico2 build.
+ *
+ * NO hw-flow-control here, unlike layoutdump/usb-console.overlay: with it the CDC
+ * console BLOCKS when the host does not drain, and a blocking console on a node
+ * is a VM wedge (prj_dongle_thread.conf). Dropping under burst is the node's
+ * safer default; the layoutdump is the one app where losslessness is the point.
+ */
+/ {
+	chosen {
+		zephyr,console = &usb_console_uart;
+		zephyr,shell-uart = &usb_console_uart;
+	};
+};
+
+&zephyr_udc0 {
+	usb_console_uart: usb_console_uart {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};

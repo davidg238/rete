@@ -1,0 +1,26 @@
+*** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+oevm: build-id porta-v1-final-1259-gcc235eb-dirty-20260921T210314
+logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+mprof-node: depth 18, 20 runs, 262143 activations each
+mprof-run 1 2919
+mprof-run 2 2918
+mprof-run 3 2919
+mprof-run 4 2919
+mprof-run 5 2919
+mprof-run 6 2919
+mprof-run 7 2919
+mprof-run 8 2918
+mprof-run 9 2918
+mprof-run 10 2919
+mprof-run 11 2919
+mprof-run 12 2919
+mprof-run 13 2919
+mprof-run 14 2919
+mprof-run 15 2919
+mprof-run 16 2919
+mprof-run 17 2918
+mprof-run 18 2919
+mprof-run 19 2919
+mprof-run 20 2919
+mprof-node: done
