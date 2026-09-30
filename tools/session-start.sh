@@ -2,7 +2,7 @@
 # SessionStart hook: print what is top of mind, from label truth. Never fails the session.
 cd "$(dirname "$0")/.." || exit 0
 echo "== rete session start =="
-sed -n '/^## Current focus/,/^## /p' CLAUDE.md | sed '$d' | grep -v '^## Current focus'
+echo "-- focus: FOCUS.md (loaded via CLAUDE.md), $(git log -1 --format='last rewritten %cs' -- FOCUS.md 2>/dev/null)"
 echo "-- open P0/P1 (label truth):"
 timeout 8 gh issue list --state open --label P0 --json number,title --jq '.[] | "  P0 #\(.number) \(.title)"' 2>/dev/null
 timeout 8 gh issue list --state open --label P1 --json number,title --jq '.[] | "  P1 #\(.number) \(.title)"' 2>/dev/null
