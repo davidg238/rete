@@ -10,6 +10,8 @@
 
 **Spec:** `docs/design/2026-09-11-node-identity-hardware-rooted-design.md` — the decision AND its "Addendum — 2026-10-02" (which this plan implements exactly; neither is to be revisited).
 
+> **AMENDED 2026-10-02, after Task 9:** addendum point 3 was revised — an RP board answers its 16-hex flash serial through `hwinfo` instead of failing. Wherever Tasks 3, 8 and 10 below say the RP port fails or returns 0, read: it shares the ESP branch, `CONFIG_HWINFO=y` is in both RP confs, and the board proof is the printed id matching the board's USB serial string.
+
 > **EVERY CODE SNIPPET BELOW IS A SKETCH THAT HAS NEVER RUN.** Trust the tree over the snippet: names, signatures, Kconfig symbols and include paths are to be verified (`rg`, read the neighbour) before use. Where a snippet and the tree disagree, the tree wins and the task's *test* is the arbiter. Cite symbols, not line numbers.
 
 ## Global Constraints

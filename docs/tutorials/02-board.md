@@ -460,7 +460,7 @@ and two different apps landed in one space with nothing recording which was whic
 
 **Since #118 a hand build cannot land in the wrong tree at all.** `platform nodeId` is the
 board's factory link address, read from silicon (12 lowercase hex characters on ESP32 and
-nRF52840; an RP board has none, and the primitive fails), so the build no longer chooses
+nRF52840; an RP board has no radio and answers its 16-character flash serial), so the build no longer chooses
 the space. What a hand build can still lose is the *name*: `run.sh` resolves it from the
 collector env file for the console port, which the building host cannot see, so the same
 command today is `OEVM_BOARD_NAME=c6bench`, and without it the image bakes no name

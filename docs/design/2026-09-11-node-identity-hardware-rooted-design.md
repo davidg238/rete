@@ -123,12 +123,17 @@ ESP32 family, so those ports share one read. On the nRF it answers `DEVICEID`, w
 register this record chose against, so the nRF port reads FICR `DEVICEADDR` itself. That is
 two reads behind one function, and the formatting is written once above them.
 
-**3. A board with no link has no link address, and `platform nodeId` fails there.** The RP2350
-and RP2040 ports have no radio. Their only factory-unique value is the flash chip's serial,
-which is not a link address and not on a sticker. No node source for those boards asks for
-an id today, so failing the primitive costs nothing and invents nothing. *What would earn an
-answer:* an RP board that bridges to porta, at which point the question is which link it
-bridges over.
+**3. A board with no radio answers its flash serial.** *(Revised the same day, David: "RP
+boards have no id ... really".)* The RP2350 and RP2040 ports have no radio, so no link
+address. Their factory-unique value is the flash chip's serial, which Zephyr's
+`hwinfo_get_device_id` answers there: 8 bytes, so 16 hex characters under point 1's rule. It
+is factory-set and survives erase and reflash, so it is not a made-up id, and it puts the RP
+ports on the same read as the ESP ports, leaving the nRF as the one exception. There is no
+sticker, but the USB stack prints the same bytes as the board's serial string, and
+`obs/build`'s `board` field carries the bench name. The first draft of this point had the
+primitive fail on RP boards, on the ground that no RP node asked for an id; that
+under-weighted the RP2350 being cabot's motion board (#301, #302), where a bridging node is
+planned. An id therefore has two legal lengths, 12 and 16, which #305 inherits.
 
 **4. The host answers what it is given, and nothing when given nothing.** The record offered
 a fixed test value or the interface MAC. Both are refuted by the fleet gates: `host_ota` runs

@@ -71,7 +71,7 @@ check, and each of these had already failed silently:
 - the **blob path** actually `.incbin`'d, not just the model. Model B is the CMakeLists
   default, so a dropped `OEVM_BLOB` still links Model B — bound to `TimerNode.oimg`.
 - the board name, read back from the generated `oevm_board_name.c` (the node id needs no
-  check: it is read from silicon at run time, and an RP board has none).
+  check: it is read from silicon at run time).
 
 It also flashes the dongle correctly: `west flash --runner nrfutil` hunts for debugger
 traits and answers `Unable to find a board` at a dongle in DFU. The working path is

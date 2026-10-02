@@ -146,37 +146,42 @@ long platform_backend_boot_id(void) { return 0; }
 
 #endif /* CONFIG_SETTINGS */
 
-/* rete#118: platform nodeId = the board's factory link address, from silicon, per family.
-   "No id" is a per-family statement, NEVER the #else: a new board port must say where its
-   address is or that it has none, so it cannot inherit "none" by omission. */
+/* rete#118: platform nodeId = the board's factory id, from silicon, per family: the factory
+   link address where the board has a radio, the flash serial where it has none. Which one
+   is a per-family statement, NEVER the #else: a new board port must say where its id is,
+   so it cannot inherit another family's answer by omission. */
 #include "link_addr.h"
-#if defined(CONFIG_SOC_FAMILY_ESPRESSIF_ESP32)
+#define LINK_ADDR_MAX 8
+#if defined(CONFIG_SOC_FAMILY_ESPRESSIF_ESP32) || defined(CONFIG_SOC_FAMILY_RPI_PICO)
 #  ifndef CONFIG_HWINFO
-#    error "node id: ESP32 ports read the eFuse MAC through hwinfo — set CONFIG_HWINFO=y in the prj_*.conf"
+#    error "node id: ESP32 and RP ports read their factory id through hwinfo — set CONFIG_HWINFO=y in the prj_*.conf"
 #  endif
 #  include <zephyr/drivers/hwinfo.h>
-/* hwinfo_esp32.c: the 6-byte eFuse base MAC, most significant byte first; ssize_t length or <0. */
-static size_t link_addr_read(uint8_t b[6]) { return hwinfo_get_device_id(b, 6) == 6 ? 6 : 0; }
+/* hwinfo_esp32.c: the 6-byte eFuse base MAC, most significant byte first.
+   hwinfo_rpi_pico.c: the 8-byte flash serial (RP2040 / RP2350 have no radio, so no link
+   address) — the same bytes the USB stack prints as the board's serial string, which is
+   the nearest thing an RP board has to a sticker. ssize_t length or <0. */
+static size_t link_addr_read(uint8_t b[LINK_ADDR_MAX]) {
+    ssize_t n = hwinfo_get_device_id(b, LINK_ADDR_MAX);
+    return n > 0 ? (size_t)n : 0;
+}
 #elif defined(CONFIG_SOC_SERIES_NRF52X)
 #  include <soc.h>             /* NRF_FICR, as drivers/hwinfo/hwinfo_nrf.c does */
 #  include <hal/nrf_ficr.h>    /* nrf_ficr_deviceaddr_get — soc.h alone leaves it implicit, and it fails at LINK */
 /* FICR DEVICEADDR, NOT hwinfo: hwinfo answers DEVICEID on nRF52, a different register. */
-static size_t link_addr_read(uint8_t b[6]) {
+static size_t link_addr_read(uint8_t b[LINK_ADDR_MAX]) {
     uint32_t lo = nrf_ficr_deviceaddr_get(NRF_FICR, 0);
     uint32_t hi = nrf_ficr_deviceaddr_get(NRF_FICR, 1) & 0xFFFFu;
     b[0] = (uint8_t)(hi >> 8);  b[1] = (uint8_t)hi;
     b[2] = (uint8_t)(lo >> 24); b[3] = (uint8_t)(lo >> 16); b[4] = (uint8_t)(lo >> 8); b[5] = (uint8_t)lo;
     return 6;
 }
-#elif defined(CONFIG_SOC_FAMILY_RPI_PICO)
-/* RP2040 / RP2350: no radio, so no link address. The flash serial is NOT one. */
-static size_t link_addr_read(uint8_t b[6]) { (void)b; return 0; }
 #else
-#  error "node id: a new board port must say where its factory link address is, or that it has none"
+#  error "node id: a new board port must say where its factory id is read from"
 #endif
 
 size_t platform_backend_node_id(char *out, size_t cap) {
-    uint8_t b[6];
+    uint8_t b[LINK_ADDR_MAX];
     size_t n = link_addr_read(b);
     return n == 0 ? 0 : link_addr_hex(b, n, out, cap);
 }

@@ -28,8 +28,8 @@ int platform_debug_readline(char *buf, int cap);
    a 32-bit target. */
 long platform_backend_boot_id(void);
 
-/* rete#118: the node id (`platform nodeId`) is the board's factory link address as
-   lowercase hex (link_addr.h). The backend writes it into `out` and answers its
+/* rete#118: the node id (`platform nodeId`) is the board's factory id as lowercase hex
+   (link_addr.h): its link address, or the flash serial on a board with no radio. The backend writes it into `out` and answers its
    strlen; 0 means THIS BOARD HAS NONE (or it does not fit in `cap`), and the
    primitive then fails rather than invent one. PLATFORM_NODE_ID_MAX is the buffer
    every caller offers. */

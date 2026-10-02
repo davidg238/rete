@@ -135,8 +135,9 @@ literal mesh-local EID — not a hostname.
 
 **Who the node is** — `platform nodeId`, the board's factory link address: 12 lowercase
 hex characters on ESP32-family and nRF52840 boards, so the porta space of a board is that
-id, not its bench name. RP2040/RP2350 have no radio and so no id; the primitive fails
-there. A host VM has no silicon and answers the `OEVM_NODE_ID` environment value instead
+id, not its bench name. RP2040/RP2350 have no radio and so no link address; they answer
+the flash chip's factory serial instead, 16 hex characters, the same value the board's USB
+serial string shows. A host VM has no silicon and answers the `OEVM_NODE_ID` environment value instead
 (unset or empty fails). The human-facing name is the role at `goal/name`; the bench name
 of a board is published separately, as the optional `board` field of `obs/build`, from the
 build-time `OEVM_BOARD_NAME`. History: before rete#186 the id was a string literal in the

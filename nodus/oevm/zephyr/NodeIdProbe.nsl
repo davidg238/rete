@@ -1,7 +1,7 @@
 (*
 NodeIdProbe — the board proof for rete#118. Prints the build-time board name and the
-node id read from silicon, one line each, then returns. Board first, so an RP board
-(which has no link address, so `nodeId` fails) still shows its board line.
+node id read from silicon, one line each, then returns. Board first, so a board whose
+`nodeId` fails still shows its board line.
 Granted no capability, so it needs no `net:` header. Run: run.sh --node NodeIdProbe.nsl
 *)
 class NodeIdProbe packageUsing: manifest = () (
