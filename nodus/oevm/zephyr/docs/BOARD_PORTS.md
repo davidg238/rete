@@ -2,7 +2,7 @@
 
 How oevm/nsl-zephyr runs the **same VM + baked image** on **multiple hardware
 targets with different IO**, via **per-board builds** — nRF52840 (Thread/mesh) and
-Espressif (ESP32 / ESP32-C6 / ESP32-S2) families. This is the design doc; the
+Espressif (ESP32 / ESP32-C6 / ESP32-S2) families, and RP2350. This is the design doc; the
 *why* behind every Kconfig choice lives in [`ZEPHYR_LESSONS.md`](./ZEPHYR_LESSONS.md),
 and the per-rung Espressif port narrative in `review/program-sequence.md`.
 
@@ -341,6 +341,35 @@ env fails silently as `west: command not found`). Full per-rung detail lives in 
     wakes that never paint never touch the panel; the driver's own device init only resets the
     controller and e-paper holds its image unpowered. The watch-end stats then persist across
     strike wakes, photographed. (Same lazy-seam treatment queued for WiFi: tuvm#99.)
+
+### RP2 targets
+
+Same west workspace (`~/zephyr-esp32`) and arm-zephyr-eabi SDK toolchain as the nRF path; no
+radio, no Thread layer. Result record: [`docs/results/2026-10-01-rp2350-first-numbers.md`](../../../../docs/results/2026-10-01-rp2350-first-numbers.md).
+
+- **Raspberry Pi Pico 2 family (RP2350A, Cortex-M33 @ 150 MHz)** — ✅ **boots and runs (#302), measured
+  on a Waveshare RP2350-Zero** as Zephyr board `rpi_pico2/rp2350a/m33`, unchanged. **11.13
+  µs/activation vs the C6's 11.83** (Hanoi depth 18, Model B, 128 KB arena). Axes:
+  - **Console:** `prj_rpi_pico2.conf` selects uart0 (GP0/GP1), the board default; **not exercised**
+    — no adapter was soldered. The bench ran on the SoC's USB-CDC (`prj_rpi_pico2_usb.conf` +
+    `usb-console.overlay`, the dongle's recipe). That console re-enumerates on every reset, so a
+    collector loses its handle; read with pyserial `dtr=True`. Keep `CONFIG_LOG` off the USB stack
+    (it logs every control transfer into the console being enumerated).
+  - **USB settle / trigger IO:** none / none (no board overlay, no `pulsegpio` alias).
+  - **Flash method:** BOOTSEL + UF2 drop (`2e8a:000f`). SWD/openocd not exercised.
+  - **Heap ceiling (link):** `OEVM_HEAP_SIZE` 450560 (uart0, link only) / 442368 (USB-CDC,
+    boot-confirmed with `TimerNode`) of 532480 B RAM — the USB stack costs 10632 B. C6 no-radio:
+    319488.
+  - **FPU:** FPv5 single-precision under a VM whose Float is a C double, so double ops are still
+    libcalls. A float row on the STIC table needs "FPv5-SP, double in software" on it.
+  - **Not delivered:** no flash driver in Zephyr v4.2 (`flash_rpi_pico.c` is RP2040-only), so
+    **no NVS, no bootId (= 0)**; no entropy driver (`CONFIG_TEST_RANDOM_GENERATOR`,
+    non-cryptographic); second core unconfigured.
+  - **Watchdog:** the C6's 11 s window fits the RP2350 (16.78 s ceiling).
+- **Adafruit Feather RP2040 (Cortex-M0+)** — **built (`c4714a3`), never run on the bench.** An
+  out-of-tree board port (`boards/adafruit/feather_rp2040/`) kept as the rehearsal board: the
+  RP2040 has a Zephyr flash driver, so NVS/bootId is provable there. Watchdog window 7 + 1 s
+  (errata E1 halves the ceiling to 8.39 s). An M0+ figure would be a bound only.
 
 ## Adding a new board (generic recipe)
 

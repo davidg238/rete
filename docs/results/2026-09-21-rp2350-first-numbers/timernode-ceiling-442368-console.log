@@ -1,0 +1,6 @@
+# TimerNode.nsl at OEVM_HEAP_SIZE=442368 (the USB-console link ceiling; RAM 530580/532480 B) — 2026-10-01 22:29 MST, UF2/BOOTSEL, 25 s window
+*** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+oevm: build-id porta-v1-final-1261-g5d1d689-20261001T221009
+logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+TIMER OK

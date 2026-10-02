@@ -67,7 +67,7 @@ _*.stmap
 /nodus/oevm/zephyr/build-heapprobe-*/
 /nodus/oevm/zephyr/layoutdump/build-c6/
 # RP2350 / Pico 2 (rete#302): the layoutdump run that captures layout-rp2350.json.
-/nodus/oevm/zephyr/layoutdump/build-pico2/
+/nodus/oevm/zephyr/layoutdump/build-pico2*/
 /nodus/oevm/zephyr/layoutdump/build-feather/
 # ESP32-S2 / MagTag (run.sh defaults to build-esp32s2-<MODEL>) and its layoutdump run.
 /nodus/oevm/zephyr/build-esp32s2-*/

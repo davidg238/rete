@@ -416,9 +416,9 @@ case "$BOARD_ID" in
     # The C6's 131072 (128 KB) arena, because the point of this rung is a number on the
     # SAME footing as the C6's 11.83 µs/activation, and the heap is one of the things
     # that must match for the comparison to hold. It is NOT this part's ceiling: the
-    # trial link (2026-09-19, TimerNode) sat at RAM 198924/532480 = 37.4%, so ~320 KB
-    # is unspent. #302 Task 5's heap-ceiling cell is what turns that into a number; a
-    # caller can already override toward it:  OEVM_HEAP_SIZE=262144 ...
+    # measured link ceilings (uart0 and USB-CDC console cells) are in
+    # docs/results/2026-10-01-rp2350-first-numbers.md. A caller can override toward
+    # them:  OEVM_HEAP_SIZE=262144 ...
     : "${OEVM_HEAP_SIZE:=131072}"
     : "${BUILD_DIR:=build-rpi_pico2-$MODEL}"
     ;;

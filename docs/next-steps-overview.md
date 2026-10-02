@@ -734,6 +734,14 @@ brick one.
 > entropy driver. While the boards were in the post an **Adafruit Feather RP2040** became the
 > rehearsal target (out-of-tree port under `nodus/oevm/zephyr/boards/adafruit/`, README has the
 > hookup); it can prove NVS on RP2 flash, and it cannot give the M33 number.
+>
+> **Measured 2026-09-21..10-01 (Waveshare RP2350-Zero, USB-CDC console): 11.13 µs/activation
+> against the C6's 11.83 — 5.9 % faster; cabot's gate is met.** Three boots agree to 0.7 ms;
+> the other STIC rows were not run. Link ceiling for
+> `OEVM_HEAP_SIZE` on the 520 KB part: **450560** (uart0 console) / **442368** (USB-CDC
+> console) against the C6's 319488; the USB stack costs 10632 B. FPv5 is single-precision, so
+> doubles are still libcalls. Record and caveats:
+> `docs/results/2026-10-01-rp2350-first-numbers.md`.
 
 **Second: WeAct mini_stm32h743.** ~$12–15, 512 KB, double-precision FPU, and ST is the
 largest Cortex-M vendor — the "professional standard" leg the bench lacks entirely.

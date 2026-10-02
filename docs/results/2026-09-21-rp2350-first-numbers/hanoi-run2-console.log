@@ -1,0 +1,27 @@
+# boot 2 — 2026-10-01, the board re-plugged (USB enumerated 22:02 local), same image as run 1
+# (build-id porta-v1-final-1259-gcc235eb-dirty-20260921T210314, never reflashed). Read from the
+# CDC console's retained buffer after the run had finished; the banner lines above
+# "logudp:" were outside the tail that was kept.
+oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+mprof-node: depth 18, 20 runs, 262143 activations each
+mprof-run 1 2918
+mprof-run 2 2918
+mprof-run 3 2918
+mprof-run 4 2918
+mprof-run 5 2918
+mprof-run 6 2918
+mprof-run 7 2918
+mprof-run 8 2918
+mprof-run 9 2918
+mprof-run 10 2918
+mprof-run 11 2918
+mprof-run 12 2919
+mprof-run 13 2918
+mprof-run 14 2918
+mprof-run 15 2919
+mprof-run 16 2918
+mprof-run 17 2918
+mprof-run 18 2918
+mprof-run 19 2918
+mprof-run 20 2918
+mprof-node: done

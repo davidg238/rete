@@ -1,0 +1,7 @@
+# FloatSmokeNode.nsl on the RP2350-Zero — 2026-10-01 22:28 MST, flashed by UF2/BOOTSEL, USB-CDC console, 128 KB arena
+*** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+oevm: build-id porta-v1-final-1261-g5d1d689-20261001T220555
+logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+float-smoke sum=167167
+float-smoke ok

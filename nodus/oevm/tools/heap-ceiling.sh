@@ -9,7 +9,7 @@
 # A value that links is not automatically a value that boots. This script
 # reports the LINK ceiling; boot confirmation is a separate, on-device step.
 #
-# Usage: tools/heap-ceiling.sh --board esp32|esp32c6 [--node X.nsl] [--lo N] [--hi N]
+# Usage: tools/heap-ceiling.sh --board <any run.sh board> [--node X.nsl] [--lo N] [--hi N]
 #                               [--conf-extra FILE.conf]
 #
 # --conf-extra forwards straight through to run.sh's own --conf-extra (Task 6),
