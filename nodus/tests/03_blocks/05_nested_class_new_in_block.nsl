@@ -1,0 +1,59 @@
+(*
+expect:
+method 1
+selfsend 1
+hops0 1
+hops1 1
+classside 1
+classblock 1
+classsend 1
+done
+*)
+(* Regression for rete#133: a send whose receiver is a class, written inside a REIFIED
+   block. The compiler took `self` from raw R0, which in a block is the closure, so a
+   nested instance built there got the closure (or one of its fields) as its outer link
+   and the first walk of that link aborted (`Invalid receiver for LD_SLOT`), and a
+   class-side `self` send went to the Block. `Bag`'s slot initializer reads `plat`
+   through the outer link, which is what makes a wrong link visible.
+
+   method / selfsend / classside are the controls that always worked; the other four
+   are the shapes that failed: construction in a block with the class in this class
+   (hops0) and in the enclosing one (hops1), and `self new` / `self make` in a block
+   inside a class-side method. *)
+class NestedClassNewInBlock packageUsing: manifest = ( | plat | ) (
+  class Bag = ( | items ::= plat OrderedCollection new. | ) (
+    public put: x = ( items add: x. ^ self )
+    public n = ( ^ items size )
+  ) : (
+    public make = ( ^ self new )
+    public viaBlock = ( | blk | blk:: [ self new ]. ^ blk value )
+    public viaBlockSend = ( | blk | blk:: [ self make ]. ^ blk value )
+  )
+  class Host = ( | ch | ) (
+    setCh: c = ( ch:: c. ^ self )
+    public start = (
+      ch whenever: 'hops1' do: [ :v | | c | c:: Bag new put: v. ('hops1 ' , c n printString) out ].
+      ^ self )
+  ) : (
+  )
+  mk: v = ( ^ Bag new put: v )
+  public main: platform args: args = (
+    | space a b |
+    space:: platform space.
+    plat:: platform.
+    a:: space channel: 'a'.
+    b:: Bag new put: 7. ('method ' , b n printString) out.
+    a whenever: 'selfsend' do: [ :v | | c | c:: self mk: v. ('selfsend ' , c n printString) out ].
+    a whenever: 'hops0' do: [ :v | | c | c:: Bag new put: v. ('hops0 ' , c n printString) out ].
+    (Host new setCh: a) start.
+    a out: 'selfsend' value: 7.
+    a out: 'hops0' value: 7.
+    a out: 'hops1' value: 7.
+    space drain.
+    b:: Bag make put: 7. ('classside ' , b n printString) out.
+    b:: Bag viaBlock put: 7. ('classblock ' , b n printString) out.
+    b:: Bag viaBlockSend put: 7. ('classsend ' , b n printString) out.
+    'done' out.
+  )
+) : (
+)

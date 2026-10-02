@@ -142,6 +142,15 @@ reasoning is in `topics.md#calling-convention-invariants`.
 - **`outer` (slot 0) of a new nested instance is the enclosing-CLASS instance**,
   reached by walking `self`'s outer chain `hops` times (from `resolve_class_ref`),
   not always `self`. `hops==0` stores `self` directly.
+- **`self` is `get_self_reg()`, never raw R0, in anything `compile_expr` emits.** R0 is
+  `self` only in a method frame; in a non-inlined block's frame R0 is the closure, and
+  `get_self_reg()` emits `OP_LD_SELF` (the closure's `captured_self`) there. Raw R0 is
+  legal only where no block frame can be the emitter — the synthesized accessors and
+  `compile_initializer`'s own slot stores. The class-receiver send path broke this for
+  the outer link of a new nested instance and for a class-side `self` send (rete#133):
+  built inside a reified block, the instance was linked to the closure, and the first
+  walk of that link aborted with `Invalid receiver for LD_SLOT`. Gate:
+  `nodus/tests/03_blocks/05_nested_class_new_in_block.nsl`.
 
 ## Initializers (`compile_initializer`)
 

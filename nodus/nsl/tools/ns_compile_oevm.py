@@ -1272,7 +1272,11 @@ class MethodCompiler:
             if cls_qname is not None and self.parent.class_side_has(cls_qname, selector):
                 rcvr_reg = self.alloc_reg()
                 if self_is_class:
-                    self.emit_ABC(OP_LD_REG, rcvr_reg, 0, 0)  # self (the class)
+                    # self (the class). get_self_reg, never raw R0: in a block R0
+                    # is the closure (rete#133).
+                    self_reg = self.get_self_reg()
+                    self.emit_ABC(OP_LD_REG, rcvr_reg, self_reg, 0)
+                    self.free_self_reg(self_reg)
                 elif class_ref is not None and cls_qname in self.parent.nested_classes_flat:
                     # Nested class: send to the BoundClass stored in the enclosing
                     # instance's slot, NOT the raw vtable. The BoundClass carries the
@@ -1332,7 +1336,13 @@ class MethodCompiler:
                 # class that shares the same container): we must walk up to that
                 # container's instance, else the new object's outer points at the
                 # wrong frame and outer-slot access reads garbage.
+                #
+                # `self` is get_self_reg(), never raw R0: inside a reified block R0
+                # is the closure, and linking the new object to it (or to one of
+                # its fields) is rete#133 — the first walk of that outer link read
+                # an SMI and aborted with `Invalid receiver for LD_SLOT`.
                 if cls_qname in self.parent.nested_classes_flat:
+                    base_reg = self.get_self_reg()
                     if self_is_class:
                         # Instantiating from a class-side method: `self` (R0) is
                         # the BoundClass object. BoundClass.slot[1] = the enclosing
@@ -1342,20 +1352,20 @@ class MethodCompiler:
                         # such as `platform`. (Previously this stored nil, which worked
                         # only because no initializer needed to walk the outer chain.)
                         outer_reg = self.alloc_reg()
-                        self.emit_ABC(OP_LD_SLOT, outer_reg, 1, 0)  # BoundClass.slot[1] = outer
+                        self.emit_ABC(OP_LD_SLOT, outer_reg, 1, base_reg)  # BoundClass.slot[1] = outer
                         self.emit_ABC(OP_ST_SLOT, outer_reg, 0, target_reg)  # new_obj.outer = outer
                         self.free_reg()
                     elif hops == 0:
-                        self.emit_ABC(OP_ST_SLOT, 0, 0, target_reg) # self (0) -> slot 0
+                        self.emit_ABC(OP_ST_SLOT, base_reg, 0, target_reg) # self -> slot 0
                     else:
-                        prev_reg = self.alloc_reg()
-                        self.emit_ABC(OP_LD_REG, prev_reg, 0, 0)  # self
+                        prev_reg = base_reg
                         for _ in range(hops):
                             nxt = self.alloc_reg()
                             self.emit_ABC(OP_LD_SLOT, nxt, 0, prev_reg)  # outer = slot 0
                             prev_reg = nxt
                         self.emit_ABC(OP_ST_SLOT, prev_reg, 0, target_reg)
-                        self.next_free_reg -= (hops + 1)
+                        self.next_free_reg -= hops
+                    self.free_self_reg(base_reg)
 
                 # Call initializer
                 params = self.parent.all_classes[cls_qname].get("params", [])
