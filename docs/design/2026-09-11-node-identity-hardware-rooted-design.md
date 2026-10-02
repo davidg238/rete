@@ -88,3 +88,63 @@ the nRF it means reading `DEVICEADDR`, not `DEVICEID`.
 - Any WAN or cross-gateway scheme. See item 4.
 
 Refs #118 #242 #186 #170 #285 #288.
+
+## Addendum — 2026-10-02: the tree re-measured, and the four points the record left open
+
+Re-measured at `d0d6d7b` before building (#253 burn list, item 2). The decision above stands
+unchanged. What follows resolves what it left open and corrects what went stale. Resolved by
+Claude under the design posture in `CLAUDE.md`; each is one line to overturn.
+
+**Stale in the record above.**
+
+- The primitive is the `PRIM_pf_nodeId` case in `nodus/oevm/src/platform.c`; the line number
+  cited above has drifted.
+- **#285 is closed** (2026-09-18, `9b6332a`). The `obs/build` field is now the only pending
+  manifest edit, so there is nothing to sequence it with except the gateway deploy.
+- The removal list is short. `OEVM_NODE_ID` also lives in `zephyr/cmake/gen_node_id.cmake`
+  (the generator, with a tailscale → hostname → `unnamed` fallback chain), in the host half
+  of `platform.c` (`oevm_host_node_id`), in the host gates (`tests/host_ota/run.sh`,
+  `tests/porta_sync_host.sh`), in `docs/tutorials/03-porta.md`,
+  `nodus/oevm/zephyr/docs/BOARD_PORTS.md`, `porta/docs/GETTING-STARTED.md`, and in comments
+  in three node sources.
+- The collector env files carry no id. They live outside the tree (`$BENCH_CONFIG_DIR`), and
+  the board name is the **file name**, resolved by `bench::board_for_port`. That lookup is
+  kept: it is the source of the board name `obs/build` now carries.
+- Two board ports postdate the record: `rpi_pico2` (RP2350) and `feather_rp2040`.
+
+**1. Format: lowercase hex of the address bytes, most significant first, no separators.**
+Twelve characters for a 48-bit address. No colons, because the id is a path segment and a
+CLI argument. The golden per family is captured from a board and compared with its sticker
+by hand, once; on the nRF that comparison is also the check that `DEVICEADDR` in this byte
+order is what the sticker prints.
+
+**2. How it is read.** Zephyr's `hwinfo_get_device_id` answers the eFuse base MAC on every
+ESP32 family, so those ports share one read. On the nRF it answers `DEVICEID`, which is the
+register this record chose against, so the nRF port reads FICR `DEVICEADDR` itself. That is
+two reads behind one function, and the formatting is written once above them.
+
+**3. A board with no link has no link address, and `platform nodeId` fails there.** The RP2350
+and RP2040 ports have no radio. Their only factory-unique value is the flash chip's serial,
+which is not a link address and not on a sticker. No node source for those boards asks for
+an id today, so failing the primitive costs nothing and invents nothing. *What would earn an
+answer:* an RP board that bridges to porta, at which point the question is which link it
+bridges over.
+
+**4. The host answers what it is given, and nothing when given nothing.** The record offered
+a fixed test value or the interface MAC. Both are refuted by the fleet gates: `host_ota` runs
+several VMs on one machine, and either choice gives them one id. So the host's stand-in for
+silicon stays the environment variable, and the made-up `<hostname>-NNNN` fallback is deleted
+with the rest: unset means the primitive fails, the same as a board that cannot read its
+address. `nodus/tests/23_mprof/05_node_id.nsl` asserts the deleted shape and is rewritten.
+
+**The board name.** It keeps today's build plumbing under a new name, loses the fallback
+chain, and is published as an optional `board` text field on `obs/build`. A build that was
+not told a board name publishes none. By the encoded-bytes key order the field sits between
+`chip` and `build`.
+
+**Not in this rung.**
+
+- The ingest gate on the id's length and charset (porta#18's v2 form) is **#305**. With the
+  shape fixed by point 1 it becomes one rule, decided after this lands.
+- `OtaBridgeNode.nsl.tmpl` writes `Build` by hand with a synthetic version, which the
+  `host_ota` gate depends on. It gains no `board` field and is left as it is.
