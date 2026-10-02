@@ -4,8 +4,8 @@ _Rewritten (never appended) at every `/conclude`; under ~15 lines. History: `git
 blocks are in `docs/status/focus-history.md`; live state is in the issues and `docs/status/dev-status.html`._
 
 - **Next session starts with:** **#253 — the burn list before the 1.0 manifest hash** (the gate on going public; #79 is
-  its other half). Recommended first item **#133** (the one open P0), not yet confirmed by David. Branch: cut
-  `133-ld-slot` from `master` once `302-rpi-pico2` is merged. First action: re-measure #133 on the current tree with
+  its other half). First item **#133** (the one open P0; David confirmed 2026-10-01). Branch: cut `133-ld-slot`
+  from `master` (`302-rpi-pico2` is merged). First action: re-measure #133 on the current tree with
   `run-one.py <repro>.nsl B` before touching codegen. Rest of the list: #118/#242, #293, #292, #200 (b), #244–#246.
 - **#302 is CLOSED (2026-10-01):** RP2350 = 11.13 µs/activation vs the C6's 11.83; record
   `docs/results/2026-10-01-rp2350-first-numbers.md`, rung on `review/program-sequence.md`, board axes in
@@ -18,6 +18,5 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   NOT overtaken by #186), #202/#201 series capacitor, #288 refuted, #271 direction 1 refuted, #281 closed (host-awake artefact).
 - **Liveness thread's next move:** #272 — `DoSweep` in `Liveness.tla` requires Δwak at the declared rate; re-run
   `bench.cfg`/`slow.cfg` before any Go.
-- **Awaiting David:** merge `302-rpi-pico2` → `master`; confirm #133 as the first burn-list item; whether #301 closes now
-  its answer is posted; the three cabot relay items (focus-history, 2026-09-17); where #297 goes; whether #300 is wanted.
+- **Awaiting David:** the three cabot relay items (focus-history, 2026-09-17); where #297 goes; whether #300 is wanted.
 - **Weekly review, not scheduled:** #280, #282–#287, #290, #291, #296–#300, #303.
