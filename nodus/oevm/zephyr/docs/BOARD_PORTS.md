@@ -70,7 +70,8 @@ check, and each of these had already failed silently:
   has no console until its app publishes one.
 - the **blob path** actually `.incbin`'d, not just the model. Model B is the CMakeLists
   default, so a dropped `OEVM_BLOB` still links Model B — bound to `TimerNode.oimg`.
-- the node id, read back from the generated `oevm_node_id.c`.
+- the board name, read back from the generated `oevm_board_name.c` (the node id needs no
+  check: it is read from silicon at run time, and an RP board has none).
 
 It also flashes the dongle correctly: `west flash --runner nrfutil` hunts for debugger
 traits and answers `Unable to find a board` at a dongle in DFU. The working path is
@@ -81,7 +82,7 @@ locked; #48, zero SDK touch).
 If you do build by hand, sanity-check `<build-dir>/partitions.yml` (settings at 0xd8000,
 `open_bootloader_gap` present) and `compile_commands.json` for the five `-D` knobs.
 Note that a bare `-D` after `--` reaches the SYSBUILD cache and **not** the image, which
-is why `OEVM_MODEL` / `OEVM_BLOB` / `OEVM_NODE_ID` travel by environment variable now —
+is why `OEVM_MODEL` / `OEVM_BLOB` / `OEVM_BOARD_NAME` travel by environment variable now —
 `-Dzephyr_OEVM_BLOB=` (image-scoped) was tried and does not work either.
 **Where a running dongle lives is part of the port (rete#281, 2026-09-19): never in the
 working host's USB hub.** `4ec0` ran `PortaBridgeNodeNrf` for 17.4 days in the desk hub

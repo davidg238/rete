@@ -122,9 +122,10 @@ class ProfileCostNodeC6 usingPlatform: platform net: net = (
      whatever devkit was flashed with this app wrote into that one space, so `c6-bench`
      accumulated 36,153 events across 19 `obs/build` entries from at least two boards
      AND two different apps, with nothing in the store saying which. `platform nodeId`
-     answers the bench instance the image was built for (zephyr/run.sh fills it from the
-     same collector env file the console reader resolves through), so the flash, the
-     console and the porta space cannot disagree about who this is.
+     answers the board's factory link address (rete#118: read from silicon, 12 hex
+     characters; the build-time define is gone), so two boards flashed from one image
+     get two porta spaces. The bench name travels separately, as the optional `board`
+     field of `obs/build`, from run.sh's OEVM_BOARD_NAME.
      The ROLE is not gone, it just lives where it always belonged: porta writes
      `goal/name` and this node converges `obs/name` onto it. *)
   nodeId    = ( ^ platform nodeId )

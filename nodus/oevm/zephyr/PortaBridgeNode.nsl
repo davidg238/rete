@@ -26,11 +26,11 @@ class PortaBridgeNode usingPlatform: platform net: net = (
 ) (
   (* rete#241: `platform nodeId`, same one-liner as the C6 twin. #186 kept a literal
      here because host answered the slot-shaped "host" for every VM at once; d5b5545
-     fixed that — a host VM now names itself `<hostname>-NNNN`, and OEVM_NODE_ID wins
-     when set, mirroring the target's explicit override in zephyr/run.sh. The gate
-     (`tests/porta_sync_host.sh`) supplies a per-run id through that door, so two
-     concurrent runs no longer write into one porta space the way two devkits shared
-     `c6-bench`. *)
+     made a host VM name itself `<hostname>-NNNN`; rete#118 deleted that fallback. A
+     host VM has no silicon, so it answers the OEVM_NODE_ID env value and the primitive
+     fails when it is unset or empty. The gate (`tests/porta_sync_host.sh`) supplies a
+     per-run id through it, so two concurrent runs no longer write into one porta space
+     the way two devkits shared `c6-bench`. *)
   nodeId    = ( ^ platform nodeId )
   gwAddr    = ( ^ '127.0.0.1' )
   gwPort    = ( ^ 16969 )

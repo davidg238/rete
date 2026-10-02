@@ -43,7 +43,7 @@ EXCH_PORT=26969                     # blocks ride EXCH_PORT+1, chosen by porta
 WATCHDOG=10                         # seconds a trial boot has to confirm
 
 # rete#241: per-RUN node ids, not per-run slots. The nodes answer `platform
-# nodeId`; this gate hands each VM its id through OEVM_NODE_ID (repeatable
+# nodeId`; a host VM has no silicon, so this gate hands each VM its id through OEVM_NODE_ID (repeatable
 # --env below, applied on every re-exec), so a run beside another run — or
 # beside a live host node — cannot write into the same three porta slots the
 # way `node-1/2/3` always did. Human-facing messages keep saying node-1/2/3:

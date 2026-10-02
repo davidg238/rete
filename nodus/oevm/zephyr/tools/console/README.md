@@ -157,7 +157,7 @@ today's.
 
 ## The profile view (#165)
 
-    python3 view.py --board c6spare --node c6-bench \
+    python3 view.py --board c6spare --node <12-hex-id> \
       --sidecar ../../PortaBridgeNodeC6.oimg.methods.json \
       --porta-db <the store porta serve is serving> --port 8087
 
@@ -183,8 +183,9 @@ around here. Move the view, or write `dbg/req` by hand on the store's host.
 **The board and the node id are different strings, and both flags are
 required.** `--board` names the collector's log file (`console-<board>-*.log`)
 — the attached devkit is `c6spare`. `--node` is what porta addresses the node
-as on the wire — `PortaBridgeNodeC6.nsl:47` hard-codes `nodeId = 'c6-bench'`
-regardless of which physical board runs the image. Neither flag defaults:
+as on the wire — its `platform nodeId`, the board's factory link address (12 lowercase hex
+characters; the node prints it in its 'no goal/name arrived' line). It used to be the
+literal `'c6-bench'` hard-coded in `PortaBridgeNodeC6.nsl`, and then the bench name (#186). Neither flag defaults:
 `c6bench` (a third, similarly-named board) has been off the bench since
 2026-08-06 with its by-id gone, and a baked-in default naming an absent board
 would make "no capture in this window" indistinguishable from "you read the

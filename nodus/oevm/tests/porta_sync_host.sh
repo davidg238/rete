@@ -30,8 +30,8 @@ PORTA_DIR="${PORTA_DIR:-$(git rev-parse --show-toplevel)/porta}"
 NSL="$(git rev-parse --show-toplevel)/nodus/nsl/tools/ns_compile_oevm.py"
 TARGET="${OEVM_TARGET:-posix}"
 DB=/tmp/porta_sync_gate.db
-# rete#241: a per-run id, handed to the node through OEVM_NODE_ID (the same
-# explicit-override door zephyr/run.sh uses on boards). The node answers
+# rete#241: a per-run id, handed to the node through OEVM_NODE_ID (the host VM's
+# stand-in for silicon, rete#118; unset makes `platform nodeId` fail). The node answers
 # `platform nodeId`, so nothing here is a slot two concurrent runs would share
 # — the gate knows the id in advance because it chose it, not because the node
 # hardcodes it.

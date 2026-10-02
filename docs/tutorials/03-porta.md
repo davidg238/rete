@@ -170,8 +170,9 @@ The three environment knobs are all seams a board fills differently:
   the real clock.
 - `OEVM_BOOTID_FILE` — the persistent boot counter a board keeps in NVS. Without it porta
   prints `boot=?`, which means *this node has no persistent identity*, not *boot zero*.
-- `OEVM_NODE_ID` — overrides `platform nodeId`, the same explicit door `zephyr/run.sh`
-  uses on a board.
+- `OEVM_NODE_ID` — the host VM's stand-in for silicon: `platform nodeId` answers it, and
+  fails if it is unset or empty. A board reads its factory link address instead (12 hex
+  characters), so there is nothing to set there.
 
 ## 5. What the node says about itself
 

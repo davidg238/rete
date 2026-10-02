@@ -8,7 +8,8 @@ two placeholders and compiles the result:
                   differently
 
 The node's ID is NOT a placeholder (rete#241): it answers `platform nodeId`,
-and the gate hands each VM a per-run id through OEVM_NODE_ID — env survives the
+and the gate hands each VM a per-run id through OEVM_NODE_ID (the host VM's stand-in
+for silicon; unset fails) — env survives the
 runner's every re-exec, where a baked id would pin two concurrent runs onto the
 same three porta slots (`node-1/2/3` were per-run SLOTS, the host replay of the
 two-devkits-one-space defect #186 fixed on boards).

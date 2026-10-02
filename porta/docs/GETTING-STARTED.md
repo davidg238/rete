@@ -133,20 +133,19 @@ gwPort    = ( ^ 6969 )
 The mesh has **no global IPv6 and no DNS64**, so a Thread node's gateway address is a
 literal mesh-local EID — not a hostname.
 
-**Who the node is** — `platform nodeId`, which reads the build-time define
-`OEVM_NODE_ID`. Before rete#186 this was a string literal in the bridge's source, so
-every board flashed with that image wrote into one space and porta merged their trees
-with nothing in the store saying which board a row came from. It is a per-build define
-now, which is also the door rete#181 uses to run one board against a remote toolchain.
+**Who the node is** — `platform nodeId`, the board's factory link address: 12 lowercase
+hex characters on ESP32-family and nRF52840 boards, so the porta space of a board is that
+id, not its bench name. RP2040/RP2350 have no radio and so no id; the primitive fails
+there. A host VM has no silicon and answers the `OEVM_NODE_ID` environment value instead
+(unset or empty fails). The human-facing name is the role at `goal/name`; the bench name
+of a board is published separately, as the optional `board` field of `obs/build`, from the
+build-time `OEVM_BOARD_NAME`. History: before rete#186 the id was a string literal in the
+bridge's source, so every board flashed with that image wrote into one space; #186 and
+#181 made it a per-build define; rete#118 replaced the define with the hardware address.
 
-> **This is deliberately unfinished, and rete#118 is where it is being decided.** A
-> build-time id is good enough for a closed bench mesh and wrong for a fleet: reflashing
-> two boards from one image gives them one identity. The open questions are whether the
-> id should be hardware-derived (stable across a reflash, no provisioning step) or
-> operator-assigned (survives a board swap, needs storage and a pairing flow) — and,
-> separately, that **a node id is a name and not a credential.** Any peer can claim any
-> id today. That is the G5 authentication question (`PROTOCOL-NSL.md` §7, open question 5) and it is out
-> of this rung.
+> **A node id is a name and not a credential.** Any peer can claim any id today. That is
+> the G5 authentication question (`PROTOCOL-NSL.md` §7, open question 5) and it is out of
+> this rung.
 
 `devsdk/provision` encodes a gateway-address contract as `firmware.config["porta"]`, but
 that is the **Toit-era** shape: it is how a v1 node was provisioned at flash time, not

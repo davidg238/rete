@@ -122,7 +122,8 @@ A second cable went onto the gw board twenty minutes later, giving `c6bench` **b
 channels — and the gates still could not run, because the missing piece was never a cable.
 `run.sh` and `deploy_flash.sh` build and flash in one process on one host, and the host with
 the toolchain now had no board on it at all. What closes that gap on this bench is the hand
-path in §5 plus `OEVM_NODE_ID`, the one door `run.sh` opens for a board it cannot see (#181).
+path in §5 plus `OEVM_BOARD_NAME`, the one door `run.sh` opens for a board it cannot see (#181; it carried the
+node id then, and carries the board name now that the id is read from silicon, #118).
 
 The general shape, and the reason it is in a tutorial rather than a bench note: **counting
 adapters answers a different question than "can I run a gate."** Enumerate what is attached,
@@ -446,16 +447,23 @@ window** but the collector's own `port=up` heartbeat. No reboot, no wedge dump, 
 Three honest notes about this particular run.
 
 **It was not driven by `./run.sh`.** On this bench the toolchain and the board are on
-different machines (§2), so it went the hand way of §5: built here with `OEVM_NODE_ID=c6bench`,
+different machines (§2), so it went the hand way of §5: built here with `OEVM_BOARD_NAME=c6bench`,
 `scp`, then `esptool write-flash 0x0` over ssh with the sha256 checked at both ends. It was
 flashed over the **JTAG** node so the collector kept the CP2102N and caught the boot — which
 is why there is a banner above at all, and why no second reset was needed.
 
-**`OEVM_NODE_ID` is what makes that legal rather than a guess.** Without it the image takes
-its space name from the machine that built it, so `TAP ok 2` would have been comparing the
-wrong tree entirely. That is #186: `nodeId` was once a source constant, and 36,153 events
+**`OEVM_BOARD_NAME` is what makes that legal rather than a guess.** The image's porta space
+is no longer something the build chooses: `platform nodeId` is the board's factory link
+address (12 lowercase hex characters on ESP32 and nRF52840; an RP board has none, and the
+primitive fails), so a hand build on another machine cannot land in the wrong tree. What a
+hand build can still lose is the *name*: `run.sh` resolves it from the collector env file for
+the console port, which the building host cannot see, so without `OEVM_BOARD_NAME` the image
+bakes none and `platform boardName` answers nil (`run.sh` warns). The name is published as
+the optional `board` field of `obs/build`; the human-facing name of a node is the role at
+`goal/name`. The history: #186 found `nodeId` was once a source constant, and 36,153 events
 from at least two boards and two different apps landed in one space with nothing recording
-which was which.
+which was which; #181 then made the id a build-time define; #118 replaced the define with
+silicon.
 
 **`misses 1` at tick 1 is real and is reported rather than hidden.** It is one exchange lost
 while the mesh re-attached; it climbed to 14 over the first forty ticks and then stayed flat
