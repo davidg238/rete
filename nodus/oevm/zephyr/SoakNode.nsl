@@ -18,7 +18,7 @@ Differences from ThreadTimerNode, all deliberate:
   USB-attached, irrelevant on a wallwart; the wire is the real evidence.
 
 Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
-reaction block is a one-line self-send (#133 LD_SLOT gotcha).
+reaction block is a one-line self-send.
 expect (console, every ~15s once attached):
 SOAK OK 1/1
 *)

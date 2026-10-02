@@ -34,7 +34,6 @@ class ThermalNodeTest packageUsing: manifest = () (
       ^ self )
 
     public start = (
-      (* Both reactions are self-sends: a reified block must not name a class. *)
       tick whenever: '' do: [ :t | self sampleOnce ].
       ctl  whenever: '' do: [ :c | self reconfigure: c ].
       self arm.

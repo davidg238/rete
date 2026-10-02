@@ -20,13 +20,7 @@ done
      3. there is no request/reply — the restarted job cannot ASK anyone to re-send.
 
    Under option C (the cell in the bridge's private Map) this test cannot be written at
-   all: the job has nothing to peek and nobody to ask. See oevm/review/cells-sketch.ns.
-
-   VM gotcha (#133, recurred in rungs 3 and 6): the `restart:` block is a genuine
-   REIFIED BlockClosure (the supervisor stores it), and a direct cross-class call written
-   inline in such a block (`Loop new …`) does not resolve its outer/platform context —
-   `Invalid receiver for LD_SLOT`. Routed through a `self`-send (`self respawn:`), which
-   gives the call a normal method activation. House style. *)
+   all: the job has nothing to peek and nobody to ask. See oevm/review/cells-sketch.ns. *)
 class SurvivesCrash packageUsing: manifest = ( | live ::= nil. starts ::= 0. | ) (
 
   (* The control loop. On start — and start IS restart; it does not know which — it
@@ -45,7 +39,7 @@ class SurvivesCrash packageUsing: manifest = ( | live ::= nil. starts ::= 0. | )
   ) : (
   )
 
-  (* the rebuild, as a self-send: see the VM gotcha above *)
+  (* the rebuild — first boot and every restart are this one send *)
   respawn: cap = (
     starts:: starts + 1.
     live:: (Loop new setGoal: cap) start.

@@ -15,7 +15,7 @@ pull up, fleet load pulls down, liveness sets the floor) is node POLICY and land
 with the mode record; a constant is the honest placeholder.
 
 Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
-reaction block is a one-line self-send (the LD_SLOT gotcha).
+reaction block is a one-line self-send.
 expect (console):
 PORTA NODE READY
 *)
@@ -174,9 +174,7 @@ class PortaBridgeNode usingPlatform: platform net: net = (
 
   nameChanged: v = ( space put: 'obs/name' value: v. ^ self )
 
-  (* Each of these is a SELF-SEND from inside the whenever: block above, not
-     inline work. A cross-class call inside a reified block cannot resolve its
-     outer chain (rete#133), so the block must do nothing but send to self. *)
+  (* Each of these is a self-send from inside the whenever: block above. *)
   dbgReq: line = (
     | ms |
     ms:: platform parseProfileMs: line.

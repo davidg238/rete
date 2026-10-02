@@ -1340,7 +1340,6 @@ class Kernel usingPlatform: platform = (
       ^ self )
 
     public start = (
-      (* A self-send: a reified block must not name a class. *)
       ctl whenever: '' do: [ :c | self apply: c ].
       self normalise.
       ^ self )
@@ -1555,20 +1554,8 @@ class Kernel usingPlatform: platform = (
   class NetBridge = ( | socket out peerHost peerPort in | ) (
     setSocket: s out: o peerHost: ph peerPort: pp in: i = (
       socket:: s. out:: o. peerHost:: ph. peerPort:: pp. in:: i. ^ self )
-    (* VM workaround: the block passed to `whenever:do:` is a genuine reified
-       BlockClosure (stored by the reactor, unlike an inlined control-flow block
-       such as `whileFalse:`'s argument below); a DIRECT cross-class call
-       (`Cbor new encode: v`) written inline in such a block's body does not
-       correctly resolve the callee's outer/platform context on this VM (LD_SLOT
-       aborts on a non-object receiver) — reproduced with a minimal repro
-       (`OrderedCollection new` alone, called from inside a `whenever:do:` block,
-       crashes identically; the same call one line above/below the block, or
-       reached via a `self`-send FROM the block, does not). Routing through a
-       `self`-send from inside the block gives the encode call a normal method
-       activation, which resolves correctly. *)
-    encodeFor: v = ( ^ Cbor new encode: v )
     public start = (
-      out whenever: '' do: [ :v | socket sendTo: peerHost port: peerPort data: (self encodeFor: v) ].
+      out whenever: '' do: [ :v | socket sendTo: peerHost port: peerPort data: (Cbor new encode: v) ].
       ^ self )
     (* Receive-until-empty; decode each datagram; drop on decode failure (bad `set`
        true), post the decoded value onto `in` otherwise (a legitimately-nil value
@@ -1849,12 +1836,7 @@ class Kernel usingPlatform: platform = (
        A cell can be re-read at check-in time; a stream entry cannot — the
        reactor kills the event on delivery. So each outbound stream path is
        subscribed here and its writes are captured into `pending`, stamped with
-       `space stamp` so they share ONE ascending sequence with the cell writes.
-
-       The block body is a single self-send: a direct cross-class call written
-       inline in a block the reactor STORES does not resolve its outer context on
-       this VM (see NetBridge>>encodeFor:, which documents the same workaround
-       and the minimal repro behind it). *)
+       `space stamp` so they share ONE ascending sequence with the cell writes. *)
     public subscribeStream: absolutePath = (
       (space channel: absolutePath) whenever: '' do: [ :v | self capture: absolutePath value: v ].
       ^ self )
@@ -2606,9 +2588,7 @@ class Kernel usingPlatform: platform = (
       ^ self )
 
     (* rete#231 D2 — porta's REQUEST, read once per check-in from the tail of the
-       apply step. No timer, no reaction: the cadence is the check-in's, and a
-       `whenever:` on this path would also have to be a bare self-send anyway
-       (#133, a reified block cannot resolve its outer chain on this VM).
+       apply step. No timer, no reaction: the cadence is the check-in's.
 
        THE NODE ALWAYS WINS, and it wins by publishing rather than by refusing.
        Every request is adopted through the same `adoptCad:misses:` the app's own
@@ -2669,11 +2649,8 @@ class Kernel usingPlatform: platform = (
        tail of `checkIn`. No timer, no job, no state machine and no `whenever:`
        reaction: the cadence is the check-in's cadence, and the ordering the
        design needs falls out of the call site (see checkIn). A `whenever:` on
-       `goal/apps/main` would also be wrong for a second reason — a cross-class
-       send inside a reified block cannot resolve its outer chain on this VM
-       (tuvm#133), so the body would have to be a self-send anyway, and then the
-       reaction is buying nothing but an unpredictable moment to exit the process
-       in.
+       `goal/apps/main` would buy nothing but an unpredictable moment to exit the
+       process in.
 
        The five steps are ORDERED, and each ordering is load-bearing:
 
@@ -3385,24 +3362,9 @@ class Kernel usingPlatform: platform = (
       trace ::= false. | ) (
 
     (* ---- definition ---- *)
-    (* Staged fsm.ns:48 built the missing-table branch with a block that
-       declared its OWN temp (`[ | t | t:: Dictionary new. states at: s put:
-       t. t ]`) — a genuine (non-inlined) escaping block carrying a local
-       slot. Landed differently: `table` (already a method temp) is reused
-       inside the ifAbsent: block instead of a fresh block-local, and the
-       Dictionary-new-and-store step is hoisted to a plain ifTrue: after the
-       lookup returns nil. Same net effect (create-once, get-or-create), no
-       surface change — flagged as an internal-adaptation, not a logic bug:
-       traced against the VM (`OP_LD_SLOT`/`Invalid receiver`) with an
-       isolated probe and confirmed it is a real compiler/VM limitation on
-       escaping blocks that declare their own temp slots, not staged-logic
-       breakage; avoided rather than chased further, since the plan's
-       PLAN-DRAFT CAUTION rule authorizes internal-logic fixes with an
-       unchanged public surface. *)
     public state: s on: eventKey do: action then: target = (
       | table |
-      table:: states at: s ifAbsent: [ nil ].
-      table == nil ifTrue: [ table:: Dictionary new. states at: s put: table ].
+      table:: states at: s ifAbsent: [ | t | t:: Dictionary new. states at: s put: t. t ].
       table at: eventKey put: (Transition action: action target: target).
       ^ self
     )

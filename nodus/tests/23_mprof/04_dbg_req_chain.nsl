@@ -74,9 +74,7 @@ class DbgReqChainTest packageUsing: manifest = (
     'done' println.
     ^ 0 )
 
-  (* Each of these is a SELF-SEND from inside the whenever: block above, not
-     inline work — a cross-class call inside a reified block cannot resolve its
-     outer chain (rete#133). *)
+  (* Each of these is a self-send from inside the whenever: block above. *)
   dbgReq: line = (
     | ms |
     ms:: plat parseProfileMs: line.

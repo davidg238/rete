@@ -107,7 +107,7 @@ round 1 arm 3 off-b begin
 round 2 arm 1 off-a begin
 
 Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
-reaction block is a one-line self-send (the LD_SLOT gotcha, rete#133).
+reaction block is a one-line self-send.
 *)
 class ProfileCostNodeC6 usingPlatform: platform net: net = (
   | space bridge timers ticks ::= 0.

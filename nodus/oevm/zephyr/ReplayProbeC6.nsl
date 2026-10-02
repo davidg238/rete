@@ -47,7 +47,7 @@ but the ML-EID is correct either way and does not depend on the role.
 Cadence stays the 2 s of plan 2. The adaptive controller is #115.
 
 Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
-reaction block is a one-line self-send (the LD_SLOT gotcha).
+reaction block is a one-line self-send.
 *)
 class ReplayProbeC6 usingPlatform: platform net: net = (
   | space bridge timers profChan ticks ::= 0. profTok ::= nil.
@@ -230,9 +230,7 @@ class ReplayProbeC6 usingPlatform: platform net: net = (
      rather than the weaker "obs/name is non-empty". *)
   nameChanged: v = ( goalName:: v. space put: 'obs/name' value: v. ^ self )
 
-  (* Each of these is a SELF-SEND from inside the whenever: block above, not
-     inline work. A cross-class call inside a reified block cannot resolve its
-     outer chain (rete#133), so the block must do nothing but send to self. *)
+  (* Each of these is a self-send from inside the whenever: block above. *)
   dbgReq: line = (
     | ms |
     ms:: platform parseProfileMs: line.

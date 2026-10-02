@@ -46,7 +46,7 @@ tick 1 misses 2 ref 0 cursor 0 acked 0 dropped 0
 TAP porta-silent done pass=2 fail=0
 
 Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
-reaction block is a one-line self-send (the LD_SLOT gotcha).
+reaction block is a one-line self-send.
 *)
 class SilentProbeC6 usingPlatform: platform net: net = (
   | space bridge timers ticks ::= 0.

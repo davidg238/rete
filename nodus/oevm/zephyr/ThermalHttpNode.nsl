@@ -88,7 +88,6 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
       ^ self )
 
     public start = (
-      (* Both reactions are self-sends: a reified block must not name a class. *)
       tick whenever: '' do: [ :t | self sampleOnce ].
       ctl  whenever: '' do: [ :c | self reconfigure: c ].
       self arm.
@@ -193,10 +192,8 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
   )
 
   (* ---- composition root: install the services, wire the routes, run the loop ----
-     The /thermal route block sends to the CAPTURED `tview` instance; the class name
-     is resolved here in method-body context, never inside the block (a reified block
-     that names a class aborts on outer-scope resolution). /stats and / name classes
-     and read platform metrics, so they route through self-send helpers. *)
+     The /thermal route block sends to the CAPTURED `tview` instance; /stats and /
+     route through self-send helpers. *)
   (* tuvm#72 profiler slice: the gw (porta-lite) peer and the diag UDP ports. gwAddr is
      gw85224-01's LAN address; the node pushes diag/spans/result to it and receives
      diag/spans/ctl on diagBindPort. *)
@@ -276,9 +273,7 @@ class ThermalHttpNode usingPlatform: platform net: net = () (
         ('DIAG CRASH ch=' , (rec at: #channel ifAbsent: [ '?' ]) printString
                  , ' text=' , (rec at: #text ifAbsent: [ '?' ]) printString) println ].
 
-    (* The block captures `spans` and `sRender` from this method's temporaries,
-       which is fine — the rule a reified block breaks is naming a CLASS, resolved
-       in outer scope. *)
+    (* The block captures `spans` and `sRender` from this method's temporaries. *)
     http route: '/thermal' do: [ :id :plat |
         spans begin: sRender.
         tview renderFrame: ((space channel: 'dev/thermal0/sample') peek) toId: id on: plat.

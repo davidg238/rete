@@ -11,7 +11,7 @@ here, the store and the mesh are eliminated in one boot.
 
 Opens nothing, so no CONF_EXTRA — same class as WedgeProbeC6: `timers` armed
 directly. Holds ONE Timers instance (`platform timers` answers a FRESH one per
-send). Dialect: `[ ... ] whileTrue:`, self-sends from reaction blocks (#133).
+send). Dialect: `[ ... ] whileTrue:`, self-sends from reaction blocks.
 
 The prints BRACKET the death point:
   - beats stop with no `wend enter`  -> wedged between k_timer fire and dispatch

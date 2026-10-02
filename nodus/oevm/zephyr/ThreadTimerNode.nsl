@@ -19,8 +19,7 @@ failure must be loud, never a silent pass — and NOT how a production sensor no
 behave. This node is a gate.
 
 Dialect: `[ ... ] whileTrue:`, never `repeat`. State lives in instance slots (not main:
-locals) so every reaction block is a one-line self-send — the house style that dodges the
-reified-block LD_SLOT gotcha (#133). Until rete#244 `platform timers` answered a FRESH Timers each
+locals) so every reaction block is a one-line self-send. Until rete#244 `platform timers` answered a FRESH Timers each
 call, so hold ONE instance.
 expect (DK console, every ~15s once attached):
 BRIDGE OK

@@ -247,9 +247,6 @@ protocol handler — one is an ordinary channel reaction, the other an ordinary 
 nameChanged: v = ( space put: 'obs/name' value: v. ^ self )
 ```
 
-(The reaction body does nothing but send to `self`, which is not style: a cross-class call
-inside a reified block cannot resolve its outer chain — issue #133.)
-
 The log now runs both ways:
 
 ```bash gate
