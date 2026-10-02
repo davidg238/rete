@@ -2553,6 +2553,31 @@ everything else has one obligation and no counter. And `goal/liveness`'s cadence
 accepted but not honoured: the kernel owns the period, but nothing re-arms the timer when an
 adopted cadence moves, so a requested cadence still shows only as a `goal`/`obs` divergence.
 
+## The fourth target boots, and is faster per activation than the C6 — 2026-10-01, #302, on an RP2350-Zero
+
+**`rpi_pico2` (RP2350A, Cortex-M33 @ 150 MHz) runs the VM at 11.13 µs/activation against the
+C6's 11.83 — 5.9 % faster; cabot's M28 gate (≤ 11.83) is met.** Workload
+`MethodProfileNodeC6.nsl` (Hanoi depth 18, 20 × 262143 activations, Model B, 128 KB arena,
+`-Os`), one binary, three boots agreeing to 0.7 ms. The other STIC rows were NOT run. Built in
+the C6's workspace with the nRF's toolchain — no new toolchain, no new workspace.
+`layout-rp2350.json` was captured from the board and is byte-identical to the C6's.
+
+1. **Heap ceiling: 450560 (uart0 console, link only) / 442368 (USB-CDC console, booted)** of
+   532480 B RAM, against the C6's 319488. `region + overflow − H − H/32` is constant to the
+   byte across every failing probe (63756 B / 74388 B), so the USB stack costs 10632 B.
+   `TimerNode` at 442368 printed `TIMER OK` — it boots and runs the timer path; that is not a
+   proof the arena is usable to its last cell.
+2. **Not delivered:** no NVS/bootId (Zephyr v4.2 has no RP2350 flash driver —
+   `flash_rpi_pico.c` is RP2040-only), no entropy driver (`CONFIG_TEST_RANDOM_GENERATOR`),
+   second core unconfigured, uart0 console and SWD not exercised. The Feather RP2040 rehearsal
+   board was built (`c4714a3`) and never run.
+3. **FPv5 is single-precision under a VM whose Float is a C double**, so doubles are still
+   libcalls: any float row for this part says "FPv5-SP, double in software". `FloatSmokeNode`
+   prints its exact `expect:` lines.
+
+Record: `docs/results/2026-10-01-rp2350-first-numbers.md`; board axes:
+`nodus/oevm/zephyr/docs/BOARD_PORTS.md`. Answer posted on #301 and cabot#11.
+
 ## Known stale docs (do not treat as current)
 
 `nodus/oevm/docs/archive/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
