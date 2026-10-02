@@ -1,0 +1,10 @@
+# zephyr/NodeIdProbe.nsl (the rete#118 board proof) on the RP2350-Zero — 2026-10-02 ~10:15 MST, flashed by UF2/BOOTSEL, USB-CDC console (prj_rpi_pico2_usb.conf + usb-console.overlay), OEVM_BOARD_NAME=rp2350zero
+# Built from the working tree that was then committed unchanged as d53dd2e, hence "-gb2e5cdf-dirty" in the build id.
+# The board's USB serial string read 4530454D38330003 under this image AND under the 2026-10-01 #133 gate image (a different flash): the id survives a reflash.
+# Not independent of the USB string: both come from hwinfo_get_device_id. What this proves is the VM's own path — prim 155, the backend read, the hex rule — and the board-name plumbing, on silicon.
+*** Booting Zephyr OS build v4.2.0-12-gbc47c6fab9cc ***
+oevm: build-id porta-v1-final-1282-gb2e5cdf-dirty-20261002T100406
+logudp: not built in (no OEVM_LOG_UDP6) — console is UART only
+oevm: observer armed (slack=8 tick=1000ms backstop=30000ms hw=yes)
+board rp2350zero
+node 4530454d38330003
