@@ -1,0 +1,23 @@
+(* expect:
+board present: true
+board value: bench-c6
+env: OEVM_BOARD_NAME=bench-c6
+*)
+(* rete#118: obs/build gains an OPTIONAL `board` field, the build-time board name that
+   used to ride as the node id. SET case; 28_build_board_absent.nsl is the other.
+   publishBuild: writes the row into the space; the row is read back by the scan, the
+   way a gateway would see it. *)
+class BuildBoardTest packageUsing: manifest = () (
+  public main: platform args: args = (
+    | b rows row v bd |
+    b:: platform PortaBridge socket: nil space: platform space id: 'test' peer: '::1' port: 1
+        spans: platform Spans new.
+    b publishBuild: #host.
+    rows:: platform space changedSince: 0 max: 8.
+    row:: rows at: 1.
+    v:: row at: 3.
+    bd:: v at: #board ifAbsent: [ nil ].
+    ('board present: ' , (bd == nil) not printString) println.
+    (bd == nil) ifFalse: [ ('board value: ' , bd printString) println ].
+    ^ 0 )
+) : ()

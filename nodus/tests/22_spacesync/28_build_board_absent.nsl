@@ -1,0 +1,17 @@
+(* expect:
+board present: false
+env: OEVM_BOARD_NAME=
+*)
+(* rete#118, Review Focus 3: a build told no board name carries NO `board` key — absent,
+   never an empty string. An empty OEVM_BOARD_NAME reads as unset. *)
+class BuildBoardAbsentTest packageUsing: manifest = () (
+  public main: platform args: args = (
+    | b rows v |
+    b:: platform PortaBridge socket: nil space: platform space id: 'test' peer: '::1' port: 1
+        spans: platform Spans new.
+    b publishBuild: #host.
+    rows:: platform space changedSince: 0 max: 8.
+    v:: (rows at: 1) at: 3.
+    ('board present: ' , ((v at: #board ifAbsent: [ nil ]) == nil) not printString) println.
+    ^ 0 )
+) : ()

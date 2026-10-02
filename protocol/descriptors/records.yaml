@@ -536,8 +536,8 @@ records:
     paths: [obs/build]
     status: live
     summary: >
-      Build provenance — the segmentation key for everything else. A node id is a
-      board since rete#186, but a space still carries many builds, and aggregating
+      Build provenance — the segmentation key for everything else. A node id is the
+      board's factory link address since rete#118, but a space still carries many builds, and aggregating
       across them is how a number goes silently wrong.
     fields:
       - key: man
@@ -562,6 +562,17 @@ records:
         unit: symbol
         kind: identity
         meaning: "the SoC family: #esp32c6, #esp32s2, #nrf52840, #host"
+      - key: board
+        name: board
+        unit: text
+        kind: identity
+        meaning: >
+          the bench board the image was built for (the collector env file name); the
+          node asserts it on every boot
+        validity: >
+          Optional: absent when the build was not told a board name. A name, not a
+          credential.
+        refs: [rete#118]
       - key: build
         name: build
         unit: text

@@ -65,6 +65,7 @@ sym-b3          = #6.39("b3")
 sym-b4          = #6.39("b4")
 sym-b5          = #6.39("b5")
 sym-bid         = #6.39("bid")
+sym-board       = #6.39("board")
 sym-bootId      = #6.39("bootId")
 sym-build       = #6.39("build")
 sym-chip        = #6.39("chip")
@@ -235,6 +236,7 @@ build = #6.27([sym-Build, {
   ? sym-man   => bstr,         ; truncated 8-byte manifest pin (#243 D4)
   ? sym-sdk   => tstr,
     sym-chip  => anysym,
+  ? sym-board => tstr,         ; build-time board name (#118); absent when the build was not told
     sym-build => tstr,
   ? sym-image => bstr,
 }])

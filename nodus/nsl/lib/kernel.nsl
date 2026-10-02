@@ -2457,16 +2457,19 @@ class Kernel usingPlatform: platform = (
        app supplies only its chip symbol; called once from app setup, so it
        needs no once-per-boot guard the way publishApps does. #man rides iff the
        image carries a pin (rete#243) — a pinless build (host, pre-manifest)
-       omits the field, absence meaning "cannot say". *)
+       omits the field, absence meaning "cannot say". #board (rete#118) is the
+       build-time board name and follows the same rule: a build told no name omits
+       the field, never an empty string. *)
     public publishBuild: chipSym = (
-      | pin |
+      | pin name pairs |
+      pairs:: OrderedCollection new.
+      pairs add: #chip -> chipSym.
+      pairs add: #build -> outer buildId.
       pin:: outer manifestPin.
-      pin == nil
-        ifTrue: [ space put: 'obs/build' value: (Record tag: #Build
-            with: #chip -> chipSym with: #build -> outer buildId) ]
-        ifFalse: [ space put: 'obs/build' value: (Record tag: #Build
-            with: #chip -> chipSym with: #build -> outer buildId
-            with: #man -> pin) ].
+      pin == nil ifFalse: [ pairs add: #man -> pin ].
+      name:: outer boardName.
+      name == nil ifFalse: [ pairs add: #board -> name ].
+      space put: 'obs/build' value: (Record tag: #Build fields: (Map fromPairs: pairs)).
       ^ self )
 
     publishApps = (
@@ -4066,8 +4069,10 @@ class Kernel usingPlatform: platform = (
   public profileStop       = ( platform profileStop. ^ self )
   (* #74: the build actually running, so a reader can pick the matching sidecar. *)
   public buildId           = ( ^ platform buildId )
-  (* rete#186: which BOARD this is, baked at build time. buildId names the image,
-     bootId names the run, this names the hardware. *)
+  (* rete#118: which BOARD this is — its factory link address in lowercase hex, read
+     from silicon (on the host, the OEVM_NODE_ID env value). The primitive FAILS when
+     there is none. buildId names the image, bootId names the run, this names the
+     hardware. *)
   public nodeId            = ( ^ platform nodeId )
   (* rete#118: the build-time BOARD NAME (what the bench calls this board), apart from
      the node id, which is read from silicon. A String, or nil when the build was not

@@ -356,8 +356,8 @@ def main(argv):
     p.add_argument("--board", required=True, help="board name the collector "
                     "logs under, e.g. c6spare — NOT the node id")
     p.add_argument("--node", required=True, help="node id for the dbg/req "
-                    "path, e.g. c6-bench — the string PortaBridgeNodeC6.nsl "
-                    "hard-codes, independent of which board runs the image")
+                    "path — the board's 12-hex factory link address "
+                    "(lowercase), as the node's `platform nodeId` answers it")
     p.add_argument("--sidecar", required=True, help="<image>.oimg.methods.json")
     # REQUIRED, not defaulted, and this is the whole fix: `porta` is a local
     # sqlite writer, so an unqualified `porta put` silently CREATES an empty
