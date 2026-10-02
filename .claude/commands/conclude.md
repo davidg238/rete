@@ -17,6 +17,9 @@ This extends the global base at `~/.claude/commands/conclude.md`. Same order: **
    - publish: `scp docs/status/dev-status.html gw85224-01:porta-v2/docs/status/dev-status.html`
      (served at `http://gw85224-01:6971/dev/status/dev-status.html`; a re-scp, never a restart)
    - verify: `ssh gw85224-01 md5sum porta-v2/docs/status/dev-status.html` matches the local file
+   - probe first: `timeout 12 ssh -o BatchMode=yes -o ConnectTimeout=6 gw85224-01 true`. A bare `scp` HANGS with no
+     output when Tailscale SSH wants its periodic browser check (2026-10-01: 120 s, nothing printed) — the probe prints
+     the login URL, which only David can visit.
    If the page cannot be published, say so in the handoff — do not skip silently.
 
 4. **Git**: commit everything the session touched (`refs #N`, ≤5-line body) and `git push -u origin HEAD` — every session (David, 2026-08-28: the session end is the milestone and the backup). Ask first only for secrets, binaries, or files that were dirty before the session began. Never force-push.
