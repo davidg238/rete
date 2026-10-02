@@ -617,12 +617,6 @@ echo "[build] -b $BOARD -d $BUILD_DIR ${PRISTINE_ARG[*]:-(incremental)}"
 #
 # No guess: a board this bench cannot name publishes NO board name (the image bakes "").
 BOARD_NAME_ARG=()
-if [ -n "${OEVM_NODE_ID:-}" ]; then
-  # The id used to be a build-time define. A stale export must not be mistaken for still
-  # working: the image now answers the factory address and ignores this entirely.
-  echo "[board] NOTE: OEVM_NODE_ID is set but no longer read — the node id is the factory" >&2
-  echo "[board] link address. To name the board for obs/build, use OEVM_BOARD_NAME." >&2
-fi
 if [ -n "${OEVM_BOARD_NAME:-}" ]; then
   # An EXPLICIT name wins over port resolution, because a board that is not on this host
   # has no local port to resolve through (#181: build here, flash and observe on
