@@ -10,7 +10,7 @@ Probe: `nodus/oevm/zephyr/NodeIdProbe.nsl`, Model B, branch `118-node-id-factory
 |---|---|---|---|---|---|
 | ESP32-C6 | `c6spare` | `board c6spare` / `node 404cca446e60` | esptool `BASE MAC: 40:4c:ca:44:6e:60`; USB-JTAG by-id `40:4C:CA:44:6E:60` | none on the board (David, 2026-10-02) | proven: esptool's own efuse read is the golden |
 | RP2350 | RP2350-Zero | `board rp2350zero` / `node 4530454d38330003` | USB serial string `4530454D38330003` (same `hwinfo` source) | none on the board | proven 2026-10-02 ~10:15, [`console log`](./2026-10-02-118-node-id-rp2350-console.log) |
-| nRF52840 | `nrf4ec0` (PCA10059 dongle) | `board nrf4ec0` / `node d2666d1af919` | Open DFU Bootloader USB serial `D2666D1AF919` (Nordic's own code) | `D2:66:6D:1A:F9:19` (photo, David) | proven on this board; **formula open for other boards**, see below |
+| nRF52840 | `nrf4ec0` (PCA10059 dongle) | `board nrf4ec0` / `node d2666d1af919` | Open DFU Bootloader USB serial `D2666D1AF919` (Nordic's own code) | `D2:66:6D:1A:F9:19` ([photo](./2026-10-02-118-nrf4ec0-sticker.jpg), David) | proven on this board; **formula open for other boards**, see below |
 | ESP32 (WROOM), S2 (MagTag) | — | — | — | — | **unproven: not attached** |
 
 The plan's RP2350 row ("the primitive FAILING is the proof") is superseded by `d53dd2e`: an RP board answers its
@@ -105,12 +105,13 @@ had a porta space, and #118 changes nothing on it.
 **The bell did not come up after its flash, and the image was not the cause.** Flash verified at 14:59; then every boot
 with the DS3231 powered stopped after `IEEE 802154 radio initialized`, before the Zephyr banner, with the init thread
 blocked and no watchdog (the observer is not armed that early). The one boot that got through, during a power glitch,
-logged `Couldn't set control register` and `rtc nil` and ran the VM normally. After David intervened at the bench
-(15:19; what he changed is not recorded here) the same image, unflashed, booted clean: `rtc 15:19:44`,
-`rtcalarm: armed 15:29:55`. So the fault was on the hardware side, connection or supply, and which is not established.
-The DS3231 status read `80`, the oscillator-stop flag, so the part had lost power at some point; the ROM strap word
-also differed between the hung boots (`boot:0xc`) and the good one (`boot:0x4e`). What blocks forever in init is not
-traced (#317).
+logged `Couldn't set control register` and `rtc nil` and ran the VM normally. Cause (David, 15:30): the breadboard's
+clock module is fed by an external 5 V/3V3 supply on the wall; to stop back-feeds while the bell ran from the desktop's
+USB he removed that supply, which unpowered the DS3231 — an unpowered part on a live I2C bus is what the boot blocked on.
+Fix: the module now takes 3V3 from the C6, so the USB cable powers the C6 and the clock (not the actuator). The same
+image, unflashed, then booted clean: `rtc 15:19:44`, `rtcalarm: armed 15:29:55`; status `80` was the oscillator-stop
+flag from the power loss, and the strap word (`boot:0xc` hung, `0x4e` good) moved with the wiring. Back on its wall
+supply, **the bell chimed 15:30** (David). Why an unpowered DS3231 blocks init forever, with no watchdog, is #317.
 
 ## Still owed
 
