@@ -168,11 +168,15 @@ static size_t link_addr_read(uint8_t b[LINK_ADDR_MAX]) {
 #elif defined(CONFIG_SOC_SERIES_NRF52X)
 #  include <soc.h>             /* NRF_FICR, as drivers/hwinfo/hwinfo_nrf.c does */
 #  include <hal/nrf_ficr.h>    /* nrf_ficr_deviceaddr_get — soc.h alone leaves it implicit, and it fails at LINK */
-/* FICR DEVICEADDR, NOT hwinfo: hwinfo answers DEVICEID on nRF52, a different register. */
+/* FICR DEVICEADDR, NOT hwinfo: hwinfo answers DEVICEID on nRF52, a different register.
+   The top two bits are FORCED: the id is the sticker value, and the sticker (like the
+   Open Bootloader's USB serial and the BLE controller) prints the address as a random
+   static one, 0b11 on top. Raw DEVICEADDR need not have them set — nrf4ec0's happens to
+   (D2…), which is why one board could not tell the two formulas apart (David, 2026-10-02). */
 static size_t link_addr_read(uint8_t b[LINK_ADDR_MAX]) {
     uint32_t lo = nrf_ficr_deviceaddr_get(NRF_FICR, 0);
     uint32_t hi = nrf_ficr_deviceaddr_get(NRF_FICR, 1) & 0xFFFFu;
-    b[0] = (uint8_t)(hi >> 8);  b[1] = (uint8_t)hi;
+    b[0] = (uint8_t)(hi >> 8) | 0xC0u;  b[1] = (uint8_t)hi;
     b[2] = (uint8_t)(lo >> 24); b[3] = (uint8_t)(lo >> 16); b[4] = (uint8_t)(lo >> 8); b[5] = (uint8_t)lo;
     return 6;
 }

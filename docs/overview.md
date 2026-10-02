@@ -33,14 +33,14 @@ Details and sources for steps 2 to 8 are in [development.md](development.md).
 
 ### The 0.1 buildmap
 
-In dependency order. Issues are not yet filed for items 2 to 6.
+In dependency order.
 
 1. Close the node-identity work in flight (rete#118, rete#242): see [FOCUS.md](../FOCUS.md).
-2. The nsl program in its own region of flash, written over the cable by the flash tool, so a change does not reflash the firmware. This is the storage the remote stage's over-the-air update writes to later.
-3. A debuggable C6 build over the cable, with a "held" state the watchdog respects.
-4. Profiling as a command and a page, with its cost measured on a real program and stated.
-5. Stop, patch, restart, resume: a spike on the desktop, then on the board.
-6. One command surface for the loop, so the tool enforces what are conventions today.
+2. (rete#310) The nsl program in its own region of flash, written over the cable by the flash tool, so a change does not reflash the firmware. This is the storage the remote stage's over-the-air update writes to later.
+3. (rete#311) A debuggable C6 build over the cable, with a "held" state the watchdog respects.
+4. (rete#312) Profiling as a command and a page, with its cost measured on a real program and stated.
+5. (rete#313) Stop, patch, restart, resume: a spike on the desktop, then on the board.
+6. (rete#314) One command surface for the loop, so the tool enforces what are conventions today.
 7. The front door: a quickstart that is the first hour, a `LICENSE` at the repo root, one honest page (what is unstable, what is unauthenticated), and a check that no key or private hostname is in the git history.
 
 **Rule:** steps 5, 7 and 8 of the first hour are spike-gated. One that passes its spike ships in 0.1; one that does not moves to the next release, and 0.1 says so plainly.

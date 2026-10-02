@@ -117,6 +117,10 @@ Twelve characters for a 48-bit address. No colons, because the id is a path segm
 CLI argument. The golden per family is captured from a board and compared with its sticker
 by hand, once; on the nRF that comparison is also the check that `DEVICEADDR` in this byte
 order is what the sticker prints.
+*(Hand-check done 2026-10-02 on `nrf4ec0`, sticker `D2:66:6D:1A:F9:19`: the byte order is
+right. David, same day: the top two bits of the first byte are forced to 1, because the
+sticker prints the address that way and raw `DEVICEADDR` need not have them set. Record:
+`docs/results/2026-10-02-118-node-id-board-proof.md`.)*
 
 **2. How it is read.** Zephyr's `hwinfo_get_device_id` answers the eFuse base MAC on every
 ESP32 family, so those ports share one read. On the nRF it answers `DEVICEID`, which is the
