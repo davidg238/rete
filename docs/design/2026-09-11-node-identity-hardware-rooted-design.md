@@ -157,3 +157,9 @@ not told a board name publishes none. By the encoded-bytes key order the field s
   shape fixed by point 1 it becomes one rule, decided after this lands.
 - `OtaBridgeNode.nsl.tmpl` writes `Build` by hand with a synthetic version, which the
   `host_ota` gate depends on. It gains no `board` field and is left as it is.
+
+**Closed 2026-10-02.** Built, proven per family and deployed the same day: the gateway serves the
+manifest with `board` in it and every bench node was reflashed onto its factory id. The decision
+now lives in `porta/docs/ARCHITECTURE.md` §3.8 and `protocol/PROTOCOL-NSL.md` §5.3 (the `id`) and
+§8; the evidence is `docs/results/2026-10-02-118-node-id-board-proof.md`. This record stays as the
+why.

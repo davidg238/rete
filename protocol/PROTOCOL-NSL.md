@@ -596,6 +596,14 @@ transport-agnostic):
   high-water. Empty body = up to date.
 - **Push** — node sends CBOR array of `[nodeSeq, path, kind, value]`; gateway dedupes
   on `nodeSeq` high-water and acks it.
+- **The `id`** (rete#118, 2026-10-02) — the node's factory address as lowercase hex, most
+  significant byte first, no separators: 12 characters for a board with a radio (its
+  48-bit link address, the sticker value), 16 for one without (its flash serial). It is
+  read from silicon at boot and never configured, built in or defaulted; a node that
+  cannot read it does not check in. It is a name within one porta's store, not a
+  credential. The human-facing name is `goal/name` ↔ `obs/name`, and the bench name of
+  the board is the optional `board` field of `obs/build`. Definition and rationale:
+  `porta/docs/ARCHITECTURE.md` §3.8.
 - Transport — whatever the node class carries. **Today it is plain UDP carrying
   CBOR**; the v1 TFTP surface this bullet once named as the day-one carrier was
   deleted with v1 and carries nothing. **The ratified direction is CoAP** — logged in
@@ -728,5 +736,12 @@ Decisions folded into this edition (full reasoning trail in
   is derived, `bud = telCad × misses`, so the grid snap and the `bud < cad` guard are deleted
   rather than replaced. `gw/liveness` may read `#neverSeen` and `#unknown` (rete#285 — the
   manifest now says so). The node's app-liveness deadline (`appCad`) is declared to the
-  observer through one primitive and never crosses the wire. Manifest sha256
-  `844ba659b3a9a3b0…`; every node built from here pins it (`obs/build.man`).
+  observer through one primitive and never crosses the wire. Every node built from here
+  pins the manifest hash (`obs/build.man`); the hash itself moved with the next entry.
+- **(2026-10-02) rete#118/#242 BUILT: the node id is the factory address.**
+  §5.3 defines the `id`; the build-time id is deleted, not defaulted. `obs/build` gains an
+  optional `board` text field between `chip` and `build`, which is the only manifest
+  change. Manifest sha256 `d7eefc871e538b77…`, armed on the gateway the same day; every
+  node built from here pins it. The bench-named spaces are historical from this date.
+  Record: `docs/design/2026-09-11-node-identity-hardware-rooted-design.md` and its
+  addendum; board proof `docs/results/2026-10-02-118-node-id-board-proof.md`.

@@ -10,7 +10,7 @@ Probe: `nodus/oevm/zephyr/NodeIdProbe.nsl`, Model B, branch `118-node-id-factory
 |---|---|---|---|---|---|
 | ESP32-C6 | `c6spare` | `board c6spare` / `node 404cca446e60` | esptool `BASE MAC: 40:4c:ca:44:6e:60`; USB-JTAG by-id `40:4C:CA:44:6E:60` | none on the board (David, 2026-10-02) | proven: esptool's own efuse read is the golden |
 | RP2350 | RP2350-Zero | `board rp2350zero` / `node 4530454d38330003` | USB serial string `4530454D38330003` (same `hwinfo` source) | none on the board | proven 2026-10-02 ~10:15, [`console log`](./2026-10-02-118-node-id-rp2350-console.log) |
-| nRF52840 | `nrf4ec0` (PCA10059 dongle) | `board nrf4ec0` / `node d2666d1af919` | Open DFU Bootloader USB serial `D2666D1AF919` (Nordic's own code) | `D2:66:6D:1A:F9:19` (photo, David) | proven on this board; **formula open for other boards**, see below |
+| nRF52840 | `nrf4ec0` (PCA10059 dongle) | `board nrf4ec0` / `node d2666d1af919` | Open DFU Bootloader USB serial `D2666D1AF919` (Nordic's own code) | `D2:66:6D:1A:F9:19` ([photo](./2026-10-02-118-nrf4ec0-sticker.jpg), David) | proven on this board; **formula open for other boards**, see below |
 | ESP32 (WROOM), S2 (MagTag) | — | — | — | — | **unproven: not attached** |
 
 The plan's RP2350 row ("the primitive FAILING is the proof") is superseded by `d53dd2e`: an RP board answers its
@@ -80,7 +80,40 @@ byte. Compiled for the dongle; **not re-run on a board**, and `nrf4ec0` cannot s
 Falsifier (b), id across a full erase, was not run on the nRF: the dongle has no debugger, so no `recover`. The value is
 read from FICR, which a flash does not write.
 
+## Deploy — plan Task 11, 2026-10-02 14:34–15:20 MST
+
+**Gateway.** `gw85224-01`, manifest-only restart (no porta code changed since the running binary). Killed by pid
+14:34:23, serving again 14:34:47: `porta: manifest gate ON (MANIFEST.cddl, sha256 d7eefc87…) — persisted to the store`,
+and `GET /manifest` hashes to the same value. Rollback beside it: `~/porta-v2/MANIFEST.cddl.pre118`. Nothing on the
+gateway keyed a porta space by bench name (soak dashboard: mesh address; collector: console logs only).
+
+**Nodes.** Read from the store after the last flash (`porta get <id> obs/build`, `gw/liveness`); every one pins
+`man 0xd7eefc871e538b77` and has zero `gate` rows in its log.
+
+| board | space (id) | image | `obs/build.board` | how flashed | verdict |
+|---|---|---|---|---|---|
+| `c6spare` | `404cca446e60` | `PortaBridgeNodeC6` | `c6spare` | `tests/target/run.sh bridge-health` | PASS 3/3, 180 s window clean |
+| `c6bench` | `404cca4547a4` | `PortaBridgeNodeC6` | `c6bench` | built here, esptool on the gateway, collector stopped | `#live`, name converged |
+| `nrf4ec0` | `d2666d1af919` | `PortaBridgeNodeNrf` | `nrf4ec0` | DFU | `#live`, name converged |
+| `nrf92c2` | `ec34e57ca8e1` | `PortaBridgeNodeNrf` | `nrf92c2` | DFU | `#live`, name converged |
+| the bell | `206ef1195438` | `ShipsBellAlarmNodeC6` | `c6` | `zephyr/flash-bell.sh` | `#live`, clock set, alarm armed |
+
+`c6bench`'s id equals the MAC recorded for its devkit in its collector env (`40:4C:CA:45:47:A4`); both dongles' ids
+equal the serial their DFU bootloader enumerates with. `7adf` was not reflashed: it runs the July echo soak, has never
+had a porta space, and #118 changes nothing on it.
+
+**The bell did not come up after its flash, and the image was not the cause.** Flash verified at 14:59; then every boot
+with the DS3231 powered stopped after `IEEE 802154 radio initialized`, before the Zephyr banner, with the init thread
+blocked and no watchdog (the observer is not armed that early). The one boot that got through, during a power glitch,
+logged `Couldn't set control register` and `rtc nil` and ran the VM normally. Cause (David, 15:30): the breadboard's
+clock module is fed by an external 5 V/3V3 supply on the wall; to stop back-feeds while the bell ran from the desktop's
+USB he removed that supply, which unpowered the DS3231 — an unpowered part on a live I2C bus is what the boot blocked on.
+Fix: the module now takes 3V3 from the C6, so the USB cable powers the C6 and the clock (not the actuator). The same
+image, unflashed, then booted clean: `rtc 15:19:44`, `rtcalarm: armed 15:29:55`; status `80` was the oscillator-stop
+flag from the power loss, and the strap word (`boot:0xc` hung, `0x4e` good) moved with the wiring. Back on its wall
+supply, **the bell chimed 15:30** (David). Why an unpowered DS3231 blocks init forever, with no watchdog, is #317.
+
 ## Still owed
 
-- An nRF board whose raw top two bits are clear would be the proof that the forced bits match its sticker; none is
-  identified on this bench (`nrf92c2` is the next one to read).
+- An nRF board whose raw top two bits are clear would be the proof that the forced bits match its sticker. `nrf92c2`
+  was read and is not that board either (`EC` already has them set); none is identified on this bench.

@@ -329,6 +329,38 @@ yet", plus a decoy file deposited beside the real one (found on the gateway,
 2026-08-18). `get` and `log` also print `# store <abspath>` on stderr, so a
 correct-looking empty answer still says what it read.
 
+### 3.8 A node's id is its factory address (rete#118/#242, recorded 2026-10-02)
+
+porta keys a space by the id the node declares, and takes it as an opaque string. What
+the node declares is decided on the node, once, for every board port:
+
+- **The id is the board's factory address, read from silicon at boot** — lowercase hex of
+  the address bytes, most significant first, no separators (`link_addr_hex`,
+  `nodus/oevm/src/link_addr.h`). A radio board answers its 48-bit link address, so twelve
+  characters: the eFuse base MAC on the ESP32 families, FICR `DEVICEADDR` with the top two
+  bits forced on the nRF52840. Both are the value printed on the board's sticker, so a
+  space in `porta get` is matched to a board in the hand without a wire read. A board
+  with no radio (RP2350, RP2040) answers its flash serial, sixteen characters.
+- **Nothing invents an id.** There is no build-time id and no fallback: a board that
+  cannot read its address fails `platform nodeId` rather than boot under a made-up name,
+  and the host's stand-in for silicon is the `OEVM_NODE_ID` environment variable, where
+  unset also fails. Two boards flashed from one image are therefore two spaces.
+- **The human name is the role**, `goal/name`, written by the operator and echoed by the
+  node at `obs/name`. Nobody reads the id.
+- **The bench name is data, not identity**: an optional `board` text field on
+  `obs/build`, baked in at build time from `OEVM_BOARD_NAME` and absent when the build
+  was told none. The board-name → device mapping is asserted by the node on every boot
+  rather than kept in a table.
+- **The id is a LAN id**, unique within one porta's store. No WAN id exists; if one is
+  ever needed it is the gateway's id prefixed onto the node's.
+
+The bench-named spaces (`c6bench`, `c6spare`, `nrf4ec0`, …) are historical from
+2026-10-02, as the slot-named ones are from 2026-08-22 (rete#186); analysis that crosses
+either date reads both. porta does not yet check the id's shape at ingest — that is
+rete#305, now one rule over two legal lengths. Decision and its addendum:
+`docs/design/2026-09-11-node-identity-hardware-rooted-design.md`; the per-family board
+proof: `docs/results/2026-10-02-118-node-id-board-proof.md`.
+
 ---
 
 ## 4. Transports
