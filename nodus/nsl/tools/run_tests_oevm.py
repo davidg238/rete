@@ -171,6 +171,8 @@ C_UNIT_TESTS = [
     # rete#215: the retained panic note's validity rule — a block of garbage must
     # not decode as a report. Retention itself is a TARGET property (tests/target/).
     ("test_reboot_note",      ENG_A, ["-DOEVM_HEAP_SIZE=65536"], None),
+    # rete#118: the node id's one formatting rule — golden (header only, links nothing).
+    ("test_link_addr",        ENG_A, [], None),
     # rete#190 stage 2: Symbol name bytes inline — 200 Symbols must cost the C heap
     # zero bytes (the leak that crashed three C6 boards), and the bytes must be a GC LEAF.
     ("test_symbol_inline",    ENG_A, ["-DOEVM_HEAP_SIZE=65536"], None),
