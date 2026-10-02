@@ -19,6 +19,21 @@ int platform_debug_readline(char *buf, int cap) {
     return n;
 }
 
+/* rete#118: the host's stand-in for silicon. A host VM has no factory link address, and
+   host_ota runs several VMs per machine, so an interface MAC or a fixed value would give
+   them all one id and one porta space; the caller names each VM in OEVM_NODE_ID. Unset or
+   empty means "no id" and the primitive fails. An id that does not fit is refused, never
+   truncated into a colliding one. */
+size_t platform_backend_node_id(char *out, size_t cap) {
+    const char *e = getenv("OEVM_NODE_ID");
+    size_t n;
+    if (e == NULL || e[0] == '\0') return 0;
+    n = strlen(e);
+    if (n + 1 > cap) return 0;
+    memcpy(out, e, n + 1);
+    return n;
+}
+
 /* rete#162 — the per-boot counter on host, in a file named by OEVM_BOOTID_FILE.
    The env var is the whole switch, and it defaults to OFF for a reason: a host
    process "reboots" on every run, so a counter that persisted by default would

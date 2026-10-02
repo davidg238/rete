@@ -59,80 +59,6 @@ extern const unsigned int oevm_manifest_pin_len;
 #define OEVM_MANIFEST_PIN_LEN 0u
 #endif
 
-/* rete#186: WHICH BOARD this is, baked by zephyr/cmake/gen_node_id.cmake from
-   -DOEVM_NODE_ID, which zephyr/run.sh fills from the SAME collector env file the
-   console reader resolves through (bench::board_for_port). One source of truth for
-   "who is this", so the flash, the console and the porta space cannot disagree —
-   they disagreed before, and #170 is what that costs. Same #define split as
-   OEVM_BUILD_ID above, for the same stated reason. */
-#ifdef __ZEPHYR__
-extern const char oevm_node_id[];
-#define OEVM_NODE_ID oevm_node_id
-#else
-/* "unnamed", NOT "host", and the difference is load-bearing twice over.
-   (1) OEVM_BUILD_ID is already "host" on this side, so a nodeId of "host" would make
-       the two adjacent, identically-built prims answer the SAME STRING on the only
-       platform the suite exercises routinely — transposing the two cases below would
-       then pass every host assertion. tests/23_mprof/05_node_id.nsl catches it only
-       because these differ.
-   (2) It is the same word gen_node_id.cmake bakes for a target build nobody named, so
-       there is one vocabulary for "nothing told me which board I am" rather than two. */
-/* A HOST VM NAMES ITSELF `<host>-NNNN` (David, 2026-08-22): the machine it runs on,
-   plus four digits that separate concurrent VMs on that machine. Boards do NOT use
-   this — they carry the bench instance name baked above — and that split is the whole
-   point: the host part says WHERE, the digits say WHICH INSTANCE.
-
-   IT IS THE SAME BUG AS rete#186, one layer over. tests/host_ota/run.sh templates its
-   node ids as `node-1`/`node-2`/`node-3`, which are per-run SLOTS: two concurrent runs,
-   or a fleet sim beside a live host node, write into each other's porta space exactly
-   the way two devkits shared `c6-bench`.
-
-   OEVM_NODE_ID WINS when set, mirroring the target's explicit override in
-   zephyr/run.sh, and it is how a caller supplies the true tailscale name if it ever
-   diverges from the hostname. On this bench they are the same string (`msi-7d43`,
-   `gw85224-01`) because tailscale defaults its machine name to the hostname — so the
-   hostname is read here rather than shelling out to `tailscale`, which would put a
-   subprocess on the VM's start path to learn something it almost always already knows.
-
-   THE FOUR DIGITS ARE NOT srand/rand. Seeding the global RNG from inside the VM would
-   perturb any other consumer of it, so they are mixed from the clock and the address of
-   a static (which ASLR varies per process). Unique in practice per concurrent process,
-   not guaranteed unique — a collision costs two VMs one shared space, which is strictly
-   better than today's guaranteed collision.
-
-   Cached in a static: the id must not change between two reads within one process, or
-   a node would rename itself mid-run. */
-#include <time.h>
-static const char *oevm_host_node_id(void) {
-    static char id[96];
-    if (id[0] != '\0') return id;
-
-    const char *env = getenv("OEVM_NODE_ID");
-    if (env != NULL && env[0] != '\0') {
-        snprintf(id, sizeof id, "%s", env);
-        return id;
-    }
-
-    char host[64];
-    host[0] = '\0';
-    FILE *f = fopen("/etc/hostname", "r");
-    if (f != NULL) {
-        if (fgets(host, (int)sizeof host, f) == NULL) host[0] = '\0';
-        fclose(f);
-    }
-    for (size_t i = 0; host[i] != '\0'; i++) {          /* trim the newline */
-        if (host[i] == '\n' || host[i] == '\r') { host[i] = '\0'; break; }
-    }
-    if (host[0] == '\0') snprintf(host, sizeof host, "unnamed");
-
-    unsigned long mix = (unsigned long)time(NULL) * 2654435761UL
-                      ^ (unsigned long)(uintptr_t)&id[0];
-    snprintf(id, sizeof id, "%s-%04lu", host, mix % 10000UL);
-    return id;
-}
-#define OEVM_NODE_ID oevm_host_node_id()
-#endif
-
 /* The host virtual-clock timer facility that used to live here was lifted in rung 8
    into the timer seam: src/timer_backend.h + src/backend/posix/timer_posix.c (the
    virtual clock, verbatim) and src/backend/zephyr/timer_zephyr.c (a real k_timer).
@@ -1519,10 +1445,17 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         return 1;
     }
     case PRIM_pf_nodeId: {
-        /* rete#186. Same String-build idiom and the same GC-safety argument as
-           buildId above: no allocation happens before OEVM_NODE_ID's bytes are
-           read, so there is nothing to root. */
-        *out = space_make_string_pub(OEVM_NODE_ID, strlen(OEVM_NODE_ID));
+        /* rete#186/#118. The id is copied into a C local first, then one allocation
+           builds the String: nothing to root. A board with no id FAILS (falls
+           through to doesNotUnderstand:), it never answers a made-up one. */
+        char id[PLATFORM_NODE_ID_MAX];
+        size_t n = platform_backend_node_id(id, sizeof id);
+        if (n == 0) {
+            static const char m[] = "VM: nodeId: this board has no factory link address\n";
+            platform_console_write(m, sizeof m - 1);
+            return 0;
+        }
+        *out = space_make_string_pub(id, n);
         return 1;
     }
     case PRIM_pf_appLiveness: {

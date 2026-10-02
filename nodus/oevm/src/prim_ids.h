@@ -512,33 +512,27 @@
                          the same moment. */
 #define PRIM_pf_panicNote         153
 #define PRIM_pf_panicNoteAck      154
-/* rete#186: `nodeId` — WHICH BOARD THIS IS, baked at build time. Appended after
-   panicNoteAck; no pre-existing id shifts. 155 was arrived at by COUNTING
-   PRIM_NAMES (154 entries before this append, cross-checked against the parity
-   guard), not by 154+1 arithmetic, per the standing lesson above.
+/* rete#186/#118: `nodeId` — WHICH BOARD THIS IS. Appended after panicNoteAck; no
+   pre-existing id shifts. 155 was arrived at by COUNTING PRIM_NAMES (154 entries
+   before this append, cross-checked against the parity guard), not by 154+1
+   arithmetic, per the standing lesson above.
    Platform-dispatched. Sibling of buildId (144) and bootId (151): buildId names
    the IMAGE, bootId names the RUN, this names the BOARD.
 
-   WHY THIS IS A PRIM AND NOT A SOURCE CONSTANT. It was a source constant, and the
-   constant was the bug. `PortaBridgeNodeC6.nsl` answered `'c6-bench'` with no seam
-   of any kind, so whatever devkit carried the bridge wrote into the `c6-bench`
-   space: 36,153 events across 19 distinct `obs/build` entries from at least two
-   different boards, with nothing in the store saying which. ProfileCostNodeC6
-   answered `'c6-bench'` too, so it was not even one app per space. The porta space
-   was a SLOT, and a slot cannot answer "what did THIS board do".
+   THE ID IS THE BOARD'S FACTORY LINK ADDRESS, read from silicon and formatted as
+   lowercase hex by link_addr.h (design 2026-09-11, addendum 2026-10-02). It is not
+   a build-time define and not a source constant: `PortaBridgeNodeC6.nsl` once
+   answered `'c6-bench'`, so whatever devkit carried the bridge wrote into one
+   `c6-bench` space (36,153 events, 19 distinct `obs/build` entries, at least two
+   boards) and a space keyed on a slot cannot answer "what did THIS board do".
+   The ROLE has its own home (porta's `goal/name`), so the id is not spent on it.
 
-   THE ID IS THE BOARD, NOT THE ROLE (David, 2026-08-22). The role already has a
-   home — porta writes `goal/name` and the node converges `obs/name` onto it — so
-   spending the space key on a role spent it on the half that was already
-   represented. The value is the bench INSTANCE name (`c6`, `c6spare`, `c6bench`),
-   which is the one vocabulary `--board`, the collector env files and the ELF
-   archive already share; using anything else would add a mapping table, and a
-   table that disagrees with the collector's is exactly what rete#170 was.
+   A BOARD WITH NO FACTORY ADDRESS FAILS the primitive (the send ends in
+   doesNotUnderstand:, preceded by one console line saying why): it does not boot
+   with a made-up id. Likewise an id too long for PLATFORM_NODE_ID_MAX.
 
-   HOST ANSWERS "host", the same #define split buildId uses and for the same
-   reason: a weak symbol that silently resolved to the wrong definition is the
-   failure this exists to prevent. Host tests pass `id:` to PortaBridge directly
-   and never read this. */
+   The HOST has no silicon: platform_backend_node_id answers the OEVM_NODE_ID env
+   value, and unset or empty fails like a board with no address. */
 #define PRIM_pf_nodeId            155
 /* rete#243: `manifestPin` — the truncated (8-byte) SHA-256 of the MANIFEST.cddl
    this image was compiled against, baked by zephyr/cmake/gen_manifest_pin.cmake

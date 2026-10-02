@@ -1,0 +1,13 @@
+(* expect-runtime-fail: nodeId
+env: OEVM_NODE_ID=
+*)
+(* rete#118: a board with no factory link address does not boot with a made-up one.
+   On the host the same refusal is an EMPTY OEVM_NODE_ID, which must read as unset (an
+   empty id would be a valid-looking key shared by every such VM). The primitive fails,
+   so the send ends in doesNotUnderstand: naming `nodeId`. The empty `env:` value also
+   defeats a developer shell that happens to export the variable. *)
+class NodeIdUnsetTest = () (
+  public main: platform args: args = (
+    (platform nodeId) println.
+    ^ 0 )
+) : ()

@@ -1,0 +1,11 @@
+(* expect-runtime-fail: nodeId
+env: OEVM_NODE_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+*)
+(* rete#118: an id longer than PLATFORM_NODE_ID_MAX must FAIL, never be silently
+   truncated into an id that collides with another board's. The value above is 100
+   characters. *)
+class NodeIdTooLongTest = () (
+  public main: platform args: args = (
+    (platform nodeId) println.
+    ^ 0 )
+) : ()

@@ -1,9 +1,9 @@
 (* expect:
-nodeId is non-empty: true
-nodeId carries a host suffix: true
+nodeId is the env value: true
 nodeId is not the buildId: true
+env: OEVM_NODE_ID=a1b2c3d4e5f6
 *)
-(* rete#186: the node names its own BOARD. Sibling of 03_build_id.nsl beside it —
+(* rete#186/#118: the node names its own BOARD. Sibling of 03_build_id.nsl beside it —
    buildId names the IMAGE, bootId names the RUN, this names the HARDWARE — and it
    exists because the third of those used to be a source constant. Whatever devkit
    was flashed with PortaBridgeNodeC6 wrote into the one `c6-bench` space: 36,153
@@ -11,13 +11,12 @@ nodeId is not the buildId: true
    different apps, with nothing in the store able to say which. A porta space keyed
    on a slot cannot answer "what did THIS board do".
 
-   Asserts SHAPE on host, because the host answer is `<hostname>-NNNN` — the machine
-   plus four digits separating concurrent VMs on it (David, 2026-08-22). It therefore
-   differs per machine and per process. On target the value is baked by
-   zephyr/cmake/gen_node_id.cmake from the bench instance name, so it differs per board.
-   Neither is pinnable; both have a checkable shape.
+   On target the value is the board's factory link address read from silicon. A host
+   VM has no silicon, so its stand-in is the OEVM_NODE_ID env value, set per test by
+   the `env:` header above (several VMs per machine each need their own id). With the
+   variable unset or empty the primitive FAILS — see 06_node_id_unset.nsl.
 
-   The third line is the one worth having: `platform nodeId` and `platform buildId`
+   The second line is the one worth having: `platform nodeId` and `platform buildId`
    are adjacent prims built by the same String idiom, and transposing the two cases
    in platform.c is a mistake that leaves both prims answering and every assertion
    about non-emptiness still passing. Comparing them catches it. *)
@@ -26,13 +25,7 @@ class NodeIdTest = () (
     | n b |
     n:: platform nodeId.
     b:: platform buildId.
-    ('nodeId is non-empty: ', (n size > 0) printString) println.
-    (* SHAPE, not value: a host VM answers `<host>-NNNN`, so the value differs per
-       machine AND per process and pinning it would pin this bench into the suite.
-       What is assertable is the shape the id promises — a '-' separating the host
-       from four digits, with something on both sides. *)
-    ('nodeId carries a host suffix: ',
-       ((n size > 5) and: [ (n at: (n size - 4)) = 45 ]) printString) println.
+    ('nodeId is the env value: ', (n = 'a1b2c3d4e5f6') printString) println.
     ('nodeId is not the buildId: ', (n = b) not printString) println.
     ^ 0 )
 ) : ()

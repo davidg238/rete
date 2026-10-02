@@ -28,6 +28,15 @@ int platform_debug_readline(char *buf, int cap);
    a 32-bit target. */
 long platform_backend_boot_id(void);
 
+/* rete#118: the node id (`platform nodeId`) is the board's factory link address as
+   lowercase hex (link_addr.h). The backend writes it into `out` and answers its
+   strlen; 0 means THIS BOARD HAS NONE (or it does not fit in `cap`), and the
+   primitive then fails rather than invent one. PLATFORM_NODE_ID_MAX is the buffer
+   every caller offers. */
+#define PLATFORM_NODE_ID_MAX 96
+size_t platform_backend_node_id(char *out, size_t cap);
+size_t platform_backend_board_name(char *out, size_t cap);   /* same contract; defined with prim 159 */
+
 /* tuvm#88: the display character grid, in ONE place because the host grid in
  * platform.c and the CFB grid in zephyr/src/main.c must agree exactly — a
  * divergence makes every host-green display test prove nothing about the board.
