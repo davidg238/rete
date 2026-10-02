@@ -105,10 +105,12 @@ had a porta space, and #118 changes nothing on it.
 **The bell did not come up after its flash, and the image was not the cause.** Flash verified at 14:59; then every boot
 with the DS3231 powered stopped after `IEEE 802154 radio initialized`, before the Zephyr banner, with the init thread
 blocked and no watchdog (the observer is not armed that early). The one boot that got through, during a power glitch,
-logged `Couldn't set control register` and `rtc nil` and ran the VM normally. After David re-seated the clock module
-(15:19) the same image booted clean: `rtc 15:19:44`, `rtcalarm: armed 15:29:55`. The DS3231 status read `80`, the
-oscillator-stop flag, so the part had lost power at some point. What blocks forever in init when that bus is held is
-not traced.
+logged `Couldn't set control register` and `rtc nil` and ran the VM normally. After David intervened at the bench
+(15:19; what he changed is not recorded here) the same image, unflashed, booted clean: `rtc 15:19:44`,
+`rtcalarm: armed 15:29:55`. So the fault was on the hardware side, connection or supply, and which is not established.
+The DS3231 status read `80`, the oscillator-stop flag, so the part had lost power at some point; the ROM strap word
+also differed between the hung boots (`boot:0xc`) and the good one (`boot:0x4e`). What blocks forever in init is not
+traced (#317).
 
 ## Still owed
 

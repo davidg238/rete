@@ -17,8 +17,8 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
 - **Not proven:** no nRF on the bench has raw top two bits clear, so the forcing has never changed an id (`nrf92c2` reads
   `ec…`). What blocks the bell's boot forever when its DS3231 bus is held is not traced (#317). Why a polled reader hangs the
   C6 is not traced.
-- **Bench (2026-10-02 15:25 MST):** the bell is on the desktop's USB (CP2102N `4e5729ee…`), not its wall supply; `c6spare`
-  unplugged; `c6bench` on the gateway's USB; both dongles running the bridge, location unverified; RP2350-Zero unplugged.
+- **Bench (2026-10-02 15:25 MST):** the bell left the desktop's USB at 15:23 (console port lost) and still reads `#live`, so it
+  is presumably back on its wall supply — unverified; `c6spare` unplugged; `c6bench` on the gateway's USB; both dongles running the bridge, location unverified; RP2350-Zero unplugged.
 - **Awaiting David:** merge #118 to `master` and close #118/#242 (yes/no); `nodus/oevm/zephyr/nrf4ec0.jpg` (untracked — keep
   or delete); `review/DOCMAP.md` line 56 (still cites `protocol/v1/`); the three cabot relay items; where #297 goes; #300.
 - **Weekly review, not scheduled:** #280, #282–#287, #290, #291, #296–#300, #303, #304, #306–#309, #315–#318. Liveness next: #272.
