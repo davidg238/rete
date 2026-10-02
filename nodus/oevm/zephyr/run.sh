@@ -407,8 +407,8 @@ case "$BOARD_ID" in
     # than one of every adapter it owns, so guessing between them is the 2026-07-16
     # mistake. The ONE home for instance<->adapter is the collector env file
     # (tools/bench-identity.sh); the instance is `pico2`, and an explicit CONSOLE_PORT
-    # still wins. A build without either proceeds — the node id then falls back with
-    # the warning below — and --flash needs no console (it goes by USB BOOTSEL), but
+    # still wins. A build without either proceeds — the image then publishes no board
+    # name, with the warning below — and --flash needs no console (it goes by USB BOOTSEL), but
     # --capture refuses to read a log it cannot attribute to this board.
     if [ -z "${CONSOLE_PORT:-}" ]; then
       CONSOLE_PORT=$(bench::port_for_board pico2 2>/dev/null || true)
@@ -608,40 +608,35 @@ if [ "$ROM_PATCH" = 1 ]; then
 fi
 
 echo "[build] -b $BOARD -d $BUILD_DIR ${PRISTINE_ARG[*]:-(incremental)}"
-# rete#186 — THE NODE ID IS THE BOARD, and it is resolved from the SAME place the
-# console reader resolves it: bench::board_for_port over the collector env files. That
-# is the point. `nodeId` used to be a source constant (`'c6-bench'`), so whichever
-# devkit carried the bridge wrote into the c6-bench space — 36,153 events from at least
-# two boards and two different apps, with nothing in the store saying which.
+# rete#118 — THE BOARD NAME (the node id is read from silicon and needs nothing here).
+# It is resolved from the SAME place the console reader resolves it: bench::board_for_port
+# over the collector env files, so obs/build.board names the board the bench calls it.
 #
 # Resolved HERE, before the build, rather than reusing the INSTANCE computed after it:
 # that one is for archiving the ELF and runs too late to reach the compiler.
 #
-# Fails to "unnamed" rather than guessing. A board this bench cannot name must not
-# inherit a name, because inheriting one is the bug.
-NODE_ID_ARG=()
+# No guess: a board this bench cannot name publishes NO board name (the image bakes "").
+BOARD_NAME_ARG=()
 if [ -n "${OEVM_NODE_ID:-}" ]; then
-  # rete#186/#181: an EXPLICIT id wins over port resolution, because a board that is
-  # not on this host has no local port to resolve through. That is the remote-bench
-  # case (#181: build here, flash and observe on gw85224-01) and it is the only way
-  # to build an image for a board this workstation cannot see.
-  #
-  # Deliberately NOT a silent fallback: it is announced, and it takes precedence
-  # rather than filling in, so "I said c6bench and it built c6spare" cannot happen.
-  NODE_ID_ARG=(-DOEVM_NODE_ID="$OEVM_NODE_ID")
+  # The id used to be a build-time define. A stale export must not be mistaken for still
+  # working: the image now answers the factory address and ignores this entirely.
+  echo "[board] NOTE: OEVM_NODE_ID is set but no longer read — the node id is the factory" >&2
+  echo "[board] link address. To name the board for obs/build, use OEVM_BOARD_NAME." >&2
+fi
+if [ -n "${OEVM_BOARD_NAME:-}" ]; then
+  # An EXPLICIT name wins over port resolution, because a board that is not on this host
+  # has no local port to resolve through (#181: build here, flash and observe on
+  # gw85224-01). Announced, and taking precedence rather than filling in.
+  BOARD_NAME_ARG=(-DOEVM_BOARD_NAME="$OEVM_BOARD_NAME")
   # STDERR, not stdout: deploy_flash.sh captures run.sh's stdout and echoes it only on
   # failure (rete#236), so this line would be invisible on exactly the runs it describes.
-  # Which porta space a run writes into is not an optional detail — rete#186 is what it
-  # costs to not know.
-  echo "[node] id '$OEVM_NODE_ID' (explicit, overriding port resolution)" >&2
-elif [ -n "${CONSOLE_PORT:-}" ] && NODE_ID=$(bench::board_for_port "$CONSOLE_PORT" 2>/dev/null); then
-  NODE_ID_ARG=(-DOEVM_NODE_ID="$NODE_ID")
-  echo "[node] id '$NODE_ID' (from the collector env for $CONSOLE_PORT)" >&2
+  echo "[board] name '$OEVM_BOARD_NAME' (explicit, overriding port resolution)" >&2
+elif [ -n "${CONSOLE_PORT:-}" ] && BOARD_NAME=$(bench::board_for_port "$CONSOLE_PORT" 2>/dev/null); then
+  BOARD_NAME_ARG=(-DOEVM_BOARD_NAME="$BOARD_NAME")
+  echo "[board] name '$BOARD_NAME' (from the collector env for $CONSOLE_PORT)" >&2
 else
-  echo "[node] WARNING: no collector env names $CONSOLE_PORT — falling back to this" >&2
-  echo "[node] HOST's tailscale name (see cmake/gen_node_id.cmake). The node will write" >&2
-  echo "[node] to a space named for the machine that built it, not for a board — which" >&2
-  echo "[node] separates hosts but NOT two unnamed boards on this one. Name the board." >&2
+  echo "[board] WARNING: no collector env names ${CONSOLE_PORT:-<no console port>} — this image" >&2
+  echo "[board] publishes NO board name in obs/build. Name the board." >&2
 fi
 
 # SYSBUILD SCOPING, AND IT IS LOAD-BEARING (rete#281, 2026-08-30).
@@ -652,11 +647,11 @@ fi
 # dropped. Zephyr forwards the well-known ones (CONF_FILE, EXTRA_CONF_FILE), which is
 # exactly why this was invisible: the config was right, so the build looked right.
 #
-# What was lost was OEVM_MODEL, OEVM_BLOB and OEVM_NODE_ID — the three that select
-# WHICH PROGRAM the image contains. Every fallback looks like success: OEVM_MODEL
-# defaults to "B", OEVM_BLOB to the committed TimerNode.oimg "so it just works", and
-# OEVM_NODE_ID to nothing. So `--node PortaBridgeNodeNrf.nsl` baked the right .oimg,
-# printed every right line, and built TimerNode with no node id. A dongle flashed that
+# What was lost was OEVM_MODEL, OEVM_BLOB and OEVM_BOARD_NAME (then OEVM_NODE_ID) — the
+# three that select WHICH PROGRAM the image contains. Every fallback looks like success:
+# OEVM_MODEL defaults to "B", OEVM_BLOB to the committed TimerNode.oimg "so it just
+# works", and the name to nothing. So `--node PortaBridgeNodeNrf.nsl` baked the right
+# .oimg, printed every right line, and built TimerNode with no board name. A dongle flashed that
 # way goes dark: no mesh, no console, nothing to see.
 #
 # `-Dzephyr_OEVM_BLOB=...` (image-scoped, the main image being `zephyr`) WAS TRIED AND
@@ -666,7 +661,7 @@ fi
 # too. Exported inside the subshell only, next to ncs_env's other exports.
 export OEVM_MODEL="$MODEL"
 [ -n "${OIMG:-}" ] && export OEVM_BLOB="$OIMG"
-[ ${#NODE_ID_ARG[@]} -gt 0 ] && export OEVM_NODE_ID="${NODE_ID_ARG[0]#-DOEVM_NODE_ID=}"
+[ ${#BOARD_NAME_ARG[@]} -gt 0 ] && export OEVM_BOARD_NAME="${BOARD_NAME_ARG[0]#-DOEVM_BOARD_NAME=}"
 
 ( ncs_env && cd "$ZDIR" && west build -b "$BOARD" "${PRISTINE_ARG[@]}" -d "$BUILD_DIR" . \
     -- -DCONF_FILE="$CONF_FILE" "${EXTRA_CONF_ARG[@]}" "${PM_STATIC_ARG[@]}" )
@@ -749,19 +744,18 @@ if [ "$BUILD_RC" = 0 ]; then
     echo "[build] settings_storage ${SS_ADDR:-none} — clear of the bootloader"
   fi
 
-  # The node id is baked at CONFIGURE time into oevm_node_id.c, so the generated file
-  # is the evidence. An unnamed board is a warning, not a failure: run.sh allows an
-  # unset id (it bakes "unnamed"), and #186's point is that this is a choice made
-  # loudly rather than a default arrived at silently.
-  if [ ${#NODE_ID_ARG[@]} -gt 0 ]; then
-    WANT_ID="${NODE_ID_ARG[0]#-DOEVM_NODE_ID=}"
-    if ! grep -qs "\"$WANT_ID\"" "$ZDIR/$BUILD_DIR"/*/oevm_node_id.c \
-                                  "$ZDIR/$BUILD_DIR"/oevm_node_id.c 2>/dev/null; then
-      echo "[build] FATAL: node id '$WANT_ID' is not in the generated oevm_node_id.c." >&2
-      echo "[build] The image would answer a different name than the board it is for." >&2
+  # The board name is baked at CONFIGURE time into oevm_board_name.c, so the generated
+  # file is the evidence. An unnamed board is a warning, not a failure: an unset name
+  # bakes "" (no obs/build.board), a choice made loudly rather than a default.
+  if [ ${#BOARD_NAME_ARG[@]} -gt 0 ]; then
+    WANT_NAME="${BOARD_NAME_ARG[0]#-DOEVM_BOARD_NAME=}"
+    if ! grep -qs "\"$WANT_NAME\"" "$ZDIR/$BUILD_DIR"/*/oevm_board_name.c \
+                                   "$ZDIR/$BUILD_DIR"/oevm_board_name.c 2>/dev/null; then
+      echo "[build] FATAL: board name '$WANT_NAME' is not in the generated oevm_board_name.c." >&2
+      echo "[build] The image would publish a different name than the board it is for." >&2
       exit 3
     fi
-    echo "[build] node id $WANT_ID confirmed in the generated source"
+    echo "[build] board name $WANT_NAME confirmed in the generated source"
   fi
 fi
 [ "$BUILD_RC" = 0 ] || exit "$BUILD_RC"

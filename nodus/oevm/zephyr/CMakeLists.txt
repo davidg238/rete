@@ -121,9 +121,9 @@ add_dependencies(app oevm_manifest_pin_gen)
 # defect: under NCS sysbuild a bare `-DOEVM_BLOB=...` after `--` lands in the SYSBUILD
 # cache and never reaches this image. The four consequences all look like success —
 # OEVM_MODEL falls back to the "B" default, OEVM_BLOB to the committed TimerNode.oimg
-# "so it just works", OEVM_NODE_ID to nothing — so `run.sh --node PortaBridgeNodeNrf.nsl`
-# baked the right .oimg, printed the right lines, and then built TimerNode with no node
-# id. A dongle flashed that way goes dark: no mesh, no console, nothing to see.
+# "so it just works", OEVM_BOARD_NAME to nothing — so `run.sh --node PortaBridgeNodeNrf.nsl`
+# baked the right .oimg, printed the right lines, and then built TimerNode with no board
+# name. A dongle flashed that way goes dark: no mesh, no console, nothing to see.
 #
 # Image-scoped `-Dzephyr_OEVM_BLOB=...` was tried first and DOES NOT WORK: it reaches
 # zephyr_sysbuild_cache.txt and still leaves the image's own cache untouched (measured,
@@ -132,20 +132,24 @@ add_dependencies(app oevm_manifest_pin_gen)
 if(DEFINED ENV{OEVM_BLOB})
   set(OEVM_BLOB $ENV{OEVM_BLOB})
 endif()
-if(DEFINED ENV{OEVM_NODE_ID})
-  set(OEVM_NODE_ID $ENV{OEVM_NODE_ID})
+if(DEFINED ENV{OEVM_BOARD_NAME})
+  set(OEVM_BOARD_NAME $ENV{OEVM_BOARD_NAME})
 endif()
 
-# rete#186 — WHICH BOARD this image is for. Sibling of the build id above; see
-# cmake/gen_node_id.cmake for why it is configure-time where that one is build-time,
-# and why an unset id bakes "unnamed" rather than a guess.
-set(OEVM_NODE_ID_C ${CMAKE_CURRENT_BINARY_DIR}/oevm_node_id.c)
+# rete#118 — the bench's NAME for this board (the node id itself is read from silicon).
+# Sibling of the build id above; see cmake/gen_board_name.cmake for why it is
+# configure-time where that one is build-time, and why an unset name bakes "" (no guess).
+set(OEVM_BOARD_NAME_C ${CMAKE_CURRENT_BINARY_DIR}/oevm_board_name.c)
 execute_process(COMMAND ${CMAKE_COMMAND}
-                -DNODE_ID=${OEVM_NODE_ID}
-                -DOUT_C=${OEVM_NODE_ID_C}
-                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/gen_node_id.cmake)
-target_sources(app PRIVATE ${OEVM_NODE_ID_C})
-message(STATUS "oevm node id: ${OEVM_NODE_ID}")
+                "-DBOARD_NAME=${OEVM_BOARD_NAME}"
+                -DOUT_C=${OEVM_BOARD_NAME_C}
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/gen_board_name.cmake
+                RESULT_VARIABLE _board_name_rc)
+if(NOT _board_name_rc EQUAL 0)
+  message(FATAL_ERROR "oevm board name: gen_board_name.cmake refused '${OEVM_BOARD_NAME}'")
+endif()
+target_sources(app PRIVATE ${OEVM_BOARD_NAME_C})
+message(STATUS "oevm board name: '${OEVM_BOARD_NAME}'")
 
 # OpenThread bring-up TU (oevm_thread_bringup). Gated on OPENTHREAD so the WROOM
 # (WiFi, no Thread) compiles it away. ONE shared impl: nRF (NCS) and C6 (upstream
