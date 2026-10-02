@@ -4069,6 +4069,10 @@ class Kernel usingPlatform: platform = (
   (* rete#186: which BOARD this is, baked at build time. buildId names the image,
      bootId names the run, this names the hardware. *)
   public nodeId            = ( ^ platform nodeId )
+  (* rete#118: the build-time BOARD NAME (what the bench calls this board), apart from
+     the node id, which is read from silicon. A String, or nil when the build was not
+     told one — obs/build then omits `board`. *)
+  public boardName         = ( ^ platform boardName )
   (* rete#273 D1: an app WITHOUT a bridge (the wedge probes) declares its own
      app cadence straight to the observer. Bridged apps go through
      PortaBridge>>appLiveness:, which also owns the default. *)

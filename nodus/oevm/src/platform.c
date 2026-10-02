@@ -1458,6 +1458,12 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = space_make_string_pub(id, n);
         return 1;
     }
+    case PRIM_pf_boardName: {          /* rete#118: nil = "this build was not told a board name" */
+        char nm[PLATFORM_NODE_ID_MAX];
+        size_t n = platform_backend_board_name(nm, sizeof nm);
+        *out = (n == 0) ? NULL : space_make_string_pub(nm, n);
+        return 1;
+    }
     case PRIM_pf_appLiveness: {
         /* rete#273 D1 — `platform appLiveness: ms`. One SMI in, stored for the
            observer thread (zephyr/src/observer.c reads it every sample through

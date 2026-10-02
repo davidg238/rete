@@ -1,0 +1,13 @@
+(* expect:
+board unset is nil: true
+env: OEVM_BOARD_NAME=
+*)
+(* rete#118: a build that was not told a board name answers nil (obs/build then omits
+   `board`). An EMPTY OEVM_BOARD_NAME counts as unset, and the empty `env:` value below
+   also defeats a developer shell that happens to export the variable. `== nil`, never
+   isNil: the primitive answers a raw nil. *)
+class BoardNameUnsetTest = () (
+  public main: platform args: args = (
+    ('board unset is nil: ' , (platform boardName == nil) printString) println.
+    ^ 0 )
+) : ()

@@ -556,4 +556,10 @@
    platform_app_cad_ms(); 0 = undeclared = §3.2 not judged. Answers the stored
    value, so a caller can see what a clamp did. */
 #define PRIM_pf_appLiveness       158
+/* rete#118: `boardName` — the build-time board name (run.sh's OEVM_BOARD_NAME; the
+   host's env), split out of the node id when the id became the factory link address.
+   Appended after appLiveness; 159 by COUNTING PRIM_NAMES (158 entries before this).
+   Platform-dispatched. Answers a String, or nil when the build was not told a name
+   (the kernel accessor's `== nil` is the test: the prim answers a raw nil). */
+#define PRIM_pf_boardName         159
 #endif /* OEVM_PRIM_IDS_H */

@@ -24,6 +24,16 @@ int platform_debug_readline(char *buf, int cap) {
    them all one id and one porta space; the caller names each VM in OEVM_NODE_ID. Unset or
    empty means "no id" and the primitive fails. An id that does not fit is refused, never
    truncated into a colliding one. */
+size_t platform_backend_board_name(char *out, size_t cap) {
+    const char *e = getenv("OEVM_BOARD_NAME");
+    size_t n;
+    if (e == NULL || e[0] == '\0') return 0;
+    n = strlen(e);
+    if (n + 1 > cap) return 0;
+    memcpy(out, e, n + 1);
+    return n;
+}
+
 size_t platform_backend_node_id(char *out, size_t cap) {
     const char *e = getenv("OEVM_NODE_ID");
     size_t n;

@@ -1,0 +1,12 @@
+(* expect:
+board is the env value: true
+env: OEVM_BOARD_NAME=bench-c6
+*)
+(* rete#118: the build-time BOARD NAME, kept apart from the node id now that the id is
+   read from silicon. On the host the name comes from OEVM_BOARD_NAME (a Zephyr image
+   bakes it from run.sh). SET case; 26_board_name_unset.nsl is the other. *)
+class BoardNameTest = () (
+  public main: platform args: args = (
+    ('board is the env value: ' , (platform boardName = 'bench-c6') printString) println.
+    ^ 0 )
+) : ()

@@ -35,7 +35,7 @@ long platform_backend_boot_id(void);
    every caller offers. */
 #define PLATFORM_NODE_ID_MAX 96
 size_t platform_backend_node_id(char *out, size_t cap);
-size_t platform_backend_board_name(char *out, size_t cap);   /* same contract; defined with prim 159 */
+size_t platform_backend_board_name(char *out, size_t cap);   /* same contract, for `platform boardName` (prim 159); 0 = not told */
 
 /* tuvm#88: the display character grid, in ONE place because the host grid in
  * platform.c and the CFB grid in zephyr/src/main.c must agree exactly — a
