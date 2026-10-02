@@ -158,7 +158,8 @@ long platform_backend_boot_id(void) { return 0; }
 /* hwinfo_esp32.c: the 6-byte eFuse base MAC, most significant byte first; ssize_t length or <0. */
 static size_t link_addr_read(uint8_t b[6]) { return hwinfo_get_device_id(b, 6) == 6 ? 6 : 0; }
 #elif defined(CONFIG_SOC_SERIES_NRF52X)
-#  include <soc.h>      /* NRF_FICR + nrf_ficr_deviceaddr_get, as drivers/hwinfo/hwinfo_nrf.c does */
+#  include <soc.h>             /* NRF_FICR, as drivers/hwinfo/hwinfo_nrf.c does */
+#  include <hal/nrf_ficr.h>    /* nrf_ficr_deviceaddr_get — soc.h alone leaves it implicit, and it fails at LINK */
 /* FICR DEVICEADDR, NOT hwinfo: hwinfo answers DEVICEID on nRF52, a different register. */
 static size_t link_addr_read(uint8_t b[6]) {
     uint32_t lo = nrf_ficr_deviceaddr_get(NRF_FICR, 0);
