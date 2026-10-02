@@ -68,10 +68,77 @@ void platform_console_flush(void) { }
 
 #endif /* CONFIG_STDOUT_CONSOLE */
 
+/* SPIKE rete#311 — one line in, over the same cable the console goes out on. Plain
+   text, no framing: the question the spike answers is whether SLIP is needed for one
+   cable, and this is the degenerate case. Blocks until a newline, as the posix fgets
+   does — a blocked VM is a HELD VM, and whether the observer reboots a held board is
+   the other thing the spike measures.
+
+   TWO receive paths, because the bench said so on 2026-10-02 (docs/spikes/):
+     USB-CDC console (dongle, RP2350)  POLLED, zero RAM. The class driver never starts
+       its first OUT transfer for a pure poller — the host's write just times out —
+       so reception is armed once with irq_rx_enable and then read with poll_in.
+     hardware UART (C6)                INTERRUPT-DRIVEN into a 256-byte queue. Polled,
+       the C6 HANGS outright once ~CONFIG_UART_ESP32_RX_FIFO_THRESH bytes queue in the
+       FIFO (any unpaced line over ~24 chars) and the hardware watchdog resets it 22 s
+       later. Needs CONFIG_UART_INTERRUPT_DRIVEN (prj_linein_spike.conf). */
+#if defined(CONFIG_UART_CONSOLE) && DT_HAS_CHOSEN(zephyr_console)
+#include <zephyr/device.h>
+#include <zephyr/drivers/uart.h>
+#define RL_IS_CDC DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart)
+
+#if !RL_IS_CDC && defined(CONFIG_UART_INTERRUPT_DRIVEN)
+K_MSGQ_DEFINE(rl_q, 1, 256, 1);
+static void rl_isr(const struct device *dev, void *user) {
+    uint8_t c;
+    (void)user;
+    while (uart_irq_update(dev) && uart_irq_rx_ready(dev)) {
+        if (uart_fifo_read(dev, &c, 1) != 1) break;
+        (void)k_msgq_put(&rl_q, &c, K_NO_WAIT);   /* full queue: the byte is dropped */
+    }
+}
+static int rl_getc(const struct device *dev) {
+    static bool armed;
+    uint8_t c;
+    if (!armed) {
+        uart_irq_callback_user_data_set(dev, rl_isr, NULL);
+        uart_irq_rx_enable(dev);
+        armed = true;
+    }
+    k_msgq_get(&rl_q, &c, K_FOREVER);
+    return c;
+}
+#else
+static int rl_getc(const struct device *dev) {
+    unsigned char c;
+#if RL_IS_CDC && defined(CONFIG_UART_INTERRUPT_DRIVEN)
+    static bool armed;
+    if (!armed) { uart_irq_rx_enable(dev); armed = true; }
+#endif
+    while (uart_poll_in(dev, &c) != 0) k_msleep(2);
+    return c;
+}
+#endif
+
+int platform_debug_readline(char *buf, int cap) {
+    const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+    int n = 0;
+    if (cap < 1 || !device_is_ready(dev)) return -1;
+    for (;;) {
+        int c = rl_getc(dev);
+        if (c == '\n') break;
+        if (c == '\r') continue;
+        if (n < cap - 1) buf[n++] = (char)c;
+    }
+    buf[n] = '\0';
+    return n;
+}
+#else
 int platform_debug_readline(char *buf, int cap) {
     (void)buf; (void)cap;
-    return -1;   /* no interactive debug transport on this node */
+    return -1;   /* no console device to read a line from */
 }
+#endif
 
 /* rete#162 — the per-boot counter, in NVS under the settings key "oevm/bootid".
  *

@@ -1,0 +1,19 @@
+(*
+ReadLineProbe — SPIKE rete#311: does a text line sent down the console cable reach the
+VM, with no framing? Prints `rl:ready`, then echoes every line it is sent as
+`rl:got <n> <line>`. Never returns: it sits blocked in `readLine` between lines, which is
+also the test of whether the observer leaves a held board alone.
+Run: run.sh --node ReadLineProbe.nsl
+*)
+class ReadLineProbe packageUsing: manifest = () (
+  public main: platform args: args = (
+    | line n |
+    n:: 0.
+    'rl:ready' println.
+    [ true ] whileTrue: [
+      line:: platform readLine.
+      line == nil ifTrue: [ 'rl:eof' println. ^ 0 ].
+      n:: n + 1.
+      ('rl:got ' , n printString , ' ' , line) println ]
+  )
+) : ()
