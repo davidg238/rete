@@ -14,9 +14,9 @@ porta half (bridge job, store, wire) is unbuilt and lands with the phase-3 rungs
   enforced at the build/test gates (zcbor) and at porta's store (all three write
   doors). This document holds the *model*; the manifest holds the machine facts; the
   RECORDS catalogue holds the why.
-- The Toit-node (v1) protocol this one sits beside: [`PROTOCOL.md`](PROTOCOL.md).
+- The Toit-era protocol this one replaced, archived 2026-10-02: [`archive/PROTOCOL.md`](archive/PROTOCOL.md). Legacy; read as evidence only.
 - Background / derivation: `review/WHY.md` (§"The model, named", §"Paths extend across the network").
-- How this doc reached its current form: [`PROTOCOL-NSL-draft-2026-07-11.md`](PROTOCOL-NSL-draft-2026-07-11.md) — the superseded genesis draft, kept as the reasoning trail.
+- How this doc reached its current form: [`archive/PROTOCOL-NSL-draft-2026-07-11.md`](archive/PROTOCOL-NSL-draft-2026-07-11.md) — the superseded genesis draft, kept as the reasoning trail.
 
 ---
 
@@ -690,7 +690,7 @@ Linda-at-the-joints framing; `review/WHY.md`). The §2 convergence table cites v
 behaviours verbatim from `PROTOCOL.md`.
 
 Decisions folded into this edition (full reasoning trail in
-[`PROTOCOL-NSL-draft-2026-07-11.md`](PROTOCOL-NSL-draft-2026-07-11.md)):
+[`archive/PROTOCOL-NSL-draft-2026-07-11.md`](archive/PROTOCOL-NSL-draft-2026-07-11.md)):
 
 - **tuvm#32 CLOSED — the space owns the value-holding kind** (rung 9, option A). The
   bridge is a consumer, not the owner; "no VM changes" was wrong, and the VM changed

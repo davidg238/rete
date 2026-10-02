@@ -24,11 +24,12 @@ Memory store = David's working preferences and gotchas ONLY. "Save this for next
 
 ```
 porta/       the orchestrator (Go) — the northbound half
+  cmd/custos   the front door for browsers and agents (a second binary)
 nodus/       the device end
   oevm/      the VM (C) + the Zephyr board ports
   nsl/       the dialect, its compiler and the kernel
   tests/     the nsl suite
-protocol/    the wire contract both sides answer to (v1 frozen under protocol/v1/)
+protocol/    the wire contract both sides answer to (the Toit-era protocol is archived under protocol/archive/)
 review/      David's review-agent tree: the program ladder and the claims ledger
 docs/        the VM's own documents, the design records and the execution plans
 tools/       repo-wide scripts (docmap.sh)

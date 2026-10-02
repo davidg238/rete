@@ -49,5 +49,5 @@ Documents: `docs/README.md` is the map. The decision record is
   no license obligation in either direction.
 
 porta v1 — commands, a queue, TFTP delivery, a report schema — was deleted on
-2026-08-01; the last v1 tree is tagged `porta-v1-final` and its protocol is frozen under
-`../protocol/v1/`. The Toit nodes that still speak it live in the `nodus-v1` repository.
+2026-08-01; the last v1 tree is tagged `porta-v1-final` and its protocol is archived under
+`../protocol/archive/`. The Toit nodes that still speak it live in the `nodus-v1` repository.

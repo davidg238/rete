@@ -1,3 +1,11 @@
+> **HISTORICAL — archived 2026-10-02.** This is the Toit-era porta wire protocol ("v1"): a command
+> vocabulary, a command queue, TFTP delivery and a report schema. Replaced by
+> [`PROTOCOL-NSL.md`](../PROTOCOL-NSL.md), [`PROTOCOL-NSL-RECORDS.md`](../PROTOCOL-NSL-RECORDS.md) and
+> [`MANIFEST.cddl`](../MANIFEST.cddl). Deleted since: the gateway code that spoke it (2026-08-01; the last tree is
+> tagged `porta-v1-final`). The Toit nodes that spoke it live in the separate `nodus-v1` repository.
+> Moved here from `protocol/v1/`. It had one user and has no claim on rete's version numbering. Do not
+> implement from it.
+
 # Porta wire protocol
 
 This is the **canonical, authoritative** contract between the **porta gateway**

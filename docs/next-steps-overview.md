@@ -227,6 +227,11 @@ this running, and can I tell what it is doing.* Conflating the two costs months.
 
 That is the gate. Everything below is roadmap.
 
+**Decided 2026-10-02 (David): the first public release is a 0.x — explicitly unstable,
+anything may change — and the freeze (#253) is a later 1.0.0, not part of the publication
+gate.** That amends #253, which had made the freeze document part of the gate. The road on
+one page, with what 0.1 needs and what can wait, is `overview.md`.
+
 **Half of it landed 2026-08-02: the restructure.** `oevm`, `nsl-tuvm`, `nsl-tests` and
 `porta` are one repository, `rete` — `porta/` + `nodus/{oevm,nsl,tests}` + `protocol/`,
 built by restructuring `oevm` in place so every issue number and every `#NN` citation still

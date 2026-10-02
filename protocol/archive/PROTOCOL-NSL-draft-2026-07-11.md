@@ -1,5 +1,9 @@
+> **HISTORICAL — archived 2026-10-02.** Replaced by [`PROTOCOL-NSL.md`](../PROTOCOL-NSL.md),
+> [`PROTOCOL-NSL-RECORDS.md`](../PROTOCOL-NSL-RECORDS.md) and [`MANIFEST.cddl`](../MANIFEST.cddl). Moved here from
+> `protocol/v1/`; nothing was deleted with the move.
+>
 > **⚠ SUPERSEDED — GENESIS DRAFT, kept for the roadmap.** The live, ratified
-> protocol is [`PROTOCOL-NSL.md`](PROTOCOL-NSL.md). This file is the original
+> protocol is [`PROTOCOL-NSL.md`](../PROTOCOL-NSL.md). This file is the original
 > 2026-07-11 draft *plus its two addenda*, preserved as the **how-we-got-here**
 > record: it shows the protocol converging on the cell/stream model one correction
 > at a time (the 2026-07-12 addendum found the contradictions and proposed the

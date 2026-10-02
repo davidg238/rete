@@ -24,11 +24,12 @@ The one-page version is `nodus/oevm/docs/vm.md`.
 ## Tree
 
     porta/       the gateway (Go) — the northbound half
+      cmd/custos   the front door for browsers and agents (a second binary)
     nodus/       the device end
       oevm/      the VM (C) + the Zephyr board ports
       nsl/       the dialect, its compiler and the kernel (which is itself nsl)
       tests/     the nsl suite
-    protocol/    the wire contract (v1 frozen under protocol/v1/)
+    protocol/    the wire contract (the Toit-era protocol is archived under protocol/archive/)
     review/      the program ladder and the claims ledger
     docs/        the program's documents: tutorials, status, the dated records — docs/README.md
                  (each subsystem keeps its own reference docs: nodus/oevm/docs, nodus/nsl/docs, porta/docs)
@@ -48,6 +49,7 @@ green aux-gate line (C unit tests, footprint, manifest). Board gates are in
 
 | you want | read |
 |---|---|
+| the whole on one page, and the road to release | `docs/overview.md` |
 | what the VM is and is not | `nodus/oevm/docs/vm.md`, then `nodus/oevm/docs/MILESTONE_A.md` |
 | the language and the kernel | `nodus/nsl/README.md`, `nodus/nsl/lib/kernel.nsl` |
 | the gateway | `porta/README.md`, `porta/docs/ARCHITECTURE.md` |

@@ -193,6 +193,10 @@ The rule stands unchanged after the move.
 
 ### 4.3 `protocol/v1/` — v1 is deleted as *code*, kept as *evidence*
 
+> **Addendum 2026-10-02:** `protocol/v1/` was moved to `protocol/archive/` with HISTORICAL
+> banners (David: the Toit-era protocol is legacy and has no claim on rete's version
+> numbering). Still kept as evidence; the paths below are the 2026-08-02 ones.
+
 `porta/docs/PROTOCOL.md` describes the v1 command protocol, and
 `PROTOCOL-NSL-draft-2026-07-11.md` is the superseded draft. v1 is deleted, not deprecated —
 but the standing rule is to read v1 as **evidence, not spec**, and that rule is useless if

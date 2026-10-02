@@ -360,7 +360,7 @@ over any link that carries a datagram. This is not theoretical:
   v4-mapped destination is accepted and then silently discarded.
 
 **There is no TFTP listener in the binary.** v1's `--port` flag went with it, and a test
-asserts the flag stays gone. The v1 wire is frozen at `../../protocol/v1/PROTOCOL.md`,
+asserts the flag stays gone. The v1 wire is archived at `../../protocol/archive/PROTOCOL.md`,
 which is what the retired Toit nodes still speak.
 
 ---
@@ -457,7 +457,7 @@ driven by a command vocabulary with a report schema. All of it is gone. Today a 
 the **oevm** VM executing an **`.oimg`** built by the nsl compiler, fetched over the block
 plane, content-addressed by **SHA-256** and **ed25519-signed at push time** — the node's
 runner holds only porta's public half. The frozen Toit v1 implementation lives in the
-`nodus-v1` repository and still speaks `../../protocol/v1/PROTOCOL.md`.
+`nodus-v1` repository and still speaks `../../protocol/archive/PROTOCOL.md`.
 
 The **capability audit** in `design/2026-08-01-porta-space-sync-rewrite-design.md` §4.2
 gives every v1 verb, route, MCP tool and `nodes` column a fate — `absorbed`, `deferred`
@@ -481,7 +481,7 @@ preserved the issue numbers the program navigates by.
 | `nodus/oevm/` | the VM (C) and its Zephyr board ports | the wire |
 | `nodus/nsl/` | the dialect, its compiler, the kernel | — |
 | `nodus/tests/` | the nsl conformance suite | — |
-| `protocol/` | **the whole of the contract**; v1 frozen under `protocol/v1/` | it *is* the coupling |
+| `protocol/` | **the whole of the contract**; the Toit-era v1 archived under `protocol/archive/` | it *is* the coupling |
 | `review/`, `docs/`, `tools/` | the program ladder and claims ledger; documents of record; repo-wide scripts | — |
 
 **Being in one repo does not couple the two halves.** porta and the nodes are coupled
@@ -510,6 +510,6 @@ contract live in neither half.
 - `design/2026-08-26-space-sync-durability-trio-design.md` — the replay guard, and why
   cursor-0 replay is safe per kind.
 - `DEVSDK.md` — the northbound tooling contract.
-- `../../protocol/v1/PROTOCOL.md` — **v1, historical only.** Read it to understand what
+- `../../protocol/archive/PROTOCOL.md` — **v1, historical only.** Read it to understand what
   `porta-v1-final` did; do not implement from it.
 - `README.md` — the map of this directory.

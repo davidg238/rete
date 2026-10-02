@@ -90,7 +90,7 @@ next.
   (#279) and current: the three planes, both UDP transports, modes and app lifecycle as
   paths, the manifest gate, the store's two open doors, one-repo topology. §7 records the
   Toit lineage as history.
-- `protocol/v1/PROTOCOL.md` — **v1. Deleted, historical only.** It describes the command
+- `protocol/archive/PROTOCOL.md` — **v1. Deleted, historical only.** It describes the command
   verbs, JSON args and CRC32 payload delivery that no longer exist. Do not implement from
   it; read it only to understand what `porta-v1-final` did, and it is what the frozen Toit
   nodes still speak.

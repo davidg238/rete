@@ -39,6 +39,8 @@ wrote down (`design/2026-08-02-rete-repo-consolidation-design.md`, fate table ro
   `nodus/oevm/tests/target/run.sh` refuses, and why it is not in the suite either.
 
 **Living (edit, don't append)**
+- `overview.md` — **the whole on one page**: the road to release (0.1, 1.0.0, later) and
+  the pieces by theme, each with its starting document. A hub; it owns no facts.
 - `next-steps-overview.md` — what gates a public release and what is on the bench.
 - `status/` — the orientation deck (`dev-status.html`, live at gw85224-01:6971) and its
   generator: what is top of mind right now, by issue band.
