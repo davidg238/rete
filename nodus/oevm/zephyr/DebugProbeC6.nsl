@@ -1,0 +1,57 @@
+(*
+DebugProbeC6 — rete#311: a program with TIMERS, held at a breakpoint on a board.
+
+ReadLineProbe showed a VM blocked in `readLine` is left alone by the observer — but it
+declared no timers, so nothing was judging it. This one is judged: a 1 s repeating timer
+and `appLiveness: 8000`, the same shape as WedgeProbeC6, so a VM held longer than 8 s at a
+breakpoint is exactly what the observer rebooted a wedged node for. The claim under test
+is that a HELD VM is not a WEDGED one (observer_core.h §3.2, `held`).
+
+Each tick calls `countTo:` — a method with a loop and a local, the same shape as the
+host gate's 46_debug_target.nsl — so there is something to break in, step through and
+inspect. The line it prints carries the tick number and the sum so a hold is visible as
+a gap in the timestamps and a step is visible as the same tick finishing late.
+
+Needs the hooks build: OEVM_DEBUG_HOOKS=1 (zephyr/CMakeLists.txt) — the production
+image compiles the breakpoint checks out AND answers platform_debug_enabled() = 0, so
+on it this probe just ticks. And --conf-extra prj_linein_spike.conf on the C6: the
+polled reader hangs the board.
+Run: OEVM_DEBUG_HOOKS=1 run.sh --node DebugProbeC6.nsl --conf-extra prj_linein_spike.conf
+*)
+class DebugProbeC6 packageUsing: manifest = (
+  | plat space timers tickCh ticks ::= 0. |
+) (
+
+  public main: platform args: args = (
+    plat:: platform.
+    space:: plat space.
+    timers:: plat timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+
+    tickCh:: space channel: 'probe/tick'.
+    tickCh whenever: '' do: [ :m | self tick ].
+    timers every: 1000 post: #t on: tickCh.
+    (* No bridge here, so the probe declares its own cadence: 1000 x 8, the deadline
+       wedge-detect reports. Undeclared means NOT JUDGED, which would prove nothing. *)
+    plat appLiveness: 8000.
+    'dbg-probe: ticking' println.
+
+    [ true ] whileTrue: [ plat pumpEvents. space drain ].
+    ^ self )
+
+  tick = (
+    | sum |
+    ticks:: ticks + 1.
+    sum:: self countTo: ticks.
+    ('dbg-probe tick ' , ticks printString , ' sum ' , sum printString) println.
+    ^ self )
+
+  (* The breakpoint target: a loop and a local, as in 46_debug_target.nsl. *)
+  countTo: n = (
+    | sum |
+    sum:: 0.
+    1 to: n do: [ :i | sum:: sum + i ].
+    ^ sum )
+
+) : (
+)

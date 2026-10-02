@@ -3,8 +3,8 @@
    Zephyr console (uart0/VCOM on the nRF52840-DK, the SoC USB-CDC on the dongle,
    native_sim stdout otherwise). stdout is wired to the console by
    CONFIG_STDOUT_CONSOLE; main() sets _IONBF so each line appears as produced.
-   platform_debug_readline is a stub: the R3 debug transport is out of scope here
-   (no keeper on device yet). */
+   platform_debug_readline reads the console cable (rete#311, below): the debug
+   transport IS the console, one cable, plain text lines. */
 #include "platform_backend.h"
 #include <stdio.h>
 #include <errno.h>
@@ -68,11 +68,17 @@ void platform_console_flush(void) { }
 
 #endif /* CONFIG_STDOUT_CONSOLE */
 
-/* SPIKE rete#311 — one line in, over the same cable the console goes out on. Plain
-   text, no framing: the question the spike answers is whether SLIP is needed for one
-   cable, and this is the degenerate case. Blocks until a newline, as the posix fgets
-   does — a blocked VM is a HELD VM, and whether the observer reboots a held board is
-   the other thing the spike measures.
+/* rete#311 — one line in, over the same cable the console goes out on. Plain text,
+   no framing: the spike asked whether SLIP is needed for one cable, and this
+   degenerate case answered no on all three board families (docs/results/
+   2026-10-02-311-line-in-spike.md). Blocks until a newline, as the posix fgets does —
+   a blocked VM is a HELD VM, and `debug_held` is how the liveness observer is told
+   not to count the hold as a wedge (observer_core.h §3.2).
+
+   THE ENABLE FOLLOWS THE BUILD. A board has no environment to carry OEVM_DEBUG, so a
+   hooks-enabled image (OEVM_DEBUG_HOOKS=1) is the debug image: the Supervisor prints
+   `dbg:ready` at boot and waits for the cable. The production image, hooks compiled
+   out, never enters the loop. One switch (platform_backend.h).
 
    TWO receive paths, because the bench said so on 2026-10-02 (docs/spikes/):
      USB-CDC console (dongle, RP2350)  POLLED, zero RAM. The class driver never starts
@@ -120,25 +126,39 @@ static int rl_getc(const struct device *dev) {
 }
 #endif
 
+static volatile int debug_held;   /* written by the VM thread, read by the observer */
+
 int platform_debug_readline(char *buf, int cap) {
     const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
     int n = 0;
     if (cap < 1 || !device_is_ready(dev)) return -1;
+    debug_held = 1;
     for (;;) {
         int c = rl_getc(dev);
         if (c == '\n') break;
         if (c == '\r') continue;
         if (n < cap - 1) buf[n++] = (char)c;
     }
+    debug_held = 0;
     buf[n] = '\0';
     return n;
 }
+int platform_debug_held(void) { return debug_held; }
 #else
 int platform_debug_readline(char *buf, int cap) {
     (void)buf; (void)cap;
     return -1;   /* no console device to read a line from */
 }
+int platform_debug_held(void) { return 0; }
 #endif
+
+int platform_debug_enabled(void) {
+#ifdef OEVM_NO_DEBUG_HOOKS
+    return 0;   /* production image: the hooks are compiled out, so is the loop */
+#else
+    return 1;   /* debug image (OEVM_DEBUG_HOOKS=1): wait at boot for the cable */
+#endif
+}
 
 /* rete#162 — the per-boot counter, in NVS under the settings key "oevm/bootid".
  *

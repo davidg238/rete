@@ -2515,7 +2515,8 @@ def main():
         c_code += f"    send(entry_inst, (oop)&{init_sym_var}, {len(params)}, init_args);\n\n"
 
         # in-image debugger step 1: mint the Supervisor, grant it the native
-        # mirror, and route the launch through it (gated by OEVM_DEBUG).
+        # mirror, and route the launch through it (gated by platform_debug_enabled —
+        # OEVM_DEBUG on posix, the hooks build on a board; rete#311).
         sup_params = compiler.all_classes["Supervisor"].get("params", [])
         sup_init_sel = "".join(f"{p}:" for p in sup_params) or "new"
         sup_init_selector = f"init_{sup_init_sel}"
@@ -2536,7 +2537,8 @@ def main():
         c_code += "    gc_temp_root_push(supervisor_inst);\n"
         c_code += f"    oop sup_init_args[{sup_argc}] = {{ mirror_object() }};\n"
         c_code += f"    send(supervisor_inst, (oop)&{sinit_sym}, {sup_argc}, sup_init_args);\n"
-        c_code += "    oop dbg_flag = getenv(\"OEVM_DEBUG\") ? TAG_SMI(1) : TAG_SMI(0);\n"
+        c_code += "    extern int platform_debug_enabled(void);   /* rete#311: platform_backend.h */\n"
+        c_code += "    oop dbg_flag = platform_debug_enabled() ? TAG_SMI(1) : TAG_SMI(0);\n"
         c_code += "    oop run_args[4] = { entry_inst, kernel_inst, fake_args, dbg_flag };\n"
         c_code += f"    oop res = send(supervisor_inst, (oop)&{srun_sym}, 4, run_args);\n"
         c_code += "    gc_temp_roots_clear();\n"

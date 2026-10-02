@@ -61,6 +61,7 @@ struct ObsSample {
     uint32_t since_ms[OBS_MAX_TIMERS];
     uint32_t drained;                    /* pulse_drained() — MONOTONIC. THE FEED. */
     uint32_t app_cad_ms;                 /* rete#273 D1: the declared app cadence */
+    int      held;                       /* rete#311: the VM is blocked in the debug read */
 };
 
 /* Everything the verdict carries between samples, plus what the dump wants to
@@ -114,7 +115,15 @@ static inline int observer_core_verdict(struct ObsCore *st, const struct ObsSamp
         uint32_t now        = s->now_ms ? s->now_ms : 1u;   /* 0 is the sentinel */
         int      progressed = (s->drained != st->last_drained_seen);
         st->last_drained_seen = s->drained;
-        if (progressed || st->fed_at_ms == 0) {
+        /* rete#311 — a HELD VM is not a wedged one. The debugger holds the VM by
+           blocking it in the debug read (at a breakpoint, or in the boot-time command
+           loop), and from here that is indistinguishable from a wedge: the feed stops
+           and the ISR keeps firing. So the hold is told to the sampler, and while it
+           lasts the feed age is re-latched every sample — the clock restarts from the
+           RELEASE, so a board held longer than appCad is not rebooted on the first
+           sample after `dbg:continue`. §3.1 above is deliberately NOT held off: a
+           repeating timer whose ISR has stopped is a wedge whoever holds the VM. */
+        if (progressed || s->held || st->fed_at_ms == 0) {
             st->fed_at_ms = now;
             return OBS_COND_NONE;
         }

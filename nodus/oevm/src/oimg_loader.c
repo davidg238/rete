@@ -1,6 +1,7 @@
 /* oevm/src/oimg_loader.c */
 #include "oevm.h"
 #include "oimg.h"
+#include "platform_backend.h"   /* rete#311: platform_debug_enabled */
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
@@ -278,7 +279,8 @@ oop oimg_bootstrap(oop entry_vtable) {
 
     /* in-image debugger step 1: when the image carries a Supervisor descriptor,
        mint the Supervisor, grant it the native mirror, and route the app launch
-       through it (gated by OEVM_DEBUG). Supervisor-less images have all
+       through it (gated by platform_debug_enabled: OEVM_DEBUG on posix, the hooks
+       build on a board — platform_backend.h). Supervisor-less images have all
        img_supervisor_* refs == 0 (oimg_resolve(0) -> NULL), so fall back to
        the original direct main:args: launch — mirroring the kernel/serial guards. */
     if (img_supervisor_vtable_ref != 0) {
@@ -289,7 +291,7 @@ oop oimg_bootstrap(oop entry_vtable) {
         oop sup_init_args[1] = { mirror_object() };
         send(supervisor_inst, oimg_resolve(img_supervisor_init_sel_ref), 1, sup_init_args);
 
-        oop dbg_flag = getenv("OEVM_DEBUG") ? TAG_SMI(1) : TAG_SMI(0);
+        oop dbg_flag = platform_debug_enabled() ? TAG_SMI(1) : TAG_SMI(0);   /* rete#311 */
         oop run_args[4] = { inst, kernel_inst, TAG_SMI(0), dbg_flag };
         oop res = send(supervisor_inst, oimg_resolve(img_supervisor_run_sel_ref), 4, run_args);
         gc_temp_roots_clear();

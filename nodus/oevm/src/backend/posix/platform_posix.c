@@ -12,12 +12,18 @@ void platform_console_write(const char *bytes, size_t n) {
 void platform_console_flush(void) {
     fflush(stdout);
 }
+static volatile int debug_held;
 int platform_debug_readline(char *buf, int cap) {
-    if (fgets(buf, cap, stdin) == NULL) return -1;
+    debug_held = 1;
+    char *got = fgets(buf, cap, stdin);
+    debug_held = 0;
+    if (got == NULL) return -1;
     int n = (int)strlen(buf);
     while (n > 0 && (buf[n-1] == '\n' || buf[n-1] == '\r')) buf[--n] = '\0';
     return n;
 }
+int platform_debug_enabled(void) { return getenv("OEVM_DEBUG") != NULL; }
+int platform_debug_held(void)    { return debug_held; }
 
 /* rete#118: the host's stand-in for silicon. A host VM has no factory link address, and
    host_ota runs several VMs per machine, so an interface MAC or a fixed value would give

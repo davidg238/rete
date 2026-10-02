@@ -282,6 +282,39 @@ int main(void) {
                "fires at %u ms; the legacy rule never judges it) OK\n", fire);
     }
 
+    /* ---- 10. rete#311: a HELD VM is not a wedged VM ---------------------- *
+     * The debugger holds the VM by blocking it in the debug read (a breakpoint,
+     * or the boot-time command loop). The feed stops moving, exactly as in a
+     * wedge, and the ISR keeps firing, so §3.1 cannot tell them apart either.
+     * While `held` is set the §3.2 clock must not run; when the hold is released
+     * the clock restarts from the release, not from the last drain before it —
+     * otherwise a board held longer than appCad is rebooted on the first sample
+     * after `dbg:continue`, which is the moment the debugger stops protecting it. */
+    {
+        struct ObsCore st; memset(&st, 0, sizeof st);
+        struct ObsSample s; memset(&s, 0, sizeof s);
+        s.app_cad_ms = 8000;
+        s.drained = 30;
+        /* one drain seen, then the hold starts: 10 × appCad of no progress */
+        s.now_ms = 1000; assert(observer_core_verdict(&st, &s) == OBS_COND_NONE);
+        for (uint32_t t = 2001; t <= 81000; t += 1001) {
+            s.now_ms = t; s.held = 1;
+            assert(observer_core_verdict(&st, &s) == OBS_COND_NONE && "fired while held");
+        }
+        /* released at 81000, still no progress: fires at appCad after the RELEASE */
+        uint32_t fire = 0;
+        for (uint32_t t = 82001; t <= 120000; t += 1001) {
+            s.now_ms = t; s.held = 0;
+            if (observer_core_verdict(&st, &s) == OBS_COND_APP_STALE) { fire = t; break; }
+        }
+        assert(fire != 0 && "the detector was disarmed by the hold");
+        assert(fire > 81000u + 8000u && fire <= 81000u + 8000u + 2u * 1001u);
+        assert(st.deadline_ms == 8000u);
+        printf("test_observer_core: property 10 (held %u ms past an 8000 ms appCad: no trip; "
+               "released and still stuck: fires at %u ms, %u ms after the release) OK\n",
+               80000u, fire, fire - 81000u);
+    }
+
     printf("test_observer_core: all properties OK\n");
     return 0;
 }

@@ -60,6 +60,10 @@ int timer_target_snapshot(uint32_t *period_ms, uint32_t *since_ms, int max);
 /* rete#273 D1: the app's declared cadence, defined in src/platform.c beside the prim. */
 uint32_t platform_app_cad_ms(void);
 
+/* rete#311: is the VM blocked in the debug read (a breakpoint, or the boot-time
+   command loop)? Defined in src/backend/zephyr/platform_zephyr.c beside the read. */
+int platform_debug_held(void);
+
 /* rete#269 — OBS_MAX_TIMERS, OBS_WEDGE_SLACK, OBS_MAX_JUDGEABLE_MS, the OBS_COND_*
    enum and the VERDICT ITSELF now live in src/observer_core.h, which is portable C and
    is therefore reachable by tests/test_observer_core.c on the host. This file no longer
@@ -146,6 +150,7 @@ static int observer_verdict(void) {
     s.now_ms     = k_uptime_get_32();
     s.drained    = pulse_drained();
     s.app_cad_ms = platform_app_cad_ms();
+    s.held       = platform_debug_held();
     return observer_core_verdict(&g_core, &s);
 }
 

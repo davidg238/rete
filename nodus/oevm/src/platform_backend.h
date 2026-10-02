@@ -8,9 +8,27 @@
    serial_backend.h seam so the platform capability is no longer libc-coupled. */
 void platform_console_write(const char *bytes, size_t n);  /* write n bytes to the console */
 void platform_console_flush(void);                         /* flush buffered output (called after a newline) */
-/* Read one line from stdin (debug transport input); newline stripped.
-   Returns byte length >= 0, or -1 at EOF/error. */
+/* Read one line from the debug transport (stdin on posix, the console cable on a
+   board); newline stripped. Returns byte length >= 0, or -1 at EOF/error. BLOCKS
+   until a line arrives: a VM in here is a HELD VM. */
 int platform_debug_readline(char *buf, int cap);
+
+/* rete#311 — the two facts the in-image debugger needs from the target.
+
+   platform_debug_enabled: should the Supervisor run the debugger (print `dbg:ready`,
+   take `dbg:*` lines, hold at breakpoints)? Read ONCE at boot by both image paths.
+   posix: the OEVM_DEBUG environment variable, as before. Zephyr: a board has no
+   environment, so the answer follows the BUILD — an image built with the per-bytecode
+   hooks (OEVM_DEBUG_HOOKS=1, zephyr/CMakeLists.txt) is a debug image and waits at boot
+   for its cable; the production image, hooks compiled out, answers 0 and the
+   Supervisor is transparent. One switch, not two: the hooks are useless without the
+   loop and the loop is useless without the hooks.
+
+   platform_debug_held: is the VM blocked in platform_debug_readline right now? Read
+   by the liveness observer every sample (zephyr/src/observer.c): a held VM stops the
+   pulse feed exactly as a wedge does, and this is what tells them apart. */
+int platform_debug_enabled(void);
+int platform_debug_held(void);
 
 /* rete#162/#117 — the node's per-boot identity, a counter incremented once per
    boot and persisted (PROTOCOL-NSL-RECORDS.md §2.4). Backed by NVS on Zephyr
