@@ -955,13 +955,16 @@ scalars:
     paths: [gw/liveness]
     unit: symbol
     meaning: >
-      #live, #silent, #neverSeen or #unknown — porta's own judgement, written by
-      the gateway and NEVER on the wire (dir=gw). It is one line with no constants
-      in it: now - last_seen > obs/liveness.telCad x obs/liveness.misses. #unknown
+      #live, #silent, #neverSeen, #unknown or #stalled — porta's own judgement,
+      written by the gateway and NEVER on the wire (dir=gw). Silence has no
+      constants in it: now - last_seen > obs/liveness.telCad x obs/liveness.misses.
+      Inside the budget, #stalled says the node's obs/health.wak moved slower than
+      one tick per telCad between porta's last two samples (rete#272 D3). #unknown
       carries its cause in the row's reason: no declaration, a gateway outage
-      across the window, or a budget below porta's own sweep tick (rete#273 D2.1).
+      across the window, a budget below porta's own sweep tick (rete#273 D2.1), no
+      wak or a stopped obs/health, or only one sample so far.
     validity: >
-      A verdict about SILENCE, not about health. A node uniformly refused by porta
+      Silence and rate, not correctness. A node uniformly refused by porta
       reads #live right up to its death, because it is exchanging — read obs/health
       `ref` beside it.
-    refs: [rete#231, rete#199]
+    refs: [rete#231, rete#199, rete#272]

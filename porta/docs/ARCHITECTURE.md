@@ -244,22 +244,31 @@ its 30 s check-ins to ordinary mesh loss — so a gateway judging it against a c
 healthy node silent constantly, and a node cannot publish a budget shorter than its cadence
 because there is no field to put it in.
 
-Four verdicts at `gw/liveness`, because they are four different operator actions:
+Five verdicts at `gw/liveness`, because they are five different operator actions:
 
 | verdict | means | do |
 |---|---|---|
 | `#live` | heard from inside its budget | nothing |
 | `#silent` | it spoke, then stopped, past its own budget | go find out why |
 | `#neverSeen` | porta has never had an exchange from it | commissioning failure — go plug it in |
-| `#unknown` | porta will not answer: the node declared no cadence, its declared budget is below the sweep tick (rete#273 D2.1), or porta was not listening for part of the window (see `gw_runs`) | read the row's `reason` |
+| `#unknown` | porta will not answer: the node declared no cadence, its declared budget is below the sweep tick (rete#273 D2.1), porta was not listening for part of the window (see `gw_runs`), its `obs/health` carries no `wak` or has stopped landing, or porta holds only one sample | read the row's `reason` |
+| `#stalled` | heard from inside its budget, but its tick count (`obs/health.wak`) moved slower than its declared `telCad` between porta's last two samples | find what is blocking its tick — a replyless uplink (#271) doubles the period; a reboot reads as `wak` going backwards |
 
 The budget is `telCad × misses`, both declared by the node at `obs/liveness` (rete#273 D2);
 porta contributes no number. Two consequences an operator will meet: **a budget below the
 30 s sweep tick reads `#unknown`** with a reason naming all three numbers (D2.1 — porta will
 not promise a resolution it cannot deliver; raise `misses` or `telCad`), and **`#silent`'s
 reason counts the misses** (`4.5 missed check-ins of 10000 ms, 4 tolerated`, D2.2) — a
-ladder in the reason, deliberately not a fifth verdict until an operator is shown to act
+ladder in the reason, deliberately not a verdict of its own until an operator is shown to act
 differently on the first miss than on the fifth.
+
+`#stalled` is the rate rule (rete#272 D3), judged inside the budget from two samples of the
+node's own tick counter: the **mark** (the sample the previous sweep judged from) and the
+latest. Short by one whole declared period or more is `#stalled`; that one period is the only
+slack. A sweep with no new sample since the mark keeps both the verdict and the mark rather
+than re-judging. The detection bound is `bud + SweepTick + telCad` (32 + 30 + 2 = 64 s on a
+bench node), model-checked in TLC (`docs/spikes/2026-08-27-liveness-model/README.md`, config
+`sound-rate.cfg`).
 
 `#unknown` is the one that took an incident to earn. `Store.Sweep` runs inside `porta serve`, so
 a gateway that is down writes nothing and every verdict freezes: on 2026-08-19 `gw/liveness` read
