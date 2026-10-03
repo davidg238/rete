@@ -1,5 +1,10 @@
 # #272 — `#stalled`: porta judges progress, not only arrival — Implementation Plan
 
+> **STATUS 2026-10-03:** Tasks 1–3 executed (`4513b81`, `4b6820b`, `614f501`). The whole-branch review then found
+> the premise in Global Constraints line 1 false — `wak` does NOT ride every check-in (`pushFrame` re-sends a cached
+> frame, rete#199). **Task 4 is superseded by `2026-10-03-272-count-on-the-pull.md`** (design D3.3), which also
+> reworks the store half and the rule this plan built. Do not execute anything below.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** porta's liveness sweep says `#stalled` about a node whose datagrams still arrive but whose own tick counter (`obs/health.wak`) is behind the cadence it declared, and stops calling such a node `#live`.
