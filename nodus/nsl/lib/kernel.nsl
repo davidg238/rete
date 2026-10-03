@@ -487,6 +487,14 @@ class Kernel usingPlatform: platform = (
       k at: 3 put: c key. v at: 3 put: c value.
       k at: 4 put: d key. v at: 4 put: d value.
       ^ self new setPairs: k values: v )
+    public with: a with: b with: c with: d with: e = ( | k v |
+      k:: platform basicNew: Array indexable: 5. v:: platform basicNew: Array indexable: 5.
+      k at: 1 put: a key. v at: 1 put: a value.
+      k at: 2 put: b key. v at: 2 put: b value.
+      k at: 3 put: c key. v at: 3 put: c value.
+      k at: 4 put: d key. v at: 4 put: d value.
+      k at: 5 put: e key. v at: 5 put: e value.
+      ^ self new setPairs: k values: v )
     (* Each element of `aList` is EITHER a 2-element algebra List (element 1 =
        key, element 2 = value) OR an Association (from `#k -> v`) — accept
        both. `isList` is a safe probe here (unlike an ad-hoc predicate on a
@@ -547,6 +555,7 @@ class Kernel usingPlatform: platform = (
     public tag: aTag with: a with: b = ( ^ self tag: aTag fields: (Map with: a with: b) )
     public tag: aTag with: a with: b with: c = ( ^ self tag: aTag fields: (Map with: a with: b with: c) )
     public tag: aTag with: a with: b with: c with: d = ( ^ self tag: aTag fields: (Map with: a with: b with: c with: d) )
+    public tag: aTag with: a with: b with: c with: d with: e = ( ^ self tag: aTag fields: (Map with: a with: b with: c with: d with: e) )
   )
 
   (* Shared multi-byte read protocol (Milestone B Task 10) — composes on the
@@ -1622,6 +1631,9 @@ class Kernel usingPlatform: platform = (
     | socket space nodeId peerHost peerPort
       cursor ::= 0. acked ::= 0. rejected ::= 0. misses ::= 0. dropped ::= 0.
       crossed ::= 0.
+      (* rete#272 D3.3 — this boot's check-ins, counted in `checkIn` and sent as
+         #wak in every pull. Per-boot and deliberately not persisted. *)
+      wakes ::= 0.
       (* rete#161/rete#199 — how many rows fitted the last push frame, so the next
          one starts its search there instead of at "all of them". A HINT and never
          a bound: `pushFrame` clamps it and corrects it in both directions, so a
@@ -1858,12 +1870,19 @@ class Kernel usingPlatform: platform = (
     (* The cursor sent is the one already APPLIED, which is what makes "the
        node's cursor passed seq N" better evidence of delivery than any
        gateway-side delivered_at flag. *)
+    (* #wak — rete#272 D3.3. The count of this boot's check-ins, sent on the one
+       request that is built fresh every tick. porta judges progress from it, and
+       it CANNOT ride the push: pushFrame re-sends the same bytes until an ack is
+       heard (rete#199), so a count in there is the count from when the frame was
+       built — a deaf node would report no progress at all and a lost frame would
+       land an old count at a new time. *)
     public pullFrame = (
       ^ Cbor new encode: (Record tag: #pull
           with: #id -> nodeId
           with: #cursor -> cursor
           with: #bid -> self bootId
-          with: #hw -> acked) )
+          with: #hw -> acked
+          with: #wak -> wakes) )
 
     (* Apply one #batch; answer whether it WAS one. An #err reply, a malformed
        datagram or anything else answers false and moves nothing.
@@ -2307,6 +2326,9 @@ class Kernel usingPlatform: platform = (
        against pushWait should know which one carries a decode. *)
     public checkIn = (
       | frame reply |
+      (* Counted before the socket test: the count is of TICKS the reactor ran, and
+         a node with no socket still ticked (rete#272 D3.3). *)
+      wakes:: wakes + 1.
       socket == nil ifTrue: [ ^ self ].
       spans begin: sPullSend.
       frame:: self pullFrame.
