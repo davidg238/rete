@@ -11,6 +11,8 @@
 #   arrival      now - last_seen <= bud            — what porta ships today
 #   sweepDelta   ... AND wak moved between sweeps  — rete#272, read as a delta
 #   progressAge  now - last_PROGRESS <= bud        — rete#272, read as an age
+#   rateAge      now - last_seen <= bud, AND wak at the declared rate, else
+#                "stalled"                          — rete#272 D3 (2026-09-14)
 #
 # TLC is not vendored. Fetch it once:
 #   curl -sSLo /tmp/tla2tools.jar \
@@ -31,6 +33,10 @@ CASES=(
   "slow-age:violated:the same age rule, budget far past the deadline"
   "sound:completed:the age rule with Bud + Sweep <= Cad * Slack — THE ONE THAT HOLDS"
   "sound-vacuity:violated:proof that 'live' is reachable in sound.cfg, so its green is not vacuous"
+  "sound-age-behind:violated:the age rule calls a deaf node live — what rete#272 D3's stalled is for"
+  "sound-rate:completed:the RATE rule (D3) — no stale live, no behind live, no false stall"
+  "sound-rate-live:violated:proof that 'live' is reachable under the rate rule"
+  "sound-rate-stalled:violated:proof that 'stalled' fires — reachability before health"
 )
 rc=0
 for entry in "${CASES[@]}"; do
