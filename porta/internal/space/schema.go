@@ -187,6 +187,13 @@ var addColumns = []string{
 	// a stale impossible cursor re-evaluated against a growing out_seq marks
 	// never-served rows as applied.
 	`ALTER TABLE nodes  ADD COLUMN served_hw INTEGER NOT NULL DEFAULT 0`,
+	// rete#272 — the rate rule's MARK: the obs/health sample porta judged
+	// from at the previous sweep, and the telCad it was judged under. NULL
+	// until the first sweep that sees a sample; NULL reads as "no mark",
+	// which is true of every row written before the column existed.
+	`ALTER TABLE nodes  ADD COLUMN mark_wak INTEGER`,
+	`ALTER TABLE nodes  ADD COLUMN mark_ms  INTEGER`,
+	`ALTER TABLE nodes  ADD COLUMN mark_cad INTEGER`,
 }
 
 // dropColumns are run after addColumns on every Open, and their errors are

@@ -279,6 +279,10 @@ const PathLiveness = "gw/liveness"
 // goal/liveness, which is a REQUEST; the node always wins.
 const PathDeclared = "obs/liveness"
 
+// PathHealth is the node's own health record. porta reads exactly one field
+// of it, `wak` — the node's tick count — and only to judge progress (#272).
+const PathHealth = "obs/health"
+
 // WriteGateway records a verdict porta formed ABOUT a node — the third
 // direction, gateway-authored and never on the wire.
 //
