@@ -18,6 +18,12 @@ debug flow — `dbg:methods`, `dbg:break`, `dbg:continue`, `dbg:inspect`,
 Shared assertion helpers (assert_flow, assert_over_out) validate the transcript
 identically for both paths; only the builder and driver differ.
 
+  dbg:pause (rete#311): 47_debug_pause_target.nsl ticks on a 200 ms wall-clock timer;
+          pexpect waits for `tick 1` -- the program is RUNNING -- then sends a line.
+          The line must stop it before `tick 2`, the loop must answer, and `continue`
+          must let it finish. Path B only: stopping is the VM's and the backend's
+          (SIGIO on stdin here, the UART ISR on a board), not the image path's.
+
 Exits non-zero on failure.
 """
 import os, re, subprocess, sys
@@ -29,6 +35,8 @@ NSROOT = os.path.dirname(HERE)
 # changes run new bytecode on an old VM ("unknown opcode").
 OEVM = os.environ.get("OEVM_DIR") or os.path.join(NSROOT, "..", "oevm")
 APP = os.path.join(NSROOT, "..", "tests", "04_somns_basic", "46_debug_target.nsl")
+PAUSE_APP = os.path.join(NSROOT, "..", "tests", "04_somns_basic", "47_debug_pause_target.nsl")
+PAUSE_OIMG_B = "/tmp/47_debug_pause_target.oimg"
 BINARY_A = "/tmp/oevm_debugger"
 BINARY_B = "/tmp/oevm_img"
 OIMG_B = "/tmp/46_debug_target.oimg"
@@ -399,6 +407,55 @@ def run_path_b_over_out(cid):
 
 
 # ---------------------------------------------------------------------------
+# dbg:pause — a line arriving while the program RUNS stops it (rete#311)
+# ---------------------------------------------------------------------------
+
+def run_path_b_pause():
+    """Build the pause target (Path B), then drive it interactively through a pty.
+
+    The assertions are the three halves of the rule: the stop is PROMPT (the pause
+    line precedes `tick 2`, i.e. it landed inside one 200 ms period), the loop ANSWERS
+    (dbg:ok pause, then a dbg:stack for inspect), and `dbg:continue` lets the program
+    FINISH (tick 3, done, EOF). A piped script cannot test this: its lines all arrive
+    while the VM is held at the boot stop, which is exactly the case the rule excludes.
+    """
+    import pexpect
+    subprocess.run([sys.executable, os.path.join(HERE, "ns_compile_oevm.py"), PAUSE_APP, PAUSE_OIMG_B,
+                    "--format=oimg", "--layout=/tmp/oevm_layout.json"],
+                   cwd=NSROOT, check=True)
+    env = {**os.environ, "OEVM_DEBUG": "1", "OEVM_TIMER_WALLCLOCK": "1"}
+    child = pexpect.spawn(BINARY_B, [PAUSE_OIMG_B], cwd=OEVM, env=env, encoding="utf-8", timeout=15)
+    child.setecho(False)
+    transcript = []
+    try:
+        child.expect("dbg:ready")
+        transcript.append("dbg:ready")
+        child.sendline("dbg:continue")
+        child.expect("tick 1")
+        transcript.append("tick 1 (running)")
+        child.sendline("dbg:pause")
+        which = child.expect([r"dbg:paused pause (-?\d+) (\d+)", "tick 2"])
+        assert which == 0, "the program ticked again before the pause landed: a line in did not stop it"
+        transcript.append("dbg:paused pause %s %s" % (child.match.group(1), child.match.group(2)))
+        child.expect("dbg:ok pause")
+        transcript.append("dbg:ok pause")
+        child.sendline("dbg:inspect")
+        child.expect(r"dbg:stack off=\d+")
+        transcript.append(child.after)
+        child.sendline("dbg:continue")
+        child.expect("tick 3")
+        child.expect("done")
+        transcript.append("tick 3, done")
+        child.expect(pexpect.EOF)
+    finally:
+        try:
+            child.close()
+        except Exception:
+            pass
+    return "\n".join(transcript)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -417,6 +474,12 @@ def main():
         print("test_debugger_integration: PASSED (Path B, popen)")
         print("--- Path B transcript ---")
         print(transcript_b)
+
+        print("\n=== Path B: dbg:pause ===")
+        transcript_p = run_path_b_pause()
+        print("test_debugger_integration: PASSED (Path B, dbg:pause)")
+        print("--- pause transcript ---")
+        print(transcript_p)
 
         print(f"\nAll assertions passed on both paths (over/out anchored: "
               f"over->step {cid_b} 1, out->step {main_id_b} 6)")

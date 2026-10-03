@@ -87,20 +87,26 @@ void platform_console_flush(void) { }
      hardware UART (C6)                INTERRUPT-DRIVEN into a 256-byte queue. Polled,
        the C6 HANGS outright once ~CONFIG_UART_ESP32_RX_FIFO_THRESH bytes queue in the
        FIFO (any unpaced line over ~24 chars) and the hardware watchdog resets it 22 s
-       later. Needs CONFIG_UART_INTERRUPT_DRIVEN (prj_linein_spike.conf). */
+       later. CONFIG_UART_INTERRUPT_DRIVEN is in prj_esp32c6.conf for every C6 image. */
 #if defined(CONFIG_UART_CONSOLE) && DT_HAS_CHOSEN(zephyr_console)
 #include <zephyr/device.h>
 #include <zephyr/drivers/uart.h>
+static volatile int debug_held;   /* written by the VM thread, read by the observer and the ISR */
+volatile int platform_debug_pending;
 #define RL_IS_CDC DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart)
 
 #if !RL_IS_CDC && defined(CONFIG_UART_INTERRUPT_DRIVEN)
 K_MSGQ_DEFINE(rl_q, 1, 256, 1);
+/* dbg:pause (platform_backend.h): a newline queued while the VM is NOT in readline
+   raises the flag a running VM reads on every bytecode; rl_getc lowers it as the
+   paused loop consumes the line. */
 static void rl_isr(const struct device *dev, void *user) {
     uint8_t c;
     (void)user;
     while (uart_irq_update(dev) && uart_irq_rx_ready(dev)) {
         if (uart_fifo_read(dev, &c, 1) != 1) break;
-        (void)k_msgq_put(&rl_q, &c, K_NO_WAIT);   /* full queue: the byte is dropped */
+        if (k_msgq_put(&rl_q, &c, K_NO_WAIT) == 0 && c == '\n' && !debug_held)
+            platform_debug_pending = 1;              /* full queue: the byte is dropped */
     }
 }
 static int rl_getc(const struct device *dev) {
@@ -112,9 +118,12 @@ static int rl_getc(const struct device *dev) {
         armed = true;
     }
     k_msgq_get(&rl_q, &c, K_FOREVER);
+    if (c == '\n') platform_debug_pending = 0;
     return c;
 }
 #else
+/* Polled: nothing runs between reads, so nothing can count a line in. A line sent
+   while the program runs waits in the FIFO for the next hold. */
 static int rl_getc(const struct device *dev) {
     unsigned char c;
 #if RL_IS_CDC && defined(CONFIG_UART_INTERRUPT_DRIVEN)
@@ -126,7 +135,6 @@ static int rl_getc(const struct device *dev) {
 }
 #endif
 
-static volatile int debug_held;   /* written by the VM thread, read by the observer */
 
 int platform_debug_readline(char *buf, int cap) {
     const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
@@ -150,6 +158,7 @@ int platform_debug_readline(char *buf, int cap) {
     return -1;   /* no console device to read a line from */
 }
 int platform_debug_held(void) { return 0; }
+volatile int platform_debug_pending;
 #endif
 
 int platform_debug_enabled(void) {

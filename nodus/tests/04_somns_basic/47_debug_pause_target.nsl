@@ -1,0 +1,40 @@
+(*
+expect:
+ticking
+tick 1
+tick 2
+tick 3
+done
+env: OEVM_TIMER_WALLCLOCK=1
+*)
+(* rete#311 — the target the debugger gate PAUSES. 46_debug_target.nsl is over in
+   milliseconds; this one ticks three times on a 200 ms timer, so there is a window
+   in which a line can arrive while it RUNS. Gate-off it just prints its ticks, and
+   the suite runs it like any other test (on the wall clock: the suite's default
+   virtual clock never ticks a program that does not advance it, timer_posix.c). Each tick calls countTo: so there is a
+   method with a local to land in and inspect, as on the C6 probe. *)
+class DebugPauseTarget usingPlatform: platform = () (
+  public main: platform2 args: args = (
+    | space timers tickCh ticks |
+    space:: platform2 space.
+    timers:: platform2 timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    tickCh:: space channel: 'probe/tick'.
+    ticks:: 0.
+    tickCh whenever: '' do: [ :m |
+      ticks:: ticks + 1.
+      self countTo: ticks.
+      ('tick ' , ticks printString) println ].
+    timers every: 200 post: #t on: tickCh.
+    'ticking' println.
+    [ ticks < 3 ] whileTrue: [ platform2 pumpEvents. space drain ].
+    'done' println.
+    ^ 0 )
+
+  countTo: n = (
+    | sum |
+    sum:: 0.
+    1 to: n do: [ :i | sum:: sum + i ].
+    ^ sum )
+) : (
+)

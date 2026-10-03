@@ -208,4 +208,35 @@ The deferred "Zephyr TFTP/SLIP transport" turned out unnecessary: plain text lin
 console cable reach `platform_debug_readline` on every board family (no framing), and the
 whole verb set ran on an ESP32-C6 over one cable. A held VM is told to the liveness observer
 (`observer_core.h` §3.2, `held`). Record: `docs/results/2026-10-02-311-line-in-spike.md`.
-Not yet: `dbg:pause`, and a file:line front end.
+Not yet (as of that addendum): `dbg:pause`, and a file:line front end.
+
+## Addendum — pause, and one loop (2026-10-02, rete#311 part 3)
+
+**A line arriving while the program runs stops it at its next bytecode.** The backend's
+receive path (the UART ISR on Zephyr, SIGIO on stdin on posix) raises
+`platform_debug_pending` when a newline lands while the VM is not held in
+`platform_debug_readline`; the interpreter's single-step hook reads that flag beside
+`g_single_step` on every bytecode (one load, in the debug build only) and fires the same
+`onBreak:` hook a step does. With no step mode and no breakpoint record to match, the
+Supervisor announces `dbg:paused pause <methodId> <offset>` and runs the command loop,
+whose first line is the one that arrived — so `dbg:pause` is merely the verb a person
+types (answered `dbg:ok pause`), and `dbg:break 3 0` sent while running works too. Lines
+that arrive while the VM is held are not counted: the loop is already reading them in
+order, which is what lets a driver pipe a whole script. A program with no timer and no
+work never reaches a bytecode and cannot be paused; the polled USB-CDC console has no
+asynchronous receive path and a line there waits for the next hold. A line sent during a
+long `dbg:over`/`dbg:out` lands when the step does.
+
+**The boot wait is the first pause, and `initialLoop` is deleted.** `run:` arms one step
+(`mirror requestStep: 1`) before launching the app; the hook fires at once, the first
+pause prints `dbg:ready` instead of `dbg:paused pause`, and the ONE `commandLoop` serves
+boot, breakpoint, step and pause alike — every verb works at boot. EOF in the loop now
+clears stepping (`requestStep: 0`), since the boot stop and a pause arrive as a step.
+
+**`dbg:inspect` must not kill the program.** A pause lands anywhere, and a frame's
+registers hold blocks, contexts and vtables, which answer no `printString`; `describe:`
+tells them apart by vtable identity against an exemplar and prints a bracketed note.
+
+Proof: `tools/test_debugger_integration.py` (Path B, pexpect, a 200 ms wall-clock
+ticker paused before its second tick) and `zephyr/tools/dbg_session.py` on a C6
+(record part 3).

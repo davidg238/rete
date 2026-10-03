@@ -2,6 +2,7 @@
 #define _POSIX_C_SOURCE 200809L
 #endif
 #include "oevm.h"
+#include "platform_backend.h"
 #include "frame_abi.h"
 #include "oimg.h"
 #include <stdlib.h>
@@ -1474,7 +1475,10 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
          * bytecode frames (onBreakContext: epilogue, etc.) — single-stepping the
          * debugger instead of the app. The guard keeps stepping confined to the app. */
 #ifndef OEVM_NO_DEBUG_HOOKS
-        if (g_single_step && !in_debugger_hook) {
+        /* rete#311 dbg:pause: a line waiting on the debug transport stops the program
+         * here exactly as a step does (platform_backend.h, platform_debug_pending);
+         * the hook's command loop then reads it. One extra load per bytecode. */
+        if ((g_single_step | platform_debug_pending) && !in_debugger_hook) {
             extern oop debugger_hook;
             if (debugger_hook != NULL) {
                 ctx->saved_pc = pc;

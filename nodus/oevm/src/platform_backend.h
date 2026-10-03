@@ -30,6 +30,19 @@ int platform_debug_readline(char *buf, int cap);
 int platform_debug_enabled(void);
 int platform_debug_held(void);
 
+/* rete#311 — dbg:pause. Set when a line ARRIVES on the debug transport while the VM
+   is not held in platform_debug_readline; cleared when readline consumes a line. The
+   interpreter's single-step hook reads it on every bytecode (a load, not a call: that
+   is why this is a variable in the interface), and a set flag stops the running program
+   at its next bytecode exactly as a step does; the paused command loop then reads the
+   line. So the rule is one sentence: A LINE ARRIVING WHILE THE PROGRAM RUNS STOPS IT.
+   Lines that arrive while the VM is held are not counted: the loop is already reading
+   them in order (a driver may pipe a whole script at once). The backend's receive path
+   writes it from interrupt or signal context (Zephyr: the UART ISR; posix: SIGIO on
+   stdin). A transport with no asynchronous receive path (the polled USB-CDC console)
+   leaves it at 0: there a line waits for the next hold. */
+extern volatile int platform_debug_pending;
+
 /* rete#162/#117 — the node's per-boot identity, a counter incremented once per
    boot and persisted (PROTOCOL-NSL-RECORDS.md §2.4). Backed by NVS on Zephyr
    (the settings key "oevm/bootid") and by an env-named file on posix.

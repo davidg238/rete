@@ -11,7 +11,8 @@ Modes:
            (longer than the probe's 8 s appLiveness, so a reboot here is the observer
            judging the hold as a wedge), inspect, step, over, out, clear, continue,
            then WATCH for --watch seconds counting ticks and failing on any reset or
-           WEDGE line.
+           WEDGE line; then PAUSE the running program with a line (`dbg:pause`), expect
+           the stop within one tick, inspect, continue, and see the ticks resume.
   run      wait for `dbg:ready`, send `dbg:continue`, stream for --watch seconds.
            For measuring a hooks image that is not being debugged.
 
@@ -63,19 +64,28 @@ class Board:
         self.log.flush()
 
     def lines(self, deadline):
-        """Yield lines until `deadline` (absolute time)."""
-        while time.time() < deadline:
+        """Yield lines until `deadline` (absolute time).
+
+        Lines already whole in `buf` come out FIRST, before any read. A caller that
+        stops iterating at a match leaves the rest of that chunk here, and a reader that
+        split only after a fresh read surfaced it only when MORE data arrived: the
+        board's `dbg:ok pause`, printed 2 ms after `dbg:paused pause` and so in the same
+        chunk, read as "no answer for 8 s, then two lines at once" -- an afternoon spent
+        on the board's UART for a bug in this function (2026-10-02, rete#311)."""
+        while True:
+            while b"\n" in self.buf:
+                raw, self.buf = self.buf.split(b"\n", 1)
+                line = raw.decode("utf-8", "replace").rstrip("\r")
+                self.log.write("%s < %s\n" % (self.stamp(), line))
+                self.log.flush()
+                if RESET_RE.search(line):
+                    self.resets.append((self.stamp(), line))
+                yield line
+            if time.time() >= deadline:
+                return
             chunk = self.ser.read(256)
             if chunk:
                 self.buf += chunk
-                while b"\n" in self.buf:
-                    raw, self.buf = self.buf.split(b"\n", 1)
-                    line = raw.decode("utf-8", "replace").rstrip("\r")
-                    self.log.write("%s < %s\n" % (self.stamp(), line))
-                    self.log.flush()
-                    if RESET_RE.search(line):
-                        self.resets.append((self.stamp(), line))
-                    yield line
 
     def expect(self, pattern, timeout, collect=None):
         """First line matching `pattern` within `timeout` s, or None. Every line seen
@@ -159,6 +169,25 @@ def run_session(b, args):
     ticks = tick_lines(watched)
     step("ticks resume, %d s watched" % args.watch, len(ticks) >= args.watch // 2 and not b.resets,
          "%d ticks, first %r" % (len(ticks), ticks[0] if ticks else None))
+
+    # THE PAUSE: the program is running (ticking); a line in must stop it before the
+    # next tick lands, the loop must answer, and continue must let the ticks resume.
+    b.send("dbg:pause")
+    seen = []
+    p = b.expect(r"^dbg:paused pause |^dbg-probe tick ", 5, collect=seen)
+    step("dbg:pause stops a running program", p is not None and p.startswith("dbg:paused pause"),
+         p or "nothing in 5 s")
+    if p is not None and p.startswith("dbg:paused pause"):
+        step("dbg:ok pause", b.expect(r"^dbg:ok pause$", 5) is not None)
+        b.send("dbg:inspect")
+        stack = b.expect(r"^dbg:stack ", 5)
+        step("dbg:inspect while paused", stack is not None, (stack or "")[:70])
+        held = b.drain(3)
+        step("held 3 s by the pause, no tick", not tick_lines(held) and not b.resets)
+        b.send("dbg:continue")
+        after = b.drain(5)
+        step("ticks resume after the pause", len(tick_lines(after)) >= 3,
+             "%d ticks in 5 s" % len(tick_lines(after)))
     step("no reset or WEDGE anywhere", not b.resets,
          "; ".join("%s %s" % r for r in b.resets)[:120])
     return results

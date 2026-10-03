@@ -14,9 +14,10 @@ a gap in the timestamps and a step is visible as the same tick finishing late.
 
 Needs the hooks build: OEVM_DEBUG_HOOKS=1 (zephyr/CMakeLists.txt) — the production
 image compiles the breakpoint checks out AND answers platform_debug_enabled() = 0, so
-on it this probe just ticks. And --conf-extra prj_linein_spike.conf on the C6: the
-polled reader hangs the board.
-Run: OEVM_DEBUG_HOOKS=1 run.sh --node DebugProbeC6.nsl --conf-extra prj_linein_spike.conf
+on it this probe just ticks.
+Run: OEVM_DEBUG_HOOKS=1 run.sh --node DebugProbeC6.nsl
+(prj_esp32c6.conf carries the interrupt-driven UART every C6 image needs; the polled
+reader hangs the board, and the ISR is what lets `dbg:pause` stop a running tick.)
 *)
 class DebugProbeC6 packageUsing: manifest = (
   | plat space timers tickCh ticks ::= 0. |

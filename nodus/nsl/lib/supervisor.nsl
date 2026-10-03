@@ -5,10 +5,12 @@ Supervisor, grants it `mirror_object()` via `init_mirror:`, then routes the
 app launch through `run:platform:args:debug:` instead of calling the app's
 `main:args:` directly. With OEVM_DEBUG off the supervisor is transparent (it just
 forwards to the app, so the suite is byte-for-byte unchanged). With it on it
-first prints one `dbg:ready` line that exercises the granted mirror — an
-un-granted receiver could not even name `mirror`, and `vtableOf:` on a non-holder
-would DNU. The interactive `dbg:*` command loop and the ObjectMirror facade
-arrive in step 2 (Plan 2).
+arms one step before launching the app, so the hook fires at once with nothing to
+blame: that first pause prints `dbg:ready` and runs the one `dbg:*` command loop
+(rete#311: the same loop a breakpoint, a step, or a line arriving on the cable
+while the program runs lands in). An un-granted receiver could not even name
+`mirror`, and `vtableOf:` on a non-holder would DNU. The ObjectMirror facade and
+the loop arrived in step 2 (Plan 2).
 *)
 class Supervisor usingMirror: mirror = () (
   (* entry: the app instance. plat: the Kernel instance the app sees as its
@@ -24,8 +26,11 @@ class Supervisor usingMirror: mirror = () (
       dbg:: Debugger usingMirror: mirror channel: plat.
       dbg registerEntry: entry.
       mirror onBreak: [ :ctx | dbg onBreakContext: ctx ].
-      'dbg:ready' println.
-      dbg initialLoop ].
+      (* The boot wait IS the first pause (rete#311): arm one step, so the next
+         bytecode fires the hook with no breakpoint and no step mode -- the pause
+         path -- which announces `dbg:ready` the first time and runs the ONE command
+         loop. There is no separate boot loop: every verb works at boot. *)
+      mirror requestStep: 1 ].
     ^ entry main: plat args: args )
 
   (* HLL mirror facade (Plan 2). Each facade takes the native mirror as a
@@ -56,7 +61,7 @@ class Supervisor usingMirror: mirror = () (
      reachable from a top-level class. Builds a flat methodId registry by walking
      the entry's vtable delegate chain, answers `dbg:methods`, and runs the
      interactive command loop. Tasks 7-8 extend the loop and the registry use. *)
-  public class Debugger usingMirror: m channel: io = ( | entry ids sels meths tags bpIds bpMethods bpOffs stepMode stepDepth curCtx | ) (
+  public class Debugger usingMirror: m channel: io = ( | entry ids sels meths tags bpIds bpMethods bpOffs stepMode stepDepth curCtx ready | ) (
     public registerEntry: anEntry = ( entry:: anEntry. ^ self )
 
     (* Lazily build parallel registry collections (ids/sels/meths/tags). Walk the
@@ -194,24 +199,39 @@ class Supervisor usingMirror: mirror = () (
        the paused command loop until continue/EOF. *)
     public onBreakContext: ctx = (
       | off meth id i ws depth mid pause |
-      (* The SAME hook fires for a C bp-table match (stepMode nil) AND after every
-         instruction while stepping (stepMode non-nil). curCtx is set in BOTH paths
-         so dbg:inspect / depth-recompute use the live frame. *)
+      (* The SAME hook fires for a C bp-table match, after every instruction while
+         stepping (stepMode non-nil), and -- rete#311 -- when a line is waiting on the
+         cable (platform_debug_pending) or the Supervisor armed the boot stop. curCtx
+         is set in every path so dbg:inspect / depth-recompute use the live frame. *)
       curCtx:: ctx.
       off:: m offsetOf: ctx.
       stepMode == nil ifTrue: [
-        (* BREAKPOINT path: reverse-map (method, offset) -> bp id, announce, loop. *)
+        (* BREAKPOINT path: reverse-map (method, offset) -> bp id. No record means
+           no breakpoint fired: this is a PAUSE -- the boot stop the first time
+           (`dbg:ready`, the line every driver waits for), a line in while running
+           after that. Announce, then the one command loop. *)
         meth:: m methodOf: ctx.
         id:: 0 - 1.
+        self ensureBp.
         i:: 1.
         [ id < 0 and: [ i <= bpIds size ] ] whileTrue: [
           ((bpMethods at: i) == meth and: [ (bpOffs at: i) = off ]) ifTrue: [ id:: bpIds at: i ].
           i:: i + 1 ].
         ws:: io WriteStream new.
-        ws nextPutAll: 'dbg:paused break '.
-        ws print: id.
-        ws nextPutAll: ' '.
-        ws print: off.
+        id < 0
+          ifTrue: [
+            ready == nil
+              ifTrue: [ ready:: true. ws nextPutAll: 'dbg:ready' ]
+              ifFalse: [
+                ws nextPutAll: 'dbg:paused pause '.
+                ws print: (self methodIdOfCtx: ctx).
+                ws nextPutAll: ' '.
+                ws print: off ] ]
+          ifFalse: [
+            ws nextPutAll: 'dbg:paused break '.
+            ws print: id.
+            ws nextPutAll: ' '.
+            ws print: off ].
         ws contents println.
         self commandLoop.
         ^ self ].
@@ -281,40 +301,57 @@ class Supervisor usingMirror: mirror = () (
         ws nextPutAll: ' r'.
         ws print: i.
         ws nextPutAll: '='.
-        ws nextPutAll: (cm registerAt: i) printString.
+        ws nextPutAll: (self describe: (cm registerAt: i)).
         i:: i + 1 ].
       ws contents println.
       ^ self )
 
-    (* Minimal interactive loop: read `dbg:*` lines from stdin until continue/run
-       or EOF. `dbg:methods` lists the registry; `dbg:continue`/`dbg:run` detach
-       (let the app run); EOF (nil) detaches; anything else is an error line.
-       Tasks 7-8 add more verbs here. *)
-    public initialLoop = (
-      | line verb |
-      [ true ] whileTrue: [
-        line:: io readLine.
-        line == nil ifTrue: [ ^ self ].
-        verb:: self verbOf: line.
-        verb = 'dbg:methods' ifTrue: [ self listMethods ] ifFalse: [
-        (verb = 'dbg:continue' or: [ verb = 'dbg:run' ]) ifTrue: [ ^ self ] ifFalse: [
-        verb = 'dbg:break' ifTrue: [ self doBreak: line ] ifFalse: [
-        verb = 'dbg:clear' ifTrue: [ self doClear: line ] ifFalse: [
-          'dbg:error unknown' println ] ] ] ] ] )
+    (* A register's printString, or a bracketed note for a value that has none. A
+       pause (rete#311) lands anywhere, and a frame's registers hold blocks, contexts,
+       vtables and other VM-level values that answer no printString; sending it would
+       DNU and ABORT the VM, and the debugger must never be what kills the program.
+       Printable means: nil, the primitive kinds (integer, float, string, symbol), or an
+       object whose vtable chain reaches the kernel's Object -- the root of the entry's
+       own chain -- which is where printString lives. The mirror cannot ask "does this
+       understand printString" (the primitive kinds answer it with no binding), so the
+       question is asked by vtable identity. Everything else is named by kind. *)
+    describe: v = (
+      | vt walk |
+      v == nil ifTrue: [ ^ 'nil' ].
+      vt:: m vtableOf: v.
+      (vt == (m vtableOf: 1) or: [ vt == (m vtableOf: 1 asFloat) or: [
+       vt == (m vtableOf: 'a') or: [ vt == (m vtableOf: #a) ] ] ]) ifTrue: [ ^ v printString ].
+      walk:: vt.
+      [ walk == nil ] whileFalse: [
+        walk == self objectVtable ifTrue: [ ^ v printString ].
+        walk:: m delegateOf: walk ].
+      vt == (m vtableOf: [ :x | x ]) ifTrue: [ ^ '[a block]' ].
+      vt == (m vtableOf: curCtx) ifTrue: [ ^ '[a context]' ].
+      vt == (m vtableOf: vt) ifTrue: [ ^ '[a vtable]' ].
+      ^ '[a VM object]' )
 
-    (* The paused command loop (entered from onBreakContext:). Reads commands until
-       `dbg:continue` (resume; the bp re-fires on the next visit) or EOF. Shares the
-       methods/break/clear verbs; step verbs are stubbed until Task 8. *)
+    (* The kernel's Object vtable: the root of the entry's delegate chain. *)
+    objectVtable = (
+      | root |
+      root:: m vtableOf: entry.
+      [ (m delegateOf: root) == nil ] whileFalse: [ root:: m delegateOf: root ].
+      ^ root )
+
+    (* THE command loop, entered from onBreakContext: at the boot stop, at a
+       breakpoint, after a step, and at a pause (rete#311). Reads `dbg:*` lines until
+       `dbg:continue` / `dbg:run` (resume; a bp re-fires on its next visit) or EOF
+       (detach: resume, never stop again on our account). `dbg:pause` here is a line
+       that has already done its work by arriving -- answered, not acted on. *)
     public commandLoop = (
       | line verb |
       [ true ] whileTrue: [
         line:: io readLine.
-        line == nil ifTrue: [ ^ self ].
-        verb:: self verbOf: line.
-        (* dbg:continue: a STEP continue must clear stepMode AND requestStep: 0,
-           else was_stepping keeps the app single-stepping forever; for a plain
-           breakpoint continue requestStep: 0 is harmless (single_step already 0). *)
-        verb = 'dbg:continue' ifTrue: [ stepMode:: nil. m requestStep: 0. ^ self ] ifFalse: [
+        (* dbg:continue, or EOF: a STEP continue must clear stepMode AND requestStep: 0,
+           else was_stepping keeps the app single-stepping forever; the boot stop and a
+           pause arrived as a step too, so the 0 is what lets the program run. *)
+        (line == nil or: [ verb:: self verbOf: line. verb = 'dbg:continue' or: [ verb = 'dbg:run' ] ])
+          ifTrue: [ stepMode:: nil. m requestStep: 0. ^ self ].
+        verb = 'dbg:pause' ifTrue: [ 'dbg:ok pause' println ] ifFalse: [
         verb = 'dbg:methods' ifTrue: [ self listMethods ] ifFalse: [
         verb = 'dbg:break' ifTrue: [ self doBreak: line ] ifFalse: [
         verb = 'dbg:clear' ifTrue: [ self doClear: line ] ifFalse: [

@@ -1,7 +1,12 @@
+/* sigaction, F_SETOWN and O_ASYNC under -std=c99 (the host gates build with it). */
+#define _GNU_SOURCE
 #include "platform_backend.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <unistd.h>
 /* POSIX (x86-linux / macOS desktop) console backend: stdout via ISO C stdio.
    The flush on newline closes the long-deferred std-lib step-1 minor (platform
    print:/printNewline: were unflushed). platform_zephyr.c (printk) /
@@ -13,13 +18,42 @@ void platform_console_flush(void) {
     fflush(stdout);
 }
 static volatile int debug_held;
+volatile int platform_debug_pending;
+
+/* dbg:pause on the host (platform_backend.h): SIGIO on stdin is the posix stand-in for
+   the board's UART interrupt — raised when input lands while the VM is not in
+   readline, lowered as readline consumes a line. The line is read byte by byte with
+   read(2) rather than fgets so stdio never holds a line the VM has not seen. Armed on
+   the first read, as the board arms its ISR; SA_RESTART so the VM's blocking reads are
+   not cut short. A regular file never raises SIGIO (a pipe or tty does), which is fine:
+   a file cannot want to stop anything. The descriptor is stdin's, not 0: a C test swaps
+   the stdin FILE for a temp file and expects readLine to follow it. */
+static void on_sigio(int sig) { (void)sig; if (!debug_held) platform_debug_pending = 1; }
+static void arm_sigio(void) {
+    struct sigaction sa;
+    memset(&sa, 0, sizeof sa);
+    sa.sa_handler = on_sigio;
+    sa.sa_flags = SA_RESTART;
+    sigaction(SIGIO, &sa, NULL);
+    fcntl(fileno(stdin), F_SETOWN, getpid());
+    fcntl(fileno(stdin), F_SETFL, fcntl(fileno(stdin), F_GETFL) | O_ASYNC);
+}
 int platform_debug_readline(char *buf, int cap) {
+    static int armed;
+    int n = 0;
+    if (!armed) { arm_sigio(); armed = 1; }
     debug_held = 1;
-    char *got = fgets(buf, cap, stdin);
+    for (;;) {
+        char c;
+        ssize_t r = read(fileno(stdin), &c, 1);   /* fileno, not 0: test_debugger.c swaps stdin */
+        if (r <= 0) { debug_held = 0; platform_debug_pending = 0; return -1; }
+        if (c == '\n') break;
+        if (c == '\r') continue;
+        if (n < cap - 1) buf[n++] = c;
+    }
     debug_held = 0;
-    if (got == NULL) return -1;
-    int n = (int)strlen(buf);
-    while (n > 0 && (buf[n-1] == '\n' || buf[n-1] == '\r')) buf[--n] = '\0';
+    platform_debug_pending = 0;
+    buf[n] = '\0';
     return n;
 }
 int platform_debug_enabled(void) { return getenv("OEVM_DEBUG") != NULL; }
