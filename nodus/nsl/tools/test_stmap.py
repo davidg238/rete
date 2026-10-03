@@ -11,13 +11,19 @@ def test_build_stmap_shape():
     doc = json.loads(out)
     assert doc == {
         "source": "foo.nsl",
+        "entry": None,
         "functions": {"Bar>>baz": [[0, 3], [2, 4]]},
     }
 
 
+def test_build_stmap_names_the_entry():
+    doc = json.loads(build_stmap("foo.nsl", {"Bar>>baz": [(0, 3)]}, entry="Bar"))
+    assert doc["entry"] == "Bar"
+
+
 def test_build_stmap_empty():
     doc = json.loads(build_stmap("x.nsl", {}))
-    assert doc == {"source": "x.nsl", "functions": {}}
+    assert doc == {"source": "x.nsl", "entry": None, "functions": {}}
 
 
 def test_build_stmap_multiple_functions_preserve_order():

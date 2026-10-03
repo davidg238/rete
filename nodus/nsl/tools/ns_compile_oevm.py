@@ -2297,7 +2297,8 @@ def main():
     # jast-gw debug viewer consumes ns-oevm and st-berry maps identically.
     stmap_path = os.path.splitext(out_c)[0] + ".stmap"
     with open(stmap_path, "w", encoding="utf-8") as f:
-        f.write(build_stmap(os.path.basename(src_ns), compiler.source_maps))
+        f.write(build_stmap(os.path.basename(src_ns), compiler.source_maps,
+                            entry=next(iter(compiler.all_classes.keys()), None)))
 
     # Execute-in-place image backend: serialize the app graph to a .oimg blob
     # instead of emitting fused C (Model A). The entry class is the first

@@ -24,6 +24,10 @@ identically for both paths; only the builder and driver differ.
           must let it finish. Path B only: stopping is the VM's and the backend's
           (SIGIO on stdin here, the UART ISR on a board), not the image path's.
 
+  dbg.py (rete#311): the same target driven through the person's front end, by
+          source line: break by line, stop shown as a line, a pause, a block line
+          refused by name. Its translations are unit-tested in test_dbg.py.
+
 Exits non-zero on failure.
 """
 import os, re, subprocess, sys
@@ -456,6 +460,61 @@ def run_path_b_pause():
 
 
 # ---------------------------------------------------------------------------
+# The person's front end: source lines in, source lines out (rete#311, dbg.py)
+# ---------------------------------------------------------------------------
+
+def run_path_b_frontend():
+    """Drive tools/dbg.py, as a person would, against the pause target the case above
+    built: a breakpoint by LINE lands at that line and shows it, a pause of the running
+    program is answered as a stop, a line inside a block is refused by name rather than
+    mapped to its home method, and the program finishes. Every `--` line is dbg.py's
+    translation of a dbg:* line, so a wrong id, offset or line fails here."""
+    import pexpect
+    src = os.path.basename(PAUSE_APP)
+    env = {**os.environ, "OEVM_TIMER_WALLCLOCK": "1"}
+    child = pexpect.spawn(sys.executable,
+                          [os.path.join(HERE, "dbg.py"), "--stmap", PAUSE_OIMG_B[:-len(".oimg")] + ".stmap",
+                           "--source", PAUSE_APP, "--", BINARY_B, PAUSE_OIMG_B],
+                          cwd=OEVM, env=env, encoding="utf-8", timeout=15)
+    transcript = []
+
+    def see(pattern):
+        child.expect(pattern)
+        transcript.append(child.after.strip())
+
+    try:
+        see(r"-- stopped at boot")
+        # The pause first, while nothing has held the program: a hold lets the 200 ms
+        # timer queue ticks, and a queued tick prints before any pause can land.
+        child.sendline("continue")
+        see(r"tick 1")
+        child.sendline("pause")
+        which = child.expect([r"-- stopped \(pause\)[^\r\n]*", r"tick 2"])
+        assert which == 0, "dbg.py's pause did not stop the running program before tick 2"
+        transcript.append(child.after.strip())
+        child.sendline("break 37")
+        see(r"-- break %s:37  countTo:" % re.escape(src))
+        see(r"dbg:ok break")
+        child.sendline("continue")
+        see(r"-- stopped \(break\) at %s:37  countTo:" % re.escape(src))
+        see(r"37 \|     1 to: n do:")
+        child.sendline("clear 37")
+        see(r"dbg:ok clear")
+        child.sendline("break 26")
+        see(r"-- line 26 is in DebugPauseTarget_block2>>value:")
+        child.sendline("continue")
+        see(r"done")
+        see(r"-- the program ended")
+        child.expect(pexpect.EOF)
+    finally:
+        try:
+            child.close()
+        except Exception:
+            pass
+    return "\n".join(transcript)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -480,6 +539,12 @@ def main():
         print("test_debugger_integration: PASSED (Path B, dbg:pause)")
         print("--- pause transcript ---")
         print(transcript_p)
+
+        print("\n=== Path B: dbg.py, by source line ===")
+        transcript_f = run_path_b_frontend()
+        print("test_debugger_integration: PASSED (Path B, dbg.py front end)")
+        print("--- front-end transcript ---")
+        print(transcript_f)
 
         print(f"\nAll assertions passed on both paths (over/out anchored: "
               f"over->step {cid_b} 1, out->step {main_id_b} 6)")

@@ -1258,6 +1258,9 @@ def main():
     # same pair. That gate is standalone, so nothing here collides; two concurrent nsl
     # suites would, and were already forbidden for sharing /tmp paths.
     tutorial_porta = run_tutorial_gate("03-porta.md", "tutorial-porta", needs=("go",))
+    # rete#311: the debugger's page for a person, executed like page 1 (it reuses the same
+    # /tmp/oevm_img and layout). Its board half is prose.
+    tutorial_dbg = run_tutorial_gate("04-debugger.md", "tutorial-debugger")
     # 02-board.md is PROSE — no bash blocks, and its banner says why. Only its scenario
     # table is checkable on a host, and only by name. See run_tutorial_board_gate.
     tutorial_board = run_tutorial_board_gate()
@@ -1273,6 +1276,7 @@ def main():
                 and nsl_tools_py != "FAIL" and protocol_py != "FAIL"
                 and gwprof_py != "FAIL" and tutorial != "FAIL"
                 and tutorial_porta != "FAIL" and tutorial_board != "FAIL"
+                and tutorial_dbg != "FAIL"
                 and porta_cli != "FAIL")
     print(f"\n{COLOR_GREEN if suite_ok else COLOR_RED}Test Execution Summary:{COLOR_RESET}")
     print(f"  Passed:  {passed}")
@@ -1309,6 +1313,7 @@ def main():
           f"tutorial-host: {_mark(tutorial)}  "
           f"tutorial-porta: {_mark(tutorial_porta)}  "
           f"tutorial-board: {_mark(tutorial_board)}  "
+          f"tutorial-debugger: {_mark(tutorial_dbg)}  "
           f"porta-cli: {_mark(porta_cli)}")
 
     # NOT a skip, and deliberately not coloured like one: a skip names a cause it

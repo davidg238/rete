@@ -30,9 +30,12 @@ wrote down (`design/2026-08-02-rete-repo-consolidation-design.md`, fate table ro
   diff, the write log in both directions, and the manifest gate refusing a mis-kinded
   write. Needs a Go toolchain; it binds udp 16969/16970, so it cannot run beside
   `nodus/oevm/tests/porta_sync_host.sh`.
+- `tutorials/04-debugger.md` — the debugger for a person: stop at a line, step by line,
+  finish, inspect, pause a running program, on the desktop and over a C6's cable
+  (`nodus/nsl/tools/dbg.py`, rete#311). The board half is prose.
 
-  **Every `bash gate` block on pages 1 and 3 is run by the nsl suite** (`tutorials/gate.sh`,
-  the `tutorial-host` and `tutorial-porta` aux gates), so a stale step reads red. A new
+  **Every `bash gate` block on pages 1, 3 and 4 is run by the nsl suite** (`tutorials/gate.sh`,
+  the `tutorial-host`, `tutorial-porta` and `tutorial-debugger` aux gates), so a stale step reads red. A new
   gated tutorial is one more call to `run_tutorial_gate()`. Page 2 has no such blocks and
   cannot: it needs a devkit, a toolchain and a mesh, and a gate that degraded to a SKIP
   without them would report success for a run that never happened — which is exactly what

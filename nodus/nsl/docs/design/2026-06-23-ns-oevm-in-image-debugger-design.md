@@ -240,3 +240,34 @@ tells them apart by vtable identity against an exemplar and prints a bracketed n
 Proof: `tools/test_debugger_integration.py` (Path B, pexpect, a 200 ms wall-clock
 ticker paused before its second tick) and `zephyr/tools/dbg_session.py` on a C6
 (record part 3).
+
+## Addendum — the front end for a person (2026-10-02, rete#311)
+
+**The VM's protocol stays ids and offsets; the translation lives in a host tool.**
+`tools/dbg.py` sits between a person and the `dbg:*` line (a host VM it starts, or a
+board's cable) and turns `break <line>` into `dbg:break <id> <off>` and every
+`dbg:paused` into a file, a line and its source. Nothing in the image changed for it.
+Two inputs, both already there: the `.stmap` (offset → line per method) and
+`dbg:methods` (id → selector). One field was missing to join them: the stmap now names
+its **`entry`** class, because the registry is the entry's vtable chain and a selector
+alone does not say which of the file's classes owns it.
+
+- **A line resolves only inside a method of the entry class**: the narrowest method of
+  this file whose lines span it. Narrowest because a block the compiler keeps as a block
+  (`<Entry>_blockN>>value:`) sits inside its home's span; taking the span would set the
+  breakpoint on a later line of the home. Such a line, or one in another class, is
+  refused by name rather than guessed. Earning more: a registry that lists blocks and
+  the file's other classes.
+- **`step`/`next` are line-granular by repetition**: bytecode steps until the line
+  changes, a breakpoint or the end intervenes, or `LINE_STEP_LIMIT` runs out (a safety
+  stop, not a tuned number; nothing has needed a different one). The single-bytecode
+  verbs pass through as `dbg:step`.
+- **`inspect` stays registers**: the stmap carries no local names.
+
+Proof: `tools/test_dbg.py` (the translations, each falsified once), the
+`debugger-integration` gate's `dbg.py` case (break by line, pause, block refusal, on
+the host VM), and `docs/tutorials/04-debugger.md`, executed as the `tutorial-debugger`
+aux gate; on a C6 over its cable, `docs/results/2026-10-02-311-line-in-spike.md` part 4.
+**Found:** the step path never consults the breakpoint table, so `next` over a call and
+`finish` pass breakpoints, and `finish` out of a method that never returns leaves the
+program stepping (rete#321, P3).
