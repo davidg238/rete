@@ -41,7 +41,7 @@ func (n *fakeNode) roundTrip(req []byte) []byte {
 
 func (n *fakeNode) pull() []space.Entry {
 	n.t.Helper()
-	req, err := wire.EncodePull(n.id, n.cursor, n.bootID, 0)
+	req, err := wire.EncodePull(n.id, n.cursor, n.bootID, 0, 0)
 	if err != nil {
 		n.t.Fatal(err)
 	}
@@ -191,7 +191,7 @@ func TestLoopbackGate(t *testing.T) {
 // setup, so there is no event that says "the server is bound" — only a reply.
 func waitForListener(t *testing.T, n *fakeNode) {
 	t.Helper()
-	req, err := wire.EncodePull(n.id, 0, n.bootID, 0)
+	req, err := wire.EncodePull(n.id, 0, n.bootID, 0, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

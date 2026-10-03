@@ -93,12 +93,13 @@ func listToEntries(v any) ([]space.Entry, error) {
 	return out, nil
 }
 
-func EncodePull(id string, cursor, bootID, hw int64) ([]byte, error) {
+func EncodePull(id string, cursor, bootID, hw, wak int64) ([]byte, error) {
 	return cval.Encode(cval.Record{Tag: "pull", Fields: cval.Map{
 		{K: cval.Symbol("id"), V: id},
 		{K: cval.Symbol("cursor"), V: cursor},
 		{K: cval.Symbol("bid"), V: bootID},
 		{K: cval.Symbol("hw"), V: hw},
+		{K: cval.Symbol("wak"), V: wak},
 	}})
 }
 

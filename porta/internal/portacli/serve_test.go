@@ -307,10 +307,13 @@ func TestSweepLivenessLogsOnlyTransitions(t *testing.T) {
 	if err := st.StartRun(); err != nil {
 		t.Fatal(err)
 	}
-	st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
-	st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
-	for i := 0; i < 4; i++ {
-		clock += 2_000
+	// Counted pulls (#wak, rete#272 D3.3): silence is the age of the count, so
+	// a node whose pulls carry none would read #unknown, not #silent.
+	for i := int64(0); i < 5; i++ {
+		if i > 0 {
+			clock += 2_000
+		}
+		st.NoteCheckIn("n1", 0, 0, 41, i+1)
 		st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
 		st.RecordExchange("n1", 41, 0, 0, 0, 0, "")
 	}

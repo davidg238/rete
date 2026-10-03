@@ -67,7 +67,7 @@ func dropHarness(t *testing.T, dropEvery int) (*Server, *space.Store, func(seq i
 
 	pull := func(cursor int64) (int64, []space.Entry, bool) {
 		t.Helper()
-		req, err := EncodePull("n1", cursor, 1, 0)
+		req, err := EncodePull("n1", cursor, 1, 0, 0)
 		if err != nil {
 			t.Fatalf("EncodePull: %v", err)
 		}

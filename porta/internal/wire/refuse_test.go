@@ -44,7 +44,7 @@ func TestRefuseAll(t *testing.T) {
 	srv, st := testServer(t)
 	srv.SetRefuseAll(true)
 
-	pull, err := EncodePull("n1", 0, 7, 0)
+	pull, err := EncodePull("n1", 0, 7, 0, 0)
 	if err != nil {
 		t.Fatalf("EncodePull: %v", err)
 	}

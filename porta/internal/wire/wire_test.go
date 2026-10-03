@@ -36,7 +36,7 @@ func TestPullDeliversGoalWrite(t *testing.T) {
 	srv, st := testServer(t)
 	st.Write("n1", "goal/name", cval.KindCell, mustEnc(t, "alpha"), "david", "")
 
-	req, _ := EncodePull("n1", 0, 7, 0)
+	req, _ := EncodePull("n1", 0, 7, 0, 0)
 	hi, entries, err := DecodeBatch(srv.Handle(req))
 	if err != nil {
 		t.Fatalf("DecodeBatch: %v", err)
@@ -54,7 +54,7 @@ func TestPullDeliversGoalWrite(t *testing.T) {
 func TestPullAtHighWaterIsEmpty(t *testing.T) {
 	srv, st := testServer(t)
 	st.Write("n1", "goal/name", cval.KindCell, mustEnc(t, "alpha"), "david", "")
-	req, _ := EncodePull("n1", 1, 7, 0)
+	req, _ := EncodePull("n1", 1, 7, 0, 0)
 	hi, entries, err := DecodeBatch(srv.Handle(req))
 	if err != nil {
 		t.Fatalf("DecodeBatch: %v", err)
@@ -95,7 +95,7 @@ func TestRebootedNodeIsNotMistakenForADuplicate(t *testing.T) {
 	// A long first session: the node applies a goal write (cursor 1) and its own
 	// counter reaches seq 40.
 	st.Write("n1", "goal/name", cval.KindCell, mustEnc(t, "alpha"), "david", "")
-	pull, _ := EncodePull("n1", 1, 1, 0)
+	pull, _ := EncodePull("n1", 1, 1, 0, 0)
 	srv.Handle(pull)
 	req, _ := EncodePush("n1", 1, []space.Entry{
 		{Seq: 40, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
@@ -108,7 +108,7 @@ func TestRebootedNodeIsNotMistakenForADuplicate(t *testing.T) {
 	// what says "restart" rather than "the last ack was lost" — the cursor and
 	// watermark also go backwards, but so do they on a missed ack, which is why
 	// the boot counter and not that pair is the evidence (see Store.NoteCheckIn).
-	pull, _ = EncodePull("n1", 0, 2, 0)
+	pull, _ = EncodePull("n1", 0, 2, 0, 0)
 	if _, _, err := DecodeBatch(srv.Handle(pull)); err != nil {
 		t.Fatalf("pull after reboot: %v", err)
 	}
@@ -142,7 +142,7 @@ func TestRebootedNodeIsNotMistakenForADuplicate(t *testing.T) {
 func TestRebootReusesSeqValues(t *testing.T) {
 	srv, st := testServer(t)
 	st.Write("n1", "goal/name", cval.KindCell, mustEnc(t, "alpha"), "david", "")
-	pull, _ := EncodePull("n1", 1, 1, 0) // first boot, goal applied
+	pull, _ := EncodePull("n1", 1, 1, 0, 0) // first boot, goal applied
 	srv.Handle(pull)
 	first, _ := EncodePush("n1", 1, []space.Entry{
 		{Seq: 1, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "boot1-a")},
@@ -150,7 +150,7 @@ func TestRebootReusesSeqValues(t *testing.T) {
 	})
 	srv.Handle(first)
 
-	pull, _ = EncodePull("n1", 0, 2, 0) // rebooted: boot counter 1 -> 2
+	pull, _ = EncodePull("n1", 0, 2, 0, 0) // rebooted: boot counter 1 -> 2
 	srv.Handle(pull)
 
 	second, _ := EncodePush("n1", 2, []space.Entry{
@@ -197,7 +197,7 @@ func TestMissedAckIsNotMistakenForAReboot(t *testing.T) {
 	st.Write("n1", "goal/name", cval.KindCell, mustEnc(t, "alpha"), "david", "")
 
 	// The node pulls, applies goal/name, and pushes. porta commits at hw 5.
-	pull, _ := EncodePull("n1", 0, 1, 0)
+	pull, _ := EncodePull("n1", 0, 1, 0, 0)
 	srv.Handle(pull)
 	push, _ := EncodePush("n1", 1, []space.Entry{
 		{Seq: 5, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one")},
@@ -206,7 +206,7 @@ func TestMissedAckIsNotMistakenForAReboot(t *testing.T) {
 
 	// The ack is lost. The node's watermark stays at 4 — but its cursor does
 	// not move backwards, because it applied the batch.
-	pull, _ = EncodePull("n1", 1, 1, 4)
+	pull, _ = EncodePull("n1", 1, 1, 4, 0)
 	srv.Handle(pull)
 	srv.Handle(push) // the same rows, re-offered
 
@@ -236,7 +236,7 @@ func TestNodePortaHasNeverWrittenToStillDetectsAReboot(t *testing.T) {
 
 	// A long first boot. No goal is ever written to this node, so its cursor
 	// stays 0 for the whole of its life — exactly c6-bell's situation.
-	pull, _ := EncodePull("n1", 0, 1, 0)
+	pull, _ := EncodePull("n1", 0, 1, 0, 0)
 	srv.Handle(pull)
 	push, _ := EncodePush("n1", 1, []space.Entry{
 		{Seq: 3981, Path: "obs/build", Kind: cval.KindCell, Value: mustEnc(t, "old")},
@@ -247,7 +247,7 @@ func TestNodePortaHasNeverWrittenToStillDetectsAReboot(t *testing.T) {
 
 	// Repower. The cursor is 0 and was 0 — no signal there, and never will be.
 	// The boot counter is the only thing that moved.
-	pull, _ = EncodePull("n1", 0, 2, 0)
+	pull, _ = EncodePull("n1", 0, 2, 0, 0)
 	srv.Handle(pull)
 	push, _ = EncodePush("n1", 2, []space.Entry{
 		{Seq: 1, Path: "obs/build", Kind: cval.KindCell, Value: mustEnc(t, "new")},
@@ -275,7 +275,7 @@ func TestNodePortaHasNeverWrittenToStillDetectsAReboot(t *testing.T) {
 // fix for it. Hence the same test in both places.
 func TestLostPullStillRewindsOnThePush(t *testing.T) {
 	srv, st := testServer(t)
-	pull, _ := EncodePull("n1", 0, 1, 0)
+	pull, _ := EncodePull("n1", 0, 1, 0, 0)
 	srv.Handle(pull)
 	push, _ := EncodePush("n1", 1, []space.Entry{
 		{Seq: 500, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
@@ -308,7 +308,7 @@ func TestLostPullStillRewindsOnThePush(t *testing.T) {
 // must not also be actively corrupted.
 func TestNoPersistentBootIdentityDoesNotGuess(t *testing.T) {
 	srv, _ := testServer(t)
-	pull, _ := EncodePull("n1", 0, 0, 0)
+	pull, _ := EncodePull("n1", 0, 0, 0, 0)
 	srv.Handle(pull)
 	push, _ := EncodePush("n1", 0, []space.Entry{
 		{Seq: 7, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one")},
@@ -316,7 +316,7 @@ func TestNoPersistentBootIdentityDoesNotGuess(t *testing.T) {
 	srv.Handle(push)
 
 	// A missed ack on a node with no boot identity. The watermark must hold.
-	pull, _ = EncodePull("n1", 0, 0, 0)
+	pull, _ = EncodePull("n1", 0, 0, 0, 0)
 	srv.Handle(pull)
 	if hw, _ := DecodeAck(srv.Handle(push)); hw != 7 {
 		t.Fatalf("hw = %d, want 7 — a bootId of 0 was treated as evidence of a reboot", hw)
@@ -329,7 +329,7 @@ func TestNoPersistentBootIdentityDoesNotGuess(t *testing.T) {
 func TestStalePullDoesNotDuplicate(t *testing.T) {
 	srv, st := testServer(t)
 	st.Write("n1", "goal/name", cval.KindCell, mustEnc(t, "alpha"), "david", "")
-	pull, _ := EncodePull("n1", 1, 1, 0)
+	pull, _ := EncodePull("n1", 1, 1, 0, 0)
 	srv.Handle(pull)
 	push, _ := EncodePush("n1", 1, []space.Entry{
 		{Seq: 5, Path: "tel/log", Kind: cval.KindStream, Value: mustEnc(t, "one")},
@@ -411,7 +411,7 @@ func TestReplayedPushLogsSkipCount(t *testing.T) {
 // Every exchange is logged — the heartbeat and the replay index (D4.3).
 func TestExchangeIsLogged(t *testing.T) {
 	srv, st := testServer(t)
-	req, _ := EncodePull("n1", 0, 7, 0)
+	req, _ := EncodePull("n1", 0, 7, 0, 0)
 	srv.Handle(req)
 	var n int
 	if err := st.DB().QueryRow(`SELECT COUNT(*) FROM exchanges WHERE node_id='n1'`).Scan(&n); err != nil {
@@ -460,7 +460,7 @@ func TestEncodedBatchFitsTheRadioCap(t *testing.T) {
 			t.Fatalf("Write %s: %v", p, err)
 		}
 	}
-	req, _ := EncodePull("n1", 0, 7, 0)
+	req, _ := EncodePull("n1", 0, 7, 0, 0)
 	resp := srv.Handle(req)
 	if len(resp) > space.MaxBatchBytes {
 		hi, entries, _ := DecodeBatch(resp)
@@ -478,7 +478,7 @@ func TestBatchHiMatchesTheLastDeliveredEntry(t *testing.T) {
 	for _, p := range []string{"goal/a", "goal/b", "goal/c", "goal/d"} {
 		st.Write("n1", p, cval.KindCell, big, "david", "")
 	}
-	req, _ := EncodePull("n1", 0, 7, 0)
+	req, _ := EncodePull("n1", 0, 7, 0, 0)
 	hi, entries, err := DecodeBatch(srv.Handle(req))
 	if err != nil {
 		t.Fatalf("DecodeBatch: %v", err)
@@ -506,7 +506,7 @@ func TestTrimmedBatchesStillConverge(t *testing.T) {
 	seen := map[string]bool{}
 	cursor := int64(0)
 	for round := 0; round < 10 && len(seen) < len(paths); round++ {
-		req, _ := EncodePull("n1", cursor, 7, 0)
+		req, _ := EncodePull("n1", cursor, 7, 0, 0)
 		resp := srv.Handle(req)
 		if len(resp) > space.MaxBatchBytes {
 			t.Fatalf("round %d: batch is %d bytes, over the cap", round, len(resp))
@@ -544,7 +544,7 @@ func TestColdBootDoesNotReExecuteAckedStreams(t *testing.T) {
 	st.Write("c6", "dbg/req", cval.KindStream, mustEnc(t, "profile-2"), "david", "") // seq 3
 
 	// Boot 41: first pull delivers all three.
-	req, _ := EncodePull("c6", 0, 41, 0)
+	req, _ := EncodePull("c6", 0, 41, 0, 0)
 	hi, entries, err := DecodeBatch(srv.Handle(req))
 	if err != nil {
 		t.Fatalf("boot 41 pull: %v", err)
@@ -554,13 +554,13 @@ func TestColdBootDoesNotReExecuteAckedStreams(t *testing.T) {
 	}
 	// The node applies the batch and its next pull declares cursor 3 — that
 	// declaration is the application receipt the guard is built on.
-	req, _ = EncodePull("c6", 3, 41, 0)
+	req, _ = EncodePull("c6", 3, 41, 0, 0)
 	if _, entries, err = DecodeBatch(srv.Handle(req)); err != nil || len(entries) != 0 {
 		t.Fatalf("boot 41 idle pull: err=%v entries=%d, want empty", err, len(entries))
 	}
 
 	// Boot 42: cold boot, RAM cursor gone, cursor 0 — the #262 moment.
-	req, _ = EncodePull("c6", 0, 42, 0)
+	req, _ = EncodePull("c6", 0, 42, 0, 0)
 	hi, entries, err = DecodeBatch(srv.Handle(req))
 	if err != nil {
 		t.Fatalf("boot 42 pull: %v", err)
@@ -582,17 +582,53 @@ func TestImpossibleCursorIsRefusedNotRecorded(t *testing.T) {
 	st.Write("c6", "goal/name", cval.KindCell, mustEnc(t, "bell"), "david", "")    // seq 1
 	st.Write("c6", "dbg/req", cval.KindStream, mustEnc(t, "profile"), "david", "") // seq 2
 
-	req, _ := EncodePull("c6", 500, 41, 0)
+	req, _ := EncodePull("c6", 500, 41, 0, 0)
 	if _, _, err := DecodeBatch(srv.Handle(req)); err == nil {
 		t.Fatal("a cursor beyond the store's out-seq was answered with a batch, want #err")
 	}
 
-	req, _ = EncodePull("c6", 0, 42, 0) // the reboot that resyncs
+	req, _ = EncodePull("c6", 0, 42, 0, 0) // the reboot that resyncs
 	hi, entries, err := DecodeBatch(srv.Handle(req))
 	if err != nil {
 		t.Fatalf("post-reboot pull: %v", err)
 	}
 	if len(entries) != 2 || hi != 2 {
 		t.Fatalf("post-reboot replay hi=%d entries=%+v, want both rows — the refused exchange must have recorded nothing", hi, entries)
+	}
+}
+
+// rete#272 D3.3, deploy order: nodes are flashed before the gateway is restarted,
+// so a handler that has never heard of #wak must still serve a pull that carries
+// it. Written and run GREEN before handlePull was changed; after the change it
+// is the ordinary happy path.
+func TestPullCarryingACountIsServed(t *testing.T) {
+	srv, _ := testServer(t)
+	req, err := cval.Encode(cval.Record{Tag: "pull", Fields: cval.Map{
+		{K: cval.Symbol("id"), V: "n1"},
+		{K: cval.Symbol("cursor"), V: int64(0)},
+		{K: cval.Symbol("bid"), V: int64(41)},
+		{K: cval.Symbol("hw"), V: int64(0)},
+		{K: cval.Symbol("wak"), V: int64(7)},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := DecodeBatch(srv.Handle(req)); err != nil {
+		t.Fatalf("a pull carrying #wak was not answered with a batch: %v", err)
+	}
+}
+
+// Review Focus 1: closed decoding. A peer that cannot name its count is
+// mis-versioned, exactly as one that cannot name its watermark is.
+func TestPullWithoutACountIsRefused(t *testing.T) {
+	srv, _ := testServer(t)
+	req, _ := cval.Encode(cval.Record{Tag: "pull", Fields: cval.Map{
+		{K: cval.Symbol("id"), V: "n1"},
+		{K: cval.Symbol("cursor"), V: int64(0)},
+		{K: cval.Symbol("bid"), V: int64(41)},
+		{K: cval.Symbol("hw"), V: int64(0)},
+	}})
+	if msg := decodeErrReply(t, srv.Handle(req)); !strings.Contains(msg, "wak") { // refuse_test.go's reader
+		t.Fatalf("reply = %q, want an #err naming wak", msg)
 	}
 }

@@ -3,14 +3,10 @@
 // internal/space/progress.go
 package space
 
-import (
-	"database/sql"
+import "database/sql"
 
-	"github.com/davidg238/porta/internal/cval"
-)
-
-// Sample is one reading of a node's progress counter: obs/health's `wak` (the
-// bridge's tick count, one per declared period) and the moment porta stored it.
+// Sample is one reading of a node's progress counter: the count the node sent
+// in a pull (`#wak`, one per check-in) and the moment porta heard it (rete#272 D3.3).
 type Sample struct {
 	Wak  int64
 	AtMs int64
@@ -22,39 +18,6 @@ type Sample struct {
 type Mark struct {
 	Sample
 	CadMs int64
-}
-
-// LatestSample reads wak out of the node's obs/health cell. ok is false when
-// there is no cell, or the record carries no integer wak — never an error, for
-// DeclaredLiveness' reason: one garbled record must not cost the fleet its sweep.
-func (s *Store) LatestSample(nodeID string) (Sample, bool, error) {
-	var raw []byte
-	var at int64
-	err := s.db.QueryRow(
-		`SELECT value_cbor, ts_ms FROM cells WHERE node_id = ? AND path = ?`,
-		nodeID, PathHealth).Scan(&raw, &at)
-	if err == sql.ErrNoRows {
-		return Sample{}, false, nil
-	}
-	if err != nil {
-		return Sample{}, false, err
-	}
-	v, err := cval.Decode(raw)
-	if err != nil {
-		return Sample{}, false, nil
-	}
-	rec, ok := v.(cval.Record)
-	if !ok || rec.Tag != "Health" {
-		return Sample{}, false, nil
-	}
-	for _, p := range rec.Fields {
-		if k, ok := p.K.(cval.Symbol); ok && k == "wak" {
-			if n, ok := p.V.(int64); ok {
-				return Sample{Wak: n, AtMs: at}, true, nil
-			}
-		}
-	}
-	return Sample{}, false, nil
 }
 
 // MarkOf reads the node's mark. ok is false while any of the three is NULL.
@@ -79,5 +42,14 @@ func (s *Store) SetMark(nodeID string, m Mark) error {
 	_, err := s.db.Exec(
 		`UPDATE nodes SET mark_wak = ?, mark_ms = ?, mark_cad = ? WHERE id = ?`,
 		m.Wak, m.AtMs, m.CadMs, nodeID)
+	return err
+}
+
+// ForgetMark drops the node's mark. A verdict past the budget does this: the
+// conversation the mark belonged to is over, and a node that returns is judged
+// from its first new sample, never across the silence (rete#272 D3.3).
+func (s *Store) ForgetMark(nodeID string) error {
+	_, err := s.db.Exec(
+		`UPDATE nodes SET mark_wak = NULL, mark_ms = NULL, mark_cad = NULL WHERE id = ?`, nodeID)
 	return err
 }

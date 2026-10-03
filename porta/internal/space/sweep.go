@@ -53,7 +53,7 @@ func mustEncode(v any) []byte {
 type LivenessChange struct {
 	NodeID   string
 	Verdict  string // live | silent | neverSeen | unknown | stalled
-	SinceMs  int64  // how long since the node was last heard from, at the verdict
+	SinceMs  int64  // the age of the latest sample (before one: of the last exchange)
 	BudgetMs int64  // telCad x misses, both from the NODE; 0 when it declared none
 	TelCadMs int64  // the cadence the node declared; 0 when it declared none
 	Misses   int64  // the consecutive misses it tolerates; 0 when it declared none
@@ -62,8 +62,10 @@ type LivenessChange struct {
 // Sweep forms one liveness verdict per node and writes gw/liveness ONLY where
 // the verdict differs from the one already stored.
 //
-// THERE ARE TWO RULES AND NO CONSTANTS IN EITHER. Arrival judges silence:
-// now - last_seen > bud, where bud = telCad x misses, both declared by the NODE at obs/liveness
+// THERE ARE TWO RULES AND NO CONSTANTS IN EITHER, and both read ONE sample:
+// the count the node sends in every pull (#wak) and the moment porta heard it
+// (rete#272 D3.3). Silence is the sample's age:
+// now - wak_ms > bud, where bud = telCad x misses, both declared by the NODE at obs/liveness
 // (rete#273 D2 — there is no bud on the wire, so an incoherent pair is
 // unrepresentable). porta infers nothing (rete#231 D4) and contributes no
 // number; the ONE case it declines is a product below its own SweepTick
@@ -77,9 +79,13 @@ type LivenessChange struct {
 // inference because the declaration did not exist. It does now.
 //
 // Inside the budget, the rate judges progress (judgeProgress): a node whose
-// datagrams arrive but whose own tick counter is a whole declared period behind
-// is #stalled, because arrival alone called a wedged-but-talking node #live
-// (rete#272 D3, model-checked before the Go was written).
+// pulls arrive but whose count is a whole declared period behind is #stalled,
+// because arrival alone called a wedged-but-talking node #live (rete#272 D3,
+// model-checked before the Go was written). The count rides the PULL because
+// the pull is built fresh every tick; the push frame is re-sent unchanged until
+// acked (rete#199), so a count there would be stale exactly when it mattered
+// (D3.3). An image whose pulls carry no count reads #unknown — there is no
+// arrival-only fallback.
 //
 // Why a ticker and not a lazy read-time view (2026-08-10 §6.3): the failure this
 // must catch is porta hearing NOTHING, and a system that evaluates only when
@@ -125,7 +131,7 @@ func (s *Store) Sweep() ([]LivenessChange, error) {
 		return nil, fmt.Errorf("marking the gateway alive: %w", err)
 	}
 	rows, err := s.db.Query(`
-		SELECT n.id, n.last_seen_ms, COALESCE(c.value_cbor, x'')
+		SELECT n.id, n.last_seen_ms, n.wak, n.wak_ms, COALESCE(c.value_cbor, x'')
 		FROM nodes n
 		LEFT JOIN cells c ON c.node_id = n.id AND c.path = ?
 		ORDER BY n.id`, PathLiveness)
@@ -135,12 +141,14 @@ func (s *Store) Sweep() ([]LivenessChange, error) {
 	type row struct {
 		id       string
 		lastSeen sql.NullInt64
+		wak      sql.NullInt64
+		wakMs    sql.NullInt64
 		stored   []byte
 	}
 	var nodes []row
 	for rows.Next() {
 		var r row
-		if err := rows.Scan(&r.id, &r.lastSeen, &r.stored); err != nil {
+		if err := rows.Scan(&r.id, &r.lastSeen, &r.wak, &r.wakMs, &r.stored); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -154,7 +162,11 @@ func (s *Store) Sweep() ([]LivenessChange, error) {
 	var changes []LivenessChange
 	var errs []error
 	for _, n := range nodes {
-		j, err := s.verdictFor(n.id, n.lastSeen, n.stored, now)
+		var latest *Sample
+		if n.wak.Valid && n.wakMs.Valid {
+			latest = &Sample{Wak: n.wak.Int64, AtMs: n.wakMs.Int64}
+		}
+		j, err := s.verdictFor(n.id, n.lastSeen, latest, n.stored, now)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("node %s: %w", n.id, err))
 			continue
@@ -169,7 +181,12 @@ func (s *Store) Sweep() ([]LivenessChange, error) {
 				BudgetMs: j.d.BudgetMs(), TelCadMs: j.d.TelCadMs, Misses: j.d.Misses,
 			})
 		}
-		if j.mark != nil {
+		switch {
+		case j.forget:
+			if err := s.ForgetMark(n.id); err != nil {
+				errs = append(errs, fmt.Errorf("node %s: forget mark: %w", n.id, err))
+			}
+		case j.mark != nil:
 			if err := s.SetMark(n.id, *j.mark); err != nil {
 				errs = append(errs, fmt.Errorf("node %s: move mark: %w", n.id, err))
 			}
@@ -187,16 +204,19 @@ type judgement struct {
 	d       Declaration
 	reason  string
 	mark    *Mark
+	forget  bool // the sweep must drop the node's mark
 }
 
 // verdictFor is the whole decision, in the order the evidence allows.
 //
-// The ORDER is load-bearing. Speech is positive evidence and outranks
-// everything: a node heard from inside its budget is #live even if porta was
-// deaf for the ten hours before that. Absence is only ever evidence when porta
-// was listening, which is why the deaf test sits between "past the budget" and
-// "silent" rather than at the top.
-func (s *Store) verdictFor(nodeID string, lastSeen sql.NullInt64, stored []byte, now int64) (judgement, error) {
+// The ORDER is load-bearing. A sample inside its budget is positive evidence
+// and outranks porta's own absence: it is judged on its rate (judgeProgress),
+// never called #silent or #unknown for the hours porta was deaf before it.
+// Absence is only ever evidence when porta was listening, which is why the
+// deaf test sits between "past the budget" and "silent" rather than at the top.
+// last_seen tells #neverSeen apart and dates the two head #unknowns; past them,
+// nothing but the sample is read (rete#272 D3.3).
+func (s *Store) verdictFor(nodeID string, lastSeen sql.NullInt64, latest *Sample, stored []byte, now int64) (judgement, error) {
 	if !lastSeen.Valid {
 		// D5: never heard from. Judgeable immediately and WITHOUT a budget,
 		// because the question "has this node ever spoken" needs no number.
@@ -220,10 +240,17 @@ func (s *Store) verdictFor(nodeID string, lastSeen sql.NullInt64, stored []byte,
 		return judgement{want: livenessUnknown, verdict: "unknown", since: since, d: d,
 			reason: fmt.Sprintf("unknown: telCad %d ms x misses %d = %d ms is below the sweep tick %d ms; porta cannot judge at that resolution — raise misses or telCad", d.TelCadMs, d.Misses, bud, tick)}, nil
 	}
+	// rete#272 D3.3: ONE sample. Everything below reads the count the node sent
+	// in its latest pull and the moment porta heard it — and nothing else.
+	if latest == nil {
+		return judgement{want: livenessUnknown, verdict: "unknown", since: since, d: d,
+			reason: "unknown: checks in, but its pulls carry no tick count — this image predates rete#272; reflash it"}, nil
+	}
+	since = now - latest.AtMs
 	// Inside the budget, arrival is settled and the question becomes progress
 	// (rete#272 D3) — judgeProgress, below.
 	if since <= bud {
-		return s.judgeProgress(nodeID, lastSeen.Int64, stored, since, d)
+		return s.judgeProgress(nodeID, *latest, stored, since, d)
 	}
 	// rete#273 D2.2: the miss count is a REASON, not a verdict — the ladder
 	// an operator reads, never a state of its own.
@@ -238,26 +265,33 @@ func (s *Store) verdictFor(nodeID string, lastSeen sql.NullInt64, stored []byte,
 	if err != nil {
 		return judgement{}, fmt.Errorf("deaf intervals: %w", err)
 	}
+	// Past the budget the conversation the mark belonged to is over: forget
+	// it, so a node that returns is judged from its first new sample, never
+	// across the silence (rete#272 D3.3).
 	if deaf {
-		return judgement{want: livenessUnknown, verdict: "unknown", since: since, d: d,
-			reason: fmt.Sprintf("unknown: %d ms since the last exchange, budget %d ms, and porta was not listening for part of it", since, bud)}, nil
+		return judgement{want: livenessUnknown, verdict: "unknown", since: since, d: d, forget: true,
+			reason: fmt.Sprintf("unknown: %d ms since the last check-in, budget %d ms, and porta was not listening for part of it", since, bud)}, nil
 	}
-	return judgement{want: livenessSilent, verdict: "silent", since: since, d: d,
-		reason: fmt.Sprintf("silent: %d ms since the last exchange — %.1f missed check-ins of %d ms, %d tolerated", since, missed, d.TelCadMs, d.Misses)}, nil
+	return judgement{want: livenessSilent, verdict: "silent", since: since, d: d, forget: true,
+		reason: fmt.Sprintf("silent: %d ms since the last check-in — %.1f missed check-ins of %d ms, %d tolerated", since, missed, d.TelCadMs, d.Misses)}, nil
 }
 
 // judgeProgress is rete#272 D3, for a node already inside its budget: is it
 // ticking at the rate it declared? The rule is the model-checked one
 // (docs/spikes/2026-08-27-liveness-model, `Behind` and `DoSweep`, config
-// sound-rate.cfg): between the mark and the latest sample, short by one whole
-// declared period or more is #stalled. The one period is the only slack, and it
-// is not a tunable — it is the smallest that absorbs a real node's ms jitter.
+// sound-rate.cfg; with the sample on the pull, fresh-clear.cfg and
+// fresh-lossy.cfg): between the mark and the latest sample, short by one whole
+// declared period or more is #stalled. The sample is the pull's #wak and the
+// moment porta heard it (rete#272 D3.3). The one period is the only slack, and
+// it is not a tunable — it is the smallest that absorbs a real node's ms jitter.
 //
 // THE ORDER IS LOAD-BEARING, and two branches exist because TLC refuted the
 // version without them: a sweep with no new sample keeps the verdict AND the
 // mark (re-marking let a stalled node flip back to #live, unbounded), and a
-// node with no mark is #unknown (one sample says nothing about a rate).
-func (s *Store) judgeProgress(nodeID string, lastSeen int64, stored []byte, since int64, d Declaration) (judgement, error) {
+// node with no mark is #unknown (one sample says nothing about a rate). A
+// window that spans an interval porta was not listening is re-marked, not
+// judged (D3.3).
+func (s *Store) judgeProgress(nodeID string, latest Sample, stored []byte, since int64, d Declaration) (judgement, error) {
 	j := judgement{since: since, d: d}
 	keep := func(why string) (judgement, error) {
 		if len(stored) == 0 {
@@ -265,20 +299,6 @@ func (s *Store) judgeProgress(nodeID string, lastSeen int64, stored []byte, sinc
 			return j, nil
 		}
 		j.want, j.reason = stored, why
-		return j, nil
-	}
-	latest, ok, err := s.LatestSample(nodeID)
-	if err != nil {
-		return judgement{}, fmt.Errorf("latest sample: %w", err)
-	}
-	if !ok {
-		j.want, j.verdict = livenessUnknown, "unknown"
-		j.reason = fmt.Sprintf("unknown: %d ms since the last exchange, but this node's obs/health carries no wak — porta cannot judge progress", since)
-		return j, nil
-	}
-	if gap := lastSeen - latest.AtMs; gap >= d.TelCadMs {
-		j.want, j.verdict = livenessUnknown, "unknown"
-		j.reason = fmt.Sprintf("unknown: arriving, but obs/health has not landed for %d ms (telCad %d ms)", gap, d.TelCadMs)
 		return j, nil
 	}
 	mark, hasMark, err := s.MarkOf(nodeID)
@@ -299,6 +319,17 @@ func (s *Store) judgeProgress(nodeID string, lastSeen int64, stored []byte, sinc
 	if latest.AtMs == mark.AtMs {
 		return keep("no new sample since the mark")
 	}
+	// porta's own absence is not evidence about the node: a 2 s node ticks at
+	// 4 s while nothing answers it (#271), and a window that spans an interval
+	// porta was not listening would blame the node for the gateway's outage.
+	deaf, err := s.WasDeaf(mark.AtMs, latest.AtMs)
+	if err != nil {
+		return judgement{}, fmt.Errorf("deaf intervals: %w", err)
+	}
+	if deaf {
+		j.mark = next
+		return keep("porta was not listening for part of the window: re-marked, not judged")
+	}
 	j.mark = next
 	elapsed := latest.AtMs - mark.AtMs
 	ticks := latest.Wak - mark.Wak
@@ -313,7 +344,7 @@ func (s *Store) judgeProgress(nodeID string, lastSeen int64, stored []byte, sinc
 	}
 	missed := float64(since) / float64(d.TelCadMs)
 	j.want, j.verdict = livenessLive, "live"
-	j.reason = fmt.Sprintf("live: %d ms since the last exchange, %.1f missed check-ins of %d ms, %d tolerated; %d ticks in %d ms",
+	j.reason = fmt.Sprintf("live: %d ms since the last check-in, %.1f missed check-ins of %d ms, %d tolerated; %d ticks in %d ms",
 		since, missed, d.TelCadMs, d.Misses, ticks, elapsed)
 	return j, nil
 }

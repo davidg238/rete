@@ -59,7 +59,7 @@ func sweepLiveness(ctx context.Context, st *space.Store, tick time.Duration, log
 				logf("porta: liveness sweep: %v", err)
 			}
 			for _, c := range changes {
-				logf("porta: %s is #%s — %d ms since its last exchange, budget %d ms (telCad %d x misses %d)",
+				logf("porta: %s is #%s — %d ms since its last check-in, budget %d ms (telCad %d x misses %d)",
 					c.NodeID, c.Verdict, c.SinceMs, c.BudgetMs, c.TelCadMs, c.Misses)
 			}
 		}
