@@ -2320,7 +2320,7 @@ class Kernel usingPlatform: platform = (
        hide, and a coarser split would report that cost as interpreter cost.
 
        The two small VM tails ride with their leg rather than getting slots of
-       their own: the pull frame's encode is inside `pullSend` (four fields), and
+       their own: the pull frame's encode is inside `pullSend` (five fields), and
        `applyAck:` is inside `pushWait` (one small record). Said out loud because
        neither span is therefore PURE radio, and a reader comparing pullWait
        against pushWait should know which one carries a decode. *)

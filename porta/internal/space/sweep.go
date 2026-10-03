@@ -244,7 +244,7 @@ func (s *Store) verdictFor(nodeID string, lastSeen sql.NullInt64, latest *Sample
 	// in its latest pull and the moment porta heard it — and nothing else.
 	if latest == nil {
 		return judgement{want: livenessUnknown, verdict: "unknown", since: since, d: d,
-			reason: "unknown: checks in, but its pulls carry no tick count — this image predates rete#272; reflash it"}, nil
+			reason: fmt.Sprintf("unknown: %d ms since its last exchange, and its pulls carry no tick count — this image predates rete#272; reflash it", since)}, nil
 	}
 	since = now - latest.AtMs
 	// Inside the budget, arrival is settled and the question becomes progress

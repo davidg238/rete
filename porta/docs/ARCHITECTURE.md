@@ -270,7 +270,8 @@ verdict reads nothing else. Short by one whole declared period or more is `#stal
 slack. A sweep with no new sample since the mark keeps both the verdict and the mark rather
 than re-judging. The detection bound is `bud + SweepTick + telCad` (32 + 30 + 2 = 64 s on a
 bench node), model-checked in TLC (`docs/spikes/2026-08-27-liveness-model/README.md`, configs
-`sound-rate.cfg`, `fresh-clear.cfg`, `fresh-lossy.cfg`). A verdict past the budget forgets the
+`sound-rate.cfg`, `fresh-clear.cfg`, `fresh-lossy.cfg`). Two rules below are pinned by porta's
+tests but not by the model, which has no porta-outage state: a verdict past the budget forgets the
 mark, so an unplugged-and-replugged node reads `#silent` → `#unknown` (one sample) → `#live`,
 never `#stalled` across the silence; and a window that spans an interval porta was not
 listening (every deploy) is re-marked, not judged — porta's absence is not evidence about the

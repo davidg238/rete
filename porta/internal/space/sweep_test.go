@@ -736,3 +736,22 @@ func TestMarkSurvivesAReopen(t *testing.T) {
 		t.Fatalf("after reopen: %+v ok=%v err=%v, want %+v", after, ok, err, before)
 	}
 }
+
+// Review (I1): a node with no count that has ALSO stopped talking must not be
+// told it "checks in". The verdict stays #unknown (D3.3: no arrival-only
+// fallback); the reason carries the age of its last exchange instead.
+func TestSweepUncountedNodeReasonCarriesItsAge(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	checkIn(t, st, &clock, "n1", 0)
+	declare(t, st, "n1", 2_000, 16)
+	clock += 60_000
+	if got := sweepOnce(t, st); len(got) != 1 || got[0].Verdict != "unknown" {
+		t.Fatalf("changes = %+v, want one #unknown", got)
+	}
+	r := lastReason(t, st, "n1")
+	if strings.Contains(r, "checks in") || !strings.Contains(r, "60000 ms since its last exchange") {
+		t.Fatalf("reason = %q, want the exchange age and no claim that it checks in", r)
+	}
+}
