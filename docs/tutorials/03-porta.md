@@ -314,10 +314,12 @@ kill $NODE_PID $PORTA_PID
   the node itself, a reboot note arriving as `sys/panic`. Run it standalone; it uses these
   same ports.
 - **What silence looks like** is the one thing this page skips. porta sweeps for quiet
-  nodes every 30 s and writes its own verdict to `gw/liveness` — `#live`, `#silent`,
-  `#neverSeen` or `#unknown`. The verdict is formed from the cadence and miss allowance the node declared in
-  `obs/liveness` and from no constant of porta's own: `now - last_seen > telCad × misses
-  → #silent`, one line with no numbers in it. Kill the node, wait out its 32 s budget and
+  nodes every 30 s and writes its own verdict to `gw/liveness` — `#live`, `#stalled`,
+  `#silent`, `#neverSeen` or `#unknown`. The verdict is formed from the cadence and miss allowance the node declared in
+  `obs/liveness`, the tick count it sends in every pull, and no constant of porta's own: no
+  counted pull for longer than `telCad × misses` → `#silent`, one line with no numbers in it.
+  A node's first verdict is `#unknown` — one sample says nothing about a rate — and `#live`
+  follows at the next sweep; the transcript below predates that (rete#272 D3.3). Kill the node, wait out its 32 s budget and
   the next sweep, and `porta get --db tut.db tut-node gw` turns over:
 
   ```

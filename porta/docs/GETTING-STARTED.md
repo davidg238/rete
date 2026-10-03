@@ -194,9 +194,10 @@ Three things worth knowing before you trust an early read:
 - **A rebooted node rewrites its whole tree over several seconds.** A read taken inside
   that window mixes two boots; `porta get` marks the stale rows `~` and banners
   `! MIXED READ` on stdout.
-- **`gw/liveness` is porta's verdict, not the node's report** — `#live`, `#silent`,
-  `#neverSeen` or `#unknown`, formed against the budget the node itself declared at
-  `obs/liveness`. `#neverSeen` on a node you just flashed means it has never reached the
+- **`gw/liveness` is porta's verdict, not the node's report** — `#live`, `#stalled`,
+  `#silent`, `#neverSeen` or `#unknown`, formed against the budget the node itself declared at
+  `obs/liveness` and the tick count it sends in every pull. A node's first verdict is
+  `#unknown` (one sample says nothing about a rate); `#live` follows at the next sweep. `#neverSeen` on a node you just flashed means it has never reached the
   gateway at all.
 
 **For the executed version of all of this, read

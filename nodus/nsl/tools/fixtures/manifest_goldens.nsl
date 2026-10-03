@@ -33,6 +33,7 @@ GOLDEN diag/spans/ctl d81b82d827675370616e43746ca1d827657374617465d8276772756e6e
 GOLDEN diag/spans/result d81b82d8276b5370616e43617074757265a2d827616e07d827626d731864
 GOLDEN diag/spans/pullSend d81b82d8276b4c6174656e63795370616eadd827616e07d82762623001d82762623102d82762623203d82762623304d82762623405d82762623506d827647370616ed8276870756c6c53656e64d827656661696c7300d827656d61785573190384d827656d696e55731864d8276773756d5573486900d8276773756d55734c6f190dac
 GOLDEN gw/liveness d827646c697665
+GOLDEN gw/liveness d827677374616c6c6564
 *)
 (* rete#243: one instance of every annotated rule in protocol/MANIFEST.cddl,
    encoded by the node's OWN Cbor and printed as `GOLDEN <path> <hex>` lines.
@@ -183,6 +184,7 @@ class ManifestGoldens packageUsing: manifest = () (
     oc add: #sumUsHi -> 0. oc add: #sumUsLo -> 3500.
     self emit: 'diag/spans/pullSend' value: (R tag: #LatencySpan fields: (M fromPairs: oc)) using: platform.
     self emit: 'gw/liveness' value: #live using: platform.
+    self emit: 'gw/liveness' value: #stalled using: platform.
   )
 ) : (
 )
