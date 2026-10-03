@@ -293,6 +293,12 @@ home network can price — recorded so the deferral is falsifiable):
 
 Plan: `porta/docs/superpowers/plans/2026-10-03-272-count-on-the-pull.md`.
 
+**Addendum, 2026-10-03 (David, after the final review).** A node whose pulls carry no count
+stays `#unknown` even past its budget — never `#silent` from arrival. So a dead old-image node,
+and every pre-#272 row in the gateway store, reads `#unknown` until reflashed; the reason
+carries the age of its last exchange so it never claims the node "checks in" (`07f3750`).
+The deaf re-mark is test-pinned but not in the TLA model (#327).
+
 ## 2. What this deletes
 
 - The §3.2 inference, and `OBS_WEDGE_SLACK`'s use in it.
