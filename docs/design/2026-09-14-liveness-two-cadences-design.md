@@ -220,6 +220,23 @@ reports the divergence.** #271's directions 2 (stop `awaitReply` burning the ful
 live as a *cause* fix — D3 absorbs #271's **detection**, not its cause, and the spin still
 halves the check-in rate under silence.
 
+### D3.2 — Model-checked, and refined, 2026-10-03
+
+The rate rule now runs in `docs/spikes/2026-08-27-liveness-model/` as `Rule = "rateAge"`.
+`sound-rate.cfg` completes with no stale `#live`, no behind `#live` and no false `#stalled`,
+and both verdicts are proven reachable. The detection bound is **`bud + SweepTick + telCad`**;
+TLC found it, nobody chose it. TLC also refuted two readings of D3, so the rule is narrower
+than the text above:
+
+- **"Between porta's last two samples" means since the MARK** (the sample judged at the last
+  sweep), and **a sweep with no new sample keeps both the verdict and the mark.** Re-marking
+  on an empty window let a stalled node flip back to `#live`, unbounded.
+- **One sample is `#unknown`**, not `#live`. No new symbol: `#unknown` already exists.
+- Added by the plan, outside the model: a node that is **arriving while `obs/health` has
+  stopped landing** reads `#unknown`. Otherwise the empty-window rule would hold `#live` forever.
+
+Plan: `porta/docs/superpowers/plans/2026-10-03-272-stalled-verdict.md`.
+
 ## 2. What this deletes
 
 - The §3.2 inference, and `OBS_WEDGE_SLACK`'s use in it.
