@@ -430,3 +430,16 @@ acks on its first clean check-in and *then* wedges reads `consecutive = 1` at ev
 2026-08-10 §5.2's definition it is not looping — while in fact it reboots forever. The loop
 breaker will never stop a noisy zombie of that shape. It is at least a visible one now, which
 is what this rung was for.
+
+## 12. Addendum — a held VM is not a wedged one (2026-10-02, rete#311)
+
+The debugger holds the VM by blocking it in the debug read — at a breakpoint, or in the
+boot-time command loop — and from the observer's seat that is a wedge: the feed stops and the
+ISR keeps firing. §3.2 therefore takes one more input, `held` (`struct ObsSample`, read from
+`platform_debug_held()`, set by the Zephyr read around its block). While it is set the feed
+age is re-latched every sample, so the clock restarts from the *release* and a board held
+longer than appCad is not rebooted on the first sample after `dbg:continue`. §3.1 is
+deliberately not held off: a repeating timer whose ISR has stopped is a wedge whoever holds
+the VM. Property 10 in `tests/test_observer_core.c` holds this and fails against the rule
+without the field. Proven on `c6bench` 2026-10-02: held 21 s against an 8 s declaration, no
+reset (`docs/results/2026-10-02-311-line-in-spike.md`, part 2).

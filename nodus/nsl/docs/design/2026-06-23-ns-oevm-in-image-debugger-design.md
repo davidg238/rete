@@ -196,3 +196,16 @@ deferred item is an additive swap, not a protocol renegotiation.
   once a grant exists — fold into this cycle).
 - **oevm#16** — `check_no_ambient_reflection.sh` false-PASSes from the wrong cwd (fix path
   resolution so the regression guard fails loudly).
+
+## Addendum — the enable on a board, and the board transport (2026-10-02, rete#311)
+
+The "Debug enable" decision above (an `OEVM_DEBUG` env var) is now the posix case of
+`platform_debug_enabled()` (`platform_backend.h`). A board has no environment, so there the
+answer follows the build: an image built with the per-bytecode hooks (`OEVM_DEBUG_HOOKS=1`,
+`zephyr/CMakeLists.txt`) is the debug image and prints `dbg:ready` at boot and waits for its
+cable; the production image, hooks compiled out, never enters the loop. One switch, not two.
+The deferred "Zephyr TFTP/SLIP transport" turned out unnecessary: plain text lines down the
+console cable reach `platform_debug_readline` on every board family (no framing), and the
+whole verb set ran on an ESP32-C6 over one cable. A held VM is told to the liveness observer
+(`observer_core.h` §3.2, `held`). Record: `docs/results/2026-10-02-311-line-in-spike.md`.
+Not yet: `dbg:pause`, and a file:line front end.
