@@ -84,8 +84,13 @@ func TestSweepJudgesAgainstTheDeclaredBudget(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
 	listening(t, st)
-	checkIn(t, st, &clock, "n1", 0)
+	// goLive's route, spelled out so the #live transition's own fields can be
+	// read: one sample (#unknown, the mark is taken), then on-cadence ticks.
 	declare(t, st, "n1", 2_000, 16)
+	n := &fakeNode{id: "n1", boot: 41, seq: 1}
+	n.tick(t, st, &clock, 0)
+	sweepOnce(t, st)
+	n.ticks(t, st, &clock, 3, 2_000)
 	lastSeen := clock
 
 	// Well inside the budget.
@@ -129,18 +134,15 @@ func TestSweepDoesNotCallAFastNodeSilentForOrdinaryBlockingWork(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
 	listening(t, st)
-	for i := 0; i < 5; i++ {
-		checkIn(t, st, &clock, "n1", 2_000)
-	}
-	declare(t, st, "n1", 2_000, 16)
+	goLive(t, st, &clock, "n1", 2_000)
 
 	clock += 6_500 // three missed check-ins
 	changes, err := st.Sweep()
 	if err != nil {
 		t.Fatalf("Sweep: %v", err)
 	}
-	if len(changes) != 1 || changes[0].Verdict != "live" {
-		t.Fatalf("changes = %+v, want #live — 6.5 s is inside a declared 32 s budget", changes)
+	if len(changes) != 0 || livenessOf(t, st, "n1") != "live" {
+		t.Fatalf("changes = %+v, verdict %q, want #live held — 6.5 s is inside a declared 32 s budget", changes, livenessOf(t, st, "n1"))
 	}
 }
 
@@ -222,8 +224,7 @@ func TestSweepRecordsTheReturnToLife(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
 	listening(t, st)
-	checkIn(t, st, &clock, "n1", 0)
-	declare(t, st, "n1", 2_000, 16)
+	n := goLive(t, st, &clock, "n1", 2_000)
 	clock += 40_000
 	if _, err := st.Sweep(); err != nil {
 		t.Fatalf("Sweep: %v", err)
@@ -231,7 +232,11 @@ func TestSweepRecordsTheReturnToLife(t *testing.T) {
 	if got := livenessOf(t, st, "n1"); got != "silent" {
 		t.Fatalf("verdict = %q, want silent before the recovery", got)
 	}
-	checkIn(t, st, &clock, "n1", 2_000)
+	// The node kept ticking while porta could not hear it (a radio outage, not
+	// a wedge): 20 periods of wak it counted unheard. Had it not, its return
+	// would rightly read #stalled — the rate rule judges mark→latest (#272 D3).
+	n.wak += 20
+	n.tick(t, st, &clock, 2_000)
 	changes, err := st.Sweep()
 	if err != nil {
 		t.Fatalf("Sweep: %v", err)
@@ -351,7 +356,11 @@ func TestVerdictEncodingsAreTheAlgebrasSymbols(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(live, livenessLive) || !bytes.Equal(silent, livenessSilent) {
+	stalled, err := cval.Encode(cval.Symbol("stalled"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(live, livenessLive) || !bytes.Equal(silent, livenessSilent) || !bytes.Equal(stalled, livenessStalled) {
 		t.Fatalf("pre-encoded verdicts drifted from cval.Encode")
 	}
 }
@@ -411,5 +420,199 @@ func TestSweepReasonCountsTheMisses(t *testing.T) {
 	}
 	if reason := lastReason(t, st, "n1"); !strings.Contains(reason, "4.5 missed check-ins of 10000 ms, 4 tolerated") {
 		t.Fatalf("reason = %q", reason)
+	}
+}
+
+// fakeNode is a node that ticks the way PortaBridgeNode does: every tick is one
+// check-in (pull + push) whose push carries obs/health with the tick count.
+// seq starts at 1 because `declare` used seq 1.
+type fakeNode struct {
+	id        string
+	boot, seq int64
+	wak       int64
+}
+
+func (n *fakeNode) tick(t *testing.T, st *Store, clock *int64, gap int64) {
+	t.Helper()
+	checkIn(t, st, clock, n.id, gap)
+	n.seq++
+	n.wak++
+	pushHealth(t, st, n.id, n.boot, n.seq, n.wak)
+}
+
+func (n *fakeNode) ticks(t *testing.T, st *Store, clock *int64, count int, gap int64) {
+	t.Helper()
+	for i := 0; i < count; i++ {
+		n.tick(t, st, clock, gap)
+	}
+}
+
+func sweepOnce(t *testing.T, st *Store) []LivenessChange {
+	t.Helper()
+	changes, err := st.Sweep()
+	if err != nil {
+		t.Fatalf("Sweep: %v", err)
+	}
+	return changes
+}
+
+// goLive declares telCad x 16 and drives a fresh node to #live the only way the
+// rate rule allows: one sample and a sweep (#unknown, the mark is taken), then
+// on-cadence ticks and a second sweep. Returns the node for further ticking.
+func goLive(t *testing.T, st *Store, clock *int64, id string, telCad int64) *fakeNode {
+	t.Helper()
+	declare(t, st, id, telCad, 16)
+	n := &fakeNode{id: id, boot: 41, seq: 1}
+	n.tick(t, st, clock, 0)
+	if got := sweepOnce(t, st); len(got) != 1 || got[0].Verdict != "unknown" {
+		t.Fatalf("first sweep = %+v, want one #unknown (one sample)", got)
+	}
+	n.ticks(t, st, clock, 3, telCad)
+	if got := sweepOnce(t, st); len(got) != 1 || got[0].Verdict != "live" {
+		t.Fatalf("second sweep = %+v, want one #live", got)
+	}
+	return n
+}
+
+// D3: arriving, but behind the cadence it declared — #271's measured case,
+// 4 s delivered against 2 s declared. This is the reachability proof the design
+// demands BEFORE any test that shows the verdict does not fire.
+func TestSweepCallsABehindNodeStalled(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	n := goLive(t, st, &clock, "n1", 2_000)
+	n.ticks(t, st, &clock, 5, 4_000)
+	got := sweepOnce(t, st)
+	if len(got) != 1 || got[0].Verdict != "stalled" {
+		t.Fatalf("changes = %+v, want one #stalled", got)
+	}
+	if r := lastReason(t, st, "n1"); !strings.Contains(r, "5 ticks in 20000 ms") || !strings.Contains(r, "2000") {
+		t.Fatalf("reason = %q, want the ticks, the elapsed time and the declared period", r)
+	}
+}
+
+// Review Focus 4: jitter is not a stall. Short by less than one whole period is
+// live; short by exactly one period is stalled — the model's `Behind`, >=.
+func TestSweepDoesNotStallANodeOnCadence(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	n := goLive(t, st, &clock, "n1", 2_000)
+	for i := 0; i < 10; i++ {
+		n.tick(t, st, &clock, 1_990+int64(i%2)*20) // 1990, 2010, ...
+	}
+	n.tick(t, st, &clock, 3_999) // 1999 ms short: still inside one period
+	if got := sweepOnce(t, st); len(got) != 0 {
+		t.Fatalf("on cadence: changes = %+v, want none", got)
+	}
+	n.tick(t, st, &clock, 4_000) // exactly one whole period short
+	if got := sweepOnce(t, st); len(got) != 1 || got[0].Verdict != "stalled" {
+		t.Fatalf("one period short: changes = %+v, want one #stalled", got)
+	}
+}
+
+// The model's second refutation: one sample says nothing about a rate.
+func TestSweepWithOneSampleIsUnknown(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	declare(t, st, "n1", 2_000, 16)
+	n := &fakeNode{id: "n1", boot: 41, seq: 1}
+	n.tick(t, st, &clock, 0)
+	if got := sweepOnce(t, st); len(got) != 1 || got[0].Verdict != "unknown" {
+		t.Fatalf("changes = %+v, want one #unknown", got)
+	}
+	if r := lastReason(t, st, "n1"); !strings.Contains(r, "one sample") {
+		t.Fatalf("reason = %q", r)
+	}
+}
+
+// The model's first refutation: a sweep with no new sample since the mark has
+// no rate evidence. Re-marking there let a stalled node flip back to #live on
+// every empty window, unbounded (TLC, 2026-10-02).
+func TestSweepEmptyWindowKeepsTheVerdictAndTheMark(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	n := goLive(t, st, &clock, "n1", 2_000)
+	n.ticks(t, st, &clock, 5, 4_000)
+	if got := sweepOnce(t, st); len(got) != 1 || got[0].Verdict != "stalled" {
+		t.Fatalf("setup: %+v, want #stalled", got)
+	}
+	before, _, _ := st.MarkOf("n1")
+	clock += 1_000 // inside telCad of the last sample: guard 4 does not fire
+	if got := sweepOnce(t, st); len(got) != 0 {
+		t.Fatalf("empty window: changes = %+v, want none — the verdict must hold", got)
+	}
+	if after, _, _ := st.MarkOf("n1"); after != before {
+		t.Fatalf("empty window moved the mark: %+v -> %+v", before, after)
+	}
+}
+
+// Review Focus 1: datagrams keep landing while obs/health does not (the
+// batch-cap overflow of 2026-08). Without this guard the empty-window rule would
+// hold #live forever.
+func TestSweepArrivingWithoutProgressIsUnknown(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	goLive(t, st, &clock, "n1", 2_000)
+	for i := 0; i < 3; i++ {
+		checkIn(t, st, &clock, "n1", 2_000) // exchanges, no obs/health
+	}
+	got := sweepOnce(t, st)
+	if len(got) != 1 || got[0].Verdict != "unknown" {
+		t.Fatalf("changes = %+v, want one #unknown", got)
+	}
+	if r := lastReason(t, st, "n1"); !strings.Contains(r, "has not landed for 6000 ms") {
+		t.Fatalf("reason = %q", r)
+	}
+}
+
+// Review Focus 2 / H3: a reboot inside the window. wak restarts under a new boot
+// id and comes back BELOW the mark — stalled, with no boot_id join.
+func TestSweepCatchesARebootAsStalled(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	n := goLive(t, st, &clock, "n1", 2_000)
+	n.ticks(t, st, &clock, 3, 2_000)
+	re := &fakeNode{id: "n1", boot: 42, seq: 0} // a new boot: seq and wak from zero
+	re.ticks(t, st, &clock, 2, 2_000)
+	got := sweepOnce(t, st)
+	if len(got) != 1 || got[0].Verdict != "stalled" {
+		t.Fatalf("changes = %+v, want one #stalled", got)
+	}
+	if r := lastReason(t, st, "n1"); !strings.Contains(r, "backwards") {
+		t.Fatalf("reason = %q, want the backwards step named", r)
+	}
+}
+
+// Review Focus 3: an adopted cadence change re-marks without judging, so ticks
+// counted at the old period are never measured against the new one.
+func TestSweepReMarksWhenTheCadenceMoves(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	n := goLive(t, st, &clock, "n1", 2_000)
+	rec, _ := cval.Encode(cval.Record{Tag: "Liveness", Fields: cval.Map{
+		{K: cval.Symbol("misses"), V: int64(32)},
+		{K: cval.Symbol("telCad"), V: int64(1_000)},
+	}})
+	n.seq++
+	if _, _, err := st.Ingest("n1", n.boot, []Entry{{Seq: n.seq, Path: PathDeclared, Kind: cval.KindCell, Value: rec}}); err != nil {
+		t.Fatal(err)
+	}
+	n.ticks(t, st, &clock, 3, 2_000) // still at the old period this window
+	if got := sweepOnce(t, st); len(got) != 0 {
+		t.Fatalf("cadence moved: changes = %+v, want none (re-mark, keep)", got)
+	}
+	if m, _, _ := st.MarkOf("n1"); m.CadMs != 1_000 {
+		t.Fatalf("mark cad = %d, want 1000", m.CadMs)
+	}
+	n.ticks(t, st, &clock, 4, 1_000)
+	if got := sweepOnce(t, st); len(got) != 0 {
+		t.Fatalf("on the new cadence: changes = %+v, want none (still #live)", got)
 	}
 }

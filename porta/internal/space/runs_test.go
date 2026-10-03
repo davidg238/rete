@@ -64,14 +64,7 @@ func TestSweepAcrossAGatewayOutageIsUnknownAndNotSilent(t *testing.T) {
 	if err := st.StartRun(); err != nil {
 		t.Fatalf("StartRun: %v", err)
 	}
-	checkIn(t, st, &clock, "bell", 0)
-	declare(t, st, "bell", 30_000, 8)
-	if err := st.MarkAlive(); err != nil {
-		t.Fatalf("MarkAlive: %v", err)
-	}
-	if _, err := st.Sweep(); err != nil {
-		t.Fatalf("Sweep: %v", err)
-	}
+	bell := goLive(t, st, &clock, "bell", 30_000)
 	if got := livenessOf(t, st, "bell"); got != "live" {
 		t.Fatalf("before the outage: verdict = %q, want live", got)
 	}
@@ -92,8 +85,10 @@ func TestSweepAcrossAGatewayOutageIsUnknownAndNotSilent(t *testing.T) {
 		t.Fatalf("changes = %+v, want one #unknown — porta was deaf for the whole window", changes)
 	}
 
-	// The node checks back in: evidence of speech outranks everything.
-	checkIn(t, st, &clock, "bell", 1_000)
+	// The node checks back in: evidence of speech outranks everything. It kept
+	// ticking through porta's outage, so its wak covers the window (#272 D3).
+	bell.wak += (10*3_600_000 + 6*60_000) / 30_000
+	bell.tick(t, st, &clock, 1_000)
 	if err := st.MarkAlive(); err != nil {
 		t.Fatalf("MarkAlive: %v", err)
 	}
