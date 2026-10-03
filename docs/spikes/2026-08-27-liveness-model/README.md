@@ -153,6 +153,56 @@ reboot inside the window is a genuine fault, so that is not a false stall. The o
 of slack is the degenerate tolerance (a real node jitters by ms); a board run is what
 would earn a different one.
 
+## What the cached frame found (2026-10-03)
+
+The rate rule above was checked on an assumption this model stated in one line: *"obs/health
+rides the PUSH leg, so porta learns the counter only on a check-in that lands"* — and then
+handed porta the **current** count on every landing. The node does not do that. `pushFrame`
+(`nodus/nsl/lib/kernel.nsl`, rete#199) re-sends the **same encoded frame** until an ack is
+heard, so:
+
+- a **deaf** node (its datagrams land, no reply comes back — #271, the case D3 exists for)
+  re-sends a frame porta already holds, and **no new sample lands at all**;
+- a frame that was **lost** lands a tick or more later carrying the count from when it was
+  **built**, stamped with the time it **arrived**.
+
+The #272 whole-branch review found this in the Go (its F2); the model now carries it as a
+constant, `Frame` (`"fresh"` = the old assumption, `"cached"` = the node as built), and
+reproduces both directions of the defect against the rule as the Go of 2026-10-03 has it:
+
+| config | result | what it shows |
+|---|---|---|
+| `cached-lossy` | `NoFalseStall` violated, 14-state trace | a node whose spin fits inside its period (the 30 s nodes) loses ONE push, never runs slow, and reads `stalled` |
+| `cached-rate` | `NeverBehindLive` violated | with no guard, a deaf node delivers no sample and the empty-window rule keeps `live` |
+| `cached-rate-guard` | `NeverBehindLive` violated | with the Go's guard (`HealthGap = Cad`): a late frame makes the MARK late, the window is compressed, and a node at half rate reads on-rate |
+
+**The extension is behaviour-preserving under `"fresh"`**: all thirteen earlier configs keep
+their answers and `sound-rate.cfg` completes over the same **38 397 875** states.
+
+**The model was wrong first, again** (2 of the first 3 cached counterexamples). The ghost
+`windowFault` was attributed at a *delivery*; with a cached frame the sample a window is
+judged on is taken at one time and lands at another, so it blamed the wrong window in both
+directions. It is now read as widely as it can be — any fault since the mark's sample was
+**taken** — so a `stalled` said with it FALSE was said of a node that never ran slow at all.
+
+**What holds.** With the count fresh on every check-in, and a silent verdict forgetting the
+mark (`ClearMark`, the review's F5 — a node that returns is judged from its first new
+sample, not across the silence):
+
+| config | result |
+|---|---|
+| `fresh-clear` (sound-rate's numbers) | completes, 29 141 987 states; `live` and `stalled` both reachable |
+| `fresh-lossy` (cached-lossy's node) | completes, 13 387 396 states |
+| `fresh-lossy-clear` | completes, 12 985 057 states |
+
+So the rule is sound and the **transport of its sample** is what is broken. The pull request
+is built fresh on every tick (`pullFrame`: `#id #cursor #bid #hw`), which is the one place a
+count can ride and satisfy the assumption.
+
+**Not modelled here:** a rule that keeps the cached frame and times the window from the
+record's own `up`; porta's own outage inside the window (the review's F3 — a 2 s node ticks
+at 4 s while porta is down); a node that publishes no count at all (F1).
+
 ## What the original run found
 
 ### 1. The model was wrong first, and the board corrected it

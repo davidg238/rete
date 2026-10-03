@@ -39,6 +39,20 @@ CONSTANTS
                   \*   "rateAge"     now - last_seen <= bud, AND wak moved at the
                   \*                 DECLARED rate between porta's last two samples, or
                   \*                 the verdict is "stalled" (rete#272 D3, 2026-09-14)
+    ,
+    Frame,        \* HOW THE PROGRESS SAMPLE REACHES PORTA (2026-10-03, the #272 review):
+                  \*   "fresh"   every check-in that lands carries the CURRENT count —
+                  \*             what this model assumed until today
+                  \*   "cached"  what the node does: wak rides obs/health in the PUSH
+                  \*             frame, and pushFrame re-sends the SAME frame until an
+                  \*             ack is heard (kernel.nsl pushFrame, rete#199). A deaf
+                  \*             node therefore delivers no new sample at all, and a
+                  \*             frame that was lost lands later carrying an OLD count.
+    HealthGap,    \* porta's guard on "arriving, but no new sample": at a sweep, when the
+                  \* last exchange is this much newer than the latest sample's arrival,
+                  \* the verdict is #unknown. Cap = no guard. The Go of 2026-10-03 has Cad.
+    ClearMark     \* TRUE: a silent verdict forgets the mark, so a node that returns is
+                  \* judged from its first new sample, not across the silence (review F5)
 
 VARIABLES
     state,          \* "running" | "wedged"   — the GROUND TRUTH, which porta never sees
@@ -68,11 +82,29 @@ VARIABLES
     slowPending,    \* the gap that ends at the node's next arrival is slow
     windowFault,    \* a slow gap (or a wedge) lies inside porta's current window
     judgedFault,    \* windowFault as it stood when the current verdict was formed
-    sinceOk         \* since the node last began a tick it delivered on cadence
+    sinceOk,        \* since the node last began a tick it delivered on cadence
+    (* Frame = "cached" only; constant under "fresh". The sample is carried as an AGE and
+       a LAG (ticks counted since it was taken), never as raw values, like Δwak above. *)
+    rebuild,        \* node: the next push builds a new frame (an ack was heard)
+    frameLanded,    \* node ghost: the frame it holds has already landed at porta
+    frameLag,       \* node: ticks counted since the sample in the held frame was taken
+    lagLatest,      \* ghost: ticks counted since the latest sample PORTA holds was taken
+    arrAge,         \* porta: age of the ARRIVAL of its latest sample (cells.ts_ms)
+    (* GHOSTS for the cached frame. A sample is taken when its frame is BUILT and may land
+       much later, so "the window" is read as WIDELY as it can be: windowFault is any
+       fault since the mark's sample was TAKEN. A stall said with that still FALSE was
+       said of a node that never ran slow at all — no reading of the window excuses it. *)
+    gapSlow,         \* the tick gap now open is slow (or is a wedge)
+    faultSinceLatest,\* a fault lies after the taking of the latest sample porta holds
+    faultSinceFrame  \* a fault lies after the held frame's sample was taken
 
 vars == <<state, sinceProgress, sinceWedge, tickIn, sweepIn, sinceSeen, verdict, boots,
           wak, seenWak, sweepWak, sinceStoredProgress,
-          pendingTicks, markAge, seenDelta, slowPending, windowFault, judgedFault, sinceOk>>
+          pendingTicks, markAge, seenDelta, slowPending, windowFault, judgedFault, sinceOk,
+          rebuild, frameLanded, frameLag, lagLatest, arrAge,
+          gapSlow, faultSinceLatest, faultSinceFrame>>
+frameVars == <<rebuild, frameLanded, frameLag, lagLatest, arrAge,
+               gapSlow, faultSinceLatest, faultSinceFrame>>
 rateVars == <<pendingTicks, markAge, seenDelta, slowPending, windowFault, judgedFault, sinceOk>>
 
 Inc(x) == IF x < Cap THEN x + 1 ELSE Cap
@@ -102,6 +134,12 @@ Init ==
     /\ windowFault   = FALSE
     /\ judgedFault   = FALSE
     /\ sinceOk       = 0
+    /\ rebuild       = TRUE
+    /\ frameLanded   = FALSE
+    /\ frameLag      = 0
+    /\ lagLatest     = 0
+    /\ arrAge        = Cap
+    /\ gapSlow = FALSE /\ faultSinceLatest = FALSE /\ faultSinceFrame = FALSE
 
 (***************************************************************************)
 (* The node's check-in. Two legs, and the whole of H1 is in `tickIn'`:      *)
@@ -116,7 +154,18 @@ CheckIn ==
        reply comes back, so porta hears it on every tick and the node spins both reply
        budgets — arriving, but at half its declared rate. *)
     /\ \E outcome \in {"ok", "deaf", "lost"} :
-       LET delivered == outcome # "lost" IN
+       LET delivered == outcome # "lost"
+           cached    == Frame = "cached"
+           (* the frame this check-in sends: a new one, or the one it is still holding *)
+           curLag    == IF rebuild THEN 0 ELSE Inc(frameLag)
+           landed    == IF rebuild THEN FALSE ELSE frameLanded
+           (* porta learns a NEW sample only from a frame it has not stored before *)
+           newSample == delivered /\ (~cached \/ ~landed)
+           (* ticks between porta's previous sample and this one *)
+           delta     == IF cached THEN Inc(lagLatest) - curLag ELSE pendingTicks + 1
+           (* faults after the taking of the frame this check-in sends *)
+           sinceFrame == IF rebuild THEN FALSE ELSE faultSinceFrame \/ gapSlow
+       IN
          (* A lost check-in leaves porta's age ALONE — only Tock is a clock. Until
             2026-10-02 this read `ELSE Inc(sinceSeen)`, which aged porta's view a step
             per lost datagram with no time passing: the age ran ahead of the clock and
@@ -138,8 +187,20 @@ CheckIn ==
          /\ sinceStoredProgress' = IF delivered /\ Inc(wak) > seenWak
                                      THEN 0 ELSE sinceStoredProgress
          /\ pendingTicks' = IF delivered THEN 0 ELSE Inc(pendingTicks)
-         /\ seenDelta'    = IF delivered THEN Inc2(seenDelta, pendingTicks + 1) ELSE seenDelta
-         /\ windowFault'  = IF delivered THEN windowFault \/ slowPending ELSE windowFault
+         /\ seenDelta'    = IF newSample THEN Inc2(seenDelta, delta) ELSE seenDelta
+         /\ windowFault'  = IF cached
+                              THEN windowFault \/ gapSlow      \* the gap that just ended
+                              ELSE (IF delivered THEN windowFault \/ slowPending ELSE windowFault)
+         /\ gapSlow'          = (cached /\ tickIn' > Cad)
+         /\ faultSinceFrame'  = (cached /\ sinceFrame)
+         /\ faultSinceLatest' = (cached /\ IF newSample THEN sinceFrame
+                                             ELSE faultSinceLatest \/ gapSlow)
+         /\ arrAge'       = IF newSample THEN 0 ELSE arrAge
+         /\ rebuild'      = IF cached THEN outcome = "ok" ELSE TRUE
+         /\ frameLanded'  = IF cached THEN landed \/ delivered ELSE FALSE
+         /\ frameLag'     = IF cached THEN curLag ELSE 0
+         /\ lagLatest'    = IF ~cached THEN 0
+                            ELSE IF newSample THEN curLag ELSE Inc(lagLatest)
          (* "behind" is the DELIVERED period exceeding the declared one — not the
             outcome: with Cad >= 2 * ReplyBudget a deaf tick's spin fits inside the
             period and the node is on cadence. *)
@@ -162,6 +223,7 @@ WedgedTick ==
     /\ UNCHANGED <<state, sinceProgress, sinceWedge, sweepIn, sinceSeen, verdict, boots,
                    wak, seenWak, sweepWak, sinceStoredProgress>>
     /\ UNCHANGED rateVars
+    /\ UNCHANGED frameVars
 
 Wedge ==
     /\ state = "running"
@@ -171,6 +233,8 @@ Wedge ==
     /\ UNCHANGED <<sinceProgress, tickIn, sweepIn, sinceSeen, verdict, boots,
                    wak, seenWak, sweepWak, sinceStoredProgress>>
     /\ UNCHANGED <<pendingTicks, markAge, seenDelta, windowFault, judgedFault, sinceOk>>
+    /\ gapSlow' = (Frame = "cached")
+    /\ UNCHANGED <<rebuild, frameLanded, frameLag, lagLatest, arrAge, faultSinceLatest, faultSinceFrame>>
 
 (***************************************************************************)
 (* The detector. It judges the node against the node's OWN declared period, *)
@@ -189,8 +253,15 @@ Detector ==
        wedges and reboots comes back BELOW the value porta is holding — and a
        test for "did it advance" fails on it without ever reading boot_id. *)
     /\ wak'           = 0
+    (* lastFrame is RAM: a reboot holds no frame, so its first push builds one. *)
+    /\ rebuild' = TRUE /\ frameLanded' = FALSE /\ frameLag' = 0
+    (* the wedge and the reboot are a fault in whichever window the next sample closes *)
+    /\ gapSlow' = FALSE /\ faultSinceFrame' = FALSE
+    /\ faultSinceLatest' = (Frame = "cached")
     /\ UNCHANGED <<sweepIn, sinceSeen, verdict, seenWak, sweepWak, sinceStoredProgress>>
-    /\ UNCHANGED rateVars
+    /\ windowFault' = (windowFault \/ Frame = "cached")
+    /\ UNCHANGED <<pendingTicks, markAge, seenDelta, slowPending, judgedFault,
+                   sinceOk, lagLatest, arrAge>>
 
 (***************************************************************************)
 (* porta. THE RULE IS ONE LINE AND THERE ARE NO CONSTANTS IN IT:            *)
@@ -211,7 +282,10 @@ IsLive ==
 Behind ==
     /\ Rule = "rateAge"
     /\ markAge < Cap
-    /\ (markAge - sinceSeen) - seenDelta * Cad >= Cad
+    /\ (markAge - arrAge) - seenDelta * Cad >= Cad
+
+(* porta's guard (the Go's fourth test): exchanges keep arriving, the sample does not. *)
+NoSample == arrAge < Cap /\ arrAge - sinceSeen >= HealthGap
 
 DoSweep ==
     /\ sweepIn = 0
@@ -222,23 +296,28 @@ DoSweep ==
           this sweep and the verdict keeps its last rate judgement; only the arrival age
           may still move it, to silent. The first version re-marked here, and TLC
           showed a stalled node flipping back to live on every empty window. *)
-       THEN /\ verdict' = IF IsLive THEN verdict ELSE "silent"
-            /\ UNCHANGED <<markAge, seenDelta, windowFault, judgedFault>>
+       THEN /\ verdict' = IF ~IsLive THEN "silent"
+                            ELSE IF NoSample THEN "neverSeen" ELSE verdict
+            /\ markAge' = IF ClearMark /\ ~IsLive THEN Cap ELSE markAge
+            /\ UNCHANGED <<seenDelta, windowFault, judgedFault>>
        ELSE /\ verdict' = IF sinceSeen = Cap /\ verdict = "neverSeen"
                             THEN "neverSeen"
                             ELSE IF ~IsLive THEN "silent"
                             (* ONE sample says nothing about a rate: under rateAge porta
                                withholds live until it holds two. "neverSeen" stands in for
                                porta's #unknown — a verdict that already exists. *)
+                            ELSE IF Rule = "rateAge" /\ NoSample THEN "neverSeen"
                             ELSE IF Rule = "rateAge" /\ markAge = Cap THEN "neverSeen"
                             ELSE IF Behind THEN "stalled" ELSE "live"
             (* the latest sample becomes the mark the next window is judged from *)
-            /\ markAge'     = sinceSeen
+            /\ markAge'     = IF ClearMark /\ ~IsLive THEN Cap
+                              ELSE IF Rule = "rateAge" THEN arrAge ELSE sinceSeen
             /\ seenDelta'   = 0
-            /\ judgedFault' = windowFault
-            /\ windowFault' = FALSE
+            /\ judgedFault' = (windowFault \/ gapSlow)
+            /\ windowFault' = faultSinceLatest
     /\ UNCHANGED <<state, sinceProgress, sinceWedge, tickIn, sinceSeen, boots,
                    wak, seenWak, sinceStoredProgress, pendingTicks, slowPending, sinceOk>>
+    /\ UNCHANGED frameVars
 
 Tock ==
     /\ tickIn  > 0
@@ -252,8 +331,11 @@ Tock ==
     /\ sinceStoredProgress' = Inc(sinceStoredProgress)   \* Tock is the only clock
     /\ markAge'      = Inc(markAge)
     /\ sinceOk'      = Inc(sinceOk)
+    /\ arrAge'       = Inc(arrAge)
     /\ UNCHANGED <<state, verdict, boots, wak, seenWak, sweepWak,
-                   pendingTicks, seenDelta, slowPending, windowFault, judgedFault>>
+                   pendingTicks, seenDelta, slowPending, windowFault, judgedFault,
+                   rebuild, frameLanded, frameLag, lagLatest,
+                   gapSlow, faultSinceLatest, faultSinceFrame>>
 
 Next == CheckIn \/ WedgedTick \/ Wedge \/ Detector \/ DoSweep \/ Tock
 
@@ -274,6 +356,10 @@ TypeOK ==
     /\ seenDelta    \in 0..Cap
     /\ slowPending \in BOOLEAN /\ windowFault \in BOOLEAN /\ judgedFault \in BOOLEAN
     /\ sinceOk      \in 0..Cap
+    /\ rebuild \in BOOLEAN /\ frameLanded \in BOOLEAN
+    /\ frameLag \in 0..Cap /\ lagLatest \in 0..Cap /\ arrAge \in 0..Cap
+    /\ gapSlow \in BOOLEAN /\ faultSinceLatest \in BOOLEAN /\ faultSinceFrame \in BOOLEAN
+    /\ Frame \in {"fresh", "cached"} /\ HealthGap \in 0..Cap /\ ClearMark \in BOOLEAN
     /\ Rule \in {"arrival", "sweepDelta", "progressAge", "rateAge"}
 
 (***************************************************************************)
