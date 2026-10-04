@@ -270,3 +270,70 @@ func TestQueryBindsArgs(t *testing.T) {
 		t.Errorf("a quoted id matched %d rows", len(res.Rows))
 	}
 }
+
+// buildRecord is an obs/build value asserting a bench board name.
+func buildRecord(t *testing.T, board string) []byte {
+	t.Helper()
+	b, err := cval.Encode(cval.Record{Tag: "Build", Fields: []cval.Pair{
+		{K: cval.Symbol("chip"), V: cval.Symbol("esp32c6")},
+		{K: cval.Symbol("board"), V: board},
+		{K: cval.Symbol("build"), V: "test"},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
+}
+
+// retiredStore: bench1 falls silent and then a factory-id board asserting
+// board "bench1" appears — one board succeeding itself. bench2's factory board
+// appears while bench2 is still checking in — two boards, which must NOT be
+// folded together.
+func retiredStore(t *testing.T) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "store.db")
+	var clock int64 = 1_700_000_000_000
+	st, err := space.Open(path, func() int64 { clock += 1_000; return clock })
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { st.Close() })
+	ingest := func(node string, boot int64, path string, v []byte) {
+		t.Helper()
+		if _, _, err := st.Ingest(node, boot, []space.Entry{{Seq: clock, Path: path, Kind: cval.KindCell, Value: v}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	name := func(s string) []byte { b, _ := cval.Encode(s); return b }
+
+	ingest("bench1", 4, "obs/name", name("bench1"))
+	ingest("bench1", 4, "obs/name", name("bench1"))
+	ingest("aaaa00000001", 1, "obs/build", buildRecord(t, "bench1"))
+
+	ingest("bench2", 9, "obs/name", name("bench2"))
+	ingest("aaaa00000002", 1, "obs/build", buildRecord(t, "bench2"))
+	ingest("bench2", 9, "obs/name", name("bench2")) // still alive: overlap
+	return path
+}
+
+// TestRetiredIdsFoldIntoTheBoardThatSucceededThem: an id is retired into the
+// device whose obs/build asserts it as its bench board AND was first heard
+// after the id fell silent — design §5.3's invariant, non-overlapping means
+// one board. Overlapping means two, and nothing is folded.
+func TestRetiredIdsFoldIntoTheBoardThatSucceededThem(t *testing.T) {
+	g, err := OpenLive(retiredStore(t), descriptors(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer g.Close()
+	got := rowsBy(t, query(t, g, Query{SQL: `SELECT node_id, board, retired_into FROM liveness`}), 1)
+	if r := got["bench1"]; asText(r["retired_into"]) != "aaaa00000001" {
+		t.Errorf("bench1 retired_into = %v, want aaaa00000001", r["retired_into"])
+	}
+	if r := got["bench2"]; r["retired_into"] != nil {
+		t.Errorf("bench2 overlaps its claimed successor and was folded into %v", r["retired_into"])
+	}
+	if r := got["aaaa00000001"]; asText(r["board"]) != "bench1" || r["retired_into"] != nil {
+		t.Errorf("aaaa00000001 = %v", r)
+	}
+}

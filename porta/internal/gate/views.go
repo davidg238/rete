@@ -71,6 +71,13 @@ SELECT g.node_id                                         AS node_id,
 // node porta has not judged yet reads NULL — never a guessed #live. `role` is
 // goal/name, optional by design (first-cut §5.2): NULL is an uncommissioned
 // device, which is a legal state.
+//
+// `board` is the bench name the node asserts in obs/build, and `retired_into`
+// folds an id a board has left into the board that succeeded it (addendum D4):
+// the device whose obs/build names this id as its board AND was first heard
+// at or after this id was last heard. That second clause is §5.3's invariant —
+// non-overlapping means one board succeeding itself; overlapping means two
+// boards, and nothing is folded.
 var viewLiveness = viewDef{"liveness", fmt.Sprintf(`
 SELECT n.id           AS node_id,
        r.value        AS role,
@@ -79,11 +86,16 @@ SELECT n.id           AS node_id,
        v.ts_ms        AS verdict_ms,
        n.last_seen_ms AS last_seen_ms,
        n.boot_id      AS boot_id,
-       n.last_addr    AS last_addr
+       n.last_addr    AS last_addr,
+       b.board        AS board,
+       (SELECT s.node_id FROM %[3]s s JOIN nodes sn ON sn.id = s.node_id
+         WHERE s.board = n.id AND s.node_id <> n.id AND sn.first_seen_ms >= n.last_seen_ms
+         ORDER BY sn.first_seen_ms LIMIT 1) AS retired_into
   FROM nodes n
   LEFT JOIN cells r ON r.node_id = n.id AND r.direction = 'out' AND r.path = 'goal/name'
-  LEFT JOIN cells v ON v.node_id = n.id AND v.direction = '%s' AND v.path = '%s'`,
-	space.DirectionGateway, space.PathLiveness)}
+  LEFT JOIN cells v ON v.node_id = n.id AND v.direction = '%[1]s' AND v.path = '%[2]s'
+  LEFT JOIN %[3]s b ON b.node_id = n.id`,
+	space.DirectionGateway, space.PathLiveness, TableName("obs/build"))}
 
 // createViews builds the binding's views on W, after its tables.
 func createViews(ctx context.Context, s *scratch, views []viewDef) error {

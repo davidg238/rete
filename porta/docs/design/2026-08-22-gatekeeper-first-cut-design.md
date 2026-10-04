@@ -794,3 +794,21 @@ moves it.
   exchange" seventeen days after it went quiet. True when written, and misleading without
   its time — the page shows "since" beside every verdict, and `liveness.verdict_ms` carries
   it for any other reader.
+
+### D4 — `retired_into`: the bench-era ids fold by the node's own assertion (a §5.3 note)
+
+§5.3 derives the device lineage from merged boot counters, which needs `exchanges` history
+the `live` binding caps at 24 h. Since rete#118 there is a cheaper witness for the ids that
+matter on a live page: every factory-id board asserts its bench name in `obs/build`'s
+`board` (ARCHITECTURE §3.8 — "asserted by the node on every boot rather than kept in a
+table"). So `liveness` gains `board`, and `retired_into` = the device whose `obs/build`
+names this id as its board **and** was first heard at or after this id was last heard.
+The second clause is §5.3's invariant applied to node lifetimes: non-overlapping is one
+board succeeding itself, overlapping is two boards and nothing is folded
+(`TestRetiredIdsFoldIntoTheBoardThatSucceededThem`, witnessed red with the clause removed).
+
+On the live store this folds exactly the five bench-era ids (`c6`, `c6bench`, `c6spare`,
+`nrf4ec0`, `nrf92c2`) into their factory ids, and leaves the three slot-era ids from before
+2026-08-22 (`c6-bench`, `c6-bell`, `c6-timerless`) unfolded: their boards never asserted
+those names, so only §5.3's boot-counter `device` view on `snap` can place them. That view
+is still owed; the page shows them honestly as old ids at the bottom of the table.

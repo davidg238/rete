@@ -51,7 +51,11 @@ function render(tree, live) {
       el("span", { class: "chip" }, "boot ", el("b", {}, me.boot_id || "?")),
       el("span", { class: "chip", title: me.last_addr || "" }, el("b", {}, transport(me.last_addr))),
     );
+    if (me.board != null && me.board !== me.node_id) summary.append(el("span", { class: "chip" }, "board ", el("b", {}, me.board)));
     if (me.reason) summary.append(el("div", { class: "reason" }, me.reason));
+    if (me.retired_into != null) summary.prepend(el("div", { class: "warnbox", style: "display:block" },
+      "Retired id: this board is now ", el("a", { href: "/node/" + encodeURIComponent(me.retired_into) }, me.retired_into),
+      ". Nothing here is current."));
   }
 
   // porta get's banner, carried over: a tree read inside a reboot mixes two

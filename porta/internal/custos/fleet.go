@@ -33,7 +33,8 @@ type namedQuery struct {
 
 // fleetQueries are the only statements the network surface runs.
 var fleetQueries = map[string]namedQuery{
-	"liveness": {sql: `SELECT node_id, role, verdict, reason, verdict_ms, last_seen_ms, boot_id, last_addr
+	"liveness": {sql: `SELECT node_id, role, verdict, reason, verdict_ms, last_seen_ms, boot_id, last_addr,
+	                          board, retired_into
 	                     FROM liveness ORDER BY node_id`},
 	"convergence": {sql: `SELECT node_id, key, goal, obs, converged, goal_ms, obs_ms, obs_stale
 	                        FROM convergence ORDER BY node_id, key`},

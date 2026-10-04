@@ -23,6 +23,15 @@
   </tr></thead>
   <tbody id="nodes"><tr><td colspan="6" class="empty">loading…</td></tr></tbody>
 </table></div>
+<div id="retired-wrap" style="display:none">
+<h2>Retired ids</h2>
+<div class="wrap"><table>
+  <thead><tr><th>Old id</th><th>Now</th><th>Last heard as the old id</th></tr></thead>
+  <tbody id="retired"></tbody>
+</table></div>
+<p class="note">An id is retired when a board's <code>obs/build</code> names it as its bench board and that board was first heard after the id fell silent — one board under a new id, not two boards (rete#118).</p>
+</div>
+
 <p class="note">Verdicts are porta's own (<code>gw/liveness</code>), formed by its sweep every 30 s; the line under each is porta's reason, written when the verdict last <em>changed</em> — so its numbers are as of "since", not now. Ages are against the gateway's clock. Most recently heard first.</p>
 
 <h2>Goals not yet converged</h2>
@@ -51,8 +60,10 @@ function renderGateway(h) {
 
 function render(live, conv) {
   const now = live.now_ms;
-  const nodes = rows(live);
-  const goals = rows(conv);
+  const all = rows(live);
+  const nodes = all.filter(n => n.retired_into == null);
+  const retired = all.filter(n => n.retired_into != null);
+  const goals = rows(conv).filter(g => !retired.some(r => r.node_id === g.node_id));
 
   const perNode = {};
   for (const g of goals) {
@@ -64,6 +75,7 @@ function render(live, conv) {
   for (const n of nodes) { const v = n.verdict || "not judged"; counts[v] = (counts[v] || 0) + 1; }
   document.getElementById("counts").replaceChildren(
     el("span", { class: "chip" }, el("b", {}, nodes.length), " nodes"),
+    ...(retired.length ? [el("span", { class: "chip" }, el("b", {}, retired.length), " retired ids")] : []),
     ...Object.entries(counts).sort((a, b) => (SEVERITY[a[0]] ?? 4) - (SEVERITY[b[0]] ?? 4))
       .map(([v, c]) => el("span", { class: "chip" }, el("b", {}, c), " ", v === "not judged" ? v : "#" + v)),
   );
@@ -92,6 +104,14 @@ function render(live, conv) {
       );
     }));
   }
+
+  document.getElementById("retired-wrap").style.display = retired.length ? "block" : "none";
+  retired.sort((a, b) => (b.last_seen_ms ?? 0) - (a.last_seen_ms ?? 0));
+  document.getElementById("retired").replaceChildren(...retired.map(n => el("tr", {},
+    el("td", {}, el("a", { class: "node", href: "/node/" + encodeURIComponent(n.node_id) }, n.node_id)),
+    el("td", {}, el("a", { class: "node", href: "/node/" + encodeURIComponent(n.retired_into) }, n.retired_into)),
+    el("td", { class: "num", title: n.last_seen_ms ? clock(n.last_seen_ms) : "" }, age(n.last_seen_ms, now)),
+  )));
 
   const diverged = goals.filter(g => !g.converged);
   const dbody = document.getElementById("diverged");
