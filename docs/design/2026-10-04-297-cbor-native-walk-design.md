@@ -51,7 +51,7 @@ would be a send per slot (B's cost again) or need ivar names in the image.
 
 - `Cbor>>encode: v` = `platform cborEncode: v`; if that answers *refused*, run
   `encodeOracle: v` — **today's nsl walk, renamed, otherwise unchanged**.
-- C encodes leaves by a switch (nil, both booleans per #330, SMI, LargeInteger, Float, String,
+- C encodes leaves by a switch (nil, the two booleans — one object each since #330, SMI, LargeInteger, Float, String,
   Symbol — tag 39). A container is encoded only when `lookup_method_cached(vtable, #cborWalk)`
   answers a cbor native; the native's C walk function is reached from its closure.
 - **C refuses** — answers one sentinel, never an error text — on: no/other binding, depth > 32,
@@ -94,8 +94,8 @@ would be a send per slot (B's cost again) or need ivar names in the image.
 ## Not in scope
 
 Decode (`rawBytesOf:` is the same per-byte shape and unpriced — one profile window first, per
-#297 point 2). Re-expressing the Hanoi spike (`src/hanoi_native.c`) as a `NATIVE` row. Fixing
-#330 (C accepts both booleans meanwhile). #161 fix (1) is re-priced after, not done first. #28 is
+#297 point 2). Re-expressing the Hanoi spike (`src/hanoi_native.c`) as a `NATIVE` row. #330 was
+fixed separately first (95bb141). #161 fix (1) is re-priced after, not done first. #28 is
 not absorbed. The size law (512 B batch, 256 B value) is untouched — it is a radio fact.
 
 ## Costs and assumptions, written down

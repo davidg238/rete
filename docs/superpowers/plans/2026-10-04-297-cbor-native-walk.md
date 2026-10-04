@@ -24,7 +24,7 @@ starting point for Task 1's walk): `git show 297-cbor-spike:nodus/oevm/src/cbor_
 - No `.oimg` format change: the binding's method is a `TAG_BUILTIN` registry word.
 - C refuses with **one** sentinel (nil) and never produces an error text. Error texts and their order stay in nsl only.
 - No tunables: no `.bss` scratch, no C heap, no size caps. Depth bound 32 (the language's own bound).
-- C accepts **both** `true` objects (`true_symbol` and `oimg_singleton[1]`, likewise false): #330 is not fixed here.
+- C tests booleans by identity against `true_symbol`/`false_symbol`: one object each since #330 (95bb141), so there is no second `true` to accept.
 - Symbols encode as tag 39 and Records as tag 27 over `[tag, fields]` (the design corrects #297's text).
 - Map keys sort RFC 8949 §4.2 bytewise over the encoded keys, using a stable insertion sort (same as `sortPairsBytewise:`).
 - `cborWalk` cannot be sent from nsl. Doing so aborts with `VM Error:` and names the receiver's class.
