@@ -879,3 +879,50 @@ are well outside an interactive budget. **Pushdown is earned by this measurement
 built here.** The cheapest first cut the numbers suggest: materialize `exchanges` as
 per-(node, boot) aggregates when only `boot` reads it, and push a `node_id` predicate into
 the `events` scan.
+
+## Addendum 2026-10-04 (evening) — E: §10's acceptance, on the fixture and on the real store
+
+Task 7 and Task 8 of the plan. The five questions are five committed query files,
+`porta/internal/gate/testdata/acceptance/q*.sql`. They are tested against a committed fixture
+snapshot (`testdata/acceptance.db`, built by `acceptanceStore`, guarded against drift) and run
+**as the same text** against the real store on gw85224-01 (`custos sql … -- "$(cat q.sql)"`,
+under `nice`/`ionice`, porta undisturbed). Snap = `snap-20261004.db` (2.46 GB); live = the
+store `mode=ro`.
+
+### The prediction held
+
+| Q | binding | prediction | fixture | real store |
+|---|---|---|---|---|
+| 1 median free memory | snap | needs projection + rules | envelope 60,000 B; the raw median of the same samples reads under half | 13 ids, 94 s. Raw-sample median is 40–60 % low on **every** id (`c6bench` 26.8 KB vs 41.9 KB) |
+| 2 disagree with goal | live | answerable now | porch's mode, ghost's unechoed name | 0.13 s: `206ef1195438`, `c6`, `c6-bell` — `goal/name` never echoed (the bell is #334; the other two are retired ids) |
+| 3 arena grew over a soak | snap | needs projection + rules | leak −2,000 B/h, fix flat, 2 h boot refused; unsegmented, the leak+fix reads as RISING | 73 (node, boot) segments in 94 s, 40 refused under ~5 h |
+| 4 what changed A→B | snap | needs build segmentation | v0/v1/v2 with pins and envelope floors | 62 (node, build) rows in 165 s |
+| 5 stale, and why | live | answerable now | `#stalled`/`#silent`/`#neverSeen` + NULL | 0.13 s: 9 ids, every one `#unknown` |
+
+### What the real store showed
+
+- **Q5's "three whys" are not the real fleet's.** §4.3 named never / refused / wedged and D1
+  replaced them with porta's verdict, but on 2026-10-04 no node is `#silent`, `#neverSeen` or
+  `#stalled`. All nine non-live ids are `#unknown`, told apart only by `reason`: an image that
+  predates #272, no declared cadence, or porta not listening. The answer is right; the
+  distinguishing is done by `reason`, which is free text. Only the fixture exercises the three
+  verdicts.
+- **Q3's one candidate is `c6bench` boot 4** (`g2488c2e`): −49 B/h of envelope over 332 h, and
+  Q4 shows that build's envelope floor at **4 B** — a cycle whose best post-sweep free block was
+  four bytes. `c6bench` is the id #333 suspects of holding two boards, and a boot segment does
+  not separate two boards sharing a boot id, so this is a candidate, not a finding.
+- **The nRFs' envelope floor moved with the build:** 72–88 B on `g210d7f7` and older, ~5 KB on
+  `gf515ac5` (Q4) — the shape Q4 exists to show.
+- **A correlated subquery over a history view re-runs the view per row.** Q4 as first written
+  (envelope floor per (node, build) as a scalar subquery on `gc_envelope`) was killed at 11 min;
+  Q1 (a per-node `MAX(last_ms)` subquery) at 17 min. Grouped once and joined, or as a window,
+  they answer in 165 s and 94 s. The query files carry the rewritten forms; #332's pushdown is
+  the remedy for the remaining ~90 s floor.
+- **Q3's refusal is the reader's, not the gate's.** The gate returns `span` and lfb's validity
+  note; the query withholds the slope. No mechanism refuses a trend, and §10's wording ("must
+  refuse") is met by the reading rule riding out — the prediction's "(3) needs the reading
+  rules", taken literally. Witnessed: with the rule at 1 h, the fixture's 2 h boot reads as a
+  1,500 B/h leak; without the warm-up discard, the fix reads as a 2,600 B/h leak.
+- `custos sql` takes a query that starts `-- …` as a flag (#335); pass `--` first.
+
+The raw results are on gw85224-01 in `~/custos-dev/t8/out/`.
