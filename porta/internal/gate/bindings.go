@@ -278,12 +278,19 @@ func newAuthorizer() *authorizer {
 	return &authorizer{reads: map[string]map[string]bool{}}
 }
 
+// sqliteRecursive is SQLITE_RECURSIVE, which go-sqlite3 v1.14.40 leaves
+// commented out of its constants. A recursive CTE is a read; denying it refused
+// every lineage query, and hid that the deadline test never reached the
+// interrupt it exists to prove (design addendum D5).
+const sqliteRecursive = 33
+
 // permitted actions. SQLITE_READ additionally records; everything absent here is
 // denied by action code, ATTACH and PRAGMA included.
 var permittedActions = map[int]bool{
 	sqlite3.SQLITE_READ:     true,
 	sqlite3.SQLITE_SELECT:   true,
 	sqlite3.SQLITE_FUNCTION: true,
+	sqliteRecursive:         true,
 }
 
 func (a *authorizer) check(op int, arg1, arg2, _ string) int {
