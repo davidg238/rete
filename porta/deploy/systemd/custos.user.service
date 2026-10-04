@@ -1,0 +1,31 @@
+# custos as a systemd USER unit — the bench gateway's layout (gw85224-01, ~/porta-v2).
+#
+# A user unit rather than a system one because custos needs no privilege and the
+# bench store lives in the operator's home; `loginctl enable-linger` is what
+# starts it at boot with nobody logged in. Restart=on-failure is the custos half
+# of rete#282 (gateway-side services are unsupervised). porta itself is NOT
+# moved under this: a porta restart costs every node an outage, so its cut-over
+# is its own decision.
+#
+# Install:
+#   install -D -m644 custos.user.service ~/.config/systemd/user/custos.service
+#   systemctl --user daemon-reload
+#   loginctl enable-linger "$USER"
+#   pkill -x custos; systemctl --user enable --now custos
+[Unit]
+Description=custos — the fleet page and named queries over porta's store (rete#198)
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/porta-v2
+ExecStart=%h/porta-v2/custos --docs %h/porta-v2/docs \
+    --store %h/porta-v2/soak-2026-08-04.db \
+    --descriptors %h/porta-v2/descriptors/records.yaml
+Restart=on-failure
+RestartSec=3
+StandardOutput=append:%h/porta-v2/custos.log
+StandardError=append:%h/porta-v2/custos.log
+
+[Install]
+WantedBy=default.target
