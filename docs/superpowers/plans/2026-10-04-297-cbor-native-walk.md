@@ -194,7 +194,7 @@ static oop cb_encode(oop v) {
 }
 ```
 
-  In pass 2, `cb_map` carves its entry array, then its key bytes, from `w.scr` at `w.sp`, and restores `sp` on exit (stack discipline, Review Focus 3). Entries go first so they stay aligned. Each map sub-area is `n*esz` aligned up to `esz`. That is what makes the `+esz` slack per map rather than global, so size `scap` as `c.entries*esz + c.keybytes + c.maps*esz` and count `maps` in pass 1 as well. Replace the spike's `return -3` paths with an `assert(w->sp + need <= w->scap)`: pass 1 makes overflow impossible, and the assert is what proves it.
+  In pass 2, `cb_map` carves its entry array, then its key bytes, from `w.scr` at `w.sp`, and restores `sp` on exit (stack discipline, Review Focus 3). Entries go first so they stay aligned. Each map sub-area is `n*esz` aligned up to `esz`. That is why the slack is per map (`c.maps` is counted in pass 1 alongside `entries`/`keybytes`). Declare the writer as `typedef struct CbW { … } CbW;`, matching the `struct CbW` forward declaration in `oevm.h`. Replace the spike's `return -3` paths with an `assert(w->sp + need <= w->scap)`: pass 1 makes overflow impossible, and the assert is what proves it.
 
   Then `case PRIM_pf_cborEncode: *out = cb_encode(args[0]); return 1;`.
 

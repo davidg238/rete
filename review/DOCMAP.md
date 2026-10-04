@@ -77,7 +77,7 @@ and `~/workspaceToit/nodus/docs/`:
 
 <!-- BEGIN GENERATED INVENTORY — do not edit below; rerun tools/docmap.sh -->
 
-_Regenerated 2026-10-02 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
+_Regenerated 2026-10-03 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
 
 ### review
 
@@ -115,7 +115,7 @@ _Regenerated 2026-10-02 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 
 ### docs
 
-- `docs/README.md` — docs/ — the program's documents _(record, 2026-08-31)_
+- `docs/README.md` — docs/ — the program's documents _(record, 2026-10-02)_
 - `docs/design/2026-06-17-clustered-image-xip-design.md` — Design: Decoupled image + execute-in-place clustered format _(design, 2026-08-29)_
 - `docs/design/2026-06-17-global-method-cache-design.md` — Global Method Lookup Cache — Design _(design, 2026-07-14)_
 - `docs/design/2026-06-17-unboxed-floats-design.md` — Unboxed Floats (P0) — Design _(design, 2026-08-29)_
@@ -157,7 +157,7 @@ _Regenerated 2026-10-02 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/design/2026-07-24-magtag-deep-sleep-clock-design.md` — MagTag deep-sleep ship's-bell clock — design (tuvm#94 stage 5) _(design, 2026-07-26)_
 - `docs/design/2026-07-24-magtag-ntp-catchup-design.md` — MagTag bell clock — stage 4: WiFi + NTP catchup _(design, 2026-07-23)_
 - `docs/design/2026-08-01-porta-space-sync-c6-gate-design.md` — porta space-sync — the C6 hardware gate (plan 3 of 3) — Design _(design, 2026-08-02)_
-- `docs/design/2026-08-02-rete-repo-consolidation-design.md` — rete — collapsing five repos into one system _(design, 2026-08-02)_
+- `docs/design/2026-08-02-rete-repo-consolidation-design.md` — rete — collapsing five repos into one system _(design, 2026-10-02)_
 - `docs/design/2026-08-03-c6-shipsbell-always-on-node-design.md` — The C6 ship's bell as an always-on node — design _(design, 2026-08-04)_
 - `docs/design/2026-08-03-device-console-collector-design.md` — Device console collector and offline symbolizer — design _(design, 2026-08-05)_
 - `docs/design/2026-08-03-t0.3-gate-ownership-decision.md` — T0.3 gate ownership: one script measures, one script decides _(design, 2026-08-03)_
@@ -170,19 +170,19 @@ _Regenerated 2026-10-02 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/design/2026-08-07-inclusive-attribution-design.md` — Attributing profile cost to code, not to callees _(design, 2026-08-07)_
 - `docs/design/2026-08-10-node-memory-and-liveness-design.md` — Node memory accounting and fleet liveness — design _(design, 2026-08-22)_
 - `docs/design/2026-08-12-allocation-attribution-design.md` — Allocation attribution — the profiler's question, asked about bytes _(design, 2026-08-12)_
-- `docs/design/2026-08-16-vm-liveness-observer-design.md` — A wedged node never faults — detecting the silence that raises no error _(design, 2026-08-21)_
+- `docs/design/2026-08-16-vm-liveness-observer-design.md` — A wedged node never faults — detecting the silence that raises no error _(design, 2026-10-02)_
 - `docs/design/2026-08-20-prim-id-on-symbol-design.md` — Primitive classification belongs to the Symbol, not to a cache _(design, 2026-08-21)_
 - `docs/design/2026-08-21-liveness-contract-design.md` — The liveness contract — a node declares how long its silence may last _(design, 2026-09-17)_
 - `docs/design/2026-08-24-kind-schema-manifest-design.md` — The kind+schema manifest — design (#243, 2026-08-24) _(design, 2026-08-25)_
 - `docs/design/2026-08-31-liveness-timers.html` — Every Clock in the Liveness Path _(design, 2026-09-17)_
 - `docs/design/2026-09-11-node-identity-hardware-rooted-design.md` — Node identity is the factory link address _(design, 2026-10-02)_
-- `docs/design/2026-09-14-liveness-two-cadences-design.md` — Two liveness cadences, both declared — the #273 decision _(design, 2026-09-18)_
+- `docs/design/2026-09-14-liveness-two-cadences-design.md` — Two liveness cadences, both declared — the #273 decision _(design, 2026-10-03)_
 - `docs/design/2026-09-14-porta-federation-and-transports-design.md` — porta beyond the LAN: federation, and the transports a public deployment would use _(design, 2026-09-16)_
-- `docs/design/2026-10-02-frozen-1.0-surface.md` — The frozen surface 1.0 — what is promised, what is missing, what comes after _(design, 2026-10-02)_
-- `docs/design/2026-10-02-security-levels-design.md` — Security levels: who may talk to whom, per node _(design)_
-- `docs/development.md` — Development: the loop for a human and for an agent _(record)_
-- `docs/next-steps-overview.md` — Next steps — overview _(record, 2026-10-01)_
-- `docs/overview.md` — rete — the whole on one page _(record)_
+- `docs/design/2026-10-02-frozen-1.0-surface.md` — The frozen surface 1.0 — what is promised, what is missing, what comes after _(design, 2026-10-03)_
+- `docs/design/2026-10-02-security-levels-design.md` — Security levels: who may talk to whom, per node _(design, 2026-10-02)_
+- `docs/development.md` — Development: the loop for a human and for an agent _(record, 2026-10-02)_
+- `docs/next-steps-overview.md` — Next steps — overview _(record, 2026-10-02)_
+- `docs/overview.md` — rete — the whole on one page _(record, 2026-10-02)_
 - `docs/results/2026-07-20-c6-heap-ceiling.md` — ESP32-C6 heap-ceiling bisect — Task 3 _(record, 2026-07-20)_
 - `docs/results/2026-08-05-c6-checkin-decomposition.md` — Where the 300 ms goes — c6-bench, 2026-08-05 _(record, 2026-08-05)_
 - `docs/results/2026-08-05-c6-span-capture-first.md` — First span capture off a real node — c6-bench, 2026-08-05 _(record, 2026-08-05)_
@@ -198,12 +198,14 @@ _Regenerated 2026-10-02 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/results/2026-08-12-profile-window-cost-c6.md` — What an open attribution window costs on a C6 — +1.9% of local CPU, +0.13% of elapsed _(record, 2026-08-12)_
 - `docs/results/2026-08-29-thread-echo-soak.md` — A 48-day Thread echo soak nobody was reading — 720,878 round trips, and one unattributable day _(record, 2026-08-30)_
 - `docs/results/2026-10-01-rp2350-first-numbers.md` — RP2350 first numbers — #302 Task 5 _(record, 2026-10-01)_
+- `docs/results/2026-10-02-118-node-id-board-proof.md` — Node id board proof — #118 / #242, plan Task 10 _(record, 2026-10-02)_
+- `docs/results/2026-10-02-311-line-in-spike.md` — Line-in over the console cable — spike for rete#311 _(record, 2026-10-02)_
 - `docs/spikes/2026-07-17-oeom-native-hanoi/README.md` — Spike archive: OEOM native-substitution (Hanoi AOT ceiling) — 2026-07-17 _(record, 2026-07-17)_
 - `docs/spikes/2026-08-11-rete199-refused-node/README.md` — rete#199 — a node whose frames the gateway refuses, reproduced off hardware _(record, 2026-08-11)_
-- `docs/spikes/2026-08-27-liveness-model/README.md` — The liveness contract, model-checked (2026-08-27) _(record, 2026-08-28)_
+- `docs/spikes/2026-08-27-liveness-model/README.md` — The liveness contract, model-checked (2026-08-27) _(record, 2026-10-03)_
 - `docs/status/2026-08-12-where-we-are.html` — rete &mdash; where we are _(record, 2026-08-12)_
 - `docs/status/README.md` — docs/status — the orientation deck _(record, 2026-08-13)_
-- `docs/status/dev-status.html` — rete dev status _(record, 2026-10-02)_
+- `docs/status/dev-status.html` — rete dev status _(record, 2026-10-03)_
 - `docs/status/focus-history.md` — `## Current focus` — history _(record, 2026-09-30)_
 - `docs/superpowers/notes/2026-06-18-w1-rooting-audit.md` — W1 Rooting Audit — Runtime `gc_allocate` / `float_alloc` Sites _(note, 2026-07-03)_
 - `docs/superpowers/plans/2026-06-17-decoupled-xip-image.md` — Decoupled Image + Execute-In-Place Format — Implementation Plan _(plan, 2026-08-29)_
@@ -251,7 +253,8 @@ _Regenerated 2026-10-02 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/superpowers/plans/2026-10-02-node-id-factory-address.md` — Node id = factory link address (#118/#242) Implementation Plan _(plan, 2026-10-02)_
 - `docs/tutorials/01-host.md` — Tutorial 1 — the VM on your host: build it, run the suite, write ten lines of nsl _(record, 2026-08-29)_
 - `docs/tutorials/02-board.md` — Tutorial 2 — a board: flash a node, watch it join a mesh, run the gates _(record, 2026-10-02)_
-- `docs/tutorials/03-porta.md` — Tutorial 3 — porta on your host: a gateway, a node, and the diff between them _(record, 2026-10-02)_
+- `docs/tutorials/03-porta.md` — Tutorial 3 — porta on your host: a gateway, a node, and the diff between them _(record, 2026-10-03)_
+- `docs/tutorials/04-debugger.md` — Tutorial 4 — the debugger: stop a program at a line, step it, look inside _(record, 2026-10-02)_
 
 ### nodus/oevm/docs
 
@@ -283,10 +286,10 @@ _Regenerated 2026-10-02 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 
 ### protocol
 
-- `protocol/PROTOCOL-NSL-RECORDS.md` — Porta ↔ nsl — the record schemas _(record, 2026-10-02)_
-- `protocol/PROTOCOL-NSL.md` — Porta ↔ nsl node protocol — the space-sync model _(record, 2026-09-17)_
-- `protocol/archive/PROTOCOL-NSL-draft-2026-07-11.md` — Porta ↔ nsl node protocol — the space-sync model (genesis draft) _(record)_
-- `protocol/archive/PROTOCOL.md` — Porta wire protocol _(record)_
+- `protocol/PROTOCOL-NSL-RECORDS.md` — Porta ↔ nsl — the record schemas _(record, 2026-10-03)_
+- `protocol/PROTOCOL-NSL.md` — Porta ↔ nsl node protocol — the space-sync model _(record, 2026-10-03)_
+- `protocol/archive/PROTOCOL-NSL-draft-2026-07-11.md` — Porta ↔ nsl node protocol — the space-sync model (genesis draft) _(record, 2026-10-02)_
+- `protocol/archive/PROTOCOL.md` — Porta wire protocol _(record, 2026-10-02)_
 - `protocol/tools/.pytest_cache/README.md` — pytest cache directory # _(record)_
 
 ### nodus/nsl/docs
@@ -303,7 +306,7 @@ _Regenerated 2026-10-02 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `nodus/nsl/docs/design/2026-06-21-ns-oevm-stdlib-step3c2-dictionary-set.md` — ns-oevm std-lib step 3c-2 — Dictionary + Set (HashedCollection) _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-06-22-ns-oevm-stdlib-step3c3-streams-design.md` — ns-oevm std-lib step 3c-3a — Streams (ReadStream + WriteStream) _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-06-22-ns-oevm-stdlib-step3c3b-serial-design.md` — ns-oevm std-lib step 3c-3b — Serial (the first native capability tier) _(design, 2026-08-02)_
-- `nodus/nsl/docs/design/2026-06-23-ns-oevm-in-image-debugger-design.md` — In-image debugger + mirror grant (POSIX, agent-drivable) — design _(design, 2026-08-02)_
+- `nodus/nsl/docs/design/2026-06-23-ns-oevm-in-image-debugger-design.md` — In-image debugger + mirror grant (POSIX, agent-drivable) — design _(design, 2026-10-02)_
 - `nodus/nsl/docs/design/2026-06-23-ns-oevm-mirror-confinement-design.md` — ns-oevm Mirror tier — confining ambient reflection (the privileged-reflection capability) _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-06-23-ns-oevm-stratify-execution-off-reflection-design.md` — ns-oevm — Stratify base-level execution off reflection _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-06-25-ns-posix-keeper-r1-design.md` — Design: R1 — `ns-posix` node skeleton (nodus-style keeper on the resident oevm VM) _(design, 2026-08-02)_
@@ -395,10 +398,10 @@ _Regenerated 2026-10-02 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 
 ### porta/docs
 
-- `porta/docs/ARCHITECTURE.md` — porta system architecture _(record, 2026-09-17)_
+- `porta/docs/ARCHITECTURE.md` — porta system architecture _(record, 2026-10-03)_
 - `porta/docs/CLI.md` — porta CLI reference _(record, 2026-08-29)_
 - `porta/docs/DEVSDK.md` — porta dev-SDK (`devsdk/`) — the northbound contract _(record, 2026-08-29)_
-- `porta/docs/GETTING-STARTED.md` — Getting started with porta _(record, 2026-10-02)_
+- `porta/docs/GETTING-STARTED.md` — Getting started with porta _(record, 2026-10-03)_
 - `porta/docs/README.md` — porta/docs — the gateway's documents _(record, 2026-08-29)_
 - `porta/docs/archive/plans/2026-05-23-gateway-b1-tftp-free-core.md` — Gateway B1 — TFTP-free core Implementation Plan _(record, 2026-08-29)_
 - `porta/docs/archive/plans/2026-05-23-gateway-b2-wire-device-hardware.md` — Gateway B2 — wire + device + hardware Implementation Plan _(record, 2026-08-29)_
@@ -467,6 +470,8 @@ _Regenerated 2026-10-02 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `porta/docs/superpowers/plans/2026-08-18-gw-liveness-silence-sweep.md` — `gw/**` and the silence sweep — implementation plan (#217) _(plan, 2026-08-18)_
 - `porta/docs/superpowers/plans/2026-08-26-gatekeeper-query-core.md` — Gatekeeper query core (#198) — implementation plan _(plan, 2026-08-29)_
 - `porta/docs/superpowers/plans/2026-08-26-space-sync-durability-trio.md` — Space-Sync Durability Trio Implementation Plan _(plan, 2026-08-26)_
+- `porta/docs/superpowers/plans/2026-10-03-272-count-on-the-pull.md` — #272 — the tick count rides the pull — Implementation Plan _(plan, 2026-10-03)_
+- `porta/docs/superpowers/plans/2026-10-03-272-stalled-verdict.md` — #272 — `#stalled`: porta judges progress, not only arrival — Implementation Plan _(plan, 2026-10-03)_
 
 ### ~/workspaceToit/nodus/docs
 
