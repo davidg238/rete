@@ -1,0 +1,157 @@
+(*
+CborPrimArms — #297 spike, THROWAWAY. One binary, three encoders, same payloads:
+  N  today's Cbor>>encode: (walk and bytes in nsl; int/float leaves in C)
+  B  CborB (walk in nsl, every byte through a C leaf prim)        — spike kernel
+  A  Kernel>>cborEncodeA:kinds: (the whole walk in C, one prim)    — spike kernel
+plus Z, the empty loop (a send that does nothing), so the harness's own cost can
+be subtracted. Every payload is checked byte-identical across N, B and A first.
+*)
+class CborPrimArms packageUsing: manifest = ( | platform cbor cb kinds spans | ) (
+
+  samples = ( ^ 20 )
+
+
+  (* ---- payloads ---------------------------------------------------------- *)
+
+  (* The real 425 B push frame, copied from 22_spacesync/09_batch_size.nsl so the
+     anchor is the frame the fleet actually sends, not a plausible stand-in. *)
+  health = ( | pairs |
+    pairs:: platform OrderedCollection new.
+    pairs add: #uptimeMs -> 2592000000.
+    pairs add: #bootId -> 1.
+    pairs add: #wakes -> 1296000.
+    pairs add: #pollTimeouts -> 431.
+    pairs add: #streamDropped -> 17.
+    ^ platform Record tag: #Health fields: (platform Map fromPairs: pairs) )
+
+  metrics = ( | pairs |
+    pairs:: platform OrderedCollection new.
+    pairs add: #heapSize -> 53248.
+    pairs add: #liveBytes -> 36196.
+    pairs add: #heapHighWater -> 53228.
+    pairs add: #largestFreeBlock -> 18608.
+    pairs add: #gcCycles -> 1523.
+    pairs add: #handlesLive -> 1.
+    pairs add: #handlesHighWater -> 1.
+    pairs add: #queueHighWater -> 2.
+    pairs add: #overruns -> 0.
+    pairs add: #pulseDrops -> 0.
+    pairs add: #pulseCoalesced -> 0.
+    ^ platform Record tag: #Metrics fields: (platform Map fromPairs: pairs) )
+
+  logRec = ( ^ platform Record tag: #Log with: #level -> #info
+                                     with: #text -> 'tick 1296000' )
+
+  rowSeq: s path: p value: v = ( ^ platform List with: s with: p with: 2 with: v )
+
+  batch = ( | rows |
+    rows:: platform OrderedCollection new.
+    rows add: (self rowSeq: 1296000 path: 'obs/health'  value: self health).
+    rows add: (self rowSeq: 1296001 path: 'sys/metrics' value: self metrics).
+    rows add: (self rowSeq: 1296002 path: 'tel/log'     value: self logRec).
+    ^ platform Record tag: #push
+        with: #id -> 'c6-bench'
+        with: #bootId -> 1
+        with: #entries -> (platform List fromCollection: rows) )
+
+  (* 64 one-byte integers: the same order of magnitude of BYTES as str64 with 64x
+     the ELEMENTS. The pair separates per-byte from per-element. `// 4` keeps
+     every value under 24, so each is a single CBOR byte — this dialect has no
+     modulo. *)
+  ints64 = ( | oc i |
+    oc:: platform OrderedCollection new.
+    i:: 1. [ i <= 64 ] whileTrue: [ oc add: i // 4. i:: i + 1 ].
+    ^ platform List fromCollection: oc )
+
+  map8 = ( | pairs |
+    pairs:: platform OrderedCollection new.
+    pairs add: #a -> 1. pairs add: #b -> 2. pairs add: #c -> 3. pairs add: #d -> 4.
+    pairs add: #e -> 5. pairs add: #f -> 6. pairs add: #g -> 7. pairs add: #h -> 8.
+    ^ platform Map fromPairs: pairs )
+
+  (* Map keys whose valueCompare order differs from their encoded bytewise order
+     (#a vs #bb vs 'z' vs 1), floats, negatives, a LargeInteger, Bytes, nil/bools. *)
+  mixed = ( | pairs ba |
+    ba:: platform ByteArray new: 3.
+    ba u8At: 1 put: 0. ba u8At: 2 put: 255. ba u8At: 3 put: 7.
+    pairs:: platform OrderedCollection new.
+    pairs add: #bb -> 1.5.
+    pairs add: #a -> -1.
+    pairs add: 'z' -> 100000.
+    pairs add: 1 -> -4294967296.
+    pairs add: #c -> 9223372036854775807.
+    pairs add: #d -> ba freeze.
+    pairs add: #e -> (platform List with: nil with: true with: false with: 3.14159).
+    pairs add: #f -> (platform Map with: #yy -> 1 with: #x -> 2).
+    ^ platform Map fromPairs: pairs )
+
+  encN: v = ( ^ cbor encode: v )
+  encB: v = ( ^ cb encode: v )
+  encA: v = ( ^ platform cborEncodeA: v kinds: kinds )
+  encZ: v = ( ^ v )
+  encA2: v = ( ^ platform cborEncodeA2: v kinds: kinds )
+
+  loopN: v reps: n = ( | i | i:: 1. [ i <= n ] whileTrue: [ self encN: v. i:: i + 1 ]. ^ self )
+  loopB: v reps: n = ( | i | i:: 1. [ i <= n ] whileTrue: [ self encB: v. i:: i + 1 ]. ^ self )
+  loopA: v reps: n = ( | i | i:: 1. [ i <= n ] whileTrue: [ self encA: v. i:: i + 1 ]. ^ self )
+  loopA2: v reps: n = ( | i | i:: 1. [ i <= n ] whileTrue: [ self encA2: v. i:: i + 1 ]. ^ self )
+  loopZ: v reps: n = ( | i | i:: 1. [ i <= n ] whileTrue: [ self encZ: v. i:: i + 1 ]. ^ self )
+
+  (* min over `samples` of one bracketed loop of n reps, in ns per encode *)
+  arm: c of: v reps: n slot: slot = ( | s st |
+    s:: 1.
+    [ s <= self samples ] whileTrue: [
+      spans begin: slot.
+      c = 1 ifTrue: [ self loopN: v reps: n ].
+      c = 2 ifTrue: [ self loopB: v reps: n ].
+      c = 3 ifTrue: [ self loopA: v reps: n ].
+      c = 4 ifTrue: [ self loopZ: v reps: n ].
+      c = 5 ifTrue: [ self loopA2: v reps: n ].
+      spans end: slot.
+      s:: s + 1 ].
+    st:: spans statsAt: slot.
+    ^ (st basicAt: 2) * 1000 // n )
+
+  row: name of: v slots: sl = ( | bn bb ba ba2 n b a a2 z |
+    bn:: self encN: v. bb:: self encB: v. ba:: self encA: v. ba2:: self encA2: v.
+    n:: self arm: 1 of: v reps: 20 slot: (sl at: 1).
+    b:: self arm: 2 of: v reps: 200 slot: (sl at: 2).
+    a:: self arm: 3 of: v reps: 2000 slot: (sl at: 3).
+    z:: self arm: 4 of: v reps: 2000 slot: (sl at: 4).
+    a2:: self arm: 5 of: v reps: 2000 slot: (sl at: 5).
+    (name, ' bytes=', bn byteSize printString,
+           ' sameB=', (bn = bb) printString, ' sameA=', (bn = ba) printString, ' sameA2=', (bn = ba2) printString,
+           ' N=', n printString, ' B=', b printString, ' A=', a printString, ' A2=', a2 printString,
+           ' Z=', z printString, ' ns/encode') println.
+    (bn = ba) ifFalse: [ ('  N ', bn printHex) println. ('  B ', bb printHex) println. ('  A ', ba printHex) println ].
+    ^ self )
+
+  slots: n b: b a: a z: z a2: a2 = ( | o |
+    o:: platform OrderedCollection new.
+    o add: (spans register: n). o add: (spans register: b).
+    o add: (spans register: a). o add: (spans register: z).
+    o add: (spans register: a2).
+    ^ o )
+
+public main: p args: args = (
+  | s16 s256 mapNest4 |
+  platform:: p.
+  cbor::  platform Cbor.
+  cb::    platform CborB.
+  kinds:: platform cborKinds.
+  spans:: platform Spans new.
+  s16::  '0123456789abcdef'.
+  s256:: s16, s16, s16, s16, s16, s16, s16, s16, s16, s16, s16, s16, s16, s16, s16, s16.
+  mapNest4::  platform Map with: #v -> (platform Map with: #v -> (platform Map with: #v -> (platform Map with: #v -> s256))).
+  ('build ' , platform buildId) println.
+  self row: 'str16'    of: s16         slots: (self slots: #str16N b: #str16B a: #str16A z: #str16Z a2: #str16P).
+  self row: 'str256'   of: s256        slots: (self slots: #str256N b: #str256B a: #str256A z: #str256Z a2: #str256P).
+  self row: 'ints64'   of: self ints64 slots: (self slots: #ints64N b: #ints64B a: #ints64A z: #ints64Z a2: #ints64P).
+  self row: 'map8'     of: self map8   slots: (self slots: #map8N b: #map8B a: #map8A z: #map8Z a2: #map8P).
+  self row: 'mapNest4' of: mapNest4    slots: (self slots: #mapNest4N b: #mapNest4B a: #mapNest4A z: #mapNest4Z a2: #mapNest4P).
+  self row: 'mixed'    of: self mixed  slots: (self slots: #mixedN b: #mixedB a: #mixedA z: #mixedZ a2: #mixedP).
+  self row: 'batch'    of: self batch  slots: (self slots: #batchN b: #batchB a: #batchA z: #batchZ a2: #batchP).
+  'done' println.
+  ^ 0 )
+) : (
+)

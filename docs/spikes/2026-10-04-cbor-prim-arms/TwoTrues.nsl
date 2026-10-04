@@ -1,0 +1,10 @@
+class TwoTrues packageUsing: manifest = ( | platform | ) (
+public main: p args: args = ( | lit cmp |
+  platform:: p.
+  lit:: true. cmp:: 1 = 1.
+  ('identical ' , (lit == cmp) printString) println.
+  ('listEq ' , ((platform List with: lit) = (platform List with: cmp)) printString) println.
+  ('encEq ' , ((platform Cbor encode: lit) = (platform Cbor encode: cmp)) printString) println.
+  ('encCmp ' , (platform Cbor encode: (platform List with: cmp)) printHex) println.
+  ^ 0 )
+) : ( )

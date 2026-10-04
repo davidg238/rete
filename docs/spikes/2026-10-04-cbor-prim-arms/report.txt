@@ -1,0 +1,9 @@
+build host
+str16 bytes=17 sameB=true sameA=true sameA2=true N=6400 B=1000 A=432 A2=445 Z=54 ns/encode
+str256 bytes=259 sameB=true sameA=true sameA2=true N=95000 B=1545 A=378 A2=327 Z=45 ns/encode
+ints64 bytes=66 sameB=true sameA=true sameA2=true N=49950 B=28440 A=841 A2=856 Z=45 ns/encode
+map8 bytes=41 sameB=true sameA=true sameA2=true N=44100 B=20775 A=712 A2=761 Z=44 ns/encode
+mapNest4 bytes=279 sameB=true sameA=true sameA2=true N=94850 B=10610 A=583 A2=620 Z=45 ns/encode
+mixed bytes=81 sameB=true sameA=true sameA2=true N=64600 B=30590 A=982 A2=987 Z=45 ns/encode
+batch bytes=425 sameB=true sameA=true sameA2=true N=259950 B=86595 A=1904 A2=2045 Z=43 ns/encode
+done
