@@ -151,6 +151,9 @@ func (g *Gate) Query(ctx context.Context, q Query) (*Result, error) {
 	if err := createSchema(ctx, s, schema); err != nil {
 		return nil, err
 	}
+	if err := createViews(ctx, s, g.spec.views); err != nil {
+		return nil, err
+	}
 
 	// Step 2: prepare, and let the authorizer plan.
 	reads, err := plan(ctx, s, q.SQL)
@@ -260,6 +263,9 @@ type tableDef struct {
 	cols []column
 	rule string // decoded: the CDDL rule
 	path string // decoded: the manifest path, wildcard included
+	// derived counts the trailing cols the materializer computes rather than
+	// copies (structural only; cells, views.go).
+	derived int
 }
 
 // identityColumns prefix every decoded record table: which node, which stored
@@ -327,7 +333,12 @@ func (g *Gate) schema() (map[string]*tableDef, error) {
 		if err != nil {
 			return nil, err
 		}
-		out[name] = &tableDef{name: name, kind: tableStructural, cols: cols}
+		td := &tableDef{name: name, kind: tableStructural, cols: cols}
+		if name == "cells" {
+			td.cols = append(td.cols, cellDerivedColumns...)
+			td.derived = len(cellDerivedColumns)
+		}
+		out[name] = td
 	}
 
 	if g.spec.decoded {
@@ -494,11 +505,21 @@ func checkScratchSize(s *scratch, maxBytes int64) error {
 	return nil
 }
 
-// copyStructural copies one store table through, applying the binding's cap.
+// copyStructural copies one store table through, applying the binding's cap,
+// and computes its derived columns when it has any.
 func (g *Gate) copyStructural(ctx context.Context, s *scratch, td *tableDef) (int, error) {
-	names := make([]string, len(td.cols))
-	for i, c := range td.cols {
+	base := td.cols[:len(td.cols)-td.derived]
+	names := make([]string, len(base))
+	for i, c := range base {
 		names[i] = quoteIdent(c.name)
+	}
+	var deriver *cellDeriver
+	if td.derived > 0 {
+		var err error
+		if deriver, err = g.newCellDeriver(ctx, td, base); err != nil {
+			return 0, err
+		}
+		defer deriver.Close()
 	}
 	sel := fmt.Sprintf("SELECT %s FROM %s", strings.Join(names, ", "), quoteIdent(td.name))
 
@@ -526,13 +547,20 @@ func (g *Gate) copyStructural(ctx context.Context, s *scratch, td *tableDef) (in
 
 	n := 0
 	for rows.Next() {
-		vals := make([]any, len(td.cols))
-		ptrs := make([]any, len(td.cols))
+		vals := make([]any, len(base))
+		ptrs := make([]any, len(base))
 		for i := range vals {
 			ptrs[i] = &vals[i]
 		}
 		if err = rows.Scan(ptrs...); err != nil {
 			return 0, err
+		}
+		if deriver != nil {
+			var extra []any
+			if extra, err = deriver.derive(ctx, vals); err != nil {
+				return 0, err
+			}
+			vals = append(vals, extra...)
 		}
 		if _, err = ins.ExecContext(ctx, vals...); err != nil {
 			return 0, fmt.Errorf("gate: materializing %s: %w", td.name, err)
@@ -821,15 +849,19 @@ func (g *Gate) notesFor(schema map[string]*tableDef, reads map[string][]string) 
 	return out
 }
 
-// Tables answers the logical tables this binding offers, for `gate tables`.
+// Tables answers the logical tables and views this binding offers, for
+// `gate tables`.
 func (g *Gate) Tables() ([]string, error) {
 	schema, err := g.schema()
 	if err != nil {
 		return nil, err
 	}
-	out := make([]string, 0, len(schema))
+	out := make([]string, 0, len(schema)+len(g.spec.views))
 	for n := range schema {
 		out = append(out, n)
+	}
+	for _, v := range g.spec.views {
+		out = append(out, v.name)
 	}
 	sort.Strings(out)
 	return out, nil

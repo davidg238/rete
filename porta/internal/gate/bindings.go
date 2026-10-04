@@ -57,11 +57,15 @@ type bindingSpec struct {
 	base          []string // store tables this binding materializes from
 	exchangeCapMs int64    // 0 means unbounded
 	decoded       bool     // whether decoded record tables are offered
+	views         []viewDef
 }
 
+// The fleet views are `live` only. A verdict or a convergence read from a
+// snapshot is yesterday's answer to "right now" — rete#225 by construction.
 var bindings = map[Binding]bindingSpec{
 	BindingSnap: {base: []string{"cells", "events", "exchanges", "gw_runs", "nodes"}, exchangeCapMs: 0, decoded: true},
-	BindingLive: {base: []string{"cells", "exchanges", "nodes"}, exchangeCapMs: exchangeWindowMs, decoded: true},
+	BindingLive: {base: []string{"cells", "exchanges", "nodes"}, exchangeCapMs: exchangeWindowMs, decoded: true,
+		views: []viewDef{viewConvergence, viewLiveness}},
 }
 
 // Gate is an open query surface over one source. It holds R; W and Q are built

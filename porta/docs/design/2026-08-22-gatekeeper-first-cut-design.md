@@ -722,3 +722,48 @@ whole referenced slice and measure it" needs no new code and pushdown stays unea
 number earns it. It also carries each decoded record's `status`, so B2's eight producerless
 shapes explain their own empty tables — silence at a path is otherwise indistinguishable from
 a dead node.
+
+## Addendum 2026-10-04 — the live views: porta's verdict is surfaced, not re-derived (§4.1, §4.3)
+
+Task 5 opened with the two `live` views the fleet page needs. Two corrections, found by
+reading what the store holds today rather than what it held on 2026-08-22.
+
+### D1 — `staleness` becomes `liveness`, and it reads porta's verdict (corrects §4.3)
+
+§4.3's `staleness` view derives its own `why` (*never checked in* / *refused* / *wedged*)
+from `obs_health.ref`. That was right when it was written: porta had no judgement of its
+own. Since rete#231 and rete#272 it has one — `gw/liveness`, a sweep verdict
+(`#live #silent #neverSeen #unknown #stalled`) with its cause written into the event's
+`reason`. A view that re-derives the answer would be a second judge of one question, and
+the two would disagree the first time either changed; that is the drift this project keeps
+paying for. So the view is **`liveness`**: one row per node, porta's verdict and reason,
+`goal/name` as `role`, `last_seen_ms`, `boot_id`, `last_addr`. A node porta has not judged
+yet reads NULL, never a guessed `#live`. The `ref` caveat stays where it belongs — in
+`gw-verdict`'s validity rule in `protocol/descriptors/records.yaml`, which already says a
+node refused only on its pushes still reads `#live`.
+
+### D2 — `cells` gains four derived columns, which is how scalar paths become answerable
+
+Neither view could be written against §4.1's `cells` alone: `goal/name` and `gw/liveness`
+are **scalar** paths, which get no decoded table (B1 keys decoded tables by record shape),
+and a verdict's `reason` lives only in `events`, which `live` deliberately does not offer.
+So the materializer computes four columns per cell from R:
+
+| column | from |
+|---|---|
+| `value` | the stored CBOR through `cval` and `sqlValue` — one codec, A4's out-of-band rule intact |
+| `stale` | `space.IsStale`, now the one rule `porta get` and custos both call (§4.1) |
+| `actor`, `reason` | the latest event with the cell's node, direction, seq and path — an `idx_events_out` range, one bounded lookup per cell |
+
+Reading `events` from R on `live` does not widen the binding: Q still has no `events` table,
+and the lookup is the materializer's, authored here, never query text. `reason` on `cells`
+is also the first reader `porta put --reason` has ever had (rete#280).
+
+**Both views are `live` only.** A verdict or a convergence read from a snapshot is
+yesterday's answer to "right now" — rete#225 by construction — so `snap` does not offer
+them (`TestSnapOffersNoFleetView`, witnessed red with the views added to `snap`).
+`convergence` judges on encoded-byte equality: deterministic CBOR makes that value equality,
+so judging needs no decode, and `goal`/`obs` are decoded only to be shown.
+
+Not yet measured: the derived columns against the real store. The store is 2.5 GB on
+2026-10-04 (6× §7's), so the recorded run waits on a snapshot taken at a quiet moment.
