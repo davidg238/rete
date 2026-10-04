@@ -29,6 +29,8 @@ func main() {
 	flag.StringVar(&cfg.Docs, "docs", "", "path to the repo docs/ tree served at /dev (empty = /dev disabled)")
 	flag.StringVar(&cfg.PortaHTTP, "porta-http", "http://127.0.0.1:6970",
 		"base URL of porta's operator HTTP listener, fronted at /health and /manifest")
+	flag.StringVar(&cfg.Store, "store", "", "porta's sqlite store, read-only, for the fleet page at /fleet (empty = no fleet page)")
+	flag.StringVar(&cfg.Descriptors, "descriptors", "", "protocol/descriptors/records.yaml, required with --store")
 	flag.StringVar(&allow, "allow-cidr", strings.Join(httpsrv.DefaultAllowCIDR(), ","),
 		"comma-separated CIDR allowlist (empty = serve any peer)")
 	flag.Parse()

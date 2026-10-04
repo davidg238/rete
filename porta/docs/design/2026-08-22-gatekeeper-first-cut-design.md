@@ -765,5 +765,32 @@ them (`TestSnapOffersNoFleetView`, witnessed red with the views added to `snap`)
 `convergence` judges on encoded-byte equality: deterministic CBOR makes that value equality,
 so judging needs no decode, and `goal`/`obs` are decoded only to be shown.
 
-Not yet measured: the derived columns against the real store. The store is 2.5 GB on
-2026-10-04 (6× §7's), so the recorded run waits on a snapshot taken at a quiet moment.
+**Measured 2026-10-04 against the live store** (2.5 GB, 6× §7's; `mode=ro`, no snapshot,
+from a dev custos on gw85224-01:6972): `liveness` answers in **108 ms** end to end — `cells`
+235 rows in 13 ms including the per-cell provenance lookups, `nodes` 13 rows in 3 ms;
+`convergence` ~100 ms. The live binding needs no snapshot for these, which is §2.4's point.
+
+### D3 — the fleet page is a network surface of NAMED queries; auth stays silent
+
+David, 2026-10-04: **"for now we are silent on auth, everything runs inside tailscale."**
+The 2026-08-26 addendum's "any future network query route waits for G5" is relaxed to this
+much: custos serves `GET /q/{name}` for a fixed table of statements authored in
+`internal/custos/fleet.go` (`liveness`, `convergence`), and `GET /fleet`, a static page
+that renders them. There is no route that takes SQL — an unknown name is a 404
+(`TestOnlyNamedQueriesAreServed`, witnessed red with a name added). The perimeter is
+Tailscale plus `httpsrv.DefaultAllowCIDR`. With `--store`, `/` lands on `/fleet`; the dev
+status page stays at `/dev`. Free-form SQL stays on the stdio/CLI side (§9) until a reason
+moves it.
+
+### Two things the real store showed on first contact
+
+- **13 node ids, 4 devices.** Every id a board has left keeps its last verdict forever
+  (`#unknown`, "porta was not listening for part of it") — §5's *a node id is a slot, not a
+  board*, now on screen. The page sorts most-recently-heard first, so retired ids sink
+  rather than being hidden behind a cut-off nobody has data to choose; the `device` view
+  (§5.3) is what will fold them properly.
+- **A verdict's reason is as of the verdict's change, not now.** porta writes
+  `gw/liveness` only on change, so `c6spare`'s reason reads "468 ms since the last
+  exchange" seventeen days after it went quiet. True when written, and misleading without
+  its time — the page shows "since" beside every verdict, and `liveness.verdict_ms` carries
+  it for any other reader.

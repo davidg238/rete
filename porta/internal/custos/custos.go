@@ -33,13 +33,30 @@ type Config struct {
 	Docs      string   // path to the repo docs/ tree ("" = /dev disabled)
 	PortaHTTP string   // base URL of porta's operator HTTP listener ("" = proxy answers 502)
 	AllowCIDR []string // peer allowlist, same semantics as porta's --http-allow-cidr
+	// Store is porta's sqlite store, read through the gate's `live` binding for
+	// the fleet page ("" = no fleet page). Descriptors is the reading-rule table
+	// the gate needs to open it.
+	Store       string
+	Descriptors string
 }
 
-// Handler builds the custos mux: / and /dev land on the status page,
-// /dev/ serves the docs tree read-only (markdown as text/plain so a browser
-// displays the documents of record), and /health + /manifest proxy to porta.
+// Handler builds the custos mux: / lands on the fleet page when a store is
+// configured and on the dev status page otherwise, /dev always on the status
+// page, /dev/ serves the docs tree read-only (markdown as text/plain so a
+// browser displays the documents of record), /health + /manifest proxy to
+// porta, and /fleet + /q/{name} serve the fleet (fleet.go).
 func Handler(cfg Config) (http.Handler, error) {
 	mux := http.NewServeMux()
+	if cfg.Store != "" {
+		g, err := openFleet(cfg.Store, cfg.Descriptors)
+		if err != nil {
+			return nil, err
+		}
+		mountFleet(mux, g)
+		mux.HandleFunc("/{$}", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/fleet", http.StatusFound)
+		})
+	}
 	if cfg.Docs != "" {
 		fs := http.FileServer(http.Dir(cfg.Docs))
 		mux.Handle("/dev/", http.StripPrefix("/dev/",
@@ -53,7 +70,9 @@ func Handler(cfg Config) (http.Handler, error) {
 			http.Redirect(w, r, "/dev/status/dev-status.html", http.StatusFound)
 		}
 		mux.HandleFunc("/dev", statusPage)
-		mux.HandleFunc("/{$}", statusPage)
+		if cfg.Store == "" {
+			mux.HandleFunc("/{$}", statusPage)
+		}
 	}
 	proxy, err := portaProxy(cfg.PortaHTTP)
 	if err != nil {
@@ -96,7 +115,7 @@ func Run(ctx context.Context, cfg Config, logf func(string, ...any)) error {
 	}
 	errc := make(chan error, 1)
 	go func() { errc <- srv.ListenAndServe() }()
-	logf("custos: serving on %s (docs=%s, porta=%s)", srv.Addr, cfg.Docs, cfg.PortaHTTP)
+	logf("custos: serving on %s (docs=%s, porta=%s, store=%s)", srv.Addr, cfg.Docs, cfg.PortaHTTP, cfg.Store)
 	select {
 	case <-ctx.Done():
 		shctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
