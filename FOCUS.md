@@ -3,9 +3,10 @@
 _Rewritten (never appended) at every `/conclude`; under ~15 lines. History: `git log -p FOCUS.md`; the pre-2026-09-30
 blocks are in `docs/status/focus-history.md`; live state is in the issues and `docs/status/dev-status.html`._
 
-- **Next session starts with:** **#330 (P0, David 2026-10-04)** — Path B has two `true`/`false` objects. Branch
+- **Next session starts with:** **#330 (P0) + #75 (P1), David 2026-10-04** — Path B has two `true`/`false` objects. Branch
   `330-canonical-booleans` off `297-cbor-native-walk`. First action: re-measure with the spike's `TwoTrues.nsl`
-  (`docs/spikes/2026-10-04-cbor-prim-arms/`), then find where the second object is minted; same class as #75 (P1).
+  (`docs/spikes/2026-10-04-cbor-prim-arms/`), then find where the second object is minted. Fix #75 (P1, decoded Symbols not interned) in the
+  same pass — David 2026-10-04: one canonical-Symbol rule for both.
   Time-gated, after ~2026-10-04 20:35 MST: #272 plan Task 5 Step 5 (gw/liveness table, close).
 - **Then:** #297 — execute the approved plan `docs/superpowers/plans/2026-10-04-297-cbor-native-walk.md` natively,
   Task 1 Step 1 (if #330 lands first, drop the plan's "accept both trues" constraint).
