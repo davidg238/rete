@@ -15,6 +15,5 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   sample; slack/restart/stale left to #326). -O2 is the C6 default (#329, `438028d`); the RP2350 waits on #296.
 - **Not proven:** #317 (moot? DS3231 now C6-powered), the C6 polled-reader hang, #327 (deaf re-mark not in TLA).
 - **Awaiting David:** `review/DOCMAP.md` regenerated (date stamps only, uncommitted); close #319?; buildmap 3 in
-  `review/program-sequence.md`; DOCMAP line 56; the three cabot relay items; #300; status page unpublished
-  (Tailscale SSH check pending).
+  `review/program-sequence.md`; DOCMAP line 56; the three cabot relay items; #300.
 - **Weekly review, not scheduled:** #280, #282–#287, #290, #291, #298–#300, #303, #304, #306–#309, #315–#328.
