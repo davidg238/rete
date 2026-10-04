@@ -562,4 +562,11 @@
    Platform-dispatched. Answers a String, or nil when the build was not told a name
    (the kernel accessor's `== nil` is the test: the prim answers a raw nil). */
 #define PRIM_pf_boardName         159
+/* #297 SPIKE */
+#define PRIM_pf_cborEncodeKinds   160
+#define PRIM_pf_cborEmit          161
+#define PRIM_pf_cborHead          162
+#define PRIM_pf_bytesCopy         163
+#define PRIM_pf_bytesCompare      164
+#define PRIM_pf_cborEncodeA2      165
 #endif /* OEVM_PRIM_IDS_H */

@@ -1094,6 +1094,74 @@ class Kernel usingPlatform: platform = (
   ) : (
   )
 
+  (* #297 SPIKE, THROWAWAY — arm B: the walk in nsl, every byte in C. *)
+  class CborB = ( | buf count | ) (
+    public encode: v = ( | exact |
+      self start: 64.
+      self walk: v depth: 1.
+      exact:: platform basicNewBytes: count.
+      platform bytesCopy: buf size: count into: exact at: 0.
+      ^ Bytes overRaw: (platform freezeBytes: exact) )
+    start: n = ( buf:: platform basicNewBytes: n. count:: 0. ^ self )
+    rawBuf = ( ^ buf )
+    used = ( ^ count )
+    grow = ( | bigger |
+      bigger:: platform basicNewBytes: buf size * 2.
+      platform bytesCopy: buf size: count into: bigger at: 0.
+      buf:: bigger. ^ self )
+    put: x = ( | r |
+      r:: platform cborEmit: x into: buf at: count.
+      r = -1 ifTrue: [ self grow. ^ self put: x ].
+      r = -2 ifTrue: [ ^ self error: 'not a value' ].
+      count:: r. ^ self )
+    head: m len: n = ( | r |
+      r:: platform cborHead: m len: n into: buf at: count.
+      r = -1 ifTrue: [ self grow. ^ self head: m len: n ].
+      count:: r. ^ self )
+    copy: src size: n = ( | r |
+      r:: platform bytesCopy: src size: n into: buf at: count.
+      r = -1 ifTrue: [ self grow. ^ self copy: src size: n ].
+      count:: r. ^ self )
+    walk: v depth: d = ( | rank |
+      d > 32 ifTrue: [ ^ self error: 'message depth exceeded' ].
+      v == nil   ifTrue: [ ^ self put: v ].
+      v == true  ifTrue: [ ^ self put: v ].
+      v == false ifTrue: [ ^ self put: v ].
+      rank:: outer rankOf: v.
+      rank = 5 ifTrue: [ ^ self put: v rawLeaf ].
+      (rank >= 2 and: [ rank <= 6 ]) ifTrue: [ ^ self put: v ].
+      rank = 7 ifTrue: [ ^ self walkList: v depth: d ].
+      rank = 8 ifTrue: [ ^ self walkMap: v depth: d ].
+      rank = 9 ifTrue: [
+        self head: 6 len: 27. self head: 4 len: 2.
+        self walk: v tag depth: d + 1.
+        self walk: v fields depth: d + 1.
+        ^ self ].
+      ^ self error: 'not a value' )
+    walkList: v depth: d = (
+      self head: 4 len: v size.
+      v do: [ :e | self walk: e depth: d + 1 ].
+      ^ self )
+    keyEnc: k depth: d = ( | s | s:: CborB new. s start: 16. s walk: k depth: d. ^ s )
+    walkMap: v depth: d = ( | subs vals n j kk vv s |
+      subs:: OrderedCollection new. vals:: OrderedCollection new.
+      v keysAndValuesDo: [ :k :val | subs add: (self keyEnc: k depth: d + 1). vals add: val ].
+      n:: subs size.
+      2 to: n do: [ :ii |
+        kk:: subs at: ii. vv:: vals at: ii. j:: ii - 1.
+        [ j >= 1 and: [ (platform bytesCompare: (subs at: j) rawBuf size: (subs at: j) used
+                                       with: kk rawBuf size: kk used) > 0 ] ] whileTrue: [
+          subs at: j + 1 put: (subs at: j). vals at: j + 1 put: (vals at: j). j:: j - 1 ].
+        subs at: j + 1 put: kk. vals at: j + 1 put: vv ].
+      self head: 5 len: n.
+      1 to: n do: [ :i |
+        s:: subs at: i.
+        self copy: s rawBuf size: s used.
+        self walk: (vals at: i) depth: d + 1 ].
+      ^ self )
+  ) : (
+  )
+
   class HeapStats = ( | heapSize liveBytes highWater largestFreeBlock gcCycles | ) (
     (* A read-only snapshot of GC heap telemetry (src/gc.c oevm_heap_stats),
        surfaced by the native `platform heapStats` leaf (prim 104) as a 5-element
@@ -4063,6 +4131,25 @@ class Kernel usingPlatform: platform = (
      compiler's class-construction fallback — sending an instance-side selector
      to a class object silently NEWs the class and drops the message. *)
   public Cbor              = ( ^ Cbor new )
+  (* #297 SPIKE, THROWAWAY — arm B and arm A entry points. *)
+  public CborB             = ( ^ CborB new )
+  public cborKinds = ( | k |
+    k:: platform basicNew: Array indexable: 4.
+    k at: 1 put: List. k at: 2 put: Map. k at: 3 put: Record. k at: 4 put: Bytes.
+    ^ k )
+  public cborEncodeA: v kinds: k = ( | r |
+    r:: platform cborEncode: v kinds: k.
+    r == -1 ifTrue: [ ^ self error: 'not a value' ].
+    r == -2 ifTrue: [ ^ self error: 'message depth exceeded' ].
+    r == -3 ifTrue: [ ^ self error: 'spike limit' ].
+    ^ Bytes overRaw: r )
+  public cborEncodeA2: v kinds: k = ( | r |
+    r:: platform cborEncode: v kinds: k sel: #valueRank.
+    r == -1 ifTrue: [ ^ self error: 'not a value' ].
+    r == -2 ifTrue: [ ^ self error: 'message depth exceeded' ].
+    r == -3 ifTrue: [ ^ self error: 'spike limit' ].
+    r == -4 ifTrue: [ ^ self error: 'spike: selector not bound' ].
+    ^ Bytes overRaw: r )
   public HeapStats         = ( ^ HeapStats )
   (* tuvm#61: the span-slot capability. Answers the CLASS, not an instance — the
      `Cbor new` comment above explains why the two are spelled differently: sending

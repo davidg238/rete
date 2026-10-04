@@ -743,6 +743,8 @@ static const uint8_t *ota_leaf_bytes(oop v, size_t *len) {
 static int rtc_alarm_pin    = -1;
 static int sensor_event_pin = -1;
 
+#include "cbor_spike.inc"   /* #297 SPIKE */
+
 int platform_dispatch(int pid, int argc, oop *args, oop *out) {
     (void)argc;
     switch (pid) {
@@ -1149,6 +1151,21 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         host_gpio_fire((int)UNTAG_SMI(args[0]));
         *out = platform_object();
         return 1;
+    /* #297 SPIKE */
+    case PRIM_pf_cborEncodeA2: { *out = cb_encode_a2(args[0], args[1], args[2]); return 1; }
+    case PRIM_pf_cborEncodeKinds: { *out = cb_encode_a(args[0], args[1]); return 1; }
+    case PRIM_pf_cborEmit: { oop v = args[0]; *out = cb_into(args[1], args[2], cb_emit_fn, &v); return 1; }
+    case PRIM_pf_cborHead: { intptr_t mn[2] = { UNTAG_SMI(args[0]), UNTAG_SMI(args[1]) };
+        *out = cb_into(args[2], args[3], cb_head_fn, mn); return 1; }
+    case PRIM_pf_bytesCopy: {
+        struct String *src = (struct String *)args[0], *dst = (struct String *)args[2];
+        size_t n = (size_t)UNTAG_SMI(args[1]), i = (size_t)UNTAG_SMI(args[3]);
+        if (i + n > dst->length) { *out = TAG_SMI(-1); return 1; }
+        memcpy(dst->bytes + i, src->bytes, n); *out = TAG_SMI((intptr_t)(i + n)); return 1; }
+    case PRIM_pf_bytesCompare: {
+        *out = TAG_SMI(cb_cmp(((struct String *)args[0])->bytes, (size_t)UNTAG_SMI(args[1]),
+                              ((struct String *)args[2])->bytes, (size_t)UNTAG_SMI(args[3])));
+        return 1; }
     case PRIM_pf_cborEncodeInt: {
         /* Encode an Integer (SMI or LargeInteger) as CBOR major 0 (>=0) or major 1
            (<0), shortest form. Range is the ratified +/-(2^64-1): major 0 arg = mag,
