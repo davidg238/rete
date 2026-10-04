@@ -13,6 +13,6 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   ivar shape checked at bake (design doc + its 2026-10-04 addendum: walk in `platform.c`, `NATIVES` dict, Path A
   oracle-only). #272 per D3.3 + its 2026-10-03 addendum. -O2 is the C6 default (#329).
 - **Not proven:** #317, the C6 polled-reader hang, #327, #330 (two trues on Path B).
-- **Awaiting David:** close #319?; buildmap 3; DOCMAP line 56; the three
+- **Awaiting David:** buildmap 3; DOCMAP line 56; the three
   cabot relay items; #300.
 - **Weekly review, not scheduled:** #280, #282–#287, #290, #291, #298–#300, #303, #304, #306–#309, #315–#328, #330, #331.
