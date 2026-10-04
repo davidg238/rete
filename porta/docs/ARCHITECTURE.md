@@ -124,7 +124,13 @@ What the gateway *is*:
   any record shape (first-cut design D3(b)): it reads porta's store read-only for the
   fleet page and a fixed table of named queries, and snapshot files for history. porta
   writes nothing for it and knows nothing of it (rete#198; design
-  `design/2026-08-22-gatekeeper-first-cut-design.md`, addenda D1–D5).
+  `design/2026-08-22-gatekeeper-first-cut-design.md`, addenda D1–E). Every answer carries
+  the reading rules of the columns it touched, and those rules are what make a history
+  answer right rather than plausible: §10's five questions were answered on the real store
+  2026-10-04 only through `gc_envelope` and build segmentation, and the naive forms read
+  40–60 % wrong. The history views (`snap` only) cost ~90–165 s on a 2.5 GB store until
+  predicate pushdown lands (rete#332); a correlated subquery over one of them re-runs it
+  per row, so group once and join.
 
 What the gateway is **not**: a compiler, a flasher, a relocator, a panic decoder, a
 fleet-wide image builder. Those are node-repo concerns (§7).

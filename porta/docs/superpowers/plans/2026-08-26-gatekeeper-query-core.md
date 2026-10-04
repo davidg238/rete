@@ -167,8 +167,8 @@ split, which a binary reading gets wrong by orders of magnitude.
 ### Task 8: the real-store recorded run + close-out — **run recorded 2026-10-04** (design addendum E)
 - Ran against `snap-20261004.db` and the live store (`mode=ro`) on gw85224-01 instead of
   copying `soak-2026-08-04.db` here — the store kept that name and is now 2.5 GB. The prediction
-  held on both. ARCHITECTURE already carries the custos/gate boundary. **Owed:** the #198
-  close-out comment and the next-steps entry (David's call on closing #198).
+  held on both. Promoted to `porta/docs/ARCHITECTURE.md` §3 and `docs/next-steps-overview.md`;
+  #198 closed 2026-10-04.
 - Copy `soak-2026-08-04.db` (static archive) gw85224-01 → workstation (read-only; no porta
   restart, no live touch). Run the five queries, record results, confirm/refute the §10
   prediction.
