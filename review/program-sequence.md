@@ -2578,6 +2578,27 @@ the C6's workspace with the nRF's toolchain — no new toolchain, no new workspa
 Record: `docs/results/2026-10-01-rp2350-first-numbers.md`; board axes:
 `nodus/oevm/zephyr/docs/BOARD_PORTS.md`. Answer posted on #301 and cabot#11.
 
+## The debugger runs on the C6 over one cable — 2026-10-02/03, #311, 0.1 buildmap 3
+
+**A debuggable C6 over a single USB cable, held at a breakpoint without being reset by the
+watchdog, and driven by source line.** Flash, reset, console and line-in all go through the
+CP2102N. On `c6bench`: break, pause, inspect, step, over, out and continue all worked; the
+board was held for 21 s against an 8 s `appLiveness` with no reset. `dbg:pause` stops a
+running program at its next bytecode (17 of 17 steps). Cost of the debug image: Hanoi +11.6 %
+at depths 16, 20 and 24, +494 B flash, 0 RAM. The person's front end is
+`nodus/nsl/tools/dbg.py` (file:line → `dbg:break <id> <off>`), and
+`docs/tutorials/04-debugger.md` is executed by the suite. Merged 2026-10-03 (`7666b4f`).
+
+1. **What the observer had to learn:** `held` (observer_core.h §3.2, property 10,
+   mutation-checked). A stopped program no longer looks like a wedged one.
+2. **Not delivered:** breakpoints only in methods of the entry class; no call stack or named
+   values at a stop (#323); stepping is by bytecode, not by message send (#322).
+3. **Superseded in part 2026-10-04:** `dbg.py` is to be rewritten in Go as `custos debug`
+   and then deleted (#339; `docs/design/2026-10-04-custos-peer-design.md`).
+
+Record: `docs/results/2026-10-02-311-line-in-spike.md` (parts 1–4); `docs/development.md`
+§ Debug; the in-image debugger design's addendum.
+
 ## Known stale docs (do not treat as current)
 
 `nodus/oevm/docs/archive/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),

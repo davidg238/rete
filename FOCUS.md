@@ -17,5 +17,6 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   shared wire code = a Go module under `protocol/`, never copied (D7); `dbg.py`/`mprof_resolve.py` rewritten in Go and
   deleted (F7). #297 = C walk via NATIVE vtable bindings. -O2 is the C6 default (#329).
 - **Not proven:** #317, the C6 polled-reader hang, #327.
-- **Awaiting David:** buildmap 3; DOCMAP line 56; the three cabot relay items; #300.
-- **Weekly review, not scheduled:** #280, #282–#287, #290, #291, #298–#300, #303, #304, #306–#309, #315–#328, #331–#335, #342.
+- **Awaiting David:** nothing. cabot relay 3(b) (three candidate issues) and 3(c) (generated MANIFEST block + physical
+  units) are deferred: no cabot work until this focus completes (David, 2026-10-04).
+- **Weekly review, not scheduled:** #280, #282–#287, #290, #291, #298–#300, #303, #304, #306–#309, #315–#328, #331–#335, #342; #233 (P3, the OTA backend — not the USB area, which is #310).
