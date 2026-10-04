@@ -188,3 +188,61 @@ func TestNoStoreNoFleet(t *testing.T) {
 		t.Errorf("/q/liveness without a store = %d", resp.StatusCode)
 	}
 }
+
+// TestNodeQueryTakesItsParameter: /q/node binds ?id= as a parameter and answers
+// that node's tree alone; without an id it is a 400, not every node.
+func TestNodeQueryTakesItsParameter(t *testing.T) {
+	srv := fleetServer(t)
+	a := getAnswer(t, srv, "/q/node?id=n1")
+	if len(a.Rows) == 0 {
+		t.Fatalf("node n1 answered no rows")
+	}
+	for i := range a.Rows {
+		if column(t, a, i, "node_id") != "n1" {
+			t.Errorf("row %d is %v", i, a.Rows[i])
+		}
+	}
+	for _, path := range []string{"/q/node", "/q/node?id="} {
+		resp, err := srv.Client().Get(srv.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("GET %s = %d, want 400", path, resp.StatusCode)
+		}
+	}
+	resp, err := srv.Client().Get(srv.URL + "/node/n1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK || !strings.Contains(string(body), "/q/node") {
+		t.Errorf("GET /node/n1 = %d, page does not read /q/node", resp.StatusCode)
+	}
+}
+
+// TestPagesAndTheirSharedAssetsAreServed: both pages load the one stylesheet
+// and the one script, so the two cannot drift apart.
+func TestPagesAndTheirSharedAssetsAreServed(t *testing.T) {
+	srv := fleetServer(t)
+	for path, want := range map[string]string{
+		"/fleet.css": "text/css", "/fleet.js": "text/javascript",
+		"/fleet": "text/html", "/node/n1": "text/html",
+	} {
+		resp, err := srv.Client().Get(srv.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK || !strings.HasPrefix(resp.Header.Get("Content-Type"), want) {
+			t.Errorf("GET %s = %d %q", path, resp.StatusCode, resp.Header.Get("Content-Type"))
+		}
+		if want == "text/html" && (!strings.Contains(string(body), `href="/fleet.css"`) ||
+			!strings.Contains(string(body), `src="/fleet.js"`)) {
+			t.Errorf("%s does not load the shared assets", path)
+		}
+	}
+}

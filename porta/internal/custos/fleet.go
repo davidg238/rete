@@ -24,16 +24,34 @@ import (
 	"github.com/davidg238/porta/internal/gate"
 )
 
+// namedQuery is one statement the network surface runs, and the URL parameters
+// bound to its placeholders, in order. Every parameter is required.
+type namedQuery struct {
+	sql    string
+	params []string
+}
+
 // fleetQueries are the only statements the network surface runs.
-var fleetQueries = map[string]string{
-	"liveness": `SELECT node_id, role, verdict, reason, verdict_ms, last_seen_ms, boot_id, last_addr
-	               FROM liveness ORDER BY node_id`,
-	"convergence": `SELECT node_id, key, goal, obs, converged, goal_ms, obs_ms, obs_stale
-	                  FROM convergence ORDER BY node_id, key`,
+var fleetQueries = map[string]namedQuery{
+	"liveness": {sql: `SELECT node_id, role, verdict, reason, verdict_ms, last_seen_ms, boot_id, last_addr
+	                     FROM liveness ORDER BY node_id`},
+	"convergence": {sql: `SELECT node_id, key, goal, obs, converged, goal_ms, obs_ms, obs_stale
+	                        FROM convergence ORDER BY node_id, key`},
+	"node": {sql: `SELECT node_id, path, value, direction, seq, boot_id, ts_ms, stale, actor, reason
+	                 FROM cells WHERE node_id = ? ORDER BY path`, params: []string{"id"}},
 }
 
 //go:embed fleet.html
 var fleetPage []byte
+
+//go:embed node.html
+var nodePage []byte
+
+//go:embed fleet.css
+var fleetCSS []byte
+
+//go:embed fleet.js
+var fleetJS []byte
 
 // fleetAnswer is the gate's answer plus the gateway's clock, so a page renders
 // ages against the clock that stamped them rather than the browser's.
@@ -59,13 +77,38 @@ func mountFleet(mux *http.ServeMux, g *gate.Gate) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write(fleetPage)
 	})
+	for path, f := range map[string]struct {
+		ct   string
+		body []byte
+	}{
+		"/fleet.css": {"text/css; charset=utf-8", fleetCSS},
+		"/fleet.js":  {"text/javascript; charset=utf-8", fleetJS},
+	} {
+		mux.HandleFunc("GET "+path, func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", f.ct)
+			w.Write(f.body)
+		})
+	}
+	mux.HandleFunc("GET /node/{id}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(nodePage)
+	})
 	mux.HandleFunc("GET /q/{name}", func(w http.ResponseWriter, r *http.Request) {
-		sql, ok := fleetQueries[r.PathValue("name")]
+		nq, ok := fleetQueries[r.PathValue("name")]
 		if !ok {
 			http.NotFound(w, r)
 			return
 		}
-		res, err := g.Query(r.Context(), gate.Query{SQL: sql, Deadline: 10 * time.Second})
+		args := make([]any, len(nq.params))
+		for i, p := range nq.params {
+			v := r.URL.Query().Get(p)
+			if v == "" {
+				http.Error(w, fmt.Sprintf("custos: /q/%s needs ?%s=", r.PathValue("name"), p), http.StatusBadRequest)
+				return
+			}
+			args[i] = v
+		}
+		res, err := g.Query(r.Context(), gate.Query{SQL: nq.sql, Args: args, Deadline: 10 * time.Second})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

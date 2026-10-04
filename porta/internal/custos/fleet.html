@@ -4,76 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>rete fleet</title>
-<style>
-  :root {
-    --bg: #ffffff; --fg: #1a1a1a; --muted: #6a6a6a; --rule: #e2e2e2;
-    --accent: #0a5dc2; --card: #f7f7f7;
-    --ok: #1d7a35; --ok-bg: #e3f4e7; --warn: #9a5200; --warn-bg: #fdf0dc;
-    --bad: #b3261e; --bad-bg: #fbe4e2; --idle: #5a5f66; --idle-bg: #eceef0;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #16181c; --fg: #e6e6e6; --muted: #9a9a9a; --rule: #2e3238;
-      --accent: #6fb1ff; --card: #1e2126;
-      --ok: #6fd28a; --ok-bg: #173022; --warn: #ffb45e; --warn-bg: #36260f;
-      --bad: #ff8a80; --bad-bg: #3a1a18; --idle: #a9aeb5; --idle-bg: #262a30;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #16181c; --fg: #e6e6e6; --muted: #9a9a9a; --rule: #2e3238;
-    --accent: #6fb1ff; --card: #1e2126;
-    --ok: #6fd28a; --ok-bg: #173022; --warn: #ffb45e; --warn-bg: #36260f;
-    --bad: #ff8a80; --bad-bg: #3a1a18; --idle: #a9aeb5; --idle-bg: #262a30;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0 auto; max-width: 72rem; padding: 1.5rem 16px 4rem;
-    background: var(--bg); color: var(--fg);
-    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
-  }
-  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem 1rem; }
-  h1 { font-size: 1.4rem; margin: 0; }
-  h2 { font-size: 1.05rem; margin: 2rem 0 .5rem; }
-  nav { margin-left: auto; display: flex; gap: 1rem; font-size: .9rem; }
-  a { color: var(--accent); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  .stamp { color: var(--muted); font-size: .85rem; margin: .25rem 0 1rem; }
-  .strip { display: flex; flex-wrap: wrap; gap: .5rem; margin: .5rem 0 0; }
-  .chip {
-    background: var(--card); border: 1px solid var(--rule); border-radius: 999px;
-    padding: .15rem .7rem; font-size: .85rem; white-space: nowrap;
-  }
-  .chip b { font-variant-numeric: tabular-nums; }
-  .banner {
-    display: none; margin: 1rem 0; padding: .6rem .9rem; border-radius: 6px;
-    background: var(--bad-bg); color: var(--bad); border: 1px solid var(--bad);
-  }
-  .wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; }
-  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
-  th, td { text-align: left; padding: .5rem .7rem; vertical-align: top; }
-  th {
-    font-weight: 600; color: var(--muted); font-size: .8rem; text-transform: uppercase;
-    letter-spacing: .03em; border-bottom: 1px solid var(--rule); background: var(--card);
-    white-space: nowrap;
-  }
-  tbody tr + tr td { border-top: 1px solid var(--rule); }
-  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .node { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85rem; }
-  .role { color: var(--muted); }
-  .reason { color: var(--muted); font-size: .8rem; margin-top: .2rem; max-width: 34rem; }
-  .pill {
-    display: inline-block; padding: .05rem .55rem; border-radius: 999px;
-    font-size: .8rem; font-weight: 600; white-space: nowrap;
-  }
-  .v-live { color: var(--ok); background: var(--ok-bg); }
-  .v-stalled { color: var(--warn); background: var(--warn-bg); }
-  .v-silent { color: var(--bad); background: var(--bad-bg); }
-  .v-unknown, .v-neverSeen, .v-none { color: var(--idle); background: var(--idle-bg); }
-  .ok { color: var(--ok); } .bad { color: var(--bad); } .muted { color: var(--muted); }
-  .empty { padding: 1rem; color: var(--muted); }
-  .note { color: var(--muted); font-size: .8rem; margin-top: .5rem; }
-  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85em; }
-</style>
+<link rel="stylesheet" href="/fleet.css">
 </head>
 <body>
 <header>
@@ -101,64 +32,11 @@
 </table></div>
 <p class="note">A goal is converged when the node's <code>obs/X</code> holds exactly the value of <code>goal/X</code>. <em>stale</em> marks an observation from before the node's current boot.</p>
 
+<script src="/fleet.js"></script>
 <script>
 "use strict";
 const REFRESH_MS = 10000;
 const SEVERITY = { stalled: 0, silent: 1, unknown: 2, neverSeen: 3, live: 5 }; // chip order
-
-// Everything a node or porta wrote goes in through text nodes, never innerHTML:
-// node ids, roles and reasons are data, never markup.
-function el(tag, attrs, ...kids) {
-  const e = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs || {})) {
-    if (k === "class") e.className = v; else e.setAttribute(k, v);
-  }
-  for (const k of kids) {
-    if (k == null) continue;
-    e.append(k instanceof Node ? k : document.createTextNode(String(k)));
-  }
-  return e;
-}
-
-function rows(answer) {
-  return answer.rows.map(r => Object.fromEntries(answer.columns.map((c, i) => [c, r[i]])));
-}
-
-function age(ms, now) {
-  if (ms == null) return "never";
-  const s = Math.max(0, Math.round((now - ms) / 1000));
-  if (s < 90) return s + " s ago";
-  const m = Math.round(s / 60);
-  if (m < 90) return m + " min ago";
-  const h = Math.round(m / 60);
-  if (h < 48) return h + " h ago";
-  return Math.round(h / 24) + " d ago";
-}
-
-function clock(ms) {
-  return new Date(ms).toLocaleString([], { dateStyle: "medium", timeStyle: "medium" });
-}
-
-// The same classification as serverstat.TransportOf: an IPv6 source is the
-// Thread side of the dual-stack socket, IPv4 (incl. v4-mapped) is WiFi.
-function transport(addr) {
-  if (!addr) return "—";
-  const host = addr.startsWith("[") ? addr.slice(1, addr.indexOf("]")) : addr.replace(/:\d+$/, "");
-  if (/^(::ffff:)?\d+\.\d+\.\d+\.\d+$/i.test(host)) return "WiFi";
-  return host.includes(":") ? "Thread" : "WiFi";
-}
-
-function pill(verdict) {
-  const v = verdict == null ? "none" : verdict;
-  return el("span", { class: "pill v-" + v }, verdict == null ? "not judged" : "#" + verdict);
-}
-
-async function getJSON(path) {
-  const r = await fetch(path, { cache: "no-store" });
-  const text = await r.text();
-  if (!r.ok) throw new Error(path + " → " + r.status + ": " + text.trim());
-  return JSON.parse(text);
-}
 
 function renderGateway(h) {
   const up = age(Date.now() - h.uptime_s * 1000, Date.now()).replace(" ago", "");
@@ -201,7 +79,8 @@ function render(live, conv) {
     body.replaceChildren(...nodes.map(n => {
       const p = perNode[n.node_id];
       return el("tr", {},
-        el("td", {}, el("div", { class: "node" }, n.node_id), n.role != null ? el("div", { class: "role" }, n.role) : null),
+        el("td", {}, el("a", { class: "node", href: "/node/" + encodeURIComponent(n.node_id) }, n.node_id),
+          n.role != null ? el("div", { class: "role" }, n.role) : null),
         el("td", {}, pill(n.verdict),
           n.verdict_ms != null ? el("span", { class: "muted", title: clock(n.verdict_ms) }, " since " + age(n.verdict_ms, now)) : null,
           n.reason ? el("div", { class: "reason" }, n.reason) : null),
@@ -221,7 +100,7 @@ function render(live, conv) {
       goals.length ? "All " + goals.length + " goals have converged." : "No goals are set.")));
   } else {
     dbody.replaceChildren(...diverged.map(g => el("tr", {},
-      el("td", { class: "node" }, g.node_id),
+      el("td", {}, el("a", { class: "node", href: "/node/" + encodeURIComponent(g.node_id) }, g.node_id)),
       el("td", { class: "node" }, "goal/" + g.key),
       el("td", {}, g.goal == null ? "—" : String(g.goal)),
       el("td", {}, g.obs == null ? el("span", { class: "muted" }, "not reported") : String(g.obs),

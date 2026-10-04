@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>rete node</title>
+<link rel="stylesheet" href="/fleet.css">
+</head>
+<body>
+<header>
+  <h1 id="title">node</h1>
+  <nav><a class="back" href="/fleet">← fleet</a><a id="json" href="#">node.json</a></nav>
+</header>
+<div class="stamp" id="stamp">loading…</div>
+<div class="strip" id="summary"></div>
+<div class="banner" id="error"></div>
+<div class="warnbox" id="mixed"></div>
+<div id="tree"></div>
+<p class="note">One row per path porta holds for this node. <code>goal/</code> is porta's intent, <code>gw/</code> porta's verdicts, everything else the node's own. <em>stale</em> marks a value from before the node's current boot (rete#210); the provenance line is the actor and reason recorded with the write that produced the value.</p>
+
+<script src="/fleet.js"></script>
+<script>
+"use strict";
+const REFRESH_MS = 10000;
+const id = decodeURIComponent(location.pathname.replace(/^\/node\//, ""));
+const ORDER = ["goal", "obs", "tel", "sys", "diag", "dbg", "gw"];
+document.title = id + " · rete node";
+document.getElementById("title").textContent = id;
+document.getElementById("json").href = "/q/node?id=" + encodeURIComponent(id);
+
+function value(v) {
+  if (v == null) return el("span", { class: "muted" }, "null");
+  return String(v);
+}
+
+function render(tree, live) {
+  const now = tree.now_ms;
+  const cells = rows(tree);
+  const me = rows(live).find(n => n.node_id === id);
+
+  const summary = document.getElementById("summary");
+  if (!me) {
+    summary.replaceChildren(el("span", { class: "chip bad" }, "porta does not know this node"));
+  } else {
+    summary.replaceChildren(
+      el("span", { class: "chip" }, pill(me.verdict),
+        me.verdict_ms != null ? " since " + age(me.verdict_ms, now) : ""),
+      el("span", { class: "chip" }, "role ", el("b", {}, me.role ?? "uncommissioned")),
+      el("span", { class: "chip", title: me.last_seen_ms ? clock(me.last_seen_ms) : "" },
+        "seen ", el("b", {}, age(me.last_seen_ms, now))),
+      el("span", { class: "chip" }, "boot ", el("b", {}, me.boot_id || "?")),
+      el("span", { class: "chip", title: me.last_addr || "" }, el("b", {}, transport(me.last_addr))),
+    );
+    if (me.reason) summary.append(el("div", { class: "reason" }, me.reason));
+  }
+
+  // porta get's banner, carried over: a tree read inside a reboot mixes two
+  // boots and looks exactly like a coherent one.
+  const stale = cells.filter(c => c.stale);
+  const mixed = document.getElementById("mixed");
+  if (stale.length) {
+    mixed.textContent = "Mixed read: " + stale.length + " of " + cells.length +
+      " rows predate boot " + (me ? me.boot_id : "?") + " — the node has not republished them since it restarted.";
+    mixed.style.display = "block";
+  } else {
+    mixed.style.display = "none";
+  }
+
+  const groups = {};
+  for (const c of cells) {
+    const ns = c.path.split("/")[0];
+    (groups[ns] || (groups[ns] = [])).push(c);
+  }
+  const names = Object.keys(groups).sort((a, b) =>
+    (ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99) || a.localeCompare(b));
+  const tree_ = document.getElementById("tree");
+  if (!cells.length) {
+    tree_.replaceChildren(el("p", { class: "empty" }, "porta holds no paths for this node."));
+  } else {
+    tree_.replaceChildren(...names.map(ns => el("div", { class: "ns" },
+      el("h2", {}, ns + "/ ", el("span", { class: "muted" }, "(" + groups[ns].length + ")")),
+      el("div", { class: "wrap" }, el("table", {},
+        el("thead", {}, el("tr", {}, el("th", {}, "Path"), el("th", {}, "Value"), el("th", {}, "Written"), el("th", {}, "Boot"))),
+        el("tbody", {}, ...groups[ns].map(c => el("tr", {},
+          el("td", { class: "node" }, c.path, c.stale ? el("span", { class: "tag" }, "stale") : null),
+          el("td", {}, el("div", { class: "val" }, value(c.value)),
+            (c.actor || c.reason) ? el("div", { class: "reason" }, [c.actor, c.reason].filter(Boolean).join(" — ")) : null),
+          el("td", { class: "num", title: clock(c.ts_ms) }, age(c.ts_ms, now)),
+          el("td", { class: "num" }, c.direction === "in" ? (c.boot_id || "?") : "—"),
+        ))),
+      )),
+    )));
+  }
+
+  document.getElementById("stamp").textContent = "Read from porta's live store at " + clock(now) +
+    " · " + cells.length + " paths · refreshes every " + REFRESH_MS / 1000 + " s";
+}
+
+async function refresh() {
+  const err = document.getElementById("error");
+  try {
+    const [tree, live] = await Promise.all([
+      getJSON("/q/node?id=" + encodeURIComponent(id)), getJSON("/q/liveness")]);
+    render(tree, live);
+    err.style.display = "none";
+  } catch (e) {
+    err.textContent = "Could not read this node: " + e.message;
+    err.style.display = "block";
+  }
+}
+
+refresh();
+setInterval(refresh, REFRESH_MS);
+</script>
+</body>
+</html>

@@ -42,6 +42,8 @@ import (
 // real store.
 type Query struct {
 	SQL string
+	// Args are bound to the statement's parameters, never spliced into it.
+	Args []any
 	// Deadline is wall-clock, enforced through context cancellation, which
 	// go-sqlite3 turns into sqlite3_interrupt.
 	Deadline time.Duration
@@ -205,7 +207,7 @@ func plan(ctx context.Context, s *scratch, query string) (map[string][]string, e
 
 // runQuery executes the statement and collects rows under the row cap.
 func runQuery(ctx context.Context, s *scratch, q Query) (*Result, error) {
-	rows, err := s.q.QueryContext(ctx, q.SQL)
+	rows, err := s.q.QueryContext(ctx, q.SQL, q.Args...)
 	if err != nil {
 		if denied := s.auth.Denied(); len(denied) > 0 {
 			return nil, &deniedError{actions: denied}

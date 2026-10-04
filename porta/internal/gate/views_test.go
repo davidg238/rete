@@ -256,3 +256,17 @@ func TestSnapOffersNoFleetView(t *testing.T) {
 	// of the snapshot, not claims about now.
 	query(t, g, Query{SQL: `SELECT value, stale, actor, reason FROM cells`})
 }
+
+// TestQueryBindsArgs: a statement's parameters are bound, never spliced, so a
+// named query can take a node id from a URL without that id becoming SQL.
+func TestQueryBindsArgs(t *testing.T) {
+	g := liveFleet(t)
+	res := query(t, g, Query{SQL: `SELECT DISTINCT node_id FROM cells WHERE node_id = ?`, Args: []any{"n2"}})
+	if len(res.Rows) != 1 || res.Rows[0][0] != "n2" {
+		t.Errorf("rows = %v", res.Rows)
+	}
+	res = query(t, g, Query{SQL: `SELECT node_id FROM cells WHERE node_id = ?`, Args: []any{"n2' OR '1'='1"}})
+	if len(res.Rows) != 0 {
+		t.Errorf("a quoted id matched %d rows", len(res.Rows))
+	}
+}
