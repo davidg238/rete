@@ -21,6 +21,10 @@ This extends the global base at `~/.claude/commands/conclude.md`. Same order: **
      output when Tailscale SSH wants its periodic browser check (2026-10-01: 120 s, nothing printed) — the probe prints
      the login URL, which only David can visit.
    If the page cannot be published, say so in the handoff — do not skip silently.
+   - **Parallel sessions share this page and `FOCUS.md`** (2026-10-04: #198 and #297 ran side by side). Publish from
+     the LIVE copy — `scp gw85224-01:porta-v2/docs/status/dev-status.html` first, add this thread's lines, check the
+     gateway md5 is unchanged since the fetch, then scp back. Publishing the branch's copy erases the other thread's
+     newer headline. `FOCUS.md` names every live thread; keep the other thread's lines when rewriting.
 
 4. **Git**: commit everything the session touched (`refs #N`, ≤5-line body) and `git push -u origin HEAD` — every session (David, 2026-08-28: the session end is the milestone and the backup). Ask first only for secrets, binaries, or files that were dirty before the session began. Never force-push.
 
