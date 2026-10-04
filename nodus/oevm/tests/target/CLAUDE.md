@@ -14,6 +14,9 @@ discovering it. `CLASS=disruptive` means the scenario
 deliberately wedges, burns or reboots the node: **a disposable board only** (`c6spare`, which
 is `TARGET_DEFAULT_BOARD` — resolve boards through the collector env files, never a table).
 
+**Opening a C6's CP2102N console resets the board** — every pyserial open, DTR/RTS deasserted or not (10/10 on `c6bench`,
+#319; `docs/results/2026-10-02-311-line-in-spike.md` part 3). Stop the collector before a session; one session per open.
+
 **A scenario whose node opens a socket needs `CONF_EXTRA` naming the radio, and only two nodes
 do.** `prj.conf` alone has `NETWORKING/IPV6/UDP/SOCKETS` but **no L2**, so a C6 built without
 `prj_esp32c6_thread.conf` has no interface and `net udpBindPort:` answers nil. The wedge probes
