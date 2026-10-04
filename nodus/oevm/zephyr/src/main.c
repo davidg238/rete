@@ -1521,6 +1521,8 @@ const uint8_t *oimg_blob_base = NULL;
 const uint8_t *oimg_blob_end  = NULL;
 oop builtin_registry[BUILTIN_COUNT] = {0};
 oop oimg_singleton[3] = {0};
+/* rete#75: no blob, no symbol table — every decoded name is refused (#336). */
+oop oimg_symbol_lookup(const char *bytes, size_t len) { (void)bytes; (void)len; return NULL; }
 
 extern void init_solidified_vtables(void);
 extern void init_reflection_symbols(void);

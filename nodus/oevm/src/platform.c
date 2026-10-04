@@ -1299,31 +1299,15 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = true_symbol; return 1;
     }
     case PRIM_pf_asSymbol: {
-        /* Rung 3 Task 6: `platform asSymbol: aString` — build a genuine
-           (non-interned) Symbol from a String's bytes, for CBOR tag-39 decode
-           (and transitively Record tags, which require `isSymbol`). Symbol
-           equality is VALUE-based (printString byteCompare), so this
-           non-interned Symbol `=` the image-literal #foo, giving round-trip.
-           rete#190 stage 2: the name bytes are INLINE, so this is now a single
-           allocation and there is nothing to leak — the malloc'd-and-never-freed
-           `name` this comment used to describe as "a known-minor matching that
-           existing pattern" was the C-heap leak that crashed three C6 boards.
-           GC-safety — the same standing argument as PRIM_pf_string and
-           PRIM_pf_freezeBytes above, which have this exact shape: args[0] IS
-           dereferenced after gc_allocate, and that is safe because (1) the GC
-           is non-moving, so a live object's bytes never relocate, and (2) a
-           prim's args live in a VM-stack register that scan_vm_stack marks, so
-           the receiver is rooted for the whole call. Both halves are load-
-           bearing: a C caller invoking platform_dispatch directly with a stack
-           local is NOT rooted (the GC does not scan the C stack) and must push
-           a temp root itself — see tests/test_cbor.c's test_cbor_as_symbol. */
+        /* `platform asSymbol: aString` — the image's ONE Symbol of that name, or nil
+           when the image has none (rete#75, David 2026-10-04: refuse unknown names).
+           Booleans are Symbols, so `true` here IS the object every comparison prim
+           answers (#330). It used to mint a fresh Symbol per decode, which was never
+           `==` the literal of its name: tuvm#72's capture never opened, and its
+           printString looked healthy. Never allocates, so there is nothing to root. */
         struct String *s = (struct String *)args[0];
-        size_t len = s->length;
-        /* rete#226: symbol_new classifies it, so a selector arriving over the wire and
-           reaching a `perform:` is intercepted the same as an image literal of that name. */
-        oop sym = symbol_new((const char *)((struct String *)args[0])->bytes, len);
-        if (sym == NULL) { *out = NULL; return 1; }
-        *out = sym; return 1;
+        *out = oimg_symbol_lookup((const char *)s->bytes, s->length);
+        return 1;
     }
     case PRIM_pf_heapStats: {
         /* Rung 4 Task 1: `platform heapStats` — snapshot GC heap telemetry
@@ -1832,12 +1816,8 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
            means ACTIVE, and the overlay's GPIO_ACTIVE_LOW flags carry the polarity
            instead of every caller. Answers nil for a pin the board never declared;
            kernel.nsl's GpioPulse turns that nil into a tagged raise. */
-        /* is_truthy(), not `== true_symbol`: a user-written `true`/`false` literal
-           compiles to a fresh Symbol constant loaded with the image (same name,
-           different address from the VM's built-in true_sym_obj/false_sym_obj
-           singletons) — the same blob/image-literal divergence is_truthy's own
-           comment documents (src/dispatch.c). An identity compare here would
-           silently treat every literal `true` argument as false. */
+        /* is_truthy(): `true` is the one object (rete#330), and an SMI is a
+           level too. */
         int lvl = is_truthy(args[1]) ? 1 : 0;
         if (!gpio_target_set((int)UNTAG_SMI(args[0]), lvl)) { *out = NULL; return 1; }
         *out = true_symbol;

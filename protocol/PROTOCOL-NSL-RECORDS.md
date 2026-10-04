@@ -44,6 +44,10 @@ document adds no new encoding rules, it only *uses* them:
 - **Total**: every byte sequence yields exactly one value or exactly one of
   `not a value` / `message depth exceeded` / `invalid utf-8` / `integer out of range`.
 - **Records** are CBOR tag 27 — `[record-name, {field-map}]`. **Symbols** are tag 39.
+- **A node decodes a Symbol only if its image has one of that name** (rete#75, 2026-10-04):
+  the decoded value IS the image's object, so `==` and `=` agree with the literal, and a
+  tag-39 name the node's image never mentions is refused (`unknown symbol <name>`), never
+  minted. Both halves are reflashed together, so such a name is contract skew, not news.
 - **Integers** are the ratified L7 band, ±(2^64−1).
 
 ### Types used below

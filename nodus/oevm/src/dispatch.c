@@ -307,19 +307,18 @@ const struct Symbol false_sym_obj = { .base = { (oop)&Vtable_SymbolVtable },
 #define false_symbol ((oop)&false_sym_obj)
 
 OEVM_HOT int is_truthy(oop obj) {
-    /* The comparison/equality prims return exactly these two statics, so every
-       hot conditional (loop bounds, ifTrue:) resolves on an identity compare.
-       The strcmp below remains for blob/image-side `true` symbol literals,
-       which are distinct objects with the same name. */
+    /* There is one `true` (rete#330): the comparison prims answer it, image
+       literals resolve to it (kernel_boot.c), and a decoded `true` is it (#75). */
     if (obj == true_symbol) return 1;
-    if (obj == false_symbol) return 0;
     if (IS_SMI(obj)) {
         return UNTAG_SMI(obj) != 0;
     }
-    if (obj != NULL && obj_vtable(obj) == SymbolVtable) {
-        struct Symbol *sym = (struct Symbol *)obj;
-        return strcmp(symbol_name(sym), "true") == 0;
-    }
+    /* MODEL A ONLY — delete with #336. The solidified fixture bakes its own
+       `StaticSymbol_true`, a second true that only this name test recognises;
+       without it Path A's `[ true ] whileTrue:` never runs (the debugger gate).
+       No Model B object reaches here: every Symbol named "true" is true_symbol. */
+    if (obj != NULL && obj_vtable(obj) == SymbolVtable)
+        return strcmp(symbol_name((struct Symbol *)obj), "true") == 0;
     return 0;
 }
 
@@ -808,8 +807,8 @@ enum {
     PRIM_pf_cborIntFromMajor,
     PRIM_pf_cborReadFloat,
     PRIM_pf_utf8Valid,
-    /* Rung 3 Task 6: String->Symbol leaf. Rebuilds a genuine (non-interned)
-       Symbol from a String's bytes for CBOR tag-39 decode. Appended last — no
+    /* Rung 3 Task 6: String->Symbol leaf for CBOR tag-39 decode — since rete#75 it
+       answers the image's one Symbol of that name, or nil. Appended last — no
        pre-existing id shifts. Counted (not computed) to be id 103 — the 103rd
        PRIM_NAMES entry. Platform-dispatched (mirrored in prim_ids.h as 103). */
     PRIM_pf_asSymbol,
@@ -1241,37 +1240,6 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
     if (receiver != NULL && !IS_SMI(receiver) && boundclass_vtable_initialized &&
         obj_vtable(receiver) == (oop)&BoundClassVtable) {
         return boundclass_construct(receiver, selector, argc, args);
-    }
-    /* tuvm#75 — Symbol `=` is VALUE-based (name bytes), not identity.
-       There is no symbol intern table: `platform asSymbol:` (platform.c) mints a
-       FRESH Symbol per CBOR tag-39 decode, and bare `Symbol>>=` would otherwise
-       fall through to `Object>>= other = ( ^ self == other )` (kernel.nsl:30) —
-       identity — so a symbol arriving over the wire never equalled the image
-       literal of the same name. That silently broke every decoded-symbol test:
-       tuvm#72's `SpanCapture>>apply:` (`st = #running`) never opened a capture
-       window, and because `printString` renders the NAME regardless of identity
-       the console looked healthy, which cost a session of misdiagnosis.
-       `==` deliberately KEEPS identity semantics; only `=` is value-based — see
-       #75 for why interning (making the two agree) is the durable fix.
-       Gated on the receiver vtable first, a single pointer compare, so this hot
-       path costs ~nothing on the overwhelmingly common non-Symbol receiver. */
-    if (receiver != NULL && !IS_SMI(receiver) && SymbolVtable != NULL &&
-        obj_vtable(receiver) == SymbolVtable && argc == 1 &&
-        selector != NULL && !IS_SMI(selector) &&
-        obj_vtable(selector) == SymbolVtable &&
-        strcmp(symbol_name((struct Symbol *)selector), "=") == 0) {
-        oop other = args[0];
-        int eq = 0;
-        if (other != NULL && !IS_SMI(other) && obj_vtable(other) == SymbolVtable) {
-            /* MUST go through symbol_name(): for a Symbol living in the .oimg
-               blob, `->name` is an encoded OFFSET, not a pointer (oimg.h:54) —
-               dereferencing it directly segfaults on exactly the image literals
-               this comparison exists to match. */
-            eq = (receiver == other) ||
-                 strcmp(symbol_name((struct Symbol *)receiver),
-                        symbol_name((struct Symbol *)other)) == 0;
-        }
-        return eq ? true_symbol : false_symbol;
     }
     /* Native capabilities: serial / net-UDP / mirror. Receiver-identity gates;
        each does its own selector matching, adding nothing to PRIM_NAMES
@@ -1785,13 +1753,10 @@ OEVM_HOT oop send_resolve(oop receiver, oop selector, int argc, oop *args,
                     // by Object.nsl — fall through to vtable method lookup.
                     break;
                 }
-                extern oop gc_allocate(oop vtable, size_t size);
-                size_t blen = strlen(buf);
-                /* rete#190 stage 2: the bytes are inline, so the separate
-                   oevm_malloc for `name` (and its NULL check) is gone — one
-                   allocation now, like every other Symbol-building site. */
-                oop sym_obj = symbol_new(buf, blen);   /* rete#226 */
-                return sym_obj;
+                /* A String, as printString answers (rete#75): this used to mint a
+                   Symbol per call, a second object for a name — and usually a name
+                   the image has no object for at all. */
+                return make_string(buf, strlen(buf));
             }
             break;
             case PRIM_out: {

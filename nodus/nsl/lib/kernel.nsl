@@ -1064,15 +1064,20 @@ class Kernel usingPlatform: platform = (
       (tag = 2 or: [ tag = 3 ]) ifTrue: [ ^ self failDecode: 'integer out of range' ].
       ^ self failDecode: 'not a value' )
 
-    (* tag 39 wraps a major-3 text; the text must be a String (rank 4) -> a
-       genuine Symbol via the C leaf. A symbol is a leaf, so the inner text is
-       parsed at the SAME depth (no increment), matching the encode side (which
-       emits tag 39 + text without recursing through the depth-counted walk). *)
-    symbolTagFrom: b at: i depth: d = ( | inner s |
+    (* tag 39 wraps a major-3 text; the text must be a String (rank 4) naming a
+       Symbol this image has: asSymbol: answers the image's ONE object of that name,
+       or nil, and an unknown name is REFUSED rather than minted (rete#75 — no code on
+       this node could ever match it, so accepting it is a silent contract skew).
+       A symbol is a leaf, so the inner text is parsed at the SAME depth (no
+       increment), matching the encode side (which emits tag 39 + text without
+       recursing through the depth-counted walk). *)
+    symbolTagFrom: b at: i depth: d = ( | inner s sym |
       inner:: self parse: b at: i depth: d.
       s:: inner at: 1.
       (outer rankOf: s) = 4 ifFalse: [ ^ self failDecode: 'not a value' ].
-      ^ self result: (platform asSymbol: s) next: (inner at: 2) )
+      sym:: platform asSymbol: s.
+      sym == nil ifTrue: [ ^ self failDecode: 'unknown symbol ' , s ].
+      ^ self result: sym next: (inner at: 2) )
 
     (* tag 27 wraps a 2-element array [tagSymbol, fieldsMap]. Validate the head is
        exactly array(2), then that element 1 is a Symbol (rank 6) and element 2 a

@@ -48,9 +48,14 @@ const uint32_t BUILTIN_REGISTRY_VERSION = 5;
  * classnames_count (u16) at A+14W. Read only by oimg_vtable_name() on the
  * DNU abort path, to name an app-class receiver.
  *
+ * format_version 11 (rete#75): a symbol table follows — symtab_ref (app
+ * ref-word) at A+15W pointing at every blob Symbol's ref-word, sorted by UTF-8
+ * bytes, and symtab_count (u16) at A+16W. oimg_symbol_lookup() binary-searches
+ * it, so `platform asSymbol:` answers the image's ONE object for a name.
+ *
  *   off       width  field
  *   0         4      magic "OIMG"
- *   4         2      format_version (u16, = 10)
+ *   4         2      format_version (u16, = 11)
  *   6         2      flags (u16)
  *   8         4      registry_version (u32)
  *   12        4      blob_size (u32, = total file size)
@@ -80,6 +85,10 @@ const uint32_t BUILTIN_REGISTRY_VERSION = 5;
  *   A+13W     W      classnames_ref   (app ref-word to the classnames table,
  *                                      0 when the image has no blob vtables)
  *   A+14W     2      classnames_count (u16)
+ *   (header padded to 8 again)
+ *   A+15W     W      symtab_ref       (app ref-word to the symbol table,
+ *                                      0 when the image has no blob symbols)
+ *   A+16W     2      symtab_count     (u16)
  *   (header padded to 8 again)
  * For W==8: A=24, init@32, main@40, init_argc@48, entry_nslots@50,
  *           kernel_vtable_ref@56, kernel_init_sel_ref@64, kernel_nslots@72,
@@ -114,6 +123,9 @@ static uintptr_t img_net_on_sel_ref          = 0;
 /* rete#247: classnames section — names app-class receivers on the DNU line. */
 static uintptr_t img_classnames_ref          = 0;
 static uint16_t  img_classnames_count        = 0;
+/* rete#75: symbol table — every blob Symbol, sorted by name bytes. */
+static uintptr_t img_symtab_ref              = 0;
+static uint16_t  img_symtab_count            = 0;
 
 static uintptr_t read_word(const uint8_t *p) {
     uintptr_t w = 0;
@@ -138,8 +150,8 @@ int oimg_load_blob(const uint8_t *base, size_t size) {
     uint16_t format_version   = read_u16(base + 4);
     uint32_t registry_version = read_u32(base + 8);
     uint32_t blob_size        = read_u32(base + 12);
-    if (format_version != 10) {
-        fprintf(stderr, "oimg_load_blob: unsupported format_version %u (expected 10)\n", format_version);
+    if (format_version != 11) {
+        fprintf(stderr, "oimg_load_blob: unsupported format_version %u (expected 11)\n", format_version);
         return 1;
     }
     if (registry_version != BUILTIN_REGISTRY_VERSION) {
@@ -182,6 +194,15 @@ int oimg_load_blob(const uint8_t *base, size_t size) {
             return 1;
         }
     }
+    img_symtab_ref              = read_word(base + a + 15 * W);
+    img_symtab_count            = read_u16 (base + a + 16 * W);
+    if (img_symtab_count != 0) {
+        size_t off = (size_t)(img_symtab_ref >> 2);
+        if (img_symtab_ref == 0 || off + (size_t)img_symtab_count * W > blob_size) {
+            fprintf(stderr, "oimg_load_blob: symbol table out of bounds\n");
+            return 1;
+        }
+    }
 
     oimg_blob_base = base;
     oimg_blob_end  = base + blob_size;
@@ -202,6 +223,37 @@ const char *oimg_vtable_name(oop vt) {
                 (struct Symbol *)oimg_resolve(read_word(tab + ((size_t)2 * i + 1) * W));
             return s ? symbol_name(s) : NULL;
         }
+    }
+    return NULL;
+}
+
+/* rete#75: the ONE object of a name, or NULL when no object of that name exists.
+   Firmware symbols (builtin_registry: true, false, ==, sender, value, …) first —
+   the serializer resolves those names to the registry, so they are not in the
+   blob — then a binary search of the blob's sorted symbol table. Nothing is
+   minted: a name the image lacks is the caller's to refuse. */
+static int name_cmp(const struct Symbol *s, const char *bytes, size_t len) {
+    size_t n = s->length < len ? s->length : len;
+    int c = memcmp(symbol_name((struct Symbol *)s), bytes, n);
+    if (c) return c;
+    return (s->length > len) - (s->length < len);
+}
+oop oimg_symbol_lookup(const char *bytes, size_t len) {
+    for (size_t i = 0; i < BUILTIN_COUNT; i++) {
+        oop o = builtin_registry[i];
+        if (o != NULL && obj_vtable(o) == SymbolVtable &&
+            name_cmp((struct Symbol *)o, bytes, len) == 0) return o;
+    }
+    if (oimg_blob_base == NULL) return NULL;
+    size_t W = sizeof(oop);
+    const uint8_t *tab = oimg_blob_base + (img_symtab_ref >> 2);
+    size_t lo = 0, hi = img_symtab_count;
+    while (lo < hi) {
+        size_t mid = lo + (hi - lo) / 2;
+        oop o = oimg_resolve(read_word(tab + mid * W));
+        int c = name_cmp((struct Symbol *)o, bytes, len);
+        if (c == 0) return o;
+        if (c < 0) lo = mid + 1; else hi = mid;
     }
     return NULL;
 }

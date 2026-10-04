@@ -1,0 +1,33 @@
+(*
+expect:
+literalIsComputed true
+listEq true
+encEq true
+decodedTrue true
+decodedSymbol true
+decodedRecordTag true
+unknown symbol zqxj
+*)
+(* rete#330 + #75: one object per Symbol name. Booleans are Symbols, so a computed
+   `true` (what a comparison prim answers) and the literal `true` (what the image
+   resolves) must be the SAME object, as must a Symbol decoded off the wire and the
+   image literal of that name. `printString` renders the name regardless of identity,
+   so every check here is `==`, never a print. A tag-39 name the image has no
+   object for is refused, never minted (`d827647a71786a` = tag 39, text "zqxj"). Before the fix: false, false, an
+   `Error: not a value` from Cbor, and false for both decoded Symbols. *)
+class OneObjectPerSymbol packageUsing: manifest = () (
+public main: platform args: args = (
+  | C L R M BA lit cmp rec |
+  BA:: platform ByteArray. C:: platform Cbor. L:: platform List. R:: platform Record. M:: platform Map.
+  lit:: true. cmp:: 1 = 1.
+  ('literalIsComputed ' , (lit == cmp) printString) println.
+  ('listEq ' , ((L with: lit) = (L with: cmp)) printString) println.
+  ('encEq ' , ((C encode: lit) = (C encode: cmp)) printString) println.
+  ('decodedTrue ' , ((C decode: (C encode: cmp) ifInvalid: [ :e | e ]) == true) printString) println.
+  ('decodedSymbol ' , ((C decode: (C encode: #running) ifInvalid: [ :e | e ]) == #running) printString) println.
+  rec:: R tag: #reading fields: (M fromPairs: (L with: (L with: #ok with: true))).
+  ('decodedRecordTag ' , ((C decode: (C encode: rec) ifInvalid: [ :e | e ]) tag == #reading) printString) println.
+  (C decode: (BA fromHex: 'd827647a71786a') ifInvalid: [ :e | e ]) println.
+)
+) : (
+)

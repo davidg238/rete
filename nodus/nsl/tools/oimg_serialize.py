@@ -68,7 +68,8 @@ class OimgWriter:
                      supervisor_vtable_ref=0, supervisor_init_sel_ref=0,
                      supervisor_run_sel_ref=0, supervisor_nslots=0,
                      net_on_sel_ref=0,
-                     classnames_ref=0, classnames_count=0):
+                     classnames_ref=0, classnames_count=0,
+                     symtab_ref=0, symtab_count=0):
         # ---- .oimg header byte layout (CONTRACT — mirror in oevm/src/oimg_loader.c) ----
         # All multi-byte scalars little-endian. W = oop_size (8 on 64-bit, 4 on 32-bit).
         # Ref-words (root/init/main/kernel_vtable/kernel_init_sel) are W-wide, W-aligned.
@@ -92,9 +93,14 @@ class OimgWriter:
         # and classnames_count (u16) @a+14W. The DNU abort path uses it to name
         # an app-class receiver; nothing else reads it.
         #
+        # format_version 11 (rete#75): a symbol table rides after it — symtab_ref
+        # @a+15W (app ref-word to every blob Symbol's ref-word, sorted by UTF-8
+        # bytes) and symtab_count (u16) @a+16W. `platform asSymbol:` searches it so
+        # a decoded name IS the image's object, and refuses a name it lacks.
+        #
         #   off  width  field
         #   0    4      magic "OIMG"
-        #   4    2      format_version (u16: 10 when Kernel descriptor present;
+        #   4    2      format_version (u16: 11 when Kernel descriptor present;
         #                1 for a kernel-less minimal blob — header ends at the
         #                entry descriptor; serializer unit tests only)
         #   6    2      flags (u16, =0)
@@ -147,7 +153,7 @@ class OimgWriter:
                                       or net_on_sel_ref):
             raise ValueError("v9 header: serial/supervisor/net descriptors "
                              "require the Kernel descriptor")
-        version = 10 if kernel_vtable_ref else self.version
+        version = 11 if kernel_vtable_ref else self.version
         h = self.MAGIC
         h += self.u16(version) + self.u16(0)               # flags = 0
         h += self.u32(self.registry_version)
@@ -200,6 +206,12 @@ class OimgWriter:
             # v10: classnames section descriptor (rete#247).
             h += self.word(classnames_ref)
             h += self.u16(classnames_count)
+            if len(h) % W:
+                h += b"\x00" * (W - (len(h) % W))
+            # v11: symbol table descriptor (rete#75) — symtab_ref @a+15W,
+            # symtab_count (u16) @a+16W.
+            h += self.word(symtab_ref)
+            h += self.u16(symtab_count)
             if len(h) % W:
                 h += b"\x00" * (W - (len(h) % W))
         return h
@@ -648,6 +660,11 @@ class OimgSerializer:
         # per blob vtable, pointed at by the v10 header's classnames_ref.
         if classname_vts:
             reserve("classnames", len(classname_vts) * 2 * self.oop)
+        # rete#75: the symbol table — every blob Symbol's ref-word, sorted by its
+        # UTF-8 bytes, so `platform asSymbol:` can binary-search the image for the
+        # ONE object of a name instead of minting a second one.
+        if self.app_syms:
+            reserve("symtab", len(self.app_syms) * self.oop)
 
         total = _align(cursor)
         buf = bytearray(total)
@@ -750,6 +767,11 @@ class OimgSerializer:
             buf[eb: eb + self.oop] = self.w.word(self._aref(f"vt:{vt_name}"))
             buf[eb + self.oop: eb + 2 * self.oop] = self.w.word(self._symbol_ref(vt_name))
 
+        # rete#75: symbol table entries, in byte order (the VM compares with memcmp).
+        for i, name in enumerate(sorted(self.app_syms, key=lambda n: n.encode("utf-8"))):
+            eb = self.offset["symtab"] + i * self.oop
+            buf[eb: eb + self.oop] = self.w.word(self._symbol_ref(name))
+
         # 4. Header (now that total size + root offset are known).
         cluster_count = sum(1 for k in KIND_ORDER if objs[k])
         root_ref = self._vtable_ref(entry_vtable_name)
@@ -784,7 +806,10 @@ class OimgSerializer:
                                      net_on_sel_ref=net_on_sel_ref,
                                      classnames_ref=(self._aref("classnames")
                                                      if classname_vts else 0),
-                                     classnames_count=len(classname_vts))
+                                     classnames_count=len(classname_vts),
+                                     symtab_ref=(self._aref("symtab")
+                                                 if self.app_syms else 0),
+                                     symtab_count=len(self.app_syms))
         assert len(header) == header_len, \
             f"header size mismatch: precomputed {header_len}, emitted {len(header)}"
         buf[0:len(header)] = header

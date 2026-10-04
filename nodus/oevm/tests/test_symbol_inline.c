@@ -25,6 +25,12 @@
         three deltas are +0, and the test PRINTS them, so a regression reports
         its own size rather than just failing.
 
+        rete#75 (2026-10-04): asSymbol: no longer mints — it answers the image's one
+        Symbol of a name, or nil. This link set loads no blob and no registry, so
+        every `leakCanary%d:` answers nil; the C-heap deltas are what still guard
+        the seam (an interning table or a malloc'd copy reintroduced here would
+        show up in them). The name/NUL read-backs went with the minting.
+
         Note what this does NOT do: it does not merely build Symbols with
         gc_allocate here in the test. The arena is a static BSS array
         (gc.c's oevm_heap_store), so a test-local gc_allocate loop cannot reach
@@ -126,17 +132,12 @@ int main(void) {
            tests/test_cbor.c's test_cbor_as_symbol. */
         int saved_roots = gc_temp_roots_count;
         gc_temp_root_push(s);
-        oop out = NULL;
+        oop out = (oop)&out;   /* sentinel: the prim must overwrite it */
         int ok = platform_dispatch(PRIM_pf_asSymbol, 1, &s, &out);
         gc_temp_roots_count = saved_roots;
 
         assert(ok && "PRIM_pf_asSymbol must service the dispatch");
-        assert(out != NULL && "asSymbol: must not answer nil");
-        assert(obj_vtable(out) == SymbolVtable);
-        struct Symbol *sym = (struct Symbol *)out;
-        assert(sym->length == (size_t)n);
-        assert(memcmp(sym->name, txt, (size_t)n) == 0);
-        assert(sym->name[n] == 0 && "the prim must NUL-terminate: symbol_name() is fed to strcmp");
+        assert(out == NULL && "asSymbol: must refuse a name the image has no Symbol for (rete#75)");
     }
     struct OevmCHeapStats b = oevm_cheap_stats();
     /* Measured at 703547e (pre-fix): allocs 0 -> 200, out_bytes/out_high 0 -> 2890.

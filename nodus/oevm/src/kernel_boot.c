@@ -59,9 +59,6 @@ static const struct Symbol KSym_value           = { .base = { (oop)&Vtable_Symbo
 static const struct Symbol KSym_accessViolation_= { .base = { (oop)&Vtable_SymbolVtable }, .length = 16, .prim_id = 0, .name = "accessViolation:" };
 static const struct Symbol KSym_debug_          = { .base = { (oop)&Vtable_SymbolVtable }, .length = 6, .prim_id = 0, .name = "debug:" };
 
-/* Singleton true/false symbols (nil is the VM's NULL). */
-static const struct Symbol KSym_true            = { .base = { (oop)&Vtable_SymbolVtable }, .length = 4, .prim_id = 0, .name = "true" };
-static const struct Symbol KSym_false           = { .base = { (oop)&Vtable_SymbolVtable }, .length = 5, .prim_id = 0, .name = "false" };
 
 /* ------------------------------------------------------------------ *
  * Vtable definitions.
@@ -145,8 +142,11 @@ void kernel_boot(void) {
 
     /* (b) Singletons 0..2: nil(NULL) / true / false. */
     oimg_singleton[0] = NULL;                 /* nil == NULL in this VM */
-    oimg_singleton[1] = (oop)&KSym_true;
-    oimg_singleton[2] = (oop)&KSym_false;
+    /* rete#330: the SAME objects the comparison prims answer (dispatch.c). This file
+       used to mint its own true/false, so an image literal `true` was not `==` a
+       computed one, and Cbor refused the computed one as "not a value". */
+    oimg_singleton[1] = (oop)&true_sym_obj;
+    oimg_singleton[2] = (oop)&false_sym_obj;
 
     /* (c) builtin_registry[] in builtins.def index order. */
     builtin_registry[0]  = oimg_singleton[0]; /* nil  */

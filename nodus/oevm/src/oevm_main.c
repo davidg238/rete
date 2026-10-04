@@ -21,6 +21,10 @@ oop oimg_singleton[3]    = {0};
  * oop/vtable hex pair in the appliance build. */
 const char *oimg_vtable_name(oop vt) { (void)vt; return NULL; }
 
+/* rete#75: no blob means no symbol table — every decoded name is refused. Model A
+ * is being retired with this known-broken (#336). */
+oop oimg_symbol_lookup(const char *bytes, size_t len) { (void)bytes; (void)len; return NULL; }
+
 extern void init_solidified_vtables(void);
 extern void init_reflection_symbols(void);
 extern void reboot_note_init(void);

@@ -18,6 +18,10 @@ int oimg_load_blob(const uint8_t *base, size_t size);
    classnames section, or NULL. Used by the DNU abort path. */
 const char *oimg_vtable_name(oop vt);
 
+/* rete#75: the image's ONE Symbol of this name (firmware registry, then the v11
+   symbol table), or NULL when the image has none. Never allocates. */
+oop oimg_symbol_lookup(const char *bytes, size_t len);
+
 /* BUILTIN_COUNT: derived from builtins.def via X-macro counter so it stays
  * in lockstep automatically when new rows are appended to the .def file.
  * Defined as an enum constant so it can be used as a C array size. */
