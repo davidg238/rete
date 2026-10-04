@@ -27,10 +27,10 @@ describes them; §7 says where they went.
                                      │  app.oimg carried to the gateway host
                                      ▼
    agent ·  ── HTTP :6971 ──►  ┌───────────────┐
-   browser                     │  CUSTOS   │  /dev docs + status page;
-                               │  (own binary) │  proxies /health, /manifest
+   browser                     │  CUSTOS   │  /fleet, /node/{id}, /q/{name};
+                               │  (own binary) │  /dev docs; proxies /health, /manifest
                                └───────┬───────┘
-                                       │ 127.0.0.1
+                                       │ 127.0.0.1 HTTP + the store, read-only
    operator ── porta CLI ────►  ┌──────▼──────────────────────────────────┐
    (opens the sqlite file       │              PORTA GATEWAY              │
     DIRECTLY, on this host —    │   `porta serve` — four loops:           │
@@ -60,7 +60,7 @@ Three planes, three contracts — and note that only one of them is a network pr
 |-------|-----------|----------|-----------|
 | **Southbound** (gateway ↔ node) | porta ↔ any conforming node | `protocol/PROTOCOL-NSL.md` §§1–4 + `MANIFEST.cddl` | plain UDP + CBOR (the exchange); a binary block plane for bulk bytes |
 | **Northbound** (dev tool → gateway) | node-repo tooling → porta | `porta/devsdk` (`exec`, `provision`) | a Go import. **No network path** — v1's `apiclient` went with v1's HTTP API |
-| **Operator** (human/agent → gateway) | CLI → the store; browser/agent → custos | the path namespaces themselves; `GET /health`, `GET /manifest` | a local sqlite open (§3.1); HTTP for the two routes |
+| **Operator** (human/agent → gateway) | CLI → the store; browser/agent → custos | the path namespaces themselves; `GET /health`, `GET /manifest`; custos's named queries (`porta/internal/gate`) | a local sqlite open (§3.1); HTTP for the two routes; custos reads the store `mode=ro` (live) or a `porta snapshot` file (history) |
 
 ---
 
@@ -120,7 +120,11 @@ What the gateway *is*:
 - **The operator surface.** Two HTTP routes, `GET /health` and `GET /manifest`, and
   nothing else. v1's dashboard, JSON API and MCP server are deferred → operator surface
   in the capability audit, not silently dropped; the exposed agent-facing front door is
-  the separate `custos` binary.
+  the separate `custos` binary. custos decodes what porta stores without porta learning
+  any record shape (first-cut design D3(b)): it reads porta's store read-only for the
+  fleet page and a fixed table of named queries, and snapshot files for history. porta
+  writes nothing for it and knows nothing of it (rete#198; design
+  `design/2026-08-22-gatekeeper-first-cut-design.md`, addenda D1–D5).
 
 What the gateway is **not**: a compiler, a flasher, a relocator, a panic decoder, a
 fleet-wide image builder. Those are node-repo concerns (§7).
