@@ -268,7 +268,13 @@ type tableDef struct {
 	// derived counts the trailing cols the materializer computes rather than
 	// copies (structural only; cells, views.go).
 	derived int
+	// scalar marks a decoded table over a scalar path: one `value` column and
+	// no record tag to check (addendum D5).
+	scalar bool
 }
+
+// scalarColumn is the one column a scalar path's decoded table carries.
+const scalarColumn = "value"
 
 // identityColumns prefix every decoded record table: which node, which stored
 // path, when, which boot, which sequence number. Uniform across every decoded
@@ -357,6 +363,19 @@ func (g *Gate) schema() (map[string]*tableDef, error) {
 					cols = append(cols, column{key, ""}) // no affinity: the wire decides
 				}
 				out[name] = &tableDef{name: name, kind: tableDecoded, cols: cols, rule: rule, path: p}
+			}
+		}
+		// A scalar path is a decoded table too — identity plus its value — so
+		// goal/name's history is the same read as sys/metrics' (addendum D5).
+		for _, rule := range g.desc.ScalarRules() {
+			for _, p := range g.desc.Scalars[rule].Paths {
+				name := TableName(p)
+				if prev, dup := out[name]; dup {
+					return nil, fmt.Errorf("gate: table %q claimed by both %q and %q — "+
+						"two paths deriving one table name", name, prev.rule, rule)
+				}
+				cols := append(append([]column(nil), identityColumns...), column{scalarColumn, ""})
+				out[name] = &tableDef{name: name, kind: tableDecoded, cols: cols, rule: rule, path: p, scalar: true}
 			}
 		}
 	}
@@ -463,7 +482,7 @@ func (g *Gate) materialize(ctx context.Context, s *scratch, schema map[string]*t
 			return nil, err
 		}
 		src := Source{Table: name, From: from, Rows: n, Elapsed: time.Since(started)}
-		if td.kind == tableDecoded {
+		if td.kind == tableDecoded && !td.scalar {
 			src.Status = g.desc.Records[td.rule].Status
 		}
 		out = append(out, src)
@@ -601,8 +620,16 @@ func (g *Gate) copyDecoded(ctx context.Context, s *scratch, td *tableDef, src st
 	}
 	defer done(&err)
 
-	keys := g.desc.Columns(td.rule)
-	wantTag := cval.Symbol(g.desc.Records[td.rule].Name)
+	var (
+		keys    []string
+		wantTag cval.Symbol
+	)
+	if td.scalar {
+		keys = []string{scalarColumn}
+	} else {
+		keys = g.desc.Columns(td.rule)
+		wantTag = cval.Symbol(g.desc.Records[td.rule].Name)
+	}
 
 	n := 0
 	for rows.Next() {
@@ -614,19 +641,30 @@ func (g *Gate) copyDecoded(ctx context.Context, s *scratch, td *tableDef, src st
 		if err = rows.Scan(&nodeID, &storedPath, &tsMs, &bootID, &seq, &blob); err != nil {
 			return 0, err
 		}
-		var fields cval.Map
-		if fields, err = decodeRecord(blob, wantTag, td, nodeID, storedPath, seq); err != nil {
-			return 0, err
-		}
 		vals := make([]any, 0, len(identityColumns)+len(keys))
 		vals = append(vals, nodeID, storedPath, tsMs, bootID, seq)
-		for _, key := range keys {
+		if td.scalar {
 			var v any
-			v, err = sqlValue(lookup(fields, key), td, key, nodeID, seq)
-			if err != nil {
+			if v, err = cval.Decode(blob); err != nil {
+				return 0, fmt.Errorf("gate: %s: decoding %s seq %d at %s: %w", td.name, nodeID, seq, storedPath, err)
+			}
+			if v, err = sqlValue(v, td, scalarColumn, nodeID, seq); err != nil {
 				return 0, err
 			}
 			vals = append(vals, v)
+		} else {
+			var fields cval.Map
+			if fields, err = decodeRecord(blob, wantTag, td, nodeID, storedPath, seq); err != nil {
+				return 0, err
+			}
+			for _, key := range keys {
+				var v any
+				v, err = sqlValue(lookup(fields, key), td, key, nodeID, seq)
+				if err != nil {
+					return 0, err
+				}
+				vals = append(vals, v)
+			}
 		}
 		if _, err = ins.ExecContext(ctx, vals...); err != nil {
 			return 0, fmt.Errorf("gate: materializing %s: %w", td.name, err)
@@ -830,6 +868,16 @@ func (g *Gate) notesFor(schema map[string]*tableDef, reads map[string][]string) 
 	for _, t := range tables {
 		td, ok := schema[t]
 		if !ok || td.kind != tableDecoded {
+			continue
+		}
+		if td.scalar {
+			sc := g.desc.Scalars[td.rule]
+			for _, col := range reads[t] {
+				if col == scalarColumn {
+					out = append(out, Note{Table: t, Column: col, Name: td.rule, Unit: sc.Unit,
+						Meaning: sc.Meaning, Validity: sc.Validity, Refs: sc.Refs})
+				}
+			}
 			continue
 		}
 		rec := g.desc.Records[td.rule]

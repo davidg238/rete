@@ -62,8 +62,10 @@ type bindingSpec struct {
 
 // The fleet views are `live` only. A verdict or a convergence read from a
 // snapshot is yesterday's answer to "right now" — rete#225 by construction.
+// The history views are `snap` only, for the converse reason (history.go).
 var bindings = map[Binding]bindingSpec{
-	BindingSnap: {base: []string{"cells", "events", "exchanges", "gw_runs", "nodes"}, exchangeCapMs: 0, decoded: true},
+	BindingSnap: {base: []string{"cells", "events", "exchanges", "gw_runs", "nodes"}, exchangeCapMs: 0, decoded: true,
+		views: historyViews},
 	BindingLive: {base: []string{"cells", "exchanges", "nodes"}, exchangeCapMs: exchangeWindowMs, decoded: true,
 		views: []viewDef{viewConvergence, viewLiveness}},
 }

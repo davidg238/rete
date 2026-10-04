@@ -11,6 +11,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -22,6 +23,15 @@ import (
 )
 
 func main() {
+	// A subcommand is the operator's shell surface (sql, tables, describe);
+	// without one, custos serves.
+	if len(os.Args) > 1 && !strings.HasPrefix(os.Args[1], "-") {
+		if err := custos.RunCLI(os.Args[1:], os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	var cfg custos.Config
 	var allow string
 	flag.StringVar(&cfg.Bind, "bind", "0.0.0.0", "listen address")

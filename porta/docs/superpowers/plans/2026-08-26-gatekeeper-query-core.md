@@ -130,7 +130,7 @@ split, which a binary reading gets wrong by orders of magnitude.
 - Re-prepare and run; result carries `notes` (descriptor rules for every column touched).
 - Resource guards (§2.3): wall-clock deadline → interrupt, SetLimit, row/byte caps.
 
-### Task 5: decoded record tables + views (§4.2, §4.3, §5)
+### Task 5: decoded record tables + views (§4.2, §4.3, §5) — **DONE 2026-10-04** (design addenda D1–D5)
 - Decoded tables: sys_metrics, sys_cheap, obs_health, obs_build, obs_liveness, sys_reset,
   tel_log, sys_latency — columns from descriptors, one row per stored record.
 - `cells` gains a `stale` column computed exactly as `porta get`'s isStale (§4.1).
@@ -139,7 +139,7 @@ split, which a binary reading gets wrong by orders of magnitude.
   convergence (live: goal/X vs obs/X), staleness (live: why = never/refused/wedged via
   obs_health.ref), device_conflict (§6: overlapping boot sequence ⇒ two devices).
 
-### Task 6: the CLI fronts (§9)
+### Task 6: the CLI fronts (§9) — **sql/tables/describe DONE 2026-10-04** as `custos <cmd>`; `mcp` not built
 - `gate sql "<q>" [--binding snap|live] [--snapshot PATH]`, `gate describe <key|record>`,
   `gate tables` in `porta/cmd/gatekeeper`. `gate mcp` deferred unless cheap.
 

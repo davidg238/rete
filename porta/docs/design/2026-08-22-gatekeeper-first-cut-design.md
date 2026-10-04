@@ -812,3 +812,70 @@ On the live store this folds exactly the five bench-era ids (`c6`, `c6bench`, `c
 2026-08-22 (`c6-bench`, `c6-bell`, `c6-timerless`) unfolded: their boards never asserted
 those names, so only §5.3's boot-counter `device` view on `snap` can place them. That view
 is still owed; the page shows them honestly as old ids at the bottom of the table.
+
+## Addendum 2026-10-04 (later) — D5: the history views, and what the real store refuted
+
+Task 5 closes: §4.3's history views land on `snap` only (`porta/internal/gate/history.go`),
+each proven on a fixture built to hold its trap and then run against a fresh snapshot of
+the live store (2.46 GB, `porta snapshot` under `nice`/`ionice` in 38 s, porta undisturbed).
+
+| view | what it is | on the real store |
+|---|---|---|
+| `boot` | (node, boot) span from `exchanges`, with its build. Boot 0 excluded — it is "no persistent identity", not one boot | 185 boots |
+| `gc_cycle` | per (node, boot, gcc): `max(lfb)`, `min(lb)`, samples, build. Boot 0 excluded (below) | 3.1 M samples → cycles |
+| `gc_envelope` | `gc_cycle` with `gcc > 5` — lfb's validity rule. On gcc, not a row number: a window starting mid-boot must not lose its first sampled cycles as if they were the boot's | carries the `lfb`/`lb`/`gcc` notes out with every answer |
+| `role` | `goal/name` history, each write until the next | 10 commissionings |
+| `device_conflict` | one id whose boots overlap in time | **`c6bench` boots 1–3 overlap by ~7 days** — two boards under one id, #186's signature |
+| `device` | the derived lineage (below) | **5 devices — the 5 boards** |
+
+### What the real store refuted
+
+- **§5.3's link rule as written chains everything.** "Boot k on one id, k+1 on another,
+  lifetimes never overlapping" linked all thirteen ids into one device: counters reset on
+  reflash and stay small, so some k+1 always starts somewhere later. Two clauses fix it,
+  each witnessed red alone on a fixture that reduces the real false links: **neither side
+  is an ordinary reboot** (the old id has no k+1 of its own, the new id no k), and **the
+  two boots are each other's nearest candidate**. With them the real store yields
+  `c6-bell → c6 → 206ef1195438`, `c6-bench → c6-timerless → c6spare → 404cca446e60`,
+  `c6bench → 404cca4547a4`, `nrf4ec0 → d2666d1af919`, `nrf92c2 → ec34e57ca8e1` — §5.3's
+  boards A, B and C exactly, plus the two nRFs. The `board` links of D4 join the factory
+  ids where a counter reset broke the chain.
+- **Boot 0 is not a boot.** `gc_cycle` grouped every pre-boot-id metric of `c6-bench` and
+  `c6-bell` into one "boot 0", and gcc restarts in each real boot, so unrelated cycles
+  merged. Excluded, as `boot` already did.
+- **The authorizer refused every recursive CTE** (SQLITE_RECURSIVE, 33, which go-sqlite3
+  leaves commented out), and `TestDeadlineInterruptsARunawayQuery` accepted that refusal as
+  its pass — so the deadline had never been exercised. Recursion is a read and is now
+  permitted; the test fails on a refusal and is shown interrupting at 0.26 s against 250 ms.
+- **A5's "backstopped by `SQLITE_LIMIT_VDBE_OP`" is not true.** That limit caps the size of
+  a prepared program, not the steps it runs; the wall-clock deadline is the only runtime
+  bound. Recorded rather than fixed: nothing has needed a second one.
+
+### Scalar paths get history tables
+
+`goal/name`, `obs/name`, `gw/liveness`, `goal/config/…`, `dbg/req|resp` each get a decoded
+table — identity plus `value`, the scalar's reading rule riding out on `value` — so a
+scalar's history is the same read as a record's. `role` reads `goal_name`.
+**Deviation:** §4.3's `role` carries `actor`/`reason`; decoded tables carry neither, and
+getting them means materializing all of `events`. Left out until a question needs them.
+
+### The CLI fronts (Task 6, less MCP)
+
+`custos sql -descriptors F (-store DB | -snapshot SNAP) "<q>"`, `custos tables`,
+`custos describe <key|rule>`. A query must name its source — the two bindings answer
+different questions, so neither is a default.
+
+### §7's scaling trigger has fired
+
+| materialized | rows | seconds |
+|---|---|---|
+| `exchanges` (for `boot`, `device`, `device_conflict`) | 6,263,670 | 72 |
+| `sys_metrics` (for `gc_*`) | 3,116,486 | 67 |
+| `goal_name` | 10 | 1.4 |
+
+`device` answers in 130 s, `gc_envelope` in 89 s. §7 named ~10× its 404 k-row slice as the
+point where predicate pushdown is earned; `sys_metrics` is now 7.7× and the history views
+are well outside an interactive budget. **Pushdown is earned by this measurement and not
+built here.** The cheapest first cut the numbers suggest: materialize `exchanges` as
+per-(node, boot) aggregates when only `boot` reads it, and push a `node_id` predicate into
+the `events` scan.
