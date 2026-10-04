@@ -48,7 +48,7 @@
 <body>
 
 <h1>rete — dev status</h1>
-<p class="stamp">Status synthesized <strong>2026-10-04 12:16 MST</strong> (<code>4b18d8b</code>, branch <code>297-cbor-native-walk</code>, off <code>329-c6-speed</code>) — <strong><a href="https://github.com/davidg238/rete/issues/297">#297</a> designed: Cbor encode becomes a C walk dispatched through NATIVE vtable bindings; the plan is next.</strong> Host spike: nsl walk + C bytes is 45× an all-C walk on the 425 B batch; OEOM dispatch costs 1.04–1.07× all-C (<code>docs/spikes/2026-10-04-cbor-prim-arms/</code>). Found <a href="https://github.com/davidg238/rete/issues/330">#330</a> (Path B has two trues). <a href="https://github.com/davidg238/rete/issues/272">#272</a>'s 24 h soak runs until ~20:35 MST; every node and the gateway on <code>f515ac5</code>.</p>
+<p class="stamp">Status synthesized <strong>2026-10-04 12:40 MST</strong> (<code>a4c23db</code>, branch <code>297-cbor-native-walk</code>, off <code>329-c6-speed</code>) — <strong><a href="https://github.com/davidg238/rete/issues/297">#297</a> plan approved; next: implement it (native execution), Task 1 first — NATIVE registry rows + the C walk behind <code>platform cborEncode:</code>.</strong> Plan: <code>docs/superpowers/plans/2026-10-04-297-cbor-native-walk.md</code>. Host spike: nsl walk + C bytes is 45× an all-C walk on the 425 B batch — the same frame+send cost as STIC collectionIterate (<a href="https://github.com/davidg238/rete/issues/37">#37</a>; stale README is <a href="https://github.com/davidg238/rete/issues/331">#331</a>). <a href="https://github.com/davidg238/rete/issues/272">#272</a>'s 24 h soak runs until ~20:35 MST.</p>
 
 
 <div class="stats" id="porta-stats">

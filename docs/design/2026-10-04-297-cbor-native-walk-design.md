@@ -112,3 +112,15 @@ The `NATIVE` row and the bake shape check → `nodus/oevm/docs/vm.md`; the `nati
 `nodus/nsl/docs/NEWSPEAK_DIALECT.md` + `nodus/nsl/docs/compiler.md`; the C/oracle split →
 the `Cbor` class comment in `kernel.nsl`. For David (review/ tree, not edited here): the
 program-sequence 2026-07-17 OEOM addendum gains its first production user.
+
+## Addendum 2026-10-04 — plan-time refinements (David approved the plan)
+
+- **D1, unsendable entry:** the four natives share one entry function, so the abort names the
+  *receiver's class* (and `cborWalk`), not the native. A native is recognised by
+  `closure_entry == cbor_native_unsendable`; its walk is a field of `struct CborNative`.
+- **Placement:** the walk lives in `src/platform.c` beside the leaf prims (reuses the half-float
+  helpers; no new `.c`, so #63's nine source lists are untouched).
+- **Registry:** a NATIVE row's name string is `"<native> <ivar>…"`; the generator emits natives in a
+  separate `NATIVES` dict so a native name can never resolve as an app symbol.
+- **Path A** is oracle-only: `Symbol_cborWalk` is assigned only by `kernel_boot` (Model B), so C refuses.
+- Plan: `docs/superpowers/plans/2026-10-04-297-cbor-native-walk.md`.
