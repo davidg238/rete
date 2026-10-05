@@ -8,7 +8,9 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/davidg238/rete/custos/internal/debug"
 	"github.com/davidg238/rete/custos/internal/imagemap"
 )
 
@@ -16,14 +18,22 @@ import (
 //
 //	custos profile -map PortaBridgeNodeC6.oimg.map.json ~/.local/state/rete/console/console-c6spare-2026-10-05.log
 //	custos profile -map … -top 20 -alloc < captured.log
+//	custos profile -map PortaBridgeNodeC6.oimg.map.json -port /dev/serial/by-id/usb-Silicon_Labs_CP2102N_... -ms 3000
+//
+// With -port it asks the node for a window over its console cable (the kernel's
+// Profiler, rete#312) and ranks what comes back. The port is opened once, with
+// no collector holding it: an open reboots the C6 (rete#319).
 func Run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("custos profile", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	mapPath := fs.String("map", "", "the .oimg.map.json written beside the image (required)")
 	top := fs.Int("top", 0, "show only the first N rows (percentages stay of the whole window)")
 	alloc := fs.Bool("alloc", false, "also rank the allocation columns")
+	port := fs.String("port", "", "a board's console cable: capture a window live instead of reading logs")
+	ms := fs.Int("ms", 0, "the window's length in ms (required with -port)")
+	baud := fs.Int("baud", 115200, "the cable's baud rate")
 	fs.Usage = func() {
-		fmt.Fprintln(stderr, "usage: custos profile -map <name>.oimg.map.json [-top N] [-alloc] [log ...]   (flags before the logs; stdin when no log)")
+		fmt.Fprintln(stderr, "usage: custos profile -map <name>.oimg.map.json [-top N] [-alloc] (-port <tty> -ms N | [log ...])   (flags before the logs; stdin when no log)")
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
@@ -40,12 +50,26 @@ func Run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		fs.Usage()
 		return fail(2, "-map is required")
 	}
+	if *port != "" && fs.NArg() > 0 {
+		return fail(2, "give -port or logs, not both")
+	}
+	if (*port != "") != (*ms > 0) {
+		fs.Usage()
+		return fail(2, "-port and -ms (a positive window length) go together")
+	}
 	m, err := imagemap.Load(*mapPath)
 	if err != nil {
 		return fail(2, "%v", err)
 	}
 	var text strings.Builder
-	if fs.NArg() == 0 {
+	if *port != "" {
+		open := func(onLine func(string)) (Sender, error) { return debug.OpenPort(*port, *baud, onLine) }
+		got, err := Capture(open, *ms, time.Duration(*ms)*time.Millisecond+10*time.Second)
+		if err != nil {
+			return fail(1, "%v", err)
+		}
+		text.WriteString(got)
+	} else if fs.NArg() == 0 {
 		b, err := io.ReadAll(stdin)
 		if err != nil {
 			return fail(2, "%v", err)
