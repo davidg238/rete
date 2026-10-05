@@ -289,3 +289,17 @@ func writeAlloc(w io.Writer, d Dump, m *imagemap.Map, top int) {
 	}
 	fmt.Fprintf(w, "\ndistinct allocating methods: %d   (stage-2 sizing input, design D8)\n", len(all))
 }
+
+// Report is the whole analysis as data — what the page renders, and what Write
+// prints as text.
+type Report struct {
+	Header    *Header
+	Warnings  []string
+	Rows      []Ranked
+	Alloc     *AllocHeader
+	AllocRows []RankedAlloc
+}
+
+func NewReport(d Dump, m *imagemap.Map) Report {
+	return Report{d.Header, d.Warnings(), d.Rank(m), d.Alloc, d.RankAlloc(m)}
+}

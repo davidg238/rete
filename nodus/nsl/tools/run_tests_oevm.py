@@ -427,15 +427,14 @@ def run_boot_gc_asan_gate() -> bool:
 def run_pytest_gate(label: str, rel_dir: str, ignore=()) -> str:
     """Run a pytest suite living outside nodus/nsl as a subprocess gate.
 
-    #165: `nodus/oevm/tools/test_mprof_resolve.py` and the seven suites under
+    #165: the pytest suites under `nodus/oevm/tools/` and
     `nodus/oevm/zephyr/tools/console/` were referenced by nothing — no gate, no
-    CI, no script. `mprof_resolve.py` could break, and the profile view with it,
-    with all three CLAUDE.md gates green. A test that is never run is worse than
+    CI, no script. A tool could break with all three CLAUDE.md gates green. A test that is never run is worse than
     no test, because the suite still reads green and the coverage is now
     believed rather than merely absent.
 
     cwd is the suite's own directory: these files import their siblings by bare
-    name (`import mprof_resolve`, `import view`, `import logstore`), which is
+    name (`import logstore`, `import collect`), which is
     what makes them runnable by hand from where they live.
 
     Returns "PASS", "SKIP" (pytest is not installed — a real environment gap,

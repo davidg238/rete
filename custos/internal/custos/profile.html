@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>rete profile</title>
+<link rel="stylesheet" href="/fleet.css">
+</head>
+<body>
+<header>
+  <h1>rete profile</h1>
+  <nav><a href="/fleet">fleet</a><a href="/dev">dev status</a><a href="/profile/last">last.json</a></nav>
+</header>
+<form id="go"><label>window <input id="ms" type="number" min="1" value="3000"> ms</label> <button>Capture</button></form>
+<div class="stamp" id="stamp">no capture yet</div>
+<div class="banner" id="error"></div>
+<div id="warnings"></div>
+
+<h2>Activations</h2>
+<div class="wrap"><table>
+  <thead><tr><th>Count</th><th>%</th><th>Method</th></tr></thead>
+  <tbody id="rows"></tbody>
+</table></div>
+<p class="note">Percentages are of the slotted activations plus <code>overflow</code>, so with an overflow they are lower bounds. A row named UNKNOWN is an offset the map does not hold: a map from a different build resolves nothing.</p>
+
+<h2>Allocation</h2>
+<div class="wrap"><table>
+  <thead><tr><th>Arena B</th><th>Arena n</th><th>Cheap B</th><th>Cheap n</th><th>%</th><th>Method</th></tr></thead>
+  <tbody id="alloc"></tbody>
+</table></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pct = p => p.toFixed(1) + '%';
+function render(c) {
+  const h = c.Report.Header || {};
+  $('stamp').textContent = `${new Date(c.CapturedMs).toLocaleString()} · ${c.Ms} ms · ` +
+    `methods=${h.Methods} activations=${h.Activations} overflow=${h.Overflow} cap=${h.Cap} · ${c.Map}`;
+  $('warnings').innerHTML = (c.Report.Warnings || []).map(w => `<div class="banner" style="display:block">${esc(w)}</div>`).join('');
+  $('rows').innerHTML = (c.Report.Rows || []).map(r =>
+    `<tr${r.Unknown ? ' class="bad"' : ''}><td>${r.Count}</td><td>${pct(r.Pct)}</td><td>${esc(r.Name)}</td></tr>`).join('');
+  $('alloc').innerHTML = (c.Report.AllocRows || []).map(r =>
+    `<tr><td>${r.ArenaB}</td><td>${r.ArenaN}</td><td>${r.CheapB}</td><td>${r.CheapN}</td><td>${pct(r.Pct)}</td><td>${esc(r.Name)}</td></tr>`).join('')
+    || '<tr><td colspan="6" class="empty">no allocation rows</td></tr>';
+}
+function fail(msg) { $('error').textContent = msg; $('error').style.display = 'block'; }
+async function load(resp) {
+  $('error').style.display = 'none';
+  if (resp.status === 404) return;
+  if (!resp.ok) return fail(await resp.text());
+  render(await resp.json());
+}
+$('go').onsubmit = async e => {
+  e.preventDefault();
+  $('stamp').textContent = `capturing ${$('ms').value} ms…`;
+  try { await load(await fetch('/profile/capture?ms=' + encodeURIComponent($('ms').value), {method: 'POST'})); }
+  catch (err) { fail(String(err)); }
+};
+fetch('/profile/last').then(load).catch(err => fail(String(err)));
+</script>
+</body>
+</html>

@@ -50,9 +50,18 @@ func StartHost(argv []string, onLine func(string), onEnd func()) (Line, error) {
 	return writerLine{stdin}, nil
 }
 
+// portLine is a cable: Close releases the port (opened exclusively) and ends
+// its reader.
+type portLine struct {
+	writerLine
+	p serial.Port
+}
+
+func (l portLine) Close() error { return l.p.Close() }
+
 // OpenPort opens a board's console cable without a reset pulse: DTR and RTS are
 // held low from the open on (rete#311; the CP2102N devkit wires them to EN and
-// BOOT).
+// BOOT). The Line it answers is also an io.Closer.
 func OpenPort(port string, baud int, onLine func(string)) (Line, error) {
 	p, err := serial.Open(port, &serial.Mode{
 		BaudRate:          baud,
@@ -66,7 +75,7 @@ func OpenPort(port string, baud int, onLine func(string)) (Line, error) {
 	}
 	// A cable never ends: a read timeout is an empty read, not the end.
 	go pump(func(b []byte) (int, error) { return p.Read(b) }, onLine, func() {})
-	return writerLine{p}, nil
+	return portLine{writerLine{p}, p}, nil
 }
 
 // pump splits what read returns into lines, strips a trailing \r, and calls

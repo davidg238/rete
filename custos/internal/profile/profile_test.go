@@ -11,7 +11,7 @@ import (
 	"github.com/davidg238/rete/custos/internal/imagemap"
 )
 
-// Ported one for one from nodus/oevm/tools/test_mprof_resolve.py (#312 deletes it).
+// Ported one for one from nodus/oevm/tools/test_mprof_resolve.py (deleted by #312).
 
 var testMap = &imagemap.Map{Methods: map[int]imagemap.Method{
 	16: {Name: "Cbor>>u8At:", File: 1},

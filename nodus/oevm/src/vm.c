@@ -551,10 +551,10 @@ static void mprof_report(const char *why) {
     }
 
     /* Allocation attribution (design 2026-08-12). A SEPARATE line prefix, never
-       extra columns on `mprof:` above: tools/mprof_resolve.py's DUMP_RE is
-       anchored at exactly two fields, so widening that line makes it match
-       NOTHING and report "no mprof: lines found" -- a silent false negative in
-       the only tool that reads this. */
+       extra columns on `mprof:` above: custos profile's row pattern is anchored
+       at exactly two fields, so widening that line makes it match NOTHING and
+       report "no mprof: lines found" -- a silent false negative in the only
+       tool that reads this. */
     fprintf(stderr, "mprofa[%s]: noframe_arena=%u/%u noframe_cheap=%u/%u allocOverflow=%u\n",
             why, g_mprof_nf_bytes[MPROF_HEAP_ARENA], g_mprof_nf_cnt[MPROF_HEAP_ARENA],
             g_mprof_nf_bytes[MPROF_HEAP_CHEAP], g_mprof_nf_cnt[MPROF_HEAP_CHEAP],

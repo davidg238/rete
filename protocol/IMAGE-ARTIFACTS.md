@@ -136,8 +136,8 @@ has 634 functions.
    `Kernel>>rankOf:` maps to line 3688, which is a line in `kernel.nsl`, not in
    `46_debug_target.nsl`. `dbg.py` only works because it filters down to the entry
    class. The compiler already tags every AST node with its `file`.
-3. **Nothing ties either sidecar to its image.** `mprof_resolve.py` can only say
-   "wrong build?". The node's `platform buildId` (#74) identifies the *firmware*. Once
+3. **Nothing ties either sidecar to its image.** The profile reader (then
+   `mprof_resolve.py`, now `custos profile`) could only say "wrong build?". The node's `platform buildId` (#74) identifies the *firmware*. Once
    #310 loads the program into its own flash region, one firmware build will run many
    programs, so `buildId` no longer identifies the program.
 4. **The image does not record its word width.** `flags` is always 0, and the loader
@@ -160,8 +160,8 @@ width in `flags` (fixes 4).
 ## 6. Decisions (David, 2026-10-04)
 
 1. **One map instead of two.** `.stmap`, `.oimg.methods.json` and `stmap.py` are deleted;
-   `custos debug` (`-map`, #339, which deleted `dbg.py`) and `mprof_resolve.py` read
-   the map, the latter until #312 deletes it. A Path A (`.c`) build writes no map.
+   `custos debug` (`-map`, #339, which deleted `dbg.py`) and `custos profile` (#312,
+   which deleted `mprof_resolve.py`) read the map. A Path A (`.c`) build writes no map.
 2. **The SHA-256 of the `.oimg` is the program's identity.** The map carries it, and
    `custos debug` refuses a host image whose hash or size differs. With #310 the node will report the
    hash of its program region, the way it reports `buildId` today.

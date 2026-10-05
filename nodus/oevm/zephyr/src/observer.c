@@ -220,7 +220,7 @@ static void obs_thread_line(const struct k_thread *t, void *ud) {
 
 /* THE FROZEN CALL STACK, in mprof's own currency. A CompiledMethod carries no name, so
    this prints the BLOB-RELATIVE OFFSET vm.c:530 already established as the portable key —
-   `tools/mprof_resolve.py <image>.oimg.map.json` names it, and the pc index joins the
+   `custos profile -map <image>.oimg.map.json` names it, and the pc index joins the
    same map's line table to reach the nsl line. Walked ONLY when the cursors are not advancing: reading a
    live frame chain from another thread would be a race, and a garbage answer here would
    look exactly like a real one. */

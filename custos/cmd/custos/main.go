@@ -50,6 +50,8 @@ func main() {
 		"base URL of porta's operator HTTP listener, fronted at /health and /manifest")
 	flag.StringVar(&cfg.Store, "store", "", "porta's sqlite store, read-only, for the fleet page at /fleet (empty = no fleet page)")
 	flag.StringVar(&cfg.Descriptors, "descriptors", "", "protocol/descriptors/records.yaml, required with --store")
+	flag.StringVar(&cfg.ProfilePort, "profile-port", "", "a board's console cable for the profile page at /profile (empty = no profile page)")
+	flag.StringVar(&cfg.ProfileMap, "profile-map", "", "the <name>.oimg.map.json of the image on --profile-port")
 	flag.StringVar(&allow, "allow-cidr", strings.Join(allowlist.Default(), ","),
 		"comma-separated CIDR allowlist (empty = serve any peer)")
 	flag.Parse()

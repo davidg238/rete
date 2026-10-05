@@ -78,18 +78,10 @@ func mountFleet(mux *http.ServeMux, g *gate.Gate) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write(fleetPage)
 	})
-	for path, f := range map[string]struct {
-		ct   string
-		body []byte
-	}{
-		"/fleet.css": {"text/css; charset=utf-8", fleetCSS},
-		"/fleet.js":  {"text/javascript; charset=utf-8", fleetJS},
-	} {
-		mux.HandleFunc("GET "+path, func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", f.ct)
-			w.Write(f.body)
-		})
-	}
+	mux.HandleFunc("GET /fleet.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		w.Write(fleetJS)
+	})
 	mux.HandleFunc("GET /node/{id}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write(nodePage)

@@ -192,8 +192,8 @@ compiled methods (closures). See `topics.md#block-inlining` and
 Beside every `<name>.oimg` the compiler writes `<name>.oimg.map.json`: every method in
 the image by its blob offset, with its name, its source file and its line table, and the
 image's SHA-256 so a map from another build is refused. The contract is
-`protocol/IMAGE-ARTIFACTS.md` (rete#337); custos reads it (`custos debug`, #339), and so
-does `mprof_resolve.py` until custos replaces it (#312). A Path A (`.c`) build writes no map — the
+`protocol/IMAGE-ARTIFACTS.md` (rete#337); custos reads it (`custos debug`, #339;
+`custos profile`, #312). A Path A (`.c`) build writes no map — the
 map is keyed by `.oimg` offsets.
 
 Line tables are recorded at statement boundaries, threaded through the compiler via

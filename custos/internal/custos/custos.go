@@ -24,6 +24,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidg238/rete/custos/internal/debug"
+	"github.com/davidg238/rete/custos/internal/profile"
 	"github.com/davidg238/rete/protocol/allowlist"
 )
 
@@ -38,15 +40,33 @@ type Config struct {
 	// the gate needs to open it.
 	Store       string
 	Descriptors string
+	// ProfilePort is a board's console cable for the profile page, ranked
+	// through ProfileMap ("" = no profile page).
+	ProfilePort string
+	ProfileMap  string
 }
 
 // Handler builds the custos mux: / lands on the fleet page when a store is
 // configured and on the dev status page otherwise, /dev always on the status
 // page, /dev/ serves the docs tree read-only (markdown as text/plain so a
 // browser displays the documents of record), /health + /manifest proxy to
-// porta, and /fleet + /q/{name} serve the fleet (fleet.go).
+// porta, /fleet + /q/{name} serve the fleet (fleet.go), and /profile a board's
+// method profile (profile.go).
 func Handler(cfg Config) (http.Handler, error) {
 	mux := http.NewServeMux()
+	// Every page's stylesheet, whichever pages are mounted.
+	mux.HandleFunc("GET /fleet.css", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/css; charset=utf-8")
+		w.Write(fleetCSS)
+	})
+	if cfg.ProfilePort != "" {
+		if cfg.ProfileMap == "" {
+			return nil, fmt.Errorf("custos: --profile-port needs --profile-map (<name>.oimg.map.json)")
+		}
+		mountProfile(mux, cfg.ProfileMap, func(onLine func(string)) (profile.Sender, error) {
+			return debug.OpenPort(cfg.ProfilePort, 115200, onLine)
+		})
+	}
 	if cfg.Store != "" {
 		g, err := openFleet(cfg.Store, cfg.Descriptors)
 		if err != nil {

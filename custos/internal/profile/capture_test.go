@@ -15,7 +15,10 @@ type fakeNode struct {
 	onLine func(string)
 	sent   []string
 	reply  []string
+	closed bool
 }
+
+func (f *fakeNode) Close() error { f.closed = true; return nil }
 
 func (f *fakeNode) Send(line string) error {
 	f.sent = append(f.sent, line)
@@ -45,6 +48,9 @@ func TestCaptureSendsTheRequestAndStopsAtTheEndLine(t *testing.T) {
 	text, err := Capture(n.open("mprof: 7 1000"), 50, time.Second)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if !n.closed {
+		t.Fatal("the line was left open: the next capture cannot open an exclusive port")
 	}
 	if len(n.sent) != 1 || n.sent[0] != "profile 50" {
 		t.Fatalf("sent %q", n.sent)

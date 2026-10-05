@@ -4,6 +4,7 @@ package profile
 
 import (
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 	"sync"
@@ -23,7 +24,8 @@ var endLine = regexp.MustCompile(`mprof\[window\]: end\s*$`)
 // request through `mprof[window]: end`. Lines that arrived before the request
 // (an earlier window's rows) are not part of it. open hands its reader the
 // callback for each whole line; the board's port is opened ONCE (rete#319: an
-// open reboots the C6).
+// open reboots the C6 -- with pyserial at least, #355) and closed on return when
+// it is an io.Closer.
 func Capture(open func(onLine func(string)) (Sender, error), ms int, timeout time.Duration) (string, error) {
 	var (
 		mu      sync.Mutex
@@ -50,6 +52,9 @@ func Capture(open func(onLine func(string)) (Sender, error), ms int, timeout tim
 	line, err := open(onLine)
 	if err != nil {
 		return "", err
+	}
+	if c, ok := line.(io.Closer); ok {
+		defer c.Close()
 	}
 	mu.Lock()
 	started = true
