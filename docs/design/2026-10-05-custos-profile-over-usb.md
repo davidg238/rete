@@ -93,6 +93,10 @@ bug is chased on both, alternately, because the cable is faster.
    them (1.46 %) is as large as the effect; the sign and size held in both. Hanoi is all
    activation and no allocation, so this bounds the activation hook from above and leaves
    the allocation hook's closed cost out; a bridge node, mostly idle, pays far less.
+   *As built (David: "profile in by default", `e76c809`):* `run.sh`'s esp32c6 profile defaults
+   `OEVM_METHOD_PROFILE=1`; `0` builds it out. Other boards stay off until a build of theirs
+   shows the table fits (#354; the ESP32 cannot, #53). The node-side reader as built is
+   `Kernel>>profiler` (`3c886c2`; plan Task 4).
 3. **As recommended.** #312 takes the profile page from #340: `custos profile`, custos's
    profile page, and the deletion of `mprof_resolve.py` and `view.py`'s profile view land
    in one change. #340 keeps the debug page.
