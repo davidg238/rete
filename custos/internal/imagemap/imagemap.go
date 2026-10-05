@@ -101,7 +101,7 @@ func Load(path string) (*Map, error) {
 	}
 	for k, dm := range d.Methods {
 		off, err := strconv.Atoi(k)
-		if err != nil || off < 0 {
+		if err != nil || off < 0 || strconv.Itoa(off) != k {
 			return nil, fmt.Errorf("%s is not an image map (method key %q is not a blob offset); rebuild it (rete#337)", path, k)
 		}
 		m.Methods[off] = Method{Name: *dm.Name, File: *dm.File, Lines: dm.Lines}

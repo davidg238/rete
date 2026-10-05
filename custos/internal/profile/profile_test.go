@@ -160,3 +160,29 @@ func TestATextWithNoProfileLinesParsesEmpty(t *testing.T) {
 		t.Fatalf("%+v", d)
 	}
 }
+
+// The unresolved note counts every row, not the shown ones: an UNKNOWN below
+// the cut is still a row the map could not name (the Python tool counted only
+// the shown rows).
+func TestTheUnresolvedNoteCountsRowsBelowTheTop(t *testing.T) {
+	out := report("mprof[window]: methods=2 activations=30 overflow=0 cap=256\nmprof: 16 20\nmprof: 999 10\n", 1, false)
+	if !strings.Contains(out, "1 row(s) unresolved") {
+		t.Fatal(out)
+	}
+}
+
+func TestAKeyThatIsNotTheVMsDecimalIsUnknown(t *testing.T) {
+	for _, key := range []string{"016", "+16", "16abc"} {
+		r := Parse("mprof: " + key + " 5\n").Rank(testMap)
+		if len(r) != 1 || !r[0].Unknown {
+			t.Fatalf("%q resolved: %+v", key, r)
+		}
+	}
+}
+
+func TestACRLFLogParsesAsItsLines(t *testing.T) {
+	d := Parse(strings.ReplaceAll(allocDump, "\n", "\r\n"))
+	if len(d.Rows) != 2 || len(d.AllocRows) != 2 || d.Header == nil || d.Alloc == nil {
+		t.Fatalf("%+v", d)
+	}
+}

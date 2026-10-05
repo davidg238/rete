@@ -96,3 +96,16 @@ func TestTheFixtureImageIsAcceptedAndOneChangedByteRefused(t *testing.T) {
 		t.Fatal("a changed image was accepted")
 	}
 }
+
+func TestAMethodKeyThatIsNotCanonicalIsRefused(t *testing.T) {
+	raw, _ := os.ReadFile(fixture + ".oimg.map.json")
+	var d map[string]any
+	json.Unmarshal(raw, &d)
+	d["methods"].(map[string]any)["0012"] = map[string]any{"name": "A>>b", "file": 0, "lines": []any{}}
+	p := filepath.Join(t.TempDir(), "m.json")
+	b, _ := json.Marshal(d)
+	os.WriteFile(p, b, 0o644)
+	if _, err := Load(p); err == nil || !strings.Contains(err.Error(), `"0012"`) {
+		t.Fatalf("loaded: %v", err)
+	}
+}

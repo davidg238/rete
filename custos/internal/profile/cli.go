@@ -23,7 +23,7 @@ func Run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	top := fs.Int("top", 0, "show only the first N rows (percentages stay of the whole window)")
 	alloc := fs.Bool("alloc", false, "also rank the allocation columns")
 	fs.Usage = func() {
-		fmt.Fprintln(stderr, "usage: custos profile -map <name>.oimg.map.json [-top N] [-alloc] [log ...]   (stdin when no log)")
+		fmt.Fprintln(stderr, "usage: custos profile -map <name>.oimg.map.json [-top N] [-alloc] [log ...]   (flags before the logs; stdin when no log)")
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
@@ -32,6 +32,9 @@ func Run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	fail := func(code int, format string, a ...any) int {
 		fmt.Fprintf(stderr, "custos profile: "+format+"\n", a...)
 		return code
+	}
+	if *top < 0 {
+		return fail(2, "-top must be 0 (every row) or more")
 	}
 	if *mapPath == "" {
 		fs.Usage()

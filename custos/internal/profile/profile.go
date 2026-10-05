@@ -95,8 +95,13 @@ func name(m *imagemap.Map, key string) (string, bool) {
 	if strings.HasPrefix(key, "@") {
 		return "UNKNOWN (not in the image blob: " + key + ")", true
 	}
-	if meth, ok := m.Methods[atoi(key)]; ok {
-		return meth.Name, false
+	// Exact: a key must be the decimal the VM prints. "07" or "12abc" is not a
+	// spelling of an offset, it is a garbled line, and resolving it would name
+	// the wrong method.
+	if off, err := strconv.Atoi(key); err == nil && strconv.Itoa(off) == key {
+		if meth, ok := m.Methods[off]; ok {
+			return meth.Name, false
+		}
 	}
 	return "UNKNOWN (offset " + key + " absent from the map — wrong build?)", true
 }

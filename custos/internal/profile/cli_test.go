@@ -53,3 +53,19 @@ func TestAMissingMapIsAUsageError(t *testing.T) {
 		t.Fatalf("exit %d: %s", code, errs)
 	}
 }
+
+func TestANegativeTopIsRefused(t *testing.T) {
+	if code, _, errs := run(t, "", "-map", fixtureMap, "-top", "-1"); code != 2 || !strings.Contains(errs, "-top") {
+		t.Fatalf("exit %d: %s", code, errs)
+	}
+}
+
+func TestTopAndAllocTogether(t *testing.T) {
+	in := "mprof[window]: methods=2 activations=30 overflow=0 cap=256\nmprof: 3872 20\nmprof: 7 10\n" +
+		"mprofa[window]: noframe_arena=0/0 noframe_cheap=0/0 allocOverflow=0\nmprofa: 3872 64 2 0 0\nmprofa: 7 32 1 0 0\n"
+	code, out, _ := run(t, in, "-map", fixtureMap, "-top", "1", "-alloc")
+	if code != 0 || !strings.Contains(out, "showing top 1 of 2 rows") ||
+		!strings.Contains(out, "showing top 1 of 2 allocating methods") || !strings.Contains(out, "distinct allocating methods: 2") {
+		t.Fatalf("exit %d\n%s", code, out)
+	}
+}
