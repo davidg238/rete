@@ -211,6 +211,11 @@ Answered by David, 2026-10-04:
    the parts of `.oimg` that custos reads. *Proposed home:* `protocol/`, so that every
    contract between peers lives in one place. The compiler owns the writer, custos the
    reader.
+   *Addendum 2026-10-04 (#337, `cf8121e`):* done as `protocol/IMAGE-ARTIFACTS.md`. The
+   two sidecars became one `<name>.oimg.map.json` (offset → name, file, lines, plus the
+   image's SHA-256); custos reads only the 20-byte `.oimg` prefix. The word width in
+   `flags` follows #330 as format 12 (#344); a one-expression block's missing lines are
+   #343 (P0, before step 3).
 2. **The move, as one commit** (§6, answer 6):
    - top-level `custos/` as its own Go module;
    - a Go module under `protocol/` holding `cval`, `manifest`, `IsStale` and
