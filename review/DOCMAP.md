@@ -77,7 +77,7 @@ and `~/workspaceToit/nodus/docs/`:
 
 <!-- BEGIN GENERATED INVENTORY — do not edit below; rerun tools/docmap.sh -->
 
-_Regenerated 2026-10-04 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
+_Regenerated 2026-10-05 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
 
 ### review
 
@@ -85,7 +85,7 @@ _Regenerated 2026-10-04 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `review/2026-07-04-context-decision.md` — Task 8 design question: keep the deferred-lift heap Context? _(record, 2026-07-04)_
 - `review/2026-07-04-pre-fiber-baseline.md` — Pre-fiber baseline commits in oevm / ns-oevm _(record, 2026-08-02)_
 - `review/2026-07-21-issue-65-http-load-wedge/README.md` — tuvm#65 — evidence folder (2026-07-21) _(record, 2026-08-02)_
-- `review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-10-04)_
+- `review/DOCMAP.md` — DOCMAP — where every document of the program lives _(record, 2026-10-05)_
 - `review/ISSUE-dongle-usb-openthread.md` — DRAFT ISSUE (post to davidg238/tuvm — created from a session without gh permission) _(record, 2026-07-12)_
 - `review/WHY-AGENTS.md` — Why agents — nodus + porta as an agent-first platform _(record, 2026-08-29)_
 - `review/WHY-OEOM.md` — Why OEOM — the kernel that survived the graveyard _(record, 2026-07-12)_
@@ -115,7 +115,7 @@ _Regenerated 2026-10-04 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 
 ### docs
 
-- `docs/README.md` — docs/ — the program's documents _(record, 2026-10-04)_
+- `docs/README.md` — docs/ — the program's documents _(record, 2026-10-05)_
 - `docs/design/2026-06-17-clustered-image-xip-design.md` — Design: Decoupled image + execute-in-place clustered format _(design, 2026-08-29)_
 - `docs/design/2026-06-17-global-method-cache-design.md` — Global Method Lookup Cache — Design _(design, 2026-07-14)_
 - `docs/design/2026-06-17-unboxed-floats-design.md` — Unboxed Floats (P0) — Design _(design, 2026-08-29)_
@@ -180,9 +180,9 @@ _Regenerated 2026-10-04 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/design/2026-09-14-porta-federation-and-transports-design.md` — porta beyond the LAN: federation, and the transports a public deployment would use _(design, 2026-09-16)_
 - `docs/design/2026-10-02-frozen-1.0-surface.md` — The frozen surface 1.0 — what is promised, what is missing, what comes after _(design, 2026-10-03)_
 - `docs/design/2026-10-02-security-levels-design.md` — Security levels: who may talk to whom, per node _(design, 2026-10-02)_
-- `docs/design/2026-10-04-custos-peer-design.md` — custos as the third peer: the nsl developer's tool _(design, 2026-10-04)_
-- `docs/development.md` — Development: the loop for a human and for an agent _(record, 2026-10-04)_
-- `docs/next-steps-overview.md` — Next steps — overview _(record, 2026-10-04)_
+- `docs/design/2026-10-04-custos-peer-design.md` — custos as the third peer: the nsl developer's tool _(design, 2026-10-05)_
+- `docs/development.md` — Development: the loop for a human and for an agent _(record, 2026-10-05)_
+- `docs/next-steps-overview.md` — Next steps — overview _(record, 2026-10-05)_
 - `docs/overview.md` — rete — the whole on one page _(record, 2026-10-02)_
 - `docs/results/2026-07-20-c6-heap-ceiling.md` — ESP32-C6 heap-ceiling bisect — Task 3 _(record, 2026-07-20)_
 - `docs/results/2026-08-05-c6-checkin-decomposition.md` — Where the 300 ms goes — c6-bench, 2026-08-05 _(record, 2026-08-05)_
@@ -255,7 +255,7 @@ _Regenerated 2026-10-04 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/tutorials/01-host.md` — Tutorial 1 — the VM on your host: build it, run the suite, write ten lines of nsl _(record, 2026-10-04)_
 - `docs/tutorials/02-board.md` — Tutorial 2 — a board: flash a node, watch it join a mesh, run the gates _(record, 2026-10-02)_
 - `docs/tutorials/03-porta.md` — Tutorial 3 — porta on your host: a gateway, a node, and the diff between them _(record, 2026-10-03)_
-- `docs/tutorials/04-debugger.md` — Tutorial 4 — the debugger: stop a program at a line, step it, look inside _(record, 2026-10-04)_
+- `docs/tutorials/04-debugger.md` — Tutorial 4 — the debugger: stop a program at a line, step it, look inside _(record, 2026-10-05)_
 
 ### nodus/oevm/docs
 
@@ -287,17 +287,18 @@ _Regenerated 2026-10-04 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 
 ### protocol
 
-- `protocol/IMAGE-ARTIFACTS.md` — Image artifacts — what the compiler writes and custos reads _(record, 2026-10-04)_
-- `protocol/PROTOCOL-NSL-RECORDS.md` — Porta ↔ nsl — the record schemas _(record, 2026-10-04)_
+- `protocol/IMAGE-ARTIFACTS.md` — Image artifacts — what the compiler writes and custos reads _(record, 2026-10-05)_
+- `protocol/PROTOCOL-NSL-RECORDS.md` — Porta ↔ nsl — the record schemas _(record, 2026-10-05)_
 - `protocol/PROTOCOL-NSL.md` — Porta ↔ nsl node protocol — the space-sync model _(record, 2026-10-03)_
 - `protocol/archive/PROTOCOL-NSL-draft-2026-07-11.md` — Porta ↔ nsl node protocol — the space-sync model (genesis draft) _(record, 2026-10-02)_
 - `protocol/archive/PROTOCOL.md` — Porta wire protocol _(record, 2026-10-02)_
+- `protocol/tools/.pytest_cache/README.md` — pytest cache directory # _(record)_
 
 ### nodus/nsl/docs
 
 - `nodus/nsl/docs/NEWSPEAK_DIALECT.md` — ns-oevm — a Newspeak dialect (intentional differences from full Newspeak) _(record, 2026-08-26)_
 - `nodus/nsl/docs/README.md` — nodus/nsl/docs — the dialect's documents _(record, 2026-10-04)_
-- `nodus/nsl/docs/compiler.md` — The nsl compiler _(record, 2026-10-04)_
+- `nodus/nsl/docs/compiler.md` — The nsl compiler _(record, 2026-10-05)_
 - `nodus/nsl/docs/design/2026-06-16-block-inlining-design.md` — Block inlining via a scope/frame model _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-06-19-next-phase-stdlib-and-debug.md` — ns-oevm — next phase: standard library + debug story _(design, 2026-08-29)_
 - `nodus/nsl/docs/design/2026-06-20-ns-oevm-stdlib-design.md` — ns-oevm — standard library: the capability-pure primitive/library line _(design, 2026-08-02)_
@@ -399,10 +400,10 @@ _Regenerated 2026-10-04 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 
 ### porta/docs
 
-- `porta/docs/ARCHITECTURE.md` — porta system architecture _(record, 2026-10-04)_
-- `porta/docs/CLI.md` — porta CLI reference _(record, 2026-08-29)_
+- `porta/docs/ARCHITECTURE.md` — porta system architecture _(record, 2026-10-05)_
+- `porta/docs/CLI.md` — porta CLI reference _(record, 2026-10-05)_
 - `porta/docs/DEVSDK.md` — porta dev-SDK (`devsdk/`) — the northbound contract _(record, 2026-08-29)_
-- `porta/docs/GETTING-STARTED.md` — Getting started with porta _(record, 2026-10-04)_
+- `porta/docs/GETTING-STARTED.md` — Getting started with porta _(record, 2026-10-05)_
 - `porta/docs/README.md` — porta/docs — the gateway's documents _(record, 2026-08-29)_
 - `porta/docs/archive/plans/2026-05-23-gateway-b1-tftp-free-core.md` — Gateway B1 — TFTP-free core Implementation Plan _(record, 2026-08-29)_
 - `porta/docs/archive/plans/2026-05-23-gateway-b2-wire-device-hardware.md` — Gateway B2 — wire + device + hardware Implementation Plan _(record, 2026-08-29)_

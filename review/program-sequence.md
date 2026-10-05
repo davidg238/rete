@@ -2599,6 +2599,21 @@ at depths 16, 20 and 24, +494 B flash, 0 RAM. The person's front end is
 Record: `docs/results/2026-10-02-311-line-in-spike.md` (parts 1–4); `docs/development.md`
 § Debug; the in-image debugger design's addendum.
 
+## custos becomes a peer: the move and the debugger in Go — 2026-10-05, #338 #339
+
+**custos is its own Go module beside porta, and the debugger is `custos debug`.** `custos/`
+and `protocol/` are Go modules; porta and custos import `protocol/` (`cval`, `manifest`,
+`store`, `allowlist`) and never each other. The store's schema turned out to be a contract
+too: custos's tests read stores porta's writer commits as SQL under
+`protocol/fixtures/store/`, drift-checked on porta's side. `dbg.py` is rewritten in Go and
+deleted; its live case is the suite's `custos-debug` aux gate. Merged 2026-10-05 (`d91357a`).
+
+1. **Not delivered:** the cable path (`-port`) has not run on a board; `custos profile`
+   (#312) waits on three questions (`docs/design/2026-10-05-custos-profile-over-usb.md`).
+
+Record: `porta/docs/ARCHITECTURE.md` §§1/3/8; the peer design's §6a addendum;
+`protocol/IMAGE-ARTIFACTS.md` §4; `docs/tutorials/04-debugger.md`.
+
 ## Known stale docs (do not treat as current)
 
 `nodus/oevm/docs/archive/ROADMAP.md` (oevm-era backlog; prime directive still valid, task list superseded),
