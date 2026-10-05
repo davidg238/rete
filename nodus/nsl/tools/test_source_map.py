@@ -81,3 +81,31 @@ def test_factory_body_initializers_are_mapped(tmp_path):
         for pair in pairs:
             assert len(pair) == 2
             assert isinstance(pair[0], int) and isinstance(pair[1], int)
+
+
+def test_a_body_that_is_one_expression_gets_its_line(tmp_path):
+    """rete#343: the last, non-return expression of a block body was compiled
+    without record_line, so a one-expression block had no line at all — for an
+    escaping block (its own method) and an inlined arm alike."""
+    import ns_compile_oevm as C
+    src = """class Probe packageUsing: manifest = () (
+public answer = ( ^ 42 )
+public pick: b = (
+  | r k |
+  r:: b
+    ifTrue: [
+      self answer ]
+    ifFalse: [
+      self answer + 1 ].
+  k:: [ :x |
+    x + r ].
+  ^ k value: r )
+) : ( )
+"""
+    compiler = C.OevmCompiler(_parse(src, tmp_path))
+    compiler.compile()
+    sm = compiler.source_maps
+    pick = {line for _, line in sm["Probe>>pick:"]}
+    assert {7, 9} <= pick, pick                       # the inlined arms
+    blk = next(v for k, v in sm.items() if "_block" in k)
+    assert [line for _, line in blk] == [11]          # the escaping block

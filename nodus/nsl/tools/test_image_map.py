@@ -78,7 +78,7 @@ def test_each_shape_the_map_names(fresh):
     assert mine["Fixture>>main:args:"][1][0] == [0, 18]       # the entry's method
     assert mine["Fixture_Counter>>start:"] == (0, [[0, 11]])  # a nested class
     assert mine["Meta_Fixture_Counter>>from:"] == (0, [[0, 13]])  # class side
-    assert "Fixture_block1>>value:" in mine                   # a block, no prefix
+    assert mine["Fixture_block1>>value:"] == (0, [[1, 19]])   # a block, no prefix; 0 is its MK_CONTEXT (#343)
     assert mine["Fixture>>init_platform:"] == (0, [])         # synthesized: no lines
 
 
