@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/davidg238/porta/internal/manifest"
+	"github.com/davidg238/rete/protocol/manifest"
 )
 
 func TestManifestHandlerServesFileAndHash(t *testing.T) {

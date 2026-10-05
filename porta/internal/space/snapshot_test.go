@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/davidg238/porta/internal/cval"
+	"github.com/davidg238/rete/protocol/cval"
 )
 
 // A snapshot is the porta↔custos interface (first-cut design §2): it must be

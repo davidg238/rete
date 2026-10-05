@@ -20,13 +20,14 @@ the operator vocabulary is CLI sugar over path writes and tree reads.
     porta snapshot                   a consistent copy of the store
 
 - `cmd/porta/` + `internal/portacli/` — the cobra CLI
-- `internal/cval/` — the nsl message algebra's CBOR codec, hand-rolled and golden-tested
-  against the node's own encoder
 - `internal/space/` — the store: four sqlite tables (`nodes`, `cells`, `events`,
   `exchanges`); a new feature adds rows, not tables
 - `internal/wire/` — pull/push framing as a pure `Handle([]byte) []byte` under a thin UDP loop
-- `internal/custos/`, `internal/blob*/` — the query surface and the bulk plane
+- `internal/blob*/` — the bulk plane
 - `devsdk/` — the public Go SDK node-repo tooling imports; porta imports no node code
+
+The codec, the manifest table and the allowlist live in `../protocol/` (a Go module porta
+imports); custos, the query surface, is `../custos/`.
 
 **Start here:** `../docs/tutorials/03-porta.md` — a gateway and a real node on
 loopback in about a dozen commands, every block of it executed by the nsl suite.

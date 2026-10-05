@@ -226,6 +226,26 @@ Answered by David, 2026-10-04:
    split out as the monitor only when the monitor work starts (§6, answer 3). Branch
    *after* `198-custos-views` merges, which waits on `329-c6-speed`, so the move does not
    collide with unmerged work.
+   *Addendum 2026-10-04 (#338):* done. `protocol/` is the Go module
+   `github.com/davidg238/rete/protocol` with four packages: `cval`, `manifest`, `store`
+   (`IsStale`, `PathLiveness` and `DirectionGateway`, the store's shared vocabulary) and
+   `allowlist` (porta's `httpsrv/cidr.go`, which custos already shared "so the two
+   surfaces cannot drift"; F2 missed it). Two corrections to this step as written:
+   - **No `go.work`.** Each of `porta/go.mod` and `custos/go.mod` carries
+     `replace github.com/davidg238/rete/protocol => ../protocol`. That alone builds, tests,
+     tidies and packages the `.deb`; `go mod tidy` cannot run in a workspace member
+     without it, and a `go.work` does not let `go test ./...` at the root span the
+     modules either, so it would have been a second mechanism doing nothing. The gate is
+     `for m in protocol porta custos; do (cd $m && go test ./...); done`.
+   - **The store's schema is a contract too, and F2 missed it.** custos's tests built
+     their stores with porta's `space.Store`, which neither Go's `internal` rule nor D1
+     allows across the line. The builders moved to porta
+     (`porta/internal/space/fixtures_test.go`), which writes them as SQL under
+     `protocol/fixtures/store/` and fails if they drift (`-update` regenerates); custos
+     loads the text (`custos/internal/storefixture`). This is the image fixture's shape
+     (`protocol/fixtures/image/`) applied to the store. It also fixed a latent defect:
+     #198's "committed" `acceptance.db` was gitignored (`/porta/**/*.db`), so a fresh
+     clone failed `TestAcceptanceFixtureIsCurrent`.
 3. **`custos debug` over USB**: `dbg.py` rewritten in Go; `test_dbg.py` and the
    tutorial-debugger gate ported; `dbg.py` deleted.
 4. **`custos profile` over USB**: the trigger sent down the cable, the rows ranked by

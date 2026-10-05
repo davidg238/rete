@@ -6,8 +6,9 @@ package portacli
 import (
 	"fmt"
 
-	"github.com/davidg238/porta/internal/cval"
 	"github.com/davidg238/porta/internal/space"
+	"github.com/davidg238/rete/protocol/cval"
+	"github.com/davidg238/rete/protocol/store"
 	"github.com/spf13/cobra"
 )
 
@@ -81,9 +82,9 @@ func newGetCmd() *cobra.Command {
 	return cmd
 }
 
-// isStale is space.IsStale over one cell, the rule custos's cells.stale shares.
+// isStale is store.IsStale over one cell, the rule custos's cells.stale shares.
 func isStale(e space.Cell, currentBoot int64) bool {
-	return space.IsStale(e.Direction, e.BootID, currentBoot)
+	return store.IsStale(e.Direction, e.BootID, currentBoot)
 }
 
 func bootLabel(e space.Cell) string {

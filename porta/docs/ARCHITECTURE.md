@@ -28,7 +28,7 @@ describes them; §7 says where they went.
                                      ▼
    agent ·  ── HTTP :6971 ──►  ┌───────────────┐
    browser                     │  CUSTOS   │  /fleet, /node/{id}, /q/{name};
-                               │  (own binary) │  /dev docs; proxies /health, /manifest
+                               │  (custos/)    │  /dev docs; proxies /health, /manifest
                                └───────┬───────┘
                                        │ 127.0.0.1 HTTP + the store, read-only
    operator ── porta CLI ────►  ┌──────▼──────────────────────────────────┐
@@ -60,7 +60,12 @@ Three planes, three contracts — and note that only one of them is a network pr
 |-------|-----------|----------|-----------|
 | **Southbound** (gateway ↔ node) | porta ↔ any conforming node | `protocol/PROTOCOL-NSL.md` §§1–4 + `MANIFEST.cddl` | plain UDP + CBOR (the exchange); a binary block plane for bulk bytes |
 | **Northbound** (dev tool → gateway) | node-repo tooling → porta | `porta/devsdk` (`exec`, `provision`) | a Go import. **No network path** — v1's `apiclient` went with v1's HTTP API |
-| **Operator** (human/agent → gateway) | CLI → the store; browser/agent → custos | the path namespaces themselves; `GET /health`, `GET /manifest`; custos's named queries (`porta/internal/gate`) | a local sqlite open (§3.1); HTTP for the two routes; custos reads the store `mode=ro` (live) or a `porta snapshot` file (history) |
+| **Operator** (human/agent → gateway) | CLI → the store; browser/agent → custos | the path namespaces themselves; `GET /health`, `GET /manifest`; custos's named queries (`custos/internal/gate`) | a local sqlite open (§3.1); HTTP for the two routes; custos reads the store `mode=ro` (live) or a `porta snapshot` file (history) |
+
+The code more than one peer needs is a Go module of its own, `protocol/` — `cval` (the
+codec), `manifest` (the catalogue's table), `store` (the store's shared vocabulary:
+`gw/liveness`, the `gw` direction, the staleness rule) and `allowlist` (who an HTTP
+listener admits). porta and custos each import it and never each other (rete#338).
 
 ---
 
@@ -85,8 +90,8 @@ Consequences of "coupled only over the wire":
   compile against the other is a bug, not a convenience.
 - **A second implementation must hand-roll its codec.** The algebra's map keys are
   themselves tagged values, a Record's *name* is a Symbol rather than a text string, and
-  decoding must be closed. porta's `internal/cval` is that second implementation, and it
-  is golden-tested against the node's own output — the node's `Cbor` class in
+  decoding must be closed. `protocol/cval` is that second implementation, shared by porta and
+  custos, and it is golden-tested against the node's own output — the node's `Cbor` class in
   `nodus/nsl/lib/kernel.nsl` is the authority, not the RFC.
 - Adding a node kind is a wire-conformance exercise, not a gateway change. porta branches
   on no language and no chip; `obs/build` carries `chip`/`sdk` as data.
@@ -120,10 +125,14 @@ What the gateway *is*:
 - **The operator surface.** Two HTTP routes, `GET /health` and `GET /manifest`, and
   nothing else. v1's dashboard, JSON API and MCP server are deferred → operator surface
   in the capability audit, not silently dropped; the exposed agent-facing front door is
-  the separate `custos` binary. custos decodes what porta stores without porta learning
+  the separate `custos` program — its own Go module at the repo's top level, `custos/`
+  (rete#338), importing `protocol/` and nothing of porta's. custos decodes what porta stores without porta learning
   any record shape (first-cut design D3(b)): it reads porta's store read-only for the
   fleet page and a fixed table of named queries, and snapshot files for history. porta
-  writes nothing for it and knows nothing of it (rete#198; design
+  writes nothing for it and knows nothing of it. The store's schema is therefore a contract
+  between the two like the wire's: custos's tests read stores porta's own writer wrote,
+  committed as SQL under `protocol/fixtures/store/` and drift-checked on porta's side
+  (rete#198; design
   `design/2026-08-22-gatekeeper-first-cut-design.md`, addenda D1–E). Every answer carries
   the reading rules of the columns it touched, and those rules are what make a history
   answer right rather than plausible: §10's five questions were answered on the real store
@@ -330,7 +339,7 @@ The kind+schema contract is `protocol/MANIFEST.cddl` (machine-normative; see
   and the CLI door is where both historical node-bricking kind writes (#180, #206)
   came from. A flagless serve over a db that already holds a manifest still gates.
 - **All three store write doors check** (`internal/space`, gate seated around
-  `internal/manifest`'s ~100-line table): known path (closed set, literal shadows
+  `protocol/manifest`'s ~100-line table): known path (closed set, literal shadows
   wildcard), agreeing kind, agreeing head bytes (record rows: the deterministic
   encoding's constant tag-27/name prefix; scalar rows: a first-byte class), agreeing
   direction (`up`/`down`/`gw`). No value is decoded — the store stays opaque (D4.1).
@@ -504,6 +513,10 @@ not have. They live on the dev machine, in node-repo tooling built on porta's **
 with v1's HTTP surface — there is no network path from a dev tool to porta, which is why
 `porta blob put` runs on the gateway host.
 
+That tooling is becoming **custos**, the nsl developer's peer, local over USB first
+(`../../docs/design/2026-10-04-custos-peer-design.md`). It lives at `custos/`, beside porta
+rather than inside it, and `devsdk` is expected to follow it there (that design's F3).
+
 porta itself hosts **zero** language or hardware toolchain, and that is the property to
 preserve: it is what let the node side be replaced wholesale without touching the
 gateway's shape.
@@ -536,15 +549,17 @@ preserved the issue numbers the program navigates by.
 | Tree | Role | Couples to the other half via |
 |---|---|---|
 | `porta/` | the gateway: the store, the exchange, the bulk plane, the CLI, `devsdk/` | the wire, and nothing else |
+| `custos/` | the developer's and the operator's peer: the query engine, the fleet pages, the dev verbs to come | `protocol/` (and, today, porta's store read-only) |
 | `nodus/oevm/` | the VM (C) and its Zephyr board ports | the wire |
 | `nodus/nsl/` | the dialect, its compiler, the kernel | — |
 | `nodus/tests/` | the nsl conformance suite | — |
-| `protocol/` | **the whole of the contract**; the Toit-era v1 archived under `protocol/archive/` | it *is* the coupling |
+| `protocol/` | **the whole of the contract**, and the Go module every Go peer imports (§1); the Toit-era v1 archived under `protocol/archive/` | it *is* the coupling |
 | `review/`, `docs/`, `tools/` | the program ladder and claims ledger; documents of record; repo-wide scripts | — |
 
-**Being in one repo does not couple the two halves.** porta and the nodes are coupled
-**only** over the wire; they never import each other's code, and a change that makes one
-side compile against the other is a bug rather than a convenience. The place this is
+**Being in one repo does not couple the peers.** porta, custos and the nodes are coupled
+**only** through `protocol/`: the wire, and the Go module of the code they share. They
+never import each other's code, and a change that makes one compile against another is a
+bug rather than a convenience. The place this is
 actively defended is the gates: the nsl suite's two porta-facing gates (`tutorial-porta`,
 `porta-cli`) answer a **named SKIP** when there is no Go toolchain rather than failing,
 precisely so a missing `go` cannot make the node suite depend on the gateway half.

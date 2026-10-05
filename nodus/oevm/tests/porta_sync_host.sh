@@ -228,7 +228,7 @@ echo "  goal/name converged to obs/name — the diff IS the view"
 #
 # `porta put` takes scalars or --raw hex, and a Record needs the hex. This
 # constant is Liveness { misses: 604800, telCad: 2000 } and it is pinned by
-# TestGoalLivenessGoldenForTheHostGate in porta/internal/cval — a hex nobody
+# TestGoalLivenessGoldenForTheHostGate in protocol/cval — a hex nobody
 # checks is a constant that rots silently, and it would rot into a record the
 # node logs as bad while this gate went on passing.
 GOAL_LIVENESS_HEX=d81b82d827684c6976656e657373a2d827666d69737365731a00093a80d8276674656c4361641907d0

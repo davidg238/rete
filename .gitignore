@@ -131,6 +131,12 @@ oevm_img
 # see the rete consolidation design doc §4/D-table).
 /porta/porta.db
 /porta/porta-soak.log
+
+# custos (its own module since rete#338): the built binary and any local store.
+/custos/custos
+/custos/**/*.db
+/custos/**/*.db-shm
+/custos/**/*.db-wal
 /nodus/oevm/oevm_bench
 /nodus/oevm/oevm_runner
 

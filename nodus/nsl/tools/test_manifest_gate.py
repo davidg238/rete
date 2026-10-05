@@ -5,7 +5,7 @@ protocol/MANIFEST.cddl via zcbor, and the manifest itself lints clean.
 The two codecs (node Cbor, porta cval) were golden-tested only against each
 other before this; now the node's side answers to the one declared contract,
 and porta's side is covered transitively (cval is byte-equal-golden-tested
-against the node's hex) plus directly by porta/internal/manifest's tests.
+against the node's hex) plus directly by protocol/manifest's tests.
 """
 import subprocess
 import sys

@@ -24,12 +24,12 @@ The one-page version is `nodus/oevm/docs/vm.md`.
 ## Tree
 
     porta/       the gateway (Go) — the northbound half
-      cmd/custos   the front door for browsers and agents (a second binary)
+    custos/      the nsl developer's peer (Go): today the query engine and fleet pages
     nodus/       the device end
       oevm/      the VM (C) + the Zephyr board ports
       nsl/       the dialect, its compiler and the kernel (which is itself nsl)
       tests/     the nsl suite
-    protocol/    the wire contract (the Toit-era protocol is archived under protocol/archive/)
+    protocol/    the contract, and the Go module porta and custos share (the Toit-era protocol is archived under protocol/archive/)
     review/      the program ladder and the claims ledger
     docs/        the program's documents: tutorials, status, the dated records — docs/README.md
                  (each subsystem keeps its own reference docs: nodus/oevm/docs, nodus/nsl/docs, porta/docs)
@@ -38,7 +38,7 @@ The one-page version is `nodus/oevm/docs/vm.md`.
 ## Gates
 
     cd nodus/nsl  && python3 tools/run_tests_oevm.py     # Passed: N / Failed: 0, and read the aux line
-    cd porta      && go test ./...
+    for m in protocol porta custos; do (cd $m && go test ./...); done
     cd nodus/oevm && bash tests/porta_sync_host.sh      # PORTA SYNC OK
 
 The suite count only ever drifts upward; the number that matters is `Failed: 0` plus a

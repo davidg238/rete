@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/davidg238/porta/internal/cval"
+	"github.com/davidg238/rete/protocol/cval"
 )
 
 // runRoot builds a fresh root command tree, runs it with args, and discards

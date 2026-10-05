@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/davidg238/porta/internal/cval"
 	"github.com/davidg238/porta/internal/space"
+	"github.com/davidg238/rete/protocol/cval"
 )
 
 func testServer(t *testing.T) (*Server, *space.Store) {

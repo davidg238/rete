@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/davidg238/porta/internal/cval"
 	"github.com/davidg238/porta/internal/space"
+	"github.com/davidg238/rete/protocol/cval"
 )
 
 // decodeErrReply asserts the reply is an #err and answers its #msg. No

@@ -13,7 +13,9 @@ its `tutorial-debugger` aux gate, so a stale step here turns the suite red. The 
 ## 0. What you need
 
 Tutorial 1 done, or the suite run once. Either way the VM and its layout file are in
-`/tmp` (`/tmp/oevm_img`, `/tmp/oevm_layout.json`). `RETE` points at the clone.
+`/tmp` (`/tmp/oevm_img`, `/tmp/oevm_layout.json`). `RETE` points at the clone. The
+debugger is a verb of `custos`, the developer's tool, so you also need Go (the suite
+SKIPs this page, by name, without it).
 
 ## 1. A program to stop
 
@@ -52,9 +54,13 @@ wrong bytes.
 
 ## 2. A session
 
-`nodus/nsl/tools/dbg.py` starts the VM with its debugger on and gives you a prompt. You
-can type at it, or pipe it a file of commands like the block below, which is what this
-page's gate does:
+`custos debug` starts the VM with its debugger on and gives you a prompt. You can type
+at it, or pipe it a file of commands like the block below, which is what this page's
+gate does. First build custos:
+
+```bash gate
+go build -C "$RETE/custos" -o "$PWD/custos" ./cmd/custos
+```
 
 ```bash gate
 cat > session.txt <<'EOF'
@@ -68,7 +74,7 @@ next
 next
 continue
 EOF
-python3 $RETE/nodus/nsl/tools/dbg.py --map average.oimg.map.json \
+./custos debug -map average.oimg.map.json \
         -- /tmp/oevm_img average.oimg < session.txt | tee out.txt
 grep -q '^-- stopped (break) at average.nsl:16  main:args:$' out.txt
 grep -q '^-- stopped (step) at average.nsl:8  sum:$' out.txt
@@ -150,7 +156,8 @@ the VM's own answers, passed through. Everything else is your program's output.
   that has some, and the tool tells you.
 - **`step` and `next` move a line at a time** by sending the VM single-bytecode steps
   until the line changes. A loop on one line is many of those, so a long one takes a
-  while. After 5000 the tool stops and says where it is (`LINE_STEP_LIMIT` in `dbg.py`).
+  while. After 5000 the tool stops and says where it is (`LineStepLimit` in
+  `custos/internal/debug/session.go`).
 - **A breakpoint does not fire during `next` or `finish`.** While the VM steps, the
   Supervisor decides each stop by frame depth alone and never checks the breakpoints. So
   `next` over a call passes a breakpoint inside that call, and `finish` out of a method
@@ -174,7 +181,7 @@ typed while it runs, both leave the program stopped, and `continue` resumes it. 
 that is asleep with no timer never reaches a bytecode, so nothing stops it until it
 wakes up.
 
-The suite's `debugger-integration` gate drives this through `dbg.py`, against
+The suite's `custos-debug` gate drives this through `custos debug`, against
 `nodus/tests/04_somns_basic/47_debug_pause_target.nsl`, a program that ticks on a 200 ms
 timer: pause after `tick 1`, before `tick 2`.
 
@@ -191,11 +198,11 @@ its cable, with no timeout.
 2. Stop anything else holding the console port (on the gateway, the collector). Only
    one program can read the port. A second reader gets half the bytes, and on this
    devkit every open of the port also reboots the C6 (rete#319).
-3. Attach:
+3. Attach (custos built as in §2; it opens the port with DTR and RTS held low):
 
    ```
-   python3 nodus/nsl/tools/dbg.py --map nodus/oevm/zephyr/YourApp.oimg.map.json \
-           --port /dev/serial/by-id/usb-Silicon_Labs_CP2102N_...
+   ./custos debug -map nodus/oevm/zephyr/YourApp.oimg.map.json \
+           -port /dev/serial/by-id/usb-Silicon_Labs_CP2102N_...
    ```
 
    Because opening the port reboots the board, you meet it at its boot stop. The rest is

@@ -24,12 +24,12 @@ Memory store = David's working preferences and gotchas ONLY. "Save this for next
 
 ```
 porta/       the orchestrator (Go) — the northbound half
-  cmd/custos   the front door for browsers and agents (a second binary)
+custos/      the nsl developer's peer (Go, its own module): today the query engine and fleet pages
 nodus/       the device end
   oevm/      the VM (C) + the Zephyr board ports
   nsl/       the dialect, its compiler and the kernel
   tests/     the nsl suite
-protocol/    the wire contract both sides answer to (the Toit-era protocol is archived under protocol/archive/)
+protocol/    the contract every peer answers to, and the Go module of the code they share (the Toit-era protocol is archived under protocol/archive/)
 review/      David's review-agent tree: the program ladder and the claims ledger
 docs/        the VM's own documents, the design records and the execution plans
 tools/       repo-wide scripts (docmap.sh)
@@ -37,10 +37,10 @@ tools/       repo-wide scripts (docmap.sh)
 
 porta/, nodus/nsl/ and nodus/oevm/tests/target/ carry their own `CLAUDE.md`, loaded when working there.
 
-**Being in one repo does not couple the two halves.** porta and the nodes are coupled
-**only** over the wire; they never import each other's code, and `protocol/` is the whole
-of the contract. A change that makes one side compile against the other is a bug, not a
-convenience.
+**Being in one repo does not couple the peers.** porta, custos and the nodes are coupled
+**only** through `protocol/` — the wire, plus a Go module (`cval`, `manifest`, `store`,
+`allowlist`) that porta and custos import; they never import each other's code. A change
+that makes one peer compile against another is a bug, not a convenience (#338).
 
 ## Standing rules
 
@@ -137,7 +137,7 @@ How to make decisions here. These override the instinct to be thorough.
 
 ```
 cd nodus/nsl && python3 tools/run_tests_oevm.py     # 288 passed, 0 failed (2026-10-02)
-cd porta      && go test ./...
+for m in protocol porta custos; do (cd $m && go test ./...); done
 cd nodus/oevm && bash tests/porta_sync_host.sh      # PORTA SYNC OK
 ```
 

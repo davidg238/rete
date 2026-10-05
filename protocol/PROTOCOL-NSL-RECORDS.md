@@ -485,7 +485,7 @@ running makes a mismatched sidecar indistinguishable from a quiet program.
 
 **82 B encoded, MEASURED 2026-08-07** (for a record without `board` or `man`) — `chip: #esp32c6` plus the 43-character
 `porta-v1-final-862-g8410661-20260806T223944` this bench's C6 build actually produced,
-through `porta/internal/cval`'s encoder (golden-tested against the node's own `Cbor`).
+through `protocol/cval`'s encoder (golden-tested against the node's own `Cbor`).
 The host twin's `build: "host"` (with `chip: #host`) is **39 B**, and the pre-#74 `chip`-only record was 29 B.
 Well inside §2.2's 256 B/value cap, with 174 B of headroom on the longest of the three.
 

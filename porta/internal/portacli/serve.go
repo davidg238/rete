@@ -14,10 +14,11 @@ import (
 	"github.com/davidg238/porta/internal/blob"
 	"github.com/davidg238/porta/internal/blockserv"
 	"github.com/davidg238/porta/internal/httpsrv"
-	"github.com/davidg238/porta/internal/manifest"
 	"github.com/davidg238/porta/internal/serverstat"
 	"github.com/davidg238/porta/internal/space"
 	"github.com/davidg238/porta/internal/wire"
+	"github.com/davidg238/rete/protocol/allowlist"
+	"github.com/davidg238/rete/protocol/manifest"
 	"github.com/spf13/cobra"
 )
 
@@ -201,7 +202,7 @@ func newServeCmd() *cobra.Command {
 	cmd.Flags().IntVar(&httpPort, "http-port", 6970, "operator HTTP port (0 = disabled)")
 	cmd.Flags().StringVar(&httpBind, "http-bind", "0.0.0.0", "operator HTTP bind address")
 	cmd.Flags().StringSliceVar(&httpAllowCIDR, "http-allow-cidr",
-		httpsrv.DefaultAllowCIDR(),
+		allowlist.Default(),
 		"CIDR ranges allowed to reach the operator HTTP listener (repeatable; empty = serve any peer)")
 	cmd.Flags().IntVar(&testDropAck, "test-drop-ack", 0,
 		"TEST ONLY: swallow every Nth outbound #ack AFTER the push is committed (0 = off)")

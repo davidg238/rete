@@ -11,8 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/davidg238/porta/internal/cval"
-	"github.com/davidg238/porta/internal/manifest"
+	"github.com/davidg238/rete/protocol/cval"
+	"github.com/davidg238/rete/protocol/manifest"
+	"github.com/davidg238/rete/protocol/store"
 )
 
 func loadRealManifest(t *testing.T) *manifest.Table {
@@ -108,7 +109,7 @@ func TestManifestGateGateway(t *testing.T) {
 	s := testStore(t)
 	s.SetManifest(loadRealManifest(t))
 	live := enc(t, cval.Symbol("live"))
-	if err := s.WriteGateway("n1", PathLiveness, live, "sweep"); err != nil {
+	if err := s.WriteGateway("n1", store.PathLiveness, live, "sweep"); err != nil {
 		t.Fatalf("gw/liveness refused: %v", err)
 	}
 	if err := s.WriteGateway("n1", "gw/bogus", live, "sweep"); err == nil {
@@ -162,11 +163,11 @@ func TestIngestRefusesAForgedGatewayVerdict(t *testing.T) {
 	s.SetManifest(loadRealManifest(t))
 	silent := enc(t, cval.Symbol("silent"))
 	forged := enc(t, cval.Symbol("live"))
-	if err := s.WriteGateway("n1", PathLiveness, silent, "silence sweep"); err != nil {
+	if err := s.WriteGateway("n1", store.PathLiveness, silent, "silence sweep"); err != nil {
 		t.Fatal(err)
 	}
 	hw, _, err := s.Ingest("n1", 9, []Entry{
-		{Seq: 1, Path: PathLiveness, Kind: cval.KindCell, Value: forged}})
+		{Seq: 1, Path: store.PathLiveness, Kind: cval.KindCell, Value: forged}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +179,7 @@ func TestIngestRefusesAForgedGatewayVerdict(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(cells) != 1 || string(cells[0].Value) != string(silent) ||
-		cells[0].Direction != DirectionGateway {
+		cells[0].Direction != store.DirectionGateway {
 		t.Fatalf("the node overwrote the gateway's verdict: %+v", cells)
 	}
 	evs, err := s.Events("n1", 10, 0)

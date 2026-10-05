@@ -10,8 +10,8 @@ import (
 	"os/user"
 	"strconv"
 
-	"github.com/davidg238/porta/internal/cval"
 	"github.com/davidg238/porta/internal/space"
+	"github.com/davidg238/rete/protocol/cval"
 	"github.com/spf13/cobra"
 )
 

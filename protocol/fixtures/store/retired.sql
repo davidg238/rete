@@ -1,0 +1,82 @@
+-- porta's store, written by porta's own writer: porta/internal/space/fixtures_test.go.
+-- Do not edit; regenerate with -update.
+CREATE TABLE nodes (
+  id            TEXT PRIMARY KEY,
+  name          TEXT,
+  first_seen_ms INTEGER,
+  last_seen_ms  INTEGER,
+  boot_id       INTEGER,
+  cursor_acked  INTEGER NOT NULL DEFAULT 0,
+  node_seq_hw   INTEGER NOT NULL DEFAULT 0,
+  cursor_hw     INTEGER NOT NULL DEFAULT 0,
+  served_hw     INTEGER NOT NULL DEFAULT 0,
+  out_seq       INTEGER NOT NULL DEFAULT 0,
+  -- Successor to v1's nodes.source_addr, which the capability audit (design
+  -- §4.2) caught with no home. It is not merely a display field: serverstat
+  -- .TransportOf() reads it to produce the wifi-vs-Thread fleet breakdown.
+  last_addr     TEXT
+, wak    INTEGER, wak_ms INTEGER, mark_wak INTEGER, mark_ms  INTEGER, mark_cad INTEGER);
+CREATE TABLE cells (
+  node_id    TEXT NOT NULL,
+  path       TEXT NOT NULL,
+  seq        INTEGER NOT NULL,
+  kind       INTEGER NOT NULL,
+  value_cbor BLOB NOT NULL,
+  ts_ms      INTEGER NOT NULL,
+  direction  TEXT NOT NULL CHECK (direction IN ('in','out','gw')),
+  boot_id    INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (node_id, path)
+);
+CREATE TABLE events (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  node_id    TEXT NOT NULL,
+  path       TEXT NOT NULL,
+  seq        INTEGER NOT NULL,
+  kind       INTEGER NOT NULL,
+  value_cbor BLOB NOT NULL,
+  ts_ms      INTEGER NOT NULL,
+  direction  TEXT NOT NULL CHECK (direction IN ('in','out','gw')),
+  actor      TEXT NOT NULL DEFAULT '',
+  reason     TEXT NOT NULL DEFAULT '',
+  boot_id    INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE exchanges (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  node_id    TEXT NOT NULL,
+  ts_ms      INTEGER NOT NULL,
+  boot_id    INTEGER NOT NULL,
+  cursor_in  INTEGER NOT NULL,
+  cursor_out INTEGER NOT NULL,
+  pushed_lo  INTEGER NOT NULL,
+  pushed_hi  INTEGER NOT NULL
+);
+CREATE TABLE gw_runs (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  started_ms INTEGER NOT NULL,
+  alive_ms   INTEGER NOT NULL
+);
+CREATE TABLE meta (
+  key   TEXT PRIMARY KEY,
+  value BLOB NOT NULL
+);
+INSERT INTO "nodes" VALUES('bench1',NULL,1700000001000,1700000002000,4,0,1700000001000,0,0,0,NULL,NULL,NULL,NULL,NULL,NULL);
+INSERT INTO "nodes" VALUES('aaaa00000001',NULL,1700000003000,1700000003000,1,0,1700000002000,0,0,0,NULL,NULL,NULL,NULL,NULL,NULL);
+INSERT INTO "nodes" VALUES('bench2',NULL,1700000004000,1700000006000,9,0,1700000005000,0,0,0,NULL,NULL,NULL,NULL,NULL,NULL);
+INSERT INTO "nodes" VALUES('aaaa00000002',NULL,1700000005000,1700000005000,1,0,1700000004000,0,0,0,NULL,NULL,NULL,NULL,NULL,NULL);
+INSERT INTO "cells" VALUES('bench1','obs/name',1700000001000,2,X'6662656E636831',1700000002000,'in',4);
+INSERT INTO "cells" VALUES('aaaa00000001','obs/build',1700000002000,2,X'D81B82D827654275696C64A3D8276463686970D8276765737033326336D82765626F6172646662656E636831D827656275696C646474657374',1700000003000,'in',1);
+INSERT INTO "cells" VALUES('bench2','obs/name',1700000005000,2,X'6662656E636832',1700000006000,'in',9);
+INSERT INTO "cells" VALUES('aaaa00000002','obs/build',1700000004000,2,X'D81B82D827654275696C64A3D8276463686970D8276765737033326336D82765626F6172646662656E636832D827656275696C646474657374',1700000005000,'in',1);
+INSERT INTO "events" VALUES(1,'bench1','obs/name',1700000000000,2,X'6662656E636831',1700000001000,'in','bench1','',4);
+INSERT INTO "events" VALUES(2,'bench1','obs/name',1700000001000,2,X'6662656E636831',1700000002000,'in','bench1','',4);
+INSERT INTO "events" VALUES(3,'aaaa00000001','obs/build',1700000002000,2,X'D81B82D827654275696C64A3D8276463686970D8276765737033326336D82765626F6172646662656E636831D827656275696C646474657374',1700000003000,'in','aaaa00000001','',1);
+INSERT INTO "events" VALUES(4,'bench2','obs/name',1700000003000,2,X'6662656E636832',1700000004000,'in','bench2','',9);
+INSERT INTO "events" VALUES(5,'aaaa00000002','obs/build',1700000004000,2,X'D81B82D827654275696C64A3D8276463686970D8276765737033326336D82765626F6172646662656E636832D827656275696C646474657374',1700000005000,'in','aaaa00000002','',1);
+INSERT INTO "events" VALUES(6,'bench2','obs/name',1700000005000,2,X'6662656E636832',1700000006000,'in','bench2','',9);
+DELETE FROM sqlite_sequence;
+INSERT INTO "sqlite_sequence" VALUES('events',6);
+CREATE INDEX idx_cells_seq ON cells(node_id, direction, seq);
+CREATE INDEX idx_events_node ON events(node_id, id);
+CREATE INDEX idx_events_out ON events(node_id, direction, seq);
+CREATE INDEX idx_exchanges_node ON exchanges(node_id, ts_ms);
+CREATE INDEX idx_gw_runs_started ON gw_runs(started_ms);
