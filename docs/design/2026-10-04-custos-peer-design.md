@@ -265,6 +265,8 @@ Answered by David, 2026-10-04:
    profile counter goes in the standard image (two images: std, debug) or with the
    debugger (std, debug+profile) waits on its cost on a real workload, measured on
    `c6spare`.
+   The profile page moves from step 6 into this step (#312 takes it from #340, which keeps
+   the debug page), so `mprof_resolve.py` and `view.py`'s profile view go in one change.
 5. **`custos load`**: #310, the nsl program in its own flash region.
 6. **The web profile page, then the web debug page** (#323), then the TUI.
 

@@ -1,6 +1,6 @@
 # `custos profile` over USB — what #312 needs decided first
 
-**Status:** Q1 DECIDED, Q2 waits on a measurement, Q3 open (David, 2026-10-05) · **Date:** 2026-10-05 · **Issue:** #312
+**Status:** Q1 DECIDED, Q2 waits on a measurement, Q3 DECIDED (David, 2026-10-05) · **Date:** 2026-10-05 · **Issue:** #312
 (first slice step 4 of `2026-10-04-custos-peer-design.md` §6a) · Drafted overnight after
 #338 and #339, instead of guessing at the two choices below.
 
@@ -70,7 +70,9 @@ bug is chased on both, alternately, because the cable is faster.
    std and debug+profile. Decided by the counter's cost on a real workload: the 0.90 %
    was Hanoi at load 0.008 against a real 0.875, and its idle cost is unmeasured
    (`2026-08-06-method-profile-over-porta-design.md`). Measured on `c6spare`.
-3. **Open.**
+3. **As recommended.** #312 takes the profile page from #340: `custos profile`, custos's
+   profile page, and the deletion of `mprof_resolve.py` and `view.py`'s profile view land
+   in one change. #340 keeps the debug page.
 
 Also decided: porta is the long-term custodian of commissioned images; developer
 images are disposable (D10 in `2026-10-04-custos-peer-design.md`).
