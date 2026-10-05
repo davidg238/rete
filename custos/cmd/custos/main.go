@@ -20,19 +20,24 @@ import (
 
 	"github.com/davidg238/rete/custos/internal/custos"
 	"github.com/davidg238/rete/custos/internal/debug"
+	"github.com/davidg238/rete/custos/internal/load"
 	"github.com/davidg238/rete/custos/internal/profile"
 	"github.com/davidg238/rete/protocol/allowlist"
 )
 
 func main() {
 	// A subcommand is the shell surface: debug (the in-image debugger, over a
-	// cable or a host VM), profile (a profile dump ranked by name), and sql, tables, describe over porta's store. Without
-	// one, custos serves.
+	// cable or a host VM), profile (a profile dump ranked by name), load (an .oimg into a
+	// board's program region, rete#310), and sql, tables, describe over porta's
+	// store. Without one, custos serves.
 	if len(os.Args) > 1 && os.Args[1] == "debug" {
 		os.Exit(debug.Run(os.Args[2:], os.Stdin, os.Stdout, os.Stderr))
 	}
 	if len(os.Args) > 1 && os.Args[1] == "profile" {
 		os.Exit(profile.Run(os.Args[2:], os.Stdin, os.Stdout, os.Stderr))
+	}
+	if len(os.Args) > 1 && os.Args[1] == "load" {
+		os.Exit(load.Run(os.Args[2:], os.Stdout, os.Stderr))
 	}
 	if len(os.Args) > 1 && !strings.HasPrefix(os.Args[1], "-") {
 		if err := custos.RunCLI(os.Args[1:], os.Stdout); err != nil {
