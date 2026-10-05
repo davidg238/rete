@@ -82,8 +82,9 @@ which program a board is running (decision 2).
   - `lines`: `[bytecode_offset, line]` pairs in order of offset. A pair means that
     the bytecodes from this offset up to the next pair's offset belong to this line.
     The list is empty for a method that has no source, such as a synthesized
-    initializer or a nested-class accessor. (It is also empty today for a block whose
-    whole body is one expression — a compiler gap, #343, not part of the contract.)
+    initializer or a nested-class accessor. Every method that has source has lines,
+    including a block whose whole body is one expression (#343). A block's first pair
+    is at offset 1: offset 0 is its `OP_MK_CONTEXT` prologue, which has no line.
 
 custos refuses a map that is missing any field listed here. Any extra field is an
 error in the writer, not a way to extend the format (see the root `CLAUDE.md`: the
