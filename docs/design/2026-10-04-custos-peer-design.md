@@ -268,6 +268,48 @@ Answered by David, 2026-10-04:
    The profile page moves from step 6 into this step (#312 takes it from #340, which keeps
    the debug page), so `mprof_resolve.py` and `view.py`'s profile view go in one change.
 5. **`custos load`**: #310, the nsl program in its own flash region.
+   *Addendum 2026-10-05 (#310, proposed — for David's review):* three spikes on
+   `c6spare`, all GREEN, recorded on #310:
+   (1) the firmware `spi_flash_mmap`s a partition and hands the pointer to the
+   unchanged `oimg_load_blob`, which already executes in place; (2) a dedicated
+   partition carved from the firmware slots holds a program written on its own by
+   `esptool write_flash`, under an unchanged build-id; (3) MCUboot (sysbuild) upgrades
+   the firmware from `image-1` and the program partition comes through it untouched.
+   What #310 builds:
+   - **The layout (C6).** A board overlay: `image-0` and `image-1` become 1536K each
+     (from 1792K), and `program_partition` takes 512K at `0x320000`. `storage`, the
+     lpcore slots, scratch and coredump don't move, so the Thread dataset survives the
+     change. The sizes are a starting point, not measured: firmware is 587 KB (488 KB
+     under MCUboot) and the largest program is 170 KB. A program that fails the size
+     check, or firmware that fails the slot link, is what would earn a resize.
+   - **The firmware carries no program.** `blob.S` and `OEVM_BLOB` leave the C6
+     build. `main.c` maps `program_partition` and reads `blob_size` from the `.oimg`
+     prefix. An empty or invalid partition is a loud boot line (the loader's own refusal)
+     and the node idles with its console up. That gives one way a program reaches a node.
+   - **`run.sh --flash`** writes firmware and program in one esptool call, at two
+     offsets. The target harness is unchanged above it.
+   - **`custos load -port P <name>.oimg`** checks the 20-byte prefix and the size
+     against the partition, runs esptool `write_flash` at the partition offset (esptool
+     verifies the hash), resets the board, and reads the boot lines through to the
+     program's first output. It reports the firmware build-id before and after, and that
+     the two are equal. That check is #310's "done when".
+   - **Simple boot stays.** Moving to MCUboot is #233's step. Spike 3 shows this layout
+     is ready for it: Espressif's default is overwrite-only with no signature, and it
+     upgraded in 34 s over the cable.
+   - **Other boards keep the linked blob** until they earn a partition. This is the one
+     place the change leaves two mechanisms, and it is temporary.
+
+   Open for David:
+   - **Q1. Where the partition offset lives.** The overlay is the writer, and `run.sh`
+     and custos both need the number. Proposed: `protocol/IMAGE-ARTIFACTS.md` gains a
+     per-board "program partition" row that the overlay and custos both cite, and
+     `run.sh` reads the offset from the build's generated devicetree, so only custos
+     carries a copy.
+   - **Q2. A program that cannot receive a program.** Over the air, the program
+     (its kernel) is what receives the next one, so a broken program can't be replaced
+     remotely. Over the cable this doesn't arise, because esptool writes through the
+     ROM. Proposed: record this as #233's problem, now known before it is built (two
+     program slots, or a receiver in the firmware), and don't solve it in #310.
 6. **The web profile page, then the web debug page** (#323), then the TUI.
 
 Then the remote stage: F1, porta's HTTP interface, and the sleepy-node demo (D9).
