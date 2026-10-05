@@ -1256,7 +1256,7 @@ Bench note that cost this session's forensics: the `RebootNote` is in `.rtc_noin
 
 ## ADDENDUM 2026-10-04 — custos answers §10's five questions; rete#198 closed
 
-The #198 spike ran in full: five committed queries (`porta/internal/gate/testdata/acceptance/`)
+The #198 spike ran in full: five committed queries (`custos/internal/gate/testdata/acceptance/`)
 against a committed fixture and against the real store on gw85224-01. **The 2026-08-11
 prediction held on both** — (2) and (5) answerable as they stood, (1) and (3) only with the
 GC envelope and the reading rules (the raw-sample median is 40–60 % low on every real id), (4)

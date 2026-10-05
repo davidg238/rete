@@ -217,11 +217,6 @@ var dropColumns = []string{
 	`ALTER TABLE exchanges DROP COLUMN leg`,
 }
 
-// DirectionGateway is the third value of the direction column: a row porta
-// wrote ABOUT a node rather than TO it. The two wire directions are 'in'
-// (the node's own authority) and 'out' (porta's intent).
-const DirectionGateway = "gw"
-
 const (
 	oldDirectionCheck = `CHECK (direction IN ('in','out'))`
 	newDirectionCheck = `CHECK (direction IN ('in','out','gw'))`

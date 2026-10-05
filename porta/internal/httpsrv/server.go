@@ -1,6 +1,12 @@
 // Copyright (c) 2026 Ekorau LLC
 
-// internal/httpsrv/server.go
+// Package httpsrv is the porta gateway's operator HTTP listener — the
+// foundation future operator routes register on (the packages that used to be
+// named here, v1's MCP and htmx surfaces, went with the rewrite; the extension
+// point outlived them because httpsrv depends on a one-method NodeCounter, not
+// a store). Provides /health and graceful shutdown; the allowlist it admits
+// callers by is protocol/allowlist.
+// No app routes live here; consumers do s.Mux.Handle("/<path>", handler).
 package httpsrv
 
 import (
@@ -13,6 +19,7 @@ import (
 	"time"
 
 	"github.com/davidg238/porta/internal/serverstat"
+	"github.com/davidg238/rete/protocol/allowlist"
 )
 
 // NodeCounter is the only thing the health endpoint needs from a store.
@@ -58,7 +65,7 @@ func (s *Server) SetStats(st *serverstat.Stats) { s.stats = st }
 // register additional routes via s.Mux.Handle. Returns an error if
 // AllowCIDR fails to parse any entry.
 func New(cfg Config, nodes NodeCounter) (*Server, error) {
-	nets, err := AllowCIDR(cfg.AllowCIDR)
+	nets, err := allowlist.Parse(cfg.AllowCIDR)
 	if err != nil {
 		return nil, fmt.Errorf("httpsrv: parse allow-cidr: %w", err)
 	}
@@ -68,7 +75,7 @@ func New(cfg Config, nodes NodeCounter) (*Server, error) {
 			// JoinHostPort brackets bare IPv6 binds ("::" → "[::]:6970");
 			// fmt.Sprintf("%s:%d") would yield the invalid ":::6970".
 			Addr:              net.JoinHostPort(cfg.Bind, strconv.Itoa(cfg.Port)),
-			Handler:           AllowlistMiddleware(nets)(mux),
+			Handler:           allowlist.Middleware(nets)(mux),
 			ReadHeaderTimeout: defaultReadHeaderTimeout,
 		},
 		Mux: mux,

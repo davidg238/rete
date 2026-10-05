@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/davidg238/porta/internal/cval"
 	"github.com/davidg238/porta/internal/space"
+	"github.com/davidg238/rete/protocol/cval"
+	"github.com/davidg238/rete/protocol/store"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +43,7 @@ func newLogCmd() *cobra.Command {
 				switch e.Direction {
 				case "in":
 					dir = "←"
-				case space.DirectionGateway:
+				case store.DirectionGateway:
 					dir = "◆"
 				}
 				v, err := cval.Decode(e.Value)

@@ -8,8 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/davidg238/porta/internal/cval"
 	"github.com/davidg238/porta/internal/space"
+	"github.com/davidg238/rete/protocol/cval"
+	"github.com/davidg238/rete/protocol/store"
 )
 
 // runSplit runs the root command with stdout and stderr kept APART. The shared
@@ -196,7 +197,7 @@ func TestLogRendersAGatewayVerdictAsCrossingNoBoundary(t *testing.T) {
 	st.Ingest("c6spare", 44, []space.Entry{
 		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
 	})
-	if err := st.WriteGateway("c6spare", space.PathLiveness,
+	if err := st.WriteGateway("c6spare", store.PathLiveness,
 		mustEnc(t, cval.Symbol("silent")), "silent: 7100 ms since last exchange, cadence 2000 ms"); err != nil {
 		t.Fatal(err)
 	}
@@ -205,7 +206,7 @@ func TestLogRendersAGatewayVerdictAsCrossingNoBoundary(t *testing.T) {
 	out, _ := runSplit(t, "--db", path, "log", "c6spare")
 	var line string
 	for _, l := range strings.Split(out, "\n") {
-		if strings.Contains(l, space.PathLiveness) {
+		if strings.Contains(l, store.PathLiveness) {
 			line = l
 		}
 	}
@@ -238,7 +239,7 @@ func TestGetNeverCallsAGatewayVerdictStale(t *testing.T) {
 	st.Ingest("c6spare", 44, []space.Entry{
 		{Seq: 1, Path: "obs/health", Kind: cval.KindCell, Value: mustEnc(t, int64(1))},
 	})
-	st.WriteGateway("c6spare", space.PathLiveness, mustEnc(t, cval.Symbol("silent")), "test")
+	st.WriteGateway("c6spare", store.PathLiveness, mustEnc(t, cval.Symbol("silent")), "test")
 	// The node reboots and republishes nothing yet: boot 45 is current, and the
 	// gw row still carries 44.
 	st.Ingest("c6spare", 45, []space.Entry{
@@ -248,7 +249,7 @@ func TestGetNeverCallsAGatewayVerdictStale(t *testing.T) {
 
 	out, _ := runSplit(t, "--db", path, "get", "c6spare")
 	for _, l := range strings.Split(out, "\n") {
-		if strings.Contains(l, space.PathLiveness) && strings.Contains(l, "STALE") {
+		if strings.Contains(l, store.PathLiveness) && strings.Contains(l, "STALE") {
 			t.Errorf("gw row marked STALE: %q", l)
 		}
 	}

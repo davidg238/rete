@@ -18,7 +18,7 @@
 #   * `fields:` is IN WIRE ORDER, which is `cval.Encode`'s bytewise sort over the
 #     ENCODED key bytes — shorter names first, then lexicographic. It is NOT the order
 #     the record is authored in on the node. The completeness gate
-#     (porta/internal/gate, `TestDescriptorsCoverManifest`) compares this list against
+#     (custos/internal/gate, `TestDescriptorsCoverManifest`) compares this list against
 #     MANIFEST.cddl entry-for-entry and fails on a missing field, an extra field, a
 #     wrong order, a missing path, or an orphan record. Do not hand-sort: run the gate.
 #

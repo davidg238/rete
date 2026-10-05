@@ -213,17 +213,18 @@ porta's own HTTP surface is deliberately tiny: `GET /health` and `GET /manifest`
 covered in §2. **The exposed, agent-facing front door is a second binary, `custos`**
 (Latin *guardian* — it stands at the *porta*). It is a separate process on purpose:
 custos can be restarted and iterated on freely, while restarting porta costs every node
-an outage.
+an outage. Since rete#338 it is not part of porta's tree: it is `custos/` at the repo's
+top level, its own Go module, sharing only `protocol/` with porta.
 
 ```bash
-go build ./cmd/custos
+cd ../custos && go build ./cmd/custos
 ./custos --docs /path/to/rete/docs        # :6971 by default
 ./custos --docs /path/to/rete/docs \
     --store porta.db --descriptors /path/to/rete/protocol/descriptors/records.yaml   # + the fleet page
 ```
 
 **custos is not in the `.deb`** — `deploy/build-deb.sh` packages `cmd/porta` alone. On the
-bench gateway custos runs as a **systemd user unit**, `deploy/systemd/custos.user.service`
+bench gateway custos runs as a **systemd user unit**, `custos/deploy/systemd/custos.user.service`
 (install steps in its header): `Restart=on-failure`, and `loginctl enable-linger` starts it
 at boot with nobody logged in. The v2 porta there is still started by hand — a porta restart
 costs every node an outage, so its cut-over is its own step of rete#282.
@@ -239,17 +240,17 @@ costs every node an outage, so its cut-over is its own step of rete#282.
 | `/health`, `/manifest` | proxied to porta's operator listener |
 
 `--store` opens porta's sqlite file **read-only** through the query core's `live` binding
-(`porta/internal/gate`); nothing on these routes writes. There is no auth: the perimeter is
+(`custos/internal/gate`); nothing on these routes writes. There is no auth: the perimeter is
 Tailscale plus the allowlist (rete#198, first-cut design addendum D3).
 
 Flags are Go-`flag` style, single dash: `-bind`, `-port`, `-docs`, `-porta-http`,
 `-allow-cidr`, `-store`, `-descriptors`. The allowlist has the same semantics as porta's `--http-allow-cidr`, and
-the two share one implementation so the surfaces cannot drift apart.
+the two share one implementation (`protocol/allowlist`) so the surfaces cannot drift apart.
 
 **What is not built yet** is the *free* query surface — `gate sql` and MCP, where an agent
 writes its own SQL against the decoded tables and every answer carries its reading rules.
 That is rete#198, designed in `design/2026-08-22-gatekeeper-first-cut-design.md` (filed
-under the old name), with `porta/internal/gate` as its core; the fleet pages above are its
+under the old name), with `custos/internal/gate` as its core; the fleet pages above are its
 first fixed queries.
 
 v1's htmx console, `GET /api/status`, `GET /api/nodes` and the read-only MCP server are
@@ -274,9 +275,10 @@ go build ./...        # needs CGO (a C toolchain) for the sqlite driver
 go test ./... && gofmt -l .
 ```
 
-`cmd/porta/` and `cmd/custos/` are the two entry points; `internal/` holds the gateway
-(`cval`, `space`, `wire`, `blockserv`, `blob`, `manifest`, `httpsrv`, `portacli`,
-`custos`, `gate`); `devsdk/` is the public Go surface node-repo tooling imports. The map
+`cmd/porta/` is the entry point; `internal/` holds the gateway (`space`, `wire`,
+`blockserv`, `blob`, `httpsrv`, `serverstat`, `portacli`); the codec, the manifest table,
+the store vocabulary and the allowlist are `../protocol/`'s Go module, which porta imports
+through a `replace` to `../protocol`; `devsdk/` is the public Go surface node-repo tooling imports. The map
 of this directory is [`README.md`](README.md), and the decision record behind all of it is
 `design/2026-08-01-porta-space-sync-rewrite-design.md`.
 

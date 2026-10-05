@@ -1,7 +1,7 @@
 # Copyright (c) 2026 Ekorau LLC
 """Parser for protocol/MANIFEST.cddl's restricted subset + ;# annotations (#243).
 
-Shared by manifest_lint.py and the test gates; porta/internal/manifest is the
+Shared by manifest_lint.py and the test gates; protocol/manifest is the
 Go twin. Stdlib only. The file it reads is 100% stock CDDL — this parser reads
 the ;# annotation lines (the path binding) and enough of the rule structure to
 answer "which rule, which kind, which class, which direction" for a path.

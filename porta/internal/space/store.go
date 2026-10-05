@@ -10,8 +10,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/davidg238/porta/internal/cval"
-	"github.com/davidg238/porta/internal/manifest"
+	"github.com/davidg238/rete/protocol/cval"
+	"github.com/davidg238/rete/protocol/manifest"
+	"github.com/davidg238/rete/protocol/store"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -268,11 +269,6 @@ func (s *Store) Write(nodeID, path string, kind cval.Kind, value []byte, actor, 
 	return seq, tx.Commit()
 }
 
-// PathLiveness is the one gw/** path today: porta's verdict on whether a node
-// is still making progress. One of the five verdicts in sweep.go (#live,
-// #stalled, #silent, #neverSeen, #unknown), as a Symbol.
-const PathLiveness = "gw/liveness"
-
 // PathDeclared is where a node states how long its silence may last (rete#231
 // D2). It is an obs/** path because it is an observation the node makes about
 // ITSELF — battery, duty cycle and radio conditions are its own — and porta
@@ -320,10 +316,10 @@ func (s *Store) WriteGateway(nodeID, path string, value []byte, reason string) e
 	if err := tx.QueryRow(`SELECT COALESCE(boot_id, 0) FROM nodes WHERE id = ?`, nodeID).Scan(&boot); err != nil {
 		return err
 	}
-	if err := upsertCell(tx, nodeID, path, 0, cval.KindCell, value, now, DirectionGateway, boot); err != nil {
+	if err := upsertCell(tx, nodeID, path, 0, cval.KindCell, value, now, store.DirectionGateway, boot); err != nil {
 		return err
 	}
-	if err := appendEvent(tx, nodeID, path, 0, cval.KindCell, value, now, DirectionGateway, "porta", reason, boot); err != nil {
+	if err := appendEvent(tx, nodeID, path, 0, cval.KindCell, value, now, store.DirectionGateway, "porta", reason, boot); err != nil {
 		return err
 	}
 	return tx.Commit()

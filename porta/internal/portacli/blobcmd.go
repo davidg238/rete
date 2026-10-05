@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/davidg238/porta/internal/blob"
-	"github.com/davidg238/porta/internal/cval"
+	"github.com/davidg238/rete/protocol/cval"
 )
 
 // appRecord builds the goal/apps/<name> App record (RECORDS §4 + design §3):

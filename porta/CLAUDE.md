@@ -48,7 +48,8 @@ next.
 
 - `porta/cmd/porta/` + `porta/internal/portacli/` — the cobra CLI (`serve`, `get`, `put`,
   `log`). The operator verbs are sugar over path writes and tree reads.
-- `porta/internal/cval/` — the nsl message algebra's CBOR codec, **hand-rolled**. Not
+- `protocol/cval/` (outside porta, in the shared `protocol` module since #338; porta,
+  custos and nothing else import it) — the nsl message algebra's CBOR codec, **hand-rolled**. Not
   layered on a CBOR library, and this is not a preference: the algebra's map keys are
   themselves tagged values (Symbols, tag 39), a Record's *name* is a Symbol rather than a
   text string, and decoding must be **closed** so a mis-versioned peer cannot smuggle a
@@ -66,12 +67,15 @@ next.
 - `porta/internal/wire/` — pull/push framing as a pure `Handle([]byte) []byte`, wrapped by
   a thin UDP loop.
 - `porta/internal/httpsrv/`, `porta/internal/serverstat/` — survived the demolition
-  untouched. `httpsrv` now depends on a one-method `NodeCounter` interface rather than a
+  untouched; the allowlist they admit by is `protocol/allowlist`, shared with custos. `httpsrv` now depends on a one-method `NodeCounter` interface rather than a
   concrete store, which is how it outlived v1's store and should outlive the next one.
 - `porta/devsdk/` — the public dev-SDK (`exec`, `provision`; `apiclient` was deleted with
   v1's HTTP surface). All language/hardware toolchain lives on the node side, which imports
   `devsdk`; porta itself stays language-neutral.
 - `porta/deploy/` — the deb build and systemd unit.
+- **custos is not under porta** (#338): it is `custos/`, its own module. porta and custos
+  share only `protocol/`'s Go module; porta's store builders for custos's tests are
+  `internal/space/fixtures_test.go`, written to `protocol/fixtures/store/`.
 
 ## Documents of record
 

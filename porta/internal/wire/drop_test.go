@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davidg238/porta/internal/cval"
 	"github.com/davidg238/porta/internal/space"
+	"github.com/davidg238/rete/protocol/cval"
 )
 
 // dropHarness runs a real ListenAndServe on loopback and answers push/pull

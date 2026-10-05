@@ -413,13 +413,15 @@ delete a capability** (design D8), so every one of those verbs has a recorded fa
 | `debug` / `profile` | writes to `goal/debug/<app>` and `goal/profile/<app>`; the sessions are `dbg/req` / `dbg/resp` lines |
 | `scan`, `ping`, `monitor` and its tail | **deferred → operator surface.** The data is recorded (`nodes.last_seen_ms`, `exchanges`, `gw/liveness`, `tel/**`); the view that presents it is not built |
 
-## The other binary
+## The other program
 
-`cmd/custos` is the exposed, agent-facing front door and a separate program: it serves
-the dev status page and the repo docs tree at `/dev`, and proxies `/health` and
-`/manifest` to porta's sheltered operator listener. Default port `6971`; flags are
-`-bind`, `-port`, `-docs`, `-porta-http`, `-allow-cidr` (Go `flag`, single dash). The
-query surface lands there, never in porta.
+custos is the exposed, agent-facing front door and a separate program — since rete#338
+not part of porta's tree at all, but `../../custos/`, its own Go module. It serves the dev
+status page and the repo docs tree at `/dev`, the fleet pages and named queries over
+porta's store read-only, and proxies `/health` and `/manifest` to porta's sheltered
+operator listener; `custos sql|tables|describe` are the same query core on the command
+line. Default port `6971`; [GETTING-STARTED.md](GETTING-STARTED.md) §5 has the flags and
+routes. The query surface lands there, never in porta.
 
 ## See also
 

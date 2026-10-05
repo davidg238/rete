@@ -9,14 +9,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/davidg238/porta/internal/cval"
+	"github.com/davidg238/rete/protocol/cval"
+	"github.com/davidg238/rete/protocol/store"
 )
 
 // livenessOf reads the stored verdict back as a string, so a test failure names
 // the verdict rather than a byte slice.
 func livenessOf(t *testing.T, st *Store, node string) string {
 	t.Helper()
-	tree, err := st.Tree(node, PathLiveness)
+	tree, err := st.Tree(node, store.PathLiveness)
 	if err != nil {
 		t.Fatalf("Tree: %v", err)
 	}
@@ -38,7 +39,7 @@ func livenessRows(t *testing.T, st *Store, node string) int {
 	t.Helper()
 	var n int
 	if err := st.DB().QueryRow(
-		`SELECT COUNT(*) FROM events WHERE node_id = ? AND path = ?`, node, PathLiveness).Scan(&n); err != nil {
+		`SELECT COUNT(*) FROM events WHERE node_id = ? AND path = ?`, node, store.PathLiveness).Scan(&n); err != nil {
 		t.Fatalf("count liveness events: %v", err)
 	}
 	return n
@@ -362,7 +363,7 @@ func lastReason(t *testing.T, st *Store, node string) string {
 	var r string
 	if err := st.DB().QueryRow(
 		`SELECT reason FROM events WHERE node_id = ? AND path = ? ORDER BY id DESC LIMIT 1`,
-		node, PathLiveness).Scan(&r); err != nil {
+		node, store.PathLiveness).Scan(&r); err != nil {
 		t.Fatalf("last reason: %v", err)
 	}
 	return r
@@ -679,7 +680,7 @@ func TestSweepStoredLiveWithNoMarkIsUnknownOnce(t *testing.T) {
 	st := storeAtClock(t, &clock)
 	listening(t, st)
 	declare(t, st, "n1", 2_000, 16)
-	if err := st.WriteGateway("n1", PathLiveness, livenessLive, "live: written by the pre-#272 binary"); err != nil {
+	if err := st.WriteGateway("n1", store.PathLiveness, livenessLive, "live: written by the pre-#272 binary"); err != nil {
 		t.Fatal(err)
 	}
 	n := &fakeNode{id: "n1", boot: 41}

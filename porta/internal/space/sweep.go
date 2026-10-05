@@ -10,7 +10,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/davidg238/porta/internal/cval"
+	"github.com/davidg238/rete/protocol/cval"
+	"github.com/davidg238/rete/protocol/store"
 )
 
 // SweepTick is how often the verdict is re-formed. It is a floor on detection
@@ -134,7 +135,7 @@ func (s *Store) Sweep() ([]LivenessChange, error) {
 		SELECT n.id, n.last_seen_ms, n.wak, n.wak_ms, COALESCE(c.value_cbor, x'')
 		FROM nodes n
 		LEFT JOIN cells c ON c.node_id = n.id AND c.path = ?
-		ORDER BY n.id`, PathLiveness)
+		ORDER BY n.id`, store.PathLiveness)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +173,7 @@ func (s *Store) Sweep() ([]LivenessChange, error) {
 			continue
 		}
 		if !bytes.Equal(n.stored, j.want) {
-			if err := s.WriteGateway(n.id, PathLiveness, j.want, j.reason); err != nil {
+			if err := s.WriteGateway(n.id, store.PathLiveness, j.want, j.reason); err != nil {
 				errs = append(errs, fmt.Errorf("node %s: write verdict: %w", n.id, err))
 				continue // the mark judged this verdict; it must not move without it
 			}
