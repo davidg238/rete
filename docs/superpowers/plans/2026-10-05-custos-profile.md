@@ -71,7 +71,7 @@ type RankedAlloc struct { Name string; ArenaB, ArenaN, CheapB, CheapN int; Pct f
 func (d Dump) Rank(m *imagemap.Map) []Ranked               // count desc; denominator rows+overflow
 func (d Dump) RankAlloc(m *imagemap.Map) []RankedAlloc     // bytes desc; denominator + no-frame bytes
 func (d Dump) Warnings() []string                          // INCOMPLETE, row-count, row-sum, no-frame, allocOverflow
-func Write(w io.Writer, d Dump, m *imagemap.Map, top int, alloc bool) error // the text report
+func Write(w io.Writer, d Dump, m *imagemap.Map, top int, alloc bool) // the text report
 ```
 Regexes, verbatim from `mprof_resolve.py` (multi-line mode on the row forms):
 `mprof:\s+(@?\S+)\s+(\d+)\s*$`, `mprof\[(\w+)\]:\s+methods=(\d+)\s+activations=(\d+)\s+overflow=(\d+)\s+cap=(\d+)`,
