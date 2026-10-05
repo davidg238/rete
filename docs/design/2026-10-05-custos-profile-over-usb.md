@@ -100,6 +100,9 @@ bug is chased on both, alternately, because the cable is faster.
 3. **As recommended.** #312 takes the profile page from #340: `custos profile`, custos's
    profile page, and the deletion of `mprof_resolve.py` and `view.py`'s profile view land
    in one change. #340 keeps the debug page.
+   *As built (`475d578`, `b5c6c0d`):* `custos profile -port -ms` and `/profile` capture over
+   the cable only. view.py's porta-triggered capture is a recorded regression (`porta put
+   dbg/req`, then `custos profile` on the log); its `/health` is dropped.
 
 Also decided: porta is the long-term custodian of commissioned images; developer
 images are disposable (D10 in `2026-10-04-custos-peer-design.md`).
