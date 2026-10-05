@@ -446,7 +446,7 @@ Added by the space-sync rewrite (`design/2026-08-01-porta-space-sync-rewrite-des
 D8) because v1's `nodes.chip` / `nodes.sdk` columns had no successor path, and deleting
 them without one takes fleet provenance from *partial* to *absent*. #74 (tuvm#74, a
 labelled revenue-gate) is why a per-method profile (§4.x, `mprof:` lines) can be named at
-all: the profile's offsets are only meaningful against the `.oimg.methods.json` sidecar
+all: the profile's offsets are only meaningful against the `.oimg.map.json` sidecar
 of the exact build that produced them, and a node that cannot say which build it is
 running makes a mismatched sidecar indistinguishable from a quiet program.
 

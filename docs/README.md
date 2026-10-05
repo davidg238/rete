@@ -11,7 +11,7 @@ wrote down (`design/2026-08-02-rete-repo-consolidation-design.md`, fate table ro
 | the board ports | `../nodus/oevm/zephyr/docs/` — `BOARD_PORTS.md`, `ZEPHYR_LESSONS.md` |
 | the language | `../nodus/nsl/docs/` — `NEWSPEAK_DIALECT.md`, `programming_with_nsl.md` |
 | the gateway | `../porta/docs/` — start at its `README.md` |
-| the wire | `../protocol/` — `PROTOCOL-NSL.md`, `MANIFEST.cddl` |
+| the wire | `../protocol/` — `PROTOCOL-NSL.md`, `MANIFEST.cddl`; `IMAGE-ARTIFACTS.md` (the image and its map, compiler → custos) |
 | the ladder | `../review/` — `program-sequence.md`, `tests/CLAIMS.md`, `DOCMAP.md` |
 
 ## Here: the program level

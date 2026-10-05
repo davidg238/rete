@@ -1,7 +1,8 @@
 """dbg.py's two translations (rete#311), without a VM: file:line -> (id, offset) through
-the .stmap and the registry, and a `dbg:paused` (id, offset) -> file:line. The shapes
+the image map and the registry, and a `dbg:paused` (id, offset) -> file:line. The shapes
 are 47_debug_pause_target's, as the compiler writes them; the end-to-end run against a
 real VM is in test_debugger_integration.py."""
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -11,14 +12,22 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from dbg import SourceMap
 
-STMAP = {
-    "source": "t.nsl",
+def _m(name, file, lines):
+    return {"name": name, "file": file, "lines": lines}
+
+
+IMAGE = b"OIMG not really an image"
+MAP = {
+    "image": {"sha256": hashlib.sha256(IMAGE).hexdigest(), "size": len(IMAGE), "oop_size": 4},
     "entry": "T",
-    "functions": {
-        "T>>main:args:": [[1, 19], [5, 20], [21, 24], [26, 28], [51, 32]],
-        "T>>countTo:": [[0, 36], [2, 37], [16, 38]],
-        "T_block2>>value:": [[1, 25], [5, 26]],
-        "Kernel>>pumpEvents": [[0, 4000]],
+    "files": ["t.nsl", "kernel.nsl", "supervisor.nsl"],
+    "methods": {
+        "100": _m("T>>main:args:", 0, [[1, 19], [5, 20], [21, 24], [26, 28], [51, 32]]),
+        "200": _m("T>>countTo:", 0, [[0, 36], [2, 37], [16, 38]]),
+        "260": _m("T>>init_platform:", 0, []),
+        "300": _m("T_block2>>value:", 0, [[1, 25], [5, 26]]),
+        # a kernel line inside the app's line range: it must not be read as t.nsl's
+        "400": _m("Kernel>>pumpEvents", 1, [[0, 27]]),
     },
 }
 REGISTRY = ["dbg:ready", "1 #main:args: 77", "2 #countTo: 77", "3 #init_platform: 77",
@@ -27,8 +36,8 @@ REGISTRY = ["dbg:ready", "1 #main:args: 77", "2 #countTo: 77", "3 #init_platform
 
 @pytest.fixture
 def sm(tmp_path):
-    p = tmp_path / "t.stmap"
-    p.write_text(json.dumps(STMAP))
+    p = tmp_path / "t.oimg.map.json"
+    p.write_text(json.dumps(MAP))
     (tmp_path / "t.nsl").write_text("\n".join("line %d" % n for n in range(1, 41)))
     s = SourceMap(str(p))
     s.load_registry(REGISTRY)
@@ -76,8 +85,17 @@ def test_a_stop_outside_the_app_says_so(sm):
     assert sm.where(4, 0)[0] == "in the kernel's printString, offset 0"
 
 
-def test_an_old_stmap_without_an_entry_is_refused_by_name(tmp_path):
+def test_a_file_that_is_not_an_image_map_is_refused_by_name(tmp_path):
     p = tmp_path / "old.stmap"
-    p.write_text(json.dumps({"source": "t.nsl", "functions": {}}))
-    with pytest.raises(ValueError, match="names no entry class"):
+    p.write_text(json.dumps({"source": "t.nsl", "entry": "T", "functions": {}}))
+    with pytest.raises(ValueError, match="not an image map"):
         SourceMap(str(p))
+
+
+def test_the_image_the_map_names_is_accepted_and_any_other_refused(sm, tmp_path):
+    good, bad = tmp_path / "t.oimg", tmp_path / "u.oimg"
+    good.write_bytes(IMAGE)
+    bad.write_bytes(IMAGE + b"!")
+    sm.check_image(str(good))
+    with pytest.raises(ValueError, match="not the image this map describes"):
+        sm.check_image(str(bad))

@@ -4,8 +4,8 @@ import tempfile
 import mprof_resolve
 
 
-MAP = {"16": {"id": "m16", "qual": ["Cbor>>u8At:"]},
-       "32": {"id": "m32", "qual": ["Cbor>>encode:"]}}
+MAP = {"16": {"name": "Cbor>>u8At:", "file": 1, "lines": []},
+       "32": {"name": "Cbor>>encode:", "file": 1, "lines": []}}
 
 # activations=300 counts only the SLOTTED rows; overflow=100 activations were
 # dropped. The true denominator is 400, so u8At: is 50%, not 66.7%.
@@ -44,7 +44,7 @@ def test_unresolved_offset_keeps_the_offset_and_is_not_dropped():
 def test_mixed_windows_warning_fires_on_sum_mismatch(capsys):
     """Rows summing to 250 but header saying activations=300 is a truncation."""
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-        json.dump(MAP, f)
+        json.dump({"methods": MAP}, f)
         map_file = f.name
     with tempfile.NamedTemporaryFile(mode='w', suffix='.log', delete=False) as f:
         f.write("mprof[dump]: methods=2 activations=300 overflow=0 cap=256\n")
@@ -60,7 +60,7 @@ def test_mixed_windows_warning_fires_on_sum_mismatch(capsys):
 def test_mixed_windows_warning_does_not_fire_on_saturated_log_with_intact_rows(capsys):
     """Rows summing to 300 with overflow=100 should NOT fire the warning."""
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-        json.dump(MAP, f)
+        json.dump({"methods": MAP}, f)
         map_file = f.name
     with tempfile.NamedTemporaryFile(mode='w', suffix='.log', delete=False) as f:
         f.write("mprof[dump]: methods=2 activations=300 overflow=100 cap=256\n")
@@ -135,7 +135,7 @@ def test_alloc_unresolved_offset_keeps_the_offset_and_is_not_dropped():
 
 def test_alloc_report_warns_when_the_noframe_bucket_dominates(capsys):
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-        json.dump(MAP, f)
+        json.dump({"methods": MAP}, f)
         map_file = f.name
     with tempfile.NamedTemporaryFile(mode='w', suffix='.log', delete=False) as f:
         f.write("mprof[window]: methods=1 activations=1 overflow=0 cap=256\n")
@@ -152,7 +152,7 @@ def test_alloc_report_warns_when_the_noframe_bucket_dominates(capsys):
 
 def test_alloc_report_flags_a_saturated_table(capsys):
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-        json.dump(MAP, f)
+        json.dump({"methods": MAP}, f)
         map_file = f.name
     with tempfile.NamedTemporaryFile(mode='w', suffix='.log', delete=False) as f:
         f.write("mprof[window]: methods=1 activations=1 overflow=0 cap=256\n")
@@ -175,7 +175,7 @@ def test_top_does_not_shrink_the_distinct_count_or_the_noframe_denominator(capsy
     but truncation drops rows from the denominator, so the printed share rises).
     """
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-        json.dump(MAP, f)
+        json.dump({"methods": MAP}, f)
         map_file = f.name
     with tempfile.NamedTemporaryFile(mode='w', suffix='.log', delete=False) as f:
         f.write(ALLOC_DUMP)

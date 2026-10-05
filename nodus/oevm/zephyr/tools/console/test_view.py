@@ -32,8 +32,8 @@ TWO_WINDOWS = (
     "2026-08-06T10:05:00.000-07:00 mprof[window]: methods=1 activations=9 overflow=0 cap=256\n"
     "2026-08-06T10:05:00.001-07:00 mprof: 32 9\n")
 
-MAP = {"16": {"id": "m16", "qual": ["Cbor>>u8At:"]},
-       "32": {"id": "m32", "qual": ["Cbor>>encode:"]}}
+MAP = {"16": {"name": "Cbor>>u8At:", "file": 1, "lines": []},
+       "32": {"name": "Cbor>>encode:", "file": 1, "lines": []}}
 
 # A re-capture that legitimately counts zero activations is ordinary — this
 # is NOT malformed data. The LAST window here has a header and no dump
@@ -163,7 +163,7 @@ def server(tmp_path, monkeypatch):
     the only knob the real CLI exposes and adding a test-only --root would
     be a second way to point at a store."""
     sidecar = tmp_path / "sidecar.json"
-    sidecar.write_text(json.dumps(MAP))
+    sidecar.write_text(json.dumps({"methods": MAP}))
     view.Handler.board = "testboard"
     view.Handler.node = "testnode"
     view.Handler.sidecar = str(sidecar)

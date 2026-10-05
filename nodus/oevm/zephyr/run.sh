@@ -479,12 +479,10 @@ export OEVM_FLOAT_ARENA_SLAB_CELLS=512 OEVM_FLOAT_ARENA_SLAB_BUDGET=4
 case "$BOARD_ID" in esp32|esp32s2) ;; *) unset OEVM_IRAM_HOT ;; esac
 
 # src/solidified_image.c is TRACKED (the MethodCallTest fixture). A Model A bake
-# dirties it; restore on exit so it is never committed by accident. The compiler
-# also writes a .stmap sidecar beside the image (ns_compile_oevm.py emits
-# os.path.splitext(out_c)[0] + ".stmap"), and THAT IS TRACKED TOO — restoring only
-# the .c leaves the source map dirty and silently mismatched with the fixture.
+# dirties it; restore on exit so it is never committed by accident. (A Model A
+# bake writes no map: the image map is keyed by .oimg offsets, rete#337.)
 restore_image() {
-  git -C "$ROOT" checkout -- src/solidified_image.c src/solidified_image.stmap 2>/dev/null || true
+  git -C "$ROOT" checkout -- src/solidified_image.c 2>/dev/null || true
 }
 trap restore_image EXIT
 
@@ -858,7 +856,7 @@ if [ "$DO_FLASH" = 1 ]; then
   # device cannot disagree about the string.
   if [ "$BOARD_ID" = esp32c6 ]; then
     # ${OIMG:-} is set only by a Model B bake (above); archive.sh then also
-    # takes the .oimg.methods.json and .stmap sidecars into the same build-id
+    # takes the .oimg.map.json image map into the same build-id
     # directory, so a profile taken today can be resolved after the board has
     # been reflashed twice.
     # WHICH BOARD DID THIS ACTUALLY GO TO? rete#170: this used to be the literal

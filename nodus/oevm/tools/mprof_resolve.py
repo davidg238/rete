@@ -2,12 +2,12 @@
 # Copyright (c) 2026 Ekorau LLC
 """#164: turn a node's per-method call-count dump into named rows.
 
-    mprof_resolve.py <image.oimg.methods.json> [--top N] [dump.log ...]
+    mprof_resolve.py <image.oimg.map.json> [--top N] [dump.log ...]
 
 The VM reports a method as a blob-relative byte offset, because a CompiledMethod
-carries no name and a raw address is meaningless off-node. The sidecar map that
-`ns_compile_oevm.py --format=oimg` writes beside the image is the other half of
-the join.
+carries no name and a raw address is meaningless off-node. The image map that
+`ns_compile_oevm.py --format=oimg` writes beside the image (protocol/IMAGE-ARTIFACTS.md)
+is the other half of the join.
 
 Reads the `mprof:` lines out of anything you hand it — a console collector log
 is fine, the surrounding traffic is ignored — and prints the table sorted by
@@ -40,18 +40,11 @@ ALLOC_HDR_RE = re.compile(r"mprofa\[(\w+)\]:\s+noframe_arena=(\d+)/(\d+)\s+"
 
 
 def name_of(entry):
-    if entry is None:
-        return None
-    qual = entry.get("qual") or []
-    if len(qual) == 1:
-        return qual[0]
-    if len(qual) > 1:                     # bound in several vtables — say so
-        return " | ".join(qual)
-    return entry["id"]                    # a block, or an unbound method
+    return None if entry is None else entry["name"]
 
 
 def resolve(mmap, text, top=0):
-    """Join `mprof:` rows against the sidecar map and return
+    """Join `mprof:` rows against the image map's methods and return
     [(name, count, percent), ...] sorted by count descending.
 
     The denominator is activations + overflow, NOT the header's activations.
@@ -82,7 +75,7 @@ def resolve(mmap, text, top=0):
 
 
 def resolve_alloc(mmap, text, top=0):
-    """Join `mprofa:` rows against the sidecar map and return
+    """Join `mprofa:` rows against the image map's methods and return
     [(name, arena_b, arena_n, cheap_b, cheap_n, pct), ...] sorted by total
     bytes descending.
 
@@ -168,7 +161,7 @@ def main(argv):
         print(__doc__.strip())
         return 2
     with open(argv[1]) as f:
-        mmap = json.load(f)
+        mmap = json.load(f)["methods"]
 
     # Filter out flags (and --top's value) from the file argument list
     file_paths = []

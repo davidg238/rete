@@ -12,6 +12,7 @@ sys.path.insert(0, str(TOOLS))
 # nodus/tests since the #79 consolidation — the "sibling ns-tests repo" these
 # skips guarded on was folded in, so the guard could never un-skip (rete#228).
 NS_TESTS = TOOLS.parent.parent / "tests"
+LAYOUT = TOOLS.parents[2] / "nodus" / "oevm" / "zephyr" / "layout-esp32c6.json"
 
 
 def _parse(src_text, tmp_path):
@@ -57,47 +58,23 @@ def test_compiler_collects_per_method_source_maps(tmp_path):
 
 
 @pytest.mark.skipif(not NS_TESTS.exists(), reason="nodus/tests not present (broken checkout)")
-def test_stmap_sidecar_written_path_a(tmp_path):
-    src = NS_TESTS / "04_somns_basic" / "01_method_call.nsl"
-    out = tmp_path / "img.c"
-    r = subprocess.run(
-        [sys.executable, str(TOOLS / "ns_compile_oevm.py"), str(src), str(out)],
-        capture_output=True, text=True)
-    assert r.returncode == 0, r.stderr or r.stdout
-
-    stmap = tmp_path / "img.stmap"
-    assert stmap.exists(), "expected a .stmap sidecar next to the image"
-    doc = json.loads(stmap.read_text())
-    assert doc["source"] == "01_method_call.nsl"
-    assert isinstance(doc["functions"], dict) and doc["functions"]
-    # Every function maps to a list of [offset, line] pairs.
-    for name, pairs in doc["functions"].items():
-        assert ">>" in name
-        for pair in pairs:
-            assert len(pair) == 2
-            assert isinstance(pair[0], int) and isinstance(pair[1], int)
-    # A specific known method key must be present.
-    assert any(k.endswith(">>test") for k in doc["functions"])
-
-
-@pytest.mark.skipif(not NS_TESTS.exists(), reason="nodus/tests not present (broken checkout)")
 def test_factory_body_initializers_are_mapped(tmp_path):
     """Regression test for Fix 1: compile_initializer must register source maps
     for initializers that have a factory body (initBody statements)."""
     src = NS_TESTS / "04_somns_basic" / "13_factory_body.nsl"
-    out = tmp_path / "img.c"
+    out = tmp_path / "img.oimg"
     r = subprocess.run(
-        [sys.executable, str(TOOLS / "ns_compile_oevm.py"), str(src), str(out)],
+        [sys.executable, str(TOOLS / "ns_compile_oevm.py"), str(src), str(out),
+         "--format=oimg", f"--layout={LAYOUT}"],
         capture_output=True, text=True)
     assert r.returncode == 0, r.stderr or r.stdout
 
-    stmap = tmp_path / "img.stmap"
-    assert stmap.exists(), "expected a .stmap sidecar"
-    doc = json.loads(stmap.read_text())
+    doc = json.loads((tmp_path / "img.oimg.map.json").read_text())
 
-    # At least one init_* key must be present with a non-empty pair list,
-    # proving that factory-body initializers are included in the source map.
-    init_entries = {k: v for k, v in doc["functions"].items() if ">>init_" in k}
+    # At least one init_* method of this file must carry lines, proving that
+    # factory-body initializers are included in the source map.
+    init_entries = {m["name"]: m["lines"] for m in doc["methods"].values()
+                    if ">>init_" in m["name"] and m["file"] == 0 and m["lines"]}
     assert init_entries, "expected at least one init_* function in the source map"
     for name, pairs in init_entries.items():
         assert pairs, f"{name} has an empty pair list"

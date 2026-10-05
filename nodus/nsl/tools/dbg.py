@@ -4,8 +4,8 @@
 The VM's debugger speaks `dbg:*` lines (nodus/nsl/lib/supervisor.nsl) and knows methods
 only by a registry id and a bytecode offset: `dbg:break 2 9`, `dbg:paused break 2 9`.
 This tool sits between a person and that line and does the two translations, using the
-`.stmap` the compiler writes beside every image and the registry the VM lists
-(`dbg:methods`):
+image map the compiler writes beside every image (`<name>.oimg.map.json`,
+protocol/IMAGE-ARTIFACTS.md) and the registry the VM lists (`dbg:methods`):
 
     break 26            ->  dbg:break 2 2        (line 26 is in countTo:, offset 2)
     dbg:paused break 2 2  ->  stopped (break) at 46_debug_target.nsl:26  countTo:
@@ -14,8 +14,8 @@ This tool sits between a person and that line and does the two translations, usi
 The same tool drives a board over its console cable (--port, one handle, a collector
 stopped first) or a host VM it starts itself (everything after `--`):
 
-    dbg.py --stmap /tmp/46_debug_target.stmap -- /tmp/oevm_img /tmp/46_debug_target.oimg
-    dbg.py --stmap DebugProbeC6.stmap --port /dev/serial/by-id/usb-Silicon_Labs_CP2102N_...
+    dbg.py --map /tmp/46_debug_target.oimg.map.json -- /tmp/oevm_img /tmp/46_debug_target.oimg
+    dbg.py --map DebugProbeC6.oimg.map.json --port /dev/serial/by-id/usb-Silicon_Labs_CP2102N_...
 
 Commands (type `help`): break/clear <line> or <file>:<line>, continue, step, next,
 finish, pause, inspect, where, list, methods, quit; any `dbg:...` line is passed through
@@ -30,33 +30,35 @@ to the next line that has some, and says so; outside every method (a header, `| 
 it is refused with the nearest lines that have code. docs/tutorials/04-debugger.md is
 the page for a person.
 """
-import argparse, json, os, re, subprocess, sys, threading, time
+import argparse, hashlib, json, os, re, subprocess, sys, threading, time
 
 PAUSED_RE = re.compile(r"^dbg:paused (\w+) (-?\d+) (\d+)$")
 REG_RE = re.compile(r"^(\d+) #?(\S+) (-?\d+)$")
 
 
 class SourceMap:
-    """The `.stmap` (offset -> line per method) joined to the VM's registry (id ->
-    selector). Pure: no I/O beyond reading the files it is given."""
+    """The image map (offset -> name, file, lines per method) joined to the VM's
+    registry (id -> selector). Pure: no I/O beyond reading the files it is given."""
 
-    def __init__(self, stmap_path, source_path=None):
-        with open(stmap_path, encoding="utf-8") as f:
+    def __init__(self, map_path, source_path=None):
+        with open(map_path, encoding="utf-8") as f:
             doc = json.load(f)
-        self.source = doc["source"]
-        self.entry = doc.get("entry")
-        if not self.entry:
-            raise ValueError("%s names no entry class; rebuild it (the field came with "
-                             "rete#311)" % stmap_path)
+        missing = [k for k in ("image", "entry", "files", "methods") if k not in doc]
+        if missing:
+            raise ValueError("%s is not an image map (no %s); rebuild it (rete#337)"
+                             % (map_path, ", ".join(missing)))
+        self.image = doc["image"]
+        self.source = doc["files"][0]
+        self.entry = doc["entry"]
+        # every method with lines in THIS file (files[0]): the entry's, its blocks',
+        # its other classes'. The kernel and the Supervisor are other files.
+        self.functions = {m["name"]: m["lines"] for m in doc["methods"].values()
+                          if m["file"] == 0 and m["lines"]}
         prefix = self.entry + ">>"
         # selector -> [(offset, line), ...] for the entry class's own methods
         self.methods = {k[len(prefix):]: [tuple(p) for p in v]
-                        for k, v in doc["functions"].items() if k.startswith(prefix)}
-        # every method compiled from THIS file: the entry's, its blocks', its other
-        # classes'. The kernel and the Supervisor are compiled in from elsewhere.
-        mine = re.compile(r"^%s(_\w+)?>>" % re.escape(self.entry))
-        self.functions = {k: v for k, v in doc["functions"].items() if mine.match(k)}
-        path = source_path or os.path.join(os.path.dirname(os.path.abspath(stmap_path)),
+                        for k, v in self.functions.items() if k.startswith(prefix)}
+        path = source_path or os.path.join(os.path.dirname(os.path.abspath(map_path)),
                                            self.source)
         try:
             with open(path, encoding="utf-8") as f:
@@ -65,6 +67,15 @@ class SourceMap:
             self.text = None
         self.ids = {}       # selector -> id   (the entry class's group only)
         self.sels = {}      # id -> (selector, is_entry)
+
+    def check_image(self, oimg_path):
+        """Refuse a map that belongs to another build: its hash names one image."""
+        with open(oimg_path, "rb") as f:
+            got = hashlib.sha256(f.read()).hexdigest()
+        if got != self.image["sha256"]:
+            raise ValueError("%s is not the image this map describes (sha256 %s, map says "
+                             "%s); rebuild both together" % (oimg_path, got[:12],
+                                                             self.image["sha256"][:12]))
 
     def load_registry(self, lines):
         """`<id> #<selector> <tag>` lines from `dbg:methods`. The first tag is the
@@ -86,7 +97,7 @@ class SourceMap:
         return None
 
     def method_at_line(self, line):
-        """The narrowest method of this file whose lines span `line`, as a stmap key,
+        """The narrowest method of this file whose lines span `line`, as a map name,
         or None. Narrowest, because a block that is not inlined (a `whenever:do:`
         handler) is its own method, `<Entry>_blockN>>value:`, inside its home's span."""
         best = None
@@ -398,8 +409,8 @@ class Session:
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--stmap", required=True, help="the .stmap written beside the image")
-    ap.add_argument("--source", help="the .nsl it came from (default: beside the .stmap)")
+    ap.add_argument("--map", required=True, help="the .oimg.map.json written beside the image")
+    ap.add_argument("--source", help="the .nsl it came from (default: beside the map)")
     ap.add_argument("--port", help="a board's console cable (else run the command after --)")
     ap.add_argument("--baud", type=int, default=115200)
     ap.add_argument("argv", nargs="*", help="host VM command line, after --")
@@ -407,7 +418,14 @@ def main():
     if bool(args.port) == bool(args.argv):
         ap.error("give exactly one of --port or a host VM command after --")
 
-    s = Session(SourceMap(args.stmap, args.source))
+    try:
+        sm = SourceMap(args.map, args.source)
+        for a in args.argv:
+            if a.endswith(".oimg"):
+                sm.check_image(a)
+    except ValueError as e:
+        ap.error(str(e))
+    s = Session(sm)
     s.attach(Line(s.on_line, port=args.port, baud=args.baud, argv=args.argv or None))
     # A board may already be waiting (its dbg:ready printed before we opened the port)
     # or running; either way the first command finds out. A host VM prints dbg:ready.

@@ -25,7 +25,7 @@ uint32_t platform_app_cad_ms(void) { return s_app_cad_ms; }
 #include <math.h>
 
 /* #74/#165 D3: the build actually running, so a profile reader can pick the
-   matching .oimg.methods.json sidecar instead of choosing by hand — a
+   matching .oimg.map.json sidecar instead of choosing by hand — a
    mismatched sidecar resolves nothing and looks exactly like a quiet program.
    `oevm_build_id` is generated fresh on every Zephyr build (git describe +
    a timestamp; see zephyr/cmake/gen_build_id.cmake) and already `extern`'d
@@ -1435,7 +1435,7 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
     }
     case PRIM_pf_buildId: {
         /* #74: the node names its own build so a reader can pick the matching
-           .oimg.methods.json sidecar. Unconditional — NOT part of the profiler,
+           .oimg.map.json sidecar. Unconditional — NOT part of the profiler,
            so it is not gated on OEVM_METHOD_PROFILE like the two cases above.
            Same String-build idiom as spaceChangedSince:under:max: above
            (space_make_string_pub copies bytes+len into a fresh String; no

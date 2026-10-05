@@ -4,17 +4,16 @@
 # you have to remember to update is an archive that is wrong when it matters.
 # Usage: archive.sh <build-dir> <board> [<image>.oimg]
 #
-# The third argument is the Model B image. Given it, the two sidecars beside it
-# are archived into the same build-id directory: <image>.oimg.methods.json (the
-# offset->name map a profile is meaningless without, #164) and <image>.stmap
-# (offset->line). This directory is already a build-id-keyed symbol store — the
-# ELF is here for exactly the same reason — so the profiler's sidecar is one
+# The third argument is the Model B image. Given it, the image map beside it
+# (<image>.oimg.map.json: offset -> name, file and lines, rete#337) is archived
+# into the same build-id directory. This directory is already a build-id-keyed
+# symbol store — the ELF is here for exactly the same reason — so the map is one
 # file copy into an existing mechanism, not a second one (#165 final review,
 # David's ruling). A profile can then be resolved later BY BUILD ID, off a node
 # that has since been reflashed.
 #
-# Model A bakes have no .oimg, so run.sh passes nothing and the sidecars are
-# skipped. When the argument IS given, a MISSING sidecar is a hard failure
+# Model A bakes have no .oimg, so run.sh passes nothing and the map is
+# skipped. When the argument IS given, a MISSING map is a hard failure
 # naming the file: archiving less than the caller asked for and saying nothing
 # is how a symbol store comes to be trusted for a build it does not hold.
 set -euo pipefail
@@ -46,14 +45,10 @@ else
 fi
 
 if [ -n "$OIMG" ]; then
-  METHODS="$OIMG.methods.json"
-  STMAP="${OIMG%.oimg}.stmap"
-  for f in "$METHODS" "$STMAP"; do
-    [ -f "$f" ] || { echo "archive: missing $f (asked to archive $OIMG's sidecars)" >&2; exit 1; }
-  done
-  cp "$METHODS" "$DEST/$(basename "$METHODS")"
-  cp "$STMAP"   "$DEST/$(basename "$STMAP")"
-  echo "[archive] sidecars: $(basename "$METHODS"), $(basename "$STMAP")"
+  MAP="$OIMG.map.json"
+  [ -f "$MAP" ] || { echo "archive: missing $MAP (asked to archive $OIMG's map)" >&2; exit 1; }
+  cp "$MAP" "$DEST/$(basename "$MAP")"
+  echo "[archive] image map: $(basename "$MAP")"
 fi
 
 # A human-facing note only. The reader must NEVER consult this automatically:

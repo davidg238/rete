@@ -76,12 +76,12 @@ output. `~/.local/state/rete/elf/last-flashed-c6` will tell you what was
 flashed last — read it yourself, the tool will not.
 
 **A profile can be resolved later by build id.** `archive.sh` now copies the
-`.oimg.methods.json` offset→name map and the `.stmap` source map into the same
+`.oimg.map.json` image map (offset → name, file and lines) into the same
 `~/.local/state/rete/elf/<build-id>/` directory it already keeps the ELF in —
 one build-id-keyed symbol store, not two. So a capture taken today stays
 readable after the board has been reflashed twice: take the `oevm: build-id`
-line out of the run and point `mprof_resolve.py` at that directory's sidecar
-rather than at whatever `.oimg.methods.json` happens to be sitting in
+line out of the run and point `mprof_resolve.py` at that directory's map
+rather than at whatever `.oimg.map.json` happens to be sitting in
 `nodus/oevm/zephyr/` (that one is the LAST build, not necessarily this run's,
 and a map from a different build resolves nothing while looking identical to a
 quiet program). If a Model B bake's sidecars are missing, `archive.sh` fails
@@ -158,7 +158,7 @@ today's.
 ## The profile view (#165)
 
     python3 view.py --board c6spare --node <12-hex-id> \
-      --sidecar ../../PortaBridgeNodeC6.oimg.methods.json \
+      --sidecar ../../PortaBridgeNodeC6.oimg.map.json \
       --porta-db <the store porta serve is serving> --port 8087
 
 Open `http://localhost:8087`.

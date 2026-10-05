@@ -41,13 +41,14 @@ class Average packageUsing: manifest = () (
 EOF
 python3 $RETE/nodus/nsl/tools/ns_compile_oevm.py average.nsl average.oimg \
         --format=oimg --layout=/tmp/oevm_layout.json
-ls average.oimg average.stmap
+ls average.oimg average.oimg.map.json
 ```
 
-The compiler writes `average.stmap` beside the image: for every method, which bytecode
-offset starts which source line, and which class the image runs. That file is how the
-debugger knows where line 9 is. Keep it with the image it came from. A map from another
-build points at the wrong bytes.
+The compiler writes `average.oimg.map.json` beside the image: for every method, its
+name, its source file and which bytecode offset starts which line, and which class the
+image runs. That file is how the debugger knows where line 9 is. It also records the
+image's hash, so the debugger refuses a map from another build instead of pointing at the
+wrong bytes.
 
 ## 2. A session
 
@@ -67,7 +68,7 @@ next
 next
 continue
 EOF
-python3 $RETE/nodus/nsl/tools/dbg.py --stmap average.stmap \
+python3 $RETE/nodus/nsl/tools/dbg.py --map average.oimg.map.json \
         -- /tmp/oevm_img average.oimg < session.txt | tee out.txt
 grep -q '^-- stopped (break) at average.nsl:16  main:args:$' out.txt
 grep -q '^-- stopped (step) at average.nsl:8  sum:$' out.txt
@@ -186,14 +187,14 @@ its cable, with no timeout.
 
 1. Build and flash it with the hooks in:
    `OEVM_DEBUG_HOOKS=1 run.sh --node YourApp.nsl` (from `nodus/oevm/zephyr`, as in
-   tutorial 2). The `.stmap` is written beside `YourApp.nsl`.
+   tutorial 2). The image map, `YourApp.oimg.map.json`, is written beside `YourApp.nsl`.
 2. Stop anything else holding the console port (on the gateway, the collector). Only
    one program can read the port. A second reader gets half the bytes, and on this
    devkit every open of the port also reboots the C6 (rete#319).
 3. Attach:
 
    ```
-   python3 nodus/nsl/tools/dbg.py --stmap nodus/oevm/zephyr/YourApp.stmap \
+   python3 nodus/nsl/tools/dbg.py --map nodus/oevm/zephyr/YourApp.oimg.map.json \
            --port /dev/serial/by-id/usb-Silicon_Labs_CP2102N_...
    ```
 

@@ -417,7 +417,7 @@ def run_boot_gc_asan_gate() -> bool:
         print(f"{COLOR_GREEN}boot-gc-asan: PASSED{COLOR_RESET}")
         return True
     finally:
-        for p in (tmp_c, runner, tmp_c.with_suffix(".stmap")):
+        for p in (tmp_c, runner):
             try:
                 p.unlink()
             except FileNotFoundError:
@@ -842,6 +842,16 @@ def parse_test_metadata(file_path: Path):
 
     return metadata
 
+def _no_core_dump():
+    """preexec_fn for a VM run that is EXPECTED to abort (`expect-runtime-fail:`): no
+    core file, and so no desktop crash notification, for a failure the test asked for.
+    A run that aborts unexpectedly still dumps core. 1, not 0: with a piped
+    core_pattern (systemd-coredump) the kernel still runs the helper at 0, and skips
+    it only at exactly 1."""
+    import resource
+    resource.setrlimit(resource.RLIMIT_CORE, (1, 1))
+
+
 def _check_runtime_fail(metadata: dict, err_msg: str, stdout: str) -> tuple[bool, str]:
     """Validate an `expect-runtime-fail:` test (Task 10b smallest-extension): the
     diagnostic (stderr, or stdout if stderr is empty) must CONTAIN the header's
@@ -956,7 +966,9 @@ def run_test_file(src_path: Path) -> tuple[str, str]:
     # 3. Run the compiled runner (30s timeout guards against infinite loops)
     try:
         proc_run = subprocess.run([str(runner_bin)], capture_output=True, text=True, timeout=30,
-                                  env={**os.environ, **metadata.get("env", {})})
+                                  env={**os.environ, **metadata.get("env", {})},
+                                  preexec_fn=(_no_core_dump if metadata.get("expect_runtime_fail")
+                                              else None))
     except subprocess.TimeoutExpired:
         return "FAIL", "Runtime timed out (>30s)"
     if proc_run.returncode != 0:
@@ -1035,7 +1047,8 @@ def run_test_file_oimg(src_path: Path) -> tuple[str, str]:
         proc_run = subprocess.run(
             [str(OEVM_BUILD_DIR / "oevm_img"), oimg_path],
             capture_output=True, text=True, timeout=30,
-            env={**os.environ, **metadata.get("env", {})}
+            env={**os.environ, **metadata.get("env", {})},
+            preexec_fn=_no_core_dump if metadata.get("expect_runtime_fail") else None
         )
     except subprocess.TimeoutExpired:
         return "FAIL", "Runtime timed out (>30s)"
@@ -1188,14 +1201,14 @@ def main():
     # src/solidified_image.c per-test, and the C unit test links against it.
     subprocess.run(
         ["git", "-C", str(OEVM_DIR), "checkout",
-         "src/solidified_image.c", "src/solidified_image.stmap"],
+         "src/solidified_image.c"],
         capture_output=True, text=True)
     print()
     c_units_ok = run_c_unit_tests(OEVM_DIR)
 
     # Integration gates: the supervisor-grant proof and the in-image debugger
-    # harness. Both build the target app and CLOBBER ../oevm/src/solidified_image.c
-    # (+ .stmap). test_debugger_integration self-restores via try/finally, but
+    # harness. Both build the target app and CLOBBER ../oevm/src/solidified_image.c;
+    # test_debugger_integration self-restores via try/finally, but
     # test_supervisor_grant does NOT — so we restore the committed image again
     # after BOTH run, leaving ../oevm a clean tree.
     print()
@@ -1203,7 +1216,7 @@ def main():
     dbg_int_ok = run_integration_gate("test_debugger_integration", "test_debugger_integration.py")
     subprocess.run(
         ["git", "-C", str(OEVM_DIR), "checkout",
-         "src/solidified_image.c", "src/solidified_image.stmap"],
+         "src/solidified_image.c"],
         capture_output=True, text=True)
 
     portability = run_portability_gate()   # "PASS" | "SKIP" | "FAIL"

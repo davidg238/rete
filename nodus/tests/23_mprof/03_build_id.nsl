@@ -3,7 +3,7 @@ buildId is non-empty: true
 buildId first byte > 0: true
 *)
 (* #74/#165 D3: the node names its own build, so a reader can pick the matching
-   .oimg.methods.json sidecar. A mismatched sidecar resolves nothing and looks
+   .oimg.map.json sidecar. A mismatched sidecar resolves nothing and looks
    identical to a quiet program — this is the field that removes the chance to
    get it wrong by hand. Asserts SHAPE, not the value: the value changes every
    build, and a test that pinned it would fail on every rebuild.
