@@ -113,9 +113,11 @@ lines, and the checked-in pair to agree with each other. It does not compare byt
 image is mostly kernel, so a byte compare would fail on every `kernel.nsl` edit. The
 fixture is regenerated when this contract changes, not when the kernel does.
 
-**The reader's test** (custos, from #338 on) parses the checked-in files and checks
-facts written down by hand: the method at offset N is named X and maps to line L of file
-F, and changing a single byte of the `.oimg` makes the map be refused.
+**The reader's test** (`custos/internal/debug/sourcemap_test.go`, #339) parses the
+checked-in files and checks facts written down by hand: the line a method's statement is
+on resolves to that method and offset, a block's line, a nested class's and a class
+side's are refused by name, and changing a single byte of the `.oimg` makes the map be
+refused. It also refuses a map missing any §3 field or carrying an extra one.
 
 ## 5. What this replaced (master before rete#337, `format_version` 10)
 
@@ -158,10 +160,10 @@ width in `flags` (fixes 4).
 ## 6. Decisions (David, 2026-10-04)
 
 1. **One map instead of two.** `.stmap`, `.oimg.methods.json` and `stmap.py` are deleted;
-   `dbg.py` (`--map`) and `mprof_resolve.py` read the map until #339 and #312 delete
-   them. A Path A (`.c`) build writes no map.
+   `custos debug` (`-map`, #339, which deleted `dbg.py`) and `mprof_resolve.py` read
+   the map, the latter until #312 deletes it. A Path A (`.c`) build writes no map.
 2. **The SHA-256 of the `.oimg` is the program's identity.** The map carries it, and
-   `dbg.py` refuses a host image whose hash differs. With #310 the node will report the
+   `custos debug` refuses a host image whose hash or size differs. With #310 the node will report the
    hash of its program region, the way it reports `buildId` today.
 3. **log2(oop_size) goes in `flags` bits 0–1, and the VM refuses an image of another
    width.** `format_version` 12 (#344), after #330's 11 merges (the merge queue is

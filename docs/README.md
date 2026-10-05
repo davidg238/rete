@@ -32,7 +32,7 @@ wrote down (`design/2026-08-02-rete-repo-consolidation-design.md`, fate table ro
   `nodus/oevm/tests/porta_sync_host.sh`.
 - `tutorials/04-debugger.md` — the debugger for a person: stop at a line, step by line,
   finish, inspect, pause a running program, on the desktop and over a C6's cable
-  (`nodus/nsl/tools/dbg.py`, rete#311). The board half is prose.
+  (`custos debug`, rete#311/#339). The board half is prose.
 
   **Every `bash gate` block on pages 1, 3 and 4 is run by the nsl suite** (`tutorials/gate.sh`,
   the `tutorial-host`, `tutorial-porta` and `tutorial-debugger` aux gates), so a stale step reads red. A new

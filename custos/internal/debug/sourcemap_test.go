@@ -1,0 +1,266 @@
+// Copyright (c) 2026 Ekorau LLC
+
+package debug
+
+// The two translations without a VM: file:line -> (id, offset) through the
+// image map and the registry, and a `dbg:paused` (id, offset) -> file:line.
+// The synthetic map is 47_debug_pause_target's shape, as the compiler writes
+// it; the checked-in fixture is the reader's test protocol/IMAGE-ARTIFACTS.md §4
+// asks of custos. The end-to-end run against a real VM is the nsl suite's
+// debugger-integration and tutorial-debugger gates.
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"testing"
+)
+
+var image = []byte("OIMG not really an image")
+
+func method(name string, file int, lines ...[2]int) map[string]any {
+	if lines == nil {
+		lines = [][2]int{}
+	}
+	return map[string]any{"name": name, "file": file, "lines": lines}
+}
+
+func synthetic() map[string]any {
+	sum := sha256.Sum256(image)
+	return map[string]any{
+		"image": map[string]any{"sha256": hex.EncodeToString(sum[:]), "size": len(image), "oop_size": 4},
+		"entry": "T",
+		"files": []string{"t.nsl", "kernel.nsl", "supervisor.nsl"},
+		"methods": map[string]any{
+			"100": method("T>>main:args:", 0, [2]int{1, 19}, [2]int{5, 20}, [2]int{21, 24}, [2]int{26, 28}, [2]int{51, 32}),
+			"200": method("T>>countTo:", 0, [2]int{0, 36}, [2]int{2, 37}, [2]int{16, 38}),
+			"260": method("T>>init_platform:", 0),
+			"300": method("T_block2>>value:", 0, [2]int{1, 25}, [2]int{5, 26}),
+			// a kernel line inside the app's line range: it must not be read as t.nsl's
+			"400": method("Kernel>>pumpEvents", 1, [2]int{0, 27}),
+		},
+	}
+}
+
+var registry = []string{"dbg:ready", "1 #main:args: 77", "2 #countTo: 77", "3 #init_platform: 77",
+	"4 #printString 80", "dbg:ok methods"}
+
+func writeMap(t *testing.T, dir string, doc any) string {
+	t.Helper()
+	b, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := filepath.Join(dir, "t.oimg.map.json")
+	if err := os.WriteFile(p, b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+func loaded(t *testing.T) (*SourceMap, string) {
+	t.Helper()
+	dir := t.TempDir()
+	p := writeMap(t, dir, synthetic())
+	var src []string
+	for n := 1; n <= 40; n++ {
+		src = append(src, fmt.Sprintf("line %d", n))
+	}
+	if err := os.WriteFile(filepath.Join(dir, "t.nsl"), []byte(strings.Join(src, "\n")), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	sm, err := LoadSourceMap(p, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sm.LoadRegistry(registry)
+	return sm, dir
+}
+
+func mustResolve(t *testing.T, sm *SourceMap, spec string) Breakpoint {
+	t.Helper()
+	bp, err := sm.Resolve(spec)
+	if err != nil {
+		t.Fatalf("Resolve(%q): %v", spec, err)
+	}
+	return bp
+}
+
+func refused(t *testing.T, sm *SourceMap, spec, want string) {
+	t.Helper()
+	_, err := sm.Resolve(spec)
+	if err == nil || !strings.Contains(err.Error(), want) {
+		t.Fatalf("Resolve(%q) = %v, want an error containing %q", spec, err, want)
+	}
+}
+
+func TestALineResolvesToItsMethodAndFirstOffset(t *testing.T) {
+	sm, _ := loaded(t)
+	if got := mustResolve(t, sm, "37"); got != (Breakpoint{2, 2, 37, "countTo:"}) {
+		t.Errorf("37 -> %+v", got)
+	}
+	if got := mustResolve(t, sm, "t.nsl:20"); got != (Breakpoint{1, 5, 20, "main:args:"}) {
+		t.Errorf("t.nsl:20 -> %+v", got)
+	}
+}
+
+func TestALineWithoutCodeInsideAMethodMovesForward(t *testing.T) {
+	sm, _ := loaded(t)
+	if got := mustResolve(t, sm, "30"); got != (Breakpoint{1, 51, 32, "main:args:"}) {
+		t.Errorf("30 -> %+v", got)
+	}
+}
+
+func TestALineOutsideEveryMethodNamesItsNeighbours(t *testing.T) {
+	sm, _ := loaded(t)
+	refused(t, sm, "34", "line 34 has no code; the nearest lines that do: 32 (main:args:), 36 (countTo:)")
+}
+
+// 26 lies inside main:args:'s span (19-32); taking the span would break at line 28.
+func TestALineInABlockIsRefusedNotMappedToItsHome(t *testing.T) {
+	sm, _ := loaded(t)
+	refused(t, sm, "26", "T_block2>>value:")
+}
+
+func TestAnotherFileIsRefused(t *testing.T) {
+	sm, _ := loaded(t)
+	refused(t, sm, "other.nsl:37", "built from t.nsl")
+}
+
+func TestTheRegistryKeepsOnlyTheEntryGroupForLines(t *testing.T) {
+	sm, _ := loaded(t)
+	if len(sm.ids) != 3 || sm.ids["main:args:"] != 1 || sm.ids["countTo:"] != 2 || sm.ids["init_platform:"] != 3 {
+		t.Errorf("ids = %v", sm.ids)
+	}
+	if sm.sels[4] != (selector{"printString", false}) {
+		t.Errorf("sels[4] = %v", sm.sels[4])
+	}
+}
+
+func TestAStopReadsBackAsTheLineOfTheLastStatementStarted(t *testing.T) {
+	sm, _ := loaded(t)
+	if where, text, _ := sm.Where(2, 2); where != "at t.nsl:37  countTo:" || text != "  37 | line 37" {
+		t.Errorf("Where(2, 2) = %q, %q", where, text)
+	}
+	if where, _, _ := sm.Where(2, 9); where != "at t.nsl:37  countTo:" {
+		t.Errorf("Where(2, 9) = %q", where)
+	}
+	if where, _, _ := sm.Where(1, 0); where != "at t.nsl:19  main:args:" { // before the first entry
+		t.Errorf("Where(1, 0) = %q", where)
+	}
+}
+
+func TestAStopOutsideTheAppSaysSo(t *testing.T) {
+	sm, _ := loaded(t)
+	if where, _, _ := sm.Where(-1, 3); !strings.HasPrefix(where, "outside the registry") {
+		t.Errorf("Where(-1, 3) = %q", where)
+	}
+	if where, _, _ := sm.Where(4, 0); where != "in the kernel's printString, offset 0" {
+		t.Errorf("Where(4, 0) = %q", where)
+	}
+}
+
+func TestAFileThatIsNotAnImageMapIsRefusedByName(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "old.stmap")
+	os.WriteFile(p, []byte(`{"source": "t.nsl", "entry": "T", "functions": {}}`), 0o644)
+	if _, err := LoadSourceMap(p, ""); err == nil || !strings.Contains(err.Error(), "not an image map") {
+		t.Fatalf("an old .stmap loaded: %v", err)
+	}
+}
+
+// IMAGE-ARTIFACTS.md §3: a missing field or an extra one is an error in the
+// writer, never a shape to tolerate.
+func TestAMapMissingAFieldOrCarryingAnExtraOneIsRefused(t *testing.T) {
+	for name, edit := range map[string]func(map[string]any){
+		"no entry":       func(d map[string]any) { delete(d, "entry") },
+		"no image size":  func(d map[string]any) { delete(d["image"].(map[string]any), "size") },
+		"no method file": func(d map[string]any) { delete(d["methods"].(map[string]any)["200"].(map[string]any), "file") },
+		"an extra field": func(d map[string]any) { d["stmap"] = true },
+	} {
+		t.Run(name, func(t *testing.T) {
+			d := synthetic()
+			edit(d)
+			if _, err := LoadSourceMap(writeMap(t, t.TempDir(), d), ""); err == nil ||
+				!strings.Contains(err.Error(), "not an image map") {
+				t.Fatalf("loaded: %v", err)
+			}
+		})
+	}
+}
+
+func TestTheImageTheMapNamesIsAcceptedAndAnyOtherRefused(t *testing.T) {
+	sm, dir := loaded(t)
+	good, bad := filepath.Join(dir, "t.oimg"), filepath.Join(dir, "u.oimg")
+	os.WriteFile(good, image, 0o644)
+	os.WriteFile(bad, append(append([]byte(nil), image...), '!'), 0o644)
+	if err := sm.CheckImage(good); err != nil {
+		t.Fatal(err)
+	}
+	if err := sm.CheckImage(bad); err == nil || !strings.Contains(err.Error(), "not the image this map describes") {
+		t.Fatalf("CheckImage(bad) = %v", err)
+	}
+}
+
+// --- the checked-in fixture: protocol/fixtures/image/ ---
+
+func fixture(t *testing.T, name string) string {
+	t.Helper()
+	_, here, _, _ := runtime.Caller(0)
+	return filepath.Join(filepath.Dir(here), "..", "..", "..", "protocol", "fixtures", "image", name)
+}
+
+func fixtureMap(t *testing.T) *SourceMap {
+	t.Helper()
+	sm, err := LoadSourceMap(fixture(t, "Fixture.oimg.map.json"), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sm.LoadRegistry([]string{"1 #main:args: 50", "2 #Counter 50", "3 #init_platform: 50", "4 #printString 60"})
+	return sm
+}
+
+// The facts below were read off Fixture.nsl by hand: a reader that gets one
+// wrong is wrong about the contract, not about this file.
+func TestTheFixtureMapReadsAsItsSourceSays(t *testing.T) {
+	sm := fixtureMap(t)
+	if sm.Entry != "Fixture" || sm.Source != "Fixture.nsl" {
+		t.Fatalf("entry %q, source %q", sm.Entry, sm.Source)
+	}
+	// `(twice value: c bump) println.` is line 20 of main:args:, from offset 7.
+	if got := mustResolve(t, sm, "Fixture.nsl:20"); got != (Breakpoint{1, 7, 20, "main:args:"}) {
+		t.Errorf("20 -> %+v", got)
+	}
+	// Line 19 holds the block `[ :x | x + x ]`, its own method: refused by name.
+	refused(t, sm, "19", "Fixture_block1>>value:")
+	// Line 10 is the nested class's bump: another class, refused.
+	refused(t, sm, "10", "Fixture_Counter>>bump")
+	// Line 13 is the class side's from:, a Meta_ vtable.
+	refused(t, sm, "13", "Meta_Fixture_Counter>>from:")
+	if where, text, _ := sm.Where(1, 15); where != "at Fixture.nsl:21  main:args:" || !strings.Contains(text, "^ 0 )") {
+		t.Errorf("Where(1, 15) = %q, %q", where, text)
+	}
+}
+
+func TestTheFixtureImageIsAcceptedAndOneChangedByteRefused(t *testing.T) {
+	sm := fixtureMap(t)
+	img := fixture(t, "Fixture.oimg")
+	if err := sm.CheckImage(img); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(img)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b[len(b)/2] ^= 1
+	changed := filepath.Join(t.TempDir(), "Fixture.oimg")
+	os.WriteFile(changed, b, 0o644)
+	if err := sm.CheckImage(changed); err == nil {
+		t.Fatal("an image with one byte changed was accepted")
+	}
+}

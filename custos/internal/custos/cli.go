@@ -28,7 +28,7 @@ import (
 // RunCLI runs one subcommand. args excludes the program name.
 func RunCLI(args []string, out io.Writer) error {
 	if len(args) == 0 {
-		return fmt.Errorf("custos: want sql, tables or describe")
+		return fmt.Errorf("custos: want debug, sql, tables or describe")
 	}
 	fs := flag.NewFlagSet("custos "+args[0], flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
@@ -55,7 +55,7 @@ func RunCLI(args []string, out io.Writer) error {
 		return describe(out, d, fs.Arg(0))
 	case "sql", "tables":
 	default:
-		return fmt.Errorf("custos: unknown command %q", args[0])
+		return fmt.Errorf("custos: unknown command %q (want debug, sql, tables or describe)", args[0])
 	}
 
 	var g *gate.Gate

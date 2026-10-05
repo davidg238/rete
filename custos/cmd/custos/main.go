@@ -19,12 +19,17 @@ import (
 	"syscall"
 
 	"github.com/davidg238/rete/custos/internal/custos"
+	"github.com/davidg238/rete/custos/internal/debug"
 	"github.com/davidg238/rete/protocol/allowlist"
 )
 
 func main() {
-	// A subcommand is the operator's shell surface (sql, tables, describe);
-	// without one, custos serves.
+	// A subcommand is the shell surface: debug (the in-image debugger, over a
+	// cable or a host VM), and sql, tables, describe over porta's store. Without
+	// one, custos serves.
+	if len(os.Args) > 1 && os.Args[1] == "debug" {
+		os.Exit(debug.Run(os.Args[2:], os.Stdin, os.Stdout, os.Stderr))
+	}
 	if len(os.Args) > 1 && !strings.HasPrefix(os.Args[1], "-") {
 		if err := custos.RunCLI(os.Args[1:], os.Stdout); err != nil {
 			fmt.Fprintln(os.Stderr, err)
