@@ -268,7 +268,7 @@ Answered by David, 2026-10-04:
    The profile page moves from step 6 into this step (#312 takes it from #340, which keeps
    the debug page), so `mprof_resolve.py` and `view.py`'s profile view go in one change.
 5. **`custos load`**: #310, the nsl program in its own flash region.
-   *Addendum 2026-10-05 (#310, proposed — for David's review):* three spikes on
+   *Addendum 2026-10-05 (#310; David approved the design and Q1–Q2 as proposed, 2026-10-05):* three spikes on
    `c6spare`, all GREEN, recorded on #310:
    (1) the firmware `spi_flash_mmap`s a partition and hands the pointer to the
    unchanged `oimg_load_blob`, which already executes in place; (2) a dedicated
@@ -299,7 +299,7 @@ Answered by David, 2026-10-04:
    - **Other boards keep the linked blob** until they earn a partition. This is the one
      place the change leaves two mechanisms, and it is temporary.
 
-   Open for David:
+   Decided (David, 2026-10-05: yes to both as proposed):
    - **Q1. Where the partition offset lives.** The overlay is the writer, and `run.sh`
      and custos both need the number. Proposed: `protocol/IMAGE-ARTIFACTS.md` gains a
      per-board "program partition" row that the overlay and custos both cite, and
