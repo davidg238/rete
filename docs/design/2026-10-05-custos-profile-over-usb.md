@@ -85,6 +85,14 @@ bug is chased on both, alternately, because the cable is faster.
    images, std (with profiling) and debug. He asked for the closed-window CPU cost to be
    measured anyway: a cross-binary comparison, read against the layout noise of several
    builds that differ only in padding, not against one pair.
+   *Measured (2026-10-05, c6spare, -O2, `IdleCostHanoi`: Hanoi depth 20 ×5 per boot, window
+   never opened; each arm built with no alignment flag and with `CONFIG_COMPILER_OPT=
+   -falign-functions=8/16/32/64`):* closed-window cost **+1.43 %** (9099 → 9229 ms) and
+   **+1.32 %** (8968 → 9086 ms). Runs within a build agree to 1 ms. The four alignment
+   values gave identical timings, so this is two layouts, not five, and the shift between
+   them (1.46 %) is as large as the effect; the sign and size held in both. Hanoi is all
+   activation and no allocation, so this bounds the activation hook from above and leaves
+   the allocation hook's closed cost out; a bridge node, mostly idle, pays far less.
 3. **As recommended.** #312 takes the profile page from #340: `custos profile`, custos's
    profile page, and the deletion of `mprof_resolve.py` and `view.py`'s profile view land
    in one change. #340 keeps the debug page.
