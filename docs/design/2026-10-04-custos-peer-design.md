@@ -41,6 +41,13 @@ custos's query engine.
 - **D9: the showcase demo is remote debugging of a sleepy node.** Set a breakpoint on a
   sleepy node. Two hours later the node wakes, the breakpoint is hit, and the debugger
   becomes active. The node then most likely stays awake while the debugger steps (§3).
+- **D10 (David, 2026-10-05): porta is the long-term custodian of commissioned images.**
+  The image a field node runs (A′) must still be resolvable years later, and A and A′
+  drift apart while a bug is chased on both. Developer images are disposable: custos
+  needs only the `.oimg` and its map beside the source, so USB development works without
+  porta. A developer who wants a store runs the same porta locally; custos gets no store
+  of its own. Commissioning/release is the gate between the two kinds; its shape is
+  undecided (#312, `2026-10-05-custos-profile-over-usb.md`).
 
 ## 2. The picture
 
@@ -251,6 +258,13 @@ Answered by David, 2026-10-04:
 4. **`custos profile` over USB**: the trigger sent down the cable, the rows ranked by
    Go; `mprof_resolve.py` deleted. This closes #312's command half; its cost
    measurement on a real program is still owed.
+   *Addendum 2026-10-05 (David, #312):* the trigger is **one command reader on the
+   node, in every image**, fed by the cable line or by `dbg/req` through porta; the
+   `dbg:*` verbs and `profile <ms>` share its grammar, so custos sends the same line to A
+   on USB and to A′ over the air. Profiling does not need the debug image. Whether the
+   profile counter goes in the standard image (two images: std, debug) or with the
+   debugger (std, debug+profile) waits on its cost on a real workload, measured on
+   `c6spare`.
 5. **`custos load`**: #310, the nsl program in its own flash region.
 6. **The web profile page, then the web debug page** (#323), then the TUI.
 

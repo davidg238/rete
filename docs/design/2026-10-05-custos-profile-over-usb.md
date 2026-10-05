@@ -1,6 +1,6 @@
 # `custos profile` over USB — what #312 needs decided first
 
-**Status:** PROPOSED, three questions for David · **Date:** 2026-10-05 · **Issue:** #312
+**Status:** Q1 DECIDED, Q2 waits on a measurement, Q3 open (David, 2026-10-05) · **Date:** 2026-10-05 · **Issue:** #312
 (first slice step 4 of `2026-10-04-custos-peer-design.md` §6a) · Drafted overnight after
 #338 and #339, instead of guessing at the two choices below.
 
@@ -53,6 +53,27 @@ resolver, that page breaks. That page is the one #340 replaces with custos's pro
    debug page. The alternatives are worse: keeping `mprof_resolve.py` until #340 means two
    resolvers in the repo, and making `view.py` call custos means Python shells out to Go
    for a page that is about to be deleted.
+
+## Answers (David, 2026-10-05)
+
+Context: a two-developer sketch. Each dev machine runs custos with a board on USB (A, B);
+one porta on the gateway reaches their field copies (A′, B′). A and A′ drift apart while a
+bug is chased on both, alternately, because the cable is faster.
+
+1. **Not as recommended.** One command reader on the node, in **every** image, fed by
+   the cable line or by `dbg/req` through porta. The `dbg:*` verbs and `profile <ms>`
+   share its grammar (`parseProfileMs:`), so the same line reaches A and A′, and the
+   debug verbs gain the porta path D9 needs. Profiling must not require the debug image.
+   Open for the plan: a profile verb in a standard image must not pause the program the
+   way a `dbg:*` verb does in a debug image.
+2. **Waits on a measurement.** Either two images, std (with the counter) and debug, or
+   std and debug+profile. Decided by the counter's cost on a real workload: the 0.90 %
+   was Hanoi at load 0.008 against a real 0.875, and its idle cost is unmeasured
+   (`2026-08-06-method-profile-over-porta-design.md`). Measured on `c6spare`.
+3. **Open.**
+
+Also decided: porta is the long-term custodian of commissioned images; developer
+images are disposable (D10 in `2026-10-04-custos-peer-design.md`).
 
 **Also owed, whatever the answers:** #312's cost measurement needs a C6 build and
 `c6spare`. This desktop has no `cmake` and cannot build Zephyr, so that part waits for
