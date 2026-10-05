@@ -5,10 +5,10 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
 
 - **FOCUS (David, 2026-10-04): local-first custos, all P1** — design `docs/design/2026-10-04-custos-peer-design.md`
   §6a; tracker #26 top block. **#338 and #339 merged and closed** (master `d91357a`).
-  **Next session starts with:** David's answers to #312's three questions (`docs/design/2026-10-05-custos-profile-over-usb.md`,
-  branch `312-custos-profile`), then build `custos profile` there. Then #310, #340, #341. #344 follows #330.
+  **Next session starts with (David, 2026-10-05), in order:** (1) David answers #312's three questions
+  (`docs/design/2026-10-05-custos-profile-over-usb.md`, branch `312-custos-profile`); (2) on `c6spare`: a first board run
+  of `custos debug -port`, then #329's five radio scenarios at -O2. Then build `custos profile`; then #310, #340, #341.
 - **One thread only.** Parked: #297's approved plan; #272 Task 5 Step 5. Merge queue: `330-canonical-booleans`.
-  Bench-owed on `c6spare`: `custos debug -port` (never run on a board); #329's five radio scenarios at -O2.
 - **Bench:** `c6bench` in the soak — never flash it. This desktop has no cmake/ARM toolchain/32-bit glibc (portability-32
   FAIL, cmake-parse/footprint SKIP are environment); run the suite under a venv with `pytest` + `pexpect`.
 - **Decided — do not re-litigate:** custos = nsl-specific peer, porta language-neutral (D1–D2); USB first (D4);
