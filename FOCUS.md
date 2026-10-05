@@ -8,6 +8,8 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   **Next session starts with (David, 2026-10-05), in order:** (1) David answers #312's three questions
   (`docs/design/2026-10-05-custos-profile-over-usb.md`, branch `312-custos-profile`); (2) on `c6spare`: a first board run
   of `custos debug -port`, then #329's five radio scenarios at -O2. Then build `custos profile`; then #310, #340, #341.
+- **Overnight review (2026-10-05):** found #345–#351 (P3); raise #345 (breakpoint after #343), #346 (silent cable),
+  #348 (CI skips custos/protocol) at review. #319's fix sits only on `297-cbor-native-walk` (comment on #319).
 - **One thread only.** Parked: #297's approved plan; #272 Task 5 Step 5. Merge queue: `330-canonical-booleans`.
 - **Bench:** `c6bench` in the soak — never flash it. This desktop has no cmake/ARM toolchain/32-bit glibc (portability-32
   FAIL, cmake-parse/footprint SKIP are environment); run the suite under a venv with `pytest` + `pexpect`.
@@ -17,4 +19,4 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   program identity (`protocol/IMAGE-ARTIFACTS.md` §6). -O2 is the C6 default (#329).
 - **Not proven:** #317, the C6 polled-reader hang, #327.
 - **Awaiting David:** #312's three questions. cabot work deferred until this focus completes.
-- **Weekly review, not scheduled:** #280, #282–#287, #290, #291, #298, #299, #303, #304, #306–#309, #315–#328, #331–#335, #342; #233.
+- **Weekly review, not scheduled:** #280, #282–#287, #290, #291, #298, #299, #303, #304, #306–#309, #315–#328, #331–#335, #342, #345–#351; #233.
