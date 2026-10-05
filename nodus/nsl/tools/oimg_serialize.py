@@ -471,23 +471,14 @@ class OimgSerializer:
         foff = self.structs[struct_name]["fields"][fname]["offset"]
         buf[base + foff: base + foff + len(raw)] = raw
 
-    def method_name_map(self, graph):
-        """#164: blob-relative offset of every CompiledMethod -> its name.
+    def method_quals(self, graph):
+        """Blob-relative offset of every CompiledMethod -> its `"Vtable>>selector"`:
+        the serializer's half of the image map (image_map.py, rete#337).
 
-        A CompiledMethod carries no name at runtime, so the VM can report a
-        method only as `ptr - oimg_blob_base` — a blob-relative byte offset.
-        This is the join key, and this map is the other half of it.
-
-        Two names per entry, because neither alone is enough:
-          - `qual`  "Vtable>>selector", the readable one, and the same
-                    convention stmap.py uses so the two sidecars agree. Absent
-                    for a method no vtable binds.
-          - `id`    the serializer's own key (`Method_<Vtable>_<sel>`,
-                    `Method_Block_...`), ALWAYS present. This is what names
-                    BLOCKS, which no vtable binds and which are exactly what a
-                    per-activation profile needs to see (#37: block activation
-                    is the STIC gap).
-
+        A CompiledMethod carries no name at runtime, so the VM reports a method as
+        `ptr - oimg_blob_base` — this offset is the join key. Every method has
+        exactly one name: SolidifyCompiler.add_method mints one method per
+        (vtable, selector) and is the only place a binding is made.
         Call AFTER generate() — self.offset is assigned there.
         """
         qual = {}
@@ -495,17 +486,13 @@ class OimgSerializer:
             if vt_name in self.reg:          # firmware-owned; not serialized
                 continue
             for sel, method_id in vt["bindings"]:
-                # A method bound in more than one vtable keeps every name rather
-                # than the last one to win: which binding was activated is not
-                # knowable from the offset, and silently picking one would print
-                # a confident wrong answer.
-                qual.setdefault(method_id, []).append(f"{vt_name}>>{sel}")
+                assert method_id not in qual, f"{method_id} is bound twice"
+                qual[method_id] = f"{vt_name}>>{sel}"
         out = {}
         for m in graph.methods:
             off = self.offset.get(f"cm:{m['id']}")
-            if off is None:
-                continue
-            out[str(off)] = {"id": m["id"], "qual": qual.get(m["id"], [])}
+            if off is not None:
+                out[off] = qual[m["id"]]
         return out
 
     # ---- main ---------------------------------------------------------------

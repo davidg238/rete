@@ -14,10 +14,10 @@ a reactor; see `../oevm/docs/vm.md`.
     grammar/   the Ohm grammar (ns.ohm) and AST builder (ns-parse.js), with node tests
     lib/       kernel.nsl — the kernel IS nsl: space, channels, timers, CBOR, the porta bridge
                supervisor.nsl — the let-it-crash supervisor
-    tools/     ns_compile_oevm.py   .nsl → .oimg (+ .stmap source map)
+    tools/     ns_compile_oevm.py   .nsl → .oimg (+ its .oimg.map.json image map)
                run_tests_oevm.py   THE gate: the whole suite, the C unit tests, the aux gates
                run-one.py          one test file: run-one.py <file.nsl> B
-               oimg_serialize.py, gen_builtins.py, stmap.py, and their test_*.py
+               oimg_serialize.py, gen_builtins.py, image_map.py, and their test_*.py
 
 The suite itself lives in `../tests/`, one directory per area. A test is a `.nsl` file
 with its expected output inline at the top (`(* expect: … *)`), a class with

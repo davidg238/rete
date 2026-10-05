@@ -15,7 +15,7 @@ oracle, an archived file or a generated one — never live source.
 
 `.nsl` source → **Ohm parse** → JSON AST → **+ kernel + supervisor** → **compile** →
 bytecode + constants → **emit** → either `src/solidified_image.c` (→ gcc → fused binary)
-or `<name>.oimg` (loaded by the resident VM). A `.stmap` sidecar is written either way.
+or `<name>.oimg` (loaded by the resident VM), with its image map `<name>.oimg.map.json` beside it.
 
 1. **Parse** — `grammar/ns.ohm` (Ohm grammar, `NsLite`) + `grammar/ns-parse.js`
    (the AST builder, run via `node`). `ns_compile_oevm.py main()` shells out to
@@ -187,37 +187,21 @@ registers, no closure, no `home`/`regAt:`). Non-inlined blocks become separate
 compiled methods (closures). See `topics.md#block-inlining` and
 `nodus/oevm/docs/optimizations.md` Phases A–E for the full account.
 
-## Source maps (.stmap)
+## The image map (`.oimg.map.json`)
 
-The compiler emits a **sidecar source-map file** (`.stmap` JSON) alongside each
-compiled image, written to `<image-base>.stmap` (e.g. `foo.c` → `foo.stmap`,
-`foo.oimg` → `foo.stmap`) — **on both backends**. This map ties bytecode
-offsets to source lines, enabling **debug-aware tools** (such as `jast-gw`) to
-display source during inspection.
+Beside every `<name>.oimg` the compiler writes `<name>.oimg.map.json`: every method in
+the image by its blob offset, with its name, its source file and its line table, and the
+image's SHA-256 so a map from another build is refused. The contract is
+`protocol/IMAGE-ARTIFACTS.md` (rete#337); custos reads it, and so do `dbg.py` and
+`mprof_resolve.py` until custos replaces them. A Path A (`.c`) build writes no map — the
+map is keyed by `.oimg` offsets.
 
-**Format:** The `.stmap` JSON matches the contract st-berry produces, so
-`jast-gw` consumes ns-oevm and st-berry maps identically:
-
-```json
-{
-  "source": "<basename.nsl>",
-  "functions": {
-    "<Vtable>>selector>": [[offset, line], ...]
-  }
-}
-```
-
-Each function maps to an array of `[bytecode_offset, line_number]` pairs,
-recorded at statement boundaries (statement-level granularity).
-
-**Scope:** v1 includes instance methods, class-side methods, and non-inlined
-blocks. Synthetic methods without source (e.g., default initializers, accessors)
-are intentionally omitted; empty maps are dropped.
-
-**Implementation:** `tools/stmap.py::build_stmap(source_filename, source_maps)`
-serializes the collected per-method line maps to JSON. Maps are threaded through
-the compiler via `compile_statement` and registered per qualified name
-(`register_source_map`), then emitted to disk beside the image.
+Line tables are recorded at statement boundaries, threaded through the compiler via
+`compile_statement` and registered per qualified name (`register_source_map`). Each
+vtable's source file is recorded as it is declared (`vtable_files`).
+`tools/image_map.py::build_image_map` joins these with the serializer's offsets
+(`OimgSerializer.method_quals`) and writes the file. A method with no source statements
+(a synthesized initializer, a nested-class accessor) is listed with empty `lines`.
 
 ## Tooling
 

@@ -424,7 +424,7 @@ built and gated 2026-08-08; thread 2 above has the status.)**
    between a larger table, Space-Saving displacement, or scoping by method identity is
    deferred on the still-missing realistic-load cost number — David's call
    (`docs/design/2026-08-06-method-profile-over-porta-design.md` D9/D10). Also closed #74:
-   `platform buildId` names the running build, so the `.oimg.methods.json` sidecar the
+   `platform buildId` names the running build, so the `.oimg.map.json` sidecar the
    profiler's offsets are resolved against cannot be picked wrong.
 
    **Allocation attribution rode the same table — stage 1 DONE 2026-08-12** (#190's row;

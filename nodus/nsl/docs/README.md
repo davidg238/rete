@@ -11,7 +11,7 @@ compiler links into every image. The VM that runs the result is `../../oevm/` �
 - `programming_with_nsl.md` — the task-oriented guide: how to write a program here.
 - `compiler.md` — **the map to the compiler code**: the pipeline, the two backends
   (solidified C and `.oimg`), the bytecode encoding, the calling-convention invariants,
-  initializers, class-side methods, block inlining, `.stmap`, and the tooling. Rewritten
+  initializers, class-side methods, block inlining, the image map, and the tooling. Rewritten
   2026-08-29 (#279); every symbol and path on it was checked against source that day.
 
 The wire contract both halves answer to is `../../../protocol/`, not here. The gates are

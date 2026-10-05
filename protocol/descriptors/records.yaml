@@ -582,7 +582,7 @@ records:
           timestamp on Zephyr, the literal "host" on host
         validity: >
           Deliberately ONE opaque string. Match it WHOLE, never piecewise: a per-method
-          profile's offsets are only meaningful against the .oimg.methods.json sidecar
+          profile's offsets are only meaningful against the .oimg.map.json sidecar
           of this exact build, and a piecewise match makes a mismatched sidecar
           indistinguishable from a quiet program. This is the segment key of record.
         refs: [rete#74]

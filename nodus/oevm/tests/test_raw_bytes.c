@@ -43,6 +43,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/resource.h>
 #include <sys/wait.h>
 
 extern oop  send(oop receiver, oop selector, int argc, oop *args);
@@ -107,6 +108,10 @@ static void expect_abort(const char *label, const char *expected_err) {
     pid_t pid = fork();
     if (pid < 0) { perror("fork"); _exit(1); }
     if (pid == 0) {
+        /* The child aborts on purpose: no core dump, and no crash notification. 1, not
+           0: with a piped core_pattern (systemd-coredump) the kernel still runs the
+           helper at 0, and skips it only at exactly 1. */
+        setrlimit(RLIMIT_CORE, &(struct rlimit){1, 1});
         close(pipefd[0]);
         dup2(pipefd[1], STDERR_FILENO);
         close(pipefd[1]);

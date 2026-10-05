@@ -60,8 +60,8 @@ exit.
 
 ## Regenerating the solidified image
 
-`src/solidified_image.c` (and its `.stmap` sidecar) are **generated
-artifacts**, committed to `oevm` only as whatever some OTHER test last left
+`src/solidified_image.c` is a **generated
+artifact**, committed to `oevm` only as whatever some OTHER test last left
 there — they are NOT the Task 7 gate's own source of truth (`PulseNode.nsl`
 is). Building this gate CLOBBERS them as a transient build step. Regenerate
 from `PulseNode.nsl` before every `west build`:
@@ -75,12 +75,12 @@ python3 tools/ns_compile_oevm.py \
 ```
 
 After building (and BEFORE committing anything in `oevm`), restore the
-checked-in `solidified_image.c`/`.stmap` so the working tree stays clean for
+checked-in `solidified_image.c` so the working tree stays clean for
 other tests that depend on them:
 
 ```bash
 cd /home/david/workspace/tuvm
-git checkout -- src/solidified_image.c src/solidified_image.stmap
+git checkout -- src/solidified_image.c
 ```
 
 ## Build + run
@@ -190,7 +190,7 @@ west flash --skip-rebuild --runner jlink
 
 # 3. restore the checked-in image BEFORE committing anything in oevm
 cd /home/david/workspace/tuvm
-git checkout -- src/solidified_image.c src/solidified_image.stmap
+git checkout -- src/solidified_image.c
 ```
 
 Then open the console (`/dev/ttyACM0` @ 115200) and press **BUTTON1**. Expected:
@@ -232,7 +232,7 @@ west build -b native_sim -p always .
 timeout 8 ./build/zephyr/zephyr/zephyr.exe   # expect a line: UDP OK
 # restore the generated image before committing anything in oevm
 cd /home/david/workspace/tuvm
-git checkout -- src/solidified_image.c src/solidified_image.stmap
+git checkout -- src/solidified_image.c
 ```
 
 Expected: build completes, the run prints `UDP OK` before `timeout` kills it —
@@ -265,7 +265,7 @@ west build -b native_sim -p always .
 timeout 8 ./build/zephyr/zephyr/zephyr.exe   # expect a line: BRIDGE OK
 # restore the generated image before committing anything in oevm
 cd /home/david/workspace/tuvm
-git checkout -- src/solidified_image.c src/solidified_image.stmap
+git checkout -- src/solidified_image.c
 ```
 
 ---
@@ -303,7 +303,7 @@ west flash --skip-rebuild --runner jlink
 
 # restore the generated image BEFORE committing anything in oevm
 cd /home/david/workspace/tuvm
-git checkout -- src/solidified_image.c src/solidified_image.stmap
+git checkout -- src/solidified_image.c
 
 # console /dev/ttyACM0 @115200: wait for `thread: attached role=2` (and confirm the
 # child row with `ssh david@gw85224-01 'docker exec otbr ot-ctl child table'`),
@@ -358,7 +358,7 @@ tick lands in the pulse mailbox, `platform pumpEvents` (which blocks `K_FOREVER`
     cd /home/david/workspace/tuvm/zephyr
     west build -b native_sim -p always .
     timeout 10 ./build/zephyr/zephyr/zephyr.exe    # expect: TIMER OK  (3 ticks @200ms)
-    cd /home/david/workspace/tuvm && git checkout -- src/solidified_image.c src/solidified_image.stmap
+    cd /home/david/workspace/tuvm && git checkout -- src/solidified_image.c
 
 ## Gate 2 — the DK: BRIDGE OK every 15 s, in lockstep with the gateway
 

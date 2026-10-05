@@ -528,7 +528,7 @@ void mprof_alloc(unsigned heap, size_t bytes) {
    name, and a raw address is unresolvable off-node — it moves with the link and
    means nothing to a reader holding only the image. `ptr - oimg_blob_base` is the
    file offset the serializer assigned, so it joins directly against the
-   <image>.oimg.methods.json sidecar and names every method AND every block.
+   <image>.oimg.map.json sidecar and names every method AND every block.
 
    A method outside the blob (Model A / solidified .rodata) has no such offset;
    it prints as `@<pointer>` so it is visibly a different kind of thing rather

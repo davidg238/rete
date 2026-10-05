@@ -473,7 +473,7 @@ def run_path_b_frontend():
     src = os.path.basename(PAUSE_APP)
     env = {**os.environ, "OEVM_TIMER_WALLCLOCK": "1"}
     child = pexpect.spawn(sys.executable,
-                          [os.path.join(HERE, "dbg.py"), "--stmap", PAUSE_OIMG_B[:-len(".oimg")] + ".stmap",
+                          [os.path.join(HERE, "dbg.py"), "--map", PAUSE_OIMG_B + ".map.json",
                            "--source", PAUSE_APP, "--", BINARY_B, PAUSE_OIMG_B],
                           cwd=OEVM, env=env, encoding="utf-8", timeout=15)
     transcript = []
@@ -552,7 +552,7 @@ def main():
         # Restore files overwritten by build_a() so ../oevm stays a clean tree.
         subprocess.run(
             ["git", "-C", OEVM, "checkout",
-             "src/solidified_image.c", "src/solidified_image.stmap"],
+             "src/solidified_image.c"],
             check=False)
 
 

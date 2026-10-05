@@ -172,7 +172,7 @@ class Handler(BaseHTTPRequestHandler):
         store = logstore.LogStore(board=self.board)
         if self.sidecar:
             with open(self.sidecar) as fh:
-                mmap = json.load(fh)
+                mmap = json.load(fh)["methods"]
         else:
             mmap = {}
         for day in sorted(store.days(), reverse=True):
@@ -215,11 +215,11 @@ class Handler(BaseHTTPRequestHandler):
         try:
             table = self._table()
             healthy = True
-        except (OSError, json.JSONDecodeError) as exc:
+        except (OSError, json.JSONDecodeError, KeyError) as exc:
             # REPORTED, not swallowed — the same principle POST /capture
             # already gets. Caught narrowly (OSError covers a missing or
             # unreadable sidecar/log file; JSONDecodeError covers a sidecar
-            # that isn't valid JSON) rather than a bare `except Exception`,
+            # that isn't valid JSON, KeyError one that isn't an image map) rather than a bare `except Exception`,
             # which would also have hidden round 1's ValueError from ever
             # being found. The banner tells the operator something broke;
             # the traceback in the server log tells whoever fixes it what.
@@ -358,7 +358,7 @@ def main(argv):
     p.add_argument("--node", required=True, help="node id for the dbg/req "
                     "path — the board's 12-hex factory link address "
                     "(lowercase), as the node's `platform nodeId` answers it")
-    p.add_argument("--sidecar", required=True, help="<image>.oimg.methods.json")
+    p.add_argument("--sidecar", required=True, help="<image>.oimg.map.json")
     # REQUIRED, not defaulted, and this is the whole fix: `porta` is a local
     # sqlite writer, so an unqualified `porta put` silently CREATES an empty
     # store in the cwd and reports success. Which file the gateway serves is a

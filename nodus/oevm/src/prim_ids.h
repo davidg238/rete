@@ -417,7 +417,7 @@
 #define PRIM_pf_profileStop       143
 
 /* #74/#165 D3: `buildId`, the string baked into the image at build time (git
-   describe + timestamp) — so a profile reader can pick the .oimg.methods.json
+   describe + timestamp) — so a profile reader can pick the .oimg.map.json
    sidecar that actually matches what is running, rather than choosing by hand
    and getting a mismatch that resolves nothing and looks identical to a quiet
    program. Appended after profileStop; no pre-existing id shifts. 144 was

@@ -3,7 +3,6 @@ import os
 import json
 import subprocess
 from solidify import SolidifyCompiler
-from stmap import build_stmap
 
 
 class CompileError(Exception):
@@ -1443,6 +1442,7 @@ class MethodCompiler:
 
             # Register block method in parent compiler
             self.parent.block_methods.append(blk_compiler)
+            blk_compiler.file = self.parent.current_file
             
             # 2. Emit instantiating the block closure
             cidx = self.add_constant(f"METHOD:{blk_name}:{blk_selector}")
@@ -1469,9 +1469,11 @@ class OevmCompiler:
         self.last_span = None
         self.last_method = None
         self.solidify = SolidifyCompiler()
-        # Per-method source maps, keyed "Vtable>>selector". Collected during
-        # compile(); serialized to a .stmap sidecar by main().
+        # Per-method source maps, keyed "Vtable>>selector", and the source file
+        # of every vtable. Collected during compile(); main() writes them into the
+        # image map (image_map.py, rete#337).
         self.source_maps = {}
+        self.vtable_files = {}
         # Per-frame MethodCompiler objects, keyed "Vtable>>selector" (same
         # keying as source_maps). Pure bookkeeping for introspection (e.g. the
         # de-recursify Task 3 capture analysis, tests) — never consulted by
@@ -1801,6 +1803,7 @@ class OevmCompiler:
             # So we can just add block methods to SolidifyCompiler as global methods (or bind them to a dummy Vtable) so they get compiled and solidified, but not bound to any class dispatch bindings!
             # Let's add them to a dummy vtable "BlockMethods" without bindings, or just add them.
             self.solidify.add_vtable(f"Block_{blk.name}")
+            self.vtable_files[f"Block_{blk.name}"] = blk.file
             # Deferred lift Phase 1: safe to run now — every block is compiled
             # (self.block_methods holds them all) and every enclosing method
             # finalized during compile_class, so all referenced frames' capture
@@ -1863,11 +1866,13 @@ class OevmCompiler:
         meta_vt = f"Meta_{vt}" if self.class_side_any(qname) else None
         self.solidify.add_vtable(vt, delegate_name=delegate, is_nested=is_nested,
                                  meta=meta_vt)
+        self.vtable_files[vt] = self.current_file
         if meta_vt:
             sup_qname = self.super_qname(qname)
             meta_delegate = (f"Meta_{self.vt_id(sup_qname)}"
                              if sup_qname and self.class_side_any(sup_qname) else None)
             self.solidify.add_vtable(meta_vt, delegate_name=meta_delegate, is_nested=0)
+            self.vtable_files[meta_vt] = self.current_file
 
         # Compile all methods
         for m in node.get("methods", []):
@@ -2208,6 +2213,7 @@ def main():
                 {
                     "type": "module",
                     "name": "ScriptApp",
+                    "file": src_ns,
                     "params": ["platform", "args"],
                     "slots": [],
                     "methods": [
@@ -2292,14 +2298,6 @@ def main():
                 pass
         sys.exit(1)
 
-    # Emit the source-map sidecar (.stmap) next to the image, for both the
-    # Path A (.c) and Path B (.oimg) backends. Format matches st-berry so the
-    # jast-gw debug viewer consumes ns-oevm and st-berry maps identically.
-    stmap_path = os.path.splitext(out_c)[0] + ".stmap"
-    with open(stmap_path, "w", encoding="utf-8") as f:
-        f.write(build_stmap(os.path.basename(src_ns), compiler.source_maps,
-                            entry=next(iter(compiler.all_classes.keys()), None)))
-
     # Execute-in-place image backend: serialize the app graph to a .oimg blob
     # instead of emitting fused C (Model A). The entry class is the first
     # declared class, matching the C path's run_solidified_entry_point.
@@ -2360,17 +2358,19 @@ def main():
             supervisor_nslots=_supervisor_nslots)
         with open(out_c, "wb") as f:
             f.write(blob)
-        # #164 sidecar: offset -> method name, so a per-method profile taken on a
-        # node (which can only report `ptr - oimg_blob_base`) can be read back as
-        # names. Written beside the .oimg and named after it, the way the .stmap
-        # is — a profile is worthless against the wrong build, and a sidecar that
-        # travels with the image cannot drift from it.
-        import json as _json
-        _mm = out_c + ".methods.json"
-        with open(_mm, "w") as f:
-            _json.dump(_ser.method_name_map(_Graph), f, indent=1, sort_keys=True)
+        # rete#337: the image map — every method by blob offset, with its name,
+        # file and lines (protocol/IMAGE-ARTIFACTS.md). Named after the image and
+        # carrying its hash, so a map from another build is refused, not trusted.
+        from image_map import build_image_map
+        _map = out_c + ".map.json"
+        with open(_map, "w", encoding="utf-8") as f:
+            f.write(build_image_map(
+                blob, layout["oop_size"], entry_class,
+                [src_ns, kernel_path, supervisor_path], _ser.method_quals(_Graph),
+                compiler.source_maps, compiler.vtable_files,
+                {f"Block_{b.name}": b.name for b in compiler.block_methods}))
         print(f"OIMG written to {out_c} ({len(blob)} bytes, entry={entry_class})")
-        print(f"method map written to {_mm} ({len(_ser.method_name_map(_Graph))} methods)")
+        print(f"image map written to {_map}")
         return
 
     # Solidify custom additions

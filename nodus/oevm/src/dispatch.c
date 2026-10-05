@@ -933,7 +933,7 @@ enum {
     PRIM_pf_profileStart,
     PRIM_pf_profileStop,
     /* #74/#165 D3: `platform buildId` — the string baked into the image at build
-       time (git describe + timestamp), so a reader can pick the .oimg.methods.json
+       time (git describe + timestamp), so a reader can pick the .oimg.map.json
        sidecar that actually matches what is running. Appended after profileStop;
        no pre-existing id shifts. 144 was arrived at by COUNTING PRIM_NAMES (143
        entries before this append), not by 143+1 arithmetic, per the standing

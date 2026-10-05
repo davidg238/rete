@@ -1,0 +1,23 @@
+(* The image-artifact fixture (rete#337, protocol/IMAGE-ARTIFACTS.md §4). Small on
+   purpose, and covering each shape the image map names: the entry class's methods,
+   a nested class, a class-side method (a Meta_ vtable), and a block the compiler
+   keeps as a block. Changing this file changes Fixture.oimg and its map: regenerate
+   both in the same commit (the command is in §4). *)
+class Fixture usingPlatform: platform = () (
+  public class Counter = (
+    | n |
+  )(
+    public bump = ( n:: n + 1. ^ n )
+    public start: v = ( n:: v )
+  ) : (
+    public from: v = ( ^ self new start: v )
+  )
+
+  public main: platform2 args: args = (
+    | c twice |
+    c:: Counter from: 40.
+    twice:: [ :x | x + x ].
+    (twice value: c bump) println.
+    ^ 0 )
+) : (
+)

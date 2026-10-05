@@ -133,7 +133,7 @@ python3 $RETE/nodus/nsl/tools/ns_compile_oevm.py counter.nsl counter.oimg \
         --format=oimg --layout=/tmp/oevm_layout.json
 /tmp/oevm_img counter.oimg | tee out.txt
 grep -q '^bumped 3$' out.txt
-ls -l counter.oimg counter.stmap
+ls -l counter.oimg counter.oimg.map.json
 ```
 
 ```
@@ -145,8 +145,8 @@ squares 1 4 9
 216 KB for a counter. **The kernel is in the image**: `nodus/nsl/lib/kernel.nsl` — the
 space, channels, timers, the CBOR codec, the porta bridge — is nsl, and it is compiled
 into every `.oimg` beside your class. Your program is a few hundred bytes of it. The
-`.stmap` beside the image is the source map, bytecode offset → line, which the crash
-reports and the profiler use to name your code.
+`.oimg.map.json` beside the image is its map: every method's offset, name, source file
+and lines, which the debugger and the profiler use to name your code.
 
 `--layout` is the one thing that ties an image to a VM build: the object layout the VM
 was compiled with, captured as JSON. A board target has its own, and an image built
