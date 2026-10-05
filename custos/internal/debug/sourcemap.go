@@ -3,10 +3,6 @@
 package debug
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,27 +10,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/davidg238/rete/custos/internal/imagemap"
 )
-
-// imageMap is protocol/IMAGE-ARTIFACTS.md §3, field for field. A missing field
-// or an extra one refuses the file: the format changes by editing that document
-// and rebuilding both sides, never by a reader tolerating a shape.
-type imageMap struct {
-	Image *struct {
-		SHA256  *string `json:"sha256"`
-		Size    *int64  `json:"size"`
-		OopSize *int    `json:"oop_size"`
-	} `json:"image"`
-	Entry   *string              `json:"entry"`
-	Files   []string             `json:"files"`
-	Methods map[string]mapMethod `json:"methods"`
-}
-
-type mapMethod struct {
-	Name  *string  `json:"name"`
-	File  *int     `json:"file"`
-	Lines [][2]int `json:"lines"`
-}
 
 // pair is one [bytecode offset, line] entry of a method's lines.
 type pair struct{ off, line int }
@@ -49,8 +27,7 @@ type function struct {
 // the VM's registry (id -> selector). It does no I/O beyond reading the files it
 // is given.
 type SourceMap struct {
-	sha256 string
-	size   int64
+	img    *imagemap.Map
 	Source string // files[0], the app's file
 	Entry  string // the class the image runs
 	// functions is every method with lines in files[0] — the entry's, its
@@ -72,62 +49,25 @@ type selector struct {
 
 // LoadSourceMap reads an image map, and the source beside it (or at source).
 func LoadSourceMap(mapPath, source string) (*SourceMap, error) {
-	raw, err := os.ReadFile(mapPath)
+	img, err := imagemap.Load(mapPath)
 	if err != nil {
 		return nil, err
 	}
-	dec := json.NewDecoder(bytes.NewReader(raw))
-	dec.DisallowUnknownFields()
-	var doc imageMap
-	if err := dec.Decode(&doc); err != nil {
-		return nil, fmt.Errorf("%s is not an image map (%v); rebuild it (rete#337)", mapPath, err)
-	}
-	var missing []string
-	if doc.Image == nil || doc.Image.SHA256 == nil || doc.Image.Size == nil || doc.Image.OopSize == nil {
-		missing = append(missing, "image")
-	}
-	if doc.Entry == nil {
-		missing = append(missing, "entry")
-	}
-	if len(doc.Files) == 0 {
-		missing = append(missing, "files")
-	}
-	if doc.Methods == nil {
-		missing = append(missing, "methods")
-	}
-	for k, m := range doc.Methods {
-		if m.Name == nil || m.File == nil || m.Lines == nil {
-			missing = append(missing, "methods["+k+"]")
-		}
-	}
-	if len(missing) > 0 {
-		sort.Strings(missing)
-		return nil, fmt.Errorf("%s is not an image map (no %s); rebuild it (rete#337)",
-			mapPath, strings.Join(missing, ", "))
-	}
-
 	sm := &SourceMap{
-		sha256:  *doc.Image.SHA256,
-		size:    *doc.Image.Size,
-		Source:  doc.Files[0],
-		Entry:   *doc.Entry,
+		img:     img,
+		Source:  img.Files[0],
+		Entry:   img.Entry,
 		methods: map[string][]pair{},
 		ids:     map[string]int{},
 		sels:    map[int]selector{},
 	}
-	keys := make([]string, 0, len(doc.Methods))
-	for k := range doc.Methods {
-		keys = append(keys, k)
-	}
-	offset := func(k string) int { n, _ := strconv.Atoi(k); return n }
-	sort.Slice(keys, func(i, j int) bool { return offset(keys[i]) < offset(keys[j]) })
 	prefix := sm.Entry + ">>"
-	for _, k := range keys {
-		m := doc.Methods[k]
-		if *m.File != 0 || len(m.Lines) == 0 {
+	for _, off := range img.Offsets() {
+		m := img.Methods[off]
+		if m.File != 0 || len(m.Lines) == 0 {
 			continue
 		}
-		f := function{name: *m.Name}
+		f := function{name: m.Name}
 		for _, p := range m.Lines {
 			f.pairs = append(f.pairs, pair{p[0], p[1]})
 		}
@@ -153,19 +93,7 @@ func LoadSourceMap(mapPath, source string) (*SourceMap, error) {
 
 // CheckImage refuses an image other than the one the map describes: its hash
 // names one build.
-func (sm *SourceMap) CheckImage(oimgPath string) error {
-	b, err := os.ReadFile(oimgPath)
-	if err != nil {
-		return err
-	}
-	sum := sha256.Sum256(b)
-	got := hex.EncodeToString(sum[:])
-	if got != sm.sha256 || int64(len(b)) != sm.size {
-		return fmt.Errorf("%s is not the image this map describes (sha256 %s, map says %s); rebuild both together",
-			oimgPath, got[:12], sm.sha256[:min(12, len(sm.sha256))])
-	}
-	return nil
-}
+func (sm *SourceMap) CheckImage(oimgPath string) error { return sm.img.CheckImage(oimgPath) }
 
 var regRE = regexp.MustCompile(`^(\d+) #?(\S+) (-?\d+)$`)
 
