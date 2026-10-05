@@ -147,3 +147,36 @@
 		gpioout = &solenoid;
 	};
 };
+
+/* rete#310 — the nsl program in its own flash partition, carved from the two
+ * firmware slots (1792K -> 1536K each) so image-1 stays whole for MCUboot (#233).
+ * The firmware links no program on a board that has this node: run.sh writes the
+ * .oimg here, and `custos load` replaces it alone. The offset is cited by
+ * protocol/IMAGE-ARTIFACTS.md §2a and copied once, into custos/internal/load.
+ * Sizes are a starting point (firmware 587 KB, largest program 170 KB, 2026-10-05);
+ * a program over 512K or firmware over 1536K is what earns a resize.
+ * Deleting and redefining the slots is what moves their unit addresses; the
+ * chosen code partition is restated because it named the deleted node. */
+/delete-node/ &slot0_partition;
+/delete-node/ &slot1_partition;
+&flash0 {
+	partitions {
+		slot0_partition: partition@20000 {
+			label = "image-0";
+			reg = <0x20000 DT_SIZE_K(1536)>;
+		};
+		slot1_partition: partition@1a0000 {
+			label = "image-1";
+			reg = <0x1A0000 DT_SIZE_K(1536)>;
+		};
+		program_partition: partition@320000 {
+			label = "program";
+			reg = <0x320000 DT_SIZE_K(512)>;
+		};
+	};
+};
+/ {
+	chosen {
+		zephyr,code-partition = &slot0_partition;
+	};
+};

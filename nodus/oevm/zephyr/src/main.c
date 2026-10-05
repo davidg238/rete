@@ -1526,13 +1526,43 @@ extern void init_solidified_vtables(void);
 extern void init_reflection_symbols(void);
 extern oop  run_solidified_entry_point(void);
 #else
-/* Model B: the program is a .oimg blob in flash .rodata, not baked C.
+/* Model B: the program is a .oimg blob in flash, not baked C.
    kernel_boot() comes from oevm.h and oimg_load_blob() from oimg.h, but
    oimg_root()/oimg_bootstrap() are declared in NO header (defined in
    src/oimg_loader.c, used by src/oevm_image_main.c), so they are externed here. */
-extern const uint8_t oevm_blob_start[], oevm_blob_end[];   /* zephyr/blob.S */
 extern oop  oimg_root(void);
 extern oop  oimg_bootstrap(oop entry_vtable);
+#include <zephyr/storage/flash_map.h>
+#if FIXED_PARTITION_EXISTS(program_partition)
+/* rete#310: the program has its own flash partition, written on its own over the
+   cable (`custos load`) and later over the air (#233). The firmware links none.
+   spi_flash_mmap is ESP-only: a board that adds program_partition without ESP
+   flash fails to compile HERE, which is the right place to learn it maps its
+   flash some other way. */
+#include <spi_flash_mmap.h>
+#include "ota.h"
+#include "ota_backend.h"
+static int program_map(const uint8_t **base, size_t *size) {
+    const void *p;
+    spi_flash_mmap_handle_t h;
+    if (spi_flash_mmap(FIXED_PARTITION_OFFSET(program_partition),
+                       FIXED_PARTITION_SIZE(program_partition),
+                       SPI_FLASH_MMAP_DATA, &p, &h) != 0) {
+        printk("oevm: program partition 0x%x would not map\n",
+               (unsigned)FIXED_PARTITION_OFFSET(program_partition));
+        return 1;
+    }
+    uint32_t n;
+    memcpy(&n, (const uint8_t *)p + 12, 4);   /* blob_size, IMAGE-ARTIFACTS.md §2 */
+    /* An erased partition reads 0xFFFFFFFF here. Answer 0 so the loader refuses
+       it by name ("image too small") instead of reading past the partition. */
+    *base = p;
+    *size = n <= FIXED_PARTITION_SIZE(program_partition) ? n : 0;
+    return 0;
+}
+#else
+extern const uint8_t oevm_blob_start[], oevm_blob_end[];   /* zephyr/blob.S */
+#endif
 #endif
 
 extern void (*gc_additional_roots_hook)(void);
@@ -1865,13 +1895,33 @@ int main(void) {
 
 #ifdef OEVM_MODEL_B
     kernel_boot();   /* ONCE, before load/bootstrap — the order src/oevm_image_main.c uses */
+#if FIXED_PARTITION_EXISTS(program_partition)
+    const uint8_t *prog = NULL;
+    size_t prog_size = 0;
+    if (program_map(&prog, &prog_size) != 0 || oimg_load_blob(prog, prog_size) != 0) {
+#else
     if (oimg_load_blob(oevm_blob_start,
                        (size_t)(oevm_blob_end - oevm_blob_start)) != 0) {
+#endif
         /* Loud: never boot a bad blob silently. The specific check that failed
            was just printed to stderr by the loader. */
         printk("oevm: oimg_load_blob failed\n");
         return 0;
     }
+#if FIXED_PARTITION_EXISTS(program_partition)
+    {
+        /* rete#310 / IMAGE-ARTIFACTS.md decision 2: the node names the program it
+           runs. Printed for `custos load` on the cable; noted for the ota seam, so
+           the kernel's publishApps writes obs/apps/main. The cost is printed
+           rather than guessed. */
+        int64_t t0 = k_uptime_get();
+        uint8_t h[32];
+        ota_sha256(prog, (long)prog_size, h);
+        ota_note_running_hash(h);
+        printk("oevm: program sha256 %s (%u ms)\n", ota_env("OEVM_IMAGE_HASH"),
+               (unsigned)(k_uptime_get() - t0));
+    }
+#endif
 #else
     init_solidified_vtables();
     init_reflection_symbols();
