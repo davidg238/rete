@@ -409,6 +409,7 @@ class MethodCompiler:
             if last["type"] == "return":
                 self.compile_statement(last)        # OP_RET, or CompileError if this is a block frame
             else:
+                self.record_line(last)               # rete#343: a one-expression arm has a line
                 self.compile_expr(last, target_reg)  # value falls through
         self.current_scope = saved_scope
         self.next_free_reg = saved_free
@@ -1427,6 +1428,7 @@ class MethodCompiler:
                 if last_stmt["type"] == "return":
                     blk_compiler.compile_statement(last_stmt)
                 else:
+                    blk_compiler.record_line(last_stmt)  # rete#343: a one-expression block has a line
                     ret_reg = blk_compiler.alloc_reg()
                     blk_compiler.compile_expr(last_stmt, ret_reg)
                     blk_compiler.emit_ABC(OP_RET, ret_reg, 0, 0)
