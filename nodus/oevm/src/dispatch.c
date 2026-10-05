@@ -991,6 +991,10 @@ enum {
        Platform-dispatched (mirrored in prim_ids.h). The build-time board name, or
        nil when the build was not told one. */
     PRIM_pf_boardName,
+    /* rete#312: `platform consoleLine` — the 160th PRIM_NAMES entry (counted, not
+       computed). Appended after boardName; no pre-existing id shifts.
+       Platform-dispatched (mirrored in prim_ids.h). */
+    PRIM_pf_consoleLine,
 };
 
 /* Must stay parallel to the enum above (index i -> id i+1).
@@ -1013,7 +1017,7 @@ static const char *const PRIM_NAMES[] = {
    — this catches it at build time instead. C99-safe (no _Static_assert under
    -std=c99): a false condition makes a negative-sized array, which is a hard
    compile error. ADVANCE THIS to the new last id whenever prims are appended. */
-typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_boardName) ? 1 : -1];
+typedef char prim_names_enum_parity_check[(N_PRIM_NAMES == PRIM_pf_consoleLine) ? 1 : -1];
 
 /* rete#226 — CLASSIFICATION HAPPENS ONCE, WHERE THE SYMBOL IS MADE.
 

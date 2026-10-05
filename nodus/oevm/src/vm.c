@@ -578,6 +578,9 @@ static void mprof_report(const char *why) {
                     g_mprof_bytes[MPROF_HEAP_CHEAP][i], g_mprof_acnt[MPROF_HEAP_CHEAP][i]);
         }
     }
+    /* rete#312: the dump is complete. A live reader (custos profile -port) stops here
+       instead of guessing from a quiet line; neither reader's row pattern matches it. */
+    fprintf(stderr, "mprof[%s]: end\n", why);
 }
 
 /* #165 D1/D6 lifecycle. start = zero + enable; stop = disable + report. Zeroing

@@ -562,4 +562,9 @@
    Platform-dispatched. Answers a String, or nil when the build was not told a name
    (the kernel accessor's `== nil` is the test: the prim answers a raw nil). */
 #define PRIM_pf_boardName         159
+/* rete#312 Q1: `consoleLine` — a complete console line if one is queued, nil if not,
+   false when this console cannot announce lines (polled USB-CDC, no console). The first
+   send arms the announcements on `sys/console` (platform_backend.h). Never blocks.
+   Appended after boardName; 160 by COUNTING PRIM_NAMES (159 entries before this). */
+#define PRIM_pf_consoleLine       160
 #endif /* OEVM_PRIM_IDS_H */

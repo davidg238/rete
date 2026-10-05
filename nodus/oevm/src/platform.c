@@ -24,6 +24,11 @@ uint32_t platform_app_cad_ms(void) { return s_app_cad_ms; }
 #include <stdint.h>
 #include <math.h>
 
+/* rete#312: the channel console lines are announced on (prim consoleLine arms it) and a
+   running number, so two announcements never coalesce into one in the pulse mailbox. */
+static int g_console_chan = -1;
+static int g_console_seq;
+
 /* #74/#165 D3: the build actually running, so a profile reader can pick the
    matching .oimg.map.json sidecar instead of choosing by hand — a
    mismatched sidecar resolves nothing and looks exactly like a quiet program.
@@ -1458,6 +1463,19 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = space_make_string_pub(id, n);
         return 1;
     }
+    case PRIM_pf_consoleLine: {        /* rete#312 Q1: platform_backend.h */
+        static int armed = -1;         /* -1: not yet asked; 0: cannot; 1: armed */
+        char buf[512];
+        int n;
+        if (armed < 0) {
+            g_console_chan = space_intern("sys/console", 11);
+            armed = platform_console_arm(g_console_chan);
+        }
+        if (!armed) { *out = false_symbol; return 1; }
+        n = platform_console_take_line(buf, (int)sizeof buf);
+        *out = (n < 0) ? NULL : space_make_string_pub(buf, (size_t)n);
+        return 1;
+    }
     case PRIM_pf_boardName: {          /* rete#118: nil = "this build was not told a board name" */
         char nm[PLATFORM_NODE_ID_MAX];
         size_t n = platform_backend_board_name(nm, sizeof nm);
@@ -1636,6 +1654,8 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
     }
     case PRIM_pf_pumpEvents: {
         http_poll();                            /* accept/read pending sockets -> request ring */
+        if (platform_console_service() && g_console_chan >= 0)   /* rete#312: the host's line */
+            pulse_post_isr_value(g_console_chan, TAG_SMI(++g_console_seq & 0xffff));
         /* With an HTTP listener active, pulse must be drained NON-BLOCKING: the
            reactor has to loop back to http_poll every tick, so it cannot sleep in
            pulse_pump's K_FOREVER (zephyr) waiting for a pulse event that never comes.

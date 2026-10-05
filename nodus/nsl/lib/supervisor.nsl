@@ -31,6 +31,10 @@ class Supervisor usingMirror: mirror = () (
          path -- which announces `dbg:ready` the first time and runs the ONE command
          loop. There is no separate boot loop: every verb works at boot. *)
       mirror requestStep: 1 ].
+    (* rete#312 Q1: the kernel's one profile handler, in every image. The cable feeds it
+       only in a standard image; in a debug image the cable belongs to the loop below,
+       which hands it `profile <ms>` lines itself. *)
+    plat profiler install: debugFlag = 0.
     ^ entry main: plat args: args )
 
   (* HLL mirror facade (Plan 2). Each facade takes the native mirror as a
@@ -362,7 +366,16 @@ class Supervisor usingMirror: mirror = () (
         verb = 'dbg:out' ifTrue: [ stepMode:: #out. stepDepth:: (self depthOf: curCtx) - 1. m requestStep: 1. ^ self ] ifFalse: [
         (* dbg:inspect is a QUERY: emit the dump, keep looping. *)
         verb = 'dbg:inspect' ifTrue: [ self doInspect: line ] ifFalse: [
-          'dbg:error unknown' println ] ] ] ] ] ] ] ] ] )
+        (* rete#312 Q1: the kernel's profile handler, the same line porta would write.
+           The window opens now and runs from the next continue. *)
+        verb = 'profile' ifTrue: [ self doProfile: line ] ifFalse: [
+          'dbg:error unknown' println ] ] ] ] ] ] ] ] ] ] )
+
+    doProfile: line = (
+      (io profiler request: line) > 0
+        ifTrue: [ 'dbg:ok profile' println ]
+        ifFalse: [ 'dbg:error profile wants profile <ms>' println ].
+      ^ self )
 
     (* First space-delimited token of a command line (the verb). *)
     verbOf: line = (

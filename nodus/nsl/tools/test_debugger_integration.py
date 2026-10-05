@@ -445,6 +445,13 @@ def run_path_b_pause():
         child.sendline("dbg:inspect")
         child.expect(r"dbg:stack off=\d+")
         transcript.append(child.after)
+        # rete#312 Q1: in a debug image the cable belongs to this loop, which hands
+        # `profile <ms>` to the kernel's one Profiler -- the line porta would write.
+        child.sendline("profile 50")
+        child.expect("dbg:ok profile")
+        child.sendline("profile nope")
+        child.expect("dbg:error profile")
+        transcript.append("dbg:ok profile / dbg:error profile")
         child.sendline("dbg:continue")
         child.expect("tick 3")
         child.expect("done")

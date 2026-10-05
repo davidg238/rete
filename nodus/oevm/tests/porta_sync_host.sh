@@ -103,9 +103,14 @@ grep -q "serving the space" /tmp/porta_serve.log || {
 echo "[6/9] start the node"
 echo 40 > /tmp/porta_node_bootid
 NODE_BOOT=41
+# rete#312: the node's stdin is a FIFO this script holds open on fd 9, so leg 8b can
+# type a line at it the way a person types at the cable. Opening the reader blocks
+# until a writer exists, so the node starts first and fd 9 opens after it.
+rm -f /tmp/porta_node.stdin && mkfifo /tmp/porta_node.stdin
 OEVM_TIMER_WALLCLOCK=1 OEVM_BOOTID_FILE=/tmp/porta_node_bootid OEVM_NODE_ID="$NODE" \
-  /tmp/oevm_porta /tmp/porta_node.oimg >/tmp/porta_node.log 2>&1 &
+  /tmp/oevm_porta /tmp/porta_node.oimg </tmp/porta_node.stdin >/tmp/porta_node.log 2>&1 &
 NODE_PID=$!
+exec 9>/tmp/porta_node.stdin
 for _ in $(seq 1 50); do grep -q "PORTA NODE READY" /tmp/porta_node.log && break; sleep 0.1; done
 grep -q "PORTA NODE READY" /tmp/porta_node.log || {
   echo "FAIL: node did not start"; cat /tmp/porta_node.log; exit 1; }
@@ -366,6 +371,22 @@ grep -q 'mprof\[window\]' /tmp/porta_node.log || {
   tail -40 /tmp/porta_node.log; exit 1; }
 echo "  the window closed itself and dumped — porta never sent a stop"
 
+# LEG 8b — rete#312 Q1: the same request typed at the console, in a STANDARD image
+# (no OEVM_DEBUG). The cable and porta feed the kernel's one Profiler: SIGIO on stdin
+# -> pumpEvents posts sys/console -> consoleLine (never blocks) -> parseProfileMs: ->
+# the same timer and the same dump. A second `mprof[window]` header is the pass.
+echo "[8b/9] a console line opens and closes a profile window"
+echo "profile 300" >&9
+for _ in $(seq 1 50); do
+  [ "$(grep -c 'mprof\[window\]: methods=' /tmp/porta_node.log)" -ge 2 ] && break; sleep 0.2
+done
+[ "$(grep -c 'mprof\[window\]: methods=' /tmp/porta_node.log)" -ge 2 ] || {
+  echo "FAIL: 'profile 300' on stdin never closed a window — one mprof[window] in the log."
+  echo "      The chain is SIGIO -> platform_console_service -> sys/console ->"
+  echo "      Profiler>>drainConsole -> consoleLine -> request: -> timers after:."
+  tail -40 /tmp/porta_node.log; exit 1; }
+echo "  the console line opened a window through the same handler"
+
 # rete#114 — the leg NO gate had: a sys/panic row actually ARRIVING at porta.
 # Before #114 nothing subscribed the path, so the app-side publication died
 # undelivered at the drain on every boot, and this gate — the only one that runs
@@ -376,6 +397,7 @@ echo "  the window closed itself and dumped — porta never sent a stop"
 # machine's arms are proven in 22_spacesync/24; THIS asserts delivery.
 echo "[9/9] rete#114: a planted RebootNote reaches porta as sys/panic"
 kill $NODE_PID 2>/dev/null || true
+exec 9>&-
 sleep 0.3
 OEVM_TIMER_WALLCLOCK=1 OEVM_BOOTID_FILE=/tmp/porta_node_bootid OEVM_NODE_ID="$NODE" \
   OEVM_TEST_PANIC_NOTE=1 \

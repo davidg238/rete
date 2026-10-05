@@ -43,6 +43,21 @@ int platform_debug_held(void);
    leaves it at 0: there a line waits for the next hold. */
 extern volatile int platform_debug_pending;
 
+/* rete#312 Q1 — the console as a LINE SOURCE in every image, beside the debug transport
+   above. The kernel's Profiler asks once at boot (prim consoleLine): arm announces each
+   complete line on chan_id, from interrupt context on a board (the UART ISR posts a pulse,
+   which also wakes a VM asleep in pulse_pump) and from service() on the host (SIGIO only
+   raises a flag; the mailbox is not signal-safe). take_line NEVER blocks: an app that
+   reads the console itself may already have consumed the line a pulse announced, and a
+   kernel that then blocked would hang the node.
+     arm         1: lines will be announced; 0: this console cannot (polled USB-CDC, none)
+     take_line   a complete queued line's length (newline stripped), or -1: none yet
+     service     thread context, every pumpEvents: 1 if a line arrived that the backend
+                 could not announce itself (the host's SIGIO); platform.c then posts it */
+int  platform_console_arm(int chan_id);
+int  platform_console_take_line(char *buf, int cap);
+int  platform_console_service(void);
+
 /* rete#162/#117 — the node's per-boot identity, a counter incremented once per
    boot and persisted (PROTOCOL-NSL-RECORDS.md §2.4). Backed by NVS on Zephyr
    (the settings key "oevm/bootid") and by an env-named file on posix.

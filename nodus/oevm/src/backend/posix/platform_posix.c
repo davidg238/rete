@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <unistd.h>
+#include <poll.h>
 /* POSIX (x86-linux / macOS desktop) console backend: stdout via ISO C stdio.
    The flush on newline closes the long-deferred std-lib step-1 minor (platform
    print:/printNewline: were unflushed). platform_zephyr.c (printk) /
@@ -28,7 +29,9 @@ volatile int platform_debug_pending;
    not cut short. A regular file never raises SIGIO (a pipe or tty does), which is fine:
    a file cannot want to stop anything. The descriptor is stdin's, not 0: a C test swaps
    the stdin FILE for a temp file and expects readLine to follow it. */
-static void on_sigio(int sig) { (void)sig; if (!debug_held) platform_debug_pending = 1; }
+static volatile sig_atomic_t console_sig;   /* rete#312: input landed; service() posts */
+static void on_sigio(int sig) { (void)sig; if (!debug_held) { platform_debug_pending = 1; console_sig = 1; } }
+static int sigio_armed;
 static void arm_sigio(void) {
     struct sigaction sa;
     memset(&sa, 0, sizeof sa);
@@ -39,9 +42,8 @@ static void arm_sigio(void) {
     fcntl(fileno(stdin), F_SETFL, fcntl(fileno(stdin), F_GETFL) | O_ASYNC);
 }
 int platform_debug_readline(char *buf, int cap) {
-    static int armed;
     int n = 0;
-    if (!armed) { arm_sigio(); armed = 1; }
+    if (!sigio_armed) { arm_sigio(); sigio_armed = 1; }
     debug_held = 1;
     for (;;) {
         char c;
@@ -55,6 +57,42 @@ int platform_debug_readline(char *buf, int cap) {
     platform_debug_pending = 0;
     buf[n] = '\0';
     return n;
+}
+
+/* rete#312 Q1: the console as a line source (platform_backend.h). SIGIO only raises a
+   flag; service() reports it in thread context and platform.c posts. take_line reads only what poll() says is
+   there, keeping a partial line across calls, so it never blocks. A regular file never
+   raises SIGIO, so a VM whose stdin is /dev/null or a file never spins on its EOF. */
+static int console_armed;
+static char console_part[512];
+static int console_plen;
+int platform_console_arm(int chan_id) {
+    (void)chan_id;                    /* service() reports; platform.c posts */
+    if (!sigio_armed) { arm_sigio(); sigio_armed = 1; }
+    console_armed = 1;
+    return 1;
+}
+int platform_console_service(void) {
+    if (!console_armed || !console_sig) return 0;
+    console_sig = 0;
+    return 1;
+}
+int platform_console_take_line(char *buf, int cap) {
+    struct pollfd pfd = { .fd = fileno(stdin), .events = POLLIN };
+    while (poll(&pfd, 1, 0) > 0 && (pfd.revents & POLLIN)) {
+        char c;
+        if (read(fileno(stdin), &c, 1) <= 0) return -1;
+        if (c == '\r') continue;
+        if (c == '\n') {
+            int n = console_plen < cap - 1 ? console_plen : cap - 1;
+            memcpy(buf, console_part, (size_t)n);
+            buf[n] = '\0';
+            console_plen = 0;
+            return n;
+        }
+        if (console_plen < (int)sizeof console_part) console_part[console_plen++] = c;
+    }
+    return -1;
 }
 int platform_debug_enabled(void) { return getenv("OEVM_DEBUG") != NULL; }
 int platform_debug_held(void)    { return debug_held; }

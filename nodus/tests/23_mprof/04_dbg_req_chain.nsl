@@ -5,55 +5,39 @@ restarted 0
 ended 1
 done
 *)
-(* #165 D2/D6: the WHOLE chain, on host — channel -> dbgReq: -> timer ->
-   profileWindowEnd. 02_dbg_req_profile covers only `parseProfileMs:`, which is
-   a pure function; everything between it and the window closing was proven
-   solely by the C6 hardware gate, so a wiring regression (a reaction never
-   registered, a token dropped, an end that never fires) could reach a board
-   with the whole host suite green.
+(* #165 D2/D6, rete#312: the WHOLE chain, on host — `dbg/req` -> the kernel's
+   Profiler (installed by the Supervisor before this main: runs) -> its timer ->
+   `sys/profileEnd`. 02_dbg_req_profile covers only `parseProfileMs:`, a pure
+   function.
 
-   This is the body PortaBridgeNode.nsl and PortaBridgeNodeC6.nsl both carry,
-   reproduced here rather than driven through the bridge: the chain needs no
-   gateway, no socket and no mesh, and a test that stood one up would be
-   testing the bridge instead.
-
-   SO BE CLEAR ABOUT WHAT THIS DOES NOT GATE. Because the body is reproduced,
-   deleting the wiring from either bridge file leaves this test GREEN. It
-   guards the PATTERN — that a cancel-then-arm chain behaves — not the fact
-   that either bridge carries it. The gate for that is leg 8 of
-   `nodus/oevm/tests/porta_sync_host.sh`, which drives a real `porta put` of
-   `dbg/req` over UDP and asserts an `mprof[window]` header comes back; revert
-   the wiring and that leg goes red. Named here because a test whose name says
-   `dbg_req_chain` reads like the regression gate for the chain, and is not.
+   Since rete#312 this drives the REAL handler, not a reproduced body: the app
+   only dispatches `sys/timer` (which is all a reactor node does) and counts the
+   `sys/profileEnd` events beside the kernel's own reaction. Delete the
+   Supervisor's `install:` or the Profiler's wiring and `open`/`ended` go wrong.
+   Leg 8 of `nodus/oevm/tests/porta_sync_host.sh` is still the gate for the
+   bridge's half (a real `porta put` over UDP).
 
    The build under test has no OEVM_METHOD_PROFILE, so `profileStart`/
-   `profileStop` are no-ops that answer self (01_window_lifecycle). That is the
-   point of the split: the COUNTS are a C unit test (test_mprof_gate), and what
-   is unproven off-target is the WIRING, which this file drives end to end on
-   the host virtual clock — never wall time, so the sequence is exact.
+   `profileStop` are no-ops (01_window_lifecycle): the COUNTS are a C unit test
+   (test_mprof_gate); what this file gates is the WIRING, on the host virtual
+   clock — never wall time, so the sequence is exact.
 
    `restarted 0` is the load-bearing line. Without the cancel in
-   profileWindowStart: the first window's end-timer survives the restart, fires
-   at its own deadline, and closes the second window early — the line would
-   read `restarted 1`. D6 says a start arriving while a window is open restarts
-   it; this is what makes that sentence checkable. *)
+   Profiler>>open: the first window's end-timer survives the restart, fires at
+   its own deadline, and closes the second window early — the line would read
+   `restarted 1`. *)
 class DbgReqChainTest packageUsing: manifest = (
-  | plat space timers profChan profTok ::= nil. ends ::= 0. |
+  | ends ::= 0. |
 ) (
   public main: platform args: args = (
-    | req |
-    plat:: platform.
+    | space timers req |
     space:: platform space.
-    timers:: platform timers.     (* hold ONE instance — it owns the registry *)
+    timers:: platform timers.     (* the kernel's one instance — the Profiler's too *)
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
-    profChan:: space channel: 'sys/profileEnd'.
-    profChan whenever: '' do: [ :m | self profileWindowEnd ].
+    (space channel: 'sys/profileEnd') whenever: '' do: [ :m | self ended ].
     req:: space channel: 'dbg/req'.
-    req whenever: '' do: [ :v | self dbgReq: v ].
 
-    (* A line naming no duration must arm NOTHING. A defaulted window would be
-       an invented constant, and one that armed a timer anyway would close a
-       window nobody opened. *)
+    (* A line naming no duration must arm NOTHING. *)
     req out: '' value: 'reboot now'. space drain.
     platform advanceMillis: 1000. space drain.
     ('ignored ' , ends printString) println.
@@ -74,24 +58,6 @@ class DbgReqChainTest packageUsing: manifest = (
     'done' println.
     ^ 0 )
 
-  (* Each of these is a self-send from inside the whenever: block above. *)
-  dbgReq: line = (
-    | ms |
-    ms:: plat parseProfileMs: line.
-    ms > 0 ifTrue: [ self profileWindowStart: ms ].
-    ^ self )
-
-  profileWindowStart: ms = (
-    profTok == nil ifFalse: [ timers cancel: profTok ].
-    profTok:: nil.
-    plat profileStart.
-    profTok:: timers after: ms post: #profileEnd on: profChan.
-    ^ self )
-
-  profileWindowEnd = (
-    profTok:: nil.
-    plat profileStop.
-    ends:: ends + 1.
-    ^ self )
+  ended = ( ends:: ends + 1. ^ self )
 ) : (
 )

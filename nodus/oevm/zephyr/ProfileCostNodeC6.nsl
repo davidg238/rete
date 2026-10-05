@@ -63,6 +63,10 @@ which wedges the node when that window ends. Nothing here writes to porta either
 so no new replay row is created: the spans are read from the table and PRINTED,
 not published through SpanCapture.
 
+SINCE rete#312 THIS GUARANTEE IS GONE: the kernel's Profiler answers `dbg/req` for
+every app, this one included, so a replayed `dbg/req profile` row now opens a window
+under the arms. Before re-running this measurement, clear that row from the store or
+point the node at a porta whose store has none.
 Otherwise the bridging body is PortaBridgeNodeC6's, unchanged, because the
 workload being measured has to be the workload. Dropped from that file: the
 TAP-lite self-check (this is a measurement, not a gate) and SpanCapture (see

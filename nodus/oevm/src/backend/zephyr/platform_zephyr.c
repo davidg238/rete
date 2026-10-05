@@ -6,6 +6,7 @@
    platform_debug_readline reads the console cable (rete#311, below): the debug
    transport IS the console, one cable, plain text lines. */
 #include "platform_backend.h"
+#include "pulse_backend.h"
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
@@ -100,26 +101,60 @@ K_MSGQ_DEFINE(rl_q, 1, 256, 1);
 /* dbg:pause (platform_backend.h): a newline queued while the VM is NOT in readline
    raises the flag a running VM reads on every bytecode; rl_getc lowers it as the
    paused loop consumes the line. */
+/* rete#312 Q1: complete lines queued, and the channel that announces each one. */
+static atomic_t rl_lines;
+static int console_chan = -1;
+static int console_seq;
 static void rl_isr(const struct device *dev, void *user) {
     uint8_t c;
     (void)user;
     while (uart_irq_update(dev) && uart_irq_rx_ready(dev)) {
         if (uart_fifo_read(dev, &c, 1) != 1) break;
-        if (k_msgq_put(&rl_q, &c, K_NO_WAIT) == 0 && c == '\n' && !debug_held)
-            platform_debug_pending = 1;              /* full queue: the byte is dropped */
+        if (k_msgq_put(&rl_q, &c, K_NO_WAIT) != 0 || c != '\n') continue;   /* full queue: dropped */
+        atomic_inc(&rl_lines);
+        if (!debug_held) {
+            platform_debug_pending = 1;
+            if (console_chan >= 0)
+                pulse_post_isr_value(console_chan, TAG_SMI(++console_seq & 0xffff));
+        }
     }
 }
-static int rl_getc(const struct device *dev) {
+static void rl_arm(const struct device *dev) {
     static bool armed;
-    uint8_t c;
     if (!armed) {
         uart_irq_callback_user_data_set(dev, rl_isr, NULL);
         uart_irq_rx_enable(dev);
         armed = true;
     }
+}
+static void rl_line_taken(void) {
+    platform_debug_pending = 0;
+    if (atomic_get(&rl_lines) > 0) atomic_dec(&rl_lines);
+}
+static int rl_getc(const struct device *dev) {
+    uint8_t c;
+    rl_arm(dev);
     k_msgq_get(&rl_q, &c, K_FOREVER);
-    if (c == '\n') platform_debug_pending = 0;
+    if (c == '\n') rl_line_taken();
     return c;
+}
+int platform_console_arm(int chan_id) {
+    const struct device *dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
+    if (!device_is_ready(dev)) return 0;
+    console_chan = chan_id;
+    rl_arm(dev);
+    return 1;
+}
+int platform_console_take_line(char *buf, int cap) {
+    int n = 0;
+    uint8_t c;
+    if (cap < 1 || atomic_get(&rl_lines) == 0) return -1;
+    while (k_msgq_get(&rl_q, &c, K_NO_WAIT) == 0) {
+        if (c == '\n') { rl_line_taken(); buf[n] = '\0'; return n; }
+        if (c != '\r' && n < cap - 1) buf[n++] = (char)c;
+    }
+    buf[n] = '\0';      /* counted a line the queue no longer holds: answer what came */
+    return n;
 }
 #else
 /* Polled: nothing runs between reads, so nothing can count a line in. A line sent
@@ -152,14 +187,24 @@ int platform_debug_readline(char *buf, int cap) {
     return n;
 }
 int platform_debug_held(void) { return debug_held; }
+#if RL_IS_CDC || !defined(CONFIG_UART_INTERRUPT_DRIVEN)
+/* Polled: nothing runs between reads, so nothing can announce a line (rete#312). */
+int platform_console_arm(int chan_id) { (void)chan_id; return 0; }
+int platform_console_take_line(char *buf, int cap) { (void)buf; (void)cap; return -1; }
+#endif
 #else
 int platform_debug_readline(char *buf, int cap) {
     (void)buf; (void)cap;
     return -1;   /* no console device to read a line from */
 }
 int platform_debug_held(void) { return 0; }
+int platform_console_arm(int chan_id) { (void)chan_id; return 0; }
+int platform_console_take_line(char *buf, int cap) { (void)buf; (void)cap; return -1; }
 volatile int platform_debug_pending;
 #endif
+/* rete#312: the ISR posts its own announcement; nothing to report at the safe point. */
+int platform_console_service(void) { return 0; }
+
 
 int platform_debug_enabled(void) {
 #ifdef OEVM_NO_DEBUG_HOOKS

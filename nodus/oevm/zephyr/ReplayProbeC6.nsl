@@ -28,9 +28,8 @@ This file is PortaBridgeNode.nsl with six differences and no others:
      after #165's re-review noticed the header and the file disagreed.
 A change to the BRIDGING body of either file is a change to both; differences 5
 and 6 are additive and have no counterpart in the host file. #165's `dbg/req` wiring
-landed here FIRST and briefly made a sixth — it is now in both files, which is
-what the rule above asks for and what gives the chain a host-side gate
-(tests/porta_sync_host.sh leg 8) instead of hardware-only proof.
+was once a sixth; since rete#312 neither file carries it — the kernel's Profiler
+answers `dbg/req` for every app, and tests/porta_sync_host.sh leg 8 still gates it.
 
 expect (console, once attached):
 PORTA NODE READY
@@ -50,7 +49,7 @@ Dialect: `[ ... ] whileTrue:`, never `repeat`; state in instance slots so every
 reaction block is a one-line self-send.
 *)
 class ReplayProbeC6 usingPlatform: platform net: net = (
-  | space bridge timers profChan ticks ::= 0. profTok ::= nil.
+  | space bridge timers ticks ::= 0.
     (* difference 5 — the bridge-health self-check. `obsCap` is held rather than
        re-derived per tick for the same reason `timers` is: one instance, minted
        once. *)
@@ -138,16 +137,9 @@ class ReplayProbeC6 usingPlatform: platform net: net = (
        reaction — there is no protocol handler anywhere in this node. *)
     (space channel: 'goal/name') whenever: '' do: [ :v | self nameChanged: v ].
 
-    (* #165 D2: react to porta's dbg/req. The kernel already accepts this path
-       (mayApply:) and already delivers it as a stream (space out:), so nothing
-       inbound changes — this is just a reader, exactly like the goal/name
-       reaction above. *)
-    (space channel: 'dbg/req') whenever: '' do: [ :v | self dbgReq: v ].
-
-    (* D6: the end-of-window signal. Timers post a MESSAGE to a CHANNEL — there
-       is no after:do: — so the window's end is an ordinary channel event. *)
-    profChan:: space channel: 'sys/profileEnd'.
-    profChan whenever: '' do: [ :m | self profileWindowEnd ].
+    (* rete#312: `dbg/req` profile requests are the kernel's (Kernel>>profiler,
+       installed by the Supervisor before main:); this node only dispatches
+       `sys/timer`, which is what closes the window. *)
 
     (* rete#259: the bridge owns obs/build; #man rides iff the image carries a
        manifest pin (rete#243). *)
@@ -230,40 +222,6 @@ class ReplayProbeC6 usingPlatform: platform net: net = (
      what this node then reported observing — the convergence property itself,
      rather than the weaker "obs/name is non-empty". *)
   nameChanged: v = ( goalName:: v. space put: 'obs/name' value: v. ^ self )
-
-  (* Each of these is a self-send from inside the whenever: block above. *)
-  dbgReq: line = (
-    | ms |
-    ms:: platform parseProfileMs: line.
-    ms > 0 ifTrue: [ self profileWindowStart: ms ].
-    ^ self )
-
-  (* SELF-LIMITING (D6). The node stops on its own, so a node that never hears
-     from porta again still stops counting and still reports. An explicit stop
-     message would leave a field node paying the counter's cost forever the
-     first time one was lost, with nobody aware.
-
-     `timers` is the app's ONE instance (see `main:args:`). Do NOT mint a second: token
-     allocation is per-instance but the C timer registry is keyed globally, so a
-     second instance would alias this one's tokens and misfire silently.
-
-     A START ARRIVING WHILE A WINDOW IS OPEN RESTARTS IT (D6), and cancelling
-     the pending end-timer is what makes that sentence true. Without the cancel
-     the first timer still fires and closes the SECOND window early — and since
-     `dbg/req` is a stream, a cold boot replays every request porta ever wrote
-     from cursor 0, arming one end-timer per replayed line with only the last
-     one ever cancelled. `profTok` is nil exactly when no window is open. *)
-  profileWindowStart: ms = (
-    profTok == nil ifFalse: [ timers cancel: profTok ].
-    profTok:: nil.
-    platform profileStart.
-    profTok:: timers after: ms post: #profileEnd on: profChan.
-    ^ self )
-
-  profileWindowEnd = (
-    profTok:: nil.
-    platform profileStop.
-    ^ self )
 
   (* LIVENESS AND DELIVERY ONLY (design D2, 2026-08-04). heapFree/heapLargest/overruns
      left this record — not duplicated elsewhere, DELETED from here, because every one

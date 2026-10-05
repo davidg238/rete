@@ -17,7 +17,7 @@ indexable: n` (Array as an argument is a slot read of the class object).
 class Kernel usingPlatform: platform = (
   (* rete#244: the ONE Timers this kernel instance answers. Lazy because the
      accessor below is the only reader, nil until first asked. *)
-  | timersOne ::= nil. |
+  | timersOne ::= nil. profilerOne ::= nil. |
 ) (
   class Object = () (
     (* Milestone E Task 1: the in-flight error value is a crash Record (#tag/#text),
@@ -3588,6 +3588,54 @@ class Kernel usingPlatform: platform = (
     public usingSpace: s seam: c = ( ^ self new setSpace: s seam: c )
   )
 
+  (* rete#312 Q1: THE one profile handler, owned by the kernel so no app carries a copy.
+     A `profile <ms>` line opens a per-method window for ms and its close dumps the rows
+     to the console (vm.c mprof_report); a second request while one is open restarts it.
+     Three feeders, one grammar (`parseProfileMs:`): porta's `dbg/req`, the console cable
+     in a standard image (`sys/console`, announced by the UART interrupt), and the
+     debugger's command loop in a debug image (supervisor.nsl), where the cable belongs
+     to the debugger. Installed by the Supervisor before every app's `main:`.
+
+     The window closes on the kernel's one Timers, so it closes only in an app that
+     dispatches `sys/timer` -- every reactor node does. An app with no reactor never
+     drains its space, so nothing here reaches it; its profile is a build option
+     (OEVM_MPROF_FLIP_AT/DUMP_AT). The console is read with `consoleLine`, which never
+     blocks: an app that reads the cable itself may already have taken the line. *)
+  class Profiler = ( | kernel space timers tok ::= nil. endCh | ) (
+    public install: withCable = (
+      (space channel: 'dbg/req') whenever: '' do: [ :v | self request: v ].
+      endCh:: space channel: 'sys/profileEnd'.
+      endCh whenever: '' do: [ :m | self close ].
+      withCable ifTrue: [
+        (kernel consoleLine == false) ifFalse: [
+          (space channel: 'sys/console') whenever: '' do: [ :n | self drainConsole ] ] ].
+      ^ self
+    )
+    (* Answers the window's ms, or 0 for a line that is not `profile <positive int>`. *)
+    public request: line = (
+      | ms |
+      ms:: kernel parseProfileMs: line.
+      ms > 0 ifTrue: [ self open: ms ].
+      ^ ms
+    )
+    (* One announcement may stand for several lines: take every complete one. *)
+    drainConsole = (
+      | line |
+      [ line:: kernel consoleLine. line == nil ] whileFalse: [ self request: line ].
+      ^ self
+    )
+    open: ms = (
+      tok == nil ifFalse: [ timers cancel: tok ].
+      kernel profileStart.
+      tok:: timers after: ms post: #profileEnd on: endCh.
+      ^ self
+    )
+    close = ( tok:: nil. kernel profileStop. ^ self )
+    setKernel: k = ( kernel:: k. space:: k space. timers:: k timers. ^ self )
+  ) : (
+    public usingKernel: k = ( ^ self new setKernel: k )
+  )
+
   (* Zephyr rung-2 sub-project 1: the ISR→channel pulse capability. Registration
      hands the seam a (pin, edge, message, channel-path); C pins the message via the
      M6 handle table and stores the ISR slot. On target a GPIO edge ISR posts the
@@ -4089,6 +4137,13 @@ class Kernel usingPlatform: platform = (
      to the console, which is already teed off the board (design D4). *)
   public profileStart      = ( platform profileStart. ^ self )
   public profileStop       = ( platform profileStop. ^ self )
+  (* rete#312 Q1: the kernel's one profile handler (class Profiler). *)
+  public profiler          = (
+    profilerOne == nil ifTrue: [ profilerOne:: Profiler usingKernel: self ].
+    ^ profilerOne )
+  (* rete#312: a complete console line if one is queued, nil if not, false when this
+     console cannot announce lines. Never blocks; the first send arms `sys/console`. *)
+  public consoleLine       = ( ^ platform consoleLine )
   (* #74: the build actually running, so a reader can pick the matching sidecar. *)
   public buildId           = ( ^ platform buildId )
   (* rete#118: which BOARD this is — its factory link address in lowercase hex, read
