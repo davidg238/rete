@@ -304,8 +304,12 @@ kind, not the owner of it.
 On each check-in (cadence per `obs/mode`, exactly as v1 derives liveness):
 
 1. **Pull** — request `goal/**` (+ `dbg/req`) entries with `seq > cursor`, declaring
-   both the `cursor` applied so far and the `hw` the node believes porta has accepted
-   from it (see the fifth rule below); apply each
+   the `cursor` applied so far, the `hw` the node believes porta has accepted
+   from it (see the fifth rule below), and **`wak`** — the count of this boot's
+   check-ins, required; porta judges progress from it and from nothing else
+   (rete#272 D3.3). It rides the pull and not the push because the pull is built
+   fresh every tick, while the push frame is re-sent unchanged until it is acked
+   (rete#199) and would carry a stale count exactly when it mattered. Apply each
    to the local space (cell paths become local cell values via `put:value:`;
    `goal/do/*` stream entries are `out:`ed once); advance the RAM cursor only after
    apply (the cursor is deliberately not persisted — §3 and design 2026-08-26 D3;

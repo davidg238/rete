@@ -64,14 +64,7 @@ func TestSweepAcrossAGatewayOutageIsUnknownAndNotSilent(t *testing.T) {
 	if err := st.StartRun(); err != nil {
 		t.Fatalf("StartRun: %v", err)
 	}
-	checkIn(t, st, &clock, "bell", 0)
-	declare(t, st, "bell", 30_000, 8)
-	if err := st.MarkAlive(); err != nil {
-		t.Fatalf("MarkAlive: %v", err)
-	}
-	if _, err := st.Sweep(); err != nil {
-		t.Fatalf("Sweep: %v", err)
-	}
+	bell := goLive(t, st, &clock, "bell", 30_000)
 	if got := livenessOf(t, st, "bell"); got != "live" {
 		t.Fatalf("before the outage: verdict = %q, want live", got)
 	}
@@ -92,14 +85,19 @@ func TestSweepAcrossAGatewayOutageIsUnknownAndNotSilent(t *testing.T) {
 		t.Fatalf("changes = %+v, want one #unknown — porta was deaf for the whole window", changes)
 	}
 
-	// The node checks back in: evidence of speech outranks everything.
-	checkIn(t, st, &clock, "bell", 1_000)
-	if err := st.MarkAlive(); err != nil {
-		t.Fatalf("MarkAlive: %v", err)
-	}
+	// The node checks back in. The #unknown past the budget forgot the mark
+	// (rete#272 D3.3), so one sample says nothing about a rate: the stored
+	// #unknown holds, and the next on-cadence window is #live.
+	bell.tick(t, st, &clock, 1_000)
 	if changes, err = st.Sweep(); err != nil {
 		t.Fatalf("Sweep after the check-in: %v", err)
+	} else if len(changes) != 0 {
+		t.Fatalf("changes = %+v, want none — one sample, the stored #unknown holds", changes)
+	}
+	bell.ticks(t, st, &clock, 2, 30_000)
+	if changes, err = st.Sweep(); err != nil {
+		t.Fatalf("Sweep after two more check-ins: %v", err)
 	} else if len(changes) != 1 || changes[0].Verdict != "live" {
-		t.Fatalf("changes = %+v, want #live once the node speaks again", changes)
+		t.Fatalf("changes = %+v, want #live once the node is back on cadence", changes)
 	}
 }

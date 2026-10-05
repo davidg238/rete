@@ -352,4 +352,4 @@ span-capture = #6.27([sym-SpanCapture, {
 ; =====================================================================
 
 ;# path=gw/liveness  kind=cell  class=routine  dir=gw
-gw-verdict = #6.39("live") / #6.39("silent") / #6.39("neverSeen") / #6.39("unknown")
+gw-verdict = #6.39("live") / #6.39("silent") / #6.39("neverSeen") / #6.39("unknown") / #6.39("stalled")

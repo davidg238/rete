@@ -269,7 +269,8 @@ func (s *Store) Write(nodeID, path string, kind cval.Kind, value []byte, actor, 
 }
 
 // PathLiveness is the one gw/** path today: porta's verdict on whether a node
-// is still talking. #live or #silent, as a Symbol.
+// is still making progress. One of the five verdicts in sweep.go (#live,
+// #stalled, #silent, #neverSeen, #unknown), as a Symbol.
 const PathLiveness = "gw/liveness"
 
 // PathDeclared is where a node states how long its silence may last (rete#231
@@ -524,7 +525,7 @@ func (s *Store) Ingest(nodeID string, bootID int64, entries []Entry) (hw int64, 
 // genuinely unavailable for such a node, and the honest response is to leave the
 // watermark alone and let the caller say so out loud, NOT to guess from a value
 // that is the same on every boot.
-func (s *Store) NoteCheckIn(nodeID string, cursor, nodeHW, bootID int64) (restartedFrom int64, restarted bool, err error) {
+func (s *Store) NoteCheckIn(nodeID string, cursor, nodeHW, bootID, wak int64) (restartedFrom int64, restarted bool, err error) {
 	now := s.nowMs()
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -564,9 +565,10 @@ func (s *Store) NoteCheckIn(nodeID string, cursor, nodeHW, bootID int64) (restar
 	// reaches this statement: the pull door refuses it (OutSeq).
 	if _, err := tx.Exec(
 		`UPDATE nodes SET cursor_acked = ?, boot_id = ?, last_seen_ms = ?,
+		        wak = ?, wak_ms = ?,
 		        cursor_hw = MAX(cursor_hw, MIN(?, served_hw))
 		  WHERE id = ?`,
-		cursor, bootID, now, cursor, nodeID); err != nil {
+		cursor, bootID, now, wak, now, cursor, nodeID); err != nil {
 		return 0, false, err
 	}
 	return restartedFrom, restarted, tx.Commit()

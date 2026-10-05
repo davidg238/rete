@@ -890,20 +890,20 @@ func TestCheckInAdvancesCursorHighWaterMonotonically(t *testing.T) {
 		return v
 	}
 
-	if _, _, err := st.NoteCheckIn("n1", 2, 0, 7); err != nil {
+	if _, _, err := st.NoteCheckIn("n1", 2, 0, 7, 0); err != nil {
 		t.Fatalf("NoteCheckIn: %v", err)
 	}
 	if hw() != 2 {
 		t.Fatalf("cursor_hw = %d after acking 2, want 2", hw())
 	}
 	// A stale datagram declaring an OLDER cursor must not rewind the guard.
-	if _, _, err := st.NoteCheckIn("n1", 1, 0, 7); err != nil {
+	if _, _, err := st.NoteCheckIn("n1", 1, 0, 7, 0); err != nil {
 		t.Fatalf("NoteCheckIn: %v", err)
 	}
 	if hw() != 2 {
 		t.Fatalf("cursor_hw = %d after a stale cursor 1, want 2", hw())
 	}
-	if _, _, err := st.NoteCheckIn("n1", 3, 0, 7); err != nil {
+	if _, _, err := st.NoteCheckIn("n1", 3, 0, 7, 0); err != nil {
 		t.Fatalf("NoteCheckIn: %v", err)
 	}
 	if hw() != 3 {
@@ -918,7 +918,7 @@ func TestCheckInAdvancesCursorHighWaterMonotonically(t *testing.T) {
 func TestCheckInReceiptNeverExceedsServed(t *testing.T) {
 	st := testStore(t)
 	st.Write("n1", "goal/a", cval.KindCell, enc(t, "one"), "david", "")
-	if _, _, err := st.NoteCheckIn("n1", 500, 0, 7); err != nil {
+	if _, _, err := st.NoteCheckIn("n1", 500, 0, 7, 0); err != nil {
 		t.Fatalf("NoteCheckIn: %v", err)
 	}
 	var v int64
@@ -938,12 +938,12 @@ func TestCheckInReceiptNeverExceedsServed(t *testing.T) {
 // replays everything.
 func TestStaleCursorNeverMarksUnservedRowsApplied(t *testing.T) {
 	st := testStore(t)
-	if _, _, err := st.NoteCheckIn("n1", 500, 0, 7); err != nil { // reset store, first contact
+	if _, _, err := st.NoteCheckIn("n1", 500, 0, 7, 0); err != nil { // reset store, first contact
 		t.Fatalf("NoteCheckIn: %v", err)
 	}
 	st.Write("n1", "goal/name", cval.KindCell, enc(t, "bell"), "david", "")    // seq 1
 	st.Write("n1", "dbg/req", cval.KindStream, enc(t, "profile"), "david", "") // seq 2
-	if _, _, err := st.NoteCheckIn("n1", 500, 0, 7); err != nil {              // stale cursor again
+	if _, _, err := st.NoteCheckIn("n1", 500, 0, 7, 0); err != nil {           // stale cursor again
 		t.Fatalf("NoteCheckIn: %v", err)
 	}
 	got, _, err := st.OutboundSince("n1", 0, MaxBatchBytes) // node reboots
@@ -1031,7 +1031,7 @@ func TestAckedStreamRowsAreNeverReServed(t *testing.T) {
 	if err := st.NoteServed("n1", 3); err != nil {                              // porta served the batch...
 		t.Fatalf("NoteServed: %v", err)
 	}
-	if _, _, err := st.NoteCheckIn("n1", 3, 0, 7); err != nil { // ...and the node applied it
+	if _, _, err := st.NoteCheckIn("n1", 3, 0, 7, 0); err != nil { // ...and the node applied it
 		t.Fatalf("NoteCheckIn: %v", err)
 	}
 
@@ -1053,7 +1053,7 @@ func TestAckedStreamRowsAreNeverReServed(t *testing.T) {
 func TestUnackedStreamRowsSurviveALostBatch(t *testing.T) {
 	st := testStore(t)
 	st.Write("n1", "dbg/req", cval.KindStream, enc(t, "profile"), "david", "") // seq 1
-	if _, _, err := st.NoteCheckIn("n1", 0, 0, 7); err != nil {                // pull sent, batch LOST
+	if _, _, err := st.NoteCheckIn("n1", 0, 0, 7, 0); err != nil {             // pull sent, batch LOST
 		t.Fatalf("NoteCheckIn: %v", err)
 	}
 	got, _, err := st.OutboundSince("n1", 0, MaxBatchBytes)
@@ -1073,7 +1073,7 @@ func TestOutageWrittenStreamRowDeliversAcrossAReboot(t *testing.T) {
 	if err := st.NoteServed("n1", 1); err != nil {                         // served, then applied
 		t.Fatalf("NoteServed: %v", err)
 	}
-	if _, _, err := st.NoteCheckIn("n1", 1, 0, 7); err != nil {
+	if _, _, err := st.NoteCheckIn("n1", 1, 0, 7, 0); err != nil {
 		t.Fatalf("NoteCheckIn: %v", err)
 	}
 	st.Write("n1", "dbg/req", cval.KindStream, enc(t, "new"), "david", "") // seq 2, node down
@@ -1098,7 +1098,7 @@ func TestOutageWrittenStreamRowDeliversAcrossAReboot(t *testing.T) {
 // history at all.
 func TestFreshStoreRowsServeAfterAnImpossibleCursor(t *testing.T) {
 	st := testStore(t)
-	if _, _, err := st.NoteCheckIn("n1", 500, 0, 7); err != nil { // running node, reset store
+	if _, _, err := st.NoteCheckIn("n1", 500, 0, 7, 0); err != nil { // running node, reset store
 		t.Fatalf("NoteCheckIn: %v", err)
 	}
 	st.Write("n1", "goal/name", cval.KindCell, enc(t, "bell"), "david", "")    // seq 1

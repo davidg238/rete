@@ -5,17 +5,17 @@ find the holes the two halves cannot see in each other. Companion to the diagram
 `docs/spikes/2026-08-27-liveness-*.png` and to rete#269 / #270.
 
 ```
-TLA_JAR=/tmp/tla2tools.jar ./run.sh      # nine configs, each naming the answer it expects
+TLA_JAR=/tmp/tla2tools.jar ./run.sh      # thirteen configs, each naming the answer it expects (~4 min)
 ```
 
 **Every config names the answer it expects and the runner compares** — a mismatch in
-EITHER direction is the finding. Eight are expected to report a violation; `sound.cfg`
-is expected to complete, and it is the only set of numbers found so far under which the
-contract holds. (This file previously said "all three are expected to violate". That was
+EITHER direction is the finding. Two are expected to complete — `sound.cfg` (the age
+rule) and `sound-rate.cfg` (the rate rule, rete#272 D3) — and every other config is
+expected to report a violation. (This file previously said "all three are expected to violate". That was
 true of the three configs that existed and became false the moment a rule that holds was
 found — the runner now carries the expectation, so it cannot go stale silently again.)
 
-The `Rule` constant picks which verdict porta applies, and all three live in one spec so
+The `Rule` constant picks which verdict porta applies, and all four live in one spec so
 the shipped rule stays runnable beside its replacement:
 
 | `Rule` | the test | whose |
@@ -23,6 +23,7 @@ the shipped rule stays runnable beside its replacement:
 | `"arrival"` | `now - last_seen <= bud` | what porta ships (`sweep.go:185`) |
 | `"sweepDelta"` | that, AND `wak` advanced between the last two sweeps | rete#272, read as a delta |
 | `"progressAge"` | `now - last_PROGRESS <= bud` | rete#272, read as an age |
+| `"rateAge"` | `now - last_seen <= bud`, AND `wak` moved at the declared rate between porta's last two samples, else `stalled` | rete#272 D3 (2026-09-14) |
 
 Units are scaled: one model step = 2 s of wall clock, so the bench node's 2 s cadence is
 `Cad = 1`. Every constant names its wall-clock original in the `.cfg`.
@@ -105,6 +106,102 @@ value never increases, and the age keeps climbing. One caveat the model does sur
 comparison is on raw counter values, so a boot that climbs past the last stored sample
 before the next sweep does clear the age. That is a real hole in the raw-`wak` test, and
 it is bounded by the same `Bud + Sweep` sum.
+
+## What the rate rule found (2026-10-02)
+
+D3 (`docs/design/2026-09-14-liveness-two-cadences-design.md`) decided `#stalled` =
+*arriving, but behind the cadence it declared*, and named this model step as the next
+move. Three changes to the model made it askable:
+
+- **A third check-in outcome, `"deaf"`** — the datagrams land, no reply comes back, the
+  node spins both reply budgets. That is #271's measured case (4.007 s against 2 s), and
+  the one in which every earlier rule says `live`: `sound-age-behind.cfg` is the age rule
+  on `sound.cfg`'s numbers, and it violates `NeverBehindLive`.
+- **A model defect, fixed.** A *lost* check-in used to age porta's `sinceSeen` by a step
+  with no time passing — the age ran ahead of the clock, which can only hide a stale
+  `live`. `sound.cfg` was re-run with the fix and the deaf outcome and **still completes,
+  now over 30 590 857 states** (it was 3 167 616 on 2026-08-28).
+- **The rule.** porta holds a *mark* — the sample it judged from at the last sweep — and
+  at the next sweep compares the elapsed time between the mark and the latest sample with
+  the ticks the node counted in it. Short by a whole declared period or more: `stalled`.
+
+`sound-rate.cfg` **completes over 38 397 875 states** with three claims holding together:
+`NeverStaleLive` (unchanged), `NoFalseStall` (`stalled` is only said of a window that held
+a slow gap or a wedge — the guard on D3's per-exchange trap), and `NeverBehindLive`. Both
+verdicts are proven reachable (`sound-rate-live.cfg`, `sound-rate-stalled.cfg`).
+
+**The bound is TLC's, not a choice.** `NeverBehindLive` says porta stops calling a node
+`live` within `Bud + Sweep + Cad` of its last on-cadence tick. Probed over seven settings
+of `Cad`/`ReplyBudget`/`Bud`/`Sweep`, that is the smallest bound that holds, and it is
+tight in every setting where a tick can run slow. A stall costs the age rule's own
+`Bud + Sweep` latency plus the one period of slack in `Behind`.
+
+**Two things the Go must copy, because TLC refuted the obvious version of each:**
+
+1. **A sweep with no new sample since the mark has no rate evidence — it must not re-mark.**
+   The first version did, and a stalled node flipped back to `live` on every empty window,
+   unbounded. The window stays open across that sweep; only the arrival age may still move
+   the verdict (to `silent`).
+2. **One sample says nothing about a rate.** With no mark, the first verdict read `live`
+   on zero evidence. The rule withholds `live` until porta holds two samples — `#unknown`,
+   which porta already has, so no symbol is added.
+
+**What the model is optimistic about, deliberately:** Δwak is carried as a count of ticks,
+not a difference of raw values, so it never saturates and ignores the reboot reset. A
+real Δwak across a reboot is *smaller*, which only makes porta say `stalled` sooner; a
+reboot inside the window is a genuine fault, so that is not a false stall. The one period
+of slack is the degenerate tolerance (a real node jitters by ms); a board run is what
+would earn a different one.
+
+## What the cached frame found (2026-10-03)
+
+The rate rule above was checked on an assumption this model stated in one line: *"obs/health
+rides the PUSH leg, so porta learns the counter only on a check-in that lands"* — and then
+handed porta the **current** count on every landing. The node does not do that. `pushFrame`
+(`nodus/nsl/lib/kernel.nsl`, rete#199) re-sends the **same encoded frame** until an ack is
+heard, so:
+
+- a **deaf** node (its datagrams land, no reply comes back — #271, the case D3 exists for)
+  re-sends a frame porta already holds, and **no new sample lands at all**;
+- a frame that was **lost** lands a tick or more later carrying the count from when it was
+  **built**, stamped with the time it **arrived**.
+
+The #272 whole-branch review found this in the Go (its F2); the model now carries it as a
+constant, `Frame` (`"fresh"` = the old assumption, `"cached"` = the node as built), and
+reproduces both directions of the defect against the rule as the Go of 2026-10-03 has it:
+
+| config | result | what it shows |
+|---|---|---|
+| `cached-lossy` | `NoFalseStall` violated, 14-state trace | a node whose spin fits inside its period (the 30 s nodes) loses ONE push, never runs slow, and reads `stalled` |
+| `cached-rate` | `NeverBehindLive` violated | with no guard, a deaf node delivers no sample and the empty-window rule keeps `live` |
+| `cached-rate-guard` | `NeverBehindLive` violated | with the Go's guard (`HealthGap = Cad`): a late frame makes the MARK late, the window is compressed, and a node at half rate reads on-rate |
+
+**The extension is behaviour-preserving under `"fresh"`**: all thirteen earlier configs keep
+their answers and `sound-rate.cfg` completes over the same **38 397 875** states.
+
+**The model was wrong first, again** (2 of the first 3 cached counterexamples). The ghost
+`windowFault` was attributed at a *delivery*; with a cached frame the sample a window is
+judged on is taken at one time and lands at another, so it blamed the wrong window in both
+directions. It is now read as widely as it can be — any fault since the mark's sample was
+**taken** — so a `stalled` said with it FALSE was said of a node that never ran slow at all.
+
+**What holds.** With the count fresh on every check-in, and a silent verdict forgetting the
+mark (`ClearMark`, the review's F5 — a node that returns is judged from its first new
+sample, not across the silence):
+
+| config | result |
+|---|---|
+| `fresh-clear` (sound-rate's numbers) | completes, 29 141 987 states; `live` and `stalled` both reachable |
+| `fresh-lossy` (cached-lossy's node) | completes, 13 387 396 states |
+| `fresh-lossy-clear` | completes, 12 985 057 states |
+
+So the rule is sound and the **transport of its sample** is what is broken. The pull request
+is built fresh on every tick (`pullFrame`: `#id #cursor #bid #hw`), which is the one place a
+count can ride and satisfy the assumption.
+
+**Not modelled here:** a rule that keeps the cached frame and times the window from the
+record's own `up`; porta's own outage inside the window (the review's F3 — a 2 s node ticks
+at 4 s while porta is down); a node that publishes no count at all (F1).
 
 ## What the original run found
 

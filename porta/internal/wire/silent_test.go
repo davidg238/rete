@@ -60,7 +60,7 @@ func silentHarness(t *testing.T, drop bool) (*Server, *space.Store, func([]byte)
 func silentFrames(t *testing.T) (pull, push []byte) {
 	t.Helper()
 	var err error
-	if pull, err = EncodePull("n1", 0, 7, 0); err != nil {
+	if pull, err = EncodePull("n1", 0, 7, 0, 0); err != nil {
 		t.Fatalf("EncodePull: %v", err)
 	}
 	if push, err = EncodePush("n1", 7, []space.Entry{

@@ -163,9 +163,11 @@ echo "  obs/liveness carries the node's declared cadence and miss allowance (ret
 # rete#231: porta's verdict, formed from the number the node declared. The sweep's
 # default period (space.SweepTick, 30 s) outlasts this whole gate, so serve is
 # started with --sweep-tick 1s above rather than the script sleeping 31 s for a
-# tick it would also be racing.
+# tick it would also be racing. The wait is for #live itself, not for any verdict:
+# the first sweep that sees one obs/health sample says #unknown (one sample says
+# nothing about a rate), and #live needs the next sample (rete#272 D3).
 for _ in $(seq 1 100); do
-  /tmp/porta get --db "$DB" "$NODE" gw 2>/dev/null | grep "gw/liveness" >/dev/null && break; sleep 0.2
+  /tmp/porta get --db "$DB" "$NODE" gw/liveness 2>/dev/null | grep "#live" >/dev/null && break; sleep 0.2
 done
 /tmp/porta get --db "$DB" "$NODE" gw/liveness | grep "#live" >/dev/null || {
   echo "FAIL: porta did not judge a node checking in every 2 s as #live"

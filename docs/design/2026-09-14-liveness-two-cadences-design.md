@@ -220,6 +220,85 @@ reports the divergence.** #271's directions 2 (stop `awaitReply` burning the ful
 live as a *cause* fix — D3 absorbs #271's **detection**, not its cause, and the spin still
 halves the check-in rate under silence.
 
+### D3.2 — Model-checked, and refined, 2026-10-03
+
+The rate rule now runs in `docs/spikes/2026-08-27-liveness-model/` as `Rule = "rateAge"`.
+`sound-rate.cfg` completes with no stale `#live`, no behind `#live` and no false `#stalled`,
+and both verdicts are proven reachable. The detection bound is **`bud + SweepTick + telCad`**;
+TLC found it, nobody chose it. TLC also refuted two readings of D3, so the rule is narrower
+than the text above:
+
+- **"Between porta's last two samples" means since the MARK** (the sample judged at the last
+  sweep), and **a sweep with no new sample keeps both the verdict and the mark.** Re-marking
+  on an empty window let a stalled node flip back to `#live`, unbounded.
+- **One sample is `#unknown`**, not `#live`. No new symbol: `#unknown` already exists.
+- ~~Added by the plan, outside the model: a node that is arriving while `obs/health` has
+  stopped landing reads `#unknown`.~~ **Deleted by D3.3** — the guard existed only because
+  the sample rode a frame that could stop landing.
+
+Plan: `porta/docs/superpowers/plans/2026-10-03-272-stalled-verdict.md` (Tasks 1–3 executed
+2026-10-03; superseded from its Task 4 by D3.3's plan).
+
+### D3.3 — The count rides the pull, 2026-10-03
+
+**What was wrong.** D3.2's rule was checked on the assumption that every check-in that lands
+hands porta the node's *current* count. It does not: `wak` rode `obs/health` in the push
+frame, and `pushFrame` re-sends the same encoded frame until an ack is heard (rete#199). The
+whole-branch review of the D3.2 code found the consequence (its F2) and the model now
+reproduces it in both directions (`Frame = "cached"`; model README, "What the cached frame
+found"): a healthy node that loses one push reads `#stalled`, and a node at half rate reads
+`#live` past the bound. A deaf node — #271, the case D3 exists for — delivers no sample at all.
+
+**Decided (David, 2026-10-03): the rule stands; its sample moves to the pull.**
+
+- **The pull request carries `#wak`**, a count the kernel bridge increments once per
+  `checkIn`. The pull is built fresh on every tick (`pullFrame`), so the assumption the model
+  was checked on becomes true by construction. `#wak` is **required**: a pull without it is
+  refused like any other mis-versioned request.
+- **porta's sample is (that count, the pull's arrival time)** and it is the *only* thing the
+  verdict reads. Silence is judged from the same sample — `now − wak_ms > telCad × misses` —
+  so "arriving, but the count has stopped" cannot be represented, and the guard D3.2 added
+  for it is deleted rather than tuned (the review's F4).
+- **A verdict past the budget forgets the mark** (the review's F5; model `ClearMark`). A node
+  that returns is judged from its first new sample, never across the silence: a replug reads
+  `#silent → #unknown → #live`, not `#silent → #stalled → #live`.
+- **A window that spans an interval porta was not listening re-marks and does not judge**
+  (the review's F3; `WasDeaf`, which already exists). A 2 s node ticks at 4 s while porta is
+  down (#271), and porta's own absence is not evidence about the node.
+- **A node whose pulls carry no count** — an image built before this — reads `#unknown`
+  with a reason saying so, until it is reflashed. No arrival-only fallback: that would be a
+  second rule beside the first.
+- **`obs/health.wak` is untouched** and is no longer read by porta. It stays what the
+  catalogue says it is: the app's own tick count, for a person reading the record.
+
+**"No wire change" is withdrawn.** #272's body said the fix "adds no field, no wire change
+and no new mechanism" because the count was believed to arrive on every check-in already.
+It never did. One field on a request both ends rebuild together is the cheapest true thing.
+
+**Model evidence:** `fresh-clear.cfg` (29 141 987 states) and `fresh-lossy.cfg` (13 387 396)
+hold `NeverStaleLive`, `NeverBehindLive` and `NoFalseStall`; `cached-lossy.cfg`,
+`cached-rate.cfg` and `cached-rate-guard.cfg` are the three refutations of the D3.2 transport.
+The bound is unchanged: `bud + SweepTick + telCad`.
+
+**Left to the fleet, on purpose** (each is a number or a wording that only real nodes on the
+home network can price — recorded so the deferral is falsifiable):
+
+- **The one period of slack.** One lost reply on a 2 s node delays that tick to 4 s, which is
+  exactly one period short: such a node will read `#stalled` for one sweep whenever a reply is
+  lost in the window. What earns a different slack: the count of `#stalled` rows per node per
+  day against the node's own `pto`.
+- **What a restart is called.** A reboot inside the budget reads `#stalled`, named
+  "backwards" only when the new count is below the mark's.
+- **A stale reason.** A verdict whose cause changes without the symbol changing writes no row.
+
+Plan: `porta/docs/superpowers/plans/2026-10-03-272-count-on-the-pull.md`.
+
+**Addendum, 2026-10-03 (David, after the final review).** A node whose pulls carry no count
+stays `#unknown` even past its budget — never `#silent` from arrival. So a dead old-image node,
+and every pre-#272 row in the gateway store, reads `#unknown` until reflashed; the reason
+carries the age of its last exchange so it never claims the node "checks in" (`07f3750`).
+The deaf re-mark is test-pinned but not in the TLA model (#327).
+
 ## 2. What this deletes
 
 - The §3.2 inference, and `OBS_WEDGE_SLACK`'s use in it.

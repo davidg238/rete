@@ -84,8 +84,13 @@ func TestSweepJudgesAgainstTheDeclaredBudget(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
 	listening(t, st)
-	checkIn(t, st, &clock, "n1", 0)
+	// goLive's route, spelled out so the #live transition's own fields can be
+	// read: one sample (#unknown, the mark is taken), then on-cadence ticks.
 	declare(t, st, "n1", 2_000, 16)
+	n := &fakeNode{id: "n1", boot: 41}
+	n.tick(t, st, &clock, 0)
+	sweepOnce(t, st)
+	n.ticks(t, st, &clock, 3, 2_000)
 	lastSeen := clock
 
 	// Well inside the budget.
@@ -129,18 +134,15 @@ func TestSweepDoesNotCallAFastNodeSilentForOrdinaryBlockingWork(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
 	listening(t, st)
-	for i := 0; i < 5; i++ {
-		checkIn(t, st, &clock, "n1", 2_000)
-	}
-	declare(t, st, "n1", 2_000, 16)
+	goLive(t, st, &clock, "n1", 2_000)
 
 	clock += 6_500 // three missed check-ins
 	changes, err := st.Sweep()
 	if err != nil {
 		t.Fatalf("Sweep: %v", err)
 	}
-	if len(changes) != 1 || changes[0].Verdict != "live" {
-		t.Fatalf("changes = %+v, want #live — 6.5 s is inside a declared 32 s budget", changes)
+	if len(changes) != 0 || livenessOf(t, st, "n1") != "live" {
+		t.Fatalf("changes = %+v, verdict %q, want #live held — 6.5 s is inside a declared 32 s budget", changes, livenessOf(t, st, "n1"))
 	}
 }
 
@@ -202,16 +204,16 @@ func TestSweepWritesOnlyOnTransition(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
 	listening(t, st)
-	checkIn(t, st, &clock, "n1", 0)
-	declare(t, st, "n1", 2_000, 16)
+	goLive(t, st, &clock, "n1", 2_000)
 	for i := 0; i < 4; i++ {
 		clock += 1_000
 		if _, err := st.Sweep(); err != nil {
 			t.Fatalf("Sweep: %v", err)
 		}
 	}
-	if n := livenessRows(t, st, "n1"); n != 1 {
-		t.Fatalf("gw/liveness rows = %d, want 1", n)
+	// Two: goLive's #unknown (one sample) and its #live. The four sweeps add none.
+	if n := livenessRows(t, st, "n1"); n != 2 {
+		t.Fatalf("gw/liveness rows = %d, want 2", n)
 	}
 }
 
@@ -222,8 +224,7 @@ func TestSweepRecordsTheReturnToLife(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
 	listening(t, st)
-	checkIn(t, st, &clock, "n1", 0)
-	declare(t, st, "n1", 2_000, 16)
+	goLive(t, st, &clock, "n1", 2_000)
 	clock += 40_000
 	if _, err := st.Sweep(); err != nil {
 		t.Fatalf("Sweep: %v", err)
@@ -231,7 +232,14 @@ func TestSweepRecordsTheReturnToLife(t *testing.T) {
 	if got := livenessOf(t, st, "n1"); got != "silent" {
 		t.Fatalf("verdict = %q, want silent before the recovery", got)
 	}
-	checkIn(t, st, &clock, "n1", 2_000)
+	// #silent forgot the mark, so the return is judged afresh (rete#272 D3.3):
+	// one sample (#unknown), then a rate.
+	re := &fakeNode{id: "n1", boot: 42}
+	re.tick(t, st, &clock, 2_000)
+	if got := sweepOnce(t, st); len(got) != 1 || got[0].Verdict != "unknown" {
+		t.Fatalf("first sweep back = %+v, want one #unknown (one sample)", got)
+	}
+	re.ticks(t, st, &clock, 3, 2_000)
 	changes, err := st.Sweep()
 	if err != nil {
 		t.Fatalf("Sweep: %v", err)
@@ -254,11 +262,9 @@ func TestSweepVerdictSurvivesARestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
-	checkIn(t, st, &clock, "n1", 0)
-	for i := 0; i < 4; i++ {
-		checkIn(t, st, &clock, "n1", 2_000)
-	}
-	clock += 20_000
+	listening(t, st)
+	goLive(t, st, &clock, "n1", 2_000)
+	clock += 20_000 // inside the 32 s budget, no new sample: the verdict holds
 	st.Sweep()
 	rows := livenessRows(t, st, "n1")
 	st.Close()
@@ -289,22 +295,12 @@ func TestSweepIsNotStoppedByOneNodesFailure(t *testing.T) {
 	listening(t, st)
 	// ids chosen so the failing one sorts in the MIDDLE of ORDER BY n.id — a
 	// failing LAST node would pass even under the old code.
-	for _, id := range []string{"aaa", "mmm", "zzz"} {
-		st.RecordExchange(id, 41, 0, 0, 0, 0, "")
-		st.RecordExchange(id, 41, 0, 0, 0, 0, "")
-	}
-	for i := 0; i < 4; i++ {
-		clock += 2_000
-		for _, id := range []string{"aaa", "mmm", "zzz"} {
-			st.RecordExchange(id, 41, 0, 0, 0, 0, "")
-			st.RecordExchange(id, 41, 0, 0, 0, 0, "")
-		}
-	}
-
+	//
 	// Declared BEFORE the trigger, or the declaration for mmm would be the
 	// insert that fails and the test would be injecting the wrong fault.
 	for _, id := range []string{"aaa", "mmm", "zzz"} {
 		declare(t, st, id, 2_000, 16)
+		(&fakeNode{id: id, boot: 41}).ticks(t, st, &clock, 5, 0)
 	}
 
 	if _, err := st.DB().Exec(`CREATE TRIGGER fail_mmm BEFORE INSERT ON cells
@@ -351,7 +347,11 @@ func TestVerdictEncodingsAreTheAlgebrasSymbols(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(live, livenessLive) || !bytes.Equal(silent, livenessSilent) {
+	stalled, err := cval.Encode(cval.Symbol("stalled"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(live, livenessLive) || !bytes.Equal(silent, livenessSilent) || !bytes.Equal(stalled, livenessStalled) {
 		t.Fatalf("pre-encoded verdicts drifted from cval.Encode")
 	}
 }
@@ -374,8 +374,8 @@ func TestSweepRefusesABudgetBelowItsOwnTick(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
 	listening(t, st)
-	checkIn(t, st, &clock, "n1", 0)
 	declare(t, st, "n1", 2_000, 8) // 16 s < 30 s
+	(&fakeNode{id: "n1", boot: 41}).tick(t, st, &clock, 0)
 	clock += 1_000
 	changes, err := st.Sweep()
 	if err != nil {
@@ -400,8 +400,8 @@ func TestSweepReasonCountsTheMisses(t *testing.T) {
 	var clock int64 = 10_000
 	st := storeAtClock(t, &clock)
 	listening(t, st)
-	checkIn(t, st, &clock, "n1", 0)
 	declare(t, st, "n1", 10_000, 4) // 40 s budget
+	(&fakeNode{id: "n1", boot: 41}).tick(t, st, &clock, 0)
 	clock += 45_000
 	if _, err := st.Sweep(); err != nil {
 		t.Fatalf("Sweep: %v", err)
@@ -411,5 +411,347 @@ func TestSweepReasonCountsTheMisses(t *testing.T) {
 	}
 	if reason := lastReason(t, st, "n1"); !strings.Contains(reason, "4.5 missed check-ins of 10000 ms, 4 tolerated") {
 		t.Fatalf("reason = %q", reason)
+	}
+}
+
+// fakeNode is a node that ticks the way PortaBridgeNode does: every tick is one
+// check-in — a pull carrying the tick count (#wak, rete#272 D3.3), then the
+// pull and push exchange rows.
+type fakeNode struct {
+	id   string
+	boot int64
+	wak  int64
+}
+
+func (n *fakeNode) tick(t *testing.T, st *Store, clock *int64, gap int64) {
+	t.Helper()
+	*clock += gap
+	n.wak++
+	if _, _, err := st.NoteCheckIn(n.id, 0, 0, n.boot, n.wak); err != nil {
+		t.Fatalf("NoteCheckIn: %v", err)
+	}
+	checkIn(t, st, clock, n.id, 0) // the pull and push exchange rows
+}
+
+func (n *fakeNode) ticks(t *testing.T, st *Store, clock *int64, count int, gap int64) {
+	t.Helper()
+	for i := 0; i < count; i++ {
+		n.tick(t, st, clock, gap)
+	}
+}
+
+func sweepOnce(t *testing.T, st *Store) []LivenessChange {
+	t.Helper()
+	changes, err := st.Sweep()
+	if err != nil {
+		t.Fatalf("Sweep: %v", err)
+	}
+	return changes
+}
+
+// goLive declares telCad x 16 and drives a fresh node to #live the only way the
+// rate rule allows: one sample and a sweep (#unknown, the mark is taken), then
+// on-cadence ticks and a second sweep. Returns the node for further ticking.
+func goLive(t *testing.T, st *Store, clock *int64, id string, telCad int64) *fakeNode {
+	t.Helper()
+	declare(t, st, id, telCad, 16)
+	n := &fakeNode{id: id, boot: 41}
+	n.tick(t, st, clock, 0)
+	if got := sweepOnce(t, st); len(got) != 1 || got[0].Verdict != "unknown" {
+		t.Fatalf("first sweep = %+v, want one #unknown (one sample)", got)
+	}
+	n.ticks(t, st, clock, 3, telCad)
+	if got := sweepOnce(t, st); len(got) != 1 || got[0].Verdict != "live" {
+		t.Fatalf("second sweep = %+v, want one #live", got)
+	}
+	return n
+}
+
+// D3: arriving, but behind the cadence it declared — #271's measured case,
+// 4 s delivered against 2 s declared. This is the reachability proof the design
+// demands BEFORE any test that shows the verdict does not fire.
+func TestSweepCallsABehindNodeStalled(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	n := goLive(t, st, &clock, "n1", 2_000)
+	n.ticks(t, st, &clock, 5, 4_000)
+	got := sweepOnce(t, st)
+	if len(got) != 1 || got[0].Verdict != "stalled" {
+		t.Fatalf("changes = %+v, want one #stalled", got)
+	}
+	if r := lastReason(t, st, "n1"); !strings.Contains(r, "5 ticks in 20000 ms") || !strings.Contains(r, "2000") {
+		t.Fatalf("reason = %q, want the ticks, the elapsed time and the declared period", r)
+	}
+}
+
+// Review Focus 4: jitter is not a stall. Short by less than one whole period is
+// live; short by exactly one period is stalled — the model's `Behind`, >=.
+func TestSweepDoesNotStallANodeOnCadence(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	n := goLive(t, st, &clock, "n1", 2_000)
+	for i := 0; i < 10; i++ {
+		n.tick(t, st, &clock, 1_990+int64(i%2)*20) // 1990, 2010, ...
+	}
+	n.tick(t, st, &clock, 3_999) // 1999 ms short: still inside one period
+	if got := sweepOnce(t, st); len(got) != 0 {
+		t.Fatalf("on cadence: changes = %+v, want none", got)
+	}
+	n.tick(t, st, &clock, 4_000) // exactly one whole period short
+	if got := sweepOnce(t, st); len(got) != 1 || got[0].Verdict != "stalled" {
+		t.Fatalf("one period short: changes = %+v, want one #stalled", got)
+	}
+}
+
+// The model's second refutation: one sample says nothing about a rate.
+func TestSweepWithOneSampleIsUnknown(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	declare(t, st, "n1", 2_000, 16)
+	n := &fakeNode{id: "n1", boot: 41}
+	n.tick(t, st, &clock, 0)
+	if got := sweepOnce(t, st); len(got) != 1 || got[0].Verdict != "unknown" {
+		t.Fatalf("changes = %+v, want one #unknown", got)
+	}
+	if r := lastReason(t, st, "n1"); !strings.Contains(r, "one sample") {
+		t.Fatalf("reason = %q", r)
+	}
+}
+
+// The model's first refutation: a sweep with no new sample since the mark has
+// no rate evidence. Re-marking there let a stalled node flip back to #live on
+// every empty window, unbounded (TLC, 2026-10-02).
+func TestSweepEmptyWindowKeepsTheVerdictAndTheMark(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	n := goLive(t, st, &clock, "n1", 2_000)
+	n.ticks(t, st, &clock, 5, 4_000)
+	if got := sweepOnce(t, st); len(got) != 1 || got[0].Verdict != "stalled" {
+		t.Fatalf("setup: %+v, want #stalled", got)
+	}
+	before, _, _ := st.MarkOf("n1")
+	clock += 1_000 // inside telCad of the last sample: guard 4 does not fire
+	if got := sweepOnce(t, st); len(got) != 0 {
+		t.Fatalf("empty window: changes = %+v, want none — the verdict must hold", got)
+	}
+	if after, _, _ := st.MarkOf("n1"); after != before {
+		t.Fatalf("empty window moved the mark: %+v -> %+v", before, after)
+	}
+}
+
+// Review Focus 2 / H3: a reboot inside the window. wak restarts under a new boot
+// id and comes back BELOW the mark — stalled, with no boot_id join.
+func TestSweepCatchesARebootAsStalled(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	n := goLive(t, st, &clock, "n1", 2_000)
+	n.ticks(t, st, &clock, 3, 2_000)
+	re := &fakeNode{id: "n1", boot: 42} // a new boot: wak from zero
+	re.ticks(t, st, &clock, 2, 2_000)
+	got := sweepOnce(t, st)
+	if len(got) != 1 || got[0].Verdict != "stalled" {
+		t.Fatalf("changes = %+v, want one #stalled", got)
+	}
+	if r := lastReason(t, st, "n1"); !strings.Contains(r, "backwards") {
+		t.Fatalf("reason = %q, want the backwards step named", r)
+	}
+}
+
+// Review Focus 3: an adopted cadence change re-marks without judging, so ticks
+// counted at the old period are never measured against the new one.
+func TestSweepReMarksWhenTheCadenceMoves(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	n := goLive(t, st, &clock, "n1", 2_000)
+	rec, _ := cval.Encode(cval.Record{Tag: "Liveness", Fields: cval.Map{
+		{K: cval.Symbol("misses"), V: int64(32)},
+		{K: cval.Symbol("telCad"), V: int64(1_000)},
+	}})
+	if _, _, err := st.Ingest("n1", n.boot, []Entry{{Seq: 2, Path: PathDeclared, Kind: cval.KindCell, Value: rec}}); err != nil {
+		t.Fatal(err)
+	}
+	n.ticks(t, st, &clock, 3, 2_000) // still at the old period this window
+	if got := sweepOnce(t, st); len(got) != 0 {
+		t.Fatalf("cadence moved: changes = %+v, want none (re-mark, keep)", got)
+	}
+	if m, _, _ := st.MarkOf("n1"); m.CadMs != 1_000 {
+		t.Fatalf("mark cad = %d, want 1000", m.CadMs)
+	}
+	n.ticks(t, st, &clock, 4, 1_000)
+	if got := sweepOnce(t, st); len(got) != 0 {
+		t.Fatalf("on the new cadence: changes = %+v, want none (still #live)", got)
+	}
+}
+
+// Review Focus 1: an image from before the count. It checks in (both legs stamp
+// last_seen) and declares a cadence, and porta will not call that live.
+func TestSweepNodeWithoutACountIsUnknown(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	checkIn(t, st, &clock, "n1", 0)
+	declare(t, st, "n1", 2_000, 16)
+	got := sweepOnce(t, st)
+	if len(got) != 1 || got[0].Verdict != "unknown" {
+		t.Fatalf("changes = %+v, want one #unknown", got)
+	}
+	if r := lastReason(t, st, "n1"); !strings.Contains(r, "no tick count") {
+		t.Fatalf("reason = %q", r)
+	}
+}
+
+// The guard D3.2 needed is gone because the state it guarded cannot be written:
+// silence is the age of the SAMPLE. Pushes that keep landing do not hold #live.
+func TestSweepPushesWithoutPullsGoSilent(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	goLive(t, st, &clock, "n1", 2_000)
+	for i := 0; i < 20; i++ {
+		checkIn(t, st, &clock, "n1", 2_000) // exchange rows only: no counted pull
+	}
+	got := sweepOnce(t, st)
+	if len(got) != 1 || got[0].Verdict != "silent" {
+		t.Fatalf("changes = %+v, want one #silent — 40 s since the last counted pull, budget 32 s", got)
+	}
+}
+
+// Review Focus 3: porta is down 20 s; the 2 s node spins both reply budgets and
+// ticks at 4 s (#271). porta's own absence is not evidence about the node.
+func TestSweepDoesNotBlameANodeForPortasOutage(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	n := goLive(t, st, &clock, "n1", 2_000)
+	clock += 20_000 // porta stops; nothing is recorded for 20 s (inside the 32 s budget)
+	n.wak += 5      // the node ticked at 4 s, unheard
+	if err := st.StartRun(); err != nil {
+		t.Fatal(err)
+	}
+	n.ticks(t, st, &clock, 3, 2_000)
+	if got := sweepOnce(t, st); len(got) != 0 {
+		t.Fatalf("after porta's outage: changes = %+v, want none (re-marked, not judged)", got)
+	}
+	n.ticks(t, st, &clock, 5, 2_000)
+	if got := sweepOnce(t, st); len(got) != 0 {
+		t.Fatalf("next window, on cadence: changes = %+v, want none", got)
+	}
+	if v := livenessOf(t, st, "n1"); v != "live" {
+		t.Fatalf("verdict = %q, want live", v)
+	}
+}
+
+// Review Focus 4: unplugged, replugged. The silence ends the conversation the
+// mark belonged to, so the return is one sample, then live — never #stalled.
+func TestSweepReturnAfterSilenceIsJudgedAfresh(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	goLive(t, st, &clock, "n1", 2_000)
+	clock += 120_000
+	if got := sweepOnce(t, st); len(got) != 1 || got[0].Verdict != "silent" {
+		t.Fatalf("unplugged: %+v, want #silent", got)
+	}
+	if _, ok, _ := st.MarkOf("n1"); ok {
+		t.Fatal("a silent verdict kept its mark")
+	}
+	re := &fakeNode{id: "n1", boot: 42} // a new boot: the count starts again
+	re.ticks(t, st, &clock, 4, 2_000)
+	if got := sweepOnce(t, st); len(got) != 1 || got[0].Verdict != "unknown" {
+		t.Fatalf("replugged, first sweep: %+v, want #unknown (one sample)", got)
+	}
+	re.ticks(t, st, &clock, 4, 2_000)
+	if got := sweepOnce(t, st); len(got) != 1 || got[0].Verdict != "live" {
+		t.Fatalf("replugged, second sweep: %+v, want #live", got)
+	}
+}
+
+// Review Focus 5: the live gateway's rows — a stored #live from the arrival
+// rule, and no mark. One #unknown, then judged.
+func TestSweepStoredLiveWithNoMarkIsUnknownOnce(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	declare(t, st, "n1", 2_000, 16)
+	if err := st.WriteGateway("n1", PathLiveness, livenessLive, "live: written by the pre-#272 binary"); err != nil {
+		t.Fatal(err)
+	}
+	n := &fakeNode{id: "n1", boot: 41}
+	n.ticks(t, st, &clock, 3, 2_000)
+	if got := sweepOnce(t, st); len(got) != 1 || got[0].Verdict != "unknown" {
+		t.Fatalf("first sweep = %+v, want one #unknown", got)
+	}
+	n.ticks(t, st, &clock, 3, 2_000)
+	if got := sweepOnce(t, st); len(got) != 1 || got[0].Verdict != "live" {
+		t.Fatalf("second sweep = %+v, want one #live", got)
+	}
+}
+
+// What #220's test stops short of: the blocking work ends and the node resumes.
+// It was behind its declared cadence for the window, and D3 says so. Pinned so
+// nobody meets it as a surprise; whether it is the right call is the fleet's
+// question (design D3.3, "the one period of slack").
+func TestSweepSaysStalledWhenBlockingWorkEnds(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	n := goLive(t, st, &clock, "n1", 2_000)
+	n.tick(t, st, &clock, 6_500) // one tick, 6.5 s late
+	n.ticks(t, st, &clock, 10, 2_000)
+	got := sweepOnce(t, st)
+	if len(got) != 1 || got[0].Verdict != "stalled" {
+		t.Fatalf("changes = %+v, want one #stalled (11 ticks in 26500 ms)", got)
+	}
+}
+
+// The mark lives in the store, like the verdict: a porta restart must not cost
+// a node its window.
+func TestMarkSurvivesAReopen(t *testing.T) {
+	var clock int64 = 10_000
+	path := t.TempDir() + "/mark.db"
+	st, err := Open(path, func() int64 { return clock })
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	listening(t, st)
+	goLive(t, st, &clock, "n1", 2_000)
+	before, ok, err := st.MarkOf("n1")
+	if err != nil || !ok {
+		t.Fatalf("MarkOf: ok=%v err=%v", ok, err)
+	}
+	st.Close()
+
+	st2, err := Open(path, func() int64 { return clock })
+	if err != nil {
+		t.Fatalf("reopen: %v", err)
+	}
+	defer st2.Close()
+	if after, ok, err := st2.MarkOf("n1"); err != nil || !ok || after != before {
+		t.Fatalf("after reopen: %+v ok=%v err=%v, want %+v", after, ok, err, before)
+	}
+}
+
+// Review (I1): a node with no count that has ALSO stopped talking must not be
+// told it "checks in". The verdict stays #unknown (D3.3: no arrival-only
+// fallback); the reason carries the age of its last exchange instead.
+func TestSweepUncountedNodeReasonCarriesItsAge(t *testing.T) {
+	var clock int64 = 10_000
+	st := storeAtClock(t, &clock)
+	listening(t, st)
+	checkIn(t, st, &clock, "n1", 0)
+	declare(t, st, "n1", 2_000, 16)
+	clock += 60_000
+	if got := sweepOnce(t, st); len(got) != 1 || got[0].Verdict != "unknown" {
+		t.Fatalf("changes = %+v, want one #unknown", got)
+	}
+	r := lastReason(t, st, "n1")
+	if strings.Contains(r, "checks in") || !strings.Contains(r, "60000 ms since its last exchange") {
+		t.Fatalf("reason = %q, want the exchange age and no claim that it checks in", r)
 	}
 }

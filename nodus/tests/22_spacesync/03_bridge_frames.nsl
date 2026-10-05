@@ -12,6 +12,8 @@ been through a real encode/decode round trip.
 expect:
 pull tag true
 pull cursor 0
+pull wak 0
+pull wak after one check-in 1
 applied true
 goal name bench
 cursor 7
@@ -33,6 +35,12 @@ class BridgeFrames packageUsing: manifest = () (
     pull:: platform Cbor decode: bridge pullFrame ifInvalid: [ :m | nil ].
     ('pull tag ' , (pull tag = #pull) printString) out.
     ('pull cursor ' , (pull at: #cursor ifAbsent: [ 0 - 1 ]) printString) out.
+    ('pull wak ' , (pull at: #wak ifAbsent: [ 0 - 1 ]) printString) out.
+    (* socket: nil, so checkIn returns before any send — but the tick still happened,
+       and the count is of ticks, not of datagrams (rete#272 D3.3). *)
+    bridge checkIn.
+    pull:: platform Cbor decode: bridge pullFrame ifInvalid: [ :m | nil ].
+    ('pull wak after one check-in ' , (pull at: #wak ifAbsent: [ 0 - 1 ]) printString) out.
 
     (* --- a batch, shaped exactly as porta builds it, applied --- *)
     batch:: platform Cbor encode:

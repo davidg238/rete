@@ -180,6 +180,13 @@ func (s *Server) handlePull(r cval.Record, peer string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	// rete#272 D3.3 — the node's count of this boot's check-ins. Required for the
+	// same reason hw is: decoding is closed, and a peer that cannot name it is an
+	// image from before the verdict could judge progress.
+	wak, err := intField(r.Fields, "wak")
+	if err != nil {
+		return nil, err
+	}
 	// A cursor this store never issued is refused, not recorded (the same
 	// closed-decoding posture as an unknown tag): it means the node is synced
 	// to a DIFFERENT store's history — a reset or a restore — and both
@@ -195,7 +202,7 @@ func (s *Server) handlePull(r cval.Record, peer string) ([]byte, error) {
 	if cursor > outSeq {
 		return nil, fmt.Errorf("cursor %d is beyond this store's out-seq %d — node and store disagree about history; a node reboot resyncs from 0", cursor, outSeq)
 	}
-	was, restarted, err := s.st.NoteCheckIn(id, cursor, nodeHW, bootID)
+	was, restarted, err := s.st.NoteCheckIn(id, cursor, nodeHW, bootID, wak)
 	if err != nil {
 		return nil, err
 	}
