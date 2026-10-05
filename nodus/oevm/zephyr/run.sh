@@ -278,6 +278,13 @@ case "$BOARD_ID" in
     # adds OEVM_HEAP_SIZE/32 outside the arena). A caller can still override up
     # toward the ceiling for a heavier compute node:  OEVM_HEAP_SIZE=262144 ...
     : "${OEVM_HEAP_SIZE:=131072}"
+    # rete#312 Q2 (David, 2026-10-05): the profiler is in the standard image, so a field
+    # node can be profiled without a reflash. On the C6 because a build showed it fits
+    # (PortaBridgeNodeC6 + Thread: sram0 +6,176 B, 73.5% -> 75.0%); idle cost +1.3% on
+    # Hanoi, the worst case. Other boards stay off until a build of theirs earns it —
+    # the ESP32 cannot carry the table (816 B of dram0 spare, #53). 0 turns it off.
+    : "${OEVM_METHOD_PROFILE:=1}"
+    export OEVM_METHOD_PROFILE
     : "${BUILD_DIR:=build-esp32c6-$MODEL}"
     # Flash on the NATIVE USB port (303a:1001). Console lives on the UART bridge,
     # which stays enumerated across target resets — see #57.

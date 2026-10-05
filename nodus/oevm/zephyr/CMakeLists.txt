@@ -332,9 +332,11 @@ if("$ENV{OEVM_HANOI_NATIVE}" STREQUAL "1")
   target_compile_definitions(app PRIVATE OEVM_HANOI_NATIVE=1)
 endif()
 
-# Spike (2026-08-06, #164): exact per-method call counts at push_frame. OFF by
-# default — the table is ~2 KB of .bss, which the ESP32's 816 B of dram0 spare
-# (#53) cannot carry and the C6 can. export OEVM_METHOD_PROFILE=1 to build it in.
+# Exact per-method call counts at push_frame (#164). Built in when the environment
+# says OEVM_METHOD_PROFILE=1. run.sh's per-board profile sets the default: ON for the
+# C6 since rete#312 Q2 (the profiler is in the standard image there), OFF elsewhere
+# until a build shows the board can carry the table (the ESP32's 816 B of dram0 spare,
+# #53, cannot). OEVM_METHOD_PROFILE=0 builds it out.
 # OEVM_MPROF_RUNTIME_GATE + OEVM_MPROF_FLIP_AT/DUMP_AT are the MEASUREMENT seam:
 # both arms in one binary, flipped at an activation count, because cross-binary
 # timing cannot resolve a hook this small. Scaffolding, not a feature.
