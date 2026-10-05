@@ -8,6 +8,7 @@
 # silent gate: it looks authoritative precisely when it is wrong.
 set -euo pipefail
 
+export LC_ALL=C  # the inventory sorts; a locale collation reorders every line (2026-10-05)
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 MAP="$ROOT/review/DOCMAP.md"
 MARKER='<!-- BEGIN GENERATED INVENTORY — do not edit below; rerun tools/docmap.sh -->'
