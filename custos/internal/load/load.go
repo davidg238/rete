@@ -75,7 +75,9 @@ type Loader struct {
 }
 
 // Load writes the image at path into the region, and answers an error unless
-// the board then boots the same firmware running exactly that program.
+// the board then boots the same firmware and loads exactly that program. The
+// firmware prints the hash after the loader accepts the image and before
+// bootstrap, so a load proves the program loaded, not that it runs.
 func (l Loader) Load(path string) error {
 	img, err := oimg.Read(path)
 	if err != nil {
@@ -106,7 +108,7 @@ func (l Loader) Load(path string) error {
 	if after.ProgramSHA != img.SHA256 {
 		return fmt.Errorf("the board runs sha256 %.12s, not %s's %.12s", after.ProgramSHA, path, img.SHA256)
 	}
-	fmt.Fprintf(l.Out, "wrote %s (%d B) at 0x%x\nfirmware build-id %s unchanged\nprogram sha256 %.12s running\n",
+	fmt.Fprintf(l.Out, "wrote %s (%d B) at 0x%x\nfirmware build-id %s unchanged\nprogram sha256 %.12s loaded\n",
 		path, img.Size, l.Region.Offset, after.BuildID, img.SHA256)
 	return nil
 }

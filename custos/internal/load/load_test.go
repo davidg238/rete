@@ -88,7 +88,10 @@ func TestLoadWritesAtTheRegionAndProvesTheFirmwareUnchanged(t *testing.T) {
 	if strings.Join(argv, " ") != want {
 		t.Fatalf("argv %q\nwant %q", strings.Join(argv, " "), want)
 	}
-	if !strings.Contains(out, "build-id B1 unchanged") || !strings.Contains(out, sha[:12]) {
+	// The hash line is printed before bootstrap, so it proves the program LOADED,
+	// not that it runs (final review, #310): the report must not claim more.
+	if !strings.Contains(out, "build-id B1 unchanged") || !strings.Contains(out, "program sha256 "+sha[:12]+" loaded") ||
+		strings.Contains(out, "running") {
 		t.Fatalf("out %q", out)
 	}
 }

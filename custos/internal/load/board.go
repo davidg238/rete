@@ -5,6 +5,9 @@ package load
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,6 +25,9 @@ type SerialBoard struct {
 
 func (b SerialBoard) Boot() (Report, error) {
 	var r Report
+	if err := portFree(b.Port); err != nil {
+		return r, err
+	}
 	p, err := serial.Open(b.Port, &serial.Mode{
 		BaudRate:          b.Baud,
 		InitialStatusBits: &serial.ModemOutputBits{DTR: false, RTS: false},
@@ -63,4 +69,27 @@ func (b SerialBoard) Boot() (Report, error) {
 		}
 	}
 	return r, fmt.Errorf("no complete boot on %s within %s (build-id %q) — is a collector holding the port?", b.Port, b.Timeout, r.BuildID)
+}
+
+// portFree refuses a port another process has open. Opening it anyway does not
+// evict a collector (pyserial takes no lock): the two readers split the bytes,
+// and if esptool then runs, the ROM handshake splits and a failed flash parks
+// the chip in the ROM loader. Linux only: it reads /proc/<pid>/fd.
+func portFree(port string) error {
+	want, err := filepath.EvalSymlinks(port)
+	if err != nil {
+		return err
+	}
+	fds, _ := filepath.Glob("/proc/[0-9]*/fd/*")
+	self := strconv.Itoa(os.Getpid())
+	for _, fd := range fds {
+		pid := strings.Split(fd, "/")[2]
+		if pid == self {
+			continue
+		}
+		if got, err := os.Readlink(fd); err == nil && got == want {
+			return fmt.Errorf("%s is held by pid %s — stop the board's collector first (systemctl --user stop rete-console@<board>)", port, pid)
+		}
+	}
+	return nil
 }
