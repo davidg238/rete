@@ -72,6 +72,9 @@ restarts or quarantines the job (Milestone D, `nodus/oevm/docs/MILESTONE_D.md`).
   **format version 10** (`nodus/oevm/src/oimg_loader.c`) — with its image map
   (`<name>.oimg.map.json`: every method's offset, name, file and lines;
   `protocol/IMAGE-ARTIFACTS.md`) beside it. The VM is flashed once; images are pushed.
+  On the C6 the program lives in its own flash partition (`protocol/IMAGE-ARTIFACTS.md`
+  §2a): `run.sh --flash` writes firmware and program, `custos load` replaces the program
+  alone, and the node prints and reports the program's SHA-256 (rete#310).
 - The **kernel is nsl too**: `nodus/nsl/lib/kernel.nsl` holds the space, channels,
   timers, the CBOR codec and the porta bridge; `supervisor.nsl` the supervisor. An app
   sees the kernel instance as its `platform`.
