@@ -1,6 +1,6 @@
 # `custos profile` over USB — what #312 needs decided first
 
-**Status:** Q1 DECIDED, Q2 waits on a measurement, Q3 DECIDED (David, 2026-10-05) · **Date:** 2026-10-05 · **Issue:** #312
+**Status:** Q1 DECIDED, Q2 DECIDED (std carries the counter), Q3 DECIDED (David, 2026-10-05) · **Date:** 2026-10-05 · **Issue:** #312
 (first slice step 4 of `2026-10-04-custos-peer-design.md` §6a) · Drafted overnight after
 #338 and #339, instead of guessing at the two choices below.
 
@@ -81,6 +81,10 @@ bug is chased on both, alternately, because the cable is faster.
      binaries is larger than the effect (the 2026-08-06 design, idle-cost note).
    So the choice is +6 kB of SRAM and an unmeasurable CPU cost in every standard image,
    against a third flag.
+   *Decided (David, 2026-10-05):* **the counter goes in the standard image**, so there are two
+   images, std (with profiling) and debug. He asked for the closed-window CPU cost to be
+   measured anyway: a cross-binary comparison, read against the layout noise of several
+   builds that differ only in padding, not against one pair.
 3. **As recommended.** #312 takes the profile page from #340: `custos profile`, custos's
    profile page, and the deletion of `mprof_resolve.py` and `view.py`'s profile view land
    in one change. #340 keeps the debug page.

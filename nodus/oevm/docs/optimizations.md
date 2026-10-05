@@ -493,6 +493,16 @@ unbounded arena, like the rest of the heap, depends on issue #3 being fixed.
 
 ---
 
+## The C6 build is -O2 (`CONFIG_SPEED_OPTIMIZATIONS=y`, rete#329, 2026-10-05)
+
+- **Why:** 1.14–1.40× faster on Hanoi, richards and every blockcost row (#324), for +35 kB flash and +5 kB sram0.
+- **Gated by:** all fourteen board scenarios (`nodus/oevm/tests/target/run.sh`) pass at -O2 on `c6spare`
+  (nine on 2026-10-04, the five radio ones on 2026-10-05; #329's comments name the builds).
+- **Stack:** `ot_radio_workq` keeps 156 B free of its 512 at -O2 (168 at -Os); David accepted that headroom on
+  2026-10-05. A passing scenario never prints the thread table (#353), so re-reading it means a forensics build with
+  a synthetic wedge.
+- **Not the RP2350,** until #296: its rows swing 0.40–2.63× on code placement alone.
+
 ## Known weaknesses / tracked gaps (snapshot 2026-06-18)
 
 Captured after the sober-reference benchmark exercise (see
