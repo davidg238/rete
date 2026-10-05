@@ -53,7 +53,7 @@ For content search across the program:
 **The wire and the fleet** — `~/workspace/rete/protocol/`, `~/workspace/rete/porta/docs/`
 and `~/workspaceToit/nodus/docs/`:
 
-- `protocol/v1/PROTOCOL.md` — porta protocol v1, frozen for Toit nodes.
+- `protocol/archive/PROTOCOL.md` — porta protocol v1, frozen for Toit nodes (archived).
 - `protocol/PROTOCOL-NSL.md` + `PROTOCOL-NSL-RECORDS.md` — the nsl space-sync wire;
   records schemas must be pinned before the bridge rung implements.
 - `porta/docs/ARCHITECTURE.md` — the gateway's architecture; **stale in parts** (written

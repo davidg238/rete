@@ -722,3 +722,207 @@ whole referenced slice and measure it" needs no new code and pushdown stays unea
 number earns it. It also carries each decoded record's `status`, so B2's eight producerless
 shapes explain their own empty tables — silence at a path is otherwise indistinguishable from
 a dead node.
+
+## Addendum 2026-10-04 — the live views: porta's verdict is surfaced, not re-derived (§4.1, §4.3)
+
+Task 5 opened with the two `live` views the fleet page needs. Two corrections, found by
+reading what the store holds today rather than what it held on 2026-08-22.
+
+### D1 — `staleness` becomes `liveness`, and it reads porta's verdict (corrects §4.3)
+
+§4.3's `staleness` view derives its own `why` (*never checked in* / *refused* / *wedged*)
+from `obs_health.ref`. That was right when it was written: porta had no judgement of its
+own. Since rete#231 and rete#272 it has one — `gw/liveness`, a sweep verdict
+(`#live #silent #neverSeen #unknown #stalled`) with its cause written into the event's
+`reason`. A view that re-derives the answer would be a second judge of one question, and
+the two would disagree the first time either changed; that is the drift this project keeps
+paying for. So the view is **`liveness`**: one row per node, porta's verdict and reason,
+`goal/name` as `role`, `last_seen_ms`, `boot_id`, `last_addr`. A node porta has not judged
+yet reads NULL, never a guessed `#live`. The `ref` caveat stays where it belongs — in
+`gw-verdict`'s validity rule in `protocol/descriptors/records.yaml`, which already says a
+node refused only on its pushes still reads `#live`.
+
+### D2 — `cells` gains four derived columns, which is how scalar paths become answerable
+
+Neither view could be written against §4.1's `cells` alone: `goal/name` and `gw/liveness`
+are **scalar** paths, which get no decoded table (B1 keys decoded tables by record shape),
+and a verdict's `reason` lives only in `events`, which `live` deliberately does not offer.
+So the materializer computes four columns per cell from R:
+
+| column | from |
+|---|---|
+| `value` | the stored CBOR through `cval` and `sqlValue` — one codec, A4's out-of-band rule intact |
+| `stale` | `space.IsStale`, now the one rule `porta get` and custos both call (§4.1) |
+| `actor`, `reason` | the latest event with the cell's node, direction, seq and path — an `idx_events_out` range, one bounded lookup per cell |
+
+Reading `events` from R on `live` does not widen the binding: Q still has no `events` table,
+and the lookup is the materializer's, authored here, never query text. `reason` on `cells`
+is also the first reader `porta put --reason` has ever had (rete#280).
+
+**Both views are `live` only.** A verdict or a convergence read from a snapshot is
+yesterday's answer to "right now" — rete#225 by construction — so `snap` does not offer
+them (`TestSnapOffersNoFleetView`, witnessed red with the views added to `snap`).
+`convergence` judges on encoded-byte equality: deterministic CBOR makes that value equality,
+so judging needs no decode, and `goal`/`obs` are decoded only to be shown.
+
+**Measured 2026-10-04 against the live store** (2.5 GB, 6× §7's; `mode=ro`, no snapshot,
+from a dev custos on gw85224-01:6972): `liveness` answers in **108 ms** end to end — `cells`
+235 rows in 13 ms including the per-cell provenance lookups, `nodes` 13 rows in 3 ms;
+`convergence` ~100 ms. The live binding needs no snapshot for these, which is §2.4's point.
+
+### D3 — the fleet page is a network surface of NAMED queries; auth stays silent
+
+David, 2026-10-04: **"for now we are silent on auth, everything runs inside tailscale."**
+The 2026-08-26 addendum's "any future network query route waits for G5" is relaxed to this
+much: custos serves `GET /q/{name}` for a fixed table of statements authored in
+`internal/custos/fleet.go` (`liveness`, `convergence`), and `GET /fleet`, a static page
+that renders them. There is no route that takes SQL — an unknown name is a 404
+(`TestOnlyNamedQueriesAreServed`, witnessed red with a name added). The perimeter is
+Tailscale plus `httpsrv.DefaultAllowCIDR`. With `--store`, `/` lands on `/fleet`; the dev
+status page stays at `/dev`. Free-form SQL stays on the stdio/CLI side (§9) until a reason
+moves it.
+
+### Two things the real store showed on first contact
+
+- **13 node ids, 4 devices.** Every id a board has left keeps its last verdict forever
+  (`#unknown`, "porta was not listening for part of it") — §5's *a node id is a slot, not a
+  board*, now on screen. The page sorts most-recently-heard first, so retired ids sink
+  rather than being hidden behind a cut-off nobody has data to choose; the `device` view
+  (§5.3) is what will fold them properly.
+- **A verdict's reason is as of the verdict's change, not now.** porta writes
+  `gw/liveness` only on change, so `c6spare`'s reason reads "468 ms since the last
+  exchange" seventeen days after it went quiet. True when written, and misleading without
+  its time — the page shows "since" beside every verdict, and `liveness.verdict_ms` carries
+  it for any other reader.
+
+### D4 — `retired_into`: the bench-era ids fold by the node's own assertion (a §5.3 note)
+
+§5.3 derives the device lineage from merged boot counters, which needs `exchanges` history
+the `live` binding caps at 24 h. Since rete#118 there is a cheaper witness for the ids that
+matter on a live page: every factory-id board asserts its bench name in `obs/build`'s
+`board` (ARCHITECTURE §3.8 — "asserted by the node on every boot rather than kept in a
+table"). So `liveness` gains `board`, and `retired_into` = the device whose `obs/build`
+names this id as its board **and** was first heard at or after this id was last heard.
+The second clause is §5.3's invariant applied to node lifetimes: non-overlapping is one
+board succeeding itself, overlapping is two boards and nothing is folded
+(`TestRetiredIdsFoldIntoTheBoardThatSucceededThem`, witnessed red with the clause removed).
+
+On the live store this folds exactly the five bench-era ids (`c6`, `c6bench`, `c6spare`,
+`nrf4ec0`, `nrf92c2`) into their factory ids, and leaves the three slot-era ids from before
+2026-08-22 (`c6-bench`, `c6-bell`, `c6-timerless`) unfolded: their boards never asserted
+those names, so only §5.3's boot-counter `device` view on `snap` can place them. That view
+is still owed; the page shows them honestly as old ids at the bottom of the table.
+
+## Addendum 2026-10-04 (later) — D5: the history views, and what the real store refuted
+
+Task 5 closes: §4.3's history views land on `snap` only (`porta/internal/gate/history.go`),
+each proven on a fixture built to hold its trap and then run against a fresh snapshot of
+the live store (2.46 GB, `porta snapshot` under `nice`/`ionice` in 38 s, porta undisturbed).
+
+| view | what it is | on the real store |
+|---|---|---|
+| `boot` | (node, boot) span from `exchanges`, with its build. Boot 0 excluded — it is "no persistent identity", not one boot | 185 boots |
+| `gc_cycle` | per (node, boot, gcc): `max(lfb)`, `min(lb)`, samples, build. Boot 0 excluded (below) | 3.1 M samples → cycles |
+| `gc_envelope` | `gc_cycle` with `gcc > 5` — lfb's validity rule. On gcc, not a row number: a window starting mid-boot must not lose its first sampled cycles as if they were the boot's | carries the `lfb`/`lb`/`gcc` notes out with every answer |
+| `role` | `goal/name` history, each write until the next | 10 commissionings |
+| `device_conflict` | one id whose boots overlap in time | **`c6bench` boots 1–3 overlap by ~7 days** — two boards under one id, #186's signature |
+| `device` | the derived lineage (below) | **5 devices — the 5 boards** |
+
+### What the real store refuted
+
+- **§5.3's link rule as written chains everything.** "Boot k on one id, k+1 on another,
+  lifetimes never overlapping" linked all thirteen ids into one device: counters reset on
+  reflash and stay small, so some k+1 always starts somewhere later. Two clauses fix it,
+  each witnessed red alone on a fixture that reduces the real false links: **neither side
+  is an ordinary reboot** (the old id has no k+1 of its own, the new id no k), and **the
+  two boots are each other's nearest candidate**. With them the real store yields
+  `c6-bell → c6 → 206ef1195438`, `c6-bench → c6-timerless → c6spare → 404cca446e60`,
+  `c6bench → 404cca4547a4`, `nrf4ec0 → d2666d1af919`, `nrf92c2 → ec34e57ca8e1` — §5.3's
+  boards A, B and C exactly, plus the two nRFs. The `board` links of D4 join the factory
+  ids where a counter reset broke the chain.
+- **Boot 0 is not a boot.** `gc_cycle` grouped every pre-boot-id metric of `c6-bench` and
+  `c6-bell` into one "boot 0", and gcc restarts in each real boot, so unrelated cycles
+  merged. Excluded, as `boot` already did.
+- **The authorizer refused every recursive CTE** (SQLITE_RECURSIVE, 33, which go-sqlite3
+  leaves commented out), and `TestDeadlineInterruptsARunawayQuery` accepted that refusal as
+  its pass — so the deadline had never been exercised. Recursion is a read and is now
+  permitted; the test fails on a refusal and is shown interrupting at 0.26 s against 250 ms.
+- **A5's "backstopped by `SQLITE_LIMIT_VDBE_OP`" is not true.** That limit caps the size of
+  a prepared program, not the steps it runs; the wall-clock deadline is the only runtime
+  bound. Recorded rather than fixed: nothing has needed a second one.
+
+### Scalar paths get history tables
+
+`goal/name`, `obs/name`, `gw/liveness`, `goal/config/…`, `dbg/req|resp` each get a decoded
+table — identity plus `value`, the scalar's reading rule riding out on `value` — so a
+scalar's history is the same read as a record's. `role` reads `goal_name`.
+**Deviation:** §4.3's `role` carries `actor`/`reason`; decoded tables carry neither, and
+getting them means materializing all of `events`. Left out until a question needs them.
+
+### The CLI fronts (Task 6, less MCP)
+
+`custos sql -descriptors F (-store DB | -snapshot SNAP) "<q>"`, `custos tables`,
+`custos describe <key|rule>`. A query must name its source — the two bindings answer
+different questions, so neither is a default.
+
+### §7's scaling trigger has fired
+
+| materialized | rows | seconds |
+|---|---|---|
+| `exchanges` (for `boot`, `device`, `device_conflict`) | 6,263,670 | 72 |
+| `sys_metrics` (for `gc_*`) | 3,116,486 | 67 |
+| `goal_name` | 10 | 1.4 |
+
+`device` answers in 130 s, `gc_envelope` in 89 s. §7 named ~10× its 404 k-row slice as the
+point where predicate pushdown is earned; `sys_metrics` is now 7.7× and the history views
+are well outside an interactive budget. **Pushdown is earned by this measurement and not
+built here.** The cheapest first cut the numbers suggest: materialize `exchanges` as
+per-(node, boot) aggregates when only `boot` reads it, and push a `node_id` predicate into
+the `events` scan.
+
+## Addendum 2026-10-04 (evening) — E: §10's acceptance, on the fixture and on the real store
+
+Task 7 and Task 8 of the plan. The five questions are five committed query files,
+`porta/internal/gate/testdata/acceptance/q*.sql`. They are tested against a committed fixture
+snapshot (`testdata/acceptance.db`, built by `acceptanceStore`, guarded against drift) and run
+**as the same text** against the real store on gw85224-01 (`custos sql … -- "$(cat q.sql)"`,
+under `nice`/`ionice`, porta undisturbed). Snap = `snap-20261004.db` (2.46 GB); live = the
+store `mode=ro`.
+
+### The prediction held
+
+| Q | binding | prediction | fixture | real store |
+|---|---|---|---|---|
+| 1 median free memory | snap | needs projection + rules | envelope 60,000 B; the raw median of the same samples reads under half | 13 ids, 94 s. Raw-sample median is 40–60 % low on **every** id (`c6bench` 26.8 KB vs 41.9 KB) |
+| 2 disagree with goal | live | answerable now | porch's mode, ghost's unechoed name | 0.13 s: `206ef1195438`, `c6`, `c6-bell` — `goal/name` never echoed (the bell is #334; the other two are retired ids) |
+| 3 arena grew over a soak | snap | needs projection + rules | leak −2,000 B/h, fix flat, 2 h boot refused; unsegmented, the leak+fix reads as RISING | 73 (node, boot) segments in 94 s, 40 refused under ~5 h |
+| 4 what changed A→B | snap | needs build segmentation | v0/v1/v2 with pins and envelope floors | 62 (node, build) rows in 165 s |
+| 5 stale, and why | live | answerable now | `#stalled`/`#silent`/`#neverSeen` + NULL | 0.13 s: 9 ids, every one `#unknown` |
+
+### What the real store showed
+
+- **Q5's "three whys" are not the real fleet's.** §4.3 named never / refused / wedged and D1
+  replaced them with porta's verdict, but on 2026-10-04 no node is `#silent`, `#neverSeen` or
+  `#stalled`. All nine non-live ids are `#unknown`, told apart only by `reason`: an image that
+  predates #272, no declared cadence, or porta not listening. The answer is right; the
+  distinguishing is done by `reason`, which is free text. Only the fixture exercises the three
+  verdicts.
+- **Q3's one candidate is `c6bench` boot 4** (`g2488c2e`): −49 B/h of envelope over 332 h, and
+  Q4 shows that build's envelope floor at **4 B** — a cycle whose best post-sweep free block was
+  four bytes. `c6bench` is the id #333 suspects of holding two boards, and a boot segment does
+  not separate two boards sharing a boot id, so this is a candidate, not a finding.
+- **The nRFs' envelope floor moved with the build:** 72–88 B on `g210d7f7` and older, ~5 KB on
+  `gf515ac5` (Q4) — the shape Q4 exists to show.
+- **A correlated subquery over a history view re-runs the view per row.** Q4 as first written
+  (envelope floor per (node, build) as a scalar subquery on `gc_envelope`) was killed at 11 min;
+  Q1 (a per-node `MAX(last_ms)` subquery) at 17 min. Grouped once and joined, or as a window,
+  they answer in 165 s and 94 s. The query files carry the rewritten forms; #332's pushdown is
+  the remedy for the remaining ~90 s floor.
+- **Q3's refusal is the reader's, not the gate's.** The gate returns `span` and lfb's validity
+  note; the query withholds the slope. No mechanism refuses a trend, and §10's wording ("must
+  refuse") is met by the reading rule riding out — the prediction's "(3) needs the reading
+  rules", taken literally. Witnessed: with the rule at 1 h, the fixture's 2 h boot reads as a
+  1,500 B/h leak; without the warm-up discard, the fix reads as a 2,600 B/h leak.
+- `custos sql` takes a query that starts `-- …` as a flag (#335); pass `--` first.
+
+The raw results are on gw85224-01 in `~/custos-dev/t8/out/`.

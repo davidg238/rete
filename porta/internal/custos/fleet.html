@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>rete fleet</title>
+<link rel="stylesheet" href="/fleet.css">
+</head>
+<body>
+<header>
+  <h1>rete fleet</h1>
+  <nav><a href="/dev">dev status</a><a href="/health">/health</a><a href="/q/liveness">liveness.json</a></nav>
+</header>
+<div class="stamp" id="stamp">loading…</div>
+<div class="strip" id="gateway"></div>
+<div class="strip" id="counts"></div>
+<div class="banner" id="error"></div>
+
+<h2>Nodes</h2>
+<div class="wrap"><table>
+  <thead><tr>
+    <th>Node</th><th>Verdict</th><th>Last seen</th><th>Boot</th><th>Transport</th><th>Goals</th>
+  </tr></thead>
+  <tbody id="nodes"><tr><td colspan="6" class="empty">loading…</td></tr></tbody>
+</table></div>
+<div id="retired-wrap" style="display:none">
+<h2>Retired ids</h2>
+<div class="wrap"><table>
+  <thead><tr><th>Old id</th><th>Now</th><th>Last heard as the old id</th></tr></thead>
+  <tbody id="retired"></tbody>
+</table></div>
+<p class="note">An id is retired when a board's <code>obs/build</code> names it as its bench board and that board was first heard after the id fell silent — one board under a new id, not two boards (rete#118).</p>
+</div>
+
+<p class="note">Verdicts are porta's own (<code>gw/liveness</code>), formed by its sweep every 30 s; the line under each is porta's reason, written when the verdict last <em>changed</em> — so its numbers are as of "since", not now. Ages are against the gateway's clock. Most recently heard first.</p>
+
+<h2>Goals not yet converged</h2>
+<div class="wrap"><table>
+  <thead><tr><th>Node</th><th>Path</th><th>Goal</th><th>Observed</th><th>Goal written</th></tr></thead>
+  <tbody id="diverged"><tr><td colspan="5" class="empty">loading…</td></tr></tbody>
+</table></div>
+<p class="note">A goal is converged when the node's <code>obs/X</code> holds exactly the value of <code>goal/X</code>. <em>stale</em> marks an observation from before the node's current boot.</p>
+
+<script src="/fleet.js"></script>
+<script>
+"use strict";
+const REFRESH_MS = 10000;
+const SEVERITY = { stalled: 0, silent: 1, unknown: 2, neverSeen: 3, live: 5 }; // chip order
+
+function renderGateway(h) {
+  const up = age(Date.now() - h.uptime_s * 1000, Date.now()).replace(" ago", "");
+  const g = document.getElementById("gateway");
+  g.replaceChildren(
+    el("span", { class: "chip" }, "porta ", el("b", { class: h.status === "ok" ? "ok" : "bad" }, h.status)),
+    el("span", { class: "chip" }, "up ", el("b", {}, up)),
+    el("span", { class: "chip" }, "version ", el("b", {}, h.version)),
+  );
+  if (h.blocks_plane_down) g.append(el("span", { class: "chip bad" }, "blocks plane down"));
+}
+
+function render(live, conv) {
+  const now = live.now_ms;
+  const all = rows(live);
+  const nodes = all.filter(n => n.retired_into == null);
+  const retired = all.filter(n => n.retired_into != null);
+  const goals = rows(conv).filter(g => !retired.some(r => r.node_id === g.node_id));
+
+  const perNode = {};
+  for (const g of goals) {
+    const p = perNode[g.node_id] || (perNode[g.node_id] = { n: 0, ok: 0 });
+    p.n++; if (g.converged) p.ok++;
+  }
+
+  const counts = {};
+  for (const n of nodes) { const v = n.verdict || "not judged"; counts[v] = (counts[v] || 0) + 1; }
+  document.getElementById("counts").replaceChildren(
+    el("span", { class: "chip" }, el("b", {}, nodes.length), " nodes"),
+    ...(retired.length ? [el("span", { class: "chip" }, el("b", {}, retired.length), " retired ids")] : []),
+    ...Object.entries(counts).sort((a, b) => (SEVERITY[a[0]] ?? 4) - (SEVERITY[b[0]] ?? 4))
+      .map(([v, c]) => el("span", { class: "chip" }, el("b", {}, c), " ", v === "not judged" ? v : "#" + v)),
+  );
+
+  // Most recently heard first. A node id is a slot, not a board: ids a board
+  // has since left keep their last verdict forever, and they sink rather than
+  // being hidden behind a cut-off nobody has data to choose.
+  nodes.sort((a, b) => (b.last_seen_ms ?? 0) - (a.last_seen_ms ?? 0) || a.node_id.localeCompare(b.node_id));
+  const body = document.getElementById("nodes");
+  if (!nodes.length) {
+    body.replaceChildren(el("tr", {}, el("td", { colspan: 6, class: "empty" }, "porta knows no nodes.")));
+  } else {
+    body.replaceChildren(...nodes.map(n => {
+      const p = perNode[n.node_id];
+      return el("tr", {},
+        el("td", {}, el("a", { class: "node", href: "/node/" + encodeURIComponent(n.node_id) }, n.node_id),
+          n.role != null ? el("div", { class: "role" }, n.role) : null),
+        el("td", {}, pill(n.verdict),
+          n.verdict_ms != null ? el("span", { class: "muted", title: clock(n.verdict_ms) }, " since " + age(n.verdict_ms, now)) : null,
+          n.reason ? el("div", { class: "reason" }, n.reason) : null),
+        el("td", { class: "num", title: n.last_seen_ms ? clock(n.last_seen_ms) : "" }, age(n.last_seen_ms, now)),
+        el("td", { class: "num" }, n.boot_id || "?"),
+        el("td", { title: n.last_addr || "" }, transport(n.last_addr)),
+        el("td", { class: "num" }, !p ? el("span", { class: "muted" }, "none")
+          : el("span", { class: p.ok === p.n ? "ok" : "bad" }, p.ok + " / " + p.n)),
+      );
+    }));
+  }
+
+  document.getElementById("retired-wrap").style.display = retired.length ? "block" : "none";
+  retired.sort((a, b) => (b.last_seen_ms ?? 0) - (a.last_seen_ms ?? 0));
+  document.getElementById("retired").replaceChildren(...retired.map(n => el("tr", {},
+    el("td", {}, el("a", { class: "node", href: "/node/" + encodeURIComponent(n.node_id) }, n.node_id)),
+    el("td", {}, el("a", { class: "node", href: "/node/" + encodeURIComponent(n.retired_into) }, n.retired_into)),
+    el("td", { class: "num", title: n.last_seen_ms ? clock(n.last_seen_ms) : "" }, age(n.last_seen_ms, now)),
+  )));
+
+  const diverged = goals.filter(g => !g.converged);
+  const dbody = document.getElementById("diverged");
+  if (!diverged.length) {
+    dbody.replaceChildren(el("tr", {}, el("td", { colspan: 5, class: "empty" },
+      goals.length ? "All " + goals.length + " goals have converged." : "No goals are set.")));
+  } else {
+    dbody.replaceChildren(...diverged.map(g => el("tr", {},
+      el("td", {}, el("a", { class: "node", href: "/node/" + encodeURIComponent(g.node_id) }, g.node_id)),
+      el("td", { class: "node" }, "goal/" + g.key),
+      el("td", {}, g.goal == null ? "—" : String(g.goal)),
+      el("td", {}, g.obs == null ? el("span", { class: "muted" }, "not reported") : String(g.obs),
+        g.obs_stale ? el("span", { class: "muted" }, " (stale)") : null),
+      el("td", { class: "num", title: clock(g.goal_ms) }, age(g.goal_ms, now)),
+    )));
+  }
+
+  document.getElementById("stamp").textContent = "Read from porta's live store at " + clock(now) +
+    " · " + Math.round(live.elapsed / 1e6) + " ms · refreshes every " + REFRESH_MS / 1000 + " s";
+}
+
+async function refresh() {
+  const err = document.getElementById("error");
+  try {
+    const [live, conv] = await Promise.all([getJSON("/q/liveness"), getJSON("/q/convergence")]);
+    render(live, conv);
+    err.style.display = "none";
+  } catch (e) {
+    err.textContent = "Could not read the fleet: " + e.message;
+    err.style.display = "block";
+  }
+  try { renderGateway(await getJSON("/health")); }
+  catch (e) {
+    document.getElementById("gateway").replaceChildren(
+      el("span", { class: "chip bad" }, "porta unreachable: " + e.message));
+  }
+}
+
+refresh();
+setInterval(refresh, REFRESH_MS);
+</script>
+</body>
+</html>

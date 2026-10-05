@@ -323,6 +323,13 @@ func TestDeadlineInterruptsARunawayQuery(t *testing.T) {
 	if err == nil {
 		t.Fatal("an unbounded recursive query ran to completion")
 	}
+	// The refusal is not the deadline. Until 2026-10-04 the authorizer denied
+	// SQLITE_RECURSIVE outright, so this test passed without ever reaching the
+	// interrupt it exists to prove.
+	var denied *deniedError
+	if errors.As(err, &denied) {
+		t.Fatalf("the query was refused, not interrupted — the deadline was never exercised: %v", err)
+	}
 	if elapsed > 10*time.Second {
 		t.Errorf("the deadline did not interrupt: %v", elapsed)
 	}

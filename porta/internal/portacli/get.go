@@ -81,18 +81,9 @@ func newGetCmd() *cobra.Command {
 	return cmd
 }
 
-// isStale is deliberately narrow, because every widening of it would be a way to
-// call a truthful row a lie:
-//
-//   - only inbound rows can be stale. An 'out' row is porta's own intent, which
-//     no node reboot invalidates.
-//   - a row with boot_id 0 is UNKNOWN, not stale — it is either a node with no
-//     persistent identity (posix without OEVM_BOOTID_FILE, a board without
-//     CONFIG_SETTINGS) or a row written before the column existed.
-//   - if the node's current boot is unknown there is nothing to compare against,
-//     so nothing is marked.
+// isStale is space.IsStale over one cell, the rule custos's cells.stale shares.
 func isStale(e space.Cell, currentBoot int64) bool {
-	return e.Direction == "in" && e.BootID != 0 && currentBoot != 0 && e.BootID != currentBoot
+	return space.IsStale(e.Direction, e.BootID, currentBoot)
 }
 
 func bootLabel(e space.Cell) string {

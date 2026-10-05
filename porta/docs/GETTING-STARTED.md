@@ -218,27 +218,39 @@ an outage.
 ```bash
 go build ./cmd/custos
 ./custos --docs /path/to/rete/docs        # :6971 by default
+./custos --docs /path/to/rete/docs \
+    --store porta.db --descriptors /path/to/rete/protocol/descriptors/records.yaml   # + the fleet page
 ```
 
-**custos is not in the `.deb`** — `deploy/build-deb.sh` packages `cmd/porta` alone, so
-custos is built and started by hand today. So is the v2 porta on the bench gateway; both
-want a unit, which is rete#282.
+**custos is not in the `.deb`** — `deploy/build-deb.sh` packages `cmd/porta` alone. On the
+bench gateway custos runs as a **systemd user unit**, `deploy/systemd/custos.user.service`
+(install steps in its header): `Restart=on-failure`, and `loginctl enable-linger` starts it
+at boot with nobody logged in. The v2 porta there is still started by hand — a porta restart
+costs every node an outage, so its cut-over is its own step of rete#282.
 
 | Route | What |
 |---|---|
-| `/` and `/dev` | redirect to the dev status page |
+| `/` | redirects to `/fleet` when `--store` is given, else to the dev status page |
+| `/dev` | redirects to the dev status page |
 | `/dev/…` | the repo `docs/` tree, read-only (`.md` served as `text/plain` so a browser shows it) |
+| `/fleet` | every node: porta's verdict and reason, last seen, boot, transport, goals converged; retired ids folded into the board that succeeded them |
+| `/node/{id}` | one node's tree, grouped by namespace, with each value's boot and provenance |
+| `/q/{name}` | the named queries the pages render, as JSON: `liveness`, `convergence`, `node?id=` — a fixed table, no route takes SQL |
 | `/health`, `/manifest` | proxied to porta's operator listener |
 
+`--store` opens porta's sqlite file **read-only** through the query core's `live` binding
+(`porta/internal/gate`); nothing on these routes writes. There is no auth: the perimeter is
+Tailscale plus the allowlist (rete#198, first-cut design addendum D3).
+
 Flags are Go-`flag` style, single dash: `-bind`, `-port`, `-docs`, `-porta-http`,
-`-allow-cidr`. The allowlist has the same semantics as porta's `--http-allow-cidr`, and
+`-allow-cidr`, `-store`, `-descriptors`. The allowlist has the same semantics as porta's `--http-allow-cidr`, and
 the two share one implementation so the surfaces cannot drift apart.
 
-**What is not built yet** is the *query* surface — the schema-aware side that would let an
-agent ask a question instead of reading a tree. That is rete#198, designed in
-`design/2026-08-22-gatekeeper-first-cut-design.md` (filed under the old name), with
-`porta/internal/gate` as its core. Nothing in custos decodes a value today; it serves
-documents and proxies two routes.
+**What is not built yet** is the *free* query surface — `gate sql` and MCP, where an agent
+writes its own SQL against the decoded tables and every answer carries its reading rules.
+That is rete#198, designed in `design/2026-08-22-gatekeeper-first-cut-design.md` (filed
+under the old name), with `porta/internal/gate` as its core; the fleet pages above are its
+first fixed queries.
 
 v1's htmx console, `GET /api/status`, `GET /api/nodes` and the read-only MCP server are
 gone. Their fate is recorded as **deferred → operator surface** in the capability audit

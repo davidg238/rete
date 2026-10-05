@@ -1251,3 +1251,23 @@ that bit.
 
 Bench note that cost this session's forensics: the `RebootNote` is in `.rtc_noinit`
 (`reboot_note.c:29`) — it survives a **reset**, NOT a power cycle.
+
+---
+
+## ADDENDUM 2026-10-04 — custos answers §10's five questions; rete#198 closed
+
+The #198 spike ran in full: five committed queries (`porta/internal/gate/testdata/acceptance/`)
+against a committed fixture and against the real store on gw85224-01. **The 2026-08-11
+prediction held on both** — (2) and (5) answerable as they stood, (1) and (3) only with the
+GC envelope and the reading rules (the raw-sample median is 40–60 % low on every real id), (4)
+only with build segmentation. Record: addendum E of
+`porta/docs/design/2026-08-22-gatekeeper-first-cut-design.md`; boundary in
+`porta/docs/ARCHITECTURE.md` §3.
+
+**D3's option (c) trigger has, arguably, fired**: a real query over real history that (b)
+answers in ~90–165 s, outside any interactive budget. The cheaper remedy comes first —
+predicate pushdown, rete#332 — before a projection cache is reconsidered.
+
+**Left, each with a home:** pushdown (#332); the MCP front (deferred, plan Task 6); auth (D3
+of the 2026-10-04 addendum: silent, Tailscale is the perimeter); `c6bench` boot 4's −49 B/h
+over 332 h and its 4 B envelope floor (a leak candidate, entangled with #333); #335.

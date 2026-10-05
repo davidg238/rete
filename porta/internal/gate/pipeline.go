@@ -42,6 +42,8 @@ import (
 // real store.
 type Query struct {
 	SQL string
+	// Args are bound to the statement's parameters, never spliced into it.
+	Args []any
 	// Deadline is wall-clock, enforced through context cancellation, which
 	// go-sqlite3 turns into sqlite3_interrupt.
 	Deadline time.Duration
@@ -151,6 +153,9 @@ func (g *Gate) Query(ctx context.Context, q Query) (*Result, error) {
 	if err := createSchema(ctx, s, schema); err != nil {
 		return nil, err
 	}
+	if err := createViews(ctx, s, g.spec.views); err != nil {
+		return nil, err
+	}
 
 	// Step 2: prepare, and let the authorizer plan.
 	reads, err := plan(ctx, s, q.SQL)
@@ -202,7 +207,7 @@ func plan(ctx context.Context, s *scratch, query string) (map[string][]string, e
 
 // runQuery executes the statement and collects rows under the row cap.
 func runQuery(ctx context.Context, s *scratch, q Query) (*Result, error) {
-	rows, err := s.q.QueryContext(ctx, q.SQL)
+	rows, err := s.q.QueryContext(ctx, q.SQL, q.Args...)
 	if err != nil {
 		if denied := s.auth.Denied(); len(denied) > 0 {
 			return nil, &deniedError{actions: denied}
@@ -260,7 +265,16 @@ type tableDef struct {
 	cols []column
 	rule string // decoded: the CDDL rule
 	path string // decoded: the manifest path, wildcard included
+	// derived counts the trailing cols the materializer computes rather than
+	// copies (structural only; cells, views.go).
+	derived int
+	// scalar marks a decoded table over a scalar path: one `value` column and
+	// no record tag to check (addendum D5).
+	scalar bool
 }
+
+// scalarColumn is the one column a scalar path's decoded table carries.
+const scalarColumn = "value"
 
 // identityColumns prefix every decoded record table: which node, which stored
 // path, when, which boot, which sequence number. Uniform across every decoded
@@ -327,7 +341,12 @@ func (g *Gate) schema() (map[string]*tableDef, error) {
 		if err != nil {
 			return nil, err
 		}
-		out[name] = &tableDef{name: name, kind: tableStructural, cols: cols}
+		td := &tableDef{name: name, kind: tableStructural, cols: cols}
+		if name == "cells" {
+			td.cols = append(td.cols, cellDerivedColumns...)
+			td.derived = len(cellDerivedColumns)
+		}
+		out[name] = td
 	}
 
 	if g.spec.decoded {
@@ -344,6 +363,19 @@ func (g *Gate) schema() (map[string]*tableDef, error) {
 					cols = append(cols, column{key, ""}) // no affinity: the wire decides
 				}
 				out[name] = &tableDef{name: name, kind: tableDecoded, cols: cols, rule: rule, path: p}
+			}
+		}
+		// A scalar path is a decoded table too — identity plus its value — so
+		// goal/name's history is the same read as sys/metrics' (addendum D5).
+		for _, rule := range g.desc.ScalarRules() {
+			for _, p := range g.desc.Scalars[rule].Paths {
+				name := TableName(p)
+				if prev, dup := out[name]; dup {
+					return nil, fmt.Errorf("gate: table %q claimed by both %q and %q — "+
+						"two paths deriving one table name", name, prev.rule, rule)
+				}
+				cols := append(append([]column(nil), identityColumns...), column{scalarColumn, ""})
+				out[name] = &tableDef{name: name, kind: tableDecoded, cols: cols, rule: rule, path: p, scalar: true}
 			}
 		}
 	}
@@ -450,7 +482,7 @@ func (g *Gate) materialize(ctx context.Context, s *scratch, schema map[string]*t
 			return nil, err
 		}
 		src := Source{Table: name, From: from, Rows: n, Elapsed: time.Since(started)}
-		if td.kind == tableDecoded {
+		if td.kind == tableDecoded && !td.scalar {
 			src.Status = g.desc.Records[td.rule].Status
 		}
 		out = append(out, src)
@@ -494,11 +526,21 @@ func checkScratchSize(s *scratch, maxBytes int64) error {
 	return nil
 }
 
-// copyStructural copies one store table through, applying the binding's cap.
+// copyStructural copies one store table through, applying the binding's cap,
+// and computes its derived columns when it has any.
 func (g *Gate) copyStructural(ctx context.Context, s *scratch, td *tableDef) (int, error) {
-	names := make([]string, len(td.cols))
-	for i, c := range td.cols {
+	base := td.cols[:len(td.cols)-td.derived]
+	names := make([]string, len(base))
+	for i, c := range base {
 		names[i] = quoteIdent(c.name)
+	}
+	var deriver *cellDeriver
+	if td.derived > 0 {
+		var err error
+		if deriver, err = g.newCellDeriver(ctx, td, base); err != nil {
+			return 0, err
+		}
+		defer deriver.Close()
 	}
 	sel := fmt.Sprintf("SELECT %s FROM %s", strings.Join(names, ", "), quoteIdent(td.name))
 
@@ -526,13 +568,20 @@ func (g *Gate) copyStructural(ctx context.Context, s *scratch, td *tableDef) (in
 
 	n := 0
 	for rows.Next() {
-		vals := make([]any, len(td.cols))
-		ptrs := make([]any, len(td.cols))
+		vals := make([]any, len(base))
+		ptrs := make([]any, len(base))
 		for i := range vals {
 			ptrs[i] = &vals[i]
 		}
 		if err = rows.Scan(ptrs...); err != nil {
 			return 0, err
+		}
+		if deriver != nil {
+			var extra []any
+			if extra, err = deriver.derive(ctx, vals); err != nil {
+				return 0, err
+			}
+			vals = append(vals, extra...)
 		}
 		if _, err = ins.ExecContext(ctx, vals...); err != nil {
 			return 0, fmt.Errorf("gate: materializing %s: %w", td.name, err)
@@ -571,8 +620,16 @@ func (g *Gate) copyDecoded(ctx context.Context, s *scratch, td *tableDef, src st
 	}
 	defer done(&err)
 
-	keys := g.desc.Columns(td.rule)
-	wantTag := cval.Symbol(g.desc.Records[td.rule].Name)
+	var (
+		keys    []string
+		wantTag cval.Symbol
+	)
+	if td.scalar {
+		keys = []string{scalarColumn}
+	} else {
+		keys = g.desc.Columns(td.rule)
+		wantTag = cval.Symbol(g.desc.Records[td.rule].Name)
+	}
 
 	n := 0
 	for rows.Next() {
@@ -584,19 +641,30 @@ func (g *Gate) copyDecoded(ctx context.Context, s *scratch, td *tableDef, src st
 		if err = rows.Scan(&nodeID, &storedPath, &tsMs, &bootID, &seq, &blob); err != nil {
 			return 0, err
 		}
-		var fields cval.Map
-		if fields, err = decodeRecord(blob, wantTag, td, nodeID, storedPath, seq); err != nil {
-			return 0, err
-		}
 		vals := make([]any, 0, len(identityColumns)+len(keys))
 		vals = append(vals, nodeID, storedPath, tsMs, bootID, seq)
-		for _, key := range keys {
+		if td.scalar {
 			var v any
-			v, err = sqlValue(lookup(fields, key), td, key, nodeID, seq)
-			if err != nil {
+			if v, err = cval.Decode(blob); err != nil {
+				return 0, fmt.Errorf("gate: %s: decoding %s seq %d at %s: %w", td.name, nodeID, seq, storedPath, err)
+			}
+			if v, err = sqlValue(v, td, scalarColumn, nodeID, seq); err != nil {
 				return 0, err
 			}
 			vals = append(vals, v)
+		} else {
+			var fields cval.Map
+			if fields, err = decodeRecord(blob, wantTag, td, nodeID, storedPath, seq); err != nil {
+				return 0, err
+			}
+			for _, key := range keys {
+				var v any
+				v, err = sqlValue(lookup(fields, key), td, key, nodeID, seq)
+				if err != nil {
+					return 0, err
+				}
+				vals = append(vals, v)
+			}
 		}
 		if _, err = ins.ExecContext(ctx, vals...); err != nil {
 			return 0, fmt.Errorf("gate: materializing %s: %w", td.name, err)
@@ -802,6 +870,16 @@ func (g *Gate) notesFor(schema map[string]*tableDef, reads map[string][]string) 
 		if !ok || td.kind != tableDecoded {
 			continue
 		}
+		if td.scalar {
+			sc := g.desc.Scalars[td.rule]
+			for _, col := range reads[t] {
+				if col == scalarColumn {
+					out = append(out, Note{Table: t, Column: col, Name: td.rule, Unit: sc.Unit,
+						Meaning: sc.Meaning, Validity: sc.Validity, Refs: sc.Refs})
+				}
+			}
+			continue
+		}
 		rec := g.desc.Records[td.rule]
 		for _, col := range reads[t] {
 			if identity[col] {
@@ -821,15 +899,19 @@ func (g *Gate) notesFor(schema map[string]*tableDef, reads map[string][]string) 
 	return out
 }
 
-// Tables answers the logical tables this binding offers, for `gate tables`.
+// Tables answers the logical tables and views this binding offers, for
+// `gate tables`.
 func (g *Gate) Tables() ([]string, error) {
 	schema, err := g.schema()
 	if err != nil {
 		return nil, err
 	}
-	out := make([]string, 0, len(schema))
+	out := make([]string, 0, len(schema)+len(g.spec.views))
 	for n := range schema {
 		out = append(out, n)
+	}
+	for _, v := range g.spec.views {
+		out = append(out, v.name)
 	}
 	sort.Strings(out)
 	return out, nil
