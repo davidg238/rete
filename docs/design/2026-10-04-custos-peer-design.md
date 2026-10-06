@@ -320,6 +320,11 @@ Answered by David, 2026-10-04:
    #340's page, in the node verb and the CLI, so the page renders real data. Its design,
    `docs/design/2026-10-05-debugger-stack-and-names-design.md`, makes the blob offset the
    only method identity (the registry is deleted) and drops Path A debugging.
+   *Addendum 2026-10-06 (#340, merged `50030da`):* the debug page is built
+   (`docs/design/2026-10-06-custos-debug-page-design.md`): `debug.Session` keeps a `State`
+   that the CLI's text is unchanged beside, and `/debug` long-polls it and sends CLI
+   command lines; custos holds the cable from start-up. Before the TUI, the agent path
+   over the same surface is made reliable (#362, David: rete is agent-first).
 
 Then the remote stage: F1, porta's HTTP interface, and the sleepy-node demo (D9).
 
