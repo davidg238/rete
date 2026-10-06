@@ -136,6 +136,8 @@ picks it. Moving from local to remote changes the transport, not the UI.
   today. A shared cable daemon, with the collector as the one owner and every front a
   client, is earned only when two fronts need the same board **at once**. Until then it
   is not built.
+  *Addendum 2026-10-06 (#341, TUI design D2):* custos owns the cable; every front, the
+  TUI included, is an HTTP client of a serving custos. The serving custos is that daemon.
 
 ## 5. What making custos a peer costs: the findings
 
@@ -325,7 +327,8 @@ Answered by David, 2026-10-04:
    not running. The hash line precedes bootstrap, and proving "runs" would need an
    observation window chosen before there is data. It also refuses a port another
    process holds, because a collector splitting esptool's ROM handshake parks the chip.
-6. **The web profile page, then the web debug page** (#323), then the TUI.
+6. **The web profile page, then the web debug page** (#323), then the TUI (built: #341,
+   `2026-10-06-custos-tui-design.md`, an HTTP client over profile and debug).
    *Addendum 2026-10-05 (David):* #323 (the stack and named locals) is built **before**
    #340's page, in the node verb and the CLI, so the page renders real data. Its design,
    `docs/design/2026-10-05-debugger-stack-and-names-design.md`, makes the blob offset the
