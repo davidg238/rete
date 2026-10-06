@@ -86,7 +86,6 @@ func TestNoDebugTarget(t *testing.T) {
 }
 
 func TestEndedNilStop(t *testing.T) {
-	t.Skip("Task 4: the view")
 	m := New(NewClient("http://x"))
 	for _, run := range []string{"ended", "lost", "stopped"} {
 		nm, _ := m.Update(stateMsg{st: debug.State{Seq: m.st.Seq + 1, Run: run}})

@@ -271,5 +271,3 @@ func (m Model) capture() (Model, tea.Cmd) {
 	c, ms := m.c, m.ms
 	return m, func() tea.Msg { p, err := c.Capture(ms); return profMsg{p, err, false} }
 }
-
-func (m Model) View() string { return "" } // replaced by view.go (Task 4)
