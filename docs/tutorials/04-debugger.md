@@ -311,6 +311,35 @@ the Session pane shows what this tool would have printed. A board that was alrea
 waiting when custos opened the cable shows *unknown* until you press pause; that is the
 rule from section 5.
 
+## 8. The agent path
+
+An agent drives the same session over HTTP (rete#362). Without a board, custos runs the
+host VM itself, here on section 1's program:
+
+```bash
+./custos --debug-host "/tmp/oevm_img average.oimg" --debug-map average.oimg.map.json
+```
+
+Every `POST /debug/do` answers `{OK, Error, State}`. `OK` is false when the command did
+not do what it says (a line with no code, an unknown word, the VM's `dbg:error`, or no
+answer at all), and `Error` says why. To wait for a stop, never sleep: long-poll on
+`Seq` until `Run` is `stopped` (or `ended`, or `lost`):
+
+```bash
+curl -s -d 'break 16' localhost:6971/debug/do | jq '.OK, .Error'
+seq=$(curl -s -d continue localhost:6971/debug/do | jq .State.Seq)
+until st=$(curl -s "localhost:6971/debug/state?after=$seq"); \
+      echo "$st" | jq -e '.Run | test("stopped|ended|lost")' >/dev/null; do
+  seq=$(echo "$st" | jq .Seq)
+done
+echo "$st" | jq '.Stop, .Locals'
+```
+
+A piped `custos debug` script cannot do this: a line after `continue` arrives while the
+program runs, and the pause rule (section 5) stops it wherever it is. Use these
+endpoints for anything that waits on a stop. The suite's `custos-debug` gate drives
+this path too, over `--debug-host`.
+
 ## Where next
 
 - `nodus/nsl/docs/design/2026-06-23-ns-oevm-in-image-debugger-design.md` — how the

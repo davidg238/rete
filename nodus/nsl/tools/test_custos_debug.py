@@ -9,6 +9,10 @@ finishes. Every `--` line is custos's translation of a dbg:* line, so a wrong id
 offset or line fails here. The translations themselves are unit-tested in Go
 (custos/internal/debug).
 
+The same session is then driven as an agent drives it (rete#362): custos serving
+/debug over --debug-host, every command's {OK, Error, State} checked, and the stop
+awaited by long-polling on Seq.
+
 Needs Go, and exits 77 without it, which the suite reports as a named SKIP: making the
 nsl suite hard-fail without a Go toolchain would couple the node half to the tools half
 at the gate (run_tests_oevm.run_custos_debug_gate). Exits non-zero on failure.
@@ -99,14 +103,86 @@ def run():
     return "\n".join(transcript)
 
 
+def run_http():
+    """rete#362: the agent path. custos serves the session over --debug-host; every
+    answer is read as data ({OK, Error, State}), and a stop is waited for by
+    long-polling on Seq, never by sleeping."""
+    import json, socket, time, urllib.error, urllib.request
+    s = socket.socket()
+    s.bind(("127.0.0.1", 0))
+    port = s.getsockname()[1]
+    s.close()
+    base = f"http://127.0.0.1:{port}"
+    src = os.path.basename(PAUSE_APP)
+    env = {**os.environ, "OEVM_TIMER_WALLCLOCK": "1"}
+    proc = subprocess.Popen([CUSTOS, "--bind", "127.0.0.1", "--port", str(port),
+                             "--debug-host", f"{VM} {OIMG}",
+                             "--debug-map", OIMG + ".map.json", "--debug-source", PAUSE_APP],
+                            cwd=OEVM, env=env, stdout=subprocess.DEVNULL,
+                            stderr=subprocess.PIPE, text=True)
+
+    def get(path):
+        with urllib.request.urlopen(base + path, timeout=30) as r:
+            return json.load(r)
+
+    def do(cmd):
+        req = urllib.request.Request(base + "/debug/do", data=cmd.encode(), method="POST")
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.load(r)
+
+    def until(what, ok, seq=-1):
+        # The long-poll answers on the next change, or after 25 s with nothing new.
+        deadline = time.monotonic() + 30
+        while True:
+            st = get(f"/debug/state?after={seq}")
+            if ok(st):
+                return st
+            if time.monotonic() > deadline:
+                raise AssertionError(f"never {what}; last Run={st['Run']} Stop={st['Stop']}")
+            seq = st["Seq"]
+
+    try:
+        # custos's listener is up when it answers; this is start-up, not a stop.
+        for _ in range(100):
+            if proc.poll() is not None:
+                raise AssertionError(f"custos exited: {proc.stderr.read()}")
+            try:
+                get("/debug/state")
+                break
+            except urllib.error.URLError:
+                time.sleep(0.1)
+        until("at boot", lambda st: st["Run"] == "boot")
+        d = do("break 37")
+        assert d["OK"] and d["Error"] == "", d
+        assert f"{src}:37" in d["State"]["Breaks"], d["State"]["Breaks"]
+        d = do("break 1")  # the file's header comment: outside every method
+        assert not d["OK"] and d["Error"], d
+        d = do("continue")
+        assert d["OK"], d
+        st = until("stopped at 37 with its locals",
+                   lambda st: st["Run"] == "stopped" and st["Stop"]["Line"] == 37
+                   and st["Locals"] is not None, d["State"]["Seq"])
+        names = [v["Name"] for v in st["Locals"]["Vars"]]
+        assert "n" in names, names
+        assert do("clear 37")["OK"]
+        d = do("continue")
+        until("ended", lambda st: st["Run"] == "ended", d["State"]["Seq"])
+    finally:
+        proc.terminate()
+        proc.wait(timeout=10)
+    return f"http: break 37 OK, break 1 refused, stopped at 37 with {names}, ended"
+
+
 def main():
     if shutil.which("go") is None:
         print("custos-debug: SKIP (go is not on PATH)")
         sys.exit(77)
     build()
     transcript = run()
-    print("test_custos_debug: PASSED (Path B, custos debug by source line)")
+    http = run_http()
+    print("test_custos_debug: PASSED (Path B, custos debug by source line, and /debug over --debug-host)")
     print(transcript)
+    print(http)
 
 
 if __name__ == "__main__":

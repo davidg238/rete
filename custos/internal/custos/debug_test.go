@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -109,14 +111,31 @@ func TestTheDebugSourceMarksTheLinesWithCode(t *testing.T) {
 	}
 }
 
+func doAnswer(t *testing.T, srv *httptest.Server, cmd string) (int, done) {
+	t.Helper()
+	resp := do(t, srv, cmd)
+	defer resp.Body.Close()
+	var d done
+	if err := json.NewDecoder(resp.Body).Decode(&d); err != nil {
+		t.Fatal(err)
+	}
+	return resp.StatusCode, d
+}
+
 func TestABreakByCommandIsInTheState(t *testing.T) {
 	srv, _ := debugServer(t, nil)
-	resp := do(t, srv, "break 20")
-	var st debug.State
-	json.NewDecoder(resp.Body).Decode(&st)
-	resp.Body.Close()
-	if resp.StatusCode != http.StatusOK || strings.Join(st.Breaks, ",") != "Fixture.nsl:20" {
-		t.Fatalf("status %d, breaks %v", resp.StatusCode, st.Breaks)
+	code, d := doAnswer(t, srv, "break 20")
+	if code != http.StatusOK || !d.OK || d.Error != "" || strings.Join(d.State.Breaks, ",") != "Fixture.nsl:20" {
+		t.Fatalf("status %d, answer %+v", code, d)
+	}
+}
+
+// rete#362: a failed command is a 200 whose OK is false, with the reason.
+func TestAFailedCommandSaysSo(t *testing.T) {
+	srv, _ := debugServer(t, nil)
+	code, d := doAnswer(t, srv, "frobnicate")
+	if code != http.StatusOK || d.OK || d.Error != "unknown: frobnicate (type help)" {
+		t.Fatalf("status %d, answer %+v", code, d)
 	}
 }
 
@@ -165,5 +184,25 @@ func TestDebugPortConfigIsChecked(t *testing.T) {
 	_, err := Handler(Config{DebugPort: "/dev/ttyX", DebugMap: fixtureMap(t), ProfilePort: "/dev/ttyX", ProfileMap: fixtureMap(t)})
 	if err == nil || !strings.Contains(err.Error(), "one cable") {
 		t.Errorf("one port for both pages: %v", err)
+	}
+}
+
+// rete#362: a host VM is the second cable, and exactly one is held.
+func TestDebugHostConfigIsChecked(t *testing.T) {
+	m := fixtureMap(t)
+	cases := map[string]Config{
+		"one of":       {DebugPort: "/dev/ttyX", DebugHost: "/bin/true", DebugMap: m},
+		"--debug-map":  {DebugHost: "/bin/true"},
+		"--debug-host": {DebugHost: "/nonexistent/oevm_img", DebugMap: m},
+	}
+	for want, cfg := range cases {
+		if _, err := Handler(cfg); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%+v: %v, want an error naming %q", cfg, err, want)
+		}
+	}
+	wrong := filepath.Join(t.TempDir(), "wrong.oimg")
+	os.WriteFile(wrong, []byte("not the image the map describes"), 0o644)
+	if _, err := Handler(Config{DebugHost: "/bin/true " + wrong, DebugMap: m}); err == nil {
+		t.Errorf("an image the map does not describe was accepted")
 	}
 }
