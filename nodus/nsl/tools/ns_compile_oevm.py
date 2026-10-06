@@ -405,22 +405,25 @@ class MethodCompiler:
         saved_free = self.next_free_reg
         saved_scope = self.current_scope
         self.current_scope = Scope(self, saved_scope)
+        # Each entry is listed when DECLARED, its `to` set when the scope closes, so
+        # an inner inlined scope's names come after its enclosing scope's and win
+        # under §3's "listed later wins".
         start = len(self.instructions)
-        declared = []
+        first = len(self.inlined_vars)
         # Bind block params to caller-owned registers (e.g. a loop induction
         # variable). The caller allocated them below saved_free and keeps them
         # live across iterations; we only name them in the child scope.
         if param_regs is not None:
             for name, reg in zip(block.get("params", []), param_regs):
                 self.current_scope.declare(name, reg)
-                declared.append((name, reg))
+                self.inlined_vars.append([name, reg, start, None])
         # Declare block temps as fresh registers. When this body is re-run in a
         # loop, init_temps=True nil-resets them each iteration to match real
         # block-activation semantics (a fresh closure gets nil temps).
         for t in block.get("temps", []):
             reg = self.alloc_reg()
             self.current_scope.declare(t, reg)
-            declared.append((t, reg))
+            self.inlined_vars.append([t, reg, start, None])
             if init_temps:
                 self.emit_ABx(OP_LD_CONST, reg, self.add_constant(None))
         body = block["body"]
@@ -436,7 +439,9 @@ class MethodCompiler:
                 self.record_line(last)               # rete#343: a one-expression arm has a line
                 self.compile_expr(last, target_reg)  # value falls through
         end = len(self.instructions)
-        self.inlined_vars.extend([n, r, start, end] for (n, r) in declared)
+        for v in self.inlined_vars[first:]:
+            if v[3] is None:
+                v[3] = end
         self.current_scope = saved_scope
         self.next_free_reg = saved_free
 

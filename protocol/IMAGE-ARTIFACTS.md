@@ -83,9 +83,8 @@ firmware prints `oevm: program sha256 <hex> (<N> ms)` and reports the same hash 
 
 - `image`: the image this map belongs to. `sha256` and `size` must match the `.oimg`
   exactly, or custos refuses to use the map. `oop_size` is the target word width.
-- `entry`: the class the image runs. The debugger's registry (`dbg:methods`) lists
-  this class's methods first, so custos needs `entry` to turn `<file>:<line>` into a
-  method id (rete#311).
+- `entry`: the class the image runs, so the map names its program. The debugger no
+  longer uses it: it names a method by its blob offset (rete#323).
 - `files`: the base names of the source files that went into the image. The app's
   file is always first, then `kernel.nsl`, then `supervisor.nsl`.
 - `methods`: one entry per CompiledMethod in the image. Blocks are included, because a

@@ -121,3 +121,20 @@ def test_vars_reused_register_has_disjoint_ranges(tmp_path):
     vs = {v["name"]: v for v in _method(doc, "Reuse>>main:args:")["vars"]}
     assert vs["x"]["reg"] == vs["y"]["reg"]
     assert vs["x"]["to"] <= vs["y"]["from"]
+
+
+def test_vars_nested_inlined_scope_lists_the_inner_name_later(tmp_path):
+    """An inner inlined scope shadowing a name must be listed AFTER the outer one,
+    so §3's "listed later wins" picks the inner register (rete#323 review)."""
+    src = tmp_path / "Nest.nsl"
+    src.write_text(
+        "class Nest usingPlatform: platform = () (\n"
+        "  public main: p args: a = (\n"
+        "    1 to: 3 do: [ :i | 1 to: 2 do: [ :i | i println ] ].\n"
+        "    ^ 0 )\n) : ()\n")
+    _, doc = compile_map(src, tmp_path / "Nest.oimg")
+    iv = [v for v in _method(doc, "Nest>>main:args:")["vars"] if v["name"] == "i"]
+    assert len(iv) == 2, iv
+    outer, inner = iv
+    assert outer["from"] <= inner["from"] and inner["to"] <= outer["to"], iv
+    assert outer["reg"] != inner["reg"], iv
