@@ -158,10 +158,10 @@ today's.
 ## Profiles
 
 The profile view that lived here (`view.py`, #165) was deleted by #312; custos
-ranks a profile now. From a collector log, `custos profile -map <image>.oimg.map.json
-console-<board>-*.log` (the last window in the log wins). Live over the cable,
-with this collector stopped, `custos profile -map … -port <tty> -ms N`, or the
-page at `/profile` (`custos --profile-port <tty> --profile-map <map>`). A capture
+ranks a profile now. Live over the cable, with this collector stopped: the page
+at `/profile` and `POST /profile/capture?ms=N` (`custos --profile-port <tty>
+--profile-map <map>`). From a collector log, `custos profile -map
+<image>.oimg.map.json console-<board>-*.log` (the last window in the log wins). A capture
 started through porta is now two steps: `porta put … dbg/req "profile N" --kind
 stream`, then the log form above.
 

@@ -26,10 +26,11 @@ import (
 )
 
 func main() {
-	// A subcommand is the shell surface: debug (the in-image debugger, over a
-	// cable or a host VM), profile (a profile dump ranked by name), load (an .oimg into a
-	// board's program region, rete#310), and sql, tables, describe over porta's
-	// store. Without one, custos serves.
+	// Without a subcommand, custos serves: HTTP is the only agent surface (peer
+	// design D12, rete#365). The subcommands are for a person at a shell: load (an
+	// .oimg into a board's program region, rete#310), and sql, tables, describe over
+	// porta's store. debug and profile are kept, and gated, but not advertised: the
+	// pages at /debug and /profile and their agent paths are what the docs teach.
 	if len(os.Args) > 1 && os.Args[1] == "debug" {
 		os.Exit(debug.Run(os.Args[2:], os.Stdin, os.Stdout, os.Stderr))
 	}
