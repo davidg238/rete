@@ -170,13 +170,22 @@ func (s *Session) OnLine(l string) {
 }
 
 // OnEnd is the reader's when a host VM exits.
-func (s *Session) OnEnd() {
+func (s *Session) OnEnd() { s.end("ended", "the program ended") }
+
+// LostCable is what a session says when its cable's read fails.
+const LostCable = "the cable to the board was lost (unplugged?): reconnect it and restart"
+
+// OnLost is the reader's when a cable's read fails: the session is over, and
+// the person is told why rather than left watching a board that went quiet.
+func (s *Session) OnLost() { s.end("lost", LostCable) }
+
+func (s *Session) end(run, why string) {
 	s.mu.Lock()
 	s.gone = true
-	s.run, s.stopV, s.framesV, s.localsV = "ended", nil, nil, nil
+	s.run, s.stopV, s.framesV, s.localsV = run, nil, nil, nil
 	s.notify()
 	s.mu.Unlock()
-	s.say("-- the program ended")
+	s.say("-- %s", why)
 	s.record(seen{end: true})
 }
 

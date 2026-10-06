@@ -49,7 +49,7 @@ type LocalsView struct {
 // State is the session at one moment. Seq rises on every change.
 type State struct {
 	Seq        int
-	Run        string // unknown, boot, running, stopped, ended
+	Run        string // unknown, boot, running, stopped, ended, lost
 	Stop       *StopView
 	Frames     []FrameView // the last bt at this stop, innermost first
 	Locals     *LocalsView

@@ -74,7 +74,7 @@
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const RUN = {unknown: 'v-unknown', boot: 'v-stalled', running: 'v-live', stopped: 'v-stalled', ended: 'v-silent'};
+const RUN = {unknown: 'v-unknown', boot: 'v-stalled', running: 'v-live', stopped: 'v-stalled', ended: 'v-silent', lost: 'v-silent'};
 let src = null, last = null, here = 0, busy = false;
 
 function fail(msg) { $('error').textContent = msg; $('error').style.display = msg ? 'block' : 'none'; }
@@ -93,6 +93,7 @@ function render(st) {
   const s = st.Stop;
   $('where').textContent = s ? `(${s.Reason}) ${s.File}:${s.Line}  ${s.Method}` : '';
   $('hint').textContent = st.Run === 'unknown' ? 'state unknown: the board may already be waiting — press pause' : '';
+  if (st.Run === 'lost') fail('The cable to the board was lost (unplugged?). Reconnect it and restart custos: this page holds no cable now.');
   if (src) {
     const breaks = new Set((st.Breaks || []).map(b => +b.slice(b.lastIndexOf(':') + 1)));
     const at = s && s.File === src.File ? s.Line : 0;

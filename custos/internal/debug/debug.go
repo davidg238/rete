@@ -81,7 +81,7 @@ func Run(args []string, stdin *os.File, stdout, stderr io.Writer) int {
 	s := NewSession(sm, stdout)
 	var line Line
 	if *port != "" {
-		line, err = OpenPort(*port, *baud, s.OnLine)
+		line, err = OpenPort(*port, *baud, s.OnLine, s.OnLost)
 	} else {
 		line, err = StartHost(argv, s.OnLine, s.OnEnd)
 	}

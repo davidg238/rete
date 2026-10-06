@@ -158,3 +158,18 @@ func TestTheTranscriptKeepsTheLastLines(t *testing.T) {
 		t.Fatalf("%d lines, last %q", len(got), got[len(got)-1])
 	}
 }
+
+func TestALostCableIsSaidAndEndsTheSession(t *testing.T) {
+	sm, _ := loaded(t)
+	var out strings.Builder
+	s := NewSession(sm, &out)
+	s.OnLine("dbg:paused break 200 2")
+	s.OnLost()
+	st := s.State(-1, 0)
+	if st.Run != "lost" || st.Stop != nil || !s.Gone() {
+		t.Fatalf("run %q stop %+v gone %v", st.Run, st.Stop, s.Gone())
+	}
+	if want := "-- " + LostCable; !strings.HasSuffix(out.String(), want+"\n") || st.Transcript[len(st.Transcript)-1] != want {
+		t.Fatalf("printed:\n%s", out.String())
+	}
+}

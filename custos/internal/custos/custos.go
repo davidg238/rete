@@ -72,7 +72,7 @@ func Handler(cfg Config) (http.Handler, error) {
 			return nil, fmt.Errorf("custos: --profile-port needs --profile-map (<name>.oimg.map.json)")
 		}
 		mountProfile(mux, cfg.ProfileMap, func(onLine func(string)) (profile.Sender, error) {
-			return debug.OpenPort(cfg.ProfilePort, 115200, onLine)
+			return debug.OpenPort(cfg.ProfilePort, 115200, onLine, func() {})
 		})
 	}
 	if cfg.DebugPort != "" {
@@ -88,7 +88,7 @@ func Handler(cfg Config) (http.Handler, error) {
 		}
 		s := debug.NewSession(sm, io.Discard)
 		s.AutoFetch = true
-		line, err := debug.OpenPort(cfg.DebugPort, 115200, s.OnLine)
+		line, err := debug.OpenPort(cfg.DebugPort, 115200, s.OnLine, s.OnLost)
 		if err != nil {
 			return nil, fmt.Errorf("custos: --debug-port: %w", err)
 		}
