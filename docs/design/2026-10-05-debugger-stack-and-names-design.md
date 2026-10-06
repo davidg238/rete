@@ -21,24 +21,37 @@ lines), and `.oimg.map.json` is keyed by that same offset (`protocol/IMAGE-ARTIF
 §3). One identity means custos needs no registry, a frame in a block resolves like any
 other, and the profile and debug readers share one lookup.
 
-## 1. The VM: two mirror primitives (`src/mirror.c`)
+## 1. The VM: mirror primitives (`src/mirror.c`, `src/vm.c`)
 
-- `blobOffsetOf: ctx` — the offset of the context's CompiledMethod from
-  `oimg_blob_base`, as a SmallInteger.
-- `methodAtBlobOffset: n` — the CompiledMethod at `oimg_blob_base + n`, or `nil` when
-  `n` is out of the blob or the oop there does not have the CompiledMethod vtable.
+- `blobOffsetOf: ctx` — new. The offset of the context's CompiledMethod from
+  `oimg_blob_base`, as a SmallInteger; `nil` with no blob.
+- `lexicalSlotsOf: ctx` — new. A fresh Array of the slots of the heap Context in the
+  frame's register `num_arguments + 1` (the compiler's `ctx_reg`), else `nil` (no
+  captures, or the prologue has not run). This is how the captured locals are read.
+- `breakAt:offset:` / `unbreakAt:offset:` — **changed**: the first argument is the
+  blob offset (a SmallInteger), not a method oop. The bp table still keys on the
+  CompiledMethod pointer, `oimg_blob_base + off`. With no blob, or an offset outside it
+  or not word-aligned, the primitive answers `nil` and arms nothing.
 
-With no blob (`oimg_blob_base == NULL`, a solidified Path A image) both answer `nil`, and
-the Debugger answers every positional verb with `dbg:error no-blob`.
+*Correction while planning (2026-10-05):* the approved design had a
+`methodAtBlobOffset:` primitive that checked the CompiledMethod vtable. A
+`struct CompiledMethod` (`oevm.h`) has no vtable word, so the node cannot tell a method
+offset from any other in-blob offset, and handing nsl a raw method pointer would let it
+be sent a message. The break primitives take the offset instead; nothing ever holds a
+method oop. An in-blob offset that is not a method arms an entry that never fires;
+custos only sends offsets it read from the map.
+
+With no blob (a solidified Path A image) `blobOffsetOf:` answers `nil`, the Debugger
+reports a stop's offset as `-1`, and `dbg:break` answers `dbg:error no-blob`.
 
 ## 2. The node verbs (`nodus/nsl/lib/supervisor.nsl`)
 
 | Verb | Today | After |
 |---|---|---|
-| `dbg:break <off> <pc>` / `dbg:clear` | registry id + pc | blob offset + pc; `dbg:error no-method` if `methodAtBlobOffset:` is nil |
+| `dbg:break <off> <pc>` / `dbg:clear` | registry id + pc | blob offset + pc; `dbg:error no-blob` when the primitive answers nil |
 | `dbg:paused <why> <off> <pc>` | registry id | blob offset |
 | `dbg:backtrace` | — | one line: `dbg:frames <off>@<pc> <off>@<pc> …`, innermost first |
-| `dbg:inspect N` | `dbg:stack off=… r0=… r1=…` | unchanged, plus `c0=… c1=…` for frame N's Context slots when the context register holds one |
+| `dbg:inspect N` | `dbg:stack off=… r0=… r1=…` | unchanged, plus `c0=… c1=…` from `lexicalSlotsOf:` of frame N, when it has a Context |
 | `dbg:methods` | the registry listing | deleted, with `buildRegistry`, `methodIdOfCtx:`, `listMethods` |
 
 One flat line per answer, as `dbg:inspect` already does. Breakpoints inside a block become
@@ -62,8 +75,12 @@ own allocation (register 0 `self`, args `1..n`, the Context at `n+1`, temps from
 - `reg` with `from`/`to` (bytecode offsets, `to` exclusive): a temp or param of an
   **inlined** block, whose register is reused once its scope closes
   (`compile_inlined_block` restores `next_free_reg`).
-- `ctx`: a captured local, in slot `k` of the frame's Context (`capture_slot`); it does
-  not live in a register.
+- `ctx`: a captured argument or method temp, in slot `k` of the frame's Context
+  (`capture_slot`). Its register is stale after the prologue copies it, so the map
+  names only the slot. Inlined-block temps are never Context-homed
+  (`ns_compile_oevm.py`, the `real_captures` comment), so a `ctx` entry has no range.
+- When two live entries share a name (an inner inlined scope shadowing), the one
+  declared later wins.
 - `self` is not listed; register 0 is always `self`.
 
 A real (non-inlined) block is its own method with its own `vars`. A name it reads from an
@@ -72,7 +89,11 @@ enclosing frame is shown in that frame, not repeated in the block's entry.
 ## 4. custos (`custos/internal/debug`)
 
 - `SourceMap` keys on the blob offset; `LoadRegistry`/`HasRegistry` and the `dbg:methods`
-  exchange at attach are deleted. `Resolve` answers an offset+pc, `Where` takes one.
+  exchange at attach are deleted. `Resolve` answers an offset+pc, `Where` takes one. A
+  line in a block or another class of the app's file resolves like any other; a frame
+  in the kernel or the Supervisor is named (`in kernel.nsl's Kernel>>pumpEvents`).
+- `methods` stays, read from the map alone: every method of the app's file with its
+  line span.
 - `bt` — sends `dbg:backtrace`, prints one `file:line  Class>>sel` per frame, numbered
   from 0.
 - `locals [N]` — sends `dbg:inspect N`, prints `name = value` for the vars of frame N's
@@ -89,6 +110,9 @@ enclosing frame is shown in that frame, not repeated in the block's entry.
 | `nodus/nsl/tools/test_debugger_integration.py` | Path B half ported to offsets; **Path A half deleted** — a solidified image has no blob (regression, named: the debugger needs a `.oimg`) |
 | `nodus/oevm/zephyr/tools/dbg_session.py` | deleted; the board check is `custos debug -port` on `c6spare` (the `--hold` past appLiveness is done by hand at a stop) |
 | `protocol/IMAGE-ARTIFACTS.md`, `protocol/fixtures/image/` | `vars` documented; fixture regenerated |
+| `docs/tutorials/04-debugger.md` (gated by `tutorial-debugger`) | §3 gains `bt`/`locals`; §4's block refusal, "registers, not names" and "outside the registry" bullets rewritten; §6's transcript re-taken on `c6spare` |
+| `nodus/oevm/tests/test_debugger.c` | break prims driven by offset |
+| `protocol/fixtures/image/Fixture.nsl` | gains a captured local and an inlined loop temp, so `vars` has every shape |
 | `docs/development.md`, `nodus/nsl/docs/NEWSPEAK_DIALECT.md` | verb grammar updated |
 
 Done means: the suite green with its aux line (the debugger gates PASS, not SKIP), the Go
