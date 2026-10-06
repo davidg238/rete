@@ -1,9 +1,7 @@
 # The custos debug page (rete#340)
 
-> **DRAFT 2026-10-06, awaiting David's review.** Sections 1–2 were approved in
-> conversation (2026-10-06); section 3 and the fate table were written after. An initial
-> implementation followed at David's request the same night (branch `340-debug-page`); the
-> corrections it forced are marked *as built*.
+> **Approved by David, 2026-10-06** (sections 1–2 in conversation, then the written spec
+> with its *as built* corrections). Built on branch `340-debug-page`.
 
 First slice step 6 (`docs/design/2026-10-04-custos-peer-design.md` §6a; D5: CLI first, web
 second, TUI third). The profile page went to #312; this page is the debugger's. It renders
@@ -78,11 +76,11 @@ is given.
 - **A late attach.** The page starts `unknown` and says *press pause*; that is the CLI's
   existing rule (`debug.go`: "the first command finds out"), not a new one.
 - **Failures.** A VM that does not answer: the command's existing timeout, and the page
-  shows its text. *As built, not handled:* a cable that fails mid-session. `OpenPort`'s
-  reader ignores the end of a cable (the CLI's too), so an unplugged board reads as a
-  silent one, and a restart of custos reattaches. Wiring `onEnd` through `OpenPort`
-  touches the profile and load callers; it waits until a dropped cable has actually cost
-  a session.
+  shows its text. *As built (David, 2026-10-06: "we should put up a message"):* a cable that fails
+  mid-session. `OpenPort` hands its failed read (go.bug.st/serial answers `PortClosed` on
+  unplug) to an `onEnd`; the session's `OnLost` sets `Run` = `lost` and says
+  `debug.LostCable`, and the page shows it as a banner. The CLI says the same line and
+  ends. A restart of custos reattaches; there is no automatic reopen.
 
 ## 3. Tests
 
@@ -103,7 +101,12 @@ is given.
   throwaway test (not committed). On `46_debug_target`, through HTTP: a break in the
   kept block arrived with a 4-frame stack (block, `scaled:`, `main:args:`, Supervisor),
   frame 1's locals `k = 5`, `acc = 0`, `add = [a block]`; `break 26`, `continue`, `next`
-  showed `sum` 0 then 15. The board session is still owed.
+  showed `sum` 0 then 15.
+- *Board (2026-10-06, `c6spare`, DebugProbeC6, collector stopped):* driven by DOM clicks
+  in headless Chrome. A click on 55 and `continue` stopped in `countTo:` with a 6-frame
+  stack and `n`, `sum`; a click on 63 stopped in the kept block with a 7-frame stack, and
+  frame 1 named `k = 33351`, `acc = 0`, `add = [a block]`; clicks cleared both and
+  `continue` left it running. Unplugging the board turned the page `lost` with its banner.
 
 ## 4. Fate of what it touches
 
