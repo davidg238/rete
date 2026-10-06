@@ -34,19 +34,19 @@ var debugPage []byte
 // pollWait is how long /debug/state holds a request with nothing new.
 const pollWait = 25 * time.Second
 
-type sourceLine struct {
+type SourceLine struct {
 	Text string
 	Code bool // a break here lands on this line
 }
 
-type source struct {
+type Source struct {
 	File  string
-	Lines []sourceLine
+	Lines []SourceLine
 }
 
-// done is /debug/do's answer: whether the command did what it says, why not
+// Done is /debug/do's answer: whether the command did what it says, why not
 // (as the CLI said it, or the VM's dbg:error line), and the state after it.
-type done struct {
+type Done struct {
 	OK    bool
 	Error string
 	State debug.State
@@ -55,9 +55,9 @@ type done struct {
 func mountDebug(mux *http.ServeMux, s *debug.Session, sm *debug.SourceMap) {
 	var busy sync.Mutex
 	code := sm.CodeLines()
-	src := source{File: sm.Source, Lines: []sourceLine{}}
+	src := Source{File: sm.Source, Lines: []SourceLine{}}
 	for i, t := range sm.Text() {
-		src.Lines = append(src.Lines, sourceLine{t, code[i+1]})
+		src.Lines = append(src.Lines, SourceLine{t, code[i+1]})
 	}
 	answer := func(w http.ResponseWriter, v any) {
 		w.Header().Set("Content-Type", "application/json")
@@ -95,6 +95,6 @@ func mountDebug(mux *http.ServeMux, s *debug.Session, sm *debug.SourceMap) {
 		}
 		defer busy.Unlock()
 		res := s.Do(strings.TrimSpace(string(body))) // quit has nothing to leave: the cable stays held
-		answer(w, done{res.Err == "", res.Err, s.State(-1, 0)})
+		answer(w, Done{res.Err == "", res.Err, s.State(-1, 0)})
 	})
 }

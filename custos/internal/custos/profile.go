@@ -28,8 +28,8 @@ import (
 //go:embed profile.html
 var profilePage []byte
 
-// capture is one window, as the page receives it.
-type capture struct {
+// Capture is one window, as the page receives it.
+type Capture struct {
 	CapturedMs int64
 	Ms         int
 	Map        string
@@ -40,9 +40,9 @@ func mountProfile(mux *http.ServeMux, mapPath string, open func(onLine func(stri
 	var (
 		busy sync.Mutex
 		mu   sync.Mutex
-		last *capture
+		last *Capture
 	)
-	answer := func(w http.ResponseWriter, c *capture) {
+	answer := func(w http.ResponseWriter, c *Capture) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-store")
 		json.NewEncoder(w).Encode(c)
@@ -82,7 +82,7 @@ func mountProfile(mux *http.ServeMux, mapPath string, open func(onLine func(stri
 			http.Error(w, err.Error(), http.StatusBadGateway)
 			return
 		}
-		c := &capture{time.Now().UnixMilli(), ms, mapPath, profile.NewReport(profile.Parse(text), m)}
+		c := &Capture{time.Now().UnixMilli(), ms, mapPath, profile.NewReport(profile.Parse(text), m)}
 		mu.Lock()
 		last = c
 		mu.Unlock()
