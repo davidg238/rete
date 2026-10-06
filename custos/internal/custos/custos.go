@@ -51,6 +51,10 @@ type Config struct {
 	DebugPort   string
 	DebugMap    string
 	DebugSource string
+	// DebugHost is a host VM command line (split on white space) the debug page
+	// runs instead of holding a board's cable: the agent's board-free path
+	// (rete#362). Exactly one of DebugPort and DebugHost.
+	DebugHost string
 }
 
 // Handler builds the custos mux: / lands on the fleet page when a store is
@@ -58,8 +62,8 @@ type Config struct {
 // page, /dev/ serves the docs tree read-only (markdown as text/plain so a
 // browser displays the documents of record), /health + /manifest proxy to
 // porta, /fleet + /q/{name} serve the fleet (fleet.go), /profile a board's
-// method profile (profile.go), and /debug a debugging session on a board
-// (debug.go).
+// method profile (profile.go), and /debug a debugging session on a board or a
+// host VM (debug.go).
 func Handler(cfg Config) (http.Handler, error) {
 	mux := http.NewServeMux()
 	// Every page's stylesheet, whichever pages are mounted.
@@ -75,11 +79,14 @@ func Handler(cfg Config) (http.Handler, error) {
 			return debug.OpenPort(cfg.ProfilePort, 115200, onLine, func() {})
 		})
 	}
-	if cfg.DebugPort != "" {
-		if cfg.DebugMap == "" {
-			return nil, fmt.Errorf("custos: --debug-port needs --debug-map (<name>.oimg.map.json)")
+	if cfg.DebugPort != "" || cfg.DebugHost != "" {
+		if cfg.DebugPort != "" && cfg.DebugHost != "" {
+			return nil, fmt.Errorf("custos: give one of --debug-port or --debug-host")
 		}
-		if cfg.DebugPort == cfg.ProfilePort {
+		if cfg.DebugMap == "" {
+			return nil, fmt.Errorf("custos: the debug page needs --debug-map (<name>.oimg.map.json)")
+		}
+		if cfg.DebugPort != "" && cfg.DebugPort == cfg.ProfilePort {
 			return nil, fmt.Errorf("custos: --debug-port and --profile-port are one cable, and a cable has one holder")
 		}
 		sm, err := debug.LoadSourceMap(cfg.DebugMap, cfg.DebugSource)
@@ -88,9 +95,23 @@ func Handler(cfg Config) (http.Handler, error) {
 		}
 		s := debug.NewSession(sm, io.Discard)
 		s.AutoFetch = true
-		line, err := debug.OpenPort(cfg.DebugPort, 115200, s.OnLine, s.OnLost)
-		if err != nil {
-			return nil, fmt.Errorf("custos: --debug-port: %w", err)
+		var line debug.Line
+		if cfg.DebugPort != "" {
+			if line, err = debug.OpenPort(cfg.DebugPort, 115200, s.OnLine, s.OnLost); err != nil {
+				return nil, fmt.Errorf("custos: --debug-port: %w", err)
+			}
+		} else {
+			argv := strings.Fields(cfg.DebugHost)
+			for _, a := range argv {
+				if strings.HasSuffix(a, ".oimg") {
+					if err := sm.CheckImage(a); err != nil {
+						return nil, fmt.Errorf("custos: --debug-host: %w", err)
+					}
+				}
+			}
+			if line, err = debug.StartHost(argv, s.OnLine, s.OnEnd); err != nil {
+				return nil, fmt.Errorf("custos: --debug-host: %w", err)
+			}
 		}
 		s.Attach(line)
 		mountDebug(mux, s, sm)

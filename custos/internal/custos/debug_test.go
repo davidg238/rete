@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -182,5 +184,25 @@ func TestDebugPortConfigIsChecked(t *testing.T) {
 	_, err := Handler(Config{DebugPort: "/dev/ttyX", DebugMap: fixtureMap(t), ProfilePort: "/dev/ttyX", ProfileMap: fixtureMap(t)})
 	if err == nil || !strings.Contains(err.Error(), "one cable") {
 		t.Errorf("one port for both pages: %v", err)
+	}
+}
+
+// rete#362: a host VM is the second cable, and exactly one is held.
+func TestDebugHostConfigIsChecked(t *testing.T) {
+	m := fixtureMap(t)
+	cases := map[string]Config{
+		"one of":       {DebugPort: "/dev/ttyX", DebugHost: "/bin/true", DebugMap: m},
+		"--debug-map":  {DebugHost: "/bin/true"},
+		"--debug-host": {DebugHost: "/nonexistent/oevm_img", DebugMap: m},
+	}
+	for want, cfg := range cases {
+		if _, err := Handler(cfg); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%+v: %v, want an error naming %q", cfg, err, want)
+		}
+	}
+	wrong := filepath.Join(t.TempDir(), "wrong.oimg")
+	os.WriteFile(wrong, []byte("not the image the map describes"), 0o644)
+	if _, err := Handler(Config{DebugHost: "/bin/true " + wrong, DebugMap: m}); err == nil {
+		t.Errorf("an image the map does not describe was accepted")
 	}
 }
