@@ -3,9 +3,10 @@
 _Rewritten (never appended) at every `/conclude`; under ~15 lines. History: `git log -p FOCUS.md`; the pre-2026-09-30
 blocks are in `docs/status/focus-history.md`; live state is in the issues and `docs/status/dev-status.html`._
 
-- **FOCUS (David, 2026-10-06): agent first, the focus of the platform** (peer design D11). The next session starts
-  with #364 (profile's agent path: `--profile-host`, real-VM gate, answer shape as #362) on a branch from master.
-  First action: read #364, #362's D3–D4 and `custos/internal/custos/profile.go`, then brainstorm. #341 (TUI) waits.
+- **FOCUS (David, 2026-10-06): agent first, the focus of the platform** (peer design D11–D12). #364 merged
+  (`ee84381`) and closed. **Next session starts with:** #365 (HTTP is the only agent surface; demote the `custos debug`
+  and `custos profile` CLIs, kept and gated but unadvertised) on a branch from master. First action: read #365 and
+  D12, then list every place the CLIs are advertised (usage line, tutorial 04, custos docs). #341 (TUI) waits.
 - **Awaiting David:** publish the status page (Tailscale SSH check on gw85224-01 blocked it again, 2026-10-06 08:17);
   `review/tests/CLAIMS.md:86` still cites `mprof_resolve.py`; #358 (footprint RED: re-bank or shrink).
 - **One thread only.** Parked: #297's approved plan; #272 Task 5 Step 5. Merge queue: `330-canonical-booleans`.
