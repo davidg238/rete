@@ -7,7 +7,7 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
   (`ee84381`) and closed. **Next session starts with:** #365 (HTTP is the only agent surface; demote the `custos debug`
   and `custos profile` CLIs, kept and gated but unadvertised) on a branch from master. First action: read #365 and
   D12, then list every place the CLIs are advertised (usage line, tutorial 04, custos docs). #341 (TUI) waits.
-- **Awaiting David:** publish the status page (Tailscale SSH check on gw85224-01 blocked it again, 2026-10-06 08:17);
+- **Awaiting David:** publish the status page (Tailscale SSH check on gw85224-01 blocked it again, 2026-10-06 12:07);
   `review/tests/CLAIMS.md:86` still cites `mprof_resolve.py`; #358 (footprint RED: re-bank or shrink).
 - **One thread only.** Parked: #297's approved plan; #272 Task 5 Step 5. Merge queue: `330-canonical-booleans`.
 - **Bench:** `c6bench` in the soak — never flash it. `c6spare` runs the std PortaBridgeNodeC6 image (#364, 2026-10-06),
