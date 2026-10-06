@@ -49,6 +49,8 @@ green aux-gate line (C unit tests, footprint, manifest). Board gates are in
 
 | you want | read |
 |---|---|
+| the first hour, step by step | `docs/quickstart.md` |
+| what 0.1 does not protect against, and what will change | `docs/limits.md` |
 | the whole on one page, and the road to release | `docs/overview.md` |
 | what the VM is and is not | `nodus/oevm/docs/vm.md`, then `nodus/oevm/docs/MILESTONE_A.md` |
 | the language and the kernel | `nodus/nsl/README.md`, `nodus/nsl/lib/kernel.nsl` |

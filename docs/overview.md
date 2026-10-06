@@ -20,16 +20,16 @@ Decided by David, 2026-10-02 (recorded on rete#253 and rete#79):
 | # | Step | State today |
 |--:|---|---|
 | 1 | Clone, build, run ten lines of nsl on the desktop | Works: [tutorial 1](tutorials/01-host.md), executed by the suite |
-| 2 | Step through them in the debugger, on the desktop | The debugger works and is gated; there is no command or page for a person, and breakpoints are by method and offset, not file and line |
+| 2 | Step through them in the debugger, on the desktop | Works: by file and line, as a page at `/debug` and an agent path over HTTP (#340, #362), executed by the suite ([tutorial 4](tutorials/04-debugger.md)) |
 | 3 | Flash the C6 over the cable | Works, with no button press: the board harness does it unattended ([tutorial 2](tutorials/02-board.md)) |
 | 4 | Read what the board prints | Works, over the same cable |
-| 5 | Change the program and load it without reflashing the firmware | Done on the C6 (#310): `custos load` writes the program into its own partition; the firmware's build-id is unchanged |
-| 6 | Profile the program on the board | Works over the console; needs a command and a page, and its cost measured and stated |
-| 7 | Debug on the board, over the cable | Spike: the debug checks are compiled out of board builds (recorded cost 10–16% per bytecode); a stopped program must not look wedged to the watchdog |
-| 8 | Stop, patch a method, restart it, resume | Spike, desktop first: the pieces to bind a new method exist; restarting a frame does not |
+| 5 | Change the program and load it without reflashing the firmware | Done on the C6 (#310); over HTTP, `POST /load` and a page (#367) |
+| 6 | Profile the program on the board | Works: a page at `/profile` and an agent path, its cost measured (#312, #364) |
+| 7 | Debug on the board, over the cable | Works with a debug image, held state respected by the watchdog (#311); the standard image leaves the checks out |
+| 8 | Stop, patch a method, restart it, resume | The desktop spike passes, in debug builds, for a method using only what the image holds ([result](results/2026-10-06-313-patch-restart-spike.md)); the board needs the patch sent over the cable (#313) |
 | 9 | See the gateway mirror a node | Works with the desktop node: [tutorial 3](tutorials/03-porta.md). The board joins it in the remote stage |
 
-Details and sources for steps 2 to 8 are in [development.md](development.md).
+The hour as one page, with the commands: [quickstart.md](quickstart.md). What it does not protect against: [limits.md](limits.md). Details and sources for steps 2 to 8 are in [development.md](development.md).
 
 ### The 0.1 buildmap
 
