@@ -564,7 +564,7 @@ def run_tutorial_gate(page_name: str, label: str, needs: tuple = ()) -> str:
 
     `needs` is the NARROW exception: executables the page cannot run without, checked by
     name so the skip states its own cause. 03-porta.md and 04-debugger.md use it, for `go`
-    (porta, and `custos debug`). Making the nsl suite hard-fail without a Go toolchain
+    (porta, and custos; 04 also needs curl and jq, which FAIL by name rather than skip). Making the nsl suite hard-fail without a Go toolchain
     would couple the halves of this repo at the gate — the peers are coupled through
     `protocol/` and nowhere else — and
     tests/porta_sync_host.sh set the precedent for this exact dependency. It stays narrow
