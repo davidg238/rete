@@ -41,8 +41,23 @@ All values are little-endian.
 | 16 | 4 | `cluster_count` (u32) | ignored |
 
 **Image hash:** the SHA-256 of the whole `.oimg` file, written as lowercase hex. This
-is how a map is tied to its image (§3). Once #310 is done, it is also how custos checks
-which program a board is running (decision 2).
+is how a map is tied to its image (§3). It is also how custos checks which program a
+board is running: the node prints and reports the hash of its program region (§2a,
+decision 2).
+
+## 2a. The program region (rete#310)
+
+A board that has a program region runs its program from there. The firmware links
+none, so writing a new program never touches the firmware's build-id.
+
+| Board | Partition label | Offset | Size | Writer | Readers |
+|---|---|---|---|---|---|
+| ESP32-C6 devkit | `program_partition` | `0x320000` | 512K | `nodus/oevm/zephyr/boards/esp32c6_devkitc_esp32c6_hpcore.overlay` | `zephyr/run.sh` (from the build's `zephyr.dts`); `custos/internal/load` (a copy that cites this row) |
+
+`blob_size` (§2) is the number of bytes the region holds. An erased region reads
+`0xFFFFFFFF` there, and the firmware's loader refuses it by name. After a load, the
+firmware prints `oevm: program sha256 <hex> (<N> ms)` and reports the same hash as
+`obs/apps/main`'s `#image`.
 
 ## 3. `.oimg.map.json`
 
@@ -163,7 +178,7 @@ width in `flags` (fixes 4).
    `custos debug` (`-map`, #339, which deleted `dbg.py`) and `custos profile` (#312,
    which deleted `mprof_resolve.py`) read the map. A Path A (`.c`) build writes no map.
 2. **The SHA-256 of the `.oimg` is the program's identity.** The map carries it, and
-   `custos debug` refuses a host image whose hash or size differs. With #310 the node will report the
+   `custos debug` refuses a host image whose hash or size differs. Since #310 the node reports the
    hash of its program region, the way it reports `buildId` today.
 3. **log2(oop_size) goes in `flags` bits 0–1, and the VM refuses an image of another
    width.** `format_version` 12 (#344), after #330's 11 merges (the merge queue is

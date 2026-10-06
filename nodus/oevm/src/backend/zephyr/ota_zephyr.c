@@ -1,6 +1,7 @@
 /* Copyright (c) 2026 Ekorau LLC */
 #include "ota_backend.h"
 #include <stddef.h>   /* NULL — this file includes no zephyr header (see below) */
+#include <string.h>
 
 /* rete#25 — the zephyr half of the ota seam: PRESENT AND DELIBERATELY INERT.
  *
@@ -19,13 +20,16 @@
  * environment variable is unset, and on target NOTHING is set: there is no
  * getenv, so ota_env answers NULL by construction and not by omission. Follow
  * that through ota.c and every VM-facing answer is already the honest one —
- * ota_running_hash 0 (nil), ota_trial 0, ota_stage 0 after "no staging slot".
+ * ota_running_hash nil until main.c notes the program it loaded (rete#310),
+ * ota_trial 0, ota_stage 0 after "no staging slot".
  * A target node therefore reports "I do not know what I am running", which is
  * true, instead of claiming a hash it cannot verify.
  *
- * What the real one becomes, when the target rung comes: the staging slot is
- * the inactive MCUboot flash partition (flash_area_* against
- * FIXED_PARTITION_ID(slot1_partition)), ota_touch_confirm becomes
+ * What the real one becomes, when the target rung comes: the program is NOT
+ * staged in slot1_partition: that is the firmware's MCUboot slot, and the
+ * program has its own `program_partition` (rete#310,
+ * `docs/design/2026-10-04-custos-peer-design.md` §6a step 5; where a staged
+ * program goes is #233's Q2). ota_touch_confirm becomes
  * boot_write_img_confirmed(), ota_write_ready becomes boot_request_upgrade(),
  * ota_exit_stage_ready becomes sys_reboot(SYS_REBOOT_WARM), and ota_sleep_ms
  * becomes k_msleep(). None of that is guessed at here — an invented flash
@@ -35,9 +39,22 @@
  * links with a plain host compiler, which is how it was proved (task-6 report).
  */
 
+static char running_hex[65];   /* "" until main.c notes the loaded program (rete#310) */
+
+void ota_note_running_hash(const uint8_t h[32]) {
+    static const char digits[] = "0123456789abcdef";
+    for (int i = 0; i < 32; i++) {
+        running_hex[2 * i]     = digits[h[i] >> 4];
+        running_hex[2 * i + 1] = digits[h[i] & 0xf];
+    }
+    running_hex[64] = '\0';
+}
+
 const char *ota_env(const char *name) {
-    (void)name;
-    return NULL;                 /* no runner environment on target */
+    /* No runner environment on target. The one name that answers is the hash of
+       the program main.c loaded from program_partition (rete#310). */
+    if (running_hex[0] != '\0' && strcmp(name, "OEVM_IMAGE_HASH") == 0) return running_hex;
+    return NULL;
 }
 
 long ota_stage_size(void) {

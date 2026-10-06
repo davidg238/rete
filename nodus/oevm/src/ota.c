@@ -14,8 +14,8 @@
  *
  * The SHA-256 here is FILE-LOCAL ON PURPOSE. A separate sha256.c would be a
  * tenth entry in every one of the enumerated source lists (#63), and this tree
- * has exactly one hash user. If a second one ever appears, promote it then —
- * not in anticipation.
+ * has exactly one hash user. rete#310 is the second user (the C6 hashes the
+ * program it loaded), so `ota_sha256` is public; the block functions stay static.
  */
 
 /* ------------------------------------------------------------------ */
@@ -107,6 +107,13 @@ static void sha256_final(struct sha256 *c, uint8_t out[32]) {
     for (int j = 0; j < 8; j++)
         for (int k = 0; k < 4; k++)
             out[j*4 + k] = (uint8_t)(c->state[j] >> (24 - 8*k));
+}
+
+void ota_sha256(const uint8_t *p, long n, uint8_t out[32]) {
+    struct sha256 c;
+    sha256_init(&c);
+    sha256_update(&c, p, n);
+    sha256_final(&c, out);
 }
 
 /* ------------------------------------------------------------------ */

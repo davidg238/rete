@@ -2610,9 +2610,48 @@ deleted; its live case is the suite's `custos-debug` aux gate. Merged 2026-10-05
 
 1. **Not delivered:** the cable path (`-port`) has not run on a board; `custos profile`
    (#312) waits on three questions (`docs/design/2026-10-05-custos-profile-over-usb.md`).
+   Delivered 2026-10-05, next entry.
 
 Record: `porta/docs/ARCHITECTURE.md` §§1/3/8; the peer design's §6a addendum;
 `protocol/IMAGE-ARTIFACTS.md` §4; `docs/tutorials/04-debugger.md`.
+
+## custos profile: the profiler in every image, read over the cable — 2026-10-05, #312
+
+**`custos profile` ranks a live window by method name, and the profiler is in the standard
+image.** `Kernel>>profiler` is in every image, fed by `dbg/req`, by the cable (prim 160
+`consoleLine`) and by the debug loop's `profile` verb; the four per-app copies are deleted.
+`custos profile -port -ms` on `c6spare`: 204 methods, 0 UNKNOWN, 3.5 s. `custos/internal/profile`
+is byte-identical to `mprof_resolve.py` on porta_sync_host leg 8's dump, and the Python
+(`mprof_resolve.py`, `view.py`) is deleted. The closed-window cost on the C6 at -O2 is
++1.43 % on Hanoi d20, inside the 1.46 % layout noise; on by default on the C6 only, and
+other boards earn it by measurement (#354). Merged 2026-10-05 (`f544a7a`).
+
+1. **Regressions, chosen:** a porta-triggered capture is now `porta put dbg/req` followed by
+   the CLI, and `view.py`'s `/health` is gone.
+2. **Not proven:** whether opening a port reboots a C6 (#355).
+
+Record: `docs/design/2026-10-05-custos-profile-over-usb.md`; plan
+`docs/superpowers/plans/2026-10-05-custos-profile.md`.
+
+## The program in its own flash partition: `custos load` — 2026-10-05, #310
+
+**On the C6, the nsl program lives in `program_partition` (`0x320000`, 512K, carved from the
+two firmware slots) and the firmware links none.** `run.sh --flash` writes both; `custos
+load` replaces the program alone and proves from the boot that the build-id did not change
+and the program's SHA-256 is the one written. The node prints `oevm: program sha256 <hex>`
+(100 ms) and reports it as `obs/apps/main`'s `#image`, which is the program's identity
+(`IMAGE-ARTIFACTS.md` decision 2). On `c6spare`: two loads, the first into an erased
+partition, under one build-id; an esptool that writes nothing fails on the hash; a port held
+by the collector is refused. Simple boot stays; MCUboot and over-the-air writes into the
+same partition are #233's. Built on `310-oimg-flash-region` (`5097f6e`), awaiting merge.
+
+1. **What a load proves:** the loader accepted the program, not that it runs. The hash line
+   precedes bootstrap, so `custos load` says "loaded".
+2. **Not delivered:** image maps are still archived under the firmware build-id, which a
+   load no longer changes (#357). The footprint ratchet was red before this branch (#358).
+
+Record: `protocol/IMAGE-ARTIFACTS.md` §2a; `nodus/oevm/docs/vm.md` § Images and deployment;
+`docs/overview.md` first hour step 5; the peer design's §6a step 5 addendum.
 
 ## Known stale docs (do not treat as current)
 

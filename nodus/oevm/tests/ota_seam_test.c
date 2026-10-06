@@ -337,11 +337,23 @@ static void test_trial_confirm_activate(void) {
     printf("  trial/activate    OK\n");
 }
 
+/* rete#310: ota_sha256 is the hash the C6 prints for the program it loaded.
+   HASH_A_HEX was computed with python hashlib, so this is a conformance check. */
+static void test_ota_sha256_known_answer(void) {
+    uint8_t h[32];
+    char hex[65];
+    ota_sha256(blob_a, BLOB_LEN, h);
+    for (int i = 0; i < 32; i++) sprintf(hex + 2 * i, "%02x", h[i]);
+    assert(strcmp(hex, HASH_A_HEX) == 0);
+    printf("ota_sha256 known answer: ok\n");
+}
+
 int main(void) {
     for (int i = 0; i < BLOB_LEN; i++) {
         blob_a[i] = (uint8_t)((i * 7 + 3) & 0xff);
         blob_b[i] = (uint8_t)((i * 11 + 5) & 0xff);
     }
+    test_ota_sha256_known_answer();
     unhex(HASH_A_HEX, hash_a, 32);
     unhex(HASH_B_HEX, hash_b, 32);
 

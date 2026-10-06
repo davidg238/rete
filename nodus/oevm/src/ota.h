@@ -24,6 +24,8 @@
  * unset or is not 64 hex digits — a node launched with no runner is normal, not
  * an error. */
 int  ota_running_hash(uint8_t out[32]);
+/* SHA-256 of p[0..n). rete#310: the C6 hashes the program it loaded with this. */
+void ota_sha256(const uint8_t *p, long n, uint8_t out[32]);
 
 /* 1 when `hash` is the running image. The `goal/apps/main` vs OEVM_IMAGE_HASH
  * comparison of design D6, in one place so no caller re-derives it. */

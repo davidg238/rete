@@ -186,30 +186,39 @@ endif()
 if(OEVM_MODEL STREQUAL "A")
   target_sources(app PRIVATE ${OEVM_SRC}/src/solidified_image.c)
 elseif(OEVM_MODEL STREQUAL "B")
-  if(NOT DEFINED OEVM_BLOB)
-    # Model B is the device default; a bare `west build` (no run.sh, no
-    # -DOEVM_BLOB) falls back to the committed TimerNode image so it just works.
-    # run.sh bakes a fresh <node>.oimg and passes -DOEVM_BLOB, overriding this.
-    set(OEVM_BLOB ${CMAKE_CURRENT_SOURCE_DIR}/TimerNode.oimg)
-    message(STATUS "oevm: OEVM_BLOB defaulted to ${OEVM_BLOB}")
-  endif()
-  if(NOT EXISTS "${OEVM_BLOB}")
-    message(FATAL_ERROR "OEVM_BLOB does not exist: ${OEVM_BLOB}")
-  endif()
   target_sources(app PRIVATE
     ${OEVM_SRC}/src/oimg_loader.c
     ${OEVM_SRC}/src/kernel_boot.c
-    ${OEVM_SRC}/src/hanoi_native.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/blob.S)
+    ${OEVM_SRC}/src/hanoi_native.c)
   # OEVM_NO_FILE_IO compiles out oimg_loader.c's oimg_load() mmap/open path,
   # which has no meaning on this target.
   target_compile_definitions(app PRIVATE OEVM_MODEL_B OEVM_NO_FILE_IO)
-  # blob.S is preprocessed (.S, capital) so OEVM_BLOB_FILE expands.
-  set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/blob.S APPEND PROPERTY
-    COMPILE_DEFINITIONS "OEVM_BLOB_FILE=\"${OEVM_BLOB}\"")
-  # Rebuild when the blob changes.
-  set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/blob.S APPEND PROPERTY
-    OBJECT_DEPENDS "${OEVM_BLOB}")
+  # rete#310: a board whose devicetree has program_partition links NO program.
+  # run.sh writes the .oimg into that partition and `custos load` replaces it
+  # alone; main.c maps it. The devicetree is the one source of that fact, so C
+  # (FIXED_PARTITION_EXISTS) and this file cannot disagree.
+  dt_nodelabel(OEVM_PROGRAM_PARTITION NODELABEL program_partition)
+  if(OEVM_PROGRAM_PARTITION)
+    message(STATUS "oevm: program_partition present — no program linked (rete#310)")
+  else()
+    if(NOT DEFINED OEVM_BLOB)
+      # Model B is the device default; a bare `west build` (no run.sh, no
+      # -DOEVM_BLOB) falls back to the committed TimerNode image so it just works.
+      # run.sh bakes a fresh <node>.oimg and passes -DOEVM_BLOB, overriding this.
+      set(OEVM_BLOB ${CMAKE_CURRENT_SOURCE_DIR}/TimerNode.oimg)
+      message(STATUS "oevm: OEVM_BLOB defaulted to ${OEVM_BLOB}")
+    endif()
+    if(NOT EXISTS "${OEVM_BLOB}")
+      message(FATAL_ERROR "OEVM_BLOB does not exist: ${OEVM_BLOB}")
+    endif()
+    target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/blob.S)
+    # blob.S is preprocessed (.S, capital) so OEVM_BLOB_FILE expands.
+    set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/blob.S APPEND PROPERTY
+      COMPILE_DEFINITIONS "OEVM_BLOB_FILE=\"${OEVM_BLOB}\"")
+    # Rebuild when the blob changes.
+    set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/blob.S APPEND PROPERTY
+      OBJECT_DEPENDS "${OEVM_BLOB}")
+  endif()
 else()
   message(FATAL_ERROR "OEVM_MODEL must be A or B, got: ${OEVM_MODEL}")
 endif()
