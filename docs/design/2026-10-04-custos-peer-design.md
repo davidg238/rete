@@ -48,6 +48,11 @@ custos's query engine.
   porta. A developer who wants a store runs the same porta locally; custos gets no store
   of its own. Commissioning/release is the gate between the two kinds; its shape is
   undecided (#312, `2026-10-05-custos-profile-over-usb.md`).
+- **D11 (David, 2026-10-06): agent first, the focus of the platform.** Every verb gets
+  its agent path before any human front. That means a machine-readable answer, a target
+  that can be a host VM, and a gate run against a real VM the way an agent drives it
+  (#362 for debug, #364 for profile). D5's fronts (CLI, web, TUI) come after the agent
+  path. The TUI (#341) waits until the agent paths are done.
 
 ## 2. The picture
 
