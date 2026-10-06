@@ -69,9 +69,11 @@ func run(t *testing.T, board *fakeBoard, region Region) (argv []string, out stri
 		Port:    "/dev/ttyX",
 		Board:   board,
 		Flash:   func(a []string) error { argv = a; return nil },
-		Out:     &buf,
 	}
-	err = l.Load(fixture)
+	res, err := l.Load(fixture)
+	if err == nil {
+		res.Say(&buf)
+	}
 	return argv, buf.String(), err
 }
 

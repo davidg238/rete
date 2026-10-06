@@ -101,6 +101,34 @@ func NewSession(sm *SourceMap, out io.Writer) *Session {
 // Attach gives the session the line its commands go down.
 func (s *Session) Attach(l Line) { s.line = l }
 
+// SourceMap is the map the session reads the VM's offsets through.
+func (s *Session) SourceMap() *SourceMap {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.sm
+}
+
+// Restart starts the session over on sm, after a load rewrote the board's
+// program (peer design D14): what the VM said, its stop and its breaks belong to
+// the old program. Seq keeps rising, so a page's long-poll sees the restart. The
+// old line's reader must have ended; Attach gives the new one.
+func (s *Session) Restart(sm *SourceMap) {
+	s.cmdMu.Lock()
+	defer s.cmdMu.Unlock()
+	s.mu.Lock()
+	s.sm, s.line = sm, nil
+	s.seen, s.stopped, s.frames, s.gone = nil, nil, nil, false
+	s.quiet, s.stepping = false, false
+	s.run, s.stopV, s.framesV, s.localsV = "unknown", nil, nil, nil
+	s.breaks = map[int]bool{}
+	s.notify()
+	s.mu.Unlock()
+	s.say("-- a new program was loaded: the session starts over")
+}
+
+// Stale ends the session because its map is not the program the board runs.
+func (s *Session) Stale(why string) { s.end("stale", why) }
+
 func (s *Session) say(format string, args ...any) {
 	text := fmt.Sprintf(format, args...)
 	s.outMu.Lock()

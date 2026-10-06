@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/davidg238/rete/custos/internal/profile"
@@ -39,7 +40,7 @@ func profileServer(t *testing.T) *httptest.Server {
 	mux := http.NewServeMux()
 	mountProfile(mux, fixtureMap(t), func(onLine func(string), onEnd func()) (profile.Sender, error) {
 		return echoNode{onLine}, nil
-	})
+	}, &sync.Mutex{})
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 	return srv

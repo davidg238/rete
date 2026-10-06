@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Ekorau LLC
 
 // Package tui is `custos tui` (rete#341): a terminal front over a serving
-// custos's /debug and /profile. It is an HTTP client like the page and an
+// custos's /debug, /profile and /load (rete#367). It is an HTTP client like the page and an
 // agent (design 2026-10-06-custos-tui-design.md D1); custos owns the cable.
 package tui
 
@@ -24,6 +24,8 @@ type tab int
 const (
 	debugTab tab = iota
 	profileTab
+	loadTab
+	tabs // how many
 )
 
 // Model is the whole TUI. Exactly one long-poll is in flight at a time; it is
@@ -36,7 +38,7 @@ type Model struct {
 	st        debug.State
 	cursor    int    // the source line under the cursor, 1-based
 	frame     int    // the frame whose locals are asked for
-	prompt    string // non-empty while the one-line input is open: ":" or "window ms: "
+	prompt    string // non-empty while the one-line input is open: ":", "window ms: " or "image: "
 	input     string
 	status    string // the last refusal or error; "" when the last thing worked
 	inflight  string // the command posted and not yet answered
@@ -45,6 +47,9 @@ type Model struct {
 	prof      *custos.Capture
 	ms        int // the last profile window
 	capturing bool
+	load      *custos.Load
+	image     string // the last .oimg path asked for
+	loading   bool
 }
 
 type sourceMsg struct {
@@ -59,6 +64,11 @@ type doneMsg struct {
 	cmd string
 	d   custos.Done
 	err error
+}
+type loadMsg struct {
+	l    custos.Load
+	err  error
+	last bool // from /load/last at start-up: a 404 there is not an error
 }
 type profMsg struct {
 	c    custos.Capture
@@ -78,6 +88,7 @@ func (m Model) fetch() tea.Cmd {
 	return tea.Batch(
 		func() tea.Msg { s, err := c.Source(); return sourceMsg{s, err} },
 		func() tea.Msg { p, err := c.Last(); return profMsg{p, err, true} },
+		func() tea.Msg { l, err := c.LastLoad(); return loadMsg{l, err, true} },
 	)
 }
 
@@ -159,6 +170,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.lost { // a restarted custos starts its Seq again: take whatever it has
 			m.lost, m.status, m.st = false, "", debug.State{}
 			cmd = m.fetch()
+		} else if m.st.Run != "" && msg.st.Image != m.st.Image { // a load restarted the session on a new map
+			c := m.c
+			cmd = func() tea.Msg { s, err := c.Source(); return sourceMsg{s, err} }
 		}
 		m = m.apply(msg.st)
 		return m, tea.Batch(cmd, m.poll(m.after(), 0))
@@ -183,6 +197,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.prof, m.status = &msg.c, ""
+	case loadMsg:
+		m.loading = false
+		if msg.err != nil {
+			if !(msg.last && is404(msg.err)) {
+				m.status = "load: " + msg.err.Error()
+			}
+			return m, nil
+		}
+		m.load, m.status = &msg.l, ""
 	case tea.KeyMsg:
 		return m.key(msg)
 	}
@@ -206,6 +229,10 @@ func (m Model) key(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if prompt == ":" {
 				return m.send(line)
 			}
+			if prompt == "image: " {
+				m.image = line
+				return m.upload()
+			}
 			ms, err := strconv.Atoi(line)
 			if err != nil || ms <= 0 {
 				m.status = "a window is a positive number of ms"
@@ -228,7 +255,13 @@ func (m Model) key(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "q", "ctrl+c":
 		return m, tea.Quit
 	case "tab":
-		m.tab = 1 - m.tab
+		m.tab = (m.tab + 1) % tabs
+		return m, nil
+	}
+	if m.tab == loadTab {
+		if s == "r" {
+			m.prompt, m.input = "image: ", m.image
+		}
 		return m, nil
 	}
 	if m.tab == profileTab {
@@ -279,4 +312,14 @@ func (m Model) capture() (Model, tea.Cmd) {
 	m.capturing = true
 	c, ms := m.c, m.ms
 	return m, func() tea.Msg { p, err := c.Capture(ms); return profMsg{p, err, false} }
+}
+
+func (m Model) upload() (Model, tea.Cmd) {
+	if m.loading {
+		m.status = "a load is still running"
+		return m, nil
+	}
+	m.loading = true
+	c, path := m.c, m.image
+	return m, func() tea.Msg { l, err := c.Load(path); return loadMsg{l, err, false} }
 }

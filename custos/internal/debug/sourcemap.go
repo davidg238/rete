@@ -70,6 +70,9 @@ func LoadSourceMap(mapPath, source string) (*SourceMap, error) {
 	return sm, nil
 }
 
+// SHA256 names the image the map describes.
+func (sm *SourceMap) SHA256() string { return sm.img.SHA256 }
+
 // CheckImage refuses an image other than the one the map describes: its hash
 // names one build.
 func (sm *SourceMap) CheckImage(oimgPath string) error { return sm.img.CheckImage(oimgPath) }

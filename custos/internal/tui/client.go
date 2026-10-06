@@ -10,6 +10,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -29,7 +32,8 @@ func NewClient(base string) *Client {
 }
 
 // StatusError is a non-2xx answer: 404 (no such target configured), 409 (one
-// already in flight), 502 (the capture's program ended early).
+// already in flight), 400 (not an .oimg), 502 (the capture's program ended
+// early; the load's target refused or failed).
 type StatusError struct {
 	Code int
 	Body string
@@ -74,6 +78,21 @@ func (c *Client) Do(cmd string) (d custos.Done, err error) {
 func (c *Client) Capture(ms int) (p custos.Capture, err error) {
 	err = c.call("POST", fmt.Sprintf("/profile/capture?ms=%d", ms), "", &p)
 	return p, err
+}
+
+// Load uploads the .oimg at path to /load, named by its base name.
+func (c *Client) Load(path string) (l custos.Load, err error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return l, err
+	}
+	err = c.call("POST", "/load?name="+url.QueryEscape(filepath.Base(path)), string(b), &l)
+	return l, err
+}
+
+func (c *Client) LastLoad() (l custos.Load, err error) {
+	err = c.call("GET", "/load/last", "", &l)
+	return l, err
 }
 
 func (c *Client) Last() (p custos.Capture, err error) {

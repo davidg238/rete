@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>rete load</title>
+<link rel="stylesheet" href="/fleet.css">
+</head>
+<body>
+<header>
+  <h1>rete load</h1>
+  <nav><a href="/debug">debug</a><a href="/profile">profile</a><a href="/fleet">fleet</a><a href="/dev">dev status</a><a href="/load/last">last.json</a></nav>
+</header>
+<form id="go"><input id="file" type="file" accept=".oimg"> <button>Load</button></form>
+<div class="stamp" id="stamp">no load yet</div>
+<div class="banner" id="error"></div>
+
+<h2>Last load</h2>
+<div class="wrap"><table>
+  <tbody id="rows"><tr><td class="empty">no load yet</td></tr></tbody>
+</table></div>
+<p class="note">The sha256 is the one the target printed at boot, after its loader accepted the image and before the program's first line: a load proves the program loaded, not that it runs. A board's firmware build-id is read before and after the write, and must not change.</p>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function render(l) {
+  const r = l.Result;
+  $('stamp').textContent = `${new Date(l.LoadedMs).toLocaleString()} · ${r.Image}`;
+  const rows = [['image', r.Image], ['size', `${r.Size} B`], ['program sha256', r.SHA256],
+    ['firmware build-id', r.BuildID], ['offset', r.Offset ? '0x' + r.Offset.toString(16) : 'host VM']];
+  if (l.Debug) rows.push(['debug page', l.Debug]);
+  $('rows').innerHTML = rows.map(([k, v]) => `<tr><th>${esc(k)}</th><td><code>${esc(v)}</code></td></tr>`).join('');
+}
+function fail(msg) { $('error').textContent = msg; $('error').style.display = 'block'; }
+async function show(resp) {
+  $('error').style.display = 'none';
+  if (resp.status === 404) return;
+  if (!resp.ok) return fail(await resp.text());
+  render(await resp.json());
+}
+$('go').onsubmit = async e => {
+  e.preventDefault();
+  const f = $('file').files[0];
+  if (!f) return fail('choose an .oimg first');
+  $('stamp').textContent = `loading ${f.name}…`;
+  try { await show(await fetch('/load?name=' + encodeURIComponent(f.name), {method: 'POST', body: f})); }
+  catch (err) { fail(String(err)); }
+};
+fetch('/load/last').then(show).catch(err => fail(String(err)));
+</script>
+</body>
+</html>

@@ -68,6 +68,9 @@ func main() {
 	flag.StringVar(&cfg.DebugHost, "debug-host", "", "a host VM command line for the debug page instead of a board: \"/tmp/oevm_img app.oimg\" (rete#362)")
 	flag.StringVar(&cfg.DebugMap, "debug-map", "", "the <name>.oimg.map.json of the image on --debug-port or --debug-host")
 	flag.StringVar(&cfg.DebugSource, "debug-source", "", "the .nsl the image came from (default: beside --debug-map)")
+	flag.StringVar(&cfg.LoadPort, "load-port", "", "a board's console cable for the load page at /load, opened for each load; may be --debug-port's (empty = no load page)")
+	flag.StringVar(&cfg.LoadHost, "load-host", "", "a host VM binary for the load page instead of a board, run once on each uploaded image: \"/tmp/oevm_img\" (rete#367)")
+	flag.StringVar(&cfg.Esptool, "esptool", "esptool.py", "the esptool --load-port runs")
 	flag.StringVar(&allow, "allow-cidr", strings.Join(allowlist.Default(), ","),
 		"comma-separated CIDR allowlist (empty = serve any peer)")
 	flag.Parse()
