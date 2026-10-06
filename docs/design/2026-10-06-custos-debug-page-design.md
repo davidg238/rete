@@ -162,6 +162,21 @@ shows `error`.
 **Promotion:** `docs/tutorials/04-debugger.md` gains "the agent path" (the long-poll
 loop, `ok`/`error`, and the piped-CLI caveat).
 
+*As built (2026-10-06):*
+- The answer's keys are Go's field names `{OK, Error, State}`, as `State`'s own are.
+- The gate drives `47_debug_pause_target`, the image `test_custos_debug.py` already
+  builds, not `46_debug_target`: `break 37` → `OK`; `break 1` (the header comment) →
+  `OK: false`, `line 1 has no code; the nearest lines that do: 19 (main:args:)` (this
+  refusal is the issue's "line N has no code"); a stop at 37 with `self`, `n`, `sum`;
+  then `ended`. Breaking the `OK` mapping (`done{true, …}`) turned the gate red on
+  `break 1`.
+- Tutorial §8 runs section 1's `average.oimg`, not `46_debug_target`. Its curl loop was
+  run against a host VM: it stopped at `average.nsl:16` with `xs`, `mean` named.
+- The page was driven by DOM clicks over CDP against `--debug-host`: a click on 37 and
+  `continue` gave a 5-frame stack and `n = 1`, `sum = 0`; `frobnicate` in the command
+  box raised the banner `unknown: frobnicate (type help)`, and the next good command
+  cleared it.
+
 ## Not done here
 
 - Values beyond `printString` (#359); send-by-send stepping (#322).
