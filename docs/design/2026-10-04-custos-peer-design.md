@@ -310,6 +310,11 @@ Answered by David, 2026-10-04:
      remotely. Over the cable this doesn't arise, because esptool writes through the
      ROM. Proposed: record this as #233's problem, now known before it is built (two
      program slots, or a receiver in the firmware), and don't solve it in #310.
+
+   As built (2026-10-05, final review): `custos load` reports the program **loaded**,
+   not running. The hash line precedes bootstrap, and proving "runs" would need an
+   observation window chosen before there is data. It also refuses a port another
+   process holds, because a collector splitting esptool's ROM handshake parks the chip.
 6. **The web profile page, then the web debug page** (#323), then the TUI.
 
 Then the remote stage: F1, porta's HTTP interface, and the sleepy-node demo (D9).
