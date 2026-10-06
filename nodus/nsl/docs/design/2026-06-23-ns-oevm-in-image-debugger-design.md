@@ -1,5 +1,7 @@
 # In-image debugger + mirror grant (POSIX, agent-drivable) — design
 
+> **Addendum 2026-10-05 (rete#323):** the methodId registry (`buildRegistry`, `dbg:methods`, `methodOf:`) is deleted; a method is its blob offset. See `docs/design/2026-10-05-debugger-stack-and-names-design.md`.
+
 Date: 2026-06-23
 Status: approved (brainstorm), pending implementation plan
 Predecessor: `2026-06-23-ns-oevm-mirror-confinement-design.md` (the mirror capability this builds on)

@@ -1,5 +1,8 @@
 # The debugger's stack and names — one method identity (rete#323)
 
+_Built: 040e9c3, afb753d, 93690a3 and the docs commit after them; promoted to
+`docs/development.md` §Debug and `protocol/IMAGE-ARTIFACTS.md` §3._
+
 _2026-10-05. Decision record for #323, parts 1 (backtrace) and 2 (names). Part 3 (values
 beyond `printString`) is #359. #340 (the debug page) renders what this builds._
 

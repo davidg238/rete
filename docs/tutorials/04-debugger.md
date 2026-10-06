@@ -68,6 +68,9 @@ break 16
 continue
 step
 next
+bt
+locals
+locals 1
 list
 finish
 next
@@ -76,10 +79,13 @@ continue
 EOF
 ./custos debug -map average.oimg.map.json \
         -- /tmp/oevm_img average.oimg < session.txt | tee out.txt
-grep -q '^-- stopped (break) at average.nsl:16  main:args:$' out.txt
-grep -q '^-- stopped (step) at average.nsl:8  sum:$' out.txt
+grep -q '^-- stopped (break) at average.nsl:16  Average>>main:args:$' out.txt
+grep -q '^-- stopped (step) at average.nsl:8  Average>>sum:$' out.txt
+grep -q '^  #1 at average.nsl:16  Average>>main:args:$' out.txt
+grep -q '^  total = 0$' out.txt
+grep -q '^  mean = nil$' out.txt
 grep -q '^=>    9 |' out.txt
-grep -q '^-- stopped (step) at average.nsl:18  main:args:$' out.txt
+grep -q '^-- stopped (step) at average.nsl:18  Average>>main:args:$' out.txt
 grep -q '^mean 4$' out.txt
 grep -q '^-- the program ended$' out.txt
 ```
@@ -87,17 +93,33 @@ grep -q '^-- the program ended$' out.txt
 ```
 -- stopped at boot, before the program's first line
 (dbg) break 16
--- break average.nsl:16  main:args:
+-- break average.nsl:16  Average>>main:args:
 dbg:ok break
 (dbg) continue
--- stopped (break) at average.nsl:16  main:args:
+-- stopped (break) at average.nsl:16  Average>>main:args:
   16 |     mean:: (self sum: xs) / xs size.
 (dbg) step
--- stopped (step) at average.nsl:8  sum:
+-- stopped (step) at average.nsl:8  Average>>sum:
    8 |     total:: 0.
 (dbg) next
--- stopped (step) at average.nsl:9  sum:
+-- stopped (step) at average.nsl:9  Average>>sum:
    9 |     xs do: [ :x | total:: total + x ].
+(dbg) bt
+  #0 at average.nsl:9  Average>>sum:
+  #1 at average.nsl:16  Average>>main:args:
+  #2 at supervisor.nsl:38  Supervisor>>run:platform:args:debug:
+(dbg) locals
+-- frame 0 at average.nsl:9  Average>>sum:
+  self = an Object
+  xs = an Object
+  total = 0
+(dbg) locals 1
+-- frame 1 at average.nsl:16  Average>>main:args:
+  self = an Object
+  platform = an Object
+  args = 0
+  xs = an Object
+  mean = nil
 (dbg) list
       6 |   sum: xs = (
       7 |     | total |
@@ -107,14 +129,14 @@ dbg:ok break
      11 |
      12 |   public main: platform args: args = (
 (dbg) finish
--- stopped (step) at average.nsl:16  main:args:
+-- stopped (step) at average.nsl:16  Average>>main:args:
   16 |     mean:: (self sum: xs) / xs size.
 (dbg) next
--- stopped (step) at average.nsl:17  main:args:
+-- stopped (step) at average.nsl:17  Average>>main:args:
   17 |     ('mean ' , mean printString) println.
 (dbg) next
 mean 4
--- stopped (step) at average.nsl:18  main:args:
+-- stopped (step) at average.nsl:18  Average>>main:args:
   18 |     ^ self )
 (dbg) continue
 -- the program ended
@@ -137,19 +159,19 @@ the VM's own answers, passed through. Everything else is your program's output.
 | `pause` | `p` | stop a running program where it is (§5) |
 | `where` | `w` | the line it is stopped at |
 | `list` | `l` | the lines around it |
-| `inspect` | `i` | the frame's registers (§4) |
-| `methods` | | the methods a breakpoint can go in, with their line ranges |
+| `bt` | | the call stack, innermost first, one `file:line` per frame |
+| `locals [N]` | | frame N's `self`, arguments, temporaries and captured locals by name (§4) |
+| `inspect` | `i` | the frame's raw registers |
+| `methods` | | every method of the app's file, with its line range |
 | `dbg:...` | | sent to the VM unchanged, e.g. `dbg:step` for one bytecode |
 | `quit` | `q` | leave. The VM is told nothing more and runs on |
 
 ## 4. What it can and cannot do
 
-- **A breakpoint goes on a line inside a method of the class the image runs** (`Average`
-  here). The VM's list of methods (`methods`) is that class's own methods, then the
-  kernel's `Object`. A line in another class of the same file, or inside a block that
-  the compiler kept as a block (a `whenever: ... do: [ ... ]` handler, say), is refused
-  with its name: `line 26 is in DebugPauseTarget_block2>>value:`. A block the compiler
-  inlines, like the `do:` body on line 9, is part of its method and fine.
+- **A breakpoint goes on any line with code in the app's file**: a method of any of its
+  classes, or a line inside a block the compiler kept as a block (a `whenever: ... do:
+  [ ... ]` handler, say), which is its own method. The VM names every method by its offset
+  in the image, and the image map turns that offset into a name and a line (rete#323).
 - **A line with no code of its own** (a method header, `| total |`, a comment) is
   refused with the nearest lines that have code: `line 7 has no code; the nearest lines
   that do: 8 (sum:)`. Inside a method, a line with no code moves forward to the next line
@@ -165,13 +187,16 @@ the VM's own answers, passed through. Everything else is your program's output.
   it runs on, a breakpoint never fires, and a typed line is not seen. `dbg:continue`
   (sent raw, or `continue`) ends the step. A line sent during a long `next` or `finish`
   lands when the step does (rete#321).
-- **`inspect` shows registers, not names.** `dbg:stack off=3 r0=an Object r1=an Object
-  r2=[a VM object] r3=nil r4=0 …`: `r0` is the receiver, then the arguments, then
-  locals and temporaries, in frame order. The source map has no names for them yet.
-- **A stop outside the app is reported as one**: `outside the registry (in a block or
-  the kernel)`. A pause usually lands there, because a program that is waiting for its
-  next event is waiting inside the kernel. So does `finish` out of `main:args:`: what
-  called it is the kernel.
+- **`locals` names what the frame holds**, from the image map: `self`, the arguments,
+  the temporaries, and the locals a kept block captured (`total` above, captured by the
+  `do:` block). A captured local in a frame stopped before its method's first bytecode
+  shows `(not yet set)`. A loop variable of an inlined loop (`1 to: n do: [ :i | ... ]`)
+  is shown only while the stop is inside the loop body. `locals 1` and deeper need a `bt`
+  at this stop first. `inspect` still shows the raw registers (`dbg:stack off=3 r0=…`).
+- **A stop in the kernel is named by its `kernel.nsl` line**: `at kernel.nsl:3160
+  Kernel_Space>>drain`. A pause usually lands there, because a program that is waiting
+  for its next event is waiting inside the kernel; `bt` shows how the app got there.
+  So does `finish` out of `main:args:`: what called it is the Supervisor.
 
 ## 5. Stopping a running program
 
@@ -205,43 +230,57 @@ its cable, with no timeout.
            -port /dev/serial/by-id/usb-Silicon_Labs_CP2102N_...
    ```
 
-   Because opening the port reboots the board, you meet it at its boot stop. The rest is
+   A board with this image waits at its boot stop until something answers it. The rest is
    §2 and §3, over the cable. A board held at a breakpoint is not rebooted as wedged: the
    observer knows the VM is held and restarts its clock when you continue.
 
-From `c6bench`, 2026-10-02 22:36 MST, `DebugProbeC6.nsl` (a 1 s ticker whose ticks call
-`countTo:`), a script piped in with pauses between groups of commands. The boot lines,
-`methods`, and the `where`/`list` and second `inspect` steps are left out; the rest is
-the log (`~/rete-bench/311-fe/dbg-fe-session2.log` on the gateway):
+From `c6spare`, 2026-10-05 21:48 MST, `DebugProbeC6.nsl` (a 1 s ticker whose ticks call
+`countTo:` and `scaled:`, whose kept block captures `k` and `acc`), firmware built from
+`93690a3` plus the probe's `scaled:`, a script piped in with pauses between commands. The
+first command arrived while custos still counted the program as running, so it was preceded
+by a pause (`dbg:ok pause`). Two such lines and ten tick lines are left out; the rest is the
+log (`~/rete-bench/323/dbg-323-session.log` on the desktop):
 
 ```
--- stopped at boot, before the program's first line
-(dbg) break 54
--- break DebugProbeC6.nsl:54  countTo:
+(dbg) break 63
+-- break DebugProbeC6.nsl:63  DebugProbeC6_block3>>value:
 dbg:ok break
 (dbg) continue
 dbg-probe: ticking
--- stopped (break) at DebugProbeC6.nsl:54  countTo:
-  54 |     1 to: n do: [ :i | sum:: sum + i ].
-(dbg) inspect
-dbg:stack off=2 r0=an Object r1=1 r2=nil r3=0 r4=0 r5=nil r6=nil r7=nil r8=nil r9=nil
-(dbg) next
--- stopped (step) at DebugProbeC6.nsl:55  countTo:
-  55 |     ^ sum )
-(dbg) next
--- stopped (step) at DebugProbeC6.nsl:46  tick
-  46 |     sum:: self countTo: ticks.
-(dbg) clear 54
--- clear DebugProbeC6.nsl:54  countTo:
+-- stopped (break) at DebugProbeC6.nsl:63  DebugProbeC6_block3>>value:
+  63 |     add:: [ :x | acc:: acc + (x * k) ].
+(dbg) bt
+  #0 at DebugProbeC6.nsl:63  DebugProbeC6_block3>>value:
+  #1 at DebugProbeC6.nsl:64  DebugProbeC6>>scaled:
+  #2 at DebugProbeC6.nsl:47  DebugProbeC6>>tick
+  #3 at DebugProbeC6.nsl:33  DebugProbeC6_block2>>value:
+  #4 at kernel.nsl:3166  Kernel_Space>>drain
+  #5 at DebugProbeC6.nsl:40  DebugProbeC6>>main:args:
+  #6 at supervisor.nsl:38  Supervisor>>run:platform:args:debug:
+(dbg) locals
+-- frame 0 at DebugProbeC6.nsl:63  DebugProbeC6_block3>>value:
+  self = [a block]
+  x = 2
+(dbg) locals 1
+-- frame 1 at DebugProbeC6.nsl:64  DebugProbeC6>>scaled:
+  self = an Object
+  k = 1
+  acc = 0
+  add = [a block]
+(dbg) clear 63
+-- clear DebugProbeC6.nsl:63  DebugProbeC6_block3>>value:
 dbg:ok clear
 (dbg) continue
+dbg-probe tick 1 sum 1 scaled 5
 (dbg) pause
-dbg-probe tick 1 sum 1
-dbg-probe tick 2 sum 3
--- stopped (pause) outside the registry (in a block or the kernel), offset 2
+-- stopped (pause) at kernel.nsl:4070  Kernel>>pumpEvents
 dbg:ok pause
+(dbg) bt
+  #0 at kernel.nsl:4070  Kernel>>pumpEvents
+  #1 at DebugProbeC6.nsl:40  DebugProbeC6>>main:args:
+  #2 at supervisor.nsl:38  Supervisor>>run:platform:args:debug:
 (dbg) continue
-dbg-probe tick 3 sum 6
+dbg-probe tick 7 sum 28 scaled 35
 ```
 
 **On a board, every bytecode step is a round trip over the cable** (about 0.2 s on the
