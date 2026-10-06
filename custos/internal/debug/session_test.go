@@ -14,19 +14,17 @@ import (
 // goroutine, as the reader does, so the session's waits are exercised for real.
 type fakeVM struct {
 	s     *Session
-	steps [][2]int // (id, off) per bytecode step
+	steps [][2]int // (blob offset, pc) per bytecode step
 	wg    sync.WaitGroup
 }
 
 func (f *fakeVM) Send(line string) error {
 	var reply []string
 	switch {
-	case line == "dbg:methods":
-		reply = registry[1:] // the registry lines and dbg:ok methods
 	case strings.HasPrefix(line, "dbg:break "):
 		reply = []string{"dbg:ok break"}
 	case line == "dbg:continue":
-		reply = []string{"dbg:paused break 2 2"}
+		reply = []string{"dbg:paused break 200 2"}
 	case line == "dbg:step" || line == "dbg:over":
 		next := f.steps[0]
 		f.steps = f.steps[1:]
@@ -48,7 +46,7 @@ func TestALineStepShowsOnlyItsLastStop(t *testing.T) {
 	s := NewSession(sm, &out)
 	// From countTo:'s offset 2 (line 37): two more bytecodes on 37, then 16 is
 	// line 38.
-	vm := &fakeVM{s: s, steps: [][2]int{{2, 5}, {2, 9}, {2, 16}}}
+	vm := &fakeVM{s: s, steps: [][2]int{{200, 5}, {200, 9}, {200, 16}}}
 	s.Attach(vm)
 	s.OnLine("dbg:ready")
 	for _, cmd := range []string{"break 37", "continue"} {
@@ -59,7 +57,7 @@ func TestALineStepShowsOnlyItsLastStop(t *testing.T) {
 	s.Do("next")
 	vm.wg.Wait()
 	got := out.String()
-	if got != "-- stopped (step) at t.nsl:38  countTo:\n  38 | line 38\n" {
+	if got != "-- stopped (step) at t.nsl:38  T>>countTo:\n  38 | line 38\n" {
 		t.Fatalf("a line step printed:\n%s", got)
 	}
 	if len(vm.steps) != 0 {

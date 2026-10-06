@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -19,13 +18,14 @@ type pair struct{ off, line int }
 
 // function is one method of the app's file, as the map names it.
 type function struct {
+	off   int    // blob offset: the VM's name for it
 	name  string // "<Vtable>>selector"
 	pairs []pair
 }
 
-// SourceMap is the image map (offset -> name, file, lines per method) joined to
-// the VM's registry (id -> selector). It does no I/O beyond reading the files it
-// is given.
+// SourceMap is the image map read for a debugging session: a method is its blob
+// offset (rete#323), so the map is the only lookup. It does no I/O beyond reading
+// the files it is given.
 type SourceMap struct {
 	img    *imagemap.Map
 	Source string // files[0], the app's file
@@ -34,17 +34,7 @@ type SourceMap struct {
 	// blocks', its other classes' — in the map's offset order. The kernel and
 	// the Supervisor are other files.
 	functions []function
-	// methods is selector -> pairs for the entry class's own methods.
-	methods map[string][]pair
-	text    []string // the app's source, nil when it cannot be read
-
-	ids  map[string]int   // selector -> id, the entry class's group only
-	sels map[int]selector // id -> selector
-}
-
-type selector struct {
-	name string
-	own  bool // in the entry class's group, not a delegate's (the kernel's Object)
+	text      []string // the app's source, nil when it cannot be read
 }
 
 // LoadSourceMap reads an image map, and the source beside it (or at source).
@@ -53,28 +43,17 @@ func LoadSourceMap(mapPath, source string) (*SourceMap, error) {
 	if err != nil {
 		return nil, err
 	}
-	sm := &SourceMap{
-		img:     img,
-		Source:  img.Files[0],
-		Entry:   img.Entry,
-		methods: map[string][]pair{},
-		ids:     map[string]int{},
-		sels:    map[int]selector{},
-	}
-	prefix := sm.Entry + ">>"
+	sm := &SourceMap{img: img, Source: img.Files[0], Entry: img.Entry}
 	for _, off := range img.Offsets() {
 		m := img.Methods[off]
 		if m.File != 0 || len(m.Lines) == 0 {
 			continue
 		}
-		f := function{name: m.Name}
+		f := function{off: off, name: m.Name}
 		for _, p := range m.Lines {
 			f.pairs = append(f.pairs, pair{p[0], p[1]})
 		}
 		sm.functions = append(sm.functions, f)
-		if sel, ok := strings.CutPrefix(f.name, prefix); ok {
-			sm.methods[sel] = f.pairs
-		}
 	}
 
 	if source == "" {
@@ -95,33 +74,6 @@ func LoadSourceMap(mapPath, source string) (*SourceMap, error) {
 // names one build.
 func (sm *SourceMap) CheckImage(oimgPath string) error { return sm.img.CheckImage(oimgPath) }
 
-var regRE = regexp.MustCompile(`^(\d+) #?(\S+) (-?\d+)$`)
-
-// LoadRegistry reads the `<id> #<selector> <tag>` lines of `dbg:methods`. The
-// first tag is the entry class's vtable; later tags are its delegates (the
-// kernel's Object).
-func (sm *SourceMap) LoadRegistry(lines []string) {
-	first := ""
-	for _, l := range lines {
-		m := regRE.FindStringSubmatch(l)
-		if m == nil {
-			continue
-		}
-		id, _ := strconv.Atoi(m[1])
-		sel, tag := m[2], m[3]
-		if first == "" {
-			first = tag
-		}
-		sm.sels[id] = selector{sel, tag == first}
-		if tag == first {
-			sm.ids[sel] = id
-		}
-	}
-}
-
-// HasRegistry reports whether the VM's registry has been read.
-func (sm *SourceMap) HasRegistry() bool { return len(sm.ids) > 0 }
-
 // LineText is source line n as the tool shows it, or "" when there is none.
 func (sm *SourceMap) LineText(n int) string {
 	if n < 1 || n > len(sm.text) {
@@ -139,15 +91,16 @@ func span(pairs []pair) (lo, hi int) {
 }
 
 // methodAtLine is the narrowest method of the app's file whose lines span line,
-// by its map name, or "". Narrowest, because a block that is not inlined (a
-// `whenever:do:` handler) is its own method, `<Entry>_blockN>>value:`, inside its
-// home's span.
-func (sm *SourceMap) methodAtLine(line int) string {
-	best, width := "", -1
-	for _, f := range sm.functions {
+// or nil. Narrowest, because a block that is not inlined (a `whenever:do:`
+// handler) is its own method, `<Entry>_blockN>>value:`, inside its home's span.
+func (sm *SourceMap) methodAtLine(line int) *function {
+	var best *function
+	width := -1
+	for i := range sm.functions {
+		f := &sm.functions[i]
 		lo, hi := span(f.pairs)
 		if lo <= line && line <= hi && (width < 0 || hi-lo < width) {
-			best, width = f.name, hi-lo
+			best, width = f, hi-lo
 		}
 	}
 	return best
@@ -155,9 +108,9 @@ func (sm *SourceMap) methodAtLine(line int) string {
 
 // Breakpoint is where a source line lands in the VM's terms.
 type Breakpoint struct {
-	ID, Off int    // the registry id and bytecode offset to send
+	Off, PC int    // the method's blob offset and the bytecode offset to send
 	Line    int    // the line it lands on: the one asked for, or the next with code
-	Sel     string // the method's selector
+	Name    string // the method, "<Vtable>>selector"
 }
 
 // Resolve turns `26` or `file.nsl:26` into a breakpoint. Its error is a sentence
@@ -174,8 +127,8 @@ func (sm *SourceMap) Resolve(spec string) (Breakpoint, error) {
 	if err != nil {
 		return Breakpoint{}, fmt.Errorf("expected <line> or %s:<line>, got %q", sm.Source, spec)
 	}
-	key := sm.methodAtLine(line)
-	if key == "" {
+	fn := sm.methodAtLine(line)
+	if fn == nil {
 		// A header, a `| locals |` line, a comment: the map starts a method at its
 		// first statement, so name the code on either side instead of guessing.
 		type near struct {
@@ -214,16 +167,7 @@ func (sm *SourceMap) Resolve(spec string) (Breakpoint, error) {
 		return Breakpoint{}, fmt.Errorf("line %d has no code; the nearest lines that do: %s",
 			line, strings.Join(named, ", "))
 	}
-	cls, sel, _ := strings.Cut(key, ">>")
-	if cls != sm.Entry {
-		return Breakpoint{}, fmt.Errorf("line %d is in %s, a block or class the registry does not list; "+
-			"break on a line of a %s method instead", line, key, sm.Entry)
-	}
-	id, ok := sm.ids[sel]
-	if !ok {
-		return Breakpoint{}, fmt.Errorf("%s is not in the VM's registry (run `methods`)", sel)
-	}
-	pairs := append([]pair(nil), sm.methods[sel]...)
+	pairs := append([]pair(nil), fn.pairs...)
 	sort.Slice(pairs, func(i, j int) bool {
 		if pairs[i].line != pairs[j].line {
 			return pairs[i].line < pairs[j].line
@@ -232,63 +176,72 @@ func (sm *SourceMap) Resolve(spec string) (Breakpoint, error) {
 	})
 	for _, p := range pairs {
 		if p.line >= line {
-			return Breakpoint{ID: id, Off: p.off, Line: p.line, Sel: sel}, nil
+			return Breakpoint{Off: fn.off, PC: p.off, Line: p.line, Name: fn.name}, nil
 		}
 	}
-	return Breakpoint{}, fmt.Errorf("line %d has no code in %s", line, sel)
+	return Breakpoint{}, fmt.Errorf("line %d has no code in %s", line, fn.name)
 }
 
-// Where turns the (id, offset) of a `dbg:paused` line into a sentence and the
-// source line ("" when the stop is not on a line of the app). line is 0 then.
-func (sm *SourceMap) Where(id, off int) (where, text string, line int) {
-	s, ok := sm.sels[id]
-	if id < 0 || !ok {
-		return fmt.Sprintf("outside the registry (in a block or the kernel), offset %d", off), "", 0
-	}
-	pairs, mine := sm.methods[s.name]
-	if !s.own || !mine {
-		return fmt.Sprintf("in the kernel's %s, offset %d", s.name, off), "", 0
-	}
-	// The line of the last statement started: the pair with the largest offset
-	// not past off (ties to the larger line); before the first, the first.
-	var at *pair
-	for i := range pairs {
-		p := &pairs[i]
-		if p.off <= off && (at == nil || p.off > at.off || (p.off == at.off && p.line > at.line)) {
+// lineAt is the line of the last statement started at pc: the pair with the
+// largest offset not past pc (ties to the larger line); before the first, the
+// first. 0 for a method with no lines.
+func lineAt(lines [][2]int, pc int) int {
+	var at *[2]int
+	for i := range lines {
+		p := &lines[i]
+		if p[0] <= pc && (at == nil || p[0] > at[0] || (p[0] == at[0] && p[1] > at[1])) {
 			at = p
 		}
 	}
 	if at == nil {
-		for i := range pairs {
-			p := &pairs[i]
-			if at == nil || p.off < at.off || (p.off == at.off && p.line < at.line) {
+		for i := range lines {
+			p := &lines[i]
+			if at == nil || p[0] < at[0] || (p[0] == at[0] && p[1] < at[1]) {
 				at = p
 			}
 		}
 	}
-	return fmt.Sprintf("at %s:%d  %s", sm.Source, at.line, s.name), sm.LineText(at.line), at.line
+	if at == nil {
+		return 0
+	}
+	return at[1]
 }
 
-// Methods lists the entry class's registered methods by id, with their line
-// spans, as `methods` shows them.
+// Where turns the (blob offset, pc) of a stop into a sentence and the source
+// line ("" when the stop is not in the app's file). line is answered only for
+// the app's file, and is 0 otherwise: the session compares lines of the app, and
+// a kernel line must not read as "moved to line N".
+func (sm *SourceMap) Where(off, pc int) (where, text string, line int) {
+	if off < 0 {
+		return fmt.Sprintf("in an image with no blob (Path A), pc %d", pc), "", 0
+	}
+	m, ok := sm.img.Methods[off]
+	if !ok {
+		return fmt.Sprintf("at blob offset %d, which the map does not name (wrong build?)", off), "", 0
+	}
+	at := lineAt(m.Lines, pc)
+	if at == 0 {
+		return fmt.Sprintf("in %s's %s, pc %d", sm.img.Files[m.File], m.Name, pc), "", 0
+	}
+	if m.File != 0 {
+		return fmt.Sprintf("at %s:%d  %s", sm.img.Files[m.File], at, m.Name), "", 0
+	}
+	return fmt.Sprintf("at %s:%d  %s", sm.Source, at, m.Name), sm.LineText(at), at
+}
+
+// Method is the image map's entry for a blob offset.
+func (sm *SourceMap) Method(off int) (imagemap.Method, bool) {
+	m, ok := sm.img.Methods[off]
+	return m, ok
+}
+
+// Methods lists every method of the app's file by blob offset, with its line
+// span, as `methods` shows them. It reads the map alone.
 func (sm *SourceMap) Methods() []string {
-	type row struct {
-		id  int
-		sel string
-	}
-	var rows []row
-	for sel, id := range sm.ids {
-		rows = append(rows, row{id, sel})
-	}
-	sort.Slice(rows, func(i, j int) bool { return rows[i].id < rows[j].id })
 	var out []string
-	for _, r := range rows {
-		where := "(no source lines)"
-		if pairs, ok := sm.methods[r.sel]; ok {
-			lo, hi := span(pairs)
-			where = fmt.Sprintf("%s:%d-%d", sm.Source, lo, hi)
-		}
-		out = append(out, fmt.Sprintf("%4d  %-24s %s", r.id, r.sel, where))
+	for _, f := range sm.functions {
+		lo, hi := span(f.pairs)
+		out = append(out, fmt.Sprintf("%6d  %-36s %s:%d-%d", f.off, f.name, sm.Source, lo, hi))
 	}
 	return out
 }

@@ -69,10 +69,12 @@ oop mirror_dispatch(oop selector, int argc, oop *args) {
     if (strcmp(sel, "selectorsOf:") == 0)          return primitive_vtable_selectors(args[0], argc - 1, args + 1);
     if (strcmp(sel, "methodsOf:") == 0)            return primitive_vtable_methods(args[0], argc - 1, args + 1);
     /* C-assisted breakpoint prims (Task 7). breakAt:offset:/unbreakAt:offset: take
-       (method, off) as args[0..1]; methodOf: maps a context to its CompiledMethod. */
+       (SMI blob offset, SMI pc) as args[0..1]; blobOffsetOf: names a context's
+       method by that same offset, lexicalSlotsOf: reads its captured locals (rete#323). */
     if (strcmp(sel, "breakAt:offset:") == 0)   return primitive_break_add(NULL, argc, args);
     if (strcmp(sel, "unbreakAt:offset:") == 0) return primitive_break_remove(NULL, argc, args);
-    if (strcmp(sel, "methodOf:") == 0)         return primitive_method_of(args[0], argc - 1, args + 1);
+    if (strcmp(sel, "blobOffsetOf:") == 0)     return primitive_blob_offset_of(args[0], argc - 1, args + 1);
+    if (strcmp(sel, "lexicalSlotsOf:") == 0)   return primitive_lexical_slots_of(args[0], argc - 1, args + 1);
 #ifdef OEVM_METHOD_PROFILE
     /* #164 per-method call counts. callsOf: takes the method as the reflectee;
        callsStats:/callsReset: ignore theirs (the argc>=1 guard above still holds,

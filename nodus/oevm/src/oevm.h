@@ -444,7 +444,8 @@ void mprof_alloc(unsigned heap, size_t bytes);
 #define MPROF_HEAP_N     2u
 oop primitive_break_add(oop receiver, int argc, oop *args);
 oop primitive_break_remove(oop receiver, int argc, oop *args);
-oop primitive_method_of(oop receiver, int argc, oop *args);
+oop primitive_blob_offset_of(oop receiver, int argc, oop *args);
+oop primitive_lexical_slots_of(oop receiver, int argc, oop *args);
 oop primitive_vtable_selectors(oop receiver, int argc, oop *args);
 oop primitive_vtable_methods(oop receiver, int argc, oop *args);
 /* std-lib step 1: the singleton platform capability object (src/dispatch.c).

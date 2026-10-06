@@ -1,5 +1,6 @@
 #include "../src/oevm.h"
 #include "../src/mirror.h"
+#include "../src/oimg.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -95,12 +96,25 @@ static oop arm_step_hook_c(oop receiver, int argc, oop *args) {
     return NULL;
 }
 
-/* TEST 12: C-assisted breakpoint match — hook fires on a (method,offset) bp set
+/* TEST 12: C-assisted breakpoint match — hook fires on a (blob offset, pc) bp set
    in the C table, with NO instruction mutation. The hook records the hit and
-   asserts offsetOf:/methodOf: agree with the bp we set. */
+   asserts offsetOf:/blobOffsetOf: agree with the bp we set (rete#323).
+
+   The test method lives on the heap, so the blob is FAKED around it -- but only
+   for the length of each mirror send (fake_blob_on/off): while the method RUNS
+   it must not be in the blob, or cm_instructions would decode its pointers as
+   blob offsets. */
 static int bp_hit_count = 0;
 static long bp_expected_off = -1;
-static oop bp_expected_method = NULL;
+static oop bp_blob_offset = NULL;      /* blobOffsetOf: the context, read in the hook */
+static oop bp_blob_offset_no_blob = (oop)1;  /* the same, outside any blob */
+static oop bp_lexical_slots = (oop)1;  /* lexicalSlotsOf: the context; TEST 12's method has no captures */
+static const uint8_t *fake_base, *fake_end, *saved_base, *saved_end;
+static void fake_blob_on(void) {
+    saved_base = oimg_blob_base; saved_end = oimg_blob_end;
+    oimg_blob_base = fake_base; oimg_blob_end = fake_end;
+}
+static void fake_blob_off(void) { oimg_blob_base = saved_base; oimg_blob_end = saved_end; }
 
 /* TEST 13: numRegistersOf: confined read prim — from inside a break hook, bound a
    register dump to the method's num_registers. Asserts the prim returns the known
@@ -123,9 +137,14 @@ static oop bp_match_hook_c(oop receiver, int argc, oop *args) {
     (void)receiver; (void)argc;
     oop ctx = args[0];
     long off = (long)UNTAG_SMI(send(mirror_object(), create_symbol("offsetOf:"), 1, &ctx));
-    oop meth = send(mirror_object(), create_symbol("methodOf:"), 1, &ctx);
+    fake_blob_on();
+    bp_blob_offset = send(mirror_object(), create_symbol("blobOffsetOf:"), 1, &ctx);
+    fake_blob_off();
+    oimg_blob_base = NULL; oimg_blob_end = NULL;
+    bp_blob_offset_no_blob = send(mirror_object(), create_symbol("blobOffsetOf:"), 1, &ctx);
+    fake_blob_off();
+    bp_lexical_slots = send(mirror_object(), create_symbol("lexicalSlotsOf:"), 1, &ctx);
     assert(off == bp_expected_off);
-    assert(meth == bp_expected_method);
     bp_hit_count++;
     return NULL;
 }
@@ -676,8 +695,9 @@ int main(void) {
         ((struct Closure *)cl_bp)->home_generation = 0;
         ((struct Closure *)cl_bp)->entry_point = cm_bp;
 
-        /* The bp table keys on the CompiledMethod oop (== methodOf: a context). */
-        bp_expected_method = (oop)cm_bp;
+        /* rete#323: the break prims take a BLOB OFFSET; cm_bp sits at 64 in the fake blob. */
+        fake_base = (const uint8_t *)cm_bp - 64;
+        fake_end  = (const uint8_t *)cm_bp + 256;
         bp_expected_off = K;
         bp_hit_count = 0;
 
@@ -696,9 +716,12 @@ int main(void) {
         oop bp_off[] = { g_active_stack, TAG_SMI(0) };
         send(mirror_object(), Symbol_singleStep, 2, bp_off);
 
-        /* Set the breakpoint via the confined mirror prim (method oop + SMI off). */
-        oop ba[] = { (oop)cm_bp, TAG_SMI(K) };
-        send(mirror_object(), create_symbol("breakAt:offset:"), 2, ba);
+        /* Set the breakpoint via the confined mirror prim (SMI blob offset + SMI pc). */
+        oop ba[] = { TAG_SMI(64), TAG_SMI(K) };
+        fake_blob_on();
+        oop key = send(mirror_object(), create_symbol("breakAt:offset:"), 2, ba);
+        fake_blob_off();
+        assert(key == TAG_SMI(64));
 
         oop rbp = send(test_instance, Symbol_run, 0, NULL);
         printf("Result of run with bp: %ld (expected 16)\n", (long)UNTAG_SMI(rbp));
@@ -710,10 +733,27 @@ int main(void) {
         assert(insts_bp[1] == insts_bp_snapshot[1]);
         assert(insts_bp[2] == insts_bp_snapshot[2]);
         printf("instructions unmutated: yes\n");
+        assert(bp_blob_offset == TAG_SMI(64));        /* blobOffsetOf: the stopped context */
+        assert(bp_lexical_slots == NULL);             /* no captures: no Context in reg 1 */
+        /* The positive lexicalSlotsOf: case needs a real frame with a real Context;
+           it is the host's dbg:inspect on scaled: (test_custos_debug.py, rete#323). */
+        assert(send(mirror_object(), create_symbol("lexicalSlotsOf:"), 1, (oop[]){ TAG_SMI(3) }) == NULL);
+        assert(bp_blob_offset_no_blob == NULL);      /* no blob (a Path A image): nil */
 
         /* Clear the breakpoint; assert no re-fire on a second run. */
-        oop ua[] = { (oop)cm_bp, TAG_SMI(K) };
-        send(mirror_object(), create_symbol("unbreakAt:offset:"), 2, ua);
+        oop ua[] = { TAG_SMI(64), TAG_SMI(K) };
+        fake_blob_on();
+        assert(send(mirror_object(), create_symbol("unbreakAt:offset:"), 2, ua) == TAG_SMI(64));
+        /* Refusals: nil, and nothing armed. */
+        oop bad[] = { TAG_SMI(4096), TAG_SMI(K) };          /* outside the blob */
+        assert(send(mirror_object(), create_symbol("breakAt:offset:"), 2, bad) == NULL);
+        oop odd[] = { TAG_SMI(65), TAG_SMI(K) };            /* not word-aligned */
+        assert(send(mirror_object(), create_symbol("breakAt:offset:"), 2, odd) == NULL);
+        fake_blob_off();
+        saved_base = oimg_blob_base; saved_end = oimg_blob_end;
+        oimg_blob_base = NULL; oimg_blob_end = NULL;         /* a Path A image: no blob */
+        assert(send(mirror_object(), create_symbol("breakAt:offset:"), 2, ba) == NULL);
+        fake_blob_off();
         bp_hit_count = 0;
         oop rbp2 = send(test_instance, Symbol_run, 0, NULL);
         assert(UNTAG_SMI(rbp2) == 16);

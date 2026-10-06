@@ -36,11 +36,11 @@ var words = map[string]string{
 	"i": "dbg:inspect", "inspect": "dbg:inspect",
 }
 
-// stop is where the program is held: at boot, or at (id, off). A nil *stop is
-// a running program.
+// stop is where the program is held: at boot, or at (blob offset, pc). A nil
+// *stop is a running program.
 type stop struct {
 	boot    bool
-	id, off int
+	off, pc int
 }
 
 // seen is one line from the VM, or its end.
@@ -63,7 +63,6 @@ type Session struct {
 	seen     []seen        // every line from the VM, in order
 	stopped  *stop
 	gone     bool
-	quiet    bool // fetching the registry: its lines are not the person's
 	stepping bool // a line step: only its LAST bytecode stop is shown
 }
 
@@ -118,23 +117,23 @@ func (s *Session) record(l seen) {
 // OnLine is the reader's: record, then show, translating a stop into source terms.
 func (s *Session) OnLine(l string) {
 	s.mu.Lock()
-	quiet, stepping := s.quiet, s.stepping
+	stepping := s.stepping
 	s.mu.Unlock()
 	if l == "dbg:ready" {
 		s.setStopped(&stop{boot: true})
 		s.say("-- stopped at boot, before the program's first line")
 	} else if m := pausedRE.FindStringSubmatch(l); m != nil {
-		id, _ := strconv.Atoi(m[2])
-		off, _ := strconv.Atoi(m[3])
-		s.setStopped(&stop{id: id, off: off})
+		off, _ := strconv.Atoi(m[2])
+		pc, _ := strconv.Atoi(m[3])
+		s.setStopped(&stop{off: off, pc: pc})
 		if !(stepping && m[1] == "step") {
-			where, text, _ := s.sm.Where(id, off)
+			where, text, _ := s.sm.Where(off, pc)
 			s.say("-- stopped (%s) %s", m[1], where)
 			if text != "" {
 				s.say("%s", text)
 			}
 		}
-	} else if !quiet {
+	} else {
 		s.say("%s", l)
 	}
 	s.record(seen{text: l})
@@ -213,39 +212,23 @@ func texts(ls []seen) []string {
 	return out
 }
 
-func (s *Session) registry() {
-	if s.sm.HasRegistry() {
-		return
-	}
-	s.mu.Lock()
-	s.quiet = true
-	s.mu.Unlock()
-	defer func() {
-		s.mu.Lock()
-		s.quiet = false
-		s.mu.Unlock()
-	}()
-	s.sm.LoadRegistry(texts(s.ask("dbg:methods", `^dbg:ok methods$|^dbg:error`, 10*time.Second)))
-}
-
 // stopFirst: a line typed while running stops the program; wait for that stop
-// so the registry and the answer that follow are read in order.
+// so the answer that follows is read in order.
 func (s *Session) stopFirst() {
 	if s.Running() {
 		s.ask("dbg:pause", `^dbg:ok pause$`, 10*time.Second)
 	}
 }
 
-// here is the current stop as (id, line); line is 0 outside the app's
-// methods, and ok is false when not stopped in a method.
-func (s *Session) here() (id, line int, ok bool) {
+// here is the current stop as (blob offset, line); line is 0 outside the app's
+// file, and ok is false when not stopped in a method.
+func (s *Session) here() (off, line int, ok bool) {
 	st := s.current()
 	if st == nil || st.boot {
 		return 0, 0, false
 	}
-	s.registry()
-	_, _, line = s.sm.Where(st.id, st.off)
-	return st.id, line, true
+	_, _, line = s.sm.Where(st.off, st.pc)
+	return st.off, line, true
 }
 
 // Do runs one command; false means leave.
@@ -266,12 +249,11 @@ func (s *Session) Do(cmd string) bool {
 			s.setStopped(nil)
 			s.line.Send(cmd)
 		} else {
-			s.ask(cmd, `^dbg:(ok|error|stack|paused)`, 10*time.Second)
+			s.ask(cmd, `^dbg:(ok|error|stack|frames|paused)`, 10*time.Second)
 		}
 		return true
 	case word == "b" || word == "break" || word == "clear":
 		s.stopFirst()
-		s.registry()
 		bp, err := s.sm.Resolve(arg)
 		if err != nil {
 			s.say("-- %s", err)
@@ -289,8 +271,8 @@ func (s *Session) Do(cmd string) bool {
 		if strconv.Itoa(bp.Line) != asked {
 			moved = fmt.Sprintf(" (line %s has no code; next is %d)", arg, bp.Line)
 		}
-		s.say("-- %s %s:%d  %s%s", verb, s.sm.Source, bp.Line, bp.Sel, moved)
-		s.ask(fmt.Sprintf("dbg:%s %d %d", verb, bp.ID, bp.Off), `^dbg:(ok|error)`, 10*time.Second)
+		s.say("-- %s %s:%d  %s%s", verb, s.sm.Source, bp.Line, bp.Name, moved)
+		s.ask(fmt.Sprintf("dbg:%s %d %d", verb, bp.Off, bp.PC), `^dbg:(ok|error)`, 10*time.Second)
 		return true
 	case word == "w" || word == "where":
 		st := s.current()
@@ -300,8 +282,7 @@ func (s *Session) Do(cmd string) bool {
 		case st.boot:
 			s.say("-- at boot")
 		default:
-			s.registry()
-			where, text, _ := s.sm.Where(st.id, st.off)
+			where, text, _ := s.sm.Where(st.off, st.pc)
 			if text != "" {
 				where += "\n" + text
 			}
@@ -327,8 +308,6 @@ func (s *Session) Do(cmd string) bool {
 		}
 		return true
 	case word == "methods":
-		s.stopFirst()
-		s.registry()
 		for _, row := range s.sm.Methods() {
 			s.say("%s", row)
 		}
@@ -369,7 +348,7 @@ func (s *Session) Do(cmd string) bool {
 // `next` never goes there), a breakpoint or the end intervenes, or
 // LineStepLimit runs out. Only the final stop is shown.
 func (s *Session) stepLine(verb string) {
-	startID, startLine, startOK := s.here()
+	startOff, startLine, startOK := s.here()
 	s.mu.Lock()
 	s.stepping = true
 	s.mu.Unlock()
@@ -390,15 +369,15 @@ func (s *Session) stepLine(verb string) {
 			stepping(false)
 			return // a breakpoint, an error, the end
 		}
-		id, line, ok := s.here()
-		if ok && line != 0 && (!startOK || id != startID || line != startLine) {
+		off, line, ok := s.here()
+		if ok && line != 0 && (!startOK || off != startOff || line != startLine) {
 			moved = true
 			break
 		}
 	}
 	stepping(false)
 	st := s.current()
-	where, text, _ := s.sm.Where(st.id, st.off)
+	where, text, _ := s.sm.Where(st.off, st.pc)
 	if !moved {
 		s.say("-- still %s after %d steps; `step` again or `continue`", where, LineStepLimit)
 		return
