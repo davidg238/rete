@@ -123,7 +123,27 @@ picks it. Moving from local to remote changes the transport, not the UI.
     locals, #323) in one exchange, so the debugger can show something before the
     first step.
 
-## 4. The fronts
+## 3a. PROPOSED (2026-10-06, #314): the four verbs still without an HTTP path
+
+Debug, profile and load have their agent paths (D13). Build, flash, run and log do not. Each proposal below
+follows the same precedent (an endpoint answering JSON, a host-VM target, a real-VM gate), and none is decided.
+
+| Verb | Proposal | Host target | Why this shape |
+|---|---|---|---|
+| build | `POST /build` with the `.nsl` as the body; it answers `{SHA256, Size, Errors}`, where each error is the compiler's own `file:line:col` (rete#247). `POST /load?build=last` loads it | the same: compiling is a host step | The agent never handles the `.oimg`, and the map lands beside it, where debug and profile already read it |
+| run | `POST /run?ms=N` restarts the program on the target and answers its console lines for N ms, with `Ended` and the exit status when the program finished | starts the VM once | One verb on both targets: on a board it is the reset pulse `load` already sends |
+| log | `GET /log?after=N` answers every console line custos has read from its cables since sequence number N, long-polling as `/debug/state` does | the VM's output | custos already owns the cable (TUI design D2), so it already sees every line |
+| flash (firmware) | **not a custos verb in 0.1**: firmware stays `run.sh --flash` | — | The loop is load, and firmware changes are rare. A front that cannot reach a shell is what would earn it |
+
+**Open, with a recommendation:**
+
+1. **One target flag.** Replace `--debug-port`, `--profile-port` and `--load-port` with one `--port`, and the three
+   `-host` flags with one `--host`. Every verb then runs on the one target, taking turns through the per-cable lock
+   #367 built. This removes three pairs of flags and the rules about which may share a cable. The cost is call-site
+   churn in the gates and tutorials. **Recommended.**
+2. **The collector while custos serves a port.** `log` needs custos to read the cable all the time, which the console
+   collector does today. Recommended: custos is the reader while it serves (the collector is already stopped for debug
+   and load), and writes the same day log, so that `logread` keeps working.
 
 - **CLI.** One command for the whole first hour. Each verb gives a verdict a machine can
   read, finishes within a fixed time, never prompts and never skips silently
