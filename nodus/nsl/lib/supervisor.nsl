@@ -255,11 +255,12 @@ class Supervisor usingMirror: mirror = () (
         i:: i + 1 ].
       slots:: m lexicalSlotsOf: s.
       slots == nil ifFalse: [
-        1 to: slots size do: [ :k |
+        (* A raw indexable, like selectorsOf:'s: basicSize / basicAt:, 1-based. *)
+        1 to: slots basicSize do: [ :k |
           ws nextPutAll: ' c'.
           ws print: k - 1.
           ws nextPutAll: '='.
-          ws nextPutAll: (self describe: (slots at: k)) ] ].
+          ws nextPutAll: (self describe: (slots basicAt: k)) ] ].
       ws contents println.
       ^ self )
 

@@ -52,13 +52,26 @@ def build_b():
                    cwd=NSROOT, check=True)
 
 
+def image_map():
+    with open(OIMG_B + ".map.json") as f:
+        return json.load(f)
+
+
 def blob_offset(name):
     """The blob offset of method `name` in the target's image map."""
-    with open(OIMG_B + ".map.json") as f:
-        doc = json.load(f)
-    hits = [int(k) for k, m in doc["methods"].items() if m["name"] == name]
+    hits = [int(k) for k, m in image_map()["methods"].items() if m["name"] == name]
     assert len(hits) == 1, f"{name!r} names {len(hits)} methods in the map"
     return hits[0]
+
+
+def kept_block_at(line):
+    """(blob offset, first pc) of the app's kept block whose lines include `line`."""
+    for k, m in image_map()["methods"].items():
+        if m["file"] == 0 and "_block" in m["name"]:
+            pcs = [o for o, l in m["lines"] if l == line]
+            if pcs:
+                return int(k), min(pcs)
+    raise AssertionError(f"no kept block on line {line}")
 
 
 def session(script):
@@ -69,7 +82,7 @@ def session(script):
 
 
 def finished(out):
-    return "\n15\n" in out or out.rstrip().endswith("15")
+    return "\n15\n25" in out
 
 
 def after_break(out, cid, label):
@@ -124,6 +137,33 @@ def run_over_out(cid, main_off):
     assert o == main_off, f"dbg:out landed in {o}, expected main:args: {main_off}:\n{out}"
     assert pc == 6, f"dbg:out pc should be 6 (just past the countTo: send), got {pc}:\n{out}"
     assert finished(out), f"app did not finish after dbg:out + continue:\n{out}"
+
+
+def run_block_stop():
+    """rete#323: a breakpoint inside a kept block; the backtrace runs through the
+    block into scaled:, and scaled:'s frame names its captured locals by slot."""
+    src = open(APP).read().splitlines()
+    line = next(i + 1 for i, t in enumerate(src) if "acc:: acc + (x * k)" in t)
+    blk, pc = kept_block_at(line)
+    scaled = blob_offset("DebugTargetTest>>scaled:")
+    out = session(f"dbg:break {blk} {pc}\ndbg:continue\ndbg:backtrace\ndbg:inspect 1\n"
+                  f"dbg:clear {blk} {pc}\ndbg:continue\n")
+    rest = out.split(f"dbg:paused break {blk} {pc}", 1)
+    assert len(rest) == 2, f"the block breakpoint did not fire:\n{out}"
+    rest = rest[1]
+    frames = next(ln for ln in rest.splitlines() if ln.startswith("dbg:frames ")).split()[1:]
+    assert len(frames) >= 3, f"backtrace too short: {frames}\n{out}"
+    assert frames[0].startswith(f"{blk}@"), f"frame 0 is {frames[0]}, want the block {blk}:\n{out}"
+    assert frames[1].startswith(f"{scaled}@"), f"frame 1 is {frames[1]}, want scaled: {scaled}:\n{out}"
+    stack = next(ln for ln in rest.splitlines() if ln.startswith("dbg:stack "))
+    slots = {v["name"]: v["ctx"] for m in image_map()["methods"].values()
+             if m["name"] == "DebugTargetTest>>scaled:" for v in m["vars"] if "ctx" in v}
+    assert set(slots) == {"acc", "k"}, f"scaled:'s captured vars are {slots}"
+    # First visit: `add value: 2` before any add, so acc is 0; k is 5.
+    assert f" c{slots['k']}=5" in stack, f"k (slot {slots['k']}) is not 5:\n{stack}"
+    assert f" c{slots['acc']}=0" in stack, f"acc (slot {slots['acc']}) is not 0:\n{stack}"
+    assert "\n25\n" in out or out.rstrip().endswith("25"), f"app did not finish:\n{out}"
+    return f"block {blk}@{pc}; frames {' '.join(frames[:3])}; {stack}"
 
 
 def run_refusals(cid):
@@ -202,7 +242,10 @@ def main():
     transcript = run_flow(cid, main_off)
     run_over_out(cid, main_off)
     run_refusals(cid)
-    print("test_debugger_integration: PASSED (break, inspect, backtrace, step, over, out, refusals)")
+    block = run_block_stop()
+    print("test_debugger_integration: PASSED (break, inspect, backtrace, step, over, out, refusals, block stop)")
+    print("--- block stop ---")
+    print(block)
     print("--- transcript ---")
     print(transcript)
 

@@ -7,17 +7,17 @@ counting
 4
 5
 15
+25
 *)
-(* Debuggable target for the in-image debugger integration harness. main: calls
-   countTo: (a method with a known local `sum` and a loop) so the debugger's
-   `dbg:methods` registry has a recognizable selector. Gate-off it just prints
-   its normal output, so the suite runs it transparently. *)
+(* The in-image debugger harnesses' target: countTo: has a local `sum` and a loop,
+   scaled: a kept block capturing locals (rete#323). Gate-off it just prints. *)
 class DebugTargetTest usingPlatform: platform = () (
   public main: platform2 args: args = (
     | total |
     'counting' println.
     total:: self countTo: 5.
     total println.
+    (self scaled: 5) println.
     ^ 0 )
 
   countTo: n = (
@@ -25,5 +25,16 @@ class DebugTargetTest usingPlatform: platform = () (
     sum:: 0.
     1 to: n do: [ :i | i println. sum:: sum + i ].
     ^ sum )
+
+  (* rete#323: a block the compiler KEEPS, capturing an argument (k) and a temp
+     (acc), so a stop inside it has a backtrace through a block and named
+     context-slot locals. *)
+  scaled: k = (
+    | acc add |
+    acc:: 0.
+    add:: [ :x | acc:: acc + (x * k) ].
+    add value: 2.
+    add value: 3.
+    ^ acc )
 ) : (
 )

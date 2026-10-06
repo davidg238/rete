@@ -23,7 +23,7 @@ const LineStepLimit = 5000
 
 // Help is what `help` prints.
 const Help = `break/clear <line> or <file>:<line>, continue, step, next, finish, pause,
-inspect, where, list, methods, quit; any ` + "`dbg:...`" + ` line is passed through unchanged.
+inspect, bt, locals [N], where, list, methods, quit; any ` + "`dbg:...`" + ` line is passed through unchanged.
 Any line typed while the program runs stops it first (the pause rule), so
 ` + "`break 26`" + ` while running stops the program, sets the breakpoint, and stays stopped.`
 
@@ -62,7 +62,9 @@ type Session struct {
 	changed  chan struct{} // closed and replaced on every line seen
 	seen     []seen        // every line from the VM, in order
 	stopped  *stop
+	frames   [][2]int // the last bt at this stop: (blob offset, pc), innermost first
 	gone     bool
+	quiet    bool // bt, locals: the raw answer is not the person's; its translation is
 	stepping bool // a line step: only its LAST bytecode stop is shown
 }
 
@@ -97,6 +99,7 @@ func (s *Session) Running() bool {
 func (s *Session) setStopped(st *stop) {
 	s.mu.Lock()
 	s.stopped = st
+	s.frames = nil // a new stop invalidates the last bt
 	s.mu.Unlock()
 }
 
@@ -117,7 +120,7 @@ func (s *Session) record(l seen) {
 // OnLine is the reader's: record, then show, translating a stop into source terms.
 func (s *Session) OnLine(l string) {
 	s.mu.Lock()
-	stepping := s.stepping
+	quiet, stepping := s.quiet, s.stepping
 	s.mu.Unlock()
 	if l == "dbg:ready" {
 		s.setStopped(&stop{boot: true})
@@ -133,7 +136,7 @@ func (s *Session) OnLine(l string) {
 				s.say("%s", text)
 			}
 		}
-	} else {
+	} else if !quiet {
 		s.say("%s", l)
 	}
 	s.record(seen{text: l})
@@ -210,6 +213,20 @@ func texts(ls []seen) []string {
 		}
 	}
 	return out
+}
+
+// askQuiet is ask for a verb whose answer the session translates: the raw lines
+// are recorded but not shown.
+func (s *Session) askQuiet(line, pattern string) []string {
+	s.mu.Lock()
+	s.quiet = true
+	s.mu.Unlock()
+	defer func() {
+		s.mu.Lock()
+		s.quiet = false
+		s.mu.Unlock()
+	}()
+	return texts(s.ask(line, pattern, 10*time.Second))
 }
 
 // stopFirst: a line typed while running stops the program; wait for that stop
@@ -306,6 +323,57 @@ func (s *Session) Do(cmd string) bool {
 				}
 			}
 		}
+		return true
+	case word == "bt" || word == "backtrace":
+		s.stopFirst()
+		got := s.askQuiet("dbg:backtrace", `^dbg:(frames|error)`)
+		if len(got) == 0 {
+			s.say("-- no answer to dbg:backtrace")
+			return true
+		}
+		frames, err := ParseFrames(got[len(got)-1])
+		if err != nil {
+			s.say("-- %s", err)
+			return true
+		}
+		s.mu.Lock()
+		s.frames = frames
+		s.mu.Unlock()
+		for i, f := range frames {
+			where, _, _ := s.sm.Where(f[0], f[1])
+			s.say("  #%d %s", i, where)
+		}
+		return true
+	case word == "locals":
+		s.stopFirst()
+		n := 0
+		if arg != "" {
+			var err error
+			if n, err = strconv.Atoi(arg); err != nil || n < 0 {
+				s.say("-- locals takes a frame number from bt, got %q", arg)
+				return true
+			}
+		}
+		// The frame's method and pc: frame 0 is the stop; deeper ones need a bt.
+		off, pc, ok := s.frameAt(n)
+		if !ok {
+			s.say("-- no frame %d (run bt first)", n)
+			return true
+		}
+		got := s.askQuiet(fmt.Sprintf("dbg:inspect %d", n), `^dbg:(stack|error)`)
+		if len(got) == 0 {
+			s.say("-- no answer to dbg:inspect")
+			return true
+		}
+		regs, ctx, err := ParseInspect(got[len(got)-1])
+		if err != nil {
+			s.say("-- %s", got[len(got)-1])
+			return true
+		}
+		m, _ := s.sm.Method(off)
+		where, _, _ := s.sm.Where(off, pc)
+		s.say("-- frame %d %s", n, where)
+		s.showLocals(regs, ctx, LiveVars(m.Vars, pc))
 		return true
 	case word == "methods":
 		for _, row := range s.sm.Methods() {
