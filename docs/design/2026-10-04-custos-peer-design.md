@@ -58,9 +58,10 @@ custos's query engine.
   A piped `custos debug` races the pause rule (#362 D4), while HTTP waits by long-polling.
   Each new verb is an HTTP endpoint with a real-VM gate, and a CLI wrapper is added only
   once it has earned its place. Executed in #365.
-- **D13 (David, 2026-10-06): debug is complete for 0.1.** Its fronts are the agent path
-  over HTTP, the web page and the TUI, and HTTP is open for anyone to build their own
-  front on. No further debug front is built for 0.1.
+- **D13 (David, 2026-10-06): a verb is complete for 0.1 with four fronts:** the agent
+  path over HTTP, a web page, a TUI tab, and raw HTTP for anyone to build their own front
+  on. Debug and profile are complete; load (#367) is built to the same precedent. No
+  other front is built for 0.1.
 
 ## 2. The picture
 
