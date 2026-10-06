@@ -14,6 +14,16 @@ import (
 
 var pausedRE = regexp.MustCompile(`^dbg:paused (\w+) (-?\d+) (\d+)$`)
 
+// answerWait is how long a command waits for the VM's answer (a var so a test
+// can shorten it). A run to the next stop (finish, a line step) waits 30 s.
+var answerWait = 10 * time.Second
+
+// Result is what one command came to.
+type Result struct {
+	Leave bool   // quit: the person is done
+	Err   string // why the command did not do what it says, as said; "" when it did
+}
+
 // LineStepLimit bounds a line step. A line of source is many bytecodes, and the
 // VM steps one at a time; `step` and `next` repeat until the line changes. A
 // loop on one line (`1 to: n do: [ ... ]`) is many round trips, and a `step`
@@ -198,9 +208,10 @@ func (s *Session) mark() int {
 }
 
 // ask sends line, then waits for a VM line matching pattern (or the VM's end),
-// and answers the lines that arrived since the send. Marking BEFORE the send is
+// and answers the lines that arrived since the send, and whether the wait was
+// answered (false: it timed out). Marking BEFORE the send is
 // what lets an answer that beats us to the wait still count.
-func (s *Session) ask(line, pattern string, timeout time.Duration) []seen {
+func (s *Session) ask(line, pattern string, timeout time.Duration) ([]seen, bool) {
 	m := s.mark()
 	s.line.Send(line)
 	return s.waitFrom(pattern, timeout, m)
@@ -215,7 +226,7 @@ func (s *Session) Wait(pattern string, timeout time.Duration, mark int) {
 	s.waitFrom(pattern, timeout, mark)
 }
 
-func (s *Session) waitFrom(pattern string, timeout time.Duration, mark int) []seen {
+func (s *Session) waitFrom(pattern string, timeout time.Duration, mark int) ([]seen, bool) {
 	rx := regexp.MustCompile(pattern)
 	deadline := time.NewTimer(timeout)
 	defer deadline.Stop()
@@ -228,7 +239,7 @@ func (s *Session) waitFrom(pattern string, timeout time.Duration, mark int) []se
 			if l.end || rx.MatchString(l.text) {
 				got := append([]seen(nil), s.seen[mark:i]...)
 				s.mu.Unlock()
-				return got
+				return got, true
 			}
 		}
 		changed := s.changed
@@ -238,7 +249,7 @@ func (s *Session) waitFrom(pattern string, timeout time.Duration, mark int) []se
 		case <-deadline.C:
 			s.mu.Lock()
 			defer s.mu.Unlock()
-			return append([]seen(nil), s.seen[mark:]...)
+			return append([]seen(nil), s.seen[mark:]...), false
 		}
 	}
 }
@@ -264,15 +275,34 @@ func (s *Session) askQuiet(line, pattern string) []string {
 		s.quiet = false
 		s.mu.Unlock()
 	}()
-	return texts(s.ask(line, pattern, 10*time.Second))
+	got, _ := s.ask(line, pattern, answerWait)
+	return texts(got)
+}
+
+// command is ask for a command: a dbg:error answer is the VM's refusal (its line
+// is already in the transcript), and no answer is said, since nothing else would
+// say it (rete#362).
+func (s *Session) command(line, pattern string, timeout time.Duration) ([]seen, Result) {
+	got, ok := s.ask(line, pattern, timeout)
+	if !ok {
+		msg := fmt.Sprintf("no answer to %s in %s", line, timeout)
+		s.say("-- %s", msg)
+		return got, Result{Err: msg}
+	}
+	if l := got[len(got)-1]; !l.end && strings.HasPrefix(l.text, "dbg:error") {
+		return got, Result{Err: l.text}
+	}
+	return got, Result{}
 }
 
 // stopFirst: a line typed while running stops the program; wait for that stop
 // so the answer that follows is read in order.
-func (s *Session) stopFirst() {
+func (s *Session) stopFirst() Result {
 	if s.Running() {
-		s.ask("dbg:pause", `^dbg:ok pause$`, 10*time.Second)
+		_, r := s.command("dbg:pause", `^dbg:ok pause$`, answerWait)
+		return r
 	}
+	return Result{}
 }
 
 // here is the current stop as (blob offset, line); line is 0 outside the app's
@@ -286,35 +316,42 @@ func (s *Session) here() (off, line int, ok bool) {
 	return st.off, line, true
 }
 
-// Do runs one command; false means leave.
-func (s *Session) Do(cmd string) bool {
+// Do runs one command and answers what it came to.
+func (s *Session) Do(cmd string) Result {
 	s.cmdMu.Lock()
 	defer s.cmdMu.Unlock()
+	fail := func(format string, args ...any) Result {
+		msg := fmt.Sprintf(format, args...)
+		s.say("-- %s", msg)
+		return Result{Err: msg}
+	}
 	cmd = strings.TrimSpace(cmd)
 	word, arg, _ := strings.Cut(cmd, " ")
 	arg = strings.TrimSpace(arg)
 	switch {
 	case word == "":
-		return true
+		return Result{}
 	case word == "q" || word == "quit":
-		return false
+		return Result{Leave: true}
 	case word == "h" || word == "help":
 		s.say("%s", Help)
-		return true
+		return Result{}
 	case strings.HasPrefix(word, "dbg:"):
 		if word == "dbg:continue" || word == "dbg:run" {
 			s.setStopped(nil)
 			s.line.Send(cmd)
 		} else {
-			s.ask(cmd, `^dbg:(ok|error|stack|frames|paused)`, 10*time.Second)
+			_, r := s.command(cmd, `^dbg:(ok|error|stack|frames|paused)`, answerWait)
+			return r
 		}
-		return true
+		return Result{}
 	case word == "b" || word == "break" || word == "clear":
-		s.stopFirst()
+		if r := s.stopFirst(); r.Err != "" {
+			return r
+		}
 		bp, err := s.sm.Resolve(arg)
 		if err != nil {
-			s.say("-- %s", err)
-			return true
+			return fail("%s", err)
 		}
 		verb := "break"
 		if word == "clear" {
@@ -329,7 +366,8 @@ func (s *Session) Do(cmd string) bool {
 			moved = fmt.Sprintf(" (line %s has no code; next is %d)", arg, bp.Line)
 		}
 		s.say("-- %s %s:%d  %s%s", verb, s.sm.Source, bp.Line, bp.Name, moved)
-		for _, l := range s.ask(fmt.Sprintf("dbg:%s %d %d", verb, bp.Off, bp.PC), `^dbg:(ok|error)`, 10*time.Second) {
+		got, r := s.command(fmt.Sprintf("dbg:%s %d %d", verb, bp.Off, bp.PC), `^dbg:(ok|error)`, answerWait)
+		for _, l := range got {
 			if strings.HasPrefix(l.text, "dbg:ok") {
 				s.mu.Lock()
 				if verb == "break" {
@@ -341,7 +379,7 @@ func (s *Session) Do(cmd string) bool {
 				s.mu.Unlock()
 			}
 		}
-		return true
+		return r
 	case word == "w" || word == "where":
 		st := s.current()
 		switch {
@@ -356,12 +394,11 @@ func (s *Session) Do(cmd string) bool {
 			}
 			s.say("-- %s", where)
 		}
-		return true
+		return Result{}
 	case word == "l" || word == "list":
 		_, at, ok := s.here()
 		if !ok {
-			s.say("-- not stopped in a line")
-			return true
+			return fail("not stopped in a line")
 		}
 		if at > 0 {
 			for n := max(1, at-3); n < at+4; n++ {
@@ -374,79 +411,85 @@ func (s *Session) Do(cmd string) bool {
 				}
 			}
 		}
-		return true
+		return Result{}
 	case word == "bt" || word == "backtrace":
-		s.stopFirst()
+		if r := s.stopFirst(); r.Err != "" {
+			return r
+		}
 		frames, err := s.backtrace()
 		if err != nil {
-			s.say("-- %s", err)
-			return true
+			return fail("%s", err)
 		}
 		for i, f := range frames {
 			s.say("  #%d %s", i, f.Where)
 		}
-		return true
+		return Result{}
 	case word == "locals":
-		s.stopFirst()
+		if r := s.stopFirst(); r.Err != "" {
+			return r
+		}
 		n := 0
 		if arg != "" {
 			var err error
 			if n, err = strconv.Atoi(arg); err != nil || n < 0 {
-				s.say("-- locals takes a frame number from bt, got %q", arg)
-				return true
+				return fail("locals takes a frame number from bt, got %q", arg)
 			}
 		}
 		lv, err := s.locals(n)
 		if err != nil {
-			s.say("-- %s", err)
-			return true
+			return fail("%s", err)
 		}
 		s.say("-- frame %d %s", n, lv.Where)
 		for _, v := range lv.Vars {
 			s.say("  %s = %s", v.Name, v.Value)
 		}
-		return true
+		return Result{}
 	case word == "methods":
 		for _, row := range s.sm.Methods() {
 			s.say("%s", row)
 		}
-		return true
+		return Result{}
 	}
 
 	verb, ok := words[word]
 	if !ok {
-		s.say("-- unknown: %s (type help)", word)
-		return true
+		return fail("unknown: %s (type help)", word)
 	}
 	if verb == "dbg:pause" {
 		if !s.Running() {
 			s.say("-- already stopped")
 		} else {
-			s.stopFirst()
+			if r := s.stopFirst(); r.Err != "" {
+				return r
+			}
 		}
-		return true
+		return Result{}
 	}
-	s.stopFirst()
+	if r := s.stopFirst(); r.Err != "" {
+		return r
+	}
 	switch verb {
 	case "dbg:continue":
 		s.setStopped(nil)
 		s.line.Send(verb)
 	case "dbg:inspect":
-		s.ask(verb, `^dbg:(stack|error)`, 10*time.Second)
+		_, r := s.command(verb, `^dbg:(stack|error)`, answerWait)
+		return r
 	case "dbg:out":
 		s.setStopped(nil)
-		s.ask(verb, `^dbg:paused |^dbg:error`, 30*time.Second)
+		_, r := s.command(verb, `^dbg:paused |^dbg:error`, 30*time.Second)
+		return r
 	default:
-		s.stepLine(verb)
+		return s.stepLine(verb)
 	}
-	return true
+	return Result{}
 }
 
 // stepLine repeats a bytecode step until the stop is on a different line of
 // the app (a line inside a block or the kernel does not count for `step`, and
 // `next` never goes there), a breakpoint or the end intervenes, or
 // LineStepLimit runs out. Only the final stop is shown.
-func (s *Session) stepLine(verb string) {
+func (s *Session) stepLine(verb string) Result {
 	startOff, startLine, startOK := s.here()
 	s.mu.Lock()
 	s.stepping = true
@@ -459,14 +502,18 @@ func (s *Session) stepLine(verb string) {
 	moved := false
 	for n := 0; n < LineStepLimit; n++ {
 		s.setStopped(nil)
-		got := s.ask(verb, `^dbg:paused |^dbg:error`, 30*time.Second)
+		got, r := s.command(verb, `^dbg:paused |^dbg:error`, 30*time.Second)
+		if r.Err != "" {
+			stepping(false)
+			return r
+		}
 		var m []string
 		if len(got) > 0 && !got[len(got)-1].end {
 			m = pausedRE.FindStringSubmatch(got[len(got)-1].text)
 		}
 		if m == nil || m[1] != "step" || s.Gone() {
 			stepping(false)
-			return // a breakpoint, an error, the end
+			return Result{} // a breakpoint, the end
 		}
 		off, line, ok := s.here()
 		if ok && line != 0 && (!startOK || off != startOff || line != startLine) {
@@ -480,10 +527,11 @@ func (s *Session) stepLine(verb string) {
 	s.show("step", st.off, st.pc)
 	if !moved {
 		s.say("-- still %s after %d steps; `step` again or `continue`", where, LineStepLimit)
-		return
+		return Result{}
 	}
 	s.say("-- stopped (step) %s", where)
 	if text != "" {
 		s.say("%s", text)
 	}
+	return Result{}
 }

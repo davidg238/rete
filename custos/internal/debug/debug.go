@@ -117,7 +117,7 @@ func Run(args []string, stdin *os.File, stdout, stderr io.Writer) int {
 		if !interactive {
 			s.say("(dbg) %s", cmd)
 		}
-		if !s.Do(cmd) {
+		if s.Do(cmd).Leave {
 			break
 		}
 		if s.Running() {

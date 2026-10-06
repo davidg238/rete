@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 // fakeVM answers each command the way the Supervisor does, from a script of
@@ -116,5 +117,80 @@ func TestBtAndLocals(t *testing.T) {
 	s.Do("locals 5")
 	if got := out.String(); !strings.Contains(got, "no frame 5") {
 		t.Fatalf("locals 5 printed:\n%s", got)
+	}
+}
+
+// silentVM never answers: a hung board, as the session sees one.
+type silentVM struct{}
+
+func (silentVM) Send(string) error { return nil }
+
+// rete#362: a command says whether it did what it says, as well as saying it.
+func TestACommandSaysWhetherItDidWhatItSays(t *testing.T) {
+	sm, _ := loaded(t)
+	var out strings.Builder
+	s := NewSession(sm, &out)
+	if r := s.Do("list"); r.Err != "not stopped in a line" {
+		t.Errorf("list before any stop: %+v", r)
+	}
+	vm := &fakeVM{s: s}
+	s.Attach(vm)
+	s.OnLine("dbg:ready")
+	for cmd, want := range map[string]string{
+		"break 37":   "",
+		"frobnicate": "unknown: frobnicate (type help)",
+		"locals x":   `locals takes a frame number from bt, got "x"`,
+	} {
+		if r := s.Do(cmd); r.Err != want || r.Leave {
+			t.Errorf("%s: %+v, want Err %q", cmd, r, want)
+		}
+		vm.wg.Wait()
+	}
+	if r := s.Do("break 9999"); r.Err == "" {
+		t.Errorf("a line with no code anywhere was accepted: %+v", r)
+	}
+	if r := s.Do("quit"); !r.Leave || r.Err != "" {
+		t.Errorf("quit: %+v", r)
+	}
+	vm.refuse = true
+	if r := s.Do("break 37"); r.Err != "dbg:error no code at that pc" {
+		t.Errorf("a refused break: %+v", r)
+	}
+	vm.wg.Wait()
+}
+
+func TestNoAnswerIsAFailure(t *testing.T) {
+	defer func(w time.Duration) { answerWait = w }(answerWait)
+	answerWait = 50 * time.Millisecond
+	sm, _ := loaded(t)
+	var out strings.Builder
+	s := NewSession(sm, &out)
+	s.Attach(silentVM{})
+	s.OnLine("dbg:ready")
+	out.Reset()
+	r := s.Do("break 37")
+	if !strings.HasPrefix(r.Err, "no answer to dbg:break ") {
+		t.Fatalf("a break nobody answered: %+v", r)
+	}
+	if !strings.Contains(out.String(), "-- no answer to dbg:break ") {
+		t.Errorf("the CLI did not say it:\n%s", out.String())
+	}
+	if len(s.State(-1, 0).Breaks) != 0 {
+		t.Errorf("an unanswered break is in the state")
+	}
+}
+
+func TestTheEndIsAnAnswer(t *testing.T) {
+	sm, _ := loaded(t)
+	var out strings.Builder
+	s := NewSession(sm, &out)
+	s.Attach(&fakeVM{s: s}) // answers nothing to dbg:out
+	s.OnLine("dbg:paused break 200 2")
+	go func() { time.Sleep(20 * time.Millisecond); s.OnEnd() }()
+	if r := s.Do("finish"); r.Err != "" {
+		t.Fatalf("finish into the end: %+v", r)
+	}
+	if run := s.State(-1, 0).Run; run != "ended" {
+		t.Errorf("run %q", run)
 	}
 }
