@@ -118,3 +118,22 @@ func TestEndedNilStop(t *testing.T) {
 		}
 	}
 }
+
+// The highlighted frame is the frame whose locals are shown: after `]` and
+// then `finish`, custos answers frame 0's locals and the highlight follows.
+func TestSelectedFrameFollowsLocals(t *testing.T) {
+	m := New(NewClient("http://x"))
+	stop := &debug.StopView{Reason: "step", Line: 8}
+	nm, _ := m.Update(stateMsg{st: debug.State{Seq: 2, Run: "stopped", Stop: stop, Locals: &debug.LocalsView{Frame: 1}}})
+	if f := nm.(Model).frame; f != 1 {
+		t.Fatalf("frame = %d with frame 1's locals shown", f)
+	}
+	nm, _ = nm.(Model).Update(stateMsg{st: debug.State{Seq: 3, Run: "stopped", Stop: &debug.StopView{Reason: "step", Line: 16}}})
+	if f := nm.(Model).frame; f != 0 {
+		t.Fatalf("frame = %d at a new stop before its locals", f)
+	}
+	nm, _ = nm.(Model).Update(stateMsg{st: debug.State{Seq: 4, Run: "stopped", Stop: &debug.StopView{Reason: "step", Line: 16}, Locals: &debug.LocalsView{Frame: 0}}})
+	if f := nm.(Model).frame; f != 0 {
+		t.Fatalf("frame = %d with frame 0's locals shown", f)
+	}
+}

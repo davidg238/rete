@@ -110,6 +110,10 @@ func (m Model) apply(st debug.State) Model {
 		return m
 	}
 	m.st = st
+	m.frame = 0 // the highlighted frame is the one whose locals are shown
+	if st.Locals != nil {
+		m.frame = st.Locals.Frame
+	}
 	if st.Run == "stopped" && st.Stop != nil && st.Stop.Line > 0 {
 		m.cursor = st.Stop.Line
 	}
