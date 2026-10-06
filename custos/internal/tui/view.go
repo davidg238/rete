@@ -28,8 +28,8 @@ var (
 func pane(title, body string, w, h int) string {
 	w, h = max(w-2, 1), max(h-2, 1)
 	lines := strings.Split(body, "\n")
-	if len(lines) > h {
-		lines = lines[len(lines)-h:]
+	if len(lines) > h-1 { // the title takes a row
+		lines = lines[len(lines)-max(h-1, 0):]
 	}
 	for i, l := range lines {
 		lines[i] = lipgloss.NewStyle().MaxWidth(w).Render(l)
@@ -87,7 +87,7 @@ func (m Model) debugView(w, h int) string {
 	top := max(h-tail, 3)
 	left := w * 3 / 5
 	right := w - left
-	src := pane("source", m.sourceBody(top-2), left, top)
+	src := pane("source", m.sourceBody(top-3), left, top)
 	stack := pane("stack", m.stackBody(), right, top/2)
 	locals := pane("locals", m.localsBody(), right, top-top/2)
 	upper := lipgloss.JoinHorizontal(lipgloss.Top, src, lipgloss.JoinVertical(lipgloss.Left, stack, locals))
@@ -127,7 +127,7 @@ func (m Model) sourceBody(rows int) string {
 func (m Model) stackBody() string {
 	var b strings.Builder
 	for i, f := range m.st.Frames {
-		line := fmt.Sprintf("#%d %s", i, f.Where)
+		line := fmt.Sprintf("#%d %s  %s:%d", i, f.Method, f.File, f.Line) // the method first: a narrow pane clips the tail
 		if i == m.frame {
 			line = cursorS.Render(line)
 		}

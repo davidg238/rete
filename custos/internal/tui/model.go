@@ -40,7 +40,7 @@ type Model struct {
 	input     string
 	status    string // the last refusal or error; "" when the last thing worked
 	inflight  string // the command posted and not yet answered
-	btFor     string // the stop a bt was already sent for
+	lost      bool   // the last poll failed: the next answer may be a new custos
 	noDebug   bool   // /debug answered 404: custos serves no debug target
 	prof      *custos.Capture
 	ms        int // the last profile window
@@ -69,11 +69,14 @@ type profMsg struct {
 // New answers the model for c; Init starts the source fetch and the long-poll.
 func New(c *Client) Model { return Model{c: c, cursor: 1, ms: 3000} }
 
-func (m Model) Init() tea.Cmd {
+func (m Model) Init() tea.Cmd { return tea.Batch(m.fetch(), m.poll(-1, 0)) }
+
+// fetch asks for the source and the last profile: at start-up, and again
+// after an outage, when the custos that answers may be a new one.
+func (m Model) fetch() tea.Cmd {
 	c := m.c
 	return tea.Batch(
 		func() tea.Msg { s, err := c.Source(); return sourceMsg{s, err} },
-		m.poll(-1, 0),
 		func() tea.Msg { p, err := c.Last(); return profMsg{p, err, true} },
 	)
 }
@@ -100,25 +103,26 @@ func (m Model) send(cmd string) (Model, tea.Cmd) {
 	return m, func() tea.Msg { d, err := c.Do(cmd); return doneMsg{cmd, d, err} }
 }
 
-// apply takes st if it is newer, moves the cursor to a new stop, and asks for
-// the stack once per stop.
-func (m Model) apply(st debug.State) (Model, tea.Cmd) {
+// apply takes st if it is newer and moves the cursor to a stop. custos itself
+// fetches each stop's bt and locals 0 (AutoFetch), so a stop sends nothing.
+func (m Model) apply(st debug.State) Model {
 	if st.Seq <= m.st.Seq && m.st.Run != "" {
-		return m, nil
+		return m
 	}
 	m.st = st
-	if st.Run != "stopped" || st.Stop == nil {
-		return m, nil
-	}
-	key := fmt.Sprintf("%s %d %d", st.Stop.Reason, st.Stop.Off, st.Stop.PC)
-	if key == m.btFor {
-		return m, nil
-	}
-	m.btFor, m.frame = key, 0
-	if st.Stop.Line > 0 {
+	if st.Run == "stopped" && st.Stop != nil && st.Stop.Line > 0 {
 		m.cursor = st.Stop.Line
 	}
-	return m.send("bt")
+	return m
+}
+
+// after is the Seq the next poll waits past: -1 until a state has been seen,
+// so the first answer comes at once whatever the server's Seq.
+func (m Model) after() int {
+	if m.st.Run == "" {
+		return -1
+	}
+	return m.st.Seq
 }
 
 func is404(err error) bool {
@@ -144,15 +148,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil // no debug target: stop polling
 		}
 		if msg.err != nil {
-			m.status = "custos: " + msg.err.Error()
-			return m, m.poll(m.st.Seq, time.Second)
-		}
-		if m.status != "" && m.inflight == "" && m.st.Run == "" {
-			m.status = "" // reconnected
+			m.status, m.lost = "custos: "+msg.err.Error(), true
+			return m, m.poll(m.after(), time.Second)
 		}
 		var cmd tea.Cmd
-		m, cmd = m.apply(msg.st)
-		return m, tea.Batch(cmd, m.poll(m.st.Seq, 0))
+		if m.lost { // a restarted custos starts its Seq again: take whatever it has
+			m.lost, m.status, m.st = false, "", debug.State{}
+			cmd = m.fetch()
+		}
+		m = m.apply(msg.st)
+		return m, tea.Batch(cmd, m.poll(m.after(), 0))
 	case doneMsg:
 		m.inflight = ""
 		switch {
@@ -164,7 +169,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		default:
 			m.status = ""
 		}
-		return m.apply(msg.d.State)
+		return m.apply(msg.d.State), nil
 	case profMsg:
 		m.capturing = false
 		if msg.err != nil {

@@ -36,7 +36,7 @@ Two tabs, switched with `tab`.
 | pane | from | interaction |
 |---|---|---|
 | source | `/debug/source`; current line from `State.Stop`, marks from `State.Breaks` | cursor ↑/↓; `b` toggles a breakpoint on the cursor line (`break N` / `clear N`) |
-| stack | `State.Frames` (sends `bt` on a stop) | select a frame → `locals N` |
+| stack | `State.Frames` (custos fetches `bt` and `locals 0` on every stop, AutoFetch) | select a frame → `locals N` |
 | locals | `State.Locals` | — |
 | transcript | the tail of `State.Transcript` (the "log tail") | — |
 

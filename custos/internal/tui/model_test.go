@@ -13,26 +13,48 @@ import (
 	"github.com/davidg238/rete/custos/internal/debug"
 )
 
-func TestStateNewerOnlyAndBtOncePerStop(t *testing.T) {
+// custos fetches bt and locals 0 itself on every stop (AutoFetch), so a stop
+// moves the cursor and sends nothing: a TUI bt would hold the person's next key.
+func TestStopSendsNothingAndOnlyNewerApplies(t *testing.T) {
 	m := New(NewClient("http://127.0.0.1:1"))
 	stop := &debug.StopView{Reason: "break", File: "a.nsl", Line: 16, Off: 7920, PC: 22}
-	nm, cmd := m.Update(stateMsg{st: debug.State{Seq: 9, Run: "stopped", Stop: stop}})
+	nm, _ := m.Update(stateMsg{st: debug.State{Seq: 9, Run: "stopped", Stop: stop}})
 	m = nm.(Model)
-	if m.st.Seq != 9 || m.cursor != 16 || cmd == nil || m.inflight != "bt" {
-		t.Fatalf("first stop: seq=%d cursor=%d inflight=%q", m.st.Seq, m.cursor, m.inflight)
+	if m.st.Seq != 9 || m.cursor != 16 || m.inflight != "" {
+		t.Fatalf("stop: seq=%d cursor=%d inflight=%q", m.st.Seq, m.cursor, m.inflight)
 	}
-	m.inflight = "" // as if bt answered
 	nm, _ = m.Update(stateMsg{st: debug.State{Seq: 7, Run: "running"}})
-	m = nm.(Model)
-	if m.st.Seq != 9 {
-		t.Fatalf("an older state was applied: %d", m.st.Seq)
-	}
-	nm, _ = m.Update(stateMsg{st: debug.State{Seq: 10, Run: "stopped", Stop: stop}})
-	m = nm.(Model)
-	if m.inflight == "bt" {
-		t.Fatal("bt sent twice for one stop")
+	if nm.(Model).st.Seq != 9 {
+		t.Fatalf("an older state was applied: %d", nm.(Model).st.Seq)
 	}
 }
+
+// After an outage the custos that answers may be a new one, whose Seq restarts:
+// its state is taken, the error is cleared, and the source is fetched again.
+func TestReconnectTakesANewServer(t *testing.T) {
+	m := New(NewClient("http://127.0.0.1:1"))
+	nm, _ := m.Update(stateMsg{st: debug.State{Seq: 50, Run: "stopped", Stop: &debug.StopView{Line: 3}}})
+	nm, _ = nm.(Model).Update(stateMsg{err: errors.New("connection refused")})
+	nm, cmd := nm.(Model).Update(stateMsg{st: debug.State{Seq: 3, Run: "boot"}})
+	m = nm.(Model)
+	if m.st.Seq != 3 || m.st.Run != "boot" || m.status != "" {
+		t.Fatalf("after reconnect: seq=%d run=%q status=%q", m.st.Seq, m.st.Run, m.status)
+	}
+	batch, _ := cmd().(tea.BatchMsg)
+	if len(batch) < 2 {
+		t.Fatalf("reconnect did not re-fetch the source: %d commands", len(batch))
+	}
+}
+
+// Before any state has been seen, the first poll asks for after=-1, so it
+// answers at once whatever the server's Seq.
+func TestFirstPollAfterErrorAsksMinusOne(t *testing.T) {
+	m := New(NewClient("http://x"))
+	if m.after() != -1 {
+		t.Fatalf("after() = %d before any state", m.after())
+	}
+}
+
 func TestBreakTogglesOnTheCursorLine(t *testing.T) {
 	f, srv := newFake(t)
 	m := New(NewClient(srv.URL))

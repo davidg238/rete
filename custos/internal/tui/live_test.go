@@ -62,8 +62,15 @@ func TestLiveProfile(t *testing.T) {
 	if m.prof == nil {
 		t.Fatalf("capture failed: %s", m.status)
 	}
-	if v := m.View(); !strings.Contains(v, "main:args:") {
-		t.Fatalf("profile view lacks main:args::\n%s", v)
+	ranked := false
+	for _, r := range m.prof.Report.Rows {
+		ranked = ranked || strings.HasSuffix(r.Name, ">>main:args:")
+	}
+	if !ranked || len(m.prof.Report.Rows) == 0 {
+		t.Fatalf("capture lacks main:args:: %+v", m.prof.Report.Rows)
+	}
+	if v := m.View(); !strings.Contains(v, m.prof.Report.Rows[0].Name) {
+		t.Fatalf("profile view lacks the top row %q:\n%s", m.prof.Report.Rows[0].Name, v)
 	}
 	t.Logf("live: a 200 ms window through the profile tab, %d rows", len(m.prof.Report.Rows))
 }
