@@ -119,6 +119,49 @@ is given.
 | `docs/tutorials/04-debugger.md` | a short "the same session as a page" section (promotion target) |
 | `docs/development.md` §5 | the custos row: it still said the USB verbs were "not built yet" (stale since #339); now names them and both pages |
 
+## 5. Addendum: the agent path (rete#362)
+
+> **Approved by David, 2026-10-06** in conversation. rete is agent-first. Before #362 an
+> agent driving `/debug` could be misled in three ways: a failed command answered 200,
+> the HTTP path had no real-VM gate, and the wait for a stop was unwritten.
+
+- **D3. A host VM is the second cable: `--debug-host "<VM command>"`.** It is the
+  counterpart of `--debug-port`, and exactly one of the two may be given. Map loading,
+  `CheckImage` and `StartHost` are reused unchanged, and when the VM exits `Run` becomes
+  `ended`. It is also the agent's board-free path. A Go test that ran only when an
+  environment variable named a built VM was rejected: a test-only path, and a SKIP in
+  plain `go test`.
+- **D4. The piped CLI keeps the pause rule, and the race is documented.** In a piped
+  `continue` → `bt`, the `bt` stops the program wherever it is. The agent path is HTTP:
+  send `continue`, then long-poll `/debug/state?after=<Seq>` until `Run` is `stopped`
+  (or `ended`/`lost`). Never sleep. A piped mode that waited after `continue` was
+  rejected: it would be a second CLI behaviour, and a piped `pause` could no longer
+  interrupt anything.
+
+**A result for every command.** `Session.Do` answers `Result{Leave bool, Err string}`
+instead of `bool`. `Err` is set for: a line `Resolve` refuses, an unknown word, a bad
+`locals` argument, a `bt`/`locals` error, "not stopped in a line", a VM `dbg:error`
+(its line), and **no answer before the timeout**. The timeout is the one case where the
+CLI's text changes: it says a line where today it is silent (a `break` with no `dbg:ok`
+said nothing). These are not failures: a break moved to the next line with code (its
+`dbg:ok` arrived), "already stopped", and the step limit being reached (the program is
+held, and the transcript says where). `POST /debug/do` answers 200 with
+`{ok, error, state}`; 409 for a busy session is unchanged. The page reads `.state` and
+shows `error`.
+
+**Tests.**
+- `nodus/nsl/tools/test_custos_debug.py` gains an HTTP case: custos over `--debug-host`
+  with `46_debug_target`. It waits for `boot`; checks that `break 26` → `ok` with 26 in
+  `Breaks`, and that a header line → `ok: false` with an error; sends `continue`; then
+  long-polls on `Seq` until `stopped` at line 26, where `locals` names `sum`. To falsify
+  it, break the `ok` mapping once and watch the gate go red.
+- Go, `internal/debug`: a fake line that never answers gives `Err` (the timeout), and
+  `dbg:error` gives `Err`. Go, `internal/custos`: `/debug/do` answers `{ok, error, state}`,
+  and both `--debug-host` and `--debug-port` together are refused.
+
+**Promotion:** `docs/tutorials/04-debugger.md` gains "the agent path" (the long-poll
+loop, `ok`/`error`, and the piped-CLI caveat).
+
 ## Not done here
 
 - Values beyond `printString` (#359); send-by-send stepping (#322).
