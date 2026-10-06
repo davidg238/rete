@@ -61,8 +61,9 @@ func (l portLine) Close() error { return l.p.Close() }
 
 // OpenPort opens a board's console cable without a reset pulse: DTR and RTS are
 // held low from the open on (rete#311; the CP2102N devkit wires them to EN and
-// BOOT). The Line it answers is also an io.Closer.
-func OpenPort(port string, baud int, onLine func(string)) (Line, error) {
+// BOOT). The Line it answers is also an io.Closer. onEnd is called once when the
+// cable's read fails: unplugged, or closed by Close.
+func OpenPort(port string, baud int, onLine func(string), onEnd func()) (Line, error) {
 	p, err := serial.Open(port, &serial.Mode{
 		BaudRate:          baud,
 		InitialStatusBits: &serial.ModemOutputBits{DTR: false, RTS: false},
@@ -73,13 +74,15 @@ func OpenPort(port string, baud int, onLine func(string)) (Line, error) {
 	if err := p.SetReadTimeout(200 * time.Millisecond); err != nil {
 		return nil, err
 	}
-	// A cable never ends: a read timeout is an empty read, not the end.
-	go pump(func(b []byte) (int, error) { return p.Read(b) }, onLine, func() {})
+	// A read timeout is an empty read, not the end; an unplugged cable is a
+	// failed read (go.bug.st/serial answers PortClosed).
+	go pump(func(b []byte) (int, error) { return p.Read(b) }, onLine, onEnd)
 	return portLine{writerLine{p}, p}, nil
 }
 
 // pump splits what read returns into lines, strips a trailing \r, and calls
-// onEnd when read fails (a host VM's exit). A partial last line is dropped.
+// onEnd when read fails (a host VM's exit, a cable's loss). A partial last line
+// is dropped.
 func pump(read func([]byte) (int, error), onLine func(string), onEnd func()) {
 	var buf []byte
 	chunk := make([]byte, 256)

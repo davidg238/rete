@@ -58,28 +58,47 @@ type Session struct {
 	outMu sync.Mutex
 	out   io.Writer
 
+	// AutoFetch makes every shown stop fetch its bt and `locals 0` into State,
+	// unprinted: a page's, so a stop arrives whole. The CLI leaves it off and
+	// sends only what the person types.
+	AutoFetch bool
+	cmdMu     sync.Mutex // one command, or one fetch, on the line at a time
+
 	mu       sync.Mutex
-	changed  chan struct{} // closed and replaced on every line seen
+	changed  chan struct{} // closed and replaced on every change (notify)
 	seen     []seen        // every line from the VM, in order
 	stopped  *stop
 	frames   [][2]int // the last bt at this stop: (blob offset, pc), innermost first
 	gone     bool
 	quiet    bool // bt, locals: the raw answer is not the person's; its translation is
 	stepping bool // a line step: only its LAST bytecode stop is shown
+
+	// The view State answers (state.go).
+	seq        int
+	run        string
+	stopV      *StopView
+	framesV    []FrameView
+	localsV    *LocalsView
+	breaks     map[int]bool // lines of the app's file the VM accepted a break on
+	transcript []string
 }
 
 // NewSession is a session over sm writing to out; Attach gives it its line.
 func NewSession(sm *SourceMap, out io.Writer) *Session {
-	return &Session{sm: sm, out: out, changed: make(chan struct{})}
+	return &Session{sm: sm, out: out, changed: make(chan struct{}), run: "unknown", breaks: map[int]bool{}}
 }
 
 // Attach gives the session the line its commands go down.
 func (s *Session) Attach(l Line) { s.line = l }
 
 func (s *Session) say(format string, args ...any) {
+	text := fmt.Sprintf(format, args...)
 	s.outMu.Lock()
-	defer s.outMu.Unlock()
-	fmt.Fprintf(s.out, format+"\n", args...)
+	fmt.Fprintln(s.out, text)
+	s.outMu.Unlock()
+	s.mu.Lock()
+	s.transcribe(strings.Split(text, "\n"))
+	s.mu.Unlock()
 }
 
 // Gone reports whether the program has ended.
@@ -100,6 +119,14 @@ func (s *Session) setStopped(st *stop) {
 	s.mu.Lock()
 	s.stopped = st
 	s.frames = nil // a new stop invalidates the last bt
+	switch {
+	case st == nil:
+		s.run, s.stopV, s.framesV, s.localsV = "running", nil, nil, nil
+		s.notify()
+	case st.boot:
+		s.run, s.stopV, s.framesV, s.localsV = "boot", nil, nil, nil
+		s.notify()
+	} // a stop in a method is shown (or not) by show
 	s.mu.Unlock()
 }
 
@@ -112,8 +139,7 @@ func (s *Session) current() *stop {
 func (s *Session) record(l seen) {
 	s.mu.Lock()
 	s.seen = append(s.seen, l)
-	close(s.changed)
-	s.changed = make(chan struct{})
+	s.notify()
 	s.mu.Unlock()
 }
 
@@ -130,6 +156,7 @@ func (s *Session) OnLine(l string) {
 		pc, _ := strconv.Atoi(m[3])
 		s.setStopped(&stop{off: off, pc: pc})
 		if !(stepping && m[1] == "step") {
+			s.show(m[1], off, pc)
 			where, text, _ := s.sm.Where(off, pc)
 			s.say("-- stopped (%s) %s", m[1], where)
 			if text != "" {
@@ -143,11 +170,22 @@ func (s *Session) OnLine(l string) {
 }
 
 // OnEnd is the reader's when a host VM exits.
-func (s *Session) OnEnd() {
+func (s *Session) OnEnd() { s.end("ended", "the program ended") }
+
+// LostCable is what a session says when its cable's read fails.
+const LostCable = "the cable to the board was lost (unplugged?): reconnect it and restart"
+
+// OnLost is the reader's when a cable's read fails: the session is over, and
+// the person is told why rather than left watching a board that went quiet.
+func (s *Session) OnLost() { s.end("lost", LostCable) }
+
+func (s *Session) end(run, why string) {
 	s.mu.Lock()
 	s.gone = true
+	s.run, s.stopV, s.framesV, s.localsV = run, nil, nil, nil
+	s.notify()
 	s.mu.Unlock()
-	s.say("-- the program ended")
+	s.say("-- %s", why)
 	s.record(seen{end: true})
 }
 
@@ -250,6 +288,8 @@ func (s *Session) here() (off, line int, ok bool) {
 
 // Do runs one command; false means leave.
 func (s *Session) Do(cmd string) bool {
+	s.cmdMu.Lock()
+	defer s.cmdMu.Unlock()
 	cmd = strings.TrimSpace(cmd)
 	word, arg, _ := strings.Cut(cmd, " ")
 	arg = strings.TrimSpace(arg)
@@ -289,7 +329,18 @@ func (s *Session) Do(cmd string) bool {
 			moved = fmt.Sprintf(" (line %s has no code; next is %d)", arg, bp.Line)
 		}
 		s.say("-- %s %s:%d  %s%s", verb, s.sm.Source, bp.Line, bp.Name, moved)
-		s.ask(fmt.Sprintf("dbg:%s %d %d", verb, bp.Off, bp.PC), `^dbg:(ok|error)`, 10*time.Second)
+		for _, l := range s.ask(fmt.Sprintf("dbg:%s %d %d", verb, bp.Off, bp.PC), `^dbg:(ok|error)`, 10*time.Second) {
+			if strings.HasPrefix(l.text, "dbg:ok") {
+				s.mu.Lock()
+				if verb == "break" {
+					s.breaks[bp.Line] = true
+				} else {
+					delete(s.breaks, bp.Line)
+				}
+				s.notify()
+				s.mu.Unlock()
+			}
+		}
 		return true
 	case word == "w" || word == "where":
 		st := s.current()
@@ -326,22 +377,13 @@ func (s *Session) Do(cmd string) bool {
 		return true
 	case word == "bt" || word == "backtrace":
 		s.stopFirst()
-		got := s.askQuiet("dbg:backtrace", `^dbg:(frames|error)`)
-		if len(got) == 0 {
-			s.say("-- no answer to dbg:backtrace")
-			return true
-		}
-		frames, err := ParseFrames(got[len(got)-1])
+		frames, err := s.backtrace()
 		if err != nil {
 			s.say("-- %s", err)
 			return true
 		}
-		s.mu.Lock()
-		s.frames = frames
-		s.mu.Unlock()
 		for i, f := range frames {
-			where, _, _ := s.sm.Where(f[0], f[1])
-			s.say("  #%d %s", i, where)
+			s.say("  #%d %s", i, f.Where)
 		}
 		return true
 	case word == "locals":
@@ -354,26 +396,15 @@ func (s *Session) Do(cmd string) bool {
 				return true
 			}
 		}
-		// The frame's method and pc: frame 0 is the stop; deeper ones need a bt.
-		off, pc, ok := s.frameAt(n)
-		if !ok {
-			s.say("-- no frame %d (run bt first)", n)
-			return true
-		}
-		got := s.askQuiet(fmt.Sprintf("dbg:inspect %d", n), `^dbg:(stack|error)`)
-		if len(got) == 0 {
-			s.say("-- no answer to dbg:inspect")
-			return true
-		}
-		regs, ctx, err := ParseInspect(got[len(got)-1])
+		lv, err := s.locals(n)
 		if err != nil {
-			s.say("-- %s", got[len(got)-1])
+			s.say("-- %s", err)
 			return true
 		}
-		m, _ := s.sm.Method(off)
-		where, _, _ := s.sm.Where(off, pc)
-		s.say("-- frame %d %s", n, where)
-		s.showLocals(regs, ctx, LiveVars(m.Vars, pc))
+		s.say("-- frame %d %s", n, lv.Where)
+		for _, v := range lv.Vars {
+			s.say("  %s = %s", v.Name, v.Value)
+		}
 		return true
 	case word == "methods":
 		for _, row := range s.sm.Methods() {
@@ -446,6 +477,7 @@ func (s *Session) stepLine(verb string) {
 	stepping(false)
 	st := s.current()
 	where, text, _ := s.sm.Where(st.off, st.pc)
+	s.show("step", st.off, st.pc)
 	if !moved {
 		s.say("-- still %s after %d steps; `step` again or `continue`", where, LineStepLimit)
 		return

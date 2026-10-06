@@ -293,6 +293,24 @@ The cable and the image are the whole requirement: no gateway, no mesh, no porta
 measurements behind this section are `docs/results/2026-10-02-311-line-in-spike.md`
 parts 2 and 3.
 
+## 7. The same session as a page
+
+custos serves this session as a page too (rete#340). It holds the board's cable from
+start-up, so stop the collector first, as in section 6:
+
+```bash
+custos --debug-port /dev/serial/by-id/usb-Silicon_Labs_CP2102N_... \
+       --debug-map DebugProbeC6.oimg.map.json
+# then open http://localhost:6971/debug
+```
+
+The page shows the source, the stop, the stack and frame 0's locals, which are fetched
+as soon as a stop is shown. Click a line to set or clear a breakpoint, and click a frame
+for its locals. The buttons and the command box send the same commands as section 3, and
+the Session pane shows what this tool would have printed. A board that was already
+waiting when custos opened the cable shows *unknown* until you press pause; that is the
+rule from section 5.
+
 ## Where next
 
 - `nodus/nsl/docs/design/2026-06-23-ns-oevm-in-image-debugger-design.md` — how the

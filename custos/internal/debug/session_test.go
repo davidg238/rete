@@ -13,16 +13,29 @@ import (
 // stops: every dbg:step or dbg:over moves to the next one. It answers on its own
 // goroutine, as the reader does, so the session's waits are exercised for real.
 type fakeVM struct {
-	s     *Session
-	steps [][2]int // (blob offset, pc) per bytecode step
-	wg    sync.WaitGroup
+	s      *Session
+	steps  [][2]int // (blob offset, pc) per bytecode step
+	refuse bool     // break and clear answer dbg:error
+	wg     sync.WaitGroup
+
+	mu   sync.Mutex
+	sent []string // every line sent, in order
 }
 
 func (f *fakeVM) Send(line string) error {
+	f.mu.Lock()
+	f.sent = append(f.sent, line)
+	f.mu.Unlock()
 	var reply []string
 	switch {
+	case f.refuse && (strings.HasPrefix(line, "dbg:break ") || strings.HasPrefix(line, "dbg:clear ")):
+		reply = []string{"dbg:error no code at that pc"}
 	case strings.HasPrefix(line, "dbg:break "):
 		reply = []string{"dbg:ok break"}
+	case strings.HasPrefix(line, "dbg:clear "):
+		reply = []string{"dbg:ok clear"}
+	case line == "dbg:pause":
+		reply = []string{"dbg:ok pause"}
 	case line == "dbg:continue":
 		reply = []string{"dbg:paused break 200 2"}
 	case line == "dbg:backtrace":

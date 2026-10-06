@@ -6,6 +6,7 @@ package debug
 // `dbg:frames`, `locals` from `dbg:stack` joined to the image map's `vars`.
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -80,10 +81,10 @@ func LiveVars(vars []imagemap.Var, pc int) []imagemap.Var {
 	return out
 }
 
-// showLocals prints `self` and then each live var as `name = value`. A captured
-// var whose Context is not built yet (a stop before the prologue) has no value.
-func (s *Session) showLocals(regs, ctx map[int]string, vars []imagemap.Var) {
-	s.say("  self = %s", regs[0])
+// localVars is `self` and then each live var with its value. A captured var
+// whose Context is not built yet (a stop before the prologue) has no value.
+func localVars(regs, ctx map[int]string, vars []imagemap.Var) []Var {
+	out := []Var{{"self", regs[0]}}
 	for _, v := range vars {
 		var val string
 		var ok bool
@@ -95,8 +96,59 @@ func (s *Session) showLocals(regs, ctx map[int]string, vars []imagemap.Var) {
 		if !ok {
 			val = "(not yet set)"
 		}
-		s.say("  %s = %s", v.Name, val)
+		out = append(out, Var{v.Name, val})
 	}
+	return out
+}
+
+// backtrace asks the VM for the stack at this stop and keeps it, for `locals
+// N` and for State.
+func (s *Session) backtrace() ([]FrameView, error) {
+	got := s.askQuiet("dbg:backtrace", `^dbg:(frames|error)`)
+	if len(got) == 0 {
+		return nil, errors.New("no answer to dbg:backtrace")
+	}
+	frames, err := ParseFrames(got[len(got)-1])
+	if err != nil {
+		return nil, err
+	}
+	views := make([]FrameView, len(frames))
+	for i, f := range frames {
+		where, _, _ := s.sm.Where(f[0], f[1])
+		file, line, name, _ := s.sm.Place(f[0], f[1])
+		views[i] = FrameView{Where: where, File: file, Line: line, Method: name, Off: f[0], PC: f[1]}
+	}
+	s.mu.Lock()
+	s.frames, s.framesV = frames, views
+	s.notify()
+	s.mu.Unlock()
+	return views, nil
+}
+
+// locals asks the VM for frame n's registers and Context and names the ones
+// live at its pc, through the map's vars.
+func (s *Session) locals(n int) (*LocalsView, error) {
+	// The frame's method and pc: frame 0 is the stop; deeper ones need a bt.
+	off, pc, ok := s.frameAt(n)
+	if !ok {
+		return nil, fmt.Errorf("no frame %d (run bt first)", n)
+	}
+	got := s.askQuiet(fmt.Sprintf("dbg:inspect %d", n), `^dbg:(stack|error)`)
+	if len(got) == 0 {
+		return nil, errors.New("no answer to dbg:inspect")
+	}
+	regs, ctx, err := ParseInspect(got[len(got)-1])
+	if err != nil {
+		return nil, errors.New(got[len(got)-1])
+	}
+	m, _ := s.sm.Method(off)
+	where, _, _ := s.sm.Where(off, pc)
+	lv := &LocalsView{Frame: n, Where: where, Vars: localVars(regs, ctx, LiveVars(m.Vars, pc))}
+	s.mu.Lock()
+	s.localsV = lv
+	s.notify()
+	s.mu.Unlock()
+	return lv, nil
 }
 
 // frameAt is frame n's (blob offset, pc): frame 0 is the stop itself; a deeper

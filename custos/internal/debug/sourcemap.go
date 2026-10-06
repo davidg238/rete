@@ -229,6 +229,32 @@ func (sm *SourceMap) Where(off, pc int) (where, text string, line int) {
 	return fmt.Sprintf("at %s:%d  %s", sm.Source, at, m.Name), sm.LineText(at), at
 }
 
+// Place is where (blob offset, pc) is in any file of the map: the file, the
+// line (0 for a method with no lines) and the method's name; ok is false for an
+// offset the map does not name. Where is its sentence.
+func (sm *SourceMap) Place(off, pc int) (file string, line int, name string, ok bool) {
+	m, ok := sm.img.Methods[off]
+	if !ok {
+		return "", 0, "", false
+	}
+	return sm.img.Files[m.File], lineAt(m.Lines, pc), m.Name, true
+}
+
+// Text is the app's source, a line per entry (nil when it could not be read).
+func (sm *SourceMap) Text() []string { return sm.text }
+
+// CodeLines is every line of the app's file some method starts a statement on:
+// the lines a break lands on as asked.
+func (sm *SourceMap) CodeLines() map[int]bool {
+	out := map[int]bool{}
+	for _, f := range sm.functions {
+		for _, p := range f.pairs {
+			out[p.line] = true
+		}
+	}
+	return out
+}
+
 // Method is the image map's entry for a blob offset.
 func (sm *SourceMap) Method(off int) (imagemap.Method, bool) {
 	m, ok := sm.img.Methods[off]
