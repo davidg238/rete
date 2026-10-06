@@ -13,26 +13,23 @@ window closed"), not after a timeout.
 Needs Go, and exits 77 without it, which the suite reports as a named SKIP (as
 test_custos_debug.py does). Exits non-zero on failure.
 """
-import json, os, shutil, socket, subprocess, sys, time, urllib.error, urllib.request
+import json, os, shutil, sys, time, urllib.error, urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from test_custos_debug import CUSTOS, OEVM, OIMG, VM, build  # noqa: E402
+from test_custos_debug import OIMG, VM, build, go_live, serve  # noqa: E402
+
+
+def profile_args():
+    return ["--profile-host", f"{VM} {OIMG}", "--profile-map", OIMG + ".map.json"]
 
 
 def run_http():
-    s = socket.socket()
-    s.bind(("127.0.0.1", 0))
-    port = s.getsockname()[1]
-    s.close()
-    base = f"http://127.0.0.1:{port}"
-    env = {**os.environ, "OEVM_TIMER_WALLCLOCK": "1"}
-    proc = subprocess.Popen([CUSTOS, "--bind", "127.0.0.1", "--port", str(port),
-                             "--profile-host", f"{VM} {OIMG}",
-                             "--profile-map", OIMG + ".map.json"],
-                            cwd=OEVM, env=env, stdout=subprocess.DEVNULL,
-                            stderr=subprocess.PIPE, text=True)
+    with serve(profile_args(), ready="/profile") as base:
+        return _run_http(base)
 
+
+def _run_http(base):
     def capture(ms):
         req = urllib.request.Request(f"{base}/profile/capture?ms={ms}", data=b"", method="POST")
         try:
@@ -41,35 +38,30 @@ def run_http():
         except urllib.error.HTTPError as e:
             return e.code, e.read().decode()
 
-    try:
-        for _ in range(100):
-            if proc.poll() is not None:
-                raise AssertionError(f"custos exited: {proc.stderr.read()}")
-            try:
-                urllib.request.urlopen(base + "/profile", timeout=5).close()
-                break
-            except urllib.error.URLError:
-                time.sleep(0.1)
-        # The pause target ticks three times on 200 ms: a 200 ms window closes inside it.
-        code, c = capture(200)
-        assert code == 200, (code, c)
-        names = [r["Name"] for r in c["Report"]["Rows"]]
-        assert "DebugPauseTarget>>main:args:" in names, names
-        assert not any(r["Unknown"] for r in c["Report"]["Rows"]), c["Report"]["Rows"]
-        # A second capture starts a second VM: the page is not a one-shot.
-        code, c2 = capture(200)
-        assert code == 200, (code, c2)
-        # A window longer than the program answers at once, naming why.
-        t0 = time.monotonic()
-        code, body = capture(5000)
-        took = time.monotonic() - t0
-        assert code == 502 and "program ended before the window closed" in body, (code, body)
-        assert took < 5, f"took {took:.1f}s: it waited out the window"
-    finally:
-        proc.terminate()
-        proc.wait(timeout=10)
+    # The pause target ticks three times on 200 ms: a 200 ms window closes inside it.
+    code, c = capture(200)
+    assert code == 200, (code, c)
+    names = [r["Name"] for r in c["Report"]["Rows"]]
+    assert "DebugPauseTarget>>main:args:" in names, names
+    assert not any(r["Unknown"] for r in c["Report"]["Rows"]), c["Report"]["Rows"]
+    # A second capture starts a second VM: the page is not a one-shot.
+    code, c2 = capture(200)
+    assert code == 200, (code, c2)
+    # A window longer than the program answers at once, naming why.
+    t0 = time.monotonic()
+    code, body = capture(5000)
+    took = time.monotonic() - t0
+    assert code == 502 and "program ended before the window closed" in body, (code, body)
+    assert took < 5, f"took {took:.1f}s: it waited out the window"
     return (f"http: 200 ms window ranked {len(names)} methods incl. main:args:, a second capture "
             f"200, a 5000 ms window 502 in {took:.1f}s")
+
+
+def run_tui():
+    """rete#341: the TUI's profile tab, no terminal, against a live --profile-host custos."""
+    with serve(profile_args(), ready="/profile") as base:
+        line = go_live("TestLiveProfile", {"CUSTOS_TUI_PROFILE_URL": base})
+    return "tui: " + " ".join(line)
 
 
 def main():
@@ -78,8 +70,10 @@ def main():
         sys.exit(77)
     build()
     http = run_http()
+    tui = run_tui()
     print("test_custos_profile: PASSED (Path B, /profile over --profile-host)")
     print(http)
+    print(tui)
 
 
 if __name__ == "__main__":
