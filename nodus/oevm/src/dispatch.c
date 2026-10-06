@@ -326,6 +326,7 @@ OEVM_HOT int is_truthy(oop obj) {
 /* Declare VM interpreter entry point */
 extern oop run_interpreter(oop closure, oop receiver, int argc, oop *args);
 
+#ifndef OEVM_NO_DEBUG_HOOKS
 /* rete#313: methods replaced at runtime. An image's vtables are read-only (the
    blob is mapped PROT_READ, and on a board it is flash), so a replacement is an
    override consulted before a vtable's own bindings, at each level of the
@@ -355,16 +356,19 @@ int method_override_install(oop vt, oop selector, oop method) {
     method_overrides[method_override_count++] = (struct MethodOverride){vt, selector, method};
     return 0;
 }
+#endif /* !OEVM_NO_DEBUG_HOOKS: hot patching is a debug facility (rete#313) */
 
 /* Walk Vtable hierarchy to resolve selector lookup */
 oop lookup(oop receiver_vtable, oop selector) {
     oop current = receiver_vtable;
     while (current != NULL) {
         struct Vtable *vt = (struct Vtable *)current;
+#ifndef OEVM_NO_DEBUG_HOOKS
         if (method_override_count) {
             oop o = override_of(current, selector);
             if (o != NULL) return o;
         }
+#endif
         struct Binding *bs = vtable_bindings((oop)vt);
         for (size_t i = 0; i < vt->size; i++) {
             if (binding_symbol(&bs[i]) == selector) {
@@ -380,6 +384,7 @@ oop lookup_defining_vtable(oop receiver_vtable, oop selector, oop *out_method) {
     oop current = receiver_vtable;
     while (current != NULL && !IS_SMI(current)) {
         struct Vtable *vt = (struct Vtable *)current;
+#ifndef OEVM_NO_DEBUG_HOOKS
         if (method_override_count) {
             oop o = override_of(current, selector);
             if (o != NULL) {
@@ -387,6 +392,7 @@ oop lookup_defining_vtable(oop receiver_vtable, oop selector, oop *out_method) {
                 return current;
             }
         }
+#endif
         struct Binding *bs = vtable_bindings((oop)vt);
         for (size_t i = 0; i < vt->size; i++) {
             if (binding_symbol(&bs[i]) == selector) {

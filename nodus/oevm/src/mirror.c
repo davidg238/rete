@@ -87,9 +87,12 @@ oop mirror_dispatch(oop selector, int argc, oop *args) {
     /* mutations */
     if (strcmp(sel, "fiber:singleStep:") == 0)         return primitive_debugger_set_single_step(args[0], argc - 1, args + 1);
     if (strcmp(sel, "vtable:bind:to:") == 0)           return primitive_vtable_bind(args[0], argc - 1, args + 1);
-    /* rete#313: replace a method from a patch file; restart the stopped frame into it. */
+#ifndef OEVM_NO_DEBUG_HOOKS
+    /* rete#313: replace a method from a patch file; restart the stopped frame into it.
+       A debug facility: absent from a build without the hooks, which DNUs loudly. */
     if (strcmp(sel, "patchFrom:") == 0)                return primitive_patch_from(args[0], argc - 1, args + 1);
     if (strcmp(sel, "restart:") == 0)                  return primitive_restart_frame(args[0], argc - 1, args + 1);
+#endif
     if (strcmp(sel, "method:instructionAt:put:") == 0) return primitive_compiled_method_set_instruction_at(args[0], argc - 1, args + 1);
     /* onBreak: -- no reflectee; the closure IS args[0] (prim does (void)receiver). */
     if (strcmp(sel, "onBreak:") == 0)    return primitive_register_debugger_hook(NULL, argc, args);

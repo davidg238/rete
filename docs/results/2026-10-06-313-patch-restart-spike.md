@@ -55,8 +55,10 @@ day:
 | mcu data+bss | 67820 | 68540 (+720: the two patch tables and the restart request) | 67804 |
 | host text | 71942 (already red, #358) | 74641 | 69939 |
 
-So the spike turns mcu text red as well. It is not merged until that is decided: compile it out of the standard image
-with the other debug hooks (`OEVM_NO_DEBUG_HOOKS`; only a debugging session uses it), shrink the tables, or re-bank.
+**Decided (David, 2026-10-06): hot patching is a debug facility, not production.** It is compiled out with the
+other debugger hooks (`OEVM_NO_DEBUG_HOOKS`, which a standard Zephyr image defines), so a production image carries
+none of it, and `vtable:bind:to:` on an image vtable aborts there as before. The footprint gate's builds do not define
+that macro: it measures the hooks build, so the numbers above stand and the gate stays red until #358's re-bank.
 
 ## Next, for the board
 

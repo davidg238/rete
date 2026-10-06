@@ -501,7 +501,8 @@ oop send_super_resolve(oop start_vtable, oop receiver, oop selector, int argc, o
 oop send_super(oop start_vtable, oop receiver, oop selector, int argc, oop *args);
 oop lookup_defining_vtable(oop receiver_vtable, oop selector, oop *out_method);
 
-/* rete#313: a method replaced at runtime, over a vtable's own binding (dispatch.c). */
+/* rete#313: a method replaced at runtime, over a vtable's own binding (dispatch.c).
+   A debug facility: compiled out with the hooks (OEVM_NO_DEBUG_HOOKS). */
 #define METHOD_OVERRIDES_MAX 16
 struct MethodOverride { oop vtable, selector, method; };
 extern struct MethodOverride method_overrides[METHOD_OVERRIDES_MAX];

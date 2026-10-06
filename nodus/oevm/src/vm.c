@@ -714,7 +714,9 @@ static void stack_overflow_abort(size_t need, size_t cap) {
     abort();
 }
 
+#ifndef OEVM_NO_DEBUG_HOOKS
 static void apply_restart(struct MethodContext *ctx);   /* rete#313 */
+#endif
 
 static OEVM_HOT struct MethodContext *push_frame(oop closure, oop receiver, int argc, oop *args) {
     struct Closure *cl = (struct Closure *)closure;
@@ -1827,6 +1829,7 @@ oop primitive_debugger_set_single_step(oop receiver, int argc, oop *args) {
     return receiver;
 }
 
+#ifndef OEVM_NO_DEBUG_HOOKS   /* hot patching is a debug facility (rete#313) */
 /* rete#313: one method replaced while the program runs. The file is the method
    recompiled from edited source and re-encoded against THIS image's offsets by
    nodus/nsl/tools/patch_method.py; its words are the .oimg's own RefWords, so the
@@ -1972,6 +1975,7 @@ static void apply_restart(struct MethodContext *ctx) {
     for (int i = m->num_arguments + 1; i < m->num_registers; i++) ctx->regs[i] = NULL;
     ctx->saved_pc = cm_instructions(m);
 }
+#endif /* !OEVM_NO_DEBUG_HOOKS */
 
 oop primitive_vtable_bind(oop receiver, int argc, oop *args) {
     if (receiver == NULL || IS_SMI(receiver)) {
@@ -1987,12 +1991,17 @@ oop primitive_vtable_bind(oop receiver, int argc, oop *args) {
     struct Vtable *vt = (struct Vtable *)receiver;
 
     if (is_in_blob(vt)) {
+#ifndef OEVM_NO_DEBUG_HOOKS
         /* rete#313: an image vtable is read-only; the binding goes over it. */
         if (method_override_install(receiver, selector, method) != 0) {
             fprintf(stderr, "VM Error: bind:to: method override table full (%d)\n", METHOD_OVERRIDES_MAX);
             abort();
         }
         return receiver;
+#else
+        fprintf(stderr, "VM Error: attempt to mutate immutable image object %p\n", (void*)vt);
+        abort();
+#endif
     }
 
     /* Any binding mutation can stale a cached (vtable,selector)->method entry. */
