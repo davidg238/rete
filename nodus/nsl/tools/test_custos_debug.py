@@ -15,7 +15,7 @@ awaited by long-polling on Seq.
 
 Needs Go, and exits 77 without it, which the suite reports as a named SKIP: making the
 nsl suite hard-fail without a Go toolchain would couple the node half to the tools half
-at the gate (run_tests_oevm.run_custos_debug_gate). Exits non-zero on failure.
+at the gate (run_tests_oevm.run_custos_gate). Exits non-zero on failure.
 """
 import os, re, shutil, subprocess, sys
 

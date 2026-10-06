@@ -340,6 +340,21 @@ program runs, and the pause rule (section 5) stops it wherever it is. Use these
 endpoints for anything that waits on a stop. The suite's `custos-debug` gate drives
 this path too, over `--debug-host`.
 
+A profile has an agent path as well (rete#364). `--profile-host` starts the host VM
+afresh for every capture, without its debugger, so the console feeds the kernel's
+Profiler. The program must dispatch `sys/timer` and run for longer than the window.
+Section 1's `average.nsl` is over before any window closes, so this example uses the
+suite's ticking target:
+
+```bash
+./custos --profile-host "/tmp/oevm_img pause.oimg" --profile-map pause.oimg.map.json
+curl -s -X POST 'localhost:6971/profile/capture?ms=200' | jq '.Report.Rows[:5]'
+```
+
+A capture answers 200 with the window ranked by method name. A program that ends before
+its window closes answers 502 at once and says so; it does not wait out a timeout. The
+`custos-profile` gate drives this path.
+
 ## Where next
 
 - `nodus/nsl/docs/design/2026-06-23-ns-oevm-in-image-debugger-design.md` — how the

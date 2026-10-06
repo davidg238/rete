@@ -53,6 +53,11 @@ custos's query engine.
   that can be a host VM, and a gate run against a real VM the way an agent drives it
   (#362 for debug, #364 for profile). D5's fronts (CLI, web, TUI) come after the agent
   path. The TUI (#341) waits until the agent paths are done.
+- **D12 (David, 2026-10-06): HTTP is the only agent surface.** `custos debug` and
+  `custos profile` are demoted: they are kept and still gated, but no longer advertised.
+  A piped `custos debug` races the pause rule (#362 D4), while HTTP waits by long-polling.
+  Each new verb is an HTTP endpoint with a real-VM gate, and a CLI wrapper is added only
+  once it has earned its place. Executed in #365.
 
 ## 2. The picture
 
@@ -330,6 +335,15 @@ Answered by David, 2026-10-04:
    that the CLI's text is unchanged beside, and `/debug` long-polls it and sends CLI
    command lines; custos holds the cable from start-up. Before the TUI, the agent path
    over the same surface is made reliable (#362, David: rete is agent-first).
+   *Addendum 2026-10-06 (#364, approved by David in conversation):* the profile page
+   gets the same agent path. `--profile-host "<VM cmd>"` is the board-free target; each
+   capture starts the VM afresh (a host program ends, so a VM held from start-up would
+   be dead by the second capture), and the VM runs without its debugger, so the console
+   feeds the Profiler as a standard image's cable does. An end before
+   `mprof[window]: end` fails the capture at once with 502. The answer stays 200 plus the
+   ranked JSON: a profile is a finished result with no session `State`. The host
+   `oevm_img` is built with the profiler, as the C6's standard image is (#312 Q1). The
+   gate is `custos-profile` (`nodus/nsl/tools/test_custos_profile.py`).
 
 Then the remote stage: F1, porta's HTTP interface, and the sleepy-node demo (D9).
 

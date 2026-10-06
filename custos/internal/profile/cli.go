@@ -63,7 +63,9 @@ func Run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	}
 	var text strings.Builder
 	if *port != "" {
-		open := func(onLine func(string)) (Sender, error) { return debug.OpenPort(*port, *baud, onLine, func() {}) }
+		open := func(onLine func(string), onEnd func()) (Sender, error) {
+			return debug.OpenPort(*port, *baud, onLine, onEnd)
+		}
 		got, err := Capture(open, *ms, time.Duration(*ms)*time.Millisecond+10*time.Second)
 		if err != nil {
 			return fail(1, "%v", err)

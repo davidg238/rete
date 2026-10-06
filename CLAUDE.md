@@ -93,7 +93,8 @@ How to make decisions here. These override the instinct to be thorough.
   record grows wrong is that each field was added *beside* what was there rather than
   *instead of* it.
 - **Agent first (David, 2026-10-06).** Every custos verb gets an agent path before a human front: a
-  machine-readable answer, a host-VM target, and a real-VM gate. Record: peer design D11.
+  machine-readable answer, a host-VM target, and a real-VM gate. HTTP is the only agent surface; the CLIs are
+  kept but unadvertised. Record: peer design D11–D12.
 - **Prefer progress, spikes and data over complex decisions made early.** Limit scope and
   get something working. **Do not invent tunables before there is data to choose them
   from** — if a design needs N invented constants before it can run once, ship the
