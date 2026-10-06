@@ -138,6 +138,27 @@ class Supervisor usingMirror: mirror = () (
       self break: (self parseInt: blobTok) at: (self parseInt: offTok).
       ^ self )
 
+    (* rete#313: dbg:patch <file> replaces one method from a patch file (written by
+       tools/patch_method.py against this image); dbg:restart restarts the stopped
+       frame from its first line, into its method's replacement when it has one. The
+       stop is kept: dbg:continue then runs the new code. The VM names a refusal's
+       reason on stderr. *)
+    doPatch: line = (
+      | rs ignore path |
+      rs:: io ReadStream on: line.
+      ignore:: rs upTo: 32.
+      path:: rs upToEnd.
+      (m patchFrom: path) = 1
+        ifTrue: [ 'dbg:ok patch' println ]
+        ifFalse: [ 'dbg:error patch' println ].
+      ^ self )
+
+    doRestart = (
+      (m restart: curCtx) = 1
+        ifTrue: [ 'dbg:ok restart' println ]
+        ifFalse: [ 'dbg:error restart' println ].
+      ^ self )
+
     doClear: line = (
       | rs ignore blobTok offTok |
       rs:: io ReadStream on: line.
@@ -312,6 +333,8 @@ class Supervisor usingMirror: mirror = () (
         verb = 'dbg:pause' ifTrue: [ 'dbg:ok pause' println ] ifFalse: [
         verb = 'dbg:break' ifTrue: [ self doBreak: line ] ifFalse: [
         verb = 'dbg:clear' ifTrue: [ self doClear: line ] ifFalse: [
+        verb = 'dbg:patch' ifTrue: [ self doPatch: line ] ifFalse: [
+        verb = 'dbg:restart' ifTrue: [ self doRestart ] ifFalse: [
         (* step verbs: arm stepMode (+depth), request stepping, RETURN so the hook
            returns and single-stepping engages. *)
         verb = 'dbg:step' ifTrue: [ stepMode:: #into. m requestStep: 1. ^ self ] ifFalse: [
@@ -323,7 +346,7 @@ class Supervisor usingMirror: mirror = () (
         (* rete#312 Q1: the kernel's profile handler, the same line porta would write.
            The window opens now and runs from the next continue. *)
         verb = 'profile' ifTrue: [ self doProfile: line ] ifFalse: [
-          'dbg:error unknown' println ] ] ] ] ] ] ] ] ] ] )
+          'dbg:error unknown' println ] ] ] ] ] ] ] ] ] ] ] ] )
 
     doProfile: line = (
       (io profiler request: line) > 0

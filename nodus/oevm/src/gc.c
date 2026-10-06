@@ -862,6 +862,9 @@ void gc_collect(void) {
     extern oop Symbol_debug_;
     mark(debugger_hook);
     mark(Symbol_debug_);
+    // rete#313: a replaced method's closure is held only by the override table.
+    for (int i = 0; i < method_override_count; i++) mark(method_overrides[i].method);
+    for (int i = 0; i < method_patch_count; i++) { mark(method_patches[i].from); mark(method_patches[i].to); }
 
     // Mark lazy-allocated dispatch globals (dispatch.c) — these are allocated
     // once on first use and stored only in these globals, never on the VM stack.

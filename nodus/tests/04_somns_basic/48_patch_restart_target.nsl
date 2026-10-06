@@ -1,0 +1,28 @@
+(*
+expect:
+value 1
+value 1
+*)
+(* rete#313 — the program tools/test_patch_restart.py stops, patches and restarts.
+   48_patch_restart_target_v2.nsl is the same program with report edited; the
+   harness stops report on its println line, replaces report with v2's, restarts
+   the frame and continues, so BOTH calls print v2's line. Run alone (no debugger)
+   it prints its own. spare holds v2's string: a patch may use only what the
+   running image already holds (patch_method.py). *)
+class PatchRestartTarget usingPlatform: platform = () (
+  public main: platform2 args: args = (
+    self report.
+    self report.
+    ^ 0 )
+
+  report = (
+    | v |
+    v:: self value.
+    ('value ' , v printString) println.
+    ^ v )
+
+  value = ( ^ 1 )
+
+  spare = ( ^ 'patched ' )
+) : (
+)
