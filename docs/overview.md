@@ -40,7 +40,7 @@ In dependency order.
 3. (rete#311) A debuggable C6 build over the cable, with a "held" state the watchdog respects.
 4. (rete#312) Profiling as a command and a page, with its cost measured on a real program and stated.
 5. (rete#313) Stop, patch, restart, resume: a spike on the desktop, then on the board.
-6. (rete#314) One command surface for the loop, so the tool enforces what are conventions today.
+6. (rete#314) One surface for the loop, so the tool enforces what are conventions today. The surface is custos's HTTP; the CLI is shelved (David, 2026-10-06; peer design D12).
 7. The front door: a quickstart that is the first hour, a `LICENSE` at the repo root, one honest page (what is unstable, what is unauthenticated), and a check that no key or private hostname is in the git history.
 
 **Rule:** steps 5, 7 and 8 of the first hour are spike-gated. One that passes its spike ships in 0.1; one that does not moves to the next release, and 0.1 says so plainly.
