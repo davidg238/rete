@@ -13,7 +13,7 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
 - **Decided — do not re-litigate:** custos = nsl-specific peer, porta language-neutral (D1–D2); USB first (D4); porta and
   custos share only `protocol/` (#338); `.oimg` SHA-256 is the program identity; -O2 is the C6 default (#329); profiler in
   the std image (#312); a method is its blob offset (#323); agent first (D11); HTTP is the only agent surface, CLIs kept
-  but unadvertised (D12, #365); the CLI is shelved, HTTP is #314's contract (David, 2026-10-06); custos owns the cable and every front, the TUI included, is its HTTP client (TUI design D2, #341).
+  but unadvertised (D12, #365); the CLI is shelved, HTTP is #314's contract (David, 2026-10-06); custos owns the cable and every front, the TUI included, is its HTTP client (TUI design D2, #341); debug is complete for 0.1: agent, web, TUI, raw HTTP (D13).
 - **Not proven:** #317, the C6 polled-reader hang, #327, #355. cabot deferred until this focus completes.
 - **Weekly review, not scheduled:** #280, #282–#287, #290, #291, #298, #299, #303, #304, #306–#309, #315–#322, #324–#328,
   #331–#335, #342, #345–#361, #363, #366; #233.
