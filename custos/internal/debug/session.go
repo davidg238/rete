@@ -336,6 +336,13 @@ func (s *Session) Do(cmd string) Result {
 	case word == "h" || word == "help":
 		s.say("%s", Help)
 		return Result{}
+	case s.Gone():
+		// The CLI stops reading at the end; a page does not, so a command after
+		// it is refused rather than sent down a line nothing reads (rete#362).
+		if s.State(-1, 0).Run == "lost" {
+			return fail("%s", LostCable)
+		}
+		return fail("the program ended")
 	case strings.HasPrefix(word, "dbg:"):
 		if word == "dbg:continue" || word == "dbg:run" {
 			s.setStopped(nil)

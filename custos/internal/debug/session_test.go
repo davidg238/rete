@@ -194,3 +194,22 @@ func TestTheEndIsAnAnswer(t *testing.T) {
 		t.Errorf("run %q", run)
 	}
 }
+
+// A program that has ended (or a lost cable) takes no command: continue must not
+// answer OK and turn the state back to running (rete#362 review).
+func TestNoCommandAfterTheEnd(t *testing.T) {
+	sm, _ := loaded(t)
+	var out strings.Builder
+	s := NewSession(sm, &out)
+	s.Attach(&fakeVM{s: s})
+	s.OnLine("dbg:ready")
+	s.OnEnd()
+	for _, cmd := range []string{"continue", "dbg:continue", "step", "break 37"} {
+		if r := s.Do(cmd); r.Err != "the program ended" {
+			t.Errorf("%s after the end: %+v", cmd, r)
+		}
+	}
+	if run := s.State(-1, 0).Run; run != "ended" {
+		t.Errorf("run %q after the end", run)
+	}
+}
