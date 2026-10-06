@@ -27,7 +27,7 @@ func method(name string, file int, lines ...[2]int) map[string]any {
 	if lines == nil {
 		lines = [][2]int{}
 	}
-	return map[string]any{"name": name, "file": file, "lines": lines}
+	return map[string]any{"name": name, "file": file, "lines": lines, "vars": []any{}}
 }
 
 func synthetic() map[string]any {
@@ -232,18 +232,18 @@ func TestTheFixtureMapReadsAsItsSourceSays(t *testing.T) {
 	if sm.Entry != "Fixture" || sm.Source != "Fixture.nsl" {
 		t.Fatalf("entry %q, source %q", sm.Entry, sm.Source)
 	}
-	// `(twice value: c bump) println.` is line 20 of main:args:, from offset 7.
-	if got := mustResolve(t, sm, "Fixture.nsl:20"); got != (Breakpoint{1, 7, 20, "main:args:"}) {
-		t.Errorf("20 -> %+v", got)
+	// `(twice value: c bump) println.` is line 23 of main:args:, from offset 23.
+	if got := mustResolve(t, sm, "Fixture.nsl:23"); got != (Breakpoint{1, 23, 23, "main:args:"}) {
+		t.Errorf("23 -> %+v", got)
 	}
-	// Line 19 holds the block `[ :x | x + x ]`, its own method: refused by name.
-	refused(t, sm, "19", "Fixture_block1>>value:")
-	// Line 10 is the nested class's bump: another class, refused.
-	refused(t, sm, "10", "Fixture_Counter>>bump")
-	// Line 13 is the class side's from:, a Meta_ vtable.
-	refused(t, sm, "13", "Meta_Fixture_Counter>>from:")
-	if where, text, _ := sm.Where(1, 15); where != "at Fixture.nsl:21  main:args:" || !strings.Contains(text, "^ 0 )") {
-		t.Errorf("Where(1, 15) = %q, %q", where, text)
+	// Line 21 holds the block `[ :x | x + x + k ]`, its own method: refused by name.
+	refused(t, sm, "21", "Fixture_block1>>value:")
+	// Line 11 is the nested class's bump: another class, refused.
+	refused(t, sm, "11", "Fixture_Counter>>bump")
+	// Line 14 is the class side's from:, a Meta_ vtable.
+	refused(t, sm, "14", "Meta_Fixture_Counter>>from:")
+	if where, text, _ := sm.Where(1, 31); where != "at Fixture.nsl:24  main:args:" || !strings.Contains(text, "^ 0 )") {
+		t.Errorf("Where(1, 31) = %q, %q", where, text)
 	}
 }
 

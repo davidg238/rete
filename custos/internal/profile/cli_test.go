@@ -20,10 +20,10 @@ func run(t *testing.T, stdin string, args ...string) (int, string, string) {
 }
 
 func TestALogInARankedTableOut(t *testing.T) {
-	// 3872 is Fixture>>main:args: in the fixture map; 7 is no method's offset.
+	// 3992 is Fixture>>main:args: in the fixture map; 7 is no method's offset.
 	log := filepath.Join(t.TempDir(), "console.log")
 	os.WriteFile(log, []byte("tick 1\nmprof[window]: methods=2 activations=30 overflow=0 cap=256\n"+
-		"mprof: 7 10\nmprof: 3872 20\ntick 2\n"), 0o644)
+		"mprof: 7 10\nmprof: 3992 20\ntick 2\n"), 0o644)
 	code, out, errs := run(t, "", "-map", fixtureMap, log)
 	if code != 0 || errs != "" {
 		t.Fatalf("exit %d: %s", code, errs)
@@ -34,7 +34,7 @@ func TestALogInARankedTableOut(t *testing.T) {
 }
 
 func TestStdinWhenNoLogIsNamed(t *testing.T) {
-	code, out, _ := run(t, "mprof[window]: methods=1 activations=5 overflow=0 cap=256\nmprof: 3872 5\n", "-map", fixtureMap)
+	code, out, _ := run(t, "mprof[window]: methods=1 activations=5 overflow=0 cap=256\nmprof: 3992 5\n", "-map", fixtureMap)
 	if code != 0 || !strings.Contains(out, "100.0%  Fixture>>main:args:") {
 		t.Fatalf("exit %d\n%s", code, out)
 	}
@@ -61,8 +61,8 @@ func TestANegativeTopIsRefused(t *testing.T) {
 }
 
 func TestTopAndAllocTogether(t *testing.T) {
-	in := "mprof[window]: methods=2 activations=30 overflow=0 cap=256\nmprof: 3872 20\nmprof: 7 10\n" +
-		"mprofa[window]: noframe_arena=0/0 noframe_cheap=0/0 allocOverflow=0\nmprofa: 3872 64 2 0 0\nmprofa: 7 32 1 0 0\n"
+	in := "mprof[window]: methods=2 activations=30 overflow=0 cap=256\nmprof: 3992 20\nmprof: 7 10\n" +
+		"mprofa[window]: noframe_arena=0/0 noframe_cheap=0/0 allocOverflow=0\nmprofa: 3992 64 2 0 0\nmprofa: 7 32 1 0 0\n"
 	code, out, _ := run(t, in, "-map", fixtureMap, "-top", "1", "-alloc")
 	if code != 0 || !strings.Contains(out, "showing top 1 of 2 rows") ||
 		!strings.Contains(out, "showing top 1 of 2 allocating methods") || !strings.Contains(out, "distinct allocating methods: 2") {

@@ -154,6 +154,10 @@ class MethodCompiler:
         # boundaries, mirroring st-berry/transpiler/st_funcctx.py. Pure
         # bookkeeping — never affects emitted bytecode.
         self.source_map = []
+        # rete#323: [name, reg, from, to] for each inlined block's params and
+        # temps — their register is reused once the scope closes, so the image
+        # map names them only over [from, to) (protocol/IMAGE-ARTIFACTS.md §3).
+        self.inlined_vars = []
 
         # De-recursify deferred lift, Task 3 (analysis only — no codegen change
         # yet): the set of this frame's args/temps (or `self`) that are
@@ -369,6 +373,22 @@ class MethodCompiler:
         n = len(prologue)
         self.instructions = prologue + self.instructions
         self.source_map = [(off + n, line) for (off, line) in self.source_map]
+        self.inlined_vars = [[nm, r, a + n, b + n] for (nm, r, a, b) in self.inlined_vars]
+
+    def debug_vars(self):
+        """The frame's named variables for the image map's `vars` (rete#323,
+        protocol/IMAGE-ARTIFACTS.md §3). A captured arg/temp is named by its
+        Context slot only: after the prologue its register is stale."""
+        out = []
+        for name, reg in self.local_vars.items():
+            if name == "self":
+                continue
+            if name in self.capture_slot:
+                out.append({"name": name, "ctx": self.capture_slot[name]})
+            else:
+                out.append({"name": name, "reg": reg})
+        out += [{"name": n, "reg": r, "from": a, "to": b} for (n, r, a, b) in self.inlined_vars]
+        return out
 
     def compile_inlined_block(self, block, target_reg, param_regs=None, init_temps=False):
         # Compile a literal block's body directly into THIS frame (no closure).
@@ -385,18 +405,22 @@ class MethodCompiler:
         saved_free = self.next_free_reg
         saved_scope = self.current_scope
         self.current_scope = Scope(self, saved_scope)
+        start = len(self.instructions)
+        declared = []
         # Bind block params to caller-owned registers (e.g. a loop induction
         # variable). The caller allocated them below saved_free and keeps them
         # live across iterations; we only name them in the child scope.
         if param_regs is not None:
             for name, reg in zip(block.get("params", []), param_regs):
                 self.current_scope.declare(name, reg)
+                declared.append((name, reg))
         # Declare block temps as fresh registers. When this body is re-run in a
         # loop, init_temps=True nil-resets them each iteration to match real
         # block-activation semantics (a fresh closure gets nil temps).
         for t in block.get("temps", []):
             reg = self.alloc_reg()
             self.current_scope.declare(t, reg)
+            declared.append((t, reg))
             if init_temps:
                 self.emit_ABx(OP_LD_CONST, reg, self.add_constant(None))
         body = block["body"]
@@ -411,6 +435,8 @@ class MethodCompiler:
             else:
                 self.record_line(last)               # rete#343: a one-expression arm has a line
                 self.compile_expr(last, target_reg)  # value falls through
+        end = len(self.instructions)
+        self.inlined_vars.extend([n, r, start, end] for (n, r) in declared)
         self.current_scope = saved_scope
         self.next_free_reg = saved_free
 
@@ -2370,6 +2396,7 @@ def main():
                 blob, layout["oop_size"], entry_class,
                 [src_ns, kernel_path, supervisor_path], _ser.method_quals(_Graph),
                 compiler.source_maps, compiler.vtable_files,
+                {k: c.debug_vars() for k, c in compiler.method_compilers.items()},
                 {f"Block_{b.name}": b.name for b in compiler.block_methods}))
         print(f"OIMG written to {out_c} ({len(blob)} bytes, entry={entry_class})")
         print(f"image map written to {_map}")

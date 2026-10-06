@@ -42,7 +42,7 @@ func (f *fakeNode) open(before ...string) func(func(string)) (Sender, error) {
 
 func TestCaptureSendsTheRequestAndStopsAtTheEndLine(t *testing.T) {
 	n := &fakeNode{reply: []string{"tick 9",
-		"mprof[window]: methods=1 activations=5 overflow=0 cap=256", "mprof: 3872 5",
+		"mprof[window]: methods=1 activations=5 overflow=0 cap=256", "mprof: 3992 5",
 		"mprof[window]: end", "mprof: 7 99"}}
 	// An earlier window's rows on the console must not join this one.
 	text, err := Capture(n.open("mprof: 7 1000"), 50, time.Second)
@@ -56,7 +56,7 @@ func TestCaptureSendsTheRequestAndStopsAtTheEndLine(t *testing.T) {
 		t.Fatalf("sent %q", n.sent)
 	}
 	d := Parse(text)
-	if len(d.Rows) != 1 || d.Rows[0] != (Row{"3872", 5}) {
+	if len(d.Rows) != 1 || d.Rows[0] != (Row{"3992", 5}) {
 		t.Fatalf("rows %v from\n%s", d.Rows, text)
 	}
 }

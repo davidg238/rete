@@ -11,7 +11,7 @@ import os
 
 
 def build_image_map(blob, oop_size, entry, files, quals, source_maps, vtable_files,
-                    block_vtables):
+                    method_vars, block_vtables):
     """The map for one image, as a JSON string.
 
     blob          the .oimg bytes (the map carries their hash and size)
@@ -19,6 +19,8 @@ def build_image_map(blob, oop_size, entry, files, quals, source_maps, vtable_fil
     quals         {offset: "<Vtable>>selector"} from the serializer
     source_maps   {"<name>": [(bytecode_offset, line), ...]} from the compiler
     vtable_files  {vtable: source path} for every vtable the compiler declared
+    method_vars   {"<name>": [var, ...]} from the compiler: the frame's named
+                  registers and Context slots (§3 `vars`, rete#323)
     block_vtables {"Block_<home>_blockN": "<home>_blockN"}: a block is named without
                   the vtable's `Block_` prefix (§3)
     """
@@ -31,6 +33,7 @@ def build_image_map(blob, oop_size, entry, files, quals, source_maps, vtable_fil
             "name": name,
             "file": index[os.path.normpath(vtable_files[vt])],
             "lines": [[o, l] for (o, l) in source_maps.get(name, [])],
+            "vars": method_vars.get(name, []),
         }
     # One method per line: the fixture's diff then reads method by method.
     head = {"image": {"sha256": hashlib.sha256(blob).hexdigest(), "size": len(blob),
