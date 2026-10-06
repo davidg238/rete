@@ -115,6 +115,9 @@ def _build_pathb_once():
                 *OEVM_BACKEND,
                 "src/oimg_loader.c", "src/kernel_boot.c",
                 "oevm_image_main.c",
+                # rete#364: the profiler is in the host image VM, as it is in the C6's
+                # standard image (#312 Q1), so custos's --profile-host can profile it.
+                "-DOEVM_METHOD_PROFILE",
                 "-o", str(OEVM_BUILD_DIR / "oevm_img"),
                 *OEVM_EXTRA_CFLAGS,
                 "-lm",
@@ -515,34 +518,34 @@ def run_integration_gate(label: str, script_name: str) -> bool:
     return True
 
 
-def run_custos_debug_gate() -> str:
-    """Gate `custos debug` against a real VM (rete#339): tools/test_custos_debug.py, the
-    person's front end to the in-image debugger, by source line, pause included.
+def run_custos_gate(label: str, script_name: str) -> str:
+    """Gate a custos verb against a real VM: `custos-debug` (rete#339, #362:
+    tools/test_custos_debug.py, by source line and over /debug) and `custos-profile`
+    (rete#364: tools/test_custos_profile.py, /profile over --profile-host).
 
-    Needs Go, and answers SKIP without it (exit 77) for porta-cli's reason: the debugger's
-    front end is a custos verb, and making the nsl suite hard-fail without a Go toolchain
-    would couple the node half to the tools half at the gate. A SKIP here is still a
-    finding, not a fixture (#177). Returns "PASS", "SKIP" or "FAIL"."""
-    script = Path(__file__).resolve().parent / "test_custos_debug.py"
+    Needs Go, and answers SKIP without it (exit 77) for porta-cli's reason: these are
+    custos verbs, and making the nsl suite hard-fail without a Go toolchain would couple
+    the node half to the tools half at the gate. A SKIP here is still a finding, not a
+    fixture (#177). Returns "PASS", "SKIP" or "FAIL"."""
+    script = Path(__file__).resolve().parent / script_name
     if not script.exists():
-        print(f"{COLOR_RED}custos-debug: FAIL{COLOR_RESET} (gate script not found at {script})")
+        print(f"{COLOR_RED}{label}: FAIL{COLOR_RESET} (gate script not found at {script})")
         return "FAIL"
     try:
         proc = subprocess.run([sys.executable, str(script)], cwd=str(script.parent.parent),
                               capture_output=True, text=True, timeout=300)
     except Exception as e:
-        print(f"{COLOR_RED}custos-debug: FAIL{COLOR_RESET} (runner error: {e})")
+        print(f"{COLOR_RED}{label}: FAIL{COLOR_RESET} (runner error: {e})")
         return "FAIL"
     if proc.returncode == 77:
-        print(f"custos-debug: {COLOR_YELLOW}SKIP{COLOR_RESET} (no go toolchain — "
-              f"custos debug is the debugger's front end)")
+        print(f"{label}: {COLOR_YELLOW}SKIP{COLOR_RESET} (no go toolchain — it is a custos verb)")
         return "SKIP"
     if proc.returncode != 0:
         out = ((proc.stdout or "") + (proc.stderr or "")).strip()
-        print(f"{COLOR_RED}custos-debug: FAIL{COLOR_RESET}")
+        print(f"{COLOR_RED}{label}: FAIL{COLOR_RESET}")
         print("  " + "\n  ".join(out.splitlines()[-30:]))
         return "FAIL"
-    print(f"{COLOR_GREEN}custos-debug: PASSED{COLOR_RESET}")
+    print(f"{COLOR_GREEN}{label}: PASSED{COLOR_RESET}")
     return "PASS"
 
 
@@ -1248,7 +1251,8 @@ def main():
     dbg_int_ok = run_integration_gate("test_debugger_integration", "test_debugger_integration.py")
     # rete#339: the debugger's front end is a custos verb; its case against a real VM
     # left the integration harness so a host without Go SKIPs it by name, not the rest.
-    custos_dbg = run_custos_debug_gate()   # "PASS" | "SKIP" | "FAIL"
+    custos_dbg = run_custos_gate("custos-debug", "test_custos_debug.py")       # "PASS" | "SKIP" | "FAIL"
+    custos_prof = run_custos_gate("custos-profile", "test_custos_profile.py")  # rete#364
     subprocess.run(
         ["git", "-C", str(OEVM_DIR), "checkout",
          "src/solidified_image.c"],
@@ -1289,6 +1293,7 @@ def main():
                                    ignore=("test_supervisor_grant.py",
                                            "test_debugger_integration.py",
                                            "test_custos_debug.py",
+                                           "test_custos_profile.py",
                                            "test_deepsleep_node.py"))
     # rete#228: the protocol's own tool tests (manifestlib, the linter, the pin
     # tool) were wired to nothing — the contract's parsers gated only by hand.
@@ -1318,7 +1323,7 @@ def main():
     porta_cli = run_porta_cli_gate()
 
     suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok
-                and custos_dbg != "FAIL"
+                and custos_dbg != "FAIL" and custos_prof != "FAIL"
                 and portability != "FAIL" and boot_gc_ok
                 and footprint != "FAIL" and deepsleep_ok
                 and mprof_py != "FAIL" and console_py != "FAIL"
@@ -1349,7 +1354,7 @@ def main():
     print(f"  c-units: {_mark('PASS' if c_units_ok else 'FAIL')}  "
           f"grant: {_mark('PASS' if grant_ok else 'FAIL')}  "
           f"debugger-integration: {_mark('PASS' if dbg_int_ok else 'FAIL')}  "
-          f"custos-debug: {_mark(custos_dbg)}  "
+          f"custos-debug: {_mark(custos_dbg)}  custos-profile: {_mark(custos_prof)}  "
           f"portability-32: {_mark(portability)}  "
           f"boot-gc-asan: {_mark('PASS' if boot_gc_ok else 'FAIL')}  "
           f"deepsleep: {_mark('PASS' if deepsleep_ok else 'FAIL')}  "

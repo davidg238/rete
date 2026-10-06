@@ -23,16 +23,21 @@ var endLine = regexp.MustCompile(`mprof\[window\]: end\s*$`)
 // Capture opens the line, sends `profile <ms>` and answers every line from the
 // request through `mprof[window]: end`. Lines that arrived before the request
 // (an earlier window's rows) are not part of it. open hands its reader the
-// callback for each whole line; the board's port is opened ONCE (rete#319: an
-// open reboots the C6 -- with pyserial at least, #355) and closed on return when
-// it is an io.Closer.
-func Capture(open func(onLine func(string)) (Sender, error), ms int, timeout time.Duration) (string, error) {
+// callback for each whole line, and the callback for the line's end (a host
+// VM's exit, a cable's loss); an end before the end line fails the capture at
+// once (rete#364). The board's port is opened ONCE (rete#319: an open reboots
+// the C6 -- with pyserial at least, #355) and closed on return when it is an
+// io.Closer.
+func Capture(open func(onLine func(string), onEnd func()) (Sender, error), ms int, timeout time.Duration) (string, error) {
 	var (
 		mu      sync.Mutex
 		started bool
 		got     []string
 		done    = make(chan struct{})
+		ended   = make(chan struct{})
+		endOnce sync.Once
 	)
+	onEnd := func() { endOnce.Do(func() { close(ended) }) }
 	onLine := func(l string) {
 		mu.Lock()
 		defer mu.Unlock()
@@ -49,7 +54,7 @@ func Capture(open func(onLine func(string)) (Sender, error), ms int, timeout tim
 			close(done)
 		}
 	}
-	line, err := open(onLine)
+	line, err := open(onLine, onEnd)
 	if err != nil {
 		return "", err
 	}
@@ -64,6 +69,15 @@ func Capture(open func(onLine func(string)) (Sender, error), ms int, timeout tim
 	}
 	select {
 	case <-done:
+	case <-ended:
+		select {
+		case <-done: // the end line arrived just before the end
+		default:
+			mu.Lock()
+			n := len(got)
+			mu.Unlock()
+			return "", fmt.Errorf("the program ended before the window closed (%d lines after the request) — does it run as long as the window, and dispatch sys/timer?", n)
+		}
 	case <-time.After(timeout):
 		mu.Lock()
 		n := len(got)

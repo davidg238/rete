@@ -4,8 +4,10 @@ package custos
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -35,7 +37,7 @@ func (e echoNode) Send(line string) error {
 func profileServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	mux := http.NewServeMux()
-	mountProfile(mux, fixtureMap(t), func(onLine func(string)) (profile.Sender, error) {
+	mountProfile(mux, fixtureMap(t), func(onLine func(string), onEnd func()) (profile.Sender, error) {
 		return echoNode{onLine}, nil
 	})
 	srv := httptest.NewServer(mux)
@@ -115,5 +117,44 @@ func TestTheStylesheetIsServedWithoutAStore(t *testing.T) {
 		if r, _ := http.Get(srv.URL + p); r.StatusCode != 200 {
 			t.Fatalf("%s: %d", p, r.StatusCode)
 		}
+	}
+}
+
+// rete#364: a host VM is the profile page's board-free target, checked at
+// start-up because each capture starts it afresh.
+func TestProfileHostConfigIsChecked(t *testing.T) {
+	m := fixtureMap(t)
+	cases := map[string]Config{
+		"one of":         {ProfilePort: "/dev/ttyX", ProfileHost: "/bin/true", ProfileMap: m},
+		"--profile-map":  {ProfileHost: "/bin/true"},
+		"--profile-host": {ProfileHost: "/nonexistent/oevm_img", ProfileMap: m},
+	}
+	for want, cfg := range cases {
+		if _, err := Handler(cfg); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%+v: %v, want an error naming %q", cfg, err, want)
+		}
+	}
+	wrong := filepath.Join(t.TempDir(), "wrong.oimg")
+	os.WriteFile(wrong, []byte("not the image the map describes"), 0o644)
+	if _, err := Handler(Config{ProfileHost: "/bin/true " + wrong, ProfileMap: m}); err == nil {
+		t.Errorf("an image the map does not describe was accepted")
+	}
+}
+
+// A host program that ends before its window closes answers 502 at once.
+func TestAProfileHostThatEndsEarlyAnswers502(t *testing.T) {
+	h, err := Handler(Config{ProfileHost: "/bin/true", ProfileMap: fixtureMap(t)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(h)
+	defer srv.Close()
+	r, err := http.Post(srv.URL+"/profile/capture?ms=50", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, _ := io.ReadAll(r.Body)
+	if r.StatusCode != http.StatusBadGateway || !strings.Contains(string(b), "program ended before the window closed") {
+		t.Fatalf("%d %s", r.StatusCode, b)
 	}
 }

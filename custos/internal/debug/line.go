@@ -28,11 +28,16 @@ func (l writerLine) Send(line string) error {
 	return err
 }
 
-// StartHost runs a host VM with its debugger on (OEVM_DEBUG=1) and reads its
-// stdout and stderr as one stream.
-func StartHost(argv []string, onLine func(string), onEnd func()) (Line, error) {
+// StartHost runs a host VM and reads its stdout and stderr as one stream. With
+// debugger it runs with its debugger on (OEVM_DEBUG=1); without, the console
+// feeds the kernel's Profiler as a standard image's cable does (rete#364). The
+// Line it answers is also an io.Closer: Close stops the VM.
+func StartHost(argv []string, debugger bool, onLine func(string), onEnd func()) (Line, error) {
 	cmd := exec.Command(argv[0], argv[1:]...)
-	cmd.Env = append(os.Environ(), "OEVM_DEBUG=1")
+	cmd.Env = os.Environ()
+	if debugger {
+		cmd.Env = append(cmd.Env, "OEVM_DEBUG=1")
+	}
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
@@ -46,9 +51,20 @@ func StartHost(argv []string, onLine func(string), onEnd func()) (Line, error) {
 		return nil, err
 	}
 	w.Close() // the child holds its own copy; EOF arrives when it exits
-	go pump(func(b []byte) (int, error) { return r.Read(b) }, onLine, onEnd)
-	return writerLine{stdin}, nil
+	go pump(func(b []byte) (int, error) { return r.Read(b) }, onLine, func() {
+		cmd.Wait()
+		onEnd()
+	})
+	return hostLine{writerLine{stdin}, cmd}, nil
 }
+
+// hostLine is a host VM's stdio: Close kills the VM, and its reader then ends.
+type hostLine struct {
+	writerLine
+	cmd *exec.Cmd
+}
+
+func (l hostLine) Close() error { return l.cmd.Process.Kill() }
 
 // portLine is a cable: Close releases the port (opened exclusively) and ends
 // its reader.

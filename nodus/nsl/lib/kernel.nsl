@@ -3603,12 +3603,19 @@ class Kernel usingPlatform: platform = (
      blocks: an app that reads the cable itself may already have taken the line. *)
   class Profiler = ( | kernel space timers tok ::= nil. endCh | ) (
     public install: withCable = (
+      | first |
       (space channel: 'dbg/req') whenever: '' do: [ :v | self request: v ].
       endCh:: space channel: 'sys/profileEnd'.
       endCh whenever: '' do: [ :m | self close ].
       withCable ifTrue: [
-        (kernel consoleLine == false) ifFalse: [
-          (space channel: 'sys/console') whenever: '' do: [ :n | self drainConsole ] ] ].
+        (* rete#364: the call that arms the console also takes a line already waiting
+           (custos sends `profile <ms>` as a host VM starts); dropping it lost the
+           request. *)
+        first:: kernel consoleLine.
+        first == false ifFalse: [
+          (space channel: 'sys/console') whenever: '' do: [ :n | self drainConsole ].
+          first == nil ifFalse: [ self request: first ].
+          self drainConsole ] ].
       ^ self
     )
     (* Answers the window's ms, or 0 for a line that is not `profile <positive int>`. *)

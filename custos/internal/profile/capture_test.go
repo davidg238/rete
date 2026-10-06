@@ -13,8 +13,10 @@ import (
 // then the end line, on its own goroutine as the cable's reader would.
 type fakeNode struct {
 	onLine func(string)
+	onEnd  func()
 	sent   []string
 	reply  []string
+	ends   bool // the program exits after its reply, as a host VM does
 	closed bool
 }
 
@@ -26,13 +28,16 @@ func (f *fakeNode) Send(line string) error {
 		for _, l := range f.reply {
 			f.onLine(l)
 		}
+		if f.ends {
+			f.onEnd()
+		}
 	}()
 	return nil
 }
 
-func (f *fakeNode) open(before ...string) func(func(string)) (Sender, error) {
-	return func(onLine func(string)) (Sender, error) {
-		f.onLine = onLine
+func (f *fakeNode) open(before ...string) func(func(string), func()) (Sender, error) {
+	return func(onLine func(string), onEnd func()) (Sender, error) {
+		f.onLine, f.onEnd = onLine, onEnd
 		for _, l := range before { // what the console printed before the request
 			onLine(l)
 		}
@@ -69,8 +74,22 @@ func TestCaptureTimesOutNamingWhatItSaw(t *testing.T) {
 	}
 }
 
+// rete#364: a host VM whose program ends before the window closes fails the
+// capture at once, not after the timeout an agent would sit through.
+func TestCaptureFailsAtOnceWhenTheProgramEnds(t *testing.T) {
+	n := &fakeNode{reply: []string{"tick 1", "done"}, ends: true}
+	start := time.Now()
+	_, err := Capture(n.open(), 50, 10*time.Second)
+	if err == nil || !strings.Contains(err.Error(), "program ended before the window closed") {
+		t.Fatalf("err %v", err)
+	}
+	if time.Since(start) > 2*time.Second {
+		t.Fatalf("took %v: it waited for the timeout", time.Since(start))
+	}
+}
+
 func TestCaptureReportsAFailedOpen(t *testing.T) {
-	_, err := Capture(func(func(string)) (Sender, error) { return nil, errors.New("no such port") }, 50, time.Second)
+	_, err := Capture(func(func(string), func()) (Sender, error) { return nil, errors.New("no such port") }, 50, time.Second)
 	if err == nil || !strings.Contains(err.Error(), "no such port") {
 		t.Fatalf("err %v", err)
 	}

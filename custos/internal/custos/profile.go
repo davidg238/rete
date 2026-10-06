@@ -36,7 +36,7 @@ type capture struct {
 	Report     profile.Report
 }
 
-func mountProfile(mux *http.ServeMux, mapPath string, open func(func(string)) (profile.Sender, error)) {
+func mountProfile(mux *http.ServeMux, mapPath string, open func(onLine func(string), onEnd func()) (profile.Sender, error)) {
 	var (
 		busy sync.Mutex
 		mu   sync.Mutex

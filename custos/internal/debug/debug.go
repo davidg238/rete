@@ -83,7 +83,7 @@ func Run(args []string, stdin *os.File, stdout, stderr io.Writer) int {
 	if *port != "" {
 		line, err = OpenPort(*port, *baud, s.OnLine, s.OnLost)
 	} else {
-		line, err = StartHost(argv, s.OnLine, s.OnEnd)
+		line, err = StartHost(argv, true, s.OnLine, s.OnEnd)
 	}
 	if err != nil {
 		return fail("%v", err)

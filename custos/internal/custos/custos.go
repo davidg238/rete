@@ -22,10 +22,12 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os/exec"
 	"strings"
 	"time"
 
 	"github.com/davidg238/rete/custos/internal/debug"
+	"github.com/davidg238/rete/custos/internal/imagemap"
 	"github.com/davidg238/rete/custos/internal/profile"
 	"github.com/davidg238/rete/protocol/allowlist"
 )
@@ -42,8 +44,11 @@ type Config struct {
 	Store       string
 	Descriptors string
 	// ProfilePort is a board's console cable for the profile page, ranked
-	// through ProfileMap ("" = no profile page).
+	// through ProfileMap ("" = no profile page). ProfileHost is a host VM
+	// command line instead, started afresh for each capture: the agent's
+	// board-free path (rete#364). Exactly one of ProfilePort and ProfileHost.
 	ProfilePort string
+	ProfileHost string
 	ProfileMap  string
 	// DebugPort is a board's console cable for the debug page, held from
 	// start-up; DebugMap is its image's map and DebugSource the .nsl ("" =
@@ -71,13 +76,26 @@ func Handler(cfg Config) (http.Handler, error) {
 		w.Header().Set("Content-Type", "text/css; charset=utf-8")
 		w.Write(fleetCSS)
 	})
-	if cfg.ProfilePort != "" {
-		if cfg.ProfileMap == "" {
-			return nil, fmt.Errorf("custos: --profile-port needs --profile-map (<name>.oimg.map.json)")
+	if cfg.ProfilePort != "" || cfg.ProfileHost != "" {
+		if cfg.ProfilePort != "" && cfg.ProfileHost != "" {
+			return nil, fmt.Errorf("custos: give one of --profile-port or --profile-host")
 		}
-		mountProfile(mux, cfg.ProfileMap, func(onLine func(string)) (profile.Sender, error) {
-			return debug.OpenPort(cfg.ProfilePort, 115200, onLine, func() {})
-		})
+		if cfg.ProfileMap == "" {
+			return nil, fmt.Errorf("custos: the profile page needs --profile-map (<name>.oimg.map.json)")
+		}
+		open := func(onLine func(string), onEnd func()) (profile.Sender, error) {
+			return debug.OpenPort(cfg.ProfilePort, 115200, onLine, onEnd)
+		}
+		if cfg.ProfileHost != "" {
+			argv := strings.Fields(cfg.ProfileHost)
+			if err := checkHost(argv, cfg.ProfileMap); err != nil {
+				return nil, fmt.Errorf("custos: --profile-host: %w", err)
+			}
+			open = func(onLine func(string), onEnd func()) (profile.Sender, error) {
+				return debug.StartHost(argv, false, onLine, onEnd)
+			}
+		}
+		mountProfile(mux, cfg.ProfileMap, open)
 	}
 	if cfg.DebugPort != "" || cfg.DebugHost != "" {
 		if cfg.DebugPort != "" && cfg.DebugHost != "" {
@@ -102,14 +120,10 @@ func Handler(cfg Config) (http.Handler, error) {
 			}
 		} else {
 			argv := strings.Fields(cfg.DebugHost)
-			for _, a := range argv {
-				if strings.HasSuffix(a, ".oimg") {
-					if err := sm.CheckImage(a); err != nil {
-						return nil, fmt.Errorf("custos: --debug-host: %w", err)
-					}
-				}
+			if err := checkHost(argv, cfg.DebugMap); err != nil {
+				return nil, fmt.Errorf("custos: --debug-host: %w", err)
 			}
-			if line, err = debug.StartHost(argv, s.OnLine, s.OnEnd); err != nil {
+			if line, err = debug.StartHost(argv, true, s.OnLine, s.OnEnd); err != nil {
 				return nil, fmt.Errorf("custos: --debug-host: %w", err)
 			}
 		}
@@ -193,4 +207,27 @@ func Run(ctx context.Context, cfg Config, logf func(string, ...any)) error {
 	case err := <-errc:
 		return err
 	}
+}
+
+// checkHost refuses a host VM command line custos cannot run, or whose .oimg
+// is not the image the map describes.
+func checkHost(argv []string, mapPath string) error {
+	if len(argv) == 0 {
+		return fmt.Errorf("an empty command line")
+	}
+	if _, err := exec.LookPath(argv[0]); err != nil {
+		return err
+	}
+	m, err := imagemap.Load(mapPath)
+	if err != nil {
+		return err
+	}
+	for _, a := range argv {
+		if strings.HasSuffix(a, ".oimg") {
+			if err := m.CheckImage(a); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
