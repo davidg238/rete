@@ -17,7 +17,7 @@ Needs Go, and exits 77 without it, which the suite reports as a named SKIP: maki
 nsl suite hard-fail without a Go toolchain would couple the node half to the tools half
 at the gate (run_tests_oevm.run_custos_gate). Exits non-zero on failure.
 """
-import os, re, shutil, subprocess, sys
+import contextlib, os, re, shutil, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 NSROOT = os.path.dirname(HERE)
@@ -103,54 +103,69 @@ def run():
     return "\n".join(transcript)
 
 
-def run_http():
-    """rete#362: the agent path. custos serves the session over --debug-host; every
-    answer is read as data ({OK, Error, State}), and a stop is waited for by
-    long-polling on Seq, never by sleeping."""
-    import json, socket, time, urllib.error, urllib.request
+@contextlib.contextmanager
+def serve(args, ready="/debug/state"):
+    """custos serving on a free loopback port with args; yields its base URL once
+    `ready` answers, and stops it on the way out."""
+    import socket, time, urllib.error, urllib.request
     s = socket.socket()
     s.bind(("127.0.0.1", 0))
     port = s.getsockname()[1]
     s.close()
     base = f"http://127.0.0.1:{port}"
-    src = os.path.basename(PAUSE_APP)
     env = {**os.environ, "OEVM_TIMER_WALLCLOCK": "1"}
-    proc = subprocess.Popen([CUSTOS, "--bind", "127.0.0.1", "--port", str(port),
-                             "--debug-host", f"{VM} {OIMG}",
-                             "--debug-map", OIMG + ".map.json", "--debug-source", PAUSE_APP],
+    proc = subprocess.Popen([CUSTOS, "--bind", "127.0.0.1", "--port", str(port), *args],
                             cwd=OEVM, env=env, stdout=subprocess.DEVNULL,
                             stderr=subprocess.PIPE, text=True)
-
-    def get(path):
-        with urllib.request.urlopen(base + path, timeout=30) as r:
-            return json.load(r)
-
-    def do(cmd):
-        req = urllib.request.Request(base + "/debug/do", data=cmd.encode(), method="POST")
-        with urllib.request.urlopen(req, timeout=30) as r:
-            return json.load(r)
-
-    def until(what, ok, seq=-1):
-        # The long-poll answers on the next change, or after 25 s with nothing new.
-        deadline = time.monotonic() + 30
-        while True:
-            st = get(f"/debug/state?after={seq}")
-            if ok(st):
-                return st
-            if time.monotonic() > deadline:
-                raise AssertionError(f"never {what}; last Run={st['Run']} Stop={st['Stop']}")
-            seq = st["Seq"]
-
     try:
         # custos's listener is up when it answers; this is start-up, not a stop.
         for _ in range(100):
             if proc.poll() is not None:
                 raise AssertionError(f"custos exited: {proc.stderr.read()}")
             try:
-                get("/debug/state")
+                urllib.request.urlopen(base + ready, timeout=30).close()
                 break
             except urllib.error.URLError:
                 time.sleep(0.1)
+        yield base
+    finally:
+        proc.terminate()
+        proc.wait(timeout=10)
+
+
+def debug_args():
+    return ["--debug-host", f"{VM} {OIMG}", "--debug-map", OIMG + ".map.json",
+            "--debug-source", PAUSE_APP]
+
+
+def run_http():
+    """rete#362: the agent path. custos serves the session over --debug-host; every
+    answer is read as data ({OK, Error, State}), and a stop is waited for by
+    long-polling on Seq, never by sleeping."""
+    import json, time, urllib.request
+    src = os.path.basename(PAUSE_APP)
+
+    with serve(debug_args()) as base:
+        def get(path):
+            with urllib.request.urlopen(base + path, timeout=30) as r:
+                return json.load(r)
+
+        def do(cmd):
+            req = urllib.request.Request(base + "/debug/do", data=cmd.encode(), method="POST")
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return json.load(r)
+
+        def until(what, ok, seq=-1):
+            # The long-poll answers on the next change, or after 25 s with nothing new.
+            deadline = time.monotonic() + 30
+            while True:
+                st = get(f"/debug/state?after={seq}")
+                if ok(st):
+                    return st
+                if time.monotonic() > deadline:
+                    raise AssertionError(f"never {what}; last Run={st['Run']} Stop={st['Stop']}")
+                seq = st["Seq"]
+
         until("at boot", lambda st: st["Run"] == "boot")
         d = do("break 37")
         assert d["OK"] and d["Error"] == "", d
@@ -167,10 +182,25 @@ def run_http():
         assert do("clear 37")["OK"]
         d = do("continue")
         until("ended", lambda st: st["Run"] == "ended", d["State"]["Seq"])
-    finally:
-        proc.terminate()
-        proc.wait(timeout=10)
     return f"http: break 37 OK, break 1 refused, stopped at 37 with {names}, ended"
+
+
+def go_live(test, env):
+    """Run one of custos/internal/tui's live tests. `--- PASS` is required: a test
+    whose env did not arrive SKIPs, and a SKIP must not read as a pass."""
+    r = subprocess.run(["go", "test", "-count=1", "-run", f"^{test}$", "-v", "./internal/tui/"],
+                       cwd=os.path.join(ROOT, "custos"), env={**os.environ, **env},
+                       capture_output=True, text=True)
+    if r.returncode != 0 or f"--- PASS: {test}" not in r.stdout:
+        raise AssertionError(f"{test}:\n{r.stdout}\n{r.stderr}")
+    return [l.strip() for l in r.stdout.splitlines() if "live:" in l][-1:]
+
+
+def run_tui():
+    """rete#341: the TUI's model, no terminal, driven against a live --debug-host custos."""
+    with serve(debug_args()) as base:
+        line = go_live("TestLiveDebug", {"CUSTOS_TUI_URL": base, "CUSTOS_TUI_BREAK": "37"})
+    return "tui: " + " ".join(line)
 
 
 def main():
@@ -180,9 +210,11 @@ def main():
     build()
     transcript = run()
     http = run_http()
+    tui = run_tui()
     print("test_custos_debug: PASSED (Path B, custos debug by source line, and /debug over --debug-host)")
     print(transcript)
     print(http)
+    print(tui)
 
 
 if __name__ == "__main__":

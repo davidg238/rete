@@ -67,7 +67,7 @@ func TestProfileCaptureRanksAndIsKeptAsLast(t *testing.T) {
 		if path == "/profile/last" {
 			r, _ = http.Get(srv.URL + path)
 		}
-		var c capture
+		var c Capture
 		if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
 			t.Fatal(err)
 		}

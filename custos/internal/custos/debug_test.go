@@ -94,7 +94,7 @@ func TestTheDebugSourceMarksTheLinesWithCode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var src source
+	var src Source
 	json.NewDecoder(resp.Body).Decode(&src)
 	resp.Body.Close()
 	if src.File != "Fixture.nsl" || len(src.Lines) < 24 {
@@ -111,11 +111,11 @@ func TestTheDebugSourceMarksTheLinesWithCode(t *testing.T) {
 	}
 }
 
-func doAnswer(t *testing.T, srv *httptest.Server, cmd string) (int, done) {
+func doAnswer(t *testing.T, srv *httptest.Server, cmd string) (int, Done) {
 	t.Helper()
 	resp := do(t, srv, cmd)
 	defer resp.Body.Close()
-	var d done
+	var d Done
 	if err := json.NewDecoder(resp.Body).Decode(&d); err != nil {
 		t.Fatal(err)
 	}

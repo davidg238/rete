@@ -260,6 +260,12 @@ for its locals. The buttons and the command box send the same commands as §4 to
 when custos opened the cable shows *unknown* until you press pause; that is the rule
 from §5.
 
+The same session is also a terminal front: `./custos tui` (or `--url http://host:6971`
+for a custos on another machine) shows the source, stack, locals and transcript in tiled
+panes, and a profile tab (`tab`, then `r`). Keys: ↑↓ line, `b` break, `c` `s` `n` `f` `p`,
+`[` `]` frame, `:` any §4 command, `q` quit. It uses only the terminal's 16 colours, so it
+follows the terminal's theme (rete#341).
+
 ## 7. On a board (ESP32-C6, one USB cable)
 
 On a board the debugger is a separate image. The checks that make breakpoints possible

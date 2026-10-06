@@ -22,13 +22,15 @@ import (
 	"github.com/davidg238/rete/custos/internal/debug"
 	"github.com/davidg238/rete/custos/internal/load"
 	"github.com/davidg238/rete/custos/internal/profile"
+	"github.com/davidg238/rete/custos/internal/tui"
 	"github.com/davidg238/rete/protocol/allowlist"
 )
 
 func main() {
 	// Without a subcommand, custos serves: HTTP is the only agent surface (peer
-	// design D12, rete#365). The subcommands are for a person at a shell: load (an
-	// .oimg into a board's program region, rete#310), and sql, tables, describe over
+	// design D12, rete#365). The subcommands are for a person at a shell: tui (a
+	// terminal front over a serving custos, rete#341), load (an .oimg into a
+	// board's program region, rete#310), and sql, tables, describe over
 	// porta's store. debug and profile are kept, and gated, but not advertised: the
 	// pages at /debug and /profile and their agent paths are what the docs teach.
 	if len(os.Args) > 1 && os.Args[1] == "debug" {
@@ -36,6 +38,9 @@ func main() {
 	}
 	if len(os.Args) > 1 && os.Args[1] == "profile" {
 		os.Exit(profile.Run(os.Args[2:], os.Stdin, os.Stdout, os.Stderr))
+	}
+	if len(os.Args) > 1 && os.Args[1] == "tui" {
+		os.Exit(tui.Run(os.Args[2:], os.Stderr))
 	}
 	if len(os.Args) > 1 && os.Args[1] == "load" {
 		os.Exit(load.Run(os.Args[2:], os.Stdout, os.Stderr))
