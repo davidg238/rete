@@ -9,7 +9,7 @@ is that a HELD VM is not a WEDGED one (observer_core.h §3.2, `held`).
 
 Each tick calls `countTo:` — a method with a loop and a local, the same shape as the
 host gate's 46_debug_target.nsl — so there is something to break in, step through and
-inspect. The line it prints carries the tick number and the sum so a hold is visible as
+inspect; and `scaled:`, whose kept block captures locals (rete#323: `bt`, `locals`). The line it prints carries the tick number and the sum so a hold is visible as
 a gap in the timestamps and a step is visible as the same tick finishing late.
 
 Needs the hooks build: OEVM_DEBUG_HOOKS=1 (zephyr/CMakeLists.txt) — the production
@@ -44,7 +44,8 @@ class DebugProbeC6 packageUsing: manifest = (
     | sum |
     ticks:: ticks + 1.
     sum:: self countTo: ticks.
-    ('dbg-probe tick ' , ticks printString , ' sum ' , sum printString) println.
+    ('dbg-probe tick ' , ticks printString , ' sum ' , sum printString
+      , ' scaled ' , (self scaled: ticks) printString) println.
     ^ self )
 
   (* The breakpoint target: a loop and a local, as in 46_debug_target.nsl. *)
@@ -53,6 +54,16 @@ class DebugProbeC6 packageUsing: manifest = (
     sum:: 0.
     1 to: n do: [ :i | sum:: sum + i ].
     ^ sum )
+
+  (* rete#323: a block the compiler KEEPS, capturing an argument (k) and a temp (acc),
+     so a stop inside it has a backtrace through a block and named captured locals. *)
+  scaled: k = (
+    | acc add |
+    acc:: 0.
+    add:: [ :x | acc:: acc + (x * k) ].
+    add value: 2.
+    add value: 3.
+    ^ acc )
 
 ) : (
 )

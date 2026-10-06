@@ -4,15 +4,15 @@
 // lines in, source lines out (rete#311, rewritten from dbg.py in rete#339).
 //
 // The VM's debugger speaks `dbg:*` lines (nodus/nsl/lib/supervisor.nsl) and
-// knows methods only by a registry id and a bytecode offset: `dbg:break 2 9`,
-// `dbg:paused break 2 9`. This package sits between a person and that line and
-// does the two translations, using the image map the compiler writes beside
-// every image (`<name>.oimg.map.json`, protocol/IMAGE-ARTIFACTS.md) and the
-// registry the VM lists (`dbg:methods`):
+// knows a method only by its blob offset -- the image map's key -- and a pc:
+// `dbg:break 3952 2`, `dbg:paused break 3952 2` (rete#323). This package sits
+// between a person and that line and does the two translations, using the image
+// map the compiler writes beside every image (`<name>.oimg.map.json`,
+// protocol/IMAGE-ARTIFACTS.md):
 //
-//	break 26              ->  dbg:break 2 2        (line 26 is in countTo:, offset 2)
-//	dbg:paused break 2 2  ->  stopped (break) at 46_debug_target.nsl:26  countTo:
-//	                            26 |     1 to: n do: [ :i | i println. sum:: sum + i ].
+//	break 26                 ->  dbg:break 3952 2   (line 26 is in countTo:, pc 2)
+//	dbg:paused break 3952 2  ->  stopped (break) at 46_debug_target.nsl:26  DebugTargetTest>>countTo:
+//	                               26 |     1 to: n do: [ :i | i println. sum:: sum + i ].
 //
 // The same session drives a board over its console cable (-port, one handle, a
 // collector stopped first) or a host VM it starts itself (everything after --):
@@ -20,14 +20,13 @@
 //	custos debug -map /tmp/46_debug_target.oimg.map.json -- /tmp/oevm_img /tmp/46_debug_target.oimg
 //	custos debug -map DebugProbeC6.oimg.map.json -port /dev/serial/by-id/usb-Silicon_Labs_CP2102N_...
 //
-// What a line can be: the registry is the ENTRY class's methods (then the
-// kernel's Object), so a breakpoint can go on a line inside a method of the
-// entry class -- not in another class of the file, not in a block the compiler
-// kept as a block, and not in the kernel. A line with no code of its own (a
-// comment, a blank) inside a method moves forward to the next line that has
-// some, and says so; outside every method (a header, `| locals |`) it is refused
-// with the nearest lines that have code. docs/tutorials/04-debugger.md is the
-// page for a person.
+// What a line can be: any line with code in the app's file -- a method of any
+// of its classes, or a block the compiler kept as a block, which is its own
+// method with its own offset. A line with no code of its own (a comment, a
+// blank) inside a method moves forward to the next line that has some, and says
+// so; outside every method (a header, `| locals |`) it is refused with the
+// nearest lines that have code. docs/tutorials/04-debugger.md is the page for a
+// person.
 package debug
 
 import (

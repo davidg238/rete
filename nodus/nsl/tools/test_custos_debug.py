@@ -63,16 +63,30 @@ def run():
         which = child.expect([r"-- stopped \(pause\)[^\r\n]*", r"tick 2"])
         assert which == 0, "custos debug's pause did not stop the running program before tick 2"
         transcript.append(child.after.strip())
+        # rete#323: every frame named, the kernel's too, none unknown.
+        child.sendline("bt")
+        see(r"#0 [^\r\n]*")
+        assert "wrong build" not in child.after and "no blob" not in child.after, child.after
+        see(r"#1 [^\r\n]*")
+        assert "wrong build" not in child.after and "no blob" not in child.after, child.after
         child.sendline("break 37")
-        see(r"-- break %s:37  countTo:" % re.escape(src))
+        see(r"-- break %s:37  DebugPauseTarget>>countTo:" % re.escape(src))
         see(r"dbg:ok break")
         child.sendline("continue")
-        see(r"-- stopped \(break\) at %s:37  countTo:" % re.escape(src))
+        see(r"-- stopped \(break\) at %s:37  DebugPauseTarget>>countTo:" % re.escape(src))
         see(r"37 \|     1 to: n do:")
+        child.sendline("locals")
+        see(r"-- frame 0 at %s:37  DebugPauseTarget>>countTo:" % re.escape(src))
+        see(r"  n = \d+")
         child.sendline("clear 37")
         see(r"dbg:ok clear")
+        # rete#323: a block is its own method with its own blob offset, so a line in
+        # it is a breakpoint like any other.
         child.sendline("break 26")
-        see(r"-- line 26 is in DebugPauseTarget_block2>>value:")
+        see(r"-- break %s:26  DebugPauseTarget_block2>>value:" % re.escape(src))
+        see(r"dbg:ok break")
+        child.sendline("clear 26")
+        see(r"dbg:ok clear")
         child.sendline("continue")
         see(r"done")
         see(r"-- the program ended")

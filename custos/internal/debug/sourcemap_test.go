@@ -2,8 +2,8 @@
 
 package debug
 
-// The two translations without a VM: file:line -> (id, offset) through the
-// image map and the registry, and a `dbg:paused` (id, offset) -> file:line.
+// The two translations without a VM: file:line -> (blob offset, pc) through the
+// image map, and a `dbg:paused` (blob offset, pc) -> file:line (rete#323).
 // The synthetic map is 47_debug_pause_target's shape, as the compiler writes
 // it; the checked-in fixture is the reader's test protocol/IMAGE-ARTIFACTS.md §4
 // asks of custos. The end-to-end run against a real VM is the nsl suite's
@@ -27,7 +27,7 @@ func method(name string, file int, lines ...[2]int) map[string]any {
 	if lines == nil {
 		lines = [][2]int{}
 	}
-	return map[string]any{"name": name, "file": file, "lines": lines}
+	return map[string]any{"name": name, "file": file, "lines": lines, "vars": []any{}}
 }
 
 func synthetic() map[string]any {
@@ -46,9 +46,6 @@ func synthetic() map[string]any {
 		},
 	}
 }
-
-var registry = []string{"dbg:ready", "1 #main:args: 77", "2 #countTo: 77", "3 #init_platform: 77",
-	"4 #printString 80", "dbg:ok methods"}
 
 func writeMap(t *testing.T, dir string, doc any) string {
 	t.Helper()
@@ -78,7 +75,6 @@ func loaded(t *testing.T) (*SourceMap, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sm.LoadRegistry(registry)
 	return sm, dir
 }
 
@@ -101,17 +97,17 @@ func refused(t *testing.T, sm *SourceMap, spec, want string) {
 
 func TestALineResolvesToItsMethodAndFirstOffset(t *testing.T) {
 	sm, _ := loaded(t)
-	if got := mustResolve(t, sm, "37"); got != (Breakpoint{2, 2, 37, "countTo:"}) {
+	if got := mustResolve(t, sm, "37"); got != (Breakpoint{200, 2, 37, "T>>countTo:"}) {
 		t.Errorf("37 -> %+v", got)
 	}
-	if got := mustResolve(t, sm, "t.nsl:20"); got != (Breakpoint{1, 5, 20, "main:args:"}) {
+	if got := mustResolve(t, sm, "t.nsl:20"); got != (Breakpoint{100, 5, 20, "T>>main:args:"}) {
 		t.Errorf("t.nsl:20 -> %+v", got)
 	}
 }
 
 func TestALineWithoutCodeInsideAMethodMovesForward(t *testing.T) {
 	sm, _ := loaded(t)
-	if got := mustResolve(t, sm, "30"); got != (Breakpoint{1, 51, 32, "main:args:"}) {
+	if got := mustResolve(t, sm, "30"); got != (Breakpoint{100, 51, 32, "T>>main:args:"}) {
 		t.Errorf("30 -> %+v", got)
 	}
 }
@@ -122,9 +118,12 @@ func TestALineOutsideEveryMethodNamesItsNeighbours(t *testing.T) {
 }
 
 // 26 lies inside main:args:'s span (19-32); taking the span would break at line 28.
-func TestALineInABlockIsRefusedNotMappedToItsHome(t *testing.T) {
+// The block is its own method with its own offset (rete#323).
+func TestALineInABlockResolvesToTheBlockNotItsHome(t *testing.T) {
 	sm, _ := loaded(t)
-	refused(t, sm, "26", "T_block2>>value:")
+	if got := mustResolve(t, sm, "26"); got != (Breakpoint{300, 5, 26, "T_block2>>value:"}) {
+		t.Errorf("26 -> %+v", got)
+	}
 }
 
 func TestAnotherFileIsRefused(t *testing.T) {
@@ -132,36 +131,58 @@ func TestAnotherFileIsRefused(t *testing.T) {
 	refused(t, sm, "other.nsl:37", "built from t.nsl")
 }
 
-func TestTheRegistryKeepsOnlyTheEntryGroupForLines(t *testing.T) {
-	sm, _ := loaded(t)
-	if len(sm.ids) != 3 || sm.ids["main:args:"] != 1 || sm.ids["countTo:"] != 2 || sm.ids["init_platform:"] != 3 {
-		t.Errorf("ids = %v", sm.ids)
-	}
-	if sm.sels[4] != (selector{"printString", false}) {
-		t.Errorf("sels[4] = %v", sm.sels[4])
-	}
-}
-
 func TestAStopReadsBackAsTheLineOfTheLastStatementStarted(t *testing.T) {
 	sm, _ := loaded(t)
-	if where, text, _ := sm.Where(2, 2); where != "at t.nsl:37  countTo:" || text != "  37 | line 37" {
-		t.Errorf("Where(2, 2) = %q, %q", where, text)
+	if where, text, line := sm.Where(200, 2); where != "at t.nsl:37  T>>countTo:" || text != "  37 | line 37" || line != 37 {
+		t.Errorf("Where(200, 2) = %q, %q, %d", where, text, line)
 	}
-	if where, _, _ := sm.Where(2, 9); where != "at t.nsl:37  countTo:" {
-		t.Errorf("Where(2, 9) = %q", where)
+	if where, _, _ := sm.Where(200, 9); where != "at t.nsl:37  T>>countTo:" {
+		t.Errorf("Where(200, 9) = %q", where)
 	}
-	if where, _, _ := sm.Where(1, 0); where != "at t.nsl:19  main:args:" { // before the first entry
-		t.Errorf("Where(1, 0) = %q", where)
+	if where, _, _ := sm.Where(100, 0); where != "at t.nsl:19  T>>main:args:" { // before the first entry
+		t.Errorf("Where(100, 0) = %q", where)
+	}
+	if where, _, _ := sm.Where(300, 6); where != "at t.nsl:26  T_block2>>value:" { // a block
+		t.Errorf("Where(300, 6) = %q", where)
 	}
 }
 
-func TestAStopOutsideTheAppSaysSo(t *testing.T) {
+// A kernel frame is named by its own file, and answers no app line: its 27 must
+// not read as t.nsl:27.
+func TestWhereKernel(t *testing.T) {
 	sm, _ := loaded(t)
-	if where, _, _ := sm.Where(-1, 3); !strings.HasPrefix(where, "outside the registry") {
-		t.Errorf("Where(-1, 3) = %q", where)
+	if where, text, line := sm.Where(400, 0); where != "at kernel.nsl:27  Kernel>>pumpEvents" || text != "" || line != 0 {
+		t.Errorf("Where(400, 0) = %q, %q, %d", where, text, line)
 	}
-	if where, _, _ := sm.Where(4, 0); where != "in the kernel's printString, offset 0" {
-		t.Errorf("Where(4, 0) = %q", where)
+	if where, _, line := sm.Where(260, 0); where != "in t.nsl's T>>init_platform:, pc 0" || line != 0 { // no lines
+		t.Errorf("Where(260, 0) = %q, %d", where, line)
+	}
+}
+
+func TestWhereUnknownOffset(t *testing.T) {
+	sm, _ := loaded(t)
+	if where, _, line := sm.Where(999, 0); !strings.Contains(where, "wrong build?") || line != 0 {
+		t.Errorf("Where(999, 0) = %q, %d", where, line)
+	}
+}
+
+func TestWhereNoBlob(t *testing.T) {
+	sm, _ := loaded(t)
+	if where, _, line := sm.Where(-1, 3); !strings.Contains(where, "no blob") || line != 0 {
+		t.Errorf("Where(-1, 3) = %q, %d", where, line)
+	}
+}
+
+func TestMethodsListsTheAppFileByOffset(t *testing.T) {
+	sm, _ := loaded(t)
+	got := strings.Join(sm.Methods(), "\n")
+	for _, want := range []string{"   100  T>>main:args:", "   200  T>>countTo:", "   300  T_block2>>value:"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("Methods() lacks %q:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "pumpEvents") {
+		t.Errorf("Methods() lists a kernel method:\n%s", got)
 	}
 }
 
@@ -221,7 +242,6 @@ func fixtureMap(t *testing.T) *SourceMap {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sm.LoadRegistry([]string{"1 #main:args: 50", "2 #Counter 50", "3 #init_platform: 50", "4 #printString 60"})
 	return sm
 }
 
@@ -232,18 +252,23 @@ func TestTheFixtureMapReadsAsItsSourceSays(t *testing.T) {
 	if sm.Entry != "Fixture" || sm.Source != "Fixture.nsl" {
 		t.Fatalf("entry %q, source %q", sm.Entry, sm.Source)
 	}
-	// `(twice value: c bump) println.` is line 20 of main:args:, from offset 7.
-	if got := mustResolve(t, sm, "Fixture.nsl:20"); got != (Breakpoint{1, 7, 20, "main:args:"}) {
-		t.Errorf("20 -> %+v", got)
+	// `(twice value: c bump) println.` is line 23 of main:args:, from offset 23.
+	if got := mustResolve(t, sm, "Fixture.nsl:23"); got != (Breakpoint{3992, 23, 23, "Fixture>>main:args:"}) {
+		t.Errorf("23 -> %+v", got)
 	}
-	// Line 19 holds the block `[ :x | x + x ]`, its own method: refused by name.
-	refused(t, sm, "19", "Fixture_block1>>value:")
-	// Line 10 is the nested class's bump: another class, refused.
-	refused(t, sm, "10", "Fixture_Counter>>bump")
-	// Line 13 is the class side's from:, a Meta_ vtable.
-	refused(t, sm, "13", "Meta_Fixture_Counter>>from:")
-	if where, text, _ := sm.Where(1, 15); where != "at Fixture.nsl:21  main:args:" || !strings.Contains(text, "^ 0 )") {
-		t.Errorf("Where(1, 15) = %q, %q", where, text)
+	// Line 21 holds the block `[ :x | x + x + k ]`, its own method at its own offset.
+	if got := mustResolve(t, sm, "21"); got != (Breakpoint{26616, 1, 21, "Fixture_block1>>value:"}) {
+		t.Errorf("21 -> %+v", got)
+	}
+	// Line 11 is the nested class's bump; line 14 the class side's from:, a Meta_ vtable.
+	if got := mustResolve(t, sm, "11"); got != (Breakpoint{4088, 0, 11, "Fixture_Counter>>bump"}) {
+		t.Errorf("11 -> %+v", got)
+	}
+	if got := mustResolve(t, sm, "14"); got != (Breakpoint{4152, 0, 14, "Meta_Fixture_Counter>>from:"}) {
+		t.Errorf("14 -> %+v", got)
+	}
+	if where, text, _ := sm.Where(3992, 31); where != "at Fixture.nsl:24  Fixture>>main:args:" || !strings.Contains(text, "^ 0 )") {
+		t.Errorf("Where(3992, 31) = %q, %q", where, text)
 	}
 }
 

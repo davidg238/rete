@@ -2,7 +2,7 @@
 
 // Package imagemap reads the image map the compiler writes beside an image
 // (protocol/IMAGE-ARTIFACTS.md §3): every method's blob offset, its name, its
-// file and its lines. custos debug and custos profile both read it through here.
+// file, its lines and its named variables. custos debug and custos profile both read it through here.
 package imagemap
 
 import (
@@ -35,14 +35,34 @@ type docMethod struct {
 	Name  *string  `json:"name"`
 	File  *int     `json:"file"`
 	Lines [][2]int `json:"lines"`
+	Vars  []docVar `json:"vars"`
+}
+
+type docVar struct {
+	Name *string `json:"name"`
+	Reg  *int    `json:"reg"`
+	Ctx  *int    `json:"ctx"`
+	From *int    `json:"from"`
+	To   *int    `json:"to"`
 }
 
 // Method is one method of the image: "<Vtable>>selector", an index into Files,
-// and its [bytecode offset, line] pairs (empty for a method with no source).
+// its [bytecode offset, line] pairs (empty for a method with no source) and its
+// named variables.
 type Method struct {
 	Name  string
 	File  int
 	Lines [][2]int
+	Vars  []Var
+}
+
+// Var is one named variable of a method's frame (§3 `vars`, rete#323): in
+// register Reg (Ctx -1), or in slot Ctx of the frame's Context (Reg -1). It is
+// live for offsets From up to To, exclusive; From 0 and To -1 is the whole method.
+type Var struct {
+	Name     string
+	Reg, Ctx int
+	From, To int
 }
 
 // Map is an image map. Methods is keyed by the blob byte offset, the same key
@@ -82,7 +102,7 @@ func Load(path string) (*Map, error) {
 		missing = append(missing, "methods")
 	}
 	for k, m := range d.Methods {
-		if m.Name == nil || m.File == nil || m.Lines == nil {
+		if m.Name == nil || m.File == nil || m.Lines == nil || m.Vars == nil {
 			missing = append(missing, "methods["+k+"]")
 		}
 	}
@@ -104,9 +124,38 @@ func Load(path string) (*Map, error) {
 		if err != nil || off < 0 || strconv.Itoa(off) != k {
 			return nil, fmt.Errorf("%s is not an image map (method key %q is not a blob offset); rebuild it (rete#337)", path, k)
 		}
-		m.Methods[off] = Method{Name: *dm.Name, File: *dm.File, Lines: dm.Lines}
+		vars := make([]Var, len(dm.Vars))
+		for i, dv := range dm.Vars {
+			v, ok := dv.check()
+			if !ok {
+				return nil, fmt.Errorf("%s is not an image map (%s var %d is not one §3 shape); rebuild it (rete#323)", path, *dm.Name, i)
+			}
+			vars[i] = v
+		}
+		m.Methods[off] = Method{Name: *dm.Name, File: *dm.File, Lines: dm.Lines, Vars: vars}
 	}
 	return m, nil
+}
+
+// check answers the Var for one of §3's three shapes — reg, reg with from/to,
+// ctx — and false for anything else.
+func (d docVar) check() (Var, bool) {
+	if d.Name == nil || (d.Reg == nil) == (d.Ctx == nil) || (d.From == nil) != (d.To == nil) {
+		return Var{}, false
+	}
+	v := Var{Name: *d.Name, Reg: -1, Ctx: -1, From: 0, To: -1}
+	if d.Ctx != nil {
+		if d.From != nil {
+			return Var{}, false
+		}
+		v.Ctx = *d.Ctx
+		return v, true
+	}
+	v.Reg = *d.Reg
+	if d.From != nil {
+		v.From, v.To = *d.From, *d.To
+	}
+	return v, true
 }
 
 // Offsets answers the method offsets in ascending order.

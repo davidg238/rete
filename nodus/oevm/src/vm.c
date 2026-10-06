@@ -368,7 +368,7 @@ static int g_bp_count = 0;
    Same mechanic as span.c, different key: a fixed array of counters, zero
    allocation on the hot path. The key is the CompiledMethod POINTER, which is
    already this system's method identity -- it is what the breakpoint table above
-   keys on (bp_method_key) and what `mirror methodOf:` answers -- and it is stable
+   keys on (oimg_blob_base + the offset custos sends) -- and it is stable
    because the GC is non-moving mark-sweep. A count field inside CompiledMethod
    would be cheaper still and is NOT available: solidified methods live in
    .rodata, as the bp comment above already records.
@@ -1963,23 +1963,24 @@ oop primitive_compiled_method_instruction_at(oop receiver, int argc, oop *args) 
     return TAG_SMI((long)(uint32_t)cm_instructions(cm)[idx]);
 }
 
-/* The bp table keys on the CompiledMethod oop (== closure_entry of the running
-   closure, == primitive_method_of of a context). The registry hands callers the
-   vtable BINDING method, which is the BytecodeClosure, so normalize that to its
-   CompiledMethod here; a bare CompiledMethod (e.g. the C test) passes through. */
-static oop bp_method_key(oop method) {
-    if (method != NULL && !IS_SMI(method) && obj_vtable(method) == BytecodeClosureVtable) {
-        return (oop)closure_entry((struct Closure *)method);
-    }
-    return method;
+/* rete#323: the debugger names a method by its BLOB OFFSET -- the image map's key
+   and the profiler's (`mprof:`). The bp table still keys on the CompiledMethod
+   pointer, oimg_blob_base + off. A CompiledMethod carries no vtable, so an in-blob
+   offset cannot be checked to BE a method; one that is not arms an entry that never
+   fires, and custos only sends offsets read from the map. No blob (Path A), out of
+   range, or misaligned: nil, and nothing is armed. */
+static oop bp_key_at(oop off) {
+    if (!IS_SMI(off) || oimg_blob_base == NULL) return NULL;
+    intptr_t n = UNTAG_SMI(off);
+    if (n < 0 || n % (intptr_t)sizeof(oop) != 0 || oimg_blob_base + n >= oimg_blob_end) return NULL;
+    return (oop)(oimg_blob_base + n);
 }
 
 #ifdef OEVM_METHOD_PROFILE
 /* #164 readback, confined to the mirror exactly like the breakpoint prims below.
    The argument is whatever nsl already holds: an element of `mirror methodsOf:`
-   (a Bytecode/Primitive Closure), a `mirror methodOf: ctx` result, or a bare
-   CompiledMethod -- all normalize to the pointer mprof_bump keyed on, which is
-   the same normalization bp_method_key does for breakpoints.
+   (a Bytecode/Primitive Closure) or a bare
+   CompiledMethod -- all normalize to the pointer mprof_bump keyed on.
 
    NO PRIM ID. mirror_dispatch branches on the selector NAME, so this adds nothing
    to prim_ids.h and shifts nothing -- the append-only registry is untouched. */
@@ -2033,50 +2034,63 @@ oop primitive_calls_reset(oop receiver, int argc, oop *args) {
 #endif /* OEVM_METHOD_PROFILE */
 
 /* Confined C-assisted breakpoint prims (Task 7 -- reachable ONLY via mirror_dispatch).
-   `method` is a CompiledMethod or BytecodeClosure oop (normalized to the former);
-   `off` is a SMI instruction index. */
+   Each takes (SMI blob offset, SMI pc) and answers the offset, or nil when
+   bp_key_at refuses it (rete#323). */
 oop primitive_break_add(oop receiver, int argc, oop *args) {
     (void)receiver;
     if (argc < 2 || !IS_SMI(args[1])) {
-        fprintf(stderr, "VM Error: breakAt:offset: requires (method, SMI offset)\n");
+        fprintf(stderr, "VM Error: breakAt:offset: requires (SMI blob offset, SMI pc)\n");
         abort();
     }
-    {
-        oop key = bp_method_key(args[0]);
-        bp_add(key, (long)UNTAG_SMI(args[1]));
-        return key;   /* normalized CompiledMethod oop -- == methodOf: a context */
-    }
+    oop key = bp_key_at(args[0]);
+    if (key == NULL) return NULL;
+    bp_add(key, (long)UNTAG_SMI(args[1]));
+    return args[0];
 }
 
 oop primitive_break_remove(oop receiver, int argc, oop *args) {
     (void)receiver;
     if (argc < 2 || !IS_SMI(args[1])) {
-        fprintf(stderr, "VM Error: unbreakAt:offset: requires (method, SMI offset)\n");
+        fprintf(stderr, "VM Error: unbreakAt:offset: requires (SMI blob offset, SMI pc)\n");
         abort();
     }
-    bp_remove(bp_method_key(args[0]), (long)UNTAG_SMI(args[1]));
+    oop key = bp_key_at(args[0]);
+    if (key == NULL) return NULL;
+    bp_remove(key, (long)UNTAG_SMI(args[1]));
     return args[0];
 }
 
-/* The CompiledMethod oop of a running MethodContext -- the same oop the bp table
-   keys on (== closure_entry of the context's closure). Also normalizes a
-   Bytecode/Primitive Closure receiver directly to its CompiledMethod, so callers
-   can map a registry method (a vtable-binding BytecodeClosure, == methodsOf:) to
-   the same CompiledMethod a context yields -- the reverse-map the step path needs
-   to resolve a methodId. (Bare CompiledMethod / nil pass through.) */
-oop primitive_method_of(oop receiver, int argc, oop *args) {
+/* The blob offset of a running context's CompiledMethod (rete#323); nil with no
+   blob, or for a method outside it. */
+oop primitive_blob_offset_of(oop receiver, int argc, oop *args) {
+    (void)argc; (void)args;
+    if (receiver == NULL || IS_SMI(receiver) || oimg_blob_base == NULL) return NULL;
+    struct MethodContext *ctx = (struct MethodContext *)receiver;
+    const uint8_t *cm = (const uint8_t *)closure_entry((struct Closure *)ctx->closure);
+    if (cm < oimg_blob_base || cm >= oimg_blob_end) return NULL;
+    return TAG_SMI((intptr_t)(cm - oimg_blob_base));
+}
+
+/* The captured locals of a frame (rete#323): the slots of the heap Context in its
+   register num_arguments + 1 (the compiler's ctx_reg; OP_LD_CTX reads the same
+   register) as a fresh Array. nil when that register holds no Context -- a frame
+   with no captures, or one whose OP_MK_CONTEXT prologue has not run (frame regs
+   are nil-seeded). */
+oop primitive_lexical_slots_of(oop receiver, int argc, oop *args) {
     (void)argc; (void)args;
     if (receiver == NULL || IS_SMI(receiver)) return NULL;
-    /* A vtable-binding closure (== methodsOf:) normalizes directly to its
-       CompiledMethod, so the step path can reverse-map a registry method to the
-       same oop a context yields. Any other receiver keeps the original
-       MethodContext handling (read its closure's CompiledMethod). */
-    oop vt = obj_vtable(receiver);
-    if (vt == BytecodeClosureVtable || vt == PrimitiveClosureVtable) {
-        return (oop)closure_entry((struct Closure *)receiver);
-    }
-    struct MethodContext *ctx = (struct MethodContext *)receiver;
-    return (oop)closure_entry((struct Closure *)ctx->closure);
+    struct MethodContext *mc = (struct MethodContext *)receiver;
+    struct CompiledMethod *cm = (struct CompiledMethod *)closure_entry((struct Closure *)mc->closure);
+    int r = cm->num_arguments + 1;
+    if (r >= cm->num_registers) return NULL;
+    oop c = mc->regs[r];
+    if (c == NULL || IS_SMI(c) || obj_vtable(c) != ContextVtable) return NULL;
+    uint32_t n = ((struct Context *)c)->num_slots;
+    oop arr = indexable_new((intptr_t)n);   /* slots[0] = size, [1..n] the elements */
+    c = mc->regs[r];                        /* re-read after the allocation */
+    struct ObjectInstance *inst = (struct ObjectInstance *)arr;
+    for (uint32_t i = 0; i < n; i++) inst->slots[i + 1] = ((struct Context *)c)->slots[i];
+    return arr;
 }
 
 oop primitive_vtable_selectors(oop receiver, int argc, oop *args) {

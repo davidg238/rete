@@ -62,26 +62,29 @@ firmware prints `oevm: program sha256 <hex> (<N> ms)` and reports the same hash 
 ## 3. `.oimg.map.json`
 
 ```json
-// 46_debug_target.nsl, C6 layout, master 2026-10-04 (three of its 770 methods)
+// 46_debug_target.nsl, C6 layout, 2026-10-05 (three of its 787 methods)
 {
-  "image":   { "sha256": "cad00b56…d235c2", "size": 157136, "oop_size": 4 },
+  "image":   { "sha256": "422b6570…2b428e", "size": 160776, "oop_size": 4 },
   "entry":   "DebugTargetTest",
   "files":   ["46_debug_target.nsl", "kernel.nsl", "supervisor.nsl"],
   "methods": {
-    "3832":  { "name": "DebugTargetTest>>countTo:", "file": 0,
-               "lines": [[0, 25], [2, 26], [9, 26], [19, 27]] },
-    "7416":  { "name": "Kernel>>Bytes", "file": 1, "lines": [] },
-    "10008": { "name": "Kernel_OrderedCollection>>reversed", "file": 1,
-               "lines": [[0, 176], [6, 177], [10, 178], [31, 179]] }
+    "3952":  { "name": "DebugTargetTest>>countTo:", "file": 0,
+               "lines": [[0, 25], [2, 26], [9, 26], [12, 26], [19, 27]],
+               "vars":  [{"name": "n", "reg": 1}, {"name": "sum", "reg": 3},
+                         {"name": "i", "reg": 5, "from": 9, "to": 16}] },
+    "7600":  { "name": "Kernel>>Bytes", "file": 1, "lines": [], "vars": [] },
+    "10224": { "name": "Kernel_OrderedCollection>>reversed", "file": 1,
+               "lines": [[0, 176], [6, 177], [10, 178], [17, 178], [31, 179]],
+               "vars":  [{"name": "r", "reg": 2}, {"name": "n", "reg": 3},
+                         {"name": "i", "reg": 6, "from": 17, "to": 28}] }
   }
 }
 ```
 
 - `image`: the image this map belongs to. `sha256` and `size` must match the `.oimg`
   exactly, or custos refuses to use the map. `oop_size` is the target word width.
-- `entry`: the class the image runs. The debugger's registry (`dbg:methods`) lists
-  this class's methods first, so custos needs `entry` to turn `<file>:<line>` into a
-  method id (rete#311).
+- `entry`: the class the image runs, so the map names its program. The debugger no
+  longer uses it: it names a method by its blob offset (rete#323).
 - `files`: the base names of the source files that went into the image. The app's
   file is always first, then `kernel.nsl`, then `supervisor.nsl`.
 - `methods`: one entry per CompiledMethod in the image. Blocks are included, because a
@@ -100,6 +103,22 @@ firmware prints `oevm: program sha256 <hex> (<N> ms)` and reports the same hash 
     initializer or a nested-class accessor. Every method that has source has lines,
     including a block whose whole body is one expression (#343). A block's first pair
     is at offset 1: offset 0 is its `OP_MK_CONTEXT` prologue, which has no line.
+  - `vars`: the frame's named variables (rete#323), from the compiler's own register
+    allocation (register 0 `self`, arguments `1..n`, the Context at `n+1`, temps
+    after). The list is empty for a method with none. Each entry has a `name` and
+    exactly one home:
+    - `reg` alone: an argument or method temp, in that register for the whole method.
+    - `reg` with `from` and `to`: a param or temp of an **inlined** block, whose
+      register is reused once its scope closes. It is live for offsets `from` to
+      `to`, `to` exclusive, counted like `lines` (instruction indices).
+    - `ctx`: a captured argument or temp, in that slot of the frame's Context. Its
+      register is stale after the prologue copies it, so only the slot is named. An
+      inlined block's temps are never captured, so a `ctx` entry has no range.
+
+    `self` is not listed. When two live entries share a name (an inlined scope
+    shadowing an outer one), the one listed later wins. A real block is its own method
+    with its own `vars`; a name it reads from an enclosing frame is listed there, not
+    in the block's entry.
 
 custos refuses a map that is missing any field listed here. Any extra field is an
 error in the writer, not a way to extend the format (see the root `CLAUDE.md`: the
@@ -110,7 +129,8 @@ format changes by editing this document and rebuilding both sides).
 `protocol/fixtures/image/` holds:
 
 - `Fixture.nsl`: a small program with an entry class, a nested class, a class-side
-  method and a block the compiler keeps as a block;
+  method, a block the compiler keeps as a block, a captured local and an inlined
+  loop variable;
 - `Fixture.oimg` and `Fixture.oimg.map.json`, compiled for the C6 layout
   (`oop_size` 4), because a board is the target custos actually loads. Regenerate both
   together, from the repo root:

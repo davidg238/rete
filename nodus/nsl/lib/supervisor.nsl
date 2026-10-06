@@ -62,57 +62,11 @@ class Supervisor usingMirror: mirror = () (
 
   (* The debugger proper (Plan 2). Holds the granted mirror (m) and the Kernel
      instance (io) for stdin/stdout AND collection allocation — never bare-name
-     reachable from a top-level class. Builds a flat methodId registry by walking
-     the entry's vtable delegate chain, answers `dbg:methods`, and runs the
-     interactive command loop. Tasks 7-8 extend the loop and the registry use. *)
-  public class Debugger usingMirror: m channel: io = ( | entry ids sels meths tags bpIds bpMethods bpOffs stepMode stepDepth curCtx ready | ) (
+     reachable from a top-level class. Names every method by its BLOB OFFSET, the
+     image map's key (rete#323): custos turns a line into an offset and a stop back
+     into a line, so the node keeps no registry. Runs the interactive command loop. *)
+  public class Debugger usingMirror: m channel: io = ( | entry bpBlobs bpOffs stepMode stepDepth curCtx ready | ) (
     public registerEntry: anEntry = ( entry:: anEntry. ^ self )
-
-    (* Lazily build parallel registry collections (ids/sels/meths/tags). Walk the
-       delegate chain from the entry's vtable; per vtable read the raw selector /
-       method indexables (1-based basicAt:) and assign a fresh, monotonic id to
-       each binding. `tag` is the vtable identityHash so a method can be traced
-       back to its defining vtable. Guarded so it runs at most once. *)
-    buildRegistry = (
-      | vt |
-      ids == nil ifTrue: [
-        ids:: io OrderedCollection new. sels:: io OrderedCollection new.
-        meths:: io OrderedCollection new. tags:: io OrderedCollection new.
-        vt:: m vtableOf: entry.
-        [ vt == nil ] whileFalse: [
-          | s mm tag |
-          s:: m selectorsOf: vt. mm:: m methodsOf: vt. tag:: vt identityHash.
-          1 to: s basicSize do: [ :i |
-            ids add: ids size + 1.
-            sels add: (s basicAt: i).
-            meths add: (mm basicAt: i).
-            tags add: tag ].
-          vt:: m delegateOf: vt ] ].
-      ^ self )
-
-    (* One line per registered method: `<id> <selector> <tag>`, then the ok
-       sentinel. Built lazily on first use. *)
-    public listMethods = (
-      self buildRegistry.
-      1 to: ids size do: [ :i |
-        | ws |
-        ws:: io WriteStream new.
-        ws print: (ids at: i).
-        ws nextPutAll: ' '.
-        ws nextPutAll: (sels at: i) printString.
-        ws nextPutAll: ' '.
-        ws print: (tags at: i).
-        ws contents println ].
-      'dbg:ok methods' println.
-      ^ self )
-
-    (* Look up the method oop for a given id (linear scan of the parallel
-       collections), or nil if unknown. Used by Tasks 7-8. *)
-    public methodAt: id = (
-      self buildRegistry.
-      1 to: ids size do: [ :i |
-        (ids at: i) = id ifTrue: [ ^ meths at: i ] ].
-      ^ nil )
 
     (* Parse a non-negative integer from a String of ASCII digits (no asInteger
        in this dialect): n:: n*10 + (byte - 48). Empty string answers 0. *)
@@ -126,114 +80,104 @@ class Supervisor usingMirror: mirror = () (
         i:: i + 1 ].
       ^ n )
 
-    (* Lazily allocate the parallel breakpoint record (id, method, offset). *)
+    (* rete#323: a method is its blob offset (the image map's key). The C table
+       keys on oimg_blob_base + off; this record is what onBreakContext: matches. *)
     ensureBp = (
-      bpIds == nil ifTrue: [
-        bpIds:: io OrderedCollection new.
-        bpMethods:: io OrderedCollection new.
+      bpBlobs == nil ifTrue: [
+        bpBlobs:: io OrderedCollection new.
         bpOffs:: io OrderedCollection new ].
       ^ self )
 
-    (* Set a breakpoint at (methodId, offset). Resolves the method oop from the
-       registry; nil -> error. Records the (id, method, off) triple and arms the
-       C-side bp table via the confined mirror prim. *)
-    public break: id at: off = (
-      | mm key |
+    (* Set a breakpoint at (blob offset, pc). The prim answers nil with no blob (a
+       Path A image) or an offset outside it: nothing is armed. *)
+    public break: blob at: off = (
       self ensureBp.
-      mm:: self methodAt: id.
-      mm == nil ifTrue: [ 'dbg:error no-method' println. ^ self ].
-      (* breakAt:offset: answers the NORMALIZED CompiledMethod oop, i.e. the same
-         oop `mirror methodOf: ctx` yields at a hit, so onBreakContext: can match. *)
-      key:: m breakAt: mm offset: off.
-      bpIds add: id.
-      bpMethods add: key.
+      (m breakAt: blob offset: off) == nil ifTrue: [ 'dbg:error no-blob' println. ^ self ].
+      bpBlobs add: blob.
       bpOffs add: off.
       'dbg:ok break' println.
       ^ self )
 
-    (* Clear a breakpoint at (methodId, offset): disarm the C-side entry and drop
-       the record. Unknown -> error. *)
-    public clear: id at: off = (
+    (* Clear a breakpoint at (blob offset, pc): disarm the C-side entry and drop the
+       record. Unknown -> error. *)
+    public clear: blob at: off = (
       | i hit n |
       self ensureBp.
       hit:: 0 - 1.
       i:: 1.
-      [ hit < 0 and: [ i <= bpIds size ] ] whileTrue: [
-        ((bpIds at: i) = id and: [ (bpOffs at: i) = off ]) ifTrue: [ hit:: i ].
+      [ hit < 0 and: [ i <= bpBlobs size ] ] whileTrue: [
+        ((bpBlobs at: i) = blob and: [ (bpOffs at: i) = off ]) ifTrue: [ hit:: i ].
         i:: i + 1 ].
       hit < 0 ifTrue: [ 'dbg:error no-bp' println. ^ self ].
-      m unbreakAt: (bpMethods at: hit) offset: off.
+      m unbreakAt: blob offset: off.
       (* compact: shift each later entry down one, then drop the last slot. *)
-      n:: bpIds size.
+      n:: bpBlobs size.
       hit to: n - 1 do: [ :j |
-        bpIds at: j put: (bpIds at: j + 1).
-        bpMethods at: j put: (bpMethods at: j + 1).
+        bpBlobs at: j put: (bpBlobs at: j + 1).
         bpOffs at: j put: (bpOffs at: j + 1) ].
-      bpIds removeLast.
-      bpMethods removeLast.
+      bpBlobs removeLast.
       bpOffs removeLast.
       'dbg:ok clear' println.
       ^ self )
 
-    (* Tokenize `dbg:break <id> <off>` / `dbg:clear <id> <off>` and act. *)
+    (* The blob offset of a frame's method, or -1 with no blob (a Path A image). *)
+    blobOf: ctx = (
+      | b |
+      b:: m blobOffsetOf: ctx.
+      ^ b == nil ifTrue: [ 0 - 1 ] ifFalse: [ b ] )
+
+    (* Tokenize `dbg:break <blob> <off>` / `dbg:clear <blob> <off>` and act. *)
     doBreak: line = (
-      | rs ignore idTok offTok |
+      | rs ignore blobTok offTok |
       rs:: io ReadStream on: line.
       ignore:: rs upTo: 32.
-      idTok:: rs upTo: 32.
+      blobTok:: rs upTo: 32.
       offTok:: rs upTo: 32.
-      idTok == nil ifTrue: [ 'dbg:error usage' println. ^ self ].
+      blobTok == nil ifTrue: [ 'dbg:error usage' println. ^ self ].
       offTok == nil ifTrue: [ 'dbg:error usage' println. ^ self ].
-      self break: (self parseInt: idTok) at: (self parseInt: offTok).
+      self break: (self parseInt: blobTok) at: (self parseInt: offTok).
       ^ self )
 
     doClear: line = (
-      | rs ignore idTok offTok |
+      | rs ignore blobTok offTok |
       rs:: io ReadStream on: line.
       ignore:: rs upTo: 32.
-      idTok:: rs upTo: 32.
+      blobTok:: rs upTo: 32.
       offTok:: rs upTo: 32.
-      idTok == nil ifTrue: [ 'dbg:error usage' println. ^ self ].
+      blobTok == nil ifTrue: [ 'dbg:error usage' println. ^ self ].
       offTok == nil ifTrue: [ 'dbg:error usage' println. ^ self ].
-      self clear: (self parseInt: idTok) at: (self parseInt: offTok).
+      self clear: (self parseInt: blobTok) at: (self parseInt: offTok).
       ^ self )
 
-    (* Fired by the registered onBreak: hook when the C bp table matches. Reverse-
-       map (method, offset) -> the registry methodId, announce the pause, then run
+    (* Fired by the registered onBreak: hook when the C bp table matches, while
+       stepping, and at a pause. Announces the stop by (blob offset, pc), then runs
        the paused command loop until continue/EOF. *)
     public onBreakContext: ctx = (
-      | off meth id i ws depth mid pause |
+      | off blob hit i ws depth pause |
       (* The SAME hook fires for a C bp-table match, after every instruction while
          stepping (stepMode non-nil), and -- rete#311 -- when a line is waiting on the
          cable (platform_debug_pending) or the Supervisor armed the boot stop. curCtx
          is set in every path so dbg:inspect / depth-recompute use the live frame. *)
       curCtx:: ctx.
       off:: m offsetOf: ctx.
+      blob:: self blobOf: ctx.
       stepMode == nil ifTrue: [
-        (* BREAKPOINT path: reverse-map (method, offset) -> bp id. No record means
-           no breakpoint fired: this is a PAUSE -- the boot stop the first time
+        (* BREAKPOINT path: is (blob, off) a recorded breakpoint? No record means no
+           breakpoint fired: this is a PAUSE -- the boot stop the first time
            (`dbg:ready`, the line every driver waits for), a line in while running
            after that. Announce, then the one command loop. *)
-        meth:: m methodOf: ctx.
-        id:: 0 - 1.
+        hit:: 0.
         self ensureBp.
         i:: 1.
-        [ id < 0 and: [ i <= bpIds size ] ] whileTrue: [
-          ((bpMethods at: i) == meth and: [ (bpOffs at: i) = off ]) ifTrue: [ id:: bpIds at: i ].
+        [ hit = 0 and: [ i <= bpBlobs size ] ] whileTrue: [
+          ((bpBlobs at: i) = blob and: [ (bpOffs at: i) = off ]) ifTrue: [ hit:: 1 ].
           i:: i + 1 ].
         ws:: io WriteStream new.
-        id < 0
-          ifTrue: [
-            ready == nil
-              ifTrue: [ ready:: true. ws nextPutAll: 'dbg:ready' ]
-              ifFalse: [
-                ws nextPutAll: 'dbg:paused pause '.
-                ws print: (self methodIdOfCtx: ctx).
-                ws nextPutAll: ' '.
-                ws print: off ] ]
+        (hit = 0 and: [ ready == nil ])
+          ifTrue: [ ready:: true. ws nextPutAll: 'dbg:ready' ]
           ifFalse: [
-            ws nextPutAll: 'dbg:paused break '.
-            ws print: id.
+            ws nextPutAll: (hit = 0 ifTrue: [ 'dbg:paused pause ' ] ifFalse: [ 'dbg:paused break ' ]).
+            ws print: blob.
             ws nextPutAll: ' '.
             ws print: off ].
         ws contents println.
@@ -246,10 +190,9 @@ class Supervisor usingMirror: mirror = () (
       stepMode = #over ifTrue: [ pause:: depth <= stepDepth ].
       stepMode = #out  ifTrue: [ pause:: depth < (stepDepth + 1) ].
       pause ifFalse: [ m requestStep: 1. ^ self ].
-      mid:: self methodIdOfCtx: ctx.
       ws:: io WriteStream new.
       ws nextPutAll: 'dbg:paused step '.
-      ws print: mid.
+      ws print: blob.
       ws nextPutAll: ' '.
       ws print: off.
       ws contents println.
@@ -265,26 +208,29 @@ class Supervisor usingMirror: mirror = () (
       [ s == nil ] whileFalse: [ d:: d + 1. s:: m senderOf: s ].
       ^ d )
 
-    (* Reverse-map a live context to its registry methodId (-1 if not registered).
-       The registry stores vtable-binding closures (methodsOf:), whereas
-       `methodOf: ctx` yields the underlying CompiledMethod, so NORMALIZE each
-       registry entry through `methodOf:` too before comparing -- otherwise a
-       BytecodeClosure never == a CompiledMethod and every lookup answers -1. *)
-    public methodIdOfCtx: ctx = (
-      | meth i |
-      self buildRegistry.
-      meth:: m methodOf: ctx.
-      i:: 1.
-      [ i <= meths size ] whileTrue: [
-        (m methodOf: (meths at: i)) == meth ifTrue: [ ^ ids at: i ].
-        i:: i + 1 ].
-      ^ 0 - 1 )
+    (* dbg:backtrace -> ONE line, innermost first: `dbg:frames <blob>@<pc> ...`.
+       custos maps each pair through the image map (rete#323). *)
+    doBacktrace = (
+      | ws s |
+      ws:: io WriteStream new.
+      ws nextPutAll: 'dbg:frames'.
+      s:: curCtx.
+      [ s == nil ] whileFalse: [
+        ws nextPutAll: ' '.
+        ws print: (self blobOf: s).
+        ws nextPutAll: '@'.
+        ws print: (m offsetOf: s).
+        s:: m senderOf: s ].
+      ws contents println.
+      ^ self )
 
     (* dbg:inspect [frameIndex] -> ONE flat line:
-       `dbg:stack off=<n> r0=<printString> r1=<...>` bounded by numRegisters.
-       Walks `frameIndex` senderOf: hops from curCtx (nil -> dbg:error no-frame). *)
+       `dbg:stack off=<n> r0=<printString> r1=<...> c0=<...> c1=<...>`: the registers
+       bounded by numRegisters, then the slots of the frame's Context when it has one
+       (its captured locals, rete#323). Walks `frameIndex` senderOf: hops from curCtx
+       (nil -> dbg:error no-frame). *)
     doInspect: line = (
-      | rs ignore idxTok idx s cm off n i ws |
+      | rs ignore idxTok idx s cm off n i ws slots |
       rs:: io ReadStream on: line.
       ignore:: rs upTo: 32.
       idxTok:: rs upTo: 32.
@@ -307,6 +253,14 @@ class Supervisor usingMirror: mirror = () (
         ws nextPutAll: '='.
         ws nextPutAll: (self describe: (cm registerAt: i)).
         i:: i + 1 ].
+      slots:: m lexicalSlotsOf: s.
+      slots == nil ifFalse: [
+        (* A raw indexable, like selectorsOf:'s: basicSize / basicAt:, 1-based. *)
+        1 to: slots basicSize do: [ :k |
+          ws nextPutAll: ' c'.
+          ws print: k - 1.
+          ws nextPutAll: '='.
+          ws nextPutAll: (self describe: (slots basicAt: k)) ] ].
       ws contents println.
       ^ self )
 
@@ -356,7 +310,6 @@ class Supervisor usingMirror: mirror = () (
         (line == nil or: [ verb:: self verbOf: line. verb = 'dbg:continue' or: [ verb = 'dbg:run' ] ])
           ifTrue: [ stepMode:: nil. m requestStep: 0. ^ self ].
         verb = 'dbg:pause' ifTrue: [ 'dbg:ok pause' println ] ifFalse: [
-        verb = 'dbg:methods' ifTrue: [ self listMethods ] ifFalse: [
         verb = 'dbg:break' ifTrue: [ self doBreak: line ] ifFalse: [
         verb = 'dbg:clear' ifTrue: [ self doClear: line ] ifFalse: [
         (* step verbs: arm stepMode (+depth), request stepping, RETURN so the hook
@@ -366,6 +319,7 @@ class Supervisor usingMirror: mirror = () (
         verb = 'dbg:out' ifTrue: [ stepMode:: #out. stepDepth:: (self depthOf: curCtx) - 1. m requestStep: 1. ^ self ] ifFalse: [
         (* dbg:inspect is a QUERY: emit the dump, keep looping. *)
         verb = 'dbg:inspect' ifTrue: [ self doInspect: line ] ifFalse: [
+        verb = 'dbg:backtrace' ifTrue: [ self doBacktrace ] ifFalse: [
         (* rete#312 Q1: the kernel's profile handler, the same line porta would write.
            The window opens now and runs from the next continue. *)
         verb = 'profile' ifTrue: [ self doProfile: line ] ifFalse: [

@@ -316,6 +316,10 @@ Answered by David, 2026-10-04:
    observation window chosen before there is data. It also refuses a port another
    process holds, because a collector splitting esptool's ROM handshake parks the chip.
 6. **The web profile page, then the web debug page** (#323), then the TUI.
+   *Addendum 2026-10-05 (David):* #323 (the stack and named locals) is built **before**
+   #340's page, in the node verb and the CLI, so the page renders real data. Its design,
+   `docs/design/2026-10-05-debugger-stack-and-names-design.md`, makes the blob offset the
+   only method identity (the registry is deleted) and drops Path A debugging.
 
 Then the remote stage: F1, porta's HTTP interface, and the sleepy-node demo (D9).
 
