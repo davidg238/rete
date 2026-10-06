@@ -3,7 +3,7 @@
 package debug
 
 import (
-	"strings"
+	"fmt"
 	"testing"
 
 	"github.com/davidg238/rete/custos/internal/imagemap"
@@ -53,12 +53,10 @@ func TestLiveVarsShadowing(t *testing.T) {
 
 // A stop before the prologue: the Context is not built, so the line has no c<k>.
 func TestLocalsBeforePrologue(t *testing.T) {
-	sm, _ := loaded(t)
-	var out strings.Builder
-	s := NewSession(sm, &out)
-	s.showLocals(map[int]string{0: "an Object", 1: "5"}, map[int]string{},
+	got := localVars(map[int]string{0: "an Object", 1: "5"}, map[int]string{},
 		[]imagemap.Var{{Name: "n", Reg: 1, Ctx: -1, To: -1}, {Name: "k", Reg: -1, Ctx: 0, To: -1}})
-	if got := out.String(); got != "  self = an Object\n  n = 5\n  k = (not yet set)\n" {
+	want := []Var{{"self", "an Object"}, {"n", "5"}, {"k", "(not yet set)"}}
+	if fmt.Sprint(got) != fmt.Sprint(want) {
 		t.Fatalf("got %q", got)
 	}
 }

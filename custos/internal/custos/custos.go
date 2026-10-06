@@ -17,6 +17,7 @@ package custos
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -44,14 +45,21 @@ type Config struct {
 	// through ProfileMap ("" = no profile page).
 	ProfilePort string
 	ProfileMap  string
+	// DebugPort is a board's console cable for the debug page, held from
+	// start-up; DebugMap is its image's map and DebugSource the .nsl ("" =
+	// beside the map). "" = no debug page.
+	DebugPort   string
+	DebugMap    string
+	DebugSource string
 }
 
 // Handler builds the custos mux: / lands on the fleet page when a store is
 // configured and on the dev status page otherwise, /dev always on the status
 // page, /dev/ serves the docs tree read-only (markdown as text/plain so a
 // browser displays the documents of record), /health + /manifest proxy to
-// porta, /fleet + /q/{name} serve the fleet (fleet.go), and /profile a board's
-// method profile (profile.go).
+// porta, /fleet + /q/{name} serve the fleet (fleet.go), /profile a board's
+// method profile (profile.go), and /debug a debugging session on a board
+// (debug.go).
 func Handler(cfg Config) (http.Handler, error) {
 	mux := http.NewServeMux()
 	// Every page's stylesheet, whichever pages are mounted.
@@ -66,6 +74,26 @@ func Handler(cfg Config) (http.Handler, error) {
 		mountProfile(mux, cfg.ProfileMap, func(onLine func(string)) (profile.Sender, error) {
 			return debug.OpenPort(cfg.ProfilePort, 115200, onLine)
 		})
+	}
+	if cfg.DebugPort != "" {
+		if cfg.DebugMap == "" {
+			return nil, fmt.Errorf("custos: --debug-port needs --debug-map (<name>.oimg.map.json)")
+		}
+		if cfg.DebugPort == cfg.ProfilePort {
+			return nil, fmt.Errorf("custos: --debug-port and --profile-port are one cable, and a cable has one holder")
+		}
+		sm, err := debug.LoadSourceMap(cfg.DebugMap, cfg.DebugSource)
+		if err != nil {
+			return nil, err
+		}
+		s := debug.NewSession(sm, io.Discard)
+		s.AutoFetch = true
+		line, err := debug.OpenPort(cfg.DebugPort, 115200, s.OnLine)
+		if err != nil {
+			return nil, fmt.Errorf("custos: --debug-port: %w", err)
+		}
+		s.Attach(line)
+		mountDebug(mux, s, sm)
 	}
 	if cfg.Store != "" {
 		g, err := openFleet(cfg.Store, cfg.Descriptors)

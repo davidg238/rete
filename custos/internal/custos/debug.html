@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>rete debug</title>
+<link rel="stylesheet" href="/fleet.css">
+<style>
+  .grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 1rem; align-items: start; }
+  @media (max-width: 52rem) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82rem; }
+  .src { position: relative; max-height: 70vh; overflow: auto; border: 1px solid var(--rule); border-radius: 8px; padding: .3rem 0; }
+  .ln { display: grid; grid-template-columns: 1.4rem 2.6rem 1fr; white-space: pre; line-height: 1.45; }
+  .ln.code { cursor: pointer; }
+  .ln.code:hover { background: var(--card); }
+  .ln .no { color: var(--muted); text-align: right; padding-right: .7rem; user-select: none; }
+  .ln .bp { text-align: center; color: var(--bad); user-select: none; }
+  .ln.code .bp::before { content: "·"; color: var(--muted); }
+  .ln.brk .bp::before { content: "●"; color: var(--bad); }
+  .ln.here { background: var(--warn-bg); }
+  .ln.here .no { color: var(--warn); font-weight: 600; }
+  .bar { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin: 0 0 .6rem; }
+  button { font: inherit; font-size: .85rem; padding: .25rem .7rem; border-radius: 6px; border: 1px solid var(--rule);
+    background: var(--card); color: var(--fg); cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button:disabled { opacity: .5; cursor: default; }
+  .frames div { padding: .3rem .6rem; cursor: pointer; border-top: 1px solid var(--rule); }
+  .frames div:first-child { border-top: 0; }
+  .frames div.sel { background: var(--card); font-weight: 600; }
+  .frames div:hover { background: var(--card); }
+  .side h2:first-child { margin-top: 0; }
+  pre.log { margin: 0; padding: .5rem .7rem; max-height: 16rem; overflow: auto; border: 1px solid var(--rule);
+    border-radius: 8px; white-space: pre-wrap; }
+  form.cmd { display: flex; gap: .4rem; margin-top: .5rem; }
+  form.cmd input { flex: 1; font: inherit; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85rem;
+    padding: .3rem .5rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); color: var(--fg); }
+</style>
+</head>
+<body>
+<header>
+  <h1>rete debug</h1>
+  <nav><a href="/profile">profile</a><a href="/fleet">fleet</a><a href="/dev">dev status</a><a href="/debug/state">state.json</a></nav>
+</header>
+<div class="stamp"><span class="pill v-unknown" id="run">…</span> <span id="where"></span></div>
+<div class="banner" id="error"></div>
+
+<div class="bar">
+  <button data-cmd="continue">continue</button>
+  <button data-cmd="step">step</button>
+  <button data-cmd="next">next</button>
+  <button data-cmd="finish">finish</button>
+  <button data-cmd="pause">pause</button>
+  <span class="note" id="hint"></span>
+</div>
+
+<div class="grid">
+  <div>
+    <div class="note" id="file" style="margin-top:0"></div>
+    <div class="src mono" id="src"><div class="empty">loading…</div></div>
+    <p class="note">Click a line with a dot to set a breakpoint there; click a red one to clear it.</p>
+  </div>
+  <div class="side">
+    <h2>Stack</h2>
+    <div class="wrap frames mono" id="frames"><div class="empty">not stopped</div></div>
+    <h2 id="localsHead">Locals</h2>
+    <div class="wrap"><table class="mono"><tbody id="locals"><tr><td class="empty">not stopped</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<h2>Session</h2>
+<pre class="log mono" id="log"></pre>
+<form class="cmd" id="cmd"><input id="line" placeholder="any custos debug command: break 26, locals 1, bt, help…" autocomplete="off"><button>send</button></form>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const RUN = {unknown: 'v-unknown', boot: 'v-stalled', running: 'v-live', stopped: 'v-stalled', ended: 'v-silent'};
+let src = null, last = null, here = 0, busy = false;
+
+function fail(msg) { $('error').textContent = msg; $('error').style.display = msg ? 'block' : 'none'; }
+
+function renderSource() {
+  $('file').textContent = src.File;
+  $('src').innerHTML = src.Lines.map((l, i) =>
+    `<div class="ln${l.Code ? ' code' : ''}" data-n="${i + 1}"><span class="bp"></span><span class="no">${i + 1}</span><span>${esc(l.Text) || ' '}</span></div>`
+  ).join('') || '<div class="empty">the source could not be read</div>';
+}
+
+function render(st) {
+  last = st;
+  $('run').className = 'pill ' + (RUN[st.Run] || 'v-unknown');
+  $('run').textContent = st.Run;
+  const s = st.Stop;
+  $('where').textContent = s ? `(${s.Reason}) ${s.File}:${s.Line}  ${s.Method}` : '';
+  $('hint').textContent = st.Run === 'unknown' ? 'state unknown: the board may already be waiting — press pause' : '';
+  if (src) {
+    const breaks = new Set((st.Breaks || []).map(b => +b.slice(b.lastIndexOf(':') + 1)));
+    const at = s && s.File === src.File ? s.Line : 0;
+    for (const el of $('src').children) {
+      const n = +el.dataset.n;
+      el.classList.toggle('brk', breaks.has(n));
+      el.classList.toggle('here', n === at);
+    }
+    const line = at && at !== here && $('src').querySelector(`[data-n="${at}"]`);
+    if (line) $('src').scrollTop = line.offsetTop - $('src').clientHeight / 2; // the pane, never the window
+    here = at;
+  }
+  const sel = st.Locals ? st.Locals.Frame : -1;
+  $('frames').innerHTML = (st.Frames || []).map((f, i) =>
+    `<div data-frame="${i}"${i === sel ? ' class="sel"' : ''}>#${i} ${esc(f.File)}:${f.Line}  ${esc(f.Method)}</div>`
+  ).join('') || `<div class="empty">${st.Run === 'stopped' ? 'fetching…' : 'not stopped'}</div>`;
+  $('localsHead').textContent = st.Locals ? `Locals — frame ${st.Locals.Frame}` : 'Locals';
+  $('locals').innerHTML = st.Locals
+    ? st.Locals.Vars.map(v => `<tr><td>${esc(v.Name)}</td><td class="val">${esc(v.Value)}</td></tr>`).join('')
+    : `<tr><td class="empty">${st.Run === 'stopped' ? 'fetching…' : 'not stopped'}</td></tr>`;
+  const log = $('log'), atEnd = log.scrollTop + log.clientHeight >= log.scrollHeight - 4;
+  log.textContent = (st.Transcript || []).join('\n');
+  if (atEnd) log.scrollTop = log.scrollHeight;
+}
+
+async function send(cmd) {
+  if (busy) return;
+  busy = true;
+  document.querySelectorAll('button').forEach(b => b.disabled = true);
+  try {
+    const resp = await fetch('/debug/do', {method: 'POST', body: cmd});
+    if (!resp.ok) fail(await resp.text());
+    else { fail(''); render(await resp.json()); }
+  } catch (err) { fail(String(err)); }
+  busy = false;
+  document.querySelectorAll('button').forEach(b => b.disabled = false);
+}
+
+async function poll() {
+  let seq = -1;
+  for (;;) {
+    try {
+      const resp = await fetch('/debug/state?after=' + seq);
+      if (!resp.ok) throw new Error(await resp.text());
+      const st = await resp.json();
+      if (!last || st.Seq >= last.Seq) render(st);
+      seq = st.Seq;
+    } catch (err) {
+      fail('lost custos: ' + err);
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+}
+
+document.querySelectorAll('[data-cmd]').forEach(b => b.onclick = () => send(b.dataset.cmd));
+$('src').onclick = e => {
+  const el = e.target.closest('.ln.code');
+  if (el) send((el.classList.contains('brk') ? 'clear ' : 'break ') + el.dataset.n);
+};
+$('frames').onclick = e => {
+  const el = e.target.closest('[data-frame]');
+  if (el) send('locals ' + el.dataset.frame);
+};
+$('cmd').onsubmit = e => {
+  e.preventDefault();
+  const v = $('line').value.trim();
+  if (v) { send(v); $('line').value = ''; }
+};
+fetch('/debug/source').then(r => r.json()).then(s => { src = s; renderSource(); if (last) render(last); })
+  .catch(err => fail(String(err)));
+poll();
+</script>
+</body>
+</html>

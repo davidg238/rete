@@ -57,6 +57,9 @@ func main() {
 	flag.StringVar(&cfg.Descriptors, "descriptors", "", "protocol/descriptors/records.yaml, required with --store")
 	flag.StringVar(&cfg.ProfilePort, "profile-port", "", "a board's console cable for the profile page at /profile (empty = no profile page)")
 	flag.StringVar(&cfg.ProfileMap, "profile-map", "", "the <name>.oimg.map.json of the image on --profile-port")
+	flag.StringVar(&cfg.DebugPort, "debug-port", "", "a board's console cable for the debug page at /debug, held from start-up (empty = no debug page)")
+	flag.StringVar(&cfg.DebugMap, "debug-map", "", "the <name>.oimg.map.json of the image on --debug-port")
+	flag.StringVar(&cfg.DebugSource, "debug-source", "", "the .nsl the image came from (default: beside --debug-map)")
 	flag.StringVar(&allow, "allow-cidr", strings.Join(allowlist.Default(), ","),
 		"comma-separated CIDR allowlist (empty = serve any peer)")
 	flag.Parse()
