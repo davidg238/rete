@@ -126,7 +126,7 @@ async function send(cmd) {
   try {
     const resp = await fetch('/debug/do', {method: 'POST', body: cmd});
     if (!resp.ok) fail(await resp.text());
-    else { fail(''); render(await resp.json()); }
+    else { const d = await resp.json(); fail(d.Error); render(d.State); }
   } catch (err) { fail(String(err)); }
   busy = false;
   document.querySelectorAll('button').forEach(b => b.disabled = false);

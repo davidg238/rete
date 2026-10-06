@@ -109,14 +109,31 @@ func TestTheDebugSourceMarksTheLinesWithCode(t *testing.T) {
 	}
 }
 
+func doAnswer(t *testing.T, srv *httptest.Server, cmd string) (int, done) {
+	t.Helper()
+	resp := do(t, srv, cmd)
+	defer resp.Body.Close()
+	var d done
+	if err := json.NewDecoder(resp.Body).Decode(&d); err != nil {
+		t.Fatal(err)
+	}
+	return resp.StatusCode, d
+}
+
 func TestABreakByCommandIsInTheState(t *testing.T) {
 	srv, _ := debugServer(t, nil)
-	resp := do(t, srv, "break 20")
-	var st debug.State
-	json.NewDecoder(resp.Body).Decode(&st)
-	resp.Body.Close()
-	if resp.StatusCode != http.StatusOK || strings.Join(st.Breaks, ",") != "Fixture.nsl:20" {
-		t.Fatalf("status %d, breaks %v", resp.StatusCode, st.Breaks)
+	code, d := doAnswer(t, srv, "break 20")
+	if code != http.StatusOK || !d.OK || d.Error != "" || strings.Join(d.State.Breaks, ",") != "Fixture.nsl:20" {
+		t.Fatalf("status %d, answer %+v", code, d)
+	}
+}
+
+// rete#362: a failed command is a 200 whose OK is false, with the reason.
+func TestAFailedCommandSaysSo(t *testing.T) {
+	srv, _ := debugServer(t, nil)
+	code, d := doAnswer(t, srv, "frobnicate")
+	if code != http.StatusOK || d.OK || d.Error != "unknown: frobnicate (type help)" {
+		t.Fatalf("status %d, answer %+v", code, d)
 	}
 }
 

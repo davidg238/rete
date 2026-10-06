@@ -9,7 +9,8 @@ package custos
 //	GET  /debug                 the page
 //	GET  /debug/source          the app's lines, and which have code
 //	GET  /debug/state?after=N   the state once its Seq passes N (long-poll, 25 s)
-//	POST /debug/do              one command line, as typed at `custos debug`
+//	POST /debug/do              one command line, as typed at `custos debug`;
+//	                            answers {OK, Error, State}
 //
 // One command at a time: a second while one is in flight answers 409 rather
 // than queueing, as the profile page does.
@@ -41,6 +42,14 @@ type sourceLine struct {
 type source struct {
 	File  string
 	Lines []sourceLine
+}
+
+// done is /debug/do's answer: whether the command did what it says, why not
+// (as the CLI said it, or the VM's dbg:error line), and the state after it.
+type done struct {
+	OK    bool
+	Error string
+	State debug.State
 }
 
 func mountDebug(mux *http.ServeMux, s *debug.Session, sm *debug.SourceMap) {
@@ -85,7 +94,7 @@ func mountDebug(mux *http.ServeMux, s *debug.Session, sm *debug.SourceMap) {
 			return
 		}
 		defer busy.Unlock()
-		s.Do(strings.TrimSpace(string(body))) // quit has nothing to leave: the cable stays held
-		answer(w, s.State(-1, 0))
+		res := s.Do(strings.TrimSpace(string(body))) // quit has nothing to leave: the cable stays held
+		answer(w, done{res.Err == "", res.Err, s.State(-1, 0)})
 	})
 }
