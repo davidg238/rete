@@ -43,11 +43,12 @@ func Run(args []string, stdout, stderr io.Writer) int {
 			cmd.Stdout, cmd.Stderr = stderr, stderr
 			return cmd.Run()
 		},
-		Out: stdout,
 	}
-	if err := l.Load(fs.Arg(0)); err != nil {
+	res, err := l.Load(fs.Arg(0))
+	if err != nil {
 		fmt.Fprintf(stderr, "custos load: %v\n", err)
 		return 1
 	}
+	res.Say(stdout)
 	return 0
 }

@@ -74,3 +74,27 @@ func TestLiveProfile(t *testing.T) {
 	}
 	t.Logf("live: a 200 ms window through the profile tab, %d rows", len(m.prof.Report.Rows))
 }
+
+// TestLiveLoad loads an .oimg through the load tab against a custos the
+// custos-load gate started over --load-host (rete#367).
+func TestLiveLoad(t *testing.T) {
+	url, image, sha := os.Getenv("CUSTOS_TUI_LOAD_URL"), os.Getenv("CUSTOS_TUI_LOAD_IMAGE"), os.Getenv("CUSTOS_TUI_LOAD_SHA")
+	if url == "" {
+		t.Skip("CUSTOS_TUI_LOAD_URL unset: run by test_custos_load.py")
+	}
+	m := New(NewClient(url))
+	m.w, m.h = 140, 40
+	m, _ = press(t, m, "tab", "tab", "r", image) // the path arrives as one paste of runes
+	m, cmd := press(t, m, "enter")
+	m = drive(t, m, cmd, 60*time.Second, func(m Model) bool { return m.load != nil || m.status != "" })
+	if m.load == nil {
+		t.Fatalf("load failed: %s", m.status)
+	}
+	if m.load.Result.SHA256 != sha {
+		t.Fatalf("loaded sha256 %s, want %s", m.load.Result.SHA256, sha)
+	}
+	if v := m.View(); !strings.Contains(v, sha) {
+		t.Fatalf("load view lacks the sha:\n%s", v)
+	}
+	t.Logf("live: %s through the load tab, sha256 %.12s", m.load.Result.Image, sha)
+}

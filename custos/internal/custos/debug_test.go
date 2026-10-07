@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -59,7 +60,7 @@ func debugServer(t *testing.T, hold chan struct{}) (*httptest.Server, *debug.Ses
 	s.AutoFetch = true
 	s.Attach(&stubVM{s, hold})
 	mux := http.NewServeMux()
-	mountDebug(mux, s, sm)
+	mountDebug(mux, s, &sync.Mutex{})
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 	return srv, s

@@ -24,10 +24,13 @@ import (
 	"net/url"
 	"os/exec"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/davidg238/rete/custos/internal/debug"
 	"github.com/davidg238/rete/custos/internal/imagemap"
+	"github.com/davidg238/rete/custos/internal/load"
 	"github.com/davidg238/rete/custos/internal/profile"
 	"github.com/davidg238/rete/protocol/allowlist"
 )
@@ -60,6 +63,14 @@ type Config struct {
 	// runs instead of holding a board's cable: the agent's board-free path
 	// (rete#362). Exactly one of DebugPort and DebugHost.
 	DebugHost string
+	// LoadPort is a board's console cable for the load page, opened for each
+	// load; it may be DebugPort's (peer design D14). Esptool is the esptool it
+	// runs. LoadHost is a host VM binary instead, run once on each uploaded image:
+	// the agent's board-free path (rete#367). Exactly one of LoadPort and
+	// LoadHost; "" for both = no load page.
+	LoadPort string
+	LoadHost string
+	Esptool  string
 }
 
 // Handler builds the custos mux: / lands on the fleet page when a store is
@@ -71,6 +82,19 @@ type Config struct {
 // host VM (debug.go).
 func Handler(cfg Config) (http.Handler, error) {
 	mux := http.NewServeMux()
+	// One lock per cable: a load shares its cable with the profile page's
+	// captures and the debug page's commands. "" (a host VM) is no cable.
+	locks := map[string]*sync.Mutex{}
+	lockOf := func(port string) *sync.Mutex {
+		if port == "" {
+			return &sync.Mutex{}
+		}
+		if locks[port] == nil {
+			locks[port] = &sync.Mutex{}
+		}
+		return locks[port]
+	}
+	var debugCable *cable
 	// Every page's stylesheet, whichever pages are mounted.
 	mux.HandleFunc("GET /fleet.css", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/css; charset=utf-8")
@@ -95,7 +119,7 @@ func Handler(cfg Config) (http.Handler, error) {
 				return debug.StartHost(argv, false, onLine, onEnd)
 			}
 		}
-		mountProfile(mux, cfg.ProfileMap, open)
+		mountProfile(mux, cfg.ProfileMap, open, lockOf(cfg.ProfilePort))
 	}
 	if cfg.DebugPort != "" || cfg.DebugHost != "" {
 		if cfg.DebugPort != "" && cfg.DebugHost != "" {
@@ -115,9 +139,13 @@ func Handler(cfg Config) (http.Handler, error) {
 		s.AutoFetch = true
 		var line debug.Line
 		if cfg.DebugPort != "" {
-			if line, err = debug.OpenPort(cfg.DebugPort, 115200, s.OnLine, s.OnLost); err != nil {
+			open := heldCable(cfg.DebugPort, s)
+			if line, err = open(); err != nil {
 				return nil, fmt.Errorf("custos: --debug-port: %w", err)
 			}
+			debugCable = newDebugCable(s, line, open, func() (*debug.SourceMap, error) {
+				return debug.LoadSourceMap(cfg.DebugMap, cfg.DebugSource)
+			})
 		} else {
 			argv := strings.Fields(cfg.DebugHost)
 			if err := checkHost(argv, cfg.DebugMap); err != nil {
@@ -128,7 +156,46 @@ func Handler(cfg Config) (http.Handler, error) {
 			}
 		}
 		s.Attach(line)
-		mountDebug(mux, s, sm)
+		mountDebug(mux, s, lockOf(cfg.DebugPort))
+	}
+	if cfg.LoadPort != "" || cfg.LoadHost != "" {
+		if cfg.LoadPort != "" && cfg.LoadHost != "" {
+			return nil, fmt.Errorf("custos: give one of --load-port or --load-host")
+		}
+		var t load.Target
+		var held *cable
+		busy := lockOf("")
+		if cfg.LoadHost != "" {
+			argv := strings.Fields(cfg.LoadHost)
+			if len(argv) == 0 {
+				return nil, fmt.Errorf("custos: --load-host: an empty command line")
+			}
+			if _, err := exec.LookPath(argv[0]); err != nil {
+				return nil, fmt.Errorf("custos: --load-host: %w", err)
+			}
+			t = load.Host{Argv: argv, Timeout: 15 * time.Second}
+		} else {
+			t = load.Loader{
+				Region:  load.ESP32C6,
+				Esptool: cfg.Esptool,
+				Port:    cfg.LoadPort,
+				Board:   load.SerialBoard{Port: cfg.LoadPort, Baud: 115200, Timeout: 15 * time.Second},
+				Flash: func(argv []string) error {
+					out, err := exec.Command(argv[0], argv[1:]...).CombinedOutput()
+					if err != nil {
+						return fmt.Errorf("%w: %s", err, lastLines(string(out), 3))
+					}
+					return nil
+				},
+			}
+			if cfg.LoadPort == cfg.DebugPort {
+				held = debugCable
+			}
+			busy = lockOf(cfg.LoadPort)
+		}
+		if err := mountLoad(mux, t, held, busy); err != nil {
+			return nil, err
+		}
 	}
 	if cfg.Store != "" {
 		g, err := openFleet(cfg.Store, cfg.Descriptors)
@@ -207,6 +274,99 @@ func Run(ctx context.Context, cfg Config, logf func(string, ...any)) error {
 	case err := <-errc:
 		return err
 	}
+}
+
+// newDebugCable is what a load on the debug page's cable holds of it (peer
+// design D14): release closes line, and reopen re-reads the map, restarts s on
+// it and opens the cable again; or, when the map is not the program the board
+// now runs, ends s as stale and leaves the cable closed until a load it fits.
+func newDebugCable(s *debug.Session, line debug.Line, open func() (debug.Line, error), reread func() (*debug.SourceMap, error)) *cable {
+	held := true // false while the cable is left closed
+	return &cable{
+		release: func() error {
+			if !held {
+				return nil
+			}
+			held = false
+			return line.(io.Closer).Close()
+		},
+		reopen: func(sha string) string {
+			sm, err := reread()
+			if err == nil && sha != "" && sm.SHA256() != sha {
+				err = fmt.Errorf("the board now runs sha256 %.12s, and the debug map describes %.12s: rebuild, then load again",
+					sha, sm.SHA256())
+			}
+			if err != nil {
+				s.Stale(err.Error())
+				return err.Error()
+			}
+			s.Restart(sm)
+			if line, err = open(); err != nil {
+				s.OnLost()
+				return err.Error()
+			}
+			held = true
+			s.Attach(line)
+			return "restarted"
+		},
+	}
+}
+
+// heldCable answers how the debug page opens its cable, as often as a load
+// releases it. Each open is a generation: a released line's reader may still
+// deliver its last lines and its end, and those must not reach the session it
+// was released from (a release is not a lost cable). Closing the line answers
+// once its reader has ended.
+func heldCable(port string, s *debug.Session) func() (debug.Line, error) {
+	var gen atomic.Int64
+	return func() (debug.Line, error) {
+		g := gen.Add(1)
+		ended := make(chan struct{})
+		l, err := debug.OpenPort(port, 115200,
+			func(line string) {
+				if gen.Load() == g {
+					s.OnLine(line)
+				}
+			},
+			func() {
+				if gen.Load() == g {
+					s.OnLost()
+				}
+				close(ended)
+			})
+		if err != nil {
+			return nil, err
+		}
+		return releasing{l, func() { gen.Add(1) }, ended}, nil
+	}
+}
+
+// releasing is a held cable's line: Close retires its generation, closes the
+// port and waits for its reader to end.
+type releasing struct {
+	debug.Line
+	retire func()
+	ended  chan struct{}
+}
+
+func (r releasing) Close() error {
+	r.retire()
+	err := r.Line.(io.Closer).Close()
+	select {
+	case <-r.ended:
+	case <-time.After(2 * time.Second):
+		return fmt.Errorf("the cable's reader did not end")
+	}
+	return err
+}
+
+// lastLines is the last n lines of out, for an error that names a tool's failure.
+func lastLines(out string, n int) string {
+	ls := strings.Split(strings.TrimSpace(out), "\n")
+	if len(ls) > n {
+		ls = ls[len(ls)-n:]
+	}
+	return strings.Join(ls, " / ")
 }
 
 // checkHost refuses a host VM command line custos cannot run, or whose .oimg

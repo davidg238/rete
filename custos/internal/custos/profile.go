@@ -36,9 +36,10 @@ type Capture struct {
 	Report     profile.Report
 }
 
-func mountProfile(mux *http.ServeMux, mapPath string, open func(onLine func(string), onEnd func()) (profile.Sender, error)) {
+// mountProfile serves captures through open. busy is the cable's: a load on
+// the same cable holds it.
+func mountProfile(mux *http.ServeMux, mapPath string, open func(onLine func(string), onEnd func()) (profile.Sender, error), busy *sync.Mutex) {
 	var (
-		busy sync.Mutex
 		mu   sync.Mutex
 		last *Capture
 	)
@@ -68,7 +69,7 @@ func mountProfile(mux *http.ServeMux, mapPath string, open func(onLine func(stri
 			return
 		}
 		if !busy.TryLock() {
-			http.Error(w, "custos: a capture is already running", http.StatusConflict)
+			http.Error(w, "custos: the cable is busy (a capture or a load is running)", http.StatusConflict)
 			return
 		}
 		defer busy.Unlock()

@@ -64,51 +64,76 @@ type Board interface {
 	Boot() (Report, error)
 }
 
-// Loader is one `custos load`.
+// Result is what a load proved: the program written, the firmware that loaded
+// it, and where it went (Offset 0 on a host VM). It is /load's JSON answer.
+type Result struct {
+	Image   string
+	Size    int64
+	SHA256  string
+	BuildID string
+	Offset  int64
+}
+
+// Target is where a program is loaded: a board over its cable (Loader) or a host
+// VM (Host). Load answers an error unless the target then loads exactly that
+// program.
+type Target interface {
+	Load(path string) (Result, error)
+}
+
+// Loader is a board's Target: `custos load`, and /load over --load-port.
 type Loader struct {
 	Region  Region
 	Esptool string
 	Port    string
 	Board   Board
 	Flash   func(argv []string) error
-	Out     io.Writer
 }
 
 // Load writes the image at path into the region, and answers an error unless
 // the board then boots the same firmware and loads exactly that program. The
 // firmware prints the hash after the loader accepts the image and before
 // bootstrap, so a load proves the program loaded, not that it runs.
-func (l Loader) Load(path string) error {
+func (l Loader) Load(path string) (Result, error) {
 	img, err := oimg.Read(path)
 	if err != nil {
-		return err
+		return Result{}, err
 	}
 	if img.Size > l.Region.Size {
-		return fmt.Errorf("%s is %d B; the %s program region holds %d B", path, img.Size, l.Region.Chip, l.Region.Size)
+		return Result{}, fmt.Errorf("%s is %d B; the %s program region holds %d B", path, img.Size, l.Region.Chip, l.Region.Size)
 	}
 	before, err := l.Board.Boot()
 	if err != nil {
-		return err
+		return Result{}, err
 	}
 	argv := []string{l.Esptool, "--chip", l.Region.Chip, "--port", l.Port, "--baud", "921600",
 		"write_flash", fmt.Sprintf("0x%x", l.Region.Offset), path}
 	if err := l.Flash(argv); err != nil {
-		return fmt.Errorf("esptool: %w", err)
+		return Result{}, fmt.Errorf("esptool: %w", err)
 	}
 	after, err := l.Board.Boot()
 	if err != nil {
-		return err
+		return Result{}, err
 	}
 	if after.BuildID != before.BuildID {
-		return fmt.Errorf("the firmware changed across the load: build-id %s, then %s", before.BuildID, after.BuildID)
+		return Result{}, fmt.Errorf("the firmware changed across the load: build-id %s, then %s", before.BuildID, after.BuildID)
 	}
+	return prove(path, img, after, l.Region.Offset)
+}
+
+// prove answers the Result a boot after a load shows, or why it shows another.
+func prove(path string, img *oimg.Image, after Report, offset int64) (Result, error) {
 	if after.Refused != "" {
-		return fmt.Errorf("the board refused the program: oimg_load_blob: %s", after.Refused)
+		return Result{}, fmt.Errorf("the target refused the program: oimg_load_blob: %s", after.Refused)
 	}
 	if after.ProgramSHA != img.SHA256 {
-		return fmt.Errorf("the board runs sha256 %.12s, not %s's %.12s", after.ProgramSHA, path, img.SHA256)
+		return Result{}, fmt.Errorf("the target runs sha256 %.12s, not %s's %.12s", after.ProgramSHA, path, img.SHA256)
 	}
-	fmt.Fprintf(l.Out, "wrote %s (%d B) at 0x%x\nfirmware build-id %s unchanged\nprogram sha256 %.12s loaded\n",
-		path, img.Size, l.Region.Offset, after.BuildID, img.SHA256)
-	return nil
+	return Result{path, img.Size, img.SHA256, after.BuildID, offset}, nil
+}
+
+// Say is a Result as `custos load` prints it.
+func (r Result) Say(w io.Writer) {
+	fmt.Fprintf(w, "wrote %s (%d B) at 0x%x\nfirmware build-id %s unchanged\nprogram sha256 %.12s loaded\n",
+		r.Image, r.Size, r.Offset, r.BuildID, r.SHA256)
 }

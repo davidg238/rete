@@ -49,7 +49,8 @@ type LocalsView struct {
 // State is the session at one moment. Seq rises on every change.
 type State struct {
 	Seq        int
-	Run        string // unknown, boot, running, stopped, ended, lost
+	Image      string // the sha256 the session's map describes: a change (a load) means fetch the source again
+	Run        string // unknown, boot, running, stopped, ended, lost, stale
 	Stop       *StopView
 	Frames     []FrameView // the last bt at this stop, innermost first
 	Locals     *LocalsView
@@ -84,6 +85,7 @@ func (s *Session) State(after int, wait time.Duration) State {
 func (s *Session) snapshot() State {
 	st := State{
 		Seq:        s.seq,
+		Image:      s.sm.SHA256(),
 		Run:        s.run,
 		Frames:     append([]FrameView(nil), s.framesV...),
 		Transcript: append([]string(nil), s.transcript...),

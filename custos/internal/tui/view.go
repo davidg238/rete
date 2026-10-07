@@ -39,20 +39,25 @@ func pane(title, body string, w, h int) string {
 
 func (m Model) View() string {
 	w, h := max(m.w, 20), max(m.h, 6)
-	var tabs string
-	if m.tab == debugTab {
-		tabs = cursorS.Render(" debug ") + dim.Render(" profile ")
-	} else {
-		tabs = dim.Render(" debug ") + cursorS.Render(" profile ")
+	var bar string
+	for t, name := range []string{" debug ", " profile ", " load "} {
+		if tab(t) == m.tab {
+			bar += cursorS.Render(name)
+		} else {
+			bar += dim.Render(name)
+		}
 	}
 	var body string
-	if m.tab == debugTab {
+	switch m.tab {
+	case debugTab:
 		body = m.debugView(w, h-3)
-	} else {
+	case profileTab:
 		body = m.profileView(w, h-3)
+	default:
+		body = m.loadView(w, h-3)
 	}
 	clip := lipgloss.NewStyle().MaxWidth(w)
-	return lipgloss.JoinVertical(lipgloss.Left, tabs, body, clip.Render(m.statusLine()), clip.Render(m.help()))
+	return lipgloss.JoinVertical(lipgloss.Left, bar, body, clip.Render(m.statusLine()), clip.Render(m.help()))
 }
 
 func (m Model) statusLine() string {
@@ -76,8 +81,11 @@ func (m Model) statusLine() string {
 }
 
 func (m Model) help() string {
-	if m.tab == profileTab {
-		return dim.Render("r capture · tab debug · q quit")
+	switch m.tab {
+	case profileTab:
+		return dim.Render("r capture · tab load · q quit")
+	case loadTab:
+		return dim.Render("r load an .oimg · tab debug · q quit")
 	}
 	return dim.Render("↑↓ line · b break · c continue · s step · n next · f finish · p pause · [ ] frame · : command · tab profile · q quit")
 }
@@ -172,4 +180,28 @@ func (m Model) profileView(w, h int) string {
 		body = strings.Join(lines[:max(h-2, 1)], "\n")
 	}
 	return pane("profile", body, w, h)
+}
+
+func (m Model) loadView(w, h int) string {
+	if m.load == nil {
+		msg := "no load yet — press r and give an .oimg path"
+		if m.loading {
+			msg = "loading…"
+		}
+		return pane("load", dim.Render(msg), w, h)
+	}
+	r := m.load.Result
+	where := "host VM"
+	if r.Offset != 0 {
+		where = fmt.Sprintf("0x%x", r.Offset)
+	}
+	body := fmt.Sprintf("image           %s (%d B)\nprogram sha256  %s\nfirmware        %s\nwritten at      %s",
+		r.Image, r.Size, r.SHA256, r.BuildID, where)
+	if m.load.Debug != "" {
+		body += "\ndebug page      " + m.load.Debug
+	}
+	if m.loading {
+		body += "\n" + dim.Render("loading…")
+	}
+	return pane("load", body, w, h)
 }

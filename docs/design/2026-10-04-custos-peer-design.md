@@ -62,6 +62,15 @@ custos's query engine.
   path over HTTP, a web page, a TUI tab, and raw HTTP for anyone to build their own front
   on. Debug and profile are complete; load (#367) is built to the same precedent. No
   other front is built for 0.1.
+- **D14 (David, 2026-10-06): load's agent path (#367).** `POST /load` takes the `.oimg`
+  as the request body, so a front on another machine can load; the board's cable is
+  local to custos, the build need not be. The host-VM target (`--load-host`) runs the
+  uploaded image once and reads the same two boot lines a board prints (`oevm: build-id`,
+  `oevm: program sha256`), so one check proves both targets. Load may share the debug
+  page's cable: it closes the session, flashes, reopens it, and the session re-reads
+  `--debug-map` (stale when that map is not the loaded program). The map and source are
+  not uploaded: they are read from disk, as the profile page already does; a front that
+  builds on another machine than custos is what would earn uploading them.
 
 ## 2. The picture
 

@@ -39,7 +39,7 @@
 <body>
 <header>
   <h1>rete debug</h1>
-  <nav><a href="/profile">profile</a><a href="/fleet">fleet</a><a href="/dev">dev status</a><a href="/debug/state">state.json</a></nav>
+  <nav><a href="/profile">profile</a><a href="/load">load</a><a href="/fleet">fleet</a><a href="/dev">dev status</a><a href="/debug/state">state.json</a></nav>
 </header>
 <div class="stamp"><span class="pill v-unknown" id="run">…</span> <span id="where"></span></div>
 <div class="banner" id="error"></div>
@@ -139,6 +139,7 @@ async function poll() {
       const resp = await fetch('/debug/state?after=' + seq);
       if (!resp.ok) throw new Error(await resp.text());
       const st = await resp.json();
+      if (last && st.Image !== last.Image) loadSource(); // a load restarted the session on a new map
       if (!last || st.Seq >= last.Seq) render(st);
       seq = st.Seq;
     } catch (err) {
@@ -162,8 +163,11 @@ $('cmd').onsubmit = e => {
   const v = $('line').value.trim();
   if (v) { send(v); $('line').value = ''; }
 };
-fetch('/debug/source').then(r => r.json()).then(s => { src = s; renderSource(); if (last) render(last); })
-  .catch(err => fail(String(err)));
+function loadSource() {
+  fetch('/debug/source').then(r => r.json()).then(s => { src = s; renderSource(); if (last) render(last); })
+    .catch(err => fail(String(err)));
+}
+loadSource();
 poll();
 </script>
 </body>

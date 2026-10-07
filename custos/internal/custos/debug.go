@@ -13,7 +13,8 @@ package custos
 //	                            answers {OK, Error, State}
 //
 // One command at a time: a second while one is in flight answers 409 rather
-// than queueing, as the profile page does.
+// than queueing, as the profile page does. A load on the same cable (load.go)
+// restarts the session over the new program's map, re-read from --debug-map.
 
 import (
 	_ "embed"
@@ -52,13 +53,8 @@ type Done struct {
 	State debug.State
 }
 
-func mountDebug(mux *http.ServeMux, s *debug.Session, sm *debug.SourceMap) {
-	var busy sync.Mutex
-	code := sm.CodeLines()
-	src := Source{File: sm.Source, Lines: []SourceLine{}}
-	for i, t := range sm.Text() {
-		src.Lines = append(src.Lines, SourceLine{t, code[i+1]})
-	}
+// mountDebug serves s. busy is the cable's: a load on the same cable holds it.
+func mountDebug(mux *http.ServeMux, s *debug.Session, busy *sync.Mutex) {
 	answer := func(w http.ResponseWriter, v any) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-store")
@@ -69,6 +65,13 @@ func mountDebug(mux *http.ServeMux, s *debug.Session, sm *debug.SourceMap) {
 		w.Write(debugPage)
 	})
 	mux.HandleFunc("GET /debug/source", func(w http.ResponseWriter, r *http.Request) {
+		// Built per request: a load on the cable restarts the session on a new map.
+		sm := s.SourceMap()
+		code := sm.CodeLines()
+		src := Source{File: sm.Source, Lines: []SourceLine{}}
+		for i, t := range sm.Text() {
+			src.Lines = append(src.Lines, SourceLine{t, code[i+1]})
+		}
 		answer(w, src)
 	})
 	mux.HandleFunc("GET /debug/state", func(w http.ResponseWriter, r *http.Request) {
