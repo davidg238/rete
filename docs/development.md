@@ -100,14 +100,14 @@ David: "agents can't smell". An agent has no feeling that something is off, so e
 | (c) no interactive prompt | nothing waits for a keypress |
 | (d) no silent skip | a step that did not run says so, and fails |
 
-### Conventions that should become programmatic (PROPOSED — not decided)
+### Conventions that should become programmatic
 
 | Convention today | Written in | What the tool should do instead |
 |---|---|---|
-| Read the aux line, not just the pass count | [root CLAUDE.md](../CLAUDE.md), [nsl CLAUDE.md](../nodus/nsl/CLAUDE.md) | Already exits 1 on any aux `FAIL` ([run_tests_oevm.py:1332](../nodus/nsl/tools/run_tests_oevm.py)); a SKIP does not. Make an unexpected SKIP fail too. |
-| Never run two suites at once | [root CLAUDE.md](../CLAUDE.md) | Take a lock and refuse a second run with a clear message. No lock found in the runner; only the board harness locks ([target.sh:122](../nodus/oevm/tests/target/lib/target.sh)). |
-| Never run `porta_sync_host.sh` beside the suite | [root CLAUDE.md](../CLAUDE.md), [nsl CLAUDE.md](../nodus/nsl/CLAUDE.md) | Same lock, or per-run ports (the OTA gate already uses its own pair). |
-| Pass `B` to `run-one.py` | [compiler.md](../nodus/nsl/docs/compiler.md), [tutorial 1](tutorials/01-host.md) | Make `B` the default so the safe path needs no argument. |
+| Read the aux line, not just the pass count | [root CLAUDE.md](../CLAUDE.md), [nsl CLAUDE.md](../nodus/nsl/CLAUDE.md) | **Done (#314):** an aux gate passes only by passing; a SKIP fails the suite like a FAIL and still says SKIP (`run_tests_oevm.py`, `suite_ok`). |
+| Never run two suites at once | [root CLAUDE.md](../CLAUDE.md) | **Done (#314):** one lock, `/tmp/rete-nsl-suite.lock` (`run_tests_oevm.py` `hold_suite_lock`); a second suite or `run-one.py` refuses, naming the holder. A process the holder starts inherits it. |
+| Never run `porta_sync_host.sh` beside the suite | [root CLAUDE.md](../CLAUDE.md), [nsl CLAUDE.md](../nodus/nsl/CLAUDE.md) | **Done (#314):** `porta_sync_host.sh` takes the same lock. |
+| Pass `B` to `run-one.py` | [compiler.md](../nodus/nsl/docs/compiler.md), [tutorial 1](tutorials/01-host.md) | **Done (#314):** `B` is the default; Path A is asked for by name. |
 | `CLASS=disruptive` only on a disposable board | [target CLAUDE.md](../nodus/oevm/tests/target/CLAUDE.md) | Already enforced: the harness dies unless the board is the disposable one ([target.sh:102-106](../nodus/oevm/tests/target/lib/target.sh)). Keep. |
 | Resolve boards through the collector env files | [target CLAUDE.md](../nodus/oevm/tests/target/CLAUDE.md), [tutorial 2](tutorials/02-board.md) | Already programmatic: no table exists in code. Keep. |
 
