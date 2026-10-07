@@ -5,8 +5,9 @@
 VM with the debugger on, breaks report on its println line (after `v:: self value`
 has run), and there:
 
-  dbg:patch <file>   replaces report with 48_patch_restart_target_v2.nsl's, recompiled
-                     and re-encoded against the running image by patch_method.py
+  dbg:patch <text>   replaces report with 48_patch_restart_target_v2.nsl's, recompiled
+                     and re-encoded against the running image by patch_method.py; the
+                     text rides the line, as it does over a board's cable
   dbg:restart        restarts the stopped frame from its first instruction, in v2
   dbg:continue
 
@@ -16,8 +17,9 @@ twice: once from the restarted frame, once from the second send, which finds the
 replacement through the override table. v2 needs more registers than the frame
 had, so the restart also grows the frame in place.
 
-A refusal is gated too: a v2 that uses a string the running image does not hold
-is refused by name. Exits non-zero on failure.
+Refusals are gated too: a v2 that uses a string the running image does not hold
+is refused by name, and the VM refuses a patch line that is not the format (a
+wrong version, a cut line) rather than installing part of it. Exits non-zero on failure.
 """
 import json, os, queue, subprocess, sys, threading
 
@@ -108,7 +110,13 @@ def run_patch_restart():
     vm.expect("dbg:ok break")
     vm.send("dbg:continue")
     stop = vm.expect("dbg:paused break")
-    vm.send(f"dbg:patch {PATCH}")
+    with open(PATCH) as f:
+        text = f.read().strip()
+    for bad in (f"oevm-patch 2 {text.split(' ', 2)[2]}", text[:len(text) // 2]):
+        vm.send(f"dbg:patch {bad}")
+        got = vm.expect("dbg:")
+        assert got == "dbg:error patch", (bad, got)
+    vm.send(f"dbg:patch {text}")
     vm.expect("dbg:ok patch")
     vm.send("dbg:restart")
     vm.expect("dbg:ok restart")
@@ -119,7 +127,7 @@ def run_patch_restart():
     out = [l for l in vm.seen if l.startswith(("value ", "patched "))]
     assert code == 0, (code, vm.seen)
     assert out == ["patched 42", "patched 42"], vm.seen
-    return f"stopped ({stop}), patched, restarted, resumed: {out}"
+    return f"stopped ({stop}), two bad lines refused, patched, restarted, resumed: {out}"
 
 
 def run_refusal():
