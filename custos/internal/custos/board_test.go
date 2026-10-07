@@ -3,6 +3,7 @@
 package custos
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestParseBoardsJoinsTheFlags(t *testing.T) {
@@ -52,7 +54,7 @@ func get(t *testing.T, url string) (int, string) {
 
 func serveBoards(t *testing.T, bs ...Board) *httptest.Server {
 	t.Helper()
-	h, err := Handler(Config{Boards: bs})
+	h, err := Handler(Config{Boards: bs, ConsoleRoot: t.TempDir()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,4 +130,86 @@ func TestAProfileOnAHostThatEndsEarlyAnswers502(t *testing.T) {
 	if r.StatusCode != http.StatusBadGateway || !strings.Contains(string(b), "program ended before the window closed") {
 		t.Fatalf("%d %s", r.StatusCode, b)
 	}
+}
+
+// pipePort is a board's cable in a test: the board's output is written to w.
+type pipePort struct {
+	r    *io.PipeReader
+	w    *io.PipeWriter
+	sent chan string
+}
+
+func (p *pipePort) Read(b []byte) (int, error)  { return p.r.Read(b) }
+func (p *pipePort) Write(b []byte) (int, error) { p.sent <- string(b); return len(b), nil }
+func (p *pipePort) Close() error                { return p.r.Close() }
+
+// D16: a board on a cable is collected — every line to its day log — and its
+// debug session and a capture are subscribers of the one reader.
+func TestABoardOnACableIsCollectedAndItsVerbsSubscribe(t *testing.T) {
+	r, w := io.Pipe()
+	port := &pipePort{r, w, make(chan string, 16)}
+	openCable = func(string) func() (io.ReadWriteCloser, error) {
+		return func() (io.ReadWriteCloser, error) { return port, nil }
+	}
+	t.Cleanup(func() { openCable = openSerial })
+	root := t.TempDir()
+	ctx, cancel := context.WithCancel(context.Background())
+	day := filepath.Join(root, "console-c6-"+time.Now().Format("2006-01-02")+".log")
+	t.Cleanup(func() { // the collector's last line, before the temp dir goes
+		cancel()
+		for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
+			if data, _ := os.ReadFile(day); strings.Contains(string(data), "collector stopped") {
+				return
+			}
+		}
+		t.Error("the collector never wrote that it stopped")
+	})
+	h, err := Handler(Config{Boards: []Board{{Name: "c6", Port: "/dev/fake", Map: fixtureMap(t)}}, ConsoleRoot: root, Context: ctx})
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(h)
+	defer srv.Close()
+	if _, err := Handler(Config{Boards: []Board{{Name: "c6", Port: "/dev/fake2"}}, ConsoleRoot: root}); err == nil || !strings.Contains(err.Error(), "held") {
+		t.Fatalf("a second collector of c6: %v", err)
+	}
+
+	w.Write([]byte("oevm: build-id B1\ndbg:ready\n"))
+	waitState(t, srv.URL+"/board/c6/debug/state", "boot")
+
+	// A capture subscribes, sends its request down the cable, and reads the window.
+	done := make(chan int)
+	go func() {
+		resp, err := http.Post(srv.URL+"/board/c6/profile/capture?ms=10", "", nil)
+		if err != nil {
+			done <- 0
+			return
+		}
+		done <- resp.StatusCode
+	}()
+	if got := <-port.sent; got != "profile 10\n" {
+		t.Fatalf("sent %q", got)
+	}
+	w.Write([]byte("mprof[window]: methods=1 activations=5 overflow=0 cap=256\nmprof: 3992 5\nmprof[window]: end\n"))
+	if code := <-done; code != 200 {
+		t.Fatalf("capture: %d", code)
+	}
+
+	data, _ := os.ReadFile(day)
+	for _, want := range []string{"@@rete-console@@ collector started", " oevm: build-id B1\n", " dbg:ready\n", " mprof: 3992 5\n"} {
+		if !strings.Contains(string(data), want) {
+			t.Errorf("the day log lacks %q:\n%s", want, data)
+		}
+	}
+}
+
+func waitState(t *testing.T, url, run string) {
+	t.Helper()
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
+		_, body := get(t, url)
+		if strings.Contains(body, `"Run":"`+run+`"`) {
+			return
+		}
+	}
+	t.Fatalf("%s never reached %s", url, run)
 }

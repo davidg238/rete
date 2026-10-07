@@ -37,9 +37,8 @@ type Capture struct {
 }
 
 // mountProfile serves captures through open. busy is the board's: its other
-// verbs hold it too. held, when the debug page holds the board's cable, is
-// borrowed for the capture and given back unchanged.
-func mountProfile(mux *http.ServeMux, prefixes []string, mapPath string, open func(onLine func(string), onEnd func()) (profile.Sender, error), held *cable, busy *sync.Mutex) {
+// verbs hold it too.
+func mountProfile(mux *http.ServeMux, prefixes []string, mapPath string, open func(onLine func(string), onEnd func()) (profile.Sender, error), busy *sync.Mutex) {
 	var (
 		mu   sync.Mutex
 		last *Capture
@@ -78,13 +77,6 @@ func mountProfile(mux *http.ServeMux, prefixes []string, mapPath string, open fu
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
-		}
-		if held != nil {
-			if err := held.release(); err != nil {
-				http.Error(w, "custos: releasing the debug page's cable: "+err.Error(), http.StatusInternalServerError)
-				return
-			}
-			defer held.resume()
 		}
 		text, err := profile.Capture(open, ms, time.Duration(ms)*time.Millisecond+10*time.Second)
 		if err != nil {

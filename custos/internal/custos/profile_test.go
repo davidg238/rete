@@ -38,7 +38,7 @@ func profileServer(t *testing.T) *httptest.Server {
 	mux := http.NewServeMux()
 	mountProfile(mux, []string{""}, fixtureMap(t), func(onLine func(string), onEnd func()) (profile.Sender, error) {
 		return echoNode{onLine}, nil
-	}, nil, &sync.Mutex{})
+	}, &sync.Mutex{})
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 	return srv
@@ -83,30 +83,5 @@ func TestProfileCaptureNeedsAPositiveMs(t *testing.T) {
 		if r.StatusCode != http.StatusBadRequest {
 			t.Fatalf("%q: %d", q, r.StatusCode)
 		}
-	}
-}
-
-// D15: a capture on a board whose debug page holds the cable borrows it, and
-// gives it back unchanged (resume, not a restart).
-func TestACaptureBorrowsTheDebugCable(t *testing.T) {
-	var order []string
-	held := &cable{
-		release: func() error { order = append(order, "release"); return nil },
-		reopen:  func(string) string { order = append(order, "reopen"); return "" },
-		resume:  func() error { order = append(order, "resume"); return nil },
-	}
-	mux := http.NewServeMux()
-	mountProfile(mux, []string{""}, fixtureMap(t), func(onLine func(string), onEnd func()) (profile.Sender, error) {
-		order = append(order, "capture")
-		return echoNode{onLine}, nil
-	}, held, &sync.Mutex{})
-	srv := httptest.NewServer(mux)
-	defer srv.Close()
-	r, err := http.Post(srv.URL+"/profile/capture?ms=10", "", nil)
-	if err != nil || r.StatusCode != 200 {
-		t.Fatalf("%v %v", err, r.StatusCode)
-	}
-	if strings.Join(order, ",") != "release,capture,resume" {
-		t.Fatalf("order %v", order)
 	}
 }
