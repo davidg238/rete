@@ -73,6 +73,7 @@ func Handler(cfg Config) (http.Handler, error) {
 	if root == "" {
 		root = console.DefaultRoot
 	}
+	mountBuild(mux, cfg.Boards)
 	if err := mountBoards(ctx, mux, cfg.Boards, cfg.Esptool, root); err != nil {
 		return nil, err
 	}

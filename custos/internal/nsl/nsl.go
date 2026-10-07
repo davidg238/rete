@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Ekorau LLC
+
 // Package nsl runs the nsl compiler's tools for custos's verbs that compile:
 // patch (peer design D17) and build and run (D18). custos is Go and the compiler
 // is Python; it runs them as commands, as it runs esptool and gdb.
@@ -70,4 +72,23 @@ func Patch(mapPath, source string, edited []byte, method string) (string, error)
 	f.Close()
 	out, err := run("patch_method.py", mapPath, source, f.Name(), method)
 	return strings.TrimSpace(out), err
+}
+
+// Compile compiles the .nsl at src to the .oimg at out with layout, writing the
+// map beside it. A compile error is a Refused carrying the compiler's own words.
+func Compile(src, out, layout string) error {
+	_, err := run("ns_compile_oevm.py", src, out, "--format=oimg", "--layout="+layout)
+	return err
+}
+
+// BoardLayout is the layout a board's image is compiled with: the Zephyr app's
+// layout-<chip>.json, beside the compiler in the checkout.
+func BoardLayout(chip string) string {
+	return filepath.Join(Tools(), "..", "..", "oevm", "zephyr", "layout-"+chip+".json")
+}
+
+// HostLayout is a host VM's layout: oevm_layout.json beside its binary, where
+// the suite and the tutorials build the two together.
+func HostLayout(vm string) string {
+	return filepath.Join(filepath.Dir(vm), "oevm_layout.json")
 }

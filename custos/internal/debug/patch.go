@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Ekorau LLC
+
 package debug
 
 // Patch sends one method's replacement to the stopped VM as `dbg:patch <text>`
