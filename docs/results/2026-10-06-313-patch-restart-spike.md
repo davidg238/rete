@@ -85,7 +85,8 @@ clear 21; continue         → patched 42
 75214. The mcu build had compiled `patchFrom:` as a stub (no file I/O there); it now carries the text parser, which is
 the price of patching a board at all. A standard image (`OEVM_NO_DEBUG_HOOKS`) carries none of it. Suite 290/0.
 
-**Not built:** a custos `patch` verb. Today an agent sends `dbg:patch <text>` through `/debug/do` (the raw path) after
-running `patch_method.py` itself, which needs the board's layout JSON. A verb that takes the edited source and does
-the rest needs the map to say which layout built the image, which `protocol/IMAGE-ARTIFACTS.md` §3 does not record:
-a contract change, left for David.
+**The custos verb (D17), 2026-10-07 10:47 MST, same board and program:** `POST /board/c6spare/debug/patch?method=
+PatchRestartTarget>>report` with the edited source as the body, through the service `rete-custos` (master `b9de042`).
+A source that needs a new string was refused by name (`the running image holds no ('STRING', 'never seen ')`) with
+the program still stopped; v2 then answered OK, `restart` and `continue` printed `patched 42` twice. The map now
+carries its layout (`image.layout`), so the verb needs only the map and the two sources.
