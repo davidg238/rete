@@ -123,7 +123,7 @@ picks it. Moving from local to remote changes the transport, not the UI.
     locals, #323) in one exchange, so the debugger can show something before the
     first step.
 
-## 3a. PROPOSED (2026-10-06, #314): the four verbs still without an HTTP path (D15 decided below)
+## 3a. PROPOSED (2026-10-06, #314): the four verbs still without an HTTP path (D15, D16 decided below)
 
 Debug, profile and load have their agent paths (D13). Build, flash, run and log do not. Each proposal below
 follows the same precedent (an endpoint answering JSON, a host-VM target, a real-VM gate), and none is decided.
@@ -145,9 +145,16 @@ follows the same precedent (an endpoint answering JSON, a host-VM target, a real
    Why now: several boards hard-plugged into one test machine (`opti7040`, 4+ motherboard USB ports) makes porting,
    testing and development pleasant, and the URLs are the agent contract (D12), so changing their shape later would
    edit every client twice. The churn is paid once, now.
-2. **The collector while custos serves a port.** `log` needs custos to read the cable all the time, which the console
-   collector does today. Recommended: custos is the reader while it serves (the collector is already stopped for debug
-   and load), and writes the same day log, so that `logread` keeps working.
+2. **Decided (David, 2026-10-06), D16: custos is the console collector, and the Python console tools are deleted.**
+   One owner of each cable, one writer of each log, one language: custos reads every board's console all the time
+   (one systemd unit serving every `--port`) and writes the day logs; the UDP log sink (`udpsink.py`, for nodes that
+   log over the mesh, `log_udp.c`) moves in too. `nodus/oevm/zephyr/tools/console/` ("got us to here, so worthwhile,
+   but dead end") is deleted, the reader included. Its verbs (`tail`, `since`, `runs`, `panics`, `symbolize`, `check`)
+   become custos's `log` and its siblings. custos then runs all the time on a bench or test machine, not only through
+   the working day (a change to D3). Before deleting anything, a fate table: every capability of the old tools, and
+   every caller of them (the target harness `target.sh` and `deploy_flash.sh`, `run.sh`, `flash-bell.sh`,
+   `bench-identity.sh`, tutorial 2, the `console-py` aux gate), gets a fate. The bench units move board by board, with
+   c6bench's soak last and only when David says.
 
 - **CLI.** One command for the whole first hour. Each verb gives a verdict a machine can
   read, finishes within a fixed time, never prompts and never skips silently
