@@ -9,6 +9,7 @@ package custos
 //	GET /boards   every board, as JSON: its name, its target, and the verbs it serves
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,9 +21,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/davidg238/rete/custos/internal/console"
 	"github.com/davidg238/rete/custos/internal/debug"
 	"github.com/davidg238/rete/custos/internal/load"
 	"github.com/davidg238/rete/custos/internal/profile"
+	"go.bug.st/serial"
 )
 
 // Board is one target. Exactly one of Port and Host.
@@ -118,15 +121,16 @@ func ParseBoards(ports, hosts, maps, sources []string) ([]Board, error) {
 }
 
 // mountBoards serves every board under /board/<name>, and the only one also
-// at the board-less paths.
-func mountBoards(mux *http.ServeMux, boards []Board, esptool string) error {
+// at the board-less paths. A board on a cable is also collected: custos reads
+// its console until ctx ends, into day logs under root (D16).
+func mountBoards(ctx context.Context, mux *http.ServeMux, boards []Board, esptool, root string) error {
 	var infos []BoardInfo
 	for _, b := range boards {
 		prefixes := []string{"/board/" + b.Name}
 		if len(boards) == 1 {
 			prefixes = append(prefixes, "")
 		}
-		verbs, err := mountBoard(mux, prefixes, b, esptool)
+		verbs, err := mountBoard(ctx, mux, prefixes, b, esptool, root)
 		if err != nil {
 			return fmt.Errorf("custos: board %s: %w", b.Name, err)
 		}
@@ -144,14 +148,63 @@ func mountBoards(mux *http.ServeMux, boards []Board, esptool string) error {
 	return nil
 }
 
+// openSerial opens a board's console cable without a reset pulse: DTR and RTS
+// held low from the open on (rete#311; the CP2102N devkit wires them to EN and
+// BOOT). A read timeout is an empty read, so the collector notices a lend.
+func openSerial(port string) func() (io.ReadWriteCloser, error) {
+	return func() (io.ReadWriteCloser, error) {
+		p, err := serial.Open(port, &serial.Mode{BaudRate: 115200, InitialStatusBits: &serial.ModemOutputBits{DTR: false, RTS: false}})
+		if err != nil {
+			return nil, err
+		}
+		if err := p.SetReadTimeout(200 * time.Millisecond); err != nil {
+			p.Close()
+			return nil, err
+		}
+		return p, nil
+	}
+}
+
+// openCable is how a board's cable is opened; a test replaces it.
+var openCable = openSerial
+
+// subscription is a capture's view of a collected cable: lines come from the
+// collector, and Close stops them.
+type subscription struct {
+	c      *console.Cable
+	cancel func()
+}
+
+func (s subscription) Send(line string) error { return s.c.Send(line) }
+func (s subscription) Close() error           { s.cancel(); return nil }
+
+// cableLine is the debug session's line on a collected cable.
+type cableLine struct{ c *console.Cable }
+
+func (l cableLine) Send(line string) error { return l.c.Send(line) }
+
 // mountBoard mounts one board's verbs under each prefix and answers their names.
-// The verbs on one board take turns through one lock; a held debug cable is
-// lent to a load (which restarts the session on the new program) and to a
-// capture (which resumes it).
-func mountBoard(mux *http.ServeMux, prefixes []string, b Board, esptool string) ([]string, error) {
+// The verbs on one board take turns through one lock. On a cable, the collector
+// owns the port: the debug session and a capture subscribe to its lines, and a
+// load borrows the port from it (esptool and the reset need it to themselves),
+// after which the debug session follows the board's new program.
+func mountBoard(ctx context.Context, mux *http.ServeMux, prefixes []string, b Board, esptool, root string) ([]string, error) {
 	busy := &sync.Mutex{}
 	var verbs []string
-	var held *cable
+	var c *console.Cable
+	if b.Port != "" {
+		lock, err := console.Lock(root, b.Name)
+		if err != nil {
+			return nil, err
+		}
+		c = &console.Cable{Store: &console.Store{Root: root, Board: b.Name, Budget: console.DefaultBudget},
+			Open: openCable(b.Port), Port: b.Port, Lock: lock}
+		go c.Run(ctx)
+	}
+	held := &around{}
+	if c != nil {
+		held.lend = c.Lend
+	}
 	if b.Map != "" {
 		sm, err := debug.LoadSourceMap(b.Map, b.Source)
 		if err != nil {
@@ -159,37 +212,29 @@ func mountBoard(mux *http.ServeMux, prefixes []string, b Board, esptool string) 
 		}
 		s := debug.NewSession(sm, io.Discard)
 		s.AutoFetch = true
-		var line debug.Line
-		if b.Port != "" {
-			open := heldCable(b.Port, s)
-			if line, err = open(); err != nil {
-				return nil, err
-			}
-			held = newDebugCable(s, line, open, func() (*debug.SourceMap, error) {
-				return debug.LoadSourceMap(b.Map, b.Source)
-			})
+		open := func(onLine func(string), onEnd func()) (profile.Sender, error) {
+			return subscription{c, c.Subscribe(onLine)}, nil
+		}
+		if c != nil {
+			c.Subscribe(s.OnLine)
+			s.Attach(cableLine{c})
+			held.follow = follow(s, cableLine{c}, func() (*debug.SourceMap, error) { return debug.LoadSourceMap(b.Map, b.Source) })
 		} else {
 			argv := append(strings.Fields(b.Host), strings.TrimSuffix(b.Map, ".map.json"))
 			if err := checkHost(argv, b.Map); err != nil {
 				return nil, err
 			}
-			if line, err = debug.StartHost(argv, true, s.OnLine, s.OnEnd); err != nil {
+			line, err := debug.StartHost(argv, true, s.OnLine, s.OnEnd)
+			if err != nil {
 				return nil, err
 			}
-		}
-		s.Attach(line)
-		mountDebug(mux, prefixes, s, busy)
-
-		open := func(onLine func(string), onEnd func()) (profile.Sender, error) {
-			return debug.OpenPort(b.Port, 115200, onLine, onEnd)
-		}
-		if b.Host != "" {
-			argv := append(strings.Fields(b.Host), strings.TrimSuffix(b.Map, ".map.json"))
+			s.Attach(line)
 			open = func(onLine func(string), onEnd func()) (profile.Sender, error) {
 				return debug.StartHost(argv, false, onLine, onEnd)
 			}
 		}
-		mountProfile(mux, prefixes, b.Map, open, held, busy)
+		mountDebug(mux, prefixes, s, busy)
+		mountProfile(mux, prefixes, b.Map, open, busy)
 		verbs = append(verbs, "debug", "profile")
 	}
 
@@ -222,6 +267,26 @@ func mountBoard(mux *http.ServeMux, prefixes []string, b Board, esptool string) 
 		return nil, err
 	}
 	return append(verbs, "load"), nil
+}
+
+// follow is what a load tells the debug page (peer design D14): it re-reads the
+// map and restarts the session on it, on line; or, when the map is not the
+// program the board now runs, ends the session as stale until a load it fits.
+func follow(s *debug.Session, line debug.Line, reread func() (*debug.SourceMap, error)) func(sha string) string {
+	return func(sha string) string {
+		sm, err := reread()
+		if err == nil && sha != "" && sm.SHA256() != sha {
+			err = fmt.Errorf("the board now runs sha256 %.12s, and the debug map describes %.12s: rebuild, then load again",
+				sha, sm.SHA256())
+		}
+		if err != nil {
+			s.Stale(err.Error())
+			return err.Error()
+		}
+		s.Restart(sm)
+		s.Attach(line)
+		return "restarted"
+	}
 }
 
 // handle registers h at pattern ("METHOD /path") under each prefix.

@@ -41,18 +41,16 @@ type Load struct {
 	Debug    string
 }
 
-// cable is what another verb must hold of the debug page on its board's cable:
-// release closes the session's line and answers once its reader has ended;
-// reopen restarts the session over the board's new program after a load (sha ""
-// after a failed one); resume gives a released session its cable back,
-// unchanged, after a capture.
-type cable struct {
-	release func() error
-	reopen  func(sha string) string
-	resume  func() error
+// around is what a load needs of its board beyond the target (peer design
+// D16): lend runs the load with the board's console cable free (nil on a host
+// VM, which has none); follow tells the debug page the board's new program (sha
+// "" after a failed load) and answers what became of it (nil: no debug page).
+type around struct {
+	lend   func(func() error) error
+	follow func(sha string) string
 }
 
-func mountLoad(mux *http.ServeMux, prefixes []string, t load.Target, held *cable, busy *sync.Mutex) error {
+func mountLoad(mux *http.ServeMux, prefixes []string, t load.Target, held *around, busy *sync.Mutex) error {
 	dir, err := os.MkdirTemp("", "custos-load-")
 	if err != nil {
 		return err
@@ -108,16 +106,16 @@ func mountLoad(mux *http.ServeMux, prefixes []string, t load.Target, held *cable
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		if held != nil {
-			if err := held.release(); err != nil {
-				http.Error(w, "custos: releasing the debug page's cable: "+err.Error(), http.StatusInternalServerError)
-				return
-			}
+		var res load.Result
+		run := func() (err error) { res, err = t.Load(path); return err }
+		if held != nil && held.lend != nil {
+			err = held.lend(run)
+		} else {
+			err = run()
 		}
-		res, err := t.Load(path)
 		debug := ""
-		if held != nil {
-			debug = held.reopen(res.SHA256)
+		if held != nil && held.follow != nil {
+			debug = held.follow(res.SHA256)
 		}
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadGateway)

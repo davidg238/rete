@@ -17,17 +17,15 @@ package custos
 import (
 	"context"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os/exec"
 	"strings"
-	"sync/atomic"
 	"time"
 
-	"github.com/davidg238/rete/custos/internal/debug"
+	"github.com/davidg238/rete/custos/internal/console"
 	"github.com/davidg238/rete/custos/internal/imagemap"
 	"github.com/davidg238/rete/protocol/allowlist"
 )
@@ -48,6 +46,11 @@ type Config struct {
 	// board's load runs.
 	Boards  []Board
 	Esptool string
+	// ConsoleRoot is where each board's console is collected (D16; "" = the
+	// collector's default, ~/.local/state/rete/console). Context ends the
+	// collectors ("" = they run until the process exits).
+	ConsoleRoot string
+	Context     context.Context
 }
 
 // Handler builds the custos mux: / lands on the fleet page when a store is
@@ -63,7 +66,14 @@ func Handler(cfg Config) (http.Handler, error) {
 		w.Header().Set("Content-Type", "text/css; charset=utf-8")
 		w.Write(fleetCSS)
 	})
-	if err := mountBoards(mux, cfg.Boards, cfg.Esptool); err != nil {
+	ctx, root := cfg.Context, cfg.ConsoleRoot
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if root == "" {
+		root = console.DefaultRoot
+	}
+	if err := mountBoards(ctx, mux, cfg.Boards, cfg.Esptool, root); err != nil {
 		return nil, err
 	}
 	if cfg.Store != "" {
@@ -120,6 +130,7 @@ func portaProxy(base string) (http.Handler, error) {
 
 // Run serves until ctx is cancelled, then shuts down gracefully.
 func Run(ctx context.Context, cfg Config, logf func(string, ...any)) error {
+	cfg.Context = ctx
 	h, err := Handler(cfg)
 	if err != nil {
 		return err
@@ -143,103 +154,6 @@ func Run(ctx context.Context, cfg Config, logf func(string, ...any)) error {
 	case err := <-errc:
 		return err
 	}
-}
-
-// newDebugCable is what a load on the debug page's cable holds of it (peer
-// design D14): release closes line, and reopen re-reads the map, restarts s on
-// it and opens the cable again; or, when the map is not the program the board
-// now runs, ends s as stale and leaves the cable closed until a load it fits.
-func newDebugCable(s *debug.Session, line debug.Line, open func() (debug.Line, error), reread func() (*debug.SourceMap, error)) *cable {
-	held := true // false while the cable is left closed
-	return &cable{
-		release: func() error {
-			if !held {
-				return nil
-			}
-			held = false
-			return line.(io.Closer).Close()
-		},
-		reopen: func(sha string) string {
-			sm, err := reread()
-			if err == nil && sha != "" && sm.SHA256() != sha {
-				err = fmt.Errorf("the board now runs sha256 %.12s, and the debug map describes %.12s: rebuild, then load again",
-					sha, sm.SHA256())
-			}
-			if err != nil {
-				s.Stale(err.Error())
-				return err.Error()
-			}
-			s.Restart(sm)
-			if line, err = open(); err != nil {
-				s.OnLost()
-				return err.Error()
-			}
-			held = true
-			s.Attach(line)
-			return "restarted"
-		},
-		resume: func() error {
-			if held {
-				return nil
-			}
-			l, err := open()
-			if err != nil {
-				s.OnLost()
-				return err
-			}
-			line, held = l, true
-			s.Attach(line)
-			return nil
-		},
-	}
-}
-
-// heldCable answers how the debug page opens its cable, as often as a load
-// releases it. Each open is a generation: a released line's reader may still
-// deliver its last lines and its end, and those must not reach the session it
-// was released from (a release is not a lost cable). Closing the line answers
-// once its reader has ended.
-func heldCable(port string, s *debug.Session) func() (debug.Line, error) {
-	var gen atomic.Int64
-	return func() (debug.Line, error) {
-		g := gen.Add(1)
-		ended := make(chan struct{})
-		l, err := debug.OpenPort(port, 115200,
-			func(line string) {
-				if gen.Load() == g {
-					s.OnLine(line)
-				}
-			},
-			func() {
-				if gen.Load() == g {
-					s.OnLost()
-				}
-				close(ended)
-			})
-		if err != nil {
-			return nil, err
-		}
-		return releasing{l, func() { gen.Add(1) }, ended}, nil
-	}
-}
-
-// releasing is a held cable's line: Close retires its generation, closes the
-// port and waits for its reader to end.
-type releasing struct {
-	debug.Line
-	retire func()
-	ended  chan struct{}
-}
-
-func (r releasing) Close() error {
-	r.retire()
-	err := r.Line.(io.Closer).Close()
-	select {
-	case <-r.ended:
-	case <-time.After(2 * time.Second):
-		return fmt.Errorf("the cable's reader did not end")
-	}
-	return err
 }
 
 // lastLines is the last n lines of out, for an error that names a tool's failure.
