@@ -29,7 +29,10 @@ type function struct {
 type SourceMap struct {
 	img    *imagemap.Map
 	Source string // files[0], the app's file
-	Entry  string // the class the image runs
+	// MapPath and SourcePath are where the map and the app's source were read
+	// from: a patch compiles against them (peer design D17).
+	MapPath, SourcePath string
+	Entry               string // the class the image runs
 	// functions is every method with lines in files[0] — the entry's, its
 	// blocks', its other classes' — in the map's offset order. The kernel and
 	// the Supervisor are other files.
@@ -60,6 +63,7 @@ func LoadSourceMap(mapPath, source string) (*SourceMap, error) {
 		abs, _ := filepath.Abs(mapPath)
 		source = filepath.Join(filepath.Dir(abs), sm.Source)
 	}
+	sm.MapPath, sm.SourcePath = mapPath, source
 	if text, err := os.ReadFile(source); err == nil {
 		lines := strings.Split(strings.ReplaceAll(string(text), "\r\n", "\n"), "\n")
 		if lines[len(lines)-1] == "" {

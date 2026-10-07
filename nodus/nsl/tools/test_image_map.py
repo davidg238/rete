@@ -43,7 +43,7 @@ def test_the_checked_in_pair_belongs_together():
     blob = (FIXTURE / "Fixture.oimg").read_bytes()
     doc = json.loads((FIXTURE / "Fixture.oimg.map.json").read_text())
     assert doc["image"] == {"sha256": hashlib.sha256(blob).hexdigest(),
-                            "size": len(blob), "oop_size": 4}
+                            "size": len(blob), "layout": json.loads(LAYOUT.read_text())}
 
 
 def test_a_fresh_compile_writes_the_fixture_programs_methods_as_checked_in(fresh):
@@ -55,7 +55,8 @@ def test_the_map_names_its_image(fresh):
     blob, doc = fresh
     assert set(doc) == {"image", "entry", "files", "methods"}
     assert doc["image"] == {"sha256": hashlib.sha256(blob).hexdigest(),
-                            "size": len(blob), "oop_size": 4}
+                            "size": len(blob), "layout": json.loads(LAYOUT.read_text())}
+    assert doc["image"]["layout"]["oop_size"] == 4
     assert blob[:4] == b"OIMG"
     assert int.from_bytes(blob[12:16], "little") == len(blob)    # blob_size
 

@@ -35,7 +35,7 @@ All values are little-endian.
 |---|---|---|---|
 | 0 | 4 | magic `"OIMG"` | refuses the file if the magic does not match |
 | 4 | 2 | `format_version` (u16) | shows it; **does not judge it**, because the VM does that and refuses any version it does not run |
-| 6 | 2 | `flags` (u16) | bits 0–1 = log2(oop_size): `2` for 4-byte words, `3` for 8-byte words; all other bits 0. **Not yet written** (decision 3, #344): today `flags` is 0 and custos takes the width from the map's `image.oop_size` |
+| 6 | 2 | `flags` (u16) | bits 0–1 = log2(oop_size): `2` for 4-byte words, `3` for 8-byte words; all other bits 0. **Not yet written** (decision 3, #344): today `flags` is 0 and custos takes the width from the map's `image.layout.oop_size` |
 | 8 | 4 | `registry_version` (u32) | shows it; the VM refuses a mismatch with its firmware |
 | 12 | 4 | `blob_size` (u32) | refuses the file unless this equals the file's length; it is also the size written to the program region (#310) |
 | 16 | 4 | `cluster_count` (u32) | ignored |
@@ -64,7 +64,8 @@ firmware prints `oevm: program sha256 <hex> (<N> ms)` and reports the same hash 
 ```json
 // 46_debug_target.nsl, C6 layout, 2026-10-05 (three of its 787 methods)
 {
-  "image":   { "sha256": "422b6570…2b428e", "size": 160776, "oop_size": 4 },
+  "image":   { "sha256": "422b6570…2b428e", "size": 160776,
+               "layout": { "oop_size": 4, "structs": { … } } },
   "entry":   "DebugTargetTest",
   "files":   ["46_debug_target.nsl", "kernel.nsl", "supervisor.nsl"],
   "methods": {
@@ -82,7 +83,11 @@ firmware prints `oevm: program sha256 <hex> (<N> ms)` and reports the same hash 
 ```
 
 - `image`: the image this map belongs to. `sha256` and `size` must match the `.oimg`
-  exactly, or custos refuses to use the map. `oop_size` is the target word width.
+  exactly, or custos refuses to use the map. `layout` is the layout JSON the image was
+  compiled with (`--layout=`, e.g. `nodus/oevm/zephyr/layout-esp32c6.json`), whole, so the
+  map alone says how to compile against this image: a patch (rete#313, peer design D17)
+  re-encodes a method through the image's own offsets. `layout.oop_size` is the target
+  word width; it replaced a separate `oop_size` field (2026-10-07).
 - `entry`: the class the image runs, so the map names its program. The debugger no
   longer uses it: it names a method by its blob offset (rete#323).
 - `files`: the base names of the source files that went into the image. The app's
@@ -132,7 +137,7 @@ format changes by editing this document and rebuilding both sides).
   method, a block the compiler keeps as a block, a captured local and an inlined
   loop variable;
 - `Fixture.oimg` and `Fixture.oimg.map.json`, compiled for the C6 layout
-  (`oop_size` 4), because a board is the target custos actually loads. Regenerate both
+  (`layout.oop_size` 4), because a board is the target custos actually loads. Regenerate both
   together, from the repo root:
 
   ```

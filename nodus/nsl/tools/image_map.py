@@ -10,11 +10,12 @@ import json
 import os
 
 
-def build_image_map(blob, oop_size, entry, files, quals, source_maps, vtable_files,
+def build_image_map(blob, layout, entry, files, quals, source_maps, vtable_files,
                     method_vars, block_vtables):
     """The map for one image, as a JSON string.
 
     blob          the .oimg bytes (the map carries their hash and size)
+    layout        the layout JSON the image was compiled with, carried whole (§3)
     files         source paths, the app's first; the map keeps base names
     quals         {offset: "<Vtable>>selector"} from the serializer
     source_maps   {"<name>": [(bytecode_offset, line), ...]} from the compiler
@@ -37,7 +38,7 @@ def build_image_map(blob, oop_size, entry, files, quals, source_maps, vtable_fil
         }
     # One method per line: the fixture's diff then reads method by method.
     head = {"image": {"sha256": hashlib.sha256(blob).hexdigest(), "size": len(blob),
-                      "oop_size": oop_size},
+                      "layout": layout},
             "entry": entry,
             "files": [os.path.basename(f) for f in files]}
     out = ["{"] + [f" {json.dumps(k)}: {json.dumps(v)}," for k, v in head.items()]

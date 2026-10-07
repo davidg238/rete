@@ -1288,6 +1288,8 @@ def main():
     custos_dbg = run_custos_gate("custos-debug", "test_custos_debug.py")       # "PASS" | "SKIP" | "FAIL"
     custos_prof = run_custos_gate("custos-profile", "test_custos_profile.py")  # rete#364
     custos_load = run_custos_gate("custos-load", "test_custos_load.py")        # rete#367
+    custos_patch = run_custos_gate("custos-patch", "test_custos_patch.py")     # rete#313, peer design D17
+    custos_build = run_custos_gate("custos-build", "test_custos_build.py")     # rete#314, peer design D18
     subprocess.run(
         ["git", "-C", str(OEVM_DIR), "checkout",
          "src/solidified_image.c"],
@@ -1330,6 +1332,8 @@ def main():
                                            "test_custos_debug.py",
                                            "test_custos_profile.py",
                                            "test_custos_load.py",
+                                           "test_custos_patch.py",
+                                           "test_custos_build.py",
                                            "test_deepsleep_node.py"))
     # rete#228: the protocol's own tool tests (manifestlib, the linter, the pin
     # tool) were wired to nothing — the contract's parsers gated only by hand.
@@ -1362,7 +1366,7 @@ def main():
     # fails the suite like a FAIL does, because a gate that did not run tested nothing
     # (docs/development.md §4; #31 is the footprint gate's SKIP that hid a regression).
     # The line below still says SKIP, so the reason is the missing tool, not the code.
-    aux = (custos_dbg, custos_prof, custos_load, portability, footprint, mprof_py,
+    aux = (custos_dbg, custos_prof, custos_load, custos_patch, custos_build, portability, footprint, mprof_py,
            observe_py, cmake_parse, nsl_tools_py, protocol_py, gwprof_py, tutorial,
            tutorial_porta, tutorial_board, tutorial_dbg, porta_cli)
     suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok and patch_ok
@@ -1391,7 +1395,8 @@ def main():
           f"debugger-integration: {_mark('PASS' if dbg_int_ok else 'FAIL')}  "
           f"patch-restart: {_mark('PASS' if patch_ok else 'FAIL')}  "
           f"custos-debug: {_mark(custos_dbg)}  custos-profile: {_mark(custos_prof)}  "
-          f"custos-load: {_mark(custos_load)}  "
+          f"custos-load: {_mark(custos_load)}  custos-patch: {_mark(custos_patch)}  "
+          f"custos-build: {_mark(custos_build)}  "
           f"portability-32: {_mark(portability)}  "
           f"boot-gc-asan: {_mark('PASS' if boot_gc_ok else 'FAIL')}  "
           f"deepsleep: {_mark('PASS' if deepsleep_ok else 'FAIL')}  "

@@ -40,7 +40,7 @@ func pane(title, body string, w, h int) string {
 func (m Model) View() string {
 	w, h := max(m.w, 20), max(m.h, 6)
 	var bar string
-	for t, name := range []string{" debug ", " profile ", " load "} {
+	for t, name := range []string{" debug ", " profile ", " load ", " build "} {
 		if tab(t) == m.tab {
 			bar += cursorS.Render(name)
 		} else {
@@ -53,8 +53,10 @@ func (m Model) View() string {
 		body = m.debugView(w, h-3)
 	case profileTab:
 		body = m.profileView(w, h-3)
-	default:
+	case loadTab:
 		body = m.loadView(w, h-3)
+	default:
+		body = m.buildView(w, h-3)
 	}
 	clip := lipgloss.NewStyle().MaxWidth(w)
 	return lipgloss.JoinVertical(lipgloss.Left, bar, body, clip.Render(m.statusLine()), clip.Render(m.help()))
@@ -85,9 +87,11 @@ func (m Model) help() string {
 	case profileTab:
 		return dim.Render("r capture · tab load · q quit")
 	case loadTab:
-		return dim.Render("r load an .oimg · tab debug · q quit")
+		return dim.Render("r load an .oimg · tab build · q quit")
+	case buildTab:
+		return dim.Render("b build an .nsl · x run it (host) · l load the last build · tab debug · q quit")
 	}
-	return dim.Render("↑↓ line · b break · c continue · s step · n next · f finish · p pause · [ ] frame · : command · tab profile · q quit")
+	return dim.Render("↑↓ line · b break · c continue · s step · n next · f finish · p pause · R restart · P patch · [ ] frame · : command · tab profile · q quit")
 }
 
 func (m Model) debugView(w, h int) string {
@@ -204,4 +208,27 @@ func (m Model) loadView(w, h int) string {
 		body += "\n" + dim.Render("loading…")
 	}
 	return pane("load", body, w, h)
+}
+
+func (m Model) buildView(w, h int) string {
+	var body string
+	switch {
+	case m.ran != nil:
+		end := fmt.Sprintf("exit %d", m.ran.Exit)
+		if m.ran.TimedOut {
+			end = "stopped: it outlived the run time"
+		}
+		body = fmt.Sprintf("ran %s on %s · sha256 %.12s · %s\n\n%s",
+			m.ran.Image, m.ran.Board, m.ran.SHA256, end, strings.Join(m.ran.Output, "\n"))
+	case m.built != nil:
+		body = fmt.Sprintf("image    %s (%d B)\nboard    %s\nsha256   %s\n\n%s",
+			m.built.Image, m.built.Size, m.built.Board, m.built.SHA256,
+			dim.Render("l loads it onto the board; the load tab shows the board's proof"))
+	default:
+		body = dim.Render("nothing built yet — press b and give an .nsl path (x runs it on a host board)")
+	}
+	if m.building {
+		body += "\n" + dim.Render("working…")
+	}
+	return pane("build", body, w, h)
 }

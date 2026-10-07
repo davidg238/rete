@@ -33,7 +33,7 @@ const LineStepLimit = 5000
 
 // Help is what `help` prints.
 const Help = `break/clear <line> or <file>:<line>, continue, step, next, finish, pause,
-inspect, bt, locals [N], where, list, methods, quit; any ` + "`dbg:...`" + ` line is passed through unchanged.
+inspect, bt, locals [N], where, list, methods, restart, quit; any ` + "`dbg:...`" + ` line is passed through unchanged.
 Any line typed while the program runs stops it first (the pause rule), so
 ` + "`break 26`" + ` while running stops the program, sets the breakpoint, and stays stopped.`
 
@@ -44,6 +44,7 @@ var words = map[string]string{
 	"f": "dbg:out", "finish": "dbg:out",
 	"p": "dbg:pause", "pause": "dbg:pause",
 	"i": "dbg:inspect", "inspect": "dbg:inspect",
+	"restart": "dbg:restart",
 }
 
 // stop is where the program is held: at boot, or at (blob offset, pc). A nil
@@ -509,6 +510,11 @@ func (s *Session) Do(cmd string) Result {
 		s.line.Send(verb)
 	case "dbg:inspect":
 		_, r := s.command(verb, `^dbg:(stack|error)`, answerWait)
+		return r
+	case "dbg:restart":
+		// rete#313: the stopped frame starts over from its first line, into its
+		// method's replacement when a patch installed one. The stop is kept.
+		_, r := s.command(verb, `^dbg:(ok|error)`, answerWait)
 		return r
 	case "dbg:out":
 		s.setStopped(nil)

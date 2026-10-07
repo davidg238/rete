@@ -71,6 +71,20 @@ custos's query engine.
   `--debug-map` (stale when that map is not the loaded program). The map and source are
   not uploaded: they are read from disk, as the profile page already does; a front that
   builds on another machine than custos is what would earn uploading them.
+- **D17 (David, 2026-10-07): patch's agent path (#313).** `POST /board/<n>/debug/patch?method=Class>>sel`
+  takes the whole edited `.nsl` as the body; custos compiles it against the board's map and source
+  (`patch_method.py`) and sends the result as `dbg:patch <text>`, answering `{OK, Error, State}` as
+  `/debug/do` does. `restart` becomes a debug command word. The image map carries the layout that built
+  the image (`image.layout`, the layout JSON itself, `protocol/IMAGE-ARTIFACTS.md` §3), so the map alone
+  says how to compile against the image.
+- **D18 (David, 2026-10-07): build and run (#314).** `POST /build?for=<board>&name=F.nsl` takes the `.nsl`
+  as the body and compiles it with that board's layout, answering `{Image, SHA256, Size}` or the
+  compiler's errors; `GET /build/last.oimg` and `/build/last.oimg.map.json` fetch the result, which the
+  agent then POSTs to `/load` (D14 unchanged: build and load stay two verbs). `run` is host-only:
+  `POST /run` takes the `.nsl`, builds it for the host VM, runs it once and answers its output and exit
+  status; on a board, load already boots the program. custos finds the nsl compiler at `RETE_NSL_TOOLS`,
+  defaulting to `~/workspace/rete/nodus/nsl/tools`, the pattern it uses for the ELF archive and gdb.
+  This supersedes §3a's build and run rows.
 
 ## 2. The picture
 
