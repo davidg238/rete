@@ -154,49 +154,12 @@ target::collector_ok() {
   [ -f "$logfile" ] || target::die "no console log at $logfile"
 }
 
-# ---- the collector must yield for a flash, and the board must be re-reset ----
+# ---- the board must be re-reset after a flash ----
 #
-# THE HAZARD, found 2026-08-05 the first time two scenarios ran back to back.
-# The collector (custos since D16) holds the CP2102N open permanently. A tty has no exclusive open,
-# so esptool and the collector both read it and the ROM handshake bytes are split
-# between them:
-#
-#   A serial exception error occurred: device reports readiness to read but
-#   returned no data (device disconnected or multiple access on port?)
-#
-# This is a RACE, not a hard failure, which is why stale_handle_c6.sh and
-# porta_sync_c6.sh have both appeared reliable while carrying it. It is
-# pre-existing and it is closed here, in the shared layer, because every future
-# scenario needs the same thing.
-#
-# A HAND-RUN `zephyr/run.sh --flash` STILL RACES — the fix below only covers
-# deploys that go through this harness. Filed as #154, where it belongs: run.sh
-# already claims to own every step that has a wrong-by-default, and the
-# collector's grip on the port is one of those.
-#
-# The sequencing matters and is not obvious. esptool resets the board when it
-# finishes, so the boot banner — which IS the anchor — is emitted in the window
-# where the collector is still stopped, and would be lost. So the board is reset
-# AGAIN, deliberately, once the collector is back and reading.
-target::collector_pause() {
-  TARGET_PAUSED_BOARD=$1
-  trap 'target::collector_resume' EXIT
-  # 600 s is a ceiling, not a wait: resume returns the cable as soon as the flash
-  # is done, and the ceiling is what gives it back if this script dies first.
-  bench::lend "$TARGET_PAUSED_BOARD" 600 \
-    || target::die "custos ($RETE_CUSTOS) would not lend $TARGET_PAUSED_BOARD's cable"
-}
-
-target::collector_resume() {
-  [ -n "${TARGET_PAUSED_BOARD:-}" ] || return 0
-  bench::return "$TARGET_PAUSED_BOARD"
-  local deadline=$(( $(date +%s) + 20 ))
-  while [ "$(date +%s)" -lt "$deadline" ]; do
-    [ "$(bench::collector_state "$TARGET_PAUSED_BOARD")" = active ] && break
-    sleep 1
-  done
-  TARGET_PAUSED_BOARD=""
-}
+# run.sh has custos lend the cable for the esptool call (rete#154), and esptool
+# resets the board when it finishes — while the cable is still lent. So the boot
+# banner, which IS the anchor, goes unlogged, and the board is reset AGAIN once
+# custos is reading.
 
 # target::reset_board <board> — pulse RTS (EN) to reboot, leaving DTR (IO0) high
 # so it boots the application rather than the ROM downloader.

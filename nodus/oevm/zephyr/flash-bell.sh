@@ -31,9 +31,9 @@
 #   * OEVM_SOLENOID_CONSOLE is ABSENT (rete#182). This is the unattended board;
 #     strike_console reads the console UART, so pulling the cable does not make
 #     that input go quiet, it makes it go UNDRIVEN — and a floating RX is noise.
-#   * custos lends the cable for the flash and takes it back on EVERY exit path,
-#     including failure. It and esptool otherwise split the ROM handshake, and a
-#     cable left lent is a bell nobody can see (custos also takes it back at 900 s).
+#   * run.sh has custos lend the cable for the flash and takes it back on every
+#     exit path, including failure (rete#154). It and esptool otherwise split the
+#     ROM handshake, and a cable left lent is a bell nobody can see.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -50,11 +50,6 @@ BELL_BYID=/dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controll
 # one for the other cost most of a morning on 2026-08-05.
 echo "  bell CP2102N -> $(readlink -f "$BELL_BYID")"
 
-# custos lends the cable for the flash (D16); 900 s is a ceiling, the trap
-# takes it back the moment the flash is over.
-. tools/bench-identity.sh
-trap 'bench::return c6' EXIT
-bench::lend c6 900 || { echo "FAIL: custos ($RETE_CUSTOS) would not lend c6's cable." >&2; exit 1; }
 
 ( set +u
   # shellcheck disable=SC1091

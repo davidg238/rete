@@ -777,27 +777,6 @@ fi
 [ "$BUILD_RC" = 0 ] || exit "$BUILD_RC"
 
 if [ "$DO_FLASH" = 1 ]; then
-  # KNOWN RACE, not yet closed here (rete#154, closed as recorded rather than
-  # fixed — this comment is the record). The collector (custos, D16) holds the CP2102N
-  # open permanently and a tty has no exclusive open, so on the boards where the
-  # flash and console channels are the SAME adapter, esptool and the collector both
-  # read it and the ROM handshake bytes are split between them. Symptom:
-  #
-  #   A serial exception error occurred: device reports readiness to read but
-  #   returned no data (device disconnected or multiple access on port?)
-  #
-  # Intermittent, which is why it went unnoticed — whether a flash wins depends
-  # on where the collector is in its read loop. The C6 is NOT exposed (it flashes
-  # over the USB-JTAG node and consoles over the CP2102N, two physical channels),
-  # so this bites the esp32 and esp32s2 profiles above.
-  #
-  # Already closed for the target harness: target::collector_pause has custos
-  # lend the cable for the deploy window, and target::reset_board then drives RTS
-  # afterwards so the boot banner is still captured (esptool resets the board on
-  # completion, i.e. while there is no reader). The fix here is to move that pause
-  # into this script and have the harness stop doing it. rete#170 unblocked it by
-  # giving this script the real instance name (below); what remains is moving the
-  # lend/return and the second reset over, and deleting the harness's copy.
   if [ "$BOARD_ID" = nrf52840dongle ]; then
     # DFU, because the dongle has no debugger. It only accepts a flash while in DFU
     # mode, which is a PHYSICAL act: hold RESET while inserting, and it re-enumerates
@@ -873,9 +852,37 @@ if [ "$DO_FLASH" = 1 ]; then
   # NOT `west flash` — that would rebuild.
   PROG_ARGS=()
   [ -n "${PROG_OFF:-}" ] && PROG_ARGS=("$PROG_OFF" "$OIMG")
+  # rete#154: when the flash port IS a cable custos collects (the esp32/esp32s2
+  # shared UART, or a C6 flashed over its CP2102N as the target harness and
+  # flash-bell.sh do), esptool and custos would split the ROM handshake:
+  #   A serial exception error occurred: device reports readiness to read but
+  #   returned no data (device disconnected or multiple access on port?)
+  # So custos lends the cable for exactly the esptool call, here where the flash
+  # happens, and no caller does it for us. The C6's default flash port is its
+  # USB-JTAG node, which no bench file names, so the common path lends nothing.
+  # 180 s is a ceiling: it gives the cable back if this script is killed mid-flash.
+  # The boot esptool triggers lands while the cable is lent and is not logged; a
+  # caller that anchors on a boot (the harness) resets the board again after.
+  LENT=""
+  if FLASH_BOARD=$(bench::board_for_port "$ESPTOOL_PORT") \
+     && [ "$(bench::collector_state "$FLASH_BOARD")" != unserved ]; then
+    bench::lend "$FLASH_BOARD" 180 \
+      || { echo "[flash] custos ($RETE_CUSTOS) would not lend $FLASH_BOARD's cable" >&2; exit 1; }
+    LENT=$FLASH_BOARD
+    echo "[flash] custos lent $LENT's cable for the flash"
+  fi
+  rc=0
   "$ESPTOOL" --chip "$ESPTOOL_CHIP" --port "$ESPTOOL_PORT" --baud 921600 write_flash \
     --flash_mode dio --flash_freq 40m --flash_size "$ESPTOOL_FLASH_SIZE" \
-    "$ESPTOOL_OFFSET" "$ZDIR/$BUILD_DIR/zephyr/zephyr.bin" "${PROG_ARGS[@]}"
+    "$ESPTOOL_OFFSET" "$ZDIR/$BUILD_DIR/zephyr/zephyr.bin" "${PROG_ARGS[@]}" || rc=$?
+  if [ -n "$LENT" ]; then
+    bench::return "$LENT" || echo "[flash] WARNING: custos did not take $LENT's cable back; it will at 180 s" >&2
+    for _ in $(seq 20); do
+      [ "$(bench::collector_state "$LENT")" = lent ] || break
+      sleep 1
+    done
+  fi
+  [ "$rc" = 0 ] || exit "$rc"
   fi
   # Part of flashing, not a step to remember afterwards (#56 §5.3). Keyed by the
   # build id the firmware itself prints, read from oevm_build_id.txt so host and
@@ -900,12 +907,10 @@ if [ "$DO_FLASH" = 1 ]; then
       case "$(bench::collector_state "$INSTANCE")" in
         active) : ;;
         lent)
-          # rete#237: a lent cable was lent on purpose, by whoever is flashing this
-          # very board (the target harness lends it, flashes, takes it back and
-          # resets the board again so that boot is the anchor). custos answers per
-          # board, so a lent c6spare cannot quieten a warning about c6.
-          echo "[console] note: $INSTANCE's cable is lent for this flash, so this boot is not" >&2
-          echo "[console] logged — whoever lent it resets the board again once it is back." >&2 ;;
+          # This script returned its own lend above, so a lent cable now is some
+          # other process's: the boot just triggered is not being logged.
+          echo "[console] WARNING: $INSTANCE's cable is lent to something else, so the" >&2
+          echo "[console] boot you just triggered is not being logged." >&2 ;;
         unserved)
           echo "[console] WARNING: custos ($RETE_CUSTOS) does not serve $INSTANCE." >&2
           echo "[console] The boot you just triggered is not being logged." >&2 ;;

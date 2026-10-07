@@ -62,8 +62,6 @@ def run_flash(tmp, run_sh_body):
     target::warn() {{ echo "  ! $*" >&2; }}
     target::die()  {{ echo "FAIL: $*" >&2; exit 1; }}
     target::board_byid()       {{ echo "/dev/null"; }}
-    target::collector_pause()  {{ :; }}
-    target::collector_resume() {{ :; }}
     target::reset_board()      {{ :; }}
 
     TARGET_WEST_VENV="{venv}"

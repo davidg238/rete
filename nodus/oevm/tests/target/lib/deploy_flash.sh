@@ -99,13 +99,6 @@ deploy::flash() {
     args+=(--pristine)
   fi
 
-  # The collector must let go of the tty for the duration, or it and esptool
-  # split the ROM handshake between them. See target::collector_pause: custos
-  # lends the cable (D16). run.sh then reads the board's state as `lent` and prints
-  # a note, not a warning (rete#237): the esptool-triggered boot is not logged, and
-  # collector_resume plus the target::reset_board below produce a second boot that
-  # IS logged, which is what the run is anchored on.
-  target::collector_pause "$board"
   # `set +u` for the activate script, which reads unset variables; scoped to the
   # subshell so the runner keeps its own -u.
   #
@@ -142,17 +135,14 @@ deploy::flash() {
                 ZEPHYR_SDK_INSTALL_DIR="$TARGET_ZEPHYR_SDK" \
                 ZEPHYR_TOOLCHAIN_VARIANT=zephyr
          bash "$zdir/run.sh" "${args[@]}" ) || {
-    target::collector_resume
     # The build's own error already streamed to stderr above; this adds the stdout tail,
     # which carries the progress lines that say how far it got.
     echo "$out" | tail -20 >&2
     target::die "run.sh failed for $NODE"
   }
-  target::collector_resume
-
-  # esptool already reset the board, but it did so while the collector was down,
-  # so that boot — and the banner this run is anchored on — went nowhere. Reset
-  # again now that there is a reader.
+  # esptool already reset the board, but it did so while run.sh had the cable lent
+  # (rete#154), so that boot — and the banner this run is anchored on — went
+  # nowhere. Reset again now that custos is reading.
   target::reset_board "$board"
 
   # run.sh prints: [archive] <build-id> -> <path>
