@@ -167,6 +167,10 @@ follows the same precedent (an endpoint answering JSON, a host-VM target, a real
    every caller of them (the target harness `target.sh` and `deploy_flash.sh`, `run.sh`, `flash-bell.sh`,
    `bench-identity.sh`, tutorial 2, the `console-py` aux gate), gets a fate. The bench units move board by board, with
    c6bench's soak last and only when David says.
+   **Executed 2026-10-06** (`2eac3fb`, `1618d93`): `rete-custos.service`, boards named in `~/.config/rete/custos.env`, a
+   bare `--board <name>` reads its cable from `console-<name>.env`. A flash borrows a cable with `POST
+   /board/<n>/lend`, and **`run.sh` owns the lend**, around exactly the esptool call and only when the flash port is a
+   served cable (#154); no caller lends for it. The reference is `custos/docs/console.md`.
 
 - **CLI.** One command for the whole first hour. Each verb gives a verdict a machine can
   read, finishes within a fixed time, never prompts and never skips silently
