@@ -11,6 +11,9 @@ package custos
 //	GET  /debug/state?after=N   the state once its Seq passes N (long-poll, 25 s)
 //	POST /debug/do              one command line, as typed at `custos debug`;
 //	                            answers {OK, Error, State}
+//	POST /debug/patch?method=V>>sel  the whole edited .nsl as the body: one
+//	                            method compiled against the running image and
+//	                            installed (peer design D17); answers as /debug/do
 //
 // One command at a time: a second while one is in flight answers 409 rather
 // than queueing, as the profile page does. A load on the same cable (load.go)
@@ -27,6 +30,7 @@ import (
 	"time"
 
 	"github.com/davidg238/rete/custos/internal/debug"
+	"github.com/davidg238/rete/custos/internal/nsl"
 )
 
 //go:embed debug.html
@@ -98,6 +102,34 @@ func mountDebug(mux *http.ServeMux, prefixes []string, s *debug.Session, busy *s
 		}
 		defer busy.Unlock()
 		res := s.Do(strings.TrimSpace(string(body))) // quit has nothing to leave: the cable stays held
+		answer(w, Done{res.Err == "", res.Err, s.State(-1, 0)})
+	})
+
+	handle(mux, prefixes, "POST /debug/patch", func(w http.ResponseWriter, r *http.Request) {
+		method := r.URL.Query().Get("method")
+		if method == "" {
+			http.Error(w, "custos: name the method, ?method=<Vtable>>selector", http.StatusBadRequest)
+			return
+		}
+		edited, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if !busy.TryLock() {
+			http.Error(w, "custos: a command is already running", http.StatusConflict)
+			return
+		}
+		defer busy.Unlock()
+		sm := s.SourceMap()
+		text, err := nsl.Patch(sm.MapPath, sm.SourcePath, edited, method)
+		if err != nil {
+			// A refusal (a new constant, a block, another image) is the answer, not
+			// a server fault: the VM was not touched.
+			answer(w, Done{false, err.Error(), s.State(-1, 0)})
+			return
+		}
+		res := s.Patch(text)
 		answer(w, Done{res.Err == "", res.Err, s.State(-1, 0)})
 	})
 }

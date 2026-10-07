@@ -63,7 +63,8 @@ func TestAMapMissingAFieldOrCarryingAnExtraOneIsRefused(t *testing.T) {
 	}
 	for name, edit := range map[string]func(map[string]any){
 		"no entry":       func(d map[string]any) { delete(d, "entry") },
-		"no oop_size":    func(d map[string]any) { delete(d["image"].(map[string]any), "oop_size") },
+		"no layout":      func(d map[string]any) { delete(d["image"].(map[string]any), "layout") },
+		"no oop_size":    func(d map[string]any) { delete(d["image"].(map[string]any)["layout"].(map[string]any), "oop_size") },
 		"an extra field": func(d map[string]any) { d["stmap"] = true },
 		"a method with no vars": func(d map[string]any) {
 			for _, m := range d["methods"].(map[string]any) {

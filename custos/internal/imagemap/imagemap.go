@@ -22,9 +22,9 @@ import (
 // by a reader tolerating a shape.
 type doc struct {
 	Image *struct {
-		SHA256  *string `json:"sha256"`
-		Size    *int64  `json:"size"`
-		OopSize *int    `json:"oop_size"`
+		SHA256 *string          `json:"sha256"`
+		Size   *int64           `json:"size"`
+		Layout *json.RawMessage `json:"layout"`
 	} `json:"image"`
 	Entry   *string              `json:"entry"`
 	Files   []string             `json:"files"`
@@ -70,7 +70,8 @@ type Var struct {
 type Map struct {
 	SHA256  string
 	Size    int64
-	OopSize int
+	Layout  json.RawMessage // the layout JSON the image was compiled with, whole (§3)
+	OopSize int             // Layout's oop_size
 	Entry   string
 	Files   []string
 	Methods map[int]Method
@@ -89,8 +90,13 @@ func Load(path string) (*Map, error) {
 		return nil, fmt.Errorf("%s is not an image map (%v); rebuild it (rete#337)", path, err)
 	}
 	var missing []string
-	if d.Image == nil || d.Image.SHA256 == nil || d.Image.Size == nil || d.Image.OopSize == nil {
+	var layout struct {
+		OopSize *int `json:"oop_size"`
+	}
+	if d.Image == nil || d.Image.SHA256 == nil || d.Image.Size == nil || d.Image.Layout == nil {
 		missing = append(missing, "image")
+	} else if json.Unmarshal(*d.Image.Layout, &layout) != nil || layout.OopSize == nil {
+		missing = append(missing, "image.layout.oop_size")
 	}
 	if d.Entry == nil {
 		missing = append(missing, "entry")
@@ -114,7 +120,8 @@ func Load(path string) (*Map, error) {
 	m := &Map{
 		SHA256:  *d.Image.SHA256,
 		Size:    *d.Image.Size,
-		OopSize: *d.Image.OopSize,
+		Layout:  *d.Image.Layout,
+		OopSize: *layout.OopSize,
 		Entry:   *d.Entry,
 		Files:   d.Files,
 		Methods: make(map[int]Method, len(d.Methods)),

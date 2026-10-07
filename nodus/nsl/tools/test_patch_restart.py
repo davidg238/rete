@@ -30,7 +30,6 @@ TESTS = os.path.join(NSROOT, "..", "tests", "04_somns_basic")
 OLD = os.path.join(TESTS, "48_patch_restart_target.nsl")
 NEW = os.path.join(TESTS, "48_patch_restart_target_v2.nsl")
 OIMG = "/tmp/48_patch_restart_target.oimg"
-PATCH = "/tmp/48_patch_restart_target.patch"
 VM = "/tmp/oevm_img"
 LAYOUT = "/tmp/oevm_layout.json"
 
@@ -95,8 +94,8 @@ class VMProc:
 
 
 def patch(new_src):
-    return subprocess.run([sys.executable, os.path.join(HERE, "patch_method.py"), OIMG, OLD, new_src,
-                           "PatchRestartTarget>>report", PATCH, f"--layout={LAYOUT}"],
+    return subprocess.run([sys.executable, os.path.join(HERE, "patch_method.py"), OIMG + ".map.json",
+                           OLD, new_src, "PatchRestartTarget>>report"],
                           cwd=NSROOT, capture_output=True, text=True)
 
 
@@ -110,8 +109,7 @@ def run_patch_restart():
     vm.expect("dbg:ok break")
     vm.send("dbg:continue")
     stop = vm.expect("dbg:paused break")
-    with open(PATCH) as f:
-        text = f.read().strip()
+    text = r.stdout.strip()
     for bad in (f"oevm-patch 2 {text.split(' ', 2)[2]}", text[:len(text) // 2]):
         vm.send(f"dbg:patch {bad}")
         got = vm.expect("dbg:")

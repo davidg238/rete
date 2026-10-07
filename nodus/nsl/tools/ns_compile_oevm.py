@@ -2428,7 +2428,7 @@ def main():
         _map = out_c + ".map.json"
         with open(_map, "w", encoding="utf-8") as f:
             f.write(build_image_map(
-                blob, layout["oop_size"], entry_class,
+                blob, layout, entry_class,
                 [src_ns, kernel_path, supervisor_path], _ser.method_quals(_Graph),
                 compiler.source_maps, compiler.vtable_files,
                 {k: c.debug_vars() for k, c in compiler.method_compilers.items()},

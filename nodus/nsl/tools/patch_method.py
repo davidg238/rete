@@ -2,18 +2,19 @@
 """patch_method.py — one method of a running image, recompiled from edited source
 (rete#313).
 
-    python3 tools/patch_method.py <running.oimg> <old.nsl> <new.nsl> <Vtable>>selector> <out.patch> --layout=<layout.json>
+    python3 tools/patch_method.py <running.oimg.map.json> <old.nsl> <new.nsl> <Vtable>>selector>
 
 A method in an .oimg names everything it uses by the image's own offsets, and the
 VM matches a selector by identity, so a method from a second image is useless to
-the first. This compiles both sources: the old one must reproduce the running
-image byte for byte, which is what makes the old compile's offsets the running
-image's. The changed method is taken from the new compile and each constant is
+the first. This compiles both sources with the layout the running image's map
+carries (protocol/IMAGE-ARTIFACTS.md §3 `image.layout`): the old one must reproduce
+the running image byte for byte (the map's sha256), which is what makes the old
+compile's offsets the running image's. The changed method is taken from the new compile and each constant is
 re-encoded through the old offsets. A constant the running image does not hold (a
 new symbol, string, class or block) refuses the patch by name: interning one into
 a running image is not this spike.
 
-The output is the VM's patch text, one line: the debugger sends it as
+The output, on stdout, is the VM's patch text, one line: the debugger sends it as
 `dbg:patch <text>` (supervisor.nsl doPatch:; vm.c primitive_patch), on the desktop
 and over a board's cable alike. A debug line is capped by the VM's read buffer
 (platform.c PRIM_pf_readLine), so a patch that would not fit is refused here rather
@@ -59,11 +60,14 @@ def encode(ser, c):
         raise Refused(f"the running image holds no {c!r} ({e.args[0]})")
 
 
-def build(running, old_src, new_src, qual, layout):
+def build(image_map, old_src, new_src, qual):
+    if ">>" not in qual:
+        raise Refused(f"name the method as <Vtable>>selector, not {qual!r}")
     vt_name, selector = qual.split(">>", 1)
+    layout = image_map["image"]["layout"]
     oop = layout["oop_size"]
     old_ser, old_graph, old_blob, _ = serialize_oimg(compile_source(old_src, oop), layout)
-    have = hashlib.sha256(open(running, "rb").read()).hexdigest()
+    have = image_map["image"]["sha256"]
     got = hashlib.sha256(old_blob).hexdigest()
     if got != have:
         raise Refused(f"{old_src} compiles to sha256 {got[:12]}, not the running image's {have[:12]}")
@@ -91,26 +95,19 @@ def build(running, old_src, new_src, qual, layout):
 
 
 def main(argv):
-    layout_path = None
-    pos = []
-    for a in argv:
-        if a.startswith("--layout="):
-            layout_path = a.split("=", 1)[1]
-        else:
-            pos.append(a)
-    if len(pos) != 5 or not layout_path:
-        print(__doc__.strip().splitlines()[2].strip())
+    if len(argv) != 4:
+        print(__doc__.strip().splitlines()[2].strip(), file=sys.stderr)
         return 2
-    running, old_src, new_src, qual, out = pos
+    map_path, old_src, new_src, qual = argv
     try:
-        text, old_m, new_m = build(running, old_src, new_src, qual, json.load(open(layout_path)))
+        text, old_m, new_m = build(json.load(open(map_path)), old_src, new_src, qual)
     except Refused as e:
         print(f"patch_method: refused: {e}")
         return 1
-    with open(out, "w") as f:
-        f.write(text)
-    print(f"patch written to {out}: {qual}, {len(new_m['instructions'])} instructions "
-          f"(was {len(old_m['instructions'])}), {new_m['num_registers']} registers (was {old_m['num_registers']})")
+    sys.stdout.write(text)
+    print(f"patch_method: {qual}, {len(new_m['instructions'])} instructions "
+          f"(was {len(old_m['instructions'])}), {new_m['num_registers']} registers "
+          f"(was {old_m['num_registers']})", file=sys.stderr)
     return 0
 
 

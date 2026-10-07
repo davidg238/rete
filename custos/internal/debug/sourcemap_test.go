@@ -33,7 +33,7 @@ func method(name string, file int, lines ...[2]int) map[string]any {
 func synthetic() map[string]any {
 	sum := sha256.Sum256(image)
 	return map[string]any{
-		"image": map[string]any{"sha256": hex.EncodeToString(sum[:]), "size": len(image), "oop_size": 4},
+		"image": map[string]any{"sha256": hex.EncodeToString(sum[:]), "size": len(image), "layout": map[string]any{"oop_size": 4}},
 		"entry": "T",
 		"files": []string{"t.nsl", "kernel.nsl", "supervisor.nsl"},
 		"methods": map[string]any{
