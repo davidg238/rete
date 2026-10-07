@@ -1,31 +1,46 @@
 # T0.3 footprint baseline — MCU config (arm-zephyr-eabi, cortex-m4).
-# Re-banked 2026-08-26 for rete#246 + #247.
+# Re-banked 2026-10-07 for rete#358 (David: yes).
 #
-#   +353 B  rete#246: the `\\` floored-modulo prim. Bought back at every call
-#           site — the three-op hand-spelling became one prim send, including
-#           Dictionary>>indexFor: on the lookup hot path.
-#   +720 B  rete#247: the DNU diagnostic's did-you-mean pass (bounded edit
-#           distance over the receiver's own vtable chain) and builtin receiver
-#           kind naming. This is the flash price of "'strkeOn' not understood
-#           ... -- nearest: 'strikeOn'" on a device console — the elmbed
-#           review's bet, and it lives on the abort path only.
-#   +257 B  rete#247 (app-class half): the .oimg v10 classnames section — the
-#           loader's descriptor reads + bounds check, and oimg_vtable_name's
-#           linear lookup on the DNU abort path. Buys "receiver a
-#           ShipsBellNodeC6" instead of an oop/vtable hex pair.
-#   +8 B   data+bss, 67796 -> 67804 — the loader's two classnames descriptor
-#          statics. The RAM ratchet (the scarce axis, #53) is otherwise
-#          untouched.
-#   = 40229 total mcu text, from 38899 banked 2026-08-22.
+#   +642 B  2026-08-26 .. #367: the #310 program region and the #311/#312 debug and
+#           profile work, not attributed per change (the gate was red; #358).
+#  +1307 B  rete#313 desktop spike: the method override table, the patch tables,
+#           frame restart. data+bss 67820 -> 68540 (+720): the two patch tables
+#           and the restart request.
+#  +1066 B  rete#313 board step: the patch parser. This build had compiled the
+#           primitive as a stub (OEVM_NO_FILE_IO); the board needs the real one.
+#   = 43244 total mcu text, from 40229 banked 2026-08-26; data+bss 68548.
 #
-# Superseded header (2026-08-22, rete#186): +27 B for the `platform nodeId` prim,
-# 38872 -> 38899 — what it costs a node to know which BOARD it is, against a source
-# constant that produced 36,153 unattributable events. Before that (2026-08-22,
-# rete#177, kept because its finding outlives it): the first MCU re-bank from a real
-# cross-compile since the #79 consolidation — the mcu half had been SKIPping,
-# CLAUDE.md called that expected, and the compiler was in the SDK the whole time;
-# what was broken was footprint.sh's un-SKIP instruction, which named a deleted
-# path. That bank split 34488 -> 38872 into +3108 B of enrolment (ota.c + span.c)
-# and +1276 B of real drift.
-text 40229
-data_bss 67804
+# These are the hooks build's numbers. A standard Zephyr image defines
+# OEVM_NO_DEBUG_HOOKS and carries no patching (David, 2026-10-06).
+#
+# Superseded header (2026-08-26, rete#246 + #247):
+#  Re-banked 2026-08-26 for rete#246 + #247.
+#
+#  +353 B  rete#246: the `\\` floored-modulo prim. Bought back at every call
+#  site — the three-op hand-spelling became one prim send, including
+#  Dictionary>>indexFor: on the lookup hot path.
+#  +720 B  rete#247: the DNU diagnostic's did-you-mean pass (bounded edit
+#  distance over the receiver's own vtable chain) and builtin receiver
+#  kind naming. This is the flash price of "'strkeOn' not understood
+#  ... -- nearest: 'strikeOn'" on a device console — the elmbed
+#  review's bet, and it lives on the abort path only.
+#  +257 B  rete#247 (app-class half): the .oimg v10 classnames section — the
+#  loader's descriptor reads + bounds check, and oimg_vtable_name's
+#  linear lookup on the DNU abort path. Buys "receiver a
+#  ShipsBellNodeC6" instead of an oop/vtable hex pair.
+#  +8 B   data+bss, 67796 -> 67804 — the loader's two classnames descriptor
+#  statics. The RAM ratchet (the scarce axis, #53) is otherwise
+#  untouched.
+#  = 40229 total mcu text, from 38899 banked 2026-08-22.
+#
+#  Superseded header (2026-08-22, rete#186): +27 B for the `platform nodeId` prim,
+#  38872 -> 38899 — what it costs a node to know which BOARD it is, against a source
+#  constant that produced 36,153 unattributable events. Before that (2026-08-22,
+#  rete#177, kept because its finding outlives it): the first MCU re-bank from a real
+#  cross-compile since the #79 consolidation — the mcu half had been SKIPping,
+#  CLAUDE.md called that expected, and the compiler was in the SDK the whole time;
+#  what was broken was footprint.sh's un-SKIP instruction, which named a deleted
+#  path. That bank split 34488 -> 38872 into +3108 B of enrolment (ota.c + span.c)
+#  and +1276 B of real drift.
+text 43244
+data_bss 68548
