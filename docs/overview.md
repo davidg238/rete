@@ -10,6 +10,16 @@ Decided by David, 2026-10-02 (recorded on rete#253 and rete#79):
 
 - **The first public release is a 0.x — explicitly unstable, anything may change. The freeze is a later 1.0.0.**
 - **0.1 is one person's first hour, on one board, on one USB cable.** A nascent system with a buildmap, not a finished one. The board is the ESP32-C6 devkit (first chosen as the RP2350, changed the same day: the C6 flashes without a button press, can save to its own flash, and has the radio the remote stage needs).
+- **0.1 is portable by processor, with restrictions stated (David, 2026-10-06).** nsl must not read as an Espressif-only system: Zephyr was chosen for its driver breadth and its Thread support. The first hour is built and checked on the C6. The same VM, compiler and kernel run on the other processors below, each with what it cannot do yet:
+
+  | Target | Processor | In 0.1 |
+  |---|---|---|
+  | Linux desktop | x86-64 (the host VM; a 32-bit build is gated by `portability-32`) | first-hour steps 1, 2, 8 and 9 |
+  | ESP32-C6 devkit | RISC-V (Espressif) | the whole first hour |
+  | nRF52840 DK and dongle | Arm Cortex-M4 (Nordic) | runs nsl, joins the Thread mesh, mirrored by porta. No program region, so no `load`: a change is a reflash (J-Link on the DK, DFU on the dongle). The dongle's USB console dies under the radio |
+  | RP2350 (Pico 2 family) | Arm Cortex-M33 (Raspberry Pi) | runs nsl; 11.13 µs per activation against the C6's 11.83. Zephyr 4.2 has no flash driver for it, so no `load`, no saved settings and no boot count; flashing needs the BOOTSEL button; no radio |
+
+  Sources: [BOARD_PORTS.md](../nodus/oevm/zephyr/docs/BOARD_PORTS.md), [the RP2350 numbers](results/2026-10-01-rp2350-first-numbers.md).
 - **The step forward must be visible in 0.1:** debugging, profiling and patching a running method, on the device.
 - **Remote comes later and adds to the local loop.** Updates over the air and remote debugging go through the gateway; the cable loop stays as it is.
 

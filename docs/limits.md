@@ -36,7 +36,7 @@ committed configs carry the OpenThread default key; the real one is kept out of 
 
 | Area | The limit | Record |
 |---|---|---|
-| Boards | The ESP32-C6 is the one board the first hour is built and checked on. The RP2350 cannot save to its flash with the Zephyr in use and needs a button held to flash; nRF52840 and other ESP32s are ported but not the first hour's | `nodus/oevm/zephyr/docs/BOARD_PORTS.md` |
+| Boards | The first hour is built and checked on the ESP32-C6 only. nsl runs on four processors (x86-64, RISC-V, Cortex-M4, Cortex-M33), but `load` needs a program region: the nRF52840 has none yet, and the RP2350 has no Zephyr flash driver, so on both a change is a reflash | [overview](overview.md), the processor table; `nodus/oevm/zephyr/docs/BOARD_PORTS.md` |
 | Zephyr | The C6's Thread radio needs four driver fixes carried on a branch; whether a stock Zephyr is enough for the cable-only loop is not checked, and the documented board build is the Thread one | [overview](overview.md), "What to know about the C6" |
 | Debugging on a board | Needs a separate debug image: the checks cost 10–16% per bytecode, so the standard image leaves them out | [tutorial 4](tutorials/04-debugger.md) §7 |
 | Hot patching | Desktop only, debug builds only, and only a method whose new version uses what the running image already holds (no new strings, symbols or blocks) | [spike result](results/2026-10-06-313-patch-restart-spike.md) |
