@@ -132,7 +132,41 @@ picks it. Moving from local to remote changes the transport, not the UI.
     locals, #323) in one exchange, so the debugger can show something before the
     first step.
 
-## 4. The fronts
+## 3a. PROPOSED (2026-10-06, #314): the four verbs still without an HTTP path (D15, D16 decided below)
+
+Debug, profile and load have their agent paths (D13). Build, flash, run and log do not. Each proposal below
+follows the same precedent (an endpoint answering JSON, a host-VM target, a real-VM gate), and none is decided.
+
+| Verb | Proposal | Host target | Why this shape |
+|---|---|---|---|
+| build | `POST /build` with the `.nsl` as the body; it answers `{SHA256, Size, Errors}`, where each error is the compiler's own `file:line:col` (rete#247). `POST /load?build=last` loads it | the same: compiling is a host step | The agent never handles the `.oimg`, and the map lands beside it, where debug and profile already read it |
+| run | `POST /run?ms=N` restarts the program on the target and answers its console lines for N ms, with `Ended` and the exit status when the program finished | starts the VM once | One verb on both targets: on a board it is the reset pulse `load` already sends |
+| log | `GET /log?after=N` answers every console line custos has read from its cables since sequence number N, long-polling as `/debug/state` does | the VM's output | custos already owns the cable (TUI design D2), so it already sees every line |
+| flash (firmware) | **not a custos verb in 0.1**: firmware stays `run.sh --flash` | — | The loop is load, and firmware changes are rare. A front that cannot reach a shell is what would earn it |
+
+**Open, with a recommendation:**
+
+1. **Decided (David, 2026-10-06), D15: one target flag, repeatable and named, with the board in the URL.**
+   `--board <name>=<tty>` (and `--host <name>=<vm>`) replaces the three `-port` and three `-host` flags, and may be
+   given once per board. Every verb is served per board at `/board/<name>/…`. With one board configured, the
+   board-less paths (`/debug/…`, `/load`, …) stay as shorthand for it. The verbs on one board take turns through the
+   per-cable lock #367 built; profile and run borrow a held debug cable as load does, so a capture ends a debug stop.
+   Why now: several boards hard-plugged into one test machine (`opti7040`, 4+ motherboard USB ports) makes porting,
+   testing and development pleasant, and the URLs are the agent contract (D12), so changing their shape later would
+   edit every client twice. The churn is paid once, now. *As built (#314):* the flag is `--board`, not `--port`,
+   because `--port` was already custos's listen port and the gateway's unit passes it. A board's program is
+   `--map <name>=<path>` (and `--source`); a host board runs the image beside its map. `GET /boards` lists every
+   board and the verbs it serves.
+2. **Decided (David, 2026-10-06), D16: custos is the console collector, and the Python console tools are deleted.**
+   One owner of each cable, one writer of each log, one language: custos reads every board's console all the time
+   (one systemd unit serving every `--board`) and writes the day logs; the UDP log sink (`udpsink.py`, for nodes that
+   log over the mesh, `log_udp.c`) moves in too. `nodus/oevm/zephyr/tools/console/` ("got us to here, so worthwhile,
+   but dead end") is deleted, the reader included. Its verbs (`tail`, `since`, `runs`, `panics`, `symbolize`, `check`)
+   become custos's `log` and its siblings. custos then runs all the time on a bench or test machine, not only through
+   the working day (a change to D3). Before deleting anything, a fate table: every capability of the old tools, and
+   every caller of them (the target harness `target.sh` and `deploy_flash.sh`, `run.sh`, `flash-bell.sh`,
+   `bench-identity.sh`, tutorial 2, the `console-py` aux gate), gets a fate. The bench units move board by board, with
+   c6bench's soak last and only when David says.
 
 - **CLI.** One command for the whole first hour. Each verb gives a verdict a machine can
   read, finishes within a fixed time, never prompts and never skips silently

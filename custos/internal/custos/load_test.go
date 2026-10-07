@@ -52,7 +52,7 @@ func fixtureImage(t *testing.T) []byte {
 func loadServer(t *testing.T, tg load.Target, held *cable, busy *sync.Mutex) *httptest.Server {
 	t.Helper()
 	mux := http.NewServeMux()
-	if err := mountLoad(mux, tg, held, busy); err != nil {
+	if err := mountLoad(mux, []string{""}, tg, held, busy); err != nil {
 		t.Fatal(err)
 	}
 	srv := httptest.NewServer(mux)
@@ -218,5 +218,31 @@ func TestDebugCableRestartsGoesStaleAndComesBack(t *testing.T) {
 	}
 	if got := c.reopen(sm.SHA256()); got != "restarted" || opens != 3 || s.Gone() {
 		t.Fatalf("back: %q opens %d gone %v", got, opens, s.Gone())
+	}
+}
+
+// A capture's resume gives a released cable back without restarting the
+// session; when the cable is still held, it opens nothing.
+func TestDebugCableResumeReattachesWithoutARestart(t *testing.T) {
+	sm, err := debug.LoadSourceMap(fixtureMap(t), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := debug.NewSession(sm, io.Discard)
+	closes, opens := 0, 0
+	open := func() (debug.Line, error) { opens++; return closer{&stubVM{s, nil}, &closes}, nil }
+	line, _ := open()
+	s.Attach(line)
+	s.OnLine("dbg:ready")
+	c := newDebugCable(s, line, open, func() (*debug.SourceMap, error) { return sm, nil })
+	if c.resume(); opens != 1 {
+		t.Fatalf("a held cable was opened again: opens %d", opens)
+	}
+	c.release()
+	if err := c.resume(); err != nil || opens != 2 || closes != 1 {
+		t.Fatalf("resume: %v opens %d closes %d", err, opens, closes)
+	}
+	if st := s.State(-1, 0); st.Run != "boot" {
+		t.Fatalf("resume restarted the session: %+v", st)
 	}
 }

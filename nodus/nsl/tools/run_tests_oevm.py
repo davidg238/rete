@@ -116,7 +116,7 @@ def _build_pathb_once():
                 "src/oimg_loader.c", "src/kernel_boot.c",
                 "oevm_image_main.c",
                 # rete#364: the profiler is in the host image VM, as it is in the C6's
-                # standard image (#312 Q1), so custos's --profile-host can profile it.
+                # standard image (#312 Q1), so a custos --host board can profile it.
                 "-DOEVM_METHOD_PROFILE",
                 "-o", str(OEVM_BUILD_DIR / "oevm_img"),
                 *OEVM_EXTRA_CFLAGS,
@@ -521,8 +521,8 @@ def run_integration_gate(label: str, script_name: str) -> bool:
 def run_custos_gate(label: str, script_name: str) -> str:
     """Gate a custos verb against a real VM: `custos-debug` (rete#339, #362:
     tools/test_custos_debug.py, by source line and over /debug) and `custos-profile`
-    (rete#364: tools/test_custos_profile.py, /profile over --profile-host) and
-    `custos-load` (rete#367: tools/test_custos_load.py, /load over --load-host).
+    (rete#364: tools/test_custos_profile.py, /profile on a --host board) and
+    `custos-load` (rete#367: tools/test_custos_load.py, /load on two --host boards, D15).
 
     Needs Go, and answers SKIP without it (exit 77) for porta-cli's reason: these are
     custos verbs, and making the nsl suite hard-fail without a Go toolchain would couple

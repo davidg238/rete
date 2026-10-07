@@ -59,15 +59,17 @@ wrong bytes.
 
 ## 2. Start custos on the program
 
-Build custos, then start it with `--debug-host`: custos runs the host VM itself, with its
-debugger on, and serves the session (rete#362). On a board the same flag is
-`--debug-port` (§7).
+Build custos, then start it on one host board: `--host` names the board and the VM, and
+`--map` its program's map. custos runs the image beside the map on the host VM itself, with
+its debugger on, and serves the session (rete#362). A board on its cable is `--board`
+instead of `--host` (§7). Every verb of a board is at `/board/<name>/`; with one board,
+the paths without it (`/debug/…`) are its shorthand, which this page uses (peer design D15).
 
 ```bash gate
 go build -C "$RETE/custos" -o "$PWD/custos" ./cmd/custos
 port=$(python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')
 ./custos --bind 127.0.0.1 --port "$port" \
-         --debug-host "/tmp/oevm_img average.oimg" --debug-map average.oimg.map.json \
+         --host dev=/tmp/oevm_img --map dev=average.oimg.map.json \
          2> custos.log &
 custos_pid=$!
 trap 'kill $custos_pid' EXIT
@@ -250,7 +252,7 @@ timer.
 ## 6. The same session as a page
 
 The session custos serves is also a page, at `/debug` (rete#340): start custos as in §2
-(or with `--debug-port`, §7) and open `http://localhost:6971/debug` (6971 is custos's
+(or with `--board`, §7) and open `http://localhost:6971/debug` (6971 is custos's
 default `--port`).
 
 The page shows the source, the stop, the stack and frame 0's locals, which are fetched
@@ -282,8 +284,8 @@ its cable, with no timeout.
 3. Start custos on the cable. It holds the cable from start-up, with DTR and RTS low:
 
    ```bash
-   ./custos --debug-port /dev/serial/by-id/usb-Silicon_Labs_CP2102N_... \
-            --debug-map nodus/oevm/zephyr/YourApp.oimg.map.json
+   ./custos --board c6=/dev/serial/by-id/usb-Silicon_Labs_CP2102N_... \
+            --map c6=nodus/oevm/zephyr/YourApp.oimg.map.json
    ```
 
    A board with this image waits at its boot stop until something answers it. The rest is
@@ -351,20 +353,22 @@ parts 2 and 3.
 
 ## 8. A profile
 
-A profile has the same kind of agent path (rete#364). `--profile-host` starts the host VM
-afresh for every capture, without its debugger, so the console feeds the kernel's
+A profile has the same kind of agent path (rete#364). On a host board each capture starts
+the host VM afresh, without its debugger, so the console feeds the kernel's
 Profiler. The program must dispatch `sys/timer` and run for longer than the window.
 Section 1's `average.nsl` is over before any window closes, so this example uses the
 suite's ticking target:
 
 ```bash
-./custos --profile-host "/tmp/oevm_img pause.oimg" --profile-map pause.oimg.map.json
+./custos --host dev=/tmp/oevm_img --map dev=pause.oimg.map.json
 curl -s -X POST 'localhost:6971/profile/capture?ms=200' | jq '.Report.Rows[:5]'
 ```
 
 A capture answers 200 with the window ranked by method name. A program that ends before
 its window closes answers 502 at once and says so; it does not wait out a timeout. On a
-board the flag is `--profile-port`, and the page is `/profile`. The `custos-profile` gate
+board (`--board`) the capture borrows the cable from the debug session and gives it back,
+and the page is `/profile`. Several boards: one `--board` or `--host` each, and each
+board's verbs at `/board/<name>/`; `GET /boards` lists them. The `custos-profile` gate
 drives this path.
 
 ## 9. Also: the command line

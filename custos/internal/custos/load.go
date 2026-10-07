@@ -41,15 +41,18 @@ type Load struct {
 	Debug    string
 }
 
-// cable is what a load must hold of the debug page on its cable: release closes
-// the session's line and answers once its reader has ended; reopen restarts the
-// session over the board's new program (sha "" after a failed load).
+// cable is what another verb must hold of the debug page on its board's cable:
+// release closes the session's line and answers once its reader has ended;
+// reopen restarts the session over the board's new program after a load (sha ""
+// after a failed one); resume gives a released session its cable back,
+// unchanged, after a capture.
 type cable struct {
 	release func() error
 	reopen  func(sha string) string
+	resume  func() error
 }
 
-func mountLoad(mux *http.ServeMux, t load.Target, held *cable, busy *sync.Mutex) error {
+func mountLoad(mux *http.ServeMux, prefixes []string, t load.Target, held *cable, busy *sync.Mutex) error {
 	dir, err := os.MkdirTemp("", "custos-load-")
 	if err != nil {
 		return err
@@ -63,11 +66,11 @@ func mountLoad(mux *http.ServeMux, t load.Target, held *cable, busy *sync.Mutex)
 		w.Header().Set("Cache-Control", "no-store")
 		json.NewEncoder(w).Encode(l)
 	}
-	mux.HandleFunc("GET /load", func(w http.ResponseWriter, r *http.Request) {
+	handle(mux, prefixes, "GET /load", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write(loadPage)
 	})
-	mux.HandleFunc("GET /load/last", func(w http.ResponseWriter, r *http.Request) {
+	handle(mux, prefixes, "GET /load/last", func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		l := last
 		mu.Unlock()
@@ -77,7 +80,7 @@ func mountLoad(mux *http.ServeMux, t load.Target, held *cable, busy *sync.Mutex)
 		}
 		answer(w, l)
 	})
-	mux.HandleFunc("POST /load", func(w http.ResponseWriter, r *http.Request) {
+	handle(mux, prefixes, "POST /load", func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(io.LimitReader(r.Body, maxImage+1))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)

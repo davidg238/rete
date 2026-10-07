@@ -18,8 +18,8 @@ extern void (*gc_additional_roots_hook)(void);
 extern void reboot_note_init(void);
 static void roots_cb(void) {}
 
-/* rete#367 (peer design D14): the board's two boot lines, so `custos load
-   --load-host` proves a host load the way it proves a board's. "host" is
+/* rete#367 (peer design D14): the board's two boot lines, so a load on a custos
+   `--host` board proves a host load the way it proves a board's. "host" is
    platform.c's OEVM_BUILD_ID for a host build. On stderr: a test's expected
    output is its stdout. */
 static void say_program_hash(const char *path) {

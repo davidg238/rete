@@ -10,7 +10,7 @@ offset or line fails here. The translations themselves are unit-tested in Go
 (custos/internal/debug).
 
 The same session is then driven as an agent drives it (rete#362): custos serving
-/debug over --debug-host, every command's {OK, Error, State} checked, and the stop
+/debug on a --host board, every command's {OK, Error, State} checked, and the stop
 awaited by long-polling on Seq.
 
 Needs Go, and exits 77 without it, which the suite reports as a named SKIP: making the
@@ -134,12 +134,12 @@ def serve(args, ready="/debug/state"):
 
 
 def debug_args():
-    return ["--debug-host", f"{VM} {OIMG}", "--debug-map", OIMG + ".map.json",
-            "--debug-source", PAUSE_APP]
+    # One host board (peer design D15): it runs the image beside its map.
+    return ["--host", f"dev={VM}", "--map", f"dev={OIMG}.map.json", "--source", f"dev={PAUSE_APP}"]
 
 
 def run_http():
-    """rete#362: the agent path. custos serves the session over --debug-host; every
+    """rete#362: the agent path. custos serves the session on a --host board; every
     answer is read as data ({OK, Error, State}), and a stop is waited for by
     long-polling on Seq, never by sleeping."""
     import json, time, urllib.request
@@ -197,7 +197,7 @@ def go_live(test, env):
 
 
 def run_tui():
-    """rete#341: the TUI's model, no terminal, driven against a live --debug-host custos."""
+    """rete#341: the TUI's model, no terminal, driven against a live custos serving a --host board."""
     with serve(debug_args()) as base:
         line = go_live("TestLiveDebug", {"CUSTOS_TUI_URL": base, "CUSTOS_TUI_BREAK": "37"})
     return "tui: " + " ".join(line)
@@ -211,7 +211,7 @@ def main():
     transcript = run()
     http = run_http()
     tui = run_tui()
-    print("test_custos_debug: PASSED (Path B, custos debug by source line, and /debug over --debug-host)")
+    print("test_custos_debug: PASSED (Path B, custos debug by source line, and /debug on a --host board)")
     print(transcript)
     print(http)
     print(tui)

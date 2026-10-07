@@ -14,7 +14,7 @@ import (
 )
 
 // TestLiveDebug drives the TUI's model, no terminal, against a custos the
-// suite's custos-debug gate started over --debug-host (rete#341).
+// suite's custos-debug gate started on a --host board (rete#341).
 func TestLiveDebug(t *testing.T) {
 	url, line := os.Getenv("CUSTOS_TUI_URL"), os.Getenv("CUSTOS_TUI_BREAK")
 	if url == "" {
@@ -48,7 +48,7 @@ func TestLiveDebug(t *testing.T) {
 }
 
 // TestLiveProfile captures a window through the profile tab against a custos
-// the custos-profile gate started over --profile-host.
+// the custos-profile gate started on a --host board.
 func TestLiveProfile(t *testing.T) {
 	url := os.Getenv("CUSTOS_TUI_PROFILE_URL")
 	if url == "" {
@@ -76,7 +76,7 @@ func TestLiveProfile(t *testing.T) {
 }
 
 // TestLiveLoad loads an .oimg through the load tab against a custos the
-// custos-load gate started over --load-host (rete#367).
+// custos-load gate started on --host boards (rete#367).
 func TestLiveLoad(t *testing.T) {
 	url, image, sha := os.Getenv("CUSTOS_TUI_LOAD_URL"), os.Getenv("CUSTOS_TUI_LOAD_IMAGE"), os.Getenv("CUSTOS_TUI_LOAD_SHA")
 	if url == "" {

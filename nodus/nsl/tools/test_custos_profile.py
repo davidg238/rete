@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """custos's profile page against a real VM, driven as an agent drives it (rete#364).
 
-custos serves /profile over --profile-host, which starts the host VM afresh for each
+custos serves /profile on a --host board, which starts the host VM afresh for each
 capture, without its debugger, so the console feeds the kernel's Profiler as a
 standard image's cable does. POST /profile/capture answers the window ranked by
 method name; the gate asserts the pause target's own main:args: is among the rows
@@ -21,7 +21,8 @@ from test_custos_debug import OIMG, VM, build, go_live, serve  # noqa: E402
 
 
 def profile_args():
-    return ["--profile-host", f"{VM} {OIMG}", "--profile-map", OIMG + ".map.json"]
+    # One host board (peer design D15): each capture starts the image beside its map afresh.
+    return ["--host", f"dev={VM}", "--map", f"dev={OIMG}.map.json"]
 
 
 def run_http():
@@ -58,7 +59,7 @@ def _run_http(base):
 
 
 def run_tui():
-    """rete#341: the TUI's profile tab, no terminal, against a live --profile-host custos."""
+    """rete#341: the TUI's profile tab, no terminal, against a live custos serving a --host board."""
     with serve(profile_args(), ready="/profile") as base:
         line = go_live("TestLiveProfile", {"CUSTOS_TUI_PROFILE_URL": base})
     return "tui: " + " ".join(line)
@@ -71,7 +72,7 @@ def main():
     build()
     http = run_http()
     tui = run_tui()
-    print("test_custos_profile: PASSED (Path B, /profile over --profile-host)")
+    print("test_custos_profile: PASSED (Path B, /profile on a --host board)")
     print(http)
     print(tui)
 
