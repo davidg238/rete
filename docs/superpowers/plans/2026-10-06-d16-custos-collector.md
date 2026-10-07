@@ -37,7 +37,7 @@ they are. A Go test writes a day file and checks it against `fixtures/c6-boot.lo
 | `nodus/oevm/zephyr/run.sh` 893, 956 | `archive.sh` on `--flash` | path change only |
 | `run.sh` 900–934 | collector state: active, inactive, no log, port down | `GET /board/<b>/health` |
 | `run.sh` 975, 983 | `logread since` for `--capture` | `GET /board/<b>/log?since=` |
-| `run.sh`, `flash-bell.sh` 53–54, `tests/target/lib/target.sh` 143–155, 198–206 | stop the collector around a flash, start it after | **open point (below)**: custos lends the board's cable |
+| `run.sh`, `flash-bell.sh` 53–54, `tests/target/lib/target.sh` 143–155, 198–206 | stop the collector around a flash, start it after | **decided (below)**: custos lends the board's cable |
 | `nodus/oevm/tools/bench-identity.sh` | the store path, the env files, today's log, `systemctl is-active`, `port=down` in the last lines | the files are unchanged; the unit check becomes `GET /board/<b>/health` |
 | `tests/target/lib/collect_console.sh` | tails today's file for a build id | unchanged (the format is kept) |
 | `tests/target/lib/deploy_flash.sh` 171 | parses archive.sh's `[archive] <id> ->` | unchanged |
@@ -52,10 +52,11 @@ they are. A Go test writes a day file and checks it against `fixtures/c6-boot.lo
 **On the bench:** `rete-console@c6` and `rete-console@c6spare` are active; env files exist for `c6`, `c6bench`,
 `c6spare` and `nrf4ec0`. They move board by board; c6bench's soak last, and only when David says.
 
-## Open point for David
+## Decided: lend (David, 2026-10-06, yes)
 
 **Flashing firmware needs the cable free.** Today a flash stops the board's collector unit and starts it again. With
 one custos serving every board, stopping the unit stops all of them. Proposed: `POST /board/<name>/lend?s=<N>`.
 custos closes that board's cable, writes `cable lent` in its log, and takes the cable back after N seconds or on
 `POST /board/<name>/return`, whichever comes first. run.sh, `flash-bell.sh` and the target harness call it instead
 of systemctl. That adds one verb, the alternative being one custos unit per board, which D15 set out to avoid.
+**Decided yes** (David, 2026-10-06). The tutorial sequence must show `lend` in use: David reads it there to learn what it is for.
