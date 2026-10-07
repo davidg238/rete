@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """custos's load page against a real VM, driven as an agent drives it (rete#367).
 
-custos serves /load over --load-host, which runs the host VM once on each uploaded
+custos serves /load on --host boards, which run the host VM once on each uploaded
 image and reads the two boot lines a board prints (peer design D14): the firmware's
 build-id, then the program's sha256 once the loader has accepted it. POST /load
 answers that proof; the gate asserts the sha256 is the file's own. An image whose
 registry_version the VM refuses answers 502 with the loader's reason, and bytes that
 are not an .oimg answer 400 before the VM runs.
+
+It serves two boards (peer design D15): `dev`, with a map, and `spare`, without one.
+GET /boards names both and what each serves; each load goes to the board its URL names;
+and with two boards there is no board-less shorthand.
 
 Needs Go, and exits 77 without it, which the suite reports as a named SKIP (as
 test_custos_debug.py does). Exits non-zero on failure.
@@ -19,7 +23,7 @@ from test_custos_debug import OIMG, VM, build, go_live, serve  # noqa: E402
 
 
 def load_args():
-    return ["--load-host", VM]
+    return ["--host", f"dev={VM}", "--map", f"dev={OIMG}.map.json", "--host", f"spare={VM}"]
 
 
 def post(base, body, name="app.oimg"):
@@ -32,8 +36,24 @@ def post(base, body, name="app.oimg"):
 
 
 def run_http():
-    with serve(load_args(), ready="/load") as base:
-        return _run_http(base)
+    with serve(load_args(), ready="/boards") as root:
+        with urllib.request.urlopen(f"{root}/boards", timeout=10) as r:
+            boards = {b["Name"]: b for b in json.load(r)}
+        assert boards["dev"]["Verbs"] == ["debug", "profile", "load"], boards
+        assert boards["spare"]["Verbs"] == ["load"] and boards["spare"]["Target"] == "host", boards
+        try:
+            urllib.request.urlopen(f"{root}/load/last", timeout=10)
+            raise AssertionError("two boards, yet the board-less /load answered")
+        except urllib.error.HTTPError as e:
+            assert e.code == 404, e.code
+        line = _run_http(f"{root}/board/spare")
+        # The other board saw none of it.
+        try:
+            urllib.request.urlopen(f"{root}/board/dev/load/last", timeout=10)
+            raise AssertionError("a load on spare is dev's last load")
+        except urllib.error.HTTPError as e:
+            assert e.code == 404, e.code
+        return "boards dev and spare, no shorthand; on spare: " + line
 
 
 def _run_http(base):
@@ -60,10 +80,10 @@ def _run_http(base):
 
 
 def run_tui():
-    """The TUI's load tab, no terminal, against a live --load-host custos."""
+    """The TUI's load tab, no terminal, against board dev of a live custos."""
     sha = hashlib.sha256(open(OIMG, "rb").read()).hexdigest()
-    with serve(load_args(), ready="/load") as base:
-        line = go_live("TestLiveLoad", {"CUSTOS_TUI_LOAD_URL": base, "CUSTOS_TUI_LOAD_IMAGE": OIMG,
+    with serve(load_args(), ready="/boards") as root:
+        line = go_live("TestLiveLoad", {"CUSTOS_TUI_LOAD_URL": f"{root}/board/dev", "CUSTOS_TUI_LOAD_IMAGE": OIMG,
                                         "CUSTOS_TUI_LOAD_SHA": sha})
     return "tui: " + " ".join(line)
 
@@ -75,7 +95,7 @@ def main():
     build()
     http = run_http()
     tui = run_tui()
-    print("test_custos_load: PASSED (Path B, /load over --load-host)")
+    print("test_custos_load: PASSED (Path B, /load on two --host boards)")
     print(http)
     print(tui)
 

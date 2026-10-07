@@ -36,9 +36,10 @@ type Capture struct {
 	Report     profile.Report
 }
 
-// mountProfile serves captures through open. busy is the cable's: a load on
-// the same cable holds it.
-func mountProfile(mux *http.ServeMux, mapPath string, open func(onLine func(string), onEnd func()) (profile.Sender, error), busy *sync.Mutex) {
+// mountProfile serves captures through open. busy is the board's: its other
+// verbs hold it too. held, when the debug page holds the board's cable, is
+// borrowed for the capture and given back unchanged.
+func mountProfile(mux *http.ServeMux, prefixes []string, mapPath string, open func(onLine func(string), onEnd func()) (profile.Sender, error), held *cable, busy *sync.Mutex) {
 	var (
 		mu   sync.Mutex
 		last *Capture
@@ -48,11 +49,11 @@ func mountProfile(mux *http.ServeMux, mapPath string, open func(onLine func(stri
 		w.Header().Set("Cache-Control", "no-store")
 		json.NewEncoder(w).Encode(c)
 	}
-	mux.HandleFunc("GET /profile", func(w http.ResponseWriter, r *http.Request) {
+	handle(mux, prefixes, "GET /profile", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write(profilePage)
 	})
-	mux.HandleFunc("GET /profile/last", func(w http.ResponseWriter, r *http.Request) {
+	handle(mux, prefixes, "GET /profile/last", func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		c := last
 		mu.Unlock()
@@ -62,7 +63,7 @@ func mountProfile(mux *http.ServeMux, mapPath string, open func(onLine func(stri
 		}
 		answer(w, c)
 	})
-	mux.HandleFunc("POST /profile/capture", func(w http.ResponseWriter, r *http.Request) {
+	handle(mux, prefixes, "POST /profile/capture", func(w http.ResponseWriter, r *http.Request) {
 		ms, err := strconv.Atoi(r.URL.Query().Get("ms"))
 		if err != nil || ms <= 0 {
 			http.Error(w, "custos: /profile/capture needs ?ms= a positive window length", http.StatusBadRequest)
@@ -77,6 +78,13 @@ func mountProfile(mux *http.ServeMux, mapPath string, open func(onLine func(stri
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
+		}
+		if held != nil {
+			if err := held.release(); err != nil {
+				http.Error(w, "custos: releasing the debug page's cable: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			defer held.resume()
 		}
 		text, err := profile.Capture(open, ms, time.Duration(ms)*time.Millisecond+10*time.Second)
 		if err != nil {

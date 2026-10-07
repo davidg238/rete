@@ -24,14 +24,11 @@ import (
 	"net/url"
 	"os/exec"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/davidg238/rete/custos/internal/debug"
 	"github.com/davidg238/rete/custos/internal/imagemap"
-	"github.com/davidg238/rete/custos/internal/load"
-	"github.com/davidg238/rete/custos/internal/profile"
 	"github.com/davidg238/rete/protocol/allowlist"
 )
 
@@ -46,156 +43,28 @@ type Config struct {
 	// the gate needs to open it.
 	Store       string
 	Descriptors string
-	// ProfilePort is a board's console cable for the profile page, ranked
-	// through ProfileMap ("" = no profile page). ProfileHost is a host VM
-	// command line instead, started afresh for each capture: the agent's
-	// board-free path (rete#364). Exactly one of ProfilePort and ProfileHost.
-	ProfilePort string
-	ProfileHost string
-	ProfileMap  string
-	// DebugPort is a board's console cable for the debug page, held from
-	// start-up; DebugMap is its image's map and DebugSource the .nsl ("" =
-	// beside the map). "" = no debug page.
-	DebugPort   string
-	DebugMap    string
-	DebugSource string
-	// DebugHost is a host VM command line (split on white space) the debug page
-	// runs instead of holding a board's cable: the agent's board-free path
-	// (rete#362). Exactly one of DebugPort and DebugHost.
-	DebugHost string
-	// LoadPort is a board's console cable for the load page, opened for each
-	// load; it may be DebugPort's (peer design D14). Esptool is the esptool it
-	// runs. LoadHost is a host VM binary instead, run once on each uploaded image:
-	// the agent's board-free path (rete#367). Exactly one of LoadPort and
-	// LoadHost; "" for both = no load page.
-	LoadPort string
-	LoadHost string
-	Esptool  string
+	// Boards are the targets the development verbs serve, each under
+	// /board/<name> (peer design D15, board.go); Esptool is the esptool a
+	// board's load runs.
+	Boards  []Board
+	Esptool string
 }
 
 // Handler builds the custos mux: / lands on the fleet page when a store is
 // configured and on the dev status page otherwise, /dev always on the status
 // page, /dev/ serves the docs tree read-only (markdown as text/plain so a
 // browser displays the documents of record), /health + /manifest proxy to
-// porta, /fleet + /q/{name} serve the fleet (fleet.go), /profile a board's
-// method profile (profile.go), and /debug a debugging session on a board or a
-// host VM (debug.go).
+// porta, /fleet + /q/{name} serve the fleet (fleet.go), and each board's
+// development verbs (debug, profile, load) are under /board/<name>/ (board.go).
 func Handler(cfg Config) (http.Handler, error) {
 	mux := http.NewServeMux()
-	// One lock per cable: a load shares its cable with the profile page's
-	// captures and the debug page's commands. "" (a host VM) is no cable.
-	locks := map[string]*sync.Mutex{}
-	lockOf := func(port string) *sync.Mutex {
-		if port == "" {
-			return &sync.Mutex{}
-		}
-		if locks[port] == nil {
-			locks[port] = &sync.Mutex{}
-		}
-		return locks[port]
-	}
-	var debugCable *cable
 	// Every page's stylesheet, whichever pages are mounted.
 	mux.HandleFunc("GET /fleet.css", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/css; charset=utf-8")
 		w.Write(fleetCSS)
 	})
-	if cfg.ProfilePort != "" || cfg.ProfileHost != "" {
-		if cfg.ProfilePort != "" && cfg.ProfileHost != "" {
-			return nil, fmt.Errorf("custos: give one of --profile-port or --profile-host")
-		}
-		if cfg.ProfileMap == "" {
-			return nil, fmt.Errorf("custos: the profile page needs --profile-map (<name>.oimg.map.json)")
-		}
-		open := func(onLine func(string), onEnd func()) (profile.Sender, error) {
-			return debug.OpenPort(cfg.ProfilePort, 115200, onLine, onEnd)
-		}
-		if cfg.ProfileHost != "" {
-			argv := strings.Fields(cfg.ProfileHost)
-			if err := checkHost(argv, cfg.ProfileMap); err != nil {
-				return nil, fmt.Errorf("custos: --profile-host: %w", err)
-			}
-			open = func(onLine func(string), onEnd func()) (profile.Sender, error) {
-				return debug.StartHost(argv, false, onLine, onEnd)
-			}
-		}
-		mountProfile(mux, cfg.ProfileMap, open, lockOf(cfg.ProfilePort))
-	}
-	if cfg.DebugPort != "" || cfg.DebugHost != "" {
-		if cfg.DebugPort != "" && cfg.DebugHost != "" {
-			return nil, fmt.Errorf("custos: give one of --debug-port or --debug-host")
-		}
-		if cfg.DebugMap == "" {
-			return nil, fmt.Errorf("custos: the debug page needs --debug-map (<name>.oimg.map.json)")
-		}
-		if cfg.DebugPort != "" && cfg.DebugPort == cfg.ProfilePort {
-			return nil, fmt.Errorf("custos: --debug-port and --profile-port are one cable, and a cable has one holder")
-		}
-		sm, err := debug.LoadSourceMap(cfg.DebugMap, cfg.DebugSource)
-		if err != nil {
-			return nil, err
-		}
-		s := debug.NewSession(sm, io.Discard)
-		s.AutoFetch = true
-		var line debug.Line
-		if cfg.DebugPort != "" {
-			open := heldCable(cfg.DebugPort, s)
-			if line, err = open(); err != nil {
-				return nil, fmt.Errorf("custos: --debug-port: %w", err)
-			}
-			debugCable = newDebugCable(s, line, open, func() (*debug.SourceMap, error) {
-				return debug.LoadSourceMap(cfg.DebugMap, cfg.DebugSource)
-			})
-		} else {
-			argv := strings.Fields(cfg.DebugHost)
-			if err := checkHost(argv, cfg.DebugMap); err != nil {
-				return nil, fmt.Errorf("custos: --debug-host: %w", err)
-			}
-			if line, err = debug.StartHost(argv, true, s.OnLine, s.OnEnd); err != nil {
-				return nil, fmt.Errorf("custos: --debug-host: %w", err)
-			}
-		}
-		s.Attach(line)
-		mountDebug(mux, s, lockOf(cfg.DebugPort))
-	}
-	if cfg.LoadPort != "" || cfg.LoadHost != "" {
-		if cfg.LoadPort != "" && cfg.LoadHost != "" {
-			return nil, fmt.Errorf("custos: give one of --load-port or --load-host")
-		}
-		var t load.Target
-		var held *cable
-		busy := lockOf("")
-		if cfg.LoadHost != "" {
-			argv := strings.Fields(cfg.LoadHost)
-			if len(argv) == 0 {
-				return nil, fmt.Errorf("custos: --load-host: an empty command line")
-			}
-			if _, err := exec.LookPath(argv[0]); err != nil {
-				return nil, fmt.Errorf("custos: --load-host: %w", err)
-			}
-			t = load.Host{Argv: argv, Timeout: 15 * time.Second}
-		} else {
-			t = load.Loader{
-				Region:  load.ESP32C6,
-				Esptool: cfg.Esptool,
-				Port:    cfg.LoadPort,
-				Board:   load.SerialBoard{Port: cfg.LoadPort, Baud: 115200, Timeout: 15 * time.Second},
-				Flash: func(argv []string) error {
-					out, err := exec.Command(argv[0], argv[1:]...).CombinedOutput()
-					if err != nil {
-						return fmt.Errorf("%w: %s", err, lastLines(string(out), 3))
-					}
-					return nil
-				},
-			}
-			if cfg.LoadPort == cfg.DebugPort {
-				held = debugCable
-			}
-			busy = lockOf(cfg.LoadPort)
-		}
-		if err := mountLoad(mux, t, held, busy); err != nil {
-			return nil, err
-		}
+	if err := mountBoards(mux, cfg.Boards, cfg.Esptool); err != nil {
+		return nil, err
 	}
 	if cfg.Store != "" {
 		g, err := openFleet(cfg.Store, cfg.Descriptors)
@@ -308,6 +177,19 @@ func newDebugCable(s *debug.Session, line debug.Line, open func() (debug.Line, e
 			held = true
 			s.Attach(line)
 			return "restarted"
+		},
+		resume: func() error {
+			if held {
+				return nil
+			}
+			l, err := open()
+			if err != nil {
+				s.OnLost()
+				return err
+			}
+			line, held = l, true
+			s.Attach(line)
+			return nil
 		},
 	}
 }

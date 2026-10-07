@@ -81,7 +81,7 @@ type Target interface {
 	Load(path string) (Result, error)
 }
 
-// Loader is a board's Target: `custos load`, and /load over --load-port.
+// Loader is a board's Target: `custos load`, and /load on a --board.
 type Loader struct {
 	Region  Region
 	Esptool string

@@ -147,16 +147,19 @@ follows the same precedent (an endpoint answering JSON, a host-VM target, a real
 **Open, with a recommendation:**
 
 1. **Decided (David, 2026-10-06), D15: one target flag, repeatable and named, with the board in the URL.**
-   `--port <name>=<tty>` (and `--host <name>=<vm>`) replaces the three `-port` and three `-host` flags, and may be
+   `--board <name>=<tty>` (and `--host <name>=<vm>`) replaces the three `-port` and three `-host` flags, and may be
    given once per board. Every verb is served per board at `/board/<name>/…`. With one board configured, the
    board-less paths (`/debug/…`, `/load`, …) stay as shorthand for it. The verbs on one board take turns through the
    per-cable lock #367 built; profile and run borrow a held debug cable as load does, so a capture ends a debug stop.
    Why now: several boards hard-plugged into one test machine (`opti7040`, 4+ motherboard USB ports) makes porting,
    testing and development pleasant, and the URLs are the agent contract (D12), so changing their shape later would
-   edit every client twice. The churn is paid once, now.
+   edit every client twice. The churn is paid once, now. *As built (#314):* the flag is `--board`, not `--port`,
+   because `--port` was already custos's listen port and the gateway's unit passes it. A board's program is
+   `--map <name>=<path>` (and `--source`); a host board runs the image beside its map. `GET /boards` lists every
+   board and the verbs it serves.
 2. **Decided (David, 2026-10-06), D16: custos is the console collector, and the Python console tools are deleted.**
    One owner of each cable, one writer of each log, one language: custos reads every board's console all the time
-   (one systemd unit serving every `--port`) and writes the day logs; the UDP log sink (`udpsink.py`, for nodes that
+   (one systemd unit serving every `--board`) and writes the day logs; the UDP log sink (`udpsink.py`, for nodes that
    log over the mesh, `log_udp.c`) moves in too. `nodus/oevm/zephyr/tools/console/` ("got us to here, so worthwhile,
    but dead end") is deleted, the reader included. Its verbs (`tail`, `since`, `runs`, `panics`, `symbolize`, `check`)
    become custos's `log` and its siblings. custos then runs all the time on a bench or test machine, not only through

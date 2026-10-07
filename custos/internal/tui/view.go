@@ -69,7 +69,7 @@ func (m Model) statusLine() string {
 		s = fmt.Sprintf("stopped (%s) %s:%d  %s", m.st.Stop.Reason, m.st.Stop.File, m.st.Stop.Line, m.st.Stop.Method)
 	}
 	if m.noDebug && m.tab == debugTab {
-		s = "no debug target (start custos with --debug-host or --debug-port)"
+		s = "no debug target (give the board a --map, or pick one with --board)"
 	}
 	if m.inflight != "" {
 		s += dim.Render("  … " + m.inflight)

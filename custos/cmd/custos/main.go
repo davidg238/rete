@@ -61,20 +61,24 @@ func main() {
 		"base URL of porta's operator HTTP listener, fronted at /health and /manifest")
 	flag.StringVar(&cfg.Store, "store", "", "porta's sqlite store, read-only, for the fleet page at /fleet (empty = no fleet page)")
 	flag.StringVar(&cfg.Descriptors, "descriptors", "", "protocol/descriptors/records.yaml, required with --store")
-	flag.StringVar(&cfg.ProfilePort, "profile-port", "", "a board's console cable for the profile page at /profile (empty = no profile page)")
-	flag.StringVar(&cfg.ProfileHost, "profile-host", "", "a host VM command line for the profile page instead of a board, started for each capture: \"/tmp/oevm_img app.oimg\" (rete#364)")
-	flag.StringVar(&cfg.ProfileMap, "profile-map", "", "the <name>.oimg.map.json of the image on --profile-port or --profile-host")
-	flag.StringVar(&cfg.DebugPort, "debug-port", "", "a board's console cable for the debug page at /debug, held from start-up (empty = no debug page)")
-	flag.StringVar(&cfg.DebugHost, "debug-host", "", "a host VM command line for the debug page instead of a board: \"/tmp/oevm_img app.oimg\" (rete#362)")
-	flag.StringVar(&cfg.DebugMap, "debug-map", "", "the <name>.oimg.map.json of the image on --debug-port or --debug-host")
-	flag.StringVar(&cfg.DebugSource, "debug-source", "", "the .nsl the image came from (default: beside --debug-map)")
-	flag.StringVar(&cfg.LoadPort, "load-port", "", "a board's console cable for the load page at /load, opened for each load; may be --debug-port's (empty = no load page)")
-	flag.StringVar(&cfg.LoadHost, "load-host", "", "a host VM binary for the load page instead of a board, run once on each uploaded image: \"/tmp/oevm_img\" (rete#367)")
-	flag.StringVar(&cfg.Esptool, "esptool", "esptool.py", "the esptool --load-port runs")
+	var ports, hosts, maps, sources []string
+	each := func(dst *[]string) func(string) error {
+		return func(v string) error { *dst = append(*dst, v); return nil }
+	}
+	flag.Func("board", "a board on its console cable, `name=tty`, repeatable: every verb at /board/<name>/ (peer design D15)", each(&ports))
+	flag.Func("host", "a host VM instead of a board, `name=binary`: \"dev=/tmp/oevm_img\"; it runs the image beside the board's --map", each(&hosts))
+	flag.Func("map", "a board's program map, `name=path`.oimg.map.json: without one the board serves load only", each(&maps))
+	flag.Func("source", "a board's .nsl, `name=path` (default: beside its --map)", each(&sources))
+	flag.StringVar(&cfg.Esptool, "esptool", "esptool.py", "the esptool a board's load runs")
 	flag.StringVar(&allow, "allow-cidr", strings.Join(allowlist.Default(), ","),
 		"comma-separated CIDR allowlist (empty = serve any peer)")
 	flag.Parse()
 	cfg.AllowCIDR = strings.Split(allow, ",")
+	boards, err := custos.ParseBoards(ports, hosts, maps, sources)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg.Boards = boards
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

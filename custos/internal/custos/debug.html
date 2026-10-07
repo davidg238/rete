@@ -39,7 +39,7 @@
 <body>
 <header>
   <h1>rete debug</h1>
-  <nav><a href="/profile">profile</a><a href="/load">load</a><a href="/fleet">fleet</a><a href="/dev">dev status</a><a href="/debug/state">state.json</a></nav>
+  <nav><a href="profile">profile</a><a href="load">load</a><a href="/fleet">fleet</a><a href="/dev">dev status</a><a href="debug/state">state.json</a></nav>
 </header>
 <div class="stamp"><span class="pill v-unknown" id="run">…</span> <span id="where"></span></div>
 <div class="banner" id="error"></div>
@@ -72,6 +72,7 @@
 <form class="cmd" id="cmd"><input id="line" placeholder="any debugger command: break 26, locals 1, bt, help…" autocomplete="off"><button>send</button></form>
 
 <script>
+// Every verb URL is relative: a board's page is /board/<name>/<verb>, or /<verb> for the only board (peer design D15).
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const RUN = {unknown: 'v-unknown', boot: 'v-stalled', running: 'v-live', stopped: 'v-stalled', ended: 'v-silent', lost: 'v-silent'};
@@ -124,7 +125,7 @@ async function send(cmd) {
   busy = true;
   document.querySelectorAll('button').forEach(b => b.disabled = true);
   try {
-    const resp = await fetch('/debug/do', {method: 'POST', body: cmd});
+    const resp = await fetch('debug/do', {method: 'POST', body: cmd});
     if (!resp.ok) fail(await resp.text());
     else { const d = await resp.json(); fail(d.Error); render(d.State); }
   } catch (err) { fail(String(err)); }
@@ -136,7 +137,7 @@ async function poll() {
   let seq = -1;
   for (;;) {
     try {
-      const resp = await fetch('/debug/state?after=' + seq);
+      const resp = await fetch('debug/state?after=' + seq);
       if (!resp.ok) throw new Error(await resp.text());
       const st = await resp.json();
       if (last && st.Image !== last.Image) loadSource(); // a load restarted the session on a new map
@@ -164,7 +165,7 @@ $('cmd').onsubmit = e => {
   if (v) { send(v); $('line').value = ''; }
 };
 function loadSource() {
-  fetch('/debug/source').then(r => r.json()).then(s => { src = s; renderSource(); if (last) render(last); })
+  fetch('debug/source').then(r => r.json()).then(s => { src = s; renderSource(); if (last) render(last); })
     .catch(err => fail(String(err)));
 }
 loadSource();

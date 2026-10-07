@@ -54,17 +54,17 @@ type Done struct {
 }
 
 // mountDebug serves s. busy is the cable's: a load on the same cable holds it.
-func mountDebug(mux *http.ServeMux, s *debug.Session, busy *sync.Mutex) {
+func mountDebug(mux *http.ServeMux, prefixes []string, s *debug.Session, busy *sync.Mutex) {
 	answer := func(w http.ResponseWriter, v any) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-store")
 		json.NewEncoder(w).Encode(v)
 	}
-	mux.HandleFunc("GET /debug", func(w http.ResponseWriter, r *http.Request) {
+	handle(mux, prefixes, "GET /debug", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write(debugPage)
 	})
-	mux.HandleFunc("GET /debug/source", func(w http.ResponseWriter, r *http.Request) {
+	handle(mux, prefixes, "GET /debug/source", func(w http.ResponseWriter, r *http.Request) {
 		// Built per request: a load on the cable restarts the session on a new map.
 		sm := s.SourceMap()
 		code := sm.CodeLines()
@@ -74,7 +74,7 @@ func mountDebug(mux *http.ServeMux, s *debug.Session, busy *sync.Mutex) {
 		}
 		answer(w, src)
 	})
-	mux.HandleFunc("GET /debug/state", func(w http.ResponseWriter, r *http.Request) {
+	handle(mux, prefixes, "GET /debug/state", func(w http.ResponseWriter, r *http.Request) {
 		after := -1
 		if a := r.URL.Query().Get("after"); a != "" {
 			n, err := strconv.Atoi(a)
@@ -86,7 +86,7 @@ func mountDebug(mux *http.ServeMux, s *debug.Session, busy *sync.Mutex) {
 		}
 		answer(w, s.State(after, pollWait))
 	})
-	mux.HandleFunc("POST /debug/do", func(w http.ResponseWriter, r *http.Request) {
+	handle(mux, prefixes, "POST /debug/do", func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(io.LimitReader(r.Body, 4096))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)

@@ -9,7 +9,7 @@
 <body>
 <header>
   <h1>rete profile</h1>
-  <nav><a href="/debug">debug</a><a href="/load">load</a><a href="/fleet">fleet</a><a href="/dev">dev status</a><a href="/profile/last">last.json</a></nav>
+  <nav><a href="debug">debug</a><a href="load">load</a><a href="/fleet">fleet</a><a href="/dev">dev status</a><a href="profile/last">last.json</a></nav>
 </header>
 <form id="go"><label>window <input id="ms" type="number" min="1" value="3000"> ms</label> <button>Capture</button></form>
 <div class="stamp" id="stamp">no capture yet</div>
@@ -30,6 +30,7 @@
 </table></div>
 
 <script>
+// Every verb URL is relative: a board's page is /board/<name>/<verb>, or /<verb> for the only board (peer design D15).
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const pct = p => p.toFixed(1) + '%';
@@ -54,10 +55,10 @@ async function load(resp) {
 $('go').onsubmit = async e => {
   e.preventDefault();
   $('stamp').textContent = `capturing ${$('ms').value} ms…`;
-  try { await load(await fetch('/profile/capture?ms=' + encodeURIComponent($('ms').value), {method: 'POST'})); }
+  try { await load(await fetch('profile/capture?ms=' + encodeURIComponent($('ms').value), {method: 'POST'})); }
   catch (err) { fail(String(err)); }
 };
-fetch('/profile/last').then(load).catch(err => fail(String(err)));
+fetch('profile/last').then(load).catch(err => fail(String(err)));
 </script>
 </body>
 </html>
