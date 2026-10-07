@@ -142,8 +142,8 @@ func Lock(root, board string) (*os.File, error) {
 	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
 		holder, _ := os.ReadFile(path)
 		f.Close()
-		return nil, fmt.Errorf("board %s's console is held (%s): stop that collector first (systemctl --user stop rete-console@%s)",
-			board, strings.TrimSpace(string(holder)), board)
+		return nil, fmt.Errorf("board %s's console is held (%s): one collector per board — is another custos serving it?",
+			board, strings.TrimSpace(string(holder)))
 	}
 	f.Truncate(0)
 	f.WriteAt([]byte("pid="+strconv.Itoa(os.Getpid())+"\n"), 0)

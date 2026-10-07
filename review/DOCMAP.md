@@ -77,7 +77,7 @@ and `~/workspaceToit/nodus/docs/`:
 
 <!-- BEGIN GENERATED INVENTORY — do not edit below; rerun tools/docmap.sh -->
 
-_Regenerated 2026-10-05 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
+_Regenerated 2026-10-06 by `tools/docmap.sh`. Legend: **record** = mainline doc of record · **design** = dated decision record (`docs/design/`) · **plan** = execution scaffolding (`docs/superpowers/plans/`) · **note** = superpowers notes/findings._
 
 ### review
 
@@ -101,7 +101,7 @@ _Regenerated 2026-10-05 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `review/metrics-spec.md` — Node health metrics — the long-term profile (G4/G9 companion) _(record, 2026-07-21)_
 - `review/model-capability-findings.md` — Model-capability findings — coordination-model spike series _(record, 2026-08-02)_
 - `review/performance_slides.html` — nsl-tuvm — optimize the right thing _(record, 2026-07-22)_
-- `review/program-sequence.md` — nsl-tuvm — program sequence (the overarching order of work) _(record, 2026-10-04)_
+- `review/program-sequence.md` — nsl-tuvm — program sequence (the overarching order of work) _(record, 2026-10-05)_
 - `review/reliability-gaps.md` — Reliability gaps — the questions not yet asked (2026-07-03) _(record, 2026-08-02)_
 - `review/retained-channels-v2.html` — Names, and what answers to them — v2 _(record, 2026-07-13)_
 - `review/retained-channels.html` — Retained channels, and where remoteness lives _(record, 2026-08-02)_
@@ -115,7 +115,7 @@ _Regenerated 2026-10-05 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 
 ### docs
 
-- `docs/README.md` — docs/ — the program's documents _(record, 2026-10-05)_
+- `docs/README.md` — docs/ — the program's documents _(record, 2026-10-06)_
 - `docs/design/2026-06-17-clustered-image-xip-design.md` — Design: Decoupled image + execute-in-place clustered format _(design, 2026-08-29)_
 - `docs/design/2026-06-17-global-method-cache-design.md` — Global Method Lookup Cache — Design _(design, 2026-07-14)_
 - `docs/design/2026-06-17-unboxed-floats-design.md` — Unboxed Floats (P0) — Design _(design, 2026-08-29)_
@@ -180,10 +180,14 @@ _Regenerated 2026-10-05 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/design/2026-09-14-porta-federation-and-transports-design.md` — porta beyond the LAN: federation, and the transports a public deployment would use _(design, 2026-09-16)_
 - `docs/design/2026-10-02-frozen-1.0-surface.md` — The frozen surface 1.0 — what is promised, what is missing, what comes after _(design, 2026-10-03)_
 - `docs/design/2026-10-02-security-levels-design.md` — Security levels: who may talk to whom, per node _(design, 2026-10-02)_
-- `docs/design/2026-10-04-custos-peer-design.md` — custos as the third peer: the nsl developer's tool _(design, 2026-10-05)_
-- `docs/development.md` — Development: the loop for a human and for an agent _(record, 2026-10-05)_
+- `docs/design/2026-10-04-custos-peer-design.md` — custos as the third peer: the nsl developer's tool _(design, 2026-10-06)_
+- `docs/design/2026-10-05-custos-profile-over-usb.md` — `custos profile` over USB — what #312 needs decided first _(design, 2026-10-05)_
+- `docs/design/2026-10-05-debugger-stack-and-names-design.md` — The debugger's stack and names — one method identity (rete#323) _(design, 2026-10-05)_
+- `docs/design/2026-10-06-custos-debug-page-design.md` — The custos debug page (rete#340) _(design, 2026-10-06)_
+- `docs/design/2026-10-06-custos-tui-design.md` — The custos TUI (rete#341) _(design, 2026-10-06)_
+- `docs/development.md` — Development: the loop for a human and for an agent _(record, 2026-10-06)_
 - `docs/next-steps-overview.md` — Next steps — overview _(record, 2026-10-05)_
-- `docs/overview.md` — rete — the whole on one page _(record, 2026-10-02)_
+- `docs/overview.md` — rete — the whole on one page _(record, 2026-10-06)_
 - `docs/results/2026-07-20-c6-heap-ceiling.md` — ESP32-C6 heap-ceiling bisect — Task 3 _(record, 2026-07-20)_
 - `docs/results/2026-08-05-c6-checkin-decomposition.md` — Where the 300 ms goes — c6-bench, 2026-08-05 _(record, 2026-08-05)_
 - `docs/results/2026-08-05-c6-span-capture-first.md` — First span capture off a real node — c6-bench, 2026-08-05 _(record, 2026-08-05)_
@@ -206,7 +210,7 @@ _Regenerated 2026-10-05 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/spikes/2026-08-27-liveness-model/README.md` — The liveness contract, model-checked (2026-08-27) _(record, 2026-10-03)_
 - `docs/status/2026-08-12-where-we-are.html` — rete &mdash; where we are _(record, 2026-08-12)_
 - `docs/status/README.md` — docs/status — the orientation deck _(record, 2026-08-13)_
-- `docs/status/dev-status.html` — rete dev status _(record, 2026-10-04)_
+- `docs/status/dev-status.html` — rete dev status _(record, 2026-10-06)_
 - `docs/status/focus-history.md` — `## Current focus` — history _(record, 2026-09-30)_
 - `docs/superpowers/notes/2026-06-18-w1-rooting-audit.md` — W1 Rooting Audit — Runtime `gc_allocate` / `float_alloc` Sites _(note, 2026-07-03)_
 - `docs/superpowers/plans/2026-06-17-decoupled-xip-image.md` — Decoupled Image + Execute-In-Place Format — Implementation Plan _(plan, 2026-08-29)_
@@ -252,10 +256,16 @@ _Regenerated 2026-10-05 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `docs/superpowers/plans/2026-08-26-porta-refuse-board-session.md` — #232 Board Session Implementation Plan — porta-refuse scenario, #114 must-deliver, two riders _(plan, 2026-08-26)_
 - `docs/superpowers/plans/2026-09-17-liveness-two-cadences.md` — Two liveness cadences (#273 D1 + D2) Implementation Plan _(plan, 2026-09-18)_
 - `docs/superpowers/plans/2026-10-02-node-id-factory-address.md` — Node id = factory link address (#118/#242) Implementation Plan _(plan, 2026-10-02)_
+- `docs/superpowers/plans/2026-10-05-custos-profile.md` — `custos profile` Implementation Plan (#312) _(plan, 2026-10-05)_
+- `docs/superpowers/plans/2026-10-05-debugger-stack-and-names.md` — The debugger's stack and names — Implementation Plan (rete#323) _(plan, 2026-10-05)_
+- `docs/superpowers/plans/2026-10-05-program-partition.md` — The program in its own flash partition (#310) Implementation Plan _(plan, 2026-10-05)_
+- `docs/superpowers/plans/2026-10-06-341-custos-tui.md` — custos TUI Implementation Plan (#341) _(plan, 2026-10-06)_
+- `docs/superpowers/plans/2026-10-06-362-debug-agent-path.md` — The agent path over /debug (rete#362) Implementation Plan _(plan, 2026-10-06)_
+- `docs/superpowers/plans/2026-10-06-d16-custos-collector.md` — D16: custos is the console collector — the fate table (rete#314) _(plan, 2026-10-06)_
 - `docs/tutorials/01-host.md` — Tutorial 1 — the VM on your host: build it, run the suite, write ten lines of nsl _(record, 2026-10-04)_
 - `docs/tutorials/02-board.md` — Tutorial 2 — a board: flash a node, watch it join a mesh, run the gates _(record, 2026-10-02)_
 - `docs/tutorials/03-porta.md` — Tutorial 3 — porta on your host: a gateway, a node, and the diff between them _(record, 2026-10-03)_
-- `docs/tutorials/04-debugger.md` — Tutorial 4 — the debugger: stop a program at a line, step it, look inside _(record, 2026-10-05)_
+- `docs/tutorials/04-debugger.md` — Tutorial 4 — the debugger: stop a program at a line, step it, look inside _(record, 2026-10-06)_
 
 ### nodus/oevm/docs
 
@@ -266,6 +276,7 @@ _Regenerated 2026-10-05 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `nodus/oevm/docs/archive/ECOSYSTEM.md` — Ecosystem map — the language/VM/fleet constellation _(record, 2026-08-29)_
 - `nodus/oevm/docs/archive/ROADMAP.md` — OEVM Roadmap _(record, 2026-08-29)_
 - `nodus/oevm/docs/archive/concept.md` — OEVM Concept & Genesis: From LLM-Driven Titelang to Custom Micro-Kernel VM _(record, 2026-08-29)_
+- `nodus/oevm/docs/archive/console-tools-README.md` — Console collector and offline reader (#56) _(record)_
 - `nodus/oevm/docs/archive/dev_process/phase1_walkthrough.md` — Walkthrough - Core C Structures for OEVM _(record, 2026-08-29)_
 - `nodus/oevm/docs/archive/dev_process/phase2_walkthrough.md` — Walkthrough - Phase 2: Instruction Set Expansion & XIP Solidification _(record, 2026-08-29)_
 - `nodus/oevm/docs/archive/dev_process/phase3_walkthrough.md` — Walkthrough - Phase 3: Introspection & Newspeak Mirrors _(record, 2026-08-29)_
@@ -281,9 +292,9 @@ _Regenerated 2026-10-05 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `nodus/oevm/docs/archive/spec.md` — Architectural Specification: Open, Lazy-Reified Virtual Machine _(record, 2026-08-29)_
 - `nodus/oevm/docs/deployment-model.md` — Deployment model: resident VM + OTA'd image (Model B) _(record, 2026-08-29)_
 - `nodus/oevm/docs/op_send_implicit.md` — OP_SEND_IMPLICIT: Lexical Implicit-Receiver Message Sends _(record, 2026-08-29)_
-- `nodus/oevm/docs/optimizations.md` — OEVM interpreter optimization log _(record, 2026-08-29)_
+- `nodus/oevm/docs/optimizations.md` — OEVM interpreter optimization log _(record, 2026-10-05)_
 - `nodus/oevm/docs/topics.md` — Design topics _(record, 2026-08-29)_
-- `nodus/oevm/docs/vm.md` — oevm — what the VM is, as of 2026-08-29 _(record, 2026-10-04)_
+- `nodus/oevm/docs/vm.md` — oevm — what the VM is, as of 2026-08-29 _(record, 2026-10-05)_
 
 ### protocol
 
@@ -296,7 +307,7 @@ _Regenerated 2026-10-05 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 
 ### nodus/nsl/docs
 
-- `nodus/nsl/docs/NEWSPEAK_DIALECT.md` — ns-oevm — a Newspeak dialect (intentional differences from full Newspeak) _(record, 2026-08-26)_
+- `nodus/nsl/docs/NEWSPEAK_DIALECT.md` — ns-oevm — a Newspeak dialect (intentional differences from full Newspeak) _(record, 2026-10-05)_
 - `nodus/nsl/docs/README.md` — nodus/nsl/docs — the dialect's documents _(record, 2026-10-04)_
 - `nodus/nsl/docs/compiler.md` — The nsl compiler _(record, 2026-10-05)_
 - `nodus/nsl/docs/design/2026-06-16-block-inlining-design.md` — Block inlining via a scope/frame model _(design, 2026-08-02)_
@@ -308,7 +319,7 @@ _Regenerated 2026-10-05 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `nodus/nsl/docs/design/2026-06-21-ns-oevm-stdlib-step3c2-dictionary-set.md` — ns-oevm std-lib step 3c-2 — Dictionary + Set (HashedCollection) _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-06-22-ns-oevm-stdlib-step3c3-streams-design.md` — ns-oevm std-lib step 3c-3a — Streams (ReadStream + WriteStream) _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-06-22-ns-oevm-stdlib-step3c3b-serial-design.md` — ns-oevm std-lib step 3c-3b — Serial (the first native capability tier) _(design, 2026-08-02)_
-- `nodus/nsl/docs/design/2026-06-23-ns-oevm-in-image-debugger-design.md` — In-image debugger + mirror grant (POSIX, agent-drivable) — design _(design, 2026-10-02)_
+- `nodus/nsl/docs/design/2026-06-23-ns-oevm-in-image-debugger-design.md` — In-image debugger + mirror grant (POSIX, agent-drivable) — design _(design, 2026-10-05)_
 - `nodus/nsl/docs/design/2026-06-23-ns-oevm-mirror-confinement-design.md` — ns-oevm Mirror tier — confining ambient reflection (the privileged-reflection capability) _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-06-23-ns-oevm-stratify-execution-off-reflection-design.md` — ns-oevm — Stratify base-level execution off reflection _(design, 2026-08-02)_
 - `nodus/nsl/docs/design/2026-06-25-ns-posix-keeper-r1-design.md` — Design: R1 — `ns-posix` node skeleton (nodus-style keeper on the resident oevm VM) _(design, 2026-08-02)_
@@ -474,3 +485,66 @@ _Regenerated 2026-10-05 by `tools/docmap.sh`. Legend: **record** = mainline doc 
 - `porta/docs/superpowers/plans/2026-08-26-space-sync-durability-trio.md` — Space-Sync Durability Trio Implementation Plan _(plan, 2026-08-26)_
 - `porta/docs/superpowers/plans/2026-10-03-272-count-on-the-pull.md` — #272 — the tick count rides the pull — Implementation Plan _(plan, 2026-10-03)_
 - `porta/docs/superpowers/plans/2026-10-03-272-stalled-verdict.md` — #272 — `#stalled`: porta judges progress, not only arrival — Implementation Plan _(plan, 2026-10-03)_
+
+### ~/workspaceToit/nodus/docs
+
+- `~/workspaceToit/nodus/docs/ARCHITECTURE.md` — nodus architecture _(record, 2026-06-12)_
+- `~/workspaceToit/nodus/docs/CLI.md` — `nodus` CLI reference _(record, 2026-06-12)_
+- `~/workspaceToit/nodus/docs/CONTRIBUTING.md` — Contributing / development workflow _(record, 2026-06-09)_
+- `~/workspaceToit/nodus/docs/GETTING-STARTED.md` — Getting started — end to end _(record, 2026-06-12)_
+- `~/workspaceToit/nodus/docs/MCP-VERIFICATION.md` — Verifying `nodus mcp` works _(record, 2026-06-07)_
+- `~/workspaceToit/nodus/docs/NODE-LIFECYCLE.md` — Node Lifecycle & Power Modes _(record, 2026-06-12)_
+- `~/workspaceToit/nodus/docs/PANIC-REPORTING.md` — Panic reporting (node → gateway) _(record, 2026-06-03)_
+- `~/workspaceToit/nodus/docs/PROVISIONING.md` — Provisioning & flashing _(record, 2026-06-09)_
+- `~/workspaceToit/nodus/docs/RELIABILITY.md` — Reliability & fault model _(record, 2026-06-12)_
+- `~/workspaceToit/nodus/docs/WRITING-PAYLOADS.md` — Writing a node payload _(record, 2026-06-09)_
+- `~/workspaceToit/nodus/docs/demo/nodus-show-and-tell-script.md` — nodus — show-and-tell narration script _(record, 2026-06-07)_
+- `~/workspaceToit/nodus/docs/demo/nodus-topology-slide.md` — nodus ⇄ porta — topology _(record, 2026-06-07)_
+- `~/workspaceToit/nodus/docs/demo/show-and-tell-template.md` — Show-and-tell walkthrough template _(record, 2026-06-07)_
+- `~/workspaceToit/nodus/docs/design/2026-06-12-timeout-classification-forward-echo-design.md` — Design: gateway-timeout classification (#16) + forward-gate echo (#15) _(design, 2026-07-14)_
+- `~/workspaceToit/nodus/docs/design/2026-06-28-profile-node-side-design.md` — Design: profile verb — node side (nodus) _(design, 2026-07-14)_
+- `~/workspaceToit/nodus/docs/node-lifecycle-2.md` — Node Lifecycle — Two Modes Side by Side _(record, 2026-06-09)_
+- `~/workspaceToit/nodus/docs/plans/2026-05-21-toit-tftp-loader-smoke-test.md` — Toit-over-TFTP Loader Smoke Test — Implementation Plan _(record, 2026-05-26)_
+- `~/workspaceToit/nodus/docs/plans/2026-05-22-porta-no-jaguar-supervisor.md` — Porta No-Jaguar Supervisor Implementation Plan _(record, 2026-05-26)_
+- `~/workspaceToit/nodus/docs/plans/2026-05-26-vin-run-once-lifecycle.md` — Vin run-once lifecycle Implementation Plan _(record, 2026-05-26)_
+- `~/workspaceToit/nodus/docs/plans/2026-05-27-always-on-vin.md` — Always-on vin Implementation Plan _(record, 2026-05-27)_
+- `~/workspaceToit/nodus/docs/plans/2026-06-02-report-chip-sdk-identity.md` — Emit `chip` + `sdk` firmware identity in the report (porta /tools/toit companion) _(record, 2026-06-02)_
+- `~/workspaceToit/nodus/docs/plans/2026-06-03-gateway-config.md` — Gateway Config (provisioned gateway address) Implementation Plan _(record, 2026-06-03)_
+- `~/workspaceToit/nodus/docs/plans/2026-06-03-nodus-dev-tool-c2c3.md` — nodus dev tool (C2 `run`/`monitor`/`panic` + C3 `flash`) — Implementation Plan _(record, 2026-06-05)_
+- `~/workspaceToit/nodus/docs/plans/2026-06-03-nodus-dev-tool.md` — nodus dev tool (`nodus run` / `nodus flash`) — cross-repo handoff plan _(record, 2026-06-03)_
+- `~/workspaceToit/nodus/docs/plans/2026-06-03-panic-capture.md` — nodus Panic Capture Implementation Plan _(record, 2026-06-03)_
+- `~/workspaceToit/nodus/docs/plans/2026-06-04-nodus-mcp-control-plane.md` — nodus mcp control plane (v1) Implementation Plan _(record, 2026-06-04)_
+- `~/workspaceToit/nodus/docs/plans/2026-06-04-report-effective-checkin-interval.md` — Emit `health.report_interval` — effective check-in cadence (porta #14 companion) _(record, 2026-06-05)_
+- `~/workspaceToit/nodus/docs/plans/2026-06-06-northbound-channels-a-service-hub.md` — Northbound channels (a) — supervisor service hub + buffers — Implementation Plan _(record, 2026-06-06)_
+- `~/workspaceToit/nodus/docs/plans/2026-06-06-northbound-channels-b-forwarding.md` — Northbound channels (b) — forwarding policy Implementation Plan _(record, 2026-06-07)_
+- `~/workspaceToit/nodus/docs/plans/2026-06-06-northbound-channels-c-door-example.md` — Northbound channels (c) — door example Implementation Plan _(record, 2026-06-07)_
+- `~/workspaceToit/nodus/docs/plans/2026-06-07-nodus-decode-handler-impl.md` — `nodus decode` URL-scheme handler — Implementation Plan _(record, 2026-06-07)_
+- `~/workspaceToit/nodus/docs/plans/2026-06-07-nodus-decode-handler.md` — nodus `nodus://decode` URL-scheme handler (`nodus decode`) _(record, 2026-06-07)_
+- `~/workspaceToit/nodus/docs/secrets.md` — secrets — local provisioning values (DO NOT COMMIT) _(record)_
+- `~/workspaceToit/nodus/docs/specs/2026-05-21-toit-tftp-loader-design.md` — Design: Toit-over-TFTP loader smoke test _(record, 2026-05-26)_
+- `~/workspaceToit/nodus/docs/specs/2026-05-22-porta-no-jaguar-supervisor-design.md` — Design: Porta no-jaguar supervisor + Artemis-pod-compatible node runtime _(record, 2026-05-26)_
+- `~/workspaceToit/nodus/docs/specs/2026-05-24-node-lifecycle-reliability-design.md` — Design note: Node lifecycle & reliability (power modes + watchdog) _(record, 2026-05-26)_
+- `~/workspaceToit/nodus/docs/specs/2026-05-27-always-on-vin-design.md` — Design note: Always-on vin (run-loop power mode + WatchdogService) _(record, 2026-05-27)_
+- `~/workspaceToit/nodus/docs/specs/2026-06-03-gateway-config-design.md` — nodus — provisioned gateway address (design) _(record, 2026-06-03)_
+- `~/workspaceToit/nodus/docs/specs/2026-06-03-panic-capture-design.md` — nodus — panic capture & forward (design) _(record, 2026-06-03)_
+- `~/workspaceToit/nodus/docs/specs/2026-06-04-nodus-mcp-control-plane-design.md` — nodus mcp — control plane (v1) design _(record, 2026-06-05)_
+- `~/workspaceToit/nodus/docs/specs/2026-06-06-northbound-channels-a-service-hub-design.md` — Northbound channels (a) — supervisor service hub + buffers _(record, 2026-06-06)_
+- `~/workspaceToit/nodus/docs/specs/2026-06-06-northbound-channels-b-forwarding-design.md` — Northbound channels (b) — forwarding flags, cadences & porta wire _(record, 2026-06-06)_
+- `~/workspaceToit/nodus/docs/specs/2026-06-06-northbound-channels-c-door-example-design.md` — Northbound channels (c) — the door example (deep-sleep sensor) _(record, 2026-06-06)_
+- `~/workspaceToit/nodus/docs/specs/2026-06-07-clock-example-design.md` — clock example — loop-forever digital clock (design) _(record, 2026-06-07)_
+- `~/workspaceToit/nodus/docs/specs/2026-06-07-nodus-decode-handler-design.md` — `nodus decode` — `nodus://decode` URL-scheme handler (design) _(record, 2026-06-07)_
+- `~/workspaceToit/nodus/docs/specs/2026-06-08-node-config-ownership-design.md` — Node config ownership + `set-mode` — design _(record, 2026-06-08)_
+- `~/workspaceToit/nodus/docs/specs/2026-06-09-writeable-loop-sleep-design.md` — Writeable always-on `loop_sleep_s` — design _(record, 2026-06-09)_
+- `~/workspaceToit/nodus/docs/specs/porta-coordination-door-timestamp.md` — porta coordination — metric `ts` on `data?id=` entries (northbound-channels c) _(record, 2026-06-07)_
+- `~/workspaceToit/nodus/docs/specs/porta-coordination-forward-echo.md` — porta coordination — forward-gate echo in `node_config` + `health.poll_timeouts` (#15 #16) _(record, 2026-06-12)_
+- `~/workspaceToit/nodus/docs/specs/porta-coordination-loop-sleep.md` — porta coordination — settable always-on `loop_sleep_s` on `set-mode` _(record, 2026-06-12)_
+- `~/workspaceToit/nodus/docs/specs/porta-coordination-profile-timeout.md` — porta coordination — `duration_s` on `profile_session` + derived lazy-timeout status _(record, 2026-07-14)_
+- `~/workspaceToit/nodus/docs/specs/porta-coordination-set-forward.md` — porta coordination — `set-forward` verb + enriched `data?id=` entries (northbound-channels b) _(record, 2026-06-07)_
+- `~/workspaceToit/nodus/docs/superpowers/plans/2026-06-08-node-config-ownership.md` — Node Config Ownership + `set-mode` Implementation Plan _(plan, 2026-06-08)_
+- `~/workspaceToit/nodus/docs/superpowers/plans/2026-06-09-writeable-loop-sleep.md` — Writeable always-on `loop_sleep_s` — Implementation Plan _(plan, 2026-06-09)_
+- `~/workspaceToit/nodus/docs/superpowers/plans/2026-06-12-timeout-classification-forward-echo.md` — Gateway-Timeout Classification (#16) + Forward-Gate Echo (#15) Implementation Plan _(plan, 2026-07-14)_
+- `~/workspaceToit/nodus/docs/superpowers/plans/2026-06-28-profile-node-side.md` — Profile verb — node side (nodus) Implementation Plan _(plan, 2026-07-14)_
+
+### ~/workspaceToit/stic
+
+- `~/workspaceToit/stic/README.md` — STIC Smalltalk benchmark _(record, 2026-07-17)_

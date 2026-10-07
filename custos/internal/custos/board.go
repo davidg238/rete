@@ -14,7 +14,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -61,9 +63,29 @@ type BoardInfo struct {
 
 var boardName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
 
+// BenchDir holds the bench's board files, console-<name>.env, each naming its
+// board's console cable as RETE_CONSOLE_PORT=<tty>. A bare --board <name> reads
+// its tty there, so the unit names boards and the bench file names the cable.
+var BenchDir = filepath.Join(os.Getenv("HOME"), ".config", "rete")
+
+// benchPort is RETE_CONSOLE_PORT from the board's bench file.
+func benchPort(name string) (string, error) {
+	f := filepath.Join(BenchDir, "console-"+name+".env")
+	b, err := os.ReadFile(f)
+	if err != nil {
+		return "", fmt.Errorf("custos: --board %s names no cable and has no bench file: %w", name, err)
+	}
+	for _, l := range strings.Split(string(b), "\n") {
+		if v, ok := strings.CutPrefix(strings.TrimSpace(l), "RETE_CONSOLE_PORT="); ok && v != "" {
+			return v, nil
+		}
+	}
+	return "", fmt.Errorf("custos: %s has no RETE_CONSOLE_PORT=", f)
+}
+
 // ParseBoards joins the repeated --board, --host, --udp-log, --map and
-// --source flags (each name=value) into boards, sorted by name, or says what is
-// wrong.
+// --source flags (each name=value; a bare --board name reads its bench file)
+// into boards, sorted by name, or says what is wrong.
 func ParseBoards(ports, hosts, udps, maps, sources []string) ([]Board, error) {
 	byName := map[string]*Board{}
 	split := func(flag, kv string) (string, string, error) {
@@ -78,6 +100,13 @@ func ParseBoards(ports, hosts, udps, maps, sources []string) ([]Board, error) {
 		kvs  []string
 	}{{"board", ports}, {"host", hosts}, {"udp-log", udps}} {
 		for _, kv := range t.kvs {
+			if t.flag == "board" && boardName.MatchString(kv) {
+				port, err := benchPort(kv)
+				if err != nil {
+					return nil, err
+				}
+				kv += "=" + port
+			}
 			name, v, err := split(t.flag, kv)
 			if err != nil {
 				return nil, err

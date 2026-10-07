@@ -39,7 +39,7 @@ NSL="$(git -C "$ZDIR" rev-parse --show-toplevel)/nodus/nsl/tools/ns_compile_oevm
 #
 # CALLED ONLY INSIDE THE SUBSHELLS THAT RUN west, never exported globally: it sets
 # PYTHONHOME/PYTHONPATH, and leaking those would send this script's OWN later python
-# calls (tools/console/logread.py, capture_coredump.py) to the toolchain interpreter,
+# calls (capture_coredump.py) to the toolchain interpreter,
 # which has none of their dependencies. That failure would appear at --capture time,
 # long after the build it came from.
 ncs_env() {
@@ -778,9 +778,9 @@ fi
 
 if [ "$DO_FLASH" = 1 ]; then
   # KNOWN RACE, not yet closed here (rete#154, closed as recorded rather than
-  # fixed — this comment is the record). The #56 collector holds the CP2102N
+  # fixed — this comment is the record). The collector (custos, D16) holds the CP2102N
   # open permanently and a tty has no exclusive open, so on the boards where the
-  # flash and console channels are the SAME adapter, esptool and collect.py both
+  # flash and console channels are the SAME adapter, esptool and the collector both
   # read it and the ROM handshake bytes are split between them. Symptom:
   #
   #   A serial exception error occurred: device reports readiness to read but
@@ -791,13 +791,13 @@ if [ "$DO_FLASH" = 1 ]; then
   # over the USB-JTAG node and consoles over the CP2102N, two physical channels),
   # so this bites the esp32 and esp32s2 profiles above.
   #
-  # Already closed for the target harness: target::collector_pause stops the
-  # collector for the deploy window, and target::reset_board then drives RTS
+  # Already closed for the target harness: target::collector_pause has custos
+  # lend the cable for the deploy window, and target::reset_board then drives RTS
   # afterwards so the boot banner is still captured (esptool resets the board on
   # completion, i.e. while there is no reader). The fix here is to move that pause
   # into this script and have the harness stop doing it. rete#170 unblocked it by
   # giving this script the real instance name (below); what remains is moving the
-  # stop/start and the second reset over, and deleting the harness's copy.
+  # lend/return and the second reset over, and deleting the harness's copy.
   if [ "$BOARD_ID" = nrf52840dongle ]; then
     # DFU, because the dongle has no debugger. It only accepts a flash while in DFU
     # mode, which is a PHYSICAL act: hold RESET while inserting, and it re-enumerates
@@ -890,7 +890,7 @@ if [ "$DO_FLASH" = 1 ]; then
     # bell's env file whichever board was flashed. Resolved instead from the
     # console port, through the same env files the collector itself reads.
     if INSTANCE=$(bench::board_for_port "$CONSOLE_PORT"); then
-      "$ZDIR/tools/console/archive.sh" "$ZDIR/$BUILD_DIR" "$INSTANCE" "${OIMG:-}"
+      "$ZDIR/archive.sh" "$ZDIR/$BUILD_DIR" "$INSTANCE" "${OIMG:-}"
 
       # The old check compared this port against `console-c6.env` and so was
       # wrong on every board but one. Comparing it against the instance we just
@@ -899,37 +899,24 @@ if [ "$DO_FLASH" = 1 ]; then
       # wants to know, is whether that instance's collector will capture the boot.
       case "$(bench::collector_state "$INSTANCE")" in
         active) : ;;
-        inactive)
-          # rete#237: the same fact means two different things, and only the CALLER
-          # knows which. On the hand path nobody resets the board again, so an
-          # uncollected boot is the operator's problem and this is a real warning.
-          # Under the target harness the collector was stopped on purpose moments
-          # ago (esptool and the collector otherwise split the ROM handshake), and
-          # deploy_flash resumes it and resets the board again — so the run's anchor
-          # boot IS captured and the warning is noise. A warning that fires on every
-          # run and always means nothing is training to ignore warnings, which is the
-          # failure rete#236 had just cost a board cycle to fix.
-          #
-          # The board name must match: target::collector_pause exports the instance
-          # IT stopped, and $INSTANCE is resolved here independently from the console
-          # port. If they disagree, some OTHER board's collector is down and that is
-          # worth shouting about, so this fails closed.
-          if [ "${TARGET_PAUSED_BOARD:-}" = "$INSTANCE" ]; then
-            echo "[console] note: rete-console@$INSTANCE was stopped by the caller for this" >&2
-            echo "[console] flash, so this boot is not logged — the caller resets the board" >&2
-            echo "[console] again with the collector back up, and that boot is the anchor." >&2
-          else
-            echo "[console] WARNING: rete-console@$INSTANCE is not running." >&2
-            echo "[console] The boot you just triggered is not being logged." >&2
-          fi ;;
+        lent)
+          # rete#237: a lent cable was lent on purpose, by whoever is flashing this
+          # very board (the target harness lends it, flashes, takes it back and
+          # resets the board again so that boot is the anchor). custos answers per
+          # board, so a lent c6spare cannot quieten a warning about c6.
+          echo "[console] note: $INSTANCE's cable is lent for this flash, so this boot is not" >&2
+          echo "[console] logged — whoever lent it resets the board again once it is back." >&2 ;;
+        unserved)
+          echo "[console] WARNING: custos ($RETE_CUSTOS) does not serve $INSTANCE." >&2
+          echo "[console] The boot you just triggered is not being logged." >&2 ;;
         no-log)
-          echo "[console] WARNING: rete-console@$INSTANCE is running but has no log for today." >&2 ;;
+          echo "[console] WARNING: custos serves $INSTANCE but has no log for today." >&2 ;;
         port-down)
           if [ "$INSTANCE" = c6 ]; then
-            echo "[console] note: rete-console@c6 reports port=down, which is NORMAL for the" >&2
+            echo "[console] note: custos reports c6's cable down, which is NORMAL for the" >&2
             echo "[console] ship's bell — its console goes over Thread, not this cable." >&2
           else
-            echo "[console] WARNING: rete-console@$INSTANCE reports port=down — it is running" >&2
+            echo "[console] WARNING: custos reports $INSTANCE's cable down — it is serving" >&2
             echo "[console] and reading nothing, so the boot you just triggered went nowhere." >&2
           fi ;;
       esac
@@ -953,7 +940,7 @@ if [ "$DO_FLASH" = 1 ]; then
       echo "[console] WARNING: no collector instance owns $CONSOLE_PORT" >&2
       echo "[console] (or more than one claims it), so this flash cannot be attributed" >&2
       echo "[console] to a board. Archiving under 'unknown'; last-flashed-* is unchanged." >&2
-      "$ZDIR/tools/console/archive.sh" "$ZDIR/$BUILD_DIR" unknown "${OIMG:-}"
+      "$ZDIR/archive.sh" "$ZDIR/$BUILD_DIR" unknown "${OIMG:-}"
       INSTANCE=unknown
     fi
     echo "[console] $INSTANCE $CONSOLE_PORT"
@@ -963,24 +950,28 @@ fi
 if [ "${CAPTURE:-0}" != 0 ]; then
   if [ "$BOARD_ID" = rpi_pico2 ] || [ "$BOARD_ID" = feather_rp2040 ]; then
     # Same D6 shape as the C6 below — the collector owns the port — but the board is
-    # NAMED: logread.py's --board defaults to `c6`, the ship's bell, and this board is
-    # not on that log. Resolved from the console port through the env files, and it
+    # NAMED: custos serves every board, so the read must say which. Resolved from the console port through the env files, and it
     # refuses rather than reads the wrong board's log when nothing names the port.
     if ! PICO_INSTANCE=$(bench::board_for_port "${CONSOLE_PORT:-}"); then
       echo "[watch] no collector env names '${CONSOLE_PORT:-<unset>}' — set CONSOLE_PORT" >&2
-      echo "[watch] or write ~/.config/rete/console-pico2.env (tools/console/README.md)." >&2
+      echo "[watch] or write ~/.config/rete/console-pico2.env and add --board pico2 to custos." >&2
       exit 2
     fi
     echo "[watch] last ${CAPTURE}s from the collector log for $PICO_INSTANCE"
-    python3 "$ZDIR/tools/console/logread.py" --board "$PICO_INSTANCE" since -- "-${CAPTURE}s"
+    curl -sf "$RETE_CUSTOS/board/$PICO_INSTANCE/log?since=-${CAPTURE}s" | jq -r '.[] | "\(.When) \(.Text)"'
   elif [ "$BOARD_ID" = esp32c6 ]; then
     # D6: the collector owns the port, so --capture is a READ of what it already
     # has. This gains rather than loses — it shows the boot you just triggered
     # even if it fired before you asked, which is the exact failure that lost
     # the first AMG8833 panic.
     echo "[watch] last ${CAPTURE}s from the collector log"
-    # `--` is load-bearing: without it argparse reads -180s as an option flag.
-    python3 "$ZDIR/tools/console/logread.py" since -- "-${CAPTURE}s"
+    # Named, as the pico branch is: the collector serves every board, and the
+    # board flashed is the one the console port resolves to.
+    if ! C6_INSTANCE=$(bench::board_for_port "${CONSOLE_PORT:-}"); then
+      echo "[watch] no bench file names '${CONSOLE_PORT:-<unset>}' — set CONSOLE_PORT" >&2
+      exit 2
+    fi
+    curl -sf "$RETE_CUSTOS/board/$C6_INSTANCE/log?since=-${CAPTURE}s" | jq -r '.[] | "\(.When) \(.Text)"'
   else
     # esp32 / esp32s2 keep the direct serial read, including its DTR/RTS reset
     # pulse (capture_coredump.py:9), which is a no-op on the C6 but real here —

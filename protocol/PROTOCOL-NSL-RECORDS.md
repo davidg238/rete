@@ -659,7 +659,7 @@ serial console anyway.
 **This is a claim about the session on this path, not about developer-facing assets.**
 Console history, `.oimg` archives and symbol sidecars are not the `dbg/` session and are not
 bound by this rule; they live off the space entirely, as host-side dev tooling
-(`nodus/oevm/zephyr/tools/console/`), by the same rule that keeps profiler blobs off the
+(custos's console collector, `custos/docs/console.md`), by the same rule that keeps profiler blobs off the
 space at all (§2.4). Conflating the two readings would make porta holding console history,
 or a view built on that tooling, look like a violation of "stateless relay" when it is not
 (`docs/design/2026-08-06-method-profile-over-porta-design.md` D7).

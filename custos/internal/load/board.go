@@ -88,7 +88,7 @@ func portFree(port string) error {
 			continue
 		}
 		if got, err := os.Readlink(fd); err == nil && got == want {
-			return fmt.Errorf("%s is held by pid %s — stop the board's collector first (systemctl --user stop rete-console@<board>)", port, pid)
+			return fmt.Errorf("%s is held by pid %s — if that is custos's collector, POST /board/<name>/load through it instead", port, pid)
 		}
 	}
 	return nil

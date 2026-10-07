@@ -1,3 +1,5 @@
+> **HISTORICAL — archived 2026-10-06.** Replaced by custos (peer design D16, rete#314): [`custos/docs/console.md`](../../../../custos/docs/console.md). The Python tools it describes (`collect.py`, `logread.py`, `check.py`, `symbolize.py`, `udpsink.py`, the `rete-console@` unit) were deleted; `archive.sh` moved to `nodus/oevm/zephyr/archive.sh`.
+
 # Console collector and offline reader (#56)
 
 `collect.py` holds the C6 console port and writes everything it sees to

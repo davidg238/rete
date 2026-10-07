@@ -14,8 +14,8 @@ import (
 //
 //	custos load -port /dev/serial/by-id/usb-Silicon_Labs_CP2102N_... PortaBridgeNodeC6.oimg
 //
-// It needs the port to itself: stop the board's collector first
-// (systemctl --user stop rete-console@<board>).
+// It needs the port to itself: a board custos collects is loaded through custos
+// instead (POST /board/<name>/load), which already holds the cable.
 func Run(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("custos load", flag.ContinueOnError)
 	fs.SetOutput(stderr)

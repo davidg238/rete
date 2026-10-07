@@ -140,26 +140,24 @@ target::logfile() { BENCH_CONSOLE_STORE="$TARGET_STORE" bench::log_file "$1"; }
 # run that never happened.
 target::collector_ok() {
   local board=$1 logfile
-  systemctl --user is-active --quiet "rete-console@$board" \
-    || target::die "collector rete-console@$board is not running; this harness reads its log and never opens the port"
+  case "$(bench::collector_state "$board")" in
+    active) : ;;
+    unserved) target::die "custos ($RETE_CUSTOS) does not serve $board; this harness reads its log and never opens the port" ;;
+    lent)     target::die "$board's cable is lent (POST /board/$board/lend) — another flash is in progress" ;;
+    no-log)   target::die "no console log at $(target::logfile "$board")" ;;
+    # port-down means custos is alive and seeing NOTHING, which would turn every
+    # assertion below into a timeout with a misleading cause. Say it now, and say
+    # only what has been VERIFIED.
+    port-down) target::die "custos reports $board's cable down: it is serving and reading nothing, so every assertion here would time out with a misleading cause. (On the ship's bell this state is normal — its console goes over Thread, not this cable.)" ;;
+  esac
   logfile=$(target::logfile "$board")
   [ -f "$logfile" ] || target::die "no console log at $logfile"
-  # port=down means the collector is alive and seeing NOTHING, which would turn
-  # every assertion below into a timeout with a misleading cause. Say it now, and
-  # say only what has been VERIFIED — the earlier wording named two candidate
-  # causes it had not checked, which is the same defect as a skip whose message
-  # names an unverified cause.
-  # grep consumes the stream (no -q): run.sh sources this under pipefail, and a
-  # first-match exit SIGPIPEs the writer into a bogus pipeline failure (rete#260).
-  if tail -3 "$logfile" | grep "port=down" >/dev/null; then
-    target::die "collector rete-console@$board reports port=down: it is running and reading nothing, so every assertion here would time out with a misleading cause. (On the ship's bell this state is normal — its console goes over Thread, not this cable.)"
-  fi
 }
 
 # ---- the collector must yield for a flash, and the board must be re-reset ----
 #
 # THE HAZARD, found 2026-08-05 the first time two scenarios ran back to back.
-# The collector holds the CP2102N open permanently. A tty has no exclusive open,
+# The collector (custos since D16) holds the CP2102N open permanently. A tty has no exclusive open,
 # so esptool and the collector both read it and the ROM handshake bytes are split
 # between them:
 #
@@ -182,32 +180,22 @@ target::collector_ok() {
 # AGAIN, deliberately, once the collector is back and reading.
 target::collector_pause() {
   TARGET_PAUSED_BOARD=$1
-  # rete#237: EXPORTED, so zephyr/run.sh can tell "nobody is collecting this board"
-  # from "I stopped the collector myself, ten milliseconds ago, and will start it
-  # again and reset the board once esptool is done".
-  #
-  # No new knob: this variable already existed and already held exactly that fact —
-  # it was simply not visible to the child. That is why it is the right carrier. It
-  # is set and cleared by this pair alone, so it cannot drift out of step with the
-  # actual state, and it names the BOARD rather than saying `1`: run.sh compares it
-  # against the instance it resolved for itself, so a paused c6spare does NOT quieten
-  # a warning about c6. A knob that must match something the callee derives
-  # independently is a knob that fails closed when it is set wrongly.
-  export TARGET_PAUSED_BOARD
   trap 'target::collector_resume' EXIT
-  systemctl --user stop "rete-console@$TARGET_PAUSED_BOARD"
+  # 600 s is a ceiling, not a wait: resume returns the cable as soon as the flash
+  # is done, and the ceiling is what gives it back if this script dies first.
+  bench::lend "$TARGET_PAUSED_BOARD" 600 \
+    || target::die "custos ($RETE_CUSTOS) would not lend $TARGET_PAUSED_BOARD's cable"
 }
 
 target::collector_resume() {
   [ -n "${TARGET_PAUSED_BOARD:-}" ] || return 0
-  systemctl --user start "rete-console@$TARGET_PAUSED_BOARD"
+  bench::return "$TARGET_PAUSED_BOARD"
   local deadline=$(( $(date +%s) + 20 ))
   while [ "$(date +%s)" -lt "$deadline" ]; do
-    systemctl --user is-active --quiet "rete-console@$TARGET_PAUSED_BOARD" && break
+    [ "$(bench::collector_state "$TARGET_PAUSED_BOARD")" = active ] && break
     sleep 1
   done
   TARGET_PAUSED_BOARD=""
-  export TARGET_PAUSED_BOARD          # rete#237: cleared, so the window is exactly the pause
 }
 
 # target::reset_board <board> — pulse RTS (EN) to reboot, leaving DTR (IO0) high

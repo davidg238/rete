@@ -147,14 +147,33 @@ hash, and doing exactly that overwrote the wrong board on 2026-07-16.
 
 ## 3. The collector: the console is always on
 
-Every board on this bench has a systemd **user** unit holding its CP2102N open forever,
-timestamping each line and rolling one log per day:
+One systemd **user** unit, `rete-custos`, holds every board's CP2102N open forever,
+timestamping each line and rolling one log per day per board. The boards it serves are named
+in `~/.config/rete/custos.env` (`RETE_CUSTOS_ARGS=--board c6spare …`); each reads its cable from
+the env file above ([custos/docs/console.md](../../custos/docs/console.md)):
 
 ```bash
-systemctl --user status rete-console@c6bench
+systemctl --user status rete-custos
 ls ~/.local/state/rete/console/
-python3 nodus/oevm/zephyr/tools/console/logread.py since -- -180s
+curl -s localhost:6971/board/c6spare/health                 # {"State":"up",…}
+curl -s 'localhost:6971/board/c6spare/log?since=-180s' | jq -r '.[] | "\(.When) \(.Text)"'
+curl -s localhost:6971/board/c6spare/runs | jq               # one row per boot, with its build id
+curl -s localhost:6971/board/c6spare/panics | jq             # then /panics/<n>/bt for its backtrace
 ```
+
+**Borrowing the cable.** Anything else that must open the board's cable (esptool on a board
+whose flash and console share one adapter, a scope script) asks custos to let go first.
+Stopping the unit instead would stop every board's log at once:
+
+```bash
+curl -s -X POST 'localhost:6971/board/c6spare/lend?s=120'    # custos closes it; health says "lent"
+#   … the thing that needs the cable …
+curl -s -X POST localhost:6971/board/c6spare/return          # taken back now (else at 120 s)
+```
+
+Both land in the log as `@@rete-console@@ cable lent` / `cable back`, so a gap in the log has a
+stated cause. The target harness and `flash-bell.sh` do exactly this around a flash, and
+`run.sh --capture 60` is a read of `/log`, not a serial open.
 
 There are three reasons it is always-on rather than attached when needed, and each one is a
 bug that was paid for:

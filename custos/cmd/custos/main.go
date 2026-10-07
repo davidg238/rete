@@ -65,7 +65,7 @@ func main() {
 	each := func(dst *[]string) func(string) error {
 		return func(v string) error { *dst = append(*dst, v); return nil }
 	}
-	flag.Func("board", "a board on its console cable, `name=tty`, repeatable: every verb at /board/<name>/ (peer design D15)", each(&ports))
+	flag.Func("board", "a board on its console cable, `name=tty` (a bare name reads ~/.config/rete/console-<name>.env), repeatable: every verb at /board/<name>/ (peer design D15)", each(&ports))
 	flag.Func("host", "a host VM instead of a board, `name=binary`: \"dev=/tmp/oevm_img\"; it runs the image beside the board's --map", each(&hosts))
 	flag.Func("udp-log", "a board that logs over the mesh, `name=port`: its console datagrams are collected, and its console verbs served", each(&udps))
 	flag.Func("map", "a board's program map, `name=path`.oimg.map.json: without one the board serves load only", each(&maps))

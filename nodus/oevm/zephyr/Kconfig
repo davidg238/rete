@@ -38,7 +38,7 @@ config OEVM_FAULT_TRIGGER
 	default n
 	help
 	  Dereferences a null pointer from a known source line shortly after boot.
-	  Exists so `logread.py symbolize` is proven by a scripted gate rather than
+	  Exists so custos's backtrace (GET /board/<n>/panics/<i>/bt) is proven by a scripted gate rather than
 	  by the next real incident. If this is set in a build you did not
 	  deliberately configure, that build is wrong.
 

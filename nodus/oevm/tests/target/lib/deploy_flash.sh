@@ -100,22 +100,11 @@ deploy::flash() {
   fi
 
   # The collector must let go of the tty for the duration, or it and esptool
-  # split the ROM handshake between them. See target::collector_pause.
-  #
-  # EXPECTED CONSEQUENCE, now that rete#236 lets run.sh's stderr through: run.sh
-  # checks whether the instance's collector is running and prints
-  #
-  #   [console] WARNING: rete-console@<board> is not running.
-  #   [console] The boot you just triggered is not being logged.
-  #
-  # on EVERY harness run, because we just stopped it on purpose. It is correct about
-  # the esptool-triggered boot and it does not matter: collector_resume plus the
-  # target::reset_board below produce a second boot that IS logged, which is what the
-  # run is anchored on. Do not chase it, and do not silence it from run.sh's side —
-  # the same warning is the real thing on the hand-deploy path, where nobody is going
-  # to reset the board again. Filed as rete#237: a warning that is benign on one path
-  # and load-bearing on another needs the CALLER to say which path it is on, and that
-  # is a decision, not a patch.
+  # split the ROM handshake between them. See target::collector_pause: custos
+  # lends the cable (D16). run.sh then reads the board's state as `lent` and prints
+  # a note, not a warning (rete#237): the esptool-triggered boot is not logged, and
+  # collector_resume plus the target::reset_board below produce a second boot that
+  # IS logged, which is what the run is anchored on.
   target::collector_pause "$board"
   # `set +u` for the activate script, which reads unset variables; scoped to the
   # subshell so the runner keeps its own -u.
@@ -143,7 +132,7 @@ deploy::flash() {
   # It is also just this file's OWN stated contract, applied to the process it runs:
   # "prints the build id, and NOTHING else, on stdout / everything diagnostic goes to
   # stderr". run.sh already obeys it — `[archive] <id> -> <path>` is stdout
-  # (tools/console/archive.sh:48), the `[thread] !` lines are stderr. `2>&1` was the one
+  # (nodus/oevm/zephyr/archive.sh:48), the `[thread] !` lines are stderr. `2>&1` was the one
   # place the harness broke its own rule, and removing it is a mechanism deleted rather
   # than one added.
   out=$( set +u

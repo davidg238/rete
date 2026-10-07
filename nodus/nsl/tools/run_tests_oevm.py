@@ -432,7 +432,7 @@ def run_pytest_gate(label: str, rel_dir: str, ignore=()) -> str:
     """Run a pytest suite living outside nodus/nsl as a subprocess gate.
 
     #165: the pytest suites under `nodus/oevm/tools/` and
-    `nodus/oevm/zephyr/tools/console/` were referenced by nothing — no gate, no
+    the console tools (deleted since, #314) were referenced by nothing — no gate, no
     CI, no script. A tool could break with all three CLAUDE.md gates green. A test that is never run is worse than
     no test, because the suite still reads green and the coverage is now
     believed rather than merely absent.
@@ -1272,7 +1272,6 @@ def main():
     # #165: the host-tool Python suites. They build nothing and touch no shared
     # /tmp path, so they are safe here; they were run by NOTHING until now.
     mprof_py = run_pytest_gate("mprof-tools-py", "nodus/oevm/tools")
-    console_py = run_pytest_gate("console-py", "nodus/oevm/zephyr/tools/console")
     # #216: the target harness's OBSERVATION WINDOW — the assertion that a
     # scenario keeps being watched after its TAPs pass. The window needs no board:
     # it is logic over the collector's log, so it is falsifiable here, and the
@@ -1329,7 +1328,7 @@ def main():
                 and custos_dbg != "FAIL" and custos_prof != "FAIL" and custos_load != "FAIL"
                 and portability != "FAIL" and boot_gc_ok
                 and footprint != "FAIL" and deepsleep_ok
-                and mprof_py != "FAIL" and console_py != "FAIL"
+                and mprof_py != "FAIL"
                 and observe_py != "FAIL" and cmake_parse != "FAIL"
                 and nsl_tools_py != "FAIL" and protocol_py != "FAIL"
                 and gwprof_py != "FAIL" and tutorial != "FAIL"
@@ -1364,7 +1363,6 @@ def main():
           f"deepsleep: {_mark('PASS' if deepsleep_ok else 'FAIL')}  "
           f"footprint(T0.3): {_mark(footprint)}\n"
           f"  mprof-tools-py: {_mark(mprof_py)}  "
-          f"console-py: {_mark(console_py)}  "
           f"target-observe-py: {_mark(observe_py)}  "
           f"cmake-parse: {_mark(cmake_parse)}  "
           f"nsl-tools-py: {_mark(nsl_tools_py)}  "

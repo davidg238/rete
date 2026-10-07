@@ -27,7 +27,7 @@ pin. Only a TTL-232R-3V3 or a CP2102/CH340 board jumpered to 3.3 V goes on.
 
 Once the cable is in, `ls -l /dev/serial/by-id/` gives its stable name; that path goes in
 `~/.config/rete/console-pico2.env` as `RETE_CONSOLE_PORT=` (copy
-`zephyr/tools/console/console-c6.env.example`). `run.sh` resolves `CONSOLE_PORT` from
+`custos/deploy/console-c6.env.example`; custos collects it with `--board pico2`). `run.sh` resolves `CONSOLE_PORT` from
 that file for both `--board feather_rp2040` and `--board rpi_pico2`; an explicit
 `CONSOLE_PORT=` on the command line still wins.
 

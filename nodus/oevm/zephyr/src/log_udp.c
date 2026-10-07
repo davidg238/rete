@@ -188,7 +188,7 @@ K_THREAD_DEFINE(log_udp_tid, 2048, log_udp_thread, NULL, NULL, NULL,
 		K_PRIO_PREEMPT(10), 0, 0);
 
 /* Installed at POST_KERNEL, which runs BEFORE bg_thread_main prints the boot
- * banner — and the banner is what logread.split_runs() uses to open a run. A
+ * banner — and the banner is what custos's run split (GET /runs) uses to open a run. A
  * remote log that starts after it parses as zero runs, so the reader would work
  * on the local store and quietly fail on this one. */
 static int log_udp_hook_init(void)

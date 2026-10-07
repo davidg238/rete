@@ -133,26 +133,38 @@ bench::board_for_port() {
   echo "${hits# }"
 }
 
+# The collector is custos (peer design D16, rete#314): one process serving every
+# board, rete-custos.service. Its URL, overridable for a custos elsewhere.
+RETE_CUSTOS=${RETE_CUSTOS:-http://localhost:6971}
+
 # bench::collector_state <board> -> one word on stdout, rc 0 always.
 #
-#   active     running and reading
-#   inactive   the unit is not running
-#   no-log     running, but today's log does not exist yet
-#   port-down  running and seeing NOTHING (healthy on the bell, whose console
-#              goes over Thread; a real fault on any other instance)
+#   active     custos holds the cable and is reading
+#   unserved   no custos answers for this board (not running, or no --board for it)
+#   lent       the cable is lent for a flash (POST /board/<b>/lend)
+#   no-log     reading, but today's log does not exist yet
+#   port-down  served and seeing NOTHING (healthy on the bell, whose console
+#              goes over Thread; a real fault on any other board)
 #
 # Reports, never decides. target.sh dies on anything but `active`; a hand-run
 # run.sh only warns, because a missing collector is not a reason to refuse a
 # flash — it is a reason to say the boot will not be in the log.
 bench::collector_state() {
-  local board=$1 logfile
-  systemctl --user is-active --quiet "rete-console@$board" || { echo inactive; return 0; }
-  logfile=$(bench::log_file "$board")
-  [ -f "$logfile" ] || { echo no-log; return 0; }
-  # grep consumes the stream (no -q): zephyr/run.sh sources this under pipefail (rete#260).
-  if tail -3 "$logfile" | grep "port=down" >/dev/null; then echo port-down; return 0; fi
-  echo active
+  local board=$1 state
+  state=$(curl -sf "$RETE_CUSTOS/board/$board/health" | jq -r .State) || { echo unserved; return 0; }
+  case "$state" in
+    lent) echo lent ;;
+    down) echo port-down ;;
+    up)   if [ -f "$(bench::log_file "$board")" ]; then echo active; else echo no-log; fi ;;
+    *)    echo unserved ;;
+  esac
 }
+
+# bench::lend <board> <seconds> — custos closes the board's cable so esptool can
+# have it; it takes the cable back after <seconds> or at bench::return, whichever
+# comes first, so a caller that dies cannot strand the board uncollected.
+bench::lend()   { curl -sf -X POST "$RETE_CUSTOS/board/$1/lend?s=$2" >/dev/null; }
+bench::return() { curl -sf -X POST "$RETE_CUSTOS/board/$1/return" >/dev/null; }
 
 # POLICY LIVES AT THE CALL SITE, and the two callers deliberately disagree:
 #

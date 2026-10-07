@@ -26,6 +26,24 @@ func TestParseBoardsJoinsTheFlags(t *testing.T) {
 	}
 }
 
+// A bare --board reads its cable from the bench file, as the old collector unit did.
+func TestABareBoardReadsItsBenchFile(t *testing.T) {
+	old := BenchDir
+	BenchDir = t.TempDir()
+	defer func() { BenchDir = old }()
+	os.WriteFile(filepath.Join(BenchDir, "console-c6spare.env"), []byte("# the spare\nRETE_CONSOLE_PORT=/dev/serial/by-id/x\n"), 0o644)
+	os.WriteFile(filepath.Join(BenchDir, "console-empty.env"), []byte("# nothing\n"), 0o644)
+	bs, err := ParseBoards([]string{"c6spare"}, nil, nil, nil, nil)
+	if err != nil || len(bs) != 1 || bs[0].Port != "/dev/serial/by-id/x" {
+		t.Fatalf("%+v %v", bs, err)
+	}
+	for name, want := range map[string]string{"nope": "no bench file", "empty": "no RETE_CONSOLE_PORT="} {
+		if _, err := ParseBoards([]string{name}, nil, nil, nil, nil); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%s: %v, want %q", name, err, want)
+		}
+	}
+}
+
 func TestParseBoardsRefuses(t *testing.T) {
 	cases := map[string][5][]string{
 		"<name>=<value>":          {{"/dev/ttyA"}, nil, nil, nil, nil},

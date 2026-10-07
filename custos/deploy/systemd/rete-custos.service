@@ -1,0 +1,35 @@
+# custos as the bench's console collector (peer design D16, rete#314): ONE unit
+# serving every board on this machine, replacing rete-console@<board>.
+#
+# Which boards it serves is a bench choice, so it lives in a bench file, not
+# here: ~/.config/rete/custos.env holds the flags, e.g.
+#   RETE_CUSTOS_ARGS=--board c6 --board c6spare --udp-log bell=54330
+# A bare --board <name> reads its cable from ~/.config/rete/console-<name>.env
+# (RETE_CONSOLE_PORT), the files the per-board units read, so they are unchanged.
+# Day logs land where they always did, ~/.local/state/rete/console/.
+#
+# Not optional (no leading '-' on EnvironmentFile): a custos with no boards is
+# a page with nothing on it, and should fail loudly instead.
+#
+# A flash borrows a board's cable with POST /board/<name>/lend rather than
+# stopping this unit, which would stop every board's collection at once.
+#
+# Install (moving a board: stop and disable its rete-console@<board> first,
+# the cable takes one reader):
+#   (cd ~/workspace/rete/custos && go build -o ~/.local/bin/custos ./cmd/custos)
+#   install -D -m644 rete-custos.service ~/.config/systemd/user/rete-custos.service
+#   systemctl --user daemon-reload && systemctl --user enable --now rete-custos
+[Unit]
+Description=rete custos — every bench board's console, and its verbs (D16)
+Documentation=file:%h/workspace/rete/docs/design/2026-10-04-custos-peer-design.md
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.config/rete/custos.env
+# $RETE_CUSTOS_ARGS unbraced: systemd splits it into words, one flag each.
+ExecStart=%h/.local/bin/custos $RETE_CUSTOS_ARGS
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
