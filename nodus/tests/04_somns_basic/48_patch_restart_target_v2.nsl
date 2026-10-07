@@ -1,0 +1,24 @@
+(*
+expect:
+patched 42
+patched 42
+*)
+(* rete#313 — 48_patch_restart_target.nsl with report edited: the source the
+   harness patches the running program from. Run alone it prints its own. *)
+class PatchRestartTarget usingPlatform: platform = () (
+  public main: platform2 args: args = (
+    self report.
+    self report.
+    ^ 0 )
+
+  report = (
+    | v |
+    v:: self value.
+    ('patched ' , (v + 41) printString) println.
+    ^ v )
+
+  value = ( ^ 1 )
+
+  spare = ( ^ 'patched ' )
+) : (
+)

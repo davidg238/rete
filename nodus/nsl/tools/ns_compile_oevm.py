@@ -2185,26 +2185,65 @@ class OevmCompiler:
         self.register_source_map(f"{vt}>>{selector}", compiler.source_map)
         self.register_method_compiler(f"{vt}>>{selector}", compiler)
 
-def main():
-    if len(sys.argv) < 2:
-        print("Usage: python ns_compile_oevm.py <src.nsl> [output.c]")
-        sys.exit(1)
-        
-    # Parse optional flags (--format=c|oimg, --layout=<layout.json>) out of argv.
-    fmt = "c"
-    layout_path = None
-    positional = []
-    for a in sys.argv[1:]:
-        if a.startswith("--format="):
-            fmt = a.split("=", 1)[1]
-        elif a.startswith("--layout="):
-            layout_path = a.split("=", 1)[1]
-        else:
-            positional.append(a)
+def serialize_oimg(compiler, layout):
+    """The .oimg of a compiled program: answers (serializer, graph, blob, entry
+    class). The serializer's offsets are the image's (rete#313 re-encodes a
+    recompiled method against them)."""
+    from oimg_serialize import OimgSerializer
+    from builtins_registry import REGISTRY, VERSION
+    entry_class = next(iter(compiler.all_classes.keys()))
 
-    src_ns = positional[0]
-    out_c = positional[1] if len(positional) > 1 else "src/solidified_image.c"
+    class _Graph:
+        symbols = compiler.solidify.symbols
+        vtables = compiler.solidify.vtables
+        methods = compiler.solidify.methods
 
+    # Entry descriptor — mirror run_solidified_entry_point (Path A) EXACTLY so
+    # Path A and Path B agree on init selector, argc and slot count.
+    _params = compiler.all_classes[entry_class].get("params", [])
+    _init_sel = "".join(f"{p}:" for p in _params)
+    if not _init_sel:
+        _init_sel = "new"
+    _init_selector = f"init_{_init_sel}"
+    _init_argc = len(_params)
+    _entry_nslots = len(compiler.class_slots[entry_class])
+    # std-lib step 3b: pass the Kernel module descriptor (vtable name, init selector,
+    # slot count) so the serializer stores it in the header (format_version 3). The
+    # loader constructs `Kernel usingPlatform: <native>` and hands it to the app.
+    _kparams = compiler.all_classes["Kernel"].get("params", [])
+    _kinit_selector = f"init_{''.join(f'{p}:' for p in _kparams) or 'new'}"
+    _kernel_nslots = len(compiler.class_slots["Kernel"])
+    # std-lib step 3c-3b: emit serial_on_sel_ref when the entry declares `serial:`.
+    # The loader will send #serialOn: to kernel_inst to mint the Serial wrapper.
+    _serial_on_sel_name = "serialOn:" if "serial" in _params else None
+    _net_on_sel_name = "netOn:" if "net" in _params else None
+    # `concurrency:` capability retired with Concurrency/Fiber (Milestone A Task 4);
+    # its oimg header word was compacted away in the Task 9b format-v8 header.
+    # in-image debugger step 1: Supervisor descriptor. The
+    # init selector is derived from Supervisor's param variable names, matching
+    # the synthesized initializer (e.g. init_mirror: from param `mirror`).
+    _sparams = compiler.all_classes["Supervisor"].get("params", [])
+    _sinit_selector = f"init_{''.join(f'{p}:' for p in _sparams) or 'new'}"
+    _supervisor_nslots = len(compiler.class_slots["Supervisor"])
+    _ser = OimgSerializer(layout, REGISTRY, registry_version=VERSION)
+    blob = _ser.generate(
+        _Graph, entry_class,
+        init_sel_name=_init_selector, init_argc=_init_argc,
+        main_sel_name="main:args:", entry_nslots=_entry_nslots,
+        kernel_vtable_name="Kernel", kernel_init_sel_name=_kinit_selector,
+        kernel_nslots=_kernel_nslots,
+        serial_on_sel_name=_serial_on_sel_name,
+        net_on_sel_name=_net_on_sel_name,
+        supervisor_vtable_name="Supervisor",
+        supervisor_init_sel_name=_sinit_selector,
+        supervisor_run_sel_name="run:platform:args:debug:",
+        supervisor_nslots=_supervisor_nslots)
+    return _ser, _Graph, blob, entry_class
+
+
+def parse_program(src_ns):
+    """The AST main compiles: the app (a script wrapped as ScriptApp), then the
+    kernel library, then the Supervisor. Exits on a parse failure."""
     # 1. Parse using Ohm parser
     parse_script = os.path.join(os.path.dirname(__file__), "..", "grammar", "ns-parse.js")
     proc = subprocess.run(
@@ -2295,6 +2334,41 @@ def main():
         _node["file"] = os.path.normpath(supervisor_path)
     ast["body"].extend(supervisor_ast["body"])
 
+    return ast
+
+
+def compile_source(src_ns, oop_bytes):
+    """Parse and compile src_ns. A CompileError carries the compiler (e.compiler)
+    so the caller can name where it stopped."""
+    compiler = OevmCompiler(parse_program(src_ns), oop_bytes=oop_bytes)
+    try:
+        compiler.compile()
+    except CompileError as e:
+        e.compiler = compiler
+        raise
+    return compiler
+
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: python ns_compile_oevm.py <src.nsl> [output.c]")
+        sys.exit(1)
+        
+    # Parse optional flags (--format=c|oimg, --layout=<layout.json>) out of argv.
+    fmt = "c"
+    layout_path = None
+    positional = []
+    for a in sys.argv[1:]:
+        if a.startswith("--format="):
+            fmt = a.split("=", 1)[1]
+        elif a.startswith("--layout="):
+            layout_path = a.split("=", 1)[1]
+        else:
+            positional.append(a)
+
+    src_ns = positional[0]
+    out_c = positional[1] if len(positional) > 1 else "src/solidified_image.c"
+
     # Determine the target oop width BEFORE compiling: Path A (--format=c, no
     # --layout) runs as native C on the host, so it stays at the host's own
     # width (8); Path B (--format=oimg) supplies layout.json, whose oop_size
@@ -2310,10 +2384,10 @@ def main():
         oop_bytes = layout["oop_size"]
 
     # Compile
-    compiler = OevmCompiler(ast, oop_bytes=oop_bytes)
     try:
-        compiler.compile()
+        compiler = compile_source(src_ns, oop_bytes)
     except CompileError as e:
+        compiler = e.compiler
         # rete#247: position first, message after, offending line under it.
         # 'Compile error: ' stays the frozen prefix; the enrichment is the rest.
         f, sp, meth = compiler.current_file, compiler.last_span, compiler.last_method
@@ -2342,53 +2416,9 @@ def main():
             sys.exit(1)
         # layout already loaded above (before compiling) to size compile_expr's
         # SMI/LARGEINT split correctly.
-        entry_class = next(iter(compiler.all_classes.keys()))
-
-        class _Graph:
-            symbols = compiler.solidify.symbols
-            vtables = compiler.solidify.vtables
-            methods = compiler.solidify.methods
-
-        # Entry descriptor — mirror run_solidified_entry_point (Path A) EXACTLY so
-        # Path A and Path B agree on init selector, argc and slot count.
-        _params = compiler.all_classes[entry_class].get("params", [])
-        _init_sel = "".join(f"{p}:" for p in _params)
-        if not _init_sel:
-            _init_sel = "new"
-        _init_selector = f"init_{_init_sel}"
-        _init_argc = len(_params)
-        _entry_nslots = len(compiler.class_slots[entry_class])
-        # std-lib step 3b: pass the Kernel module descriptor (vtable name, init selector,
-        # slot count) so the serializer stores it in the header (format_version 3). The
-        # loader constructs `Kernel usingPlatform: <native>` and hands it to the app.
-        _kparams = compiler.all_classes["Kernel"].get("params", [])
-        _kinit_selector = f"init_{''.join(f'{p}:' for p in _kparams) or 'new'}"
-        _kernel_nslots = len(compiler.class_slots["Kernel"])
-        # std-lib step 3c-3b: emit serial_on_sel_ref when the entry declares `serial:`.
-        # The loader will send #serialOn: to kernel_inst to mint the Serial wrapper.
-        _serial_on_sel_name = "serialOn:" if "serial" in _params else None
-        _net_on_sel_name = "netOn:" if "net" in _params else None
-        # `concurrency:` capability retired with Concurrency/Fiber (Milestone A Task 4);
-        # its oimg header word was compacted away in the Task 9b format-v8 header.
-        # in-image debugger step 1: Supervisor descriptor. The
-        # init selector is derived from Supervisor's param variable names, matching
-        # the synthesized initializer (e.g. init_mirror: from param `mirror`).
-        _sparams = compiler.all_classes["Supervisor"].get("params", [])
-        _sinit_selector = f"init_{''.join(f'{p}:' for p in _sparams) or 'new'}"
-        _supervisor_nslots = len(compiler.class_slots["Supervisor"])
-        _ser = OimgSerializer(layout, REGISTRY, registry_version=VERSION)
-        blob = _ser.generate(
-            _Graph, entry_class,
-            init_sel_name=_init_selector, init_argc=_init_argc,
-            main_sel_name="main:args:", entry_nslots=_entry_nslots,
-            kernel_vtable_name="Kernel", kernel_init_sel_name=_kinit_selector,
-            kernel_nslots=_kernel_nslots,
-            serial_on_sel_name=_serial_on_sel_name,
-            net_on_sel_name=_net_on_sel_name,
-            supervisor_vtable_name="Supervisor",
-            supervisor_init_sel_name=_sinit_selector,
-            supervisor_run_sel_name="run:platform:args:debug:",
-            supervisor_nslots=_supervisor_nslots)
+        _ser, _Graph, blob, entry_class = serialize_oimg(compiler, layout)
+        kernel_path = os.path.join(os.path.dirname(__file__), "..", "lib", "kernel.nsl")
+        supervisor_path = os.path.join(os.path.dirname(__file__), "..", "lib", "supervisor.nsl")
         with open(out_c, "wb") as f:
             f.write(blob)
         # rete#337: the image map — every method by blob offset, with its name,

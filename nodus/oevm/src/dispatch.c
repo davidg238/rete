@@ -326,11 +326,49 @@ OEVM_HOT int is_truthy(oop obj) {
 /* Declare VM interpreter entry point */
 extern oop run_interpreter(oop closure, oop receiver, int argc, oop *args);
 
+#ifndef OEVM_NO_DEBUG_HOOKS
+/* rete#313: methods replaced at runtime. An image's vtables are read-only (the
+   blob is mapped PROT_READ, and on a board it is flash), so a replacement is an
+   override consulted before a vtable's own bindings, at each level of the
+   delegate walk. Empty, it costs one load per level on a cache miss only. */
+struct MethodOverride method_overrides[METHOD_OVERRIDES_MAX];
+int method_override_count;
+struct MethodPatch method_patches[METHOD_PATCHES_MAX];
+int method_patch_count;
+
+static inline oop override_of(oop vt, oop selector) {
+    for (int i = 0; i < method_override_count; i++)
+        if (method_overrides[i].vtable == vt && method_overrides[i].selector == selector)
+            return method_overrides[i].method;
+    return NULL;
+}
+
+/* Bind selector to method in vt over whatever the vtable holds; a second
+   install for the same pair replaces the first. Answers 0, or -1 when full. */
+int method_override_install(oop vt, oop selector, oop method) {
+    method_cache_flush();
+    for (int i = 0; i < method_override_count; i++)
+        if (method_overrides[i].vtable == vt && method_overrides[i].selector == selector) {
+            method_overrides[i].method = method;
+            return 0;
+        }
+    if (method_override_count == METHOD_OVERRIDES_MAX) return -1;
+    method_overrides[method_override_count++] = (struct MethodOverride){vt, selector, method};
+    return 0;
+}
+#endif /* !OEVM_NO_DEBUG_HOOKS: hot patching is a debug facility (rete#313) */
+
 /* Walk Vtable hierarchy to resolve selector lookup */
 oop lookup(oop receiver_vtable, oop selector) {
     oop current = receiver_vtable;
     while (current != NULL) {
         struct Vtable *vt = (struct Vtable *)current;
+#ifndef OEVM_NO_DEBUG_HOOKS
+        if (method_override_count) {
+            oop o = override_of(current, selector);
+            if (o != NULL) return o;
+        }
+#endif
         struct Binding *bs = vtable_bindings((oop)vt);
         for (size_t i = 0; i < vt->size; i++) {
             if (binding_symbol(&bs[i]) == selector) {
@@ -346,6 +384,15 @@ oop lookup_defining_vtable(oop receiver_vtable, oop selector, oop *out_method) {
     oop current = receiver_vtable;
     while (current != NULL && !IS_SMI(current)) {
         struct Vtable *vt = (struct Vtable *)current;
+#ifndef OEVM_NO_DEBUG_HOOKS
+        if (method_override_count) {
+            oop o = override_of(current, selector);
+            if (o != NULL) {
+                if (out_method != NULL) *out_method = o;
+                return current;
+            }
+        }
+#endif
         struct Binding *bs = vtable_bindings((oop)vt);
         for (size_t i = 0; i < vt->size; i++) {
             if (binding_symbol(&bs[i]) == selector) {

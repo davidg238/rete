@@ -1250,6 +1250,8 @@ def main():
     print()
     grant_ok = run_integration_gate("test_supervisor_grant", "test_supervisor_grant.py")
     dbg_int_ok = run_integration_gate("test_debugger_integration", "test_debugger_integration.py")
+    # rete#313: stop, patch a method, restart its frame, resume — desktop.
+    patch_ok = run_integration_gate("test_patch_restart", "test_patch_restart.py")
     # rete#339: the debugger's front end is a custos verb; its case against a real VM
     # left the integration harness so a host without Go SKIPs it by name, not the rest.
     custos_dbg = run_custos_gate("custos-debug", "test_custos_debug.py")       # "PASS" | "SKIP" | "FAIL"
@@ -1293,6 +1295,7 @@ def main():
     nsl_tools_py = run_pytest_gate("nsl-tools-py", "nodus/nsl/tools",
                                    ignore=("test_supervisor_grant.py",
                                            "test_debugger_integration.py",
+                                           "test_patch_restart.py",
                                            "test_custos_debug.py",
                                            "test_custos_profile.py",
                                            "test_custos_load.py",
@@ -1324,7 +1327,7 @@ def main():
     # executed the way a tutorial can — it is checked against the binary's own --help.
     porta_cli = run_porta_cli_gate()
 
-    suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok
+    suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok and patch_ok
                 and custos_dbg != "FAIL" and custos_prof != "FAIL" and custos_load != "FAIL"
                 and portability != "FAIL" and boot_gc_ok
                 and footprint != "FAIL" and deepsleep_ok
@@ -1356,6 +1359,7 @@ def main():
     print(f"  c-units: {_mark('PASS' if c_units_ok else 'FAIL')}  "
           f"grant: {_mark('PASS' if grant_ok else 'FAIL')}  "
           f"debugger-integration: {_mark('PASS' if dbg_int_ok else 'FAIL')}  "
+          f"patch-restart: {_mark('PASS' if patch_ok else 'FAIL')}  "
           f"custos-debug: {_mark(custos_dbg)}  custos-profile: {_mark(custos_prof)}  "
           f"custos-load: {_mark(custos_load)}  "
           f"portability-32: {_mark(portability)}  "

@@ -714,6 +714,10 @@ static void stack_overflow_abort(size_t need, size_t cap) {
     abort();
 }
 
+#ifndef OEVM_NO_DEBUG_HOOKS
+static void apply_restart(struct MethodContext *ctx);   /* rete#313 */
+#endif
+
 static OEVM_HOT struct MethodContext *push_frame(oop closure, oop receiver, int argc, oop *args) {
     struct Closure *cl = (struct Closure *)closure;
     struct CompiledMethod *m = (struct CompiledMethod *)closure_entry(cl);
@@ -909,7 +913,11 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 g_single_step = (g_hook_step_request >= 0)
                               ? g_hook_step_request : was_stepping;
                 g_hook_step_request = -1;
+                apply_restart(ctx);
                 pc = ctx->saved_pc;              /* unchanged -> fall through, execute pc */
+                /* rete#313: the hook may have restarted this frame into another method. */
+                method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
+                pc_end = cm_instructions(method) + method->instruction_count;
             }
         }
 #endif /* !OEVM_NO_DEBUG_HOOKS */
@@ -941,7 +949,11 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 g_single_step = (g_hook_step_request >= 0)
                               ? g_hook_step_request : was_stepping;
                 g_hook_step_request = -1;
+                apply_restart(ctx);
                 pc = ctx->saved_pc;
+                /* rete#313: the hook may have restarted this frame into another method. */
+                method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
+                pc_end = cm_instructions(method) + method->instruction_count;
                 continue;
             } else {
                 pc++;
@@ -1505,7 +1517,11 @@ OEVM_HOT oop run_interpreter(oop closure, oop receiver, int argc, oop *args) {
                 g_single_step = (g_hook_step_request >= 0)
                               ? g_hook_step_request : was_stepping;
                 g_hook_step_request = -1;
+                apply_restart(ctx);
                 pc = ctx->saved_pc;
+                /* rete#313: the hook may have restarted this frame into another method. */
+                method = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
+                pc_end = cm_instructions(method) + method->instruction_count;
             }
         }
 #endif /* !OEVM_NO_DEBUG_HOOKS */
@@ -1813,6 +1829,154 @@ oop primitive_debugger_set_single_step(oop receiver, int argc, oop *args) {
     return receiver;
 }
 
+#ifndef OEVM_NO_DEBUG_HOOKS   /* hot patching is a debug facility (rete#313) */
+/* rete#313: one method replaced while the program runs. The file is the method
+   recompiled from edited source and re-encoded against THIS image's offsets by
+   nodus/nsl/tools/patch_method.py; its words are the .oimg's own RefWords, so the
+   loader resolves them exactly as it resolves the blob's (oimg_resolve):
+       oevm-patch 1
+       vtable <word>  selector <word>
+       registers <n>  arguments <n>  access <n>
+       instructions <k> <u32 hex>...
+       constants <c> <word hex>...
+   The CompiledMethod is malloc'd and never freed (a replaced method may still be
+   running); its closure is a GC object rooted by the patch tables. Desktop only:
+   a board's patch comes over the cable, a later step. Answers 1, or 0 with the
+   reason on stderr. */
+oop primitive_patch_from(oop path, int argc, oop *args) {
+    (void)argc; (void)args;
+#if defined(__ZEPHYR__) || defined(OEVM_NO_FILE_IO)
+    (void)path;
+    fprintf(stderr, "patch: not on this target\n");
+    return TAG_SMI(0);
+#else
+    if (path == NULL || IS_SMI(path) || obj_vtable(path) != StringVtable) {
+        fprintf(stderr, "patch: wants a path String\n");
+        return TAG_SMI(0);
+    }
+    struct String *ps = (struct String *)path;
+    char name[512];
+    size_t n = ps->length < sizeof name - 1 ? ps->length : sizeof name - 1;
+    memcpy(name, ps->bytes, n);
+    name[n] = 0;
+    FILE *f = fopen(name, "r");
+    if (!f) { fprintf(stderr, "patch: cannot open %s\n", name); return TAG_SMI(0); }
+    unsigned long vt_w, sel_w;
+    int nregs, nargs, access, ver;
+    size_t ninst, ncon;
+    struct CompiledMethod *m = NULL;
+    uint32_t *insts = NULL;
+    oop *consts = NULL;
+    const char *why = "malformed";
+    if (fscanf(f, " oevm-patch %d vtable %lx selector %lx registers %d arguments %d access %d instructions %zu",
+               &ver, &vt_w, &sel_w, &nregs, &nargs, &access, &ninst) != 7 || ver != 1)
+        goto bad;
+    insts = malloc((ninst ? ninst : 1) * sizeof *insts);
+    for (size_t i = 0; i < ninst; i++) {
+        unsigned int w;
+        if (fscanf(f, " %x", &w) != 1) goto bad;
+        insts[i] = w;
+    }
+    if (fscanf(f, " constants %zu", &ncon) != 1) goto bad;
+    consts = malloc((ncon ? ncon : 1) * sizeof *consts);
+    for (size_t i = 0; i < ncon; i++) {
+        unsigned long w;
+        if (fscanf(f, " %lx", &w) != 1) goto bad;
+        consts[i] = oimg_resolve((uintptr_t)w);
+    }
+    oop vt = oimg_resolve((uintptr_t)vt_w), sel = oimg_resolve((uintptr_t)sel_w);
+    why = "vtable or selector does not resolve";
+    if (vt == NULL || sel == NULL || obj_vtable(sel) != SymbolVtable) goto bad;
+    fclose(f);
+    m = malloc(sizeof *m);
+    *m = (struct CompiledMethod){insts, ninst, nregs, nargs, consts, ncon, access};
+    oop cl = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
+    struct Closure *c = (struct Closure *)cl;
+    c->home_ctx = NULL;          /* a method closure homes to its own frame (push_frame) */
+    c->home_generation = 0;
+    c->entry_point = m;
+    c->captured_env = NULL;
+    c->captured_self = NULL;
+    oop prev = lookup(vt, sel);
+    if (method_patch_count == METHOD_PATCHES_MAX || method_override_install(vt, sel, cl) != 0) {
+        fprintf(stderr, "patch: the patch tables are full\n");
+        return TAG_SMI(0);
+    }
+    if (prev != NULL) method_patches[method_patch_count++] = (struct MethodPatch){prev, cl};
+    return TAG_SMI(1);
+bad:
+    fprintf(stderr, "patch: %s: %s\n", name, why);
+    fclose(f);
+    free(insts);
+    free(consts);
+    return TAG_SMI(0);
+#endif
+}
+
+/* rete#313: restart a stopped frame from its first instruction, into its method's
+   replacement when it has one (the method_patches chain). Only the frame the
+   debugger stopped in, and only a method's (a block's frame belongs to its home).
+   While the hook runs, the debugger's own frames sit above the stopped one, so the
+   primitive only records the request; the interpreter applies it when the hook
+   returns (apply_restart), when the stopped frame is the top of the stack again and
+   a larger replacement can grow it in place. Receiver and arguments are kept;
+   every other register is cleared, the heap Context slot included (the prologue
+   makes a fresh one). Answers 1, or 0 with the reason on stderr. */
+static struct { struct MethodContext *ctx; oop closure; } g_restart;
+
+oop primitive_restart_frame(oop frame, int argc, oop *args) {
+    (void)argc; (void)args;
+    struct MethodContext *ctx = (struct MethodContext *)frame;
+    if (ctx == NULL || IS_SMI(frame) || ctx->vtable != MethodContextVtable) {
+        fprintf(stderr, "restart: not a stopped frame\n");
+        return TAG_SMI(0);
+    }
+    if (((struct Closure *)ctx->closure)->home_ctx != NULL) {
+        fprintf(stderr, "restart: a block's frame does not restart, only a method's\n");
+        return TAG_SMI(0);
+    }
+    oop cl = ctx->closure;
+    for (int moved = 1; moved; ) {
+        moved = 0;
+        for (int i = 0; i < method_patch_count; i++)
+            if (method_patches[i].from == cl) { cl = method_patches[i].to; moved = 1; break; }
+    }
+    struct CompiledMethod *old = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
+    struct CompiledMethod *m = (struct CompiledMethod *)closure_entry((struct Closure *)cl);
+    if (m->num_arguments != old->num_arguments) {
+        fprintf(stderr, "restart: the replacement takes %d arguments; the frame has %d\n",
+                m->num_arguments, old->num_arguments);
+        return TAG_SMI(0);
+    }
+    g_restart.ctx = ctx;
+    g_restart.closure = cl;
+    return TAG_SMI(1);
+}
+
+/* The hook's epilogue: apply a restart the hook requested for ctx. */
+static void apply_restart(struct MethodContext *ctx) {
+    if (g_restart.ctx == NULL) return;
+    struct MethodContext *want = g_restart.ctx;
+    oop cl = g_restart.closure;
+    g_restart.ctx = NULL;
+    g_restart.closure = NULL;
+    if (want != ctx) return;
+    struct CompiledMethod *old = (struct CompiledMethod *)closure_entry((struct Closure *)ctx->closure);
+    struct CompiledMethod *m = (struct CompiledMethod *)closure_entry((struct Closure *)cl);
+    size_t base = (size_t)((oop *)ctx - vm_stack) + sizeof(struct MethodContext) / sizeof(oop);
+    if (vm_stack_ptr != base + (size_t)old->num_registers) {
+        fprintf(stderr, "restart: the stopped frame is not the top of the stack; not restarted\n");
+        return;
+    }
+    if (base + (size_t)m->num_registers > ((struct Stack *)g_active_stack)->capacity)
+        stack_overflow_abort(base + m->num_registers, ((struct Stack *)g_active_stack)->capacity);
+    vm_stack_ptr = base + (size_t)m->num_registers;
+    ctx->closure = cl;
+    for (int i = m->num_arguments + 1; i < m->num_registers; i++) ctx->regs[i] = NULL;
+    ctx->saved_pc = cm_instructions(m);
+}
+#endif /* !OEVM_NO_DEBUG_HOOKS */
+
 oop primitive_vtable_bind(oop receiver, int argc, oop *args) {
     if (receiver == NULL || IS_SMI(receiver)) {
         fprintf(stderr, "VM Error: bind:to: requested on non-vtable\n");
@@ -1827,8 +1991,17 @@ oop primitive_vtable_bind(oop receiver, int argc, oop *args) {
     struct Vtable *vt = (struct Vtable *)receiver;
 
     if (is_in_blob(vt)) {
+#ifndef OEVM_NO_DEBUG_HOOKS
+        /* rete#313: an image vtable is read-only; the binding goes over it. */
+        if (method_override_install(receiver, selector, method) != 0) {
+            fprintf(stderr, "VM Error: bind:to: method override table full (%d)\n", METHOD_OVERRIDES_MAX);
+            abort();
+        }
+        return receiver;
+#else
         fprintf(stderr, "VM Error: attempt to mutate immutable image object %p\n", (void*)vt);
         abort();
+#endif
     }
 
     /* Any binding mutation can stale a cached (vtable,selector)->method entry. */

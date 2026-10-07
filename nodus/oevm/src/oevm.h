@@ -464,6 +464,8 @@ oop primitive_method_context_reg_at_put(oop receiver, int argc, oop *args);
 oop primitive_method_context_num_registers(oop receiver, int argc, oop *args);
 oop primitive_debugger_set_single_step(oop receiver, int argc, oop *args);
 oop primitive_vtable_bind(oop receiver, int argc, oop *args);
+oop primitive_patch_from(oop path, int argc, oop *args);       /* rete#313 */
+oop primitive_restart_frame(oop frame, int argc, oop *args);   /* rete#313 */
 oop primitive_compiled_method_set_instruction_at(oop receiver, int argc, oop *args);
 
 /* Overridable in-language millisecond clock (same pattern as oevm_oom_handler).
@@ -498,6 +500,20 @@ oop send_super_resolve(oop start_vtable, oop receiver, oop selector, int argc, o
                        oop *out_method, oop *out_recv, int *out_argc);
 oop send_super(oop start_vtable, oop receiver, oop selector, int argc, oop *args);
 oop lookup_defining_vtable(oop receiver_vtable, oop selector, oop *out_method);
+
+/* rete#313: a method replaced at runtime, over a vtable's own binding (dispatch.c).
+   A debug facility: compiled out with the hooks (OEVM_NO_DEBUG_HOOKS). */
+#define METHOD_OVERRIDES_MAX 16
+struct MethodOverride { oop vtable, selector, method; };
+extern struct MethodOverride method_overrides[METHOD_OVERRIDES_MAX];
+extern int method_override_count;
+int method_override_install(oop vt, oop selector, oop method);
+/* Each replacement, old closure -> new: what restarting a frame still running the
+   old one follows (vm.c primitive_restart_frame). Both are GC roots. */
+#define METHOD_PATCHES_MAX 64
+struct MethodPatch { oop from, to; };
+extern struct MethodPatch method_patches[METHOD_PATCHES_MAX];
+extern int method_patch_count;
 /* Global method lookup cache (src/dispatch.c). RAM-resident, direct-mapped. */
 struct MethodCacheStats { unsigned long hits, misses, fills, collisions, flushes; };
 oop lookup_method_cached(oop receiver_vtable, oop selector, oop *out_method, oop *out_defining_vt);
