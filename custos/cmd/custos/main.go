@@ -61,12 +61,13 @@ func main() {
 		"base URL of porta's operator HTTP listener, fronted at /health and /manifest")
 	flag.StringVar(&cfg.Store, "store", "", "porta's sqlite store, read-only, for the fleet page at /fleet (empty = no fleet page)")
 	flag.StringVar(&cfg.Descriptors, "descriptors", "", "protocol/descriptors/records.yaml, required with --store")
-	var ports, hosts, maps, sources []string
+	var ports, hosts, udps, maps, sources []string
 	each := func(dst *[]string) func(string) error {
 		return func(v string) error { *dst = append(*dst, v); return nil }
 	}
 	flag.Func("board", "a board on its console cable, `name=tty`, repeatable: every verb at /board/<name>/ (peer design D15)", each(&ports))
 	flag.Func("host", "a host VM instead of a board, `name=binary`: \"dev=/tmp/oevm_img\"; it runs the image beside the board's --map", each(&hosts))
+	flag.Func("udp-log", "a board that logs over the mesh, `name=port`: its console datagrams are collected, and its console verbs served", each(&udps))
 	flag.Func("map", "a board's program map, `name=path`.oimg.map.json: without one the board serves load only", each(&maps))
 	flag.Func("source", "a board's .nsl, `name=path` (default: beside its --map)", each(&sources))
 	flag.StringVar(&cfg.Esptool, "esptool", "esptool.py", "the esptool a board's load runs")
@@ -74,7 +75,7 @@ func main() {
 		"comma-separated CIDR allowlist (empty = serve any peer)")
 	flag.Parse()
 	cfg.AllowCIDR = strings.Split(allow, ",")
-	boards, err := custos.ParseBoards(ports, hosts, maps, sources)
+	boards, err := custos.ParseBoards(ports, hosts, udps, maps, sources)
 	if err != nil {
 		log.Fatal(err)
 	}

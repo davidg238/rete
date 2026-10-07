@@ -6,8 +6,10 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -92,17 +94,24 @@ func TestACollectedBoardAnswersItsConsole(t *testing.T) {
 	if len(runs) != 2 || runs[0].BuildID != "B1" || runs[1].BuildID != "B2" {
 		t.Fatalf("runs: %+v", runs)
 	}
+	var e map[string]string
 	var ps []PanicRow
 	getJSON(t, base+"/panics", &ps)
 	if len(ps) != 1 || ps[0].Index != 1 || ps[0].Run != 1 || ps[0].BuildID != "B1" || ps[0].Coredump != 1 {
 		t.Fatalf("panics: %+v", ps)
+	}
+	t.Setenv("RETE_ELF_ROOT", t.TempDir())
+	if code := getJSON(t, base+"/panics/1/bt", &e); code != 422 || !strings.Contains(e["Error"], "no archived ELF for build id B1") {
+		t.Fatalf("bt without the ELF: %d %v", code, e)
+	}
+	if code := getJSON(t, base+"/panics/2/bt", &e); code != 404 {
+		t.Fatalf("bt of a panic that is not there: %d %v", code, e)
 	}
 	var h console.Health
 	getJSON(t, base+"/health", &h)
 	if h.State != "up" || h.LastLine.IsZero() {
 		t.Fatalf("health: %+v", h)
 	}
-	var e map[string]string
 	if code := getJSON(t, base+"/log?since=yesterday", &e); code != 400 || e["Error"] == "" {
 		t.Fatalf("a bad since: %d %v", code, e)
 	}
@@ -146,4 +155,44 @@ func TestLendFreesTheCableUntilReturnOrTheTimeRunsOut(t *testing.T) {
 		}
 	}
 	t.Fatalf("not taken back when the time ran out: %+v", h)
+}
+
+// A board that logs over the mesh is collected from its UDP port, and serves
+// its console verbs only.
+func TestAUDPBoardServesItsConsole(t *testing.T) {
+	l, err := net.ListenPacket("udp", "[::1]:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := l.LocalAddr().(*net.UDPAddr).Port
+	l.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	h, err := Handler(Config{Boards: []Board{{Name: "bell", UDP: port}, {Name: "dev", Host: "/bin/true"}}, ConsoleRoot: t.TempDir(), Context: ctx})
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(h)
+	t.Cleanup(func() { srv.Close(); cancel(); time.Sleep(50 * time.Millisecond) })
+	to, err := net.Dial("udp", net.JoinHostPort("::1", strconv.Itoa(port)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var lines []console.Entry
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
+		to.Write([]byte("ding"))
+		if getJSON(t, srv.URL+"/board/bell/log?tail=1", &lines); len(lines) == 1 && lines[0].Text == "ding" {
+			break
+		}
+	}
+	if len(lines) != 1 || lines[0].Text != "ding" {
+		t.Fatalf("%+v", lines)
+	}
+	var infos []BoardInfo
+	getJSON(t, srv.URL+"/boards", &infos)
+	if infos[0].Target != "udp" || strings.Join(infos[0].Verbs, ",") != "log,runs,panics,health" {
+		t.Fatalf("%+v", infos[0])
+	}
+	if code, _ := post(t, srv.URL+"/board/bell/lend?s=5", nil); code != 404 && code != 405 {
+		t.Fatalf("a UDP board lent its cable: %d", code)
+	}
 }

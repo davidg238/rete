@@ -29,14 +29,14 @@ type Cable struct {
 	// long as the cable: an unreferenced *os.File is closed by its finalizer,
 	// which would release the flock silently.
 	Lock io.Closer
-	Now       func() time.Time
+	Now  func() time.Time
 
-	mu    sync.Mutex
-	port  io.ReadWriteCloser
-	up    bool
-	lent  chan struct{} // non-nil while lent: closed when it comes back
-	subs  map[int]func(string)
-	next  int
+	mu   sync.Mutex
+	port io.ReadWriteCloser
+	up   bool
+	lent chan struct{} // non-nil while lent: closed when it comes back
+	subs map[int]func(string)
+	next int
 	// The health the cable answers from memory: since when it has been up,
 	// down or lent, why it went down, and when the board last said anything.
 	since    time.Time

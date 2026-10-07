@@ -8,6 +8,8 @@ package custos
 //	GET  /log?tail=<N>        the last N lines (no parameter: 20)
 //	GET  /runs                one row per boot: index, start, build id, line count
 //	GET  /panics              one row per panic: its run, start, build id, coredump lines
+//	GET  /panics/<n>/bt       panic n resolved against its build's archived ELF, or
+//	                          refused (422); ?assume=<build-id> names the build yourself
 //	GET  /health              the cable from memory: up, down (and why) or lent
 //	POST /lend?s=<N>          close the cable for a flash; back after N s or on /return
 //	POST /return              take a lent cable back now
@@ -15,7 +17,9 @@ package custos
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -51,23 +55,35 @@ func answerError(w http.ResponseWriter, code int, err error) {
 	answerJSON(w, code, map[string]string{"Error": err.Error()})
 }
 
-// panics answers every panic in the store, numbered.
-func panics(s *console.Store) ([]PanicRow, error) {
+// panics answers every panic in the store, numbered, and the panics themselves.
+func panics(s *console.Store) ([]PanicRow, []console.Panic, error) {
 	lines, err := s.Read(time.Time{})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	var out []PanicRow
+	var rows []PanicRow
+	var ps []console.Panic
 	for _, r := range console.Runs(lines) {
 		for _, p := range console.Panics(r) {
-			out = append(out, PanicRow{len(out) + 1, r.Index, p.Start, r.BuildID, len(p.Coredump)})
+			rows = append(rows, PanicRow{len(rows) + 1, r.Index, p.Start, r.BuildID, len(p.Coredump)})
+			ps = append(ps, p)
 		}
 	}
-	return out, nil
+	return rows, ps, nil
 }
 
-func mountConsole(mux *http.ServeMux, prefixes []string, c *console.Cable, now func() time.Time) {
-	s := c.Store
+// Backtrace is GET /panics/<n>/bt's answer. Assumed: the build id was named by
+// the asker, and every line of Backtrace says so.
+type Backtrace struct {
+	Index     int
+	BuildID   string
+	Assumed   bool
+	Backtrace string
+}
+
+// mountConsole serves a collected board's reader and its health, a cable's or
+// a sink's.
+func mountConsole(mux *http.ServeMux, prefixes []string, s *console.Store, health func() console.Health, now func() time.Time) {
 	handle(mux, prefixes, "GET /log", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
 		var since time.Time
@@ -113,7 +129,7 @@ func mountConsole(mux *http.ServeMux, prefixes []string, c *console.Cable, now f
 		answerJSON(w, http.StatusOK, out)
 	})
 	handle(mux, prefixes, "GET /panics", func(w http.ResponseWriter, r *http.Request) {
-		out, err := panics(s)
+		out, _, err := panics(s)
 		if err != nil {
 			answerError(w, http.StatusInternalServerError, err)
 			return
@@ -123,10 +139,45 @@ func mountConsole(mux *http.ServeMux, prefixes []string, c *console.Cable, now f
 		}
 		answerJSON(w, http.StatusOK, out)
 	})
-	handle(mux, prefixes, "GET /health", func(w http.ResponseWriter, r *http.Request) {
-		answerJSON(w, http.StatusOK, c.Health())
+	handle(mux, prefixes, "GET /panics/{n}/bt", func(w http.ResponseWriter, r *http.Request) {
+		rows, ps, err := panics(s)
+		if err != nil {
+			answerError(w, http.StatusInternalServerError, err)
+			return
+		}
+		n, err := strconv.Atoi(r.PathValue("n"))
+		if err != nil || n < 1 || n > len(rows) {
+			answerError(w, http.StatusNotFound, fmt.Errorf("no panic %q: GET /panics numbers them 1..%d", r.PathValue("n"), len(rows)))
+			return
+		}
+		row, assume := rows[n-1], r.URL.Query().Get("assume")
+		work, err := os.MkdirTemp("", "custos-bt-") // kept: the core outlives the answer
+		if err != nil {
+			answerError(w, http.StatusInternalServerError, err)
+			return
+		}
+		bt, err := console.Backtrace(r.Context(), ps[n-1], row.BuildID, assume, console.ELFRoot(), work)
+		var refused console.Refused
+		switch {
+		case errors.As(err, &refused):
+			answerError(w, http.StatusUnprocessableEntity, err)
+		case err != nil:
+			answerError(w, http.StatusInternalServerError, err)
+		default:
+			id := row.BuildID
+			if assume != "" {
+				id = assume
+			}
+			answerJSON(w, http.StatusOK, Backtrace{n, id, assume != "", bt})
+		}
 	})
+	handle(mux, prefixes, "GET /health", func(w http.ResponseWriter, r *http.Request) {
+		answerJSON(w, http.StatusOK, health())
+	})
+}
 
+// mountLend serves /lend and /return on a board's cable.
+func mountLend(mux *http.ServeMux, prefixes []string, c *console.Cable) {
 	var (
 		mu  sync.Mutex
 		ret chan struct{} // non-nil while a lend from /lend holds the cable

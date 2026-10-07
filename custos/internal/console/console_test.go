@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -311,4 +312,39 @@ func TestTheCollectorPrunesAndSaysSo(t *testing.T) {
 	if !strings.Contains(string(data), Marker+" pruned "+store.Path(old)) {
 		t.Fatalf("%s", data)
 	}
+}
+
+// A board that logs over the mesh: one datagram, one stamped line, and each
+// new peer named once.
+func TestTheSinkStampsEachDatagram(t *testing.T) {
+	store := &Store{Root: t.TempDir(), Board: "c6"}
+	s := &Sink{Store: store, Addr: "[::1]:0", Heartbeat: time.Hour}
+	conn, err := s.Listen()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() { s.Run(ctx, conn); close(done) }()
+	to, err := net.Dial("udp", conn.LocalAddr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	to.Write([]byte("one\r\n"))
+	to.Write([]byte("two"))
+	waitFor(t, "two lines", func() bool { return !s.Health().LastLine.IsZero() && strings.Contains(readAll(store), " two\n") })
+	if s.Health().State != "up" {
+		t.Fatalf("%+v", s.Health())
+	}
+	cancel()
+	<-done
+	got := readAll(store)
+	if strings.Count(got, Marker+" peer ::1") != 1 || !strings.Contains(got, " one\n") || !strings.Contains(got, Marker+" udpsink stopped") {
+		t.Fatalf("%s", got)
+	}
+}
+
+func readAll(s *Store) string {
+	data, _ := os.ReadFile(s.Path(time.Now()))
+	return string(data)
 }
