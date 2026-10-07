@@ -123,7 +123,7 @@ picks it. Moving from local to remote changes the transport, not the UI.
     locals, #323) in one exchange, so the debugger can show something before the
     first step.
 
-## 3a. PROPOSED (2026-10-06, #314): the four verbs still without an HTTP path
+## 3a. PROPOSED (2026-10-06, #314): the four verbs still without an HTTP path (D15 decided below)
 
 Debug, profile and load have their agent paths (D13). Build, flash, run and log do not. Each proposal below
 follows the same precedent (an endpoint answering JSON, a host-VM target, a real-VM gate), and none is decided.
@@ -137,10 +137,14 @@ follows the same precedent (an endpoint answering JSON, a host-VM target, a real
 
 **Open, with a recommendation:**
 
-1. **One target flag.** Replace `--debug-port`, `--profile-port` and `--load-port` with one `--port`, and the three
-   `-host` flags with one `--host`. Every verb then runs on the one target, taking turns through the per-cable lock
-   #367 built. This removes three pairs of flags and the rules about which may share a cable. The cost is call-site
-   churn in the gates and tutorials. **Recommended.**
+1. **Decided (David, 2026-10-06), D15: one target flag, repeatable and named, with the board in the URL.**
+   `--port <name>=<tty>` (and `--host <name>=<vm>`) replaces the three `-port` and three `-host` flags, and may be
+   given once per board. Every verb is served per board at `/board/<name>/…`. With one board configured, the
+   board-less paths (`/debug/…`, `/load`, …) stay as shorthand for it. The verbs on one board take turns through the
+   per-cable lock #367 built; profile and run borrow a held debug cable as load does, so a capture ends a debug stop.
+   Why now: several boards hard-plugged into one test machine (`opti7040`, 4+ motherboard USB ports) makes porting,
+   testing and development pleasant, and the URLs are the agent contract (D12), so changing their shape later would
+   edit every client twice. The churn is paid once, now.
 2. **The collector while custos serves a port.** `log` needs custos to read the cable all the time, which the console
    collector does today. Recommended: custos is the reader while it serves (the collector is already stopped for debug
    and load), and writes the same day log, so that `logread` keeps working.
