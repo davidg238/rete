@@ -8,6 +8,9 @@ compiler links into every image. The VM that runs the result is `../../oevm/` �
 
 - `NEWSPEAK_DIALECT.md` — **what the dialect is and is not.** The place to settle a
   question about syntax or semantics before assuming Smalltalk's answer.
+- [`nsl-design-paper.md`](nsl-design-paper.md) — **why the dialect is shaped this way** (DRAFT 2026-10-06): the
+  measured constraints, the dialect against Newspeak and Smalltalk, what drives each divergence, and the case for an
+  object language written by agents.
 - `programming_with_nsl.md` — the task-oriented guide: how to write a program here.
 - `compiler.md` — **the map to the compiler code**: the pipeline, the two backends
   (solidified C and `.oimg`), the bytecode encoding, the calling-convention invariants,

@@ -1830,66 +1830,97 @@ oop primitive_debugger_set_single_step(oop receiver, int argc, oop *args) {
 }
 
 #ifndef OEVM_NO_DEBUG_HOOKS   /* hot patching is a debug facility (rete#313) */
-/* rete#313: one method replaced while the program runs. The file is the method
+/* rete#313: one method replaced while the program runs. The patch is the method
    recompiled from edited source and re-encoded against THIS image's offsets by
    nodus/nsl/tools/patch_method.py; its words are the .oimg's own RefWords, so the
-   loader resolves them exactly as it resolves the blob's (oimg_resolve):
-       oevm-patch 1
-       vtable <word>  selector <word>
-       registers <n>  arguments <n>  access <n>
-       instructions <k> <u32 hex>...
-       constants <c> <word hex>...
-   The CompiledMethod is malloc'd and never freed (a replaced method may still be
-   running); its closure is a GC object rooted by the patch tables. Desktop only:
-   a board's patch comes over the cable, a later step. Answers 1, or 0 with the
-   reason on stderr. */
-oop primitive_patch_from(oop path, int argc, oop *args) {
+   loader resolves them exactly as it resolves the blob's (oimg_resolve). It arrives
+   as text, one debug line on every target (dbg:patch <text>), whitespace-separated:
+       oevm-patch 1 vtable <word> selector <word>
+       registers <n> arguments <n> access <n>
+       instructions <k> <u32 hex>... constants <c> <word hex>...
+   A line is capped by the debug transport's buffer (platform.c PRIM_pf_readLine), so
+   a longer patch arrives cut and is refused here as malformed. The CompiledMethod is
+   never freed (a replaced method may still be running); its closure is a GC object
+   rooted by the patch tables. Answers 1, or 0 with the reason on stderr. */
+static const char *patch_cur;
+static const char *patch_end;
+
+static void patch_skip(void) {
+    while (patch_cur < patch_end && (*patch_cur == ' ' || *patch_cur == '\n' || *patch_cur == '\t')) patch_cur++;
+}
+
+/* The next whitespace-separated token, as a number in base; 0 when there is none
+   or it is not all digits. */
+static int patch_num(int base, unsigned long *v) {
+    char tok[24];
+    size_t n = 0;
+    patch_skip();
+    while (patch_cur < patch_end && *patch_cur != ' ' && *patch_cur != '\n' && *patch_cur != '\t') {
+        if (n == sizeof tok - 1) return 0;
+        tok[n++] = *patch_cur++;
+    }
+    if (n == 0) return 0;
+    tok[n] = 0;
+    char *e;
+    *v = strtoul(tok, &e, base);
+    return *e == 0;
+}
+
+/* The next token is exactly word, and the one after it a number in base. */
+static int patch_field(const char *word, int base, unsigned long *v) {
+    size_t n = strlen(word);
+    patch_skip();
+    if ((size_t)(patch_end - patch_cur) <= n || memcmp(patch_cur, word, n) != 0) return 0;
+    patch_cur += n;
+    if (*patch_cur != ' ' && *patch_cur != '\n' && *patch_cur != '\t') return 0;
+    return patch_num(base, v);
+}
+
+oop primitive_patch(oop text, int argc, oop *args) {
     (void)argc; (void)args;
-#if defined(__ZEPHYR__) || defined(OEVM_NO_FILE_IO)
-    (void)path;
-    fprintf(stderr, "patch: not on this target\n");
-    return TAG_SMI(0);
-#else
-    if (path == NULL || IS_SMI(path) || obj_vtable(path) != StringVtable) {
-        fprintf(stderr, "patch: wants a path String\n");
+    if (text == NULL || IS_SMI(text) || obj_vtable(text) != StringVtable) {
+        fprintf(stderr, "patch: wants the patch text, a String\n");
         return TAG_SMI(0);
     }
-    struct String *ps = (struct String *)path;
-    char name[512];
-    size_t n = ps->length < sizeof name - 1 ? ps->length : sizeof name - 1;
-    memcpy(name, ps->bytes, n);
-    name[n] = 0;
-    FILE *f = fopen(name, "r");
-    if (!f) { fprintf(stderr, "patch: cannot open %s\n", name); return TAG_SMI(0); }
-    unsigned long vt_w, sel_w;
-    int nregs, nargs, access, ver;
-    size_t ninst, ncon;
-    struct CompiledMethod *m = NULL;
+    struct String *ts = (struct String *)text;
+    patch_cur = (const char *)ts->bytes;
+    patch_end = patch_cur + ts->length;
+    unsigned long ver, vt_w, sel_w, nregs, nargs, access, ninst, ncon, w;
     uint32_t *insts = NULL;
     oop *consts = NULL;
+    struct CompiledMethod *m = NULL;
     const char *why = "malformed";
-    if (fscanf(f, " oevm-patch %d vtable %lx selector %lx registers %d arguments %d access %d instructions %zu",
-               &ver, &vt_w, &sel_w, &nregs, &nargs, &access, &ninst) != 7 || ver != 1)
+    if (!patch_field("oevm-patch", 10, &ver) || ver != 1
+        || !patch_field("vtable", 16, &vt_w) || !patch_field("selector", 16, &sel_w)
+        || !patch_field("registers", 10, &nregs) || !patch_field("arguments", 10, &nargs)
+        || !patch_field("access", 10, &access) || !patch_field("instructions", 10, &ninst))
         goto bad;
-    insts = malloc((ninst ? ninst : 1) * sizeof *insts);
-    for (size_t i = 0; i < ninst; i++) {
-        unsigned int w;
-        if (fscanf(f, " %x", &w) != 1) goto bad;
-        insts[i] = w;
+    why = "out of memory";
+    insts = oevm_malloc((ninst ? ninst : 1) * sizeof *insts);
+    if (insts == NULL) goto bad;
+    why = "malformed";
+    for (unsigned long i = 0; i < ninst; i++) {
+        if (!patch_num(16, &w)) goto bad;
+        insts[i] = (uint32_t)w;
     }
-    if (fscanf(f, " constants %zu", &ncon) != 1) goto bad;
-    consts = malloc((ncon ? ncon : 1) * sizeof *consts);
-    for (size_t i = 0; i < ncon; i++) {
-        unsigned long w;
-        if (fscanf(f, " %lx", &w) != 1) goto bad;
+    if (!patch_field("constants", 10, &ncon)) goto bad;
+    why = "out of memory";
+    consts = oevm_malloc((ncon ? ncon : 1) * sizeof *consts);
+    if (consts == NULL) goto bad;
+    why = "malformed";
+    for (unsigned long i = 0; i < ncon; i++) {
+        if (!patch_num(16, &w)) goto bad;
         consts[i] = oimg_resolve((uintptr_t)w);
     }
+    patch_skip();
+    if (patch_cur != patch_end) goto bad;              /* trailing words: not this format */
     oop vt = oimg_resolve((uintptr_t)vt_w), sel = oimg_resolve((uintptr_t)sel_w);
     why = "vtable or selector does not resolve";
     if (vt == NULL || sel == NULL || obj_vtable(sel) != SymbolVtable) goto bad;
-    fclose(f);
-    m = malloc(sizeof *m);
-    *m = (struct CompiledMethod){insts, ninst, nregs, nargs, consts, ncon, access};
+    why = "out of memory";
+    m = oevm_malloc(sizeof *m);
+    if (m == NULL) goto bad;
+    *m = (struct CompiledMethod){insts, ninst, (int)nregs, (int)nargs, consts, ncon, (int)access};
     oop cl = gc_allocate(BytecodeClosureVtable, sizeof(struct Closure));
     struct Closure *c = (struct Closure *)cl;
     c->home_ctx = NULL;          /* a method closure homes to its own frame (push_frame) */
@@ -1905,12 +1936,11 @@ oop primitive_patch_from(oop path, int argc, oop *args) {
     if (prev != NULL) method_patches[method_patch_count++] = (struct MethodPatch){prev, cl};
     return TAG_SMI(1);
 bad:
-    fprintf(stderr, "patch: %s: %s\n", name, why);
-    fclose(f);
-    free(insts);
-    free(consts);
+    fprintf(stderr, "patch: %s\n", why);
+    oevm_free(insts);
+    oevm_free(consts);
+    oevm_free(m);
     return TAG_SMI(0);
-#endif
 }
 
 /* rete#313: restart a stopped frame from its first instruction, into its method's

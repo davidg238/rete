@@ -464,7 +464,7 @@ oop primitive_method_context_reg_at_put(oop receiver, int argc, oop *args);
 oop primitive_method_context_num_registers(oop receiver, int argc, oop *args);
 oop primitive_debugger_set_single_step(oop receiver, int argc, oop *args);
 oop primitive_vtable_bind(oop receiver, int argc, oop *args);
-oop primitive_patch_from(oop path, int argc, oop *args);       /* rete#313 */
+oop primitive_patch(oop text, int argc, oop *args);             /* rete#313 */
 oop primitive_restart_frame(oop frame, int argc, oop *args);   /* rete#313 */
 oop primitive_compiled_method_set_instruction_at(oop receiver, int argc, oop *args);
 

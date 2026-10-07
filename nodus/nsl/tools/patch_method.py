@@ -13,8 +13,11 @@ re-encoded through the old offsets. A constant the running image does not hold (
 new symbol, string, class or block) refuses the patch by name: interning one into
 a running image is not this spike.
 
-The output is the VM's patch file (oevm_image_main's `dbg:patch <file>`; vm.c
-primitive_patch_from). Exits 1 with the reason on a refusal.
+The output is the VM's patch text, one line: the debugger sends it as
+`dbg:patch <text>` (supervisor.nsl doPatch:; vm.c primitive_patch), on the desktop
+and over a board's cable alike. A debug line is capped by the VM's read buffer
+(platform.c PRIM_pf_readLine), so a patch that would not fit is refused here rather
+than arriving cut. Exits 1 with the reason on a refusal.
 """
 import hashlib
 import json
@@ -29,6 +32,11 @@ from ns_compile_oevm import compile_source, serialize_oimg  # noqa: E402
 
 class Refused(Exception):
     pass
+
+
+# The VM reads a debug line into a 512-byte buffer (platform.c PRIM_pf_readLine,
+# `char buf[512]`), newline stripped; `dbg:patch ` and the text must fit in it.
+LINE_BYTES = 511
 
 
 def method_of(graph, vt_name, selector):
@@ -64,7 +72,7 @@ def build(running, old_src, new_src, qual, layout):
     consts = [encode(old_ser, c) for c in new_m["constants"]]
     if new_m["num_arguments"] != old_m["num_arguments"]:
         raise Refused("the arguments changed")
-    lines = [
+    words = [
         "oevm-patch 1",
         f"vtable {old_ser._vtable_ref(vt_name):x}",
         f"selector {old_ser._symbol_ref(selector):x}",
@@ -76,7 +84,10 @@ def build(running, old_src, new_src, qual, layout):
         f"constants {len(consts)}",
         " ".join(f"{w:x}" for w in consts),
     ]
-    return "\n".join(lines) + "\n", old_m, new_m
+    text = " ".join(words)
+    if len("dbg:patch " + text) > LINE_BYTES:
+        raise Refused(f"the patch is {len(text)} B; a debug line holds {LINE_BYTES - len('dbg:patch ')}")
+    return text + "\n", old_m, new_m
 
 
 def main(argv):
