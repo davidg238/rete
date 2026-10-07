@@ -37,6 +37,39 @@ type Cable struct {
 	lent  chan struct{} // non-nil while lent: closed when it comes back
 	subs  map[int]func(string)
 	next  int
+	// The health the cable answers from memory: since when it has been up,
+	// down or lent, why it went down, and when the board last said anything.
+	since    time.Time
+	reason   string
+	lastLine time.Time
+	pruning  sync.Mutex // the heartbeat's prune and the exit's do not overlap
+}
+
+// Health is a cable's state as GET /board/<name>/health answers it.
+type Health struct {
+	State    string // "up", "down" or "lent"
+	Since    time.Time
+	Reason   string    `json:",omitempty"` // why it is down
+	LastLine time.Time `json:",omitempty"` // the board's last line; zero = none since start
+}
+
+// Health answers the cable's state.
+func (c *Cable) Health() Health {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	h := Health{State: "down", Since: c.since, Reason: c.reason, LastLine: c.lastLine}
+	switch {
+	case c.lent != nil:
+		h.State, h.Reason = "lent", ""
+	case c.up:
+		h.State, h.Reason = "up", ""
+	}
+	return h
+}
+
+// set records a change of state; the caller holds mu.
+func (c *Cable) set(up bool, reason string) {
+	c.up, c.reason, c.since = up, reason, c.now()
 }
 
 func (c *Cable) now() time.Time {
@@ -84,14 +117,22 @@ func (c *Cable) Send(line string) error {
 	return err
 }
 
+// ErrLent is a lend while the cable is already lent.
+var ErrLent = errors.New("the board's console cable is lent")
+
 // Lend closes the port, runs fn (which may open it itself: esptool, a reset),
-// and opens it again; the store is told both ways.
+// and opens it again; the store is told both ways. One lend at a time.
 func (c *Cable) Lend(fn func() error) error {
 	c.mu.Lock()
+	if c.lent != nil {
+		c.mu.Unlock()
+		return ErrLent
+	}
 	back := make(chan struct{})
 	c.lent = back
 	p := c.port
-	c.port, c.up = nil, false
+	c.port = nil
+	c.set(false, "")
 	c.mu.Unlock()
 	if p != nil {
 		p.Close()
@@ -100,6 +141,7 @@ func (c *Cable) Lend(fn func() error) error {
 	err := fn()
 	c.mu.Lock()
 	c.lent = nil
+	c.set(false, "taking the cable back")
 	c.mu.Unlock()
 	close(back)
 	c.note("cable back")
@@ -108,7 +150,12 @@ func (c *Cable) Lend(fn func() error) error {
 
 // Run reads the cable until ctx ends, then writes "collector stopped".
 func (c *Cable) Run(ctx context.Context) {
+	c.mu.Lock()
+	c.set(false, "starting")
+	c.mu.Unlock()
 	c.note(fmt.Sprintf("collector started pid=%d port=%s", pid(), c.Port))
+	c.prune()
+	day := c.now().Format("2006-01-02")
 	every := c.Heartbeat
 	if every == 0 {
 		every = 60 * time.Second
@@ -126,6 +173,10 @@ func (c *Cable) Run(ctx context.Context) {
 					state = "up"
 				}
 				c.note("heartbeat port=" + state)
+				if d := c.now().Format("2006-01-02"); d != day { // a 24/7 collector rarely exits
+					day = d
+					c.prune()
+				}
 			}
 		}
 	}()
@@ -153,6 +204,11 @@ func (c *Cable) Run(ctx context.Context) {
 		}
 		p, err := c.Open()
 		if err != nil {
+			c.mu.Lock()
+			if c.reason != err.Error() {
+				c.set(false, err.Error())
+			}
+			c.mu.Unlock()
 			if !lost {
 				c.note("port lost: " + err.Error())
 				lost = true
@@ -169,7 +225,8 @@ func (c *Cable) Run(ctx context.Context) {
 			p.Close()
 			continue
 		}
-		c.port, c.up = p, true
+		c.port = p
+		c.set(true, "")
 		c.mu.Unlock()
 		if lost {
 			c.note("port reacquired")
@@ -179,7 +236,8 @@ func (c *Cable) Run(ctx context.Context) {
 		c.mu.Lock()
 		closedUnder := c.port != p // Lend or stop closed it: not a loss
 		if !closedUnder {
-			c.port, c.up = nil, false
+			c.port = nil
+			c.set(false, err.Error())
 		}
 		c.mu.Unlock()
 		if !closedUnder {
@@ -191,6 +249,23 @@ func (c *Cable) Run(ctx context.Context) {
 		}
 	}
 	c.note("collector stopped")
+	c.prune()
+}
+
+// prune keeps the board under its budget and notes what went.
+func (c *Cable) prune() {
+	if c.Store.Budget <= 0 {
+		return
+	}
+	c.pruning.Lock()
+	defer c.pruning.Unlock()
+	gone, err := c.Store.Prune()
+	for _, g := range gone {
+		c.note("pruned " + g)
+	}
+	if err != nil {
+		c.note("prune failed: " + err.Error())
+	}
 }
 
 // read splits what the port answers into lines until a read fails. A serial
@@ -222,8 +297,10 @@ func (c *Cable) read(p io.Reader) error {
 // stripped, invalid UTF-8 replaced.
 func (c *Cable) line(b []byte) {
 	text := strings.ToValidUTF8(strings.TrimSuffix(strings.ReplaceAll(string(b), "\x00", ""), "\r"), "�")
-	c.Store.Append(text, c.now())
+	now := c.now()
+	c.Store.Append(text, now)
 	c.mu.Lock()
+	c.lastLine = now
 	subs := make([]func(string), 0, len(c.subs))
 	for _, fn := range c.subs {
 		subs = append(subs, fn)

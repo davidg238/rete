@@ -16,9 +16,10 @@ trimmed beyond run boundaries.
   purpose at `src/main.c:1688`, with the 270 `#CD:` coredump lines that follow.
   Key `porta-v1-final-779-gc76a6d5-dirty-20260803T202011`, 329 lines.
 
-Each begins at its **boot banner** (`ESP-ROM:esp32c6-...`), not at the
-`tuvm: build-id` line, because that banner is where `logread.split_runs()`
-starts a run — a fixture beginning at the build-id line parses as zero runs.
+Each begins at the C6's ROM banner (`ESP-ROM:esp32c6-...`), the start of one
+physical boot. The reader (`read.go`, `Runs`) starts a run at the kernel banner
+(`*** Booting Zephyr OS`), which every board prints, so the ROM lines before it
+are no run's here; in a live log they end the run before.
 
 Note there are two `ESP-ROM` lines per flash on this board: esptool's reset into
 download mode, then the real boot. Each fixture contains exactly one, the second.
@@ -30,11 +31,11 @@ pass. A test that only passes against an edited fixture is measuring the edit.
 
 The matching ELF for `c6-fault.log` is in the archive under the build id on its
 `tuvm: build-id` line. If it has been pruned, the fault fixture can still be
-parsed; only `symbolize` needs the ELF.
+parsed; only the backtrace (`/panics/<n>/bt`) needs the ELF.
 
 ## Regenerating
 
-    systemctl --user is-active rete-console@c6
+    curl -s http://localhost:6971/board/c6/health
     ./run.sh --board esp32c6 --pristine --flash
     ./run.sh --board esp32c6 --conf-extra prj_esp32c6_faultgate.conf --pristine --flash
     grep -n 'ESP-ROM:esp32c6' ~/.local/state/rete/console/console-c6-$(date +%F).log

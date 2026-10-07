@@ -265,3 +265,50 @@ func TestTheHeartbeatSaysWhetherThePortIsUp(t *testing.T) {
 		t.Fatalf("%s", data)
 	}
 }
+
+// The health is answered from memory: up with the board's last line, down with
+// why, lent while a load holds the cable.
+func TestHealthIsTheCablesStateFromMemory(t *testing.T) {
+	first, second := newFakePort(), newFakePort()
+	b := newBench(t, nil, first, second)
+	<-b.opened
+	waitFor(t, "up", b.c.Up)
+	if h := b.c.Health(); h.State != "up" || !h.LastLine.IsZero() || h.Since.IsZero() {
+		t.Fatalf("%+v", h)
+	}
+	first.w.Write([]byte("hello\n"))
+	waitFor(t, "the last line", func() bool { return !b.c.Health().LastLine.IsZero() })
+	b.c.Lend(func() error {
+		if h := b.c.Health(); h.State != "lent" {
+			t.Errorf("while lent: %+v", h)
+		}
+		return nil
+	})
+	<-b.opened
+	waitFor(t, "up again", b.c.Up)
+	second.w.Close() // the board goes away, and no port follows
+	waitFor(t, "down", func() bool { return b.c.Health().State == "down" })
+	if h := b.c.Health(); h.Reason == "" {
+		t.Fatalf("down without a reason: %+v", h)
+	}
+}
+
+// A collector prunes when it starts, and the newest day is never pruned.
+func TestTheCollectorPrunesAndSaysSo(t *testing.T) {
+	store := &Store{Root: t.TempDir(), Board: "c6", Budget: 1}
+	old := time.Now().AddDate(0, 0, -3)
+	store.Append("an old day", old)
+	c := &Cable{Store: store, Heartbeat: time.Hour, Open: func() (io.ReadWriteCloser, error) {
+		return nil, errors.New("no such device")
+	}}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() { c.Run(ctx); close(done) }()
+	waitFor(t, "the old day pruned", func() bool { _, err := os.Stat(store.Path(old)); return os.IsNotExist(err) })
+	cancel()
+	<-done
+	data, _ := os.ReadFile(store.Path(time.Now()))
+	if !strings.Contains(string(data), Marker+" pruned "+store.Path(old)) {
+		t.Fatalf("%s", data)
+	}
+}

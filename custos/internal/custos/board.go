@@ -200,6 +200,8 @@ func mountBoard(ctx context.Context, mux *http.ServeMux, prefixes []string, b Bo
 		c = &console.Cable{Store: &console.Store{Root: root, Board: b.Name, Budget: console.DefaultBudget},
 			Open: openCable(b.Port), Port: b.Port, Lock: lock}
 		go c.Run(ctx)
+		mountConsole(mux, prefixes, c, time.Now)
+		verbs = append(verbs, "log", "runs", "panics", "health", "lend")
 	}
 	held := &around{}
 	if c != nil {
