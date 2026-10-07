@@ -63,6 +63,22 @@ func TestLoadView(t *testing.T) {
 	}
 }
 
+func TestBuildView(t *testing.T) {
+	m := stopped()
+	m.tab = buildTab
+	m.built = &custos.Built{Board: "dev", Image: "A.oimg", Size: 1234, SHA256: "c4c31f03ab"}
+	v := m.View()
+	for _, want := range []string{"A.oimg (1234 B)", "c4c31f03ab", "dev", " build "} {
+		if !strings.Contains(v, want) {
+			t.Errorf("missing %q in\n%s", want, v)
+		}
+	}
+	m.ran = &custos.Ran{Board: "dev", Image: "A.oimg", Output: []string{"7"}, TimedOut: true}
+	if v := m.View(); !strings.Contains(v, "outlived the run time") || !strings.Contains(v, "7") {
+		t.Errorf("run view:\n%s", v)
+	}
+}
+
 func TestTinyTerminal(t *testing.T) {
 	for _, wh := range [][2]int{{0, 0}, {10, 3}, {40, 8}} {
 		m := stopped()
@@ -83,7 +99,8 @@ func TestViewFitsTheTerminal(t *testing.T) {
 	}
 	for _, wh := range [][2]int{{100, 24}, {140, 40}} {
 		m.w, m.h = wh[0], wh[1]
-		for _, tb := range []tab{debugTab, profileTab, loadTab} {
+		m.ran = &custos.Ran{Image: "A.oimg", Output: m.st.Transcript}
+		for _, tb := range []tab{debugTab, profileTab, loadTab, buildTab} {
 			m.tab = tb
 			if got := lipgloss.Height(m.View()); got > m.h {
 				t.Errorf("%dx%d tab %d: %d rows", m.w, m.h, tb, got)

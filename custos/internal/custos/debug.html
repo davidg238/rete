@@ -39,7 +39,7 @@
 <body>
 <header>
   <h1>rete debug</h1>
-  <nav><a href="profile">profile</a><a href="load">load</a><a href="/fleet">fleet</a><a href="/dev">dev status</a><a href="debug/state">state.json</a></nav>
+  <nav><a href="profile">profile</a><a href="load">load</a><a href="/build">build</a><a href="/fleet">fleet</a><a href="/dev">dev status</a><a href="debug/state">state.json</a></nav>
 </header>
 <div class="stamp"><span class="pill v-unknown" id="run">…</span> <span id="where"></span></div>
 <div class="banner" id="error"></div>
@@ -50,6 +50,7 @@
   <button data-cmd="next">next</button>
   <button data-cmd="finish">finish</button>
   <button data-cmd="pause">pause</button>
+  <button data-cmd="restart" title="start the stopped frame over, in its method's patch if it has one">restart</button>
   <span class="note" id="hint"></span>
 </div>
 
@@ -70,6 +71,9 @@
 <h2>Session</h2>
 <pre class="log mono" id="log"></pre>
 <form class="cmd" id="cmd"><input id="line" placeholder="any debugger command: break 26, locals 1, bt, help…" autocomplete="off"><button>send</button></form>
+<h2>Patch a method</h2>
+<form class="cmd" id="patch"><input id="pmethod" placeholder="Class>>selector (the stopped method by default)" autocomplete="off"> <input id="pfile" type="file" accept=".nsl"> <button>patch</button></form>
+<p class="note">Choose the whole edited source file. custos compiles the named method against the running image and installs it; the stop is kept. Then <b>restart</b> runs the stopped frame again in the new code, and <b>continue</b> resumes. A method that needs a constant the image does not hold (a new string, symbol or class) is refused by name, and the program is not touched.</p>
 
 <script>
 // Every verb URL is relative: a board's page is /board/<name>/<verb>, or /<verb> for the only board (peer design D15).
@@ -87,12 +91,14 @@ function renderSource() {
   ).join('') || '<div class="empty">the source could not be read</div>';
 }
 
+let lastMethod = '';   // the stopped method: what a patch replaces when none is named
 function render(st) {
   last = st;
   $('run').className = 'pill ' + (RUN[st.Run] || 'v-unknown');
   $('run').textContent = st.Run;
   const s = st.Stop;
   $('where').textContent = s ? `(${s.Reason}) ${s.File}:${s.Line}  ${s.Method}` : '';
+  if (s && s.Method) lastMethod = s.Method;
   $('hint').textContent = st.Run === 'unknown' ? 'state unknown: the board may already be waiting — press pause' : '';
   if (st.Run === 'lost') fail('The cable to the board was lost (unplugged?). Reconnect it and restart custos: this page holds no cable now.');
   if (src) {
@@ -132,6 +138,23 @@ async function send(cmd) {
   busy = false;
   document.querySelectorAll('button').forEach(b => b.disabled = false);
 }
+
+$('patch').onsubmit = async e => {
+  e.preventDefault();
+  const f = $('pfile').files[0], method = $('pmethod').value.trim() || lastMethod;
+  if (!f) return fail('choose the edited .nsl first');
+  if (!method) return fail('name the method, Class>>selector');
+  if (busy) return;
+  busy = true;
+  document.querySelectorAll('button').forEach(b => b.disabled = true);
+  try {
+    const resp = await fetch('debug/patch?method=' + encodeURIComponent(method), {method: 'POST', body: f});
+    if (!resp.ok) fail(await resp.text());
+    else { const d = await resp.json(); fail(d.Error); render(d.State); }
+  } catch (err) { fail(String(err)); }
+  busy = false;
+  document.querySelectorAll('button').forEach(b => b.disabled = false);
+};
 
 async function poll() {
   let seq = -1;

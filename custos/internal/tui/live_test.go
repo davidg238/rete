@@ -98,3 +98,66 @@ func TestLiveLoad(t *testing.T) {
 	}
 	t.Logf("live: %s through the load tab, sha256 %.12s", m.load.Result.Image, sha)
 }
+
+// TestLiveBuild drives the build tab against a live custos (test_custos_build.py):
+// build an .nsl, load it through the tab, and run it on the host board.
+func TestLiveBuild(t *testing.T) {
+	url, src := os.Getenv("CUSTOS_TUI_BUILD_URL"), os.Getenv("CUSTOS_TUI_BUILD_SOURCE")
+	if url == "" {
+		t.Skip("CUSTOS_TUI_BUILD_URL unset: run by test_custos_build.py")
+	}
+	m := New(NewClient(url))
+	m.w, m.h = 140, 40
+	m, _ = press(t, m, "tab", "tab", "tab", "b", src)
+	m, cmd := press(t, m, "enter")
+	m = drive(t, m, cmd, 120*time.Second, func(m Model) bool { return m.built != nil || m.status != "" })
+	if m.built == nil {
+		t.Fatalf("build failed: %s", m.status)
+	}
+	m, cmd = press(t, m, "l")
+	m = drive(t, m, cmd, 60*time.Second, func(m Model) bool { return m.load != nil || m.status != "" })
+	if m.load == nil || m.load.Result.SHA256 != m.built.SHA256 {
+		t.Fatalf("load of the build: %+v %s", m.load, m.status)
+	}
+	m, _ = press(t, m, "x")
+	m, cmd = press(t, m, "enter") // the prompt starts with the last path
+	m = drive(t, m, cmd, 120*time.Second, func(m Model) bool { return m.ran != nil || m.status != "" })
+	if m.ran == nil || m.ran.Exit != 0 {
+		t.Fatalf("run failed: %+v %s", m.ran, m.status)
+	}
+	t.Logf("live: built %s sha256 %.12s, loaded (the board agrees), ran: exit %d, %d lines",
+		m.built.Image, m.built.SHA256, m.ran.Exit, len(m.ran.Output))
+}
+
+// TestLivePatch drives the debug tab's patch against a live custos stopped in the
+// method (test_custos_patch.py): P, then restart.
+func TestLivePatch(t *testing.T) {
+	url, src := os.Getenv("CUSTOS_TUI_PATCH_URL"), os.Getenv("CUSTOS_TUI_PATCH_SOURCE")
+	if url == "" {
+		t.Skip("CUSTOS_TUI_PATCH_URL unset: run by test_custos_patch.py")
+	}
+	m := New(NewClient(url))
+	m.w, m.h = 140, 40
+	st, err := m.c.State(-1)
+	if err != nil || st.Stop == nil {
+		t.Fatalf("not stopped: %v %+v", err, st)
+	}
+	m = m.apply(st)
+	m.nsl = src
+	m, _ = press(t, m, "P")
+	if want := src + " " + st.Stop.Method; m.input != want {
+		t.Fatalf("patch prompt %q, want %q", m.input, want)
+	}
+	m, cmd := press(t, m, "enter")
+	m = drive(t, m, cmd, 120*time.Second, func(m Model) bool { return m.inflight == "" })
+	if m.status != "" {
+		t.Fatalf("patch: %s", m.status)
+	}
+	m, cmd = press(t, m, "R")
+	m = drive(t, m, cmd, 60*time.Second, func(m Model) bool { return m.inflight == "" })
+	if m.status != "" {
+		t.Fatalf("restart: %s", m.status)
+	}
+	t.Logf("live: patched %s through the debug tab, restarted", st.Stop.Method)
+}
+

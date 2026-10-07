@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -25,6 +26,7 @@ const (
 	debugTab tab = iota
 	profileTab
 	loadTab
+	buildTab
 	tabs // how many
 )
 
@@ -38,7 +40,7 @@ type Model struct {
 	st        debug.State
 	cursor    int    // the source line under the cursor, 1-based
 	frame     int    // the frame whose locals are asked for
-	prompt    string // non-empty while the one-line input is open: ":", "window ms: " or "image: "
+	prompt    string // non-empty while the one-line input is open: ":", "window ms: ", "image: ", "patch: ", "build: " or "run: "
 	input     string
 	status    string // the last refusal or error; "" when the last thing worked
 	inflight  string // the command posted and not yet answered
@@ -50,6 +52,10 @@ type Model struct {
 	load      *custos.Load
 	image     string // the last .oimg path asked for
 	loading   bool
+	built     *custos.Built
+	ran       *custos.Ran
+	nsl       string // the last .nsl path asked for: build, run, patch
+	building  bool
 }
 
 type sourceMsg struct {
@@ -69,6 +75,14 @@ type loadMsg struct {
 	l    custos.Load
 	err  error
 	last bool // from /load/last at start-up: a 404 there is not an error
+}
+type builtMsg struct {
+	b   custos.Built
+	err error
+}
+type ranMsg struct {
+	r   custos.Ran
+	err error
 }
 type profMsg struct {
 	c    custos.Capture
@@ -206,10 +220,69 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.load, m.status = &msg.l, ""
+	case builtMsg:
+		m.building = false
+		if msg.err != nil {
+			m.status = "build: " + msg.err.Error()
+			return m, nil
+		}
+		m.built, m.ran, m.status = &msg.b, nil, ""
+	case ranMsg:
+		m.building = false
+		if msg.err != nil {
+			m.status = "run: " + msg.err.Error()
+			return m, nil
+		}
+		m.ran, m.status = &msg.r, ""
 	case tea.KeyMsg:
 		return m.key(msg)
 	}
 	return m, nil
+}
+
+// patch takes "<edited.nsl> <Class>>selector" and sends it (peer design D17).
+func (m Model) patch(line string) (Model, tea.Cmd) {
+	f := strings.Fields(line)
+	if len(f) != 2 {
+		m.status = "patch: give the edited .nsl and the method, Class>>selector"
+		return m, nil
+	}
+	if m.inflight != "" {
+		m.status = fmt.Sprintf("%q is still running", m.inflight)
+		return m, nil
+	}
+	m.nsl, m.inflight = f[0], "patch"
+	c := m.c
+	return m, func() tea.Msg { d, err := c.Patch(f[0], f[1]); return doneMsg{"patch", d, err} }
+}
+
+// compile builds (or runs, on a host board) the .nsl at m.nsl (peer design D18).
+func (m Model) compile(run bool) (Model, tea.Cmd) {
+	if m.building {
+		m.status = "a build is still running"
+		return m, nil
+	}
+	m.building = true
+	c, path := m.c, m.nsl
+	if run {
+		return m, func() tea.Msg { r, err := c.Run(path); return ranMsg{r, err} }
+	}
+	return m, func() tea.Msg { b, err := c.Build(path); return builtMsg{b, err} }
+}
+
+// loadBuild loads the last build onto the board; the answer is the load tab's.
+func (m Model) loadBuild() (Model, tea.Cmd) {
+	if m.loading {
+		m.status = "a load is still running"
+		return m, nil
+	}
+	if m.built == nil {
+		m.status = "nothing built yet: press b"
+		return m, nil
+	}
+	m.loading = true
+	c, name := m.c, m.built.Image
+	return m, func() tea.Msg { l, err := c.LoadLastBuild(name); return loadMsg{l, err, false} }
 }
 
 // breakKey is how State.Breaks names line n of the app's file.
@@ -232,6 +305,13 @@ func (m Model) key(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if prompt == "image: " {
 				m.image = line
 				return m.upload()
+			}
+			if prompt == "patch: " {
+				return m.patch(line)
+			}
+			if prompt == "build: " || prompt == "run: " {
+				m.nsl = line
+				return m.compile(prompt == "run: ")
 			}
 			ms, err := strconv.Atoi(line)
 			if err != nil || ms <= 0 {
@@ -264,6 +344,17 @@ func (m Model) key(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	}
+	if m.tab == buildTab {
+		switch s {
+		case "b":
+			m.prompt, m.input = "build: ", m.nsl
+		case "x":
+			m.prompt, m.input = "run: ", m.nsl
+		case "l":
+			return m.loadBuild()
+		}
+		return m, nil
+	}
 	if m.tab == profileTab {
 		if s == "r" {
 			m.prompt, m.input = "window ms: ", strconv.Itoa(m.ms)
@@ -291,6 +382,14 @@ func (m Model) key(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.send("finish")
 	case "p":
 		return m.send("pause")
+	case "R":
+		return m.send("restart")
+	case "P":
+		// the edited file, then the method (the stopped one by default)
+		m.prompt, m.input = "patch: ", m.nsl
+		if m.st.Stop != nil && m.st.Stop.Method != "" {
+			m.input = strings.TrimSpace(m.nsl + " " + m.st.Stop.Method)
+		}
 	case "[", "]":
 		if s == "[" {
 			m.frame = max(0, m.frame-1)

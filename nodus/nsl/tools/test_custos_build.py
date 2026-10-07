@@ -17,7 +17,7 @@ import hashlib, json, os, shutil, sys, time, urllib.error, urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from test_custos_debug import NSROOT, VM, build, serve  # noqa: E402
+from test_custos_debug import NSROOT, VM, build, go_live, serve  # noqa: E402
 
 TESTS = os.path.join(NSROOT, "..", "tests")
 ADDITION = os.path.join(TESTS, "01_expressions", "01_addition.nsl")
@@ -74,14 +74,24 @@ def run_http():
                 f"({e['Error'].splitlines()[-1][:60]}); a forever program stopped after {took:.0f}s")
 
 
+def run_tui():
+    """The TUI's build tab, no terminal: build, load the build, run."""
+    with serve(["--host", f"dev={VM}"], ready="/boards") as root:
+        line = go_live("TestLiveBuild", {"CUSTOS_TUI_BUILD_URL": f"{root}/board/dev",
+                                         "CUSTOS_TUI_BUILD_SOURCE": ADDITION})
+    return "tui: " + " ".join(line)
+
+
 def main():
     if shutil.which("go") is None:
         print("custos-build: SKIP (go is not on PATH)")
         sys.exit(77)
     build()
     http = run_http()
+    tui = run_tui()
     print("test_custos_build: PASSED (Path B, /build and /run on a --host board)")
     print(http)
+    print(tui)
 
 
 if __name__ == "__main__":

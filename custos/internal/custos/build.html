@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>rete build</title>
+<link rel="stylesheet" href="/fleet.css">
+</head>
+<body>
+<header>
+  <h1>rete build</h1>
+  <nav><a href="/fleet">fleet</a><a href="/dev">dev status</a><a href="/boards">boards.json</a></nav>
+</header>
+<form id="go">
+  <select id="board"></select>
+  <input id="file" type="file" accept=".nsl">
+  <button id="build" type="submit">Build</button>
+  <button id="run" type="button" title="host boards only: build, run once, show its output">Run</button>
+  <button id="load" type="button" title="load the last build onto the chosen board">Load last build</button>
+</form>
+<div class="stamp" id="stamp">nothing built yet</div>
+<div class="banner" id="error"></div>
+
+<h2>Result</h2>
+<div class="wrap"><table><tbody id="rows"><tr><td class="empty">nothing built yet</td></tr></tbody></table></div>
+<h2>Output</h2>
+<pre class="log mono" id="out"></pre>
+<p class="note">Build compiles the .nsl with the chosen board's layout; <a href="build/last.oimg">last.oimg</a> and <a href="build/last.oimg.map.json">its map</a> are the result. Load sends that image to the board, whose boot proves the sha256. Run is for host boards: it builds for the host VM, runs the program once (bounded) and shows what it printed. On a board, loading is what starts the program.</p>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let boards = [];
+function fail(msg) { $('error').textContent = msg || ''; $('error').style.display = msg ? 'block' : 'none'; }
+function rows(pairs) {
+  $('rows').innerHTML = pairs.map(([k, v]) => `<tr><th>${esc(k)}</th><td><code>${esc(v)}</code></td></tr>`).join('');
+}
+function busy(on) { document.querySelectorAll('button').forEach(b => b.disabled = on); }
+async function call(url, body) {
+  fail('');
+  busy(true);
+  try {
+    const resp = await fetch(url, {method: 'POST', body});
+    const text = await resp.text();
+    let d = null;
+    try { d = JSON.parse(text); } catch (_) {}
+    if (!resp.ok) { fail(d && d.Error ? d.Error : text); return null; }
+    return d;
+  } catch (err) { fail(String(err)); return null; }
+  finally { busy(false); }
+}
+function source() {
+  const f = $('file').files[0];
+  if (!f) fail('choose an .nsl first');
+  return f;
+}
+$('go').onsubmit = async e => {
+  e.preventDefault();
+  const f = source();
+  if (!f) return;
+  $('stamp').textContent = `building ${f.name} for ${$('board').value}…`;
+  const b = await call(`build?for=${encodeURIComponent($('board').value)}&name=${encodeURIComponent(f.name)}`, f);
+  if (!b) return $('stamp').textContent = 'build failed';
+  $('stamp').textContent = `${new Date().toLocaleString()} · built ${b.Image} for ${b.Board}`;
+  rows([['image', b.Image], ['board', b.Board], ['size', `${b.Size} B`], ['sha256', b.SHA256]]);
+  $('out').textContent = '';
+};
+$('run').onclick = async () => {
+  const f = source();
+  if (!f) return;
+  $('stamp').textContent = `running ${f.name} on ${$('board').value}…`;
+  const r = await call(`run?for=${encodeURIComponent($('board').value)}&name=${encodeURIComponent(f.name)}`, f);
+  if (!r) return $('stamp').textContent = 'run failed';
+  $('stamp').textContent = `${new Date().toLocaleString()} · ran ${r.Image} on ${r.Board}`;
+  rows([['image', r.Image], ['sha256', r.SHA256], ['exit', r.TimedOut ? 'stopped: it outlived the run time' : String(r.Exit)]]);
+  $('out').textContent = (r.Output || []).join('\n');
+};
+$('load').onclick = async () => {
+  fail('');
+  const img = await fetch('build/last.oimg');
+  if (!img.ok) return fail(await img.text());
+  const name = (img.headers.get('Content-Disposition') || '').match(/filename="([^"]+)"/);
+  const board = $('board').value;
+  $('stamp').textContent = `loading onto ${board}…`;
+  const l = await call(`board/${encodeURIComponent(board)}/load?name=${encodeURIComponent(name ? name[1] : 'last.oimg')}`, await img.blob());
+  if (!l) return $('stamp').textContent = 'load failed';
+  const r = l.Result;
+  $('stamp').textContent = `${new Date(l.LoadedMs).toLocaleString()} · loaded ${r.Image} onto ${board}`;
+  rows([['image', r.Image], ['board', board], ['program sha256 (from its boot)', r.SHA256], ['firmware build-id', r.BuildID]]);
+};
+fetch('/boards').then(r => r.json()).then(bs => {
+  boards = bs;
+  $('board').innerHTML = bs.map(b => `<option value="${esc(b.Name)}">${esc(b.Name)} (${esc(b.Target)})</option>`).join('');
+}).catch(err => fail(String(err)));
+</script>
+</body>
+</html>

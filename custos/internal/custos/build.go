@@ -4,6 +4,7 @@ package custos
 
 // The build and run verbs (peer design D18, rete#314):
 //
+//	GET  /build                          the page
 //	POST /build?for=<board>&name=F.nsl   the .nsl as the body: compiled with the
 //	                                     board's layout; answers Built
 //	GET  /build/last.oimg                the last build's image, for POST /load
@@ -20,6 +21,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	_ "embed"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -36,6 +38,9 @@ import (
 	"github.com/davidg238/rete/custos/internal/load"
 	"github.com/davidg238/rete/custos/internal/nsl"
 )
+
+//go:embed build.html
+var buildPage []byte
 
 // RunTimeout bounds a run (docs/development.md §4: a bounded run time).
 const RunTimeout = 30 * time.Second
@@ -141,6 +146,10 @@ func mountBuild(mux *http.ServeMux, boards []Board) {
 		return hex.EncodeToString(h[:]), int64(len(b))
 	}
 
+	mux.HandleFunc("GET /build", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(buildPage)
+	})
 	mux.HandleFunc("POST /build", func(w http.ResponseWriter, r *http.Request) {
 		b, err := board(r, false)
 		if err != nil {

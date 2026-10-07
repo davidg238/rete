@@ -17,7 +17,7 @@ import json, os, shutil, subprocess, sys, time, urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from test_custos_debug import NSROOT, VM, build, serve  # noqa: E402
+from test_custos_debug import NSROOT, VM, build, go_live, serve  # noqa: E402
 
 TESTS = os.path.join(NSROOT, "..", "tests", "04_somns_basic")
 OLD = os.path.join(TESTS, "48_patch_restart_target.nsl")
@@ -91,14 +91,33 @@ def run_http():
                 f"patched, restarted, resumed: {out}")
 
 
+def run_tui():
+    """The TUI's debug tab, no terminal: stopped in report, P patches it, R restarts;
+    the program then prints v2's line twice."""
+    line = println_line()
+    args = ["--host", f"dev={VM}", "--map", f"dev={OIMG}.map.json", "--source", f"dev={OLD}"]
+    with serve(args) as root:
+        base = f"{root}/board/dev"
+        assert do(base, f"break {line}")["OK"] and do(base, "continue")["OK"]
+        until(base, lambda s: s["Run"] == "stopped", "the break")
+        got = go_live("TestLivePatch", {"CUSTOS_TUI_PATCH_URL": base, "CUSTOS_TUI_PATCH_SOURCE": NEW})
+        assert do(base, f"clear {line}")["OK"] and do(base, "continue")["OK"]
+        st = until(base, lambda s: s["Run"] == "ended", "the program's end")
+        out = [l for l in st["Transcript"] if l.startswith(("value ", "patched "))]
+        assert out == ["patched 42", "patched 42"], st["Transcript"]
+    return "tui: " + " ".join(got) + f"; resumed: {out}"
+
+
 def main():
     if shutil.which("go") is None:
         print("custos-patch: SKIP (go is not on PATH)")
         sys.exit(77)
     build()
     http = run_http()
+    tui = run_tui()
     print("test_custos_patch: PASSED (Path B, /debug/patch on a --host board)")
     print(http)
+    print(tui)
 
 
 if __name__ == "__main__":
