@@ -10,6 +10,16 @@ Decided by David, 2026-10-02 (recorded on rete#253 and rete#79):
 
 - **The first public release is a 0.x — explicitly unstable, anything may change. The freeze is a later 1.0.0.**
 - **0.1 is one person's first hour, on one board, on one USB cable.** A nascent system with a buildmap, not a finished one. The board is the ESP32-C6 devkit (first chosen as the RP2350, changed the same day: the C6 flashes without a button press, can save to its own flash, and has the radio the remote stage needs).
+- **0.1 is portable by processor, with restrictions stated (David, 2026-10-06).** nsl must not read as an Espressif-only system: Zephyr was chosen for its driver breadth and its Thread support. The first hour is built and checked on the C6. The same VM, compiler and kernel run on the other processors below, each with what it cannot do yet:
+
+  | Target | Processor | In 0.1 |
+  |---|---|---|
+  | Linux desktop | x86-64 (the host VM; a 32-bit build is gated by `portability-32`) | first-hour steps 1, 2, 8 and 9 |
+  | ESP32-C6 devkit | RISC-V (Espressif) | the whole first hour |
+  | nRF52840 DK and dongle | Arm Cortex-M4 (Nordic) | runs nsl, joins the Thread mesh, mirrored by porta. No program region, so no `load`: a change is a reflash (J-Link on the DK, DFU on the dongle). The dongle's USB console dies under the radio |
+  | RP2350 (Pico 2 family) | Arm Cortex-M33 (Raspberry Pi) | runs nsl; 11.13 µs per activation against the C6's 11.83. Zephyr 4.2 has no flash driver for it, so no `load`, no saved settings and no boot count; flashing needs the BOOTSEL button; no radio |
+
+  Sources: [BOARD_PORTS.md](../nodus/oevm/zephyr/docs/BOARD_PORTS.md), [the RP2350 numbers](results/2026-10-01-rp2350-first-numbers.md).
 - **The step forward must be visible in 0.1:** debugging, profiling and patching a running method, on the device.
 - **Remote comes later and adds to the local loop.** Updates over the air and remote debugging go through the gateway; the cable loop stays as it is.
 
@@ -20,16 +30,16 @@ Decided by David, 2026-10-02 (recorded on rete#253 and rete#79):
 | # | Step | State today |
 |--:|---|---|
 | 1 | Clone, build, run ten lines of nsl on the desktop | Works: [tutorial 1](tutorials/01-host.md), executed by the suite |
-| 2 | Step through them in the debugger, on the desktop | The debugger works and is gated; there is no command or page for a person, and breakpoints are by method and offset, not file and line |
+| 2 | Step through them in the debugger, on the desktop | Works: by file and line, as a page at `/debug` and an agent path over HTTP (#340, #362), executed by the suite ([tutorial 4](tutorials/04-debugger.md)) |
 | 3 | Flash the C6 over the cable | Works, with no button press: the board harness does it unattended ([tutorial 2](tutorials/02-board.md)) |
 | 4 | Read what the board prints | Works, over the same cable |
-| 5 | Change the program and load it without reflashing the firmware | Done on the C6 (#310): `custos load` writes the program into its own partition; the firmware's build-id is unchanged |
-| 6 | Profile the program on the board | Works over the console; needs a command and a page, and its cost measured and stated |
-| 7 | Debug on the board, over the cable | Spike: the debug checks are compiled out of board builds (recorded cost 10–16% per bytecode); a stopped program must not look wedged to the watchdog |
-| 8 | Stop, patch a method, restart it, resume | Spike, desktop first: the pieces to bind a new method exist; restarting a frame does not |
+| 5 | Change the program and load it without reflashing the firmware | Done on the C6 (#310); over HTTP, `POST /load` and a page (#367) |
+| 6 | Profile the program on the board | Works: a page at `/profile` and an agent path, its cost measured (#312, #364) |
+| 7 | Debug on the board, over the cable | Works with a debug image, held state respected by the watchdog (#311); the standard image leaves the checks out |
+| 8 | Stop, patch a method, restart it, resume | The desktop spike passes, in debug builds, for a method using only what the image holds ([result](results/2026-10-06-313-patch-restart-spike.md)); the board needs the patch sent over the cable (#313) |
 | 9 | See the gateway mirror a node | Works with the desktop node: [tutorial 3](tutorials/03-porta.md). The board joins it in the remote stage |
 
-Details and sources for steps 2 to 8 are in [development.md](development.md).
+The hour as one page, with the commands: [quickstart.md](quickstart.md). What it does not protect against: [limits.md](limits.md). Details and sources for steps 2 to 8 are in [development.md](development.md).
 
 ### The 0.1 buildmap
 

@@ -16,6 +16,12 @@ wrote down (`design/2026-08-02-rete-repo-consolidation-design.md`, fate table ro
 
 ## Here: the program level
 
+**The front door**
+- `quickstart.md` — the first hour as one page: each step's command, what a pass looks
+  like, and the tutorial that teaches it.
+- `limits.md` — what 0.1 does not protect against (nothing is authenticated) and what will
+  change under you.
+
 **Tutorials — executed, not trusted**
 - `tutorials/01-host.md` — build the VM, run the suite, ten lines of nsl, the compiler by
   hand, the no-NLR refusal.
