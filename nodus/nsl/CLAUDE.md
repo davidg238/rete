@@ -43,8 +43,8 @@ tutorial-porta's reason.
 2026-08-22): arm-zephyr-eabi-gcc ships inside `~/zephyr-sdk-0.17.4` and always did. What was
 broken was the gate's own un-SKIP instruction, which named a path the #79 consolidation
 deleted — so the SKIP was unfollowable, and this file recorded it as normal. `footprint.sh`
-now finds the SDK itself. **A SKIP line here is a finding now, not a fixture.** Never run
-two nsl suites concurrently; they share `/tmp` paths. **The count above drifts upward as
+now finds the SDK itself. **A SKIP here fails the suite (#314).** A second suite refuses to
+start (one lock, `/tmp/rete-nsl-suite.lock`). **The count above drifts upward as
 tests land — treat a mismatch as staleness in this file, never as a missing test.** The
 suite also prints `target gates: NOT RUN BY THIS SUITE`: the posix timer backend bypasses
 the pulse mailbox, so coalescing, shedding and stale handles need `nodus/oevm/tests/target/run.sh`

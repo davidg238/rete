@@ -399,9 +399,9 @@ def run_boot_gc_asan_gate() -> bool:
              str(tmp_c), "src/oevm_main.c", "-o", str(runner), "-lm"],
             cwd=str(OEVM_DIR), capture_output=True, text=True)
         if build.returncode != 0:
-            # No ASan toolchain available — skip rather than fail the suite.
-            print(f"{COLOR_YELLOW}boot-gc-asan: SKIP{COLOR_RESET} (no -fsanitize=address)")
-            return True
+            # No ASan toolchain: the gate did not run, so it does not pass (docs/development.md §4).
+            print(f"{COLOR_YELLOW}boot-gc-asan: SKIP{COLOR_RESET} (no -fsanitize=address) — fails the suite")
+            return False
         # detect_stack_use_after_return defaults ON; set it explicitly so the gate
         # reproduces the fake-stack condition regardless of any inherited ASAN_OPTIONS.
         env = {**os.environ, "OEVM_GC_STRESS": "1",
@@ -1115,6 +1115,36 @@ def run_test_file_oimg(src_path: Path) -> tuple[str, str]:
     return "PASS", "Output matches expectations."
 
 
+# One lock for everything that shares this suite's /tmp paths and udp ports: the
+# suite, run-one.py, and nodus/oevm/tests/porta_sync_host.sh (docs/development.md §4:
+# "never run two suites at once", "never run porta_sync_host.sh beside the suite",
+# conventions that were prose only). A second run refuses by name instead of
+# corrupting the first. A process the holder starts (a tutorial page's run-one.py,
+# a gate that runs this file on one test) inherits the hold through the environment.
+SUITE_LOCK = "/tmp/rete-nsl-suite.lock"
+_suite_lock_file = None   # held for the life of the process: an unreferenced file closes, and the lock goes
+
+
+def hold_suite_lock(what):
+    global _suite_lock_file
+    if os.environ.get("RETE_SUITE_LOCK") == "held":
+        return
+    import fcntl
+    f = open(SUITE_LOCK, "a+")
+    try:
+        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        f.seek(0)
+        holder = f.read().strip() or "unknown"
+        sys.exit(f"{what}: refused — another run holds {SUITE_LOCK} ({holder}); "
+                 f"this suite, run-one.py and porta_sync_host.sh share /tmp paths and udp ports")
+    f.truncate(0)
+    f.write(f"pid {os.getpid()}: {what}\n")
+    f.flush()
+    _suite_lock_file = f
+    os.environ["RETE_SUITE_LOCK"] = "held"
+
+
 def run_named_files(args):
     """#252 — single-file mode: run only the named .nsl files under the harness
     contract, skipping suite discovery and the aux gates. Files may live
@@ -1157,6 +1187,7 @@ def run_named_files(args):
 
 
 def main():
+    hold_suite_lock("run_tests_oevm.py")
     if len(sys.argv) > 1:
         sys.exit(run_named_files(sys.argv[1:]))
     test_dir = Path(__file__).parent.parent.parent / "tests"
@@ -1327,17 +1358,16 @@ def main():
     # executed the way a tutorial can — it is checked against the binary's own --help.
     porta_cli = run_porta_cli_gate()
 
+    # An aux gate passes only by PASSING: a SKIP (a missing toolchain, a missing pytest)
+    # fails the suite like a FAIL does, because a gate that did not run tested nothing
+    # (docs/development.md §4; #31 is the footprint gate's SKIP that hid a regression).
+    # The line below still says SKIP, so the reason is the missing tool, not the code.
+    aux = (custos_dbg, custos_prof, custos_load, portability, footprint, mprof_py,
+           observe_py, cmake_parse, nsl_tools_py, protocol_py, gwprof_py, tutorial,
+           tutorial_porta, tutorial_board, tutorial_dbg, porta_cli)
     suite_ok = (failed == 0 and c_units_ok and grant_ok and dbg_int_ok and patch_ok
-                and custos_dbg != "FAIL" and custos_prof != "FAIL" and custos_load != "FAIL"
-                and portability != "FAIL" and boot_gc_ok
-                and footprint != "FAIL" and deepsleep_ok
-                and mprof_py != "FAIL"
-                and observe_py != "FAIL" and cmake_parse != "FAIL"
-                and nsl_tools_py != "FAIL" and protocol_py != "FAIL"
-                and gwprof_py != "FAIL" and tutorial != "FAIL"
-                and tutorial_porta != "FAIL" and tutorial_board != "FAIL"
-                and tutorial_dbg != "FAIL"
-                and porta_cli != "FAIL")
+                and boot_gc_ok and deepsleep_ok
+                and all(g == "PASS" for g in aux))
     print(f"\n{COLOR_GREEN if suite_ok else COLOR_RED}Test Execution Summary:{COLOR_RESET}")
     print(f"  Passed:  {passed}")
     print(f"  Failed:  {failed}")

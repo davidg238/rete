@@ -145,10 +145,10 @@ cd nodus/oevm && bash tests/porta_sync_host.sh      # PORTA SYNC OK
 ```
 
 - The nsl suite prints `Passed: N / Failed: 0` **and** a line of aux gates — read the aux line, it can be red while
-  the count reads zero failures. A SKIP there is a finding, not a fixture. The count drifts upward; a mismatch is
+  the count reads zero failures. An aux SKIP fails the suite (#314). The count drifts upward; a mismatch is
   staleness in this file, never a missing test.
-- Never run two nsl suites concurrently (shared `/tmp` paths), and never run `porta_sync_host.sh` beside one
-  (`tutorial-porta` binds the same udp 16969/16970).
+- The suite, `run-one.py` and `porta_sync_host.sh` share one lock (`/tmp/rete-nsl-suite.lock`) and refuse to run
+  beside each other (#314).
 - Board scenarios (`nodus/oevm/tests/target/run.sh`, fourteen of them, ~70–100 min, `porta-*` need a hand-started
   injector) are NOT run by the suite. `CLASS=disruptive` means a disposable board only (`c6spare`); resolve boards
   through the collector env files, never a table.

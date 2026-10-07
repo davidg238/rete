@@ -25,6 +25,18 @@
 # environment SKIP (below).
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# The nsl suite's lock (run_tests_oevm.py hold_suite_lock): this gate binds the udp
+# ports tutorial-porta binds, so it refuses to run beside a suite, and a suite beside it.
+if [ "${RETE_SUITE_LOCK:-}" != held ]; then
+  exec 9>>/tmp/rete-nsl-suite.lock
+  if ! flock -n 9; then
+    echo "porta_sync_host.sh: refused — another run holds /tmp/rete-nsl-suite.lock ($(head -1 /tmp/rete-nsl-suite.lock))" >&2
+    exit 1
+  fi
+  : > /tmp/rete-nsl-suite.lock
+  echo "pid $$: porta_sync_host.sh" >> /tmp/rete-nsl-suite.lock
+  export RETE_SUITE_LOCK=held
+fi
 
 PORTA_DIR="${PORTA_DIR:-$(git rev-parse --show-toplevel)/porta}"
 NSL="$(git rev-parse --show-toplevel)/nodus/nsl/tools/ns_compile_oevm.py"

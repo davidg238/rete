@@ -6,27 +6,33 @@
 # path). This tool imports its per-file functions directly so a single test runs
 # on the identical code paths, in seconds, without touching the full gate.
 #
-# Runs both equivalence paths by default: Path A (source) and Path B (oimg).
+# Runs Path B (the .oimg) by default, the path the suite runs. Path A (source, baked
+# as C) is asked for by name: its bake overwrites the TRACKED
+# nodus/oevm/src/solidified_image.c, so the safe path is the one that needs no
+# argument (docs/development.md §4).
 #
 # Usage:
-#   python3 tools/run-one.py <path-to.nsl> [A|B|AB]     # default AB
+#   python3 tools/run-one.py <path-to.nsl> [B|A|AB]     # default B
 # Example:
 #   python3 tools/run-one.py ../tests/01_expressions/01_addition.nsl
 import os, sys
 from pathlib import Path
 
 TOOLS = Path(__file__).resolve().parent
-os.environ.setdefault("OEVM_PATH", "AB")
+USAGE = "usage: python3 tools/run-one.py <path-to.nsl> [B|A|AB]   (default B)"
+if len(sys.argv) < 2:
+    sys.exit(USAGE)
+which = (sys.argv[2] if len(sys.argv) > 2 else "B").upper()
+if which not in ("A", "B", "AB"):
+    sys.exit(USAGE)
+os.environ.setdefault("OEVM_PATH", which)
 sys.path.insert(0, str(TOOLS))
 import run_tests_oevm as R
-
-if len(sys.argv) < 2:
-    sys.exit(__doc__)
+R.hold_suite_lock("run-one.py")
 
 f = Path(sys.argv[1]).resolve()
 if not f.exists():
     sys.exit(f"no such test file: {f}")
-which = (sys.argv[2] if len(sys.argv) > 2 else "AB").upper()
 
 rc = 0
 if which in ("A", "AB"):
