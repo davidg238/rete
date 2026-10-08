@@ -17,7 +17,7 @@ indexable: n` (Array as an argument is a slot read of the class object).
 class Kernel usingPlatform: platform = (
   (* rete#244: the ONE Timers this kernel instance answers. Lazy because the
      accessor below is the only reader, nil until first asked. *)
-  | timersOne ::= nil. profilerOne ::= nil. |
+  | timersOne ::= nil. profilerOne ::= nil. debuggerOne ::= nil. |
 ) (
   class Object = () (
     (* Milestone E Task 1: the in-flight error value is a crash Record (#tag/#text),
@@ -1627,10 +1627,44 @@ class Kernel usingPlatform: platform = (
      A crash of this job is a CONTAINED fault — porta sees a late check-in and
      nothing worse. So nothing here may take the node down: every decode failure,
      every unexpected tag and every out-of-authority path is a counted drop. *)
+  (* #342 spike: the debugger's lines through the space. `accept:` is fed by the
+     bridge's applyEntry: (dbg/req), `say:` offers dbg/resp rows to the bridge's
+     next push, and `readLine` answers the next line, running held exchanges while
+     there is none. nil (the debugger's EOF, which resumes) when an exchange is
+     already on the stack. *)
+  class DebugLink = ( | bridge lines | ) (
+    setBridge: b = ( bridge:: b. lines:: OrderedCollection new. ^ self )
+    public accept: line = ( lines add: line. ^ self )
+    (* goal/debug/main: a List of command lines (spike shape — the manifest's
+       Debug{action} carries no breakpoints). Untrusted: anything but a List of
+       Strings is ignored. The goal means "set these and run", so a continue
+       follows them. *)
+    public acceptGoal: v = (
+      | i |
+      (outer rankOf: v) = 7 ifFalse: [ ^ self ].
+      i:: 1.
+      [ i <= v size ] whileTrue: [
+        (outer rankOf: (v at: i)) = 4 ifTrue: [ lines add: (v at: i) ].
+        i:: i + 1 ].
+      lines add: 'dbg:continue'.
+      ^ self )
+    public pending = ( ^ lines isEmpty not )
+    public say: s = ( bridge offer: 'dbg/resp' value: s. ^ self )
+    public readLine = (
+      [ lines isEmpty ] whileTrue: [ bridge heldExchange ifFalse: [ ^ nil ] ].
+      ^ lines removeFirst )
+  ) : (
+    public onBridge: b = ( ^ self new setBridge: b )
+  )
+
   class PortaBridge = (
     | socket space nodeId peerHost peerPort
       cursor ::= 0. acked ::= 0. rejected ::= 0. misses ::= 0. dropped ::= 0.
       crossed ::= 0.
+      (* #342 spike: the debugger's link through the space (nil until
+         `debugOverSpace`), and whether an exchange is on the stack — a stop inside
+         one must not start another. *)
+      dbgLink ::= nil. exchanging ::= false. heldExchanges ::= 0.
       (* rete#272 D3.3 — this boot's check-ins, counted in `checkIn` and sent as
          #wak in every pull. Per-boot and deliberately not persisted. *)
       wakes ::= 0.
@@ -1849,6 +1883,38 @@ class Kernel usingPlatform: platform = (
        reactor kills the event on delivery. So each outbound stream path is
        subscribed here and its writes are captured into `pending`, stamped with
        `space stamp` so they share ONE ascending sequence with the cell writes. *)
+    (* ---- #342 spike: debugging through the space ------------------------
+       `debugOverSpace` hands the kernel's debugger (debug images only) a link
+       whose lines are dbg/req and whose replies are dbg/resp. While the program
+       is stopped no reaction runs, so the link drives `heldExchange` itself:
+       one pull and one push, back to back, until a line arrives. *)
+    public debugOverSpace = (
+      outer debugger == nil ifTrue: [ ^ false ].
+      dbgLink:: DebugLink onBridge: self.
+      outer debugger useLink: dbgLink.
+      ^ true )
+    (* Only `dbg:` lines are the debugger's. `profile <ms>` stays with the kernel's
+       Profiler, so a profile request never holds the node. ASCII d b g : = 100 98 103 58. *)
+    isDbgLine: v = (
+      (outer rankOf: v) = 4 ifFalse: [ ^ false ].
+      v size < 4 ifTrue: [ ^ false ].
+      ^ (v at: 1) = 100 and: [ (v at: 2) = 98 and: [ (v at: 3) = 103 and: [ (v at: 4) = 58 ] ] ] )
+    public offer: absolutePath value: v = ( self capture: absolutePath value: v. ^ self )
+    public heldExchange = (
+      | reply |
+      exchanging ifTrue: [ ^ false ].
+      exchanging:: true.
+      socket sendTo: peerHost port: peerPort data: self pullFrame.
+      reply:: self awaitReply: #batch.
+      reply == nil
+        ifTrue: [ misses:: misses + 1 ]
+        ifFalse: [ self applyBatch: reply ].
+      self pushOnce.
+      heldExchanges:: heldExchanges + 1.
+      exchanging:: false.
+      ^ true )
+    public heldExchanges = ( ^ heldExchanges )
+
     public subscribeStream: absolutePath = (
       (space channel: absolutePath) whenever: '' do: [ :v | self capture: absolutePath value: v ].
       ^ self )
@@ -1934,7 +2000,22 @@ class Kernel usingPlatform: platform = (
         rejected:: rejected + 1.
         self telLog: #error text: 'kind mismatch'.
         ^ self ].
-      kind = 2 ifTrue: [ space put: path value: value. ^ self ].
+      kind = 2 ifTrue: [
+        space put: path value: value.
+        (* #342 spike: the breakpoints a cold-booting node must re-arm. A cell is
+           replayed to a fresh boot's cursor 0 and a dbg/req row is not (#262), so
+           the goal is what survives deep sleep. Applied here and not in a reaction:
+           a node that wakes, checks in, works and sleeps would run its work before
+           any drain set the breakpoint. *)
+        (dbgLink == nil or: [ (path = 'goal/debug/main') not ]) ifFalse: [
+          dbgLink acceptGoal: value ].
+        ^ self ].
+      (* #342 spike: in a debug image whose debugger talks through the space,
+         dbg/req belongs to the debugger, as the cable does (supervisor.nsl's
+         commandLoop also answers `profile <ms>`). Handed over here because a
+         stopped program runs no drain. *)
+      (dbgLink == nil or: [ (path = 'dbg/req') not or: [ (self isDbgLine: value) not ] ]) ifFalse: [
+        dbgLink accept: value. ^ self ].
       space out: path value: value.
       ^ self )
 
@@ -2330,6 +2411,7 @@ class Kernel usingPlatform: platform = (
          a node with no socket still ticked (rete#272 D3.3). *)
       wakes:: wakes + 1.
       socket == nil ifTrue: [ ^ self ].
+      exchanging:: true.
       spans begin: sPullSend.
       frame:: self pullFrame.
       socket sendTo: peerHost port: peerPort data: frame.
@@ -2366,6 +2448,10 @@ class Kernel usingPlatform: platform = (
       self publishCheap.
       spans end: sApplyIn.
       self pushOnce.
+      exchanging:: false.
+      (* #342 spike: lines that arrived for the debugger stop the program HERE,
+         after the exchange, so the stop's own held exchanges never nest in one. *)
+      (dbgLink == nil or: [ dbgLink pending not ]) ifFalse: [ outer debugger wake ].
       (* AFTER the exchange, and outside all six spans — otaCheck is not exchange
          time, and `checkIn - (sum of the six)` must stay readable as un-bracketed
          VM time. The position is the whole timing mechanism (design D6): a stage
@@ -4148,6 +4234,10 @@ class Kernel usingPlatform: platform = (
   public profiler          = (
     profilerOne == nil ifTrue: [ profilerOne:: Profiler usingKernel: self ].
     ^ profilerOne )
+  (* #342 spike: the Supervisor's Debugger in a debug image, nil otherwise. Set once,
+     before main:, so an app cannot replace it. *)
+  public debugger          = ( ^ debuggerOne )
+  public debugger: d       = ( debuggerOne == nil ifTrue: [ debuggerOne:: d ]. ^ self )
   (* rete#312: a complete console line if one is queued, nil if not, false when this
      console cannot announce lines. Never blocks; the first send arms `sys/console`. *)
   public consoleLine       = ( ^ platform consoleLine )

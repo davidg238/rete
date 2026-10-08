@@ -85,6 +85,15 @@ custos's query engine.
   status; on a board, load already boots the program. custos finds the nsl compiler at `RETE_NSL_TOOLS`,
   defaulting to `~/workspace/rete/nodus/nsl/tools`, the pattern it uses for the ELF archive and gdb.
   This supersedes §3a's build and run rows.
+- **D19 (David, 2026-10-08): remote debug, from the #342 host spike**
+  (`docs/results/2026-10-07-342-sleepy-node-debug-spike.md`). Two demos, both debugged over the air: the
+  MagTag talks to porta and shows a deep-sleeping node (#379), and the wall-powered ShipsBells C6 runs debug
+  firmware and shows a continuously running node (#380). `goal/debug/<app>`'s `Debug` record carries the
+  breakpoints, and an `obs/debug` cell reports a held node (#375). A debug image is debugged over USB or
+  porta, with no opt-in, and it must not wait for a cable at boot (#376). The VM's held state brackets
+  the command loop, whichever link serves it (#377). A hard spin while held is bad, and an abandoned session
+  needs a sensible end; both are open, and the spike's long-poll proposal is not accepted (#378). Cold-boot profile comes
+  after debug (#381).
 
 ## 2. The picture
 
@@ -145,6 +154,11 @@ picks it. Moving from local to remote changes the transport, not the UI.
   - **What the node ships at the stop:** enough for the first screen (the stack and the
     locals, #323) in one exchange, so the debugger can show something before the
     first step.
+
+  *Addendum 2026-10-07 (host spike, #342):* D9 works end to end on the desktop through a real
+  porta, for a VM that sleeps alive and for a cold boot. The breakpoint for a cold boot must be the
+  `goal/debug/<app>` cell, because no `dbg/req` row is replayed to a fresh boot (#262). Five board gaps
+  and four decisions (a–d) are in `docs/results/2026-10-07-342-sleepy-node-debug-spike.md`. Nothing above is decided by it.
 
 ## 3a. PROPOSED (2026-10-06, #314): the four verbs still without an HTTP path (D15, D16 decided below)
 
