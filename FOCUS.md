@@ -6,7 +6,7 @@ blocks are in `docs/status/focus-history.md`; live state is in the issues and `d
 - **FOCUS (David, 2026-10-06): agent first** (peer design D11–D18). 2026-10-07 evening went to the nsl design paper
   (`nodus/nsl/docs/nsl-design-paper.md` + `.pdf`, `504bee2`); David reviews it 2026-10-08 night. **Next session starts with:**
   David's paper comments if he brings them; otherwise #368 — `gh issue view 368 --comments`, then act on the LICENSE and history-rewrite answers.
-- **Awaiting David:** paper review; LICENSE choice and history rewrite (#368, a force-push); close #314 (yes/no); the Tailscale browser
+- **Awaiting David:** the sleepy-node debug spike (#342, branch `spike/sleepy-debug`, `docs/results/2026-10-07-342-sleepy-node-debug-spike.md`: decisions a–d, which board sleeps); paper review; LICENSE choice and history rewrite (#368, a force-push); close #314 (yes/no); the Tailscale browser
   check (status page NOT published 2026-10-07, twice); when c6bench moves to `rete-custos`; `review/program-sequence.md` and `review/tests/CLAIMS.md` name the deleted console tools.
 - **Bench:** `c6bench` in the soak — never flash it. `rete-custos` (desktop, :6971, master build) serves `c6` (the bell, cable unplugged = normal)
   and `c6spare` (std firmware `porta-v1-final-1422`, HanoiNode sha `730f4404…`); `custos.env` carries `--esptool` (#370). `opti7040` has an RP2350.

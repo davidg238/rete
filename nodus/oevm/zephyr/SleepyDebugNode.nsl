@@ -1,0 +1,69 @@
+(*
+SleepyDebugNode — the #342 spike (peer design D9): debug a node that sleeps between
+check-ins, through porta, with no cable. The host twin of a sleepy node: it checks in
+once per `cadence` and does nothing in between (the reactor blocks in pumpEvents).
+Each tick calls `work:` — the method a breakpoint goes in.
+
+The debugger is the Supervisor's, unchanged; `bridge debugOverSpace` hands it a link
+whose lines are dbg/req and whose replies are dbg/resp. In a standard image (no
+OEVM_DEBUG) debugOverSpace answers false and the node is an ordinary bridged node.
+Gate: tests/sleepy_debug_host.sh.
+expect (console):
+SLEEPY NODE READY
+*)
+class SleepyDebugNode usingPlatform: platform net: net = (
+  | space bridge timers ticks ::= 0. total ::= 0. |
+) (
+  nodeId    = ( ^ platform nodeId )
+  gwAddr    = ( ^ '127.0.0.1' )
+  gwPort    = ( ^ 16969 )
+  localPort = ( ^ 16979 )   (* clear of porta's exchange..exchange+1 band *)
+  (* ms between check-ins. A real sleepy node's is hours; the gate overrides nothing
+     and waits one cadence, so this is the wait the demo's "two hours" stands for. *)
+  cadence   = ( ^ 10000 )
+  chip      = ( ^ #host )
+
+  public main: platform2 args: args = (
+    | sock tickChan remote |
+    space:: platform space.
+    sock:: net udpBindPort: self localPort.
+    sock == nil ifTrue: [ 'bind' println. ^ 1 ].
+    bridge:: platform PortaBridge
+      socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
+      spans: platform Spans new.
+    bridge subscribeStream: 'tel/log'.
+    remote:: bridge debugOverSpace.
+    ('debug over space: ' , remote printString) println.
+    bridge liveness: self cadence misses: 4.
+    bridge publishBuild: self chip.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    tickChan:: space channel: 'sys/tick'.
+    tickChan whenever: '' do: [ :m | self tick ].
+    bridge startTicking: timers on: tickChan.
+    'SLEEPY NODE READY' println.
+    [ true ] whileTrue: [
+      platform pumpEvents.
+      space drain ].
+    ^ 0
+  )
+
+  tick = (
+    ticks:: ticks + 1.
+    bridge checkIn.
+    total:: self work: ticks.
+    space out: 'tel/log' value:
+      (platform Record tag: #Log with: #lvl -> #info
+         with: #txt -> ('tick ' , ticks printString , ' total ' , total printString , ' held ' , bridge heldExchanges printString)).
+    ^ self
+  )
+
+  (* The breakpoint's home. A local and an argument, so a stop has names to show. *)
+  work: n = (
+    | sum |
+    sum:: total + n.
+    ^ sum
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

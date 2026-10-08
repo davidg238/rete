@@ -146,6 +146,11 @@ picks it. Moving from local to remote changes the transport, not the UI.
     locals, #323) in one exchange, so the debugger can show something before the
     first step.
 
+  *Addendum 2026-10-07 (host spike, #342):* D9 works end to end on the desktop through a real
+  porta, for a VM that sleeps alive and for a cold boot. The breakpoint for a cold boot must be the
+  `goal/debug/<app>` cell, because no `dbg/req` row is replayed to a fresh boot (#262). Five board gaps
+  and four decisions (a–d) are in `docs/results/2026-10-07-342-sleepy-node-debug-spike.md`. Nothing above is decided by it.
+
 ## 3a. PROPOSED (2026-10-06, #314): the four verbs still without an HTTP path (D15, D16 decided below)
 
 Debug, profile and load have their agent paths (D13). Build, flash, run and log do not. Each proposal below

@@ -25,6 +25,9 @@ class Supervisor usingMirror: mirror = () (
     debugFlag = 1 ifTrue: [
       dbg:: Debugger usingMirror: mirror channel: plat.
       dbg registerEntry: entry.
+      (* #342 spike: the kernel knows its debugger, so a PortaBridge can hand it a
+         line link through the space (`debugOverSpace`). The mirror stays here. *)
+      plat debugger: dbg.
       mirror onBreak: [ :ctx | dbg onBreakContext: ctx ].
       (* The boot wait IS the first pause (rete#311): arm one step, so the next
          bytecode fires the hook with no breakpoint and no step mode -- the pause
@@ -65,8 +68,22 @@ class Supervisor usingMirror: mirror = () (
      reachable from a top-level class. Names every method by its BLOB OFFSET, the
      image map's key (rete#323): custos turns a line into an offset and a stop back
      into a line, so the node keeps no registry. Runs the interactive command loop. *)
-  public class Debugger usingMirror: m channel: io = ( | entry bpBlobs bpOffs stepMode stepDepth curCtx ready | ) (
+  public class Debugger usingMirror: m channel: io = ( | entry bpBlobs bpOffs stepMode stepDepth curCtx ready link | ) (
     public registerEntry: anEntry = ( entry:: anEntry. ^ self )
+
+    (* #342 spike: where the command lines come from and the replies go. nil is the
+       cable (`io`); a DebugLink is porta's space, whose readLine runs the bridge's
+       held exchange while the program is stopped. Every reply is echoed to the
+       console as well, so a board's log still shows the session. *)
+    public useLink: aLink = ( link:: aLink. ^ self )
+    readLine = ( ^ link == nil ifTrue: [ io readLine ] ifFalse: [ link readLine ] )
+    say: s = (
+      s println.
+      link == nil ifFalse: [ link say: s ].
+      ^ self )
+    (* A line arrived through the space while the program ran: stop at the next
+       bytecode, the same pause a line on the cable causes (platform_debug_pending). *)
+    public wake = ( m requestStep: 1. ^ self )
 
     (* Parse a non-negative integer from a String of ASCII digits (no asInteger
        in this dialect): n:: n*10 + (byte - 48). Empty string answers 0. *)
@@ -92,10 +109,10 @@ class Supervisor usingMirror: mirror = () (
        Path A image) or an offset outside it: nothing is armed. *)
     public break: blob at: off = (
       self ensureBp.
-      (m breakAt: blob offset: off) == nil ifTrue: [ 'dbg:error no-blob' println. ^ self ].
+      (m breakAt: blob offset: off) == nil ifTrue: [ self say: 'dbg:error no-blob'. ^ self ].
       bpBlobs add: blob.
       bpOffs add: off.
-      'dbg:ok break' println.
+      self say: 'dbg:ok break'.
       ^ self )
 
     (* Clear a breakpoint at (blob offset, pc): disarm the C-side entry and drop the
@@ -108,7 +125,7 @@ class Supervisor usingMirror: mirror = () (
       [ hit < 0 and: [ i <= bpBlobs size ] ] whileTrue: [
         ((bpBlobs at: i) = blob and: [ (bpOffs at: i) = off ]) ifTrue: [ hit:: i ].
         i:: i + 1 ].
-      hit < 0 ifTrue: [ 'dbg:error no-bp' println. ^ self ].
+      hit < 0 ifTrue: [ self say: 'dbg:error no-bp'. ^ self ].
       m unbreakAt: blob offset: off.
       (* compact: shift each later entry down one, then drop the last slot. *)
       n:: bpBlobs size.
@@ -117,7 +134,7 @@ class Supervisor usingMirror: mirror = () (
         bpOffs at: j put: (bpOffs at: j + 1) ].
       bpBlobs removeLast.
       bpOffs removeLast.
-      'dbg:ok clear' println.
+      self say: 'dbg:ok clear'.
       ^ self )
 
     (* The blob offset of a frame's method, or -1 with no blob (a Path A image). *)
@@ -133,8 +150,8 @@ class Supervisor usingMirror: mirror = () (
       ignore:: rs upTo: 32.
       blobTok:: rs upTo: 32.
       offTok:: rs upTo: 32.
-      blobTok == nil ifTrue: [ 'dbg:error usage' println. ^ self ].
-      offTok == nil ifTrue: [ 'dbg:error usage' println. ^ self ].
+      blobTok == nil ifTrue: [ self say: 'dbg:error usage'. ^ self ].
+      offTok == nil ifTrue: [ self say: 'dbg:error usage'. ^ self ].
       self break: (self parseInt: blobTok) at: (self parseInt: offTok).
       ^ self )
 
@@ -150,14 +167,14 @@ class Supervisor usingMirror: mirror = () (
       ignore:: rs upTo: 32.
       text:: rs upToEnd.
       (m patch: text) = 1
-        ifTrue: [ 'dbg:ok patch' println ]
-        ifFalse: [ 'dbg:error patch' println ].
+        ifTrue: [ self say: 'dbg:ok patch' ]
+        ifFalse: [ self say: 'dbg:error patch' ].
       ^ self )
 
     doRestart = (
       (m restart: curCtx) = 1
-        ifTrue: [ 'dbg:ok restart' println ]
-        ifFalse: [ 'dbg:error restart' println ].
+        ifTrue: [ self say: 'dbg:ok restart' ]
+        ifFalse: [ self say: 'dbg:error restart' ].
       ^ self )
 
     doClear: line = (
@@ -166,8 +183,8 @@ class Supervisor usingMirror: mirror = () (
       ignore:: rs upTo: 32.
       blobTok:: rs upTo: 32.
       offTok:: rs upTo: 32.
-      blobTok == nil ifTrue: [ 'dbg:error usage' println. ^ self ].
-      offTok == nil ifTrue: [ 'dbg:error usage' println. ^ self ].
+      blobTok == nil ifTrue: [ self say: 'dbg:error usage'. ^ self ].
+      offTok == nil ifTrue: [ self say: 'dbg:error usage'. ^ self ].
       self clear: (self parseInt: blobTok) at: (self parseInt: offTok).
       ^ self )
 
@@ -202,7 +219,7 @@ class Supervisor usingMirror: mirror = () (
             ws print: blob.
             ws nextPutAll: ' '.
             ws print: off ].
-        ws contents println.
+        self say: ws contents.
         self commandLoop.
         ^ self ].
       (* STEP path: decide whether to pause based on stepMode + sender-chain depth. *)
@@ -217,7 +234,7 @@ class Supervisor usingMirror: mirror = () (
       ws print: blob.
       ws nextPutAll: ' '.
       ws print: off.
-      ws contents println.
+      self say: ws contents.
       self commandLoop.
       ^ self )
 
@@ -243,7 +260,7 @@ class Supervisor usingMirror: mirror = () (
         ws nextPutAll: '@'.
         ws print: (m offsetOf: s).
         s:: m senderOf: s ].
-      ws contents println.
+      self say: ws contents.
       ^ self )
 
     (* dbg:inspect [frameIndex] -> ONE flat line:
@@ -261,7 +278,7 @@ class Supervisor usingMirror: mirror = () (
       i:: 0.
       [ i < idx and: [ s == nil ifTrue: [ false ] ifFalse: [ true ] ] ] whileTrue: [
         s:: m senderOf: s. i:: i + 1 ].
-      s == nil ifTrue: [ 'dbg:error no-frame' println. ^ self ].
+      s == nil ifTrue: [ self say: 'dbg:error no-frame'. ^ self ].
       cm:: ContextMirror usingMirror: m context: s.
       off:: cm offset.
       n:: cm numRegisters.
@@ -283,7 +300,7 @@ class Supervisor usingMirror: mirror = () (
           ws print: k - 1.
           ws nextPutAll: '='.
           ws nextPutAll: (self describe: (slots basicAt: k)) ] ].
-      ws contents println.
+      self say: ws contents.
       ^ self )
 
     (* A register's printString, or a bracketed note for a value that has none. A
@@ -325,13 +342,13 @@ class Supervisor usingMirror: mirror = () (
     public commandLoop = (
       | line verb |
       [ true ] whileTrue: [
-        line:: io readLine.
+        line:: self readLine.
         (* dbg:continue, or EOF: a STEP continue must clear stepMode AND requestStep: 0,
            else was_stepping keeps the app single-stepping forever; the boot stop and a
            pause arrived as a step too, so the 0 is what lets the program run. *)
         (line == nil or: [ verb:: self verbOf: line. verb = 'dbg:continue' or: [ verb = 'dbg:run' ] ])
           ifTrue: [ stepMode:: nil. m requestStep: 0. ^ self ].
-        verb = 'dbg:pause' ifTrue: [ 'dbg:ok pause' println ] ifFalse: [
+        verb = 'dbg:pause' ifTrue: [ self say: 'dbg:ok pause' ] ifFalse: [
         verb = 'dbg:break' ifTrue: [ self doBreak: line ] ifFalse: [
         verb = 'dbg:clear' ifTrue: [ self doClear: line ] ifFalse: [
         verb = 'dbg:patch' ifTrue: [ self doPatch: line ] ifFalse: [
@@ -347,12 +364,12 @@ class Supervisor usingMirror: mirror = () (
         (* rete#312 Q1: the kernel's profile handler, the same line porta would write.
            The window opens now and runs from the next continue. *)
         verb = 'profile' ifTrue: [ self doProfile: line ] ifFalse: [
-          'dbg:error unknown' println ] ] ] ] ] ] ] ] ] ] ] ] )
+          self say: 'dbg:error unknown' ] ] ] ] ] ] ] ] ] ] ] ] )
 
     doProfile: line = (
       (io profiler request: line) > 0
-        ifTrue: [ 'dbg:ok profile' println ]
-        ifFalse: [ 'dbg:error profile wants profile <ms>' println ].
+        ifTrue: [ self say: 'dbg:ok profile' ]
+        ifFalse: [ self say: 'dbg:error profile wants profile <ms>' ].
       ^ self )
 
     (* First space-delimited token of a command line (the verb). *)
