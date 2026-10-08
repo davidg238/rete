@@ -1,93 +1,90 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="760" viewBox="0 0 1100 760" font-family="Helvetica, Arial, sans-serif">
-<rect width="1100" height="760" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="860" viewBox="0 0 1000 860" font-family="Helvetica, Arial, sans-serif">
+<rect width="1000" height="860" fill="#ffffff"/>
 <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#444"/></marker></defs>
-<text x="24" y="34" font-size="21" font-weight="bold" fill="#111">The system: nodes, the gateway, the developer's peer, and agents</text>
-<text x="24" y="56" font-size="13" fill="#555">Solid lines work today; dashed is designed, not built. Blue is nsl running on the VM.</text>
-<rect x="24" y="76" width="560" height="400" rx="8" fill="#fafafa" stroke="#6b7280" stroke-width="1.5"/>
-<text x="36" y="98" font-size="16" font-weight="bold" fill="#111">Dev machine (Linux desktop)</text>
-<rect x="44" y="114" width="230" height="62" rx="8" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
-<text x="56" y="136" font-size="15" font-weight="bold" fill="#111">Agents, and the developer</text>
-<text x="56" y="156" font-size="12.5" fill="#333">coding agents; a browser; a terminal</text>
-<rect x="44" y="226" width="230" height="108" rx="8" fill="#fff4dc" stroke="#d4a72c" stroke-width="1.5"/>
-<text x="56" y="248" font-size="15" font-weight="bold" fill="#111">custos — the developer's peer</text>
-<text x="56" y="268" font-size="12.5" fill="#333">build · load · run · log</text>
-<text x="56" y="285" font-size="12.5" fill="#333">debug · profile · patch</text>
-<text x="56" y="302" font-size="12.5" fill="#333">JSON over HTTP first;</text>
-<text x="56" y="319" font-size="12.5" fill="#333">a web page and a terminal UI</text>
-<rect x="130" y="372" width="144" height="80" rx="8" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
-<text x="142" y="394" font-size="15" font-weight="bold" fill="#111">nsl compiler</text>
-<text x="142" y="414" font-size="12.5" fill="#333">source → image</text>
-<text x="142" y="431" font-size="12.5" fill="#333">+ a map of</text>
-<text x="142" y="448" font-size="12.5" fill="#333">every method</text>
-<polyline points="159,178 159,224" fill="none" stroke="#444" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
-<text x="192" y="206" font-size="12" fill="#333" text-anchor="middle">HTTP</text>
-<rect x="320" y="114" width="240" height="166" rx="8" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
-<text x="332" y="136" font-size="15" font-weight="bold" fill="#111">Test nodes on the host VM</text>
-<text x="332" y="156" font-size="12.5" fill="#333">each a node, as on a board</text>
-<rect x="336" y="170" width="190" height="52" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
-<text x="348" y="192" font-size="15" font-weight="bold" fill="#111"></text>
-<rect x="348" y="182" width="190" height="52" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
-<text x="360" y="204" font-size="15" font-weight="bold" fill="#111"></text>
-<rect x="360" y="194" width="190" height="52" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
-<text x="372" y="216" font-size="15" font-weight="bold" fill="#111"></text>
-<text x="372" y="230" font-size="13" fill="#111">nsl program · kernel · VM</text>
-<polyline points="276,262 318,262" fill="none" stroke="#444" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
-<text x="297" y="254" font-size="12" fill="#333" text-anchor="middle">run</text>
-<rect x="320" y="316" width="240" height="136" rx="8" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
-<text x="332" y="338" font-size="15" font-weight="bold" fill="#111">Another dev machine</text>
-<text x="332" y="358" font-size="12.5" fill="#333">its own custos and boards</text>
-<text x="332" y="375" font-size="12.5" fill="#333">(an RP2350 today)</text>
-<rect x="24" y="520" width="250" height="140" rx="8" fill="#fafafa" stroke="#6b7280" stroke-width="1.5"/>
-<text x="36" y="542" font-size="15" font-weight="bold" fill="#111">Bench boards (ESP32-C6)</text>
-<text x="36" y="562" font-size="12.5" fill="#333">on the desk, one USB cable each</text>
-<rect x="40" y="572" width="104" height="72" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
-<text x="52" y="594" font-size="15" font-weight="bold" fill="#111"></text>
-<rect x="156" y="572" width="104" height="72" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
-<text x="168" y="594" font-size="15" font-weight="bold" fill="#111"></text>
-<text x="52" y="598" font-size="12.5" fill="#111">nsl program</text><text x="52" y="615" font-size="12.5" fill="#111">kernel</text><text x="52" y="632" font-size="12.5" fill="#111">VM on Zephyr</text>
-<text x="168" y="598" font-size="12.5" fill="#111">nsl program</text><text x="168" y="615" font-size="12.5" fill="#111">kernel</text><text x="168" y="632" font-size="12.5" fill="#111">VM on Zephyr</text>
-<polyline points="80,336 80,518" fill="none" stroke="#444" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
-<text x="90" y="500" font-size="12" fill="#333" text-anchor="start">USB: flash, load, console, debug</text>
-<rect x="660" y="76" width="396" height="200" rx="8" fill="#fafafa" stroke="#6b7280" stroke-width="1.5"/>
-<text x="672" y="98" font-size="16" font-weight="bold" fill="#111">Gateway machine</text>
-<rect x="676" y="112" width="364" height="72" rx="8" fill="#ecfdf5" stroke="#34a853" stroke-width="1.5"/>
-<text x="688" y="134" font-size="15" font-weight="bold" fill="#111">porta</text>
-<text x="688" y="154" font-size="12.5" fill="#333">mirrors each node's space; the store and the log</text>
-<text x="688" y="171" font-size="12.5" fill="#333">language-neutral: it never runs nsl</text>
-<rect x="676" y="196" width="364" height="62" rx="8" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
-<text x="688" y="218" font-size="15" font-weight="bold" fill="#111">Thread border router</text>
-<text x="688" y="238" font-size="12.5" fill="#333">joins the mesh to the gateway's network</text>
-<polyline points="562,140 674,140" fill="none" stroke="#444" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
-<text x="618" y="132" font-size="12" fill="#333" text-anchor="middle">UDP + CBOR</text>
-<polyline points="276,300 640,300 640,170 674,170" fill="none" stroke="#444" stroke-width="2" stroke-dasharray="6 4" marker-start="url(#a)" marker-end="url(#a)"/>
-<text x="458" y="295" font-size="12" fill="#333" text-anchor="middle">remote debug of a sleepy node (D9)</text>
-<rect x="660" y="330" width="396" height="190" rx="8" fill="#fafafa" stroke="#6b7280" stroke-width="1.5"/>
-<text x="672" y="352" font-size="16" font-weight="bold" fill="#111">Thread mesh</text>
-<rect x="676" y="368" width="118" height="70" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
-<text x="688" y="390" font-size="15" font-weight="bold" fill="#111"></text>
-<text x="686" y="392" font-size="13" font-weight="bold" fill="#111">nRF52840</text><text x="686" y="410" font-size="12.5" fill="#333">dongle</text><text x="686" y="428" font-size="12" fill="#333">nsl · VM · Zephyr</text>
-<rect x="806" y="368" width="118" height="70" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
-<text x="818" y="390" font-size="15" font-weight="bold" fill="#111"></text>
-<text x="816" y="392" font-size="13" font-weight="bold" fill="#111">nRF52840</text><text x="816" y="410" font-size="12.5" fill="#333">dongle</text><text x="816" y="428" font-size="12" fill="#333">nsl · VM · Zephyr</text>
-<rect x="936" y="368" width="118" height="70" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
-<text x="948" y="390" font-size="15" font-weight="bold" fill="#111"></text>
-<text x="946" y="392" font-size="13" font-weight="bold" fill="#111">ESP32-C6</text><text x="946" y="410" font-size="12.5" fill="#333">the bell</text><text x="946" y="428" font-size="12" fill="#333">nsl · VM · Zephyr</text>
-<text x="676" y="470" font-size="12.5" fill="#333">Each node starts every exchange, so a node</text>
-<text x="676" y="487" font-size="12.5" fill="#333">that sleeps or reboots needs no address.</text>
-<polyline points="868,328 868,260" fill="none" stroke="#444" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
-<text x="878" y="288" font-size="12" fill="#333" text-anchor="start">UDP + CBOR</text>
-<text x="878" y="303" font-size="12" fill="#333" text-anchor="start">over 6LoWPAN</text>
-<rect x="660" y="548" width="396" height="112" rx="8" fill="#fafafa" stroke="#6b7280" stroke-width="1.5"/>
-<text x="672" y="570" font-size="16" font-weight="bold" fill="#111">WiFi nodes</text>
-<rect x="676" y="578" width="118" height="66" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
-<text x="688" y="600" font-size="15" font-weight="bold" fill="#111"></text>
-<text x="686" y="602" font-size="13" font-weight="bold" fill="#111">ESP32</text><text x="686" y="620" font-size="12.5" fill="#333">WROOM</text>
-<rect x="806" y="578" width="118" height="66" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
-<text x="818" y="600" font-size="15" font-weight="bold" fill="#111"></text>
-<text x="816" y="602" font-size="13" font-weight="bold" fill="#111">ESP32-S2</text><text x="816" y="620" font-size="12.5" fill="#333">MagTag</text>
-<polyline points="1058,604 1082,604 1082,150 1058,150" fill="none" stroke="#444" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
-<text x="938" y="602" font-size="12.5" fill="#333">same wire,</text><text x="938" y="619" font-size="12.5" fill="#333">over WiFi →</text>
-<rect x="24" y="690" width="1052" height="48" rx="8" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="1.5"/>
-<text x="40" y="712" font-size="14" font-weight="bold" fill="#111">protocol/ — the contract</text>
-<text x="40" y="729" font-size="12.5" fill="#333">The wire, plus the Go code porta and custos share. porta and custos never import each other; the nodes answer to the same documents.</text>
+<text x="24" y="34" font-size="21" font-weight="bold" fill="#111">The system: field nodes, the gateway, and developers with their twins</text>
+<text x="24" y="56" font-size="13" fill="#555">Solid lines work today; dashed is designed, not built. Blue is nsl on the VM.</text>
+<path d="M150,190 C110,190 100,140 140,128 C140,92 200,80 235,100 C260,70 330,66 360,92 C390,62 470,60 500,90 C530,62 610,64 635,96 C670,74 740,82 748,120 C800,118 820,170 780,188 C800,222 760,246 720,236 C700,262 630,266 605,244 C580,268 500,270 475,246 C445,270 370,268 345,244 C315,266 245,262 230,238 C190,250 140,232 150,190 Z" fill="#f8fafc" stroke="#6b7280" stroke-width="1.5"/>
+<text x="170" y="124" font-size="14" fill="#111" text-anchor="start" font-weight="bold">In the field: Thread mesh, WiFi</text>
+<rect x="230" y="148" width="150" height="72" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
+<text x="242" y="170" font-size="15" font-weight="bold" fill="#111">A′</text>
+<text x="242" y="190" font-size="12.5" fill="#333">commissioned image</text>
+<text x="242" y="207" font-size="12.5" fill="#333">nsl · VM · Zephyr</text>
+<rect x="520" y="148" width="150" height="72" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
+<text x="532" y="170" font-size="15" font-weight="bold" fill="#111">B′</text>
+<text x="532" y="190" font-size="12.5" fill="#333">commissioned image</text>
+<text x="532" y="207" font-size="12.5" fill="#333">nsl · VM · Zephyr</text>
+<text x="610" y="350" font-size="12.5" fill="#333" text-anchor="start" font-weight="normal">Each node starts every exchange,</text>
+<text x="610" y="367" font-size="12.5" fill="#333" text-anchor="start" font-weight="normal">so a node that sleeps or reboots</text>
+<text x="610" y="384" font-size="12.5" fill="#333" text-anchor="start" font-weight="normal">needs no address.</text>
+<polyline points="455,268 455,318" fill="none" stroke="#444" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="465" y="298" font-size="12.5" fill="#333" text-anchor="start" font-weight="normal">UDP + CBOR over the radio</text>
+<rect x="330" y="320" width="250" height="96" rx="8" fill="#ecfdf5" stroke="#34a853" stroke-width="1.5"/>
+<text x="342" y="342" font-size="15" font-weight="bold" fill="#111">gw — the gateway</text>
+<text x="342" y="362" font-size="12.5" fill="#333">porta: mirrors each node's space,</text>
+<text x="342" y="379" font-size="12.5" fill="#333">holds commissioned images (A′, B′)</text>
+<text x="342" y="396" font-size="12.5" fill="#333">Thread border router</text>
+<path d="M455,320 L455,306" stroke="#444" stroke-width="2"/>
+<polyline points="455,416 455,452" fill="none" stroke="#444" stroke-width="2"/>
+<line x1="60" y1="452" x2="940" y2="452" stroke="#444" stroke-width="3"/>
+<text x="940" y="444" font-size="13" fill="#333" text-anchor="end" font-weight="normal">ethernet</text>
+<polyline points="220,452 220,488" fill="none" stroke="#444" stroke-width="2"/>
+<rect x="40" y="488" width="380" height="250" rx="8" fill="#fafafa" stroke="#6b7280" stroke-width="1.5"/>
+<text x="52" y="510" font-size="16" font-weight="bold" fill="#111">dev 1</text>
+<rect x="56" y="522" width="170" height="58" rx="8" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="68" y="544" font-size="15" font-weight="bold" fill="#111">agents, developer</text>
+<text x="68" y="564" font-size="12.5" fill="#333">coding agents · browser</text>
+<rect x="56" y="612" width="170" height="110" rx="8" fill="#fff4dc" stroke="#d4a72c" stroke-width="1.5"/>
+<text x="68" y="634" font-size="15" font-weight="bold" fill="#111">custos</text>
+<text x="68" y="654" font-size="12.5" fill="#333">build · load · run</text>
+<text x="68" y="671" font-size="12.5" fill="#333">log · debug · profile</text>
+<text x="68" y="688" font-size="12.5" fill="#333">patch</text>
+<text x="68" y="705" font-size="12.5" fill="#333">HTTP, JSON first</text>
+<polyline points="141,582 141,610" fill="none" stroke="#444" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="148" y="600" font-size="11.5" fill="#333" text-anchor="start" font-weight="normal">HTTP</text>
+<rect x="244" y="522" width="160" height="110" rx="8" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="256" y="544" font-size="15" font-weight="bold" fill="#111">host test nodes</text>
+<rect x="256" y="550" width="122" height="40" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
+<rect x="265" y="559" width="122" height="40" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
+<rect x="274" y="568" width="122" height="40" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
+<text x="272" y="592" font-size="12.5" fill="#111" text-anchor="start" font-weight="normal">nsl · VM</text>
+<polyline points="228,667 244,620" fill="none" stroke="#444" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="254" y="660" font-size="11.5" fill="#333" text-anchor="start" font-weight="normal">run on the</text>
+<text x="254" y="675" font-size="11.5" fill="#333" text-anchor="start" font-weight="normal">desktop VM</text>
+<polyline points="141,724 141,790" fill="none" stroke="#444" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="148" y="768" font-size="12" fill="#333" text-anchor="start" font-weight="normal">USB</text>
+<rect x="80" y="790" width="150" height="56" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
+<text x="92" y="812" font-size="15" font-weight="bold" fill="#111">A</text>
+<text x="92" y="832" font-size="12.5" fill="#333">the developer's twin</text>
+<polyline points="760,452 760,488" fill="none" stroke="#444" stroke-width="2"/>
+<rect x="580" y="488" width="380" height="250" rx="8" fill="#fafafa" stroke="#6b7280" stroke-width="1.5"/>
+<text x="592" y="510" font-size="16" font-weight="bold" fill="#111">dev 2</text>
+<rect x="596" y="522" width="170" height="58" rx="8" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="608" y="544" font-size="15" font-weight="bold" fill="#111">agents, developer</text>
+<text x="608" y="564" font-size="12.5" fill="#333">coding agents · browser</text>
+<rect x="596" y="612" width="170" height="110" rx="8" fill="#fff4dc" stroke="#d4a72c" stroke-width="1.5"/>
+<text x="608" y="634" font-size="15" font-weight="bold" fill="#111">custos</text>
+<text x="608" y="654" font-size="12.5" fill="#333">build · load · run</text>
+<text x="608" y="671" font-size="12.5" fill="#333">log · debug · profile</text>
+<text x="608" y="688" font-size="12.5" fill="#333">patch</text>
+<text x="608" y="705" font-size="12.5" fill="#333">HTTP, JSON first</text>
+<polyline points="681,582 681,610" fill="none" stroke="#444" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="688" y="600" font-size="11.5" fill="#333" text-anchor="start" font-weight="normal">HTTP</text>
+<rect x="784" y="522" width="160" height="110" rx="8" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="796" y="544" font-size="15" font-weight="bold" fill="#111">host test nodes</text>
+<rect x="796" y="550" width="122" height="40" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
+<rect x="805" y="559" width="122" height="40" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
+<rect x="814" y="568" width="122" height="40" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
+<text x="812" y="592" font-size="12.5" fill="#111" text-anchor="start" font-weight="normal">nsl · VM</text>
+<polyline points="768,667 784,620" fill="none" stroke="#444" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="794" y="660" font-size="11.5" fill="#333" text-anchor="start" font-weight="normal">run on the</text>
+<text x="794" y="675" font-size="11.5" fill="#333" text-anchor="start" font-weight="normal">desktop VM</text>
+<polyline points="681,724 681,790" fill="none" stroke="#444" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="688" y="768" font-size="12" fill="#333" text-anchor="start" font-weight="normal">USB</text>
+<rect x="620" y="790" width="150" height="56" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
+<text x="632" y="812" font-size="15" font-weight="bold" fill="#111">B</text>
+<text x="632" y="832" font-size="12.5" fill="#333">the developer's twin</text>
+<polyline points="226,705 500,705 500,430 420,430 420,416" fill="none" stroke="#444" stroke-width="2" stroke-dasharray="6 4" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="508" y="580" font-size="12" fill="#333" text-anchor="start" font-weight="normal">debug A′</text>
+<text x="508" y="596" font-size="12" fill="#333" text-anchor="start" font-weight="normal">via porta</text>
+<text x="508" y="612" font-size="12" fill="#333" text-anchor="start" font-weight="normal">(D9)</text>
 </svg>

@@ -30,11 +30,12 @@ first, then a device load, not a reflash. Zephyr's contributors don't trust AI-g
 
 ![The system](img/nsl-system.svg)
 
-_Figure 1. Nodes run nsl on the VM, on boards or as test nodes on a desktop. Every node reaches the gateway, porta,
-over the same wire — Thread, WiFi or the desktop's own network — and starts every exchange itself. On the
-developer's machine, custos is the peer that builds, loads, runs, debugs, profiles and patches, over a USB cable or
-on the host VM; agents and people use it through the same HTTP calls. porta and custos share only the contract in
-`protocol/` [Porta], [Peer]._
+_Figure 1. Field nodes (A′, B′) run commissioned images and reach the gateway over Thread or WiFi; porta mirrors
+each node's state and keeps the images it commissioned. Each developer works on a twin on the desk (A, B) over one
+USB cable, and on test nodes running on the desktop's VM, through custos — the same HTTP calls whether a person or an
+agent makes them. A and A′ drift apart while a bug is chased on both, which is why porta, not the developer's
+machine, is to be the custodian of what runs in the field (decided; the commissioning step is not yet built). Reaching a field node's debugger through porta is designed,
+not built. porta and custos share only the contract in `protocol/` [Porta], [Peer]._
 
 ## 1. The constraints
 
@@ -106,7 +107,9 @@ machine; the program only uses what it was given.
 
 **`platform` is a capability, not a namespace.** nsl follows the object-capability rule: authority is holding a
 reference, and there is no ambient authority to fall back on. A program's `main:` is handed one object, `platform`,
-and everything it can name — library classes, devices, the space — it reaches through objects it was handed. A
+and everything it can name — library classes, devices, the space — it reaches through objects it was handed.
+That is why a program writes `platform space`, `platform timers` and `platform Record`: there is no other way to
+reach them. A
 module given only `net` can use the network and nothing else, and says so in its header. Today `platform` is one
 object that hands out every device and library class (ledger row 32). That is a convenience of the first release,
 not part of the design: since `platform` is only an object, a narrower one can be handed down — a module that
@@ -137,10 +140,26 @@ Zephyr is multithreaded; nsl is not. The VM runs on one Zephyr thread, and the C
 stack, the liveness observer — runs in threads around it. Inside nsl there is one reaction at a time, and each runs
 to completion.
 
-State lives in a **space**: a tree of paths whose leaves are *cells* (the latest value) or *streams* (append-only).
-A program registers a reaction with `whenever:do:`; a write to a path, a timer firing or a packet arriving queues the
-reactions that care, and the reactor runs them one by one. Timers post from their interrupt to a mailbox; the reactor
-blocks on it when there is nothing to do [VM].
+State lives in a **space**, nsl's descendant of the tuple spaces of Linda, simplified: a value is found by its
+name, not by matching its contents. The names are paths, and a node is programmed against names, not addresses. The
+Thread node in Appendix A uses five:
+
+| Path | Kind | Who writes it | Who reads it |
+|---|---|---|---|
+| `goal/name` | cell | the gateway, as intent | the node, which reacts |
+| `obs/name` | cell | the node, as its answer | the gateway |
+| `tel/log` | stream | the node, a row per tick | the gateway, every row |
+| `sys/timer` | stream | timer interrupts | the timers' dispatcher |
+| `sys/tick` | stream | the node's own timer | the node's `tick` |
+
+A *cell* holds the latest value; a *stream* is append-only. Every path that crosses the wire has its kind and its
+record shape declared once, in the protocol's manifest, and the gateway refuses a write that disagrees [Manifest].
+Paths under `sys/` stay on the node. A program
+registers a reaction with `whenever:do:`; a write to a path queues the reactions that care, and the reactor runs
+them one by one. Timers post from their interrupt to a mailbox, and the reactor blocks on it when there is nothing to
+do [VM]. The gateway sees the same names: porta mirrors parts of each node's space, so `goal/name` written at the
+gateway arrives as a write in the node's space, and no part of the program knows which side of the radio a value came
+from.
 
 Why not threads, the usual answer on an RTOS:
 
@@ -304,7 +323,7 @@ back. So the platform is agent first: every custos verb has a machine-readable H
 runs, which is why item 5 exists. nsl is not in any model's training data, so an agent writes it from the context it
 is given, not from habit — which is the bet item 2 makes and has not yet tested. What would test it: the same small
 board tasks given to an agent in nsl (with the language in context) and in Zephyr C, scored on first-run correctness.
-After version 0.1 that comparison should be shown, not told.
+We will run that comparison and publish the result: shown, not told (rete issue #373).
 
 ## 8. Costs, and what would lift each
 
@@ -316,21 +335,13 @@ After version 0.1 that comparison should be shown, not told.
 | No resumable exceptions | a handler cannot supply a value and continue at the raise | `on:do:` answering the default | 24 |
 | Per-byte work is interpreted | the CBOR codec is nsl, and every byte it reads costs a method activation | move the hot methods to C by native substitution (§2) | — |
 | `platform` is all-powerful | any app holds every device | narrowed platforms, or `serial:`/`net:`-style header grants for devices | 32 |
-| Access modifiers unenforced | `private` documents intent and nothing more | emit them and check, or delete the check | 25 |
+| Access modifiers unenforced | `private` documents intent and nothing more | emit them and check, or delete the check (#372) | 25 |
 | Hot patch limited to known constants | a fix that names a new selector or string cannot be patched | intern in RAM; carry offsets in the image map | 30, 31 |
 | No `Character`, byte strings | text is bytes | a rune-aware protocol | 10, 12 |
 
-## 9. Open questions
-
-- Row 25: enforce access modifiers or delete the mechanism?
-- Row 32: is `platform` meant to hand out every device, or should devices become header grants as `serial:` and
-  `net:` are?
-- §7: is the agent-in-nsl versus agent-in-C comparison worth running before 0.1 is public, so that the claim is
-  measured rather than argued?
-
 <div style="page-break-before: always"></div>
 
-## Appendix A. A Thread node in 36 lines
+## Appendix A. A Thread node in 36 lines of code
 
 A node that joins the gateway over Thread, checks in every two seconds, publishes a log line each time, and answers
 a name the gateway gives it. Thread itself is attached by the firmware before the VM starts; the program sees an IPv6
@@ -338,6 +349,7 @@ UDP socket. It compiles for the nRF52840; it is cut down from the bench's porta 
 been run [Example].
 
 ```
+(* The header is the program's authority: the platform and the network, nothing else. *)
 class ThreadSensorNode usingPlatform: platform net: net = (
   | space bridge timers ticks ::= 0. |
 ) (
@@ -347,25 +359,38 @@ class ThreadSensorNode usingPlatform: platform net: net = (
 
   public main: platform2 args: args = (
     | sock tickChan |
+
+    (* The space: this node's state, kept under path names rather than addresses. *)
     space:: platform space.
+
+    (* The bridge mirrors parts of the space to porta: it pulls what porta wants
+       (goal/...) and pushes what the node reports (obs/..., tel/...). *)
     sock:: net udpBindPort: 16970.
     sock == nil ifTrue: [ 'bind failed' println. ^ 1 ].
     bridge:: platform PortaBridge
       socket: sock space: space id: platform nodeId peer: self gwAddr port: self gwPort
       spans: platform Spans new.
-    bridge subscribeStream: 'tel/log'.
-    bridge liveness: self cadence misses: 16.
+    bridge subscribeStream: 'tel/log'.               (* push every row of this stream *)
+    bridge liveness: self cadence misses: 16.        (* tell porta when to call us silent *)
     bridge publishBuild: #nrf52840.
+
+    (* porta writes a name at goal/name; the node answers at obs/name. *)
     (space channel: 'goal/name') whenever: '' do: [ :v | space put: 'obs/name' value: v ].
+
+    (* Timers, like everything else, come from the platform. Their interrupts post to
+       sys/timer; one reaction hands each to the timer that owns it. *)
     timers:: platform timers.
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
     tickChan:: space channel: 'sys/tick'.
     tickChan whenever: '' do: [ :m | self tick ].
-    bridge startTicking: timers on: tickChan.
+    bridge startTicking: timers on: tickChan.        (* one tick per cadence *)
+
+    (* The reactor: wait for an event, run the reactions it queued, repeat. *)
     [ true ] whileTrue: [ platform pumpEvents. space drain ].
     ^ 0
   )
 
+  (* Each tick: exchange with porta, then add one row to the log stream. *)
   tick = (
     ticks:: ticks + 1.
     bridge checkIn.
@@ -378,9 +403,9 @@ class ThreadSensorNode usingPlatform: platform net: net = (
 )
 ```
 
-The header says what the program may touch: the platform and the network, nothing else. The gateway sees the node's
-log, its build and its health; writing `goal/name` at the gateway reaches the node at its next check-in, and the
-answer comes back at `obs/name`.
+The node never names an address inside the program except the gateway's. Everything else is a path in its space:
+porta writes `goal/name` and reads `obs/name` and `tel/log` at the node's next check-in, and the timers reach the
+program at `sys/timer` and `sys/tick` the same way (§3).
 
 <div style="page-break-before: always"></div>
 
@@ -434,3 +459,5 @@ the desktop before it reaches the board [Display]._
 - **[Display]** [The MagTag e-paper display design](../../../docs/design/2026-07-23-magtag-epaper-display-seam-design.md)
   and [`MagTagDisplayNode.nsl`](../../oevm/zephyr/MagTagDisplayNode.nsl), the program Figure 4 quotes.
 - **[Clock]** [`MagTagClockNode.nsl`](../../oevm/zephyr/MagTagClockNode.nsl), the program in Figure 2.
+- **[Manifest]** [`MANIFEST.cddl`](../../../protocol/MANIFEST.cddl), the normative catalogue of paths, kinds and
+  shapes, and [its design](../../../docs/design/2026-08-24-kind-schema-manifest-design.md).

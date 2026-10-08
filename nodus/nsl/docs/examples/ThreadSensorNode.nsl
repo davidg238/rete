@@ -2,6 +2,8 @@
    porta gives it. Thread itself is attached by the firmware before the VM starts; the
    program sees an IPv6 UDP socket. Cut down from nodus/oevm/zephyr/PortaBridgeNodeNrf.nsl
    for the design paper's appendix. *)
+
+(* The header is the program's authority: the platform and the network, nothing else. *)
 class ThreadSensorNode usingPlatform: platform net: net = (
   | space bridge timers ticks ::= 0. |
 ) (
@@ -11,25 +13,38 @@ class ThreadSensorNode usingPlatform: platform net: net = (
 
   public main: platform2 args: args = (
     | sock tickChan |
+
+    (* The space: this node's state, kept under path names rather than addresses. *)
     space:: platform space.
+
+    (* The bridge mirrors parts of the space to porta: it pulls what porta wants
+       (goal/...) and pushes what the node reports (obs/..., tel/...). *)
     sock:: net udpBindPort: 16970.
     sock == nil ifTrue: [ 'bind failed' println. ^ 1 ].
     bridge:: platform PortaBridge
       socket: sock space: space id: platform nodeId peer: self gwAddr port: self gwPort
       spans: platform Spans new.
-    bridge subscribeStream: 'tel/log'.
-    bridge liveness: self cadence misses: 16.
+    bridge subscribeStream: 'tel/log'.               (* push every row of this stream *)
+    bridge liveness: self cadence misses: 16.        (* tell porta when to call us silent *)
     bridge publishBuild: #nrf52840.
+
+    (* porta writes a name at goal/name; the node answers at obs/name. *)
     (space channel: 'goal/name') whenever: '' do: [ :v | space put: 'obs/name' value: v ].
+
+    (* Timers, like everything else, come from the platform. Their interrupts post to
+       sys/timer; one reaction hands each to the timer that owns it. *)
     timers:: platform timers.
     space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
     tickChan:: space channel: 'sys/tick'.
     tickChan whenever: '' do: [ :m | self tick ].
-    bridge startTicking: timers on: tickChan.
+    bridge startTicking: timers on: tickChan.        (* one tick per cadence *)
+
+    (* The reactor: wait for an event, run the reactions it queued, repeat. *)
     [ true ] whileTrue: [ platform pumpEvents. space drain ].
     ^ 0
   )
 
+  (* Each tick: exchange with porta, then add one row to the log stream. *)
   tick = (
     ticks:: ticks + 1.
     bridge checkIn.
