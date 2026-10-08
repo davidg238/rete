@@ -1,4 +1,6 @@
-# nsl: a Newspeak dialect for small boards, and why it is shaped this way
+# nsl: a Newspeak dialect for Zephyr — what it keeps, what it drops, and why
+
+**and the case for an agent-first OO language**
 
 _DRAFT, 2026-10-06, for iteration with David. The record each claim stands on is cited inline; where a number lives
 in a file, the file is cited rather than the number restated. Render to PDF later with
@@ -10,17 +12,24 @@ one-page description [`nodus/oevm/docs/vm.md`](../../oevm/docs/vm.md).
 
 ## Abstract
 
-nsl is a message-passing, class-based, global-free language in the Newspeak family, compiled on a host into a
-read-only object-graph image that a small C register VM executes in place on Zephyr microcontrollers. It keeps
-Newspeak's structure — modules as objects, no global namespace, nested classes, implicit-receiver sends,
-capabilities as the unit of authority — and subtracts most of its dynamism: virtual classes, mixins,
-non-local return, processes, resumable exceptions and run-time reflection. This paper says what was subtracted,
-what drove each subtraction, and what it costs. The drivers are not one budget. A RAM class (the 256 KB
-nRF52840) set the strategic target, but most rows of the ledger were decided for a different reason: an
-interpreter with no JIT, a capability discipline, an image that lives in flash, a run-to-completion engine, and a
-wire format shared with a gateway written in another language. Last, the paper argues that a small, keyword-selector
-OO language is a good fit for code written and operated by agents, and says which parts of that argument are
-measured and which are still a bet.
+Embedded VMs used to live or die by porting: many RTOSes, each with its own drivers, network stack and security
+story, and a VM had to follow them all. Zephyr's reach changes that: a VM ported once can reach more than 900
+boards, with connectivity, security and drivers built in — Thread among them, more work than a small project could
+build alone. Zephyr's cost is the learning curve, which its own community names its most persistent challenge
+[ZT10].
+
+nsl is a Newspeak dialect that puts an approachable object-capability language over Zephyr. Zephyr carries the
+freight, nsl directs traffic: the radio, the crypto and the drivers stay in C, and the interpreter pays only for
+decisions. A host compiler produces a read-only image that a small C VM runs in place from flash, in the 48 KB arena
+left on a 256 KB nRF52840 after Zephyr, OpenThread and mbedTLS. nsl keeps Newspeak's structure — modules as
+objects, no globals, capabilities as the unit of authority — and drops most of its dynamism, each drop with its
+reason and its cost.
+
+Last, the case for an agent-first OO language. Agents can't smell trouble, but they can find patterns in data, so
+every tool answers in data: the whole language fits in a context window, every development verb is a
+machine-readable HTTP call, every profile sample or crash names a source line, and the loop is short — the host VM
+first, then a device load, not a reflash. Zephyr's contributors don't trust AI-generated code without heavy review
+[ZT10]; nsl bets that a fast, repeatable loop supplements that review.
 
 ## 1. The constraints, measured
 
@@ -205,3 +214,6 @@ board tasks given to an agent in nsl (with the language in context) and in Zephy
   Principles for Meta-level Facilities of Object-Oriented Programming Languages* (OOPSLA 2004); I. Piumarta and A.
   Warth, *Open, Extensible Object Models* (2007); A. Goldberg and D. Robson, *Smalltalk-80: The Language and its
   Implementation* (1983).
+- [ZT10] B. Trinkenreich, A. Lawson and H. Carter, *Zephyr Turns 10: A Decade of Adoption, Maturity, and Ecosystem
+  Evolution*, The Linux Foundation, March 2026 (CC BY-ND 4.0), `docs/ZephyrTurns10_Report_Revised_051826.pdf` —
+  900+ boards; learning curve; Figure 35, GenAI trust.
