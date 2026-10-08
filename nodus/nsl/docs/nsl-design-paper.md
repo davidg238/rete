@@ -2,13 +2,8 @@
 
 **and the case for an agent-first OO language**
 
-_DRAFT, 2026-10-06, for iteration with David. The record each claim stands on is cited inline; where a number lives
-in a file, the file is cited rather than the number restated. Render to PDF later with
-`pandoc nsl-design-paper.md -o nsl-design-paper.pdf` if a PDF is wanted; Markdown is the source._
-
-Companion pieces: the row-by-row ledger [`NEWSPEAK_DIALECT.md`](NEWSPEAK_DIALECT.md) (every divergence, its reason
-and its revisit trigger), the user's guide [`programming_with_nsl.md`](programming_with_nsl.md), and the VM's
-one-page description [`nodus/oevm/docs/vm.md`](../../oevm/docs/vm.md).
+_DRAFT 2, 2026-10-07, for iteration with David. Sources are bracketed keys, e.g. [VM], resolved in the
+References; in this Markdown they are links. The PDF beside this file is rendered from it._
 
 ## Abstract
 
@@ -19,9 +14,9 @@ build alone. Zephyr's cost is the learning curve, which its own community names 
 [ZT10].
 
 nsl is a Newspeak dialect that puts an approachable object-capability language over Zephyr. Zephyr carries the
-freight, nsl directs traffic: the radio, the crypto and the drivers stay in C, and the interpreter pays only for
-decisions. A host compiler produces a read-only image that a small C VM runs in place from flash, in the 48 KB arena
-left on a 256 KB nRF52840 after Zephyr, OpenThread and mbedTLS. nsl keeps Newspeak's structure — modules as
+freight, nsl directs traffic: the radio, the crypto and the drivers stay in C, and the interpreter pays mostly for
+decisions. A host compiler produces a read-only image that a small C VM runs in place from flash, in the roughly
+112 KB that Zephyr, OpenThread and mbedTLS leave on a 256 KB nRF52840. nsl keeps Newspeak's structure — modules as
 objects, no globals, capabilities as the unit of authority — and drops most of its dynamism, each drop with its
 reason and its cost.
 
@@ -31,53 +26,123 @@ machine-readable HTTP call, every profile sample or crash names a source line, a
 first, then a device load, not a reflash. Zephyr's contributors don't trust AI-generated code without heavy review
 [ZT10]; nsl bets that a fast, repeatable loop supplements that review.
 
-## 1. The constraints, measured
+## 1. The constraints
 
-| Constraint | Value | Record |
-|---|---|---|
-| Smallest board the system targets | nRF52840: 256 KB RAM, 1 MB flash, shared with OpenThread and mbedTLS | `docs/design/2026-07-03-nsl-tuvm-first-step-design.md` §1 ("Fit the 256 KB-RAM class (nRF52840), which Toit cannot") |
-| VM arena on the nRF52840 | 49 152 B, holding objects, the VM stack (4096 words) and floats | `nodus/oevm/zephyr/docs/BOARD_PORTS.md` (config-D) |
-| VM arena on the ESP32-C6 (the bench board) | 128 KB | `nodus/oevm/docs/vm.md` §Memory |
-| VM code, Cortex-M4 | `text` in `nodus/oevm/tools/footprint-mcu-baseline.txt` (banked 2026-08-26); 42 178 B measured on `master` 09b61e1 with the #313 hot-patch hooks, over the bank (rete#358) | `tools/footprint.sh`, an aux gate of the suite |
-| VM static RAM, Cortex-M4 | `data_bss` in the same file | the same |
-| Execution | an interpreter, no JIT; 11.83 µs per activation on the C6, 11.13 µs on the RP2350 | `docs/overview.md`; `docs/results/2026-10-01-rp2350-first-numbers.md` |
-| Where the program lives | a read-only `.oimg` in its own flash partition, executed in place; firmware flashed once | `protocol/IMAGE-ARTIFACTS.md` §2a; rete#310 |
-| Who reads the other end | porta, a Go gateway, mirrors each node's state over UDP + CBOR | `protocol/`; `nodus/oevm/docs/vm.md` §The reactor |
+nsl's floor is a 256 KB-RAM microcontroller with a radio. That is a hard target but not an extreme one: it is about
+as small as a part can be and still hold Zephyr, a Thread stack and an application, and it covers common radio parts,
+the nRF52840 and the ESP32-C6 among them. Smaller parts are not a goal. Size was the target, but simplicity was the
+mechanism: the July 2026 rewrite removed non-local return, fibers and growable stacks because they had become "a
+cascade of interacting complexity … with the VM ballooning far past its simple intent" [Pivot], and the bytes it
+saved were modest — 3 921 B of code, 676 B of RAM [MA]. Most of the choices in §4 would hold on a large board too
+(Figure 1).
 
-Two things follow from the table. First, the VM's *code* is not the tight axis: about 40 KB of flash on a 1 MB part.
-RAM is (the footprint gate's own header calls it "the scarce axis, #53"): the arena is under a fifth of the
-nRF52840's RAM, and the radio stack takes most of the rest. Second, the binding constraints are as much about *kind*
-as size: no JIT, a program that cannot be written to at run time, and a peer that is not nsl.
+**What 256 KB leaves.** Measured from the linker symbols of the nRF52840 dongle's Thread build (2026-10-03):
 
-**On the 256 KB premise.** "The divergences exist to fit 256 kB" is half right. 256 KB is the nRF52840's **RAM**, and
-fitting that class is the first of the two strategic bets in the 2026-07-03 pivot. But the pivot's own account of
-*why* it removed NLR, fibers and growable stacks is complexity — "a cascade of interacting complexity … with the VM
-ballooning far past its simple intent" (§1 of the same design) — and the measured saving was 3 921 B of code
-(−10 %) and 676 B of RAM (`nodus/oevm/docs/MILESTONE_A.md` §8). Size was the target; simplicity was the mechanism.
-Most other rows were decided for reasons that would hold on a large board too (Figure 1).
+| Use | RAM |
+|---|---:|
+| VM arena: objects, the VM's own 16 KB stack, floats | 112 KB |
+| Zephyr kernel, drivers, USB, thread stacks | 57 KB |
+| Zephyr system heap | 32 KB |
+| OpenThread and the 802.15.4 radio driver | 25 KB |
+| Network buffers | 14 KB |
+| mbedTLS | 10 KB |
+| Spare | 4 KB |
 
-## 2. The VM in one page
+Zephyr and its radio stack take about 140 KB and nsl gets the rest, with 4 KB to spare at link time. The VM's code is
+not the tight axis — about 42 KB of a 1 MB flash. RAM is.
 
-oevm is a register VM in C, built on Piumarta's Open Extensible Object Model: object, symbol and vtable are the only
-primitive kinds, and everything else — arithmetic included — is a message a vtable answers. 31 opcodes in 32-bit
-fixed-length instructions (`oevm.h` `enum Opcode`); a small-integer fast path that falls back to a send;
-`OP_SEND_IMPLICIT` for Newspeak's implicit-receiver send, which walks the lexical enclosure chain before the
-inheritance chain (`nodus/oevm/docs/op_send_implicit.md`). One flat, non-recursive interpreter loop over one
-fixed-capacity stack; a heap `Context` so that a block can outlive its frame, which is the whole reactive model. A
-precise mark-sweep collector over a fixed arena, no `malloc` at steady state. Selectors are Symbols that carry their
-primitive id (rete#226), and the 160 primitive selectors are one list (`nodus/oevm/src/prim_names.def`).
+**The tightest arena is not on the smallest part.** Across the boards the VM runs on [Boards]:
 
-The kernel is nsl, not C: `nodus/nsl/lib/kernel.nsl` holds collections, the value algebra, the CBOR codec, channels,
-the space, timers, the supervisor and the gateway bridge. C carries data, nsl carries policy.
+| Board | RAM | VM arena | What sets it |
+|---|---|---:|---|
+| ESP32 (WROOM) | 520 KB, of which Zephyr maps ~192 KB as data RAM | 48 KB | WiFi's driver heap and TCP buffers take the rest |
+| ESP32-S2 (MagTag) | 320 KB | 64 KB | WiFi; 92 KB links, 64 KB is what has booted |
+| nRF52840 | 256 KB | 112 KB | Zephyr, OpenThread and mbedTLS; 4 KB spare |
+| ESP32-C6 | 512 KB | 128 KB | a chosen default with margin; 256 KB links with the radio |
 
-## 3. The dialect against Newspeak
+WiFi, not the size of the part, is what squeezes the classic ESP32 to 48 KB.
+
+**An interpreter, with no JIT.** There is no room here for a JIT's code cache, so every method runs in the
+interpreter. One method activation costs about 12 µs (11.83 on the C6, 11.13 on the RP2350 [RP2350]), roughly a
+hundred times the same work in C. That is cheap at the rate events arrive — a timer, a packet, a button — and
+expensive per byte, which is why the radio, the crypto and the drivers stay in C, and why code that turns out hot can
+follow them (§2).
+
+**A program that cannot be written at run time.** The program is a read-only image in its own flash partition,
+executed in place [Image]. The firmware is flashed once; programs are loaded beside it.
+
+**A peer that is not nsl.** A gateway written in Go mirrors each node's state over UDP and CBOR, so the wire format is
+a contract between two languages, not an nsl object serialisation [Porta].
+
+## 2. The VM
+
+oevm is a register VM in C, built on Piumarta and Warth's Open Extensible Object Model [OEOM]: object, symbol and
+vtable are the only primitive kinds, and everything else — arithmetic included — is a message that a vtable answers.
+Instructions are 32 bits and fixed length, 31 of them; small integers take a fast path and fall back to a send. One
+instruction carries Newspeak's implicit-receiver send, which looks up a name in the lexically enclosing classes before
+the superclasses. The interpreter is one flat, non-recursive loop over one fixed-capacity stack, and a context lives
+on the heap so that a block can outlive the frame that made it — which is the whole reactive model (§3). Memory is a
+fixed arena with a precise mark-sweep collector and no `malloc` once running [VM].
+
+The kernel is nsl, not C: collections, the value algebra, the CBOR codec, channels, the space, timers, the supervisor
+and the gateway bridge are all nsl source. C carries data, nsl carries policy.
+
+**Binding a driver: no FFI, one primitive.** nsl code cannot call an arbitrary C function. A device is reached through
+a *primitive*: a selector on a closed list, 160 of them today, each backed by one C function that calls the Zephyr
+driver API. Binding a new driver means appending one name to that list, writing the C function, and adding the
+kernel method that hands the device out — through `platform` — as a capability. The change is additive: nothing
+already on the list moves, and no app can add a primitive of its own [Serial]. The firmware's author extends the
+machine; the program only uses what it was given.
+
+**Native code replaces nsl code without anyone noticing.** Because every operation is a send through a vtable, a
+method is a binding from a selector to a closure, and whether that closure is interpreted or native is one field. To
+move a hot method to C, write the C and bind it: the callers, the interpreter and the image format do not change. A
+spike did this for the Towers of Hanoi on an ESP32, and the native method ran 116–119 times faster than the
+interpreted one at two problem sizes [Hanoi]. That is a best-case ceiling — all the work in one method, the recursion
+fully native — not a steady-state figure for a whole program. The point is the mechanism: a VM that dispatches on
+type tags would need a special case on every call path; this one needs one binding.
+
+## 3. A reactor, not threads
+
+Zephyr is multithreaded; nsl is not. The VM runs on one Zephyr thread, and the C side — OpenThread, the network
+stack, the liveness observer — runs in threads around it. Inside nsl there is one reaction at a time, and each runs
+to completion.
+
+State lives in a **space**: a tree of paths whose leaves are *cells* (the latest value) or *streams* (append-only).
+A program registers a reaction with `whenever:do:`; a write to a path, a timer firing or a packet arriving queues the
+reactions that care, and the reactor runs them one by one. Timers post from their interrupt to a mailbox; the reactor
+blocks on it when there is nothing to do [VM].
+
+Why not threads, the usual answer on an RTOS:
+
+- **No locks and no data races in nsl code.** A reaction cannot be interrupted by another, so shared state needs no
+  protection and an agent writing a reaction cannot get it wrong.
+- **RAM is predictable.** Threads cost a stack each, sized for the worst case. The reactor has one stack, and the
+  rewrite that removed fibers removed their per-fiber stacks with them [MA].
+- **Errors are contained, not fatal.** A reaction that fails is caught by the supervisor, which keeps the heap and the
+  reactor running and restarts or quarantines the job [MD].
+
+The cost is the one every event loop has: a long computation starves the timers. The answer is to split it across
+reactions, and the guard is the **liveness observer**, a C thread that judges the reactor's progress against the
+shortest timer period the program has declared. A wedged node is dumped, rebooted, and leaves a note saying why
+[Liveness].
+
+**Always-on and deep sleep.** A node's power mode is a value at a path, written by the gateway and acknowledged by
+the node — not a command [Porta]. An *always-on* node runs a loop that never returns; it is the mains profile. A
+*deep-sleep* node wakes, takes its reading, exchanges with the gateway and sleeps again; `platform deepSleep:` never
+returns, and the next wake is a full reboot. Its program is declared *run-once*, because a loop that expected to keep
+running would be killed by each sleep. Deep sleep runs on the MagTag today. What makes it work is that every exchange
+is started by the node: a sleeping node has no address to be called on, so the gateway holds what it wants — a new
+setting, a new program — until the node next wakes and asks.
+
+## 4. The dialect against Newspeak
 
 ![What drives each divergence](img/nsl-divergence-drivers.svg)
 
-_Figure 1. Each group of ledger rows against the reason its record gives. Rendered from
-`img/nsl-divergence-drivers.svg`._
+_Figure 1. Each group of divergences from Newspeak against the reason its record gives. Numbers are rows of the
+dialect ledger [Ledger]._
 
-### 3.1 Kept
+### 4.1 Kept
 
 - **No global namespace.** Every name is reached through an object handed in: `platform List`, `platform space`. A
   class that was not given `platform` cannot reach the library at all (ledger rows 8, 9).
@@ -87,34 +152,34 @@ _Figure 1. Each group of ledger rows against the reason its record gives. Render
   superclass cannot capture a name the enclosing module defines.
 - **Slots with `::=` (mutable) and `=` (immutable), `::` assignment, keyword selectors, blocks, class-side bodies.**
 
-### 3.2 Changed or removed
+### 4.2 Changed or removed
 
 | Area | Newspeak | nsl | Primary driver |
 |---|---|---|---|
-| Class references | virtual (late-bound slots) | static, resolved at compile time to `OP_NEW` (row 1) | no JIT: production Newspeak makes virtual lookup free on Truffle/Graal |
+| Class references | virtual (late-bound slots) | static, resolved at compile time (row 1) | no JIT: production Newspeak makes virtual lookup free on Truffle/Graal |
 | Composition | mixin application | single inheritance, one `delegate` (row 2) | as above; mixins are how virtual classes compose |
-| Non-local return | `^` from any block unwinds to its home | compile error from an escaping closure (row 21) | simplicity: NLR forced the reify/unwind/cross-fiber cascade |
-| Concurrency | actors / processes | a run-to-completion reactor over a tuple space (row 22) | the same pivot; determinism, predictable RAM |
+| Non-local return | `^` from any block unwinds to its home | compile error from an escaping closure (row 21) | simplicity: non-local return forced the reify/unwind/cross-fiber cascade |
+| Concurrency | actors / processes | a run-to-completion reactor over a tuple space (row 22) | the same rewrite; determinism, predictable RAM |
 | Exceptions | class hierarchy, resumable | `Record {#tag,#text}` values, predicate `on:do:`, `ensure:`, terminate-only (row 24) | errors cross a channel and the wire, so they must be values |
-| Reflection | ambient | a `mirror` capability held only by the Supervisor (rows 15, 16); no `class`, `perform:`, `thisContext` (row 26) | capability security; a closed-world image |
+| Reflection | ambient | a `mirror` capability held only by the supervisor (rows 15, 16); no `class`, `perform:`, `thisContext` (row 26) | capability security; a closed-world image |
 | Integers | unbounded | one type, ±(2^64−1), overflow traps (row 29) | one range for host, board and CBOR |
 | Strings | collections of characters | immutable UTF-8 bytes, no `Character` (row 10) | one allocation, a GC leaf |
 | Symbols | interned at run time | interned at compile time only (row 30) | the image is read-only |
 | Methods | recompiled in place | read-only image; a debug build can override a method from RAM and restart its frame (row 31) | the image lives in flash |
-| Syntax | cascades, literal arrays, `$a`, radix numbers | 109-line grammar without them (row 27) | simplicity |
+| Syntax | cascades, literal arrays, `$a`, radix numbers | a 109-line grammar without them (row 27) | simplicity |
 | Access modifiers | enforced | parsed, not enforced (row 25) | **undecided** — a finding of the 2026-10-06 audit |
 
-### 3.3 Why most of this is reversible
+### 4.3 Why most of this is reversible
 
-The ledger's framing still holds: the *structural* half (no globals, modules as objects, confined privilege) was paid
-for first because it cannot be retrofitted, and most subtractions are additive to restore — static binding is the
-special case of late binding in which no class slot is overridden, so nothing written for nsl becomes wrong if virtual
-classes come back. The exceptions are rows 21–24: restoring NLR, processes or resumption would bring back the
-machinery the pivot deleted, and they are not on any plan.
+The structural half (no globals, modules as objects, confined privilege) was paid for first because it cannot be
+retrofitted, and most subtractions are additive to restore: static binding is the special case of late binding in
+which no class slot is overridden, so nothing written for nsl becomes wrong if virtual classes come back. The
+exceptions are rows 21–24: restoring non-local return, processes or resumption would bring back the machinery the
+rewrite deleted, and they are not on any plan.
 
-## 4. Against Smalltalk-80 and Pharo
+## 5. Against Smalltalk-80 and Pharo
 
-nsl's ancestry runs through Smalltalk (the lineage is `st/berry` → `ns/berry` → `ns/oevm` → `nsl/tuvm` → rete), and a
+nsl's ancestry runs through Smalltalk — this system has been rewritten wholesale four times on the way here — and a
 Smalltalk programmer reads it easily. The differences are mostly about *where authority and state live*, not about
 expression.
 
@@ -124,24 +189,54 @@ expression.
 | Keyword selectors, blocks as closures | yes | yes |
 | Control flow | `ifTrue:` etc. are messages, inlined by the compiler | the same, and the inlining is now the only implementation (row 19) |
 | Namespace | one global `Smalltalk` dictionary; any method names any class | none; everything through `platform` (rows 8, 9) |
-| The image | a live, mutable heap you develop in and ship | a frozen `.oimg` built from source; the VM runs it from flash |
+| The image | a live, mutable heap you develop in and ship | a frozen image built from source; the VM runs it from flash |
 | `thisContext`, `become:`, `perform:`, `instVarAt:` | yes, ambient | no; frame access only through the confined mirror (rows 15, 26) |
 | Processes and semaphores | yes | no; reactions that run to completion (row 22) |
 | Non-local return | yes | only from inlined blocks (row 21) |
 | Exceptions | class-based, resumable | value-based, predicate-filtered, terminate-only (row 24) |
 | Class extension (adding methods to `Object`) | yes, from any package | no; the kernel is one module, and an app cannot reach its classes to extend them |
-| Debugging | in-image, by anyone | over a line protocol to the confined debugger; breakpoints by image offset (row 16) |
+| Debugging | in-image, by anyone | over a line protocol to the confined debugger, from a host (§6) |
 
 What nsl takes from Newspeak rather than Smalltalk is the point of it: a module cannot reach anything it was not
-given, and that is what makes a capability *mean* something. What it gives up relative to Smalltalk is liveness — the
-system is developed on a host and deployed as an image, and hot patching is a debugging act (row 31), not the way
-programs are built.
+given, and that is what makes a capability *mean* something. What it gives up relative to Smalltalk is liveness: the
+system is developed on a host and deployed as an image, and hot patching is a debugging act, not the way programs
+are built.
 
-## 5. Why an object language, for code written by agents
+## 6. Debug, patch, profile — on the device
 
-The platform's current focus is agent first: every custos verb has a machine-readable HTTP path before any human
-front (peer design D11–D13, `docs/design/2026-10-04-custos-peer-design.md`). The language should be chosen on the
-same terms. The argument, with what is measured and what is not:
+A small device usually means printf and a reflash. nsl's answer is a set of tools that reach into the running VM
+over the device's one USB cable, through **custos**, the developer's peer on the host. Every tool is an HTTP call
+that answers in JSON first, with a web page and a terminal front over the same calls [Peer].
+
+| Tool | What it does today | Record |
+|---|---|---|
+| **load** | replaces the program without reflashing the firmware; the node reports the new program's hash (ESP32-C6) | [Image] |
+| **debug** | breakpoints by source line; `step`, `next`, `finish`; the stack and named local variables at a stop | [Debugger] |
+| **patch** | in a debug build, replaces one method of a program stopped at a breakpoint, restarts the frame, and continues into the new code — shown on an ESP32-C6 on 2026-10-06 | [Patch] |
+| **profile** | per-method call counts from the standard image on the ESP32-C6, so a field node is profiled without a reflash; it costs 1.3 % on the worst-case benchmark | [Profile] |
+| **log** | the node's log and console, collected by custos | [Peer] |
+
+Every one of these names source, not addresses: the image map that ships beside each image gives every method's
+file and line, so a breakpoint, a profile sample or a crash lands on a line a person or an agent can open [Image].
+
+**Deep-sleep nodes — designed, not yet built.** The same tools are designed to reach a node that is asleep most of
+the time, using the model §3 already gives: intent is a value the gateway holds. A breakpoint is written under the
+node's goals; the gateway holds it until the node next wakes and asks, whether that is seconds or two hours away. On
+a hit, the node reports the stop and stays awake while the debugger steps, and the liveness observer already knows
+not to reset a node held at a breakpoint [Peer]. A profile request works the same way: the next wake runs under the
+profiler and ships the counts [ProfileVerb]. Remote debugging of a sleepy node is the demonstration planned after
+version 0.1; until it runs, this paragraph is a design, not a result.
+
+## 7. The case for an agent-first OO language
+
+The Zephyr community is already using AI to write code, and does not trust it. Of 125 contributors surveyed, 54 %
+say it helps them write code faster — and 54 % say it gives unexpected or incorrect output they must fix frequently;
+33 % spend more time validating its output than they would writing from scratch; 18 % say it helps them write code
+with fewer errors; and 78 % do not trust its suggestions without heavy review ([ZT10], Figure 35).
+
+The problem those numbers describe is verification, and an agent verifies by running things and reading what comes
+back. So the platform is agent first: every custos verb has a machine-readable HTTP path before any human front
+[Peer], and the language should be chosen on the same terms. The argument, with what is measured and what is not:
 
 1. **Keyword selectors name every argument at the call site.** `aSocket sendTo: host port: p data: bytes` cannot be
    called with the port and the host swapped without the code saying so; `sendto(fd, buf, len, 0, addr, alen)` can.
@@ -152,68 +247,143 @@ same terms. The argument, with what is measured and what is not:
 
    | Piece | Bytes | ≈ tokens |
    |---|---:|---:|
-   | Grammar, `nodus/nsl/grammar/ns.ohm` (109 lines) | 3 416 | 1 000 |
-   | User's guide, `programming_with_nsl.md` | 27 385 | 7 800 |
-   | Dialect ledger, `NEWSPEAK_DIALECT.md` (before this audit's additions) | 36 374 | 10 400 |
+   | Grammar (109 lines) | 3 416 | 1 000 |
+   | User's guide [Guide] | 27 385 | 7 800 |
+   | Dialect ledger [Ledger] | 36 374 | 10 400 |
    | Kernel's public selectors (438 signatures) | 6 397 | 1 800 |
    | Kernel source without comments | 91 815 | 26 200 |
    | Kernel source as written | 247 689 | 70 800 |
 
    Grammar, guide, ledger and the comment-free kernel come to about 160 KB, roughly 45 000 tokens: the complete
    language, standard library included, fits a 200 k window with room for the program, and the grammar plus guide plus
-   public selectors fit easily in the 64 k window of a local model. The kernel *with* its comments does not fit
-   64 k. A Python or C agent works from memory of a library it cannot see; an nsl agent can be given all of it.
+   public selectors fit easily in the 64 k window of a local model. A Python or C agent works from memory of a library
+   it cannot see; an nsl agent can be given all of it.
 3. **Authority is visible in signatures.** A module that can use the network says so in its header
    (`usingPlatform: platform net: net`); a channel capability can only narrow. An agent — or a reviewer of an agent's
-   work — can read what a piece of code is able to touch without reading its body. (Weakened today by row 32:
-   `platform` hands out every device.)
-4. **A small, closed primitive set.** 160 primitive selectors in one file, all others are nsl. There is no FFI to
-   wander into.
-5. **Errors written for the reader that is an agent.** A message not understood names the receiver's class and the
-   nearest selector it does understand (rete#247, ~1 KB of flash spent on the abort path on purpose: "an operator that
-   is an agent is exactly as good as the error line it is fed", `nodus/oevm/tools/footprint-baseline.txt`).
-6. **Every artefact is addressable.** The image map names every method by offset, file and line
-   (`protocol/IMAGE-ARTIFACTS.md`), so a breakpoint, a profile sample or a crash names source an agent can open.
+   work — can read what a piece of code is able to touch without reading its body. (Weakened today: `platform` hands
+   out every device; see §8.)
+4. **A small, closed primitive set.** 160 primitives, all other code is nsl; there is no FFI to wander into (§2).
+5. **Errors written for a reader that is an agent.** A message not understood names the receiver's class and the
+   nearest selector it does understand; about 1 KB of flash is spent on that on purpose, because "an operator that is
+   an agent is exactly as good as the error line it is fed".
+6. **Every artefact is addressable**, and every tool answers in data (§6).
+7. **The loop is short.** A program runs first on the VM on the host, then is loaded onto the device without a
+   reflash; a stopped method can be patched and resumed. A short loop makes each check cheap, and cheap checks are
+   what the 33 % above are missing. *Not measured*: we have not timed the loop end to end.
 
 **Against it, honestly.** Dynamic typing gives an agent nothing at compile time: a misspelt selector is found when it
 runs, which is why item 5 exists. nsl is not in any model's training data, so an agent writes it from the context it
 is given, not from habit — which is the bet item 2 makes and has not yet tested. What would test it: the same small
 board tasks given to an agent in nsl (with the language in context) and in Zephyr C, scored on first-run correctness.
+After version 0.1 that comparison should be shown, not told.
 
-## 6. Costs, and what would lift each
+## 8. Costs, and what would lift each
 
 | Cost | Felt as | Would lift it | Ledger row |
 |---|---|---|---|
 | No virtual classes or mixins | a library cannot be specialised per target except by choosing a module at boot | restore late-bound class slots on the same vtable substrate | 1, 2, 6 |
-| No NLR | loops that would `^` out of a `do:` are rewritten as `detect:ifNone:` or a flag | not planned | 21 |
+| No non-local return | loops that would `^` out of a `do:` are rewritten as `detect:ifNone:` or a flag | not planned | 21 |
 | No processes | a long computation starves timers | split it across reactions; the liveness observer shows the stall | 22 |
 | No resumable exceptions | a handler cannot supply a value and continue at the raise | `on:do:` answering the default | 24 |
+| Per-byte work is interpreted | the CBOR codec is nsl, and every byte it reads costs a method activation | move the hot methods to C by native substitution (§2) | — |
 | `platform` is all-powerful | any app holds every device | narrowed platforms, or `serial:`/`net:`-style header grants for devices | 32 |
 | Access modifiers unenforced | `private` documents intent and nothing more | emit them and check, or delete the check | 25 |
-| Hot patch limited to known constants | a fix that names a new selector or string cannot be patched | RAM interning; map-carried offsets | 30, 31 |
-| No `Character`, byte strings | text is bytes | a rune-aware protocol (tracked as issue #1 in the old tracker) | 10, 12 |
+| Hot patch limited to known constants | a fix that names a new selector or string cannot be patched | intern in RAM; carry offsets in the image map | 30, 31 |
+| No `Character`, byte strings | text is bytes | a rune-aware protocol | 10, 12 |
 
-## 7. Open questions
+## 9. Open questions
 
 - Row 25: enforce access modifiers or delete the mechanism?
 - Row 32: is `platform` meant to hand out every device, or should devices become header grants as `serial:` and
   `net:` are?
-- Section 5: is the agent-in-nsl versus agent-in-C comparison worth running before 0.1 is public, so that the claim is
+- §7: is the agent-in-nsl versus agent-in-C comparison worth running before 0.1 is public, so that the claim is
   measured rather than argued?
+
+## Appendix A. A Thread node in 36 lines
+
+A node that joins the gateway over Thread, checks in every two seconds, publishes a log line each time, and answers
+a name the gateway gives it. Thread itself is attached by the firmware before the VM starts; the program sees an IPv6
+UDP socket. It compiles for the nRF52840; it is cut down from the bench's porta node, which runs, and has not itself
+been run [Example].
+
+```
+class ThreadSensorNode usingPlatform: platform net: net = (
+  | space bridge timers ticks ::= 0. |
+) (
+  gwAddr  = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )   (* the gateway, mesh-local *)
+  gwPort  = ( ^ 6969 )
+  cadence = ( ^ 2000 )                                         (* ms between check-ins *)
+
+  public main: platform2 args: args = (
+    | sock tickChan |
+    space:: platform space.
+    sock:: net udpBindPort: 16970.
+    sock == nil ifTrue: [ 'bind failed' println. ^ 1 ].
+    bridge:: platform PortaBridge
+      socket: sock space: space id: platform nodeId peer: self gwAddr port: self gwPort
+      spans: platform Spans new.
+    bridge subscribeStream: 'tel/log'.
+    bridge liveness: self cadence misses: 16.
+    bridge publishBuild: #nrf52840.
+    (space channel: 'goal/name') whenever: '' do: [ :v | space put: 'obs/name' value: v ].
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    tickChan:: space channel: 'sys/tick'.
+    tickChan whenever: '' do: [ :m | self tick ].
+    bridge startTicking: timers on: tickChan.
+    [ true ] whileTrue: [ platform pumpEvents. space drain ].
+    ^ 0
+  )
+
+  tick = (
+    ticks:: ticks + 1.
+    bridge checkIn.
+    space out: 'tel/log' value: (platform Record tag: #Log
+      with: #lvl -> #info with: #txt -> ('tick ' , ticks printString)).
+    ^ self
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)
+```
+
+The header says what the program may touch: the platform and the network, nothing else. The gateway sees the node's
+log, its build and its health; writing `goal/name` at the gateway reaches the node at its next check-in, and the
+answer comes back at `obs/name`.
 
 ## References
 
-- `nodus/nsl/docs/NEWSPEAK_DIALECT.md` — the divergence ledger (rows 1–32, audited 2026-10-06).
-- `docs/design/2026-07-03-nsl-tuvm-first-step-design.md` — the pivot: no NLR, no fibers, the reactor.
-- `nodus/oevm/docs/MILESTONE_A.md`, `MILESTONE_E.md` — what the pivot deleted, measured; exceptions.
-- `nodus/nsl/docs/design/2026-07-04-L7-integer-semantics-decision.md` — integers.
-- `nodus/oevm/docs/vm.md`, `op_send_implicit.md` — the VM.
-- `docs/design/2026-10-04-custos-peer-design.md` D11–D13 — agent first.
-- `docs/results/2026-10-06-313-patch-restart-spike.md` — hot patching.
+- **[ZT10]** B. Trinkenreich, A. Lawson and H. Carter, *Zephyr Turns 10: A Decade of Adoption, Maturity, and Ecosystem
+  Evolution*, The Linux Foundation, March 2026, CC BY-ND 4.0 —
+  [copy in this repository](../../../docs/ZephyrTurns10_Report_Revised_051826.pdf). 900+ boards; the learning curve;
+  Figure 35 (p. 30), GenAI.
+- **[OEOM]** I. Piumarta and A. Warth, *Open, Extensible Object Models* (2007).
 - G. Bracha et al., *Modules as Objects in Newspeak* (ECOOP 2010); G. Bracha and D. Ungar, *Mirrors: Design
-  Principles for Meta-level Facilities of Object-Oriented Programming Languages* (OOPSLA 2004); I. Piumarta and A.
-  Warth, *Open, Extensible Object Models* (2007); A. Goldberg and D. Robson, *Smalltalk-80: The Language and its
-  Implementation* (1983).
-- [ZT10] B. Trinkenreich, A. Lawson and H. Carter, *Zephyr Turns 10: A Decade of Adoption, Maturity, and Ecosystem
-  Evolution*, The Linux Foundation, March 2026 (CC BY-ND 4.0), `docs/ZephyrTurns10_Report_Revised_051826.pdf` —
-  900+ boards; learning curve; Figure 35, GenAI trust.
+  Principles for Meta-level Facilities of Object-Oriented Programming Languages* (OOPSLA 2004); A. Goldberg and D.
+  Robson, *Smalltalk-80: The Language and its Implementation* (1983).
+- **[Ledger]** [The nsl dialect ledger](NEWSPEAK_DIALECT.md): every divergence from Newspeak, its reason and what
+  would revisit it (rows 1–32, audited 2026-10-06).
+- **[Guide]** [Programming with nsl](programming_with_nsl.md), the user's guide.
+- **[VM]** [oevm — what the VM is](../../oevm/docs/vm.md).
+- **[Pivot]** [The July 2026 rewrite's design](design/2026-07-03-nsl-tuvm-first-step-design.md): no
+  non-local return, no fibers, the reactor; the 256 KB target.
+- **[MA]**, **[MD]** [Milestone A](../../oevm/docs/MILESTONE_A.md) (what the rewrite deleted, measured) and
+  [Milestone D](../../oevm/docs/MILESTONE_D.md) (the supervisor).
+- **[Boards]** The board profiles in [`run.sh`](../../oevm/zephyr/run.sh) and
+  [the board ports](../../oevm/zephyr/docs/BOARD_PORTS.md); the nRF52840 RAM split from that build's linker symbols.
+- **[RP2350]** [First numbers on the RP2350](../../../docs/results/2026-10-01-rp2350-first-numbers.md).
+- **[Image]** [The image and its map](../../../protocol/IMAGE-ARTIFACTS.md).
+- **[Porta]** [porta's architecture](../../../porta/docs/ARCHITECTURE.md), §5: power modes and app lifecycle.
+- **[Serial]** [Adding the serial device](design/2026-06-22-ns-oevm-stdlib-step3c3b-serial-design.md): a device
+  target is purely additive.
+- **[Hanoi]** [Native substitution, the Hanoi spike](../../../docs/design/2026-07-17-oeom-native-substitution-hanoi-spike-design.md).
+- **[Liveness]** [The liveness observer](../../../docs/design/2026-08-16-vm-liveness-observer-design.md).
+- **[Peer]** [custos, the developer's peer](../../../docs/design/2026-10-04-custos-peer-design.md): agent first
+  (D11–D13), remote debugging of a sleepy node (D9).
+- **[Debugger]** [Tutorial 4, the debugger](../../../docs/tutorials/04-debugger.md).
+- **[Patch]** [Stop, patch, restart, resume](../../../docs/results/2026-10-06-313-patch-restart-spike.md).
+- **[Profile]** [Profiling over USB](../../../docs/design/2026-10-05-custos-profile-over-usb.md).
+- **[ProfileVerb]** [The profile verb](../../../porta/docs/design/2026-06-26-profile-verb-design.md): profiling a
+  deep-sleep node on its next wake.
+- **[Example]** [`ThreadSensorNode.nsl`](examples/ThreadSensorNode.nsl), cut down from
+  [`PortaBridgeNodeNrf.nsl`](../../oevm/zephyr/PortaBridgeNodeNrf.nsl).
