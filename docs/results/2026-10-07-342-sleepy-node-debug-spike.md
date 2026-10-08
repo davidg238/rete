@@ -82,4 +82,6 @@ the same rows sent to a standard image get no answer on `dbg/resp`.
 | c | `debugOverSpace` is opt-in per app. | opt-in | Automatic for every bridged debug image ("the target picks the transport"), once the boot stop (2) is fixed. |
 | d | porta's liveness verdict for a held node | none | A held node is neither live nor dead. Its `obs/debug` cell (b) is what porta would read. |
 
+**Decided (David, 2026-10-08): peer design D19.** a: yes (#375). b: yes, add `obs/debug` (#375). c: USB or porta, no opt-in (#376). d: via `obs/debug` (#375). Board gaps: 1 → #379 MagTag and #380 C6; 2 must be fixed (#376); 3 make the VM change (#377); 4 the spin is bad, the long-poll proposal is not accepted, and what an abandoned session does is TBD (#378); 5 after debug (#381).
+
 Recorded on #342. This document is the spike's record. Durable decisions go to peer design §3 (D9).
