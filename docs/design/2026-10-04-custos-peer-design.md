@@ -88,7 +88,7 @@ custos's query engine.
 - **D19 (David, 2026-10-08): remote debug, from the #342 host spike**
   (`docs/results/2026-10-07-342-sleepy-node-debug-spike.md`). Two demos, both debugged over the air: the
   MagTag talks to porta and shows a deep-sleeping node (#379), and the wall-powered ShipsBells C6 runs debug
-  firmware and shows a continuously running node (#380). `goal/debug/<app>`'s `Debug` record carries the
+  firmware and shows a continuously running node (#380). Both demos also show program OTA through porta (#233). `goal/debug/<app>`'s `Debug` record carries the
   breakpoints, and an `obs/debug` cell reports a held node (#375). A debug image is debugged over USB or
   porta, with no opt-in, and it must not wait for a cable at boot (#376). The VM's held state brackets
   the command loop, whichever link serves it (#377). A hard spin while held is bad, and an abandoned session

@@ -4,14 +4,12 @@ _Rewritten (never appended) at every `/conclude`; under ~15 lines. History: `git
 blocks are in `docs/status/focus-history.md`; live state is in the issues and `docs/status/dev-status.html`._
 
 - **FOCUS (David, 2026-10-08): remote debug of sleepy and running nodes over porta** (#342, peer design D19). Host spike
-  green on branch `spike/sleepy-debug` (`docs/results/2026-10-07-342-sleepy-node-debug-spike.md`). **Next session starts with:**
-  that branch, #375: update `Debug{…}` in `protocol/MANIFEST.cddl` to carry the breakpoints (+ sha) and add `obs/debug`, editing
+  merged to master (`1012090`) (`docs/results/2026-10-07-342-sleepy-node-debug-spike.md`). **Next session starts with:**
+  a branch off master for #375: update `Debug{…}` in `protocol/MANIFEST.cddl` to carry the breakpoints (+ sha) and add `obs/debug`, editing
   the manifest, `records.yaml`, the goldens and porta together; then make `sleepy_debug_host.sh` leg B manifest-armed. Then #376, #377.
-- **Queue:** #375 → #376 (USB or porta, no opt-in; no boot wait) → #377 (VM held state) → #380 (C6 demo) → #379 (MagTag demo);
+- **Queue:** #375 → #376 (USB or porta, no opt-in; no boot wait) → #377 (VM held state) → #380 (C6 demo) → #379 (MagTag demo), both with program OTA (#233);
   #378 open (no spin; an abandoned session); #381 cold-boot profile after debug.
-- **Awaiting David:** merge `spike/sleepy-debug` to master (yes/no); does "both types ota" put program OTA (#233) in #379/#380's scope;
-  the paper review; LICENSE and history rewrite (#368, a force-push); close #314 (yes/no); the Tailscale browser check (status page
-  NOT published 2026-10-07 and 2026-10-08); when c6bench moves to `rete-custos`; `review/` names the deleted console tools.
+- **Awaiting David:** the paper review; LICENSE and history rewrite (#368, a force-push); close #314 (yes/no); when c6bench moves to `rete-custos`; `review/` names the deleted console tools.
 - **Bench:** `c6bench` in the soak — never flash it. `rete-custos` (desktop, :6971) serves `c6` (the bell, cable unplugged = normal)
   and `c6spare` (std `porta-v1-final-1422`); `custos.env` carries `--esptool` (#370). `opti7040` has an RP2350.
 - **Decided — do not re-litigate:** custos = nsl peer, porta language-neutral (D1–D2); share only `protocol/` (#338); agent first, HTTP the
