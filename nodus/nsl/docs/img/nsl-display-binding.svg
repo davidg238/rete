@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1060" height="697" viewBox="0 0 1060 697" font-family="Helvetica, Arial, sans-serif">
+<rect width="1060" height="697" fill="#ffffff"/>
+<text x="20" y="32" font-size="20" font-weight="bold" fill="#1a1a1a">One call, five layers: binding the MagTag e-paper display</text>
+<text x="20" y="54" font-size="13" fill="#555">Excerpts from the source, trimmed. Blue is nsl, red is the VM's C, grey is Zephyr's — not ours.</text>
+<rect x="20" y="70" width="1020" height="81" rx="6" fill="#e8f0fb" stroke="#b9c2cc"/>
+<text x="32" y="96" font-size="15" font-weight="bold" fill="#1a1a1a">App</text>
+<text x="32" y="115" font-size="12.5" fill="#555">nsl</text>
+<text x="170" y="98" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">display:: platform display.</text>
+<text x="170" y="117" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">display at: 4 col: 0 put: 'presses: ' , count printString.</text>
+<text x="170" y="136" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">display refreshRow: 4.</text>
+<path d="M 530 153 L 530 167" stroke="#777" stroke-width="2"/><path d="M 524 162 L 530 169 L 536 162" fill="none" stroke="#777" stroke-width="2"/>
+<rect x="20" y="173" width="1020" height="81" rx="6" fill="#e8f0fb" stroke="#b9c2cc"/>
+<text x="32" y="199" font-size="15" font-weight="bold" fill="#1a1a1a">Kernel</text>
+<text x="32" y="218" font-size="12.5" fill="#555">nsl</text>
+<text x="170" y="201" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">public at: r col: c put: s = ( ^ self check: (seam displayAt: r col: c put: s) )</text>
+<text x="170" y="220" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">check: rc = ( … rc = 1 ifTrue: [ ^ self error: 'row or column outside the grid'</text>
+<text x="170" y="239" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">                                         tag: #displayBounds ] … )</text>
+<path d="M 530 256 L 530 270" stroke="#777" stroke-width="2"/><path d="M 524 265 L 530 272 L 536 265" fill="none" stroke="#777" stroke-width="2"/>
+<rect x="20" y="276" width="1020" height="58" rx="6" fill="#fff4dc" stroke="#b9c2cc"/>
+<text x="32" y="302" font-size="15" font-weight="bold" fill="#1a1a1a">Primitive list</text>
+<text x="32" y="321" font-size="12.5" fill="#555">one line</text>
+<text x="170" y="304" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">PRIM_NAME("displayAt:col:put:")</text>
+<path d="M 530 336 L 530 350" stroke="#777" stroke-width="2"/><path d="M 524 345 L 530 352 L 536 345" fill="none" stroke="#777" stroke-width="2"/>
+<rect x="20" y="356" width="1020" height="100" rx="6" fill="#fdeaea" stroke="#b9c2cc"/>
+<text x="32" y="382" font-size="15" font-weight="bold" fill="#1a1a1a">VM</text>
+<text x="32" y="401" font-size="12.5" fill="#555">C</text>
+<text x="170" y="384" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">case PRIM_pf_displayAt:</text>
+<text x="170" y="403" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">  if (!display_target_available()) { *out = NULL; return 1; }   /* nil: no display */</text>
+<text x="170" y="422" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">  rc = display_target_put(row, col, s-&gt;bytes, s-&gt;length);</text>
+<text x="170" y="441" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">  *out = TAG_SMI(rc);</text>
+<path d="M 530 458 L 530 472" stroke="#777" stroke-width="2"/><path d="M 524 467 L 530 474 L 536 467" fill="none" stroke="#777" stroke-width="2"/>
+<rect x="20" y="478" width="500" height="100" rx="6" fill="#fdeaea" stroke="#b9c2cc"/>
+<text x="32" y="504" font-size="15" font-weight="bold" fill="#1a1a1a">Board: MagTag</text>
+<text x="32" y="523" font-size="12.5" fill="#555">C, ESP32-S2</text>
+<text x="178" y="506" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">memcpy(&amp;disp_grid[row][col], s, n);</text>
+<text x="178" y="525" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">/* at refresh: */</text>
+<text x="178" y="544" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">cfb_print(disp_dev, line, 0, r * fh);</text>
+<text x="178" y="563" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">cfb_framebuffer_finalize(disp_dev);</text>
+<rect x="540" y="478" width="500" height="81" rx="6" fill="#fdeaea" stroke="#b9c2cc"/>
+<text x="552" y="504" font-size="15" font-weight="bold" fill="#1a1a1a">Board: host</text>
+<text x="552" y="523" font-size="12.5" fill="#555">C, desktop</text>
+<text x="658" y="506" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">for (i = 0; i &lt; n; i++)</text>
+<text x="658" y="525" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">  host_display[row][col + i] = s[i];</text>
+<text x="658" y="544" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">/* at refresh: the grid is printed */</text>
+<path d="M 270 580 L 270 594" stroke="#777" stroke-width="2"/><path d="M 264 589 L 270 596 L 276 589" fill="none" stroke="#777" stroke-width="2"/>
+<rect x="20" y="600" width="500" height="81" rx="6" fill="#eeeeee" stroke="#b9c2cc"/>
+<text x="32" y="626" font-size="15" font-weight="bold" fill="#1a1a1a">Zephyr</text>
+<text x="32" y="645" font-size="12.5" fill="#555">not ours</text>
+<text x="130" y="628" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">character framebuffer (cfb)</text>
+<text x="130" y="647" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">→ uc81xx e-paper driver</text>
+<text x="130" y="666" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="13" fill="#1a1a1a" xml:space="preserve">chosen in devicetree: zephyr,display</text>
+<text x="552" y="583" font-size="13.5" fill="#333">The same program runs on the desktop: the host</text>
+<text x="552" y="603" font-size="13.5" fill="#333">board layer is a real character grid, so an agent</text>
+<text x="552" y="623" font-size="13.5" fill="#333">can check the program there before the board.</text>
+</svg>

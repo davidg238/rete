@@ -26,6 +26,16 @@ machine-readable HTTP call, every profile sample or crash names a source line, a
 first, then a device load, not a reflash. Zephyr's contributors don't trust AI-generated code without heavy review
 [ZT10]; nsl bets that a fast, repeatable loop supplements that review.
 
+## The system at a glance
+
+![The system](img/nsl-system.svg)
+
+_Figure 1. Nodes run nsl on the VM, on boards or as test nodes on a desktop. Every node reaches the gateway, porta,
+over the same wire — Thread, WiFi or the desktop's own network — and starts every exchange itself. On the
+developer's machine, custos is the peer that builds, loads, runs, debugs, profiles and patches, over a USB cable or
+on the host VM; agents and people use it through the same HTTP calls. porta and custos share only the contract in
+`protocol/` [Porta], [Peer]._
+
 ## 1. The constraints
 
 nsl's floor is a 256 KB-RAM microcontroller with a radio. That is a hard target but not an extreme one: it is about
@@ -34,7 +44,7 @@ the nRF52840 and the ESP32-C6 among them. Smaller parts are not a goal. Size was
 mechanism: the July 2026 rewrite removed non-local return, fibers and growable stacks because they had become "a
 cascade of interacting complexity … with the VM ballooning far past its simple intent" [Pivot], and the bytes it
 saved were modest — 3 921 B of code, 676 B of RAM [MA]. Most of the choices in §4 would hold on a large board too
-(Figure 1).
+(Figure 3).
 
 **What 256 KB leaves.** Measured from the linker symbols of the nRF52840 dongle's Thread build (2026-10-03):
 
@@ -94,6 +104,25 @@ kernel method that hands the device out — through `platform` — as a capabili
 already on the list moves, and no app can add a primitive of its own [Serial]. The firmware's author extends the
 machine; the program only uses what it was given.
 
+**`platform` is a capability, not a namespace.** nsl follows the object-capability rule: authority is holding a
+reference, and there is no ambient authority to fall back on. A program's `main:` is handed one object, `platform`,
+and everything it can name — library classes, devices, the space — it reaches through objects it was handed. A
+module given only `net` can use the network and nothing else, and says so in its header. Today `platform` is one
+object that hands out every device and library class (ledger row 32). That is a convenience of the first release,
+not part of the design: since `platform` is only an object, a narrower one can be handed down — a module that
+receives only the display cannot touch the radio. For the same reason, a different `platform` could carry
+different implementations: collections tuned for size rather than speed, say, or a simulated device in place of a
+real one, without a line of the program changing. The language allows this; version 0.1 does not use it, and has
+one kernel.
+
+Appendix B follows one call through every layer, for the e-paper display on Adafruit's MagTag (ESP32-S2); Figure
+2 shows those primitives in service.
+
+<p align="center"><img src="img/magtag-clock.jpg" width="240" alt="A MagTag showing an nsl clock node's status screen"></p>
+
+_Figure 2. The same primitives in service: an nsl clock node on a MagTag, 19 days up, showing its heap, its
+measured clock drift and its last NTP check. Photographed under the project's previous name, `tuvm` [Clock]._
+
 **Native code replaces nsl code without anyone noticing.** Because every operation is a send through a vtable, a
 method is a binding from a selector to a closure, and whether that closure is interpreted or native is one field. To
 move a hot method to C, write the C and bind it: the callers, the interpreter and the image format do not change. A
@@ -139,7 +168,7 @@ setting, a new program — until the node next wakes and asks.
 
 ![What drives each divergence](img/nsl-divergence-drivers.svg)
 
-_Figure 1. Each group of divergences from Newspeak against the reason its record gives. Numbers are rows of the
+_Figure 3. Each group of divergences from Newspeak against the reason its record gives. Numbers are rows of the
 dialect ledger [Ledger]._
 
 ### 4.1 Kept
@@ -299,6 +328,8 @@ After version 0.1 that comparison should be shown, not told.
 - §7: is the agent-in-nsl versus agent-in-C comparison worth running before 0.1 is public, so that the claim is
   measured rather than argued?
 
+<div style="page-break-before: always"></div>
+
 ## Appendix A. A Thread node in 36 lines
 
 A node that joins the gateway over Thread, checks in every two seconds, publishes a log line each time, and answers
@@ -351,6 +382,19 @@ The header says what the program may touch: the platform and the network, nothin
 log, its build and its health; writing `goal/name` at the gateway reaches the node at its next check-in, and the
 answer comes back at `obs/name`.
 
+<div style="page-break-before: always"></div>
+
+## Appendix B. Binding a driver: one call, five layers
+
+![One call, five layers](img/nsl-display-binding.svg)
+
+_Figure 4. `display at: 4 col: 0 put: …` from the app down to the panel. The driver is Zephyr's (its character
+framebuffer and the uc81xx e-paper driver); what nsl adds is glue: a 13-line kernel class, four primitives, and
+the C that hands their arguments to Zephyr. The host has its own board layer, a real character grid, so the same program can be run and checked on
+the desktop before it reaches the board [Display]._
+
+<div style="page-break-before: always"></div>
+
 ## References
 
 - **[ZT10]** B. Trinkenreich, A. Lawson and H. Carter, *Zephyr Turns 10: A Decade of Adoption, Maturity, and Ecosystem
@@ -387,3 +431,6 @@ answer comes back at `obs/name`.
   deep-sleep node on its next wake.
 - **[Example]** [`ThreadSensorNode.nsl`](examples/ThreadSensorNode.nsl), cut down from
   [`PortaBridgeNodeNrf.nsl`](../../oevm/zephyr/PortaBridgeNodeNrf.nsl).
+- **[Display]** [The MagTag e-paper display design](../../../docs/design/2026-07-23-magtag-epaper-display-seam-design.md)
+  and [`MagTagDisplayNode.nsl`](../../oevm/zephyr/MagTagDisplayNode.nsl), the program Figure 4 quotes.
+- **[Clock]** [`MagTagClockNode.nsl`](../../oevm/zephyr/MagTagClockNode.nsl), the program in Figure 2.
