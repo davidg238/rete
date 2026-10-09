@@ -94,6 +94,12 @@ custos's query engine.
   the command loop, whichever link serves it (#377). A hard spin while held is bad, and an abandoned session
   needs a sensible end; both are open, and the spike's long-poll proposal is not accepted (#378). Cold-boot profile comes
   after debug (#381).
+  *Addendum 2026-10-09 (#375, built):* the shapes. `goal/debug/<app>` = `Debug{sha, breaks: [[blob off]…]}` — the
+  WHOLE set for the image `sha` names, an empty set is the detach (a cell cannot be removed, so there is no action
+  field and no tombstone); a node running another image arms nothing and answers `dbg:error sha`; a node that knows no
+  hash (a bare host run) cannot check and arms. `obs/debug` = `DebugObs{off, blob, held}`, written at every stop and on
+  continue; the stop's lines stay on `dbg/resp`. Record of truth: `protocol/PROTOCOL-NSL-RECORDS.md` §4.1; gate:
+  `nodus/oevm/tests/sleepy_debug_host.sh` leg B, manifest-armed, the sha guard broken first.
 
 ## 2. The picture
 
