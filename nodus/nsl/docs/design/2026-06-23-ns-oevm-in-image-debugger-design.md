@@ -235,6 +235,19 @@ pause prints `dbg:ready` instead of `dbg:paused pause`, and the ONE `commandLoop
 boot, breakpoint, step and pause alike — every verb works at boot. EOF in the loop now
 clears stepping (`requestStep: 0`), since the boot stop and a pause arrive as a step.
 
+## Addendum — the boot stop holds only for a transport someone is on (2026-10-09, rete#376)
+
+The 2026-10-02 addendum's "waits for its cable, with no timeout" held a hooks image at
+`dbg:ready` forever on any board nobody was on — and D19 (peer design) wants that image on
+a wall and in a drawer, debugged over porta. The boot stop stays (one loop, every verb at
+boot) and now holds only for a transport someone is on. stdin says so itself: data, or EOF.
+A board's cable cannot, so the Zephyr `platform_debug_readline` answers EOF until the first
+byte ever arrives on it, and blocks from then on; `platform_debug_enabled()` arms the
+receive path at boot so nothing sent after `dbg:ready` is lost. Still no timeout: the
+question is "has anyone spoken", never "how long". The porta link is handed to the
+debugger by the bridge at construction (no opt-in), and a stop reads whichever transport
+speaks first. Record and measurements: peer design D19, addendum 2026-10-09 (#376).
+
 **`dbg:inspect` must not kill the program.** A pause lands anywhere, and a frame's
 registers hold blocks, contexts and vtables, which answer no `printString`; `describe:`
 tells them apart by vtable identity against an exemplar and prints a bracketed note.

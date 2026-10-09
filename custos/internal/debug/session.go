@@ -154,6 +154,16 @@ func (s *Session) Running() bool {
 	return s.stopped == nil
 }
 
+// setReady: a debug image booted and may be held at its boot stop or running;
+// commands go down as to a running program, and the pause's answer settles it.
+func (s *Session) setReady() {
+	s.mu.Lock()
+	s.stopped, s.frames = nil, nil
+	s.run, s.stopV, s.framesV, s.localsV = "ready", nil, nil, nil
+	s.notify()
+	s.mu.Unlock()
+}
+
 func (s *Session) setStopped(st *stop) {
 	s.mu.Lock()
 	s.stopped = st
@@ -188,8 +198,11 @@ func (s *Session) OnLine(l string) {
 	quiet, stepping := s.quiet, s.stepping
 	s.mu.Unlock()
 	if l == "dbg:ready" {
-		s.setStopped(&stop{boot: true})
-		s.say("-- stopped at boot, before the program's first line")
+		// rete#376: a debug image booted. On a host it holds at its boot stop (stdin
+		// is a cable someone is on); on a board nobody has spoken on the cable, so it
+		// runs. The first command's pause finds out which (stopFirst).
+		s.setReady()
+		s.say("-- dbg:ready: a debug image booted; the first command stops it if it runs")
 	} else if m := pausedRE.FindStringSubmatch(l); m != nil {
 		off, _ := strconv.Atoi(m[2])
 		pc, _ := strconv.Atoi(m[3])
@@ -329,6 +342,12 @@ func (s *Session) command(line, pattern string, timeout time.Duration) ([]seen, 
 func (s *Session) stopFirst() Result {
 	if s.Running() {
 		_, r := s.command("dbg:pause", `^dbg:ok pause$`, answerWait)
+		if r.Err == "" && s.current() == nil {
+			// Answered without a dbg:paused line: the program was already held, and
+			// the only hold that announces no place is the boot stop (rete#376).
+			s.setStopped(&stop{boot: true})
+			s.say("-- stopped at boot, before the program's first line")
+		}
 		return r
 	}
 	return Result{}

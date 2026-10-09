@@ -48,7 +48,7 @@ func TestAShownStopArrivesWithItsStackAndLocals(t *testing.T) {
 		t.Fatalf("before any dbg: line the run is %q", got)
 	}
 	s.OnLine("dbg:ready")
-	until(t, s, "at boot", func(st State) bool { return st.Run == "boot" })
+	until(t, s, "ready", func(st State) bool { return st.Run == "ready" })
 	s.Do("break 37")
 	s.Do("continue")
 	st := until(t, s, "stopped with locals", func(st State) bool { return st.Locals != nil })

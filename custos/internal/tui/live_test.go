@@ -23,7 +23,7 @@ func TestLiveDebug(t *testing.T) {
 	n, _ := strconv.Atoi(line)
 	m := New(NewClient(url))
 	m.w, m.h = 140, 40
-	m = drive(t, m, m.Init(), 30*time.Second, func(m Model) bool { return len(m.src.Lines) > 0 && m.st.Run == "boot" })
+	m = drive(t, m, m.Init(), 30*time.Second, func(m Model) bool { return len(m.src.Lines) > 0 && m.st.Run == "ready" }) // rete#376: ready, then the break's pause settles boot
 	keys := slices.Repeat([]string{"down"}, n-1)
 	m, cmd := press(t, m, append(keys, "b")...)
 	m = drive(t, m, cmd, 30*time.Second, func(m Model) bool { return slices.Contains(m.st.Breaks, m.breakKey(n)) && m.inflight == "" })

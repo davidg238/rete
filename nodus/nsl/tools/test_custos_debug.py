@@ -58,7 +58,7 @@ def run():
         transcript.append(child.after.strip())
 
     try:
-        see(r"-- stopped at boot")
+        see(r"-- dbg:ready")   # rete#376: ready is "booted"; held or running is settled by the first command
         # The pause first, while nothing has held the program: a hold lets the 200 ms
         # timer queue ticks, and a queued tick prints before any pause can land.
         child.sendline("continue")
@@ -166,7 +166,7 @@ def run_http():
                     raise AssertionError(f"never {what}; last Run={st['Run']} Stop={st['Stop']}")
                 seq = st["Seq"]
 
-        until("at boot", lambda st: st["Run"] == "boot")
+        until("ready", lambda st: st["Run"] == "ready")
         d = do("break 37")
         assert d["OK"] and d["Error"] == "", d
         assert f"{src}:37" in d["State"]["Breaks"], d["State"]["Breaks"]

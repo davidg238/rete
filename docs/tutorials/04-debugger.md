@@ -75,12 +75,15 @@ custos_pid=$!
 trap 'kill $custos_pid' EXIT
 base=http://127.0.0.1:$port
 for _ in $(seq 100); do curl -sf "$base/debug/state" > /dev/null && break; sleep 0.1; done
-curl -sf "$base/debug/state" | jq -e '.Run == "boot"'
+curl -sf "$base/debug/state" | jq -e '.Run == "ready"'
 ```
 
-The program waits before its first line: a debug run always does, so you can set
-breakpoints first. That is `Run` = `boot`. (The `sleep` above waits for custos's listener
-to come up; it is the only sleep on this page.)
+A debug image announces itself with `dbg:ready`, and custos reports `Run` = `ready` until
+the first command. On the host the program is held before its first line (stdin is a cable
+someone is on), so you can set breakpoints first, and the first command's pause confirms
+it: `Run` = `boot`. On a board nobody has spoken on the cable, so the program runs and the
+first command stops it wherever it is (§7, rete#376). (The `sleep` above waits for custos's
+listener to come up; it is the only sleep on this page.)
 
 There are three endpoints:
 
@@ -92,7 +95,7 @@ There are three endpoints:
 
 `OK` is false when the command did not do what it says (a line with no code, an unknown
 word, the VM's `dbg:error`, or no answer at all), and `Error` says why. `State` holds
-`Seq` (it rises on every change), `Run` (`boot`, `running`, `stopped`, `ended`, `lost`),
+`Seq` (it rises on every change), `Run` (`ready`, `boot`, `running`, `stopped`, `ended`, `lost`),
 `Stop` (file, line, method and reason), `Frames` (the last `bt`), `Locals`, `Breaks` and
 `Transcript`, the lines a person would have seen.
 
@@ -272,8 +275,12 @@ follows the terminal's theme (rete#341).
 
 On a board the debugger is a separate image. The checks that make breakpoints possible
 cost 11.6% per bytecode and ~500 B of flash, so the normal image leaves them out. An
-image built with them is the debug image: it prints `dbg:ready` at boot and waits for
-its cable, with no timeout.
+image built with them is the debug image: it prints `dbg:ready` at boot and runs. It
+holds at boot only for a cable someone has already spoken on; a silent cable is nobody's,
+so the same image boots in a drawer, on a wall, or with custos merely collecting its
+console (rete#376). The first line sent down the cable stops the program wherever it is,
+and from then on every stop waits for you. There is no timeout: the question is whether
+anyone has spoken, never how long.
 
 1. Build and flash it with the hooks in:
    `OEVM_DEBUG_HOOKS=1 run.sh --node YourApp.nsl` (from `nodus/oevm/zephyr`, as in
@@ -288,8 +295,9 @@ its cable, with no timeout.
             --map c6=nodus/oevm/zephyr/YourApp.oimg.map.json
    ```
 
-   A board with this image waits at its boot stop until something answers it. The rest is
-   §3 to §6, over the cable. A board held at a breakpoint is not rebooted as wedged: the
+   A board with this image is running when custos opens the cable, and the first command
+   pauses it (`-- stopped (pause)`), as in the transcript below. The rest is §3 to §6, over
+   the cable. A board held at a breakpoint is not rebooted as wedged: the
    observer knows the VM is held and restarts its clock when you continue.
 
 From `c6spare`, 2026-10-05 21:48 MST, `DebugProbeC6.nsl` (a 1 s ticker whose ticks call

@@ -23,7 +23,7 @@ source terms, the stack, and named locals.
   | Field | Meaning |
   |---|---|
   | `Seq` | rises on every change |
-  | `Run` | `unknown` · `boot` · `running` · `stopped` · `ended` |
+  | `Run` | `unknown` · `ready` · `boot` · `running` · `stopped` · `ended` |
   | `Stop` | reason (`break`, `step`, …), file, line, method name, `off`, `pc` |
   | `Frames` | the last `bt` at this stop: where, file, line — innermost first |
   | `Locals` | frame N: `self` first, then name/value |
@@ -151,7 +151,7 @@ shows `error`.
 
 **Tests.**
 - `nodus/nsl/tools/test_custos_debug.py` gains an HTTP case: custos over `--debug-host`
-  with `46_debug_target`. It waits for `boot`; checks that `break 26` → `ok` with 26 in
+  with `46_debug_target`. It waits for `ready`; checks that `break 26` → `ok` with 26 in
   `Breaks`, and that a header line → `ok: false` with an error; sends `continue`; then
   long-polls on `Seq` until `stopped` at line 26, where `locals` names `sum`. To falsify
   it, break the `ok` mapping once and watch the gate go red.

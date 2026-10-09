@@ -79,7 +79,7 @@
 // Every verb URL is relative: a board's page is /board/<name>/<verb>, or /<verb> for the only board (peer design D15).
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const RUN = {unknown: 'v-unknown', boot: 'v-stalled', running: 'v-live', stopped: 'v-stalled', ended: 'v-silent', lost: 'v-silent'};
+const RUN = {unknown: 'v-unknown', ready: 'v-live', boot: 'v-stalled', running: 'v-live', stopped: 'v-stalled', ended: 'v-silent', lost: 'v-silent'};
 let src = null, last = null, here = 0, busy = false;
 
 function fail(msg) { $('error').textContent = msg; $('error').style.display = msg ? 'block' : 'none'; }

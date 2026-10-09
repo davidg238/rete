@@ -131,7 +131,7 @@ func TestRestartStartsTheSessionOverWithSeqRising(t *testing.T) {
 	s.Attach(&stubVM{s, nil})
 	s.OnLine("dbg:ready")
 	before := s.State(-1, 0)
-	if before.Run != "boot" {
+	if before.Run != "ready" {
 		t.Fatalf("%+v", before)
 	}
 	s.Restart(sm)

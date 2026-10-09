@@ -767,14 +767,56 @@ records:
   debug:
     record: Debug
     paths: ["goal/debug/<app>"]
-    status: specified
-    summary: No producer and no consumer in this tree. The live debug path is dbg/req + dbg/resp, which carry bare lines.
+    status: live
+    summary: >
+      The WHOLE breakpoint set for one program: porta replays a cell to a fresh boot,
+      so this is what a deep-sleeping node re-arms from on every wake (a dbg/req row
+      is not replayed, rete#262). The session itself stays on dbg/req + dbg/resp.
+      An empty set is the detach; there is no action field and no tombstone.
     fields:
-      - key: action
-        name: action
-        unit: symbol
+      - key: sha
+        name: sha
+        unit: bytes
+        kind: identity
+        meaning: the image hash the offsets belong to (obs/apps/<app>.image.hash)
+        validity: >
+          A node running another image arms nothing and answers `dbg:error sha` on
+          dbg/resp. A node that knows no hash (a bare host run) cannot check and arms.
+        refs: [rete#375]
+      - key: breaks
+        name: breaks
+        unit: any
         kind: config
-        meaning: "#attach or #detach"
+        meaning: "[[blob, off] …]: each breakpoint's method blob offset and pc, as dbg:break names them"
+        refs: [rete#375]
+
+  debug-obs:
+    record: DebugObs
+    paths: [obs/debug]
+    status: live
+    summary: >
+      Held, and where. Written by the node at every stop (held true, the frame's
+      blob offset and pc) and on continue (held false), so porta and the monitor
+      show a held node when no debugger is attached. Absent until the first stop.
+    fields:
+      - key: off
+        name: off
+        unit: count
+        kind: instantaneous
+        meaning: pc within the method; 0 when not held
+        refs: [rete#375]
+      - key: blob
+        name: blob
+        unit: count
+        kind: instantaneous
+        meaning: the method's blob offset; 0 when not held or in a Path A image (no blob)
+        refs: [rete#375]
+      - key: held
+        name: held
+        unit: bool
+        kind: instantaneous
+        meaning: true while the program is stopped in the debugger's command loop
+        refs: [rete#375]
 
   profile:
     record: Profile
