@@ -44,16 +44,14 @@ static void arm_sigio(void) {
 int platform_debug_readline(char *buf, int cap) {
     int n = 0;
     if (!sigio_armed) { arm_sigio(); sigio_armed = 1; }
-    debug_held = 1;
     for (;;) {
         char c;
         ssize_t r = read(fileno(stdin), &c, 1);   /* fileno, not 0: test_debugger.c swaps stdin */
-        if (r <= 0) { debug_held = 0; platform_debug_pending = 0; return -1; }
+        if (r <= 0) { platform_debug_pending = 0; return -1; }
         if (c == '\n') break;
         if (c == '\r') continue;
         if (n < cap - 1) buf[n++] = c;
     }
-    debug_held = 0;
     platform_debug_pending = 0;
     buf[n] = '\0';
     return n;
@@ -96,6 +94,7 @@ int platform_console_take_line(char *buf, int cap) {
 }
 int platform_debug_enabled(void) { return getenv("OEVM_DEBUG") != NULL; }
 int platform_debug_held(void)    { return debug_held; }
+void platform_debug_hold(int held) { debug_held = held ? 1 : 0; }   /* rete#377: the debugger's, not readline's */
 
 /* rete#118: the host's stand-in for silicon. A host VM has no factory link address, and
    host_ota runs several VMs per machine, so an interface MAC or a fixed value would give

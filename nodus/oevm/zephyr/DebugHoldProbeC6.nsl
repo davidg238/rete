@@ -1,0 +1,77 @@
+(*
+DebugHoldProbeC6 — rete#377: a stop served THROUGH PORTA, held longer than appCad, on a board.
+
+SleepyDebugNode (the #342 host twin) on the C6, over the real Thread mesh, against a
+throwaway porta instance on the gateway host (`./porta-377`, UDP 16977 — built from the
+#375 shapes; the long-running ./porta there predates them). The breakpoint is the
+`goal/debug/main` cell, `Debug{sha, breaks: [[off 0]]}` for `work:`; the stop is reported on
+dbg/resp and obs/debug, and the hold is served by the link's held exchanges, never by a
+blocking cable read.
+
+THE CLAIM UNDER TEST: a VM held by the debugger through porta is a HELD VM, not a WEDGED
+one. Before #377 `debug_held` was set only inside the cable read, so this hold reads as
+APP_STALE (observer_core.h §3.2) and the node reboots at cad x 8 = 16 s — the bridge's
+declared liveness, the same number wedge-detect fires at. After #377 the Debugger brackets
+its whole command loop with `platform debugHeld:`, whichever link serves it.
+
+expect (console): SLEEPY NODE READY, then `tick N total T held H` once per cadence; a stop
+is a gap; `held` climbing after the continue is the proof the hold was served by the link.
+Run: OEVM_DEBUG_HOOKS=1 run.sh --node DebugHoldProbeC6.nsl \
+       --conf-extra "prj_esp32c6_thread.conf;prj_esp32c6_thread_ftd.conf" --flash
+*)
+class DebugHoldProbeC6 usingPlatform: platform net: net = (
+  | space bridge timers ticks ::= 0. total ::= 0. |
+) (
+  nodeId    = ( ^ platform nodeId )
+  (* gw85224-01's mesh-local EID, as every bridged C6 image addresses it. *)
+  gwAddr    = ( ^ 'fdc5:9109:9afe:97ea:9541:d963:f8d9:8567' )
+  gwPort    = ( ^ 16977 )   (* the #377 injector; 6969 is the real gateway *)
+  localPort = ( ^ 16976 )
+  (* 2 s: the bench cadence, so the declared liveness is the familiar 16 s. *)
+  cadence   = ( ^ 2000 )
+  chip      = ( ^ #esp32c6 )
+
+  public main: platform2 args: args = (
+    | sock tickChan |
+    space:: platform space.
+    sock:: net udpBindPort: self localPort.
+    sock == nil ifTrue: [ 'bind' println. ^ 1 ].
+    bridge:: platform PortaBridge
+      socket: sock space: space id: self nodeId peer: self gwAddr port: self gwPort
+      spans: platform Spans new.
+    bridge subscribeStream: 'tel/log'.
+    bridge liveness: self cadence misses: 8.
+    bridge publishBuild: self chip.
+    timers:: platform timers.
+    space whenever: 'sys/timer' do: [ :e | timers dispatch: e ].
+    tickChan:: space channel: 'sys/tick'.
+    tickChan whenever: '' do: [ :m | self tick ].
+    bridge startTicking: timers on: tickChan.
+    'SLEEPY NODE READY' println.
+    [ true ] whileTrue: [
+      platform pumpEvents.
+      space drain ].
+    ^ 0
+  )
+
+  tick = (
+    | line |
+    ticks:: ticks + 1.
+    bridge checkIn.
+    total:: self work: ticks.
+    line:: 'tick ' , ticks printString , ' total ' , total printString , ' held ' , bridge heldExchanges printString.
+    line println.
+    space out: 'tel/log' value:
+      (platform Record tag: #Log with: #lvl -> #info with: #txt -> line).
+    ^ self
+  )
+
+  (* The breakpoint's home. A local and an argument, so a stop has names to show. *)
+  work: n = (
+    | sum |
+    sum:: total + n.
+    ^ sum
+  )
+) : (
+  public packageUsing: manifest = ( ^ self new )
+)

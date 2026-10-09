@@ -1463,6 +1463,13 @@ int platform_dispatch(int pid, int argc, oop *args, oop *out) {
         *out = space_make_string_pub(id, n);
         return 1;
     }
+    case PRIM_pf_debugHeld:            /* rete#377: platform_backend.h platform_debug_hold */
+        /* is_truthy(), not `== true_symbol`: the Debugger sends a LITERAL `true`, which is
+           the image's own Symbol, not the VM's singleton (the gpioSet: precedent below, and
+           tests/22_spacesync/29_debug_held.nsl). An identity compare here read every hold
+           as a release, and c6spare rebooted at appCad three times with the "fix" in. */
+        platform_debug_hold(is_truthy(args[0]));
+        { *out = platform_debug_held() ? true_symbol : false_symbol; return 1; }
     case PRIM_pf_consoleLine: {        /* rete#312 Q1: platform_backend.h */
         static int armed = -1;         /* -1: not yet asked; 0: cannot; 1: armed */
         char buf[512];

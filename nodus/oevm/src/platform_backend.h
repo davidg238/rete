@@ -31,11 +31,22 @@ int platform_debug_readline(char *buf, int cap);
    Supervisor is transparent. One switch, not two: the hooks are useless without the
    loop and the loop is useless without the hooks.
 
-   platform_debug_held: is the VM blocked in platform_debug_readline right now? Read
-   by the liveness observer every sample (zephyr/src/observer.c): a held VM stops the
-   pulse feed exactly as a wedge does, and this is what tells them apart. */
+   platform_debug_hold / platform_debug_held: is the VM HELD BY THE DEBUGGER right now?
+   Read by the liveness observer every sample (zephyr/src/observer.c): a held VM stops
+   the pulse feed exactly as a wedge does, and this is what tells them apart. The
+   receive paths read it too: a line arriving while held is not a pause request, the
+   command loop is already reading lines in order.
+   rete#377: the DEBUGGER owns this flag, not the read. It was set inside
+   platform_debug_readline, so only a cable-served hold was a hold; a stop served
+   through porta (the loop runs held exchanges between lines, never blocking in
+   readline) read as APP_STALE and the node rebooted at appCad — measured on c6spare,
+   16 s after the breakpoint, every boot. Now the Supervisor's Debugger sets it before
+   its command loop and clears it on the continue (`platform debugHeld:`), whichever
+   transport serves the stop; stepping stays held until the continue. The readline
+   itself writes nothing here. */
 int platform_debug_enabled(void);
 int platform_debug_held(void);
+void platform_debug_hold(int held);
 
 /* rete#311 — dbg:pause. Set when a line ARRIVES on the debug transport while the VM
    is not held in platform_debug_readline; cleared when readline consumes a line. The

@@ -567,4 +567,11 @@
    send arms the announcements on `sys/console` (platform_backend.h). Never blocks.
    Appended after boardName; 160 by COUNTING PRIM_NAMES (159 entries before this). */
 #define PRIM_pf_consoleLine       160
+/* rete#377: `debugHeld:` — the debugger tells the observer it holds the VM: true before
+   its command loop, false on the continue, whichever transport serves the stop
+   (platform_backend.h platform_debug_hold). Appended after consoleLine; 161 by
+   COUNTING PRIM_NAMES (160 entries before this). Platform-dispatched. The argument is
+   read with is_truthy (a literal `true` is the image's own Symbol). Answers the stored
+   state as a Boolean, so a test can see what the observer will read. */
+#define PRIM_pf_debugHeld         161
 #endif /* OEVM_PRIM_IDS_H */

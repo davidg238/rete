@@ -102,9 +102,21 @@ class Supervisor usingMirror: mirror = () (
     public wake = ( m requestStep: 1. ^ self )
     (* rete#375: held, and where — the link publishes obs/debug; the cable has no
        cell to write, so with no link these are nothing. Written at every stop and
-       on continue; a step pauses again and rewrites the where. *)
-    held: blob at: off = ( link == nil ifFalse: [ link held: blob at: off ]. ^ self )
-    resumed = ( link == nil ifFalse: [ link resumed ]. ^ self )
+       on continue; a step pauses again and rewrites the where.
+       rete#377: and the VM is told, FIRST, whichever transport serves the stop — the
+       liveness observer reads the flag every sample, and before this it was set only
+       inside the cable read, so a stop held through porta (the loop below runs held
+       exchanges between lines and never blocks in the read) counted as a wedge and
+       the node rebooted at appCad. The hold brackets the whole command loop: set
+       here, cleared on the continue; a step pauses again before anything clears it. *)
+    held: blob at: off = (
+      io debugHeld: true.
+      link == nil ifFalse: [ link held: blob at: off ].
+      ^ self )
+    resumed = (
+      io debugHeld: false.
+      link == nil ifFalse: [ link resumed ].
+      ^ self )
 
     (* Parse a non-negative integer from a String of ASCII digits (no asInteger
        in this dialect): n:: n*10 + (byte - 48). Empty string answers 0. *)

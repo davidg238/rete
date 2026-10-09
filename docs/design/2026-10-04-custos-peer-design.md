@@ -111,6 +111,16 @@ custos's query engine.
   a1d8ff4 image sat at `dbg:ready` for 28 s with the collector reading; the fixed image ticked 4 ms after
   `dbg:ready`, and a scripted `custos debug` over the same cable paused it in `pumpEvents`, broke in `countTo:`
   and resumed (issue #376). Hole, filed: the polled USB-CDC console cannot stop a running image from the cable (#387).
+  *Addendum 2026-10-09 (#377, built):* the held state brackets the command loop. The observer's `held` was set only
+  inside the cable read, so a stop served through porta — the loop runs held exchanges between lines and never blocks
+  in the read — scored APP_STALE and the node rebooted at appCad. Now the Supervisor's Debugger owns the flag: `platform
+  debugHeld: true` before its command loop (every stop: boot, pause, break, step), `false` on the continue; the readlines
+  write nothing (`platform_debug_hold`, one writer, prim 161). Measured on `c6spare`, `DebugHoldProbeC6` against a
+  `porta-377` injector over Thread, the `goal/debug/main` cell arming `work:`: before, `WEDGE cond=app-stale
+  deadline=16000ms` 16.7 s after `dbg:paused break`, every boot, until the three-fault HALT; after, held 97 s (6 × appCad)
+  with no verdict, `obs/debug` held true throughout, `dbg:ok clear` and ticks on the detach, 1488 held exchanges run.
+  The first build compared the argument `== true_symbol` and rebooted exactly as before: a literal `true` is the image's
+  own Symbol, not the VM's singleton — `is_truthy`, and `tests/22_spacesync/29_debug_held.nsl` sends the literal.
 
 ## 2. The picture
 
