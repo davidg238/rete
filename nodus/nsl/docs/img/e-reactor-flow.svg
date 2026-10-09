@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="730" viewBox="0 0 760 730" font-family="Helvetica, Arial, sans-serif">
+<rect width="760" height="730" fill="#ffffff"/>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#444"/></marker></defs>
+<text x="24" y="34" font-size="21" font-weight="bold" fill="#111">The reactor: how an event becomes a reaction</text>
+<text x="24" y="56" font-size="13" fill="#555">Blue runs on the VM thread; green is C; grey is the interrupt; solid arrows are control flow.</text>
+<rect x="40" y="76" width="388" height="40" rx="8" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="54" y="101" font-size="15" font-weight="bold" fill="#111">Timer ISR</text>
+<polyline points="234,116 234,150" fill="none" stroke="#444" stroke-width="2" marker-end="url(#a)"/>
+<text x="244" y="138" font-size="12.5" fill="#333">posts</text>
+<rect x="40" y="152" width="388" height="46" rx="8" fill="#fff4dc" stroke="#d4a72c" stroke-width="1.5"/>
+<text x="54" y="173" font-size="15" font-weight="bold" fill="#111">Mailbox (pulse)</text>
+<text x="54" y="190" font-size="12.5" fill="#333">the reactor blocks here when idle</text>
+<polyline points="234,198 234,232" fill="none" stroke="#444" stroke-width="2" marker-end="url(#a)"/>
+<text x="244" y="220" font-size="12.5" fill="#333">wakes</text>
+<rect x="40" y="234" width="388" height="436" rx="8" fill="#fafafa" stroke="#6b7280" stroke-width="1.5"/>
+<text x="54" y="258" font-size="16" font-weight="bold" fill="#111">The reactor (on the VM thread)</text>
+<rect x="56" y="276" width="356" height="68" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
+<text x="68" y="298" font-size="15" font-weight="bold" fill="#111">A write to a path in the space</text>
+<text x="68" y="318" font-size="12.5" fill="#333">sys/timer, sys/tick, or goal/name</text>
+<text x="68" y="335" font-size="12.5" fill="#333">arriving from the gateway</text>
+<polyline points="234,344 234,376" fill="none" stroke="#444" stroke-width="2" marker-end="url(#a)"/>
+<rect x="56" y="378" width="356" height="68" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
+<text x="68" y="400" font-size="15" font-weight="bold" fill="#111">Reactions are queued</text>
+<text x="68" y="420" font-size="12.5" fill="#333">those registered on that path</text>
+<text x="68" y="437" font-size="12.5" fill="#333">with whenever:do:</text>
+<polyline points="234,446 234,478" fill="none" stroke="#444" stroke-width="2" marker-end="url(#a)"/>
+<rect x="56" y="480" width="356" height="68" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
+<text x="68" y="502" font-size="15" font-weight="bold" fill="#111">Run one at a time</text>
+<text x="68" y="522" font-size="12.5" fill="#333">each reaction runs to completion</text>
+<text x="68" y="539" font-size="12.5" fill="#333">before the next begins</text>
+<polyline points="234,548 234,580" fill="none" stroke="#444" stroke-width="2" marker-end="url(#a)"/>
+<text x="244" y="570" font-size="12.5" fill="#333">if one fails</text>
+<rect x="56" y="582" width="356" height="68" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
+<text x="68" y="604" font-size="15" font-weight="bold" fill="#111">The supervisor catches it</text>
+<text x="68" y="624" font-size="12.5" fill="#333">the job is restarted or quarantined;</text>
+<text x="68" y="641" font-size="12.5" fill="#333">the heap and the reactor keep running</text>
+<rect x="484" y="276" width="252" height="102" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
+<text x="496" y="298" font-size="15" font-weight="bold" fill="#111">Gateway bridge (nsl kernel)</text>
+<text x="496" y="318" font-size="12.5" fill="#333">exchanges with porta over UDP</text>
+<text x="496" y="338" font-size="12.5" fill="#333">writes goal/... into the space,</text>
+<text x="496" y="355" font-size="12.5" fill="#333">reads obs/... and tel/... out</text>
+<polyline points="484,310 412,310" fill="none" stroke="#444" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<rect x="484" y="440" width="252" height="122" rx="8" fill="#ecfdf5" stroke="#34a853" stroke-width="1.5"/>
+<text x="496" y="462" font-size="15" font-weight="bold" fill="#111">Liveness observer</text>
+<text x="496" y="482" font-size="12.5" fill="#333">a C thread beside the VM</text>
+<text x="496" y="502" font-size="12.5" fill="#333">judges progress against the</text>
+<text x="496" y="519" font-size="12.5" fill="#333">shortest declared timer period</text>
+<polyline points="484,500 428,500" fill="none" stroke="#444" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<polyline points="610,562 610,598" fill="none" stroke="#444" stroke-width="2" marker-end="url(#a)"/>
+<text x="620" y="584" font-size="12.5" fill="#333">if wedged</text>
+<rect x="484" y="600" width="252" height="70" rx="8" fill="#fdeaea" stroke="#d98c8c" stroke-width="1.5"/>
+<text x="496" y="622" font-size="15" font-weight="bold" fill="#111">The node is dumped</text>
+<text x="496" y="642" font-size="12.5" fill="#333">then rebooted, and leaves</text>
+<text x="496" y="659" font-size="12.5" fill="#333">a note</text>
+</svg>

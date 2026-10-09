@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="540" viewBox="0 0 760 540" font-family="Helvetica, Arial, sans-serif">
+<rect width="760" height="540" fill="#ffffff"/>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#444"/></marker></defs>
+<text x="24" y="34" font-size="21" font-weight="bold" fill="#111">The agent loop: write, run, load, probe</text>
+<text x="24" y="56" font-size="13" fill="#555">Yellow boxes are custos HTTP calls. The loop returns to writing.</text>
+<rect x="24" y="84" width="210" height="104" rx="8" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="36" y="108" font-size="15" font-weight="bold" fill="#111">1 Write</text>
+<text x="36" y="130" font-size="12.5" fill="#333">an agent (or a person)</text>
+<text x="36" y="147" font-size="12.5" fill="#333">writes nsl source</text>
+<rect x="275" y="84" width="210" height="104" rx="8" fill="#fff4dc" stroke="#d4a72c" stroke-width="1.5"/>
+<text x="287" y="108" font-size="15" font-weight="bold" fill="#111">2 Run on the host VM</text>
+<text x="287" y="130" font-size="12.5" fill="#333">POST /run</text>
+<text x="287" y="147" font-size="12.5" fill="#333">same program, host</text>
+<text x="287" y="164" font-size="12.5" fill="#333">board layer</text>
+<rect x="526" y="84" width="210" height="104" rx="8" fill="#fff4dc" stroke="#d4a72c" stroke-width="1.5"/>
+<text x="538" y="108" font-size="15" font-weight="bold" fill="#111">3 Read the answer</text>
+<text x="538" y="130" font-size="12.5" fill="#333">as JSON</text>
+<polyline points="234,136 273,136" fill="none" stroke="#444" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="485,136 524,136" fill="none" stroke="#444" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="631,188 631,330" fill="none" stroke="#444" stroke-width="2" marker-end="url(#a)"/>
+<rect x="526" y="332" width="210" height="104" rx="8" fill="#fff4dc" stroke="#d4a72c" stroke-width="1.5"/>
+<text x="538" y="356" font-size="15" font-weight="bold" fill="#111">4 Load to the device</text>
+<text x="538" y="378" font-size="12.5" fill="#333">POST /load, no reflash</text>
+<text x="538" y="395" font-size="12.5" fill="#333">the node reports the</text>
+<text x="538" y="412" font-size="12.5" fill="#333">program's hash</text>
+<rect x="275" y="332" width="210" height="130" rx="8" fill="#fff4dc" stroke="#d4a72c" stroke-width="1.5"/>
+<text x="287" y="356" font-size="15" font-weight="bold" fill="#111">5 Probe the node</text>
+<text x="287" y="378" font-size="12.5" fill="#333">debug: /debug/do</text>
+<text x="287" y="395" font-size="12.5" fill="#333">profile: /profile/capture</text>
+<text x="287" y="412" font-size="12.5" fill="#333">log</text>
+<text x="287" y="429" font-size="12.5" fill="#333">panics</text>
+<polyline points="526,384 487,384" fill="none" stroke="#444" stroke-width="2" marker-end="url(#a)"/>
+<rect x="24" y="332" width="210" height="104" rx="8" fill="#e8f0fb" stroke="#9db7dd" stroke-width="1.5"/>
+<text x="36" y="356" font-size="15" font-weight="bold" fill="#111">6 A source line</text>
+<text x="36" y="378" font-size="12.5" fill="#333">every answer names one,</text>
+<text x="36" y="395" font-size="12.5" fill="#333">via the image map</text>
+<text x="36" y="412" font-size="12.5" fill="#333">(.stmap)</text>
+<polyline points="275,384 236,384" fill="none" stroke="#444" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="129,332 129,190" fill="none" stroke="#444" stroke-width="2" marker-end="url(#a)"/>
+<text x="139" y="266" font-size="12.5" fill="#333">back to writing</text>
+<text x="380" y="236" font-size="15" font-weight="bold" fill="#111" text-anchor="middle">Every step is an HTTP call</text>
+<text x="380" y="256" font-size="15" font-weight="bold" fill="#111" text-anchor="middle">that answers in data</text>
+<rect x="24" y="486" width="712" height="34" rx="8" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text x="380" y="508" font-size="13" fill="#333" text-anchor="middle">Total time around the loop: not measured</text>
+</svg>
