@@ -140,3 +140,25 @@ not trust it. This paper concedes costs first and labels every piece that is des
 1. Agent first is split by question: L asks whether the language suits an agent, E whether you can trust what one wrote.
 2. The Thread node stays an appendix in E; the body quotes an excerpt.
 3. L carries the full grammar as an appendix.
+
+## Addendum 2026-10-09 — E is a report, L claims nothing new
+
+David, 2026-10-09: "I am tired of trying to win the 'why would you use an OO language in an embedded system'
+argument." Decisions, applied in E draft 2 and L draft 4 (`cab20da`, `69a358b`):
+
+1. **E is a report, not a defence**: what was built, why, the benefits, the limitations, how it tries to improve
+   the develop → deploy → manage lifecycle. The OO argument is not made; it is *cited* — Clohessy, Real-Time
+   Engineering, Fall 1996 (OTI/IBM), with Barry OOPSLA '89 as the earlier record — and E's §2 states the lineage as
+   "the 1996 answer, with the liveness moved off the node". The frame is the July deck's obstacle course (chip,
+   drivers, software, deployment, maintenance; Zephyr removes the first two).
+2. **Two measurements side by side** (E §3): rung #61's "the VM is at parity with the sensor read; GC inside the
+   mean, not the tail" (network half labelled provisional, #65) beside the CBOR encoder, where the cost is real.
+3. **MicroPython is the comparator, written straight**, never a foil; the measurement is #383. The status sentence
+   names the desk half built and the field half designed, and the 2026-10-09 rollout decision that 0.1 ships when
+   the field half is built.
+4. **L's bar**: an audience of three (Newspeak and VM people); solid, not exceptional; nothing new — an engineering
+   account of fitting known techniques into what Zephyr leaves of 256 KB. L §2.1 answers the practical question:
+   three kinds of C (primitive, native method, nsl source), the boundaries, why no FFI.
+5. **E's Appendix A becomes the ship's bell twice** — the wall C6 always-on and the MagTag deep-sleep bells, cut
+   from the bridged, CRC-factored demo programs when #380 and #379 land; the unrun Thread node leaves then. Not
+   before: the appendix must show the node talking to porta.

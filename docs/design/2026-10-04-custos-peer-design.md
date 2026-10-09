@@ -429,6 +429,18 @@ Answered by David, 2026-10-04:
 
 Then the remote stage: F1, porta's HTTP interface, and the sleepy-node demo (D9).
 
+*Addendum 2026-10-09 (David, recorded on tracker #26):* **version 0.1 is defined** as one
+node, every verb — load, debug, patch, profile — through porta, over the radio, while it
+sleeps: #380 (the wall-powered ShipsBell C6, always-on) and #379 (the MagTag ship's bell,
+deep-sleep) with #375–#377 and program OTA (#233) inside them. Nobody is waiting for 0.1,
+so a hole the papers expose is built before release, never labelled "designed"; everything
+off that path is P3 for 0.1 (#384, a third node, waits). The two demo programs are written
+factored by Class–Responsibility–Collaboration — a short `main:` that reads as intent over
+classes that own one responsibility each, authority in the header (ledger row 32 in use),
+invariant comments travelling with their class, image and arena deltas measured (notes on
+#379, #380). The reason, David: substituting nsl for C line by line is a losing
+proposition; the lifecycle and the factoring are the value.
+
 ## 7. On adoption: what changes
 
 - `CLAUDE.md`: the tree map and the "being in one repo" paragraph (three peers).
